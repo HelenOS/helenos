@@ -48,8 +48,6 @@ typedef enum {
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
 	SERVICE_NETWORKING = FOURCC('n', 'e', 't', ' '),
-	SERVICE_LO         = FOURCC('l', 'o', ' ', ' '),
-	SERVICE_NE2000     = FOURCC('n', 'e', '2', 'k'),
 	SERVICE_ETHERNET   = FOURCC('e', 't', 'h', ' '),
 	SERVICE_NILDUMMY   = FOURCC('n', 'i', 'l', 'd'),
 	SERVICE_IP         = FOURCC('i', 'p', 'v', '4'),

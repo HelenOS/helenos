@@ -53,11 +53,10 @@ static ddf_dev_ops_t mid_device_ops = {
  * @param interface_no Interface number caller is looking for.
  * @return Interface @p interface_no is already present in the list.
  */
-static bool interface_in_list(list_t *list, int interface_no)
+static bool interface_in_list(const list_t *list, int interface_no)
 {
 	list_foreach(*list, l) {
-		usbmid_interface_t *iface
-		    = list_get_instance(l, usbmid_interface_t, link);
+		usbmid_interface_t *iface = usbmid_interface_from_link(l);
 		if (iface->interface_no == interface_no) {
 			return true;
 		}
@@ -72,58 +71,54 @@ static bool interface_in_list(list_t *list, int interface_no)
  * @param config_descriptor_size Size of configuration descriptor in bytes.
  * @param list List where to add the interfaces.
  */
-static void create_interfaces(uint8_t *config_descriptor,
+static void create_interfaces(const uint8_t *config_descriptor,
     size_t config_descriptor_size, list_t *list)
 {
-	usb_dp_parser_data_t data = {
+	const usb_dp_parser_data_t data = {
 		.data = config_descriptor,
 		.size = config_descriptor_size,
 		.arg = NULL
 	};
 
-	usb_dp_parser_t parser = {
+	static const usb_dp_parser_t parser = {
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
 
-	uint8_t *interface_ptr = usb_dp_get_nested_descriptor(&parser, &data,
-	    data.data);
-	if (interface_ptr == NULL) {
-		return;
-	}
+	const uint8_t *interface_ptr =
+	    usb_dp_get_nested_descriptor(&parser, &data, config_descriptor);
 
-	do {
-		if (interface_ptr[1] != USB_DESCTYPE_INTERFACE) {
-			goto next_descriptor;
-		}
+	/* Walk all descriptors nested in the current configuration decriptor;
+	 * i.e. all interface descriptors. */
+	for (;interface_ptr != NULL;
+	    interface_ptr = usb_dp_get_sibling_descriptor(
+	        &parser, &data, config_descriptor, interface_ptr))
+	{
+		/* The second byte is DESCTYPE byte in all desriptors. */
+		if (interface_ptr[1] != USB_DESCTYPE_INTERFACE)
+			continue;
 
-		usb_standard_interface_descriptor_t *interface
+		const usb_standard_interface_descriptor_t *interface
 		    = (usb_standard_interface_descriptor_t *) interface_ptr;
 
 		/* Skip alternate interfaces. */
-		if (!interface_in_list(list, interface->interface_number)) {
-			usbmid_interface_t *iface
-			    = malloc(sizeof(usbmid_interface_t));
-			if (iface == NULL) {
-				break;
-			}
-			link_initialize(&iface->link);
-			iface->fun = NULL;
-			iface->interface_no = interface->interface_number;
-			iface->interface = interface;
-
-			list_append(&iface->link, list);
+		if (interface_in_list(list, interface->interface_number)) {
+			/* TODO: add the alternatives and create match ids
+			 * for them. */
+			continue;
+		}
+		usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
+		if (iface == NULL) {
+			//TODO: Do something about that failure.
+			break;
 		}
 
-		/* TODO: add the alternatives and create match ids from them
-		 * as well.
-		 */
+		link_initialize(&iface->link);
+		iface->fun = NULL;
+		iface->interface_no = interface->interface_number;
+		iface->interface = interface;
 
-next_descriptor:
-		interface_ptr = usb_dp_get_sibling_descriptor(&parser, &data,
-		    data.data, interface_ptr);
-
-	} while (interface_ptr != NULL);
-
+		list_append(&iface->link, list);
+	}
 }
 
 /** Explore MID device.
@@ -138,20 +133,21 @@ bool usbmid_explore_device(usb_device_t *dev)
 {
 	int rc;
 
-	int dev_class = dev->descriptors.device.device_class;
+	unsigned dev_class = dev->descriptors.device.device_class;
 	if (dev_class != USB_CLASS_USE_INTERFACE) {
 		usb_log_warning(
-		    "Device class: %d (%s), but expected class 0.\n",
-		    dev_class, usb_str_class(dev_class));
+		    "Device class: %u (%s), but expected class %u.\n",
+		    dev_class, usb_str_class(dev_class),
+		    USB_CLASS_USE_INTERFACE);
 		usb_log_error("Not multi interface device, refusing.\n");
 		return false;
 	}
 
-	/* Short cuts to save on typing ;-). */
-	uint8_t *config_descriptor_raw = dev->descriptors.configuration;
+	/* Shortcuts to save on typing ;-). */
+	const void *config_descriptor_raw = dev->descriptors.configuration;
 	size_t config_descriptor_size = dev->descriptors.configuration_size;
-	usb_standard_configuration_descriptor_t *config_descriptor =
-	    (usb_standard_configuration_descriptor_t *) config_descriptor_raw;
+	const usb_standard_configuration_descriptor_t *config_descriptor =
+	    config_descriptor_raw;
 
 	/* Select the first configuration */
 	rc = usb_request_set_configuration(&dev->ctrl_pipe,
@@ -162,34 +158,42 @@ bool usbmid_explore_device(usb_device_t *dev)
 		return false;
 	}
 
-	/* Create control function */
-	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
-	if (ctl_fun == NULL) {
+	/* Create driver soft-state. */
+	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
+	if (!usb_mid) {
+		usb_log_error("Failed to create USB MID structure.\n");
+		return false;
+	}
+
+	/* Create control function. */
+	usb_mid->ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
+	if (usb_mid->ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
 		return false;
 	}
+	usb_mid->ctl_fun->ops = &mid_device_ops;
 
-	ctl_fun->ops = &mid_device_ops;
-
-	rc = ddf_fun_bind(ctl_fun);
+	/* Bind control function. */
+	rc = ddf_fun_bind(usb_mid->ctl_fun);
 	if (rc != EOK) {
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
+		ddf_fun_destroy(usb_mid->ctl_fun);
 		return false;
 	}
 
-	/* Create interface children. */
-	list_t interface_list;
-	list_initialize(&interface_list);
-	create_interfaces(config_descriptor_raw, config_descriptor_size,
-	    &interface_list);
 
-	list_foreach(interface_list, link) {
-		usbmid_interface_t *iface = list_get_instance(link,
-		    usbmid_interface_t, link);
+	/* Create interface children. */
+	list_initialize(&usb_mid->interface_list);
+	create_interfaces(config_descriptor_raw, config_descriptor_size,
+	    &usb_mid->interface_list);
+
+	/* Start child function for every interface. */
+	list_foreach(usb_mid->interface_list, link) {
+		usbmid_interface_t *iface = usbmid_interface_from_link(link);
 
 		usb_log_info("Creating child for interface %d (%s).\n",
-		    (int) iface->interface_no,
+		    iface->interface_no,
 		    usb_str_class(iface->interface->interface_class));
 
 		rc = usbmid_spawn_interface_child(dev, iface,

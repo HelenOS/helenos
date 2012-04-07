@@ -30,11 +30,12 @@
  * @{
  */
 
+#include <align.h>
 #include "mfs.h"
 
 static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
-	      bool write_mode, uint32_t w_block);
+    bool write_mode, uint32_t w_block);
 
 static int
 reset_zone_content(struct mfs_instance *inst, uint32_t zone);
@@ -66,11 +67,11 @@ mfs_read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
 	const int block_size = sbi->block_size;
 
-	/*Compute relative block number in file*/
+	/* Compute relative block number in file */
 	int rblock = pos / block_size;
 
-	if (mnode->ino_i->i_size < pos) {
-		/*Trying to read beyond the end of file*/
+	if (ROUND_UP(mnode->ino_i->i_size, sbi->block_size) < pos) {
+		/* Trying to read beyond the end of file */
 		r = EOK;
 		*b = 0;
 		goto out;
@@ -83,16 +84,16 @@ out:
 
 int
 mfs_write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
-	  uint32_t *old_zone)
+    uint32_t *old_zone)
 {
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
 
 	if (pos >= sbi->max_file_size) {
-		/*Can't write beyond the maximum file size*/
+		/* Can't write beyond the maximum file size */
 		return EINVAL;
 	}
 
-	/*Compute the relative block number in file*/
+	/* Compute the relative block number in file */
 	int rblock = pos / sbi->block_size;
 
 	return rw_map_ondisk(old_zone, mnode, rblock, true, new_zone);
@@ -100,7 +101,7 @@ mfs_write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
 
 static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
-	      bool write_mode, uint32_t w_block)
+    bool write_mode, uint32_t w_block)
 {
 	int r, nr_direct;
 	int ptrs_per_block;
@@ -121,7 +122,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		ptrs_per_block = sbi->block_size / sizeof(uint32_t);
 	}
 
-	/*Check if the wanted block is in the direct zones*/
+	/* Check if the wanted block is in the direct zones */
 	if (rblock < nr_direct) {
 		*b = ino_i->i_dzone[rblock];
 		if (write_mode) {
@@ -134,7 +135,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	rblock -= nr_direct;
 
 	if (rblock < ptrs_per_block) {
-		/*The wanted block is in the single indirect zone chain*/
+		/* The wanted block is in the single indirect zone chain */
 		if (ino_i->i_izone[0] == 0) {
 			if (write_mode && !deleting) {
 				uint32_t zone;
@@ -145,7 +146,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
 			} else {
-				/*Sparse block*/
+				/* Sparse block */
 				*b = 0;
 				return EOK;
 			}
@@ -166,9 +167,9 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 
 	rblock -= ptrs_per_block;
 
-	/*The wanted block is in the double indirect zone chain*/
+	/* The wanted block is in the double indirect zone chain */
 
-	/*read the first indirect zone of the chain*/
+	/* Read the first indirect zone of the chain */
 	if (ino_i->i_izone[1] == 0) {
 		if (write_mode && !deleting) {
 			uint32_t zone;
@@ -179,7 +180,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			ino_i->i_izone[1] = zone;
 			ino_i->dirty = true;
 		} else {
-			/*Sparse block*/
+			/* Sparse block */
 			*b = 0;
 			return EOK;
 		}
@@ -190,12 +191,12 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		return r;
 
 	/*
-	 *Compute the position of the second indirect
-	 *zone pointer in the chain.
+	 * Compute the position of the second indirect
+	 * zone pointer in the chain.
 	 */
 	uint32_t ind2_off = rblock / ptrs_per_block;
 
-	/*read the second indirect zone of the chain*/
+	/* read the second indirect zone of the chain */
 	if (ind_zone[ind2_off] == 0) {
 		if (write_mode && !deleting) {
 			uint32_t zone;
@@ -206,7 +207,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			ind_zone[ind2_off] = zone;
 			write_ind_zone(inst, ino_i->i_izone[1], ind_zone);
 		} else {
-			/*Sparse block*/
+			/* Sparse block */
 			r = EOK;
 			*b = 0;
 			goto out_free_ind1;
@@ -231,7 +232,7 @@ out_free_ind1:
 	return r;
 }
 
-/**Free unused indirect zones from a MINIX inode according to it's new size.
+/**Free unused indirect zones from a MINIX inode according to its new size.
  *
  * @param mnode		Pointer to a generic MINIX inode in memory.
  * @param new_size	The new size of the inode.
@@ -262,7 +263,7 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	rblock = new_size / sbi->block_size;
 
 	if (rblock < nr_direct) {
-		/*free the single indirect zone*/
+		/* Free the single indirect zone */
 		if (ino_i->i_izone[0]) {
 			r = mfs_free_zone(inst, ino_i->i_izone[0]);
 			if (r != EOK)
@@ -280,11 +281,11 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	if ((fzone_to_free % ptrs_per_block) != 0)
 		++fzone_to_free;
 
-	/*free the entire double indirect zone*/
+	/* Free the entire double indirect zone */
 	uint32_t *dbl_zone;
 
 	if (ino_i->i_izone[1] == 0) {
-		/*Nothing to be done*/
+		/* Nothing to be done */
 		return EOK;
 	}
 
@@ -348,7 +349,7 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 	unsigned i;
 	block_t *b;
 	const int max_ind_zone_ptrs = (MFS_MAX_BLOCKSIZE / sizeof(uint16_t)) *
-				      sizeof(uint32_t);
+	    sizeof(uint32_t);
 
 	*ind_zone = malloc(max_ind_zone_ptrs);
 	if (*ind_zone == NULL)

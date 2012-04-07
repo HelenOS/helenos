@@ -36,44 +36,67 @@
 #define LIBUSBHOST_HOST_HCD_H
 
 #include <assert.h>
+#include <usbhc_iface.h>
+
 #include <usb/host/usb_device_manager.h>
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/usb_transfer_batch.h>
-#include <usbhc_iface.h>
 
 typedef struct hcd hcd_t;
 
+/** Generic host controller driver structure. */
 struct hcd {
+	/** Device manager storing handles and addresses. */
 	usb_device_manager_t dev_manager;
+	/** Endpoint manager. */
 	usb_endpoint_manager_t ep_manager;
-	void *private_data;
 
+	/** Device specific driver data. */
+	void *private_data;
+	/** Transfer scheduling, implement in device driver. */
 	int (*schedule)(hcd_t *, usb_transfer_batch_t *);
+	/** Hook called upon registering new endpoint. */
 	int (*ep_add_hook)(hcd_t *, endpoint_t *);
+	/** Hook called upon removing of an endpoint. */
+	void (*ep_remove_hook)(hcd_t *, endpoint_t *);
 };
 /*----------------------------------------------------------------------------*/
-static inline int hcd_init(hcd_t *hcd, size_t bandwidth,
+/** Initialize hcd_t structure.
+ * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
+ * @param hcd hcd_t structure to initialize, non-null.
+ * @param bandwidth Available bandwidth, passed to endpoint manager.
+ * @param bw_count Bandwidth compute function, passed to endpoint manager.
+ */
+static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
     size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(hcd);
-	usb_device_manager_init(&hcd->dev_manager);
-	return usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
+	usb_device_manager_init(&hcd->dev_manager, max_speed);
+	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
+	hcd->private_data = NULL;
+	hcd->schedule = NULL;
+	hcd->ep_add_hook = NULL;
+	hcd->ep_remove_hook = NULL;
 }
 /*----------------------------------------------------------------------------*/
-static inline void hcd_destroy(hcd_t *hcd)
-{
-	usb_endpoint_manager_destroy(&hcd->ep_manager);
-}
-/*----------------------------------------------------------------------------*/
-static inline void reset_ep_if_need(
-    hcd_t *hcd, usb_target_t target, const char* setup_data)
+/** Check registered endpoints and reset toggle bit if necessary.
+ * @param hcd hcd_t structure, non-null.
+ * @param target Control communication target.
+ * @param setup_data Setup packet of the control communication.
+ */
+static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
+    const char setup_data[8])
 {
 	assert(hcd);
-	usb_endpoint_manager_reset_if_need(
+	usb_endpoint_manager_reset_eps_if_need(
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
 /*----------------------------------------------------------------------------*/
-static inline hcd_t * fun_to_hcd(ddf_fun_t *fun)
+/** Data retrieve wrapper.
+ * @param fun ddf function, non-null.
+ * @return pointer cast to hcd_t*.
+ */
+static inline hcd_t * fun_to_hcd(const ddf_fun_t *fun)
 {
 	assert(fun);
 	return fun->driver_data;

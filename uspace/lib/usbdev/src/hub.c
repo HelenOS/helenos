@@ -36,56 +36,17 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/dev/recognise.h>
-#include <usbhc_iface.h>
+#include <usb/debug.h>
 #include <errno.h>
 #include <assert.h>
 #include <usb/debug.h>
 #include <time.h>
 #include <async.h>
 
-/** How much time to wait between attempts to register endpoint 0:0.
+/** How much time to wait between attempts to get the default address.
  * The value is based on typical value for port reset + some overhead.
  */
-#define ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC (1000 * (10 + 2))
-
-/** Check that HC connection is alright.
- *
- * @param conn Connection to be checked.
- */
-#define CHECK_CONNECTION(conn) \
-	do { \
-		assert((conn)); \
-		if (!usb_hc_connection_is_opened((conn))) { \
-			return ENOENT; \
-		} \
-	} while (false)
-
-/** Ask host controller for free address assignment.
- *
- * @param connection Opened connection to host controller.
- * @param speed Speed of the new device (device that will be assigned
- *    the returned address).
- * @return Assigned USB address or negative error code.
- */
-usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
-    usb_speed_t speed)
-{
-	CHECK_CONNECTION(connection);
-	
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	
-	sysarg_t address;
-	int rc = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, speed,
-	    &address);
-	
-	async_exchange_end(exch);
-	
-	if (rc != EOK)
-		return (usb_address_t) rc;
-	
-	return (usb_address_t) address;
-}
+#define DEFAULT_ADDRESS_ATTEMPT_DELAY_USEC (1000 * (10 + 2))
 
 /** Inform host controller about new device.
  *
@@ -93,60 +54,64 @@ usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
  * @param attached_device Information about the new device.
  * @return Error code.
  */
-int usb_hc_register_device(usb_hc_connection_t * connection,
-    const usb_hc_attached_device_t *attached_device)
+int usb_hub_register_device(usb_hc_connection_t *connection,
+    const usb_hub_attached_device_t *attached_device)
 {
-	CHECK_CONNECTION(connection);
-	
-	if (attached_device == NULL)
+	assert(connection);
+	if (attached_device == NULL || attached_device->fun == NULL)
 		return EBADMEM;
-	
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	int rc = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_BIND_ADDRESS,
-	    attached_device->address, attached_device->handle);
-	async_exchange_end(exch);
-	
-	return rc;
+	return usb_hc_bind_address(connection,
+	    attached_device->address, attached_device->fun->handle);
 }
 
-/** Inform host controller about device removal.
+/** Change address of connected device.
+ * This function automatically updates the backing connection to point to
+ * the new address. It also unregisterrs the old endpoint and registers
+ * a new one.
+ * This creates whole bunch of problems:
+ *  1. All pipes using this wire are broken because they are not
+ *     registered for new address
+ *  2. All other pipes for this device are using wrong address,
+ *     possibly targeting completely different device
  *
- * @param connection Opened connection to host controller.
- * @param address Address of the device that is being removed.
+ * @param pipe Control endpoint pipe (session must be already started).
+ * @param new_address New USB address to be set (in native endianness).
  * @return Error code.
  */
-int usb_hc_unregister_device(usb_hc_connection_t *connection,
-    usb_address_t address)
+static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address)
 {
-	CHECK_CONNECTION(connection);
-	
-	async_exch_t *exch = async_exchange_begin(connection->hc_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_ADDRESS, address);
-	async_exchange_end(exch);
-	
-	return rc;
-}
+	if ((new_address < 0) || (new_address >= USB11_ADDRESS_MAX)) {
+		return EINVAL;
+	}
+	assert(pipe);
+	assert(pipe->wire != NULL);
 
+	const uint16_t addr = uint16_host2usb((uint16_t)new_address);
 
-static void unregister_control_endpoint_on_default_address(
-    usb_hc_connection_t *connection)
-{
-	usb_device_connection_t dev_conn;
-	int rc = usb_device_connection_initialize_on_default_address(&dev_conn,
-	    connection);
+	int rc = usb_control_request_set(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DEVREQ_SET_ADDRESS, addr, 0, NULL, 0);
+
 	if (rc != EOK) {
-		return;
+		return rc;
 	}
 
-	usb_pipe_t ctrl_pipe;
-	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_conn);
-	if (rc != EOK) {
-		return;
+	/* TODO: prevent others from accessing the wire now. */
+	if (usb_pipe_unregister(pipe) != EOK) {
+		usb_log_warning(
+		    "Failed to unregister the old pipe on address change.\n");
 	}
+	/* Address changed. We can release the old one, thus
+	 * allowing other to us it. */
+	usb_hc_release_address(pipe->wire->hc_connection, pipe->wire->address);
 
-	usb_pipe_unregister(&ctrl_pipe, connection);
+	/* The address is already changed so set it in the wire */
+	pipe->wire->address = new_address;
+	rc = usb_pipe_register(pipe, 0);
+	if (rc != EOK)
+		return EADDRNOTAVAIL;
+
+	return EOK;
 }
 
 
@@ -154,10 +119,8 @@ static void unregister_control_endpoint_on_default_address(
  *
  * The @p enable_port function is expected to enable signaling on given
  * port.
- * The two arguments to it can have arbitrary meaning
- * (the @p port_no is only a suggestion)
- * and are not touched at all by this function
- * (they are passed as is to the @p enable_port function).
+ * The argument can have arbitrary meaning and it is not touched at all
+ * by this function (it is passed as is to the @p enable_port function).
  *
  * If the @p enable_port fails (i.e. does not return EOK), the device
  * addition is canceled.
@@ -170,20 +133,20 @@ static void unregister_control_endpoint_on_default_address(
  * this function (i.e. from different fibrils).
  *
  * @param[in] parent Parent device (i.e. the hub device).
- * @param[in] connection Connection to host controller.
+ * @param[in] connection Connection to host controller. Must be non-null.
  * @param[in] dev_speed New device speed.
  * @param[in] enable_port Function for enabling signaling through the port the
  *	device is attached to.
- * @param[in] port_no Port number (passed through to @p enable_port).
  * @param[in] arg Any data argument to @p enable_port.
  * @param[out] assigned_address USB address of the device.
- * @param[out] assigned_handle Devman handle of the new device.
- * @param[in] dev_ops Child device ops.
+ * @param[in] dev_ops Child device ops. Will use default if not provided.
  * @param[in] new_dev_data Arbitrary pointer to be stored in the child
- *	as @c driver_data.
+ *	as @c driver_data. Will allocate and assign usb_hub_attached_device_t
+ *	structure if NULL.
  * @param[out] new_fun Storage where pointer to allocated child function
- *	will be written.
+ *	will be written. Must be non-null.
  * @return Error code.
+ * @retval EINVAL Either connection or new_fun is a NULL pointer.
  * @retval ENOENT Connection to HC not opened.
  * @retval EADDRNOTAVAIL Failed retrieving free address from host controller.
  * @retval EBUSY Failed reserving default USB address.
@@ -191,18 +154,13 @@ static void unregister_control_endpoint_on_default_address(
  * @retval ESTALL Problem communication with device (either SET_ADDRESS
  *	request or requests for descriptors when creating match ids).
  */
-int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection,
-    usb_speed_t dev_speed,
-    int (*enable_port)(int port_no, void *arg), int port_no, void *arg,
-    usb_address_t *assigned_address, devman_handle_t *assigned_handle,
+int usb_hc_new_device_wrapper(ddf_dev_t *parent,
+    usb_hc_connection_t *hc_conn, usb_speed_t dev_speed,
+    int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
-	assert(connection != NULL);
-	// FIXME: this is awful, we are accessing directly the structure.
-	usb_hc_connection_t hc_conn = {
-		.hc_handle = connection->hc_handle,
-		.hc_sess = NULL
-	};
+	if (new_fun == NULL || hc_conn == NULL)
+		return EINVAL;
 
 	int rc;
 	struct timeval start_time;
@@ -212,53 +170,63 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		return rc;
 	}
 
-	rc = usb_hc_connection_open(&hc_conn);
+	/* We are gona do a lot of communication better open it in advance. */
+	rc = usb_hc_connection_open(hc_conn);
 	if (rc != EOK) {
 		return rc;
 	}
 
-
-	/*
-	 * Request new address.
-	 */
-	usb_address_t dev_addr = usb_hc_request_address(&hc_conn, dev_speed);
+	/* Request a new address. */
+	usb_address_t dev_addr =
+	    usb_hc_request_address(hc_conn, 0, false, dev_speed);
 	if (dev_addr < 0) {
-		usb_hc_connection_close(&hc_conn);
-		return EADDRNOTAVAIL;
+		rc = EADDRNOTAVAIL;
+		goto close_connection;
+	}
+
+	/* Initialize connection to device. */
+	usb_device_connection_t dev_conn;
+	rc = usb_device_connection_initialize(
+	    &dev_conn, hc_conn, USB_ADDRESS_DEFAULT);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_free_address;
+	}
+
+	/* Initialize control pipe on default address. Don't register yet. */
+	usb_pipe_t ctrl_pipe;
+	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_conn);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_free_address;
 	}
 
 	/*
-	 * We will not register control pipe on default address.
-	 * The registration might fail. That means that someone else already
-	 * registered that endpoint. We will simply wait and try again.
+	 * The default address request might fail.
+	 * That means that someone else is already using that address.
+	 * We will simply wait and try again.
 	 * (Someone else already wants to add a new device.)
 	 */
-	usb_device_connection_t dev_conn;
-	rc = usb_device_connection_initialize_on_default_address(&dev_conn,
-	    &hc_conn);
-	if (rc != EOK) {
-		rc = ENOTCONN;
-		goto leave_release_free_address;
-	}
-
-	usb_pipe_t ctrl_pipe;
-	rc = usb_pipe_initialize_default_control(&ctrl_pipe,
-	    &dev_conn);
-	if (rc != EOK) {
-		rc = ENOTCONN;
-		goto leave_release_free_address;
-	}
-
 	do {
-		rc = usb_pipe_register_with_speed(&ctrl_pipe, dev_speed, 0,
-		    &hc_conn);
-		if (rc != EOK) {
+		rc = usb_hc_request_address(hc_conn, USB_ADDRESS_DEFAULT,
+		    true, dev_speed);
+		if (rc == ENOENT) {
 			/* Do not overheat the CPU ;-). */
-			async_usleep(ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC);
+			async_usleep(DEFAULT_ADDRESS_ATTEMPT_DELAY_USEC);
 		}
-	} while (rc != EOK);
-	struct timeval end_time;
+	} while (rc == ENOENT);
+	if (rc < 0) {
+		goto leave_release_free_address;
+	}
 
+	/* Register control pipe on default address. 0 means no interval. */
+	rc = usb_pipe_register(&ctrl_pipe, 0);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_default_address;
+	}
+
+	struct timeval end_time;
 	rc = gettimeofday(&end_time, NULL);
 	if (rc != EOK) {
 		goto leave_release_default_address;
@@ -269,16 +237,13 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * time between attach detected and port reset. However, the setup done
 	 * above might use much of this time so we should only wait to fill
 	 * up the 100ms quota*/
-	suseconds_t elapsed = tv_sub(&end_time, &start_time);
+	const suseconds_t elapsed = tv_sub(&end_time, &start_time);
 	if (elapsed < 100000) {
 		async_usleep(100000 - elapsed);
 	}
 
-	/*
-	 * Endpoint is registered. We can enable the port and change
-	 * device address.
-	 */
-	rc = enable_port(port_no, arg);
+	/* Endpoint is registered. We can enable the port and change address. */
+	rc = enable_port(arg);
 	if (rc != EOK) {
 		goto leave_release_default_address;
 	}
@@ -289,6 +254,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 	async_usleep(10000);
 
+	/* Get max_packet_size value. */
 	rc = usb_pipe_probe_default_control(&ctrl_pipe);
 	if (rc != EOK) {
 		rc = ESTALL;
@@ -301,73 +267,66 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		goto leave_release_default_address;
 	}
 
-	/*
-	 * Address changed. We can release the original endpoint, thus
-	 * allowing other to access the default address.
-	 */
-	unregister_control_endpoint_on_default_address(&hc_conn);
 
-	/*
-	 * Time to register the new endpoint.
-	 */
-	rc = usb_pipe_register(&ctrl_pipe, 0, &hc_conn);
-	if (rc != EOK) {
-		goto leave_release_free_address;
-	}
-
-	/*
-	 * It is time to register the device with devman.
-	 */
+	/* Register the device with devman. */
 	/* FIXME: create device_register that will get opened ctrl pipe. */
-	devman_handle_t child_handle;
-	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
-	    parent, &child_handle,
-	    dev_ops, new_dev_data, new_fun);
+	ddf_fun_t *child_fun;
+	rc = usb_device_register_child_in_devman(&ctrl_pipe,
+	    parent, dev_ops, new_dev_data, &child_fun);
 	if (rc != EOK) {
-		rc = ESTALL;
 		goto leave_release_free_address;
 	}
 
-	/*
-	 * And now inform the host controller about the handle.
-	 */
-	usb_hc_attached_device_t new_device = {
+	const usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
-		.handle = child_handle
+		.fun = child_fun,
 	};
-	rc = usb_hc_register_device(&hc_conn, &new_device);
+
+
+	/* Inform the host controller about the handle. */
+	rc = usb_hub_register_device(hc_conn, &new_device);
 	if (rc != EOK) {
+		/* We know nothing about that data. */
+		if (new_dev_data)
+			child_fun->driver_data = NULL;
+		/* The child function is already created. */
+		ddf_fun_destroy(child_fun);
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
 	}
-	
-	usb_hc_connection_close(&hc_conn);
 
-	/*
-	 * And we are done.
-	 */
 	if (assigned_address != NULL) {
 		*assigned_address = dev_addr;
 	}
-	if (assigned_handle != NULL) {
-		*assigned_handle = child_handle;
-	}
 
-	return EOK;
+	*new_fun = child_fun;
 
-
+	rc = EOK;
+	goto close_connection;
 
 	/*
 	 * Error handling (like nested exceptions) starts here.
 	 * Completely ignoring errors here.
 	 */
 leave_release_default_address:
-	usb_pipe_unregister(&ctrl_pipe, &hc_conn);
+	if (usb_hc_release_address(hc_conn, USB_ADDRESS_DEFAULT) != EOK)
+		usb_log_warning("%s: Failed to release defaut address.\n",
+		    __FUNCTION__);
 
 leave_release_free_address:
-	usb_hc_unregister_device(&hc_conn, dev_addr);
+	/* This might be either 0:0 or dev_addr:0 */
+	if (usb_pipe_unregister(&ctrl_pipe) != EOK)
+		usb_log_warning("%s: Failed to unregister default pipe.\n",
+		    __FUNCTION__);
 
-	usb_hc_connection_close(&hc_conn);
+	if (usb_hc_release_address(hc_conn, dev_addr) != EOK)
+		usb_log_warning("%s: Failed to release address: %d.\n",
+		    __FUNCTION__, dev_addr);
+
+close_connection:
+	if (usb_hc_connection_close(hc_conn) != EOK)
+		usb_log_warning("%s: Failed to close hc connection.\n",
+		    __FUNCTION__);
 
 	return rc;
 }

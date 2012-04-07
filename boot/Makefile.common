@@ -52,7 +52,6 @@ DRVS_PATH = drv
 
 SANDBOX = pack
 PACK = $(TOOLS_PATH)/pack.py
-MKHORD = $(TOOLS_PATH)/mkhord.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
 MKEXT2 = $(TOOLS_PATH)/mkext2.py
@@ -105,9 +104,8 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
+	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
-	$(USPACE_PATH)/srv/net/netif/lo/lo \
 	$(USPACE_PATH)/srv/net/nil/eth/eth \
 	$(USPACE_PATH)/srv/net/nil/nildummy/nildummy \
 	$(USPACE_PATH)/srv/net/il/arp/arp \
@@ -123,7 +121,11 @@ RD_DRVS = \
 	infrastructure/rootvirt \
 	test/test1 \
 	test/test2 \
-	test/test3
+	test/test3 \
+	nic/lo \
+	nic/ne2k \
+	nic/e1k \
+	nic/rtl8139
 
 RD_DRV_CFG =
 
@@ -162,6 +164,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
@@ -174,6 +177,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
+	$(USPACE_PATH)/app/nettest3/nettest3 \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
@@ -201,8 +205,9 @@ endif
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
-	$(USPACE_PATH)/srv/net/cfg/lo \
-	$(USPACE_PATH)/srv/net/cfg/ne2k
+	$(USPACE_PATH)/srv/net/cfg/lo.nic \
+	$(USPACE_PATH)/srv/net/cfg/ne2k.nic \
+	$(USPACE_PATH)/srv/net/cfg/e1k.nic
 endif
 
 COMPONENTS = \

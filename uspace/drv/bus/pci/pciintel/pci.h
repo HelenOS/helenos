@@ -59,7 +59,12 @@ typedef struct pci_fun_data {
 	int fn;
 	int vendor_id;
 	int device_id;
+	uint8_t class_code;
+	uint8_t subclass_code;
+	uint8_t prog_if;
+	uint8_t revision;
 	hw_resource_list_t hw_resources;
+	hw_resource_t resources[PCI_MAX_HW_RES];
 } pci_fun_t;
 
 extern void pci_fun_create_match_ids(pci_fun_t *);

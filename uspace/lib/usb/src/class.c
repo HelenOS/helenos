@@ -80,7 +80,7 @@ const char *usb_str_class(usb_class_t cls)
 		case USB_CLASS_APPLICATION_SPECIFIC:
 			return "application";
 		case USB_CLASS_VENDOR_SPECIFIC:
-			return "vendor";
+			return "vendor-specific";
 		default:
 			return "unknown";
 	}

@@ -124,8 +124,9 @@ static int gxe_bd_init(void)
 	void *vaddr;
 	int rc, i;
 	char name[16];
-
-	rc = loc_server_register(NAME, gxe_bd_connection);
+	
+	async_set_client_connection(gxe_bd_connection);
+	rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
@@ -192,13 +193,11 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == (void *) -1) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (true) {
 		callid = async_get_call(&call);

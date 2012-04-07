@@ -100,17 +100,36 @@ void exfat_dentry_get_name(const exfat_name_dentry_t *name, size_t size, uint16_
 
 bool exfat_valid_char(wchar_t ch)
 {
-	/* TODO */
-	return true;
+	switch (ch) {
+	case 0x01 ... 0x1F:
+	case '/':
+	case '\\':
+	case '?':
+	case '|':
+	case '>':
+	case '<':
+	case '"':
+	case '*':
+	case ':':
+		return false;
+	default:
+		return true;
+	}
 }
 
 bool exfat_valid_name(const char *name)
 {
-	/* TODO */
+	size_t off = 0;
+	wchar_t ch;
+
+	while ((ch = str_decode(name, &off, STR_NO_LIMIT)) != 0) {
+		if (!exfat_valid_char(ch))
+			return false;
+	}
 	return true;
 }
 
-size_t utf16_length(const uint16_t *wstr)
+size_t exfat_utf16_length(const uint16_t *wstr)
 {
 	size_t len = 0;
 	

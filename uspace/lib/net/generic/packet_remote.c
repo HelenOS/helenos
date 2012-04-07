@@ -65,21 +65,20 @@
 static int packet_return(async_sess_t *sess, packet_t **packet,
     packet_id_t packet_id, size_t size)
 {
-	*packet = (packet_t *) as_get_mappable_page(size);
-	
 	async_exch_t *exch = async_exchange_begin(sess);
 	ipc_call_t answer;
 	aid_t message = async_send_1(exch, NET_PACKET_GET, packet_id, &answer);
-	int rc = async_share_in_start_0_0(exch, *packet, size);
+	int rc = async_share_in_start_0_0(exch, size, (void *) packet);
 	async_exchange_end(exch);
 	
 	sysarg_t result;
 	async_wait_for(message, &result);
 	
-	if (rc != EOK) {
-		munmap(*packet, size);
+	if (rc != EOK)
 		return rc;
-	}
+	
+	if (packet == (void *) -1)
+		return ENOMEM;
 	
 	rc = pm_add(*packet);
 	if (rc != EOK) {
@@ -114,7 +113,7 @@ int packet_translate_remote(async_sess_t *sess, packet_t **packet,
 		return EINVAL;
 	
 	*packet = pm_find(packet_id);
-	if (!*packet) {
+	if (*packet == NULL) {
 		async_exch_t *exch = async_exchange_begin(sess);
 		sysarg_t size;
 		int rc = async_req_1_1(exch, NET_PACKET_GET_SIZE, packet_id,
@@ -129,7 +128,7 @@ int packet_translate_remote(async_sess_t *sess, packet_t **packet,
 			return rc;
 	}
 	
-	if ((*packet)->next) {
+	if ((*packet != NULL) && ((*packet)->next)) {
 		packet_t *next;
 		return packet_translate_remote(sess, &next, (*packet)->next);
 	}

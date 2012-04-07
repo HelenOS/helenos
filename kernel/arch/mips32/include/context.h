@@ -41,7 +41,7 @@
 /*
  * Put one item onto the stack to support get_stack_base() and align it up.
  */
-#define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
+#define SP_DELTA  (ABI_STACK_FRAME + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 #ifndef __ASM__
 

@@ -39,7 +39,7 @@ MAPS = yaboot/maps
 all: $(POST_OUTPUT)
 
 $(POST_OUTPUT): build_dist
-	mkisofs -hfs -part -map $(MAPS) -no-desktop -hfs-volid "HelenOS" -hfs-bless $(DISTROOT)/boot -r -o $@ $(DISTROOT)/
+	$(GENISOIMAGE) -hfs -part -map $(MAPS) -no-desktop -hfs-volid "HelenOS" -hfs-bless $(DISTROOT)/boot -r -o $@ $(DISTROOT)/
 
 build_dist: clean
 	mkdir -p $(DISTROOT)/boot

@@ -905,7 +905,7 @@ int cmd_set4(cmd_arg_t *argv)
 	} else if (((char *) argv->buffer)[0] >= '0' &&
 		   ((char *) argv->buffer)[0] <= '9') {
 		uint64_t value;
-		rc = str_uint64((char *) argv->buffer, NULL, 0, true, &value);
+		rc = str_uint64_t((char *) argv->buffer, NULL, 0, true, &value);
 		if (rc == EOK)
 			addr = (uintptr_t) value;
 	} else
@@ -1176,7 +1176,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		/* Execute the test */
 		test_quiet = true;
-		const char *ret = test->entry();
+		const char *test_ret = test->entry();
 		
 		/* Update and read thread accounting */
 		irq_spinlock_lock(&TASK->lock, true);
@@ -1184,8 +1184,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		task_get_accounting(TASK, &ucycles1, &kcycles1);
 		irq_spinlock_unlock(&TASK->lock, true);
 		
-		if (ret != NULL) {
-			printf("%s\n", ret);
+		if (test_ret != NULL) {
+			printf("%s\n", test_ret);
 			ret = false;
 			break;
 		}

@@ -35,6 +35,7 @@
  * @see nil_remote.h
  */
 
+#include <ipc/loc.h>
 #include <nil_remote.h>
 #include <generic.h>
 #include <net/device.h>
@@ -42,44 +43,14 @@
 #include <packet_client.h>
 #include <ipc/nil.h>
 
-/** Notify the network interface layer about the device state change.
- *
- * @param[in] sess      Network interface layer session.
- * @param[in] device_id Device identifier.
- * @param[in] state     New device state.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module
- *         device state function.
- *
- */
-int nil_device_state_msg(async_sess_t *sess, device_id_t device_id,
-    sysarg_t state)
+int nil_device_req(async_sess_t *sess, nic_device_id_t device_id,
+    service_id_t sid, size_t mtu)
 {
-	return generic_device_state_msg_remote(sess, NET_NIL_DEVICE_STATE,
-	    device_id, state, 0);
-}
-
-/** Pass the packet queue to the network interface layer.
- *
- * Process and redistribute the received packet queue to the registered
- * upper layers.
- *
- * @param[in] sess      Network interface layer session.
- * @param[in] device_id Source device identifier.
- * @param[in] packet    Received packet or the received packet queue.
- * @param[in] target    Target service. Ignored parameter.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module
- *         received function.
- *
- */
-int nil_received_msg(async_sess_t *sess, device_id_t device_id,
-    packet_t *packet, services_t target)
-{
-	return generic_received_msg_remote(sess, NET_NIL_RECEIVED,
-	    device_id, packet_get_id(packet), target, 0);
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_0(exch, NET_NIL_DEVICE, (sysarg_t) device_id,
+	    (sysarg_t) sid, (sysarg_t) mtu);
+	async_exchange_end(exch);
+	return rc;
 }
 
 /** @}

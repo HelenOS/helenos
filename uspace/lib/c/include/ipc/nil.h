@@ -45,14 +45,6 @@ typedef enum {
 	 * @see nil_device_req()
 	 */
 	NET_NIL_DEVICE = NET_NIL_FIRST,
-	/** New device state message.
-	 * @see nil_device_state_msg()
-	 */
-	NET_NIL_DEVICE_STATE,
-	/** Received packet queue message.
-	 * @see nil_received_msg()
-	 */
-	NET_NIL_RECEIVED,
 	/** Send packet queue message.
 	 * @see nil_send_msg()
 	 */
@@ -68,7 +60,7 @@ typedef enum {
 	/** Device broadcast hardware address message.
 	 * @see nil_get_broadcast_addr()
 	 */
-	NET_NIL_BROADCAST_ADDR,
+	NET_NIL_BROADCAST_ADDR
 } nil_messages;
 
 /** @name Network interface layer specific message parameters definitions */

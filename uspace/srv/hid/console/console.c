@@ -343,6 +343,21 @@ static void cons_switch(console_t *cons)
 	cons_damage_all(cons);
 }
 
+static console_t *cons_get_active_uspace(void)
+{
+	fibril_mutex_lock(&switch_mtx);
+
+	console_t *active_uspace = active_console;
+	if (active_uspace == kernel_console) {
+		active_uspace = prev_console;
+	}
+	assert(active_uspace != kernel_console);
+
+	fibril_mutex_unlock(&switch_mtx);
+
+	return active_uspace;
+}
+
 static ssize_t limit(ssize_t val, ssize_t lo, ssize_t hi)
 {
 	if (val > hi)
@@ -465,7 +480,16 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				event->mods = mods;
 				event->c = c;
 				
-				prodcons_produce(&active_console->input_pc, &event->link);
+				/*
+				 * Kernel console does not read events
+				 * from us, so we will redirect them
+				 * to the (last) active userspace console
+				 * if necessary.
+				 */
+				console_t *target_console = cons_get_active_uspace();
+				
+				prodcons_produce(&target_console->input_pc,
+				    &event->link);
 			}
 			
 			async_answer_0(callid, EOK);
@@ -800,7 +824,8 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 		return false;
 	
 	/* Register server */
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf("%s: Unable to register server (%s)\n", NAME,
 		    str_error(rc));
@@ -903,6 +928,7 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 		consoles[i].index = i;
 		atomic_set(&consoles[i].refcnt, 0);
 		fibril_mutex_initialize(&consoles[i].mtx);
+		prodcons_initialize(&consoles[i].input_pc);
 		
 		if (graphics_state == GRAPHICS_FULL) {
 			/* Create state buttons */
@@ -941,7 +967,6 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 			return false;
 		}
 		
-		prodcons_initialize(&consoles[i].input_pc);
 		cons_redraw_state(&consoles[i]);
 		
 		char vc[LOC_NAME_MAXLEN + 1];

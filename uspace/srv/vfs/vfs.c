@@ -126,6 +126,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_WAIT_HANDLE:
 			vfs_wait_handle(callid, &call);
 			break;
+		case VFS_IN_MTAB_GET:
+			vfs_get_mtab(callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;
@@ -168,14 +171,9 @@ int main(int argc, char **argv)
 	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
-	plb = as_get_mappable_page(PLB_SIZE);
-	if (!plb) {
-		printf(NAME ": Cannot allocate a mappable piece of address space\n");
-		return ENOMEM;
-	}
-	
-	if (as_area_create(plb, PLB_SIZE, AS_AREA_READ | AS_AREA_WRITE |
-	    AS_AREA_CACHEABLE) != plb) {
+	plb = as_area_create((void *) -1, PLB_SIZE,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	if (plb == (void *) -1) {
 		printf(NAME ": Cannot create address space area\n");
 		return ENOMEM;
 	}

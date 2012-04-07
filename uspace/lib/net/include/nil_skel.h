@@ -69,7 +69,7 @@ extern int nil_initialize(async_sess_t *sess);
  *         device state function.
  *
  */
-extern int nil_device_state_msg_local(device_id_t device_id, sysarg_t state);
+extern int nil_device_state_msg_local(nic_device_id_t device_id, sysarg_t state);
 
 /** Pass the packet queue to the network interface layer.
  *
@@ -80,15 +80,13 @@ extern int nil_device_state_msg_local(device_id_t device_id, sysarg_t state);
  *
  * @param[in] device_id Source device identifier.
  * @param[in] packet    Received packet or the received packet queue.
- * @param[in] target    Target service. Ignored parameter.
  *
  * @return EOK on success.
  * @return Other error codes as defined for each specific module
  *         received function.
  *
  */
-extern int nil_received_msg_local(device_id_t device_id, packet_t *packet,
-    services_t target);
+extern int nil_received_msg_local(nic_device_id_t device_id, packet_t *packet);
 
 /** Message processing function.
  *

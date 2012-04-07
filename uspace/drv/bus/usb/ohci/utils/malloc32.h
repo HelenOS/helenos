@@ -40,6 +40,12 @@
 #include <mem.h>
 #include <as.h>
 
+/* Generic TDs and EDs require 16byte alignment,
+ * Isochronous TD require 32byte alignment,
+ * buffers do not have to be aligned.
+ */
+#define OHCI_ALIGN 32
+
 /** Get physical address translation
  *
  * @param[in] addr Virtual address to translate
@@ -49,10 +55,11 @@ static inline uintptr_t addr_to_phys(const void *addr)
 {
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);
-
+	
 	if (ret != EOK)
 		return 0;
-	return (result | ((uintptr_t)addr & 0xfff));
+	
+	return result;
 }
 /*----------------------------------------------------------------------------*/
 /** Physical mallocator simulator
@@ -61,14 +68,14 @@ static inline uintptr_t addr_to_phys(const void *addr)
  * @return Address of the aligned and big enough memory place, NULL on failure.
  */
 static inline void * malloc32(size_t size)
-	{ return memalign(size, size); }
+	{ return memalign(OHCI_ALIGN, size); }
 /*----------------------------------------------------------------------------*/
 /** Physical mallocator simulator
  *
  * @param[in] addr Address of the place allocated by malloc32
  */
 static inline void free32(void *addr)
-	{ if (addr) free(addr); }
+	{ free(addr); }
 #endif
 /**
  * @}

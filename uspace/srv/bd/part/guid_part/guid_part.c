@@ -163,7 +163,8 @@ static int gpt_init(const char *dev_name)
 		return rc;
 
 	/* Register server with location service. */
-	rc = loc_server_register(NAME, gpt_connection);
+	async_set_client_connection(gpt_connection);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register server.\n");
 		return rc;
@@ -347,13 +348,11 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == (void *) -1) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (true) {
 		callid = async_get_call(&call);

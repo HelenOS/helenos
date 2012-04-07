@@ -34,6 +34,8 @@
  */
 #include <sys/types.h>
 #include <fibril_synch.h>
+#include <usb/debug.h>
+#include <usb/dev/hub.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
 #include <usb/ddfiface.h>
@@ -43,13 +45,8 @@
 #include <errno.h>
 #include <assert.h>
 
-/** Index to append after device name for uniqueness. */
-static size_t device_name_index = 0;
-/** Mutex guard for device_name_index. */
-static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
-
 /** DDF operations of child devices. */
-ddf_dev_ops_t child_ops = {
+static ddf_dev_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
@@ -63,9 +60,6 @@ ddf_dev_ops_t child_ops = {
 /** Arguments to printf for BCD coded number. */
 #define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
 
-/* FIXME: make this dynamic */
-#define MATCH_STRING_MAX 256
-
 /** Add formatted match id.
  *
  * @param matches List of match ids where to add to.
@@ -74,31 +68,13 @@ ddf_dev_ops_t child_ops = {
  * @return Error code.
  */
 static int usb_add_match_id(match_id_list_t *matches, int score,
-    const char *format, ...)
+    const char *match_str)
 {
-	char *match_str = NULL;
-	match_id_t *match_id = NULL;
-	int rc;
-	
-	match_str = malloc(MATCH_STRING_MAX + 1);
-	if (match_str == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
+	assert(matches);
 
-	/*
-	 * FIXME: replace with dynamic allocation of exact size
-	 */
-	va_list args;
-	va_start(args, format	);
-	vsnprintf(match_str, MATCH_STRING_MAX, format, args);
-	match_str[MATCH_STRING_MAX] = 0;
-	va_end(args);
-
-	match_id = create_match_id();
+	match_id_t *match_id = create_match_id();
 	if (match_id == NULL) {
-		rc = ENOMEM;
-		goto failure;
+		return ENOMEM;
 	}
 
 	match_id->id = match_str;
@@ -106,17 +82,6 @@ static int usb_add_match_id(match_id_list_t *matches, int score,
 	add_match_id(matches, match_id);
 
 	return EOK;
-	
-failure:
-	if (match_str != NULL) {
-		free(match_str);
-	}
-	if (match_id != NULL) {
-		match_id->id = NULL;
-		delete_match_id(match_id);
-	}
-	
-	return rc;
 }
 
 /** Add match id to list or return with error code.
@@ -128,9 +93,13 @@ failure:
  */
 #define ADD_MATCHID_OR_RETURN(match_ids, score, format, ...) \
 	do { \
-		int __rc = usb_add_match_id((match_ids), (score), \
-		    format, ##__VA_ARGS__); \
+		char *str = NULL; \
+		int __rc = asprintf(&str, format, ##__VA_ARGS__); \
+		if (__rc > 0) { \
+			__rc = usb_add_match_id((match_ids), (score), str); \
+		} \
 		if (__rc != EOK) { \
+			free(str); \
 			return __rc; \
 		} \
 	} while (0)
@@ -149,10 +118,7 @@ int usb_device_create_match_ids_from_interface(
     const usb_standard_interface_descriptor_t *desc_interface,
     match_id_list_t *matches)
 {
-	if (desc_interface == NULL) {
-		return EINVAL;
-	}
-	if (matches == NULL) {
+	if (desc_interface == NULL || matches == NULL) {
 		return EINVAL;
 	}
 
@@ -313,6 +279,7 @@ int usb_device_create_match_ids_from_device_descriptor(
 int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
     match_id_list_t *matches)
 {
+	assert(ctrl_pipe);
 	int rc;
 	/*
 	 * Retrieve device descriptor and add matches from it.
@@ -335,56 +302,42 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
 
 /** Probe for device kind and register it in devman.
  *
- * @param[in] address Address of the (unknown) attached device.
- * @param[in] hc_handle Handle of the host controller.
+ * @param[in] ctrl_pipe Control pipe to the device.
  * @param[in] parent Parent device.
- * @param[out] child_handle Handle of the child device.
- * @param[in] dev_ops Child device ops.
+ * @param[in] dev_ops Child device ops. Default child_ops will be used if NULL.
  * @param[in] dev_data Arbitrary pointer to be stored in the child
  *	as @c driver_data.
  * @param[out] child_fun Storage where pointer to allocated child function
  *	will be written.
  * @return Error code.
  */
-int usb_device_register_child_in_devman(usb_address_t address,
-    devman_handle_t hc_handle,
-    ddf_dev_t *parent, devman_handle_t *child_handle,
-    ddf_dev_ops_t *dev_ops, void *dev_data, ddf_fun_t **child_fun)
+int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
+    ddf_dev_t *parent, ddf_dev_ops_t *dev_ops, void *dev_data,
+    ddf_fun_t **child_fun)
 {
-	size_t this_device_name_index;
+	if (child_fun == NULL || ctrl_pipe == NULL)
+		return EINVAL;
 
-	fibril_mutex_lock(&device_name_index_mutex);
-	this_device_name_index = device_name_index;
-	device_name_index++;
-	fibril_mutex_unlock(&device_name_index_mutex);
+	if (!dev_ops && dev_data) {
+		usb_log_warning("Using standard fun ops with arbitrary "
+		    "driver data. This does not have to work.\n");
+	}
+
+	/** Index to append after device name for uniqueness. */
+	static atomic_t device_name_index = {0};
+	const size_t this_device_name_index =
+	    (size_t) atomic_preinc(&device_name_index);
 
 	ddf_fun_t *child = NULL;
-	char *child_name = NULL;
 	int rc;
-	usb_device_connection_t dev_connection;
-	usb_pipe_t ctrl_pipe;
-
-	rc = usb_device_connection_initialize(&dev_connection, hc_handle, address);
-	if (rc != EOK) {
-		goto failure;
-	}
-
-	rc = usb_pipe_initialize_default_control(&ctrl_pipe,
-	    &dev_connection);
-	if (rc != EOK) {
-		goto failure;
-	}
-	rc = usb_pipe_probe_default_control(&ctrl_pipe);
-	if (rc != EOK) {
-		goto failure;
-	}
 
 	/*
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usb%02zu_a%d",
-	    this_device_name_index, address);
+	char child_name[12]; /* The format is: "usbAB_aXYZ", length 11 */
+	rc = snprintf(child_name, sizeof(child_name),
+	    "usb%02zu_a%d", this_device_name_index, ctrl_pipe->wire->address);
 	if (rc < 0) {
 		goto failure;
 	}
@@ -402,8 +355,21 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	}
 
 	child->driver_data = dev_data;
+	/* Store the attached device in fun driver data if there is no
+	 * other data */
+	if (!dev_data) {
+		usb_hub_attached_device_t *new_device = ddf_fun_data_alloc(
+		    child, sizeof(usb_hub_attached_device_t));
+		if (!new_device) {
+			rc = ENOMEM;
+			goto failure;
+		}
+		new_device->address = ctrl_pipe->wire->address;
+		new_device->fun = child;
+	}
 
-	rc = usb_device_create_match_ids(&ctrl_pipe, &child->match_ids);
+
+	rc = usb_device_create_match_ids(ctrl_pipe, &child->match_ids);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -413,24 +379,17 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		goto failure;
 	}
 
-	if (child_handle != NULL) {
-		*child_handle = child->handle;
-	}
-
-	if (child_fun != NULL) {
-		*child_fun = child;
-	}
-
+	*child_fun = child;
 	return EOK;
 
 failure:
 	if (child != NULL) {
-		child->name = NULL;
+		/* We know nothing about the data if it came from outside. */
+		if (dev_data) {
+			child->driver_data = NULL;
+		}
 		/* This takes care of match_id deallocation as well. */
 		ddf_fun_destroy(child);
-	}
-	if (child_name != NULL) {
-		free(child_name);
 	}
 
 	return rc;

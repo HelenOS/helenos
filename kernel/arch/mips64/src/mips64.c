@@ -33,33 +33,23 @@
  */
 
 #include <arch.h>
-#include <arch/cp0.h>
-#include <arch/exception.h>
-#include <arch/debug.h>
-#include <mm/as.h>
-#include <userspace.h>
+#include <typedefs.h>
+#include <errno.h>
+#include <interrupt.h>
+#include <macros.h>
+#include <str.h>
 #include <memstr.h>
-#include <proc/thread.h>
-#include <abi/proc/uarg.h>
-#include <print.h>
+#include <userspace.h>
 #include <console/console.h>
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/interrupt.h>
-#include <interrupt.h>
-#include <console/chardev.h>
-#include <arch/barrier.h>
+#include <arch/debug.h>
 #include <arch/debugger.h>
+#include <arch/drivers/msim.h>
 #include <genarch/fb/fb.h>
-#include <abi/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>
-#include <macros.h>
-#include <config.h>
-#include <str.h>
-#include <arch/drivers/msim.h>
-#include <arch/asm/regname.h>
 
 /* Size of the code jumping to the exception handler code
  * - J+NOP
@@ -87,7 +77,7 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr = (uintptr_t) bootinfo->tasks[i].addr;
+		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
@@ -225,9 +215,9 @@ void after_thread_ran_arch(void)
  * We have it currently in K1, it is
  * possible to have it separately in the future.
  */
-sysarg_t sys_tls_set(sysarg_t addr)
+sysarg_t sys_tls_set(uintptr_t addr)
 {
-	return 0;
+	return EOK;
 }
 
 void arch_reboot(void)

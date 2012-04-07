@@ -301,15 +301,17 @@ int main(int argc, char *argv[])
 	spawn("/srv/i8259");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
-	srv_start("/srv/i8042");
 	srv_start("/srv/s3c24ser");
 	srv_start("/srv/s3c24ts");
+	
+	spawn("/srv/net");
 	
 	spawn("/srv/fb");
 	spawn("/srv/input");
 	console("hid/input", "hid/fb0");
 	
 	spawn("/srv/clip");
+	spawn("/srv/remcons");
 	
 	/*
 	 * Start these synchronously so that mount_data() can be

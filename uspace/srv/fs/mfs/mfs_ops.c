@@ -42,10 +42,9 @@
 #define OPEN_NODES_BUCKETS 256
 
 static bool check_magic_number(uint16_t magic, bool *native,
-			       mfs_version_t *version, bool *longfilenames);
+    mfs_version_t *version, bool *longfilenames);
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
-			     fs_index_t index);
-
+    fs_index_t index);
 static int mfs_node_put(fs_node_t *fsnode);
 static int mfs_node_open(fs_node_t *fsnode);
 static fs_index_t mfs_index_get(fs_node_t *fsnode);
@@ -63,14 +62,14 @@ static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
 static int mfs_destroy_node(fs_node_t *fn);
 static hash_index_t open_nodes_hash(unsigned long key[]);
 static int open_nodes_compare(unsigned long key[], hash_count_t keys,
-		link_t *item);
+    link_t *item);
 static void open_nodes_remove_cb(link_t *link);
-
 static int mfs_node_get(fs_node_t **rfn, service_id_t service_id,
-			fs_index_t index);
-static int
-mfs_instance_get(service_id_t service_id, struct mfs_instance **instance);
-
+    fs_index_t index);
+static int mfs_instance_get(service_id_t service_id,
+    struct mfs_instance **instance);
+static int mfs_check_sanity(struct mfs_sb_info *sbi);
+static bool is_power_of_two(uint32_t n);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -95,14 +94,16 @@ libfs_ops_t mfs_libfs_ops = {
 };
 
 /* Hash table interface for open nodes hash table */
-static hash_index_t open_nodes_hash(unsigned long key[])
+static hash_index_t
+open_nodes_hash(unsigned long key[])
 {
 	/* TODO: This is very simple and probably can be improved */
 	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
 }
 
-static int open_nodes_compare(unsigned long key[], hash_count_t keys,
-		link_t *item)
+static int
+open_nodes_compare(unsigned long key[], hash_count_t keys,
+    link_t *item)
 {
 	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
 	assert(keys > 0);
@@ -117,7 +118,8 @@ static int open_nodes_compare(unsigned long key[], hash_count_t keys,
 	return (mnode->ino_i->index == key[OPEN_NODES_INODE_KEY]);
 }
 
-static void open_nodes_remove_cb(link_t *link)
+static void
+open_nodes_remove_cb(link_t *link)
 {
 	/* We don't use remove callback for this hash table */
 }
@@ -128,10 +130,11 @@ static hash_table_operations_t open_nodes_ops = {
 	.remove_callback = open_nodes_remove_cb,
 };
 
-int mfs_global_init(void)
+int
+mfs_global_init(void)
 {
 	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
-			OPEN_NODES_KEYS, &open_nodes_ops)) {
+	    OPEN_NODES_KEYS, &open_nodes_ops)) {
 		return ENOMEM;
 	}
 	return EOK;
@@ -139,13 +142,13 @@ int mfs_global_init(void)
 
 static int
 mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
-		aoff64_t *size, unsigned *linkcnt)
+    aoff64_t *size, unsigned *linkcnt)
 {
 	enum cache_mode cmode;
-	struct mfs_superblock *sb;
-	struct mfs3_superblock *sb3;
-	struct mfs_sb_info *sbi;
-	struct mfs_instance *instance;
+	struct mfs_superblock *sb = NULL;
+	struct mfs3_superblock *sb3 = NULL;
+	struct mfs_sb_info *sbi = NULL;
+	struct mfs_instance *instance = NULL;
 	bool native, longnames;
 	mfs_version_t version;
 	uint16_t magic;
@@ -162,60 +165,49 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	if (rc != EOK)
 		return rc;
 
-	/*Allocate space for generic MFS superblock*/
+	/* Allocate space for generic MFS superblock */
 	sbi = malloc(sizeof(*sbi));
 	if (!sbi) {
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
-	/*Allocate space for filesystem instance*/
+	/* Allocate space for filesystem instance */
 	instance = malloc(sizeof(*instance));
 	if (!instance) {
-		free(sbi);
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 	if (!sb) {
-		free(instance);
-		free(sbi);
-		block_fini(service_id);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto out_error;
 	}
 
 	/* Read the superblock */
 	rc = block_read_direct(service_id, MFS_SUPERBLOCK << 1, 2, sb);
-	if (rc != EOK) {
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_fini(service_id);
-		return rc;
-	}
+	if (rc != EOK)
+		goto out_error;
 
 	sb3 = (struct mfs3_superblock *) sb;
 
 	if (check_magic_number(sb->s_magic, &native, &version, &longnames)) {
-		/*This is a V1 or V2 Minix filesystem*/
+		/* This is a V1 or V2 Minix filesystem */
 		magic = sb->s_magic;
 	} else if (check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
-		/*This is a V3 Minix filesystem*/
+		/* This is a V3 Minix filesystem */
 		magic = sb3->s_magic;
 	} else {
-		/*Not recognized*/
+		/* Not recognized */
 		mfsdebug("magic number not recognized\n");
-		free(instance);
-		free(sbi);
-		free(sb);
-		block_fini(service_id);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto out_error;
 	}
 
 	mfsdebug("magic number recognized = %04x\n", magic);
 
-	/*Fill superblock info structure*/
+	/* Fill superblock info structure */
 
 	sbi->fs_version = version;
 	sbi->long_names = longnames;
@@ -253,34 +245,43 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		}
 		sbi->dirsize = longnames ? MFSL_DIRSIZE : MFS_DIRSIZE;
 		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
-				    MFS_MAX_NAME_LEN;
+		    MFS_MAX_NAME_LEN;
 	}
-	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 
-	free(sb);
+	if (sbi->log2_zone_size != 0) {
+		/* In MFS, file space is allocated per zones.
+		 * Zones are a collection of consecutive blocks on disk.
+		 *
+		 * The current MFS implementation supports only filesystems
+		 * where the size of a zone is equal to the
+		 * size of a block.
+		 */
+		rc = ENOTSUP;
+		goto out_error;
+	}
+
+	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
+	if ((rc = mfs_check_sanity(sbi)) != EOK) {
+		fprintf(stderr, "Filesystem corrupted, invalid superblock");
+		goto out_error;
+	}
 
 	rc = block_cache_init(service_id, sbi->block_size, 0, cmode);
 	if (rc != EOK) {
-		free(instance);
-		free(sbi);
-		block_cache_fini(service_id);
-		block_fini(service_id);
 		mfsdebug("block cache initialization failed\n");
-		return EINVAL;
+		rc = EINVAL;
+		goto out_error;
 	}
 
-	/*Initialize the instance structure and remember it*/
+	/* Initialize the instance structure and remember it */
 	instance->service_id = service_id;
 	instance->sbi = sbi;
 	instance->open_nodes_cnt = 0;
 	rc = fs_instance_create(service_id, instance);
 	if (rc != EOK) {
-		free(instance);
-		free(sbi);
 		block_cache_fini(service_id);
-		block_fini(service_id);
 		mfsdebug("fs instance creation failed\n");
-		return rc;
+		goto out_error;
 	}
 
 	mfsdebug("mount successful\n");
@@ -294,7 +295,19 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	*size = mroot->ino_i->i_size;
 	*linkcnt = 1;
 
+	free(sb);
+
 	return mfs_node_put(fn);
+
+out_error:
+	block_fini(service_id);
+	if (sb)
+		free(sb);
+	if (sbi)
+		free(sbi);
+	if(instance)
+		free(instance);
+	return rc;
 }
 
 static int
@@ -321,13 +334,15 @@ mfs_unmounted(service_id_t service_id)
 	return EOK;
 }
 
-service_id_t mfs_service_get(fs_node_t *fsnode)
+service_id_t
+mfs_service_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return node->instance->service_id;
 }
 
-static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
+static int
+mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	int r;
 	struct mfs_instance *inst;
@@ -341,7 +356,7 @@ static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	if (r != EOK)
 		return r;
 
-	/*Alloc a new inode*/
+	/* Alloc a new inode */
 	r = mfs_alloc_inode(inst, &inum);
 	if (r != EOK)
 		return r;
@@ -368,11 +383,9 @@ static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 	if (flags & L_DIRECTORY) {
 		ino_i->i_mode = S_IFDIR;
-		ino_i->i_nlinks = 2; /*This accounts for the '.' dentry*/
-	} else {
+		ino_i->i_nlinks = 1; /* This accounts for the '.' dentry */
+	} else
 		ino_i->i_mode = S_IFREG;
-		ino_i->i_nlinks = 1;
-	}
 
 	ino_i->i_uid = 0;
 	ino_i->i_gid = 0;
@@ -421,7 +434,8 @@ out_err:
 	return r;
 }
 
-static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+static int
+mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	struct mfs_node *mnode = pfn->data;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
@@ -443,17 +457,17 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			return r;
 
 		if (!d_info.d_inum) {
-			/*This entry is not used*/
+			/* This entry is not used */
 			continue;
 		}
 
 		const size_t dentry_name_size = str_size(d_info.d_name);
 
 		if (comp_size == dentry_name_size &&
-			!bcmp(component, d_info.d_name, dentry_name_size)) {
-			/*Hit!*/
+		    !bcmp(component, d_info.d_name, dentry_name_size)) {
+			/* Hit! */
 			mfs_node_core_get(rfn, mnode->instance,
-					  d_info.d_inum);
+			    d_info.d_inum);
 			goto found;
 		}
 	}
@@ -462,7 +476,8 @@ found:
 	return EOK;
 }
 
-static aoff64_t mfs_size_get(fs_node_t *node)
+static aoff64_t
+mfs_size_get(fs_node_t *node)
 {
 	const struct mfs_node *mnode = node->data;
 	return mnode->ino_i->i_size;
@@ -470,7 +485,7 @@ static aoff64_t mfs_size_get(fs_node_t *node)
 
 static int
 mfs_node_get(fs_node_t **rfn, service_id_t service_id,
-			fs_index_t index)
+    fs_index_t index)
 {
 	int rc;
 	struct mfs_instance *instance;
@@ -514,7 +529,8 @@ mfs_node_put(fs_node_t *fsnode)
 	return rc;
 }
 
-static int mfs_node_open(fs_node_t *fsnode)
+static int
+mfs_node_open(fs_node_t *fsnode)
 {
 	/*
 	 * Opening a file is stateless, nothing
@@ -523,13 +539,15 @@ static int mfs_node_open(fs_node_t *fsnode)
 	return EOK;
 }
 
-static fs_index_t mfs_index_get(fs_node_t *fsnode)
+static fs_index_t
+mfs_index_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 	return mnode->ino_i->index;
 }
 
-static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
+static unsigned
+mfs_lnkcnt_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 
@@ -544,8 +562,9 @@ static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 		return mnode->ino_i->i_nlinks;
 }
 
-static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
-			     fs_index_t index)
+static int
+mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
+    fs_index_t index)
 {
 	fs_node_t *node = NULL;
 	struct mfs_node *mnode = NULL;
@@ -617,29 +636,34 @@ out_err:
 	return rc;
 }
 
-static bool mfs_is_directory(fs_node_t *fsnode)
+static bool
+mfs_is_directory(fs_node_t *fsnode)
 {
 	const struct mfs_node *node = fsnode->data;
 	return S_ISDIR(node->ino_i->i_mode);
 }
 
-static bool mfs_is_file(fs_node_t *fsnode)
+static bool
+mfs_is_file(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return S_ISREG(node->ino_i->i_mode);
 }
 
-static int mfs_root_get(fs_node_t **rfn, service_id_t service_id)
+static int
+mfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	int rc = mfs_node_get(rfn, service_id, MFS_ROOT_INO);
 	return rc;
 }
 
-static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+static int
+mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	struct mfs_node *parent = pfn->data;
 	struct mfs_node *child = cfn->data;
 	struct mfs_sb_info *sbi = parent->instance->sbi;
+	bool destroy_dentry = false;
 
 	mfsdebug("%s()\n", __FUNCTION__);
 
@@ -648,22 +672,40 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	int r = mfs_insert_dentry(parent, name, child->ino_i->index);
 	if (r != EOK)
-		goto exit_error;
+		return r;
 
 	if (S_ISDIR(child->ino_i->i_mode)) {
+		if (child->ino_i->i_nlinks != 1) {
+			/* It's not possible to hardlink directories in MFS */
+			destroy_dentry = true;
+			r = EMLINK;
+			goto exit;
+		}
 		r = mfs_insert_dentry(child, ".", child->ino_i->index);
-		if (r != EOK)
-			goto exit_error;
+		if (r != EOK) {
+			destroy_dentry = true;
+			goto exit;
+		}
 
 		r = mfs_insert_dentry(child, "..", parent->ino_i->index);
-		if (r != EOK)
-			goto exit_error;
+		if (r != EOK) {
+			destroy_dentry = true;
+			goto exit;
+		}
 
 		parent->ino_i->i_nlinks++;
 		parent->ino_i->dirty = true;
 	}
 
-exit_error:
+exit:
+	if (destroy_dentry) {
+		int r2 = mfs_remove_dentry(parent, name);
+		if (r2 != EOK)
+			r = r2;
+	} else {
+		child->ino_i->i_nlinks++;
+		child->ino_i->dirty = true;
+	}
 	return r;
 }
 
@@ -710,7 +752,8 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	return r;
 }
 
-static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
+static int
+mfs_has_children(bool *has_children, fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -731,7 +774,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 			return r;
 
 		if (d_info.d_inum) {
-			/*A valid entry has been found*/
+			/* A valid entry has been found */
 			*has_children = true;
 			break;
 		}
@@ -743,7 +786,7 @@ out:
 
 static int
 mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
-		size_t *rbytes)
+    size_t *rbytes)
 {
 	int rc;
 	fs_node_t *fn;
@@ -773,7 +816,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
 		if (pos < 2) {
-			/*Skip the first two dentries ('.' and '..')*/
+			/* Skip the first two dentries ('.' and '..') */
 			pos = 2;
 		}
 
@@ -783,7 +826,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 				goto out_error;
 
 			if (d_info.d_inum) {
-				/*Dentry found!*/
+				/* Dentry found! */
 				goto found;
 			}
 		}
@@ -793,13 +836,13 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 found:
 		async_data_read_finalize(callid, d_info.d_name,
-					 str_size(d_info.d_name) + 1);
+		    str_size(d_info.d_name) + 1);
 		bytes = ((pos - spos) + 1);
 	} else {
 		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
 		if (pos >= (size_t) ino_i->i_size) {
-			/*Trying to read beyond the end of file*/
+			/* Trying to read beyond the end of file */
 			bytes = 0;
 			(void) async_data_read_finalize(callid, NULL, 0);
 			goto out_success;
@@ -816,7 +859,7 @@ found:
 			goto out_error;
 
 		if (zone == 0) {
-			/*sparse file*/
+			/* sparse file */
 			uint8_t *buf = malloc(sbi->block_size);
 			if (!buf) {
 				rc = ENOMEM;
@@ -824,7 +867,7 @@ found:
 			}
 			memset(buf, 0, sizeof(sbi->block_size));
 			async_data_read_finalize(callid,
-						 buf + pos % sbi->block_size, bytes);
+			    buf + pos % sbi->block_size, bytes);
 			free(buf);
 			goto out_success;
 		}
@@ -834,7 +877,7 @@ found:
 			goto out_error;
 
 		async_data_read_finalize(callid, b->data +
-					 pos % sbi->block_size, bytes);
+		    pos % sbi->block_size, bytes);
 
 		rc = block_put(b);
 		if (rc != EOK) {
@@ -855,7 +898,7 @@ out_error:
 
 static int
 mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
-		size_t *wbytes, aoff64_t *nsize)
+    size_t *wbytes, aoff64_t *nsize)
 {
 	fs_node_t *fn;
 	int r;
@@ -879,35 +922,28 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	const size_t bs = sbi->block_size;
-	size_t bytes = min(len, bs - pos % bs);
-	size_t boundary = ROUND_UP(ino_i->i_size, bs);
+	size_t bytes = min(len, bs - (pos % bs));
 	uint32_t block;
 
 	if (bytes == bs)
 		flags = BLOCK_FLAGS_NOREAD;
 
-	if (pos < boundary) {
-		r = mfs_read_map(&block, mnode, pos);
-		if (r != EOK)
-			goto out_err;
+	r = mfs_read_map(&block, mnode, pos);
+	if (r != EOK)
+		goto out_err;
 
-		if (block == 0) {
-			/*Writing in a sparse block*/
-			r = mfs_alloc_zone(mnode->instance, &block);
-			if (r != EOK)
-				goto out_err;
-			flags = BLOCK_FLAGS_NOREAD;
-		}
-	} else {
+	if (block == 0) {
 		uint32_t dummy;
 
 		r = mfs_alloc_zone(mnode->instance, &block);
 		if (r != EOK)
 			goto out_err;
-
+		
 		r = mfs_write_map(mnode, pos, block, &dummy);
 		if (r != EOK)
 			goto out_err;
+
+		flags = BLOCK_FLAGS_NOREAD;
 	}
 
 	block_t *b;
@@ -915,7 +951,10 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (r != EOK)
 		goto out_err;
 
-	async_data_write_finalize(callid, b->data + pos % bs, bytes);
+	if (flags == BLOCK_FLAGS_NOREAD)
+		memset(b->data, 0, sbi->block_size);
+
+	async_data_write_finalize(callid, b->data + (pos % bs), bytes);
 	b->dirty = true;
 
 	r = block_put(b);
@@ -924,10 +963,12 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return r;
 	}
 
-	ino_i->i_size = pos + bytes;
-	ino_i->dirty = true;
+	if (pos + bytes > ino_i->i_size) {
+		ino_i->i_size = pos + bytes;
+		ino_i->dirty = true;
+	}
 	r = mfs_node_put(fn);
-	*nsize = pos + bytes;
+	*nsize = ino_i->i_size;
 	*wbytes = bytes;
 	return r;
 
@@ -949,7 +990,7 @@ mfs_destroy(service_id_t service_id, fs_index_t index)
 	if (!fn)
 		return ENOENT;
 
-	/*Destroy the inode*/
+	/* Destroy the inode */
 	return mfs_destroy_node(fn);
 }
 
@@ -968,12 +1009,12 @@ mfs_destroy_node(fs_node_t *fn)
 
 	assert(!has_children);
 
-	/*Free the entire inode content*/
+	/* Free the entire inode content */
 	r = mfs_inode_shrink(mnode, mnode->ino_i->i_size);
 	if (r != EOK)
 		goto out;
 
-	/*Mark the inode as free in the bitmap*/
+	/* Mark the inode as free in the bitmap */
 	r = mfs_free_inode(mnode->instance, mnode->ino_i->index);
 
 out:
@@ -1012,17 +1053,18 @@ mfs_instance_get(service_id_t service_id, struct mfs_instance **instance)
 	int rc;
 
 	rc = fs_instance_get(service_id, &data);
-	if (rc == EOK) {
+	if (rc == EOK)
 		*instance = (struct mfs_instance *) data;
-	} else {
+	else {
 		mfsdebug("instance not found\n");
 	}
 
 	return rc;
 }
 
-static bool check_magic_number(uint16_t magic, bool *native,
-			       mfs_version_t *version, bool *longfilenames)
+static bool
+check_magic_number(uint16_t magic, bool *native,
+		mfs_version_t *version, bool *longfilenames)
 {
 	bool rc = true;
 	*longfilenames = false;
@@ -1050,6 +1092,29 @@ static bool check_magic_number(uint16_t magic, bool *native,
 	return rc;
 }
 
+/** Filesystem sanity check
+ *
+ * @param Pointer to the MFS superblock.
+ *
+ * @return EOK on success, ENOTSUP otherwise.
+ */
+static int
+mfs_check_sanity(struct mfs_sb_info *sbi)
+{
+	if (!is_power_of_two(sbi->block_size) ||
+	    sbi->block_size < MFS_MIN_BLOCKSIZE ||
+	    sbi->block_size > MFS_MAX_BLOCKSIZE)
+		return ENOTSUP;
+	else if (sbi->ibmap_blocks == 0 || sbi->zbmap_blocks == 0)
+		return ENOTSUP;
+	else if (sbi->ninodes == 0 || sbi->nzones == 0)
+		return ENOTSUP;
+	else if (sbi->firstdatazone == 0)
+		return ENOTSUP;
+
+	return EOK;
+}
+
 static int
 mfs_close(service_id_t service_id, fs_index_t index)
 {
@@ -1070,6 +1135,21 @@ mfs_sync(service_id_t service_id, fs_index_t index)
 	mnode->ino_i->dirty = true;
 
 	return mfs_node_put(fn);
+}
+
+/** Check if a given number is a power of two.
+ *
+ * @param n	The number to check.
+ *
+ * @return	true if it is a power of two, false otherwise.
+ */
+static bool
+is_power_of_two(uint32_t n)
+{
+	if (n == 0)
+		return false;
+
+	return (n & (n - 1)) == 0;
 }
 
 vfs_out_ops_t mfs_ops = {

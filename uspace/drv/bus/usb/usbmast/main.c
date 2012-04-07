@@ -54,7 +54,7 @@
 #define GET_BULK_IN(dev) ((dev)->pipes[BULK_IN_EP].pipe)
 #define GET_BULK_OUT(dev) ((dev)->pipes[BULK_OUT_EP].pipe)
 
-static usb_endpoint_description_t bulk_in_ep = {
+static const usb_endpoint_description_t bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_MASS_STORAGE,
@@ -62,7 +62,7 @@ static usb_endpoint_description_t bulk_in_ep = {
 	.interface_protocol = USB_MASSSTOR_PROTOCOL_BBB,
 	.flags = 0
 };
-static usb_endpoint_description_t bulk_out_ep = {
+static const usb_endpoint_description_t bulk_out_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_MASS_STORAGE,
@@ -71,7 +71,7 @@ static usb_endpoint_description_t bulk_out_ep = {
 	.flags = 0
 };
 
-usb_endpoint_description_t *mast_endpoints[] = {
+static const usb_endpoint_description_t *mast_endpoints[] = {
 	&bulk_in_ep,
 	&bulk_out_ep,
 	NULL
@@ -81,41 +81,81 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
-/** Callback when new device is attached and recognized as a mass storage.
+/** Callback when a device is removed from the system.
  *
- * @param dev Representation of a the USB device.
+ * @param dev Representation of USB device.
  * @return Error code.
  */
-static int usbmast_add_device(usb_device_t *dev)
+static int usbmast_device_gone(usb_device_t *dev)
+{
+	usbmast_dev_t *mdev = dev->driver_data;
+	assert(mdev);
+
+	for (size_t i = 0; i < mdev->lun_count; ++i) {
+		const int rc = ddf_fun_unbind(mdev->luns[i]);
+		if (rc != EOK) {
+			usb_log_error("Failed to unbind LUN function %zu: "
+			    "%s\n", i, str_error(rc));
+			return rc;
+		}
+		ddf_fun_destroy(mdev->luns[i]);
+		mdev->luns[i] = NULL;
+	}
+	free(mdev->luns);
+	return EOK;
+}
+
+/** Callback when a device is about to be removed.
+ *
+ * @param dev Representation of USB device.
+ * @return Error code.
+ */
+static int usbmast_device_remove(usb_device_t *dev)
+{
+	//TODO: flush buffers, or whatever.
+	//TODO: remove device
+	return ENOTSUP;
+}
+
+/** Callback when new device is attached and recognized as a mass storage.
+ *
+ * @param dev Representation of USB device.
+ * @return Error code.
+ */
+static int usbmast_device_add(usb_device_t *dev)
 {
 	int rc;
 	usbmast_dev_t *mdev = NULL;
 	unsigned i;
 
 	/* Allocate softstate */
-	mdev = calloc(1, sizeof(usbmast_dev_t));
+	mdev = usb_device_data_alloc(dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
-		rc = ENOMEM;
-		goto error;
+		return ENOMEM;
 	}
 
 	mdev->ddf_dev = dev->ddf_dev;
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n",
-	    dev->ddf_dev->name);
-	usb_log_debug(" Bulk in endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_IN_EP].pipe->endpoint_no,
-	    (size_t) dev->pipes[BULK_IN_EP].descriptor->max_packet_size);
+	usb_log_info("Initializing mass storage `%s'.\n", dev->ddf_dev->name);
+	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
+	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
+	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
 	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
-	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
+	    dev->pipes[BULK_OUT_EP].pipe.endpoint_no,
+	    dev->pipes[BULK_OUT_EP].pipe.max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
-	mdev->luns = usb_masstor_get_lun_count(mdev);
+	mdev->lun_count = usb_masstor_get_lun_count(mdev);
+	mdev->luns = calloc(mdev->lun_count, sizeof(ddf_fun_t*));
+	if (mdev->luns == NULL) {
+		rc = ENOMEM;
+		usb_log_error("Failed allocating luns table.\n");
+		goto error;
+	}
 
-	for (i = 0; i < mdev->luns; i++) {
+	for (i = 0; i < mdev->lun_count; i++) {
 		rc = usbmast_fun_create(mdev, i);
 		if (rc != EOK)
 			goto error;
@@ -123,9 +163,18 @@ static int usbmast_add_device(usb_device_t *dev)
 
 	return EOK;
 error:
-	/* XXX Destroy functions */
-	if (mdev != NULL)
-		free(mdev);
+	/* Destroy functions */
+	for (size_t i = 0; i < mdev->lun_count; ++i) {
+		if (mdev->luns[i] == NULL)
+			continue;
+		const int rc = ddf_fun_unbind(mdev->luns[i]);
+		if (rc != EOK) {
+			usb_log_warning("Failed to unbind LUN function %zu: "
+			    "%s.\n", i, str_error(rc));
+		}
+		ddf_fun_destroy(mdev->luns[i]);
+	}
+	free(mdev->luns);
 	return rc;
 }
 
@@ -157,24 +206,20 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	free(fun_name);
-
 	/* Allocate soft state */
-	mfun = ddf_dev_data_alloc(mdev->ddf_dev, sizeof(usbmast_fun_t));
+	mfun = ddf_fun_data_alloc(fun, sizeof(usbmast_fun_t));
 	if (mfun == NULL) {
 		usb_log_error("Failed allocating softstate.\n");
 		rc = ENOMEM;
 		goto error;
 	}
 
+	mfun->ddf_fun = fun;
 	mfun->mdev = mdev;
 	mfun->lun = lun;
 
-	fun_name = NULL;
-
 	/* Set up a connection handler. */
 	fun->conn_handler = usbmast_bd_connection;
-	fun->driver_data = mfun;
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
@@ -219,6 +264,9 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
+	free(fun_name);
+	mdev->luns[lun] = fun;
+
 	return EOK;
 
 	/* Error cleanup */
@@ -251,15 +299,13 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	comm_buf = as_get_mappable_page(comm_size);
-	if (comm_buf == NULL) {
+	
+	(void) async_share_out_finalize(callid, &comm_buf);
+	if (comm_buf == (void *) -1) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, comm_buf);
-
+	
 	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
 
 	while (true) {
@@ -299,12 +345,14 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 }
 
 /** USB mass storage driver ops. */
-static usb_driver_ops_t usbmast_driver_ops = {
-	.add_device = usbmast_add_device,
+static const usb_driver_ops_t usbmast_driver_ops = {
+	.device_add = usbmast_device_add,
+	.device_rem = usbmast_device_remove,
+	.device_gone = usbmast_device_gone,
 };
 
 /** USB mass storage driver. */
-static usb_driver_t usbmast_driver = {
+static const usb_driver_t usbmast_driver = {
 	.name = NAME,
 	.ops = &usbmast_driver_ops,
 	.endpoints = mast_endpoints

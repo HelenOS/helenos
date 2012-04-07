@@ -35,8 +35,12 @@
 
 typedef enum {
 	HW_RES_DEV_IFACE = 0,
+	/** Character device interface */
 	CHAR_DEV_IFACE,
-
+	
+	/** Network interface controller interface */
+	NIC_DEV_IFACE,
+	
 	/** Interface provided by any PCI device. */
 	PCI_DEV_IFACE,
 

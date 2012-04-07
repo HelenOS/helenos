@@ -55,7 +55,7 @@
  * @return EOK on success.
  *
  */
-int tl_received_msg(async_sess_t *sess, device_id_t device_id, packet_t *packet,
+int tl_received_msg(async_sess_t *sess, nic_device_id_t device_id, packet_t *packet,
     services_t target, services_t error)
 {
 	return generic_received_msg_remote(sess, NET_TL_RECEIVED, device_id,

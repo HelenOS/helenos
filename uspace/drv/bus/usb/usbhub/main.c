@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,15 +38,16 @@
 
 #include <usb/dev/driver.h>
 #include <usb/classes/classes.h>
+#include <usb/debug.h>
 
 #include "usbhub.h"
-#include "usbhub_private.h"
 
 /** Hub status-change endpoint description.
  *
  * For more information see section 11.15.1 of USB 1.1 specification.
  */
-static usb_endpoint_description_t hub_status_change_endpoint_description = {
+static const usb_endpoint_description_t hub_status_change_endpoint_description =
+{
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HUB,
@@ -54,37 +56,28 @@ static usb_endpoint_description_t hub_status_change_endpoint_description = {
 	.flags = 0
 };
 
-/**
- * usb hub driver operations
- *
- * The most important one is add_device, which is set to usb_hub_add_device.
- */
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
+/** USB hub driver operations. */
+static const usb_driver_ops_t usb_hub_driver_ops = {
+	.device_add = usb_hub_device_add,
+//	.device_rem = usb_hub_device_remove,
+	.device_gone = usb_hub_device_gone,
 };
 
-/**
- * hub endpoints, excluding control endpoint
- */
-static usb_endpoint_description_t *usb_hub_endpoints[] = {
+/** Hub endpoints, excluding control endpoint. */
+static const usb_endpoint_description_t *usb_hub_endpoints[] = {
 	&hub_status_change_endpoint_description,
-	NULL
+	NULL,
 };
-
-/**
- * static usb hub driver information
- */
-static usb_driver_t usb_hub_driver = {
+/** Static usb hub driver information. */
+static const usb_driver_t usb_hub_driver = {
 	.name = NAME,
 	.ops = &usb_hub_driver_ops,
 	.endpoints = usb_hub_endpoints
 };
 
-
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB hub driver.\n");
-
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 
 	return usb_driver_main(&usb_hub_driver);
@@ -93,4 +86,3 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
-

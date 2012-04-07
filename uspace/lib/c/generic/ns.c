@@ -53,10 +53,11 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, sysarg_t service, sysarg_t arg2,
 	async_exch_t *exch = async_exchange_begin(session_ns);
 	if (!exch)
 		return NULL;
+	
 	async_sess_t *sess =
 	    async_connect_me_to(mgmt, exch, service, arg2, arg3);
 	async_exchange_end(exch);
-
+	
 	if (!sess)
 		return NULL;
 	
@@ -74,9 +75,14 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, sysarg_t service,
     sysarg_t arg2, sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
+	if (!exch)
+		return NULL;
 	async_sess_t *sess =
 	    async_connect_me_to_blocking(mgmt, exch, service, arg2, arg3);
 	async_exchange_end(exch);
+
+	if (!sess)
+		return NULL;
 	
 	/*
 	 * FIXME Ugly hack to work around limitation of implementing

@@ -35,7 +35,7 @@
 
 static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize,
-		      const bool native, unsigned start_bit);
+    const bool native, unsigned start_bit);
 
 static int
 mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
@@ -128,28 +128,28 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
 			printf(NAME ": Error! Trying to free beyond the" \
-			       "bitmap max size\n");
+			    "bitmap max size\n");
 			return -1;
 		}
 	} else {
-		/*bid == BMAP_INODE*/
+		/* bid == BMAP_INODE */
 		search = &sbi->isearch;
 		start_block = 2;
 		if (idx > sbi->ninodes) {
 			printf(NAME ": Error! Trying to free beyond the" \
-			       "bitmap max size\n");
+			    "bitmap max size\n");
 			return -1;
 		}
 	}
 
-	/*Compute the bitmap block*/
+	/* Compute the bitmap block */
 	uint32_t block = idx / (sbi->block_size * 8) + start_block;
 
 	r = block_get(&b, inst->service_id, block, BLOCK_FLAGS_NONE);
 	if (r != EOK)
 		goto out_err;
 
-	/*Compute the bit index in the block*/
+	/* Compute the bit index in the block */
 	idx %= (sbi->block_size * 8);
 	bitchunk_t *ptr = b->data;
 	bitchunk_t chunk;
@@ -197,7 +197,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 		nblocks = sbi->zbmap_blocks;
 		limit = sbi->nzones - sbi->firstdatazone - 1;
 	} else {
-		/*bid == BMAP_INODE*/
+		/* bid == BMAP_INODE */
 		search = &sbi->isearch;
 		start_block = 2;
 		nblocks = sbi->ibmap_blocks;
@@ -211,7 +211,7 @@ retry:
 
 	for (i = *search / bits_per_block; i < nblocks; ++i) {
 		r = block_get(&b, inst->service_id, i + start_block,
-			      BLOCK_FLAGS_NONE);
+		    BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
 			goto out;
@@ -219,19 +219,19 @@ retry:
 		unsigned tmp = *search % bits_per_block;
 
 		freebit = find_free_bit_and_set(b->data, sbi->block_size,
-						sbi->native, tmp);
+		    sbi->native, tmp);
 		if (freebit == -1) {
-			/*No free bit in this block*/
+			/* No free bit in this block */
 			r = block_put(b);
 			if (r != EOK)
 				goto out;
 			continue;
 		}
 
-		/*Free bit found in this block, compute the real index*/
+		/* Free bit found in this block, compute the real index */
 		*idx = freebit + bits_per_block * i;
 		if (*idx > limit) {
-			/*Index is beyond the limit, it is invalid*/
+			/* Index is beyond the limit, it is invalid */
 			r = block_put(b);
 			if (r != EOK)
 				goto out;
@@ -245,12 +245,12 @@ retry:
 	}
 
 	if (*search > 0) {
-		/*Repeat the search from the first bitmap block*/
+		/* Repeat the search from the first bitmap block */
 		*search = 0;
 		goto retry;
 	}
 
-	/*Free bit not found, return error*/
+	/* Free bit not found, return error */
 	return ENOSPC;
 
 out:
@@ -259,7 +259,7 @@ out:
 
 static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize,
-		      const bool native, unsigned start_bit)
+    const bool native, unsigned start_bit)
 {
 	int r = -1;
 	unsigned i, j;
@@ -267,9 +267,10 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
 	for (i = start_bit / chunk_bits;
-	     i < bsize / sizeof(bitchunk_t); ++i) {
+	    i < bsize / sizeof(bitchunk_t); ++i) {
+
 		if (!(~b[i])) {
-			/*No free bit in this chunk*/
+			/* No free bit in this chunk */
 			continue;
 		}
 

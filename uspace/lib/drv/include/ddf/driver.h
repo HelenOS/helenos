@@ -135,7 +135,7 @@ struct ddf_fun {
 /** Generic device driver operations */
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
-	int (*add_device)(ddf_dev_t *);
+	int (*dev_add)(ddf_dev_t *);
 	/** Ask driver to remove a device */
 	int (*dev_remove)(ddf_dev_t *);
 	/** Inform driver a device disappeared */

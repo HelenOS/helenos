@@ -44,18 +44,18 @@
 #include <async.h>
 
 extern int generic_device_state_msg_remote(async_sess_t *, sysarg_t,
-    device_id_t, sysarg_t, services_t);
-extern int generic_device_req_remote(async_sess_t *, sysarg_t, device_id_t,
-    sysarg_t, services_t);
-extern int generic_get_addr_req(async_sess_t *, sysarg_t, device_id_t,
-    measured_string_t **, uint8_t **);
-extern int generic_packet_size_req_remote(async_sess_t *, sysarg_t, device_id_t,
-    packet_dimension_t *);
-extern int generic_received_msg_remote(async_sess_t *, sysarg_t, device_id_t,
+    nic_device_id_t, sysarg_t, services_t);
+extern int generic_device_req_remote(async_sess_t *, sysarg_t, nic_device_id_t,
+    services_t);
+extern int generic_get_addr_req(async_sess_t *, sysarg_t, nic_device_id_t,
+    uint8_t *address, size_t max_length);
+extern int generic_packet_size_req_remote(async_sess_t *, sysarg_t,
+    nic_device_id_t, packet_dimension_t *);
+extern int generic_received_msg_remote(async_sess_t *, sysarg_t,
+    nic_device_id_t, packet_id_t, services_t, services_t);
+extern int generic_send_msg_remote(async_sess_t *, sysarg_t, nic_device_id_t,
     packet_id_t, services_t, services_t);
-extern int generic_send_msg_remote(async_sess_t *, sysarg_t, device_id_t,
-    packet_id_t, services_t, services_t);
-extern int generic_translate_req(async_sess_t *, sysarg_t, device_id_t,
+extern int generic_translate_req(async_sess_t *, sysarg_t, nic_device_id_t,
     services_t, measured_string_t *, size_t, measured_string_t **, uint8_t **);
 
 #endif

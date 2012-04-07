@@ -53,20 +53,22 @@ static inline uintptr_t addr_to_phys(const void *addr)
 {
 	if (addr == NULL)
 		return 0;
-
+	
 	uintptr_t result;
 	const int ret = as_get_physical_mapping(addr, &result);
 	if (ret != EOK)
 		return 0;
-	return (result | ((uintptr_t)addr & 0xfff));
+	
+	return result;
 }
 /*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
+/** DMA malloc simulator
  *
  * @param[in] size Size of the required memory space
- * @return Address of the alligned and big enough memory place, NULL on failure.
+ * @return Address of the aligned and big enough memory place, NULL on failure.
  */
-static inline void * malloc32(size_t size) {
+static inline void * malloc32(size_t size)
+{
 	/* This works only when the host has less than 4GB of memory as
 	 * physical address needs to fit into 32 bits */
 
@@ -82,15 +84,12 @@ static inline void * malloc32(size_t size) {
 	return memalign(alignment, size);
 }
 /*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
+/** DMA malloc simulator
  *
  * @param[in] addr Address of the place allocated by malloc32
  */
-static inline void free32(void *addr) {
-	if (!addr)
-		return;
-	free(addr);
-}
+static inline void free32(void *addr)
+	{ free(addr); }
 /*----------------------------------------------------------------------------*/
 /** Create 4KB page mapping
  *
@@ -98,13 +97,11 @@ static inline void free32(void *addr) {
  */
 static inline void * get_page(void)
 {
-	void *free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
-	if (free_address == 0)
+	void *address = as_area_create((void *) -1, UHCI_REQUIRED_PAGE_SIZE,
+	    AS_AREA_READ | AS_AREA_WRITE);
+	if (address == (void *) -1)
 		return NULL;
-	void *address = as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
-		  AS_AREA_READ | AS_AREA_WRITE);
-	if (address != free_address)
-		return NULL;
+	
 	return address;
 }
 /*----------------------------------------------------------------------------*/

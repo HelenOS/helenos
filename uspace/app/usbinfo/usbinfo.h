@@ -43,8 +43,9 @@
 #include <ipc/devman.h>
 
 typedef struct {
-	usb_pipe_t ctrl_pipe;
+	usb_hc_connection_t hc_conn;
 	usb_device_connection_t wire;
+	usb_pipe_t ctrl_pipe;
 	usb_standard_device_descriptor_t device_descriptor;
 	uint8_t *full_configuration_descriptor;
 	size_t full_configuration_descriptor_size;
@@ -73,7 +74,7 @@ static inline void internal_error(int err)
 usbinfo_device_t *prepare_device(const char *, devman_handle_t, usb_address_t);
 void destroy_device(usbinfo_device_t *);
 
-typedef void (*dump_descriptor_in_tree_t)(uint8_t *, size_t, void *);
+typedef void (*dump_descriptor_in_tree_t)(const uint8_t *, size_t, void *);
 void browse_descriptor_tree(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
     dump_descriptor_in_tree_t, size_t, void *);
 

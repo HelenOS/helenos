@@ -45,158 +45,127 @@
 
 #include "usbhid.h"
 
-/*----------------------------------------------------------------------------*/
-
 #define NAME "usbhid"
 
-/**
- * Function for adding a new device of type USB/HID/keyboard.
- *
- * This functions initializes required structures from the device's descriptors
- * and starts new fibril for polling the keyboard for events and another one for
- * handling auto-repeat of keys.
- *
- * During initialization, the keyboard is switched into boot protocol, the idle
- * rate is set to 0 (infinity), resulting in the keyboard only reporting event
- * when a key is pressed or released. Finally, the LED lights are turned on 
- * according to the default setup of lock keys.
- *
- * @note By default, the keyboards is initialized with Num Lock turned on and 
- *       other locks turned off.
- * @note Currently supports only boot-protocol keyboards.
- *
- * @param dev Device to add.
- *
- * @retval EOK if successful.
- * @retval ENOMEM if there
- * @return Other error code inherited from one of functions usb_kbd_init(),
- *         ddf_fun_bind() and ddf_fun_add_to_class().
- */
-static int usb_hid_try_add_device(usb_device_t *dev)
-{
-	assert(dev != NULL);
-	
-	/* 
-	 * Initialize device (get and process descriptors, get address, etc.)
-	 */
-	usb_log_debug("Initializing USB/HID device...\n");
-	
-	usb_hid_dev_t *hid_dev = usb_hid_new();
-	if (hid_dev == NULL) {
-		usb_log_error("Error while creating USB/HID device "
-		    "structure.\n");
-		return ENOMEM;
-	}
-	
-	int rc = usb_hid_init(hid_dev, dev);
-	
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize USB/HID device.\n");
-		usb_hid_destroy(hid_dev);
-		return rc;
-	}	
-	
-	usb_log_debug("USB/HID device structure initialized.\n");
-	
-	/*
-	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
-	 *    do nej.
-	 * 2) do tych ops do .interfaces[DEV_IFACE_USBHID (asi)] priradi 
-	 *    vyplnenu strukturu usbhid_iface_t.
-	 * 3) klientska aplikacia - musi si rucne vytvorit telefon
-	 *    (devman_device_connect() - cesta k zariadeniu (/hw/pci0/...) az 
-	 *    k tej fcii.
-	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
-	 */
-	
-	/* Start automated polling function.
-	 * This will create a separate fibril that will query the device
-	 * for the data continuously 
-	 */
-       rc = usb_device_auto_poll(dev,
-	   /* Index of the polling pipe. */
-	   hid_dev->poll_pipe_index,
-	   /* Callback when data arrives. */
-	   usb_hid_polling_callback,
-	   /* How much data to request. */
-	   dev->pipes[hid_dev->poll_pipe_index].pipe->max_packet_size,
-	   /* Callback when the polling ends. */
-	   usb_hid_polling_ended_callback,
-	   /* Custom argument. */
-	   hid_dev);
-	
-	
-	if (rc != EOK) {
-		usb_log_error("Failed to start polling fibril for `%s'.\n",
-		    dev->ddf_dev->name);
-		return rc;
-	}
-
-	/*
-	 * Hurrah, device is initialized.
-	 */
-	return EOK;
-}
-
-/*----------------------------------------------------------------------------*/
 /**
  * Callback for passing a new device to the driver.
  *
  * @note Currently, only boot-protocol keyboards are supported by this driver.
  *
  * @param dev Structure representing the new device.
- *
- * @retval EOK if successful. 
- * @retval EREFUSED if the device is not supported.
+ * @return Error code.
  */
-static int usb_hid_add_device(usb_device_t *dev)
+static int usb_hid_device_add(usb_device_t *dev)
 {
-	usb_log_debug("usb_hid_add_device()\n");
-	
+	usb_log_debug("%s\n", __FUNCTION__);
+
 	if (dev == NULL) {
-		usb_log_warning("Wrong parameter given for add_device().\n");
+		usb_log_error("Wrong parameter given for add_device().\n");
 		return EINVAL;
 	}
-	
+
 	if (dev->interface_no < 0) {
-		usb_log_warning("Device is not a supported HID device.\n");
 		usb_log_error("Failed to add HID device: endpoints not found."
 		    "\n");
 		return ENOTSUP;
 	}
-	
-	int rc = usb_hid_try_add_device(dev);
-	
+	usb_hid_dev_t *hid_dev =
+	    usb_device_data_alloc(dev, sizeof(usb_hid_dev_t));
+	if (hid_dev == NULL) {
+		usb_log_error("Failed to create USB/HID device structure.\n");
+		return ENOMEM;
+	}
+
+	int rc = usb_hid_init(hid_dev, dev);
 	if (rc != EOK) {
-		usb_log_warning("Device is not a supported HID device.\n");
-		usb_log_error("Failed to add HID device: %s.\n",
-		    str_error(rc));
+		usb_log_error("Failed to initialize USB/HID device.\n");
+		usb_hid_deinit(hid_dev);
 		return rc;
 	}
-	
+
+	usb_log_debug("USB/HID device structure initialized.\n");
+
+	/* Start automated polling function.
+	 * This will create a separate fibril that will query the device
+	 * for the data continuously. */
+       rc = usb_device_auto_poll(dev,
+	   /* Index of the polling pipe. */
+	   hid_dev->poll_pipe_index,
+	   /* Callback when data arrives. */
+	   usb_hid_polling_callback,
+	   /* How much data to request. */
+	   dev->pipes[hid_dev->poll_pipe_index].pipe.max_packet_size,
+	   /* Callback when the polling ends. */
+	   usb_hid_polling_ended_callback,
+	   /* Custom argument. */
+	   hid_dev);
+
+	if (rc != EOK) {
+		usb_log_error("Failed to start polling fibril for `%s'.\n",
+		    dev->ddf_dev->name);
+		usb_hid_deinit(hid_dev);
+		return rc;
+	}
+	hid_dev->running = true;
+
 	usb_log_info("HID device `%s' ready to use.\n", dev->ddf_dev->name);
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
+/**
+ * Callback for a device about to be removed from the driver.
+ *
+ * @param dev Structure representing the device.
+ * @return Error code.
+ */
+static int usb_hid_device_rem(usb_device_t *dev)
+{
+	// TODO: Stop device polling
+	// TODO: Call deinit (stops autorepeat too)
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+/**
+ * Callback for removing a device from the driver.
+ *
+ * @param dev Structure representing the device.
+ * @return Error code.
+ */
+static int usb_hid_device_gone(usb_device_t *dev)
+{
+	assert(dev);
+	assert(dev->driver_data);
+	usb_hid_dev_t *hid_dev = dev->driver_data;
+	unsigned tries = 100;
+	/* Wait for fail. */
+	while (hid_dev->running && tries--) {
+		async_usleep(100000);
+	}
+	if (hid_dev->running) {
+		usb_log_error("Can't remove hid, still running.\n");
+		return EBUSY;
+	}
 
-/* Currently, the framework supports only device adding. Once the framework
- * supports unplug, more callbacks will be added. */
-static usb_driver_ops_t usb_hid_driver_ops = {
-        .add_device = usb_hid_add_device,
+	usb_hid_deinit(hid_dev);
+	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** USB generic driver callbacks */
+static const usb_driver_ops_t usb_hid_driver_ops = {
+	.device_add = usb_hid_device_add,
+	.device_rem = usb_hid_device_rem,
+	.device_gone = usb_hid_device_gone,
 };
-
-
-/* The driver itself. */
-static usb_driver_t usb_hid_driver = {
+/*----------------------------------------------------------------------------*/
+/** The driver itself. */
+static const usb_driver_t usb_hid_driver = {
         .name = NAME,
         .ops = &usb_hid_driver_ops,
         .endpoints = usb_hid_endpoints
 };
-
 /*----------------------------------------------------------------------------*/
-
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB HID driver.\n");
@@ -205,7 +174,6 @@ int main(int argc, char *argv[])
 
 	return usb_driver_main(&usb_hid_driver);
 }
-
 /**
  * @}
  */

@@ -83,12 +83,12 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 
 	usb_log_debug("Sending Set Report request to the device.\n");
 	
-	rc = usb_control_request_set(ctrl_pipe, 
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+	rc = usb_control_request_set(ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_SET_REPORT, value, iface_no, buffer, buf_size);
 
 	if (rc != EOK) {
-		usb_log_warning("Error sending Set Report request to the "
+		usb_log_error("Error sending Set Report request to the "
 		    "device: %s.\n", str_error(rc));
 		return rc;
 	}

@@ -45,12 +45,12 @@
  */
 /*@{*/
 
-extern int arp_device_req(async_sess_t *, device_id_t, services_t, services_t,
+extern int arp_device_req(async_sess_t *, nic_device_id_t, services_t, services_t,
     measured_string_t *);
-extern int arp_translate_req(async_sess_t *, device_id_t, services_t,
+extern int arp_translate_req(async_sess_t *, nic_device_id_t, services_t,
     measured_string_t *, measured_string_t **, uint8_t **);
-extern int arp_clear_device_req(async_sess_t *, device_id_t);
-extern int arp_clear_address_req(async_sess_t *, device_id_t, services_t,
+extern int arp_clear_device_req(async_sess_t *, nic_device_id_t);
+extern int arp_clear_address_req(async_sess_t *, nic_device_id_t, services_t,
     measured_string_t *);
 extern int arp_clean_cache_req(async_sess_t *);
 extern async_sess_t *arp_connect_module(services_t);

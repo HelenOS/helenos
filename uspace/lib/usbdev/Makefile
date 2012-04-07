@@ -39,11 +39,8 @@ SOURCES = \
 	src/devpoll.c \
 	src/dp.c \
 	src/hub.c \
-	src/pipepriv.c \
-	src/pipepriv.h \
 	src/pipes.c \
 	src/pipesinit.c \
-	src/pipesio.c \
 	src/recognise.c \
 	src/request.c
 

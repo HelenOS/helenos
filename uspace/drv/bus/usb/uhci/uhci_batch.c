@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <str_error.h>
+#include <macros.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
@@ -44,42 +45,38 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
+/** Safely destructs uhci_transfer_batch_t structure.
+ *
+ * @param[in] uhci_batch Instance to destroy.
+ */
 static void uhci_transfer_batch_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	if (uhci_batch) {
-		usb_transfer_batch_dispose(uhci_batch->usb_batch);
+		usb_transfer_batch_destroy(uhci_batch->usb_batch);
 		free32(uhci_batch->device_buffer);
 		free(uhci_batch);
 	}
 }
 /*----------------------------------------------------------------------------*/
-/** Safely destructs uhci_transfer_batch_t structure
+/** Finishes usb_transfer_batch and destroys the structure.
  *
- * @param[in] uhci_batch Instance to destroy.
+ * @param[in] uhci_batch Instance to finish and destroy.
  */
-void uhci_transfer_batch_call_dispose(uhci_transfer_batch_t *uhci_batch)
+void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
 	usb_transfer_batch_finish(uhci_batch->usb_batch,
-	    uhci_transfer_batch_data_buffer(uhci_batch),
-	    uhci_batch->usb_batch->buffer_size);
+	    uhci_transfer_batch_data_buffer(uhci_batch));
 	uhci_transfer_batch_dispose(uhci_batch);
 }
 /*----------------------------------------------------------------------------*/
+/** Transfer batch setup table. */
 static void (*const batch_setup[])(uhci_transfer_batch_t*, usb_direction_t);
 /*----------------------------------------------------------------------------*/
 /** Allocate memory and initialize internal data structure.
  *
- * @param[in] fun DDF function to pass to callback.
- * @param[in] ep Communication target
- * @param[in] buffer Data source/destination.
- * @param[in] buffer_size Size of the buffer.
- * @param[in] setup_buffer Setup data source (if not NULL)
- * @param[in] setup_size Size of setup_buffer (should be always 8)
- * @param[in] func_in function to call on inbound transfer completion
- * @param[in] func_out function to call on outbound transfer completion
- * @param[in] arg additional parameter to func_in or func_out
+ * @param[in] usb_batch Pointer to generic USB batch structure.
  * @return Valid pointer if all structures were successfully created,
  * NULL otherwise.
  *
@@ -155,7 +152,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
  * processed). Stop with true if an error is found. Return true if the last TD
  * is reached.
  */
-bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch)
+bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
 	assert(uhci_batch->usb_batch);
@@ -166,8 +163,8 @@ bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch)
 	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch),
 	    uhci_batch->td_count);
 	uhci_batch->usb_batch->transfered_size = 0;
-	size_t i = 0;
-	for (;i < uhci_batch->td_count; ++i) {
+
+	for (size_t i = 0;i < uhci_batch->td_count; ++i) {
 		if (td_is_active(&uhci_batch->tds[i])) {
 			return false;
 		}
@@ -176,9 +173,9 @@ bool uhci_transfer_batch_is_complete(uhci_transfer_batch_t *uhci_batch)
 		if (uhci_batch->usb_batch->error != EOK) {
 			assert(uhci_batch->usb_batch->ep != NULL);
 
-			usb_log_debug("Batch(%p) found error TD(%zu):%"
+			usb_log_debug("Batch %p found error TD(%zu->%p):%"
 			    PRIx32 ".\n", uhci_batch->usb_batch, i,
-			    uhci_batch->tds[i].status);
+			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
 			endpoint_toggle_set(uhci_batch->usb_batch->ep,
@@ -199,6 +196,7 @@ substract_ret:
 	return true;
 }
 /*----------------------------------------------------------------------------*/
+/** Direction to pid conversion table */
 static const usb_packet_id direction_pids[] = {
 	[USB_DIRECTION_IN] = USB_PID_IN,
 	[USB_DIRECTION_OUT] = USB_PID_OUT,
@@ -236,8 +234,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir)
 	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
 
 	while (remain_size > 0) {
-		const size_t packet_size =
-		    (remain_size < mps) ? remain_size : mps;
+		const size_t packet_size = min(remain_size, mps);
 
 		const td_t *next_td = (td + 1 < uhci_batch->td_count)
 		    ? &uhci_batch->tds[td + 1] : NULL;
@@ -308,8 +305,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch, usb_direction_t dir
 	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
 
 	while (remain_size > 0) {
-		const size_t packet_size =
-		    (remain_size < mps) ? remain_size : mps;
+		const size_t packet_size = min(remain_size, mps);
 
 		td_init(
 		    &uhci_batch->tds[td], DEFAULT_ERROR_COUNT, packet_size,

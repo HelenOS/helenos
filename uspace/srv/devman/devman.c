@@ -799,6 +799,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 		break;
 	default:
 		dev->state = DEVICE_INVALID;
+		break;
 	}
 	
 	dev->passed_to_driver = true;
@@ -1065,6 +1066,9 @@ dev_node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
 	
 	link = hash_table_find(&tree->devman_devices, &key);
+	if (link == NULL)
+		return NULL;
+	
 	return hash_table_get_instance(link, dev_node_t, devman_dev);
 }
 

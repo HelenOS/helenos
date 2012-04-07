@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2011 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,8 +43,7 @@ BINARY = usbhub
 
 SOURCES = \
 	main.c \
-	utils.c \
 	usbhub.c \
-	ports.c
+	port.c
 
 include $(USPACE_PREFIX)/Makefile.common

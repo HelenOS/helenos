@@ -32,20 +32,19 @@
 /** @file
  */
 
-#include <genarch/multiboot/multiboot.h>
 #include <typedefs.h>
+#include <genarch/multiboot/multiboot.h>
 #include <config.h>
 #include <str.h>
-#include <macros.h>
 
 /** Extract command name from the multiboot module command line.
  *
- * @param buf      Destination buffer (will always NULL-terminate).
- * @param sz       Size of destination buffer (in bytes).
+ * @param buf      Destination buffer (will be always NULL-terminated).
+ * @param size     Size of destination buffer (in bytes).
  * @param cmd_line Input string (the command line).
  *
  */
-static void extract_command(char *buf, size_t sz, const char *cmd_line)
+void multiboot_extract_command(char *buf, size_t size, const char *cmd_line)
 {
 	/* Find the first space. */
 	const char *end = str_chr(cmd_line, ' ');
@@ -68,7 +67,43 @@ static void extract_command(char *buf, size_t sz, const char *cmd_line)
 	}
 	
 	/* Copy the command. */
-	str_ncpy(buf, sz, start, (size_t) (end - start));
+	str_ncpy(buf, size, start, (size_t) (end - start));
+}
+
+static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
+{
+	for (uint32_t i = 0; i < count; i++) {
+		if (init.cnt >= CONFIG_INIT_TASKS)
+			break;
+		
+		init.tasks[init.cnt].paddr = mods[i].start;
+		init.tasks[init.cnt].size = mods[i].end - mods[i].start;
+		
+		/* Copy command line, if available. */
+		if (mods[i].string) {
+			multiboot_extract_command(init.tasks[init.cnt].name,
+			    CONFIG_TASK_NAME_BUFLEN, MULTIBOOT_PTR(mods[i].string));
+		} else
+			init.tasks[init.cnt].name[0] = 0;
+		
+		init.cnt++;
+	}
+}
+
+static void multiboot_memmap(uint32_t length, multiboot_memmap_t *memmap)
+{
+	uint32_t pos = 0;
+	
+	while ((pos < length) && (e820counter < MEMMAP_E820_MAX_RECORDS)) {
+		e820table[e820counter] = memmap->mm_info;
+		
+		/* Compute address of next structure. */
+		uint32_t size = sizeof(memmap->size) + memmap->size;
+		memmap = (multiboot_memmap_t *) ((uintptr_t) memmap + size);
+		pos += size;
+		
+		e820counter++;
+	}
 }
 
 /** Parse multiboot information structure.
@@ -77,61 +112,23 @@ static void extract_command(char *buf, size_t sz, const char *cmd_line)
  * assumes no multiboot information is available.
  *
  * @param signature Should contain the multiboot signature.
- * @param mi        Pointer to the multiboot information structure.
+ * @param info      Multiboot information structure.
+ *
  */
-void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
+void multiboot_info_parse(uint32_t signature, const multiboot_info_t *info)
 {
-	uint32_t flags;
+	if (signature != MULTIBOOT_LOADER_MAGIC)
+		return;
 	
-	if (signature == MULTIBOOT_LOADER_MAGIC)
-		flags = mi->flags;
-	else {
-		/* No multiboot info available. */
-		flags = 0;
-	}
-	
-	/* Copy module information. */
-	uint32_t i;
-	if ((flags & MBINFO_FLAGS_MODS) != 0) {
-		init.cnt = min(mi->mods_count, CONFIG_INIT_TASKS);
-		multiboot_mod_t *mods
-		    = (multiboot_mod_t *) MULTIBOOT_PTR(mi->mods_addr);
-		
-		for (i = 0; i < init.cnt; i++) {
-			init.tasks[i].addr = PA2KA(mods[i].start);
-			init.tasks[i].size = mods[i].end - mods[i].start;
-			
-			/* Copy command line, if available. */
-			if (mods[i].string) {
-				extract_command(init.tasks[i].name,
-				    CONFIG_TASK_NAME_BUFLEN,
-				    MULTIBOOT_PTR(mods[i].string));
-			} else
-				init.tasks[i].name[0] = 0;
-		}
-	} else
-		init.cnt = 0;
+	/* Copy modules information. */
+	if ((info->flags & MULTIBOOT_INFO_FLAGS_MODS) != 0)
+		multiboot_modules(info->mods_count,
+		    (multiboot_module_t *) MULTIBOOT_PTR(info->mods_addr));
 	
 	/* Copy memory map. */
-	
-	if ((flags & MBINFO_FLAGS_MMAP) != 0) {
-		int32_t mmap_length = mi->mmap_length;
-		multiboot_mmap_t *mme = MULTIBOOT_PTR(mi->mmap_addr);
-		e820counter = 0;
-		
-		i = 0;
-		while ((mmap_length > 0) && (i < MEMMAP_E820_MAX_RECORDS)) {
-			e820table[i++] = mme->mm_info;
-			
-			/* Compute address of next structure. */
-			uint32_t size = sizeof(mme->size) + mme->size;
-			mme = ((void *) mme) + size;
-			mmap_length -= size;
-		}
-		
-		e820counter = i;
-	} else
-		e820counter = 0;
+	if ((info->flags & MULTIBOOT_INFO_FLAGS_MMAP) != 0)
+		multiboot_memmap(info->mmap_length,
+		    (multiboot_memmap_t *) MULTIBOOT_PTR(info->mmap_addr));
 }
 
 /** @}

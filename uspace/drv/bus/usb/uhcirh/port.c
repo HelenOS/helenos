@@ -38,13 +38,14 @@
 #include <async.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/dev/hub.h>    /* usb_hc_new_device_wrapper */
 #include <usb/debug.h>
 
 #include "port.h"
 
+#define MAX_ERROR_COUNT 5
+
 static int uhci_port_check(void *port);
-static int uhci_port_reset_enable(int portno, void *arg);
+static int uhci_port_reset_enable(void *arg);
 static int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
@@ -99,7 +100,8 @@ int uhci_port_init(uhci_port_t *port,
 	port->address = address;
 	port->number = number;
 	port->wait_period_usec = usec;
-	port->attached_device = 0;
+	port->attached_device.fun = NULL;
+	port->attached_device.address = -1;
 	port->rh = rh;
 
 	int ret =
@@ -149,6 +151,19 @@ int uhci_port_check(void *port)
 	uhci_port_t *instance = port;
 	assert(instance);
 
+	unsigned allowed_failures = MAX_ERROR_COUNT;
+#define CHECK_RET_FAIL(ret, msg...) \
+	if (ret != EOK) { \
+		usb_log_error(msg); \
+		if (!(allowed_failures-- > 0)) { \
+			usb_log_fatal( \
+			   "Maximum number of failures reached, " \
+			   "bailing out.\n"); \
+			return ret; \
+		} \
+		continue; \
+	} else (void)0
+
 	while (1) {
 		async_usleep(instance->wait_period_usec);
 
@@ -166,23 +181,17 @@ int uhci_port_check(void *port)
 		usb_log_debug("%s: Connected change detected: %x.\n",
 		    instance->id_string, port_status);
 
+		int ret = usb_hc_connection_open(&instance->hc_connection);
+		CHECK_RET_FAIL(ret, "%s: Failed to connect to HC %s.\n",
+		    instance->id_string, str_error(ret));
+
 		/* Remove any old device */
-		if (instance->attached_device) {
-			usb_log_debug2("%s: Removing device.\n",
-			    instance->id_string);
+		if (instance->attached_device.fun) {
 			uhci_port_remove_device(instance);
 		}
 
-		int ret =
-		    usb_hc_connection_open(&instance->hc_connection);
-		if (ret != EOK) {
-			usb_log_error("%s: Failed to connect to HC.",
-			    instance->id_string);
-			continue;
-		}
-
 		if ((port_status & STATUS_CONNECTED) != 0) {
-			/* New device */
+			/* New device, this will take care of WC bits */
 			const usb_speed_t speed =
 			    ((port_status & STATUS_LOW_SPEED) != 0) ?
 			    USB_SPEED_LOW : USB_SPEED_FULL;
@@ -195,10 +204,8 @@ int uhci_port_check(void *port)
 		}
 
 		ret = usb_hc_connection_close(&instance->hc_connection);
-		if (ret != EOK) {
-			usb_log_error("%s: Failed to disconnect.",
-			    instance->id_string);
-		}
+		CHECK_RET_FAIL(ret, "%s: Failed to disconnect from hc: %s.\n",
+		    instance->id_string, str_error(ret));
 	}
 	return EOK;
 }
@@ -211,7 +218,7 @@ int uhci_port_check(void *port)
  *
  * Resets and enables the ub port.
  */
-int uhci_port_reset_enable(int portno, void *arg)
+int uhci_port_reset_enable(void *arg)
 {
 	uhci_port_t *port = arg;
 	assert(port);
@@ -251,17 +258,16 @@ int uhci_port_reset_enable(int portno, void *arg)
 int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 {
 	assert(port);
-	assert(usb_hc_connection_is_opened(&port->hc_connection));
 
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
-	int ret, count = 0;
-	usb_address_t dev_addr;
+	int ret, count = MAX_ERROR_COUNT;
 	do {
 		ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
-		    speed, uhci_port_reset_enable, port->number, port,
-		    &dev_addr, &port->attached_device, NULL, NULL, NULL);
-	} while (ret != EOK && ++count < 4);
+		    speed, uhci_port_reset_enable, port,
+		    &port->attached_device.address, NULL, NULL,
+		    &port->attached_device.fun);
+	} while (ret != EOK && count-- > 0);
 
 	if (ret != EOK) {
 		usb_log_error("%s: Failed(%d) to add device: %s.\n",
@@ -270,26 +276,52 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 		return ret;
 	}
 
-	usb_log_info("New device at port %u, address %d (handle %" PRIun ").\n",
-	    port->number, dev_addr, port->attached_device);
+	usb_log_info("%s: New device, address %d (handle %" PRIun ").\n",
+	    port->id_string, port->attached_device.address,
+	    port->attached_device.fun->handle);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Remove device.
  *
- * @param[in] port Memory structure to use.
+ * @param[in] port Port instance to use.
  * @return Error code.
- *
- * Does not work, DDF does not support device removal.
- * Does not even free used USB address (it would be dangerous if tis driver
- * is still running).
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
-	usb_log_error("%s: Don't know how to remove device %" PRIun ".\n",
-	    port->id_string, port->attached_device);
-	port->attached_device = 0;
-	return ENOTSUP;
+	assert(port);
+	/* There is nothing to remove. */
+	if (port->attached_device.fun == NULL) {
+		usb_log_warning("%s: Removed a ghost device.\n",
+		    port->id_string);
+		assert(port->attached_device.address == -1);
+		return EOK;
+	}
+
+	usb_log_debug("%s: Removing device.\n", port->id_string);
+
+	/* Stop driver first */
+	int ret = ddf_fun_unbind(port->attached_device.fun);
+	if (ret != EOK) {
+		usb_log_error("%s: Failed to remove child function: %s.\n",
+		   port->id_string, str_error(ret));
+		return ret;
+	}
+	ddf_fun_destroy(port->attached_device.fun);
+	port->attached_device.fun = NULL;
+
+	/* Driver stopped, free used address */
+	ret = usb_hub_unregister_device(&port->hc_connection,
+	    &port->attached_device);
+	if (ret != EOK) {
+		usb_log_error("%s: Failed to unregister address of removed "
+		    "device: %s.\n", port->id_string, str_error(ret));
+		return ret;
+	}
+	port->attached_device.address = -1;
+
+	usb_log_info("%s: Removed attached device.\n", port->id_string);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Enable or disable root hub port.

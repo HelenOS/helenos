@@ -36,6 +36,9 @@
 #ifndef USB_HID_KBDREPEAT_H_
 #define USB_HID_KBDREPEAT_H_
 
+/** Delay between auto-repeat state checks when no key is being repeated. */
+#define CHECK_DELAY 10000
+
 struct usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/

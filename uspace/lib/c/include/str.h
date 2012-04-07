@@ -60,6 +60,9 @@ extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
 
+extern size_t str_nsize(const char *str, size_t max_size);
+extern size_t wstr_nsize(const wchar_t *str, size_t max_size);
+
 extern size_t str_lsize(const char *str, size_t max_len);
 extern size_t wstr_lsize(const wchar_t *str, size_t max_len);
 
@@ -90,6 +93,9 @@ extern int str_to_utf16(uint16_t *dest, size_t size, const char *src);
 extern char *str_chr(const char *str, wchar_t ch);
 extern char *str_rchr(const char *str, wchar_t ch);
 
+extern void str_rtrim(char *str, wchar_t ch);
+extern void str_ltrim(char *str, wchar_t ch);
+
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
@@ -99,7 +105,7 @@ extern char *str_ndup(const char *, size_t max_size);
 extern int str_uint8_t(const char *, char **, unsigned int, bool, uint8_t *);
 extern int str_uint16_t(const char *, char **, unsigned int, bool, uint16_t *);
 extern int str_uint32_t(const char *, char **, unsigned int, bool, uint32_t *);
-extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
+extern int str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
 extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);

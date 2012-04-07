@@ -39,7 +39,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <mm/page.h>
+#include <mm/km.h>
 #include <mm/slab.h>
 #include <align.h>
 #include <panic.h>
@@ -586,7 +586,8 @@ outdev_t *fb_init(fb_properties_t *props)
 	size_t bbsize = instance->cols * instance->rows * sizeof(uint16_t);
 	size_t glyphsize = FONT_GLYPHS * instance->glyphbytes;
 	
-	instance->addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
+	instance->addr = (uint8_t *) km_map((uintptr_t) props->addr, fbsize,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	if (!instance->addr) {
 		LOG("Unable to map framebuffer.");
 		free(instance);

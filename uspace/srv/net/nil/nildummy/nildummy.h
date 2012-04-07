@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Radim Vansa
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,9 +40,9 @@
 
 #include <async.h>
 #include <fibril_synch.h>
+#include <ipc/loc.h>
 #include <ipc/services.h>
 #include <net/device.h>
-#include <adt/measured_strings.h>
 
 /** Type definition of the dummy nil global data.
  *
@@ -75,11 +76,9 @@ DEVICE_MAP_DECLARE(nildummy_devices, nildummy_device_t);
 /** Dummy nil device specific data. */
 struct nildummy_device {
 	/** Device identifier. */
-	device_id_t device_id;
-	
-	/** Device driver service. */
-	services_t service;
-	
+	nic_device_id_t device_id;
+	/** Device service ID. */
+	service_id_t sid;
 	/** Driver session. */
 	async_sess_t *sess;
 	
@@ -87,10 +86,9 @@ struct nildummy_device {
 	size_t mtu;
 	
 	/** Actual device hardware address. */
-	measured_string_t *addr;
-	
-	/** Actual device hardware address data. */
-	uint8_t *addr_data;
+	nic_address_t addr;
+	/** Actual device hardware address length. */
+	size_t addr_len;
 };
 
 /** Dummy nil protocol specific data. */

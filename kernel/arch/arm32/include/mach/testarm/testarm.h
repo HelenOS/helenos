@@ -70,7 +70,7 @@ extern void gxemul_input_init(void);
 extern void gxemul_timer_irq_start(void);
 extern void gxemul_cpu_halt(void);
 extern void gxemul_irq_exception(unsigned int, istate_t *);
-extern void gxemul_get_memory_extents(uintptr_t *, uintptr_t *);
+extern void gxemul_get_memory_extents(uintptr_t *, size_t *);
 extern void gxemul_frame_init(void);
 extern size_t gxemul_get_irq_count(void);
 extern const char *gxemul_get_platform_name(void);

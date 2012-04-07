@@ -91,7 +91,7 @@ struct ip_netif {
 	/** Broadcast address. */
 	in_addr_t broadcast;
 	/** Device identifier. */
-	device_id_t device_id;
+	nic_device_id_t device_id;
 	/** Indicates whether using DHCP. */
 	int dhcp;
 	/** IP version. */
@@ -107,7 +107,7 @@ struct ip_netif {
 	/** Netif module service. */
 	services_t service;
 	/** Device state. */
-	device_state_t state;
+	nic_device_state_t state;
 };
 
 /** IP protocol specific data. */

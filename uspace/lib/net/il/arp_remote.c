@@ -83,7 +83,7 @@ int arp_clean_cache_req(async_sess_t *sess)
  * @return ENOENT if the mapping is not found.
  *
  */
-int arp_clear_address_req(async_sess_t *sess, device_id_t device_id,
+int arp_clear_address_req(async_sess_t *sess, nic_device_id_t device_id,
     services_t protocol, measured_string_t *address)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -107,7 +107,7 @@ int arp_clear_address_req(async_sess_t *sess, device_id_t device_id,
  * @return ENOENT if the device is not found.
  *
  */
-int arp_clear_device_req(async_sess_t *sess, device_id_t device_id)
+int arp_clear_device_req(async_sess_t *sess, nic_device_id_t device_id)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	int rc = async_req_1_0(exch, NET_ARP_CLEAR_DEVICE,
@@ -142,7 +142,7 @@ int arp_clear_device_req(async_sess_t *sess, device_id_t device_id)
  *         nil_get_broadcast_addr() function.
  *
  */
-int arp_device_req(async_sess_t *sess, device_id_t device_id,
+int arp_device_req(async_sess_t *sess, nic_device_id_t device_id,
     services_t protocol, services_t netif, measured_string_t *address)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -176,7 +176,7 @@ int arp_device_req(async_sess_t *sess, device_id_t device_id,
  * @return ENOENT if the mapping is not found.
  *
  */
-int arp_translate_req(async_sess_t *sess, device_id_t device_id,
+int arp_translate_req(async_sess_t *sess, nic_device_id_t device_id,
     services_t protocol, measured_string_t *address,
     measured_string_t **translation, uint8_t **data)
 {

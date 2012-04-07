@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvusbhub
  * @{
  */
@@ -48,46 +48,16 @@
 
 #define NAME "usbhub"
 
-#include "ports.h"
+#include "port.h"
 
 /** Information about attached hub. */
-struct usb_hub_info_t {
+struct usb_hub_dev {
 	/** Number of ports. */
 	size_t port_count;
-
-	/** attached device handles, for each port one */
+	/** Port structures, one for each port */
 	usb_hub_port_t *ports;
-
-	fibril_mutex_t port_mutex;
-
-	/** connection to hcd */
-	usb_hc_connection_t connection;
-
-	/** default address is used indicator
-	 *
-	 * If default address is requested by this device, it cannot
-	 * be requested by the same hub again, otherwise a deadlock will occur.
-	 */
-	bool is_default_address_used;
-
-	/** convenience pointer to status change pipe
-	 *
-	 * Status change pipe is initialized in usb_device structure. This is
-	 * pointer into this structure, so that it does not have to be
-	 * searched again and again for the 'right pipe'.
-	 */
-	usb_pipe_t * status_change_pipe;
-
-	/** convenience pointer to control pipe
-	 *
-	 * Control pipe is initialized in usb_device structure. This is
-	 * pointer into this structure, so that it does not have to be
-	 * searched again and again for the 'right pipe'.
-	 */
-	usb_pipe_t * control_pipe;
-
-	/** generic usb device data*/
-	usb_device_t * usb_device;
+	/** Generic usb device data*/
+	usb_device_t *usb_device;
 
 	/** Number of pending operations on the mutex to prevent shooting
 	 * ourselves in the foot.
@@ -100,10 +70,19 @@ struct usb_hub_info_t {
 	fibril_mutex_t pending_ops_mutex;
 	/** Condition variable for pending_ops_count. */
 	fibril_condvar_t pending_ops_cv;
-
+	/** Pointer to devman usbhub function. */
+	ddf_fun_t *hub_fun;
+	/** Status indicator */
+	bool running;
+	/** Hub supports port power switching. */
+	bool power_switched;
+	/** Each port is switched individually. */
+	bool per_port_power;
 };
 
-int usb_hub_add_device(usb_device_t *usb_dev);
+int usb_hub_device_add(usb_device_t *usb_dev);
+int usb_hub_device_remove(usb_device_t *usb_dev);
+int usb_hub_device_gone(usb_device_t *usb_dev);
 
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);

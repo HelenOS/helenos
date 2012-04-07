@@ -67,6 +67,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <genarch/mm/page_pt.h>
+#include <mm/km.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/slab.h>
@@ -85,9 +86,14 @@
 #include <ipc/event.h>
 #include <sysinfo/sysinfo.h>
 #include <sysinfo/stats.h>
+#include <lib/ra.h>
 
 /** Global configuration structure. */
-config_t config;
+config_t config = {
+	.identity_configured = false,
+	.non_identity_configured = false,
+	.physmem_end = 0
+};
 
 /** Initial user-space tasks */
 init_t init = {
@@ -144,10 +150,17 @@ NO_TRACE void main_bsp(void)
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		if (PA_OVERLAPS(config.stack_base, config.stack_size,
-		    init.tasks[i].addr, init.tasks[i].size))
-			config.stack_base = ALIGN_UP(init.tasks[i].addr +
-			    init.tasks[i].size, config.stack_size);
+		if (overlaps(KA2PA(config.stack_base), config.stack_size,
+		    init.tasks[i].paddr, init.tasks[i].size)) {
+			/*
+			 * The init task overlaps with the memory behind the
+			 * kernel image so it must be in low memory and we can
+			 * use PA2KA on the init task's physical address.
+			 */
+			config.stack_base = ALIGN_UP(
+			    PA2KA(init.tasks[i].paddr) + init.tasks[i].size,
+			    config.stack_size);
+		}
 	}
 	
 	/* Avoid placing stack on top of boot allocations. */
@@ -204,15 +217,16 @@ void main_bsp_separated_stack(void)
 	 * Memory management subsystems initialization.
 	 */
 	arch_pre_mm_init();
+	km_identity_init();
 	frame_init();
-	
-	/* Initialize at least 1 memory segment big enough for slab to work. */
 	slab_cache_init();
+	ra_init();
 	sysinfo_init();
 	btree_init();
 	as_init();
 	page_init();
 	tlb_init();
+	km_non_identity_init();
 	ddi_init();
 	arch_post_mm_init();
 	reserve_init();
@@ -242,7 +256,7 @@ void main_bsp_separated_stack(void)
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
 			LOG("init[%zu].addr=%p, init[%zu].size=%zu",
-			    i, (void *) init.tasks[i].addr, i, init.tasks[i].size);
+			    i, (void *) init.tasks[i].paddr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
 	
@@ -261,8 +275,8 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create the first thread.
 	 */
-	thread_t *kinit_thread
-		= thread_create(kinit, NULL, kernel, 0, "kinit", true);
+	thread_t *kinit_thread =
+	    thread_create(kinit, NULL, kernel, 0, "kinit", true);
 	if (!kinit_thread)
 		panic("Cannot create kinit thread.");
 	thread_ready(kinit_thread);

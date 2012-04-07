@@ -39,7 +39,7 @@
 #include <sys/types.h>
 #include <align.h>
 
-#define SP_DELTA	(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
+#define SP_DELTA  (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
 #define context_set(c, _pc, stack, size, ptls) \
 	do { \
@@ -49,7 +49,7 @@
 		(c)->fp = -STACK_BIAS; \
 		(c)->tp = (uint64_t) ptls; \
 	} while (0)
-	
+
 /*
  * Save only registers that must be preserved across
  * function calls.

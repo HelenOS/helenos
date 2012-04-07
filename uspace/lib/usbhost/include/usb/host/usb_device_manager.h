@@ -48,41 +48,41 @@
 /** Number of USB address for array dimensions. */
 #define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
 
-/** Information about attached USB device. */
-struct usb_device_info {
-	usb_speed_t speed;
-	bool occupied;
-	devman_handle_t handle;
-};
-
 /** Host controller device manager.
- * You shall not access members directly but only using functions below.
+ * You shall not access members directly.
  */
 typedef struct {
-	struct usb_device_info devices[USB_ADDRESS_COUNT];
+	/** Information about attached USB devices. */
+	struct {
+		usb_speed_t speed;      /**< Device speed */
+		bool occupied;          /**< The address is in use. */
+		devman_handle_t handle; /**< Devman handle of the device. */
+	} devices[USB_ADDRESS_COUNT];
+	/** Maximum speed allowed. */
+	usb_speed_t max_speed;
+	/** Protect access to members. */
 	fibril_mutex_t guard;
+	/** The last reserved address */
 	usb_address_t last_address;
 } usb_device_manager_t;
 
-void usb_device_manager_init(usb_device_manager_t *instance);
+void usb_device_manager_init(
+    usb_device_manager_t *instance, usb_speed_t max_speed);
 
-usb_address_t usb_device_manager_get_free_address(
-    usb_device_manager_t *instance, usb_speed_t speed);
+int usb_device_manager_request_address(usb_device_manager_t *instance,
+    usb_address_t *address, bool strict, usb_speed_t speed);
 
-void usb_device_manager_bind(usb_device_manager_t *instance,
+int usb_device_manager_bind_address(usb_device_manager_t *instance,
     usb_address_t address, devman_handle_t handle);
 
-void usb_device_manager_release(usb_device_manager_t *instance,
+int usb_device_manager_release_address(usb_device_manager_t *instance,
     usb_address_t address);
 
-usb_address_t usb_device_manager_find(usb_device_manager_t *instance,
+usb_address_t usb_device_manager_find_address(usb_device_manager_t *instance,
     devman_handle_t handle);
 
-bool usb_device_manager_find_by_address(usb_device_manager_t *instance,
-    usb_address_t address, devman_handle_t *handle);
-
-usb_speed_t usb_device_manager_get_speed(usb_device_manager_t *instance,
-    usb_address_t address);
+int usb_device_manager_get_info_by_address(usb_device_manager_t *instance,
+    usb_address_t address, devman_handle_t *handle, usb_speed_t *speed);
 #endif
 /**
  * @}

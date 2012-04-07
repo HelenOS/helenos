@@ -75,26 +75,18 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	hc_interrupt(&ohci->hc, status);
 }
 /*----------------------------------------------------------------------------*/
-/** Get address of the device identified by handle.
+/** Get USB address assigned to root hub.
  *
- * @param[in] dev DDF instance of the device to use.
- * @param[in] iid (Unused).
- * @param[in] call Pointer to the call that represents interrupt.
+ * @param[in] fun Root hub function.
+ * @param[out] address Store the address here.
+ * @return Error code.
  */
-static int usb_iface_get_address(
-    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
+static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
 {
 	assert(fun);
-	usb_device_manager_t *manager =
-	    &dev_to_ohci(fun->dev)->hc.generic.dev_manager;
-
-	const usb_address_t addr = usb_device_manager_find(manager, handle);
-	if (addr < 0) {
-		return addr;
-	}
 
 	if (address != NULL) {
-		*address = addr;
+		*address = dev_to_ohci(fun->dev)->hc.rh.address;
 	}
 
 	return EOK;
@@ -106,7 +98,7 @@ static int usb_iface_get_address(
  * @param[out] handle Place to write the handle.
  * @return Error code.
  */
-static int usb_iface_get_hc_handle(
+static int rh_get_hc_handle(
     ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
@@ -120,8 +112,8 @@ static int usb_iface_get_hc_handle(
 /*----------------------------------------------------------------------------*/
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle,
-	.get_address = usb_iface_get_address
+	.get_hc_handle = rh_get_hc_handle,
+	.get_my_address = rh_get_my_address,
 };
 /*----------------------------------------------------------------------------*/
 /** Standard USB HC options (HC interface) */
@@ -147,25 +139,25 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_ohci(ddf_dev_t *device)
 {
-	assert(device);
+	if (device == NULL)
+		return EBADMEM;
 
-	ohci_t *instance = malloc(sizeof(ohci_t));
+	ohci_t *instance = ddf_dev_data_alloc(device,sizeof(ohci_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
 	}
-	instance->rh_fun = NULL;
-	instance->hc_fun = NULL;
 
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) { \
+		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	} \
 	if (instance->rh_fun) { \
+		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
-	free(instance); \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -194,14 +186,21 @@ if (ret != EOK) { \
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	const size_t cmd_count = hc_irq_cmd_count();
-	irq_cmd_t irq_cmds[cmd_count];
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
-	ret =
-	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+	    "Failed to generate IRQ code: %s.\n", str_error(ret));
 
 
 	/* Register handler to avoid interrupt lockup */
@@ -225,8 +224,6 @@ if (ret != EOK) { \
 	ret = hc_init(&instance->hc, reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
-
-	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
