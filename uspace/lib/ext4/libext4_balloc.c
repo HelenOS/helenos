@@ -164,6 +164,7 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 
 	assert(block_group_first == block_group_last);
 
+	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group_first, &bg_ref);
 	if (rc != EOK) {
 		EXT4FS_DBG("error in loading bg_ref \%d", rc);
