@@ -522,11 +522,12 @@ static int ext4_directory_dx_split_data(ext4_filesystem_t *fs,
 		dentry = (void *)dentry + ext4_directory_entry_ll_get_entry_length(dentry);
 	}
 
-	qsort(sort_array, idx, sizeof(ext4_dx_sort_entry_t), ext4_directory_dx_entry_comparator, NULL);
+	qsort(sort_array, idx, sizeof(ext4_dx_sort_entry_t),
+			ext4_directory_dx_entry_comparator, NULL);
 
 	uint32_t new_fblock;
 	uint32_t new_iblock;
-	rc = ext4_directory_append_block(inode_ref, &new_fblock, &new_iblock);
+	rc = ext4_filesystem_append_inode_block(inode_ref, &new_fblock, &new_iblock);
 	if (rc != EOK) {
 		free(sort_array);
 		free(entry_buffer);
@@ -650,7 +651,8 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 
 		uint32_t new_fblock;
 		uint32_t new_iblock;
-		rc =  ext4_directory_append_block(inode_ref, &new_fblock, &new_iblock);
+		rc =  ext4_filesystem_append_inode_block(
+				inode_ref, &new_fblock, &new_iblock);
 		if (rc != EOK) {
 			return rc;
 		}

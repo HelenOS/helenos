@@ -886,6 +886,46 @@ int ext4_filesystem_release_inode_block(
 
 }
 
+int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
+		uint32_t *fblock, uint32_t *iblock)
+{
+
+	// TODO append to extent
+
+	int rc;
+
+	ext4_superblock_t *sb = inode_ref->fs->superblock;
+
+	// Compute next block index and allocate data block
+	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+	assert(inode_size % block_size == 0);
+
+	// Logical blocks are numbered from 0
+	uint32_t new_block_idx = inode_size / block_size;
+
+	uint32_t phys_block;
+	rc =  ext4_balloc_alloc_block(inode_ref, &phys_block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = ext4_filesystem_set_inode_data_block_index(inode_ref, new_block_idx, phys_block);
+	if (rc != EOK) {
+		ext4_balloc_free_block(inode_ref, phys_block);
+		return rc;
+	}
+
+	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+
+	inode_ref->dirty = true;
+
+	*fblock = phys_block;
+	*iblock = new_block_idx;
+	return EOK;
+}
+
 int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 {
 	uint32_t next_orphan = ext4_superblock_get_last_orphan(
