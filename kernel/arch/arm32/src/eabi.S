@@ -28,8 +28,6 @@
 
 .text
 
-.global __aeabi_read_tp
-
 .global __aeabi_idiv
 .global __aeabi_uidiv
 
@@ -38,10 +36,6 @@
 
 .global __aeabi_ldivmod
 .global __aeabi_uldivmod
-
-__aeabi_read_tp:
-	mov r0, r9
-	mov pc, lr
 
 __aeabi_idiv:
 	push {sp, lr}
