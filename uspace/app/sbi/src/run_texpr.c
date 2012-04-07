@@ -97,8 +97,8 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
     stree_taccess_t *taccess, tdata_item_t **res)
 {
 	stree_symbol_t *sym;
-	tdata_item_t *targ_i;
-	tdata_item_t *titem;
+	tdata_item_t *targ_i = NULL;
+	tdata_item_t *titem = NULL;;
 	tdata_object_t *tobject;
 	tdata_deleg_t *tdeleg;
 	stree_csi_t *base_csi;
@@ -138,9 +138,6 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 		*res = tdata_item_new(tic_ignore);
 		return;
 	}
-
-	/* Make compiler happy. */
-	titem = NULL;
 
 	switch (sym->sc) {
 	case sc_csi:
@@ -221,7 +218,7 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 static void run_tindex(stree_program_t *prog, stree_csi_t *ctx,
     stree_tindex_t *tindex, tdata_item_t **res)
 {
-	tdata_item_t *base_ti;
+	tdata_item_t *base_ti = NULL;
 	tdata_item_t *titem;
 	tdata_array_t *tarray;
 	stree_expr_t *arg_expr;

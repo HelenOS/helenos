@@ -34,10 +34,8 @@ typedef int __attribute__((may_alias)) aliasing_int;
 
 const char *test_fault2(void)
 {
-	volatile long long var;
-	volatile int var1;
-	
-	var1 = *((aliasing_int *) (((char *) (&var)) + 1));
+	volatile long long var = 0;
+	volatile int var1 = *((aliasing_int *) (((char *) (&var)) + 1));
 	printf("Read %d\n", var1);
 	
 	return "Survived unaligned read";
