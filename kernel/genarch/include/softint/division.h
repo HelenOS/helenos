@@ -35,31 +35,21 @@
 #ifndef KERN_DIVISION_H_
 #define KERN_DIVISION_H_
 
-/* 32bit integer division */
-int __divsi3(int a, int b);
+extern int __divsi3(int, int);
+extern long long __divdi3(long long, long long);
 
-/* 64bit integer division */
-long long __divdi3(long long a, long long b);
+extern unsigned int __udivsi3(unsigned int, unsigned int);
+extern unsigned long long __udivdi3(unsigned long long, unsigned long long);
 
-/* 32bit unsigned integer division */
-unsigned int __udivsi3(unsigned int a, unsigned int b);
+extern int __modsi3(int, int);
+extern long long __moddi3(long long, long long);
 
-/* 64bit unsigned integer division */
-unsigned long long __udivdi3(unsigned long long a, unsigned long long b);
+extern unsigned int __umodsi3(unsigned int, unsigned int);
+extern unsigned long long __umoddi3(unsigned long long, unsigned long long);
 
-/* 32bit remainder of the signed division */
-int __modsi3(int a, int b);
-
-/* 64bit remainder of the signed division */
-long long __moddi3(long long a, long long b);
-
-/* 32bit remainder of the unsigned division */
-unsigned int __umodsi3(unsigned int a, unsigned int b);
-
-/* 64bit remainder of the unsigned division */
-unsigned long long __umoddi3(unsigned long long a, unsigned long long b);
-
-unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsigned long long *c); 
+extern unsigned int __udivmodsi3(unsigned int, unsigned int, unsigned int *);
+extern unsigned long long __udivmoddi3(unsigned long long, unsigned long long,
+    unsigned long long *);
 
 #endif
 

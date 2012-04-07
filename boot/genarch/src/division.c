@@ -72,7 +72,7 @@ static unsigned long long divandmod64(unsigned long long a,
     unsigned long long b, unsigned long long *remainder)
 {
 	unsigned long long result;
-	int steps = sizeof(unsigned long long) * 8; 
+	int steps = sizeof(unsigned long long) * 8;
 	
 	*remainder = 0;
 	result = 0;
@@ -103,7 +103,7 @@ static unsigned long long divandmod64(unsigned long long a,
 }
 
 /* 32bit integer division */
-int __divsi3(int a, int b) 
+int __divsi3(int a, int b)
 {
 	unsigned int rem;
 	int result = (int) divandmod32(ABSVAL(a), ABSVAL(b), &rem);
@@ -115,7 +115,7 @@ int __divsi3(int a, int b)
 }
 
 /* 64bit integer division */
-long long __divdi3(long long a, long long b) 
+long long __divdi3(long long a, long long b)
 {
 	unsigned long long rem;
 	long long result = (long long) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
@@ -154,7 +154,7 @@ int __modsi3(int a, int b)
 }
 
 /* 64bit remainder of the signed division */
-long long __moddi3(long long a,long  long b)
+long long __moddi3(long long a, long long b)
 {
 	unsigned long long rem;
 	divandmod64(a, b, &rem);
@@ -180,6 +180,12 @@ unsigned long long __umoddi3(unsigned long long a, unsigned long long b)
 	unsigned long long rem;
 	divandmod64(a, b, &rem);
 	return rem;
+}
+
+unsigned int __udivmodsi3(unsigned int a, unsigned int b,
+    unsigned int *c)
+{
+	return divandmod32(a, b, c);
 }
 
 unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b,
