@@ -182,10 +182,38 @@ unsigned long long __umoddi3(unsigned long long a, unsigned long long b)
 	return rem;
 }
 
+int __divmodsi3(int a, int b, int *c)
+{
+	unsigned int rem;
+	int result = (int) divandmod32(ABSVAL(a), ABSVAL(b), &rem);
+	
+	if (SGN(a) == SGN(b)) {
+		*c = rem;
+		return result;
+	}
+	
+	*c = -rem;
+	return -result;
+}
+
 unsigned int __udivmodsi3(unsigned int a, unsigned int b,
     unsigned int *c)
 {
 	return divandmod32(a, b, c);
+}
+
+long long __divmoddi3(long long a, long long b, long long *c)
+{
+	unsigned long long rem;
+	long long result = (int) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
+	
+	if (SGN(a) == SGN(b)) {
+		*c = rem;
+		return result;
+	}
+	
+	*c = -rem;
+	return -result;
 }
 
 unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b,
