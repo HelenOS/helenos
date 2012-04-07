@@ -322,7 +322,7 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 		return rc;
 	}
 
-	// TODO extents, dir_index etc...
+	// TODO dir_index initialization
 
 	rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
 	if (rc != EOK) {
@@ -339,6 +339,11 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	} else {
 		ext4_inode_set_mode(fs->superblock, inode, EXT4_INODE_MODE_FILE);
 		ext4_inode_set_links_count(inode, 0);
+	}
+
+	if (ext4_superblock_has_feature_incompatible(
+			fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS)) {
+		ext4_inode_set_flag(inode, EXT4_INODE_FLAG_EXTENTS);
 	}
 
 	ext4_inode_set_uid(inode, 0);
@@ -665,7 +670,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	/* Handle inode using extents */
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
-		// TODO
+		// not reachable !!!
 		return ENOTSUP;
 	}
 
@@ -801,7 +806,7 @@ int ext4_filesystem_release_inode_block(
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
-	// EXTENTS are handled
+	// EXTENTS are handled otherwise
 	assert(! (ext4_superblock_has_feature_incompatible(fs->superblock,
 			EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)));
@@ -889,10 +894,16 @@ int ext4_filesystem_release_inode_block(
 int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 		uint32_t *fblock, uint32_t *iblock)
 {
-
-	// TODO append to extent
-
 	int rc;
+
+	// Handle extents separately
+	if (ext4_superblock_has_feature_incompatible(
+			inode_ref->fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+
+		return ext4_extent_append_block(inode_ref, iblock, fblock);
+
+	}
 
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 

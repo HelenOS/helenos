@@ -538,6 +538,90 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref, uint32_t iblock
 	return EOK;
 }
 
+int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
+		uint32_t *iblock, uint32_t *fblock)
+{
+	int rc;
+
+	ext4_superblock_t *sb = inode_ref->fs->superblock;
+	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
+
+	ext4_extent_header_t *header =
+			ext4_inode_get_extent_header(inode_ref->inode);
+
+	// Initialize if empty inode
+	if (inode_size == 0) {
+		ext4_extent_t *first = EXT4_EXTENT_FIRST(header);
+		ext4_extent_set_block_count(first, 0);
+		ext4_extent_set_first_block(first, 0);
+		ext4_extent_set_start(first, 0);
+
+		ext4_extent_header_set_depth(header, 0);
+		ext4_extent_header_set_entries_count(header, 1);
+	}
+
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	uint32_t new_block_idx = inode_size / block_size;
+
+	ext4_extent_path_t *path;
+	rc = ext4_extent_find_extent(inode_ref, new_block_idx, &path);
+	if (rc != EOK) {
+		EXT4FS_DBG("find extent ERROR");
+		return rc;
+	}
+
+	// Jump to last item of the path (extent)
+	ext4_extent_path_t *path_ptr = path;
+	while (path_ptr->depth != 0) {
+		path_ptr++;
+	}
+
+	// Check if extent exists
+	assert(path_ptr->extent != NULL);
+
+	uint32_t phys_block;
+
+	if (ext4_extent_get_block_count(path_ptr->extent) == 0) {
+
+		// Add first block to the extent
+
+		rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
+		if (rc != EOK) {
+			EXT4FS_DBG("ERRO in balloc");
+			return rc;
+		}
+
+		ext4_extent_set_block_count(path_ptr->extent, 1);
+		ext4_extent_set_start(path_ptr->extent, phys_block);
+
+		path_ptr->block->dirty = true;
+
+		goto finish;
+
+	} else {
+		// try allocate succeeding extent block
+
+		// TODO
+		assert(false);
+
+	}
+
+
+finish:
+	// Put loaded blocks
+	// From 1 -> 0 is a block with inode data
+	for (uint16_t i = 1; i < path->depth; ++i) {
+		if (path[i].block) {
+			block_put(path[i].block);
+		}
+	}
+
+	// Destroy temporary data structure
+	free(path);
+
+	return EOK;
+}
+
 /**
  * @}
  */ 
