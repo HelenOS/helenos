@@ -36,9 +36,10 @@
 #ifndef __DIV_H__
 #define __DIV_H__
 
-extern float32 divFloat32(float32, float32);
-extern float64 divFloat64(float64, float64);
-extern float128 divFloat128(float128, float128);
+extern float32 div_float32(float32, float32);
+extern float64 div_float64(float64, float64);
+extern float96 div_float96(float96, float96);
+extern float128 div_float128(float128, float128);
 
 #endif
 

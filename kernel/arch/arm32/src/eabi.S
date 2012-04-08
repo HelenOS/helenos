@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Jan Vesely
+# Copyright (c) 2012 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,63 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
+.text
 
-LIBS = \
-	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+.global __aeabi_idiv
+.global __aeabi_uidiv
 
-EXTRA_CFLAGS += \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBHOST_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
+.global __aeabi_idivmod
+.global __aeabi_uidivmod
 
-BINARY = ehci
+.global __aeabi_ldivmod
+.global __aeabi_uldivmod
 
-SOURCES = \
-	main.c \
-	res.c
+__aeabi_idiv:
+	push {sp, lr}
+	bl __divsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	bx lr
 
-include $(USPACE_PREFIX)/Makefile.common
+__aeabi_uidiv:
+	push {sp, lr}
+	bl __udivsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	bx lr
+
+__aeabi_idivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __divmodsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r1, r2}
+	bx lr
+
+__aeabi_uidivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __udivmodsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r1, r2}
+	bx lr
+
+__aeabi_ldivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __divmoddi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r2, r3}
+	bx lr
+
+__aeabi_uldivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __udivmoddi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r2, r3}
+	bx lr

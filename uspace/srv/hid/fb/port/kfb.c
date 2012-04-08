@@ -408,8 +408,8 @@ static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 	
 	charfield_t *field = screenbuffer_field_at(vp->backbuf, col, row);
 	
-	pixel_t bgcolor;
-	pixel_t fgcolor;
+	pixel_t bgcolor = 0;
+	pixel_t fgcolor = 0;
 	attrs_rgb(field->attrs, &bgcolor, &fgcolor);
 	
 	bool inverted = (vp->cursor_flash) &&
@@ -524,8 +524,8 @@ static void kfb_vp_clear(fbdev_t *dev, fbvp_t *vp)
 		}
 	}
 	
-	pixel_t bgcolor;
-	pixel_t fgcolor;
+	pixel_t bgcolor = 0;
+	pixel_t fgcolor = 0;
 	attrs_rgb(vp->attrs, &bgcolor, &fgcolor);
 	
 	draw_filled_rect(vp->x, vp->y, vp->x + vp->width,

@@ -126,7 +126,7 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
     aoff64_t bn, int flags)
 {
 	exfat_cluster_t firstc = nodep->firstc;
-	exfat_cluster_t currc;
+	exfat_cluster_t currc = 0;
 	aoff64_t relbn = bn;
 	int rc;
 

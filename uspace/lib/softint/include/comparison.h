@@ -37,10 +37,10 @@
 #define __SOFTINT_COMPARISON_H__
 
 /* Signed comparison (a < b => 0, a == b => 1, a > b => 2). */
-int __cmpdi2 (long long a, long long b);
+extern int __cmpdi2(long long, long long);
 
 /* Unsigned comparison (a < b => 0, a == b => 1, a > b => 2). */
-int __ucmpdi2 (unsigned long long a, unsigned long long b);
+extern int __ucmpdi2(unsigned long long, unsigned long long);
 
 #endif
 

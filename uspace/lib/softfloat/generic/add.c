@@ -38,23 +38,22 @@
 #include <comparison.h>
 #include <common.h>
 
-/**
- * Add two single-precision floats with the same signs.
+/** Add two single-precision floats with the same sign.
  *
  * @param a First input operand.
  * @param b Second input operand.
  * @return Result of addition.
  */
-float32 addFloat32(float32 a, float32 b)
+float32 add_float32(float32 a, float32 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2, frac1, frac2;
 	
 	expdiff = a.parts.exp - b.parts.exp;
 	if (expdiff < 0) {
-		if (isFloat32NaN(b)) {
+		if (is_float32_nan(b)) {
 			/* TODO: fix SigNaN */
-			if (isFloat32SigNaN(b)) {
+			if (is_float32_signan(b)) {
 			}
 
 			return b;
@@ -70,11 +69,11 @@ float32 addFloat32(float32 a, float32 b)
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if ((isFloat32NaN(a)) || (isFloat32NaN(b))) {
+		if ((is_float32_nan(a)) || (is_float32_nan(b))) {
 			/* TODO: fix SigNaN */
-			if (isFloat32SigNaN(a) || isFloat32SigNaN(b)) {
+			if (is_float32_signan(a) || is_float32_signan(b)) {
 			}
-			return (isFloat32NaN(a) ? a : b);
+			return (is_float32_nan(a) ? a : b);
 		}
 		
 		if (a.parts.exp == FLOAT32_MAX_EXPONENT) { 
@@ -149,14 +148,13 @@ float32 addFloat32(float32 a, float32 b)
 	return a;
 }
 
-/**
- * Add two double-precision floats with the same signs.
+/** Add two double-precision floats with the same sign.
  *
  * @param a First input operand.
  * @param b Second input operand.
  * @return Result of addition.
  */
-float64 addFloat64(float64 a, float64 b)
+float64 add_float64(float64 a, float64 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2;
@@ -164,16 +162,16 @@ float64 addFloat64(float64 a, float64 b)
 	
 	expdiff = ((int) a.parts.exp) - b.parts.exp;
 	if (expdiff < 0) {
-		if (isFloat64NaN(b)) {
+		if (is_float64_nan(b)) {
 			/* TODO: fix SigNaN */
-			if (isFloat64SigNaN(b)) {
+			if (is_float64_signan(b)) {
 			}
 
 			return b;
 		}
 		
-		/* b is infinity and a not */	
-		if (b.parts.exp == FLOAT64_MAX_EXPONENT) { 
+		/* b is infinity and a not */
+		if (b.parts.exp == FLOAT64_MAX_EXPONENT) {
 			return b;
 		}
 		
@@ -183,9 +181,9 @@ float64 addFloat64(float64 a, float64 b)
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if (isFloat64NaN(a)) {
+		if (is_float64_nan(a)) {
 			/* TODO: fix SigNaN */
-			if (isFloat64SigNaN(a) || isFloat64SigNaN(b)) {
+			if (is_float64_signan(a) || is_float64_signan(b)) {
 			}
 			return a;
 		}
@@ -264,14 +262,13 @@ float64 addFloat64(float64 a, float64 b)
 	return a;
 }
 
-/**
- * Add two quadruple-precision floats with the same signs.
+/** Add two quadruple-precision floats with the same sign.
  *
  * @param a First input operand.
  * @param b Second input operand.
  * @return Result of addition.
  */
-float128 addFloat128(float128 a, float128 b)
+float128 add_float128(float128 a, float128 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2;
@@ -279,9 +276,9 @@ float128 addFloat128(float128 a, float128 b)
 
 	expdiff = ((int) a.parts.exp) - b.parts.exp;
 	if (expdiff < 0) {
-		if (isFloat128NaN(b)) {
+		if (is_float128_nan(b)) {
 			/* TODO: fix SigNaN */
-			if (isFloat128SigNaN(b)) {
+			if (is_float128_signan(b)) {
 			}
 
 			return b;
@@ -300,9 +297,9 @@ float128 addFloat128(float128 a, float128 b)
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if (isFloat128NaN(a)) {
+		if (is_float128_nan(a)) {
 			/* TODO: fix SigNaN */
-			if (isFloat128SigNaN(a) || isFloat128SigNaN(b)) {
+			if (is_float128_signan(a) || is_float128_signan(b)) {
 			}
 			return a;
 		}
