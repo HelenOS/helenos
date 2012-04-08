@@ -568,6 +568,83 @@ success:
 	return EOK;
 }
 
+int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock)
+{
+	int rc;
+
+	ext4_filesystem_t *fs = inode_ref->fs;
+	ext4_superblock_t *sb = fs->superblock;
+
+	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, fblock);
+	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(sb, fblock);
+
+	ext4_block_group_ref_t *bg_ref;
+	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in loading bg_ref \%d", rc);
+		return rc;
+	}
+
+	uint32_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
+			bg_ref->block_group, sb);
+	block_t *bitmap_block;
+	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in loading bitmap \%d", rc);
+		return rc;
+	}
+
+	bool free = ext4_bitmap_is_free_bit(bitmap_block->data, index_in_group);
+
+	if (free) {
+		ext4_bitmap_set_bit(bitmap_block->data, index_in_group);
+		bitmap_block->dirty = true;
+	}
+
+	rc = block_put(bitmap_block);
+	if (rc != EOK) {
+		// Error in saving bitmap
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		EXT4FS_DBG("error in saving bitmap \%d", rc);
+		return rc;
+	}
+
+	if (!free) {
+		rc = EINVAL;
+		goto terminate;
+	}
+
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+	// Update superblock free blocks count
+	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
+	sb_free_blocks--;
+	ext4_superblock_set_free_blocks_count(sb, sb_free_blocks);
+
+	// Update inode blocks count
+	uint64_t ino_blocks = ext4_inode_get_blocks_count(sb, inode_ref->inode);
+	ino_blocks += block_size / EXT4_INODE_BLOCK_SIZE;
+	ext4_inode_set_blocks_count(sb, inode_ref->inode, ino_blocks);
+	inode_ref->dirty = true;
+
+	// Update block group free blocks count
+	uint32_t free_blocks = ext4_block_group_get_free_blocks_count(
+			bg_ref->block_group, sb);
+	free_blocks--;
+	ext4_block_group_set_free_blocks_count(bg_ref->block_group,
+			sb, free_blocks);
+	bg_ref->dirty = true;
+
+terminate:
+
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
+	if (rc != EOK) {
+		EXT4FS_DBG("error in saving bg_ref \%d", rc);
+		return rc;
+	}
+
+	return rc;
+}
 
 /**
  * @}

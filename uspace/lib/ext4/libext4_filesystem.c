@@ -577,11 +577,16 @@ int ext4_filesystem_truncate_inode(
 }
 
 int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
-		aoff64_t iblock, uint32_t* fblock)
+		aoff64_t iblock, uint32_t *fblock)
 {
 	int rc;
 
 	ext4_filesystem_t *fs = inode_ref->fs;
+
+	if (ext4_inode_get_size(fs->superblock, inode_ref->inode) == 0) {
+		*fblock = 0;
+		return EOK;
+	}
 
 	uint32_t current_block;
 
