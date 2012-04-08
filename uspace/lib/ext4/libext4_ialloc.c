@@ -175,7 +175,7 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 			rc = ext4_bitmap_find_free_bit_and_set(
 					bitmap_block->data, 0, &index_in_group, inodes_in_group);
 
-			// TODO check
+			// Block group is full (inodes)
 			if (rc == ENOSPC) {
 				block_put(bitmap_block);
 				ext4_filesystem_put_block_group_ref(bg_ref);
@@ -208,8 +208,8 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 
 			rc = ext4_filesystem_put_block_group_ref(bg_ref);
 			if (rc != EOK) {
-				// TODO
-				EXT4FS_DBG("ERRRRR");
+				EXT4FS_DBG("ERROR: unable to put block group reference");
+				return rc;
 			}
 
 			sb_free_inodes--;
