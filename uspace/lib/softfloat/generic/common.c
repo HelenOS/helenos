@@ -65,7 +65,7 @@ char zeroTable[256] = {
  * @param sign Resulting sign.
  * @return Finished double-precision float.
  */
-float64 finishFloat64(int32_t cexp, uint64_t cfrac, char sign)
+float64 finish_float64(int32_t cexp, uint64_t cfrac, char sign)
 {
 	float64 result;
 
@@ -139,7 +139,7 @@ float64 finishFloat64(int32_t cexp, uint64_t cfrac, char sign)
  * @param shift_out Bits right-shifted out from fraction by the caller.
  * @return Finished quadruple-precision float.
  */
-float128 finishFloat128(int32_t cexp, uint64_t cfrac_hi, uint64_t cfrac_lo, 
+float128 finish_float128(int32_t cexp, uint64_t cfrac_hi, uint64_t cfrac_lo, 
     char sign, uint64_t shift_out)
 {
 	float128 result;
@@ -237,7 +237,7 @@ float128 finishFloat128(int32_t cexp, uint64_t cfrac_hi, uint64_t cfrac_lo,
  * @param i Byte for which to count leading zeroes.
  * @return Number of detected leading zeroes.
  */
-int countZeroes8(uint8_t i)
+int count_zeroes8(uint8_t i)
 {
 	return zeroTable[i];
 }
@@ -248,12 +248,12 @@ int countZeroes8(uint8_t i)
  * @param i Integer for which to count leading zeroes.
  * @return Number of detected leading zeroes.
  */
-int countZeroes32(uint32_t i)
+int count_zeroes32(uint32_t i)
 {
 	int j;
 	for (j = 0; j < 32; j += 8) {
 		if (i & (0xFF << (24 - j))) {
-			return (j + countZeroes8(i >> (24 - j)));
+			return (j + count_zeroes8(i >> (24 - j)));
 		}
 	}
 
@@ -266,12 +266,12 @@ int countZeroes32(uint32_t i)
  * @param i Integer for which to count leading zeroes.
  * @return Number of detected leading zeroes.
  */
-int countZeroes64(uint64_t i)
+int count_zeroes64(uint64_t i)
 {
 	int j;
 	for (j = 0; j < 64; j += 8) {
 		if (i & (0xFFll << (56 - j))) {
-			return (j + countZeroes8(i >> (56 - j)));
+			return (j + count_zeroes8(i >> (56 - j)));
 		}
 	}
 
@@ -285,7 +285,7 @@ int countZeroes64(uint64_t i)
  * @param exp Exponent part.
  * @param fraction Fraction with hidden bit shifted to 30th bit.
  */
-void roundFloat32(int32_t *exp, uint32_t *fraction)
+void round_float32(int32_t *exp, uint32_t *fraction)
 {
 	/* rounding - if first bit after fraction is set then round up */
 	(*fraction) += (0x1 << (32 - FLOAT32_FRACTION_SIZE - 3));
@@ -311,7 +311,7 @@ void roundFloat32(int32_t *exp, uint32_t *fraction)
  * @param exp Exponent part.
  * @param fraction Fraction with hidden bit shifted to 62nd bit.
  */
-void roundFloat64(int32_t *exp, uint64_t *fraction)
+void round_float64(int32_t *exp, uint64_t *fraction)
 {
 	/* rounding - if first bit after fraction is set then round up */
 	(*fraction) += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3));
@@ -338,7 +338,7 @@ void roundFloat64(int32_t *exp, uint64_t *fraction)
  * @param frac_hi High part of fraction part with hidden bit shifted to 126th bit.
  * @param frac_lo Low part of fraction part with hidden bit shifted to 126th bit.
  */
-void roundFloat128(int32_t *exp, uint64_t *frac_hi, uint64_t *frac_lo)
+void round_float128(int32_t *exp, uint64_t *frac_hi, uint64_t *frac_lo)
 {
 	uint64_t tmp_hi, tmp_lo;
 

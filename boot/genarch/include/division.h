@@ -32,30 +32,22 @@
 #ifndef BOOT_DIVISION_H_
 #define BOOT_DIVISION_H_
 
-/* 32bit integer division */
 extern int __divsi3(int, int);
-
-/* 64bit integer division */
 extern long long __divdi3(long long, long long);
 
-/* 32bit unsigned integer division */
 extern unsigned int __udivsi3(unsigned int, unsigned int);
-
-/* 64bit unsigned integer division */
 extern unsigned long long __udivdi3(unsigned long long, unsigned long long);
 
-/* 32bit remainder of the signed division */
 extern int __modsi3(int, int);
-
-/* 64bit remainder of the signed division */
 extern long long __moddi3(long long, long long);
 
-/* 32bit remainder of the unsigned division */
 extern unsigned int __umodsi3(unsigned int, unsigned int);
-
-/* 64bit remainder of the unsigned division */
 extern unsigned long long __umoddi3(unsigned long long, unsigned long long);
 
+extern int __divmodsi3(int, int, int *);
+extern unsigned int __udivmodsi3(unsigned int, unsigned int, unsigned int *);
+
+extern long long __divmoddi3(long long, long long, long long *);
 extern unsigned long long __udivmoddi3(unsigned long long, unsigned long long,
     unsigned long long *);
 

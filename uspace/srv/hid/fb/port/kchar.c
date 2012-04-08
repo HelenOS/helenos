@@ -47,7 +47,7 @@ static kchar_t kchar;
 
 static void kchar_putchar(wchar_t ch)
 {
-	if ((ch >= 0) && (ch < 128))
+	if (ascii_check(ch))
 		*kchar.addr = ch;
 	else
 		*kchar.addr = '?';

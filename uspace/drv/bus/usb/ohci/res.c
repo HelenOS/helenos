@@ -37,16 +37,12 @@
 
 #include <errno.h>
 #include <assert.h>
-#include <as.h>
 #include <devman.h>
-#include <ddi.h>
-#include <libarch/ddi.h>
 #include <device/hw_res_parsed.h>
 
 #include <usb/debug.h>
-#include <pci_dev_iface.h>
 
-#include "pci.h"
+#include "res.h"
 
 /** Get address of registers and IRQ for given device.
  *
@@ -56,7 +52,7 @@
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int pci_get_my_registers(ddf_dev_t *dev,
+int get_my_registers(const ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
 	assert(dev);
@@ -97,7 +93,7 @@ int pci_get_my_registers(ddf_dev_t *dev,
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_enable_interrupts(ddf_dev_t *device)
+int enable_interrupts(const ddf_dev_t *device)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
@@ -105,7 +101,7 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	if (!parent_sess)
 		return ENOMEM;
 	
-	bool enabled = hw_res_enable_interrupt(parent_sess);
+	const bool enabled = hw_res_enable_interrupt(parent_sess);
 	async_hangup(parent_sess);
 	
 	return enabled ? EOK : EIO;

@@ -36,9 +36,10 @@
 #ifndef __MUL_H__
 #define __MUL_H__
 
-extern float32 mulFloat32(float32, float32);
-extern float64 mulFloat64(float64, float64);
-extern float128 mulFloat128(float128, float128);
+extern float32 mul_float32(float32, float32);
+extern float64 mul_float64(float64, float64);
+extern float96 mul_float96(float96, float96);
+extern float128 mul_float128(float128, float128);
 
 #endif
 
