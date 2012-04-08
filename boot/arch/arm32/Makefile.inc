@@ -48,6 +48,7 @@ RD_SRVS_NON_ESSENTIAL += \
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/eabi.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/mm.c \
 	arch/$(BARCH)/src/putchar.c \

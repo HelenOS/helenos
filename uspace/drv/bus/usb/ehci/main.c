@@ -43,7 +43,7 @@
 #include <usb/debug.h>
 #include <usb/host/hcd.h>
 
-#include "pci.h"
+#include "res.h"
 
 #define NAME "ehci"
 
@@ -80,14 +80,14 @@ if (ret != EOK) { \
 	size_t reg_size = 0;
 	int irq = 0;
 
-	int ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
+	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_RETURN(ret,
 	    "Failed to get memory addresses for %" PRIun ": %s.\n",
 	    device->handle, str_error(ret));
 	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
 	    reg_base, reg_size, irq);
 
-	ret = pci_disable_legacy(device, reg_base, reg_size, irq);
+	ret = disable_legacy(device, reg_base, reg_size);
 	CHECK_RET_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 

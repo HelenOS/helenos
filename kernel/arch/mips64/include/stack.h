@@ -37,6 +37,7 @@
 
 #define STACK_ITEM_SIZE  8
 #define STACK_ALIGNMENT  8
+#define ABI_STACK_FRAME  64
 
 #endif
 

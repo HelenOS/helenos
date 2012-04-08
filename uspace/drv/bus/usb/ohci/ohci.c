@@ -41,7 +41,7 @@
 #include <usb/debug.h>
 
 #include "ohci.h"
-#include "pci.h"
+#include "res.h"
 #include "hc.h"
 
 typedef struct ohci {
@@ -179,7 +179,7 @@ if (ret != EOK) { \
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
+	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to get register memory addresses for %" PRIun ": %s.\n",
 	    device->handle, str_error(ret));
@@ -210,7 +210,7 @@ if (ret != EOK) { \
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
-	ret = pci_enable_interrupts(device);
+	ret = enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling\n", str_error(ret));

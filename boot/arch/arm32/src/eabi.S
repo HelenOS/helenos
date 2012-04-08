@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2012 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,33 +27,62 @@
 #
 
 .text
-.section .init, "ax"
 
-.global __entry
+.global __aeabi_idiv
+.global __aeabi_uidiv
 
-.set noreorder
-.option pic2
+.global __aeabi_idivmod
+.global __aeabi_uidivmod
 
-## User-space task entry point
-#
-# $a0 ($4) contains the PCB pointer
-#
-.ent __entry
-__entry:
-	.frame $sp, 32, $31
-	.cpload $25
+.global __aeabi_ldivmod
+.global __aeabi_uldivmod
 
-	# Mips o32 may store its arguments on stack, make space (16 bytes),
-	# so that it could work with -O0
-	# Make space additional 16 bytes for the stack frame
+__aeabi_idiv:
+	push {sp, lr}
+	bl __divsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	bx lr
 
-	addiu $sp, -32
-	.cprestore 16   # Allow PIC code
+__aeabi_uidiv:
+	push {sp, lr}
+	bl __udivsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	bx lr
 
-	# Pass pcb_ptr to __main() as the first argument. pcb_ptr is already
-	# in $a0. As the first argument is passed in $a0, no operation
-	# is needed.
+__aeabi_idivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __divmodsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r1, r2}
+	bx lr
 
-	jal __main
-	nop
-.end
+__aeabi_uidivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __udivmodsi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r1, r2}
+	bx lr
+
+__aeabi_ldivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __divmoddi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r2, r3}
+	bx lr
+
+__aeabi_uldivmod:
+	sub sp, sp, #8
+	push {sp, lr}
+	bl __udivmoddi3
+	ldr lr, [sp, #4]
+	add sp, sp, #8
+	pop {r2, r3}
+	bx lr

@@ -116,7 +116,7 @@ static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 	
 	uint8_t glyph;
 	
-	if ((field->ch >= 0) && (field->ch < 128))
+	if (ascii_check(field->ch))
 		glyph = field->ch;
 	else
 		glyph = '?';

@@ -38,11 +38,9 @@
 #include <assert.h>
 #include <devman.h>
 #include <device/hw_res_parsed.h>
+#include <device/pci.h>
 
-#include <usb/debug.h>
-#include <pci_dev_iface.h>
-
-#include "pci.h"
+#include "res.h"
 
 /** Get I/O address of registers and IRQ for given device.
  *
@@ -52,13 +50,10 @@
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int pci_get_my_registers(const ddf_dev_t *dev,
+int get_my_registers(const ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size, int *irq_no)
 {
 	assert(dev);
-	assert(io_reg_address);
-	assert(io_reg_size);
-	assert(irq_no);
 
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
@@ -96,7 +91,7 @@ int pci_get_my_registers(const ddf_dev_t *dev,
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int pci_enable_interrupts(const ddf_dev_t *device)
+int enable_interrupts(const ddf_dev_t *device)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
@@ -115,29 +110,20 @@ int pci_enable_interrupts(const ddf_dev_t *device)
  * @param[in] device Device asking to disable interrupts
  * @return Error code.
  */
-int pci_disable_legacy(const ddf_dev_t *device)
+int disable_legacy(const ddf_dev_t *device)
 {
 	assert(device);
 
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
-	    IPC_FLAG_BLOCKING);
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    EXCHANGE_SERIALIZE, device->handle, IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 
-	/* See UHCI design guide for these values p.45,
-	 * write all WC bits in USB legacy register */
-	const sysarg_t address = 0xc0;
-	const sysarg_t value = 0xaf00;
+	/* See UHCI design guide page 45 for these values.
+	 * Write all WC bits in USB legacy register */
+	const int rc = pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
 
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-
-	const int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
-	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
-
-	async_exchange_end(exch);
 	async_hangup(parent_sess);
-
 	return rc;
 }
 

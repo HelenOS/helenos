@@ -240,7 +240,7 @@ kernel_image_start:
 	
 	/* $a1 contains physical address of bootinfo_t */
 	jal arch_pre_main
-	nop
+	addiu $sp, -ABI_STACK_FRAME
 	
 	j main_bsp
 	nop
@@ -280,8 +280,10 @@ exception_handler:
 	REGISTERS_STORE_AND_EXC_RESET $sp
 	
 	move $a1, $sp
-	jal exc_dispatch     /* exc_dispatch(excno, register_space) */
 	move $a0, $k0
+	jal exc_dispatch     /* exc_dispatch(excno, register_space) */
+	addiu $sp, -ABI_STACK_FRAME
+	addiu $sp, ABI_STACK_FRAME
 	
 	REGISTERS_LOAD $sp
 	/* the $sp is automatically restored to former value */
@@ -322,6 +324,7 @@ syscall_shortcut:
 	 */
 	sw $t0, ISTATE_OFFSET_T0($sp)  /* save the 5th argument on the stack */
 	sw $t1, ISTATE_OFFSET_T1($sp)  /* save the 6th argument on the stack */
+	
 	jal syscall_handler
 	sw $v0, ISTATE_OFFSET_V0($sp)  /* save the syscall number on the stack */
 	
@@ -356,8 +359,10 @@ tlb_refill_handler:
 	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
 	
+	move $a0, $sp
 	jal tlb_refill
-	move $a0, $sp 
+	addiu $sp, -ABI_STACK_FRAME
+	addiu $sp, ABI_STACK_FRAME
 	
 	REGISTERS_LOAD $sp
 	eret
@@ -365,13 +370,15 @@ tlb_refill_handler:
 	FAKE_ABI_PROLOGUE
 cache_error_handler:
 	KERNEL_STACK_TO_K0
-	sub $k0, ISTATE_SOFT_SIZE 
+	sub $k0, ISTATE_SOFT_SIZE
 	REGISTERS_STORE_AND_EXC_RESET $k0
 	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
 	
-	jal cache_error
 	move $a0, $sp
+	jal cache_error
+	addiu $sp, -ABI_STACK_FRAME
+	addiu $sp, ABI_STACK_FRAME
 	
 	REGISTERS_LOAD $sp
 	eret

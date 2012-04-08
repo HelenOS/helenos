@@ -28,7 +28,7 @@
 
 /** @addtogroup softint
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -37,7 +37,7 @@
 #define __SOFTINT_MULTIPLICATION_H__
 
 /* 64 bit multiplication */
-long long __muldi3(long long a, long long b);
+extern long long __muldi3(long long, long long);
 
 #endif
 

@@ -26,12 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <libarch/stack.h>
+
 .text
-	
+
 .set noat
 .set noreorder
 .option pic2
-	
+
 .globl __thread_entry
 
 ## User-space thread entry point for all but the first threads.
@@ -39,21 +41,25 @@
 #
 .ent __thread_entry
 __thread_entry:
-	.frame $sp, 32, $31
-	.cpload $25
-
+	.frame $sp, ABI_STACK_FRAME, $ra
+	.cpload $t9
+	
 	#
 	# v0 contains address of uarg.
 	#
-	add $4, $2, 0
-	# Mips o32 may store its arguments on stack, make space
-	addiu $sp, -32
+	add $a0, $v0, 0
+	
+	# Allocate the stack frame.
+	addiu $sp, -ABI_STACK_FRAME
+	
+	# Allow PIC code
 	.cprestore 16
 	
 	jal __thread_main
 	nop
-		
+	
 	#
 	# Not reached.
 	#
+	addiu $sp, ABI_STACK_FRAME
 .end __thread_entry

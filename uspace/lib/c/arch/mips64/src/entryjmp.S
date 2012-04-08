@@ -1,7 +1,5 @@
-#! /bin/bash
-
 #
-# Copyright (c) 2010 Jakub Jermar 
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,62 +26,28 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-if [ $1" " == "-h " ];
-then
-	echo "Perform pre-integration hands-off build of all profiles."
-	echo
-	echo "Syntax:"
-	echo " $0 [-h] [args...]"
-	echo
-	echo " -h        Print this help."
-	echo " args...   All other args are passed to make (e.g. -j 6)"
-	echo
+#include <libarch/stack.h>
 
-	exit
-fi
+.text
+.section .text
+.global entry_point_jmp
+.set noreorder
 
-FAILED=""
-PASSED=""
-PROFILES=""
-DIRS=`find defaults/ -name Makefile.config | sed 's/^defaults\/\(.*\)\/Makefile.config/\1/' | sort`
-
-for D in $DIRS;
-do
-	for H in $DIRS;
-	do
-		if [ `echo $H | grep "^$D\/.*"`x != "x"  ];
-		then
-			continue 2 
-		fi
-	done
-	PROFILES="$PROFILES $D"
-done
-
-echo ">>> Going to build the following profiles:"
-echo $PROFILES
-
-for P in $PROFILES;
-do
-	echo -n ">>>> Building $P... "
-	( make distclean && make PROFILE=$P HANDS_OFF=y "$@" ) >>/dev/null 2>>/dev/null
-	if [ $? -ne 0 ];
-	then
-		FAILED="$FAILED $P"
-		echo "failed."
-	else
-		PASSED="$PASSED $P"
-		echo "ok."
-	fi
-done
-
-echo ">>> Done."
-echo
-
-echo ">>> The following profiles passed:"
-echo $PASSED
-echo
-
-echo ">>> The following profiles failed:"
-echo $FAILED
-echo
-
+## void entry_point_jmp(void *entry_point, void *pcb);
+#
+# $a0 (=$4) contains entry_point
+# $a1 (=$5) contains pcb
+#
+# Jump to program entry point
+.ent entry_point_jmp
+entry_point_jmp:
+	# tmp := entry_point
+	move $t9, $a0
+	
+	# Pass pcb to the entry point in $a0
+	move $a0, $a1
+	
+	jr $t9
+	addiu $sp, -ABI_STACK_FRAME
+	addiu $sp, ABI_STACK_FRAME
+.end entry_point_jmp

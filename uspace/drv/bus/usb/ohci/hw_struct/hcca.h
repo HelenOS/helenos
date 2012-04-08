@@ -53,8 +53,8 @@ typedef struct hcca {
 	/** Pointer to the last completed TD. (useless) */
 	uint32_t done_head;
 	/** Padding to make the size 256B */
-	uint32_t reserved[29];
-} __attribute__((packed, aligned)) hcca_t;
+	uint32_t reserved[30];
+} hcca_t;
 
 /** Allocate properly aligned structure.
  *

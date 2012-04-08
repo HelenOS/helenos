@@ -40,8 +40,10 @@
 #include <arch/context.h>
 
 #define context_set_generic(ctx, _pc, stack, size) \
-	(ctx)->pc = (uintptr_t) (_pc); \
-	(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
+	do { \
+		(ctx)->pc = (uintptr_t) (_pc); \
+		(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+	} while (0)
 
 extern int context_save_arch(context_t *ctx) __attribute__((returns_twice));
 extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));

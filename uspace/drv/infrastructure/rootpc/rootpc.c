@@ -47,8 +47,6 @@
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
-#include <devman.h>
-#include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>

@@ -36,15 +36,19 @@
 #ifndef __CONVERSION_H__
 #define __CONVERSION_H__
 
-extern float64 convertFloat32ToFloat64(float32);
-extern float128 convertFloat32ToFloat128(float32);
-extern float128 convertFloat64ToFloat128(float64);
+extern float64 float32_to_float64(float32);
+extern float96 float32_to_float96(float32);
+extern float128 float32_to_float128(float32);
+extern float96 float64_to_float96(float64);
+extern float128 float64_to_float128(float64);
+extern float128 float96_to_float128(float96);
 
-
-extern float32 convertFloat64ToFloat32(float64);
-extern float32 convertFloat128ToFloat32(float128);
-extern float64 convertFloat128ToFloat64(float128);
-
+extern float32 float64_to_float32(float64);
+extern float32 float96_to_float32(float96);
+extern float64 float96_to_float64(float96);
+extern float32 float128_to_float32(float128);
+extern float64 float128_to_float64(float128);
+extern float96 float128_to_float96(float128);
 
 extern uint32_t float32_to_uint32(float32);
 extern int32_t float32_to_int32(float32);
@@ -58,12 +62,17 @@ extern int32_t float64_to_int32(float64);
 extern uint64_t float64_to_uint64(float64);
 extern int64_t float64_to_int64(float64);
 
+extern uint32_t float96_to_uint32(float96);
+extern int32_t float96_to_int32(float96);
+
+extern uint64_t float96_to_uint64(float96);
+extern int64_t float96_to_int64(float96);
+
 extern uint32_t float128_to_uint32(float128);
 extern int32_t float128_to_int32(float128);
 
 extern uint64_t float128_to_uint64(float128);
 extern int64_t float128_to_int64(float128);
-
 
 extern float32 uint32_to_float32(uint32_t);
 extern float32 int32_to_float32(int32_t);
@@ -76,6 +85,12 @@ extern float64 int32_to_float64(int32_t);
 
 extern float64 uint64_to_float64(uint64_t);
 extern float64 int64_to_float64(int64_t);
+
+extern float96 uint32_to_float96(uint32_t);
+extern float96 int32_to_float96(int32_t);
+
+extern float96 uint64_to_float96(uint64_t);
+extern float96 int64_to_float96(int64_t);
 
 extern float128 uint32_to_float128(uint32_t);
 extern float128 int32_to_float128(int32_t);

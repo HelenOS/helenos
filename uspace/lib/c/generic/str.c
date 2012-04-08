@@ -46,6 +46,13 @@
 #include <mem.h>
 #include <str.h>
 
+/** Check the condition if wchar_t is signed */
+#ifdef WCHAR_IS_UNSIGNED
+	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#else
+	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#endif
+
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
@@ -398,7 +405,7 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
  */
 bool ascii_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 127))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
 	
 	return false;
@@ -411,7 +418,7 @@ bool ascii_check(wchar_t ch)
  */
 bool chr_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 1114111))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
 	
 	return false;
@@ -512,6 +519,7 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
+ *
  */
 void str_cpy(char *dest, size_t size, const char *src)
 {
@@ -544,6 +552,7 @@ void str_cpy(char *dest, size_t size, const char *src)
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  * @param n     Maximum number of bytes to read from @a src.
+ *
  */
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
@@ -1534,7 +1543,7 @@ int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64(const char *nptr, char **endptr, unsigned int base,
+int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);

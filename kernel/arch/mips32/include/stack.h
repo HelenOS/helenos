@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -35,8 +35,9 @@
 #ifndef KERN_mips32_STACK_H_
 #define KERN_mips32_STACK_H_
 
-#define STACK_ITEM_SIZE		4
-#define STACK_ALIGNMENT		8
+#define STACK_ITEM_SIZE  4
+#define STACK_ALIGNMENT  8
+#define ABI_STACK_FRAME  32
 
 #endif
 

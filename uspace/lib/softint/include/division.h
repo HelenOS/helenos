@@ -28,7 +28,7 @@
 
 /** @addtogroup softint
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -36,35 +36,26 @@
 #ifndef __SOFTINT_DIVISION_H__
 #define __SOFTINT_DIVISION_H__
 
+extern int __divsi3(int, int);
+extern long long __divdi3(long long, long long);
 
-/* 32bit integer division */
-int __divsi3(int a, int b);
+extern unsigned int __udivsi3(unsigned int, unsigned int);
+extern unsigned long long __udivdi3(unsigned long long, unsigned long long);
 
-/* 64bit integer division */
-long long __divdi3(long long a, long long b);
+extern int __modsi3(int, int);
+extern long long __moddi3(long long, long long);
 
-/* 32bit unsigned integer division */
-unsigned int __udivsi3(unsigned int a, unsigned int b);
+extern unsigned int __umodsi3(unsigned int, unsigned int);
+extern unsigned long long __umoddi3(unsigned long long, unsigned long long);
 
-/* 64bit unsigned integer division */
-unsigned long long __udivdi3(unsigned long long a, unsigned long long b);
+extern int __divmodsi3(int, int, int *);
+extern unsigned int __udivmodsi3(unsigned int, unsigned int, unsigned int *);
 
-/* 32bit remainder of the signed division */
-int __modsi3(int a, int b);
-
-/* 64bit remainder of the signed division */
-long long __moddi3(long long a, long long b);
-
-/* 32bit remainder of the unsigned division */
-unsigned int __umodsi3(unsigned int a, unsigned int b);
-
-/* 64bit remainder of the unsigned division */
-unsigned long long __umoddi3(unsigned long long a, unsigned long long b);
-
-unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b, unsigned long long *c); 
+extern long long __divmoddi3(long long, long long, long long *);
+extern unsigned long long __udivmoddi3(unsigned long long, unsigned long long,
+    unsigned long long *);
 
 #endif
 
 /** @}
  */
-

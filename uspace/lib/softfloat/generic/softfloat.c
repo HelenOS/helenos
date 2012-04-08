@@ -47,624 +47,763 @@
 #include <comparison.h>
 #include <other.h>
 
-#include <functions.h>
-
 /* Arithmetic functions */
 
 float __addsf3(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-	if (fa.parts.sign != fb.parts.sign) {
-		if (fa.parts.sign) {
-			fa.parts.sign = 0;
-			return subFloat32(fb, fa).f;
-		};
-		fb.parts.sign = 0;
-		return subFloat32(fa, fb).f;
+	float_t fa;
+	float_t fb;
+	float_t res;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if (fa.data.parts.sign != fb.data.parts.sign) {
+		if (fa.data.parts.sign) {
+			fa.data.parts.sign = 0;
+			res.data = sub_float(fb.data, fa.data);
+			
+			return res.val;
+		}
+		
+		fb.data.parts.sign = 0;
+		res.data = sub_float(fa.data, fb.data);
+		
+		return res.val;
 	}
-	return addFloat32(fa, fb).f;
+	
+	res.data = add_float(fa.data, fb.data);
+	return res.val;
 }
 
 double __adddf3(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-	if (da.parts.sign != db.parts.sign) {
-		if (da.parts.sign) {
-			da.parts.sign = 0;
-			return subFloat64(db, da).d;
-		};
-		db.parts.sign = 0;
-		return subFloat64(da, db).d;
+	double_t da;
+	double_t db;
+	double_t res;
+	
+	da.val = a;
+	db.val = b;
+	
+	if (da.data.parts.sign != db.data.parts.sign) {
+		if (da.data.parts.sign) {
+			da.data.parts.sign = 0;
+			res.data = sub_double(db.data, da.data);
+			
+			return res.val;
+		}
+		
+		db.data.parts.sign = 0;
+		res.data = sub_double(da.data, db.data);
+		
+		return res.val;
 	}
-	return addFloat64(da, db).d;
+	
+	res.data = add_double(da.data, db.data);
+	return res.val;
 }
 
 long double __addtf3(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-	if (ta.parts.sign != tb.parts.sign) {
-		if (ta.parts.sign) {
-			ta.parts.sign = 0;
-			return subFloat128(tb, ta).ld;
-		};
-		tb.parts.sign = 0;
-		return subFloat128(ta, tb).ld;
+	long_double_t ta;
+	long_double_t tb;
+	long_double_t res;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if (ta.data.parts.sign != tb.data.parts.sign) {
+		if (ta.data.parts.sign) {
+			ta.data.parts.sign = 0;
+			res.data = sub_long_double(tb.data, ta.data);
+			
+			return res.val;
+		}
+		
+		tb.data.parts.sign = 0;
+		res.data = sub_long_double(ta.data, tb.data);
+		
+		return res.val;
 	}
-	return addFloat128(ta, tb).ld;
+	
+	res.data = add_long_double(ta.data, tb.data);
+	return res.val;
 }
 
 float __subsf3(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-	if (fa.parts.sign != fb.parts.sign) {
-		fb.parts.sign = !fb.parts.sign;
-		return addFloat32(fa, fb).f;
+	float_t fa;
+	float_t fb;
+	float_t res;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if (fa.data.parts.sign != fb.data.parts.sign) {
+		fb.data.parts.sign = !fb.data.parts.sign;
+		res.data = add_float(fa.data, fb.data);
+		
+		return res.val;
 	}
-	return subFloat32(fa, fb).f;
+	
+	res.data = sub_float(fa.data, fb.data);
+	return res.val;
 }
 
 double __subdf3(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-	if (da.parts.sign != db.parts.sign) {
-		db.parts.sign = !db.parts.sign;
-		return addFloat64(da, db).d;
+	double_t da;
+	double_t db;
+	double_t res;
+	
+	da.val = a;
+	db.val = b;
+	
+	if (da.data.parts.sign != db.data.parts.sign) {
+		db.data.parts.sign = !db.data.parts.sign;
+		res.data = add_double(da.data, db.data);
+		
+		return res.val;
 	}
-	return subFloat64(da, db).d;
+	
+	res.data = sub_double(da.data, db.data);
+	return res.val;
 }
 
 long double __subtf3(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-	if (ta.parts.sign != tb.parts.sign) {
-		tb.parts.sign = !tb.parts.sign;
-		return addFloat128(ta, tb).ld;
+	long_double_t ta;
+	long_double_t tb;
+	long_double_t res;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if (ta.data.parts.sign != tb.data.parts.sign) {
+		tb.data.parts.sign = !tb.data.parts.sign;
+		res.data = add_long_double(ta.data, tb.data);
+		
+		return res.val;
 	}
-	return subFloat128(ta, tb).ld;
+	
+	res.data = sub_long_double(ta.data, tb.data);
+	return res.val;
 }
 
-float __mulsf3(float a, float b) 
+float __mulsf3(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-	return 	mulFloat32(fa, fb).f;
+	float_t fa;
+	float_t fb;
+	float_t res;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	res.data = mul_float(fa.data, fb.data);
+	return res.val;
 }
 
-double __muldf3(double a, double b) 
+double __muldf3(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-	return 	mulFloat64(da, db).d;
+	double_t da;
+	double_t db;
+	double_t res;
+	
+	da.val = a;
+	db.val = b;
+	
+	res.data = mul_double(da.data, db.data);
+	return res.val;
 }
 
 long double __multf3(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-	return 	mulFloat128(ta, tb).ld;
+	long_double_t ta;
+	long_double_t tb;
+	long_double_t res;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	res.data = mul_long_double(ta.data, tb.data);
+	return res.val;
 }
 
-float __divsf3(float a, float b) 
+float __divsf3(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-	return 	divFloat32(fa, fb).f;
+	float_t fa;
+	float_t fb;
+	float_t res;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	res.data = div_float(fa.data, fb.data);
+	return res.val;
 }
 
-double __divdf3(double a, double b) 
+double __divdf3(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-	return 	divFloat64(da, db).d;
+	double_t da;
+	double_t db;
+	double_t res;
+	
+	da.val = a;
+	db.val = b;
+	
+	res.data = div_double(da.data, db.data);
+	return res.val;
 }
 
 long double __divtf3(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-	return 	divFloat128(ta, tb).ld;
+	long_double_t ta;
+	long_double_t tb;
+	long_double_t res;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	res.data = div_long_double(ta.data, tb.data);
+	return res.val;
 }
 
 float __negsf2(float a)
 {
-	float32 fa;
-	fa.f = a;
-	fa.parts.sign = !fa.parts.sign;
-	return fa.f;
+	float_t fa;
+	
+	fa.val = a;
+	fa.data.parts.sign = !fa.data.parts.sign;
+	
+	return fa.val;
 }
 
 double __negdf2(double a)
 {
-	float64 da;
-	da.d = a;
-	da.parts.sign = !da.parts.sign;
-	return da.d;
+	double_t da;
+	
+	da.val = a;
+	da.data.parts.sign = !da.data.parts.sign;
+	
+	return da.val;
 }
 
 long double __negtf2(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-	ta.parts.sign = !ta.parts.sign;
-	return ta.ld;
+	long_double_t ta;
+	
+	ta.val = a;
+	ta.data.parts.sign = !ta.data.parts.sign;
+	
+	return ta.val;
 }
 
 /* Conversion functions */
 
-double __extendsfdf2(float a) 
+double __extendsfdf2(float a)
 {
-	float32 fa;
-	fa.f = a;
-	return convertFloat32ToFloat64(fa).d;
+	float_t fa;
+	double_t res;
+	
+	fa.val = a;
+	res.data = float_to_double(fa.data);
+	
+	return res.val;
 }
 
 long double __extendsftf2(float a)
 {
-	float32 fa;
-	fa.f = a;
-	return convertFloat32ToFloat128(fa).ld;
+	float_t fa;
+	long_double_t res;
+	
+	fa.val = a;
+	res.data = float_to_long_double(fa.data);
+	
+	return res.val;
 }
 
 long double __extenddftf2(double a)
 {
-	float64 da;
-	da.d = a;
-	return convertFloat64ToFloat128(da).ld;
+	double_t da;
+	long_double_t res;
+	
+	da.val = a;
+	res.data = double_to_long_double(da.data);
+	
+	return res.val;
 }
 
-float __truncdfsf2(double a) 
+float __truncdfsf2(double a)
 {
-	float64 da;
-	da.d = a;
-	return convertFloat64ToFloat32(da).f;
+	double_t da;
+	float_t res;
+	
+	da.val = a;
+	res.data = double_to_float(da.data);
+	
+	return res.val;
 }
 
 float __trunctfsf2(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-	return convertFloat128ToFloat32(ta).f;
+	long_double_t ta;
+	float_t res;
+	
+	ta.val = a;
+	res.data = long_double_to_float(ta.data);
+	
+	return res.val;
 }
 
 double __trunctfdf2(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-	return convertFloat128ToFloat64(ta).d;
+	long_double_t ta;
+	double_t res;
+	
+	ta.val = a;
+	res.data = long_double_to_double(ta.data);
+	
+	return res.val;
 }
 
 int __fixsfsi(float a)
 {
-	float32 fa;
-	fa.f = a;
+	float_t fa;
 	
-	return float32_to_int(fa);
+	fa.val = a;
+	return float_to_int(fa.data);
 }
 
 int __fixdfsi(double a)
 {
-	float64 da;
-	da.d = a;
+	double_t da;
 	
-	return float64_to_int(da);
+	da.val = a;
+	return double_to_int(da.data);
 }
 
 int __fixtfsi(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-
-	return float128_to_int(ta);
+	long_double_t ta;
+	
+	ta.val = a;
+	return long_double_to_int(ta.data);
 }
  
 long __fixsfdi(float a)
 {
-	float32 fa;
-	fa.f = a;
+	float_t fa;
 	
-	return float32_to_long(fa);
+	fa.val = a;
+	return float_to_long(fa.data);
 }
 
 long __fixdfdi(double a)
 {
-	float64 da;
-	da.d = a;
+	double_t da;
 	
-	return float64_to_long(da);
+	da.val = a;
+	return double_to_long(da.data);
 }
 
 long __fixtfdi(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-
-	return float128_to_long(ta);
+	long_double_t ta;
+	
+	ta.val = a;
+	return long_double_to_long(ta.data);
 }
  
 long long __fixsfti(float a)
 {
-	float32 fa;
-	fa.f = a;
+	float_t fa;
 	
-	return float32_to_longlong(fa);
+	fa.val = a;
+	return float_to_llong(fa.data);
 }
 
 long long __fixdfti(double a)
 {
-	float64 da;
-	da.d = a;
+	double_t da;
 	
-	return float64_to_longlong(da);
+	da.val = a;
+	return double_to_llong(da.data);
 }
 
 long long __fixtfti(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-
-	return float128_to_longlong(ta);
+	long_double_t ta;
+	
+	ta.val = a;
+	return long_double_to_llong(ta.data);
 }
 
 unsigned int __fixunssfsi(float a)
 {
-	float32 fa;
-	fa.f = a;
+	float_t fa;
 	
-	return float32_to_uint(fa);
+	fa.val = a;
+	return float_to_uint(fa.data);
 }
 
 unsigned int __fixunsdfsi(double a)
 {
-	float64 da;
-	da.d = a;
+	double_t da;
 	
-	return float64_to_uint(da);
+	da.val = a;
+	return double_to_uint(da.data);
 }
 
 unsigned int __fixunstfsi(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-
-	return float128_to_uint(ta);
+	long_double_t ta;
+	
+	ta.val = a;
+	return long_double_to_uint(ta.data);
 }
  
 unsigned long __fixunssfdi(float a)
 {
-	float32 fa;
-	fa.f = a;
+	float_t fa;
 	
-	return float32_to_ulong(fa);
+	fa.val = a;
+	return float_to_ulong(fa.data);
 }
 
 unsigned long __fixunsdfdi(double a)
 {
-	float64 da;
-	da.d = a;
+	double_t da;
 	
-	return float64_to_ulong(da);
+	da.val = a;
+	return double_to_ulong(da.data);
 }
 
 unsigned long __fixunstfdi(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-
-	return float128_to_ulong(ta);
+	long_double_t ta;
+	
+	ta.val = a;
+	return long_double_to_ulong(ta.data);
 }
  
 unsigned long long __fixunssfti(float a)
 {
-	float32 fa;
-	fa.f = a;
+	float_t fa;
 	
-	return float32_to_ulonglong(fa);
+	fa.val = a;
+	return float_to_ullong(fa.data);
 }
 
 unsigned long long __fixunsdfti(double a)
 {
-	float64 da;
-	da.d = a;
+	double_t da;
 	
-	return float64_to_ulonglong(da);
+	da.val = a;
+	return double_to_ullong(da.data);
 }
 
 unsigned long long __fixunstfti(long double a)
 {
-	float128 ta;
-	ta.ld = a;
-
-	return float128_to_ulonglong(ta);
+	long_double_t ta;
+	
+	ta.val = a;
+	return long_double_to_ullong(ta.data);
 }
  
 float __floatsisf(int i)
 {
-	float32 fa;
+	float_t res;
 	
-	fa = int_to_float32(i);
-	return fa.f;
+	res.data = int_to_float(i);
+	return res.val;
 }
 
 double __floatsidf(int i)
 {
-	float64 da;
+	double_t res;
 	
-	da = int_to_float64(i);
-	return da.d;
+	res.data = int_to_double(i);
+	return res.val;
 }
 
 long double __floatsitf(int i)
 {
-	float128 ta;
-
-	ta = int_to_float128(i);
-	return ta.ld;
+	long_double_t res;
+	
+	res.data = int_to_long_double(i);
+	return res.val;
 }
  
 float __floatdisf(long i)
 {
-	float32 fa;
+	float_t res;
 	
-	fa = long_to_float32(i);
-	return fa.f;
+	res.data = long_to_float(i);
+	return res.val;
 }
 
 double __floatdidf(long i)
 {
-	float64 da;
+	double_t res;
 	
-	da = long_to_float64(i);
-	return da.d;
+	res.data = long_to_double(i);
+	return res.val;
 }
 
 long double __floatditf(long i)
 {
-	float128 ta;
-
-	ta = long_to_float128(i);
-	return ta.ld;
+	long_double_t res;
+	
+	res.data = long_to_long_double(i);
+	return res.val;
 }
- 
+
 float __floattisf(long long i)
 {
-	float32 fa;
+	float_t res;
 	
-	fa = longlong_to_float32(i);
-	return fa.f;
+	res.data = llong_to_float(i);
+	return res.val;
 }
 
 double __floattidf(long long i)
 {
-	float64 da;
+	double_t res;
 	
-	da = longlong_to_float64(i);
-	return da.d;
+	res.data = llong_to_double(i);
+	return res.val;
 }
 
 long double __floattitf(long long i)
 {
-	float128 ta;
-
-	ta = longlong_to_float128(i);
-	return ta.ld;
+	long_double_t res;
+	
+	res.data = llong_to_long_double(i);
+	return res.val;
 }
 
 float __floatunsisf(unsigned int i)
 {
-	float32 fa;
+	float_t res;
 	
-	fa = uint_to_float32(i);
-	return fa.f;
+	res.data = uint_to_float(i);
+	return res.val;
 }
 
 double __floatunsidf(unsigned int i)
 {
-	float64 da;
+	double_t res;
 	
-	da = uint_to_float64(i);
-	return da.d;
+	res.data = uint_to_double(i);
+	return res.val;
 }
 
 long double __floatunsitf(unsigned int i)
 {
-	float128 ta;
-
-	ta = uint_to_float128(i);
-	return ta.ld;
+	long_double_t res;
+	
+	res.data = uint_to_long_double(i);
+	return res.val;
 }
  
 float __floatundisf(unsigned long i)
 {
-	float32 fa;
+	float_t res;
 	
-	fa = ulong_to_float32(i);
-	return fa.f;
+	res.data = ulong_to_float(i);
+	return res.val;
 }
 
 double __floatundidf(unsigned long i)
 {
-	float64 da;
+	double_t res;
 	
-	da = ulong_to_float64(i);
-	return da.d;
+	res.data = ulong_to_double(i);
+	return res.val;
 }
 
 long double __floatunditf(unsigned long i)
 {
-	float128 ta;
-
-	ta = ulong_to_float128(i);
-	return ta.ld;
+	long_double_t res;
+	
+	res.data = ulong_to_long_double(i);
+	return res.val;
 }
  
 float __floatuntisf(unsigned long long i)
 {
-	float32 fa;
+	float_t res;
 	
-	fa = ulonglong_to_float32(i);
-	return fa.f;
+	res.data = ullong_to_float(i);
+	return res.val;
 }
 
 double __floatuntidf(unsigned long long i)
 {
-	float64 da;
+	double_t res;
 	
-	da = ulonglong_to_float64(i);
-	return da.d;
+	res.data = ullong_to_double(i);
+	return res.val;
 }
 
 long double __floatuntitf(unsigned long long i)
 {
-	float128 ta;
-
-	ta = ulonglong_to_float128(i);
-	return ta.ld;
+	long_double_t res;
+	
+	res.data = ullong_to_long_double(i);
+	return res.val;
 }
 
 /* Comparison functions */
 
 int __cmpsf2(float a, float b) 
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-
-	if ((isFloat32NaN(fa)) || (isFloat32NaN(fb))) {
-		return 1; /* no special constant for unordered - maybe signaled? */
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if ((is_float_nan(fa.data)) || (is_float_nan(fb.data))) {
+		/* no special constant for unordered - maybe signaled? */
+		return 1;
 	}
 	
-	if (isFloat32eq(fa, fb)) {
+	if (is_float_eq(fa.data, fb.data))
 		return 0;
-	}
 	
-	if (isFloat32lt(fa, fb)) {
+	if (is_float_lt(fa.data, fb.data))
 		return -1;
-	}
-
+	
 	return 1;
 }
 
 int __cmpdf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-
-	if ((isFloat64NaN(da)) || (isFloat64NaN(db))) {
-		return 1; /* no special constant for unordered - maybe signaled? */
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	if ((is_double_nan(da.data)) || (is_double_nan(db.data))) {
+		/* no special constant for unordered - maybe signaled? */
+		return 1;
 	}
-
-	if (isFloat64eq(da, db)) {
+	
+	if (is_double_eq(da.data, db.data))
 		return 0;
-	}
-
-	if (isFloat64lt(da, db)) {
+	
+	if (is_double_lt(da.data, db.data))
 		return -1;
-	}
-
+	
 	return 1;
 }
 
 int __cmptf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		return 1; /* no special constant for unordered - maybe signaled? */
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data))) {
+		/* no special constant for unordered - maybe signaled? */
+		return 1;
 	}
-
-	if (isFloat128eq(ta, tb)) {
+	
+	if (is_long_double_eq(ta.data, tb.data))
 		return 0;
-	}
-
-	if (isFloat128lt(ta, tb)) {
+	
+	if (is_long_double_lt(ta.data, tb.data))
 		return -1;
-	}
-
+	
 	return 1;
 }
 
-int __unordsf2(float a, float b) 
+int __unordsf2(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-	return ((isFloat32NaN(fa)) || (isFloat32NaN(fb)));
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	return ((is_float_nan(fa.data)) || (is_float_nan(fb.data)));
 }
 
 int __unorddf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-	return ((isFloat64NaN(da)) || (isFloat64NaN(db)));
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	return ((is_double_nan(da.data)) || (is_double_nan(db.data)));
 }
 
 int __unordtf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-	return ((isFloat128NaN(ta)) || (isFloat128NaN(tb)));
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	return ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)));
 }
 
-int __eqsf2(float a, float b) 
+int __eqsf2(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-	if ((isFloat32NaN(fa)) || (isFloat32NaN(fb))) {
-		/* TODO: sigNaNs */
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if ((is_float_nan(fa.data)) || (is_float_nan(fb.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-	return isFloat32eq(fa, fb) - 1;
+	
+	return is_float_eq(fa.data, fb.data) - 1;
 }
 
 int __eqdf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-	if ((isFloat64NaN(da)) || (isFloat64NaN(db))) {
-		/* TODO: sigNaNs */
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	if ((is_double_nan(da.data)) || (is_double_nan(db.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-	return isFloat64eq(da, db) - 1;
+	
+	return is_double_eq(da.data, db.data) - 1;
 }
 
 int __eqtf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		/* TODO: sigNaNs */
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-	return isFloat128eq(ta, tb) - 1;
+	
+	return is_long_double_eq(ta.data, tb.data) - 1;
 }
 
-int __nesf2(float a, float b) 
+int __nesf2(float a, float b)
 {
 	/* strange behavior, but it was in gcc documentation */
 	return __eqsf2(a, b);
@@ -684,247 +823,249 @@ int __netf2(long double a, long double b)
 
 int __gesf2(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-
-	if ((isFloat32NaN(fa)) || (isFloat32NaN(fb))) {
-		/* TODO: sigNaNs */
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if ((is_float_nan(fa.data)) || (is_float_nan(fb.data))) {
+		// TODO: sigNaNs
 		return -1;
 	}
 	
-	if (isFloat32eq(fa, fb)) {
+	if (is_float_eq(fa.data, fb.data))
 		return 0;
-	}
 	
-	if (isFloat32gt(fa, fb)) {
+	if (is_float_gt(fa.data, fb.data))
 		return 1;
-	}
 	
 	return -1;
 }
 
 int __gedf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-
-	if ((isFloat64NaN(da)) || (isFloat64NaN(db))) {
-		/* TODO: sigNaNs */
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	if ((is_double_nan(da.data)) || (is_double_nan(db.data))) {
+		// TODO: sigNaNs
 		return -1;
 	}
-
-	if (isFloat64eq(da, db)) {
+	
+	if (is_double_eq(da.data, db.data))
 		return 0;
-	}
-
-	if (isFloat64gt(da, db)) {
+	
+	if (is_double_gt(da.data, db.data))
 		return 1;
-	}
-
+	
 	return -1;
 }
 
 int __getf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		/* TODO: sigNaNs */
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data))) {
+		// TODO: sigNaNs
 		return -1;
 	}
-
-	if (isFloat128eq(ta, tb)) {
+	
+	if (is_long_double_eq(ta.data, tb.data))
 		return 0;
-	}
-
-	if (isFloat128gt(ta, tb)) {
+	
+	if (is_long_double_gt(ta.data, tb.data))
 		return 1;
-	}
-
+	
 	return -1;
 }
 
 int __ltsf2(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-
-	if ((isFloat32NaN(fa)) || (isFloat32NaN(fb))) {
-		/* TODO: sigNaNs */
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if ((is_float_nan(fa.data)) || (is_float_nan(fb.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-
-	if (isFloat32lt(fa, fb)) {
+	
+	if (is_float_lt(fa.data, fb.data))
 		return -1;
-	}
-
+	
 	return 0;
 }
 
 int __ltdf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-
-	if ((isFloat64NaN(da)) || (isFloat64NaN(db))) {
-		/* TODO: sigNaNs */
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	if ((is_double_nan(da.data)) || (is_double_nan(db.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-
-	if (isFloat64lt(da, db)) {
+	
+	if (is_double_lt(da.data, db.data))
 		return -1;
-	}
-
+	
 	return 0;
 }
 
 int __lttf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		/* TODO: sigNaNs */
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-
-	if (isFloat128lt(ta, tb)) {
+	
+	if (is_long_double_lt(ta.data, tb.data))
 		return -1;
-	}
-
+	
 	return 0;
 }
 
 int __lesf2(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-
-	if ((isFloat32NaN(fa)) || (isFloat32NaN(fb))) {
-		/* TODO: sigNaNs */
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if ((is_float_nan(fa.data)) || (is_float_nan(fb.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
 	
-	if (isFloat32eq(fa, fb)) {
+	if (is_float_eq(fa.data, fb.data))
 		return 0;
-	}
 	
-	if (isFloat32lt(fa, fb)) {
+	if (is_float_lt(fa.data, fb.data))
 		return -1;
-	}
 	
 	return 1;
 }
 
 int __ledf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-
-	if ((isFloat64NaN(da)) || (isFloat64NaN(db))) {
-		/* TODO: sigNaNs */
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	if ((is_double_nan(da.data)) || (is_double_nan(db.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-
-	if (isFloat64eq(da, db)) {
+	
+	if (is_double_eq(da.data, db.data))
 		return 0;
-	}
-
-	if (isFloat64lt(da, db)) {
+	
+	if (is_double_lt(da.data, db.data))
 		return -1;
-	}
-
+	
 	return 1;
 }
 
 int __letf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		/* TODO: sigNaNs */
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data))) {
+		// TODO: sigNaNs
 		return 1;
 	}
-
-	if (isFloat128eq(ta, tb)) {
+	
+	if (is_long_double_eq(ta.data, tb.data))
 		return 0;
-	}
-
-	if (isFloat128lt(ta, tb)) {
+	
+	if (is_long_double_lt(ta.data, tb.data))
 		return -1;
-	}
-
+	
 	return 1;
 }
 
 int __gtsf2(float a, float b)
 {
-	float32 fa, fb;
-	fa.f = a;
-	fb.f = b;
-
-	if ((isFloat32NaN(fa)) || (isFloat32NaN(fb))) {
-		/* TODO: sigNaNs */
+	float_t fa;
+	float_t fb;
+	
+	fa.val = a;
+	fb.val = b;
+	
+	if ((is_float_nan(fa.data)) || (is_float_nan(fb.data))) {
+		// TODO: sigNaNs
 		return -1;
 	}
-
-	if (isFloat32gt(fa, fb)) {
+	
+	if (is_float_gt(fa.data, fb.data))
 		return 1;
-	}
-
+	
 	return 0;
 }
 
 int __gtdf2(double a, double b)
 {
-	float64 da, db;
-	da.d = a;
-	db.d = b;
-
-	if ((isFloat64NaN(da)) || (isFloat64NaN(db))) {
-		/* TODO: sigNaNs */
+	double_t da;
+	double_t db;
+	
+	da.val = a;
+	db.val = b;
+	
+	if ((is_double_nan(da.data)) || (is_double_nan(db.data))) {
+		// TODO: sigNaNs
 		return -1;
 	}
-
-	if (isFloat64gt(da, db)) {
+	
+	if (is_double_gt(da.data, db.data))
 		return 1;
-	}
-
+	
 	return 0;
 }
 
 int __gttf2(long double a, long double b)
 {
-	float128 ta, tb;
-	ta.ld = a;
-	tb.ld = b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		/* TODO: sigNaNs */
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = a;
+	tb.val = b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data))) {
+		// TODO: sigNaNs
 		return -1;
 	}
-
-	if (isFloat128gt(ta, tb)) {
+	
+	if (is_long_double_gt(ta.data, tb.data))
 		return 1;
-	}
-
+	
 	return 0;
 }
-
-
-
-#ifdef SPARC_SOFTFLOAT
 
 /* SPARC quadruple-precision wrappers */
 
@@ -1015,22 +1156,21 @@ void _Qp_uxtoq(long double *c, unsigned long a)
 
 int _Qp_cmp(long double *a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
 		return 3;
-	}
-
-	if (isFloat128eq(ta, tb)) {
+	
+	if (is_long_double_eq(ta.data, tb.data))
 		return 0;
-	}
-
-	if (isFloat128lt(ta, tb)) {
+	
+	if (is_long_double_lt(ta.data, tb.data))
 		return 1;
-	}
-
+	
 	return 2;
 }
 
@@ -1042,83 +1182,89 @@ int _Qp_cmpe(long double *a, long double *b)
 
 int _Qp_feq(long double *a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
 		return 0;
-	}
-
-	return isFloat128eq(ta, tb);
+	
+	return is_long_double_eq(ta.data, tb.data);
 }
 
 int _Qp_fge(long double *a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
 		return 0;
-	}
-
-	return isFloat128eq(ta, tb) || isFloat128gt(ta, tb);
+	
+	return is_long_double_eq(ta.data, tb.data) ||
+	    is_long_double_gt(ta.data, tb.data);
 }
 
 int _Qp_fgt(long double *a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
 		return 0;
-	}
-
-	return isFloat128gt(ta, tb);
+	
+	return is_long_double_gt(ta.data, tb.data);
 }
 
 int _Qp_fle(long double*a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
 		return 0;
-	}
-
-	return isFloat128eq(ta, tb) || isFloat128lt(ta, tb);
+	
+	return is_long_double_eq(ta.data, tb.data) ||
+	    is_long_double_lt(ta.data, tb.data);
 }
 
 int _Qp_flt(long double *a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
 		return 0;
-	}
-
-	return isFloat128lt(ta, tb);
+	
+	return is_long_double_lt(ta.data, tb.data);
 }
 
 int _Qp_fne(long double *a, long double *b)
 {
-	float128 ta, tb;
-	ta.ld = *a;
-	tb.ld = *b;
-
-	if ((isFloat128NaN(ta)) || (isFloat128NaN(tb))) {
-		return 1;
-	}
-
-	return !isFloat128eq(ta, tb);
+	long_double_t ta;
+	long_double_t tb;
+	
+	ta.val = *a;
+	tb.val = *b;
+	
+	if ((is_long_double_nan(ta.data)) || (is_long_double_nan(tb.data)))
+		return 0;
+	
+	return !is_long_double_eq(ta.data, tb.data);
 }
-
-#endif
 
 /** @}
  */
