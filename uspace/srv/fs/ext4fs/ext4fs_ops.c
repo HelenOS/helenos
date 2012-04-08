@@ -1096,23 +1096,40 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	}
 
 	if (fblock == 0) {
-		rc =  ext4_balloc_alloc_block(inode_ref, &fblock);
-		if (rc != EOK) {
-			ext4fs_node_put(fn);
-			async_answer_0(callid, rc);
-			return rc;
-		}
 
-		rc = ext4_filesystem_set_inode_data_block_index(inode_ref, iblock, fblock);
-		if (rc != EOK) {
-			ext4_balloc_free_block(inode_ref, fblock);
-			ext4fs_node_put(fn);
-			async_answer_0(callid, rc);
-			return rc;
+		if (ext4_superblock_has_feature_incompatible(
+				fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
+				(ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
+
+			uint32_t tmp_iblock = 0;
+			do {
+				rc = ext4_filesystem_append_inode_block(inode_ref, &fblock, &tmp_iblock);
+				if (rc != EOK) {
+					ext4fs_node_put(fn);
+					async_answer_0(callid, rc);
+					return rc;
+				}
+			} while (tmp_iblock < iblock);
+
+		} else {
+			rc =  ext4_balloc_alloc_block(inode_ref, &fblock);
+			if (rc != EOK) {
+				ext4fs_node_put(fn);
+				async_answer_0(callid, rc);
+				return rc;
+			}
+
+			rc = ext4_filesystem_set_inode_data_block_index(inode_ref, iblock, fblock);
+			if (rc != EOK) {
+				ext4_balloc_free_block(inode_ref, fblock);
+				ext4fs_node_put(fn);
+				async_answer_0(callid, rc);
+				return rc;
+			}
 		}
-		inode_ref->dirty = true;
 
 		flags = BLOCK_FLAGS_NOREAD;
+		inode_ref->dirty = true;
 	}
 
 	block_t *write_block;

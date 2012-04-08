@@ -540,7 +540,8 @@ int ext4_filesystem_truncate_inode(
 			inode_ref->fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 				ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 
-		rc = ext4_extent_release_blocks_from(inode_ref, old_blocks_count - diff_blocks_count);
+		rc = ext4_extent_release_blocks_from(inode_ref,
+				old_blocks_count - diff_blocks_count);
 		if (rc != EOK) {
 			return rc;
 		}

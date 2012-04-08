@@ -248,18 +248,19 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_
 	ext4_extent_t* extent = NULL;
 	ext4_extent_binsearch(header, &extent, iblock);
 
-	assert(extent != NULL);
+	if (extent == NULL) {
+		*fblock = 0;
+	} else {
+		uint32_t phys_block;
+		phys_block = ext4_extent_get_start(extent) + iblock;
+		phys_block -= ext4_extent_get_first_block(extent);
 
-	uint32_t phys_block;
-	phys_block = ext4_extent_get_start(extent) + iblock;
-	phys_block -= ext4_extent_get_first_block(extent);
-
-	*fblock = phys_block;
+		*fblock = phys_block;
+	}
 
 	if (block != NULL) {
 		block_put(block);
 	}
-
 
 	return EOK;
 }
@@ -395,7 +396,8 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref, uint32_t iblock_from)
+int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
+		uint32_t iblock_from)
 {
 	int rc;
 
@@ -599,7 +601,7 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		goto finish;
 
 	} else {
-		// try allocate succeeding extent block
+		// try allocate scceeding extent block
 
 		// TODO
 		assert(false);
@@ -608,6 +610,10 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 
 
 finish:
+
+	*iblock = new_block_idx;
+	*fblock = phys_block;
+
 	// Put loaded blocks
 	// From 1 -> 0 is a block with inode data
 	for (uint16_t i = 1; i < path->depth; ++i) {
