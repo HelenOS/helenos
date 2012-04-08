@@ -40,22 +40,22 @@
 #include <usb/debug.h>
 
 #include "uhci.h"
-#include "pci.h"
 
+#include "res.h"
 #include "hc.h"
 #include "root_hub.h"
 
 /** Structure representing both functions of UHCI hc, USB host controller
  * and USB root hub */
 typedef struct uhci {
-	/** Pointer to DDF represenation of UHCI host controller */
+	/** Pointer to DDF representation of UHCI host controller */
 	ddf_fun_t *hc_fun;
-	/** Pointer to DDF represenation of UHCI root hub */
+	/** Pointer to DDF representation of UHCI root hub */
 	ddf_fun_t *rh_fun;
 
-	/** Internal driver's represenation of UHCI host controller */
+	/** Internal driver's representation of UHCI host controller */
 	hc_t hc;
-	/** Internal driver's represenation of UHCI root hub */
+	/** Internal driver's representation of UHCI root hub */
 	rh_t rh;
 } uhci_t;
 
@@ -186,14 +186,14 @@ if (ret != EOK) { \
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
+	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to get I/O addresses for %" PRIun ": %s.\n",
 	    device->handle, str_error(ret));
 	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	ret = pci_disable_legacy(device);
+	ret = disable_legacy(device);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
@@ -219,7 +219,7 @@ if (ret != EOK) { \
             "Failed to register interrupt handler: %s.\n", str_error(ret));
 
 	bool interrupts = false;
-	ret = pci_enable_interrupts(device);
+	ret = enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling.\n", str_error(ret));
