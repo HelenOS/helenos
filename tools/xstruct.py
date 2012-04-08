@@ -31,17 +31,20 @@ Convert descriptive structure definitions to structure object
 """
 
 import struct
+import sys
 import types
 
+integer_types = (int, long) if sys.version < '3' else (int,)
+
 ranges = {
-	'B': ((int, long), 0x00, 0xff),
-	'H': ((int, long), 0x0000, 0xffff),
-	'L': ((int, long), 0x00000000, 0xffffffff),
-	'Q': ((int, long), 0x0000000000000000, 0xffffffffffffffff),
-	'b': ((int, long), -0x80, 0x7f),
-	'h': ((int, long), -0x8000, 0x7fff),
-	'l': ((int, long), -0x80000000, 0x7fffffff) ,
-	'q': ((int, long), -0x8000000000000000, 0x7fffffffffffffff),
+	'B': (integer_types, 0x00, 0xff),
+	'H': (integer_types, 0x0000, 0xffff),
+	'L': (integer_types, 0x00000000, 0xffffffff),
+	'Q': (integer_types, 0x0000000000000000, 0xffffffffffffffff),
+	'b': (integer_types, -0x80, 0x7f),
+	'h': (integer_types, -0x8000, 0x7fff),
+	'l': (integer_types, -0x80000000, 0x7fffffff) ,
+	'q': (integer_types, -0x8000000000000000, 0x7fffffffffffffff),
 }
 
 def check_range(varname, fmt, value):

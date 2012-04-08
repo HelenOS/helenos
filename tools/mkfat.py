@@ -246,7 +246,8 @@ def get_utf16(name, l) :
 	
 	return bs
 
-def create_lfn_entry((name, index)) :
+def create_lfn_entry(name_index) :
+	(name, index) = name_index
 	entry = xstruct.create(LFN_ENTRY)
 
 	entry.name1 = get_utf16(name[0:5], 5)
@@ -292,13 +293,13 @@ def create_dirent(name, directory, cluster, size):
 	if not lfn:
 		return [dir_entry]
 
-	n = len(name) / 13 + 1
+	n = (int) (len(name) / 13 + 1)
 	names = [(name[i * 13: (i + 1) * 13 + 1], i + 1) for i in range(n)]
 
 	entries = sorted(map (create_lfn_entry, names), reverse = True, key = lambda e : e.pos)
 	entries[0].pos |= 0x40
 
-	fname11 = dir_entry.name + dir_entry.ext
+	fname11 = str(dir_entry.name + dir_entry.ext)
 
 	csum = 0
 	for i in range(0, 11) :
