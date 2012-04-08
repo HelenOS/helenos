@@ -341,11 +341,6 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 		ext4_inode_set_links_count(inode, 0);
 	}
 
-	if (ext4_superblock_has_feature_incompatible(
-			fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS)) {
-		ext4_inode_set_flag(inode, EXT4_INODE_FLAG_EXTENTS);
-	}
-
 	ext4_inode_set_uid(inode, 0);
 	ext4_inode_set_gid(inode, 0);
 	ext4_inode_set_size(inode, 0);
@@ -357,8 +352,27 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	ext4_inode_set_flags(inode, 0);
 	ext4_inode_set_generation(inode, 0);
 
+	// Reset blocks array
 	for (uint32_t i = 0; i < EXT4_INODE_BLOCKS; i++) {
 		inode->blocks[i] = 0;
+	}
+
+	if (ext4_superblock_has_feature_incompatible(
+			fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS)) {
+
+		ext4_inode_set_flag(inode, EXT4_INODE_FLAG_EXTENTS);
+
+		// Initialize extent root header
+		ext4_extent_header_t *header = ext4_inode_get_extent_header(inode);
+		ext4_extent_header_set_depth(header, 0);
+		ext4_extent_header_set_entries_count(header, 0);
+		ext4_extent_header_set_generation(header, 0);
+		ext4_extent_header_set_magic(header, EXT4_EXTENT_MAGIC);
+
+		uint16_t max_entries = (EXT4_INODE_BLOCKS * sizeof (uint32_t) - sizeof(ext4_extent_header_t))
+				/ sizeof(ext4_extent_t);
+
+		ext4_extent_header_set_max_entries_count(header, max_entries);
 	}
 
 	(*inode_ref)->dirty = true;

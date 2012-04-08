@@ -549,20 +549,6 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
 
-	ext4_extent_header_t *header =
-			ext4_inode_get_extent_header(inode_ref->inode);
-
-	// Initialize if empty inode
-	if (inode_size == 0) {
-		ext4_extent_t *first = EXT4_EXTENT_FIRST(header);
-		ext4_extent_set_block_count(first, 0);
-		ext4_extent_set_first_block(first, 0);
-		ext4_extent_set_start(first, 0);
-
-		ext4_extent_header_set_depth(header, 0);
-		ext4_extent_header_set_entries_count(header, 1);
-	}
-
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	uint32_t new_block_idx = inode_size / block_size;
 
@@ -578,8 +564,15 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		path_ptr++;
 	}
 
-	// Check if extent exists
-	assert(path_ptr->extent != NULL);
+	// if extent == NULL -> add extent to leaf
+	if (path_ptr->extent == NULL) {
+		ext4_extent_t *ext = EXT4_EXTENT_FIRST(path_ptr->header);
+		ext4_extent_set_block_count(ext, 0);
+
+		ext4_extent_header_set_entries_count(path_ptr->header, 1);
+
+		path_ptr->extent = ext;
+	}
 
 	uint32_t phys_block;
 
