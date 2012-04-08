@@ -142,7 +142,6 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
 		EXT4FS_DBG("error in saving bg_ref \%d", rc);
-		// TODO error
 		return rc;
 	}
 
@@ -220,7 +219,6 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
 		EXT4FS_DBG("error in saving bg_ref \%d", rc);
-		// TODO error
 		return rc;
 	}
 
@@ -274,14 +272,18 @@ static uint32_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref)
 	}
 
 	if (inode_block_count > 0) {
-		// TODO check retval
-		ext4_filesystem_get_inode_data_block_index(inode_ref, inode_block_count - 1, &goal);
 
-		// TODO
-		// If goal == 0 -> SPARSE file !!!
+		rc = ext4_filesystem_get_inode_data_block_index(inode_ref, inode_block_count - 1, &goal);
+		if (rc != EOK) {
+			return 0;
+		}
 
-		goal++;
-		return goal;
+		if (goal != 0) {
+			goal++;
+			return goal;
+		}
+
+		// if goal == 0, sparse file -> continue
 	}
 
 	// Identify block group of inode
@@ -337,7 +339,7 @@ int ext4_balloc_alloc_block(
 	// Find GOAL
 	uint32_t goal = ext4_balloc_find_goal(inode_ref);
 	if (goal == 0) {
-		// TODO
+		// no goal found => partition is full
 		EXT4FS_DBG("ERRORR (goal == 0)");
 		return ENOSPC;
 	}
@@ -384,8 +386,7 @@ int ext4_balloc_alloc_block(
 		bitmap_block->dirty = true;
 		rc = block_put(bitmap_block);
 		if (rc != EOK) {
-			// TODO error
-			EXT4FS_DBG("goal check: error in saving initial bitmap \%d", rc);
+			EXT4FS_DBG("goal check: error in saving bitmap \%d", rc);
 			ext4_filesystem_put_block_group_ref(bg_ref);
 			return rc;
 		}
@@ -410,8 +411,8 @@ int ext4_balloc_alloc_block(
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
 			if (rc != EOK) {
-				// TODO error
 				EXT4FS_DBG("near blocks: error in saving initial bitmap \%d", rc);
+				return rc;
 			}
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
@@ -428,8 +429,8 @@ int ext4_balloc_alloc_block(
 		bitmap_block->dirty = true;
 		rc = block_put(bitmap_block);
 		if (rc != EOK) {
-			// TODO error
 			EXT4FS_DBG("free byte: error in saving initial bitmap \%d", rc);
+			return rc;
 		}
 
 		allocated_block = ext4_balloc_index_in_group2blockaddr(
@@ -444,8 +445,8 @@ int ext4_balloc_alloc_block(
 		bitmap_block->dirty = true;
 		rc = block_put(bitmap_block);
 		if (rc != EOK) {
-			// TODO error
 			EXT4FS_DBG("free bit: error in saving initial bitmap \%d", rc);
+			return rc;
 		}
 
 		allocated_block = ext4_balloc_index_in_group2blockaddr(
@@ -467,7 +468,7 @@ int ext4_balloc_alloc_block(
 	while (count > 0) {
 		rc = ext4_filesystem_get_block_group_ref(inode_ref->fs, bgid, &bg_ref);
 		if (rc != EOK) {
-			EXT4FS_DBG("errrrrrrrrrrr");
+			EXT4FS_DBG("ERROR: unable to load block group \%u", bgid);
 			return rc;
 		}
 
@@ -478,7 +479,7 @@ int ext4_balloc_alloc_block(
 		rc = block_get(&bitmap_block, inode_ref->fs->device, bitmap_block_addr, 0);
 		if (rc != EOK) {
 			ext4_filesystem_put_block_group_ref(bg_ref);
-			EXT4FS_DBG("errrrrrrrrrr");
+			EXT4FS_DBG("ERROR: unable to load bitmap block");
 			return rc;
 		}
 
@@ -501,8 +502,8 @@ int ext4_balloc_alloc_block(
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
 			if (rc != EOK) {
-				// TODO error
-				EXT4FS_DBG("error in saving bitmap \%d", rc);
+				EXT4FS_DBG("ERROR: unable to save bitmap block");
+				return rc;
 			}
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
@@ -517,8 +518,8 @@ int ext4_balloc_alloc_block(
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
 			if (rc != EOK) {
-				// TODO error
-				EXT4FS_DBG("error in saving bitmap \%d", rc);
+				EXT4FS_DBG("ERROR: unable to save bitmap block");
+				return rc;
 			}
 
 			allocated_block = ext4_balloc_index_in_group2blockaddr(
