@@ -42,14 +42,14 @@ __aeabi_idiv:
 	bl __divsi3
 	ldr lr, [sp, #4]
 	add sp, sp, #8
-	bx lr
+	mov pc, lr
 
 __aeabi_uidiv:
 	push {sp, lr}
 	bl __udivsi3
 	ldr lr, [sp, #4]
 	add sp, sp, #8
-	bx lr
+	mov pc, lr
 
 __aeabi_idivmod:
 	sub sp, sp, #8
@@ -58,7 +58,7 @@ __aeabi_idivmod:
 	ldr lr, [sp, #4]
 	add sp, sp, #8
 	pop {r1, r2}
-	bx lr
+	mov pc, lr
 
 __aeabi_uidivmod:
 	sub sp, sp, #8
@@ -67,7 +67,7 @@ __aeabi_uidivmod:
 	ldr lr, [sp, #4]
 	add sp, sp, #8
 	pop {r1, r2}
-	bx lr
+	mov pc, lr
 
 __aeabi_ldivmod:
 	sub sp, sp, #8
@@ -76,7 +76,7 @@ __aeabi_ldivmod:
 	ldr lr, [sp, #4]
 	add sp, sp, #8
 	pop {r2, r3}
-	bx lr
+	mov pc, lr
 
 __aeabi_uldivmod:
 	sub sp, sp, #8
@@ -85,4 +85,4 @@ __aeabi_uldivmod:
 	ldr lr, [sp, #4]
 	add sp, sp, #8
 	pop {r2, r3}
-	bx lr
+	mov pc, lr
