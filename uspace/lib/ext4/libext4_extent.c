@@ -301,9 +301,7 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 		block_t *block;
 		rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
-			// TODO cleanup
-			EXT4FS_DBG("ERRRR");
-			return rc;
+			goto cleanup;
 		}
 
 		pos++;
@@ -324,6 +322,21 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 	*ret_path = tmp_path;
 
 	return EOK;
+
+cleanup:
+	// Put loaded blocks
+	// From 1 -> 0 is a block with inode data
+	for (uint16_t i = 1; i < tmp_path->depth; ++i) {
+		if (tmp_path[i].block) {
+			block_put(tmp_path[i].block);
+		}
+	}
+
+	// Destroy temporary data structure
+	free(tmp_path);
+
+	return rc;
+
 }
 
 static int ext4_extent_release(ext4_inode_ref_t *inode_ref, ext4_extent_t* extent)
@@ -399,7 +412,7 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		uint32_t iblock_from)
 {
-	int rc;
+	int rc = EOK;
 
 	// Find the first extent to modify
 	ext4_extent_path_t *path;
@@ -428,9 +441,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 
 	rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
 	if (rc != EOK) {
-		// TODO goto cleanup
-		EXT4FS_DBG("ERROR");
-		return rc;
+		goto cleanup;
 	}
 
 	block_count -= delete_count;
@@ -453,9 +464,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 
 		rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
 		if (rc != EOK) {
-			// TODO goto cleanup
-			EXT4FS_DBG("ERROR");
-			return rc;
+			goto cleanup;
 		}
 
 		entries--;
@@ -471,9 +480,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	if ((path_ptr != path) && (entries == 0)) {
 		rc = ext4_balloc_free_block(inode_ref, path_ptr->block->lba);
 		if (rc != EOK) {
-			EXT4FS_DBG("ERROR");
-			// TODO goto cleanup
-			return rc;
+			goto cleanup;
 		}
 		check_tree = true;
 	}
@@ -496,9 +503,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		while (index < stop) {
 			rc = ext4_extent_release_branch(inode_ref, index);
 			if (rc != EOK) {
-				EXT4FS_DBG("ERR");
-				// TODO goto cleanup
-				return rc;
+				goto cleanup;
 			}
 			++index;
 			--entries;
@@ -510,9 +515,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		if ((entries == 0) && (path_ptr != path)) {
 			rc = ext4_balloc_free_block(inode_ref, path_ptr->block->lba);
 			if (rc != EOK) {
-				EXT4FS_DBG("ERROR");
-				// TODO goto cleanup
-				return rc;
+				goto cleanup;
 			}
 			check_tree = true;
 		} else {
@@ -523,12 +526,10 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	}
 
 
-	// Finish
-	uint16_t depth = path->depth;
-
+cleanup:
 	// Put loaded blocks
 	// From 1 -> 0 is a block with inode data
-	for (uint16_t i = 1; i < depth; ++i) {
+	for (uint16_t i = 1; i < path->depth; ++i) {
 		if (path[i].block) {
 			block_put(path[i].block);
 		}
@@ -537,13 +538,13 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	// Destroy temporary data structure
 	free(path);
 
-	return EOK;
+	return rc;
 }
 
 int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		uint32_t *iblock, uint32_t *fblock)
 {
-	int rc;
+	int rc = EOK;
 
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
@@ -568,7 +569,6 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 	ext4_extent_path_t *path;
 	rc = ext4_extent_find_extent(inode_ref, new_block_idx, &path);
 	if (rc != EOK) {
-		EXT4FS_DBG("find extent ERROR");
 		return rc;
 	}
 
@@ -589,8 +589,7 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 
 		rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
 		if (rc != EOK) {
-			EXT4FS_DBG("ERRO in balloc");
-			return rc;
+			goto finish;
 		}
 
 		ext4_extent_set_block_count(path_ptr->extent, 1);
@@ -625,7 +624,7 @@ finish:
 	// Destroy temporary data structure
 	free(path);
 
-	return EOK;
+	return rc;
 }
 
 /**
