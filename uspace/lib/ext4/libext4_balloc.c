@@ -568,7 +568,8 @@ success:
 	return EOK;
 }
 
-int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock)
+int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref,
+		uint32_t fblock, bool *free)
 {
 	int rc;
 
@@ -594,9 +595,9 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock)
 		return rc;
 	}
 
-	bool free = ext4_bitmap_is_free_bit(bitmap_block->data, index_in_group);
+	*free = ext4_bitmap_is_free_bit(bitmap_block->data, index_in_group);
 
-	if (free) {
+	if (*free) {
 		ext4_bitmap_set_bit(bitmap_block->data, index_in_group);
 		bitmap_block->dirty = true;
 	}
@@ -609,8 +610,7 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock)
 		return rc;
 	}
 
-	if (!free) {
-		rc = EINVAL;
+	if (!(*free)) {
 		goto terminate;
 	}
 
