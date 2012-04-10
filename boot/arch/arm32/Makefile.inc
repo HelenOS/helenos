@@ -38,6 +38,7 @@ BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE
+EXTRA_CFLAGS = -march=armv4
 
 RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24ts \

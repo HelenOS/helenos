@@ -640,8 +640,6 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		return EOK;
 	}
 
-	assert(false);
-
 	// start splitting
 	uint32_t fblock = 0;
 
