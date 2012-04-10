@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 0; i < BUF_SIZE; ++i) {
-		if ((i % 80) == 0) {
+		if ((i % 64) == 0) {
 			buffer[i] = '\n';
 		} else {
 			buffer[i] = '.';
