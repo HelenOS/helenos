@@ -54,7 +54,7 @@
 #endif
 #endif
 
-#if defined(PROCESSOR_armv7)
+#if defined(PROCESSOR_armv7_a)
 #include "page_armv7.h"
 #elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 #include "page_armv4.h"

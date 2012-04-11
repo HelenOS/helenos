@@ -121,7 +121,7 @@ static void high_vectors(void)
 {
 	uint32_t control_reg = 0;
 	
-#if defined(PROCESSOR_armv7)
+#if defined(PROCESSOR_armv7_a)
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"
 		: [control_reg] "=r" (control_reg)
@@ -136,7 +136,7 @@ static void high_vectors(void)
 	/* switch on the high vectors bit */
 	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
 	
-#if defined(PROCESSOR_armv7)
+#if defined(PROCESSOR_armv7_a)
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
 		:: [control_reg] "r" (control_reg)

@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -march=armv4
+GCC_CFLAGS += -march=$(subst _,-,$(PROCESSOR))
 
 BITS = 32
 ENDIANESS = LE

@@ -48,7 +48,7 @@
  */
 NO_TRACE static inline void cpu_sleep(void)
 {
-#ifdef PROCESSOR_armv7
+#ifdef PROCESSOR_armv7_a
 	asm volatile ( "wfe" :: );
 #endif
 }

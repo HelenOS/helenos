@@ -99,7 +99,7 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 /** Does nothing on ARM. */
 void cpu_arch_init(void)
 {
-#if defined(PROCESSOR_armv7)
+#if defined(PROCESSOR_armv7_a)
 	uint32_t control_reg = 0;
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"
