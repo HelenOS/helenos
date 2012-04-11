@@ -37,6 +37,8 @@
 #include <genarch/drivers/amdm37x_irc/amdm37x_irc.h>
 #include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
 #include <genarch/drivers/amdm37x_gpt/amdm37x_gpt.h>
+#include <genarch/drivers/amdm37x_dispc/amdm37x_dispc.h>
+#include <genarch/fb/fb.h>
 #include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <mm/km.h>
@@ -58,6 +60,7 @@ static const char *bbxm_get_platform_name(void);
 #define BBXM_MEMORY_SIZE	0x20000000	/* 512 MB */
 
 static struct beagleboard {
+	amdm37x_dispc_regs_t *dispc;
 	amdm37x_irc_regs_t *irc_addr;
 	amdm37x_uart_t uart;
 	amdm37x_gpt_t timer;
@@ -81,6 +84,53 @@ static irq_ownership_t bb_timer_irq_claim(irq_t *irq)
 	return IRQ_ACCEPT;
 }
 
+static void bbxm_setup_fb(unsigned width, unsigned height, unsigned bpp)
+{
+	const unsigned pixel_bytes = (bpp / 8);
+	const size_t size = ALIGN_UP(width * height * pixel_bytes, FRAME_SIZE);
+	const unsigned frames = size / FRAME_SIZE;
+	unsigned order = 0;
+	unsigned frame = 1;
+	while (frame < frames) {
+		frame *= 2;
+		++order;
+	}
+	printf("Allocating %d (2^%d) frames.\n", size, order);
+	/* prefer highmem as we don't care about virtual mapping. */
+	void *buffer = frame_alloc(order, FRAME_LOWMEM);
+	ASSERT(buffer);
+
+	amdm37x_dispc_setup_fb(beagleboard.dispc, width, height, bpp,
+	    (uintptr_t) buffer);
+
+	fb_properties_t prop = {
+		.addr = (uintptr_t)buffer,
+		.offset = 0,
+		.x = width,
+		.y = height,
+		.scan = width * pixel_bytes,
+		.visual = VISUAL_RGB_5_6_5_LE
+	};
+	switch (bpp)
+	{
+	case 8:
+		prop.visual = VISUAL_INDIRECT_8; break;
+	case 16:
+		prop.visual = VISUAL_RGB_5_6_5_LE; break;
+	case 24:
+		prop.visual = VISUAL_RGB_8_8_8; break;
+	case 32:
+		prop.visual = VISUAL_RGB_8_8_8_0; break;
+	default:
+		printf("Invalid framebuffer bit depth: bailing out.\n");
+		return;
+	}
+	outdev_t *fb_dev = fb_init(&prop);
+	if (fb_dev)
+		stdout_wire(fb_dev);
+
+}
+
 static void bb_timer_irq_handler(irq_t *irq)
 {
         /*
@@ -99,8 +149,13 @@ static void bbxm_init(void)
 	beagleboard.irc_addr =
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
 	    PAGE_NOT_CACHEABLE);
+	ASSERT(beagleboard.irc_addr);
 	amdm37x_irc_init(beagleboard.irc_addr);
 
+	/* Map display controller */
+	beagleboard.dispc = (void*) km_map(AMDM37x_DISPC_BASE_ADDRESS,
+	    AMDM37x_DISPC_SIZE, PAGE_NOT_CACHEABLE);
+	ASSERT(beagleboard.dispc);
 
 	/* Initialize timer, pick timer1, because it is in always-power domain
 	 * and has special capabilities for regular ticks */
@@ -166,7 +221,9 @@ static void bbxm_frame_init(void)
 static void bbxm_output_init(void)
 {
 #ifdef CONFIG_FB
-#error "Frame buffer is not yet supported!"
+	bbxm_setup_fb(CONFIG_BFB_WIDTH, CONFIG_BFB_HEIGHT, CONFIG_BFB_BPP);
+#else
+	(void)bbxm_setup_fb;
 #endif
 	/* UART3 is wired to external RS232 connector */
 	const bool ok = amdm37x_uart_init(&beagleboard.uart,
