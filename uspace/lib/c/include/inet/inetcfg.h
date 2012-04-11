@@ -60,6 +60,8 @@ typedef struct {
 typedef struct {
 	/** Link service name */
 	char *name;
+	/** Default MTU */
+	size_t def_mtu;
 } inet_link_info_t;
 
 /** Static route info */

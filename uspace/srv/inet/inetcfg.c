@@ -163,6 +163,7 @@ static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	}
 
 	linfo->name = str_dup(ilink->svc_name);
+	linfo->def_mtu = ilink->def_mtu;
 	return EOK;
 }
 
@@ -463,7 +464,7 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	    min(max_size, str_size(linfo.name)));
 	free(linfo.name);
 
-	async_answer_0(callid, retval);
+	async_answer_1(callid, retval, linfo.def_mtu);
 }
 
 static void inetcfg_sroute_create_srv(ipc_callid_t callid,

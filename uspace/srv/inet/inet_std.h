@@ -89,6 +89,9 @@ enum flags_foff_bits {
 	FF_FRAGOFF_l = 0
 };
 
+/** Fragment offset is expressed in units of 8 bytes */
+#define FRAG_OFFS_UNIT 8
+
 #endif
 
 /** @}

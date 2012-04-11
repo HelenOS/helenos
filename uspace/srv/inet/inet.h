@@ -87,6 +87,8 @@ typedef struct {
 typedef struct {
 	/** Link service name */
 	char *name;
+	/** Default MTU */
+	size_t def_mtu;
 } inet_link_info_t;
 
 /** Static route info */
@@ -124,6 +126,7 @@ typedef struct {
 	char *svc_name;
 	async_sess_t *sess;
 	iplink_t *iplink;
+	size_t def_mtu;
 } inet_link_t;
 
 typedef struct {

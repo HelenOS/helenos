@@ -160,6 +160,7 @@ static int inet_link_open(service_id_t sid)
 		return ENOMEM;
 
 	ilink->svc_id = sid;
+	ilink->iplink = NULL;
 
 	rc = loc_service_get_name(sid, &ilink->svc_name);
 	if (rc != EOK) {
@@ -176,6 +177,13 @@ static int inet_link_open(service_id_t sid)
 	rc = iplink_open(ilink->sess, &inet_iplink_ev_ops, &ilink->iplink);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed opening IP link '%s'",
+		    ilink->svc_name);
+		goto error;
+	}
+
+	rc = iplink_get_mtu(ilink->iplink, &ilink->def_mtu);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed determinning MTU of link '%s'",
 		    ilink->svc_name);
 		goto error;
 	}
@@ -210,6 +218,8 @@ static int inet_link_open(service_id_t sid)
 	return EOK;
 
 error:
+	if (ilink->iplink != NULL)
+		iplink_close(ilink->iplink);
 	inet_link_delete(ilink);
 	return rc;
 }
@@ -240,8 +250,12 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	iplink_sdu_t sdu;
 	inet_packet_t packet;
 	int rc;
+	size_t offs, roffs;
 
-	/* XXX Fragment packet */
+	/*
+	 * Fill packet structure. Fragmentation is performed by
+	 * inet_pdu_encode().
+	 */
 	packet.src = dgram->src;
 	packet.dest = dgram->dest;
 	packet.tos = dgram->tos;
@@ -253,12 +267,21 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 
 	sdu.lsrc.ipv4 = lsrc->ipv4;
 	sdu.ldest.ipv4 = ldest->ipv4;
-	rc = inet_pdu_encode(&packet, &sdu.data, &sdu.size);
-	if (rc != EOK)
-		return rc;
 
-	rc = iplink_send(ilink->iplink, &sdu);
-	free(sdu.data);
+	offs = 0;
+	do {
+		/* Encode one fragment */
+		rc = inet_pdu_encode(&packet, offs, ilink->def_mtu, &sdu.data,
+		    &sdu.size, &roffs);
+		if (rc != EOK)
+			return rc;
+
+		/* Send the PDU */
+		rc = iplink_send(ilink->iplink, &sdu);
+		free(sdu.data);
+
+		offs = roffs;
+	} while (offs < packet.size);
 
 	return rc;
 }

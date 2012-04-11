@@ -275,6 +275,7 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	name_buf[act_size] = '\0';
 
 	linfo->name = str_dup(name_buf);
+	linfo->def_mtu = IPC_GET_ARG1(answer);
 
 	return EOK;
 }

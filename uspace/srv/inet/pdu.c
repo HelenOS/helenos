@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <io/log.h>
+#include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
 
@@ -87,8 +88,22 @@ uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
 }
 
 /** Encode Internet PDU.
+ *
+ * Encode internet packet into PDU (serialized form). Will encode a
+ * fragment of the payload starting at offset @a offs. The resulting
+ * PDU will have at most @a mtu bytes. @a *roffs will be set to the offset
+ * of remaining payload. If some data is remaining, the MF flag will
+ * be set in the header, otherwise the offset will equal @a packet->size.
+ *
+ * @param packet	Packet to encode
+ * @param offs		Offset into packet payload (in bytes)
+ * @param mtu		MTU (Maximum Transmission Unit) in bytes
+ * @param rdata		Place to store pointer to allocated data buffer
+ * @param rsize		Place to store size of allocated data buffer
+ * @param roffs		Place to store offset of remaning data
  */
-int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
+int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
+    void **rdata, size_t *rsize, size_t *roffs)
 {
 	void *data;
 	size_t size;
@@ -97,39 +112,84 @@ int inet_pdu_encode(inet_packet_t *packet, void **rdata, size_t *rsize)
 	size_t data_offs;
 	uint16_t chksum;
 	uint16_t ident;
+	uint16_t flags_foff;
+	uint16_t foff;
+	size_t fragoff_limit;
+	size_t xfer_size;
+	size_t spc_avail;
+	size_t rem_offs;
 
-	fibril_mutex_lock(&ip_ident_lock);
-	ident = ++ip_ident;
-	fibril_mutex_unlock(&ip_ident_lock);
+	/* Upper bound for fragment offset field */
+	fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l);
+
+	/* Verify that total size of datagram is within reasonable bounds */
+	if (offs + packet->size > FRAG_OFFS_UNIT * fragoff_limit)
+		return ELIMIT;
 
 	hdr_size = sizeof(ip_header_t);
-	size = hdr_size + packet->size;
 	data_offs = ROUND_UP(hdr_size, 4);
+
+	assert(offs % FRAG_OFFS_UNIT == 0);
+	assert(offs / FRAG_OFFS_UNIT < fragoff_limit);
+
+	/* Value for the fragment offset field */
+	foff = offs / FRAG_OFFS_UNIT;
+
+	if (hdr_size >= mtu)
+		return EINVAL;
+
+	/* Amount of space in the PDU available for payload */
+	spc_avail = mtu - hdr_size;
+
+	/* Amount of data (payload) to transfer */
+	xfer_size = min(packet->size - offs, spc_avail);
+	xfer_size -= (xfer_size % FRAG_OFFS_UNIT);
+
+	/* Total PDU size */
+	size = hdr_size + xfer_size;
+
+	/* Offset of remaining payload */
+	rem_offs = offs + xfer_size;
+
+	/* Flags */
+	flags_foff =
+	    (packet->df ? BIT_V(uint16_t, FF_FLAG_DF) : 0) +
+	    (rem_offs < packet->size ? BIT_V(uint16_t, FF_FLAG_MF) : 0) +
+	    (foff << FF_FRAGOFF_l);
 
 	data = calloc(size, 1);
 	if (data == NULL)
 		return ENOMEM;
 
+	/* Allocate identifier */
+	fibril_mutex_lock(&ip_ident_lock);
+	ident = ++ip_ident;
+	fibril_mutex_unlock(&ip_ident_lock);
+
+	/* Encode header fields */
 	hdr = (ip_header_t *)data;
 	hdr->ver_ihl = (4 << VI_VERSION_l) | (hdr_size / sizeof(uint32_t));
 	hdr->tos = packet->tos;
 	hdr->tot_len = host2uint16_t_be(size);
 	hdr->id = host2uint16_t_be(ident);
-	hdr->flags_foff = host2uint16_t_be(packet->df ?
-	    BIT_V(uint16_t, FF_FLAG_DF) : 0);
+	hdr->flags_foff = host2uint16_t_be(flags_foff);
 	hdr->ttl = packet->ttl;
 	hdr->proto = packet->proto;
 	hdr->chksum = 0;
 	hdr->src_addr = host2uint32_t_be(packet->src.ipv4);
 	hdr->dest_addr = host2uint32_t_be(packet->dest.ipv4);
 
+	/* Compute checksum */
 	chksum = inet_checksum_calc(INET_CHECKSUM_INIT, (void *)hdr, hdr_size);
 	hdr->chksum = host2uint16_t_be(chksum);
 
-	memcpy((uint8_t *)data + data_offs, packet->data, packet->size);
+	/* Copy payload */
+	memcpy((uint8_t *)data + data_offs, packet->data + offs, xfer_size);
 
 	*rdata = data;
 	*rsize = size;
+	*roffs = rem_offs;
+
 	return EOK;
 }
 

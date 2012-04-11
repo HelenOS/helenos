@@ -44,7 +44,8 @@
 
 extern uint16_t inet_checksum_calc(uint16_t, void *, size_t);
 
-extern int inet_pdu_encode(inet_packet_t *, void **, size_t *);
+extern int inet_pdu_encode(inet_packet_t *, size_t, size_t, void **,
+    size_t *, size_t *);
 extern int inet_pdu_decode(void *, size_t, inet_packet_t *);
 
 #endif

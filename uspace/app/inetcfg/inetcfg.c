@@ -372,8 +372,8 @@ static int addr_list(void)
 			goto out;
 		}
 
-		printf("    %s %s %s\n", astr, linfo.name,
-		    ainfo.name);
+		printf("    %s %s %s %zu\n", astr, linfo.name,
+		    ainfo.name, linfo.def_mtu);
 
 		free(ainfo.name);
 		free(linfo.name);
