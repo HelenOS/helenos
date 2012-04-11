@@ -120,7 +120,7 @@ void gxemul_input_init(void)
 			dsrlnin_wire(dsrlnin_instance, srln);
 		}
 	}
-
+	
 	/*
 	 * This is the necessary evil until the userspace driver is entirely
 	 * self-sufficient.
@@ -171,7 +171,7 @@ static void gxemul_timer_irq_handler(irq_t *irq)
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);
-
+	
 	/* acknowledge tick */
 	*((uint32_t *) (gxemul_rtc + GXEMUL_RTC_ACK_OFFSET))
 	    = 0;
@@ -180,13 +180,13 @@ static void gxemul_timer_irq_handler(irq_t *irq)
 /** Initializes and registers timer interrupt handler. */
 static void gxemul_timer_irq_init(void)
 {
-        irq_initialize(&gxemul_timer_irq);
-        gxemul_timer_irq.devno = device_assign_devno();
-        gxemul_timer_irq.inr = GXEMUL_TIMER_IRQ;
-        gxemul_timer_irq.claim = gxemul_timer_claim;
-        gxemul_timer_irq.handler = gxemul_timer_irq_handler;
-
-        irq_register(&gxemul_timer_irq);
+	irq_initialize(&gxemul_timer_irq);
+	gxemul_timer_irq.devno = device_assign_devno();
+	gxemul_timer_irq.inr = GXEMUL_TIMER_IRQ;
+	gxemul_timer_irq.claim = gxemul_timer_claim;
+	gxemul_timer_irq.handler = gxemul_timer_irq_handler;
+	
+	irq_register(&gxemul_timer_irq);
 }
 
 
@@ -197,8 +197,8 @@ static void gxemul_timer_irq_init(void)
  */
 void gxemul_timer_irq_start(void)
 {
-        gxemul_timer_irq_init();
-        gxemul_timer_start(GXEMUL_TIMER_FREQ);
+	gxemul_timer_irq_init();
+	gxemul_timer_start(GXEMUL_TIMER_FREQ);
 }
 
 /** Get extents of available memory.
@@ -226,7 +226,7 @@ void gxemul_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = gxemul_irqc_get_sources();
 	unsigned int i;
-
+	
 	for (i = 0; i < GXEMUL_IRQ_COUNT; i++) {
 		if (sources & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
