@@ -199,7 +199,7 @@ static int send_response(int conn_sd, const char *msg)
 static int uri_get(const char *uri, int conn_sd)
 {
 	if (str_cmp(uri, "/") == 0)
-		uri = "/index.htm";
+		uri = "/index.html";
 	
 	char *fname;
 	int rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);

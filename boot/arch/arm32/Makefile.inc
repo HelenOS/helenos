@@ -48,6 +48,7 @@ BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE
+EXTRA_CFLAGS = -march=armv4
 
 ifeq ($(MACHINE), gta02)
 RD_SRVS_ESSENTIAL += \
@@ -72,6 +73,7 @@ RD_DRVS += \
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/eabi.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/mm.c \
 	arch/$(BARCH)/src/putchar.c \

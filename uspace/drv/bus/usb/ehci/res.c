@@ -236,6 +236,7 @@ static int disable_extended_caps(const ddf_dev_t *device, unsigned eecp)
 int disable_legacy(const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 {
 	assert(device);
+	usb_log_debug("Disabling EHCI legacy support.\n");
 
 #define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
@@ -248,6 +249,8 @@ int disable_legacy(const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 	int ret = pio_enable((void*)reg_base, reg_size, &regs);
 	CHECK_RET_RETURN(ret, "Failed to map registers %p: %s.\n",
 	    (void *) reg_base, str_error(ret));
+
+	usb_log_debug2("Registers mapped at: %p.\n", regs);
 
 	const uint32_t hcc_params =
 	    *(uint32_t*)(regs + HCC_PARAMS_OFFSET);
@@ -285,8 +288,8 @@ int disable_legacy(const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
 	if (*usbcmd & USBCMD_RUN) {
 		*usbsts = 0x3f; /* ack all interrupts */
-		*usbint = 0; /* disable all interrutps */
-		*usbconf = 0; /* relase control of RH ports */
+		*usbint = 0; /* disable all interrupts */
+		*usbconf = 0; /* release control of RH ports */
 
 		*usbcmd = 0;
 		/* Wait until hc is halted */
@@ -296,11 +299,11 @@ int disable_legacy(const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 		usb_log_info("EHCI was not running.\n");
 	}
 	usb_log_debug("Registers: \n"
-	    "\t USBCMD: %x(0x00080000 = at least 1ms between interrupts)\n"
-	    "\t USBSTS: %x(0x00001000 = HC halted)\n"
-	    "\t USBINT: %x(0x0 = no interrupts).\n"
-	    "\t CONFIG: %x(0x0 = ports controlled by companion hc).\n",
-	    *usbcmd, *usbsts, *usbint, *usbconf);
+	    "\t USBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
+	    "\t USBSTS(%p): %x(0x00001000 = HC halted)\n"
+	    "\t USBINT(%p): %x(0x0 = no interrupts).\n"
+	    "\t CONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
+	    usbcmd, *usbcmd, usbsts, *usbsts, usbint, *usbint, usbconf,*usbconf);
 
 	return ret;
 }

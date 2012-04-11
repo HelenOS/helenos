@@ -36,9 +36,10 @@
 #ifndef __ADD_H__
 #define __ADD_H__
 
-extern float32 addFloat32(float32, float32);
-extern float64 addFloat64(float64, float64);
-extern float128 addFloat128(float128, float128);
+extern float32 add_float32(float32, float32);
+extern float64 add_float64(float64, float64);
+extern float96 add_float96(float96, float96);
+extern float128 add_float128(float128, float128);
 
 #endif
 

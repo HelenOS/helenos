@@ -38,36 +38,40 @@
 #include <comparison.h>
 #include <common.h>
 
-/**
- * Subtract two single-precision floats with the same signs.
+/** Subtract two single-precision floats with the same sign.
  *
  * @param a First input operand.
  * @param b Second input operand.
+ *
  * @return Result of substraction.
+ *
  */
-float32 subFloat32(float32 a, float32 b)
+float32 sub_float32(float32 a, float32 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2, frac1, frac2;
 	float32 result;
-
-	result.f = 0;
+	
+	result.bin = 0;
 	
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) || ((expdiff == 0) && (a.parts.fraction < b.parts.fraction))) {
-		if (isFloat32NaN(b)) {
-			/* TODO: fix SigNaN */
-			if (isFloat32SigNaN(b)) {
+	if ((expdiff < 0 ) || ((expdiff == 0) &&
+	    (a.parts.fraction < b.parts.fraction))) {
+		if (is_float32_nan(b)) {
+			if (is_float32_signan(b)) {
+				// TODO: fix SigNaN
 			}
+			
 			return b;
 		}
 		
-		if (b.parts.exp == FLOAT32_MAX_EXPONENT) { 
-			b.parts.sign = !b.parts.sign; /* num -(+-inf) = -+inf */
+		if (b.parts.exp == FLOAT32_MAX_EXPONENT) {
+			/* num -(+-inf) = -+inf */
+			b.parts.sign = !b.parts.sign;
 			return b;
 		}
 		
-		result.parts.sign = !a.parts.sign; 
+		result.parts.sign = !a.parts.sign;
 		
 		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
@@ -75,20 +79,22 @@ float32 subFloat32(float32 a, float32 b)
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if (isFloat32NaN(a)) {
-			/* TODO: fix SigNaN */
-			if (isFloat32SigNaN(a) || isFloat32SigNaN(b)) {
+		if (is_float32_nan(a)) {
+			if ((is_float32_signan(a)) || (is_float32_signan(b))) {
+				// TODO: fix SigNaN
 			}
+			
 			return a;
 		}
 		
-		if (a.parts.exp == FLOAT32_MAX_EXPONENT) { 
+		if (a.parts.exp == FLOAT32_MAX_EXPONENT) {
 			if (b.parts.exp == FLOAT32_MAX_EXPONENT) {
 				/* inf - inf => nan */
-				/* TODO: fix exception */
-				result.binary = FLOAT32_NAN;
+				// TODO: fix exception
+				result.bin = FLOAT32_NAN;
 				return result;
 			}
+			
 			return a;
 		}
 		
@@ -97,26 +103,27 @@ float32 subFloat32(float32 a, float32 b)
 		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
 		frac2 = b.parts.fraction;
-		exp2 = b.parts.exp;	
+		exp2 = b.parts.exp;
 	}
 	
 	if (exp1 == 0) {
 		/* both are denormalized */
 		result.parts.fraction = frac1 - frac2;
 		if (result.parts.fraction > frac1) {
-			/* TODO: underflow exception */
+			// TODO: underflow exception
 			return result;
 		}
+		
 		result.parts.exp = 0;
 		return result;
 	}
-
+	
 	/* add hidden bit */
-	frac1 |= FLOAT32_HIDDEN_BIT_MASK; 
+	frac1 |= FLOAT32_HIDDEN_BIT_MASK;
 	
 	if (exp2 == 0) {
 		/* denormalized */
-		--expdiff;	
+		--expdiff;
 	} else {
 		/* normalized */
 		frac2 |= FLOAT32_HIDDEN_BIT_MASK;
@@ -126,12 +133,11 @@ float32 subFloat32(float32 a, float32 b)
 	frac1 <<= 6;
 	frac2 <<= 6;
 	
-	if (expdiff > FLOAT32_FRACTION_SIZE + 1) {
+	if (expdiff > FLOAT32_FRACTION_SIZE + 1)
 		goto done;
-	}
 	
 	frac1 = frac1 - (frac2 >> expdiff);
-
+	
 done:
 	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
 	while ((exp1 > 0) && (!(frac1 & (FLOAT32_HIDDEN_BIT_MASK << 6 )))) {
@@ -142,50 +148,54 @@ done:
 	
 	/* rounding - if first bit after fraction is set then round up */
 	frac1 += 0x20;
-
+	
 	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
 		frac1 >>= 1;
 	}
 	
 	/* Clear hidden bit and shift */
-	result.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)); 
+	result.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK));
 	result.parts.exp = exp1;
 	
 	return result;
 }
 
-/**
- * Subtract two double-precision floats with the same signs.
+/** Subtract two double-precision floats with the same sign.
  *
  * @param a First input operand.
  * @param b Second input operand.
+ *
  * @return Result of substraction.
+ *
  */
-float64 subFloat64(float64 a, float64 b)
+float64 sub_float64(float64 a, float64 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2;
 	uint64_t frac1, frac2;
 	float64 result;
-
-	result.d = 0;
+	
+	result.bin = 0;
 	
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) || ((expdiff == 0) && (a.parts.fraction < b.parts.fraction))) {
-		if (isFloat64NaN(b)) {
-			/* TODO: fix SigNaN */
-			if (isFloat64SigNaN(b)) {
+	if ((expdiff < 0 ) ||
+	    ((expdiff == 0) && (a.parts.fraction < b.parts.fraction))) {
+		if (is_float64_nan(b)) {
+			if (is_float64_signan(b)) {
+				// TODO: fix SigNaN
 			}
+			
 			return b;
 		}
 		
-		if (b.parts.exp == FLOAT64_MAX_EXPONENT) { 
-			b.parts.sign = !b.parts.sign; /* num -(+-inf) = -+inf */
+		if (b.parts.exp == FLOAT64_MAX_EXPONENT) {
+			/* num -(+-inf) = -+inf */
+			b.parts.sign = !b.parts.sign;
 			return b;
 		}
 		
-		result.parts.sign = !a.parts.sign; 
+		result.parts.sign = !a.parts.sign;
 		
 		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
@@ -193,20 +203,22 @@ float64 subFloat64(float64 a, float64 b)
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if (isFloat64NaN(a)) {
-			/* TODO: fix SigNaN */
-			if (isFloat64SigNaN(a) || isFloat64SigNaN(b)) {
+		if (is_float64_nan(a)) {
+			if (is_float64_signan(a) || is_float64_signan(b)) {
+				// TODO: fix SigNaN
 			}
+			
 			return a;
 		}
 		
-		if (a.parts.exp == FLOAT64_MAX_EXPONENT) { 
+		if (a.parts.exp == FLOAT64_MAX_EXPONENT) {
 			if (b.parts.exp == FLOAT64_MAX_EXPONENT) {
 				/* inf - inf => nan */
-				/* TODO: fix exception */
-				result.binary = FLOAT64_NAN;
+				// TODO: fix exception
+				result.bin = FLOAT64_NAN;
 				return result;
 			}
+			
 			return a;
 		}
 		
@@ -215,26 +227,27 @@ float64 subFloat64(float64 a, float64 b)
 		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
 		frac2 = b.parts.fraction;
-		exp2 = b.parts.exp;	
+		exp2 = b.parts.exp;
 	}
 	
 	if (exp1 == 0) {
 		/* both are denormalized */
 		result.parts.fraction = frac1 - frac2;
 		if (result.parts.fraction > frac1) {
-			/* TODO: underflow exception */
+			// TODO: underflow exception
 			return result;
 		}
+		
 		result.parts.exp = 0;
 		return result;
 	}
-
+	
 	/* add hidden bit */
-	frac1 |= FLOAT64_HIDDEN_BIT_MASK; 
+	frac1 |= FLOAT64_HIDDEN_BIT_MASK;
 	
 	if (exp2 == 0) {
 		/* denormalized */
-		--expdiff;	
+		--expdiff;
 	} else {
 		/* normalized */
 		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
@@ -244,12 +257,11 @@ float64 subFloat64(float64 a, float64 b)
 	frac1 <<= 6;
 	frac2 <<= 6;
 	
-	if (expdiff > FLOAT64_FRACTION_SIZE + 1) {
+	if (expdiff > FLOAT64_FRACTION_SIZE + 1)
 		goto done;
-	}
 	
 	frac1 = frac1 - (frac2 >> expdiff);
-
+	
 done:
 	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
 	while ((exp1 > 0) && (!(frac1 & (FLOAT64_HIDDEN_BIT_MASK << 6 )))) {
@@ -260,53 +272,56 @@ done:
 	
 	/* rounding - if first bit after fraction is set then round up */
 	frac1 += 0x20;
-
+	
 	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
 		frac1 >>= 1;
 	}
 	
 	/* Clear hidden bit and shift */
-	result.parts.fraction = ((frac1 >> 6) & (~FLOAT64_HIDDEN_BIT_MASK)); 
+	result.parts.fraction = ((frac1 >> 6) & (~FLOAT64_HIDDEN_BIT_MASK));
 	result.parts.exp = exp1;
 	
 	return result;
 }
 
-/**
- * Subtract two quadruple-precision floats with the same signs.
+/** Subtract two quadruple-precision floats with the same sign.
  *
  * @param a First input operand.
  * @param b Second input operand.
+ *
  * @return Result of substraction.
+ *
  */
-float128 subFloat128(float128 a, float128 b)
+float128 sub_float128(float128 a, float128 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2;
 	uint64_t frac1_hi, frac1_lo, frac2_hi, frac2_lo, tmp_hi, tmp_lo;
 	float128 result;
-
-	result.binary.hi = 0;
-	result.binary.lo = 0;
-
+	
+	result.bin.hi = 0;
+	result.bin.lo = 0;
+	
 	expdiff = a.parts.exp - b.parts.exp;
 	if ((expdiff < 0 ) || ((expdiff == 0) &&
 	    lt128(a.parts.frac_hi, a.parts.frac_lo, b.parts.frac_hi, b.parts.frac_lo))) {
-		if (isFloat128NaN(b)) {
-			/* TODO: fix SigNaN */
-			if (isFloat128SigNaN(b)) {
+		if (is_float128_nan(b)) {
+			if (is_float128_signan(b)) {
+				// TODO: fix SigNaN
 			}
+			
 			return b;
 		}
-
+		
 		if (b.parts.exp == FLOAT128_MAX_EXPONENT) {
-			b.parts.sign = !b.parts.sign; /* num -(+-inf) = -+inf */
+			/* num -(+-inf) = -+inf */
+			b.parts.sign = !b.parts.sign;
 			return b;
 		}
-
+		
 		result.parts.sign = !a.parts.sign;
-
+		
 		frac1_hi = b.parts.frac_hi;
 		frac1_lo = b.parts.frac_lo;
 		exp1 = b.parts.exp;
@@ -315,26 +330,27 @@ float128 subFloat128(float128 a, float128 b)
 		exp2 = a.parts.exp;
 		expdiff *= -1;
 	} else {
-		if (isFloat128NaN(a)) {
-			/* TODO: fix SigNaN */
-			if (isFloat128SigNaN(a) || isFloat128SigNaN(b)) {
+		if (is_float128_nan(a)) {
+			if (is_float128_signan(a) || is_float128_signan(b)) {
+				// TODO: fix SigNaN
 			}
+			
 			return a;
 		}
-
+		
 		if (a.parts.exp == FLOAT128_MAX_EXPONENT) {
 			if (b.parts.exp == FLOAT128_MAX_EXPONENT) {
 				/* inf - inf => nan */
-				/* TODO: fix exception */
-				result.binary.hi = FLOAT128_NAN_HI;
-				result.binary.lo = FLOAT128_NAN_LO;
+				// TODO: fix exception
+				result.bin.hi = FLOAT128_NAN_HI;
+				result.bin.lo = FLOAT128_NAN_LO;
 				return result;
 			}
 			return a;
 		}
-
+		
 		result.parts.sign = a.parts.sign;
-
+		
 		frac1_hi = a.parts.frac_hi;
 		frac1_lo = a.parts.frac_lo;
 		exp1 = a.parts.exp;
@@ -342,25 +358,26 @@ float128 subFloat128(float128 a, float128 b)
 		frac2_lo = b.parts.frac_lo;
 		exp2 = b.parts.exp;
 	}
-
+	
 	if (exp1 == 0) {
 		/* both are denormalized */
 		sub128(frac1_hi, frac1_lo, frac2_hi, frac2_lo, &tmp_hi, &tmp_lo);
 		result.parts.frac_hi = tmp_hi;
 		result.parts.frac_lo = tmp_lo;
 		if (lt128(frac1_hi, frac1_lo, result.parts.frac_hi, result.parts.frac_lo)) {
-			/* TODO: underflow exception */
+			// TODO: underflow exception
 			return result;
 		}
+		
 		result.parts.exp = 0;
 		return result;
 	}
-
+	
 	/* add hidden bit */
 	or128(frac1_hi, frac1_lo,
 	    FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
 	    &frac1_hi, &frac1_lo);
-
+	
 	if (exp2 == 0) {
 		/* denormalized */
 		--expdiff;
@@ -370,18 +387,17 @@ float128 subFloat128(float128 a, float128 b)
 		    FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
 		    &frac2_hi, &frac2_lo);
 	}
-
+	
 	/* create some space for rounding */
 	lshift128(frac1_hi, frac1_lo, 6, &frac1_hi, &frac1_lo);
 	lshift128(frac2_hi, frac2_lo, 6, &frac2_hi, &frac2_lo);
-
-	if (expdiff > FLOAT128_FRACTION_SIZE + 1) {
+	
+	if (expdiff > FLOAT128_FRACTION_SIZE + 1)
 		goto done;
-	}
-
+	
 	rshift128(frac2_hi, frac2_lo, expdiff, &tmp_hi, &tmp_lo);
 	sub128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &frac1_hi, &frac1_lo);
-
+	
 done:
 	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
 	lshift128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO, 6,
@@ -391,15 +407,15 @@ done:
 		--exp1;
 		lshift128(frac1_hi, frac1_lo, 1, &frac1_hi, &frac1_lo);
 		/* TODO: fix underflow - frac1 == 0 does not necessary means underflow... */
-
+		
 		lshift128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO, 6,
 		    &tmp_hi, &tmp_lo);
 		and128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &tmp_hi, &tmp_lo);
 	}
-
+	
 	/* rounding - if first bit after fraction is set then round up */
 	add128(frac1_hi, frac1_lo, 0x0ll, 0x20ll, &frac1_hi, &frac1_lo);
-
+	
 	lshift128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO, 7,
 	   &tmp_hi, &tmp_lo);
 	and128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &tmp_hi, &tmp_lo);
@@ -407,7 +423,7 @@ done:
 		++exp1;
 		rshift128(frac1_hi, frac1_lo, 1, &frac1_hi, &frac1_lo);
 	}
-
+	
 	/* Clear hidden bit and shift */
 	rshift128(frac1_hi, frac1_lo, 6, &frac1_hi, &frac1_lo);
 	not128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
@@ -415,9 +431,9 @@ done:
 	and128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &tmp_hi, &tmp_lo);
 	result.parts.frac_hi = tmp_hi;
 	result.parts.frac_lo = tmp_lo;
-
+	
 	result.parts.exp = exp1;
-
+	
 	return result;
 }
 

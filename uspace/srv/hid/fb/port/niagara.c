@@ -67,7 +67,7 @@ static void niagara_putc(const char c)
 
 static void niagara_putchar(wchar_t ch)
 {
-	if ((ch >= 0) && (ch < 128))
+	if (ascii_check(ch))
 		niagara_putc(ch);
 	else
 		niagara_putc('?');

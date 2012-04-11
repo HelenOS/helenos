@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Michal Kebrt
+# Copyright (c) 2012 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,67 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/arch.h>
-
-.section BOOTSTRAP
-
-.global start
-.global boot_pt
-.global boot_stack
-.global halt
-.global jump_to_kernel
-
-start:
-	ldr sp, =boot_stack
-	b bootstrap
-
-.section BOOTPT
-boot_pt:
-	.space PTL0_ENTRIES * PTL0_ENTRY_SIZE
-
-.section BOOTSTACK
-	.space 4096
-boot_stack:
-
 .text
 
-halt:
-	b halt
+.global __aeabi_idiv
+.global __aeabi_uidiv
 
-jump_to_kernel:
-	#
-	# TODO
-	# Make sure that the I-cache, D-cache and memory are mutually coherent
-	# before passing control to the copied code.
-	#
-	mov pc, r0
+.global __aeabi_idivmod
+.global __aeabi_uidivmod
+
+.global __aeabi_ldivmod
+.global __aeabi_uldivmod
+
+__aeabi_idiv:
+	push {lr}
+	bl __divsi3
+	pop {lr}
+	mov pc, lr
+
+__aeabi_uidiv:
+	push {lr}
+	bl __udivsi3
+	pop {lr}
+	mov pc, lr
+
+__aeabi_idivmod:
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
+
+__aeabi_uidivmod:
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
+
+__aeabi_ldivmod:
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
+	bl __divmoddi3
+	add sp, sp, #4
+	pop {r2, r3}
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr
+
+__aeabi_uldivmod:
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
+	bl __udivmoddi3
+	add sp, sp, #4
+	pop {r2, r3}
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr
