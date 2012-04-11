@@ -168,6 +168,11 @@ uint16_t ext4_block_group_get_flags(ext4_block_group_t *bg)
 	return uint16_t_le2host(bg->flags);
 }
 
+void ext4_block_group_set_flags(ext4_block_group_t *bg, uint16_t flags)
+{
+	bg->flags = host2uint16_t_le(flags);
+}
+
 uint32_t ext4_block_group_get_itable_unused(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -207,6 +212,14 @@ bool ext4_block_group_has_flag(ext4_block_group_t *bg, uint32_t flag)
 	}
 	return false;
 }
+
+void ext4_block_group_clear_flag(ext4_block_group_t *bg, uint32_t clear_flag)
+{
+	uint32_t flags = ext4_block_group_get_flags(bg);
+	flags = flags & (~clear_flag);
+	ext4_block_group_set_flags(bg, flags);
+}
+
 
 /**
  * @}

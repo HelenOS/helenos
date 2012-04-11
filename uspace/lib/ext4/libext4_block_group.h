@@ -73,6 +73,8 @@ extern uint16_t ext4_block_group_get_checksum(ext4_block_group_t *);
 extern void ext4_block_group_set_checksum(ext4_block_group_t *, uint16_t);
 
 extern bool ext4_block_group_has_flag(ext4_block_group_t *, uint32_t);
+extern void ext4_block_group_clear_flag(ext4_block_group_t *, uint32_t);
+
 #endif
 
 /**
