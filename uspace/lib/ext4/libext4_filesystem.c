@@ -322,8 +322,6 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 		return rc;
 	}
 
-	// TODO dir_index initialization
-
 	rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
 	if (rc != EOK) {
 		ext4_ialloc_free_inode(fs, index, is_dir);
@@ -594,6 +592,8 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 		rc = ext4_extent_find_block(inode_ref, iblock, &current_block);
+
+		EXT4FS_DBG("ext: loading iblock \%u, address \%u", (uint32_t)iblock, current_block);
 
 		if (rc != EOK) {
 			return rc;
@@ -916,6 +916,8 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 {
 	int rc;
 
+	EXT4FS_DBG("");
+
 	// Handle extents separately
 	if (ext4_superblock_has_feature_incompatible(
 			inode_ref->fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
@@ -931,6 +933,7 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 
+	// TODO zarovnat inode size a ne assert!!!
 	assert(inode_size % block_size == 0);
 
 	// Logical blocks are numbered from 0

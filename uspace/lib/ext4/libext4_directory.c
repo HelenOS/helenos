@@ -263,6 +263,9 @@ void ext4_directory_write_entry(ext4_superblock_t *sb,
 		ext4_directory_entry_ll_t *entry, uint16_t entry_len,
 		ext4_inode_ref_t *child, const char *name, size_t name_len)
 {
+
+	EXT4FS_DBG("writing entry \%s, len \%u, addr = \%u", name, entry_len, (uint32_t)entry);
+
 	ext4_directory_entry_ll_set_inode(entry, child->index);
 	ext4_directory_entry_ll_set_entry_length(entry, entry_len);
 	ext4_directory_entry_ll_set_name_length(sb, entry, name_len);
@@ -290,6 +293,8 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX) &&
 			ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX)) {
 
+		EXT4FS_DBG("index");
+
 		rc = ext4_directory_dx_add_entry(parent, child, name);
 
 		// Check if index is not corrupted
@@ -311,7 +316,7 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 
 	// Linear algorithm
 
-	uint32_t iblock, fblock;
+	uint32_t iblock = 0, fblock = 0;
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
 	uint32_t total_blocks = inode_size / block_size;
@@ -350,10 +355,14 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 
 	// No free block found - needed to allocate next block
 
+	iblock = 0;
+	fblock = 0;
 	rc = ext4_filesystem_append_inode_block(parent, &fblock, &iblock);
 	if (rc != EOK) {
 		return rc;
 	}
+
+	EXT4FS_DBG("using iblock \%u fblock \%u", iblock, fblock);
 
 	// Load new block
 	block_t *new_block;
@@ -362,10 +371,14 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 		return rc;
 	}
 
+	EXT4FS_DBG("loaded");
+
 	// Fill block with zeroes
 	memset(new_block->data, 0, block_size);
 	ext4_directory_entry_ll_t *block_entry = new_block->data;
 	ext4_directory_write_entry(fs->superblock, block_entry, block_size, child, name, name_len);
+
+	EXT4FS_DBG("written");
 
 	// Save new block
 	new_block->dirty = true;
@@ -373,6 +386,8 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 	if (rc != EOK) {
 		return rc;
 	}
+
+	EXT4FS_DBG("returning");
 
 	return EOK;
 }

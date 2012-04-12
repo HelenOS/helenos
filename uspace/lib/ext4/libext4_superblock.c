@@ -368,6 +368,16 @@ uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *sb)
 	return sb->hash_seed;
 }
 
+uint8_t ext4_superblock_get_default_hash_version(ext4_superblock_t *sb)
+{
+	return sb->default_hash_version;
+}
+
+void ext4_superblock_set_default_hash_version(ext4_superblock_t *sb, uint8_t version)
+{
+	sb->default_hash_version = version;
+}
+
 uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
 {
 	uint16_t size = uint16_t_le2host(sb->desc_size);

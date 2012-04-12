@@ -113,8 +113,9 @@ uint32_t s_journal_dev; // Device number of journal file
 extern uint32_t ext4_superblock_get_last_orphan(ext4_superblock_t *);
 extern void ext4_superblock_set_last_orphan(ext4_superblock_t *, uint32_t);
 extern uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *);
+extern uint8_t ext4_superblock_get_default_hash_version(ext4_superblock_t *);
+extern void ext4_superblock_set_default_hash_version(ext4_superblock_t *, uint8_t);
 /*
-uint8_t s_def_hash_version; // Default hash version to use
 uint8_t s_jnl_backup_type;
 */
 

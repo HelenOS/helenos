@@ -134,6 +134,92 @@ void ext4_directory_dx_entry_set_block(ext4_directory_dx_entry_t *entry,
 
 /**************************************************************************/
 
+int ext4_directory_dx_init(ext4_inode_ref_t *dir)
+{
+	int rc;
+
+	uint32_t fblock;
+	rc = ext4_filesystem_get_inode_data_block_index(dir, 0, &fblock);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	block_t *block;
+	rc = block_get(&block, dir->fs->device, fblock, BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	EXT4FS_DBG("fblock = \%u", fblock);
+
+	ext4_directory_dx_root_t *root = block->data;
+
+	ext4_directory_entry_ll_t *dot = (ext4_directory_entry_ll_t *)&root->dots[0];
+	ext4_directory_entry_ll_t *dot_dot = (ext4_directory_entry_ll_t *)&root->dots[1];
+
+	EXT4FS_DBG("dot len = \%u, dotdot len = \%u", ext4_directory_entry_ll_get_entry_length(dot), ext4_directory_entry_ll_get_entry_length(dot_dot));
+
+//	uint32_t block_size = ext4_superblock_get_block_size(dir->fs->superblock);
+//	uint16_t len = block_size - sizeof(ext4_directory_dx_dot_entry_t);
+
+//	ext4_directory_entry_ll_set_entry_length(dot_dot, len);
+
+	ext4_directory_dx_root_info_t *info = &(root->info);
+
+	uint8_t hash_version =
+			ext4_superblock_get_default_hash_version(dir->fs->superblock);
+
+	ext4_directory_dx_root_info_set_hash_version(info, hash_version);
+	ext4_directory_dx_root_info_set_indirect_levels(info, 0);
+	ext4_directory_dx_root_info_set_info_length(info, 8);
+
+	ext4_directory_dx_countlimit_t *countlimit =
+			(ext4_directory_dx_countlimit_t *)&root->entries;
+	ext4_directory_dx_countlimit_set_count(countlimit, 1);
+
+	uint32_t block_size = ext4_superblock_get_block_size(dir->fs->superblock);
+	uint32_t entry_space = block_size - 2 * sizeof(ext4_directory_dx_dot_entry_t)
+		- sizeof(ext4_directory_dx_root_info_t);
+	uint16_t root_limit = entry_space / sizeof(ext4_directory_dx_entry_t);
+	ext4_directory_dx_countlimit_set_limit(countlimit, root_limit);
+
+	uint32_t iblock;
+	rc = ext4_filesystem_append_inode_block(dir, &fblock, &iblock);
+	if (rc != EOK) {
+		block_put(block);
+		return rc;
+	}
+
+	block_t *new_block;
+	rc = block_get(&new_block, dir->fs->device, fblock, BLOCK_FLAGS_NOREAD);
+	if (rc != EOK) {
+		block_put(block);
+		return rc;
+	}
+
+	ext4_directory_entry_ll_t *block_entry = new_block->data;
+	ext4_directory_entry_ll_set_entry_length(block_entry, block_size);
+	ext4_directory_entry_ll_set_inode(block_entry, 0);
+
+	new_block->dirty = true;
+	rc = block_put(new_block);
+	if (rc != EOK) {
+		block_put(block);
+		return rc;
+	}
+
+	ext4_directory_dx_entry_t *entry = root->entries;
+	ext4_directory_dx_entry_set_block(entry, iblock);
+
+	block->dirty = true;
+
+	rc = block_put(block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return EOK;
+}
 
 static int ext4_directory_hinfo_init(ext4_hash_info_t *hinfo, block_t *root_block,
 		ext4_superblock_t *sb, size_t name_len, const char *name)
@@ -770,6 +856,7 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_len, name);
 	if (rc != EOK) {
 		block_put(root_block);
+		EXT4FS_DBG("hinfo initialization error");
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
@@ -778,6 +865,7 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 	ext4_directory_dx_block_t *dx_block, *dx_it;
 	rc = ext4_directory_dx_get_leaf(&hinfo, parent, root_block, &dx_block, dx_blocks);
 	if (rc != EOK) {
+		EXT4FS_DBG("get leaf error");
 		rc = EXT4_ERR_BAD_DX_DIR;
 		goto release_index;
 	}
