@@ -54,6 +54,9 @@
 #define OPEN_NODES_INODE_KEY 1
 #define OPEN_NODES_BUCKETS 256
 
+/**
+ * Type for holding an instance of mounted partition.
+ */
 typedef struct ext4fs_instance {
 	link_t link;
 	service_id_t service_id;
@@ -61,6 +64,9 @@ typedef struct ext4fs_instance {
 	unsigned int open_nodes_count;
 } ext4fs_instance_t;
 
+/**
+ * Type for wrapping common fs_node and add some useful pointers.
+ */
 typedef struct ext4fs_node {
 	ext4fs_instance_t *instance;
 	ext4_inode_ref_t *inode_ref;
@@ -69,9 +75,7 @@ typedef struct ext4fs_node {
 	unsigned int references;
 } ext4fs_node_t;
 
-/*
- * Forward declarations of auxiliary functions
- */
+// Forward declarations of auxiliary functions
 
 static int ext4fs_read_directory(ipc_callid_t, aoff64_t, size_t,
     ext4fs_instance_t *, ext4_inode_ref_t *, size_t *);
@@ -82,9 +86,8 @@ static int ext4fs_instance_get(service_id_t, ext4fs_instance_t **);
 static int ext4fs_node_get_core(fs_node_t **, ext4fs_instance_t *, fs_index_t);
 static int ext4fs_node_put_core(ext4fs_node_t *);
 
-/*
- * Forward declarations of EXT4 libfs operations.
- */
+// Forward declarations of EXT4 libfs operations.
+
 static int ext4fs_root_get(fs_node_t **, service_id_t);
 static int ext4fs_match(fs_node_t **, fs_node_t *, const char *);
 static int ext4fs_node_get(fs_node_t **, service_id_t, fs_index_t);
@@ -102,9 +105,8 @@ static bool ext4fs_is_directory(fs_node_t *);
 static bool ext4fs_is_file(fs_node_t *node);
 static service_id_t ext4fs_service_get(fs_node_t *node);
 
-/*
- * Static variables
- */
+// Static variables
+
 static LIST_INITIALIZE(instance_list);
 static FIBRIL_MUTEX_INITIALIZE(instance_list_mutex);
 static hash_table_t open_nodes;
@@ -117,6 +119,10 @@ static hash_index_t open_nodes_hash(unsigned long key[])
 	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
 }
 
+/** Compare given item with values in hash table.
+ *
+ * @return	bool result of compare operation
+ */
 static int open_nodes_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
@@ -133,6 +139,9 @@ static int open_nodes_compare(unsigned long key[], hash_count_t keys,
 	return (enode->inode_ref->index == key[OPEN_NODES_INODE_KEY]);
 }
 
+/** Empty callback to correct hash table initialization.
+ *
+ */
 static void open_nodes_remove_cb(link_t *link)
 {
 	/* We don't use remove callback for this hash table */
@@ -145,6 +154,12 @@ static hash_table_operations_t open_nodes_ops = {
 };
 
 
+/** Basic initialization of the driver.
+ *
+ * There is only needed to create hash table for storing open nodes.
+ *
+ * @return	error code
+ */
 int ext4fs_global_init(void)
 {
 	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
@@ -154,7 +169,12 @@ int ext4fs_global_init(void)
 	return EOK;
 }
 
-
+/* Finalization of the driver.
+ *
+ * There is only needed to destroy hash table.
+ *
+ * @return	error code
+ */
 int ext4fs_global_fini(void)
 {
 	hash_table_destroy(&open_nodes);
@@ -166,6 +186,12 @@ int ext4fs_global_fini(void)
  * EXT4 libfs operations.
  */
 
+/** Get instance from internal table by service_id.
+ *
+ * @param service_id	device identifier
+ * @param inst		output instance if successful operation
+ * @return		error code
+ */
 int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 {
 	fibril_mutex_lock(&instance_list_mutex);
@@ -191,12 +217,26 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 }
 
 
+/** Get root node of filesystem specified by service_id.
+ * 
+ * @param rfn		output pointer to loaded node
+ * @param service_id	device to load root node from
+ * @return		error code
+ */
 int ext4fs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return ext4fs_node_get(rfn, service_id, EXT4_INODE_ROOT_INDEX);
 }
 
-
+/** Check if specified name (component) matches with any directory entry.
+ * 
+ * If match is found, load and return matching node.
+ *
+ * @param rfn		output pointer to node if operation successful
+ * @param pfn		parent directory node
+ * @param component	name to check directory for
+ * @return 		error code
+ */
 int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	int rc;
@@ -234,7 +274,15 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-
+/** Get node specified by index
+ *
+ * It's wrapper for node_put_core operation
+ *
+ * @param rfn		output pointer to loaded node if operation successful
+ * @param service_id	device identifier
+ * @param index		node index (here i-node number)
+ * @return		error code
+ */
 int ext4fs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	int rc;
@@ -248,7 +296,13 @@ int ext4fs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 	return ext4fs_node_get_core(rfn, inst, index);
 }
 
-
+/** Main function for getting node from the filesystem. 
+ *
+ * @param rfn		output point to loaded node if operation successful
+ * @param inst		instance of filesystem
+ * @param index		index of node (i-node number)
+ * @return 		error code
+ */
 int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		fs_index_t index)
 {
@@ -273,6 +327,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		return EOK;
 	}
 
+	// Prepare new enode
 	enode = malloc(sizeof(ext4fs_node_t));
 	if (enode == NULL) {
 		fibril_mutex_unlock(&open_nodes_lock);
@@ -287,6 +342,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	}
 	fs_node_initialize(fs_node);
 
+	// Load inode from filesystem
 	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
@@ -296,6 +352,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		return rc;
 	}
 
+	// Initialize enode
 	enode->inode_ref = inode_ref;
 	enode->instance = inst;
 	enode->references = 1;
@@ -313,7 +370,11 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	return EOK;
 }
 
-
+/** Put previously loaded node.
+ *
+ * @param enode		node to put back
+ * @return		error code
+ */
 int ext4fs_node_put_core(ext4fs_node_t *enode)
 {
 	int rc;
@@ -326,11 +387,13 @@ int ext4fs_node_put_core(ext4fs_node_t *enode)
 	assert(enode->instance->open_nodes_count > 0);
 	enode->instance->open_nodes_count--;
 
+	// Put inode back in filesystem
 	rc = ext4_filesystem_put_inode_ref(enode->inode_ref);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	// Destroy data structure
 	free(enode->fs_node);
 	free(enode);
 
@@ -338,12 +401,27 @@ int ext4fs_node_put_core(ext4fs_node_t *enode)
 }
 
 
+/** Open node.
+ *
+ * This operation is stateless in this driver.
+ *
+ * @param fn 	node to open
+ * @return	error code (EOK)
+ */
 int ext4fs_node_open(fs_node_t *fn)
 {
 	// Stateless operation
 	return EOK;
 }
 
+
+/** Put previously loaded node.
+ *
+ * It's wrapper for node_put_core operation
+ *
+ * @param fn 	node to put back
+ * @return 	error code
+ */
 int ext4fs_node_put(fs_node_t *fn)
 {
 	int rc;
@@ -367,10 +445,18 @@ int ext4fs_node_put(fs_node_t *fn)
 }
 
 
+/** Create new node in filesystem.
+ *
+ * @param rfn		output pointer to newly created node if successful
+ * @param service_id	device identifier, where the filesystem is
+ * @param flags		flags for specification of new node parameters
+ * @return		error code
+ */
 int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	int rc;
 
+	// Allocate node structures
 	ext4fs_node_t *enode;
 	enode = malloc(sizeof(ext4fs_node_t));
 	if (enode == NULL) {
@@ -384,6 +470,7 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 		return ENOMEM;
 	}
 
+	// Load instance
 	ext4fs_instance_t *inst;
 	rc = ext4fs_instance_get(service_id, &inst);
 	if (rc != EOK) {
@@ -392,6 +479,7 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 		return rc;
 	}
 
+	// Allocate new i-node in filesystem
 	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_alloc_inode(inst->filesystem, &inode_ref, flags);
 	if (rc != EOK) {
@@ -400,6 +488,7 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 		return rc;
 	}
 
+	// Do some interconnections in references
 	enode->inode_ref = inode_ref;
 	enode->instance = inst;
 	enode->references = 1;
@@ -427,10 +516,16 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 }
 
 
+/** Destroy existing node.
+ *
+ * @param fs	node to destroy
+ * @return	error code
+ */
 int ext4fs_destroy_node(fs_node_t *fn)
 {
 	int rc;
 
+	// If directory, check for children
 	bool has_children;
 	rc = ext4fs_has_children(&has_children, fn);
 	if (rc != EOK) {
@@ -447,23 +542,26 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	ext4_filesystem_t *fs = enode->instance->filesystem;
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 
+	// Release data blocks
 	rc = ext4_filesystem_truncate_inode(inode_ref, 0);
 	if (rc != EOK) {
 		ext4fs_node_put(fn);
 		return rc;
 	}
 
+	// Handle orphans
 	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
 	if (rev_level > 0) {
 		ext4_filesystem_delete_orphan(inode_ref);
 	}
 
-	// TODO set real deletion time
+	// TODO set real deletion time when it will be supported
 //	time_t now = time(NULL);
 	time_t now = ext4_inode_get_change_inode_time(inode_ref->inode);
 	ext4_inode_set_deletion_time(inode_ref->inode, (uint32_t)now);
 	inode_ref->dirty = true;
 
+	// Free inode
 	rc = ext4_filesystem_free_inode(inode_ref);
 	if (rc != EOK) {
 		ext4fs_node_put(fn);
@@ -475,6 +573,13 @@ int ext4fs_destroy_node(fs_node_t *fn)
 }
 
 
+/** Link the specfied node to directory.
+ *
+ * @param pfn		parent node to link in
+ * @param cfn		node to be linked
+ * @param name		name which will be assigned to directory entry
+ * @return		error code
+ */
 int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	int rc;
@@ -509,6 +614,7 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 			return rc;
 		}
 
+		// Initialize directory index if necessary
 //		if (ext4_superblock_has_feature_compatible(
 //				fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
 //
@@ -539,6 +645,13 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 }
 
 
+/** Unlink node from specified directory.
+ *
+ * @param pfn		parent node to delete node from
+ * @param cfn		child node to be unlinked from directory
+ * @param name		name of entry that will be removed
+ * @return		error code
+ */
 int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	int rc;
@@ -605,6 +718,14 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 }
 
 
+/** Check if specified node has children.
+ * 
+ * For files is response allways false and check is executed only for directories.
+ *
+ * @param has_children		output value for response
+ * @param fn			node to check
+ * @return 			error code
+ */
 int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 {
 	int rc;
@@ -612,6 +733,7 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
 	ext4_filesystem_t *fs = enode->instance->filesystem;
 
+	// Check if node is directory
 	if (!ext4_inode_is_type(fs->superblock, enode->inode_ref->inode,
 	    EXT4_INODE_MODE_DIRECTORY)) {
 		*has_children = false;
@@ -654,6 +776,11 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 }
 
 
+/** Unpack index number from node.
+ *	
+ * @param fn	node to load index from
+ * @return	index number of i-node
+ */
 fs_index_t ext4fs_index_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
@@ -661,6 +788,11 @@ fs_index_t ext4fs_index_get(fs_node_t *fn)
 }
 
 
+/** Get real size of file / directory.
+ *
+ * @param fn	node to get size of
+ * @return 	real size of node
+ */
 aoff64_t ext4fs_size_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
@@ -669,6 +801,11 @@ aoff64_t ext4fs_size_get(fs_node_t *fn)
 }
 
 
+/** Get number of links to specified node.
+ *
+ * @param fn	node to get links to
+ * @return	number of links
+ */
 unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
@@ -687,6 +824,11 @@ unsigned ext4fs_lnkcnt_get(fs_node_t *fn)
 }
 
 
+/** Check if node is directory.
+ *
+ * @param fn	node to check
+ * @return 	result of check
+ */
 bool ext4fs_is_directory(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
@@ -696,6 +838,11 @@ bool ext4fs_is_directory(fs_node_t *fn)
 }
 
 
+/** Check if node is regular file.
+ *
+ * @param fn	node to check
+ * @return	result of check
+ */
 bool ext4fs_is_file(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
@@ -704,7 +851,11 @@ bool ext4fs_is_file(fs_node_t *fn)
 			sb, enode->inode_ref->inode, EXT4_INODE_MODE_FILE);
 }
 
-
+/** Extract device identifier from node.
+ *
+ * @param node	node to extract id from
+ * @return 	id of device, where is the filesystem
+ */
 service_id_t ext4fs_service_get(fs_node_t *fn)
 {
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
@@ -738,6 +889,17 @@ libfs_ops_t ext4fs_libfs_ops = {
  * VFS operations.
  */
 
+/** Mount operation. 
+ *
+ * Try to mount specified filesystem from device.
+ * 
+ * @param service_id	identifier of device
+ * @param opts		mount options
+ * @param index		TODO
+ * @param size		TODO
+ * @param lnkcnt	TODO
+ * @return		error code
+ */
 static int ext4fs_mounted(service_id_t service_id, const char *opts,
    fs_index_t *index, aoff64_t *size, unsigned *lnkcnt)
 {
@@ -815,7 +977,13 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	return EOK;
 }
 
-
+/** Unmount operation.
+ *
+ * Correctly release the filesystem.
+ *
+ * @param service_id	device to be unmounted
+ * @return 		error code
+ */
 static int ext4fs_unmounted(service_id_t service_id)
 {
 	int rc;
@@ -844,6 +1012,14 @@ static int ext4fs_unmounted(service_id_t service_id)
 }
 
 
+/** Read bytes from node.
+ *
+ * @param service_id	device to read data from
+ * @param index		number of node to read from
+ * @param pos		position where the read should be started
+ * @param rbytes	output value, where the real size was returned
+ * @return 		error code
+ */
 static int ext4fs_read(service_id_t service_id, fs_index_t index,
 		aoff64_t pos, size_t *rbytes)
 {
@@ -866,6 +1042,7 @@ static int ext4fs_read(service_id_t service_id, fs_index_t index,
 		return rc;
 	}
 
+	// Load i-node
 	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
@@ -873,6 +1050,7 @@ static int ext4fs_read(service_id_t service_id, fs_index_t index,
 		return rc;
 	}
 
+	// Read from i-node by type
 	if (ext4_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
 			EXT4_INODE_MODE_FILE)) {
 		rc = ext4fs_read_file(callid, pos, size, inst, inode_ref,
@@ -892,6 +1070,12 @@ static int ext4fs_read(service_id_t service_id, fs_index_t index,
 	return rc;
 }
 
+/** Check if filename is dot or dotdot (reserved names).
+ *
+ * @param name		name to check
+ * @param name_size	length of string name
+ * @return 		result of the check
+ */
 bool ext4fs_is_dots(const uint8_t *name, size_t name_size)
 {
 	if (name_size == 1 && name[0] == '.') {
@@ -905,6 +1089,16 @@ bool ext4fs_is_dots(const uint8_t *name, size_t name_size)
 	return false;
 }
 
+/** Read data from directory.
+ *
+ * @param callid	IPC id of call (for communication)
+ * @param pos		position to start reading from
+ * @param size		how many bytes to read
+ * @param inst		filesystem instance
+ * @param inode_ref	node to read data from
+ * @param rbytes	output value to return real number of bytes was read
+ * @return 		error code
+ */
 int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
@@ -976,6 +1170,7 @@ skip:
 		return rc;
 	}
 
+	// Prepare return values
 	if (found) {
 		*rbytes = next - pos;
 		return EOK;
@@ -985,6 +1180,17 @@ skip:
 	}
 }
 
+
+/** Read data from file.
+ *
+ * @param callid        IPC id of call (for communication)
+ * @param pos           position to start reading from
+ * @param size          how many bytes to read
+ * @param inst          filesystem instance
+ * @param inode_ref     node to read data from
+ * @param rbytes        output value to return real number of bytes was read
+ * @return              error code
+ */
 int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
     ext4fs_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
@@ -1062,6 +1268,16 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
 	return EOK;
 }
 
+
+/** Write bytes to file
+ *
+ * @param service_id	device identifier
+ * @param index		i-node number of file
+ * @param pos		position in file to start reading from
+ * @param wbytes	TODO
+ * @param nsize		TODO
+ * @return 		error code
+ */
 static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		aoff64_t pos, size_t *wbytes, aoff64_t *nsize)
 {
@@ -1099,6 +1315,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 	uint32_t iblock =  pos / block_size;
 	uint32_t fblock;
 
+	// Load inode
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 	rc = ext4_filesystem_get_inode_data_block_index(inode_ref, iblock, &fblock);
 	if (rc != EOK) {
@@ -1107,6 +1324,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		return rc;
 	}
 
+	// Check for sparse file
 	if (fblock == 0) {
 
 		if (ext4_superblock_has_feature_incompatible(
@@ -1144,6 +1362,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		inode_ref->dirty = true;
 	}
 
+	// Load target block
 	block_t *write_block;
 	rc = block_get(&write_block, service_id, fblock, flags);
 	if (rc != EOK) {
@@ -1170,6 +1389,7 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 		return rc;
 	}
 
+	// Do some counting
 	uint32_t old_inode_size = ext4_inode_get_size(fs->superblock, inode_ref->inode);
 	if (pos + bytes > old_inode_size) {
 		ext4_inode_set_size(inode_ref->inode, pos + bytes);
@@ -1183,6 +1403,15 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 }
 
 
+/** Truncate file.
+ *
+ * Only the direction to shorter file is supported.
+ *
+ * @param service_id	device identifier
+ * @param index		index if node to truncated
+ * @param new_size	new size of file
+ * @return		error code
+ */
 static int ext4fs_truncate(service_id_t service_id, fs_index_t index,
 		aoff64_t new_size)
 {
@@ -1204,12 +1433,24 @@ static int ext4fs_truncate(service_id_t service_id, fs_index_t index,
 }
 
 
+/** Close file.
+ *'
+ * @param service_id	device identifier
+ * @param index		i-node number
+ * @return 		error code
+ */
 static int ext4fs_close(service_id_t service_id, fs_index_t index)
 {
 	return EOK;
 }
 
 
+/** Destroy node specified by index.
+ *
+ * @param service_id	device identifier
+ * @param index		number of i-node to destroy
+ * @return		error code
+ */
 static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 {
 	int rc;
@@ -1224,7 +1465,11 @@ static int ext4fs_destroy(service_id_t service_id, fs_index_t index)
 	return ext4fs_destroy_node(fn);
 }
 
-
+/** Enforce inode synchronization (write) to device. 
+ *
+ * @param service_id 	device identifier
+ * @param index		i-node number.
+ */
 static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 {
 	int rc;
@@ -1241,6 +1486,9 @@ static int ext4fs_sync(service_id_t service_id, fs_index_t index)
 	return ext4fs_node_put(fn);
 }
 
+/** VFS operations
+ *
+ */
 vfs_out_ops_t ext4fs_ops = {
 	.mounted = ext4fs_mounted,
 	.unmounted = ext4fs_unmounted,

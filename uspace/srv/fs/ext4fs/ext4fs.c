@@ -52,6 +52,10 @@ vfs_info_t ext4fs_vfs_info = {
 	.instance = 0,
 };
 
+/**
+ * Entry point of ext4fs server.
+ * Initialize data structures and IPC, then accepts connections in server mode.
+ */
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS EXT4 file system server\n");
