@@ -54,6 +54,7 @@
 #define REG_COUNT 2
 
 #define RTC_FROM_FNODE(fnode)  ((rtc_t *) ((fnode)->dev->driver_data))
+#define RTC_FROM_DEV(devnode)  ((rtc_t *) ((devnode)->driver_data))
 
 typedef struct rtc {
 	/** DDF device node */
@@ -68,6 +69,8 @@ typedef struct rtc {
 	ioport8_t *port;
 	/** true if a client is connected to the device */
 	bool client_connected;
+	/** true if device is removed */
+	bool removed;
 } rtc_t;
 
 
@@ -84,6 +87,7 @@ static int  rtc_register_read(rtc_t *rtc, int reg);
 static int  bcd2dec(int bcd);
 static void rtc_default_handler(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call);
+static int rtc_dev_remove(ddf_dev_t *dev);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -91,7 +95,7 @@ static ddf_dev_ops_t rtc_dev_ops;
 /** The RTC device driver's standard operations */
 static driver_ops_t rtc_ops = {
 	.dev_add = rtc_dev_add,
-	.dev_remove = NULL, /* XXX */
+	.dev_remove = rtc_dev_remove,
 };
 
 /** The RTC device driver structure */
@@ -393,6 +397,39 @@ error:
 	return rc;
 }
 
+/** The dev_remove callback for the rtc driver
+ *
+ * @param dev   The RTC device
+ *
+ * @return      EOK on success or a negative error code
+ */
+static int
+rtc_dev_remove(ddf_dev_t *dev)
+{
+	rtc_t *rtc = RTC_FROM_DEV(dev);
+	int rc;
+
+	fibril_mutex_lock(&rtc->mutex);
+	if (rtc->client_connected) {
+		fibril_mutex_unlock(&rtc->mutex);
+		return EBUSY;
+	}
+
+	rtc->removed = true;
+	fibril_mutex_unlock(&rtc->mutex);
+
+	rc = ddf_fun_unbind(rtc->fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to unbind function");
+		return rc;
+	}
+
+	ddf_fun_destroy(rtc->fun);
+	rtc_dev_cleanup(rtc);
+
+	return rc;
+}
+
 /** Default handler for client requests not handled
  *  by the standard interface
  */
@@ -429,7 +466,9 @@ rtc_open(ddf_fun_t *fun)
 	fibril_mutex_lock(&rtc->mutex);
 
 	if (rtc->client_connected)
-		rc = EBUSY;
+		rc = ELIMIT;
+	else if (rtc->removed)
+		rc = ENXIO;
 	else {
 		rc = EOK;
 		rtc->client_connected = true;
