@@ -33,12 +33,20 @@
  */
 #include "io/input.h"
 #include "io/output.h"
+#include "device/dprinter.h"
 #include "debug/gdb.h"
 #include "cmd.h"
 #include "fault.h"
 #include "device/machine.h"
 #include <str.h>
 #include <malloc.h>
+#include <ctype.h>
+#include <stdio.h>
+
+/* Define when the dprinter device shall try to filter
+ * out ANSI escape sequences.
+ */
+#define IGNORE_ANSI_ESCAPE_SEQUENCES
 
 extern char *input_helenos_get_next_command(void);
 
@@ -83,6 +91,50 @@ void gdb_session(void)
 
 void gdb_handle_event(gdb_event_t event)
 {
+}
+
+
+char *input_helenos_get_next_command(void);
+
+static void (*original_printer_write)(cpu_t *, device_s *, ptr_t, uint32_t);
+static void helenos_printer_write(cpu_t *cpu, device_s *dev, ptr_t addr, uint32_t val)
+{
+#ifdef IGNORE_ANSI_ESCAPE_SEQUENCES
+	static bool inside_ansi_escape = false;
+	static bool just_ended_ansi_escape = false;
+
+	if (inside_ansi_escape) {
+		fprintf(stderr, "%02" PRIx32 "'%c' ", val, val >= 32 ? val : '?');
+		if (isalpha((int) val)) {
+			just_ended_ansi_escape = true;
+			inside_ansi_escape = false;
+			fprintf(stderr, " [END]\n");
+		}
+
+		return;
+	}
+
+	if (val == 0x1B) {
+		inside_ansi_escape = true;
+
+		if (!just_ended_ansi_escape) {
+			fprintf(stderr, "\n");
+		}
+		fprintf(stderr, "ESC sequence: ");
+
+		return;
+	}
+
+	just_ended_ansi_escape = false;
+#endif
+
+	(*original_printer_write)(cpu, dev, addr, val);
+}
+
+void helenos_dprinter_init(void)
+{
+	original_printer_write = dprinter.write;
+	dprinter.write = helenos_printer_write;
 }
 
 

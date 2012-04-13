@@ -40,6 +40,7 @@
 static tinput_t *input_prompt;
 
 char *input_helenos_get_next_command(void);
+void helenos_dprinter_init(void);
 
 /** Terminal and readline initialization
  *
@@ -50,6 +51,7 @@ void input_init(void)
 	if (input_prompt == NULL) {
 		die(1, "Failed to intialize input.");
 	}
+	helenos_dprinter_init();
 }
 
 void input_inter(void)
