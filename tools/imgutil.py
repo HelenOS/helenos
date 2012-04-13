@@ -91,9 +91,12 @@ def listdir_items(path):
 	for name in os.listdir(path):
 		if name in exclude_names:
 			continue
+		
 		item = ItemToPack(path, name)
+		
 		if not (item.is_dir or item.is_file):
 			continue
+		
 		yield item
 
 def chunks(item, chunk_size):
@@ -101,8 +104,10 @@ def chunks(item, chunk_size):
 	
 	inf = open(item.path, 'rb')
 	rd = 0
+	
 	while (rd < item.size):
 		data = bytes(inf.read(chunk_size))
 		yield data
 		rd += len(data)
+	
 	inf.close()
