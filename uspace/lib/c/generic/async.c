@@ -2309,7 +2309,7 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	int retval = ipc_forward_fast(callid, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
-		async_wait_for(msg, NULL);
+		async_forget(msg);
 		ipc_answer_0(callid, retval);
 		return retval;
 	}
@@ -2503,7 +2503,7 @@ int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	int retval = ipc_forward_fast(callid, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
-		async_wait_for(msg, NULL);
+		async_forget(msg);
 		ipc_answer_0(callid, retval);
 		return retval;
 	}
