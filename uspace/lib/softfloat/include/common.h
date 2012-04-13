@@ -38,16 +38,16 @@
 
 #include <sftypes.h>
 
-extern float64 finishFloat64(int32_t, uint64_t, char);
-extern float128 finishFloat128(int32_t, uint64_t, uint64_t, char, uint64_t);
+extern float64 finish_float64(int32_t, uint64_t, char);
+extern float128 finish_float128(int32_t, uint64_t, uint64_t, char, uint64_t);
 
-extern int countZeroes8(uint8_t);
-extern int countZeroes32(uint32_t);
-extern int countZeroes64(uint64_t);
+extern int count_zeroes8(uint8_t);
+extern int count_zeroes32(uint32_t);
+extern int count_zeroes64(uint64_t);
 
-extern void roundFloat32(int32_t *, uint32_t *);
-extern void roundFloat64(int32_t *, uint64_t *);
-extern void roundFloat128(int32_t *, uint64_t *, uint64_t *);
+extern void round_float32(int32_t *, uint32_t *);
+extern void round_float64(int32_t *, uint64_t *);
+extern void round_float128(int32_t *, uint64_t *, uint64_t *);
 
 extern void lshift128(uint64_t, uint64_t, int, uint64_t *, uint64_t *);
 extern void rshift128(uint64_t, uint64_t, int, uint64_t *, uint64_t *);

@@ -1,7 +1,5 @@
-#! /bin/bash
-
 #
-# Copyright (c) 2010 Jakub Jermar 
+# Copyright (c) 2012 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,62 +26,67 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-if [ $1" " == "-h " ];
-then
-	echo "Perform pre-integration hands-off build of all profiles."
-	echo
-	echo "Syntax:"
-	echo " $0 [-h] [args...]"
-	echo
-	echo " -h        Print this help."
-	echo " args...   All other args are passed to make (e.g. -j 6)"
-	echo
+.text
 
-	exit
-fi
+.global __aeabi_idiv
+.global __aeabi_uidiv
 
-FAILED=""
-PASSED=""
-PROFILES=""
-DIRS=`find defaults/ -name Makefile.config | sed 's/^defaults\/\(.*\)\/Makefile.config/\1/' | sort`
+.global __aeabi_idivmod
+.global __aeabi_uidivmod
 
-for D in $DIRS;
-do
-	for H in $DIRS;
-	do
-		if [ `echo $H | grep "^$D\/.*"`x != "x"  ];
-		then
-			continue 2 
-		fi
-	done
-	PROFILES="$PROFILES $D"
-done
+.global __aeabi_ldivmod
+.global __aeabi_uldivmod
 
-echo ">>> Going to build the following profiles:"
-echo $PROFILES
+__aeabi_idiv:
+	push {lr}
+	bl __divsi3
+	pop {lr}
+	mov pc, lr
 
-for P in $PROFILES;
-do
-	echo -n ">>>> Building $P... "
-	( make distclean && make PROFILE=$P HANDS_OFF=y "$@" ) >>/dev/null 2>>/dev/null
-	if [ $? -ne 0 ];
-	then
-		FAILED="$FAILED $P"
-		echo "failed."
-	else
-		PASSED="$PASSED $P"
-		echo "ok."
-	fi
-done
+__aeabi_uidiv:
+	push {lr}
+	bl __udivsi3
+	pop {lr}
+	mov pc, lr
 
-echo ">>> Done."
-echo
+__aeabi_idivmod:
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
 
-echo ">>> The following profiles passed:"
-echo $PASSED
-echo
+__aeabi_uidivmod:
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
 
-echo ">>> The following profiles failed:"
-echo $FAILED
-echo
+__aeabi_ldivmod:
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
+	bl __divmoddi3
+	add sp, sp, #4
+	pop {r2, r3}
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr
 
+__aeabi_uldivmod:
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
+	bl __udivmoddi3
+	add sp, sp, #4
+	pop {r2, r3}
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr

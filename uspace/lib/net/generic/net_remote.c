@@ -39,7 +39,6 @@
 #include <ipc/net_net.h>
 #include <malloc.h>
 #include <async.h>
-#include <devman.h>
 #include <generic.h>
 #include <net/modules.h>
 #include <net/device.h>

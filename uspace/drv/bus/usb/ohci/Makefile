@@ -49,7 +49,7 @@ SOURCES = \
 	ohci.c \
 	ohci_batch.c \
 	ohci_endpoint.c \
-	pci.c \
+	res.c \
 	root_hub.c \
 	hw_struct/endpoint_descriptor.c \
 	hw_struct/transfer_descriptor.c

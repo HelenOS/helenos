@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <async.h>
-#include <devman.h>
 #include <usbvirt/device.h>
 #include <usbvirt/ipc.h>
 #include <usb/debug.h>

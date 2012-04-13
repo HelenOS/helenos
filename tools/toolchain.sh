@@ -54,14 +54,12 @@ EOF
 
 BINUTILS_VERSION="2.22"
 BINUTILS_RELEASE=""
-GCC_VERSION="4.6.3"
+GCC_VERSION="4.7.0"
 GDB_VERSION="7.4"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
-GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
-GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
-GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
+GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.bz2"
 
 #
@@ -274,9 +272,7 @@ prepare() {
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
-	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "766091220c6a14fcaa2c06dd573e3758"
-	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "48ba23770c34b1cb468f72618b4452c5"
-	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "37515158a0fb3d0800ec41a08c05e69e"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "2a0f1d99fda235c29d40b561f81d9a77"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "95a9a8305fed4d30a30a6dc28ff9d060"
 }
 
@@ -298,9 +294,7 @@ build_target() {
 	
 	echo ">>> Downloading tarballs"
 	source_check "${BASEDIR}/${BINUTILS}"
-	source_check "${BASEDIR}/${GCC_CORE}"
-	source_check "${BASEDIR}/${GCC_OBJC}"
-	source_check "${BASEDIR}/${GCC_CPP}"
+	source_check "${BASEDIR}/${GCC}"
 	source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
@@ -315,9 +309,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
-	unpack_tarball "${BASEDIR}/${GCC_CORE}" "GCC Core"
-	unpack_tarball "${BASEDIR}/${GCC_OBJC}" "Objective C"
-	unpack_tarball "${BASEDIR}/${GCC_CPP}" "C++"
+	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
 	echo ">>> Processing binutils (${PLATFORM})"
@@ -377,7 +369,7 @@ case "$1" in
 		;;
 	"arm32")
 		prepare
-		build_target "arm32" "arm-linux-gnu"
+		build_target "arm32" "arm-linux-gnueabi"
 		;;
 	"ia32")
 		prepare
@@ -414,7 +406,7 @@ case "$1" in
 	"all")
 		prepare
 		build_target "amd64" "amd64-linux-gnu"
-		build_target "arm32" "arm-linux-gnu"
+		build_target "arm32" "arm-linux-gnueabi"
 		build_target "ia32" "i686-pc-linux-gnu"
 		build_target "ia64" "ia64-pc-linux-gnu"
 		build_target "mips32" "mipsel-linux-gnu"
@@ -427,7 +419,7 @@ case "$1" in
 	"parallel")
 		prepare
 		build_target "amd64" "amd64-linux-gnu" &
-		build_target "arm32" "arm-linux-gnu" &
+		build_target "arm32" "arm-linux-gnueabi" &
 		build_target "ia32" "i686-pc-linux-gnu" &
 		build_target "ia64" "ia64-pc-linux-gnu" &
 		build_target "mips32" "mipsel-linux-gnu" &

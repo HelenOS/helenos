@@ -59,4 +59,4 @@ jump_to_kernel:
 	# Make sure that the I-cache, D-cache and memory are mutually coherent
 	# before passing control to the copied code.
 	#
-	bx r0
+	mov pc, r0

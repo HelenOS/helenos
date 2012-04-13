@@ -56,7 +56,7 @@
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
 
 /** Kernel log cyclic buffer */
-static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
+wchar_t klog[KLOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
 static atomic_t klog_inited = {false};
