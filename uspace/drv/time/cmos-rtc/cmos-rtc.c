@@ -267,6 +267,7 @@ static int
 rtc_time_get(ddf_fun_t *fun, struct tm *t)
 {
 	bool bcd_mode;
+	bool pm_mode = false;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
 	fibril_mutex_lock(&rtc->mutex);
@@ -290,6 +291,21 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		 t->tm_mon  != rtc_register_read(rtc, RTC_MON) ||
 		 t->tm_year != rtc_register_read(rtc, RTC_YEAR));
 
+	/* Check if the RTC is working in 12h mode */
+	bool _12h_mode = !(rtc_register_read(rtc, RTC_STATUS_B) &
+	    RTC_MASK_24H);
+
+	if (_12h_mode) {
+		/* The RTC is working in 12h mode, check if it is AM or PM */
+		if (t->tm_hour & 0x80) {
+			/* PM flag is active, it must to be cleared
+			 * or the BCD conversion will fail.
+			 */
+			t->tm_hour &= ~0x80;
+			pm_mode = true;
+		}
+	}
+
 	/* Check if the RTC is working in BCD mode */
 	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
 
@@ -300,6 +316,15 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		t->tm_mday = bcd2dec(t->tm_mday);
 		t->tm_mon  = bcd2dec(t->tm_mon);
 		t->tm_year = bcd2dec(t->tm_year);
+	}
+
+	if (_12h_mode) {
+		/* Convert to 24h mode */
+		if (pm_mode) {
+			if (t->tm_hour < 12)
+				t->tm_hour += 12;
+		} else if (t->tm_hour == 12)
+			t->tm_hour = 0;
 	}
 
 	/* Count the months starting from 0, not from 1 */

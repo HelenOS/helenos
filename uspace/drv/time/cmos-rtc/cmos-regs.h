@@ -37,6 +37,7 @@
 #define RTC_YEAR        0x09
 
 #define RTC_STATUS_B    0x0B
+#define RTC_MASK_24H    0x02
 #define RTC_MASK_BCD    0x04
 
 #define RTC_STATUS_D    0x0D
