@@ -189,24 +189,25 @@ def fat_lchars(name):
 	"Filter FAT legal characters"
 	
 	filtered_name = ''
+	filtered = False
 	
-	for char in name.encode('ascii', 'ignore').upper():
-		if not char in lchars:
-			continue
-		
-		filtered_name += char
+	for char in name.encode('ascii', 'replace').upper():
+		if char in lchars:
+			filtered_name += char
+		else:
+			filtered_name += b'_'
+			filtered = True
 	
-	return filtered_name
+	return (filtered_name, filtered)
 
 def fat_name83(name, name83_list):
 	"Create a 8.3 name for the given name"
 	
-	ascii_name = fat_lchars(name)
+	ascii_name, lfn = fat_lchars(name)
 	ascii_parts = ascii_name.split('.')
 	
 	short_name = ''
 	short_ext = ''
-	lfn = False
 	
 	if len(ascii_name) > 11:
 		lfn = True
