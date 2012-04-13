@@ -188,6 +188,12 @@ typedef struct {
 	
 	/** If reply was received. */
 	bool done;
+
+	/** If the message / reply should be discarded on arrival. */
+	bool forget;
+
+	/** If already destroyed. */
+	bool destroyed;
 	
 	/** Pointer to where the answer data is stored. */
 	ipc_call_t *dataptr;
@@ -239,6 +245,54 @@ typedef struct {
 
 /** Identifier of the incoming connection handled by the current fibril. */
 static fibril_local connection_t *fibril_connection;
+
+static void to_event_initialize(to_event_t *to)
+{
+	struct timeval tv = { 0 };
+
+	to->inlist = false;
+	to->occurred = false;
+	link_initialize(&to->link);
+	to->expires = tv;
+}
+
+static void wu_event_initialize(wu_event_t *wu)
+{
+	wu->inlist = false;
+	link_initialize(&wu->link);
+}
+
+void awaiter_initialize(awaiter_t *aw)
+{
+	aw->fid = 0;
+	aw->active = false;
+	to_event_initialize(&aw->to_event);
+	wu_event_initialize(&aw->wu_event);
+}
+
+static amsg_t *amsg_create(void)
+{
+	amsg_t *msg;
+
+	msg = malloc(sizeof(amsg_t));
+	if (msg) {
+		msg->done = false;
+		msg->forget = false;
+		msg->destroyed = false;
+		msg->dataptr = NULL;
+		msg->retval = (sysarg_t) EINVAL;
+		awaiter_initialize(&msg->wdata);
+	}
+
+	return msg;
+}
+
+static void amsg_destroy(amsg_t *msg)
+{
+	assert(!msg->destroyed);
+	msg->destroyed = true;
+	free(msg);
+}
 
 static void *default_client_data_constructor(void)
 {
@@ -1099,11 +1153,15 @@ void reply_received(void *arg, int retval, ipc_call_t *data)
 		list_remove(&msg->wdata.to_event.link);
 	
 	msg->done = true;
-	if (!msg->wdata.active) {
+
+	if (msg->forget) {
+		assert(msg->wdata.active);
+		amsg_destroy(msg);
+	} else if (!msg->wdata.active) {
 		msg->wdata.active = true;
 		fibril_add_ready(msg->wdata.fid);
 	}
-	
+
 	futex_up(&async_futex);
 }
 
@@ -1130,19 +1188,11 @@ aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	if (exch == NULL)
 		return 0;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
+	amsg_t *msg = amsg_create();
 	if (msg == NULL)
 		return 0;
 	
-	msg->done = false;
 	msg->dataptr = dataptr;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4, msg,
@@ -1176,20 +1226,11 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	if (exch == NULL)
 		return 0;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	
+	amsg_t *msg = amsg_create();
 	if (msg == NULL)
 		return 0;
 	
-	msg->done = false;
 	msg->dataptr = dataptr;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4, arg5,
@@ -1212,6 +1253,10 @@ void async_wait_for(aid_t amsgid, sysarg_t *retval)
 	amsg_t *msg = (amsg_t *) amsgid;
 	
 	futex_down(&async_futex);
+
+	assert(!msg->forget);
+	assert(!msg->destroyed);
+
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
@@ -1230,10 +1275,14 @@ done:
 	if (retval)
 		*retval = msg->retval;
 	
-	free(msg);
+	amsg_destroy(msg);
 }
 
 /** Wait for a message sent by the async framework, timeout variant.
+ *
+ * If the wait times out, the caller may choose to either wait again by calling
+ * async_wait_for() or async_wait_timeout(), or forget the message via
+ * async_forget().
  *
  * @param amsgid  Hash of the message to wait for.
  * @param retval  Pointer to storage where the retval of the answer will
@@ -1254,6 +1303,10 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 		return ETIMEOUT;
 	
 	futex_down(&async_futex);
+
+	assert(!msg->forget);
+	assert(!msg->destroyed);
+
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
@@ -1278,9 +1331,33 @@ done:
 	if (retval)
 		*retval = msg->retval;
 	
-	free(msg);
+	amsg_destroy(msg);
 	
 	return 0;
+}
+ 
+/** Discard the message / reply on arrival.
+ *
+ * The message will be marked to be discarded once the reply arrives in
+ * reply_received(). It is not allowed to call async_wait_for() or
+ * async_wait_timeout() on this message after a call to this function.
+ *
+ * @param amsgid  Hash of the message to forget.
+ */
+void async_forget(aid_t amsgid)
+{
+	amsg_t *msg = (amsg_t *) amsgid;
+
+	assert(msg);
+	assert(!msg->forget);
+	assert(!msg->destroyed);
+
+	futex_down(&async_futex);
+	if (msg->done)
+		amsg_destroy(msg);
+	else 
+		msg->forget = true;
+	futex_up(&async_futex);
 }
 
 /** Wait for specified time.
@@ -1292,13 +1369,11 @@ done:
  */
 void async_usleep(suseconds_t timeout)
 {
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	
+	amsg_t *msg = amsg_create();
 	if (!msg)
 		return;
 	
 	msg->wdata.fid = fibril_get_id();
-	msg->wdata.active = false;
 	
 	gettimeofday(&msg->wdata.to_event.expires, NULL);
 	tv_add(&msg->wdata.to_event.expires, timeout);
@@ -1312,7 +1387,7 @@ void async_usleep(suseconds_t timeout)
 	
 	/* Futex is up automatically after fibril_switch() */
 	
-	free(msg);
+	amsg_destroy(msg);
 }
 
 /** Pseudo-synchronous message sending - fast version.
@@ -1583,22 +1658,14 @@ async_sess_t *async_connect_me(exch_mgmt_t mgmt, async_exch_t *exch)
 	
 	ipc_call_t result;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	if (msg == NULL) {
+	amsg_t *msg = amsg_create();
+	if (!msg) {
 		free(sess);
 		errno = ENOMEM;
 		return NULL;
 	}
 	
-	msg->done = false;
 	msg->dataptr = &result;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_0(exch->phone, IPC_M_CONNECT_ME, msg,
@@ -1642,19 +1709,11 @@ static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
 {
 	ipc_call_t result;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	if (msg == NULL)
+	amsg_t *msg = amsg_create();
+	if (!msg)
 		return ENOENT;
 	
-	msg->done = false;
 	msg->dataptr = &result;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
