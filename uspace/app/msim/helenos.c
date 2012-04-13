@@ -85,9 +85,4 @@ void gdb_handle_event(gdb_event_t event)
 {
 }
 
-bool stdin_poll(char *key)
-{
-	// TODO: implement reading from keyboard
-	return false;
-}
 

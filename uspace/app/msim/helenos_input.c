@@ -83,3 +83,23 @@ char *input_helenos_get_next_command(void)
 	return commline;
 }
 
+
+bool stdin_poll(char *key)
+{
+	kbd_event_t ev;
+	suseconds_t timeout = 0;
+	errno = EOK;
+	console_flush(input_prompt->console);
+	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
+	if (!has_input) {
+		return false;
+	}
+
+	if (ev.type != KEY_PRESS)
+		return false;
+
+	*key = ev.c;
+
+	return true;
+}
+
