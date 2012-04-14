@@ -1016,6 +1016,7 @@ static int async_manager_worker(void)
 		futex_down(&async_futex);
 		
 		suseconds_t timeout;
+		unsigned int flags = SYNCH_FLAGS_NONE;
 		if (!list_empty(&timeout_list)) {
 			awaiter_t *waiter = list_get_instance(
 			    list_first(&timeout_list), awaiter_t, to_event.link);
@@ -1026,19 +1027,32 @@ static int async_manager_worker(void)
 			if (tv_gteq(&tv, &waiter->to_event.expires)) {
 				futex_up(&async_futex);
 				handle_expired_timeouts();
-				continue;
-			} else
+				/*
+				 * Notice that even if the event(s) already
+				 * expired (and thus the other fibril was
+				 * supposed to be running already),
+				 * we check for incoming IPC.
+				 *
+				 * Otherwise, a fibril that continuously
+				 * creates (almost) expired events could
+				 * prevent IPC retrieval from the kernel.
+				 */
+				timeout = 0;
+				flags = SYNCH_FLAGS_NON_BLOCKING;
+
+			} else {
 				timeout = tv_sub(&waiter->to_event.expires, &tv);
-		} else
+				futex_up(&async_futex);
+			}
+		} else {
+			futex_up(&async_futex);
 			timeout = SYNCH_NO_TIMEOUT;
-		
-		futex_up(&async_futex);
+		}
 		
 		atomic_inc(&threads_in_ipc_wait);
 		
 		ipc_call_t call;
-		ipc_callid_t callid = ipc_wait_cycle(&call, timeout,
-		    SYNCH_FLAGS_NONE);
+		ipc_callid_t callid = ipc_wait_cycle(&call, timeout, flags);
 		
 		atomic_dec(&threads_in_ipc_wait);
 		
@@ -1297,11 +1311,7 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 	assert(amsgid);
 	
 	amsg_t *msg = (amsg_t *) amsgid;
-	
-	/* TODO: Let it go through the event read at least once */
-	if (timeout < 0)
-		return ETIMEOUT;
-	
+
 	futex_down(&async_futex);
 
 	assert(!msg->forget);
@@ -1312,9 +1322,33 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 		goto done;
 	}
 	
+	/*
+	 * Negative timeout is converted to zero timeout to avoid
+	 * using tv_add with negative augmenter.
+	 */
+	if (timeout < 0)
+		timeout = 0;
+
 	gettimeofday(&msg->wdata.to_event.expires, NULL);
 	tv_add(&msg->wdata.to_event.expires, timeout);
 	
+	/*
+	 * Current fibril is inserted as waiting regardless of the
+	 * "size" of the timeout.
+	 *
+	 * Checking for msg->done and immediately bailing out when
+	 * timeout == 0 would mean that the manager fibril would never
+	 * run (consider single threaded program).
+	 * Thus the IPC answer would be never retrieved from the kernel.
+	 *
+	 * Notice that the actual delay would be very small because we
+	 * - switch to manager fibril
+	 * - the manager sees expired timeout
+	 * - and thus adds us back to ready queue
+	 * - manager switches back to some ready fibril
+	 *   (prior it, it checks for incoming IPC).
+	 *
+	 */
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
 	async_insert_timeout(&msg->wdata);
