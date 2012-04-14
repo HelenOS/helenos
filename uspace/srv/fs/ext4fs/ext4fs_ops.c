@@ -249,6 +249,7 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 	}
 
+	// Try to find entry
 	ext4_directory_search_result_t result;
 	rc = ext4_directory_find_entry(&result, eparent->inode_ref, component);
 	if (rc != EOK) {
@@ -259,13 +260,14 @@ int ext4fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return rc;
 	}
 
+	// Load node from search result
 	uint32_t inode = ext4_directory_entry_ll_get_inode(result.dentry);
-
 	rc = ext4fs_node_get_core(rfn, eparent->instance, inode);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	// Destroy search result structure
 	rc = ext4_directory_destroy_result(&result);
 	if (rc != EOK) {
 		return rc;
@@ -334,6 +336,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 		return ENOMEM;
 	}
 
+	// Prepare new fs_node and initialize
 	fs_node_t *fs_node = malloc(sizeof(fs_node_t));
 	if (fs_node == NULL) {
 		free(enode);
@@ -342,7 +345,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	}
 	fs_node_initialize(fs_node);
 
-	// Load inode from filesystem
+	// Load i-node from filesystem
 	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
@@ -456,13 +459,14 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	int rc;
 
-	// Allocate node structures
+	// Allocate enode
 	ext4fs_node_t *enode;
 	enode = malloc(sizeof(ext4fs_node_t));
 	if (enode == NULL) {
 		return ENOMEM;
 	}
 
+	// Allocate fs_node
 	fs_node_t *fs_node;
 	fs_node = malloc(sizeof(fs_node_t));
 	if (fs_node == NULL) {
