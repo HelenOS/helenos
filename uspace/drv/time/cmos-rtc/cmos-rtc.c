@@ -274,7 +274,7 @@ rtc_register_write(rtc_t *rtc, int reg, int data)
 static bool
 rtc_update_in_progress(rtc_t *rtc)
 {
-	return rtc_register_read(rtc, RTC_UPDATE) & RTC_MASK_UPDATE;
+	return rtc_register_read(rtc, RTC_STATUS_A) & RTC_MASK_UPDATE;
 }
 
 /** Read the current time from the CMOS

@@ -37,14 +37,14 @@
 #define RTC_YEAR        0x09
 
 #define RTC_STATUS_B    0x0B
-#define RTC_MASK_24H    0x02
-#define RTC_MASK_BCD    0x04
+#define RTC_MASK_24H    0x02 /* 24h mode */
+#define RTC_MASK_BCD    0x04 /* BCD mode */
 
 #define RTC_STATUS_D    0x0D
-#define RTC_BATTERY_OK  0x80
+#define RTC_BATTERY_OK  0x80 /* Battery status */
 
-#define RTC_UPDATE      0x0A
-#define RTC_MASK_UPDATE 0x08
+#define RTC_STATUS_A    0x0A
+#define RTC_MASK_UPDATE 0x80 /* Update in progress */
 
 #endif
 
