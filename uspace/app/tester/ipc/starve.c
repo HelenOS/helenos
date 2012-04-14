@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,67 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
-
-#ifndef LIBC_PRIVATE_ASYNC_H_
-#define LIBC_PRIVATE_ASYNC_H_
-
-#include <async.h>
-#include <adt/list.h>
-#include <fibril.h>
-#include <fibril_synch.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/time.h>
-#include <bool.h>
+#include <io/console.h>
+#include <async.h>
+#include "../tester.h"
 
-/** Structures of this type are used to track the timeout events. */
-typedef struct {
-	/** If true, this struct is in the timeout list. */
-	bool inlist;
+#define DURATION_SECS      30
+
+const char *test_starve_ipc(void)
+{
+	const char *err = NULL;
+	console_ctrl_t *console = console_init(stdin, stdout);
+	if (console == NULL) {
+		return "Failed to init connection with console.";
+	}
 	
-	/** Timeout list link. */
-	link_t link;
+	struct timeval start;
+	if (gettimeofday(&start, NULL) != 0) {
+		err = "Failed getting the time";
+		goto leave;
+	}
 	
-	/** If true, we have timed out. */
-	bool occurred;
-	
-	/** Expiration time. */
-	struct timeval expires;
-} to_event_t;
+	TPRINTF("Intensive computation shall be imagined (for %ds)...\n", DURATION_SECS);
+	TPRINTF("Press a key to terminate prematurely...\n");
+	while (true) {
+		struct timeval now;
+		if (gettimeofday(&now, NULL) != 0) {
+			err = "Failed getting the time";
+			goto leave;
+		}
+		
+		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
+			break;
+		
+		kbd_event_t ev;
+		suseconds_t timeout = 0;
+		bool has_event = console_get_kbd_event_timeout(console, &ev, &timeout);
+		if (has_event && (ev.type == KEY_PRESS)) {
+			TPRINTF("Key %d pressed, terminating.\n", ev.key);
+			break;
+		}
+	}
 
-/** Structures of this type are used to track the wakeup events. */
-typedef struct {
-	/** If true, this struct is in a synchronization object wait queue. */
-	bool inlist;
-	
-	/** Wait queue linkage. */
-	link_t link;
-} wu_event_t;
+	// FIXME - unless a key was pressed, the answer leaked as no one
+	// will wait for it.
+	// We cannot use async_forget() directly, though. Something like
+	// console_forget_pending_kbd_event() shall come here.
 
-/** Structures of this type represent a waiting fibril. */
-typedef struct {
-	/** Identification of and link to the waiting fibril. */
-	fid_t fid;
-	
-	/** If true, this fibril is currently active. */
-	bool active;
-	
-	/** Timeout wait data. */
-	to_event_t to_event;
-	/** Wakeup wait data. */
-	wu_event_t wu_event;
-} awaiter_t;
+	TPRINTF("Terminating...\n");
 
-extern void awaiter_initialize(awaiter_t *);
+leave:
+	console_done(console);
 
-extern void __async_init(void);
-extern void async_insert_timeout(awaiter_t *);
-extern void reply_received(void *, int, ipc_call_t *);
-
-#endif
-
-/** @}
- */
+	return err;
+}

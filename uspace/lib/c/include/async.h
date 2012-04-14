@@ -138,6 +138,7 @@ extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 
 extern void async_wait_for(aid_t, sysarg_t *);
 extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
+extern void async_forget(aid_t);
 
 extern fid_t async_new_connection(task_id_t, sysarg_t, ipc_callid_t,
     ipc_call_t *, async_client_conn_t, void *);
