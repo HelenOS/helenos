@@ -248,7 +248,7 @@ static fibril_local connection_t *fibril_connection;
 
 static void to_event_initialize(to_event_t *to)
 {
-	struct timeval tv = { 0 };
+	struct timeval tv = { 0, 0 };
 
 	to->inlist = false;
 	to->occurred = false;
