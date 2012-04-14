@@ -366,45 +366,37 @@ int main(int argc, char *argv[])
 	screen_init();
 	printf("Reading initial data...\n");
 	
-	if ((ret = read_data(&data_prev)) != NULL)
+	if ((ret = read_data(&data)) != NULL)
 		goto out;
 	
 	/* Compute some rubbish to have initialised values */
-	compute_percentages(&data_prev, &data_prev);
+	compute_percentages(&data, &data);
 	
 	/* And paint screen until death */
 	while (true) {
 		int c = tgetchar(UPDATE_INTERVAL);
-		if (c < 0) {
-			if ((ret = read_data(&data)) != NULL) {
-				free_data(&data);
-				goto out;
-			}
-			
-			compute_percentages(&data_prev, &data);
-			sort_data(&data);
-			print_data(&data);
-			free_data(&data_prev);
-			data_prev = data;
-			
-			continue;
-		}
-		
+
 		switch (c) {
+			case -1: /* timeout */
+				data_prev = data;
+				if ((ret = read_data(&data)) != NULL) {
+					free_data(&data_prev);
+					goto out;
+				}
+				
+				compute_percentages(&data_prev, &data);
+				free_data(&data_prev);
+				break;
 			case 't':
-				print_warning("Showing task statistics");
 				op_mode = OP_TASKS;
 				break;
 			case 'i':
-				print_warning("Showing IPC statistics");
 				op_mode = OP_IPC;
 				break;
 			case 'e':
-				print_warning("Showing exception statistics");
 				op_mode = OP_EXCS;
 				break;
 			case 'h':
-				print_warning("Showing help");
 				op_mode = OP_HELP;
 				break;
 			case 'q':
@@ -418,15 +410,19 @@ int main(int argc, char *argv[])
 						print_warning("Showing only hot exceptions");
 					break;
 				}
+				/* fallthrough */
 			default:
 				print_warning("Unknown command \"%c\", use \"h\" for help", c);
-				break;
+				continue; /* don't redraw */
 		}
+
+		sort_data(&data);
+		print_data(&data);
 	}
 	
 out:
 	screen_done();
-	free_data(&data_prev);
+	free_data(&data);
 	
 	if (ret != NULL) {
 		fprintf(stderr, "%s: %s\n", NAME, ret);
