@@ -555,10 +555,10 @@ int ext4fs_destroy_node(fs_node_t *fn)
 		ext4_filesystem_delete_orphan(inode_ref);
 	}
 
-	// TODO set real deletion time when it will be supported
+	// TODO set real deletion time when it will be supported,
+	// temporary set fake time
 //	time_t now = time(NULL);
-	time_t now = ext4_inode_get_change_inode_time(inode_ref->inode);
-	ext4_inode_set_deletion_time(inode_ref->inode, (uint32_t)now);
+	ext4_inode_set_deletion_time(inode_ref->inode, 12345678);
 	inode_ref->dirty = true;
 
 	// Free inode
@@ -895,9 +895,9 @@ libfs_ops_t ext4fs_libfs_ops = {
  * 
  * @param service_id	identifier of device
  * @param opts		mount options
- * @param index		TODO
- * @param size		TODO
- * @param lnkcnt	TODO
+ * @param index		output value - index of root node
+ * @param size		output value - size of root node
+ * @param lnkcnt	output value - link count of root node
  * @return		error code
  */
 static int ext4fs_mounted(service_id_t service_id, const char *opts,
@@ -968,8 +968,10 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 	list_append(&inst->link, &instance_list);
 	fibril_mutex_unlock(&instance_list_mutex);
 
+	ext4fs_node_t *enode = EXT4FS_NODE(root_node);
+
 	*index = EXT4_INODE_ROOT_INDEX;
-	*size = 0;
+	*size = ext4_inode_get_size(fs->superblock, enode->inode_ref->inode);
 	*lnkcnt = 1;
 
 	ext4fs_node_put(root_node);
@@ -1274,8 +1276,8 @@ int ext4fs_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
  * @param service_id	device identifier
  * @param index		i-node number of file
  * @param pos		position in file to start reading from
- * @param wbytes	TODO
- * @param nsize		TODO
+ * @param wbytes	output value - real number of written bytes
+ * @param nsize		output value - new size of i-node
  * @return 		error code
  */
 static int ext4fs_write(service_id_t service_id, fs_index_t index,
