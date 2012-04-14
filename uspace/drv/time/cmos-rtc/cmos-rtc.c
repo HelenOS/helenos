@@ -84,10 +84,12 @@ static int  rtc_open(ddf_fun_t *fun);
 static void rtc_close(ddf_fun_t *fun);
 static bool rtc_update_in_progress(rtc_t *rtc);
 static int  rtc_register_read(rtc_t *rtc, int reg);
-static int  bcd2dec(int bcd);
+static unsigned bcd2bin(unsigned bcd);
+static unsigned bin2bcd(unsigned binary);
 static void rtc_default_handler(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call);
 static int rtc_dev_remove(ddf_dev_t *dev);
+static int rtc_tm_sanity_check(struct tm *t);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -232,7 +234,7 @@ error:
 
 /** Read a register from the CMOS memory
  *
- * @param port   The I/O port assigned to the device
+ * @param rtc    The rtc device
  * @param reg    The index of the register to read
  *
  * @return       The value of the register
@@ -243,6 +245,25 @@ rtc_register_read(rtc_t *rtc, int reg)
 	pio_write_8(rtc->port, reg);
 	return pio_read_8(rtc->port + 1);
 }
+
+/* XXX */
+#if 0
+/** Write a register to the CMOS memory
+ *
+ * @param rtc    The rtc device
+ * @param reg    The index of the register to write
+ * @param data   The data to write
+ */
+static void
+rtc_register_write(rtc_t *rtc, int reg, int data)
+{
+	pio_write_8(rtc->port, reg);
+	pio_write_8(rtc->port + 1, data);
+}
+
+#endif
+
+/* XXX */
 
 /** Check if an update is in progress
  *
@@ -310,12 +331,12 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
 
 	if (bcd_mode) {
-		t->tm_sec  = bcd2dec(t->tm_sec);
-		t->tm_min  = bcd2dec(t->tm_min);
-		t->tm_hour = bcd2dec(t->tm_hour);
-		t->tm_mday = bcd2dec(t->tm_mday);
-		t->tm_mon  = bcd2dec(t->tm_mon);
-		t->tm_year = bcd2dec(t->tm_year);
+		t->tm_sec  = bcd2bin(t->tm_sec);
+		t->tm_min  = bcd2bin(t->tm_min);
+		t->tm_hour = bcd2bin(t->tm_hour);
+		t->tm_mday = bcd2bin(t->tm_mday);
+		t->tm_mon  = bcd2bin(t->tm_mon);
+		t->tm_year = bcd2bin(t->tm_year);
 	}
 
 	if (_12h_mode) {
@@ -351,6 +372,60 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 static int
 rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
+	int rc;
+	bool bcd_mode;
+	rtc_t *rtc = RTC_FROM_FNODE(fun);
+
+	rc = rtc_tm_sanity_check(t);
+	if (rc != EOK)
+		return rc;
+
+	t->tm_mon++; /* Must start from 1, not from 0 */
+
+	fibril_mutex_lock(&rtc->mutex);
+
+	/* Check if the rtc is working in bcd mode */
+	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
+	if (bcd_mode) {
+		/* Convert the tm struct fields in BCD mode */
+		t->tm_sec  = bin2bcd(t->tm_sec);
+		t->tm_min  = bin2bcd(t->tm_min);
+		t->tm_hour = bin2bcd(t->tm_hour);
+		t->tm_mday = bin2bcd(t->tm_mday);
+		t->tm_mon  = bin2bcd(t->tm_mon + 1);
+		t->tm_year = bin2bcd(t->tm_year);
+	}
+
+	/* XXX Inhibit updates */
+
+	fibril_mutex_unlock(&rtc->mutex);
+
+	return rc;
+}
+
+/** Check if the tm structure contains valid values
+ *
+ * @param t     The tm structure to check
+ *
+ * @return      EOK on success or EINVAL
+ */
+static int
+rtc_tm_sanity_check(struct tm *t)
+{
+	if (t->tm_sec < 0 || t->tm_sec > 59)
+		return EINVAL;
+	else if (t->tm_min < 0 || t->tm_min > 59)
+		return EINVAL;
+	else if (t->tm_hour < 0 || t->tm_hour > 23)
+		return EINVAL;
+	else if (t->tm_mday < 1 || t->tm_mday > 31)
+		return EINVAL;
+	else if (t->tm_mon < 0 || t->tm_mon > 11)
+		return EINVAL;
+	else if (t->tm_year < 0)
+		return EINVAL;
+
+	/* XXX Some months have less than 31 days... */
 	return EOK;
 }
 
@@ -526,10 +601,22 @@ rtc_close(ddf_fun_t *fun)
  *
  * @return      The converted value
  */
-static int
-bcd2dec(int bcd)
+static unsigned 
+bcd2bin(unsigned bcd)
 {
 	return ((bcd & 0xF0) >> 1) + ((bcd & 0xF0) >> 3) + (bcd & 0xf);
+}
+
+/** Convert from binary mode to BCD mode
+ *
+ * @param bcd   The number in binary mode to convert
+ *
+ * @return      The converted value
+ */
+static unsigned
+bin2bcd(unsigned binary)
+{
+	return ((binary / 10) << 4) + (binary % 10);
 }
 
 int
