@@ -768,8 +768,6 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		path_ptr++;
 	}
 
-	uint32_t phys_block = 0;
-
 	// Add new extent to the node
 	if (path_ptr->extent == NULL) {
 		goto append_extent;
@@ -778,6 +776,7 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 	uint16_t block_count = ext4_extent_get_block_count(path_ptr->extent);
 	uint16_t block_limit = (1 << 15);
 
+	uint32_t phys_block = 0;
 	if (block_count < block_limit) {
 
 		if (block_count == 0) {
@@ -790,6 +789,9 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 			ext4_extent_set_first_block(path_ptr->extent, new_block_idx);
 			ext4_extent_set_start(path_ptr->extent, phys_block);
 			ext4_extent_set_block_count(path_ptr->extent, 1);
+
+			ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+			inode_ref->dirty = true;
 
 			path_ptr->block->dirty = true;
 
@@ -812,6 +814,9 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 
 
 			ext4_extent_set_block_count(path_ptr->extent, block_count + 1);
+
+			ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+			inode_ref->dirty = true;
 
 			path_ptr->block->dirty = true;
 
@@ -838,6 +843,9 @@ append_extent:
 	ext4_extent_set_block_count(path_ptr->extent, 1);
 	ext4_extent_set_first_block(path_ptr->extent, new_block_idx);
 	ext4_extent_set_start(path_ptr->extent, phys_block);
+
+	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+	inode_ref->dirty = true;
 
 	path_ptr->block->dirty = true;
 

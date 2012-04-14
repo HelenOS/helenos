@@ -615,17 +615,17 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		}
 
 		// Initialize directory index if necessary
-//		if (ext4_superblock_has_feature_compatible(
-//				fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
-//
-//			rc = ext4_directory_dx_init(child->inode_ref);
-//			if (rc != EOK) {
-//				return rc;
-//			}
-//
-//			ext4_inode_set_flag(child->inode_ref->inode, EXT4_INODE_FLAG_INDEX);
-//			child->inode_ref->dirty = true;
-//		}
+		if (ext4_superblock_has_feature_compatible(
+				fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
+
+			rc = ext4_directory_dx_init(child->inode_ref);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			ext4_inode_set_flag(child->inode_ref->inode, EXT4_INODE_FLAG_INDEX);
+			child->inode_ref->dirty = true;
+		}
 
 		uint16_t parent_links = ext4_inode_get_links_count(parent->inode_ref->inode);
 		parent_links++;

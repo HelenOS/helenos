@@ -593,8 +593,6 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 		rc = ext4_extent_find_block(inode_ref, iblock, &current_block);
 
-		EXT4FS_DBG("ext: loading iblock \%u, address \%u", (uint32_t)iblock, current_block);
-
 		if (rc != EOK) {
 			return rc;
 		}

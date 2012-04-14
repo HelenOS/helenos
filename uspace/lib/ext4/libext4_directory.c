@@ -371,14 +371,10 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 		return rc;
 	}
 
-	EXT4FS_DBG("loaded");
-
 	// Fill block with zeroes
 	memset(new_block->data, 0, block_size);
 	ext4_directory_entry_ll_t *block_entry = new_block->data;
 	ext4_directory_write_entry(fs->superblock, block_entry, block_size, child, name, name_len);
-
-	EXT4FS_DBG("written");
 
 	// Save new block
 	new_block->dirty = true;
@@ -386,8 +382,6 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 	if (rc != EOK) {
 		return rc;
 	}
-
-	EXT4FS_DBG("returning");
 
 	return EOK;
 }
