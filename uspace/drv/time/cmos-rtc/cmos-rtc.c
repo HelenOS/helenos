@@ -90,6 +90,7 @@ static void rtc_default_handler(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call);
 static int rtc_dev_remove(ddf_dev_t *dev);
 static int rtc_tm_sanity_check(struct tm *t);
+static void rtc_register_write(rtc_t *rtc, int reg, int data);
 
 
 static ddf_dev_ops_t rtc_dev_ops;
@@ -246,8 +247,6 @@ rtc_register_read(rtc_t *rtc, int reg)
 	return pio_read_8(rtc->port + 1);
 }
 
-/* XXX */
-#if 0
 /** Write a register to the CMOS memory
  *
  * @param rtc    The rtc device
@@ -260,10 +259,6 @@ rtc_register_write(rtc_t *rtc, int reg, int data)
 	pio_write_8(rtc->port, reg);
 	pio_write_8(rtc->port + 1, data);
 }
-
-#endif
-
-/* XXX */
 
 /** Check if an update is in progress
  *
@@ -372,20 +367,24 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 static int
 rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
-	int rc;
+	int  rc;
 	bool bcd_mode;
+	int  reg_b;
+	int  reg_a;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
 	rc = rtc_tm_sanity_check(t);
 	if (rc != EOK)
 		return rc;
 
-	t->tm_mon++; /* Must start from 1, not from 0 */
+	t->tm_mon++; /* counts from 1, not from 0 */
 
 	fibril_mutex_lock(&rtc->mutex);
 
+	reg_b = rtc_register_read(rtc, RTC_STATUS_B);
+
 	/* Check if the rtc is working in bcd mode */
-	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
+	bcd_mode = !(reg_b & RTC_MASK_BCD);
 	if (bcd_mode) {
 		/* Convert the tm struct fields in BCD mode */
 		t->tm_sec  = bin2bcd(t->tm_sec);
@@ -396,7 +395,24 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 		t->tm_year = bin2bcd(t->tm_year);
 	}
 
-	/* XXX Inhibit updates */
+	/* Inhibit updates */
+	rtc_register_write(rtc, RTC_STATUS_B, reg_b | RTC_MASK_INH);
+
+	/* Write current time to RTC */
+	rtc_register_write(rtc, RTC_SEC, t->tm_sec);
+	rtc_register_write(rtc, RTC_MIN, t->tm_min);
+	rtc_register_write(rtc, RTC_HOUR, t->tm_hour);
+	rtc_register_write(rtc, RTC_DAY, t->tm_mday);
+	rtc_register_write(rtc, RTC_MON, t->tm_mon);
+	rtc_register_write(rtc, RTC_YEAR, t->tm_year);
+
+	/* Stop the clock */
+	reg_a = rtc_register_read(rtc, RTC_STATUS_A);
+	rtc_register_write(rtc, RTC_STATUS_A, RTC_MASK_CLK_STOP | reg_a);
+	
+	/* Enable updates */
+	rtc_register_write(rtc, RTC_STATUS_B, reg_b);
+	rtc_register_write(rtc, RTC_STATUS_A, reg_a);
 
 	fibril_mutex_unlock(&rtc->mutex);
 
