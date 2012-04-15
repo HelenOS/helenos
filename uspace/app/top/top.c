@@ -397,6 +397,7 @@ int main(int argc, char *argv[])
 				op_mode = OP_EXCS;
 				break;
 			case 'h':
+			case '?':
 				op_mode = OP_HELP;
 				break;
 			case 'q':

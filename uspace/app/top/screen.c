@@ -461,15 +461,19 @@ static inline void print_excs(data_t *data)
 	}
 }
 
+static inline void print_help_head(void)
+{
+	screen_style_inverted();
+	printf("Help");
+	screen_newline();
+	screen_style_normal();
+}
+
 static void print_help(void)
 {
 	sysarg_t cols;
 	sysarg_t rows;
 	screen_get_size(&cols, &rows);
-	
-	sysarg_t col;
-	sysarg_t row;
-	screen_get_pos(&col, &row);
 	
 	screen_newline();
 	
@@ -487,8 +491,21 @@ static void print_help(void)
 	
 	printf("      a .. toggle display of all/hot exceptions");
 	screen_newline();
+
+	printf(" h .. this help screen");
+	screen_newline();
+
+	screen_newline();
+
+	printf("Other keys:");
+	screen_newline();
 	
-	row += 6;
+	printf(" q .. quit");
+	screen_newline();
+	
+	sysarg_t col;
+	sysarg_t row;
+	screen_get_pos(&col, &row);
 	
 	while (row < rows) {
 		screen_newline();
@@ -534,7 +551,7 @@ void print_data(data_t *data)
 		print_excs(data);
 		break;
 	case OP_HELP:
-		print_tasks_head();
+		print_help_head();
 		print_help();
 	}
 	
