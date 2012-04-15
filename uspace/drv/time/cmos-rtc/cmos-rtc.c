@@ -396,7 +396,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 		t->tm_min  = bin2bcd(t->tm_min);
 		t->tm_hour = bin2bcd(t->tm_hour);
 		t->tm_mday = bin2bcd(t->tm_mday);
-		t->tm_mon  = bin2bcd(t->tm_mon + 1);
+		t->tm_mon  = bin2bcd(t->tm_mon);
 		t->tm_year = bin2bcd(t->tm_year);
 	}
 
