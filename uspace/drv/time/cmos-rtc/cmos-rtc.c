@@ -91,7 +91,9 @@ static void rtc_default_handler(ddf_fun_t *fun,
 static int rtc_dev_remove(ddf_dev_t *dev);
 static int rtc_tm_sanity_check(struct tm *t);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
+static bool is_leap_year(int year);
 
+static int days_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 static ddf_dev_ops_t rtc_dev_ops;
 
@@ -428,6 +430,8 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 static int
 rtc_tm_sanity_check(struct tm *t)
 {
+	int ndays;
+
 	if (t->tm_sec < 0 || t->tm_sec > 59)
 		return EINVAL;
 	else if (t->tm_min < 0 || t->tm_min > 59)
@@ -441,8 +445,36 @@ rtc_tm_sanity_check(struct tm *t)
 	else if (t->tm_year < 0)
 		return EINVAL;
 
-	/* XXX Some months have less than 31 days... */
+	if (t->tm_mon == 1/* FEB */ && is_leap_year(t->tm_year))
+		ndays = 29;
+	else
+		ndays = days_month[t->tm_mon];
+
+	if (t->tm_mday > ndays)
+		return EINVAL;
+
 	return EOK;
+}
+
+/** Check if a year is a leap year
+ *
+ * @param year   The year to check
+ *
+ * @return       true if it is a leap year, false otherwise
+ */
+static bool
+is_leap_year(int year)
+{
+	bool r = false;
+
+	if (year % 4 == 0) {
+		if (year % 100 == 0)
+			r = year % 400 == 0;
+		else
+			r = true;
+	}
+
+	return r;
 }
 
 /** The dev_add callback of the rtc driver
