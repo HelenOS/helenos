@@ -60,11 +60,6 @@ typedef enum {
 	OP_EXCS,
 } op_mode_t;
 
-screen_mode_t screen_mode = SCREEN_TABLE;
-static op_mode_t op_mode = OP_TASKS;
-sort_mode_t sort_mode = SORT_TASK_CYCLES;
-static bool excs_all = false;
-
 static const column_t task_columns[] = {
 	{"taskid",   't',  8},
 	{"thrds",    'h',  7},
@@ -130,6 +125,12 @@ enum {
 	EXCEPTION_NUM_COLUMNS,
 };
 
+screen_mode_t screen_mode = SCREEN_TABLE;
+static op_mode_t op_mode = OP_TASKS;
+static size_t sort_column = TASK_COL_PERCENT_USER;
+static int sort_reverse = -1;
+static bool excs_all = false;
+
 static const char *read_data(data_t *target)
 {
 	/* Initialize data */
@@ -138,7 +139,6 @@ static const char *read_data(data_t *target)
 	target->cpus_perc = NULL;
 	target->tasks = NULL;
 	target->tasks_perc = NULL;
-	target->tasks_map = NULL;
 	target->threads = NULL;
 	target->exceptions = NULL;
 	target->exceptions_perc = NULL;
@@ -193,11 +193,6 @@ static const char *read_data(data_t *target)
 	    (perc_task_t *) calloc(target->tasks_count, sizeof(perc_task_t));
 	if (target->tasks_perc == NULL)
 		return "Not enough memory for task utilization";
-	
-	target->tasks_map =
-	    (size_t *) calloc(target->tasks_count, sizeof(size_t));
-	if (target->tasks_map == NULL)
-		return "Not enough memory for task map";
 	
 	/* Get threads */
 	target->threads = stats_get_threads(&(target->threads_count));
@@ -365,31 +360,48 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 
 static int cmp_data(void *a, void *b, void *arg)
 {
-	size_t ia = *((size_t *) a);
-	size_t ib = *((size_t *) b);
-	data_t *data = (data_t *) arg;
+	field_t *fa = (field_t *)a + sort_column;
+	field_t *fb = (field_t *)b + sort_column;
 	
-	uint64_t acycles = data->ucycles_diff[ia] + data->kcycles_diff[ia];
-	uint64_t bcycles = data->ucycles_diff[ib] + data->kcycles_diff[ib];
-	
-	if (acycles > bcycles)
-		return -1;
-	
-	if (acycles < bcycles)
-		return 1;
-	
+	if (fa->type > fb->type)
+		return 1 * sort_reverse;
+
+	if (fa->type < fb->type)
+		return -1 * sort_reverse;
+
+	switch (fa->type) {
+		case FIELD_EMPTY:
+			return 0;
+		case FIELD_UINT_SUFFIX_BIN: /* fallthrough */
+		case FIELD_UINT_SUFFIX_DEC: /* fallthrough */
+		case FIELD_UINT:
+			if (fa->uint > fb->uint)
+				return 1 * sort_reverse;
+			if (fa->uint < fb->uint)
+				return -1 * sort_reverse;
+			return 0;
+		case FIELD_PERCENT:
+			if (fa->fixed.upper * fb->fixed.lower
+			    > fb->fixed.upper * fa->fixed.lower)
+				return 1 * sort_reverse;
+			if (fa->fixed.upper * fb->fixed.lower
+			    < fb->fixed.upper * fa->fixed.lower)
+				return -1 * sort_reverse;
+			return 0;
+		case FIELD_STRING:
+			return str_cmp(fa->string, fb->string) * sort_reverse;
+	}
+
 	return 0;
 }
 
-static void sort_data(data_t *data)
+static void sort_table(table_t *table)
 {
-	size_t i;
-	
-	for (i = 0; i < data->tasks_count; i++)
-		data->tasks_map[i] = i;
-	
-	qsort((void *) data->tasks_map, data->tasks_count,
-	    sizeof(size_t), cmp_data, (void *) data);
+	if (sort_column >= table->num_columns)
+		sort_column = 0;
+	/* stable sort is probably best, so we use gsort */
+	gsort((void *) table->fields, table->num_fields / table->num_columns,
+	    sizeof(field_t) * table->num_columns, cmp_data, NULL);
 }
 
 static const char *fill_task_table(data_t *data)
@@ -405,8 +417,8 @@ static const char *fill_task_table(data_t *data)
 
 	field_t *field = data->table.fields;
 	for (size_t i = 0; i < data->tasks_count; i++) {
-		stats_task_t *task = data->tasks + data->tasks_map[i];
-		perc_task_t *perc = data->tasks_perc + data->tasks_map[i];
+		stats_task_t *task = &data->tasks[i];
+		perc_task_t *perc = &data->tasks_perc[i];
 		field[TASK_COL_ID].type = FIELD_UINT;
 		field[TASK_COL_ID].uint = task->task_id;
 		field[TASK_COL_NUM_THREADS].type = FIELD_UINT;
@@ -582,41 +594,63 @@ int main(int argc, char *argv[])
 	while (true) {
 		int c = tgetchar(UPDATE_INTERVAL);
 
-		switch (c) {
-			case -1: /* timeout */
-				data_prev = data;
-				if ((ret = read_data(&data)) != NULL) {
-					free_data(&data_prev);
-					goto out;
-				}
-				
-				compute_percentages(&data_prev, &data);
+		if (c < 0) { /* timeout */
+			data_prev = data;
+			if ((ret = read_data(&data)) != NULL) {
 				free_data(&data_prev);
+				goto out;
+			}
+			
+			compute_percentages(&data_prev, &data);
+			free_data(&data_prev);
+
+			c = -1;
+		}
+
+		if (screen_mode == SCREEN_HELP && c >= 0) {
+			if (c == 'h' || c == '?')
+				c = -1;
+			/* go back to table and handle the key */
+			screen_mode = SCREEN_TABLE;
+		}
+
+		if (screen_mode == SCREEN_SORT && c >= 0) {
+			for (size_t i = 0; i < data.table.num_columns; i++) {
+				if (data.table.columns[i].key == c) {
+					sort_column = i;
+					screen_mode = SCREEN_TABLE;
+				}
+			}
+
+			c = -1;
+		}
+
+		switch (c) {
+			case -1: /* do nothing */
 				break;
 			case 't':
-				screen_mode = SCREEN_TABLE;
 				op_mode = OP_TASKS;
 				break;
 			case 'i':
-				screen_mode = SCREEN_TABLE;
 				op_mode = OP_IPC;
 				break;
 			case 'e':
-				screen_mode = SCREEN_TABLE;
 				op_mode = OP_EXCS;
+				break;
+			case 's':
+				screen_mode = SCREEN_SORT;
+				break;
+			case 'r':
+				sort_reverse = -sort_reverse;
 				break;
 			case 'h':
 			case '?':
-				if (screen_mode == SCREEN_HELP)
-					screen_mode = SCREEN_TABLE;
-				else
-					screen_mode = SCREEN_HELP;
+				screen_mode = SCREEN_HELP;
 				break;
 			case 'q':
 				goto out;
 			case 'a':
 				if (op_mode == OP_EXCS) {
-					screen_mode = SCREEN_TABLE;
 					excs_all = !excs_all;
 					if (excs_all)
 						show_warning("Showing all exceptions");
@@ -630,10 +664,10 @@ int main(int argc, char *argv[])
 				continue; /* don't redraw */
 		}
 
-		sort_data(&data);
 		if ((ret = fill_table(&data)) != NULL) {
 			goto out;
 		}
+		sort_table(&data.table);
 		print_data(&data);
 	}
 	

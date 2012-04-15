@@ -51,15 +51,11 @@
 
 typedef enum {
 	SCREEN_TABLE,
+	SCREEN_SORT,
 	SCREEN_HELP,
 } screen_mode_t;
 
-typedef enum {
-	SORT_TASK_CYCLES
-} sort_mode_t;
-
 extern screen_mode_t screen_mode;
-extern sort_mode_t sort_mode;
 
 typedef struct {
 	uint64_t upper;
@@ -131,7 +127,6 @@ typedef struct {
 	size_t tasks_count;
 	stats_task_t *tasks;
 	perc_task_t *tasks_perc;
-	size_t *tasks_map;
 	
 	size_t threads_count;
 	stats_thread_t *threads;

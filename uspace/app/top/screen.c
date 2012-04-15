@@ -43,6 +43,7 @@
 #include <stdarg.h>
 #include <stats.h>
 #include <inttypes.h>
+#include <macros.h>
 #include "screen.h"
 #include "top.h"
 
@@ -328,6 +329,12 @@ static inline void print_help(void)
 	printf("Other keys:");
 	screen_newline();
 	
+	printf(" s .. choose column to sort by");
+	screen_newline();
+	
+	printf(" r .. toggle reversed sorting");
+	screen_newline();
+	
 	printf(" q .. quit");
 	screen_newline();
 	
@@ -439,6 +446,29 @@ static inline void print_table(const table_t *table)
 	}
 }
 
+static inline void print_sort(table_t *table)
+{
+	sysarg_t cols;
+	sysarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	sysarg_t col;
+	sysarg_t row;
+	screen_get_pos(&col, &row);
+
+	size_t num = min(table->num_columns, rows - row);
+	for (size_t i = 0; i < num; i++) {
+		printf("%c - %s", table->columns[i].key, table->columns[i].name);
+		screen_newline();
+		row++;
+	}
+	
+	while (row < rows) {
+		screen_newline();
+		row++;
+	}
+}
+
 static inline void print_warning(void)
 {
 	screen_get_pos(&warning_col, &warning_row);
@@ -467,6 +497,9 @@ void print_data(data_t *data)
 	case SCREEN_TABLE:
 		print_table_head(&data->table);
 		print_table(&data->table);
+		break;
+	case SCREEN_SORT:
+		print_sort(&data->table);
 		break;
 	case SCREEN_HELP:
 		print_help_head();
