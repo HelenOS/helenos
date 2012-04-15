@@ -36,6 +36,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <io/console.h>
 #include <io/style.h>
 #include <vfs/vfs.h>
@@ -47,11 +48,14 @@
 
 #define USEC_COUNT  1000000
 
-static sysarg_t warn_col = 0;
-static sysarg_t warn_row = 0;
 static suseconds_t timeleft = 0;
 
 console_ctrl_t *console;
+
+static sysarg_t warning_col = 0;
+static sysarg_t warning_row = 0;
+static suseconds_t warning_timeleft = 0;
+static char *warning_text = NULL;
 
 static void screen_style_normal(void)
 {
@@ -63,6 +67,12 @@ static void screen_style_inverted(void)
 {
 	console_flush(console);
 	console_set_style(console, STYLE_INVERTED);
+}
+
+static void screen_style_emphasis(void)
+{
+	console_flush(console);
+	console_set_style(console, STYLE_EMPHASIS);
 }
 
 static void screen_moveto(sysarg_t col, sysarg_t row)
@@ -125,6 +135,9 @@ void screen_init(void)
 
 void screen_done(void)
 {
+	free(warning_text);
+	warning_text = NULL;
+
 	screen_restart(true);
 	
 	console_flush(console);
@@ -483,6 +496,20 @@ static void print_help(void)
 	}
 }
 
+static void print_warning(void)
+{
+	screen_get_pos(&warning_col, &warning_row);
+	if (warning_timeleft > 0) {
+		screen_style_emphasis();
+		print_string(warning_text);
+		screen_style_normal();
+	} else {
+		free(warning_text);
+		warning_text = NULL;
+	}
+	screen_newline();
+}
+
 void print_data(data_t *data)
 {
 	screen_restart(false);
@@ -491,10 +518,7 @@ void print_data(data_t *data)
 	print_thread_summary(data);
 	print_cpu_info(data);
 	print_physmem_info(data);
-	
-	/* Empty row for warnings */
-	screen_get_pos(&warn_col, &warn_row);
-	screen_newline();
+	print_warning();
 	
 	switch (op_mode) {
 	case OP_TASKS:
@@ -517,16 +541,27 @@ void print_data(data_t *data)
 	console_flush(console);
 }
 
-void print_warning(const char *fmt, ...)
+void show_warning(const char *fmt, ...)
 {
-	screen_moveto(warn_col, warn_row);
-	
+	sysarg_t cols;
+	sysarg_t rows;
+	screen_get_size(&cols, &rows);
+
+	size_t warning_text_size = 1 + cols * sizeof(*warning_text);
+	free(warning_text);
+	warning_text = malloc(warning_text_size);
+	if (!warning_text)
+		return;
+
 	va_list args;
 	va_start(args, fmt);
-	vprintf(fmt, args);
+	vsnprintf(warning_text, warning_text_size, fmt, args);
 	va_end(args);
 	
-	screen_newline();
+	warning_timeleft = 2 * USEC_COUNT;
+
+	screen_moveto(warning_col, warning_row);
+	print_warning();
 	console_flush(console);
 }
 
@@ -554,10 +589,12 @@ int tgetchar(unsigned int sec)
 	while (c == 0) {
 		kbd_event_t event;
 		
+		warning_timeleft -= timeleft;
 		if (!console_get_kbd_event_timeout(console, &event, &timeleft)) {
 			timeleft = 0;
 			return -1;
 		}
+		warning_timeleft += timeleft;
 		
 		if (event.type == KEY_PRESS)
 			c = event.c;

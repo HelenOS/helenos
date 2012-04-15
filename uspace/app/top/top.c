@@ -405,14 +405,14 @@ int main(int argc, char *argv[])
 				if (op_mode == OP_EXCS) {
 					excs_all = !excs_all;
 					if (excs_all)
-						print_warning("Showing all exceptions");
+						show_warning("Showing all exceptions");
 					else
-						print_warning("Showing only hot exceptions");
+						show_warning("Showing only hot exceptions");
 					break;
 				}
 				/* fallthrough */
 			default:
-				print_warning("Unknown command \"%c\", use \"h\" for help", c);
+				show_warning("Unknown command \"%c\", use \"h\" for help", c);
 				continue; /* don't redraw */
 		}
 
