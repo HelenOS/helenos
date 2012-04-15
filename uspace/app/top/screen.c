@@ -289,178 +289,6 @@ static inline void print_physmem_info(data_t *data)
 	screen_newline();
 }
 
-static inline void print_tasks_head(void)
-{
-	screen_style_inverted();
-	printf("[taskid] [thrds] [resident] [%%resi] [virtual] [%%virt]"
-	    " [%%user] [%%kern] [name");
-	screen_newline();
-	screen_style_normal();
-}
-
-static inline void print_tasks(data_t *data)
-{
-	sysarg_t cols;
-	sysarg_t rows;
-	screen_get_size(&cols, &rows);
-	
-	sysarg_t col;
-	sysarg_t row;
-	screen_get_pos(&col, &row);
-	
-	size_t i;
-	for (i = 0; (i < data->tasks_count) && (row < rows); i++, row++) {
-		stats_task_t *task = data->tasks + data->tasks_map[i];
-		perc_task_t *perc = data->tasks_perc + data->tasks_map[i];
-		
-		uint64_t resmem;
-		const char *resmem_suffix;
-		bin_order_suffix(task->resmem, &resmem, &resmem_suffix, true);
-		
-		uint64_t virtmem;
-		const char *virtmem_suffix;
-		bin_order_suffix(task->virtmem, &virtmem, &virtmem_suffix, true);
-		
-		printf("%-8" PRIu64 " %7zu %7" PRIu64 "%s ",
-		    task->task_id, task->threads, resmem, resmem_suffix);
-		print_percent(perc->resmem, 2);
-		printf(" %6" PRIu64 "%s ", virtmem, virtmem_suffix);
-		print_percent(perc->virtmem, 2);
-		puts(" ");
-		print_percent(perc->ucycles, 2);
-		puts(" ");
-		print_percent(perc->kcycles, 2);
-		puts(" ");
-		print_string(task->name);
-		
-		screen_newline();
-	}
-	
-	while (row < rows) {
-		screen_newline();
-		row++;
-	}
-}
-
-static inline void print_ipc_head(void)
-{
-	screen_style_inverted();
-	printf("[taskid] [cls snt] [cls rcv] [ans snt]"
-	    " [ans rcv] [irq rcv] [forward] [name");
-	screen_newline();
-	screen_style_normal();
-}
-
-static inline void print_ipc(data_t *data)
-{
-	sysarg_t cols;
-	sysarg_t rows;
-	screen_get_size(&cols, &rows);
-	
-	sysarg_t col;
-	sysarg_t row;
-	screen_get_pos(&col, &row);
-	
-	size_t i;
-	for (i = 0; (i < data->tasks_count) && (row < rows); i++, row++) {
-		uint64_t call_sent;
-		uint64_t call_received;
-		uint64_t answer_sent;
-		uint64_t answer_received;
-		uint64_t irq_notif_received;
-		uint64_t forwarded;
-		
-		char call_sent_suffix;
-		char call_received_suffix;
-		char answer_sent_suffix;
-		char answer_received_suffix;
-		char irq_notif_received_suffix;
-		char forwarded_suffix;
-		
-		order_suffix(data->tasks[i].ipc_info.call_sent, &call_sent,
-		    &call_sent_suffix);
-		order_suffix(data->tasks[i].ipc_info.call_received,
-		    &call_received, &call_received_suffix);
-		order_suffix(data->tasks[i].ipc_info.answer_sent,
-		    &answer_sent, &answer_sent_suffix);
-		order_suffix(data->tasks[i].ipc_info.answer_received,
-		    &answer_received, &answer_received_suffix);
-		order_suffix(data->tasks[i].ipc_info.irq_notif_received,
-		    &irq_notif_received, &irq_notif_received_suffix);
-		order_suffix(data->tasks[i].ipc_info.forwarded, &forwarded,
-		    &forwarded_suffix);
-		
-		printf("%-8" PRIu64 " %8" PRIu64 "%c %8" PRIu64 "%c"
-		     " %8" PRIu64 "%c %8" PRIu64 "%c %8" PRIu64 "%c"
-		     " %8" PRIu64 "%c ", data->tasks[i].task_id,
-		     call_sent, call_sent_suffix,
-		     call_received, call_received_suffix,
-		     answer_sent, answer_sent_suffix,
-		     answer_received, answer_received_suffix,
-		     irq_notif_received, irq_notif_received_suffix,
-		     forwarded, forwarded_suffix);
-		print_string(data->tasks[i].name);
-		
-		screen_newline();
-	}
-	
-	while (row < rows) {
-		screen_newline();
-		row++;
-	}
-}
-
-static inline void print_excs_head(void)
-{
-	screen_style_inverted();
-	printf("[exc   ] [count   ] [%%count] [cycles  ] [%%cycles] [description");
-	screen_newline();
-	screen_style_normal();
-}
-
-static inline void print_excs(data_t *data)
-{
-	sysarg_t cols;
-	sysarg_t rows;
-	screen_get_size(&cols, &rows);
-	
-	sysarg_t col;
-	sysarg_t row;
-	screen_get_pos(&col, &row);
-	
-	size_t i;
-	for (i = 0; (i < data->exceptions_count) && (row < rows); i++) {
-		/* Filter-out cold exceptions if not instructed otherwise */
-		if ((!excs_all) && (!data->exceptions[i].hot))
-			continue;
-		
-		uint64_t count;
-		uint64_t cycles;
-		
-		char count_suffix;
-		char cycles_suffix;
-		
-		order_suffix(data->exceptions[i].count, &count, &count_suffix);
-		order_suffix(data->exceptions[i].cycles, &cycles, &cycles_suffix);
-		
-		printf("%-8u %9" PRIu64 "%c  ",
-		     data->exceptions[i].id, count, count_suffix);
-		print_percent(data->exceptions_perc[i].count, 2);
-		printf(" %9" PRIu64 "%c   ", cycles, cycles_suffix);
-		print_percent(data->exceptions_perc[i].cycles, 2);
-		puts(" ");
-		print_string(data->exceptions[i].desc);
-		
-		screen_newline();
-		row++;
-	}
-	
-	while (row < rows) {
-		screen_newline();
-		row++;
-	}
-}
-
 static inline void print_help_head(void)
 {
 	screen_style_inverted();
@@ -469,7 +297,7 @@ static inline void print_help_head(void)
 	screen_style_normal();
 }
 
-static void print_help(void)
+static inline void print_help(void)
 {
 	sysarg_t cols;
 	sysarg_t rows;
@@ -492,7 +320,7 @@ static void print_help(void)
 	printf("      a .. toggle display of all/hot exceptions");
 	screen_newline();
 
-	printf(" h .. this help screen");
+	printf(" h .. toggle this help screen");
 	screen_newline();
 
 	screen_newline();
@@ -513,7 +341,105 @@ static void print_help(void)
 	}
 }
 
-static void print_warning(void)
+static inline void print_table_head(const table_t *table)
+{
+	sysarg_t cols;
+	sysarg_t rows;
+	screen_get_size(&cols, &rows);
+
+	screen_style_inverted();
+	for (size_t i = 0; i < table->num_columns; i++) {
+		const char *name = table->columns[i].name;
+		int width = table->columns[i].width;
+		if (i != 0) {
+			puts(" ");
+		}
+		if (width == 0) {
+			sysarg_t col;
+			sysarg_t row;
+			screen_get_pos(&col, &row);
+			width = cols - col - 1;
+		}
+		printf("[%-*.*s]", width - 2, width - 2, name);
+	}
+	screen_newline();
+	screen_style_normal();
+}
+
+static inline void print_table(const table_t *table)
+{
+	sysarg_t cols;
+	sysarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	sysarg_t col;
+	sysarg_t row;
+	screen_get_pos(&col, &row);
+	
+	size_t i;
+	for (i = 0; (i < table->num_fields) && (row < rows); i++) {
+		size_t column_index = i % table->num_columns;
+		int width = table->columns[column_index].width;
+		field_t *field = &table->fields[i];
+
+		if (column_index != 0) {
+			puts(" ");
+		}
+
+		if (width == 0) {
+			screen_get_pos(&col, &row);
+			width = cols - col - 1;
+		}
+
+		switch (field->type) {
+			case FIELD_EMPTY:
+				printf("%*s", width, "");
+				break;
+			case FIELD_UINT:
+				printf("%*" PRIu64, width, field->uint);
+				break;
+			case FIELD_UINT_SUFFIX_BIN: {
+				uint64_t val = field->uint;
+				const char *suffix;
+				width -= 3;
+				bin_order_suffix(val, &val, &suffix, true);
+				printf("%*" PRIu64 "%s", width, val, suffix);
+				break;
+				}
+			case FIELD_UINT_SUFFIX_DEC: {
+				uint64_t val = field->uint;
+				char suffix;
+				width -= 1;
+				order_suffix(val, &val, &suffix);
+				printf("%*" PRIu64 "%c", width, val, suffix);
+				break;
+				}
+			case FIELD_PERCENT:
+				width -= 5; /* nnn.% */
+				if (width > 2) {
+					printf("%*s", width - 2, "");
+					width = 2;
+				}
+				print_percent(field->fixed, width);
+				break;
+			case FIELD_STRING:
+				printf("%-*.*s", width, width, field->string);
+				break;
+		}
+
+		if (column_index == table->num_columns - 1) {
+			screen_newline();
+			row++;
+		}
+	}
+	
+	while (row < rows) {
+		screen_newline();
+		row++;
+	}
+}
+
+static inline void print_warning(void)
 {
 	screen_get_pos(&warning_col, &warning_row);
 	if (warning_timeleft > 0) {
@@ -537,20 +463,12 @@ void print_data(data_t *data)
 	print_physmem_info(data);
 	print_warning();
 	
-	switch (op_mode) {
-	case OP_TASKS:
-		print_tasks_head();
-		print_tasks(data);
+	switch (screen_mode) {
+	case SCREEN_TABLE:
+		print_table_head(&data->table);
+		print_table(&data->table);
 		break;
-	case OP_IPC:
-		print_ipc_head();
-		print_ipc(data);
-		break;
-	case OP_EXCS:
-		print_excs_head();
-		print_excs(data);
-		break;
-	case OP_HELP:
+	case SCREEN_HELP:
 		print_help_head();
 		print_help();
 	}

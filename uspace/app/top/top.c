@@ -54,9 +54,81 @@
 #define HOUR    3600
 #define MINUTE  60
 
-op_mode_t op_mode = OP_TASKS;
+typedef enum {
+	OP_TASKS,
+	OP_IPC,
+	OP_EXCS,
+} op_mode_t;
+
+screen_mode_t screen_mode = SCREEN_TABLE;
+static op_mode_t op_mode = OP_TASKS;
 sort_mode_t sort_mode = SORT_TASK_CYCLES;
-bool excs_all = false;
+static bool excs_all = false;
+
+static const column_t task_columns[] = {
+	{"taskid",   't',  8},
+	{"thrds",    'h',  7},
+	{"resident", 'r', 10},
+	{"%resi",    'R',  7},
+	{"virtual",  'v',  9},
+	{"%virt",    'V',  7},
+	{"%user",    'U',  7},
+	{"%kern",    'K',  7},
+	{"name",     'd',  0},
+};
+
+enum {
+	TASK_COL_ID = 0,
+	TASK_COL_NUM_THREADS,
+	TASK_COL_RESIDENT,
+	TASK_COL_PERCENT_RESIDENT,
+	TASK_COL_VIRTUAL,
+	TASK_COL_PERCENT_VIRTUAL,
+	TASK_COL_PERCENT_USER,
+	TASK_COL_PERCENT_KERNEL,
+	TASK_COL_NAME,
+	TASK_NUM_COLUMNS,
+};
+
+static const column_t ipc_columns[] = {
+	{"taskid",  't', 8},
+	{"cls snt", 'c', 9},
+	{"cls rcv", 'C', 9},
+	{"ans snt", 'a', 9},
+	{"ans rcv", 'A', 9},
+	{"forward", 'f', 9},
+	{"name",    'd', 0},
+};
+
+enum {
+	IPC_COL_TASKID = 0,
+	IPC_COL_CLS_SNT,
+	IPC_COL_CLS_RCV,
+	IPC_COL_ANS_SNT,
+	IPC_COL_ANS_RCV,
+	IPC_COL_FORWARD,
+	IPC_COL_NAME,
+	IPC_NUM_COLUMNS,
+};
+
+static const column_t exception_columns[] = {
+	{"exc",         'e',  8},
+	{"count",       'n', 10},
+	{"%count",      'N',  8},
+	{"cycles",      'c', 10},
+	{"%cycles",     'C',  9},
+	{"description", 'd',  0},
+};
+
+enum {
+	EXCEPTION_COL_ID = 0,
+	EXCEPTION_COL_COUNT,
+	EXCEPTION_COL_PERCENT_COUNT,
+	EXCEPTION_COL_CYCLES,
+	EXCEPTION_COL_PERCENT_CYCLES,
+	EXCEPTION_COL_DESCRIPTION,
+	EXCEPTION_NUM_COLUMNS,
+};
 
 static const char *read_data(data_t *target)
 {
@@ -75,6 +147,11 @@ static const char *read_data(data_t *target)
 	target->kcycles_diff = NULL;
 	target->ecycles_diff = NULL;
 	target->ecount_diff = NULL;
+	target->table.name = NULL;
+	target->table.num_columns = 0;
+	target->table.columns = NULL;
+	target->table.num_fields = 0;
+	target->table.fields = NULL;
 	
 	/* Get current time */
 	struct timeval time;
@@ -315,6 +392,132 @@ static void sort_data(data_t *data)
 	    sizeof(size_t), cmp_data, (void *) data);
 }
 
+static const char *fill_task_table(data_t *data)
+{
+	data->table.name = "Tasks";
+	data->table.num_columns = TASK_NUM_COLUMNS;
+	data->table.columns = task_columns;
+	data->table.num_fields = data->tasks_count * TASK_NUM_COLUMNS;
+	data->table.fields = calloc(data->table.num_fields,
+	    sizeof(field_t));
+	if (data->table.fields == NULL)
+		return "Not enough memory for table fields";
+
+	field_t *field = data->table.fields;
+	for (size_t i = 0; i < data->tasks_count; i++) {
+		stats_task_t *task = data->tasks + data->tasks_map[i];
+		perc_task_t *perc = data->tasks_perc + data->tasks_map[i];
+		field[TASK_COL_ID].type = FIELD_UINT;
+		field[TASK_COL_ID].uint = task->task_id;
+		field[TASK_COL_NUM_THREADS].type = FIELD_UINT;
+		field[TASK_COL_NUM_THREADS].uint = task->threads;
+		field[TASK_COL_RESIDENT].type = FIELD_UINT_SUFFIX_BIN;
+		field[TASK_COL_RESIDENT].uint = task->resmem;
+		field[TASK_COL_PERCENT_RESIDENT].type = FIELD_PERCENT;
+		field[TASK_COL_PERCENT_RESIDENT].fixed = perc->resmem;
+		field[TASK_COL_VIRTUAL].type = FIELD_UINT_SUFFIX_BIN;
+		field[TASK_COL_VIRTUAL].uint = task->virtmem;
+		field[TASK_COL_PERCENT_VIRTUAL].type = FIELD_PERCENT;
+		field[TASK_COL_PERCENT_VIRTUAL].fixed = perc->virtmem;
+		field[TASK_COL_PERCENT_USER].type = FIELD_PERCENT;
+		field[TASK_COL_PERCENT_USER].fixed = perc->ucycles;
+		field[TASK_COL_PERCENT_KERNEL].type = FIELD_PERCENT;
+		field[TASK_COL_PERCENT_KERNEL].fixed = perc->kcycles;
+		field[TASK_COL_NAME].type = FIELD_STRING;
+		field[TASK_COL_NAME].string = task->name;
+		field += TASK_NUM_COLUMNS;
+	}
+
+	return NULL;
+}
+
+static const char *fill_ipc_table(data_t *data)
+{
+	data->table.name = "IPC";
+	data->table.num_columns = IPC_NUM_COLUMNS;
+	data->table.columns = ipc_columns;
+	data->table.num_fields = data->tasks_count * IPC_NUM_COLUMNS;
+	data->table.fields = calloc(data->table.num_fields,
+	    sizeof(field_t));
+	if (data->table.fields == NULL)
+		return "Not enough memory for table fields";
+
+	field_t *field = data->table.fields;
+	for (size_t i = 0; i < data->tasks_count; i++) {
+		field[IPC_COL_TASKID].type = FIELD_UINT;
+		field[IPC_COL_TASKID].uint = data->tasks[i].task_id;
+		field[IPC_COL_CLS_SNT].type = FIELD_UINT_SUFFIX_DEC;
+		field[IPC_COL_CLS_SNT].uint = data->tasks[i].ipc_info.call_sent;
+		field[IPC_COL_CLS_RCV].type = FIELD_UINT_SUFFIX_DEC;
+		field[IPC_COL_CLS_RCV].uint = data->tasks[i].ipc_info.call_received;
+		field[IPC_COL_ANS_SNT].type = FIELD_UINT_SUFFIX_DEC;
+		field[IPC_COL_ANS_SNT].uint = data->tasks[i].ipc_info.answer_sent;
+		field[IPC_COL_ANS_RCV].type = FIELD_UINT_SUFFIX_DEC;
+		field[IPC_COL_ANS_RCV].uint = data->tasks[i].ipc_info.answer_received;
+		field[IPC_COL_FORWARD].type = FIELD_UINT_SUFFIX_DEC;
+		field[IPC_COL_FORWARD].uint = data->tasks[i].ipc_info.forwarded;
+		field[IPC_COL_NAME].type = FIELD_STRING;
+		field[IPC_COL_NAME].string = data->tasks[i].name;
+		field += IPC_NUM_COLUMNS;
+	}
+
+	return NULL;
+}
+
+static const char *fill_exception_table(data_t *data)
+{
+	data->table.name = "Exceptions";
+	data->table.num_columns = EXCEPTION_NUM_COLUMNS;
+	data->table.columns = exception_columns;
+	data->table.num_fields = data->exceptions_count *
+	    EXCEPTION_NUM_COLUMNS;
+	data->table.fields = calloc(data->table.num_fields, sizeof(field_t));
+	if (data->table.fields == NULL)
+		return "Not enough memory for table fields";
+
+	field_t *field = data->table.fields;
+	for (size_t i = 0; i < data->exceptions_count; i++) {
+		if (!excs_all && !data->exceptions[i].hot)
+			continue;
+		field[EXCEPTION_COL_ID].type = FIELD_UINT;
+		field[EXCEPTION_COL_ID].uint = data->exceptions[i].id;
+		field[EXCEPTION_COL_COUNT].type = FIELD_UINT_SUFFIX_DEC;
+		field[EXCEPTION_COL_COUNT].uint = data->exceptions[i].count;
+		field[EXCEPTION_COL_PERCENT_COUNT].type = FIELD_PERCENT;
+		field[EXCEPTION_COL_PERCENT_COUNT].fixed = data->exceptions_perc[i].count;
+		field[EXCEPTION_COL_CYCLES].type = FIELD_UINT_SUFFIX_DEC;
+		field[EXCEPTION_COL_CYCLES].uint = data->exceptions[i].cycles;
+		field[EXCEPTION_COL_PERCENT_CYCLES].type = FIELD_PERCENT;
+		field[EXCEPTION_COL_PERCENT_CYCLES].fixed = data->exceptions_perc[i].cycles;
+		field[EXCEPTION_COL_DESCRIPTION].type = FIELD_STRING;
+		field[EXCEPTION_COL_DESCRIPTION].string = data->exceptions[i].desc;
+		field += EXCEPTION_NUM_COLUMNS;
+	}
+
+	/* in case any cold exceptions were ignored */
+	data->table.num_fields = field - data->table.fields;
+
+	return NULL;
+}
+
+static const char *fill_table(data_t *data)
+{
+	if (data->table.fields != NULL) {
+		free(data->table.fields);
+		data->table.fields = NULL;
+	}
+
+	switch (op_mode) {
+		case OP_TASKS:
+			return fill_task_table(data);
+		case OP_IPC:
+			return fill_ipc_table(data);
+		case OP_EXCS:
+			return fill_exception_table(data);
+	}
+	return NULL;
+}
+
 static void free_data(data_t *target)
 {
 	if (target->load != NULL)
@@ -355,6 +558,9 @@ static void free_data(data_t *target)
 	
 	if (target->ecount_diff != NULL)
 		free(target->ecount_diff);
+
+	if (target->table.fields != NULL)
+		free(target->table.fields);
 }
 
 int main(int argc, char *argv[])
@@ -388,22 +594,29 @@ int main(int argc, char *argv[])
 				free_data(&data_prev);
 				break;
 			case 't':
+				screen_mode = SCREEN_TABLE;
 				op_mode = OP_TASKS;
 				break;
 			case 'i':
+				screen_mode = SCREEN_TABLE;
 				op_mode = OP_IPC;
 				break;
 			case 'e':
+				screen_mode = SCREEN_TABLE;
 				op_mode = OP_EXCS;
 				break;
 			case 'h':
 			case '?':
-				op_mode = OP_HELP;
+				if (screen_mode == SCREEN_HELP)
+					screen_mode = SCREEN_TABLE;
+				else
+					screen_mode = SCREEN_HELP;
 				break;
 			case 'q':
 				goto out;
 			case 'a':
 				if (op_mode == OP_EXCS) {
+					screen_mode = SCREEN_TABLE;
 					excs_all = !excs_all;
 					if (excs_all)
 						show_warning("Showing all exceptions");
@@ -418,6 +631,9 @@ int main(int argc, char *argv[])
 		}
 
 		sort_data(&data);
+		if ((ret = fill_table(&data)) != NULL) {
+			goto out;
+		}
 		print_data(&data);
 	}
 	
