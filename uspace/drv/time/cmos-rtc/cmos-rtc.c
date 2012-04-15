@@ -388,6 +388,11 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	/* Force 24h mode of operation */
 	rtc_register_write(rtc, RTC_STATUS_B, reg_b | RTC_MASK_24H);
 
+	if (rtc_register_read(rtc, RTC_YEAR) < 100) {
+		/* The RTC epoch is year 2000 */
+		t->tm_year -= 100;
+	}
+
 	/* Check if the rtc is working in bcd mode */
 	bcd_mode = !(reg_b & RTC_MASK_BCD);
 	if (bcd_mode) {
