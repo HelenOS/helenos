@@ -74,6 +74,42 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
 	return (int) IPC_GET_ARG1(answer);
 }
 
+/** Set the current time
+ *
+ * @param sess   Session of the device
+ * @param t      The current time that will be written to the device
+ *
+ * @return       EOK on success or a negative error code
+ */
+int
+clock_dev_time_set(async_sess_t *sess, struct tm *t)
+{
+	ipc_call_t answer;
+	aid_t req;
+	int ret;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	req = async_send_1(exch, DEV_IFACE_ID(CLOCK_DEV_IFACE),
+	    CLOCK_DEV_TIME_SET, &answer);
+	ret = async_data_write_start(exch, t, sizeof(*t));
+
+	async_exchange_end(exch);
+
+	sysarg_t rc;
+	if (ret != EOK) {
+		async_wait_for(req, &rc);
+		if (rc == EOK)
+			return ret;
+	}
+
+	async_wait_for(req, &rc);
+	if ((int) rc != EOK)
+		return ret;
+
+	return (int) IPC_GET_ARG1(answer);
+}
+
 /** @}
  */
 
