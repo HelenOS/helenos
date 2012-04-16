@@ -40,6 +40,13 @@
 #include <sys/types.h>
 #include "libext4.h"
 
+/** Set bit in bitmap to 0 (free).
+ *
+ * Index must be checked by caller, if it's not out of bounds.
+ *
+ * @param bitmap	pointer to bitmap
+ * @param index		index of bit in bitmap
+ */
 void ext4_bitmap_free_bit(uint8_t *bitmap, uint32_t index)
 {
 	uint32_t byte_index = index / 8;
@@ -50,6 +57,14 @@ void ext4_bitmap_free_bit(uint8_t *bitmap, uint32_t index)
 	*target &= ~ (1 << bit_index);
 }
 
+/** Free continous set of bits (set to 0).
+ *
+ * Index and count must be checked by caller, if they aren't out of bounds.
+ *
+ * @param bitmap	pointer to bitmap
+ * @param index		index of first bit to zeroed
+ * @param count		number of bits to be zeroed
+ */
 void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 {
 	uint8_t *target;
@@ -57,6 +72,7 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 	uint32_t remaining = count;
 	uint32_t byte_index;
 
+	// Align index to multiple of 8
 	while (((idx % 8) != 0) && (remaining > 0)) {
 
 		byte_index = idx / 8;
@@ -70,6 +86,7 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 		remaining--;
 	}
 
+	// For < 8 bits this check necessary
 	if (remaining == 0) {
 		return;
 	}
@@ -79,6 +96,7 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 	byte_index = idx / 8;
 	target = bitmap + byte_index;
 
+	// Zero the whole bytes
 	while (remaining >= 8) {
 		*target = 0;
 
@@ -89,6 +107,7 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 
 	assert(remaining < 8);
 
+	// Zero remaining bytes
 	while (remaining != 0) {
 
 		byte_index = idx / 8;
@@ -103,6 +122,11 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 	}
 }
 
+/** Set bit in bitmap to 1 (used).
+ *
+ * @param bitmap	pointer to bitmap
+ * @param index		index of bit to set
+ */
 void ext4_bitmap_set_bit(uint8_t *bitmap, uint32_t index)
 {
 	uint32_t byte_index = index / 8;
@@ -113,6 +137,12 @@ void ext4_bitmap_set_bit(uint8_t *bitmap, uint32_t index)
 	*target |= 1 << bit_index;
 }
 
+/** Check if requested bit is free.
+ *
+ * @param bitmap	pointer to bitmap
+ * @param index		index of bit to be checked
+ * @return			true if bit is free, else false
+ */
 bool ext4_bitmap_is_free_bit(uint8_t *bitmap, uint32_t index)
 {
 	uint32_t byte_index = index / 8;
@@ -128,9 +158,22 @@ bool ext4_bitmap_is_free_bit(uint8_t *bitmap, uint32_t index)
 
 }
 
+/**	Try to find free byte and set the first bit as used.
+ *
+ * Walk through bitmap and try to find free byte ( == 0).
+ * If byte found, set the first bit as used.
+ *
+ * @param bitmap	pointer to bitmap
+ * @param start		index of bit, where the algorithm will begin
+ * @param index		output value - index of bit (if found free byte)
+ * @param max		maximum index of bit in bitmap
+ * @return			error code
+ */
 int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start, uint32_t *index, uint32_t max)
 {
 	uint32_t idx;
+
+	// Align idx
 	if (start % 8) {
 		idx = start + (8 - (start % 8));
 	} else {
@@ -139,6 +182,7 @@ int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start, uint
 
 	uint8_t *pos = bitmap + (idx / 8);
 
+	// Try to find free byte
 	while (idx < max) {
 
 		if (*pos == 0) {
@@ -152,9 +196,20 @@ int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start, uint
 		++pos;
 	}
 
+	// Free byte not found
 	return ENOSPC;
 }
 
+/** Try to find free bit and set it as used (1).
+ *
+ * Walk through bitmap and try to find any free bit.
+ *
+ * @param bitmap	pointer to bitmap
+ * @param start_idx	index of bit, where algorithm will begin
+ * @param index		output value - index of set bit (if found)
+ * @param max		maximum index of bit in bitmap
+ * @return			error code
+ */
 int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
 		uint32_t *index, uint32_t max)
 {
@@ -162,7 +217,7 @@ int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
 	uint32_t idx = start_idx;
 	bool byte_part = false;
 
-	// Check the rest of byte
+	// Check the rest of first byte
 	while ((idx % 8) != 0) {
 		byte_part = true;
 
@@ -179,6 +234,7 @@ int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
 		++pos;
 	}
 
+	// Check the whole bytes (255 = 11111111 binary)
 	while (idx < max) {
 
 		if ((*pos & 255) != 255) {
@@ -190,8 +246,10 @@ int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
 		++pos;
 	}
 
-
+	// If idx < max, some free bit found
 	if (idx < max) {
+
+		// Check which bit from byte is free
 		for (uint8_t i = 0; i < 8; ++i) {
 			if ((*pos & (1 << i)) == 0) {
 				// free bit found
@@ -203,6 +261,7 @@ int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
 		}
 	}
 
+	// Free bit not found
 	return ENOSPC;
 }
 
