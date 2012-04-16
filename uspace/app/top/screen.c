@@ -399,39 +399,39 @@ static inline void print_table(const table_t *table)
 		}
 
 		switch (field->type) {
-			case FIELD_EMPTY:
-				printf("%*s", width, "");
-				break;
-			case FIELD_UINT:
-				printf("%*" PRIu64, width, field->uint);
-				break;
-			case FIELD_UINT_SUFFIX_BIN: {
-				uint64_t val = field->uint;
-				const char *suffix;
-				width -= 3;
-				bin_order_suffix(val, &val, &suffix, true);
-				printf("%*" PRIu64 "%s", width, val, suffix);
-				break;
-				}
-			case FIELD_UINT_SUFFIX_DEC: {
-				uint64_t val = field->uint;
-				char suffix;
-				width -= 1;
-				order_suffix(val, &val, &suffix);
-				printf("%*" PRIu64 "%c", width, val, suffix);
-				break;
-				}
-			case FIELD_PERCENT:
-				width -= 5; /* nnn.% */
-				if (width > 2) {
-					printf("%*s", width - 2, "");
-					width = 2;
-				}
-				print_percent(field->fixed, width);
-				break;
-			case FIELD_STRING:
-				printf("%-*.*s", width, width, field->string);
-				break;
+		case FIELD_EMPTY:
+			printf("%*s", width, "");
+			break;
+		case FIELD_UINT:
+			printf("%*" PRIu64, width, field->uint);
+			break;
+		case FIELD_UINT_SUFFIX_BIN: {
+			uint64_t val = field->uint;
+			const char *suffix;
+			width -= 3;
+			bin_order_suffix(val, &val, &suffix, true);
+			printf("%*" PRIu64 "%s", width, val, suffix);
+			break;
+		}
+		case FIELD_UINT_SUFFIX_DEC: {
+			uint64_t val = field->uint;
+			char suffix;
+			width -= 1;
+			order_suffix(val, &val, &suffix);
+			printf("%*" PRIu64 "%c", width, val, suffix);
+			break;
+		}
+		case FIELD_PERCENT:
+			width -= 5; /* nnn.% */
+			if (width > 2) {
+				printf("%*s", width - 2, "");
+				width = 2;
+			}
+			print_percent(field->fixed, width);
+			break;
+		case FIELD_STRING:
+			printf("%-*.*s", width, width, field->string);
+			break;
 		}
 
 		if (column_index == table->num_columns - 1) {

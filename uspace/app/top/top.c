@@ -370,26 +370,26 @@ static int cmp_data(void *a, void *b, void *arg)
 		return -1 * sort_reverse;
 
 	switch (fa->type) {
-		case FIELD_EMPTY:
-			return 0;
-		case FIELD_UINT_SUFFIX_BIN: /* fallthrough */
-		case FIELD_UINT_SUFFIX_DEC: /* fallthrough */
-		case FIELD_UINT:
-			if (fa->uint > fb->uint)
-				return 1 * sort_reverse;
-			if (fa->uint < fb->uint)
-				return -1 * sort_reverse;
-			return 0;
-		case FIELD_PERCENT:
-			if (fa->fixed.upper * fb->fixed.lower
-			    > fb->fixed.upper * fa->fixed.lower)
-				return 1 * sort_reverse;
-			if (fa->fixed.upper * fb->fixed.lower
-			    < fb->fixed.upper * fa->fixed.lower)
-				return -1 * sort_reverse;
-			return 0;
-		case FIELD_STRING:
-			return str_cmp(fa->string, fb->string) * sort_reverse;
+	case FIELD_EMPTY:
+		return 0;
+	case FIELD_UINT_SUFFIX_BIN: /* fallthrough */
+	case FIELD_UINT_SUFFIX_DEC: /* fallthrough */
+	case FIELD_UINT:
+		if (fa->uint > fb->uint)
+			return 1 * sort_reverse;
+		if (fa->uint < fb->uint)
+			return -1 * sort_reverse;
+		return 0;
+	case FIELD_PERCENT:
+		if (fa->fixed.upper * fb->fixed.lower
+		    > fb->fixed.upper * fa->fixed.lower)
+			return 1 * sort_reverse;
+		if (fa->fixed.upper * fb->fixed.lower
+		    < fb->fixed.upper * fa->fixed.lower)
+			return -1 * sort_reverse;
+		return 0;
+	case FIELD_STRING:
+		return str_cmp(fa->string, fb->string) * sort_reverse;
 	}
 
 	return 0;
@@ -520,12 +520,12 @@ static const char *fill_table(data_t *data)
 	}
 
 	switch (op_mode) {
-		case OP_TASKS:
-			return fill_task_table(data);
-		case OP_IPC:
-			return fill_ipc_table(data);
-		case OP_EXCS:
-			return fill_exception_table(data);
+	case OP_TASKS:
+		return fill_task_table(data);
+	case OP_IPC:
+		return fill_ipc_table(data);
+	case OP_EXCS:
+		return fill_exception_table(data);
 	}
 	return NULL;
 }
@@ -626,42 +626,42 @@ int main(int argc, char *argv[])
 		}
 
 		switch (c) {
-			case -1: /* do nothing */
+		case -1: /* do nothing */
+			break;
+		case 't':
+			op_mode = OP_TASKS;
+			break;
+		case 'i':
+			op_mode = OP_IPC;
+			break;
+		case 'e':
+			op_mode = OP_EXCS;
+			break;
+		case 's':
+			screen_mode = SCREEN_SORT;
+			break;
+		case 'r':
+			sort_reverse = -sort_reverse;
+			break;
+		case 'h':
+		case '?':
+			screen_mode = SCREEN_HELP;
+			break;
+		case 'q':
+			goto out;
+		case 'a':
+			if (op_mode == OP_EXCS) {
+				excs_all = !excs_all;
+				if (excs_all)
+					show_warning("Showing all exceptions");
+				else
+					show_warning("Showing only hot exceptions");
 				break;
-			case 't':
-				op_mode = OP_TASKS;
-				break;
-			case 'i':
-				op_mode = OP_IPC;
-				break;
-			case 'e':
-				op_mode = OP_EXCS;
-				break;
-			case 's':
-				screen_mode = SCREEN_SORT;
-				break;
-			case 'r':
-				sort_reverse = -sort_reverse;
-				break;
-			case 'h':
-			case '?':
-				screen_mode = SCREEN_HELP;
-				break;
-			case 'q':
-				goto out;
-			case 'a':
-				if (op_mode == OP_EXCS) {
-					excs_all = !excs_all;
-					if (excs_all)
-						show_warning("Showing all exceptions");
-					else
-						show_warning("Showing only hot exceptions");
-					break;
-				}
-				/* fallthrough */
-			default:
-				show_warning("Unknown command \"%c\", use \"h\" for help", c);
-				continue; /* don't redraw */
+			}
+			/* fallthrough */
+		default:
+			show_warning("Unknown command \"%c\", use \"h\" for help", c);
+			continue; /* don't redraw */
 		}
 
 		if ((ret = fill_table(&data)) != NULL) {
