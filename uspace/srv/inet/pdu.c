@@ -140,10 +140,10 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 
 	/* Amount of space in the PDU available for payload */
 	spc_avail = mtu - hdr_size;
+	spc_avail -= (spc_avail % FRAG_OFFS_UNIT);
 
 	/* Amount of data (payload) to transfer */
 	xfer_size = min(packet->size - offs, spc_avail);
-	xfer_size -= (xfer_size % FRAG_OFFS_UNIT);
 
 	/* Total PDU size */
 	size = hdr_size + xfer_size;
