@@ -73,6 +73,7 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
 	log_msg(LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
 	log_msg(LVL_DEBUG, "call inet_recv_packet -> %d", rc);
+	free(packet.data);
 
 	return rc;
 }

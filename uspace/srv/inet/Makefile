@@ -38,6 +38,7 @@ SOURCES = \
 	inetcfg.c \
 	inetping.c \
 	pdu.c \
+	reass.c \
 	sroute.c
 
 include $(USPACE_PREFIX)/Makefile.common

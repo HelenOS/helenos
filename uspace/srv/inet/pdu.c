@@ -200,6 +200,8 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	size_t data_offs;
 	uint8_t version;
 	uint16_t ident;
+	uint16_t flags_foff;
+	uint16_t foff;
 
 	log_msg(LVL_DEBUG, "inet_pdu_decode()");
 
@@ -230,9 +232,9 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	}
 
 	ident = uint16_t_be2host(hdr->id);
-	(void)ident;
-	/* XXX Flags */
-	/* XXX Fragment offset */
+	flags_foff = uint16_t_be2host(hdr->flags_foff);
+	foff = BIT_RANGE_EXTRACT(uint16_t, FF_FRAGOFF_h, FF_FRAGOFF_l,
+	    flags_foff);
 	/* XXX Checksum */
 
 	packet->src.ipv4 = uint32_t_be2host(hdr->src_addr);
@@ -240,8 +242,11 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	packet->tos = hdr->tos;
 	packet->proto = hdr->proto;
 	packet->ttl = hdr->ttl;
-	packet->df = (uint16_t_be2host(hdr->tos) & BIT_V(uint16_t, FF_FLAG_DF))
-	    ? 1 : 0;
+	packet->ident = ident;
+
+	packet->df = (flags_foff & BIT_V(uint16_t, FF_FLAG_DF)) != 0;
+	packet->mf = (flags_foff & BIT_V(uint16_t, FF_FLAG_MF)) != 0;
+	packet->offs = foff * FRAG_OFFS_UNIT;
 
 	/* XXX IP options */
 	data_offs = sizeof(uint32_t) * BIT_RANGE_EXTRACT(uint8_t, VI_IHL_h,

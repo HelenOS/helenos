@@ -53,6 +53,7 @@
 #include "inetcfg.h"
 #include "inetping.h"
 #include "inet_link.h"
+#include "reass.h"
 #include "sroute.h"
 
 #define NAME "inet"
@@ -374,7 +375,7 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 	return EOK;
 }
 
-static int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
+int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 {
 	inet_client_t *client;
 
@@ -403,14 +404,20 @@ int inet_recv_packet(inet_packet_t *packet)
 	if (addr != NULL) {
 		/* Destined for one of the local addresses */
 
-		/* XXX Reassemble packets */
-		dgram.src = packet->src;
-		dgram.dest = packet->dest;
-		dgram.tos = packet->tos;
-		dgram.data = packet->data;
-		dgram.size = packet->size;
+		/* Check if packet is a complete datagram */
+		if (packet->offs == 0 && !packet->mf) {
+			/* It is complete deliver it immediately */
+			dgram.src = packet->src;
+			dgram.dest = packet->dest;
+			dgram.tos = packet->tos;
+			dgram.data = packet->data;
+			dgram.size = packet->size;
 
-		return inet_recv_dgram_local(&dgram, packet->proto);
+			return inet_recv_dgram_local(&dgram, packet->proto);
+		} else {
+			/* It is a fragment, queue it for reassembly */
+			inet_reass_queue_packet(packet);
+		}
 	}
 
 	return ENOENT;

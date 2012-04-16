@@ -38,6 +38,7 @@
 #define INET_H_
 
 #include <adt/list.h>
+#include <bool.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
 #include <sys/types.h>
@@ -102,13 +103,27 @@ typedef struct {
 } inet_sroute_info_t;
 
 typedef struct {
+	/** Source address */
 	inet_addr_t src;
+	/** Destination address */
 	inet_addr_t dest;
+	/** Type of service */
 	uint8_t tos;
+	/** Protocol */
 	uint8_t proto;
+	/** Time to live */
 	uint8_t ttl;
-	int df;
+	/** Identifier */
+	uint16_t ident;
+	/** Do not fragment */
+	bool df;
+	/** More fragments */
+	bool mf;
+	/** Offset of fragment into datagram, in bytes */
+	size_t offs;
+	/** Packet data */
 	void *data;
+	/** Packet data size in bytes */
 	size_t size;
 } inet_packet_t;
 
@@ -179,7 +194,7 @@ extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
 extern int inet_recv_packet(inet_packet_t *);
 extern int inet_route_packet(inet_dgram_t *, uint8_t, uint8_t, int);
 extern int inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
-
+extern int inet_recv_dgram_local(inet_dgram_t *, uint8_t);
 
 #endif
 
