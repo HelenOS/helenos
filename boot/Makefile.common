@@ -98,7 +98,6 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACE_PATH)/srv/clip/clip \
-	$(USPACE_PATH)/srv/ethip/ethip \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/fs/mfs/mfs \
@@ -106,10 +105,11 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
-	$(USPACE_PATH)/srv/inet/inet \
+	$(USPACE_PATH)/srv/net/ethip/ethip \
+	$(USPACE_PATH)/srv/net/inet/inet \
+	$(USPACE_PATH)/srv/net/tcp/tcp \
+	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/tcp/tcp \
-	$(USPACE_PATH)/srv/udp/udp \
 	$(USPACE_PATH)/srv/devman/devman
 
 RD_DRVS = \
