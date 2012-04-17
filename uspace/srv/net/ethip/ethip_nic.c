@@ -230,7 +230,6 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
 	async_answer_0(callid, ENOTSUP);
 }
 
-#include <stdio.h>
 static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
     ipc_call_t *call)
 {
@@ -248,10 +247,6 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 
 	log_msg(LVL_DEBUG, "Ethernet PDU contents (%zu bytes)",
 	    size);
-	size_t i;
-	for (i = 0; i < size; i++)
-		printf("%02x ", ((uint8_t *)data)[i]);
-	printf("\n");
 
 	log_msg(LVL_DEBUG, "call ethip_received");
 	rc = ethip_received(&nic->iplink, data, size);

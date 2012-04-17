@@ -48,7 +48,6 @@
 #define MAC48_BYTES 6
 
 /** Encode Ethernet PDU. */
-#include <stdio.h>
 int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 {
 	void *data;
@@ -72,19 +71,12 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 	log_msg(LVL_DEBUG, "Encoding Ethernet frame src=%llx dest=%llx etype=%x",
 	    frame->src, frame->dest, frame->etype_len);
 	log_msg(LVL_DEBUG, "Encoded Ethernet frame (%zu bytes)", size);
-	size_t i;
-	for (i = 0; i < size; i++) {
-		printf("%02x ", ((uint8_t *)(data))[sizeof(eth_header_t) + i]);
-	}
-	printf("\n");
-
 
 	*rdata = data;
 	*rsize = size;
 	return EOK;
 }
 
-#include <stdio.h>
 /** Decode Ethernet PDU. */
 int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 {
@@ -114,11 +106,6 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	log_msg(LVL_DEBUG, "Decoding Ethernet frame src=%llx dest=%llx etype=%x",
 	    frame->src, frame->dest, frame->etype_len);
 	log_msg(LVL_DEBUG, "Decoded Ethernet frame payload (%zu bytes)", frame->size);
-	size_t i;
-	for (i = 0; i < frame->size; i++) {
-		printf("%02x ", ((uint8_t *)(frame->data))[i]);
-	}
-	printf("\n");
 
 	return EOK;
 }
