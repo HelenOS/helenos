@@ -50,7 +50,7 @@
 #include "pdu.h"
 #include "std.h"
 
-#define NAME "eth"
+#define NAME "ethip"
 
 static int ethip_open(iplink_srv_t *srv);
 static int ethip_close(iplink_srv_t *srv);
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": HelenOS IP over Ethernet service\n");
 
-	if (log_init(NAME, LVL_DEBUG) != EOK) {
+	if (log_init(NAME, LVL_WARN) != EOK) {
 		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}
