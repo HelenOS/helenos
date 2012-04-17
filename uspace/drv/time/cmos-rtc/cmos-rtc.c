@@ -316,9 +316,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	if (_12h_mode) {
 		/* The RTC is working in 12h mode, check if it is AM or PM */
 		if (t->tm_hour & 0x80) {
-			/* PM flag is active, it must to be cleared
-			 * or the BCD conversion will fail.
-			 */
+			/* PM flag is active, it must be cleared */
 			t->tm_hour &= ~0x80;
 			pm_mode = true;
 		}
@@ -356,7 +354,8 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	}
 
 	fibril_mutex_unlock(&rtc->mutex);
-	return EOK;
+
+	return rtc_tm_sanity_check(t);
 }
 
 /** Set the time in the RTC
@@ -385,8 +384,11 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 
 	reg_b = rtc_register_read(rtc, RTC_STATUS_B);
 
-	/* Force 24h mode of operation */
-	rtc_register_write(rtc, RTC_STATUS_B, reg_b | RTC_MASK_24H);
+	if (!(reg_b & RTC_MASK_24H)) {
+		/* Force 24h mode of operation */
+		reg_b |= RTC_MASK_24H;
+		rtc_register_write(rtc, RTC_STATUS_B, reg_b);
+	}
 
 	if (rtc_register_read(rtc, RTC_YEAR) < 100) {
 		/* The RTC epoch is year 2000 */
