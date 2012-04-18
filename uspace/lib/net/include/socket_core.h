@@ -43,7 +43,6 @@
 #include <adt/int_map.h>
 #include <net/in.h>
 #include <net/device.h>
-#include <net/packet.h>
 #include <async.h>
 
 /** Initial size of the received packet queue. */
@@ -79,8 +78,6 @@ struct socket_core {
 	async_sess_t *sess;
 	/** Bound port. */
 	int port;
-	/** Received packets queue. */
-	dyn_fifo_t received;
 	/** Sockets for acceptance queue. */
 	dyn_fifo_t accepted;
 	/** Protocol specific data. */
@@ -117,7 +114,6 @@ extern int socket_bind_free_port(socket_ports_t *, socket_core_t *, int, int,
 extern int socket_create(socket_cores_t *, async_sess_t *, void *, int *);
 extern int socket_destroy(async_sess_t *, int, socket_cores_t *,
     socket_ports_t *, void (*)(socket_core_t *));
-extern int socket_reply_packets(packet_t *, size_t *);
 extern socket_core_t *socket_port_find(socket_ports_t *, int, const uint8_t *,
     size_t);
 extern void socket_port_release(socket_ports_t *, socket_core_t *);

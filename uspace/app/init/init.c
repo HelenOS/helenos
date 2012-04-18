@@ -304,7 +304,10 @@ int main(int argc, char *argv[])
 	srv_start("/srv/s3c24ser");
 	srv_start("/srv/s3c24ts");
 	
-	spawn("/srv/net");
+	spawn("/srv/ethip");
+	spawn("/srv/inet");
+	spawn("/srv/tcp");
+	spawn("/srv/udp");
 	
 	spawn("/srv/fb");
 	spawn("/srv/input");

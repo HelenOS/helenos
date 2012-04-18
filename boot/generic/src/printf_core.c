@@ -209,7 +209,7 @@ static int print_str(char *str, int width, unsigned int precision,
 	
 	/* Print leading spaces. */
 	size_t strw = str_length(str);
-	if (precision == 0)
+	if ((precision == 0) || (precision > strw))
 		precision = strw;
 	
 	/* Left padding */
