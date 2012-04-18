@@ -42,6 +42,9 @@
 #include <string.h>
 #include "libext4.h"
 
+/** Type entry to pass to sorting algorithm.
+ *
+ */
 typedef struct ext4_dx_sort_entry {
 	uint32_t hash;
 	uint32_t rec_len;
@@ -49,82 +52,153 @@ typedef struct ext4_dx_sort_entry {
 } ext4_dx_sort_entry_t;
 
 
+/** Get hash version used in directory index.
+ *
+ * @param root_info	pointer to root info structure of index
+ * @return 			hash algorithm version
+ */
 uint8_t ext4_directory_dx_root_info_get_hash_version(
 		ext4_directory_dx_root_info_t *root_info)
 {
 	return root_info->hash_version;
 }
 
+/** Set hash version, that will be used in directory index.
+ *
+ * @param root_info		pointer to root info structure of index
+ * @param version 	 	hash algorithm version
+ */
 void ext4_directory_dx_root_info_set_hash_version(
 		ext4_directory_dx_root_info_t *root_info, uint8_t version)
 {
 	root_info->hash_version = version;
 }
 
+/** Get length of root_info structure in bytes.
+ *
+ * @param root_info	pointer to root info structure of index
+ * @return 			length of the structure
+ */
 uint8_t ext4_directory_dx_root_info_get_info_length(
 		ext4_directory_dx_root_info_t *root_info)
 {
 	return root_info->info_length;
 }
 
+/** Set length of root_info structure in bytes.
+ *
+ * @param root_info		pointer to root info structure of index
+ * @param info_length	length of the structure
+ */
 void ext4_directory_dx_root_info_set_info_length(
 		ext4_directory_dx_root_info_t *root_info, uint8_t info_length)
 {
 	root_info->info_length = info_length;
 }
 
+/** Get number of indirect levels of HTree.
+ *
+ * @param root_info	pointer to root info structure of index
+ * @return 			height of HTree (actually only 0 or 1)
+ */
 uint8_t ext4_directory_dx_root_info_get_indirect_levels(
 		ext4_directory_dx_root_info_t *root_info)
 {
 	return root_info->indirect_levels;
 }
 
+/** Set number of indirect levels of HTree.
+ *
+ * @param root_info	pointer to root info structure of index
+ * @param levels	height of HTree (actually only 0 or 1)
+ */
 void ext4_directory_dx_root_info_set_indirect_levels(
 		ext4_directory_dx_root_info_t *root_info, uint8_t levels)
 {
 	root_info->indirect_levels = levels;
 }
 
+/** Get maximum number of index node entries.
+ *
+ * @param countlimit	pointer to counlimit structure
+ * @return			 	maximum of entries in node
+ */
 uint16_t ext4_directory_dx_countlimit_get_limit(
 		ext4_directory_dx_countlimit_t *countlimit)
 {
 	return uint16_t_le2host(countlimit->limit);
 }
 
+/** Set maximum number of index node entries.
+ *
+ * @param countlimit	pointer to counlimit structure
+ * @param limit			maximum of entries in node
+ */
 void ext4_directory_dx_countlimit_set_limit(
 		ext4_directory_dx_countlimit_t *countlimit, uint16_t limit)
 {
 	countlimit->limit = host2uint16_t_le(limit);
 }
 
+/** Get current number of index node entries.
+ *
+ * @param countlimit	pointer to counlimit structure
+ * @return			 	number of entries in node
+ */
 uint16_t ext4_directory_dx_countlimit_get_count(
 		ext4_directory_dx_countlimit_t *countlimit)
 {
 	return uint16_t_le2host(countlimit->count);
 }
 
+/** Set current number of index node entries.
+ *
+ * @param countlimit	pointer to counlimit structure
+ * @param count		 	number of entries in node
+ */
 void ext4_directory_dx_countlimit_set_count(
 		ext4_directory_dx_countlimit_t *countlimit, uint16_t count)
 {
 	countlimit->count = host2uint16_t_le(count);
 }
 
+/** Get hash value of index entry.
+ *
+ * @param entry		pointer to index entry
+ * @return          hash value
+ */
 uint32_t ext4_directory_dx_entry_get_hash(ext4_directory_dx_entry_t *entry)
 {
 	return uint32_t_le2host(entry->hash);
 }
 
+
+/** Set hash value of index entry.
+ *
+ * @param entry		pointer to index entry
+ * @param hash		hash value
+ */
 void ext4_directory_dx_entry_set_hash(ext4_directory_dx_entry_t *entry,
 		uint32_t hash)
 {
 	entry->hash = host2uint32_t_le(hash);
 }
 
+/** Get block address where child node is located.
+ *
+ * @param entry		pointer to index entry
+ * @return          block address of child node
+ */
 uint32_t ext4_directory_dx_entry_get_block(ext4_directory_dx_entry_t *entry)
 {
 	return uint32_t_le2host(entry->block);
 }
 
+/** Set block address where child node is located.
+ *
+ * @param entry		pointer to index entry
+ * @param block		block address of child node
+ */
 void ext4_directory_dx_entry_set_block(ext4_directory_dx_entry_t *entry,
 		uint32_t block)
 {
@@ -134,6 +208,9 @@ void ext4_directory_dx_entry_set_block(ext4_directory_dx_entry_t *entry,
 
 /**************************************************************************/
 
+/** TODO comment all function
+ *
+ */
 int ext4_directory_dx_init(ext4_inode_ref_t *dir)
 {
 	int rc;
@@ -157,6 +234,8 @@ int ext4_directory_dx_init(ext4_inode_ref_t *dir)
 	ext4_directory_entry_ll_t *dot = (ext4_directory_entry_ll_t *)&root->dots[0];
 	ext4_directory_entry_ll_t *dot_dot = (ext4_directory_entry_ll_t *)&root->dots[1];
 
+
+	// TODO why the commented lines??
 	EXT4FS_DBG("dot len = \%u, dotdot len = \%u", ext4_directory_entry_ll_get_entry_length(dot), ext4_directory_entry_ll_get_entry_length(dot_dot));
 
 //	uint32_t block_size = ext4_superblock_get_block_size(dir->fs->superblock);
