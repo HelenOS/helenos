@@ -127,7 +127,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		search = &sbi->zsearch;
 		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
-			printf(NAME ": Error! Trying to free beyond the" \
+			printf(NAME ": Error! Trying to free beyond the "
 			    "bitmap max size\n");
 			return -1;
 		}
@@ -136,7 +136,7 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 		search = &sbi->isearch;
 		start_block = 2;
 		if (idx > sbi->ninodes) {
-			printf(NAME ": Error! Trying to free beyond the" \
+			printf(NAME ": Error! Trying to free beyond the "
 			    "bitmap max size\n");
 			return -1;
 		}
