@@ -401,8 +401,10 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 		rtc_register_write(rtc, RTC_STATUS_B, reg_b);
 	}
 
-	if (rtc_register_read(rtc, RTC_YEAR) < 100) {
-		/* The RTC epoch is year 2000 */
+	if (epoch == 2000) {
+		/* The RTC epoch is year 2000  but the tm_year
+		 * field counts years since 1900.
+		 */
 		t->tm_year -= 100;
 	}
 
@@ -466,7 +468,7 @@ rtc_tm_sanity_check(struct tm *t, int epoch)
 		return EINVAL;
 	else if (epoch == 2000 && t->tm_year < 100)
 		return EINVAL;
-	else if (t->tm_year < 0)
+	else if (t->tm_year < 0 || t->tm_year > 199)
 		return EINVAL;
 
 	if (t->tm_mon == 1/* FEB */ && is_leap_year(t->tm_year))
