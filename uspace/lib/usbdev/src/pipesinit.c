@@ -30,20 +30,17 @@
  * @{
  */
 /** @file
- * Initialization of endpoint pipes.
+ * Non trivial initialization of endpoint pipes.
  *
  */
 #include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
-#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
 
-#define CTRL_PIPE_MIN_PACKET_SIZE 8
 #define DEV_DESCR_MAX_PACKET_SIZE_OFFSET 7
-
 
 #define NESTING(parentname, childname) \
 	{ \
@@ -53,7 +50,7 @@
 #define LAST_NESTING { -1, -1 }
 
 /** Nesting pairs of standard descriptors. */
-static usb_dp_descriptor_nesting_t descriptor_nesting[] = {
+static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 	NESTING(CONFIGURATION, INTERFACE),
 	NESTING(INTERFACE, ENDPOINT),
 	NESTING(INTERFACE, HUB),
@@ -328,61 +325,6 @@ int usb_pipe_initialize_from_configuration(
 	return EOK;
 }
 
-/** Initialize USB endpoint pipe.
- *
- * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
- * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
- * @param transfer_type Transfer type (e.g. interrupt or bulk).
- * @param max_packet_size Maximum packet size in bytes.
- * @param direction Endpoint direction (in/out).
- * @return Error code.
- */
-int usb_pipe_initialize(usb_pipe_t *pipe,
-    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
-    usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_direction_t direction)
-{
-	assert(pipe);
-	assert(connection);
-
-	fibril_mutex_initialize(&pipe->guard);
-	pipe->wire = connection;
-	pipe->hc_sess = NULL;
-	fibril_mutex_initialize(&pipe->hc_sess_mutex);
-	pipe->endpoint_no = endpoint_no;
-	pipe->transfer_type = transfer_type;
-	pipe->max_packet_size = max_packet_size;
-	pipe->direction = direction;
-	pipe->refcount = 0;
-	pipe->refcount_soft = 0;
-	pipe->auto_reset_halt = false;
-
-	return EOK;
-}
-
-
-/** Initialize USB endpoint pipe as the default zero control pipe.
- *
- * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
- * @return Error code.
- */
-int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
-    usb_device_connection_t *connection)
-{
-	assert(pipe);
-	assert(connection);
-
-	int rc = usb_pipe_initialize(pipe, connection,
-	    0, USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE,
-	    USB_DIRECTION_BOTH);
-
-	pipe->auto_reset_halt = true;
-
-	return rc;
-}
-
 /** Probe default control pipe for max packet size.
  *
  * The function tries to get the correct value of max packet size several
@@ -404,17 +346,13 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 		return EINVAL;
 	}
 
-#define TRY_LOOP(attempt_var) \
-	for (attempt_var = 0; attempt_var < 3; attempt_var++)
-
-	size_t failed_attempts;
-	int rc;
 
 	usb_pipe_start_long_transfer(pipe);
 
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;
-	TRY_LOOP(failed_attempts) {
+	int rc;
+	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
 		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
 		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
 		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
@@ -436,62 +374,6 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	    = dev_descr_start[DEV_DESCR_MAX_PACKET_SIZE_OFFSET];
 
 	return EOK;
-}
-
-/** Register endpoint with the host controller.
- *
- * @param pipe Pipe to be registered.
- * @param interval Polling interval.
- * @param hc_connection Connection to the host controller (must be opened).
- * @return Error code.
- */
-int usb_pipe_register(usb_pipe_t *pipe, unsigned interval,
-    usb_hc_connection_t *hc_connection)
-{
-	assert(pipe);
-	assert(hc_connection);
-
-	if (!usb_hc_connection_is_opened(hc_connection))
-		return EBADF;
-
-	const usb_target_t target =
-	    {{ .address = pipe->wire->address, .endpoint = pipe->endpoint_no }};
-#define _PACK2(high, low) (((high & 0xffff) << 16) | (low & 0xffff))
-
-	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REGISTER_ENDPOINT, target.packed,
-	    _PACK2(pipe->transfer_type, pipe->direction),
-	    _PACK2(pipe->max_packet_size, interval));
-	async_exchange_end(exch);
-
-#undef _PACK2
-	return rc;
-}
-
-/** Revert endpoint registration with the host controller.
- *
- * @param pipe Pipe to be unregistered.
- * @param hc_connection Connection to the host controller (must be opened).
- * @return Error code.
- */
-int usb_pipe_unregister(usb_pipe_t *pipe,
-    usb_hc_connection_t *hc_connection)
-{
-	assert(pipe);
-	assert(pipe->wire);
-	assert(hc_connection);
-	
-	if (!usb_hc_connection_is_opened(hc_connection))
-		return EBADF;
-	
-	async_exch_t *exch = async_exchange_begin(hc_connection->hc_sess);
-	int rc = async_req_4_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_UNREGISTER_ENDPOINT,
-	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
-	async_exchange_end(exch);
-	
-	return rc;
 }
 
 /**

@@ -40,9 +40,11 @@
 #include <libarch/tls.h>
 
 #define context_set_generic(c, _pc, stack, size, ptls) \
-	(c)->pc = (sysarg_t) (_pc); \
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
-	(c)->tls = (sysarg_t) (ptls);
+	do { \
+		(c)->pc = (sysarg_t) (_pc); \
+		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+		(c)->tls = (sysarg_t) (ptls); \
+	} while (0)
 
 #define FIBRIL_SERIALIZED  1
 #define FIBRIL_WRITER      2

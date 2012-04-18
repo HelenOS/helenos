@@ -62,7 +62,7 @@ struct hcd {
 };
 /*----------------------------------------------------------------------------*/
 /** Initialize hcd_t structure.
- * Initializes device and endpoint managers. Sets data nd hook pointer to NULL.
+ * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
  * @param hcd hcd_t structure to initialize, non-null.
  * @param bandwidth Available bandwidth, passed to endpoint manager.
  * @param bw_count Bandwidth compute function, passed to endpoint manager.

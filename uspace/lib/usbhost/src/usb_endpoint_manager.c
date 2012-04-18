@@ -25,6 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/**  @addtogroup libusbhost
+ * @{
+ */
+/** @file
+ * HC Endpoint management.
+ */
 
 #include <bool.h>
 #include <assert.h>
@@ -55,7 +61,7 @@ static inline bool ep_match(const endpoint_t *ep,
 	    && (address == ep->address);
 }
 /*----------------------------------------------------------------------------*/
-/** Get list that holds endpints for given address.
+/** Get list that holds endpoints for given address.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param addr USB address, must be >= 0.
  * @return Pointer to the appropriate list.
@@ -74,6 +80,7 @@ static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
  * @param direction Communication direction.
  * @return Pointer to endpoint_t structure representing given communication
  * target, NULL if there is no such endpoint registered.
+ * @note Assumes that the internal mutex is locked.
  */
 static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
@@ -168,6 +175,7 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
  * @param[in] data Setup packet data.
  *
  * Really ugly one. Resets toggle bit on all endpoints that need it.
+ * @TODO Use tools from libusbdev requests.h
  */
 void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
     usb_target_t target, const uint8_t data[8])
@@ -183,6 +191,7 @@ void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
 	{
 	case 0x01: /* Clear Feature -- resets only cleared ep */
 		/* Recipient is endpoint, value is zero (ENDPOINT_STALL) */
+		// TODO Use macros in libusbdev requests.h
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			fibril_mutex_lock(&instance->guard);
 			/* endpoint number is < 16, thus first byte is enough */
@@ -201,7 +210,9 @@ void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
 	case 0x11: /* Set Interface */
 		/* Recipient must be device, this resets all endpoints,
 		 * In fact there should be no endpoints but EP 0 registered
-		 * as different interfaces use different endpoints. */
+		 * as different interfaces use different endpoints,
+		 * unless you're changing configuration or alternative
+		 * interface of an already setup device. */
 		if ((data[0] & 0xf) == 0) {
 			fibril_mutex_lock(&instance->guard);
 			list_foreach(*get_list(instance, target.address), it) {
@@ -384,6 +395,15 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Unregister and destroy all endpoints using given address.
+ * @param instance usb_endpoint_manager structure, non-null.
+ * @param address USB address.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction.
+ * @param callback Function to call after unregister, before destruction.
+ * @arg Argument to pass to the callback function.
+ * @return Error code.
+ */
 void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
     usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg)
 {
@@ -402,3 +422,6 @@ void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
+/**
+ * @}
+ */

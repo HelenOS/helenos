@@ -225,8 +225,8 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	uintptr_t base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	size_t mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 	
-	as_area_t *area = as_area_create(as, flags, mem_sz, base,
-	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data);
+	as_area_t *area = as_area_create(as, flags, mem_sz,
+	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data, &base, 0);
 	if (!area)
 		return EE_MEMORY;
 	

@@ -1308,12 +1308,13 @@ static bool devman_init(void)
 	}
 
 	/*
-	 * !!! devman_connection ... as the device manager is not a real loc
-	 * driver (it uses a completely different ipc protocol than an ordinary
-	 * loc driver) forwarding a connection from client to the devman by
-	 * location service would not work.
+	 * Caution: As the device manager is not a real loc
+	 * driver (it uses a completely different IPC protocol
+	 * than an ordinary loc driver), forwarding a connection
+	 * from client to the devman by location service will
+	 * not work.
 	 */
-	loc_server_register(NAME, devman_connection);
+	loc_server_register(NAME);
 	
 	return true;
 }
@@ -1326,16 +1327,16 @@ int main(int argc, char *argv[])
 		printf(NAME ": Error initializing logging subsystem.\n");
 		return -1;
 	}
-
-	if (!devman_init()) {
-		log_msg(LVL_ERROR, "Error while initializing service.");
-		return -1;
-	}
 	
 	/* Set handlers for incoming connections. */
 	async_set_client_data_constructor(devman_client_data_create);
 	async_set_client_data_destructor(devman_client_data_destroy);
 	async_set_client_connection(devman_connection);
+
+	if (!devman_init()) {
+		log_msg(LVL_ERROR, "Error while initializing service.");
+		return -1;
+	}
 
 	/* Register device manager at naming service. */
 	if (service_register(SERVICE_DEVMAN) != EOK) {

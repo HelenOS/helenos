@@ -46,12 +46,18 @@
 #define OHCI_USED_INTERRUPTS \
     (I_SO | I_WDH | I_UE | I_RHSC)
 
-static const irq_cmd_t ohci_irq_commands[] =
-{
-	{ .cmd = CMD_MEM_READ_32, .dstarg = 1, .addr = NULL /*filled later*/ },
+static const irq_pio_range_t ohci_pio_ranges[] = {
+	{
+		.base = 0,	/* filled later */
+		.size = sizeof(ohci_regs_t)
+	}
+};
+
+static const irq_cmd_t ohci_irq_commands[] = {
+	{ .cmd = CMD_PIO_READ_32, .dstarg = 1, .addr = NULL /* filled later */ },
 	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2, .value = OHCI_USED_INTERRUPTS },
 	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
-	{ .cmd = CMD_MEM_WRITE_A_32, .srcarg = 1, .addr = NULL /*filled later*/ },
+	{ .cmd = CMD_PIO_WRITE_A_32, .srcarg = 1, .addr = NULL /* filled later */ },
 	{ .cmd = CMD_ACCEPT },
 };
 
@@ -62,6 +68,15 @@ static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
 static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 /*----------------------------------------------------------------------------*/
+/** Get number of PIO ranges used in IRQ code.
+ * @return Number of ranges.
+ */
+size_t hc_irq_pio_range_count(void)
+{
+	return sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t);
+}
+/*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
  */
@@ -70,48 +85,33 @@ size_t hc_irq_cmd_count(void)
 	return sizeof(ohci_irq_commands) / sizeof(irq_cmd_t);
 }
 /*----------------------------------------------------------------------------*/
-/** Generate IRQ code commands.
- * @param[out] cmds Place to store the commands.
- * @param[in] cmd_size Size of the place (bytes).
+/** Generate IRQ code.
+ * @param[out] ranges PIO ranges buffer.
+ * @param[in] ranges_size Size of the ranges buffer (bytes).
+ * @param[out] cmds Commands buffer.
+ * @param[in] cmds_size Size of the commands buffer (bytes).
  * @param[in] regs Physical address of device's registers.
  * @param[in] reg_size Size of the register area (bytes).
  *
  * @return Error code.
  */
-int hc_get_irq_commands(
-    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size)
+int
+hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
+    size_t cmds_size, uintptr_t regs, size_t reg_size)
 {
-	if (cmd_size < sizeof(ohci_irq_commands)
-	    || reg_size < sizeof(ohci_regs_t))
+	if ((ranges_size < sizeof(ohci_pio_ranges)) ||
+	    (cmds_size < sizeof(ohci_irq_commands)) ||
+	    (reg_size < sizeof(ohci_regs_t)))
 		return EOVERFLOW;
 
-	/* Create register mapping to use in IRQ handler.
-	 * This mapping should be present in kernel only.
-	 * Remove it from here when kernel knows how to create mappings
-	 * and accepts physical addresses in IRQ code.
-	 * TODO: remove */
-	ohci_regs_t *registers;
-	const int ret = pio_enable((void*)regs, reg_size, (void**)&registers);
-	if (ret != EOK)
-		return ret;
-
-	/* Some bogus access to force create mapping. DO NOT remove,
-	 * unless whole virtual addresses in irq is replaced
-	 * NOTE: Compiler won't remove this as ohci_regs_t members
-	 * are declared volatile.
-	 *
-	 * Introducing CMD_MEM set of IRQ code commands broke
-	 * assumption that IRQ code does not cause page faults.
-	 * If this happens during idling (THREAD == NULL)
-	 * it causes kernel panic.
-	 */
-	registers->revision;
+	memcpy(ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
+	ranges[0].base = regs;
 
 	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
+	ohci_regs_t *registers = (ohci_regs_t *) regs;
+	cmds[0].addr = (void *) &registers->interrupt_status;
+	cmds[3].addr = (void *) &registers->interrupt_status;
 
-	void *address = (void*)&registers->interrupt_status;
-	cmds[0].addr = address;
-	cmds[3].addr = address;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -136,8 +136,6 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 		    str_error(ret));
 		return ret;
 	}
-	usb_device_manager_bind_address(&instance->generic.dev_manager,
-	    instance->rh.address, hub_fun->handle);
 
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -149,6 +147,7 @@ if (ret != EOK) { \
 	    &instance->generic.dev_manager, instance->rh.address); \
 	return ret; \
 } else (void)0
+
 	ret = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, instance->rh.address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
@@ -164,6 +163,12 @@ if (ret != EOK) { \
 	ret = ddf_fun_bind(hub_fun);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
+
+	ret = usb_device_manager_bind_address(&instance->generic.dev_manager,
+	    instance->rh.address, hub_fun->handle);
+	if (ret != EOK)
+		usb_log_warning("Failed to bind root hub address: %s.\n",
+		    str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_RELEASE

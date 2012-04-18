@@ -62,11 +62,6 @@ static kbd_dev_t *kbd_dev;
 
 #define POLL_INTERVAL  10000
 
-/**
- * Virtual address mapped to the buffer shared with the kernel counterpart.
- */
-static uintptr_t input_buffer_addr;
-
 /*
  * Kernel counterpart of the driver pushes characters (it has read) here.
  * Keep in sync with the definition from
@@ -101,17 +96,13 @@ static int niagara_port_init(kbd_dev_t *kdev)
 	if (sysinfo_get_value("niagara.inbuf.address", &paddr) != EOK)
 		return -1;
 	
-	input_buffer_addr = (uintptr_t) as_get_mappable_page(PAGE_SIZE);
-	int rc = physmem_map((void *) paddr, (void *) input_buffer_addr,
-	    1, AS_AREA_READ | AS_AREA_WRITE);
-	
+	int rc = physmem_map((void *) paddr, 1,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &input_buffer);
 	if (rc != 0) {
 		printf("Niagara: uspace driver couldn't map physical memory: %d\n",
 		    rc);
 		return rc;
 	}
-	
-	input_buffer = (input_buffer_t) input_buffer_addr;
 	
 	thread_id_t tid;
 	rc = thread_create(niagara_thread_impl, NULL, "kbd_poll", &tid);

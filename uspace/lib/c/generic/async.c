@@ -188,6 +188,12 @@ typedef struct {
 	
 	/** If reply was received. */
 	bool done;
+
+	/** If the message / reply should be discarded on arrival. */
+	bool forget;
+
+	/** If already destroyed. */
+	bool destroyed;
 	
 	/** Pointer to where the answer data is stored. */
 	ipc_call_t *dataptr;
@@ -240,6 +246,54 @@ typedef struct {
 /** Identifier of the incoming connection handled by the current fibril. */
 static fibril_local connection_t *fibril_connection;
 
+static void to_event_initialize(to_event_t *to)
+{
+	struct timeval tv = { 0, 0 };
+
+	to->inlist = false;
+	to->occurred = false;
+	link_initialize(&to->link);
+	to->expires = tv;
+}
+
+static void wu_event_initialize(wu_event_t *wu)
+{
+	wu->inlist = false;
+	link_initialize(&wu->link);
+}
+
+void awaiter_initialize(awaiter_t *aw)
+{
+	aw->fid = 0;
+	aw->active = false;
+	to_event_initialize(&aw->to_event);
+	wu_event_initialize(&aw->wu_event);
+}
+
+static amsg_t *amsg_create(void)
+{
+	amsg_t *msg;
+
+	msg = malloc(sizeof(amsg_t));
+	if (msg) {
+		msg->done = false;
+		msg->forget = false;
+		msg->destroyed = false;
+		msg->dataptr = NULL;
+		msg->retval = (sysarg_t) EINVAL;
+		awaiter_initialize(&msg->wdata);
+	}
+
+	return msg;
+}
+
+static void amsg_destroy(amsg_t *msg)
+{
+	assert(!msg->destroyed);
+	msg->destroyed = true;
+	free(msg);
+}
+
 static void *default_client_data_constructor(void)
 {
 	return NULL;
@@ -256,11 +310,13 @@ static async_client_data_dtor_t async_client_data_destroy =
 
 void async_set_client_data_constructor(async_client_data_ctor_t ctor)
 {
+	assert(async_client_data_create == default_client_data_constructor);
 	async_client_data_create = ctor;
 }
 
 void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 {
+	assert(async_client_data_destroy == default_client_data_destructor);
 	async_client_data_destroy = dtor;
 }
 
@@ -302,6 +358,7 @@ static async_interrupt_handler_t interrupt_received = default_interrupt_received
  */
 void async_set_client_connection(async_client_conn_t conn)
 {
+	assert(client_connection == default_client_connection);
 	client_connection = conn;
 }
 
@@ -959,6 +1016,7 @@ static int async_manager_worker(void)
 		futex_down(&async_futex);
 		
 		suseconds_t timeout;
+		unsigned int flags = SYNCH_FLAGS_NONE;
 		if (!list_empty(&timeout_list)) {
 			awaiter_t *waiter = list_get_instance(
 			    list_first(&timeout_list), awaiter_t, to_event.link);
@@ -969,19 +1027,32 @@ static int async_manager_worker(void)
 			if (tv_gteq(&tv, &waiter->to_event.expires)) {
 				futex_up(&async_futex);
 				handle_expired_timeouts();
-				continue;
-			} else
+				/*
+				 * Notice that even if the event(s) already
+				 * expired (and thus the other fibril was
+				 * supposed to be running already),
+				 * we check for incoming IPC.
+				 *
+				 * Otherwise, a fibril that continuously
+				 * creates (almost) expired events could
+				 * prevent IPC retrieval from the kernel.
+				 */
+				timeout = 0;
+				flags = SYNCH_FLAGS_NON_BLOCKING;
+
+			} else {
 				timeout = tv_sub(&waiter->to_event.expires, &tv);
-		} else
+				futex_up(&async_futex);
+			}
+		} else {
+			futex_up(&async_futex);
 			timeout = SYNCH_NO_TIMEOUT;
-		
-		futex_up(&async_futex);
+		}
 		
 		atomic_inc(&threads_in_ipc_wait);
 		
 		ipc_call_t call;
-		ipc_callid_t callid = ipc_wait_cycle(&call, timeout,
-		    SYNCH_FLAGS_NONE);
+		ipc_callid_t callid = ipc_wait_cycle(&call, timeout, flags);
 		
 		atomic_dec(&threads_in_ipc_wait);
 		
@@ -1096,11 +1167,15 @@ void reply_received(void *arg, int retval, ipc_call_t *data)
 		list_remove(&msg->wdata.to_event.link);
 	
 	msg->done = true;
-	if (!msg->wdata.active) {
+
+	if (msg->forget) {
+		assert(msg->wdata.active);
+		amsg_destroy(msg);
+	} else if (!msg->wdata.active) {
 		msg->wdata.active = true;
 		fibril_add_ready(msg->wdata.fid);
 	}
-	
+
 	futex_up(&async_futex);
 }
 
@@ -1127,19 +1202,11 @@ aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	if (exch == NULL)
 		return 0;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
+	amsg_t *msg = amsg_create();
 	if (msg == NULL)
 		return 0;
 	
-	msg->done = false;
 	msg->dataptr = dataptr;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4, msg,
@@ -1173,20 +1240,11 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	if (exch == NULL)
 		return 0;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	
+	amsg_t *msg = amsg_create();
 	if (msg == NULL)
 		return 0;
 	
-	msg->done = false;
 	msg->dataptr = dataptr;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4, arg5,
@@ -1209,6 +1267,10 @@ void async_wait_for(aid_t amsgid, sysarg_t *retval)
 	amsg_t *msg = (amsg_t *) amsgid;
 	
 	futex_down(&async_futex);
+
+	assert(!msg->forget);
+	assert(!msg->destroyed);
+
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
@@ -1227,10 +1289,14 @@ done:
 	if (retval)
 		*retval = msg->retval;
 	
-	free(msg);
+	amsg_destroy(msg);
 }
 
 /** Wait for a message sent by the async framework, timeout variant.
+ *
+ * If the wait times out, the caller may choose to either wait again by calling
+ * async_wait_for() or async_wait_timeout(), or forget the message via
+ * async_forget().
  *
  * @param amsgid  Hash of the message to wait for.
  * @param retval  Pointer to storage where the retval of the answer will
@@ -1245,20 +1311,44 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 	assert(amsgid);
 	
 	amsg_t *msg = (amsg_t *) amsgid;
-	
-	/* TODO: Let it go through the event read at least once */
-	if (timeout < 0)
-		return ETIMEOUT;
-	
+
 	futex_down(&async_futex);
+
+	assert(!msg->forget);
+	assert(!msg->destroyed);
+
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
 	}
 	
+	/*
+	 * Negative timeout is converted to zero timeout to avoid
+	 * using tv_add with negative augmenter.
+	 */
+	if (timeout < 0)
+		timeout = 0;
+
 	gettimeofday(&msg->wdata.to_event.expires, NULL);
 	tv_add(&msg->wdata.to_event.expires, timeout);
 	
+	/*
+	 * Current fibril is inserted as waiting regardless of the
+	 * "size" of the timeout.
+	 *
+	 * Checking for msg->done and immediately bailing out when
+	 * timeout == 0 would mean that the manager fibril would never
+	 * run (consider single threaded program).
+	 * Thus the IPC answer would be never retrieved from the kernel.
+	 *
+	 * Notice that the actual delay would be very small because we
+	 * - switch to manager fibril
+	 * - the manager sees expired timeout
+	 * - and thus adds us back to ready queue
+	 * - manager switches back to some ready fibril
+	 *   (prior it, it checks for incoming IPC).
+	 *
+	 */
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
 	async_insert_timeout(&msg->wdata);
@@ -1275,9 +1365,33 @@ done:
 	if (retval)
 		*retval = msg->retval;
 	
-	free(msg);
+	amsg_destroy(msg);
 	
 	return 0;
+}
+ 
+/** Discard the message / reply on arrival.
+ *
+ * The message will be marked to be discarded once the reply arrives in
+ * reply_received(). It is not allowed to call async_wait_for() or
+ * async_wait_timeout() on this message after a call to this function.
+ *
+ * @param amsgid  Hash of the message to forget.
+ */
+void async_forget(aid_t amsgid)
+{
+	amsg_t *msg = (amsg_t *) amsgid;
+
+	assert(msg);
+	assert(!msg->forget);
+	assert(!msg->destroyed);
+
+	futex_down(&async_futex);
+	if (msg->done)
+		amsg_destroy(msg);
+	else 
+		msg->forget = true;
+	futex_up(&async_futex);
 }
 
 /** Wait for specified time.
@@ -1289,13 +1403,11 @@ done:
  */
 void async_usleep(suseconds_t timeout)
 {
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	
+	amsg_t *msg = amsg_create();
 	if (!msg)
 		return;
 	
 	msg->wdata.fid = fibril_get_id();
-	msg->wdata.active = false;
 	
 	gettimeofday(&msg->wdata.to_event.expires, NULL);
 	tv_add(&msg->wdata.to_event.expires, timeout);
@@ -1309,7 +1421,7 @@ void async_usleep(suseconds_t timeout)
 	
 	/* Futex is up automatically after fibril_switch() */
 	
-	free(msg);
+	amsg_destroy(msg);
 }
 
 /** Pseudo-synchronous message sending - fast version.
@@ -1580,22 +1692,14 @@ async_sess_t *async_connect_me(exch_mgmt_t mgmt, async_exch_t *exch)
 	
 	ipc_call_t result;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	if (msg == NULL) {
+	amsg_t *msg = amsg_create();
+	if (!msg) {
 		free(sess);
 		errno = ENOMEM;
 		return NULL;
 	}
 	
-	msg->done = false;
 	msg->dataptr = &result;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_0(exch->phone, IPC_M_CONNECT_ME, msg,
@@ -1639,19 +1743,11 @@ static int async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t arg2,
 {
 	ipc_call_t result;
 	
-	amsg_t *msg = malloc(sizeof(amsg_t));
-	if (msg == NULL)
+	amsg_t *msg = amsg_create();
+	if (!msg)
 		return ENOENT;
 	
-	msg->done = false;
 	msg->dataptr = &result;
-	
-	msg->wdata.to_event.inlist = false;
-	
-	/*
-	 * We may sleep in the next method,
-	 * but it will use its own means
-	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
@@ -1845,7 +1941,7 @@ int async_hangup(async_sess_t *sess)
 		return EBUSY;
 	
 	fibril_mutex_lock(&async_sess_mutex);
-
+	
 	int rc = async_hangup_internal(sess->phone);
 	
 	while (!list_empty(&sess->exch_list)) {
@@ -1997,27 +2093,29 @@ void async_exchange_end(async_exch_t *exch)
 /** Wrapper for IPC_M_SHARE_IN calls using the async framework.
  *
  * @param exch  Exchange for sending the message.
- * @param dst   Destination address space area base.
  * @param size  Size of the destination address space area.
  * @param arg   User defined argument.
  * @param flags Storage for the received flags. Can be NULL.
+ * @param dst   Destination address space area base. Cannot be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_share_in_start(async_exch_t *exch, void *dst, size_t size,
-    sysarg_t arg, unsigned int *flags)
+int async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
+    unsigned int *flags, void **dst)
 {
 	if (exch == NULL)
 		return ENOENT;
 	
-	sysarg_t tmp_flags;
-	int res = async_req_3_2(exch, IPC_M_SHARE_IN, (sysarg_t) dst,
-	    (sysarg_t) size, arg, NULL, &tmp_flags);
+	sysarg_t _flags = 0;
+	sysarg_t _dst = (sysarg_t) -1;
+	int res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
+	    arg, NULL, &_flags, NULL, &_dst);
 	
 	if (flags)
-		*flags = (unsigned int) tmp_flags;
+		*flags = (unsigned int) _flags;
 	
+	*dst = (void *) _dst;
 	return res;
 }
 
@@ -2046,13 +2144,13 @@ bool async_share_in_receive(ipc_callid_t *callid, size_t *size)
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
 		return false;
 	
-	*size = (size_t) IPC_GET_ARG2(data);
+	*size = (size_t) IPC_GET_ARG1(data);
 	return true;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_IN calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_IN
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
@@ -2130,7 +2228,7 @@ bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *f
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_share_out_finalize(ipc_callid_t callid, void *dst)
+int async_share_out_finalize(ipc_callid_t callid, void **dst)
 {
 	return ipc_share_out_finalize(callid, dst);
 }
@@ -2245,7 +2343,7 @@ int async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	int retval = ipc_forward_fast(callid, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
-		async_wait_for(msg, NULL);
+		async_forget(msg);
 		ipc_answer_0(callid, retval);
 		return retval;
 	}
@@ -2439,7 +2537,7 @@ int async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	int retval = ipc_forward_fast(callid, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
-		async_wait_for(msg, NULL);
+		async_forget(msg);
 		ipc_answer_0(callid, retval);
 		return retval;
 	}

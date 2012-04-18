@@ -480,13 +480,14 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				event->mods = mods;
 				event->c = c;
 				
-				/* Kernel console does not read events
+				/*
+				 * Kernel console does not read events
 				 * from us, so we will redirect them
 				 * to the (last) active userspace console
 				 * if necessary.
 				 */
 				console_t *target_console = cons_get_active_uspace();
-
+				
 				prodcons_produce(&target_console->input_pc,
 				    &event->link);
 			}
@@ -823,7 +824,8 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 		return false;
 	
 	/* Register server */
-	int rc = loc_server_register(NAME, client_connection);
+	async_set_client_connection(client_connection);
+	int rc = loc_server_register(NAME);
 	if (rc < 0) {
 		printf("%s: Unable to register server (%s)\n", NAME,
 		    str_error(rc));

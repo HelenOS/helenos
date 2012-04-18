@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,16 +39,76 @@
 #include "usb_iface.h"
 #include "ddf/driver.h"
 
+typedef enum {
+	IPC_M_USB_GET_MY_ADDRESS,
+	IPC_M_USB_GET_MY_INTERFACE,
+	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE,
+} usb_iface_funcs_t;
+
+/** Tell USB address assigned to device.
+ * @param exch Vaid IPC exchange
+ * @param address Pointer to address storage place.
+ * @return Error code.
+ *
+ * Exch param is an open communication to device implementing usb_iface.
+ */
+int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
+{
+	if (!exch)
+		return EINVAL;
+	sysarg_t addr;
+	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_MY_ADDRESS, &addr);
+
+	if (ret == EOK && address != NULL)
+		*address = (usb_address_t) addr;
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+/** Tell interface number given device can use.
+ * @param[in] exch IPC communication exchange
+ * @param[in] handle Id of the device
+ * @param[out] usb_iface Assigned USB interface
+ * @return Error code.
+ */
+int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
+{
+	if (!exch)
+		return EINVAL;
+	sysarg_t iface_no;
+	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_MY_INTERFACE, &iface_no);
+	if (ret == EOK && usb_iface)
+		*usb_iface = (int)iface_no;
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+/** Tell devman handle of device host controller.
+ * @param[in] exch IPC communication exchange
+ * @param[out] hc_handle devman handle of the HC used by the target device.
+ * @return Error code.
+ */
+int usb_get_hc_handle(async_exch_t *exch, devman_handle_t *hc_handle)
+{
+	if (!exch)
+		return EINVAL;
+	devman_handle_t h;
+	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
+	if (ret == EOK && hc_handle)
+		*hc_handle = (devman_handle_t)h;
+	return ret;
+}
+
 
 static void remote_usb_get_my_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usb_get_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_my_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-//static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 	[IPC_M_USB_GET_MY_ADDRESS] = remote_usb_get_my_address,
-	[IPC_M_USB_GET_INTERFACE] = remote_usb_get_interface,
+	[IPC_M_USB_GET_MY_INTERFACE] = remote_usb_get_my_interface,
 	[IPC_M_USB_GET_HOST_CONTROLLER_HANDLE] = remote_usb_get_hc_handle,
 };
 
@@ -59,11 +120,11 @@ remote_iface_t remote_usb_iface = {
 	.methods = remote_usb_iface_ops
 };
 
-
+/*----------------------------------------------------------------------------*/
 void remote_usb_get_my_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
 	if (usb_iface->get_my_address == NULL) {
 		async_answer_0(callid, ENOTSUP);
@@ -71,39 +132,37 @@ void remote_usb_get_my_address(ddf_fun_t *fun, void *iface,
 	}
 
 	usb_address_t address;
-	int rc = usb_iface->get_my_address(fun, &address);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
+	const int ret = usb_iface->get_my_address(fun, &address);
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
 	} else {
 		async_answer_1(callid, EOK, address);
 	}
 }
-
-void remote_usb_get_interface(ddf_fun_t *fun, void *iface,
+/*----------------------------------------------------------------------------*/
+void remote_usb_get_my_interface(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
-	if (usb_iface->get_interface == NULL) {
+	if (usb_iface->get_my_interface == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	devman_handle_t handle = DEV_IPC_GET_ARG1(*call);
-
 	int iface_no;
-	int rc = usb_iface->get_interface(fun, handle, &iface_no);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
+	const int ret = usb_iface->get_my_interface(fun, &iface_no);
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
 	} else {
 		async_answer_1(callid, EOK, iface_no);
 	}
 }
-
+/*----------------------------------------------------------------------------*/
 void remote_usb_get_hc_handle(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
 	if (usb_iface->get_hc_handle == NULL) {
 		async_answer_0(callid, ENOTSUP);
@@ -111,16 +170,13 @@ void remote_usb_get_hc_handle(ddf_fun_t *fun, void *iface,
 	}
 
 	devman_handle_t handle;
-	int rc = usb_iface->get_hc_handle(fun, &handle);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
+	const int ret = usb_iface->get_hc_handle(fun, &handle);
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
 	}
 
 	async_answer_1(callid, EOK, (sysarg_t) handle);
 }
-
-
-
 /**
  * @}
  */

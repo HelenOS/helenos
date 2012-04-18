@@ -37,46 +37,7 @@
 
 #include <typedefs.h>
 
-/**
- * RAM disk version
- */
-#define RD_VERSION	1
-
-/**
- * RAM disk magic number
- */
-#define RD_MAGIC_SIZE	4
-#define RD_MAG0			'H'
-#define RD_MAG1			'O'
-#define RD_MAG2			'R'
-#define RD_MAG3			'D'
-
-/**
- * RAM disk data encoding types
- */
-#define RD_DATA_NONE	0
-#define RD_DATA_LSB		1		/* Least significant byte first (little endian) */
-#define RD_DATA_MSB		2		/* Most signigicant byte first (big endian) */
-
-/**
- * RAM disk error return codes
- */
-#define RE_OK			0	/* No error */
-#define RE_INVALID		1	/* Invalid RAM disk image */
-#define RE_UNSUPPORTED		2	/* Non-supported image (e.g. wrong version) */
-
-/** RAM disk header */
-struct rd_header {
-	uint8_t magic[RD_MAGIC_SIZE];
-	uint8_t version;
-	uint8_t data_type;
-	uint32_t header_size;
-	uint64_t data_size;
-} __attribute__ ((packed));
-
-typedef struct rd_header rd_header_t;
-
-extern int init_rd(rd_header_t *addr, size_t size);
+extern void init_rd(void *, size_t);
 
 #endif
 

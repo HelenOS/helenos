@@ -45,30 +45,34 @@
 #include <print.h>
 #include <panic.h>
 #include <align.h>
+#include <macros.h>
 
 void page_arch_init(void)
 {
-	if (config.cpu_active == 1) {
-		uintptr_t cur;
-		unsigned int identity_flags =
-		    PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL | PAGE_WRITE;
-		
-		page_mapping_operations = &pt_mapping_operations;
-		
-		page_table_lock(AS_KERNEL, true);
-		
-		/*
-		 * PA2KA(identity) mapping for all frames.
-		 */
-		for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
-			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, identity_flags);
-		
-		page_table_unlock(AS_KERNEL, true);
-		
-		exc_register(14, "page_fault", true, (iroutine_t) page_fault);
+	if (config.cpu_active > 1) {
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	} else
-		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
+		return;
+	}
+
+	uintptr_t cur;
+	unsigned int identity_flags =
+	    PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL | PAGE_WRITE;
+		
+	page_mapping_operations = &pt_mapping_operations;
+		
+	page_table_lock(AS_KERNEL, true);
+		
+	/*
+	 * PA2KA(identity) mapping for all low-memory frames.
+	 */
+	for (cur = 0; cur < min(config.identity_size, config.physmem_end);
+	    cur += FRAME_SIZE)
+		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, identity_flags);
+		
+	page_table_unlock(AS_KERNEL, true);
+		
+	exc_register(14, "page_fault", true, (iroutine_t) page_fault);
+	write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 }
 
 void page_fault(unsigned int n, istate_t *istate)
@@ -91,27 +95,6 @@ void page_fault(unsigned int n, istate_t *istate)
 		fault_if_from_uspace(istate, "Page fault: %p.", (void *) page);
 		panic_memtrap(istate, access, page, NULL);
 	}
-}
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%zu bytes).",
-		    (void *) physaddr, size);
-	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
-	
-	page_table_lock(AS_KERNEL, true);
-	
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	
-	page_table_unlock(AS_KERNEL, true);
-	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	
-	return virtaddr;
 }
 
 /** @}

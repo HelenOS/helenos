@@ -36,12 +36,13 @@
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
+#include <arch/mm/frame.h>
 #include <align.h>
 #include <config.h>
 #include <arch/exception.h>
 #include <typedefs.h>
 #include <interrupt.h>
-#include <arch/mm/frame.h>
+#include <macros.h>
 
 /** Initializes page tables.
  *
@@ -56,58 +57,26 @@ void page_arch_init(void)
 	page_table_lock(AS_KERNEL, true);
 	
 	uintptr_t cur;
+
 	/* Kernel identity mapping */
-	for (cur = PHYSMEM_START_ADDR; cur < last_frame; cur += FRAME_SIZE)
+	for (cur = PHYSMEM_START_ADDR;
+	    cur < min(config.identity_size, config.physmem_end);
+	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
-	/* Create mapping for exception table at high offset */
 #ifdef HIGH_EXCEPTION_VECTORS
-	void *virtaddr = frame_alloc(ONE_FRAME, FRAME_KA);
-	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, KA2PA(virtaddr), flags);
+	/* Create mapping for exception table at high offset */
+	uintptr_t ev_frame = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_NONE);
+	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, ev_frame, flags);
 #else
 #error "Only high exception vector supported now"
 #endif
-	cur = ALIGN_DOWN(0x50008010, FRAME_SIZE);
-	page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 
 	page_table_unlock(AS_KERNEL, true);
 	
 	as_switch(NULL, AS_KERNEL);
 	
 	boot_page_table_free();
-}
-
-/** Maps device into the kernel space.
- *
- * Maps physical address of device into kernel virtual address space (so it can
- * be accessed only by kernel through virtual address).
- *
- * @param physaddr Physical address where device is connected.
- * @param size Length of area where device is present.
- *
- * @return Virtual address where device will be accessible.
- */
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
-	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH)) {
-		panic("Unable to map physical memory %p (%d bytes).",
-		    (void *) physaddr, size);
-	}
-	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
-
-	page_table_lock(AS_KERNEL, true);
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
-		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i),
-		    physaddr + PFN2ADDR(i),
-		    PAGE_NOT_CACHEABLE | PAGE_READ | PAGE_WRITE | PAGE_KERNEL);
-	}
-	page_table_unlock(AS_KERNEL, true);
-	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	return virtaddr;
 }
 
 /** @}

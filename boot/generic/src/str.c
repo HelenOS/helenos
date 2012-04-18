@@ -100,6 +100,13 @@
 #include <str.h>
 #include <errno.h>
 
+/** Check the condition if wchar_t is signed */
+#ifdef WCHAR_IS_UNSIGNED
+	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#else
+	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#endif
+
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
@@ -197,7 +204,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  *         was not enough space in the output buffer or EINVAL if the character
  *         code was invalid.
  */
-int chr_encode(wchar_t ch, char *str, size_t *offset, size_t size)
+int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -324,7 +331,7 @@ size_t str_length(const char *str)
  */
 bool ascii_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 127))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
 	
 	return false;
@@ -337,7 +344,7 @@ bool ascii_check(wchar_t ch)
  */
 bool chr_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 1114111))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
 	
 	return false;

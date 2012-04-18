@@ -36,7 +36,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <async.h>
-#include <devman.h>
 
 #include <usb/usb.h>    /* usb_address_t */
 #include <usb/debug.h>
@@ -259,7 +258,6 @@ int uhci_port_reset_enable(void *arg)
 int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 {
 	assert(port);
-	assert(usb_hc_connection_is_opened(&port->hc_connection));
 
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
@@ -313,8 +311,8 @@ int uhci_port_remove_device(uhci_port_t *port)
 	port->attached_device.fun = NULL;
 
 	/* Driver stopped, free used address */
-	ret = usb_hc_unregister_device(&port->hc_connection,
-	    port->attached_device.address);
+	ret = usb_hub_unregister_device(&port->hc_connection,
+	    &port->attached_device);
 	if (ret != EOK) {
 		usb_log_error("%s: Failed to unregister address of removed "
 		    "device: %s.\n", port->id_string, str_error(ret));

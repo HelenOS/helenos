@@ -60,7 +60,6 @@
 
 #define IRQ_KBD    (0x01 + LEGACY_INTERRUPT_BASE)
 #define IRQ_MOUSE  (0x0c + LEGACY_INTERRUPT_BASE)
-#define IRQ_NE2000 (0x09 + LEGACY_INTERRUPT_BASE)
 
 /** General Exception codes. */
 #define GE_ILLEGALOP     0

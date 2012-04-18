@@ -60,9 +60,8 @@
 #define PHYSMEM_START_ADDR	0x00000000
 #endif
 
-extern uintptr_t last_frame;
-
-extern void frame_arch_init(void);
+extern void frame_low_arch_init(void);
+extern void frame_high_arch_init(void);
 extern void boot_page_table_free(void);
 #define physmem_print()
 

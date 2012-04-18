@@ -62,7 +62,6 @@ static async_sess_t *dev_sess;
 
 /** List of devices to try connecting to. */
 static const char *in_devs[] = {
-	"char/ps2a",
 	"char/s3c24ser"
 };
 

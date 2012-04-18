@@ -42,7 +42,6 @@ SOURCES = \
 	port/adb.c \
 	port/adb_mouse.c \
 	port/chardev.c \
-	port/chardev_mouse.c \
 	port/gxemul.c \
 	port/msim.c \
 	port/niagara.c \
@@ -51,7 +50,6 @@ SOURCES = \
 	port/ski.c \
 	proto/adb.c \
 	proto/mousedev.c \
-	proto/ps2.c \
 	ctl/apple.c \
 	ctl/gxe_fb.c \
 	ctl/kbdev.c \

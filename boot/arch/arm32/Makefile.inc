@@ -38,7 +38,7 @@ BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE
-PAGE_SIZE = 4096
+EXTRA_CFLAGS = -march=armv4
 
 RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24ts \
@@ -49,6 +49,7 @@ RD_SRVS_NON_ESSENTIAL += \
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/eabi.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/mm.c \
 	arch/$(BARCH)/src/putchar.c \

@@ -408,8 +408,8 @@ static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 	
 	charfield_t *field = screenbuffer_field_at(vp->backbuf, col, row);
 	
-	pixel_t bgcolor;
-	pixel_t fgcolor;
+	pixel_t bgcolor = 0;
+	pixel_t fgcolor = 0;
 	attrs_rgb(field->attrs, &bgcolor, &fgcolor);
 	
 	bool inverted = (vp->cursor_flash) &&
@@ -524,8 +524,8 @@ static void kfb_vp_clear(fbdev_t *dev, fbvp_t *vp)
 		}
 	}
 	
-	pixel_t bgcolor;
-	pixel_t fgcolor;
+	pixel_t bgcolor = 0;
+	pixel_t fgcolor = 0;
 	attrs_rgb(vp->attrs, &bgcolor, &fgcolor);
 	
 	draw_filled_rect(vp->x, vp->y, vp->x + vp->width,
@@ -755,14 +755,10 @@ int kfb_init(void)
 	render_glyphs(sz);
 	
 	kfb.size = scanline * height;
-	kfb.addr = as_get_mappable_page(kfb.size);
-	if (kfb.addr == NULL) {
-		free(kfb.glyphs);
-		return ENOMEM;
-	}
 	
-	rc = physmem_map((void *) paddr + offset, kfb.addr,
-	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	rc = physmem_map((void *) paddr + offset,
+	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
 	if (rc != EOK) {
 		free(kfb.glyphs);
 		return rc;

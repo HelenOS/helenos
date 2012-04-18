@@ -507,7 +507,7 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, usb_address_t *address)
 usbhc_iface_t vhc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
-	.find_by_address = find_by_address,
+	.get_handle = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,

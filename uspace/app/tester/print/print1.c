@@ -41,12 +41,16 @@ const char *test_print1(void)
 	TPRINTF("Real output:     \"%10.8s\"\n\n", "very long text");
 	
 	TPRINTF("Testing printf(\"%%8.10s\", \"text\"):\n");
-	TPRINTF("Expected output: \"text\"\n");
+	TPRINTF("Expected output: \"    text\"\n");
 	TPRINTF("Real output:     \"%8.10s\"\n\n", "text");
 	
 	TPRINTF("Testing printf(\"%%8.10s\", \"very long text\"):\n");
 	TPRINTF("Expected output: \"very long \"\n");
 	TPRINTF("Real output:     \"%8.10s\"\n\n", "very long text");
+	
+	TPRINTF("Testing printf(\"%%-*.*s\", 7, 7, \"text\"):\n");
+	TPRINTF("Expected output: \"text   \"\n");
+	TPRINTF("Real output:     \"%-*.*s\"\n\n", 7, 7, "text");
 	
 	return NULL;
 }

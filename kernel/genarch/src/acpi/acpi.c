@@ -38,8 +38,8 @@
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <arch/bios/bios.h>
-#include <mm/as.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <print.h>
 
 #define RSDP_SIGNATURE      "RSD PTR "
@@ -95,13 +95,22 @@ int acpi_sdt_check(uint8_t *sdt)
 	return !sum;
 }
 
-static void map_sdt(struct acpi_sdt_header *sdt)
+static struct acpi_sdt_header *map_sdt(struct acpi_sdt_header *psdt)
 {
-	page_table_lock(AS_KERNEL, true);
-	page_mapping_insert(AS_KERNEL, (uintptr_t) sdt, (uintptr_t) sdt,
-	    PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	map_structure((uintptr_t) sdt, sdt->length);
-	page_table_unlock(AS_KERNEL, true);
+	struct acpi_sdt_header *vhdr;
+	struct acpi_sdt_header *vsdt;
+
+	/* Start with mapping the header only. */
+	vhdr = (struct acpi_sdt_header *) km_map((uintptr_t) psdt,
+	    sizeof(struct acpi_sdt_header), PAGE_READ | PAGE_NOT_CACHEABLE); 
+
+	/* Now we can map the entire structure. */
+	vsdt = (struct acpi_sdt_header *) km_map((uintptr_t) psdt,
+	    vhdr->length, PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	
+	// TODO: do not leak vtmp
+
+	return vsdt; 
 }
 
 static void configure_via_rsdt(void)
@@ -117,12 +126,12 @@ static void configure_via_rsdt(void)
 			struct acpi_sdt_header *hdr =
 			    (struct acpi_sdt_header *) (sysarg_t) acpi_rsdt->entry[i];
 			
-			map_sdt(hdr);
-			if (CMP_SIGNATURE(hdr->signature, signature_map[j].signature)) {
-				if (!acpi_sdt_check((uint8_t *) hdr))
+			struct acpi_sdt_header *vhdr = map_sdt(hdr);
+			if (CMP_SIGNATURE(vhdr->signature, signature_map[j].signature)) {
+				if (!acpi_sdt_check((uint8_t *) vhdr))
 					break;
 				
-				*signature_map[j].sdt_ptr = hdr;
+				*signature_map[j].sdt_ptr = vhdr;
 				LOG("%p: ACPI %s", *signature_map[j].sdt_ptr,
 				    signature_map[j].description);
 			}
@@ -143,12 +152,12 @@ static void configure_via_xsdt(void)
 			struct acpi_sdt_header *hdr =
 			    (struct acpi_sdt_header *) ((uintptr_t) acpi_xsdt->entry[i]);
 			
-			map_sdt(hdr);
-			if (CMP_SIGNATURE(hdr->signature, signature_map[j].signature)) {
-				if (!acpi_sdt_check((uint8_t *) hdr))
+			struct acpi_sdt_header *vhdr = map_sdt(hdr);
+			if (CMP_SIGNATURE(vhdr->signature, signature_map[j].signature)) {
+				if (!acpi_sdt_check((uint8_t *) vhdr))
 					break;
 				
-				*signature_map[j].sdt_ptr = hdr;
+				*signature_map[j].sdt_ptr = vhdr;
 				LOG("%p: ACPI %s", *signature_map[j].sdt_ptr,
 				    signature_map[j].description);
 			}
@@ -186,15 +195,19 @@ void acpi_init(void)
 rsdp_found:
 	LOG("%p: ACPI Root System Description Pointer", acpi_rsdp);
 	
-	acpi_rsdt = (struct acpi_rsdt *) ((uintptr_t) acpi_rsdp->rsdt_address);
+	uintptr_t acpi_rsdt_p = (uintptr_t) acpi_rsdp->rsdt_address;
+	uintptr_t acpi_xsdt_p = 0;
+
 	if (acpi_rsdp->revision)
-		acpi_xsdt = (struct acpi_xsdt *) ((uintptr_t) acpi_rsdp->xsdt_address);
+		acpi_xsdt_p = (uintptr_t) acpi_rsdp->xsdt_address;
 	
-	if (acpi_rsdt)
-		map_sdt((struct acpi_sdt_header *) acpi_rsdt);
+	if (acpi_rsdt_p)
+		acpi_rsdt = (struct acpi_rsdt *) map_sdt(
+		    (struct acpi_sdt_header *) acpi_rsdt_p);
 	
-	if (acpi_xsdt)
-		map_sdt((struct acpi_sdt_header *) acpi_xsdt);
+	if (acpi_xsdt_p)
+		acpi_xsdt = (struct acpi_xsdt *) map_sdt(
+		    (struct acpi_sdt_header *) acpi_xsdt_p);
 	
 	if ((acpi_rsdt) && (!acpi_sdt_check((uint8_t *) acpi_rsdt))) {
 		printf("RSDT: bad checksum\n");

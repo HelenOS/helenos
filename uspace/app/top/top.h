@@ -50,19 +50,12 @@
 	} while (0)
 
 typedef enum {
-	OP_TASKS,
-	OP_IPC,
-	OP_EXCS,
-	OP_HELP
-} op_mode_t;
+	SCREEN_TABLE,
+	SCREEN_SORT,
+	SCREEN_HELP,
+} screen_mode_t;
 
-typedef enum {
-	SORT_TASK_CYCLES
-} sort_mode_t;
-
-extern op_mode_t op_mode;
-extern sort_mode_t sort_mode;
-extern bool excs_all;
+extern screen_mode_t screen_mode;
 
 typedef struct {
 	uint64_t upper;
@@ -86,6 +79,34 @@ typedef struct {
 	fixed_float count;
 } perc_exc_t;
 
+typedef enum {
+	FIELD_EMPTY, FIELD_UINT, FIELD_UINT_SUFFIX_BIN, FIELD_UINT_SUFFIX_DEC,
+	FIELD_PERCENT, FIELD_STRING
+} field_type_t;
+
+typedef struct {
+	field_type_t type;
+	union {
+		fixed_float fixed;
+		uint64_t uint;
+		const char *string;
+	};
+} field_t;
+
+typedef struct {
+	const char *name;
+	char key;
+	int width;
+} column_t;
+
+typedef struct {
+	const char *name;
+	size_t num_columns;
+	const column_t *columns;
+	size_t num_fields;
+	field_t *fields;
+} table_t;
+
 typedef struct {
 	time_t hours;
 	time_t minutes;
@@ -106,7 +127,6 @@ typedef struct {
 	size_t tasks_count;
 	stats_task_t *tasks;
 	perc_task_t *tasks_perc;
-	size_t *tasks_map;
 	
 	size_t threads_count;
 	stats_thread_t *threads;
@@ -121,6 +141,8 @@ typedef struct {
 	uint64_t *kcycles_diff;
 	uint64_t *ecycles_diff;
 	uint64_t *ecount_diff;
+
+	table_t table;
 } data_t;
 
 #endif

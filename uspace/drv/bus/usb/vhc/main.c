@@ -57,7 +57,7 @@ static ddf_dev_ops_t vhc_ops = {
 	.default_handler = default_connection_handler
 };
 
-static int vhc_add_device(ddf_dev_t *dev)
+static int vhc_dev_add(ddf_dev_t *dev)
 {
 	static int vhc_count = 0;
 	int rc;
@@ -130,7 +130,7 @@ static int vhc_add_device(ddf_dev_t *dev)
 }
 
 static driver_ops_t vhc_driver_ops = {
-	.add_device = vhc_add_device,
+	.dev_add = vhc_dev_add,
 };
 
 static driver_t vhc_driver = {

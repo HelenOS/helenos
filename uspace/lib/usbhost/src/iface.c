@@ -38,6 +38,16 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 
+/** Prepare generic usb_transfer_batch and schedule it.
+ * @param fun DDF fun
+ * @param target address and endpoint number.
+ * @param setup_data Data to use in setup stage (Control communication type)
+ * @param in Callback for device to host communication.
+ * @param out Callback for host to device communication.
+ * @param arg Callback parameter.
+ * @param name Communication identifier (for nicer output).
+ * @return Error code.
+ */
 static inline int send_batch(
     ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
     void *data, size_t size, uint64_t setup_data,
@@ -88,6 +98,11 @@ static inline int send_batch(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls ep_add_hook upon endpoint registration.
+ * @param ep Endpoint to be registered.
+ * @param arg hcd_t in disguise.
+ * @return Error code.
+ */
 static int register_helper(endpoint_t *ep, void *arg)
 {
 	hcd_t *hcd = arg;
@@ -98,6 +113,10 @@ static int register_helper(endpoint_t *ep, void *arg)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls ep_remove_hook upon endpoint removal.
+ * @param ep Endpoint to be unregistered.
+ * @param arg hcd_t in disguise.
+ */
 static void unregister_helper(endpoint_t *ep, void *arg)
 {
 	hcd_t *hcd = arg;
@@ -107,6 +126,10 @@ static void unregister_helper(endpoint_t *ep, void *arg)
 		hcd->ep_remove_hook(hcd, ep);
 }
 /*----------------------------------------------------------------------------*/
+/** Calls ep_remove_hook upon endpoint removal. Prints warning.
+ * @param ep Endpoint to be unregistered.
+ * @param arg hcd_t in disguise.
+ */
 static void unregister_helper_warn(endpoint_t *ep, void *arg)
 {
 	hcd_t *hcd = arg;
@@ -118,11 +141,13 @@ static void unregister_helper_warn(endpoint_t *ep, void *arg)
 		hcd->ep_remove_hook(hcd, ep);
 }
 /*----------------------------------------------------------------------------*/
-/** Request address interface function
+/** Request address interface function.
  *
  * @param[in] fun DDF function that was called.
- * @param[in] speed Speed to associate with the new default address.
+ * @param[in] address Pointer to preferred USB address.
  * @param[out] address Place to write a new address.
+ * @param[in] strict Fail if the preferred address is not available.
+ * @param[in] speed Speed to associate with the new default address.
  * @return Error code.
  */
 static int request_address(
@@ -139,7 +164,7 @@ static int request_address(
 	    &hcd->dev_manager, address, strict, speed);
 }
 /*----------------------------------------------------------------------------*/
-/** Bind address interface function
+/** Bind address interface function.
  *
  * @param[in] fun DDF function that was called.
  * @param[in] address Address of the device
@@ -147,7 +172,7 @@ static int request_address(
  * @return Error code.
  */
 static int bind_address(
-  ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
+    ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
 	assert(fun);
 	hcd_t *hcd = fun_to_hcd(fun);
@@ -175,7 +200,7 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 	    &hcd->dev_manager, address, handle, NULL);
 }
 /*----------------------------------------------------------------------------*/
-/** Release address interface function
+/** Release address interface function.
  *
  * @param[in] fun DDF function that was called.
  * @param[in] address USB address to be released.
@@ -193,10 +218,20 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Register endpoint interface function.
+ * @param fun DDF function.
+ * @param address USB address of the device.
+ * @param endpoint USB endpoint number to be registered.
+ * @param transfer_type Endpoint's transfer type.
+ * @param direction USB communication direction the endpoint is capable of.
+ * @param max_packet_size Maximu size of packets the endpoint accepts.
+ * @param interval Preferred timeout between communication.
+ * @return Error code.
+ */
 static int register_endpoint(
     ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
-    size_t max_packet_size, unsigned int interval)
+    size_t max_packet_size, unsigned interval)
 {
 	assert(fun);
 	hcd_t *hcd = fun_to_hcd(fun);
@@ -219,6 +254,13 @@ static int register_endpoint(
 	    register_helper, hcd);
 }
 /*----------------------------------------------------------------------------*/
+/** Unregister endpoint interface function.
+ * @param fun DDF function.
+ * @param address USB address of the endpoint.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction of the enpdoint to unregister.
+ * @return Error code.
+ */
 static int unregister_endpoint(
     ddf_fun_t *fun, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
@@ -232,6 +274,16 @@ static int unregister_endpoint(
 	    endpoint, direction, unregister_helper, hcd);
 }
 /*----------------------------------------------------------------------------*/
+/** Inbound communication interface function.
+ * @param fun DDF function.
+ * @param target Communication target.
+ * @param setup_data Data to use in setup stage (control transfers).
+ * @param data Pointer to data buffer.
+ * @param size Size of the data buffer.
+ * @param callback Function to call on communication end.
+ * @param arg Argument passed to the callback function.
+ * @return Error code.
+ */
 static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     uint8_t *data, size_t size, usbhc_iface_transfer_in_callback_t callback,
     void *arg)
@@ -240,6 +292,16 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 	    setup_data, callback, NULL, arg, "READ");
 }
 /*----------------------------------------------------------------------------*/
+/** Outbound communication interface function.
+ * @param fun DDF function.
+ * @param target Communication target.
+ * @param setup_data Data to use in setup stage (control transfers).
+ * @param data Pointer to data buffer.
+ * @param size Size of the data buffer.
+ * @param callback Function to call on communication end.
+ * @param arg Argument passed to the callback function.
+ * @return Error code.
+ */
 static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     const uint8_t *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -248,10 +310,11 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 	    setup_data, NULL, callback, arg, "WRITE");
 }
 /*----------------------------------------------------------------------------*/
+/** usbhc Interface implementation using hcd_t from libusbhost library. */
 usbhc_iface_t hcd_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
-	.find_by_address = find_by_address,
+	.get_handle = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,

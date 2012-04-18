@@ -116,7 +116,7 @@ static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 	
 	uint8_t glyph;
 	
-	if ((field->ch >= 0) && (field->ch < 128))
+	if (ascii_check(field->ch))
 		glyph = field->ch;
 	else
 		glyph = '?';
@@ -279,12 +279,10 @@ int ega_init(void)
 	ega.height = height;
 	
 	ega.size = (width * height) << 1;
-	ega.addr = as_get_mappable_page(ega.size);
-	if (ega.addr == NULL)
-		return ENOMEM;
 	
-	rc = physmem_map((void *) paddr, ega.addr,
-	    ALIGN_UP(ega.size, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	rc = physmem_map((void *) paddr,
+	    ALIGN_UP(ega.size, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &ega.addr);
 	if (rc != EOK)
 		return rc;
 	

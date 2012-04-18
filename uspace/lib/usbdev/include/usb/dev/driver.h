@@ -35,6 +35,8 @@
 #ifndef LIBUSBDEV_DRIVER_H_
 #define LIBUSBDEV_DRIVER_H_
 
+#include <usb/hc.h>
+#include <usb/dev/usb_device_connection.h>
 #include <usb/dev/pipes.h>
 
 /** Descriptors for USB device. */
@@ -71,6 +73,8 @@ typedef struct {
 
 /** USB device structure. */
 typedef struct {
+	/** Connection to USB hc, used by wire and arbitrary requests. */
+	usb_hc_connection_t hc_conn;
 	/** Connection backing the pipes.
 	 * Typically, you will not need to use this attribute at all.
 	 */
@@ -168,10 +172,10 @@ int usb_device_select_interface(usb_device_t *, uint8_t,
 int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
 void usb_device_release_descriptors(usb_device_descriptors_t *);
 
-int usb_device_create_pipes(const ddf_dev_t *, usb_device_connection_t *,
+int usb_device_create_pipes(usb_device_connection_t *,
     const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
-int usb_device_destroy_pipes(const ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
+void usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
 
 void * usb_device_data_alloc(usb_device_t *, size_t);
 

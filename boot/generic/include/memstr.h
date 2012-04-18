@@ -35,6 +35,7 @@
 #include <typedefs.h>
 
 extern void *memcpy(void *, const void *, size_t);
+extern void *memmove(void *, const void *, size_t);
 
 #endif
 

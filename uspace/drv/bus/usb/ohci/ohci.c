@@ -41,7 +41,7 @@
 #include <usb/debug.h>
 
 #include "ohci.h"
-#include "pci.h"
+#include "res.h"
 #include "hc.h"
 
 typedef struct ohci {
@@ -139,25 +139,25 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_ohci(ddf_dev_t *device)
 {
-	assert(device);
+	if (device == NULL)
+		return EBADMEM;
 
-	ohci_t *instance = malloc(sizeof(ohci_t));
+	ohci_t *instance = ddf_dev_data_alloc(device,sizeof(ohci_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
 	}
-	instance->rh_fun = NULL;
-	instance->hc_fun = NULL;
 
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) { \
+		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	} \
 	if (instance->rh_fun) { \
+		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
-	free(instance); \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -179,21 +179,28 @@ if (ret != EOK) { \
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
+	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to get register memory addresses for %" PRIun ": %s.\n",
 	    device->handle, str_error(ret));
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	const size_t cmd_count = hc_irq_cmd_count();
-	irq_cmd_t irq_cmds[cmd_count];
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
-	ret =
-	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+	    "Failed to generate IRQ code: %s.\n", str_error(ret));
 
 
 	/* Register handler to avoid interrupt lockup */
@@ -203,7 +210,7 @@ if (ret != EOK) { \
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
-	ret = pci_enable_interrupts(device);
+	ret = enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling\n", str_error(ret));
@@ -217,8 +224,6 @@ if (ret != EOK) { \
 	ret = hc_init(&instance->hc, reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
-
-	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \

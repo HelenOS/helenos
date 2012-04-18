@@ -34,7 +34,6 @@
  */
 
 #include <bool.h>
-#include <devman.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
@@ -287,23 +286,11 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	ddf_fun_destroy(port->attached_device.fun);
 	port->attached_device.fun = NULL;
 
-	ret = usb_hc_connection_open(&hub->connection);
-	if (ret == EOK) {
-		ret = usb_hc_unregister_device(&hub->connection,
-		    port->attached_device.address);
-		if (ret != EOK) {
-			usb_log_warning("Failed to unregister address of the "
-			    "removed device: %s.\n", str_error(ret));
-		}
-		ret = usb_hc_connection_close(&hub->connection);
-		if (ret != EOK) {
-			usb_log_warning("Failed to close hc connection %s.\n",
-			    str_error(ret));
-		}
-
-	} else {
-		usb_log_warning("Failed to open hc connection %s.\n",
-		    str_error(ret));
+	ret = usb_hub_unregister_device(&hub->usb_device->hc_conn,
+	    &port->attached_device);
+	if (ret != EOK) {
+		usb_log_warning("Failed to unregister address of the "
+		    "removed device: %s.\n", str_error(ret));
 	}
 
 	port->attached_device.address = -1;
@@ -437,7 +424,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	ddf_fun_t *child_fun;
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
-	    &data->hub->connection, data->speed, enable_port_callback,
+	    &data->hub->usb_device->hc_conn, data->speed, enable_port_callback,
 	    data->port, &new_address, NULL, NULL, &child_fun);
 
 	if (rc == EOK) {

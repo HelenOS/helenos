@@ -167,48 +167,126 @@ DOTDOT_DIR_ENTRY = """little:
 	uint32_t size              /* file size */
 """
 
-def mangle_fname(name):
-	# FIXME: filter illegal characters
-	parts = name.split('.')
-	
-	if len(parts) > 0:
-		fname = parts[0]
-	else:
-		fname = ''
-	
-	if len(fname) > 8:
-		sys.stdout.write("mkfat.py: error: Directory entry " + name +
-		    " base name is longer than 8 characters\n")
-		sys.exit(1);
-	
-	return (fname + '          ').upper()[0:8]
+LFN_DIR_ENTRY = """little:
+	uint8_t seq                /* sequence number */
+	char name1[10]             /* first part of the name */
+	uint8_t attr               /* attributes */
+	uint8_t rec_type           /* LFN record type */
+	uint8_t checksum           /* LFN checksum */
+	char name2[12]             /* second part of the name */
+	uint16_t cluster           /* cluster */
+	char name3[4]              /* third part of the name */
+"""
 
-def mangle_ext(name):
-	# FIXME: filter illegal characters
-	parts = name.split('.')
-	
-	if len(parts) > 1:
-		ext = parts[1]
-	else:
-		ext = ''
-	
-	if len(parts) > 2:
-		sys.stdout.write("mkfat.py: error: Directory entry " + name +
-		    " has more than one extension\n")
-		sys.exit(1);
-	
-	if len(ext) > 3:
-		sys.stdout.write("mkfat.py: error: Directory entry " + name +
-		    " extension is longer than 3 characters\n")
-		sys.exit(1);
-	
-	return (ext + '   ').upper()[0:3]
+lchars = set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+              'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+              'U', 'V', 'W', 'X', 'Y', 'Z',
+              '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+              '!', '#', '$', '%', '&', '\'', '(', ')', '-', '@',
+              '^', '_', '`', '{', '}', '~', '.'])
 
-def create_dirent(name, directory, cluster, size):
+def fat_lchars(name):
+	"Filter FAT legal characters"
+	
+	filtered_name = ''
+	filtered = False
+	
+	for char in name.encode('ascii', 'replace').upper():
+		if char in lchars:
+			filtered_name += char
+		else:
+			filtered_name += b'_'
+			filtered = True
+	
+	return (filtered_name, filtered)
+
+def fat_name83(name, name83_list):
+	"Create a 8.3 name for the given name"
+	
+	ascii_name, lfn = fat_lchars(name)
+	ascii_parts = ascii_name.split('.')
+	
+	short_name = ''
+	short_ext = ''
+	
+	if len(ascii_name) > 11:
+		lfn = True
+	
+	if len(ascii_parts) > 0:
+		short_name = ascii_parts[0]
+		if len(short_name) > 8:
+			lfn = True
+	
+	if len(ascii_parts) > 1:
+		short_ext = ascii_parts[-1]
+		if len(short_ext) > 3:
+			lfn = True
+	
+	if len(ascii_parts) > 2:
+		lfn = True
+	
+	if lfn == False:
+		name83_list.append(short_name + '.' + short_ext)
+		return (short_name.ljust(8)[0:8], short_ext.ljust(3)[0:3], False)
+	
+	# For filenames with multiple extensions, we treat the last one
+	# as the actual extension. The rest of the filename is stripped
+	# of dots and concatenated to form the short name
+	for part in ascii_parts[1:-1]:
+		short_name += part
+	
+	for number in range(1, 999999):
+		number_str = ('~' + str(number)).upper()
+		
+		if len(short_name) + len(number_str) > 8:
+			short_name = short_name[0:8 - len(number_str)]
+		
+		short_name += number_str;
+		
+		if not (short_name + '.' + short_ext) in name83_list:
+			break
+	
+	name83_list.append(short_name + '.' + short_ext)
+	return (short_name.ljust(8)[0:8], short_ext.ljust(3)[0:3], True)
+
+def create_lfn_dirent(name, seq, checksum):
+	"Create LFN directory entry"
+	
+	entry = xstruct.create(LFN_DIR_ENTRY)
+	name_rest = name[26:]
+	
+	if len(name_rest) > 0:
+		entry.seq = seq
+	else:
+		entry.seq = seq | 0x40
+	
+	entry.name1 = name[0:10]
+	entry.name2 = name[10:22]
+	entry.name3 = name[22:26]
+	
+	entry.attr = 0x0F
+	entry.rec_type = 0
+	entry.checksum = checksum
+	entry.cluster = 0
+	
+	return (entry, name_rest)
+
+def lfn_checksum(name):
+	"Calculate LFN checksum"
+	
+	checksum = 0
+	for i in range(0, 11):
+		checksum = (((checksum & 1) << 7) + (checksum >> 1) + ord(name[i])) & 0xFF
+	
+	return checksum
+
+def create_dirent(name, name83_list, directory, cluster, size):
+	short_name, short_ext, lfn = fat_name83(name, name83_list)
+	
 	dir_entry = xstruct.create(DIR_ENTRY)
 	
-	dir_entry.name = mangle_fname(name).encode('ascii')
-	dir_entry.ext = mangle_ext(name).encode('ascii')
+	dir_entry.name = short_name
+	dir_entry.ext = short_ext
 	
 	if (directory):
 		dir_entry.attr = 0x30
@@ -229,7 +307,22 @@ def create_dirent(name, directory, cluster, size):
 	else:
 		dir_entry.size = size
 	
-	return dir_entry
+	if not lfn:
+		return [dir_entry]
+	
+	long_name = name.encode('utf_16_le')
+	entries = [dir_entry]
+	
+	seq = 1
+	checksum = lfn_checksum(dir_entry.name + dir_entry.ext)
+	
+	while len(long_name) > 0:
+		long_entry, long_name = create_lfn_dirent(long_name, seq, checksum)
+		entries.append(long_entry)
+		seq += 1
+	
+	entries.reverse()
+	return entries
 
 def create_dot_dirent(empty_cluster):
 	dir_entry = xstruct.create(DOT_DIR_ENTRY)
@@ -273,26 +366,27 @@ def recursion(head, root, outf, cluster_size, root_start, data_start, fat, reser
 	"Recursive directory walk"
 	
 	directory = []
+	name83_list = []
 	
-	if (not head):
+	if not head:
 		# Directory cluster preallocation
 		empty_cluster = fat.index(0)
-		fat[empty_cluster] = 0xffff
+		fat[empty_cluster] = 0xFFFF
 		
 		directory.append(create_dot_dirent(empty_cluster))
 		directory.append(create_dotdot_dirent(parent_cluster))
 	else:
 		empty_cluster = 0
 	
-	for item in listdir_items(root):		
+	for item in listdir_items(root):
 		if item.is_file:
 			rv = write_file(item, outf, cluster_size, data_start, fat, reserved_clusters)
-			directory.append(create_dirent(item.name, False, rv[0], rv[1]))
+			directory.extend(create_dirent(item.name, name83_list, False, rv[0], rv[1]))
 		elif item.is_dir:
 			rv = recursion(False, item.path, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
-			directory.append(create_dirent(item.name, True, rv[0], rv[1]))
+			directory.extend(create_dirent(item.name, name83_list, True, rv[0], rv[1]))
 	
-	if (head):
+	if head:
 		outf.seek(root_start)
 		for dir_entry in directory:
 			outf.write(dir_entry.pack())
@@ -349,7 +443,7 @@ def main():
 	
 	extra_bytes = int(sys.argv[1])
 	
-	path = os.path.abspath(sys.argv[2])
+	path = os.path.abspath(sys.argv[2].decode())
 	if (not os.path.isdir(path)):
 		print("<PATH> must be a directory")
 		return
@@ -447,6 +541,6 @@ def main():
 			outf.write(fat_entry.pack())
 	
 	outf.close()
-	
+
 if __name__ == '__main__':
 	main()

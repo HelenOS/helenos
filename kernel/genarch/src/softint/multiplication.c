@@ -28,7 +28,7 @@
 
 /** @addtogroup genarch
  * @{
- */ 
+ */
 /**
  * @file
  * SW implementation of 32 and 64 bit multiplication.
@@ -129,7 +129,7 @@ long long __muldi3 (long long a, long long b)
 	}
 
 	return result;
-}	
+}
 
 /** @}
  */

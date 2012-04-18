@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2012 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,12 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = 
-EXTRA_CFLAGS = 
 BINARY = ping
 
 SOURCES = \
-	ping.c \
-	print_error.c
+	ping.c
 
 include $(USPACE_PREFIX)/Makefile.common

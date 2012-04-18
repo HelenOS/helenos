@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -Iarch/$(UARCH)/include/
+EXTRA_CFLAGS = -Iinclude
 LIBRARY = libsoftfloat
 
 SOURCES = \

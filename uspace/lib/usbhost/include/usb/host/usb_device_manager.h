@@ -58,7 +58,9 @@ typedef struct {
 		bool occupied;          /**< The address is in use. */
 		devman_handle_t handle; /**< Devman handle of the device. */
 	} devices[USB_ADDRESS_COUNT];
+	/** Maximum speed allowed. */
 	usb_speed_t max_speed;
+	/** Protect access to members. */
 	fibril_mutex_t guard;
 	/** The last reserved address */
 	usb_address_t last_address;

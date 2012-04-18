@@ -69,20 +69,6 @@ FIBRIL_MUTEX_INITIALIZE(devices_mutex);
 LIST_INITIALIZE(functions);
 FIBRIL_MUTEX_INITIALIZE(functions_mutex);
 
-/** Interrupts */
-static interrupt_context_list_t interrupt_contexts;
-
-static irq_cmd_t default_cmds[] = {
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-
-static irq_code_t default_pseudocode = {
-	sizeof(default_cmds) / sizeof(irq_cmd_t),
-	default_cmds
-};
-
 static ddf_dev_t *create_device(void);
 static void delete_device(ddf_dev_t *);
 static void dev_add_ref(ddf_dev_t *);
@@ -91,134 +77,6 @@ static void fun_add_ref(ddf_fun_t *);
 static void fun_del_ref(ddf_fun_t *);
 static remote_handler_t *function_get_default_handler(ddf_fun_t *);
 static void *function_get_ops(ddf_fun_t *, dev_inferface_idx_t);
-
-static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
-{
-	int id = (int)IPC_GET_IMETHOD(*icall);
-	interrupt_context_t *ctx;
-	
-	ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
-	if (ctx != NULL && ctx->handler != NULL)
-		(*ctx->handler)(ctx->dev, iid, icall);
-}
-
-interrupt_context_t *create_interrupt_context(void)
-{
-	interrupt_context_t *ctx;
-	
-	ctx = (interrupt_context_t *) malloc(sizeof(interrupt_context_t));
-	if (ctx != NULL)
-		memset(ctx, 0, sizeof(interrupt_context_t));
-	
-	return ctx;
-}
-
-void delete_interrupt_context(interrupt_context_t *ctx)
-{
-	if (ctx != NULL)
-		free(ctx);
-}
-
-void init_interrupt_context_list(interrupt_context_list_t *list)
-{
-	memset(list, 0, sizeof(interrupt_context_list_t));
-	fibril_mutex_initialize(&list->mutex);
-	list_initialize(&list->contexts);
-}
-
-void
-add_interrupt_context(interrupt_context_list_t *list, interrupt_context_t *ctx)
-{
-	fibril_mutex_lock(&list->mutex);
-	ctx->id = list->curr_id++;
-	list_append(&ctx->link, &list->contexts);
-	fibril_mutex_unlock(&list->mutex);
-}
-
-void remove_interrupt_context(interrupt_context_list_t *list,
-    interrupt_context_t *ctx)
-{
-	fibril_mutex_lock(&list->mutex);
-	list_remove(&ctx->link);
-	fibril_mutex_unlock(&list->mutex);
-}
-
-interrupt_context_t *
-find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
-{
-	interrupt_context_t *ctx;
-	
-	fibril_mutex_lock(&list->mutex);
-	
-	list_foreach(list->contexts, link) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
-		if (ctx->id == id) {
-			fibril_mutex_unlock(&list->mutex);
-			return ctx;
-		}
-	}
-	
-	fibril_mutex_unlock(&list->mutex);
-	return NULL;
-}
-
-interrupt_context_t *
-find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
-{
-	interrupt_context_t *ctx;
-	
-	fibril_mutex_lock(&list->mutex);
-	
-	list_foreach(list->contexts, link) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
-		if (ctx->irq == irq && ctx->dev == dev) {
-			fibril_mutex_unlock(&list->mutex);
-			return ctx;
-		}
-	}
-	
-	fibril_mutex_unlock(&list->mutex);
-	return NULL;
-}
-
-
-int
-register_interrupt_handler(ddf_dev_t *dev, int irq, interrupt_handler_t *handler,
-    irq_code_t *pseudocode)
-{
-	interrupt_context_t *ctx = create_interrupt_context();
-	
-	ctx->dev = dev;
-	ctx->irq = irq;
-	ctx->handler = handler;
-	
-	add_interrupt_context(&interrupt_contexts, ctx);
-	
-	if (pseudocode == NULL)
-		pseudocode = &default_pseudocode;
-	
-	int res = register_irq(irq, dev->handle, ctx->id, pseudocode);
-	if (res != EOK) {
-		remove_interrupt_context(&interrupt_contexts, ctx);
-		delete_interrupt_context(ctx);
-	}
-
-	return res;
-}
-
-int unregister_interrupt_handler(ddf_dev_t *dev, int irq)
-{
-	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts,
-	    dev, irq);
-	int res = unregister_irq(irq, dev->handle);
-	
-	if (ctx != NULL) {
-		remove_interrupt_context(&interrupt_contexts, ctx);
-		delete_interrupt_context(ctx);
-	}
-	
-	return res;
-}
 
 static void add_to_functions_list(ddf_fun_t *fun)
 {
@@ -287,7 +145,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	(void) parent_fun_handle;
 	
-	res = driver->driver_ops->add_device(dev);
+	res = driver->driver_ops->dev_add(dev);
 	
 	if (res != EOK) {
 		dev_del_ref(dev);
@@ -300,16 +158,6 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&devices_mutex);
 	
 	async_answer_0(iid, res);
-}
-
-static void driver_dev_added(ipc_callid_t iid, ipc_call_t *icall)
-{
-	fibril_mutex_lock(&devices_mutex);
-	ddf_dev_t *dev = driver_get_device(IPC_GET_ARG1(*icall));
-	fibril_mutex_unlock(&devices_mutex);
-	
-	if (dev != NULL && driver->driver_ops->device_added != NULL)
-		driver->driver_ops->device_added(dev);
 }
 
 static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
@@ -459,10 +307,6 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case DRIVER_DEV_ADD:
 			driver_dev_add(callid, &call);
-			break;
-		case DRIVER_DEV_ADDED:
-			async_answer_0(callid, EOK);
-			driver_dev_added(callid, &call);
 			break;
 		case DRIVER_DEV_REMOVE:
 			driver_dev_remove(callid, &call);
@@ -750,7 +594,7 @@ static void fun_del_ref(ddf_fun_t *fun)
 }
 
 /** Allocate driver-specific device data. */
-extern void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
+void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
 {
 	void *data;
 
@@ -812,7 +656,7 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 }
 
 /** Allocate driver-specific function data. */
-extern void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
+void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
 {
 	void *data;
 
@@ -1005,17 +849,15 @@ int ddf_driver_main(driver_t *drv)
 	 */
 	driver = drv;
 	
-	/* Initialize the list of interrupt contexts. */
-	init_interrupt_context_list(&interrupt_contexts);
-	
-	/* Set generic interrupt handler. */
-	async_set_interrupt_received(driver_irq_handler);
+	/* Initialize interrupt module */
+	interrupt_init();
 	
 	/*
 	 * Register driver with device manager using generic handler for
 	 * incoming connections.
 	 */
-	rc = devman_driver_register(driver->name, driver_connection);
+	async_set_client_connection(driver_connection);
+	rc = devman_driver_register(driver->name);
 	if (rc != EOK) {
 		printf("Error: Failed to register driver with device manager "
 		    "(%s).\n", (rc == EEXISTS) ? "driver already started" :

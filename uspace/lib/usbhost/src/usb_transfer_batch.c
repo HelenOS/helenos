@@ -32,7 +32,7 @@
  * USB transfer transaction structures (implementation).
  */
 #include <errno.h>
-#include <str_error.h>
+#include <macros.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
@@ -47,6 +47,7 @@
  * @param setup_buffer Data to send in SETUP stage of control transfer.
  * @param func_in callback on IN transfer completion.
  * @param func_out callback on OUT transfer completion.
+ * @param fun DDF function (passed to callback function).
  * @param arg Argument to pass to the callback function.
  * @param private_data driver specific per batch data.
  * @param private_data_dtor Function to properly destroy private_data.
@@ -120,9 +121,10 @@ void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
  * @param[in] instance Batch structure to use.
  * @param[in] data Data to copy to the output buffer.
  * @param[in] size Size of @p data.
+ * @param[in] error Error value to use.
  */
-void usb_transfer_batch_finish(
-    const usb_transfer_batch_t *instance, const void *data, size_t size)
+void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
+    const void *data, size_t size, int error)
 {
 	assert(instance);
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.\n",
@@ -132,25 +134,23 @@ void usb_transfer_batch_finish(
         if (instance->callback_out) {
 		/* Check for commands that reset toggle bit */
 		if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
-		    && instance->error == EOK) {
+		    && error == EOK) {
 			const usb_target_t target =
 			    {{ instance->ep->address, instance->ep->endpoint }};
 			reset_ep_if_need(fun_to_hcd(instance->fun), target,
 			    instance->setup_buffer);
 		}
-		instance->callback_out(instance->fun,
-		    instance->error, instance->arg);
+		instance->callback_out(instance->fun, error, instance->arg);
 	}
 
         if (instance->callback_in) {
 		/* We care about the data and there are some to copy */
+		const size_t safe_size = min(size, instance->buffer_size);
 		if (data) {
-			const size_t min_size = size < instance->buffer_size
-			    ? size : instance->buffer_size;
-	                memcpy(instance->buffer, data, min_size);
+	                memcpy(instance->buffer, data, safe_size);
 		}
-		instance->callback_in(instance->fun, instance->error,
-		    instance->transfered_size, instance->arg);
+		instance->callback_in(instance->fun, error,
+		    safe_size, instance->arg);
 	}
 }
 /**

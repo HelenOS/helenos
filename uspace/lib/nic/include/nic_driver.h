@@ -43,14 +43,12 @@
 #endif
 
 #include <fibril_synch.h>
-#include <net/device.h>
+#include <nic/nic.h>
 #include <async.h>
 
 #include "nic.h"
 #include "nic_rx_control.h"
 #include "nic_wol_virtues.h"
-
-#define DEVICE_CATEGORY_NIC "nic"
 
 struct sw_poll_info {
 	fid_t fibril;
@@ -71,8 +69,6 @@ struct nic {
 	 * (in nic_driver_register_as_ddf_function) and must not be changed.
 	 */
 	ddf_fun_t *fun;
-	/** Identifier for higher network stack layers */
-	nic_device_id_t device_id;
 	/** Current state of the device */
 	nic_device_state_t state;
 	/** Transmiter is busy - messages are dropped */
@@ -81,10 +77,8 @@ struct nic {
 	nic_address_t mac;
 	/** Device's default MAC address (assigned the first time, used in STOP) */
 	nic_address_t default_mac;
-	/** Session to SERVICE_NETWORKING */
-	async_sess_t *net_session;
-	/** Session to SERVICE_ETHERNET or SERVICE_NILDUMMY */
-	async_sess_t *nil_session;
+	/** Client callback session */
+	async_sess_t *client_session;
 	/** Phone to APIC or i8259 */
 	async_sess_t *irc_session;
 	/** Current polling mode of the NIC */
@@ -133,7 +127,7 @@ struct nic {
 	 * as send_message member of the nic_iface_t structure).
 	 * Called with the main_lock locked for reading.
 	 */
-	write_packet_handler write_packet;
+	send_frame_handler send_frame;
 	/**
 	 * Event handler called when device goes to the ACTIVE state.
 	 * The implementation is optional.

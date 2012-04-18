@@ -241,12 +241,12 @@ extern void as_release(as_t *);
 extern void as_switch(as_t *, as_t *);
 extern int as_page_fault(uintptr_t, pf_access_t, istate_t *);
 
-extern as_area_t *as_area_create(as_t *, unsigned int, size_t, uintptr_t,
-    unsigned int, mem_backend_t *, mem_backend_data_t *);
+extern as_area_t *as_area_create(as_t *, unsigned int, size_t, unsigned int,
+    mem_backend_t *, mem_backend_data_t *, uintptr_t *, uintptr_t);
 extern int as_area_destroy(as_t *, uintptr_t);
 extern int as_area_resize(as_t *, uintptr_t, size_t, unsigned int);
-extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, uintptr_t,
-    unsigned int);
+extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, unsigned int,
+    uintptr_t *, uintptr_t);
 extern int as_area_change_flags(as_t *, unsigned int, uintptr_t);
 
 extern unsigned int as_area_get_flags(as_area_t *);
@@ -283,11 +283,10 @@ extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
 
 /* Address space area related syscalls. */
-extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int);
+extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t);
 extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern sysarg_t sys_as_area_destroy(uintptr_t);
-extern sysarg_t sys_as_get_unmapped_area(uintptr_t, size_t);
 
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);

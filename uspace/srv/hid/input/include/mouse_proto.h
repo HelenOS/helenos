@@ -47,7 +47,6 @@ typedef struct mouse_proto_ops {
 } mouse_proto_ops_t;
 
 extern mouse_proto_ops_t adb_proto;
-extern mouse_proto_ops_t ps2_proto;
 extern mouse_proto_ops_t mousedev_proto;
 
 #endif

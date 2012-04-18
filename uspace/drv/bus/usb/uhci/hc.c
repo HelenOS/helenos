@@ -47,9 +47,14 @@
 #define UHCI_STATUS_USED_INTERRUPTS \
     (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)
 
+static const irq_pio_range_t uhci_irq_pio_ranges[] = {
+	{
+		.base = 0,	/* filled later */
+		.size = sizeof(uhci_regs_t)
+	}
+};
 
-static const irq_cmd_t uhci_irq_commands[] =
-{
+static const irq_cmd_t uhci_irq_commands[] = {
 	{ .cmd = CMD_PIO_READ_16, .dstarg = 1, .addr = NULL/*filled later*/},
 	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2,
 	  .value = UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS },
@@ -67,6 +72,14 @@ static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 
 /*----------------------------------------------------------------------------*/
+/** Get number of PIO ranges used in IRQ code.
+ * @return Number of ranges.
+ */
+size_t hc_irq_pio_range_count(void)
+{
+	return sizeof(uhci_irq_pio_ranges) / sizeof(irq_pio_range_t);
+}
+/*----------------------------------------------------------------------------*/
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
  */
@@ -75,27 +88,33 @@ size_t hc_irq_cmd_count(void)
 	return sizeof(uhci_irq_commands) / sizeof(irq_cmd_t);
 }
 /*----------------------------------------------------------------------------*/
-/** Generate IRQ code commands.
- * @param[out] cmds Place to store the commands.
- * @param[in] cmd_size Size of the place (bytes).
+/** Generate IRQ code.
+ * @param[out] ranges PIO ranges buffer.
+ * @param[in] ranges_size Size of the ranges buffer (bytes).
+ * @param[out] cmds Commands buffer.
+ * @param[in] cmds_size Size of the commands buffer (bytes).
  * @param[in] regs Physical address of device's registers.
  * @param[in] reg_size Size of the register area (bytes).
  *
  * @return Error code.
  */
-int hc_get_irq_commands(
-    irq_cmd_t cmds[], size_t cmd_size, uintptr_t regs, size_t reg_size)
+int
+hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
+    size_t cmds_size, uintptr_t regs, size_t reg_size)
 {
-	if (cmd_size < sizeof(uhci_irq_commands)
-	    || reg_size < sizeof(uhci_regs_t))
+	if ((ranges_size < sizeof(uhci_irq_pio_ranges)) ||
+	    (cmds_size < sizeof(uhci_irq_commands)) ||
+	    (reg_size < sizeof(uhci_regs_t)))
 		return EOVERFLOW;
 
-	uhci_regs_t *registers = (uhci_regs_t*)regs;
+	memcpy(ranges, uhci_irq_pio_ranges, sizeof(uhci_irq_pio_ranges));
+	ranges[0].base = regs;
 
 	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
+	uhci_regs_t *registers = (uhci_regs_t *) regs;
+	cmds[0].addr = &registers->usbsts;
+	cmds[3].addr = &registers->usbsts;
 
-	cmds[0].addr = (void*)&registers->usbsts;
-	cmds[3].addr = (void*)&registers->usbsts;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -129,7 +148,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			list_remove(item);
 			uhci_transfer_batch_t *batch =
 			    uhci_transfer_batch_from_link(item);
-			uhci_transfer_batch_call_dispose(batch);
+			uhci_transfer_batch_finish_dispose(batch);
 		}
 	}
 	/* Resume interrupts are not supported */

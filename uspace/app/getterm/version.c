@@ -39,6 +39,7 @@
 #include "getterm.h"
 #include "version.h"
 
+static const char *copyright = STRING(COPYRIGHT);
 static const char *release = STRING(RELEASE);
 static const char *name = STRING(NAME);
 static const char *arch = STRING(UARCH);
@@ -60,7 +61,7 @@ void version_print(const char *term)
 {
 	printf("HelenOS release %s (%s)%s%s\n", release, name, revision, timestamp);
 	printf("Running on %s (%s)\n", arch, term);
-	printf("Copyright (c) 2001-2011 HelenOS project\n\n");
+	printf("%s\n\n", copyright);
 }
 
 /** @}

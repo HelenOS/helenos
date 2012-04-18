@@ -41,8 +41,7 @@ EXTRA_CFLAGS += \
 BINARY = ehci
 
 SOURCES = \
-	hc_iface.c \
 	main.c \
-	pci.c
+	res.c
 
 include $(USPACE_PREFIX)/Makefile.common

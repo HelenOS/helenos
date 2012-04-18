@@ -38,62 +38,19 @@
 #define LIBDRV_USB_IFACE_H_
 
 #include "ddf/driver.h"
+#include <async.h>
 #include <usb/usb.h>
-typedef enum {
-	/** Tell USB address assigned to device.
-	 * Parameters:
-	 * - devman handle id
-	 * Answer:
-	 * - EINVAL - unknown handle or handle not managed by this driver
-	 * - ENOTSUP - operation not supported (shall not happen)
-	 * - arbitrary error code if returned by remote implementation
-	 * - EOK - handle found, first parameter contains the USB address
-	 *
-	 * The handle must be the one used for binding USB address with
-	 * it (IPC_M_USBHC_BIND_ADDRESS), otherwise the host controller
-	 * (that this request would eventually reach) would not be able
-	 * to find it.
-	 * The problem is that this handle is actually assigned to the
-	 * function inside driver of the parent device (usually hub driver).
-	 * To bypass this problem, the initial caller specify handle as
-	 * zero and the first parent assigns the actual value.
-	 * See usb_iface_get_address_hub_child_impl() implementation
-	 * that could be assigned to device ops of a child device of in a
-	 * hub driver.
-	 * For example, the USB multi interface device driver (MID)
-	 * passes this initial zero without any modification because the
-	 * handle must be resolved by its parent.
-	 */
-	IPC_M_USB_GET_MY_ADDRESS,
 
-	/** Tell interface number given device can use.
-	 * Parameters
-	 * - devman handle id of the device
-	 * Answer:
-	 * - ENOTSUP - operation not supported (can also mean any interface)
-	 * - EOK - operation okay, first parameter contains interface number
-	 */
-	IPC_M_USB_GET_INTERFACE,
-
-	/** Tell devman handle of device host controller.
-	 * Parameters:
-	 * - none
-	 * Answer:
-	 * - EOK - request processed without errors
-	 * - ENOTSUP - this indicates invalid USB driver
-	 * Parameters of the answer:
-	 * - devman handle of HC caller is physically connected to
-	 */
-	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE
-} usb_iface_funcs_t;
+int usb_get_my_address(async_exch_t *, usb_address_t *);
+int usb_get_my_interface(async_exch_t *, int *);
+int usb_get_hc_handle(async_exch_t *, devman_handle_t *);
 
 /** USB device communication interface. */
 typedef struct {
 	int (*get_my_address)(ddf_fun_t *, usb_address_t *);
-	int (*get_interface)(ddf_fun_t *, devman_handle_t, int *);
+	int (*get_my_interface)(ddf_fun_t *, int *);
 	int (*get_hc_handle)(ddf_fun_t *, devman_handle_t *);
 } usb_iface_t;
-
 
 #endif
 /**
