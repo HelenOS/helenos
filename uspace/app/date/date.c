@@ -58,6 +58,7 @@ main(int argc, char **argv)
 	char          *wtime = NULL;
 	sysarg_t      battery_ok;
 	struct tm     t;
+	int           n_args = argc;
 
 	while ((c = getopt(argc, argv, "hd:t:")) != -1) {
 		switch (c) {
@@ -65,17 +66,33 @@ main(int argc, char **argv)
 			usage();
 			return 0;
 		case 'd':
+			if (wdate) {
+				usage();
+				return 1;
+			}
 			wdate = (char *)optarg;
 			read_only = false;
+			n_args -= 2;
 			break;
 		case 't':
+			if (wtime) {
+				usage();
+				return 1;
+			}
 			wtime = (char *)optarg;
 			read_only = false;
+			n_args -= 2;
 			break;
 		case '?':
 			usage();
 			return 1;
 		}
+	}
+
+	if (n_args != 1) {
+		printf(NAME ": Unrecognized parameter\n");
+		usage();
+		return 1;
 	}
 
 	/* Get the id of the clock category */
