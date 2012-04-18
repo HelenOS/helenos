@@ -35,8 +35,8 @@
 /**Read a directory entry from disk.
  *
  * @param mnode		Pointer to the directory node.
- * @param d_info	Pointer to a directory entry structure where the dentry info
- *			will be stored.
+ * @param d_info	Pointer to a directory entry structure where
+ *			the dentry info will be stored.
  * @param index		index of the dentry in the list.
  *
  * @return		EOK on success or a negative error code.
@@ -100,7 +100,7 @@ out_err:
 
 /**Write a directory entry on disk.
  *
- * @param d_info Pointer to the directory entry structure to write on disk.
+ * @param d_info The directory entry to write to disk.
  *
  * @return	 EOK on success or a negative error code.
  */
