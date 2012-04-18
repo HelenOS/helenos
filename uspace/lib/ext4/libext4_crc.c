@@ -74,18 +74,23 @@ uint16_t const crc16_table[256] = {
 		0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
+/** Modify CRC value.
+ *
+ * @param crc	current CRC value
+ * @param data	new byte of data to be "added" to CRC
+ * @return		updated CRC value
+ */
 static inline uint16_t crc16_byte(uint16_t crc, const uint8_t data)
 {
 	return (crc >> 8) ^ crc16_table[(crc ^ data) & 0xff];
 }
 
-/**
- * crc16 - compute the CRC-16 for the data buffer
- * @crc:        previous CRC value
- * @buffer:     data pointer
- * @len:        number of bytes in the buffer
+/** Compute the CRC-16 for the data buffer.
  *
- * Returns the updated CRC value.
+ * @param crc		previous CRC value
+ * @param buffer 	data pointer
+ * @param len		number of bytes in the buffer
+ * @return 			updated CRC value
  */
 uint16_t crc16(uint16_t crc, const uint8_t *buffer, size_t len)
 {
