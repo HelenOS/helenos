@@ -105,7 +105,8 @@ static int
 open_nodes_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
-	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
+	struct mfs_node *mnode = hash_table_get_instance(item,
+	    struct mfs_node, link);
 	assert(keys > 0);
 	if (mnode->instance->service_id !=
 	    ((service_id_t) key[OPEN_NODES_SERVICE_KEY])) {
@@ -195,7 +196,8 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	if (check_magic_number(sb->s_magic, &native, &version, &longnames)) {
 		/* This is a V1 or V2 Minix filesystem */
 		magic = sb->s_magic;
-	} else if (check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
+	} else if (check_magic_number(sb3->s_magic, &native,
+	    &version, &longnames)) {
 		/* This is a V3 Minix filesystem */
 		magic = sb3->s_magic;
 	} else {
@@ -582,7 +584,8 @@ mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	link_t *already_open = hash_table_find(&open_nodes, key);
 
 	if (already_open) {
-		mnode = hash_table_get_instance(already_open, struct mfs_node, link);
+		mnode = hash_table_get_instance(already_open,
+		    struct mfs_node, link);
 		*rfn = mnode->fsnode;
 		mnode->refcnt++;
 
