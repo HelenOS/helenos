@@ -193,12 +193,15 @@ exit:
 	return rc;
 }
 
+/** Read the day, month and year from a string
+ *  with the following format: DD/MM/YYYY
+ */
 static int
 read_date_from_arg(char *wdate, struct tm *t)
 {
 	int rc;
 
-	if (str_size(wdate) != 10) /* DD/MM/YYYY */
+	if (str_size(wdate) != 10) /* str_size("DD/MM/YYYY") == 10 */
 		return EINVAL;
 
 	if (wdate[2] != '/' ||
@@ -220,14 +223,19 @@ read_date_from_arg(char *wdate, struct tm *t)
 	return rc;
 }
 
+/** Read the hours, minutes and seconds from a string
+ *  with the following format: HH:MM:SS or HH:MM
+ */
 static int
 read_time_from_arg(char *wtime, struct tm *t)
 {
 	int rc;
 	size_t len = str_size(wtime);
-	bool sec_present = len > 5;
+	bool sec_present = len == 8;
 
-	if (len > 8 || len < 5) /* HH:MM[:SS] */
+	/* str_size("HH:MM") == 5 */
+	/* str_size("HH:MM:SS") == 8 */
+	if (len != 8 && len != 5)
 		return EINVAL;
 
 	if (sec_present && wtime[5] != ':')
