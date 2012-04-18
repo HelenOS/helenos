@@ -59,8 +59,11 @@ main(int argc, char **argv)
 	sysarg_t      battery_ok;
 	struct tm     t;
 
-	while ((c = getopt(argc, argv, "d:t:")) != -1) {
+	while ((c = getopt(argc, argv, "hd:t:")) != -1) {
 		switch (c) {
+		case 'h':
+			usage();
+			return 0;
 		case 'd':
 			wdate = (char *)optarg;
 			read_only = false;
