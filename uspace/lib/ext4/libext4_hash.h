@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Frantisek Princ
+ * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
