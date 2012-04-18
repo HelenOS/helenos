@@ -38,6 +38,12 @@
 #include <byteorder.h>
 #include "libext4.h"
 
+/** Get address of block with data block bitmap.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		address of block with block bitmap
+ */
 uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -49,6 +55,12 @@ uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *bg,
 	}
 }
 
+/** Set address of block with data block bitmap.
+ *
+ * @param bg			pointer to block group
+ * @param sb			pointer to superblock
+ * @param block_bitmap 	address of block with block bitmap
+ */
 void ext4_block_group_set_block_bitmap(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint64_t block_bitmap)
 {
@@ -59,6 +71,12 @@ void ext4_block_group_set_block_bitmap(ext4_block_group_t *bg,
 	}
 }
 
+/** Get address of block with i-node bitmap.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		address of block with i-node bitmap
+ */
 uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -71,6 +89,12 @@ uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *bg,
 
 }
 
+/** Set address of block with i-node bitmap.
+ *
+ * @param bg			pointer to block group
+ * @param sb			pointer to superblock
+ * @param inode_bitmap	address of block with i-node bitmap
+ */
 void ext4_block_group_set_inode_bitmap(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint64_t inode_bitmap)
 {
@@ -81,6 +105,12 @@ void ext4_block_group_set_inode_bitmap(ext4_block_group_t *bg,
 	}
 }
 
+/** Get address of the first block of the i-node table.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		address of first block of i-node table
+ */
 uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -92,20 +122,38 @@ uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *bg,
 	}
 }
 
+/** Set address of the first block of the i-node table.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @param inode_table_first address of first block of i-node table
+ */
 void ext4_block_group_set_inode_table_first_block(ext4_block_group_t *bg,
-		ext4_superblock_t *sb, uint64_t ino_tbl_first)
+		ext4_superblock_t *sb, uint64_t inode_table_first)
 {
-	bg->inode_table_first_block_lo = host2uint32_t_le((ino_tbl_first << 32) >> 32);
+	bg->inode_table_first_block_lo =
+			host2uint32_t_le((inode_table_first << 32) >> 32);
 
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
-		bg->inode_table_first_block_hi = host2uint32_t_le(ino_tbl_first >> 32);
+	if (ext4_superblock_get_desc_size(sb) >
+			EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+
+		bg->inode_table_first_block_hi =
+				host2uint32_t_le(inode_table_first >> 32);
 	}
 }
 
+/** Get number of free blocks in block group.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		number of free blocks in block group
+ */
 uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) >
+			EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+
 		return ((uint32_t)uint16_t_le2host(bg->free_blocks_count_hi) << 16) |
 			uint16_t_le2host(bg->free_blocks_count_lo);
 	} else {
@@ -113,6 +161,12 @@ uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *bg,
 	}
 }
 
+/** Set number of free blocks in block group.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @param value	number of free blocks in block group
+ */
 void ext4_block_group_set_free_blocks_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t value)
 {
@@ -122,6 +176,12 @@ void ext4_block_group_set_free_blocks_count(ext4_block_group_t *bg,
 	}
 }
 
+/** Get number of free i-nodes in block group.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		number of free i-nodes in block group
+ */
 uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -133,6 +193,12 @@ uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *bg,
 	}
 }
 
+/** Set number of free i-nodes in block group.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @param value	number of free i-nodes in block group
+ */
 void ext4_block_group_set_free_inodes_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t value)
 {
@@ -142,7 +208,12 @@ void ext4_block_group_set_free_inodes_count(ext4_block_group_t *bg,
 	}
 }
 
-
+/** Get number of used directories in block group.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		number of used directories in block group
+ */
 uint32_t ext4_block_group_get_used_dirs_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -154,6 +225,12 @@ uint32_t ext4_block_group_get_used_dirs_count(ext4_block_group_t *bg,
 	}
 }
 
+/** Set number of used directories in block group.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @param value	number of used directories in block group
+ */
 void ext4_block_group_set_used_dirs_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t count)
 {
@@ -163,16 +240,32 @@ void ext4_block_group_set_used_dirs_count(ext4_block_group_t *bg,
 	}
 }
 
+/** Get flags of block group.
+ *
+ * @param bg	pointer to block group
+ * @return		flags of block group
+ */
 uint16_t ext4_block_group_get_flags(ext4_block_group_t *bg)
 {
 	return uint16_t_le2host(bg->flags);
 }
 
+/** Set flags for block group.
+ *
+ * @param bg	pointer to block group
+ * @param flags	flags for block group
+ */
 void ext4_block_group_set_flags(ext4_block_group_t *bg, uint16_t flags)
 {
 	bg->flags = host2uint16_t_le(flags);
 }
 
+/** Get number of unused i-nodes.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @return		number of unused i-nodes
+ */
 uint32_t ext4_block_group_get_itable_unused(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
@@ -184,6 +277,12 @@ uint32_t ext4_block_group_get_itable_unused(ext4_block_group_t *bg,
 	}
 }
 
+/** Set number of unused i-nodes.
+ *
+ * @param bg	pointer to block group
+ * @param sb	pointer to superblock
+ * @param value number of unused i-nodes
+ */
 void ext4_block_group_set_itable_unused(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t value)
 {
@@ -194,17 +293,32 @@ void ext4_block_group_set_itable_unused(ext4_block_group_t *bg,
 
 }
 
+/** Get checksum of block group.
+ *
+ * @param bg	pointer to block group
+ * @return		checksum of block group
+ */
 uint16_t ext4_block_group_get_checksum(ext4_block_group_t *bg)
 {
 	return uint16_t_le2host(bg->checksum);
 }
 
+/** Set checksum of block group.
+ *
+ * @param bg		pointer to block group
+ * @param checksum	cheksum of block group
+ */
 void ext4_block_group_set_checksum(ext4_block_group_t *bg, uint16_t checksum)
 {
 	bg->checksum = host2uint16_t_le(checksum);
 }
 
-// Flags operations
+/** Check if block group has a flag.
+ *
+ * @param bg	pointer to block group
+ * @param flag	flag to be checked
+ * @return		true if flag is set to 1
+ */
 bool ext4_block_group_has_flag(ext4_block_group_t *bg, uint32_t flag)
 {
 	if (ext4_block_group_get_flags(bg) & flag) {
@@ -213,6 +327,23 @@ bool ext4_block_group_has_flag(ext4_block_group_t *bg, uint32_t flag)
 	return false;
 }
 
+/** Set (add) flag of block group.
+ *
+ * @param bg	pointer to block group
+ * @param flag	flag to be set
+ */
+void ext4_block_group_set_flag(ext4_block_group_t *bg, uint32_t set_flag)
+{
+	uint32_t flags = ext4_block_group_get_flags(bg);
+	flags = flags | set_flag;
+	ext4_block_group_set_flags(bg, flags);
+}
+
+/** Clear (remove) flag of block group.
+ *
+ * @param bg	pointer to block group
+ * @param flag	flag to be cleared
+ */
 void ext4_block_group_clear_flag(ext4_block_group_t *bg, uint32_t clear_flag)
 {
 	uint32_t flags = ext4_block_group_get_flags(bg);
