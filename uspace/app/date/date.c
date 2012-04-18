@@ -34,21 +34,46 @@
 #include <time.h>
 #include <malloc.h>
 #include <ipc/clock_ctl.h>
+#include <getopt.h>
+#include <ctype.h>
 
 #define NAME   "date"
+
+static int read_date_from_arg(char *wdate, struct tm *t);
+static int read_time_from_arg(char *wdate, struct tm *t);
+static int read_num_from_str(char *str, size_t len, int *n);
+static void usage(void);
 
 int
 main(int argc, char **argv)
 {
-	int rc;
+	int rc, c;
 	category_id_t cat_id;
-	size_t svc_cnt;
+	size_t        svc_cnt;
 	service_id_t  *svc_ids = NULL;
-	service_id_t svc_id;
-	char *svc_name = NULL;
+	service_id_t  svc_id;
+	char          *svc_name = NULL;
+	bool          read_only = true;
+	char          *wdate = NULL;
+	char          *wtime = NULL;
+	sysarg_t      battery_ok;
+	struct tm     t;
 
-	sysarg_t battery_ok;
-	struct tm t;
+	while ((c = getopt(argc, argv, "d:t:")) != -1) {
+		switch (c) {
+		case 'd':
+			wdate = (char *)optarg;
+			read_only = false;
+			break;
+		case 't':
+			wtime = (char *)optarg;
+			read_only = false;
+			break;
+		case '?':
+			usage();
+			return 1;
+		}
+	}
 
 	/* Get the id of the clock category */
 	rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
@@ -95,6 +120,7 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
+	/* Check the battery status (if present) */
 	async_exch_t *exch = async_exchange_begin(sess);
 	rc = async_req_0_1(exch, CLOCK_GET_BATTERY_STATUS, &battery_ok);
 	async_exchange_end(exch);
@@ -109,12 +135,125 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	printf("%02d/%02d/%d ", t.tm_mday, t.tm_mon + 1, 1900 + t.tm_year);
-	printf("%02d:%02d:%02d\n", t.tm_hour, t.tm_min, t.tm_sec);
+	if (read_only) {
+		/* Print the current time and exit */
+		printf("%02d/%02d/%d ", t.tm_mday,
+		    t.tm_mon + 1, 1900 + t.tm_year);
+		printf("%02d:%02d:%02d\n", t.tm_hour, t.tm_min, t.tm_sec);
+	} else {
+		if (wdate) {
+			rc = read_date_from_arg(wdate, &t);
+			if (rc != EOK) {
+				printf(NAME ": error, date format not "
+				    "recognized\n");
+				usage();
+				goto exit;
+			}
+		}
+		if (wtime) {
+			rc = read_time_from_arg(wtime, &t);
+			if (rc != EOK) {
+				printf(NAME ": error, time format not "
+				    "recognized\n");
+				usage();
+				goto exit;
+			}
+		}
+
+		rc = clock_dev_time_set(sess, &t);
+		if (rc != EOK) {
+			printf(NAME ": error, Unable to set date/time\n");
+			goto exit;
+		}
+	}
 
 exit:
 	free(svc_name);
 	free(svc_ids);
 	return rc;
+}
+
+static int
+read_date_from_arg(char *wdate, struct tm *t)
+{
+	int rc;
+
+	if (str_size(wdate) != 10) /* DD/MM/YYYY */
+		return EINVAL;
+
+	if (wdate[2] != '/' ||
+	    wdate[5] != '/') {
+		return EINVAL;
+	}
+
+	rc = read_num_from_str(&wdate[0], 2, &t->tm_mday);
+	if (rc != EOK)
+		return rc;
+
+	rc = read_num_from_str(&wdate[3], 2, &t->tm_mon);
+	if (rc != EOK)
+		return rc;
+	t->tm_mon--;
+
+	rc = read_num_from_str(&wdate[6], 4, &t->tm_year);
+	t->tm_year -= 1900;
+	return rc;
+}
+
+static int
+read_time_from_arg(char *wtime, struct tm *t)
+{
+	int rc;
+	size_t len = str_size(wtime);
+	bool sec_present = len > 5;
+
+	if (len > 8 || len < 5) /* HH:MM[:SS] */
+		return EINVAL;
+
+	if (sec_present && wtime[5] != ':')
+		return EINVAL;
+
+	if (wtime[2] != ':')
+		return EINVAL;
+
+	rc = read_num_from_str(&wtime[0], 2, &t->tm_hour);
+	if (rc != EOK)
+		return rc;
+
+	rc = read_num_from_str(&wtime[3], 2, &t->tm_min);
+	if (rc != EOK)
+		return rc;
+
+	if (sec_present)
+		rc = read_num_from_str(&wtime[6], 2, &t->tm_sec);
+	else
+		t->tm_sec = 0;
+
+	return rc;
+}
+
+static int
+read_num_from_str(char *str, size_t len, int *n)
+{
+	size_t i;
+
+	*n = 0;
+
+	for (i = 0; i < len; ++i, ++str) {
+		if (!isdigit(*str))
+			return EINVAL;
+		*n *= 10;
+		*n += *str - '0';
+	}
+
+	return EOK;
+}
+
+static void
+usage(void)
+{
+	printf("Usage: date [-d DD/MM/YYYY] [-t HH:MM[:SS]]\n");
+	printf("       -d   Change the current date\n");
+	printf("       -t   Change the current time\n");
 }
 
