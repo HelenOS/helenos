@@ -95,11 +95,12 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 		/* Some error occurred */
 		async_data_read_finalize(cid, NULL, 0);
 		async_answer_0(callid, rc);
+		return;
 	}
 
 	/* The operation was successful */
 	async_data_read_finalize(cid, &t, sizeof(struct tm));
-	async_answer_1(callid, EOK, rc);
+	async_answer_0(callid, rc);
 }
 
 /** Process the write request from the remote client
@@ -132,13 +133,8 @@ static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
 	async_data_write_finalize(cid, &t, sizeof(struct tm));
 
 	rc = (*clock_dev_ops->time_set)(fun, &t);
-	if (rc < 0) {
-		/* Some error occurred */
-		async_answer_0(callid, rc);
-		return;
-	}
 
-	async_answer_1(callid, EOK, rc);
+	async_answer_0(callid, rc);
 }
 
 /**

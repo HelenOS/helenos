@@ -48,14 +48,13 @@
 int
 clock_dev_time_get(async_sess_t *sess, struct tm *t)
 {
-	ipc_call_t answer;
 	aid_t req;
 	int ret;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	req = async_send_1(exch, DEV_IFACE_ID(CLOCK_DEV_IFACE),
-	    CLOCK_DEV_TIME_GET, &answer);
+	    CLOCK_DEV_TIME_GET, NULL);
 	ret = async_data_read_start(exch, t, sizeof(*t));
 
 	async_exchange_end(exch);
@@ -68,10 +67,7 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
 	}
 
 	async_wait_for(req, &rc);
-	if ((int) rc != EOK)
-		return ret;
-
-	return (int) IPC_GET_ARG1(answer);
+	return (int)rc;
 }
 
 /** Set the current time
@@ -84,14 +80,13 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
 int
 clock_dev_time_set(async_sess_t *sess, struct tm *t)
 {
-	ipc_call_t answer;
 	aid_t req;
 	int ret;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	req = async_send_1(exch, DEV_IFACE_ID(CLOCK_DEV_IFACE),
-	    CLOCK_DEV_TIME_SET, &answer);
+	    CLOCK_DEV_TIME_SET, NULL);
 	ret = async_data_write_start(exch, t, sizeof(*t));
 
 	async_exchange_end(exch);
@@ -104,10 +99,7 @@ clock_dev_time_set(async_sess_t *sess, struct tm *t)
 	}
 
 	async_wait_for(req, &rc);
-	if ((int) rc != EOK)
-		return ret;
-
-	return (int) IPC_GET_ARG1(answer);
+	return (int)rc;
 }
 
 /** @}
