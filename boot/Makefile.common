@@ -107,6 +107,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inet/inet \
+	$(USPACE_PATH)/srv/net/loopip/loopip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
@@ -118,7 +119,6 @@ RD_DRVS = \
 	test/test1 \
 	test/test2 \
 	test/test3 \
-	nic/lo \
 	nic/ne2k \
 	nic/e1k \
 	nic/rtl8139

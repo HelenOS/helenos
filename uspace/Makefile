@@ -76,6 +76,7 @@ DIRS = \
 	srv/loader \
 	srv/net/ethip \
 	srv/net/inet \
+	srv/net/loopip \
 	srv/net/tcp \
 	srv/net/udp \
 	srv/ns \
@@ -118,7 +119,6 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
-	drv/nic/lo \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139

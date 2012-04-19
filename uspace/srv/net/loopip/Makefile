@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Radim Vansa
+# Copyright (c) 2012 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,9 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNIC_PREFIX)/libnic.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNIC_PREFIX)/include
-BINARY = lo
+BINARY = loopip
 
 SOURCES = \
-	lo.c
+	loopip.c
 
 include $(USPACE_PREFIX)/Makefile.common
