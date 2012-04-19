@@ -618,7 +618,7 @@ int ext4fs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 			return rc;
 		}
 
-		// Initialize directory index if necessary
+		// Initialize directory index if supported
 		if (ext4_superblock_has_feature_compatible(
 				fs->superblock, EXT4_FEATURE_COMPAT_DIR_INDEX)) {
 
