@@ -52,9 +52,8 @@ extern void ext4_directory_entry_ll_set_inode_type(ext4_superblock_t *,
 		ext4_directory_entry_ll_t *, uint8_t);
 
 extern int ext4_directory_iterator_init(ext4_directory_iterator_t *,
-		ext4_filesystem_t *, ext4_inode_ref_t *, aoff64_t);
+		ext4_inode_ref_t *, aoff64_t);
 extern int ext4_directory_iterator_next(ext4_directory_iterator_t *);
-extern int ext4_directory_iterator_seek(ext4_directory_iterator_t *, aoff64_t);
 extern int ext4_directory_iterator_fini(ext4_directory_iterator_t *);
 
 extern void ext4_directory_write_entry(ext4_superblock_t *,

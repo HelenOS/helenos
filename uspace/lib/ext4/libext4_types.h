@@ -385,7 +385,6 @@ typedef struct ext4_directory_entry_ll {
 } __attribute__ ((packed)) ext4_directory_entry_ll_t;
 
 typedef struct ext4_directory_iterator {
-	ext4_filesystem_t *fs;
 	ext4_inode_ref_t *inode_ref;
 	block_t *current_block;
 	aoff64_t current_offset;

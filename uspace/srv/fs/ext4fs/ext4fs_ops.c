@@ -745,7 +745,7 @@ int ext4fs_has_children(bool *has_children, fs_node_t *fn)
 	}
 
 	ext4_directory_iterator_t it;
-	rc = ext4_directory_iterator_init(&it, fs, enode->inode_ref, 0);
+	rc = ext4_directory_iterator_init(&it, enode->inode_ref, 0);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -1111,7 +1111,7 @@ int ext4fs_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
 	int rc;
 
 	ext4_directory_iterator_t it;
-	rc = ext4_directory_iterator_init(&it, inst->filesystem, inode_ref, pos);
+	rc = ext4_directory_iterator_init(&it, inode_ref, pos);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return rc;
