@@ -84,7 +84,8 @@ static void udp_free_sock_data(socket_core_t *sock_core)
 	udp_sockdata_t *socket;
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
-	(void)socket;
+	assert(socket->assoc != NULL);
+	udp_uc_destroy(socket->assoc);
 }
 
 static void udp_sock_notify_data(socket_core_t *sock_core)
@@ -512,9 +513,6 @@ static void udp_sock_close(udp_client_t *client, ipc_callid_t callid, ipc_call_t
 	socket = (udp_sockdata_t *)sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
 
-	assert(socket->assoc != NULL);
-	udp_uc_destroy(socket->assoc);
-
 	rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
 	    udp_free_sock_data);
 	if (rc != EOK) {
@@ -598,6 +596,11 @@ static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+
+	/* Clean up */
+	log_msg(LVL_DEBUG, "udp_sock_connection: Clean up");
+	async_hangup(client.sess);
+	socket_cores_release(NULL, &client.sockets, &gsock, udp_free_sock_data);
 }
 
 /**
