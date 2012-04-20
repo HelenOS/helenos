@@ -36,12 +36,13 @@
 #define POSIX_STDBOOL_H_
 
 #ifdef LIBC_BOOL_H_
-#	ifndef POSIX_STDIO_H_
-#		ifndef POSIX_STDLIB_H_
-#			error "You can't include bool.h and stdbool.h at the same time."
-#		endif
-#	endif
+#if (!defined(POSIX_STDIO_H_)) \
+		&& (!defined(POSIX_STDLIB_H_)) \
+		&& (!defined(POSIX_STRING_H_))
+#error "You can't include bool.h and stdbool.h at the same time."
 #endif
+#endif
+
 #define LIBC_BOOL_H_
 
 #define bool _Bool
