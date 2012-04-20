@@ -88,6 +88,8 @@ static void tcp_free_sock_data(socket_core_t *sock_core)
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
 	(void)socket;
+
+	/* XXX We need to initiate connection cleanup here */
 }
 
 static void tcp_sock_notify_data(socket_core_t *sock_core)
@@ -834,6 +836,11 @@ static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+
+	/* Clean up */
+	log_msg(LVL_DEBUG, "tcp_sock_connection: Clean up");
+	async_hangup(client.sess);
+	socket_cores_release(NULL, &client.sockets, &gsock, tcp_free_sock_data);
 }
 
 /**
