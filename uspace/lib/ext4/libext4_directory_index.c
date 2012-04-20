@@ -474,11 +474,12 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref, uint32_t ha
     uint32_t num_handles = 0;
     ext4_directory_dx_block_t *p = dx_block;
 
-    // TODO comment
+    // Try to find data block with next bunch of entries
     while (1) {
 
     	p->position++;
-    	uint16_t count = ext4_directory_dx_countlimit_get_count((ext4_directory_dx_countlimit_t *)p->entries);
+    	uint16_t count = ext4_directory_dx_countlimit_get_count(
+    			(ext4_directory_dx_countlimit_t *)p->entries);
 
     	if (p->position < p->entries + count) {
     		break;
@@ -492,7 +493,7 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref, uint32_t ha
     	p--;
     }
 
-    // TODO comment
+    // Check hash collision (if not occured - no next block cannot be used)
     uint32_t current_hash = ext4_directory_dx_entry_get_hash(p->position);
     if ((hash & 1) == 0) {
     	if ((current_hash & ~1) != hash) {
@@ -500,7 +501,7 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref, uint32_t ha
     	}
     }
 
-    // TODO comment
+    // Fill new path
     while (num_handles--) {
 
     	uint32_t block_idx = ext4_directory_dx_entry_get_block(p->position);
@@ -518,7 +519,9 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref, uint32_t ha
 
     	p++;
 
+    	// Don't forget to put old block (prevent memory leak)
     	block_put(p->block);
+
         p->block = block;
         p->entries = ((ext4_directory_dx_node_t *) block->data)->entries;
         p->position = p->entries;
@@ -851,12 +854,15 @@ static int ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-/** TODO start comments from here
+/** Split index node and maybe some parent nodes in the tree hierarchy.
  *
+ * @param inode_ref		directory i-node
+ * @param dx_blocks		array with path from root to leaf node
+ * @param dx_block		leaf block to be split if needed
+ * @return				error code
  */
-static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
-		ext4_inode_ref_t *inode_ref, ext4_directory_dx_block_t *dx_blocks,
-		ext4_directory_dx_block_t *dx_block)
+static int ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
+		ext4_directory_dx_block_t *dx_blocks, ext4_directory_dx_block_t *dx_block)
 {
 	int rc;
 
@@ -874,7 +880,6 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 
 	// Check if is necessary to split index block
 	if (leaf_limit == leaf_count) {
-		EXT4FS_DBG("need to split index block !!!");
 
 		unsigned int levels = dx_block - dx_blocks;
 
@@ -888,11 +893,13 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 		uint16_t root_count =
 				ext4_directory_dx_countlimit_get_count(root_countlimit);
 
+		// Linux limitation
 		if ((levels > 0) && (root_limit == root_count)) {
 			EXT4FS_DBG("Directory index is full");
 			return ENOSPC;
 		}
 
+		// Add new block to directory
 		uint32_t new_fblock;
 		uint32_t new_iblock;
 		rc =  ext4_filesystem_append_inode_block(
@@ -901,9 +908,10 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 			return rc;
 		}
 
-		// New block allocated
+		// load new block
 		block_t * new_block;
-		rc = block_get(&new_block, fs->device, new_fblock, BLOCK_FLAGS_NOREAD);
+		rc = block_get(&new_block, inode_ref->fs->device,
+				new_fblock, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -911,18 +919,22 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 		ext4_directory_dx_node_t *new_node = new_block->data;
 		ext4_directory_dx_entry_t *new_entries = new_node->entries;
 
-		uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
+		uint32_t block_size = ext4_superblock_get_block_size(
+				inode_ref->fs->superblock);
 
+		// Split leaf node
 		if (levels > 0) {
-			EXT4FS_DBG("split index leaf node");
+
 			uint32_t count_left = leaf_count / 2;
 			uint32_t count_right = leaf_count - count_left;
 			uint32_t hash_right =
 					ext4_directory_dx_entry_get_hash(entries + count_left);
 
+			// Copy data to new node
 			memcpy((void *) new_entries, (void *) (entries + count_left),
 					count_right * sizeof(ext4_directory_dx_entry_t));
 
+			// Initialize new node
 			ext4_directory_dx_countlimit_t *left_countlimit =
 					(ext4_directory_dx_countlimit_t *)entries;
 			ext4_directory_dx_countlimit_t *right_countlimit =
@@ -950,13 +962,16 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 
 			}
 
+			// Finally insert new entry
 			ext4_directory_dx_insert_entry(dx_blocks, hash_right, new_iblock);
 
 			return block_put(new_block);
 
 		} else {
-			EXT4FS_DBG("create second level");
 
+			// Create second level index
+
+			// Copy data from root to child block
 			memcpy((void *) new_entries, (void *) entries,
 					leaf_count * sizeof(ext4_directory_dx_entry_t));
 
@@ -976,7 +991,7 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 
 			((ext4_directory_dx_root_t *)dx_blocks[0].block->data)->info.indirect_levels = 1;
 
-			/* Add new access path frame */
+			// Add new entry to the path
 			dx_block = dx_blocks + 1;
 			dx_block->position = dx_block->position - entries + new_entries;
 			dx_block->entries = new_entries;
@@ -988,6 +1003,13 @@ static int ext4_directory_dx_split_index(ext4_filesystem_t *fs,
 	return EOK;
 }
 
+/** Add new entry to indexed directory
+ *
+ * @param parent	directory i-node
+ * @param child		i-node to be referenced from directory entry
+ * @param name		name of new directory entry
+ * @return			error code
+ */
 int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 		ext4_inode_ref_t *child, const char *name)
 {
@@ -1009,6 +1031,7 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 		return rc;
 	}
 
+	// Initialize hinfo structure (mainly compute hash)
 	uint32_t name_len = strlen(name);
 	ext4_hash_info_t hinfo;
 	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_len, name);
@@ -1018,7 +1041,7 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
-	// Hardcoded number 2 means maximum height of index tree !!!
+	// Hardcoded number 2 means maximum height of index tree defined in linux
 	ext4_directory_dx_block_t dx_blocks[2];
 	ext4_directory_dx_block_t *dx_block, *dx_it;
 	rc = ext4_directory_dx_get_leaf(&hinfo, parent, root_block, &dx_block, dx_blocks);
@@ -1044,19 +1067,20 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
    		goto release_index;
    	}
 
-
+   	// Check if insert operation passed
    	rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
    	if (rc == EOK) {
    		goto release_target_index;
    	}
 
-    EXT4FS_DBG("no free space found");
-
-	rc = ext4_directory_dx_split_index(fs, parent, dx_blocks, dx_block);
+   	// Check if there is needed to split index node
+   	// (and recursively also parent nodes)
+	rc = ext4_directory_dx_split_index(parent, dx_blocks, dx_block);
 	if (rc != EOK) {
 		goto release_target_index;
 	}
 
+	// Split entries to two blocks (includes sorting by hash value)
 	block_t *new_block = NULL;
 	rc = ext4_directory_dx_split_data(parent, &hinfo, target_block, dx_block, &new_block);
 	if (rc != EOK) {
@@ -1072,14 +1096,14 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 		rc = ext4_directory_try_insert_entry(fs->superblock, target_block, child, name, name_len);
 	}
 
-
-
-
+	// Cleanup
 	rc = block_put(new_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error writing new block");
 		return rc;
 	}
+
+	// Cleanup operations
 
 release_target_index:
 
