@@ -41,6 +41,7 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
+	app/inetcfg \
 	app/kill \
 	app/killall \
 	app/klog \
@@ -73,6 +74,11 @@ DIRS = \
 	srv/loc \
 	srv/devman \
 	srv/loader \
+	srv/net/ethip \
+	srv/net/inet \
+	srv/net/loopip \
+	srv/net/tcp \
+	srv/net/udp \
 	srv/ns \
 	srv/taskmon \
 	srv/vfs \
@@ -95,14 +101,6 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
-	srv/net/il/arp \
-	srv/net/il/ip \
-	srv/net/tl/icmp \
-	srv/net/tl/udp \
-	srv/net/tl/tcp \
-	srv/net/nil/eth \
-	srv/net/nil/nildummy \
-	srv/net/net \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/char/i8042 \
@@ -121,7 +119,6 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
-	drv/nic/lo \
 	drv/nic/ne2k \
 	drv/nic/e1k \
 	drv/nic/rtl8139

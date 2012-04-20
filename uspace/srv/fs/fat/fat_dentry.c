@@ -334,7 +334,7 @@ void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad)
 	
 	while (i < count) {
 		if ((ch = str_decode(src, &off, STR_NO_LIMIT)) != 0) {
-			if (ascii_check(ch) & IS_D_CHAR(ch))
+			if (ascii_check(ch) && IS_D_CHAR(ch))
 				*dst = toupper(ch);
 			else
 				*dst = pad;

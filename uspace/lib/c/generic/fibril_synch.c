@@ -111,10 +111,9 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 	if (fm->counter-- <= 0) {
 		awaiter_t wdata;
 
+		awaiter_initialize(&wdata);
 		wdata.fid = fibril_get_id();
-		wdata.active = false;
 		wdata.wu_event.inlist = true;
-		link_initialize(&wdata.wu_event.link);
 		list_append(&wdata.wu_event.link, &fm->waiters);
 		check_for_deadlock(&fm->oi);
 		f->waits_for = &fm->oi;
@@ -204,10 +203,9 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 	if (frw->writers) {
 		awaiter_t wdata;
 
+		awaiter_initialize(&wdata);
 		wdata.fid = (fid_t) f;
-		wdata.active = false;
 		wdata.wu_event.inlist = true;
-		link_initialize(&wdata.wu_event.link);
 		f->flags &= ~FIBRIL_WRITER;
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
@@ -232,10 +230,9 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 	if (frw->writers || frw->readers) {
 		awaiter_t wdata;
 
+		awaiter_initialize(&wdata);
 		wdata.fid = (fid_t) f;
-		wdata.active = false;
 		wdata.wu_event.inlist = true;
-		link_initialize(&wdata.wu_event.link);
 		f->flags |= FIBRIL_WRITER;
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
@@ -374,15 +371,10 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 	if (timeout < 0)
 		return ETIMEOUT;
 
+	awaiter_initialize(&wdata);
 	wdata.fid = fibril_get_id();
-	wdata.active = false;
-	
 	wdata.to_event.inlist = timeout > 0;
-	wdata.to_event.occurred = false;
-	link_initialize(&wdata.to_event.link);
-
 	wdata.wu_event.inlist = true;
-	link_initialize(&wdata.wu_event.link);
 
 	futex_down(&async_futex);
 	if (timeout) {
