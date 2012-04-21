@@ -28,9 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = clip
+BINARY = clipboard
 
 SOURCES = \
-	clip.c
+	clipboard.c
 
 include $(USPACE_PREFIX)/Makefile.common

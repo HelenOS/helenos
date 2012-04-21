@@ -70,7 +70,7 @@ DIRS = \
 	app/websrv \
 	app/sysinfo \
 	app/mkbd \
-	srv/clip \
+	srv/clipboard \
 	srv/loc \
 	srv/devman \
 	srv/loader \
