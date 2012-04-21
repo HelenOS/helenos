@@ -36,7 +36,7 @@
 #include <fibril_synch.h>
 #include <errno.h>
 
-#define NAME  "clip"
+#define NAME  "clipboard"
 
 static char *clip_data = NULL;
 static size_t clip_size = 0;

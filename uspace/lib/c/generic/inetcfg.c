@@ -50,7 +50,7 @@ static int inetcfg_get_ids_once(sysarg_t method, sysarg_t arg1,
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 
@@ -145,7 +145,7 @@ int inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 
@@ -182,7 +182,7 @@ int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	async_exchange_end(exch);
 
 	if (dretval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return dretval;
 	}
 
@@ -215,7 +215,7 @@ int inetcfg_addr_get_id(const char *name, sysarg_t link_id, sysarg_t *addr_id)
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 
@@ -260,7 +260,7 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	async_exchange_end(exch);
 
 	if (dretval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return dretval;
 	}
 
@@ -293,7 +293,7 @@ int inetcfg_sroute_create(const char *name, inet_naddr_t *dest,
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 
@@ -330,7 +330,7 @@ int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 	async_exchange_end(exch);
 
 	if (dretval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return dretval;
 	}
 
@@ -363,7 +363,7 @@ int inetcfg_sroute_get_id(const char *name, sysarg_t *sroute_id)
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 

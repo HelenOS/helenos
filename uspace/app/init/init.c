@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 	spawn("/srv/input");
 	console("hid/input", "hid/fb0");
 	
-	spawn("/srv/clip");
+	spawn("/srv/clipboard");
 	spawn("/srv/remcons");
 	
 	/*

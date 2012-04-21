@@ -363,7 +363,7 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 

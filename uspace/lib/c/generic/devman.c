@@ -187,7 +187,7 @@ int devman_driver_register(const char *name)
 	devman_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -225,7 +225,7 @@ int devman_add_function(const char *name, fun_type_t ftype,
 	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
 	if (retval != EOK) {
 		devman_exchange_end(exch);
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -241,15 +241,15 @@ int devman_add_function(const char *name, fun_type_t ftype,
 		    str_size(match_id->id));
 		if (retval != EOK) {
 			devman_exchange_end(exch);
-			async_wait_for(req2, NULL);
-			async_wait_for(req, NULL);
+			async_forget(req2);
+			async_forget(req);
 			return retval;
 		}
 		
 		async_wait_for(req2, &retval);
 		if (retval != EOK) {
 			devman_exchange_end(exch);
-			async_wait_for(req, NULL);
+			async_forget(req);
 			return retval;
 		}
 	}
@@ -282,7 +282,7 @@ int devman_add_device_to_category(devman_handle_t devman_handle,
 	devman_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -385,7 +385,7 @@ int devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
 	devman_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -422,7 +422,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 	devman_exchange_end(exch);
 	
 	if (dretval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return dretval;
 	}
 	
@@ -487,7 +487,7 @@ static int devman_get_handles_once(sysarg_t method, sysarg_t arg1,
 	devman_exchange_end(exch);
 	
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	
