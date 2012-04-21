@@ -40,37 +40,69 @@
 #include <malloc.h>
 #include "libext4.h"
 
+/** Get logical number of the block covered extent.
+ *
+ * @param extent	extent to load number from
+ * @return			logical number of the first block covered by extent
+ */
 uint32_t ext4_extent_get_first_block(ext4_extent_t *extent)
 {
 	return uint32_t_le2host(extent->first_block);
 }
 
-void ext4_extent_set_first_block(ext4_extent_t *extent, uint32_t first_block)
+/** Set logical number of the first block covered by extent.
+ *
+ * @param extent	extent to load number from
+ * @param iblock	logical number of the first block covered by extent
+ */
+void ext4_extent_set_first_block(ext4_extent_t *extent, uint32_t iblock)
 {
-	extent->first_block = host2uint32_t_le(first_block);
+	extent->first_block = host2uint32_t_le(iblock);
 }
 
+/** Get number of blocks covered by extent.
+ *
+ * @param extent	extent to load count from
+ * @return			number of blocks covered by extent
+ */
 uint16_t ext4_extent_get_block_count(ext4_extent_t *extent)
 {
 	return uint16_t_le2host(extent->block_count);
 }
 
-void ext4_extent_set_block_count(ext4_extent_t *extent, uint16_t block_count)
+/** Set number of blocks covered by extent.
+ *
+ * @param extent	extent to load count from
+ * @param count 	number of blocks covered by extent
+ */
+void ext4_extent_set_block_count(ext4_extent_t *extent, uint16_t count)
 {
-	extent->block_count = host2uint16_t_le(block_count);
+	extent->block_count = host2uint16_t_le(count);
 }
 
+/** Get physical number of the first block covered by extent.
+ *
+ * @param extent 	extent to load number
+ * @return			physical number of the first block covered by extent
+ */
 uint64_t ext4_extent_get_start(ext4_extent_t *extent)
 {
 	return ((uint64_t)uint16_t_le2host(extent->start_hi)) << 32 |
 			((uint64_t)uint32_t_le2host(extent->start_lo));
 }
 
-void ext4_extent_set_start(ext4_extent_t *extent, uint64_t start)
+/** Set physical number of the first block covered by extent.
+ *
+ * @param extent 	extent to load number
+ * @param fblock	physical number of the first block covered by extent
+ */
+void ext4_extent_set_start(ext4_extent_t *extent, uint64_t fblock)
 {
-	extent->start_lo = host2uint32_t_le((start << 32) >> 32);
-	extent->start_hi = host2uint16_t_le((uint16_t)(start >> 32));
+	extent->start_lo = host2uint32_t_le((fblock << 32) >> 32);
+	extent->start_hi = host2uint16_t_le((uint16_t)(fblock >> 32));
 }
+
+// TODO start comments here
 
 uint32_t ext4_extent_index_get_first_block(ext4_extent_index_t *index)
 {
