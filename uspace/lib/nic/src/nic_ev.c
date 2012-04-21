@@ -53,7 +53,7 @@ int nic_ev_addr_changed(async_sess_t *sess, const nic_address_t *addr)
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 
@@ -85,7 +85,7 @@ int nic_ev_received(async_sess_t *sess, void *data, size_t size)
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 

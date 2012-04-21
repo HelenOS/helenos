@@ -119,7 +119,7 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 

@@ -87,7 +87,7 @@ int inetping_send(inetping_sdu_t *sdu)
 	async_exchange_end(exch);
 
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 

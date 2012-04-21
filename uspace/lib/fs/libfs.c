@@ -319,7 +319,7 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	
@@ -340,14 +340,14 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	rc = async_share_in_start_0_0(exch, PLB_SIZE, (void *) &reg.plb_ro);
 	if (reg.plb_ro == (void *) -1) {
 		async_exchange_end(exch);
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return ENOMEM;
 	}
 	
 	async_exchange_end(exch);
 	
 	if (rc) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	 

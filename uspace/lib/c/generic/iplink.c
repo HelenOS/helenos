@@ -93,7 +93,7 @@ int iplink_send(iplink_t *iplink, iplink_sdu_t *sdu)
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 

@@ -177,7 +177,7 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 
