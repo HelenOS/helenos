@@ -40,7 +40,7 @@
 #include <malloc.h>
 #include "libext4.h"
 
-/** Get logical number of the block covered extent.
+/** Get logical number of the block covered by extent.
  *
  * @param extent	extent to load number from
  * @return			logical number of the first block covered by extent
@@ -52,7 +52,7 @@ uint32_t ext4_extent_get_first_block(ext4_extent_t *extent)
 
 /** Set logical number of the first block covered by extent.
  *
- * @param extent	extent to load number from
+ * @param extent	extent to set number to
  * @param iblock	logical number of the first block covered by extent
  */
 void ext4_extent_set_first_block(ext4_extent_t *extent, uint32_t iblock)
@@ -102,86 +102,157 @@ void ext4_extent_set_start(ext4_extent_t *extent, uint64_t fblock)
 	extent->start_hi = host2uint16_t_le((uint16_t)(fblock >> 32));
 }
 
-// TODO start comments here
-
+/** Get logical number of the block covered by extent index.
+ *
+ * @param index 	extent index to load number from
+ * @return			logical number of the first block covered by extent index
+ */
 uint32_t ext4_extent_index_get_first_block(ext4_extent_index_t *index)
 {
 	return uint32_t_le2host(index->first_block);
 }
 
+/** Set logical number of the block covered by extent index.
+ *
+ * @param index 	extent index to set number to
+ * @param iblock	logical number of the first block covered by extent index
+ */
 void ext4_extent_index_set_first_block(ext4_extent_index_t *index,
-		uint32_t first)
+		uint32_t iblock)
 {
-	index->first_block = host2uint32_t_le(first);
+	index->first_block = host2uint32_t_le(iblock);
 }
 
+/** Get physical number of block where the child node is located.
+ *
+ * @param index		extent index to load number from
+ * @return			physical number of the block with child node
+ */
 uint64_t ext4_extent_index_get_leaf(ext4_extent_index_t *index)
 {
 	return ((uint64_t)uint16_t_le2host(index->leaf_hi)) << 32 |
 		((uint64_t)uint32_t_le2host(index->leaf_lo));
 }
 
-void ext4_extent_index_set_leaf(ext4_extent_index_t *index, uint64_t leaf)
+/** Set physical number of block where the child node is located.
+ *
+ * @param index		extent index to set number to
+ * @param fblock	physical number of the block with child node
+ */
+void ext4_extent_index_set_leaf(ext4_extent_index_t *index, uint64_t fblock)
 {
-	index->leaf_lo = host2uint32_t_le((leaf << 32) >> 32);
-	index->leaf_hi = host2uint16_t_le((uint16_t)(leaf >> 32));
+	index->leaf_lo = host2uint32_t_le((fblock << 32) >> 32);
+	index->leaf_hi = host2uint16_t_le((uint16_t)(fblock >> 32));
 }
 
+/** Get magic value from extent header.
+ *
+ * @param header	extent header to load value from
+ * @return			magic value of extent header
+ */
 uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *header)
 {
 	return uint16_t_le2host(header->magic);
 }
 
+/** Set magic value to extent header.
+ *
+ * @param header	extent header to set value to
+ * @param magic		magic value of extent header
+ */
 void ext4_extent_header_set_magic(ext4_extent_header_t *header, uint16_t magic)
 {
 	header->magic = host2uint16_t_le(magic);
 }
 
+/** Get number of entries from extent header
+ *
+ * @param header	extent header to get value from
+ * @return			number of entries covered by extent header
+ */
 uint16_t ext4_extent_header_get_entries_count(ext4_extent_header_t *header)
 {
 	return uint16_t_le2host(header->entries_count);
 }
 
+/** Set number of entries to extent header
+ *
+ * @param header	extent header to set value to
+ * @param count		number of entries covered by extent header
+ */
 void ext4_extent_header_set_entries_count(ext4_extent_header_t *header,
 		uint16_t count)
 {
 	header->entries_count = host2uint16_t_le(count);
 }
 
+/** Get maximum number of entries from extent header
+ *
+ * @param header	extent header to get value from
+ * @return			maximum number of entries covered by extent header
+ */
 uint16_t ext4_extent_header_get_max_entries_count(ext4_extent_header_t *header)
 {
 	return uint16_t_le2host(header->max_entries_count);
 }
 
+/** Set maximum number of entries to extent header
+ *
+ * @param header	extent header to set value to
+ * @param max_count maximum number of entries covered by extent header
+ */
 void ext4_extent_header_set_max_entries_count(ext4_extent_header_t *header,
 		uint16_t max_count)
 {
 	header->max_entries_count = host2uint16_t_le(max_count);
 }
 
+/** Get depth of extent subtree.
+ *
+ * @param header	extent header to get value from
+ * @return			depth of extent subtree
+ */
 uint16_t ext4_extent_header_get_depth(ext4_extent_header_t *header)
 {
 	return uint16_t_le2host(header->depth);
 }
 
+/** Set depth of extent subtree.
+ *
+ * @param header	extent header to set value to
+ * @param depth 	depth of extent subtree
+ */
 void ext4_extent_header_set_depth(ext4_extent_header_t *header, uint16_t depth)
 {
 	header->depth = host2uint16_t_le(depth);
 }
 
+/** Get generation from extent header
+ *
+ * @param header 	extent header to get value from
+ * @return 			generation
+ */
 uint32_t ext4_extent_header_get_generation(ext4_extent_header_t *header)
 {
 	return uint32_t_le2host(header->generation);
 }
 
+/** Set generation to extent header
+ *
+ * @param header 		extent header to set value to
+ * @param generation	generation
+ */
 void ext4_extent_header_set_generation(ext4_extent_header_t *header,
 		uint32_t generation)
 {
 	header->generation = host2uint32_t_le(generation);
 }
 
-/**
- * Binary search in extent index node
+/** Binary search in extent index node.
+ *
+ * @param header	extent header of index node
+ * @param index		output value - found index will be set here
+ * @param iblock	logical block number to find in index node
  */
 static void ext4_extent_binsearch_idx(ext4_extent_header_t *header,
 	ext4_extent_index_t **index, uint32_t iblock)
@@ -190,14 +261,17 @@ static void ext4_extent_binsearch_idx(ext4_extent_header_t *header,
 
 	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
 
+	// Check trivial situation
 	if (entries_count == 1) {
 		*index = EXT4_EXTENT_FIRST_INDEX(header);
 		return;
 	}
 
+	// Initialize bounds
 	l = EXT4_EXTENT_FIRST_INDEX(header) + 1;
 	r = l + entries_count - 1;
 
+	// Do binary search
 	while (l <= r) {
 		m = l + (r - l) / 2;
 		uint32_t first_block = ext4_extent_index_get_first_block(m);
@@ -208,11 +282,16 @@ static void ext4_extent_binsearch_idx(ext4_extent_header_t *header,
 		}
 	}
 
+	// Set output value
 	*index = l - 1;
 }
 
-/**
- * Binary search in extent leaf node
+/** Binary search in extent leaf node.
+ * @param header	extent header of leaf node
+ * @param extent	output value - found extent will be set here,
+ * 					or NULL if node is empty
+ * @param iblock	logical block number to find in leaf node
+ *
  */
 static void ext4_extent_binsearch(ext4_extent_header_t *header,
 		ext4_extent_t **extent, uint32_t iblock)
@@ -223,19 +302,21 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
 
 	if (entries_count == 0) {
 		// this leaf is empty
-//		EXT4FS_DBG("EMPTY LEAF");
 		*extent = NULL;
 		return;
 	}
 
+	// Check trivial situation
 	if (entries_count == 1) {
 		*extent = EXT4_EXTENT_FIRST(header);
 		return;
 	}
 
+	// Initialize bounds
 	l = EXT4_EXTENT_FIRST(header) + 1;
 	r = l + entries_count - 1;
 
+	// Do binary search
 	while (l < r) {
 		m = l + (r - l) / 2;
 		uint32_t first_block = ext4_extent_get_first_block(m);
@@ -246,14 +327,25 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
 		}
 	}
 
+	// Set output value
 	*extent = l - 1;
 }
 
-// Reading routine without saving blocks to path - for saving memory during finding block
-int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_t *fblock)
+/** Find physical block in the extent tree by logical block number.
+ *
+ * There is no need to save path in the tree during this algorithm.
+ *
+ * @param inode_ref		i-node to load block from
+ * @param iblock		logical block number to find
+ * @param fblock		output value for physical block number
+ * @return				error code
+ */
+int ext4_extent_find_block(ext4_inode_ref_t *inode_ref,
+		uint32_t iblock, uint32_t *fblock)
 {
 	int rc;
 
+	// Compute bound defined by i-node size
 	uint64_t inode_size = ext4_inode_get_size(
 			inode_ref->fs->superblock, inode_ref->inode);
 
@@ -262,6 +354,7 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_
 
 	uint32_t last_idx = (inode_size - 1) / block_size;
 
+	// Check if requested iblock is not over size of i-node
 	if (iblock > last_idx) {
 		*fblock = 0;
 		return EOK;
@@ -269,12 +362,15 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_
 
 	block_t* block = NULL;
 
+	// Walk through extent tree
 	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode_ref->inode);
 	while (ext4_extent_header_get_depth(header) != 0) {
 
+		// Search index in node
 		ext4_extent_index_t *index;
 		ext4_extent_binsearch_idx(header, &index, iblock);
 
+		// Load child node and set values for the next iteration
 		uint64_t child = ext4_extent_index_get_leaf(index);
 
 		if (block != NULL) {
@@ -289,13 +385,16 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_
 		header = (ext4_extent_header_t *)block->data;
 	}
 
-
+	// Search extent in the leaf block
 	ext4_extent_t* extent = NULL;
 	ext4_extent_binsearch(header, &extent, iblock);
 
+	// Prevent empty leaf
 	if (extent == NULL) {
 		*fblock = 0;
 	} else {
+
+		// Compute requested physical block address
 		uint32_t phys_block;
 		phys_block = ext4_extent_get_start(extent) + iblock;
 		phys_block -= ext4_extent_get_first_block(extent);
@@ -303,6 +402,7 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_
 		*fblock = phys_block;
 	}
 
+	// Cleanup
 	if (block != NULL) {
 		block_put(block);
 	}
@@ -310,6 +410,17 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock, uint32_
 	return EOK;
 }
 
+
+/** Find extent for specified iblock.
+ *
+ * This function is used for finding block in the extent tree with
+ * saving the path through the tree for possible future modifications.
+ *
+ * @param inode_ref		i-node to read extent tree from
+ * @param iblock		iblock to find extent for
+ * @param ret_path		output value for loaded path from extent tree
+ * @return				error code
+ */
 static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 		uint32_t iblock, ext4_extent_path_t **ret_path)
 {
@@ -328,12 +439,15 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 		return ENOMEM;
 	}
 
+	// Initialize structure for algorithm start
 	tmp_path[0].block = inode_ref->block;
 	tmp_path[0].header = eh;
 
+	// Walk through the extent tree
 	uint16_t pos = 0;
 	while (ext4_extent_header_get_depth(eh) != 0) {
 
+		// Search index in index node by iblock
 		ext4_extent_binsearch_idx(tmp_path[pos].header, &tmp_path[pos].index, iblock);
 
 		tmp_path[pos].depth = depth;
@@ -341,6 +455,7 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 
 		assert(tmp_path[pos].index != NULL);
 
+		// Load information for the next iteration
 		uint64_t fblock = ext4_extent_index_get_leaf(tmp_path[pos].index);
 
 		block_t *block;
@@ -361,7 +476,7 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref,
 	tmp_path[pos].extent = NULL;
 	tmp_path[pos].index = NULL;
 
-    /* find extent */
+    // Find extent in the leaf node
 	ext4_extent_binsearch(tmp_path[pos].header, &tmp_path[pos].extent, iblock);
 
 	*ret_path = tmp_path;
@@ -381,24 +496,33 @@ cleanup:
 	free(tmp_path);
 
 	return rc;
-
 }
 
-static int ext4_extent_release(ext4_inode_ref_t *inode_ref, ext4_extent_t* extent)
+/** Release extent and all data blocks covered by the extent.
+ *
+ * @param inode_ref		i-node to release extent and block from
+ * @param extent		extent to release
+ * @return				error code
+ */
+static int ext4_extent_release(
+		ext4_inode_ref_t *inode_ref, ext4_extent_t *extent)
 {
 	int rc;
 
+	// Compute number of the first physical block to release
 	uint64_t start = ext4_extent_get_start(extent);
 	uint16_t block_count = ext4_extent_get_block_count(extent);
 
 	rc = ext4_balloc_free_blocks(inode_ref, start, block_count);
 	if (rc != EOK) {
-		EXT4FS_DBG("ERROR");
+		EXT4FS_DBG("Error in releasing data blocks");
 		return rc;
 	}
 
 	return EOK;
 }
+
+// TODO comments
 
 // Recursive release
 static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
