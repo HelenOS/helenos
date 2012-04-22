@@ -623,25 +623,6 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 }
 
 /**
- * This function is to be used only in the loopback driver. It's workaround
- * for the situation when the frame does not contain ethernet address.
- * The filtering is therefore not applied here.
- *
- * @param nic_data
- * @param data		Frame data
- * @param size		Frame size in bytes
- */
-void nic_received_noneth_frame(nic_t *nic_data, void *data, size_t size)
-{
-	fibril_rwlock_write_lock(&nic_data->stats_lock);
-	nic_data->stats.receive_packets++;
-	nic_data->stats.receive_bytes += size;
-	fibril_rwlock_write_unlock(&nic_data->stats_lock);
-	
-	nic_ev_received(nic_data->client_session, data, size);
-}
-
-/**
  * Some NICs can receive multiple frames during single interrupt. These can
  * send them in whole list of frames (actually nic_frame_t structures), then
  * the list is deallocated and each frame is passed to the
