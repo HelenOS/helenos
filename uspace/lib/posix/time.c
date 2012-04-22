@@ -139,7 +139,7 @@ static int _day_of_year(time_t year, time_t mon, time_t mday)
  * Integer division that rounds to negative infinity.
  * Used by some functions in this file.
  *
- * @param op1 Divident.
+ * @param op1 Dividend.
  * @param op2 Divisor.
  * @return Rounded quotient.
  */
@@ -156,7 +156,7 @@ static time_t _floor_div(time_t op1, time_t op2)
  * Modulo that rounds to negative infinity.
  * Used by some functions in this file.
  *
- * @param op1 Divident.
+ * @param op1 Dividend.
  * @param op2 Divisor.
  * @return Remainder.
  */
