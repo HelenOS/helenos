@@ -522,9 +522,16 @@ static int ext4_extent_release(
 	return EOK;
 }
 
-// TODO comments
-
-// Recursive release
+/** Recursively release the whole branch of the extent tree.
+ *
+ * For each entry of the node release the subbranch and finally release
+ * the node. In the leaf node all extents will be released.
+ *
+ * @param inode_ref		i-node where the branch is released
+ * @param index			index in the non-leaf node to be released
+ * 						with the whole subtree
+ * @return				error code
+ */
 static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 		ext4_extent_index_t *index)
 {
@@ -533,8 +540,6 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 	block_t* block;
 
 	uint32_t fblock = ext4_extent_index_get_leaf(index);
-
-//	EXT4FS_DBG("fblock = \%u", fblock);
 
 	rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NOREAD);
 	if (rc != EOK) {
@@ -546,8 +551,11 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 
 	if (ext4_extent_header_get_depth(header)) {
 
+		// The node is non-leaf, do recursion
+
 		ext4_extent_index_t *idx = EXT4_EXTENT_FIRST_INDEX(header);
 
+		// Release all subbranches
 		for (uint32_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, ++idx) {
 			rc = ext4_extent_release_branch(inode_ref, idx);
 			if (rc != EOK) {
@@ -556,7 +564,11 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 			}
 		}
 	} else {
+
+		// Leaf node reached
 		ext4_extent_t *ext = EXT4_EXTENT_FIRST(header);
+
+		// Release all extents and stop recursion
 
 		for (uint32_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, ++ext) {
 			rc = ext4_extent_release(inode_ref, ext);
@@ -566,6 +578,8 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 			}
 		}
 	}
+
+	// Release data block where the node was stored
 
 	rc = block_put(block);
 	if (rc != EOK) {
@@ -578,6 +592,11 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
+/** Release all data blocks starting from specified logical block.
+ *
+ * @param inode_ref		i-node to release blocks from
+ * @param iblock_from	first logical block to release
+ */
 int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		uint32_t iblock_from)
 {
@@ -608,14 +627,17 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	uint16_t delete_count = block_count - first_fblock +
 			ext4_extent_get_start(path_ptr->extent);
 
+	// Release all blocks
 	rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
 	if (rc != EOK) {
 		goto cleanup;
 	}
 
+	// Correct counter
 	block_count -= delete_count;
 	ext4_extent_set_block_count(path_ptr->extent, block_count);
 
+	// Initialize the following loop
 	uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
 	ext4_extent_t *tmp_ext = path_ptr->extent + 1;
 	ext4_extent_t *stop_ext = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
@@ -657,18 +679,23 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	// Jump to the parent
 	--path_ptr;
 
-	// release all successors in all levels
-	while(path_ptr >= path) {
+	// release all successors in all tree levels
+	while (path_ptr >= path) {
 		entries = ext4_extent_header_get_entries_count(path_ptr->header);
 		ext4_extent_index_t *index = path_ptr->index + 1;
 		ext4_extent_index_t *stop =
 				EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
 
+		// Correct entry because of changes in the previous iteration
 		if (check_tree) {
 			entries--;
 			ext4_extent_header_set_entries_count(path_ptr->header, entries);
+		} else {
+			// TODO check this condition
+			break;
 		}
 
+		// Iterate over all entries and release the whole subtrees
 		while (index < stop) {
 			rc = ext4_extent_release_branch(inode_ref, index);
 			if (rc != EOK) {
@@ -681,11 +708,14 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 
 		path_ptr->block->dirty = true;
 
+		// Free the node if it is empty
 		if ((entries == 0) && (path_ptr != path)) {
 			rc = ext4_balloc_free_block(inode_ref, path_ptr->block->lba);
 			if (rc != EOK) {
 				goto cleanup;
 			}
+
+			// Mark parent to be checked
 			check_tree = true;
 		} else {
 			check_tree = false;
@@ -710,6 +740,9 @@ cleanup:
 	return rc;
 }
 
+/** TODO
+ *
+ */
 static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		ext4_extent_path_t *path, ext4_extent_path_t **last_path_item,
 		uint32_t iblock)

@@ -226,6 +226,16 @@ static void str2hashbuf_unsigned(const char *msg, int len, uint32_t *buf, int nu
 	}
 }
 
+
+/** Compute hash value of the string.
+ *
+ * @param hinfo		hash info structure with information about
+ * 					the algorithm, hash seed and with the place
+ * 					for the output hash value
+ * @param len		length of the name
+ * @param name		name to be hashed
+ * @return			error code
+ */
 int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 {
 	uint32_t hash = 0;
