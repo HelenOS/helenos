@@ -27,8 +27,8 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNET_PREFIX)/libnet.a $(LIBNIC_PREFIX)/libnic.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNET_PREFIX)/include -I$(LIBNIC_PREFIX)/include
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBNIC_PREFIX)/libnic.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNIC_PREFIX)/include
 BINARY = e1k
 
 SOURCES = \

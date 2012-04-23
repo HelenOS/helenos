@@ -65,9 +65,6 @@ endif
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
-	for file in $(NET_CFG) ; do \
-		cp "$$file" "$(DIST_PATH)/cfg/net/" ; \
-	done
 	for drv in $(RD_DRVS) ; do \
 		drv_dir="`dirname "$$drv"`" ; \
 		drv_name="`basename "$$drv"`" ; \

@@ -646,11 +646,11 @@ int ipc_connect_to_me(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
  * @return Cloned phone handle on success or a negative error code.
  *
  */
-int ipc_connect_me(int phoneid)
+int ipc_clone_establish(int phoneid)
 {
 	sysarg_t newphid;
-	int res = ipc_call_sync_0_5(phoneid, IPC_M_CONNECT_ME, NULL, NULL,
-	    NULL, NULL, &newphid);
+	int res = ipc_call_sync_0_5(phoneid, IPC_M_CLONE_ESTABLISH, NULL,
+	    NULL, NULL, NULL, &newphid);
 	if (res)
 		return res;
 	

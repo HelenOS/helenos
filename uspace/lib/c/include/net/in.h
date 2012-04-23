@@ -44,6 +44,8 @@
 /** INET string address maximum length. */
 #define INET_ADDRSTRLEN  (4 * 3 + 3 + 1)
 
+#define INADDR_ANY 0
+
 /** Type definition of the INET address.
  * @see in_addr
  */

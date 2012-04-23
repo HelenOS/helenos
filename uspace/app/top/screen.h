@@ -42,7 +42,7 @@ extern console_ctrl_t *console;
 extern void screen_init(void);
 extern void screen_done(void);
 extern void print_data(data_t *);
-extern void print_warning(const char *, ...);
+extern void show_warning(const char *, ...);
 
 extern int tgetchar(unsigned int);
 
