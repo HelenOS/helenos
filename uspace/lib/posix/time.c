@@ -352,18 +352,6 @@ struct tm *posix_gmtime_r(const time_t *restrict timer,
 
 /**
  * Converts a time value to a broken-down local time.
- *
- * @param timer Time to convert.
- * @return Normalized broken-down time in local timezone, NULL on overflow.
- */
-struct tm *posix_localtime(const time_t *timer)
-{
-	static struct tm result;
-	return posix_localtime_r(timer, &result);
-}
-
-/**
- * Converts a time value to a broken-down local time.
  * 
  * @param timer Time to convert.
  * @param result Structure to store the result to.
@@ -418,7 +406,7 @@ char *posix_asctime_r(const struct tm *restrict timeptr,
  */
 char *posix_ctime(const time_t *timer)
 {
-	struct tm *loctime = posix_localtime(timer);
+	struct tm *loctime = localtime(timer);
 	if (loctime == NULL) {
 		return NULL;
 	}

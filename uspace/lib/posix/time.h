@@ -89,7 +89,6 @@ extern double posix_difftime(time_t time1, time_t time0);
 /* Broken-down Time */
 extern struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result);
-extern struct tm *posix_localtime(const time_t *timer);
 extern struct tm *posix_localtime_r(const time_t *restrict timer,
     struct tm *restrict result);
 
@@ -125,7 +124,6 @@ extern posix_clock_t posix_clock(void);
 	#define difftime posix_difftime
 
 	#define gmtime_r posix_gmtime_r
-	#define localtime posix_localtime
 	#define localtime_r posix_localtime_r
 
 	#define asctime_r posix_asctime_r

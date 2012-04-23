@@ -81,6 +81,7 @@ extern void udelay(useconds_t);
 extern time_t mktime(struct tm *tm);
 extern struct tm *gmtime(const time_t *timer);
 extern char *asctime(const struct tm *timeptr);
+extern struct tm *localtime(const time_t *timer);
 extern size_t strftime(char *restrict s, size_t maxsize,
     const char *restrict format, const struct tm *restrict tm);
 

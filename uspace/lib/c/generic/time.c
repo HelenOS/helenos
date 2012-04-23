@@ -797,7 +797,6 @@ struct tm *gmtime(const time_t *timer)
 	}
 
 	return &result;
-
 }
 
 /**
@@ -832,6 +831,34 @@ char *asctime(const struct tm *timeptr)
 
 }
 
+/**
+ * Converts a time value to a broken-down local time.
+ *
+ * @param timer Time to convert.
+ * @return Normalized broken-down time in local timezone, NULL on overflow.
+ */
+struct tm *localtime(const time_t *timer)
+{
+	// TODO: deal with timezone
+	// currently assumes system and all times are in GMT
+
+	static struct tm result;
+
+	/* Set result to epoch. */
+	result.tm_sec = 0;
+	result.tm_min = 0;
+	result.tm_hour = 0;
+	result.tm_mday = 1;
+	result.tm_mon = 0;
+	result.tm_year = 70; /* 1970 */
+
+	if (_normalize_time(&result, *timer) == -1) {
+		errno = EOVERFLOW;
+		return NULL;
+	}
+
+	return &result;
+}
 
 /** @}
  */
