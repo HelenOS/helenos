@@ -95,7 +95,6 @@ extern struct tm *posix_localtime_r(const time_t *restrict timer,
 /* Formatting Calendar Time */
 extern char *posix_asctime_r(const struct tm *restrict timeptr,
     char *restrict buf);
-extern char *posix_ctime(const time_t *timer);
 extern char *posix_ctime_r(const time_t *timer, char *buf);
 
 /* Clocks */
@@ -127,7 +126,6 @@ extern posix_clock_t posix_clock(void);
 	#define localtime_r posix_localtime_r
 
 	#define asctime_r posix_asctime_r
-	#define ctime posix_ctime
 	#define ctime_r posix_ctime_r
 
 	#define clock_getres posix_clock_getres

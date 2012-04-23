@@ -399,21 +399,6 @@ char *posix_asctime_r(const struct tm *restrict timeptr,
 }
 
 /**
- * Equivalent to asctime(localtime(clock)).
- * 
- * @param timer Time to convert.
- * @return Pointer to a statically allocated string holding the date.
- */
-char *posix_ctime(const time_t *timer)
-{
-	struct tm *loctime = localtime(timer);
-	if (loctime == NULL) {
-		return NULL;
-	}
-	return asctime(loctime);
-}
-
-/**
  * Reentrant variant of ctime().
  * 
  * @param timer Time to convert.

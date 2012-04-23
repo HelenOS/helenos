@@ -860,5 +860,20 @@ struct tm *localtime(const time_t *timer)
 	return &result;
 }
 
+/**
+ * Equivalent to asctime(localtime(clock)).
+ * 
+ * @param timer Time to convert.
+ * @return Pointer to a statically allocated string holding the date.
+ */
+char *ctime(const time_t *timer)
+{
+	struct tm *loctime = localtime(timer);
+	if (loctime == NULL) {
+		return NULL;
+	}
+	return asctime(loctime);
+}
+
 /** @}
  */
