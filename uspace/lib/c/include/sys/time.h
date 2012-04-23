@@ -76,7 +76,9 @@ extern int tv_gteq(struct timeval *tv1, struct timeval *tv2);
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 
 extern void udelay(useconds_t);
+
 extern time_t mktime(struct tm *tm);
+extern struct tm *gmtime(const time_t *timer);
 extern size_t strftime(char *restrict s, size_t maxsize,
     const char *restrict format, const struct tm *restrict tm);
 

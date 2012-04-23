@@ -323,20 +323,6 @@ double posix_difftime(time_t time1, time_t time0)
 
 /**
  * Converts a time value to a broken-down UTC time.
- *
- * @param timer Time to convert.
- * @return Normalized broken-down time in UTC, NULL on overflow.
- */
-struct tm *posix_gmtime(const time_t *timer)
-{
-	assert(timer != NULL);
-
-	static struct tm result;
-	return posix_gmtime_r(timer, &result);
-}
-
-/**
- * Converts a time value to a broken-down UTC time.
  * 
  * @param timer Time to convert.
  * @param result Structure to store the result to.

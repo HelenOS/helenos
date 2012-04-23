@@ -775,6 +775,29 @@ size_t strftime(char *restrict s, size_t maxsize,
 	return maxsize - remaining;
 }
 
+struct tm *gmtime(const time_t *timer)
+{
+	assert(timer != NULL);
+
+	static struct tm result;
+
+	/* Set result to epoch. */
+	result.tm_sec = 0;
+	result.tm_min = 0;
+	result.tm_hour = 0;
+	result.tm_mday = 1;
+	result.tm_mon = 0;
+	result.tm_year = 70; /* 1970 */
+
+	if (_normalize_time(&result, *timer) == -1) {
+		errno = EOVERFLOW;
+		return NULL;
+	}
+
+	return &result;
+
+}
+
 
 /** @}
  */
