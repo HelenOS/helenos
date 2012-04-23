@@ -403,7 +403,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	
 	async_exch_t *exch = async_exchange_begin(mountee_sess);
-	async_sess_t *sess = async_connect_me(EXCHANGE_PARALLEL, exch);
+	async_sess_t *sess = async_clone_establish(EXCHANGE_PARALLEL, exch);
 	
 	if (!sess) {
 		async_exchange_end(exch);

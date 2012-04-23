@@ -945,7 +945,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	switch (IPC_GET_IMETHOD(*call)) {
-	case IPC_M_CONNECT_ME:
+	case IPC_M_CLONE_ESTABLISH:
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril, etc. */
 		async_new_connection(call->in_task_id, IPC_GET_ARG5(*call),
@@ -1667,9 +1667,9 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 	return EOK;
 }
 
-/** Wrapper for making IPC_M_CONNECT_ME calls using the async framework.
+/** Wrapper for making IPC_M_CLONE_ESTABLISH calls using the async framework.
  *
- * Ask through for a cloned connection to some service.
+ * Ask for a cloned connection to some service.
  *
  * @param mgmt Exchange management style.
  * @param exch Exchange for sending the message.
@@ -1677,7 +1677,7 @@ int async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
  * @return New session on success or NULL on error.
  *
  */
-async_sess_t *async_connect_me(exch_mgmt_t mgmt, async_exch_t *exch)
+async_sess_t *async_clone_establish(exch_mgmt_t mgmt, async_exch_t *exch)
 {
 	if (exch == NULL) {
 		errno = ENOENT;
@@ -1702,7 +1702,7 @@ async_sess_t *async_connect_me(exch_mgmt_t mgmt, async_exch_t *exch)
 	msg->dataptr = &result;
 	msg->wdata.active = true;
 	
-	ipc_call_async_0(exch->phone, IPC_M_CONNECT_ME, msg,
+	ipc_call_async_0(exch->phone, IPC_M_CLONE_ESTABLISH, msg,
 	    reply_received, true);
 	
 	sysarg_t rc;
