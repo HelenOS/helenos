@@ -40,6 +40,7 @@
 #include <sys/types.h>
 
 #define DST_NONE 0
+#define ASCTIME_BUF_LEN 26
 
 typedef long time_t;
 typedef long suseconds_t;
@@ -79,6 +80,7 @@ extern void udelay(useconds_t);
 
 extern time_t mktime(struct tm *tm);
 extern struct tm *gmtime(const time_t *timer);
+extern char *asctime(const struct tm *timeptr);
 extern size_t strftime(char *restrict s, size_t maxsize,
     const char *restrict format, const struct tm *restrict tm);
 

@@ -382,19 +382,6 @@ struct tm *posix_localtime_r(const time_t *restrict timer,
  * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
  *
  * @param timeptr Broken-down time structure.
- * @return Pointer to a statically allocated string.
- */
-char *posix_asctime(const struct tm *timeptr)
-{
-	static char buf[ASCTIME_BUF_LEN];
-	return posix_asctime_r(timeptr, buf);
-}
-
-/**
- * Converts broken-down time to a string in format
- * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
- *
- * @param timeptr Broken-down time structure.
  * @param buf Buffer to store string to, must be at least ASCTIME_BUF_LEN
  *     bytes long.
  * @return Value of buf.
@@ -435,7 +422,7 @@ char *posix_ctime(const time_t *timer)
 	if (loctime == NULL) {
 		return NULL;
 	}
-	return posix_asctime(loctime);
+	return asctime(loctime);
 }
 
 /**

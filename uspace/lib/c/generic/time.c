@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#define ASCTIME_BUF_LEN 26
+
 /** Pointer to kernel shared variables with time */
 struct {
 	volatile sysarg_t seconds1;
@@ -795,6 +797,38 @@ struct tm *gmtime(const time_t *timer)
 	}
 
 	return &result;
+
+}
+
+/**
+ * Converts broken-down time to a string in format
+ * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
+ *
+ * @param timeptr Broken-down time structure.
+ * @return Pointer to a statically allocated string.
+ */
+char *asctime(const struct tm *timeptr)
+{
+	static char buf[ASCTIME_BUF_LEN];
+
+	assert(timeptr != NULL);
+
+	static const char *wday[] = {
+		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+	};
+	static const char *mon[] = {
+		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+	};
+
+	snprintf(buf, ASCTIME_BUF_LEN, "%s %s %2d %02d:%02d:%02d %d\n",
+	    wday[timeptr->tm_wday],
+	    mon[timeptr->tm_mon],
+	    timeptr->tm_mday, timeptr->tm_hour,
+	    timeptr->tm_min, timeptr->tm_sec,
+	    1900 + timeptr->tm_year);
+
+	return buf;
 
 }
 
