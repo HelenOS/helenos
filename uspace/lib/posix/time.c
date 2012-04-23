@@ -733,7 +733,8 @@ size_t posix_strftime(char *restrict s, size_t maxsize,
 		case 'T':
 			recurse("%H:%M:%S"); break;
 		case 'u':
-			append("%d", (tm->tm_wday == 0) ? 7 : tm->tm_wday); break;
+			append("%d", (tm->tm_wday == 0) ? 7 : tm->tm_wday);
+			break;
 		case 'U':
 			append("%02d", _sun_week_number(tm)); break;
 		case 'V':
@@ -892,7 +893,8 @@ posix_clock_t posix_clock(void)
 	posix_clock_t total_cycles = -1;
 	stats_task_t *task_stats = stats_get_task(task_get_id());
 	if (task_stats) {
-		total_cycles = (posix_clock_t) (task_stats->kcycles + task_stats->ucycles);
+		total_cycles = (posix_clock_t) (task_stats->kcycles +
+		    task_stats->ucycles);
 		free(task_stats);
 		task_stats = 0;
 	}
