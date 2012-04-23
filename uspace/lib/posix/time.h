@@ -62,9 +62,6 @@
 	#endif
 #endif
 
-#undef ASCTIME_BUF_LEN
-#define ASCTIME_BUF_LEN 26
-
 #undef CLOCK_REALTIME
 #define CLOCK_REALTIME ((posix_clockid_t) 0)
 
@@ -86,26 +83,16 @@ extern long posix_timezone;
 extern char *posix_tzname[2];
 extern void posix_tzset(void);
 
-/* Elapsed Time */
-extern double posix_difftime(time_t time1, time_t time0);
-
 /* Broken-down Time */
-extern time_t posix_mktime(struct tm *tm);
-extern struct tm *posix_gmtime(const time_t *timer);
 extern struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result);
-extern struct tm *posix_localtime(const time_t *timer);
 extern struct tm *posix_localtime_r(const time_t *restrict timer,
     struct tm *restrict result);
 
 /* Formatting Calendar Time */
-extern char *posix_asctime(const struct tm *timeptr);
 extern char *posix_asctime_r(const struct tm *restrict timeptr,
     char *restrict buf);
-extern char *posix_ctime(const time_t *timer);
 extern char *posix_ctime_r(const time_t *timer, char *buf);
-extern size_t posix_strftime(char *restrict s, size_t maxsize,
-    const char *restrict format, const struct tm *restrict tm);
 
 /* Clocks */
 extern int posix_clock_getres(posix_clockid_t clock_id,
@@ -130,19 +117,11 @@ extern posix_clock_t posix_clock(void);
 	#define tzname posix_tzname
 	#define tzset posix_tzset
 
-	#define difftime posix_difftime
-
-	#define mktime posix_mktime
-	#define gmtime posix_gmtime
 	#define gmtime_r posix_gmtime_r
-	#define localtime posix_localtime
 	#define localtime_r posix_localtime_r
 
-	#define asctime posix_asctime
 	#define asctime_r posix_asctime_r
-	#define ctime posix_ctime
 	#define ctime_r posix_ctime_r
-	#define strftime posix_strftime
 
 	#define clock_getres posix_clock_getres
 	#define clock_gettime posix_clock_gettime

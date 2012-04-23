@@ -194,19 +194,6 @@ static time_t _days_since_epoch(time_t year, time_t mon, time_t mday)
 }
 
 /**
- * Seconds since the Epoch. see also _days_since_epoch().
- * 
- * @param tm Normalized broken-down time.
- * @return Number of seconds since the epoch, not counting leap seconds.
- */
-static time_t _secs_since_epoch(const struct tm *tm)
-{
-	return _days_since_epoch(tm->tm_year, tm->tm_mon, tm->tm_mday) *
-	    SECS_PER_DAY + tm->tm_hour * SECS_PER_HOUR +
-	    tm->tm_min * SECS_PER_MIN + tm->tm_sec;
-}
-
-/**
  * Which day of week the specified date is.
  * 
  * @param year Year (year 1900 = 0).
@@ -304,93 +291,6 @@ static int _normalize_time(struct tm *tm, time_t sec_add)
 	return 0;
 }
 
-/**
- * Which day the week-based year starts on, relative to the first calendar day.
- * E.g. if the year starts on December 31st, the return value is -1.
- *
- * @param Year since 1900.
- * @return Offset of week-based year relative to calendar year.
- */
-static int _wbyear_offset(int year)
-{
-	int start_wday = _day_of_week(year, 0, 1);
-	return _floor_mod(4 - start_wday, 7) - 3;
-}
-
-/**
- * Returns week-based year of the specified time.
- *
- * @param tm Normalized broken-down time.
- * @return Week-based year.
- */
-static int _wbyear(const struct tm *tm)
-{
-	int day = tm->tm_yday - _wbyear_offset(tm->tm_year);
-	if (day < 0) {
-		/* Last week of previous year. */
-		return tm->tm_year - 1;
-	}
-	if (day > 364 + _is_leap_year(tm->tm_year)) {
-		/* First week of next year. */
-		return tm->tm_year + 1;
-	}
-	/* All the other days are in the calendar year. */
-	return tm->tm_year;
-}
-
-/**
- * Week number of the year, assuming weeks start on sunday.
- * The first Sunday of January is the first day of week 1;
- * days in the new year before this are in week 0.
- *
- * @param tm Normalized broken-down time.
- * @return The week number (0 - 53).
- */
-static int _sun_week_number(const struct tm *tm)
-{
-	int first_day = (7 - _day_of_week(tm->tm_year, 0, 1)) % 7;
-	return (tm->tm_yday - first_day + 7) / 7;
-}
-
-/**
- * Week number of the year, assuming weeks start on monday.
- * If the week containing January 1st has four or more days in the new year,
- * then it is considered week 1. Otherwise, it is the last week of the previous
- * year, and the next week is week 1. Both January 4th and the first Thursday
- * of January are always in week 1.
- *
- * @param tm Normalized broken-down time.
- * @return The week number (1 - 53).
- */
-static int _iso_week_number(const struct tm *tm)
-{
-	int day = tm->tm_yday - _wbyear_offset(tm->tm_year);
-	if (day < 0) {
-		/* Last week of previous year. */
-		return 53;
-	}
-	if (day > 364 + _is_leap_year(tm->tm_year)) {
-		/* First week of next year. */
-		return 1;
-	}
-	/* All the other days give correct answer. */
-	return (day / 7 + 1);
-}
-
-/**
- * Week number of the year, assuming weeks start on monday.
- * The first Monday of January is the first day of week 1;
- * days in the new year before this are in week 0. 
- *
- * @param tm Normalized broken-down time.
- * @return The week number (0 - 53).
- */
-static int _mon_week_number(const struct tm *tm)
-{
-	int first_day = (1 - _day_of_week(tm->tm_year, 0, 1)) % 7;
-	return (tm->tm_yday - first_day + 7) / 7;
-}
-
 /******************************************************************************/
 
 int posix_daylight;
@@ -407,49 +307,6 @@ void posix_tzset(void)
 	posix_tzname[1] = (char *) "GMT";
 	posix_daylight = 0;
 	posix_timezone = 0;
-}
-
-/**
- * Calculate the difference between two times, in seconds.
- * 
- * @param time1 First time.
- * @param time0 Second time.
- * @return Time in seconds.
- */
-double posix_difftime(time_t time1, time_t time0)
-{
-	return (double) (time1 - time0);
-}
-
-/**
- * This function first normalizes the provided broken-down time
- * (moves all values to their proper bounds) and then tries to
- * calculate the appropriate time_t representation.
- *
- * @param tm Broken-down time.
- * @return time_t representation of the time, undefined value on overflow.
- */
-time_t posix_mktime(struct tm *tm)
-{
-	// TODO: take DST flag into account
-	// TODO: detect overflow
-
-	_normalize_time(tm, 0);
-	return _secs_since_epoch(tm);
-}
-
-/**
- * Converts a time value to a broken-down UTC time.
- *
- * @param timer Time to convert.
- * @return Normalized broken-down time in UTC, NULL on overflow.
- */
-struct tm *posix_gmtime(const time_t *timer)
-{
-	assert(timer != NULL);
-
-	static struct tm result;
-	return posix_gmtime_r(timer, &result);
 }
 
 /**
@@ -483,18 +340,6 @@ struct tm *posix_gmtime_r(const time_t *restrict timer,
 
 /**
  * Converts a time value to a broken-down local time.
- *
- * @param timer Time to convert.
- * @return Normalized broken-down time in local timezone, NULL on overflow.
- */
-struct tm *posix_localtime(const time_t *timer)
-{
-	static struct tm result;
-	return posix_localtime_r(timer, &result);
-}
-
-/**
- * Converts a time value to a broken-down local time.
  * 
  * @param timer Time to convert.
  * @param result Structure to store the result to.
@@ -506,19 +351,6 @@ struct tm *posix_localtime_r(const time_t *restrict timer,
 	// TODO: deal with timezone
 	// currently assumes system and all times are in GMT
 	return posix_gmtime_r(timer, result);
-}
-
-/**
- * Converts broken-down time to a string in format
- * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
- *
- * @param timeptr Broken-down time structure.
- * @return Pointer to a statically allocated string.
- */
-char *posix_asctime(const struct tm *timeptr)
-{
-	static char buf[ASCTIME_BUF_LEN];
-	return posix_asctime_r(timeptr, buf);
 }
 
 /**
@@ -555,21 +387,6 @@ char *posix_asctime_r(const struct tm *restrict timeptr,
 }
 
 /**
- * Equivalent to asctime(localtime(clock)).
- * 
- * @param timer Time to convert.
- * @return Pointer to a statically allocated string holding the date.
- */
-char *posix_ctime(const time_t *timer)
-{
-	struct tm *loctime = posix_localtime(timer);
-	if (loctime == NULL) {
-		return NULL;
-	}
-	return posix_asctime(loctime);
-}
-
-/**
  * Reentrant variant of ctime().
  * 
  * @param timer Time to convert.
@@ -584,198 +401,6 @@ char *posix_ctime_r(const time_t *timer, char *buf)
 		return NULL;
 	}
 	return posix_asctime_r(&loctime, buf);
-}
-
-/**
- * Convert time and date to a string, based on a specified format and
- * current locale.
- * 
- * @param s Buffer to write string to.
- * @param maxsize Size of the buffer.
- * @param format Format of the output.
- * @param tm Broken-down time to format.
- * @return Number of bytes written.
- */
-size_t posix_strftime(char *restrict s, size_t maxsize,
-    const char *restrict format, const struct tm *restrict tm)
-{
-	assert(s != NULL);
-	assert(format != NULL);
-	assert(tm != NULL);
-
-	// TODO: use locale
-	static const char *wday_abbr[] = {
-		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
-	};
-	static const char *wday[] = {
-		"Sunday", "Monday", "Tuesday", "Wednesday",
-		"Thursday", "Friday", "Saturday"
-	};
-	static const char *mon_abbr[] = {
-		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-	};
-	static const char *mon[] = {
-		"January", "February", "March", "April", "May", "June", "July",
-		"August", "September", "October", "November", "December"
-	};
-	
-	if (maxsize < 1) {
-		return 0;
-	}
-	
-	char *ptr = s;
-	size_t consumed;
-	size_t remaining = maxsize;
-	
-	#define append(...) { \
-		/* FIXME: this requires POSIX-correct snprintf */ \
-		/*        otherwise it won't work with non-ascii chars */ \
-		consumed = snprintf(ptr, remaining, __VA_ARGS__); \
-		if (consumed >= remaining) { \
-			return 0; \
-		} \
-		ptr += consumed; \
-		remaining -= consumed; \
-	}
-	
-	#define recurse(fmt) { \
-		consumed = posix_strftime(ptr, remaining, fmt, tm); \
-		if (consumed == 0) { \
-			return 0; \
-		} \
-		ptr += consumed; \
-		remaining -= consumed; \
-	}
-	
-	#define TO_12H(hour) (((hour) > 12) ? ((hour) - 12) : \
-	    (((hour) == 0) ? 12 : (hour)))
-	
-	while (*format != '\0') {
-		if (*format != '%') {
-			append("%c", *format);
-			format++;
-			continue;
-		}
-		
-		format++;
-		if (*format == '0' || *format == '+') {
-			// TODO: padding
-			format++;
-		}
-		while (isdigit(*format)) {
-			// TODO: padding
-			format++;
-		}
-		if (*format == 'O' || *format == 'E') {
-			// TODO: locale's alternative format
-			format++;
-		}
-		
-		switch (*format) {
-		case 'a':
-			append("%s", wday_abbr[tm->tm_wday]); break;
-		case 'A':
-			append("%s", wday[tm->tm_wday]); break;
-		case 'b':
-			append("%s", mon_abbr[tm->tm_mon]); break;
-		case 'B':
-			append("%s", mon[tm->tm_mon]); break;
-		case 'c':
-			// TODO: locale-specific datetime format
-			recurse("%Y-%m-%d %H:%M:%S"); break;
-		case 'C':
-			append("%02d", (1900 + tm->tm_year) / 100); break;
-		case 'd':
-			append("%02d", tm->tm_mday); break;
-		case 'D':
-			recurse("%m/%d/%y"); break;
-		case 'e':
-			append("%2d", tm->tm_mday); break;
-		case 'F':
-			recurse("%+4Y-%m-%d"); break;
-		case 'g':
-			append("%02d", _wbyear(tm) % 100); break;
-		case 'G':
-			append("%d", _wbyear(tm)); break;
-		case 'h':
-			recurse("%b"); break;
-		case 'H':
-			append("%02d", tm->tm_hour); break;
-		case 'I':
-			append("%02d", TO_12H(tm->tm_hour)); break;
-		case 'j':
-			append("%03d", tm->tm_yday); break;
-		case 'k':
-			append("%2d", tm->tm_hour); break;
-		case 'l':
-			append("%2d", TO_12H(tm->tm_hour)); break;
-		case 'm':
-			append("%02d", tm->tm_mon); break;
-		case 'M':
-			append("%02d", tm->tm_min); break;
-		case 'n':
-			append("\n"); break;
-		case 'p':
-			append("%s", tm->tm_hour < 12 ? "AM" : "PM"); break;
-		case 'P':
-			append("%s", tm->tm_hour < 12 ? "am" : "PM"); break;
-		case 'r':
-			recurse("%I:%M:%S %p"); break;
-		case 'R':
-			recurse("%H:%M"); break;
-		case 's':
-			append("%ld", _secs_since_epoch(tm)); break;
-		case 'S':
-			append("%02d", tm->tm_sec); break;
-		case 't':
-			append("\t"); break;
-		case 'T':
-			recurse("%H:%M:%S"); break;
-		case 'u':
-			append("%d", (tm->tm_wday == 0) ? 7 : tm->tm_wday); break;
-		case 'U':
-			append("%02d", _sun_week_number(tm)); break;
-		case 'V':
-			append("%02d", _iso_week_number(tm)); break;
-		case 'w':
-			append("%d", tm->tm_wday); break;
-		case 'W':
-			append("%02d", _mon_week_number(tm)); break;
-		case 'x':
-			// TODO: locale-specific date format
-			recurse("%Y-%m-%d"); break;
-		case 'X':
-			// TODO: locale-specific time format
-			recurse("%H:%M:%S"); break;
-		case 'y':
-			append("%02d", tm->tm_year % 100); break;
-		case 'Y':
-			append("%d", 1900 + tm->tm_year); break;
-		case 'z':
-			// TODO: timezone
-			break;
-		case 'Z':
-			// TODO: timezone
-			break;
-		case '%':
-			append("%%");
-			break;
-		default:
-			/* Invalid specifier, print verbatim. */
-			while (*format != '%') {
-				format--;
-			}
-			append("%%");
-			break;
-		}
-		format++;
-	}
-	
-	#undef append
-	#undef recurse
-	
-	return maxsize - remaining;
 }
 
 /**
@@ -892,7 +517,8 @@ posix_clock_t posix_clock(void)
 	posix_clock_t total_cycles = -1;
 	stats_task_t *task_stats = stats_get_task(task_get_id());
 	if (task_stats) {
-		total_cycles = (posix_clock_t) (task_stats->kcycles + task_stats->ucycles);
+		total_cycles = (posix_clock_t) (task_stats->kcycles +
+		    task_stats->ucycles);
 		free(task_stats);
 		task_stats = 0;
 	}
