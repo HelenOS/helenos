@@ -92,6 +92,19 @@ void answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
 	}
 }
 
+/** Connect to the needed module.
+ *
+ * @param[in] need Needed module service.
+ *
+ * @return Session to the needed service.
+ * @return NULL if the connection timeouted.
+ *
+ */
+static async_sess_t *connect_to_service(services_t need)
+{
+	return service_connect_blocking(EXCHANGE_SERIALIZE, need, 0, 0);
+}
+
 /** Create bidirectional connection with the needed module service and register
  * the message receiver.
  *
@@ -126,51 +139,6 @@ async_sess_t *bind_service(services_t need, sysarg_t arg1, sysarg_t arg2,
 	}
 	
 	return sess;
-}
-
-/** Connect to the needed module.
- *
- * @param[in] need Needed module service.
- *
- * @return Session to the needed service.
- * @return NULL if the connection timeouted.
- *
- */
-async_sess_t *connect_to_service(services_t need)
-{
-	return service_connect_blocking(EXCHANGE_SERIALIZE, need, 0, 0);
-}
-
-/** Reply the data to the other party.
- *
- * @param[in] data        The data buffer to be sent.
- * @param[in] data_length The buffer length.
- *
- * @return EOK on success.
- * @return EINVAL if the client does not expect the data.
- * @return EOVERFLOW if the client does not expect all the data.
- *         Only partial data are transfered.
- * @return Other error codes as defined for the
- *         async_data_read_finalize() function.
- *
- */
-int data_reply(void *data, size_t data_length)
-{
-	size_t length;
-	ipc_callid_t callid;
-	
-	/* Fetch the request */
-	if (!async_data_read_receive(&callid, &length))
-		return EINVAL;
-	
-	/* Check the requested data size */
-	if (length < data_length) {
-		async_data_read_finalize(callid, data, length);
-		return EOVERFLOW;
-	}
-	
-	/* Send the data */
-	return async_data_read_finalize(callid, data, data_length);
 }
 
 /** Refresh answer structure and argument count.

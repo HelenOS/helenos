@@ -45,18 +45,9 @@
 #include <ipc/services.h>
 #include <sys/time.h>
 
-/** Connect to module function type definition.
- *
- * @return Session to the service.
- *
- */
-typedef async_sess_t *connect_module_t(services_t);
-
 extern void answer_call(ipc_callid_t, int, ipc_call_t *, size_t);
 extern async_sess_t *bind_service(services_t, sysarg_t, sysarg_t, sysarg_t,
     async_client_conn_t);
-extern async_sess_t *connect_to_service(services_t);
-extern int data_reply(void *, size_t);
 extern void refresh_answer(ipc_call_t *, size_t *);
 
 #endif
