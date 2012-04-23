@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,12 +48,15 @@ typedef uint32_t useconds_t;
 typedef uint32_t mseconds_t;
 
 struct tm {
-	int tm_sec;       /* 0 - 59 */
-	int tm_min;       /* 0 - 59 */
-	int tm_hour;      /* 0 - 23 */
-	int tm_mday;      /* 1 - 31 */
-	int tm_mon;       /* 0 - 11 */
-	int tm_year;      /* years since 1900 */
+	int tm_sec;         /* Seconds [0,60]. */
+	int tm_min;         /* Minutes [0,59]. */
+	int tm_hour;        /* Hour [0,23]. */
+	int tm_mday;        /* Day of month [1,31]. */
+	int tm_mon;         /* Month of year [0,11]. */
+	int tm_year;        /* Years since 1900. */
+	int tm_wday;        /* Day of week [0,6] (Sunday = 0). */
+	int tm_yday;        /* Day of year [0,365]. */
+	int tm_isdst;       /* Daylight Savings flag. */
 };
 
 struct timeval {

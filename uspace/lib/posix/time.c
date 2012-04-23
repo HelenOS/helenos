@@ -199,7 +199,7 @@ static time_t _days_since_epoch(time_t year, time_t mon, time_t mday)
  * @param tm Normalized broken-down time.
  * @return Number of seconds since the epoch, not counting leap seconds.
  */
-static time_t _secs_since_epoch(const struct posix_tm *tm)
+static time_t _secs_since_epoch(const struct tm *tm)
 {
 	return _days_since_epoch(tm->tm_year, tm->tm_mon, tm->tm_mday) *
 	    SECS_PER_DAY + tm->tm_hour * SECS_PER_HOUR +
@@ -228,7 +228,7 @@ static int _day_of_week(time_t year, time_t mon, time_t mday)
  * @param sec_add Seconds to add.
  * @return 0 on success, -1 on overflow
  */
-static int _normalize_time(struct posix_tm *tm, time_t sec_add)
+static int _normalize_time(struct tm *tm, time_t sec_add)
 {
 	// TODO: DST correction
 
@@ -323,7 +323,7 @@ static int _wbyear_offset(int year)
  * @param tm Normalized broken-down time.
  * @return Week-based year.
  */
-static int _wbyear(const struct posix_tm *tm)
+static int _wbyear(const struct tm *tm)
 {
 	int day = tm->tm_yday - _wbyear_offset(tm->tm_year);
 	if (day < 0) {
@@ -346,7 +346,7 @@ static int _wbyear(const struct posix_tm *tm)
  * @param tm Normalized broken-down time.
  * @return The week number (0 - 53).
  */
-static int _sun_week_number(const struct posix_tm *tm)
+static int _sun_week_number(const struct tm *tm)
 {
 	int first_day = (7 - _day_of_week(tm->tm_year, 0, 1)) % 7;
 	return (tm->tm_yday - first_day + 7) / 7;
@@ -362,7 +362,7 @@ static int _sun_week_number(const struct posix_tm *tm)
  * @param tm Normalized broken-down time.
  * @return The week number (1 - 53).
  */
-static int _iso_week_number(const struct posix_tm *tm)
+static int _iso_week_number(const struct tm *tm)
 {
 	int day = tm->tm_yday - _wbyear_offset(tm->tm_year);
 	if (day < 0) {
@@ -385,7 +385,7 @@ static int _iso_week_number(const struct posix_tm *tm)
  * @param tm Normalized broken-down time.
  * @return The week number (0 - 53).
  */
-static int _mon_week_number(const struct posix_tm *tm)
+static int _mon_week_number(const struct tm *tm)
 {
 	int first_day = (1 - _day_of_week(tm->tm_year, 0, 1)) % 7;
 	return (tm->tm_yday - first_day + 7) / 7;
@@ -429,7 +429,7 @@ double posix_difftime(time_t time1, time_t time0)
  * @param tm Broken-down time.
  * @return time_t representation of the time, undefined value on overflow.
  */
-time_t posix_mktime(struct posix_tm *tm)
+time_t posix_mktime(struct tm *tm)
 {
 	// TODO: take DST flag into account
 	// TODO: detect overflow
@@ -444,11 +444,11 @@ time_t posix_mktime(struct posix_tm *tm)
  * @param timer Time to convert.
  * @return Normalized broken-down time in UTC, NULL on overflow.
  */
-struct posix_tm *posix_gmtime(const time_t *timer)
+struct tm *posix_gmtime(const time_t *timer)
 {
 	assert(timer != NULL);
 
-	static struct posix_tm result;
+	static struct tm result;
 	return posix_gmtime_r(timer, &result);
 }
 
@@ -459,8 +459,8 @@ struct posix_tm *posix_gmtime(const time_t *timer)
  * @param result Structure to store the result to.
  * @return Value of result on success, NULL on overflow.
  */
-struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
-    struct posix_tm *restrict result)
+struct tm *posix_gmtime_r(const time_t *restrict timer,
+    struct tm *restrict result)
 {
 	assert(timer != NULL);
 	assert(result != NULL);
@@ -487,9 +487,9 @@ struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
  * @param timer Time to convert.
  * @return Normalized broken-down time in local timezone, NULL on overflow.
  */
-struct posix_tm *posix_localtime(const time_t *timer)
+struct tm *posix_localtime(const time_t *timer)
 {
-	static struct posix_tm result;
+	static struct tm result;
 	return posix_localtime_r(timer, &result);
 }
 
@@ -500,8 +500,8 @@ struct posix_tm *posix_localtime(const time_t *timer)
  * @param result Structure to store the result to.
  * @return Value of result on success, NULL on overflow.
  */
-struct posix_tm *posix_localtime_r(const time_t *restrict timer,
-    struct posix_tm *restrict result)
+struct tm *posix_localtime_r(const time_t *restrict timer,
+    struct tm *restrict result)
 {
 	// TODO: deal with timezone
 	// currently assumes system and all times are in GMT
@@ -515,7 +515,7 @@ struct posix_tm *posix_localtime_r(const time_t *restrict timer,
  * @param timeptr Broken-down time structure.
  * @return Pointer to a statically allocated string.
  */
-char *posix_asctime(const struct posix_tm *timeptr)
+char *posix_asctime(const struct tm *timeptr)
 {
 	static char buf[ASCTIME_BUF_LEN];
 	return posix_asctime_r(timeptr, buf);
@@ -530,7 +530,7 @@ char *posix_asctime(const struct posix_tm *timeptr)
  *     bytes long.
  * @return Value of buf.
  */
-char *posix_asctime_r(const struct posix_tm *restrict timeptr,
+char *posix_asctime_r(const struct tm *restrict timeptr,
     char *restrict buf)
 {
 	assert(timeptr != NULL);
@@ -562,7 +562,7 @@ char *posix_asctime_r(const struct posix_tm *restrict timeptr,
  */
 char *posix_ctime(const time_t *timer)
 {
-	struct posix_tm *loctime = posix_localtime(timer);
+	struct tm *loctime = posix_localtime(timer);
 	if (loctime == NULL) {
 		return NULL;
 	}
@@ -579,7 +579,7 @@ char *posix_ctime(const time_t *timer)
  */
 char *posix_ctime_r(const time_t *timer, char *buf)
 {
-	struct posix_tm loctime;
+	struct tm loctime;
 	if (posix_localtime_r(timer, &loctime) == NULL) {
 		return NULL;
 	}
@@ -597,7 +597,7 @@ char *posix_ctime_r(const time_t *timer, char *buf)
  * @return Number of bytes written.
  */
 size_t posix_strftime(char *restrict s, size_t maxsize,
-    const char *restrict format, const struct posix_tm *restrict tm)
+    const char *restrict format, const struct tm *restrict tm)
 {
 	assert(s != NULL);
 	assert(format != NULL);
