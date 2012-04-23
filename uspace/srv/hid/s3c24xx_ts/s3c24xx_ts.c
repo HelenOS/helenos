@@ -51,7 +51,7 @@
 #include <inttypes.h>
 #include "s3c24xx_ts.h"
 
-#define NAME       "s3c24ser"
+#define NAME       "s3c24xx_ts"
 #define NAMESPACE  "hid"
 
 static irq_cmd_t ts_irq_cmds[] = {
