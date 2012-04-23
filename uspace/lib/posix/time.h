@@ -83,9 +83,6 @@ extern long posix_timezone;
 extern char *posix_tzname[2];
 extern void posix_tzset(void);
 
-/* Elapsed Time */
-extern double posix_difftime(time_t time1, time_t time0);
-
 /* Broken-down Time */
 extern struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result);
@@ -119,8 +116,6 @@ extern posix_clock_t posix_clock(void);
 	#define timezone posix_timezone
 	#define tzname posix_tzname
 	#define tzset posix_tzset
-
-	#define difftime posix_difftime
 
 	#define gmtime_r posix_gmtime_r
 	#define localtime_r posix_localtime_r

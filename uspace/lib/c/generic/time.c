@@ -875,5 +875,17 @@ char *ctime(const time_t *timer)
 	return asctime(loctime);
 }
 
+/**
+ * Calculate the difference between two times, in seconds.
+ * 
+ * @param time1 First time.
+ * @param time0 Second time.
+ * @return Time in seconds.
+ */
+double difftime(time_t time1, time_t time0)
+{
+	return (double) (time1 - time0);
+}
+
 /** @}
  */

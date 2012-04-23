@@ -310,18 +310,6 @@ void posix_tzset(void)
 }
 
 /**
- * Calculate the difference between two times, in seconds.
- * 
- * @param time1 First time.
- * @param time0 Second time.
- * @return Time in seconds.
- */
-double posix_difftime(time_t time1, time_t time0)
-{
-	return (double) (time1 - time0);
-}
-
-/**
  * Converts a time value to a broken-down UTC time.
  * 
  * @param timer Time to convert.
