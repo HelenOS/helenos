@@ -41,7 +41,6 @@
 #include <io/log.h>
 #include <ipc/services.h>
 #include <ipc/socket.h>
-#include <net/modules.h>
 #include <net/socket.h>
 #include <ns.h>
 
@@ -143,12 +142,13 @@ static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	assert(sock_core != NULL);
 	sock->sock_core = sock_core;
 
-	refresh_answer(&answer, NULL);
 	SOCKET_SET_SOCKET_ID(answer, sock_id);
 
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
 	SOCKET_SET_HEADER_SIZE(answer, sizeof(tcp_header_t));
-	answer_call(callid, EOK, &answer, 3);
+	
+	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
+	    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
 }
 
 static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -467,14 +467,14 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	asock_core = socket_cores_find(&client->sockets, asock_id);
 	assert(asock_core != NULL);
 
-	refresh_answer(&answer, NULL);
-
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
 	SOCKET_SET_SOCKET_ID(answer, asock_id);
 	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(struct sockaddr_in));
-
-	answer_call(callid, asock_core->socket_id, &answer, 3);
-
+	
+	async_answer_3(callid, asock_core->socket_id,
+	    IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
+	    IPC_GET_ARG3(answer));
+	
 	/* Push one fragment notification to client's queue */
 	log_msg(LVL_DEBUG, "tcp_sock_accept(): notify data\n");
 	tcp_sock_notify_data(asock_core);
@@ -558,9 +558,10 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		}
 	}
 
-	refresh_answer(&answer, NULL);
+	IPC_SET_ARG1(answer, 0);
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
-	answer_call(callid, EOK, &answer, 2);
+	async_answer_2(callid, EOK, IPC_GET_ARG1(answer),
+	    IPC_GET_ARG2(answer));
 	fibril_mutex_unlock(&socket->lock);
 }
 
@@ -678,8 +679,8 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		rc = EOVERFLOW;
 
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
-	answer_call(callid, EOK, &answer, 1);
-
+	async_answer_1(callid, EOK, IPC_GET_ARG1(answer));
+	
 	/* Push one fragment notification to client's queue */
 	tcp_sock_notify_data(sock_core);
 	fibril_mutex_unlock(&socket->lock);
