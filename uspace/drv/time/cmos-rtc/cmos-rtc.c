@@ -351,11 +351,10 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	fibril_mutex_unlock(&rtc->mutex);
 
+	/* Try to normalize the content of the tm structure */
 	time_t r = mktime(t);
-	if (r < 0)
-		return EINVAL;
 
-	return EOK;
+	return r < 0 ? EINVAL : EOK;
 }
 
 /** Set the time in the RTC
@@ -374,6 +373,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	int  epoch;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
+	/* Try to normalize the content of the tm structure */
 	if (mktime(t) < 0)
 		return EINVAL;
 
