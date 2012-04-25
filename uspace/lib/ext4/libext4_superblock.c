@@ -353,6 +353,37 @@ void ext4_superblock_set_features_read_only(ext4_superblock_t *sb, uint32_t feat
 	sb->features_read_only = host2uint32_t_le(features);
 }
 
+const uint8_t * ext4_superblock_get_uuid(ext4_superblock_t *sb)
+{
+	return sb->uuid;
+}
+
+void ext4_superblock_set_uuid(ext4_superblock_t *sb, const uint8_t *uuid)
+{
+	memcpy(sb->uuid, uuid, sizeof(sb->uuid));
+}
+
+const char * ext4_superblock_get_volume_name(ext4_superblock_t *sb)
+{
+	return sb->volume_name;
+}
+
+void ext4_superblock_set_volume_name(ext4_superblock_t *sb, const char *name)
+{
+	memcpy(sb->volume_name, name, sizeof(sb->volume_name));
+}
+
+const char * ext4_superblock_get_last_mounted(ext4_superblock_t *sb)
+{
+	return sb->last_mounted;
+}
+
+void ext4_superblock_set_last_mounted(ext4_superblock_t *sb, const char *last)
+{
+	memcpy(sb->last_mounted, last, sizeof(sb->last_mounted));
+}
+
+
 uint32_t ext4_superblock_get_last_orphan(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->last_orphan);

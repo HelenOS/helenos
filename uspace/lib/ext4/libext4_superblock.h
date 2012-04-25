@@ -98,10 +98,14 @@ extern void	ext4_superblock_set_features_incompatible(ext4_superblock_t *, uint3
 extern uint32_t	ext4_superblock_get_features_read_only(ext4_superblock_t *);
 extern void	ext4_superblock_set_features_read_only(ext4_superblock_t *, uint32_t);
 
+extern const uint8_t * ext4_superblock_get_uuid(ext4_superblock_t *);
+extern void ext4_superblock_set_uuid(ext4_superblock_t *, const uint8_t *);
+extern const char * ext4_superblock_get_volume_name(ext4_superblock_t *);
+extern void ext4_superblock_set_volume_name(ext4_superblock_t *, const char *);
+extern const char * ext4_superblock_get_last_mounted(ext4_superblock_t *);
+extern void ext4_superblock_set_last_mounted(ext4_superblock_t *, const char *);
+
 /*
-uint8_t s_uuid[16]; // 128-bit uuid for volume
-char volume_name[16]; // Volume name
-char last_mounted[64]; // Directory where last mounted
 uint32_t s_algorithm_usage_bitmap; // For compression
 uint8_t s_prealloc_blocks; // Number of blocks to try to preallocate
 uint8_t s_prealloc_dir_blocks; // Number to preallocate for dirs
