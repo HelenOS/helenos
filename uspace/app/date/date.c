@@ -42,7 +42,12 @@
 static int read_date_from_arg(char *wdate, struct tm *t);
 static int read_time_from_arg(char *wdate, struct tm *t);
 static int read_num_from_str(char *str, size_t len, int *n);
+static int tm_sanity_check(struct tm *t);
+static bool is_leap_year(int year);
+
 static void usage(void);
+
+static int days_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 int
 main(int argc, char **argv)
@@ -180,6 +185,12 @@ main(int argc, char **argv)
 			}
 		}
 
+		rc = tm_sanity_check(&t);
+		if (rc != EOK) {
+			printf(NAME ": error, invalid date/time\n");
+			goto exit;
+		}
+
 		rc = clock_dev_time_set(sess, &t);
 		if (rc != EOK) {
 			printf(NAME ": error, Unable to set date/time\n");
@@ -275,6 +286,62 @@ read_num_from_str(char *str, size_t len, int *n)
 	}
 
 	return EOK;
+}
+
+/** Check if the tm structure contains valid values
+ *
+ * @param t     The tm structure to check
+ *
+ * @return      EOK on success or EINVAL
+ */
+static int
+tm_sanity_check(struct tm *t)
+{
+	int ndays;
+
+	if (t->tm_sec < 0 || t->tm_sec > 59)
+		return EINVAL;
+	else if (t->tm_min < 0 || t->tm_min > 59)
+		return EINVAL;
+	else if (t->tm_hour < 0 || t->tm_hour > 23)
+		return EINVAL;
+	else if (t->tm_mday < 1 || t->tm_mday > 31)
+		return EINVAL;
+	else if (t->tm_mon < 0 || t->tm_mon > 11)
+		return EINVAL;
+	else if (t->tm_year < 0 || t->tm_year > 199)
+		return EINVAL;
+
+	if (t->tm_mon == 1/* FEB */ && is_leap_year(t->tm_year))
+		ndays = 29;
+	else
+		ndays = days_month[t->tm_mon];
+
+	if (t->tm_mday > ndays)
+		return EINVAL;
+
+	return EOK;
+}
+
+/** Check if a year is a leap year
+ *
+ * @param year   The year to check
+ *
+ * @return       true if it is a leap year, false otherwise
+ */
+static bool
+is_leap_year(int year)
+{
+	bool r = false;
+
+	if (year % 4 == 0) {
+		if (year % 100 == 0)
+			r = year % 400 == 0;
+		else
+			r = true;
+	}
+
+	return r;
 }
 
 static void

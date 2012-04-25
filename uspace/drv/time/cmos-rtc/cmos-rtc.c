@@ -89,11 +89,7 @@ static unsigned bin2bcd(unsigned binary);
 static void rtc_default_handler(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call);
 static int rtc_dev_remove(ddf_dev_t *dev);
-static int rtc_tm_sanity_check(struct tm *t, int epoch);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
-static bool is_leap_year(int year);
-
-static int days_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 static ddf_dev_ops_t rtc_dev_ops;
 
@@ -286,7 +282,6 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 {
 	bool bcd_mode;
 	bool pm_mode = false;
-	int  epoch = 1900;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
 	fibril_mutex_lock(&rtc->mutex);
@@ -351,13 +346,16 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		/* tm_year is the number of years since 1900 but the
 		 * RTC epoch is 2000.
 		 */
-		epoch = 2000;
 		t->tm_year += 100;
 	}
 
 	fibril_mutex_unlock(&rtc->mutex);
 
-	return rtc_tm_sanity_check(t, epoch);
+	time_t r = mktime(t);
+	if (r < 0)
+		return EINVAL;
+
+	return EOK;
 }
 
 /** Set the time in the RTC
@@ -370,12 +368,14 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 static int
 rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
-	int  rc;
 	bool bcd_mode;
 	int  reg_b;
 	int  reg_a;
 	int  epoch;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
+
+	if (mktime(t) < 0)
+		return EINVAL;
 
 	fibril_mutex_lock(&rtc->mutex);
 
@@ -385,10 +385,10 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	else
 		epoch = 1900;
 
-	rc = rtc_tm_sanity_check(t, epoch);
-	if (rc != EOK) {
+	if (epoch == 2000 && t->tm_year < 100) {
+		/* Can't set a year before the epoch */
 		fibril_mutex_unlock(&rtc->mutex);
-		return rc;
+		return EINVAL;
 	}
 
 	t->tm_mon++; /* counts from 1, not from 0 */
@@ -441,66 +441,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 
 	fibril_mutex_unlock(&rtc->mutex);
 
-	return rc;
-}
-
-/** Check if the tm structure contains valid values
- *
- * @param t     The tm structure to check
- * @param epoch The RTC epoch year
- *
- * @return      EOK on success or EINVAL
- */
-static int
-rtc_tm_sanity_check(struct tm *t, int epoch)
-{
-	int ndays;
-
-	if (t->tm_sec < 0 || t->tm_sec > 59)
-		return EINVAL;
-	else if (t->tm_min < 0 || t->tm_min > 59)
-		return EINVAL;
-	else if (t->tm_hour < 0 || t->tm_hour > 23)
-		return EINVAL;
-	else if (t->tm_mday < 1 || t->tm_mday > 31)
-		return EINVAL;
-	else if (t->tm_mon < 0 || t->tm_mon > 11)
-		return EINVAL;
-	else if (epoch == 2000 && t->tm_year < 100)
-		return EINVAL;
-	else if (t->tm_year < 0 || t->tm_year > 199)
-		return EINVAL;
-
-	if (t->tm_mon == 1/* FEB */ && is_leap_year(t->tm_year))
-		ndays = 29;
-	else
-		ndays = days_month[t->tm_mon];
-
-	if (t->tm_mday > ndays)
-		return EINVAL;
-
 	return EOK;
-}
-
-/** Check if a year is a leap year
- *
- * @param year   The year to check
- *
- * @return       true if it is a leap year, false otherwise
- */
-static bool
-is_leap_year(int year)
-{
-	bool r = false;
-
-	if (year % 4 == 0) {
-		if (year % 100 == 0)
-			r = year % 400 == 0;
-		else
-			r = true;
-	}
-
-	return r;
 }
 
 /** The dev_add callback of the rtc driver
