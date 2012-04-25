@@ -271,7 +271,7 @@ rtc_register_write(rtc_t *rtc, int reg, int data)
 static bool
 rtc_update_in_progress(rtc_t *rtc)
 {
-	return rtc_register_read(rtc, RTC_STATUS_A) & RTC_MASK_UPDATE;
+	return rtc_register_read(rtc, RTC_STATUS_A) & RTC_A_UPDATE;
 }
 
 /** Read the current time from the CMOS
@@ -312,7 +312,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	/* Check if the RTC is working in 12h mode */
 	bool _12h_mode = !(rtc_register_read(rtc, RTC_STATUS_B) &
-	    RTC_MASK_24H);
+	    RTC_B_24H);
 
 	if (_12h_mode) {
 		/* The RTC is working in 12h mode, check if it is AM or PM */
@@ -324,7 +324,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	}
 
 	/* Check if the RTC is working in BCD mode */
-	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_MASK_BCD);
+	bcd_mode = !(rtc_register_read(rtc, RTC_STATUS_B) & RTC_B_BCD);
 
 	if (bcd_mode) {
 		t->tm_sec  = bcd2bin(t->tm_sec);
@@ -395,9 +395,9 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 
 	reg_b = rtc_register_read(rtc, RTC_STATUS_B);
 
-	if (!(reg_b & RTC_MASK_24H)) {
+	if (!(reg_b & RTC_B_24H)) {
 		/* Force 24h mode of operation */
-		reg_b |= RTC_MASK_24H;
+		reg_b |= RTC_B_24H;
 		rtc_register_write(rtc, RTC_STATUS_B, reg_b);
 	}
 
@@ -409,7 +409,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	}
 
 	/* Check if the rtc is working in bcd mode */
-	bcd_mode = !(reg_b & RTC_MASK_BCD);
+	bcd_mode = !(reg_b & RTC_B_BCD);
 	if (bcd_mode) {
 		/* Convert the tm struct fields in BCD mode */
 		t->tm_sec  = bin2bcd(t->tm_sec);
@@ -421,7 +421,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	}
 
 	/* Inhibit updates */
-	rtc_register_write(rtc, RTC_STATUS_B, reg_b | RTC_MASK_INH);
+	rtc_register_write(rtc, RTC_STATUS_B, reg_b | RTC_B_INH);
 
 	/* Write current time to RTC */
 	rtc_register_write(rtc, RTC_SEC, t->tm_sec);
@@ -433,7 +433,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 
 	/* Stop the clock */
 	reg_a = rtc_register_read(rtc, RTC_STATUS_A);
-	rtc_register_write(rtc, RTC_STATUS_A, RTC_MASK_CLK_STOP | reg_a);
+	rtc_register_write(rtc, RTC_STATUS_A, RTC_A_CLK_STOP | reg_a);
 	
 	/* Enable updates */
 	rtc_register_write(rtc, RTC_STATUS_B, reg_b);
@@ -617,7 +617,7 @@ rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 	switch (method) {
 	case CLOCK_GET_BATTERY_STATUS:
 		batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
-		    RTC_BATTERY_OK;
+		    RTC_D_BATTERY_OK;
 		async_answer_1(callid, EOK, batt_ok);
 		break;
 	default:
