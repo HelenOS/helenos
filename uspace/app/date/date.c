@@ -350,5 +350,6 @@ usage(void)
 	printf("Usage: date [-d DD/MM/YYYY] [-t HH:MM[:SS]]\n");
 	printf("       -d   Change the current date\n");
 	printf("       -t   Change the current time\n");
+	printf("       -h   Display this information\n");
 }
 
