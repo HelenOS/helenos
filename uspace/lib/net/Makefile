@@ -32,25 +32,6 @@ EXTRA_CFLAGS = -Iinclude
 LIBRARY = libnet
 
 SOURCES = \
-	generic/generic.c \
-	generic/net_remote.c \
-	generic/net_checksum.c \
-	generic/packet_client.c \
-	generic/packet_remote.c \
-	generic/protocol_map.c \
-	adt/module_map.c \
-	nil/nil_remote.c \
-	nil/nil_skel.c \
-	il/il_remote.c \
-	il/il_skel.c \
-	il/ip_remote.c \
-	il/ip_client.c \
-	il/arp_remote.c \
-	tl/icmp_remote.c \
-	tl/icmp_client.c \
-	tl/socket_core.c \
-	tl/tl_common.c \
-	tl/tl_remote.c \
-	tl/tl_skel.c
+	tl/socket_core.c
 
 include $(USPACE_PREFIX)/Makefile.common

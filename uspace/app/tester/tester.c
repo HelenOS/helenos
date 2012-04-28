@@ -59,6 +59,7 @@ test_t tests[] = {
 #include "fault/fault3.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"
+#include "ipc/starve.def"
 #include "loop/loop1.def"
 #include "mm/malloc1.def"
 #include "mm/malloc2.def"

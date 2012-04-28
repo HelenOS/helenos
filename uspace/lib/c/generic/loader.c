@@ -100,7 +100,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return (int) rc;
 	}
 	
@@ -138,7 +138,7 @@ int loader_set_cwd(loader_t *ldr)
 	free(cwd);
 	
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return (int) rc;
 	}
 	
@@ -176,7 +176,7 @@ int loader_set_pathname(loader_t *ldr, const char *path)
 	free(pa);
 	
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return (int) rc;
 	}
 	
@@ -235,7 +235,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	free(arg_buf);
 	
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return (int) rc;
 	}
 	
@@ -280,7 +280,7 @@ int loader_set_files(loader_t *ldr, int * const files[])
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return (int) rc;
 	}
 	

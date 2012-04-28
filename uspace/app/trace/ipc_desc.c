@@ -38,15 +38,16 @@
 
 ipc_m_desc_t ipc_methods[] = {
 	/* System methods */
-	{ IPC_M_PHONE_HUNGUP,  "PHONE_HUNGUP" },
-	{ IPC_M_CONNECT_ME,    "CONNECT_ME" },
-	{ IPC_M_CONNECT_ME_TO, "CONNECT_ME_TO" },
-	{ IPC_M_CONNECT_TO_ME, "CONNECT_TO_ME" },
-	{ IPC_M_SHARE_OUT,     "SHARE_OUT" },
-	{ IPC_M_SHARE_IN,      "SHARE_IN" },
-	{ IPC_M_DATA_WRITE,    "DATA_WRITE" },
-	{ IPC_M_DATA_READ,     "DATA_READ" },
-	{ IPC_M_DEBUG,         "DEBUG" },
+	{ IPC_M_PHONE_HUNGUP,     "PHONE_HUNGUP" },
+	{ IPC_M_CONNECTION_CLONE, "CONNECTION_CLONE" },
+	{ IPC_M_CLONE_ESTABLISH,  "CLONE_ESTABLISH" },
+	{ IPC_M_CONNECT_ME_TO,    "CONNECT_ME_TO" },
+	{ IPC_M_CONNECT_TO_ME,    "CONNECT_TO_ME" },
+	{ IPC_M_SHARE_OUT,        "SHARE_OUT" },
+	{ IPC_M_SHARE_IN,         "SHARE_IN" },
+	{ IPC_M_DATA_WRITE,       "DATA_WRITE" },
+	{ IPC_M_DATA_READ,        "DATA_READ" },
+	{ IPC_M_DEBUG,            "DEBUG" },
 	
 	/* Terminating entry */
 	{ 0, NULL }

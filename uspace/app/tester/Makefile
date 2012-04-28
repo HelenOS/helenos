@@ -49,6 +49,7 @@ SOURCES = \
 	fault/fault3.c \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \
+	ipc/starve.c \
 	loop/loop1.c \
 	mm/common.c \
 	mm/malloc1.c \

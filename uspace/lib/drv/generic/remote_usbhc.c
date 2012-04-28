@@ -259,7 +259,7 @@ int usbhc_read(async_exch_t *exch, usb_address_t address,
 
 	if (data_request == 0) {
 		// FIXME: How to let the other side know that we want to abort?
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return ENOMEM;
 	}
 
@@ -309,7 +309,7 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 	if (size > 0) {
 		const int ret = async_data_write_start(exch, data, size);
 		if (ret != EOK) {
-			async_wait_for(opening_request, NULL);
+			async_forget(opening_request);
 			return ret;
 		}
 	}

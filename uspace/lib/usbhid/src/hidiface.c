@@ -119,7 +119,7 @@ int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 	async_exchange_end(exch);
 	
 	if (data_request == 0) {
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		free(buffer);
 		return ENOMEM;
 	}
@@ -205,7 +205,7 @@ int usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 	async_exchange_end(exch);
 	
 	if (data_request == 0) {
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return ENOMEM;
 	}
 	
