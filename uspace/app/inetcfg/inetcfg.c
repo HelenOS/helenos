@@ -34,7 +34,6 @@
  * Controls the internet service (@c inet).
  */
 
-#include <async.h>
 #include <errno.h>
 #include <inet/inetcfg.h>
 #include <loc.h>
