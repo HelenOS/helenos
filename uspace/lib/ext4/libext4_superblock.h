@@ -67,6 +67,7 @@ extern void ext4_superblock_set_mount_count(ext4_superblock_t *, uint16_t);
 extern uint16_t ext4_superblock_get_max_mount_count(ext4_superblock_t *);
 extern void ext4_superblock_set_max_mount_count(ext4_superblock_t *, uint16_t);
 extern uint16_t ext4_superblock_get_magic(ext4_superblock_t *);
+extern void ext4_superblock_set_magic(ext4_superblock_t *sb, uint16_t magic);
 extern uint16_t ext4_superblock_get_state(ext4_superblock_t *);
 extern void ext4_superblock_set_state(ext4_superblock_t *, uint16_t);
 extern uint16_t ext4_superblock_get_errors(ext4_superblock_t *);

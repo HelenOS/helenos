@@ -740,8 +740,15 @@ cleanup:
 	return rc;
 }
 
-/** TODO
+
+/** Append new extent to the i-node and do some splitting if necessary.
  *
+ * @param inode_ref			i-node to append extent to
+ * @param path				path in the extent tree for possible splitting
+ * @param last_path_item	input/output parameter for pointer to the last
+ * 							valid item in the extent tree path
+ * @param iblock			logical index of block to append extent for
+ * @return					error code
  */
 static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		ext4_extent_path_t *path, ext4_extent_path_t **last_path_item,
@@ -925,6 +932,9 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		uint32_t *iblock, uint32_t *fblock)
 {

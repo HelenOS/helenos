@@ -40,6 +40,9 @@
 #include <malloc.h>
 #include "libext4.h"
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 {
 	int rc;
@@ -89,6 +92,9 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_fini(ext4_filesystem_t *fs, bool write_sb)
 {
 	int rc = EOK;
@@ -103,6 +109,9 @@ int ext4_filesystem_fini(ext4_filesystem_t *fs, bool write_sb)
 	return rc;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 {
 	int rc;
@@ -115,6 +124,9 @@ int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 {
 	/* Feature flags are present in rev 1 and later */
@@ -141,6 +153,9 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {
@@ -177,6 +192,9 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid,
                             ext4_block_group_t *bg)
 {
@@ -209,7 +227,9 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 
 }
 
-
+/** TODO comment
+ *
+ */
 int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 {
 	int rc;
@@ -229,6 +249,9 @@ int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 	return rc;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **ref)
 {
@@ -290,7 +313,9 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	return EOK;
 }
 
-
+/** TODO comment
+ *
+ */
 int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 {
 	int rc;
@@ -305,6 +330,9 @@ int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 	return rc;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 		ext4_inode_ref_t **inode_ref, int flags)
 {
@@ -378,6 +406,9 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
@@ -513,6 +544,9 @@ finish:
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_truncate_inode(
 		ext4_inode_ref_t *inode_ref, aoff64_t new_size)
 {
@@ -574,6 +608,9 @@ int ext4_filesystem_truncate_inode(
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 		aoff64_t iblock, uint32_t *fblock)
 {
@@ -677,7 +714,9 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-
+/** TODO comment
+ *
+ */
 int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 		aoff64_t iblock, uint32_t fblock)
 {
@@ -815,6 +854,9 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_release_inode_block(
 		ext4_inode_ref_t *inode_ref, uint32_t iblock)
 {
@@ -909,6 +951,9 @@ int ext4_filesystem_release_inode_block(
 
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 		uint32_t *fblock, uint32_t *iblock)
 {
@@ -958,6 +1003,9 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 {
 	uint32_t next_orphan = ext4_superblock_get_last_orphan(
@@ -970,6 +1018,9 @@ int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 	return EOK;
 }
 
+/** TODO comment
+ *
+ */
 int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
