@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -fno-zero-initialized-in-bss -mapcs-frame
+GCC_CFLAGS += -march=armv4
 
 BITS = 32
 ENDIANESS = LE

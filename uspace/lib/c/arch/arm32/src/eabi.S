@@ -44,51 +44,55 @@ __aeabi_read_tp:
 	mov pc, lr
 
 __aeabi_idiv:
-	push {sp, lr}
+	push {lr}
 	bl __divsi3
-	ldr lr, [sp, #4]
-	add sp, sp, #8
-	bx lr
+	pop {lr}
+	mov pc, lr
 
 __aeabi_uidiv:
-	push {sp, lr}
+	push {lr}
 	bl __udivsi3
-	ldr lr, [sp, #4]
-	add sp, sp, #8
-	bx lr
+	pop {lr}
+	mov pc, lr
 
 __aeabi_idivmod:
-	sub sp, sp, #8
-	push {sp, lr}
-	bl __divmodsi3
-	ldr lr, [sp, #4]
-	add sp, sp, #8
-	pop {r1, r2}
-	bx lr
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
 
 __aeabi_uidivmod:
-	sub sp, sp, #8
-	push {sp, lr}
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
 	bl __udivmodsi3
-	ldr lr, [sp, #4]
-	add sp, sp, #8
-	pop {r1, r2}
-	bx lr
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
 
 __aeabi_ldivmod:
-	sub sp, sp, #8
-	push {sp, lr}
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
 	bl __divmoddi3
-	ldr lr, [sp, #4]
-	add sp, sp, #8
+	add sp, sp, #4
 	pop {r2, r3}
-	bx lr
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr
 
 __aeabi_uldivmod:
-	sub sp, sp, #8
-	push {sp, lr}
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
 	bl __udivmoddi3
-	ldr lr, [sp, #4]
-	add sp, sp, #8
+	add sp, sp, #4
 	pop {r2, r3}
-	bx lr
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr

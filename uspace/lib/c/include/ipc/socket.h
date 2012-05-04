@@ -37,12 +37,10 @@
 #ifndef LIBC_SOCKET_MESSAGES_H_
 #define LIBC_SOCKET_MESSAGES_H_
 
-#include <ipc/net.h>
-
 /** Socket client messages. */
 typedef enum {
 	/** Creates a new socket. @see socket() */
-	NET_SOCKET = NET_SOCKET_FIRST,
+	NET_SOCKET = IPC_FIRST_USER_METHOD,
 	/** Binds the socket. @see bind() */
 	NET_SOCKET_BIND,
 	/** Creates a new socket. @see socket() */

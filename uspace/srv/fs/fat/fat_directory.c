@@ -161,6 +161,13 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 	uint8_t checksum = 0;
 	int rc;
 
+	void *data;
+	fat_instance_t *instance;
+
+	rc = fs_instance_get(di->nodep->idx->service_id, &data);
+	assert(rc == EOK);
+	instance = (fat_instance_t *) data;
+	
 	do {
 		rc = fat_directory_get(di, &d);
 		if (rc != EOK)
@@ -176,7 +183,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 				/* We found long entry */
 				long_entry_count--;
 				if ((FAT_LFN_ORDER(d) == long_entry_count) && 
-					(checksum == FAT_LFN_CHKSUM(d))) {
+				    (checksum == FAT_LFN_CHKSUM(d))) {
 					/* Right order! */
 					fat_lfn_get_entry(d, wname,
 					    &lfn_offset);
@@ -188,7 +195,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 					long_entry_count = 0;
 					long_entry = false;
 				}
-			} else if (FAT_IS_LFN(d)) {
+			} else if (FAT_IS_LFN(d) && instance->lfn_enabled) {
 				/* We found Last long entry! */
 				if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
 					long_entry = true;
@@ -307,7 +314,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 			return rc;
 		checksum = fat_dentry_chksum(de->name);
 
-		rc = fat_directory_seek(di, start_pos+long_entry_count);
+		rc = fat_directory_seek(di, start_pos + long_entry_count);
 		if (rc != EOK)
 			return rc;
 		rc = fat_directory_write_dentry(di, de);

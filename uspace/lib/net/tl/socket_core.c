@@ -35,13 +35,9 @@
  */
 
 #include <socket_core.h>
-#include <packet_client.h>
-#include <packet_remote.h>
 #include <net/socket_codes.h>
 #include <net/in.h>
 #include <net/inet.h>
-#include <net/packet.h>
-#include <net/modules.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -91,12 +87,6 @@ static void socket_destroy_core(async_sess_t *sess, socket_core_t *socket,
 		socket_port_release(global_sockets, socket);
 	}
 	
-	/* Release all received packets */
-	int packet_id;
-	while ((packet_id = dyn_fifo_pop(&socket->received)) >= 0)
-		pq_release_remote(sess, packet_id);
-	
-	dyn_fifo_destroy(&socket->received);
 	dyn_fifo_destroy(&socket->accepted);
 	
 	if (socket_release)
@@ -447,22 +437,15 @@ int socket_create(socket_cores_t *local_sockets, async_sess_t* sess,
 	socket->key = NULL;
 	socket->key_length = 0;
 	socket->specific_data = specific_data;
-	rc = dyn_fifo_initialize(&socket->received, SOCKET_INITIAL_RECEIVED_SIZE);
-	if (rc != EOK) {
-		free(socket);
-		return rc;
-	}
 	
 	rc = dyn_fifo_initialize(&socket->accepted, SOCKET_INITIAL_ACCEPTED_SIZE);
 	if (rc != EOK) {
-		dyn_fifo_destroy(&socket->received);
 		free(socket);
 		return rc;
 	}
 	socket->socket_id = *socket_id;
 	rc = socket_cores_add(local_sockets, socket->socket_id, socket);
 	if (rc < 0) {
-		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
 		return rc;
@@ -505,89 +488,6 @@ socket_destroy(async_sess_t *sess, int socket_id, socket_cores_t *local_sockets,
 	
 	socket_destroy_core(sess, socket, local_sockets, global_sockets,
 	    socket_release);
-	
-	return EOK;
-}
-
-/** Replies the packet or the packet queue data to the application via the
- * socket.
- *
- * Uses the current message processing fibril.
- *
- * @param[in] packet	The packet to be transfered.
- * @param[out] length	The total data length.
- * @return		EOK on success.
- * @return		EBADMEM if the length parameter is NULL.
- * @return		ENOMEM if there is not enough memory left.
- * @return		Other error codes as defined for the data_reply()
- *			function.
- */
-int socket_reply_packets(packet_t *packet, size_t *length)
-{
-	packet_t *next_packet;
-	size_t fragments;
-	size_t *lengths;
-	size_t index;
-	int rc;
-
-	if (!length)
-		return EBADMEM;
-
-	next_packet = pq_next(packet);
-	if (!next_packet) {
-		/* Write all if only one fragment */
-		rc = data_reply(packet_get_data(packet),
-		    packet_get_data_length(packet));
-		if (rc != EOK)
-			return rc;
-		/* Store the total length */
-		*length = packet_get_data_length(packet);
-	} else {
-		/* Count the packet fragments */
-		fragments = 1;
-		next_packet = pq_next(packet);
-		while ((next_packet = pq_next(next_packet)))
-			++fragments;
-		
-		/* Compute and store the fragment lengths */
-		lengths = (size_t *) malloc(sizeof(size_t) * fragments +
-		    sizeof(size_t));
-		if (!lengths)
-			return ENOMEM;
-		
-		lengths[0] = packet_get_data_length(packet);
-		lengths[fragments] = lengths[0];
-		next_packet = pq_next(packet);
-		
-		for (index = 1; index < fragments; ++index) {
-			lengths[index] = packet_get_data_length(next_packet);
-			lengths[fragments] += lengths[index];
-			next_packet = pq_next(packet);
-		}
-		
-		/* Write the fragment lengths */
-		rc = data_reply(lengths, sizeof(int) * (fragments + 1));
-		if (rc != EOK) {
-			free(lengths);
-			return rc;
-		}
-		next_packet = packet;
-		
-		/* Write the fragments */
-		for (index = 0; index < fragments; ++index) {
-			rc = data_reply(packet_get_data(next_packet),
-			    lengths[index]);
-			if (rc != EOK) {
-				free(lengths);
-				return rc;
-			}
-			next_packet = pq_next(next_packet);
-		}
-		
-		/* Store the total length */
-		*length = lengths[fragments];
-		free(lengths);
-	}
 	
 	return EOK;
 }

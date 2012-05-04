@@ -43,9 +43,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <task.h>
+#include <ns.h>
 #include <ipc/services.h>
 #include <ipc/socket.h>
-#include <net/modules.h>
 #include <net/in.h>
 #include <net/socket.h>
 #include <adt/dynamic_fifo.h>
@@ -283,7 +283,7 @@ loop:
 static async_sess_t *socket_get_tcp_sess(void)
 {
 	if (socket_globals.tcp_sess == NULL) {
-		socket_globals.tcp_sess = bind_service(SERVICE_TCP,
+		socket_globals.tcp_sess = service_bind(SERVICE_TCP,
 		    0, 0, SERVICE_TCP, socket_connection);
 	}
 
@@ -300,7 +300,7 @@ static async_sess_t *socket_get_tcp_sess(void)
 static async_sess_t *socket_get_udp_sess(void)
 {
 	if (socket_globals.udp_sess == NULL) {
-		socket_globals.udp_sess = bind_service(SERVICE_UDP,
+		socket_globals.udp_sess = service_bind(SERVICE_UDP,
 		    0, 0, SERVICE_UDP, socket_connection);
 	}
 
@@ -377,7 +377,7 @@ static void socket_initialize(socket_t *socket, int socket_id,
  *			this time.
  * @return		Other error codes as defined for the NET_SOCKET message.
  * @return		Other error codes as defined for the
- *			bind_service() function.
+ *			service_bind() function.
  */
 int socket(int domain, int type, int protocol)
 {
