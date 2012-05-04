@@ -121,7 +121,6 @@ GENERIC_SOURCES = \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
 	generic/net/inet.c \
-	generic/net/modules.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
 	generic/stacktrace.c \

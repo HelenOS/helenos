@@ -42,7 +42,6 @@
 #include <io/log.h>
 #include <ipc/services.h>
 #include <ipc/socket.h>
-#include <net/modules.h>
 #include <net/socket.h>
 #include <ns.h>
 
@@ -84,7 +83,8 @@ static void udp_free_sock_data(socket_core_t *sock_core)
 	udp_sockdata_t *socket;
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
-	(void)socket;
+	assert(socket->assoc != NULL);
+	udp_uc_destroy(socket->assoc);
 }
 
 static void udp_sock_notify_data(socket_core_t *sock_core)
@@ -132,14 +132,13 @@ static void udp_sock_socket(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	sock_core = socket_cores_find(&client->sockets, sock_id);
 	assert(sock_core != NULL);
 	sock->sock_core = sock_core;
-
-
-	refresh_answer(&answer, NULL);
+	
 	SOCKET_SET_SOCKET_ID(answer, sock_id);
 
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
 	SOCKET_SET_HEADER_SIZE(answer, sizeof(udp_header_t));
-	answer_call(callid, EOK, &answer, 3);
+	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
+	    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
 }
 
 static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -367,11 +366,13 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			goto out;
 		}
 	}
-
-	refresh_answer(&answer, NULL);
+	
+	IPC_SET_ARG1(answer, 0);
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
-	answer_call(callid, EOK, &answer, 2);
+	async_answer_2(callid, EOK, IPC_GET_ARG1(answer),
+	    IPC_GET_ARG2(answer));
 	fibril_mutex_unlock(&socket->lock);
+	
 out:
 	if (addr != NULL)
 		free(addr);
@@ -484,10 +485,12 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 		rc = EOVERFLOW;
 
 	log_msg(LVL_DEBUG, "read_data_length <- %zu", length);
+	IPC_SET_ARG2(answer, 0);
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
 	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(addr));
-	answer_call(callid, EOK, &answer, 3);
-
+	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
+	    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
+	
 	/* Push one fragment notification to client's queue */
 	udp_sock_notify_data(sock_core);
 	fibril_mutex_unlock(&socket->lock);
@@ -511,9 +514,6 @@ static void udp_sock_close(udp_client_t *client, ipc_callid_t callid, ipc_call_t
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
-
-	assert(socket->assoc != NULL);
-	udp_uc_destroy(socket->assoc);
 
 	rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
 	    udp_free_sock_data);
@@ -598,6 +598,11 @@ static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+
+	/* Clean up */
+	log_msg(LVL_DEBUG, "udp_sock_connection: Clean up");
+	async_hangup(client.sess);
+	socket_cores_release(NULL, &client.sockets, &gsock, udp_free_sock_data);
 }
 
 /**

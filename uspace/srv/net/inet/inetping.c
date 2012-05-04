@@ -87,7 +87,7 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 
