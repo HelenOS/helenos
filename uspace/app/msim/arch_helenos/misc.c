@@ -31,13 +31,14 @@
  */
 /** @file HelenOS specific functions for MSIM simulator.
  */
-#include "io/input.h"
-#include "io/output.h"
-#include "device/dprinter.h"
-#include "debug/gdb.h"
-#include "cmd.h"
-#include "fault.h"
-#include "device/machine.h"
+#include "../../io/input.h"
+#include "../../io/output.h"
+#include "../../device/dprinter.h"
+#include "../../debug/gdb.h"
+#include "../../cmd.h"
+#include "../../fault.h"
+#include "../../device/machine.h"
+#include "helenos.h"
 #include <str.h>
 #include <malloc.h>
 #include <ctype.h>
@@ -52,8 +53,6 @@
  */
 // #define DUMP_ANSI_ESCAPE_SEQUENCES
 
-extern char *input_helenos_get_next_command(void);
-
 void interactive_control(void)
 {
 	tobreak = false;
@@ -66,7 +65,7 @@ void interactive_control(void)
 	stepping = 0;
 
 	while (interactive) {
-		char *commline = input_helenos_get_next_command();
+		char *commline = helenos_input_get_next_command();
 		if (commline == NULL) {
 			mprintf("Quit\n");
 			input_back();
@@ -97,8 +96,6 @@ void gdb_handle_event(gdb_event_t event)
 {
 }
 
-
-char *input_helenos_get_next_command(void);
 
 static void (*original_printer_write)(cpu_t *, device_s *, ptr_t, uint32_t);
 static void helenos_printer_write(cpu_t *cpu, device_s *dev, ptr_t addr, uint32_t val)

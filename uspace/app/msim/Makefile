@@ -35,12 +35,16 @@ MSIM_TARBALL = $(MSIM_DIST).tar.bz2
 MSIM_MIRROR = http://d3s.mff.cuni.cz/~holub/sw/msim/
 
 MSIM_HELENOS_MAKEFILE = Makefile.msim.src
-MSIM_HELENOS_PLATFORM_FILES = helenos.c helenos_input.c
+MSIM_HELENOS_PLATFORM_FILES = misc.c input.c
+MSIM_HELENOS_ARCH_DIR = arch/helenos
 MSIM_PATCHED_FILES = \
 	$(MSIM_DIST)/config.h \
 	$(MSIM_DIST)/src/$(MSIM_HELENOS_MAKEFILE) \
-	$(MSIM_DIST)/src/helenos.c \
-	$(MSIM_DIST)/src/helenos_input.c
+	$(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)/helenos.h \
+	$(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)/misc.c \
+	$(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)/input.c
+
+MSIM_EXTRA_SOURCES := $(addprefix $(MSIM_HELENOS_ARCH_DIR)/,$(MSIM_HELENOS_PLATFORM_FILES))
 
 CP = /bin/cp -f
 
@@ -62,10 +66,13 @@ $(MSIM_DIST)/src/msim: $(MSIM_PATCHED_FILES) $(MSIM_DIST)/src/Makefile.sources M
 $(MSIM_DIST)/config.h: config.h.msim | unpack-tarball
 	$(CP) $< $@
 
-$(MSIM_DIST)/src/helenos.c: helenos.c | unpack-tarball
+$(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)/helenos.h: arch_helenos/helenos.h | unpack-tarball
 	$(CP) $< $@
 
-$(MSIM_DIST)/src/helenos_input.c: helenos_input.c | unpack-tarball
+$(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)/misc.c: arch_helenos/misc.c | unpack-tarball
+	$(CP) $< $@
+
+$(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)/input.c: arch_helenos/input.c | unpack-tarball
 	$(CP) $< $@
 
 $(MSIM_DIST)/src/$(MSIM_HELENOS_MAKEFILE): $(MSIM_HELENOS_MAKEFILE) | unpack-tarball
@@ -78,7 +85,7 @@ $(MSIM_DIST)/src/Makefile.sources: | unpack-tarball
 		echo -e '\t@echo SOURCES = $$(SOURCES)'; cat Makefile.in \
 	) | make -f - | grep 'SOURCES' >Makefile.sources
 	sed \
-		-e 's:io/input.c:$(MSIM_HELENOS_PLATFORM_FILES):' \
+		-e 's:io/input.c:$(MSIM_EXTRA_SOURCES):' \
 		-e 's:debug/gdb.c::' \
 		-e 's:arch/posix/stdin.c::' \
 		-i $(MSIM_DIST)/src/Makefile.sources
@@ -89,3 +96,4 @@ $(MSIM_TARBALL):
 
 unpack-tarball: $(MSIM_TARBALL)
 	tar xjf $(MSIM_TARBALL)
+	mkdir -p $(MSIM_DIST)/src/$(MSIM_HELENOS_ARCH_DIR)
