@@ -47,6 +47,10 @@
  * out ANSI escape sequences.
  */
 #define IGNORE_ANSI_ESCAPE_SEQUENCES
+/* Define when you want the ANSI escape sequences to be dumped as
+ * hex numbers.
+ */
+// #define DUMP_ANSI_ESCAPE_SEQUENCES
 
 extern char *input_helenos_get_next_command(void);
 
@@ -104,11 +108,15 @@ static void helenos_printer_write(cpu_t *cpu, device_s *dev, ptr_t addr, uint32_
 	static bool just_ended_ansi_escape = false;
 
 	if (inside_ansi_escape) {
+#ifdef DUMP_ANSI_ESCAPE_SEQUENCES
 		fprintf(stderr, "%02" PRIx32 "'%c' ", val, val >= 32 ? val : '?');
+#endif
 		if (isalpha((int) val)) {
 			just_ended_ansi_escape = true;
 			inside_ansi_escape = false;
+#ifdef DUMP_ANSI_ESCAPE_SEQUENCES
 			fprintf(stderr, " [END]\n");
+#endif
 		}
 
 		return;
@@ -118,9 +126,13 @@ static void helenos_printer_write(cpu_t *cpu, device_s *dev, ptr_t addr, uint32_
 		inside_ansi_escape = true;
 
 		if (!just_ended_ansi_escape) {
+#ifdef DUMP_ANSI_ESCAPE_SEQUENCES
 			fprintf(stderr, "\n");
+#endif
 		}
+#ifdef DUMP_ANSI_ESCAPE_SEQUENCES
 		fprintf(stderr, "ESC sequence: ");
+#endif
 
 		return;
 	}
