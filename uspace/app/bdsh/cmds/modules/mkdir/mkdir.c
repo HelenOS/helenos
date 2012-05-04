@@ -82,7 +82,7 @@ void help_cmd_mkdir(unsigned int level)
 
 /* This is kind of clunky, but effective for now */
 static unsigned int
-create_directory(const char *path, unsigned int p)
+create_directory(const char *path, bool create_parents)
 {
 	DIR *dirp;
 	char *tmp = NULL, *buff = NULL, *wdp = NULL;
@@ -106,7 +106,7 @@ create_directory(const char *path, unsigned int p)
 	getcwd(wdp, PATH_MAX);
 
 	/* Typical use without specifying the creation of parents */
-	if (p == 0) {
+	if (!create_parents) {
 		dirp = opendir(tmp);
 		if (dirp) {
 			cli_error(CL_EEXISTS, "%s: can not create %s, try -p", cmdname, path);
@@ -181,8 +181,8 @@ finit:
 
 int cmd_mkdir(char **argv)
 {
-	unsigned int argc, create_parents = 0, i, ret = 0, follow = 0;
-	unsigned int verbose = 0;
+	unsigned int argc, i, ret = 0;
+	bool create_parents = false, follow = false, verbose = false;
 	int c, opt_ind;
 	char *cwd;
 
@@ -192,10 +192,10 @@ int cmd_mkdir(char **argv)
 		c = getopt_long(argc, argv, "pvhVfm:", long_options, &opt_ind);
 		switch (c) {
 		case 'p':
-			create_parents = 1;
+			create_parents = true;
 			break;
 		case 'v':
-			verbose = 1;
+			verbose = true;
 			break;
 		case 'h':
 			help_cmd_mkdir(HELP_LONG);
@@ -204,7 +204,7 @@ int cmd_mkdir(char **argv)
 			printf("%s\n", MKDIR_VERSION);
 			return CMD_SUCCESS;
 		case 'f':
-			follow = 1;
+			follow = true;
 			break;
 		case 'm':
 			printf("%s: [W] Ignoring mode %s\n", cmdname, optarg);
@@ -229,14 +229,14 @@ int cmd_mkdir(char **argv)
 	getcwd(cwd, PATH_MAX);
 
 	for (i = optind; argv[i] != NULL; i++) {
-		if (verbose == 1)
+		if (verbose)
 			printf("%s: creating %s%s\n",
 				cmdname, argv[i],
 				create_parents ? " (and all parents)" : "");
 		ret += create_directory(argv[i], create_parents);
 	}
 
-	if (follow == 0)
+	if (follow)
 		chdir(cwd);
 
 	free(cwd);
