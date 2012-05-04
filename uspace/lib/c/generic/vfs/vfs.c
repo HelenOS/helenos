@@ -57,18 +57,11 @@
 static FIBRIL_MUTEX_INITIALIZE(vfs_mutex);
 static async_sess_t *vfs_sess = NULL;
 
-/* Current (working) directory. */
 static FIBRIL_MUTEX_INITIALIZE(cwd_mutex);
+
 static int cwd_fd = -1;
 static char *cwd_path = NULL;
 static size_t cwd_size = 0;
-
-/* Previous directory. */
-static FIBRIL_MUTEX_INITIALIZE(pwd_mutex);
-static int pwd_fd = -1;
-static char *pwd_path = NULL;
-static size_t pwd_size = 0;
-
 
 /** Start an async exchange on the VFS session.
  *
@@ -757,23 +750,13 @@ int chdir(const char *path)
 	
 	fibril_mutex_lock(&cwd_mutex);
 	
-
-	fibril_mutex_lock(&pwd_mutex);
-
-	if (pwd_fd >= 0)
-		close(pwd_fd);
-
-
-	if (pwd_path)
-		free(pwd_path);
-
-
-	pwd_fd = cwd_fd;
-	pwd_path = cwd_path;
-	pwd_size = cwd_size;
-
-	fibril_mutex_unlock(&pwd_mutex);
-
+	if (cwd_fd >= 0)
+		close(cwd_fd);
+	
+	
+	if (cwd_path)
+		free(cwd_path);
+	
 	cwd_fd = fd;
 	cwd_path = abs;
 	cwd_size = abs_size;
@@ -797,25 +780,6 @@ char *getcwd(char *buf, size_t size)
 	str_cpy(buf, size, cwd_path);
 	fibril_mutex_unlock(&cwd_mutex);
 	
-	return buf;
-}
-
-
-char *getprevwd(char *buf, size_t size)
-{
-	if (size == 0)
-		return NULL;
-
-	fibril_mutex_lock(&pwd_mutex);
-
-	if ((pwd_size == 0) || (size < pwd_size + 1)) {
-		fibril_mutex_unlock(&pwd_mutex);
-		return NULL;
-	}
-
-	str_cpy(buf, size, pwd_path);
-	fibril_mutex_unlock(&pwd_mutex);
-
 	return buf;
 }
 
