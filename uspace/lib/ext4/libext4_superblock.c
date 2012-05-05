@@ -356,167 +356,211 @@ void ext4_superblock_set_magic(ext4_superblock_t *sb, uint16_t magic)
 	sb->magic = host2uint16_t_le(magic);
 }
 
-/** TODO comment
+/** Get filesystem state.
  *
+ * @param sb		superblock
+ * @return			filesystem state
  */
 uint16_t ext4_superblock_get_state(ext4_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->state);
 }
 
-/** TODO comment
+/** Set filesystem state.
  *
+ * @param sb		superblock
+ * @param state		filesystem state
  */
 void ext4_superblock_set_state(ext4_superblock_t *sb, uint16_t state)
 {
 	sb->state = host2uint16_t_le(state);
 }
 
-/** TODO comment
+/** Get behavior code when errors detected.
  *
+ * @param sb		superblock
+ * @return			behavior code
  */
 uint16_t ext4_superblock_get_errors(ext4_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->errors);
 }
 
-/** TODO comment
+/** Set behavior code when errors detected.
  *
+ * @param sb		superblock
+ * @param errors 	behavior code
  */
 void ext4_superblock_set_errors(ext4_superblock_t *sb, uint16_t errors)
 {
 	sb->errors = host2uint16_t_le(errors);
 }
 
-/** TODO comment
+/** Get minor revision level of the filesystem.
  *
+ * @param sb		superblock
+ * @return			minor revision level
  */
 uint16_t ext4_superblock_get_minor_rev_level(ext4_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->minor_rev_level);
 }
 
-/** TODO comment
+/** Set minor revision level of the filesystem.
  *
+ * @param sb		superblock
+ * @param level 	minor revision level
  */
 void ext4_superblock_set_minor_rev_level(ext4_superblock_t *sb, uint16_t level)
 {
 	sb->minor_rev_level = host2uint16_t_le(level);
 }
 
-/** TODO comment
+/** Get time of the last filesystem check.
  *
+ * @param sb		superblock
+ * @return			time of the last check (POSIX)
  */
 uint32_t ext4_superblock_get_last_check_time(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->last_check_time);
 }
 
-/** TODO comment
+/** Set time of the last filesystem check.
  *
+ * @param sb		superblock
+ * @param time		time of the last check (POSIX)
  */
 void ext4_superblock_set_last_check_time(ext4_superblock_t *sb, uint32_t time)
 {
 	sb->state = host2uint32_t_le(time);
 }
 
-/** TODO comment
+/** Get maximum time interval between two filesystem checks.
  *
+ * @param sb		superblock
+ * @return			time interval between two check (POSIX)
  */
 uint32_t ext4_superblock_get_check_interval(ext4_superblock_t *sb){
 	return uint32_t_le2host(sb->check_interval);
 }
 
-/** TODO comment
+/** Set maximum time interval between two filesystem checks.
  *
+ * @param sb			superblock
+ * @param interval		time interval between two check (POSIX)
  */
 void ext4_superblock_set_check_interval(ext4_superblock_t *sb, uint32_t interval)
 {
 	sb->check_interval = host2uint32_t_le(interval);
 }
 
-/** TODO comment
+/** Get operation system identifier, on which the filesystem was created.
  *
+ * @param sb		superblock
+ * @return			operation system identifier
  */
 uint32_t ext4_superblock_get_creator_os(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->creator_os);
 }
 
-/** TODO comment
+/** Set operation system identifier, on which the filesystem was created.
  *
+ * @param sb		superblock
+ * @param os		operation system identifier
  */
 void ext4_superblock_set_creator_os(ext4_superblock_t *sb, uint32_t os)
 {
 	sb->creator_os = host2uint32_t_le(os);
 }
 
-/** TODO comment
+/** Get revision level of the filesystem.
  *
+ * @param sb		superblock
+ * @return			revision level
  */
 uint32_t ext4_superblock_get_rev_level(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->rev_level);
 }
 
-/** TODO comment
+/** Set revision level of the filesystem.
  *
+ * @param sb		superblock
+ * @param level 	revision level
  */
 void ext4_superblock_set_rev_level(ext4_superblock_t *sb, uint32_t level)
 {
 	sb->rev_level = host2uint32_t_le(level);
 }
 
-/** TODO comment
+/** Get default user id for reserved blocks.
  *
+ * @param sb		superblock
+ * @return			default user id for reserved blocks.
  */
 uint16_t ext4_superblock_get_def_resuid(ext4_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->def_resuid);
 }
 
-/** TODO comment
+/** Set default user id for reserved blocks.
  *
+ * @param sb		superblock
+ * @param uid		default user id for reserved blocks.
  */
 void ext4_superblock_set_def_resuid(ext4_superblock_t *sb, uint16_t uid)
 {
 	sb->def_resuid = host2uint16_t_le(uid);
 }
 
-/** TODO comment
+/** Get default group id for reserved blocks.
  *
+ * @param sb		superblock
+ * @return			default group id for reserved blocks.
  */
 uint16_t ext4_superblock_get_def_resgid(ext4_superblock_t *sb)
 {
 	return uint16_t_le2host(sb->def_resgid);
 }
 
-/** TODO comment
+/** Set default group id for reserved blocks.
  *
+ * @param sb		superblock
+ * @param gid		default group id for reserved blocks.
  */
 void ext4_superblock_set_def_resgid(ext4_superblock_t *sb, uint16_t gid)
 {
 	sb->def_resgid = host2uint16_t_le(gid);
 }
 
-/** TODO comment
+/** Get index of the first i-node, which can be used for allocation.
  *
+ * @param sb		superblock
+ * @return			i-node index
  */
 uint32_t ext4_superblock_get_first_inode(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->first_inode);
 }
 
-/** TODO comment
+/** Set index of the first i-node, which can be used for allocation.
  *
+ * @param sb			superblock
+ * @param first_inode	i-node index
  */
 void ext4_superblock_set_first_inode(ext4_superblock_t *sb, uint32_t first_inode)
 {
 	sb->first_inode = host2uint32_t_le(first_inode);
 }
 
-/** TODO comment
+/** Get size of i-node structure.
  *
+ * For the oldest revision return constant number.
+ *
+ * @param sb			superblock
+ * @return				size of i-node structure
  */
 uint16_t ext4_superblock_get_inode_size(ext4_superblock_t *sb)
 {
@@ -526,165 +570,226 @@ uint16_t ext4_superblock_get_inode_size(ext4_superblock_t *sb)
 	return uint16_t_le2host(sb->inode_size);
 }
 
-/** TODO comment
+/** Set size of i-node structure.
  *
+ * @param sb			superblock
+ * @param size			size of i-node structure
  */
 void ext4_superblock_set_inode_size(ext4_superblock_t *sb, uint16_t size)
 {
 	sb->inode_size = host2uint16_t_le(size);
 }
 
-/** TODO comment
+/** Get index of block group, where superblock copy is located.
  *
+ * @param sb			superblock
+ * @return				block group index
  */
-uint16_t ext4_superblock_get_block_group_number(ext4_superblock_t *sb)
+uint16_t ext4_superblock_get_block_group_index(ext4_superblock_t *sb)
 {
-	return uint16_t_le2host(sb->block_group_number);
+	return uint16_t_le2host(sb->block_group_index);
 }
 
-/** TODO comment
+/** Set index of block group, where superblock copy is located.
  *
+ * @param sb			superblock
+ * @param bgid			block group index
  */
-void ext4_superblock_set_block_group_number(ext4_superblock_t *sb, uint16_t bg)
+void ext4_superblock_set_block_group_index(ext4_superblock_t *sb, uint16_t bgid)
 {
-	sb->block_group_number = host2uint16_t_le(bg);
+	sb->block_group_index = host2uint16_t_le(bgid);
 }
 
-/** TODO comment
+/** Get compatible features supported by the filesystem.
  *
+ * @param sb		superblock
+ * @return			compatible features bitmap
  */
 uint32_t ext4_superblock_get_features_compatible(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_compatible);
 }
 
-/** TODO comment
+/** Set compatible features supported by the filesystem.
  *
+ * @param sb			superblock
+ * @param features		compatible features bitmap
  */
 void ext4_superblock_set_features_compatible(ext4_superblock_t *sb, uint32_t features)
 {
 	sb->features_compatible = host2uint32_t_le(features);
 }
 
-/** TODO comment
+/** Get incompatible features supported by the filesystem.
  *
+ * @param sb		superblock
+ * @return			incompatible features bitmap
  */
 uint32_t ext4_superblock_get_features_incompatible(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_incompatible);
 }
 
-/** TODO comment
+/** Set incompatible features supported by the filesystem.
  *
+ * @param sb			superblock
+ * @param features		incompatible features bitmap
  */
 void ext4_superblock_set_features_incompatible(ext4_superblock_t *sb, uint32_t features)
 {
 	sb->features_incompatible = host2uint32_t_le(features);
 }
 
-/** TODO comment
+/** Get compatible features supported by the filesystem.
  *
+ * @param sb		superblock
+ * @return			read-only compatible features bitmap
  */
 uint32_t ext4_superblock_get_features_read_only(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->features_read_only);
 }
 
-/** TODO comment
+/** Set compatible features supported by the filesystem.
  *
+ * @param sb			superblock
+ * @param feature		read-only compatible features bitmap
  */
 void ext4_superblock_set_features_read_only(ext4_superblock_t *sb, uint32_t features)
 {
 	sb->features_read_only = host2uint32_t_le(features);
 }
 
-/** TODO comment
+/** Get UUID of the filesystem.
  *
+ * @param sb		superblock
+ * @return 			pointer to UUID array
  */
 const uint8_t * ext4_superblock_get_uuid(ext4_superblock_t *sb)
 {
 	return sb->uuid;
 }
 
-/** TODO comment
+/** Set UUID of the filesystem.
  *
+ * @param sb		superblock
+ * @param uuid		pointer to UUID array
  */
 void ext4_superblock_set_uuid(ext4_superblock_t *sb, const uint8_t *uuid)
 {
 	memcpy(sb->uuid, uuid, sizeof(sb->uuid));
 }
 
+/** Get name of the filesystem volume.
+ *
+ * @param sb		superblock
+ * @return			name of the volume
+ */
 const char * ext4_superblock_get_volume_name(ext4_superblock_t *sb)
 {
 	return sb->volume_name;
 }
 
-/** TODO comment
+/** Set name of the filesystem volume.
  *
+ * @param sb		superblock
+ * @param name		new name of the volume
  */
 void ext4_superblock_set_volume_name(ext4_superblock_t *sb, const char *name)
 {
 	memcpy(sb->volume_name, name, sizeof(sb->volume_name));
 }
 
-/** TODO comment
+/** Get name of the directory, where this filesystem was mounted at last.
  *
+ * @param sb		superblock
+ * @return 			directory name
  */
 const char * ext4_superblock_get_last_mounted(ext4_superblock_t *sb)
 {
 	return sb->last_mounted;
 }
 
-/** TODO comment
+/** Set name of the directory, where this filesystem was mounted at last.
  *
+ * @param sb		superblock
+ * @param last		directory name
  */
 void ext4_superblock_set_last_mounted(ext4_superblock_t *sb, const char *last)
 {
 	memcpy(sb->last_mounted, last, sizeof(sb->last_mounted));
 }
 
-/** TODO comment
+/** Get last orphaned i-node index.
  *
+ * Orphans are stored in linked list.
+ *
+ * @param sb		superblock
+ * @return			last orphaned i-node index
  */
 uint32_t ext4_superblock_get_last_orphan(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->last_orphan);
 }
 
-/** TODO comment
+/** Set last orphaned i-node index.
  *
+ * Orphans are stored in linked list.
+ *
+ * @param sb			superblock
+ * @param last_orphan	last orphaned i-node index
  */
 void ext4_superblock_set_last_orphan(ext4_superblock_t *sb, uint32_t last_orphan)
 {
 	sb->last_orphan = host2uint32_t_le(last_orphan);
 }
 
-/** TODO comment
+/** Get hash seed for directory index hash function.
  *
+ * @param sb		superblock
+ * @return			hash seed pointer
  */
-uint32_t* ext4_superblock_get_hash_seed(ext4_superblock_t *sb)
+const uint32_t * ext4_superblock_get_hash_seed(ext4_superblock_t *sb)
 {
 	return sb->hash_seed;
 }
 
-/** TODO comment
+/** Set hash seed for directory index hash function.
  *
+ * @param sb		superblock
+ * @param seed		hash seed pointer
+ */
+void ext4_superblock_set_hash_seed(ext4_superblock_t *sb, const uint32_t *seed)
+{
+	memcpy(sb->hash_seed, seed, sizeof(sb->hash_seed));
+}
+
+/** Get default version of the hash algorithm version for directory index.
+ *
+ * @param sb		superblock
+ * @return			default hash version
  */
 uint8_t ext4_superblock_get_default_hash_version(ext4_superblock_t *sb)
 {
 	return sb->default_hash_version;
 }
 
-/** TODO comment
+/** Set default version of the hash algorithm version for directory index.
  *
+ * @param sb		superblock
+ * @param version	default hash version
  */
 void ext4_superblock_set_default_hash_version(ext4_superblock_t *sb, uint8_t version)
 {
 	sb->default_hash_version = version;
 }
 
-/** TODO comment
+/** Get size of block group descriptor structure.
  *
+ * Output value is checked for minimal size.
+ *
+ * @param sb		superblock
+ * @return			size of block group descriptor
  */
 uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
 {
@@ -697,37 +802,51 @@ uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
 	return size;
 }
 
-/** TODO comment
+/** Set size of block group descriptor structure.
  *
+ * Input value is checked for minimal size.
+ *
+ * @param sb		superblock
+ * @param size 		size of block group descriptor
  */
 void ext4_superblock_set_desc_size(ext4_superblock_t *sb, uint16_t size)
 {
+	if (size < EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+		sb->desc_size = host2uint16_t_le(EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE);
+	}
+
 	sb->desc_size = host2uint16_t_le(size);
 }
 
-/** TODO comment
+/** Get superblock flags.
  *
+ * @param sb		superblock
+ * @return 			flags from the superblock
  */
 uint32_t ext4_superblock_get_flags(ext4_superblock_t *sb)
 {
 	return uint32_t_le2host(sb->flags);
 }
 
-/** TODO comment
+/** Set superblock flags.
  *
+ * @param sb		superblock
+ * @param flags		flags for the superblock
  */
 void ext4_superblock_set_flags(ext4_superblock_t *sb, uint32_t flags)
 {
 	sb->flags = host2uint32_t_le(flags);
 }
 
-
 /*
  * More complex superblock operations
  */
 
-/** TODO comment
+/** Check if superblock has specified flag.
  *
+ * @param sb			superblock
+ * @param flag			flag to be checked
+ * @return				true, if superblock has the flag
  */
 bool ext4_superblock_has_flag(ext4_superblock_t *sb, uint32_t flag)
 {
@@ -737,8 +856,11 @@ bool ext4_superblock_has_flag(ext4_superblock_t *sb, uint32_t flag)
 	return false;
 }
 
-/** TODO comment
+/** Check if filesystem supports compatible feature.
  *
+ * @param sb			superblock
+ * @param feature		feature to be checked
+ * @return				true, if filesystem supports the feature
  */
 bool ext4_superblock_has_feature_compatible(ext4_superblock_t *sb, uint32_t feature)
 {
@@ -748,8 +870,11 @@ bool ext4_superblock_has_feature_compatible(ext4_superblock_t *sb, uint32_t feat
 	return false;
 }
 
-/** TODO comment
+/** Check if filesystem supports incompatible feature.
  *
+ * @param sb			superblock
+ * @param feature		feature to be checked
+ * @return				true, if filesystem supports the feature
  */
 bool ext4_superblock_has_feature_incompatible(ext4_superblock_t *sb, uint32_t feature)
 {
@@ -759,8 +884,11 @@ bool ext4_superblock_has_feature_incompatible(ext4_superblock_t *sb, uint32_t fe
 	return false;
 }
 
-/** TODO comment
+/** Check if filesystem supports read-only compatible feature.
  *
+ * @param sb			superblock
+ * @param feature		feature to be checked
+ * @return				true, if filesystem supports the feature
  */
 bool ext4_superblock_has_feature_read_only(ext4_superblock_t *sb, uint32_t feature)
 {
@@ -770,19 +898,24 @@ bool ext4_superblock_has_feature_read_only(ext4_superblock_t *sb, uint32_t featu
 	return false;
 }
 
-/** TODO comment
+/** Read superblock directly from block device.
  *
+ * @param service_id		block device identifier
+ * @param sb				output pointer to memory structure
+ * @return					error code.
  */
 int ext4_superblock_read_direct(service_id_t service_id,
-    ext4_superblock_t **superblock)
+    ext4_superblock_t **sb)
 {
 	int rc;
 
+	// Allocated memory for superblock structure
 	void *data = malloc(EXT4_SUPERBLOCK_SIZE);
 	if (data == NULL) {
 		return ENOMEM;
 	}
 
+	// Read data from block device
 	rc = block_read_bytes_direct(service_id, EXT4_SUPERBLOCK_OFFSET,
 	    EXT4_SUPERBLOCK_SIZE, data);
 
@@ -791,13 +924,17 @@ int ext4_superblock_read_direct(service_id_t service_id,
 		return rc;
 	}
 
-	(*superblock) = data;
+	// Set output value
+	(*sb) = data;
 
 	return EOK;
 }
 
-/** TODO comment
+/** Write superblock structure directly to block device.
  *
+ * @param service_id		block device identifier
+ * @param sb				superblock to be written
+ * @return					error code
  */
 int ext4_superblock_write_direct(service_id_t service_id,
 		ext4_superblock_t *sb)
@@ -805,19 +942,23 @@ int ext4_superblock_write_direct(service_id_t service_id,
 	int rc;
 	uint32_t phys_block_size;
 
+	// Load physical block size from block device
 	rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK) {
-		// TODO error
 		return rc;
 	}
 
+	// Compute address of the first block
 	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
+	// Compute number of block to write
 	uint32_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
 
+	// Check alignment
 	if (EXT4_SUPERBLOCK_SIZE % phys_block_size) {
 		block_count++;
 	}
 
+	// Write data
 	return block_write_direct(service_id, first_block, block_count, sb);
 
 }
@@ -840,8 +981,10 @@ int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 	return EOK;
 }
 
-/** TODO comment
+/** Compute number of block groups in the filesystem.
  *
+ * @param sb		superblock
+ * @return			number of block groups
  */
 uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *sb)
 {
@@ -858,8 +1001,11 @@ uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *sb)
 
 }
 
-/** TODO comment
+/** Compute number of blocks in specified block group.
  *
+ * @param sb			superblock
+ * @param bgid			block group index
+ * @return				number of blocks
  */
 uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgid)
 {
@@ -875,8 +1021,11 @@ uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgi
 
 }
 
-/** TODO comment
+/** Compute number of i-nodes in specified block group.
  *
+ * @param sb		superblock
+ * @param bgid		block group index
+ * @return			number of i-nodes
  */
 uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *sb, uint32_t bgid)
 {

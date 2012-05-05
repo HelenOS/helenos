@@ -55,7 +55,7 @@ typedef struct ext4_superblock {
 	uint16_t mount_count; // Mount count
 	uint16_t max_mount_count; // Maximal mount count
 	uint16_t magic; // Magic signature
-	uint16_t state; // File system state
+	uint16_t state; // Filesystem state
 	uint16_t errors; // Behaviour when detecting errors
 	uint16_t minor_rev_level; // Minor revision level
 	uint32_t last_check_time; // Time of last check
@@ -68,7 +68,7 @@ typedef struct ext4_superblock {
 	// Fields for EXT4_DYNAMIC_REV superblocks only.
 	uint32_t first_inode; // First non-reserved inode
 	uint16_t inode_size; // Size of inode structure
-	uint16_t block_group_number; // Block group number of this superblock
+	uint16_t block_group_index; // Block group index of this superblock
 	uint32_t features_compatible; // Compatible feature set
 	uint32_t features_incompatible; // Incompatible feature set
 	uint32_t features_read_only; // Readonly-compatible feature set
@@ -135,6 +135,7 @@ typedef struct ext4_superblock {
 	uint32_t padding[112]; // Padding to the end of the block
 } __attribute__((packed)) ext4_superblock_t;
 
+
 #define EXT4_SUPERBLOCK_MAGIC		0xEF53
 #define EXT4_SUPERBLOCK_SIZE		1024
 #define EXT4_SUPERBLOCK_OFFSET		1024
@@ -145,11 +146,28 @@ typedef struct ext4_superblock {
 /*
  * Misc. filesystem flags
  */
-#define EXT4_SUPERBLOCK_FLAGS_SIGNED_HASH	0x0001  /* Signed dirhash in use */
-#define EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH	0x0002  /* Unsigned dirhash in use */
-#define EXT4_SUPERBLOCK_FLAGS_TEST_FILESYS	0x0004  /* to test development code */
+#define EXT4_SUPERBLOCK_FLAGS_SIGNED_HASH	0x0001  // Signed dirhash in use
+#define EXT4_SUPERBLOCK_FLAGS_UNSIGNED_HASH	0x0002  // Unsigned dirhash in use
+#define EXT4_SUPERBLOCK_FLAGS_TEST_FILESYS	0x0004  // to test development code
 
-/* Compatible features */
+/*
+ * Filesystem states
+ */
+#define EXT4_SUPERBLOCK_STATE_VALID_FS		0x0001  // Unmounted cleanly
+#define EXT4_SUPERBLOCK_STATE_ERROR_FS		0x0002  // Errors detected
+#define EXT4_SUPERBLOCK_STATE_ORPHAN_FS		0x0004  // Orphans being recovered
+
+/*
+ * Behaviour when errors detected
+ */
+#define EXT4_SUPERBLOCK_ERRORS_CONTINUE		1 // Continue execution
+#define EXT4_SUPERBLOCK_ERRORS_RO			2 // Remount fs read-only
+#define EXT4_SUPERBLOCK_ERRORS_PANIC		3 // Panic
+#define EXT4_SUPERBLOCK_ERRORS_DEFAULT		EXT4_ERRORS_CONTINUE
+
+/*
+ * Compatible features
+ */
 #define EXT4_FEATURE_COMPAT_DIR_PREALLOC        0x0001
 #define EXT4_FEATURE_COMPAT_IMAGIC_INODES       0x0002
 #define EXT4_FEATURE_COMPAT_HAS_JOURNAL         0x0004
@@ -157,7 +175,9 @@ typedef struct ext4_superblock {
 #define EXT4_FEATURE_COMPAT_RESIZE_INODE        0x0010
 #define EXT4_FEATURE_COMPAT_DIR_INDEX           0x0020
 
-/* Read-only compatible features */
+/*
+ * Read-only compatible features
+ */
 #define EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER     0x0001
 #define EXT4_FEATURE_RO_COMPAT_LARGE_FILE       0x0002
 #define EXT4_FEATURE_RO_COMPAT_BTREE_DIR        0x0004
@@ -166,7 +186,9 @@ typedef struct ext4_superblock {
 #define EXT4_FEATURE_RO_COMPAT_DIR_NLINK        0x0020
 #define EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE      0x0040
 
-/* Incompatible features */
+/*
+ * Incompatible features
+ */
 #define EXT4_FEATURE_INCOMPAT_COMPRESSION       0x0001
 #define EXT4_FEATURE_INCOMPAT_FILETYPE          0x0002
 #define EXT4_FEATURE_INCOMPAT_RECOVER           0x0004 /* Needs recovery */
