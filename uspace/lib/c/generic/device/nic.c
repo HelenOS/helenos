@@ -64,7 +64,7 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 	async_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 
@@ -93,7 +93,7 @@ int nic_callback_create(async_sess_t *dev_sess, async_client_conn_t cfun,
 	
 	rc = async_connect_to_me(exch, 0, 0, 0, cfun, carg);
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	async_exchange_end(exch);

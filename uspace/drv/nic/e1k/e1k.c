@@ -45,11 +45,9 @@
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
-#include <devman.h>
 #include <device/hw_res_parsed.h>
 #include <device/pci.h>
 #include <nic.h>
-#include <nil_remote.h>
 #include <ops/nic.h>
 #include "e1k.h"
 

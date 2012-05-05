@@ -46,6 +46,13 @@
 #include <mem.h>
 #include <str.h>
 
+/** Check the condition if wchar_t is signed */
+#ifdef WCHAR_IS_UNSIGNED
+	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#else
+	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#endif
+
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
@@ -260,6 +267,43 @@ size_t str_lsize(const char *str, size_t max_len)
 	return offset;
 }
 
+/** Get size of string with size limit.
+ *
+ * Get the number of bytes which are used by the string @a str
+ * (excluding the NULL-terminator), but no more than @max_size bytes.
+ *
+ * @param str      String to consider.
+ * @param max_size Maximum number of bytes to measure.
+ *
+ * @return Number of bytes used by the string
+ *
+ */
+size_t str_nsize(const char *str, size_t max_size)
+{
+	size_t size = 0;
+	
+	while ((*str++ != 0) && (size < max_size))
+		size++;
+	
+	return size;
+}
+
+/** Get size of wide string with size limit.
+ *
+ * Get the number of bytes which are used by the wide string @a str
+ * (excluding the NULL-terminator), but no more than @max_size bytes.
+ *
+ * @param str      Wide string to consider.
+ * @param max_size Maximum number of bytes to measure.
+ *
+ * @return Number of bytes used by the wide string
+ *
+ */
+size_t wstr_nsize(const wchar_t *str, size_t max_size)
+{
+	return (wstr_nlength(str, max_size) * sizeof(wchar_t));
+}
+
 /** Get size of wide string with length limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
@@ -361,7 +405,7 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
  */
 bool ascii_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 127))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
 	
 	return false;
@@ -374,7 +418,7 @@ bool ascii_check(wchar_t ch)
  */
 bool chr_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 1114111))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
 	
 	return false;
@@ -475,6 +519,7 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
+ *
  */
 void str_cpy(char *dest, size_t size, const char *src)
 {
@@ -507,6 +552,7 @@ void str_cpy(char *dest, size_t size, const char *src)
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  * @param n     Maximum number of bytes to read from @a src.
+ *
  */
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
@@ -1497,7 +1543,7 @@ int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64(const char *nptr, char **endptr, unsigned int base,
+int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);

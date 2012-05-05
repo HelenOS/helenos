@@ -129,8 +129,11 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 		case 8:
 			visual = VISUAL_INDIRECT_8;
 			break;
-		case 16:
+		case 15:
 			visual = VISUAL_RGB_5_5_5_BE;
+			break;
+		case 16:
+			visual = VISUAL_RGB_5_6_5_BE;
 			break;
 		case 24:
 			visual = VISUAL_BGR_8_8_8;
@@ -172,6 +175,8 @@ void arch_post_mm_init(void)
 #ifdef CONFIG_FB
 		ofw_tree_walk_by_device_type("display", display_register, NULL);
 #endif
+		/* Map OFW information into sysinfo */
+		ofw_sysinfo_map();
 		
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);

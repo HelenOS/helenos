@@ -43,7 +43,7 @@ BINARY = uhci
 SOURCES = \
 	hc.c \
 	main.c \
-	pci.c \
+	res.c \
 	root_hub.c \
 	transfer_list.c \
 	uhci.c \

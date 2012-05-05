@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Pavel Jancik
+# Copyright (c) 2012 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,69 @@
 
 .global __aeabi_read_tp
 
+.global __aeabi_idiv
+.global __aeabi_uidiv
+
+.global __aeabi_idivmod
+.global __aeabi_uidivmod
+
+.global __aeabi_ldivmod
+.global __aeabi_uldivmod
+
 __aeabi_read_tp:
 	mov r0, r9
+	mov pc, lr
+
+__aeabi_idiv:
+	push {lr}
+	bl __divsi3
+	pop {lr}
+	mov pc, lr
+
+__aeabi_uidiv:
+	push {lr}
+	bl __udivsi3
+	pop {lr}
+	mov pc, lr
+
+__aeabi_idivmod:
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
+
+__aeabi_uidivmod:
+	push {lr}
+	sub sp, sp, #12
+	add r2, sp, #4
+	bl __udivmodsi3
+	ldr r1, [sp, #4]
+	add sp, sp, #12
+	pop {lr}
+	mov pc, lr
+
+__aeabi_ldivmod:
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
+	bl __divmoddi3
+	add sp, sp, #4
+	pop {r2, r3}
+	add sp, sp, #16
+	pop {lr}
+	mov pc, lr
+
+__aeabi_uldivmod:
+	push {lr}
+	sub sp, sp, #24
+	push {sp}
+	bl __udivmoddi3
+	add sp, sp, #4
+	pop {r2, r3}
+	add sp, sp, #16
+	pop {lr}
 	mov pc, lr

@@ -301,16 +301,20 @@ int main(int argc, char *argv[])
 	spawn("/srv/i8259");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
-	srv_start("/srv/s3c24ser");
-	srv_start("/srv/s3c24ts");
+	srv_start("/srv/s3c24xx_uart");
+	srv_start("/srv/s3c24xx_ts");
 	
-	spawn("/srv/net");
+	spawn("/srv/loopip");
+	spawn("/srv/ethip");
+	spawn("/srv/inet");
+	spawn("/srv/tcp");
+	spawn("/srv/udp");
 	
 	spawn("/srv/fb");
 	spawn("/srv/input");
 	console("hid/input", "hid/fb0");
 	
-	spawn("/srv/clip");
+	spawn("/srv/clipboard");
 	spawn("/srv/remcons");
 	
 	/*

@@ -79,7 +79,7 @@ do { \
 		return size < 0 ? size : EIO; \
 	} \
 	if (data != (value)) { \
-		ddf_msg(LVL_ERROR, "Failed testing byte: got %hhx vs. %hhx)", \
+		ddf_msg(LVL_DEBUG, "Failed testing byte: got %hhx vs. %hhx)", \
 		    data, (value)); \
 		return EIO; \
 	} \

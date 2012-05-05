@@ -370,7 +370,7 @@ int exfat_directory_write_file(exfat_directory_t *di, const char *name)
 	ds.stream.flags = 0;
 	ds.stream.valid_data_size = 0;
 	ds.stream.data_size = 0;
-	ds.stream.name_size = utf16_length(wname);
+	ds.stream.name_size = exfat_utf16_length(wname);
 	ds.stream.hash = host2uint16_t_le(exfat_name_hash(wname, uctable, 
 	    uctable_chars));
 

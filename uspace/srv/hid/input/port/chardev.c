@@ -62,7 +62,7 @@ static async_sess_t *dev_sess;
 
 /** List of devices to try connecting to. */
 static const char *in_devs[] = {
-	"char/s3c24ser"
+	"char/s3c24xx_uart"
 };
 
 static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);

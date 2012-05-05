@@ -111,6 +111,13 @@
 #include <debug.h>
 #include <macros.h>
 
+/** Check the condition if wchar_t is signed */
+#ifdef WCHAR_IS_UNSIGNED
+	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#else
+	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#endif
+
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
@@ -205,10 +212,10 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  * @param size   Size of the output buffer (in bytes).
  *
  * @return EOK if the character was encoded successfully, EOVERFLOW if there
- *	   was not enough space in the output buffer or EINVAL if the character
- *	   code was invalid.
+ *         was not enough space in the output buffer or EINVAL if the character
+ *         code was invalid.
  */
-int chr_encode(wchar_t ch, char *str, size_t *offset, size_t size)
+int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -426,7 +433,7 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
  */
 bool ascii_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 127))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
 	
 	return false;
@@ -439,7 +446,7 @@ bool ascii_check(wchar_t ch)
  */
 bool chr_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 1114111))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
 	
 	return false;
@@ -892,7 +899,7 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64(const char *nptr, char **endptr, unsigned int base,
+int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	ASSERT(result != NULL);

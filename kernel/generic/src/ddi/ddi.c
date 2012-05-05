@@ -165,9 +165,9 @@ NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
 		goto map;
 	}
 	
-	if (zones.info[znum].flags & ZONE_FIRMWARE) {
+	if (zones.info[znum].flags & (ZONE_FIRMWARE | ZONE_RESERVED)) {
 		/*
-		 * Frames are part of firmware
+		 * Frames are part of firmware or reserved zone
 		 * -> allow mapping for privileged tasks.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);

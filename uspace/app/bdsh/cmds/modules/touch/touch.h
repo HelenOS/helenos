@@ -3,6 +3,4 @@
 
 /* Prototypes for the touch command, excluding entry points */
 
-
 #endif /* TOUCH_H */
-

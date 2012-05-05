@@ -97,7 +97,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
-	$(USPACE_PATH)/srv/clip/clip \
+	$(USPACE_PATH)/srv/clipboard/clipboard \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/fs/mfs/mfs \
@@ -105,15 +105,12 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
+	$(USPACE_PATH)/srv/net/ethip/ethip \
+	$(USPACE_PATH)/srv/net/inet/inet \
+	$(USPACE_PATH)/srv/net/loopip/loopip \
+	$(USPACE_PATH)/srv/net/tcp/tcp \
+	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/net/nil/eth/eth \
-	$(USPACE_PATH)/srv/net/nil/nildummy/nildummy \
-	$(USPACE_PATH)/srv/net/il/arp/arp \
-	$(USPACE_PATH)/srv/net/il/ip/ip \
-	$(USPACE_PATH)/srv/net/tl/icmp/icmp \
-	$(USPACE_PATH)/srv/net/tl/udp/udp \
-	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
-	$(USPACE_PATH)/srv/net/net/net \
 	$(USPACE_PATH)/srv/devman/devman
 
 RD_DRVS = \
@@ -122,7 +119,6 @@ RD_DRVS = \
 	test/test1 \
 	test/test2 \
 	test/test3 \
-	nic/lo \
 	nic/ne2k \
 	nic/e1k \
 	nic/rtl8139
@@ -160,10 +156,12 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/ext2info/ext2info \
+	$(USPACE_PATH)/app/inetcfg/inetcfg \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/locinfo/locinfo \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
 	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
@@ -199,14 +197,6 @@ ifeq ($(CONFIG_BINUTILS),y)
 RD_APPS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/binutils/bin/as \
 	$(USPACE_PATH)/app/binutils/bin/ld
-endif
-
-ifneq ($(CONFIG_BAREBONE),y)
-NET_CFG = \
-	$(USPACE_PATH)/srv/net/cfg/general \
-	$(USPACE_PATH)/srv/net/cfg/lo.nic \
-	$(USPACE_PATH)/srv/net/cfg/ne2k.nic \
-	$(USPACE_PATH)/srv/net/cfg/e1k.nic
 endif
 
 COMPONENTS = \

@@ -38,8 +38,8 @@
 
 #include <stdint.h>
 
-#define HALF_BIT_CNT (sizeof(int32_t) * sizeof(char))
-#define WHOLE_BIT_CNT (sizeof(int64_t) * sizeof(char))
+#define HALF_BIT_CNT   (sizeof(int32_t) * sizeof(char))
+#define WHOLE_BIT_CNT  (sizeof(int64_t) * sizeof(char))
 
 #ifdef __BE__
 	#define LO 1

@@ -173,9 +173,9 @@ bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch)
 		if (uhci_batch->usb_batch->error != EOK) {
 			assert(uhci_batch->usb_batch->ep != NULL);
 
-			usb_log_debug("Batch(%p) found error TD(%zu):%"
+			usb_log_debug("Batch %p found error TD(%zu->%p):%"
 			    PRIx32 ".\n", uhci_batch->usb_batch, i,
-			    uhci_batch->tds[i].status);
+			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
 			endpoint_toggle_set(uhci_batch->usb_batch->ep,

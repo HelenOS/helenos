@@ -71,7 +71,7 @@
  */
 #define IPC_M_CONNECTION_CLONE  1
 
-/** Protocol for CONNECT - ME
+/** Protocol for establishing a cloned connection.
  *
  * Through this call, the recipient learns about the new cloned connection.
  *
@@ -80,9 +80,9 @@
  *   or the kernel closes it
  *
  */
-#define IPC_M_CONNECT_ME  2
+#define IPC_M_CLONE_ESTABLISH  2
 
-/** Protocol for CONNECT - TO - ME
+/** Protocol for initializing callback connections.
  *
  * Calling process asks the callee to create a callback connection,
  * so that it can start initiating new messages.
@@ -101,7 +101,7 @@
  */
 #define IPC_M_CONNECT_TO_ME  3
 
-/** Protocol for CONNECT - ME - TO
+/** Protocol for initializing new foward connections.
  *
  * Calling process asks the callee to create for him a new connection.
  * E.g. the caller wants a name server to connect him to print server.
@@ -182,14 +182,14 @@
  *
  * - ARG1 - recipient's phone to the third party task
  */
-#define IPC_M_STATE_CHANGE_AUTHORIZE	9
+#define IPC_M_STATE_CHANGE_AUTHORIZE  9
 
 /** Debug the recipient.
  * - ARG1 - specifies the debug method (from udebug_method_t)
  * - other arguments are specific to the debug method
  *
  */
-#define IPC_M_DEBUG 10
+#define IPC_M_DEBUG  10
 
 /** Last system IPC method */
 #define IPC_M_LAST_SYSTEM  511

@@ -36,9 +36,10 @@
 #ifndef __SUB_H__
 #define __SUB_H__
 
-extern float32 subFloat32(float32, float32);
-extern float64 subFloat64(float64, float64);
-extern float128 subFloat128(float128, float128);
+extern float32 sub_float32(float32, float32);
+extern float64 sub_float64(float64, float64);
+extern float96 sub_float96(float96, float96);
+extern float128 sub_float128(float128, float128);
 
 #endif
 

@@ -36,7 +36,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <async.h>
-#include <devman.h>
 
 #include <usb/usb.h>    /* usb_address_t */
 #include <usb/debug.h>

@@ -28,6 +28,11 @@
 
 .explicit
 
+#define STACK_SCRATCH_AREA	16
+#define STACK_IN8		(0 + STACK_SCRATCH_AREA)
+#define STACK_IN9		(8 + STACK_SCRATCH_AREA)
+#define STACK_IN10		(16 + STACK_SCRATCH_AREA)
+
 .global sal_call
 
 #
@@ -38,8 +43,10 @@
 # Assume PSR.bn is 1, as expected by SAL.
 #
 sal_call:
-	alloc loc0 = ar.pfs, 11, 5, 8, 0
+	alloc loc0 = ar.pfs, 8, 8, 8, 0
 	
+	adds sp = -STACK_SCRATCH_AREA, sp
+
 	mov loc1 = gp
 	mov loc2 = rp
 	
@@ -56,21 +63,32 @@ sal_call:
 	mov out7 = in7 ;;
 	
 	ld8 loc3 = [loc3]
-	ld8 gp = [loc4] ;;
+	ld8 gp = [loc4]
+
+	adds r14 = STACK_IN8 + STACK_SCRATCH_AREA, sp
+	adds r15 = STACK_IN9 + STACK_SCRATCH_AREA, sp
+	adds r16 = STACK_IN10 + STACK_SCRATCH_AREA, sp ;;
+
+	ld8 loc5 = [r14]
+	ld8 loc6 = [r15]
+	ld8 loc7 = [r16]
 	
 	mov b6 = loc3 ;;
 	br.call.sptk.many rp = b6
 	
-	cmp.ne p7,p0 = 0, in8
-	cmp.ne p8,p0 = 0, in9
-	cmp.ne p9,p0 = 0, in10 ;;
+	cmp.ne p7,p0 = 0, loc5 
+	cmp.ne p8,p0 = 0, loc6 
+	cmp.ne p9,p0 = 0, loc7 ;;
 	
-(p7)	st8 [in8] = r9
-(p8)	st8 [in9] = r10
-(p9)	st8 [in10] = r11
+(p7)	st8 [loc5] = r9
+(p8)	st8 [loc6] = r10
+(p9)	st8 [loc7] = r11
 	
 	mov gp = loc1
-	mov rp = loc2 ;;
+	mov rp = loc2
+
+	adds sp = STACK_SCRATCH_AREA, sp ;;
 	
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
+

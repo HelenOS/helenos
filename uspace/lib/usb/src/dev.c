@@ -121,7 +121,7 @@ static bool try_parse_bus_and_address(const char *path,
 	int rc;
 	char *ptr;
 
-	rc = str_uint64(path, &ptr, 10, false, &sid);
+	rc = str_uint64_t(path, &ptr, 10, false, &sid);
 	if (rc != EOK) {
 		return false;
 	}

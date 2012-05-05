@@ -6,4 +6,3 @@ extern int cmd_touch(char **);
 extern void help_cmd_touch(unsigned int);
 
 #endif /* TOUCH_ENTRY_H */
-

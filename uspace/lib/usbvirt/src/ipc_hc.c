@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <async.h>
-#include <devman.h>
 #include <usbvirt/device.h>
 #include <usbvirt/ipc.h>
 #include <usb/debug.h>
@@ -80,7 +79,7 @@ int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 	int rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return rc;
 	}
 	
@@ -91,7 +90,7 @@ int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 	async_exchange_end(exch);
 	
 	if (data_request == 0) {
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return ENOMEM;
 	}
 	
@@ -153,7 +152,7 @@ int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 	int rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return rc;
 	}
 	
@@ -161,7 +160,7 @@ int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 		rc = async_data_write_start(exch, data_buffer, data_buffer_size);
 		if (rc != EOK) {
 			async_exchange_end(exch);
-			async_wait_for(opening_request, NULL);
+			async_forget(opening_request);
 			return rc;
 		}
 	}
@@ -226,7 +225,7 @@ int usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 	async_exchange_end(exch);
 	
 	if (data_request == 0) {
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return ENOMEM;
 	}
 	
@@ -301,7 +300,7 @@ int usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return rc;
 	}
 	
