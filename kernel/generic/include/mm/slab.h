@@ -80,7 +80,7 @@ typedef struct {
 typedef struct {
 	slab_magazine_t *current;
 	slab_magazine_t *last;
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 } slab_mag_cache_t;
 
 typedef struct {

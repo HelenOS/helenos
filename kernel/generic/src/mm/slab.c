@@ -365,8 +365,8 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 		list_remove(&mag->link);
 		atomic_dec(&cache->magazine_counter);
 	}
-	
 	spinlock_unlock(&cache->maglock);
+
 	return mag;
 }
 
@@ -413,7 +413,7 @@ NO_TRACE static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
 	
-	ASSERT(spinlock_locked(&cache->mag_cache[CPU->id].lock));
+	ASSERT(irq_spinlock_locked(&cache->mag_cache[CPU->id].lock));
 	
 	if (cmag) { /* First try local CPU magazines */
 		if (cmag->busy)
@@ -450,16 +450,16 @@ NO_TRACE static void *magazine_obj_get(slab_cache_t *cache)
 	if (!CPU)
 		return NULL;
 	
-	spinlock_lock(&cache->mag_cache[CPU->id].lock);
+	irq_spinlock_lock(&cache->mag_cache[CPU->id].lock, true);
 	
 	slab_magazine_t *mag = get_full_current_mag(cache);
 	if (!mag) {
-		spinlock_unlock(&cache->mag_cache[CPU->id].lock);
+		irq_spinlock_unlock(&cache->mag_cache[CPU->id].lock, true);
 		return NULL;
 	}
 	
 	void *obj = mag->objs[--mag->busy];
-	spinlock_unlock(&cache->mag_cache[CPU->id].lock);
+	irq_spinlock_unlock(&cache->mag_cache[CPU->id].lock, true);
 	
 	atomic_dec(&cache->cached_objs);
 	
@@ -480,7 +480,7 @@ NO_TRACE static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
 	
-	ASSERT(spinlock_locked(&cache->mag_cache[CPU->id].lock));
+	ASSERT(irq_spinlock_locked(&cache->mag_cache[CPU->id].lock));
 	
 	if (cmag) {
 		if (cmag->busy < cmag->size)
@@ -530,17 +530,17 @@ NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
 	if (!CPU)
 		return -1;
 	
-	spinlock_lock(&cache->mag_cache[CPU->id].lock);
+	irq_spinlock_lock(&cache->mag_cache[CPU->id].lock, true);
 	
 	slab_magazine_t *mag = make_empty_current_mag(cache);
 	if (!mag) {
-		spinlock_unlock(&cache->mag_cache[CPU->id].lock);
+		irq_spinlock_unlock(&cache->mag_cache[CPU->id].lock, true);
 		return -1;
 	}
 	
 	mag->objs[mag->busy++] = obj;
 	
-	spinlock_unlock(&cache->mag_cache[CPU->id].lock);
+	irq_spinlock_unlock(&cache->mag_cache[CPU->id].lock, true);
 	
 	atomic_inc(&cache->cached_objs);
 	
@@ -592,7 +592,7 @@ NO_TRACE static bool make_magcache(slab_cache_t *cache)
 	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
 		memsetb(&cache->mag_cache[i], sizeof(cache->mag_cache[i]), 0);
-		spinlock_initialize(&cache->mag_cache[i].lock,
+		irq_spinlock_initialize(&cache->mag_cache[i].lock,
 		    "slab.cache.mag_cache[].lock");
 	}
 	
@@ -703,7 +703,7 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 		/* Destroy CPU magazines */
 		size_t i;
 		for (i = 0; i < config.cpu_count; i++) {
-			spinlock_lock(&cache->mag_cache[i].lock);
+			irq_spinlock_lock(&cache->mag_cache[i].lock, true);
 			
 			mag = cache->mag_cache[i].current;
 			if (mag)
@@ -715,7 +715,7 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 				frames += magazine_destroy(cache, mag);
 			cache->mag_cache[i].last = NULL;
 			
-			spinlock_unlock(&cache->mag_cache[i].lock);
+			irq_spinlock_unlock(&cache->mag_cache[i].lock, true);
 		}
 	}
 	
