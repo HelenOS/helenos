@@ -135,13 +135,20 @@ void ext4_inode_set_size(ext4_inode_t *inode, uint64_t size) {
 	inode->size_hi = host2uint32_t_le(size >> 32);
 }
 
+/** Get time, when i-node was last accessed.
+ *
+ * @param inode		i-node
+ * @return			time of the last access (POSIX)
+ */
 uint32_t ext4_inode_get_access_time(ext4_inode_t *inode)
 {
 	return uint32_t_le2host(inode->access_time);
 }
 
-/** TODO comment
+/** Set time, when i-node was last accessed.
  *
+ * @param inode		i-node
+ * @param time		time of the last access (POSIX)
  */
 void ext4_inode_set_access_time(ext4_inode_t *inode, uint32_t time)
 {
@@ -236,8 +243,11 @@ void ext4_inode_set_links_count(ext4_inode_t *inode, uint16_t count)
 	inode->links_count = host2uint16_t_le(count);
 }
 
-/** TODO comment
+/** Get number of 512-bytes blocks used for i-node.
  *
+ * @param sb		superblock
+ * @param inode		i-node
+ * @return			number of 512-bytes blocks
  */
 uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
@@ -257,12 +267,14 @@ uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
 	} else {
 		return uint32_t_le2host(inode->blocks_count_lo);
     }
-
 }
 
-
-/** TODO comment
+/** Set number of 512-bytes blocks used for i-node.
  *
+ * @param sb		superblock
+ * @param inode		i-node
+ * @param count		number of 512-bytes blocks
+ * @return			error code
  */
 int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
 		uint64_t count)
@@ -278,6 +290,7 @@ int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
     	return EOK;
     }
 
+    // Check if there can be used huge files (many blocks)
     if (!ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_HUGE_FILE)) {
     	return EINVAL;
     }
@@ -319,24 +332,31 @@ void ext4_inode_set_flags(ext4_inode_t *inode, uint32_t flags) {
 	inode->flags = host2uint32_t_le(flags);
 }
 
-/** TODO comment
+/** Get file generation (used by NFS).
  *
+ * @param inode		i-node
+ * @return			file generation
  */
 uint32_t ext4_inode_get_generation(ext4_inode_t *inode)
 {
 	return uint32_t_le2host(inode->generation);
 }
 
-/** TODO comment
+/** Set file generation (used by NFS).
  *
+ * @param inode			i-node
+ * @param generation	file generation
  */
 void ext4_inode_set_generation(ext4_inode_t *inode, uint32_t generation)
 {
 	inode->generation = host2uint32_t_le(generation);
 }
 
-/** TODO comment
+/** Get address of block, where are extended attributes located.
  *
+ * @param inode			i-node
+ * @param sb			superblock
+ * @return				block address
  */
 uint64_t ext4_inode_get_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb)
 {
@@ -348,8 +368,11 @@ uint64_t ext4_inode_get_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb)
 	return uint32_t_le2host(inode->file_acl_lo);
 }
 
-/** TODO comment
+/** Set address of block, where are extended attributes located.
  *
+ * @param inode			i-node
+ * @param sb			superblock
+ * @param file_acl		block address
  */
 void ext4_inode_set_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb,
 		uint64_t file_acl)
