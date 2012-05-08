@@ -354,9 +354,7 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 	slab_magazine_t *mag = NULL;
 	link_t *cur;
 	
-	ASSERT(interrupts_disabled());
-
-	spinlock_lock(&cache->maglock);
+	irq_spinlock_lock(&cache->maglock, true);
 	if (!list_empty(&cache->magazines)) {
 		if (first)
 			cur = list_first(&cache->magazines);
@@ -367,7 +365,7 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 		list_remove(&mag->link);
 		atomic_dec(&cache->magazine_counter);
 	}
-	spinlock_unlock(&cache->maglock);
+	irq_spinlock_unlock(&cache->maglock, true);
 
 	return mag;
 }
@@ -378,14 +376,12 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 NO_TRACE static void put_mag_to_cache(slab_cache_t *cache,
     slab_magazine_t *mag)
 {
-	ASSERT(interrupts_disabled());
-
-	spinlock_lock(&cache->maglock);
+	irq_spinlock_lock(&cache->maglock, true);
 	
 	list_prepend(&mag->link, &cache->magazines);
 	atomic_inc(&cache->magazine_counter);
 	
-	spinlock_unlock(&cache->maglock);
+	irq_spinlock_unlock(&cache->maglock, true);
 }
 
 /** Free all objects in magazine and free memory associated with magazine
@@ -628,7 +624,7 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	list_initialize(&cache->magazines);
 	
 	irq_spinlock_initialize(&cache->slablock, "slab.cache.slablock");
-	spinlock_initialize(&cache->maglock, "slab.cache.maglock");
+	irq_spinlock_initialize(&cache->maglock, "slab.cache.maglock");
 	
 	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
 		(void) make_magcache(cache);

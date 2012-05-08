@@ -115,7 +115,7 @@ typedef struct {
 	IRQ_SPINLOCK_DECLARE(slablock);
 	/* Magazines */
 	list_t magazines;  /**< List o full magazines */
-	SPINLOCK_DECLARE(maglock);
+	IRQ_SPINLOCK_DECLARE(maglock);
 	
 	/** CPU cache */
 	slab_mag_cache_t *mag_cache;
