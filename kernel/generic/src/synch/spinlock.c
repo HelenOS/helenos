@@ -43,6 +43,7 @@
 #include <print.h>
 #include <debug.h>
 #include <symtab.h>
+#include <stacktrace.h>
 
 #ifdef CONFIG_SMP
 
@@ -103,6 +104,7 @@ void spinlock_lock_debug(spinlock_t *lock)
 			printf("cpu%u: looping on spinlock %p:%s, "
 			    "caller=%p (%s)\n", CPU->id, lock, lock->name,
 			    (void *) CALLER, symtab_fmt_name_lookup(CALLER));
+			stack_trace();
 			
 			i = 0;
 			deadlock_reported = true;

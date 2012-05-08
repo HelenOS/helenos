@@ -39,6 +39,7 @@
 #include <synch/semaphore.h>
 #include <debug.h>
 #include <arch.h>
+#include <stacktrace.h>
 
 /** Initialize mutex.
  *
@@ -86,10 +87,21 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 		ASSERT(usec == SYNCH_NO_TIMEOUT);
 		ASSERT(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
 		
+		unsigned int cnt = 0;
+		bool deadlock_reported = false;
 		do {
+			if (cnt++ > DEADLOCK_THRESHOLD) {
+				printf("cpu%u: looping on active mutex %p\n",
+				    CPU->id, mtx);
+				stack_trace();
+				cnt = 0;
+				deadlock_reported = true;
+			}
 			rc = semaphore_trydown(&mtx->sem);
 		} while (SYNCH_FAILED(rc) &&
 		    !(flags & SYNCH_FLAGS_NON_BLOCKING));
+		if (deadlock_reported)
+			printf("cpu%u: not deadlocked\n", CPU->id);
 	}
 
 	return rc;
