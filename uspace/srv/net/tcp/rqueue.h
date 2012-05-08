@@ -41,7 +41,7 @@ extern void tcp_rqueue_init(void);
 extern void tcp_rqueue_bounce_seg(tcp_sockpair_t *, tcp_segment_t *);
 extern void tcp_rqueue_insert_seg(tcp_sockpair_t *, tcp_segment_t *);
 extern void tcp_rqueue_handler(void *);
-extern void tcp_rqueue_thread_start(void);
+extern void tcp_rqueue_fibril_start(void);
 
 
 #endif
