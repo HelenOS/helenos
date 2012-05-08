@@ -32,15 +32,6 @@
 /** @file
  */
 
-/** Paging on AMD64
- *
- * The space is divided in positive numbers (uspace) and
- * negative numbers (kernel). The 'negative' space starting
- * with 0xffff800000000000 and ending with 0xffffffffffffffff
- * is identically mapped physical memory.
- *
- */
-
 #ifndef KERN_amd64_PAGE_H_
 #define KERN_amd64_PAGE_H_
 
