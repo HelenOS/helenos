@@ -187,16 +187,20 @@ void ext4_inode_set_modification_time(ext4_inode_t *inode, uint32_t time)
 	inode->modification_time = host2uint32_t_le(time);
 }
 
-/** TODO comment
+/** Get time, when i-node was deleted.
  *
+ * @param inode		i-node
+ * @return			time of the delete action (POSIX)
  */
 uint32_t ext4_inode_get_deletion_time(ext4_inode_t *inode)
 {
 	return uint32_t_le2host(inode->deletion_time);
 }
 
-/** TODO comment
+/** Set time, when i-node was deleted.
  *
+ * @param inode		i-node
+ * @param time		time of the delete action (POSIX)
  */
 void ext4_inode_set_deletion_time(ext4_inode_t *inode, uint32_t time)
 {

@@ -963,8 +963,13 @@ int ext4_superblock_write_direct(service_id_t service_id,
 
 }
 
-/** TODO comment
+/** Check sanity of the superblock.
  *
+ * This check is performed at mount time.
+ * Checks are described by one-line comments in the code.
+ *
+ * @param sb		superblock to check
+ * @return			error code
  */
 int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 {

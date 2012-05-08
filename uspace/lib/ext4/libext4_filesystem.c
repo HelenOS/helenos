@@ -40,8 +40,11 @@
 #include <malloc.h>
 #include "libext4.h"
 
-/** TODO comment
+/** Initialize filesystem and read all needed data.
  *
+ * @param fs				filesystem instance to be initialized
+ * @param service_id		identifier if device with the filesystem
+ * @return					error code
  */
 int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 {
@@ -49,12 +52,13 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 
 	fs->device = service_id;
 
+	// Initialize block library (4096 is size of communication channel)
 	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	/* Read superblock from device */
+	// Read superblock from device to memory
 	ext4_superblock_t *temp_superblock;
 	rc = ext4_superblock_read_direct(fs->device, &temp_superblock);
 	if (rc != EOK) {
@@ -62,20 +66,21 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 		return rc;
 	}
 
-	/* Read block size from superblock and check */
+	// Read block size from superblock and check
 	uint32_t block_size = ext4_superblock_get_block_size(temp_superblock);
 	if (block_size > EXT4_MAX_BLOCK_SIZE) {
 		block_fini(fs->device);
 		return ENOTSUP;
 	}
 
-	/* Initialize block caching */
+	// Initialize block caching by libblock
 	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
 	}
 
+	// Compute limits for indirect block levels
 	uint32_t block_ids_per_block = block_size / sizeof(uint32_t);
 	fs->inode_block_limits[0] = EXT4_INODE_DIRECT_BLOCK_COUNT;
 	fs->inode_blocks_per_level[0] = 1;
@@ -86,36 +91,48 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 				fs->inode_blocks_per_level[i];
 	}
 
-	/* Return loaded superblock */
+	// Return loaded superblock
 	fs->superblock = temp_superblock;
 
 	return EOK;
 }
 
-/** TODO comment
+/** Destroy filesystem instance (used by unmount operation).
  *
+ * @param fs		filesystem to be destroyed
+ * @param write_sb	flag if superblock should be written to device
+ * @return			error code
  */
 int ext4_filesystem_fini(ext4_filesystem_t *fs, bool write_sb)
 {
 	int rc = EOK;
 
+	// If needed, write the superblock to the device
 	if (write_sb) {
 		rc = ext4_superblock_write_direct(fs->device, fs->superblock);
 	}
 
+	// Release memory space for superblock
 	free(fs->superblock);
+
+	// Finish work with block library
 	block_fini(fs->device);
 
 	return rc;
 }
 
-/** TODO comment
+/** Check sanity of the filesystem.
  *
+ * Main is the check of the superblock structure.
+ *
+ * @param fs		filesystem to be checked
+ * @return			error code
  */
 int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 {
 	int rc;
 
+	// Check superblock
 	rc = ext4_superblock_check_sanity(fs->superblock);
 	if (rc != EOK) {
 		return rc;
@@ -124,64 +141,83 @@ int ext4_filesystem_check_sanity(ext4_filesystem_t *fs)
 	return EOK;
 }
 
-/** TODO comment
+/** Check filesystem's features, if supported by this driver
  *
+ * Function can return EOK and set read_only flag. It mean's that
+ * there are some not-supported features, that can cause problems
+ * during some write operations.
+ *
+ * @param fs			filesystem to be checked
+ * @param read_only		flag if filesystem should be mounted only for reading
+ * @return				error code
  */
-int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *o_read_only)
+int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
 {
-	/* Feature flags are present in rev 1 and later */
+	// Feature flags are present only in higher revisions
 	if (ext4_superblock_get_rev_level(fs->superblock) == 0) {
-		*o_read_only = false;
+		*read_only = false;
 		return EOK;
 	}
 
+	// Check incompatible features - if filesystem has some,
+	// volume can't be mounted
 	uint32_t incompatible_features;
 	incompatible_features = ext4_superblock_get_features_incompatible(fs->superblock);
 	incompatible_features &= ~EXT4_FEATURE_INCOMPAT_SUPP;
 	if (incompatible_features > 0) {
-		*o_read_only = true;
 		return ENOTSUP;
 	}
 
+	// Check read-only features, if filesystem has some,
+	// volume can be mount only in read-only mode
 	uint32_t compatible_read_only;
 	compatible_read_only = ext4_superblock_get_features_read_only(fs->superblock);
 	compatible_read_only &= ~EXT4_FEATURE_RO_COMPAT_SUPP;
 	if (compatible_read_only > 0) {
-		*o_read_only = true;
+		*read_only = true;
+		return EOK;
 	}
 
 	return EOK;
 }
 
-/** TODO comment
+/** Get reference to block group specified by index.
  *
+ * @param fs		filesystem to find block group on
+ * @param bgid		index of block group to load
+ * @oaram ref		output pointer for reference
+ * @return			error code
  */
 int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
     ext4_block_group_ref_t **ref)
 {
 	int rc;
 
+	// Allocate memory for new structure
 	ext4_block_group_ref_t *newref = malloc(sizeof(ext4_block_group_ref_t));
 	if (newref == NULL) {
 		return ENOMEM;
 	}
 
+	// Compute number of descriptors, that fits in one data block
 	uint32_t descriptors_per_block = ext4_superblock_get_block_size(fs->superblock)
 	    / ext4_superblock_get_desc_size(fs->superblock);
 
-	/* Block group descriptor table starts at the next block after superblock */
+	// Block group descriptor table starts at the next block after superblock
 	aoff64_t block_id = ext4_superblock_get_first_data_block(fs->superblock) + 1;
 
-	/* Find the block containing the descriptor we are looking for */
+	// Find the block containing the descriptor we are looking for
 	block_id += bgid / descriptors_per_block;
 	uint32_t offset = (bgid % descriptors_per_block) * ext4_superblock_get_desc_size(fs->superblock);
 
+	// Load block with descriptors
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
 	}
 
+	// Inititialize in-memory representation
 	newref->block_group = newref->block->data + offset;
 	newref->fs = fs;
 	newref->index = bgid;
@@ -227,51 +263,65 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 
 }
 
-/** TODO comment
+/** Put reference to block group.
  *
+ * @oaram ref		pointer for reference to be put back
+ * @return			error code
  */
 int ext4_filesystem_put_block_group_ref(ext4_block_group_ref_t *ref)
 {
 	int rc;
 
+	// Check if reference modified
 	if (ref->dirty) {
+
+		// Compute new checksum of block group
 		uint16_t checksum = ext4_filesystem_bg_checksum(
 				ref->fs->superblock, ref->index, ref->block_group);
-
 		ext4_block_group_set_checksum(ref->block_group, checksum);
 
+		// Mark block dirty for writing changes to physical device
 		ref->block->dirty = true;
 	}
 
+	// Put back block, that contains block group descriptor
 	rc = block_put(ref->block);
 	free(ref);
 
 	return rc;
 }
 
-/** TODO comment
+/** Get reference to i-node specified by index.
  *
+ * @param fs		filesystem to find i-node on
+ * @param index		index of i-node to load
+ * @oaram ref		output pointer for reference
+ * @return			error code
  */
 int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **ref)
 {
 	int rc;
 
+	// Allocate memory for new structure
 	ext4_inode_ref_t *newref = malloc(sizeof(ext4_inode_ref_t));
 	if (newref == NULL) {
 		return ENOMEM;
 	}
 
+	// Compute number of i-nodes, that fits in one data block
 	uint32_t inodes_per_group =
 			ext4_superblock_get_inodes_per_group(fs->superblock);
 
-	/* inode numbers are 1-based, but it is simpler to work with 0-based
+	/*
+	 * inode numbers are 1-based, but it is simpler to work with 0-based
 	 * when computing indices
 	 */
 	index -= 1;
 	uint32_t block_group = index / inodes_per_group;
 	uint32_t offset_in_group = index % inodes_per_group;
 
+	// Load block group, where i-node is located
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
@@ -279,19 +329,23 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 		return rc;
 	}
 
+	// Load block address, where i-node table is located
 	uint32_t inode_table_start = ext4_block_group_get_inode_table_first_block(
 	    bg_ref->block_group, fs->superblock);
 
+	// Put back block group reference (not needed more)
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
 		free(newref);
 		return rc;
 	}
 
+	// Compute position of i-node in the block group
 	uint16_t inode_size = ext4_superblock_get_inode_size(fs->superblock);
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t byte_offset_in_group = offset_in_group * inode_size;
 
+	// Compute block address
 	aoff64_t block_id = inode_table_start + (byte_offset_in_group / block_size);
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
@@ -299,11 +353,11 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 		return rc;
 	}
 
+	// Compute position of i-node in the data block
 	uint32_t offset_in_block = byte_offset_in_group % block_size;
 	newref->inode = newref->block->data + offset_in_block;
-	/* we decremented index above, but need to store the original value
-	 * in the reference
-	 */
+
+	// We need to store the original value of index in the reference
 	newref->index = index + 1;
 	newref->fs = fs;
 	newref->dirty = false;
