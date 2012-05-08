@@ -253,8 +253,6 @@ NO_TRACE static slab_t *obj2slab(void *obj)
 NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
     slab_t *slab)
 {
-	ASSERT(interrupts_disabled());
-
 	if (!slab)
 		slab = obj2slab(obj);
 	
@@ -265,7 +263,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (cache->destructor)
 		freed = cache->destructor(obj);
 	
-	spinlock_lock(&cache->slablock);
+	irq_spinlock_lock(&cache->slablock, true);
 	ASSERT(slab->available < cache->objects);
 	
 	*((size_t *) obj) = slab->nextavail;
@@ -276,7 +274,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 	if (slab->available == cache->objects) {
 		/* Free associated memory */
 		list_remove(&slab->link);
-		spinlock_unlock(&cache->slablock);
+		irq_spinlock_unlock(&cache->slablock, true);
 		
 		return freed + slab_space_free(cache, slab);
 	} else if (slab->available == 1) {
@@ -285,7 +283,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
 		list_prepend(&slab->link, &cache->partial_slabs);
 	}
 	
-	spinlock_unlock(&cache->slablock);
+	irq_spinlock_unlock(&cache->slablock, true);
 	return freed;
 }
 
@@ -296,9 +294,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
  */
 NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 {
-	ASSERT(interrupts_disabled());
-
-	spinlock_lock(&cache->slablock);
+	irq_spinlock_lock(&cache->slablock, true);
 	
 	slab_t *slab;
 	
@@ -311,12 +307,12 @@ NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 		 *   that's why we should get recursion at most 1-level deep
 		 *
 		 */
-		spinlock_unlock(&cache->slablock);
+		irq_spinlock_unlock(&cache->slablock, true);
 		slab = slab_space_alloc(cache, flags);
 		if (!slab)
 			return NULL;
 		
-		spinlock_lock(&cache->slablock);
+		irq_spinlock_lock(&cache->slablock, true);
 	} else {
 		slab = list_get_instance(list_first(&cache->partial_slabs),
 		    slab_t, link);
@@ -332,7 +328,7 @@ NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 	else
 		list_prepend(&slab->link, &cache->partial_slabs);
 	
-	spinlock_unlock(&cache->slablock);
+	irq_spinlock_unlock(&cache->slablock, true);
 	
 	if ((cache->constructor) && (cache->constructor(obj, flags))) {
 		/* Bad, bad, construction failed */
@@ -631,7 +627,7 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	list_initialize(&cache->partial_slabs);
 	list_initialize(&cache->magazines);
 	
-	spinlock_initialize(&cache->slablock, "slab.cache.slablock");
+	irq_spinlock_initialize(&cache->slablock, "slab.cache.slablock");
 	spinlock_initialize(&cache->maglock, "slab.cache.maglock");
 	
 	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))

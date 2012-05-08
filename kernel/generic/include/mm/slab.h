@@ -112,7 +112,7 @@ typedef struct {
 	/* Slabs */
 	list_t full_slabs;     /**< List of full slabs */
 	list_t partial_slabs;  /**< List of partial slabs */
-	SPINLOCK_DECLARE(slablock);
+	IRQ_SPINLOCK_DECLARE(slablock);
 	/* Magazines */
 	list_t magazines;  /**< List o full magazines */
 	SPINLOCK_DECLARE(maglock);
