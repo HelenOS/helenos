@@ -261,7 +261,7 @@ int irq_spinlock_trylock(irq_spinlock_t *lock)
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
 	int rc = spinlock_trylock(&(lock->lock));
 	
-	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
+	ASSERT_IRQ_SPINLOCK(!rc || !lock->guard, lock);
 	return rc;
 }
 
