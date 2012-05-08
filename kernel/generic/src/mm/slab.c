@@ -253,6 +253,8 @@ NO_TRACE static slab_t *obj2slab(void *obj)
 NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
     slab_t *slab)
 {
+	ASSERT(interrupts_disabled());
+
 	if (!slab)
 		slab = obj2slab(obj);
 	
@@ -294,6 +296,8 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
  */
 NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 {
+	ASSERT(interrupts_disabled());
+
 	spinlock_lock(&cache->slablock);
 	
 	slab_t *slab;
@@ -354,6 +358,8 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 	slab_magazine_t *mag = NULL;
 	link_t *cur;
 	
+	ASSERT(interrupts_disabled());
+
 	spinlock_lock(&cache->maglock);
 	if (!list_empty(&cache->magazines)) {
 		if (first)
@@ -376,6 +382,8 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 NO_TRACE static void put_mag_to_cache(slab_cache_t *cache,
     slab_magazine_t *mag)
 {
+	ASSERT(interrupts_disabled());
+
 	spinlock_lock(&cache->maglock);
 	
 	list_prepend(&mag->link, &cache->magazines);
