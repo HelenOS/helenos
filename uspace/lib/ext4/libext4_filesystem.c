@@ -185,7 +185,7 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
  *
  * @param fs		filesystem to find block group on
  * @param bgid		index of block group to load
- * @oaram ref		output pointer for reference
+ * @param ref		output pointer for reference
  * @return			error code
  */
 int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
@@ -228,14 +228,22 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	return EOK;
 }
 
-/** TODO comment
+/** Compute checksum of block group descriptor.
  *
+ * It uses crc functions from Linux kernel implementation.
+ *
+ * @param sb		superblock
+ * @param bgid		index of block group in the filesystem
+ * @param bg		block group to compute checksum for
+ * @return			checksum value
  */
 static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid,
                             ext4_block_group_t *bg)
 {
+	// If checksum not supported, 0 will be returned
 	uint16_t crc = 0;
 
+	// Compute the checksum only if the filesystem supports it
 	if (ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_GDT_CSUM)) {
 
 		void *base = bg;
@@ -243,15 +251,22 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 
 		uint32_t offset = (uint32_t)(checksum - base);
 
+		// Convert block group index to little endian
 		uint32_t le_group = host2uint32_t_le(bgid);
 
+		// Initialization
 		crc = crc16(~0, sb->uuid, sizeof(sb->uuid));
+
+		// Include index of block group
 		crc = crc16(crc, (uint8_t *)&le_group, sizeof(le_group));
+
+		// Compute crc from the first part (stop before checksum field)
 		crc = crc16(crc, (uint8_t *)bg, offset);
 
-		offset += sizeof(bg->checksum); /* skip checksum */
+		// Skip checksum
+		offset += sizeof(bg->checksum);
 
-		/* for checksum of struct ext4_group_desc do the rest...*/
+		// Checksum of the rest of block group descriptor
 		if ((ext4_superblock_has_feature_incompatible(sb, EXT4_FEATURE_INCOMPAT_64BIT)) &&
 			offset < ext4_superblock_get_desc_size(sb)) {
 
@@ -367,50 +382,62 @@ int ext4_filesystem_get_inode_ref(ext4_filesystem_t *fs, uint32_t index,
 	return EOK;
 }
 
-/** TODO comment
+/** Put reference to i-node.
  *
+ * @param ref		pointer for reference to be put back
+ * @return			error code
  */
 int ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 {
 	int rc;
 
+	// Check if reference modified
 	if (ref->dirty) {
+
+		// Mark block dirty for writing changes to physical device
 		ref->block->dirty = true;
 	}
 
+	// Put back block, that contains i-node
 	rc = block_put(ref->block);
 	free(ref);
 
 	return rc;
 }
 
-/** TODO comment
+/** Allocate new i-node in the filesystem.
  *
+ * @param fs			filesystem to allocated i-node on
+ * @param inode_ref		output pointer to return reference to allocated i-node
+ * @param flags			flags to be set for newly created i-node
+ * @return				error code
  */
 int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 		ext4_inode_ref_t **inode_ref, int flags)
 {
 	int rc;
 
+	// Check if newly allocated i-node will be a directory
 	bool is_dir = false;
 	if (flags & L_DIRECTORY) {
 		is_dir = true;
 	}
 
-	// allocate inode
+	// Allocate inode by allocation algorithm
 	uint32_t index;
 	rc = ext4_ialloc_alloc_inode(fs, &index, is_dir);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	// Load i-node from on-disk i-node table
 	rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
 	if (rc != EOK) {
 		ext4_ialloc_free_inode(fs, index, is_dir);
 		return rc;
 	}
 
-	// init inode
+	// Initialize i-node
 	ext4_inode_t *inode = (*inode_ref)->inode;
 
 	if (is_dir) {
@@ -437,6 +464,7 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 		inode->blocks[i] = 0;
 	}
 
+	// Initialize extents if needed
 	if (ext4_superblock_has_feature_incompatible(
 			fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS)) {
 
@@ -460,8 +488,10 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	return EOK;
 }
 
-/** TODO comment
+/** Release i-node and mark it as free.
  *
+ * @param inode_ref			i-node to be released
+ * @return					error code
  */
 int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 {
@@ -469,6 +499,7 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
+	// For extents must be data block destroyed by other way
 	if (ext4_superblock_has_feature_incompatible(
 			fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 				ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
@@ -477,7 +508,7 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 		goto finish;
 	}
 
-	// release all indirect (no data) blocks
+	// Release all indirect (no data) blocks
 
 	// 1) Single indirect
 	uint32_t fblock = ext4_inode_get_indirect_block(inode_ref->inode, 0);
@@ -582,9 +613,11 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 	}
 
 finish:
+
+	// Mark inode dirty for writing to the physical device
 	inode_ref->dirty = true;
 
-	// Free inode
+	// Free inode by allocator
 	if (ext4_inode_is_type(fs->superblock, inode_ref->inode,
 			EXT4_INODE_MODE_DIRECTORY)) {
 		rc = ext4_ialloc_free_inode(fs, inode_ref->index, true);
@@ -598,8 +631,11 @@ finish:
 	return EOK;
 }
 
-/** TODO comment
+/** Truncate i-node data blocks.
  *
+ * @param inode_ref		i-node to be truncated
+ * @param new_size		new size of inode (must be < current size)
+ * @return				error code
  */
 int ext4_filesystem_truncate_inode(
 		ext4_inode_ref_t *inode_ref, aoff64_t new_size)
@@ -608,22 +644,23 @@ int ext4_filesystem_truncate_inode(
 
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 
+	// Check flags, if i-node can be truncated
 	if (! ext4_inode_can_truncate(sb, inode_ref->inode)) {
-		// Unable to truncate
 		return EINVAL;
 	}
 
+	// If sizes are equal, nothing has to be done.
 	aoff64_t old_size = ext4_inode_get_size(sb, inode_ref->inode);
 	if (old_size == new_size) {
-		// Nothing to do
 		return EOK;
 	}
 
-	// It's not suppported to make the larger file
+	// It's not suppported to make the larger file by truncate operation
 	if (old_size < new_size) {
 		return EINVAL;
 	}
 
+	// Compute how many blocks will be released
 	aoff64_t size_diff = old_size - new_size;
 	uint32_t block_size  = ext4_superblock_get_block_size(sb);
 	uint32_t diff_blocks_count = size_diff / block_size;
@@ -640,13 +677,18 @@ int ext4_filesystem_truncate_inode(
 			inode_ref->fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 				ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 
+		// Extents require special operation
+
 		rc = ext4_extent_release_blocks_from(inode_ref,
 				old_blocks_count - diff_blocks_count);
 		if (rc != EOK) {
 			return rc;
 		}
 	} else {
-		// starting from 1 because of logical blocks are numbered from 0
+
+		// Release data blocks from the end of file
+
+		// Starting from 1 because of logical blocks are numbered from 0
 		for (uint32_t i = 1; i <= diff_blocks_count; ++i) {
 			rc = ext4_filesystem_release_inode_block(inode_ref, old_blocks_count - i);
 			if (rc != EOK) {
@@ -655,15 +697,19 @@ int ext4_filesystem_truncate_inode(
 		}
 	}
 
+	// Update i-node
 	ext4_inode_set_size(inode_ref->inode, new_size);
-
 	inode_ref->dirty = true;
 
 	return EOK;
 }
 
-/** TODO comment
+/** Get physical block address by logical index of the block.
  *
+ * @param inode_ref		i-node to read block address from
+ * @param iblock		logical index of block
+ * @param fblock		output pointer for return physical block address
+ * @return				error code
  */
 int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 		aoff64_t iblock, uint32_t *fblock)
@@ -672,6 +718,7 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
+	// For empty file is situation simple
 	if (ext4_inode_get_size(fs->superblock, inode_ref->inode) == 0) {
 		*fblock = 0;
 		return EOK;
@@ -679,9 +726,10 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 
 	uint32_t current_block;
 
-	/* Handle inode using extents */
+	// Handle i-node using extents
 	if (ext4_superblock_has_feature_incompatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
+
 		rc = ext4_extent_find_block(inode_ref, iblock, &current_block);
 
 		if (rc != EOK) {
@@ -695,14 +743,14 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 
 	ext4_inode_t *inode = inode_ref->inode;
 
-	/* Handle simple case when we are dealing with direct reference */
+	// Direct block are read directly from array in i-node structure
 	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
 		current_block = ext4_inode_get_direct_block(inode, (uint32_t)iblock);
 		*fblock = current_block;
 		return EOK;
 	}
 
-	/* Determine the indirection level needed to get the desired block */
+	// Determine indirection level of the target block
 	int level = -1;
 	for (int i = 1; i < 4; i++) {
 		if (iblock < fs->inode_block_limits[i]) {
@@ -715,11 +763,12 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 		return EIO;
 	}
 
-	/* Compute offsets for the topmost level */
+	// Compute offsets for the topmost level
 	aoff64_t block_offset_in_level = iblock - fs->inode_block_limits[level-1];
 	current_block = ext4_inode_get_indirect_block(inode, level-1);
 	uint32_t offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 
+	// Sparse file
 	if (current_block == 0) {
 		*fblock = 0;
 		return EOK;
@@ -731,34 +780,37 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	 * or find null reference meaning we are dealing with sparse file
 	 */
 	while (level > 0) {
+
+		// Load indirect block
 		rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK) {
 			return rc;
 		}
 
+		// Read block address from indirect block
 		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 
+		// Put back indirect block untouched
 		rc = block_put(block);
 		if (rc != EOK) {
 			return rc;
 		}
 
+		// Check for sparse file
 		if (current_block == 0) {
-			/* This is a sparse file */
 			*fblock = 0;
 			return EOK;
 		}
 
+		// Jump to the next level
 		level -= 1;
 
-		/* If we are on the last level, break here as
-		 * there is no next level to visit
-		 */
+		// Termination condition - we have address of data block loaded
 		if (level == 0) {
 			break;
 		}
 
-		/* Visit the next level */
+		// Visit the next level
 		block_offset_in_level %= fs->inode_blocks_per_level[level];
 		offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
 	}
@@ -1005,8 +1057,12 @@ int ext4_filesystem_release_inode_block(
 
 }
 
-/** TODO comment
+/** Append following logical block to the i-node.
  *
+ * @param inode_ref			i-node to append block to
+ * @param fblock			output physical block address of newly allocated block
+ * @param iblock			output logical number of newly allocated block
+ * @return					error code
  */
 int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 		uint32_t *fblock, uint32_t *iblock)
@@ -1030,41 +1086,52 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 
-	// TODO zarovnat inode size a ne assert!!!
-	assert(inode_size % block_size == 0);
+	// Align size i-node size
+	if ((inode_size % block_size) != 0) {
+		inode_size += block_size - (inode_size % block_size);
+	}
 
 	// Logical blocks are numbered from 0
 	uint32_t new_block_idx = inode_size / block_size;
 
+	// Allocate new physical block
 	uint32_t phys_block;
 	rc =  ext4_balloc_alloc_block(inode_ref, &phys_block);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	// Add physical block address to the i-node
 	rc = ext4_filesystem_set_inode_data_block_index(inode_ref, new_block_idx, phys_block);
 	if (rc != EOK) {
 		ext4_balloc_free_block(inode_ref, phys_block);
 		return rc;
 	}
 
+	// Update i-node
 	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
-
 	inode_ref->dirty = true;
 
 	*fblock = phys_block;
 	*iblock = new_block_idx;
+
 	return EOK;
 }
 
-/** TODO comment
+/** Add orphaned i-node to the orphans linked list.
  *
+ * @param inode_ref		i-node to be added to orphans list
+ * @return				error code
  */
 int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 {
 	uint32_t next_orphan = ext4_superblock_get_last_orphan(
 			inode_ref->fs->superblock);
+
+	// Deletion time is used for holding next item of the list
 	ext4_inode_set_deletion_time(inode_ref->inode, next_orphan);
+
+	// Head of the list is in the superblock
 	ext4_superblock_set_last_orphan(
 			inode_ref->fs->superblock, inode_ref->index);
 	inode_ref->dirty = true;
@@ -1072,19 +1139,23 @@ int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 	return EOK;
 }
 
-/** TODO comment
+/** Delete orphaned i-node from the orphans linked list.
  *
+ * @param inode_ref		i-node to be deleted from the orphans list
+ * @return				error code
  */
 int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
 {
 	int rc;
 
+	// Get head of the linked list
 	uint32_t last_orphan = ext4_superblock_get_last_orphan(
 			inode_ref->fs->superblock);
 	assert(last_orphan > 0);
 
 	uint32_t next_orphan = ext4_inode_get_deletion_time(inode_ref->inode);
 
+	// Check if the head is the target
 	if (last_orphan == inode_ref->index) {
 		ext4_superblock_set_last_orphan(inode_ref->fs->superblock, next_orphan);
 		ext4_inode_set_deletion_time(inode_ref->inode, 0);
@@ -1097,11 +1168,15 @@ int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
 	if (rc != EOK) {
 		return rc;
 	}
+
 	next_orphan = ext4_inode_get_deletion_time(current->inode);
 
-	bool found;
+	bool found = false;
 
+	// Walk thourgh the linked list
 	while (next_orphan != 0) {
+
+		// Found?
 		if (next_orphan == inode_ref->index) {
 			next_orphan = ext4_inode_get_deletion_time(inode_ref->inode);
 			ext4_inode_set_deletion_time(current->inode, next_orphan);
@@ -1120,7 +1195,9 @@ int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
 
 	}
 
-	ext4_inode_set_deletion_time(inode_ref->inode, 0);
+	if (found) {
+		ext4_inode_set_deletion_time(inode_ref->inode, 0);
+	}
 
 	rc = ext4_filesystem_put_inode_ref(current);
 	if (rc != EOK) {

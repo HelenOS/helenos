@@ -1440,7 +1440,7 @@ static int ext4fs_truncate(service_id_t service_id, fs_index_t index,
 
 
 /** Close file.
- *'
+ *
  * @param service_id	device identifier
  * @param index		i-node number
  * @return 		error code

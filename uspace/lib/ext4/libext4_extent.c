@@ -932,8 +932,16 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-/** TODO comment
+/** Append data block to the i-node.
  *
+ * This function allocates data block, tries to append it
+ * to some existing extent or creates new extents.
+ * It includes possible extent tree modifications (splitting).
+ *
+ * @param inode_ref			i-node to append block to
+ * @param iblock			output logical number of newly allocated block
+ * @param fblock			output physical block address of newly allocated block
+ * @return					error code
  */
 int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		uint32_t *iblock, uint32_t *fblock)
@@ -967,7 +975,7 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		path_ptr++;
 	}
 
-	// Add new extent to the node
+	// Add new extent to the node if not present
 	if (path_ptr->extent == NULL) {
 		goto append_extent;
 	}
@@ -978,17 +986,23 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 	uint32_t phys_block = 0;
 	if (block_count < block_limit) {
 
+		// There is space for new block in the extent
+
 		if (block_count == 0) {
+
+			// Existing extent is empty
 
 			rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
 			if (rc != EOK) {
 				goto finish;
 			}
 
+			// Initialize extent
 			ext4_extent_set_first_block(path_ptr->extent, new_block_idx);
 			ext4_extent_set_start(path_ptr->extent, phys_block);
 			ext4_extent_set_block_count(path_ptr->extent, 1);
 
+			// Update i-node
 			ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
 			inode_ref->dirty = true;
 
@@ -997,9 +1011,12 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 			goto finish;
 		} else {
 
+			// Existing extent contains some blocks
+
 			phys_block = ext4_extent_get_start(path_ptr->extent);
 			phys_block += ext4_extent_get_block_count(path_ptr->extent);
 
+			// Check if the following block is free for allocation
 			bool free;
 			rc = ext4_balloc_try_alloc_block(inode_ref, phys_block, &free);
 			if (rc != EOK) {
@@ -1007,13 +1024,15 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 			}
 
 			if (! free) {
-				// target is not free
+				// target is not free, new block must be appended to new extent
 				goto append_extent;
 			}
 
 
+			// Update extent
 			ext4_extent_set_block_count(path_ptr->extent, block_count + 1);
 
+			// Update i-node
 			ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
 			inode_ref->dirty = true;
 
@@ -1023,33 +1042,39 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 		}
 	}
 
+// Append new extent to the tree
 append_extent:
 
 	phys_block = 0;
-	// Allocate and insert insert new block
+
+	// Allocate new data block
 	rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error in block allocation, rc = \%d", rc);
 		goto finish;
 	}
 
+	// Append extent for new block (includes tree splitting if needed)
 	rc = ext4_extent_append_extent(inode_ref, path, &path_ptr, new_block_idx);
 	if (rc != EOK) {
 		ext4_balloc_free_block(inode_ref, phys_block);
 		goto finish;
 	}
 
+	// Initialize newly created extent
 	ext4_extent_set_block_count(path_ptr->extent, 1);
 	ext4_extent_set_first_block(path_ptr->extent, new_block_idx);
 	ext4_extent_set_start(path_ptr->extent, phys_block);
 
+	// Update i-node
 	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
 	inode_ref->dirty = true;
 
 	path_ptr->block->dirty = true;
 
-finish:
 
+finish:
+	// Set return values
 	*iblock = new_block_idx;
 	*fblock = phys_block;
 
