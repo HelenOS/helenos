@@ -47,6 +47,7 @@
 #include <memstr.h>
 #include <align.h>
 #include <macros.h>
+#include <bitops.h>
 
 static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void pt_mapping_remove(as_t *, uintptr_t);
@@ -291,6 +292,20 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	return &ptl3[PTL3_INDEX(page)];
 }
 
+/** Return the size of the region mapped by a single PTL0 entry.
+ *
+ * @return Size of the region mapped by a single PTL0 entry.
+ */
+static uintptr_t ptl0_step_get(void)
+{
+	size_t va_bits;
+
+	va_bits = fnzb(PTL0_ENTRIES) + fnzb(PTL1_ENTRIES) + fnzb(PTL2_ENTRIES) +
+	    fnzb(PTL3_ENTRIES) + PAGE_WIDTH;
+
+	return 1UL << (va_bits - fnzb(PTL0_ENTRIES));
+}
+
 /** Make the mappings in the given range global accross all address spaces.
  *
  * All PTL0 entries in the given range will be mapped to a next level page
@@ -308,7 +323,7 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 void pt_mapping_make_global(uintptr_t base, size_t size)
 {
 	uintptr_t ptl0 = PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
-	uintptr_t ptl0step = (((uintptr_t) -1) / PTL0_ENTRIES) + 1;
+	uintptr_t ptl0_step = ptl0_step_get();
 	size_t order;
 	uintptr_t addr;
 
@@ -320,11 +335,10 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 	order = PTL3_SIZE;
 #endif
 
-	ASSERT(ispwr2(ptl0step));
 	ASSERT(size > 0);
 
-	for (addr = ALIGN_DOWN(base, ptl0step); addr - 1 < base + size - 1;
-	    addr += ptl0step) {
+	for (addr = ALIGN_DOWN(base, ptl0_step); addr - 1 < base + size - 1;
+	    addr += ptl0_step) {
 		uintptr_t l1;
 
 		l1 = (uintptr_t) frame_alloc(order, FRAME_KA | FRAME_LOWMEM);

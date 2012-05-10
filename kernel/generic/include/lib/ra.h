@@ -41,7 +41,7 @@
 #include <synch/spinlock.h>
 
 typedef struct {
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 	list_t spans;		/**< List of arena's spans. */
 } ra_arena_t;
 
