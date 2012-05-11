@@ -727,7 +727,15 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	log_msg(LVL_DEBUG, "data read finalize");
 	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
 
-	socket->recv_buffer_used = 0;
+	socket->recv_buffer_used -= length;
+	log_msg(LVL_DEBUG, "tcp_sock_recvfrom: %zu left in buffer",
+	    socket->recv_buffer_used);
+	if (socket->recv_buffer_used > 0) {
+		memmove(socket->recv_buffer, socket->recv_buffer + length,
+		    socket->recv_buffer_used);
+		tcp_sock_notify_data(socket->sock_core);
+	}
+
 	fibril_condvar_broadcast(&socket->recv_buffer_cv);
 
 	if (length < data_len && rc == EOK)
