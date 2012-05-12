@@ -50,8 +50,6 @@
 #include "tcp_type.h"
 #include "ucall.h"
 
-#define FRAGMENT_SIZE 1024
-
 #define MAX_BACKLOG 128
 
 /** Free ports pool start. */
@@ -65,6 +63,7 @@ static socket_ports_t gsock;
 
 static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void tcp_sock_cstate_cb(tcp_conn_t *conn, void *arg);
+static int tcp_sock_recv_fibril(void *arg);
 
 int tcp_sock_init(void)
 {
@@ -96,7 +95,7 @@ static void tcp_sock_notify_data(socket_core_t *sock_core)
 	log_msg(LVL_DEBUG, "tcp_sock_notify_data(%d)", sock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(sock_core->sess);
 	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t)sock_core->socket_id,
-	    FRAGMENT_SIZE, 0, 0, 1);
+	    TCP_SOCK_FRAGMENT_SIZE, 0, 0, 1);
 	async_exchange_end(exch);
 }
 
@@ -105,46 +104,94 @@ static void tcp_sock_notify_aconn(socket_core_t *lsock_core)
 	log_msg(LVL_DEBUG, "tcp_sock_notify_aconn(%d)", lsock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(lsock_core->sess);
 	async_msg_5(exch, NET_SOCKET_ACCEPTED, (sysarg_t)lsock_core->socket_id,
-	    FRAGMENT_SIZE, 0, 0, 0);
+	    TCP_SOCK_FRAGMENT_SIZE, 0, 0, 0);
 	async_exchange_end(exch);
+}
+
+static int tcp_sock_create(tcp_client_t *client, tcp_sockdata_t **rsock)
+{
+	tcp_sockdata_t *sock;
+
+	log_msg(LVL_DEBUG, "tcp_sock_create()");
+	*rsock = NULL;
+
+	sock = calloc(sizeof(tcp_sockdata_t), 1);
+	if (sock == NULL)
+		return ENOMEM;
+
+	fibril_mutex_initialize(&sock->lock);
+	sock->client = client;
+
+	sock->recv_buffer_used = 0;
+	sock->recv_error = TCP_EOK;
+	fibril_mutex_initialize(&sock->recv_buffer_lock);
+	fibril_condvar_initialize(&sock->recv_buffer_cv);
+	list_initialize(&sock->ready);
+
+	*rsock = sock;
+	return EOK;
+}
+
+static void tcp_sock_uncreate(tcp_sockdata_t *sock)
+{
+	log_msg(LVL_DEBUG, "tcp_sock_uncreate()");
+	free(sock);
+}
+
+static int tcp_sock_finish_setup(tcp_sockdata_t *sock, int *sock_id)
+{
+	socket_core_t *sock_core;
+	int rc;
+
+	log_msg(LVL_DEBUG, "tcp_sock_finish_setup()");
+
+	sock->recv_fibril = fibril_create(tcp_sock_recv_fibril, sock);
+	if (sock->recv_fibril == 0)
+		return ENOMEM;
+
+	rc = socket_create(&sock->client->sockets, sock->client->sess,
+	    sock, sock_id);
+
+	if (rc != EOK)
+		return rc;
+
+	sock_core = socket_cores_find(&sock->client->sockets, *sock_id);
+	assert(sock_core != NULL);
+	sock->sock_core = sock_core;
+
+	return EOK;
 }
 
 static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
 	tcp_sockdata_t *sock;
-	socket_core_t *sock_core;
 	int sock_id;
 	int rc;
 	ipc_call_t answer;
 
 	log_msg(LVL_DEBUG, "tcp_sock_socket()");
-	sock = calloc(sizeof(tcp_sockdata_t), 1);
-	if (sock == NULL) {
-		async_answer_0(callid, ENOMEM);
-		return;
-	}
 
-	fibril_mutex_initialize(&sock->lock);
-	sock->client = client;
-	sock->laddr.ipv4 = TCP_IPV4_ANY;
-	sock->lconn = NULL;
-	sock->backlog = 0;
-	list_initialize(&sock->ready);
-
-	sock_id = SOCKET_GET_SOCKET_ID(call);
-	rc = socket_create(&client->sockets, client->sess, sock, &sock_id);
+	rc = tcp_sock_create(client, &sock);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
 
-	sock_core = socket_cores_find(&client->sockets, sock_id);
-	assert(sock_core != NULL);
-	sock->sock_core = sock_core;
+	sock->laddr.ipv4 = TCP_IPV4_ANY;
+	sock->lconn = NULL;
+	sock->backlog = 0;
+
+	sock_id = SOCKET_GET_SOCKET_ID(call);
+	rc = tcp_sock_finish_setup(sock, &sock_id);
+	if (rc != EOK) {
+		tcp_sock_uncreate(sock);
+		async_answer_0(callid, rc);
+		return;
+	}
 
 	SOCKET_SET_SOCKET_ID(answer, sock_id);
 
-	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
+	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, TCP_SOCK_FRAGMENT_SIZE);
 	SOCKET_SET_HEADER_SIZE(answer, sizeof(tcp_header_t));
 	
 	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
@@ -360,11 +407,10 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 		assert(false);
 	}
 
-	async_answer_0(callid, rc);
+	if (rc == EOK)
+		fibril_add_ready(socket->recv_fibril);
 
-	/* Push one fragment notification to client's queue */
-	tcp_sock_notify_data(sock_core);
-	log_msg(LVL_DEBUG, "tcp_sock_connect(): notify conn\n");
+	async_answer_0(callid, rc);
 }
 
 static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -373,7 +419,6 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	int socket_id;
 	int asock_id;
 	socket_core_t *sock_core;
-	socket_core_t *asock_core;
 	tcp_sockdata_t *socket;
 	tcp_sockdata_t *asocket;
 	tcp_error_t trc;
@@ -443,41 +488,38 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	/* Allocate socket for accepted connection */
 
-	log_msg(LVL_DEBUG, "tcp_sock_accept(): allocate asocket\n");
-	asocket = calloc(sizeof(tcp_sockdata_t), 1);
-	if (asocket == NULL) {
-		fibril_mutex_unlock(&socket->lock);
-		async_answer_0(callid, ENOMEM);
-		return;
-	}
-
-	fibril_mutex_initialize(&asocket->lock);
-	asocket->client = client;
-	asocket->conn = conn;
-	log_msg(LVL_DEBUG, "tcp_sock_accept():create asocket\n");
-
-	rc = socket_create(&client->sockets, client->sess, asocket, &asock_id);
+	rc = tcp_sock_create(client, &asocket);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, rc);
 		return;
 	}
+
+	asocket->conn = conn;
+	log_msg(LVL_DEBUG, "tcp_sock_accept():create asocket\n");
+
+	rc = tcp_sock_finish_setup(asocket, &asock_id);
+	if (rc != EOK) {
+		tcp_sock_uncreate(asocket);
+		fibril_mutex_unlock(&socket->lock);
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	fibril_add_ready(asocket->recv_fibril);
+
 	log_msg(LVL_DEBUG, "tcp_sock_accept(): find acore\n");
 
-	asock_core = socket_cores_find(&client->sockets, asock_id);
-	assert(asock_core != NULL);
-
-	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
+	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, TCP_SOCK_FRAGMENT_SIZE);
 	SOCKET_SET_SOCKET_ID(answer, asock_id);
 	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(struct sockaddr_in));
 	
-	async_answer_3(callid, asock_core->socket_id,
+	async_answer_3(callid, asocket->sock_core->socket_id,
 	    IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
 	    IPC_GET_ARG3(answer));
 	
 	/* Push one fragment notification to client's queue */
 	log_msg(LVL_DEBUG, "tcp_sock_accept(): notify data\n");
-	tcp_sock_notify_data(asock_core);
 	fibril_mutex_unlock(&socket->lock);
 }
 
@@ -491,7 +533,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	ipc_call_t answer;
 	ipc_callid_t wcallid;
 	size_t length;
-	uint8_t buffer[FRAGMENT_SIZE];
+	uint8_t buffer[TCP_SOCK_FRAGMENT_SIZE];
 	tcp_error_t trc;
 	int rc;
 
@@ -522,8 +564,8 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 			return;
 		}
 
-		if (length > FRAGMENT_SIZE)
-			length = FRAGMENT_SIZE;
+		if (length > TCP_SOCK_FRAGMENT_SIZE)
+			length = TCP_SOCK_FRAGMENT_SIZE;
 
 		rc = async_data_write_finalize(wcallid, buffer, length);
 		if (rc != EOK) {
@@ -559,7 +601,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	}
 
 	IPC_SET_ARG1(answer, 0);
-	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
+	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, TCP_SOCK_FRAGMENT_SIZE);
 	async_answer_2(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer));
 	fibril_mutex_unlock(&socket->lock);
@@ -580,10 +622,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	tcp_sockdata_t *socket;
 	ipc_call_t answer;
 	ipc_callid_t rcallid;
-	uint8_t buffer[FRAGMENT_SIZE];
 	size_t data_len;
-	xflags_t xflags;
-	tcp_error_t trc;
 	struct sockaddr_in addr;
 	tcp_sock_t *rsock;
 	int rc;
@@ -610,11 +649,20 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	(void)flags;
 
-	trc = tcp_uc_receive(socket->conn, buffer, FRAGMENT_SIZE, &data_len,
-	    &xflags);
-	log_msg(LVL_DEBUG, "**** tcp_uc_receive done");
+	log_msg(LVL_DEBUG, "tcp_sock_recvfrom(): lock recv_buffer_lock");
+	fibril_mutex_lock(&socket->recv_buffer_lock);
+	while (socket->recv_buffer_used == 0 && socket->recv_error == TCP_EOK) {
+		log_msg(LVL_DEBUG, "wait for recv_buffer_cv + recv_buffer_used != 0");
+		fibril_condvar_wait(&socket->recv_buffer_cv,
+		    &socket->recv_buffer_lock);
+	}
 
-	switch (trc) {
+	log_msg(LVL_DEBUG, "Got data in sock recv_buffer");
+
+	data_len = socket->recv_buffer_used;
+	rc = socket->recv_error;
+
+	switch (socket->recv_error) {
 	case TCP_EOK:
 		rc = EOK;
 		break;
@@ -629,8 +677,9 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		assert(false);
 	}
 
-	log_msg(LVL_DEBUG, "**** tcp_uc_receive -> %d", rc);
+	log_msg(LVL_DEBUG, "**** recv result -> %d", rc);
 	if (rc != EOK) {
+		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, rc);
 		return;
@@ -645,6 +694,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 		log_msg(LVL_DEBUG, "addr read receive");
 		if (!async_data_read_receive(&rcallid, &addr_length)) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
 			return;
@@ -656,6 +706,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		log_msg(LVL_DEBUG, "addr read finalize");
 		rc = async_data_read_finalize(rcallid, &addr, addr_length);
 		if (rc != EOK) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
 			return;
@@ -664,6 +715,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	log_msg(LVL_DEBUG, "data read receive");
 	if (!async_data_read_receive(&rcallid, &length)) {
+		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, EINVAL);
 		return;
@@ -673,16 +725,26 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		length = data_len;
 
 	log_msg(LVL_DEBUG, "data read finalize");
-	rc = async_data_read_finalize(rcallid, buffer, length);
+	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
+
+	socket->recv_buffer_used -= length;
+	log_msg(LVL_DEBUG, "tcp_sock_recvfrom: %zu left in buffer",
+	    socket->recv_buffer_used);
+	if (socket->recv_buffer_used > 0) {
+		memmove(socket->recv_buffer, socket->recv_buffer + length,
+		    socket->recv_buffer_used);
+		tcp_sock_notify_data(socket->sock_core);
+	}
+
+	fibril_condvar_broadcast(&socket->recv_buffer_cv);
 
 	if (length < data_len && rc == EOK)
 		rc = EOVERFLOW;
 
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
 	async_answer_1(callid, EOK, IPC_GET_ARG1(answer));
-	
-	/* Push one fragment notification to client's queue */
-	tcp_sock_notify_data(sock_core);
+
+	fibril_mutex_unlock(&socket->recv_buffer_lock);
 	fibril_mutex_unlock(&socket->lock);
 }
 
@@ -693,9 +755,6 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	tcp_sockdata_t *socket;
 	tcp_error_t trc;
 	int rc;
-	uint8_t buffer[FRAGMENT_SIZE];
-	size_t data_len;
-	xflags_t xflags;
 
 	log_msg(LVL_DEBUG, "tcp_sock_close()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
@@ -716,14 +775,6 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 			async_answer_0(callid, EBADF);
 			return;
 		}
-
-		/* Drain incoming data. This should really be done in the background. */
-		do {
-			trc = tcp_uc_receive(socket->conn, buffer,
-			    FRAGMENT_SIZE, &data_len, &xflags);
-		} while (trc == TCP_EOK);
-
-		tcp_uc_delete(socket->conn);
 	}
 
 	rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
@@ -775,6 +826,46 @@ static void tcp_sock_cstate_cb(tcp_conn_t *conn, void *arg)
 	/* Push one accept notification to client's queue */
 	tcp_sock_notify_aconn(socket->sock_core);
 	fibril_mutex_unlock(&socket->lock);
+}
+
+static int tcp_sock_recv_fibril(void *arg)
+{
+	tcp_sockdata_t *sock = (tcp_sockdata_t *)arg;
+	size_t data_len;
+	xflags_t xflags;
+	tcp_error_t trc;
+
+	log_msg(LVL_DEBUG, "tcp_sock_recv_fibril()");
+
+	while (true) {
+		log_msg(LVL_DEBUG, "call tcp_uc_receive()");
+		fibril_mutex_lock(&sock->recv_buffer_lock);
+		while (sock->recv_buffer_used != 0)
+			fibril_condvar_wait(&sock->recv_buffer_cv,
+			    &sock->recv_buffer_lock);
+
+		trc = tcp_uc_receive(sock->conn, sock->recv_buffer,
+		    TCP_SOCK_FRAGMENT_SIZE, &data_len, &xflags);
+
+		if (trc != TCP_EOK) {
+			sock->recv_error = trc;
+			fibril_condvar_broadcast(&sock->recv_buffer_cv);
+			fibril_mutex_unlock(&sock->recv_buffer_lock);
+			tcp_sock_notify_data(sock->sock_core);
+			break;
+		}
+
+		log_msg(LVL_DEBUG, "got data - broadcast recv_buffer_cv");
+
+		sock->recv_buffer_used = data_len;
+		fibril_condvar_broadcast(&sock->recv_buffer_cv);
+		fibril_mutex_unlock(&sock->recv_buffer_lock);
+		tcp_sock_notify_data(sock->sock_core);
+	}
+
+	tcp_uc_delete(sock->conn);
+
+	return 0;
 }
 
 static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
