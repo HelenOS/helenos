@@ -41,6 +41,14 @@
 int posix_getopt_long(int argc, char * const argv[],
     const char *opt_string, const struct option *long_opts, int *long_index)
 {
-	return getopt_long(argc, argv, opt_string, long_opts, long_index);
+	int rc = getopt_long(argc, argv, opt_string, long_opts, long_index);
+	posix_optarg = (char *) optarg;
+	return rc;
 }
 
+int posix_getopt(int argc, char * const argv[], const char *opt_string)
+{
+	int rc = getopt(argc, argv, opt_string);
+	posix_optarg = (char *) optarg;
+	return rc;
+}
