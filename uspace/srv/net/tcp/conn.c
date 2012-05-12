@@ -183,7 +183,7 @@ static void tcp_conn_free(tcp_conn_t *conn)
  */
 void tcp_conn_addref(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_addref(%p)", conn->name, conn);
+	log_msg(LVL_DEBUG2, "%s: tcp_conn_addref(%p)", conn->name, conn);
 	atomic_inc(&conn->refcnt);
 }
 
@@ -195,7 +195,7 @@ void tcp_conn_addref(tcp_conn_t *conn)
  */
 void tcp_conn_delref(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_delref(%p)", conn->name, conn);
+	log_msg(LVL_DEBUG2, "%s: tcp_conn_delref(%p)", conn->name, conn);
 
 	if (atomic_predec(&conn->refcnt) == 0)
 		tcp_conn_free(conn);
@@ -311,7 +311,7 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 /** Match socket with pattern. */
 static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 {
-	log_msg(LVL_DEBUG, "tcp_socket_match(sock=(%x,%u), pat=(%x,%u))",
+	log_msg(LVL_DEBUG2, "tcp_socket_match(sock=(%x,%u), pat=(%x,%u))",
 	    sock->addr.ipv4, sock->port, patt->addr.ipv4, patt->port);
 
 	if (patt->addr.ipv4 != TCP_IPV4_ANY &&
@@ -322,7 +322,7 @@ static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 	    patt->port != sock->port)
 		return false;
 
-	log_msg(LVL_DEBUG, " -> match");
+	log_msg(LVL_DEBUG2, " -> match");
 
 	return true;
 }
@@ -330,7 +330,7 @@ static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 /** Match socket pair with pattern. */
 static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 {
-	log_msg(LVL_DEBUG, "tcp_sockpair_match(%p, %p)", sp, pattern);
+	log_msg(LVL_DEBUG2, "tcp_sockpair_match(%p, %p)", sp, pattern);
 
 	if (!tcp_socket_match(&sp->local, &pattern->local))
 		return false;
@@ -359,7 +359,7 @@ tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 	list_foreach(conn_list, link) {
 		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
 		tcp_sockpair_t *csp = &conn->ident;
-		log_msg(LVL_DEBUG, "compare with conn (f:(%x,%u), l:(%x,%u))",
+		log_msg(LVL_DEBUG2, "compare with conn (f:(%x,%u), l:(%x,%u))",
 		    csp->foreign.addr.ipv4, csp->foreign.port,
 		    csp->local.addr.ipv4, csp->local.port);
 		if (tcp_sockpair_match(sp, csp)) {

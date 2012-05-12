@@ -37,6 +37,7 @@
 #include <fibril.h>
 #include <net/socket.h>
 #include <stdio.h>
+#include <str_error.h>
 #include <sys/types.h>
 
 #include "conn.h"
@@ -45,7 +46,7 @@
 static int conn_fd;
 static fid_t rcv_fid;
 
-#define RECV_BUF_SIZE 1
+#define RECV_BUF_SIZE 1024
 static uint8_t recv_buf[RECV_BUF_SIZE];
 
 static int rcv_fibril(void *arg)
@@ -60,7 +61,10 @@ static int rcv_fibril(void *arg)
 		nterm_received(recv_buf, nr);
 	}
 
-	printf("Recv fibril terminated.\n");
+	if (nr == ENOTCONN)
+		printf("\n[Other side has closed the connection]\n");
+	else
+		printf("'\n[Receive errror (%s)]\n", str_error(nr));
 
 	return 0;
 }

@@ -67,7 +67,7 @@ static void send_char(wchar_t c)
 
 	rc = conn_send(cbuf, offs);
 	if (rc != EOK) {
-		printf("Failed sending data.\n");
+		printf("[Failed sending data]\n");
 	}
 }
 
@@ -105,6 +105,8 @@ void nterm_received(void *data, size_t size)
 //		printf("0x%02x\n", dp[i]);
 		putchar(dp[i]);
 	}
+
+	fflush(stdout);
 }
 
 static void print_syntax(void)

@@ -651,7 +651,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	log_msg(LVL_DEBUG, "tcp_sock_recvfrom(): lock recv_buffer_lock");
 	fibril_mutex_lock(&socket->recv_buffer_lock);
-	while (socket->recv_buffer_used == 0) {
+	while (socket->recv_buffer_used == 0 && socket->recv_error == TCP_EOK) {
 		log_msg(LVL_DEBUG, "wait for recv_buffer_cv + recv_buffer_used != 0");
 		fibril_condvar_wait(&socket->recv_buffer_cv,
 		    &socket->recv_buffer_lock);
@@ -849,15 +849,17 @@ static int tcp_sock_recv_fibril(void *arg)
 
 		if (trc != TCP_EOK) {
 			sock->recv_error = trc;
+			fibril_condvar_broadcast(&sock->recv_buffer_cv);
 			fibril_mutex_unlock(&sock->recv_buffer_lock);
+			tcp_sock_notify_data(sock->sock_core);
 			break;
 		}
 
 		log_msg(LVL_DEBUG, "got data - broadcast recv_buffer_cv");
 
 		sock->recv_buffer_used = data_len;
-		fibril_mutex_unlock(&sock->recv_buffer_lock);
 		fibril_condvar_broadcast(&sock->recv_buffer_cv);
+		fibril_mutex_unlock(&sock->recv_buffer_lock);
 		tcp_sock_notify_data(sock->sock_core);
 	}
 
