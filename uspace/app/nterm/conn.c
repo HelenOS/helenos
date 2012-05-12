@@ -66,6 +66,7 @@ static int rcv_fibril(void *arg)
 	else
 		printf("'\n[Receive errror (%s)]\n", str_error(nr));
 
+	exit(0);
 	return 0;
 }
 
