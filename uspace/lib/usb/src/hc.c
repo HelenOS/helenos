@@ -65,7 +65,7 @@ static int usb_hc_connection_del_ref(usb_hc_connection_t *connection)
 	fibril_mutex_lock(&connection->guard);
 	if (connection->ref_count == 0) {
 		/* Closing already closed connection... */
-		assert(connection->hc_sess = NULL);
+		assert(connection->hc_sess == NULL);
 		fibril_mutex_unlock(&connection->guard);
 		return EOK;
 	}
