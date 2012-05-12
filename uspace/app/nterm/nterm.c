@@ -78,7 +78,7 @@ static void key_handle_unmod(kbd_event_t *ev)
 		send_char('\n');
 		break;
 	default:
-		if (ev->c >= 32 || ev->c == '\t') {
+		if (ev->c >= 32 || ev->c == '\t' || ev->c == '\b') {
 			send_char(ev->c);
 		}
 	}
@@ -97,15 +97,7 @@ static void key_handle(kbd_event_t *ev)
 
 void nterm_received(void *data, size_t size)
 {
-	uint8_t *dp = (uint8_t *)data;
-	size_t i;
-
-//	printf("Received %zu bytes.\n", size);
-	for (i = 0; i < size; i++) {
-//		printf("0x%02x\n", dp[i]);
-		putchar(dp[i]);
-	}
-
+	fwrite(data, size, 1, stdout);
 	fflush(stdout);
 }
 
