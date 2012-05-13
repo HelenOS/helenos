@@ -68,7 +68,6 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/websrv \
 	app/sysinfo \
 	app/mkbd \
 	srv/clipboard \
@@ -102,6 +101,7 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	srv/websrv \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/char/i8042 \
