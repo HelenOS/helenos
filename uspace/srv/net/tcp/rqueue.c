@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <io/log.h>
 #include <stdlib.h>
-#include <thread.h>
+#include <fibril.h>
 #include "conn.h"
 #include "pdu.h"
 #include "rqueue.h"
@@ -127,13 +127,13 @@ void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	prodcons_produce(&rqueue, &rqe->link);
 }
 
-/** Receive queue handler thread. */
-static void tcp_rqueue_thread(void *arg)
+/** Receive queue handler fibril. */
+static int tcp_rqueue_fibril(void *arg)
 {
 	link_t *link;
 	tcp_rqueue_entry_t *rqe;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_thread()");
+	log_msg(LVL_DEBUG, "tcp_rqueue_fibril()");
 
 	while (true) {
 		link = prodcons_consume(&rqueue);
@@ -141,21 +141,25 @@ static void tcp_rqueue_thread(void *arg)
 
 		tcp_as_segment_arrived(&rqe->sp, rqe->seg);
 	}
+
+	/* Not reached */
+	return 0;
 }
 
-/** Start receive queue handler thread. */
-void tcp_rqueue_thread_start(void)
+/** Start receive queue handler fibril. */
+void tcp_rqueue_fibril_start(void)
 {
-	thread_id_t tid;
-        int rc;
+	fid_t fid;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_thread_start()");
+	log_msg(LVL_DEBUG, "tcp_rqueue_fibril_start()");
 
-	rc = thread_create(tcp_rqueue_thread, NULL, "rqueue", &tid);
-	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed creating rqueue thread.");
+	fid = fibril_create(tcp_rqueue_fibril, NULL);
+	if (fid == 0) {
+		log_msg(LVL_ERROR, "Failed creating rqueue fibril.");
 		return;
 	}
+
+	fibril_add_ready(fid);
 }
 
 /**

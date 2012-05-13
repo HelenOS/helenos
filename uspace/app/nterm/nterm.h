@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
+/** @addtogroup edit
  * @{
  */
-/** @file Network condition simulator
+/**
+ * @file
  */
 
-#ifndef NCSIM_H
-#define NCSIM_H
+#ifndef NTERM_H
+#define NTERM_H
 
-#include "tcp_type.h"
+#include <sys/types.h>
 
-extern void tcp_ncsim_init(void);
-extern void tcp_ncsim_bounce_seg(tcp_sockpair_t *, tcp_segment_t *);
-extern void tcp_ncsim_fibril_start(void);
+extern void nterm_received(void *, size_t);
 
 #endif
 

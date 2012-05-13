@@ -1085,6 +1085,11 @@ loop:
 		    "%zu available.\n", THREAD->tid, size, avail);
 #endif
 		
+		/*
+		 * Since the mem_avail_mtx is an active mutex, we need to disable interrupts
+		 * to prevent deadlock with TLB shootdown.
+		 */
+		ipl_t ipl = interrupts_disable();
 		mutex_lock(&mem_avail_mtx);
 		
 		if (mem_avail_req > 0)
@@ -1097,6 +1102,7 @@ loop:
 			condvar_wait(&mem_avail_cv, &mem_avail_mtx);
 		
 		mutex_unlock(&mem_avail_mtx);
+		interrupts_restore(ipl);
 		
 #ifdef CONFIG_DEBUG
 		printf("Thread %" PRIu64 " woken up.\n", THREAD->tid);
@@ -1160,6 +1166,13 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 	/*
 	 * Signal that some memory has been freed.
 	 */
+
+	
+	/*
+	 * Since the mem_avail_mtx is an active mutex, we need to disable interrupts
+	 * to prevent deadlock with TLB shootdown.
+	 */
+	ipl_t ipl = interrupts_disable();
 	mutex_lock(&mem_avail_mtx);
 	if (mem_avail_req > 0)
 		mem_avail_req -= min(mem_avail_req, size);
@@ -1169,6 +1182,7 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 		condvar_broadcast(&mem_avail_cv);
 	}
 	mutex_unlock(&mem_avail_mtx);
+	interrupts_restore(ipl);
 	
 	if (!(flags & FRAME_NO_RESERVE))
 		reserve_free(size);
