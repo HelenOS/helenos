@@ -36,7 +36,7 @@
 #define CATEGORY_H_
 
 #include <adt/list.h>
-#include "loc.h"
+#include "locsrv.h"
 
 typedef sysarg_t catid_t;
 

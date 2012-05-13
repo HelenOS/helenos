@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup locinfo
+/** @addtogroup loc
  * @{
  */
-/** @file locinfo.c Print information from location service.
+/** @file loc.c Print information from location service.
  */
 
 #include <errno.h>
@@ -40,7 +40,7 @@
 #include <sys/types.h>
 #include <sys/typefmt.h>
 
-#define NAME "locinfo"
+#define NAME "loc"
 
 int main(int argc, char *argv[])
 {

@@ -32,8 +32,8 @@
 /** @file HelenOS location service.
  */
 
-#ifndef LOC_H_
-#define LOC_H_
+#ifndef LOCSRV_H_
+#define LOCSRV_H_
 
 #include <ipc/loc.h>
 #include <async.h>

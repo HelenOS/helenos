@@ -28,11 +28,11 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = loc
+BINARY = locsrv
 STATIC_NEEDED = y
 
 SOURCES = \
 	category.c \
-	loc.c
+	locsrv.c
 
 include $(USPACE_PREFIX)/Makefile.common

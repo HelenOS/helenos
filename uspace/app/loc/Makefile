@@ -27,10 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
-BINARY = locinfo
+BINARY = loc
 
 SOURCES = \
-	locinfo.c
+	loc.c
 
 include $(USPACE_PREFIX)/Makefile.common
