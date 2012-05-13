@@ -186,8 +186,8 @@ static int addr_create_static(int argc, char *argv[])
 
 	rc = inetcfg_addr_create_static(aobj_name, &naddr, link_id, &addr_id);
 	if (rc != EOK) {
-		printf(NAME ": Failed creating static address '%s' (%d)\n",
-		    aobj_name, rc);
+		printf(NAME ": Failed creating static address '%s' (%s)\n",
+		    aobj_name, str_error(rc));
 		return EIO;
 	}
 

@@ -49,7 +49,7 @@ typedef enum {
 
 extern inet_addrobj_t *inet_addrobj_new(void);
 extern void inet_addrobj_delete(inet_addrobj_t *);
-extern void inet_addrobj_add(inet_addrobj_t *);
+extern int inet_addrobj_add(inet_addrobj_t *);
 extern void inet_addrobj_remove(inet_addrobj_t *);
 extern inet_addrobj_t *inet_addrobj_find(inet_addr_t *, inet_addrobj_find_t);
 extern inet_addrobj_t *inet_addrobj_find_by_name(const char *, inet_link_t *);

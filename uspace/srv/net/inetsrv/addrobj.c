@@ -47,6 +47,8 @@
 #include "inet_link.h"
 #include "inet_util.h"
 
+static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *, inet_link_t *);
+
 static FIBRIL_MUTEX_INITIALIZE(addr_list_lock);
 static LIST_INITIALIZE(addr_list);
 static sysarg_t addr_id = 0;
@@ -76,11 +78,22 @@ void inet_addrobj_delete(inet_addrobj_t *addr)
 	free(addr);
 }
 
-void inet_addrobj_add(inet_addrobj_t *addr)
+int inet_addrobj_add(inet_addrobj_t *addr)
 {
+	inet_addrobj_t *aobj;
+
 	fibril_mutex_lock(&addr_list_lock);
+	aobj = inet_addrobj_find_by_name_locked(addr->name, addr->ilink);
+	if (aobj != NULL) {
+		/* Duplicate address name */
+		fibril_mutex_unlock(&addr_list_lock);
+		return EEXISTS;
+	}
+
 	list_append(&addr->addr_list, &addr_list);
 	fibril_mutex_unlock(&addr_list_lock);
+
+	return EOK;
 }
 
 void inet_addrobj_remove(inet_addrobj_t *addr)
@@ -129,29 +142,48 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
  * @param ilink	Inet link
  * @return	Address object
  */
-inet_addrobj_t *inet_addrobj_find_by_name(const char *name, inet_link_t *ilink)
+static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *name, inet_link_t *ilink)
 {
-	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name('%s', '%s')",
-	    name, ilink->svc_name);
+	assert(fibril_mutex_is_locked(&addr_list_lock));
 
-	fibril_mutex_lock(&addr_list_lock);
+	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name_locked('%s', '%s')",
+	    name, ilink->svc_name);
 
 	list_foreach(addr_list, link) {
 		inet_addrobj_t *naddr = list_get_instance(link,
 		    inet_addrobj_t, addr_list);
 
 		if (naddr->ilink == ilink && str_cmp(naddr->name, name) == 0) {
-			fibril_mutex_unlock(&addr_list_lock);
-			log_msg(LVL_DEBUG, "inet_addrobj_find_by_name: found %p",
+			log_msg(LVL_DEBUG, "inet_addrobj_find_by_name_locked: found %p",
 			    naddr);
 			return naddr;
 		}
 	}
 
-	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name: Not found");
-	fibril_mutex_unlock(&addr_list_lock);
+	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name_locked: Not found");
 
 	return NULL;
+}
+
+
+/** Find address object on a link, with a specific name.
+ *
+ * @param name	Address object name
+ * @param ilink	Inet link
+ * @return	Address object
+ */
+inet_addrobj_t *inet_addrobj_find_by_name(const char *name, inet_link_t *ilink)
+{
+	inet_addrobj_t *aobj;
+
+	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name('%s', '%s')",
+	    name, ilink->svc_name);
+
+	fibril_mutex_lock(&addr_list_lock);
+	aobj = inet_addrobj_find_by_name_locked(name, ilink);
+	fibril_mutex_unlock(&addr_list_lock);
+
+	return aobj;
 }
 
 /** Find address object with the given ID.
