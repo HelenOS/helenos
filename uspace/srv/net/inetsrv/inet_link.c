@@ -44,7 +44,7 @@
 #include <str.h>
 
 #include "addrobj.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inet_link.h"
 #include "pdu.h"
 

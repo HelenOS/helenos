@@ -44,7 +44,7 @@
 #include <mem.h>
 #include <stdlib.h>
 
-#include "inet.h"
+#include "inetsrv.h"
 #include "inet_std.h"
 #include "pdu.h"
 

@@ -41,7 +41,7 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
-	app/inetcfg \
+	app/inet \
 	app/kill \
 	app/killall \
 	app/klog \
@@ -75,7 +75,7 @@ DIRS = \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \
-	srv/net/inet \
+	srv/net/inetsrv \
 	srv/net/loopip \
 	srv/net/tcp \
 	srv/net/udp \

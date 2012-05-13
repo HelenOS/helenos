@@ -43,7 +43,7 @@
 #include <str.h>
 
 #include "sroute.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inet_link.h"
 #include "inet_util.h"
 

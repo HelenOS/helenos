@@ -26,10 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-BINARY = inetcfg
+USPACE_PREFIX = ../../..
+BINARY = inetsrv
 
 SOURCES = \
-	inetcfg.c
+	addrobj.c \
+	icmp.c \
+	inetsrv.c \
+	inet_link.c \
+	inet_util.c \
+	inetcfg.c \
+	inetping.c \
+	pdu.c \
+	reass.c \
+	sroute.c
 
 include $(USPACE_PREFIX)/Makefile.common

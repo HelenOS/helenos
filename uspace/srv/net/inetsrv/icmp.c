@@ -42,7 +42,7 @@
 
 #include "icmp.h"
 #include "icmp_std.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inetping.h"
 #include "pdu.h"
 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inetcfg
+/** @addtogroup inet
  * @{
  */
 /** @file Internet configuration utility.
@@ -42,7 +42,7 @@
 #include <str_error.h>
 #include <sys/types.h>
 
-#define NAME "inetcfg"
+#define NAME "inet"
 
 static void print_syntax(void)
 {

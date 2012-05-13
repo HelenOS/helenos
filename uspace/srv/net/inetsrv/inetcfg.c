@@ -45,7 +45,7 @@
 #include <sys/types.h>
 
 #include "addrobj.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inet_link.h"
 #include "inetcfg.h"
 #include "sroute.h"

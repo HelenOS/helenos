@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup inetsrv
  * @{
  */
 /**
@@ -34,8 +34,8 @@
  * @brief
  */
 
-#ifndef INET_H_
-#define INET_H_
+#ifndef INETSRV_H_
+#define INETSRV_H_
 
 #include <adt/list.h>
 #include <bool.h>

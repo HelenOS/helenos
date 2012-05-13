@@ -45,7 +45,7 @@
 
 #include "icmp.h"
 #include "icmp_std.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inetping.h"
 
 static FIBRIL_MUTEX_INITIALIZE(client_list_lock);

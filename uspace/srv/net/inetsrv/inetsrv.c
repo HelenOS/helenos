@@ -49,14 +49,14 @@
 #include "addrobj.h"
 #include "icmp.h"
 #include "icmp_std.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inetcfg.h"
 #include "inetping.h"
 #include "inet_link.h"
 #include "reass.h"
 #include "sroute.h"
 
-#define NAME "inet"
+#define NAME "inetsrv"
 
 static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 

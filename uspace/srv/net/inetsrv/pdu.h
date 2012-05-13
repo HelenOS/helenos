@@ -38,7 +38,7 @@
 #define INET_PDU_H_
 
 #include <sys/types.h>
-#include "inet.h"
+#include "inetsrv.h"
 
 #define INET_CHECKSUM_INIT 0xffff
 
