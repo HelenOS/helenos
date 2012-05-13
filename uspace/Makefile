@@ -50,6 +50,7 @@ DIRS = \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
+	app/nterm \
 	app/redir \
 	app/sbi \
 	app/sportdmp \

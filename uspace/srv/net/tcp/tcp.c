@@ -179,10 +179,10 @@ static int tcp_init(void)
 	log_msg(LVL_DEBUG, "tcp_init()");
 
 	tcp_rqueue_init();
-	tcp_rqueue_thread_start();
+	tcp_rqueue_fibril_start();
 
 	tcp_ncsim_init();
-	tcp_ncsim_thread_start();
+	tcp_ncsim_fibril_start();
 
 	if (0) tcp_test();
 
