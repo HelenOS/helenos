@@ -344,7 +344,8 @@ static int addr_list(void)
 	}
 
 	printf("Configured addresses:\n");
-
+	if (count > 0)
+		printf("    [Addr/Width] [Link-Name] [Addr-Name] [Def-MTU]\n");
 	ainfo.name = linfo.name = astr = NULL;
 
 	for (i = 0; i < count; i++) {
@@ -414,6 +415,8 @@ static int sroute_list(void)
 	}
 
 	printf("Static routes:\n");
+	if (count > 0)
+		printf("    [Dest/Width] [Router-Addr] [Route-Name]\n");
 
 	srinfo.name = dest_str = router_str = NULL;
 
