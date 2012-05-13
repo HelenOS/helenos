@@ -42,22 +42,51 @@
 
 #define NAME "loc"
 
-int main(int argc, char *argv[])
+static int show_cat(const char *cat_name, category_id_t cat_id)
+{
+	service_id_t *svc_ids;
+	size_t svc_cnt;
+	char *svc_name;
+	int rc;
+	size_t j;
+
+	printf("%s (%" PRIun "):\n", cat_name, cat_id);
+
+	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting list of services in "
+		    "category %s, skipping.\n", cat_name);
+		return rc;
+	}
+
+	for (j = 0; j < svc_cnt; j++) {
+		rc = loc_service_get_name(svc_ids[j], &svc_name);
+		if (rc != EOK) {
+			printf(NAME ": Unknown service name (SID %"
+			    PRIun ").\n", svc_ids[j]);
+			continue;
+		}
+		printf("\t%s (%" PRIun ")\n", svc_name, svc_ids[j]);
+		free(svc_name);
+	}
+
+	free(svc_ids);
+	return EOK;
+}
+
+static int list_svcs_by_cat(void)
 {
 	category_id_t *cat_ids;
 	size_t cat_cnt;
-	service_id_t *svc_ids;
-	size_t svc_cnt;
 
-	size_t i, j;
+	size_t i;
 	char *cat_name;
-	char *svc_name;
 	int rc;
 
 	rc = loc_get_categories(&cat_ids, &cat_cnt);
 	if (rc != EOK) {
 		printf(NAME ": Error getting list of categories.\n");
-		return 1;
+		return rc;
 	}
 
 	for (i = 0; i < cat_cnt; i++) {
@@ -67,35 +96,66 @@ int main(int argc, char *argv[])
 
 		if (cat_name == NULL) {
 			printf(NAME ": Error allocating memory.\n");
-			return 1;
+			free(cat_ids);
+			return rc;
 		}
 
-		printf("%s (%" PRIun "):\n", cat_name, cat_ids[i]);
+		rc = show_cat(cat_name, cat_ids[i]);
+		(void) rc;
 
-		rc = loc_category_get_svcs(cat_ids[i], &svc_ids, &svc_cnt);
-		if (rc != EOK) {
-			printf(NAME ": Failed getting list of services in "
-			    "category %s, skipping.\n", cat_name);
-			free(cat_name);
-			continue;
-		}
-
-		for (j = 0; j < svc_cnt; j++) {
-			rc = loc_service_get_name(svc_ids[j], &svc_name);
-			if (rc != EOK) {
-				printf(NAME ": Unknown service name (SID %"
-				    PRIun ").\n", svc_ids[j]);
-				continue;
-			}
-			printf("\t%s (%" PRIun ")\n", svc_name, svc_ids[j]);
-			free(svc_name);
-		}
-
-		free(svc_ids);
 		free(cat_name);
 	}
 
 	free(cat_ids);
+	return EOK;
+}
+
+static void print_syntax(void)
+{
+	printf("syntax:\n"
+	    "\t" NAME "                      List categories and services "
+		"they contain\n"
+	    "\t" NAME " show-cat <category>  List services in category\n");
+}
+
+int main(int argc, char *argv[])
+{
+	int rc;
+	char *cmd;
+	char *cat_name;
+	category_id_t cat_id;
+
+	if (argc <= 1) {
+		rc = list_svcs_by_cat();
+		if (rc != EOK)
+			return 1;
+		return 0;
+	}
+
+	cmd = argv[1];
+	if (str_cmp(cmd, "show-cat") == 0) {
+		if (argc < 3) {
+			printf("Argument missing.\n");
+			print_syntax();
+			return 1;
+		}
+
+		cat_name = argv[2];
+		rc = loc_category_get_id(cat_name, &cat_id, 0);
+		if (rc != EOK) {
+			printf("Error looking up category '%s'.\n", cat_name);
+			return 1;
+		}
+
+		rc = show_cat(cat_name, cat_id);
+		if (rc != EOK)
+			return 1;
+	} else {
+		printf("Invalid command '%s'\n", cmd);
+		print_syntax();
+		return 1;
+	}
+
 	return 0;
 }
 
