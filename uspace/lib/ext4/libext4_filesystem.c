@@ -820,8 +820,12 @@ int ext4_filesystem_get_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-/** TODO comment
+/** Set physical block address for the block logical address into the i-node.
  *
+ * @param inode_ref		i-node to set block address to
+ * @param iblock		logical index of block
+ * @param fblock		physical block address
+ * @return				error code
  */
 int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 		aoff64_t iblock, uint32_t fblock)
@@ -830,21 +834,21 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
-	/* Handle inode using extents */
+	// Handle inode using extents
 	if (ext4_superblock_has_feature_compatible(fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 		// not reachable !!!
 		return ENOTSUP;
 	}
 
-	/* Handle simple case when we are dealing with direct reference */
+	// Handle simple case when we are dealing with direct reference
 	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
 		ext4_inode_set_direct_block(inode_ref->inode, (uint32_t)iblock, fblock);
 		inode_ref->dirty = true;
 		return EOK;
 	}
 
-	/* Determine the indirection level needed to get the desired block */
+	// Determine the indirection level needed to get the desired block
 	int level = -1;
 	for (int i = 1; i < 4; i++) {
 		if (iblock < fs->inode_block_limits[i]) {
@@ -859,7 +863,7 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 
-	/* Compute offsets for the topmost level */
+	// Compute offsets for the topmost level
 	aoff64_t block_offset_in_level = iblock - fs->inode_block_limits[level-1];
 	uint32_t current_block = ext4_inode_get_indirect_block(inode_ref->inode, level-1);
 	uint32_t offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
@@ -867,25 +871,31 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	uint32_t new_block_addr;
 	block_t *block, *new_block;
 
+	// Is needed to allocate indirect block on the i-node level
 	if (current_block == 0) {
+
+		// Allocate new indirect block
 		rc = ext4_balloc_alloc_block(inode_ref, &new_block_addr);
 		if (rc != EOK) {
 			return rc;
 		}
 
+		// Update i-node
 		ext4_inode_set_indirect_block(inode_ref->inode, level - 1, new_block_addr);
-
 		inode_ref->dirty = true;
 
+		// Load newly allocated block
 		rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
 			ext4_balloc_free_block(inode_ref, new_block_addr);
 			return rc;
 		}
 
+		// Initialize new block
 		memset(new_block->data, 0, block_size);
 		new_block->dirty = true;
 
+		// Put back the allocated block
 		rc = block_put(new_block);
 		if (rc != EOK) {
 			return rc;
@@ -907,18 +917,22 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 
 		if ((level > 1) && (current_block == 0)) {
+
+			// Allocate new block
 			rc = ext4_balloc_alloc_block(inode_ref, &new_block_addr);
 			if (rc != EOK) {
 				block_put(block);
 				return rc;
 			}
 
+			// Load newly allocated block
 			rc = block_get(&new_block, fs->device, new_block_addr, BLOCK_FLAGS_NOREAD);
 			if (rc != EOK) {
 				block_put(block);
 				return rc;
 			}
 
+			// Initialize allocated block
 			memset(new_block->data, 0, block_size);
 			new_block->dirty = true;
 
@@ -928,11 +942,13 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 				return rc;
 			}
 
+			// Write block address to the parent
 			((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(new_block_addr);
 			block->dirty = true;
 			current_block = new_block_addr;
 		}
 
+		// Will be finished, write the fblock address
 		if (level == 1) {
 			((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(fblock);
 			block->dirty = true;
@@ -960,8 +976,11 @@ int ext4_filesystem_set_inode_data_block_index(ext4_inode_ref_t *inode_ref,
 	return EOK;
 }
 
-/** TODO comment
+/** Release data block from i-node
  *
+ * @param inode_ref 	i-node to release block from
+ * @param iblock		logical block to be released
+ * @return				error code
  */
 int ext4_filesystem_release_inode_block(
 		ext4_inode_ref_t *inode_ref, uint32_t iblock)
@@ -972,14 +991,14 @@ int ext4_filesystem_release_inode_block(
 
 	ext4_filesystem_t *fs = inode_ref->fs;
 
-	// EXTENTS are handled otherwise
+	// EXTENTS are handled otherwise = there is not support in this function
 	assert(! (ext4_superblock_has_feature_incompatible(fs->superblock,
 			EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)));
 
 	ext4_inode_t *inode = inode_ref->inode;
 
-	/* Handle simple case when we are dealing with direct reference */
+	// Handle simple case when we are dealing with direct reference
 	if (iblock < EXT4_INODE_DIRECT_BLOCK_COUNT) {
 		fblock = ext4_inode_get_direct_block(inode, iblock);
 		// Sparse file
@@ -992,7 +1011,7 @@ int ext4_filesystem_release_inode_block(
 	}
 
 
-	/* Determine the indirection level needed to get the desired block */
+	// Determine the indirection level needed to get the desired block
 	int level = -1;
 	for (int i = 1; i < 4; i++) {
 		if (iblock < fs->inode_block_limits[i]) {
@@ -1005,7 +1024,7 @@ int ext4_filesystem_release_inode_block(
 		return EIO;
 	}
 
-	/* Compute offsets for the topmost level */
+	// Compute offsets for the topmost level
 	aoff64_t block_offset_in_level = iblock - fs->inode_block_limits[level-1];
 	uint32_t current_block = ext4_inode_get_indirect_block(inode, level-1);
 	uint32_t offset_in_block = block_offset_in_level / fs->inode_blocks_per_level[level-1];
@@ -1022,7 +1041,7 @@ int ext4_filesystem_release_inode_block(
 
 		current_block = uint32_t_le2host(((uint32_t*)block->data)[offset_in_block]);
 
-		// Set zero
+		// Set zero if physical data block address found
 		if (level == 1) {
 			((uint32_t*)block->data)[offset_in_block] = host2uint32_t_le(0);
 			block->dirty = true;
@@ -1052,6 +1071,8 @@ int ext4_filesystem_release_inode_block(
 	if (fblock == 0) {
 		return EOK;
 	}
+
+	// Physical block is not referenced, it can be released
 
 	return ext4_balloc_free_block(inode_ref, fblock);
 
