@@ -41,11 +41,11 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
-	app/inetcfg \
+	app/inet \
 	app/kill \
 	app/killall \
 	app/klog \
-	app/locinfo \
+	app/loc \
 	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
@@ -68,15 +68,14 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/websrv \
 	app/sysinfo \
 	app/mkbd \
 	srv/clipboard \
-	srv/loc \
+	srv/locsrv \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \
-	srv/net/inet \
+	srv/net/inetsrv \
 	srv/net/loopip \
 	srv/net/tcp \
 	srv/net/udp \
@@ -102,6 +101,7 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	srv/websrv \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/char/i8042 \
