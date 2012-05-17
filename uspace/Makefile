@@ -70,6 +70,7 @@ DIRS = \
 	app/ping \
 	app/sysinfo \
 	app/mkbd \
+	app/websrv \
 	srv/clipboard \
 	srv/locsrv \
 	srv/devman \
@@ -101,7 +102,6 @@ DIRS = \
 	srv/hid/input \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
-	srv/websrv \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/char/i8042 \

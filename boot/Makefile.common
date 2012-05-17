@@ -111,8 +111,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/devman/devman \
-	$(USPACE_PATH)/srv/websrv/websrv
+	$(USPACE_PATH)/srv/devman/devman
 
 RD_DRVS = \
 	infrastructure/root \
@@ -184,7 +183,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/top/top \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
-	$(USPACE_PATH)/app/mkbd/mkbd
+	$(USPACE_PATH)/app/mkbd/mkbd \
+	$(USPACE_PATH)/app/websrv/websrv
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \
