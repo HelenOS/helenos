@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <task.h>
 
 #include <net/in.h>
 #include <net/inet.h>
@@ -70,6 +71,8 @@ static char lbuf[BUFFER_SIZE + 1];
 static size_t lbuf_used;
 
 static char fbuf[BUFFER_SIZE];
+
+static bool verbose = false;
 
 /** Responses to send to client. */
 
@@ -186,7 +189,9 @@ static int send_response(int conn_sd, const char *msg)
 {
 	size_t response_size = str_size(msg);
 	
-	fprintf(stderr, "Sending response\n");
+	if (verbose)
+	    fprintf(stderr, "Sending response\n");
+	
 	ssize_t rc = send(conn_sd, (void *) msg, response_size, 0);
 	if (rc < 0) {
 		fprintf(stderr, "send() failed\n");
@@ -250,7 +255,8 @@ static int req_process(int conn_sd)
 		return rc;
 	}
 	
-	fprintf(stderr, "Request: %s", lbuf);
+	if (verbose)
+		fprintf(stderr, "Request: %s", lbuf);
 	
 	if (str_lcmp(lbuf, "GET ", 4) != 0) {
 		rc = send_response(conn_sd, msg_not_implemented);
@@ -265,7 +271,8 @@ static int req_process(int conn_sd)
 	}
 	
 	*end_uri = '\0';
-	fprintf(stderr, "Requested URI: %s\n", uri);
+	if (verbose)
+		fprintf(stderr, "Requested URI: %s\n", uri);
 	
 	if (!uri_is_valid(uri)) {
 		rc = send_response(conn_sd, msg_bad_request);
@@ -286,7 +293,9 @@ static void usage(void)
 	    "\tListening port (default " STRING(DEFAULT_PORT) ").\n"
 	    "\n"
 	    "-h | --help\n"
-	    "\tShow this application help.\n");
+	    "\tShow this application help.\n"
+	    "-v | --verbose\n"
+	    "\tVerbose mode\n");
 }
 
 static int parse_option(int argc, char *argv[], int *index)
@@ -306,6 +315,9 @@ static int parse_option(int argc, char *argv[], int *index)
 		
 		port = (uint16_t) value;
 		break;
+	case 'v':
+		verbose = true;
+		break;
 	/* Long options with double dash */
 	case '-':
 		if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
@@ -317,6 +329,8 @@ static int parse_option(int argc, char *argv[], int *index)
 				return rc;
 			
 			port = (uint16_t) value;
+		} else if (str_cmp(argv[*index] +2, "verbose") == 0) {
+			verbose = true;
 		} else {
 			usage();
 			return EINVAL;
@@ -357,7 +371,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	fprintf(stderr, "Creating socket\n");
+	printf("%s: HelenOS web server\n", NAME);
+
+	if (verbose)
+		fprintf(stderr, "Creating socket\n");
 	
 	int listen_sd = socket(PF_INET, SOCK_STREAM, 0);
 	if (listen_sd < 0) {
@@ -379,8 +396,11 @@ int main(int argc, char *argv[])
 		return 4;
 	}
 	
-	fprintf(stderr, "Listening for connections at port %" PRIu16 "\n",
-	    port);
+	fprintf(stderr, "%s: Listening for connections at port %" PRIu16 "\n",
+	    NAME, port);
+
+	task_retval(0);
+
 	while (true) {
 		struct sockaddr_in raddr;
 		socklen_t raddr_len = sizeof(raddr);
@@ -392,8 +412,10 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		fprintf(stderr, "Connection accepted (sd=%d), "
-		    "waiting for request\n", conn_sd);
+		if (verbose) {
+			fprintf(stderr, "Connection accepted (sd=%d), "
+			    "waiting for request\n", conn_sd);
+		}
 		
 		rbuf_out = 0;
 		rbuf_in = 0;
@@ -411,7 +433,8 @@ int main(int argc, char *argv[])
 			return 5;
 		}
 		
-		fprintf(stderr, "Connection closed\n");
+		if (verbose)
+			fprintf(stderr, "Connection closed\n");
 	}
 	
 	/* Not reached */
