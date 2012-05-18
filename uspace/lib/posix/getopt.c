@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,59 +25,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup libposix
  * @{
  */
-/** @file
- * @brief OHCI driver
+/** @file Command line argument parsing.
  */
-#ifndef DRV_OHCI_UTILS_MALLOC32_H
-#define DRV_OHCI_UTILS_MALLOC32_H
+#define LIBPOSIX_INTERNAL
 
-#include <assert.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <errno.h>
-#include <mem.h>
-#include <as.h>
+#include "internal/common.h"
+#include "libc/getopt.h"
+#include "getopt.h"
 
-/* Generic TDs and EDs require 16byte alignment,
- * Isochronous TD require 32byte alignment,
- * buffers do not have to be aligned.
- */
-#define OHCI_ALIGN 32
 
-/** Get physical address translation
- *
- * @param[in] addr Virtual address to translate
- * @return Physical address if exists, NULL otherwise.
- */
-static inline uintptr_t addr_to_phys(const void *addr)
+int posix_getopt_long(int argc, char * const argv[],
+    const char *opt_string, const struct option *long_opts, int *long_index)
 {
-	uintptr_t result;
-	int ret = as_get_physical_mapping(addr, &result);
-	
-	if (ret != EOK)
-		return 0;
-	
-	return result;
+	int rc = getopt_long(argc, argv, opt_string, long_opts, long_index);
+	posix_optarg = (char *) optarg;
+	return rc;
 }
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] size Size of the required memory space
- * @return Address of the aligned and big enough memory place, NULL on failure.
- */
-static inline void * malloc32(size_t size)
-	{ return memalign(OHCI_ALIGN, size); }
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] addr Address of the place allocated by malloc32
- */
-static inline void free32(void *addr)
-	{ free(addr); }
-#endif
-/**
- * @}
- */
+
+int posix_getopt(int argc, char * const argv[], const char *opt_string)
+{
+	int rc = getopt(argc, argv, opt_string);
+	posix_optarg = (char *) optarg;
+	return rc;
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,59 +25,81 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup msim
  * @{
  */
-/** @file
- * @brief OHCI driver
+/** @file HelenOS specific functions for MSIM simulator.
  */
-#ifndef DRV_OHCI_UTILS_MALLOC32_H
-#define DRV_OHCI_UTILS_MALLOC32_H
-
-#include <assert.h>
-#include <malloc.h>
-#include <unistd.h>
+#include "../../io/input.h"
+#include "../../io/output.h"
+#include "../../fault.h"
+#include "helenos.h"
+#include <tinput.h>
 #include <errno.h>
-#include <mem.h>
-#include <as.h>
 
-/* Generic TDs and EDs require 16byte alignment,
- * Isochronous TD require 32byte alignment,
- * buffers do not have to be aligned.
- */
-#define OHCI_ALIGN 32
+static tinput_t *input_prompt;
 
-/** Get physical address translation
+/** Terminal and readline initialization
  *
- * @param[in] addr Virtual address to translate
- * @return Physical address if exists, NULL otherwise.
  */
-static inline uintptr_t addr_to_phys(const void *addr)
+void input_init(void)
 {
-	uintptr_t result;
-	int ret = as_get_physical_mapping(addr, &result);
-	
-	if (ret != EOK)
-		return 0;
-	
-	return result;
+	input_prompt = tinput_new();
+	if (input_prompt == NULL) {
+		die(1, "Failed to intialize input.");
+	}
+	helenos_dprinter_init();
 }
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] size Size of the required memory space
- * @return Address of the aligned and big enough memory place, NULL on failure.
- */
-static inline void * malloc32(size_t size)
-	{ return memalign(OHCI_ALIGN, size); }
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] addr Address of the place allocated by malloc32
- */
-static inline void free32(void *addr)
-	{ free(addr); }
-#endif
-/**
- * @}
- */
+
+void input_inter(void)
+{
+}
+
+void input_shadow( void)
+{
+}
+
+void input_back( void)
+{
+}
+
+char *helenos_input_get_next_command(void)
+{
+	tinput_set_prompt(input_prompt, "[msim] ");
+
+	char *commline = NULL;
+	int rc = tinput_read(input_prompt, &commline);
+
+	if (rc == ENOENT) {
+		rc = asprintf(&commline, "quit");
+		mprintf("Quit\n");
+		if (rc != EOK) {
+			exit(1);
+		}
+	}
+
+	/* On error, it remains NULL. */
+	return commline;
+}
+
+
+bool stdin_poll(char *key)
+{
+	kbd_event_t ev;
+	suseconds_t timeout = 0;
+	errno = EOK;
+	console_flush(input_prompt->console);
+	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
+	if (!has_input) {
+		return false;
+	}
+
+	if (ev.type != KEY_PRESS)
+		return false;
+
+	*key = ev.c;
+
+	return true;
+}
+

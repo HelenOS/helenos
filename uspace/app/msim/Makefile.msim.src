@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2011 Petr Koupy
-# Copyright (c) 2011 Jiri Zarevucky
+# Copyright (c) 2012 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,39 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-LIBRARY = libposix
-SLIBRARY = libposix.so.0.0
-LSONAME = libposix.so0
 
-INCLUDE_LIBC = ./libc
+BINARY = msim
+LIBS = $(LIBCLUI_PREFIX)/libclui.a
+POSIX_COMPAT = y
+# Needed because MSIM is not that strict as HelenOS
+EXTRA_CFLAGS = -Wno-error -I$(LIBCLUI_PREFIX)
 
-PRE_DEPEND = $(INCLUDE_LIBC)
-EXTRA_CLEAN = $(INCLUDE_LIBC)
-
-SOURCES = \
-	ctype.c \
-	errno.c \
-	fcntl.c \
-	fnmatch.c \
-	getopt.c \
-	locale.c \
-	math.c \
-	pwd.c \
-	signal.c \
-	stdio.c \
-	stdio/scanf.c \
-	stdlib.c \
-	stdlib/strtol.c \
-	stdlib/strtold.c \
-	string.c \
-	strings.c \
-	sys/stat.c \
-	sys/wait.c \
-	time.c \
-	unistd.c
+include Makefile.sources
 
 include $(USPACE_PREFIX)/Makefile.common
-
-$(INCLUDE_LIBC): ../c/include
-	ln -s -f -n $^ $@

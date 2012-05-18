@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,58 +25,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup libposix
  * @{
  */
-/** @file
- * @brief OHCI driver
+/** @file Command line argument parsing.
  */
-#ifndef DRV_OHCI_UTILS_MALLOC32_H
-#define DRV_OHCI_UTILS_MALLOC32_H
+#ifndef POSIX_GETOPT_H
+#define POSIX_GETOPT_H
 
-#include <assert.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <errno.h>
-#include <mem.h>
-#include <as.h>
+#include "unistd.h"
 
-/* Generic TDs and EDs require 16byte alignment,
- * Isochronous TD require 32byte alignment,
- * buffers do not have to be aligned.
- */
-#define OHCI_ALIGN 32
+/* Option Arguments */
+#define no_argument        0
+#define required_argument  1
+#define optional_argument  2
 
-/** Get physical address translation
- *
- * @param[in] addr Virtual address to translate
- * @return Physical address if exists, NULL otherwise.
- */
-static inline uintptr_t addr_to_phys(const void *addr)
-{
-	uintptr_t result;
-	int ret = as_get_physical_mapping(addr, &result);
-	
-	if (ret != EOK)
-		return 0;
-	
-	return result;
-}
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] size Size of the required memory space
- * @return Address of the aligned and big enough memory place, NULL on failure.
- */
-static inline void * malloc32(size_t size)
-	{ return memalign(OHCI_ALIGN, size); }
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] addr Address of the place allocated by malloc32
- */
-static inline void free32(void *addr)
-	{ free(addr); }
+#ifndef LIBPOSIX_INTERNAL
+struct option {
+	const char *name;
+	int has_arg;
+	int *flag;
+	int val;
+};
+#endif
+
+extern int posix_getopt_long(int, char * const [], const char *, const struct option *, int *);
+
+
+#ifndef LIBPOSIX_INTERNAL
+	#define getopt_long posix_getopt_long
+#endif
+
+
 #endif
 /**
  * @}
