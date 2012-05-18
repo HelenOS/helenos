@@ -50,7 +50,7 @@
 #include <assert.h>
 
 #include "category.h"
-#include "loc.h"
+#include "locsrv.h"
 
 #define NAME          "loc"
 #define NULL_SERVICES  256

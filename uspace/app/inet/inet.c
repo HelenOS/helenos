@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inetcfg
+/** @addtogroup inet
  * @{
  */
 /** @file Internet configuration utility.
@@ -42,7 +42,7 @@
 #include <str_error.h>
 #include <sys/types.h>
 
-#define NAME "inetcfg"
+#define NAME "inet"
 
 static void print_syntax(void)
 {
@@ -186,8 +186,8 @@ static int addr_create_static(int argc, char *argv[])
 
 	rc = inetcfg_addr_create_static(aobj_name, &naddr, link_id, &addr_id);
 	if (rc != EOK) {
-		printf(NAME ": Failed creating static address '%s' (%d)\n",
-		    aobj_name, rc);
+		printf(NAME ": Failed creating static address '%s' (%s)\n",
+		    aobj_name, str_error(rc));
 		return EIO;
 	}
 
@@ -344,7 +344,8 @@ static int addr_list(void)
 	}
 
 	printf("Configured addresses:\n");
-
+	if (count > 0)
+		printf("    [Addr/Width] [Link-Name] [Addr-Name] [Def-MTU]\n");
 	ainfo.name = linfo.name = astr = NULL;
 
 	for (i = 0; i < count; i++) {
@@ -414,6 +415,8 @@ static int sroute_list(void)
 	}
 
 	printf("Static routes:\n");
+	if (count > 0)
+		printf("    [Dest/Width] [Router-Addr] [Route-Name]\n");
 
 	srinfo.name = dest_str = router_str = NULL;
 

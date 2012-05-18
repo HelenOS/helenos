@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Jiri Svoboda
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-BINARY = inet
+USPACE_PREFIX = ../..
+BINARY = loc
 
 SOURCES = \
-	addrobj.c \
-	icmp.c \
-	inet.c \
-	inet_link.c \
-	inet_util.c \
-	inetcfg.c \
-	inetping.c \
-	pdu.c \
-	reass.c \
-	sroute.c
+	loc.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2012 Jiri Svoboda
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,9 +28,11 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = inetcfg
+BINARY = locsrv
+STATIC_NEEDED = y
 
 SOURCES = \
-	inetcfg.c
+	category.c \
+	locsrv.c
 
 include $(USPACE_PREFIX)/Makefile.common

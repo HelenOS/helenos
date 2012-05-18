@@ -45,7 +45,7 @@
 #include <sys/types.h>
 
 #include "addrobj.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inet_link.h"
 #include "inetcfg.h"
 #include "sroute.h"
@@ -74,7 +74,12 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 	addr->naddr = *naddr;
 	addr->ilink = ilink;
 	addr->name = str_dup(name);
-	inet_addrobj_add(addr);
+	rc = inet_addrobj_add(addr);
+	if (rc != EOK) {
+		log_msg(LVL_DEBUG, "Duplicate address name '%s'.", addr->name);
+		inet_addrobj_delete(addr);
+		return rc;
+	}
 
 	iaddr.ipv4 = addr->naddr.ipv4;
 	rc = iplink_addr_add(ilink->iplink, &iaddr);

@@ -44,7 +44,7 @@
 #include <str.h>
 
 #include "addrobj.h"
-#include "inet.h"
+#include "inetsrv.h"
 #include "inet_link.h"
 #include "pdu.h"
 
@@ -206,12 +206,20 @@ static int inet_link_open(service_id_t sid)
 	addr->naddr.bits = 24;
 	addr->ilink = ilink;
 	addr->name = str_dup("v4a");
-	inet_addrobj_add(addr);
+	rc = inet_addrobj_add(addr);
+	if (rc != EOK) {
+		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		inet_addrobj_delete(addr);
+		/* XXX Roll back */
+		return rc;
+	}
 
 	iaddr.ipv4 = addr->naddr.ipv4;
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		inet_addrobj_remove(addr);
+		inet_addrobj_delete(addr);
 		/* XXX Roll back */
 		return rc;
 	}

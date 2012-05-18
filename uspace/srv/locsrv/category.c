@@ -39,7 +39,7 @@
 #include <str.h>
 
 #include "category.h"
-#include "loc.h"
+#include "locsrv.h"
 
 /** Initialize category directory. */
 void categ_dir_init(categ_dir_t *cdir)

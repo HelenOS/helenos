@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Jiri Svoboda
+# Copyright (c) 2012 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,10 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
-BINARY = locinfo
+BINARY = inet
 
 SOURCES = \
-	locinfo.c
+	inet.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2012 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,12 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-BINARY = loc
-STATIC_NEEDED = y
+USPACE_PREFIX = ../../..
+BINARY = inetsrv
 
 SOURCES = \
-	category.c \
-	loc.c
+	addrobj.c \
+	icmp.c \
+	inetsrv.c \
+	inet_link.c \
+	inet_util.c \
+	inetcfg.c \
+	inetping.c \
+	pdu.c \
+	reass.c \
+	sroute.c
 
 include $(USPACE_PREFIX)/Makefile.common

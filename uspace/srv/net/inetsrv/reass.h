@@ -34,13 +34,13 @@
  * @brief
  */
 
-#ifndef ICMP_H_
-#define ICMP_H_
+#ifndef INET_REASS_H_
+#define INET_REASS_H_
 
-#include "inet.h"
+#include <sys/types.h>
+#include "inetsrv.h"
 
-extern int icmp_recv(inet_dgram_t *);
-extern int icmp_ping_send(uint16_t, inetping_sdu_t *);
+extern int inet_reass_queue_packet(inet_packet_t *);
 
 #endif
 

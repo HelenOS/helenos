@@ -71,7 +71,7 @@ INIT_TASKS = \
 	$(USPACE_PATH)/srv/ns/ns \
 	$(USPACE_PATH)/srv/loader/loader \
 	$(USPACE_PATH)/app/init/init \
-	$(USPACE_PATH)/srv/loc/loc \
+	$(USPACE_PATH)/srv/locsrv/locsrv \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs
 
@@ -106,7 +106,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
-	$(USPACE_PATH)/srv/net/inet/inet \
+	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
@@ -156,10 +156,10 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/ext2info/ext2info \
-	$(USPACE_PATH)/app/inetcfg/inetcfg \
+	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
-	$(USPACE_PATH)/app/locinfo/locinfo \
+	$(USPACE_PATH)/app/loc/loc \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
