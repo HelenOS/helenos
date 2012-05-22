@@ -581,11 +581,13 @@ rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 
 	switch (method) {
 	case CLOCK_GET_BATTERY_STATUS:
+		/* Get the RTC battery status */
 		batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
 		    RTC_D_BATTERY_OK;
 		async_answer_1(callid, EOK, batt_ok);
 		break;
 	case CLOCK_GET_BOOTTIME:
+		/* Get the boot time */
 		if (boottime == 0) {
 			struct tm cur_tm;
 			time_t uptime;
