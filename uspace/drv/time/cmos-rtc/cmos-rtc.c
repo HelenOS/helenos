@@ -37,7 +37,10 @@
 
 #include <errno.h>
 #include <ddi.h>
+#include <as.h>
+#include <sysinfo.h>
 #include <libarch/ddi.h>
+#include <libarch/barrier.h>
 #include <stdio.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
@@ -45,6 +48,7 @@
 #include <fibril_synch.h>
 #include <device/hw_res.h>
 #include <devman.h>
+#include <macros.h>
 #include <ipc/clock_ctl.h>
 
 #include "cmos-regs.h"
@@ -73,6 +77,12 @@ typedef struct rtc {
 	bool removed;
 } rtc_t;
 
+/** Pointer to the kernel shared variables with time */
+struct {
+	volatile sysarg_t seconds1;
+	volatile sysarg_t useconds;
+	volatile sysarg_t seconds2;
+} *kuptime = NULL;
 
 static int  rtc_time_get(ddf_fun_t *fun, struct tm *t);
 static int  rtc_time_set(ddf_fun_t *fun, struct tm *t);
@@ -90,8 +100,10 @@ static void rtc_default_handler(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call);
 static int rtc_dev_remove(ddf_dev_t *dev);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
+static time_t uptime_get(void);
 
 static ddf_dev_ops_t rtc_dev_ops;
+static time_t boottime = 0;
 
 /** The RTC device driver's standard operations */
 static driver_ops_t rtc_ops = {
@@ -368,14 +380,25 @@ static int
 rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
 	bool bcd_mode;
+	time_t norm_time;
+	time_t uptime;
 	int  reg_b;
 	int  reg_a;
 	int  epoch;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
 	/* Try to normalize the content of the tm structure */
-	if (mktime(t) < 0)
+	if ((norm_time = mktime(t)) < 0)
 		return EINVAL;
+
+	uptime = uptime_get();
+	if (norm_time <= uptime) {
+		/* This is not acceptable */
+		return EINVAL;
+	}
+
+	/* boottime must be recomputed */
+	boottime = 0;
 
 	fibril_mutex_lock(&rtc->mutex);
 
@@ -554,12 +577,30 @@ rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t method = IPC_GET_IMETHOD(*call);
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 	bool batt_ok;
+	sysarg_t r = EOK;
 
 	switch (method) {
 	case CLOCK_GET_BATTERY_STATUS:
 		batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
 		    RTC_D_BATTERY_OK;
 		async_answer_1(callid, EOK, batt_ok);
+		break;
+	case CLOCK_GET_BOOTTIME:
+		if (boottime == 0) {
+			struct tm cur_tm;
+			time_t uptime;
+
+			uptime = uptime_get();
+			r = rtc_time_get(fun, &cur_tm);
+			if (r == EOK) {
+				time_t current_time = mktime(&cur_tm);
+				if (current_time < uptime)
+					r = EINVAL;
+				else
+					boottime = current_time - uptime;
+			}
+		}
+		async_answer_1(callid, r, boottime);
 		break;
 	default:
 		async_answer_0(callid, ENOTSUP);
@@ -632,6 +673,51 @@ static unsigned
 bin2bcd(unsigned binary)
 {
 	return ((binary / 10) << 4) + (binary % 10);
+}
+
+/** Get the current uptime
+ *
+ * The time variables are memory mapped (read-only) from kernel which
+ * updates them periodically.
+ *
+ * As it is impossible to read 2 values atomically, we use a trick:
+ * First we read the seconds, then we read the microseconds, then we
+ * read the seconds again. If a second elapsed in the meantime, set
+ * the microseconds to zero.
+ *
+ * This assures that the values returned by two subsequent calls
+ * to gettimeofday() are monotonous.
+ *
+ */
+static time_t
+uptime_get(void)
+{
+	if (kuptime == NULL) {
+		uintptr_t faddr;
+		int rc = sysinfo_get_value("clock.faddr", &faddr);
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
+		}
+		
+		void *addr;
+		rc = physmem_map((void *) faddr, 1,
+		    AS_AREA_READ | AS_AREA_CACHEABLE, &addr);
+		if (rc != EOK) {
+			as_area_destroy(addr);
+			errno = rc;
+			return -1;
+		}
+		
+		kuptime = addr;
+	}
+
+	sysarg_t s2 = kuptime->seconds2;
+	
+	read_barrier();
+	sysarg_t s1 = kuptime->seconds1;
+	
+	return max(s1, s2);
 }
 
 int
