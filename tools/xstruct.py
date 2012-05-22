@@ -34,7 +34,15 @@ import struct
 import sys
 import types
 
+# Handle long integer conversions nicely in both Python 2 and Python 3
 integer_types = (int, long) if sys.version < '3' else (int,)
+
+# Ensure that 's' format for struct receives correct data type depending
+# on Python version (needed due to different way to encode into bytes) 
+ensure_string = \
+	(lambda value: value if type(value) is str else bytes(value)) \
+		if sys.version < '3' else \
+	(lambda value: bytes(value, 'ascii') if type(value) is str else value)
 
 ranges = {
 	'B': (integer_types, 0x00, 0xff),
@@ -76,6 +84,8 @@ class Struct:
 					check_range(variable + '[' + repr(index) + ']', fmt, item)
 					args.append(item)
 			else:
+				if (fmt == "s"):
+					value = ensure_string(value)
 				check_range(variable, fmt, value)
 				args.append(value)		
 		return struct.pack(self._format_, *args)
