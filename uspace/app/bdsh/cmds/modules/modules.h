@@ -60,6 +60,8 @@
 #include "mount/entry.h"
 #include "unmount/entry.h"
 #include "kcon/entry.h"
+#include "printf/entry.h"
+#include "echo/entry.h"
 
 /* Each .def function fills the module_t struct with the individual name, entry
  * point, help entry point, etc. You can use config.h to control what modules
@@ -81,6 +83,8 @@ module_t modules[] = {
 #include "mount/mount_def.h"
 #include "unmount/unmount_def.h"
 #include "kcon/kcon_def.h"
+#include "printf/printf_def.h"
+#include "echo/echo_def.h"
 
 	{NULL, NULL, NULL, NULL}
 };

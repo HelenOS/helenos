@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2012 Alexander Prutkov
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <stdlib.h>
+#include "config.h"
+#include "util.h"
+#include "errors.h"
+#include "entry.h"
+#include "echo.h"
+#include "cmds.h"
+#include "errno.h"
 
-#ifndef LIBC_UNISTD_H_
-#define LIBC_UNISTD_H_
+static const char *cmdname = "echo";
 
-#include <sys/types.h>
-#include <time.h>
-#include <libarch/config.h>
+void help_cmd_echo(unsigned int level)
+{
+	if (level == HELP_SHORT) {
+		printf("`%s' prints arguments as they are, followed by a new line.\n", cmdname);
+	} else {
+		help_cmd_echo(HELP_SHORT);
+		printf("Usage:  %s [arg ...]\n", cmdname);
+	}
 
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
+	return;
+}
 
-#ifndef SEEK_SET
-	#define SEEK_SET  0
-#endif
+/* Main entry point for echo, accepts an array of arguments */
+int cmd_echo(char **argv)
+{
+	unsigned int argc;
 
-#ifndef SEEK_CUR
-	#define SEEK_CUR  1
-#endif
+	for (argc = 1; argv[argc] != NULL; argc ++) {
+		printf("%s ", argv[argc]);
+	}
+	printf("\n");
+	return CMD_SUCCESS;
 
-#ifndef SEEK_END
-	#define SEEK_END  2
-#endif
+}
 
-#define getpagesize()  (PAGE_SIZE)
-
-extern int dup2(int, int);
-
-extern ssize_t write(int, const void *, size_t);
-extern ssize_t read(int, void *, size_t);
-
-extern ssize_t read_all(int, void *, size_t);
-extern ssize_t write_all(int, const void *, size_t);
-
-extern off64_t lseek(int, off64_t, int);
-extern int ftruncate(int, aoff64_t);
-
-extern int close(int);
-extern int fsync(int);
-extern int unlink(const char *);
-
-extern char *getcwd(char *, size_t);
-extern int rmdir(const char *);
-extern int chdir(const char *);
-
-extern void exit(int) __attribute__((noreturn));
-extern int usleep(useconds_t);
-extern unsigned int sleep(unsigned int);
-
-#endif
-
-/** @}
- */
