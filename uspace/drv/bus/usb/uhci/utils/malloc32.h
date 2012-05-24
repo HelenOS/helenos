@@ -35,6 +35,7 @@
 #define DRV_UHCI_UTILS_MALLOC32_H
 
 #include <assert.h>
+#include <unistd.h>
 #include <errno.h>
 #include <malloc.h>
 #include <mem.h>

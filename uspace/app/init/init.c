@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 	
 	spawn("/srv/loopip");
 	spawn("/srv/ethip");
-	spawn("/srv/inet");
+	spawn("/srv/inetsrv");
 	spawn("/srv/tcp");
 	spawn("/srv/udp");
 	

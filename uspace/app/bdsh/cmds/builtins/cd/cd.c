@@ -40,6 +40,31 @@
 
 static const char *cmdname = "cd";
 
+/* Previous directory variables.
+ *
+ * Declaring them static to avoid many "== NULL" checks.
+ * PATH_MAX is not that big to cause any problems with memory overhead.
+ */
+static char previous_directory[PATH_MAX] = "";
+static char previous_directory_tmp[PATH_MAX];
+static bool previous_directory_valid = true;
+static bool previous_directory_set = false;
+
+static int chdir_and_remember(const char *new_dir) {
+
+	char *ok = getcwd(previous_directory_tmp, PATH_MAX);
+	previous_directory_valid = ok != NULL;
+	previous_directory_set = true;
+
+	int rc = chdir(new_dir);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	str_cpy(previous_directory, PATH_MAX, previous_directory_tmp);
+	return EOK;
+}
+
 void help_cmd_cd(unsigned int level)
 {
 	if (level == HELP_SHORT) {
@@ -54,6 +79,7 @@ void help_cmd_cd(unsigned int level)
 	return;
 }
 
+
 /* This is a very rudamentary 'cd' command. It is not 'link smart' (yet) */
 
 int cmd_cd(char **argv, cliuser_t *usr)
@@ -61,6 +87,17 @@ int cmd_cd(char **argv, cliuser_t *usr)
 	int argc, rc = 0;
 
 	argc = cli_count_args(argv);
+
+	/* Handle cd -- -. Override to switch to a directory named '-' */
+	bool hyphen_override = false;
+	char *target_directory = argv[1];
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--")) {
+			hyphen_override = true;
+			argc--;
+			target_directory = argv[2];
+		}
+	}
 
 	/* We don't yet play nice with whitespace, a getopt implementation should
 	 * protect "quoted\ destination" as a single argument. Its not our job to
@@ -78,10 +115,29 @@ int cmd_cd(char **argv, cliuser_t *usr)
 		return CMD_FAILURE;
 	}
 
-	/* We have the correct # of arguments
-     * TODO: handle tidle (~) expansion? */
+	/* We have the correct # of arguments */
+	// TODO: handle tidle (~) expansion? */
 
-	rc = chdir(argv[1]);
+	/* Handle 'cd -' first. */
+	if (!str_cmp(target_directory, "-") && !hyphen_override) {
+		if (!previous_directory_valid) {
+			cli_error(CL_EFAIL, "Cannot switch to previous directory");
+			return CMD_FAILURE;
+		}
+		if (!previous_directory_set) {
+			cli_error(CL_EFAIL, "No previous directory to switch to");
+			return CMD_FAILURE;
+		}
+		char *prev_dup = str_dup(previous_directory);
+		if (prev_dup == NULL) {
+			cli_error(CL_ENOMEM, "Cannot switch to previous directory");
+			return CMD_FAILURE;
+		}
+		rc = chdir_and_remember(prev_dup);
+		free(prev_dup);
+	} else {
+		rc = chdir_and_remember(target_directory);
+	}
 
 	if (rc == 0) {
 		cli_set_prompt(usr);
@@ -92,10 +148,10 @@ int cmd_cd(char **argv, cliuser_t *usr)
 			cli_error(CL_EFAIL, "Destination path too long");
 			break;
 		case ENOENT:
-			cli_error(CL_ENOENT, "Invalid directory `%s'", argv[1]);
+			cli_error(CL_ENOENT, "Invalid directory `%s'", target_directory);
 			break;
 		default:
-			cli_error(CL_EFAIL, "Unable to change to `%s'", argv[1]);
+			cli_error(CL_EFAIL, "Unable to change to `%s'", target_directory);
 			break;
 		}
 	}

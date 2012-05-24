@@ -45,8 +45,6 @@
 static const char *cmdname = "rm";
 #define RM_VERSION "0.0.1"
 
-static rm_job_t rm;
-
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
@@ -55,6 +53,40 @@ static struct option const long_options[] = {
 	{ "safe", no_argument, 0, 's' },
 	{ 0, 0, 0, 0 }
 };
+
+/* Return values for rm_scope() */
+#define RM_BOGUS 0
+#define RM_FILE  1
+#define RM_DIR   2
+
+/* Flags for rm_update() */
+#define _RM_ENTRY   0
+#define _RM_ADVANCE 1
+#define _RM_REWIND  2
+#define _RM_EXIT    3
+
+/* A simple job structure */
+typedef struct {
+	/* Options set at run time */
+	unsigned int force;      /* -f option */
+	unsigned int recursive;  /* -r option */
+	unsigned int safe;       /* -s option */
+
+	/* Keeps track of the job in progress */
+	int advance; /* How far deep we've gone since entering */
+	DIR *entry;  /* Entry point to the tree being removed */
+	char *owd;   /* Where we were when we invoked rm */
+	char *cwd;   /* Current directory being transversed */
+	char *nwd;   /* Next directory to be transversed */
+
+	/* Counters */
+	int f_removed; /* Number of files unlinked */
+	int d_removed; /* Number of directories unlinked */
+} rm_job_t;
+
+static rm_job_t rm;
+
+static unsigned int rm_recursive(const char *);
 
 static unsigned int rm_start(rm_job_t *rm)
 {
@@ -94,6 +126,35 @@ static void rm_end(rm_job_t *rm)
 
 	if (NULL != rm->cwd)
 		free(rm->cwd);
+}
+
+static unsigned int rm_single(const char *path)
+{
+	if (unlink(path)) {
+		cli_error(CL_EFAIL, "rm: could not remove file %s", path);
+		return 1;
+	}
+	return 0;
+}
+
+static unsigned int rm_scope(const char *path)
+{
+	int fd;
+	DIR *dirp;
+
+	dirp = opendir(path);
+	if (dirp) {
+		closedir(dirp);
+		return RM_DIR;
+	}
+
+	fd = open(path, O_RDONLY);
+	if (fd > 0) {
+		close(fd);
+		return RM_FILE;
+	}
+
+	return RM_BOGUS;
 }
 
 static unsigned int rm_recursive_not_empty_dirs(const char *path)
@@ -153,35 +214,6 @@ static unsigned int rm_recursive(const char *path)
 	cli_error(CL_ENOTSUP, "Can not remove %s", path);
 
 	return ret + 1;
-}
-
-static unsigned int rm_single(const char *path)
-{
-	if (unlink(path)) {
-		cli_error(CL_EFAIL, "rm: could not remove file %s", path);
-		return 1;
-	}
-	return 0;
-}
-
-static unsigned int rm_scope(const char *path)
-{
-	int fd;
-	DIR *dirp;
-
-	dirp = opendir(path);
-	if (dirp) {
-		closedir(dirp);
-		return RM_DIR;
-	}
-
-	fd = open(path, O_RDONLY);
-	if (fd > 0) {
-		close(fd);
-		return RM_FILE;
-	}
-
-	return RM_BOGUS;
 }
 
 /* Dispays help for rm in various levels */

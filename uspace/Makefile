@@ -41,11 +41,11 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
-	app/inetcfg \
+	app/inet \
 	app/kill \
 	app/killall \
 	app/klog \
-	app/locinfo \
+	app/loc \
 	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
@@ -69,15 +69,15 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/websrv \
 	app/sysinfo \
 	app/mkbd \
+	app/websrv \
 	srv/clipboard \
-	srv/loc \
+	srv/locsrv \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \
-	srv/net/inet \
+	srv/net/inetsrv \
 	srv/net/loopip \
 	srv/net/tcp \
 	srv/net/udp \
@@ -137,6 +137,11 @@ endif
 ifeq ($(CONFIG_BINUTILS),y)
 DIRS += \
 	app/binutils
+endif
+
+ifeq ($(CONFIG_MSIM),y)
+DIRS += \
+	app/msim
 endif
 
 ## Platform-specific hardware support

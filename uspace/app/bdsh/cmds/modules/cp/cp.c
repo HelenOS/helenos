@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <getopt.h>
 #include <str.h>
 #include <fcntl.h>
@@ -45,10 +47,12 @@
 #define CP_DEFAULT_BUFLEN  1024
 
 static const char *cmdname = "cp";
+static console_ctrl_t *con;
 
 static struct option const long_options[] = {
 	{ "buffer", required_argument, 0, 'b' },
 	{ "force", no_argument, 0, 'f' },
+	{ "interactive", no_argument, 0, 'i'},
 	{ "recursive", no_argument, 0, 'r' },
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
@@ -138,8 +142,41 @@ static void merge_paths(char *path1, size_t path1_size, char *path2)
 	str_append(path1, path1_size, path2);
 }
 
+static bool get_user_decision(bool bdefault, const char *message, ...)
+{
+	va_list args;
+
+	va_start(args, message);
+	vprintf(message, args);
+	va_end(args);
+
+	while (true) {
+		kbd_event_t ev;
+		console_flush(con);
+		console_get_kbd_event(con, &ev);
+		if ((ev.type != KEY_PRESS)
+		    || (ev.mods & (KM_CTRL | KM_ALT)) != 0) {
+			continue;
+		}
+
+		switch(ev.key) {
+		case KC_Y:
+			printf("y\n");
+			return true;
+		case KC_N:
+			printf("n\n");
+			return false;
+		case KC_ENTER:
+			printf("%c\n", bdefault ? 'Y' : 'N');
+			return bdefault;
+		default:
+			break;
+		}
+	}
+}
+
 static int64_t do_copy(const char *src, const char *dest,
-    size_t blen, int vb, int recursive, int force)
+    size_t blen, int vb, int recursive, int force, int interactive)
 {
 	int r = -1;
 	char dest_path[PATH_MAX];
@@ -191,17 +228,33 @@ static int64_t do_copy(const char *src, const char *dest,
 		} else if (dest_type == TYPE_FILE) {
 			/* e.g. cp file_name existing_file */
 
-			/* dest already exists, if force is set we will
-			 * try to remove it.
+			/* dest already exists, 
+			 * if force is set we will try to remove it.
+			 * if interactive is set user input is required.
 			 */
-			if (force) {
+			if (force && !interactive) {
 				if (unlink(dest_path)) {
 					printf("Unable to remove %s\n",
 					    dest_path);
 					goto exit;
 				}
+			} else if (!force && interactive) {
+				bool overwrite = get_user_decision(false,
+				    "File already exists: %s. Overwrite? [y/N]: ",
+				    dest_path);
+				if (overwrite) {
+					printf("Overwriting file: %s\n", dest_path);
+					if (unlink(dest_path)) {
+						printf("Unable to remove %s\n", dest_path);
+						goto exit;
+					}
+				} else {
+					printf("Not overwriting file: %s\n", dest_path);
+					r = 0;
+					goto exit;
+				}
 			} else {
-				printf("file already exists: %s\n", dest_path);
+				printf("File already exists: %s\n", dest_path);
 				goto exit;
 			}
 		}
@@ -301,7 +354,7 @@ static int64_t do_copy(const char *src, const char *dest,
 
 			/* Recursively call do_copy() */
 			r = do_copy(src_dent, dest_dent, blen, vb, recursive,
-			    force);
+			    force, interactive);
 			if (r)
 				goto exit;
 
@@ -314,7 +367,6 @@ exit:
 		closedir(dir);
 	return r;
 }
-
 
 static int64_t copy_file(const char *src, const char *dest,
 	size_t blen, int vb)
@@ -379,7 +431,8 @@ void help_cmd_cp(unsigned int level)
 	    "  -h, --help       A short option summary\n"
 	    "  -v, --version    Print version information and exit\n"
 	    "  -V, --verbose    Be annoyingly noisy about what's being done\n"
-	    "  -f, --force      Do not complain when <dest> exists\n"
+	    "  -f, --force      Do not complain when <dest> exists (overrides a previous -i)\n"
+	    "  -i, --interactive Ask what to do when <dest> exists (overrides a previous -f)\n"
 	    "  -r, --recursive  Copy entire directories\n"
 	    "  -b, --buffer ## Set the read buffer size to ##\n";
 	if (level == HELP_SHORT) {
@@ -396,14 +449,15 @@ int cmd_cp(char **argv)
 {
 	unsigned int argc, verbose = 0;
 	int buffer = 0, recursive = 0;
-	int force = 0;
+	int force = 0, interactive = 0;
 	int c, opt_ind;
 	int64_t ret;
 
+	con = console_init(stdin, stdout);
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "hvVfrb:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "hvVfirb:", long_options, &opt_ind);
 		switch (c) { 
 		case 'h':
 			help_cmd_cp(1);
@@ -415,7 +469,12 @@ int cmd_cp(char **argv)
 			verbose = 1;
 			break;
 		case 'f':
+			interactive = 0;
 			force = 1;
+			break;
+		case 'i':
+			force = 0;
+			interactive = 1;
 			break;
 		case 'r':
 			recursive = 1;
@@ -425,6 +484,7 @@ int cmd_cp(char **argv)
 				printf("%s: Invalid buffer specification, "
 				    "(should be a number greater than zero)\n",
 				    cmdname);
+				console_done(con);
 				return CMD_FAILURE;
 			}
 			if (verbose)
@@ -441,11 +501,14 @@ int cmd_cp(char **argv)
 	if (argc != 2) {
 		printf("%s: invalid number of arguments. Try %s --help\n",
 		    cmdname, cmdname);
+		console_done(con);
 		return CMD_FAILURE;
 	}
 
 	ret = do_copy(argv[optind], argv[optind + 1], buffer, verbose,
-	    recursive, force);
+	    recursive, force, interactive);
+
+	console_done(con);
 
 	if (ret == 0)
 		return CMD_SUCCESS;

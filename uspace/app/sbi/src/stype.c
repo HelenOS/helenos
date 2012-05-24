@@ -651,7 +651,7 @@ static void stype_class_impl_check_if(stype_t *stype, stree_csi_t *csi,
 
 	assert(iface_ti->tic == tic_tobject);
 	iface = iface_ti->u.tobject->csi;
-	assert(iface->cc = csi_interface);
+	assert(iface->cc == csi_interface);
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Verify that class fully implements interface.\n");
