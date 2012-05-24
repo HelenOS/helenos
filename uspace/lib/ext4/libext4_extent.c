@@ -665,7 +665,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	}
 
 	// If leaf node is empty, the whole tree must be checked and the node will be released
-	bool check_tree = false;
+	bool remove_parent_record = false;
 
 	// Don't release root block (including inode data) !!!
 	if ((path_ptr != path) && (entries == 0)) {
@@ -673,7 +673,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		if (rc != EOK) {
 			goto cleanup;
 		}
-		check_tree = true;
+		remove_parent_record = true;
 	}
 
 	// Jump to the parent
@@ -687,12 +687,8 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 				EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
 
 		// Correct entry because of changes in the previous iteration
-		if (check_tree) {
+		if (remove_parent_record) {
 			entries--;
-			ext4_extent_header_set_entries_count(path_ptr->header, entries);
-		} else {
-			// TODO check this condition
-			break;
 		}
 
 		// Iterate over all entries and release the whole subtrees
@@ -703,8 +699,9 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 			}
 			++index;
 			--entries;
-			ext4_extent_header_set_entries_count(path_ptr->header, entries);
 		}
+
+		ext4_extent_header_set_entries_count(path_ptr->header, entries);
 
 		path_ptr->block->dirty = true;
 
@@ -716,9 +713,9 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 			}
 
 			// Mark parent to be checked
-			check_tree = true;
+			remove_parent_record = true;
 		} else {
-			check_tree = false;
+			remove_parent_record = false;
 		}
 
 		--path_ptr;
