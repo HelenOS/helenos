@@ -34,6 +34,7 @@
 
 DIRS = \
 	app/bdsh \
+	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
