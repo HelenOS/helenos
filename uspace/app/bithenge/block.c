@@ -50,9 +50,19 @@ typedef struct {
 	aoff64_t size;
 } block_blob_t;
 
+static inline block_blob_t *block_from_blob(bithenge_blob_t *base)
+{
+	return (block_blob_t *)base;
+}
+
+static inline bithenge_blob_t *blob_from_block(block_blob_t *blob)
+{
+	return &blob->base;
+}
+
 static int block_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	block_blob_t *blob = (block_blob_t *)base;
+	block_blob_t *blob = block_from_blob(base);
 	*size = blob->size;
 	return EOK;
 }
@@ -60,7 +70,7 @@ static int block_size(bithenge_blob_t *base, aoff64_t *size)
 static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
-	block_blob_t *blob = (block_blob_t *)base;
+	block_blob_t *blob = block_from_blob(base);
 	if (offset > blob->size)
 		return ELIMIT;
 	*size = min(*size, blob->size - offset);
@@ -69,7 +79,7 @@ static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 
 static int block_destroy(bithenge_blob_t *base)
 {
-	block_blob_t *blob = (block_blob_t *)base;
+	block_blob_t *blob = block_from_blob(base);
 	block_fini(blob->service_id);
 	free(blob);
 	return EOK;
@@ -112,7 +122,8 @@ int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id)
 	block_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob)
 		return ENOMEM;
-	rc = bithenge_new_random_access_blob(&blob->base, &block_ops);
+	rc = bithenge_new_random_access_blob(blob_from_block(blob),
+	    &block_ops);
 	if (rc != EOK) {
 		free(blob);
 		return rc;

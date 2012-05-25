@@ -83,9 +83,21 @@ static int sequential_buffer(bithenge_sequential_blob_t *blob, aoff64_t end)
 	return EOK;
 }
 
+static inline bithenge_sequential_blob_t *sequential_from_blob(
+    bithenge_blob_t *base)
+{
+	return (bithenge_sequential_blob_t *)base;
+}
+
+static inline bithenge_blob_t *blob_from_sequential(
+    bithenge_sequential_blob_t *blob)
+{
+	return &blob->base;
+}
+
 static int sequential_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	bithenge_sequential_blob_t *blob = (bithenge_sequential_blob_t *)base;
+	bithenge_sequential_blob_t *blob = sequential_from_blob(base);
 	int rc;
 	if (blob->ops->size) {
 		rc = blob->ops->size(blob, size);
@@ -107,7 +119,7 @@ static int sequential_size(bithenge_blob_t *base, aoff64_t *size)
 static int sequential_read(bithenge_blob_t *base, aoff64_t offset,
     char *buffer, aoff64_t *size)
 {
-	bithenge_sequential_blob_t *blob = (bithenge_sequential_blob_t *)base;
+	bithenge_sequential_blob_t *blob = sequential_from_blob(base);
 	aoff64_t end = offset + *size;
 	if (end > blob->data_size) {
 		int rc = sequential_buffer(blob, end);
@@ -123,7 +135,7 @@ static int sequential_read(bithenge_blob_t *base, aoff64_t offset,
 
 static int sequential_destroy(bithenge_blob_t *base)
 {
-	bithenge_sequential_blob_t *blob = (bithenge_sequential_blob_t *)base;
+	bithenge_sequential_blob_t *blob = sequential_from_blob(base);
 	free(blob->buffer);
 	return blob->ops->destroy(blob);
 }
@@ -150,7 +162,8 @@ int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
 	assert(ops->read);
 	// ops->size is optional
 
-	int rc = bithenge_new_random_access_blob(&blob->base, &sequential_ops);
+	int rc = bithenge_new_random_access_blob(blob_from_sequential(blob),
+	    &sequential_ops);
 	if (rc != EOK)
 		return rc;
 	blob->ops = ops;
