@@ -35,6 +35,7 @@
  * @todo Provide more information about the block device (block size).
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <libblock.h>
 #include <loc.h>
@@ -49,13 +50,16 @@ typedef struct {
 	aoff64_t size;
 } block_blob_t;
 
-static int block_size(bithenge_blob_t *base, aoff64_t *size) {
+static int block_size(bithenge_blob_t *base, aoff64_t *size)
+{
 	block_blob_t *blob = (block_blob_t *)base;
 	*size = blob->size;
 	return EOK;
 }
 
-static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer, aoff64_t *size) {
+static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
+    aoff64_t *size)
+{
 	block_blob_t *blob = (block_blob_t *)base;
 	if (offset > blob->size)
 		return ELIMIT;
@@ -63,7 +67,8 @@ static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer, aoff
 	return block_read_bytes_direct(blob->service_id, offset, *size, buffer);
 }
 
-static int block_destroy(bithenge_blob_t *base) {
+static int block_destroy(bithenge_blob_t *base)
+{
 	block_blob_t *blob = (block_blob_t *)base;
 	block_fini(blob->service_id);
 	free(blob);
@@ -81,7 +86,10 @@ static const bithenge_random_access_blob_ops_t block_ops = {
  * @param out[out] Place to store the blob.
  * @param service_id The service ID of the block device.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id) {
+int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id)
+{
+	assert(out);
+
 	// Initialize libblock
 	int rc;
 	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
@@ -103,7 +111,7 @@ int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id) {
 	// Create blob
 	block_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob)
-		return errno;
+		return ENOMEM;
 	rc = bithenge_new_random_access_blob(&blob->base, &block_ops);
 	if (rc != EOK) {
 		free(blob);

@@ -77,9 +77,36 @@ typedef struct {
 /** Operations providing sequential access to binary data.
  * @memberof bithenge_sequential_blob_t */
 typedef struct bithenge_sequential_blob_ops_t {
+
+	/** Get the total size of the blob. If the total size cannot be
+	 * determined easily, this field may be null or return an error,
+	 * forcing the entire blob to be read to determine its size.
+	 *
+	 * @memberof bithenge_blob_t
+	 * @param blob The blob.
+	 * @param[out] size Total size of the blob.
+	 * @return EOK on success or an error code from errno.h.
+	 */
 	int (*size)(bithenge_sequential_blob_t *blob, aoff64_t *size);
+
+	/** Read the next part of the blob. If the requested data extends
+	 * beyond the end of the blob, the data up until the end of the blob
+	 * will be read.
+	 *
+	 * @param blob The blob.
+	 * @param[out] buffer Buffer to read into. If an error occurs, the contents are
+	 * undefined.
+	 * @param[in,out] size Number of bytes to read; may be 0. If not enough
+	 * data is left in the blob, the actual number of bytes read should be
+	 * stored here. If an error occurs, the contents are undefined.
+	 * @return EOK on success or an error code from errno.h.
+	 */
 	int (*read)(bithenge_sequential_blob_t *blob, char *buffer,
 	    aoff64_t *size);
+
+	/** Destroy the blob.
+	 * @param blob The blob.
+	 * @return EOK on success or an error code from errno.h. */
 	int (*destroy)(bithenge_sequential_blob_t *blob);
 } bithenge_sequential_blob_ops_t;
 
@@ -90,7 +117,10 @@ typedef struct bithenge_sequential_blob_ops_t {
  * @param[out] size Total size of the blob.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size) {
+static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size)
+{
+	assert(blob);
+	assert(blob->ops);
 	return blob->ops->size(blob, size);
 }
 
@@ -109,7 +139,11 @@ static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size) {
  * should be stored here. If an error occurs, the contents are undefined.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_read(bithenge_blob_t *blob, aoff64_t offset, char *buffer, aoff64_t *size) {
+static inline int bithenge_blob_read(bithenge_blob_t *blob, aoff64_t offset,
+    char *buffer, aoff64_t *size)
+{
+	assert(blob);
+	assert(blob->ops);
 	return blob->ops->read(blob, offset, buffer, size);
 }
 
@@ -118,7 +152,10 @@ static inline int bithenge_blob_read(bithenge_blob_t *blob, aoff64_t offset, cha
  * @param blob The blob.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_destroy(bithenge_blob_t *blob) {
+static inline int bithenge_blob_destroy(bithenge_blob_t *blob)
+{
+	assert(blob);
+	assert(blob->ops);
 	return blob->ops->destroy(blob);
 }
 

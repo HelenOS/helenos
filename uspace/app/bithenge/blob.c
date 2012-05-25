@@ -34,6 +34,7 @@
  * Raw binary blobs.
  */
 
+#include <assert.h>
 #include <bool.h>
 #include <errno.h>
 #include <macros.h>
@@ -44,18 +45,25 @@
 /** Initialize a random access blob.
  * @memberof bithenge_blob_t
  * @param[out] blob The blob to initialize.
- * @param[in] ops Operations provided random access support. This pointer must
+ * @param[in] ops Operations providing random access support. This pointer must
  * be valid until the blob is destroyed.
  * @return EOK on success or an error code from errno.h.
  */
-int bithenge_new_random_access_blob(
-		bithenge_blob_t *blob,
-		const bithenge_random_access_blob_ops_t *ops) {
+int bithenge_new_random_access_blob(bithenge_blob_t *blob,
+    const bithenge_random_access_blob_ops_t *ops)
+{
+	assert(blob);
+	assert(ops);
+	assert(ops->destroy);
+	assert(ops->read);
+	assert(ops->size);
+
 	blob->ops = ops;
 	return EOK;
 }
 
-static int sequential_buffer(bithenge_sequential_blob_t *blob, aoff64_t end) {
+static int sequential_buffer(bithenge_sequential_blob_t *blob, aoff64_t end)
+{
 	bool need_realloc = false;
 	while (end > blob->buffer_size) {
 		blob->buffer_size = max(4096, 2 * blob->buffer_size);
@@ -64,10 +72,10 @@ static int sequential_buffer(bithenge_sequential_blob_t *blob, aoff64_t end) {
 	if (need_realloc) {
 		char *buffer = realloc(blob->buffer, blob->buffer_size);
 		if (!buffer)
-			return errno;
+			return ENOMEM;
 		blob->buffer = buffer;
 	}
-	size_t size = end - blob->data_size;
+	aoff64_t size = end - blob->data_size;
 	int rc = blob->ops->read(blob, blob->buffer + blob->data_size, &size);
 	if (rc != EOK)
 		return rc;
@@ -75,24 +83,30 @@ static int sequential_buffer(bithenge_sequential_blob_t *blob, aoff64_t end) {
 	return EOK;
 }
 
-static int sequential_size(bithenge_blob_t *base, aoff64_t *size) {
+static int sequential_size(bithenge_blob_t *base, aoff64_t *size)
+{
 	bithenge_sequential_blob_t *blob = (bithenge_sequential_blob_t *)base;
-	int rc = blob->ops->size(blob, size);
-	if (rc != EOK) {
-		rc = sequential_buffer(blob, blob->buffer_size);
+	int rc;
+	if (blob->ops->size) {
+		rc = blob->ops->size(blob, size);
+		if (rc == EOK)
+			return EOK;
+	}
+	rc = sequential_buffer(blob, blob->buffer_size);
+	if (rc != EOK)
+		return rc;
+	while (blob->data_size == blob->buffer_size) {
+		rc = sequential_buffer(blob, 2 * blob->buffer_size);
 		if (rc != EOK)
 			return rc;
-		while (blob->data_size == blob->buffer_size) {
-			rc = sequential_buffer(blob, 2 * blob->buffer_size);
-			if (rc != EOK)
-				return rc;
-		}
-		*size = blob->data_size;
 	}
+	*size = blob->data_size;
 	return EOK;
 }
 
-static int sequential_read(bithenge_blob_t *base, aoff64_t offset, char *buffer, aoff64_t *size) {
+static int sequential_read(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size)
+{
 	bithenge_sequential_blob_t *blob = (bithenge_sequential_blob_t *)base;
 	aoff64_t end = offset + *size;
 	if (end > blob->data_size) {
@@ -107,7 +121,8 @@ static int sequential_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	return EOK;
 }
 
-static int sequential_destroy(bithenge_blob_t *base) {
+static int sequential_destroy(bithenge_blob_t *base)
+{
 	bithenge_sequential_blob_t *blob = (bithenge_sequential_blob_t *)base;
 	free(blob->buffer);
 	return blob->ops->destroy(blob);
@@ -126,9 +141,15 @@ static const bithenge_random_access_blob_ops_t sequential_ops = {
  * must be valid until the blob is destroyed.
  * @return EOK on success or an error code from errno.h.
  */
-int bithenge_new_sequential_blob(
-		bithenge_sequential_blob_t *blob,
-		const bithenge_sequential_blob_ops_t *ops) {
+int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
+    const bithenge_sequential_blob_ops_t *ops)
+{
+	assert(blob);
+	assert(ops);
+	assert(ops->destroy);
+	assert(ops->read);
+	// ops->size is optional
+
 	int rc = bithenge_new_random_access_blob(&blob->base, &sequential_ops);
 	if (rc != EOK)
 		return rc;

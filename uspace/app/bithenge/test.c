@@ -41,14 +41,16 @@
 #include "block.h"
 
 static void
-print_data(const char *data, size_t len) {
+print_data(const char *data, size_t len)
+{
 	while (len--)
 		printf("%02x ", (uint8_t)(*data++));
 	printf("\n");
 }
 
 static void
-print_blob(bithenge_blob_t *blob) {
+print_blob(bithenge_blob_t *blob)
+{
 	aoff64_t size;
 	bithenge_blob_size(blob, &size);
 	printf("Size: %d; ", (int)size);
@@ -58,7 +60,8 @@ print_blob(bithenge_blob_t *blob) {
 	print_data(buffer, size);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	service_id_t service_id;
 	loc_service_get_id("bd/initrd", &service_id, 0);
 
