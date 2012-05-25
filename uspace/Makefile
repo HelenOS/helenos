@@ -138,6 +138,11 @@ DIRS += \
 	app/binutils
 endif
 
+ifeq ($(CONFIG_MSIM),y)
+DIRS += \
+	app/msim
+endif
+
 ## Platform-specific hardware support
 #
 

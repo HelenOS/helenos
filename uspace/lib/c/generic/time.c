@@ -47,6 +47,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <assert.h>
+#include <unistd.h>
 
 #define ASCTIME_BUF_LEN 26
 

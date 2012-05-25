@@ -29,8 +29,6 @@ A list of things to do:
 
 * Add wrappers for signal, sigaction to make ports to modules easier
 
-* Add 'echo' and 'printf' modules.
-
 Regarding POSIX:
 ----------------
 POSIX is a standard for Unix-like operating systems. HelenOS is (mostly) just

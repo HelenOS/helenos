@@ -117,6 +117,7 @@ static void cursor_setvis(bool visible);
 static void key_handle_unmod(kbd_event_t const *ev);
 static void key_handle_ctrl(kbd_event_t const *ev);
 static void key_handle_shift(kbd_event_t const *ev);
+static void key_handle_shift_ctrl(kbd_event_t const *ev);
 static void key_handle_movement(unsigned int key, bool shift);
 
 static int file_save(char const *fname);
@@ -138,9 +139,14 @@ static void delete_char_before(void);
 static void delete_char_after(void);
 static void caret_update(void);
 static void caret_move(int drow, int dcolumn, enum dir_spec align_dir);
+static void caret_move_word_left(void);
+static void caret_move_word_right(void);
 
 static bool selection_active(void);
 static void selection_sel_all(void);
+static void selection_sel_range(spt_t pa, spt_t pb);
+static void selection_sel_prev_word(void);
+static void selection_sel_next_word(void);
 static void selection_get_points(spt_t *pa, spt_t *pb);
 static void selection_delete(void);
 static void selection_copy(void);
@@ -148,6 +154,11 @@ static void insert_clipboard_data(void);
 
 static void pt_get_sof(spt_t *pt);
 static void pt_get_eof(spt_t *pt);
+static void pt_get_sol(spt_t *cpt, spt_t *spt);
+static void pt_get_eol(spt_t *cpt, spt_t *ept);
+static bool pt_is_word_beginning(spt_t *pt);
+static bool pt_is_delimiter(spt_t *pt);
+static bool pt_is_punctuation(spt_t *pt);
 static int tag_cmp(tag_t const *a, tag_t const *b);
 static int spt_cmp(spt_t const *a, spt_t const *b);
 static int coord_cmp(coord_t const *a, coord_t const *b);
@@ -231,6 +242,10 @@ int main(int argc, char *argv[])
 			    ((ev.mods & KM_CTRL) == 0) &&
 			     (ev.mods & KM_SHIFT) != 0) {
 				key_handle_shift(&ev);
+			} else if (((ev.mods & KM_ALT) == 0) &&
+			    ((ev.mods & KM_CTRL) != 0) &&
+			     (ev.mods & KM_SHIFT) != 0) {
+				key_handle_shift_ctrl(&ev);
 			} else if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
 				key_handle_unmod(&ev);
 			}
@@ -375,6 +390,32 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 		break;
 	case KC_A:
 		selection_sel_all();
+		break;
+	case KC_W:
+		if (selection_active())
+			break;
+		selection_sel_prev_word();
+		selection_delete();
+		break;
+	case KC_RIGHT:
+		caret_move_word_right();
+		break;
+	case KC_LEFT:
+		caret_move_word_left();
+		break;
+	default:
+		break;
+	}
+}
+
+static void key_handle_shift_ctrl(kbd_event_t const *ev)
+{
+	switch(ev->key) {
+	case KC_LEFT:
+		selection_sel_prev_word();
+		break;
+	case KC_RIGHT:
+		selection_sel_next_word();
 		break;
 	default:
 		break;
@@ -969,7 +1010,14 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 
 	/* Clamp coordinates. */
 	if (drow < 0 && coord.row < 1) coord.row = 1;
-	if (dcolumn < 0 && coord.column < 1) coord.column = 1;
+	if (dcolumn < 0 && coord.column < 1) {
+		if (coord.row < 2)
+			coord.column = 1;
+		else {
+			coord.row--;
+			sheet_get_row_width(&doc.sh, coord.row, &coord.column);
+		}
+	}
 	if (drow > 0) {
 		sheet_get_num_rows(&doc.sh, &num_rows);
 		if (coord.row > num_rows) coord.row = num_rows;
@@ -995,6 +1043,38 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	}
 
 	caret_update();
+}
+
+static void caret_move_word_left(void) 
+{
+	spt_t pt;
+
+	do {
+		caret_move(0, -1, dir_before);
+
+		tag_get_pt(&pane.caret_pos, &pt);
+
+		sheet_remove_tag(&doc.sh, &pane.sel_start);
+		sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+	} while (!pt_is_word_beginning(&pt));
+
+	pane.rflags |= REDRAW_TEXT;
+}
+
+static void caret_move_word_right(void) 
+{
+	spt_t pt;
+
+	do {
+		caret_move(0, 0, dir_after);
+
+		tag_get_pt(&pane.caret_pos, &pt);
+
+		sheet_remove_tag(&doc.sh, &pane.sel_start);
+		sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+	} while (!pt_is_word_beginning(&pt));
+
+	pane.rflags |= REDRAW_TEXT;
 }
 
 /** Check for non-empty selection. */
@@ -1044,19 +1124,61 @@ static void selection_delete(void)
 		pane.rflags |= REDRAW_TEXT;
 }
 
+/** Select all text in the editor */
 static void selection_sel_all(void)
 {
 	spt_t spt, ept;
 
 	pt_get_sof(&spt);
 	pt_get_eof(&ept);
+
+	selection_sel_range(spt, ept);
+}
+
+/** Select select all text in a given range with the given direction */
+static void selection_sel_range(spt_t pa, spt_t pb)
+{
 	sheet_remove_tag(&doc.sh, &pane.sel_start);
-	sheet_place_tag(&doc.sh, &spt, &pane.sel_start);
+	sheet_place_tag(&doc.sh, &pa, &pane.sel_start);
 	sheet_remove_tag(&doc.sh, &pane.caret_pos);
-	sheet_place_tag(&doc.sh, &ept, &pane.caret_pos);
+	sheet_place_tag(&doc.sh, &pb, &pane.caret_pos);
 
 	pane.rflags |= REDRAW_TEXT;
 	caret_update();
+}
+
+/** Add the previous word to the selection */
+static void selection_sel_prev_word(void)
+{
+	spt_t cpt, wpt, spt, ept;
+
+	selection_get_points(&spt, &ept);
+
+	tag_get_pt(&pane.caret_pos, &cpt);
+	caret_move_word_left();
+	tag_get_pt(&pane.caret_pos, &wpt);
+
+	if (spt_cmp(&spt, &cpt) == 0)
+		selection_sel_range(ept, wpt);
+	else
+		selection_sel_range(spt, wpt);
+}
+
+/** Add the next word to the selection */
+static void selection_sel_next_word(void)
+{
+	spt_t cpt, wpt, spt, ept;
+
+	selection_get_points(&spt, &ept);
+
+	tag_get_pt(&pane.caret_pos, &cpt);
+	caret_move_word_right();
+	tag_get_pt(&pane.caret_pos, &wpt);
+
+	if (spt_cmp(&ept, &cpt) == 0)
+		selection_sel_range(spt, wpt);
+	else
+		selection_sel_range(ept, wpt);
 }
 
 static void selection_copy(void)
@@ -1116,6 +1238,130 @@ static void pt_get_eof(spt_t *pt)
 	coord.column = 1;
 
 	sheet_get_cell_pt(&doc.sh, &coord, dir_after, pt);
+}
+
+/** Get start-of-line s-point for given s-point cpt */
+static void pt_get_sol(spt_t *cpt, spt_t *spt)
+{
+	coord_t coord;
+
+	spt_get_coord(cpt, &coord);
+	coord.column = 1;
+
+	sheet_get_cell_pt(&doc.sh, &coord, dir_before, spt);
+}
+
+/** Get end-of-line s-point for given s-point cpt */
+static void pt_get_eol(spt_t *cpt, spt_t *ept)
+{
+	coord_t coord;
+	int row_width;
+
+	spt_get_coord(cpt, &coord);
+	sheet_get_row_width(&doc.sh, coord.row, &row_width);
+	coord.column = row_width - 1;
+
+	sheet_get_cell_pt(&doc.sh, &coord, dir_after, ept);
+}
+
+/** Check whether the spt is at a beginning of a word */
+static bool pt_is_word_beginning(spt_t *pt)
+{
+	spt_t lp, sfp, efp, slp, elp;
+	coord_t coord;
+
+	pt_get_sof(&sfp);
+	pt_get_eof(&efp);
+	pt_get_sol(pt, &slp);
+	pt_get_eol(pt, &elp);
+
+	/* the spt is at the beginning or end of the file or line */
+	if ((spt_cmp(&sfp, pt) == 0) || (spt_cmp(&efp, pt) == 0)
+	    || (spt_cmp(&slp, pt) == 0) || (spt_cmp(&elp, pt) == 0))
+		return true;
+
+	/* the spt is a delimiter */
+	if (pt_is_delimiter(pt))
+		return false;
+
+	spt_get_coord(pt, &coord);
+
+	coord.column -= 1;
+	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &lp);
+
+	return pt_is_delimiter(&lp)
+	    || (pt_is_punctuation(pt) && !pt_is_punctuation(&lp))
+	    || (pt_is_punctuation(&lp) && !pt_is_punctuation(pt));
+}
+
+static wchar_t get_first_wchar(const char *str)
+{
+	size_t offset = 0;
+	return str_decode(str, &offset, str_size(str));
+}
+
+static bool pt_is_delimiter(spt_t *pt)
+{
+	spt_t rp;
+	coord_t coord;
+	char *ch = NULL;
+
+	spt_get_coord(pt, &coord);
+
+	coord.column += 1;
+	sheet_get_cell_pt(&doc.sh, &coord, dir_after, &rp);
+
+	ch = range_get_str(pt, &rp);
+	if (ch == NULL)
+		return false;
+
+	wchar_t first_char = get_first_wchar(ch);
+	switch(first_char) {
+	case ' ':
+	case '\t':
+	case '\n':
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool pt_is_punctuation(spt_t *pt)
+{
+	spt_t rp;
+	coord_t coord;
+	char *ch = NULL;
+
+	spt_get_coord(pt, &coord);
+
+	coord.column += 1;
+	sheet_get_cell_pt(&doc.sh, &coord, dir_after, &rp);
+
+	ch = range_get_str(pt, &rp);
+	if (ch == NULL)
+		return false;
+
+	wchar_t first_char = get_first_wchar(ch);
+	switch(first_char) {
+	case ',':
+	case '.':
+	case ';':
+	case ':':
+	case '/':
+	case '?':
+	case '\\':
+	case '|':
+	case '_':
+	case '+':
+	case '-':
+	case '*':
+	case '=':
+	case '<':
+	case '>':
+		return true;
+	default:
+		return false;
+	}
 }
 
 /** Compare tags. */
