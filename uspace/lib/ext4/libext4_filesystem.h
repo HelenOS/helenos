@@ -37,7 +37,7 @@
 #include "libext4_types.h"
 
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
-extern int ext4_filesystem_fini(ext4_filesystem_t *fs, bool);
+extern int ext4_filesystem_fini(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
 extern int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *, uint32_t,

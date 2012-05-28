@@ -47,7 +47,7 @@
 uint64_t ext4_block_group_get_block_bitmap(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		return ((uint64_t)uint32_t_le2host(bg->block_bitmap_hi) << 32) |
 			uint32_t_le2host(bg->block_bitmap_lo);
 	} else {
@@ -66,7 +66,7 @@ void ext4_block_group_set_block_bitmap(ext4_block_group_t *bg,
 {
 	bg->block_bitmap_lo = host2uint32_t_le((block_bitmap << 32) >> 32);
 
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		bg->block_bitmap_hi = host2uint32_t_le(block_bitmap >> 32);
 	}
 }
@@ -80,7 +80,7 @@ void ext4_block_group_set_block_bitmap(ext4_block_group_t *bg,
 uint64_t ext4_block_group_get_inode_bitmap(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		return ((uint64_t)uint32_t_le2host(bg->inode_bitmap_hi) << 32) |
 			uint32_t_le2host(bg->inode_bitmap_lo);
 	} else {
@@ -100,7 +100,7 @@ void ext4_block_group_set_inode_bitmap(ext4_block_group_t *bg,
 {
 	bg->inode_bitmap_lo = host2uint32_t_le((inode_bitmap << 32) >> 32);
 
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		bg->inode_bitmap_hi = host2uint32_t_le(inode_bitmap >> 32);
 	}
 }
@@ -114,7 +114,7 @@ void ext4_block_group_set_inode_bitmap(ext4_block_group_t *bg,
 uint64_t ext4_block_group_get_inode_table_first_block(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		return ((uint64_t)uint32_t_le2host(bg->inode_table_first_block_hi) << 32) |
 			uint32_t_le2host(bg->inode_table_first_block_lo);
 	} else {
@@ -135,7 +135,7 @@ void ext4_block_group_set_inode_table_first_block(ext4_block_group_t *bg,
 			host2uint32_t_le((inode_table_first << 32) >> 32);
 
 	if (ext4_superblock_get_desc_size(sb) >
-			EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+			EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 
 		bg->inode_table_first_block_hi =
 				host2uint32_t_le(inode_table_first >> 32);
@@ -152,7 +152,7 @@ uint32_t ext4_block_group_get_free_blocks_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
 	if (ext4_superblock_get_desc_size(sb) >
-			EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+			EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 
 		return ((uint32_t)uint16_t_le2host(bg->free_blocks_count_hi) << 16) |
 			uint16_t_le2host(bg->free_blocks_count_lo);
@@ -171,7 +171,7 @@ void ext4_block_group_set_free_blocks_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t value)
 {
 	bg->free_blocks_count_lo = host2uint16_t_le((value << 16) >> 16);
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		bg->free_blocks_count_hi = host2uint16_t_le(value >> 16);
 	}
 }
@@ -185,7 +185,7 @@ void ext4_block_group_set_free_blocks_count(ext4_block_group_t *bg,
 uint32_t ext4_block_group_get_free_inodes_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		return ((uint32_t)uint16_t_le2host(bg->free_inodes_count_hi) << 16) |
 			uint16_t_le2host(bg->free_inodes_count_lo);
 	} else {
@@ -203,7 +203,7 @@ void ext4_block_group_set_free_inodes_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t value)
 {
 	bg->free_inodes_count_lo = host2uint16_t_le((value << 16) >> 16);
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		bg->free_inodes_count_hi = host2uint16_t_le(value >> 16);
 	}
 }
@@ -217,7 +217,7 @@ void ext4_block_group_set_free_inodes_count(ext4_block_group_t *bg,
 uint32_t ext4_block_group_get_used_dirs_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		return ((uint32_t)uint16_t_le2host(bg->used_dirs_count_hi) << 16) |
 			uint16_t_le2host(bg->used_dirs_count_lo);
 	} else {
@@ -235,7 +235,7 @@ void ext4_block_group_set_used_dirs_count(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t count)
 {
 	bg->used_dirs_count_lo = host2uint16_t_le((count << 16) >> 16);
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		bg->used_dirs_count_hi = host2uint16_t_le(count >> 16);
 	}
 }
@@ -269,7 +269,7 @@ void ext4_block_group_set_flags(ext4_block_group_t *bg, uint16_t flags)
 uint32_t ext4_block_group_get_itable_unused(ext4_block_group_t *bg,
 		ext4_superblock_t *sb)
 {
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		return ((uint32_t)uint16_t_le2host(bg->itable_unused_hi) << 16) |
 			uint16_t_le2host(bg->itable_unused_lo);
 	} else {
@@ -287,7 +287,7 @@ void ext4_block_group_set_itable_unused(ext4_block_group_t *bg,
 		ext4_superblock_t *sb, uint32_t value)
 {
 	bg->itable_unused_lo = host2uint16_t_le((value << 16) >> 16);
-	if (ext4_superblock_get_desc_size(sb) > EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
 		bg->itable_unused_hi = host2uint16_t_le(value >> 16);
 	}
 

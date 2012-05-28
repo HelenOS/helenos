@@ -94,6 +94,19 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	// Return loaded superblock
 	fs->superblock = temp_superblock;
 
+	uint16_t state = ext4_superblock_get_state(fs->superblock);
+
+	if (state != EXT4_SUPERBLOCK_STATE_VALID_FS) {
+		return ENOTSUP;
+	}
+
+	// Mark system as mounted
+	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_ERROR_FS);
+	rc = ext4_superblock_write_direct(fs->device, fs->superblock);
+	if (rc != EOK) {
+		return rc;
+	}
+
 	return EOK;
 }
 
@@ -103,14 +116,13 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
  * @param write_sb	flag if superblock should be written to device
  * @return			error code
  */
-int ext4_filesystem_fini(ext4_filesystem_t *fs, bool write_sb)
+int ext4_filesystem_fini(ext4_filesystem_t *fs)
 {
 	int rc = EOK;
 
-	// If needed, write the superblock to the device
-	if (write_sb) {
-		rc = ext4_superblock_write_direct(fs->device, fs->superblock);
-	}
+	// Write the superblock to the device
+	ext4_superblock_set_state(fs->superblock, EXT4_SUPERBLOCK_STATE_VALID_FS);
+	rc = ext4_superblock_write_direct(fs->device, fs->superblock);
 
 	// Release memory space for superblock
 	free(fs->superblock);

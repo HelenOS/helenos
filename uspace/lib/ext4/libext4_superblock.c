@@ -216,6 +216,56 @@ void ext4_superblock_set_block_size(ext4_superblock_t *sb, uint32_t size)
 	ext4_superblock_set_log_block_size(sb, log);
 }
 
+/** Get logarithmic fragment size (1024 << size)
+ *
+ * @param sb		superblock
+ * @return			logarithmic fragment size
+ */
+uint32_t ext4_superblock_get_log_frag_size(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->log_frag_size);
+}
+
+/** Set logarithmic fragment size (1024 << size)
+ *
+ * @param sb		superblock
+ * @return			logarithmic fragment size
+ */
+
+void ext4_superblock_set_log_frag_size(ext4_superblock_t *sb, uint32_t frag_size)
+{
+	sb->log_frag_size = host2uint32_t_le(frag_size);
+}
+
+/** Get size of fragment (in bytes).
+ *
+ * @param sb		superblock
+ * @return			size of fragment
+ */
+uint32_t ext4_superblock_get_frag_size(ext4_superblock_t *sb)
+{
+	return 1024 << ext4_superblock_get_log_frag_size(sb);
+}
+
+/** Set size of fragment (in bytes).
+ *
+ * @param sb		superblock
+ * @param size		size of fragment (must be power of 2, at least 1024)
+ */
+void ext4_superblock_set_frag_size(ext4_superblock_t *sb, uint32_t size)
+{
+	uint32_t log = 0;
+	uint32_t tmp = size / EXT4_MIN_BLOCK_SIZE;
+
+	tmp >>= 1;
+	while (tmp) {
+		log++;
+		tmp >>= 1;
+	}
+
+	ext4_superblock_set_log_frag_size(sb, log);
+}
+
 /** Get number of data blocks per block group (except last BG)
  *
  * @param sb		superblock
@@ -235,6 +285,27 @@ void ext4_superblock_set_blocks_per_group(ext4_superblock_t *sb, uint32_t blocks
 {
 	sb->blocks_per_group = host2uint32_t_le(blocks);
 }
+
+/** Get number of fragments per block group (except last BG)
+ *
+ * @param sb		superblock
+ * @return			fragments per block group
+ */
+uint32_t ext4_superblock_get_frags_per_group(ext4_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->frags_per_group);
+}
+
+/** Set number of fragment per block group (except last BG)
+ *
+ * @param sb		superblock
+ * @param frags		fragments per block group
+ */
+void ext4_superblock_set_frags_per_group(ext4_superblock_t *sb, uint32_t frags)
+{
+	sb->frags_per_group = host2uint32_t_le(frags);
+}
+
 
 /** Get number of i-nodes per block group (except last BG)
  *
@@ -795,8 +866,8 @@ uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
 {
 	uint16_t size = uint16_t_le2host(sb->desc_size);
 
-	if (size < EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
-		size = EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE;
+	if (size < EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
+		size = EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE;
 	}
 
 	return size;
@@ -811,8 +882,8 @@ uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
  */
 void ext4_superblock_set_desc_size(ext4_superblock_t *sb, uint16_t size)
 {
-	if (size < EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE) {
-		sb->desc_size = host2uint16_t_le(EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE);
+	if (size < EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
+		sb->desc_size = host2uint16_t_le(EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE);
 	}
 
 	sb->desc_size = host2uint16_t_le(size);
@@ -977,9 +1048,37 @@ int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 		return ENOTSUP;
 	}
 
-	// block size
-	// desc size
+	if (ext4_superblock_get_inodes_count(sb) == 0) {
+		return ENOTSUP;
+	}
 
+	if (ext4_superblock_get_blocks_count(sb) == 0) {
+		return ENOTSUP;
+	}
+
+	if (ext4_superblock_get_blocks_per_group(sb) == 0) {
+		return ENOTSUP;
+	}
+
+	if (ext4_superblock_get_inodes_per_group(sb) == 0) {
+		return ENOTSUP;
+	}
+
+	if (ext4_superblock_get_inode_size(sb) < 128) {
+		return ENOTSUP;
+	}
+
+	if (ext4_superblock_get_first_inode(sb) < 11) {
+		return ENOTSUP;
+	}
+
+	if (ext4_superblock_get_desc_size(sb) < EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE) {
+		return ENOTSUP;
+	}
+
+	if (ext4_superblock_get_desc_size(sb) > EXT4_MAX_BLOCK_GROUP_DESCRIPTOR_SIZE) {
+		return ENOTSUP;
+	}
 
 	// TODO more checks !!!
 

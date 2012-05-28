@@ -46,9 +46,9 @@ typedef struct ext4_superblock {
 	uint32_t free_inodes_count; // Free inodes count
 	uint32_t first_data_block; // First Data Block
 	uint32_t log_block_size; // Block size
-	uint32_t obso_log_frag_size; // Obsoleted fragment size
+	uint32_t log_frag_size; // Obsoleted fragment size
 	uint32_t blocks_per_group; // Number of blocks per group
-	uint32_t obso_frags_per_group; // Obsoleted fragments per group
+	uint32_t frags_per_group; // Obsoleted fragments per group
 	uint32_t inodes_per_group; // Number of inodes per group
 	uint32_t mount_time; // Mount time
 	uint32_t write_time; // Write time
@@ -264,8 +264,8 @@ typedef struct ext4_block_group_ref {
 } ext4_block_group_ref_t;
 
 
-#define EXT4_BLOCK_MIN_GROUP_DESCRIPTOR_SIZE 32
-#define EXT4_BLOCK_MAX_GROUP_DESCRIPTOR_SIZE 64
+#define EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE 32
+#define EXT4_MAX_BLOCK_GROUP_DESCRIPTOR_SIZE 64
 
 /*****************************************************************************/
 
