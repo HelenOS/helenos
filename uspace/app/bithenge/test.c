@@ -62,12 +62,23 @@ print_blob(bithenge_blob_t *blob)
 
 int main(int argc, char *argv[])
 {
+	bithenge_blob_t *blob;
+
 	service_id_t service_id;
 	loc_service_get_id("bd/initrd", &service_id, 0);
-
-	bithenge_blob_t *blob;
 	bithenge_new_block_blob(&blob, service_id);
 	printf("Data from block:bd/initrd: ");
+	print_blob(blob);
+	bithenge_blob_destroy(blob);
+
+	const char data[] = "'Twas brillig, and the slithy toves";
+	bithenge_new_blob_from_data(&blob, data, sizeof(data));
+	printf("Data from memory (from_data): ");
+	print_blob(blob);
+	bithenge_blob_destroy(blob);
+
+	bithenge_new_blob_from_buffer(&blob, data, sizeof(data), false);
+	printf("Data from memory (from_buffer): ");
 	print_blob(blob);
 	bithenge_blob_destroy(blob);
 

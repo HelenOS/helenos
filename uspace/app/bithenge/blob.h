@@ -165,6 +165,12 @@ int bithenge_new_random_access_blob(bithenge_blob_t *blob,
 int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
     const bithenge_sequential_blob_ops_t *ops);
 
+int bithenge_new_blob_from_data(bithenge_blob_t **out, const void *data,
+    size_t len);
+
+int bithenge_new_blob_from_buffer(bithenge_blob_t **out, const void *buffer,
+    size_t len, bool needs_free);
+
 #endif
 
 /** @}

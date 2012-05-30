@@ -93,7 +93,7 @@ static const bithenge_random_access_blob_ops_t block_ops = {
 
 /** Create a blob for a block device. The blob must be freed with
  * @a bithenge_blob_t::bithenge_blob_destroy after it is used.
- * @param out[out] Place to store the blob.
+ * @param[out] out Stores the created blob.
  * @param service_id The service ID of the block device.
  * @return EOK on success or an error code from errno.h. */
 int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id)
@@ -130,7 +130,7 @@ int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id)
 	}
 	blob->service_id = service_id;
 	blob->size = size;
-	*out = &blob->base;
+	*out = blob_from_block(blob);
 
 	return EOK;
 }
