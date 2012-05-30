@@ -126,6 +126,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 		return ENOMEM;
 	
 	unsigned int rc = elf_load((elf_header_t *) image_addr, as, 0);
+	LOG("elf_load() -> %u\n", rc);
 	if (rc != EE_OK) {
 		as_destroy(as);
 		prg->task = NULL;
