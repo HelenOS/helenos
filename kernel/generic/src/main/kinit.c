@@ -200,7 +200,7 @@ void kinit(void *arg)
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
-
+		
 		/*
 		 * Create virtual memory mappings for init task images.
 		 */
@@ -235,7 +235,9 @@ void kinit(void *arg)
 			 */
 			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
 		} else
-			printf("init[%zu]: Init binary load failed (error %d)\n", i, rc);
+			printf("init[%zu]: Init binary load failed "
+			    "(error %d, loader status %u)\n", i, rc,
+			    programs[i].loader_status);
 	}
 	
 	/*
