@@ -31,65 +31,17 @@
  */
 /**
  * @file
- * Simple program to test Bithenge.
+ * Access files as blobs.
  */
 
-#include <loc.h>
-#include <stdio.h>
-#include <sys/types.h>
+#ifndef BITHENGE_FILE_H_
+#define BITHENGE_FILE_H_
+
 #include "blob.h"
-#include "block.h"
-#include "file.h"
 
-static void
-print_data(const char *data, size_t len)
-{
-	while (len--)
-		printf("%02x ", (uint8_t)(*data++));
-	printf("\n");
-}
+int bithenge_new_file_blob(bithenge_blob_t **, const char *filename);
 
-static void
-print_blob(bithenge_blob_t *blob)
-{
-	aoff64_t size;
-	bithenge_blob_size(blob, &size);
-	printf("Size: %d; ", (int)size);
-	char buffer[64];
-	size = sizeof(buffer);
-	bithenge_blob_read(blob, 0, buffer, &size);
-	print_data(buffer, size);
-}
-
-int main(int argc, char *argv[])
-{
-	bithenge_blob_t *blob;
-
-	service_id_t service_id;
-	loc_service_get_id("bd/initrd", &service_id, 0);
-	bithenge_new_block_blob(&blob, service_id);
-	printf("Data from block:bd/initrd: ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
-
-	const char data[] = "'Twas brillig, and the slithy toves";
-	bithenge_new_blob_from_data(&blob, data, sizeof(data));
-	printf("Data from memory (from_data): ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
-
-	bithenge_new_blob_from_buffer(&blob, data, sizeof(data), false);
-	printf("Data from memory (from_buffer): ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
-
-	bithenge_new_file_blob(&blob, "/textdemo");
-	printf("Data from file:/textdemo: ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
-
-	return 0;
-}
+#endif
 
 /** @}
  */

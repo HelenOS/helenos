@@ -31,113 +31,107 @@
  */
 /**
  * @file
- * Access block devices as blobs.
- * @todo Provide more information about the block device (block size).
+ * Access files as blobs.
+ * @todo Provide more information about the file.
  */
 
 #include <assert.h>
 #include <errno.h>
-#include <libblock.h>
-#include <loc.h>
+#include <fcntl.h>
 #include <macros.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include "blob.h"
-#include "block.h"
+#include "file.h"
 
 typedef struct {
 	bithenge_blob_t base;
-	service_id_t service_id;
-	aoff64_t size;
-} block_blob_t;
+	int fd;
+	aoff64_t size; // needed by file_read()
+} file_blob_t;
 
-static inline block_blob_t *block_from_blob(bithenge_blob_t *base)
+static inline file_blob_t *file_from_blob(bithenge_blob_t *base)
 {
-	return (block_blob_t *)base;
+	return (file_blob_t *)base;
 }
 
-static inline bithenge_blob_t *blob_from_block(block_blob_t *blob)
+static inline bithenge_blob_t *blob_from_file(file_blob_t *blob)
 {
 	return &blob->base;
 }
 
-static int block_size(bithenge_blob_t *base, aoff64_t *size)
+static int file_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	block_blob_t *blob = block_from_blob(base);
+	file_blob_t *blob = file_from_blob(base);
 	*size = blob->size;
 	return EOK;
 }
 
-static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
+static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
-	block_blob_t *blob = block_from_blob(base);
+	file_blob_t *blob = file_from_blob(base);
 	if (offset > blob->size)
 		return ELIMIT;
 	*size = min(*size, blob->size - offset);
-	return block_read_bytes_direct(blob->service_id, offset, *size, buffer);
+	int rc = lseek(blob->fd, offset, SEEK_SET);
+	if (rc != EOK)
+		return rc;
+	return read(blob->fd, buffer, *size);
 }
 
-static int block_destroy(bithenge_blob_t *base)
+static int file_destroy(bithenge_blob_t *base)
 {
-	block_blob_t *blob = block_from_blob(base);
-	block_fini(blob->service_id);
+	file_blob_t *blob = file_from_blob(base);
+	close(blob->fd);
 	free(blob);
 	return EOK;
 }
 
-static const bithenge_random_access_blob_ops_t block_ops = {
-	.size = block_size,
-	.read = block_read,
-	.destroy = block_destroy,
+static const bithenge_random_access_blob_ops_t file_ops = {
+	.size = file_size,
+	.read = file_read,
+	.destroy = file_destroy,
 };
 
-/** Create a blob for a block device. The blob must be freed with
- * @a bithenge_blob_t::bithenge_blob_destroy after it is used.
+/** Create a blob for a file. The blob must be freed with @a
+ * bithenge_blob_t::bithenge_blob_destroy after it is used.
  * @param[out] out Stores the created blob.
- * @param service_id The service ID of the block device.
+ * @param filename The name of the file.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_block_blob(bithenge_blob_t **out, service_id_t service_id)
+int bithenge_new_file_blob(bithenge_blob_t **out, const char *filename)
 {
 	assert(out);
+	assert(filename);
 
-	// Initialize libblock
-	int rc;
-	rc = block_init(EXCHANGE_SERIALIZE, service_id, 2048);
-	if (rc != EOK)
-		return rc;
+	int fd;
+	fd = open(filename, O_RDONLY);
+	if (fd < 0)
+		return fd;
 
-	// Calculate total device size
-	size_t bsize;
-	aoff64_t nblocks;
-	aoff64_t size;
-	rc = block_get_bsize(service_id, &bsize);
+	struct stat stat;
+	int rc = fstat(fd, &stat);
 	if (rc != EOK) {
-		block_fini(service_id);
+		close(fd);
 		return rc;
 	}
-	rc = block_get_nblocks(service_id, &nblocks);
-	if (rc != EOK) {
-		block_fini(service_id);
-		return rc;
-	}
-	size = bsize * nblocks;
 
 	// Create blob
-	block_blob_t *blob = malloc(sizeof(*blob));
+	file_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob) {
-		block_fini(service_id);
+		close(fd);
 		return ENOMEM;
 	}
-	rc = bithenge_new_random_access_blob(blob_from_block(blob),
-	    &block_ops);
+	rc = bithenge_new_random_access_blob(blob_from_file(blob),
+	    &file_ops);
 	if (rc != EOK) {
 		free(blob);
-		block_fini(service_id);
+		close(fd);
 		return rc;
 	}
-	blob->service_id = service_id;
-	blob->size = size;
-	*out = blob_from_block(blob);
+	blob->fd = fd;
+	blob->size = stat.size;
+	*out = blob_from_file(blob);
 
 	return EOK;
 }

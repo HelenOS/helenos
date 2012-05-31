@@ -34,6 +34,7 @@ BINARY = bithenge
 SOURCES = \
 	blob.c \
 	block.c \
+	file.c \
 	test.c
 
 include $(USPACE_PREFIX)/Makefile.common
