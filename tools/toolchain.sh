@@ -148,7 +148,8 @@ show_usage() {
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
-	echo " parallel   same as 'all', but in parallel"
+	echo " parallel   same as 'all', but all in parallel"
+	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
 	echo "The toolchain will be installed to the directory specified by"
 	echo "the CROSS_PREFIX environment variable. If the variable is not"
@@ -426,6 +427,28 @@ case "$1" in
 		build_target "mips32eb" "mips-linux-gnu" &
 		build_target "mips64" "mips64el-linux-gnu" &
 		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "ppc64" "ppc64-linux-gnu" &
+		build_target "sparc64" "sparc64-linux-gnu" &
+		wait
+		;;
+	"2-way")
+		prepare
+		build_target "amd64" "amd64-linux-gnu" &
+		build_target "arm32" "arm-linux-gnueabi" &
+		wait
+		
+		build_target "ia32" "i686-pc-linux-gnu" &
+		build_target "ia64" "ia64-pc-linux-gnu" &
+		wait
+		
+		build_target "mips32" "mipsel-linux-gnu" &
+		build_target "mips32eb" "mips-linux-gnu" &
+		wait
+		
+		build_target "mips64" "mips64el-linux-gnu" &
+		build_target "ppc32" "ppc-linux-gnu" &
+		wait
+		
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
 		wait
