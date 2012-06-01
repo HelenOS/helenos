@@ -72,20 +72,18 @@ static iplink_ops_t ethip_iplink_ops = {
 
 static int ethip_init(void)
 {
-	int rc;
-
 	async_set_client_connection(ethip_client_conn);
-
-	rc = loc_server_register(NAME);
+	
+	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
-
+	
 	rc = ethip_nic_discovery_start();
 	if (rc != EOK)
 		return rc;
-
+	
 	return EOK;
 }
 
