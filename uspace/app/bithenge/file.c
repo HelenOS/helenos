@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <macros.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include "blob.h"
@@ -48,6 +49,7 @@ typedef struct {
 	bithenge_blob_t base;
 	int fd;
 	aoff64_t size; // needed by file_read()
+	bool needs_close;
 } file_blob_t;
 
 static inline file_blob_t *file_from_blob(bithenge_blob_t *base)
@@ -94,6 +96,41 @@ static const bithenge_random_access_blob_ops_t file_ops = {
 	.destroy = file_destroy,
 };
 
+static int new_file_blob(bithenge_blob_t **out, int fd, bool needs_close)
+{
+	assert(out);
+
+	struct stat stat;
+	int rc = fstat(fd, &stat);
+	if (rc != EOK) {
+		if (needs_close)
+			close(fd);
+		return rc;
+	}
+
+	// Create blob
+	file_blob_t *blob = malloc(sizeof(*blob));
+	if (!blob) {
+		if (needs_close)
+			close(fd);
+		return ENOMEM;
+	}
+	rc = bithenge_new_random_access_blob(blob_from_file(blob),
+	    &file_ops);
+	if (rc != EOK) {
+		free(blob);
+		if (needs_close)
+			close(fd);
+		return rc;
+	}
+	blob->fd = fd;
+	blob->size = stat.size;
+	blob->needs_close = needs_close;
+	*out = blob_from_file(blob);
+
+	return EOK;
+}
+
 /** Create a blob for a file. The blob must be freed with @a
  * bithenge_blob_t::bithenge_blob_destroy after it is used.
  * @param[out] out Stores the created blob.
@@ -101,39 +138,36 @@ static const bithenge_random_access_blob_ops_t file_ops = {
  * @return EOK on success or an error code from errno.h. */
 int bithenge_new_file_blob(bithenge_blob_t **out, const char *filename)
 {
-	assert(out);
 	assert(filename);
 
-	int fd;
-	fd = open(filename, O_RDONLY);
+	int fd = open(filename, O_RDONLY);
 	if (fd < 0)
 		return fd;
 
-	struct stat stat;
-	int rc = fstat(fd, &stat);
-	if (rc != EOK) {
-		close(fd);
-		return rc;
-	}
+	return new_file_blob(out, fd, true);
+}
 
-	// Create blob
-	file_blob_t *blob = malloc(sizeof(*blob));
-	if (!blob) {
-		close(fd);
-		return ENOMEM;
-	}
-	rc = bithenge_new_random_access_blob(blob_from_file(blob),
-	    &file_ops);
-	if (rc != EOK) {
-		free(blob);
-		close(fd);
-		return rc;
-	}
-	blob->fd = fd;
-	blob->size = stat.size;
-	*out = blob_from_file(blob);
+/** Create a blob for a file descriptor. The blob must be freed with @a
+ * bithenge_blob_t::bithenge_blob_destroy after it is used.
+ * @param[out] out Stores the created blob.
+ * @param fd The file descriptor.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_file_blob_from_fd(bithenge_blob_t **out, int fd)
+{
+	return new_file_blob(out, fd, false);
+}
 
-	return EOK;
+/** Create a blob for a file pointer. The blob must be freed with @a
+ * bithenge_blob_t::bithenge_blob_destroy after it is used.
+ * @param[out] out Stores the created blob.
+ * @param file The file pointer.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_file_blob_from_file(bithenge_blob_t **out, FILE *file)
+{
+	int fd = fileno(file);
+	if (fd < 0)
+		return errno;
+	return new_file_blob(out, fd, false);
 }
 
 /** @}

@@ -88,6 +88,11 @@ int main(int argc, char *argv[])
 	print_blob(blob);
 	bithenge_blob_destroy(blob);
 
+	bithenge_new_file_blob_from_fd(&blob, 0);
+	printf("Data from fd:0: ");
+	print_blob(blob);
+	bithenge_blob_destroy(blob);
+
 	return 0;
 }
 

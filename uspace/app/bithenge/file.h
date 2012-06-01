@@ -37,9 +37,12 @@
 #ifndef BITHENGE_FILE_H_
 #define BITHENGE_FILE_H_
 
+#include <stdio.h>
 #include "blob.h"
 
-int bithenge_new_file_blob(bithenge_blob_t **, const char *filename);
+int bithenge_new_file_blob(bithenge_blob_t **, const char *);
+int bithenge_new_file_blob_from_fd(bithenge_blob_t **, int);
+int bithenge_new_file_blob_from_file(bithenge_blob_t **, FILE *);
 
 #endif
 
