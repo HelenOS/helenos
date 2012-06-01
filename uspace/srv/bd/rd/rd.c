@@ -236,7 +236,7 @@ static bool rd_init(void)
 	
 	async_set_client_connection(rd_connection);
 	ret = loc_server_register(NAME);
-	if (ret < 0) {
+	if (ret != EOK) {
 		printf("%s: Unable to register driver (%d)\n", NAME, ret);
 		return false;
 	}

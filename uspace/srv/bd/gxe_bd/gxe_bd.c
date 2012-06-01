@@ -121,35 +121,36 @@ int main(int argc, char **argv)
 
 static int gxe_bd_init(void)
 {
-	void *vaddr;
-	int rc, i;
-	char name[16];
-	
 	async_set_client_connection(gxe_bd_connection);
-	rc = loc_server_register(NAME);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-
+	
+	void *vaddr;
 	rc = pio_enable((void *) dev_physical, sizeof(gxe_bd_t), &vaddr);
 	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
+		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-
+	
 	dev = vaddr;
-
-	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
+	
+	for (unsigned int i = 0; i < MAX_DISKS; i++) {
+		char name[16];
+		
+		snprintf(name, 16, "%s/disk%u", NAMESPACE, i);
 		rc = loc_service_register(name, &service_id[i]);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
+			printf("%s: Unable to register device %s.\n", NAME,
+			    name);
 			return rc;
 		}
+		
 		fibril_mutex_initialize(&dev_lock[i]);
 	}
-
+	
 	return EOK;
 }
 

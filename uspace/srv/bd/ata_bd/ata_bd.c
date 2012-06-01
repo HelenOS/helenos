@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
 
@@ -242,33 +242,30 @@ static void disk_print_summary(disk_t *d)
 /** Register driver and enable device I/O. */
 static int ata_bd_init(void)
 {
-	void *vaddr;
-	int rc;
-	
 	async_set_client_connection(ata_bd_connection);
-	rc = loc_server_register(NAME);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-
+	
+	void *vaddr;
 	rc = pio_enable((void *) cmd_physical, sizeof(ata_cmd_t), &vaddr);
 	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
+		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-
+	
 	cmd = vaddr;
-
+	
 	rc = pio_enable((void *) ctl_physical, sizeof(ata_ctl_t), &vaddr);
 	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
+		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-
+	
 	ctl = vaddr;
-
-
+	
 	return EOK;
 }
 
