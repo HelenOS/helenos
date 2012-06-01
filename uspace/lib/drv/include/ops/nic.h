@@ -39,7 +39,6 @@
 #include <ipc/services.h>
 #include <nic/nic.h>
 #include <sys/time.h>
-
 #include "../ddf/driver.h"
 
 typedef struct nic_iface {
