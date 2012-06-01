@@ -47,7 +47,7 @@
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS IPC Naming Service\n");
+	printf("%s: HelenOS IPC Naming Service\n", NAME);
 	
 	int rc = service_init();
 	if (rc != EOK)

@@ -158,13 +158,14 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS VFS server\n");
+	printf("%s: HelenOS VFS server\n", NAME);
 	
 	/*
 	 * Initialize VFS node hash table.
 	 */
 	if (!vfs_nodes_init()) {
-		printf(NAME ": Failed to initialize VFS node hash table\n");
+		printf("%s: Failed to initialize VFS node hash table\n",
+		    NAME);
 		return ENOMEM;
 	}
 	
@@ -174,7 +175,7 @@ int main(int argc, char **argv)
 	plb = as_area_create((void *) -1, PLB_SIZE,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	if (plb == (void *) -1) {
-		printf(NAME ": Cannot create address space area\n");
+		printf("%s: Cannot create address space area\n", NAME);
 		return ENOMEM;
 	}
 	memset(plb, 0, PLB_SIZE);
@@ -195,19 +196,20 @@ int main(int argc, char **argv)
 	 */
 	async_set_interrupt_received(notification_received);
 	event_task_subscribe(EVENT_TASK_STATE_CHANGE, VFS_TASK_STATE_CHANGE);
-
+	
 	/*
 	 * Register at the naming service.
 	 */
-	if (service_register(SERVICE_VFS) != EOK) {
+	int rc = service_register(SERVICE_VFS);
+	if (rc != EOK) {
 		printf("%s: Cannot register VFS service\n", NAME);
-		return EINVAL;
+		return rc;
 	}
 	
 	/*
 	 * Start accepting connections.
 	 */
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	async_manager();
 	return 0;
 }
