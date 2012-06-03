@@ -48,31 +48,28 @@ static void iplink_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 int iplink_open(async_sess_t *sess, iplink_ev_ops_t *ev_ops,
     iplink_t **riplink)
 {
-	iplink_t *iplink = NULL;
-	int rc;
-
-	iplink = calloc(1, sizeof(iplink_t));
+	iplink_t *iplink = calloc(1, sizeof(iplink_t));
 	if (iplink == NULL)
 		return ENOMEM;
-
+	
 	iplink->sess = sess;
 	iplink->ev_ops = ev_ops;
-
+	
 	async_exch_t *exch = async_exchange_begin(sess);
-
-	rc = async_connect_to_me(exch, 0, 0, 0, iplink_cb_conn, iplink);
+	
+	int rc = async_connect_to_me(exch, 0, 0, 0, iplink_cb_conn, iplink);
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK)
 		goto error;
-
+	
 	*riplink = iplink;
 	return EOK;
-
+	
 error:
 	if (iplink != NULL)
 		free(iplink);
-
+	
 	return rc;
 }
 

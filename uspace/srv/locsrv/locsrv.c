@@ -389,7 +389,6 @@ static loc_server_t *loc_server_register(void)
 	 * Initialize list of supplied services
 	 */
 	list_initialize(&server->services);
-
 	link_initialize(&server->servers);
 	
 	fibril_mutex_lock(&servers_list_mutex);
@@ -1492,8 +1491,9 @@ int main(int argc, char *argv[])
 	async_set_client_connection(loc_connection);
 	
 	/* Register location service at naming service */
-	if (service_register(SERVICE_LOC) != EOK)
-		return -1;
+	int rc = service_register(SERVICE_LOC);
+	if (rc != EOK)
+		return rc;
 	
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();

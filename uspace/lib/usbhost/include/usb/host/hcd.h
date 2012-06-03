@@ -32,6 +32,7 @@
 /** @file
  *
  */
+
 #ifndef LIBUSBHOST_HOST_HCD_H
 #define LIBUSBHOST_HOST_HCD_H
 
@@ -60,7 +61,7 @@ struct hcd {
 	/** Hook called upon removing of an endpoint. */
 	void (*ep_remove_hook)(hcd_t *, endpoint_t *);
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize hcd_t structure.
  * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
  * @param hcd hcd_t structure to initialize, non-null.
@@ -78,7 +79,7 @@ static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd->ep_add_hook = NULL;
 	hcd->ep_remove_hook = NULL;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Check registered endpoints and reset toggle bit if necessary.
  * @param hcd hcd_t structure, non-null.
  * @param target Control communication target.
@@ -91,7 +92,7 @@ static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
 	usb_endpoint_manager_reset_eps_if_need(
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Data retrieve wrapper.
  * @param fun ddf function, non-null.
  * @return pointer cast to hcd_t*.
@@ -101,10 +102,11 @@ static inline hcd_t * fun_to_hcd(const ddf_fun_t *fun)
 	assert(fun);
 	return fun->driver_data;
 }
-/*----------------------------------------------------------------------------*/
+
 extern usbhc_iface_t hcd_iface;
 
 #endif
+
 /**
  * @}
  */

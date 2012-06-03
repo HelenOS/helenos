@@ -67,16 +67,14 @@ static int tcp_sock_recv_fibril(void *arg);
 
 int tcp_sock_init(void)
 {
-	int rc;
-
 	socket_ports_initialize(&gsock);
-
+	
 	async_set_client_connection(tcp_sock_connection);
-
-	rc = service_register(SERVICE_TCP);
+	
+	int rc = service_register(SERVICE_TCP);
 	if (rc != EOK)
 		return EEXIST;
-
+	
 	return EOK;
 }
 

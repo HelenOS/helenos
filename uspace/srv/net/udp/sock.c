@@ -65,16 +65,14 @@ static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 int udp_sock_init(void)
 {
-	int rc;
-
 	socket_ports_initialize(&gsock);
-
+	
 	async_set_client_connection(udp_sock_connection);
-
-	rc = service_register(SERVICE_UDP);
+	
+	int rc = service_register(SERVICE_UDP);
 	if (rc != EOK)
 		return EEXIST;
-
+	
 	return EOK;
 }
 

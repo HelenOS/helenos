@@ -79,6 +79,7 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	kernel_uarg->uspace_thread_arg = NULL;
 	kernel_uarg->uspace_uarg = NULL;
 	
+	prg->loader_status = EE_OK;
 	prg->task = task_create(as, name);
 	if (!prg->task)
 		return ELIMIT;
@@ -110,11 +111,12 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
  * (and *task is set to NULL). Otherwise a task is created from the
  * executable image. The task is returned in *task.
  *
- * @param image_addr Address of an executable program image.
- * @param name       Name to set for the program's task.
- * @param prg        Buffer for storing program info. If image_addr
- *                   points to a loader image, p->task will be set to
- *                   NULL and EOK will be returned.
+ * @param[in]  image_addr Address of an executable program image.
+ * @param[in]  name       Name to set for the program's task.
+ * @param[out] prg        Buffer for storing program info.
+ *                        If image_addr points to a loader image,
+ *                        prg->task will be set to NULL and EOK
+ *                        will be returned.
  *
  * @return EOK on success or negative error code.
  *
@@ -125,13 +127,13 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 	if (!as)
 		return ENOMEM;
 	
-	unsigned int rc = elf_load((elf_header_t *) image_addr, as, 0);
-	if (rc != EE_OK) {
+	prg->loader_status = elf_load((elf_header_t *) image_addr, as, 0);
+	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
 		
-		if (rc != EE_LOADER)
+		if (prg->loader_status != EE_LOADER)
 			return ENOTSUP;
 		
 		/* Register image as the program loader */
@@ -139,8 +141,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 			return ELIMIT;
 		
 		program_loader = image_addr;
-		LOG("Registered program loader at %p",
-		    (void *) image_addr);
+		printf("Program loader at %p\n", (void *) image_addr);
 		
 		return EOK;
 	}
@@ -170,11 +171,12 @@ int program_create_loader(program_t *prg, char *name)
 		return ENOENT;
 	}
 	
-	unsigned int rc = elf_load((elf_header_t *) program_loader, as,
+	prg->loader_status = elf_load((elf_header_t *) program_loader, as,
 	    ELD_F_LOADER);
-	if (rc != EE_OK) {
+	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
-		printf("Cannot spawn loader (%s)\n", elf_error(rc));
+		printf("Cannot spawn loader (%s)\n",
+		    elf_error(prg->loader_status));
 		return ENOENT;
 	}
 	
