@@ -261,15 +261,9 @@ static void ext4_extent_binsearch_idx(ext4_extent_header_t *header,
 
 	uint16_t entries_count = ext4_extent_header_get_entries_count(header);
 
-	// Check trivial situation
-	if (entries_count == 1) {
-		*index = EXT4_EXTENT_FIRST_INDEX(header);
-		return;
-	}
-
 	// Initialize bounds
 	l = EXT4_EXTENT_FIRST_INDEX(header) + 1;
-	r = l + entries_count - 1;
+	r = EXT4_EXTENT_FIRST_INDEX(header) + entries_count - 1;
 
 	// Do binary search
 	while (l <= r) {
@@ -306,18 +300,12 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
 		return;
 	}
 
-	// Check trivial situation
-	if (entries_count == 1) {
-		*extent = EXT4_EXTENT_FIRST(header);
-		return;
-	}
-
 	// Initialize bounds
 	l = EXT4_EXTENT_FIRST(header) + 1;
-	r = l + entries_count - 1;
+	r = EXT4_EXTENT_FIRST(header) + entries_count - 1;
 
 	// Do binary search
-	while (l < r) {
+	while (l <= r) {
 		m = l + (r - l) / 2;
 		uint32_t first_block = ext4_extent_get_first_block(m);
 		if (iblock < first_block) {
@@ -364,6 +352,10 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref,
 
 	// Walk through extent tree
 	ext4_extent_header_t *header = ext4_inode_get_extent_header(inode_ref->inode);
+
+//	EXT4FS_DBG("inode = \%u", inode_ref->index);
+//	EXT4FS_DBG("count = \%u", ext4_extent_header_get_entries_count(header));
+
 	while (ext4_extent_header_get_depth(header) != 0) {
 
 		// Search index in node
@@ -394,10 +386,15 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref,
 		*fblock = 0;
 	} else {
 
+//		EXT4FS_DBG("required = \%u, first = \%u, start = \%u, count = \%u", iblock, ext4_extent_get_first_block(extent), (uint32_t)ext4_extent_get_start(extent), ext4_extent_get_block_count(extent));
+
 		// Compute requested physical block address
 		uint32_t phys_block;
-		phys_block = ext4_extent_get_start(extent) + iblock;
-		phys_block -= ext4_extent_get_first_block(extent);
+		uint32_t first = ext4_extent_get_first_block(extent);
+		phys_block = ext4_extent_get_start(extent) + iblock - first;
+
+//		phys_block = ext4_extent_get_start(extent) + iblock;
+//		phys_block -= ext4_extent_get_first_block(extent);
 
 		*fblock = phys_block;
 	}
