@@ -543,7 +543,6 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	}
 
 	ext4fs_node_t *enode = EXT4FS_NODE(fn);
-	ext4_filesystem_t *fs = enode->instance->filesystem;
 	ext4_inode_ref_t *inode_ref = enode->inode_ref;
 
 	// Release data blocks
@@ -554,15 +553,20 @@ int ext4fs_destroy_node(fs_node_t *fn)
 	}
 
 	// Handle orphans
-	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
-	if (rev_level > 0) {
-		ext4_filesystem_delete_orphan(inode_ref);
-	}
+//	ext4_filesystem_t *fs = enode->instance->filesystem;
+//	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
+//	uint16_t lnk_count = ext4_inode_get_links_count(inode_ref->inode);
+//	if ((rev_level > 0) && (lnk_count == 0)) {
+//		rc = ext4_filesystem_delete_orphan(inode_ref);
+//		if (rc != EOK) {
+//			EXT4FS_DBG("delete orphan error, rc = \%d", rc);
+//		}
+//	}
 
 	// TODO set real deletion time when it will be supported,
 	// temporary set fake time
 //	time_t now = time(NULL);
-	ext4_inode_set_deletion_time(inode_ref->inode, 12345678);
+	ext4_inode_set_deletion_time(inode_ref->inode, 0xdeadbeef);
 	inode_ref->dirty = true;
 
 	// Free inode
@@ -572,8 +576,7 @@ int ext4fs_destroy_node(fs_node_t *fn)
 		return rc;
 	}
 
-	ext4fs_node_put(fn);
-	return EOK;
+	return ext4fs_node_put(fn);
 }
 
 
@@ -673,7 +676,6 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	// Remove entry from parent directory
 	ext4_inode_ref_t *parent = EXT4FS_NODE(pfn)->inode_ref;
-	ext4_filesystem_t *fs = EXT4FS_NODE(pfn)->instance->filesystem;
 	rc = ext4_directory_remove_entry(parent, name);
 	if (rc != EOK) {
 		return rc;
@@ -702,10 +704,14 @@ int ext4fs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		parent->dirty = true;
 	}
 
-	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
-	if ((rev_level > 0) && (lnk_count == 0)) {
-		ext4_filesystem_add_orphan(child_inode_ref);
-	}
+//	ext4_filesystem_t *fs = EXT4FS_NODE(pfn)->instance->filesystem;
+//	uint32_t rev_level = ext4_superblock_get_rev_level(fs->superblock);
+//	if ((rev_level > 0) && (lnk_count == 0)) {
+//		rc = ext4_filesystem_add_orphan(child_inode_ref);
+//		if (rc != EOK) {
+//			EXT4FS_DBG("add orphan error, rc = \%d", rc);
+//		}
+//	}
 
 	// TODO set timestamps for parent (when we have wall-clock time)
 //	time_t now = time(NULL);
