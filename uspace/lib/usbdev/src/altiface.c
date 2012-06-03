@@ -32,6 +32,7 @@
 /** @file
  * Handling alternate interface settings.
  */
+
 #include <usb/dev/driver.h>
 #include <usb/dev/request.h>
 #include <usb/debug.h>

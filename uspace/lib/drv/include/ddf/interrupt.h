@@ -41,7 +41,6 @@
 #include <adt/list.h>
 #include <ddi.h>
 #include <fibril_synch.h>
-
 #include "driver.h"
 #include "../dev_iface.h"
 

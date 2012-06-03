@@ -826,7 +826,7 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 	/* Register server */
 	async_set_client_connection(client_connection);
 	int rc = loc_server_register(NAME);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME,
 		    str_error(rc));
 		return false;

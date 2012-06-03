@@ -38,7 +38,6 @@
 
 #include <device/hw_res.h>
 #include <sys/types.h>
-
 #include "../ddf/driver.h"
 
 typedef struct {

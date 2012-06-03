@@ -85,20 +85,28 @@ typedef struct {
 typedef struct {
 	/** Link to global list of services (services_list) */
 	link_t services;
+	
 	/** Link to server list of services (loc_server_t.services) */
 	link_t server_services;
+	
 	/** Link to list of services in category (category_t.services) */
 	link_t cat_services;
+	
 	/** List of category memberships (svc_categ_t) */
 	list_t cat_memb;
+	
 	/** Unique service identifier */
 	service_id_t id;
+	
 	/** Service namespace */
 	loc_namespace_t *namespace;
+	
 	/** Service name */
 	char *name;
+	
 	/** Supplier of this service */
 	loc_server_t *server;
+	
 	/** Use this interface when forwarding to server. */
 	sysarg_t forward_interface;
 } loc_service_t;

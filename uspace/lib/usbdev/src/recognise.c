@@ -32,6 +32,7 @@
 /** @file
  * Functions for recognition of attached devices.
  */
+
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <usb/debug.h>
@@ -310,6 +311,7 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
  * @param[out] child_fun Storage where pointer to allocated child function
  *	will be written.
  * @return Error code.
+ *
  */
 int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
     ddf_dev_t *parent, ddf_dev_ops_t *dev_ops, void *dev_data,
@@ -317,46 +319,47 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 {
 	if (child_fun == NULL || ctrl_pipe == NULL)
 		return EINVAL;
-
+	
 	if (!dev_ops && dev_data) {
 		usb_log_warning("Using standard fun ops with arbitrary "
 		    "driver data. This does not have to work.\n");
 	}
-
+	
 	/** Index to append after device name for uniqueness. */
 	static atomic_t device_name_index = {0};
 	const size_t this_device_name_index =
 	    (size_t) atomic_preinc(&device_name_index);
-
+	
 	ddf_fun_t *child = NULL;
 	int rc;
-
+	
 	/*
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	char child_name[12]; /* The format is: "usbAB_aXYZ", length 11 */
+	char child_name[12];  /* The format is: "usbAB_aXYZ", length 11 */
 	rc = snprintf(child_name, sizeof(child_name),
 	    "usb%02zu_a%d", this_device_name_index, ctrl_pipe->wire->address);
 	if (rc < 0) {
 		goto failure;
 	}
-
+	
 	child = ddf_fun_create(parent, fun_inner, child_name);
 	if (child == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
-
-	if (dev_ops != NULL) {
+	
+	if (dev_ops != NULL)
 		child->ops = dev_ops;
-	} else {
+	else
 		child->ops = &child_ops;
-	}
-
+	
 	child->driver_data = dev_data;
-	/* Store the attached device in fun driver data if there is no
-	 * other data */
+	/*
+	 * Store the attached device in fun
+	 * driver data if there is no other data
+	 */
 	if (!dev_data) {
 		usb_hub_attached_device_t *new_device = ddf_fun_data_alloc(
 		    child, sizeof(usb_hub_attached_device_t));
@@ -364,37 +367,34 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 			rc = ENOMEM;
 			goto failure;
 		}
+		
 		new_device->address = ctrl_pipe->wire->address;
 		new_device->fun = child;
 	}
-
-
+	
 	rc = usb_device_create_match_ids(ctrl_pipe, &child->match_ids);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto failure;
-	}
-
+	
 	rc = ddf_fun_bind(child);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto failure;
-	}
-
+	
 	*child_fun = child;
 	return EOK;
-
+	
 failure:
 	if (child != NULL) {
 		/* We know nothing about the data if it came from outside. */
-		if (dev_data) {
+		if (dev_data)
 			child->driver_data = NULL;
-		}
+		
 		/* This takes care of match_id deallocation as well. */
 		ddf_fun_destroy(child);
 	}
-
+	
 	return rc;
 }
-
 
 /**
  * @}

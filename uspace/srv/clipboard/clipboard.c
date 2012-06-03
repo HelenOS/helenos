@@ -180,9 +180,9 @@ int main(int argc, char *argv[])
 	printf("%s: HelenOS clipboard service\n", NAME);
 	
 	async_set_client_connection(clip_connection);
-	
-	if (service_register(SERVICE_CLIPBOARD) != EOK)
-		return -1;
+	int rc = service_register(SERVICE_CLIPBOARD);
+	if (rc != EOK)
+		return rc;
 	
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);

@@ -78,8 +78,7 @@ int nic_driver_init(const char *name)
 	return EOK;
 }
 
-/**
- * Fill in the default implementations for device options and NIC interface.
+/** Fill in the default implementations for device options and NIC interface.
  *
  * @param driver_ops
  * @param dev_ops

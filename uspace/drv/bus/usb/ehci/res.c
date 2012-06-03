@@ -108,7 +108,7 @@ int get_my_registers(const ddf_dev_t *dev,
 	hw_res_list_parsed_clean(&hw_res);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Calls the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
@@ -126,7 +126,7 @@ int enable_interrupts(const ddf_dev_t *device)
 	
 	return enabled ? EOK : EIO;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Implements BIOS hands-off routine as described in EHCI spec
  *
  * @param device EHCI device

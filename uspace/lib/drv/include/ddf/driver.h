@@ -80,6 +80,7 @@ struct ddf_dev {
 	 * device manager).
 	 */
 	devman_handle_t handle;
+	
 	/** Reference count */
 	atomic_t refcnt;
 	
@@ -103,8 +104,10 @@ struct ddf_dev {
 struct ddf_fun {
 	/** True if bound to the device manager */
 	bool bound;
+	
 	/** Function indentifier (asigned by device manager) */
 	devman_handle_t handle;
+	
 	/** Reference count */
 	atomic_t refcnt;
 	
@@ -113,14 +116,19 @@ struct ddf_fun {
 	
 	/** Function type */
 	fun_type_t ftype;
+	
 	/** Function name */
 	const char *name;
+	
 	/** List of device ids for driver matching */
 	match_id_list_t match_ids;
+	
 	/** Driver-specific data associated with this function */
 	void *driver_data;
+	
 	/** Implementation of operations provided by this function */
 	ddf_dev_ops_t *ops;
+	
 	/** Connection handler or @c NULL to use the DDF default handler. */
 	async_client_conn_t conn_handler;
 	
@@ -136,12 +144,16 @@ struct ddf_fun {
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
 	int (*dev_add)(ddf_dev_t *);
+	
 	/** Ask driver to remove a device */
 	int (*dev_remove)(ddf_dev_t *);
+	
 	/** Inform driver a device disappeared */
 	int (*dev_gone)(ddf_dev_t *);
+	
 	/** Ask driver to online a specific function */
 	int (*fun_online)(ddf_fun_t *);
+	
 	/** Ask driver to offline a specific function */
 	int (*fun_offline)(ddf_fun_t *);
 } driver_ops_t;
