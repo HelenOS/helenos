@@ -155,32 +155,40 @@ void ext4_inode_set_access_time(ext4_inode_t *inode, uint32_t time)
 	inode->access_time = host2uint32_t_le(time);
 }
 
-/** TODO comment
+/** Get time, when i-node was last changed.
  *
+ * @param inode		i-node
+ * @return			time of the last change (POSIX)
  */
 uint32_t ext4_inode_get_change_inode_time(ext4_inode_t *inode)
 {
 	return uint32_t_le2host(inode->change_inode_time);
 }
 
-/** TODO comment
+/** Set time, when i-node was last changed.
  *
+ * @param inode		i-node
+ * @param time		time of the last change (POSIX)
  */
 void ext4_inode_set_change_inode_time(ext4_inode_t *inode, uint32_t time)
 {
 	inode->change_inode_time = host2uint32_t_le(time);
 }
 
-/** TODO comment
+/** Get time, when i-node content was last modified.
  *
+ * @param inode		i-node
+ * @return			time of the last content modification (POSIX)
  */
 uint32_t ext4_inode_get_modification_time(ext4_inode_t *inode)
 {
 	return uint32_t_le2host(inode->modification_time);
 }
 
-/** TODO comment
+/** Set time, when i-node content was last modified.
  *
+ * @param inode		i-node
+ * @param time		time of the last content modification (POSIX)
  */
 void ext4_inode_set_modification_time(ext4_inode_t *inode, uint32_t time)
 {
