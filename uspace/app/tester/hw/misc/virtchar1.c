@@ -47,8 +47,9 @@
 #include <fcntl.h>
 #include "../../tester.h"
 
-#define DEVICE_PATH_NORMAL "/loc/devices/\\virt\\null\\a"
-#define BUFFER_SIZE 64
+#define DEVICE_PATH_NORMAL  "/loc/devices/\\virt\\null\\a"
+
+#define BUFFER_SIZE  64
 
 static const char *test_virtchar1_internal(const char *path)
 {
@@ -64,7 +65,7 @@ static const char *test_virtchar1_internal(const char *path)
 	}
 	
 	TPRINTF("   ...file handle %d\n", fd);
-
+	
 	TPRINTF(" Asking for session...\n");
 	async_sess_t *sess = fd_session(EXCHANGE_SERIALIZE, fd);
 	if (!sess) {
@@ -95,14 +96,11 @@ static const char *test_virtchar1_internal(const char *path)
 }
 
 const char *test_virtchar1(void)
-{;
-	const char *res;
-
-	res = test_virtchar1_internal(DEVICE_PATH_NORMAL);
-	if (res != NULL) {
+{
+	const char *res = test_virtchar1_internal(DEVICE_PATH_NORMAL);
+	if (res != NULL)
 		return res;
-	}
-
+	
 	return NULL;
 }
 

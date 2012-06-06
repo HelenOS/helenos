@@ -65,44 +65,42 @@ static LIST_INITIALIZE(client_list);
 
 static int inet_init(void)
 {
-	service_id_t sid;
-	int rc;
-
 	log_msg(LVL_DEBUG, "inet_init()");
-
+	
 	async_set_client_connection(inet_client_conn);
-
-	rc = loc_server_register(NAME);
+	
+	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering server (%d).", rc);
 		return EEXIST;
 	}
-
+	
+	service_id_t sid;
 	rc = loc_service_register_with_iface(SERVICE_NAME_INET, &sid,
 	    INET_PORT_DEFAULT);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
-
+	
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETCFG, &sid,
 	    INET_PORT_CFG);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
-
+	
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING, &sid,
 	    INET_PORT_PING);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
-
+	
 	rc = inet_link_discovery_start();
 	if (rc != EOK)
 		return EEXIST;
-
+	
 	return EOK;
 }
 

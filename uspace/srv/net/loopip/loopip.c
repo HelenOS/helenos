@@ -90,9 +90,9 @@ static int loopip_init(void)
 	service_id_t sid;
 	category_id_t iplink_cat;
 	const char *svc_name = "net/loopback";
-
+	
 	async_set_client_connection(loopip_client_conn);
-
+	
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering server.");

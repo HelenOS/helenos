@@ -169,7 +169,7 @@ static int gpt_init(const char *dev_name)
 		printf(NAME ": Unable to register server.\n");
 		return rc;
 	}
-
+	
 	/*
 	 * Create partition devices.
 	 */

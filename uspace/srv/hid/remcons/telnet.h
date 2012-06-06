@@ -56,7 +56,6 @@ typedef uint8_t telnet_cmd_t;
 #define TELNET_SUPPRESS_GO_AHEAD 3
 #define TELNET_LINEMODE 34
 
-
 #endif
 
 /**

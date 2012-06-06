@@ -149,30 +149,28 @@ static void ethip_link_addr_delete(ethip_link_addr_t *laddr)
 
 static int ethip_nic_open(service_id_t sid)
 {
-	ethip_nic_t *nic;
-	int rc;
 	bool in_list = false;
 	nic_address_t nic_address;
-
+	
 	log_msg(LVL_DEBUG, "ethip_nic_open()");
-	nic = ethip_nic_new();
+	ethip_nic_t *nic = ethip_nic_new();
 	if (nic == NULL)
 		return ENOMEM;
-
-	rc = loc_service_get_name(sid, &nic->svc_name);
+	
+	int rc = loc_service_get_name(sid, &nic->svc_name);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed getting service name.");
 		goto error;
 	}
-
+	
 	nic->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
 	if (nic->sess == NULL) {
 		log_msg(LVL_ERROR, "Failed connecting '%s'", nic->svc_name);
 		goto error;
 	}
-
+	
 	nic->svc_id = sid;
-
+	
 	rc = nic_callback_create(nic->sess, ethip_nic_cb_conn, nic);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed creating callback connection "
@@ -297,15 +295,13 @@ static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int ethip_nic_discovery_start(void)
 {
-	int rc;
-
-	rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
+	int rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
 	if (rc != EOK) {
 		log_msg(LVL_ERROR, "Failed registering callback for NIC "
 		    "discovery (%d).", rc);
 		return rc;
 	}
-
+	
 	return ethip_nic_check_new();
 }
 

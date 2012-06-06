@@ -661,18 +661,19 @@ int main(int argc, char **argv)
 	/* Register driver */
 	async_set_client_connection(client_connection);
 	int rc = loc_server_register(NAME);
-	if (rc < 0) {
-		printf("%s: Unable to register server (%d)\n", NAME, rc);
-		return -1;
+	if (rc != EOK) {
+		printf("%s: Unable to register server\n", NAME);
+		return rc;
 	}
 	
 	char kbd[LOC_NAME_MAXLEN + 1];
 	snprintf(kbd, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	
 	service_id_t service_id;
-	if (loc_service_register(kbd, &service_id) != EOK) {
+	rc = loc_service_register(kbd, &service_id);
+	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, kbd);
-		return -1;
+		return rc;
 	}
 	
 	/* Start looking for new input devices */

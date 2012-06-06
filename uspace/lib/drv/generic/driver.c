@@ -124,28 +124,26 @@ static ddf_fun_t *driver_get_function(devman_handle_t handle)
 
 static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 {
-	char *dev_name = NULL;
-	int res;
-	
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
 	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
 	ddf_dev_t *dev = create_device();
-
+	
 	/* Add one reference that will be dropped by driver_dev_remove() */
 	dev_add_ref(dev);
 	dev->handle = dev_handle;
-
+	
+	char *dev_name = NULL;
 	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	dev->name = dev_name;
-
+	
 	/*
 	 * Currently not used, parent fun handle is stored in context
 	 * of the connection to the parent device driver.
 	 */
 	(void) parent_fun_handle;
 	
-	res = driver->driver_ops->dev_add(dev);
+	int res = driver->driver_ops->dev_add(dev);
 	
 	if (res != EOK) {
 		dev_del_ref(dev);
@@ -162,14 +160,10 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 
 static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devman_handle_t devh;
-	ddf_dev_t *dev;
-	int rc;
-	
-	devh = IPC_GET_ARG1(*icall);
+	devman_handle_t devh = IPC_GET_ARG1(*icall);
 	
 	fibril_mutex_lock(&devices_mutex);
-	dev = driver_get_device(devh);
+	ddf_dev_t *dev = driver_get_device(devh);
 	if (dev != NULL)
 		dev_add_ref(dev);
 	fibril_mutex_unlock(&devices_mutex);
@@ -178,6 +172,8 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
+	
+	int rc;
 	
 	if (driver->driver_ops->dev_remove != NULL)
 		rc = driver->driver_ops->dev_remove(dev);
@@ -192,14 +188,10 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 
 static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devman_handle_t devh;
-	ddf_dev_t *dev;
-	int rc;
-	
-	devh = IPC_GET_ARG1(*icall);
+	devman_handle_t devh = IPC_GET_ARG1(*icall);
 	
 	fibril_mutex_lock(&devices_mutex);
-	dev = driver_get_device(devh);
+	ddf_dev_t *dev = driver_get_device(devh);
 	if (dev != NULL)
 		dev_add_ref(dev);
 	fibril_mutex_unlock(&devices_mutex);
@@ -208,6 +200,8 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
+	
+	int rc;
 	
 	if (driver->driver_ops->dev_gone != NULL)
 		rc = driver->driver_ops->dev_gone(dev);
@@ -222,11 +216,7 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 
 static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devman_handle_t funh;
-	ddf_fun_t *fun;
-	int rc;
-	
-	funh = IPC_GET_ARG1(*icall);
+	devman_handle_t funh = IPC_GET_ARG1(*icall);
 	
 	/*
 	 * Look the function up. Bump reference count so that
@@ -235,7 +225,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	fibril_mutex_lock(&functions_mutex);
 	
-	fun = driver_get_function(funh);
+	ddf_fun_t *fun = driver_get_function(funh);
 	if (fun != NULL)
 		fun_add_ref(fun);
 	
@@ -247,6 +237,8 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	/* Call driver entry point */
+	int rc;
+	
 	if (driver->driver_ops->fun_online != NULL)
 		rc = driver->driver_ops->fun_online(fun);
 	else
@@ -259,11 +251,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 
 static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devman_handle_t funh;
-	ddf_fun_t *fun;
-	int rc;
-	
-	funh = IPC_GET_ARG1(*icall);
+	devman_handle_t funh = IPC_GET_ARG1(*icall);
 	
 	/*
 	 * Look the function up. Bump reference count so that
@@ -272,7 +260,7 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	fibril_mutex_lock(&functions_mutex);
 	
-	fun = driver_get_function(funh);
+	ddf_fun_t *fun = driver_get_function(funh);
 	if (fun != NULL)
 		fun_add_ref(fun);
 	
@@ -284,6 +272,8 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	/* Call driver entry point */
+	int rc;
+	
 	if (driver->driver_ops->fun_offline != NULL)
 		rc = driver->driver_ops->fun_offline(fun);
 	else
@@ -596,14 +586,12 @@ static void fun_del_ref(ddf_fun_t *fun)
 /** Allocate driver-specific device data. */
 void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
 {
-	void *data;
-
 	assert(dev->driver_data == NULL);
-
-	data = calloc(1, size);
+	
+	void *data = calloc(1, size);
 	if (data == NULL)
 		return NULL;
-
+	
 	dev->driver_data = data;
 	return data;
 }
@@ -633,40 +621,36 @@ void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
  */
 ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 {
-	ddf_fun_t *fun;
-
-	fun = create_function();
+	ddf_fun_t *fun = create_function();
 	if (fun == NULL)
 		return NULL;
-
+	
 	/* Add one reference that will be dropped by ddf_fun_destroy() */
 	fun->dev = dev;
 	fun_add_ref(fun);
-
+	
 	fun->bound = false;
 	fun->ftype = ftype;
-
+	
 	fun->name = str_dup(name);
 	if (fun->name == NULL) {
 		delete_function(fun);
 		return NULL;
 	}
-
+	
 	return fun;
 }
 
 /** Allocate driver-specific function data. */
 void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
 {
-	void *data;
-
 	assert(fun->bound == false);
 	assert(fun->driver_data == NULL);
-
-	data = calloc(1, size);
+	
+	void *data = calloc(1, size);
 	if (data == NULL)
 		return NULL;
-
+	
 	fun->driver_data = data;
 	return data;
 }
@@ -676,12 +660,13 @@ void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
  * Destroy a function previously created with ddf_fun_create(). The function
  * must not be bound.
  *
- * @param fun		Function to destroy
+ * @param fun Function to destroy
+ *
  */
 void ddf_fun_destroy(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
-
+	
 	/*
 	 * Drop the reference added by ddf_fun_create(). This will deallocate
 	 * the function as soon as all other references are dropped (i.e.
@@ -696,6 +681,7 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
 	assert(is_valid_iface_idx(idx));
 	if (fun->ops == NULL)
 		return NULL;
+	
 	return fun->ops->interfaces[idx];
 }
 
@@ -708,18 +694,18 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
  * it will fail if the device already has a bound function of
  * the same name.
  *
- * @param fun		Function to bind
- * @return		EOK on success or negative error code
+ * @param fun Function to bind
+ *
+ * @return EOK on success or negative error code
+ *
  */
 int ddf_fun_bind(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
 	assert(fun->name != NULL);
 	
-	int res;
-	
 	add_to_functions_list(fun);
-	res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
+	int res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
 	    fun->dev->handle, &fun->handle);
 	if (res != EOK) {
 		remove_from_functions_list(fun);
@@ -735,19 +721,19 @@ int ddf_fun_bind(ddf_fun_t *fun)
  * Unbind the specified function from the system. This effectively makes
  * the function invisible to the system.
  *
- * @param fun		Function to unbind
- * @return		EOK on success or negative error code
+ * @param fun Function to unbind
+ *
+ * @return EOK on success or negative error code
+ *
  */
 int ddf_fun_unbind(ddf_fun_t *fun)
 {
-	int res;
-	
 	assert(fun->bound == true);
 	
-	res = devman_remove_function(fun->handle);
+	int res = devman_remove_function(fun->handle);
 	if (res != EOK)
 		return res;
-
+	
 	remove_from_functions_list(fun);
 	
 	fun->bound = false;
@@ -756,16 +742,16 @@ int ddf_fun_unbind(ddf_fun_t *fun)
 
 /** Online function.
  *
- * @param fun		Function to online
- * @return		EOK on success or negative error code
+ * @param fun Function to online
+ *
+ * @return EOK on success or negative error code
+ *
  */
 int ddf_fun_online(ddf_fun_t *fun)
 {
-	int res;
-	
 	assert(fun->bound == true);
 	
-	res = devman_drv_fun_online(fun->handle);
+	int res = devman_drv_fun_online(fun->handle);
 	if (res != EOK)
 		return res;
 	
@@ -774,16 +760,16 @@ int ddf_fun_online(ddf_fun_t *fun)
 
 /** Offline function.
  *
- * @param fun		Function to offline
- * @return		EOK on success or negative error code
+ * @param fun Function to offline
+ *
+ * @return EOK on success or negative error code
+ *
  */
 int ddf_fun_offline(ddf_fun_t *fun)
 {
-	int res;
-	
 	assert(fun->bound == true);
 	
-	res = devman_drv_fun_offline(fun->handle);
+	int res = devman_drv_fun_offline(fun->handle);
 	if (res != EOK)
 		return res;
 	
@@ -795,20 +781,21 @@ int ddf_fun_offline(ddf_fun_t *fun)
  * Construct and add a single match ID to the specified function.
  * Cannot be called when the function node is bound.
  *
- * @param fun			Function
- * @param match_id_str		Match string
- * @param match_score		Match score
- * @return			EOK on success, ENOMEM if out of memory.
+ * @param fun          Function
+ * @param match_id_str Match string
+ * @param match_score  Match score
+ *
+ * @return EOK on success.
+ * @return ENOMEM if out of memory.
+ *
  */
 int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
     int match_score)
 {
-	match_id_t *match_id;
-	
 	assert(fun->bound == false);
 	assert(fun->ftype == fun_inner);
 	
-	match_id = create_match_id();
+	match_id_t *match_id = create_match_id();
 	if (match_id == NULL)
 		return ENOMEM;
 	
@@ -830,6 +817,7 @@ static remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
 /** Add exposed function to category.
  *
  * Must only be called when the function is bound.
+ *
  */
 int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 {
@@ -841,8 +829,6 @@ int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 
 int ddf_driver_main(driver_t *drv)
 {
-	int rc;
-
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic
 	 * handler for incoming connections.
@@ -857,24 +843,24 @@ int ddf_driver_main(driver_t *drv)
 	 * incoming connections.
 	 */
 	async_set_client_connection(driver_connection);
-	rc = devman_driver_register(driver->name);
+	int rc = devman_driver_register(driver->name);
 	if (rc != EOK) {
 		printf("Error: Failed to register driver with device manager "
 		    "(%s).\n", (rc == EEXISTS) ? "driver already started" :
 		    str_error(rc));
 		
-		return 1;
+		return rc;
 	}
 	
 	/* Return success from the task since server has started. */
 	rc = task_retval(0);
 	if (rc != EOK)
-		return 1;
-
+		return rc;
+	
 	async_manager();
 	
 	/* Never reached. */
-	return 0;
+	return EOK;
 }
 
 /**

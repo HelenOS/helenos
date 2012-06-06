@@ -38,10 +38,10 @@
 #include <proc/task.h>
 #include <ipc/ipc.h>
 
-extern call_t * get_call(sysarg_t callid);
-extern int phone_alloc(task_t *t);
-extern void phone_connect(int phoneid, answerbox_t *box);
-extern void phone_dealloc(int phoneid);
+extern call_t *get_call(sysarg_t);
+extern int phone_alloc(task_t *);
+extern void phone_connect(int, answerbox_t *);
+extern void phone_dealloc(int);
 
 #endif
 
