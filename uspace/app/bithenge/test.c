@@ -40,6 +40,8 @@
 #include "blob.h"
 #include "block.h"
 #include "file.h"
+#include "print.h"
+#include "tree.h"
 
 static void
 print_data(const char *data, size_t len)
@@ -92,6 +94,24 @@ int main(int argc, char *argv[])
 	printf("Data from fd:0: ");
 	print_blob(blob);
 	bithenge_blob_destroy(blob);
+
+	// {True: {}, -1351: "zero", "true": False, 0: 17}
+	bithenge_node_t *node;
+	bithenge_node_t *nodes[8];
+	bithenge_new_boolean_node(&nodes[0], true);
+	bithenge_new_simple_internal_node(&nodes[1], NULL, 0, false);
+	bithenge_new_integer_node(&nodes[2], -1351);
+	bithenge_new_string_node(&nodes[3], "zero", false);
+	bithenge_new_string_node(&nodes[4], "true", false);
+	bithenge_new_boolean_node(&nodes[5], false);
+	bithenge_new_integer_node(&nodes[6], 0);
+	bithenge_new_integer_node(&nodes[7], 17);
+	bithenge_new_simple_internal_node(&node, nodes, 4, false);
+	bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
+	printf("\n");
+	bithenge_print_node(BITHENGE_PRINT_JSON, node);
+	printf("\n");
+	bithenge_node_destroy(node);
 
 	return 0;
 }

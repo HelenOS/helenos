@@ -35,6 +35,8 @@ SOURCES = \
 	blob.c \
 	block.c \
 	file.c \
-	test.c
+	print.c \
+	test.c \
+	tree.c
 
 include $(USPACE_PREFIX)/Makefile.common
