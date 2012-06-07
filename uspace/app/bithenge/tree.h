@@ -56,19 +56,20 @@ typedef enum {
 	BITHENGE_NODE_BOOLEAN,
 	BITHENGE_NODE_INTEGER,
 	BITHENGE_NODE_STRING,
-	// TODO: BITHENGE_NODE_BLOB,
+	BITHENGE_NODE_BLOB,
 } bithenge_node_type_t;
 
 typedef struct bithenge_node_t {
 	bithenge_node_type_t type;
 	union {
-		struct bithenge_internal_node_ops_t *internal_ops;
+		const struct bithenge_internal_node_ops_t *internal_ops;
 		bool boolean_value;
 		bithenge_int_t integer_value;
 		struct {
 			const char *ptr;
 			bool needs_free;
 		} string_value;
+		const struct bithenge_random_access_blob_ops_t *blob_ops;
 	};
 } bithenge_node_t;
 
@@ -81,25 +82,30 @@ typedef int (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *v
 
 typedef struct bithenge_internal_node_ops_t {
 	int (*for_each)(bithenge_node_t *node, bithenge_for_each_func_t func, void *data);
+	int (*destroy)(bithenge_node_t *node);
 } bithenge_internal_node_ops_t;
 
 static inline int bithenge_node_for_each(bithenge_node_t *node, bithenge_for_each_func_t func, void *data)
 {
+	assert(node->type == BITHENGE_NODE_INTERNAL);
 	return node->internal_ops->for_each(node, func, data);
 }
 
 static inline bool bithenge_boolean_node_value(bithenge_node_t *node)
 {
+	assert(node->type == BITHENGE_NODE_BOOLEAN);
 	return node->boolean_value;
 }
 
 static inline bithenge_int_t bithenge_integer_node_value(bithenge_node_t *node)
 {
+	assert(node->type == BITHENGE_NODE_INTEGER);
 	return node->integer_value;
 }
 
 static inline const char *bithenge_string_node_value(bithenge_node_t *node)
 {
+	assert(node->type == BITHENGE_NODE_STRING);
 	return node->string_value.ptr;
 }
 

@@ -52,8 +52,9 @@ print_data(const char *data, size_t len)
 }
 
 static void
-print_blob(bithenge_blob_t *blob)
+print_blob(bithenge_node_t *node)
 {
+	bithenge_blob_t *blob = bithenge_node_as_blob(node);
 	aoff64_t size;
 	bithenge_blob_size(blob, &size);
 	printf("Size: %d; ", (int)size);
@@ -65,47 +66,46 @@ print_blob(bithenge_blob_t *blob)
 
 int main(int argc, char *argv[])
 {
-	bithenge_blob_t *blob;
+	bithenge_node_t *node;
 
 	service_id_t service_id;
 	loc_service_get_id("bd/initrd", &service_id, 0);
-	bithenge_new_block_blob(&blob, service_id);
+	bithenge_new_block_blob(&node, service_id);
 	printf("Data from block:bd/initrd: ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
+	print_blob(node);
+	bithenge_node_destroy(node);
 
 	const char data[] = "'Twas brillig, and the slithy toves";
-	bithenge_new_blob_from_data(&blob, data, sizeof(data));
+	bithenge_new_blob_from_data(&node, data, sizeof(data));
 	printf("Data from memory (from_data): ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
+	print_blob(node);
+	bithenge_node_destroy(node);
 
-	bithenge_new_blob_from_buffer(&blob, data, sizeof(data), false);
+	bithenge_new_blob_from_buffer(&node, data, sizeof(data), false);
 	printf("Data from memory (from_buffer): ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
+	print_blob(node);
+	bithenge_node_destroy(node);
 
-	bithenge_new_file_blob(&blob, "/textdemo");
+	bithenge_new_file_blob(&node, "/textdemo");
 	printf("Data from file:/textdemo: ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
+	print_blob(node);
+	bithenge_node_destroy(node);
 
-	bithenge_new_file_blob_from_fd(&blob, 0);
+	bithenge_new_file_blob_from_fd(&node, 0);
 	printf("Data from fd:0: ");
-	print_blob(blob);
-	bithenge_blob_destroy(blob);
+	print_blob(node);
+	bithenge_node_destroy(node);
 
-	// {True: {}, -1351: "zero", "true": False, 0: 17}
-	bithenge_node_t *node;
+	// {True: {}, -1351: "\"false\"", "true": False, 0: b"..."}
 	bithenge_node_t *nodes[8];
 	bithenge_new_boolean_node(&nodes[0], true);
 	bithenge_new_simple_internal_node(&nodes[1], NULL, 0, false);
 	bithenge_new_integer_node(&nodes[2], -1351);
-	bithenge_new_string_node(&nodes[3], "zero", false);
+	bithenge_new_string_node(&nodes[3], "\"false\"", false);
 	bithenge_new_string_node(&nodes[4], "true", false);
 	bithenge_new_boolean_node(&nodes[5], false);
 	bithenge_new_integer_node(&nodes[6], 0);
-	bithenge_new_integer_node(&nodes[7], 17);
+	bithenge_new_blob_from_data(&nodes[7], data, sizeof(data));
 	bithenge_new_simple_internal_node(&node, nodes, 4, false);
 	bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
 	printf("\n");

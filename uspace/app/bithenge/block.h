@@ -40,7 +40,7 @@
 #include <loc.h>
 #include "blob.h"
 
-int bithenge_new_block_blob(bithenge_blob_t **, service_id_t);
+int bithenge_new_block_blob(bithenge_node_t **, service_id_t);
 
 #endif
 

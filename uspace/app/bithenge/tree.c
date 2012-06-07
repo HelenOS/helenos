@@ -36,18 +36,27 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include "blob.h"
 #include "tree.h"
+
+static int blob_destroy(bithenge_node_t *base)
+{
+	bithenge_blob_t *blob = bithenge_node_as_blob(base);
+	assert(blob->base.blob_ops);
+	return blob->base.blob_ops->destroy(blob);
+}
 
 int bithenge_node_destroy(bithenge_node_t *node)
 {
 	switch (bithenge_node_type(node)) {
+	case BITHENGE_NODE_BLOB:
+		return blob_destroy(node);
 	case BITHENGE_NODE_STRING:
 		if (node->string_value.needs_free)
 			free(node->string_value.ptr);
 		break;
 	case BITHENGE_NODE_INTERNAL:
-		/* TODO */
-		break;
+		return node->internal_ops->destroy(node);
 	case BITHENGE_NODE_BOOLEAN:
 		return EOK; // the boolean nodes are allocated statically below
 	case BITHENGE_NODE_INTEGER: /* pass-through */
@@ -83,8 +92,27 @@ static int simple_internal_node_for_each(bithenge_node_t *base, bithenge_for_eac
 	return EOK;
 }
 
+static int simple_internal_node_destroy(bithenge_node_t *base)
+{
+	int rc;
+	simple_internal_node_t *node = node_as_simple(base);
+	for (bithenge_int_t i = 0; i < node->len; i++) {
+		rc = bithenge_node_destroy(node->nodes[2*i+0]);
+		if (rc != EOK)
+			return rc;
+		rc = bithenge_node_destroy(node->nodes[2*i+1]);
+		if (rc != EOK)
+			return rc;
+	}
+	if (node->needs_free)
+		free(node->nodes);
+	free(node);
+	return EOK;
+}
+
 static bithenge_internal_node_ops_t simple_internal_node_ops = {
-	.for_each = simple_internal_node_for_each
+	.for_each = simple_internal_node_for_each,
+	.destroy = simple_internal_node_destroy,
 };
 
 static bithenge_node_t *simple_internal_as_node(simple_internal_node_t *node)

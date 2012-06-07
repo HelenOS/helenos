@@ -38,12 +38,12 @@
 #define BITHENGE_BLOB_H_
 
 #include <sys/types.h>
+#include "tree.h"
 
 /** A blob of raw binary data. */
 typedef struct {
 	/** @privatesection */
-	/** Operations providing random access. */
-	const struct bithenge_random_access_blob_ops_t *ops;
+	struct bithenge_node_t base;
 } bithenge_blob_t;
 
 /** Operations providing random access to binary data.
@@ -120,8 +120,8 @@ typedef struct bithenge_sequential_blob_ops_t {
 static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size)
 {
 	assert(blob);
-	assert(blob->ops);
-	return blob->ops->size(blob, size);
+	assert(blob->base.blob_ops);
+	return blob->base.blob_ops->size(blob, size);
 }
 
 /** Read part of the blob. If the requested data extends beyond the end of the
@@ -143,20 +143,18 @@ static inline int bithenge_blob_read(bithenge_blob_t *blob, aoff64_t offset,
     char *buffer, aoff64_t *size)
 {
 	assert(blob);
-	assert(blob->ops);
-	return blob->ops->read(blob, offset, buffer, size);
+	assert(blob->base.blob_ops);
+	return blob->base.blob_ops->read(blob, offset, buffer, size);
 }
 
-/** Destroy the blob.
- * @memberof bithenge_blob_t
- * @param blob The blob.
- * @return EOK on success or an error code from errno.h.
- */
-static inline int bithenge_blob_destroy(bithenge_blob_t *blob)
+static inline bithenge_node_t *bithenge_blob_as_node(bithenge_blob_t *blob)
 {
-	assert(blob);
-	assert(blob->ops);
-	return blob->ops->destroy(blob);
+	return &blob->base;
+}
+
+static inline bithenge_blob_t *bithenge_node_as_blob(bithenge_node_t *node)
+{
+	return (bithenge_blob_t *)node;
 }
 
 int bithenge_new_random_access_blob(bithenge_blob_t *blob,
@@ -165,10 +163,10 @@ int bithenge_new_random_access_blob(bithenge_blob_t *blob,
 int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
     const bithenge_sequential_blob_ops_t *ops);
 
-int bithenge_new_blob_from_data(bithenge_blob_t **out, const void *data,
+int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
     size_t len);
 
-int bithenge_new_blob_from_buffer(bithenge_blob_t **out, const void *buffer,
+int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
     size_t len, bool needs_free);
 
 #endif

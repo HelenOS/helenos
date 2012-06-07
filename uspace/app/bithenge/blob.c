@@ -41,6 +41,7 @@
 #include <mem.h>
 #include <stdlib.h>
 #include "blob.h"
+#include "tree.h"
 
 /** Initialize a random access blob.
  * @memberof bithenge_blob_t
@@ -58,7 +59,8 @@ int bithenge_new_random_access_blob(bithenge_blob_t *blob,
 	assert(ops->read);
 	assert(ops->size);
 
-	blob->ops = ops;
+	blob->base.type = BITHENGE_NODE_BLOB;
+	blob->base.blob_ops = ops;
 	return EOK;
 }
 
@@ -233,7 +235,7 @@ static const bithenge_random_access_blob_ops_t memory_ops = {
  * @param[in] data The data.
  * @param len The length of the data.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_blob_from_data(bithenge_blob_t **out, const void *data,
+int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
     size_t len)
 {
 	int rc;
@@ -257,7 +259,7 @@ int bithenge_new_blob_from_data(bithenge_blob_t **out, const void *data,
 	blob->buffer = buffer;
 	blob->size = len;
 	blob->needs_free = true;
-	*out = blob_from_memory(blob);
+	*out = bithenge_blob_as_node(blob_from_memory(blob));
 	return EOK;
 }
 
@@ -272,7 +274,7 @@ int bithenge_new_blob_from_data(bithenge_blob_t **out, const void *data,
  * @param needs_free Whether the buffer should be freed with free() when the
  * blob is destroyed.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_blob_from_buffer(bithenge_blob_t **out, const void *buffer,
+int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
     size_t len, bool needs_free)
 {
 	int rc;
@@ -290,7 +292,7 @@ int bithenge_new_blob_from_buffer(bithenge_blob_t **out, const void *buffer,
 	blob->buffer = buffer;
 	blob->size = len;
 	blob->needs_free = needs_free;
-	*out = blob_from_memory(blob);
+	*out = bithenge_blob_as_node(blob_from_memory(blob));
 	return EOK;
 }
 

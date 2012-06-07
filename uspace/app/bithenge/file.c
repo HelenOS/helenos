@@ -96,7 +96,7 @@ static const bithenge_random_access_blob_ops_t file_ops = {
 	.destroy = file_destroy,
 };
 
-static int new_file_blob(bithenge_blob_t **out, int fd, bool needs_close)
+static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 {
 	assert(out);
 
@@ -126,7 +126,7 @@ static int new_file_blob(bithenge_blob_t **out, int fd, bool needs_close)
 	blob->fd = fd;
 	blob->size = stat.size;
 	blob->needs_close = needs_close;
-	*out = blob_from_file(blob);
+	*out = bithenge_blob_as_node(blob_from_file(blob));
 
 	return EOK;
 }
@@ -136,7 +136,7 @@ static int new_file_blob(bithenge_blob_t **out, int fd, bool needs_close)
  * @param[out] out Stores the created blob.
  * @param filename The name of the file.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_file_blob(bithenge_blob_t **out, const char *filename)
+int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
 
@@ -152,7 +152,7 @@ int bithenge_new_file_blob(bithenge_blob_t **out, const char *filename)
  * @param[out] out Stores the created blob.
  * @param fd The file descriptor.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_file_blob_from_fd(bithenge_blob_t **out, int fd)
+int bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
 {
 	return new_file_blob(out, fd, false);
 }
@@ -162,7 +162,7 @@ int bithenge_new_file_blob_from_fd(bithenge_blob_t **out, int fd)
  * @param[out] out Stores the created blob.
  * @param file The file pointer.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_file_blob_from_file(bithenge_blob_t **out, FILE *file)
+int bithenge_new_file_blob_from_file(bithenge_node_t **out, FILE *file)
 {
 	int fd = fileno(file);
 	if (fd < 0)

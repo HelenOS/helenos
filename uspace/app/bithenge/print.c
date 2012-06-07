@@ -36,6 +36,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include "blob.h"
 #include "print.h"
 #include "tree.h"
 
@@ -119,6 +120,26 @@ static int print_string(bithenge_print_type_t type, bithenge_node_t *node)
 	return EOK;
 }
 
+static int print_blob(bithenge_print_type_t type, bithenge_node_t *node)
+{
+	bithenge_blob_t *blob = bithenge_node_as_blob(node);
+	aoff64_t pos = 0;
+	char buffer[1024];
+	aoff64_t size = sizeof(buffer);
+	int rc;
+	printf(type == BITHENGE_PRINT_PYTHON ? "b\"" : "\"");
+	do {
+		rc = bithenge_blob_read(blob, pos, buffer, &size);
+		if (rc != EOK)
+			return rc;
+		for (aoff64_t i = 0; i < size; i++)
+			printf("\\x%02x", buffer[i]);
+		pos += size;
+	} while (size == sizeof(buffer));
+	printf("\"");
+	return EOK;
+}
+
 int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 {
 	switch (bithenge_node_type(tree)) {
@@ -132,6 +153,8 @@ int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 		return print_integer(type, tree);
 	case BITHENGE_NODE_STRING:
 		return print_string(type, tree);
+	case BITHENGE_NODE_BLOB:
+		return print_blob(type, tree);
 	}
 	return ENOTSUP;
 }
