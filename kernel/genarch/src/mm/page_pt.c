@@ -345,8 +345,8 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 		memsetb((void *) l1, FRAME_SIZE << order, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(addr),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
-		    PAGE_WRITE);
+		    PAGE_PRESENT | PAGE_USER | PAGE_CACHEABLE |
+		    PAGE_EXEC | PAGE_WRITE | PAGE_READ);
 	}
 }
 
