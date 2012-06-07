@@ -67,7 +67,7 @@ static int print_internal_func(bithenge_node_t *key, bithenge_node_t *value, voi
 	return EOK;
 }
 
-static int print_internal(bithenge_print_type_t type, bithenge_internal_node_t *node)
+static int print_internal(bithenge_print_type_t type, bithenge_node_t *node)
 {
 	int rc;
 	print_internal_data_t data = { type, true };
@@ -79,7 +79,7 @@ static int print_internal(bithenge_print_type_t type, bithenge_internal_node_t *
 	return EOK;
 }
 
-static int print_boolean(bithenge_print_type_t type, bithenge_boolean_node_t *node)
+static int print_boolean(bithenge_print_type_t type, bithenge_node_t *node)
 {
 	bool value = bithenge_boolean_node_value(node);
 	switch (type) {
@@ -93,14 +93,14 @@ static int print_boolean(bithenge_print_type_t type, bithenge_boolean_node_t *no
 	return EOK;
 }
 
-static int print_integer(bithenge_print_type_t type, bithenge_integer_node_t *node)
+static int print_integer(bithenge_print_type_t type, bithenge_node_t *node)
 {
 	bithenge_int_t value = bithenge_integer_node_value(node);
 	printf("%" BITHENGE_PRId, value);
 	return EOK;
 }
 
-static int print_string(bithenge_print_type_t type, bithenge_string_node_t *node)
+static int print_string(bithenge_print_type_t type, bithenge_node_t *node)
 {
 	size_t off = 0;
 	const char *value = bithenge_string_node_value(node);
@@ -125,13 +125,13 @@ int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 	case BITHENGE_NODE_NONE:
 		return EINVAL;
 	case BITHENGE_NODE_INTERNAL:
-		return print_internal(type, bithenge_as_internal_node(tree));
+		return print_internal(type, tree);
 	case BITHENGE_NODE_BOOLEAN:
-		return print_boolean(type, bithenge_as_boolean_node(tree));
+		return print_boolean(type, tree);
 	case BITHENGE_NODE_INTEGER:
-		return print_integer(type, bithenge_as_integer_node(tree));
+		return print_integer(type, tree);
 	case BITHENGE_NODE_STRING:
-		return print_string(type, bithenge_as_string_node(tree));
+		return print_string(type, tree);
 	}
 	return ENOTSUP;
 }

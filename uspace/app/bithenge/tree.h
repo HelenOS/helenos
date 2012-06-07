@@ -61,6 +61,15 @@ typedef enum {
 
 typedef struct bithenge_node_t {
 	bithenge_node_type_t type;
+	union {
+		struct bithenge_internal_node_ops_t *internal_ops;
+		bool boolean_value;
+		bithenge_int_t integer_value;
+		struct {
+			const char *ptr;
+			bool needs_free;
+		} string_value;
+	};
 } bithenge_node_t;
 
 static inline bithenge_node_type_t bithenge_node_type(const bithenge_node_t *node)
@@ -70,93 +79,28 @@ static inline bithenge_node_type_t bithenge_node_type(const bithenge_node_t *nod
 
 typedef int (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *value, void *data);
 
-typedef struct {
-	bithenge_node_t base;
-	const struct bithenge_internal_node_ops_t *ops;
-} bithenge_internal_node_t;
-
 typedef struct bithenge_internal_node_ops_t {
-	int (*for_each)(bithenge_internal_node_t *node, bithenge_for_each_func_t func, void *data);
+	int (*for_each)(bithenge_node_t *node, bithenge_for_each_func_t func, void *data);
 } bithenge_internal_node_ops_t;
 
-typedef struct {
-	bithenge_node_t base;
-	bool value;
-} bithenge_boolean_node_t;
-
-typedef struct {
-	bithenge_node_t base;
-	bithenge_int_t value;
-} bithenge_integer_node_t;
-
-typedef struct {
-	bithenge_node_t base;
-	const char *value;
-	bool needs_free;
-} bithenge_string_node_t;
-
-static inline bithenge_node_t *bithenge_internal_as_node(bithenge_internal_node_t *node)
+static inline int bithenge_node_for_each(bithenge_node_t *node, bithenge_for_each_func_t func, void *data)
 {
-	return &node->base;
+	return node->internal_ops->for_each(node, func, data);
 }
 
-static inline bithenge_internal_node_t *bithenge_as_internal_node(bithenge_node_t *node)
+static inline bool bithenge_boolean_node_value(bithenge_node_t *node)
 {
-	assert(node->type == BITHENGE_NODE_INTERNAL);
-	return (bithenge_internal_node_t *)node;
+	return node->boolean_value;
 }
 
-static inline int bithenge_node_for_each(bithenge_internal_node_t *node, bithenge_for_each_func_t func, void *data)
+static inline bithenge_int_t bithenge_integer_node_value(bithenge_node_t *node)
 {
-	return node->ops->for_each(node, func, data);
+	return node->integer_value;
 }
 
-static inline bithenge_node_t *bithenge_boolean_as_node(bithenge_boolean_node_t *node)
+static inline const char *bithenge_string_node_value(bithenge_node_t *node)
 {
-	return &node->base;
-}
-
-static inline bithenge_boolean_node_t *bithenge_as_boolean_node(bithenge_node_t *node)
-{
-	assert(node->type == BITHENGE_NODE_BOOLEAN);
-	return (bithenge_boolean_node_t *)node;
-}
-
-static inline bool bithenge_boolean_node_value(bithenge_boolean_node_t *node)
-{
-	return node->value;
-}
-
-static inline bithenge_node_t *bithenge_integer_as_node(bithenge_integer_node_t *node)
-{
-	return &node->base;
-}
-
-static inline bithenge_integer_node_t *bithenge_as_integer_node(bithenge_node_t *node)
-{
-	assert(node->type == BITHENGE_NODE_INTEGER);
-	return (bithenge_integer_node_t *)node;
-}
-
-static inline bithenge_int_t bithenge_integer_node_value(bithenge_integer_node_t *node)
-{
-	return node->value;
-}
-
-static inline bithenge_node_t *bithenge_string_as_node(bithenge_string_node_t *node)
-{
-	return &node->base;
-}
-
-static inline bithenge_string_node_t *bithenge_as_string_node(bithenge_node_t *node)
-{
-	assert(node->type == BITHENGE_NODE_STRING);
-	return (bithenge_string_node_t *)node;
-}
-
-static inline const char *bithenge_string_node_value(bithenge_string_node_t *node)
-{
-	return node->value;
+	return node->string_value.ptr;
 }
 
 int bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **, bithenge_int_t, bool needs_free);

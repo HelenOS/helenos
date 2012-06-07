@@ -40,18 +40,16 @@
 
 int bithenge_node_destroy(bithenge_node_t *node)
 {
-	bithenge_string_node_t *string_node;
 	switch (bithenge_node_type(node)) {
 	case BITHENGE_NODE_STRING:
-		string_node = bithenge_as_string_node(node);
-		if (string_node->needs_free)
-			free(string_node->value);
+		if (node->string_value.needs_free)
+			free(node->string_value.ptr);
 		break;
 	case BITHENGE_NODE_INTERNAL:
 		/* TODO */
 		break;
 	case BITHENGE_NODE_BOOLEAN:
-		return EOK;
+		return EOK; // the boolean nodes are allocated statically below
 	case BITHENGE_NODE_INTEGER: /* pass-through */
 	case BITHENGE_NODE_NONE:
 		break;
@@ -62,21 +60,21 @@ int bithenge_node_destroy(bithenge_node_t *node)
 
 typedef struct
 {
-	bithenge_internal_node_t base;
+	bithenge_node_t base;
 	bithenge_node_t **nodes;
 	bithenge_int_t len;
 	bool needs_free;
 } simple_internal_node_t;
 
-static simple_internal_node_t *internal_as_simple(bithenge_internal_node_t *node)
+static simple_internal_node_t *node_as_simple(bithenge_node_t *node)
 {
 	return (simple_internal_node_t *)node;
 }
 
-static int simple_internal_node_for_each(bithenge_internal_node_t *base, bithenge_for_each_func_t func, void *data)
+static int simple_internal_node_for_each(bithenge_node_t *base, bithenge_for_each_func_t func, void *data)
 {
 	int rc;
-	simple_internal_node_t *node = internal_as_simple(base);
+	simple_internal_node_t *node = node_as_simple(base);
 	for (bithenge_int_t i = 0; i < node->len; i++) {
 		rc = func(node->nodes[2*i+0], node->nodes[2*i+1], data);
 		if (rc != EOK)
@@ -91,7 +89,7 @@ static bithenge_internal_node_ops_t simple_internal_node_ops = {
 
 static bithenge_node_t *simple_internal_as_node(simple_internal_node_t *node)
 {
-	return bithenge_internal_as_node(&node->base);
+	return &node->base;
 }
 
 int bithenge_new_simple_internal_node(bithenge_node_t **out, bithenge_node_t **nodes, bithenge_int_t len, bool needs_free)
@@ -100,8 +98,8 @@ int bithenge_new_simple_internal_node(bithenge_node_t **out, bithenge_node_t **n
 	simple_internal_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
-	node->base.base.type = BITHENGE_NODE_INTERNAL;
-	node->base.ops = &simple_internal_node_ops;
+	node->base.type = BITHENGE_NODE_INTERNAL;
+	node->base.internal_ops = &simple_internal_node_ops;
 	node->nodes = nodes;
 	node->len = len;
 	node->needs_free = needs_free;
@@ -109,37 +107,37 @@ int bithenge_new_simple_internal_node(bithenge_node_t **out, bithenge_node_t **n
 	return EOK;
 }
 
-static bithenge_boolean_node_t false_node = { {BITHENGE_NODE_BOOLEAN}, false };
-static bithenge_boolean_node_t true_node = { {BITHENGE_NODE_BOOLEAN}, true };
+static bithenge_node_t false_node = { BITHENGE_NODE_BOOLEAN, .boolean_value = false };
+static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, .boolean_value = true };
 
 int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 {
 	assert(out);
-	*out = bithenge_boolean_as_node(value ? &true_node : &false_node);
+	*out = value ? &true_node : &false_node;
 	return EOK;
 }
 
 int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 {
 	assert(out);
-	bithenge_integer_node_t *node = malloc(sizeof(*node));
+	bithenge_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
-	node->base.type = BITHENGE_NODE_INTEGER;
-	node->value = value;
-	*out = bithenge_integer_as_node(node);
+	node->type = BITHENGE_NODE_INTEGER;
+	node->integer_value = value;
+	*out = node;
 	return EOK;
 }
 
 int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool needs_free)
 {
 	assert(out);
-	bithenge_string_node_t *node = malloc(sizeof(*node));
+	bithenge_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
-	node->base.type = BITHENGE_NODE_STRING;
-	node->value = value;
-	node->needs_free = needs_free;
-	*out = bithenge_string_as_node(node);
+	node->type = BITHENGE_NODE_STRING;
+	node->string_value.ptr = value;
+	node->string_value.needs_free = needs_free;
+	*out = node;
 	return EOK;
 }
