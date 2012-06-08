@@ -46,6 +46,10 @@ static int blob_destroy(bithenge_node_t *base)
 	return blob->base.blob_ops->destroy(blob);
 }
 
+/** Destroy a node.
+ * @memberof bithenge_node_t
+ * @param node The node to destroy.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_node_destroy(bithenge_node_t *node)
 {
 	switch (bithenge_node_type(node)) {
@@ -60,7 +64,6 @@ int bithenge_node_destroy(bithenge_node_t *node)
 	case BITHENGE_NODE_BOOLEAN:
 		return EOK; // the boolean nodes are allocated statically below
 	case BITHENGE_NODE_INTEGER: /* pass-through */
-	case BITHENGE_NODE_NONE:
 		break;
 	}
 	free(node);
@@ -80,7 +83,8 @@ static simple_internal_node_t *node_as_simple(bithenge_node_t *node)
 	return (simple_internal_node_t *)node;
 }
 
-static int simple_internal_node_for_each(bithenge_node_t *base, bithenge_for_each_func_t func, void *data)
+static int simple_internal_node_for_each(bithenge_node_t *base,
+    bithenge_for_each_func_t func, void *data)
 {
 	int rc;
 	simple_internal_node_t *node = node_as_simple(base);
@@ -120,7 +124,19 @@ static bithenge_node_t *simple_internal_as_node(simple_internal_node_t *node)
 	return &node->base;
 }
 
-int bithenge_new_simple_internal_node(bithenge_node_t **out, bithenge_node_t **nodes, bithenge_int_t len, bool needs_free)
+/** Create an internal node from a set of keys and values. The node must be
+ * freed with @a bithenge_node_t::bithenge_node_destroy after it is used, which
+ * will also destroy all the key and value nodes.
+ * @memberof bithenge_node_t
+ * @param[out] out Stores the created internal node.
+ * @param nodes The array of key-value pairs. Keys are stored at even indices
+ * and values are stored at odd indices.
+ * @param len The number of key-value pairs in the node array.
+ * @param needs_free If true, when the internal node is destroyed it will free
+ * the nodes array as well as destroying each node inside it.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_simple_internal_node(bithenge_node_t **out,
+    bithenge_node_t **nodes, bithenge_int_t len, bool needs_free)
 {
 	assert(out);
 	simple_internal_node_t *node = malloc(sizeof(*node));
@@ -138,6 +154,12 @@ int bithenge_new_simple_internal_node(bithenge_node_t **out, bithenge_node_t **n
 static bithenge_node_t false_node = { BITHENGE_NODE_BOOLEAN, .boolean_value = false };
 static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, .boolean_value = true };
 
+/** Create a boolean node. The node must be freed with @a
+ * bithenge_node_t::bithenge_node_destroy after it is used.
+ * @memberof bithenge_node_t
+ * @param[out] out Stores the created boolean node.
+ * @param value The value for the node to hold.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 {
 	assert(out);
@@ -145,6 +167,12 @@ int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 	return EOK;
 }
 
+/** Create an integer node. The node must be freed with @a
+ * bithenge_node_t::bithenge_node_destroy after it is used.
+ * @memberof bithenge_node_t
+ * @param[out] out Stores the created integer node.
+ * @param value The value for the node to hold.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 {
 	assert(out);
@@ -157,6 +185,14 @@ int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 	return EOK;
 }
 
+/** Create a string node. The node must be freed with @a
+ * bithenge_node_t::bithenge_node_destroy after it is used.
+ * @memberof bithenge_node_t
+ * @param[out] out Stores the created string node.
+ * @param value The value for the node to hold.
+ * @param needs_free Whether the string should be freed when the node is
+ * destroyed.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool needs_free)
 {
 	assert(out);
@@ -169,3 +205,6 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
 	*out = node;
 	return EOK;
 }
+
+/** @}
+ */

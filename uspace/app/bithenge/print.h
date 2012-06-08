@@ -39,8 +39,13 @@
 
 #include "tree.h"
 
+/** Specifies the format to be used when printing. */
 typedef enum {
+	/** Print a Python value. Note that internal nodes will be represented
+	 * as unordered dictionaries. */
 	BITHENGE_PRINT_PYTHON,
+	/** Print JSON. Due to the limitations of JSON, type information may be
+	 * lost. */
 	BITHENGE_PRINT_JSON,
 } bithenge_print_type_t;
 

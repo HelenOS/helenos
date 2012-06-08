@@ -132,7 +132,7 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 }
 
 /** Create a blob for a file. The blob must be freed with @a
- * bithenge_blob_t::bithenge_blob_destroy after it is used.
+ * bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param filename The name of the file.
  * @return EOK on success or an error code from errno.h. */
@@ -148,7 +148,7 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 }
 
 /** Create a blob for a file descriptor. The blob must be freed with @a
- * bithenge_blob_t::bithenge_blob_destroy after it is used.
+ * bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param fd The file descriptor.
  * @return EOK on success or an error code from errno.h. */
@@ -158,7 +158,7 @@ int bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
 }
 
 /** Create a blob for a file pointer. The blob must be freed with @a
- * bithenge_blob_t::bithenge_blob_destroy after it is used.
+ * bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param file The file pointer.
  * @return EOK on success or an error code from errno.h. */

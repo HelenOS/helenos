@@ -225,13 +225,13 @@ static const bithenge_random_access_blob_ops_t memory_ops = {
 	.destroy = memory_destroy,
 };
 
-/** Create a blob from data. Unlike with @a
+/** Create a blob node from data. Unlike with @a
  * bithenge_blob_t::bithenge_new_blob_from_buffer, the data is copied into a
  * new buffer and the original data can be changed after this call. The blob
- * must be freed with @a bithenge_blob_t::bithenge_blob_destroy after it is
+ * must be freed with @a bithenge_node_t::bithenge_node_destroy after it is
  * used.
  * @memberof bithenge_blob_t
- * @param[out] out Stores the created blob.
+ * @param[out] out Stores the created blob node.
  * @param[in] data The data.
  * @param len The length of the data.
  * @return EOK on success or an error code from errno.h. */
@@ -263,11 +263,11 @@ int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
 	return EOK;
 }
 
-/** Create a blob from a buffer. The buffer must exist as long as the blob
- * does. The blob must be freed with @a bithenge_blob_t::bithenge_blob_destroy
+/** Create a blob node from a buffer. The buffer must exist as long as the blob
+ * does. The blob must be freed with @a bithenge_node_t::bithenge_node_destroy
  * after it is used.
  * @memberof bithenge_blob_t
- * @param[out] out Stores the created blob.
+ * @param[out] out Stores the created blob node.
  * @param[in] buffer The buffer, which must not be changed until the blob is
  * destroyed.
  * @param len The length of the data.

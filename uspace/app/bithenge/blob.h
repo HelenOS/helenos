@@ -40,7 +40,8 @@
 #include <sys/types.h>
 #include "tree.h"
 
-/** A blob of raw binary data. */
+/** A blob of raw binary data.
+ * @implements bithenge_node_t */
 typedef struct {
 	/** @privatesection */
 	struct bithenge_node_t base;
@@ -54,7 +55,9 @@ typedef struct bithenge_random_access_blob_ops_t {
 	/** @copydoc bithenge_blob_t::bithenge_blob_read */
 	int (*read)(bithenge_blob_t *blob, aoff64_t offset, char *buffer,
 	    aoff64_t *size);
-	/** @copydoc bithenge_blob_t::bithenge_blob_destroy */
+	/** Destroy the blob.
+	 * @param blob The blob.
+	 * @return EOK on success or an error code from errno.h. */
 	int (*destroy)(bithenge_blob_t *blob);
 } bithenge_random_access_blob_ops_t;
 
@@ -147,13 +150,22 @@ static inline int bithenge_blob_read(bithenge_blob_t *blob, aoff64_t offset,
 	return blob->base.blob_ops->read(blob, offset, buffer, size);
 }
 
+/** Cast a blob node to a generic node.
+ * @memberof bithenge_blob_t
+ * @param blob The blob to cast.
+ * @return The blob node as a generic node. */
 static inline bithenge_node_t *bithenge_blob_as_node(bithenge_blob_t *blob)
 {
 	return &blob->base;
 }
 
+/** Cast a generic node to a blob node.
+ * @memberof bithenge_blob_t
+ * @param node The node to cast, which must be a blob node.
+ * @return The generic node as a blob node. */
 static inline bithenge_blob_t *bithenge_node_as_blob(bithenge_node_t *node)
 {
+	assert(node->type == BITHENGE_NODE_BLOB);
 	return (bithenge_blob_t *)node;
 }
 

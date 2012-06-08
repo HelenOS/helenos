@@ -140,11 +140,13 @@ static int print_blob(bithenge_print_type_t type, bithenge_node_t *node)
 	return EOK;
 }
 
+/** Print a tree as text.
+ * @param type The format to use.
+ * @param tree The root node of the tree to print.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 {
 	switch (bithenge_node_type(tree)) {
-	case BITHENGE_NODE_NONE:
-		return EINVAL;
 	case BITHENGE_NODE_INTERNAL:
 		return print_internal(type, tree);
 	case BITHENGE_NODE_BOOLEAN:
@@ -158,3 +160,6 @@ int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 	}
 	return ENOTSUP;
 }
+
+/** @}
+ */
