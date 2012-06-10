@@ -206,7 +206,6 @@ endif
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -g
 	ICC_CFLAGS += -g
-	SUNCC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
