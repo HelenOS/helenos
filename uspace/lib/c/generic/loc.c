@@ -449,6 +449,20 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	return loc_get_name_internal(LOC_SERVICE_GET_NAME, svc_id, name);
 }
 
+/** Get service server name.
+ *
+ * Provided ID of a service, return the name of its server.
+ *
+ * @param svc_id	Service ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_service_get_server_name(service_id_t svc_id, char **name)
+{
+	return loc_get_name_internal(LOC_SERVICE_GET_SERVER_NAME, svc_id, name);
+}
+
 int loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
 {
