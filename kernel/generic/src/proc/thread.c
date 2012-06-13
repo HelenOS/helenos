@@ -853,7 +853,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	/*
 	 * In case of failure, kernel_uarg will be deallocated in this function.
 	 * In case of success, kernel_uarg will be freed in uinit().
-	 *
 	 */
 	uspace_arg_t *kernel_uarg =
 	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);

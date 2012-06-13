@@ -91,7 +91,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 	ustate.lr = 0;
 
 	/* set user stack */
-	ustate.sp = ((uint32_t)kernel_uarg->uspace_stack) + STACK_SIZE;
+	ustate.sp = ((uint32_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size;
 
 	/* set where uspace execution starts */
 	ustate.pc = (uintptr_t) kernel_uarg->uspace_entry;

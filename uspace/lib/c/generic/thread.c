@@ -40,10 +40,12 @@
 #include <fibril.h>
 #include <str.h>
 #include <async.h>
+#include <errno.h>
+#include <as.h>
 #include "private/thread.h"
 
-#ifndef THREAD_INITIAL_STACK_PAGES_NO
-#define THREAD_INITIAL_STACK_PAGES_NO	2 
+#ifndef THREAD_INITIAL_STACK_PAGES
+	#define THREAD_INITIAL_STACK_PAGES  2
 #endif
 
 /** Main thread function.
@@ -64,10 +66,12 @@ void __thread_main(uspace_arg_t *uarg)
 	__tcb_set(fibril->tcb);
 	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
-	/* XXX: we cannot free the userspace stack while running on it
-		free(uarg->uspace_stack);
-		free(uarg);
-	*/
+	/*
+	 * XXX: we cannot free the userspace stack while running on it
+	 *
+	 * free(uarg->uspace_stack);
+	 * free(uarg);
+	 */
 	
 	/* If there is a manager, destroy it */
 	async_destroy_manager();
@@ -91,38 +95,38 @@ void __thread_main(uspace_arg_t *uarg)
 int thread_create(void (* function)(void *), void *arg, const char *name,
     thread_id_t *tid)
 {
-	char *stack;
-	uspace_arg_t *uarg;
-	int rc;
-
-	stack = (char *) malloc(getpagesize() * THREAD_INITIAL_STACK_PAGES_NO);
-	if (!stack)
-		return -1;
-		
-	uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
-	if (!uarg) {
-		free(stack);
-		return -1;
+	uspace_arg_t *uarg =
+	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
+	if (!uarg)
+		return ENOMEM;
+	
+	size_t stack_size = getpagesize() * THREAD_INITIAL_STACK_PAGES;
+	void *stack = as_area_create(AS_AREA_ANY, stack_size,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	if (stack == AS_MAP_FAILED) {
+		free(uarg);
+		return ENOMEM;
 	}
 	
 	uarg->uspace_entry = (void *) FADDR(__thread_entry);
-	uarg->uspace_stack = (void *) stack;
+	uarg->uspace_stack = stack;
+	uarg->uspace_stack_size = stack_size;
 	uarg->uspace_thread_function = function;
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
 	
-	rc = __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name,
-	    (sysarg_t) str_size(name), (sysarg_t) tid);
+	int rc = __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
+	    (sysarg_t) name, (sysarg_t) str_size(name), (sysarg_t) tid);
 	
-	if (rc) {
+	if (rc != EOK) {
 		/*
 		 * Failed to create a new thread.
-		 * Free up the allocated structures.
+		 * Free up the allocated data.
 		 */
+		as_area_destroy(stack);
 		free(uarg);
-		free(stack);
 	}
-
+	
 	return rc;
 }
 
