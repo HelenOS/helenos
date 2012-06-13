@@ -187,7 +187,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 	    cp0_status_um_bit | cp0_status_ie_enabled_bit));
 	cp0_epc_write((uintptr_t) kernel_uarg->uspace_entry);
-	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack + STACK_SIZE),
+	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack +
+	    kernel_uarg->uspace_stack_size),
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	

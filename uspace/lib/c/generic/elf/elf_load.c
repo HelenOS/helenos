@@ -365,7 +365,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 */
 	a = as_area_create((uint8_t *) base + bias, mem_sz,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
-	if (a == (void *) -1) {
+	if (a == AS_MAP_FAILED) {
 		DPRINTF("memory mapping failed (0x%x, %d)\n",
 		    base + bias, mem_sz);
 		return EE_MEMORY;

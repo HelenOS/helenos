@@ -41,7 +41,7 @@ void *mmap(void *start, size_t length, int prot, int flags, int fd,
     aoff64_t offset)
 {
 	if (!start)
-		start = (void *) -1;
+		start = AS_AREA_ANY;
 	
 //	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
 //		return MAP_FAILED;

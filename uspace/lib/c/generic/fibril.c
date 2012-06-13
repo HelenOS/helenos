@@ -285,6 +285,22 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	return (fid_t) fibril;
 }
 
+/** Delete a fibril that has never run.
+ *
+ * Free resources of a fibril that has been created with fibril_create()
+ * but never readied using fibril_add_ready().
+ *
+ * @param fid Pointer to the fibril structure of the fibril to be
+ *            added.
+ */
+void fibril_destroy(fid_t fid)
+{
+	fibril_t *fibril = (fibril_t *) fid;
+	
+	free(fibril->stack);
+	fibril_teardown(fibril);
+}
+
 /** Add a fibril to the ready list.
  *
  * @param fid Pointer to the fibril structure of the fibril to be

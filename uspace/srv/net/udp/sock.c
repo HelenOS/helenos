@@ -50,8 +50,6 @@
 #include "udp_type.h"
 #include "ucall.h"
 
-#define FRAGMENT_SIZE 1024
-
 /** Free ports pool start. */
 #define UDP_FREE_PORTS_START		1025
 
@@ -62,6 +60,7 @@ static int last_used_port = UDP_FREE_PORTS_START - 1;
 static socket_ports_t gsock;
 
 static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static int udp_sock_recv_fibril(void *arg);
 
 int udp_sock_init(void)
 {
@@ -81,8 +80,9 @@ static void udp_free_sock_data(socket_core_t *sock_core)
 	udp_sockdata_t *socket;
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
-	assert(socket->assoc != NULL);
-	udp_uc_destroy(socket->assoc);
+	(void)socket;
+
+	/* XXX We need to force the receive fibril to quit */
 }
 
 static void udp_sock_notify_data(socket_core_t *sock_core)
@@ -90,7 +90,7 @@ static void udp_sock_notify_data(socket_core_t *sock_core)
 	log_msg(LVL_DEBUG, "udp_sock_notify_data(%d)", sock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(sock_core->sess);
 	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t)sock_core->socket_id,
-	    FRAGMENT_SIZE, 0, 0, 1);
+	    UDP_FRAGMENT_SIZE, 0, 0, 1);
 	async_exchange_end(exch);
 }
 
@@ -112,20 +112,37 @@ static void udp_sock_socket(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	fibril_mutex_initialize(&sock->lock);
 	sock->client = client;
 
+	sock->recv_buffer_used = 0;
+	sock->recv_error = UDP_EOK;
+	fibril_mutex_initialize(&sock->recv_buffer_lock);
+	fibril_condvar_initialize(&sock->recv_buffer_cv);
+
 	rc = udp_uc_create(&sock->assoc);
 	if (rc != EOK) {
-		udp_uc_destroy(sock->assoc);
 		free(sock);
 		async_answer_0(callid, rc);
+		return;
+	}
+
+	sock->recv_fibril = fibril_create(udp_sock_recv_fibril, sock);
+	if (sock->recv_fibril == 0) {
+		udp_uc_destroy(sock->assoc);
+		free(sock);
+		async_answer_0(callid, ENOMEM);
 		return;
 	}
 
 	sock_id = SOCKET_GET_SOCKET_ID(call);
 	rc = socket_create(&client->sockets, client->sess, sock, &sock_id);
 	if (rc != EOK) {
+		fibril_destroy(sock->recv_fibril);
+		udp_uc_destroy(sock->assoc);
+		free(sock);
 		async_answer_0(callid, rc);
 		return;
 	}
+
+	fibril_add_ready(sock->recv_fibril);
 
 	sock_core = socket_cores_find(&client->sockets, sock_id);
 	assert(sock_core != NULL);
@@ -133,7 +150,7 @@ static void udp_sock_socket(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	SOCKET_SET_SOCKET_ID(answer, sock_id);
 
-	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
+	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, UDP_FRAGMENT_SIZE);
 	SOCKET_SET_HEADER_SIZE(answer, sizeof(udp_header_t));
 	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
@@ -204,8 +221,6 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		assert(false);
 	}
 
-	udp_sock_notify_data(sock_core);
-
 	log_msg(LVL_DEBUG, " - success");
 	async_answer_0(callid, rc);
 out:
@@ -244,7 +259,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	ipc_call_t answer;
 	ipc_callid_t wcallid;
 	size_t length;
-	uint8_t buffer[FRAGMENT_SIZE];
+	uint8_t buffer[UDP_FRAGMENT_SIZE];
 	udp_error_t urc;
 	int rc;
 
@@ -291,8 +306,6 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			async_answer_0(callid, rc);
 			goto out;
 		}
-
-		udp_sock_notify_data(sock_core);
 	}
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
@@ -329,8 +342,8 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			goto out;
 		}
 
-		if (length > FRAGMENT_SIZE)
-			length = FRAGMENT_SIZE;
+		if (length > UDP_FRAGMENT_SIZE)
+			length = UDP_FRAGMENT_SIZE;
 
 		rc = async_data_write_finalize(wcallid, buffer, length);
 		if (rc != EOK) {
@@ -366,7 +379,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	}
 	
 	IPC_SET_ARG1(answer, 0);
-	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, FRAGMENT_SIZE);
+	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, UDP_FRAGMENT_SIZE);
 	async_answer_2(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer));
 	fibril_mutex_unlock(&socket->lock);
@@ -385,12 +398,10 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	udp_sockdata_t *socket;
 	ipc_call_t answer;
 	ipc_callid_t rcallid;
-	uint8_t buffer[FRAGMENT_SIZE];
 	size_t data_len;
-	xflags_t xflags;
 	udp_error_t urc;
-	struct sockaddr_in addr;
 	udp_sock_t rsock;
+	struct sockaddr_in addr;
 	int rc;
 
 	log_msg(LVL_DEBUG, "%p: udp_sock_recv[from]()", client);
@@ -415,9 +426,21 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	(void)flags;
 
-	urc = udp_uc_receive(socket->assoc, buffer, FRAGMENT_SIZE, &data_len,
-	    &xflags, &rsock);
-	log_msg(LVL_DEBUG, "**** udp_uc_receive done, data_len=%zu", data_len);
+	log_msg(LVL_DEBUG, "udp_sock_recvfrom(): lock recv_buffer lock");
+	fibril_mutex_lock(&socket->recv_buffer_lock);
+	while (socket->recv_buffer_used == 0 && socket->recv_error == UDP_EOK) {
+		log_msg(LVL_DEBUG, "udp_sock_recvfrom(): wait for cv");
+		fibril_condvar_wait(&socket->recv_buffer_cv,
+		    &socket->recv_buffer_lock);
+	}
+
+	log_msg(LVL_DEBUG, "Got data in sock recv_buffer");
+
+	rsock = socket->recv_fsock;
+	data_len = socket->recv_buffer_used;
+	urc = socket->recv_error;
+
+	log_msg(LVL_DEBUG, "**** recv data_len=%zu", data_len);
 
 	switch (urc) {
 	case UDP_EOK:
@@ -436,6 +459,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	log_msg(LVL_DEBUG, "**** udp_uc_receive -> %d", rc);
 	if (rc != EOK) {
+		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, rc);
 		return;
@@ -449,6 +473,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 		log_msg(LVL_DEBUG, "addr read receive");
 		if (!async_data_read_receive(&rcallid, &addr_length)) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
 			return;
@@ -460,6 +485,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 		log_msg(LVL_DEBUG, "addr read finalize");
 		rc = async_data_read_finalize(rcallid, &addr, addr_length);
 		if (rc != EOK) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
 			return;
@@ -468,6 +494,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	log_msg(LVL_DEBUG, "data read receive");
 	if (!async_data_read_receive(&rcallid, &length)) {
+		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, EINVAL);
 		return;
@@ -477,7 +504,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 		length = data_len;
 
 	log_msg(LVL_DEBUG, "data read finalize");
-	rc = async_data_read_finalize(rcallid, buffer, length);
+	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
 
 	if (length < data_len && rc == EOK)
 		rc = EOVERFLOW;
@@ -488,9 +515,11 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(addr));
 	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
-	
-	/* Push one fragment notification to client's queue */
-	udp_sock_notify_data(sock_core);
+
+	socket->recv_buffer_used = 0;
+
+	fibril_condvar_broadcast(&socket->recv_buffer_cv);
+	fibril_mutex_unlock(&socket->recv_buffer_lock);
 	fibril_mutex_unlock(&socket->lock);
 }
 
@@ -535,6 +564,48 @@ static void udp_sock_setsockopt(udp_client_t *client, ipc_callid_t callid, ipc_c
 {
 	log_msg(LVL_DEBUG, "udp_sock_setsockopt()");
 	async_answer_0(callid, ENOTSUP);
+}
+
+static int udp_sock_recv_fibril(void *arg)
+{
+	udp_sockdata_t *sock = (udp_sockdata_t *)arg;
+	udp_error_t urc;
+	xflags_t xflags;
+	size_t rcvd;
+
+	log_msg(LVL_DEBUG, "udp_sock_recv_fibril()");
+
+	while (true) {
+		log_msg(LVL_DEBUG, "[] wait for rcv buffer empty()");
+		fibril_mutex_lock(&sock->recv_buffer_lock);
+		while (sock->recv_buffer_used != 0) {
+			fibril_condvar_wait(&sock->recv_buffer_cv,
+			    &sock->recv_buffer_lock);
+		}
+
+		log_msg(LVL_DEBUG, "[] call udp_uc_receive()");
+		urc = udp_uc_receive(sock->assoc, sock->recv_buffer,
+		    UDP_FRAGMENT_SIZE, &rcvd, &xflags, &sock->recv_fsock);
+		sock->recv_error = urc;
+
+		udp_sock_notify_data(sock->sock_core);
+
+		if (urc != UDP_EOK) {
+			fibril_condvar_broadcast(&sock->recv_buffer_cv);
+			fibril_mutex_unlock(&sock->recv_buffer_lock);
+			break;
+		}
+
+		log_msg(LVL_DEBUG, "[] got data - broadcast recv_buffer_cv");
+
+		sock->recv_buffer_used = rcvd;
+		fibril_mutex_unlock(&sock->recv_buffer_lock);
+		fibril_condvar_broadcast(&sock->recv_buffer_cv);
+	}
+
+	udp_uc_destroy(sock->assoc);
+
+	return 0;
 }
 
 static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)

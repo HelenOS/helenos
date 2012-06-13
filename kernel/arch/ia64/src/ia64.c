@@ -231,16 +231,18 @@ void userspace(uspace_arg_t *kernel_uarg)
 	 * Switch to userspace.
 	 *
 	 * When calculating stack addresses, mind the stack split between the
-	 * memory stack and the RSE stack. Each occuppies STACK_SIZE / 2 bytes.
+	 * memory stack and the RSE stack. Each occuppies
+	 * uspace_stack_size / 2 bytes.
 	 */
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE / 2 -
+	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size / 2 -
 	    ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE / 2,
+	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size / 2,
 	    (uintptr_t) kernel_uarg->uspace_uarg, psr.value, rsc.value);
-
-	while (1)
-		;
+	
+	while (1);
 }
 
 /** Set thread-local-storage pointer.
