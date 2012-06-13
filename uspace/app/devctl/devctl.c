@@ -43,9 +43,11 @@
 
 #define MAX_NAME_LENGTH 1024
 
+char name[MAX_NAME_LENGTH];
+char drv_name[MAX_NAME_LENGTH];
+
 static int fun_subtree_print(devman_handle_t funh, int lvl)
 {
-	char name[MAX_NAME_LENGTH];
 	devman_handle_t devh;
 	devman_handle_t *cfuns;
 	size_t count, i;
@@ -56,15 +58,20 @@ static int fun_subtree_print(devman_handle_t funh, int lvl)
 		printf("    ");
 
 	rc = devman_fun_get_name(funh, name, MAX_NAME_LENGTH);
-	if (rc != EOK) {
-		str_cpy(name, MAX_NAME_LENGTH, "unknown");
-		return ENOMEM;
-	}
+	if (rc != EOK)
+		return ELIMIT;
 
 	if (name[0] == '\0')
 		str_cpy(name, MAX_NAME_LENGTH, "/");
 
-	printf("%s (%" PRIun ")\n", name, funh);
+	rc = devman_fun_get_driver_name(funh, drv_name, MAX_NAME_LENGTH);
+	if (rc != EOK && rc != EINVAL)
+		return ELIMIT;
+
+	if (rc == EINVAL)
+		printf("%s\n", name);
+	else
+		printf("%s : %s\n", name, drv_name);
 
 	rc = devman_fun_get_child(funh, &devh);
 	if (rc == ENOENT)

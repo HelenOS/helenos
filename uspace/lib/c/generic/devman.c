@@ -429,8 +429,9 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	
-	if (retval != EOK)
+	if (retval != EOK) {
 		return retval;
+	}
 	
 	act_size = IPC_GET_ARG2(dreply);
 	assert(act_size <= buf_size - 1);
@@ -448,6 +449,12 @@ int devman_fun_get_path(devman_handle_t handle, char *buf, size_t buf_size)
 int devman_fun_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 {
 	return devman_get_str_internal(DEVMAN_FUN_GET_NAME, handle, buf,
+	    buf_size);
+}
+
+int devman_fun_get_driver_name(devman_handle_t handle, char *buf, size_t buf_size)
+{
+	return devman_get_str_internal(DEVMAN_FUN_GET_DRIVER_NAME, handle, buf,
 	    buf_size);
 }
 

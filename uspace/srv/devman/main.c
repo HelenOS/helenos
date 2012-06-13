@@ -854,6 +854,70 @@ static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	free(buffer);
 }
 
+/** Get function driver name. */
+static void devman_fun_get_driver_name(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t handle = IPC_GET_ARG1(*icall);
+
+	fun_node_t *fun = find_fun_node(&device_tree, handle);
+	if (fun == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	ipc_callid_t data_callid;
+	size_t data_len;
+	if (!async_data_read_receive(&data_callid, &data_len)) {
+		async_answer_0(iid, EINVAL);
+		fun_del_ref(fun);
+		return;
+	}
+
+	void *buffer = malloc(data_len);
+	if (buffer == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		fun_del_ref(fun);
+		return;
+	}
+
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+
+	/* Check function state */
+	if (fun->state == FUN_REMOVED) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		free(buffer);
+
+		async_answer_0(data_callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		fun_del_ref(fun);
+		return;
+	}
+
+	/* Check whether function has a driver */
+	if (fun->child == NULL || fun->child->drv == NULL) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		free(buffer);
+
+		async_answer_0(data_callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		fun_del_ref(fun);
+		return;
+	}
+
+	size_t sent_length = str_size(fun->child->drv->name);
+	if (sent_length > data_len) {
+		sent_length = data_len;
+	}
+
+	async_data_read_finalize(data_callid, fun->child->drv->name,
+	    sent_length);
+	async_answer_0(iid, EOK);
+
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	fun_del_ref(fun);
+	free(buffer);
+}
 
 /** Get device path. */
 static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
@@ -1081,6 +1145,9 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_FUN_GET_NAME:
 			devman_fun_get_name(callid, &call);
+			break;
+		case DEVMAN_FUN_GET_DRIVER_NAME:
+			devman_fun_get_driver_name(callid, &call);
 			break;
 		case DEVMAN_FUN_GET_PATH:
 			devman_fun_get_path(callid, &call);
