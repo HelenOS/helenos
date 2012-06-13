@@ -51,7 +51,7 @@ static int show_cat(const char *cat_name, category_id_t cat_id)
 	int rc;
 	size_t j;
 
-	printf("%s (%" PRIun "):\n", cat_name, cat_id);
+	printf("%s:\n", cat_name);
 
 	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
 	if (rc != EOK) {
