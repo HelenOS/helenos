@@ -304,7 +304,7 @@ static void fbsrv_frontbuf_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *ic
 	}
 	
 	int rc = async_share_out_finalize(callid, &frontbuf->data);
-	if ((rc != EOK) || (frontbuf->data == (void *) -1)) {
+	if ((rc != EOK) || (frontbuf->data == AS_MAP_FAILED)) {
 		free(frontbuf);
 		async_answer_0(iid, ENOMEM);
 		return;
@@ -347,7 +347,7 @@ static void fbsrv_imagemap_create(fbdev_t *dev, ipc_callid_t iid, ipc_call_t *ic
 	}
 	
 	int rc = async_share_out_finalize(callid, &imagemap->data);
-	if ((rc != EOK) || (imagemap->data == (void *) -1)) {
+	if ((rc != EOK) || (imagemap->data == AS_MAP_FAILED)) {
 		free(imagemap);
 		async_answer_0(iid, ENOMEM);
 		return;
