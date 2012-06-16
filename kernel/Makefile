@@ -251,6 +251,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/smc.c \
 	generic/src/synch/waitq.c \
 	generic/src/synch/futex.c \
+	generic/src/synch/rcu.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
 	generic/src/ipc/ipc.c \
