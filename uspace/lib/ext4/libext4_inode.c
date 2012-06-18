@@ -265,7 +265,7 @@ uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
 	if (ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_HUGE_FILE)) {
 
-		// 48-bit field
+		/* 48-bit field */
 		uint64_t count = ((uint64_t)uint16_t_le2host(inode->osd2.linux2.blocks_high)) << 32 |
 				uint32_t_le2host(inode->blocks_count_lo);
 
@@ -291,7 +291,7 @@ uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
 int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
 		uint64_t count)
 {
-    // 32-bit maximum
+    /* 32-bit maximum */
     uint64_t max = 0;
     max = ~max >> 32;
 
@@ -302,12 +302,12 @@ int ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
     	return EOK;
     }
 
-    // Check if there can be used huge files (many blocks)
+    /* Check if there can be used huge files (many blocks) */
     if (!ext4_superblock_has_feature_read_only(sb, EXT4_FEATURE_RO_COMPAT_HUGE_FILE)) {
     	return EINVAL;
     }
 
-    // 48-bit maximum
+    /* 48-bit maximum */
     max = 0;
     max = ~max >> 16;
 

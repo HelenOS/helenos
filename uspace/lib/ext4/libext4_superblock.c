@@ -980,13 +980,13 @@ int ext4_superblock_read_direct(service_id_t service_id,
 {
 	int rc;
 
-	// Allocated memory for superblock structure
+	/* Allocated memory for superblock structure */
 	void *data = malloc(EXT4_SUPERBLOCK_SIZE);
 	if (data == NULL) {
 		return ENOMEM;
 	}
 
-	// Read data from block device
+	/* Read data from block device */
 	rc = block_read_bytes_direct(service_id, EXT4_SUPERBLOCK_OFFSET,
 	    EXT4_SUPERBLOCK_SIZE, data);
 
@@ -995,7 +995,7 @@ int ext4_superblock_read_direct(service_id_t service_id,
 		return rc;
 	}
 
-	// Set output value
+	/* Set output value */
 	(*sb) = data;
 
 	return EOK;
@@ -1013,23 +1013,23 @@ int ext4_superblock_write_direct(service_id_t service_id,
 	int rc;
 	uint32_t phys_block_size;
 
-	// Load physical block size from block device
+	/* Load physical block size from block device */
 	rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	// Compute address of the first block
+	/* Compute address of the first block */
 	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
-	// Compute number of block to write
+	/* Compute number of block to write */
 	uint32_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
 
-	// Check alignment
+	/* Check alignment */
 	if (EXT4_SUPERBLOCK_SIZE % phys_block_size) {
 		block_count++;
 	}
 
-	// Write data
+	/* Write data */
 	return block_write_direct(service_id, first_block, block_count, sb);
 
 }
