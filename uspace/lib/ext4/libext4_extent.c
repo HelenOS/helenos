@@ -538,7 +538,7 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 
 	uint32_t fblock = ext4_extent_index_get_leaf(index);
 
-	rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NOREAD);
+	rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		EXT4FS_DBG("ERROR get_block");
 		return rc;
@@ -580,7 +580,7 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 
 	rc = block_put(block);
 	if (rc != EOK) {
-		EXT4FS_DBG("ERROR put_block");
+		EXT4FS_DBG("ERROR block_put returned \%d", rc);
 		return rc;
 	}
 
@@ -615,14 +615,14 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	assert(path_ptr->extent != NULL);
 
 	// First extent maybe released partially
-	uint32_t first_fblock;
-	first_fblock = ext4_extent_get_start(path_ptr->extent) + iblock_from;
-	first_fblock -= ext4_extent_get_first_block(path_ptr->extent);
+	uint32_t first_iblock = ext4_extent_get_first_block(path_ptr->extent);
+	uint32_t first_fblock = ext4_extent_get_start(path_ptr->extent) + iblock_from - first_iblock;
+
 
 	uint16_t block_count = ext4_extent_get_block_count(path_ptr->extent);
 
-	uint16_t delete_count = block_count - first_fblock +
-			ext4_extent_get_start(path_ptr->extent);
+	uint16_t delete_count = block_count - (
+			ext4_extent_get_start(path_ptr->extent) - first_fblock);
 
 	// Release all blocks
 	rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
@@ -642,7 +642,6 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	// If first extent empty, release it
 	if (block_count == 0) {
 		entries--;
-		ext4_extent_header_set_entries_count(path_ptr->header, entries);
 	}
 
 	// Release all successors of the first extent in the same node
@@ -656,12 +655,13 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		}
 
 		entries--;
-		ext4_extent_header_set_entries_count(path_ptr->header, entries);
-
 		tmp_ext++;
 	}
 
-	// If leaf node is empty, the whole tree must be checked and the node will be released
+	ext4_extent_header_set_entries_count(path_ptr->header, entries);
+	path_ptr->block->dirty = true;
+
+	// If leaf node is empty, parent entry must be modified
 	bool remove_parent_record = false;
 
 	// Don't release root block (including inode data) !!!
@@ -683,7 +683,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		ext4_extent_index_t *stop =
 				EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
 
-		// Correct entry because of changes in the previous iteration
+		// Correct entries count because of changes in the previous iteration
 		if (remove_parent_record) {
 			entries--;
 		}
@@ -699,7 +699,6 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 		}
 
 		ext4_extent_header_set_entries_count(path_ptr->header, entries);
-
 		path_ptr->block->dirty = true;
 
 		// Free the node if it is empty
