@@ -54,7 +54,7 @@ EOF
 
 BINUTILS_VERSION="2.22"
 BINUTILS_RELEASE=""
-GCC_VERSION="4.7.0"
+GCC_VERSION="4.7.1"
 GDB_VERSION="7.4"
 
 BASEDIR="`pwd`"
@@ -273,7 +273,7 @@ prepare() {
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "2a0f1d99fda235c29d40b561f81d9a77"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "933e6f15f51c031060af64a9e14149ff"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "95a9a8305fed4d30a30a6dc28ff9d060"
 }
 
