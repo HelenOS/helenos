@@ -75,6 +75,7 @@ DIRS = \
 	srv/locsrv \
 	srv/devman \
 	srv/loader \
+	srv/net/dnsres \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
