@@ -210,7 +210,7 @@ static void multitest(int size)
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
 	semaphore_initialize(&thr_sem,0);
 	for (i = 0; i < THREADS; i++) {
-		if (!(t = thread_create(slabtest, NULL, TASK, 0, "slabtest", false))) {
+		if (!(t = thread_create(slabtest, NULL, TASK, THREAD_FLAG_NONE, "slabtest"))) {
 			TPRINTF("Could not create thread %d\n", i);
 		} else
 			thread_ready(t);

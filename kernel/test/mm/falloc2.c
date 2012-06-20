@@ -121,8 +121,8 @@ const char *test_falloc2(void)
 	atomic_set(&thread_fail, 0);
 	
 	for (unsigned int i = 0; i < THREADS; i++) {
-		thread_t *thrd =
-		    thread_create(falloc, NULL, TASK, 0, "falloc2", false);
+		thread_t *thrd = thread_create(falloc, NULL, TASK,
+		    THREAD_FLAG_NONE, "falloc2");
 		if (!thrd) {
 			TPRINTF("Could not create thread %u\n", i);
 			break;

@@ -723,13 +723,9 @@ int cmd_mcall0(cmd_arg_t *argv)
 		
 		thread_t *thread;
 		if ((thread = thread_create((void (*)(void *)) cmd_call0,
-		    (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
-			irq_spinlock_lock(&thread->lock, true);
-			thread->cpu = &cpus[i];
-			irq_spinlock_unlock(&thread->lock, true);
-			
+		    (void *) argv, TASK, THREAD_FLAG_NONE, "call0"))) {
 			printf("cpu%u: ", i);
-			
+			thread_wire(thread, &cpus[i]);
 			thread_ready(thread);
 			thread_join(thread);
 			thread_detach(thread);

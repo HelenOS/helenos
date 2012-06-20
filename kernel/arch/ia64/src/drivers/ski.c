@@ -149,8 +149,8 @@ static void ski_init(void)
 	instance = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
 	
 	if (instance) {
-		instance->thread = thread_create(kskipoll, instance, TASK, 0,
-		    "kskipoll", true);
+		instance->thread = thread_create(kskipoll, instance, TASK,
+		    THREAD_FLAG_UNCOUNTED, "kskipoll");
 		
 		if (!instance->thread) {
 			free(instance);
