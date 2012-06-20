@@ -235,12 +235,12 @@ void thread_init(void)
 	THREAD = NULL;
 	
 	atomic_set(&nrdy, 0);
-	thread_slab = slab_cache_create("thread_slab", sizeof(thread_t), 0,
+	thread_slab = slab_cache_create("thread_t", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 	
 #ifdef CONFIG_FPU
-	fpu_context_slab = slab_cache_create("fpu_slab", sizeof(fpu_context_t),
-	    FPU_CONTEXT_ALIGN, NULL, NULL, 0);
+	fpu_context_slab = slab_cache_create("fpu_context_t",
+	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 	
 	avltree_create(&threads_tree);
