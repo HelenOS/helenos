@@ -276,7 +276,7 @@ void thread_ready(thread_t *thread)
 	    ++thread->priority : thread->priority;
 	
 	cpu_t *cpu;
-	if (thread->wired) {
+	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
 		ASSERT(thread->cpu != NULL);
 		cpu = thread->cpu;
 	} else
