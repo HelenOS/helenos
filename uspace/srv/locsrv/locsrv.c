@@ -655,6 +655,52 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, retval);
 }
 
+static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	loc_service_t *svc;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	fibril_mutex_lock(&services_list_mutex);
+	
+	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
+	if (svc == NULL) {
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (svc->server == NULL) {
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	act_size = str_size(svc->server->name);
+	if (act_size > size) {
+		fibril_mutex_unlock(&services_list_mutex);
+		async_answer_0(callid, EOVERFLOW);
+		async_answer_0(iid, EOVERFLOW);
+		return;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, svc->server->name,
+	    min(size, act_size));
+	
+	fibril_mutex_unlock(&services_list_mutex);
+	
+	async_answer_0(iid, retval);
+}
+
 /** Connect client to the service.
  *
  * Find server supplying requested service and forward
@@ -1403,6 +1449,9 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case LOC_SERVICE_GET_NAME:
 			loc_service_get_name(callid, &call);
+			break;
+		case LOC_SERVICE_GET_SERVER_NAME:
+			loc_service_get_server_name(callid, &call);
 			break;
 		case LOC_NAMESPACE_GET_ID:
 			loc_namespace_get_id(callid, &call);

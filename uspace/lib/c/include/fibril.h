@@ -86,6 +86,7 @@ extern int context_save(context_t *ctx) __attribute__((returns_twice));
 extern void context_restore(context_t *ctx) __attribute__((noreturn));
 
 extern fid_t fibril_create(int (*func)(void *), void *arg);
+extern void fibril_destroy(fid_t fid);
 extern fibril_t *fibril_setup(void);
 extern void fibril_teardown(fibril_t *f);
 extern int fibril_switch(fibril_switch_type_t stype);

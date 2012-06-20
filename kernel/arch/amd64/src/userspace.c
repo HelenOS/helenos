@@ -54,7 +54,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	
 	asm volatile (
 		"pushq %[udata_des]\n"
-		"pushq %[stack_size]\n"
+		"pushq %[stack_top]\n"
 		"pushq %[ipl]\n"
 		"pushq %[utext_des]\n"
 		"pushq %[entry]\n"
@@ -64,7 +64,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"xorq %%rdi, %%rdi\n"
 		"iretq\n"
 		:: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-		   [stack_size] "r" (kernel_uarg->uspace_stack + STACK_SIZE),
+		   [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
+		       kernel_uarg->uspace_stack_size),
 		   [ipl] "r" (ipl),
 		   [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		   [entry] "r" (kernel_uarg->uspace_entry),
@@ -73,8 +74,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	);
 	
 	/* Unreachable */
-	while (1)
-		;
+	while (1);
 }
 
 /** @}

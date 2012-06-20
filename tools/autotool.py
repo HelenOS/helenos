@@ -719,12 +719,6 @@ def main():
 			check_gcc(None, "", common, PACKAGE_GCC)
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
-		if (config['COMPILER'] == "suncc"):
-			common['CC'] = "suncc"
-			check_app([common['CC'], "-V"], "Sun Studio Compiler", "support is experimental")
-			check_gcc(None, "", common, PACKAGE_GCC)
-			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-		
 		if (config['COMPILER'] == "clang"):
 			common['CC'] = "clang"
 			check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")

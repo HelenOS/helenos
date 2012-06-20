@@ -62,7 +62,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"movl %[tls_des], %%gs\n"
 		
 		"pushl %[udata_des]\n"
-		"pushl %[stack_size]\n"
+		"pushl %[stack_top]\n"
 		"pushl %[ipl]\n"
 		"pushl %[utext_des]\n"
 		"pushl %[entry]\n"
@@ -74,7 +74,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"iret\n"
 		:
 		: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-		  [stack_size] "r" ((uint8_t *) kernel_uarg->uspace_stack + STACK_SIZE),
+		  [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
+		      kernel_uarg->uspace_stack_size),
 		  [ipl] "r" (ipl),
 		  [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		  [entry] "r" (kernel_uarg->uspace_entry),

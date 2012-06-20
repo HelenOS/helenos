@@ -188,7 +188,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == (void *) -1) {
+	if (fs_va == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}

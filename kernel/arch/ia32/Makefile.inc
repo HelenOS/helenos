@@ -37,7 +37,6 @@ ENDIANESS = LE
 CMN1 = -m32 -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
-SUNCC_CFLAGS += $(CMN1)
 CLANG_CFLAGS += $(CMN1)
 
 ## Accepted CPUs
@@ -49,27 +48,22 @@ endif
 
 ifeq ($(PROCESSOR),athlon_xp)
 	CMN2 = -march=athlon-xp
-	SUNCC_CFLAGS += -xarch=ssea
 endif
 
 ifeq ($(PROCESSOR),athlon_mp)
 	CMN2 = -march=athlon-mp
-	SUNCC_CFLAGS += xarch=ssea
 endif
 
 ifeq ($(PROCESSOR),pentium3)
 	CMN2 = -march=pentium3
-	SUNCC_CFLAGS += -xarch=sse
 endif
 
 ifeq ($(PROCESSOR),pentium4)
 	CMN2 = -march=pentium4
-	SUNCC_CFLAGS += -xarch=sse2
 endif
 
 ifeq ($(PROCESSOR),core)
 	CMN2 = -march=prescott
-	SUNCC_CFLAGS += -xarch=sse3
 endif
 
 FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow

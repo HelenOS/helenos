@@ -70,15 +70,6 @@ void *program_loader = NULL;
  */
 int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 {
-	uspace_arg_t *kernel_uarg;
-	
-	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	kernel_uarg->uspace_entry = (void *) entry_addr;
-	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
-	kernel_uarg->uspace_thread_function = NULL;
-	kernel_uarg->uspace_thread_arg = NULL;
-	kernel_uarg->uspace_uarg = NULL;
-	
 	prg->loader_status = EE_OK;
 	prg->task = task_create(as, name);
 	if (!prg->task)
@@ -91,16 +82,32 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	as_area_t *area = as_area_create(as,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
 	    STACK_SIZE, AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, 0);
-	if (!area)
+	if (!area) {
+		task_destroy(prg->task);
 		return ENOMEM;
+	}
+	
+	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
+	    malloc(sizeof(uspace_arg_t), 0);
+	
+	kernel_uarg->uspace_entry = (void *) entry_addr;
+	kernel_uarg->uspace_stack = (void *) virt;
+	kernel_uarg->uspace_stack_size = STACK_SIZE;
+	kernel_uarg->uspace_thread_function = NULL;
+	kernel_uarg->uspace_thread_arg = NULL;
+	kernel_uarg->uspace_uarg = NULL;
 	
 	/*
 	 * Create the main thread.
 	 */
 	prg->main_thread = thread_create(uinit, kernel_uarg, prg->task,
-	    THREAD_FLAG_USPACE, "uinit", false);
-	if (!prg->main_thread)
+	    THREAD_FLAG_USPACE, "uinit");
+	if (!prg->main_thread) {
+		free(kernel_uarg);
+		as_area_destroy(as, virt);
+		task_destroy(prg->task);
 		return ELIMIT;
+	}
 	
 	return EOK;
 }

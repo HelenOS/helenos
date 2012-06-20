@@ -172,9 +172,9 @@ int main(int argc, char **argv)
 	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
-	plb = as_area_create((void *) -1, PLB_SIZE,
+	plb = as_area_create(AS_AREA_ANY, PLB_SIZE,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
-	if (plb == (void *) -1) {
+	if (plb == AS_MAP_FAILED) {
 		printf("%s: Cannot create address space area\n", NAME);
 		return ENOMEM;
 	}
