@@ -39,7 +39,7 @@
 #include <memstr.h>
 #include <arch.h>
 
-#define MAX_FRAMES  256
+#define MAX_FRAMES  256U
 #define MAX_ORDER   8
 
 #define THREAD_RUNS  1
@@ -50,13 +50,13 @@ static atomic_t thread_fail;
 
 static void falloc(void *arg)
 {
-	int order, run, allocated, i;
 	uint8_t val = THREAD->tid % THREADS;
-	size_t k;
 	
-	void **frames =  (void **) malloc(MAX_FRAMES * sizeof(void *), FRAME_ATOMIC);
+	void **frames = (void **)
+	    malloc(MAX_FRAMES * sizeof(void *), FRAME_ATOMIC);
 	if (frames == NULL) {
-		TPRINTF("Thread #%" PRIu64 " (cpu%u): Unable to allocate frames\n", THREAD->tid, CPU->id);
+		TPRINTF("Thread #%" PRIu64 " (cpu%u): "
+		    "Unable to allocate frames\n", THREAD->tid, CPU->id);
 		atomic_inc(&thread_fail);
 		atomic_dec(&thread_count);
 		return;
@@ -64,13 +64,16 @@ static void falloc(void *arg)
 	
 	thread_detach(THREAD);
 	
-	for (run = 0; run < THREAD_RUNS; run++) {
-		for (order = 0; order <= MAX_ORDER; order++) {
-			TPRINTF("Thread #%" PRIu64 " (cpu%u): Allocating %d frames blocks ... \n", THREAD->tid, CPU->id, 1 << order);
+	for (unsigned int run = 0; run < THREAD_RUNS; run++) {
+		for (unsigned int order = 0; order <= MAX_ORDER; order++) {
+			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
+			    "Allocating %u frames blocks ... \n", THREAD->tid,
+			    CPU->id, 1 << order);
 			
-			allocated = 0;
-			for (i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+			unsigned int allocated = 0;
+			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
+				frames[allocated] =
+				    frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				if (frames[allocated]) {
 					memsetb(frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
@@ -78,14 +81,20 @@ static void falloc(void *arg)
 					break;
 			}
 			
-			TPRINTF("Thread #%" PRIu64 " (cpu%u): %d blocks allocated.\n", THREAD->tid, CPU->id, allocated);
-			TPRINTF("Thread #%" PRIu64 " (cpu%u): Deallocating ... \n", THREAD->tid, CPU->id);
+			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
+			    "%u blocks allocated.\n", THREAD->tid, CPU->id,
+			    allocated);
+			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
+			    "Deallocating ... \n", THREAD->tid, CPU->id);
 			
-			for (i = 0; i < allocated; i++) {
-				for (k = 0; k <= (((size_t) FRAME_SIZE << order) - 1); k++) {
+			for (unsigned int i = 0; i < allocated; i++) {
+				for (size_t k = 0; k <= (((size_t) FRAME_SIZE << order) - 1);
+				    k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
-						TPRINTF("Thread #%" PRIu64 " (cpu%u): Unexpected data (%c) in block %p offset %zu\n",
-						    THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
+						TPRINTF("Thread #%" PRIu64 " (cpu%u): "
+						    "Unexpected data (%c) in block %p offset %zu\n",
+						    THREAD->tid, CPU->id, ((char *) frames[i])[k],
+						    frames[i], k);
 						atomic_inc(&thread_fail);
 						goto cleanup;
 					}
@@ -93,26 +102,27 @@ static void falloc(void *arg)
 				frame_free(KA2PA(frames[i]));
 			}
 			
-			TPRINTF("Thread #%" PRIu64 " (cpu%u): Finished run.\n", THREAD->tid, CPU->id);
+			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
+			    "Finished run.\n", THREAD->tid, CPU->id);
 		}
 	}
 	
 cleanup:
 	free(frames);
 	
-	TPRINTF("Thread #%" PRIu64 " (cpu%u): Exiting\n", THREAD->tid, CPU->id);
+	TPRINTF("Thread #%" PRIu64 " (cpu%u): Exiting\n",
+	    THREAD->tid, CPU->id);
 	atomic_dec(&thread_count);
 }
 
 const char *test_falloc2(void)
 {
-	unsigned int i;
-	
 	atomic_set(&thread_count, THREADS);
 	atomic_set(&thread_fail, 0);
 	
-	for (i = 0; i < THREADS; i++) {
-		thread_t * thrd = thread_create(falloc, NULL, TASK, 0, "falloc", false);
+	for (unsigned int i = 0; i < THREADS; i++) {
+		thread_t *thrd =
+		    thread_create(falloc, NULL, TASK, 0, "falloc2", false);
 		if (!thrd) {
 			TPRINTF("Could not create thread %u\n", i);
 			break;
@@ -121,7 +131,8 @@ const char *test_falloc2(void)
 	}
 	
 	while (atomic_get(&thread_count) > 0) {
-		TPRINTF("Threads left: %" PRIua "\n", atomic_get(&thread_count));
+		TPRINTF("Threads left: %" PRIua "\n",
+		    atomic_get(&thread_count));
 		thread_sleep(1);
 	}
 	
