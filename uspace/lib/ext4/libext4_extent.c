@@ -741,6 +741,8 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		ext4_extent_path_t *path, ext4_extent_path_t **last_path_item,
 		uint32_t iblock)
 {
+	EXT4FS_DBG("iblock = \%u", iblock);
+
 	int rc;
 
 	ext4_extent_path_t *path_ptr = *last_path_item;
@@ -767,12 +769,16 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	/* Trivial tree - grow (extents were in root node) */
 	if (path_ptr == path) {
 
+		EXT4FS_DBG("splitting root with extents");
+
 		uint32_t new_fblock;
 		rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
 		if (rc != EOK) {
 			EXT4FS_DBG("error in block allocation");
 			return rc;
 		}
+
+		EXT4FS_DBG("alllocated block \%u for new leaf", new_fblock);
 
 		block_t *block;
 		rc = block_get(&block, inode_ref->fs->device,
@@ -791,7 +797,7 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		path_ptr++;
 		path_ptr->block = block;
 		path_ptr->header = (ext4_extent_header_t *)block->data;
-		path_ptr->depth = ext4_extent_header_get_depth(path_ptr->header);
+		path_ptr->depth = 0;
 		path_ptr->index = NULL;
 
 		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
@@ -801,12 +807,17 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 				sizeof(ext4_extent_t);
 		ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
 
+		/* Initialize new extent */
+		ext4_extent_set_block_count(path_ptr->extent, 0);
+		ext4_extent_set_first_block(path_ptr->extent, iblock);
+		ext4_extent_set_start(path_ptr->extent, 0);
+
 		/* Modify root (in inode) */
 		path->depth = 1;
 		path->extent = NULL;
 		path->index = EXT4_EXTENT_FIRST_INDEX(path->header);
 
-		ext4_extent_header_set_depth(path->header, path_ptr->depth + 1);
+		ext4_extent_header_set_depth(path->header, 1);
 		ext4_extent_header_set_entries_count(path->header, 1);
 
 		ext4_extent_index_set_first_block(path->index, 0);
@@ -817,11 +828,34 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 
 		*last_path_item = path_ptr;
 
+
+		ext4_extent_header_t *tmp_root = path->header;
+		EXT4FS_DBG("new root: items = \%u, maximum = \%u, depth = \%u", ext4_extent_header_get_entries_count(tmp_root),
+				ext4_extent_header_get_max_entries_count(tmp_root), ext4_extent_header_get_depth(tmp_root));
+
+		ext4_extent_index_t *root_idx = EXT4_EXTENT_FIRST_INDEX(path->header);
+		EXT4FS_DBG("first iblock = \%u, fblock = \%u", ext4_extent_index_get_first_block(root_idx),
+				(uint32_t)ext4_extent_index_get_leaf(root_idx));
+
+		ext4_extent_header_t *new_leaf = path_ptr->header;
+		EXT4FS_DBG("new leaf: items = \%u, maximum = \%u, depth = \%u", ext4_extent_header_get_entries_count(new_leaf),
+				ext4_extent_header_get_max_entries_count(new_leaf), ext4_extent_header_get_depth(new_leaf));
+
+		for (uint32_t j = 0; j < ext4_extent_header_get_entries_count(new_leaf); ++j) {
+			ext4_extent_t *tmp_ext = EXT4_EXTENT_FIRST(path_ptr->header) + j;
+
+			EXT4FS_DBG("item \%u, first iblock = \%u", j, ext4_extent_get_first_block(tmp_ext));
+		}
+
+
+		EXT4FS_DBG("Root block containing extents was split");
 		return EOK;
 	}
 
 	// TODO !!!
 //	assert(false);
+
+	EXT4FS_DBG("More complex splitting");
 
 	/* Start splitting */
 	uint32_t fblock = 0;
@@ -862,6 +896,8 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	/* If splitting reached root node */
 	if (path_ptr == path) {
 
+		EXT4FS_DBG("Splitting root");
+
 		uint32_t new_fblock;
 		rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
 		if (rc != EOK) {
@@ -912,8 +948,9 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 
 		*last_path_item = path_ptr;
 
-		return EOK;
 	}
+
+	EXT4FS_DBG("Finishing");
 
 	return EOK;
 }
@@ -1030,19 +1067,18 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 /* Append new extent to the tree */
 append_extent:
 
+	/* Append extent for new block (includes tree splitting if needed) */
+	rc = ext4_extent_append_extent(inode_ref, path, &path_ptr, new_block_idx);
+	if (rc != EOK) {
+		goto finish;
+	}
+
 	phys_block = 0;
 
 	/* Allocate new data block */
 	rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
 	if (rc != EOK) {
 		EXT4FS_DBG("error in block allocation, rc = \%d", rc);
-		goto finish;
-	}
-
-	/* Append extent for new block (includes tree splitting if needed) */
-	rc = ext4_extent_append_extent(inode_ref, path, &path_ptr, new_block_idx);
-	if (rc != EOK) {
-		ext4_balloc_free_block(inode_ref, phys_block);
 		goto finish;
 	}
 
