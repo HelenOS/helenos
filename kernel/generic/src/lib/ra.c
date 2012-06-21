@@ -423,7 +423,7 @@ void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 
 void ra_init(void)
 {
-	ra_segment_cache = slab_cache_create("segment_cache",
+	ra_segment_cache = slab_cache_create("ra_segment_t",
 	    sizeof(ra_segment_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 }
 

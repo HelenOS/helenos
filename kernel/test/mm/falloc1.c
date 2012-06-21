@@ -36,34 +36,33 @@
 #include <debug.h>
 #include <align.h>
 
-#define MAX_FRAMES  1024
+#define MAX_FRAMES  1024U
 #define MAX_ORDER   8
 #define TEST_RUNS   2
 
-const char *test_falloc1(void) {
-	uintptr_t *frames
-	    = (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
-	int results[MAX_ORDER + 1];
-	
-	int i, order, run;
-	int allocated;
-	
+const char *test_falloc1(void)
+{
 	if (TEST_RUNS < 2)
 		return "Test is compiled with TEST_RUNS < 2";
 	
+	uintptr_t *frames = (uintptr_t *)
+	    malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
 	if (frames == NULL)
 		return "Unable to allocate frames";
 	
-	for (run = 0; run < TEST_RUNS; run++) {
-		for (order = 0; order <= MAX_ORDER; order++) {
-			TPRINTF("Allocating %d frames blocks ... ", 1 << order);
+	unsigned int results[MAX_ORDER + 1];
+	for (unsigned int run = 0; run < TEST_RUNS; run++) {
+		for (unsigned int order = 0; order <= MAX_ORDER; order++) {
+			TPRINTF("Allocating %u frames blocks ... ", 1 << order);
 			
-			allocated = 0;
-			for (i = 0; i < MAX_FRAMES >> order; i++) {
-				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+			unsigned int allocated = 0;
+			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
+				frames[allocated] = (uintptr_t)
+				    frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				
-				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					TPRINTF("Block at address %p (size %dK) is not aligned\n",
+				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) !=
+				    frames[allocated]) {
+					TPRINTF("Block at address %p (size %u) is not aligned\n",
 					    (void *) frames[allocated], (FRAME_SIZE << order) >> 10);
 					return "Test failed";
 				}
@@ -86,7 +85,7 @@ const char *test_falloc1(void) {
 			
 			TPRINTF("Deallocating ... ");
 			
-			for (i = 0; i < allocated; i++)
+			for (unsigned int i = 0; i < allocated; i++)
 				frame_free(KA2PA(frames[i]));
 			
 			TPRINTF("done.\n");

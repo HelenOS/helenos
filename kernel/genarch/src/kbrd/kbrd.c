@@ -157,8 +157,8 @@ kbrd_instance_t *kbrd_init(void)
 	kbrd_instance_t *instance
 	    = malloc(sizeof(kbrd_instance_t), FRAME_ATOMIC);
 	if (instance) {
-		instance->thread
-			= thread_create(kkbrd, (void *) instance, TASK, 0, "kkbrd", false);
+		instance->thread = thread_create(kkbrd, (void *) instance,
+		    TASK, THREAD_FLAG_NONE, "kkbrd");
 		
 		if (!instance->thread) {
 			free(instance);
