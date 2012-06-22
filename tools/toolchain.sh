@@ -318,7 +318,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
+	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
@@ -330,7 +330,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
+	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
