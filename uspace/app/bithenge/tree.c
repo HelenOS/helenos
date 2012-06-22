@@ -36,6 +36,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <str.h>
 #include "blob.h"
 #include "tree.h"
 
@@ -204,6 +205,33 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
 	node->string_value.needs_free = needs_free;
 	*out = node;
 	return EOK;
+}
+
+/** Check whether the contents of two nodes are equal. Does not yet work for
+ * internal nodes.
+ * @memberof bithenge_node_t
+ * @param a, b Nodes to compare.
+ * @return Whether the nodes are equal. If an error occurs, returns false.
+ * @todo Add support for internal nodes.
+ */
+bool bithenge_node_equal(bithenge_node_t *a, bithenge_node_t *b)
+{
+	if (a->type != b->type)
+		return false;
+	switch (a->type) {
+	case BITHENGE_NODE_INTERNAL:
+		return false;
+	case BITHENGE_NODE_BOOLEAN:
+		return a->boolean_value == b->boolean_value;
+	case BITHENGE_NODE_INTEGER:
+		return a->integer_value == b->integer_value;
+	case BITHENGE_NODE_STRING:
+		return !str_cmp(a->string_value.ptr, b->string_value.ptr);
+	case BITHENGE_NODE_BLOB:
+		return bithenge_blob_equal(bithenge_node_as_blob(a),
+		    bithenge_node_as_blob(b));
+	}
+	return false;
 }
 
 /** @}

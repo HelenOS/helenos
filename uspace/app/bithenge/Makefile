@@ -37,6 +37,7 @@ SOURCES = \
 	file.c \
 	print.c \
 	test.c \
+	transform.c \
 	tree.c
 
 include $(USPACE_PREFIX)/Makefile.common

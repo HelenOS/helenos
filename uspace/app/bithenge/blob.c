@@ -296,5 +296,33 @@ int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
 	return EOK;
 }
 
+/** Check whether the contents of two blobs are equal.
+ * @memberof bithenge_blob_t
+ * @param a, b Blobs to compare.
+ * @return Whether the blobs are equal. If an error occurs, returns false.
+ */
+bool bithenge_blob_equal(bithenge_blob_t *a, bithenge_blob_t *b)
+{
+	assert(a);
+	assert(a->base.blob_ops);
+	assert(b);
+	assert(b->base.blob_ops);
+	int rc;
+	char buffer_a[4096], buffer_b[4096];
+	aoff64_t offset = 0, size_a = sizeof(buffer_a), size_b = sizeof(buffer_b);
+	do {
+		rc = bithenge_blob_read(a, offset, buffer_a, &size_a);
+		if (rc != EOK)
+			return false;
+		rc = bithenge_blob_read(b, offset, buffer_b, &size_b);
+		if (rc != EOK)
+			return false;
+		if (size_a != size_b || bcmp(buffer_a, buffer_b, size_a))
+			return false;
+		offset += size_a;
+	} while (size_a == sizeof(buffer_a));
+	return true;
+}
+
 /** @}
  */

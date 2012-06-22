@@ -152,6 +152,7 @@ int bithenge_new_boolean_node(bithenge_node_t **, bool);
 int bithenge_new_integer_node(bithenge_node_t **, bithenge_int_t);
 int bithenge_new_string_node(bithenge_node_t **, const char *, bool);
 int bithenge_node_destroy(bithenge_node_t *);
+bool bithenge_node_equal(bithenge_node_t *, bithenge_node_t *);
 
 #endif
 

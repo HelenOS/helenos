@@ -181,6 +181,8 @@ int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
 int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
     size_t len, bool needs_free);
 
+bool bithenge_blob_equal(bithenge_blob_t *a, bithenge_blob_t *b);
+
 #endif
 
 /** @}
