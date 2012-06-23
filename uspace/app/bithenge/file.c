@@ -38,12 +38,14 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "blob.h"
 #include "file.h"
+#include "os.h"
 
 typedef struct {
 	bithenge_blob_t base;
@@ -75,11 +77,21 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	file_blob_t *blob = file_from_blob(base);
 	if (offset > blob->size)
 		return ELIMIT;
-	*size = min(*size, blob->size - offset);
-	int rc = lseek(blob->fd, offset, SEEK_SET);
-	if (rc != EOK)
-		return rc;
-	return read(blob->fd, buffer, *size);
+	if (lseek(blob->fd, offset, SEEK_SET) < 0)
+		return errno;
+
+	ssize_t amount_read;
+	aoff64_t remaining_size = *size;
+	*size = 0;
+	do {
+		amount_read = read(blob->fd, buffer, remaining_size);
+		if (amount_read < 0)
+			return errno;
+		buffer += amount_read;
+		*size += amount_read;
+		remaining_size -= amount_read;
+	} while (remaining_size && amount_read);
+	return EOK;
 }
 
 static int file_destroy(bithenge_blob_t *base)
@@ -124,7 +136,11 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 		return rc;
 	}
 	blob->fd = fd;
+#ifdef __HELENOS__
 	blob->size = stat.size;
+#else
+	blob->size = stat.st_size;
+#endif
 	blob->needs_close = needs_close;
 	*out = bithenge_blob_as_node(blob_from_file(blob));
 

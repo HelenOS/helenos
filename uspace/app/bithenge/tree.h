@@ -38,9 +38,9 @@
 #define BITHENGE_TREE_H_
 
 #include <assert.h>
-#include <bool.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#include "os.h"
 
 #ifdef INTMAX_MAX
 typedef intmax_t bithenge_int_t;

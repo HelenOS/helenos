@@ -103,11 +103,13 @@ static int print_integer(bithenge_print_type_t type, bithenge_node_t *node)
 
 static int print_string(bithenge_print_type_t type, bithenge_node_t *node)
 {
-	size_t off = 0;
 	const char *value = bithenge_string_node_value(node);
-	wchar_t ch;
 	printf("\"");
-	while ((ch = str_decode(value, &off, STR_NO_LIMIT)) != 0) {
+	for (string_iterator_t i = string_iterator(value); !string_iterator_done(&i); ) {
+		wchar_t ch;
+		int rc = string_iterator_next(&i, &ch);
+		if (rc != EOK)
+			return rc;
 		if (ch == '"' || ch == '\\') {
 			printf("\\%lc", (wint_t) ch);
 		} else if (ch <= 0x1f) {
@@ -133,7 +135,7 @@ static int print_blob(bithenge_print_type_t type, bithenge_node_t *node)
 		if (rc != EOK)
 			return rc;
 		for (aoff64_t i = 0; i < size; i++)
-			printf("\\x%02x", buffer[i]);
+			printf("\\x%02x", (unsigned int)(uint8_t)buffer[i]);
 		pos += size;
 	} while (size == sizeof(buffer));
 	printf("\"");

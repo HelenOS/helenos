@@ -74,7 +74,7 @@ static inline int bithenge_transform_apply(bithenge_transform_t *xform,
 
 /** Find the length of the prefix of a blob this transform can use as input. In
  * other words, figure out how many bytes this transform will use up.  This
- * method is optional and can return an error, but it is required for struct
+ * method is optional and can return an error, but it must succeed for struct
  * subtransforms.
  * @memberof bithenge_transform_t
  * @param xform The transform.

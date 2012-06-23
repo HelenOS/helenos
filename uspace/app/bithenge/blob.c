@@ -35,12 +35,10 @@
  */
 
 #include <assert.h>
-#include <bool.h>
 #include <errno.h>
-#include <macros.h>
-#include <mem.h>
 #include <stdlib.h>
 #include "blob.h"
+#include "os.h"
 #include "tree.h"
 
 /** Initialize a random access blob.
@@ -214,7 +212,7 @@ static int memory_destroy(bithenge_blob_t *base)
 {
 	memory_blob_t *blob = memory_from_blob(base);
 	if (blob->needs_free)
-		free(blob->buffer);
+		free((void *)blob->buffer);
 	free(blob);
 	return EOK;
 }
@@ -271,8 +269,8 @@ int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
  * @param[in] buffer The buffer, which must not be changed until the blob is
  * destroyed.
  * @param len The length of the data.
- * @param needs_free Whether the buffer should be freed with free() when the
- * blob is destroyed.
+ * @param needs_free If true, the buffer will be freed with free() if this
+ * function fails or the blob is destroyed.
  * @return EOK on success or an error code from errno.h. */
 int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
     size_t len, bool needs_free)

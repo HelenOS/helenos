@@ -34,84 +34,51 @@
  * Simple program to test Bithenge.
  */
 
-#include <loc.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include "blob.h"
-#include "block.h"
-#include "file.h"
+#include "source.h"
 #include "print.h"
 #include "tree.h"
 
-static void
-print_data(const char *data, size_t len)
-{
-	while (len--)
-		printf("%02x ", (uint8_t)(*data++));
-	printf("\n");
-}
-
-static void
-print_blob(bithenge_node_t *node)
-{
-	bithenge_blob_t *blob = bithenge_node_as_blob(node);
-	aoff64_t size;
-	bithenge_blob_size(blob, &size);
-	printf("Size: %d; ", (int)size);
-	char buffer[64];
-	size = sizeof(buffer);
-	bithenge_blob_read(blob, 0, buffer, &size);
-	print_data(buffer, size);
-}
-
 int main(int argc, char *argv[])
 {
-	bithenge_node_t *node;
-
-	service_id_t service_id;
-	loc_service_get_id("bd/initrd", &service_id, 0);
-	bithenge_new_block_blob(&node, service_id);
-	printf("Data from block:bd/initrd: ");
-	print_blob(node);
-	bithenge_node_destroy(node);
-
-	const char data[] = "'Twas brillig, and the slithy toves";
-	bithenge_new_blob_from_data(&node, data, sizeof(data));
-	printf("Data from memory (from_data): ");
-	print_blob(node);
-	bithenge_node_destroy(node);
-
-	bithenge_new_blob_from_buffer(&node, data, sizeof(data), false);
-	printf("Data from memory (from_buffer): ");
-	print_blob(node);
-	bithenge_node_destroy(node);
-
-	bithenge_new_file_blob(&node, "/textdemo");
-	printf("Data from file:/textdemo: ");
-	print_blob(node);
-	bithenge_node_destroy(node);
-
-	bithenge_new_file_blob_from_fd(&node, 0);
-	printf("Data from fd:0: ");
-	print_blob(node);
-	bithenge_node_destroy(node);
-
-	// {True: {}, -1351: "\"false\"", "true": False, 0: b"..."}
-	bithenge_node_t *nodes[8];
-	bithenge_new_boolean_node(&nodes[0], true);
-	bithenge_new_simple_internal_node(&nodes[1], NULL, 0, false);
-	bithenge_new_integer_node(&nodes[2], -1351);
-	bithenge_new_string_node(&nodes[3], "\"false\"", false);
-	bithenge_new_string_node(&nodes[4], "true", false);
-	bithenge_new_boolean_node(&nodes[5], false);
-	bithenge_new_integer_node(&nodes[6], 0);
-	bithenge_new_blob_from_data(&nodes[7], data, sizeof(data));
-	bithenge_new_simple_internal_node(&node, nodes, 4, false);
-	bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
-	printf("\n");
-	bithenge_print_node(BITHENGE_PRINT_JSON, node);
-	printf("\n");
-	bithenge_node_destroy(node);
+	if (argc < 2) {
+		// {True: {}, -1351: "\"false\"", "true": False, 0: b"..."}
+		const char data[] = "'Twas brillig, and the slithy toves";
+		bithenge_node_t *node;
+		bithenge_node_t *subnodes[8];
+		bithenge_new_boolean_node(&subnodes[0], true);
+		bithenge_new_simple_internal_node(&subnodes[1], NULL, 0, false);
+		bithenge_new_integer_node(&subnodes[2], -1351);
+		bithenge_new_string_node(&subnodes[3], "\"false\"", false);
+		bithenge_new_string_node(&subnodes[4], "true", false);
+		bithenge_new_boolean_node(&subnodes[5], false);
+		bithenge_new_integer_node(&subnodes[6], 0);
+		bithenge_new_blob_from_data(&subnodes[7], data, sizeof(data));
+		bithenge_new_simple_internal_node(&node, subnodes, 4, false);
+		bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
+		printf("\n");
+		bithenge_print_node(BITHENGE_PRINT_JSON, node);
+		printf("\n");
+		bithenge_node_destroy(node);
+	} else {
+		bithenge_node_t *node;
+		int rc = bithenge_node_from_source(&node, argv[1]);
+		if (rc != EOK) {
+			printf("Error creating node from source: %s\n", str_error(rc));
+			return 1;
+		}
+		rc = bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
+		if (rc != EOK) {
+			printf("Error printing node: %s\n", str_error(rc));
+			return 1;
+		}
+		printf("\n");
+		bithenge_node_destroy(node);
+	}
 
 	return 0;
 }

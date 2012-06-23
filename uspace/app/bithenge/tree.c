@@ -36,8 +36,8 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <str.h>
 #include "blob.h"
+#include "os.h"
 #include "tree.h"
 
 static int blob_destroy(bithenge_node_t *base)
@@ -58,7 +58,7 @@ int bithenge_node_destroy(bithenge_node_t *node)
 		return blob_destroy(node);
 	case BITHENGE_NODE_STRING:
 		if (node->string_value.needs_free)
-			free(node->string_value.ptr);
+			free((void *)node->string_value.ptr);
 		break;
 	case BITHENGE_NODE_INTERNAL:
 		return node->internal_ops->destroy(node);

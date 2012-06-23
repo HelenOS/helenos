@@ -26,68 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup bithenge
- * @{
- */
-/**
- * @file
- * Transforms.
- */
+#ifndef BITHENGE_OS_H_
+#define BITHENGE_OS_H_
 
+#include <endian.h>
 #include <errno.h>
-#include "blob.h"
-#include "transform.h"
+#include <memory.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 
-static int transform_indestructible(bithenge_transform_t *xform)
+#define max(aleph, bet) ((aleph) > (bet) ? (aleph) : (bet))
+#define min(aleph, bet) ((aleph) < (bet) ? (aleph) : (bet))
+
+#define EOK 0
+#define ELIMIT EINVAL
+
+typedef uint64_t aoff64_t;
+
+typedef const char *string_iterator_t;
+
+static inline string_iterator_t string_iterator(const char *string)
 {
-	return EINVAL;
+	return string;
 }
 
-static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
-    bithenge_node_t **out)
+static inline int string_iterator_next(string_iterator_t *i, wchar_t *out)
 {
-	int rc;
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
-	bithenge_blob_t *blob = bithenge_node_as_blob(in);
-
-	// Try to read 5 bytes and fail if the blob is too long.
-	uint32_t val[2];
-	aoff64_t size = sizeof(val[0]) + 1;
-	rc = bithenge_blob_read(blob, 0, (char *)val, &size);
-	if (rc != EOK)
-		return rc;
-	if (size != 4)
-		return EINVAL;
-
-	return bithenge_new_integer_node(out, uint32_t_le2host(val[0]));
+	wint_t rc = btowc(*(*i)++); // TODO
+	*out = (wchar_t) rc;
+	return rc == WEOF ? EILSEQ : EOK;
 }
 
-static int uint32le_prefix_length(bithenge_transform_t *xform,
-    bithenge_blob_t *blob, aoff64_t *out)
+static inline bool string_iterator_done(const string_iterator_t *i)
 {
-	*out = 4;
-	return EOK;
+	return !**i;
 }
 
-static const bithenge_transform_ops_t uint32le_ops = {
-	.apply = uint32le_apply,
-	.prefix_length = uint32le_prefix_length,
-	.destroy = transform_indestructible,
-};
-
-static bithenge_transform_t uint32le_transform = {
-	&uint32le_ops, 1
-};
-
-/** Create a little-endian 32-bit unsigned integer transform.
- * @param out Holds the transform.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_uint32le_transform(bithenge_transform_t **out)
+static inline size_t str_length(const char *string)
 {
-	*out = &uint32le_transform;
-	return EOK;
+	return strlen(string);
 }
 
-/** @}
- */
+static inline const char *str_chr(const char *string, wchar_t ch)
+{
+	return strchr(string, wctob(ch)); // TODO
+}
+
+static inline int str_cmp(const char *s1, const char *s2)
+{
+	return strcmp(s1, s2);
+}
+
+static inline int str_lcmp(const char *s1, const char *s2, size_t max_len)
+{
+	return strncmp(s1, s2, max_len);
+}
+
+static inline const char *str_error(int e)
+{
+	return strerror(e);
+}
+
+static inline uint32_t uint32_t_le2host(uint32_t val)
+{
+	return le32toh(val);
+}
+
+#endif

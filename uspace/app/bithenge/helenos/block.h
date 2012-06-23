@@ -31,63 +31,18 @@
  */
 /**
  * @file
- * Transforms.
+ * Access block devices as blobs.
  */
 
-#include <errno.h>
-#include "blob.h"
-#include "transform.h"
+#ifndef BITHENGE_BLOCK_H_
+#define BITHENGE_BLOCK_H_
 
-static int transform_indestructible(bithenge_transform_t *xform)
-{
-	return EINVAL;
-}
+#include <loc.h>
+#include "../blob.h"
 
-static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
-    bithenge_node_t **out)
-{
-	int rc;
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
-	bithenge_blob_t *blob = bithenge_node_as_blob(in);
+int bithenge_new_block_blob(bithenge_node_t **, service_id_t);
 
-	// Try to read 5 bytes and fail if the blob is too long.
-	uint32_t val[2];
-	aoff64_t size = sizeof(val[0]) + 1;
-	rc = bithenge_blob_read(blob, 0, (char *)val, &size);
-	if (rc != EOK)
-		return rc;
-	if (size != 4)
-		return EINVAL;
-
-	return bithenge_new_integer_node(out, uint32_t_le2host(val[0]));
-}
-
-static int uint32le_prefix_length(bithenge_transform_t *xform,
-    bithenge_blob_t *blob, aoff64_t *out)
-{
-	*out = 4;
-	return EOK;
-}
-
-static const bithenge_transform_ops_t uint32le_ops = {
-	.apply = uint32le_apply,
-	.prefix_length = uint32le_prefix_length,
-	.destroy = transform_indestructible,
-};
-
-static bithenge_transform_t uint32le_transform = {
-	&uint32le_ops, 1
-};
-
-/** Create a little-endian 32-bit unsigned integer transform.
- * @param out Holds the transform.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_uint32le_transform(bithenge_transform_t **out)
-{
-	*out = &uint32le_transform;
-	return EOK;
-}
+#endif
 
 /** @}
  */

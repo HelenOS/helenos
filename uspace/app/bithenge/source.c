@@ -31,62 +31,75 @@
  */
 /**
  * @file
- * Transforms.
+ * Provide various external sources of data.
  */
 
 #include <errno.h>
+#include <stdlib.h>
 #include "blob.h"
-#include "transform.h"
+#include "file.h"
+#include "source.h"
 
-static int transform_indestructible(bithenge_transform_t *xform)
+#ifdef __HELENOS__
+#include <loc.h>
+#include "helenos/block.h"
+#endif
+
+static inline int hex_digit(char digit)
 {
-	return EINVAL;
+	if ('0' <= digit && digit <= '9')
+		return digit - '0' + 0x0;
+	if ('a' <= digit && digit <= 'f')
+		return digit - 'a' + 0xa;
+	if ('A' <= digit && digit <= 'F')
+		return digit - 'A' + 0xA;
+	return -1;
 }
 
-static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
-    bithenge_node_t **out)
+static int blob_from_hex(bithenge_node_t **out, const char *hex)
 {
-	int rc;
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+	size_t size = str_length(hex);
+	if (size % 2)
 		return EINVAL;
-	bithenge_blob_t *blob = bithenge_node_as_blob(in);
-
-	// Try to read 5 bytes and fail if the blob is too long.
-	uint32_t val[2];
-	aoff64_t size = sizeof(val[0]) + 1;
-	rc = bithenge_blob_read(blob, 0, (char *)val, &size);
-	if (rc != EOK)
-		return rc;
-	if (size != 4)
-		return EINVAL;
-
-	return bithenge_new_integer_node(out, uint32_t_le2host(val[0]));
+	size /= 2;
+	char *buffer = malloc(size);
+	if (!buffer)
+		return ENOMEM;
+	for (size_t i = 0; i < size; i++) {
+		int upper = hex_digit(hex[2 * i + 0]);
+		int lower = hex_digit(hex[2 * i + 1]);
+		if (upper == -1 || lower == -1) {
+			free(buffer);
+			return EINVAL;
+		}
+		buffer[i] = upper << 4 | lower;
+	}
+	return bithenge_new_blob_from_buffer(out, buffer, size, true);
 }
 
-static int uint32le_prefix_length(bithenge_transform_t *xform,
-    bithenge_blob_t *blob, aoff64_t *out)
+int bithenge_node_from_source(bithenge_node_t **out, const char *source)
 {
-	*out = 4;
-	return EOK;
-}
-
-static const bithenge_transform_ops_t uint32le_ops = {
-	.apply = uint32le_apply,
-	.prefix_length = uint32le_prefix_length,
-	.destroy = transform_indestructible,
-};
-
-static bithenge_transform_t uint32le_transform = {
-	&uint32le_ops, 1
-};
-
-/** Create a little-endian 32-bit unsigned integer transform.
- * @param out Holds the transform.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_uint32le_transform(bithenge_transform_t **out)
-{
-	*out = &uint32le_transform;
-	return EOK;
+	if (str_chr(source, ':')) {
+		if (!str_lcmp(source, "file:", 5)) {
+			// Example: file:/textdemo
+			return bithenge_new_file_blob(out, source + 5);
+#ifdef __HELENOS__
+		} else if (!str_lcmp(source, "block:", 6)) {
+			// Example: block:bd/initrd
+			service_id_t service_id;
+			int rc = loc_service_get_id(source + 6, &service_id, 0);
+			if (rc != EOK)
+				return rc;
+			return bithenge_new_block_blob(out, service_id);
+#endif
+		} else if (!str_lcmp(source, "hex:", 4)) {
+			// Example: hex:04000000
+			return blob_from_hex(out, source + 4);
+		} else {
+			return EINVAL;
+		}
+	}
+	return bithenge_new_file_blob(out, source);
 }
 
 /** @}

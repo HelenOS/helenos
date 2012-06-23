@@ -26,13 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__ -Ihelenos
+CFLAGS += -fexec-charset=UTF-8 -finput-charset=UTF-8 -Wall -Wextra -Werror -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes -std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings -pipe
+CFLAGS += -Ilinux
+
 BINARY = bithenge
 
 SOURCES = \
-	helenos/block.c \
 	blob.c \
 	file.c \
 	print.c \
@@ -41,4 +40,10 @@ SOURCES = \
 	transform.c \
 	tree.c
 
-include $(USPACE_PREFIX)/Makefile.common
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+
+$(BINARY): $(OBJECTS)
+	$(CC) -o $@ $^
+
+clean:
+	find . -name '*.o' -follow -exec rm \{\} \;

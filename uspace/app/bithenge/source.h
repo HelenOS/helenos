@@ -31,16 +31,15 @@
  */
 /**
  * @file
- * Access block devices as blobs.
+ * Provide various external sources of data.
  */
 
-#ifndef BITHENGE_BLOCK_H_
-#define BITHENGE_BLOCK_H_
+#ifndef BITHENGE_SOURCE_H_
+#define BITHENGE_SOURCE_H_
 
-#include <loc.h>
-#include "blob.h"
+#include "tree.h"
 
-int bithenge_new_block_blob(bithenge_node_t **, service_id_t);
+int bithenge_node_from_source(bithenge_node_t **out, const char *source);
 
 #endif
 
