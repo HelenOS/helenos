@@ -741,7 +741,6 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		ext4_extent_path_t *path, ext4_extent_path_t **last_path_item,
 		uint32_t iblock)
 {
-	EXT4FS_DBG("iblock = \%u", iblock);
 
 	int rc;
 
@@ -967,7 +966,7 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
  * @return					error code
  */
 int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
-		uint32_t *iblock, uint32_t *fblock)
+		uint32_t *iblock, uint32_t *fblock, bool update_size)
 {
 	int rc = EOK;
 
@@ -1025,8 +1024,10 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 			ext4_extent_set_block_count(path_ptr->extent, 1);
 
 			/* Update i-node */
-			ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
-			inode_ref->dirty = true;
+			if (update_size) {
+				ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+				inode_ref->dirty = true;
+			}
 
 			path_ptr->block->dirty = true;
 
@@ -1055,8 +1056,10 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 			ext4_extent_set_block_count(path_ptr->extent, block_count + 1);
 
 			/* Update i-node */
-			ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
-			inode_ref->dirty = true;
+			if (update_size) {
+				ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+				inode_ref->dirty = true;
+			}
 
 			path_ptr->block->dirty = true;
 
@@ -1067,12 +1070,6 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref,
 /* Append new extent to the tree */
 append_extent:
 
-	/* Append extent for new block (includes tree splitting if needed) */
-	rc = ext4_extent_append_extent(inode_ref, path, &path_ptr, new_block_idx);
-	if (rc != EOK) {
-		goto finish;
-	}
-
 	phys_block = 0;
 
 	/* Allocate new data block */
@@ -1082,14 +1079,23 @@ append_extent:
 		goto finish;
 	}
 
+	/* Append extent for new block (includes tree splitting if needed) */
+	rc = ext4_extent_append_extent(inode_ref, path, &path_ptr, new_block_idx);
+	if (rc != EOK) {
+		ext4_balloc_free_block(inode_ref, phys_block);
+		goto finish;
+	}
+
 	/* Initialize newly created extent */
 	ext4_extent_set_block_count(path_ptr->extent, 1);
 	ext4_extent_set_first_block(path_ptr->extent, new_block_idx);
 	ext4_extent_set_start(path_ptr->extent, phys_block);
 
 	/* Update i-node */
-	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
-	inode_ref->dirty = true;
+	if (update_size) {
+		ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
+		inode_ref->dirty = true;
+	}
 
 	path_ptr->block->dirty = true;
 

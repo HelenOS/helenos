@@ -1118,7 +1118,7 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 			inode_ref->fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 			ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS)) {
 
-		return ext4_extent_append_block(inode_ref, iblock, fblock);
+		return ext4_extent_append_block(inode_ref, iblock, fblock, true);
 
 	}
 

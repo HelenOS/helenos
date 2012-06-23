@@ -1343,15 +1343,22 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index,
 				fs->superblock, EXT4_FEATURE_INCOMPAT_EXTENTS) &&
 				(ext4_inode_has_flag(inode_ref->inode, EXT4_INODE_FLAG_EXTENTS))) {
 
-			uint32_t tmp_iblock = 0;
-			do {
-				rc = ext4_filesystem_append_inode_block(inode_ref, &fblock, &tmp_iblock);
+			uint32_t last_iblock = ext4_inode_get_size(fs->superblock, inode_ref->inode) / block_size;
+			while (last_iblock < iblock) {
+				rc = ext4_extent_append_block(inode_ref, &last_iblock, &fblock, true);
 				if (rc != EOK) {
 					ext4fs_node_put(fn);
 					async_answer_0(callid, rc);
 					return rc;
 				}
-			} while (tmp_iblock < iblock);
+			}
+
+			rc = ext4_extent_append_block(inode_ref, &last_iblock, &fblock, false);
+			if (rc != EOK) {
+				ext4fs_node_put(fn);
+				async_answer_0(callid, rc);
+				return rc;
+			}
 
 		} else {
 			rc =  ext4_balloc_alloc_block(inode_ref, &fblock);
