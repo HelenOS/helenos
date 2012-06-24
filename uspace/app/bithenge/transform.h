@@ -116,7 +116,15 @@ static inline int bithenge_transform_dec_ref(bithenge_transform_t *xform)
 	return EOK;
 }
 
-int bithenge_uint32le_transform(bithenge_transform_t **out);
+/** A transform with a name. */
+typedef struct {
+	const char *name;
+	bithenge_transform_t *transform;
+} bithenge_named_transform_t;
+
+extern bithenge_transform_t bithenge_uint32le_transform;
+extern bithenge_transform_t bithenge_uint32be_transform;
+extern bithenge_named_transform_t *bithenge_primitive_transforms;
 
 #endif
 

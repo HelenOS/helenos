@@ -84,6 +84,11 @@ static inline int str_lcmp(const char *s1, const char *s2, size_t max_len)
 	return strncmp(s1, s2, max_len);
 }
 
+static inline char *str_dup(const char *s)
+{
+	return strdup(s);
+}
+
 static inline char *str_ndup(const char *s, size_t max_len)
 {
 	return strndup(s, max_len);
@@ -97,6 +102,11 @@ static inline const char *str_error(int e)
 static inline uint32_t uint32_t_le2host(uint32_t val)
 {
 	return le32toh(val);
+}
+
+static inline uint32_t uint32_t_be2host(uint32_t val)
+{
+	return be32toh(val);
 }
 
 #endif

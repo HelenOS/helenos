@@ -231,14 +231,25 @@ static char *expect_identifier(state_t *state)
 	return val;
 }
 
-/** Find a transform by name.
+/** Find a transform by name. A reference will be added to the transform.
  * @return The found transform, or NULL if none was found. */
 static bithenge_transform_t *get_named_transform(state_t *state,
     const char *name)
 {
-	for (transform_list_t *e = state->transform_list; e; e = e->next)
-		if (!str_cmp(e->name, name))
+	for (transform_list_t *e = state->transform_list; e; e = e->next) {
+		if (!str_cmp(e->name, name)) {
+			bithenge_transform_inc_ref(e->transform);
 			return e->transform;
+		}
+	}
+	for (int i = 0; bithenge_primitive_transforms[i].name; i++) {
+		if (!str_cmp(bithenge_primitive_transforms[i].name, name)) {
+			bithenge_transform_t *xform =
+			    bithenge_primitive_transforms[i].transform;
+			bithenge_transform_inc_ref(xform);
+			return xform;
+		}
+	}
 	return NULL;
 }
 

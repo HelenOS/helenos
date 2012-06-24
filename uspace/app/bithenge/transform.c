@@ -34,13 +34,16 @@
  * Transforms.
  */
 
+#include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "blob.h"
 #include "transform.h"
 
 static int transform_indestructible(bithenge_transform_t *xform)
 {
-	return EINVAL;
+	assert(false);
+	return EOK;
 }
 
 static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
@@ -63,8 +66,28 @@ static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
 	return bithenge_new_integer_node(out, uint32_t_le2host(val[0]));
 }
 
-static int uint32le_prefix_length(bithenge_transform_t *xform,
-    bithenge_blob_t *blob, aoff64_t *out)
+static int uint32be_apply(bithenge_transform_t *xform, bithenge_node_t *in,
+    bithenge_node_t **out)
+{
+	int rc;
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	bithenge_blob_t *blob = bithenge_node_as_blob(in);
+
+	// Try to read 5 bytes and fail if the blob is too long.
+	uint32_t val[2];
+	aoff64_t size = sizeof(val[0]) + 1;
+	rc = bithenge_blob_read(blob, 0, (char *)val, &size);
+	if (rc != EOK)
+		return rc;
+	if (size != 4)
+		return EINVAL;
+
+	return bithenge_new_integer_node(out, uint32_t_be2host(val[0]));
+}
+
+static int prefix_length_4(bithenge_transform_t *xform, bithenge_blob_t *blob,
+    aoff64_t *out)
 {
 	*out = 4;
 	return EOK;
@@ -72,22 +95,34 @@ static int uint32le_prefix_length(bithenge_transform_t *xform,
 
 static const bithenge_transform_ops_t uint32le_ops = {
 	.apply = uint32le_apply,
-	.prefix_length = uint32le_prefix_length,
+	.prefix_length = prefix_length_4,
 	.destroy = transform_indestructible,
 };
 
-static bithenge_transform_t uint32le_transform = {
+static const bithenge_transform_ops_t uint32be_ops = {
+	.apply = uint32be_apply,
+	.prefix_length = prefix_length_4,
+	.destroy = transform_indestructible,
+};
+
+/** The little-endian 32-bit unsigned integer transform. */
+bithenge_transform_t bithenge_uint32le_transform = {
 	&uint32le_ops, 1
 };
 
-/** Create a little-endian 32-bit unsigned integer transform.
- * @param out Holds the transform.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_uint32le_transform(bithenge_transform_t **out)
-{
-	*out = &uint32le_transform;
-	return EOK;
-}
+/** The big-endian 32-bit unsigned integer transform. */
+bithenge_transform_t bithenge_uint32be_transform = {
+	&uint32be_ops, 1
+};
+
+static bithenge_named_transform_t primitive_transforms[] = {
+	{"uint32le", &bithenge_uint32le_transform},
+	{"uint32be", &bithenge_uint32be_transform},
+	{NULL, NULL}
+};
+
+/** An array of named built-in transforms. */
+bithenge_named_transform_t *bithenge_primitive_transforms = primitive_transforms;
 
 /** @}
  */
