@@ -103,7 +103,7 @@ static inline int bithenge_transform_inc_ref(bithenge_transform_t *xform)
 	return EOK;
 }
 
-/** Decrement a transform's reference count.
+/** Decrement a transform's reference count and free it if appropriate.
  * @param xform The transform to dereference, or NULL.
  * @return EOK on success or an error code from errno.h. */
 static inline int bithenge_transform_dec_ref(bithenge_transform_t *xform)

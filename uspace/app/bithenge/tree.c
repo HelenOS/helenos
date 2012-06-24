@@ -47,11 +47,7 @@ static int blob_destroy(bithenge_node_t *base)
 	return blob->base.blob_ops->destroy(blob);
 }
 
-/** Destroy a node.
- * @memberof bithenge_node_t
- * @param node The node to destroy.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_node_destroy(bithenge_node_t *node)
+static int node_destroy(bithenge_node_t *node)
 {
 	switch (bithenge_node_type(node)) {
 	case BITHENGE_NODE_BLOB:
@@ -71,6 +67,19 @@ int bithenge_node_destroy(bithenge_node_t *node)
 	return EOK;
 }
 
+/** Decrement a node's reference count and free it if appropriate.
+ * @memberof bithenge_node_t
+ * @param node The node to dereference, or NULL.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_node_dec_ref(bithenge_node_t *node)
+{
+	if (!node)
+		return EOK;
+	if (--node->refs == 0)
+		return node_destroy(node);
+	return EOK;
+}
+
 typedef struct
 {
 	bithenge_node_t base;
@@ -82,6 +91,11 @@ typedef struct
 static simple_internal_node_t *node_as_simple(bithenge_node_t *node)
 {
 	return (simple_internal_node_t *)node;
+}
+
+static bithenge_node_t *simple_as_node(simple_internal_node_t *node)
+{
+	return &node->base;
 }
 
 static int simple_internal_node_for_each(bithenge_node_t *base,
@@ -101,11 +115,8 @@ static int simple_internal_node_destroy(bithenge_node_t *base)
 {
 	int rc;
 	simple_internal_node_t *node = node_as_simple(base);
-	for (bithenge_int_t i = 0; i < node->len; i++) {
-		rc = bithenge_node_destroy(node->nodes[2*i+0]);
-		if (rc != EOK)
-			return rc;
-		rc = bithenge_node_destroy(node->nodes[2*i+1]);
+	for (bithenge_int_t i = 0; i < 2 * node->len; i++) {
+		rc = bithenge_node_dec_ref(node->nodes[i]);
 		if (rc != EOK)
 			return rc;
 	}
@@ -120,43 +131,43 @@ static bithenge_internal_node_ops_t simple_internal_node_ops = {
 	.destroy = simple_internal_node_destroy,
 };
 
-static bithenge_node_t *simple_internal_as_node(simple_internal_node_t *node)
-{
-	return &node->base;
-}
-
-/** Create an internal node from a set of keys and values. The node must be
- * freed with @a bithenge_node_t::bithenge_node_destroy after it is used, which
- * will also destroy all the key and value nodes.
+/** Create an internal node from a set of keys and values. This function takes
+ * ownership of a reference to the key and value nodes, and optionally the
+ * array @a nodes.
  * @memberof bithenge_node_t
  * @param[out] out Stores the created internal node.
  * @param nodes The array of key-value pairs. Keys are stored at even indices
  * and values are stored at odd indices.
  * @param len The number of key-value pairs in the node array.
  * @param needs_free If true, when the internal node is destroyed it will free
- * the nodes array as well as destroying each node inside it.
+ * the nodes array rather than just dereferencing each node inside it.
  * @return EOK on success or an error code from errno.h. */
 int bithenge_new_simple_internal_node(bithenge_node_t **out,
     bithenge_node_t **nodes, bithenge_int_t len, bool needs_free)
 {
 	assert(out);
 	simple_internal_node_t *node = malloc(sizeof(*node));
-	if (!node)
+	if (!node) {
+		for (bithenge_int_t i = 0; i < 2 * len; i++)
+			bithenge_node_dec_ref(nodes[i]);
+		if (needs_free)
+			free(nodes);
 		return ENOMEM;
+	}
 	node->base.type = BITHENGE_NODE_INTERNAL;
+	node->base.refs = 1;
 	node->base.internal_ops = &simple_internal_node_ops;
 	node->nodes = nodes;
 	node->len = len;
 	node->needs_free = needs_free;
-	*out = simple_internal_as_node(node);
+	*out = simple_as_node(node);
 	return EOK;
 }
 
-static bithenge_node_t false_node = { BITHENGE_NODE_BOOLEAN, .boolean_value = false };
-static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, .boolean_value = true };
+static bithenge_node_t false_node = { BITHENGE_NODE_BOOLEAN, 1, .boolean_value = false };
+static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, 1, .boolean_value = true };
 
-/** Create a boolean node. The node must be freed with @a
- * bithenge_node_t::bithenge_node_destroy after it is used.
+/** Create a boolean node.
  * @memberof bithenge_node_t
  * @param[out] out Stores the created boolean node.
  * @param value The value for the node to hold.
@@ -165,11 +176,11 @@ int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 {
 	assert(out);
 	*out = value ? &true_node : &false_node;
+	(*out)->refs++;
 	return EOK;
 }
 
-/** Create an integer node. The node must be freed with @a
- * bithenge_node_t::bithenge_node_destroy after it is used.
+/** Create an integer node.
  * @memberof bithenge_node_t
  * @param[out] out Stores the created integer node.
  * @param value The value for the node to hold.
@@ -181,13 +192,13 @@ int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 	if (!node)
 		return ENOMEM;
 	node->type = BITHENGE_NODE_INTEGER;
+	node->refs = 1;
 	node->integer_value = value;
 	*out = node;
 	return EOK;
 }
 
-/** Create a string node. The node must be freed with @a
- * bithenge_node_t::bithenge_node_destroy after it is used.
+/** Create a string node.
  * @memberof bithenge_node_t
  * @param[out] out Stores the created string node.
  * @param value The value for the node to hold.
@@ -201,6 +212,7 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
 	if (!node)
 		return ENOMEM;
 	node->type = BITHENGE_NODE_STRING;
+	node->refs = 1;
 	node->string_value.ptr = value;
 	node->string_value.needs_free = needs_free;
 	*out = node;

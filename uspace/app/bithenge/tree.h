@@ -67,6 +67,7 @@ typedef enum {
 typedef struct bithenge_node_t {
 	/** @privatesection */
 	bithenge_node_type_t type;
+	unsigned int refs;
 	union {
 		const struct bithenge_internal_node_ops_t *internal_ops;
 		bool boolean_value;
@@ -103,6 +104,19 @@ static inline bithenge_node_type_t bithenge_node_type(const bithenge_node_t *nod
 {
 	return node->type;
 }
+
+/** Increment a node's reference count.
+ * @memberof bithenge_node_t
+ * @param node The node to reference.
+ * @return EOK on success or an error code from errno.h. */
+static inline int bithenge_node_inc_ref(bithenge_node_t *node)
+{
+	assert(node);
+	node->refs++;
+	return EOK;
+}
+
+int bithenge_node_dec_ref(bithenge_node_t *node);
 
 /** Iterate over a node's children.
  * @memberof bithenge_node_t
@@ -151,7 +165,6 @@ int bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **,
 int bithenge_new_boolean_node(bithenge_node_t **, bool);
 int bithenge_new_integer_node(bithenge_node_t **, bithenge_int_t);
 int bithenge_new_string_node(bithenge_node_t **, const char *, bool);
-int bithenge_node_destroy(bithenge_node_t *);
 bool bithenge_node_equal(bithenge_node_t *, bithenge_node_t *);
 
 #endif

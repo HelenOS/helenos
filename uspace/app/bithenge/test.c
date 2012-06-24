@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 		printf("\n");
 		bithenge_print_node(BITHENGE_PRINT_JSON, node);
 		printf("\n");
-		bithenge_node_destroy(node);
+		bithenge_node_dec_ref(node);
 	} else {
 		bithenge_transform_t *transform;
 		rc = bithenge_parse_script(argv[1], &transform);
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-		bithenge_node_destroy(node);
+		bithenge_node_dec_ref(node);
 		bithenge_transform_dec_ref(transform);
 
 		rc = bithenge_print_node(BITHENGE_PRINT_PYTHON, node2);
@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
 			printf("Error printing node: %s\n", str_error(rc));
 			return 1;
 		}
+		bithenge_node_dec_ref(node2);
 		printf("\n");
 	}
 

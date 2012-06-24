@@ -58,6 +58,7 @@ int bithenge_new_random_access_blob(bithenge_blob_t *blob,
 	assert(ops->size);
 
 	blob->base.type = BITHENGE_NODE_BLOB;
+	blob->base.refs = 1;
 	blob->base.blob_ops = ops;
 	return EOK;
 }

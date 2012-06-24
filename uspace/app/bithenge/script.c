@@ -327,6 +327,7 @@ static void state_destroy(state_t *state)
 		transform_list_t *next = entry->next;
 		free(entry->name);
 		bithenge_transform_dec_ref(entry->transform);
+		free(entry);
 		entry = next;
 	}
 }
