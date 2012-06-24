@@ -26,77 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BITHENGE_OS_H_
-#define BITHENGE_OS_H_
+/** @addtogroup bithenge
+ * @{
+ */
+/**
+ * @file
+ * Script parsing.
+ */
 
-#include <endian.h>
-#include <errno.h>
-#include <memory.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <wchar.h>
+#ifndef BITHENGE_SCRIPT_H_
+#define BITHENGE_SCRIPT_H_
 
-#define max(aleph, bet) ((aleph) > (bet) ? (aleph) : (bet))
-#define min(aleph, bet) ((aleph) < (bet) ? (aleph) : (bet))
+#include "transform.h"
 
-#define EOK 0
-#define ELIMIT EINVAL
-
-typedef uint64_t aoff64_t;
-
-typedef const char *string_iterator_t;
-
-static inline string_iterator_t string_iterator(const char *string)
-{
-	return string;
-}
-
-static inline int string_iterator_next(string_iterator_t *i, wchar_t *out)
-{
-	wint_t rc = btowc(*(*i)++); // TODO
-	*out = (wchar_t) rc;
-	return rc == WEOF ? EILSEQ : EOK;
-}
-
-static inline bool string_iterator_done(const string_iterator_t *i)
-{
-	return !**i;
-}
-
-static inline size_t str_length(const char *string)
-{
-	return strlen(string);
-}
-
-static inline const char *str_chr(const char *string, wchar_t ch)
-{
-	return strchr(string, wctob(ch)); // TODO
-}
-
-static inline int str_cmp(const char *s1, const char *s2)
-{
-	return strcmp(s1, s2);
-}
-
-static inline int str_lcmp(const char *s1, const char *s2, size_t max_len)
-{
-	return strncmp(s1, s2, max_len);
-}
-
-static inline char *str_ndup(const char *s, size_t max_len)
-{
-	return strndup(s, max_len);
-}
-
-static inline const char *str_error(int e)
-{
-	return strerror(e);
-}
-
-static inline uint32_t uint32_t_le2host(uint32_t val)
-{
-	return le32toh(val);
-}
+int bithenge_parse_script(const char *filename, bithenge_transform_t **out);
 
 #endif
+
+/** @/
+ */

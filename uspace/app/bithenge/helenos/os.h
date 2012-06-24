@@ -31,6 +31,7 @@
 
 #include <bool.h>
 #include <byteorder.h>
+#include <errno.h>
 #include <macros.h>
 #include <mem.h>
 #include <str.h>

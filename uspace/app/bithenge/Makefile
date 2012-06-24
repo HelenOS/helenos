@@ -36,6 +36,7 @@ SOURCES = \
 	blob.c \
 	file.c \
 	print.c \
+	script.c \
 	source.c \
 	test.c \
 	transform.c \

@@ -37,6 +37,7 @@
 #ifndef BITHENGE_TRANSFORM_H_
 #define BITHENGE_TRANSFORM_H_
 
+#include "blob.h"
 #include "tree.h"
 
 /** A transform that creates a new tree from an old tree. */
@@ -103,11 +104,12 @@ static inline int bithenge_transform_inc_ref(bithenge_transform_t *xform)
 }
 
 /** Decrement a transform's reference count.
- * @param xform The transform to dereference.
+ * @param xform The transform to dereference, or NULL.
  * @return EOK on success or an error code from errno.h. */
 static inline int bithenge_transform_dec_ref(bithenge_transform_t *xform)
 {
-	assert(xform);
+	if (!xform)
+		return EOK;
 	assert(xform->ops);
 	if (--xform->refs == 0)
 		return xform->ops->destroy(xform);

@@ -41,11 +41,14 @@
 #include "blob.h"
 #include "source.h"
 #include "print.h"
+#include "script.h"
+#include "transform.h"
 #include "tree.h"
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
+	int rc;
+	if (argc < 3) {
 		// {True: {}, -1351: "\"false\"", "true": False, 0: b"..."}
 		const char data[] = "'Twas brillig, and the slithy toves";
 		bithenge_node_t *node;
@@ -65,19 +68,35 @@ int main(int argc, char *argv[])
 		printf("\n");
 		bithenge_node_destroy(node);
 	} else {
-		bithenge_node_t *node;
-		int rc = bithenge_node_from_source(&node, argv[1]);
+		bithenge_transform_t *transform;
+		rc = bithenge_parse_script(argv[1], &transform);
+		if (rc != EOK) {
+			printf("Error parsing script: %s\n", str_error(rc));
+			return 1;
+		}
+
+		bithenge_node_t *node, *node2;
+		int rc = bithenge_node_from_source(&node, argv[2]);
 		if (rc != EOK) {
 			printf("Error creating node from source: %s\n", str_error(rc));
 			return 1;
 		}
-		rc = bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
+
+		rc = bithenge_transform_apply(transform, node, &node2);
+		if (rc != EOK) {
+			printf("Error applying transform: %s\n", str_error(rc));
+			return 1;
+		}
+
+		bithenge_node_destroy(node);
+		bithenge_transform_dec_ref(transform);
+
+		rc = bithenge_print_node(BITHENGE_PRINT_PYTHON, node2);
 		if (rc != EOK) {
 			printf("Error printing node: %s\n", str_error(rc));
 			return 1;
 		}
 		printf("\n");
-		bithenge_node_destroy(node);
 	}
 
 	return 0;
