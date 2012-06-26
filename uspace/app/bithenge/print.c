@@ -48,7 +48,7 @@ typedef struct {
 static int print_internal_func(bithenge_node_t *key, bithenge_node_t *value, void *data_)
 {
 	print_internal_data_t *data = (print_internal_data_t *)data_;
-	int rc;
+	int rc = EOK;
 	if (!data->first)
 		printf(", ");
 	data->first = false;
@@ -58,14 +58,17 @@ static int print_internal_func(bithenge_node_t *key, bithenge_node_t *value, voi
 		printf("\"");
 	rc = bithenge_print_node(data->type, key);
 	if (rc != EOK)
-		return rc;
+		goto end;
 	if (add_quotes)
 		printf("\"");
 	printf(": ");
 	rc = bithenge_print_node(data->type, value);
 	if (rc != EOK)
-		return rc;
-	return EOK;
+		goto end;
+end:
+	bithenge_node_dec_ref(key);
+	bithenge_node_dec_ref(value);
+	return rc;
 }
 
 static int print_internal(bithenge_print_type_t type, bithenge_node_t *node)

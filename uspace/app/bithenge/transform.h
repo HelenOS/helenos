@@ -43,18 +43,18 @@
 /** A transform that creates a new tree from an old tree. */
 typedef struct {
 	/** @privatesection */
-	const struct bithenge_transform_ops_t *ops;
+	const struct bithenge_transform_ops *ops;
 	unsigned int refs;
 } bithenge_transform_t;
 
 /** Operations that may be provided by a transform. */
-typedef struct bithenge_transform_ops_t {
+typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
 	int (*apply)(bithenge_transform_t *xform, bithenge_node_t *in, bithenge_node_t **out);
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_length */
 	int (*prefix_length)(bithenge_transform_t *xform, bithenge_blob_t *blob, aoff64_t *out);
 	/** Destroy the transform.
-	 * @param blob The transform.
+	 * @param xform The transform.
 	 * @return EOK on success or an error code from errno.h. */
 	int (*destroy)(bithenge_transform_t *xform);
 } bithenge_transform_ops_t;
@@ -125,6 +125,12 @@ typedef struct {
 extern bithenge_transform_t bithenge_uint32le_transform;
 extern bithenge_transform_t bithenge_uint32be_transform;
 extern bithenge_named_transform_t *bithenge_primitive_transforms;
+
+int bithenge_new_transform(bithenge_transform_t *xform,
+    const bithenge_transform_ops_t *ops);
+
+int bithenge_new_struct(bithenge_transform_t **out,
+    bithenge_named_transform_t *subtransforms);
 
 #endif
 

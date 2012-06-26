@@ -169,6 +169,18 @@ static inline bithenge_blob_t *bithenge_node_as_blob(bithenge_node_t *node)
 	return (bithenge_blob_t *)node;
 }
 
+static inline int bithenge_blob_inc_ref(bithenge_blob_t *blob)
+{
+	return bithenge_node_inc_ref(bithenge_blob_as_node(blob));
+}
+
+static inline int bithenge_blob_dec_ref(bithenge_blob_t *blob)
+{
+	if (!blob)
+		return EOK;
+	return bithenge_node_dec_ref(bithenge_blob_as_node(blob));
+}
+
 int bithenge_new_random_access_blob(bithenge_blob_t *blob,
     const bithenge_random_access_blob_ops_t *ops);
 
@@ -180,6 +192,12 @@ int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
 
 int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
     size_t len, bool needs_free);
+
+int bithenge_new_offset_blob(bithenge_node_t **out, bithenge_blob_t *blob,
+    aoff64_t offset);
+
+int bithenge_new_subblob(bithenge_node_t **out, bithenge_blob_t *blob,
+    aoff64_t offset, aoff64_t size);
 
 bool bithenge_blob_equal(bithenge_blob_t *a, bithenge_blob_t *b);
 

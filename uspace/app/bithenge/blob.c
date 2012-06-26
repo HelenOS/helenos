@@ -295,6 +295,156 @@ int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
 	return EOK;
 }
 
+typedef struct {
+	bithenge_blob_t base;
+	bithenge_blob_t *source;
+	aoff64_t offset;
+	aoff64_t size;
+	bool size_matters;
+} subblob_t;
+
+static inline subblob_t *blob_as_subblob(bithenge_blob_t *base)
+{
+	return (subblob_t *)base;
+}
+
+static inline bithenge_blob_t *subblob_as_blob(subblob_t *blob)
+{
+	return &blob->base;
+}
+
+static int subblob_size(bithenge_blob_t *base, aoff64_t *size)
+{
+	subblob_t *blob = blob_as_subblob(base);
+	if (blob->size_matters) {
+		*size = blob->size;
+		return EOK;
+	} else {
+		int rc = bithenge_blob_size(blob->source, size);
+		*size -= blob->offset;
+		return rc;
+	}
+}
+
+static int subblob_read(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size)
+{
+	subblob_t *blob = blob_as_subblob(base);
+	if (blob->size_matters) {
+		if (offset > blob->size)
+			return EINVAL;
+		*size = min(*size, blob->size - offset);
+	}
+	offset += blob->offset;
+	return bithenge_blob_read(blob->source, offset, buffer, size);
+}
+
+static int subblob_destroy(bithenge_blob_t *base)
+{
+	subblob_t *blob = blob_as_subblob(base);
+	bithenge_blob_dec_ref(blob->source);
+	free(blob);
+	return EOK;
+}
+
+static const bithenge_random_access_blob_ops_t subblob_ops = {
+	.size = subblob_size,
+	.read = subblob_read,
+	.destroy = subblob_destroy,
+};
+
+static bool is_subblob(bithenge_blob_t *blob)
+{
+	return blob->base.blob_ops == &subblob_ops;
+}
+
+static int new_subblob(bithenge_node_t **out, bithenge_blob_t *source,
+    aoff64_t offset, aoff64_t size, bool size_matters)
+{
+	assert(out);
+	assert(source);
+	int rc;
+	subblob_t *blob = 0;
+
+	if (is_subblob(source)) {
+		/* We can do some optimizations this way */
+		if (!size_matters)
+			size = 0;
+		subblob_t *source_subblob = blob_as_subblob(source);
+		if (source_subblob->size_matters &&
+		    offset + size > source_subblob->size) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		if (source->base.refs == 1) {
+			source_subblob->offset += offset;
+			source_subblob->size -= offset;
+			if (size_matters) {
+				source_subblob->size_matters = true;
+				source_subblob->size = size;
+			}
+			*out = bithenge_blob_as_node(source);
+			return EOK;
+		}
+
+		if (!size_matters && source_subblob->size_matters) {
+			size_matters = true;
+			size = source_subblob->size - offset;
+		}
+		offset += source_subblob->offset;
+		source = source_subblob->source;
+		bithenge_blob_inc_ref(source);
+		bithenge_blob_dec_ref(subblob_as_blob(source_subblob));
+	}
+
+	blob = malloc(sizeof(*blob));
+	if (!blob) {
+		rc = ENOMEM;
+		goto error;
+	}
+	rc = bithenge_new_random_access_blob(subblob_as_blob(blob),
+	    &subblob_ops);
+	if (rc != EOK)
+		goto error;
+	blob->source = source;
+	blob->offset = offset;
+	blob->size = size;
+	blob->size_matters = size_matters;
+	*out = bithenge_blob_as_node(subblob_as_blob(blob));
+	return EOK;
+
+error:
+	bithenge_blob_dec_ref(source);
+	free(blob);
+	return rc;
+}
+
+/** Create a blob from data offset within another blob. This function takes
+ * ownership of a reference to @a blob.
+ * @param[out] out Stores the created blob node. On error, this is unchanged.
+ * @param[in] source The input blob.
+ * @param offset The offset within the input blob at which the new blob will start.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_offset_blob(bithenge_node_t **out, bithenge_blob_t *source,
+    aoff64_t offset)
+{
+	return new_subblob(out, source, offset, 0, false);
+}
+
+/** Create a blob from part of another blob. This function takes ownership of a
+ * reference to @a blob.
+ * @param[out] out Stores the created blob node. On error, this is unchanged.
+ * @param[in] source The input blob.
+ * @param offset The offset within the input blob at which the new blob will start.
+ * @param size The size of the new blob.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_subblob(bithenge_node_t **out, bithenge_blob_t *source,
+    aoff64_t offset, aoff64_t size)
+{
+	return new_subblob(out, source, offset, size, true);
+}
+
 /** Check whether the contents of two blobs are equal.
  * @memberof bithenge_blob_t
  * @param a, b Blobs to compare.

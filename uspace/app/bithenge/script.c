@@ -52,8 +52,10 @@ typedef enum {
 	TOKEN_ERROR = -128,
 	TOKEN_EOF,
 	TOKEN_IDENTIFIER,
+	TOKEN_LEFT_ARROW,
 
 	/* Keywords */
+	TOKEN_STRUCT,
 	TOKEN_TRANSFORM,
 } token_type_t;
 
@@ -180,12 +182,22 @@ static void next_token(state_t *state)
 		    state->buffer_pos - state->old_buffer_pos);
 		if (!value) {
 			error_errno(state, ENOMEM);
+		} else if (!str_cmp(value, "struct")) {
+			state->token = TOKEN_STRUCT;
+			free(value);
 		} else if (!str_cmp(value, "transform")) {
 			state->token = TOKEN_TRANSFORM;
 			free(value);
 		} else {
 			state->token = TOKEN_IDENTIFIER;
 			state->token_string = value;
+		}
+	} else if (ch == '<') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '-') {
+			state->buffer_pos++;
+			state->token = TOKEN_LEFT_ARROW;
 		}
 	} else {
 		state->token = ch;
@@ -203,6 +215,20 @@ static void *state_malloc(state_t *state, size_t size)
 	void *result = malloc(size);
 	if (result == NULL)
 		error_errno(state, ENOMEM);
+	return result;
+}
+
+/** Reallocate memory and handle failure by setting the error in the state. If
+ * an error occurs, the existing pointer will be returned. */
+static void *state_realloc(state_t *state, void *ptr, size_t size)
+{
+	if (state->error != EOK)
+		return ptr;
+	void *result = realloc(ptr, size);
+	if (result == NULL) {
+		error_errno(state, ENOMEM);
+		return ptr;
+	}
 	return result;
 }
 
@@ -254,7 +280,7 @@ static bithenge_transform_t *get_named_transform(state_t *state,
 }
 
 /** Add a named transform. This function takes ownership of the name and a
- * reference to the transform. */
+ * reference to the transform. If an error has occurred, either may be null. */
 static void add_named_transform(state_t *state, bithenge_transform_t *xform, char *name)
 {
 	transform_list_t *entry = state_malloc(state, sizeof(*entry));
@@ -270,6 +296,48 @@ static void add_named_transform(state_t *state, bithenge_transform_t *xform, cha
 	state->transform_list = entry;
 }
 
+static bithenge_transform_t *parse_transform(state_t *state);
+
+static bithenge_transform_t *parse_struct(state_t *state)
+{
+	size_t num = 0;
+	bithenge_named_transform_t *subxforms;
+	/* We keep an extra space for the {NULL, NULL} terminator. */
+	subxforms = state_malloc(state, sizeof(*subxforms));
+	expect(state, TOKEN_STRUCT);
+	expect(state, '{');
+	while (state->error == EOK && state->token != '}') {
+		expect(state, '.');
+		subxforms[num].name = expect_identifier(state);
+		expect(state, TOKEN_LEFT_ARROW);
+		subxforms[num].transform = parse_transform(state);
+		expect(state, ';');
+		num++;
+		subxforms = state_realloc(state, subxforms,
+		    (num + 1)*sizeof(*subxforms));
+	}
+	expect(state, '}');
+
+	if (state->error != EOK) {
+		while (num--) {
+			free((void *)subxforms[num].name);
+			bithenge_transform_dec_ref(subxforms[num].transform);
+		}
+		free(subxforms);
+		return NULL;
+	}
+
+	subxforms[num].name = NULL;
+	subxforms[num].transform = NULL;
+	bithenge_transform_t *result;
+	int rc = bithenge_new_struct(&result, subxforms);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+	return result;
+}
+
 /** Parse a transform. 
  * @return The parsed transform, or NULL if an error occurred. */
 static bithenge_transform_t *parse_transform(state_t *state)
@@ -281,6 +349,8 @@ static bithenge_transform_t *parse_transform(state_t *state)
 			syntax_error(state, "transform not found");
 		next_token(state);
 		return result;
+	} else if (state->token == TOKEN_STRUCT) {
+		return parse_struct(state);
 	} else {
 		syntax_error(state, "unexpected (transform expected)");
 		return NULL;

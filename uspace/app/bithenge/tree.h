@@ -80,7 +80,8 @@ typedef struct bithenge_node_t {
 	};
 } bithenge_node_t;
 
-/** A callback function used to iterate over a node's children.
+/** A callback function used to iterate over a node's children. It takes
+ * ownership of a reference to both the key and the value.
  * @memberof bithenge_node_t
  * @param key The key.
  * @param value The value.
@@ -160,6 +161,8 @@ static inline const char *bithenge_string_node_value(bithenge_node_t *node)
 	return node->string_value.ptr;
 }
 
+int bithenge_init_internal_node(bithenge_node_t *,
+    const bithenge_internal_node_ops_t *);
 int bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **,
     bithenge_int_t, bool needs_free);
 int bithenge_new_boolean_node(bithenge_node_t **, bool);
