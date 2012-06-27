@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <mem.h>
+#include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
 
@@ -64,6 +65,14 @@ static inline int string_iterator_next(string_iterator_t *i, wchar_t *out)
 		return EINVAL;
 	i->ch = str_decode(i->string, &i->offset, STR_NO_LIMIT);
 	return EOK;
+}
+
+static inline void *memchr(const void *s, int c, size_t n)
+{
+	for (size_t i = 0; i < n; i++)
+		if (((char *)s)[i] == c)
+			return (void *)(s + i);
+	return NULL;
 }
 
 #endif

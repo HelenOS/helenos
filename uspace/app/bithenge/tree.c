@@ -225,8 +225,11 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
 {
 	assert(out);
 	bithenge_node_t *self = malloc(sizeof(*self));
-	if (!self)
+	if (!self) {
+		if (needs_free)
+			free((void *)value);
 		return ENOMEM;
+	}
 	self->type = BITHENGE_NODE_STRING;
 	self->refs = 1;
 	self->string_value.ptr = value;

@@ -176,7 +176,8 @@ static void next_token(state_t *state)
 		next_token(state);
 		return;
 	} else if (isalpha(ch)) {
-		while (isalnum(state->buffer[state->buffer_pos]))
+		while (isalnum(state->buffer[state->buffer_pos])
+		    || state->buffer[state->buffer_pos] == '_')
 			state->buffer_pos++;
 		char *value = str_ndup(state->buffer + state->old_buffer_pos,
 		    state->buffer_pos - state->old_buffer_pos);
@@ -307,9 +308,14 @@ static bithenge_transform_t *parse_struct(state_t *state)
 	expect(state, TOKEN_STRUCT);
 	expect(state, '{');
 	while (state->error == EOK && state->token != '}') {
-		expect(state, '.');
-		subxforms[num].name = expect_identifier(state);
-		expect(state, TOKEN_LEFT_ARROW);
+		if (state->token == '.') {
+			expect(state, '.');
+			subxforms[num].name = expect_identifier(state);
+			expect(state, TOKEN_LEFT_ARROW);
+		} else {
+			subxforms[num].name = NULL;
+			expect(state, TOKEN_LEFT_ARROW);
+		}
 		subxforms[num].transform = parse_transform(state);
 		expect(state, ';');
 		num++;
@@ -338,9 +344,9 @@ static bithenge_transform_t *parse_struct(state_t *state)
 	return result;
 }
 
-/** Parse a transform. 
+/** Parse a transform without composition.
  * @return The parsed transform, or NULL if an error occurred. */
-static bithenge_transform_t *parse_transform(state_t *state)
+static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
 	if (state->token == TOKEN_IDENTIFIER) {
 		bithenge_transform_t *result = get_named_transform(state,
@@ -355,6 +361,40 @@ static bithenge_transform_t *parse_transform(state_t *state)
 		syntax_error(state, "unexpected (transform expected)");
 		return NULL;
 	}
+}
+
+/** Parse a transform.
+ * @return The parsed transform, or NULL if an error occurred. */
+static bithenge_transform_t *parse_transform(state_t *state)
+{
+	bithenge_transform_t *result = parse_transform_no_compose(state);
+	bithenge_transform_t **xforms = NULL;
+	size_t num = 1;
+	while (state->token == TOKEN_LEFT_ARROW) {
+		expect(state, TOKEN_LEFT_ARROW);
+		xforms = state_realloc(state, xforms,
+		    (num + 1) * sizeof(*xforms));
+		if (state->error != EOK)
+			break;
+		xforms[num] = parse_transform_no_compose(state);
+		num++;
+	}
+	if (state->error != EOK) {
+		while (xforms && num--)
+			bithenge_transform_dec_ref(xforms[num]);
+		free(xforms);
+		bithenge_transform_dec_ref(result);
+		return NULL;
+	}
+	if (xforms) {
+		xforms[0] = result;
+		int rc = bithenge_new_composed_transform(&result, xforms, num);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+	}
+	return result;
 }
 
 /** Parse a definition. */

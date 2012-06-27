@@ -117,15 +117,18 @@ typedef struct {
 	bithenge_transform_t *transform;
 } bithenge_named_transform_t;
 
+extern bithenge_transform_t bithenge_ascii_transform;
 extern bithenge_transform_t bithenge_uint32le_transform;
 extern bithenge_transform_t bithenge_uint32be_transform;
+extern bithenge_transform_t bithenge_zero_terminated_transform;
 extern bithenge_named_transform_t *bithenge_primitive_transforms;
 
 int bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops);
-
 int bithenge_new_struct(bithenge_transform_t **out,
     bithenge_named_transform_t *subtransforms);
+int bithenge_new_composed_transform(bithenge_transform_t **,
+    bithenge_transform_t **, size_t);
 
 #endif
 

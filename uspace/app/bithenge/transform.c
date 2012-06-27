@@ -60,6 +60,47 @@ static void transform_indestructible(bithenge_transform_t *self)
 	assert(false);
 }
 
+static int ascii_apply(bithenge_transform_t *self,
+    bithenge_node_t *in, bithenge_node_t **out)
+{
+	int rc;
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	bithenge_blob_t *blob = bithenge_node_as_blob(in);
+	aoff64_t size;
+	rc = bithenge_blob_size(blob, &size);
+	if (rc != EOK)
+		return rc;
+
+	char *buffer = malloc(size + 1);
+	if (!buffer)
+		return ENOMEM;
+	aoff64_t size_read = size;
+	rc = bithenge_blob_read(blob, 0, buffer, &size_read);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+	if (size_read != size) {
+		free(buffer);
+		return EINVAL;
+	}
+	buffer[size] = '\0';
+
+	/* TODO: what if the OS encoding is incompatible with ASCII? */
+	return bithenge_new_string_node(out, buffer, true);
+}
+
+static const bithenge_transform_ops_t ascii_ops = {
+	.apply = ascii_apply,
+	.destroy = transform_indestructible,
+};
+
+/** The ASCII text transform. */
+bithenge_transform_t bithenge_ascii_transform = {
+	&ascii_ops, 1
+};
+
 static int uint32le_apply(bithenge_transform_t *self, bithenge_node_t *in,
     bithenge_node_t **out)
 {
@@ -129,9 +170,66 @@ bithenge_transform_t bithenge_uint32be_transform = {
 	&uint32be_ops, 1
 };
 
+static int zero_terminated_apply(bithenge_transform_t *self,
+    bithenge_node_t *in, bithenge_node_t **out)
+{
+	int rc;
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	bithenge_blob_t *blob = bithenge_node_as_blob(in);
+	aoff64_t size;
+	rc = bithenge_blob_size(blob, &size);
+	if (rc != EOK)
+		return rc;
+	if (size < 1)
+		return EINVAL;
+	char ch;
+	aoff64_t size_read = 1;
+	rc = bithenge_blob_read(blob, size - 1, &ch, &size_read);
+	if (rc != EOK)
+		return rc;
+	if (size_read != 1 || ch != '\0')
+		return EINVAL;
+	bithenge_blob_inc_ref(blob);
+	return bithenge_new_subblob(out, blob, 0, size - 1);
+}
+
+static int zero_terminated_prefix_length(bithenge_transform_t *self,
+    bithenge_blob_t *blob, aoff64_t *out)
+{
+	int rc;
+	char buffer[4096];
+	aoff64_t offset = 0, size_read = sizeof(buffer);
+	do {
+		rc = bithenge_blob_read(blob, offset, buffer, &size_read);
+		if (rc != EOK)
+			return rc;
+		char *found = memchr(buffer, '\0', size_read);
+		if (found) {
+			*out = found - buffer + offset + 1;
+			return EOK;
+		}
+		offset += size_read;
+	} while (size_read == sizeof(buffer));
+	return EINVAL;
+}
+
+static const bithenge_transform_ops_t zero_terminated_ops = {
+	.apply = zero_terminated_apply,
+	.prefix_length = zero_terminated_prefix_length,
+	.destroy = transform_indestructible,
+};
+
+/** The zero-terminated data transform. */
+bithenge_transform_t bithenge_zero_terminated_transform = {
+	&zero_terminated_ops, 1
+};
+
 static bithenge_named_transform_t primitive_transforms[] = {
+	{"ascii", &bithenge_ascii_transform},
 	{"uint32le", &bithenge_uint32le_transform},
 	{"uint32be", &bithenge_uint32be_transform},
+	{"zero_terminated", &bithenge_zero_terminated_transform},
 	{NULL, NULL}
 };
 
@@ -366,8 +464,7 @@ int bithenge_new_struct(bithenge_transform_t **out,
     bithenge_named_transform_t *subtransforms)
 {
 	int rc;
-	struct_transform_t *self =
-	    malloc(sizeof(*self));
+	struct_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
 		goto error;
@@ -381,6 +478,107 @@ int bithenge_new_struct(bithenge_transform_t **out,
 	return EOK;
 error:
 	free_subtransforms(subtransforms);
+	free(self);
+	return rc;
+}
+
+typedef struct {
+	bithenge_transform_t base;
+	bithenge_transform_t **xforms;
+	size_t num;
+} compose_transform_t;
+
+static bithenge_transform_t *compose_as_transform(compose_transform_t *xform)
+{
+	return &xform->base;
+}
+
+static compose_transform_t *transform_as_compose(bithenge_transform_t *xform)
+{
+	return (compose_transform_t *)xform;
+}
+
+static int compose_apply(bithenge_transform_t *base, bithenge_node_t *in,
+    bithenge_node_t **out)
+{
+	int rc;
+	compose_transform_t *self = transform_as_compose(base);
+	bithenge_node_inc_ref(in);
+
+	/* i ranges from (self->num - 1) to 0 inside the loop. */
+	for (size_t i = self->num; i--; ) {
+		bithenge_node_t *tmp;
+		rc = bithenge_transform_apply(self->xforms[i], in, &tmp);
+		bithenge_node_dec_ref(in);
+		if (rc != EOK)
+			return rc;
+		in = tmp;
+	}
+
+	*out = in;
+	return rc;
+}
+
+static int compose_prefix_length(bithenge_transform_t *base,
+    bithenge_blob_t *blob, aoff64_t *out)
+{
+	compose_transform_t *self = transform_as_compose(base);
+	return bithenge_transform_prefix_length(self->xforms[self->num - 1],
+	    blob, out);
+}
+
+static void compose_destroy(bithenge_transform_t *base)
+{
+	compose_transform_t *self = transform_as_compose(base);
+	for (size_t i = 0; i < self->num; i++)
+		bithenge_transform_dec_ref(self->xforms[i]);
+	free(self->xforms);
+	free(self);
+}
+
+static const bithenge_transform_ops_t compose_transform_ops = {
+	.apply = compose_apply,
+	.prefix_length = compose_prefix_length,
+	.destroy = compose_destroy,
+};
+
+/** Create a composition of multiple transforms. When the result is applied to a
+ * node, each transform is applied in turn, with the last transform applied
+ * first. @a xforms may contain any number of transforms or no transforms at
+ * all. This function takes ownership of @a xforms and the references therein.
+ * @param[out] out Holds the result.
+ * @param[in] xforms The transforms to apply.
+ * @param num The number of transforms.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_composed_transform(bithenge_transform_t **out,
+    bithenge_transform_t **xforms, size_t num)
+{
+	if (num == 0) {
+		/* TODO: optimize */
+	} else if (num == 1) {
+		*out = xforms[0];
+		free(xforms);
+		return EOK;
+	}
+
+	int rc;
+	compose_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+	rc = bithenge_init_transform(compose_as_transform(self),
+	    &compose_transform_ops);
+	if (rc != EOK)
+		goto error;
+	self->xforms = xforms;
+	self->num = num;
+	*out = compose_as_transform(self);
+	return EOK;
+error:
+	for (size_t i = 0; i < num; i++)
+		bithenge_transform_dec_ref(xforms[i]);
+	free(xforms);
 	free(self);
 	return rc;
 }
