@@ -40,44 +40,43 @@
 #include "os.h"
 #include "tree.h"
 
-static int blob_destroy(bithenge_node_t *base)
+static void blob_destroy(bithenge_node_t *base)
 {
-	bithenge_blob_t *blob = bithenge_node_as_blob(base);
-	assert(blob->base.blob_ops);
-	return blob->base.blob_ops->destroy(blob);
+	bithenge_blob_t *self = bithenge_node_as_blob(base);
+	assert(self->base.blob_ops);
+	self->base.blob_ops->destroy(self);
 }
 
-static int node_destroy(bithenge_node_t *node)
+static void node_destroy(bithenge_node_t *self)
 {
-	switch (bithenge_node_type(node)) {
+	switch (bithenge_node_type(self)) {
 	case BITHENGE_NODE_BLOB:
-		return blob_destroy(node);
+		blob_destroy(self);
+		return;
 	case BITHENGE_NODE_STRING:
-		if (node->string_value.needs_free)
-			free((void *)node->string_value.ptr);
+		if (self->string_value.needs_free)
+			free((void *)self->string_value.ptr);
 		break;
 	case BITHENGE_NODE_INTERNAL:
-		return node->internal_ops->destroy(node);
+		self->internal_ops->destroy(self);
+		return;
 	case BITHENGE_NODE_BOOLEAN:
-		return EOK; // the boolean nodes are allocated statically below
+		return; /* The boolean nodes are allocated statically below. */
 	case BITHENGE_NODE_INTEGER: /* pass-through */
 		break;
 	}
-	free(node);
-	return EOK;
+	free(self);
 }
 
 /** Decrement a node's reference count and free it if appropriate.
  * @memberof bithenge_node_t
- * @param node The node to dereference, or NULL.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_node_dec_ref(bithenge_node_t *node)
+ * @param node The node to dereference, or NULL. */
+void bithenge_node_dec_ref(bithenge_node_t *node)
 {
 	if (!node)
-		return EOK;
+		return;
 	if (--node->refs == 0)
-		return node_destroy(node);
-	return EOK;
+		node_destroy(node);
 }
 
 typedef struct
@@ -102,30 +101,25 @@ static int simple_internal_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
 	int rc;
-	simple_internal_node_t *node = node_as_simple(base);
-	for (bithenge_int_t i = 0; i < node->len; i++) {
-		bithenge_node_inc_ref(node->nodes[2*i+0]);
-		bithenge_node_inc_ref(node->nodes[2*i+1]);
-		rc = func(node->nodes[2*i+0], node->nodes[2*i+1], data);
+	simple_internal_node_t *self = node_as_simple(base);
+	for (bithenge_int_t i = 0; i < self->len; i++) {
+		bithenge_node_inc_ref(self->nodes[2*i+0]);
+		bithenge_node_inc_ref(self->nodes[2*i+1]);
+		rc = func(self->nodes[2*i+0], self->nodes[2*i+1], data);
 		if (rc != EOK)
 			return rc;
 	}
 	return EOK;
 }
 
-static int simple_internal_node_destroy(bithenge_node_t *base)
+static void simple_internal_node_destroy(bithenge_node_t *base)
 {
-	int rc;
-	simple_internal_node_t *node = node_as_simple(base);
-	for (bithenge_int_t i = 0; i < 2 * node->len; i++) {
-		rc = bithenge_node_dec_ref(node->nodes[i]);
-		if (rc != EOK)
-			return rc;
-	}
-	if (node->needs_free)
-		free(node->nodes);
-	free(node);
-	return EOK;
+	simple_internal_node_t *self = node_as_simple(base);
+	for (bithenge_int_t i = 0; i < 2 * self->len; i++)
+		bithenge_node_dec_ref(self->nodes[i]);
+	if (self->needs_free)
+		free(self->nodes);
+	free(self);
 }
 
 static bithenge_internal_node_ops_t simple_internal_node_ops = {
@@ -135,15 +129,15 @@ static bithenge_internal_node_ops_t simple_internal_node_ops = {
 
 /** Initialize an internal node.
  * @memberof bithenge_node_t
- * @param[out] node The node.
+ * @param[out] self The node.
  * @param[in] ops The operations provided.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_init_internal_node(bithenge_node_t *node,
+int bithenge_init_internal_node(bithenge_node_t *self,
     const bithenge_internal_node_ops_t *ops)
 {
-	node->type = BITHENGE_NODE_INTERNAL;
-	node->refs = 1;
-	node->internal_ops = ops;
+	self->type = BITHENGE_NODE_INTERNAL;
+	self->refs = 1;
+	self->internal_ops = ops;
 	return EOK;
 }
 
@@ -163,26 +157,26 @@ int bithenge_new_simple_internal_node(bithenge_node_t **out,
 {
 	int rc;
 	assert(out);
-	simple_internal_node_t *node = malloc(sizeof(*node));
-	if (!node) {
+	simple_internal_node_t *self = malloc(sizeof(*self));
+	if (!self) {
 		rc = ENOMEM;
 		goto error;
 	}
-	rc = bithenge_init_internal_node(simple_as_node(node),
+	rc = bithenge_init_internal_node(simple_as_node(self),
 	    &simple_internal_node_ops);
 	if (rc != EOK)
 		goto error;
-	node->nodes = nodes;
-	node->len = len;
-	node->needs_free = needs_free;
-	*out = simple_as_node(node);
+	self->nodes = nodes;
+	self->len = len;
+	self->needs_free = needs_free;
+	*out = simple_as_node(self);
 	return EOK;
 error:
 	for (bithenge_int_t i = 0; i < 2 * len; i++)
 		bithenge_node_dec_ref(nodes[i]);
 	if (needs_free)
 		free(nodes);
-	free(node);
+	free(self);
 	return rc;
 }
 
@@ -210,13 +204,13 @@ int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 {
 	assert(out);
-	bithenge_node_t *node = malloc(sizeof(*node));
-	if (!node)
+	bithenge_node_t *self = malloc(sizeof(*self));
+	if (!self)
 		return ENOMEM;
-	node->type = BITHENGE_NODE_INTEGER;
-	node->refs = 1;
-	node->integer_value = value;
-	*out = node;
+	self->type = BITHENGE_NODE_INTEGER;
+	self->refs = 1;
+	self->integer_value = value;
+	*out = self;
 	return EOK;
 }
 
@@ -230,14 +224,14 @@ int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool needs_free)
 {
 	assert(out);
-	bithenge_node_t *node = malloc(sizeof(*node));
-	if (!node)
+	bithenge_node_t *self = malloc(sizeof(*self));
+	if (!self)
 		return ENOMEM;
-	node->type = BITHENGE_NODE_STRING;
-	node->refs = 1;
-	node->string_value.ptr = value;
-	node->string_value.needs_free = needs_free;
-	*out = node;
+	self->type = BITHENGE_NODE_STRING;
+	self->refs = 1;
+	self->string_value.ptr = value;
+	self->string_value.needs_free = needs_free;
+	*out = self;
 	return EOK;
 }
 

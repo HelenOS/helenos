@@ -50,27 +50,26 @@ typedef struct {
 /** Operations that may be provided by a transform. */
 typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
-	int (*apply)(bithenge_transform_t *xform, bithenge_node_t *in, bithenge_node_t **out);
+	int (*apply)(bithenge_transform_t *self, bithenge_node_t *in, bithenge_node_t **out);
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_length */
-	int (*prefix_length)(bithenge_transform_t *xform, bithenge_blob_t *blob, aoff64_t *out);
+	int (*prefix_length)(bithenge_transform_t *self, bithenge_blob_t *blob, aoff64_t *out);
 	/** Destroy the transform.
-	 * @param xform The transform.
-	 * @return EOK on success or an error code from errno.h. */
-	int (*destroy)(bithenge_transform_t *xform);
+	 * @param self The transform. */
+	void (*destroy)(bithenge_transform_t *self);
 } bithenge_transform_ops_t;
 
 /** Apply a transform.
  * @memberof bithenge_transform_t
- * @param xform The transform.
+ * @param self The transform.
  * @param in The input tree.
  * @param[out] out Where the output tree will be stored.
  * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_transform_apply(bithenge_transform_t *xform,
+static inline int bithenge_transform_apply(bithenge_transform_t *self,
     bithenge_node_t *in, bithenge_node_t **out)
 {
-	assert(xform);
-	assert(xform->ops);
-	return xform->ops->apply(xform, in, out);
+	assert(self);
+	assert(self->ops);
+	return self->ops->apply(self, in, out);
 }
 
 /** Find the length of the prefix of a blob this transform can use as input. In
@@ -78,42 +77,38 @@ static inline int bithenge_transform_apply(bithenge_transform_t *xform,
  * method is optional and can return an error, but it must succeed for struct
  * subtransforms.
  * @memberof bithenge_transform_t
- * @param xform The transform.
+ * @param self The transform.
  * @param blob The blob.
  * @param[out] out Where the prefix length will be stored.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
  * errno.h. */
-static inline int bithenge_transform_prefix_length(bithenge_transform_t *xform,
+static inline int bithenge_transform_prefix_length(bithenge_transform_t *self,
     bithenge_blob_t *blob, aoff64_t *out)
 {
-	assert(xform);
-	assert(xform->ops);
-	if (!xform->ops->prefix_length)
+	assert(self);
+	assert(self->ops);
+	if (!self->ops->prefix_length)
 		return ENOTSUP;
-	return xform->ops->prefix_length(xform, blob, out);
+	return self->ops->prefix_length(self, blob, out);
 }
 
 /** Increment a transform's reference count.
- * @param xform The transform to reference.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_transform_inc_ref(bithenge_transform_t *xform)
+ * @param self The transform to reference. */
+static inline void bithenge_transform_inc_ref(bithenge_transform_t *self)
 {
-	assert(xform);
-	xform->refs++;
-	return EOK;
+	assert(self);
+	self->refs++;
 }
 
 /** Decrement a transform's reference count and free it if appropriate.
- * @param xform The transform to dereference, or NULL.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_transform_dec_ref(bithenge_transform_t *xform)
+ * @param self The transform to dereference, or NULL. */
+static inline void bithenge_transform_dec_ref(bithenge_transform_t *self)
 {
-	if (!xform)
-		return EOK;
-	assert(xform->ops);
-	if (--xform->refs == 0)
-		return xform->ops->destroy(xform);
-	return EOK;
+	if (!self)
+		return;
+	assert(self->ops);
+	if (--self->refs == 0)
+		self->ops->destroy(self);
 }
 
 /** A transform with a name. */
@@ -126,7 +121,7 @@ extern bithenge_transform_t bithenge_uint32le_transform;
 extern bithenge_transform_t bithenge_uint32be_transform;
 extern bithenge_named_transform_t *bithenge_primitive_transforms;
 
-int bithenge_new_transform(bithenge_transform_t *xform,
+int bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops);
 
 int bithenge_new_struct(bithenge_transform_t **out,

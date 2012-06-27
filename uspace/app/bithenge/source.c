@@ -77,6 +77,12 @@ static int blob_from_hex(bithenge_node_t **out, const char *hex)
 	return bithenge_new_blob_from_buffer(out, buffer, size, true);
 }
 
+/** Create a node from a source described with a string. For instance,
+ * "hex:55aa" will result in a blob node. If there is no colon in the string,
+ * it is assumed to be a filename.
+ * @param[out] out Stores the created node.
+ * @param source Specifies the node to be created.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_node_from_source(bithenge_node_t **out, const char *source)
 {
 	if (str_chr(source, ':')) {

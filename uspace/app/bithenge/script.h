@@ -39,9 +39,9 @@
 
 #include "transform.h"
 
-int bithenge_parse_script(const char *filename, bithenge_transform_t **out);
+int bithenge_parse_script(const char *, bithenge_transform_t **);
 
 #endif
 
-/** @/
+/** @}
  */

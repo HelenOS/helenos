@@ -120,7 +120,7 @@ static void error_errno(state_t *state, int error)
 /** Note that a syntax error has occurred and print an error message. */
 static void syntax_error(state_t *state, const char *message)
 {
-	// Multiple errors are confusing.
+	// Printing multiple errors is confusing.
 	if (state->error == EOK) {
 		size_t start_char = state->old_buffer_pos + state->line_offset;
 		size_t end_char = state->buffer_pos + state->line_offset;
@@ -422,3 +422,6 @@ int bithenge_parse_script(const char *filename, bithenge_transform_t **out)
 	}
 	return rc;
 }
+
+/** @}
+ */

@@ -48,7 +48,7 @@
  * be valid until the blob is destroyed.
  * @return EOK on success or an error code from errno.h.
  */
-int bithenge_new_random_access_blob(bithenge_blob_t *blob,
+int bithenge_init_random_access_blob(bithenge_blob_t *blob,
     const bithenge_random_access_blob_ops_t *ops)
 {
 	assert(blob);
@@ -84,13 +84,13 @@ static int sequential_buffer(bithenge_sequential_blob_t *blob, aoff64_t end)
 	return EOK;
 }
 
-static inline bithenge_sequential_blob_t *sequential_from_blob(
+static inline bithenge_sequential_blob_t *blob_as_sequential(
     bithenge_blob_t *base)
 {
 	return (bithenge_sequential_blob_t *)base;
 }
 
-static inline bithenge_blob_t *blob_from_sequential(
+static inline bithenge_blob_t *sequential_as_blob(
     bithenge_sequential_blob_t *blob)
 {
 	return &blob->base;
@@ -98,7 +98,7 @@ static inline bithenge_blob_t *blob_from_sequential(
 
 static int sequential_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	bithenge_sequential_blob_t *blob = sequential_from_blob(base);
+	bithenge_sequential_blob_t *blob = blob_as_sequential(base);
 	int rc;
 	if (blob->ops->size) {
 		rc = blob->ops->size(blob, size);
@@ -120,7 +120,7 @@ static int sequential_size(bithenge_blob_t *base, aoff64_t *size)
 static int sequential_read(bithenge_blob_t *base, aoff64_t offset,
     char *buffer, aoff64_t *size)
 {
-	bithenge_sequential_blob_t *blob = sequential_from_blob(base);
+	bithenge_sequential_blob_t *blob = blob_as_sequential(base);
 	aoff64_t end = offset + *size;
 	if (end > blob->data_size) {
 		int rc = sequential_buffer(blob, end);
@@ -134,11 +134,11 @@ static int sequential_read(bithenge_blob_t *base, aoff64_t offset,
 	return EOK;
 }
 
-static int sequential_destroy(bithenge_blob_t *base)
+static void sequential_destroy(bithenge_blob_t *base)
 {
-	bithenge_sequential_blob_t *blob = sequential_from_blob(base);
+	bithenge_sequential_blob_t *blob = blob_as_sequential(base);
 	free(blob->buffer);
-	return blob->ops->destroy(blob);
+	blob->ops->destroy(blob);
 }
 
 static const bithenge_random_access_blob_ops_t sequential_ops = {
@@ -154,7 +154,7 @@ static const bithenge_random_access_blob_ops_t sequential_ops = {
  * must be valid until the blob is destroyed.
  * @return EOK on success or an error code from errno.h.
  */
-int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
+int bithenge_init_sequential_blob(bithenge_sequential_blob_t *blob,
     const bithenge_sequential_blob_ops_t *ops)
 {
 	assert(blob);
@@ -163,7 +163,7 @@ int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
 	assert(ops->read);
 	// ops->size is optional
 
-	int rc = bithenge_new_random_access_blob(blob_from_sequential(blob),
+	int rc = bithenge_init_random_access_blob(sequential_as_blob(blob),
 	    &sequential_ops);
 	if (rc != EOK)
 		return rc;
@@ -181,19 +181,19 @@ typedef struct {
 	bool needs_free;
 } memory_blob_t;
 
-static inline memory_blob_t *memory_from_blob(bithenge_blob_t *base)
+static inline memory_blob_t *blob_as_memory(bithenge_blob_t *base)
 {
 	return (memory_blob_t *)base;
 }
 
-static inline bithenge_blob_t *blob_from_memory(memory_blob_t *blob)
+static inline bithenge_blob_t *memory_as_blob(memory_blob_t *blob)
 {
 	return &blob->base;
 }
 
 static int memory_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	memory_blob_t *blob = memory_from_blob(base);
+	memory_blob_t *blob = blob_as_memory(base);
 	*size = blob->size;
 	return EOK;
 }
@@ -201,7 +201,7 @@ static int memory_size(bithenge_blob_t *base, aoff64_t *size)
 static int memory_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
-	memory_blob_t *blob = memory_from_blob(base);
+	memory_blob_t *blob = blob_as_memory(base);
 	if (offset > blob->size)
 		return ELIMIT;
 	*size = min(*size, blob->size - offset);
@@ -209,13 +209,12 @@ static int memory_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	return EOK;
 }
 
-static int memory_destroy(bithenge_blob_t *base)
+static void memory_destroy(bithenge_blob_t *base)
 {
-	memory_blob_t *blob = memory_from_blob(base);
+	memory_blob_t *blob = blob_as_memory(base);
 	if (blob->needs_free)
 		free((void *)blob->buffer);
 	free(blob);
-	return EOK;
 }
 
 static const bithenge_random_access_blob_ops_t memory_ops = {
@@ -243,7 +242,7 @@ int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
 	memory_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob)
 		return ENOMEM;
-	rc = bithenge_new_random_access_blob(blob_from_memory(blob),
+	rc = bithenge_init_random_access_blob(memory_as_blob(blob),
 	    &memory_ops);
 	if (rc != EOK) {
 		free(blob);
@@ -258,7 +257,7 @@ int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
 	blob->buffer = buffer;
 	blob->size = len;
 	blob->needs_free = true;
-	*out = bithenge_blob_as_node(blob_from_memory(blob));
+	*out = bithenge_blob_as_node(memory_as_blob(blob));
 	return EOK;
 }
 
@@ -282,7 +281,7 @@ int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
 	memory_blob_t *blob = malloc(sizeof(*blob));
 	if (!blob)
 		return ENOMEM;
-	rc = bithenge_new_random_access_blob(blob_from_memory(blob),
+	rc = bithenge_init_random_access_blob(memory_as_blob(blob),
 	    &memory_ops);
 	if (rc != EOK) {
 		free(blob);
@@ -291,7 +290,7 @@ int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
 	blob->buffer = buffer;
 	blob->size = len;
 	blob->needs_free = needs_free;
-	*out = bithenge_blob_as_node(blob_from_memory(blob));
+	*out = bithenge_blob_as_node(memory_as_blob(blob));
 	return EOK;
 }
 
@@ -339,12 +338,11 @@ static int subblob_read(bithenge_blob_t *base, aoff64_t offset,
 	return bithenge_blob_read(blob->source, offset, buffer, size);
 }
 
-static int subblob_destroy(bithenge_blob_t *base)
+static void subblob_destroy(bithenge_blob_t *base)
 {
 	subblob_t *blob = blob_as_subblob(base);
 	bithenge_blob_dec_ref(blob->source);
 	free(blob);
-	return EOK;
 }
 
 static const bithenge_random_access_blob_ops_t subblob_ops = {
@@ -403,7 +401,7 @@ static int new_subblob(bithenge_node_t **out, bithenge_blob_t *source,
 		rc = ENOMEM;
 		goto error;
 	}
-	rc = bithenge_new_random_access_blob(subblob_as_blob(blob),
+	rc = bithenge_init_random_access_blob(subblob_as_blob(blob),
 	    &subblob_ops);
 	if (rc != EOK)
 		goto error;

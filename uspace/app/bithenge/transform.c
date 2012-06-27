@@ -41,27 +41,26 @@
 #include "transform.h"
 
 /** Initialize a new transform.
- * @param[out] xform Transform to initialize.
+ * @param[out] self Transform to initialize.
  * @param[in] ops Operations provided by the transform.
  * @return EOK or an error code from errno.h. */
-int bithenge_new_transform(bithenge_transform_t *xform,
+int bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops)
 {
 	assert(ops);
 	assert(ops->apply);
 	assert(ops->destroy);
-	xform->ops = ops;
-	xform->refs = 1;
+	self->ops = ops;
+	self->refs = 1;
 	return EOK;
 }
 
-static int transform_indestructible(bithenge_transform_t *xform)
+static void transform_indestructible(bithenge_transform_t *self)
 {
 	assert(false);
-	return EOK;
 }
 
-static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
+static int uint32le_apply(bithenge_transform_t *self, bithenge_node_t *in,
     bithenge_node_t **out)
 {
 	int rc;
@@ -81,7 +80,7 @@ static int uint32le_apply(bithenge_transform_t *xform, bithenge_node_t *in,
 	return bithenge_new_integer_node(out, uint32_t_le2host(val[0]));
 }
 
-static int uint32be_apply(bithenge_transform_t *xform, bithenge_node_t *in,
+static int uint32be_apply(bithenge_transform_t *self, bithenge_node_t *in,
     bithenge_node_t **out)
 {
 	int rc;
@@ -101,7 +100,7 @@ static int uint32be_apply(bithenge_transform_t *xform, bithenge_node_t *in,
 	return bithenge_new_integer_node(out, uint32_t_be2host(val[0]));
 }
 
-static int prefix_length_4(bithenge_transform_t *xform, bithenge_blob_t *blob,
+static int prefix_length_4(bithenge_transform_t *self, bithenge_blob_t *blob,
     aoff64_t *out)
 {
 	*out = 4;
@@ -265,13 +264,12 @@ error:
 	return rc;
 }
 
-static int struct_node_destroy(bithenge_node_t *base)
+static void struct_node_destroy(bithenge_node_t *base)
 {
 	struct_node_t *node = node_as_struct(base);
 	bithenge_transform_dec_ref(struct_as_transform(node->transform));
 	bithenge_blob_dec_ref(node->blob);
 	free(node);
-	return EOK;
 }
 
 static const bithenge_internal_node_ops_t struct_node_ops = {
@@ -279,10 +277,10 @@ static const bithenge_internal_node_ops_t struct_node_ops = {
 	.destroy = struct_node_destroy,
 };
 
-static int struct_transform_apply(bithenge_transform_t *xform,
+static int struct_transform_apply(bithenge_transform_t *base,
     bithenge_node_t *in, bithenge_node_t **out)
 {
-	struct_transform_t *struct_transform = transform_as_struct(xform);
+	struct_transform_t *self = transform_as_struct(base);
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
 		return EINVAL;
 	struct_node_t *node = malloc(sizeof(*node));
@@ -294,18 +292,18 @@ static int struct_transform_apply(bithenge_transform_t *xform,
 		free(node);
 		return rc;
 	}
-	bithenge_transform_inc_ref(xform);
-	node->transform = struct_transform;
+	bithenge_transform_inc_ref(base);
+	node->transform = self;
 	bithenge_node_inc_ref(in);
 	node->blob = bithenge_node_as_blob(in);
 	*out = struct_as_node(node);
 	return EOK;
 }
 
-static int struct_transform_prefix_length(bithenge_transform_t *xform,
+static int struct_transform_prefix_length(bithenge_transform_t *base,
     bithenge_blob_t *blob, aoff64_t *out)
 {
-	struct_transform_t *struct_transform = transform_as_struct(xform);
+	struct_transform_t *self = transform_as_struct(base);
 	int rc = EOK;
 	bithenge_node_t *node;
 	bithenge_blob_inc_ref(blob);
@@ -315,9 +313,9 @@ static int struct_transform_prefix_length(bithenge_transform_t *xform,
 		goto error;
 	blob = bithenge_node_as_blob(node);
 	*out = 0;
-	for (size_t i = 0; struct_transform->subtransforms[i].transform; i++) {
+	for (size_t i = 0; self->subtransforms[i].transform; i++) {
 		bithenge_transform_t *subxform =
-		    struct_transform->subtransforms[i].transform;
+		    self->subtransforms[i].transform;
 		aoff64_t sub_size;
 		rc = bithenge_transform_prefix_length(subxform, blob, &sub_size);
 		if (rc != EOK)
@@ -343,12 +341,11 @@ static void free_subtransforms(bithenge_named_transform_t *subtransforms)
 	free(subtransforms);
 }
 
-static int struct_transform_destroy(bithenge_transform_t *xform)
+static void struct_transform_destroy(bithenge_transform_t *base)
 {
-	struct_transform_t *struct_transform = transform_as_struct(xform);
-	free_subtransforms(struct_transform->subtransforms);
-	free(struct_transform);
-	return EOK;
+	struct_transform_t *self = transform_as_struct(base);
+	free_subtransforms(self->subtransforms);
+	free(self);
 }
 
 static bithenge_transform_ops_t struct_transform_ops = {
@@ -369,22 +366,22 @@ int bithenge_new_struct(bithenge_transform_t **out,
     bithenge_named_transform_t *subtransforms)
 {
 	int rc;
-	struct_transform_t *struct_transform =
-	    malloc(sizeof(*struct_transform));
-	if (!struct_transform) {
+	struct_transform_t *self =
+	    malloc(sizeof(*self));
+	if (!self) {
 		rc = ENOMEM;
 		goto error;
 	}
-	rc = bithenge_new_transform(struct_as_transform(struct_transform),
+	rc = bithenge_init_transform(struct_as_transform(self),
 	    &struct_transform_ops);
 	if (rc != EOK)
 		goto error;
-	struct_transform->subtransforms = subtransforms;
-	*out = struct_as_transform(struct_transform);
+	self->subtransforms = subtransforms;
+	*out = struct_as_transform(self);
 	return EOK;
 error:
 	free_subtransforms(subtransforms);
-	free(struct_transform);
+	free(self);
 	return rc;
 }
 

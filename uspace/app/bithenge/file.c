@@ -54,19 +54,19 @@ typedef struct {
 	bool needs_close;
 } file_blob_t;
 
-static inline file_blob_t *file_from_blob(bithenge_blob_t *base)
+static inline file_blob_t *blob_as_file(bithenge_blob_t *base)
 {
 	return (file_blob_t *)base;
 }
 
-static inline bithenge_blob_t *blob_from_file(file_blob_t *blob)
+static inline bithenge_blob_t *file_as_blob(file_blob_t *blob)
 {
 	return &blob->base;
 }
 
 static int file_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	file_blob_t *blob = file_from_blob(base);
+	file_blob_t *blob = blob_as_file(base);
 	*size = blob->size;
 	return EOK;
 }
@@ -74,7 +74,7 @@ static int file_size(bithenge_blob_t *base, aoff64_t *size)
 static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
-	file_blob_t *blob = file_from_blob(base);
+	file_blob_t *blob = blob_as_file(base);
 	if (offset > blob->size)
 		return ELIMIT;
 	if (lseek(blob->fd, offset, SEEK_SET) < 0)
@@ -94,12 +94,11 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	return EOK;
 }
 
-static int file_destroy(bithenge_blob_t *base)
+static void file_destroy(bithenge_blob_t *base)
 {
-	file_blob_t *blob = file_from_blob(base);
+	file_blob_t *blob = blob_as_file(base);
 	close(blob->fd);
 	free(blob);
-	return EOK;
 }
 
 static const bithenge_random_access_blob_ops_t file_ops = {
@@ -127,8 +126,7 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 			close(fd);
 		return ENOMEM;
 	}
-	rc = bithenge_new_random_access_blob(blob_from_file(blob),
-	    &file_ops);
+	rc = bithenge_init_random_access_blob(file_as_blob(blob), &file_ops);
 	if (rc != EOK) {
 		free(blob);
 		if (needs_close)
@@ -142,7 +140,7 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 	blob->size = stat.st_size;
 #endif
 	blob->needs_close = needs_close;
-	*out = bithenge_blob_as_node(blob_from_file(blob));
+	*out = bithenge_blob_as_node(file_as_blob(blob));
 
 	return EOK;
 }

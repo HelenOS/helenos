@@ -92,9 +92,10 @@ typedef int (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *v
 /** Operations providing access to an internal node. */
 typedef struct bithenge_internal_node_ops_t {
 	/** @copydoc bithenge_node_t::bithenge_node_for_each */
-	int (*for_each)(bithenge_node_t *node, bithenge_for_each_func_t func, void *data);
-	/** @copydoc bithenge_node_t::bithenge_node_destroy */
-	int (*destroy)(bithenge_node_t *node);
+	int (*for_each)(bithenge_node_t *self, bithenge_for_each_func_t func, void *data);
+	/** Destroys the internal node.
+	 * @param self The node to destroy. */
+	void (*destroy)(bithenge_node_t *self);
 } bithenge_internal_node_ops_t;
 
 /** Find the type of a node.
@@ -108,57 +109,56 @@ static inline bithenge_node_type_t bithenge_node_type(const bithenge_node_t *nod
 
 /** Increment a node's reference count.
  * @memberof bithenge_node_t
- * @param node The node to reference.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_node_inc_ref(bithenge_node_t *node)
+ * @param node The node to reference. */
+static inline void bithenge_node_inc_ref(bithenge_node_t *node)
 {
 	assert(node);
 	node->refs++;
-	return EOK;
 }
 
-int bithenge_node_dec_ref(bithenge_node_t *node);
+void bithenge_node_dec_ref(bithenge_node_t *node);
 
 /** Iterate over a node's children.
  * @memberof bithenge_node_t
- * @param node The internal node to iterate over.
+ * @param self The internal node to iterate over.
  * @param func The callback function.
  * @param data Data to provide to the callback function.
  * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_node_for_each(bithenge_node_t *node, bithenge_for_each_func_t func, void *data)
+static inline int bithenge_node_for_each(bithenge_node_t *self,
+    bithenge_for_each_func_t func, void *data)
 {
-	assert(node->type == BITHENGE_NODE_INTERNAL);
-	return node->internal_ops->for_each(node, func, data);
+	assert(self->type == BITHENGE_NODE_INTERNAL);
+	return self->internal_ops->for_each(self, func, data);
 }
 
 /** Get the value of a boolean node.
  * @memberof bithenge_node_t
- * @param node The boolean node.
+ * @param self The boolean node.
  * @return The node's value. */
-static inline bool bithenge_boolean_node_value(bithenge_node_t *node)
+static inline bool bithenge_boolean_node_value(bithenge_node_t *self)
 {
-	assert(node->type == BITHENGE_NODE_BOOLEAN);
-	return node->boolean_value;
+	assert(self->type == BITHENGE_NODE_BOOLEAN);
+	return self->boolean_value;
 }
 
 /** Get the value of an integer node.
  * @memberof bithenge_node_t
- * @param node The integer node.
+ * @param self The integer node.
  * @return The node's value. */
-static inline bithenge_int_t bithenge_integer_node_value(bithenge_node_t *node)
+static inline bithenge_int_t bithenge_integer_node_value(bithenge_node_t *self)
 {
-	assert(node->type == BITHENGE_NODE_INTEGER);
-	return node->integer_value;
+	assert(self->type == BITHENGE_NODE_INTEGER);
+	return self->integer_value;
 }
 
 /** Get the value of an string node.
  * @memberof bithenge_node_t
- * @param node The string node.
+ * @param self The string node.
  * @return The node's value. */
-static inline const char *bithenge_string_node_value(bithenge_node_t *node)
+static inline const char *bithenge_string_node_value(bithenge_node_t *self)
 {
-	assert(node->type == BITHENGE_NODE_STRING);
-	return node->string_value.ptr;
+	assert(self->type == BITHENGE_NODE_STRING);
+	return self->string_value.ptr;
 }
 
 int bithenge_init_internal_node(bithenge_node_t *,

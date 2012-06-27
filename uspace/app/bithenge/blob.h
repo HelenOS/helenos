@@ -51,14 +51,13 @@ typedef struct {
  * @todo Should these be thread-safe? */
 typedef struct bithenge_random_access_blob_ops_t {
 	/** @copydoc bithenge_blob_t::bithenge_blob_size */
-	int (*size)(bithenge_blob_t *blob, aoff64_t *size);
+	int (*size)(bithenge_blob_t *self, aoff64_t *size);
 	/** @copydoc bithenge_blob_t::bithenge_blob_read */
-	int (*read)(bithenge_blob_t *blob, aoff64_t offset, char *buffer,
+	int (*read)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
 	    aoff64_t *size);
 	/** Destroy the blob.
-	 * @param blob The blob.
-	 * @return EOK on success or an error code from errno.h. */
-	int (*destroy)(bithenge_blob_t *blob);
+	 * @param blob The blob. */
+	void (*destroy)(bithenge_blob_t *self);
 } bithenge_random_access_blob_ops_t;
 
 /** A blob built from an object that supports only sequential reading.
@@ -86,17 +85,17 @@ typedef struct bithenge_sequential_blob_ops_t {
 	 * forcing the entire blob to be read to determine its size.
 	 *
 	 * @memberof bithenge_blob_t
-	 * @param blob The blob.
+	 * @param self The blob.
 	 * @param[out] size Total size of the blob.
 	 * @return EOK on success or an error code from errno.h.
 	 */
-	int (*size)(bithenge_sequential_blob_t *blob, aoff64_t *size);
+	int (*size)(bithenge_sequential_blob_t *self, aoff64_t *size);
 
 	/** Read the next part of the blob. If the requested data extends
 	 * beyond the end of the blob, the data up until the end of the blob
 	 * will be read.
 	 *
-	 * @param blob The blob.
+	 * @param self The blob.
 	 * @param[out] buffer Buffer to read into. If an error occurs, the contents are
 	 * undefined.
 	 * @param[in,out] size Number of bytes to read; may be 0. If not enough
@@ -104,27 +103,26 @@ typedef struct bithenge_sequential_blob_ops_t {
 	 * stored here. If an error occurs, the contents are undefined.
 	 * @return EOK on success or an error code from errno.h.
 	 */
-	int (*read)(bithenge_sequential_blob_t *blob, char *buffer,
+	int (*read)(bithenge_sequential_blob_t *self, char *buffer,
 	    aoff64_t *size);
 
 	/** Destroy the blob.
-	 * @param blob The blob.
-	 * @return EOK on success or an error code from errno.h. */
-	int (*destroy)(bithenge_sequential_blob_t *blob);
+	 * @param self The blob. */
+	void (*destroy)(bithenge_sequential_blob_t *self);
 } bithenge_sequential_blob_ops_t;
 
 /** Get the total size of the blob.
  *
  * @memberof bithenge_blob_t
- * @param blob The blob.
+ * @param self The blob.
  * @param[out] size Total size of the blob.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size)
+static inline int bithenge_blob_size(bithenge_blob_t *self, aoff64_t *size)
 {
-	assert(blob);
-	assert(blob->base.blob_ops);
-	return blob->base.blob_ops->size(blob, size);
+	assert(self);
+	assert(self->base.blob_ops);
+	return self->base.blob_ops->size(self, size);
 }
 
 /** Read part of the blob. If the requested data extends beyond the end of the
@@ -133,7 +131,7 @@ static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size)
  * returned.
  *
  * @memberof bithenge_blob_t
- * @param blob The blob.
+ * @param self The blob.
  * @param offset Byte offset within the blob.
  * @param[out] buffer Buffer to read into. If an error occurs, the contents are
  * undefined.
@@ -142,12 +140,12 @@ static inline int bithenge_blob_size(bithenge_blob_t *blob, aoff64_t *size)
  * should be stored here. If an error occurs, the contents are undefined.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_read(bithenge_blob_t *blob, aoff64_t offset,
+static inline int bithenge_blob_read(bithenge_blob_t *self, aoff64_t offset,
     char *buffer, aoff64_t *size)
 {
-	assert(blob);
-	assert(blob->base.blob_ops);
-	return blob->base.blob_ops->read(blob, offset, buffer, size);
+	assert(self);
+	assert(self->base.blob_ops);
+	return self->base.blob_ops->read(self, offset, buffer, size);
 }
 
 /** Cast a blob node to a generic node.
@@ -169,37 +167,32 @@ static inline bithenge_blob_t *bithenge_node_as_blob(bithenge_node_t *node)
 	return (bithenge_blob_t *)node;
 }
 
-static inline int bithenge_blob_inc_ref(bithenge_blob_t *blob)
+/** Increment a blob's reference count.
+ * @param blob The blob to reference. */
+static inline void bithenge_blob_inc_ref(bithenge_blob_t *blob)
 {
-	return bithenge_node_inc_ref(bithenge_blob_as_node(blob));
+	bithenge_node_inc_ref(bithenge_blob_as_node(blob));
 }
 
-static inline int bithenge_blob_dec_ref(bithenge_blob_t *blob)
+/** Decrement a blob's reference count.
+ * @param blob The blob to dereference, or NULL. */
+static inline void bithenge_blob_dec_ref(bithenge_blob_t *blob)
 {
-	if (!blob)
-		return EOK;
-	return bithenge_node_dec_ref(bithenge_blob_as_node(blob));
+	if (blob)
+		bithenge_node_dec_ref(bithenge_blob_as_node(blob));
 }
 
-int bithenge_new_random_access_blob(bithenge_blob_t *blob,
-    const bithenge_random_access_blob_ops_t *ops);
-
-int bithenge_new_sequential_blob(bithenge_sequential_blob_t *blob,
-    const bithenge_sequential_blob_ops_t *ops);
-
-int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
-    size_t len);
-
-int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
-    size_t len, bool needs_free);
-
-int bithenge_new_offset_blob(bithenge_node_t **out, bithenge_blob_t *blob,
-    aoff64_t offset);
-
-int bithenge_new_subblob(bithenge_node_t **out, bithenge_blob_t *blob,
-    aoff64_t offset, aoff64_t size);
-
-bool bithenge_blob_equal(bithenge_blob_t *a, bithenge_blob_t *b);
+int bithenge_init_random_access_blob(bithenge_blob_t *,
+    const bithenge_random_access_blob_ops_t *);
+int bithenge_init_sequential_blob(bithenge_sequential_blob_t *,
+    const bithenge_sequential_blob_ops_t *);
+int bithenge_new_blob_from_data(bithenge_node_t **, const void *, size_t);
+int bithenge_new_blob_from_buffer(bithenge_node_t **, const void *, size_t,
+    bool);
+int bithenge_new_offset_blob(bithenge_node_t **, bithenge_blob_t *, aoff64_t);
+int bithenge_new_subblob(bithenge_node_t **, bithenge_blob_t *, aoff64_t,
+    aoff64_t);
+bool bithenge_blob_equal(bithenge_blob_t *, bithenge_blob_t *);
 
 #endif
 

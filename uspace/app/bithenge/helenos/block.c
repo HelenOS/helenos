@@ -50,39 +50,38 @@ typedef struct {
 	aoff64_t size;
 } block_blob_t;
 
-static inline block_blob_t *block_from_blob(bithenge_blob_t *base)
+static inline block_blob_t *blob_as_block(bithenge_blob_t *base)
 {
 	return (block_blob_t *)base;
 }
 
-static inline bithenge_blob_t *blob_from_block(block_blob_t *blob)
+static inline bithenge_blob_t *block_as_blob(block_blob_t *blob)
 {
 	return &blob->base;
 }
 
 static int block_size(bithenge_blob_t *base, aoff64_t *size)
 {
-	block_blob_t *blob = block_from_blob(base);
-	*size = blob->size;
+	block_blob_t *self = blob_as_block(base);
+	*size = self->size;
 	return EOK;
 }
 
 static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
-	block_blob_t *blob = block_from_blob(base);
-	if (offset > blob->size)
+	block_blob_t *self = blob_as_block(base);
+	if (offset > self->size)
 		return ELIMIT;
-	*size = min(*size, blob->size - offset);
-	return block_read_bytes_direct(blob->service_id, offset, *size, buffer);
+	*size = min(*size, self->size - offset);
+	return block_read_bytes_direct(self->service_id, offset, *size, buffer);
 }
 
-static int block_destroy(bithenge_blob_t *base)
+static void block_destroy(bithenge_blob_t *base)
 {
-	block_blob_t *blob = block_from_blob(base);
-	block_fini(blob->service_id);
-	free(blob);
-	return EOK;
+	block_blob_t *self = blob_as_block(base);
+	block_fini(self->service_id);
+	free(self);
 }
 
 static const bithenge_random_access_blob_ops_t block_ops = {
@@ -128,7 +127,7 @@ int bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
 		block_fini(service_id);
 		return ENOMEM;
 	}
-	rc = bithenge_new_random_access_blob(blob_from_block(blob),
+	rc = bithenge_init_random_access_blob(block_as_blob(blob),
 	    &block_ops);
 	if (rc != EOK) {
 		free(blob);
@@ -137,7 +136,7 @@ int bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
 	}
 	blob->service_id = service_id;
 	blob->size = size;
-	*out = bithenge_blob_as_node(blob_from_block(blob));
+	*out = bithenge_blob_as_node(block_as_blob(blob));
 
 	return EOK;
 }
