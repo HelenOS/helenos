@@ -164,6 +164,14 @@ static void next_token(state_t *state)
 	char ch = state->buffer[state->buffer_pos];
 	if (ch == '\0') {
 		state->token = TOKEN_EOF;
+	} else if (ch == '#') {
+		while (state->buffer[state->buffer_pos] != '\n'
+		    && state->buffer[state->buffer_pos] != '\0') {
+			state->buffer_pos++;
+			fill_buffer(state);
+		}
+		next_token(state);
+		return;
 	} else if (isspace(ch)) {
 		// Will eventually reach the '\0' at the end
 		while (isspace(state->buffer[state->buffer_pos])) {
