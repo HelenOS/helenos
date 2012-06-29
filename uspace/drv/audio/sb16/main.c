@@ -115,8 +115,15 @@ if (ret != EOK) { \
 
 	const size_t irq_cmd_count = sb16_irq_code_size();
 	irq_cmd_t irq_cmds[irq_cmd_count];
-	sb16_irq_code((void*)sb_regs, dma8, dma16, irq_cmds);
-	irq_code_t irq_code = { .cmdcount = irq_cmd_count, .cmds = irq_cmds };
+	irq_pio_range_t irq_ranges[1];
+	sb16_irq_code((void*)sb_regs, dma8, dma16, irq_cmds, irq_ranges);
+
+	irq_code_t irq_code = {
+		.cmdcount = irq_cmd_count,
+		.cmds = irq_cmds,
+		.rangecount = 1,
+		.ranges = irq_ranges
+	};
 
 	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
 	CHECK_RET_RETURN(ret,

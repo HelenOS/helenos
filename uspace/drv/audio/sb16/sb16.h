@@ -50,7 +50,7 @@ typedef struct sb16 {
 } sb16_t;
 
 size_t sb16_irq_code_size(void);
-void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[]);
+void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[], irq_pio_range_t ranges[]);
 int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
     ddf_dev_t *dev, int dma8, int dma16);
 int sb16_init_mpu(sb16_t *sb, void *regs, size_t size);

@@ -73,13 +73,15 @@ size_t sb16_irq_code_size(void)
 	return sizeof(irq_cmds) / sizeof(irq_cmds[0]);
 }
 /*----------------------------------------------------------------------------*/
-void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[])
+void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[], irq_pio_range_t ranges[])
 {
 	assert(regs);
 	assert(dma8 > 0 && dma8 < 4);
 	sb16_regs_t *registers = regs;
 	memcpy(cmds, irq_cmds, sizeof(irq_cmds));
 	cmds[0].addr = (void*)&registers->dsp_read_status;
+	ranges[0].base = (uintptr_t)registers;
+	ranges[0].size = sizeof(*registers);
 	if (dma16 > 4 && dma16 < 8) {
 		/* Valid dma16 */
 		cmds[1].addr = (void*)&registers->dma16_ack;
