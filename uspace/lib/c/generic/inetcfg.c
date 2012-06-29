@@ -118,17 +118,17 @@ int inetcfg_init(void)
 	int rc;
 
 	assert(inetcfg_sess == NULL);
-
+	
 	rc = loc_service_get_id(SERVICE_NAME_INETCFG, &inet_svc,
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return ENOENT;
-
+	
 	inetcfg_sess = loc_service_connect(EXCHANGE_SERIALIZE, inet_svc,
 	    IPC_FLAG_BLOCKING);
 	if (inetcfg_sess == NULL)
 		return ENOENT;
-
+	
 	return EOK;
 }
 

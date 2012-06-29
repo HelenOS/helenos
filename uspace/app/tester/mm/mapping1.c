@@ -41,9 +41,9 @@ static void *create_as_area(size_t size)
 {
 	TPRINTF("Creating AS area...\n");
 	
-	void *result = as_area_create((void *) -1, size,
+	void *result = as_area_create(AS_AREA_ANY, size,
 	    AS_AREA_READ | AS_AREA_WRITE);
-	if (result == (void *) -1)
+	if (result == AS_MAP_FAILED)
 		return NULL;
 	
 	return result;

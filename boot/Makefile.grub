@@ -59,7 +59,7 @@ endif
 
 build_dist: clean
 	mkdir -p $(BOOT)
-	cp -r $(GRUB) $(BOOT)/grub
+	cp -r -L $(GRUB) $(BOOT)/grub
 ifeq ($(GRUB_ARCH),efi)
 	gunzip $(IMAGE)
 endif

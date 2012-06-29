@@ -129,7 +129,7 @@ void as_init(void)
 {
 	as_arch_init();
 	
-	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0,
+	as_slab = slab_cache_create("as_t", sizeof(as_t), 0,
 	    as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);

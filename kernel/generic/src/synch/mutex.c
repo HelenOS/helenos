@@ -62,6 +62,8 @@ bool mutex_locked(mutex_t *mtx)
 	return semaphore_count_get(&mtx->sem) <= 0;
 }
 
+#define MUTEX_DEADLOCK_THRESHOLD	100000000
+
 /** Acquire mutex.
  *
  * Timeout mode and non-blocking mode can be requested.
@@ -90,7 +92,7 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 		unsigned int cnt = 0;
 		bool deadlock_reported = false;
 		do {
-			if (cnt++ > DEADLOCK_THRESHOLD) {
+			if (cnt++ > MUTEX_DEADLOCK_THRESHOLD) {
 				printf("cpu%u: looping on active mutex %p\n",
 				    CPU->id, mtx);
 				stack_trace();

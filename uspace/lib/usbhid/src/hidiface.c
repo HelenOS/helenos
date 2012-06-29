@@ -32,6 +32,7 @@
 /** @file
  * Client functions for accessing USB HID interface (implementation).
  */
+
 #include <dev_iface.h>
 #include <usbhid_iface.h>
 #include <usb/hid/iface.h>

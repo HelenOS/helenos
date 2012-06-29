@@ -243,8 +243,8 @@ int ipc_connect_kbox(task_id_t taskid)
 	}
 	
 	/* Create a kbox thread */
-	thread_t *kb_thread = thread_create(kbox_thread_proc, NULL, task, 0,
-	    "kbox", false);
+	thread_t *kb_thread = thread_create(kbox_thread_proc, NULL, task,
+	    THREAD_FLAG_NONE, "kbox");
 	if (!kb_thread) {
 		mutex_unlock(&task->kb.cleanup_lock);
 		return ENOMEM;

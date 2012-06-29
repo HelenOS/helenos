@@ -35,9 +35,13 @@
 #ifndef UDP_TYPE_H
 #define UDP_TYPE_H
 
+#include <fibril.h>
 #include <fibril_synch.h>
 #include <socket_core.h>
 #include <sys/types.h>
+
+#define UDP_FRAGMENT_SIZE 4096
+
 
 typedef enum {
 	UDP_EOK,
@@ -140,6 +144,14 @@ typedef struct udp_sockdata {
 	udp_client_t *client;
 	/** Connection */
 	udp_assoc_t *assoc;
+	/** Receiving fibril */
+	fid_t recv_fibril;
+	uint8_t recv_buffer[UDP_FRAGMENT_SIZE];
+	size_t recv_buffer_used;
+	udp_sock_t recv_fsock;
+	fibril_mutex_t recv_buffer_lock;
+	fibril_condvar_t recv_buffer_cv;
+	udp_error_t recv_error;
 } udp_sockdata_t;
 
 typedef struct {

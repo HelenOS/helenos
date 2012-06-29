@@ -44,6 +44,7 @@
 #include "ctype.h"
 #include "errno.h"
 #include "signal.h"
+#include "assert.h"
 
 #include "libc/malloc.h"
 #include "libc/task.h"

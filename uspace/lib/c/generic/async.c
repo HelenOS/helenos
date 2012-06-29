@@ -1387,10 +1387,12 @@ void async_forget(aid_t amsgid)
 	assert(!msg->destroyed);
 
 	futex_down(&async_futex);
-	if (msg->done)
+	if (msg->done) {
 		amsg_destroy(msg);
-	else 
+	} else {
+		msg->dataptr = NULL;
 		msg->forget = true;
+	}
 	futex_up(&async_futex);
 }
 

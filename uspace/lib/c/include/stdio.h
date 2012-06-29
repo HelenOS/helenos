@@ -38,7 +38,6 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <str.h>
-#include <adt/list.h>
 
 #ifndef NVERIFY_PRINTF
 

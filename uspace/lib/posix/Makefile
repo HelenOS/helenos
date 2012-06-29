@@ -42,6 +42,7 @@ SOURCES = \
 	errno.c \
 	fcntl.c \
 	fnmatch.c \
+	getopt.c \
 	locale.c \
 	math.c \
 	pwd.c \

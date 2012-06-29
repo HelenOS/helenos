@@ -76,15 +76,13 @@ static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte);
 
 int main(int argc, char *argv[])
 {
-	int rc;
-
-	printf(NAME ": S3C24xx on-chip UART driver\n");
-
+	printf("%s: S3C24xx on-chip UART driver\n", NAME);
+	
 	async_set_client_connection(s3c24xx_uart_connection);
-	rc = loc_server_register(NAME);
-	if (rc < 0) {
-		printf(NAME ": Unable to register server.\n");
-		return -1;
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register server.\n", NAME);
+		return rc;
 	}
 
 	uart = malloc(sizeof(s3c24xx_uart_t));

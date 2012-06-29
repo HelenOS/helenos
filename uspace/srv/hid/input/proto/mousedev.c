@@ -116,7 +116,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s'\n", NAME,
 		    mdev->svc_name);
-		return -1;
+		return ENOENT;
 	}
 	
 	mousedev_t *mousedev = mousedev_new(mdev);
@@ -124,7 +124,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		printf("%s: Failed allocating device structure for '%s'.\n",
 		    NAME, mdev->svc_name);
 		async_hangup(sess);
-		return -1;
+		return ENOMEM;
 	}
 	
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -133,7 +133,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		    mdev->svc_name);
 		mousedev_destroy(mousedev);
 		async_hangup(sess);
-		return -1;
+		return ENOENT;
 	}
 	
 	int rc = async_connect_to_me(exch, 0, 0, 0, mousedev_callback_conn, mousedev);
@@ -144,10 +144,10 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, mdev->svc_name);
 		mousedev_destroy(mousedev);
-		return -1;
+		return rc;
 	}
 	
-	return 0;
+	return EOK;
 }
 
 mouse_proto_ops_t mousedev_proto = {

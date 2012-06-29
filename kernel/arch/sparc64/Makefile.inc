@@ -31,7 +31,6 @@ BFD_ARCH = sparc
 BFD = binary
 
 GCC_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
-SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
 LFLAGS += -no-check-sections
 

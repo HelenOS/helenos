@@ -70,7 +70,7 @@ static slab_cache_t *btree_node_slab;
 /** Initialize B-trees. */
 void btree_init(void)
 {
-	btree_node_slab = slab_cache_create("btree_node_slab",
+	btree_node_slab = slab_cache_create("btree_node_t",
 	    sizeof(btree_node_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 }
 

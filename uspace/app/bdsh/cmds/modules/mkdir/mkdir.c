@@ -35,6 +35,9 @@
 #include <getopt.h>
 #include <stdarg.h>
 #include <str.h>
+#include <errno.h>
+#include <str_error.h>
+#include <vfs/vfs.h>
 
 #include "config.h"
 #include "errors.h"
@@ -82,109 +85,90 @@ void help_cmd_mkdir(unsigned int level)
 
 /* This is kind of clunky, but effective for now */
 static unsigned int
-create_directory(const char *path, unsigned int p)
+create_directory(const char *user_path, bool create_parents)
 {
-	DIR *dirp;
-	char *tmp = NULL, *buff = NULL, *wdp = NULL;
-	char *dirs[255];
-	unsigned int absolute = 0, i = 0, ret = 0;
-
-	/* Its a good idea to allocate path, plus we (may) need a copy of
-	 * path to tokenize if parents are specified */
-	if (NULL == (tmp = str_dup(path))) {
+	/* Ensure we would always work with absolute and canonified path. */
+	char *path = absolutize(user_path, NULL);
+	if (path == NULL) {
 		cli_error(CL_ENOMEM, "%s: path too big?", cmdname);
 		return 1;
 	}
 
-	if (NULL == (wdp = (char *) malloc(PATH_MAX))) {
-		cli_error(CL_ENOMEM, "%s: could not alloc cwd", cmdname);
-		free(tmp);
-		return 1;
-	}
+	int rc;
+	int ret = 0;
 
-	/* The only reason for wdp is to be (optionally) verbose */
-	getcwd(wdp, PATH_MAX);
-
-	/* Typical use without specifying the creation of parents */
-	if (p == 0) {
-		dirp = opendir(tmp);
-		if (dirp) {
-			cli_error(CL_EEXISTS, "%s: can not create %s, try -p", cmdname, path);
-			closedir(dirp);
-			goto finit;
+	if (!create_parents) {
+		rc = mkdir(path, 0);
+		if (rc != EOK) {
+			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
+			    cmdname, path, str_error(rc));
+			ret = 1;
 		}
-		if (-1 == (mkdir(tmp, 0))) {
-			cli_error(CL_EFAIL, "%s: could not create %s", cmdname, path);
-			goto finit;
-		}
-	}
-
-	/* Parents need to be created, path has to be broken up */
-
-	/* See if path[0] is a slash, if so we have to remember to append it */
-	if (tmp[0] == '/')
-		absolute = 1;
-
-	/* TODO: Canonify the path prior to tokenizing it, see below */
-	dirs[i] = strtok(tmp, "/");
-	while (dirs[i] && i < 255)
-		dirs[++i] = strtok(NULL, "/");
-
-	if (NULL == dirs[0])
-		return 1;
-
-	if (absolute == 1) {
-		asprintf(&buff, "/%s", dirs[0]);
-		mkdir(buff, 0);
-		chdir(buff);
-		free(buff);
-		getcwd(wdp, PATH_MAX);
-		i = 1;
 	} else {
-		i = 0;
-	}
-
-	while (dirs[i] != NULL) {
-		/* Sometimes make or scripts conjoin odd paths. Account for something
-		 * like this: ../../foo/bar/../foo/foofoo/./bar */
-		if (!str_cmp(dirs[i], "..") || !str_cmp(dirs[i], ".")) {
-			if (0 != (chdir(dirs[i]))) {
-				cli_error(CL_EFAIL, "%s: impossible path: %s",
-					cmdname, path);
-				ret ++;
-				goto finit;
-			}
-			getcwd(wdp, PATH_MAX);
-		} else {
-			if (-1 == (mkdir(dirs[i], 0))) {
-				cli_error(CL_EFAIL,
-					"%s: failed at %s/%s", wdp, dirs[i]);
-				ret ++;
-				goto finit;
-			}
-			if (0 != (chdir(dirs[i]))) {
-				cli_error(CL_EFAIL, "%s: failed creating %s\n",
-					cmdname, dirs[i]);
-				ret ++;
+		/* Create the parent directories as well. */
+		size_t off = 0;
+		while (1) {
+			size_t prev_off = off;
+			wchar_t cur_char = str_decode(path, &off, STR_NO_LIMIT);
+			if ((cur_char == 0) || (cur_char == U_SPECIAL)) {
 				break;
 			}
-		}
-		i++;
-	}
-	goto finit;
+			if (cur_char != '/') {
+				continue;
+			}
+			if (prev_off == 0) {
+				continue;
+			}
+			/*
+			 * If we are here, it means that:
+			 * - we found /
+			 * - it is not the first / (no need to create root
+			 *   directory)
+			 *
+			 * We would now overwrite the / with 0 to terminate the
+			 * string (that shall be okay because we are
+			 * overwriting at the beginning of UTF sequence).
+			 * That would allow us to create the directories
+			 * in correct nesting order.
+			 *
+			 * Notice that we ignore EEXIST errors as some of
+			 * the parent directories may already exist.
+			 */
+			char slash_char = path[prev_off];
+			path[prev_off] = 0;
+			rc = mkdir(path, 0);
+			if (rc == EEXIST) {
+				rc = EOK;
+			}
 
-finit:
-	free(wdp);
-	free(tmp);
+			if (rc != EOK) {
+				cli_error(CL_EFAIL, "%s: could not create %s (%s)",
+				    cmdname, path, str_error(rc));
+				ret = 1;
+				goto leave;
+			}
+
+			path[prev_off] = slash_char;
+		}
+		/* Create the final directory. */
+		rc = mkdir(path, 0);
+		if (rc != EOK) {
+			cli_error(CL_EFAIL, "%s: could not create %s (%s)",
+			    cmdname, path, str_error(rc));
+			ret = 1;
+		}
+	}
+
+leave:
+	free(path);
 	return ret;
 }
 
 int cmd_mkdir(char **argv)
 {
-	unsigned int argc, create_parents = 0, i, ret = 0, follow = 0;
-	unsigned int verbose = 0;
+	unsigned int argc, i, ret = 0;
+	bool create_parents = false, follow = false, verbose = false;
 	int c, opt_ind;
-	char *cwd;
 
 	argc = cli_count_args(argv);
 
@@ -192,10 +176,10 @@ int cmd_mkdir(char **argv)
 		c = getopt_long(argc, argv, "pvhVfm:", long_options, &opt_ind);
 		switch (c) {
 		case 'p':
-			create_parents = 1;
+			create_parents = true;
 			break;
 		case 'v':
-			verbose = 1;
+			verbose = true;
 			break;
 		case 'h':
 			help_cmd_mkdir(HELP_LONG);
@@ -204,7 +188,7 @@ int cmd_mkdir(char **argv)
 			printf("%s\n", MKDIR_VERSION);
 			return CMD_SUCCESS;
 		case 'f':
-			follow = 1;
+			follow = true;
 			break;
 		case 'm':
 			printf("%s: [W] Ignoring mode %s\n", cmdname, optarg);
@@ -220,26 +204,17 @@ int cmd_mkdir(char **argv)
 		return CMD_FAILURE;
 	}
 
-	if (NULL == (cwd = (char *) malloc(PATH_MAX))) {
-		cli_error(CL_ENOMEM, "%s: could not allocate cwd", cmdname);
-		return CMD_FAILURE;
-	}
-
-	memset(cwd, 0, sizeof(cwd));
-	getcwd(cwd, PATH_MAX);
-
 	for (i = optind; argv[i] != NULL; i++) {
-		if (verbose == 1)
+		if (verbose)
 			printf("%s: creating %s%s\n",
 				cmdname, argv[i],
 				create_parents ? " (and all parents)" : "");
 		ret += create_directory(argv[i], create_parents);
 	}
 
-	if (follow == 0)
-		chdir(cwd);
-
-	free(cwd);
+	if (follow && (argv[optind] != NULL)) {
+		chdir(argv[optind]);
+	}
 
 	if (ret)
 		return CMD_FAILURE;

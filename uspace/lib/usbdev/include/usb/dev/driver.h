@@ -32,6 +32,7 @@
 /** @file
  * USB device driver framework.
  */
+
 #ifndef LIBUSBDEV_DRIVER_H_
 #define LIBUSBDEV_DRIVER_H_
 

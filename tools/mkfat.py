@@ -188,7 +188,7 @@ lchars = set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
 def fat_lchars(name):
 	"Filter FAT legal characters"
 	
-	filtered_name = ''
+	filtered_name = b''
 	filtered = False
 	
 	for char in name.encode('ascii', 'replace').upper():
@@ -204,7 +204,8 @@ def fat_name83(name, name83_list):
 	"Create a 8.3 name for the given name"
 	
 	ascii_name, lfn = fat_lchars(name)
-	ascii_parts = ascii_name.split('.')
+	# Splitting works only on strings, not on bytes
+	ascii_parts = ascii_name.decode('utf8').split('.')
 	
 	short_name = ''
 	short_ext = ''
@@ -443,7 +444,7 @@ def main():
 	
 	extra_bytes = int(sys.argv[1])
 	
-	path = os.path.abspath(sys.argv[2].decode())
+	path = os.path.abspath(sys.argv[2])
 	if (not os.path.isdir(path)):
 		print("<PATH> must be a directory")
 		return
