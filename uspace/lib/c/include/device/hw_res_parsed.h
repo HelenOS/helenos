@@ -77,7 +77,7 @@ typedef struct dma_list {
 	size_t count;
 
 	/** Array of channels */
-	int *channels;
+	unsigned int *channels;
 } dma_list_t;
 
 /** List of memory areas */
@@ -100,6 +100,9 @@ typedef struct hw_resource_list_parsed {
 	/** List of IRQs */
 	irq_list_t irqs;
 
+	/** List of DMA channels */
+	dma_list_t dma_channels;
+	
 	/** List of DMA channels */
 	dma_list_t dma_channels;
 	

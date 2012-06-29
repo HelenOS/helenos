@@ -203,11 +203,11 @@ def main():
 	
 	for job in jobs:
 		if (not vcc(vcc_path, rootdir, job)):
-			print
+			print()
 			print("Failed job: %s" % job)
 			return
 	
-	print
+	print()
 	print("All jobs passed")
 
 if __name__ == '__main__':

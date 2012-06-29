@@ -39,14 +39,14 @@
 
 #include "test1.h"
 
-static int test1_add_device(ddf_dev_t *dev);
+static int test1_dev_add(ddf_dev_t *dev);
 static int test1_dev_remove(ddf_dev_t *dev);
 static int test1_dev_gone(ddf_dev_t *dev);
 static int test1_fun_online(ddf_fun_t *fun);
 static int test1_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
-	.add_device = &test1_add_device,
+	.dev_add = &test1_dev_add,
 	.dev_remove = &test1_dev_remove,
 	.dev_gone = &test1_dev_gone,
 	.fun_online = &test1_fun_online,
@@ -140,13 +140,13 @@ leave:
  * @param dev New device.
  * @return Error code reporting success of the operation.
  */
-static int test1_add_device(ddf_dev_t *dev)
+static int test1_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
 	test1_t *test1;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)",
+	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
 	test1 = ddf_dev_data_alloc(dev, sizeof(test1_t));

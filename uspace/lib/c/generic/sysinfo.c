@@ -38,6 +38,71 @@
 #include <errno.h>
 #include <malloc.h>
 #include <bool.h>
+#include <unistd.h>
+
+/** Get sysinfo keys size
+ *
+ * @param path  Sysinfo path.
+ * @param value Pointer to store the keys size.
+ *
+ * @return EOK if the keys were successfully read.
+ *
+ */
+static int sysinfo_get_keys_size(const char *path, size_t *size)
+{
+	return (int) __SYSCALL3(SYS_SYSINFO_GET_KEYS_SIZE, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) size);
+}
+
+/** Get sysinfo keys
+ *
+ * @param path  Sysinfo path.
+ * @param value Pointer to store the keys size.
+ *
+ * @return Keys read from sysinfo or NULL if the
+ *         sysinfo item has no subkeys.
+ *         The returned non-NULL pointer should be
+ *         freed by free().
+ *
+ */
+char *sysinfo_get_keys(const char *path, size_t *size)
+{
+	/*
+	 * The size of the keys might change during time.
+	 * Unfortunatelly we cannot allocate the buffer
+	 * and transfer the keys as a single atomic operation.
+	 */
+	
+	/* Get the keys size */
+	int ret = sysinfo_get_keys_size(path, size);
+	if ((ret != EOK) || (size == 0)) {
+		/*
+		 * Item with no subkeys.
+		 */
+		*size = 0;
+		return NULL;
+	}
+	
+	char *data = malloc(*size);
+	if (data == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Get the data */
+	size_t sz;
+	ret = __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
+	    (sysarg_t) &sz);
+	if (ret == EOK) {
+		*size = sz;
+		return data;
+	}
+	
+	free(data);
+	*size = 0;
+	return NULL;
+}
 
 /** Get sysinfo item type
  *
@@ -69,8 +134,8 @@ int sysinfo_get_value(const char *path, sysarg_t *value)
 
 /** Get sysinfo binary data size
  *
- * @param path  Sysinfo path.
- * @param value Pointer to store the binary data size.
+ * @param path Sysinfo path.
+ * @param size Pointer to store the binary data size.
  *
  * @return EOK if the value was successfully read and
  *         is of SYSINFO_VAL_DATA type.
@@ -84,8 +149,8 @@ static int sysinfo_get_data_size(const char *path, size_t *size)
 
 /** Get sysinfo binary data
  *
- * @param path  Sysinfo path.
- * @param value Pointer to store the binary data size.
+ * @param path Sysinfo path.
+ * @param size Pointer to store the binary data size.
  *
  * @return Binary data read from sysinfo or NULL if the
  *         sysinfo item value type is not binary data.
@@ -129,6 +194,69 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	}
 	
 	free(data);
+	*size = 0;
+	return NULL;
+}
+
+/** Get sysinfo property
+ *
+ * @param path Sysinfo path.
+ * @param name Property name.
+ * @param size Pointer to store the binary data size.
+ *
+ * @return Property value read from sysinfo or NULL if the
+ *         sysinfo item value type is not binary data.
+ *         The returned non-NULL pointer should be
+ *         freed by free().
+ *
+ */
+void *sysinfo_get_property(const char *path, const char *name, size_t *size)
+{
+	size_t total_size;
+	void *data = sysinfo_get_data(path, &total_size);
+	if ((data == NULL) || (total_size == 0)) {
+		*size = 0;
+		return NULL;
+	}
+	
+	size_t pos = 0;
+	while (pos < total_size) {
+		/* Process each property with sanity checks */
+		size_t cur_size = str_nsize(data + pos, total_size - pos);
+		if (((char *) data)[pos + cur_size] != 0)
+			break;
+		
+		bool found = (str_cmp(data + pos, name) == 0);
+		
+		pos += cur_size + 1;
+		if (pos >= total_size)
+			break;
+		
+		/* Process value size */
+		size_t value_size;
+		memcpy(&value_size, data + pos, sizeof(value_size));
+		
+		pos += sizeof(value_size);
+		if ((pos >= total_size) || (pos + value_size > total_size))
+			break;
+		
+		if (found) {
+			void *value = malloc(value_size);
+			if (value == NULL)
+				break;
+			
+			memcpy(value, data + pos, value_size);
+			free(data);
+			
+			*size = value_size;
+			return value;
+		}
+		
+		pos += value_size;
+	}
+	
+	free(data);
+	
 	*size = 0;
 	return NULL;
 }

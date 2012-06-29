@@ -384,6 +384,8 @@ usb_hid_report_path_t *usb_hid_report_path(void)
  */
 void usb_hid_report_path_free(usb_hid_report_path_t *path)
 {
+	if (path == NULL)
+		return;
 	while(!list_empty(&path->items)){
 		usb_hid_report_remove_last_item(path);
 	}

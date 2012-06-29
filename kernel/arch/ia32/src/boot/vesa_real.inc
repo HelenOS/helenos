@@ -303,7 +303,7 @@ vesa_init_real2:
 		
 		/*
 		 * Store mode parameters:
-		 *  eax = bpp[8] scanline[16]
+		 *  eax = bpp[16] scanline[16]
 		 *  ebx = width[16]  height[16]
 		 *  edx = red_mask[8] red_pos[8] green_mask[8] green_pos[8]
 		 *  esi = blue_mask[8] blue_pos[8]
@@ -327,6 +327,7 @@ vesa_init_real2:
 		mov VESA_MODE_RED_MASK_OFFSET(%di), %dl
 		shl $8, %edx
 		mov VESA_MODE_RED_POS_OFFSET(%di), %dl
+		
 		shl $8, %edx
 		mov VESA_MODE_GREEN_MASK_OFFSET(%di), %dl
 		shl $8, %edx
@@ -368,8 +369,12 @@ vesa_init_real2:
 		
 		mov $0x0003, %ax
 		int $0x10
-		mov $0xffffffff, %edi
-		xor %ax, %ax
+		
+		xor %eax, %eax
+		xor %ebx, %ebx
+		xor %edx, %edx
+		xor %edi, %edi
+		
 		jz vesa_leave_real  /* force relative jump */
 
 vga323:
@@ -385,9 +390,9 @@ default_bpp:
 	.byte 0
 
 default_mode:
-	.ascii STRING(CONFIG_VESA_MODE)
+	.ascii STRING(CONFIG_BFB_MODE)
 	.ascii "-"
-	.asciz STRING(CONFIG_VESA_BPP)
+	.asciz STRING(CONFIG_BFB_BPP)
 	.fill 24
 
 #include "vesa_ret.inc"

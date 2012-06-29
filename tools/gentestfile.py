@@ -35,10 +35,10 @@ import struct
 import sys
 
 if len(sys.argv) < 2:
-	print "Usage: gentestfile.py <count of 64-bit numbers to output>"
+	print("Usage: gentestfile.py <count of 64-bit numbers to output>")
 	exit()
 
-m = long(sys.argv[1])
+m = int(sys.argv[1])
 i = 0
 pow_2_64 = 2 ** 64
 st = struct.Struct('<Q')

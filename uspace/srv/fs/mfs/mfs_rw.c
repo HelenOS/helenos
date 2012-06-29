@@ -146,7 +146,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
 			} else {
-				/*Sparse block*/
+				/* Sparse block */
 				*b = 0;
 				return EOK;
 			}
@@ -232,7 +232,7 @@ out_free_ind1:
 	return r;
 }
 
-/**Free unused indirect zones from a MINIX inode according to it's new size.
+/**Free unused indirect zones from a MINIX inode according to its new size.
  *
  * @param mnode		Pointer to a generic MINIX inode in memory.
  * @param new_size	The new size of the inode.

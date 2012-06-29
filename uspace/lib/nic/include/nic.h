@@ -41,8 +41,9 @@
 #include <adt/list.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
-#include <net/packet.h>
 #include <ops/nic.h>
+
+#define DEVICE_CATEGORY_NIC "nic"
 
 struct nic;
 typedef struct nic nic_t;
@@ -60,25 +61,28 @@ typedef struct nic_wol_virtue {
 } nic_wol_virtue_t;
 
 /**
- * Simple structure for sending the allocated frames (packets) in a list.
+ * Simple structure for sending lists of frames.
  */
 typedef struct {
 	link_t link;
-	packet_t *packet;
+	void *data;
+	size_t size;
 } nic_frame_t;
 
 typedef list_t nic_frame_list_t;
 
 /**
- * Handler for writing packet data to the NIC device.
- * The function is responsible for releasing the packet.
+ * Handler for writing frame data to the NIC device.
+ * The function is responsible for releasing the frame.
  * It does not return anything, if some error is detected the function just
  * silently fails (logging on debug level is suggested).
  *
  * @param nic_data
- * @param packet	Pointer to the packet to be sent
+ * @param data		Pointer to frame data
+ * @param size		Size of frame data in bytes
  */
-typedef void (*write_packet_handler)(nic_t *, packet_t *);
+typedef void (*send_frame_handler)(nic_t *, void *, size_t);
+
 /**
  * The handler for transitions between driver states.
  * If the handler returns negative error code, the transition between
@@ -90,6 +94,7 @@ typedef void (*write_packet_handler)(nic_t *, packet_t *);
  * @return negative error code on error.
  */
 typedef int (*state_change_handler)(nic_t *);
+
 /**
  * Handler for unicast filtering mode change.
  *
@@ -102,7 +107,8 @@ typedef int (*state_change_handler)(nic_t *);
  * @return ENOTSUP	If this mode is not supported
  */
 typedef int (*unicast_mode_change_handler)(nic_t *,
-	nic_unicast_mode_t, const nic_address_t *, size_t);
+    nic_unicast_mode_t, const nic_address_t *, size_t);
+
 /**
  * Handler for multicast filtering mode change.
  *
@@ -115,7 +121,8 @@ typedef int (*unicast_mode_change_handler)(nic_t *,
  * @return ENOTSUP	If this mode is not supported
  */
 typedef int (*multicast_mode_change_handler)(nic_t *,
-	nic_multicast_mode_t, const nic_address_t *, size_t);
+    nic_multicast_mode_t, const nic_address_t *, size_t);
+
 /**
  * Handler for broadcast filtering mode change.
  *
@@ -126,6 +133,7 @@ typedef int (*multicast_mode_change_handler)(nic_t *,
  * @return ENOTSUP	If this mode is not supported
  */
 typedef int (*broadcast_mode_change_handler)(nic_t *, nic_broadcast_mode_t);
+
 /**
  * Handler for blocked sources list change.
  *
@@ -134,13 +142,15 @@ typedef int (*broadcast_mode_change_handler)(nic_t *, nic_broadcast_mode_t);
  * @param address_count	Number of addresses in the list
  */
 typedef void (*blocked_sources_change_handler)(nic_t *,
-	const nic_address_t *, size_t);
+    const nic_address_t *, size_t);
+
 /**
  * Handler for VLAN filtering mask change.
  * @param nic_data		NICF main structure
  * @param vlan_mask		The new mask | NULL for disabling vlan filter
  */
 typedef void (*vlan_mask_change_handler)(nic_t *, const nic_vlan_mask_t *);
+
 /**
  * Handler called when a WOL virtue is added.
  * If the maximum of accepted WOL virtues changes due to adding this virtue
@@ -156,11 +166,12 @@ typedef void (*vlan_mask_change_handler)(nic_t *, const nic_vlan_mask_t *);
  * 					filter is activated unless the emulate is set to 0.
  * @return ENOTSUP	If this filter cannot work on this NIC (e.g. the NIC
  * 					cannot run in promiscuous node or the limit of WOL
- * 					packets' specifications was reached).
+ * 					frames' specifications was reached).
  * @return ELIMIT	If this filter must implemented in HW but currently the
  * 					limit of these HW filters was reached.
  */
 typedef int (*wol_virtue_add_handler)(nic_t *, const nic_wol_virtue_t *);
+
 /**
  * Handler called when a WOL virtue is removed.
  * If the maximum of accepted WOL virtues changes due to removing this
@@ -170,6 +181,7 @@ typedef int (*wol_virtue_add_handler)(nic_t *, const nic_wol_virtue_t *);
  * @param virtue		Structure with virtue description
  */
 typedef void (*wol_virtue_remove_handler)(nic_t *, const nic_wol_virtue_t *);
+
 /**
  * Handler for poll mode change.
  *
@@ -182,7 +194,8 @@ typedef void (*wol_virtue_remove_handler)(nic_t *, const nic_wol_virtue_t *);
  * @return EINVAL	If this mode cannot be set up under no circumstances
  */
 typedef int (*poll_mode_change_handler)(nic_t *,
-	nic_poll_mode_t, const struct timeval *);
+    nic_poll_mode_t, const struct timeval *);
+
 /**
  * Event handler called when the NIC should poll its buffers for a new frame
  * (in NIC_POLL_PERIODIC or NIC_POLL_ON_DEMAND) modes.
@@ -198,31 +211,28 @@ extern void nic_unbind_and_destroy(ddf_dev_t *);
 /* Functions called in the main function */
 extern int nic_driver_init(const char *);
 extern void nic_driver_implement(driver_ops_t *, ddf_dev_ops_t *,
-	nic_iface_t *);
+    nic_iface_t *);
 
 /* Functions called in add_device */
 extern int nic_connect_to_services(nic_t *);
-extern int nic_register_as_ddf_fun(nic_t *, ddf_dev_ops_t *);
 extern int nic_get_resources(nic_t *, hw_res_list_parsed_t *);
 extern void nic_set_specific(nic_t *, void *);
-extern void nic_set_write_packet_handler(nic_t *, write_packet_handler);
+extern void nic_set_send_frame_handler(nic_t *, send_frame_handler);
 extern void nic_set_state_change_handlers(nic_t *,
-	state_change_handler, state_change_handler, state_change_handler);
+    state_change_handler, state_change_handler, state_change_handler);
 extern void nic_set_filtering_change_handlers(nic_t *,
-	unicast_mode_change_handler, multicast_mode_change_handler,
-	broadcast_mode_change_handler, blocked_sources_change_handler,
-	vlan_mask_change_handler);
+    unicast_mode_change_handler, multicast_mode_change_handler,
+    broadcast_mode_change_handler, blocked_sources_change_handler,
+    vlan_mask_change_handler);
 extern void nic_set_wol_virtue_change_handlers(nic_t *,
-	wol_virtue_add_handler, wol_virtue_remove_handler);
+    wol_virtue_add_handler, wol_virtue_remove_handler);
 extern void nic_set_poll_handlers(nic_t *,
-	poll_mode_change_handler, poll_request_handler);
-
-/* Functions called in device_added */
-extern int nic_ready(nic_t *);
+    poll_mode_change_handler, poll_request_handler);
 
 /* General driver functions */
 extern ddf_dev_t *nic_get_ddf_dev(nic_t *);
 extern ddf_fun_t *nic_get_ddf_fun(nic_t *);
+extern void nic_set_ddf_fun(nic_t *, ddf_fun_t *);
 extern nic_t *nic_get_from_ddf_dev(ddf_dev_t *);
 extern nic_t *nic_get_from_ddf_fun(ddf_fun_t *);
 extern void *nic_get_specific(nic_t *);
@@ -231,8 +241,6 @@ extern void nic_set_tx_busy(nic_t *, int);
 extern int nic_report_address(nic_t *, const nic_address_t *);
 extern int nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
 extern void nic_query_address(nic_t *, nic_address_t *);
-extern void nic_received_packet(nic_t *, packet_t *);
-extern void nic_received_noneth_packet(nic_t *, packet_t *);
 extern void nic_received_frame(nic_t *, nic_frame_t *);
 extern void nic_received_frame_list(nic_t *, nic_frame_list_t *);
 extern void nic_disable_interrupt(nic_t *, int);
@@ -246,9 +254,7 @@ extern void nic_report_receive_error(nic_t *, nic_receive_error_cause_t,
     unsigned);
 extern void nic_report_collisions(nic_t *, unsigned);
 
-/* Packet / frame / frame list allocation and deallocation */
-extern packet_t *nic_alloc_packet(nic_t *, size_t);
-extern void nic_release_packet(nic_t *, packet_t *);
+/* Frame / frame list allocation and deallocation */
 extern nic_frame_t *nic_alloc_frame(nic_t *, size_t);
 extern nic_frame_list_t *nic_alloc_frame_list(void);
 extern void nic_frame_list_append(nic_frame_list_t *, nic_frame_t *);
@@ -257,12 +263,12 @@ extern void nic_release_frame(nic_t *, nic_frame_t *);
 /* RXC query and report functions */
 extern void nic_report_hw_filtering(nic_t *, int, int, int);
 extern void nic_query_unicast(const nic_t *,
-	nic_unicast_mode_t *, size_t, nic_address_t *, size_t *);
+    nic_unicast_mode_t *, size_t, nic_address_t *, size_t *);
 extern void nic_query_multicast(const nic_t *,
-	nic_multicast_mode_t *, size_t, nic_address_t *, size_t *);
+    nic_multicast_mode_t *, size_t, nic_address_t *, size_t *);
 extern void nic_query_broadcast(const nic_t *, nic_broadcast_mode_t *);
 extern void nic_query_blocked_sources(const nic_t *,
-	size_t, nic_address_t *, size_t *);
+    size_t, nic_address_t *, size_t *);
 extern int nic_query_vlan_mask(const nic_t *, nic_vlan_mask_t *);
 extern int nic_query_wol_max_caps(const nic_t *, nic_wv_type_t);
 extern void nic_set_wol_max_caps(nic_t *, nic_wv_type_t, int);
@@ -272,10 +278,6 @@ extern uint64_t nic_query_mcast_hash(nic_t *);
 /* Software period functions */
 extern void nic_sw_period_start(nic_t *);
 extern void nic_sw_period_stop(nic_t *);
-
-/* Packet DMA lock */
-extern void * nic_dma_lock_packet(packet_t * packet);
-extern void nic_dma_unlock_packet(packet_t * packet);
 
 #endif // __NIC_H__
 

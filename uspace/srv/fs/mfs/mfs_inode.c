@@ -234,8 +234,8 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 	const bool native = sbi->native;
 
 	r = block_get(&b, mnode->instance->service_id,
-		      itable_off + inum / sbi->ino_per_block,
-		      BLOCK_FLAGS_NONE);
+	    itable_off + inum / sbi->ino_per_block,
+	    BLOCK_FLAGS_NONE);
 
 	if (r != EOK)
 		goto out;
@@ -277,8 +277,8 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	const bool native = sbi->native;
 
 	r = block_get(&b, mnode->instance->service_id,
-		      itable_off + inum / sbi->ino_per_block,
-		      BLOCK_FLAGS_NONE);
+	    itable_off + inum / sbi->ino_per_block,
+	    BLOCK_FLAGS_NONE);
 
 	if (r != EOK)
 		goto out;

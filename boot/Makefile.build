@@ -33,7 +33,7 @@ include Makefile.common
 INCLUDES = generic/include
 OPTIMIZATION = 3
 
-DEFS = -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
+DEFS = -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -45,10 +45,6 @@ GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
-
-SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
-	-xnolib -xc99=all -features=extensions \
-	-erroff=E_ZERO_SIZED_STRUCT_UNION
 
 CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -65,7 +61,6 @@ endif
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -g
 	ICC_CFLAGS += -g
-	SUNCC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
@@ -82,12 +77,6 @@ endif
 ifeq ($(COMPILER),icc)
 	CFLAGS = $(ICC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),suncc)
-	CFLAGS = $(SUNCC_CFLAGS) $(EXTRA_CFLAGS)
-	DEFS += $(CONFIG_DEFS)
-	DEPEND_DEFS = $(DEFS)
 endif
 
 ifeq ($(COMPILER),clang)

@@ -51,7 +51,7 @@
 #include <inttypes.h>
 #include "s3c24xx_ts.h"
 
-#define NAME       "s3c24ser"
+#define NAME       "s3c24xx_ts"
 #define NAMESPACE  "hid"
 
 static irq_cmd_t ts_irq_cmds[] = {
@@ -61,6 +61,8 @@ static irq_cmd_t ts_irq_cmds[] = {
 };
 
 static irq_code_t ts_irq_code = {
+	0,
+	NULL,
 	sizeof(ts_irq_cmds) / sizeof(irq_cmd_t),
 	ts_irq_cmds
 };
@@ -81,14 +83,13 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1);
 
 int main(int argc, char *argv[])
 {
-	int rc;
-
-	printf(NAME ": S3C24xx touchscreen driver\n");
-
-	rc = loc_server_register(NAME, s3c24xx_ts_connection);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
-		return -1;
+	printf("%s: S3C24xx touchscreen driver\n", NAME);
+	
+	async_set_client_connection(s3c24xx_ts_connection);
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
+		return rc;
 	}
 
 	ts = malloc(sizeof(s3c24xx_ts_t));
@@ -138,7 +139,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	    (void *) ts->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_ts_irq_handler);
-	register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
+	irq_register(inr, device_assign_devno(), 0, &ts_irq_code);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 

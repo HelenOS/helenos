@@ -56,6 +56,7 @@
 #include <arch/mm/page.h>
 #include <mm/as.h>
 #include <mm/frame.h>
+#include <mm/km.h>
 #include <print.h>
 #include <memstr.h>
 #include <console/console.h>
@@ -67,6 +68,7 @@
 #include <debug.h>
 #include <str.h>
 #include <sysinfo/stats.h>
+#include <align.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -113,11 +115,10 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		thread = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true);
+		thread = thread_create(kmp, NULL, TASK,
+		    THREAD_FLAG_UNCOUNTED, "kmp");
 		if (thread != NULL) {
-			irq_spinlock_lock(&thread->lock, false);
-			thread->cpu = &cpus[0];
-			irq_spinlock_unlock(&thread->lock, false);
+			thread_wire(thread, &cpus[0]);
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
@@ -131,11 +132,10 @@ void kinit(void *arg)
 		unsigned int i;
 		
 		for (i = 0; i < config.cpu_count; i++) {
-			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
+			thread = thread_create(kcpulb, NULL, TASK,
+			    THREAD_FLAG_UNCOUNTED, "kcpulb");
 			if (thread != NULL) {
-				irq_spinlock_lock(&thread->lock, false);
-				thread->cpu = &cpus[i];
-				irq_spinlock_unlock(&thread->lock, false);
+				thread_wire(thread, &cpus[i]);
 				thread_ready(thread);
 			} else
 				printf("Unable to create kcpulb thread for cpu%u\n", i);
@@ -149,7 +149,8 @@ void kinit(void *arg)
 	arch_post_smp_init();
 	
 	/* Start thread computing system load */
-	thread = thread_create(kload, NULL, TASK, 0, "kload", false);
+	thread = thread_create(kload, NULL, TASK, THREAD_FLAG_NONE,
+	    "kload");
 	if (thread != NULL)
 		thread_ready(thread);
 	else
@@ -160,7 +161,8 @@ void kinit(void *arg)
 		/*
 		 * Create kernel console.
 		 */
-		thread = thread_create(kconsole_thread, NULL, TASK, 0, "kconsole", false);
+		thread = thread_create(kconsole_thread, NULL, TASK,
+		    THREAD_FLAG_NONE, "kconsole");
 		if (thread != NULL)
 			thread_ready(thread);
 		else
@@ -177,8 +179,8 @@ void kinit(void *arg)
 	program_t programs[CONFIG_INIT_TASKS];
 	
 	for (i = 0; i < init.cnt; i++) {
-		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%zu].addr is not frame aligned\n", i);
+		if (init.tasks[i].paddr % FRAME_SIZE) {
+			printf("init[%zu]: Address is not frame aligned\n", i);
 			programs[i].task = NULL;
 			continue;
 		}
@@ -199,27 +201,43 @@ void kinit(void *arg)
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
 		
-		int rc = program_create_from_image((void *) init.tasks[i].addr,
-		    namebuf, &programs[i]);
+		/*
+		 * Create virtual memory mappings for init task images.
+		 */
+		uintptr_t page = km_map(init.tasks[i].paddr,
+		    init.tasks[i].size,
+		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
+		ASSERT(page);
 		
-		if ((rc == 0) && (programs[i].task != NULL)) {
+		int rc = program_create_from_image((void *) page, namebuf,
+		    &programs[i]);
+		
+		if (rc == 0) {
+			if (programs[i].task != NULL) {
+				/*
+				 * Set capabilities to init userspace tasks.
+				 */
+				cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
+				    CAP_IO_MANAGER | CAP_IRQ_REG);
+				
+				if (!ipc_phone_0)
+					ipc_phone_0 = &programs[i].task->answerbox;
+			}
+			
 			/*
-			 * Set capabilities to init userspace tasks.
+			 * If programs[i].task == NULL then it is
+			 * the program loader and it was registered
+			 * successfully.
 			 */
-			cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
-			    CAP_IO_MANAGER | CAP_IRQ_REG);
-			
-			if (!ipc_phone_0)
-				ipc_phone_0 = &programs[i].task->answerbox;
-		} else if (rc == 0) {
-			/* It was the program loader and was registered */
-		} else {
-			/* RAM disk image */
-			int rd = init_rd((rd_header_t *) init.tasks[i].addr, init.tasks[i].size);
-			
-			if (rd != RE_OK)
-				printf("Init binary %zu not used (error %d)\n", i, rd);
-		}
+		} else if (i == init.cnt - 1) {
+			/*
+			 * Assume the last task is the RAM disk.
+			 */
+			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
+		} else
+			printf("init[%zu]: Init binary load failed "
+			    "(error %d, loader status %u)\n", i, rc,
+			    programs[i].loader_status);
 	}
 	
 	/*

@@ -38,6 +38,7 @@
 #include <usb/dev/driver.h>
 #include <time.h>
 
+/** Parameters and callbacks for automated polling. */
 typedef struct {
 	/** Level of debugging messages from auto polling.
 	 * 0 - nothing
@@ -81,10 +82,12 @@ typedef struct {
 	 * @return Whether to continue in polling.
 	 */
 	bool (*on_error)(usb_device_t *dev, int err_code, void *arg);
+	/** Argument to pass to callbacks. */
+	void *arg;
 } usb_device_auto_polling_t;
 
-int usb_device_auto_polling(usb_device_t *, size_t, usb_device_auto_polling_t *,
-    size_t, void *);
+int usb_device_auto_polling(usb_device_t *, size_t,
+    const usb_device_auto_polling_t *, size_t);
 
 typedef bool (*usb_polling_callback_t)(usb_device_t *,
     uint8_t *, size_t, void *);

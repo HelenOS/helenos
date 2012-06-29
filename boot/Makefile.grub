@@ -30,33 +30,68 @@
 
 include Makefile.common
 
-STAGE2 = grub/stage2_eltorito
-STAGE2_IN = boot/$(STAGE2)
+GRUB = grub.$(GRUB_ARCH)
+BOOT = $(DISTROOT)/boot
+
+ELTORITO = boot/grub/$(GRUB_ARCH).img
+IMAGE = $(DISTROOT)/$(ELTORITO)
+
+ifeq ($(GRUB_ARCH),pc)
+	BOOT_CONFIG = $(BOOT)/grub/i386-pc/grub.cfg
+	MULTIBOOT_CMD = multiboot
+	MODULE_CMD = module
+endif
+ifeq ($(GRUB_ARCH),efi)
+	BOOT_CONFIG = $(BOOT)/grub/grub.cfg
+	MULTIBOOT_CMD = multiboot2
+	MODULE_CMD = module2
+endif
 
 all: $(BOOT_OUTPUT)
 
 $(BOOT_OUTPUT): build_dist
-	mkisofs -J -r -b $(STAGE2_IN) -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(DISTROOT)/
+ifeq ($(GRUB_ARCH),pc)
+	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS boot ISO" -eltorito-boot $(ELTORITO) -no-emul-boot -boot-load-size 64 -boot-info-table -o $@ $(DISTROOT)/
+endif
+ifeq ($(GRUB_ARCH),efi)
+	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS boot ISO" -efi-boot $(ELTORITO) -o $@ $(DISTROOT)/
+endif
 
 build_dist: clean
-	mkdir -p $(DISTROOT)/boot/grub
-	cp $(STAGE2) $(DISTROOT)/boot/grub/
+	mkdir -p $(BOOT)
+	cp -r -L $(GRUB) $(BOOT)/grub
+ifeq ($(GRUB_ARCH),efi)
+	gunzip $(IMAGE)
+endif
+	
 	for module in $(COMPONENTS) ; do \
-		cp "$$module" $(DISTROOT)/boot/ ; \
+		cp "$$module" $(BOOT)/ ; \
 	done
 	
-	echo "default 0" > $(DISTROOT)/boot/grub/menu.lst
-	echo "timeout 10" >> $(DISTROOT)/boot/grub/menu.lst
-	echo "" >> $(DISTROOT)/boot/grub/menu.lst
-	echo "title=HelenOS" >> $(DISTROOT)/boot/grub/menu.lst
-	echo "	root (cd)" >> $(DISTROOT)/boot/grub/menu.lst
+	echo "set default=0" > $(BOOT_CONFIG)
+	echo "set timeout=10" >> $(BOOT_CONFIG)
+	echo "" >> $(BOOT_CONFIG)
+	
+ifeq ($(GRUB_ARCH),pc)
+	echo "insmod vbe" >> $(BOOT_CONFIG)
+	echo "insmod vga" >> $(BOOT_CONFIG)
+endif
+ifeq ($(GRUB_ARCH),efi)
+	echo "insmod efi_gop" >> $(BOOT_CONFIG)
+	echo "insmod efi_uga" >> $(BOOT_CONFIG)
+endif
+	echo "" >> $(BOOT_CONFIG)
+	
+	echo "menuentry 'HelenOS $(RELEASE)' --class helenos --class os {" >> $(BOOT_CONFIG)
 	for module in $(MODULES) ; do \
+		echo "	echo 'Loading $$module'" >> $(BOOT_CONFIG) ; \
 		if [ "$$module" = "kernel.bin" ] ; then \
-			echo "	kernel /boot/$$module" >> $(DISTROOT)/boot/grub/menu.lst ; \
+			echo "	$(MULTIBOOT_CMD) /boot/$$module" >> $(BOOT_CONFIG) ; \
 		else \
-			echo "	module /boot/$$module" >> $(DISTROOT)/boot/grub/menu.lst ; \
+			echo "	$(MODULE_CMD) /boot/$$module /boot/$$module" >> $(BOOT_CONFIG) ; \
 		fi \
 	done
+	echo "}" >> $(BOOT_CONFIG)
 
 clean:
 	rm -fr $(DISTROOT)

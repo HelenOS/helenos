@@ -409,10 +409,9 @@ int udebug_task_cleanup(struct task *task)
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		
 		mutex_lock(&thread->udebug.lock);
-		unsigned int flags = thread->flags;
 		
 		/* Only process userspace threads. */
-		if ((flags & THREAD_FLAG_USPACE) != 0) {
+		if (thread->uspace) {
 			/* Prevent any further debug activity in thread. */
 			thread->udebug.active = false;
 			thread->udebug.cur_event = 0;   /* None */

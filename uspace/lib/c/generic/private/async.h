@@ -80,6 +80,8 @@ typedef struct {
 	wu_event_t wu_event;
 } awaiter_t;
 
+extern void awaiter_initialize(awaiter_t *);
+
 extern void __async_init(void);
 extern void async_insert_timeout(awaiter_t *);
 extern void reply_received(void *, int, ipc_call_t *);

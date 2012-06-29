@@ -66,7 +66,7 @@ typedef struct ofw_tree_node {
 typedef bool (* ofw_tree_walker_t)(ofw_tree_node_t *, void *);
 
 extern void ofw_tree_init(ofw_tree_node_t *);
-extern void ofw_tree_print(void);
+extern void ofw_sysinfo_map(void);
 
 extern const char *ofw_tree_node_name(const ofw_tree_node_t *);
 extern ofw_tree_node_t *ofw_tree_lookup(const char *);

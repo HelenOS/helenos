@@ -47,6 +47,7 @@
 #include <futex.h>
 #include <fibril.h>
 #include <macros.h>
+#include "private/libc.h"
 
 /**
  * Structures of this type are used for keeping track
@@ -645,11 +646,11 @@ int ipc_connect_to_me(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
  * @return Cloned phone handle on success or a negative error code.
  *
  */
-int ipc_connect_me(int phoneid)
+int ipc_clone_establish(int phoneid)
 {
 	sysarg_t newphid;
-	int res = ipc_call_sync_0_5(phoneid, IPC_M_CONNECT_ME, NULL, NULL,
-	    NULL, NULL, &newphid);
+	int res = ipc_call_sync_0_5(phoneid, IPC_M_CLONE_ESTABLISH, NULL,
+	    NULL, NULL, NULL, &newphid);
 	if (res)
 		return res;
 	
@@ -759,30 +760,32 @@ int ipc_forward_slow(ipc_callid_t callid, int phoneid, sysarg_t imethod,
 /** Wrapper for IPC_M_SHARE_IN calls.
  *
  * @param phoneid Phone that will be used to contact the receiving side.
- * @param dst     Destination address space area base.
  * @param size    Size of the destination address space area.
  * @param arg     User defined argument.
  * @param flags   Storage for received flags. Can be NULL.
+ * @param dst     Destination address space area base. Cannot be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int ipc_share_in_start(int phoneid, void *dst, size_t size, sysarg_t arg,
-    unsigned int *flags)
+int ipc_share_in_start(int phoneid, size_t size, sysarg_t arg,
+    unsigned int *flags, void **dst)
 {
-	sysarg_t tmp_flags = 0;
-	int res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (sysarg_t) dst,
-	    (sysarg_t) size, arg, NULL, &tmp_flags);
+	sysarg_t _flags = 0;
+	sysarg_t _dst = (sysarg_t) -1;
+	int res = ipc_call_sync_2_4(phoneid, IPC_M_SHARE_IN, (sysarg_t) size,
+	    arg, NULL, &_flags, NULL, &_dst);
 	
 	if (flags)
-		*flags = (unsigned int) tmp_flags;
+		*flags = (unsigned int) _flags;
 	
+	*dst = (void *) _dst;
 	return res;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_IN calls.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_IN
  * calls so that the user doesn't have to remember the meaning of each
  * IPC argument.
  *
@@ -795,7 +798,8 @@ int ipc_share_in_start(int phoneid, void *dst, size_t size, sysarg_t arg,
  */
 int ipc_share_in_finalize(ipc_callid_t callid, void *src, unsigned int flags)
 {
-	return ipc_answer_2(callid, EOK, (sysarg_t) src, (sysarg_t) flags);
+	return ipc_answer_3(callid, EOK, (sysarg_t) src, (sysarg_t) flags,
+	    (sysarg_t) __entry);
 }
 
 /** Wrapper for IPC_M_SHARE_OUT calls.
@@ -825,9 +829,9 @@ int ipc_share_out_start(int phoneid, void *src, unsigned int flags)
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int ipc_share_out_finalize(ipc_callid_t callid, void *dst)
+int ipc_share_out_finalize(ipc_callid_t callid, void **dst)
 {
-	return ipc_answer_1(callid, EOK, (sysarg_t) dst);
+	return ipc_answer_2(callid, EOK, (sysarg_t) __entry, (sysarg_t) dst);
 }
 
 /** Wrapper for IPC_M_DATA_READ calls.

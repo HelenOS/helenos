@@ -45,7 +45,7 @@ extern async_exch_t *devman_exchange_begin_blocking(devman_interface_t);
 extern async_exch_t *devman_exchange_begin(devman_interface_t);
 extern void devman_exchange_end(async_exch_t *);
 
-extern int devman_driver_register(const char *, async_client_conn_t);
+extern int devman_driver_register(const char *);
 extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
     devman_handle_t, devman_handle_t *);
 extern int devman_remove_function(devman_handle_t);
@@ -63,6 +63,7 @@ extern int devman_fun_get_child(devman_handle_t, devman_handle_t *);
 extern int devman_dev_get_functions(devman_handle_t, devman_handle_t **,
     size_t *);
 extern int devman_fun_get_name(devman_handle_t, char *, size_t);
+extern int devman_fun_get_driver_name(devman_handle_t, char *, size_t);
 extern int devman_fun_get_path(devman_handle_t, char *, size_t);
 extern int devman_fun_online(devman_handle_t);
 extern int devman_fun_offline(devman_handle_t);

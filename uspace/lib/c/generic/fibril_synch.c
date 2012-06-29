@@ -111,10 +111,9 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 	if (fm->counter-- <= 0) {
 		awaiter_t wdata;
 
+		awaiter_initialize(&wdata);
 		wdata.fid = fibril_get_id();
-		wdata.active = false;
 		wdata.wu_event.inlist = true;
-		link_initialize(&wdata.wu_event.link);
 		list_append(&wdata.wu_event.link, &fm->waiters);
 		check_for_deadlock(&fm->oi);
 		f->waits_for = &fm->oi;
@@ -204,10 +203,9 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 	if (frw->writers) {
 		awaiter_t wdata;
 
+		awaiter_initialize(&wdata);
 		wdata.fid = (fid_t) f;
-		wdata.active = false;
 		wdata.wu_event.inlist = true;
-		link_initialize(&wdata.wu_event.link);
 		f->flags &= ~FIBRIL_WRITER;
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
@@ -232,10 +230,9 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 	if (frw->writers || frw->readers) {
 		awaiter_t wdata;
 
+		awaiter_initialize(&wdata);
 		wdata.fid = (fid_t) f;
-		wdata.active = false;
 		wdata.wu_event.inlist = true;
-		link_initialize(&wdata.wu_event.link);
 		f->flags |= FIBRIL_WRITER;
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
@@ -374,15 +371,10 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 	if (timeout < 0)
 		return ETIMEOUT;
 
+	awaiter_initialize(&wdata);
 	wdata.fid = fibril_get_id();
-	wdata.active = false;
-	
 	wdata.to_event.inlist = timeout > 0;
-	wdata.to_event.occurred = false;
-	link_initialize(&wdata.to_event.link);
-
 	wdata.wu_event.inlist = true;
-	link_initialize(&wdata.wu_event.link);
 
 	futex_down(&async_futex);
 	if (timeout) {
@@ -444,6 +436,137 @@ void fibril_condvar_signal(fibril_condvar_t *fcv)
 void fibril_condvar_broadcast(fibril_condvar_t *fcv)
 {
 	_fibril_condvar_wakeup_common(fcv, false);
+}
+
+/** Timer fibril.
+ *
+ * @param arg	Timer
+ */
+static int fibril_timer_func(void *arg)
+{
+	fibril_timer_t *timer = (fibril_timer_t *) arg;
+	int rc;
+
+	fibril_mutex_lock(&timer->lock);
+
+	while (true) {
+		while (timer->state != fts_active &&
+		    timer->state != fts_cleanup) {
+
+			if (timer->state == fts_cleanup)
+				break;
+
+			fibril_condvar_wait(&timer->cv, &timer->lock);
+		}
+
+		if (timer->state == fts_cleanup)
+			break;
+
+		rc = fibril_condvar_wait_timeout(&timer->cv, &timer->lock,
+		    timer->delay);
+		if (rc == ETIMEOUT) {
+			timer->state = fts_fired;
+			fibril_mutex_unlock(&timer->lock);
+			timer->fun(timer->arg);
+			fibril_mutex_lock(&timer->lock);
+		}
+	}
+
+	fibril_mutex_unlock(&timer->lock);
+	return 0;
+}
+
+/** Create new timer.
+ *
+ * @return		New timer on success, @c NULL if out of memory.
+ */
+fibril_timer_t *fibril_timer_create(void)
+{
+	fid_t fid;
+	fibril_timer_t *timer;
+
+	timer = calloc(1, sizeof(fibril_timer_t));
+	if (timer == NULL)
+		return NULL;
+
+	fid = fibril_create(fibril_timer_func, (void *) timer);
+	if (fid == 0) {
+		free(timer);
+		return NULL;
+	}
+
+	fibril_mutex_initialize(&timer->lock);
+	fibril_condvar_initialize(&timer->cv);
+
+	timer->fibril = fid;
+	timer->state = fts_not_set;
+
+	fibril_add_ready(fid);
+
+	return timer;
+}
+
+/** Destroy timer.
+ *
+ * @param timer		Timer, must not be active or accessed by other threads.
+ */
+void fibril_timer_destroy(fibril_timer_t *timer)
+{
+	fibril_mutex_lock(&timer->lock);
+	assert(timer->state != fts_active);
+	timer->state = fts_cleanup;
+	fibril_condvar_broadcast(&timer->cv);
+	fibril_mutex_unlock(&timer->lock);
+}
+
+/** Set timer.
+ *
+ * Set timer to execute a callback function after the specified
+ * interval.
+ *
+ * @param timer		Timer
+ * @param delay		Delay in microseconds
+ * @param fun		Callback function
+ * @param arg		Argument for @a fun
+ */
+void fibril_timer_set(fibril_timer_t *timer, suseconds_t delay,
+    fibril_timer_fun_t fun, void *arg)
+{
+	fibril_mutex_lock(&timer->lock);
+	timer->state = fts_active;
+	timer->delay = delay;
+	timer->fun = fun;
+	timer->arg = arg;
+	fibril_condvar_broadcast(&timer->cv);
+	fibril_mutex_unlock(&timer->lock);
+}
+
+/** Clear timer.
+ *
+ * Clears (cancels) timer and returns last state of the timer.
+ * This can be one of:
+ *    - fts_not_set	If the timer has not been set or has been cleared
+ *    - fts_active	Timer was set but did not fire
+ *    - fts_fired	Timer fired
+ *
+ * @param timer		Timer
+ * @return		Last timer state
+ */
+fibril_timer_state_t fibril_timer_clear(fibril_timer_t *timer)
+{
+	fibril_timer_state_t old_state;
+
+	fibril_mutex_lock(&timer->lock);
+	old_state = timer->state;
+	timer->state = fts_not_set;
+
+	timer->delay = 0;
+	timer->fun = NULL;
+	timer->arg = NULL;
+	fibril_condvar_broadcast(&timer->cv);
+	fibril_mutex_unlock(&timer->lock);
+
+	return old_state;
 }
 
 /** @}

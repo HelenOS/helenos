@@ -56,8 +56,6 @@ struct usb_hub_dev {
 	size_t port_count;
 	/** Port structures, one for each port */
 	usb_hub_port_t *ports;
-	/** Connection to hcd */
-	usb_hc_connection_t connection;
 	/** Generic usb device data*/
 	usb_device_t *usb_device;
 
@@ -76,9 +74,14 @@ struct usb_hub_dev {
 	ddf_fun_t *hub_fun;
 	/** Status indicator */
 	bool running;
+	/** Hub supports port power switching. */
+	bool power_switched;
+	/** Each port is switched individually. */
+	bool per_port_power;
 };
 
 int usb_hub_device_add(usb_device_t *usb_dev);
+int usb_hub_device_remove(usb_device_t *usb_dev);
 int usb_hub_device_gone(usb_device_t *usb_dev);
 
 bool hub_port_changes_callback(usb_device_t *dev,

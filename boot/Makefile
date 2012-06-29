@@ -39,10 +39,7 @@ endif
 build_comps: $(COMPONENTS) $(LINK).in
 	$(PACK) $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) arch/$(KARCH) $(COMPONENTS)
 
-$(INITRD).img: $(INITRD).fs
-	$(MKHORD) $(PAGE_SIZE) $< $@
-
-$(INITRD).fs: build_dist
+$(INITRD).img: build_dist
 ifeq ($(RDFMT),tmpfs)
 	$(MKTMPFS) $(DIST_PATH) $@
 endif
@@ -68,9 +65,6 @@ endif
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
-	for file in $(NET_CFG) ; do \
-		cp "$$file" "$(DIST_PATH)/cfg/net/" ; \
-	done
 	for drv in $(RD_DRVS) ; do \
 		drv_dir="`dirname "$$drv"`" ; \
 		drv_name="`basename "$$drv"`" ; \
@@ -94,7 +88,7 @@ endif
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 
 clean_dist:
-	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
+	rm -f $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
 	rm -f $(USPACE_PATH)/dist/lib/*

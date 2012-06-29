@@ -34,17 +34,18 @@
 #include <errno.h>
 #include "../tester.h"
 
-#define BUFFER1_PAGES 4
-#define BUFFER2_PAGES 2
+#define BUFFER1_PAGES  4
+#define BUFFER2_PAGES  2
 
 static void *create_as_area(size_t size)
 {
-	void *result = as_get_mappable_page(size);
 	TPRINTF("Creating AS area...\n");
-	if (as_area_create(result, size,
-	    AS_AREA_READ | AS_AREA_WRITE) != result) {
+	
+	void *result = as_area_create(AS_AREA_ANY, size,
+	    AS_AREA_READ | AS_AREA_WRITE);
+	if (result == AS_MAP_FAILED)
 		return NULL;
-	}
+	
 	return result;
 }
 
@@ -70,7 +71,7 @@ static bool verify_mapping(void *area, int page_count, int expected_rc,
 	TPRINTF("Verifying mapping (expected: %s).\n", expected_rc_str);
 	int i;
 	for (i = 0; i < page_count; i++) {
-		void *page_start = ((char *)area) + PAGE_SIZE * i;
+		void *page_start = ((char *) area) + PAGE_SIZE * i;
 		int rc = as_get_physical_mapping(page_start, NULL);
 		if (rc != expected_rc) {
 			TPRINTF("as_get_physical_mapping() = %d != %d\n",

@@ -42,14 +42,17 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
+	app/inet \
 	app/kill \
 	app/killall \
 	app/klog \
-	app/locinfo \
+	app/loc \
 	app/lsusb \
 	app/mixerctl \
 	app/mkfat \
+	app/mkexfat \
 	app/mkmfs \
+	app/nterm \
 	app/redir \
 	app/sbi \
 	app/sportdmp \
@@ -65,14 +68,20 @@ DIRS = \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
+	app/nettest3 \
 	app/ping \
-	app/websrv \
 	app/sysinfo \
 	app/mkbd \
-	srv/clip \
-	srv/loc \
+	app/websrv \
+	srv/clipboard \
+	srv/locsrv \
 	srv/devman \
 	srv/loader \
+	srv/net/ethip \
+	srv/net/inetsrv \
+	srv/net/loopip \
+	srv/net/tcp \
+	srv/net/udp \
 	srv/ns \
 	srv/taskmon \
 	srv/vfs \
@@ -93,19 +102,14 @@ DIRS = \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/input \
-	srv/hw/char/i8042 \
+	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
-	srv/net/il/arp \
-	srv/net/il/ip \
-	srv/net/tl/icmp \
-	srv/net/tl/udp \
-	srv/net/tl/tcp \
-	srv/net/nil/eth \
-	srv/net/nil/nildummy \
-	srv/net/net \
 	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/char/i8042 \
+	drv/char/ps2mouse \
+	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
@@ -119,8 +123,9 @@ DIRS = \
 	drv/bus/usb/usbmast \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
-	drv/nic/lo \
-	drv/nic/ne2k
+	drv/nic/ne2k \
+	drv/nic/e1k \
+	drv/nic/rtl8139
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -133,6 +138,11 @@ endif
 ifeq ($(CONFIG_BINUTILS),y)
 DIRS += \
 	app/binutils
+endif
+
+ifeq ($(CONFIG_MSIM),y)
+DIRS += \
+	app/msim
 endif
 
 ## Platform-specific hardware support

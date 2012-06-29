@@ -67,7 +67,7 @@ static void niagara_putc(const char c)
 
 static void niagara_putchar(wchar_t ch)
 {
-	if ((ch >= 0) && (ch < 128))
+	if (ascii_check(ch))
 		niagara_putc(ch);
 	else
 		niagara_putc('?');
@@ -102,13 +102,8 @@ int niagara_init(void)
 	if (rc != EOK)
 		return rc;
 	
-	niagara.fifo =
-	    (output_fifo_t *) as_get_mappable_page(sizeof(output_fifo_t));
-	if (niagara.fifo == NULL)
-		return ENOMEM;
-	
-	rc = physmem_map((void *) paddr, (void *) niagara.fifo, 1,
-	    AS_AREA_READ | AS_AREA_WRITE);
+	rc = physmem_map((void *) paddr, 1,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &niagara.fifo);
 	if (rc != EOK)
 		return rc;
 	

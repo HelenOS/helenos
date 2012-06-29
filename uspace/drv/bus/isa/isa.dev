@@ -8,10 +8,16 @@ com2:
 	irq 3
 	io_range 2f8 8
 
-keyboard:
-	match 100 isa/keyboard
+i8042:
+	match 100 isa/i8042
 	irq 1
-	io_range 060 10
+	irq 12
+	io_range 060 5
+
+ne2k:
+	match 100 isa/ne2k
+	irq 5
+	io_range 300 20
 
 sb16:
 	match 100 isa/sb16

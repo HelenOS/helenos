@@ -63,7 +63,7 @@ void arch_pre_main(bootinfo_t *bootinfo)
 	
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr = (uintptr_t) bootinfo->taskmap.tasks[i].addr;
+		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
@@ -91,6 +91,9 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Map OFW information into sysinfo */
+		ofw_sysinfo_map();
+		
 		/*
 		 * We have 2^11 different interrupt vectors.
 		 * But we only create 128 buckets.
@@ -150,13 +153,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 {
 	(void) interrupts_disable();
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
-	    - (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
+	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size -
+	    (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
 	    (uintptr_t) kernel_uarg->uspace_uarg);
-
-	for (;;)
-		;
-	/* not reached */
+	
+	/* Not reached */
+	while (1);
 }
 
 void arch_reboot(void)

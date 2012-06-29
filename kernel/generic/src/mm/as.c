@@ -129,7 +129,7 @@ void as_init(void)
 {
 	as_arch_init();
 	
-	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0,
+	as_slab = slab_cache_create("as_t", sizeof(as_t), 0,
 	    as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
@@ -386,6 +386,73 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	return true;
 }
 
+/** Return pointer to unmapped address space area
+ *
+ * The address space must be already locked when calling
+ * this function.
+ *
+ * @param as    Address space.
+ * @param bound Lowest address bound.
+ * @param size  Requested size of the allocation.
+ *
+ * @return Address of the beginning of unmapped address space area.
+ * @return -1 if no suitable address space area was found.
+ *
+ */
+NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
+    size_t size)
+{
+	ASSERT(mutex_locked(&as->lock));
+	
+	if (size == 0)
+		return (uintptr_t) -1;
+	
+	/*
+	 * Make sure we allocate from page-aligned
+	 * address. Check for possible overflow in
+	 * each step.
+	 */
+	
+	size_t pages = SIZE2FRAMES(size);
+	
+	/*
+	 * Find the lowest unmapped address aligned on the size
+	 * boundary, not smaller than bound and of the required size.
+	 */
+	
+	/* First check the bound address itself */
+	uintptr_t addr = ALIGN_UP(bound, PAGE_SIZE);
+	if ((addr >= bound) &&
+	    (check_area_conflicts(as, addr, pages, NULL)))
+		return addr;
+	
+	/* Eventually check the addresses behind each area */
+	list_foreach(as->as_area_btree.leaf_list, cur) {
+		btree_node_t *node =
+		    list_get_instance(cur, btree_node_t, leaf_link);
+		
+		for (btree_key_t i = 0; i < node->keys; i++) {
+			as_area_t *area = (as_area_t *) node->value[i];
+			
+			mutex_lock(&area->lock);
+			
+			addr =
+			    ALIGN_UP(area->base + P2SZ(area->pages), PAGE_SIZE);
+			bool avail =
+			    ((addr >= bound) && (addr >= area->base) &&
+			    (check_area_conflicts(as, addr, pages, area)));
+			
+			mutex_unlock(&area->lock);
+			
+			if (avail)
+				return addr;
+		}
+	}
+	
+	/* No suitable address space area found */
+	return (uintptr_t) -1;
+}
+
 /** Create address space area of common attributes.
  *
  * The created address space area is added to the target address space.
@@ -393,19 +460,22 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
  * @param as           Target address space.
  * @param flags        Flags of the area memory.
  * @param size         Size of area.
- * @param base         Base address of area.
  * @param attrs        Attributes of the area.
  * @param backend      Address space area backend. NULL if no backend is used.
  * @param backend_data NULL or a pointer to an array holding two void *.
+ * @param base         Starting virtual address of the area.
+ *                     If set to -1, a suitable mappable area is found.
+ * @param bound        Lowest address bound if base is set to -1.
+ *                     Otherwise ignored.
  *
  * @return Address space area on success or NULL on failure.
  *
  */
 as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
-    uintptr_t base, unsigned int attrs, mem_backend_t *backend,
-    mem_backend_data_t *backend_data)
+    unsigned int attrs, mem_backend_t *backend,
+    mem_backend_data_t *backend_data, uintptr_t *base, uintptr_t bound)
 {
-	if ((base % PAGE_SIZE) != 0)
+	if ((*base != (uintptr_t) -1) && ((*base % PAGE_SIZE) != 0))
 		return NULL;
 	
 	if (size == 0)
@@ -419,7 +489,15 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	
 	mutex_lock(&as->lock);
 	
-	if (!check_area_conflicts(as, base, pages, NULL)) {
+	if (*base == (uintptr_t) -1) {
+		*base = as_get_unmapped_area(as, bound, size);
+		if (*base == (uintptr_t) -1) {
+			mutex_unlock(&as->lock);
+			return NULL;
+		}
+	}
+	
+	if (!check_area_conflicts(as, *base, pages, NULL)) {
 		mutex_unlock(&as->lock);
 		return NULL;
 	}
@@ -433,7 +511,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	area->attributes = attrs;
 	area->pages = pages;
 	area->resident = 0;
-	area->base = base;
+	area->base = *base;
 	area->sh_info = NULL;
 	area->backend = backend;
 	
@@ -451,7 +529,8 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	}
 	
 	btree_create(&area->used_space);
-	btree_insert(&as->as_area_btree, base, (void *) area, NULL);
+	btree_insert(&as->as_area_btree, *base, (void *) area,
+	    NULL);
 	
 	mutex_unlock(&as->lock);
 	
@@ -859,8 +938,11 @@ int as_area_destroy(as_t *as, uintptr_t address)
  * @param src_base       Base address of the source address space area.
  * @param acc_size       Expected size of the source area.
  * @param dst_as         Pointer to destination address space.
- * @param dst_base       Target base address.
  * @param dst_flags_mask Destination address space area flags mask.
+ * @param dst_base       Target base address. If set to -1,
+ *                       a suitable mappable area is found.
+ * @param bound          Lowest address bound if dst_base is set to -1.
+ *                       Otherwise ignored.
  *
  * @return Zero on success.
  * @return ENOENT if there is no such task or such address space.
@@ -872,7 +954,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
  *
  */
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
-    as_t *dst_as, uintptr_t dst_base, unsigned int dst_flags_mask)
+    as_t *dst_as, unsigned int dst_flags_mask, uintptr_t *dst_base,
+    uintptr_t bound)
 {
 	mutex_lock(&src_as->lock);
 	as_area_t *src_area = find_area_and_lock(src_as, src_base);
@@ -944,8 +1027,9 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	 * The flags of the source area are masked against dst_flags_mask
 	 * to support sharing in less privileged mode.
 	 */
-	as_area_t *dst_area = as_area_create(dst_as, dst_flags_mask, src_size,
-	    dst_base, AS_AREA_ATTR_PARTIAL, src_backend, &src_backend_data);
+	as_area_t *dst_area = as_area_create(dst_as, dst_flags_mask,
+	    src_size, AS_AREA_ATTR_PARTIAL, src_backend,
+	    &src_backend_data, dst_base, bound);
 	if (!dst_area) {
 		/*
 		 * Destination address space area could not be created.
@@ -1954,99 +2038,31 @@ success:
  * Address space related syscalls.
  */
 
-/** Wrapper for as_area_create(). */
-sysarg_t sys_as_area_create(uintptr_t address, size_t size, unsigned int flags)
+sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
+    uintptr_t bound)
 {
-	if (as_area_create(AS, flags | AS_AREA_CACHEABLE, size, address,
-	    AS_AREA_ATTR_NONE, &anon_backend, NULL))
-		return (sysarg_t) address;
-	else
+	uintptr_t virt = base;
+	as_area_t *area = as_area_create(AS, flags | AS_AREA_CACHEABLE, size,
+	    AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, bound);
+	if (area == NULL)
 		return (sysarg_t) -1;
+	
+	return (sysarg_t) virt;
 }
 
-/** Wrapper for as_area_resize(). */
 sysarg_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
 {
 	return (sysarg_t) as_area_resize(AS, address, size, 0);
 }
 
-/** Wrapper for as_area_change_flags(). */
 sysarg_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 {
 	return (sysarg_t) as_area_change_flags(AS, flags, address);
 }
 
-/** Wrapper for as_area_destroy(). */
 sysarg_t sys_as_area_destroy(uintptr_t address)
 {
 	return (sysarg_t) as_area_destroy(AS, address);
-}
-
-/** Return pointer to unmapped address space area
- *
- * @param base Lowest address bound.
- * @param size Requested size of the allocation.
- *
- * @return Pointer to the beginning of unmapped address space area.
- *
- */
-sysarg_t sys_as_get_unmapped_area(uintptr_t base, size_t size)
-{
-	if (size == 0)
-		return 0;
-	
-	/*
-	 * Make sure we allocate from page-aligned
-	 * address. Check for possible overflow in
-	 * each step.
-	 */
-	
-	size_t pages = SIZE2FRAMES(size);
-	uintptr_t ret = 0;
-	
-	/*
-	 * Find the lowest unmapped address aligned on the sz
-	 * boundary, not smaller than base and of the required size.
-	 */
-	
-	mutex_lock(&AS->lock);
-	
-	/* First check the base address itself */
-	uintptr_t addr = ALIGN_UP(base, PAGE_SIZE);
-	if ((addr >= base) &&
-	    (check_area_conflicts(AS, addr, pages, NULL)))
-		ret = addr;
-	
-	/* Eventually check the addresses behind each area */
-	list_foreach(AS->as_area_btree.leaf_list, cur) {
-		if (ret != 0)
-			break;
-
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
-		
-		btree_key_t i;
-		for (i = 0; (ret == 0) && (i < node->keys); i++) {
-			uintptr_t addr;
-
-			as_area_t *area = (as_area_t *) node->value[i];
-			
-			mutex_lock(&area->lock);
-			
-			addr = ALIGN_UP(area->base + P2SZ(area->pages),
-			    PAGE_SIZE);
-			
-			if ((addr >= base) && (addr >= area->base) &&
-			    (check_area_conflicts(AS, addr, pages, area)))
-				ret = addr;
-			
-			mutex_unlock(&area->lock);
-		}
-	}
-	
-	mutex_unlock(&AS->lock);
-	
-	return (sysarg_t) ret;
 }
 
 /** Get list of adress space areas.

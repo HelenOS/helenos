@@ -37,13 +37,13 @@
 #define __SOFTINT_SHIFT_H__
 
 /* Arithmetic/logical shift left. */
-long long __ashldi3 (long long val, int shift);
+extern long long __ashldi3(long long, int);
 
 /* Arithmetic shift right. */
-long long __ashrdi3 (long long val, int shift);
+extern long long __ashrdi3(long long, int);
 
 /* Logical shift right. */
-long long __lshrdi3 (long long val, int shift);
+extern long long __lshrdi3(long long, int);
 
 #endif
 

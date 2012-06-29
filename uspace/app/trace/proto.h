@@ -43,12 +43,12 @@
 
 typedef struct {
 	const char *name;
-
+	
 	int argc;
 	val_type_t arg_type[OPER_MAX_ARGS];
-
+	
 	val_type_t rv_type;
-
+	
 	int respc;
 	val_type_t resp_type[OPER_MAX_ARGS];
 } oper_t;
@@ -56,7 +56,7 @@ typedef struct {
 typedef struct {
 	/** Protocol name */
 	const char *name;
-
+	
 	/** Maps method number to operation */
 	hash_table_t method_oper;
 } proto_t;
@@ -64,20 +64,18 @@ typedef struct {
 /* Maps service number to protocol */
 extern hash_table_t srv_proto;
 
-void proto_init(void);
-void proto_cleanup(void);
+extern void proto_init(void);
+extern void proto_cleanup(void);
 
-void proto_register(int srv, proto_t *proto);
-proto_t *proto_get_by_srv(int srv);
-proto_t *proto_new(const char *name);
-void proto_delete(proto_t *proto);
-void proto_add_oper(proto_t *proto, int method, oper_t *oper);
-oper_t *proto_get_oper(proto_t *proto, int method);
+extern void proto_register(int, proto_t *);
+extern proto_t *proto_get_by_srv(int);
+extern proto_t *proto_new(const char *);
+extern void proto_delete(proto_t *);
+extern void proto_add_oper(proto_t *, int, oper_t *);
+extern oper_t *proto_get_oper(proto_t *, int);
 
-oper_t *oper_new(const char *name, int argc, val_type_t *arg_types,
-    val_type_t rv_type, int respc, val_type_t *resp_types);
-
-
+extern oper_t *oper_new(const char *, int, val_type_t *, val_type_t, int,
+    val_type_t *);
 
 #endif
 

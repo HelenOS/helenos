@@ -63,6 +63,13 @@
 #define DRIVER_DATA(dev) ((nic_t *) ((dev)->driver_data))
 #define NE2K(device) ((ne2k_t *) nic_get_specific(DRIVER_DATA(device)))
 
+static irq_pio_range_t ne2k_ranges_prototype[] = {
+	{
+		.base = 0,
+		.size = NE2K_IO_SIZE, 
+	}
+};
+
 /** NE2000 kernel interrupt command sequence.
  *
  */
@@ -121,17 +128,34 @@ static int ne2k_register_interrupt(nic_t *nic_data)
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
 	if (ne2k->code.cmdcount == 0) {
-		irq_cmd_t *ne2k_cmds = malloc(sizeof(ne2k_cmds_prototype));
-		if (ne2k_cmds == NULL) {
+		irq_pio_range_t *ne2k_ranges;
+		irq_cmd_t *ne2k_cmds;
+
+		ne2k_ranges = malloc(sizeof(ne2k_ranges_prototype));
+		if (!ne2k_ranges)
+			return ENOMEM;
+		memcpy(ne2k_ranges, ne2k_ranges_prototype,
+		    sizeof(ne2k_ranges_prototype));
+		ne2k_ranges[0].base = (uintptr_t) ne2k->base_port;
+
+		ne2k_cmds = malloc(sizeof(ne2k_cmds_prototype));
+		if (!ne2k_cmds) {
+			free(ne2k_ranges);
 			return ENOMEM;
 		}
-		memcpy(ne2k_cmds, ne2k_cmds_prototype, sizeof (ne2k_cmds_prototype));
-		ne2k_cmds[0].addr = ne2k->port + DP_ISR;
-		ne2k_cmds[3].addr = ne2k->port + DP_IMR;
+		memcpy(ne2k_cmds, ne2k_cmds_prototype,
+		    sizeof(ne2k_cmds_prototype));
+		ne2k_cmds[0].addr = ne2k->base_port + DP_ISR;
+		ne2k_cmds[3].addr = ne2k->base_port + DP_IMR;
 		ne2k_cmds[4].addr = ne2k_cmds[0].addr;
-		ne2k_cmds[5].addr = ne2k->port + DP_TSR;
+		ne2k_cmds[5].addr = ne2k->base_port + DP_TSR;
 
-		ne2k->code.cmdcount = sizeof(ne2k_cmds_prototype) / sizeof(irq_cmd_t);
+		ne2k->code.rangecount = sizeof(ne2k_ranges_prototype) /
+		    sizeof(irq_pio_range_t);
+		ne2k->code.ranges = ne2k_ranges;
+
+		ne2k->code.cmdcount = sizeof(ne2k_cmds_prototype) /
+		    sizeof(irq_cmd_t);
 		ne2k->code.cmds = ne2k_cmds;
 	}
 
@@ -147,6 +171,7 @@ static void ne2k_dev_cleanup(ddf_dev_t *dev)
 	if (dev->driver_data != NULL) {
 		ne2k_t *ne2k = NE2K(dev);
 		if (ne2k) {
+			free(ne2k->code.ranges);
 			free(ne2k->code.cmds);
 		}
 		nic_unbind_and_destroy(dev);
@@ -260,7 +285,7 @@ static int ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 	}
 	/* Note: some frame with previous physical address may slip to NIL here
 	 * (for a moment the filtering is not exact), but ethernet should be OK with
-	 * that. Some packet may also be lost, but this is not a problem.
+	 * that. Some frames may also be lost, but this is not a problem.
 	 */
 	ne2k_set_physical_address((ne2k_t *) nic_get_specific(nic_data), address);
 	return EOK;
@@ -335,14 +360,16 @@ static int ne2k_on_broadcast_mode_change(nic_t *nic_data,
 	}
 }
 
-static int ne2k_add_device(ddf_dev_t *dev)
+static int ne2k_dev_add(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun;
+	
 	/* Allocate driver data for the device. */
 	nic_t *nic_data = nic_create_and_bind(dev);
 	if (nic_data == NULL)
 		return ENOMEM;
 	
-	nic_set_write_packet_handler(nic_data, ne2k_send);
+	nic_set_send_frame_handler(nic_data, ne2k_send);
 	nic_set_state_change_handlers(nic_data,
 		ne2k_on_activating, NULL, ne2k_on_stopping);
 	nic_set_filtering_change_handlers(nic_data,
@@ -370,15 +397,32 @@ static int ne2k_add_device(ddf_dev_t *dev)
 		return rc;
 	}
 	
-	rc = nic_register_as_ddf_fun(nic_data, &ne2k_dev_ops);
+	rc = nic_connect_to_services(nic_data);
 	if (rc != EOK) {
 		ne2k_dev_cleanup(dev);
 		return rc;
 	}
 	
-	rc = nic_connect_to_services(nic_data);
-	if (rc != EOK) {
+	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
+	if (fun == NULL) {
 		ne2k_dev_cleanup(dev);
+		return ENOMEM;
+	}
+	nic_set_ddf_fun(nic_data, fun);
+	fun->ops = &ne2k_dev_ops;
+	fun->driver_data = nic_data;
+	
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_fun_destroy(fun);
+		ne2k_dev_cleanup(dev);
+		return rc;
+	}
+	
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK) {
+		ddf_fun_unbind(fun);
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 	
@@ -390,7 +434,7 @@ static nic_iface_t ne2k_nic_iface = {
 };
 
 static driver_ops_t ne2k_driver_ops = {
-	.add_device = ne2k_add_device
+	.dev_add = ne2k_dev_add
 };
 
 static driver_t ne2k_driver = {

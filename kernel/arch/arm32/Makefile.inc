@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -fno-zero-initialized-in-bss -mapcs-frame
+GCC_CFLAGS += -march=armv4
 
 BITS = 32
 ENDIANESS = LE
@@ -40,6 +40,7 @@ ENDIANESS = LE
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
 	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/eabi.S \
 	arch/$(KARCH)/src/exc_handler.S \
 	arch/$(KARCH)/src/arm32.c \
 	arch/$(KARCH)/src/machine_func.c \
@@ -52,6 +53,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/userspace.c \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/debug/stacktrace_asm.S \
+	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

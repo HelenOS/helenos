@@ -54,7 +54,6 @@ FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer -fno-optimize-sibling-calls
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
-SUNCC_CFLAGS += -m64 -xmodel=kernel
 
 BITS = 64
 ENDIANESS = LE
@@ -66,25 +65,25 @@ ifeq ($(PROCESSOR),opteron)
 	CMN2 := -march=opteron
 	GCC_CFLAGS += $(CMN2)
 	ICC_CFLAGS += $(CMN2)
-	SUNCC_CFLAGS += -xtarget=opteron
 endif
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/boot/boot.S \
+	arch/$(KARCH)/src/boot/multiboot.S \
+	arch/$(KARCH)/src/boot/multiboot2.S \
 	arch/$(KARCH)/src/boot/memmap.c \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/pm.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/drivers/vesa.c \
 	arch/$(KARCH)/src/drivers/i8254.c \
 	arch/$(KARCH)/src/drivers/i8259.c \
 	arch/$(KARCH)/src/delay.S \
 	arch/$(KARCH)/src/amd64.c \
 	arch/$(KARCH)/src/bios/bios.c \
 	arch/$(KARCH)/src/interrupt.c \
+	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

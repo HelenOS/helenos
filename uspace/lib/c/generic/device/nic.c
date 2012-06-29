@@ -43,42 +43,63 @@
 #include <stdio.h>
 #include <ipc/services.h>
 
-/** Send a packet through the device
+/** Send frame from NIC
  *
  * @param[in] dev_sess
- * @param[in] packet_id Id of the sent packet
+ * @param[in] data     Frame data
+ * @param[in] size     Frame size in bytes
  *
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_send_message(async_sess_t *dev_sess, packet_id_t packet_id)
+int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
-	    NIC_SEND_MESSAGE, packet_id);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_SEND_MESSAGE, &answer);
+	sysarg_t retval = async_data_write_start(exch, data, size);
+	
 	async_exchange_end(exch);
 	
-	return rc;
+	if (retval != EOK) {
+		async_forget(req);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	return retval;
 }
 
-/** Connect the driver to the NET and NIL services
+/** Create callback connection from NIC service
  *
  * @param[in] dev_sess
- * @param[in] nil_service Service identifier for the NIL service
  * @param[in] device_id
  *
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_connect_to_nil(async_sess_t *dev_sess, services_t nil_service,
-    nic_device_id_t device_id)
+int nic_callback_create(async_sess_t *dev_sess, async_client_conn_t cfun,
+    void *carg)
 {
+	ipc_call_t answer;
+	int rc;
+	sysarg_t retval;
+	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_3_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
-	    NIC_CONNECT_TO_NIL, nil_service, device_id);
+	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
+	    NIC_CALLBACK_CREATE, &answer);
+	
+	rc = async_connect_to_me(exch, 0, 0, 0, cfun, carg);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
 	async_exchange_end(exch);
 	
-	return rc;
+	async_wait_for(req, &retval);
+	return (int) retval;
 }
 
 /** Get the current state of the device
@@ -323,7 +344,7 @@ int nic_set_operation_mode(async_sess_t *dev_sess, int speed,
  * The advertisement argument can only limit some modes,
  * it can never force the NIC to advertise unsupported modes.
  *
- * The allowed modes are defined in "net/eth_phys.h" in the C library.
+ * The allowed modes are defined in "nic/eth_phys.h" in the C library.
  *
  * @param[in] dev_sess
  * @param[in] advertisement Allowed advertised modes. Use 0 for all modes.
@@ -360,7 +381,7 @@ int nic_autoneg_disable(async_sess_t *dev_sess)
 
 /** Probe current state of auto-negotiation.
  *
- * Modes are defined in the "net/eth_phys.h" in the C library.
+ * Modes are defined in the "nic/eth_phys.h" in the C library.
  *
  * @param[in]  dev_sess
  * @param[out] our_advertisement   Modes advertised by this NIC.
@@ -894,7 +915,7 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
  * @return EOK If the operation was successfully completed
  *
  */
-int nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, int add, int strip)
+int nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, bool add, bool strip)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	int rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),

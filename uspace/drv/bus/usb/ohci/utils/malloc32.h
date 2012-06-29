@@ -36,6 +36,7 @@
 
 #include <assert.h>
 #include <malloc.h>
+#include <unistd.h>
 #include <errno.h>
 #include <mem.h>
 #include <as.h>
@@ -55,10 +56,11 @@ static inline uintptr_t addr_to_phys(const void *addr)
 {
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);
-
+	
 	if (ret != EOK)
 		return 0;
-	return (result | ((uintptr_t)addr & 0xfff));
+	
+	return result;
 }
 /*----------------------------------------------------------------------------*/
 /** Physical mallocator simulator

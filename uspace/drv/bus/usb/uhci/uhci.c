@@ -40,22 +40,22 @@
 #include <usb/debug.h>
 
 #include "uhci.h"
-#include "pci.h"
 
+#include "res.h"
 #include "hc.h"
 #include "root_hub.h"
 
 /** Structure representing both functions of UHCI hc, USB host controller
  * and USB root hub */
 typedef struct uhci {
-	/** Pointer to DDF represenation of UHCI host controller */
+	/** Pointer to DDF representation of UHCI host controller */
 	ddf_fun_t *hc_fun;
-	/** Pointer to DDF represenation of UHCI root hub */
+	/** Pointer to DDF representation of UHCI root hub */
 	ddf_fun_t *rh_fun;
 
-	/** Internal driver's represenation of UHCI host controller */
+	/** Internal driver's representation of UHCI host controller */
 	hc_t hc;
-	/** Internal driver's represenation of UHCI root hub */
+	/** Internal driver's representation of UHCI root hub */
 	rh_t rh;
 } uhci_t;
 
@@ -88,31 +88,6 @@ static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
-/** Get address of the device identified by handle.
- *
- * @param[in] fun DDF instance of the function to use.
- * @param[in] handle DDF handle of the driver seeking its USB address.
- * @param[out] address Found address.
- */
-static int usb_iface_get_address(
-    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
-{
-	assert(fun);
-	usb_device_manager_t *manager =
-	    &dev_to_uhci(fun->dev)->hc.generic.dev_manager;
-	const usb_address_t addr = usb_device_manager_find(manager, handle);
-
-	if (addr < 0) {
-		return addr;
-	}
-
-	if (address != NULL) {
-		*address = addr;
-	}
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
 /** Gets handle of the respective hc.
  *
  * @param[in] fun DDF function of uhci device.
@@ -133,7 +108,6 @@ static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 /** USB interface implementation used by RH */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
-	.get_address = usb_iface_get_address
 };
 /*----------------------------------------------------------------------------*/
 /** Get root hub hw resources (I/O registers).
@@ -173,8 +147,10 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_uhci(ddf_dev_t *device)
 {
-	assert(device);
-	uhci_t *instance = malloc(sizeof(uhci_t));
+	if (!device)
+		return EBADMEM;
+
+	uhci_t *instance = ddf_dev_data_alloc(device, sizeof(uhci_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
@@ -183,15 +159,12 @@ int device_setup_uhci(ddf_dev_t *device)
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) \
-		instance->hc_fun->ops = NULL; \
 		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	if (instance->rh_fun) {\
-		instance->rh_fun->ops = NULL; \
 		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
-	device->driver_data = NULL; \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
@@ -213,25 +186,32 @@ if (ret != EOK) { \
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = pci_get_my_registers(device, &reg_base, &reg_size, &irq);
+	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to get I/O addresses for %" PRIun ": %s.\n",
 	    device->handle, str_error(ret));
 	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	ret = pci_disable_legacy(device);
+	ret = disable_legacy(device);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
-	const size_t cmd_count = hc_irq_cmd_count();
-	irq_cmd_t irq_cmds[cmd_count];
-	ret =
-	    hc_get_irq_commands(irq_cmds, sizeof(irq_cmds), reg_base, reg_size);
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
 
-	irq_code_t irq_code = { .cmdcount = cmd_count, .cmds = irq_cmds };
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
         /* Register handler to avoid interrupt lockup */
         ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
@@ -239,7 +219,7 @@ if (ret != EOK) { \
             "Failed to register interrupt handler: %s.\n", str_error(ret));
 
 	bool interrupts = false;
-	ret = pci_enable_interrupts(device);
+	ret = enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling.\n", str_error(ret));
@@ -251,8 +231,6 @@ if (ret != EOK) { \
 	ret = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
-
-	device->driver_data = instance;
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \

@@ -149,6 +149,9 @@ extern fibril_condvar_t fs_list_cv;
 extern fibril_mutex_t fs_list_lock;
 extern list_t fs_list;		/**< List of registered file systems. */
 
+extern fibril_mutex_t fs_mntlist_lock;
+extern list_t fs_mntlist;	/**< List of mounted file systems. */
+
 extern vfs_pair_t rootfs;	/**< Root file system. */
 
 /** Each instance of this type describes one path lookup in progress. */
@@ -161,8 +164,6 @@ typedef struct {
 extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_entries. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern list_t plb_entries;	/**< List of active PLB entries. */
-
-#define MAX_MNTOPTS_LEN		256
 
 /** Holding this rwlock prevents changes in file system namespace. */ 
 extern fibril_rwlock_t namespace_rwlock;
@@ -218,6 +219,7 @@ extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
 extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
+extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
 
 #endif
 

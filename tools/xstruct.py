@@ -31,17 +31,28 @@ Convert descriptive structure definitions to structure object
 """
 
 import struct
+import sys
 import types
 
+# Handle long integer conversions nicely in both Python 2 and Python 3
+integer_types = (int, long) if sys.version < '3' else (int,)
+
+# Ensure that 's' format for struct receives correct data type depending
+# on Python version (needed due to different way to encode into bytes) 
+ensure_string = \
+	(lambda value: value if type(value) is str else bytes(value)) \
+		if sys.version < '3' else \
+	(lambda value: bytes(value, 'ascii') if type(value) is str else value)
+
 ranges = {
-	'B': ((int, long), 0x00, 0xff),
-	'H': ((int, long), 0x0000, 0xffff),
-	'L': ((int, long), 0x00000000, 0xffffffff),
-	'Q': ((int, long), 0x0000000000000000, 0xffffffffffffffff),
-	'b': ((int, long), -0x80, 0x7f),
-	'h': ((int, long), -0x8000, 0x7fff),
-	'l': ((int, long), -0x80000000, 0x7fffffff) ,
-	'q': ((int, long), -0x8000000000000000, 0x7fffffffffffffff),
+	'B': (integer_types, 0x00, 0xff),
+	'H': (integer_types, 0x0000, 0xffff),
+	'L': (integer_types, 0x00000000, 0xffffffff),
+	'Q': (integer_types, 0x0000000000000000, 0xffffffffffffffff),
+	'b': (integer_types, -0x80, 0x7f),
+	'h': (integer_types, -0x8000, 0x7fff),
+	'l': (integer_types, -0x80000000, 0x7fffffff) ,
+	'q': (integer_types, -0x8000000000000000, 0x7fffffffffffffff),
 }
 
 def check_range(varname, fmt, value):
@@ -73,6 +84,8 @@ class Struct:
 					check_range(variable + '[' + repr(index) + ']', fmt, item)
 					args.append(item)
 			else:
+				if (fmt == "s"):
+					value = ensure_string(value)
 				check_range(variable, fmt, value)
 				args.append(value)		
 		return struct.pack(self._format_, *args)

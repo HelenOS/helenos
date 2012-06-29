@@ -40,9 +40,11 @@
 #include <libarch/tls.h>
 
 #define context_set_generic(c, _pc, stack, size, ptls) \
-	(c)->pc = (sysarg_t) (_pc); \
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
-	(c)->tls = (sysarg_t) (ptls);
+	do { \
+		(c)->pc = (sysarg_t) (_pc); \
+		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+		(c)->tls = (sysarg_t) (ptls); \
+	} while (0)
 
 #define FIBRIL_SERIALIZED  1
 #define FIBRIL_WRITER      2
@@ -84,6 +86,7 @@ extern int context_save(context_t *ctx) __attribute__((returns_twice));
 extern void context_restore(context_t *ctx) __attribute__((noreturn));
 
 extern fid_t fibril_create(int (*func)(void *), void *arg);
+extern void fibril_destroy(fid_t fid);
 extern fibril_t *fibril_setup(void);
 extern void fibril_teardown(fibril_t *f);
 extern int fibril_switch(fibril_switch_type_t stype);

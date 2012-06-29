@@ -36,13 +36,16 @@
 #define LIBC_NS_H_
 
 #include <sys/types.h>
+#include <ipc/services.h>
 #include <task.h>
 #include <async.h>
 
 extern int service_register(sysarg_t);
-extern async_sess_t *service_connect(exch_mgmt_t, sysarg_t, sysarg_t, sysarg_t);
-extern async_sess_t *service_connect_blocking(exch_mgmt_t, sysarg_t, sysarg_t,
+extern async_sess_t *service_connect(exch_mgmt_t, services_t, sysarg_t, sysarg_t);
+extern async_sess_t *service_connect_blocking(exch_mgmt_t, services_t, sysarg_t,
     sysarg_t);
+extern async_sess_t *service_bind(services_t, sysarg_t, sysarg_t, sysarg_t,
+    async_client_conn_t);
 
 extern int ns_ping(void);
 extern int ns_intro(task_id_t);

@@ -33,40 +33,30 @@
  */
 
 #include <arch.h>
-#include <arch/drivers/ski.h>
-#include <arch/drivers/it.h>
-#include <arch/interrupt.h>
-#include <arch/barrier.h>
-#include <arch/asm.h>
-#include <arch/register.h>
 #include <typedefs.h>
-#include <arch/context.h>
-#include <arch/stack.h>
-#include <arch/mm/page.h>
+#include <errno.h>
 #include <interrupt.h>
-#include <mm/as.h>
-#include <config.h>
 #include <macros.h>
+#include <str.h>
 #include <userspace.h>
 #include <console/console.h>
-#include <abi/proc/uarg.h>
 #include <syscall/syscall.h>
-#include <ddi/irq.h>
-#include <arch/bootinfo.h>
-#include <genarch/drivers/legacy/ia32/io.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/drivers/it.h>
+#include <arch/drivers/kbd.h>
+#include <arch/legacyio.h>
 #include <genarch/drivers/ega/ega.h>
-#include <genarch/kbrd/kbrd.h>
-#include <genarch/srln/srln.h>
 #include <genarch/drivers/i8042/i8042.h>
 #include <genarch/drivers/ns16550/ns16550.h>
-#include <arch/drivers/kbd.h>
-#include <smp/smp.h>
-#include <smp/ipi.h>
-#include <arch/atomic.h>
-#include <panic.h>
-#include <print.h>
-#include <sysinfo/sysinfo.h>
-#include <str.h>
+#include <genarch/drivers/legacy/ia32/io.h>
+#include <genarch/kbrd/kbrd.h>
+#include <genarch/srln/srln.h>
+#include <mm/page.h>
+#include <mm/km.h>
+
+#ifdef MACHINE_ski
+#include <arch/drivers/ski.h>
+#endif
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
@@ -74,16 +64,18 @@
 bootinfo_t *bootinfo;
 
 static uint64_t iosapic_base = 0xfec00000;
+uintptr_t legacyio_virt_base = 0;
 
 /** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS,
+	    CONFIG_INIT_TASKS);
 	size_t i;
+
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].addr =
-		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |
-		    VRN_MASK;
+		init.tasks[i].paddr =
+		    (uintptr_t) bootinfo->taskmap.tasks[i].addr;
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
@@ -96,7 +88,8 @@ void arch_pre_mm_init(void)
 
 static void iosapic_init(void)
 {
-	uint64_t IOSAPIC = PA2KA((sysarg_t)(iosapic_base)) | FW_OFFSET;
+	uintptr_t IOSAPIC = km_map(iosapic_base, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	int i;
 	
 	int myid, myeid;
@@ -123,6 +116,10 @@ static void iosapic_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+		/* Map the page with legacy I/O. */
+		legacyio_virt_base = km_map(LEGACYIO_PHYS_BASE, LEGACYIO_SIZE,
+		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+
 		iosapic_init();
 		irq_init(INR_COUNT, INR_COUNT);
 	}
@@ -146,7 +143,7 @@ void arch_post_smp_init(void)
 	platform = "ski";
 #endif
 #ifdef MACHINE_i460GX
-	platform = "i460GX";
+	platform = "pc";
 #endif
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
@@ -190,12 +187,11 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) NS16550_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
-	    (uintptr_t) NS16550_BASE);
 #endif
 	
 #ifdef CONFIG_I8042
-	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
+	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE,
+	    IRQ_KBD);
 	if (i8042_instance) {
 		kbrd_instance_t *kbrd_instance = kbrd_init();
 		if (kbrd_instance) {
@@ -204,21 +200,11 @@ void arch_post_smp_init(void)
 			i8042_wire(i8042_instance, kbrd);
 		}
 	}
-	
-	sysinfo_set_item_val("i8042", NULL, true);
-	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
-	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
-	sysinfo_set_item_val("i8042.address.physical", NULL,
-	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("i8042.address.kernel", NULL,
-	    (uintptr_t) I8042_BASE);
 #endif
-
-	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
-
+	
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
-	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
+	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, LEGACYIO_USER_BASE);
 }
 
 
@@ -245,32 +231,33 @@ void userspace(uspace_arg_t *kernel_uarg)
 	 * Switch to userspace.
 	 *
 	 * When calculating stack addresses, mind the stack split between the
-	 * memory stack and the RSE stack. Each occuppies STACK_SIZE / 2 bytes.
+	 * memory stack and the RSE stack. Each occuppies
+	 * uspace_stack_size / 2 bytes.
 	 */
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE / 2 -
+	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size / 2 -
 	    ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE / 2,
+	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size / 2,
 	    (uintptr_t) kernel_uarg->uspace_uarg, psr.value, rsc.value);
-
-	while (1)
-		;
+	
+	while (1);
 }
 
 /** Set thread-local-storage pointer.
  *
  * We use r13 (a.k.a. tp) for this purpose.
  */
-sysarg_t sys_tls_set(sysarg_t addr)
+sysarg_t sys_tls_set(uintptr_t addr)
 {
-	return 0;
+	return EOK;
 }
 
 void arch_reboot(void)
 {
 	pio_write_8((ioport8_t *)0x64, 0xfe);
-	while (1)
-		;
+	while (1);
 }
 
 /** Construct function pointer

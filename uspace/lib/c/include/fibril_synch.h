@@ -106,6 +106,37 @@ typedef struct {
 #define FIBRIL_CONDVAR_INITIALIZE(name) \
 	fibril_condvar_t name = FIBRIL_CONDVAR_INITIALIZER(name)
 
+typedef void (*fibril_timer_fun_t)(void *);
+
+typedef enum {
+	/** Timer has not been set or has been cleared */
+	fts_not_set,
+	/** Timer was set but did not fire yet */
+	fts_active,
+	/** Timer has fired and has not been cleared since */
+	fts_fired,
+	/** Timer is being destroyed */
+	fts_cleanup
+} fibril_timer_state_t;
+
+/** Fibril timer.
+ *
+ * When a timer is set it executes a callback function (in a separate
+ * fibril) after a specified time interval. The timer can be cleared
+ * (canceled) before that. From the return value of fibril_timer_clear()
+ * one can tell whether the timer fired or not.
+ */
+typedef struct {
+	fibril_mutex_t lock;
+	fibril_condvar_t cv;
+	fid_t fibril;
+	fibril_timer_state_t state;
+
+	suseconds_t delay;
+	fibril_timer_fun_t fun;
+	void *arg;
+} fibril_timer_t;
+
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
@@ -127,6 +158,12 @@ extern int fibril_condvar_wait_timeout(fibril_condvar_t *, fibril_mutex_t *,
 extern void fibril_condvar_wait(fibril_condvar_t *, fibril_mutex_t *);
 extern void fibril_condvar_signal(fibril_condvar_t *);
 extern void fibril_condvar_broadcast(fibril_condvar_t *);
+
+extern fibril_timer_t *fibril_timer_create(void);
+extern void fibril_timer_destroy(fibril_timer_t *);
+extern void fibril_timer_set(fibril_timer_t *, suseconds_t, fibril_timer_fun_t,
+    void *);
+extern fibril_timer_state_t fibril_timer_clear(fibril_timer_t *);
 
 #endif
 

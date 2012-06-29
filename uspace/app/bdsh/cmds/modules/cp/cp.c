@@ -29,9 +29,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <getopt.h>
 #include <str.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -43,16 +47,51 @@
 #define CP_DEFAULT_BUFLEN  1024
 
 static const char *cmdname = "cp";
+static console_ctrl_t *con;
 
 static struct option const long_options[] = {
 	{ "buffer", required_argument, 0, 'b' },
 	{ "force", no_argument, 0, 'f' },
+	{ "interactive", no_argument, 0, 'i'},
 	{ "recursive", no_argument, 0, 'r' },
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
 	{ "verbose", no_argument, 0, 'V' },
 	{ 0, 0, 0, 0 }
 };
+
+typedef enum {
+	TYPE_NONE,
+	TYPE_FILE,
+	TYPE_DIR
+} dentry_type_t;
+
+static int64_t copy_file(const char *src, const char *dest,
+    size_t blen, int vb);
+
+/** Get the type of a directory entry.
+ *
+ * @param path	Path of the directory entry.
+ *
+ * @return TYPE_DIR if the dentry is a directory.
+ * @return TYPE_FILE if the dentry is a file.
+ * @return TYPE_NONE if the dentry does not exists.
+ */
+static dentry_type_t get_type(const char *path)
+{
+	struct stat s;
+
+	int r = stat(path, &s);
+
+	if (r)
+		return TYPE_NONE;
+	else if (s.is_directory)
+		return TYPE_DIR;
+	else if (s.is_file)
+		return TYPE_FILE;
+
+	return TYPE_NONE;
+}
 
 static int strtoint(const char *s1)
 {
@@ -65,6 +104,268 @@ static int strtoint(const char *s1)
 		return -1;
 
 	return (int) t1;
+}
+
+/** Get the last component of a path.
+ *
+ * e.g. /data/a  ---> a
+ *
+ * @param path	Pointer to the path.
+ *
+ * @return	Pointer to the last component or to the path itself.
+ */
+static char *get_last_path_component(char *path)
+{
+	char *ptr;
+
+	ptr = str_rchr(path, '/');
+	if (!ptr)
+		return path;
+	else
+		return ptr + 1;
+}
+
+/** Merge two paths together.
+ *
+ * e.g. (path1 = /data/dir, path2 = a/b) --> /data/dir/a/b
+ *
+ * @param path1		Path to which path2 will be appended.
+ * @param path1_size	Size of the path1 buffer.
+ * @param path2		Path that will be appended to path1.
+ */
+static void merge_paths(char *path1, size_t path1_size, char *path2)
+{
+	const char *delim = "/";
+
+	str_rtrim(path1, '/');
+	str_append(path1, path1_size, delim);
+	str_append(path1, path1_size, path2);
+}
+
+static bool get_user_decision(bool bdefault, const char *message, ...)
+{
+	va_list args;
+
+	va_start(args, message);
+	vprintf(message, args);
+	va_end(args);
+
+	while (true) {
+		kbd_event_t ev;
+		console_flush(con);
+		console_get_kbd_event(con, &ev);
+		if ((ev.type != KEY_PRESS)
+		    || (ev.mods & (KM_CTRL | KM_ALT)) != 0) {
+			continue;
+		}
+
+		switch(ev.key) {
+		case KC_Y:
+			printf("y\n");
+			return true;
+		case KC_N:
+			printf("n\n");
+			return false;
+		case KC_ENTER:
+			printf("%c\n", bdefault ? 'Y' : 'N');
+			return bdefault;
+		default:
+			break;
+		}
+	}
+}
+
+static int64_t do_copy(const char *src, const char *dest,
+    size_t blen, int vb, int recursive, int force, int interactive)
+{
+	int r = -1;
+	char dest_path[PATH_MAX];
+	char src_path[PATH_MAX];
+	DIR *dir = NULL;
+	struct dirent *dp;
+
+	dentry_type_t src_type = get_type(src);
+	dentry_type_t dest_type = get_type(dest);
+
+	const size_t src_len = str_size(src);
+
+	if (src_type == TYPE_FILE) {
+		char *src_fname;
+
+		/* Initialize the src_path with the src argument */
+		str_cpy(src_path, src_len + 1, src);
+		str_rtrim(src_path, '/');
+		
+		/* Get the last component name from the src path */
+		src_fname = get_last_path_component(src_path);
+		
+		/* Initialize dest_path with the dest argument */
+		str_cpy(dest_path, PATH_MAX, dest);
+
+		if (dest_type == TYPE_DIR) {
+			/* e.g. cp file_name /data */
+			/* e.g. cp file_name /data/ */
+			
+			/* dest is a directory,
+			 * append the src filename to it.
+			 */
+			merge_paths(dest_path, PATH_MAX, src_fname);
+			dest_type = get_type(dest_path);
+		} else if (dest_type == TYPE_NONE) {
+			if (dest_path[str_size(dest_path) - 1] == '/') {
+				/* e.g. cp /textdemo /data/dirnotexists/ */
+
+				printf("The dest directory %s does not exists",
+				    dest_path);
+				goto exit;
+			}
+		}
+
+		if (dest_type == TYPE_DIR) {
+			printf("Cannot overwrite existing directory %s\n",
+			    dest_path);
+			goto exit;
+		} else if (dest_type == TYPE_FILE) {
+			/* e.g. cp file_name existing_file */
+
+			/* dest already exists, 
+			 * if force is set we will try to remove it.
+			 * if interactive is set user input is required.
+			 */
+			if (force && !interactive) {
+				if (unlink(dest_path)) {
+					printf("Unable to remove %s\n",
+					    dest_path);
+					goto exit;
+				}
+			} else if (!force && interactive) {
+				bool overwrite = get_user_decision(false,
+				    "File already exists: %s. Overwrite? [y/N]: ",
+				    dest_path);
+				if (overwrite) {
+					printf("Overwriting file: %s\n", dest_path);
+					if (unlink(dest_path)) {
+						printf("Unable to remove %s\n", dest_path);
+						goto exit;
+					}
+				} else {
+					printf("Not overwriting file: %s\n", dest_path);
+					r = 0;
+					goto exit;
+				}
+			} else {
+				printf("File already exists: %s\n", dest_path);
+				goto exit;
+			}
+		}
+
+		/* call copy_file and exit */
+		r = (copy_file(src, dest_path, blen, vb) < 0);
+
+	} else if (src_type == TYPE_DIR) {
+		/* e.g. cp -r /x/srcdir /y/destdir/ */
+
+		if (!recursive) {
+			printf("Cannot copy the %s directory without the "
+			    "-r option\n", src);
+			goto exit;
+		} else if (dest_type == TYPE_FILE) {
+			printf("Cannot overwrite a file with a directory\n");
+			goto exit;
+		}
+
+		char *src_dirname;
+
+		/* Initialize src_path with the content of src */
+		str_cpy(src_path, src_len + 1, src);
+		str_rtrim(src_path, '/');
+
+		src_dirname = get_last_path_component(src_path);
+
+		str_cpy(dest_path, PATH_MAX, dest);
+
+		switch (dest_type) {
+		case TYPE_DIR:
+			if (str_cmp(src_dirname, "..") &&
+			    str_cmp(src_dirname, ".")) {
+				/* The last component of src_path is
+				 * not '.' or '..'
+				 */
+				merge_paths(dest_path, PATH_MAX, src_dirname);
+
+				if (mkdir(dest_path, 0) == -1) {
+					printf("Unable to create "
+					    "dest directory %s\n", dest_path);
+					goto exit;
+				}
+			}
+			break;
+		default:
+		case TYPE_NONE:
+			/* dest does not exists, this means the user wants
+			 * to specify the name of the destination directory
+			 *
+			 * e.g. cp -r /src /data/new_dir_src
+			 */
+			if (mkdir(dest_path, 0)) {
+				printf("Unable to create "
+				    "dest directory %s\n", dest_path);
+				goto exit;
+			}
+			break;
+		}
+
+		dir = opendir(src);
+		if (!dir) {
+			/* Something strange is happening... */
+			printf("Unable to open src %s directory\n", src);
+			goto exit;
+		}
+
+		/* Copy every single directory entry of src into the
+		 * destination directory.
+		 */
+		while ((dp = readdir(dir))) {
+			struct stat src_s;
+			struct stat dest_s;
+
+			char src_dent[PATH_MAX];
+			char dest_dent[PATH_MAX];
+
+			str_cpy(src_dent, PATH_MAX, src);
+			merge_paths(src_dent, PATH_MAX, dp->d_name);
+
+			str_cpy(dest_dent, PATH_MAX, dest_path);
+			merge_paths(dest_dent, PATH_MAX, dp->d_name);
+
+			/* Check if we are copying a directory into itself */
+			stat(src_dent, &src_s);
+			stat(dest_path, &dest_s);
+
+			if (dest_s.index == src_s.index &&
+			    dest_s.fs_handle == src_s.fs_handle) {
+				printf("Cannot copy a directory "
+				    "into itself\n");
+				goto exit;
+			}
+
+			if (vb)
+				printf("copy %s %s\n", src_dent, dest_dent);
+
+			/* Recursively call do_copy() */
+			r = do_copy(src_dent, dest_dent, blen, vb, recursive,
+			    force, interactive);
+			if (r)
+				goto exit;
+
+		}
+	} else
+		printf("Unable to open source file %s\n", src);
+
+exit:
+	if (dir)
+		closedir(dir);
+	return r;
 }
 
 static int64_t copy_file(const char *src, const char *dest,
@@ -126,19 +427,19 @@ void help_cmd_cp(unsigned int level)
 {
 	static char helpfmt[] =
 	    "Usage:  %s [options] <source> <dest>\n"
-	    "Options: (* indicates not yet implemented)\n"
+	    "Options:\n"
 	    "  -h, --help       A short option summary\n"
 	    "  -v, --version    Print version information and exit\n"
-	    "* -V, --verbose    Be annoyingly noisy about what's being done\n"
-	    "* -f, --force      Do not complain when <dest> exists\n"
-	    "* -r, --recursive  Copy entire directories\n"
-	    "  -b, --buffer ## Set the read buffer size to ##\n"
-	    "Currently, %s is under development, some options may not work.\n";
+	    "  -V, --verbose    Be annoyingly noisy about what's being done\n"
+	    "  -f, --force      Do not complain when <dest> exists (overrides a previous -i)\n"
+	    "  -i, --interactive Ask what to do when <dest> exists (overrides a previous -f)\n"
+	    "  -r, --recursive  Copy entire directories\n"
+	    "  -b, --buffer ## Set the read buffer size to ##\n";
 	if (level == HELP_SHORT) {
 		printf("`%s' copies files and directories\n", cmdname);
 	} else {
 		help_cmd_cp(HELP_SHORT);
-		printf(helpfmt, cmdname, cmdname);
+		printf(helpfmt, cmdname);
 	}
 
 	return;
@@ -147,14 +448,16 @@ void help_cmd_cp(unsigned int level)
 int cmd_cp(char **argv)
 {
 	unsigned int argc, verbose = 0;
-	int buffer = 0;
+	int buffer = 0, recursive = 0;
+	int force = 0, interactive = 0;
 	int c, opt_ind;
 	int64_t ret;
 
+	con = console_init(stdin, stdout);
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "hvVfrb:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "hvVfirb:", long_options, &opt_ind);
 		switch (c) { 
 		case 'h':
 			help_cmd_cp(1);
@@ -166,14 +469,22 @@ int cmd_cp(char **argv)
 			verbose = 1;
 			break;
 		case 'f':
+			interactive = 0;
+			force = 1;
+			break;
+		case 'i':
+			force = 0;
+			interactive = 1;
 			break;
 		case 'r':
+			recursive = 1;
 			break;
 		case 'b':
 			if (-1 == (buffer = strtoint(optarg))) {
 				printf("%s: Invalid buffer specification, "
 				    "(should be a number greater than zero)\n",
 				    cmdname);
+				console_done(con);
 				return CMD_FAILURE;
 			}
 			if (verbose)
@@ -190,15 +501,16 @@ int cmd_cp(char **argv)
 	if (argc != 2) {
 		printf("%s: invalid number of arguments. Try %s --help\n",
 		    cmdname, cmdname);
+		console_done(con);
 		return CMD_FAILURE;
 	}
 
-	ret = copy_file(argv[optind], argv[optind + 1], buffer, verbose);
+	ret = do_copy(argv[optind], argv[optind + 1], buffer, verbose,
+	    recursive, force, interactive);
 
-	if (verbose)
-		printf("%" PRId64 " bytes copied\n", ret);
+	console_done(con);
 
-	if (ret >= 0)
+	if (ret == 0)
 		return CMD_SUCCESS;
 	else
 		return CMD_FAILURE;

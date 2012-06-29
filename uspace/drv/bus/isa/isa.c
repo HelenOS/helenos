@@ -51,6 +51,10 @@
 #include <malloc.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <ipc/irc.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
+#include <ns.h>
 #include <sys/stat.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
@@ -61,11 +65,9 @@
 #include <ddf/log.h>
 #include <ops/hw_res.h>
 
-#include <devman.h>
-#include <ipc/devman.h>
 #include <device/hw_res.h>
 
-#include "dma_controller.h"
+#include "i8237.h"
 
 #define NAME "isa"
 #define CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
@@ -145,21 +147,23 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 }
 
 static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
-    unsigned channel, uint32_t pa, uint16_t size, uint8_t mode)
+    unsigned int channel, uint32_t pa, uint16_t size, uint8_t mode)
 {
 	assert(fnode);
 	isa_fun_t *isa_fun = fnode->driver_data;
 	const hw_resource_list_t *res = &isa_fun->hw_resources;
 	assert(res);
-	const int ch = channel;
+	
+	const unsigned int ch = channel;
 	for (size_t i = 0; i < res->count; ++i) {
-		if ((res->resources[i].type == DMA_CHANNEL_16 &&
-		    res->resources[i].res.dma_channel.dma16 == ch) ||
-		    (res->resources[i].type == DMA_CHANNEL_8 &&
-		    res->resources[i].res.dma_channel.dma8 == ch)) {
+		if (((res->resources[i].type == DMA_CHANNEL_16) &&
+		    (res->resources[i].res.dma_channel.dma16 == ch)) ||
+		    ((res->resources[i].type == DMA_CHANNEL_8) &&
+		    (res->resources[i].res.dma_channel.dma8 == ch))) {
 			return dma_setup_channel(channel, pa, size, mode);
 		}
 	}
+	
 	return EINVAL;
 }
 
@@ -171,14 +175,14 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 
 static ddf_dev_ops_t isa_fun_ops;
 
-static int isa_add_device(ddf_dev_t *dev);
+static int isa_dev_add(ddf_dev_t *dev);
 static int isa_dev_remove(ddf_dev_t *dev);
 static int isa_fun_online(ddf_fun_t *fun);
 static int isa_fun_offline(ddf_fun_t *fun);
 
 /** The isa device driver's standard operations */
 static driver_ops_t isa_ops = {
-	.add_device = &isa_add_device,
+	.dev_add = &isa_dev_add,
 	.dev_remove = &isa_dev_remove,
 	.fun_online = &isa_fun_online,
 	.fun_offline = &isa_fun_offline
@@ -197,8 +201,10 @@ static isa_fun_t *isa_fun_create(isa_bus_t *isa, const char *name)
 		return NULL;
 
 	isa_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(isa_fun_t));
-	if (fun == NULL)
+	if (fun == NULL) {
+		ddf_fun_destroy(fnode);
 		return NULL;
+	}
 
 	fibril_mutex_initialize(&fun->mutex);
 	fun->hw_resources.resources = fun->resources;
@@ -343,28 +349,30 @@ static void isa_fun_set_dma(isa_fun_t *fun, int dma)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
-
+	
 	if (count < ISA_MAX_HW_RES) {
-		if (dma > 0 && dma < 4) {
+		if ((dma > 0) && (dma < 4)) {
 			resources[count].type = DMA_CHANNEL_8;
 			resources[count].res.dma_channel.dma8 = dma;
-
+			
 			fun->hw_resources.count++;
 			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
 			    fun->fnode->name);
+			
 			return;
 		}
 
-		if (dma > 4 && dma < 8) {
+		if ((dma > 4) && (dma < 8)) {
 			resources[count].type = DMA_CHANNEL_16;
 			resources[count].res.dma_channel.dma16 = dma;
-
+			
 			fun->hw_resources.count++;
 			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
 			    fun->fnode->name);
+			
 			return;
 		}
-
+		
 		ddf_msg(LVL_WARN, "Skipped dma 0x%x for function %s", dma,
 		    fun->fnode->name);
 	}
@@ -395,7 +403,7 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 	char *end = NULL;
 
 	val = skip_spaces(val);
-	irq = (int)strtol(val, &end, 0x10);
+	irq = (int) strtol(val, &end, 10);
 
 	if (val != end)
 		isa_fun_set_irq(fun, irq);
@@ -403,12 +411,12 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 
 static void fun_parse_dma(isa_fun_t *fun, char *val)
 {
-	int dma = 0;
+	unsigned int dma = 0;
 	char *end = NULL;
-
+	
 	val = skip_spaces(val);
-	dma = (int)strtol(val, &end, 10);
-
+	dma = (unsigned int) strtol(val, &end, 10);
+	
 	if (val != end)
 		isa_fun_set_dma(fun, dma);
 }
@@ -588,11 +596,11 @@ static void isa_functions_add(isa_bus_t *isa)
 	}
 }
 
-static int isa_add_device(ddf_dev_t *dev)
+static int isa_dev_add(ddf_dev_t *dev)
 {
 	isa_bus_t *isa;
 
-	ddf_msg(LVL_DEBUG, "isa_add_device, device handle = %d",
+	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) dev->handle);
 
 	isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));

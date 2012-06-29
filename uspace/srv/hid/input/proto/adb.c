@@ -81,7 +81,7 @@ static void adb_proto_parse(sysarg_t data)
 	}
 	
 	if (dx != 0 || dy != 0)
-		mouse_push_event_move(mouse_dev, dx, dy);
+		mouse_push_event_move(mouse_dev, dx, dy, 0);
 }
 
 mouse_proto_ops_t adb_proto = {

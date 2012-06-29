@@ -61,25 +61,10 @@ static int ohci_ep_toggle_get(void *ohci_ep)
 	return ed_toggle_get(instance->ed);
 }
 /*----------------------------------------------------------------------------*/
-/** Disposes hcd endpoint structure
- *
- * @param[in] hcd_ep endpoint structure
- */
-static void ohci_endpoint_fini(endpoint_t *ep)
-{
-	ohci_endpoint_t *instance = ep->hc_data.data;
-	hc_dequeue_endpoint(instance->hcd->private_data, ep);
-	if (instance) {
-		free32(instance->ed);
-		free32(instance->td);
-		free(instance);
-	}
-}
-/*----------------------------------------------------------------------------*/
 /** Creates new hcd endpoint representation.
  *
  * @param[in] ep USBD endpoint structure
- * @return pointer to a new hcd endpoint structure, NULL on failure.
+ * @return Error code.
  */
 int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
@@ -103,10 +88,28 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 
 	ed_init(ohci_ep->ed, ep, ohci_ep->td);
 	endpoint_set_hc_data(
-	    ep, ohci_ep, ohci_endpoint_fini, ohci_ep_toggle_get, ohci_ep_toggle_set);
-	ohci_ep->hcd = hcd;
+	    ep, ohci_ep, ohci_ep_toggle_get, ohci_ep_toggle_set);
 	hc_enqueue_endpoint(hcd->private_data, ep);
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** Disposes hcd endpoint structure
+ *
+ * @param[in] hcd driver using this instance.
+ * @param[in] ep endpoint structure.
+ */
+void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
+{
+	assert(hcd);
+	assert(ep);
+	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
+	hc_dequeue_endpoint(hcd->private_data, ep);
+	if (instance) {
+		free32(instance->ed);
+		free32(instance->td);
+		free(instance);
+	}
+	endpoint_clear_hc_data(ep);
 }
 /**
  * @}

@@ -341,18 +341,11 @@ mem_area_t *map_area(size_t size)
 	
 	link_initialize(&area->link);
 	
-	/* Map the memory area */
-	void *addr = as_get_mappable_page(size);
-	if (addr == NULL) {
+	area->addr = as_area_create(AS_AREA_ANY, size,
+	    AS_AREA_WRITE | AS_AREA_READ);
+	if (area->addr == AS_MAP_FAILED) {
 		free(area);
 		check_consistency("map_area (a)");
-		return NULL;
-	}
-	
-	area->addr = as_area_create(addr, size, AS_AREA_WRITE | AS_AREA_READ);
-	if (area->addr == (void *) -1) {
-		free(area);
-		check_consistency("map_area (b)");
 		return NULL;
 	}
 	

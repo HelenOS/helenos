@@ -213,7 +213,8 @@ static int mbr_init(const char *dev_name)
 		return rc;
 
 	/* Register server with location service. */
-	rc = loc_server_register(NAME, mbr_connection);
+	async_set_client_connection(mbr_connection);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register server.\n");
 		return rc;
@@ -424,13 +425,11 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (1) {
 		callid = async_get_call(&call);

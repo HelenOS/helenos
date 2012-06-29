@@ -53,9 +53,6 @@
 typedef struct {
 	/** Link to generic mouse device */
 	mouse_dev_t *mouse_dev;
-	
-	/** Session to mouse device */
-	async_sess_t *sess;
 } mousedev_t;
 
 static mousedev_t *mousedev_new(mouse_dev_t *mdev)
@@ -71,9 +68,6 @@ static mousedev_t *mousedev_new(mouse_dev_t *mdev)
 
 static void mousedev_destroy(mousedev_t *mousedev)
 {
-	if (mousedev->sess != NULL)
-		async_hangup(mousedev->sess);
-	
 	free(mousedev);
 }
 
@@ -88,7 +82,7 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 		ipc_callid_t callid = async_get_call(&call);
 		
 		if (!IPC_GET_IMETHOD(call)) {
-			/* XXX Handle hangup */
+			mousedev_destroy(mousedev);
 			return;
 		}
 		
@@ -96,13 +90,14 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case MOUSEEV_MOVE_EVENT:
-			mouse_push_event_move(mousedev->mouse_dev, IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			mouse_push_event_move(mousedev->mouse_dev,
+			    IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+			    IPC_GET_ARG3(call));
 			retval = EOK;
 			break;
 		case MOUSEEV_BUTTON_EVENT:
-			mouse_push_event_button(mousedev->mouse_dev, IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			mouse_push_event_button(mousedev->mouse_dev,
+			    IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			retval = EOK;
 			break;
 		default:
@@ -121,37 +116,38 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s'\n", NAME,
 		    mdev->svc_name);
-		return -1;
+		return ENOENT;
 	}
 	
 	mousedev_t *mousedev = mousedev_new(mdev);
 	if (mousedev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
 		    NAME, mdev->svc_name);
-		return -1;
+		async_hangup(sess);
+		return ENOMEM;
 	}
-	
-	mousedev->sess = sess;
 	
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with '%s'.\n", NAME,
 		    mdev->svc_name);
 		mousedev_destroy(mousedev);
-		return -1;
+		async_hangup(sess);
+		return ENOENT;
 	}
 	
 	int rc = async_connect_to_me(exch, 0, 0, 0, mousedev_callback_conn, mousedev);
 	async_exchange_end(exch);
+	async_hangup(sess);
 	
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, mdev->svc_name);
 		mousedev_destroy(mousedev);
-		return -1;
+		return rc;
 	}
 	
-	return 0;
+	return EOK;
 }
 
 mouse_proto_ops_t mousedev_proto = {

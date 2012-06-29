@@ -55,12 +55,6 @@ void page_arch_init(void)
 		page_mapping_operations = &pt_mapping_operations;
 }
 
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
-{
-	return physaddr;
-}
-
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 }

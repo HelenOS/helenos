@@ -31,7 +31,6 @@ BFD_ARCH = sparc
 BFD = binary
 
 GCC_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
-SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
 LFLAGS += -no-check-sections
 
@@ -67,6 +66,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.s \
+	arch/$(KARCH)/src/mm/$(USARCH)/km.c \
 	arch/$(KARCH)/src/mm/$(USARCH)/as.c \
 	arch/$(KARCH)/src/mm/$(USARCH)/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

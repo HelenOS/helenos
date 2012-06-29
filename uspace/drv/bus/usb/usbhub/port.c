@@ -34,7 +34,6 @@
  */
 
 #include <bool.h>
-#include <devman.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
@@ -287,23 +286,11 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	ddf_fun_destroy(port->attached_device.fun);
 	port->attached_device.fun = NULL;
 
-	ret = usb_hc_connection_open(&hub->connection);
-	if (ret == EOK) {
-		ret = usb_hc_unregister_device(&hub->connection,
-		    port->attached_device.address);
-		if (ret != EOK) {
-			usb_log_warning("Failed to unregister address of the "
-			    "removed device: %s.\n", str_error(ret));
-		}
-		ret = usb_hc_connection_close(&hub->connection);
-		if (ret != EOK) {
-			usb_log_warning("Failed to close hc connection %s.\n",
-			    str_error(ret));
-		}
-
-	} else {
-		usb_log_warning("Failed to open hc connection %s.\n",
-		    str_error(ret));
+	ret = usb_hub_unregister_device(&hub->usb_device->hc_conn,
+	    &port->attached_device);
+	if (ret != EOK) {
+		usb_log_warning("Failed to unregister address of the "
+		    "removed device: %s.\n", str_error(ret));
 	}
 
 	port->attached_device.address = -1;
@@ -400,6 +387,7 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
 static int enable_port_callback(void *arg)
 {
 	usb_hub_port_t *port = arg;
+	assert(port);
 	const int rc =
 	    usb_hub_port_set_feature(port, USB_HUB_FEATURE_PORT_RESET);
 	if (rc != EOK) {
@@ -436,26 +424,25 @@ int add_device_phase1_worker_fibril(void *arg)
 	ddf_fun_t *child_fun;
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
-	    &data->hub->connection, data->speed, enable_port_callback,
+	    &data->hub->usb_device->hc_conn, data->speed, enable_port_callback,
 	    data->port, &new_address, NULL, NULL, &child_fun);
 
-	if (rc != EOK) {
+	if (rc == EOK) {
+		fibril_mutex_lock(&data->port->mutex);
+		data->port->attached_device.fun = child_fun;
+		data->port->attached_device.address = new_address;
+		fibril_mutex_unlock(&data->port->mutex);
+
+		usb_log_info("Detected new device on `%s' (port %zu), "
+		    "address %d (handle %" PRIun ").\n",
+		    data->hub->usb_device->ddf_dev->name,
+		    data->port->port_number, new_address, child_fun->handle);
+	} else {
 		usb_log_error("Failed registering device on port %zu: %s.\n",
 		    data->port->port_number, str_error(rc));
-		goto leave;
 	}
 
-	fibril_mutex_lock(&data->port->mutex);
-	data->port->attached_device.fun = child_fun;
-	data->port->attached_device.address = new_address;
-	fibril_mutex_unlock(&data->port->mutex);
 
-	usb_log_info("Detected new device on `%s' (port %zu), "
-	    "address %d (handle %" PRIun ").\n",
-	    data->hub->usb_device->ddf_dev->name, data->port->port_number,
-	    new_address, child_fun->handle);
-
-leave:
 	fibril_mutex_lock(&data->hub->pending_ops_mutex);
 	assert(data->hub->pending_ops_count > 0);
 	--data->hub->pending_ops_count;

@@ -52,7 +52,7 @@
  *
  * We assume that the other processors are either not using the mapping yet
  * (i.e. during the bootstrap) or are executing the TLB shootdown code.  While
- * we don't care much about the former case, the processors in the latter case 
+ * we don't care much about the former case, the processors in the latter case
  * will do an implicit serialization by virtue of running the TLB shootdown
  * interrupt handler.
  *
@@ -73,6 +73,7 @@
 #include <arch.h>
 #include <syscall/copy.h>
 #include <errno.h>
+#include <align.h>
 
 /** Virtual operations for page subsystem. */
 page_mapping_operations_t *page_mapping_operations = NULL;
@@ -80,30 +81,6 @@ page_mapping_operations_t *page_mapping_operations = NULL;
 void page_init(void)
 {
 	page_arch_init();
-}
-
-/** Map memory structure
- *
- * Identity-map memory structure
- * considering possible crossings
- * of page boundaries.
- *
- * @param addr Address of the structure.
- * @param size Size of the structure.
- *
- */
-void map_structure(uintptr_t addr, size_t size)
-{
-	size_t length = size + (addr - (addr & ~(PAGE_SIZE - 1)));
-	size_t cnt = length / PAGE_SIZE + (length % PAGE_SIZE > 0);
-	
-	size_t i;
-	for (i = 0; i < cnt; i++)
-		page_mapping_insert(AS_KERNEL, addr + i * PAGE_SIZE,
-		    addr + i * PAGE_SIZE, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	
-	/* Repel prefetched accesses to the old mapping. */
-	memory_barrier();
 }
 
 /** Insert mapping of page to frame.
@@ -175,35 +152,52 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	return page_mapping_operations->mapping_find(as, page, nolock);
 }
 
-/** Syscall wrapper for getting mapping of a virtual page.
+/** Make the mapping shared by all page tables (not address spaces).
  * 
- * @retval EOK Everything went find, @p uspace_frame and @p uspace_node
- *             contains correct values.
- * @retval ENOENT Virtual address has no mapping.
+ * @param base Starting virtual address of the range that is made global.
+ * @param size Size of the address range that is made global.
  */
-sysarg_t sys_page_find_mapping(uintptr_t virt_address,
-    uintptr_t *uspace_frame)
+void page_mapping_make_global(uintptr_t base, size_t size)
 {
-	mutex_lock(&AS->lock);
+	ASSERT(page_mapping_operations);
+	ASSERT(page_mapping_operations->mapping_make_global);
 	
-	pte_t *pte = page_mapping_find(AS, virt_address, false);
-	if (!PTE_VALID(pte) || !PTE_PRESENT(pte)) {
-		mutex_unlock(&AS->lock);
-		
-		return (sysarg_t) ENOENT;
+	return page_mapping_operations->mapping_make_global(base, size);
+}
+
+int page_find_mapping(uintptr_t virt, void **phys)
+{
+	page_table_lock(AS, true);
+	
+	pte_t *pte = page_mapping_find(AS, virt, false);
+	if ((!PTE_VALID(pte)) || (!PTE_PRESENT(pte))) {
+		page_table_unlock(AS, true);
+		return ENOENT;
 	}
 	
-	uintptr_t phys_address = PTE_GET_FRAME(pte);
+	*phys = (void *) PTE_GET_FRAME(pte) +
+	    (virt - ALIGN_DOWN(virt, PAGE_SIZE));
 	
-	mutex_unlock(&AS->lock);
-	
-	int rc = copy_to_uspace(uspace_frame,
-	    &phys_address, sizeof(phys_address));
-	if (rc != EOK) {
-		return (sysarg_t) rc;
-	}
+	page_table_unlock(AS, true);
 	
 	return EOK;
+}
+
+/** Syscall wrapper for getting mapping of a virtual page.
+ *
+ * @return EOK on success.
+ * @return ENOENT if no virtual address mapping found.
+ *
+ */
+sysarg_t sys_page_find_mapping(uintptr_t virt, void *phys_ptr)
+{
+	void *phys;
+	int rc = page_find_mapping(virt, &phys);
+	if (rc != EOK)
+		return rc;
+	
+	rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
+	return (sysarg_t) rc;
 }
 
 /** @}

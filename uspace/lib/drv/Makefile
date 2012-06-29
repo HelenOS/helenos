@@ -34,6 +34,7 @@ LIBRARY = libdrv
 SOURCES = \
 	generic/driver.c \
 	generic/dev_iface.c \
+	generic/interrupt.c \
 	generic/log.c \
 	generic/logbuf.c \
 	generic/remote_audio_mixer.c \

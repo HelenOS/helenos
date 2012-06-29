@@ -319,7 +319,7 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	
@@ -335,24 +335,19 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	async_connect_to_me(exch, 0, 0, 0, vfs_connection, NULL);
 	
 	/*
-	 * Allocate piece of address space for PLB.
-	 */
-	reg.plb_ro = as_get_mappable_page(PLB_SIZE);
-	if (!reg.plb_ro) {
-		async_exchange_end(exch);
-		async_wait_for(req, NULL);
-		return ENOMEM;
-	}
-	
-	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = async_share_in_start_0_0(exch, reg.plb_ro, PLB_SIZE);
+	rc = async_share_in_start_0_0(exch, PLB_SIZE, (void *) &reg.plb_ro);
+	if (reg.plb_ro == AS_MAP_FAILED) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return ENOMEM;
+	}
 	
 	async_exchange_end(exch);
 	
 	if (rc) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	 
@@ -408,7 +403,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	
 	async_exch_t *exch = async_exchange_begin(mountee_sess);
-	async_sess_t *sess = async_connect_me(EXCHANGE_PARALLEL, exch);
+	async_sess_t *sess = async_clone_establish(EXCHANGE_PARALLEL, exch);
 	
 	if (!sess) {
 		async_exchange_end(exch);

@@ -34,14 +34,16 @@
  *
  * For class specific requests, see usb/classes/hub.h.
  */
+
 #ifndef LIBUSBDEV_HUB_H_
 #define LIBUSBDEV_HUB_H_
 
 #include <ddf/driver.h>
 #include <sys/types.h>
+#include <errno.h>
 #include <usb/hc.h>
 
-int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
+extern int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
     int (*)(void *), void *, usb_address_t *, ddf_dev_ops_t *, void *,
     ddf_fun_t **);
 
@@ -58,12 +60,21 @@ typedef struct {
 	ddf_fun_t *fun;
 } usb_hub_attached_device_t;
 
-usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
-int usb_hc_register_device(usb_hc_connection_t *,
+extern int usb_hub_register_device(usb_hc_connection_t *,
     const usb_hub_attached_device_t *);
-int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
+
+static inline int usb_hub_unregister_device(usb_hc_connection_t *conn,
+    const usb_hub_attached_device_t *attached_device)
+{
+	assert(conn);
+	if (attached_device == NULL)
+		return EBADMEM;
+	
+	return usb_hc_release_address(conn, attached_device->address);
+}
 
 #endif
+
 /**
  * @}
  */

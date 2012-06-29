@@ -44,11 +44,10 @@
 #include <align.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <malloc.h>
 #include <mem.h>
 
 
-int bitmap_is_free(exfat_bs_t *bs, service_id_t service_id, 
+int exfat_bitmap_is_free(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t clst)
 {
 	fs_node_t *fn;
@@ -89,7 +88,7 @@ int bitmap_is_free(exfat_bs_t *bs, service_id_t service_id,
 	return EOK;
 }
 
-int bitmap_set_cluster(exfat_bs_t *bs, service_id_t service_id, 
+int exfat_bitmap_set_cluster(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t clst)
 {
 	fs_node_t *fn;
@@ -124,7 +123,7 @@ int bitmap_set_cluster(exfat_bs_t *bs, service_id_t service_id,
 	return exfat_node_put(fn);
 }
 
-int bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id, 
+int exfat_bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t clst)
 {
 	fs_node_t *fn;
@@ -160,7 +159,7 @@ int bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id,
 	return exfat_node_put(fn);
 }
 
-int bitmap_set_clusters(exfat_bs_t *bs, service_id_t service_id, 
+int exfat_bitmap_set_clusters(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t firstc, exfat_cluster_t count)
 {
 	int rc;
@@ -168,10 +167,10 @@ int bitmap_set_clusters(exfat_bs_t *bs, service_id_t service_id,
 	clst = firstc;
 
 	while (clst < firstc + count ) {
-		rc = bitmap_set_cluster(bs, service_id, clst);
+		rc = exfat_bitmap_set_cluster(bs, service_id, clst);
 		if (rc != EOK) {
 			if (clst - firstc > 0)
-				(void) bitmap_clear_clusters(bs, service_id,
+				(void) exfat_bitmap_clear_clusters(bs, service_id,
 				    firstc, clst - firstc);
 			return rc;
 		}
@@ -180,7 +179,7 @@ int bitmap_set_clusters(exfat_bs_t *bs, service_id_t service_id,
 	return EOK;
 }
 
-int bitmap_clear_clusters(exfat_bs_t *bs, service_id_t service_id, 
+int exfat_bitmap_clear_clusters(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t firstc, exfat_cluster_t count)
 {
 	int rc;
@@ -188,7 +187,7 @@ int bitmap_clear_clusters(exfat_bs_t *bs, service_id_t service_id,
 	clst = firstc;
 
 	while (clst < firstc + count) {
-		rc = bitmap_clear_cluster(bs, service_id, clst);
+		rc = exfat_bitmap_clear_cluster(bs, service_id, clst);
 		if (rc != EOK)
 			return rc;
 		clst++;
@@ -196,7 +195,7 @@ int bitmap_clear_clusters(exfat_bs_t *bs, service_id_t service_id,
 	return EOK;
 }
 
-int bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, 
+int exfat_bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t *firstc, exfat_cluster_t count)
 {
 	exfat_cluster_t startc, endc;
@@ -204,10 +203,10 @@ int bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id,
 
 	while (startc < DATA_CNT(bs) + 2) {
 		endc = startc;
-		while (bitmap_is_free(bs, service_id, endc) == EOK) {
+		while (exfat_bitmap_is_free(bs, service_id, endc) == EOK) {
 			if ((endc - startc) + 1 == count) {
 				*firstc = startc;
-				return bitmap_set_clusters(bs, service_id, startc, count);
+				return exfat_bitmap_set_clusters(bs, service_id, startc, count);
 			} else
 				endc++;
 		}
@@ -217,20 +216,20 @@ int bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id,
 }
 
 
-int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
+int exfat_bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
     exfat_cluster_t count)
 {
 	if (nodep->firstc == 0) {
-		return bitmap_alloc_clusters(bs, nodep->idx->service_id, 
+		return exfat_bitmap_alloc_clusters(bs, nodep->idx->service_id, 
 		    &nodep->firstc, count);
 	} else {
 		exfat_cluster_t lastc, clst;
 		lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
 
 		clst = lastc + 1;
-		while (bitmap_is_free(bs, nodep->idx->service_id, clst) == EOK) {
+		while (exfat_bitmap_is_free(bs, nodep->idx->service_id, clst) == EOK) {
 			if (clst - lastc == count){
-				return bitmap_set_clusters(bs, nodep->idx->service_id, 
+				return exfat_bitmap_set_clusters(bs, nodep->idx->service_id, 
 				    lastc + 1, count);
 			} else
 				clst++;
@@ -240,18 +239,18 @@ int bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 }
 
 
-int bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
+int exfat_bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep, 
     exfat_cluster_t count)
 {
 	exfat_cluster_t lastc;
 	lastc = nodep->firstc + ROUND_UP(nodep->size, BPC(bs)) / BPC(bs) - 1;
 	lastc -= count;
 
-	return bitmap_clear_clusters(bs, nodep->idx->service_id, lastc + 1, count);
+	return exfat_bitmap_clear_clusters(bs, nodep->idx->service_id, lastc + 1, count);
 }
 
 
-int bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
+int exfat_bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
 {
 	int rc;
 	exfat_cluster_t lastc, clst;

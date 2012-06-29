@@ -37,7 +37,6 @@ ENDIANESS = LE
 CMN1 = -m32 -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
-SUNCC_CFLAGS += $(CMN1)
 CLANG_CFLAGS += $(CMN1)
 
 ## Accepted CPUs
@@ -49,27 +48,22 @@ endif
 
 ifeq ($(PROCESSOR),athlon_xp)
 	CMN2 = -march=athlon-xp
-	SUNCC_CFLAGS += -xarch=ssea
 endif
 
 ifeq ($(PROCESSOR),athlon_mp)
 	CMN2 = -march=athlon-mp
-	SUNCC_CFLAGS += xarch=ssea
 endif
 
 ifeq ($(PROCESSOR),pentium3)
 	CMN2 = -march=pentium3
-	SUNCC_CFLAGS += -xarch=sse
 endif
 
 ifeq ($(PROCESSOR),pentium4)
 	CMN2 = -march=pentium4
-	SUNCC_CFLAGS += -xarch=sse2
 endif
 
 ifeq ($(PROCESSOR),core)
 	CMN2 = -march=prescott
-	SUNCC_CFLAGS += -xarch=sse3
 endif
 
 FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
@@ -98,6 +92,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/pm.c \
 	arch/$(KARCH)/src/userspace.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
@@ -105,8 +100,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/i8254.c \
 	arch/$(KARCH)/src/drivers/i8259.c \
-	arch/$(KARCH)/src/drivers/vesa.c \
-	arch/$(KARCH)/src/boot/boot.S \
+	arch/$(KARCH)/src/boot/multiboot.S \
+	arch/$(KARCH)/src/boot/multiboot2.S \
 	arch/$(KARCH)/src/boot/memmap.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/debugger.c \

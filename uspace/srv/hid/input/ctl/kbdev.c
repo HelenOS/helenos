@@ -67,19 +67,17 @@ kbd_ctl_ops_t kbdev_ctl = {
 typedef struct {
 	/** Link to generic keyboard device */
 	kbd_dev_t *kbd_dev;
-
+	
 	/** Session with kbdev device */
 	async_sess_t *sess;
 } kbdev_t;
 
 static kbdev_t *kbdev_new(kbd_dev_t *kdev)
 {
-	kbdev_t *kbdev;
-
-	kbdev = calloc(1, sizeof(kbdev_t));
+	kbdev_t *kbdev = calloc(1, sizeof(kbdev_t));
 	if (kbdev == NULL)
 		return NULL;
-
+	
 	kbdev->kbd_dev = kdev;
 
 	return kbdev;
@@ -89,66 +87,60 @@ static void kbdev_destroy(kbdev_t *kbdev)
 {
 	if (kbdev->sess != NULL)
 		async_hangup(kbdev->sess);
+	
 	free(kbdev);
 }
 
 static int kbdev_ctl_init(kbd_dev_t *kdev)
 {
-	async_sess_t *sess;
-	async_exch_t *exch;
-	kbdev_t *kbdev;
-	int rc;
-
-	sess = loc_service_connect(EXCHANGE_SERIALIZE, kdev->svc_id, 0);
+	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE,
+	    kdev->svc_id, 0);
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s.'\n", NAME,
 		    kdev->svc_name);
-		return -1;
+		return ENOENT;
 	}
-
-	kbdev = kbdev_new(kdev);
+	
+	kbdev_t *kbdev = kbdev_new(kdev);
 	if (kbdev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
 		    NAME, kdev->svc_name);
-		return -1;
+		async_hangup(sess);
+		return ENOMEM;
 	}
-
+	
 	kbdev->sess = sess;
-
-	exch = async_exchange_begin(sess);
+	
+	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with '%s'.\n", NAME,
 		    kdev->svc_name);
 		kbdev_destroy(kbdev);
-		return -1;
+		return ENOENT;
 	}
-
-	rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
+	
+	int rc = async_connect_to_me(exch, 0, 0, 0, kbdev_callback_conn, kbdev);
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, kdev->svc_name);
 		async_exchange_end(exch);
 		kbdev_destroy(kbdev);
-		return -1;
+		return rc;
 	}
-
+	
 	async_exchange_end(exch);
-
+	
 	kdev->ctl_private = (void *) kbdev;
 	return 0;
 }
 
 static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 {
-	async_sess_t *sess;
-	async_exch_t *exch;
-
-	sess = ((kbdev_t *) kdev->ctl_private)->sess;
-
-	exch = async_exchange_begin(sess);
+	async_sess_t *sess = ((kbdev_t *) kdev->ctl_private)->sess;
+	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return;
-
+	
 	async_msg_1(exch, KBDEV_SET_IND, mods);
 	async_exchange_end(exch);
 }
@@ -168,7 +160,7 @@ static void kbdev_callback_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		callid = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call)) {
-			/* XXX Handle hangup */
+			kbdev_destroy(kbdev);
 			return;
 		}
 

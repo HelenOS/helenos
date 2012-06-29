@@ -38,11 +38,11 @@
 #define MFS_BLOCKSIZE		1024
 #define S_ISDIR(m)		(((m) & S_IFMT) == S_IFDIR)
 #define S_ISREG(m)		(((m) & S_IFMT) == S_IFREG)
-#define S_IFDIR			0040000		/*Directory*/
-#define S_IFREG			0100000		/*Regular file*/
+#define S_IFDIR			0040000		/* Directory */
+#define S_IFREG			0100000		/* Regular file */
 #define S_IFMT			00170000
 
-/*The following block sizes are valid only on V3 filesystem*/
+/* The following block sizes are valid only on V3 filesystem */
 #define MFS_MIN_BLOCKSIZE	1024
 #define MFS_MAX_BLOCKSIZE	4096
 
@@ -87,51 +87,51 @@
 #define MFS_VALID_FS		0x0001
 #define MFS_ERROR_FS		0x0002
 
-/*MFS V1/V2 superblock data on disk*/
+/* MFS V1/V2 superblock data on disk */
 struct mfs_superblock {
-	/*Total number of inodes on the device*/
+	/* Total number of inodes on the device */
 	uint16_t	s_ninodes;
-	/*Total number of zones on the device*/
+	/* Total number of zones on the device */
 	uint16_t	s_nzones;
-	/*Number of inode bitmap blocks*/
+	/* Number of inode bitmap blocks */
 	uint16_t	s_ibmap_blocks;
-	/*Number of zone bitmap blocks*/
+	/* Number of zone bitmap blocks */
 	uint16_t	s_zbmap_blocks;
-	/*First data zone on device*/
+	/* First data zone on device */
 	uint16_t	s_first_data_zone;
-	/*Base 2 logarithm of the zone to block ratio*/
+	/* Base 2 logarithm of the zone to block ratio */
 	uint16_t	s_log2_zone_size;
-	/*Maximum file size expressed in bytes*/
+	/* Maximum file size expressed in bytes */
 	uint32_t	s_max_file_size;
 	/*
 	 *Magic number used to recognize MinixFS
 	 *and to detect on-disk endianness
 	 */
 	uint16_t	s_magic;
-	/*Flag used to detect FS errors*/
+	/* Flag used to detect FS errors*/
 	uint16_t	s_state;
-	/*Total number of zones on the device (V2 only)*/
+	/* Total number of zones on the device (V2 only) */
 	uint32_t	s_nzones2;
 } __attribute__ ((packed));
 
 
-/*MFS V3 superblock data on disk*/
+/* MFS V3 superblock data on disk */
 struct mfs3_superblock {
-	/*Total number of inodes on the device*/
+	/* Total number of inodes on the device */
 	uint32_t	s_ninodes;
 	uint16_t	s_pad0;
-	/*Number of inode bitmap blocks*/
+	/* Number of inode bitmap blocks */
 	int16_t		s_ibmap_blocks;
-	/*Number of zone bitmap blocks*/
+	/* Number of zone bitmap blocks */
 	int16_t		s_zbmap_blocks;
-	/*First data zone on device*/
+	/* First data zone on device */
 	uint16_t	s_first_data_zone;
-	/*Base 2 logarithm of the zone to block ratio*/
+	/* Base 2 logarithm of the zone to block ratio */
 	int16_t		s_log2_zone_size;
 	int16_t		s_pad1;
-	/*Maximum file size expressed in bytes*/
+	/* Maximum file size expressed in bytes */
 	uint32_t	s_max_file_size;
-	/*Total number of zones on the device*/
+	/* Total number of zones on the device */
 	uint32_t	s_nzones;
 	/*
 	 *Magic number used to recognize MinixFS
@@ -139,13 +139,13 @@ struct mfs3_superblock {
 	 */
 	int16_t		s_magic;
 	int16_t		s_pad2;
-	/*Filesystem block size expressed in bytes*/
+	/* Filesystem block size expressed in bytes */
 	uint16_t	s_block_size;
-	/*Filesystem disk format version*/
+	/* Filesystem disk format version */
 	int8_t		s_disk_version;
 } __attribute__ ((packed));
 
-/*MinixFS V1 inode structure as it is on disk*/
+/* MinixFS V1 inode structure as it is on disk */
 struct mfs_inode {
 	uint16_t	i_mode;
 	int16_t		i_uid;
@@ -153,13 +153,13 @@ struct mfs_inode {
 	int32_t		i_mtime;
 	uint8_t		i_gid;
 	uint8_t		i_nlinks;
-	/*Block numbers for direct zones*/
+	/* Block numbers for direct zones */
 	uint16_t	i_dzone[V1_NR_DIRECT_ZONES];
-	/*Block numbers for indirect zones*/
+	/* Block numbers for indirect zones */
 	uint16_t	i_izone[V1_NR_INDIRECT_ZONES];
 } __attribute__ ((packed));
 
-/*MinixFS V2 inode structure as it is on disk (also valid for V3).*/
+/* MinixFS V2 inode structure as it is on disk (also valid for V3). */
 struct mfs2_inode {
 	uint16_t 	i_mode;
 	uint16_t 	i_nlinks;
@@ -169,19 +169,19 @@ struct mfs2_inode {
 	int32_t		i_atime;
 	int32_t		i_mtime;
 	int32_t		i_ctime;
-	/*Block numbers for direct zones*/
+	/* Block numbers for direct zones */
 	uint32_t	i_dzone[V2_NR_DIRECT_ZONES];
-	/*Block numbers for indirect zones*/
+	/* Block numbers for indirect zones */
 	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
 } __attribute__ ((packed));
 
-/*MinixFS V1/V2 directory entry on-disk structure*/
+/* MinixFS V1/V2 directory entry on-disk structure */
 struct mfs_dentry {
 	uint16_t d_inum;
 	char d_name[0];
 };
 
-/*MinixFS V3 directory entry on-disk structure*/
+/* MinixFS V3 directory entry on-disk structure */
 struct mfs3_dentry {
 	uint32_t d_inum;
 	char d_name[0];

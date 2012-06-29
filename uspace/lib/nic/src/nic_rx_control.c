@@ -39,9 +39,8 @@
 #include <stdlib.h>
 #include <bool.h>
 #include <errno.h>
-#include <net/device.h>
-#include <net_checksum.h>
-#include <packet_client.h>
+#include <mem.h>
+#include <nic/nic.h>
 #include "nic_rx_control.h"
 
 /**
@@ -391,16 +390,19 @@ int nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
  * Check if the frame passes through the receive control.
  *
  * @param rxc
- * @param packet	The probed frame
+ * @param frame	    The probed frame
  *
  * @return True if the frame passes, false if it does not
  */
-int nic_rxc_check(const nic_rxc_t *rxc, const packet_t *packet,
+int nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
 	nic_frame_type_t *frame_type)
 {
 	assert(frame_type != NULL);
-	uint8_t *dest_addr = (uint8_t *) packet + packet->data_start;
+	uint8_t *dest_addr = (uint8_t *) data;
 	uint8_t *src_addr = dest_addr + ETH_ADDR;
+
+	if (size < 2 * ETH_ADDR)
+		return false;
 
 	if (dest_addr[0] & 1) {
 		/* Multicast or broadcast */
@@ -437,15 +439,17 @@ int nic_rxc_check(const nic_rxc_t *rxc, const packet_t *packet,
 			}
 		}
 	}
+	
 	/* Blocked source addresses */
 	if (rxc->block_sources) {
 		if (nic_addr_db_contains(&rxc->blocked_sources, src_addr))
 			return false;
 	}
+	
 	/* VLAN filtering */
 	if (!rxc->vlan_exact && rxc->vlan_mask != NULL) {
 		vlan_header_t *vlan_header = (vlan_header_t *)
-			((uint8_t *) packet + packet->data_start + 2 * ETH_ADDR);
+			((uint8_t *) data + 2 * ETH_ADDR);
 		if (vlan_header->tpid_upper == VLAN_TPID_UPPER &&
 			vlan_header->tpid_lower == VLAN_TPID_LOWER) {
 			int index = ((int) (vlan_header->vid_upper & 0xF) << 5) |
@@ -481,6 +485,45 @@ void nic_rxc_hw_filtering(nic_rxc_t *rxc,
 	if (vlan_exact >= 0)
 		rxc->vlan_exact = vlan_exact;
 }
+
+/** Polynomial used in multicast address hashing */
+#define CRC_MCAST_POLYNOMIAL  0x04c11db6
+
+/** Compute the standard hash from MAC
+ *
+ * Hashing MAC into 64 possible values and using the value as index to
+ * 64bit number.
+ *
+ * The code is copied from qemu-0.13's implementation of ne2000 and rt8139
+ * drivers, but according to documentation there it originates in FreeBSD.
+ *
+ * @param[in] addr The 6-byte MAC address to be hashed
+ *
+ * @return 64-bit number with only single bit set to 1
+ *
+ */
+static uint64_t multicast_hash(const uint8_t addr[6])
+{
+	uint32_t crc;
+    int carry, i, j;
+    uint8_t b;
+
+    crc = 0xffffffff;
+    for (i = 0; i < 6; i++) {
+        b = addr[i];
+        for (j = 0; j < 8; j++) {
+            carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
+            crc <<= 1;
+            b >>= 1;
+            if (carry)
+                crc = ((crc ^ CRC_MCAST_POLYNOMIAL) | carry);
+        }
+    }
+	
+    uint64_t one64 = 1;
+    return one64 << (crc >> 26);
+}
+
 
 /**
  * Computes hash for the address list based on standard multicast address

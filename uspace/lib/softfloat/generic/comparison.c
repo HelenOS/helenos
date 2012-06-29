@@ -44,7 +44,7 @@
  * @param f Single-precision float.
  * @return 1 if float is NaN, 0 otherwise.
  */
-int isFloat32NaN(float32 f)
+int is_float32_nan(float32 f)
 {
 	/* NaN : exp = 0xff and nonzero fraction */
 	return ((f.parts.exp == 0xFF) && (f.parts.fraction));
@@ -57,7 +57,7 @@ int isFloat32NaN(float32 f)
  * @param d Double-precision float.
  * @return 1 if float is NaN, 0 otherwise.
  */
-int isFloat64NaN(float64 d)
+int is_float64_nan(float64 d)
 {
 	/* NaN : exp = 0x7ff and nonzero fraction */
 	return ((d.parts.exp == 0x7FF) && (d.parts.fraction));
@@ -70,7 +70,7 @@ int isFloat64NaN(float64 d)
  * @param ld Quadruple-precision float.
  * @return 1 if float is NaN, 0 otherwise.
  */
-int isFloat128NaN(float128 ld)
+int is_float128_nan(float128 ld)
 {
 	/* NaN : exp = 0x7fff and nonzero fraction */
 	return ((ld.parts.exp == 0x7FF) &&
@@ -83,7 +83,7 @@ int isFloat128NaN(float128 ld)
  * @param f Single-precision float.
  * @return 1 if float is signalling NaN, 0 otherwise.
  */
-int isFloat32SigNaN(float32 f)
+int is_float32_signan(float32 f)
 {
 	/* SigNaN : exp = 0xff and fraction = 0xxxxx..x (binary),
 	 * where at least one x is nonzero */
@@ -97,7 +97,7 @@ int isFloat32SigNaN(float32 f)
  * @param d Double-precision float.
  * @return 1 if float is signalling NaN, 0 otherwise.
  */
-int isFloat64SigNaN(float64 d)
+int is_float64_signan(float64 d)
 {
 	/* SigNaN : exp = 0x7ff and fraction = 0xxxxx..x (binary),
 	 * where at least one x is nonzero */
@@ -111,7 +111,7 @@ int isFloat64SigNaN(float64 d)
  * @param ld Quadruple-precision float.
  * @return 1 if float is signalling NaN, 0 otherwise.
  */
-int isFloat128SigNaN(float128 ld)
+int is_float128_signan(float128 ld)
 {
 	/* SigNaN : exp = 0x7fff and fraction = 0xxxxx..x (binary),
 	 * where at least one x is nonzero */
@@ -127,7 +127,7 @@ int isFloat128SigNaN(float128 ld)
  * @param f Single-precision float.
  * @return 1 if float is infinite, 0 otherwise.
  */
-int isFloat32Infinity(float32 f)
+int is_float32_infinity(float32 f)
 {
 	/* NaN : exp = 0x7ff and zero fraction */
 	return ((f.parts.exp == 0xFF) && (f.parts.fraction == 0x0));
@@ -139,7 +139,7 @@ int isFloat32Infinity(float32 f)
  * @param d Double-precision float.
  * @return 1 if float is infinite, 0 otherwise.
  */
-int isFloat64Infinity(float64 d) 
+int is_float64_infinity(float64 d)
 {
 	/* NaN : exp = 0x7ff and zero fraction */
 	return ((d.parts.exp == 0x7FF) && (d.parts.fraction == 0x0));
@@ -151,7 +151,7 @@ int isFloat64Infinity(float64 d)
  * @param ld Quadruple-precision float.
  * @return 1 if float is infinite, 0 otherwise.
  */
-int isFloat128Infinity(float128 ld)
+int is_float128_infinity(float128 ld)
 {
 	/* NaN : exp = 0x7fff and zero fraction */
 	return ((ld.parts.exp == 0x7FFF) &&
@@ -164,9 +164,9 @@ int isFloat128Infinity(float128 ld)
  * @param f Single-precision float.
  * @return 1 if float is zero, 0 otherwise.
  */
-int isFloat32Zero(float32 f)
+int is_float32_zero(float32 f)
 {
-	return (((f.binary) & 0x7FFFFFFF) == 0);
+	return (((f.bin) & 0x7FFFFFFF) == 0);
 }
 
 /**
@@ -175,9 +175,9 @@ int isFloat32Zero(float32 f)
  * @param d Double-precision float.
  * @return 1 if float is zero, 0 otherwise.
  */
-int isFloat64Zero(float64 d)
+int is_float64_zero(float64 d)
 {
-	return (((d.binary) & 0x7FFFFFFFFFFFFFFFll) == 0);
+	return (((d.bin) & 0x7FFFFFFFFFFFFFFFll) == 0);
 }
 
 /**
@@ -186,14 +186,14 @@ int isFloat64Zero(float64 d)
  * @param ld Quadruple-precision float.
  * @return 1 if float is zero, 0 otherwise.
  */
-int isFloat128Zero(float128 ld)
+int is_float128_zero(float128 ld)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-
-	and128(ld.binary.hi, ld.binary.lo,
+	
+	and128(ld.bin.hi, ld.bin.lo,
 	    0x7FFFFFFFFFFFFFFFll, 0xFFFFFFFFFFFFFFFFll, &tmp_hi, &tmp_lo);
-
+	
 	return eq128(tmp_hi, tmp_lo, 0x0ll, 0x0ll);
 }
 
@@ -204,11 +204,11 @@ int isFloat128Zero(float128 ld)
  * @b Second single-precision operand.
  * @return 1 if both floats are equal, 0 otherwise.
  */
-int isFloat32eq(float32 a, float32 b)
+int is_float32_eq(float32 a, float32 b)
 {
 	/* a equals to b or both are zeros (with any sign) */
-	return ((a.binary == b.binary) ||
-	    (((a.binary | b.binary) & 0x7FFFFFFF) == 0));
+	return ((a.bin == b.bin) ||
+	    (((a.bin | b.bin) & 0x7FFFFFFF) == 0));
 }
 
 /**
@@ -218,11 +218,11 @@ int isFloat32eq(float32 a, float32 b)
  * @b Second double-precision operand.
  * @return 1 if both floats are equal, 0 otherwise.
  */
-int isFloat64eq(float64 a, float64 b)
+int is_float64_eq(float64 a, float64 b)
 {
 	/* a equals to b or both are zeros (with any sign) */
-	return ((a.binary == b.binary) ||
-	    (((a.binary | b.binary) & 0x7FFFFFFFFFFFFFFFll) == 0));
+	return ((a.bin == b.bin) ||
+	    (((a.bin | b.bin) & 0x7FFFFFFFFFFFFFFFll) == 0));
 }
 
 /**
@@ -232,21 +232,21 @@ int isFloat64eq(float64 a, float64 b)
  * @b Second quadruple-precision operand.
  * @return 1 if both floats are equal, 0 otherwise.
  */
-int isFloat128eq(float128 a, float128 b)
+int is_float128_eq(float128 a, float128 b)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-
+	
 	/* both are zeros (with any sign) */
-	or128(a.binary.hi, a.binary.lo,
-	    b.binary.hi, b.binary.lo, &tmp_hi, &tmp_lo);
+	or128(a.bin.hi, a.bin.lo,
+	    b.bin.hi, b.bin.lo, &tmp_hi, &tmp_lo);
 	and128(tmp_hi, tmp_lo,
 	    0x7FFFFFFFFFFFFFFFll, 0xFFFFFFFFFFFFFFFFll, &tmp_hi, &tmp_lo);
 	int both_zero = eq128(tmp_hi, tmp_lo, 0x0ll, 0x0ll);
 	
 	/* a equals to b */
-	int are_equal = eq128(a.binary.hi, a.binary.lo, b.binary.hi, b.binary.lo);
-
+	int are_equal = eq128(a.bin.hi, a.bin.lo, b.bin.hi, b.bin.lo);
+	
 	return are_equal || both_zero;
 }
 
@@ -257,22 +257,26 @@ int isFloat128eq(float128 a, float128 b)
  * @b Second single-precision operand.
  * @return 1 if a is lower than b, 0 otherwise.
  */
-int isFloat32lt(float32 a, float32 b) 
+int is_float32_lt(float32 a, float32 b) 
 {
-	if (((a.binary | b.binary) & 0x7FFFFFFF) == 0) {
-		return 0; /* +- zeroes */
+	if (((a.bin | b.bin) & 0x7FFFFFFF) == 0) {
+		/* +- zeroes */
+		return 0;
 	}
 	
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, smaller is that with greater binary value */
-		return (a.binary > b.binary);
+		return (a.bin > b.bin);
 	}
 	
-	/* lets negate signs - now will be positive numbers allways bigger than
-	 * negative (first bit will be set for unsigned integer comparison) */
+	/*
+	 * lets negate signs - now will be positive numbers always
+	 * bigger than negative (first bit will be set for unsigned
+	 * integer comparison)
+	 */
 	a.parts.sign = !a.parts.sign;
 	b.parts.sign = !b.parts.sign;
-	return (a.binary < b.binary);
+	return (a.bin < b.bin);
 }
 
 /**
@@ -282,22 +286,26 @@ int isFloat32lt(float32 a, float32 b)
  * @b Second double-precision operand.
  * @return 1 if a is lower than b, 0 otherwise.
  */
-int isFloat64lt(float64 a, float64 b)
+int is_float64_lt(float64 a, float64 b)
 {
-	if (((a.binary | b.binary) & 0x7FFFFFFFFFFFFFFFll) == 0) {
-		return 0; /* +- zeroes */
+	if (((a.bin | b.bin) & 0x7FFFFFFFFFFFFFFFll) == 0) {
+		/* +- zeroes */
+		return 0;
 	}
-
+	
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, smaller is that with greater binary value */
-		return (a.binary > b.binary);
+		return (a.bin > b.bin);
 	}
-
-	/* lets negate signs - now will be positive numbers allways bigger than
-	 * negative (first bit will be set for unsigned integer comparison) */
+	
+	/*
+	 * lets negate signs - now will be positive numbers always
+	 * bigger than negative (first bit will be set for unsigned
+	 * integer comparison)
+	 */
 	a.parts.sign = !a.parts.sign;
 	b.parts.sign = !b.parts.sign;
-	return (a.binary < b.binary);
+	return (a.bin < b.bin);
 }
 
 /**
@@ -307,29 +315,33 @@ int isFloat64lt(float64 a, float64 b)
  * @b Second quadruple-precision operand.
  * @return 1 if a is lower than b, 0 otherwise.
  */
-int isFloat128lt(float128 a, float128 b)
+int is_float128_lt(float128 a, float128 b)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-
-	or128(a.binary.hi, a.binary.lo,
-	    b.binary.hi, b.binary.lo, &tmp_hi, &tmp_lo);
+	
+	or128(a.bin.hi, a.bin.lo,
+	    b.bin.hi, b.bin.lo, &tmp_hi, &tmp_lo);
 	and128(tmp_hi, tmp_lo,
 	    0x7FFFFFFFFFFFFFFFll, 0xFFFFFFFFFFFFFFFFll, &tmp_hi, &tmp_lo);
 	if (eq128(tmp_hi, tmp_lo, 0x0ll, 0x0ll)) {
-		return 0; /* +- zeroes */
+		/* +- zeroes */
+		return 0;
 	}
-
+	
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, smaller is that with greater binary value */
-		return lt128(b.binary.hi, b.binary.lo, a.binary.hi, a.binary.lo);
+		return lt128(b.bin.hi, b.bin.lo, a.bin.hi, a.bin.lo);
 	}
-
-	/* lets negate signs - now will be positive numbers allways bigger than
-	 * negative (first bit will be set for unsigned integer comparison) */
+	
+	/*
+	 * lets negate signs - now will be positive numbers always
+	 * bigger than negative (first bit will be set for unsigned
+	 * integer comparison)
+	 */
 	a.parts.sign = !a.parts.sign;
 	b.parts.sign = !b.parts.sign;
-	return lt128(a.binary.hi, a.binary.lo, b.binary.hi, b.binary.lo);
+	return lt128(a.bin.hi, a.bin.lo, b.bin.hi, b.bin.lo);
 }
 
 /**
@@ -339,22 +351,26 @@ int isFloat128lt(float128 a, float128 b)
  * @b Second single-precision operand.
  * @return 1 if a is greater than b, 0 otherwise.
  */
-int isFloat32gt(float32 a, float32 b) 
+int is_float32_gt(float32 a, float32 b) 
 {
-	if (((a.binary | b.binary) & 0x7FFFFFFF) == 0) {
-		return 0; /* zeroes are equal with any sign */
+	if (((a.bin | b.bin) & 0x7FFFFFFF) == 0) {
+		/* zeroes are equal with any sign */
+		return 0;
 	}
 	
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, greater is that with smaller binary value */
-		return (a.binary < b.binary);
+		return (a.bin < b.bin);
 	}
 	
-	/* lets negate signs - now will be positive numbers allways bigger than
-	 *  negative (first bit will be set for unsigned integer comparison) */
+	/*
+	 * lets negate signs - now will be positive numbers always
+	 * bigger than negative (first bit will be set for unsigned
+	 * integer comparison)
+	 */
 	a.parts.sign = !a.parts.sign;
 	b.parts.sign = !b.parts.sign;
-	return (a.binary > b.binary);
+	return (a.bin > b.bin);
 }
 
 /**
@@ -364,22 +380,26 @@ int isFloat32gt(float32 a, float32 b)
  * @b Second double-precision operand.
  * @return 1 if a is greater than b, 0 otherwise.
  */
-int isFloat64gt(float64 a, float64 b)
+int is_float64_gt(float64 a, float64 b)
 {
-	if (((a.binary | b.binary) & 0x7FFFFFFFFFFFFFFFll) == 0) {
-		return 0; /* zeroes are equal with any sign */
+	if (((a.bin | b.bin) & 0x7FFFFFFFFFFFFFFFll) == 0) {
+		/* zeroes are equal with any sign */
+		return 0;
 	}
-
+	
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, greater is that with smaller binary value */
-		return (a.binary < b.binary);
+		return (a.bin < b.bin);
 	}
-
-	/* lets negate signs - now will be positive numbers allways bigger than
-	 *  negative (first bit will be set for unsigned integer comparison) */
+	
+	/*
+	 * lets negate signs - now will be positive numbers always
+	 * bigger than negative (first bit will be set for unsigned
+	 * integer comparison)
+	 */
 	a.parts.sign = !a.parts.sign;
 	b.parts.sign = !b.parts.sign;
-	return (a.binary > b.binary);
+	return (a.bin > b.bin);
 }
 
 /**
@@ -389,29 +409,33 @@ int isFloat64gt(float64 a, float64 b)
  * @b Second quadruple-precision operand.
  * @return 1 if a is greater than b, 0 otherwise.
  */
-int isFloat128gt(float128 a, float128 b)
+int is_float128_gt(float128 a, float128 b)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-
-	or128(a.binary.hi, a.binary.lo,
-	    b.binary.hi, b.binary.lo, &tmp_hi, &tmp_lo);
+	
+	or128(a.bin.hi, a.bin.lo,
+	    b.bin.hi, b.bin.lo, &tmp_hi, &tmp_lo);
 	and128(tmp_hi, tmp_lo,
 	    0x7FFFFFFFFFFFFFFFll, 0xFFFFFFFFFFFFFFFFll, &tmp_hi, &tmp_lo);
 	if (eq128(tmp_hi, tmp_lo, 0x0ll, 0x0ll)) {
-		return 0; /* zeroes are equal with any sign */
+		/* zeroes are equal with any sign */
+		return 0;
 	}
-
+	
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, greater is that with smaller binary value */
-		return lt128(a.binary.hi, a.binary.lo, b.binary.hi, b.binary.lo);
+		return lt128(a.bin.hi, a.bin.lo, b.bin.hi, b.bin.lo);
 	}
-
-	/* lets negate signs - now will be positive numbers allways bigger than
-	 *  negative (first bit will be set for unsigned integer comparison) */
+	
+	/*
+	 * lets negate signs - now will be positive numbers always
+	 * bigger than negative (first bit will be set for unsigned
+	 * integer comparison)
+	 */
 	a.parts.sign = !a.parts.sign;
 	b.parts.sign = !b.parts.sign;
-	return lt128(b.binary.hi, b.binary.lo, a.binary.hi, a.binary.lo);
+	return lt128(b.bin.hi, b.bin.lo, a.bin.hi, a.bin.lo);
 }
 
 /** @}

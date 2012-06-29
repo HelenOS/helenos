@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64	
+/** @addtogroup libcia64
  * @{
  */
 /** @file
@@ -34,8 +34,6 @@
 
 #ifndef LIBC_ia64_THREAD_H_
 #define LIBC_ia64_THREAD_H_
-
-#define THREAD_INITIAL_STACK_PAGES_NO 2
 
 #endif
 

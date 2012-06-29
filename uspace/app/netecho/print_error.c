@@ -39,71 +39,9 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <net/icmp_codes.h>
-
-/** Prints the specific ICMP error description.
- *
- * @param[in] output The description output stream. May be NULL.
- * @param[in] error_code The ICMP error code.
- * @param[in] prefix The error description prefix. May be NULL.
- * @param[in] suffix The error description suffix. May be NULL.
- */
-void icmp_print_error(FILE *output, int error_code, const char *prefix, const char *suffix)
-{
-	if (!output)
-		return;
-	
-	if (prefix)
-		fprintf(output, "%s", prefix);
-		
-	switch (error_code) {
-	case ICMP_DEST_UNREACH:
-		fprintf(output, "ICMP Destination Unreachable (%d) error", error_code);
-		break;
-	case ICMP_SOURCE_QUENCH:
-		fprintf(output, "ICMP Source Quench (%d) error", error_code);
-		break;
-	case ICMP_REDIRECT:
-		fprintf(output, "ICMP Redirect (%d) error", error_code);
-		break;
-	case ICMP_ALTERNATE_ADDR:
-		fprintf(output, "ICMP Alternate Host Address (%d) error", error_code);
-		break;
-	case ICMP_ROUTER_ADV:
-		fprintf(output, "ICMP Router Advertisement (%d) error", error_code);
-		break;
-	case ICMP_ROUTER_SOL:
-		fprintf(output, "ICMP Router Solicitation (%d) error", error_code);
-		break;
-	case ICMP_TIME_EXCEEDED:
-		fprintf(output, "ICMP Time Exceeded (%d) error", error_code);
-		break;
-	case ICMP_PARAMETERPROB:
-		fprintf(output, "ICMP Paramenter Problem (%d) error", error_code);
-		break;
-	case ICMP_CONVERSION_ERROR:
-		fprintf(output, "ICMP Datagram Conversion Error (%d) error", error_code);
-		break;
-	case ICMP_REDIRECT_MOBILE:
-		fprintf(output, "ICMP Mobile Host Redirect (%d) error", error_code);
-		break;
-	case ICMP_SKIP:
-		fprintf(output, "ICMP SKIP (%d) error", error_code);
-		break;
-	case ICMP_PHOTURIS:
-		fprintf(output, "ICMP Photuris (%d) error", error_code);
-		break;
-	default:
-		fprintf(output, "Other (%d) error", error_code);
-	}
-
-	if (suffix)
-		fprintf(output, "%s", suffix);
-}
-
 /** Prints the error description.
  *
- * Supports ICMP and socket error codes.
+ * Supports socket error codes.
  *
  * @param[in] output The description output stream. May be NULL.
  * @param[in] error_code The error code.
@@ -112,9 +50,7 @@ void icmp_print_error(FILE *output, int error_code, const char *prefix, const ch
  */
 void print_error(FILE *output, int error_code, const char *prefix, const char *suffix)
 {
-	if (IS_ICMP_ERROR(error_code))
-		icmp_print_error(output, error_code, prefix, suffix);
-	else if(IS_SOCKET_ERROR(error_code))
+	if(IS_SOCKET_ERROR(error_code))
 		socket_print_error(output, error_code, prefix, suffix);
 }
 

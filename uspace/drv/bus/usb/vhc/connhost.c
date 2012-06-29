@@ -56,22 +56,14 @@
  * @param[out] address Non-null pointer where to store the free address.
  * @return Error code.
  */
-static int request_address(ddf_fun_t *fun, usb_speed_t speed,
-    usb_address_t *address)
+static int request_address(ddf_fun_t *fun, usb_address_t *address, bool strict,
+    usb_speed_t speed)
 {
 	VHC_DATA(vhc, fun);
 
-	usb_address_t addr = usb_device_manager_get_free_address(
-	    &vhc->dev_manager, USB_SPEED_HIGH);
-	if (addr < 0) {
-		return addr;
-	}
-
-	if (address != NULL) {
-		*address = addr;
-	}
-
-	return EOK;
+	assert(address);
+	return usb_device_manager_request_address(
+	    &vhc->dev_manager, address, strict, speed);
 }
 
 /** Bind USB address with device devman handle.
@@ -87,7 +79,7 @@ static int bind_address(ddf_fun_t *fun,
 	VHC_DATA(vhc, fun);
 	usb_log_debug("Binding handle %" PRIun " to address %d.\n",
 	    handle, address);
-	usb_device_manager_bind(&vhc->dev_manager, address, handle);
+	usb_device_manager_bind_address(&vhc->dev_manager, address, handle);
 
 	return EOK;
 }
@@ -103,9 +95,8 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
     devman_handle_t *handle)
 {
 	VHC_DATA(vhc, fun);
-	bool found =
-	    usb_device_manager_find_by_address(&vhc->dev_manager, address, handle);
-	return found ? EOK : ENOENT;
+	return usb_device_manager_get_info_by_address(
+	    &vhc->dev_manager, address, handle, NULL);
 }
 
 /** Release previously requested address.
@@ -118,7 +109,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	VHC_DATA(vhc, fun);
 	usb_log_debug("Releasing address %d...\n", address);
-	usb_device_manager_release(&vhc->dev_manager, address);
+	usb_device_manager_release_address(&vhc->dev_manager, address);
 
 	return ENOTSUP;
 }
@@ -136,26 +127,16 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
  * @return Error code.
  */
 static int register_endpoint(ddf_fun_t *fun,
-    usb_address_t address, usb_speed_t speed, usb_endpoint_t endpoint,
+    usb_address_t address, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
-	/* TODO: Use usb_endpoint_manager_add_ep */
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = endpoint_get(
-	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1);
-	if (ep == NULL) {
-		return ENOMEM;
-	}
+	return usb_endpoint_manager_add_ep(&vhc->ep_manager,
+	    address, endpoint, direction, transfer_type, USB_SPEED_FULL, 1, 0,
+	    NULL, NULL);
 
-	int rc = usb_endpoint_manager_register_ep(&vhc->ep_manager, ep, 1);
-	if (rc != EOK) {
-		endpoint_destroy(ep);
-		return rc;
-	}
-
-	return EOK;
 }
 
 /** Unregister endpoint (free some bandwidth reservation).
@@ -171,8 +152,8 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
 {
 	VHC_DATA(vhc, fun);
 
-	int rc = usb_endpoint_manager_unregister_ep(&vhc->ep_manager,
-	    address, endpoint, direction);
+	int rc = usb_endpoint_manager_remove_ep(&vhc->ep_manager,
+	    address, endpoint, direction, NULL, NULL);
 
 	return rc;
 }
@@ -413,8 +394,8 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 {
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&vhc->ep_manager,
+	    target.address, target.endpoint, USB_DIRECTION_IN);
 	if (ep == NULL) {
 		return ENOENT;
 	}
@@ -455,8 +436,8 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 {
 	VHC_DATA(vhc, fun);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&vhc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&vhc->ep_manager,
+	    target.address, target.endpoint, USB_DIRECTION_OUT);
 	if (ep == NULL) {
 		return ENOENT;
 	}
@@ -489,8 +470,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_buffer,
 	return EOK;
 }
 
-static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
-    usb_address_t *address)
+static int tell_address(ddf_fun_t *fun, usb_address_t *address)
 {
 	UNSUPPORTED("tell_address");
 
@@ -507,17 +487,15 @@ static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
 	return EOK;
 }
 
-static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
-    usb_address_t *address)
+static int tell_address_rh(ddf_fun_t *root_hub_fun, usb_address_t *address)
 {
 	VHC_DATA(vhc, root_hub_fun);
 
-	if (handle == 0) {
-		handle = root_hub_fun->handle;
-	}
+	devman_handle_t handle = root_hub_fun->handle;
 
 	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
-	usb_address_t addr = usb_device_manager_find(&vhc->dev_manager, handle);
+	const usb_address_t addr =
+	    usb_device_manager_find_address(&vhc->dev_manager, handle);
 	if (addr < 0) {
 		return addr;
 	} else {
@@ -529,7 +507,7 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
 usbhc_iface_t vhc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
-	.find_by_address = find_by_address,
+	.get_handle = find_by_address,
 	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,
@@ -541,12 +519,12 @@ usbhc_iface_t vhc_iface = {
 
 usb_iface_t vhc_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_hc_impl,
-	.get_address = tell_address
+	.get_my_address = tell_address
 };
 
 usb_iface_t rh_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_rh_impl,
-	.get_address = tell_address_rh
+	.get_my_address = tell_address_rh
 };
 
 

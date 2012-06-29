@@ -71,7 +71,7 @@
  */
 #define IPC_M_CONNECTION_CLONE  1
 
-/** Protocol for CONNECT - ME
+/** Protocol for establishing a cloned connection.
  *
  * Through this call, the recipient learns about the new cloned connection.
  *
@@ -80,9 +80,9 @@
  *   or the kernel closes it
  *
  */
-#define IPC_M_CONNECT_ME  2
+#define IPC_M_CLONE_ESTABLISH  2
 
-/** Protocol for CONNECT - TO - ME
+/** Protocol for initializing callback connections.
  *
  * Calling process asks the callee to create a callback connection,
  * so that it can start initiating new messages.
@@ -101,7 +101,7 @@
  */
 #define IPC_M_CONNECT_TO_ME  3
 
-/** Protocol for CONNECT - ME - TO
+/** Protocol for initializing new foward connections.
  *
  * Calling process asks the callee to create for him a new connection.
  * E.g. the caller wants a name server to connect him to print server.
@@ -126,20 +126,24 @@
  * - ARG3 - flags of the as_area being sent
  *
  * on answer, the recipient must set:
- * - ARG1 - dst as_area base adress
+ *
+ * - ARG1 - dst as_area lower bound
+ * - ARG2 - dst as_area base adress pointer
+ *          (filled automatically by the kernel)
  *
  */
 #define IPC_M_SHARE_OUT  5
 
 /** Receive as_area over IPC.
- * - ARG1 - destination as_area base address
- * - ARG2 - destination as_area size
- * - ARG3 - user defined argument
+ * - ARG1 - destination as_area size
+ * - ARG2 - user defined argument
  *
  * on answer, the recipient must set:
  *
  * - ARG1 - source as_area base address
  * - ARG2 - flags that will be used for sharing
+ * - ARG3 - dst as_area lower bound
+ * - ARG4 - dst as_area base address (filled automatically by kernel)
  *
  */
 #define IPC_M_SHARE_IN  6
@@ -178,14 +182,14 @@
  *
  * - ARG1 - recipient's phone to the third party task
  */
-#define IPC_M_STATE_CHANGE_AUTHORIZE	9
+#define IPC_M_STATE_CHANGE_AUTHORIZE  9
 
 /** Debug the recipient.
  * - ARG1 - specifies the debug method (from udebug_method_t)
  * - other arguments are specific to the debug method
  *
  */
-#define IPC_M_DEBUG 10
+#define IPC_M_DEBUG  10
 
 /** Last system IPC method */
 #define IPC_M_LAST_SYSTEM  511

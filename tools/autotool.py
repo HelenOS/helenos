@@ -48,7 +48,7 @@ PROBE_SOURCE = 'probe.c'
 PROBE_OUTPUT = 'probe.s'
 
 PACKAGE_BINUTILS = "usually part of binutils"
-PACKAGE_GCC = "preferably version 4.5.1 or newer"
+PACKAGE_GCC = "preferably version 4.7.0 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
@@ -65,11 +65,24 @@ PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc,
 #define STRING_ARG(arg)  #arg
 
 #define DECLARE_BUILTIN_TYPE(tag, type) \\
-	AUTOTOOL_DECLARE("builtin", "", tag, STRING(type), "", "", sizeof(type));
+	AUTOTOOL_DECLARE("builtin_size", "", tag, STRING(type), "", "", sizeof(type)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "unsigned long long int", tag, STRING(type), "unsigned", "", __builtin_types_compatible_p(type, unsigned long long int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "unsigned long int", tag, STRING(type), "unsigned", "", __builtin_types_compatible_p(type, unsigned long int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "unsigned int", tag, STRING(type), "unsigned", "", __builtin_types_compatible_p(type, unsigned int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "unsigned short int", tag, STRING(type), "unsigned", "", __builtin_types_compatible_p(type, unsigned short int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "unsigned char", tag, STRING(type), "unsigned", "", __builtin_types_compatible_p(type, unsigned char)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "signed long long int", tag, STRING(type), "signed", "", __builtin_types_compatible_p(type, signed long long int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "signed long int", tag, STRING(type), "signed", "", __builtin_types_compatible_p(type, signed long int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "signed int", tag, STRING(type), "signed", "", __builtin_types_compatible_p(type, signed int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "signed short int", tag, STRING(type), "signed", "", __builtin_types_compatible_p(type, signed short int)); \\
+	AUTOTOOL_DECLARE("builtin_sign", "signed char", tag, STRING(type), "signed", "", __builtin_types_compatible_p(type, signed char));
 
 #define DECLARE_INTSIZE(tag, type, strc, conc) \\
 	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, strc, conc, sizeof(unsigned type)); \\
 	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, strc, conc, sizeof(signed type));
+
+#define DECLARE_FLOATSIZE(tag, type) \\
+	AUTOTOOL_DECLARE("floatsize", "", tag, #type, "", "", sizeof(type));
 
 int main(int argc, char *argv[])
 {
@@ -183,6 +196,39 @@ def check_app(args, name, details):
 	
 	sys.stderr.write("ok\n")
 
+def check_app_alternatives(alts, args, name, details):
+	"Check whether an application can be executed (use several alternatives)"
+	
+	tried = []
+	found = None
+	
+	for alt in alts:
+		working = True
+		cmdline = [alt] + args
+		tried.append(" ".join(cmdline))
+		
+		try:
+			sys.stderr.write("Checking for %s ... " % alt)
+			subprocess.Popen(cmdline, stdout = subprocess.PIPE, stderr = subprocess.PIPE).wait()
+		except:
+			sys.stderr.write("failed\n")
+			working = False
+		
+		if (working):
+			sys.stderr.write("ok\n")
+			found = alt
+			break
+	
+	if (found is None):
+		print_error(["%s is missing." % name,
+		             "",
+		             "Please make sure that it is installed in your",
+		             "system (%s)." % details,
+		             "",
+		             "The following alternatives were tried:"] + tried)
+	
+	return found
+
 def check_gcc(path, prefix, common, details):
 	"Check for GCC"
 	
@@ -228,7 +274,7 @@ def decode_value(value):
 	
 	return int(value, base)
 
-def probe_compiler(common, sizes):
+def probe_compiler(common, intsizes, floatsizes):
 	"Generate, compile and parse probing source"
 	
 	check_common(common, "CC")
@@ -236,8 +282,11 @@ def probe_compiler(common, sizes):
 	outf = open(PROBE_SOURCE, 'w')
 	outf.write(PROBE_HEAD)
 	
-	for typedef in sizes:
+	for typedef in intsizes:
 		outf.write("\tDECLARE_INTSIZE(\"%s\", %s, %s, %s);\n" % (typedef['tag'], typedef['type'], typedef['strc'], typedef['conc']))
+	
+	for typedef in floatsizes:
+		outf.write("\nDECLARE_FLOATSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
 	
 	outf.write(PROBE_TAIL)
 	outf.close()
@@ -281,7 +330,10 @@ def probe_compiler(common, sizes):
 	unsigned_concs = {}
 	signed_concs = {}
 	
-	builtins = {}
+	float_tags = {}
+	
+	builtin_sizes = {}
+	builtin_signs = {}
 	
 	for j in range(len(lines)):
 		tokens = lines[j].strip().split("\t")
@@ -318,45 +370,65 @@ def probe_compiler(common, sizes):
 					else:
 						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
 				
-				if (category == "builtin"):
+				if (category == "floatsize"):
 					try:
 						value_int = decode_value(value)
 					except:
 						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
 					
-					builtins[tag] = {'name': name, 'value': value_int}
+					float_tags[tag] = value_int
+				
+				if (category == "builtin_size"):
+					try:
+						value_int = decode_value(value)
+					except:
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+					
+					builtin_sizes[tag] = {'name': name, 'value': value_int}
+				
+				if (category == "builtin_sign"):
+					try:
+						value_int = decode_value(value)
+					except:
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+					
+					if (value_int == 1):
+						if (not tag in builtin_signs):
+							builtin_signs[tag] = strc;
+						elif (builtin_signs[tag] != strc):
+							print_error(["Inconsistent builtin type detection in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
 	
-	return {'unsigned_sizes': unsigned_sizes, 'signed_sizes': signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags, 'unsigned_strcs': unsigned_strcs, 'signed_strcs': signed_strcs, 'unsigned_concs': unsigned_concs, 'signed_concs': signed_concs, 'builtins': builtins}
+	return {'unsigned_sizes': unsigned_sizes, 'signed_sizes': signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags, 'unsigned_strcs': unsigned_strcs, 'signed_strcs': signed_strcs, 'unsigned_concs': unsigned_concs, 'signed_concs': signed_concs, 'float_tags': float_tags, 'builtin_sizes': builtin_sizes, 'builtin_signs': builtin_signs}
 
-def detect_uints(probe, bytes, tags):
-	"Detect correct types for fixed-size integer types"
+def detect_sizes(probe, bytes, inttags, floattags):
+	"Detect correct types for fixed-size types"
 	
 	macros = []
 	typedefs = []
 	
 	for b in bytes:
 		if (not b in probe['unsigned_sizes']):
-			print_error(['Unable to find appropriate unsigned integer type for %u bytes' % b,
+			print_error(['Unable to find appropriate unsigned integer type for %u bytes.' % b,
 			             COMPILER_FAIL])
 		
 		if (not b in probe['signed_sizes']):
-			print_error(['Unable to find appropriate signed integer type for %u bytes' % b,
+			print_error(['Unable to find appropriate signed integer type for %u bytes.' % b,
 			             COMPILER_FAIL])
 		
 		if (not b in probe['unsigned_strcs']):
-			print_error(['Unable to find appropriate unsigned printf formatter for %u bytes' % b,
+			print_error(['Unable to find appropriate unsigned printf formatter for %u bytes.' % b,
 			             COMPILER_FAIL])
 		
 		if (not b in probe['signed_strcs']):
-			print_error(['Unable to find appropriate signed printf formatter for %u bytes' % b,
+			print_error(['Unable to find appropriate signed printf formatter for %u bytes.' % b,
 			             COMPILER_FAIL])
 		
 		if (not b in probe['unsigned_concs']):
-			print_error(['Unable to find appropriate unsigned literal macro for %u bytes' % b,
+			print_error(['Unable to find appropriate unsigned literal macro for %u bytes.' % b,
 			             COMPILER_FAIL])
 		
 		if (not b in probe['signed_concs']):
-			print_error(['Unable to find appropriate signed literal macro for %u bytes' % b,
+			print_error(['Unable to find appropriate signed literal macro for %u bytes.' % b,
 			             COMPILER_FAIL])
 		
 		typedefs.append({'oldtype': "unsigned %s" % probe['unsigned_sizes'][b], 'newtype': "uint%u_t" % (b * 8)})
@@ -383,35 +455,52 @@ def detect_uints(probe, bytes, tags):
 		else:
 			macros.append({'oldmacro': "c ## %s" % name, 'newmacro': "INT%u_C(c)" % (b * 8)})
 	
-	for tag in tags:
+	for tag in inttags:
 		newmacro = "U%s" % tag
 		if (not tag in probe['unsigned_tags']):
-			print_error(['Unable to find appropriate size macro for %s' % newmacro,
+			print_error(['Unable to find appropriate size macro for %s.' % newmacro,
 			             COMPILER_FAIL])
 		
 		oldmacro = "UINT%s" % (probe['unsigned_tags'][tag] * 8)
 		macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
 		macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
+		macros.append({'oldmacro': "1", 'newmacro': 'U%s_SIZE_%s' % (tag, probe['unsigned_tags'][tag] * 8)})
 		
 		newmacro = tag
-		if (not tag in probe['unsigned_tags']):
+		if (not tag in probe['signed_tags']):
 			print_error(['Unable to find appropriate size macro for %s' % newmacro,
 			             COMPILER_FAIL])
 		
 		oldmacro = "INT%s" % (probe['signed_tags'][tag] * 8)
 		macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
 		macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
+		macros.append({'oldmacro': "1", 'newmacro': '%s_SIZE_%s' % (tag, probe['signed_tags'][tag] * 8)})
+	
+	for tag in floattags:
+		if (not tag in probe['float_tags']):
+			print_error(['Unable to find appropriate size macro for %s' % tag,
+			             COMPILER_FAIL])
+		
+		macros.append({'oldmacro': "1", 'newmacro': '%s_SIZE_%s' % (tag, probe['float_tags'][tag] * 8)})
+	
+	if (not 'size' in probe['builtin_signs']):
+		print_error(['Unable to determine whether size_t is signed or unsigned.',
+		             COMPILER_FAIL])
+	
+	if (probe['builtin_signs']['size'] != 'unsigned'):
+		print_error(['The type size_t is not unsigned.',
+		             COMPILER_FAIL])
 	
 	fnd = True
 	
-	if (not 'wchar' in probe['builtins']):
+	if (not 'wchar' in probe['builtin_sizes']):
 		print_warning(['The compiler does not provide the macro __WCHAR_TYPE__',
 		               'for defining the compiler-native type wchar_t. We are',
 		               'forced to define wchar_t as a hardwired type int32_t.',
 		               COMPILER_WARNING])
 		fnd = False
 	
-	if (probe['builtins']['wchar']['value'] != 4):
+	if (probe['builtin_sizes']['wchar']['value'] != 4):
 		print_warning(['The compiler provided macro __WCHAR_TYPE__ for defining',
 		               'the compiler-native type wchar_t is not compliant with',
 		               'HelenOS. We are forced to define wchar_t as a hardwired',
@@ -424,16 +513,25 @@ def detect_uints(probe, bytes, tags):
 	else:
 		macros.append({'oldmacro': "__WCHAR_TYPE__", 'newmacro': "wchar_t"})
 	
+	if (not 'wchar' in probe['builtin_signs']):
+		print_error(['Unable to determine whether wchar_t is signed or unsigned.',
+		             COMPILER_FAIL])
+	
+	if (probe['builtin_signs']['wchar'] == 'unsigned'):
+		macros.append({'oldmacro': "1", 'newmacro': 'WCHAR_IS_UNSIGNED'})
+	if (probe['builtin_signs']['wchar'] == 'signed'):
+		macros.append({'oldmacro': "1", 'newmacro': 'WCHAR_IS_SIGNED'})
+	
 	fnd = True
 	
-	if (not 'wint' in probe['builtins']):
+	if (not 'wint' in probe['builtin_sizes']):
 		print_warning(['The compiler does not provide the macro __WINT_TYPE__',
 		               'for defining the compiler-native type wint_t. We are',
 		               'forced to define wint_t as a hardwired type int32_t.',
 		               COMPILER_WARNING])
 		fnd = False
 	
-	if (probe['builtins']['wint']['value'] != 4):
+	if (probe['builtin_sizes']['wint']['value'] != 4):
 		print_warning(['The compiler provided macro __WINT_TYPE__ for defining',
 		               'the compiler-native type wint_t is not compliant with',
 		               'HelenOS. We are forced to define wint_t as a hardwired',
@@ -445,6 +543,15 @@ def detect_uints(probe, bytes, tags):
 		macros.append({'oldmacro': "int32_t", 'newmacro': "wint_t"})
 	else:
 		macros.append({'oldmacro': "__WINT_TYPE__", 'newmacro': "wint_t"})
+	
+	if (not 'wint' in probe['builtin_signs']):
+		print_error(['Unable to determine whether wint_t is signed or unsigned.',
+		             COMPILER_FAIL])
+	
+	if (probe['builtin_signs']['wint'] == 'unsigned'):
+		macros.append({'oldmacro': "1", 'newmacro': 'WINT_IS_UNSIGNED'})
+	if (probe['builtin_signs']['wint'] == 'signed'):
+		macros.append({'oldmacro': "1", 'newmacro': 'WINT_IS_SIGNED'})
 	
 	return {'macros': macros, 'typedefs': typedefs}
 
@@ -458,7 +565,10 @@ def create_makefile(mkname, common):
 	outmk.write('#########################################\n\n')
 	
 	for key, value in common.items():
-		outmk.write('%s = %s\n' % (key, value))
+		if (type(value) is list):
+			outmk.write('%s = %s\n' % (key, " ".join(value)))
+		else:
+			outmk.write('%s = %s\n' % (key, value))
 	
 	outmk.close()
 
@@ -534,7 +644,7 @@ def main():
 				target = config['CROSS_TARGET']
 				
 				if (config['CROSS_TARGET'] == "arm32"):
-					gnu_target = "arm-linux-gnu"
+					gnu_target = "arm-linux-gnueabi"
 				
 				if (config['CROSS_TARGET'] == "ia32"):
 					gnu_target = "i686-pc-linux-gnu"
@@ -549,7 +659,7 @@ def main():
 			
 			if (config['PLATFORM'] == "arm32"):
 				target = config['PLATFORM']
-				gnu_target = "arm-linux-gnu"
+				gnu_target = "arm-linux-gnueabi"
 			
 			if (config['PLATFORM'] == "ia32"):
 				target = config['PLATFORM']
@@ -609,12 +719,6 @@ def main():
 			check_gcc(None, "", common, PACKAGE_GCC)
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
-		if (config['COMPILER'] == "suncc"):
-			common['CC'] = "suncc"
-			check_app([common['CC'], "-V"], "Sun Studio Compiler", "support is experimental")
-			check_gcc(None, "", common, PACKAGE_GCC)
-			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-		
 		if (config['COMPILER'] == "clang"):
 			common['CC'] = "clang"
 			check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")
@@ -623,7 +727,7 @@ def main():
 		
 		# Platform-specific utilities
 		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):
-			check_app(["mkisofs", "--version"], "ISO 9660 creation utility", "usually part of genisoimage")
+			common['GENISOIMAGE'] = check_app_alternatives(["mkisofs", "genisoimage"], ["--version"], "ISO 9660 creation utility", "usually part of genisoimage")
 		
 		probe = probe_compiler(common,
 			[
@@ -632,10 +736,15 @@ def main():
 				{'type': 'int', 'tag': 'INT', 'strc': '""', 'conc': '""'},
 				{'type': 'short int', 'tag': 'SHORT', 'strc': '"h"', 'conc': '"@"'},
 				{'type': 'char', 'tag': 'CHAR', 'strc': '"hh"', 'conc': '"@@"'}
+			],
+			[
+				{'type': 'long double', 'tag': 'LONG_DOUBLE'},
+				{'type': 'double', 'tag': 'DOUBLE'},
+				{'type': 'float', 'tag': 'FLOAT'}
 			]
 		)
 		
-		maps = detect_uints(probe, [1, 2, 4, 8], ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG'])
+		maps = detect_sizes(probe, [1, 2, 4, 8], ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG'], ['LONG_DOUBLE', 'DOUBLE', 'FLOAT'])
 		
 	finally:
 		sandbox_leave(owd)

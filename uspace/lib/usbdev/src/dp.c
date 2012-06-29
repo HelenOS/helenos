@@ -56,7 +56,7 @@
 #define LAST_NESTING { -1, -1 }
 
 /** Nesting of standard USB descriptors. */
-usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[] = {
+const usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[] = {
 	NESTING(CONFIGURATION, INTERFACE),
 	NESTING(INTERFACE, ENDPOINT),
 	NESTING(INTERFACE, HUB),

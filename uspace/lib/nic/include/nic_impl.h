@@ -39,47 +39,45 @@
 #define NIC_IMPL_H__
 
 #include <assert.h>
-#include <net/device.h>
+#include <nic/nic.h>
 #include <ddf/driver.h>
-#include <nil_remote.h>
 
 /* Inclusion of this file is not prohibited, because drivers could want to
  * inject some adaptation layer between the DDF call and NICF implementation */
 
 extern int nic_get_address_impl(ddf_fun_t *dev_fun, nic_address_t *address);
-extern int nic_send_message_impl(ddf_fun_t *dev_fun, packet_id_t packet_id);
-extern int nic_connect_to_nil_impl(ddf_fun_t *dev_fun, services_t nil_service,
-	int device_id);
+extern int nic_send_frame_impl(ddf_fun_t *dev_fun, void *data, size_t size);
+extern int nic_callback_create_impl(ddf_fun_t *dev_fun);
 extern int nic_get_state_impl(ddf_fun_t *dev_fun, nic_device_state_t *state);
 extern int nic_set_state_impl(ddf_fun_t *dev_fun, nic_device_state_t state);
 extern int nic_get_stats_impl(ddf_fun_t *dev_fun, nic_device_stats_t *stats);
 extern int nic_unicast_get_mode_impl(ddf_fun_t *dev_fun,
-	nic_unicast_mode_t *, size_t, nic_address_t *, size_t *);
+    nic_unicast_mode_t *, size_t, nic_address_t *, size_t *);
 extern int nic_unicast_set_mode_impl(ddf_fun_t *dev_fun,
-	nic_unicast_mode_t, const nic_address_t *, size_t);
+    nic_unicast_mode_t, const nic_address_t *, size_t);
 extern int nic_multicast_get_mode_impl(ddf_fun_t *dev_fun,
-	nic_multicast_mode_t *, size_t, nic_address_t *, size_t *);
+    nic_multicast_mode_t *, size_t, nic_address_t *, size_t *);
 extern int nic_multicast_set_mode_impl(ddf_fun_t *dev_fun,
-	nic_multicast_mode_t, const nic_address_t *, size_t);
+    nic_multicast_mode_t, const nic_address_t *, size_t);
 extern int nic_broadcast_get_mode_impl(ddf_fun_t *, nic_broadcast_mode_t *);
 extern int nic_broadcast_set_mode_impl(ddf_fun_t *, nic_broadcast_mode_t);
 extern int nic_blocked_sources_get_impl(ddf_fun_t *,
-	size_t, nic_address_t *, size_t *);
+    size_t, nic_address_t *, size_t *);
 extern int nic_blocked_sources_set_impl(ddf_fun_t *, const nic_address_t *, size_t);
 extern int nic_vlan_get_mask_impl(ddf_fun_t *, nic_vlan_mask_t *);
 extern int nic_vlan_set_mask_impl(ddf_fun_t *, const nic_vlan_mask_t *);
 extern int nic_wol_virtue_add_impl(ddf_fun_t *dev_fun, nic_wv_type_t type,
-	const void *data, size_t length, nic_wv_id_t *new_id);
+    const void *data, size_t length, nic_wv_id_t *new_id);
 extern int nic_wol_virtue_remove_impl(ddf_fun_t *dev_fun, nic_wv_id_t id);
 extern int nic_wol_virtue_probe_impl(ddf_fun_t *dev_fun, nic_wv_id_t id,
-	nic_wv_type_t *type, size_t max_length, void *data, size_t *length);
+    nic_wv_type_t *type, size_t max_length, void *data, size_t *length);
 extern int nic_wol_virtue_list_impl(ddf_fun_t *dev_fun, nic_wv_type_t type,
-	size_t max_count, nic_wv_id_t *id_list, size_t *id_count);
+    size_t max_count, nic_wv_id_t *id_list, size_t *id_count);
 extern int nic_wol_virtue_get_caps_impl(ddf_fun_t *, nic_wv_type_t, int *);
 extern int nic_poll_get_mode_impl(ddf_fun_t *,
-	nic_poll_mode_t *, struct timeval *);
+    nic_poll_mode_t *, struct timeval *);
 extern int nic_poll_set_mode_impl(ddf_fun_t *,
-	nic_poll_mode_t, const struct timeval *);
+    nic_poll_mode_t, const struct timeval *);
 extern int nic_poll_now_impl(ddf_fun_t *);
 
 extern void nic_default_handler_impl(ddf_fun_t *dev_fun,

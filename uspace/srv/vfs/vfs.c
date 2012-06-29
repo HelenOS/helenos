@@ -126,6 +126,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_WAIT_HANDLE:
 			vfs_wait_handle(callid, &call);
 			break;
+		case VFS_IN_MTAB_GET:
+			vfs_get_mtab(callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;
@@ -155,28 +158,24 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS VFS server\n");
+	printf("%s: HelenOS VFS server\n", NAME);
 	
 	/*
 	 * Initialize VFS node hash table.
 	 */
 	if (!vfs_nodes_init()) {
-		printf(NAME ": Failed to initialize VFS node hash table\n");
+		printf("%s: Failed to initialize VFS node hash table\n",
+		    NAME);
 		return ENOMEM;
 	}
 	
 	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
-	plb = as_get_mappable_page(PLB_SIZE);
-	if (!plb) {
-		printf(NAME ": Cannot allocate a mappable piece of address space\n");
-		return ENOMEM;
-	}
-	
-	if (as_area_create(plb, PLB_SIZE, AS_AREA_READ | AS_AREA_WRITE |
-	    AS_AREA_CACHEABLE) != plb) {
-		printf(NAME ": Cannot create address space area\n");
+	plb = as_area_create(AS_AREA_ANY, PLB_SIZE,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	if (plb == AS_MAP_FAILED) {
+		printf("%s: Cannot create address space area\n", NAME);
 		return ENOMEM;
 	}
 	memset(plb, 0, PLB_SIZE);
@@ -197,19 +196,20 @@ int main(int argc, char **argv)
 	 */
 	async_set_interrupt_received(notification_received);
 	event_task_subscribe(EVENT_TASK_STATE_CHANGE, VFS_TASK_STATE_CHANGE);
-
+	
 	/*
 	 * Register at the naming service.
 	 */
-	if (service_register(SERVICE_VFS) != EOK) {
+	int rc = service_register(SERVICE_VFS);
+	if (rc != EOK) {
 		printf("%s: Cannot register VFS service\n", NAME);
-		return EINVAL;
+		return rc;
 	}
 	
 	/*
 	 * Start accepting connections.
 	 */
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	async_manager();
 	return 0;
 }

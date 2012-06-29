@@ -89,7 +89,7 @@ else
 	OPTIMIZATION = 3
 endif
 
-DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
+DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -101,10 +101,6 @@ GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
-
-SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
-	-xnolib -xc99=all -features=extensions \
-	-erroff=E_ZERO_SIZED_STRUCT_UNION
 
 CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -125,7 +121,6 @@ endif
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -g
 	ICC_CFLAGS += -g
-	SUNCC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
@@ -182,13 +177,6 @@ ifeq ($(COMPILER),icc)
 	INSTRUMENTATION =
 endif
 
-ifeq ($(COMPILER),suncc)
-	CFLAGS = $(SUNCC_CFLAGS)
-	DEFS += $(CONFIG_DEFS)
-	DEPEND_DEFS = $(DEFS)
-	INSTRUMENTATION =
-endif
-
 ifeq ($(COMPILER),clang)
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
@@ -228,6 +216,7 @@ GENERIC_SOURCES = \
 	generic/src/proc/the.c \
 	generic/src/syscall/syscall.c \
 	generic/src/syscall/copy.c \
+	generic/src/mm/km.c \
 	generic/src/mm/reserve.c \
 	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
@@ -244,6 +233,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/sort.c \
 	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
+	generic/src/lib/ra.c \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
 	generic/src/printf/printf.c \

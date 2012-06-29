@@ -59,6 +59,8 @@ static irq_cmd_t uart_irq_cmds[] = {
 };
 
 static irq_code_t uart_irq_code = {
+	0,
+	NULL,
 	sizeof(uart_irq_cmds) / sizeof(irq_cmd_t),
 	uart_irq_cmds
 };
@@ -74,14 +76,13 @@ static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte);
 
 int main(int argc, char *argv[])
 {
-	int rc;
-
-	printf(NAME ": S3C24xx on-chip UART driver\n");
-
-	rc = loc_server_register(NAME, s3c24xx_uart_connection);
-	if (rc < 0) {
-		printf(NAME ": Unable to register server.\n");
-		return -1;
+	printf("%s: S3C24xx on-chip UART driver\n", NAME);
+	
+	async_set_client_connection(s3c24xx_uart_connection);
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register server.\n", NAME);
+		return rc;
 	}
 
 	uart = malloc(sizeof(s3c24xx_uart_t));
@@ -193,7 +194,7 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 
 	async_set_interrupt_received(s3c24xx_uart_irq_handler);
 
-	register_irq(inr, device_assign_devno(), 0, &uart_irq_code);
+	irq_register(inr, device_assign_devno(), 0, &uart_irq_code);
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
 	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |

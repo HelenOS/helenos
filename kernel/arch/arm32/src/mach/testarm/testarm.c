@@ -36,6 +36,7 @@
 #include <arch/exception.h>
 #include <arch/mach/testarm/testarm.h>
 #include <mm/page.h>
+#include <mm/km.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
@@ -70,9 +71,12 @@ struct arm_machine_ops gxemul_machine_ops = {
 
 void gxemul_init(void)
 {
-	gxemul_kbd = (void *) hw_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE);
-	gxemul_rtc = (void *) hw_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE);
-	gxemul_irqc = (void *) hw_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE);
+	gxemul_kbd = (void *) km_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	gxemul_rtc = (void *) km_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	gxemul_irqc = (void *) km_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE,
+	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 }
 
 void gxemul_output_init(void)
@@ -116,14 +120,15 @@ void gxemul_input_init(void)
 			dsrlnin_wire(dsrlnin_instance, srln);
 		}
 	}
-
+	
 	/*
 	 * This is the necessary evil until the userspace driver is entirely
 	 * self-sufficient.
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, GXEMUL_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (sysarg_t) gxemul_kbd);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    GXEMUL_KBD_ADDRESS);
 #endif
 }
 
@@ -166,7 +171,7 @@ static void gxemul_timer_irq_handler(irq_t *irq)
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);
-
+	
 	/* acknowledge tick */
 	*((uint32_t *) (gxemul_rtc + GXEMUL_RTC_ACK_OFFSET))
 	    = 0;
@@ -175,13 +180,13 @@ static void gxemul_timer_irq_handler(irq_t *irq)
 /** Initializes and registers timer interrupt handler. */
 static void gxemul_timer_irq_init(void)
 {
-        irq_initialize(&gxemul_timer_irq);
-        gxemul_timer_irq.devno = device_assign_devno();
-        gxemul_timer_irq.inr = GXEMUL_TIMER_IRQ;
-        gxemul_timer_irq.claim = gxemul_timer_claim;
-        gxemul_timer_irq.handler = gxemul_timer_irq_handler;
-
-        irq_register(&gxemul_timer_irq);
+	irq_initialize(&gxemul_timer_irq);
+	gxemul_timer_irq.devno = device_assign_devno();
+	gxemul_timer_irq.inr = GXEMUL_TIMER_IRQ;
+	gxemul_timer_irq.claim = gxemul_timer_claim;
+	gxemul_timer_irq.handler = gxemul_timer_irq_handler;
+	
+	irq_register(&gxemul_timer_irq);
 }
 
 
@@ -192,8 +197,8 @@ static void gxemul_timer_irq_init(void)
  */
 void gxemul_timer_irq_start(void)
 {
-        gxemul_timer_irq_init();
-        gxemul_timer_start(GXEMUL_TIMER_FREQ);
+	gxemul_timer_irq_init();
+	gxemul_timer_start(GXEMUL_TIMER_FREQ);
 }
 
 /** Get extents of available memory.
@@ -201,10 +206,10 @@ void gxemul_timer_irq_start(void)
  * @param start		Place to store memory start address.
  * @param size		Place to store memory size.
  */
-void gxemul_get_memory_extents(uintptr_t *start, uintptr_t *size)
+void gxemul_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	*start = 0;
-        *size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	*size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
 }
 
 /** Returns the mask of active interrupts. */
@@ -221,7 +226,7 @@ void gxemul_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = gxemul_irqc_get_sources();
 	unsigned int i;
-
+	
 	for (i = 0; i < GXEMUL_IRQ_COUNT; i++) {
 		if (sources & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);

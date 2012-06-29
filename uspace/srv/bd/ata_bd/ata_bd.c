@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
 
@@ -242,32 +242,30 @@ static void disk_print_summary(disk_t *d)
 /** Register driver and enable device I/O. */
 static int ata_bd_init(void)
 {
-	void *vaddr;
-	int rc;
-
-	rc = loc_server_register(NAME, ata_bd_connection);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+	async_set_client_connection(ata_bd_connection);
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-
+	
+	void *vaddr;
 	rc = pio_enable((void *) cmd_physical, sizeof(ata_cmd_t), &vaddr);
 	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
+		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-
+	
 	cmd = vaddr;
-
+	
 	rc = pio_enable((void *) ctl_physical, sizeof(ata_ctl_t), &vaddr);
 	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
+		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-
+	
 	ctl = vaddr;
-
-
+	
 	return EOK;
 }
 
@@ -308,13 +306,11 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (true) {
 		callid = async_get_call(&call);

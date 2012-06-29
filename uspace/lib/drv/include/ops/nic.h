@@ -36,17 +36,15 @@
 #ifndef LIBDRV_OPS_NIC_H_
 #define LIBDRV_OPS_NIC_H_
 
-#include <net/packet.h>
 #include <ipc/services.h>
-#include <net/device.h>
+#include <nic/nic.h>
 #include <sys/time.h>
-
 #include "../ddf/driver.h"
 
 typedef struct nic_iface {
 	/** Mandatory methods */
-	int (*send_message)(ddf_fun_t *, packet_id_t);
-	int (*connect_to_nil)(ddf_fun_t *, services_t, nic_device_id_t);
+	int (*send_frame)(ddf_fun_t *, void *, size_t);
+	int (*callback_create)(ddf_fun_t *);
 	int (*get_state)(ddf_fun_t *, nic_device_state_t *);
 	int (*set_state)(ddf_fun_t *, nic_device_state_t);
 	int (*get_address)(ddf_fun_t *, nic_address_t *);
@@ -88,7 +86,7 @@ typedef struct nic_iface {
 	
 	int (*vlan_get_mask)(ddf_fun_t *, nic_vlan_mask_t *);
 	int (*vlan_set_mask)(ddf_fun_t *, const nic_vlan_mask_t *);
-	int (*vlan_set_tag)(ddf_fun_t *, uint16_t, int, int);
+	int (*vlan_set_tag)(ddf_fun_t *, uint16_t, bool, bool);
 	
 	int (*wol_virtue_add)(ddf_fun_t *, nic_wv_type_t, const void *,
 	    size_t, nic_wv_id_t *);

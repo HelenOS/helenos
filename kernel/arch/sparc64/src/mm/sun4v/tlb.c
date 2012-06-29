@@ -217,7 +217,6 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	pte_t *t;
 
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 
 	if (t && PTE_EXECUTABLE(t)) {
@@ -230,13 +229,11 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 #ifdef CONFIG_TSB
 		itsb_pte_copy(t);
 #endif
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
 			    istate->tpc, __func__);
@@ -273,7 +270,6 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 		    "kernel page fault.");
 	}
 
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	if (t) {
 		/*
@@ -285,13 +281,11 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(t, true);
 #endif
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			do_fast_data_access_mmu_miss_fault(istate, page_and_ctx,
 			    __func__);
@@ -315,7 +309,6 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
 	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
 
-	page_table_lock(AS, true);
 	t = page_mapping_find(AS, va, true);
 	if (t && PTE_WRITABLE(t)) {
 		/*
@@ -330,13 +323,11 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(t, false);
 #endif
-		page_table_unlock(AS, true);
 	} else {
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
 			do_fast_data_access_protection_fault(istate, page_and_ctx,
 			    __func__);

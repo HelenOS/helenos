@@ -37,6 +37,7 @@
 #include "pwd.h"
 #include "string.h"
 #include "errno.h"
+#include "assert.h"
 
 static bool entry_read = false;
 

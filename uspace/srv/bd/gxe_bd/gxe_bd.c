@@ -121,34 +121,36 @@ int main(int argc, char **argv)
 
 static int gxe_bd_init(void)
 {
-	void *vaddr;
-	int rc, i;
-	char name[16];
-
-	rc = loc_server_register(NAME, gxe_bd_connection);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+	async_set_client_connection(gxe_bd_connection);
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-
+	
+	void *vaddr;
 	rc = pio_enable((void *) dev_physical, sizeof(gxe_bd_t), &vaddr);
 	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
+		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-
+	
 	dev = vaddr;
-
-	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
+	
+	for (unsigned int i = 0; i < MAX_DISKS; i++) {
+		char name[16];
+		
+		snprintf(name, 16, "%s/disk%u", NAMESPACE, i);
 		rc = loc_service_register(name, &service_id[i]);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
+			printf("%s: Unable to register device %s.\n", NAME,
+			    name);
 			return rc;
 		}
+		
 		fibril_mutex_initialize(&dev_lock[i]);
 	}
-
+	
 	return EOK;
 }
 
@@ -192,13 +194,11 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (true) {
 		callid = async_get_call(&call);

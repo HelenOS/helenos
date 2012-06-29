@@ -118,15 +118,15 @@ int main(int argc, char **argv)
 
 	rc = loc_service_register(device_name, &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register device '%s'.\n",
-			device_name);
+		printf("%s: Unable to register device '%s'.\n",
+		    NAME, device_name);
 		return rc;
 	}
-
-	printf(NAME ": Accepting connections\n");
+	
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-
+	
 	/* Not reached */
 	return 0;
 }
@@ -138,34 +138,32 @@ static void print_usage(void)
 
 static int file_bd_init(const char *fname)
 {
-	int rc;
-	long img_size;
-
-	rc = loc_server_register(NAME, file_bd_connection);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+	async_set_client_connection(file_bd_connection);
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-
+	
 	img = fopen(fname, "rb+");
 	if (img == NULL)
 		return EINVAL;
-
+	
 	if (fseek(img, 0, SEEK_END) != 0) {
 		fclose(img);
 		return EIO;
 	}
-
-	img_size = ftell(img);
+	
+	off64_t img_size = ftell(img);
 	if (img_size < 0) {
 		fclose(img);
 		return EIO;
 	}
-
+	
 	num_blocks = img_size / block_size;
-
+	
 	fibril_mutex_initialize(&dev_lock);
-
+	
 	return EOK;
 }
 
@@ -189,13 +187,11 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	fs_va = as_get_mappable_page(comm_size);
-	if (fs_va == NULL) {
+	(void) async_share_out_finalize(callid, &fs_va);
+	if (fs_va == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, fs_va);
 
 	while (true) {
 		callid = async_get_call(&call);

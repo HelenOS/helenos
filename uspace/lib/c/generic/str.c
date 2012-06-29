@@ -46,6 +46,13 @@
 #include <mem.h>
 #include <str.h>
 
+/** Check the condition if wchar_t is signed */
+#ifdef WCHAR_IS_UNSIGNED
+	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#else
+	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#endif
+
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
@@ -260,6 +267,43 @@ size_t str_lsize(const char *str, size_t max_len)
 	return offset;
 }
 
+/** Get size of string with size limit.
+ *
+ * Get the number of bytes which are used by the string @a str
+ * (excluding the NULL-terminator), but no more than @max_size bytes.
+ *
+ * @param str      String to consider.
+ * @param max_size Maximum number of bytes to measure.
+ *
+ * @return Number of bytes used by the string
+ *
+ */
+size_t str_nsize(const char *str, size_t max_size)
+{
+	size_t size = 0;
+	
+	while ((*str++ != 0) && (size < max_size))
+		size++;
+	
+	return size;
+}
+
+/** Get size of wide string with size limit.
+ *
+ * Get the number of bytes which are used by the wide string @a str
+ * (excluding the NULL-terminator), but no more than @max_size bytes.
+ *
+ * @param str      Wide string to consider.
+ * @param max_size Maximum number of bytes to measure.
+ *
+ * @return Number of bytes used by the wide string
+ *
+ */
+size_t wstr_nsize(const wchar_t *str, size_t max_size)
+{
+	return (wstr_nlength(str, max_size) * sizeof(wchar_t));
+}
+
 /** Get size of wide string with length limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
@@ -361,7 +405,7 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
  */
 bool ascii_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 127))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
 	
 	return false;
@@ -374,7 +418,7 @@ bool ascii_check(wchar_t ch)
  */
 bool chr_check(wchar_t ch)
 {
-	if ((ch >= 0) && (ch <= 1114111))
+	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
 	
 	return false;
@@ -475,6 +519,7 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
+ *
  */
 void str_cpy(char *dest, size_t size, const char *src)
 {
@@ -507,6 +552,7 @@ void str_cpy(char *dest, size_t size, const char *src)
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  * @param n     Maximum number of bytes to read from @a src.
+ *
  */
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
@@ -838,6 +884,60 @@ char *str_chr(const char *str, wchar_t ch)
 	}
 	
 	return NULL;
+}
+
+/** Removes specified trailing characters from a string.
+ *
+ * @param str String to remove from.
+ * @param ch  Character to remove.
+ */
+void str_rtrim(char *str, wchar_t ch)
+{
+	size_t off = 0;
+	size_t pos = 0;
+	wchar_t c;
+	bool update_last_chunk = true;
+	char *last_chunk = NULL;
+
+	while ((c = str_decode(str, &off, STR_NO_LIMIT))) {
+		if (c != ch) {
+			update_last_chunk = true;
+			last_chunk = NULL;
+		} else if (update_last_chunk) {
+			update_last_chunk = false;
+			last_chunk = (str + pos);
+		}
+		pos = off;
+	}
+
+	if (last_chunk)
+		*last_chunk = '\0';
+}
+
+/** Removes specified leading characters from a string.
+ *
+ * @param str String to remove from.
+ * @param ch  Character to remove.
+ */
+void str_ltrim(char *str, wchar_t ch)
+{
+	wchar_t acc;
+	size_t off = 0;
+	size_t pos = 0;
+	size_t str_sz = str_size(str);
+
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
+		if (acc != ch)
+			break;
+		else
+			pos = off;
+	}
+
+	if (pos > 0) {
+		memmove(str, &str[pos], str_sz - pos);
+		pos = str_sz - pos;
+		str[str_sz - pos] = '\0';
+	}
 }
 
 /** Find last occurence of character in string.
@@ -1443,7 +1543,7 @@ int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64(const char *nptr, char **endptr, unsigned int base,
+int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);

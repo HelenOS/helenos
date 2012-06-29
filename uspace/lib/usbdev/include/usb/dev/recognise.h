@@ -32,6 +32,7 @@
 /** @file
  * USB device recognition.
  */
+
 #ifndef LIBUSBDEV_RECOGNISE_H_
 #define LIBUSBDEV_RECOGNISE_H_
 
@@ -40,19 +41,20 @@
 #include <usb/dev/pipes.h>
 #include <ipc/devman.h>
 
-int usb_device_create_match_ids_from_device_descriptor(
+extern int usb_device_create_match_ids_from_device_descriptor(
     const usb_standard_device_descriptor_t *, match_id_list_t *);
 
-int usb_device_create_match_ids_from_interface(
+extern int usb_device_create_match_ids_from_interface(
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *, match_id_list_t *);
 
-int usb_device_create_match_ids(usb_pipe_t *, match_id_list_t *);
+extern int usb_device_create_match_ids(usb_pipe_t *, match_id_list_t *);
 
-int usb_device_register_child_in_devman(usb_address_t, devman_handle_t,
+extern int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
     ddf_dev_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);
 
 #endif
+
 /**
  * @}
  */

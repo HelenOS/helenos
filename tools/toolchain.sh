@@ -52,16 +52,14 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.21.1"
-BINUTILS_RELEASE="a"
-GCC_VERSION="4.6.1"
-GDB_VERSION="7.3.1"
+BINUTILS_VERSION="2.22"
+BINUTILS_RELEASE=""
+GCC_VERSION="4.7.1"
+GDB_VERSION="7.4"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
-GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
-GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
-GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
+GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.bz2"
 
 #
@@ -150,7 +148,8 @@ show_usage() {
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
-	echo " parallel   same as 'all', but in parallel"
+	echo " parallel   same as 'all', but all in parallel"
+	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
 	echo "The toolchain will be installed to the directory specified by"
 	echo "the CROSS_PREFIX environment variable. If the variable is not"
@@ -273,11 +272,9 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "bde820eac53fa3a8d8696667418557ad"
-	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "0c0e7e35d2215e19de9c97efba507553"
-	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "cbf0d4b701827922cf37ba6a4ace0079"
-	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "0d75ca7ca35b1e7f252223f9d23a6ad1"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "b89a5fac359c618dda97b88645ceab47"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "933e6f15f51c031060af64a9e14149ff"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "95a9a8305fed4d30a30a6dc28ff9d060"
 }
 
 build_target() {
@@ -298,9 +295,7 @@ build_target() {
 	
 	echo ">>> Downloading tarballs"
 	source_check "${BASEDIR}/${BINUTILS}"
-	source_check "${BASEDIR}/${GCC_CORE}"
-	source_check "${BASEDIR}/${GCC_OBJC}"
-	source_check "${BASEDIR}/${GCC_CPP}"
+	source_check "${BASEDIR}/${GCC}"
 	source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
@@ -315,9 +310,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
-	unpack_tarball "${BASEDIR}/${GCC_CORE}" "GCC Core"
-	unpack_tarball "${BASEDIR}/${GCC_OBJC}" "Objective C"
-	unpack_tarball "${BASEDIR}/${GCC_CPP}" "C++"
+	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
 	echo ">>> Processing binutils (${PLATFORM})"
@@ -325,7 +318,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
+	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
@@ -337,7 +330,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
+	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
@@ -377,7 +370,7 @@ case "$1" in
 		;;
 	"arm32")
 		prepare
-		build_target "arm32" "arm-linux-gnu"
+		build_target "arm32" "arm-linux-gnueabi"
 		;;
 	"ia32")
 		prepare
@@ -414,7 +407,7 @@ case "$1" in
 	"all")
 		prepare
 		build_target "amd64" "amd64-linux-gnu"
-		build_target "arm32" "arm-linux-gnu"
+		build_target "arm32" "arm-linux-gnueabi"
 		build_target "ia32" "i686-pc-linux-gnu"
 		build_target "ia64" "ia64-pc-linux-gnu"
 		build_target "mips32" "mipsel-linux-gnu"
@@ -427,13 +420,35 @@ case "$1" in
 	"parallel")
 		prepare
 		build_target "amd64" "amd64-linux-gnu" &
-		build_target "arm32" "arm-linux-gnu" &
+		build_target "arm32" "arm-linux-gnueabi" &
 		build_target "ia32" "i686-pc-linux-gnu" &
 		build_target "ia64" "ia64-pc-linux-gnu" &
 		build_target "mips32" "mipsel-linux-gnu" &
 		build_target "mips32eb" "mips-linux-gnu" &
 		build_target "mips64" "mips64el-linux-gnu" &
 		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "ppc64" "ppc64-linux-gnu" &
+		build_target "sparc64" "sparc64-linux-gnu" &
+		wait
+		;;
+	"2-way")
+		prepare
+		build_target "amd64" "amd64-linux-gnu" &
+		build_target "arm32" "arm-linux-gnueabi" &
+		wait
+		
+		build_target "ia32" "i686-pc-linux-gnu" &
+		build_target "ia64" "ia64-pc-linux-gnu" &
+		wait
+		
+		build_target "mips32" "mipsel-linux-gnu" &
+		build_target "mips32eb" "mips-linux-gnu" &
+		wait
+		
+		build_target "mips64" "mips64el-linux-gnu" &
+		build_target "ppc32" "ppc-linux-gnu" &
+		wait
+		
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
 		wait

@@ -54,8 +54,9 @@
 #include <loc.h>
 #include <ipc/bd.h>
 #include <macros.h>
+#include <inttypes.h>
 
-#define NAME "rd"
+#define NAME  "rd"
 
 /** Pointer to the ramdisk's image */
 static void *rd_addr;
@@ -103,10 +104,8 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	 */
 	unsigned int flags;
 	if (async_share_out_receive(&callid, &comm_size, &flags)) {
-		fs_va = as_get_mappable_page(comm_size);
-		if (fs_va) {
-			(void) async_share_out_finalize(callid, fs_va);
-		} else {
+		(void) async_share_out_finalize(callid, &fs_va);
+		if (fs_va == AS_MAP_FAILED) {
 			async_answer_0(callid, EHANGUP);
 			return;
 		}
@@ -207,41 +206,44 @@ static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 /** Prepare the ramdisk image for operation. */
 static bool rd_init(void)
 {
-	int ret = sysinfo_get_value("rd.size", &rd_size);
-	if ((ret != EOK) || (rd_size == 0)) {
+	sysarg_t size;
+	int ret = sysinfo_get_value("rd.size", &size);
+	if ((ret != EOK) || (size == 0)) {
 		printf("%s: No RAM disk found\n", NAME);
 		return false;
 	}
 	
-	sysarg_t rd_ph_addr;
-	ret = sysinfo_get_value("rd.address.physical", &rd_ph_addr);
-	if ((ret != EOK) || (rd_ph_addr == 0)) {
+	sysarg_t addr_phys;
+	ret = sysinfo_get_value("rd.address.physical", &addr_phys);
+	if ((ret != EOK) || (addr_phys == 0)) {
 		printf("%s: Invalid RAM disk physical address\n", NAME);
 		return false;
 	}
 	
-	rd_addr = as_get_mappable_page(rd_size);
+	rd_size = ALIGN_UP(size, block_size);
+	unsigned int flags =
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
 	
-	int flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
-	int retval = physmem_map((void *) rd_ph_addr, rd_addr,
-	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
-	
-	if (retval < 0) {
+	ret = physmem_map((void *) addr_phys,
+	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags, &rd_addr);
+	if (ret != EOK) {
 		printf("%s: Error mapping RAM disk\n", NAME);
 		return false;
 	}
 	
-	printf("%s: Found RAM disk at %p, %zu bytes\n", NAME,
-	    (void *) rd_ph_addr, rd_size);
+	printf("%s: Found RAM disk at %p, %" PRIun " bytes\n", NAME,
+	    (void *) addr_phys, size);
 	
-	int rc = loc_server_register(NAME, rd_connection);
-	if (rc < 0) {
-		printf("%s: Unable to register driver (%d)\n", NAME, rc);
+	async_set_client_connection(rd_connection);
+	ret = loc_server_register(NAME);
+	if (ret != EOK) {
+		printf("%s: Unable to register driver (%d)\n", NAME, ret);
 		return false;
 	}
 	
 	service_id_t service_id;
-	if (loc_service_register("bd/initrd", &service_id) != EOK) {
+	ret = loc_service_register("bd/initrd", &service_id);
+	if (ret != EOK) {
 		printf("%s: Unable to register device service\n", NAME);
 		return false;
 	}

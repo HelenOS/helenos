@@ -36,35 +36,45 @@
 #ifndef __COMPARISON_H__
 #define __COMPARISON_H__
 
-extern int isFloat32NaN(float32);
-extern int isFloat32SigNaN(float32);
+extern int is_float32_nan(float32);
+extern int is_float32_signan(float32);
 
-extern int isFloat32Infinity(float32);
-extern int isFloat32Zero(float32);
+extern int is_float32_infinity(float32);
+extern int is_float32_zero(float32);
 
-extern int isFloat32eq(float32, float32);
-extern int isFloat32lt(float32, float32);
-extern int isFloat32gt(float32, float32);
+extern int is_float32_eq(float32, float32);
+extern int is_float32_lt(float32, float32);
+extern int is_float32_gt(float32, float32);
 
-extern int isFloat64NaN(float64);
-extern int isFloat64SigNaN(float64);
+extern int is_float64_nan(float64);
+extern int is_float64_signan(float64);
 
-extern int isFloat64Infinity(float64);
-extern int isFloat64Zero(float64);
+extern int is_float64_infinity(float64);
+extern int is_float64_zero(float64);
 
-extern int isFloat64eq(float64, float64);
-extern int isFloat64lt(float64, float64);
-extern int isFloat64gt(float64, float64);
+extern int is_float64_eq(float64, float64);
+extern int is_float64_lt(float64, float64);
+extern int is_float64_gt(float64, float64);
 
-extern int isFloat128NaN(float128);
-extern int isFloat128SigNaN(float128);
+extern int is_float96_nan(float96);
+extern int is_float96_signan(float96);
 
-extern int isFloat128Infinity(float128);
-extern int isFloat128Zero(float128);
+extern int is_float96_infinity(float96);
+extern int is_float96_zero(float96);
 
-extern int isFloat128eq(float128, float128);
-extern int isFloat128lt(float128, float128);
-extern int isFloat128gt(float128, float128);
+extern int is_float96_eq(float96, float96);
+extern int is_float96_lt(float96, float96);
+extern int is_float96_gt(float96, float96);
+
+extern int is_float128_nan(float128);
+extern int is_float128_signan(float128);
+
+extern int is_float128_infinity(float128);
+extern int is_float128_zero(float128);
+
+extern int is_float128_eq(float128, float128);
+extern int is_float128_lt(float128, float128);
+extern int is_float128_gt(float128, float128);
 
 #endif
 

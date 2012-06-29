@@ -122,7 +122,7 @@ static bool frame_safe(pfn_t frame)
 	size_t i;
 	for (i = 0; i < init.cnt; i++)
 		if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
-		    KA2PA(init.tasks[i].addr), init.tasks[i].size)) {
+		    init.tasks[i].paddr, init.tasks[i].size)) {
 			safe = false;
 			break;
 		}
@@ -130,27 +130,40 @@ static bool frame_safe(pfn_t frame)
 	return safe;
 }
 
-static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
+static void frame_add_region(pfn_t start_frame, pfn_t end_frame, bool low)
 {
-	if (end_frame > start_frame) {
-		/* Convert 1M frames to 16K frames */
-		pfn_t first = ADDR2PFN(start_frame << ZERO_PAGE_WIDTH);
-		pfn_t count = ADDR2PFN((end_frame - start_frame) << ZERO_PAGE_WIDTH);
-		
+	if (end_frame <= start_frame)
+		return;
+
+	uintptr_t base = start_frame << ZERO_PAGE_WIDTH;
+	size_t size = (end_frame - start_frame) << ZERO_PAGE_WIDTH;
+
+	if (!frame_adjust_zone_bounds(low, &base, &size))
+		return; 
+
+	pfn_t first = ADDR2PFN(base);
+	size_t count = SIZE2FRAMES(size);
+	pfn_t conf_frame;
+
+	if (low) {
 		/* Interrupt vector frame is blacklisted */
-		pfn_t conf_frame;
 		if (first == 0)
 			conf_frame = 1;
 		else
 			conf_frame = first;
-		
-		zone_create(first, count, conf_frame, 0);
-		
-		if (phys_regions_count < MAX_REGIONS) {
-			phys_regions[phys_regions_count].start = first;
-			phys_regions[phys_regions_count].count = count;
-			phys_regions_count++;
-		}
+		zone_create(first, count, conf_frame,
+		    ZONE_AVAILABLE | ZONE_LOWMEM);
+	} else {
+		conf_frame = zone_external_conf_alloc(count);
+		if (conf_frame != 0)
+			zone_create(first, count, conf_frame,
+			    ZONE_AVAILABLE | ZONE_HIGHMEM);
+	}
+	
+	if (phys_regions_count < MAX_REGIONS) {
+		phys_regions[phys_regions_count].start = first;
+		phys_regions[phys_regions_count].count = count;
+		phys_regions_count++;
 	}
 }
 
@@ -164,7 +177,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
  * used in any way, thus there is no interference.
  *
  */
-void frame_arch_init(void)
+void frame_low_arch_init(void)
 {
 	ipl_t ipl = interrupts_disable();
 	
@@ -223,13 +236,13 @@ void frame_arch_init(void)
 		}
 		
 		if (!avail) {
-			frame_add_region(start_frame, frame);
+			frame_add_region(start_frame, frame, true);
 			start_frame = frame + 1;
 			avail = true;
 		}
 	}
 	
-	frame_add_region(start_frame, frame);
+	frame_add_region(start_frame, frame, true);
 	
 	/* Blacklist interrupt vector frame */
 	frame_mark_unavailable(0, 1);
@@ -245,6 +258,9 @@ void frame_arch_init(void)
 	interrupts_restore(ipl);
 }
 
+void frame_high_arch_init(void)
+{
+}
 
 void physmem_print(void)
 {

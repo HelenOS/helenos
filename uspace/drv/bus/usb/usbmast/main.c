@@ -54,7 +54,7 @@
 #define GET_BULK_IN(dev) ((dev)->pipes[BULK_IN_EP].pipe)
 #define GET_BULK_OUT(dev) ((dev)->pipes[BULK_OUT_EP].pipe)
 
-static usb_endpoint_description_t bulk_in_ep = {
+static const usb_endpoint_description_t bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_MASS_STORAGE,
@@ -62,7 +62,7 @@ static usb_endpoint_description_t bulk_in_ep = {
 	.interface_protocol = USB_MASSSTOR_PROTOCOL_BBB,
 	.flags = 0
 };
-static usb_endpoint_description_t bulk_out_ep = {
+static const usb_endpoint_description_t bulk_out_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_MASS_STORAGE,
@@ -105,9 +105,21 @@ static int usbmast_device_gone(usb_device_t *dev)
 	return EOK;
 }
 
+/** Callback when a device is about to be removed.
+ *
+ * @param dev Representation of USB device.
+ * @return Error code.
+ */
+static int usbmast_device_remove(usb_device_t *dev)
+{
+	//TODO: flush buffers, or whatever.
+	//TODO: remove device
+	return ENOTSUP;
+}
+
 /** Callback when new device is attached and recognized as a mass storage.
  *
- * @param dev Representation of a the USB device.
+ * @param dev Representation of USB device.
  * @return Error code.
  */
 static int usbmast_device_add(usb_device_t *dev)
@@ -127,12 +139,12 @@ static int usbmast_device_add(usb_device_t *dev)
 	mdev->usb_dev = dev;
 
 	usb_log_info("Initializing mass storage `%s'.\n", dev->ddf_dev->name);
-	usb_log_debug(" Bulk in endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_IN_EP].pipe->endpoint_no,
-	    (size_t) dev->pipes[BULK_IN_EP].descriptor->max_packet_size);
+	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
+	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
+	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
 	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
-	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
+	    dev->pipes[BULK_OUT_EP].pipe.endpoint_no,
+	    dev->pipes[BULK_OUT_EP].pipe.max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
 	mdev->lun_count = usb_masstor_get_lun_count(mdev);
@@ -287,15 +299,13 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	comm_buf = as_get_mappable_page(comm_size);
-	if (comm_buf == NULL) {
+	
+	(void) async_share_out_finalize(callid, &comm_buf);
+	if (comm_buf == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}
-
-	(void) async_share_out_finalize(callid, comm_buf);
-
+	
 	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
 
 	while (true) {
@@ -335,13 +345,14 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 }
 
 /** USB mass storage driver ops. */
-static usb_driver_ops_t usbmast_driver_ops = {
+static const usb_driver_ops_t usbmast_driver_ops = {
 	.device_add = usbmast_device_add,
+	.device_rem = usbmast_device_remove,
 	.device_gone = usbmast_device_gone,
 };
 
 /** USB mass storage driver. */
-static usb_driver_t usbmast_driver = {
+static const usb_driver_t usbmast_driver = {
 	.name = NAME,
 	.ops = &usbmast_driver_ops,
 	.endpoints = mast_endpoints

@@ -33,7 +33,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = isa
 
 SOURCES = \
-	dma_controller.c \
+	i8237.c \
 	isa.c
 
 include $(USPACE_PREFIX)/Makefile.common
