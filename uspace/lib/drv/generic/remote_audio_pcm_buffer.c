@@ -91,11 +91,9 @@ int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_GET_BUFFER,
 	    &buffer_size, &buffer_id);
 	if (ret == EOK) {
-		void *dst = as_get_mappable_page(buffer_size);
-		// FIXME Should we create as_area?
-		// FIXME Do we need to know the flags?
+		void *dst = NULL;
 		const int ret =
-		    async_share_in_start_0_0(exch, dst, buffer_size);
+		    async_share_in_start_0_0(exch, buffer_size, &dst);
 		if (ret != EOK) {
 			return ret;
 		}

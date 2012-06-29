@@ -26,9 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include <bool.h>
 #include <errno.h>
 #include <libarch/ddi.h>
+#include <unistd.h>
 
 #include "ddf_log.h"
 #include "mixer.h"

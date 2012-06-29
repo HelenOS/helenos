@@ -43,7 +43,7 @@ static void hw_res_parse_add_dma_channel(hw_res_list_parsed_t *out,
 	assert(res);
 	assert((res->type == DMA_CHANNEL_8) || (res->type == DMA_CHANNEL_16));
 	
-	const int channel = (res->type == DMA_CHANNEL_8) ?
+	const unsigned channel = (res->type == DMA_CHANNEL_8) ?
 	    res->res.dma_channel.dma8 : res->res.dma_channel.dma16;
 	const size_t count = out->dma_channels.count;
 	const int keep_duplicit = flags & HW_RES_KEEP_DUPLICIT;

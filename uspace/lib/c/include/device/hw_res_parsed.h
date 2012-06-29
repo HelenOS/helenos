@@ -99,9 +99,6 @@ typedef addr_range_list_t mem_range_list_t;
 typedef struct hw_resource_list_parsed {
 	/** List of IRQs */
 	irq_list_t irqs;
-
-	/** List of DMA channels */
-	dma_list_t dma_channels;
 	
 	/** List of DMA channels */
 	dma_list_t dma_channels;

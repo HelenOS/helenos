@@ -66,13 +66,8 @@ static inline uintptr_t addr_to_phys(const void *addr)
  */
 static inline void *dma_create_buffer24(size_t size)
 {
-	void *free_address = as_get_mappable_page(size);
-	if (free_address == 0)
-		return NULL;
 	void *address =
-	    as_area_create(free_address, size, AS_AREA_READ | AS_AREA_WRITE);
-	if (address != free_address)
-		return NULL;
+	    as_area_create(AS_AREA_ANY, size, AS_AREA_READ | AS_AREA_WRITE);
 	bzero(address, size);
 	return address;
 }

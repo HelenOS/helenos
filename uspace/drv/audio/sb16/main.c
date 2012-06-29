@@ -54,7 +54,7 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 static int sb_enable_interrupts(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t sb_driver_ops = {
-	.add_device = sb_add_device,
+	.dev_add = sb_add_device,
 };
 /*----------------------------------------------------------------------------*/
 static driver_t sb_driver = {
