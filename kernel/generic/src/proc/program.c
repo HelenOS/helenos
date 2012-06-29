@@ -101,7 +101,7 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	 * Create the main thread.
 	 */
 	prg->main_thread = thread_create(uinit, kernel_uarg, prg->task,
-	    THREAD_FLAG_USPACE, "uinit", false);
+	    THREAD_FLAG_USPACE, "uinit");
 	if (!prg->main_thread) {
 		free(kernel_uarg);
 		as_area_destroy(as, virt);

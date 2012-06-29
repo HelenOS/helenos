@@ -669,9 +669,9 @@ void ipc_cleanup(void)
  */
 void ipc_init(void)
 {
-	ipc_call_slab = slab_cache_create("ipc_call", sizeof(call_t), 0, NULL,
+	ipc_call_slab = slab_cache_create("call_t", sizeof(call_t), 0, NULL,
 	    NULL, 0);
-	ipc_answerbox_slab = slab_cache_create("ipc_answerbox",
+	ipc_answerbox_slab = slab_cache_create("answerbox_t",
 	    sizeof(answerbox_t), 0, NULL, NULL, 0);
 }
 

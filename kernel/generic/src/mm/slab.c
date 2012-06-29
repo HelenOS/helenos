@@ -890,18 +890,18 @@ void slab_print_list(void)
 void slab_cache_init(void)
 {
 	/* Initialize magazine cache */
-	_slab_cache_create(&mag_cache, "slab_magazine",
+	_slab_cache_create(&mag_cache, "slab_magazine_t",
 	    sizeof(slab_magazine_t) + SLAB_MAG_SIZE * sizeof(void*),
 	    sizeof(uintptr_t), NULL, NULL, SLAB_CACHE_NOMAGAZINE |
 	    SLAB_CACHE_SLINSIDE);
 	
 	/* Initialize slab_cache cache */
-	_slab_cache_create(&slab_cache_cache, "slab_cache",
+	_slab_cache_create(&slab_cache_cache, "slab_cache_cache",
 	    sizeof(slab_cache_cache), sizeof(uintptr_t), NULL, NULL,
 	    SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
 	
 	/* Initialize external slab cache */
-	slab_extern_cache = slab_cache_create("slab_extern", sizeof(slab_t), 0,
+	slab_extern_cache = slab_cache_create("slab_t", sizeof(slab_t), 0,
 	    NULL, NULL, SLAB_CACHE_SLINSIDE | SLAB_CACHE_MAGDEFERRED);
 	
 	/* Initialize structures for malloc */

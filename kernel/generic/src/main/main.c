@@ -275,8 +275,8 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create the first thread.
 	 */
-	thread_t *kinit_thread =
-	    thread_create(kinit, NULL, kernel, 0, "kinit", true);
+	thread_t *kinit_thread = thread_create(kinit, NULL, kernel,
+	    THREAD_FLAG_UNCOUNTED, "kinit");
 	if (!kinit_thread)
 		panic("Cannot create kinit thread.");
 	thread_ready(kinit_thread);
