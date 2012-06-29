@@ -113,8 +113,10 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
 	$(USPACE_PATH)/srv/devman/devman
 
-RD_DRVS = \
-	infrastructure/root \
+RD_DRVS_ESSENTIAL = \
+	infrastructure/root
+
+RD_DRVS_NON_ESSENTIAL = \
 	infrastructure/rootvirt \
 	test/test1 \
 	test/test2 \
@@ -221,9 +223,11 @@ COMPS_C = arch/$(BARCH)/src/_components.c
 ifeq ($(CONFIG_BAREBONE),y)
 RD_SRVS = $(RD_SRVS_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL)
+RD_DRVS = $(RD_DRVS_ESSENTIAL)
 else
 RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
+RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTAIL)
 endif
 
 MODULES := $(notdir $(COMPONENTS))

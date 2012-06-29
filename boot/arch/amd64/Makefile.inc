@@ -27,22 +27,24 @@
 #
 
 RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/devman/devman \
 	$(USPACE_PATH)/srv/hw/irc/apic/apic \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
 RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd
 
-RD_DRVS += \
-	audio/sb16 \
-	char/ns8250 \
+RD_DRVS_ESSENTIAL += \
 	infrastructure/rootpc \
 	bus/pci/pciintel \
 	bus/isa \
 	char/i8042 \
-	char/ns8250 \
 	char/ps2mouse \
-	char/xtkbd \
+	char/xtkbd
+
+RD_DRVS_NON_ESSENTIAL += \
+	audio/sb16 \
+	char/ns8250 \
 	bus/usb/ehci\
 	bus/usb/ohci \
 	bus/usb/uhci \
