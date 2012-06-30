@@ -124,7 +124,7 @@ void arch_post_mm_init(void)
 	}
 }
 
-void arch_post_cpu_init()
+void arch_post_cpu_init(void)
 {
 #ifdef CONFIG_SMP
 	if (config.cpu_active > 1) {

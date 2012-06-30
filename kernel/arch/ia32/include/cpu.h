@@ -59,6 +59,8 @@ typedef struct {
 	unsigned int model;
 	unsigned int stepping;
 	cpuid_feature_info fi;
+	
+	unsigned int id; /** CPU's local, ie physical, APIC ID. */
 
 	tss_t *tss;
 	

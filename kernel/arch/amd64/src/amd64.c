@@ -170,7 +170,7 @@ void arch_post_mm_init(void)
 	syscall_setup_cpu();
 }
 
-void arch_post_cpu_init()
+void arch_post_cpu_init(void)
 {
 #ifdef CONFIG_SMP
 	if (config.cpu_active > 1) {

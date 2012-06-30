@@ -243,8 +243,9 @@ void main_bsp_separated_stack(void)
 	    config.cpu_count, size, size_suffix);
 	
 	cpu_init();
-	
 	calibrate_delay_loop();
+	arch_post_cpu_init();
+
 	clock_counter_init();
 	timeout_init();
 	scheduler_init();

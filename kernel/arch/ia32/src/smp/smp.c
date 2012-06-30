@@ -54,6 +54,7 @@
 #include <print.h>
 #include <memstr.h>
 #include <arch/drivers/i8259.h>
+#include <cpu.h>
 
 #ifdef CONFIG_SMP
 
@@ -79,6 +80,16 @@ void smp_init(void)
 	}
 }
 
+static void cpu_arch_id_init(void)
+{
+	ASSERT(ops != NULL);
+	ASSERT(cpus != NULL);
+	
+	for (unsigned int i = 0; i < config.cpu_count; ++i) {
+		cpus[i].arch.id = ops->cpu_apic_id(i);
+	}
+}
+
 /*
  * Kernel thread for bringing up application processors. It becomes clear
  * that we need an arrangement like this (AP's being initialized by a kernel
@@ -91,6 +102,12 @@ void kmp(void *arg __attribute__((unused)))
 	unsigned int i;
 	
 	ASSERT(ops != NULL);
+
+	/*
+	 * SMP initialized, cpus array allocated. Assign each CPU its 
+	 * physical APIC ID.
+	 */
+	cpu_arch_id_init();
 	
 	/*
 	 * We need to access data in frame 0.

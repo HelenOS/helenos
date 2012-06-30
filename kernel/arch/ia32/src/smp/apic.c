@@ -258,6 +258,55 @@ int apic_poll_errors(void)
 	return !esr.err_bitmap;
 }
 
+static void ipi_wait_for_idle(void)
+{
+	icr_t icr;
+	
+	/* Wait for the destination cpu to accept the previous ipi. */
+	do {
+		icr.lo = l_apic[ICRlo];
+	} while (icr.delivs != DELIVS_IDLE);
+}
+
+/** Send one CPU an IPI vector.
+ *
+ * @param apicid Physical APIC ID of the destination CPU.
+ * @param vector Interrupt vector to be sent.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+int l_apic_send_custom_ipi(uint8_t apicid, uint8_t vector)
+{
+	icr_t icr;
+
+	/* Wait for a destination cpu to accept our previous ipi. */
+	ipi_wait_for_idle();
+	
+	icr.lo = l_apic[ICRlo];
+	icr.hi = l_apic[ICRhi];
+	
+	icr.delmod = DELMOD_FIXED;
+	icr.destmod = DESTMOD_PHYS;
+	icr.level = LEVEL_ASSERT;
+	icr.shorthand = SHORTHAND_NONE;
+	icr.trigger_mode = TRIGMOD_LEVEL;
+	icr.vector = vector;
+	icr.dest = apicid;
+
+	/* Send the IPI by writing to l_apic[ICRlo]. */
+	l_apic[ICRhi] = icr.hi;
+	l_apic[ICRlo] = icr.lo;
+	
+#ifdef CONFIG_DEBUG
+	icr.lo = l_apic[ICRlo];
+	if (icr.delivs == DELIVS_PENDING) {
+		printf("IPI is pending.\n");
+	}
+#endif
+	
+	return apic_poll_errors();
+}
+
 /** Send all CPUs excluding CPU IPI vector.
  *
  * @param vector Interrupt vector to be sent.
@@ -268,6 +317,9 @@ int apic_poll_errors(void)
 int l_apic_broadcast_custom_ipi(uint8_t vector)
 {
 	icr_t icr;
+
+	/* Wait for a destination cpu to accept our previous ipi. */
+	ipi_wait_for_idle();
 	
 	icr.lo = l_apic[ICRlo];
 	icr.delmod = DELMOD_FIXED;
@@ -465,6 +517,16 @@ void l_apic_init(void)
 	dfr.value = l_apic[DFR];
 	dfr.model = MODEL_FLAT;
 	l_apic[DFR] = dfr.value;
+	
+	if (CPU->arch.id != l_apic_id()) {
+#ifdef CONFIG_DEBUG
+		printf("lapic error: LAPIC ID (%" PRIu8 ") and hw ID assigned by BSP"
+			" (%u) differ. Correcting to LAPIC ID.\n", l_apic_id(), 
+			CPU->arch.id);
+#endif
+		CPU->arch.id = l_apic_id();
+	}
+	
 }
 
 /** Local APIC End of Interrupt. */
