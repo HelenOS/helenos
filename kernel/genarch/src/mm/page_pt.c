@@ -42,6 +42,7 @@
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
+#include <arch/barrier.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
@@ -85,8 +86,10 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		write_barrier();
+		SET_PTL1_PRESENT(ptl0, PTL0_INDEX(page));
 	}
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
@@ -97,8 +100,10 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		write_barrier();
+		SET_PTL2_PRESENT(ptl1, PTL1_INDEX(page));	
 	}
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
@@ -109,14 +114,18 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		write_barrier();
+		SET_PTL3_PRESENT(ptl2, PTL2_INDEX(page));
 	}
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
-	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
+	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags | PAGE_NOT_PRESENT);
+	write_barrier();
+	SET_FRAME_PRESENT(ptl3, PTL3_INDEX(page));
 }
 
 /** Remove mapping of page from hierarchical page tables.
