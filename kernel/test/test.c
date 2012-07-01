@@ -55,6 +55,7 @@ test_t tests[] = {
 #include <print/print4.def>
 #include <print/print5.def>
 #include <thread/thread1.def>
+#include <smpcall/smpcall1.def>
 	{
 		.name = NULL,
 		.desc = NULL,
