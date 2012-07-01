@@ -5,8 +5,6 @@
 #include <compiler/barrier.h>
 #include <arch/barrier.h>
 #include <arch/asm.h>  /* interrupt_disable */
-#include <arch/smp/smp_call.h>
-
 
 
 static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg);
@@ -57,6 +55,9 @@ void smp_call(unsigned int cpu_id, smp_call_func_t func, void *arg)
  * If @a cpu_id is the local CPU, the function will be invoked
  * directly.
  * 
+ * Interrupts must be enabled. Otherwise you run the risk
+ * of a deadlock.
+ * 
  * @param cpu_id Destination CPU's logical id (eg CPU->id)
  * @param func Function to call.
  * @param arg Argument to pass to the user supplied function @a func.
@@ -104,6 +105,8 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 
 /** Waits for a function invoked on another CPU asynchronously to complete.
  * 
+ * Does not sleep but rather spins.
+ * 
  * Example usage:
  * @code
  * void hello(void *p) {
@@ -122,6 +125,8 @@ void smp_call_wait(smp_call_t *call_info)
 {
 	call_wait(call_info);
 }
+
+#ifdef CONFIG_SMP
 
 /** Architecture independent smp call IPI handler.
  * 
@@ -151,6 +156,7 @@ void smp_call_ipi_recv(void)
 	}
 }
 
+#endif /* CONFIG_SMP */
 
 static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg)
 {
@@ -192,10 +198,4 @@ static void call_wait(smp_call_t *call_info)
 }
 
 
-
-/*
-void smp_broadcast_call(smp_call_func_t func, void *arg)
-{
-}
-*/
 
