@@ -257,6 +257,37 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
+/** Moves items of one list into another after the specified item.
+ * 
+ * Inserts all items of @a list after item at @a pos in another list. 
+ * Both lists may be empty. 
+ * 
+ * In order to insert the list at the beginning of another list, use:
+ * @code 
+ * list_splice(&list_dest.head, &list_src);
+ * @endcode
+ * 
+ * @param list Source list to move after pos.
+ * @param pos Source items will be placed after this item.
+ */
+NO_TRACE static inline void list_splice(list_t *list, link_t *pos)
+{
+	link_t *pos_next = pos->next;
+	
+	if (!list_empty(list)) {
+		link_t *first = list->head.next;
+		link_t *last = list->head.prev;
+
+		pos->next = first;
+		first->prev = pos;
+
+		last->next = pos_next;
+		pos_next->prev = last;
+		
+		list_initialize(list);
+	}
+}
+
 /** Get n-th item in a list.
  *
  * @param list Pointer to link_t structure representing the list.

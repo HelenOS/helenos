@@ -254,6 +254,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/rcu.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
+	generic/src/smp/smp_call.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
 	generic/src/ipc/ipcrsc.c \

@@ -93,6 +93,12 @@ typedef struct cpu {
 	struct thread *fpu_owner;
 	
 	/**
+	 * SMP calls to invoke on this CPU.
+	 */
+	SPINLOCK_DECLARE(smp_calls_lock);
+	list_t smp_pending_calls;
+	
+	/**
 	 * Stack used by scheduler when there is no running thread.
 	 */
 	uint8_t *stack;
