@@ -112,10 +112,12 @@ static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-static inline int sb_setup_buffer(sb_dsp_t *dsp)
+static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 {
 	assert(dsp);
-	uint8_t *buffer = dma_create_buffer24(BUFFER_SIZE);
+	if (size > BUFFER_SIZE || size == 0 || (size % 2) == 1)
+		size = BUFFER_SIZE;
+	uint8_t *buffer = dma_create_buffer24(size);
 	if (buffer == NULL) {
 		ddf_log_error("Failed to allocate buffer.\n");
 		return ENOMEM;
@@ -124,11 +126,11 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp)
 	const uintptr_t pa = addr_to_phys(buffer);
 	assert(pa < (1 << 25));
 	/* Set 16 bit channel */
-	const int ret = sb_setup_dma(dsp, pa, BUFFER_SIZE);
+	const int ret = sb_setup_dma(dsp, pa, size);
 	if (ret == EOK) {
 		dsp->buffer.data = buffer;
-		dsp->buffer.size = BUFFER_SIZE;
-		bzero(buffer, BUFFER_SIZE);
+		dsp->buffer.size = size;
+		bzero(dsp->buffer.data, dsp->buffer.size);
 	} else {
 		ddf_log_error("Failed to setup DMA16 channel %s.\n",
 		    str_error(ret));
@@ -196,9 +198,12 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
 {
 	assert(dsp);
-	const int ret = sb_setup_buffer(dsp);
-	ddf_log_debug("Providing buffer(%u): %p, %zu.\n",
+	assert(size);
+
+	const int ret = sb_setup_buffer(dsp, *size);
+	ddf_log_debug("Providing buffer(%u): %p, %zu B.\n",
 	    BUFFER_ID, dsp->buffer.data, dsp->buffer.size);
+
 	if (ret == EOK && buffer)
 		*buffer = dsp->buffer.data;
 	if (ret == EOK && size)

@@ -33,7 +33,6 @@
 
 #include <async.h>
 #include <errno.h>
-#include <assert.h>
 #include <str.h>
 #include <as.h>
 #include <sys/mman.h>
@@ -84,24 +83,24 @@ int audio_pcm_buffer_get_info_str(async_exch_t *exch, const char **name)
 int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
     unsigned *id)
 {
-	if (!exch || !buffer || !size)
+	if (!exch || !buffer || !size || !id)
 		return EINVAL;
-	sysarg_t buffer_size, buffer_id;
-	const int ret = async_req_1_2(exch,
+
+	sysarg_t buffer_size = *size, buffer_id = 0;
+	const int ret = async_req_2_2(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_GET_BUFFER,
-	    &buffer_size, &buffer_id);
+	    (sysarg_t)buffer_size, &buffer_size, &buffer_id);
 	if (ret == EOK) {
 		void *dst = NULL;
-		const int ret =
-		    async_share_in_start_0_0(exch, buffer_size, &dst);
+		// FIXME Do we need to know the flags?
+		const int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
 		if (ret != EOK) {
 			return ret;
 		}
 		*buffer = dst;
 		*size = buffer_size;
-	}
-	if (ret == EOK && id)
 		*id = buffer_id;
+	}
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
@@ -218,7 +217,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 		return;
 	}
 	void *buffer = NULL;
-	size_t size = 0;
+	size_t size = DEV_IPC_GET_ARG1(*call);
 	unsigned id = 0;
 	const int ret = pcm_iface->get_buffer(fun, &buffer, &size, &id);
 	async_answer_2(callid, ret, size, id);
