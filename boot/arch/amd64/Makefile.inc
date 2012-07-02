@@ -38,12 +38,12 @@ RD_DRVS_ESSENTIAL += \
 	infrastructure/rootpc \
 	bus/pci/pciintel \
 	bus/isa \
+	audio/sb16 \
 	char/i8042 \
 	char/ps2mouse \
 	char/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
-	audio/sb16 \
 	char/ns8250 \
 	bus/usb/ehci\
 	bus/usb/ohci \
@@ -59,6 +59,10 @@ RD_DRVS_NON_ESSENTIAL += \
 RD_DRV_CFG += \
 	bus/isa
 
+RD_APPS_ESSENTIAL += \
+	$(USPACE_PATH)/app/dplay/dplay \
+	$(USPACE_PATH)/app/mixerctl/mixerctl \
+	
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img
 BUILD = Makefile.grub
