@@ -287,14 +287,24 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
+
+	read_barrier();
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
+
+#if (PTL1_ENTRIES != 0)
+	read_barrier();
+#endif
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
+
+#if (PTL2_ENTRIES != 0)
+	read_barrier();
+#endif
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
