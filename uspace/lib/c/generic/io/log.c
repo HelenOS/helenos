@@ -86,6 +86,13 @@ static int logger_message(async_sess_t *session, log_level_t level, const char *
 
 	async_exchange_end(exchange);
 
+	/*
+	 * Getting ENAK means no-one wants our message. That is not an
+	 * error at all.
+	 */
+	if (rc == ENAK)
+		rc = EOK;
+
 	if (rc != EOK) {
 		return rc;
 	}

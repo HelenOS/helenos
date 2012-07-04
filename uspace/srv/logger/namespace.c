@@ -192,6 +192,13 @@ void namespace_writer_detach(logging_namespace_t *namespace)
 	namespace_destroy_careful(namespace);
 }
 
+bool namespace_has_reader(logging_namespace_t *namespace)
+{
+	fibril_mutex_lock(&namespace->guard);
+	bool has_reader = namespace->has_reader;
+	fibril_mutex_unlock(&namespace->guard);
+	return has_reader;
+}
 
 
 void namespace_add_message(logging_namespace_t *namespace, const char *message, log_level_t level)

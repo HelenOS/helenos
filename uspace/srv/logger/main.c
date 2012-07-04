@@ -73,6 +73,19 @@ static logging_namespace_t *register_namespace(void)
 
 static int handle_receive_message(logging_namespace_t *namespace, int level)
 {
+	bool skip_message = (level > DEFAULT_LOGGING_LEVEL) || !namespace_has_reader(namespace);
+	if (skip_message) {
+		/* Abort the actual message buffer transfer. */
+		ipc_callid_t callid;
+		size_t size;
+		int rc = ENAK;
+		if (!async_data_write_receive(&callid, &size))
+			rc = EINVAL;
+
+		async_answer_0(callid, rc);
+		return rc;
+	}
+
 	void *message;
 	int rc = async_data_write_accept(&message, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
