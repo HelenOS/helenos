@@ -73,6 +73,7 @@ void usb_log_enable(usb_log_level_t level, const char *message_prefix)
 			free(fname);
 		}
 	}
+	log_init(message_prefix, LVL_DEBUG);
 }
 
 /** Get log level name prefix.
@@ -146,6 +147,10 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 
 		va_end(args);
 	}
+
+	va_start(args, format);
+	log_msgv(level, format, args);
+	va_end(args);
 
 	fibril_mutex_unlock(&log_serializer);
 }
