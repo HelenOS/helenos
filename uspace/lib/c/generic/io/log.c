@@ -37,28 +37,61 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <async.h>
 #include <io/log.h>
+#include <ipc/logger.h>
+#include <ns.h>
 
-/** Serialization mutex for logging functions. */
-static FIBRIL_MUTEX_INITIALIZE(log_serializer);
-
-/** Current log level. */
-static log_level_t log_level;
-
-static FILE *log_stream;
-
+/** Log messages are printed under this name. */
 static const char *log_prog_name;
 
-/** Prefixes for individual logging levels. */
-static const char *log_level_names[] = {
-	[LVL_FATAL] = "Fatal error",
-	[LVL_ERROR] = "Error",
-	[LVL_WARN] = "Warning",
-	[LVL_NOTE] = "Note",
-	[LVL_DEBUG] = "Debug",
-	[LVL_DEBUG2] = "Debug2"
-};
+/** IPC session with the logger service. */
+static async_sess_t *logger_session;
+
+/** Maximum length of a single log message (in bytes). */
+#define MESSAGE_BUFFER_SIZE 4096
+
+static int logger_register(async_sess_t *session, const char *prog_name)
+{
+	async_exch_t *exchange = async_exchange_begin(session);
+	if (exchange == NULL) {
+		return ENOMEM;
+	}
+
+	aid_t reg_msg = async_send_0(exchange, LOGGER_REGISTER, NULL);
+	int rc = async_data_write_start(exchange, prog_name, str_size(prog_name));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return reg_msg_rc;
+}
+
+static int logger_message(async_sess_t *session, log_level_t level, const char *message)
+{
+	async_exch_t *exchange = async_exchange_begin(session);
+	if (exchange == NULL) {
+		return ENOMEM;
+	}
+
+	aid_t reg_msg = async_send_1(exchange, LOGGER_MESSAGE, level, NULL);
+	int rc = async_data_write_start(exchange, message, str_size(message));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return reg_msg_rc;
+}
 
 /** Initialize the logging system.
  *
@@ -68,14 +101,19 @@ static const char *log_level_names[] = {
 int log_init(const char *prog_name, log_level_t level)
 {
 	assert(level < LVL_LIMIT);
-	log_level = level;
 
-	log_stream = stdout;
 	log_prog_name = str_dup(prog_name);
 	if (log_prog_name == NULL)
 		return ENOMEM;
 
-	return EOK;
+	logger_session = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOGGER, LOGGER_INTERFACE_SINK, 0);
+	if (logger_session == NULL) {
+		return ENOMEM;
+	}
+
+	int rc = logger_register(logger_session, log_prog_name);
+
+	return rc;
 }
 
 /** Write an entry to the log.
@@ -105,18 +143,13 @@ void log_msgv(log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 
-	/* Higher number means higher verbosity. */
-	if (level <= log_level) {
-		fibril_mutex_lock(&log_serializer);
-
-		fprintf(log_stream, "%s: %s: ", log_prog_name,
-		    log_level_names[level]);
-		vfprintf(log_stream, fmt, args);
-		fputc('\n', log_stream);
-		fflush(log_stream);
-
-		fibril_mutex_unlock(&log_serializer);
+	char *message_buffer = malloc(MESSAGE_BUFFER_SIZE);
+	if (message_buffer == NULL) {
+		return;
 	}
+
+	vsnprintf(message_buffer, MESSAGE_BUFFER_SIZE, fmt, args);
+	logger_message(logger_session, level, message_buffer);
 }
 
 /** @}

@@ -73,6 +73,7 @@ DIRS = \
 	app/websrv \
 	srv/clipboard \
 	srv/locsrv \
+	srv/logger \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \

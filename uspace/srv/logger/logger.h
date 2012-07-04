@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup logger
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file Common logger service definitions.
  */
 
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
+#ifndef LOGGER_H_
+#define LOGGER_H_
 
-#include <fourcc.h>
+#include <adt/list.h>
+#include <adt/prodcons.h>
+#include <io/log.h>
+#include <bool.h>
+#include <fibril_synch.h>
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
-	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
-} services_t;
+#define DEFAULT_LOGGING_LEVEL LVL_WARN
 
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_INETCFG  "net/inetcfg"
-#define SERVICE_NAME_INETPING "net/inetping"
+#define NAME "logger"
+#define MAX_NAMESPACE_LENGTH 256
+
+typedef struct {
+	link_t link;
+	log_level_t level;
+	const char *message;
+} log_message_t;
+
+typedef struct logging_namespace logging_namespace_t;
+
+log_message_t *message_create(const char *, log_level_t);
+void message_destroy(log_message_t *);
+
+logging_namespace_t *namespace_create(const char *);
+const char *namespace_get_name(logging_namespace_t *);
+void namespace_destroy(logging_namespace_t *);
+logging_namespace_t *namespace_reader_attach(const char *);
+void namespace_reader_detach(logging_namespace_t *);
+void namespace_writer_detach(logging_namespace_t *);
+
+void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
+log_message_t *namespace_get_next_message(logging_namespace_t *);
 
 #endif
 
