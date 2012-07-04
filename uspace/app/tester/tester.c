@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <str.h>
+#include <io/log.h>
 #include "tester.h"
 
 bool test_quiet;
@@ -54,6 +55,7 @@ test_t tests[] = {
 #include "console/console1.def"
 #include "stdio/stdio1.def"
 #include "stdio/stdio2.def"
+#include "stdio/logger1.def"
 #include "fault/fault1.def"
 #include "fault/fault2.def"
 #include "fault/fault3.def"
@@ -137,6 +139,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
+	log_init("tester", LVL_NOTE);
+
 	test_quiet = false;
 	test_argc = argc - 2;
 	test_argv = argv + 2;
