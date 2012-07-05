@@ -127,6 +127,14 @@
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
 	set_pt_flags((pte_t *) (ptl3), (size_t) (i), (x))
 
+/* Set PTE present bit accessors for each level. */
+#define SET_PTL1_PRESENT_ARCH(ptl0, i) \
+	set_pt_present((pte_t *) (ptl0), (size_t) (i))
+#define SET_PTL2_PRESENT_ARCH(ptl1, i)
+#define SET_PTL3_PRESENT_ARCH(ptl2, i)
+#define SET_FRAME_PRESENT_ARCH(ptl3, i) \
+	set_pt_present((pte_t *) (ptl3), (size_t) (i))
+
 /* Last-level info macros. */
 #define PTE_VALID_ARCH(pte)			(*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte)			((pte)->p != 0)
@@ -180,6 +188,14 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	 */
 	p->soft_valid = 1;
 }
+
+NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
+{
+	pte_t *p = &pt[i];
+
+	p->p = 1;
+}
+	
 
 extern void page_arch_init(void);
 
