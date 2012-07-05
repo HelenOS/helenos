@@ -93,7 +93,6 @@ int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
 	    (sysarg_t)buffer_size, &buffer_size, &buffer_id);
 	if (ret == EOK) {
 		void *dst = NULL;
-		// FIXME Do we need to know the flags?
 		int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
 		if (ret != EOK) {
 			return ret;
@@ -237,31 +236,32 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	/* Share the buffer. */
 	size_t share_size = 0;
 	ipc_callid_t share_id = 0;
-	ddf_msg(LVL_DEBUG2, "Calling share receive.");
+
+	ddf_msg(LVL_DEBUG2, "Receiving share request.");
 	if (!async_share_in_receive(&share_id, &share_size)) {
 		ddf_msg(LVL_DEBUG, "Failed to share pcm buffer.");
-		if (pcm_iface->release_buffer)
-			pcm_iface->release_buffer(fun, id);
+		pcm_iface->release_buffer(fun, id);
 		async_answer_0(share_id, EPARTY);
 		return;
 	}
-	ddf_msg(LVL_DEBUG2, "Checking requested share size");
+
+	ddf_msg(LVL_DEBUG2, "Checking requested share size.");
 	if (share_size != size) {
 		ddf_msg(LVL_DEBUG, "Incorrect pcm buffer size requested.");
-		if (pcm_iface->release_buffer)
-			pcm_iface->release_buffer(fun, id);
+		pcm_iface->release_buffer(fun, id);
 		async_answer_0(share_id, ELIMIT);
 		return;
 	}
-	ddf_msg(LVL_DEBUG2, "Calling share finalize");
-	ret = async_share_in_finalize(share_id, buffer, 0);
-	if (ret != EOK) {
-		ddf_msg(LVL_DEBUG, "Failed to share buffer");
-		if (pcm_iface->release_buffer)
-			pcm_iface->release_buffer(fun, id);
-		return;
 
+	ddf_msg(LVL_DEBUG2, "Calling share finalize.");
+	ret = async_share_in_finalize(share_id, buffer, AS_AREA_WRITE
+	| AS_AREA_READ);
+	if (ret != EOK) {
+		ddf_msg(LVL_DEBUG, "Failed to share buffer.");
+		pcm_iface->release_buffer(fun, id);
+		return;
 	}
+
 	ddf_msg(LVL_DEBUG2, "Buffer shared with size %zu, creating callback.",
 	    share_size);
 	{
@@ -279,8 +279,11 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 		if (ret != EOK) {
 			ddf_msg(LVL_DEBUG, "Failed to set event callback.");
 			pcm_iface->release_buffer(fun, id);
+			async_answer_0(callid, ret);
+			return;
 		}
-		async_answer_0(callid, ret);
+		ddf_msg(LVL_DEBUG2, "Buffer and event session setup OK.");
+		async_answer_0(callid, EOK);
 	}
 }
 
