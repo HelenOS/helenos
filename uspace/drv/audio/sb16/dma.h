@@ -40,6 +40,8 @@
 #include <mem.h>
 #include <as.h>
 
+#include "ddf_log.h"
+
 #define DMA_ALIGNENT 1024
 
 /** Get physical address translation
@@ -69,6 +71,9 @@ static inline void *dma_create_buffer24(size_t size)
 	void *address =
 	    as_area_create(AS_AREA_ANY, size, AS_AREA_READ | AS_AREA_WRITE);
 	bzero(address, size);
+	uintptr_t ptr = 0;
+	as_get_physical_mapping(address, &ptr);
+	ddf_log_debug2("Buffer mapped at %x.", ptr);
 	return address;
 }
 

@@ -190,7 +190,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	if (dsp->event_exchange) {
-		ddf_log_verbose("Sending interrupt event.");
+//		ddf_log_verbose("Sending interrupt event.");
 		async_msg_0(dsp->event_exchange, IPC_FIRST_USER_METHOD);
 	} else {
 		ddf_log_warning("Interrupt with no event consumer.");
