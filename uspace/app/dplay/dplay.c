@@ -49,13 +49,57 @@
 #include "wave.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/dsp"
+#define SUBBUFFERS 4
 
-static void play(async_exch_t *device, unsigned buffer_id,
-    void *buffer, size_t size, FILE *source,
+typedef struct {
+	struct {
+		void *base;
+		size_t size;
+		unsigned id;
+		void* position;
+	} buffer;
+	FILE* source;
+} playback_t;
+
+
+static void device_event_callback(ipc_callid_t id, ipc_call_t *call, void* arg)
+{
+	if (IPC_GET_IMETHOD(*call) != IPC_FIRST_USER_METHOD) {
+		printf("Unknown event.\n");
+		return;
+	}
+	playback_t *pb = arg;
+	printf("Got device event!!!\n");
+	const size_t buffer_part = pb->buffer.size / SUBBUFFERS;
+	const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
+	   buffer_part, pb->source);
+	if (bytes == 0)
+		exit(0); // ugly but temporary
+	pb->buffer.position += bytes;
+	if (bytes != buffer_part)
+		bzero(pb->buffer.position, buffer_part - bytes);
+	pb->buffer.position += buffer_part - bytes;
+	if (pb->buffer.position >= (pb->buffer.base + pb->buffer.size))
+		pb->buffer.position = pb->buffer.base;
+}
+
+
+static void play(async_exch_t *device, playback_t *pb,
     unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
 {
 	assert(device);
-	const size_t update_size = size / 8;
+	assert(pb);
+	pb->buffer.position = pb->buffer.base;
+	printf("Playing: %dHz, %d-bit samples, %d channel(s), %sSIGNED.\n",
+	    sampling_rate, sample_size, channels, sign ? "": "UN");
+	const size_t bytes = fread(pb->buffer.base, sizeof(uint8_t),
+	    pb->buffer.size, pb->source);
+	if (bytes != pb->buffer.size)
+		return;
+	printf("Buffer data ready.\n");
+	sleep(10);
+#if 0
+	const size_t update_size = size / SUBBUFFERS;
 
 	/* Time to play half the buffer. */
 	const suseconds_t interval = 1000000 /
@@ -69,7 +113,7 @@ static void play(async_exch_t *device, unsigned buffer_id,
 	struct timeval time;
 	gettimeofday(&time, NULL);
 	printf("Starting playback.\n");
-	int ret = audio_pcm_buffer_start_playback(device, buffer_id,
+	int ret = audio_pcm_buffer_start_playback(device, buffer_id, SUBBUFFERS,
 	    sampling_rate, sample_size, channels, sign);
 	if (ret != EOK) {
 		printf("Failed to start playback: %s.\n", str_error(ret));
@@ -84,7 +128,7 @@ static void play(async_exch_t *device, unsigned buffer_id,
 
 		const suseconds_t delay = min(tv_sub(&time, &current), interval);
 		if (delay > 0)
-			usleep(delay);
+			udelay(delay);
 
 		const size_t bytes =
 		    fread(buffer_place, sizeof(uint8_t), update_size, source);
@@ -105,6 +149,7 @@ static void play(async_exch_t *device, unsigned buffer_id,
 	if (ret != EOK) {
 		printf("Failed to stop playback: %s.\n", str_error(ret));
 	}
+#endif
 }
 
 int main(int argc, char *argv[])
@@ -133,7 +178,7 @@ int main(int argc, char *argv[])
 	}
 
 	async_sess_t *session = devman_device_connect(
-	    EXCHANGE_ATOMIC, pcm_handle, IPC_FLAG_BLOCKING);
+	    EXCHANGE_SERIALIZE, pcm_handle, IPC_FLAG_BLOCKING);
 	if (!session) {
 		printf("Failed to connect to device.\n");
 		return 1;
@@ -145,7 +190,7 @@ int main(int argc, char *argv[])
 		async_hangup(session);
 		return 1;
 	}
-	const char* info;
+	const char* info = NULL;
 	ret = audio_pcm_buffer_get_info_str(exch, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info.\n");
@@ -156,29 +201,31 @@ int main(int argc, char *argv[])
 	printf("Playing on %s.\n", info);
 	free(info);
 
-	void *buffer = NULL;
-	size_t size = 0;
-	unsigned id = 0;
-	ret = audio_pcm_buffer_get_buffer(exch, &buffer, &size, &id);
+	playback_t pb = {{0}, NULL};
+	pb.buffer.size = 4096;
+	printf("Requesting buffer: %p, %zu, %u.\n", pb.buffer.base, pb.buffer.size, pb.buffer.id);
+	ret = audio_pcm_buffer_get_buffer(exch, &pb.buffer.base,
+	    &pb.buffer.size, &pb.buffer.id, device_event_callback, &pb);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
 		async_exchange_end(exch);
 		async_hangup(session);
 		return 1;
 	}
-	printf("Buffer (%u): %p %zu.\n", id, buffer, size);
+	printf("Buffer (%u): %p %zu.\n", pb.buffer.id, pb.buffer.base,
+	    pb.buffer.size);
 
-	FILE *source = fopen(file, "rb");
-	if (source == NULL) {
+	pb.source = fopen(file, "rb");
+	if (pb.source == NULL) {
 		printf("Failed to open %s.\n", file);
-		munmap(buffer, size);
-		audio_pcm_buffer_release_buffer(exch, id);
+		munmap(pb.buffer.base, pb.buffer.size);
+		audio_pcm_buffer_release_buffer(exch, pb.buffer.id);
 		async_exchange_end(exch);
 		async_hangup(session);
 		return 1;
 	}
 	wave_header_t header;
-	fread(&header, sizeof(header), 1, source);
+	fread(&header, sizeof(header), 1, pb.source);
 	unsigned rate, sample_size, channels;
 	bool sign;
 	const char *error;
@@ -186,18 +233,18 @@ int main(int argc, char *argv[])
 	    &channels, &sign, &error);
 	if (ret != EOK) {
 		printf("Error parsing wav header: %s.\n", error);
-		fclose(source);
-		munmap(buffer, size);
-		audio_pcm_buffer_release_buffer(exch, id);
+		fclose(pb.source);
+		munmap(pb.buffer.base, pb.buffer.size);
+		audio_pcm_buffer_release_buffer(exch, pb.buffer.id);
 		async_exchange_end(exch);
 		async_hangup(session);
 		return 1;
 	}
 
-	play(exch, id, buffer, size, source, rate, sample_size, channels, sign);
+	play(exch, &pb, rate, sample_size, channels, sign);
 
-	munmap(buffer, size);
-	audio_pcm_buffer_release_buffer(exch, id);
+	munmap(pb.buffer.base, pb.buffer.size);
+	audio_pcm_buffer_release_buffer(exch, pb.buffer.id);
 	async_exchange_end(exch);
 	async_hangup(session);
 	return 0;
