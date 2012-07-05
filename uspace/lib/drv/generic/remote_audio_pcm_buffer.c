@@ -80,7 +80,7 @@ int audio_pcm_buffer_get_info_str(async_exch_t *exch, const char **name)
 	}
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
     unsigned *id, async_client_conn_t event_rec, void* arg)
 {
@@ -109,7 +109,7 @@ int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
 	}
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_pcm_buffer_release_buffer(async_exch_t *exch, unsigned id)
 {
 	if (!exch)
@@ -117,7 +117,7 @@ int audio_pcm_buffer_release_buffer(async_exch_t *exch, unsigned id)
 	return async_req_2_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_RELEASE_BUFFER, id);
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_pcm_buffer_start_playback(async_exch_t *exch, unsigned id,
     unsigned parts, unsigned sample_rate, uint16_t sample_size,
     uint8_t channels, bool sign)
@@ -130,7 +130,7 @@ int audio_pcm_buffer_start_playback(async_exch_t *exch, unsigned id,
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_START_PLAYBACK, id, sample_rate, packed);
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_pcm_buffer_stop_playback(async_exch_t *exch, unsigned id)
 {
 	if (!exch)
@@ -138,7 +138,7 @@ int audio_pcm_buffer_stop_playback(async_exch_t *exch, unsigned id)
 	return async_req_2_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_STOP_PLAYBACK, id);
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_pcm_buffer_start_record(async_exch_t *exch, unsigned id,
     unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign)
 {
@@ -148,7 +148,7 @@ int audio_pcm_buffer_start_record(async_exch_t *exch, unsigned id,
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_START_RECORD, id, sample_rate, packed);
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_pcm_buffer_stop_record(async_exch_t *exch, unsigned id)
 {
 	if (!exch)
@@ -185,7 +185,7 @@ remote_iface_t remote_audio_pcm_buffer_iface = {
 	    sizeof(remote_audio_pcm_iface_ops[0]),
 	.methods = remote_audio_pcm_iface_ops
 };
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -214,7 +214,7 @@ void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -283,7 +283,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, ret);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_release_buffer(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -294,7 +294,7 @@ void remote_audio_pcm_release_buffer(ddf_fun_t *fun, void *iface,
 	    pcm_iface->release_buffer(fun, id) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -312,7 +312,7 @@ void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -323,7 +323,7 @@ void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
 	    pcm_iface->stop_playback(fun, id) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_start_record(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -340,7 +340,7 @@ void remote_audio_pcm_start_record(ddf_fun_t *fun, void *iface,
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_pcm_stop_record(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -353,7 +353,7 @@ void remote_audio_pcm_stop_record(ddf_fun_t *fun, void *iface,
 }
 
 #if 0
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_get_info(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -383,7 +383,7 @@ void remote_audio_mixer_get_info(
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_get_item_info(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -415,7 +415,7 @@ void remote_audio_mixer_get_item_info(
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_get_channel_info(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -449,7 +449,7 @@ void remote_audio_mixer_get_channel_info(
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_mute_set(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -465,7 +465,7 @@ void remote_audio_mixer_channel_mute_set(
 	const int ret = mixer_iface->channel_mute_set(fun, item, channel, mute);
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_mute_get(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -482,7 +482,7 @@ void remote_audio_mixer_channel_mute_get(
 	    mixer_iface->channel_mute_get(fun, item, channel, &mute);
 	async_answer_1(callid, ret, mute);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_volume_set(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -499,7 +499,7 @@ void remote_audio_mixer_channel_volume_set(
 	    mixer_iface->channel_volume_set(fun, item, channel, level);
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_volume_get(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {

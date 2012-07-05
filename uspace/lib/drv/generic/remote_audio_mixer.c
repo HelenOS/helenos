@@ -143,7 +143,7 @@ int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
 		*items = itemc;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
     const char ** name, unsigned *channels)
 {
@@ -172,7 +172,7 @@ int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
 		*channels = chans;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_mixer_get_channel_info(async_exch_t *exch, unsigned item,
     unsigned channel, const char **name, unsigned *volume_levels)
 {
@@ -202,7 +202,7 @@ int audio_mixer_get_channel_info(async_exch_t *exch, unsigned item,
 		*volume_levels = levels;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_mixer_channel_mute_set(async_exch_t *exch, unsigned item,
     unsigned channel, bool mute_status)
 {
@@ -211,7 +211,7 @@ int audio_mixer_channel_mute_set(async_exch_t *exch, unsigned item,
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
 	    IPC_M_AUDIO_MIXER_CHANNEL_MUTE_SET, item, channel, mute_status);
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_mixer_channel_mute_get(async_exch_t *exch, unsigned item,
     unsigned channel, bool *mute_status)
 {
@@ -224,7 +224,7 @@ int audio_mixer_channel_mute_get(async_exch_t *exch, unsigned item,
 		*mute_status = (bool)mute;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_mixer_channel_volume_set(async_exch_t *exch, unsigned item,
     unsigned channel, unsigned volume)
 {
@@ -233,7 +233,7 @@ int audio_mixer_channel_volume_set(async_exch_t *exch, unsigned item,
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
 	    IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_SET, item, channel, volume);
 }
-/*----------------------------------------------------------------------------*/
+
 int audio_mixer_channel_volume_get(async_exch_t *exch, unsigned item,
     unsigned channel, unsigned *volume_current, unsigned *volume_max)
 {
@@ -278,7 +278,7 @@ remote_iface_t remote_audio_mixer_iface = {
 	    sizeof(remote_audio_mixer_iface_ops[0]),
 	.methods = remote_audio_mixer_iface_ops
 };
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_get_info(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -308,7 +308,7 @@ void remote_audio_mixer_get_info(
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_get_item_info(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -340,7 +340,7 @@ void remote_audio_mixer_get_item_info(
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_get_channel_info(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -374,7 +374,7 @@ void remote_audio_mixer_get_channel_info(
 		async_data_read_finalize(name_id, name, name_size);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_mute_set(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -390,7 +390,7 @@ void remote_audio_mixer_channel_mute_set(
 	const int ret = mixer_iface->channel_mute_set(fun, item, channel, mute);
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_mute_get(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -407,7 +407,7 @@ void remote_audio_mixer_channel_mute_get(
 	    mixer_iface->channel_mute_get(fun, item, channel, &mute);
 	async_answer_1(callid, ret, mute);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_volume_set(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
@@ -424,7 +424,7 @@ void remote_audio_mixer_channel_volume_set(
 	    mixer_iface->channel_volume_set(fun, item, channel, level);
 	async_answer_0(callid, ret);
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_audio_mixer_channel_volume_get(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
