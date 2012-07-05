@@ -82,7 +82,7 @@ int audio_pcm_buffer_get_info_str(async_exch_t *exch, const char **name)
 }
 /*----------------------------------------------------------------------------*/
 int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
-    unsigned *id)
+    unsigned *id, async_client_conn_t event_rec, void* arg)
 {
 	if (!exch || !buffer || !size || !id)
 		return EINVAL;
@@ -94,10 +94,15 @@ int audio_pcm_buffer_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
 	if (ret == EOK) {
 		void *dst = NULL;
 		// FIXME Do we need to know the flags?
-		const int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
+		int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
 		if (ret != EOK) {
 			return ret;
 		}
+		ret = async_connect_to_me(exch, 0, 0, 0, event_rec, arg);
+		if (ret != EOK) {
+			return ret;
+		}
+
 		*buffer = dst;
 		*size = buffer_size;
 		*id = buffer_id;
@@ -114,12 +119,14 @@ int audio_pcm_buffer_release_buffer(async_exch_t *exch, unsigned id)
 }
 /*----------------------------------------------------------------------------*/
 int audio_pcm_buffer_start_playback(async_exch_t *exch, unsigned id,
-    unsigned sample_rate, uint16_t sample_size, uint8_t channels, bool sign)
+    unsigned parts, unsigned sample_rate, uint16_t sample_size,
+    uint8_t channels, bool sign)
 {
 	if (!exch)
 		return EINVAL;
-	sysarg_t packed =
-	    (sample_size << 16) | (channels << 8) | (sign ? 1 : 0);
+	const sysarg_t packed =
+	    (sample_size << 16) | (channels << 8) |
+	    (parts & 0x7f << 1) | (sign ? 1 : 0);
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_START_PLAYBACK, id, sample_rate, packed);
 }
@@ -213,46 +220,67 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 {
 	const audio_pcm_buffer_iface_t *pcm_iface = iface;
 
-	if (!pcm_iface->get_buffer) {
+	if (!pcm_iface->get_buffer ||
+	    !pcm_iface->release_buffer ||
+	    !pcm_iface->set_event_session) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	void *buffer = NULL;
 	size_t size = DEV_IPC_GET_ARG1(*call);
 	unsigned id = 0;
-	const int ret = pcm_iface->get_buffer(fun, &buffer, &size, &id);
+	int ret = pcm_iface->get_buffer(fun, &buffer, &size, &id);
 	async_answer_2(callid, ret, size, id);
-	/* Share the buffer. */
-	if (ret == EOK && size > 0) {
-		size_t share_size = 0;
-		ipc_callid_t share_id = 0;
-		ddf_msg(LVL_DEBUG2, "Calling share receive.");
-		if (!async_share_in_receive(&share_id, &share_size)) {
-			ddf_msg(LVL_DEBUG, "Failed to share pcm buffer.");
-			if (pcm_iface->release_buffer)
-				pcm_iface->release_buffer(fun, id);
-			async_answer_0(share_id, EPARTY);
-			return;
-		}
-		ddf_msg(LVL_DEBUG2, "Checking requested share size");
-		if (share_size != size) {
-			ddf_msg(LVL_DEBUG, "Incorrect pcm buffer size requested.");
-			if (pcm_iface->release_buffer)
-				pcm_iface->release_buffer(fun, id);
-			async_answer_0(share_id, ELIMIT);
-			return;
-		}
-		ddf_msg(LVL_DEBUG2, "Calling share finalize");
-		const int ret = async_share_in_finalize(share_id, buffer, 0);
-		if (ret != EOK) {
-			ddf_msg(LVL_DEBUG, "Failed to share buffer");
-			if (pcm_iface->release_buffer)
-				pcm_iface->release_buffer(fun, id);
-			return;
+	if (ret != EOK || size == 0)
+		return;
 
+	/* Share the buffer. */
+	size_t share_size = 0;
+	ipc_callid_t share_id = 0;
+	ddf_msg(LVL_DEBUG2, "Calling share receive.");
+	if (!async_share_in_receive(&share_id, &share_size)) {
+		ddf_msg(LVL_DEBUG, "Failed to share pcm buffer.");
+		if (pcm_iface->release_buffer)
+			pcm_iface->release_buffer(fun, id);
+		async_answer_0(share_id, EPARTY);
+		return;
+	}
+	ddf_msg(LVL_DEBUG2, "Checking requested share size");
+	if (share_size != size) {
+		ddf_msg(LVL_DEBUG, "Incorrect pcm buffer size requested.");
+		if (pcm_iface->release_buffer)
+			pcm_iface->release_buffer(fun, id);
+		async_answer_0(share_id, ELIMIT);
+		return;
+	}
+	ddf_msg(LVL_DEBUG2, "Calling share finalize");
+	ret = async_share_in_finalize(share_id, buffer, 0);
+	if (ret != EOK) {
+		ddf_msg(LVL_DEBUG, "Failed to share buffer");
+		if (pcm_iface->release_buffer)
+			pcm_iface->release_buffer(fun, id);
+		return;
+
+	}
+	ddf_msg(LVL_DEBUG2, "Buffer shared with size %zu, creating callback.",
+	    share_size);
+	{
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		async_sess_t *sess =
+		    async_callback_receive_start(EXCHANGE_ATOMIC, &call);
+		if (sess == NULL) {
+			ddf_msg(LVL_DEBUG, "Failed to create event callback");
+			pcm_iface->release_buffer(fun, id);
+			async_answer_0(callid, EAGAIN);
+			return;
 		}
-		ddf_msg(LVL_DEBUG2, "Buffer shared ok with size %zu.",
-		    share_size);
+		ret = pcm_iface->set_event_session(fun, id, sess);
+		if (ret != EOK) {
+			ddf_msg(LVL_DEBUG, "Failed to set event callback.");
+			pcm_iface->release_buffer(fun, id);
+		}
+		async_answer_0(callid, ret);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -275,11 +303,12 @@ void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
 	const unsigned id = DEV_IPC_GET_ARG1(*call);
 	const unsigned rate = DEV_IPC_GET_ARG2(*call);
 	const unsigned size = DEV_IPC_GET_ARG3(*call) >> 16;
-	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 8) && UINT8_MAX;
+	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 8) & UINT8_MAX;
+	const unsigned parts = (DEV_IPC_GET_ARG3(*call) >> 1) & 0x7f;
 	const bool sign = (bool)(DEV_IPC_GET_ARG3(*call) & 1);
 
 	const int ret = pcm_iface->start_playback
-	    ? pcm_iface->start_playback(fun, id, rate, size, channels, sign)
+	    ? pcm_iface->start_playback(fun, id, parts, rate, size, channels, sign)
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }
