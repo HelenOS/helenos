@@ -32,6 +32,7 @@
  */
 
 #include <async.h>
+#include <ddf/log.h>
 #include <errno.h>
 #include <str.h>
 #include <as.h>
@@ -223,17 +224,35 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	async_answer_2(callid, ret, size, id);
 	/* Share the buffer. */
 	if (ret == EOK && size > 0) {
-		size_t share_size;
-		ipc_callid_t name_id;
-		if (!async_share_in_receive(&name_id, &share_size)) {
-			async_answer_0(name_id, EPARTY);
+		size_t share_size = 0;
+		ipc_callid_t share_id = 0;
+		ddf_msg(LVL_DEBUG2, "Calling share receive.");
+		if (!async_share_in_receive(&share_id, &share_size)) {
+			ddf_msg(LVL_DEBUG, "Failed to share pcm buffer.");
+			if (pcm_iface->release_buffer)
+				pcm_iface->release_buffer(fun, id);
+			async_answer_0(share_id, EPARTY);
 			return;
 		}
+		ddf_msg(LVL_DEBUG2, "Checking requested share size");
 		if (share_size != size) {
-			async_answer_0(name_id, ELIMIT);
+			ddf_msg(LVL_DEBUG, "Incorrect pcm buffer size requested.");
+			if (pcm_iface->release_buffer)
+				pcm_iface->release_buffer(fun, id);
+			async_answer_0(share_id, ELIMIT);
 			return;
 		}
-		async_share_in_finalize(name_id, buffer, PROTO_READ | PROTO_WRITE);
+		ddf_msg(LVL_DEBUG2, "Calling share finalize");
+		const int ret = async_share_in_finalize(share_id, buffer, 0);
+		if (ret != EOK) {
+			ddf_msg(LVL_DEBUG, "Failed to share buffer");
+			if (pcm_iface->release_buffer)
+				pcm_iface->release_buffer(fun, id);
+			return;
+
+		}
+		ddf_msg(LVL_DEBUG2, "Buffer shared ok with size %zu.",
+		    share_size);
 	}
 }
 /*----------------------------------------------------------------------------*/
