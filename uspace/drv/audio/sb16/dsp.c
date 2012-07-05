@@ -119,7 +119,7 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 		size = BUFFER_SIZE;
 	uint8_t *buffer = dma_create_buffer24(size);
 	if (buffer == NULL) {
-		ddf_log_error("Failed to allocate buffer.\n");
+		ddf_log_error("Failed to allocate DMA buffer.");
 		return ENOMEM;
 	}
 
@@ -132,7 +132,7 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 		dsp->buffer.size = size;
 		bzero(dsp->buffer.data, dsp->buffer.size);
 	} else {
-		ddf_log_error("Failed to setup DMA16 channel %s.\n",
+		ddf_log_error("Failed to setup DMA16 channel: %s.",
 		    str_error(ret));
 		dma_destroy_buffer(buffer);
 	}
@@ -170,11 +170,11 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	uint8_t response;
 	const int ret = sb_dsp_read(dsp, &response);
 	if (ret != EOK) {
-		ddf_log_error("Failed to read DSP reset response value.\n");
+		ddf_log_error("Failed to read DSP reset response value.");
 		return ret;
 	}
 	if (response != DSP_RESET_RESPONSE) {
-		ddf_log_error("Invalid DSP reset response: %x.\n", response);
+		ddf_log_error("Invalid DSP reset response: %x.", response);
 		return EIO;
 	}
 
@@ -190,6 +190,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	if (dsp->event_exchange) {
+		ddf_log_verbose("Sending interrupt event.");
 		async_msg_0(dsp->event_exchange, IPC_FIRST_USER_METHOD);
 	} else {
 		ddf_log_warning("Interrupt with no event consumer.");
@@ -213,15 +214,17 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
 		return EBUSY;
 
 	const int ret = sb_setup_buffer(dsp, *size);
-	ddf_log_debug("Providing buffer(%u): %p, %zu B.\n",
-	    BUFFER_ID, dsp->buffer.data, dsp->buffer.size);
+	if (ret == EOK) {
+		ddf_log_debug("Providing buffer(%u): %p, %zu B.",
+		    BUFFER_ID, dsp->buffer.data, dsp->buffer.size);
 
-	if (ret == EOK && buffer)
-		*buffer = dsp->buffer.data;
-	if (ret == EOK && size)
-		*size = dsp->buffer.size;
-	if (ret == EOK && id)
-		*id = BUFFER_ID;
+		if (buffer)
+			*buffer = dsp->buffer.data;
+		if (size)
+			*size = dsp->buffer.size;
+		if (id)
+			*id = BUFFER_ID;
+	}
 	return ret;
 }
 
@@ -234,6 +237,7 @@ int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session)
 	if (dsp->event_session)
 		return EBUSY;
 	dsp->event_session = session;
+	ddf_log_debug("Set event session.");
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -249,6 +253,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 	if (dsp->event_session)
 		async_hangup(dsp->event_session);
 	dsp->event_session = NULL;
+	ddf_log_debug("DSP buffer released.");
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -268,7 +273,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 
 	/* Check supported parameters */
 	ddf_log_debug("Starting playback on buffer(%u): rate: %u, size: %u, "
-	    " channels: %u, signed: %s.\n", id, sampling_rate, sample_size,
+	    " channels: %u, signed: %s.", id, sampling_rate, sample_size,
 	    channels, sign ? "YES" : "NO" );
 	if (id != BUFFER_ID)
 		return ENOENT;
@@ -287,7 +292,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	sb_dsp_write(dsp, sampling_rate >> 8);
 	sb_dsp_write(dsp, sampling_rate & 0xff);
 
-	ddf_log_debug("Sampling rate: %hhx:%hhx.\n",
+	ddf_log_debug("Sampling rate: %hhx:%hhx.",
 	    sampling_rate >> 8, sampling_rate & 0xff);
 
 #ifdef AUTO_DMA_MODE

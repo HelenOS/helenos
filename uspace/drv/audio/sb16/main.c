@@ -102,7 +102,7 @@ if (ret != EOK) { \
 
 	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
 	int ret = soft_state ? EOK : ENOMEM;
-	CHECK_RET_RETURN(ret, "Failed to allocate sb16 structure.\n");
+	CHECK_RET_RETURN(ret, "Failed to allocate sb16 structure.");
 
 	uintptr_t sb_regs = 0, mpu_regs = 0;
 	size_t sb_regs_size = 0, mpu_regs_size = 0;
@@ -110,8 +110,7 @@ if (ret != EOK) { \
 
 	ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
 	    &mpu_regs_size, &irq, &dma8, &dma16);
-	CHECK_RET_RETURN(ret,
-	    "Failed to get resources: %s.\n", str_error(ret));
+	CHECK_RET_RETURN(ret, "Failed to get resources: %s.", str_error(ret));
 
 	const size_t irq_cmd_count = sb16_irq_code_size();
 	irq_cmd_t irq_cmds[irq_cmd_count];
@@ -127,7 +126,7 @@ if (ret != EOK) { \
 
 	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
 	CHECK_RET_RETURN(ret,
-	    "Failed to register irq handler: %s.\n", str_error(ret));
+	    "Failed to register irq handler: %s.", str_error(ret));
 
 #define CHECK_RET_UNREG_DEST_RETURN(ret, msg...) \
 if (ret != EOK) { \
@@ -137,13 +136,13 @@ if (ret != EOK) { \
 } else (void)0
 
 	ret = sb_enable_interrupts(device);
-	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to enable interrupts: %s.\n",
+	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to enable interrupts: %s.",
 	    str_error(ret));
 
 	ret = sb16_init_sb16(
 	    soft_state, (void*)sb_regs, sb_regs_size, device, dma8, dma16);
 	CHECK_RET_UNREG_DEST_RETURN(ret,
-	    "Failed to init sb16 driver: %s.\n", str_error(ret));
+	    "Failed to init sb16 driver: %s.", str_error(ret));
 
 	ret = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
 	if (ret == EOK) {
@@ -153,13 +152,13 @@ if (ret != EOK) { \
 			ret = ddf_fun_bind(mpu_fun);
 			if (ret != EOK)
 				ddf_log_error(
-				    "Failed to bind midi function: %s.\n",
+				    "Failed to bind midi function: %s.",
 				    str_error(ret));
 		} else {
-			ddf_log_error("Failed to create midi function.\n");
+			ddf_log_error("Failed to create midi function.");
 		}
 	} else {
-	    ddf_log_warning("Failed to init mpu driver: %s.\n", str_error(ret));
+	    ddf_log_warning("Failed to init mpu driver: %s.", str_error(ret));
 	}
 
 	/* MPU state does not matter */

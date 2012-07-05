@@ -98,30 +98,30 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	int ret = pio_enable(regs, size, (void**)&sb->regs);
 	if (ret != EOK)
 		return ret;
-	ddf_log_debug("PIO registers at %p accessible.\n", sb->regs);
+	ddf_log_debug("PIO registers at %p accessible.", sb->regs);
 
 	/* Initialize DSP */
 	ddf_fun_t *dsp_fun = ddf_fun_create(dev, fun_exposed, "dsp");
 	if (!dsp_fun) {
-		ddf_log_error("Failed to create dsp function.\n");
+		ddf_log_error("Failed to create dsp function.");
 		return ENOMEM;
 	}
 
 	ret = sb_dsp_init(&sb->dsp, sb->regs, dev, dma8, dma16);
 	if (ret != EOK) {
-		ddf_log_error("Failed to initialize SB DSP: %s.\n",
+		ddf_log_error("Failed to initialize SB DSP: %s.",
 		    str_error(ret));
 		return ret;
 	}
 	dsp_fun->driver_data = &sb->dsp;
 	dsp_fun->ops = &sb_pcm_ops;
-	ddf_log_note("Sound blaster DSP (%x.%x) initialized.\n",
+	ddf_log_note("Sound blaster DSP (%x.%x) initialized.",
 	    sb->dsp.version.major, sb->dsp.version.minor);
 
 	ret = ddf_fun_bind(dsp_fun);
 	if (ret != EOK) {
 		ddf_log_error(
-		    "Failed to bind DSP function: %s.\n", str_error(ret));
+		    "Failed to bind DSP function: %s.", str_error(ret));
 		dsp_fun->driver_data = NULL;
 		ddf_fun_destroy(dsp_fun);
 		return ret;
@@ -133,7 +133,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 
 	ddf_fun_t *mixer_fun = ddf_fun_create(dev, fun_exposed, "mixer");
 	if (!mixer_fun) {
-		ddf_log_error("Failed to create mixer function.\n");
+		ddf_log_error("Failed to create mixer function.");
 		ddf_fun_unbind(dsp_fun);
 		dsp_fun->driver_data = NULL;
 		ddf_fun_destroy(dsp_fun);
@@ -141,7 +141,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	}
 	ret = sb_mixer_init(&sb->mixer, sb->regs, mixer_type);
 	if (ret != EOK) {
-		ddf_log_error("Failed to initialize SB mixer: %s.\n",
+		ddf_log_error("Failed to initialize SB mixer: %s.",
 		    str_error(ret));
 		ddf_fun_unbind(dsp_fun);
 		dsp_fun->driver_data = NULL;
@@ -150,7 +150,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 		return ret;
 	}
 
-	ddf_log_note("Initialized mixer: %s.\n",
+	ddf_log_note("Initialized mixer: %s.",
 	    sb_mixer_type_str(sb->mixer.type));
 	mixer_fun->driver_data = &sb->mixer;
 	mixer_fun->ops = &sb_mixer_ops;
@@ -158,7 +158,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	ret = ddf_fun_bind(mixer_fun);
 	if (ret != EOK) {
 		ddf_log_error(
-		    "Failed to bind mixer function: %s.\n", str_error(ret));
+		    "Failed to bind mixer function: %s.", str_error(ret));
 		mixer_fun->driver_data = NULL;
 		ddf_fun_destroy(mixer_fun);
 
@@ -191,7 +191,7 @@ void sb16_interrupt(sb16_t *sb)
 			return;
 		}
 	} else {
-		ddf_log_debug("SB16 interrupt.\n");
+		ddf_log_debug("SB16 interrupt.");
 	}
 	sb_dsp_interrupt(&sb->dsp);
 }

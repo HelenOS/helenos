@@ -167,7 +167,7 @@ int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 	const uint8_t irq = pio_read_8(&regs->mixer_data);
 	pio_write_8(&regs->mixer_address, MIXER_PNP_DMA_ADDRESS);
 	const uint8_t dma = pio_read_8(&regs->mixer_data);
-	ddf_log_debug("SB16 setup with IRQ 0x%hhx and DMA 0x%hhx.\n", irq, dma);
+	ddf_log_debug("SB16 setup with IRQ 0x%hhx and DMA 0x%hhx.", irq, dma);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -237,7 +237,7 @@ int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
 
 	value |= level << chan->shift;
 	pio_write_8(&mixer->regs->mixer_data, value);
-	ddf_log_note("Channel %s %s volume set to: %u.\n",
+	ddf_log_note("Channel %s %s volume set to: %u.",
 	    volume_table[mixer->type].table[index].description,
 	    chan->name, level);
 	return EOK;
