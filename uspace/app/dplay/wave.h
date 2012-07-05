@@ -88,7 +88,7 @@ typedef struct wave_header {
 
 } wave_header_t;
 
-int wav_parse_header(void *, void**, size_t *, unsigned *, unsigned *,
+int wav_parse_header(void *, const void**, size_t *, unsigned *, unsigned *,
     unsigned *, bool *, const char **error_str);
 
 #endif

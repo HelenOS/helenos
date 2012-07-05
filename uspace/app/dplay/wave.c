@@ -38,7 +38,7 @@
 
 #include "wave.h"
 
-int wav_parse_header(void *file, void ** data, size_t *data_size,
+int wav_parse_header(void *file, const void **data, size_t *data_size,
     unsigned *sampling_rate, unsigned *sample_size, unsigned *channels,
     bool *sign, const char **error)
 {
@@ -48,7 +48,7 @@ int wav_parse_header(void *file, void ** data, size_t *data_size,
 		return EINVAL;
 	}
 
-	wave_header_t *header = file;
+	const wave_header_t *header = file;
 	if (str_lcmp(header->chunk_id, CHUNK_ID, 4) != 0) {
 		if (error)
 			*error = "invalid chunk id";
