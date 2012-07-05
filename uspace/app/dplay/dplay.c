@@ -39,6 +39,7 @@
 #include <str.h>
 #include <devman.h>
 #include <audio_pcm_buffer_iface.h>
+#include <fibril_synch.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/time.h>
@@ -49,7 +50,7 @@
 #include "wave.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/dsp"
-#define SUBBUFFERS 4
+#define SUBBUFFERS 2
 
 typedef struct {
 	struct {
@@ -59,36 +60,64 @@ typedef struct {
 		void* position;
 	} buffer;
 	FILE* source;
+	volatile bool playing;
+	fibril_mutex_t mutex;
+	fibril_condvar_t cv;
+	async_exch_t *device;
 } playback_t;
 
-
-static void device_event_callback(ipc_callid_t id, ipc_call_t *call, void* arg)
+static void playback_initialize(playback_t *pb, async_exch_t *exch)
 {
-	if (IPC_GET_IMETHOD(*call) != IPC_FIRST_USER_METHOD) {
-		printf("Unknown event.\n");
-		return;
-	}
-	playback_t *pb = arg;
-	printf("Got device event!!!\n");
-	const size_t buffer_part = pb->buffer.size / SUBBUFFERS;
-	const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
-	   buffer_part, pb->source);
-	if (bytes == 0)
-		exit(0); // ugly but temporary
-	pb->buffer.position += bytes;
-	if (bytes != buffer_part)
-		bzero(pb->buffer.position, buffer_part - bytes);
-	pb->buffer.position += buffer_part - bytes;
-	if (pb->buffer.position >= (pb->buffer.base + pb->buffer.size))
-		pb->buffer.position = pb->buffer.base;
+	assert(exch);
+	assert(pb);
+	pb->buffer.id = 0;
+	pb->buffer.base = NULL;
+	pb->buffer.size = 0;
+	pb->playing = false;
+	pb->source = NULL;
+	pb->device = exch;
+	fibril_mutex_initialize(&pb->mutex);
+	fibril_condvar_initialize(&pb->cv);
 }
 
 
-static void play(async_exch_t *device, playback_t *pb,
-    unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
+static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg)
 {
-	assert(device);
+	static unsigned wait = SUBBUFFERS;
+	while (1) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		if (IPC_GET_IMETHOD(call) != IPC_FIRST_USER_METHOD) {
+			printf("Unknown event.\n");
+			async_answer_0(callid,EOK);
+			break;
+		}
+		playback_t *pb = arg;
+//		printf("Got device event!!!\n");
+		const size_t buffer_part = pb->buffer.size / SUBBUFFERS;
+		const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
+		   buffer_part, pb->source);
+		pb->buffer.position += bytes;
+		if (bytes != buffer_part)
+			bzero(pb->buffer.position, buffer_part - bytes);
+		pb->buffer.position += buffer_part - bytes;
+		if (pb->buffer.position >= (pb->buffer.base + pb->buffer.size))
+			pb->buffer.position = pb->buffer.base;
+		async_answer_0(callid,EOK);
+		if (bytes == 0 && (wait-- == 0)) {
+			pb->playing = false;
+			fibril_condvar_signal(&pb->cv);
+			return;
+		}
+	}
+}
+
+
+static void play(playback_t *pb, unsigned sampling_rate, unsigned sample_size,
+    unsigned channels, bool sign)
+{
 	assert(pb);
+	assert(pb->device);
 	pb->buffer.position = pb->buffer.base;
 	printf("Playing: %dHz, %d-bit samples, %d channel(s), %sSIGNED.\n",
 	    sampling_rate, sample_size, channels, sign ? "": "UN");
@@ -97,59 +126,19 @@ static void play(async_exch_t *device, playback_t *pb,
 	if (bytes != pb->buffer.size)
 		return;
 	printf("Buffer data ready.\n");
-	sleep(10);
-#if 0
-	const size_t update_size = size / SUBBUFFERS;
-
-	/* Time to play half the buffer. */
-	const suseconds_t interval = 1000000 /
-	    (sampling_rate /  (update_size / (channels * (sample_size / 8))));
-	printf("Time to play half buffer: %ld us.\n", interval);
-	/* Initialize buffer. */
-	const size_t bytes = fread(buffer, sizeof(uint8_t), size, source);
-	if (bytes != size)
-		return;
-
-	struct timeval time;
-	gettimeofday(&time, NULL);
-	printf("Starting playback.\n");
-	int ret = audio_pcm_buffer_start_playback(device, buffer_id, SUBBUFFERS,
-	    sampling_rate, sample_size, channels, sign);
+	fibril_mutex_lock(&pb->mutex);
+	int ret = audio_pcm_buffer_start_playback(pb->device, pb->buffer.id,
+	    SUBBUFFERS, sampling_rate, sample_size, channels, sign);
 	if (ret != EOK) {
+		fibril_mutex_unlock(&pb->mutex);
 		printf("Failed to start playback: %s.\n", str_error(ret));
 		return;
 	}
-	void *buffer_place = buffer;
-	while (true) {
-		tv_add(&time, interval); /* Next update point */
 
-		struct timeval current;
-		gettimeofday(&current, NULL);
+	for (pb->playing = true; pb->playing;
+	  fibril_condvar_wait(&pb->cv, &pb->mutex));
 
-		const suseconds_t delay = min(tv_sub(&time, &current), interval);
-		if (delay > 0)
-			udelay(delay);
-
-		const size_t bytes =
-		    fread(buffer_place, sizeof(uint8_t), update_size, source);
-		if (bytes == 0)
-			break;
-		if (bytes < update_size) {
-			bzero(buffer_place + bytes, update_size - bytes);
-		}
-		buffer_place += update_size;
-
-		if (buffer_place == buffer + size) {
-			buffer_place = buffer;
-		}
-	}
-
-	printf("Stopping playback.\n");
-	ret = audio_pcm_buffer_stop_playback(device, buffer_id);
-	if (ret != EOK) {
-		printf("Failed to stop playback: %s.\n", str_error(ret));
-	}
-#endif
+	audio_pcm_buffer_stop_playback(pb->device, pb->buffer.id);
 }
 
 int main(int argc, char *argv[])
@@ -201,10 +190,10 @@ int main(int argc, char *argv[])
 	printf("Playing on %s.\n", info);
 	free(info);
 
-	playback_t pb = {{0}, NULL};
-	pb.buffer.size = 4096;
-	printf("Requesting buffer: %p, %zu, %u.\n", pb.buffer.base, pb.buffer.size, pb.buffer.id);
-	ret = audio_pcm_buffer_get_buffer(exch, &pb.buffer.base,
+	playback_t pb;
+	playback_initialize(&pb, exch);
+
+	ret = audio_pcm_buffer_get_buffer(pb.device, &pb.buffer.base,
 	    &pb.buffer.size, &pb.buffer.id, device_event_callback, &pb);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
@@ -214,6 +203,9 @@ int main(int argc, char *argv[])
 	}
 	printf("Buffer (%u): %p %zu.\n", pb.buffer.id, pb.buffer.base,
 	    pb.buffer.size);
+	uintptr_t ptr = 0;
+	as_get_physical_mapping(pb.buffer.base, &ptr);
+	printf("buffer mapped at %x.\n", ptr);
 
 	pb.source = fopen(file, "rb");
 	if (pb.source == NULL) {
@@ -241,7 +233,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	play(exch, &pb, rate, sample_size, channels, sign);
+	play(&pb, rate, sample_size, channels, sign);
 
 	munmap(pb.buffer.base, pb.buffer.size);
 	audio_pcm_buffer_release_buffer(exch, pb.buffer.id);
