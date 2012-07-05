@@ -272,9 +272,9 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Starting playback on buffer(%u): rate: %u, size: %u, "
-	    " channels: %u, signed: %s.", id, sampling_rate, sample_size,
-	    channels, sign ? "YES" : "NO" );
+	ddf_log_debug("Starting playback on buffer(%u): %uHz, %u bit, "
+	    " %u channel(s), %ssigned.", id, sampling_rate, sample_size,
+	    channels, sign ? "" : "un" );
 	if (id != BUFFER_ID)
 		return ENOENT;
 	if (sample_size != 16) // FIXME We only support 16 bit playback
