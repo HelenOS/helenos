@@ -77,14 +77,14 @@ int main(int argc, char *argv[])
 	ddf_log_init(NAME, LVL_DEBUG2);
 	return ddf_driver_main(&sb_driver);
 }
-/*----------------------------------------------------------------------------*/
+
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
 	assert(dev->driver_data);
 	sb16_interrupt(dev->driver_data);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initializes a new ddf driver instance of SB16.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -164,7 +164,7 @@ if (ret != EOK) { \
 	/* MPU state does not matter */
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
     size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
     int *irq, int *dma8, int *dma16)
@@ -241,7 +241,7 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_enable_interrupts(ddf_dev_t *device)
 {
 	async_sess_t *parent_sess =

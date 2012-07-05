@@ -58,7 +58,7 @@ static inline uintptr_t addr_to_phys(const void *addr)
 		return 0;
 	return (result | ((uintptr_t)addr & 0xfff));
 }
-/*----------------------------------------------------------------------------*/
+
 /** DMA mallocator simulator
  *
  * @param[in] size Size of the required memory space
@@ -71,7 +71,7 @@ static inline void *dma_create_buffer24(size_t size)
 	bzero(address, size);
 	return address;
 }
-/*----------------------------------------------------------------------------*/
+
 /** DMA mallocator simulator
  *
  * @param[in] addr Address of the place allocated by dma_create_buffer24

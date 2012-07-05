@@ -139,7 +139,7 @@ static const struct {
 	[SB_MIXER_CT1745] = {
 	    sizeof(volume_ct1745) / sizeof(volume_item_t), volume_ct1745 },
 };
-/*----------------------------------------------------------------------------*/
+
 const char * sb_mixer_type_str(sb_mixer_type_t type)
 {
 	static const char * names[] = {
@@ -150,7 +150,7 @@ const char * sb_mixer_type_str(sb_mixer_type_t type)
 	};
 	return names[type];
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 {
 	assert(mixer);
@@ -170,13 +170,13 @@ int sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type)
 	ddf_log_debug("SB16 setup with IRQ 0x%hhx and DMA 0x%hhx.", irq, dma);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_mixer_get_control_item_count(const sb_mixer_t *mixer)
 {
 	assert(mixer);
 	return volume_table[mixer->type].count;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
     const char** name, unsigned *channels)
 {
@@ -191,7 +191,7 @@ int sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,
 		*channels = item->channels;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_mixer_get_channel_info(const sb_mixer_t *mixer, unsigned index,
     unsigned channel, const char **name, unsigned *levels)
 {
@@ -210,7 +210,7 @@ int sb_mixer_get_channel_info(const sb_mixer_t *mixer, unsigned index,
 		*levels = chan->volume_levels;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
     unsigned index, unsigned channel, unsigned level)
 {
@@ -242,7 +242,7 @@ int sb_mixer_set_volume_level(const sb_mixer_t *mixer,
 	    chan->name, level);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 unsigned sb_mixer_get_volume_level(const sb_mixer_t *mixer, unsigned index,
     unsigned channel)
 {

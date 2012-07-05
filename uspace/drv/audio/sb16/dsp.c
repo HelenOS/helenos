@@ -72,7 +72,7 @@ static inline int sb_dsp_read(sb_dsp_t *dsp, uint8_t *data)
 	*data = pio_read_8(&dsp->regs->dsp_data_read);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static inline int sb_dsp_write(sb_dsp_t *dsp, uint8_t data)
 {
 	assert(dsp);
@@ -88,7 +88,7 @@ static inline int sb_dsp_write(sb_dsp_t *dsp, uint8_t data)
 	pio_write_8(&dsp->regs->dsp_write, data);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static inline void sb_dsp_reset(sb_dsp_t *dsp)
 {
 	assert(dsp);
@@ -97,7 +97,7 @@ static inline void sb_dsp_reset(sb_dsp_t *dsp)
 	udelay(3); /* Keep reset for 3 us */
 	pio_write_8(&dsp->regs->dsp_reset, 0);
 }
-/*----------------------------------------------------------------------------*/
+
 static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
 	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
@@ -111,7 +111,7 @@ static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 	async_hangup(sess);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 {
 	assert(dsp);
@@ -138,14 +138,14 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 	}
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 static inline void sb_clear_buffer(sb_dsp_t *dsp)
 {
 	dma_destroy_buffer(dsp->buffer.data);
 	dsp->buffer.data = NULL;
 	dsp->buffer.size = 0;
 }
-/*----------------------------------------------------------------------------*/
+
 static inline size_t sample_count(unsigned sample_size, size_t byte_count)
 {
 	if (sample_size == 16) {
@@ -153,7 +153,7 @@ static inline size_t sample_count(unsigned sample_size, size_t byte_count)
 	}
 	return byte_count;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16)
 {
@@ -185,7 +185,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
@@ -202,7 +202,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	sb_dsp_write(dsp, (dsp->playing.samples - 1) >> 8);
 #endif
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
 {
 	assert(dsp);
@@ -240,7 +240,7 @@ int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session)
 	ddf_log_debug("Set event session.");
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 {
 	assert(dsp);
@@ -256,7 +256,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 	ddf_log_debug("DSP buffer released.");
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
     unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
 {
@@ -311,7 +311,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
 {
 	assert(dsp);
@@ -321,13 +321,13 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
 	sb_dsp_write(dsp, DMA_16B_EXIT);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
     unsigned sample_size, unsigned channels, bool sign)
 {
 	return ENOTSUP;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id)
 {
 	return ENOTSUP;

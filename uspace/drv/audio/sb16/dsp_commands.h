@@ -161,7 +161,7 @@ typedef enum dsp_command {
 	DMA_16B_CONTINUE = 0xd6, /* Resume requests paused by DMA_16B_PAUSE */
 	DMA_16B_EXIT = 0xd9, /* Ends DMA transfer and terminates I/O process */
 } dsp_command_t;
-/*----------------------------------------------------------------------------*/
+
 #define DSP_MODE_SIGNED 0x10
 #define DSP_MODE_STEREO 0x20
 

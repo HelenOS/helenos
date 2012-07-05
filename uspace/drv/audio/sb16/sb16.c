@@ -67,12 +67,12 @@ static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
 	default: return SB_MIXER_UNKNOWN;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 size_t sb16_irq_code_size(void)
 {
 	return sizeof(irq_cmds) / sizeof(irq_cmds[0]);
 }
-/*----------------------------------------------------------------------------*/
+
 void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[], irq_pio_range_t ranges[])
 {
 	assert(regs);
@@ -89,7 +89,7 @@ void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[], irq_pio_ra
 		cmds[1].cmd = CMD_ACCEPT;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
     ddf_dev_t *dev, int dma8, int dma16)
 {
@@ -170,13 +170,13 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 int sb16_init_mpu(sb16_t *sb, void *regs, size_t size)
 {
 	sb->mpu_regs = NULL;
 	return ENOTSUP;
 }
-/*----------------------------------------------------------------------------*/
+
 void sb16_interrupt(sb16_t *sb)
 {
 	assert(sb);
