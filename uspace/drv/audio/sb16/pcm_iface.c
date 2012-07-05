@@ -32,6 +32,7 @@
  * Main routines of Creative Labs SoundBlaster 16 driver
  */
 
+#include <async.h>
 #include <errno.h>
 #include <audio_pcm_buffer_iface.h>
 
@@ -52,6 +53,13 @@ static int sb_get_buffer(ddf_fun_t *fun,
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_get_buffer(dsp, buffer, size, id);
 }
+static int sb_set_event_session(ddf_fun_t *fun, unsigned id, async_sess_t *sess)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	sb_dsp_t *dsp = fun->driver_data;
+	return sb_dsp_set_event_session(dsp, id, sess);
+}
 /*----------------------------------------------------------------------------*/
 static int sb_release_buffer(ddf_fun_t *fun, unsigned id)
 {
@@ -61,14 +69,14 @@ static int sb_release_buffer(ddf_fun_t *fun, unsigned id)
 	return sb_dsp_release_buffer(dsp, id);
 }
 /*----------------------------------------------------------------------------*/
-static int sb_start_playback(ddf_fun_t *fun, unsigned id,
+static int sb_start_playback(ddf_fun_t *fun, unsigned id, unsigned parts,
     unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_start_playback(
-	    dsp, id, sample_rate, sample_size, channels, sign);
+	    dsp, id, parts, sample_rate, sample_size, channels, sign);
 }
 /*----------------------------------------------------------------------------*/
 static int sb_stop_playback(ddf_fun_t *fun, unsigned id)
@@ -103,6 +111,7 @@ audio_pcm_buffer_iface_t sb_pcm_iface = {
 
 	.get_buffer = sb_get_buffer,
 	.release_buffer = sb_release_buffer,
+	.set_event_session = sb_set_event_session,
 
 	.start_playback = sb_start_playback,
 	.stop_playback = sb_stop_playback,

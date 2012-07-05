@@ -56,6 +56,8 @@ typedef struct sb_dsp_t {
 		uint8_t mode;
 		uint16_t samples;
 	} playing;
+	async_sess_t *event_session;
+	async_exch_t *event_exchange;
 	ddf_dev_t *sb_dev;
 } sb_dsp_t;
 
@@ -64,9 +66,10 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 void sb_dsp_interrupt(sb_dsp_t *dsp);
 
 int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id);
+int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session);
 int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id);
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
-    unsigned sample_size, unsigned channels, bool sign);
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
+    unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign);
 int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id);
 int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
     unsigned sample_size, unsigned channels, bool sign);

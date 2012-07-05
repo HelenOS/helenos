@@ -161,6 +161,8 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	dsp->regs = regs;
 	dsp->dma8_channel = dma8;
 	dsp->dma16_channel = dma16;
+	dsp->event_session = NULL;
+	dsp->event_exchange = NULL;
 	dsp->sb_dev = dev;
 	sb_dsp_reset(dsp);
 	/* "DSP takes about 100 microseconds to initialize itself" */
@@ -186,8 +188,13 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 /*----------------------------------------------------------------------------*/
 void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
-#ifndef AUTO_DMA_MODE
 	assert(dsp);
+	if (dsp->event_exchange) {
+		async_msg_0(dsp->event_exchange, IPC_FIRST_USER_METHOD);
+	} else {
+		ddf_log_warning("Interrupt with no event consumer.");
+	}
+#ifndef AUTO_DMA_MODE
 	sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
 	sb_dsp_write(dsp, dsp->playing.mode);
 	sb_dsp_write(dsp, (dsp->playing.samples - 1) & 0xff);
@@ -199,6 +206,11 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
 {
 	assert(dsp);
 	assert(size);
+
+	/* buffer is already setup by for someone, refuse to work until
+	 * it's released */
+	if (dsp->buffer.data)
+		return EBUSY;
 
 	const int ret = sb_setup_buffer(dsp, *size);
 	ddf_log_debug("Providing buffer(%u): %p, %zu B.\n",
@@ -212,6 +224,18 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
 		*id = BUFFER_ID;
 	return ret;
 }
+
+int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session)
+{
+	assert(dsp);
+	assert(session);
+	if (id != BUFFER_ID)
+		return ENOENT;
+	if (dsp->event_session)
+		return EBUSY;
+	dsp->event_session = session;
+	return EOK;
+}
 /*----------------------------------------------------------------------------*/
 int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 {
@@ -219,13 +243,28 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 	if (id != BUFFER_ID)
 		return ENOENT;
 	sb_clear_buffer(dsp);
+	if (dsp->event_exchange)
+		async_exchange_end(dsp->event_exchange);
+	dsp->event_exchange = NULL;
+	if (dsp->event_session)
+		async_hangup(dsp->event_session);
+	dsp->event_session = NULL;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned sampling_rate,
-    unsigned sample_size, unsigned channels, bool sign)
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
+    unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
 {
 	assert(dsp);
+
+	if (!dsp->event_session)
+		return EINVAL;
+
+	/* Play block size must be even number (we use DMA 16)*/
+	if (dsp->buffer.size % (parts * 2))
+		return EINVAL;
+
+	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
 	ddf_log_debug("Starting playback on buffer(%u): rate: %u, size: %u, "
@@ -240,6 +279,9 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned sampling_rate,
 	if (sampling_rate > 44100)
 		return ENOTSUP;
 
+	dsp->event_exchange = async_exchange_begin(dsp->event_session);
+	if (!dsp->event_exchange)
+		return ENOMEM;
 
 	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
 	sb_dsp_write(dsp, sampling_rate >> 8);
@@ -258,12 +300,11 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned sampling_rate,
 	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
 	sb_dsp_write(dsp, dsp->playing.mode);
 
-	dsp->playing.samples = sample_count(sample_size, PLAY_BLOCK_SIZE);
+	dsp->playing.samples = sample_count(sample_size, play_block_size);
 	sb_dsp_write(dsp, (dsp->playing.samples - 1) & 0xff);
 	sb_dsp_write(dsp, (dsp->playing.samples - 1) >> 8);
 
 	return EOK;
-	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
@@ -271,6 +312,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
 	assert(dsp);
 	if (id != BUFFER_ID)
 		return ENOENT;
+	async_exchange_end(dsp->event_exchange);
 	sb_dsp_write(dsp, DMA_16B_EXIT);
 	return EOK;
 }
