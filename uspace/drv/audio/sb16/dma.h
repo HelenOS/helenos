@@ -73,7 +73,7 @@ static inline void *dma_create_buffer24(size_t size)
 	bzero(address, size);
 	uintptr_t ptr = 0;
 	as_get_physical_mapping(address, &ptr);
-	ddf_log_debug2("Buffer mapped at %x.", ptr);
+	ddf_log_verbose("Buffer mapped at %x.", ptr);
 	return address;
 }
 
