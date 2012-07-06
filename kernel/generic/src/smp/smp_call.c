@@ -53,12 +53,13 @@ void smp_call(unsigned int cpu_id, smp_call_func_t func, void *arg)
  * @a call_info must be valid until @a func returns.
  * 
  * If @a cpu_id is the local CPU, the function will be invoked
- * directly.
+ * directly. If the destination cpu id @a cpu_id is invalid
+ * or denotes an inactive cpu, the call is discarded immediately.
  * 
  * Interrupts must be enabled. Otherwise you run the risk
  * of a deadlock.
  * 
- * @param cpu_id Destination CPU's logical id (eg CPU->id)
+ * @param cpu_id Destination CPU's logical id (eg CPU->id).
  * @param func Function to call.
  * @param arg Argument to pass to the user supplied function @a func.
  * @param call_info Use it to wait for the function to complete. Must
@@ -72,7 +73,7 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 	ASSERT(call_info != NULL);
 	
 	/* Discard invalid calls. */
-	if (config.cpu_count <= cpu_id) {
+	if (config.cpu_count <= cpu_id || !cpus[cpu_id].active) {
 		call_start(call_info, func, arg);
 		call_done(call_info);
 		return;
@@ -80,7 +81,7 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 	
 	/* Protect cpu->id against migration. */
 	preemption_disable();
-	
+
 	call_start(call_info, func, arg);
 	
 	if (cpu_id != CPU->id) {
@@ -88,7 +89,17 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 		spinlock_lock(&cpus[cpu_id].smp_calls_lock);
 		list_append(&call_info->calls_link, &cpus[cpu_id].smp_pending_calls);
 		spinlock_unlock(&cpus[cpu_id].smp_calls_lock);
-				
+
+		/*
+		 * If a platform supports SMP it must implement arch_smp_call_ipi().
+		 * It should issue an IPI an cpu_id and invoke smp_call_ipi_recv()
+		 * on cpu_id in turn. 
+		 * 
+		 * Do not implement as just an empty dummy function. Instead
+		 * consider providing a full implementation or at least a version 
+		 * that panics if invoked. Note that smp_call_async() never
+		 * calls arch_smp_call_ipi() on uniprocessors even if CONFIG_SMP.
+		 */
 		arch_smp_call_ipi(cpu_id);
 #endif
 	} else {
@@ -130,7 +141,7 @@ void smp_call_wait(smp_call_t *call_info)
 
 /** Architecture independent smp call IPI handler.
  * 
- * Interrupts must be disabled.
+ * Interrupts must be disabled. Tolerates spurious calls.
  */
 void smp_call_ipi_recv(void)
 {

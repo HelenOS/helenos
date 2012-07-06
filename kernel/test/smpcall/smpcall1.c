@@ -13,10 +13,10 @@
 
 /* 
  * Maximum total number of smp_calls in the system is: 
- *  128000 == 8^2 * 1000 * 2 
+ *  162000 == 9^2 * 1000 * 2 
  *  == MAX_CPUS^2 * ITERATIONS * EACH_CPU_INC_PER_ITER
  */
-#define MAX_CPUS   8
+#define MAX_CPUS   9
 #define ITERATIONS 1000
 #define EACH_CPU_INC_PER_ITER 2
 
@@ -39,7 +39,7 @@ static void test_thread(void *p)
 	size_t *pcall_cnt = (size_t*)p;
 	smp_call_t call_info[MAX_CPUS];
 	
-	size_t cpu_count = min(config.cpu_count, MAX_CPUS);
+	unsigned int cpu_count = min(config.cpu_active, MAX_CPUS);
 	
 	for (int iter = 0; iter < ITERATIONS; ++iter) {
 		/* Synchronous version. */
@@ -74,6 +74,10 @@ static void test_thread(void *p)
 	}
 }
 
+static size_t calc_exp_calls(size_t thread_cnt)
+{
+	return thread_cnt * ITERATIONS * EACH_CPU_INC_PER_ITER;
+}
 
 const char *test_smpcall1(void)
 {
@@ -81,7 +85,7 @@ const char *test_smpcall1(void)
 	size_t call_cnt[MAX_CPUS] = {0};
 	thread_t *thread[MAX_CPUS] = {0};
 	
-	unsigned int cpu_count = min(config.cpu_count, MAX_CPUS);
+	unsigned int cpu_count = min(config.cpu_active, MAX_CPUS);
 	size_t running_thread_cnt = 0;
 
 	TPRINTF("Spawning threads on %u cpus.\n", cpu_count);
@@ -99,7 +103,11 @@ const char *test_smpcall1(void)
 		}
 	}
 
-	TPRINTF("Running %u wired threads.\n", running_thread_cnt);
+	size_t exp_calls = calc_exp_calls(running_thread_cnt);
+	size_t exp_calls_sum = exp_calls * cpu_count;
+	
+	TPRINTF("Running %zu wired threads. Expecting %zu calls. Be patient.\n", 
+		running_thread_cnt, exp_calls_sum);
 
 	for (unsigned int i = 0; i < cpu_count; ++i) {
 		if (thread[i] != NULL) {
@@ -111,13 +119,11 @@ const char *test_smpcall1(void)
 	for (unsigned int i = 0; i < cpu_count; ++i) {
 		if (thread[i] != NULL) {
 			thread_join(thread[i]);
+			thread_detach(thread[i]);
 		}
 	}
 
 	TPRINTF("Threads finished. Checking number of smp_call()s.\n");
-	
-	size_t exp_calls = running_thread_cnt * ITERATIONS * EACH_CPU_INC_PER_ITER;
-	size_t exp_calls_sum = exp_calls * cpu_count;
 	
 	bool ok = true;
 	size_t calls_sum = 0;
@@ -126,7 +132,7 @@ const char *test_smpcall1(void)
 		if (thread[i] != NULL) {
 			if (call_cnt[i] != exp_calls) {
 				ok = false;
-				TPRINTF("Error: %u instead of %u cpu%u's calls were"
+				TPRINTF("Error: %zu instead of %zu cpu%u's calls were"
 					" acknowledged.\n", call_cnt[i], exp_calls, i);
 			} 
 		}
@@ -135,14 +141,14 @@ const char *test_smpcall1(void)
 	}
 	
 	if (calls_sum != exp_calls_sum) {
-		TPRINTF("Error: total acknowledged sum: %u instead of %u.\n",
+		TPRINTF("Error: total acknowledged sum: %zu instead of %zu.\n",
 			calls_sum, exp_calls_sum);
 		
 		ok = false;
 	}
 	
 	if (ok) {
-		TPRINTF("Success: number of received smp_calls is as expected (%u).\n",
+		TPRINTF("Success: number of received smp_calls is as expected (%zu).\n",
 			exp_calls_sum);
 		return NULL;
 	} else
