@@ -258,6 +258,26 @@ int apic_poll_errors(void)
 	return !esr.err_bitmap;
 }
 
+#define DELIVS_PENDING_SILENT_RETRIES	4	
+
+static void l_apic_wait_for_delivery(void)
+{
+	icr_t icr;
+	unsigned retries = 0;
+
+	do {
+		if (retries++ > DELIVS_PENDING_SILENT_RETRIES) {
+			retries = 0;
+#ifdef CONFIG_DEBUG
+			printf("IPI is pending.\n");
+#endif
+			delay(20);
+		}
+		icr.lo = l_apic[ICRlo];
+	} while (icr.delivs == DELIVS_PENDING);
+	
+}
+
 /** Send all CPUs excluding CPU IPI vector.
  *
  * @param vector Interrupt vector to be sent.
@@ -278,13 +298,8 @@ int l_apic_broadcast_custom_ipi(uint8_t vector)
 	icr.vector = vector;
 	
 	l_apic[ICRlo] = icr.lo;
-	
-	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING) {
-#ifdef CONFIG_DEBUG
-		printf("IPI is pending.\n");
-#endif
-	}
+
+	l_apic_wait_for_delivery();
 	
 	return apic_poll_errors();
 }
@@ -326,13 +341,9 @@ int l_apic_send_init_ipi(uint8_t apicid)
 	if (!apic_poll_errors())
 		return 0;
 	
+	l_apic_wait_for_delivery();
+
 	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING) {
-#ifdef CONFIG_DEBUG
-		printf("IPI is pending.\n");
-#endif
-	}
-	
 	icr.delmod = DELMOD_INIT;
 	icr.destmod = DESTMOD_PHYS;
 	icr.level = LEVEL_DEASSERT;
