@@ -45,8 +45,7 @@
 #include "dsp.h"
 
 #define BUFFER_ID 1
-#define BUFFER_SIZE (PAGE_SIZE)
-#define PLAY_BLOCK_SIZE (BUFFER_SIZE / 2)
+#define MAX_BUFFER_SIZE (PAGE_SIZE)
 
 #ifndef DSP_RETRY_COUNT
 #define DSP_RETRY_COUNT 100
@@ -115,8 +114,8 @@ static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 {
 	assert(dsp);
-	if (size > BUFFER_SIZE || size == 0 || (size % 2) == 1)
-		size = BUFFER_SIZE;
+	if (size > MAX_BUFFER_SIZE || size == 0 || (size % 2) == 1)
+		size = MAX_BUFFER_SIZE;
 	uint8_t *buffer = dma_create_buffer24(size);
 	if (buffer == NULL) {
 		ddf_log_error("Failed to allocate DMA buffer.");
@@ -125,6 +124,7 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 
 	const uintptr_t pa = addr_to_phys(buffer);
 	assert(pa < (1 << 25));
+
 	/* Set 16 bit channel */
 	const int ret = sb_setup_dma(dsp, pa, size);
 	if (ret == EOK) {
@@ -190,7 +190,6 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	if (dsp->event_exchange) {
-//		ddf_log_verbose("Sending interrupt event.");
 		async_msg_0(dsp->event_exchange, IPC_FIRST_USER_METHOD);
 	} else {
 		ddf_log_warning("Interrupt with no event consumer.");
@@ -247,8 +246,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 	if (id != BUFFER_ID)
 		return ENOENT;
 	sb_clear_buffer(dsp);
-	if (dsp->event_exchange)
-		async_exchange_end(dsp->event_exchange);
+	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
 	if (dsp->event_session)
 		async_hangup(dsp->event_session);
@@ -272,9 +270,9 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Starting playback on buffer(%u): %uHz, %u bit, "
-	    " %u channel(s), %ssigned.", id, sampling_rate, sample_size,
-	    channels, sign ? "" : "un" );
+	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
+	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
+	    sign ? "" : "un", sample_size, channels);
 	if (id != BUFFER_ID)
 		return ENOENT;
 	if (sample_size != 16) // FIXME We only support 16 bit playback
@@ -292,7 +290,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	sb_dsp_write(dsp, sampling_rate >> 8);
 	sb_dsp_write(dsp, sampling_rate & 0xff);
 
-	ddf_log_debug("Sampling rate: %hhx:%hhx.",
+	ddf_log_verbose("Sampling rate: %hhx:%hhx.",
 	    sampling_rate >> 8, sampling_rate & 0xff);
 
 #ifdef AUTO_DMA_MODE
@@ -308,6 +306,10 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	dsp->playing.samples = sample_count(sample_size, play_block_size);
 	sb_dsp_write(dsp, (dsp->playing.samples - 1) & 0xff);
 	sb_dsp_write(dsp, (dsp->playing.samples - 1) >> 8);
+
+	ddf_log_verbose("Playback started, interrupt every %u samples "
+	    "(~1/%u sec)", dsp->playing.samples,
+	    sampling_rate / dsp->playing.samples);
 
 	return EOK;
 }
