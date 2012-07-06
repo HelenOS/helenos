@@ -216,6 +216,8 @@ extern void thread_wire(thread_t *, cpu_t *);
 extern void thread_attach(thread_t *, task_t *);
 extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
+extern void thread_interrupt(thread_t *);
+extern bool thread_interrupted(thread_t *);
 
 #ifndef thread_create_arch
 extern void thread_create_arch(thread_t *);
