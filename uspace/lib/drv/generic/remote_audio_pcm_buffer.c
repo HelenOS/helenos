@@ -125,7 +125,7 @@ int audio_pcm_buffer_start_playback(async_exch_t *exch, unsigned id,
 		return EINVAL;
 	const sysarg_t packed =
 	    (sample_size << 16) | (channels << 8) |
-	    (parts & 0x7f << 1) | (sign ? 1 : 0);
+	    ((parts & 0x7f) << 1) | (sign ? 1 : 0);
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_START_PLAYBACK, id, sample_rate, packed);
 }
