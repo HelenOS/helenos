@@ -38,6 +38,7 @@
 #include <typedefs.h>
 #include <synch/waitq.h>
 #include <synch/mutex.h>
+#include <synch/spinlock.h>
 #include <abi/synch.h>
 
 typedef struct {
@@ -54,6 +55,11 @@ extern void condvar_signal(condvar_t *cv);
 extern void condvar_broadcast(condvar_t *cv);
 extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec,
     int flags);
+extern int _condvar_wait_timeout_spinlock(condvar_t *cv, spinlock_t *lock, 
+	uint32_t usec, int flags);
+extern int _condvar_wait_timeout_irq_spinlock(condvar_t *cv, 
+	irq_spinlock_t *irq_lock, uint32_t usec, int flags);
+
 
 #endif
 

@@ -37,6 +37,7 @@
 
 #include <synch/condvar.h>
 #include <synch/mutex.h>
+#include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch.h>
 
@@ -99,6 +100,87 @@ int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
 
 	return rc;
 }
+
+/** Wait for the condition to become true with a locked spinlock.
+ * 
+ * The function is not aware of irq_spinlock. Therefore do not even
+ * try passing irq_spinlock_t to it. Use _condvar_wait_timeout_irq_spinlock()
+ * instead.
+ *
+ * @param cv		Condition variable.
+ * @param lock		Locked spinlock.
+ * @param usec		Timeout value in microseconds.
+ * @param flags		Select mode of operation.
+ *
+ * For exact description of meaning of possible combinations of usec and flags,
+ * see comment for waitq_sleep_timeout().  Note that when
+ * SYNCH_FLAGS_NON_BLOCKING is specified here, ESYNCH_WOULD_BLOCK is always
+ * returned.
+ *
+ * @return See comment for waitq_sleep_timeout().
+ */
+int _condvar_wait_timeout_spinlock(condvar_t *cv, spinlock_t *lock, 
+	uint32_t usec, int flags)
+{
+	int rc;
+	ipl_t ipl;
+	
+	ipl = waitq_sleep_prepare(&cv->wq);
+
+	spinlock_unlock(lock);
+
+	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
+	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags);
+
+	waitq_sleep_finish(&cv->wq, rc, ipl);
+	
+	spinlock_lock(lock);
+	
+	return rc;
+}
+
+/** Wait for the condition to become true with a locked irq spinlock.
+ * 
+ * @param cv		Condition variable.
+ * @param lock		Locked irq spinlock.
+ * @param usec		Timeout value in microseconds.
+ * @param flags		Select mode of operation.
+ *
+ * For exact description of meaning of possible combinations of usec and flags,
+ * see comment for waitq_sleep_timeout().  Note that when
+ * SYNCH_FLAGS_NON_BLOCKING is specified here, ESYNCH_WOULD_BLOCK is always
+ * returned.
+ *
+ * @return See comment for waitq_sleep_timeout().
+ */
+int _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lock, 
+	uint32_t usec, int flags)
+{
+	int rc;
+	/* Save spinlock's state so we can restore it correctly later on. */
+	ipl_t ipl = irq_lock->ipl;
+	bool guard = irq_lock->guard;
+	
+	irq_lock->guard = false;
+	
+	/* 
+	 * waitq_prepare() restores interrupts to the current state, 
+	 * ie disabled. Therefore, interrupts will remain disabled while 
+	 * it spins waiting for a pending timeout handler to complete. 
+	 * Although it spins with interrupts disabled there can only
+	 * be a pending timeout if we failed to cancel an imminent
+	 * timeout (on another cpu) during a wakeup. As a result the 
+	 * timeout handler is guaranteed to run (it is most likely already 
+	 * running) and there is no danger of a deadlock.
+	 */
+	rc = _condvar_wait_timeout_spinlock(cv, &irq_lock->lock, usec, flags);
+	
+	irq_lock->guard = guard;
+	irq_lock->ipl = ipl;
+	
+	return rc;
+}
+
 
 /** @}
  */
