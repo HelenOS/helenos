@@ -750,206 +750,276 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	uint16_t limit = ext4_extent_header_get_max_entries_count(path_ptr->header);
 
 	/* Trivial way - no splitting */
-	if (entries < limit) {
-
-		ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
-		path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
-		ext4_extent_set_block_count(path_ptr->extent, 0);
-		ext4_extent_set_first_block(path_ptr->extent, iblock);
-		ext4_extent_set_start(path_ptr->extent, 0);
-		path_ptr->block->dirty = true;
-
-		return EOK;
-	}
+//	if ((entries < limit) && (path == path_ptr)) {
+//
+//		ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
+//		path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
+//		path_ptr->block->dirty = true;
+//
+//		return EOK;
+//	}
 
 	uint32_t block_size =
 			ext4_superblock_get_block_size(inode_ref->fs->superblock);
 
-	/* Trivial tree - grow (extents were in root node) */
-	if (path_ptr == path) {
-
-		EXT4FS_DBG("splitting root with extents");
-
-		uint32_t new_fblock;
-		rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
-		if (rc != EOK) {
-			EXT4FS_DBG("error in block allocation");
-			return rc;
-		}
-
-		EXT4FS_DBG("alllocated block \%u for new leaf", new_fblock);
-
-		block_t *block;
-		rc = block_get(&block, inode_ref->fs->device,
-				new_fblock, BLOCK_FLAGS_NOREAD);
-		if (rc != EOK) {
-			EXT4FS_DBG("error in block_get");
-			return rc;
-		}
-
-		memset(block->data, 0, block_size);
-
-		/* Move data from root to the new block */
-		memcpy(block->data, inode_ref->inode->blocks,
-				EXT4_INODE_BLOCKS * sizeof(uint32_t));
-
-		path_ptr++;
-		path_ptr->block = block;
-		path_ptr->header = (ext4_extent_header_t *)block->data;
-		path_ptr->depth = 0;
-		path_ptr->index = NULL;
-
-		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
-		path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
-		ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
-		uint16_t limit = (block_size - sizeof(ext4_extent_header_t)) /
-				sizeof(ext4_extent_t);
-		ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
-
-		/* Initialize new extent */
-		ext4_extent_set_block_count(path_ptr->extent, 0);
-		ext4_extent_set_first_block(path_ptr->extent, iblock);
-		ext4_extent_set_start(path_ptr->extent, 0);
-
-		/* Modify root (in inode) */
-		path->depth = 1;
-		path->extent = NULL;
-		path->index = EXT4_EXTENT_FIRST_INDEX(path->header);
-
-		ext4_extent_header_set_depth(path->header, 1);
-		ext4_extent_header_set_entries_count(path->header, 1);
-
-		ext4_extent_index_set_first_block(path->index, 0);
-		ext4_extent_index_set_leaf(path->index, new_fblock);
-
-		path_ptr->block->dirty = true;
-		path->block->dirty = true;
-
-		*last_path_item = path_ptr;
-
-
-		ext4_extent_header_t *tmp_root = path->header;
-		EXT4FS_DBG("new root: items = \%u, maximum = \%u, depth = \%u", ext4_extent_header_get_entries_count(tmp_root),
-				ext4_extent_header_get_max_entries_count(tmp_root), ext4_extent_header_get_depth(tmp_root));
-
-		ext4_extent_index_t *root_idx = EXT4_EXTENT_FIRST_INDEX(path->header);
-		EXT4FS_DBG("first iblock = \%u, fblock = \%u", ext4_extent_index_get_first_block(root_idx),
-				(uint32_t)ext4_extent_index_get_leaf(root_idx));
-
-		ext4_extent_header_t *new_leaf = path_ptr->header;
-		EXT4FS_DBG("new leaf: items = \%u, maximum = \%u, depth = \%u", ext4_extent_header_get_entries_count(new_leaf),
-				ext4_extent_header_get_max_entries_count(new_leaf), ext4_extent_header_get_depth(new_leaf));
-
-		for (uint32_t j = 0; j < ext4_extent_header_get_entries_count(new_leaf); ++j) {
-			ext4_extent_t *tmp_ext = EXT4_EXTENT_FIRST(path_ptr->header) + j;
-
-			EXT4FS_DBG("item \%u, first iblock = \%u", j, ext4_extent_get_first_block(tmp_ext));
-		}
-
-
-		EXT4FS_DBG("Root block containing extents was split");
-		return EOK;
-	}
+//	/* Trivial tree - grow (extents were in root node) */
+//	if ((path_ptr == path) && ((entries == limit))){
+//
+//		EXT4FS_DBG("splitting root with extents");
+//
+//		uint32_t new_fblock;
+//		rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
+//		if (rc != EOK) {
+//			EXT4FS_DBG("error in block allocation");
+//			return rc;
+//		}
+//
+////		EXT4FS_DBG("alllocated block \%u for new leaf", new_fblock);
+//
+//		block_t *block;
+//		rc = block_get(&block, inode_ref->fs->device,
+//				new_fblock, BLOCK_FLAGS_NOREAD);
+//		if (rc != EOK) {
+//			EXT4FS_DBG("error in block_get");
+//			return rc;
+//		}
+//
+//		memset(block->data, 0, block_size);
+//
+//		/* Move data from root to the new block */
+//		memcpy(block->data, inode_ref->inode->blocks,
+//				EXT4_INODE_BLOCKS * sizeof(uint32_t));
+//
+//		path_ptr++;
+//		path_ptr->block = block;
+//		path_ptr->header = (ext4_extent_header_t *)block->data;
+//		path_ptr->depth = 0;
+//		path_ptr->index = NULL;
+//
+//		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+//		path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
+//		ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
+//		uint16_t limit = (block_size - sizeof(ext4_extent_header_t)) /
+//				sizeof(ext4_extent_t);
+//		ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
+//
+//		/* Modify root (in inode) */
+//		path->depth = 1;
+//		path->extent = NULL;
+//		path->index = EXT4_EXTENT_FIRST_INDEX(path->header);
+//
+//		ext4_extent_header_set_depth(path->header, 1);
+//		ext4_extent_header_set_entries_count(path->header, 1);
+//
+//		ext4_extent_index_set_first_block(path->index, 0);
+//		ext4_extent_index_set_leaf(path->index, new_fblock);
+//
+//		path_ptr->block->dirty = true;
+//		path->block->dirty = true;
+//
+//		*last_path_item = path_ptr;
+//
+////		ext4_extent_header_t *tmp_root = path->header;
+////		EXT4FS_DBG("new root: items = \%u, maximum = \%u, depth = \%u", ext4_extent_header_get_entries_count(tmp_root),
+////				ext4_extent_header_get_max_entries_count(tmp_root), ext4_extent_header_get_depth(tmp_root));
+////
+////		ext4_extent_index_t *root_idx = EXT4_EXTENT_FIRST_INDEX(path->header);
+////		EXT4FS_DBG("first iblock = \%u, fblock = \%u", ext4_extent_index_get_first_block(root_idx),
+////				(uint32_t)ext4_extent_index_get_leaf(root_idx));
+////
+////		ext4_extent_header_t *new_leaf = path_ptr->header;
+////		EXT4FS_DBG("new leaf: items = \%u, maximum = \%u, depth = \%u", ext4_extent_header_get_entries_count(new_leaf),
+////				ext4_extent_header_get_max_entries_count(new_leaf), ext4_extent_header_get_depth(new_leaf));
+////
+////		for (uint32_t j = 0; j < ext4_extent_header_get_entries_count(new_leaf); ++j) {
+////			ext4_extent_t *tmp_ext = EXT4_EXTENT_FIRST(path_ptr->header) + j;
+////
+////			EXT4FS_DBG("item \%u, first iblock = \%u", j, ext4_extent_get_first_block(tmp_ext));
+////		}
+//
+//		EXT4FS_DBG("Root block containing extents was split");
+//		return EOK;
+//	}
 
 	// TODO !!!
 //	assert(false);
 
-	EXT4FS_DBG("More complex splitting");
+//	EXT4FS_DBG("More complex splitting");
 
 	/* Start splitting */
-	uint32_t fblock = 0;
 	while (path_ptr > path) {
+		uint32_t fblock;
 
-		// TODO
+		entries = ext4_extent_header_get_entries_count(path_ptr->header);
+		limit = ext4_extent_header_get_max_entries_count(path_ptr->header);
 
-		rc = ext4_balloc_alloc_block(inode_ref, &fblock);
-		if (rc != EOK) {
-			return rc;
-		}
+		if (entries == limit) {
 
-		block_t *block;
-		rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NOREAD);
-		if (rc != EOK) {
-			ext4_balloc_free_block(inode_ref, fblock);
-			return rc;
-		}
+			EXT4FS_DBG("Full non-root node (\%s)", path_ptr->depth ? "index" : "extent");
 
-		/* Init block */
-		memset(block->data, 0, block_size);
+			/* Full node */
+			rc = ext4_balloc_alloc_block(inode_ref, &fblock);
+			if (rc != EOK) {
+				return rc;
+			}
 
-		/* Not modified */
-		block_put(path_ptr->block);
-		path_ptr->block = block;
+			block_t *block;
+			rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NOREAD);
+			if (rc != EOK) {
+				ext4_balloc_free_block(inode_ref, fblock);
+				return rc;
+			}
 
-		path_ptr->header = block->data;
+			/* Init block */
+			memset(block->data, 0, block_size);
 
-		if (path_ptr->depth) {
-			path_ptr->index = EXT4_EXTENT_FIRST_INDEX(path_ptr->header);
+			/* Not modified old block */
+			block_put(path_ptr->block);
+			path_ptr->block = block;
+			path_ptr->header = block->data;
+
+			if (path_ptr->depth) {
+				path_ptr->index = EXT4_EXTENT_FIRST_INDEX(path_ptr->header);
+				ext4_extent_index_set_first_block(path_ptr->index, iblock);
+				ext4_extent_index_set_leaf(path_ptr->index, (path_ptr + 1)->block->lba);
+				limit = (block_size - sizeof(ext4_extent_header_t)) /
+									sizeof(ext4_extent_index_t);
+			} else {
+				path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header);
+				ext4_extent_set_first_block(path_ptr->extent, iblock);
+				limit = (block_size - sizeof(ext4_extent_header_t)) /
+									sizeof(ext4_extent_t);
+			}
+
+			ext4_extent_header_set_entries_count(path_ptr->header, 1);
+			ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
+
+			path_ptr->block->dirty = true;
+
+			path_ptr--;
+
 		} else {
-			path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header);
+
+//			EXT4FS_DBG("Adding entry non-root node (\%s)", path_ptr->depth ? "index" : "extent");
+
+			/* Node with free space */
+			if (path_ptr->depth) {
+				path_ptr->index = EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
+				ext4_extent_index_set_first_block(path_ptr->index, iblock);
+				ext4_extent_index_set_leaf(path_ptr->index, (path_ptr + 1)->block->lba);
+			} else {
+				path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
+				ext4_extent_set_first_block(path_ptr->extent, iblock);
+			}
+
+			ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
+			path_ptr->block->dirty = true;
+			*last_path_item = path_ptr;
+
+			return EOK;
 		}
 
-		path_ptr--;
 	}
 
-	/* If splitting reached root node */
+	/* Should be the root split too? */
 	if (path_ptr == path) {
 
-		EXT4FS_DBG("Splitting root");
+		entries = ext4_extent_header_get_entries_count(path->header);
+		limit = ext4_extent_header_get_max_entries_count(path->header);
 
-		uint32_t new_fblock;
-		rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
-		if (rc != EOK) {
-			EXT4FS_DBG("error in block allocation");
-			return rc;
+		if (entries == limit) {
+
+			EXT4FS_DBG("Splitting root");
+
+			uint32_t new_fblock;
+			rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
+			if (rc != EOK) {
+				EXT4FS_DBG("error in block allocation");
+				return rc;
+			}
+
+			block_t *block;
+			rc = block_get(&block, inode_ref->fs->device,
+					new_fblock, BLOCK_FLAGS_NOREAD);
+			if (rc != EOK) {
+				EXT4FS_DBG("error in block_get");
+				return rc;
+			}
+
+			memset(block->data, 0, block_size);
+
+			/* Move data from root to the new block */
+			memcpy(block->data, inode_ref->inode->blocks,
+					EXT4_INODE_BLOCKS * sizeof(uint32_t));
+
+			EXT4FS_DBG("New block prepared");
+
+			/* Make space for tree growing */
+			memmove(path + 1, path, path->depth + 1);
+
+			EXT4FS_DBG("Place for new root ready");
+
+			path_ptr = path + 1;
+			path_ptr->block = block;
+			path_ptr->header = (ext4_extent_header_t *)block->data;
+
+			if (path_ptr->depth) {
+				limit = (block_size - sizeof(ext4_extent_header_t)) /
+									sizeof(ext4_extent_index_t);
+				path_ptr->index = EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
+				ext4_extent_index_set_first_block(path_ptr->index, iblock);
+				ext4_extent_index_set_leaf(path_ptr->index, (path_ptr + 1)->block->lba);
+				path_ptr->extent = NULL;
+			} else {
+				limit = (block_size - sizeof(ext4_extent_header_t)) /
+									sizeof(ext4_extent_t);
+				path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
+				ext4_extent_set_first_block(path_ptr->extent, iblock);
+				path_ptr->index = NULL;
+			}
+
+			ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
+			ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
+
+			path_ptr->block->dirty = true;
+
+			path->block = inode_ref->block;
+			path->depth = path_ptr->depth + 1;
+			path->header = (ext4_extent_header_t *)inode_ref->inode->blocks;
+			path->extent = NULL;
+			path->index = EXT4_EXTENT_FIRST_INDEX(path->header);
+
+
+			ext4_extent_header_set_entries_count(path->header, 1);
+			ext4_extent_header_set_depth(path->header, path->depth);
+
+			ext4_extent_index_set_first_block(path->index, 0);
+			ext4_extent_index_set_leaf(path->index, new_fblock);
+
+			path->block->dirty = true;
+
+			*last_path_item = *last_path_item + 1;
+
+			EXT4FS_DBG("Leaving split root");
+
+		} else {
+
+			EXT4FS_DBG("Adding entry to root node");
+
+			if (path_ptr->depth) {
+				path_ptr->index = EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
+				ext4_extent_index_set_first_block(path_ptr->index, iblock);
+				ext4_extent_index_set_leaf(path_ptr->index, (path_ptr + 1)->block->lba);
+			} else {
+				path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
+				ext4_extent_set_first_block(path_ptr->extent, iblock);
+			}
+
+			ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
+			path->block->dirty = true;
 		}
-
-		block_t *block;
-		rc = block_get(&block, inode_ref->fs->device,
-				new_fblock, BLOCK_FLAGS_NOREAD);
-		if (rc != EOK) {
-			EXT4FS_DBG("error in block_get");
-			return rc;
-		}
-
-		memset(block->data, 0, block_size);
-
-		/* Move data from root to the new block */
-		memcpy(block->data, inode_ref->inode->blocks,
-				EXT4_INODE_BLOCKS * sizeof(uint32_t));
-
-		path_ptr++;
-		path_ptr->block = block;
-		path_ptr->header = (ext4_extent_header_t *)block->data;
-		path_ptr->depth = ext4_extent_header_get_depth(path_ptr->header);
-		path_ptr->index = NULL;
-
-		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
-		path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
-		ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
-		uint16_t limit = (block_size - sizeof(ext4_extent_header_t)) /
-				sizeof(ext4_extent_t);
-		ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
-
-		/* Modify root (in inode) */
-		path->depth = 1;
-		path->extent = NULL;
-		path->index = EXT4_EXTENT_FIRST_INDEX(path->header);
-
-		ext4_extent_header_set_depth(path->header, path_ptr->depth + 1);
-		ext4_extent_header_set_entries_count(path->header, 1);
-
-		ext4_extent_index_set_first_block(path->index, 0);
-		ext4_extent_index_set_leaf(path->index, new_fblock);
-
-		path_ptr->block->dirty = true;
-		path->block->dirty = true;
-
-		*last_path_item = path_ptr;
-
 	}
 
-	EXT4FS_DBG("Finishing");
 
 	return EOK;
 }
