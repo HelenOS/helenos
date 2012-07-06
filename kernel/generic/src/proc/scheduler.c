@@ -51,6 +51,7 @@
 #include <arch/cycle.h>
 #include <atomic.h>
 #include <synch/spinlock.h>
+#include <synch/workqueue.h>
 #include <config.h>
 #include <context.h>
 #include <fpu_context.h>
@@ -125,6 +126,7 @@ static void before_thread_runs(void)
  */
 static void after_thread_ran(void)
 {
+	workq_after_thread_ran();
 	after_thread_ran_arch();
 }
 

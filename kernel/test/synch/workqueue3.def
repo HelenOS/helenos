@@ -1,0 +1,12 @@
+{
+	"workqueue3",
+	"Global work queue test",
+	&test_workqueue3,
+	true
+},
+{
+	"workqueue3quit",
+	"Global work queue test, exits early",
+	&test_workqueue3quit,
+	true
+},

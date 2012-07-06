@@ -67,6 +67,7 @@
 #include <ipc/event.h>
 #include <sysinfo/sysinfo.h>
 #include <symtab.h>
+#include <synch/workqueue.h>
 #include <errno.h>
 
 #ifdef CONFIG_TEST
@@ -448,6 +449,15 @@ static cmd_info_t zone_info = {
 	.argv = &zone_argv
 };
 
+/* Data and methods for the 'workq' command */
+static int cmd_workq(cmd_arg_t *argv);
+static cmd_info_t workq_info = {
+	.name = "workq",
+	.description = "Show global workq information.",
+	.func = cmd_workq,
+	.argc = 0
+};
+
 /* Data and methods for 'ipc' command */
 static int cmd_ipc(cmd_arg_t *argv);
 static cmd_arg_t ipc_argv = {
@@ -521,6 +531,7 @@ static cmd_info_t *basic_commands[] = {
 	&tlb_info,
 	&uptime_info,
 	&version_info,
+	&workq_info,
 	&zones_info,
 	&zone_info,
 #ifdef CONFIG_TEST
@@ -1013,6 +1024,19 @@ int cmd_sched(cmd_arg_t *argv)
 	sched_print_list();
 	return 1;
 }
+
+/** Prints information about the global work queue.
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_workq(cmd_arg_t *argv)
+{
+	workq_global_print_info();
+	return 1;
+}
+
 
 /** Command for listing memory zones
  *

@@ -1,0 +1,6 @@
+{
+	"workqueue1",
+	"Basic work queue test",
+	&test_workqueue1,
+	true
+},

@@ -179,6 +179,21 @@ typedef struct thread {
 	int priority;
 	/** Thread ID. */
 	thread_id_t tid;
+
+	/** Work queue this thread belongs to or NULL. Immutable. */
+	struct work_queue *workq;
+	/** Links work queue threads. Protected by workq->lock. */
+	link_t workq_link; 
+	/** True if the worker was blocked and is not running. 
+	 * 
+	 * Protected by thread->lock.
+	 */
+	bool workq_blocked;
+	/** True if the worker will block in order to become idle. 
+	 * 
+	 * Protected by workq->lock.
+	 */
+	bool workq_idling;
 	
 	/** Architecture-specific data. */
 	thread_arch_t arch;

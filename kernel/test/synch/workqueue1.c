@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup test
- * @{
- */
-/** @file
- */
-
 #include <test.h>
+#include <arch.h>
+#include <atomic.h>
+#include <print.h>
+#include <proc/thread.h>
 
-bool test_quiet;
+#include <synch/workqueue.h>
 
-test_t tests[] = {
-#include <atomic/atomic1.def>
-#include <avltree/avltree1.def>
-#include <btree/btree1.def>
-#include <debug/mips1.def>
-#include <fault/fault1.def>
-#include <mm/falloc1.def>
-#include <mm/falloc2.def>
-#include <mm/mapping1.def>
-#include <mm/slab1.def>
-#include <mm/slab2.def>
-#include <synch/semaphore1.def>
-#include <synch/semaphore2.def>
-#include <synch/workqueue1.def>
-#include <synch/workqueue2.def>
-#include <synch/workqueue3.def>
-#include <print/print1.def>
-#include <print/print2.def>
-#include <print/print3.def>
-#include <print/print4.def>
-#include <print/print5.def>
-#include <thread/thread1.def>
-#include <smpcall/smpcall1.def>
-	{
-		.name = NULL,
-		.desc = NULL,
-		.entry = NULL
+
+int done = 0;
+
+static void func(work_t *work_item)
+{
+	done = 1;
+	printf("func()");
+}
+
+
+const char *test_workqueue1(void)
+{
+	work_t work;
+
+	workq_global_enqueue(&work, func);
+	
+	while (!done) {
+		printf(".");
+		thread_sleep(1);
 	}
-};
 
-/** @}
- */
+	printf("done\n");
+
+	return NULL;
+}

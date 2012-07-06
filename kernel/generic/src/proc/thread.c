@@ -45,6 +45,7 @@
 #include <arch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
+#include <synch/workqueue.h>
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
@@ -259,6 +260,13 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 	irq_spinlock_unlock(&thread->lock, true);
 }
 
+/** Invoked right before thread_ready() readies the thread. thread is locked. */
+static void before_thread_is_ready(thread_t *thread)
+{
+	ASSERT(irq_spinlock_locked(&thread->lock));
+	workq_before_thread_is_ready(thread);
+}
+
 /** Make thread ready
  *
  * Switch thread to the ready state.
@@ -272,6 +280,8 @@ void thread_ready(thread_t *thread)
 	
 	ASSERT(thread->state != Ready);
 
+	before_thread_is_ready(thread);
+	
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
 
@@ -377,6 +387,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	waitq_initialize(&thread->join_wq);
 	
 	thread->task = task;
+	
+	thread->workq = NULL;
 	
 	thread->fpu_context_exists = false;
 	thread->fpu_context_engaged = false;

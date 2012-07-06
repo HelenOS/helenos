@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup test
- * @{
- */
-/** @file
- */
-
 #include <test.h>
+#include <arch.h>
+#include <print.h>
+#include <memstr.h>
+#include <synch/workqueue.h>
 
-bool test_quiet;
 
-test_t tests[] = {
-#include <atomic/atomic1.def>
-#include <avltree/avltree1.def>
-#include <btree/btree1.def>
-#include <debug/mips1.def>
-#include <fault/fault1.def>
-#include <mm/falloc1.def>
-#include <mm/falloc2.def>
-#include <mm/mapping1.def>
-#include <mm/slab1.def>
-#include <mm/slab2.def>
-#include <synch/semaphore1.def>
-#include <synch/semaphore2.def>
-#include <synch/workqueue1.def>
-#include <synch/workqueue2.def>
-#include <synch/workqueue3.def>
-#include <print/print1.def>
-#include <print/print2.def>
-#include <print/print3.def>
-#include <print/print4.def>
-#include <print/print5.def>
-#include <thread/thread1.def>
-#include <smpcall/smpcall1.def>
-	{
-		.name = NULL,
-		.desc = NULL,
-		.entry = NULL
-	}
-};
+#define WAVES 10
+#define COUNT_POW 12
+#define COUNT ((1 << COUNT_POW) - 1)
+#define WAVE_SLEEP_MS 100
+#define MAIN_POLL_SLEEP_MS 100
+#define MAIN_MAX_SLEEP_SEC 40
 
-/** @}
+/*
+ * Include the test implementation.
  */
+#include "workq-test-core.h"
+
+
+static int core_workq_enqueue(work_t *work_item, work_func_t func)
+{
+	return workq_global_enqueue(work_item, func);
+}
+
+
+
+static const char *do_test(bool exit_early)
+{
+	const char *err = 0;
+	
+	TPRINTF("First run:\n");
+	err = run_workq_core(exit_early);
+
+	if (!err) {
+		TPRINTF("\nSecond run:\n");
+		err = run_workq_core(exit_early);
+	} 
+
+	TPRINTF("Done.\n");
+	
+	return err;
+}
+
+const char *test_workqueue3(void)
+{
+	return do_test(false);
+}
+
+const char *test_workqueue3quit(void)
+{
+	return do_test(true);
+}

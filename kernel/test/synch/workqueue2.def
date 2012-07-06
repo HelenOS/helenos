@@ -1,0 +1,12 @@
+{
+	"workqueue2",
+	"Separate work queue test",
+	&test_workqueue2,
+	true
+},
+{
+	"workqueue2stop",
+	"Separate work queue test, stops early",
+	&test_workqueue2stop,
+	true
+},
