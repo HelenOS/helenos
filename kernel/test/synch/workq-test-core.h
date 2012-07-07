@@ -81,6 +81,12 @@ static test_work_t * create_child(test_work_t *work)
 	return child;
 }
 
+static void free_work(test_work_t *work)
+{
+	memsetb(work, sizeof(test_work_t), 0xfa);
+	free(work);
+}
+
 static void reproduce(work_t *work_item)
 {
 	/* Ensure work_item is ours for the taking. */
@@ -111,26 +117,29 @@ static void reproduce(work_t *work_item)
 			test_work_t *child = create_child(work);
 			if (child) {
 				if (!core_workq_enqueue(&child->work_item, reproduce))
-					free(child);
+					free_work(child);
 			}
 		}
 		
 		if (!core_workq_enqueue(work_item, reproduce)) {
-			if (!work->master) {
-				free(work);
-			}
+			if (work->master) 
+				TPRINTF("\nErr: Master work item exiting prematurely!\n");
+
+			free_work(work);
 		}
 	} else {
 		/* We're done with this wave - only the master survives. */
 		
 		if (work->master && new_wave(work)) {
-				core_workq_enqueue(work_item, reproduce);
+			if (!core_workq_enqueue(work_item, reproduce)) {
+				TPRINTF("\nErr: Master work could not start a new wave!\n");
+				free_work(work);
+			}
 		} else {
 			if (work->master)
-				TPRINTF("\nMaster work item done!\n");
+				TPRINTF("\nMaster work item done.\n");
 				
-			memsetb(work, sizeof(test_work_t), 0xfa);
-			free(work);
+			free_work(work);
 		}
 	}
 }
@@ -179,11 +188,14 @@ static const char *run_workq_core(bool end_prematurely)
 	bool success = true;
 	
 	for (int i = 0; i < WAVES; ++i) {
-		if (atomic_get(&call_cnt[i]) != exp_call_cnt) {
+		if (atomic_get(&call_cnt[i]) == exp_call_cnt) {
+			TPRINTF("Ok: %u calls in wave %d, as expected.\n",
+				atomic_get(&call_cnt[i]), i);
+		} else {
 			success = false;
 			TPRINTF("Error: %u calls in wave %d, but %zu expected.\n",
 				atomic_get(&call_cnt[i]), i, exp_call_cnt);
-		}
+		} 
 	}
 	
 	

@@ -35,7 +35,8 @@
 #include <synch/workqueue.h>
 
 
-int done = 0;
+static work_t work;
+static int done = 0;
 
 static void func(work_t *work_item)
 {
@@ -46,8 +47,7 @@ static void func(work_t *work_item)
 
 const char *test_workqueue1(void)
 {
-	work_t work;
-
+	done = 0;
 	workq_global_enqueue(&work, func);
 	
 	while (!done) {
@@ -55,7 +55,7 @@ const char *test_workqueue1(void)
 		thread_sleep(1);
 	}
 
-	printf("done\n");
+	printf("\ndone\n");
 
 	return NULL;
 }
