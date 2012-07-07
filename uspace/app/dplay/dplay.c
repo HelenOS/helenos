@@ -223,6 +223,7 @@ int main(int argc, char *argv[])
 	}
 
 	play(&pb, rate, sample_size, channels, sign);
+	fclose(pb.source);
 
 cleanup:
 	munmap(pb.buffer.base, pb.buffer.size);
