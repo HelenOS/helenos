@@ -195,10 +195,14 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		ddf_log_warning("Interrupt with no event consumer.");
 	}
 #ifndef AUTO_DMA_MODE
-	sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
-	sb_dsp_write(dsp, dsp->playing.mode);
-	sb_dsp_write(dsp, (dsp->playing.samples - 1) & 0xff);
-	sb_dsp_write(dsp, (dsp->playing.samples - 1) >> 8);
+	if (dsp->active.playing)
+		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
+	else
+		sb_dsp_write(dsp, SINGLE_DMA_16B_AD);
+
+	sb_dsp_write(dsp, dsp->active.mode);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
 #endif
 }
 
@@ -270,7 +274,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
+	ddf_log_debug("Requested recording on buffer \"%u\" (%u parts): %uHz, "
 	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
 	    sign ? "" : "un", sample_size, channels);
 	if (id != BUFFER_ID)
@@ -299,17 +303,19 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	sb_dsp_write(dsp, SINGLE_DMA_16B_DA_FIFO);
 #endif
 
-	dsp->playing.mode = 0 |
+	dsp->active.mode = 0 |
 	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
-	sb_dsp_write(dsp, dsp->playing.mode);
+	sb_dsp_write(dsp, dsp->active.mode);
 
-	dsp->playing.samples = sample_count(sample_size, play_block_size);
-	sb_dsp_write(dsp, (dsp->playing.samples - 1) & 0xff);
-	sb_dsp_write(dsp, (dsp->playing.samples - 1) >> 8);
+	dsp->active.samples = sample_count(sample_size, play_block_size);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
 
 	ddf_log_verbose("Playback started, interrupt every %u samples "
-	    "(~1/%u sec)", dsp->playing.samples,
-	    sampling_rate / dsp->playing.samples);
+	    "(~1/%u sec)", dsp->active.samples,
+	    sampling_rate / dsp->active.samples);
+
+	dsp->active.playing = true;
 
 	return EOK;
 }
@@ -324,15 +330,74 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
 	return EOK;
 }
 
-int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned sample_rate,
-    unsigned sample_size, unsigned channels, bool sign)
+int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
+    unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
 {
-	return ENOTSUP;
+	assert(dsp);
+
+	if (!dsp->event_session)
+		return EINVAL;
+
+	/* Play block size must be even number (we use DMA 16)*/
+	if (dsp->buffer.size % (parts * 2))
+		return EINVAL;
+
+	const unsigned play_block_size = dsp->buffer.size / parts;
+
+	/* Check supported parameters */
+	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
+	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
+	    sign ? "" : "un", sample_size, channels);
+	if (id != BUFFER_ID)
+		return ENOENT;
+	if (sample_size != 16) // FIXME We only support 16 bit playback
+		return ENOTSUP;
+	if (channels != 1 && channels != 2)
+		return ENOTSUP;
+	if (sampling_rate > 44100)
+		return ENOTSUP;
+
+	dsp->event_exchange = async_exchange_begin(dsp->event_session);
+	if (!dsp->event_exchange)
+		return ENOMEM;
+
+	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
+	sb_dsp_write(dsp, sampling_rate >> 8);
+	sb_dsp_write(dsp, sampling_rate & 0xff);
+
+	ddf_log_verbose("Sampling rate: %hhx:%hhx.",
+	    sampling_rate >> 8, sampling_rate & 0xff);
+
+#ifdef AUTO_DMA_MODE
+	sb_dsp_write(dsp, AUTO_DMA_16B_AD_FIFO);
+#else
+	sb_dsp_write(dsp, SINGLE_DMA_16B_AD_FIFO);
+#endif
+
+	dsp->active.mode = 0 |
+	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
+	sb_dsp_write(dsp, dsp->active.mode);
+
+	dsp->active.samples = sample_count(sample_size, play_block_size);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+
+	ddf_log_verbose("Recording started started, interrupt every %u samples "
+	    "(~1/%u sec)", dsp->active.samples,
+	    sampling_rate / dsp->active.samples);
+	dsp->active.playing = false;
+
+	return EOK;
 }
 
 int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id)
 {
-	return ENOTSUP;
+	assert(dsp);
+	if (id != BUFFER_ID)
+		return ENOENT;
+	async_exchange_end(dsp->event_exchange);
+	sb_dsp_write(dsp, DMA_16B_EXIT);
+	return EOK;
 }
 /**
  * @}

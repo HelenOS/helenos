@@ -139,11 +139,14 @@ int audio_pcm_buffer_stop_playback(async_exch_t *exch, unsigned id)
 }
 
 int audio_pcm_buffer_start_record(async_exch_t *exch, unsigned id,
-    unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign)
+    unsigned parts, unsigned sample_rate, uint16_t sample_size,
+    uint8_t channels, bool sign)
 {
-	if (!exch || sample_size > UINT16_MAX || channels > (UINT16_MAX >> 1))
+	if (!exch)
 		return EINVAL;
-	sysarg_t packed = sample_size << 16 | channels << 1 | sign ? 1 : 0;
+	sysarg_t packed =
+	    (sample_size << 16) | (channels << 8) |
+	    ((parts & 0x7f) << 1) | (sign ? 1 : 0);
 	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_START_RECORD, id, sample_rate, packed);
 }
@@ -335,11 +338,12 @@ void remote_audio_pcm_start_record(ddf_fun_t *fun, void *iface,
 	const unsigned id = DEV_IPC_GET_ARG1(*call);
 	const unsigned rate = DEV_IPC_GET_ARG2(*call);
 	const unsigned size = DEV_IPC_GET_ARG3(*call) >> 16;
-	const unsigned channels = (DEV_IPC_GET_ARG3(*call) & UINT16_MAX) >> 1;
+	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 8) & UINT8_MAX;
+	const unsigned parts = (DEV_IPC_GET_ARG3(*call) >> 1) & 0x7f;
 	const bool sign = (bool)(DEV_IPC_GET_ARG3(*call) & 1);
 
 	const int ret = pcm_iface->start_record
-	    ? pcm_iface->start_record(fun, id, rate, size, channels, sign)
+	    ? pcm_iface->start_record(fun, id, parts, rate, size, channels, sign)
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }

@@ -50,8 +50,8 @@ int audio_pcm_buffer_start_playback(async_exch_t *, unsigned, unsigned,
     unsigned, uint16_t, uint8_t, bool);
 int audio_pcm_buffer_stop_playback(async_exch_t *, unsigned);
 
-int audio_pcm_buffer_start_record(async_exch_t *, unsigned,
-    unsigned, unsigned, unsigned, bool);
+int audio_pcm_buffer_start_record(async_exch_t *, unsigned, unsigned,
+    unsigned, uint16_t, uint8_t, bool);
 int audio_pcm_buffer_stop_record(async_exch_t *, unsigned);
 
 /** Audio pcm communication interface. */
@@ -63,7 +63,7 @@ typedef struct {
 	int (*start_playback)(ddf_fun_t *, unsigned, unsigned,
 	    unsigned, unsigned, unsigned, bool);
 	int (*stop_playback)(ddf_fun_t *, unsigned);
-	int (*start_record)(ddf_fun_t *, unsigned,
+	int (*start_record)(ddf_fun_t *, unsigned, unsigned,
 	    unsigned, unsigned, unsigned, bool);
 	int (*stop_record)(ddf_fun_t *, unsigned);
 } audio_pcm_buffer_iface_t;

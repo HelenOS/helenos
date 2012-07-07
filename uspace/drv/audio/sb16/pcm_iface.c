@@ -87,14 +87,14 @@ static int sb_stop_playback(ddf_fun_t *fun, unsigned id)
 	return sb_dsp_stop_playback(dsp, id);
 }
 
-static int sb_start_record(ddf_fun_t *fun, unsigned id,
+static int sb_start_record(ddf_fun_t *fun, unsigned id, unsigned parts,
     unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_start_record(
-	    dsp, id, sample_rate, sample_size, channels, sign);
+	    dsp, id, parts, sample_rate, sample_size, channels, sign);
 }
 
 static int sb_stop_record(ddf_fun_t *fun, unsigned id)
