@@ -38,7 +38,7 @@
 #include <str_error.h>
 #include <str.h>
 #include <devman.h>
-#include <audio_pcm_buffer_iface.h>
+#include <audio_pcm_iface.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <sys/mman.h>
@@ -125,7 +125,7 @@ static void play(playback_t *pb, unsigned sampling_rate, unsigned sample_size,
 		bzero(pb->buffer.base + bytes, pb->buffer.size - bytes);
 	printf("Buffer data ready.\n");
 	fibril_mutex_lock(&pb->mutex);
-	int ret = audio_pcm_buffer_start_playback(pb->device, pb->buffer.id,
+	int ret = audio_pcm_start_playback(pb->device, pb->buffer.id,
 	    SUBBUFFERS, sampling_rate, sample_size, channels, sign);
 	if (ret != EOK) {
 		fibril_mutex_unlock(&pb->mutex);
@@ -136,7 +136,7 @@ static void play(playback_t *pb, unsigned sampling_rate, unsigned sample_size,
 	for (pb->playing = true; pb->playing;
 	    fibril_condvar_wait(&pb->cv, &pb->mutex));
 
-	audio_pcm_buffer_stop_playback(pb->device, pb->buffer.id);
+	audio_pcm_stop_playback(pb->device, pb->buffer.id);
 	fibril_condvar_wait(&pb->cv, &pb->mutex);
 	printf("\n");
 }
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
 		goto close_session;
 	}
 	const char* info = NULL;
-	ret = audio_pcm_buffer_get_info_str(exch, &info);
+	ret = audio_pcm_get_info_str(exch, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info.\n");
 		goto close_session;
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 	playback_t pb;
 	playback_initialize(&pb, exch);
 
-	ret = audio_pcm_buffer_get_buffer(pb.device, &pb.buffer.base,
+	ret = audio_pcm_get_buffer(pb.device, &pb.buffer.base,
 	    &pb.buffer.size, &pb.buffer.id, device_event_callback, &pb);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 
 cleanup:
 	munmap(pb.buffer.base, pb.buffer.size);
-	audio_pcm_buffer_release_buffer(exch, pb.buffer.id);
+	audio_pcm_release_buffer(exch, pb.buffer.id);
 close_session:
 	async_exchange_end(exch);
 	async_hangup(session);

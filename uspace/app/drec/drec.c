@@ -38,7 +38,7 @@
 #include <str_error.h>
 #include <str.h>
 #include <devman.h>
-#include <audio_pcm_buffer_iface.h>
+#include <audio_pcm_iface.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <sys/mman.h>
@@ -111,7 +111,7 @@ static void record(record_t *rec, unsigned sampling_rate, unsigned sample_size,
 	rec->buffer.position = rec->buffer.base;
 	printf("Recording: %dHz, %d-bit %ssigned samples, %d channel(s).\n",
 	    sampling_rate, sample_size, sign ? "": "un", channels);
-	int ret = audio_pcm_buffer_start_record(rec->device, rec->buffer.id,
+	int ret = audio_pcm_start_record(rec->device, rec->buffer.id,
 	    SUBBUFFERS, sampling_rate, sample_size, channels, sign);
 	if (ret != EOK) {
 		printf("Failed to start recording: %s.\n", str_error(ret));
@@ -120,7 +120,7 @@ static void record(record_t *rec, unsigned sampling_rate, unsigned sample_size,
 
 	getchar();
 	printf("\n");
-	audio_pcm_buffer_stop_record(rec->device, rec->buffer.id);
+	audio_pcm_stop_record(rec->device, rec->buffer.id);
 }
 
 int main(int argc, char *argv[])
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 		goto close_session;
 	}
 	const char* info = NULL;
-	ret = audio_pcm_buffer_get_info_str(exch, &info);
+	ret = audio_pcm_get_info_str(exch, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info.\n");
 		goto close_session;
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 	record_t rec;
 	record_initialize(&rec, exch);
 
-	ret = audio_pcm_buffer_get_buffer(rec.device, &rec.buffer.base,
+	ret = audio_pcm_get_buffer(rec.device, &rec.buffer.base,
 	    &rec.buffer.size, &rec.buffer.id, device_event_callback, &rec);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 
 cleanup:
 	munmap(rec.buffer.base, rec.buffer.size);
-	audio_pcm_buffer_release_buffer(exch, rec.buffer.id);
+	audio_pcm_release_buffer(exch, rec.buffer.id);
 close_session:
 	async_exchange_end(exch);
 	async_hangup(session);

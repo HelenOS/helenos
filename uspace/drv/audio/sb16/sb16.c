@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <audio_mixer_iface.h>
-#include <audio_pcm_buffer_iface.h>
+#include <audio_pcm_iface.h>
 
 #include "ddf_log.h"
 #include "dsp_commands.h"
@@ -37,7 +37,7 @@
 #include "sb16.h"
 
 extern audio_mixer_iface_t sb_mixer_iface;
-extern audio_pcm_buffer_iface_t sb_pcm_iface;
+extern audio_pcm_iface_t sb_pcm_iface;
 
 static ddf_dev_ops_t sb_mixer_ops = {
 	.interfaces[AUDIO_MIXER_IFACE] = &sb_mixer_iface,

@@ -34,7 +34,7 @@
 
 #include <async.h>
 #include <errno.h>
-#include <audio_pcm_buffer_iface.h>
+#include <audio_pcm_iface.h>
 
 #include "dsp.h"
 
@@ -105,7 +105,7 @@ static int sb_stop_record(ddf_fun_t *fun, unsigned id)
 	return sb_dsp_stop_record(dsp, id);
 }
 
-audio_pcm_buffer_iface_t sb_pcm_iface = {
+audio_pcm_iface_t sb_pcm_iface = {
 	.get_info_str = sb_get_info_str,
 
 	.get_buffer = sb_get_buffer,

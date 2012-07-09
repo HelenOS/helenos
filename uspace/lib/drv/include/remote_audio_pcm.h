@@ -26,49 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /** @addtogroup libdrv
- * @addtogroup usb
  * @{
  */
 /** @file
- * @brief Audio PCM buffer interface.
  */
 
-#ifndef LIBDRV_AUDIO_PCM_BUFFER_IFACE_H_
-#define LIBDRV_AUDIO_PCM_BUFFER_IFACE_H_
+#ifndef LIBDRV_REMOTE_AUDIO_PCM_H_
+#define LIBDRV_REMOTE_AUDIO_PCM_H_
 
-#include <async.h>
-#include <bool.h>
-
-#include "ddf/driver.h"
-
-int audio_pcm_buffer_get_info_str(async_exch_t *, const char **);
-int audio_pcm_buffer_get_buffer(async_exch_t *, void **, size_t *, unsigned *,
-    async_client_conn_t, void *);
-int audio_pcm_buffer_release_buffer(async_exch_t *, unsigned);
-
-int audio_pcm_buffer_start_playback(async_exch_t *, unsigned, unsigned,
-    unsigned, uint16_t, uint8_t, bool);
-int audio_pcm_buffer_stop_playback(async_exch_t *, unsigned);
-
-int audio_pcm_buffer_start_record(async_exch_t *, unsigned, unsigned,
-    unsigned, uint16_t, uint8_t, bool);
-int audio_pcm_buffer_stop_record(async_exch_t *, unsigned);
-
-/** Audio pcm communication interface. */
-typedef struct {
-	int (*get_info_str)(ddf_fun_t *, const char **);
-	int (*get_buffer)(ddf_fun_t *, void **, size_t *, unsigned *);
-	int (*release_buffer)(ddf_fun_t *, unsigned);
-	int (*set_event_session)(ddf_fun_t *, unsigned, async_sess_t *);
-	int (*start_playback)(ddf_fun_t *, unsigned, unsigned,
-	    unsigned, unsigned, unsigned, bool);
-	int (*stop_playback)(ddf_fun_t *, unsigned);
-	int (*start_record)(ddf_fun_t *, unsigned, unsigned,
-	    unsigned, unsigned, unsigned, bool);
-	int (*stop_record)(ddf_fun_t *, unsigned);
-} audio_pcm_buffer_iface_t;
+extern remote_iface_t remote_audio_pcm_iface;
 
 #endif
+
 /**
  * @}
  */
+

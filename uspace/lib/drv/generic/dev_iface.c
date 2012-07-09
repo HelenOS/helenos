@@ -46,12 +46,12 @@
 #include "remote_usbhid.h"
 #include "remote_pci.h"
 #include "remote_audio_mixer.h"
-#include "remote_audio_pcm_buffer.h"
+#include "remote_audio_pcm.h"
 
 static const iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		[AUDIO_MIXER_IFACE] = &remote_audio_mixer_iface,
-		[AUDIO_PCM_BUFFER_IFACE] = &remote_audio_pcm_buffer_iface,
+		[AUDIO_PCM_BUFFER_IFACE] = &remote_audio_pcm_iface,
 		[HW_RES_DEV_IFACE] = &remote_hw_res_iface,
 		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
 		[NIC_DEV_IFACE] = &remote_nic_iface,
