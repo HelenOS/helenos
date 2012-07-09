@@ -111,6 +111,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	if (ret != EOK) {
 		ddf_log_error("Failed to initialize SB DSP: %s.",
 		    str_error(ret));
+		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}
 	dsp_fun->driver_data = &sb->dsp;
@@ -121,8 +122,18 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	ret = ddf_fun_bind(dsp_fun);
 	if (ret != EOK) {
 		ddf_log_error(
-		    "Failed to bind DSP function: %s.", str_error(ret));
+		    "Failed to bind PCM function: %s.", str_error(ret));
 		dsp_fun->driver_data = NULL;
+		ddf_fun_destroy(dsp_fun);
+		return ret;
+	}
+
+	ret = ddf_fun_add_to_category(dsp_fun, "audio-pcm");
+	if (ret != EOK) {
+		ddf_log_error("Failed register PCM function in category: %s.",
+		    str_error(ret));
+		dsp_fun->driver_data = NULL;
+		ddf_fun_unbind(dsp_fun);
 		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}
