@@ -38,6 +38,7 @@ DIRS = \
 	app/bnchmark \
 	app/devctl \
 	app/dplay \
+	app/drec \
 	app/edit \
 	app/ext2info \
 	app/getterm \

@@ -61,6 +61,7 @@ RD_DRV_CFG += \
 
 RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/dplay/dplay \
+	$(USPACE_PATH)/app/drec/drec \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \
 	
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
