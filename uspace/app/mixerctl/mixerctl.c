@@ -40,7 +40,7 @@
 #include <audio_mixer_iface.h>
 #include <stdio.h>
 
-#define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/mixer"
+#define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/control"
 
 static void print_levels(async_exch_t *exch)
 {

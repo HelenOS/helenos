@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@
 
 #include "wave.h"
 
-#define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/dsp"
+#define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/pcm"
 #define SUBBUFFERS 2
 
 typedef struct {

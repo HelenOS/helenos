@@ -101,7 +101,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	ddf_log_debug("PIO registers at %p accessible.", sb->regs);
 
 	/* Initialize DSP */
-	ddf_fun_t *dsp_fun = ddf_fun_create(dev, fun_exposed, "dsp");
+	ddf_fun_t *dsp_fun = ddf_fun_create(dev, fun_exposed, "pcm");
 	if (!dsp_fun) {
 		ddf_log_error("Failed to create dsp function.");
 		return ENOMEM;
@@ -131,7 +131,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	const sb_mixer_type_t mixer_type = sb_mixer_type_by_dsp_version(
 	    sb->dsp.version.major, sb->dsp.version.minor);
 
-	ddf_fun_t *mixer_fun = ddf_fun_create(dev, fun_exposed, "mixer");
+	ddf_fun_t *mixer_fun = ddf_fun_create(dev, fun_exposed, "control");
 	if (!mixer_fun) {
 		ddf_log_error("Failed to create mixer function.");
 		ddf_fun_unbind(dsp_fun);
