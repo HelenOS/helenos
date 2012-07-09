@@ -274,7 +274,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Requested recording on buffer \"%u\" (%u parts): %uHz, "
+	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
 	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
 	    sign ? "" : "un", sample_size, channels);
 	if (id != BUFFER_ID)
@@ -345,7 +345,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
+	ddf_log_debug("Requested recording on buffer \"%u\" (%u parts): %uHz, "
 	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
 	    sign ? "" : "un", sample_size, channels);
 	if (id != BUFFER_ID)
