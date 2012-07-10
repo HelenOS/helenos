@@ -278,17 +278,17 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
  * @return			absolute block index of first block
  */
 static uint32_t ext4_balloc_get_first_data_block_in_group(
-		ext4_superblock_t *sb, ext4_block_group_t *bg, uint32_t bgid)
+		ext4_superblock_t *sb, ext4_block_group_ref_t *bg_ref)
 {
 	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
 	uint32_t inode_table_first_block = ext4_block_group_get_inode_table_first_block(
-			bg, sb);
+			bg_ref->block_group, sb);
 	uint16_t inode_table_item_size = ext4_superblock_get_inode_size(sb);
 	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	uint32_t inode_table_bytes;
 
-	if (bgid < block_group_count - 1) {
+	if (bg_ref->index < block_group_count - 1) {
 		inode_table_bytes = inodes_per_group * inode_table_item_size;
 	} else {
 		/* last block group could be smaller */
@@ -427,8 +427,7 @@ int ext4_balloc_alloc_block(
 
 	/* Compute indexes */
 	uint32_t first_in_group =
-			ext4_balloc_get_first_data_block_in_group(sb,
-					bg_ref->block_group, block_group);
+			ext4_balloc_get_first_data_block_in_group(sb, bg_ref);
 
 	uint32_t first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
 			sb, first_in_group);
@@ -438,10 +437,11 @@ int ext4_balloc_alloc_block(
 	}
 
 	/* Load block with bitmap */
-	bitmap_block_addr = ext4_block_group_get_block_bitmap(bg_ref->block_group,
-			sb);
+	bitmap_block_addr = ext4_block_group_get_block_bitmap(
+			bg_ref->block_group, sb);
 
-	rc = block_get(&bitmap_block, inode_ref->fs->device, bitmap_block_addr, 0);
+	rc = block_get(&bitmap_block, inode_ref->fs->device,
+			bitmap_block_addr, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		ext4_filesystem_put_block_group_ref(bg_ref);
 		EXT4FS_DBG("initial bitmap not loaded");
@@ -553,7 +553,7 @@ int ext4_balloc_alloc_block(
 
 		/* Compute indexes */
 		first_in_group = ext4_balloc_get_first_data_block_in_group(
-				sb, bg_ref->block_group, bgid);
+				sb, bg_ref);
 		index_in_group = ext4_balloc_blockaddr2_index_in_group(sb,
 						first_in_group);
 		blocks_in_group = ext4_superblock_get_blocks_in_group(sb, bgid);
