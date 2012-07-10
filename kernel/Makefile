@@ -304,10 +304,9 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/slab2.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
-		test/synch/rcu1.c \
-		test/synch/workqueue1.c \
 		test/synch/workqueue2.c \
 		test/synch/workqueue3.c \
+		test/synch/rcu1.c \
 		test/print/print1.c \
 		test/print/print2.c \
 		test/print/print3.c \

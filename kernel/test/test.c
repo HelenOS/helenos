@@ -50,7 +50,6 @@ test_t tests[] = {
 #include <synch/semaphore1.def>
 #include <synch/semaphore2.def>
 #include <synch/rcu1.def>
-#include <synch/workqueue1.def>
 #include <synch/workqueue2.def>
 #include <synch/workqueue3.def>
 #include <print/print1.def>

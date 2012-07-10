@@ -46,51 +46,103 @@
 #include "workq-test-core.h"
 
 
+/*-------------------------------------------------------------------*/
+
+static work_t basic_work;
+static int basic_done = 0;
+
+static void basic_test_work(work_t *work_item)
+{
+	basic_done = 1;
+	TPRINTF("basic_test_work()");
+}
+
+
+static void basic_test(void)
+{
+	TPRINTF("Issue a single work item.\n");
+	basic_done = 0;
+	workq_global_enqueue(&basic_work, basic_test_work);
+	
+	while (!basic_done) {
+		TPRINTF(".");
+		thread_sleep(1);
+	}
+
+	TPRINTF("\nBasic test done\n");
+}
+
+/*-------------------------------------------------------------------*/
+
+
 struct work_queue *workq = NULL;
 
 static int core_workq_enqueue(work_t *work_item, work_func_t func)
 {
 	return workq_enqueue(workq, work_item, func);
 }
+/*-------------------------------------------------------------------*/
 
 
-
-const char *test_workqueue2(void)
+static const char *test_custom_workq_impl(bool stop, const char *qname)
 {
-	workq = workq_create("test-workq");
+	workq = workq_create(qname);
 	
 	if (!workq) {
-		return "Failed to create a work queue.";
+		return "Failed to create a work queue.\n";
 	}
 	
-	const char *ret = run_workq_core(false);
+	const char *ret = run_workq_core(stop);
 	
 	TPRINTF("Stopping work queue...\n");
 	workq_stop(workq);
 	
 	TPRINTF("Destroying work queue...\n");
 	workq_destroy(workq);
-
 	return ret;
 }
 
-
-const char *test_workqueue2stop(void)
+static const char *test_custom_workq(void)
 {
-	workq = workq_create("test-workq");
+	TPRINTF("Stress testing a custom queue.\n");
+	return test_custom_workq_impl(false, "test-workq");
+}
+
+
+static const char *test_custom_workq_stop(void)
+{
+	TPRINTF("Stress testing a custom queue. Stops prematurely. "
+		"Errors are expected.\n");
+	test_custom_workq_impl(true, "test-workq-stop");
+	/* Errors are expected. */
+	return 0;
+}
+
+
+const char *test_workqueue_all(void)
+{
+	const char *err = 0;
+	const char *res;
 	
-	if (!workq) {
-		return "Failed to create a work queue.";
+	basic_test();
+	
+	res = test_custom_workq();
+	if (res) {
+		TPRINTF(res);
+		err = res;
 	}
 	
-	const char *ret = run_workq_core(true);
+	res = test_custom_workq_stop();
+	if (res) {
+		TPRINTF(res);
+		err = res;
+	}
 	
-	TPRINTF("Stopping work queue...\n");
-	workq_stop(workq);
-	
-	TPRINTF("Destroying work queue...\n");
-	workq_destroy(workq);
+	res = test_workqueue3();
+	if (res) {
+		TPRINTF(res);
+		err = res;
+	}
 
-	return ret;
+	return err;
 }
-

@@ -56,7 +56,7 @@ static int core_workq_enqueue(work_t *work_item, work_func_t func)
 static const char *do_test(bool exit_early)
 {
 	const char *err = 0;
-	
+	TPRINTF("Stress testing system queue.\n");
 	TPRINTF("First run:\n");
 	err = run_workq_core(exit_early);
 

@@ -202,6 +202,6 @@ static const char *run_workq_core(bool end_prematurely)
 	if (success)
 		return NULL;
 	else {
-		return "Failed to invoke the expected number of calls.";
+		return "Failed to invoke the expected number of calls.\n";
 	}
 }
