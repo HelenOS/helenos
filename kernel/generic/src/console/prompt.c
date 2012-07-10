@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2012 Sandeep Kumar
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +27,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericconsole
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Kernel console special prompts.
  */
 
-#ifndef KERN_SYMTAB_H_
-#define KERN_SYMTAB_H_
+#include <console/prompt.h>
 
-#include <symtab_lookup.h>
-#include <console/chardev.h>
+bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
+{
+	ASSERT(display_hints != NULL);
 
-extern void symtab_print_search(const char *);
-extern int symtab_compl(char *, size_t, indev_t *);
+	printf("--More--");
+	while (true) {
+		wchar_t continue_showing_hints = indev_pop_character(indev);
+		/* Display a full page again? */
+		if (continue_showing_hints == 'y'
+				|| continue_showing_hints == 'Y'
+				|| continue_showing_hints == ' ') {
+			*display_hints = MAX_TAB_HINTS - 1;
+			break;
+		}
 
-#endif
+		/* Stop displaying hints? */
+		if (continue_showing_hints == 'n'
+				|| continue_showing_hints == 'N'
+				|| continue_showing_hints == 'q'
+				|| continue_showing_hints == 'Q') {
+			*display_hints = 0;
+			break;
+		}
+
+		/* Show one more hint? */
+		if (continue_showing_hints == '\n') {
+			*display_hints = 1;
+			break;
+		}
+	}
+
+	/* Delete the --More-- option */
+	printf("\r         \r");
+
+	return *display_hints > 0;
+}
 
 /** @}
  */

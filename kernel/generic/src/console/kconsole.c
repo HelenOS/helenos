@@ -42,6 +42,7 @@
 #include <console/console.h>
 #include <console/chardev.h>
 #include <console/cmd.h>
+#include <console/prompt.h>
 #include <print.h>
 #include <panic.h>
 #include <typedefs.h>
@@ -213,10 +214,9 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
 	link_t *pos = NULL;
 	const char *hint;
 	char *output = malloc(MAX_CMDLINE, 0);
-	char display = 'y';
 	size_t hints_to_show = MAX_TAB_HINTS - 1;
 	size_t total_hints_shown = 0;
-	char continue_showing_hints = 'y';
+	bool continue_showing_hints = true;
 	
 	output[0] = 0;
 	
@@ -231,9 +231,11 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
 	/* If possible completions are more than MAX_TAB_HINTS, ask user whether to display them or not. */
 	if (found > MAX_TAB_HINTS) {
 		printf("\nDisplay all %zu possibilities? (y or n)", found);
+		wchar_t display;
 		do {
 			display = indev_pop_character(indev);
 		} while (display != 'y' && display != 'n' && display != 'Y' && display != 'N');
+		continue_showing_hints = (display == 'y') || (display == 'Y');
 	}
 	
 	if ((found > 1) && (str_length(output) != 0)) {
@@ -242,34 +244,13 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
 		while (cmdtab_search_one(name, &pos)) {
 			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
 
-			if (display == 'y' || display == 'Y') { /* We are still showing hints */
+			if (continue_showing_hints) {
 				printf("%s (%s)\n", hlp->name, hlp->description);
 				--hints_to_show;
 				++total_hints_shown;
 
 				if (hints_to_show == 0 && total_hints_shown != found) { /* Time to ask user to continue */
-					printf("--More--");
-					do {
-						continue_showing_hints = indev_pop_character(indev);
-						if (continue_showing_hints == 'y' || continue_showing_hints == 'Y'
-								|| continue_showing_hints == ' ') {
-							hints_to_show = MAX_TAB_HINTS - 1; /* Display a full page again */
-							break;
-						}
-
-						if (continue_showing_hints == 'n' || continue_showing_hints == 'N'
-								|| continue_showing_hints == 'q' || continue_showing_hints == 'Q') {
-							display = 'n'; /* Stop displaying hints */
-							break;
-						}
-
-						if (continue_showing_hints == '\n') {
-							hints_to_show = 1; /* Show one more hint */
-							break;
-						}
-					} while (1);
-
-					printf("\r         \r"); /* Delete the --More-- option */
+					continue_showing_hints = console_prompt_more_hints(indev, &hints_to_show);
 				}
 			}
 
