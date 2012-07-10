@@ -38,6 +38,12 @@
 
 #include <console/prompt.h>
 
+/** Display the <i>display all possibilities</i> prompt and wait for answer.
+ *
+ * @param indev Where to read characters from.
+ * @param hints Number of hints that would be displayed.
+ * @return Whether to print all hints.
+ */
 bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
 {
 	printf("Display all %zu possibilities? (y or n)", hints);
@@ -57,6 +63,14 @@ bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
 	}
 }
 
+/** Display the <i>--more--</i> prompt and wait for answer.
+ *
+ * When the function returns false, @p display_hints is set to zero.
+ *
+ * @param[in] indev Where to read characters from.
+ * @param[out] display_hints How many hints to display.
+ * @return Whether to display more hints.
+ */
 bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
 {
 	ASSERT(display_hints != NULL);
