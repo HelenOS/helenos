@@ -305,11 +305,6 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
  * Inserts all items of @a list after item at @a pos in another list. 
  * Both lists may be empty. 
  * 
- * In order to insert the list at the beginning of another list, use:
- * @code 
- * list_splice(&list_dest.head, &list_src);
- * @endcode
- * 
  * @param list Source list to move after pos.
  * @param pos Source items will be placed after this item.
  */
@@ -329,6 +324,31 @@ NO_TRACE static inline void list_splice(list_t *list, link_t *pos)
 		
 		list_initialize(list);
 	}
+}
+
+/** Moves all items of list @a src to the end of list @a dest.
+ * 
+ * Both lists may be empty.
+ * 
+ * @param src Source list to move. Becomes empty.
+ * @param dest Items of src will be inserted at the end of this list, ie
+ *             after all items of src.
+ */
+NO_TRACE static inline void list_append_list(list_t *src, list_t *dest)
+{
+	list_splice(src, dest->head.prev);
+}
+
+/** Moves all items of list @a src to the beginning of list @a dest.
+ * 
+ * Both lists may be empty.
+ * 
+ * @param src Source list to move. Becomes empty.
+ * @param dest Items of src will be inserted at the beginning of this list.
+ */
+NO_TRACE static inline void list_prepend_list(list_t *src, list_t *dest)
+{
+	list_splice(src, &dest->head);
 }
 
 /** Get n-th item in a list.
