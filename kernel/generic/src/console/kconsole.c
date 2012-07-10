@@ -230,12 +230,8 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
 	
 	/* If possible completions are more than MAX_TAB_HINTS, ask user whether to display them or not. */
 	if (found > MAX_TAB_HINTS) {
-		printf("\nDisplay all %zu possibilities? (y or n)", found);
-		wchar_t display;
-		do {
-			display = indev_pop_character(indev);
-		} while (display != 'y' && display != 'n' && display != 'Y' && display != 'N');
-		continue_showing_hints = (display == 'y') || (display == 'Y');
+		printf("\n");
+		continue_showing_hints = console_prompt_display_all_hints(indev, found);
 	}
 	
 	if ((found > 1) && (str_length(output) != 0)) {

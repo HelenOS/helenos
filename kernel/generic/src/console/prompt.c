@@ -38,6 +38,25 @@
 
 #include <console/prompt.h>
 
+bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
+{
+	printf("Display all %zu possibilities? (y or n)", hints);
+
+	while (true) {
+		wchar_t answer = indev_pop_character(indev);
+
+		if (answer == 'y' || answer == 'Y') {
+			printf(" y");
+			return true;
+		}
+
+		if (answer == 'n' || answer == 'N') {
+			printf(" n");
+			return false;
+		}
+	}
+}
+
 bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
 {
 	ASSERT(display_hints != NULL);

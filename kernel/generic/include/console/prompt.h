@@ -39,6 +39,7 @@
 
 #define MAX_TAB_HINTS 37
 
+extern bool console_prompt_display_all_hints(indev_t *, size_t);
 extern bool console_prompt_more_hints(indev_t *, size_t *);
 
 #endif
