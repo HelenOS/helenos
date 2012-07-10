@@ -459,7 +459,9 @@ int ext4_balloc_alloc_block(
 			return rc;
 		}
 
-		allocated_block = goal;
+		allocated_block = ext4_balloc_index_in_group2blockaddr(
+							sb, index_in_group, block_group);
+
 		goto success;
 
 	}
