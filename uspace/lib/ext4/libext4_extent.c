@@ -740,13 +740,9 @@ cleanup:
 static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		ext4_extent_path_t *path, uint32_t iblock)
 {
-
 	int rc;
 
 	ext4_extent_path_t *path_ptr = path + path->depth;
-
-	uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
-	uint16_t limit = ext4_extent_header_get_max_entries_count(path_ptr->header);
 
 	uint32_t block_size =
 			ext4_superblock_get_block_size(inode_ref->fs->superblock);
@@ -754,12 +750,10 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	/* Start splitting */
 	while (path_ptr > path) {
 
-		entries = ext4_extent_header_get_entries_count(path_ptr->header);
-		limit = ext4_extent_header_get_max_entries_count(path_ptr->header);
+		uint16_t entries = ext4_extent_header_get_entries_count(path_ptr->header);
+		uint16_t limit = ext4_extent_header_get_max_entries_count(path_ptr->header);
 
 		if (entries == limit) {
-
-			EXT4FS_DBG("Full non-root node (\%s)", path_ptr->depth ? "index" : "extent");
 
 			/* Full node - allocate block for new one */
 			uint32_t fblock;
@@ -797,8 +791,12 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 									sizeof(ext4_extent_t);
 			}
 
+			/* Initialize on-disk structure (header) */
 			ext4_extent_header_set_entries_count(path_ptr->header, 1);
 			ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
+			ext4_extent_header_set_magic(path_ptr->header, EXT4_EXTENT_MAGIC);
+			ext4_extent_header_set_depth(path_ptr->header, path_ptr->depth);
+			ext4_extent_header_set_generation(path_ptr->header, 0);
 
 			path_ptr->block->dirty = true;
 
@@ -806,8 +804,6 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 			path_ptr--;
 
 		} else {
-
-//			EXT4FS_DBG("Adding entry non-root node (\%s)", path_ptr->depth ? "index" : "extent");
 
 			/* Node with free space */
 			if (path_ptr->depth) {
@@ -834,12 +830,10 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	/* Should be the root split too? */
 	if (path_ptr == path) {
 
-		entries = ext4_extent_header_get_entries_count(path->header);
-		limit = ext4_extent_header_get_max_entries_count(path->header);
+		uint16_t entries = ext4_extent_header_get_entries_count(path->header);
+		uint16_t limit = ext4_extent_header_get_max_entries_count(path->header);
 
 		if (entries == limit) {
-
-			EXT4FS_DBG("Splitting root");
 
 			uint32_t new_fblock;
 			rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
@@ -863,76 +857,73 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 			memcpy(block->data, inode_ref->inode->blocks,
 					EXT4_INODE_BLOCKS * sizeof(uint32_t));
 
-			ext4_extent_header_t *dbg_header = block->data;
-			EXT4FS_DBG("old root: items = \%u, depth = \%u", ext4_extent_header_get_entries_count(dbg_header), ext4_extent_header_get_depth(dbg_header));
+			// Data block initialized !!!
 
-			if (ext4_extent_header_get_depth(dbg_header)) {
-				for (uint16_t x = 0; x < ext4_extent_header_get_entries_count(dbg_header); ++x) {
-					ext4_extent_index_t *iii = EXT4_EXTENT_FIRST_INDEX(dbg_header) + x;
-					EXT4FS_DBG("root item \%u, iblock = \%u, leaf = \%u", x, ext4_extent_index_get_first_block(iii), (uint32_t)ext4_extent_index_get_leaf(iii));
-				}
-			} else {
-				for (uint16_t x = 0; x < ext4_extent_header_get_entries_count(dbg_header); ++x) {
-					ext4_extent_t *iii = EXT4_EXTENT_FIRST(dbg_header) + x;
-					EXT4FS_DBG("root item \%u, iblock = \%u, leaf = \%u, count = \%u", x, ext4_extent_get_first_block(iii), (uint32_t)ext4_extent_get_start(iii), ext4_extent_get_block_count(iii));
-				}
-			}
+			block_t *root_block = path->block;
+			uint16_t root_depth = path->depth;
+			ext4_extent_header_t *root_header = path->header;
 
 			/* Make space for tree growing */
-			path_ptr = path + 1;
-			size_t bytes = (path->depth + 1) * sizeof(ext4_extent_path_t);
-			memmove(path_ptr, path, bytes);
+			ext4_extent_path_t *new_root = path;
+			ext4_extent_path_t *old_root = path + 1;
 
-			/* Initialize new root metadata */
-			path->block = path_ptr->block;
-			path->header = path_ptr->header;
-			path->depth = path_ptr->depth + 1;
-			path->extent = NULL;
-			path->index = EXT4_EXTENT_FIRST_INDEX(path->header);
+//			size_t move_bytes = (path->depth + 1) * sizeof(ext4_extent_path_t);
+//			memmove(old_root, new_root, move_bytes);
+//			memcpy(old_root, new_root, move_bytes);
 
-			ext4_extent_header_set_entries_count(path->header, 1);
-			ext4_extent_header_set_depth(path->header, path->depth);
-			ext4_extent_index_set_first_block(path->index, 0);
-			ext4_extent_index_set_leaf(path->index, new_fblock);
+			size_t nbytes = sizeof(ext4_extent_path_t) * (path->depth + 1);
 
-			path->block->dirty = true;
+			ext4_extent_path_t *tmp_path = malloc(sizeof(ext4_extent_path_t) * (path->depth + 2));
+			if (tmp_path == NULL) {
+				return ENOMEM;
+			}
 
+			memcpy(tmp_path, path, nbytes);
+			memset(path, 0, sizeof(ext4_extent_path_t));
+			memcpy(path + 1, tmp_path, nbytes);
+			free(tmp_path);
 
-			/* Switch storage for "old root" */
-			path_ptr->block = block;
-			path_ptr->header = (ext4_extent_header_t *)block->data;
+			/* Update old root structure */
+			old_root->block = block;
+			old_root->header = (ext4_extent_header_t *)block->data;
 
-			/* Add new entry to the "old root" */
-			if (path_ptr->depth) {
+			/* Add new entry and update limit for entries */
+			if (old_root->depth) {
 				limit = (block_size - sizeof(ext4_extent_header_t)) /
 									sizeof(ext4_extent_index_t);
-				path_ptr->index = EXT4_EXTENT_FIRST_INDEX(path_ptr->header) + entries;
-				ext4_extent_index_set_first_block(path_ptr->index, iblock);
-				ext4_extent_index_set_leaf(path_ptr->index, (path_ptr + 1)->block->lba);
-				path_ptr->extent = NULL;
+				old_root->index = EXT4_EXTENT_FIRST_INDEX(old_root->header) + entries;
+				ext4_extent_index_set_first_block(old_root->index, iblock);
+				ext4_extent_index_set_leaf(old_root->index, (old_root + 1)->block->lba);
+				old_root->extent = NULL;
 			} else {
 				limit = (block_size - sizeof(ext4_extent_header_t)) /
 									sizeof(ext4_extent_t);
-				path_ptr->extent = EXT4_EXTENT_FIRST(path_ptr->header) + entries;
-				ext4_extent_set_first_block(path_ptr->extent, iblock);
-				path_ptr->index = NULL;
+				old_root->extent = EXT4_EXTENT_FIRST(old_root->header) + entries;
+				ext4_extent_set_first_block(old_root->extent, iblock);
+				old_root->index = NULL;
 			}
-			ext4_extent_header_set_entries_count(path_ptr->header, entries + 1);
-			ext4_extent_header_set_max_entries_count(path_ptr->header, limit);
+			ext4_extent_header_set_entries_count(old_root->header, entries + 1);
+			ext4_extent_header_set_max_entries_count(old_root->header, limit);
 
-			path_ptr->block->dirty = true;
+			old_root->block->dirty = true;
 
+			/* Re-initialize new root metadata */
+			new_root->depth = root_depth + 1;
+			new_root->block = root_block;
+			new_root->header = root_header;
+			new_root->extent = NULL;
+			new_root->index = EXT4_EXTENT_FIRST_INDEX(new_root->header);
 
-			EXT4FS_DBG("new root: items = \%u, depth = \%u, tmp depth = \%u", ext4_extent_header_get_entries_count(path->header), ext4_extent_header_get_depth(path->header), path->depth);
+			ext4_extent_header_set_depth(new_root->header, new_root->depth);
 
-			for (uint16_t x = 0; x < ext4_extent_header_get_entries_count(path->header); ++x) {
-				ext4_extent_index_t *iii = EXT4_EXTENT_FIRST_INDEX(path->header) + x;
-				EXT4FS_DBG("root item \%u, iblock = \%u, leaf = \%u", x, ext4_extent_index_get_first_block(iii), (uint32_t)ext4_extent_index_get_leaf(iii));
-			}
+			/* Create new entry in root */
+			ext4_extent_header_set_entries_count(new_root->header, 1);
+			ext4_extent_index_set_first_block(new_root->index, 0);
+			ext4_extent_index_set_leaf(new_root->index, new_fblock);
+
+			new_root->block->dirty = true;
 
 		} else {
-
-			EXT4FS_DBG("Adding entry to root node");
 
 			if (path->depth) {
 				path->index = EXT4_EXTENT_FIRST_INDEX(path->header) + entries;
@@ -947,7 +938,6 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 			path->block->dirty = true;
 		}
 	}
-
 
 	return EOK;
 }
@@ -1086,8 +1076,6 @@ append_extent:
 
 	uint32_t tree_depth = ext4_extent_header_get_depth(path->header);
 	path_ptr = path + tree_depth;
-
-	assert(tree_depth == path->depth);
 
 	/* Initialize newly created extent */
 	ext4_extent_set_block_count(path_ptr->extent, 1);
