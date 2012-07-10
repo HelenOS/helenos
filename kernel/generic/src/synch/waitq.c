@@ -442,6 +442,44 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 	irq_spinlock_unlock(&wq->lock, true);
 }
 
+/** If there is a wakeup in progress actively waits for it to complete.
+ * 
+ * The function returns once the concurrently running waitq_wakeup()
+ * exits. It returns immediately if there are no concurrent wakeups 
+ * at the time.
+ * 
+ * Example usage:
+ * @code
+ * void callback(waitq *wq)
+ * {
+ *     // Do something and notify wait_for_completion() that we're done.
+ *     waitq_wakeup(wq);
+ * }
+ * void wait_for_completion(void) 
+ * {
+ *     waitq wg;
+ *     waitq_initialize(&wq);
+ *     // Run callback() in the background, pass it wq.
+ *     do_asynchronously(callback, &wq);
+ *     // Wait for callback() to complete its work.
+ *     waitq_sleep(&wq);
+ *     // callback() completed its work, but it may still be accessing 
+ *     // wq in waitq_wakeup(). Therefore it is not yet safe to return 
+ *     // or it would clobber up our stack (where wq is stored).
+ *     waitq_complete_wakeup(&wq);
+ *     // waitq_wakeup() is complete, it is safe to free wq.
+ * }
+ * @endcode
+ * 
+ * @param wq  Pointer to a wait queue.
+ */
+void waitq_complete_wakeup(waitq_t *wq)
+{
+	irq_spinlock_lock(&wq->lock, true);
+	irq_spinlock_unlock(&wq->lock, true);
+}
+
+
 /** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
  *
  * This is the internal SMP- and IRQ-unsafe version of waitq_wakeup(). It
