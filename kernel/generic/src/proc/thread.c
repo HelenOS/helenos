@@ -190,7 +190,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	 */
 	kmflags |= FRAME_LOWMEM;
 	kmflags &= ~FRAME_HIGHMEM;
-
+	
 	thread->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
 	if (!thread->kstack) {
 #ifdef CONFIG_FPU
@@ -235,15 +235,28 @@ void thread_init(void)
 	THREAD = NULL;
 	
 	atomic_set(&nrdy, 0);
-	thread_slab = slab_cache_create("thread_slab", sizeof(thread_t), 0,
+	thread_slab = slab_cache_create("thread_t", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 	
 #ifdef CONFIG_FPU
-	fpu_context_slab = slab_cache_create("fpu_slab", sizeof(fpu_context_t),
-	    FPU_CONTEXT_ALIGN, NULL, NULL, 0);
+	fpu_context_slab = slab_cache_create("fpu_context_t",
+	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 	
 	avltree_create(&threads_tree);
+}
+
+/** Wire thread to the given CPU
+ *
+ * @param cpu CPU to wire the thread to.
+ *
+ */
+void thread_wire(thread_t *thread, cpu_t *cpu)
+{
+	irq_spinlock_lock(&thread->lock, true);
+	thread->cpu = cpu;
+	thread->wired = true;
+	irq_spinlock_unlock(&thread->lock, true);
 }
 
 /** Make thread ready
@@ -259,14 +272,16 @@ void thread_ready(thread_t *thread)
 	
 	ASSERT(thread->state != Ready);
 	
-	int i = (thread->priority < RQ_COUNT - 1)
-	    ? ++thread->priority : thread->priority;
+	int i = (thread->priority < RQ_COUNT - 1) ?
+	    ++thread->priority : thread->priority;
 	
-	cpu_t *cpu = CPU;
-	if (thread->flags & THREAD_FLAG_WIRED) {
+	cpu_t *cpu;
+	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
 		ASSERT(thread->cpu != NULL);
 		cpu = thread->cpu;
-	}
+	} else
+		cpu = CPU;
+	
 	thread->state = Ready;
 	
 	irq_spinlock_pass(&thread->lock, &(cpu->rq[i].lock));
@@ -297,14 +312,12 @@ void thread_ready(thread_t *thread)
  *                  call. The task's lock may not be held.
  * @param flags     Thread flags.
  * @param name      Symbolic name (a copy is made).
- * @param uncounted Thread's accounting doesn't affect accumulated task
- *                  accounting.
  *
  * @return New thread's structure on success, NULL on failure.
  *
  */
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
-    unsigned int flags, const char *name, bool uncounted)
+    thread_flags_t flags, const char *name)
 {
 	thread_t *thread = (thread_t *) slab_alloc(thread_slab, 0);
 	if (!thread)
@@ -334,10 +347,15 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->ticks = -1;
 	thread->ucycles = 0;
 	thread->kcycles = 0;
-	thread->uncounted = uncounted;
+	thread->uncounted =
+	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
 	thread->priority = -1;          /* Start in rq[0] */
 	thread->cpu = NULL;
-	thread->flags = flags;
+	thread->wired = false;
+	thread->stolen = false;
+	thread->uspace =
+	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
+	
 	thread->nomigrate = 0;
 	thread->state = Entering;
 	
@@ -355,8 +373,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	thread->task = task;
 	
-	thread->fpu_context_exists = 0;
-	thread->fpu_context_engaged = 0;
+	thread->fpu_context_exists = false;
+	thread->fpu_context_engaged = false;
 	
 	avltree_node_initialize(&thread->threads_tree_node);
 	thread->threads_tree_node.key = (uintptr_t) thread;
@@ -370,7 +388,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	/* Might depend on previous initialization */
 	thread_create_arch(thread);
 	
-	if (!(flags & THREAD_FLAG_NOATTACH))
+	if ((flags & THREAD_FLAG_NOATTACH) != THREAD_FLAG_NOATTACH)
 		thread_attach(thread, task);
 	
 	return thread;
@@ -436,7 +454,7 @@ void thread_attach(thread_t *thread, task_t *task)
 	task_hold(task);
 	
 	/* Must not count kbox thread into lifecount */
-	if (thread->flags & THREAD_FLAG_USPACE)
+	if (thread->uspace)
 		atomic_inc(&task->lifecount);
 	
 	list_append(&thread->th_link, &task->threads);
@@ -458,11 +476,11 @@ void thread_attach(thread_t *thread, task_t *task)
  */
 void thread_exit(void)
 {
-	if (THREAD->flags & THREAD_FLAG_USPACE) {
+	if (THREAD->uspace) {
 #ifdef CONFIG_UDEBUG
 		/* Generate udebug THREAD_E event */
 		udebug_thread_e_event();
-
+		
 		/*
 		 * This thread will not execute any code or system calls from
 		 * now on.
@@ -505,7 +523,7 @@ restart:
 void thread_migration_disable(void)
 {
 	ASSERT(THREAD);
-
+	
 	THREAD->nomigrate++;
 }
 
@@ -514,8 +532,9 @@ void thread_migration_enable(void)
 {
 	ASSERT(THREAD);
 	ASSERT(THREAD->nomigrate > 0);
-
-	THREAD->nomigrate--;
+	
+	if (THREAD->nomigrate > 0)
+		THREAD->nomigrate--;
 }
 
 /** Thread sleep
@@ -853,7 +872,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	/*
 	 * In case of failure, kernel_uarg will be deallocated in this function.
 	 * In case of success, kernel_uarg will be freed in uinit().
-	 *
 	 */
 	uspace_arg_t *kernel_uarg =
 	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
@@ -865,7 +883,7 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	}
 	
 	thread_t *thread = thread_create(uinit, kernel_uarg, TASK,
-	    THREAD_FLAG_USPACE | THREAD_FLAG_NOATTACH, namebuf, false);
+	    THREAD_FLAG_USPACE | THREAD_FLAG_NOATTACH, namebuf);
 	if (thread) {
 		if (uspace_thread_id != NULL) {
 			rc = copy_to_uspace(uspace_thread_id, &thread->tid,

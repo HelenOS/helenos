@@ -60,7 +60,7 @@ void thr_destructor_arch(thread_t *t)
 
 void thread_create_arch(thread_t *t)
 {
-	if ((t->flags & THREAD_FLAG_USPACE) && (!t->arch.uspace_window_buffer))
+	if ((t->uspace) && (!t->arch.uspace_window_buffer))
 		{
 		/*
 		 * The thread needs userspace window buffer and the object

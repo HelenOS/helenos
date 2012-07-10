@@ -282,11 +282,10 @@ loop:
  */
 static async_sess_t *socket_get_tcp_sess(void)
 {
-	if (socket_globals.tcp_sess == NULL) {
+	if (socket_globals.tcp_sess == NULL)
 		socket_globals.tcp_sess = service_bind(SERVICE_TCP,
 		    0, 0, SERVICE_TCP, socket_connection);
-	}
-
+	
 	return socket_globals.tcp_sess;
 }
 
@@ -299,11 +298,10 @@ static async_sess_t *socket_get_tcp_sess(void)
  */
 static async_sess_t *socket_get_udp_sess(void)
 {
-	if (socket_globals.udp_sess == NULL) {
+	if (socket_globals.udp_sess == NULL)
 		socket_globals.udp_sess = service_bind(SERVICE_UDP,
 		    0, 0, SERVICE_UDP, socket_connection);
-	}
-
+	
 	return socket_globals.udp_sess;
 }
 

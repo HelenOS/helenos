@@ -97,7 +97,7 @@ static void before_thread_runs(void)
 		fpu_context_restore(THREAD->saved_fpu_context);
 	else {
 		fpu_init();
-		THREAD->fpu_context_exists = 1;
+		THREAD->fpu_context_exists = true;
 	}
 #endif
 	
@@ -141,7 +141,7 @@ restart:
 		fpu_context_save(CPU->fpu_owner->saved_fpu_context);
 		
 		/* Don't prevent migration */
-		CPU->fpu_owner->fpu_context_engaged = 0;
+		CPU->fpu_owner->fpu_context_engaged = false;
 		irq_spinlock_unlock(&CPU->fpu_owner->lock, false);
 		CPU->fpu_owner = NULL;
 	}
@@ -162,11 +162,11 @@ restart:
 			goto restart;
 		}
 		fpu_init();
-		THREAD->fpu_context_exists = 1;
+		THREAD->fpu_context_exists = true;
 	}
 	
 	CPU->fpu_owner = THREAD;
-	THREAD->fpu_context_engaged = 1;
+	THREAD->fpu_context_engaged = true;
 	irq_spinlock_unlock(&THREAD->lock, false);
 	
 	irq_spinlock_unlock(&CPU->lock, false);
@@ -247,10 +247,10 @@ loop:
 		thread->priority = i;  /* Correct rq index */
 		
 		/*
-		 * Clear the THREAD_FLAG_STOLEN flag so that t can be migrated
+		 * Clear the stolen flag so that it can be migrated
 		 * when load balancing needs emerge.
 		 */
-		thread->flags &= ~THREAD_FLAG_STOLEN;
+		thread->stolen = false;
 		irq_spinlock_unlock(&thread->lock, false);
 		
 		return thread;
@@ -629,10 +629,9 @@ not_satisfied:
 				 */
 				irq_spinlock_lock(&thread->lock, false);
 				
-				if (!(thread->flags & THREAD_FLAG_WIRED) &&
-				    !(thread->flags & THREAD_FLAG_STOLEN) &&
-				    !thread->nomigrate &&
-				    !thread->fpu_context_engaged) {
+				if ((!thread->wired) && (!thread->stolen) &&
+				    (!thread->nomigrate) &&
+				    (!thread->fpu_context_engaged)) {
 					/*
 					 * Remove thread from ready queue.
 					 */
@@ -669,7 +668,7 @@ not_satisfied:
 				    atomic_get(&nrdy) / config.cpu_active);
 #endif
 				
-				thread->flags |= THREAD_FLAG_STOLEN;
+				thread->stolen = true;
 				thread->state = Entering;
 				
 				irq_spinlock_unlock(&thread->lock, true);

@@ -105,7 +105,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	unsigned int flags;
 	if (async_share_out_receive(&callid, &comm_size, &flags)) {
 		(void) async_share_out_finalize(callid, &fs_va);
-		if (fs_va == (void *) -1) {
+		if (fs_va == AS_MAP_FAILED) {
 			async_answer_0(callid, EHANGUP);
 			return;
 		}
@@ -236,7 +236,7 @@ static bool rd_init(void)
 	
 	async_set_client_connection(rd_connection);
 	ret = loc_server_register(NAME);
-	if (ret < 0) {
+	if (ret != EOK) {
 		printf("%s: Unable to register driver (%d)\n", NAME, ret);
 		return false;
 	}

@@ -36,6 +36,8 @@
 #ifndef POSIX_STDIO_H_
 #define POSIX_STDIO_H_
 
+#include "stddef.h"
+#include "unistd.h"
 #include "libc/stdio.h"
 #include "sys/types.h"
 #include "libc/stdarg.h"

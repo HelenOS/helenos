@@ -32,22 +32,24 @@
 /** @file
  * Implementations of DDF interfaces functions.
  */
+
 #ifndef LIBUSB_DDFIFACE_H_
 #define LIBUSB_DDFIFACE_H_
 
 #include <sys/types.h>
 #include <usb_iface.h>
 
-int usb_iface_get_hc_handle_device_impl(ddf_fun_t *, devman_handle_t *);
-int usb_iface_get_my_address_forward_impl(ddf_fun_t *, usb_address_t *);
+extern int usb_iface_get_hc_handle_device_impl(ddf_fun_t *, devman_handle_t *);
+extern int usb_iface_get_my_address_forward_impl(ddf_fun_t *, usb_address_t *);
 extern usb_iface_t usb_iface_hub_impl;
 
-int usb_iface_get_my_address_from_device_data(ddf_fun_t *, usb_address_t *);
+extern int usb_iface_get_my_address_from_device_data(ddf_fun_t *, usb_address_t *);
 extern usb_iface_t usb_iface_hub_child_impl;
 
-int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *, devman_handle_t *);
+extern int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *, devman_handle_t *);
 
 #endif
+
 /**
  * @}
  */

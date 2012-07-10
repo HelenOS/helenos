@@ -53,23 +53,15 @@
 extern const char *thread_states[];
 
 /* Thread flags */
-
-/** Thread cannot be migrated to another CPU.
- *
- * When using this flag, the caller must set cpu in the thread_t
- * structure manually before calling thread_ready (even on uniprocessor).
- *
- */
-#define THREAD_FLAG_WIRED  (1 << 0)
-
-/** Thread was migrated to another CPU and has not run yet. */
-#define THREAD_FLAG_STOLEN  (1 << 1)
-
-/** Thread executes in userspace. */
-#define THREAD_FLAG_USPACE  (1 << 2)
-
-/** Thread will be attached by the caller. */
-#define THREAD_FLAG_NOATTACH  (1 << 3)
+typedef enum {
+	THREAD_FLAG_NONE = 0,
+	/** Thread executes in user space. */
+	THREAD_FLAG_USPACE = (1 << 0),
+	/** Thread will be attached by the caller. */
+	THREAD_FLAG_NOATTACH = (1 << 1),
+	/** Thread accounting doesn't affect accumulated task accounting. */
+	THREAD_FLAG_UNCOUNTED = (1 << 2)
+} thread_flags_t;
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {
@@ -146,27 +138,31 @@ typedef struct thread {
 	link_t joiner_link;
 	
 	fpu_context_t *saved_fpu_context;
-	int fpu_context_exists;
+	bool fpu_context_exists;
 	
 	/*
 	 * Defined only if thread doesn't run.
 	 * It means that fpu context is in CPU that last time executes this
 	 * thread. This disables migration.
 	 */
-	int fpu_context_engaged;
+	bool fpu_context_engaged;
 	
 	/* The thread will not be migrated if nomigrate is non-zero. */
-	int nomigrate;
+	unsigned int nomigrate;
 	
-	/** Thread's state. */
+	/** Thread state. */
 	state_t state;
-	/** Thread's flags. */
-	unsigned int flags;
 	
-	/** Thread's CPU. */
+	/** Thread CPU. */
 	cpu_t *cpu;
 	/** Containing task. */
 	task_t *task;
+	/** Thread is wired to CPU. */
+	bool wired;
+	/** Thread was migrated to another CPU and has not run yet. */
+	bool stolen;
+	/** Thread is executed in user space. */
+	bool uspace;
 	
 	/** Ticks before preemption. */
 	uint64_t ticks;
@@ -215,7 +211,8 @@ extern avltree_t threads_tree;
 
 extern void thread_init(void);
 extern thread_t *thread_create(void (*)(void *), void *, task_t *,
-    unsigned int, const char *, bool);
+    thread_flags_t, const char *);
+extern void thread_wire(thread_t *, cpu_t *);
 extern void thread_attach(thread_t *, task_t *);
 extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));

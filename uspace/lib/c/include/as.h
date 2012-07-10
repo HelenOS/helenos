@@ -40,6 +40,9 @@
 #include <task.h>
 #include <libarch/config.h>
 
+#define AS_AREA_ANY    ((void *) -1)
+#define AS_MAP_FAILED  ((void *) -1)
+
 static inline size_t SIZE2PAGES(size_t size)
 {
 	if (size == 0)

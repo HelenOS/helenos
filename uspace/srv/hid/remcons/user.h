@@ -75,26 +75,28 @@ typedef struct {
 	int cursor_x;
 } telnet_user_t;
 
-telnet_user_t *telnet_user_create(int socket);
-void telnet_user_destroy(telnet_user_t *user);
-telnet_user_t *telnet_user_get_for_client_connection(service_id_t id);
-bool telnet_user_is_zombie(telnet_user_t *user);
-void telnet_user_notify_client_disconnected(telnet_user_t *user);
-int telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event);
-int telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size);
-void telnet_user_update_cursor_x(telnet_user_t *user, int new_x);
+extern telnet_user_t *telnet_user_create(int);
+extern void telnet_user_destroy(telnet_user_t *);
+extern telnet_user_t *telnet_user_get_for_client_connection(service_id_t);
+extern bool telnet_user_is_zombie(telnet_user_t *);
+extern void telnet_user_notify_client_disconnected(telnet_user_t *);
+extern int telnet_user_get_next_keyboard_event(telnet_user_t *, kbd_event_t *);
+extern int telnet_user_send_data(telnet_user_t *, uint8_t *, size_t);
+extern void telnet_user_update_cursor_x(telnet_user_t *, int);
 
 /** Print informational message about connected user. */
 #ifdef CONFIG_DEBUG
 #define telnet_user_log(user, fmt, ...) \
-	printf(NAME " [console %d (%d)]: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
+	printf(NAME " [console %d (%d)]: " fmt "\n", \
+	    user->id, (int) user->service_id, ##__VA_ARGS__)
 #else
-#define telnet_user_log(user, fmt, ...) (void)0
+#define telnet_user_log(user, fmt, ...) ((void) 0)
 #endif
 
 /** Print error message associated with connected user. */
 #define telnet_user_error(user, fmt, ...) \
-	fprintf(stderr, NAME " [console %d (%d)]: ERROR: " fmt "\n", user->id, (int) user->service_id, ##__VA_ARGS__)
+	fprintf(stderr, NAME " [console %d (%d)]: ERROR: " fmt "\n", \
+	    user->id, (int) user->service_id, ##__VA_ARGS__)
 
 #endif
 

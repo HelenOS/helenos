@@ -70,15 +70,7 @@ void *program_loader = NULL;
  */
 int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 {
-	uspace_arg_t *kernel_uarg;
-	
-	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	kernel_uarg->uspace_entry = (void *) entry_addr;
-	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
-	kernel_uarg->uspace_thread_function = NULL;
-	kernel_uarg->uspace_thread_arg = NULL;
-	kernel_uarg->uspace_uarg = NULL;
-	
+	prg->loader_status = EE_OK;
 	prg->task = task_create(as, name);
 	if (!prg->task)
 		return ELIMIT;
@@ -90,16 +82,32 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	as_area_t *area = as_area_create(as,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
 	    STACK_SIZE, AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, 0);
-	if (!area)
+	if (!area) {
+		task_destroy(prg->task);
 		return ENOMEM;
+	}
+	
+	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
+	    malloc(sizeof(uspace_arg_t), 0);
+	
+	kernel_uarg->uspace_entry = (void *) entry_addr;
+	kernel_uarg->uspace_stack = (void *) virt;
+	kernel_uarg->uspace_stack_size = STACK_SIZE;
+	kernel_uarg->uspace_thread_function = NULL;
+	kernel_uarg->uspace_thread_arg = NULL;
+	kernel_uarg->uspace_uarg = NULL;
 	
 	/*
 	 * Create the main thread.
 	 */
 	prg->main_thread = thread_create(uinit, kernel_uarg, prg->task,
-	    THREAD_FLAG_USPACE, "uinit", false);
-	if (!prg->main_thread)
+	    THREAD_FLAG_USPACE, "uinit");
+	if (!prg->main_thread) {
+		free(kernel_uarg);
+		as_area_destroy(as, virt);
+		task_destroy(prg->task);
 		return ELIMIT;
+	}
 	
 	return EOK;
 }
@@ -110,11 +118,12 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
  * (and *task is set to NULL). Otherwise a task is created from the
  * executable image. The task is returned in *task.
  *
- * @param image_addr Address of an executable program image.
- * @param name       Name to set for the program's task.
- * @param prg        Buffer for storing program info. If image_addr
- *                   points to a loader image, p->task will be set to
- *                   NULL and EOK will be returned.
+ * @param[in]  image_addr Address of an executable program image.
+ * @param[in]  name       Name to set for the program's task.
+ * @param[out] prg        Buffer for storing program info.
+ *                        If image_addr points to a loader image,
+ *                        prg->task will be set to NULL and EOK
+ *                        will be returned.
  *
  * @return EOK on success or negative error code.
  *
@@ -125,13 +134,13 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 	if (!as)
 		return ENOMEM;
 	
-	unsigned int rc = elf_load((elf_header_t *) image_addr, as, 0);
-	if (rc != EE_OK) {
+	prg->loader_status = elf_load((elf_header_t *) image_addr, as, 0);
+	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
 		
-		if (rc != EE_LOADER)
+		if (prg->loader_status != EE_LOADER)
 			return ENOTSUP;
 		
 		/* Register image as the program loader */
@@ -139,8 +148,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 			return ELIMIT;
 		
 		program_loader = image_addr;
-		LOG("Registered program loader at %p",
-		    (void *) image_addr);
+		printf("Program loader at %p\n", (void *) image_addr);
 		
 		return EOK;
 	}
@@ -170,11 +178,12 @@ int program_create_loader(program_t *prg, char *name)
 		return ENOENT;
 	}
 	
-	unsigned int rc = elf_load((elf_header_t *) program_loader, as,
+	prg->loader_status = elf_load((elf_header_t *) program_loader, as,
 	    ELD_F_LOADER);
-	if (rc != EE_OK) {
+	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
-		printf("Cannot spawn loader (%s)\n", elf_error(rc));
+		printf("Cannot spawn loader (%s)\n",
+		    elf_error(prg->loader_status));
 		return ENOENT;
 	}
 	

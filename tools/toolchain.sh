@@ -54,7 +54,7 @@ EOF
 
 BINUTILS_VERSION="2.22"
 BINUTILS_RELEASE=""
-GCC_VERSION="4.7.0"
+GCC_VERSION="4.7.1"
 GDB_VERSION="7.4"
 
 BASEDIR="`pwd`"
@@ -148,7 +148,8 @@ show_usage() {
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
-	echo " parallel   same as 'all', but in parallel"
+	echo " parallel   same as 'all', but all in parallel"
+	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
 	echo "The toolchain will be installed to the directory specified by"
 	echo "the CROSS_PREFIX environment variable. If the variable is not"
@@ -272,7 +273,7 @@ prepare() {
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "2a0f1d99fda235c29d40b561f81d9a77"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "933e6f15f51c031060af64a9e14149ff"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "95a9a8305fed4d30a30a6dc28ff9d060"
 }
 
@@ -317,7 +318,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
+	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
@@ -329,7 +330,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
+	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
@@ -426,6 +427,28 @@ case "$1" in
 		build_target "mips32eb" "mips-linux-gnu" &
 		build_target "mips64" "mips64el-linux-gnu" &
 		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "ppc64" "ppc64-linux-gnu" &
+		build_target "sparc64" "sparc64-linux-gnu" &
+		wait
+		;;
+	"2-way")
+		prepare
+		build_target "amd64" "amd64-linux-gnu" &
+		build_target "arm32" "arm-linux-gnueabi" &
+		wait
+		
+		build_target "ia32" "i686-pc-linux-gnu" &
+		build_target "ia64" "ia64-pc-linux-gnu" &
+		wait
+		
+		build_target "mips32" "mipsel-linux-gnu" &
+		build_target "mips32eb" "mips-linux-gnu" &
+		wait
+		
+		build_target "mips64" "mips64el-linux-gnu" &
+		build_target "ppc32" "ppc-linux-gnu" &
+		wait
+		
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
 		wait

@@ -115,11 +115,10 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		thread = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true);
+		thread = thread_create(kmp, NULL, TASK,
+		    THREAD_FLAG_UNCOUNTED, "kmp");
 		if (thread != NULL) {
-			irq_spinlock_lock(&thread->lock, false);
-			thread->cpu = &cpus[0];
-			irq_spinlock_unlock(&thread->lock, false);
+			thread_wire(thread, &cpus[0]);
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
@@ -133,11 +132,10 @@ void kinit(void *arg)
 		unsigned int i;
 		
 		for (i = 0; i < config.cpu_count; i++) {
-			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
+			thread = thread_create(kcpulb, NULL, TASK,
+			    THREAD_FLAG_UNCOUNTED, "kcpulb");
 			if (thread != NULL) {
-				irq_spinlock_lock(&thread->lock, false);
-				thread->cpu = &cpus[i];
-				irq_spinlock_unlock(&thread->lock, false);
+				thread_wire(thread, &cpus[i]);
 				thread_ready(thread);
 			} else
 				printf("Unable to create kcpulb thread for cpu%u\n", i);
@@ -151,7 +149,8 @@ void kinit(void *arg)
 	arch_post_smp_init();
 	
 	/* Start thread computing system load */
-	thread = thread_create(kload, NULL, TASK, 0, "kload", false);
+	thread = thread_create(kload, NULL, TASK, THREAD_FLAG_NONE,
+	    "kload");
 	if (thread != NULL)
 		thread_ready(thread);
 	else
@@ -162,7 +161,8 @@ void kinit(void *arg)
 		/*
 		 * Create kernel console.
 		 */
-		thread = thread_create(kconsole_thread, NULL, TASK, 0, "kconsole", false);
+		thread = thread_create(kconsole_thread, NULL, TASK,
+		    THREAD_FLAG_NONE, "kconsole");
 		if (thread != NULL)
 			thread_ready(thread);
 		else
@@ -200,7 +200,7 @@ void kinit(void *arg)
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
-
+		
 		/*
 		 * Create virtual memory mappings for init task images.
 		 */
@@ -235,7 +235,9 @@ void kinit(void *arg)
 			 */
 			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
 		} else
-			printf("init[%zu]: Init binary load failed (error %d)\n", i, rc);
+			printf("init[%zu]: Init binary load failed "
+			    "(error %d, loader status %u)\n", i, rc,
+			    programs[i].loader_status);
 	}
 	
 	/*

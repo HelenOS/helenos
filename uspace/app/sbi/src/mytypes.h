@@ -50,6 +50,8 @@ typedef enum {
 
 /** Error return codes. */
 #include <errno.h>
+/** We need NULL defined. */
+#include <unistd.h>
 #define EOK 0
 
 #include "bigint_t.h"

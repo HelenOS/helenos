@@ -67,16 +67,14 @@ static int tcp_sock_recv_fibril(void *arg);
 
 int tcp_sock_init(void)
 {
-	int rc;
-
 	socket_ports_initialize(&gsock);
-
+	
 	async_set_client_connection(tcp_sock_connection);
-
-	rc = service_register(SERVICE_TCP);
+	
+	int rc = service_register(SERVICE_TCP);
 	if (rc != EOK)
 		return EEXIST;
-
+	
 	return EOK;
 }
 
@@ -152,8 +150,11 @@ static int tcp_sock_finish_setup(tcp_sockdata_t *sock, int *sock_id)
 	rc = socket_create(&sock->client->sockets, sock->client->sess,
 	    sock, sock_id);
 
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_destroy(sock->recv_fibril);
+		sock->recv_fibril = 0;
 		return rc;
+	}
 
 	sock_core = socket_cores_find(&sock->client->sockets, *sock_id);
 	assert(sock_core != NULL);
