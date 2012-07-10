@@ -196,6 +196,7 @@ GENERIC_SOURCES = \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/cpu/cpu.c \
+	generic/src/cpu/cpu_mask.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
 	generic/src/ddi/device.c \
