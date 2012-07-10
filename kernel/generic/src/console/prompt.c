@@ -46,6 +46,9 @@
  */
 bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
 {
+	ASSERT(indev);
+	ASSERT(hints > 0);
+
 	printf("Display all %zu possibilities? (y or n)", hints);
 
 	while (true) {
@@ -73,6 +76,7 @@ bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
  */
 bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
 {
+	ASSERT(indev);
 	ASSERT(display_hints != NULL);
 
 	printf("--More--");
@@ -80,17 +84,17 @@ bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
 		wchar_t continue_showing_hints = indev_pop_character(indev);
 		/* Display a full page again? */
 		if (continue_showing_hints == 'y'
-				|| continue_showing_hints == 'Y'
-				|| continue_showing_hints == ' ') {
+		    || continue_showing_hints == 'Y'
+		    || continue_showing_hints == ' ') {
 			*display_hints = MAX_TAB_HINTS - 1;
 			break;
 		}
 
 		/* Stop displaying hints? */
 		if (continue_showing_hints == 'n'
-				|| continue_showing_hints == 'N'
-				|| continue_showing_hints == 'q'
-				|| continue_showing_hints == 'Q') {
+		    || continue_showing_hints == 'N'
+		    || continue_showing_hints == 'q'
+		    || continue_showing_hints == 'Q') {
 			*display_hints = 0;
 			break;
 		}
