@@ -46,6 +46,7 @@
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <synch/workqueue.h>
+#include <synch/rcu.h>
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
@@ -404,6 +405,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	/* Might depend on previous initialization */
 	thread_create_arch(thread);
+	
+	rcu_thread_init(thread);
 	
 	if ((flags & THREAD_FLAG_NOATTACH) != THREAD_FLAG_NOATTACH)
 		thread_attach(thread, task);

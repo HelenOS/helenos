@@ -40,6 +40,7 @@
 #include <time/timeout.h>
 #include <cpu.h>
 #include <synch/spinlock.h>
+#include <synch/rcu.h>
 #include <adt/avl.h>
 #include <mm/slab.h>
 #include <arch/cpu.h>
@@ -184,16 +185,13 @@ typedef struct thread {
 	struct work_queue *workq;
 	/** Links work queue threads. Protected by workq->lock. */
 	link_t workq_link; 
-	/** True if the worker was blocked and is not running. 
-	 * 
-	 * Protected by thread->lock.
-	 */
+	/** True if the worker was blocked and is not running. Use thread->lock. */
 	bool workq_blocked;
-	/** True if the worker will block in order to become idle. 
-	 * 
-	 * Protected by workq->lock.
-	 */
+	/** True if the worker will block in order to become idle. Use workq->lock. */
 	bool workq_idling;
+	
+	/** RCU thread related data. Protected by its own locks. */
+	rcu_thread_data_t rcu;
 	
 	/** Architecture-specific data. */
 	thread_arch_t arch;

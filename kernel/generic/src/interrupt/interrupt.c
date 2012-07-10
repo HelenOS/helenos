@@ -109,15 +109,13 @@ NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
 	
-	/* Account CPU usage if it has waked up from sleep */
-	if (CPU) {
+	/* Account CPU usage if it woke up from sleep */
+	if (CPU && CPU->idle) {
 		irq_spinlock_lock(&CPU->lock, false);
-		if (CPU->idle) {
-			uint64_t now = get_cycle();
-			CPU->idle_cycles += now - CPU->last_cycle;
-			CPU->last_cycle = now;
-			CPU->idle = false;
-		}
+		uint64_t now = get_cycle();
+		CPU->idle_cycles += now - CPU->last_cycle;
+		CPU->last_cycle = now;
+		CPU->idle = false;
 		irq_spinlock_unlock(&CPU->lock, false);
 	}
 	

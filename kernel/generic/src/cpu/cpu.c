@@ -49,6 +49,7 @@
 #include <print.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/cycle.h>
+#include <synch/rcu.h>
 
 cpu_t *cpus;
 
@@ -101,6 +102,7 @@ void cpu_init(void) {
 	
 	cpu_identify();
 	cpu_arch_init();
+	rcu_cpu_init();
 }
 
 /** List all processors. */

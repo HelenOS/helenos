@@ -68,6 +68,7 @@
 #include <sysinfo/sysinfo.h>
 #include <symtab.h>
 #include <synch/workqueue.h>
+#include <synch/rcu.h>
 #include <errno.h>
 
 #ifdef CONFIG_TEST
@@ -458,6 +459,15 @@ static cmd_info_t workq_info = {
 	.argc = 0
 };
 
+/* Data and methods for the 'workq' command */
+static int cmd_rcu(cmd_arg_t *argv);
+static cmd_info_t rcu_info = {
+	.name = "rcu",
+	.description = "Show RCU run-time statistics.",
+	.func = cmd_rcu,
+	.argc = 0
+};
+
 /* Data and methods for 'ipc' command */
 static int cmd_ipc(cmd_arg_t *argv);
 static cmd_arg_t ipc_argv = {
@@ -521,6 +531,7 @@ static cmd_info_t *basic_commands[] = {
 	&kill_info,
 	&physmem_info,
 	&reboot_info,
+	&rcu_info,
 	&sched_info,
 	&set4_info,
 	&slabs_info,
@@ -1037,6 +1048,17 @@ int cmd_workq(cmd_arg_t *argv)
 	return 1;
 }
 
+/** Prints RCU statistics.
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_rcu(cmd_arg_t *argv)
+{
+	rcu_print_stat();
+	return 1;
+}
 
 /** Command for listing memory zones
  *

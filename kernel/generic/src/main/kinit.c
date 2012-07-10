@@ -77,6 +77,7 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <synch/workqueue.h>
+#include <synch/rcu.h>
 
 #define ALIVE_CHARS  4
 
@@ -105,6 +106,9 @@ void kinit(void *arg)
 	thread_detach(THREAD);
 
 	interrupts_disable();
+	
+	/* Start processing RCU callbacks. RCU is fully functional afterwards. */
+	rcu_kinit_init();
 	
 	/*
 	 * Start processing work queue items. Some may have been queued during boot.
