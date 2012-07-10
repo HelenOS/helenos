@@ -208,7 +208,7 @@ void symtab_print_search(const char *name)
  * @return 0 - nothing found, 1 - success, >1 print duplicates
  *
  */
-int symtab_compl(char *input, size_t size)
+int symtab_compl(char *input, size_t size, indev_t * indev)
 {
 #ifdef CONFIG_SYMTAB
 	const char *name = input;
@@ -225,8 +225,24 @@ int symtab_compl(char *input, size_t size)
 	size_t pos = 0;
 	const char *hint;
 	char output[MAX_SYMBOL_NAME];
+	/* Maximum Match Length : Length of longest matching common substring in
+	   case more than one match is found */
+	size_t max_match_len = size;
+	size_t max_match_len_tmp = size;
+	size_t input_len = str_length(input);
+	char *sym_name;
+	char display = 'y';
+	size_t hints_to_show = MAX_TAB_HINTS - 1;
+	size_t total_hints_shown = 0;
+	char continue_showing_hints = 'y';
 	
 	output[0] = 0;
+
+	while ((hint = symtab_search_one(name, &pos))) {
+		++pos;
+	}
+
+	pos = 0;
 	
 	while ((hint = symtab_search_one(name, &pos))) {
 		if ((found == 0) || (str_length(output) > str_length(hint)))
@@ -236,13 +252,58 @@ int symtab_compl(char *input, size_t size)
 		found++;
 	}
 	
+	/* If possible completions are more than MAX_TAB_HINTS, ask user whether to display them or not. */
+	if (found > MAX_TAB_HINTS) {
+		printf("\nDisplay all %zu possibilities? (y or n)", found);
+		do {
+			display = indev_pop_character(indev);
+		} while (display != 'y' && display != 'n' && display != 'Y' && display != 'N');
+	}
+	
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = 0;
 		while (symtab_search_one(name, &pos)) {
-			printf("%s\n", symbol_table[pos].symbol_name);
+			sym_name = symbol_table[pos].symbol_name;
 			pos++;
+
+			if (display == 'y' || display == 'Y') { /* We are still showing hints */
+				printf("%s\n", sym_name);
+				--hints_to_show;
+				++total_hints_shown;
+
+				if (hints_to_show == 0 && total_hints_shown != found) { /* Time to ask user to continue */
+					printf("--More--");
+					do {
+						continue_showing_hints = indev_pop_character(indev);
+						if (continue_showing_hints == 'y' || continue_showing_hints == 'Y'
+								|| continue_showing_hints == ' ') {
+							hints_to_show = MAX_TAB_HINTS - 1; /* Display a full page again */
+							break;
+						}
+
+						if (continue_showing_hints == 'n' || continue_showing_hints == 'N'
+								|| continue_showing_hints == 'q' || continue_showing_hints == 'Q') {
+							display = 'n'; /* Stop displaying hints */
+							break;
+						}
+
+						if (continue_showing_hints == '\n') {
+							hints_to_show = 1; /* Show one more hint */
+							break;
+						}
+					} while (1);
+
+					printf("\r         \r"); /* Delete the --More-- option */
+				}
+			}
+
+			for(max_match_len_tmp = 0; output[max_match_len_tmp] == sym_name[input_len + max_match_len_tmp]
+					&& max_match_len_tmp < max_match_len; ++max_match_len_tmp);
+			max_match_len = max_match_len_tmp;
 		}
+		/* keep only the characters common in all completions */
+		output[max_match_len] = 0;
 	}
 	
 	if (found > 0)
