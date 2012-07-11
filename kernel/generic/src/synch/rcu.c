@@ -638,23 +638,23 @@ static bool wait_for_pending_cbs(void)
 	return ok;
 }
 
-static void upd_stat_missed_gp(rcu_gp_t compl, rcu_gp_t cb_gp)
+static void upd_stat_missed_gp(rcu_gp_t compl)
 {
-	if (compl > cb_gp) {
-		CPU->rcu.stat_missed_gps += (size_t)(compl - cb_gp);
+	if (CPU->rcu.cur_cbs_gp < compl) {
+		CPU->rcu.stat_missed_gps += (size_t)(compl - CPU->rcu.cur_cbs_gp);
 	}
 }
 
 /** Executes all callbacks for the given completed grace period. */
 static void exec_completed_cbs(rcu_gp_t last_completed_gp)
 {
+	upd_stat_missed_gp(last_completed_gp);
+	
 	if (CPU->rcu.cur_cbs_gp <= last_completed_gp) {
-		upd_stat_missed_gp(last_completed_gp, CPU->rcu.cur_cbs_gp);
 		exec_cbs(&CPU->rcu.cur_cbs);
 	}
 	
 	if (CPU->rcu.next_cbs_gp <= last_completed_gp) {
-		upd_stat_missed_gp(last_completed_gp, CPU->rcu.next_cbs_gp);
 		exec_cbs(&CPU->rcu.next_cbs);	
 	}
 }
@@ -1288,7 +1288,8 @@ void rcu_print_stat(void)
 	printf("Delayed GPs:   %zu (cpus w/ still running readers after gp sleep)\n", 
 		rcu.stat_delayed_cnt);
 	printf("Preempt blocked GPs: %zu (waited for preempted readers; "
-		"running or not)\n", rcu.stat_delayed_cnt);
+		"running or not)\n", rcu.stat_preempt_blocking_cnt);
+	printf("Smp calls:     %zu\n", rcu.stat_smp_call_cnt);
 	
 	printf("Max callbacks per GP:\n");
 	for (unsigned i = 0; i < config.cpu_count; ++i) {
