@@ -61,6 +61,7 @@ static size_t lines_remaining = 0;
 static sysarg_t console_cols = 0;
 static sysarg_t console_rows = 0;
 static bool should_quit = false;
+static bool dash_represents_stdin = false;
 
 static console_ctrl_t *console = NULL;
 
@@ -72,6 +73,7 @@ static struct option const long_options[] = {
 	{ "buffer", required_argument, 0, 'b' },
 	{ "more", no_argument, 0, 'm' },
 	{ "hex", no_argument, 0, 'x' },
+	{ "stdin", no_argument, 0, 's' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -92,6 +94,7 @@ void help_cmd_cat(unsigned int level)
 		"  -b, --buffer ##  Set the read buffer size to ##\n"
 		"  -m, --more       Pause after each screen full\n"
 		"  -x, --hex        Print bytes as hex values\n"
+		"  -s  --stdin      Treat `-' in file list as standard input\n"
 		"Currently, %s is under development, some options don't work.\n",
 		cmdname, cmdname);
 	}
@@ -171,7 +174,15 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	size_t offset = 0, copied_bytes = 0;
 	off64_t file_size = 0, length = 0;
 
-	fd = open(fname, O_RDONLY);
+	bool reading_stdin = dash_represents_stdin && (str_cmp(fname, "-") == 0);
+
+	if (reading_stdin) {
+		fd = fileno(stdin);
+		/* Allow storing the whole UTF-8 character. */
+		blen = STR_BOUNDS(1);
+	} else {
+		fd = open(fname, O_RDONLY);
+	}
 	if (fd < 0) {
 		printf("Unable to open %s\n", fname);
 		return 1;
@@ -206,10 +217,18 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		length = head;
 
 	do {
-		bytes = read(fd, buff + copied_bytes, (
-			(length != CAT_FULL_FILE && length - (off64_t)count <= (off64_t)(blen - copied_bytes)) ?
-			(size_t)(length - count) :
-			(blen - copied_bytes) ) );
+		size_t bytes_to_read;
+		if (reading_stdin) {
+			bytes_to_read = 1;
+		} else {
+			if ((length != CAT_FULL_FILE)
+			    && (length - (off64_t)count <= (off64_t)(blen - copied_bytes))) {
+				bytes_to_read = (size_t) (length - count);
+			} else {
+				bytes_to_read = blen - copied_bytes;
+			}
+		}
+		bytes = read(fd, buff + copied_bytes, bytes_to_read);
 		bytes += copied_bytes;
 		copied_bytes = 0;
 
@@ -240,6 +259,10 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			}
 			count += bytes;
 			reads++;
+		}
+
+		if (reading_stdin) {
+			fflush(stdout);
 		}
 	} while (bytes > 0 && !should_quit && (count < length || length == CAT_FULL_FILE));
 
@@ -283,7 +306,7 @@ int cmd_cat(char **argv)
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "xhvmH:t:b:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "xhvmH:t:b:s", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_cat(HELP_LONG);
@@ -316,6 +339,9 @@ int cmd_cat(char **argv)
 			break;
 		case 'x':
 			hex = true;
+			break;
+		case 's':
+			dash_represents_stdin = true;
 			break;
 		}
 	}
