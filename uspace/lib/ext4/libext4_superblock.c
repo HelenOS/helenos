@@ -1011,7 +1011,7 @@ int ext4_superblock_write_direct(service_id_t service_id,
 		ext4_superblock_t *sb)
 {
 	int rc;
-	uint32_t phys_block_size;
+	size_t phys_block_size;
 
 	/* Load physical block size from block device */
 	rc = block_get_bsize(service_id, &phys_block_size);
@@ -1022,7 +1022,7 @@ int ext4_superblock_write_direct(service_id_t service_id,
 	/* Compute address of the first block */
 	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
 	/* Compute number of block to write */
-	uint32_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
+	size_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
 
 	/* Check alignment */
 	if (EXT4_SUPERBLOCK_SIZE % phys_block_size) {
