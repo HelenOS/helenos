@@ -111,14 +111,14 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 }
 
 
-static void play(playback_t *pb, unsigned sampling_rate, unsigned sample_size,
-    unsigned channels, bool sign)
+static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
+    pcm_sample_format_t format)
 {
 	assert(pb);
 	assert(pb->device);
 	pb->buffer.position = pb->buffer.base;
-	printf("Playing: %dHz, %d-bit %ssigned samples, %d channel(s).\n",
-	    sampling_rate, sample_size, sign ? "": "un", channels);
+	printf("Playing: %dHz, %s, %d channel(s).\n",
+	    sampling_rate, pcm_sample_format_str(format), channels);
 	const size_t bytes = fread(pb->buffer.base, sizeof(uint8_t),
 	    pb->buffer.size, pb->source);
 	if (bytes != pb->buffer.size)
@@ -126,7 +126,7 @@ static void play(playback_t *pb, unsigned sampling_rate, unsigned sample_size,
 	printf("Buffer data ready.\n");
 	fibril_mutex_lock(&pb->mutex);
 	int ret = audio_pcm_start_playback(pb->device, pb->buffer.id,
-	    SUBBUFFERS, sampling_rate, sample_size, channels, sign);
+	    SUBBUFFERS, channels, sampling_rate, format);
 	if (ret != EOK) {
 		fibril_mutex_unlock(&pb->mutex);
 		printf("Failed to start playback: %s.\n", str_error(ret));
@@ -211,18 +211,18 @@ int main(int argc, char *argv[])
 	}
 	wave_header_t header;
 	fread(&header, sizeof(header), 1, pb.source);
-	unsigned rate, sample_size, channels;
-	bool sign;
+	unsigned rate, channels;
+	pcm_sample_format_t format;
 	const char *error;
-	ret = wav_parse_header(&header, NULL, NULL, &rate, &sample_size,
-	    &channels, &sign, &error);
+	ret = wav_parse_header(&header, NULL, NULL, &channels, &rate, &format,
+	    &error);
 	if (ret != EOK) {
 		printf("Error parsing wav header: %s.\n", error);
 		fclose(pb.source);
 		goto cleanup;
 	}
 
-	play(&pb, rate, sample_size, channels, sign);
+	play(&pb, channels, rate, format);
 	fclose(pb.source);
 
 cleanup:

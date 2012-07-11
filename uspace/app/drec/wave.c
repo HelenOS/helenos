@@ -39,8 +39,8 @@
 #include "wave.h"
 
 int wav_parse_header(void *file, const void **data, size_t *data_size,
-    unsigned *sampling_rate, unsigned *sample_size, unsigned *channels,
-    bool *sign, const char **error)
+    unsigned *channels, unsigned *sampling_rate, pcm_sample_format_t *format,
+    const char **error)
 {
 	if (!file) {
 		if (error)
@@ -85,6 +85,7 @@ int wav_parse_header(void *file, const void **data, size_t *data_size,
 		return EINVAL;
 	}
 
+
 	if (data)
 		*data = header->data;
 	if (data_size)
@@ -92,13 +93,20 @@ int wav_parse_header(void *file, const void **data, size_t *data_size,
 
 	if (sampling_rate)
 		*sampling_rate = uint32_t_le2host(header->sampling_rate);
-	if (sample_size)
-		*sample_size = uint32_t_le2host(header->sample_size);
 	if (channels)
 		*channels = uint16_t_le2host(header->channels);
-	if (sign)
-		*sign = uint32_t_le2host(header->sample_size) == 16
-		    ? true : false;
+	if (format) {
+		const unsigned size = uint32_t_le2host(header->sample_size);
+		switch (size) {
+		case 8: *format = PCM_SAMPLE_UINT8; break;
+		case 16: *format = PCM_SAMPLE_SINT16_LE; break;
+		case 24: *format = PCM_SAMPLE_SINT24_LE; break;
+		case 32: *format = PCM_SAMPLE_SINT32_LE; break;
+		default:
+			*error = "Unknown format";
+			return ENOTSUP;
+		}
+	}
 	if (error)
 		*error = "no error";
 

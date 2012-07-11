@@ -37,6 +37,7 @@
 #include <ddf/driver.h>
 #include <libarch/ddi.h>
 #include <errno.h>
+#include <pcm_sample_format.h>
 
 #include "registers.h"
 
@@ -70,10 +71,10 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id);
 int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session);
 int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id);
 int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
-    unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign);
+    unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
 int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id);
 int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
-    unsigned sample_rate, unsigned sample_size, unsigned channels, bool sign);
+    unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
 int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id);
 
 #endif

@@ -46,14 +46,15 @@
 
 #include <stdio.h>
 #include <macros.h>
+#include <pcm_sample_format.h>
 
 #include "wave.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/pcm"
 #define SUBBUFFERS 2
 
-const unsigned sampling_rate = 44100, sample_size = 16, channels = 2;
-bool sign = true;
+const unsigned sampling_rate = 44100, channels = 2, sample_size = 16;
+const pcm_sample_format_t format = PCM_SAMPLE_SINT16_LE;
 
 typedef struct {
 	struct {
@@ -103,16 +104,16 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 }
 
 
-static void record(record_t *rec, unsigned sampling_rate, unsigned sample_size,
-    unsigned channels, bool sign)
+static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
+    pcm_sample_format_t format)
 {
 	assert(rec);
 	assert(rec->device);
 	rec->buffer.position = rec->buffer.base;
-	printf("Recording: %dHz, %d-bit %ssigned samples, %d channel(s).\n",
-	    sampling_rate, sample_size, sign ? "": "un", channels);
+	printf("Recording: %dHz, %s, %d channel(s).\n",
+	    sampling_rate, pcm_sample_format_str(format), channels);
 	int ret = audio_pcm_start_record(rec->device, rec->buffer.id,
-	    SUBBUFFERS, sampling_rate, sample_size, channels, sign);
+	    SUBBUFFERS, channels, sampling_rate, format);
 	if (ret != EOK) {
 		printf("Failed to start recording: %s.\n", str_error(ret));
 		return;
@@ -200,12 +201,12 @@ int main(int argc, char *argv[])
 		.channels = channels,
 		.sampling_rate = sampling_rate,
 		.sample_size = sample_size,
-		.byte_rate = (sampling_rate / 8) * channels,
-		.block_align = (sampling_rate / 8) * channels,
+		.byte_rate = sampling_rate * (sample_size / 8) * channels,
+		.block_align = (sample_size / 8) * channels,
 		.subchunk2_id = SUBCHUNK2_ID,
 	};
 	fwrite(&header, sizeof(header), 1, rec.file);
-	record(&rec, sampling_rate, sample_size, channels, sign);
+	record(&rec, sampling_rate, channels, format);
 	fclose(rec.file);
 
 cleanup:

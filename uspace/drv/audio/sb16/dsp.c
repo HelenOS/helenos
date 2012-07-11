@@ -146,12 +146,9 @@ static inline void sb_clear_buffer(sb_dsp_t *dsp)
 	dsp->buffer.size = 0;
 }
 
-static inline size_t sample_count(unsigned sample_size, size_t byte_count)
+static inline size_t sample_count(pcm_sample_format_t format, size_t byte_count)
 {
-	if (sample_size == 16) {
-		return byte_count / 2;
-	}
-	return byte_count;
+	return byte_count / pcm_sample_format_size(format);
 }
 
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
@@ -260,7 +257,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 }
 
 int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
-    unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
+    unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
 
@@ -275,26 +272,29 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 
 	/* Check supported parameters */
 	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
-	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
-	    sign ? "" : "un", sample_size, channels);
+	    "%s, %u channel(s).", id, parts, sampling_rate,
+	    pcm_sample_format_str(format), channels);
 	if (id != BUFFER_ID)
 		return ENOENT;
-	if (sample_size != 16) // FIXME We only support 16 bit playback
-		return ENOTSUP;
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 	if (sampling_rate > 44100)
+		return ENOTSUP;
+	// FIXME We only support 16 bit playback
+	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
 		return ENOTSUP;
 
 	dsp->event_exchange = async_exchange_begin(dsp->event_session);
 	if (!dsp->event_exchange)
 		return ENOMEM;
 
+	const bool sign = (format == PCM_SAMPLE_SINT16_LE);
+
 	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
 	sb_dsp_write(dsp, sampling_rate >> 8);
 	sb_dsp_write(dsp, sampling_rate & 0xff);
 
-	ddf_log_verbose("Sampling rate: %hhx:%hhx.",
+	ddf_log_verbose("Sample rate: %hhx:%hhx.",
 	    sampling_rate >> 8, sampling_rate & 0xff);
 
 #ifdef AUTO_DMA_MODE
@@ -307,13 +307,13 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
 	sb_dsp_write(dsp, dsp->active.mode);
 
-	dsp->active.samples = sample_count(sample_size, play_block_size);
+	dsp->active.samples = sample_count(format, play_block_size);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
 
 	ddf_log_verbose("Playback started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
-	    sampling_rate / dsp->active.samples);
+	    sampling_rate / (dsp->active.samples * channels));
 
 	dsp->active.playing = true;
 
@@ -331,7 +331,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
 }
 
 int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
-    unsigned sampling_rate, unsigned sample_size, unsigned channels, bool sign)
+    unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
 
@@ -346,20 +346,23 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
 
 	/* Check supported parameters */
 	ddf_log_debug("Requested recording on buffer \"%u\" (%u parts): %uHz, "
-	    "%ssinged %u bit, %u channel(s).", id, parts, sampling_rate,
-	    sign ? "" : "un", sample_size, channels);
+	    "%s, %u channel(s).", id, parts, sampling_rate,
+	    pcm_sample_format_str(format), channels);
 	if (id != BUFFER_ID)
 		return ENOENT;
-	if (sample_size != 16) // FIXME We only support 16 bit playback
-		return ENOTSUP;
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 	if (sampling_rate > 44100)
+		return ENOTSUP;
+	// FIXME We only support 16 bit recording
+	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
 		return ENOTSUP;
 
 	dsp->event_exchange = async_exchange_begin(dsp->event_session);
 	if (!dsp->event_exchange)
 		return ENOMEM;
+
+	const bool sign = (format == PCM_SAMPLE_SINT16_LE);
 
 	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
 	sb_dsp_write(dsp, sampling_rate >> 8);
@@ -378,13 +381,13 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
 	sb_dsp_write(dsp, dsp->active.mode);
 
-	dsp->active.samples = sample_count(sample_size, play_block_size);
+	dsp->active.samples = sample_count(format, play_block_size);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
 
 	ddf_log_verbose("Recording started started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
-	    sampling_rate / dsp->active.samples);
+	    sampling_rate / (dsp->active.samples * channels));
 	dsp->active.playing = false;
 
 	return EOK;

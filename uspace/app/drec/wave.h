@@ -36,6 +36,7 @@
 
 #include <stdint.h>
 #include <bool.h>
+#include <pcm_sample_format.h>
 
 /** Wave file header format.
  *
@@ -89,7 +90,7 @@ typedef struct wave_header {
 } wave_header_t;
 
 int wav_parse_header(void *, const void**, size_t *, unsigned *, unsigned *,
-    unsigned *, bool *, const char **error_str);
+    pcm_sample_format_t *, const char **);
 
 #endif
 /**

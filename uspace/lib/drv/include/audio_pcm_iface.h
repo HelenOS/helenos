@@ -38,6 +38,7 @@
 
 #include <async.h>
 #include <bool.h>
+#include <pcm_sample_format.h>
 
 #include "ddf/driver.h"
 
@@ -47,11 +48,11 @@ int audio_pcm_get_buffer(async_exch_t *, void **, size_t *, unsigned *,
 int audio_pcm_release_buffer(async_exch_t *, unsigned);
 
 int audio_pcm_start_playback(async_exch_t *, unsigned, unsigned,
-    unsigned, uint16_t, uint8_t, bool);
+    unsigned, unsigned, pcm_sample_format_t);
 int audio_pcm_stop_playback(async_exch_t *, unsigned);
 
 int audio_pcm_start_record(async_exch_t *, unsigned, unsigned,
-    unsigned, uint16_t, uint8_t, bool);
+    unsigned, unsigned, pcm_sample_format_t);
 int audio_pcm_stop_record(async_exch_t *, unsigned);
 
 /** Audio pcm communication interface. */
@@ -61,10 +62,10 @@ typedef struct {
 	int (*release_buffer)(ddf_fun_t *, unsigned);
 	int (*set_event_session)(ddf_fun_t *, unsigned, async_sess_t *);
 	int (*start_playback)(ddf_fun_t *, unsigned, unsigned,
-	    unsigned, unsigned, unsigned, bool);
+	    unsigned, unsigned, pcm_sample_format_t);
 	int (*stop_playback)(ddf_fun_t *, unsigned);
 	int (*start_record)(ddf_fun_t *, unsigned, unsigned,
-	    unsigned, unsigned, unsigned, bool);
+	    unsigned, unsigned, pcm_sample_format_t);
 	int (*stop_record)(ddf_fun_t *, unsigned);
 } audio_pcm_iface_t;
 
