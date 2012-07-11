@@ -10,6 +10,7 @@
 #include <macros.h>
 #include <config.h>
 #include <arch.h>
+#include <proc/thread.h>
 
 /* 
  * Maximum total number of smp_calls in the system is: 

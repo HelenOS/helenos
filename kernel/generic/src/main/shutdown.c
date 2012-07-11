@@ -36,6 +36,7 @@
  */
 
 #include <arch.h>
+#include <proc/task.h>
 #include <func.h>
 #include <print.h>
 

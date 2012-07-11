@@ -36,12 +36,13 @@
  */
 
 #include <smp/smp_call.h>
+#include <arch/barrier.h>
+#include <arch/asm.h>  /* interrupt_disable */
 #include <arch.h>
 #include <config.h>
 #include <preemption.h>
-#include <arch/barrier.h>
-#include <arch/asm.h>  /* interrupt_disable */
-
+#include <debug.h>
+#include <cpu.h>
 
 static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg);
 static void call_done(smp_call_t *call_info);

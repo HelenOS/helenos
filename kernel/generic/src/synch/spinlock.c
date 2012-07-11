@@ -44,6 +44,7 @@
 #include <debug.h>
 #include <symtab.h>
 #include <stacktrace.h>
+#include <cpu.h>
 
 #ifdef CONFIG_SMP
 

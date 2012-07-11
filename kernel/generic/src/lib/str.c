@@ -110,6 +110,7 @@
 #include <align.h>
 #include <debug.h>
 #include <macros.h>
+#include <mm/slab.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef WCHAR_IS_UNSIGNED

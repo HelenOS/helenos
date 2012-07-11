@@ -42,6 +42,10 @@
 #include <arch/cpu.h>
 #include <arch/context.h>
 #include <adt/list.h>
+#include <arch.h>
+
+#define CPU                  THE->cpu
+
 
 /** CPU structure.
  *

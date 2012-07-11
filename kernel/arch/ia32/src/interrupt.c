@@ -54,6 +54,7 @@
 #include <symtab.h>
 #include <stacktrace.h>
 #include <smp/smp_call.h>
+#include <proc/task.h>
 
 /*
  * Interrupt and exception dispatching.

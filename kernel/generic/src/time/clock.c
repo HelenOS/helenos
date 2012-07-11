@@ -224,7 +224,7 @@ void clock(void)
 					udebug_before_thread_runs();
 #endif
 			} else {
-				THREAD->need_resched = true;
+				preemption_set_needed();
 			}
 		}
 	}

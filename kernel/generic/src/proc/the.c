@@ -42,6 +42,7 @@
  */
 
 #include <arch.h>
+#include <debug.h>
 
 /** Initialize THE structure
  *
@@ -52,7 +53,7 @@
  */
 void the_initialize(the_t *the)
 {
-	the->preemption_disabled = 0;
+	the->preemption = 0;
 	the->cpu = NULL;
 	the->thread = NULL;
 	the->task = NULL;

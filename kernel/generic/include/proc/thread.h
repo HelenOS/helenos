@@ -48,6 +48,10 @@
 #include <abi/proc/uarg.h>
 #include <udebug/udebug.h>
 #include <abi/sysinfo.h>
+#include <arch.h>
+
+
+#define THREAD              THE->thread
 
 #define THREAD_NAME_BUFLEN  20
 
@@ -153,9 +157,6 @@ typedef struct thread {
 	
 	/** Thread state. */
 	state_t state;
-	
-	/** The thread would have been rescheduled had it not disabled preemption.*/
-	bool need_resched;
 	
 	/** Thread CPU. */
 	cpu_t *cpu;

@@ -48,6 +48,7 @@
 #include <align.h>
 #include <macros.h>
 #include <bitops.h>
+#include <proc/thread.h>
 
 static ra_arena_t *km_ni_arena;
 

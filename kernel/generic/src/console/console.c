@@ -51,6 +51,8 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <str.h>
+#include <mm/frame.h> /* SIZE2FRAMES */
+#include <mm/slab.h>  /* malloc */
 
 #define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))

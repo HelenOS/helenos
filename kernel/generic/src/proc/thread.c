@@ -374,7 +374,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	
 	thread->nomigrate = 0;
 	thread->state = Entering;
-	thread->need_resched = false;
 	
 	timeout_initialize(&thread->sleep_timeout);
 	thread->sleep_interruptible = false;

@@ -56,6 +56,10 @@
 #include <udebug/udebug.h>
 #include <mm/as.h>
 #include <abi/sysinfo.h>
+#include <arch.h>
+
+#define TASK                 THE->task
+
 
 struct thread;
 

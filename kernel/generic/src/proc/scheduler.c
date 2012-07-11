@@ -64,6 +64,7 @@
 #include <print.h>
 #include <debug.h>
 #include <stacktrace.h>
+#include <cpu.h>
 
 static void scheduler_separated_stack(void);
 
@@ -420,7 +421,7 @@ void scheduler_separated_stack(void)
 		/* Must be run after the switch to scheduler stack */
 		after_thread_ran();
 		
-		THREAD->need_resched = false;
+		preemption_clear_needed();
 		
 		switch (THREAD->state) {
 		case Running:
