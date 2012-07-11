@@ -37,23 +37,51 @@
 
 #include <preemption.h>
 #include <arch.h>
-#include <arch/asm.h>
-#include <arch/barrier.h>
+#include <compiler/barrier.h>
 #include <debug.h>
+#include <proc/scheduler.h>
 
 /** Increment preemption disabled counter. */
 void preemption_disable(void)
 {
 	THE->preemption_disabled++;
-	memory_barrier();
+	compiler_barrier();
 }
 
 /** Decrement preemption disabled counter. */
 void preemption_enable(void)
 {
+	preemption_enable_noresched();
+	
+	if (PREEMPTION_ENABLED && THREAD && THREAD->need_resched) {
+		preemption_enabled_scheduler();
+	}
+}
+
+/** Decrement preemption disabled counter. */
+void preemption_enable_noresched(void)
+{
 	ASSERT(PREEMPTION_DISABLED);
-	memory_barrier();
+	compiler_barrier();
 	THE->preemption_disabled--;
+}
+
+/** Preemption was enabled. Calls scheduler(). */
+void preemption_enabled_scheduler(void)
+{
+	ASSERT(PREEMPTION_ENABLED);
+	
+	/* 
+	 * Avoid a race between a thread about to invoke the scheduler() 
+	 * after checking THREAD->need_resched and an interrupt that
+	 * occurs right after the check.
+	 * 
+	 * Also ensures that code that relies on disabled interrupts
+	 * to suppress preemption continues to work.
+	 */
+	if (!interrupts_disabled()) {
+		scheduler();
+	}
 }
 
 /** @}

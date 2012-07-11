@@ -211,17 +211,21 @@ void clock(void)
 		}
 		irq_spinlock_unlock(&THREAD->lock, false);
 		
-		if ((!ticks) && (!PREEMPTION_DISABLED)) {
-			scheduler();
+		if (ticks == 0) {
+			if (PREEMPTION_ENABLED) {
+				scheduler();
 #ifdef CONFIG_UDEBUG
-			/*
-			 * Give udebug chance to stop the thread
-			 * before it begins executing userspace code.
-			 */
-			istate_t *istate = THREAD->udebug.uspace_state;
-			if ((istate) && (istate_from_uspace(istate)))
-				udebug_before_thread_runs();
+				/*
+				* Give udebug chance to stop the thread
+				* before it begins executing userspace code.
+				*/
+				istate_t *istate = THREAD->udebug.uspace_state;
+				if ((istate) && (istate_from_uspace(istate)))
+					udebug_before_thread_runs();
 #endif
+			} else {
+				THREAD->need_resched = true;
+			}
 		}
 	}
 }

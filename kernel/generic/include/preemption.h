@@ -37,6 +37,10 @@
 
 extern void preemption_disable(void);
 extern void preemption_enable(void);
+extern void preemption_enable_noresched(void);
+extern void preemption_enabled_scheduler(void);
+
+
 
 #endif
 

@@ -403,6 +403,7 @@ void scheduler_separated_stack(void)
 	
 	ASSERT((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
 	ASSERT(CPU != NULL);
+	ASSERT(interrupts_disabled());
 	
 	/*
 	 * Hold the current task and the address space to prevent their
@@ -418,6 +419,8 @@ void scheduler_separated_stack(void)
 	if (THREAD) {
 		/* Must be run after the switch to scheduler stack */
 		after_thread_ran();
+		
+		THREAD->need_resched = false;
 		
 		switch (THREAD->state) {
 		case Running:

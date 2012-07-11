@@ -154,6 +154,9 @@ typedef struct thread {
 	/** Thread state. */
 	state_t state;
 	
+	/** The thread would have been rescheduled had it not disabled preemption.*/
+	bool need_resched;
+	
 	/** Thread CPU. */
 	cpu_t *cpu;
 	/** Containing task. */

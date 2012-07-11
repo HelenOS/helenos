@@ -52,7 +52,8 @@
 #define THREAD               THE->thread
 #define TASK                 THE->task
 #define AS                   THE->as
-#define PREEMPTION_DISABLED  THE->preemption_disabled
+#define PREEMPTION_DISABLED  (0 != THE->preemption_disabled)
+#define PREEMPTION_ENABLED   (0 == THE->preemption_disabled)
 #define MAGIC                UINT32_C(0xfacefeed)
 
 #define container_check(ctn1, ctn2)  ((ctn1) == (ctn2))
