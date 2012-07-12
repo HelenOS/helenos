@@ -421,8 +421,6 @@ void scheduler_separated_stack(void)
 		/* Must be run after the switch to scheduler stack */
 		after_thread_ran();
 		
-		preemption_clear_needed();
-		
 		switch (THREAD->state) {
 		case Running:
 			irq_spinlock_unlock(&THREAD->lock, false);
