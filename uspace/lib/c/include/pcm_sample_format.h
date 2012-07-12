@@ -61,77 +61,77 @@ typedef enum {
 static inline size_t pcm_sample_format_size(pcm_sample_format_t format)
 {
 	switch(format) {
-		case PCM_SAMPLE_UINT8:
-		case PCM_SAMPLE_SINT8:
-			return 1;
-		case PCM_SAMPLE_UINT16_LE:
-		case PCM_SAMPLE_UINT16_BE:
-		case PCM_SAMPLE_SINT16_LE:
-		case PCM_SAMPLE_SINT16_BE:
-			return 2;
-		case PCM_SAMPLE_UINT24_LE:
-		case PCM_SAMPLE_UINT24_BE:
-		case PCM_SAMPLE_SINT24_LE:
-		case PCM_SAMPLE_SINT24_BE:
-			return 3;
-		case PCM_SAMPLE_UINT24_32_LE:
-		case PCM_SAMPLE_UINT24_32_BE:
-		case PCM_SAMPLE_SINT24_32_LE:
-		case PCM_SAMPLE_SINT24_32_BE:
-		case PCM_SAMPLE_UINT32_LE:
-		case PCM_SAMPLE_UINT32_BE:
-		case PCM_SAMPLE_SINT32_LE:
-		case PCM_SAMPLE_SINT32_BE:
-		case PCM_SAMPLE_FLOAT32:
-			return 4;
-		default:
-			return 0;
+	case PCM_SAMPLE_UINT8:
+	case PCM_SAMPLE_SINT8:
+		return 1;
+	case PCM_SAMPLE_UINT16_LE:
+	case PCM_SAMPLE_UINT16_BE:
+	case PCM_SAMPLE_SINT16_LE:
+	case PCM_SAMPLE_SINT16_BE:
+		return 2;
+	case PCM_SAMPLE_UINT24_LE:
+	case PCM_SAMPLE_UINT24_BE:
+	case PCM_SAMPLE_SINT24_LE:
+	case PCM_SAMPLE_SINT24_BE:
+		return 3;
+	case PCM_SAMPLE_UINT24_32_LE:
+	case PCM_SAMPLE_UINT24_32_BE:
+	case PCM_SAMPLE_SINT24_32_LE:
+	case PCM_SAMPLE_SINT24_32_BE:
+	case PCM_SAMPLE_UINT32_LE:
+	case PCM_SAMPLE_UINT32_BE:
+	case PCM_SAMPLE_SINT32_LE:
+	case PCM_SAMPLE_SINT32_BE:
+	case PCM_SAMPLE_FLOAT32:
+		return 4;
+	default:
+		return 0;
 	}
 }
 
 static inline const char * pcm_sample_format_str(pcm_sample_format_t format)
 {
 	switch(format) {
-		case PCM_SAMPLE_UINT8:
-			return "8 bit unsinged";
-		case PCM_SAMPLE_SINT8:
-			return "8 bit singed";
-		case PCM_SAMPLE_UINT16_LE:
-			return "16 bit unsigned(LE)";
-		case PCM_SAMPLE_SINT16_LE:
-			return "16 bit singed(LE)";
-		case PCM_SAMPLE_UINT16_BE:
-			return "16 bit unsigned(BE)";
-		case PCM_SAMPLE_SINT16_BE:
-			return "16 bit signed(BE)";
-		case PCM_SAMPLE_UINT24_LE:
-			return "24 bit unsigned(LE)";
-		case PCM_SAMPLE_SINT24_LE:
-			return "24 bit signed(LE)";
-		case PCM_SAMPLE_UINT24_BE:
-			return "24 bit unsigned(BE)";
-		case PCM_SAMPLE_SINT24_BE:
-			return "24 bit signed(BE)";
-		case PCM_SAMPLE_UINT24_32_LE:
-			return "24 bit(4byte aligned) unsigned(LE)";
-		case PCM_SAMPLE_UINT24_32_BE:
-			return "24 bit(4byte aligned) unsigned(BE)";
-		case PCM_SAMPLE_SINT24_32_LE:
-			return "24 bit(4byte aligned) signed(LE)";
-		case PCM_SAMPLE_SINT24_32_BE:
-			return "24 bit(4byte aligned) signed(BE)";
-		case PCM_SAMPLE_UINT32_LE:
-			return "32 bit unsigned(LE)";
-		case PCM_SAMPLE_UINT32_BE:
-			return "32 bit unsigned(BE)";
-		case PCM_SAMPLE_SINT32_LE:
-			return "32 bit signed(LE)";
-		case PCM_SAMPLE_SINT32_BE:
-			return "32 bit signed(BE)";
-		case PCM_SAMPLE_FLOAT32:
-			return "32 bit float";
-		default:
-			return "Unknown sample format";
+	case PCM_SAMPLE_UINT8:
+		return "8 bit unsinged";
+	case PCM_SAMPLE_SINT8:
+		return "8 bit singed";
+	case PCM_SAMPLE_UINT16_LE:
+		return "16 bit unsigned(LE)";
+	case PCM_SAMPLE_SINT16_LE:
+		return "16 bit singed(LE)";
+	case PCM_SAMPLE_UINT16_BE:
+		return "16 bit unsigned(BE)";
+	case PCM_SAMPLE_SINT16_BE:
+		return "16 bit signed(BE)";
+	case PCM_SAMPLE_UINT24_LE:
+		return "24 bit unsigned(LE)";
+	case PCM_SAMPLE_SINT24_LE:
+		return "24 bit signed(LE)";
+	case PCM_SAMPLE_UINT24_BE:
+		return "24 bit unsigned(BE)";
+	case PCM_SAMPLE_SINT24_BE:
+		return "24 bit signed(BE)";
+	case PCM_SAMPLE_UINT24_32_LE:
+		return "24 bit(4byte aligned) unsigned(LE)";
+	case PCM_SAMPLE_UINT24_32_BE:
+		return "24 bit(4byte aligned) unsigned(BE)";
+	case PCM_SAMPLE_SINT24_32_LE:
+		return "24 bit(4byte aligned) signed(LE)";
+	case PCM_SAMPLE_SINT24_32_BE:
+		return "24 bit(4byte aligned) signed(BE)";
+	case PCM_SAMPLE_UINT32_LE:
+		return "32 bit unsigned(LE)";
+	case PCM_SAMPLE_UINT32_BE:
+		return "32 bit unsigned(BE)";
+	case PCM_SAMPLE_SINT32_LE:
+		return "32 bit signed(LE)";
+	case PCM_SAMPLE_SINT32_BE:
+		return "32 bit signed(BE)";
+	case PCM_SAMPLE_FLOAT32:
+		return "32 bit float";
+	default:
+		return "Unknown sample format";
 	}
 }
 
