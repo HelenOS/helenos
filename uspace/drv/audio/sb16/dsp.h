@@ -56,8 +56,12 @@ typedef struct sb_dsp_t {
 	struct {
 		uint8_t mode;
 		uint16_t samples;
-		bool playing;
 	} active;
+	enum {
+		DSP_PLAYBACK,
+		DSP_RECORDING,
+		DSP_STOPPED,
+	} status;
 	async_sess_t *event_session;
 	async_exch_t *event_exchange;
 	ddf_dev_t *sb_dev;

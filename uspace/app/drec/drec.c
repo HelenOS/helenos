@@ -88,9 +88,19 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		if (IPC_GET_IMETHOD(call) != IPC_FIRST_USER_METHOD) {
-			printf("Unknown event.\n");
+		switch(IPC_GET_IMETHOD(call)) {
+		case PCM_EVENT_RECORDING_DONE:
+			printf("+");
+			async_answer_0(callid, EOK);
 			break;
+		case PCM_EVENT_RECORDING_TERMINATED:
+			printf("\nRecording terminated\n");
+			return;
+		default:
+			printf("Unknown event %d.\n", IPC_GET_IMETHOD(call));
+			async_answer_0(callid, ENOTSUP);
+			continue;
+
 		}
 		const size_t bytes = fwrite(rec->buffer.position,
 		   sizeof(uint8_t), buffer_part, rec->file);
@@ -206,7 +216,7 @@ int main(int argc, char *argv[])
 		.subchunk2_id = SUBCHUNK2_ID,
 	};
 	fwrite(&header, sizeof(header), 1, rec.file);
-	record(&rec, sampling_rate, channels, format);
+	record(&rec, channels, sampling_rate, format);
 	fclose(rec.file);
 
 cleanup:

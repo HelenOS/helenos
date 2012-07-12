@@ -90,11 +90,25 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		if (IPC_GET_IMETHOD(call) != IPC_FIRST_USER_METHOD) {
-			printf("Unknown event.\n");
+		switch(IPC_GET_IMETHOD(call)) {
+		case PCM_EVENT_PLAYBACK_DONE:
+			printf("+");
+			async_answer_0(callid, EOK);
 			break;
+		case PCM_EVENT_PLAYBACK_TERMINATED:
+			printf("\nPlayback terminated\n");
+			fibril_mutex_lock(&pb->mutex);
+			pb->playing = false;
+			fibril_condvar_signal(&pb->cv);
+			async_answer_0(callid, EOK);
+			fibril_mutex_unlock(&pb->mutex);
+			return;
+		default:
+			printf("Unknown event %d.\n", IPC_GET_IMETHOD(call));
+			async_answer_0(callid, ENOTSUP);
+			continue;
+
 		}
-		printf("+");
 		const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
 		   buffer_part, pb->source);
 		bzero(pb->buffer.position + bytes, buffer_part - bytes);
@@ -102,10 +116,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 
 		if (pb->buffer.position >= (pb->buffer.base + pb->buffer.size))
 			pb->buffer.position = pb->buffer.base;
-		async_answer_0(callid, EOK);
 		if (bytes == 0) {
+			fibril_mutex_lock(&pb->mutex);
 			pb->playing = false;
 			fibril_condvar_signal(&pb->cv);
+			fibril_mutex_unlock(&pb->mutex);
 		}
 	}
 }
@@ -137,7 +152,9 @@ static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
 	    fibril_condvar_wait(&pb->cv, &pb->mutex));
 
 	audio_pcm_stop_playback(pb->device, pb->buffer.id);
-	fibril_condvar_wait(&pb->cv, &pb->mutex);
+	for (pb->playing = true; pb->playing;
+		fibril_condvar_wait(&pb->cv, &pb->mutex));
+	fibril_mutex_unlock(&pb->mutex);
 	printf("\n");
 }
 

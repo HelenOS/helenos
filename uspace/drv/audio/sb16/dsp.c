@@ -32,12 +32,13 @@
  * @brief DSP helper functions implementation
  */
 
+#include <bool.h>
 #include <devman.h>
 #include <device/hw_res.h>
 #include <libarch/ddi.h>
 #include <libarch/barrier.h>
 #include <str_error.h>
-#include <bool.h>
+#include <audio_pcm_iface.h>
 
 #include "dma.h"
 #include "ddf_log.h"
@@ -161,6 +162,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	dsp->event_session = NULL;
 	dsp->event_exchange = NULL;
 	dsp->sb_dev = dev;
+	dsp->status = DSP_STOPPED;
 	sb_dsp_reset(dsp);
 	/* "DSP takes about 100 microseconds to initialize itself" */
 	udelay(100);
@@ -187,7 +189,22 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	if (dsp->event_exchange) {
-		async_msg_0(dsp->event_exchange, IPC_FIRST_USER_METHOD);
+		switch (dsp->status) {
+		case DSP_PLAYBACK:
+			async_msg_0(dsp->event_exchange,
+			    PCM_EVENT_PLAYBACK_DONE);
+			break;
+		case DSP_RECORDING:
+			async_msg_0(dsp->event_exchange,
+			    PCM_EVENT_RECORDING_DONE);
+			break;
+		default:
+		case DSP_STOPPED:
+			ddf_log_warning("Interrupt while DSP stopped and "
+			    "event exchange present. Terminating exchange");
+			async_exchange_end(dsp->event_exchange);
+			dsp->event_exchange = NULL;
+		}
 	} else {
 		ddf_log_warning("Interrupt with no event consumer.");
 	}
@@ -315,7 +332,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	    "(~1/%u sec)", dsp->active.samples,
 	    sampling_rate / (dsp->active.samples * channels));
 
-	dsp->active.playing = true;
+	dsp->status = DSP_PLAYBACK;
 
 	return EOK;
 }
@@ -325,8 +342,11 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
 	assert(dsp);
 	if (id != BUFFER_ID)
 		return ENOENT;
-	async_exchange_end(dsp->event_exchange);
 	sb_dsp_write(dsp, DMA_16B_EXIT);
+	ddf_log_debug("Stopping playback on buffer %u.", id);
+	async_msg_0(dsp->event_exchange, PCM_EVENT_PLAYBACK_TERMINATED);
+	async_exchange_end(dsp->event_exchange);
+	dsp->event_exchange = NULL;
 	return EOK;
 }
 
@@ -388,7 +408,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	ddf_log_verbose("Recording started started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
 	    sampling_rate / (dsp->active.samples * channels));
-	dsp->active.playing = false;
+	dsp->status = DSP_RECORDING;
 
 	return EOK;
 }
@@ -398,8 +418,11 @@ int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id)
 	assert(dsp);
 	if (id != BUFFER_ID)
 		return ENOENT;
-	async_exchange_end(dsp->event_exchange);
 	sb_dsp_write(dsp, DMA_16B_EXIT);
+	ddf_log_debug("Stopping playback on buffer %u.", id);
+	async_msg_0(dsp->event_exchange, PCM_EVENT_RECORDING_TERMINATED);
+	async_exchange_end(dsp->event_exchange);
+	dsp->event_exchange = NULL;
 	return EOK;
 }
 /**

@@ -42,6 +42,14 @@
 
 #include "ddf/driver.h"
 
+enum {
+	PCM_EVENT_PLAYBACK_DONE = IPC_FIRST_USER_METHOD,
+	PCM_EVENT_RECORDING_DONE,
+	PCM_EVENT_PLAYBACK_TERMINATED,
+	PCM_EVENT_RECORDING_TERMINATED
+};
+
+
 int audio_pcm_get_info_str(async_exch_t *, const char **);
 int audio_pcm_get_buffer(async_exch_t *, void **, size_t *, unsigned *,
     async_client_conn_t, void *);
