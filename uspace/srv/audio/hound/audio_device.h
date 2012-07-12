@@ -55,11 +55,10 @@ typedef struct {
 	struct {
 		fibril_mutex_t guard;
 		fibril_condvar_t wc;
+		unsigned id;
 		void *base;
 		size_t size;
-		audio_format_t format;
-		void *available_base;
-		size_t available_size;
+		void *position;
 	} buffer;
 	audio_source_t source;
 	audio_sink_t sink;

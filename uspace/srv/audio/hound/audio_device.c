@@ -41,41 +41,22 @@
 #include <str.h>
 #include <str_error.h>
 
+#include <audio_pcm_iface.h>
+
 #include "audio_device.h"
 #include "log.h"
 
+#define BUFFER_BLOCKS 2
+
 static int device_sink_connection_callback(void* arg);
 static int device_source_connection_callback(void* arg, const audio_format_t *f);
-static int audio_device_get_buffer(audio_device_t *dev)
-{
-	// TODO implement
-	return ENOTSUP;
-}
-static int audio_device_release_buffer(audio_device_t *dev)
-{
-	// TODO implement
-	return ENOTSUP;
-}
-static int audio_device_start_playback(audio_device_t *dev)
-{
-	// TODO implement
-	return ENOTSUP;
-}
-static int audio_device_stop_playback(audio_device_t *dev)
-{
-	// TODO implement
-	return ENOTSUP;
-}
-static int audio_device_start_recording(audio_device_t *dev)
-{
-	// TODO implement
-	return ENOTSUP;
-}
-static int audio_device_stop_recording(audio_device_t *dev)
-{
-	// TODO implement
-	return ENOTSUP;
-}
+static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static int get_buffer(audio_device_t *dev);
+static int release_buffer(audio_device_t *dev);
+static int start_playback(audio_device_t *dev);
+static int stop_playback(audio_device_t *dev);
+static int start_recording(audio_device_t *dev);
+static int stop_recording(audio_device_t *dev);
 
 
 int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
@@ -98,6 +79,14 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	audio_source_set_connected_callback(&dev->source,
 	    device_source_connection_callback, dev);
 
+	/* Init buffer members */
+	fibril_mutex_initialize(&dev->buffer.guard);
+	fibril_condvar_initialize(&dev->buffer.wc);
+	dev->buffer.id = 0;
+	dev->buffer.base = NULL;
+	dev->buffer.position = NULL;
+	dev->buffer.size = 0;
+
 	log_verbose("Initialized device (%p) '%s' with id %u.",
 	    dev, dev->name, dev->id);
 
@@ -108,29 +97,29 @@ static int device_sink_connection_callback(void* arg)
 {
 	audio_device_t *dev = arg;
 	if (list_count(&dev->sink.sources) == 1) {
-		int ret = audio_device_get_buffer(dev);
+		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
 			    str_error(ret));
 			return ret;
 		}
-		ret = audio_device_start_playback(dev);
+		ret = start_playback(dev);
 		if (ret != EOK) {
 			log_error("Failed to start playback: %s",
 			    str_error(ret));
-			audio_device_release_buffer(dev);
+			release_buffer(dev);
 			return ret;
 		}
 	}
 	if (list_count(&dev->sink.sources) == 0) {
-		int ret = audio_device_stop_playback(dev);
+		int ret = stop_playback(dev);
 		if (ret != EOK) {
 			log_error("Failed to start playback: %s",
 			    str_error(ret));
 			return ret;
 		}
 		dev->sink.format = AUDIO_FORMAT_ANY;
-		ret = audio_device_release_buffer(dev);
+		ret = release_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to release buffer: %s",
 			    str_error(ret));
@@ -144,29 +133,29 @@ static int device_source_connection_callback(void* arg, const audio_format_t *f)
 {
 	audio_device_t *dev = arg;
 	if (f) { /* Connected, f points to sink format */
-		int ret = audio_device_get_buffer(dev);
+		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
 			    str_error(ret));
 			return ret;
 		}
-		ret = audio_device_start_recording(dev);
+		ret = start_recording(dev);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));
-			audio_device_release_buffer(dev);
+			release_buffer(dev);
 			return ret;
 		}
 		dev->source.format = *f;
 	} else { /* Disconnected, f is NULL */
-		int ret = audio_device_stop_recording(dev);
+		int ret = stop_recording(dev);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));
 			return ret;
 		}
 		dev->sink.format = AUDIO_FORMAT_ANY;
-		ret = audio_device_release_buffer(dev);
+		ret = release_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to release buffer: %s",
 			    str_error(ret));
@@ -177,6 +166,133 @@ static int device_source_connection_callback(void* arg, const audio_format_t *f)
 	return EOK;
 }
 
+static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	/* Answer initial request */
+	async_answer_0(iid, EOK);
+	audio_device_t *dev = arg;
+	assert(dev);
+	while (1) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		async_answer_0(callid, EOK);
+		if (IPC_GET_IMETHOD(call) != IPC_FIRST_USER_METHOD) {
+			log_debug("Unknown event.\n");
+			continue;
+		}
+		// Assume playback for now
+		if (dev->buffer.position) {
+			dev->buffer.position += dev->buffer.size / BUFFER_BLOCKS;
+		}
+		if (!dev->buffer.position ||
+		    dev->buffer.position >= dev->buffer.base + dev->buffer.size)
+		{
+			dev->buffer.position = dev->buffer.base;
+		}
+		audio_sink_mix_inputs(
+		    &dev->sink, dev->buffer.base,
+		    dev->buffer.size / BUFFER_BLOCKS);
+
+	}
+	//TODO implement
+}
+
+static int get_buffer(audio_device_t *dev)
+{
+	assert(dev);
+	if (!dev->sess) {
+		log_debug("No connection to device");
+		return EIO;
+	}
+	if (dev->buffer.base) {
+		log_debug("We already have a buffer");
+		return EBUSY;
+	}
+
+	dev->buffer.size = 0;
+
+	async_exch_t *exch = async_exchange_begin(dev->sess);
+	const int ret = audio_pcm_get_buffer(exch, &dev->buffer.base,
+	    &dev->buffer.size, &dev->buffer.id, device_event_callback, dev);
+	async_exchange_end(exch);
+	return ret;
+}
+
+#define CHECK_BUFFER_AND_CONNECTION() \
+do { \
+	assert(dev); \
+	if (!dev->sess) { \
+		log_debug("No connection to device"); \
+		return EIO; \
+	} \
+	if (!dev->buffer.base) { \
+		log_debug("We don't have a buffer"); \
+		return ENOENT; \
+	} \
+} while (0)
+
+
+static int release_buffer(audio_device_t *dev)
+{
+	CHECK_BUFFER_AND_CONNECTION();
+
+	async_exch_t *exch = async_exchange_begin(dev->sess);
+	const int ret = audio_pcm_release_buffer(exch, dev->buffer.id);
+	async_exchange_end(exch);
+	if (ret == EOK) {
+		dev->buffer.base = NULL;
+		dev->buffer.size = 0;
+		dev->buffer.position = NULL;
+	}
+	return ret;
+}
+
+static int start_playback(audio_device_t *dev)
+{
+	CHECK_BUFFER_AND_CONNECTION();
+
+	/* Fill the buffer first */
+	audio_sink_mix_inputs(&dev->sink, dev->buffer.base, dev->buffer.size);
+
+	async_exch_t *exch = async_exchange_begin(dev->sess);
+	const int ret = audio_pcm_start_playback(exch, dev->buffer.id,
+	    BUFFER_BLOCKS, dev->sink.format.channels,
+	    dev->sink.format.sampling_rate, dev->sink.format.sample_format);
+	async_exchange_end(exch);
+	return ret;
+}
+
+static int stop_playback(audio_device_t *dev)
+{
+	CHECK_BUFFER_AND_CONNECTION();
+
+	async_exch_t *exch = async_exchange_begin(dev->sess);
+	const int ret = audio_pcm_stop_playback(exch, dev->buffer.id);
+	async_exchange_end(exch);
+	return ret;
+}
+
+static int start_recording(audio_device_t *dev)
+{
+	CHECK_BUFFER_AND_CONNECTION();
+
+	async_exch_t *exch = async_exchange_begin(dev->sess);
+	const int ret = audio_pcm_start_record(exch, dev->buffer.id,
+	    BUFFER_BLOCKS, dev->sink.format.channels,
+	    dev->sink.format.sampling_rate, dev->sink.format.sample_format);
+	async_exchange_end(exch);
+	return ret;
+}
+
+static int stop_recording(audio_device_t *dev)
+{
+	CHECK_BUFFER_AND_CONNECTION();
+
+	async_exch_t *exch = async_exchange_begin(dev->sess);
+	const int ret = audio_pcm_stop_record(exch, dev->buffer.id);
+	async_exchange_end(exch);
+	return ret;
+}
 
 /**
  * @}

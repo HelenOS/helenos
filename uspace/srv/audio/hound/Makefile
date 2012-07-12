@@ -27,8 +27,14 @@
 #
 
 USPACE_PREFIX = ../../..
-EXTRA_CFLAGS = -DNAME="\"hound\""
 BINARY = hound
+
+EXTRA_CFLAGS = \
+	-DNAME="\"hound\"" \
+	-I$(LIBDRV_PREFIX)/include
+
+LIBS = \
+	$(LIBDRV_PREFIX)/libdrv.a
 
 SOURCES = \
 	audio_device.c \
