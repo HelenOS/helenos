@@ -149,18 +149,8 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 	bzero(dest, size);
 	list_foreach(sink->sources, it) {
 		audio_source_t *source = audio_source_list_instance(it);
-		assert(audio_format_same(&sink->format, audio_source_format(source)));
-		const void *source_buffer;
-		size_t source_buffer_size = size;
-		int ret = audio_source_get_buffer(source, &source_buffer,
-		    &source_buffer_size);
-		if (ret != EOK) {
-			log_warning("Could not get buffer from source %s",
-			    source->name);
-			continue;
-		}
-		assert(source_buffer_size == size);
-		ret = audio_format_mix(dest, source_buffer, size, &sink->format);
+		const int ret =
+		    audio_source_add_self(source, dest, size, &sink->format);
 		if (ret != EOK) {
 			log_warning("Failed to mix source %s: %s",
 			    source->name, str_error(ret));

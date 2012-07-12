@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <macros.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
@@ -75,27 +76,43 @@ int audio_source_connected(audio_source_t *source, const audio_format_t *f)
 	return EOK;
 }
 
-int audio_source_get_buffer(audio_source_t *source, const void **buffer, size_t *size)
+int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
+    const audio_format_t *f)
 {
 	assert(source);
-	if (!buffer || !size) {
-		log_debug("Incorrect parameters.");
+	if (!buffer) {
+		log_debug("Non-existent buffer");
+		return EBADMEM;
+	}
+	if (!f || size == 0) {
+		log_debug("No format or zero size");
+	}
+	if (size % (pcm_sample_format_size(f->sample_format) * f->channels)) {
+		log_debug("Buffer does not fit integer number of frames");
 		return EINVAL;
 	}
-	if (source->get_data.hook)
-		source->get_data.hook(source->get_data.arg);
-	if (!source->available.base || !source->available.size)
-		return EOVERFLOW; /* In fact it's underflow */
+	if (!audio_format_same(&source->format, f)) {
+		log_debug("Format conversion is not supported yet");
+		return ENOTSUP;
+	}
 
-	const size_t requested_size =
-	    (*size == 0) || (*size > source->available.size)
-	    ? source->available.size : *size;
-	*buffer = source->available.base;
-	*size = requested_size;
-	source->available.size -= requested_size;
-	source->available.base += requested_size;
+	if (source->available.size == 0) {
+		log_debug("No data to add");
+		return EOVERFLOW; /* In fact this is underflow... */
+	}
+
+	const size_t real_size = min(size, source->available.size);
+	const int ret =
+	    audio_format_mix(buffer, source->available.base, real_size, f);
+	if (ret != EOK) {
+		log_debug("Mixing failed");
+		return ret;
+	}
+	source->available.base += real_size;
+	source->available.size -= real_size;
 	return EOK;
 }
+
 /**
  * @}
  */

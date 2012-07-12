@@ -75,7 +75,8 @@ static inline void audio_source_set_connected_callback(audio_source_t *source,
 	source->connected_change.hook = hook;
 }
 int audio_source_connected(audio_source_t *source, const audio_format_t *f);
-int audio_source_get_buffer(audio_source_t *source, const void **buffer, size_t *size);
+int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
+    const audio_format_t *f);
 static inline const audio_format_t *audio_source_format(const audio_source_t *s)
 {
 	assert(s);
