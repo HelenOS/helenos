@@ -67,26 +67,28 @@ int list_member(const link_t *link, const list_t *list)
 	return found;
 }
 
-/** Concatenate two lists
- *
- * Concatenate lists @a list1 and @a list2, producing a single
- * list @a list1 containing items from both (in @a list1, @a list2
- * order) and empty list @a list2.
- *
- * @param list1		First list and concatenated output
- * @param list2 	Second list and empty output.
- *
+/** Moves items of one list into another after the specified item.
+ * 
+ * Inserts all items of @a list after item at @a pos in another list. 
+ * Both lists may be empty. 
+ * 
+ * @param list Source list to move after pos. Empty afterwards.
+ * @param pos Source items will be placed after this item.
  */
-void list_concat(list_t *list1, list_t *list2)
+void list_splice(list_t *list, link_t *pos)
 {
-	if (list_empty(list2))
+	if (list_empty(list)) 
 		return;
-
-	list2->head.next->prev = list1->head.prev;
-	list2->head.prev->next = &list1->head;
-	list1->head.prev->next = list2->head.next;
-	list1->head.prev = list2->head.prev;
-	list_initialize(list2);
+	
+	/* Attach list to destination. */
+	list->head.next->prev = pos;
+	list->head.prev->next = pos->next;
+	
+	/* Link destination list to the added list. */
+	pos->next->prev = list->head.prev;
+	pos->next = list->head.next;
+	
+	list_initialize(list);
 }
 
 /** Count list items

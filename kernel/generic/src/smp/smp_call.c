@@ -190,7 +190,7 @@ void smp_call_ipi_recv(void)
 	list_initialize(&calls_list);
 	
 	spinlock_lock(&CPU->smp_calls_lock);
-	list_splice(&CPU->smp_pending_calls, &calls_list.head);
+	list_concat(&calls_list, &CPU->smp_pending_calls);
 	spinlock_unlock(&CPU->smp_calls_lock);
 
 	/* Walk the list manually, so that we can safely remove list items. */

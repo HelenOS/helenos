@@ -50,6 +50,12 @@ typedef struct list {
 	link_t head;  /**< List head. Does not have any data. */
 } list_t;
 
+
+extern int list_member(const link_t *, const list_t *);
+extern void list_splice(list_t *, link_t *);
+extern unsigned int list_count(const list_t *);
+
+
 /** Declare and initialize statically allocated list.
  *
  * @param name Name of the new statically allocated list.
@@ -300,55 +306,19 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
-/** Moves items of one list into another after the specified item.
- * 
- * Inserts all items of @a list after item at @a pos in another list. 
- * Both lists may be empty. 
- * 
- * @param list Source list to move after pos.
- * @param pos Source items will be placed after this item.
+/** Concatenate two lists
+ *
+ * Concatenate lists @a list1 and @a list2, producing a single
+ * list @a list1 containing items from both (in @a list1, @a list2
+ * order) and empty list @a list2.
+ *
+ * @param list1		First list and concatenated output
+ * @param list2 	Second list and empty output.
+ *
  */
-NO_TRACE static inline void list_splice(list_t *list, link_t *pos)
+NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
 {
-	link_t *pos_next = pos->next;
-	
-	if (!list_empty(list)) {
-		link_t *first = list->head.next;
-		link_t *last = list->head.prev;
-
-		pos->next = first;
-		first->prev = pos;
-
-		last->next = pos_next;
-		pos_next->prev = last;
-		
-		list_initialize(list);
-	}
-}
-
-/** Moves all items of list @a src to the end of list @a dest.
- * 
- * Both lists may be empty.
- * 
- * @param src Source list to move. Becomes empty.
- * @param dest Items of src will be inserted at the end of this list, ie
- *             after all items of src.
- */
-NO_TRACE static inline void list_append_list(list_t *src, list_t *dest)
-{
-	list_splice(src, dest->head.prev);
-}
-
-/** Moves all items of list @a src to the beginning of list @a dest.
- * 
- * Both lists may be empty.
- * 
- * @param src Source list to move. Becomes empty.
- * @param dest Items of src will be inserted at the beginning of this list.
- */
-NO_TRACE static inline void list_prepend_list(list_t *src, list_t *dest)
-{
-	list_splice(src, &dest->head);
+	list_splice(list2, list1->head.prev);
 }
 
 /** Get n-th item in a list.
@@ -373,10 +343,6 @@ static inline link_t *list_nth(list_t *list, unsigned int n)
 	
 	return NULL;
 }
-
-extern int list_member(const link_t *, const list_t *);
-extern void list_concat(list_t *, list_t *);
-extern unsigned int list_count(const list_t *);
 
 #endif
 

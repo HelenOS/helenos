@@ -931,7 +931,7 @@ static void start_new_gp(void)
 	 * Preempted readers from the previous GP have finished so 
 	 * cur_preempted is empty, but see comment in record_qs(). 
 	 */
-	list_append_list(&rcu.next_preempted, &rcu.cur_preempted);
+	list_concat(&rcu.cur_preempted, &rcu.next_preempted);
 	
 	irq_spinlock_unlock(&rcu.preempt_lock, true);
 }
