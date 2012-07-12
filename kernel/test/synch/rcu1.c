@@ -816,7 +816,7 @@ static void stress_reader(void *arg)
 static void stress_cb(rcu_item_t *item)
 {
 	/* 5 us * 1000 * 1000 iters == 5 sec per updater thread */
-	delay(5);
+	/*delay(5);*/
 	free(item);
 }
 
