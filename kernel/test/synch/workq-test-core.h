@@ -189,11 +189,11 @@ static const char *run_workq_core(bool end_prematurely)
 	
 	for (int i = 0; i < WAVES; ++i) {
 		if (atomic_get(&call_cnt[i]) == exp_call_cnt) {
-			TPRINTF("Ok: %u calls in wave %d, as expected.\n",
+			TPRINTF("Ok: %" PRIua " calls in wave %d, as expected.\n",
 				atomic_get(&call_cnt[i]), i);
 		} else {
 			success = false;
-			TPRINTF("Error: %u calls in wave %d, but %zu expected.\n",
+			TPRINTF("Error: %" PRIua " calls in wave %d, but %zu expected.\n",
 				atomic_get(&call_cnt[i]), i, exp_call_cnt);
 		} 
 	}

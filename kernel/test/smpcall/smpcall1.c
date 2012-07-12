@@ -133,7 +133,7 @@ const char *test_smpcall1(void)
 		if (thread[i] != NULL) {
 			if (call_cnt[i] != exp_calls) {
 				ok = false;
-				TPRINTF("Error: %zu instead of %zu cpu%u's calls were"
+				TPRINTF("Error: %zu instead of %zu cpu%zu's calls were"
 					" acknowledged.\n", call_cnt[i], exp_calls, i);
 			} 
 		}
