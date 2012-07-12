@@ -32,6 +32,7 @@
 #include <print.h>
 #include <proc/thread.h>
 #include <macros.h>
+#include <str.h>
 
 #include <synch/rcu.h>
 
@@ -236,6 +237,7 @@ static bool do_long_readers(void)
 
 
 static atomic_t nop_callbacks_cnt = {0};
+/* Must be even. */
 static const int nop_updater_iters = 10000;
 
 static void count_cb(rcu_item_t *item)
@@ -246,7 +248,7 @@ static void count_cb(rcu_item_t *item)
 
 static void nop_updater(void *arg)
 {
-	for (int i = 0; i < nop_updater_iters; ++i){
+	for (int i = 0; i < nop_updater_iters; i += 2){
 		rcu_item_t *a = malloc(sizeof(rcu_item_t), 0);
 		rcu_item_t *b = malloc(sizeof(rcu_item_t), 0);
 		
@@ -263,16 +265,18 @@ static void nop_updater(void *arg)
 static bool do_nop_callbacks(void)
 {
 	atomic_set(&nop_callbacks_cnt, 0);
+
+	size_t exp_cnt = nop_updater_iters * get_thread_cnt();
+	size_t max_used_mem = sizeof(rcu_item_t) * exp_cnt;
 	
-	TPRINTF("\nRun %zu thr: post many no-op callbacks, no readers.\n", 
-		get_thread_cnt());
+	TPRINTF("\nRun %zu thr: post %zu no-op callbacks (%zu B used), no readers.\n", 
+		get_thread_cnt(), exp_cnt, max_used_mem);
 	
 	run_all(nop_updater);
 	TPRINTF("\nJoining %zu no-op callback threads\n", get_thread_cnt());
 	join_all();
 	
 	size_t loop_cnt = 0, max_loops = 15;
-	size_t exp_cnt = 2 * nop_updater_iters * get_thread_cnt();
 
 	while (exp_cnt != atomic_get(&nop_callbacks_cnt) && loop_cnt < max_loops) {
 		++loop_cnt;
@@ -308,9 +312,13 @@ static void one_cb_reader(void *arg)
 	rcu_read_lock();
 	
 	item_w_cookie_t *item = malloc(sizeof(item_w_cookie_t), 0);
-	item->cookie = magic_cookie;
 	
-	rcu_call(&item->rcu_item, one_cb_done);
+	if (item) {
+		item->cookie = magic_cookie;
+		rcu_call(&item->rcu_item, one_cb_done);
+	} else {
+		TPRINTF("\n[out-of-mem]\n");
+	}
 	
 	thread_sleep(1);
 	
@@ -329,7 +337,7 @@ static bool do_one_cb(void)
 	
 	TPRINTF("\nJoined one-cb reader, wait for cb.\n");
 	size_t loop_cnt = 0;
-	size_t max_loops = 4;
+	size_t max_loops = 4; /* 200 ms */
 	
 	while (!one_cb_is_done && loop_cnt < max_loops) {
 		thread_usleep(50 * 1000);
@@ -384,7 +392,7 @@ static void seq_func(void *arg)
 			rcu_read_lock();
 			atomic_count_t start_time = atomic_postinc(&cur_time);
 			
-			for (volatile size_t d = 0; d < 10*i; ++d ){
+			for (volatile size_t d = 0; d < 10 * i; ++d ){
 				/* no-op */
 			}
 			
@@ -402,7 +410,7 @@ static void seq_func(void *arg)
 		}
 		
 		/* Updater */
-		for (size_t i = 0; i < work->update_cnt; i += 2) {
+		for (size_t i = 0; i < work->update_cnt; ++i) {
 			seq_item_t *a = malloc(sizeof(seq_item_t), 0);
 			seq_item_t *b = malloc(sizeof(seq_item_t), 0);
 			
@@ -413,9 +421,10 @@ static void seq_func(void *arg)
 				b->start_time = atomic_postinc(&cur_time);
 				rcu_call(&b->rcu, seq_cb);
 			} else {
-				/* can leak a bit of mem */
 				TPRINTF("\n[out-of-mem]\n");
 				seq_test_result = ENOMEM;
+				free(a);
+				free(b);
 				return;
 			}
 		}
@@ -434,16 +443,29 @@ static bool do_seq_check(void)
 	size_t read_cnt[MAX_THREADS] = {0};
 	seq_work_t item[MAX_THREADS];
 	
+	size_t total_cbs = 0;
+	size_t max_used_mem = 0;
+	
 	get_seq(0, total_cnt, get_thread_cnt(), read_cnt);
 	
+
 	for (size_t i = 0; i < get_thread_cnt(); ++i) {
 		item[i].update_cnt = total_cnt - read_cnt[i];
 		item[i].read_cnt = read_cnt[i];
 		item[i].iters = iters;
+		
+		total_cbs += 2 * iters * item[i].update_cnt;
 	}
 	
-	TPRINTF("\nRun %zu th: check callback completion time in readers. ~%zu cbs/"
-		"thread. Be patient.\n", get_thread_cnt(),	iters * total_cnt * 2);
+	max_used_mem = total_cbs * sizeof(seq_item_t);
+
+	const char *mem_suffix;
+	uint64_t mem_units;
+	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
+	
+	TPRINTF("\nRun %zu th: check callback completion time in readers. "
+		"%zu callbacks total (max %" PRIu64 " %s used). Be patient.\n", 
+		get_thread_cnt(), total_cbs, mem_units, mem_suffix);
 	
 	for (size_t i = 0; i < get_thread_cnt(); ++i) {
 		run_one(seq_func, &item[i]);
@@ -795,6 +817,7 @@ static void stress_cb(rcu_item_t *item)
 {
 	/* 5 us * 1000 * 1000 iters == 5 sec per updater thread */
 	delay(5);
+	free(item);
 }
 
 static void stress_updater(void *arg)
@@ -807,6 +830,7 @@ static void stress_updater(void *arg)
 		if (item)
 			rcu_call(item, stress_cb);
 		
+		/* Print a dot if we make progress of 1% */
 		if (s->master && 0 == (i % (s->iters/100 + 1)))
 			TPRINTF(".");
 	}
@@ -824,9 +848,17 @@ static bool do_stress(void)
 	/* Each cpu has one reader and one updater. */
 	size_t reader_cnt = thread_cnt;
 	size_t updater_cnt = thread_cnt;
+	
+	size_t exp_upd_calls = updater_cnt * cb_per_thread;
+	size_t max_used_mem = exp_upd_calls * sizeof(rcu_item_t);
+	
+	const char *mem_suffix;
+	uint64_t mem_units;
+	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
 
-	TPRINTF("\nStress: Run %zu nop-readers and %zu updaters. %zu cbs/updater. "
-		"Be very patient.\n", reader_cnt, updater_cnt, cb_per_thread);
+	TPRINTF("\nStress: Run %zu nop-readers and %zu updaters. %zu callbacks "
+		" total (max %" PRIu64 " %s used). Be very patient.\n", 
+		reader_cnt, updater_cnt, exp_upd_calls, mem_units, mem_suffix);
 	
 	for (size_t k = 0; k < reader_cnt; ++k) {
 		run_one(stress_reader, &done);
@@ -871,6 +903,7 @@ static void expedite_cb(rcu_item_t *arg)
 		
 		_rcu_call(e->expedite, &e->r, expedite_cb);
 	} else {
+		/* Do not touch any of e's mem after we declare we're done with it. */
 		memory_barrier();
 		e->count_down = 0;
 	}
@@ -936,6 +969,8 @@ const char *test_rcu1(void)
 		if (!test_func[i].include) {
 			TPRINTF("\nSubtest %s() skipped.\n", test_func[i].desc);
 			continue;
+		} else {
+			TPRINTF("\nRunning subtest %s.\n", test_func[i].desc);
 		}
 		
 		ok = test_func[i].func();
