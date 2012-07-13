@@ -40,41 +40,37 @@
 #include <bool.h>
 #include <pcm_sample_format.h>
 
+
 #include "audio_format.h"
 
+struct audio_sink;
+typedef struct audio_source audio_source_t;
 
-typedef struct {
+struct audio_source {
 	link_t link;
-	char *name;
-	struct {
-		int (*hook)(void* arg, const audio_format_t *f);
-		void *arg;
-	} connected_change;
-	struct {
-		int (*hook)(void* arg);
-		void *arg;
-	} get_data;
+	const char *name;
+	audio_format_t format;
+	void *private_data;
+	int (*connection_change)(audio_source_t *source);
+	int (*update_available_data)(audio_source_t *source, size_t size);
+	struct audio_sink *connected_sink;
 	struct {
 		void *base;
 		size_t size;
-	} available;
-	audio_format_t format;
-} audio_source_t;
+	} available_data;
+};
 
 static inline audio_source_t * audio_source_list_instance(link_t *l)
 {
 	return list_get_instance(l, audio_source_t, link);
 }
 
-int audio_source_init(audio_source_t *source, const char *name);
-static inline void audio_source_set_connected_callback(audio_source_t *source,
-    int (*hook)(void* arg, const audio_format_t *f), void* arg)
-{
-	assert(source);
-	source->connected_change.arg = arg;
-	source->connected_change.hook = hook;
-}
-int audio_source_connected(audio_source_t *source, const audio_format_t *f);
+int audio_source_init(audio_source_t *source, const char *name, void *data,
+    int (*connection_change)(audio_source_t *),
+    int (*update_available_data)(audio_source_t *, size_t),
+    const audio_format_t *f);
+void audio_source_fini(audio_source_t *source);
+int audio_source_connected(audio_source_t *source, struct audio_sink *sink);
 int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
     const audio_format_t *f);
 static inline const audio_format_t *audio_source_format(const audio_source_t *s)

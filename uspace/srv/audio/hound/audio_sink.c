@@ -42,27 +42,10 @@
 #include "audio_sink.h"
 #include "log.h"
 
-#if 0
-static int loop(void* arg)
-{
-	audio_sink_t *sink = arg;
-	assert(sink);
-	while (sink->device) {
-		while (sink->running) {
-			//wait for usable buffer
-			audio_sink_mix_inputs(sink,
-			    sink->device->buffer.available_base,
-			    sink->device->buffer.available_size);
-		}
-		//remove ready
-		sleep(1);
-	}
-	return 0;
-}
-#endif
 
-
-int audio_sink_init(audio_sink_t *sink, const char* name)
+int audio_sink_init(audio_sink_t *sink, const char *name,
+    void *private_data,int (*connection_change)(audio_sink_t *sink),
+    const audio_format_t *f)
 {
 	assert(sink);
 	if (!name) {
@@ -72,11 +55,20 @@ int audio_sink_init(audio_sink_t *sink, const char* name)
 	link_initialize(&sink->link);
 	list_initialize(&sink->sources);
 	sink->name = str_dup(name);
-	sink->format = AUDIO_FORMAT_ANY;
-	log_verbose("Initialized sink (%p) '%s' with ANY audio format",
-	    sink, sink->name);
+	sink->private_data = private_data;
+	sink->format = *f;
+	log_verbose("Initialized sink (%p) '%s'", sink, sink->name);
 	return EOK;
 }
+
+void audio_sink_fini(audio_sink_t *sink)
+{
+	assert(sink);
+	assert(!sink->private_data);
+	free(sink->name);
+	sink->name = NULL;
+}
+
 
 int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 {
@@ -110,11 +102,10 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 		}
 	}
 
-	if (sink->connected_change.hook) {
-		const int ret =
-		    sink->connected_change.hook(sink->connected_change.arg);
+	if (sink->connection_change) {
+		const int ret = sink->connection_change(sink);
 		if (ret != EOK) {
-			log_debug("Connected hook failed.");
+			log_debug("Connection hook failed.");
 			list_remove(&source->link);
 			sink->format = old_format;
 			return ret;
@@ -130,11 +121,12 @@ int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source)
 	assert(source);
 	assert(list_member(&source->link, &sink->sources));
 	list_remove(&source->link);
-	if (sink->connected_change.hook) {
-		const int ret =
-		    sink->connected_change.hook(sink->connected_change.arg);
+	if (sink->connection_change) {
+		const int ret = sink->connection_change(sink);
 		if (ret != EOK) {
 			log_debug("Connected hook failed.");
+			list_append(&source->link, &sink->sources);
+			return ret;
 		}
 	}
 	return EOK;

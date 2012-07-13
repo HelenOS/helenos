@@ -48,8 +48,8 @@
 
 #define BUFFER_BLOCKS 2
 
-static int device_sink_connection_callback(void* arg);
-static int device_source_connection_callback(void* arg, const audio_format_t *f);
+static int device_sink_connection_callback(audio_sink_t *sink);
+static int device_source_connection_callback(audio_source_t *source);
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int get_buffer(audio_device_t *dev);
 static int release_buffer(audio_device_t *dev);
@@ -71,13 +71,10 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 		return ENOMEM;
 	}
 
-	audio_sink_init(&dev->sink, name);
-	audio_source_init(&dev->source, name);
-
-	audio_sink_set_connected_callback(&dev->sink,
-	    device_sink_connection_callback, dev);
-	audio_source_set_connected_callback(&dev->source,
-	    device_source_connection_callback, dev);
+	audio_sink_init(&dev->sink, name, dev, device_sink_connection_callback,
+	    &AUDIO_FORMAT_ANY);
+	audio_source_init(&dev->source, name, dev,
+	    device_source_connection_callback, NULL, &AUDIO_FORMAT_ANY);
 
 	/* Init buffer members */
 	fibril_mutex_initialize(&dev->buffer.guard);
@@ -92,11 +89,16 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 
 	return EOK;
 }
-
-static int device_sink_connection_callback(void* arg)
+void audio_device_fini(audio_device_t *dev)
 {
-	audio_device_t *dev = arg;
-	if (list_count(&dev->sink.sources) == 1) {
+	//TODO implement;
+}
+
+static int device_sink_connection_callback(audio_sink_t* sink)
+{
+	assert(sink);
+	audio_device_t *dev = sink->private_data;
+	if (list_count(&sink->sources) == 1) {
 		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
@@ -111,7 +113,7 @@ static int device_sink_connection_callback(void* arg)
 			return ret;
 		}
 	}
-	if (list_count(&dev->sink.sources) == 0) {
+	if (list_count(&sink->sources) == 0) {
 		int ret = stop_playback(dev);
 		if (ret != EOK) {
 			log_error("Failed to start playback: %s",
@@ -129,10 +131,11 @@ static int device_sink_connection_callback(void* arg)
 	return EOK;
 }
 
-static int device_source_connection_callback(void* arg, const audio_format_t *f)
+static int device_source_connection_callback(audio_source_t *source)
 {
-	audio_device_t *dev = arg;
-	if (f) { /* Connected, f points to sink format */
+	assert(source);
+	audio_device_t *dev = source->private_data;
+	if (source->connected_sink) {
 		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
@@ -146,15 +149,14 @@ static int device_source_connection_callback(void* arg, const audio_format_t *f)
 			release_buffer(dev);
 			return ret;
 		}
-		dev->source.format = *f;
-	} else { /* Disconnected, f is NULL */
+	} else { /* Disconnected */
 		int ret = stop_recording(dev);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));
 			return ret;
 		}
-		dev->sink.format = AUDIO_FORMAT_ANY;
+		source->format = AUDIO_FORMAT_ANY;
 		ret = release_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to release buffer: %s",

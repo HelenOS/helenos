@@ -40,18 +40,27 @@
 #include <adt/list.h>
 #include <ipc/loc.h>
 #include <errno.h>
+#include <fibril_synch.h>
+
+#include "audio_source.h"
+#include "audio_sink.h"
+#include "audio_format.h"
+
 
 typedef struct {
+	fibril_mutex_t list_guard;
 	list_t devices;
-	list_t clients;
+	list_t sources;
 	list_t available_sources;
 	list_t sinks;
 } hound_t;
 
 int hound_init(hound_t *hound);
 int hound_add_device(hound_t *hound, service_id_t id, const char* name);
-int hound_add_playback_client(hound_t *hound, const char* name);
-int hound_add_record_client(hound_t *hound, const char* name);
+int hound_add_source(hound_t *hound, audio_source_t *source);
+int hound_add_sink(hound_t *hound, audio_sink_t *sink);
+int hound_connect(const char* source_name, const char* sink_name);
+int hound_disconnect(const char* source_name, const char* sink_name);
 
 #endif
 

@@ -37,6 +37,7 @@ LIBS = \
 	$(LIBDRV_PREFIX)/libdrv.a
 
 SOURCES = \
+	audio_client.c \
 	audio_device.c \
 	audio_format.c \
 	audio_sink.c \

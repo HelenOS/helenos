@@ -41,38 +41,62 @@
 #include <str_error.h>
 
 #include "audio_source.h"
+#include "audio_sink.h"
 #include "log.h"
 
 
-int audio_source_init(audio_source_t *source, const char* name)
+int audio_source_init(audio_source_t *source, const char *name, void *data,
+    int (*connection_change)(audio_source_t *),
+    int (*update_available_data)(audio_source_t *, size_t),
+    const audio_format_t *f)
 {
 	assert(source);
-	if (!name) {
+	if (!name || !f) {
 		log_debug("Incorrect parameters.");
 		return EINVAL;
 	}
 	link_initialize(&source->link);
 	source->name = str_dup(name);
-	source->connected_change.hook = NULL;
-	source->connected_change.arg = NULL;
-	source->get_data.hook = NULL;
-	source->get_data.arg = NULL;
-	source->available.base = NULL;
-	source->available.size = 0;
-	log_verbose("Initialized source (%p) '%s' with ANY audio format",
-	    source, source->name);
+	source->private_data = data;
+	source->connection_change = connection_change;
+	source->update_available_data = update_available_data;
+	source->connected_sink = NULL;
+	source->format = *f;
+	source->available_data.base = NULL;
+	source->available_data.size = 0;
+	log_verbose("Initialized source (%p) '%s'", source, source->name);
 	return EOK;
 }
 
-int audio_source_connected(audio_source_t *source, const audio_format_t *f)
+void audio_source_fini(audio_source_t *source)
+{
+	if (!source)
+		return;
+	assert(source->connected_sink == NULL);
+	free(source->name);
+	free(source);
+}
+
+int audio_source_connected(audio_source_t *source, struct audio_sink *sink)
 {
 	assert(source);
-	if (!f) {
-		log_debug("Incorrect parameters.");
-		return EINVAL;
+	audio_sink_t *old_sink = source->connected_sink;
+	const audio_format_t old_format = source->format;
+
+	source->connected_sink = sink;
+	if (audio_format_is_any(&source->format)) {
+		assert(sink);
+		assert(!audio_format_is_any(&sink->format));
+		source->format = sink->format;
 	}
-	if (source->connected_change.hook)
-		source->connected_change.hook(source->connected_change.arg, f);
+	if (source->connection_change) {
+		const int ret = source->connection_change(source);
+		if (ret != EOK) {
+			source->format = old_format;
+			source->connected_sink = old_sink;
+			return ret;
+		}
+	}
 	return EOK;
 }
 
@@ -95,21 +119,33 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 		log_debug("Format conversion is not supported yet");
 		return ENOTSUP;
 	}
-
-	if (source->available.size == 0) {
-		log_debug("No data to add");
-		return EOVERFLOW; /* In fact this is underflow... */
+	if (source->available_data.base == NULL ||
+	    source->available_data.size == 0) {
+		int ret = EOVERFLOW; /* In fact this is underflow... */
+		if (source->update_available_data)
+			ret = source->update_available_data(source, size);
+		if (ret != EOK) {
+			log_debug("No data to add");
+			return ret;
+		}
 	}
 
-	const size_t real_size = min(size, source->available.size);
+	const size_t real_size = min(size, source->available_data.size);
 	const int ret =
-	    audio_format_mix(buffer, source->available.base, real_size, f);
+	    audio_format_mix(buffer, source->available_data.base, real_size, f);
 	if (ret != EOK) {
 		log_debug("Mixing failed");
 		return ret;
 	}
-	source->available.base += real_size;
-	source->available.size -= real_size;
+	source->available_data.base += real_size;
+	source->available_data.size -= real_size;
+	buffer += real_size;
+	size -= real_size;
+
+	//TODO update data again
+	if (size)
+		log_warning("not enough data");
+
 	return EOK;
 }
 

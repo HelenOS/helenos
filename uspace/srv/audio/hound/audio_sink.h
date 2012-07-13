@@ -36,33 +36,36 @@
 #ifndef AUDIO_SINK_H_
 #define AUDIO_SINK_H_
 
-#include <bool.h>
 #include <adt/list.h>
+#include <async.h>
+#include <bool.h>
 #include <pcm_sample_format.h>
 #include <fibril.h>
 
-#include "audio_format.h"
 #include "audio_source.h"
+#include "audio_format.h"
 
-typedef struct audio_sink {
+typedef struct audio_sink audio_sink_t;
+
+struct audio_sink {
 	link_t link;
 	list_t sources;
-	char *name;
+	const char *name;
 	audio_format_t format;
-	struct {
-		int (*hook)(void* arg);
-		void *arg;
-	} connected_change;
-} audio_sink_t;
-
-static inline void audio_sink_set_connected_callback(audio_sink_t *sink,
-    int (*hook)(void* arg), void* arg)
-{
-	assert(sink);
-	sink->connected_change.arg = arg;
-	sink->connected_change.hook = hook;
+	void *private_data;
+	int (*connection_change)(audio_sink_t *sink);
 };
-int audio_sink_init(audio_sink_t *sink, const char* name);
+
+static inline audio_sink_t * audio_sink_list_instance(link_t *l)
+{
+	return list_get_instance(l, audio_sink_t, link);
+}
+
+int audio_sink_init(audio_sink_t *sink, const char *name,
+    void *private_data, int (*connection_change)(audio_sink_t *sink),
+    const audio_format_t *f);
+void audio_sink_fini(audio_sink_t *sink);
+
 int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source);
 int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source);
 void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);

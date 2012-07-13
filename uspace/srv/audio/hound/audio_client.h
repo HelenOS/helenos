@@ -33,61 +33,37 @@
 /** @file
  */
 
-#ifndef AUDIO_DEVICE_H_
-#define AUDIO_DEVICE_H_
+#ifndef AUDIO_CLIENT_H_
+#define AUDIO_CLIENT_H_
 
 #include <adt/list.h>
-#include <bool.h>
 #include <async.h>
-#include <fibril_synch.h>
-#include <errno.h>
-#include <ipc/loc.h>
 
+#include "audio_format.h"
 #include "audio_source.h"
 #include "audio_sink.h"
 
 typedef struct {
 	link_t link;
-	service_id_t id;
-	async_sess_t *sess;
-	char *name;
-	struct {
-		fibril_mutex_t guard;
-		fibril_condvar_t wc;
-		unsigned id;
-		void *base;
-		size_t size;
-		void *position;
-	} buffer;
+	const char *name;
 	audio_source_t source;
 	audio_sink_t sink;
-} audio_device_t;
+	audio_format_t format;
+	async_sess_t *sess;
+	async_exch_t *exch;
+	bool is_playback;
+	bool is_recording;
+} audio_client_t;
 
-static inline audio_device_t * audio_device_list_instance(link_t *l)
+static inline audio_client_t * audio_client_list_instance(link_t *l)
 {
-	return list_get_instance(l, audio_device_t, link);
-};
-
-int audio_device_init(audio_device_t *dev, service_id_t id, const char *name);
-void audio_device_fini(audio_device_t *dev);
-static inline audio_source_t * audio_device_get_source(audio_device_t *dev)
-{
-	assert(dev);
-	return &dev->source;
+	return list_get_instance(l, audio_client_t, link);
 }
 
-static inline audio_sink_t * audio_device_get_sink(audio_device_t *dev)
-{
-	assert(dev);
-	return &dev->sink;
-}
-
-int audio_device_recorded_data(audio_device_t *dev, void **base, size_t *size);
-int audio_device_available_buffer(audio_device_t *dev, void **base, size_t *size);
+audio_client_t *audio_client_get_playback(
+    const char *name, const audio_format_t *f, async_sess_t *sess);
+audio_client_t *audio_client_get_recording(
+    const char *name, const audio_format_t *f, async_sess_t *sess);
+void audio_client_destroy(audio_client_t *client);
 
 #endif
-
-/**
- * @}
- */
-
