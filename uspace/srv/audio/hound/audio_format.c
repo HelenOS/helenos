@@ -36,8 +36,32 @@
 #include <assert.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <macros.h>
 
 #include "audio_format.h"
+
+#define uint8_t_le2host(x) (x)
+#define host2uint8_t_le(x) (x)
+#define uint8_t_be2host(x) (x)
+#define host2uint8_t_be(x) (x)
+
+#define int8_t_le2host(x) (x)
+#define host2int8_t_le(x) (x)
+
+#define int16_t_le2host(x) uint16_t_le2host(x)
+#define host2int16_t_le(x) host2uint16_t_le(x)
+
+#define int32_t_le2host(x) uint32_t_le2host(x)
+#define host2int32_t_le(x) host2uint32_t_le(x)
+
+#define int8_t_be2host(x) (x)
+#define host2int8_t_be(x) (x)
+
+#define int16_t_be2host(x) uint16_t_be2host(x)
+#define host2int16_t_be(x) host2uint16_t_be(x)
+
+#define int32_t_be2host(x) uint32_t_be2host(x)
+#define host2int32_t_be(x) host2uint32_t_be(x)
 
 bool audio_format_same(const audio_format_t *a, const audio_format_t* b)
 {
@@ -60,14 +84,15 @@ int audio_format_mix(void *dst, const void *src, size_t size, const audio_format
 	/* This is so ugly it eats kittens, and puppies, and ducklings,
 	 * and all little fluffy things...
 	 * AND it does not check for overflows (FIXME)*/
-#define LOOP_ADD(type, endian) \
+#define LOOP_ADD(type, endian, max) \
 do { \
 	const type *src_buff = src; \
 	type *dst_buff = dst; \
 	for (size_t i = 0; i < size / sizeof(type); ++i) { \
-		const type a = type ## _ ## endian ##2host(dst_buff[i]); \
-		const type b = type ## _ ## endian ##2host(src_buff[i]); \
-		const type c = a + b; \
+		const float a = type ## _ ## endian ##2host(dst_buff[i]); \
+		const float b = type ## _ ## endian ##2host(src_buff[i]); \
+		float c = min((a + b), max); \
+		if (c <= (float)-max) c = -max + 1.0; \
 		dst_buff[i] = host2 ## type ## _ ## endian(c); \
 	} \
 } while (0)
@@ -88,21 +113,25 @@ do { \
 		break;
 		}
 	case PCM_SAMPLE_UINT16_LE:
+		LOOP_ADD(uint16_t, le, UINT16_MAX); break;
 	case PCM_SAMPLE_SINT16_LE:
-		LOOP_ADD(uint16_t, le); break;
+		LOOP_ADD(int16_t, le, INT16_MAX); break;
 	case PCM_SAMPLE_UINT16_BE:
+		LOOP_ADD(uint16_t, be, UINT16_MAX); break;
 	case PCM_SAMPLE_SINT16_BE:
-		LOOP_ADD(uint16_t, be); break;
+		LOOP_ADD(int16_t, be, INT16_MAX); break;
 	case PCM_SAMPLE_UINT24_32_LE:
-	case PCM_SAMPLE_SINT24_32_LE:
 	case PCM_SAMPLE_UINT32_LE:
+		LOOP_ADD(uint32_t, le, UINT32_MAX); break;
+	case PCM_SAMPLE_SINT24_32_LE:
 	case PCM_SAMPLE_SINT32_LE:
-		LOOP_ADD(uint32_t, le); break;
+		LOOP_ADD(int32_t, le, INT32_MAX); break;
 	case PCM_SAMPLE_UINT24_32_BE:
-	case PCM_SAMPLE_SINT24_32_BE:
 	case PCM_SAMPLE_UINT32_BE:
+		LOOP_ADD(uint32_t, be, UINT32_MAX); break;
+	case PCM_SAMPLE_SINT24_32_BE:
 	case PCM_SAMPLE_SINT32_BE:
-		LOOP_ADD(uint32_t, be); break;
+		LOOP_ADD(int32_t, be, INT32_MAX); break;
 	case PCM_SAMPLE_UINT24_LE:
 	case PCM_SAMPLE_SINT24_LE:
 	case PCM_SAMPLE_UINT24_BE:
