@@ -115,8 +115,8 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 		log_debug("Failed to malloc device structure.");
 		return ENOMEM;
 	}
+
 	const int ret = audio_device_init(dev, id, name);
-	free(name);
 	if (ret != EOK) {
 		log_debug("Failed to initialize new audio device: %s",
 			str_error(ret));
