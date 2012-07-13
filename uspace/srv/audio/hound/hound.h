@@ -58,6 +58,8 @@ int hound_init(hound_t *hound);
 int hound_add_device(hound_t *hound, service_id_t id, const char* name);
 int hound_add_source(hound_t *hound, audio_source_t *source);
 int hound_add_sink(hound_t *hound, audio_sink_t *sink);
+int hound_remove_source(hound_t *hound, audio_source_t *source);
+int hound_remove_sink(hound_t *hound, audio_sink_t *sink);
 int hound_connect(hound_t *hound, const char* source_name, const char* sink_name);
 int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name);
 

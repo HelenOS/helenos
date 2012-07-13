@@ -200,6 +200,38 @@ int hound_add_sink(hound_t *hound, audio_sink_t *sink)
 	return EOK;
 }
 
+int hound_remove_source(hound_t *hound, audio_source_t *source)
+{
+	assert(hound);
+	if (!source)
+		return EINVAL;
+	log_verbose("Removing source '%s'.", source->name);
+	fibril_mutex_lock(&hound->list_guard);
+	if (!list_member(&source->link, &hound->sources)) {
+		fibril_mutex_unlock(&hound->list_guard);
+		return EBUSY;
+	}
+	list_remove(&source->link);
+	fibril_mutex_unlock(&hound->list_guard);
+	return EOK;
+}
+
+int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
+{
+	assert(hound);
+	if (!sink)
+		return EINVAL;
+	log_verbose("Removing sink '%s'.", sink->name);
+	fibril_mutex_lock(&hound->list_guard);
+	if (!list_empty(&sink->sources)) {
+		fibril_mutex_unlock(&hound->list_guard);
+		return EBUSY;
+	}
+	list_remove(&sink->link);
+	fibril_mutex_unlock(&hound->list_guard);
+	return EOK;
+}
+
 int hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
 {
 	assert(hound);

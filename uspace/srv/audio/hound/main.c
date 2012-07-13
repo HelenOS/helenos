@@ -177,6 +177,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_sess_t *sess = get_session();
 			audio_client_t * client =
 			    audio_client_get_recording(name, &format, sess);
+			free(name);
 			if (!client) {
 				log_error("Failed to create recording client");
 				async_answer_0(callid, ENOMEM);
@@ -195,15 +196,43 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case HOUND_UNREGISTER_PLAYBACK: {
-			//const char *name = get_name();
-			//TODO unregister in hound
-			//TODO remove from local
+			const char *name = get_name();
+			int ret = ENOENT;
+			list_foreach(local_playback, it) {
+				audio_client_t *client =
+				    audio_client_list_instance(it);
+				if (str_cmp(client->name, name) == 0) {
+					ret = hound_remove_source(&hound,
+					    &client->source);
+					if (ret == EOK) {
+						list_remove(&client->link);
+						audio_client_destroy(client);
+					}
+					break;
+				}
+			}
+			free(name);
+			async_answer_0(callid, ret);
 			break;
 		}
 		case HOUND_UNREGISTER_RECORDING: {
-			//TODO Get Name
-			//TODO unregister in hound
-			//TODO remove from local
+			const char *name = get_name();
+			int ret = ENOENT;
+			list_foreach(local_recording, it) {
+				audio_client_t *client =
+				    audio_client_list_instance(it);
+				if (str_cmp(client->name, name) == 0) {
+					ret = hound_remove_sink(&hound,
+					    &client->sink);
+					if (ret == EOK) {
+						list_remove(&client->link);
+						audio_client_destroy(client);
+					}
+					break;
+				}
+			}
+			free(name);
+			async_answer_0(callid, ret);
 			break;
 		}
 		case HOUND_CONNECT: {
@@ -236,6 +265,22 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, ENOTSUP);
 			break;
 		case 0:
+			while(!list_empty(&local_recording)) {
+				audio_client_t *client =
+				    audio_client_list_instance(
+				        list_first(&local_recording));
+				list_remove(&client->link);
+				hound_remove_sink(&hound, &client->sink);
+				audio_client_destroy(client);
+			}
+			while(!list_empty(&local_playback)) {
+				audio_client_t *client =
+				    audio_client_list_instance(
+				        list_first(&local_playback));
+				list_remove(&client->link);
+				hound_remove_source(&hound, &client->source);
+				audio_client_destroy(client);
+			}
 			//TODO remove all clients
 			return;
 		}
