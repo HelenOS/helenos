@@ -53,7 +53,7 @@ static void init_common(audio_client_t *client, const char *name,
 	client->is_recording = false;
 }
 
-static int client_sink_connection_change(audio_sink_t *sink);
+static int client_sink_connection_change(audio_sink_t *sink, bool new);
 static int client_source_connection_change(audio_source_t *source);
 static int client_source_update_data(audio_source_t *source, size_t size);
 
@@ -104,7 +104,7 @@ void audio_client_destroy(audio_client_t *client)
 	free(client);
 }
 
-static int client_sink_connection_change(audio_sink_t *sink)
+static int client_sink_connection_change(audio_sink_t *sink, bool new)
 {
 	//TODO create fibril
 	return ENOTSUP;

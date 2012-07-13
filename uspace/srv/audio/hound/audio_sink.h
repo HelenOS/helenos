@@ -39,7 +39,6 @@
 #include <adt/list.h>
 #include <async.h>
 #include <bool.h>
-#include <pcm_sample_format.h>
 #include <fibril.h>
 
 #include "audio_source.h"
@@ -53,7 +52,7 @@ struct audio_sink {
 	const char *name;
 	audio_format_t format;
 	void *private_data;
-	int (*connection_change)(audio_sink_t *sink);
+	int (*connection_change)(audio_sink_t *, bool);
 };
 
 static inline audio_sink_t * audio_sink_list_instance(link_t *l)
@@ -62,7 +61,7 @@ static inline audio_sink_t * audio_sink_list_instance(link_t *l)
 }
 
 int audio_sink_init(audio_sink_t *sink, const char *name,
-    void *private_data, int (*connection_change)(audio_sink_t *sink),
+    void *private_data, int (*connection_change)(audio_sink_t *, bool),
     const audio_format_t *f);
 void audio_sink_fini(audio_sink_t *sink);
 

@@ -48,7 +48,7 @@
 
 #define BUFFER_BLOCKS 2
 
-static int device_sink_connection_callback(audio_sink_t *sink);
+static int device_sink_connection_callback(audio_sink_t *sink, bool new);
 static int device_source_connection_callback(audio_source_t *source);
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int get_buffer(audio_device_t *dev);
@@ -94,11 +94,11 @@ void audio_device_fini(audio_device_t *dev)
 	//TODO implement;
 }
 
-static int device_sink_connection_callback(audio_sink_t* sink)
+static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 {
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
-	if (list_count(&sink->sources) == 1) {
+	if (new && list_count(&sink->sources) == 1) {
 		log_verbose("First connection on device sink '%s'", sink->name);
 
 		int ret = get_buffer(dev);
@@ -117,6 +117,7 @@ static int device_sink_connection_callback(audio_sink_t* sink)
 		}
 	}
 	if (list_count(&sink->sources) == 0) {
+		assert(!new);
 		log_verbose("No connections on device sink '%s'", sink->name);
 		int ret = stop_playback(dev);
 		if (ret != EOK) {

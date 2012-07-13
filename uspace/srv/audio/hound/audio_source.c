@@ -142,8 +142,8 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 	source->available_data.position += real_size;
 	source->available_data.size -= real_size;
 
-	log_verbose("Mixing successful %p <= %p, %zu",
-	    buffer, source->available_data.position, real_size);
+//	log_verbose("Mixing successful %p <= %p, %zu",
+//	    buffer, source->available_data.position, real_size);
 
 	buffer += real_size;
 	size -= real_size;

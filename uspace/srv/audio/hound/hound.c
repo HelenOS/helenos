@@ -74,6 +74,7 @@ static audio_sink_t * find_sink_by_name(list_t *list, const char *name)
 {
 	FIND_BY_NAME(sink);
 }
+static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
 
 int hound_init(hound_t *hound)
 {
@@ -208,8 +209,9 @@ int hound_remove_source(hound_t *hound, audio_source_t *source)
 	log_verbose("Removing source '%s'.", source->name);
 	fibril_mutex_lock(&hound->list_guard);
 	if (!list_member(&source->link, &hound->sources)) {
-		fibril_mutex_unlock(&hound->list_guard);
-		return EBUSY;
+		assert(source->connected_sink);
+		hound_disconnect_internal(hound, source->name,
+		    source->connected_sink->name);
 	}
 	list_remove(&source->link);
 	fibril_mutex_unlock(&hound->list_guard);
@@ -223,7 +225,9 @@ int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
 		return EINVAL;
 	log_verbose("Removing sink '%s'.", sink->name);
 	fibril_mutex_lock(&hound->list_guard);
+
 	if (!list_empty(&sink->sources)) {
+		// TODO disconnect instead
 		fibril_mutex_unlock(&hound->list_guard);
 		return EBUSY;
 	}
@@ -258,12 +262,20 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
 {
 	assert(hound);
-	log_verbose("Disconnecting '%s' to '%s'.", source_name, sink_name);
 	fibril_mutex_lock(&hound->list_guard);
+	const int ret = hound_disconnect_internal(hound, source_name, sink_name);
+	fibril_mutex_unlock(&hound->list_guard);
+	return ret;
+}
+
+static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name)
+{
+	assert(hound);
+	assert(fibril_mutex_is_locked(&hound->list_guard));
+	log_verbose("Disconnecting '%s' to '%s'.", source_name, sink_name);
 	audio_sink_t *sink = find_sink_by_name(&hound->sinks, sink_name);
 	audio_source_t *source = sink ?  find_source_by_name(&sink->sources, source_name) : NULL;
 	if (!source || !sink) {
-		fibril_mutex_unlock(&hound->list_guard);
 		log_debug("Source (%p), or sink (%p) not found", source, sink);
 		return ENOENT;
 	}
@@ -273,9 +285,7 @@ int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_n
 	} else {
 		list_append(&source->link, &hound->sources);
 	}
-	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
-	return ENOTSUP;
 }
 /**
  * @}

@@ -44,7 +44,7 @@
 
 
 int audio_sink_init(audio_sink_t *sink, const char *name,
-    void *private_data,int (*connection_change)(audio_sink_t *sink),
+    void *private_data, int (*connection_change)(audio_sink_t *, bool),
     const audio_format_t *f)
 {
 	assert(sink);
@@ -107,7 +107,7 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 
 	if (sink->connection_change) {
 		log_verbose("Calling connection change");
-		const int ret = sink->connection_change(sink);
+		const int ret = sink->connection_change(sink, true);
 		if (ret != EOK) {
 			log_debug("Connection hook failed.");
 			audio_source_connected(source, NULL);
@@ -129,7 +129,7 @@ int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source)
 	assert(list_member(&source->link, &sink->sources));
 	list_remove(&source->link);
 	if (sink->connection_change) {
-		const int ret = sink->connection_change(sink);
+		const int ret = sink->connection_change(sink, false);
 		if (ret != EOK) {
 			log_debug("Connected hook failed.");
 			list_append(&source->link, &sink->sources);
