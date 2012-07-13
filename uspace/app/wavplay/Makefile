@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2012 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/audio/hound/hound \
-	$(USPACE_PATH)/srv/devman/devman \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+USPACE_PREFIX = ../..
+BINARY = wavplay
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd
+LIBS = \
 
-RD_DRVS_ESSENTIAL += \
-	infrastructure/rootpc \
-	bus/pci/pciintel \
-	bus/isa \
-	audio/sb16 \
-	char/i8042 \
-	char/ps2mouse \
-	char/xtkbd
+EXTRA_CFLAGS = \
 
-RD_DRVS_NON_ESSENTIAL += \
-	char/ns8250 \
-	bus/usb/ehci\
-	bus/usb/ohci \
-	bus/usb/uhci \
-	bus/usb/uhcirh \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid \
-	bus/usb/vhc
+SOURCES = \
+	wavplay.c \
+	wave.c
 
-RD_DRV_CFG += \
-	bus/isa
+include $(USPACE_PREFIX)/Makefile.common
 
-RD_APPS_ESSENTIAL += \
-	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/dplay/dplay \
-	$(USPACE_PATH)/app/drec/drec \
-	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/wavplay/wavplay \
-	
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub

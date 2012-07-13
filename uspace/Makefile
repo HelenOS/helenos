@@ -73,6 +73,7 @@ DIRS = \
 	app/ping \
 	app/sysinfo \
 	app/mkbd \
+	app/wavplay \
 	app/websrv \
 	srv/audio/hound \
 	srv/clipboard \
