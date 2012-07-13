@@ -74,6 +74,7 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	app/websrv \
+	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
 	srv/devman \

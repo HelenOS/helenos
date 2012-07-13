@@ -338,6 +338,7 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 	
+	spawn("/srv/hound");
 	getterm("term/vc0", "/app/bdsh", true);
 	getterm("term/vc1", "/app/bdsh", false);
 	getterm("term/vc2", "/app/bdsh", false);

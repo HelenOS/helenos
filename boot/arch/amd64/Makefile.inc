@@ -27,6 +27,7 @@
 #
 
 RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/audio/hound/hound \
 	$(USPACE_PATH)/srv/devman/devman \
 	$(USPACE_PATH)/srv/hw/irc/apic/apic \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
