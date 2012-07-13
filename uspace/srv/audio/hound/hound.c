@@ -160,7 +160,7 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 int hound_add_source(hound_t *hound, audio_source_t *source)
 {
 	assert(hound);
-	if (!source || !source->name) {
+	if (!source || !source->name || str_cmp(source->name, "default") == 0) {
 		log_debug("Invalid source specified.");
 		return EINVAL;
 	}
@@ -186,7 +186,7 @@ int hound_add_source(hound_t *hound, audio_source_t *source)
 int hound_add_sink(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
-	if (!sink || !sink->name) {
+	if (!sink || !sink->name || str_cmp(sink->name, "default") == 0) {
 		log_debug("Invalid source specified.");
 		return EINVAL;
 	}
@@ -241,9 +241,17 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 	assert(hound);
 	log_verbose("Connecting '%s' to '%s'.", source_name, sink_name);
 	fibril_mutex_lock(&hound->list_guard);
+
 	audio_source_t *source =
-	    find_source_by_name(&hound->sources, source_name);
-	audio_sink_t *sink = find_sink_by_name(&hound->sinks, sink_name);
+	    audio_source_list_instance(list_first(&hound->sources));
+	if (str_cmp(source_name, "default") != 0)
+	    source = find_source_by_name(&hound->sources, source_name);
+
+	audio_sink_t *sink =
+	    audio_sink_list_instance(list_first(&hound->sinks));
+	if (str_cmp(sink_name, "default") != 0)
+	    sink = find_sink_by_name(&hound->sinks, sink_name);
+
 	if (!source || !sink) {
 		fibril_mutex_unlock(&hound->list_guard);
 		log_debug("Source (%p), or sink (%p) not found", source, sink);
@@ -273,8 +281,16 @@ static int hound_disconnect_internal(hound_t *hound, const char* source_name, co
 	assert(hound);
 	assert(fibril_mutex_is_locked(&hound->list_guard));
 	log_verbose("Disconnecting '%s' to '%s'.", source_name, sink_name);
-	audio_sink_t *sink = find_sink_by_name(&hound->sinks, sink_name);
-	audio_source_t *source = sink ?  find_source_by_name(&sink->sources, source_name) : NULL;
+
+	audio_sink_t *sink =
+	    audio_sink_list_instance(list_first(&hound->sinks));
+	if (str_cmp(sink_name, "default") != 0)
+	    sink = find_sink_by_name(&hound->sinks, sink_name);
+
+	audio_source_t *source =
+	    audio_source_list_instance(list_first(&hound->sources));
+	if (str_cmp(source_name, "default") != 0)
+	    source = sink ? find_source_by_name(&sink->sources, source_name) : NULL;
 	if (!source || !sink) {
 		log_debug("Source (%p), or sink (%p) not found", source, sink);
 		return ENOENT;
