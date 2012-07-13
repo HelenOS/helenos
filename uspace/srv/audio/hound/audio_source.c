@@ -63,6 +63,7 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 	source->connected_sink = NULL;
 	source->format = *f;
 	source->available_data.base = NULL;
+	source->available_data.position = NULL;
 	source->available_data.size = 0;
 	log_verbose("Initialized source (%p) '%s'", source, source->name);
 	return EOK;
@@ -118,26 +119,32 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 		log_debug("Format conversion is not supported yet");
 		return ENOTSUP;
 	}
-	if (source->available_data.base == NULL ||
+	if (source->available_data.position == NULL ||
 	    source->available_data.size == 0) {
 		int ret = EOVERFLOW; /* In fact this is underflow... */
 		if (source->update_available_data)
 			ret = source->update_available_data(source, size);
 		if (ret != EOK) {
-			log_debug("No data to add");
+			log_debug("No data to add to %p(%zu)", buffer, size);
 			return ret;
 		}
 	}
 
 	const size_t real_size = min(size, source->available_data.size);
 	const int ret =
-	    audio_format_mix(buffer, source->available_data.base, real_size, f);
+	    audio_format_mix(buffer, source->available_data.position, real_size, f);
 	if (ret != EOK) {
-		log_debug("Mixing failed");
+		log_debug("Mixing failed %p <= %p, %zu",
+		    buffer, source->available_data.position, real_size);
 		return ret;
 	}
-	source->available_data.base += real_size;
+
+	source->available_data.position += real_size;
 	source->available_data.size -= real_size;
+
+	log_verbose("Mixing successful %p <= %p, %zu",
+	    buffer, source->available_data.position, real_size);
+
 	buffer += real_size;
 	size -= real_size;
 

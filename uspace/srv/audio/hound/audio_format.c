@@ -54,7 +54,7 @@ int audio_format_mix(void *dst, const void *src, size_t size, const audio_format
 	if (!dst || !src || !f)
 		return EINVAL;
 	const size_t sample_size = pcm_sample_format_size(f->sample_format);
-	if (!(size % sample_size == 0))
+	if ((size % sample_size) != 0)
 		return EINVAL;
 
 	/* This is so ugly it eats kittens, and puppies, and ducklings,
@@ -64,10 +64,10 @@ int audio_format_mix(void *dst, const void *src, size_t size, const audio_format
 do { \
 	const type *src_buff = src; \
 	type *dst_buff = dst; \
-	for (size_t i = 0; i < size / sample_size; ++i) { \
-		type a = type ## _ ## endian ##2host(dst_buff[i]); \
-		type b = type ## _ ## endian ##2host(src_buff[i]); \
-		type c = a + b; \
+	for (size_t i = 0; i < size / sizeof(type); ++i) { \
+		const type a = type ## _ ## endian ##2host(dst_buff[i]); \
+		const type b = type ## _ ## endian ##2host(src_buff[i]); \
+		const type c = a + b; \
 		dst_buff[i] = host2 ## type ## _ ## endian(c); \
 	} \
 } while (0)

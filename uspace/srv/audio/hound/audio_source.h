@@ -55,6 +55,7 @@ struct audio_source {
 	int (*update_available_data)(audio_source_t *source, size_t size);
 	struct audio_sink *connected_sink;
 	struct {
+		void *position;
 		void *base;
 		size_t size;
 	} available_data;

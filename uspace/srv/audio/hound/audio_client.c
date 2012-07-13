@@ -138,6 +138,7 @@ static int client_source_update_data(audio_source_t *source, size_t size)
 		return ret;
 	}
 	void *old_buffer = source->available_data.base;
+	source->available_data.position = buffer;
 	source->available_data.base = buffer;
 	source->available_data.size = size;
 	free(old_buffer);

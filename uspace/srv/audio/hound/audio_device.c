@@ -186,11 +186,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_PLAYBACK_DONE: {
 			if (dev->buffer.position) {
 				dev->buffer.position +=
-				    dev->buffer.size / BUFFER_BLOCKS;
+				    (dev->buffer.size / BUFFER_BLOCKS);
 			}
-			if (!dev->buffer.position ||
-			    dev->buffer.position >=
-			        dev->buffer.base + dev->buffer.size)
+			if ((!dev->buffer.position) ||
+			    (dev->buffer.position >=
+			        (dev->buffer.base + dev->buffer.size)))
 			{
 				dev->buffer.position = dev->buffer.base;
 			}
@@ -201,18 +201,17 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_PLAYBACK_TERMINATED: {
 			log_verbose("Playback terminated!");
 			return;
-			break;
 		}
 		case PCM_EVENT_RECORDING_DONE: {
+			//TODO implement
 			break;
 		}
 		case PCM_EVENT_RECORDING_TERMINATED:
 			log_verbose("Recording terminated!");
-			break;
+			return;
 		}
 
 	}
-	//TODO implement
 }
 
 static int get_buffer(audio_device_t *dev)
