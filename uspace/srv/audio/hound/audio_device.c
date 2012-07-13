@@ -99,12 +99,15 @@ static int device_sink_connection_callback(audio_sink_t* sink)
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
 	if (list_count(&sink->sources) == 1) {
+		log_verbose("First connection on device sink '%s'", sink->name);
+
 		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
 			    str_error(ret));
 			return ret;
 		}
+
 		ret = start_playback(dev);
 		if (ret != EOK) {
 			log_error("Failed to start playback: %s",
@@ -114,6 +117,7 @@ static int device_sink_connection_callback(audio_sink_t* sink)
 		}
 	}
 	if (list_count(&sink->sources) == 0) {
+		log_verbose("No connections on device sink '%s'", sink->name);
 		int ret = stop_playback(dev);
 		if (ret != EOK) {
 			log_error("Failed to start playback: %s",

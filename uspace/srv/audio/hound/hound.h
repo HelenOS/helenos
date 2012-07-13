@@ -51,7 +51,6 @@ typedef struct {
 	fibril_mutex_t list_guard;
 	list_t devices;
 	list_t sources;
-	list_t available_sources;
 	list_t sinks;
 } hound_t;
 
@@ -59,8 +58,8 @@ int hound_init(hound_t *hound);
 int hound_add_device(hound_t *hound, service_id_t id, const char* name);
 int hound_add_source(hound_t *hound, audio_source_t *source);
 int hound_add_sink(hound_t *hound, audio_sink_t *sink);
-int hound_connect(const char* source_name, const char* sink_name);
-int hound_disconnect(const char* source_name, const char* sink_name);
+int hound_connect(hound_t *hound, const char* source_name, const char* sink_name);
+int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name);
 
 #endif
 

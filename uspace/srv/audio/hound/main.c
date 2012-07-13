@@ -144,7 +144,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		log_debug("Got method %u", IPC_GET_IMETHOD(call));
 		switch (IPC_GET_IMETHOD(call)) {
 		case HOUND_REGISTER_PLAYBACK: {
 			const audio_format_t format = read_format(&call);
@@ -208,21 +207,36 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case HOUND_CONNECT: {
-			//TODO Get Name
-			//TODO Get Name
-			//TODO connect in hound
+			const char *name_a = get_name();
+			const char *name_b = get_name();
+			const int ret = hound_connect(&hound, name_a, name_b);
+			if (ret != EOK)
+				log_error("Failed to connect '%s' to '%s': %s",
+				    name_a, name_b, str_error(ret));
+			free(name_a);
+			free(name_b);
+			async_answer_0(callid, ret);
 			break;
 		}
 		case HOUND_DISCONNECT: {
-			//TODO Get Name
-			//TODO Get Name
-			//TODO disconnect in hound
+			const char *name_a = get_name();
+			const char *name_b = get_name();
+			const int ret = hound_disconnect(&hound, name_a, name_b);
+			if (ret != EOK)
+				log_error("Failed to disconnect '%s' from '%s'"
+				    ": %s", name_a, name_b, str_error(ret));
+			free(name_a);
+			free(name_b);
+			async_answer_0(callid, ret);
 			break;
 		}
 		default:
+			log_debug("Got unknown method %u",
+			    IPC_GET_IMETHOD(call));
 			async_answer_0(callid, ENOTSUP);
 			break;
 		case 0:
+			//TODO remove all clients
 			return;
 		}
 	}

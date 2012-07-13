@@ -57,6 +57,7 @@ int audio_sink_init(audio_sink_t *sink, const char *name,
 	sink->name = str_dup(name);
 	sink->private_data = private_data;
 	sink->format = *f;
+	sink->connection_change = connection_change;
 	log_verbose("Initialized sink (%p) '%s'", sink, sink->name);
 	return EOK;
 }
@@ -89,9 +90,9 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 				    sink->name);
 				sink->format = AUDIO_FORMAT_DEFAULT;
 			} else {
-				log_verbose("Set format base on the first "
-				    "source(%s): %u channels, %uHz, %s for "
-				    " sink %s.", source->name,
+				log_verbose("Set format based on the first "
+				    "source(%s): %u channel(s), %uHz, %s for "
+				    "sink %s.", source->name,
 				    source->format.channels,
 				    source->format.sampling_rate,
 				    pcm_sample_format_str(
@@ -102,15 +103,21 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 		}
 	}
 
+	audio_source_connected(source, sink);
+
 	if (sink->connection_change) {
+		log_verbose("Calling connection change");
 		const int ret = sink->connection_change(sink);
 		if (ret != EOK) {
 			log_debug("Connection hook failed.");
+			audio_source_connected(source, NULL);
 			list_remove(&source->link);
 			sink->format = old_format;
 			return ret;
 		}
 	}
+	log_verbose("Connected source '%s' to sink '%s'",
+	    source->name, sink->name);
 
 	return EOK;
 }

@@ -54,7 +54,7 @@ do { \
 		audio_ ## type ## _t *dev = \
 		    audio_ ## type ## _list_instance(it); \
 		if (str_cmp(name, dev->name) == 0) { \
-			log_debug("%s with name '%s' is already present", \
+			log_debug("%s with name '%s' is in the list", \
 			    #type, name); \
 			return dev; \
 		} \
@@ -81,7 +81,6 @@ int hound_init(hound_t *hound)
 	fibril_mutex_initialize(&hound->list_guard);
 	list_initialize(&hound->devices);
 	list_initialize(&hound->sources);
-	list_initialize(&hound->available_sources);
 	list_initialize(&hound->sinks);
 	return EOK;
 }
@@ -201,6 +200,33 @@ int hound_add_sink(hound_t *hound, audio_sink_t *sink)
 	return EOK;
 }
 
+int hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
+{
+	assert(hound);
+	log_verbose("Connecting '%s' to '%s'.", source_name, sink_name);
+	fibril_mutex_lock(&hound->list_guard);
+	audio_source_t *source =
+	    find_source_by_name(&hound->sources, source_name);
+	audio_sink_t *sink = find_sink_by_name(&hound->sinks, sink_name);
+	if (!source || !sink) {
+		fibril_mutex_unlock(&hound->list_guard);
+		log_debug("Sink (%p), or source (%p) not found", sink, source);
+		return ENOENT;
+	}
+	list_remove(&source->link);
+	const int ret = audio_sink_add_source(sink, source);
+	if (ret != EOK) {
+		log_debug("Failed add source to sink list: %s", str_error(ret));
+		list_append(&source->link, &hound->sources);
+	}
+	fibril_mutex_unlock(&hound->list_guard);
+	return EOK;
+}
+
+int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
+{
+	return ENOTSUP;
+}
 /**
  * @}
  */
