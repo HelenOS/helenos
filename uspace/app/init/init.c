@@ -339,13 +339,18 @@ int main(int argc, char *argv[])
 #endif
 	
 	spawn("/srv/hound");
-	getterm("term/vc0", "/app/bdsh", true);
-	getterm("term/vc1", "/app/bdsh", false);
-	getterm("term/vc2", "/app/bdsh", false);
-	getterm("term/vc3", "/app/bdsh", false);
-	getterm("term/vc4", "/app/bdsh", false);
-	getterm("term/vc5", "/app/bdsh", false);
+	switch((unsigned)CONFIG_VC_COUNT) {
+	default:
+	case 6:	getterm("term/vc5", "/app/bdsh", false);
+	case 5: getterm("term/vc4", "/app/bdsh", false);
+	case 4: getterm("term/vc3", "/app/bdsh", false);
+	case 3: getterm("term/vc2", "/app/bdsh", false);
+	case 2: getterm("term/vc1", "/app/bdsh", false);
+	case 1: getterm("term/vc0", "/app/bdsh", true);
+	}
+#ifdef CONFIG_KERNEL_LOG_VC_6
 	getterm("term/vc6", "/app/klog", false);
+#endif
 	
 	return 0;
 }
