@@ -54,7 +54,7 @@ int audio_format_mix(void *dst, const void *src, size_t size, const audio_format
 	if (!dst || !src || !f)
 		return EINVAL;
 	const size_t sample_size = pcm_sample_format_size(f->sample_format);
-	if (!(size / sample_size == 0))
+	if (!(size % sample_size == 0))
 		return EINVAL;
 
 	/* This is so ugly it eats kittens, and puppies, and ducklings,
