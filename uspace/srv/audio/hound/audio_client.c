@@ -131,7 +131,7 @@ static int client_source_update_data(audio_source_t *source, size_t size)
 	if (!buffer)
 		return ENOMEM;
 	assert(client->exch);
-	int ret = async_data_read_start(client->exch, buffer, size);
+	const int ret = async_data_read_start(client->exch, buffer, size);
 	if (ret != EOK) {
 		log_debug("Failed to read data from client");
 		free(buffer);

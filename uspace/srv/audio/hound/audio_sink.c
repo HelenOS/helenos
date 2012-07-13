@@ -136,6 +136,7 @@ int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source)
 			return ret;
 		}
 	}
+	audio_source_connected(source, NULL);
 	return EOK;
 }
 

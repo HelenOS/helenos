@@ -210,7 +210,7 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 	audio_sink_t *sink = find_sink_by_name(&hound->sinks, sink_name);
 	if (!source || !sink) {
 		fibril_mutex_unlock(&hound->list_guard);
-		log_debug("Sink (%p), or source (%p) not found", sink, source);
+		log_debug("Source (%p), or sink (%p) not found", source, sink);
 		return ENOENT;
 	}
 	list_remove(&source->link);
@@ -225,6 +225,24 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 
 int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
 {
+	assert(hound);
+	log_verbose("Disconnecting '%s' to '%s'.", source_name, sink_name);
+	fibril_mutex_lock(&hound->list_guard);
+	audio_sink_t *sink = find_sink_by_name(&hound->sinks, sink_name);
+	audio_source_t *source = sink ?  find_source_by_name(&sink->sources, source_name) : NULL;
+	if (!source || !sink) {
+		fibril_mutex_unlock(&hound->list_guard);
+		log_debug("Source (%p), or sink (%p) not found", source, sink);
+		return ENOENT;
+	}
+	const int ret = audio_sink_remove_source(sink, source);
+	if (ret != EOK) {
+		log_debug("Failed remove source to sink list: %s", str_error(ret));
+	} else {
+		list_append(&source->link, &hound->sources);
+	}
+	fibril_mutex_unlock(&hound->list_guard);
+	return EOK;
 	return ENOTSUP;
 }
 /**
