@@ -67,10 +67,10 @@ static inline const char *get_name()
 {
 	size_t size = 0;
 	ipc_callid_t callid;
-	async_data_read_receive(&callid, &size);
+	async_data_write_receive(&callid, &size);
 	char *buffer = malloc(size);
 	if (buffer) {
-		async_data_read_finalize(callid, buffer, size);
+		async_data_write_finalize(callid, buffer, size);
 		buffer[size - 1] = 0;
 		log_verbose("Got name from client: %s", buffer);
 	}
@@ -82,7 +82,10 @@ static inline async_sess_t *get_session()
 	ipc_callid_t callid = async_get_call(&call);
 	async_sess_t *s = async_callback_receive_start(EXCHANGE_ATOMIC, &call);
 	async_answer_0(callid, s ? EOK : ENOMEM);
-	log_verbose("Received callback session");
+	if (s) {
+		log_verbose("Received callback session");
+	} else
+		log_debug("Failed to receive callback session");
 	return s;
 }
 
@@ -147,11 +150,13 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			const audio_format_t format = read_format(&call);
 			const char *name = get_name();
 			async_sess_t *sess = get_session();
-			audio_client_t * client =
+			audio_client_t *client =
 			    audio_client_get_playback(name, &format, sess);
+			free(name);
 			if (!client) {
 				log_error("Failed to create playback client");
 				async_answer_0(callid, ENOMEM);
+				break;
 			}
 			int ret = hound_add_source(&hound, &client->source);
 			if (ret != EOK){
@@ -161,6 +166,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				async_answer_0(callid, ret);
 				break;
 			}
+			log_info("Added audio client %p '%s'",
+			    client, client->name);
 			async_answer_0(callid, EOK);
 			list_append(&client->link, &local_playback);
 			break;

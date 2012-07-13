@@ -54,9 +54,9 @@ do { \
 		audio_ ## type ## _t *dev = \
 		    audio_ ## type ## _list_instance(it); \
 		if (str_cmp(name, dev->name) == 0) { \
-			log_debug("%s with name %s is already present", \
+			log_debug("%s with name '%s' is already present", \
 			    #type, name); \
-			return NULL; \
+			return dev; \
 		} \
 	} \
 	return NULL; \

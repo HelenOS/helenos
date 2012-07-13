@@ -70,11 +70,10 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 
 void audio_source_fini(audio_source_t *source)
 {
-	if (!source)
-		return;
+	assert(source);
 	assert(source->connected_sink == NULL);
 	free(source->name);
-	free(source);
+	source->name = NULL;
 }
 
 int audio_source_connected(audio_source_t *source, struct audio_sink *sink)
