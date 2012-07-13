@@ -182,22 +182,34 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		async_answer_0(callid, EOK);
-		if (IPC_GET_IMETHOD(call) != IPC_FIRST_USER_METHOD) {
-			log_debug("Unknown event.\n");
-			continue;
+		switch(IPC_GET_IMETHOD(call)) {
+		case PCM_EVENT_PLAYBACK_DONE: {
+			if (dev->buffer.position) {
+				dev->buffer.position +=
+				    dev->buffer.size / BUFFER_BLOCKS;
+			}
+			if (!dev->buffer.position ||
+			    dev->buffer.position >=
+			        dev->buffer.base + dev->buffer.size)
+			{
+				dev->buffer.position = dev->buffer.base;
+			}
+			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
+			    dev->buffer.size / BUFFER_BLOCKS);
+			break;
 		}
-		// Assume playback for now
-		if (dev->buffer.position) {
-			dev->buffer.position += dev->buffer.size / BUFFER_BLOCKS;
+		case PCM_EVENT_PLAYBACK_TERMINATED: {
+			log_verbose("Playback terminated!");
+			return;
+			break;
 		}
-		if (!dev->buffer.position ||
-		    dev->buffer.position >= dev->buffer.base + dev->buffer.size)
-		{
-			dev->buffer.position = dev->buffer.base;
+		case PCM_EVENT_RECORDING_DONE: {
+			break;
 		}
-		audio_sink_mix_inputs(
-		    &dev->sink, dev->buffer.base,
-		    dev->buffer.size / BUFFER_BLOCKS);
+		case PCM_EVENT_RECORDING_TERMINATED:
+			log_verbose("Recording terminated!");
+			break;
+		}
 
 	}
 	//TODO implement
