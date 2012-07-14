@@ -46,7 +46,7 @@
 #include <malloc.h>
 #include "logger.h"
 
-static logging_namespace_t *register_namespace(void)
+static logging_namespace_t *find_namespace_and_attach_writer(void)
 {
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
@@ -64,7 +64,7 @@ static logging_namespace_t *register_namespace(void)
 		return NULL;
 	}
 
-	logging_namespace_t *result = namespace_create((const char *) name);
+	logging_namespace_t *result = namespace_writer_attach((const char *) name);
 
 	free(name);
 
@@ -223,7 +223,7 @@ static void connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	case LOGGER_INTERFACE_SINK:
 		/* First call has to be the registration. */
 		async_answer_0(iid, EOK);
-		namespace = register_namespace();
+		namespace = find_namespace_and_attach_writer();
 		if (namespace == NULL) {
 			fprintf(stderr, NAME ": failed to register namespace.\n");
 			break;

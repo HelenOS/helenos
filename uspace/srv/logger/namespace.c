@@ -41,7 +41,7 @@
 
 struct logging_namespace {
 	fibril_mutex_t guard;
-	bool has_writer;
+	size_t writers_count;
 	bool has_reader;
 	const char *name;
 	link_t link;
@@ -113,7 +113,7 @@ logging_namespace_t *namespace_create(const char *name)
 	fibril_mutex_initialize(&namespace->guard);
 	prodcons_initialize(&namespace->messages);
 	namespace->has_reader = false;
-	namespace->has_writer = true;
+	namespace->writers_count = 0;
 	link_initialize(&namespace->link);
 
 	list_append(&namespace->link, &namespace_list);
@@ -134,7 +134,7 @@ static void namespace_destroy_careful(logging_namespace_t *namespace)
 	fibril_mutex_lock(&namespace_list_guard);
 
 	fibril_mutex_lock(&namespace->guard);
-	if (namespace->has_reader || namespace->has_writer) {
+	if (namespace->has_reader || (namespace->writers_count > 0)) {
 		fibril_mutex_unlock(&namespace->guard);
 		fibril_mutex_unlock(&namespace_list_guard);
 		return;
@@ -174,6 +174,27 @@ logging_namespace_t *namespace_reader_attach(const char *name)
 	return namespace;
 }
 
+logging_namespace_t *namespace_writer_attach(const char *name)
+{
+	logging_namespace_t *namespace = NULL;
+
+	fibril_mutex_lock(&namespace_list_guard);
+
+	namespace = namespace_find_no_lock(name);
+
+	if (namespace == NULL) {
+		namespace = namespace_create(name);
+	}
+
+	fibril_mutex_lock(&namespace->guard);
+	namespace->writers_count++;
+	fibril_mutex_unlock(&namespace->guard);
+
+	fibril_mutex_unlock(&namespace_list_guard);
+
+	return namespace;
+}
+
 void namespace_reader_detach(logging_namespace_t *namespace)
 {
 	fibril_mutex_lock(&namespace->guard);
@@ -186,7 +207,8 @@ void namespace_reader_detach(logging_namespace_t *namespace)
 void namespace_writer_detach(logging_namespace_t *namespace)
 {
 	fibril_mutex_lock(&namespace->guard);
-	namespace->has_writer = false;
+	assert(namespace->writers_count > 0);
+	namespace->writers_count--;
 	fibril_mutex_unlock(&namespace->guard);
 
 	namespace_destroy_careful(namespace);

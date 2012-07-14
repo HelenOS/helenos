@@ -61,6 +61,7 @@ logging_namespace_t *namespace_create(const char *);
 const char *namespace_get_name(logging_namespace_t *);
 void namespace_destroy(logging_namespace_t *);
 logging_namespace_t *namespace_reader_attach(const char *);
+logging_namespace_t *namespace_writer_attach(const char *);
 void namespace_reader_detach(logging_namespace_t *);
 void namespace_writer_detach(logging_namespace_t *);
 
