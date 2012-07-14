@@ -51,6 +51,9 @@ static async_sess_t *logger_session;
 /** Maximum length of a single log message (in bytes). */
 #define MESSAGE_BUFFER_SIZE 4096
 
+FIBRIL_RWLOCK_INITIALIZE(current_observed_level_lock);
+log_level_t current_observed_level;
+
 static int logger_register(async_sess_t *session, const char *prog_name)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
@@ -100,6 +103,62 @@ static int logger_message(async_sess_t *session, log_level_t level, const char *
 	return reg_msg_rc;
 }
 
+static void cannot_use_level_changed_monitor(void)
+{
+	assert(false && "not implemented yet");
+}
+
+static int observed_level_changed_monitor(void *arg)
+{
+	async_sess_t *monitor_session = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOGGER, LOGGER_INTERFACE_SINK, 0);
+	if (monitor_session == NULL) {
+		cannot_use_level_changed_monitor();
+		return ENOMEM;
+	}
+
+	int rc = logger_register(monitor_session, log_prog_name);
+	if (rc != EOK) {
+		cannot_use_level_changed_monitor();
+		return rc;
+	}
+
+	async_exch_t *exchange = async_exchange_begin(monitor_session);
+	if (exchange == NULL) {
+		cannot_use_level_changed_monitor();
+		return ENOMEM;
+	}
+
+	while (true) {
+		sysarg_t has_reader;
+		sysarg_t msg_rc = async_req_0_1(exchange,
+		    LOGGER_BLOCK_UNTIL_READER_CHANGED, &has_reader);
+		if (msg_rc != EOK) {
+			cannot_use_level_changed_monitor();
+			break;
+		}
+
+		fibril_rwlock_write_lock(&current_observed_level_lock);
+		if ((bool) has_reader) {
+			current_observed_level = LVL_LIMIT;
+		} else {
+			current_observed_level = LVL_NOTE;
+		}
+		fibril_rwlock_write_unlock(&current_observed_level_lock);
+	}
+
+	async_exchange_end(exchange);
+
+	return EOK;
+}
+
+static log_level_t get_current_observed_level(void)
+{
+	fibril_rwlock_read_lock(&current_observed_level_lock);
+	log_level_t level = current_observed_level;
+	fibril_rwlock_read_unlock(&current_observed_level_lock);
+	return level;
+}
+
 /** Initialize the logging system.
  *
  * @param prog_name	Program name, will be printed as part of message
@@ -119,6 +178,15 @@ int log_init(const char *prog_name, log_level_t level)
 	}
 
 	int rc = logger_register(logger_session, log_prog_name);
+
+	current_observed_level = LVL_NOTE;
+
+	fid_t observed_level_changed_fibril = fibril_create(observed_level_changed_monitor, NULL);
+	if (observed_level_changed_fibril == 0) {
+		cannot_use_level_changed_monitor();
+	} else {
+		fibril_add_ready(observed_level_changed_fibril);
+	}
 
 	return rc;
 }
@@ -149,6 +217,10 @@ void log_msg(log_level_t level, const char *fmt, ...)
 void log_msgv(log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
+
+	if (get_current_observed_level() < level) {
+		return;
+	}
 
 	char *message_buffer = malloc(MESSAGE_BUFFER_SIZE);
 	if (message_buffer == NULL) {

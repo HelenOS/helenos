@@ -42,6 +42,7 @@
 struct logging_namespace {
 	fibril_mutex_t guard;
 	size_t writers_count;
+	fibril_condvar_t reader_appeared_cv;
 	bool has_reader;
 	const char *name;
 	link_t link;
@@ -166,6 +167,7 @@ logging_namespace_t *namespace_reader_attach(const char *name)
 	if (namespace != NULL) {
 		fibril_mutex_lock(&namespace->guard);
 		namespace->has_reader = true;
+		fibril_condvar_broadcast(&namespace->reader_appeared_cv);
 		fibril_mutex_unlock(&namespace->guard);
 	}
 
@@ -199,6 +201,7 @@ void namespace_reader_detach(logging_namespace_t *namespace)
 {
 	fibril_mutex_lock(&namespace->guard);
 	namespace->has_reader = false;
+	fibril_condvar_broadcast(&namespace->reader_appeared_cv);
 	fibril_mutex_unlock(&namespace->guard);
 
 	namespace_destroy_careful(namespace);
@@ -220,6 +223,17 @@ bool namespace_has_reader(logging_namespace_t *namespace)
 	bool has_reader = namespace->has_reader;
 	fibril_mutex_unlock(&namespace->guard);
 	return has_reader;
+}
+
+void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_reader_now)
+{
+	fibril_mutex_lock(&namespace->guard);
+	bool had_reader = namespace->has_reader;
+	while (had_reader == namespace->has_reader) {
+		fibril_condvar_wait(&namespace->reader_appeared_cv, &namespace->guard);
+	}
+	*has_reader_now = namespace->has_reader;
+	fibril_mutex_unlock(&namespace->guard);
 }
 
 

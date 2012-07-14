@@ -65,6 +65,7 @@ logging_namespace_t *namespace_writer_attach(const char *);
 void namespace_reader_detach(logging_namespace_t *);
 void namespace_writer_detach(logging_namespace_t *);
 
+void namespace_wait_for_reader_change(logging_namespace_t *, bool *);
 bool namespace_has_reader(logging_namespace_t *);
 void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
 log_message_t *namespace_get_next_message(logging_namespace_t *);
