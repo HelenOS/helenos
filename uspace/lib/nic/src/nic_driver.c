@@ -78,8 +78,7 @@ int nic_driver_init(const char *name)
 	return EOK;
 }
 
-/**
- * Fill in the default implementations for device options and NIC interface.
+/** Fill in the default implementations for device options and NIC interface.
  *
  * @param driver_ops
  * @param dev_ops
@@ -620,25 +619,6 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
 	}
 	nic_release_frame(nic_data, frame);
-}
-
-/**
- * This function is to be used only in the loopback driver. It's workaround
- * for the situation when the frame does not contain ethernet address.
- * The filtering is therefore not applied here.
- *
- * @param nic_data
- * @param data		Frame data
- * @param size		Frame size in bytes
- */
-void nic_received_noneth_frame(nic_t *nic_data, void *data, size_t size)
-{
-	fibril_rwlock_write_lock(&nic_data->stats_lock);
-	nic_data->stats.receive_packets++;
-	nic_data->stats.receive_bytes += size;
-	fibril_rwlock_write_unlock(&nic_data->stats_lock);
-	
-	nic_ev_received(nic_data->client_session, data, size);
 }
 
 /**

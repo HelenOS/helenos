@@ -38,7 +38,7 @@
 #include <as.h>
 #include <sys/types.h>
 
-#define MAP_FAILED  ((void *) -1)
+#define MAP_FAILED  AS_MAP_FAILED
 
 #define MAP_SHARED     (1 << 0)
 #define MAP_PRIVATE    (1 << 1)

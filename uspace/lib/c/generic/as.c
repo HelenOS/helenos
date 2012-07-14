@@ -45,13 +45,13 @@
 /** Create address space area.
  *
  * @param base  Starting virtual address of the area.
- *              If set to (void *) -1, the kernel finds
- *              a mappable area.
+ *              If set to AS_AREA_ANY ((void *) -1),
+ *              the kernel finds a mappable area.
  * @param size  Size of the area.
  * @param flags Flags describing type of the area.
  *
  * @return Starting virtual address of the created area on success.
- * @return (void *) -1 otherwise.
+ * @return AS_MAP_FAILED ((void *) -1) otherwise.
  *
  */
 void *as_area_create(void *base, size_t size, unsigned int flags)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,368 +29,261 @@
 /** @addtogroup ping
  * @{
  */
-
-/** @file
- * Packet Internet Network Grouper.
+/** @file ICMP echo utility.
  */
 
 #include <async.h>
-#include <stdio.h>
-#include <str.h>
-#include <task.h>
-#include <time.h>
-#include <ipc/services.h>
-#include <str_error.h>
+#include <bool.h>
 #include <errno.h>
-#include <arg_parse.h>
+#include <fibril_synch.h>
+#include <inet/inetping.h>
+#include <io/console.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
 
-#include <net/icmp_api.h>
-#include <net/in.h>
-#include <net/in6.h>
-#include <net/inet.h>
-#include <net/socket_parse.h>
-#include <net/ip_codes.h>
+#define NAME "ping"
 
-#include "print_error.h"
+/** Delay between subsequent ping requests in microseconds */
+#define PING_DELAY (1000 * 1000)
 
-#define NAME  "ping"
+/** Ping request timeout in microseconds */
+#define PING_TIMEOUT (1000 * 1000)
 
-#define CL_OK           0
-#define CL_USAGE        -1
-#define CL_MISSING      -2
-#define CL_INVALID      -3
-#define CL_UNSUPPORTED  -4
-#define CL_ERROR        -5
+static int ping_ev_recv(inetping_sdu_t *);
 
-/** Ping configuration
- *
- */
-typedef struct {
-	bool verbose;               /**< Verbose printouts. */
-	size_t size;                /**< Outgoing packet size. */
-	unsigned int count;         /**< Number of packets to send. */
-	suseconds_t timeout;        /**< Reply wait timeout. */
-	int af;                     /**< Address family. */
-	ip_tos_t tos;               /**< Type of service. */
-	ip_ttl_t ttl;               /**< Time-to-live. */
-	bool fragments;             /**< Fragmentation. */
-	
-	char *dest_addr;            /**< Destination address. */
-	struct sockaddr_in dest;    /**< IPv4 destionation. */
-	struct sockaddr_in6 dest6;  /**< IPv6 destionation. */
-	
-	struct sockaddr *dest_raw;  /**< Raw destination address. */
-	socklen_t dest_len;         /**< Raw destination address length. */
-	
-	/** Converted address string. */
-	char dest_str[INET6_ADDRSTRLEN];
-} ping_config_t;
+static bool done = false;
+static FIBRIL_CONDVAR_INITIALIZE(done_cv);
+static FIBRIL_MUTEX_INITIALIZE(done_lock);
 
+static inetping_ev_ops_t ev_ops = {
+	.recv = ping_ev_recv
+};
 
-static void usage(void)
+static inet_addr_t src_addr;
+static inet_addr_t dest_addr;
+
+static bool ping_repeat = false;
+
+static void print_syntax(void)
 {
-	printf(
-	    "Usage: ping [-c count] [-s size] [-W timeout] [-f family] [-t ttl]\n" \
-	    "            [-Q tos] [--dont_fragment] destination\n" \
-	    "\n" \
-	    "Options:\n" \
-	    "\t-c count\n" \
-	    "\t--count=count\n" \
-	    "\t\tNumber of outgoing packets (default: 4)\n" \
-	    "\n" \
-	    "\t-s size\n" \
-	    "\t--size=bytes\n" \
-	    "\t\tOutgoing packet size (default: 56 bytes)\n" \
-	    "\n" \
-	    "\t-W timeout\n" \
-	    "\t--timeout=ms\n" \
-	    "\t\tReply wait timeout (default: 3000 ms)\n" \
-	    "\n" \
-	    "\t-f family\n" \
-	    "\t--family=family\n" \
-	    "\t\tDestination address family, AF_INET or AF_INET6 (default: AF_INET)\n" \
-	    "\n" \
-	    "\t-t ttl\n" \
-	    "\t--ttl=ttl\n" \
-	    "\t\tOutgoing packet time-to-live (default: 0)\n" \
-	    "\n" \
-	    "\t-Q tos\n" \
-	    "\t--tos=tos\n" \
-	    "\t\tOutgoing packet type of service (default: 0)\n" \
-	    "\n" \
-	    "\t--dont_fragment\n" \
-	    "\t\tDisable packet fragmentation (default: enabled)\n" \
-	    "\n" \
-	    "\t-v\n" \
-	    "\t--verbose\n" \
-	    "\t\tVerbose operation\n" \
-	    "\n" \
-	    "\t-h\n" \
-	    "\t--help\n" \
-	    "\t\tPrint this usage information\n"
-	);
+	printf("syntax: " NAME " [-r] <addr>\n");
 }
 
-static int args_parse(int argc, char *argv[], ping_config_t *config)
+static int addr_parse(const char *text, inet_addr_t *addr)
 {
-	if (argc < 2)
-		return CL_USAGE;
-	
+	unsigned long a[4];
+	char *cp = (char *)text;
 	int i;
-	int ret;
-	
-	for (i = 1; i < argc; i++) {
-		
-		/* Not an option */
-		if (argv[i][0] != '-')
+
+	for (i = 0; i < 3; i++) {
+		a[i] = strtoul(cp, &cp, 10);
+		if (*cp != '.')
+			return EINVAL;
+		++cp;
+	}
+
+	a[3] = strtoul(cp, &cp, 10);
+	if (*cp != '\0')
+		return EINVAL;
+
+	addr->ipv4 = 0;
+	for (i = 0; i < 4; i++) {
+		if (a[i] > 255)
+			return EINVAL;
+		addr->ipv4 = (addr->ipv4 << 8) | a[i];
+	}
+
+	return EOK;
+}
+
+static int addr_format(inet_addr_t *addr, char **bufp)
+{
+	int rc;
+
+	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
+	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
+	    addr->ipv4 & 0xff);
+
+	if (rc < 0)
+		return ENOMEM;
+
+	return EOK;
+}
+
+static void ping_signal_done(void)
+{
+	fibril_mutex_lock(&done_lock);
+	done = true;
+	fibril_mutex_unlock(&done_lock);
+	fibril_condvar_broadcast(&done_cv);
+}
+
+static int ping_ev_recv(inetping_sdu_t *sdu)
+{
+	char *asrc, *adest;
+	int rc;
+
+	rc = addr_format(&sdu->src, &asrc);
+	if (rc != EOK)
+		return ENOMEM;
+
+	rc = addr_format(&sdu->dest, &adest);
+	if (rc != EOK) {
+		free(asrc);
+		return ENOMEM;
+	}
+	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
+	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
+
+	if (!ping_repeat) {
+		ping_signal_done();
+	}
+
+	free(asrc);
+	free(adest);
+	return EOK;
+}
+
+static int ping_send(uint16_t seq_no)
+{
+	inetping_sdu_t sdu;
+	int rc;
+
+	sdu.src = src_addr;
+	sdu.dest = dest_addr;
+	sdu.seq_no = seq_no;
+	sdu.data = (void *) "foo";
+	sdu.size = 3;
+
+	rc = inetping_send(&sdu);
+	if (rc != EOK) {
+		printf(NAME ": Failed sending echo request (%d).\n", rc);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static int transmit_fibril(void *arg)
+{
+	uint16_t seq_no = 0;
+
+	while (true) {
+		fibril_mutex_lock(&done_lock);
+		if (done) {
+			fibril_mutex_unlock(&done_lock);
+			return 0;
+		}
+		fibril_mutex_unlock(&done_lock);
+
+		(void) ping_send(++seq_no);
+		async_usleep(PING_DELAY);
+	}
+
+	return 0;
+}
+
+static int input_fibril(void *arg)
+{
+	console_ctrl_t *con;
+	kbd_event_t ev;
+
+	con = console_init(stdin, stdout);
+	printf("[Press Ctrl-Q to quit]\n");
+
+	while (true) {
+		if (!console_get_kbd_event(con, &ev))
 			break;
-		
-		/* Options terminator */
-		if (str_cmp(argv[i], "--") == 0) {
-			i++;
-			break;
-		}
-		
-		int off;
-		
-		/* Usage */
-		if ((off = arg_parse_short_long(argv[i], "-h", "--help")) != -1)
-			return CL_USAGE;
-		
-		/* Verbose */
-		if ((off = arg_parse_short_long(argv[i], "-v", "--verbose")) != -1) {
-			config->verbose = true;
-			continue;
-		}
-		
-		/* Don't fragment */
-		if (str_cmp(argv[i], "--dont_fragment") == 0) {
-			config->fragments = false;
-			continue;
-		}
-		
-		/* Count */
-		if ((off = arg_parse_short_long(argv[i], "-c", "--count=")) != -1) {
-			int tmp;
-			ret = arg_parse_int(argc, argv, &i, &tmp, off);
-			
-			if ((ret != EOK) || (tmp < 0))
-				return i;
-			
-			config->count = (unsigned int) tmp;
-			continue;
-		}
-		
-		/* Outgoing packet size */
-		if ((off = arg_parse_short_long(argv[i], "-s", "--size=")) != -1) {
-			int tmp;
-			ret = arg_parse_int(argc, argv, &i, &tmp, off);
-			
-			if ((ret != EOK) || (tmp < 0))
-				return i;
-			
-			config->size = (size_t) tmp;
-			continue;
-		}
-		
-		/* Reply wait timeout */
-		if ((off = arg_parse_short_long(argv[i], "-W", "--timeout=")) != -1) {
-			int tmp;
-			ret = arg_parse_int(argc, argv, &i, &tmp, off);
-			
-			if ((ret != EOK) || (tmp < 0))
-				return i;
-			
-			config->timeout = (suseconds_t) tmp;
-			continue;
-		}
-		
-		/* Address family */
-		if ((off = arg_parse_short_long(argv[i], "-f", "--family=")) != -1) {
-			ret = arg_parse_name_int(argc, argv, &i, &config->af, off,
-			    socket_parse_address_family);
-			
-			if (ret != EOK)
-				return i;
-			
-			continue;
-		}
-		
-		/* Type of service */
-		if ((off = arg_parse_short_long(argv[i], "-Q", "--tos=")) != -1) {
-			int tmp;
-			ret = arg_parse_name_int(argc, argv, &i, &tmp, off,
-			    socket_parse_address_family);
-			
-			if ((ret != EOK) || (tmp < 0))
-				return i;
-			
-			config->tos = (ip_tos_t) tmp;
-			continue;
-		}
-		
-		/* Time to live */
-		if ((off = arg_parse_short_long(argv[i], "-t", "--ttl=")) != -1) {
-			int tmp;
-			ret = arg_parse_name_int(argc, argv, &i, &tmp, off,
-			    socket_parse_address_family);
-			
-			if ((ret != EOK) || (tmp < 0))
-				return i;
-			
-			config->ttl = (ip_ttl_t) tmp;
-			continue;
+
+		if (ev.type == KEY_PRESS && (ev.mods & (KM_ALT | KM_SHIFT)) ==
+		    0 && (ev.mods & KM_CTRL) != 0) {
+			/* Ctrl+key */
+			if (ev.key == KC_Q) {
+				ping_signal_done();
+				return 0;
+			}
 		}
 	}
-	
-	if (i >= argc)
-		return CL_MISSING;
-	
-	config->dest_addr = argv[i];
-	
-	/* Resolve destionation address */
-	switch (config->af) {
-	case AF_INET:
-		config->dest_raw = (struct sockaddr *) &config->dest;
-		config->dest_len = sizeof(config->dest);
-		config->dest.sin_family = config->af;
-		ret = inet_pton(config->af, config->dest_addr,
-		    (uint8_t *) &config->dest.sin_addr.s_addr);
-		break;
-	case AF_INET6:
-		config->dest_raw = (struct sockaddr *) &config->dest6;
-		config->dest_len = sizeof(config->dest6);
-		config->dest6.sin6_family = config->af;
-		ret = inet_pton(config->af, config->dest_addr,
-		    (uint8_t *) &config->dest6.sin6_addr.s6_addr);
-		break;
-	default:
-		return CL_UNSUPPORTED;
-	}
-	
-	if (ret != EOK)
-		return CL_INVALID;
-	
-	/* Convert destination address back to string */
-	switch (config->af) {
-	case AF_INET:
-		ret = inet_ntop(config->af,
-		    (uint8_t *) &config->dest.sin_addr.s_addr,
-		    config->dest_str, sizeof(config->dest_str));
-		break;
-	case AF_INET6:
-		ret = inet_ntop(config->af,
-		    (uint8_t *) &config->dest6.sin6_addr.s6_addr,
-		    config->dest_str, sizeof(config->dest_str));
-		break;
-	default:
-		return CL_UNSUPPORTED;
-	}
-	
-	if (ret != EOK)
-		return CL_ERROR;
-	
-	return CL_OK;
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
 {
-	ping_config_t config;
-	
-	/* Default configuration */
-	config.verbose = false;
-	config.size = 56;
-	config.count = 4;
-	config.timeout = 3000;
-	config.af = AF_INET;
-	config.tos = 0;
-	config.ttl = 0;
-	config.fragments = true;
-	
-	int ret = args_parse(argc, argv, &config);
-	
-	switch (ret) {
-	case CL_OK:
-		break;
-	case CL_USAGE:
-		usage();
-		return 0;
-	case CL_MISSING:
-		fprintf(stderr, "%s: Destination address missing\n", NAME);
+	int rc;
+	int argi;
+
+	rc = inetping_init(&ev_ops);
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to internet ping service "
+		    "(%d).\n", rc);
 		return 1;
-	case CL_INVALID:
-		fprintf(stderr, "%s: Destination address '%s' invalid or malformed\n",
-		    NAME, config.dest_addr);
-		return 2;
-	case CL_UNSUPPORTED:
-		fprintf(stderr, "%s: Destination address '%s' unsupported\n",
-		    NAME, config.dest_addr);
-		return 3;
-	case CL_ERROR:
-		fprintf(stderr, "%s: Destination address '%s' error\n",
-		    NAME, config.dest_addr);
-		return 4;
-	default:
-		fprintf(stderr, "%s: Unknown or invalid option '%s'\n", NAME,
-		    argv[ret]);
-		return 5;
 	}
-	
-	printf("PING %s (%s) %zu(%zu) bytes of data\n", config.dest_addr,
-	    config.dest_str, config.size, config.size);
-	
-	async_sess_t *sess = icmp_connect_module();
-	if (!sess) {
-		fprintf(stderr, "%s: Unable to connect to ICMP service (%s)\n", NAME,
-		    str_error(errno));
-		return errno;
+
+	argi = 1;
+	if (argi < argc && str_cmp(argv[argi], "-r") == 0) {
+		ping_repeat = true;
+		++argi;
+	} else {
+		ping_repeat = false;
 	}
-	
-	unsigned int seq;
-	for (seq = 0; seq < config.count; seq++) {
-		struct timeval t0;
-		ret = gettimeofday(&t0, NULL);
-		if (ret != EOK) {
-			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
-			    str_error(ret));
-			
-			async_hangup(sess);
-			return ret;
-		}
-		
-		/* Ping! */
-		int result = icmp_echo_msg(sess, config.size, config.timeout,
-		    config.ttl, config.tos, !config.fragments, config.dest_raw,
-		    config.dest_len);
-		
-		struct timeval t1;
-		ret = gettimeofday(&t1, NULL);
-		if (ret != EOK) {
-			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
-			    str_error(ret));
-			
-			async_hangup(sess);
-			return ret;
-		}
-		
-		suseconds_t elapsed = tv_sub(&t1, &t0);
-		
-		switch (result) {
-		case ICMP_ECHO:
-			printf("%zu bytes from ? (?): icmp_seq=%u ttl=? time=%ld.%04ld\n",
-				config.size, seq, elapsed / 1000, elapsed % 1000);
-			break;
-		case ETIMEOUT:
-			printf("%zu bytes from ? (?): icmp_seq=%u Timed out\n",
-				config.size, seq);
-			break;
-		default:
-			print_error(stdout, result, NULL, "\n");
-		}
+
+	if (argc - argi != 1) {
+		print_syntax();
+		return 1;
 	}
-	
-	async_hangup(sess);
-	
+
+	/* Parse destination address */
+	rc = addr_parse(argv[argi], &dest_addr);
+	if (rc != EOK) {
+		printf(NAME ": Invalid address format.\n");
+		print_syntax();
+		return 1;
+	}
+
+	/* Determine source address */
+	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
+	if (rc != EOK) {
+		printf(NAME ": Failed determining source address.\n");
+		return 1;
+	}
+
+	fid_t fid;
+
+	if (ping_repeat) {
+		fid = fibril_create(transmit_fibril, NULL);
+		if (fid == 0) {
+			printf(NAME ": Failed creating transmit fibril.\n");
+			return 1;
+		}
+
+		fibril_add_ready(fid);
+
+		fid = fibril_create(input_fibril, NULL);
+		if (fid == 0) {
+			printf(NAME ": Failed creating input fibril.\n");
+			return 1;
+		}
+
+		fibril_add_ready(fid);
+	} else {
+		ping_send(1);
+	}
+
+	fibril_mutex_lock(&done_lock);
+	rc = EOK;
+	while (!done && rc != ETIMEOUT) {
+		rc = fibril_condvar_wait_timeout(&done_cv, &done_lock,
+			ping_repeat ? 0 : PING_TIMEOUT);
+	}
+	fibril_mutex_unlock(&done_lock);
+
+	if (rc == ETIMEOUT) {
+		printf(NAME ": Echo request timed out.\n");
+		return 1;
+	}
+
 	return 0;
 }
 

@@ -123,7 +123,7 @@ static void cross_call(int mid, void (* func)(void))
 			delay(20 + (tick_read() & 0xff));
 			(void) interrupts_disable();
 		}
-	} while (done);
+	} while (!done);
 	
 	preemption_enable();
 }

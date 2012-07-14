@@ -245,7 +245,7 @@ int loc_server_register(const char *name)
 	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -284,7 +284,7 @@ int loc_service_register_with_iface(const char *fqsn,
 	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -351,7 +351,7 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
 	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -400,7 +400,7 @@ static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 	loc_exchange_end(exch);
 	
 	if (dretval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return dretval;
 	}
 	
@@ -449,6 +449,20 @@ int loc_service_get_name(service_id_t svc_id, char **name)
 	return loc_get_name_internal(LOC_SERVICE_GET_NAME, svc_id, name);
 }
 
+/** Get service server name.
+ *
+ * Provided ID of a service, return the name of its server.
+ *
+ * @param svc_id	Service ID
+ * @param name		Place to store pointer to new string. Caller should
+ *			free it using free().
+ * @return		EOK on success or negative error code
+ */
+int loc_service_get_server_name(service_id_t svc_id, char **name)
+{
+	return loc_get_name_internal(LOC_SERVICE_GET_SERVER_NAME, svc_id, name);
+}
+
 int loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
 {
@@ -470,7 +484,7 @@ int loc_namespace_get_id(const char *name, service_id_t *handle,
 	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -519,7 +533,7 @@ int loc_category_get_id(const char *name, category_id_t *cat_id,
 	loc_exchange_end(exch);
 	
 	if (retval != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return retval;
 	}
 	
@@ -682,7 +696,7 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 		}
 		
 		if (rc != EOK) {
-			async_wait_for(req, NULL);
+			async_forget(req);
 			free(devs);
 			return 0;
 		}
@@ -731,7 +745,7 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 		}
 		
 		if (rc != EOK) {
-			async_wait_for(req, NULL);
+			async_forget(req);
 			free(devs);
 			return 0;
 		}
@@ -759,7 +773,7 @@ static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
 	loc_exchange_end(exch);
 	
 	if (rc != EOK) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	

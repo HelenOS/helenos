@@ -64,14 +64,11 @@ static async_sess_t *dev_sess;
 
 static int adb_port_init(kbd_dev_t *kdev)
 {
-	const char *dev = "adb/kbd";
-	service_id_t service_id;
-	async_exch_t *exch;
-	int rc;
-	
 	kbd_dev = kdev;
 	
-	rc = loc_service_get_id(dev, &service_id, 0);
+	const char *dev = "adb/kbd";
+	service_id_t service_id;
+	int rc = loc_service_get_id(dev, &service_id, 0);
 	if (rc != EOK)
 		return rc;
 	
@@ -81,14 +78,13 @@ static int adb_port_init(kbd_dev_t *kdev)
 		return ENOENT;
 	}
 	
-	exch = async_exchange_begin(dev_sess);
+	async_exch_t *exch = async_exchange_begin(dev_sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with device\n", NAME);
 		async_hangup(dev_sess);
 		return ENOMEM;
 	}
 	
-	/* NB: The callback connection is slotted for removal */
 	rc = async_connect_to_me(exch, 0, 0, 0, kbd_port_events, NULL);
 	async_exchange_end(exch);
 	if (rc != EOK) {

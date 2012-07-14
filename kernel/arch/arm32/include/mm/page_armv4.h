@@ -214,13 +214,10 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_level1_t *p = &pt[i].l1;
 	
-	if (flags & PAGE_NOT_PRESENT) {
+	if (flags & PAGE_NOT_PRESENT)
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
-		p->access_permission_3 = 1;
-	} else {
+	else
 		p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
-		p->access_permission_3 = p->access_permission_0;
-	}
 	
 	p->cacheable = p->bufferable = (flags & PAGE_CACHEABLE) != 0;
 	

@@ -68,7 +68,7 @@ static void receive_device_name(async_sess_t *sess)
 	async_exchange_end(exch);
 	
 	if (data_request == 0) {
-		async_wait_for(opening_request, NULL);
+		async_forget(opening_request);
 		return;
 	}
 	

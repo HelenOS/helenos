@@ -263,7 +263,7 @@ void sheet_get_row_width(sheet_t *sh, int row, int *length)
 	
 	sheet_get_cell_pt(sh, &coord, dir_before, &pt);
 	spt_get_coord(&pt, &coord);
-	*length = coord.column - 1;
+	*length = coord.column;
 }
 
 /** Get the number of rows in a sheet. */

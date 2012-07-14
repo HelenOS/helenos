@@ -32,15 +32,6 @@
 /** @file
  */
 
-/** Paging on AMD64
- *
- * The space is divided in positive numbers (uspace) and
- * negative numbers (kernel). The 'negative' space starting
- * with 0xffff800000000000 and ending with 0xffffffffffffffff
- * is identically mapped physical memory.
- *
- */
-
 #ifndef KERN_amd64_PAGE_H_
 #define KERN_amd64_PAGE_H_
 
@@ -126,6 +117,16 @@
 	set_pt_flags((pte_t *) (ptl2), (size_t) (i), (x))
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
 	set_pt_flags((pte_t *) (ptl3), (size_t) (i), (x))
+
+/* Set PTE present bit accessors for each level. */
+#define SET_PTL1_PRESENT_ARCH(ptl0, i) \
+	set_pt_present((pte_t *) (ptl0), (size_t) (i))
+#define SET_PTL2_PRESENT_ARCH(ptl1, i) \
+	set_pt_present((pte_t *) (ptl1), (size_t) (i))
+#define SET_PTL3_PRESENT_ARCH(ptl2, i) \
+	set_pt_present((pte_t *) (ptl2), (size_t) (i))
+#define SET_FRAME_PRESENT_ARCH(ptl3, i) \
+	set_pt_present((pte_t *) (ptl3), (size_t) (i))
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(p) \
@@ -221,6 +222,13 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	 * Ensure that there is at least one bit set even if the present bit is cleared.
 	 */
 	p->soft_valid = 1;
+}
+
+NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
+{
+	pte_t *p = &pt[i];
+
+	p->present = 1;
 }
 
 extern void page_arch_init(void);

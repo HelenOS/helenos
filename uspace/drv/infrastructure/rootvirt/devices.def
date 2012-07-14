@@ -4,12 +4,6 @@
  * Unless the list is empty, the last item shall be followed by a comma.
  */
 
-/* Loopback network interface */
-{
-    .name = "lo",
-    .match_id = "virtual&loopback"
-},
-
 #ifdef CONFIG_TEST_DRIVERS
 
 {

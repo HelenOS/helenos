@@ -89,7 +89,7 @@ void task_init(void)
 {
 	TASK = NULL;
 	avltree_create(&tasks_tree);
-	task_slab = slab_cache_create("task_slab", sizeof(task_t), 0,
+	task_slab = slab_cache_create("task_t", sizeof(task_t), 0,
 	    tsk_constructor, NULL, 0);
 }
 

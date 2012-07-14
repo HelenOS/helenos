@@ -55,8 +55,6 @@
  */
 void uinit(void *arg)
 {
-	uspace_arg_t uarg;
-	
 	/*
 	 * So far, we don't have a use for joining userspace threads so we
 	 * immediately detach each uinit thread. If joining of userspace threads
@@ -71,15 +69,19 @@ void uinit(void *arg)
 	udebug_stoppable_end();
 #endif
 	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
+	uspace_arg_t *uarg = (uspace_arg_t *) arg;
+	uspace_arg_t local_uarg;
 	
-	free((uspace_arg_t *) arg);
+	local_uarg.uspace_entry = uarg->uspace_entry;
+	local_uarg.uspace_stack = uarg->uspace_stack;
+	local_uarg.uspace_stack_size = uarg->uspace_stack_size;
+	local_uarg.uspace_uarg = uarg->uspace_uarg;
+	local_uarg.uspace_thread_function = NULL;
+	local_uarg.uspace_thread_arg = NULL;
 	
-	userspace(&uarg);
+	free(uarg);
+	
+	userspace(&local_uarg);
 }
 
 /** @}

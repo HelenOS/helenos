@@ -129,8 +129,8 @@ srln_instance_t *srln_init(void)
 	srln_instance_t *instance
 	    = malloc(sizeof(srln_instance_t), FRAME_ATOMIC);
 	if (instance) {
-		instance->thread
-			= thread_create(ksrln, (void *) instance, TASK, 0, "ksrln", false);
+		instance->thread = thread_create(ksrln, (void *) instance,
+		    TASK, THREAD_FLAG_NONE, "ksrln");
 		
 		if (!instance->thread) {
 			free(instance);

@@ -136,7 +136,7 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 			vfs_exchange_release(exch);
 			
 			if (rc != EOK) {
-				async_wait_for(msg, NULL);
+				async_forget(msg);
 				fibril_rwlock_write_unlock(&namespace_rwlock);
 				async_answer_0(rid, rc);
 				return rc;
@@ -203,7 +203,7 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	
 	if (rc != EOK) {
 		vfs_exchange_release(exch);
-		async_wait_for(msg, NULL);
+		async_forget(msg);
 		
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
@@ -218,7 +218,7 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	rc = async_data_write_start(exch, (void *) opts, str_size(opts));
 	if (rc != EOK) {
 		vfs_exchange_release(exch);
-		async_wait_for(msg, NULL);
+		async_forget(msg);
 		
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)

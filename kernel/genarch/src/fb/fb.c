@@ -389,8 +389,8 @@ static void fb_putchar(outdev_t *dev, wchar_t ch)
 			    instance->position % instance->cols,
 			    instance->position / instance->cols, false);
 			instance->position++;
-		} while ((instance->position % 8)
-		    && (instance->position < instance->cols * instance->rows));
+		} while (((instance->position % instance->cols) % 8 != 0) &&
+		    (instance->position < instance->cols * instance->rows));
 		break;
 	default:
 		glyph_draw(instance, fb_font_glyph(ch),

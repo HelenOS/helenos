@@ -75,9 +75,13 @@ typedef enum {
 	CONS_LAST
 } console_state_t;
 
+#define UTF8_CHAR_BUFFER_SIZE (STR_BOUNDS(1) + 1)
+
 typedef struct {
 	atomic_t refcnt;           /**< Connection reference count */
 	prodcons_t input_pc;       /**< Incoming keyboard events */
+	char char_remains[UTF8_CHAR_BUFFER_SIZE]; /**< Not yet sent bytes of last char event. */
+	size_t char_remains_len;   /**< Number of not yet sent bytes. */
 	
 	fibril_mutex_t mtx;        /**< Lock protecting mutable fields */
 	
@@ -612,16 +616,37 @@ static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	size_t pos = 0;
+
+	/*
+	 * Read input from keyboard and copy it to the buffer.
+	 * We need to handle situation when wchar is split by 2 following
+	 * reads.
+	 */
 	while (pos < size) {
-		link_t *link = prodcons_consume(&cons->input_pc);
-		kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
-		
-		if (event->type == KEY_PRESS) {
-			buf[pos] = event->c;
+		/* Copy to the buffer remaining characters. */
+		while ((pos < size) && (cons->char_remains_len > 0)) {
+			buf[pos] = cons->char_remains[0];
 			pos++;
+			/* Unshift the array. */
+			for (size_t i = 1; i < cons->char_remains_len; i++) {
+				cons->char_remains[i - 1] = cons->char_remains[i];
+			}
+			cons->char_remains_len--;
 		}
-		
-		free(event);
+		/* Still not enough? Then get another key from the queue. */
+		if (pos < size) {
+			link_t *link = prodcons_consume(&cons->input_pc);
+			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+
+			/* Accept key presses of printable chars only. */
+			if ((event->type == KEY_PRESS) && (event->c != 0)) {
+				wchar_t tmp[2] = { event->c, 0 };
+				wstr_to_str(cons->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
+				cons->char_remains_len = str_size(cons->char_remains);
+			}
+
+			free(event);
+		}
 	}
 	
 	(void) async_data_read_finalize(callid, buf, size);
@@ -826,7 +851,7 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 	/* Register server */
 	async_set_client_connection(client_connection);
 	int rc = loc_server_register(NAME);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME,
 		    str_error(rc));
 		return false;
@@ -929,6 +954,7 @@ static bool console_srv_init(char *input_svc, char *fb_svc)
 		atomic_set(&consoles[i].refcnt, 0);
 		fibril_mutex_initialize(&consoles[i].mtx);
 		prodcons_initialize(&consoles[i].input_pc);
+		consoles[i].char_remains_len = 0;
 		
 		if (graphics_state == GRAPHICS_FULL) {
 			/* Create state buttons */

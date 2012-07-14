@@ -39,6 +39,7 @@
 #include <arch/mm/frame.h>
 #include <mm/mm.h>
 #include <arch/exception.h>
+#include <arch/barrier.h>
 #include <trace.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
@@ -117,13 +118,41 @@
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
-        set_pt_level1_flags((pte_t *) (ptl3), (size_t) (i), (x))
+	set_pt_level1_flags((pte_t *) (ptl3), (size_t) (i), (x))
+
+/* Set PTE present bit accessors for each level. */
+#define SET_PTL1_PRESENT_ARCH(ptl0, i) \
+	set_pt_level0_present((pte_t *) (ptl0), (size_t) (i))
+#define SET_PTL2_PRESENT_ARCH(ptl1, i)
+#define SET_PTL3_PRESENT_ARCH(ptl2, i)
+#define SET_FRAME_PRESENT_ARCH(ptl3, i) \
+	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
 #if defined(PROCESSOR_armv7_a)
 #include "page_armv7.h"
 #elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 #include "page_armv4.h"
 #endif
+
+#ifndef __ASM__
+NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
+{
+	pte_level0_t *p = &pt[i].l0;
+
+	p->should_be_zero = 0;
+	write_barrier();
+	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
+}
+
+
+NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
+{
+	pte_level1_t *p = &pt[i].l1;
+
+	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
+}
+
+#endif /* __ASM__ */
 
 #endif
 

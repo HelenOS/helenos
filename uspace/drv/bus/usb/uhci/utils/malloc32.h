@@ -35,6 +35,7 @@
 #define DRV_UHCI_UTILS_MALLOC32_H
 
 #include <assert.h>
+#include <unistd.h>
 #include <errno.h>
 #include <malloc.h>
 #include <mem.h>
@@ -97,9 +98,9 @@ static inline void free32(void *addr)
  */
 static inline void * get_page(void)
 {
-	void *address = as_area_create((void *) -1, UHCI_REQUIRED_PAGE_SIZE,
+	void *address = as_area_create(AS_AREA_ANY, UHCI_REQUIRED_PAGE_SIZE,
 	    AS_AREA_READ | AS_AREA_WRITE);
-	if (address == (void *) -1)
+	if (address == AS_MAP_FAILED)
 		return NULL;
 	
 	return address;

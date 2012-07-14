@@ -167,108 +167,128 @@ DOTDOT_DIR_ENTRY = """little:
 	uint32_t size              /* file size */
 """
 
-LFN_ENTRY = """little:
-	uint8_t pos
-	uint16_t name1[5]
-	uint8_t attr
-	uint8_t type
-	uint8_t csum
-	uint16_t name2[6]
-	uint16_t fc
-	uint16_t name3[2]
+LFN_DIR_ENTRY = """little:
+	uint8_t seq                /* sequence number */
+	char name1[10]             /* first part of the name */
+	uint8_t attr               /* attributes */
+	uint8_t rec_type           /* LFN record type */
+	uint8_t checksum           /* LFN checksum */
+	char name2[12]             /* second part of the name */
+	uint16_t cluster           /* cluster */
+	char name3[4]              /* third part of the name */
 """
 
-# Global variable to hold the file names in 8.3 format. Needed to 
-# keep track of "number" when creating a short fname from a LFN.
-name83_list = []
+lchars = set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+              'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+              'U', 'V', 'W', 'X', 'Y', 'Z',
+              '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+              '!', '#', '$', '%', '&', '\'', '(', ')', '-', '@',
+              '^', '_', '`', '{', '}', '~', '.'])
 
-def name83(fname):
-	"Create a 8.3 name for the given fname"
-
-	# FIXME: filter illegal characters
-	parts = fname.split('.')
+def fat_lchars(name):
+	"Filter FAT legal characters"
 	
-	name = ''
-	ext = ''
-	lfn = False
+	filtered_name = b''
+	filtered = False
+	
+	for char in name.encode('ascii', 'replace').upper():
+		if char in lchars:
+			filtered_name += char
+		else:
+			filtered_name += b'_'
+			filtered = True
+	
+	return (filtered_name, filtered)
 
-	if len(fname) > 11 :
+def fat_name83(name, name83_list):
+	"Create a 8.3 name for the given name"
+	
+	ascii_name, lfn = fat_lchars(name)
+	# Splitting works only on strings, not on bytes
+	ascii_parts = ascii_name.decode('utf8').split('.')
+	
+	short_name = ''
+	short_ext = ''
+	
+	if len(ascii_name) > 11:
 		lfn = True
-
-	if len(parts) > 0:
-		name = parts[0]
-		if len(name) > 8 :
+	
+	if len(ascii_parts) > 0:
+		short_name = ascii_parts[0]
+		if len(short_name) > 8:
 			lfn = True
-
-	if len(parts) > 1 :
-		ext = parts[-1]
-		if len(ext) > 3 :
+	
+	if len(ascii_parts) > 1:
+		short_ext = ascii_parts[-1]
+		if len(short_ext) > 3:
 			lfn = True
-
-	if len(parts) > 2 :
+	
+	if len(ascii_parts) > 2:
 		lfn = True
-
-	if (lfn == False) :
-		return (name.ljust(8)[0:8], ext.ljust(3)[0:3], False)
-
+	
+	if lfn == False:
+		name83_list.append(short_name + '.' + short_ext)
+		return (short_name.ljust(8)[0:8], short_ext.ljust(3)[0:3], False)
+	
 	# For filenames with multiple extensions, we treat the last one
 	# as the actual extension. The rest of the filename is stripped
 	# of dots and concatenated to form the short name
-	for _name in parts[1:-1]:
-		name = name + _name		
-
-	global name83_list
-	for number in range(1, 10000) :
-		number_str = '~' + str(number)
-
-		if len(name) + len(number_str) > 8 :
-			name = name[0:8 - len(number_str)]
-
-		name = name + number_str;
-
-		if (name + ext) not in name83_list :
+	for part in ascii_parts[1:-1]:
+		short_name += part
+	
+	for number in range(1, 999999):
+		number_str = ('~' + str(number)).upper()
+		
+		if len(short_name) + len(number_str) > 8:
+			short_name = short_name[0:8 - len(number_str)]
+		
+		short_name += number_str;
+		
+		if not (short_name + '.' + short_ext) in name83_list:
 			break
-			
-	name83_list.append(name + ext)	
-
-	return (name.ljust(8)[0:8], ext.ljust(3)[0:3], True)
-
-def get_utf16(name, l) :
-	"Create a int array out of a string which we can store in uint16_t arrays"
-
-	bs = [0xFFFF for i in range(l)]
-
-	for i in range(len(name)) :
-		bs[i] = ord(name[i])
 	
-	if (len(name) < l) :
-		bs[len(name)] = 0;
+	name83_list.append(short_name + '.' + short_ext)
+	return (short_name.ljust(8)[0:8], short_ext.ljust(3)[0:3], True)
+
+def create_lfn_dirent(name, seq, checksum):
+	"Create LFN directory entry"
 	
-	return bs
+	entry = xstruct.create(LFN_DIR_ENTRY)
+	name_rest = name[26:]
+	
+	if len(name_rest) > 0:
+		entry.seq = seq
+	else:
+		entry.seq = seq | 0x40
+	
+	entry.name1 = name[0:10]
+	entry.name2 = name[10:22]
+	entry.name3 = name[22:26]
+	
+	entry.attr = 0x0F
+	entry.rec_type = 0
+	entry.checksum = checksum
+	entry.cluster = 0
+	
+	return (entry, name_rest)
 
-def create_lfn_entry((name, index)) :
-	entry = xstruct.create(LFN_ENTRY)
+def lfn_checksum(name):
+	"Calculate LFN checksum"
+	
+	checksum = 0
+	for i in range(0, 11):
+		checksum = (((checksum & 1) << 7) + (checksum >> 1) + ord(name[i])) & 0xFF
+	
+	return checksum
 
-	entry.name1 = get_utf16(name[0:5], 5)
-	entry.name2 = get_utf16(name[5:11], 6)
-	entry.name3 = get_utf16(name[11:13], 2)
-	entry.pos = index
-
-	entry.attr = 0xF
-	entry.fc = 0
-	entry.type = 0
-
-	return entry
-
-def create_dirent(name, directory, cluster, size):
+def create_dirent(name, name83_list, directory, cluster, size):
+	short_name, short_ext, lfn = fat_name83(name, name83_list)
 	
 	dir_entry = xstruct.create(DIR_ENTRY)
 	
-	dir_entry.name, dir_entry.ext, lfn = name83(name)
-
-	dir_entry.name = dir_entry.name.upper().encode('ascii')
-	dir_entry.ext = dir_entry.ext.upper().encode('ascii')
-
+	dir_entry.name = short_name
+	dir_entry.ext = short_ext
+	
 	if (directory):
 		dir_entry.attr = 0x30
 	else:
@@ -288,28 +308,21 @@ def create_dirent(name, directory, cluster, size):
 	else:
 		dir_entry.size = size
 	
-
 	if not lfn:
 		return [dir_entry]
-
-	n = len(name) / 13 + 1
-	names = [(name[i * 13: (i + 1) * 13 + 1], i + 1) for i in range(n)]
-
-	entries = sorted(map (create_lfn_entry, names), reverse = True, key = lambda e : e.pos)
-	entries[0].pos |= 0x40
-
-	fname11 = dir_entry.name + dir_entry.ext
-
-	csum = 0
-	for i in range(0, 11) :
-		csum = ((csum & 1) << 7) + (csum  >> 1) + ord(fname11[i])
-		csum = csum & 0xFF
 	
-	for e in entries :
-		e.csum = csum;
+	long_name = name.encode('utf_16_le')
+	entries = [dir_entry]
 	
-	entries.append(dir_entry)
-
+	seq = 1
+	checksum = lfn_checksum(dir_entry.name + dir_entry.ext)
+	
+	while len(long_name) > 0:
+		long_entry, long_name = create_lfn_dirent(long_name, seq, checksum)
+		entries.append(long_entry)
+		seq += 1
+	
+	entries.reverse()
 	return entries
 
 def create_dot_dirent(empty_cluster):
@@ -354,26 +367,27 @@ def recursion(head, root, outf, cluster_size, root_start, data_start, fat, reser
 	"Recursive directory walk"
 	
 	directory = []
+	name83_list = []
 	
-	if (not head):
+	if not head:
 		# Directory cluster preallocation
 		empty_cluster = fat.index(0)
-		fat[empty_cluster] = 0xffff
+		fat[empty_cluster] = 0xFFFF
 		
 		directory.append(create_dot_dirent(empty_cluster))
 		directory.append(create_dotdot_dirent(parent_cluster))
 	else:
 		empty_cluster = 0
 	
-	for item in listdir_items(root):		
+	for item in listdir_items(root):
 		if item.is_file:
 			rv = write_file(item, outf, cluster_size, data_start, fat, reserved_clusters)
-			directory.extend(create_dirent(item.name, False, rv[0], rv[1]))
+			directory.extend(create_dirent(item.name, name83_list, False, rv[0], rv[1]))
 		elif item.is_dir:
 			rv = recursion(False, item.path, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
-			directory.extend(create_dirent(item.name, True, rv[0], rv[1]))
+			directory.extend(create_dirent(item.name, name83_list, True, rv[0], rv[1]))
 	
-	if (head):
+	if head:
 		outf.seek(root_start)
 		for dir_entry in directory:
 			outf.write(dir_entry.pack())
@@ -528,6 +542,6 @@ def main():
 			outf.write(fat_entry.pack())
 	
 	outf.close()
-	
+
 if __name__ == '__main__':
 	main()

@@ -110,7 +110,7 @@ static inline bool method_is_forwardable(sysarg_t imethod)
 {
 	switch (imethod) {
 	case IPC_M_CONNECTION_CLONE:
-	case IPC_M_CONNECT_ME:
+	case IPC_M_CLONE_ESTABLISH:
 	case IPC_M_PHONE_HUNGUP:
 		/* This message is meant only for the original recipient. */
 		return false;
@@ -159,7 +159,7 @@ static inline bool answer_need_old(call_t *call)
 {
 	switch (IPC_GET_IMETHOD(call->data)) {
 	case IPC_M_CONNECTION_CLONE:
-	case IPC_M_CONNECT_ME:
+	case IPC_M_CLONE_ESTABLISH:
 	case IPC_M_CONNECT_TO_ME:
 	case IPC_M_CONNECT_ME_TO:
 	case IPC_M_SHARE_OUT:
@@ -224,7 +224,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			}
 			mutex_unlock(&phone->lock);
 		}
-	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_CONNECT_ME) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_CLONE_ESTABLISH) {
 		phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
 		
 		if (IPC_GET_RETVAL(answer->data) != EOK) {
@@ -458,7 +458,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		IPC_SET_ARG1(call->data, newphid);
 		break;
 	}
-	case IPC_M_CONNECT_ME:
+	case IPC_M_CLONE_ESTABLISH:
 		IPC_SET_ARG5(call->data, (sysarg_t) phone);
 		break;
 	case IPC_M_CONNECT_ME_TO: {
@@ -596,7 +596,7 @@ static int process_request(answerbox_t *box, call_t *call)
 {
 	if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME) {
 		int phoneid = phone_alloc(TASK);
-		if (phoneid < 0) { /* Failed to allocate phone */
+		if (phoneid < 0) {  /* Failed to allocate phone */
 			IPC_SET_RETVAL(call->data, ELIMIT);
 			ipc_answer(box, call);
 			return -1;
@@ -882,9 +882,9 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 	}
 	
 	/*
-	 * Userspace is not allowed to change interface and method of system
+	 * User space is not allowed to change interface and method of system
 	 * methods on forward, allow changing ARG1, ARG2, ARG3 and ARG4 by
-	 * means of method, arg1, arg2 and arg3.
+	 * means of imethod, arg1, arg2 and arg3.
 	 * If the interface and method is immutable, don't change anything.
 	 */
 	if (!method_is_immutable(IPC_GET_IMETHOD(call->data))) {
@@ -896,13 +896,13 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 			IPC_SET_ARG2(call->data, arg1);
 			IPC_SET_ARG3(call->data, arg2);
 			
-			if (slow) {
+			if (slow)
 				IPC_SET_ARG4(call->data, arg3);
-				/*
-				 * For system methods we deliberately don't
-				 * overwrite ARG5.
-				 */
-			}
+			
+			/*
+			 * For system methods we deliberately don't
+			 * overwrite ARG5.
+			 */
 		} else {
 			IPC_SET_IMETHOD(call->data, imethod);
 			IPC_SET_ARG1(call->data, arg1);
