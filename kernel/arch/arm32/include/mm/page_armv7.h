@@ -257,6 +257,23 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	}
 }
 
+NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
+{
+	pte_level0_t *p = &pt[i].l0;
+
+	p->should_be_zero_0 = 0;
+	p->should_be_zero_1 = 0;
+	write_barrier();
+	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
+}
+
+NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
+{
+	pte_level1_t *p = &pt[i].l1;
+
+	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
+}
+
 
 extern void page_arch_init(void);
 
