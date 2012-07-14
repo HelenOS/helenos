@@ -34,9 +34,7 @@
 #ifndef DRV_AUDIO_SB16_DMA_H
 #define DRV_AUDIO_SB16_DMA_H
 
-#include <assert.h>
 #include <errno.h>
-#include <malloc.h>
 #include <mem.h>
 #include <as.h>
 
@@ -73,7 +71,13 @@ static inline void *dma_create_buffer24(size_t size)
 	bzero(address, size);
 	uintptr_t ptr = 0;
 	as_get_physical_mapping(address, &ptr);
-	ddf_log_verbose("Buffer mapped at %x.", ptr);
+	if ((ptr & 0xffffff) != ptr) {
+		ddf_log_debug("%s: Can not provide invalid buffer %x.",
+		    __FUNCTION__, ptr);
+		as_area_destroy(address);
+		return NULL;
+	}
+	ddf_log_verbose("%s: Buffer mapped at %x.", __FUNCTION__, ptr);
 	return address;
 }
 
