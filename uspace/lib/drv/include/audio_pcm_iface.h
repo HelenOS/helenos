@@ -57,6 +57,9 @@ audio_pcm_sess_t *audio_pcm_open_service(service_id_t service);
 void audio_pcm_close(audio_pcm_sess_t *);
 
 int audio_pcm_get_info_str(audio_pcm_sess_t *, const char **);
+int audio_pcm_test_format(audio_pcm_sess_t *, unsigned *, unsigned *,
+    pcm_sample_format_t *);
+
 int audio_pcm_get_buffer(audio_pcm_sess_t *, void **, size_t *,
     async_client_conn_t, void *);
 int audio_pcm_release_buffer(audio_pcm_sess_t *);
@@ -72,6 +75,8 @@ int audio_pcm_stop_record(audio_pcm_sess_t *);
 /** Audio pcm communication interface. */
 typedef struct {
 	int (*get_info_str)(ddf_fun_t *, const char **);
+	int (*test_format)(ddf_fun_t *, unsigned *, unsigned *,
+	    pcm_sample_format_t *);
 	int (*get_buffer)(ddf_fun_t *, void **, size_t *);
 	int (*release_buffer)(ddf_fun_t *);
 	int (*set_event_session)(ddf_fun_t *, async_sess_t *);

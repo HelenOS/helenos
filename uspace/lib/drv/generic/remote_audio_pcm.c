@@ -44,6 +44,7 @@
 
 typedef enum {
 	IPC_M_AUDIO_PCM_GET_INFO_STR,
+	IPC_M_AUDIO_PCM_TEST_FORMAT,
 	IPC_M_AUDIO_PCM_GET_BUFFER,
 	IPC_M_AUDIO_PCM_RELEASE_BUFFER,
 	IPC_M_AUDIO_PCM_START_PLAYBACK,
@@ -102,6 +103,35 @@ int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
 		*name = name_place;
 	}
 	async_exchange_end(exch);
+	return ret;
+}
+
+int audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
+    unsigned *rate, pcm_sample_format_t *format)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	sysarg_t channels_arg = channels ? *channels : 0;
+	sysarg_t rate_arg = rate ? *rate : 0;
+	sysarg_t format_arg = format ? *format : 0;
+	const int ret = async_req_4_3(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_TEST_FORMAT, channels_arg, rate_arg, format_arg,
+	    &channels_arg, &rate_arg, &format_arg);
+	async_exchange_end(exch);
+
+	/* All OK or something has changed. Verify that it was not one of the
+	 * params we care about */
+	if ((ret == EOK || ret == ELIMIT)
+	    && (!channels || *channels == channels_arg)
+	    && (!rate || *rate == rate_arg)
+	    && (!format || *format == format_arg))
+		return EOK;
+	if (channels)
+		*channels = channels_arg;
+	if (rate)
+		*rate = rate_arg;
+	if (format)
+		*format = format_arg;
 	return ret;
 }
 
@@ -201,6 +231,7 @@ int audio_pcm_stop_record(audio_pcm_sess_t *sess)
  * SERVER SIDE
  */
 static void remote_audio_pcm_get_info_str(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_test_format(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_release_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_start_playback(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -211,6 +242,7 @@ static void remote_audio_pcm_stop_record(ddf_fun_t *, void *, ipc_callid_t, ipc_
 /** Remote audio pcm buffer interface operations. */
 static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 	[IPC_M_AUDIO_PCM_GET_INFO_STR] = remote_audio_pcm_get_info_str,
+	[IPC_M_AUDIO_PCM_TEST_FORMAT] = remote_audio_pcm_test_format,
 	[IPC_M_AUDIO_PCM_GET_BUFFER] = remote_audio_pcm_get_buffer,
 	[IPC_M_AUDIO_PCM_RELEASE_BUFFER] = remote_audio_pcm_release_buffer,
 	[IPC_M_AUDIO_PCM_START_PLAYBACK] = remote_audio_pcm_start_playback,
@@ -253,6 +285,17 @@ void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
 		}
 		async_data_read_finalize(name_id, name, name_size);
 	}
+}
+
+static void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const audio_pcm_iface_t *pcm_iface = iface;
+	unsigned channels = DEV_IPC_GET_ARG1(*call);
+	unsigned rate = DEV_IPC_GET_ARG2(*call);
+	pcm_sample_format_t format = DEV_IPC_GET_ARG3(*call);
+	const int ret = pcm_iface->test_format ?
+	    pcm_iface->test_format(fun, &channels, &rate, &format) : ENOTSUP;
+	async_answer_3(callid, ret, channels, rate, format);
 }
 
 void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
