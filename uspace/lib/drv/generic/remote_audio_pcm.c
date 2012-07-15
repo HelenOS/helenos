@@ -82,15 +82,15 @@ int audio_pcm_get_info_str(async_exch_t *exch, const char **name)
 }
 
 int audio_pcm_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
-    unsigned *id, async_client_conn_t event_rec, void* arg)
+    async_client_conn_t event_rec, void* arg)
 {
-	if (!exch || !buffer || !size || !id)
+	if (!exch || !buffer || !size)
 		return EINVAL;
 
-	sysarg_t buffer_size = *size, buffer_id = 0;
-	const int ret = async_req_2_2(exch,
+	sysarg_t buffer_size = *size;
+	const int ret = async_req_2_1(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_GET_BUFFER,
-	    (sysarg_t)buffer_size, &buffer_size, &buffer_id);
+	    (sysarg_t)buffer_size, &buffer_size);
 	if (ret == EOK) {
 		void *dst = NULL;
 		int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
@@ -104,20 +104,19 @@ int audio_pcm_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
 
 		*buffer = dst;
 		*size = buffer_size;
-		*id = buffer_id;
 	}
 	return ret;
 }
 
-int audio_pcm_release_buffer(async_exch_t *exch, unsigned id)
+int audio_pcm_release_buffer(async_exch_t *exch)
 {
 	if (!exch)
 		return EINVAL;
-	return async_req_2_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_RELEASE_BUFFER, id);
+	return async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_RELEASE_BUFFER);
 }
 
-int audio_pcm_start_playback(async_exch_t *exch, unsigned id, unsigned parts,
+int audio_pcm_start_playback(async_exch_t *exch, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	if (!exch)
@@ -127,19 +126,19 @@ int audio_pcm_start_playback(async_exch_t *exch, unsigned id, unsigned parts,
 	assert((format & UINT16_MAX) == format);
 	const sysarg_t packed =
 	    (parts << 24) | (channels << 16) | (format & UINT16_MAX);
-	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_START_PLAYBACK, id, sample_rate, packed);
+	return async_req_3_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_START_PLAYBACK, sample_rate, packed);
 }
 
-int audio_pcm_stop_playback(async_exch_t *exch, unsigned id)
+int audio_pcm_stop_playback(async_exch_t *exch)
 {
 	if (!exch)
 		return EINVAL;
-	return async_req_2_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_STOP_PLAYBACK, id);
+	return async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_PLAYBACK);
 }
 
-int audio_pcm_start_record(async_exch_t *exch, unsigned id, unsigned parts,
+int audio_pcm_start_record(async_exch_t *exch, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	if (!exch)
@@ -149,16 +148,16 @@ int audio_pcm_start_record(async_exch_t *exch, unsigned id, unsigned parts,
 	assert((format & UINT16_MAX) == format);
 	const sysarg_t packed =
 	    (parts << 24) | (channels << 16) | (format & UINT16_MAX);
-	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_START_RECORD, id, sample_rate, packed);
+	return async_req_3_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_START_RECORD, sample_rate, packed);
 }
 
-int audio_pcm_stop_record(async_exch_t *exch, unsigned id)
+int audio_pcm_stop_record(async_exch_t *exch)
 {
 	if (!exch)
 		return EINVAL;
-	return async_req_2_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_STOP_RECORD, id);
+	return async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_RECORD);
 }
 
 /*
@@ -232,9 +231,8 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	}
 	void *buffer = NULL;
 	size_t size = DEV_IPC_GET_ARG1(*call);
-	unsigned id = 0;
-	int ret = pcm_iface->get_buffer(fun, &buffer, &size, &id);
-	async_answer_2(callid, ret, size, id);
+	int ret = pcm_iface->get_buffer(fun, &buffer, &size);
+	async_answer_1(callid, ret, size);
 	if (ret != EOK || size == 0)
 		return;
 
@@ -245,7 +243,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	ddf_msg(LVL_DEBUG2, "Receiving share request.");
 	if (!async_share_in_receive(&share_id, &share_size)) {
 		ddf_msg(LVL_DEBUG, "Failed to share pcm buffer.");
-		pcm_iface->release_buffer(fun, id);
+		pcm_iface->release_buffer(fun);
 		async_answer_0(share_id, EPARTY);
 		return;
 	}
@@ -253,7 +251,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	ddf_msg(LVL_DEBUG2, "Checking requested share size.");
 	if (share_size != size) {
 		ddf_msg(LVL_DEBUG, "Incorrect pcm buffer size requested.");
-		pcm_iface->release_buffer(fun, id);
+		pcm_iface->release_buffer(fun);
 		async_answer_0(share_id, ELIMIT);
 		return;
 	}
@@ -263,7 +261,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	| AS_AREA_READ);
 	if (ret != EOK) {
 		ddf_msg(LVL_DEBUG, "Failed to share buffer.");
-		pcm_iface->release_buffer(fun, id);
+		pcm_iface->release_buffer(fun);
 		return;
 	}
 
@@ -276,14 +274,14 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 		    async_callback_receive_start(EXCHANGE_ATOMIC, &call);
 		if (sess == NULL) {
 			ddf_msg(LVL_DEBUG, "Failed to create event callback");
-			pcm_iface->release_buffer(fun, id);
+			pcm_iface->release_buffer(fun);
 			async_answer_0(callid, EAGAIN);
 			return;
 		}
-		ret = pcm_iface->set_event_session(fun, id, sess);
+		ret = pcm_iface->set_event_session(fun, sess);
 		if (ret != EOK) {
 			ddf_msg(LVL_DEBUG, "Failed to set event callback.");
-			pcm_iface->release_buffer(fun, id);
+			pcm_iface->release_buffer(fun);
 			async_answer_0(callid, ret);
 			return;
 		}
@@ -297,9 +295,8 @@ void remote_audio_pcm_release_buffer(ddf_fun_t *fun, void *iface,
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
-	const unsigned id = DEV_IPC_GET_ARG1(*call);
 	const int ret = pcm_iface->release_buffer ?
-	    pcm_iface->release_buffer(fun, id) : ENOTSUP;
+	    pcm_iface->release_buffer(fun) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 
@@ -308,14 +305,13 @@ void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
-	const unsigned id = DEV_IPC_GET_ARG1(*call);
-	const unsigned rate = DEV_IPC_GET_ARG2(*call);
-	const unsigned parts = (DEV_IPC_GET_ARG3(*call) >> 24) & UINT8_MAX;
-	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 16) & UINT8_MAX;
-	const pcm_sample_format_t format =DEV_IPC_GET_ARG3(*call) & UINT16_MAX;
+	const unsigned rate = DEV_IPC_GET_ARG1(*call);
+	const unsigned parts = (DEV_IPC_GET_ARG2(*call) >> 24) & UINT8_MAX;
+	const unsigned channels = (DEV_IPC_GET_ARG2(*call) >> 16) & UINT8_MAX;
+	const pcm_sample_format_t format = DEV_IPC_GET_ARG2(*call) & UINT16_MAX;
 
 	const int ret = pcm_iface->start_playback
-	    ? pcm_iface->start_playback(fun, id, parts, channels, rate, format)
+	    ? pcm_iface->start_playback(fun, parts, channels, rate, format)
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }
@@ -325,9 +321,8 @@ void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
-	const unsigned id = DEV_IPC_GET_ARG1(*call);
 	const int ret = pcm_iface->stop_playback ?
-	    pcm_iface->stop_playback(fun, id) : ENOTSUP;
+	    pcm_iface->stop_playback(fun) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 
@@ -336,14 +331,13 @@ void remote_audio_pcm_start_record(ddf_fun_t *fun, void *iface,
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
-	const unsigned id = DEV_IPC_GET_ARG1(*call);
-	const unsigned rate = DEV_IPC_GET_ARG2(*call);
-	const unsigned parts = (DEV_IPC_GET_ARG3(*call) >> 24) & UINT8_MAX;
-	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 16) & UINT8_MAX;
-	const pcm_sample_format_t format =DEV_IPC_GET_ARG3(*call) & UINT16_MAX;
+	const unsigned rate = DEV_IPC_GET_ARG1(*call);
+	const unsigned parts = (DEV_IPC_GET_ARG2(*call) >> 24) & UINT8_MAX;
+	const unsigned channels = (DEV_IPC_GET_ARG2(*call) >> 16) & UINT8_MAX;
+	const pcm_sample_format_t format = DEV_IPC_GET_ARG2(*call) & UINT16_MAX;
 
 	const int ret = pcm_iface->start_record
-	    ? pcm_iface->start_record(fun, id, parts, channels, rate, format)
+	    ? pcm_iface->start_record(fun, parts, channels, rate, format)
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }
@@ -353,9 +347,8 @@ void remote_audio_pcm_stop_record(ddf_fun_t *fun, void *iface,
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
-	const unsigned id = DEV_IPC_GET_ARG1(*call);
 	const int ret = pcm_iface->stop_record ?
-	    pcm_iface->stop_record(fun, id) : ENOTSUP;
+	    pcm_iface->stop_record(fun) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 

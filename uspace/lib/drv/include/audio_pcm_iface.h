@@ -51,30 +51,30 @@ enum {
 
 
 int audio_pcm_get_info_str(async_exch_t *, const char **);
-int audio_pcm_get_buffer(async_exch_t *, void **, size_t *, unsigned *,
+int audio_pcm_get_buffer(async_exch_t *, void **, size_t *,
     async_client_conn_t, void *);
-int audio_pcm_release_buffer(async_exch_t *, unsigned);
+int audio_pcm_release_buffer(async_exch_t *);
 
-int audio_pcm_start_playback(async_exch_t *, unsigned, unsigned,
+int audio_pcm_start_playback(async_exch_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_playback(async_exch_t *, unsigned);
+int audio_pcm_stop_playback(async_exch_t *);
 
-int audio_pcm_start_record(async_exch_t *, unsigned, unsigned,
+int audio_pcm_start_record(async_exch_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_record(async_exch_t *, unsigned);
+int audio_pcm_stop_record(async_exch_t *);
 
 /** Audio pcm communication interface. */
 typedef struct {
 	int (*get_info_str)(ddf_fun_t *, const char **);
-	int (*get_buffer)(ddf_fun_t *, void **, size_t *, unsigned *);
-	int (*release_buffer)(ddf_fun_t *, unsigned);
-	int (*set_event_session)(ddf_fun_t *, unsigned, async_sess_t *);
-	int (*start_playback)(ddf_fun_t *, unsigned, unsigned,
+	int (*get_buffer)(ddf_fun_t *, void **, size_t *);
+	int (*release_buffer)(ddf_fun_t *);
+	int (*set_event_session)(ddf_fun_t *, async_sess_t *);
+	int (*start_playback)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_playback)(ddf_fun_t *, unsigned);
-	int (*start_record)(ddf_fun_t *, unsigned, unsigned,
+	int (*stop_playback)(ddf_fun_t *);
+	int (*start_record)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_record)(ddf_fun_t *, unsigned);
+	int (*stop_record)(ddf_fun_t *);
 } audio_pcm_iface_t;
 
 #endif

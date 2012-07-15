@@ -45,7 +45,6 @@
 #include "dsp_commands.h"
 #include "dsp.h"
 
-#define BUFFER_ID 1
 #define MAX_BUFFER_SIZE (PAGE_SIZE)
 
 #ifndef DSP_RETRY_COUNT
@@ -220,7 +219,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 #endif
 }
 
-int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
+int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 {
 	assert(dsp);
 	assert(size);
@@ -232,25 +231,21 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id)
 
 	const int ret = sb_setup_buffer(dsp, *size);
 	if (ret == EOK) {
-		ddf_log_debug("Providing buffer(%u): %p, %zu B.",
-		    BUFFER_ID, dsp->buffer.data, dsp->buffer.size);
+		ddf_log_debug("Providing buffer: %p, %zu B.",
+		    dsp->buffer.data, dsp->buffer.size);
 
 		if (buffer)
 			*buffer = dsp->buffer.data;
 		if (size)
 			*size = dsp->buffer.size;
-		if (id)
-			*id = BUFFER_ID;
 	}
 	return ret;
 }
 
-int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session)
+int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
 {
 	assert(dsp);
 	assert(session);
-	if (id != BUFFER_ID)
-		return ENOENT;
 	if (dsp->event_session)
 		return EBUSY;
 	dsp->event_session = session;
@@ -258,11 +253,9 @@ int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session)
 	return EOK;
 }
 
-int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
+int sb_dsp_release_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	if (id != BUFFER_ID)
-		return ENOENT;
 	sb_clear_buffer(dsp);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
@@ -273,7 +266,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id)
 	return EOK;
 }
 
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned parts,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -288,11 +281,8 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Requested playback on buffer \"%u\" (%u parts): %uHz, "
-	    "%s, %u channel(s).", id, parts, sampling_rate,
-	    pcm_sample_format_str(format), channels);
-	if (id != BUFFER_ID)
-		return ENOENT;
+	ddf_log_debug("Requested playback (%u parts): %uHz, %s, %u channel(s).",
+	    parts, sampling_rate, pcm_sample_format_str(format), channels);
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 	if (sampling_rate > 44100)
@@ -337,20 +327,18 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	return EOK;
 }
 
-int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id)
+int sb_dsp_stop_playback(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	if (id != BUFFER_ID)
-		return ENOENT;
 	sb_dsp_write(dsp, DMA_16B_EXIT);
-	ddf_log_debug("Stopping playback on buffer %u.", id);
+	ddf_log_debug("Stopping playback on buffer.");
 	async_msg_0(dsp->event_exchange, PCM_EVENT_PLAYBACK_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
 	return EOK;
 }
 
-int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
+int sb_dsp_start_record(sb_dsp_t *dsp, unsigned parts,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -365,11 +353,8 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	const unsigned play_block_size = dsp->buffer.size / parts;
 
 	/* Check supported parameters */
-	ddf_log_debug("Requested recording on buffer \"%u\" (%u parts): %uHz, "
-	    "%s, %u channel(s).", id, parts, sampling_rate,
-	    pcm_sample_format_str(format), channels);
-	if (id != BUFFER_ID)
-		return ENOENT;
+	ddf_log_debug("Requested record (%u parts): %uHz, %s, %u channel(s).",
+	    parts, sampling_rate, pcm_sample_format_str(format), channels);
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 	if (sampling_rate > 44100)
@@ -413,13 +398,11 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
 	return EOK;
 }
 
-int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id)
+int sb_dsp_stop_record(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	if (id != BUFFER_ID)
-		return ENOENT;
 	sb_dsp_write(dsp, DMA_16B_EXIT);
-	ddf_log_debug("Stopping playback on buffer %u.", id);
+	ddf_log_debug("Stopped recording");
 	async_msg_0(dsp->event_exchange, PCM_EVENT_RECORDING_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;

@@ -56,7 +56,6 @@ typedef struct {
 	struct {
 		void *base;
 		size_t size;
-		unsigned id;
 		void* position;
 	} buffer;
 	FILE* source;
@@ -70,7 +69,6 @@ static void playback_initialize(playback_t *pb, async_exch_t *exch)
 {
 	assert(exch);
 	assert(pb);
-	pb->buffer.id = 0;
 	pb->buffer.base = NULL;
 	pb->buffer.size = 0;
 	pb->buffer.position = NULL;
@@ -112,7 +110,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 		const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
 		   buffer_part, pb->source);
 		if (bytes == 0) {
-			audio_pcm_stop_playback(pb->device, pb->buffer.id);
+			audio_pcm_stop_playback(pb->device);
 		}
 		bzero(pb->buffer.position + bytes, buffer_part - bytes);
 		pb->buffer.position += buffer_part;
@@ -137,7 +135,7 @@ static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
 		bzero(pb->buffer.base + bytes, pb->buffer.size - bytes);
 	printf("Buffer data ready.\n");
 	fibril_mutex_lock(&pb->mutex);
-	int ret = audio_pcm_start_playback(pb->device, pb->buffer.id,
+	int ret = audio_pcm_start_playback(pb->device,
 	    SUBBUFFERS, channels, sampling_rate, format);
 	if (ret != EOK) {
 		fibril_mutex_unlock(&pb->mutex);
@@ -203,13 +201,12 @@ int main(int argc, char *argv[])
 	playback_initialize(&pb, exch);
 
 	ret = audio_pcm_get_buffer(pb.device, &pb.buffer.base,
-	    &pb.buffer.size, &pb.buffer.id, device_event_callback, &pb);
+	    &pb.buffer.size, device_event_callback, &pb);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
 		goto close_session;
 	}
-	printf("Buffer (%u): %p %zu.\n", pb.buffer.id, pb.buffer.base,
-	    pb.buffer.size);
+	printf("Buffer: %p %zu.\n", pb.buffer.base, pb.buffer.size);
 	uintptr_t ptr = 0;
 	as_get_physical_mapping(pb.buffer.base, &ptr);
 	printf("buffer mapped at %x.\n", ptr);
@@ -238,7 +235,7 @@ int main(int argc, char *argv[])
 
 cleanup:
 	munmap(pb.buffer.base, pb.buffer.size);
-	audio_pcm_release_buffer(exch, pb.buffer.id);
+	audio_pcm_release_buffer(exch);
 close_session:
 	async_exchange_end(exch);
 	async_hangup(session);

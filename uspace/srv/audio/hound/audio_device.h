@@ -54,7 +54,6 @@ typedef struct {
 	struct {
 		fibril_mutex_t guard;
 		fibril_condvar_t wc;
-		unsigned id;
 		void *base;
 		size_t size;
 		void *position;

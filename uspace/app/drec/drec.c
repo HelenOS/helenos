@@ -71,7 +71,6 @@ static void record_initialize(record_t *rec, async_exch_t *exch)
 {
 	assert(exch);
 	assert(rec);
-	rec->buffer.id = 0;
 	rec->buffer.base = NULL;
 	rec->buffer.size = 0;
 	rec->buffer.position = NULL;
@@ -122,7 +121,7 @@ static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
 	rec->buffer.position = rec->buffer.base;
 	printf("Recording: %dHz, %s, %d channel(s).\n",
 	    sampling_rate, pcm_sample_format_str(format), channels);
-	int ret = audio_pcm_start_record(rec->device, rec->buffer.id,
+	int ret = audio_pcm_start_record(rec->device,
 	    SUBBUFFERS, channels, sampling_rate, format);
 	if (ret != EOK) {
 		printf("Failed to start recording: %s.\n", str_error(ret));
@@ -131,7 +130,7 @@ static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
 
 	getchar();
 	printf("\n");
-	audio_pcm_stop_record(rec->device, rec->buffer.id);
+	audio_pcm_stop_record(rec->device);
 }
 
 int main(int argc, char *argv[])
@@ -185,13 +184,12 @@ int main(int argc, char *argv[])
 	record_initialize(&rec, exch);
 
 	ret = audio_pcm_get_buffer(rec.device, &rec.buffer.base,
-	    &rec.buffer.size, &rec.buffer.id, device_event_callback, &rec);
+	    &rec.buffer.size, device_event_callback, &rec);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
 		goto close_session;
 	}
-	printf("Buffer (%u): %p %zu.\n", rec.buffer.id, rec.buffer.base,
-	    rec.buffer.size);
+	printf("Buffer: %p %zu.\n", rec.buffer.base, rec.buffer.size);
 	uintptr_t ptr = 0;
 	as_get_physical_mapping(rec.buffer.base, &ptr);
 	printf("buffer mapped at %x.\n", ptr);
@@ -221,7 +219,7 @@ int main(int argc, char *argv[])
 
 cleanup:
 	munmap(rec.buffer.base, rec.buffer.size);
-	audio_pcm_release_buffer(exch, rec.buffer.id);
+	audio_pcm_release_buffer(exch);
 close_session:
 	async_exchange_end(exch);
 	async_hangup(session);

@@ -79,7 +79,6 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	/* Init buffer members */
 	fibril_mutex_initialize(&dev->buffer.guard);
 	fibril_condvar_initialize(&dev->buffer.wc);
-	dev->buffer.id = 0;
 	dev->buffer.base = NULL;
 	dev->buffer.position = NULL;
 	dev->buffer.size = 0;
@@ -231,7 +230,7 @@ static int get_buffer(audio_device_t *dev)
 
 	async_exch_t *exch = async_exchange_begin(dev->sess);
 	const int ret = audio_pcm_get_buffer(exch, &dev->buffer.base,
-	    &dev->buffer.size, &dev->buffer.id, device_event_callback, dev);
+	    &dev->buffer.size, device_event_callback, dev);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -255,7 +254,7 @@ static int release_buffer(audio_device_t *dev)
 	CHECK_BUFFER_AND_CONNECTION();
 
 	async_exch_t *exch = async_exchange_begin(dev->sess);
-	const int ret = audio_pcm_release_buffer(exch, dev->buffer.id);
+	const int ret = audio_pcm_release_buffer(exch);
 	async_exchange_end(exch);
 	if (ret == EOK) {
 		dev->buffer.base = NULL;
@@ -273,7 +272,7 @@ static int start_playback(audio_device_t *dev)
 	audio_sink_mix_inputs(&dev->sink, dev->buffer.base, dev->buffer.size);
 
 	async_exch_t *exch = async_exchange_begin(dev->sess);
-	const int ret = audio_pcm_start_playback(exch, dev->buffer.id,
+	const int ret = audio_pcm_start_playback(exch,
 	    BUFFER_BLOCKS, dev->sink.format.channels,
 	    dev->sink.format.sampling_rate, dev->sink.format.sample_format);
 	async_exchange_end(exch);
@@ -285,7 +284,7 @@ static int stop_playback(audio_device_t *dev)
 	CHECK_BUFFER_AND_CONNECTION();
 
 	async_exch_t *exch = async_exchange_begin(dev->sess);
-	const int ret = audio_pcm_stop_playback(exch, dev->buffer.id);
+	const int ret = audio_pcm_stop_playback(exch);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -295,7 +294,7 @@ static int start_recording(audio_device_t *dev)
 	CHECK_BUFFER_AND_CONNECTION();
 
 	async_exch_t *exch = async_exchange_begin(dev->sess);
-	const int ret = audio_pcm_start_record(exch, dev->buffer.id,
+	const int ret = audio_pcm_start_record(exch,
 	    BUFFER_BLOCKS, dev->sink.format.channels,
 	    dev->sink.format.sampling_rate, dev->sink.format.sample_format);
 	async_exchange_end(exch);
@@ -307,7 +306,7 @@ static int stop_recording(audio_device_t *dev)
 	CHECK_BUFFER_AND_CONNECTION();
 
 	async_exch_t *exch = async_exchange_begin(dev->sess);
-	const int ret = audio_pcm_stop_record(exch, dev->buffer.id);
+	const int ret = audio_pcm_stop_record(exch);
 	async_exchange_end(exch);
 	return ret;
 }

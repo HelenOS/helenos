@@ -46,64 +46,63 @@ static int sb_get_info_str(ddf_fun_t *fun, const char** name)
 	return EOK;
 }
 
-static int sb_get_buffer(ddf_fun_t *fun,
-    void **buffer, size_t *size, unsigned *id)
+static int sb_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_get_buffer(dsp, buffer, size, id);
+	return sb_dsp_get_buffer(dsp, buffer, size);
 }
-static int sb_set_event_session(ddf_fun_t *fun, unsigned id, async_sess_t *sess)
+static int sb_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_set_event_session(dsp, id, sess);
-}
-
-static int sb_release_buffer(ddf_fun_t *fun, unsigned id)
-{
-	assert(fun);
-	assert(fun->driver_data);
-	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_release_buffer(dsp, id);
+	return sb_dsp_set_event_session(dsp, sess);
 }
 
-static int sb_start_playback(ddf_fun_t *fun, unsigned id, unsigned parts,
+static int sb_release_buffer(ddf_fun_t *fun)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	sb_dsp_t *dsp = fun->driver_data;
+	return sb_dsp_release_buffer(dsp);
+}
+
+static int sb_start_playback(ddf_fun_t *fun, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_start_playback(
-	    dsp, id, parts, channels, sample_rate, format);
+	    dsp, parts, channels, sample_rate, format);
 }
 
-static int sb_stop_playback(ddf_fun_t *fun, unsigned id)
+static int sb_stop_playback(ddf_fun_t *fun)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_stop_playback(dsp, id);
+	return sb_dsp_stop_playback(dsp);
 }
 
-static int sb_start_record(ddf_fun_t *fun, unsigned id, unsigned parts,
+static int sb_start_record(ddf_fun_t *fun, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_start_record(
-	    dsp, id, parts, channels, sample_rate, format);
+	    dsp, parts, channels, sample_rate, format);
 }
 
-static int sb_stop_record(ddf_fun_t *fun, unsigned id)
+static int sb_stop_record(ddf_fun_t *fun)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_stop_record(dsp, id);
+	return sb_dsp_stop_record(dsp);
 }
 
 audio_pcm_iface_t sb_pcm_iface = {

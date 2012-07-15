@@ -71,15 +71,15 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16);
 void sb_dsp_interrupt(sb_dsp_t *dsp);
 
-int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size, unsigned *id);
-int sb_dsp_set_event_session(sb_dsp_t *dsp, unsigned id, async_sess_t *session);
-int sb_dsp_release_buffer(sb_dsp_t *dsp, unsigned id);
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned id, unsigned parts,
+int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size);
+int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session);
+int sb_dsp_release_buffer(sb_dsp_t *dsp);
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_playback(sb_dsp_t *dsp, unsigned id);
-int sb_dsp_start_record(sb_dsp_t *dsp, unsigned id, unsigned parts,
+int sb_dsp_stop_playback(sb_dsp_t *dsp);
+int sb_dsp_start_record(sb_dsp_t *dsp, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_record(sb_dsp_t *dsp, unsigned id);
+int sb_dsp_stop_record(sb_dsp_t *dsp);
 
 #endif
 /**
