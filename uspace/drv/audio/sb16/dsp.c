@@ -52,6 +52,7 @@
 #endif
 
 #define DSP_RESET_RESPONSE 0xaa
+#define DSP_RATE_LIMIT 45000
 
 #define AUTO_DMA_MODE
 
@@ -222,6 +223,27 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 #endif
 }
 
+int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
+  pcm_sample_format_t *format)
+{
+	int ret = EOK;
+	if (*channels == 0 || *channels > 2) {
+		*channels = 2;
+		ret = ELIMIT;
+	}
+	if (*rate > DSP_RATE_LIMIT) {
+		*rate = DSP_RATE_LIMIT;
+		ret = ELIMIT;
+	}
+	//TODO 8bit DMA supports 8bit formats
+	if (*format != PCM_SAMPLE_SINT16_LE && *format != PCM_SAMPLE_UINT16_LE) {
+		*format = pcm_sample_format_is_signed(*format) ?
+		    PCM_SAMPLE_SINT16_LE : PCM_SAMPLE_UINT16_LE;
+		ret = ELIMIT;
+	}
+	return ret;
+}
+
 int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 {
 	assert(dsp);
@@ -282,7 +304,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	    frames, sampling_rate, pcm_sample_format_str(format), channels);
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
-	if (sampling_rate > 44100)
+	if (sampling_rate > DSP_RATE_LIMIT)
 		return ENOTSUP;
 	// FIXME We only support 16 bit playback
 	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
@@ -350,7 +372,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 	    frames, sampling_rate, pcm_sample_format_str(format), channels);
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
-	if (sampling_rate > 44100)
+	if (sampling_rate > DSP_RATE_LIMIT)
 		return ENOTSUP;
 	// FIXME We only support 16 bit recording
 	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)

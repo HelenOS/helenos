@@ -45,7 +45,14 @@ static int sb_get_info_str(ddf_fun_t *fun, const char** name)
 		*name = "SB 16 DSP";
 	return EOK;
 }
-
+static int sb_test_format(ddf_fun_t *fun, unsigned *channels, unsigned *rate,
+    pcm_sample_format_t *format)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	sb_dsp_t *dsp = fun->driver_data;
+	return sb_dsp_test_format(dsp, channels, rate, format);
+}
 static int sb_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
 	assert(fun);
@@ -107,6 +114,7 @@ static int sb_stop_record(ddf_fun_t *fun)
 
 audio_pcm_iface_t sb_pcm_iface = {
 	.get_info_str = sb_get_info_str,
+	.test_format = sb_test_format,
 
 	.get_buffer = sb_get_buffer,
 	.release_buffer = sb_release_buffer,
