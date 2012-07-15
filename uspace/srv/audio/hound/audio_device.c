@@ -45,7 +45,7 @@
 #include "audio_device.h"
 #include "log.h"
 
-#define BUFFER_BLOCKS 2
+#define BUFFER_PARTS 2
 
 static int device_sink_connection_callback(audio_sink_t *sink, bool new);
 static int device_source_connection_callback(audio_source_t *source);
@@ -106,7 +106,9 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		audio_sink_mix_inputs(&dev->sink,
 		    dev->buffer.base, dev->buffer.size);
 
-		ret = audio_pcm_start_playback(dev->sess, BUFFER_BLOCKS,
+		const unsigned frames = dev->buffer.size /
+		    (BUFFER_PARTS * audio_format_frame_size(&dev->sink.format));
+		ret = audio_pcm_start_playback(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
 		if (ret != EOK) {
@@ -147,7 +149,9 @@ static int device_source_connection_callback(audio_source_t *source)
 			    str_error(ret));
 			return ret;
 		}
-		ret = audio_pcm_start_record(dev->sess, BUFFER_BLOCKS,
+		const unsigned frames = dev->buffer.size /
+		    (BUFFER_PARTS * audio_format_frame_size(&dev->sink.format));
+		ret = audio_pcm_start_record(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
 		if (ret != EOK) {
@@ -186,10 +190,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		ipc_callid_t callid = async_get_call(&call);
 		async_answer_0(callid, EOK);
 		switch(IPC_GET_IMETHOD(call)) {
-		case PCM_EVENT_PLAYBACK_DONE: {
+		case PCM_EVENT_FRAMES_PLAYED: {
+			//TODO add underrun protection.
 			if (dev->buffer.position) {
 				dev->buffer.position +=
-				    (dev->buffer.size / BUFFER_BLOCKS);
+				    (dev->buffer.size / BUFFER_PARTS);
 			}
 			if ((!dev->buffer.position) ||
 			    (dev->buffer.position >=
@@ -198,14 +203,14 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 				dev->buffer.position = dev->buffer.base;
 			}
 			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
-			    dev->buffer.size / BUFFER_BLOCKS);
+			    dev->buffer.size / BUFFER_PARTS);
 			break;
 		}
 		case PCM_EVENT_PLAYBACK_TERMINATED: {
 			log_verbose("Playback terminated!");
 			return;
 		}
-		case PCM_EVENT_RECORDING_DONE: {
+		case PCM_EVENT_FRAMES_RECORDED: {
 			//TODO implement
 			break;
 		}

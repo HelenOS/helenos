@@ -187,15 +187,18 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
+	dsp->active.frame_count +=
+	    dsp->active.samples / ((dsp->active.mode & DSP_MODE_STEREO) ? 2 : 1);
+
 	if (dsp->event_exchange) {
 		switch (dsp->status) {
 		case DSP_PLAYBACK:
-			async_msg_0(dsp->event_exchange,
-			    PCM_EVENT_PLAYBACK_DONE);
+			async_msg_1(dsp->event_exchange,
+			    PCM_EVENT_FRAMES_PLAYED, dsp->active.frame_count);
 			break;
 		case DSP_RECORDING:
-			async_msg_0(dsp->event_exchange,
-			    PCM_EVENT_RECORDING_DONE);
+			async_msg_1(dsp->event_exchange,
+			    PCM_EVENT_FRAMES_RECORDED, dsp->active.frame_count);
 			break;
 		default:
 		case DSP_STOPPED:
@@ -266,7 +269,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp)
 	return EOK;
 }
 
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned parts,
+int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -274,15 +277,9 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned parts,
 	if (!dsp->event_session)
 		return EINVAL;
 
-	/* Play block size must be even number (we use DMA 16)*/
-	if (dsp->buffer.size % (parts * 2))
-		return EINVAL;
-
-	const unsigned play_block_size = dsp->buffer.size / parts;
-
 	/* Check supported parameters */
-	ddf_log_debug("Requested playback (%u parts): %uHz, %s, %u channel(s).",
-	    parts, sampling_rate, pcm_sample_format_str(format), channels);
+	ddf_log_debug("Requested playback: %u frames, %uHz, %s, %u channel(s).",
+	    frames, sampling_rate, pcm_sample_format_str(format), channels);
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 	if (sampling_rate > 44100)
@@ -310,11 +307,13 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned parts,
 	sb_dsp_write(dsp, SINGLE_DMA_16B_DA_FIFO);
 #endif
 
-	dsp->active.mode = 0 |
-	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
-	sb_dsp_write(dsp, dsp->active.mode);
+	dsp->active.mode = 0
+	    | (sign ? DSP_MODE_SIGNED : 0)
+	    | (channels == 2 ? DSP_MODE_STEREO : 0);
+	dsp->active.samples = frames * channels;
+	dsp->active.frame_count = 0;
 
-	dsp->active.samples = sample_count(format, play_block_size);
+	sb_dsp_write(dsp, dsp->active.mode);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
 
@@ -338,7 +337,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp)
 	return EOK;
 }
 
-int sb_dsp_start_record(sb_dsp_t *dsp, unsigned parts,
+int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -346,15 +345,9 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned parts,
 	if (!dsp->event_session)
 		return EINVAL;
 
-	/* Play block size must be even number (we use DMA 16)*/
-	if (dsp->buffer.size % (parts * 2))
-		return EINVAL;
-
-	const unsigned play_block_size = dsp->buffer.size / parts;
-
 	/* Check supported parameters */
-	ddf_log_debug("Requested record (%u parts): %uHz, %s, %u channel(s).",
-	    parts, sampling_rate, pcm_sample_format_str(format), channels);
+	ddf_log_debug("Requested record: %u frames, %uHz, %s, %u channel(s).",
+	    frames, sampling_rate, pcm_sample_format_str(format), channels);
 	if (channels != 1 && channels != 2)
 		return ENOTSUP;
 	if (sampling_rate > 44100)
@@ -383,10 +376,12 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned parts,
 #endif
 
 	dsp->active.mode = 0 |
-	    (sign ? DSP_MODE_SIGNED : 0) | (channels == 2 ? DSP_MODE_STEREO : 0);
-	sb_dsp_write(dsp, dsp->active.mode);
+	    (sign ? DSP_MODE_SIGNED : 0) |
+	    (channels == 2 ? DSP_MODE_STEREO : 0);
+	dsp->active.samples = frames * channels;
+	dsp->active.frame_count = 0;
 
-	dsp->active.samples = sample_count(format, play_block_size);
+	sb_dsp_write(dsp, dsp->active.mode);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
 	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
 

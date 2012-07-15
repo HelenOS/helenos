@@ -50,7 +50,7 @@
 #include "wave.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/pcm"
-#define SUBBUFFERS 2
+#define BUFFER_PARTS 2
 
 typedef struct {
 	struct {
@@ -84,17 +84,17 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 {
 	async_answer_0(iid, EOK);
 	playback_t *pb = arg;
-	const size_t buffer_part = pb->buffer.size / SUBBUFFERS;
+	const size_t buffer_part = pb->buffer.size / BUFFER_PARTS;
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
-		case PCM_EVENT_PLAYBACK_DONE:
-			printf("+");
+		case PCM_EVENT_FRAMES_PLAYED:
+			printf("%u frames\n", IPC_GET_ARG1(call));
 			async_answer_0(callid, EOK);
 			break;
 		case PCM_EVENT_PLAYBACK_TERMINATED:
-			printf("\nPlayback terminated\n");
+			printf("Playback terminated\n");
 			fibril_mutex_lock(&pb->mutex);
 			pb->playing = false;
 			fibril_condvar_signal(&pb->cv);
@@ -135,8 +135,10 @@ static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
 		bzero(pb->buffer.base + bytes, pb->buffer.size - bytes);
 	printf("Buffer data ready.\n");
 	fibril_mutex_lock(&pb->mutex);
+	const unsigned frames = pb->buffer.size /
+	    (BUFFER_PARTS * channels * pcm_sample_format_size(format));
 	int ret = audio_pcm_start_playback(pb->device,
-	    SUBBUFFERS, channels, sampling_rate, format);
+	    frames, channels, sampling_rate, format);
 	if (ret != EOK) {
 		fibril_mutex_unlock(&pb->mutex);
 		printf("Failed to start playback: %s.\n", str_error(ret));

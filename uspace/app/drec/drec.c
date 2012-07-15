@@ -51,7 +51,7 @@
 #include "wave.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/pcm"
-#define SUBBUFFERS 2
+#define BUFFER_PARTS 2
 
 const unsigned sampling_rate = 44100, channels = 2, sample_size = 16;
 const pcm_sample_format_t format = PCM_SAMPLE_SINT16_LE;
@@ -83,17 +83,17 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 {
 	async_answer_0(iid, EOK);
 	record_t *rec = arg;
-	const size_t buffer_part = rec->buffer.size / SUBBUFFERS;
+	const size_t buffer_part = rec->buffer.size / BUFFER_PARTS;
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
-		case PCM_EVENT_RECORDING_DONE:
-			printf("+");
+		case PCM_EVENT_FRAMES_RECORDED:
+			printf("%u frames\n", IPC_GET_ARG1(call));
 			async_answer_0(callid, EOK);
 			break;
 		case PCM_EVENT_RECORDING_TERMINATED:
-			printf("\nRecording terminated\n");
+			printf("Recording terminated\n");
 			return;
 		default:
 			printf("Unknown event %d.\n", IPC_GET_IMETHOD(call));
@@ -121,8 +121,10 @@ static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
 	rec->buffer.position = rec->buffer.base;
 	printf("Recording: %dHz, %s, %d channel(s).\n",
 	    sampling_rate, pcm_sample_format_str(format), channels);
+	const unsigned frames = rec->buffer.size /
+	    (BUFFER_PARTS * channels * pcm_sample_format_size(format));
 	int ret = audio_pcm_start_record(rec->device,
-	    SUBBUFFERS, channels, sampling_rate, format);
+	    frames, channels, sampling_rate, format);
 	if (ret != EOK) {
 		printf("Failed to start recording: %s.\n", str_error(ret));
 		return;

@@ -69,14 +69,14 @@ static int sb_release_buffer(ddf_fun_t *fun)
 	return sb_dsp_release_buffer(dsp);
 }
 
-static int sb_start_playback(ddf_fun_t *fun, unsigned parts,
+static int sb_start_playback(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_start_playback(
-	    dsp, parts, channels, sample_rate, format);
+	    dsp, frames, channels, sample_rate, format);
 }
 
 static int sb_stop_playback(ddf_fun_t *fun)
@@ -87,14 +87,14 @@ static int sb_stop_playback(ddf_fun_t *fun)
 	return sb_dsp_stop_playback(dsp);
 }
 
-static int sb_start_record(ddf_fun_t *fun, unsigned parts,
+static int sb_start_record(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_start_record(
-	    dsp, parts, channels, sample_rate, format);
+	    dsp, frames, channels, sample_rate, format);
 }
 
 static int sb_stop_record(ddf_fun_t *fun)
