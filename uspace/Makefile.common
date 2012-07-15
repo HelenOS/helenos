@@ -250,15 +250,20 @@ OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 
 ifneq ($(BINARY),)
-%.disasm: $(BINARY)
+%.disasm: $(BINARY)_prestrip
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
 	$(OBJDUMP) -d $< > $@
 endif
 
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
+.INTERMEDIATE: $(BINARY)_prestrip
+
+$(BINARY)_prestrip: $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
+	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $@ $(OBJECTS) $(LIBS) $(BASE_LIBS)
+
+$(BINARY): $(BINARY)_prestrip $(BINARY).disasm
+	cp $(BINARY)_prestrip $@
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(BINARY)
 endif
