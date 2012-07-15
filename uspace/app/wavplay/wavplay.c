@@ -85,6 +85,7 @@ static void data_callback(void* arg, void *buffer, ssize_t size)
 		}
 		if (bytes == 0) {
 			pb->playing = false;
+			printf("The end, nothing more to play.\n");
 			fibril_condvar_signal(&pb->cv);
 		}
 	} else {
@@ -117,6 +118,7 @@ static void play(playback_t *pb, unsigned channels, unsigned rate, pcm_sample_fo
 	} else
 		printf("Failed to connect: %s\n", str_error(ret));
 
+	printf("Unregistering playback\n");
 	hound_unregister_playback(pb->server, name);
 }
 
@@ -161,6 +163,7 @@ int main(int argc, char *argv[])
 
 	play(&pb, channels, rate, format);
 
+	printf("Releasing session\n");
 	hound_release_session(sess);
 	return 0;
 }
