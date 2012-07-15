@@ -62,19 +62,19 @@ typedef struct {
 	volatile bool playing;
 	fibril_mutex_t mutex;
 	fibril_condvar_t cv;
-	async_exch_t *device;
+	audio_pcm_sess_t *device;
 } playback_t;
 
-static void playback_initialize(playback_t *pb, async_exch_t *exch)
+static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
 {
-	assert(exch);
+	assert(sess);
 	assert(pb);
 	pb->buffer.base = NULL;
 	pb->buffer.size = 0;
 	pb->buffer.position = NULL;
 	pb->playing = false;
 	pb->source = NULL;
-	pb->device = exch;
+	pb->device = sess;
 	fibril_mutex_initialize(&pb->mutex);
 	fibril_condvar_initialize(&pb->cv);
 }
@@ -167,29 +167,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	devman_handle_t pcm_handle;
-	int ret = devman_fun_get_handle(device, &pcm_handle, 0);
-	if (ret != EOK) {
-		printf("Failed to get device(%s) handle: %s.\n",
-		    device, str_error(ret));
-		return 1;
-	}
-
-	async_sess_t *session = devman_device_connect(
-	    EXCHANGE_SERIALIZE, pcm_handle, IPC_FLAG_BLOCKING);
+	audio_pcm_sess_t *session = audio_pcm_open(device);
 	if (!session) {
 		printf("Failed to connect to device.\n");
 		return 1;
 	}
 
-	async_exch_t *exch = async_exchange_begin(session);
-	if (!exch) {
-		ret = EPARTY;
-		printf("Failed to start session exchange.\n");
-		goto close_session;
-	}
 	const char* info = NULL;
-	ret = audio_pcm_get_info_str(exch, &info);
+	int ret = audio_pcm_get_info_str(session, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info.\n");
 		goto close_session;
@@ -198,7 +183,7 @@ int main(int argc, char *argv[])
 	free(info);
 
 	playback_t pb;
-	playback_initialize(&pb, exch);
+	playback_initialize(&pb, session);
 
 	ret = audio_pcm_get_buffer(pb.device, &pb.buffer.base,
 	    &pb.buffer.size, device_event_callback, &pb);
@@ -235,10 +220,9 @@ int main(int argc, char *argv[])
 
 cleanup:
 	munmap(pb.buffer.base, pb.buffer.size);
-	audio_pcm_release_buffer(exch);
+	audio_pcm_release_buffer(pb.device);
 close_session:
-	async_exchange_end(exch);
-	async_hangup(session);
+	audio_pcm_close(session);
 	return ret == EOK ? 0 : 1;
 }
 /**

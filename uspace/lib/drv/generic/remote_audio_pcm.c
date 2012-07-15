@@ -32,6 +32,7 @@
  */
 
 #include <async.h>
+#include <devman.h>
 #include <ddf/log.h>
 #include <errno.h>
 #include <str.h>
@@ -54,10 +55,30 @@ typedef enum {
 /*
  * CLIENT SIDE
  */
-int audio_pcm_get_info_str(async_exch_t *exch, const char **name)
+audio_pcm_sess_t *audio_pcm_open(const char *name)
 {
-	if (!exch)
-		return EINVAL;
+	devman_handle_t device_handle = 0;
+	const int ret = devman_fun_get_handle(name, &device_handle, 0);
+	if (ret != EOK)
+		return NULL;
+	return devman_device_connect(EXCHANGE_SERIALIZE, device_handle,
+	    IPC_FLAG_BLOCKING);
+}
+
+audio_pcm_sess_t *audio_pcm_open_service(service_id_t id)
+{
+	return loc_service_connect(EXCHANGE_SERIALIZE, id, IPC_FLAG_BLOCKING);
+}
+
+void audio_pcm_close(audio_pcm_sess_t *sess)
+{
+	if (sess)
+		async_hangup(sess);
+}
+
+int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
 	sysarg_t name_size;
 	const int ret = async_req_1_1(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
@@ -68,24 +89,29 @@ int audio_pcm_get_info_str(async_exch_t *exch, const char **name)
 			/* Make the other side fail
 			 * as it waits for read request */
 			async_data_read_start(exch, (void*)-1, 0);
+			async_exchange_end(exch);
 			return ENOMEM;
 		}
 		const int ret =
 		    async_data_read_start(exch, name_place, name_size);
 		if (ret != EOK) {
 			free(name_place);
+			async_exchange_end(exch);
 			return ret;
 		}
 		*name = name_place;
 	}
+	async_exchange_end(exch);
 	return ret;
 }
 
-int audio_pcm_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
+int audio_pcm_get_buffer(audio_pcm_sess_t *sess, void **buffer, size_t *size,
     async_client_conn_t event_rec, void* arg)
 {
-	if (!exch || !buffer || !size)
+	if (!buffer || !size)
 		return EINVAL;
+
+	async_exch_t *exch = async_exchange_begin(sess);
 
 	sysarg_t buffer_size = *size;
 	const int ret = async_req_2_1(exch,
@@ -95,69 +121,82 @@ int audio_pcm_get_buffer(async_exch_t *exch, void **buffer, size_t *size,
 		void *dst = NULL;
 		int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
 		if (ret != EOK) {
+			async_exchange_end(exch);
 			return ret;
 		}
 		ret = async_connect_to_me(exch, 0, 0, 0, event_rec, arg);
 		if (ret != EOK) {
+			async_exchange_end(exch);
 			return ret;
 		}
 
 		*buffer = dst;
 		*size = buffer_size;
 	}
+	async_exchange_end(exch);
 	return ret;
 }
 
-int audio_pcm_release_buffer(async_exch_t *exch)
+int audio_pcm_release_buffer(audio_pcm_sess_t *sess)
 {
-	if (!exch)
-		return EINVAL;
-	return async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_1_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_RELEASE_BUFFER);
+	async_exchange_end(exch);
+	return ret;
 }
 
-int audio_pcm_start_playback(async_exch_t *exch, unsigned parts,
+int audio_pcm_start_playback(audio_pcm_sess_t *sess, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
-	if (!exch)
-		return EINVAL;
 	if (parts > UINT8_MAX || channels > UINT8_MAX)
 		return EINVAL;
 	assert((format & UINT16_MAX) == format);
 	const sysarg_t packed =
 	    (parts << 24) | (channels << 16) | (format & UINT16_MAX);
-	return async_req_3_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_START_PLAYBACK, sample_rate, packed);
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_3_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_START_PLAYBACK,
+	    sample_rate, packed);
+	async_exchange_end(exch);
+	return ret;
 }
 
-int audio_pcm_stop_playback(async_exch_t *exch)
+int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
 {
-	if (!exch)
-		return EINVAL;
-	return async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_1_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_STOP_PLAYBACK);
+	async_exchange_end(exch);
+	return ret;
 }
 
-int audio_pcm_start_record(async_exch_t *exch, unsigned parts,
+int audio_pcm_start_record(audio_pcm_sess_t *sess, unsigned parts,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
-	if (!exch)
-		return EINVAL;
 	if (parts > UINT8_MAX || channels > UINT8_MAX)
 		return EINVAL;
 	assert((format & UINT16_MAX) == format);
 	const sysarg_t packed =
 	    (parts << 24) | (channels << 16) | (format & UINT16_MAX);
-	return async_req_3_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_START_RECORD, sample_rate, packed);
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_3_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_START_RECORD,
+	    sample_rate, packed);
+	async_exchange_end(exch);
+	return ret;
 }
 
-int audio_pcm_stop_record(async_exch_t *exch)
+int audio_pcm_stop_record(audio_pcm_sess_t *sess)
 {
-	if (!exch)
-		return EINVAL;
-	return async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_STOP_RECORD);
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_1_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_STOP_RECORD);
+	async_exchange_end(exch);
+	return ret;
 }
 
 /*

@@ -38,6 +38,7 @@
 
 #include <async.h>
 #include <bool.h>
+#include <loc.h>
 #include <pcm_sample_format.h>
 
 #include "ddf/driver.h"
@@ -49,19 +50,24 @@ enum {
 	PCM_EVENT_RECORDING_TERMINATED
 };
 
+typedef async_sess_t audio_pcm_sess_t;
 
-int audio_pcm_get_info_str(async_exch_t *, const char **);
-int audio_pcm_get_buffer(async_exch_t *, void **, size_t *,
+audio_pcm_sess_t *audio_pcm_open(const char *);
+audio_pcm_sess_t *audio_pcm_open_service(service_id_t service);
+void audio_pcm_close(audio_pcm_sess_t *);
+
+int audio_pcm_get_info_str(audio_pcm_sess_t *, const char **);
+int audio_pcm_get_buffer(audio_pcm_sess_t *, void **, size_t *,
     async_client_conn_t, void *);
-int audio_pcm_release_buffer(async_exch_t *);
+int audio_pcm_release_buffer(audio_pcm_sess_t *);
 
-int audio_pcm_start_playback(async_exch_t *, unsigned,
+int audio_pcm_start_playback(audio_pcm_sess_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_playback(async_exch_t *);
+int audio_pcm_stop_playback(audio_pcm_sess_t *);
 
-int audio_pcm_start_record(async_exch_t *, unsigned,
+int audio_pcm_start_record(audio_pcm_sess_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_record(async_exch_t *);
+int audio_pcm_stop_record(audio_pcm_sess_t *);
 
 /** Audio pcm communication interface. */
 typedef struct {

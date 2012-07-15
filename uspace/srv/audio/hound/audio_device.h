@@ -42,6 +42,7 @@
 #include <fibril_synch.h>
 #include <errno.h>
 #include <ipc/loc.h>
+#include <audio_pcm_iface.h>
 
 #include "audio_source.h"
 #include "audio_sink.h"
@@ -49,7 +50,7 @@
 typedef struct {
 	link_t link;
 	service_id_t id;
-	async_sess_t *sess;
+	audio_pcm_sess_t *sess;
 	char *name;
 	struct {
 		fibril_mutex_t guard;
