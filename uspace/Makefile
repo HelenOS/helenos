@@ -196,6 +196,7 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/fb \
+	lib/hound \
 	lib/net \
 	lib/nic \
 	lib/ext2 \
