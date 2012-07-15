@@ -71,13 +71,11 @@ hound_sess_t *hound_get_session(void)
 		return NULL;
 	return loc_service_connect(EXCHANGE_SERIALIZE, id, 0);
 }
-
 void hound_release_session(hound_sess_t *sess)
 {
 	if (sess)
 		async_hangup(sess);
 }
-
 int hound_register_playback(hound_sess_t *sess, const char *name,
     unsigned channels, unsigned rate, pcm_sample_format_t format,
     data_callback_t data_callback, void *arg)
@@ -212,11 +210,6 @@ static int hound_connection(hound_sess_t *sess, unsigned cmd,
 	async_exchange_end(exch);
 	return ret;
 }
-
-
-
-
-
 static void callback_gen(ipc_callid_t iid, ipc_call_t *call, void *arg,
     bool read)
 {
@@ -233,8 +226,11 @@ static void callback_gen(ipc_callid_t iid, ipc_call_t *call, void *arg,
 		size_t size = 0;
 		ipc_callid_t id = 0;
 		if (!receive(&id, &size)) {
-			/* Protocol error */
-			cb->cb(cb->arg, NULL, EIO);
+			ipc_call_t failed_call;
+			async_get_call(&failed_call);
+			/* Protocol error or hangup */
+			if (IPC_GET_IMETHOD(failed_call) != 0)
+				cb->cb(cb->arg, NULL, EIO);
 			free(cb);
 			return;
 		}
