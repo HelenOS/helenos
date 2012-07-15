@@ -30,8 +30,10 @@ USPACE_PREFIX = ../..
 BINARY = wavplay
 
 LIBS = \
+	$(LIBHOUND_PREFIX)/libhound.a
 
 EXTRA_CFLAGS = \
+	-I $(LIBHOUND_PREFIX)/include
 
 SOURCES = \
 	wavplay.c \
