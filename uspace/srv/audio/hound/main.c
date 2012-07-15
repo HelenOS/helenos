@@ -37,10 +37,11 @@
 #include <async.h>
 #include <bool.h>
 #include <errno.h>
-#include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
+#include <hound/server.h>
+
 
 #include "hound.h"
 
@@ -50,88 +51,17 @@
 
 #include "audio_client.h"
 #include "log.h"
-#include "protocol.h"
 
 static hound_t hound;
 
-static inline audio_format_t read_format(const ipc_call_t *call)
+static int device_callback(service_id_t id, const char *name)
 {
-	audio_format_t format = {
-		.channels = IPC_GET_ARG1(*call),
-		.sampling_rate = IPC_GET_ARG2(*call),
-		.sample_format = IPC_GET_ARG3(*call),
-	};
-	return format;
+	return hound_add_device(&hound, id, name);
 }
-static inline const char *get_name()
-{
-	size_t size = 0;
-	ipc_callid_t callid;
-	async_data_write_receive(&callid, &size);
-	char *buffer = malloc(size);
-	if (buffer) {
-		async_data_write_finalize(callid, buffer, size);
-		buffer[size - 1] = 0;
-		log_verbose("Got name from client: %s", buffer);
-	}
-	return buffer;
-}
-static inline async_sess_t *get_session()
-{
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-	async_sess_t *s = async_callback_receive_start(EXCHANGE_ATOMIC, &call);
-	async_answer_0(callid, s ? EOK : ENOMEM);
-	if (s) {
-		log_verbose("Received callback session");
-	} else
-		log_debug("Failed to receive callback session");
-	return s;
-}
-
 
 static void scan_for_devices(void)
 {
-	static bool cat_resolved = false;
-	static category_id_t cat;
-
-	if (!cat_resolved) {
-		log_verbose("Resolving category \"%s\".", CATEGORY);
-		const int ret = loc_category_get_id(CATEGORY, &cat,
-		    IPC_FLAG_BLOCKING);
-		if (ret != EOK) {
-			log_error("Failed to get category: %s", str_error(ret));
-			return;
-		}
-		cat_resolved = true;
-	}
-
-	log_verbose("Getting available services in category.");
-
-	service_id_t *svcs = NULL;
-	size_t count = 0;
-	const int ret = loc_category_get_svcs(cat, &svcs, &count);
-	if (ret != EOK) {
-		log_error("Failed to get audio devices: %s", str_error(ret));
-		return;
-	}
-
-	for (unsigned i = 0; i < count; ++i) {
-		char *name = NULL;
-		int ret = loc_service_get_name(svcs[i], &name);
-		if (ret != EOK) {
-			log_error("Failed to get dev name: %s", str_error(ret));
-			continue;
-		}
-		ret = hound_add_device(&hound, svcs[i], name);
-		if (ret != EOK && ret != EEXISTS) {
-			log_error("Failed to add audio device \"%s\": %s",
-			    name, str_error(ret));
-		}
-		free(name);
-	}
-
-	free(svcs);
+	hound_server_devices_iterate(device_callback);
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -140,15 +70,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	LIST_INITIALIZE(local_playback);
 	LIST_INITIALIZE(local_recording);
+	audio_format_t format = {0};
+	const char *name = NULL;
+	async_sess_t *sess = NULL;
 
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case HOUND_REGISTER_PLAYBACK: {
-			const audio_format_t format = read_format(&call);
-			const char *name = get_name();
-			async_sess_t *sess = get_session();
+			hound_server_get_register_params(&name, &sess,
+			    &format.channels, &format.sampling_rate,
+			    &format.sample_format);
 			audio_client_t *client =
 			    audio_client_get_playback(name, &format, sess);
 			free(name);
@@ -172,10 +105,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case HOUND_REGISTER_RECORDING: {
-			const audio_format_t format = read_format(&call);
-			const char *name = get_name();
-			async_sess_t *sess = get_session();
-			audio_client_t * client =
+			hound_server_get_register_params(&name, &sess,
+			    &format.channels, &format.sampling_rate,
+			    &format.sample_format);
+			audio_client_t *client =
 			    audio_client_get_recording(name, &format, sess);
 			free(name);
 			if (!client) {
@@ -196,7 +129,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case HOUND_UNREGISTER_PLAYBACK: {
-			const char *name = get_name();
+			const char *name = NULL;
+			hound_server_get_unregister_params(&name);
 			int ret = ENOENT;
 			list_foreach(local_playback, it) {
 				audio_client_t *client =
@@ -216,7 +150,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case HOUND_UNREGISTER_RECORDING: {
-			const char *name = get_name();
+			const char *name = NULL;
+			hound_server_get_unregister_params(&name);
 			int ret = ENOENT;
 			list_foreach(local_recording, it) {
 				audio_client_t *client =
@@ -236,26 +171,26 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case HOUND_CONNECT: {
-			const char *name_a = get_name();
-			const char *name_b = get_name();
-			const int ret = hound_connect(&hound, name_a, name_b);
+			const char *source = NULL, *sink = NULL;
+			hound_server_get_connection_params(&source, &sink);
+			const int ret = hound_connect(&hound, source, sink);
 			if (ret != EOK)
 				log_error("Failed to connect '%s' to '%s': %s",
-				    name_a, name_b, str_error(ret));
-			free(name_a);
-			free(name_b);
+				    source, sink, str_error(ret));
+			free(source);
+			free(sink);
 			async_answer_0(callid, ret);
 			break;
 		}
 		case HOUND_DISCONNECT: {
-			const char *name_a = get_name();
-			const char *name_b = get_name();
-			const int ret = hound_disconnect(&hound, name_a, name_b);
+			const char *source = NULL, *sink = NULL;
+			hound_server_get_connection_params(&source, &sink);
+			const int ret = hound_disconnect(&hound, source, sink);
 			if (ret != EOK)
 				log_error("Failed to disconnect '%s' from '%s'"
-				    ": %s", name_a, name_b, str_error(ret));
-			free(name_a);
-			free(name_b);
+				    ": %s", source, sink, str_error(ret));
+			free(source);
+			free(sink);
 			async_answer_0(callid, ret);
 			break;
 		}
@@ -281,7 +216,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				hound_remove_source(&hound, &client->source);
 				audio_client_destroy(client);
 			}
-			//TODO remove all clients
 			return;
 		}
 	}
@@ -299,28 +233,19 @@ int main(int argc, char **argv)
 	}
 
 	async_set_client_connection(client_connection);
-	ret = loc_server_register(NAME);
-	if (ret != EOK) {
-		log_fatal("Failed to register sound server: %s",
-		    str_error(ret));
-		return -ret;
-	}
 
-	char fqdn[LOC_NAME_MAXLEN + 1];
-	snprintf(fqdn, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	service_id_t id = 0;
-	ret = loc_service_register(fqdn, &id);
+	ret = hound_server_register(NAME, &id);
 	if (ret != EOK) {
-		log_fatal("Failed to register sound service: %s",
-		    str_error(ret));
+		log_fatal("Failed to register server: %s", str_error(ret));
 		return -ret;
 	}
 
-	ret = loc_register_cat_change_cb(scan_for_devices);
+	ret = hound_server_set_device_change_callback(scan_for_devices);
 	if (ret != EOK) {
-		log_fatal("Failed to register for category changes: %s",
+		log_fatal("Failed to register for device changes: %s",
 		    str_error(ret));
-		loc_service_unregister(id);
+		hound_server_unregister(id);
 		return -ret;
 	}
 	log_info("Running with service id %u", id);

@@ -31,10 +31,12 @@ BINARY = hound
 
 EXTRA_CFLAGS = \
 	-DNAME="\"hound\"" \
-	-I$(LIBDRV_PREFIX)/include
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBHOUND_PREFIX)/include
 
 LIBS = \
-	$(LIBDRV_PREFIX)/libdrv.a
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBHOUND_PREFIX)/libhound.a
 
 SOURCES = \
 	audio_client.c \
