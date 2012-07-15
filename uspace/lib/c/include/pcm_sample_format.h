@@ -36,6 +36,8 @@
 #ifndef PCM_SAMPLE_FORMAT_H_
 #define PCM_SAMPLE_FORMAT_H_
 
+#include <bool.h>
+
 typedef enum {
 	PCM_SAMPLE_UINT8,
 	PCM_SAMPLE_SINT8,
@@ -56,7 +58,36 @@ typedef enum {
 	PCM_SAMPLE_SINT32_LE,
 	PCM_SAMPLE_SINT32_BE,
 	PCM_SAMPLE_FLOAT32,
+	PCM_SAMPLE_FORMAT_LAST = PCM_SAMPLE_FLOAT32,
 } pcm_sample_format_t;
+
+static inline bool pcm_sample_format_is_signed(pcm_sample_format_t format)
+{
+	switch(format) {
+	case PCM_SAMPLE_SINT8:
+	case PCM_SAMPLE_SINT16_LE:
+	case PCM_SAMPLE_SINT16_BE:
+	case PCM_SAMPLE_SINT24_LE:
+	case PCM_SAMPLE_SINT24_BE:
+	case PCM_SAMPLE_SINT24_32_LE:
+	case PCM_SAMPLE_SINT24_32_BE:
+	case PCM_SAMPLE_SINT32_LE:
+	case PCM_SAMPLE_SINT32_BE:
+		return true;
+	case PCM_SAMPLE_UINT8:
+	case PCM_SAMPLE_UINT16_LE:
+	case PCM_SAMPLE_UINT16_BE:
+	case PCM_SAMPLE_UINT24_LE:
+	case PCM_SAMPLE_UINT24_BE:
+	case PCM_SAMPLE_UINT24_32_LE:
+	case PCM_SAMPLE_UINT24_32_BE:
+	case PCM_SAMPLE_UINT32_LE:
+	case PCM_SAMPLE_UINT32_BE:
+	case PCM_SAMPLE_FLOAT32:
+	default:
+		return false;
+	}
+}
 
 static inline size_t pcm_sample_format_size(pcm_sample_format_t format)
 {
