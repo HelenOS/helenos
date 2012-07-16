@@ -53,17 +53,24 @@
  * Number of milliseconds to give to preexisting readers to finish 
  * when non-expedited grace period detection is in progress.
  */
-#define DETECT_SLEEP_MS    5
+#define DETECT_SLEEP_MS    10
 /* 
  * Max number of pending callbacks in the local cpu's queue before 
  * aggressively expediting the current grace period
  */
-#define EXPEDITE_THRESHOLD 1000
+#define EXPEDITE_THRESHOLD 2000
+/*
+ * Max number of callbacks to execute in one go with preemption
+ * enabled. If there are more callbacks to be executed they will
+ * be run with preemption disabled in order to prolong reclaimer's
+ * time slice and give it a chance to catch up with callback producers.
+ */
+#define CRITICAL_THRESHOLD 30000
 /* Half the number of values a uint32 can hold. */
 #define UINT32_MAX_HALF    2147483648U
 
 
-/*c Global RCU data. */
+/** Global RCU data. */
 typedef struct rcu_data {
 	/** Detector uses so signal reclaimers that a grace period ended. */
 	condvar_t gp_ended;
@@ -101,7 +108,7 @@ typedef struct rcu_data {
 	 */
 	rcu_gp_t completed_gp;
 	
-	/** Protect the following 3 fields. */
+	/** Protects the following 3 fields. */
 	IRQ_SPINLOCK_DECLARE(preempt_lock);
 	/** Preexisting readers that have been preempted. */
 	list_t cur_preempted;
@@ -120,7 +127,7 @@ typedef struct rcu_data {
 	 */
 	atomic_t delaying_cpu_cnt;
 	
-	/** Interruptable attached detector thread pointer. */
+	/** Interruptible attached detector thread pointer. */
 	thread_t *detector_thr;
 	
 	/* Some statistics. */
@@ -152,6 +159,7 @@ static void exec_completed_cbs(rcu_gp_t last_completed_gp);
 static void exec_cbs(rcu_item_t **phead);
 static void req_detection(size_t req_cnt);
 static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *last_completed_gp);
+static void upd_missed_gp_in_wait(rcu_gp_t completed_gp);
 static bool cv_wait_for_gp(rcu_gp_t wait_on_gp);
 static void detector(void *);
 static bool wait_for_detect_req(void);
@@ -164,6 +172,7 @@ static void interrupt_delaying_cpus(cpu_mask_t *cpu_mask);
 static void sample_local_cpu(void *);
 static bool wait_for_delaying_cpus(void);
 static bool wait_for_preempt_reader(void);
+static void upd_max_cbs_in_slice(void);
 
 
 
@@ -209,10 +218,11 @@ void rcu_cpu_init(void)
 	CPU->rcu.tmp_nesting_cnt = 0;
 	
 	CPU->rcu.cur_cbs = 0;
+	CPU->rcu.cur_cbs_cnt = 0;
 	CPU->rcu.next_cbs = 0;
+	CPU->rcu.next_cbs_cnt = 0;
 	CPU->rcu.arriving_cbs = 0;
 	CPU->rcu.parriving_cbs_tail = &CPU->rcu.arriving_cbs;
-	
 	CPU->rcu.arriving_cbs_cnt = 0;
 
 	CPU->rcu.cur_cbs_gp = 0;
@@ -221,11 +231,17 @@ void rcu_cpu_init(void)
 	CPU->rcu.is_delaying_gp = false;
 	
 	semaphore_initialize(&CPU->rcu.arrived_flag, 0);
-	CPU->rcu.reclaimer_thr = 0;
+
+	/* BSP creates reclaimer threads before AP's rcu_cpu_init() runs. */
+	if (config.cpu_active == 1)
+		CPU->rcu.reclaimer_thr = 0;
 	
 	CPU->rcu.stat_max_cbs = 0;
 	CPU->rcu.stat_avg_cbs = 0;
 	CPU->rcu.stat_missed_gps = 0;
+	CPU->rcu.stat_missed_gp_in_wait = 0;
+	CPU->rcu.stat_max_slice_cbs = 0;
+	CPU->rcu.last_arriving_cnt = 0;
 }
 
 /** Completes RCU init. Creates and runs the detector and reclaimer threads.*/
@@ -610,13 +626,16 @@ static bool all_cbs_empty(void)
 static void reclaimer(void *arg)
 {
 	ASSERT(THREAD && THREAD->wired);
+	ASSERT(THREAD == CPU->rcu.reclaimer_thr);
 
 	rcu_gp_t last_compl_gp = 0;
 	bool ok = true;
 	
 	while (ok && wait_for_pending_cbs()) {
-		exec_completed_cbs(last_compl_gp);
+		ASSERT(CPU->rcu.reclaimer_thr == THREAD);
 		
+		exec_completed_cbs(last_compl_gp);
+
 		bool expedite = advance_cbs();
 		
 		ok = wait_for_cur_cbs_gp_end(expedite, &last_compl_gp);
@@ -650,12 +669,45 @@ static void exec_completed_cbs(rcu_gp_t last_completed_gp)
 {
 	upd_stat_missed_gp(last_completed_gp);
 	
-	if (CPU->rcu.cur_cbs_gp <= last_completed_gp) {
-		exec_cbs(&CPU->rcu.cur_cbs);
-	}
-	
+	/* Both next_cbs and cur_cbs GP elapsed. */
 	if (CPU->rcu.next_cbs_gp <= last_completed_gp) {
-		exec_cbs(&CPU->rcu.next_cbs);	
+		ASSERT(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
+		
+		size_t exec_cnt = CPU->rcu.cur_cbs_cnt + CPU->rcu.next_cbs_cnt;
+		
+		if (exec_cnt < CRITICAL_THRESHOLD) {
+			exec_cbs(&CPU->rcu.cur_cbs);
+			exec_cbs(&CPU->rcu.next_cbs);	
+		} else {
+			/* 
+			 * Getting overwhelmed with too many callbacks to run. 
+			 * Disable preemption in order to prolong our time slice 
+			 * and catch up with updaters posting new callbacks.
+			 */
+			preemption_disable();
+			exec_cbs(&CPU->rcu.cur_cbs);
+			exec_cbs(&CPU->rcu.next_cbs);	
+			preemption_enable();
+		}
+		
+		CPU->rcu.cur_cbs_cnt = 0;
+		CPU->rcu.next_cbs_cnt = 0;
+	} else if (CPU->rcu.cur_cbs_gp <= last_completed_gp) {
+
+		if (CPU->rcu.cur_cbs_cnt < CRITICAL_THRESHOLD) {
+			exec_cbs(&CPU->rcu.cur_cbs);
+		} else {
+			/* 
+			 * Getting overwhelmed with too many callbacks to run. 
+			 * Disable preemption in order to prolong our time slice 
+			 * and catch up with updaters posting new callbacks.
+			 */
+			preemption_disable();
+			exec_cbs(&CPU->rcu.cur_cbs);
+			preemption_enable();
+		}
+
+		CPU->rcu.cur_cbs_cnt = 0;
 	}
 }
 
@@ -695,6 +747,7 @@ static bool advance_cbs(void)
 {
 	/* Move next_cbs to cur_cbs. */
 	CPU->rcu.cur_cbs = CPU->rcu.next_cbs;
+	CPU->rcu.cur_cbs_cnt = CPU->rcu.next_cbs_cnt;
 	CPU->rcu.cur_cbs_gp = CPU->rcu.next_cbs_gp;
 	
 	/* Move arriving_cbs to next_cbs. Empties arriving_cbs. */
@@ -707,16 +760,19 @@ static bool advance_cbs(void)
 	bool expedite = (EXPEDITE_THRESHOLD < CPU->rcu.arriving_cbs_cnt)
 		|| CPU->rcu.expedite_arriving;	
 
-	/* Update statistics. */
-	upd_stat_cb_cnts(CPU->rcu.arriving_cbs_cnt);
-		
 	CPU->rcu.expedite_arriving = false;
+	
 	CPU->rcu.next_cbs = CPU->rcu.arriving_cbs;
+	CPU->rcu.next_cbs_cnt = CPU->rcu.arriving_cbs_cnt;
+	
 	CPU->rcu.arriving_cbs = 0;
 	CPU->rcu.parriving_cbs_tail = &CPU->rcu.arriving_cbs;
 	CPU->rcu.arriving_cbs_cnt = 0;
 	
 	interrupts_restore(ipl);
+
+	/* Update statistics of arrived callbacks. */
+	upd_stat_cb_cnts(CPU->rcu.next_cbs_cnt);
 	
 	/* 
 	 * Make changes prior to queuing next_cbs visible to readers. 
@@ -823,12 +879,23 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 
 	/* Wait for cur_cbs_gp to end. */
 	bool interrupted = cv_wait_for_gp(CPU->rcu.cur_cbs_gp);
-
+	
 	*completed_gp = rcu.completed_gp;
 	spinlock_unlock(&rcu.gp_lock);	
 	
+	upd_missed_gp_in_wait(*completed_gp);
+	
 	return !interrupted;
 }
+
+static void upd_missed_gp_in_wait(rcu_gp_t completed_gp)
+{
+	ASSERT(CPU->rcu.cur_cbs_gp <= completed_gp);
+	
+	size_t delta = (size_t)(completed_gp - CPU->rcu.cur_cbs_gp);
+	CPU->rcu.stat_missed_gp_in_wait += delta;
+}
+
 
 /** Requests the detector to detect at least req_cnt consecutive grace periods.*/
 static void req_detection(size_t req_cnt)
@@ -837,14 +904,10 @@ static void req_detection(size_t req_cnt)
 		bool detector_idle = (0 == rcu.req_gp_end_cnt);
 		rcu.req_gp_end_cnt = req_cnt;
 
-		//printf("reqs:%d,idle:%d ", req_cnt, detector_idle);
-		
 		if (detector_idle) {
 			ASSERT(rcu.cur_gp == rcu.completed_gp);
 			condvar_signal(&rcu.req_gp_changed);
 		}
-	} else {
-		//printf("myreqs:%d,detr:%d ", req_cnt, rcu.req_gp_end_cnt);
 	}
 }
 
@@ -1265,6 +1328,23 @@ void rcu_after_thread_ran(void)
 	if (THREAD == rcu.detector_thr) {
 		THREAD->priority = -1;
 	} 
+	else if (THREAD == CPU->rcu.reclaimer_thr) {
+		THREAD->priority = -1;
+	} 
+	
+	upd_max_cbs_in_slice();
+}
+
+static void upd_max_cbs_in_slice(void)
+{
+	rcu_cpu_data_t *cr = &CPU->rcu;
+	
+	if (cr->arriving_cbs_cnt > cr->last_arriving_cnt) {
+		size_t arrived_cnt = cr->arriving_cbs_cnt - cr->last_arriving_cnt;
+		cr->stat_max_slice_cbs = max(arrived_cnt, cr->stat_max_slice_cbs);
+	}
+	
+	cr->last_arriving_cnt = cr->arriving_cbs_cnt;
 }
 
 /** Called by the scheduler() when switching to a newly scheduled thread. */
@@ -1280,9 +1360,15 @@ void rcu_before_thread_runs(void)
 /** Prints RCU run-time statistics. */
 void rcu_print_stat(void)
 {
-	/* Don't take locks. Worst case is we get out-dated values. */
-	printf("Configuration: expedite_threshold=%d, detect_sleep=%dms\n",
-		EXPEDITE_THRESHOLD, DETECT_SLEEP_MS);
+	/* 
+	 * Don't take locks. Worst case is we get out-dated values. 
+	 * CPU local values are updated without any locks, so there 
+	 * are no locks to lock in order to get up-to-date values.
+	 */
+	
+	printf("Configuration: expedite_threshold=%d, critical_threshold=%d,"
+		" detect_sleep=%dms\n",	
+		EXPEDITE_THRESHOLD, CRITICAL_THRESHOLD, DETECT_SLEEP_MS);
 	printf("Completed GPs: %" PRIu64 "\n", rcu.completed_gp);
 	printf("Expedited GPs: %zu\n", rcu.stat_expedited_cnt);
 	printf("Delayed GPs:   %zu (cpus w/ still running readers after gp sleep)\n", 
@@ -1291,19 +1377,29 @@ void rcu_print_stat(void)
 		"running or not)\n", rcu.stat_preempt_blocking_cnt);
 	printf("Smp calls:     %zu\n", rcu.stat_smp_call_cnt);
 	
-	printf("Max callbacks per GP:\n");
-	for (unsigned i = 0; i < config.cpu_count; ++i) {
+	printf("Max arrived callbacks per GP and CPU:\n");
+	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		printf(" %zu", cpus[i].rcu.stat_max_cbs);
 	}
 
-	printf("\nAvg callbacks per GP (nonempty batches only):\n");
-	for (unsigned i = 0; i < config.cpu_count; ++i) {
+	printf("\nAvg arrived callbacks per GP and CPU (nonempty batches only):\n");
+	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		printf(" %zu", cpus[i].rcu.stat_avg_cbs);
 	}
 	
-	printf("\nMissed GP notifications:\n");
-	for (unsigned i = 0; i < config.cpu_count; ++i) {
+	printf("\nMax arrived callbacks per time slice and CPU:\n");
+	for (unsigned int i = 0; i < config.cpu_count; ++i) {
+		printf(" %zu", cpus[i].rcu.stat_max_slice_cbs);
+	}
+
+	printf("\nMissed GP notifications per CPU:\n");
+	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		printf(" %zu", cpus[i].rcu.stat_missed_gps);
+	}
+
+	printf("\nMissed GP notifications per CPU while waking up:\n");
+	for (unsigned int i = 0; i < config.cpu_count; ++i) {
+		printf(" %zu", cpus[i].rcu.stat_missed_gp_in_wait);
 	}
 	printf("\n");
 }

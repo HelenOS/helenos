@@ -70,10 +70,14 @@ typedef struct rcu_cpu_data {
 	 * Accessed by the local reclaimer only.
 	 */
 	rcu_item_t *cur_cbs;
+	/** Number of callbacks in cur_cbs. */
+	size_t cur_cbs_cnt;
 	/** Callbacks to invoke once the next grace period ends, ie next_cbs_gp. 
 	 * Accessed by the local reclaimer only.
 	 */
 	rcu_item_t *next_cbs;
+	/** Number of callbacks in next_cbs. */
+	size_t next_cbs_cnt;
 	/** New callbacks are place at the end of this list. */
 	rcu_item_t *arriving_cbs;
 	/** Tail of arriving_cbs list. Disable interrupts to access. */
@@ -113,6 +117,9 @@ typedef struct rcu_cpu_data {
 	size_t stat_max_cbs;
 	size_t stat_avg_cbs;
 	size_t stat_missed_gps;
+	size_t stat_missed_gp_in_wait;
+	size_t stat_max_slice_cbs;
+	size_t last_arriving_cnt;
 } rcu_cpu_data_t;
 
 
