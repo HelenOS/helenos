@@ -108,6 +108,7 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 	}
 
 	fibril_mutex_initialize(&namespace->guard);
+	fibril_condvar_initialize(&namespace->reader_appeared_cv);
 	prodcons_initialize(&namespace->messages);
 	namespace->has_reader = false;
 	namespace->writers_count = 0;

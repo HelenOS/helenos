@@ -105,7 +105,9 @@ static int logger_message(async_sess_t *session, log_level_t level, const char *
 
 static void cannot_use_level_changed_monitor(void)
 {
-	assert(false && "not implemented yet");
+	fibril_rwlock_write_lock(&current_observed_level_lock);
+	current_observed_level = LVL_LIMIT;
+	fibril_rwlock_write_unlock(&current_observed_level_lock);
 }
 
 static int observed_level_changed_monitor(void *arg)
