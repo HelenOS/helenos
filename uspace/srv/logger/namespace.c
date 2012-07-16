@@ -89,24 +89,20 @@ static logging_namespace_t *namespace_find_no_lock(const char *name)
 	return NULL;
 }
 
-logging_namespace_t *namespace_create(const char *name)
+static logging_namespace_t *namespace_create_no_lock(const char *name)
 {
-	fibril_mutex_lock(&namespace_list_guard);
 	logging_namespace_t *existing = namespace_find_no_lock(name);
 	if (existing != NULL) {
-		fibril_mutex_unlock(&namespace_list_guard);
 		return NULL;
 	}
 
 	logging_namespace_t *namespace = malloc(sizeof(logging_namespace_t));
 	if (namespace == NULL) {
-		fibril_mutex_unlock(&namespace_list_guard);
 		return NULL;
 	}
 
 	namespace->name = str_dup(name);
 	if (namespace->name == NULL) {
-		fibril_mutex_unlock(&namespace_list_guard);
 		free(namespace);
 		return NULL;
 	}
@@ -118,9 +114,17 @@ logging_namespace_t *namespace_create(const char *name)
 	link_initialize(&namespace->link);
 
 	list_append(&namespace->link, &namespace_list);
-	fibril_mutex_unlock(&namespace_list_guard);
 
 	return namespace;
+}
+
+
+logging_namespace_t *namespace_create(const char *name)
+{
+	fibril_mutex_lock(&namespace_list_guard);
+	logging_namespace_t *result = namespace_create_no_lock(name);
+	fibril_mutex_unlock(&namespace_list_guard);
+	return result;
 }
 
 const char *namespace_get_name(logging_namespace_t *namespace)
@@ -185,7 +189,7 @@ logging_namespace_t *namespace_writer_attach(const char *name)
 	namespace = namespace_find_no_lock(name);
 
 	if (namespace == NULL) {
-		namespace = namespace_create(name);
+		namespace = namespace_create_no_lock(name);
 	}
 
 	fibril_mutex_lock(&namespace->guard);
