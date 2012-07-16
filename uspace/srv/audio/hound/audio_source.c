@@ -115,8 +115,8 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 		log_debug("Buffer does not fit integer number of frames");
 		return EINVAL;
 	}
-	if (!audio_format_same(&source->format, f)) {
-		log_debug("Format conversion is not supported yet");
+	if (source->format.sampling_rate != f->sampling_rate) {
+		log_debug("Resampling is not supported, yet");
 		return ENOTSUP;
 	}
 	if (source->available_data.position == NULL ||
