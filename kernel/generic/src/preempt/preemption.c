@@ -36,50 +36,7 @@
  */
 
 #include <preemption.h>
-#include <proc/scheduler.h>
 
-
-/** Determines if we are executing an exception/interrupt handler. */
-static bool in_exc_handler(void)
-{
-	/* Err on the safe side until all exception processing code is audited. */
-	return true;
-}
-
-/** Preemption was enabled. Calls scheduler(). */
-void preemption_enabled_scheduler(void)
-{
-	ASSERT(PREEMPTION_ENABLED);
-	ASSERT(PREEMPTION_NEEDED);
-	
-	/* 
-	 * Avoid a race between a thread about to invoke the scheduler() 
-	 * after checking THREAD->need_resched and an interrupt that
-	 * occurs right after the check.
-	 * 
-	 * Also ensures that code that relies on disabled interrupts
-	 * to suppress preemption continues to work.
-	 */
-	if (!interrupts_disabled() && !in_exc_handler()) {
-		preemption_clear_needed();
-		/* We may be preempted here, so we'll scheduler() again. Too bad. */
-		scheduler();
-	} 
-}
-
-/** Sets a flag to reschedule the next time preemption is enabled. */
-void preemption_set_needed(void)
-{
-	/* No need to disable interrupts. */
-	THE->preemption |= PREEMPTION_NEEDED_FLAG;
-}
-
-/** Instructs not to reschedule immediately when preemption is enabled. */
-void preemption_clear_needed(void)
-{
-	/* No need to disable interrupts. */
-	THE->preemption &= ~PREEMPTION_NEEDED_FLAG;
-}
 
 /** @}
  */

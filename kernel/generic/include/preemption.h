@@ -39,9 +39,7 @@
 #include <compiler/barrier.h>
 #include <debug.h>
 
-#define PREEMPTION_INC         (1 << 1)
-#define PREEMPTION_NEEDED_FLAG (1 << 0)
-#define PREEMPTION_NEEDED      (THE->preemption & PREEMPTION_NEEDED_FLAG)
+#define PREEMPTION_INC         (1 << 0)
 #define PREEMPTION_DISABLED    (PREEMPTION_INC <= THE->preemption)
 #define PREEMPTION_ENABLED     (!PREEMPTION_DISABLED)
 
@@ -52,28 +50,14 @@
 		compiler_barrier(); \
 	} while (0)
 
-/** Restores preemption and reschedules if out time slice already elapsed.*/
-#define preemption_enable() \
-	do { \
-		preemption_enable_noresched(); \
-		\
-		if (PREEMPTION_ENABLED && PREEMPTION_NEEDED) { \
-			preemption_enabled_scheduler(); \
-		} \
-	} while (0)
-
 /** Restores preemption but never reschedules. */
-#define preemption_enable_noresched() \
+#define preemption_enable() \
 	do { \
 		ASSERT(PREEMPTION_DISABLED); \
 		compiler_barrier(); \
 		THE->preemption -= PREEMPTION_INC; \
 	} while (0)
 
-
-extern void preemption_enabled_scheduler(void);
-extern void preemption_set_needed(void);
-extern void preemption_clear_needed(void);
 
 #endif
 
