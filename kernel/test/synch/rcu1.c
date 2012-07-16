@@ -49,7 +49,9 @@ typedef struct {
 	bool exited;
 } exited_t;
 
+/* Callback raced with preexisting readers. */
 #define ERACE   123
+/* Waited for too long for the callback to exit; consider it lost. */
 #define ECBLOST 432
 
 /*-------------------------------------------------------------------*/
@@ -84,8 +86,8 @@ static void run_thread(size_t k, void (*func)(void*), void *arg)
 		"test-rcu-thread");
 		
 	if(thread[k]) {
-		/* Try to distribute evenly but allow migration. */
-		thread[k]->cpu = &cpus[k % config.cpu_active];
+		/* Distribute evenly. */
+		thread_wire(thread[k], &cpus[k % config.cpu_active]);
 		thread_ready(thread[k]);
 	}
 }
@@ -207,7 +209,7 @@ static void long_reader(void *arg)
 		rcu_read_lock();
 		
 		for (volatile size_t k = 0; k < nop_iters; ++k) {
-			// nop, but increment volatile k			
+			/* nop, but increment volatile k */
 		}
 		
 		rcu_read_unlock();
@@ -337,9 +339,9 @@ static bool do_one_cb(void)
 	run_one(one_cb_reader, 0);
 	join_one();
 	
-	TPRINTF("\nJoined one-cb reader, wait for cb.\n");
+	TPRINTF("\nJoined one-cb reader, wait for callback.\n");
 	size_t loop_cnt = 0;
-	size_t max_loops = 4; /* 200 ms */
+	size_t max_loops = 4; /* 200 ms total */
 	
 	while (!one_cb_is_done && loop_cnt < max_loops) {
 		thread_usleep(50 * 1000);
@@ -525,7 +527,7 @@ static bool do_reader_exit(void)
 	join_one();
 	
 	int result = EOK;
-	wait_for_cb_exit(2, p, &result);
+	wait_for_cb_exit(2 /* secs */, p, &result);
 	
 	if (result != EOK) {
 		TPRINTF("Err: RCU locked up after exiting from within a reader\n");
@@ -688,6 +690,7 @@ static bool do_one_reader_preempt(void (*f)(void*), const char *err)
 	run_one(f, p);	
 	join_one();
 	
+	/* Wait at most 4 secs. */
 	wait_for_cb_exit(4, &p->e, &p->result);
 	
 	if (p->result == EOK) {
@@ -702,7 +705,7 @@ static bool do_one_reader_preempt(void (*f)(void*), const char *err)
 
 static bool do_reader_preempt(void)
 {
-	TPRINTF("\nReader preempts; after GP start, before GP, twice before GP\n");
+	TPRINTF("\nReaders will be preempted.\n");
 	
 	bool success = true;
 	bool ok = true;
@@ -743,13 +746,13 @@ static void synch_reader(void *arg)
 	
 	rcu_read_lock();
 
-	/* Contain synch accessing after reader section beginning. */
+	/* Order accesses of synch after the reader section begins. */
 	memory_barrier();
 	
 	synch->reader_running = true;
 	
 	while (!synch->synch_running) {
-		/* 0.5 sec*/
+		/* 0.5 sec */
 		delay(500 * 1000);
 	}
 	
@@ -828,7 +831,7 @@ static void stress_reader(void *arg)
 static void stress_cb(rcu_item_t *item)
 {
 	/* 5 us * 1000 * 1000 iters == 5 sec per updater thread */
-	/*delay(5);*/
+	delay(5);
 	free(item);
 }
 
@@ -846,21 +849,20 @@ static void stress_updater(void *arg)
 			return;
 		}
 		
-		/* Print a dot if we make progress of 1% */
-		if (s->master && 0 == (i % (s->iters/100 + 1)))
+		/* Print a dot if we make a progress of 1% */
+		if (s->master && 0 == (i % (s->iters/100)))
 			TPRINTF(".");
 	}
 }
 
 static bool do_stress(void)
 {
-	//size_t cb_per_thread = 1000 * 1000;
 	size_t cb_per_thread = 1000 * 1000;
 	bool done = false;
 	stress_t master = { .iters = cb_per_thread, .master = true }; 
 	stress_t worker = { .iters = cb_per_thread, .master = false }; 
 	
-	size_t thread_cnt = min(MAX_THREADS, config.cpu_active);
+	size_t thread_cnt = min(MAX_THREADS / 2, config.cpu_active);
 	/* Each cpu has one reader and one updater. */
 	size_t reader_cnt = thread_cnt;
 	size_t updater_cnt = thread_cnt;
@@ -872,7 +874,7 @@ static bool do_stress(void)
 	uint64_t mem_units;
 	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
 
-	TPRINTF("\nStress: Run %zu nop-readers and %zu updaters. %zu callbacks "
+	TPRINTF("\nStress: Run %zu nop-readers and %zu updaters. %zu callbacks"
 		" total (max %" PRIu64 " %s used). Be very patient.\n", 
 		reader_cnt, updater_cnt, exp_upd_calls, mem_units, mem_suffix);
 	
@@ -913,7 +915,7 @@ static void expedite_cb(rcu_item_t *arg)
 	if (1 < e->count_down) {
 		--e->count_down;
 		
-		if (0 == (e->count_down % (e->total_cnt/100 + 1))) {
+		if (0 == (e->count_down % (e->total_cnt/100))) {
 			TPRINTF("*");
 		}
 		
