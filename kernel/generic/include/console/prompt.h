@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericconsole
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_SYMTAB_H_
-#define KERN_SYMTAB_H_
+#ifndef KERN_CONSOLE_PROMPT_H_
+#define KERN_CONSOLE_PROMPT_H_
 
-#include <symtab_lookup.h>
 #include <console/chardev.h>
 
-extern void symtab_print_search(const char *);
-extern int symtab_compl(char *, size_t, indev_t *);
+#define MAX_TAB_HINTS 37
+
+extern bool console_prompt_display_all_hints(indev_t *, size_t);
+extern bool console_prompt_more_hints(indev_t *, size_t *);
 
 #endif
 

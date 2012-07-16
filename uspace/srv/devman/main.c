@@ -418,7 +418,9 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	/* Check that function with same name is not there already. */
-	if (find_fun_node_in_device(tree, pdev, fun_name) != NULL) {
+	fun_node_t *tfun = find_fun_node_in_device(tree, pdev, fun_name);
+	if (tfun) {
+		fun_del_ref(tfun);	/* drop the new unwanted reference */
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		dev_del_ref(pdev);
 		async_answer_0(callid, EEXISTS);
