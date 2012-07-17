@@ -53,6 +53,7 @@ struct audio_sink {
 	audio_format_t format;
 	void *private_data;
 	int (*connection_change)(audio_sink_t *, bool);
+	int (*check_format)(audio_sink_t *);
 };
 
 static inline audio_sink_t * audio_sink_list_instance(link_t *l)
@@ -62,9 +63,10 @@ static inline audio_sink_t * audio_sink_list_instance(link_t *l)
 
 int audio_sink_init(audio_sink_t *sink, const char *name,
     void *private_data, int (*connection_change)(audio_sink_t *, bool),
-    const audio_format_t *f);
+    int (*check_format)(audio_sink_t *), const audio_format_t *f);
 void audio_sink_fini(audio_sink_t *sink);
 
+int audio_sink_set_format(audio_sink_t *sink, const audio_format_t *format);
 int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source);
 int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source);
 void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);

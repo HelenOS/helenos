@@ -45,7 +45,7 @@
 
 int audio_sink_init(audio_sink_t *sink, const char *name,
     void *private_data, int (*connection_change)(audio_sink_t *, bool),
-    const audio_format_t *f)
+    int (*check_format)(audio_sink_t *sink), const audio_format_t *f)
 {
 	assert(sink);
 	if (!name) {
@@ -58,6 +58,7 @@ int audio_sink_init(audio_sink_t *sink, const char *name,
 	sink->private_data = private_data;
 	sink->format = *f;
 	sink->connection_change = connection_change;
+	sink->check_format = check_format;
 	log_verbose("Initialized sink (%p) '%s'", sink, sink->name);
 	return EOK;
 }
@@ -69,7 +70,6 @@ void audio_sink_fini(audio_sink_t *sink)
 	free(sink->name);
 	sink->name = NULL;
 }
-
 
 int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 {
@@ -84,22 +84,9 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 	if (list_count(&sink->sources) == 1) {
 		/* Set audio format according to the first source */
 		if (audio_format_is_any(&sink->format)) {
-			/* Source does not care */
-			if (audio_format_is_any(&source->format)) {
-				log_verbose("Set default format for sink %s.",
-				    sink->name);
-				sink->format = AUDIO_FORMAT_DEFAULT;
-			} else {
-				log_verbose("Set format based on the first "
-				    "source(%s): %u channel(s), %uHz, %s for "
-				    "sink %s.", source->name,
-				    source->format.channels,
-				    source->format.sampling_rate,
-				    pcm_sample_format_str(
-				        source->format.sample_format),
-				    sink->name);
-				sink->format = source->format;
-			}
+			int ret = audio_sink_set_format(sink, &source->format);
+			if (ret != EOK)
+				return ret;
 		}
 	}
 
@@ -119,6 +106,36 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 	log_verbose("Connected source '%s' to sink '%s'",
 	    source->name, sink->name);
 
+	return EOK;
+}
+
+int audio_sink_set_format(audio_sink_t *sink, const audio_format_t *format)
+{
+	assert(sink);
+	assert(format);
+	if (!audio_format_is_any(&sink->format)) {
+		log_debug("Sink %s already has a format", sink->name);
+		return EEXISTS;
+	}
+	const audio_format_t old_format;
+
+	if (audio_format_is_any(format)) {
+		log_verbose("Setting DEFAULT format for sink %s", sink->name);
+		sink->format = AUDIO_FORMAT_DEFAULT;
+	} else {
+		sink->format = *format;
+	}
+	if (sink->check_format) {
+		const int ret = sink->check_format(sink);
+		if (ret != EOK && ret != ELIMIT) {
+			log_debug("Format check failed on sink %s", sink->name);
+			sink->format = old_format;
+			return ret;
+		}
+	}
+	log_verbose("Set format for sink %s: %u channel(s), %uHz, %s",
+	    sink->name, format->channels, format->sampling_rate,
+	    pcm_sample_format_str(format->sample_format));
 	return EOK;
 }
 

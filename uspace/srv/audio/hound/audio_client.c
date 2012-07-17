@@ -79,7 +79,7 @@ audio_client_t *audio_client_get_recording(
 		return NULL;
 	init_common(client, name, f, sess);
 	audio_sink_init(&client->sink, name, client,
-	    client_sink_connection_change, f);
+	    client_sink_connection_change, NULL, f);
 	client->is_recording = true;
 	return client;
 }

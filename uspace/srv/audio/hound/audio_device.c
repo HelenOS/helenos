@@ -50,6 +50,7 @@
 static int device_sink_connection_callback(audio_sink_t *sink, bool new);
 static int device_source_connection_callback(audio_source_t *source);
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static int device_check_format(audio_sink_t* sink);
 static int get_buffer(audio_device_t *dev);
 static int release_buffer(audio_device_t *dev);
 
@@ -67,7 +68,7 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	}
 
 	audio_sink_init(&dev->sink, name, dev, device_sink_connection_callback,
-	    &AUDIO_FORMAT_ANY);
+	    device_check_format, &AUDIO_FORMAT_ANY);
 	audio_source_init(&dev->source, name, dev,
 	    device_source_connection_callback, NULL, &AUDIO_FORMAT_ANY);
 
@@ -220,6 +221,15 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		}
 
 	}
+}
+static int device_check_format(audio_sink_t* sink)
+{
+	assert(sink);
+	audio_device_t *dev = sink->private_data;
+	assert(dev);
+	log_verbose("Checking format on sink %s", sink->name);
+	return audio_pcm_test_format(dev->sess, &sink->format.channels,
+	    &sink->format.sampling_rate, &sink->format.sample_format);
 }
 
 static int get_buffer(audio_device_t *dev)
