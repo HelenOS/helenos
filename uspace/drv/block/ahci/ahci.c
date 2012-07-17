@@ -526,7 +526,7 @@ static int ahci_rb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
 	ahci_port_is_t pxis = sata->shadow_pxis;
 	sata->shadow_pxis.u32 &= ~pxis.u32;
 	
-	if ((sata->invalid_device) || (ahci_port_is_error(pxis))_ {
+	if ((sata->invalid_device) || (ahci_port_is_error(pxis))) {
 		ddf_msg(LVL_ERROR,
 		    "%s: Unrecoverable error during FPDMA read", sata->model);
 		return EINTR;
@@ -621,14 +621,20 @@ static irq_pio_range_t ahci_ranges[] = {
 static irq_cmd_t ahci_cmds[] = {
 	{
 		/* Disable interrupt - interrupt is deasserted in qemu 1.0.1 */
-		.cmd = CMD_MEM_WRITE_32,
+		.cmd = CMD_PIO_WRITE_32,
 		.addr = NULL,
 		.value = AHCI_GHC_GHC_AE
 	},
 	{
+		.cmd = CMD_PIO_READ_32,
+		.addr = NULL,
+		.dstarg = 1
+	},
+	{
 		/* Clear interrupt status register - for vbox and real hw */
-		.cmd = CMD_MEM_REWRITE_32,
-		.addr = NULL
+		.cmd = CMD_PIO_WRITE_A_32,
+		.addr = NULL,
+		.srcarg = 1
 	},
 	{
 		.cmd = CMD_ACCEPT
@@ -895,6 +901,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) + 1;
 	ahci_cmds[1].addr =
 	    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) + 2;
+	ahci_cmds[2].addr = ahci_cmds[1].addr;
 	
 	irq_code_t ct;
 	ct.cmdcount = 3;
