@@ -163,7 +163,7 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 	assert(sink);
 	assert(dest);
 
-	bzero(dest, size);
+	pcm_format_silence(dest, size, &sink->format);
 	list_foreach(sink->sources, it) {
 		audio_source_t *source = audio_source_list_instance(it);
 		const int ret =
