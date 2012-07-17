@@ -87,6 +87,52 @@ bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b)
 	    a->sample_format == b->sample_format;
 }
 
+void pcm_format_silence(void *dst, size_t size, const pcm_format_t *f)
+{
+#define SET_NULL(type, endian, nullv) \
+do { \
+	type *buffer = dst; \
+	const size_t sample_count = size / sizeof(type); \
+	for (unsigned i = 0; i < sample_count; ++i) { \
+		buffer[i] = to((type)nullv, type, endian); \
+	} \
+} while (0)
+
+	switch (f->sample_format) {
+	case PCM_SAMPLE_UINT8:
+		SET_NULL(uint8_t, le, INT8_MIN); break;
+	case PCM_SAMPLE_SINT8:
+		SET_NULL(int8_t, le, 0); break;
+	case PCM_SAMPLE_UINT16_LE:
+		SET_NULL(uint16_t, le, INT16_MIN); break;
+	case PCM_SAMPLE_SINT16_LE:
+		SET_NULL(int16_t, le, 0); break;
+	case PCM_SAMPLE_UINT16_BE:
+		SET_NULL(uint16_t, be, INT16_MIN); break;
+	case PCM_SAMPLE_SINT16_BE:
+		SET_NULL(int16_t, be, 0); break;
+	case PCM_SAMPLE_UINT32_LE:
+		SET_NULL(uint32_t, le, INT32_MIN); break;
+	case PCM_SAMPLE_SINT32_LE:
+		SET_NULL(int32_t, le, 0); break;
+	case PCM_SAMPLE_UINT32_BE:
+		SET_NULL(uint32_t, be, INT32_MIN); break;
+	case PCM_SAMPLE_SINT32_BE:
+		SET_NULL(int32_t, le, 0); break;
+	case PCM_SAMPLE_UINT24_32_LE:
+	case PCM_SAMPLE_SINT24_32_LE:
+	case PCM_SAMPLE_UINT24_32_BE:
+	case PCM_SAMPLE_SINT24_32_BE:
+	case PCM_SAMPLE_UINT24_LE:
+	case PCM_SAMPLE_SINT24_LE:
+	case PCM_SAMPLE_UINT24_BE:
+	case PCM_SAMPLE_SINT24_BE:
+	case PCM_SAMPLE_FLOAT32:
+	default: ;
+	}
+#undef SET_NULL
+}
+
 int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f)
 {
 	return pcm_format_convert_and_mix(dst, size, src, size, f, f);

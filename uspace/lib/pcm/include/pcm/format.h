@@ -68,6 +68,7 @@ static inline bool pcm_format_is_any(const pcm_format_t *f)
 {
 	return pcm_format_same(f, &AUDIO_FORMAT_ANY);
 }
+void pcm_format_silence(void *dst, size_t size, const pcm_format_t *f);
 int pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
     size_t src_size, const pcm_format_t *sf, const pcm_format_t *df);
 int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f);
