@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libc
  * @{
  */
-
 /** @file
+ * @brief AHCI interface definition.
  */
 
-#include <assert.h>
+#ifndef LIBC_DEVICE_AHCI_H_
+#define LIBC_DEVICE_AHCI_H_
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_ahci.h"
+#include <async.h>
+#include <devman.h>
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_ahci_iface
-	}
-};
+extern async_sess_t* ahci_get_sess(devman_handle_t, char **);
 
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+extern int ahci_get_sata_device_name(async_sess_t *, size_t, char *);
+extern int ahci_get_num_blocks(async_sess_t *, uint64_t *);
+extern int ahci_get_block_size(async_sess_t *, size_t *);
+extern int ahci_read_blocks(async_sess_t *, uint64_t, size_t, void *);
+extern int ahci_write_blocks(async_sess_t *, uint64_t, size_t, void *);
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
+#endif
 
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
-
-/**
- * @}
+/** @}
  */
