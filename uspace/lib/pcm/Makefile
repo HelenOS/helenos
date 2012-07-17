@@ -26,28 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-BINARY = hound
-
-EXTRA_CFLAGS = \
-	-DNAME="\"hound\"" \
-	-I$(LIBDRV_PREFIX)/include \
-	-I$(LIBHOUND_PREFIX)/include \
-	-I$(LIBPCM_PREFIX)/include
-
-LIBS = \
-	$(LIBDRV_PREFIX)/libdrv.a \
-	$(LIBHOUND_PREFIX)/libhound.a \
-	$(LIBPCM_PREFIX)/libpcm.a
+USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -Iinclude/pcm -Iinclude
+LIBRARY = libpcm
 
 SOURCES = \
-	audio_client.c \
-	audio_device.c \
-	audio_sink.c \
-	audio_source.c \
-	hound.c \
-	main.c
-
-
+	src/format.c
 include $(USPACE_PREFIX)/Makefile.common
+
 

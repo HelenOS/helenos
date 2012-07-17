@@ -33,48 +33,46 @@
 /** @file
  */
 
-#ifndef AUDIO_FORMAT_H_
-#define AUDIO_FORMAT_H_
+#ifndef PCM_FORMAT_H_
+#define PCM_FORMAT_H_
 
 #include <assert.h>
 #include <bool.h>
-#include <pcm_sample_format.h>
-
+#include <pcm/sample_format.h>
 
 typedef struct {
 	unsigned channels;
 	unsigned sampling_rate;
 	pcm_sample_format_t sample_format;
-} audio_format_t;
+} pcm_format_t;
 
-static const audio_format_t AUDIO_FORMAT_DEFAULT = {
+static const pcm_format_t AUDIO_FORMAT_DEFAULT = {
 	.channels = 2,
 	.sampling_rate = 44100,
 	.sample_format = PCM_SAMPLE_SINT16_LE,
 	};
 
-static const audio_format_t AUDIO_FORMAT_ANY = {
+static const pcm_format_t AUDIO_FORMAT_ANY = {
 	.channels = 0,
 	.sampling_rate = 0,
 	.sample_format = 0,
 	};
 
-
-static inline size_t audio_format_frame_size(const audio_format_t *a)
+static inline size_t pcm_format_frame_size(const pcm_format_t *a)
 {
 	return a->channels * pcm_sample_format_size(a->sample_format);
 }
 
-bool audio_format_same(const audio_format_t *a, const audio_format_t* b);
-static inline bool audio_format_is_any(const audio_format_t *f)
+bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b);
+static inline bool pcm_format_is_any(const pcm_format_t *f)
 {
-	return audio_format_same(f, &AUDIO_FORMAT_ANY);
+	return pcm_format_same(f, &AUDIO_FORMAT_ANY);
 }
-int audio_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
-    size_t src_size, const audio_format_t *sf, const audio_format_t *df);
-int audio_format_mix(void *dst, const void *src, size_t size, const audio_format_t *f);
-int audio_format_convert(audio_format_t a, void* srca, size_t sizea,
-    audio_format_t b, void* srcb, size_t *sizeb);
+int pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
+    size_t src_size, const pcm_format_t *sf, const pcm_format_t *df);
+int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f);
+int pcm_format_convert(pcm_format_t a, void* srca, size_t sizea,
+    pcm_format_t b, void* srcb, size_t *sizeb);
 
 #endif
 

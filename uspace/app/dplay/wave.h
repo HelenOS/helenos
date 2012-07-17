@@ -36,7 +36,7 @@
 
 #include <stdint.h>
 #include <bool.h>
-#include <pcm_sample_format.h>
+#include <pcm/sample_format.h>
 
 /** Wave file header format.
  *

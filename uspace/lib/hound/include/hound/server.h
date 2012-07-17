@@ -39,7 +39,7 @@
 #include <async.h>
 #include <bool.h>
 #include <loc.h>
-#include <pcm_sample_format.h>
+#include <pcm/sample_format.h>
 
 enum {
         HOUND_REGISTER_PLAYBACK = IPC_FIRST_USER_METHOD,

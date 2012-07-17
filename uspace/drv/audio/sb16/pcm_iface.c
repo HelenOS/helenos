@@ -35,7 +35,7 @@
 #include <async.h>
 #include <errno.h>
 #include <audio_pcm_iface.h>
-#include <pcm_sample_format.h>
+#include <pcm/sample_format.h>
 
 #include "dsp.h"
 

@@ -37,7 +37,7 @@
 #include <ddf/driver.h>
 #include <libarch/ddi.h>
 #include <errno.h>
-#include <pcm_sample_format.h>
+#include <pcm/sample_format.h>
 
 #include "registers.h"
 

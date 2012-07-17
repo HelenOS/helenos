@@ -33,7 +33,7 @@ LIBS = \
 	$(LIBDRV_PREFIX)/libdrv.a
 
 EXTRA_CFLAGS = \
-	-I$(LIBDRV_PREFIX)/include
+	-I$(LIBDRV_PREFIX)/include -I$(LIBPCM_PREFIX)/include
 
 SOURCES = \
 	drec.c \

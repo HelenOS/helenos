@@ -38,8 +38,8 @@
 
 #include <adt/list.h>
 #include <async.h>
+#include <pcm/format.h>
 
-#include "audio_format.h"
 #include "audio_source.h"
 #include "audio_sink.h"
 
@@ -48,7 +48,7 @@ typedef struct {
 	const char *name;
 	audio_source_t source;
 	audio_sink_t sink;
-	audio_format_t format;
+	pcm_format_t format;
 	async_sess_t *sess;
 	async_exch_t *exch;
 	bool is_playback;
@@ -61,9 +61,9 @@ static inline audio_client_t * audio_client_list_instance(link_t *l)
 }
 
 audio_client_t *audio_client_get_playback(
-    const char *name, const audio_format_t *f, async_sess_t *sess);
+    const char *name, const pcm_format_t *f, async_sess_t *sess);
 audio_client_t *audio_client_get_recording(
-    const char *name, const audio_format_t *f, async_sess_t *sess);
+    const char *name, const pcm_format_t *f, async_sess_t *sess);
 void audio_client_destroy(audio_client_t *client);
 
 #endif

@@ -108,7 +108,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		    dev->buffer.base, dev->buffer.size);
 
 		const unsigned frames = dev->buffer.size /
-		    (BUFFER_PARTS * audio_format_frame_size(&dev->sink.format));
+		    (BUFFER_PARTS * pcm_format_frame_size(&dev->sink.format));
 		ret = audio_pcm_start_playback(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
@@ -151,7 +151,7 @@ static int device_source_connection_callback(audio_source_t *source)
 			return ret;
 		}
 		const unsigned frames = dev->buffer.size /
-		    (BUFFER_PARTS * audio_format_frame_size(&dev->sink.format));
+		    (BUFFER_PARTS * pcm_format_frame_size(&dev->sink.format));
 		ret = audio_pcm_start_record(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);

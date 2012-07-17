@@ -38,12 +38,8 @@
 #include <fibril_synch.h>
 #include <str_error.h>
 #include <stdio.h>
-
 #include <hound/client.h>
-
-#include <pcm_sample_format.h>
-
-#include <stdio.h>
+#include <pcm/sample_format.h>
 
 #include "wave.h"
 

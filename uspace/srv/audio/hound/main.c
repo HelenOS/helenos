@@ -70,7 +70,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	LIST_INITIALIZE(local_playback);
 	LIST_INITIALIZE(local_recording);
-	audio_format_t format = {0};
+	pcm_format_t format = {0};
 	const char *name = NULL;
 	async_sess_t *sess = NULL;
 

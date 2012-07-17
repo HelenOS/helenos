@@ -42,7 +42,7 @@
 #include "log.h"
 
 static void init_common(audio_client_t *client, const char *name,
-    const audio_format_t *f, async_sess_t *sess)
+    const pcm_format_t *f, async_sess_t *sess)
 {
 	link_initialize(&client->link);
 	client->name = str_dup(name);
@@ -59,7 +59,7 @@ static int client_source_update_data(audio_source_t *source, size_t size);
 
 
 audio_client_t *audio_client_get_playback(
-    const char *name, const audio_format_t *f, async_sess_t *sess)
+    const char *name, const pcm_format_t *f, async_sess_t *sess)
 {
 	audio_client_t *client = malloc(sizeof(audio_client_t));
 	if (!client)
@@ -72,7 +72,7 @@ audio_client_t *audio_client_get_playback(
 }
 
 audio_client_t *audio_client_get_recording(
-    const char *name, const audio_format_t *f, async_sess_t *sess)
+    const char *name, const pcm_format_t *f, async_sess_t *sess)
 {
 	audio_client_t *client = malloc(sizeof(audio_client_t));
 	if (!client)

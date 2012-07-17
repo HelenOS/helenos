@@ -46,7 +46,7 @@
 
 #include <stdio.h>
 #include <macros.h>
-#include <pcm_sample_format.h>
+#include <pcm/sample_format.h>
 
 #include "wave.h"
 

@@ -38,7 +38,7 @@
 
 #include <async.h>
 #include <bool.h>
-#include <pcm_sample_format.h>
+#include <pcm/sample_format.h>
 
 #define DEFAULT_SINK "default"
 #define DEFAULT_SOURCE "default"

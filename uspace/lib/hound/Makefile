@@ -27,7 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude/hound
+EXTRA_CFLAGS = -Iinclude/hound -I$(LIBPCM_PREFIX)/include
 LIBRARY = libhound
 
 SOURCES = \

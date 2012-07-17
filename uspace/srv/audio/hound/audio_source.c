@@ -48,7 +48,7 @@
 int audio_source_init(audio_source_t *source, const char *name, void *data,
     int (*connection_change)(audio_source_t *),
     int (*update_available_data)(audio_source_t *, size_t),
-    const audio_format_t *f)
+    const pcm_format_t *f)
 {
 	assert(source);
 	if (!name || !f) {
@@ -81,12 +81,12 @@ int audio_source_connected(audio_source_t *source, struct audio_sink *sink)
 {
 	assert(source);
 	audio_sink_t *old_sink = source->connected_sink;
-	const audio_format_t old_format = source->format;
+	const pcm_format_t old_format = source->format;
 
 	source->connected_sink = sink;
-	if (audio_format_is_any(&source->format)) {
+	if (pcm_format_is_any(&source->format)) {
 		assert(sink);
-		assert(!audio_format_is_any(&sink->format));
+		assert(!pcm_format_is_any(&sink->format));
 		source->format = sink->format;
 	}
 	if (source->connection_change) {
@@ -101,7 +101,7 @@ int audio_source_connected(audio_source_t *source, struct audio_sink *sink)
 }
 
 int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
-    const audio_format_t *f)
+    const pcm_format_t *f)
 {
 	assert(source);
 	if (!buffer) {
@@ -119,8 +119,8 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 		log_debug("Resampling is not supported, yet");
 		return ENOTSUP;
 	}
-	const size_t src_frame_size = audio_format_frame_size(&source->format);
-	const size_t dst_frames = size / audio_format_frame_size(f);
+	const size_t src_frame_size = pcm_format_frame_size(&source->format);
+	const size_t dst_frames = size / pcm_format_frame_size(f);
 
 	if (source->available_data.position == NULL ||
 	    source->available_data.size == 0) {
@@ -134,7 +134,7 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 		}
 	}
 
-	const int ret = audio_format_convert_and_mix(buffer, size,
+	const int ret = pcm_format_convert_and_mix(buffer, size,
 	       source->available_data.position, source->available_data.size,
 	       &source->format, f);
 	if (ret != EOK) {

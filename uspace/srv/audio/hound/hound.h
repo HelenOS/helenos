@@ -41,10 +41,10 @@
 #include <ipc/loc.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <pcm/format.h>
 
 #include "audio_source.h"
 #include "audio_sink.h"
-#include "audio_format.h"
 
 
 typedef struct {

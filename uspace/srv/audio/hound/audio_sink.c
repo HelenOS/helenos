@@ -45,7 +45,7 @@
 
 int audio_sink_init(audio_sink_t *sink, const char *name,
     void *private_data, int (*connection_change)(audio_sink_t *, bool),
-    int (*check_format)(audio_sink_t *sink), const audio_format_t *f)
+    int (*check_format)(audio_sink_t *sink), const pcm_format_t *f)
 {
 	assert(sink);
 	if (!name) {
@@ -78,12 +78,12 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 	assert_link_not_used(&source->link);
 	list_append(&source->link, &sink->sources);
 
-	const audio_format_t old_format = sink->format;
+	const pcm_format_t old_format = sink->format;
 
 	/* The first source for me */
 	if (list_count(&sink->sources) == 1) {
 		/* Set audio format according to the first source */
-		if (audio_format_is_any(&sink->format)) {
+		if (pcm_format_is_any(&sink->format)) {
 			int ret = audio_sink_set_format(sink, &source->format);
 			if (ret != EOK)
 				return ret;
@@ -109,17 +109,17 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 	return EOK;
 }
 
-int audio_sink_set_format(audio_sink_t *sink, const audio_format_t *format)
+int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 {
 	assert(sink);
 	assert(format);
-	if (!audio_format_is_any(&sink->format)) {
+	if (!pcm_format_is_any(&sink->format)) {
 		log_debug("Sink %s already has a format", sink->name);
 		return EEXISTS;
 	}
-	const audio_format_t old_format;
+	const pcm_format_t old_format;
 
-	if (audio_format_is_any(format)) {
+	if (pcm_format_is_any(format)) {
 		log_verbose("Setting DEFAULT format for sink %s", sink->name);
 		sink->format = AUDIO_FORMAT_DEFAULT;
 	} else {

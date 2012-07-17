@@ -33,7 +33,7 @@ LIBS = \
 	$(LIBHOUND_PREFIX)/libhound.a
 
 EXTRA_CFLAGS = \
-	-I $(LIBHOUND_PREFIX)/include
+	-I$(LIBHOUND_PREFIX)/include -I$(LIBPCM_PREFIX)/include
 
 SOURCES = \
 	wavplay.c \

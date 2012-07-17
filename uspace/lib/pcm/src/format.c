@@ -39,7 +39,7 @@
 #include <macros.h>
 #include <stdio.h>
 
-#include "audio_format.h"
+#include "format.h"
 
 #define uint8_t_le2host(x) (x)
 #define host2uint8_t_le(x) (x)
@@ -75,9 +75,9 @@
 #define to(x, type, endian) (float)(host2 ## type ## _ ## endian(x))
 
 static float get_normalized_sample(const void *buffer, size_t size,
-    unsigned frame, unsigned channel, const audio_format_t *f);
+    unsigned frame, unsigned channel, const pcm_format_t *f);
 
-bool audio_format_same(const audio_format_t *a, const audio_format_t* b)
+bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b)
 {
 	assert(a);
 	assert(b);
@@ -87,20 +87,20 @@ bool audio_format_same(const audio_format_t *a, const audio_format_t* b)
 	    a->sample_format == b->sample_format;
 }
 
-int audio_format_mix(void *dst, const void *src, size_t size, const audio_format_t *f)
+int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f)
 {
-	return audio_format_convert_and_mix(dst, size, src, size, f, f);
+	return pcm_format_convert_and_mix(dst, size, src, size, f, f);
 }
-int audio_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
-    size_t src_size, const audio_format_t *sf, const audio_format_t *df)
+int pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
+    size_t src_size, const pcm_format_t *sf, const pcm_format_t *df)
 {
 	if (!dst || !src || !sf || !df)
 		return EINVAL;
-	const size_t src_frame_size = audio_format_frame_size(sf);
+	const size_t src_frame_size = pcm_format_frame_size(sf);
 	if ((src_size % src_frame_size) != 0)
 		return EINVAL;
 
-	const size_t dst_frame_size = audio_format_frame_size(df);
+	const size_t dst_frame_size = pcm_format_frame_size(df);
 	if ((src_size % dst_frame_size) != 0)
 		return EINVAL;
 
@@ -169,7 +169,7 @@ do { \
 
 /** Converts all sample formats to float <-1,1> */
 static float get_normalized_sample(const void *buffer, size_t size,
-    unsigned frame, unsigned channel, const audio_format_t *f)
+    unsigned frame, unsigned channel, const pcm_format_t *f)
 {
 	assert(f);
 	if (channel >= f->channels)
