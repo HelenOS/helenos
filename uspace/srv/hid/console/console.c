@@ -616,7 +616,7 @@ static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	size_t pos = 0;
-
+	
 	/*
 	 * Read input from keyboard and copy it to the buffer.
 	 * We need to handle situation when wchar is split by 2 following
@@ -627,24 +627,26 @@ static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 		while ((pos < size) && (cons->char_remains_len > 0)) {
 			buf[pos] = cons->char_remains[0];
 			pos++;
+			
 			/* Unshift the array. */
-			for (size_t i = 1; i < cons->char_remains_len; i++) {
+			for (size_t i = 1; i < cons->char_remains_len; i++)
 				cons->char_remains[i - 1] = cons->char_remains[i];
-			}
+			
 			cons->char_remains_len--;
 		}
+		
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&cons->input_pc);
 			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
-
+			
 			/* Accept key presses of printable chars only. */
 			if ((event->type == KEY_PRESS) && (event->c != 0)) {
 				wchar_t tmp[2] = { event->c, 0 };
 				wstr_to_str(cons->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
 				cons->char_remains_len = str_size(cons->char_remains);
 			}
-
+			
 			free(event);
 		}
 	}
