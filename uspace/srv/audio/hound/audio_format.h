@@ -70,6 +70,8 @@ static inline bool audio_format_is_any(const audio_format_t *f)
 {
 	return audio_format_same(f, &AUDIO_FORMAT_ANY);
 }
+int audio_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
+    size_t src_size, const audio_format_t *sf, const audio_format_t *df);
 int audio_format_mix(void *dst, const void *src, size_t size, const audio_format_t *f);
 int audio_format_convert(audio_format_t a, void* srca, size_t sizea,
     audio_format_t b, void* srcb, size_t *sizeb);

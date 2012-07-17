@@ -89,10 +89,19 @@ bool audio_format_same(const audio_format_t *a, const audio_format_t* b)
 
 int audio_format_mix(void *dst, const void *src, size_t size, const audio_format_t *f)
 {
-	if (!dst || !src || !f)
+	return audio_format_convert_and_mix(dst, size, src, size, f, f);
+}
+int audio_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
+    size_t src_size, const audio_format_t *sf, const audio_format_t *df)
+{
+	if (!dst || !src || !sf || !df)
 		return EINVAL;
-	const size_t sample_size = pcm_sample_format_size(f->sample_format);
-	if ((size % sample_size) != 0)
+	const size_t src_frame_size = audio_format_frame_size(sf);
+	if ((src_size % src_frame_size) != 0)
+		return EINVAL;
+
+	const size_t dst_frame_size = audio_format_frame_size(df);
+	if ((src_size % dst_frame_size) != 0)
 		return EINVAL;
 
 	/* This is so ugly it eats kittens, and puppies, and ducklings,
@@ -100,35 +109,28 @@ int audio_format_mix(void *dst, const void *src, size_t size, const audio_format
 	 */
 #define LOOP_ADD(type, endian, low, high) \
 do { \
-	const unsigned frame_size = audio_format_frame_size(f); \
-	const unsigned frame_count = size / frame_size; \
+	const unsigned frame_count = dst_size / dst_frame_size; \
 	for (size_t i = 0; i < frame_count; ++i) { \
-		for (unsigned j = 0; j < f->channels; ++j) { \
+		for (unsigned j = 0; j < df->channels; ++j) { \
 			const float a = \
-			    get_normalized_sample(dst, size, i, j, f);\
+			    get_normalized_sample(dst, src_size, i, j, df);\
 			const float b = \
-			    get_normalized_sample(src, size, i, j, f);\
+			    get_normalized_sample(src, dst_size, i, j, sf);\
 			float c = (a + b); \
 			if (c < -1.0) c = -1.0; \
 			if (c > 1.0) c = 1.0; \
 			c += 1.0; \
 			c *= ((float)(type)high - (float)(type)low) / 2; \
 			c += (float)(type)low; \
-			if (c > (float)(type)high) { \
-				printf("SCALE HIGH failed\n"); \
-			} \
-			if (c < (float)(type)low) { \
-				printf("SCALE LOW failed\n"); \
-			} \
 			type *dst_buf = dst; \
-			const unsigned pos = i * f->channels  + j; \
-			if (pos < (size / sizeof(type))) \
+			const unsigned pos = i * df->channels  + j; \
+			if (pos < (dst_size / sizeof(type))) \
 				dst_buf[pos] = to((type)c, type, endian); \
 		} \
 	} \
 } while (0)
 
-	switch (f->sample_format) {
+	switch (df->sample_format) {
 	case PCM_SAMPLE_UINT8:
 		LOOP_ADD(uint8_t, le, UINT8_MIN, UINT8_MAX); break;
 	case PCM_SAMPLE_SINT8:

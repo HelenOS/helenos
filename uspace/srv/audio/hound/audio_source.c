@@ -119,39 +119,32 @@ int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
 		log_debug("Resampling is not supported, yet");
 		return ENOTSUP;
 	}
+	const size_t src_frame_size = audio_format_frame_size(&source->format);
+	const size_t dst_frames = size / audio_format_frame_size(f);
+
 	if (source->available_data.position == NULL ||
 	    source->available_data.size == 0) {
 		int ret = EOVERFLOW; /* In fact this is underflow... */
 		if (source->update_available_data)
-			ret = source->update_available_data(source, size);
+			ret = source->update_available_data(source,
+			    dst_frames * src_frame_size);
 		if (ret != EOK) {
 			log_debug("No data to add to %p(%zu)", buffer, size);
 			return ret;
 		}
 	}
 
-	const size_t real_size = min(size, source->available_data.size);
-	const int ret =
-	    audio_format_mix(buffer, source->available_data.position, real_size, f);
+	const int ret = audio_format_convert_and_mix(buffer, size,
+	       source->available_data.position, source->available_data.size,
+	       &source->format, f);
 	if (ret != EOK) {
-		log_debug("Mixing failed %p <= %p, %zu",
-		    buffer, source->available_data.position, real_size);
+		log_debug("Mixing failed %p <= %p, frames: %zu",
+		    buffer, source->available_data.position, dst_frames);
 		return ret;
 	}
 
-	source->available_data.position += real_size;
-	source->available_data.size -= real_size;
-
-//	log_verbose("Mixing successful %p <= %p, %zu",
-//	    buffer, source->available_data.position, real_size);
-
-	buffer += real_size;
-	size -= real_size;
-
-	//TODO update data again
-	if (size)
-		log_warning("not enough data");
-
+	source->available_data.position += (dst_frames * src_frame_size);
+	source->available_data.size -= (dst_frames * src_frame_size);
 	return EOK;
 }
 
