@@ -600,7 +600,7 @@ static int ahci_wb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
 	
 	if ((sata->invalid_device) || (ahci_port_is_error(pxis))) {
 		ddf_msg(LVL_ERROR,
-		    "%s: Unrecoverable error during fpdma write", sata->model);
+		    "%s: Unrecoverable error during FPDMA write", sata->model);
 		return EINTR;
 	}
 	

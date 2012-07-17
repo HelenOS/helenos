@@ -38,30 +38,30 @@
 /** Standard Command frame. */
 typedef struct {
 	/** FIS type - always 0x27. */
-	uint8_t fis_type;
+	unsigned int fis_type : 8;
 	/** Indicate that FIS is a Command - always 0x80. */
-	uint8_t c;
+	unsigned int c : 8;
 	/** Command - Identity device - 0xec, Set fetures - 0xef. */
-	uint8_t command;
+	unsigned int command : 8;
 	/** Features - subcommand for set features - set tranfer mode - 0x03. */
-	uint8_t features;
+	unsigned int features : 8;
 	/** 0:23 bits of LBA. */
-	uint32_t lba_lower : 24;
+	unsigned int lba_lower : 24;
 	/** Device. */
-	uint8_t device;
+	unsigned int device : 8;
 	/** 24:47 bits of LBA. */
-	uint32_t lba_upper : 24;
+	unsigned int lba_upper : 24;
 	/** Features - subcommand for set features - set tranfer mode - 0x03. */
-	uint8_t features_upper;
+	unsigned int features_upper : 8;
 	/** Sector count - transfer mode for set transfer mode operation. */
-	uint16_t count;
+	unsigned int count : 16;
 	/** Reserved. */
-	uint8_t reserved1;
+	unsigned int reserved1 : 8;
 	/** Control. */
-	uint8_t control;
+	unsigned int control : 8;
 	/** Reserved. */
-	uint32_t reserved2;
-} __attribute__((packed)) std_command_frame_t;
+	unsigned int reserved2 : 32;
+} std_command_frame_t;
 
 /** Command frame for NCQ data operation. */
 typedef struct {
@@ -104,7 +104,7 @@ typedef struct {
 	uint8_t reserved5;
 	/** Reserved. */
 	uint8_t reserved6;
-} __attribute__((packed)) ncq_command_frame_t;
+} ncq_command_frame_t;
 
 /** Data returned from identify device and identify packet device command. */
 typedef struct {
@@ -186,7 +186,7 @@ typedef struct {
 	uint16_t reserved104[1 + 127 - 104];
 	uint16_t _vs128[1 + 159 - 128];
 	uint16_t reserved160[1 + 255 - 160];
-} __attribute__((packed)) identify_data_t;
+} identify_data_t;
 
 /** Capability bits for register device. */
 enum ata_regdev_caps {

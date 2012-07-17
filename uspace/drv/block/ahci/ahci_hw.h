@@ -88,7 +88,7 @@ typedef struct {
 	uint16_t vendorid;
 	/** Indicates what device number assigned by the vendor */
 	uint16_t deviceid;
-} __attribute__((packed)) ahci_pcireg_id_t;
+} ahci_pcireg_id_t;
 
 /** AHCI PCI register Command. */
 typedef union {
@@ -119,9 +119,9 @@ typedef union {
 		unsigned int id : 1;
 		/** Reserved. */
 		unsigned int reserved : 5;
-	} __attribute__((packed));
+	};
 	uint16_t u16;
-} __attribute__((packed)) ahci_pcireg_cmd_t;
+} ahci_pcireg_cmd_t;
 
 /** AHCI PCI register Command - Interrupt Disable bit. */
 #define AHCI_PCIREG_CMD_ID  0x0400
@@ -158,15 +158,15 @@ typedef union {
 		unsigned int sse : 1;
 		/** Detected parity error. */
 		unsigned int dpe : 1;
-	} __attribute__((packed));
+	};
 	uint16_t u16;
-} __attribute__((packed)) ahci_pcireg_sts_t;
+} ahci_pcireg_sts_t;
 
 /** AHCI PCI register Revision ID. */
 typedef struct {
 	/** Indicates stepping of the HBA hardware. */
 	uint8_t u8;
-} __attribute__((packed)) ahci_pcireg_rid_t;
+} ahci_pcireg_rid_t;
 
 /** AHCI PCI register Class Codes. */
 typedef struct {
@@ -178,13 +178,13 @@ typedef struct {
 	uint8_t scc;
 	/** Value 01 indicates that is a mass storage device. */
 	uint8_t bcc;
-} __attribute__((packed)) ahci_pcireg_cc_t_t;
+} ahci_pcireg_cc_t_t;
 
 /** AHCI PCI register Cache Line Size. */
 typedef struct {
-	/** Cache line sizefor use with the memory write and invalidate command. */
+	/** Cache line size for use with the memory write and invalidate command. */
 	uint8_t u8;
-} __attribute__((packed)) ahci_pcireg_cls_t;
+} ahci_pcireg_cls_t;
 
 /** AHCI PCI register Master Latency Timer. */
 typedef struct {
@@ -192,7 +192,7 @@ typedef struct {
 	 * to acts as master on PCI.
 	 */
 	uint8_t u8;
-} __attribute__((packed)) ahci_pcireg_mlt_t;
+} ahci_pcireg_mlt_t;
 
 /** AHCI PCI register Header Type. */
 typedef union {
@@ -201,9 +201,9 @@ typedef union {
 		unsigned int hl : 7;
 		/** Multi function device. */
 		unsigned int mfd : 1;
-	} __attribute__((packed));
+	};
 	uint8_t u8;
-} __attribute__((packed)) ahci_pciregs_htype_t;
+} ahci_pciregs_htype_t;
 
 /** AHCI PCI register Built in self test. */
 typedef union {
@@ -220,9 +220,9 @@ typedef union {
 	unsigned int sb : 1;
 	/** BIST capable. */
 	unsigned int bc : 1;
-	}  __attribute__((packed));
+	};
 	uint8_t u8;
-} __attribute__((packed)) ahci_pciregs_bist_t;
+} ahci_pciregs_bist_t;
 
 /** AHCI PCI register AHCI Base Address <BAR 5>. */
 typedef union {
@@ -239,9 +239,9 @@ typedef union {
 		unsigned int reserved : 9;
 		/** Base address of registry memory space. */
 		unsigned int ba : 19;
-	}  __attribute__((packed));
+	};
 	uint32_t u32;
-}  __attribute__((packed)) ahci_pciregs_abar_t;
+} ahci_pciregs_abar_t;
 
 /** AHCI PCI register Subsystem Identifiers. */
 typedef struct
@@ -250,21 +250,21 @@ typedef struct
 	uint8_t ssvid;
 	/** Sub system identifier. */
 	uint8_t ssid;
-} __attribute__((packed)) ahci_pcireg_ss_t;
+} ahci_pcireg_ss_t;
 
 /** AHCI PCI registers Expansion ROM Base Address. */
 typedef struct
 {
 	/** Indicates the base address of the HBA expansion ROM. */
 	uint32_t u32;
-} __attribute__((packed)) ahci_pcireg_erom_t;
+} ahci_pcireg_erom_t;
 
 /** AHCI PCI register Capabilities Pointer. */
 typedef struct
 {
 	/** Indicates the first capability pointer offset. */
 	uint8_t u8;
-} __attribute__((packed)) ahci_pcireg_cap_t;
+} ahci_pcireg_cap_t;
 
 /** AHCI PCI register Interrupt Information. */
 typedef struct
@@ -275,7 +275,7 @@ typedef struct
 	uint8_t iline;
 	/** This indicates the interrupt pin the HBA uses. */
 	uint8_t ipin;
-} __attribute__((packed)) ahci_pcireg_intr;
+} ahci_pcireg_intr;
 
 /** AHCI PCI register Min Grant (Optional). */
 typedef struct
@@ -284,14 +284,14 @@ typedef struct
 	 * that the device wishes grant asserted.
 	 */
 	uint8_t u8;
-} __attribute__((packed)) ahci_pcireg_mgnt_t;
+} ahci_pcireg_mgnt_t;
 
 /** AHCI PCI register Max Latency (Optional). */
 typedef struct
 {
 	/** Indicates the maximum latency that the device can withstand. */
 	uint8_t u8;
-} __attribute__((packed)) ahci_pcireg_mlat_t;
+} ahci_pcireg_mlat_t;
 
 /*----------------------------------------------------------------------------*/
 /*-- AHCI Memory Registers ---------------------------------------------------*/
@@ -342,9 +342,9 @@ typedef union {
 		unsigned int sncq : 1;
 		/** Supports 64-bit Addressing. */
 		unsigned int s64a : 1;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_cap_t;
+} ahci_ghc_cap_t;
 
 /** AHCI Memory register Generic Host Control Global Host Control. */
 typedef union {
@@ -359,9 +359,9 @@ typedef union {
 		unsigned int reserved : 28;
 		/** AHCI Enable. */
 		unsigned int ae : 1;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_ghc_t;
+} ahci_ghc_ghc_t;
 
 /** AHCI Enable mask bit. */
 #define AHCI_GHC_GHC_AE  0x80000000
@@ -375,7 +375,7 @@ typedef struct {
 	 * the corresponding port has an interrupt pending.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_is_t;
+} ahci_ghc_is_t;
 
 /** AHCI Memory register Ports implemented. */
 typedef struct {
@@ -383,7 +383,7 @@ typedef struct {
 	 * is available for software use.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_pi_t;
+} ahci_ghc_pi_t;
 
 /** AHCI Memory register AHCI version. */
 typedef struct {
@@ -391,7 +391,7 @@ typedef struct {
 	uint16_t mnr;
 	/** Indicates the major version */
 	uint16_t mjr;
-} __attribute__((packed)) ahci_ghc_vs_t;
+} ahci_ghc_vs_t;
 
 /** AHCI Memory register Command completion coalesce control. */
 typedef union {
@@ -408,9 +408,9 @@ typedef union {
 		uint8_t cc;
 		/** Timeout value in  ms. */
 		uint16_t tv;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_ccc_ctl_t;
+} ahci_ghc_ccc_ctl_t;
 
 /** AHCI Memory register Command completion coalescing ports. */
 typedef struct
@@ -419,7 +419,7 @@ typedef struct
 	 * part of the command completion coalescing feature.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_ccc_ports_t;
+} ahci_ghc_ccc_ports_t;
 
 /** AHCI Memory register Enclosure management location. */
 typedef struct
@@ -430,7 +430,7 @@ typedef struct
 	 * from the beginning of ABAR
 	 */
 	uint16_t ofst;
-} __attribute__((packed)) ahci_ghc_em_loc;
+} ahci_ghc_em_loc;
 
 /** AHCI Memory register Enclosure management control. */
 typedef union {
@@ -465,9 +465,9 @@ typedef union {
 		unsigned int pm : 1;
 		/** Reserved. */
 		unsigned int reserved4 : 4;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_em_ctl_t;
+} ahci_ghc_em_ctl_t;
 
 /** AHCI Memory register HBA capatibilities extended. */
 typedef union {
@@ -482,9 +482,9 @@ typedef union {
 		unsigned int apst : 1;
 		/** Reserved. */
 		unsigned int reserved : 29;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_cap2_t;
+} ahci_ghc_cap2_t;
 
 /** AHCI Memory register BIOS/OS Handoff control and status. */
 typedef union {
@@ -501,9 +501,9 @@ typedef union {
 		unsigned int bb : 1;
 		/** Reserved. */
 		unsigned int reserved : 27;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_ghc_bohc_t;
+} ahci_ghc_bohc_t;
 
 /** AHCI Memory register Generic Host Control. */
 typedef struct
@@ -530,7 +530,7 @@ typedef struct
 	uint32_t cap2;
 	/** BIOS/OS Handoff Control and Status. */
 	uint32_t bohc;
-} __attribute__((packed)) ahci_ghc_t;
+} ahci_ghc_t;
 
 /** AHCI Memory register Port x Command List Base Address. */
 typedef union {
@@ -544,9 +544,9 @@ typedef union {
 		 * aligned as indicated by bits 09:00 being read only.
 		 */
 		unsigned int clb : 22;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_clb_t;
+} ahci_port_clb_t;
 
 /** AHCI Memory register Port x Command List Base Address Upper 32-Bits. */
 typedef struct {
@@ -556,13 +556,13 @@ typedef struct {
 	 * be read only for HBAs that do not support 64-bit addressing.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_clbu_t;
+} ahci_port_clbu_t;
 
 /** AHCI Memory register Port x FIS Base Address. */
 typedef union {
 	struct {
 		/** Reserved. */
-		uint8_t reserved;
+		unsigned int reserved : 8;
 		/** FIS Base Address (FB) - Indicates the 32-bit base physical address
 		 * for received FISes. The structure pointed to by this address range
 		 * is 256 bytes in length. This address must be 256-byte aligned as
@@ -571,9 +571,9 @@ typedef union {
 		 * 4KB aligned.
 		 */
 		unsigned int fb : 24;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_fb_t;
+} ahci_port_fb_t;
 
 /** AHCI Memory register Port x FIS Base Address Upper 32-Bits. */
 typedef struct {
@@ -582,7 +582,7 @@ typedef struct {
 	 * shall be read only for HBAs that do not support 64-bit addressing.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_fbu_t;
+} ahci_port_fbu_t;
 
 /** AHCI Memory register Port x Interrupt Status. */
 typedef union {
@@ -625,9 +625,9 @@ typedef union {
 		unsigned int tfes : 1;
 		/** Cold Port Detect Status. */
 		unsigned int cpds : 1;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_is_t;
+} ahci_port_is_t;
 
 #define AHCI_PORT_IS_DHRS  (1 << 0)
 #define AHCI_PORT_IS_PSS   (1 << 1)
@@ -762,9 +762,9 @@ typedef union {
 		unsigned int tfee : 1;
 		/** Cold Port Detect Enable. */
 		unsigned int cpde : 1;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_ie_t;
+} ahci_port_ie_t;
 
 /** AHCI Memory register Port x Command and Status. */
 typedef union {
@@ -825,9 +825,9 @@ typedef union {
 		 * 0h No-Op / Idle.
 		 */
 		unsigned int icc : 4;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_cmd_t;
+} ahci_port_cmd_t;
 
 /** AHCI Memory register Port x Task File Data. */
 typedef union {
@@ -842,9 +842,9 @@ typedef union {
 		uint8_t err;
 		/** Reserved. */
 		uint16_t reserved;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_tfd_t;
+} ahci_port_tfd_t;
 
 /** AHCI Memory register Port x Signature. */
 typedef union {
@@ -857,9 +857,9 @@ typedef union {
 		uint8_t lba_mr;
 		/**  LBA High Register */
 		uint8_t lba_hr;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_sig_t;
+} ahci_port_sig_t;
 
 /** AHCI Memory register Port x Serial ATA Status (SCR0: SStatus). */
 typedef union {
@@ -872,9 +872,9 @@ typedef union {
 		unsigned int ipm : 4;
 		/** Reserved. */
 		unsigned int reserved : 20;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_ssts_t;
+} ahci_port_ssts_t;
 
 /** AHCI Memory register Port x Serial ATA Control (SCR2: SControl). */
 typedef union {
@@ -887,9 +887,9 @@ typedef union {
 		unsigned int ipm : 4;
 		/** Reserved. */
 		unsigned int reserved : 20;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_sctl_t;
+} ahci_port_sctl_t;
 
 /** AHCI Memory register Port x Port x Serial ATA Error (SCR1: SError). */
 typedef struct {
@@ -903,7 +903,7 @@ typedef struct {
 	 * failure modes.
 	 */
 	uint16_t diag;
-} __attribute__((packed)) ahci_port_serr_t;
+} ahci_port_serr_t;
 
 /** AHCI Memory register Port x Serial ATA Active (SCR3: SActive). */
 typedef struct {
@@ -912,7 +912,7 @@ typedef struct {
 	 * to TAG 0 and command slot 0.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_sact_t;
+} ahci_port_sact_t;
 
 /** AHCI Memory register Port x Command Issue. */
 typedef struct {
@@ -920,7 +920,7 @@ typedef struct {
 	 *  where bit 0 corresponds to command slot 0.
 	 */
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_ci_t;
+} ahci_port_ci_t;
 
 /** AHCI Memory register Port x Serial ATA Notification
  * (SCR4: SNotification).
@@ -933,7 +933,7 @@ typedef struct {
 	uint16_t pmn;
 	/** Reserved. */
 	uint16_t reserved;
-} __attribute__((packed)) ahci_port_sntf_t;
+} ahci_port_sntf_t;
 
 /** AHCI Memory register Port x FIS-based Switching Control.
  * This register is used to control and obtain status
@@ -957,9 +957,9 @@ typedef union {
 		unsigned int dwe : 1;
 		/** Reserved. */
 		unsigned int reserved2 : 1;
-	} __attribute__((packed));
+	};
 	uint32_t u32;
-} __attribute__((packed)) ahci_port_fbs_t;
+} ahci_port_fbs_t;
 
 /** AHCI Memory register Port. */
 typedef volatile struct
@@ -1002,7 +1002,7 @@ typedef volatile struct
 	uint32_t reserved2[11];
 	/** Port x Vendor Specific. */
 	uint32_t pxvs[4];
-} __attribute__((packed)) ahci_port_t;
+} ahci_port_t;
 
 /** AHCI Memory Registers. */
 typedef volatile struct {
@@ -1016,7 +1016,7 @@ typedef volatile struct {
 	uint8_t vendorspecificsregs[96];
 	/** Ports. */
 	ahci_port_t ports[32];
-} __attribute__((packed)) ahci_memregs_t;
+} ahci_memregs_t;
 
 /** AHCI Command header entry. */
 typedef volatile struct {
@@ -1030,7 +1030,7 @@ typedef volatile struct {
 	uint32_t cmdtable;
 	/** Command Table Descriptor Base Address Upper 32-bits. */
 	uint32_t cmdtableu;
-} __attribute__((packed)) ahci_cmdhdr_t;
+} ahci_cmdhdr_t;
 
 /** AHCI Command Physical Region Descriptor entry. */
 typedef volatile struct {
@@ -1046,6 +1046,6 @@ typedef volatile struct {
 	unsigned int reserved2 : 9;
 	/** Interrupt on completion */
 	unsigned int ioc : 1;
-} __attribute__((packed)) ahci_cmd_prdt_t;
+} ahci_cmd_prdt_t;
 
 #endif
