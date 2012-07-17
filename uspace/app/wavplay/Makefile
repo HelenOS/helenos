@@ -30,13 +30,17 @@ USPACE_PREFIX = ../..
 BINARY = wavplay
 
 LIBS = \
-	$(LIBHOUND_PREFIX)/libhound.a
+	$(LIBHOUND_PREFIX)/libhound.a \
+	$(LIBDRV_PREFIX)/libdrv.a
 
 EXTRA_CFLAGS = \
-	-I$(LIBHOUND_PREFIX)/include -I$(LIBPCM_PREFIX)/include
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBHOUND_PREFIX)/include \
+	-I$(LIBPCM_PREFIX)/include
 
 SOURCES = \
-	wavplay.c \
+	dplay.c \
+	main.c \
 	wave.c
 
 include $(USPACE_PREFIX)/Makefile.common

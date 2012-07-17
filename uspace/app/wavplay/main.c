@@ -40,7 +40,9 @@
 #include <stdio.h>
 #include <hound/client.h>
 #include <pcm/sample_format.h>
+#include <getopt.h>
 
+#include "dplay.h"
 #include "wave.h"
 
 #define NAME_MAX 32
@@ -118,11 +120,46 @@ static void play(playback_t *pb, unsigned channels, unsigned rate, pcm_sample_fo
 	hound_unregister_playback(pb->server, name);
 }
 
+static const struct option opts[] = {
+	{"device", required_argument, 0, 'd'},
+	{"record", no_argument, 0, 'r'},
+	{0, 0, 0, 0}
+};
+
+
 int main(int argc, char *argv[])
 {
-	if (argc != 2)
+	const char *device = "default";
+	int idx = 0;
+	bool direct = false, record = false;
+	optind = 0;
+	int ret = 0;
+	while (ret != -1) {
+		ret = getopt_long(argc, argv, "d:r", opts, &idx);
+		switch (ret) {
+		case 'd':
+			direct = true;
+			device = optarg;
+			break;
+		case 'r':
+			record = true;
+			break;
+		};
+	}
+
+	if (optind == argc) {
+		printf("Not enough arguments.\n");
 		return 1;
-	const char *file = argv[1];
+	}
+	const char *file = argv[optind];
+
+	printf("%s %s\n", record ? "Recording" : "Playing", file);
+	if (record) {
+		printf("Recording is not supported yet.\n");
+		return 1;
+	}
+	if (direct)
+		return dplay(device, file);
 
 	task_id_t tid = task_get_id();
 	snprintf(name, NAME_MAX, "%s%" PRIu64 ":%s", argv[0], tid, file);
@@ -148,7 +185,7 @@ int main(int argc, char *argv[])
 	unsigned rate, channels;
 	pcm_sample_format_t format;
 	const char *error;
-	const int ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
+	ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
 	    &format, &error);
 	if (ret != EOK) {
 		printf("Error parsing wav header: %s.\n", error);

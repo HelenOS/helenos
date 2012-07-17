@@ -48,6 +48,7 @@
 #include <macros.h>
 
 #include "wave.h"
+#include "dplay.h"
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/pcm"
 #define BUFFER_PARTS 2
@@ -152,28 +153,16 @@ static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
 	printf("\n");
 }
 
-int main(int argc, char *argv[])
+int dplay(const char *device, const char *file)
 {
-	const char *device = DEFAULT_DEVICE;
-	const char *file;
-	switch (argc) {
-	case 2:
-		file = argv[1];
-		break;
-	case 3:
-		device = argv[1];
-		file = argv[2];
-		break;
-	default:
-		printf("Usage: %s [device] file.\n", argv[0]);
-		return 1;
-	}
-
+	if (str_cmp(device, "default") == 0)
+		device = DEFAULT_DEVICE;
 	audio_pcm_sess_t *session = audio_pcm_open(device);
 	if (!session) {
-		printf("Failed to connect to device.\n");
+		printf("Failed to connect to device %s.\n", device);
 		return 1;
 	}
+	printf("Playing on device: %s.\n", device);
 
 	const char* info = NULL;
 	int ret = audio_pcm_get_info_str(session, &info);

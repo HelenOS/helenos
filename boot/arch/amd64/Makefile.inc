@@ -62,8 +62,6 @@ RD_DRV_CFG += \
 
 RD_APPS_ESSENTIAL += \
 	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/dplay/dplay \
-	$(USPACE_PATH)/app/drec/drec \
 	$(USPACE_PATH)/app/mixerctl/mixerctl \
 	$(USPACE_PATH)/app/wavplay/wavplay \
 	

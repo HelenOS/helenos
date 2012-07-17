@@ -218,6 +218,7 @@ static float get_normalized_sample(const void *buffer, size_t size,
     unsigned frame, unsigned channel, const pcm_format_t *f)
 {
 	assert(f);
+	assert(buffer);
 	if (channel >= f->channels)
 		return 0.0f;
 #define GET(type, endian, low, high) \
@@ -231,14 +232,8 @@ do { \
 	float sample = from(src[sample_pos], type, endian); \
 	/* This makes it positive */ \
 	sample -= (float)(type)low; \
-	if (sample < 0.0f) { \
-		printf("SUB MIN failed\n"); \
-	} \
 	/* This makes it <0,2> */ \
 	sample /= (((float)(type)high - (float)(type)low) / 2.0f); \
-	if (sample > 2.0) { \
-		printf("DIV RANGE failed\n"); \
-	} \
 	return sample - 1.0f; \
 } while (0)
 
