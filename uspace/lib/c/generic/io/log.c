@@ -193,6 +193,11 @@ int log_init(const char *prog_name, log_level_t level)
 	return rc;
 }
 
+bool __log_shall_record(log_level_t level)
+{
+	return get_current_observed_level() >= level;
+}
+
 /** Write an entry to the log.
  *
  * @param level		Message verbosity level. Message is only printed
@@ -200,12 +205,12 @@ int log_init(const char *prog_name, log_level_t level)
  *			reporting level.
  * @param fmt		Format string (no traling newline).
  */
-void log_msg(log_level_t level, const char *fmt, ...)
+void __log_msg(log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
 	va_start(args, fmt);
-	log_msgv(level, fmt, args);
+	__log_msgv(level, fmt, args);
 	va_end(args);
 }
 
@@ -216,7 +221,7 @@ void log_msg(log_level_t level, const char *fmt, ...)
  *			reporting level.
  * @param fmt		Format string (no trailing newline)
  */
-void log_msgv(log_level_t level, const char *fmt, va_list args)
+void __log_msgv(log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 

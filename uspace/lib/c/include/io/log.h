@@ -35,6 +35,7 @@
 #define LIBC_IO_LOG_H_
 
 #include <stdarg.h>
+#include <bool.h>
 
 typedef enum {
 	LVL_FATAL,
@@ -48,9 +49,25 @@ typedef enum {
 	LVL_LIMIT
 } log_level_t;
 
+extern bool __log_shall_record(log_level_t);
 extern int log_init(const char *, log_level_t);
-extern void log_msg(log_level_t, const char *, ...);
-extern void log_msgv(log_level_t, const char *, va_list);
+
+#define log_msg(level, format, ...) \
+	do { \
+		if (__log_shall_record((level))) { \
+			__log_msg(level, format, ##__VA_ARGS__); \
+		} \
+	} while (false)
+
+#define log_msgv(level, format, args) \
+	do { \
+		if (__log_shall_record((level))) { \
+			__log_msgv(level, format, args); \
+		} \
+	} while (false)
+
+extern void __log_msg(log_level_t, const char *, ...);
+extern void __log_msgv(log_level_t, const char *, va_list);
 
 #endif
 
