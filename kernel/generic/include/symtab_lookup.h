@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2005 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup generic
  * @{
  */
-
 /** @file
  */
 
-#include <assert.h>
+#ifndef KERN_SYMTAB_LOOKUP_H_
+#define KERN_SYMTAB_LOOKUP_H_
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_ahci.h"
+#include <typedefs.h>
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_ahci_iface
-	}
+#define MAX_SYMBOL_NAME  64
+
+struct symtab_entry {
+	uint64_t address_le;
+	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+extern int symtab_name_lookup(uintptr_t, const char **, uintptr_t *);
+extern const char *symtab_fmt_name_lookup(uintptr_t);
+extern int symtab_addr_lookup(const char *, uintptr_t *);
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
+#ifdef CONFIG_SYMTAB
 
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
+/** Symtable linked together by build process
+ *
+ */
+extern struct symtab_entry symbol_table[];
 
-/**
- * @}
+#endif /* CONFIG_SYMTAB */
+
+#endif
+
+/** @}
  */

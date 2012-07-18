@@ -128,6 +128,16 @@
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
 	set_pt_flags((pte_t *) (ptl3), (size_t) (i), (x))
 
+/* Set PTE present accessors for each level. */
+#define SET_PTL1_PRESENT_ARCH(ptl0, i) \
+	set_pt_present((pte_t *) (ptl0), (size_t) (i))
+
+#define SET_PTL2_PRESENT_ARCH(ptl1, i)
+#define SET_PTL3_PRESENT_ARCH(ptl2, i)
+
+#define SET_FRAME_PRESENT_ARCH(ptl3, i) \
+	set_pt_present((pte_t *) (ptl3), (size_t) (i))
+
 /* Macros for querying the last-level PTEs. */
 #define PTE_VALID_ARCH(pte)       (*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte)     ((pte)->present != 0)
@@ -172,6 +182,13 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	entry->present = !(flags & PAGE_NOT_PRESENT);
 	entry->global = (flags & PAGE_GLOBAL) != 0;
 	entry->valid = 1;
+}
+
+NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
+{
+	pte_t *entry = &pt[i];
+
+	entry->present = 1;
 }
 
 extern void page_arch_init(void);
