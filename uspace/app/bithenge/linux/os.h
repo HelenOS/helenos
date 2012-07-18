@@ -99,6 +99,16 @@ static inline const char *str_error(int e)
 	return strerror(e);
 }
 
+static inline uint16_t uint16_t_le2host(uint16_t val)
+{
+	return le16toh(val);
+}
+
+static inline uint16_t uint16_t_be2host(uint16_t val)
+{
+	return be16toh(val);
+}
+
 static inline uint32_t uint32_t_le2host(uint32_t val)
 {
 	return le32toh(val);
@@ -107,6 +117,16 @@ static inline uint32_t uint32_t_le2host(uint32_t val)
 static inline uint32_t uint32_t_be2host(uint32_t val)
 {
 	return be32toh(val);
+}
+
+static inline uint64_t uint64_t_le2host(uint64_t val)
+{
+	return le64toh(val);
+}
+
+static inline uint64_t uint64_t_be2host(uint64_t val)
+{
+	return be64toh(val);
 }
 
 #endif

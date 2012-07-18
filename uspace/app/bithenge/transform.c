@@ -101,44 +101,18 @@ bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1
 };
 
-static int uint32le_apply(bithenge_transform_t *self, bithenge_node_t *in,
-    bithenge_node_t **out)
+static int prefix_length_1(bithenge_transform_t *self, bithenge_blob_t *blob,
+    aoff64_t *out)
 {
-	int rc;
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
-	bithenge_blob_t *blob = bithenge_node_as_blob(in);
-
-	// Try to read 5 bytes and fail if the blob is too long.
-	uint32_t val[2];
-	aoff64_t size = sizeof(val[0]) + 1;
-	rc = bithenge_blob_read(blob, 0, (char *)val, &size);
-	if (rc != EOK)
-		return rc;
-	if (size != 4)
-		return EINVAL;
-
-	return bithenge_new_integer_node(out, uint32_t_le2host(val[0]));
+	*out = 1;
+	return EOK;
 }
 
-static int uint32be_apply(bithenge_transform_t *self, bithenge_node_t *in,
-    bithenge_node_t **out)
+static int prefix_length_2(bithenge_transform_t *self, bithenge_blob_t *blob,
+    aoff64_t *out)
 {
-	int rc;
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
-	bithenge_blob_t *blob = bithenge_node_as_blob(in);
-
-	// Try to read 5 bytes and fail if the blob is too long.
-	uint32_t val[2];
-	aoff64_t size = sizeof(val[0]) + 1;
-	rc = bithenge_blob_read(blob, 0, (char *)val, &size);
-	if (rc != EOK)
-		return rc;
-	if (size != 4)
-		return EINVAL;
-
-	return bithenge_new_integer_node(out, uint32_t_be2host(val[0]));
+	*out = 2;
+	return EOK;
 }
 
 static int prefix_length_4(bithenge_transform_t *self, bithenge_blob_t *blob,
@@ -148,27 +122,51 @@ static int prefix_length_4(bithenge_transform_t *self, bithenge_blob_t *blob,
 	return EOK;
 }
 
-static const bithenge_transform_ops_t uint32le_ops = {
-	.apply = uint32le_apply,
-	.prefix_length = prefix_length_4,
-	.destroy = transform_indestructible,
-};
+static int prefix_length_8(bithenge_transform_t *self, bithenge_blob_t *blob,
+    aoff64_t *out)
+{
+	*out = 8;
+	return EOK;
+}
 
-static const bithenge_transform_ops_t uint32be_ops = {
-	.apply = uint32be_apply,
-	.prefix_length = prefix_length_4,
-	.destroy = transform_indestructible,
-};
+#define MAKE_UINT_TRANSFORM(NAME, TYPE, ENDIAN, PREFIX_LENGTH_FUNC)            \
+	static int NAME##_apply(bithenge_transform_t *self,                    \
+	    bithenge_node_t *in, bithenge_node_t **out)                        \
+	{                                                                      \
+		int rc;                                                        \
+		if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)              \
+			return EINVAL;                                         \
+		bithenge_blob_t *blob = bithenge_node_as_blob(in);             \
+		                                                               \
+		/* Read too many bytes; success means the blob is too long. */ \
+		TYPE val[2];                                                   \
+		aoff64_t size = sizeof(val[0]) + 1;                            \
+		rc = bithenge_blob_read(blob, 0, (char *)val, &size);          \
+		if (rc != EOK)                                                 \
+			return rc;                                             \
+		if (size != sizeof(val[0]))                                    \
+			return EINVAL;                                         \
+		                                                               \
+		return bithenge_new_integer_node(out, ENDIAN(val[0]));         \
+	}                                                                      \
+	                                                                       \
+	static const bithenge_transform_ops_t NAME##_ops = {                   \
+		.apply = NAME##_apply,                                         \
+		.prefix_length = PREFIX_LENGTH_FUNC,                           \
+		.destroy = transform_indestructible,                           \
+	};                                                                     \
+	                                                                       \
+	bithenge_transform_t bithenge_##NAME##_transform = {                   \
+		&NAME##_ops, 1                                                 \
+	}
 
-/** The little-endian 32-bit unsigned integer transform. */
-bithenge_transform_t bithenge_uint32le_transform = {
-	&uint32le_ops, 1
-};
-
-/** The big-endian 32-bit unsigned integer transform. */
-bithenge_transform_t bithenge_uint32be_transform = {
-	&uint32be_ops, 1
-};
+MAKE_UINT_TRANSFORM(uint8   , uint8_t ,                 , prefix_length_1);
+MAKE_UINT_TRANSFORM(uint16le, uint16_t, uint16_t_le2host, prefix_length_2);
+MAKE_UINT_TRANSFORM(uint16be, uint16_t, uint16_t_be2host, prefix_length_2);
+MAKE_UINT_TRANSFORM(uint32le, uint32_t, uint32_t_le2host, prefix_length_4);
+MAKE_UINT_TRANSFORM(uint32be, uint32_t, uint32_t_be2host, prefix_length_4);
+MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint32_t_le2host, prefix_length_8);
+MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint32_t_be2host, prefix_length_8);
 
 static int zero_terminated_apply(bithenge_transform_t *self,
     bithenge_node_t *in, bithenge_node_t **out)
@@ -227,8 +225,13 @@ bithenge_transform_t bithenge_zero_terminated_transform = {
 
 static bithenge_named_transform_t primitive_transforms[] = {
 	{"ascii", &bithenge_ascii_transform},
+	{"uint8", &bithenge_uint8_transform},
+	{"uint16le", &bithenge_uint16le_transform},
+	{"uint16be", &bithenge_uint16be_transform},
 	{"uint32le", &bithenge_uint32le_transform},
 	{"uint32be", &bithenge_uint32be_transform},
+	{"uint64le", &bithenge_uint64le_transform},
+	{"uint64be", &bithenge_uint64be_transform},
 	{"zero_terminated", &bithenge_zero_terminated_transform},
 	{NULL, NULL}
 };

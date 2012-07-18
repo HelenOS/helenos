@@ -118,8 +118,13 @@ typedef struct {
 } bithenge_named_transform_t;
 
 extern bithenge_transform_t bithenge_ascii_transform;
+extern bithenge_transform_t bithenge_uint8_transform;
+extern bithenge_transform_t bithenge_uint16le_transform;
+extern bithenge_transform_t bithenge_uint16be_transform;
 extern bithenge_transform_t bithenge_uint32le_transform;
 extern bithenge_transform_t bithenge_uint32be_transform;
+extern bithenge_transform_t bithenge_uint64le_transform;
+extern bithenge_transform_t bithenge_uint64be_transform;
 extern bithenge_transform_t bithenge_zero_terminated_transform;
 extern bithenge_named_transform_t *bithenge_primitive_transforms;
 
