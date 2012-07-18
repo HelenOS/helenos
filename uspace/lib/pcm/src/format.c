@@ -159,9 +159,9 @@ do { \
 	for (size_t i = 0; i < frame_count; ++i) { \
 		for (unsigned j = 0; j < df->channels; ++j) { \
 			const float a = \
-			    get_normalized_sample(dst, src_size, i, j, df);\
+			    get_normalized_sample(dst, dst_size, i, j, df);\
 			const float b = \
-			    get_normalized_sample(src, dst_size, i, j, sf);\
+			    get_normalized_sample(src, src_size, i, j, sf);\
 			float c = (a + b); \
 			if (c < -1.0) c = -1.0; \
 			if (c > 1.0) c = 1.0; \
