@@ -35,11 +35,34 @@
 
 #include <sys/types.h>
 
+/*----------------------------------------------------------------------------*/
+/*-- SATA Buffer Lengths -----------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+
+/** Default sector size in bytes. */
+#define SATA_DEFAULT_SECTOR_SIZE  512
+
+/** Size for set feature command buffer in bytes. */
+#define SATA_SET_FEATURE_BUFFER_LENGTH  512
+
+/** Size for indentify (packet) device buffer in bytes. */
+#define SATA_IDENTIFY_DEVICE_BUFFER_LENGTH  512
+
+/*----------------------------------------------------------------------------*/
+/*-- SATA Fis Frames ---------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+
+/** Sata FIS Type number. */
+#define SATA_CMD_FIS_TYPE  0x27
+
+/** Sata FIS Type command indicator. */
+#define SATA_CMD_FIS_COMMAND_INDICATOR  0x80
+
 /** Standard Command frame. */
 typedef struct {
-	/** FIS type - always 0x27. */
+	/** FIS type - always SATA_CMD_FIS_TYPE. */
 	unsigned int fis_type : 8;
-	/** Indicate that FIS is a Command - always 0x80. */
+	/** Indicate that FIS is a Command - always SATA_CMD_FIS_COMMAND_INDICATOR. */
 	unsigned int c : 8;
 	/** Command - Identity device - 0xec, Set fetures - 0xef. */
 	unsigned int command : 8;
@@ -61,13 +84,13 @@ typedef struct {
 	unsigned int control : 8;
 	/** Reserved. */
 	unsigned int reserved2 : 32;
-} std_command_frame_t;
+} sata_std_command_frame_t;
 
 /** Command frame for NCQ data operation. */
 typedef struct {
 	/** FIS type - always 0x27. */
 	uint8_t fis_type;
-	/** Indicate that FIS is a Command - always 0x80. */
+	/** Indicate that FIS is a Command - always SATA_CMD_FIS_COMMAND_INDICATOR. */
 	uint8_t c;
 	/** Command - FPDMA Read - 0x60, FPDMA Write - 0x61. */
 	uint8_t command;
@@ -104,7 +127,11 @@ typedef struct {
 	uint8_t reserved5;
 	/** Reserved. */
 	uint8_t reserved6;
-} ncq_command_frame_t;
+} sata_ncq_command_frame_t;
+
+/*----------------------------------------------------------------------------*/
+/*-- SATA Identify device ----------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 /** Data returned from identify device and identify packet device command. */
 typedef struct {
@@ -128,7 +155,7 @@ typedef struct {
 	
 	uint16_t max_rw_multiple;
 	uint16_t reserved48;
-	/** Different meaning for packet device. */
+	/* Different meaning for packet device. */
 	uint16_t caps;
 	uint16_t reserved50;
 	uint16_t pio_timing;
@@ -182,73 +209,75 @@ typedef struct {
 	uint16_t total_lba48_2;
 	uint16_t total_lba48_3;
 	
+	uint16_t reserved104[1 + 105 - 104];
+	uint16_t physical_logic_sector_size;
 	/* Note: more fields are defined in ATA/ATAPI-7. */
-	uint16_t reserved104[1 + 127 - 104];
-	uint16_t _vs128[1 + 159 - 128];
+	uint16_t reserved107[1 + 127 - 107];
+	uint16_t reserved128[1 + 159 - 128];
 	uint16_t reserved160[1 + 255 - 160];
-} identify_data_t;
+} sata_identify_data_t;
 
 /** Capability bits for register device. */
-enum ata_regdev_caps {
-	rd_cap_iordy = 0x0800,
-	rd_cap_iordy_cbd = 0x0400,
-	rd_cap_lba = 0x0200,
-	rd_cap_dma = 0x0100
+enum sata_rd_caps {
+	sata_rd_cap_iordy = 0x0800,
+	sata_rd_cap_iordy_cbd = 0x0400,
+	sata_rd_cap_lba = 0x0200,
+	sata_rd_cap_dma = 0x0100
 };
 
 /** Bits of @c identify_data_t.cmd_set1. */
-enum ata_cs1 {
+enum sata_cs1 {
 	/** 48-bit address feature set. */
-	cs1_addr48 = 0x0400
+	sata_cs1_addr48 = 0x0400
 };
 
 /** SATA capatibilities for not packet device - Serial ATA revision 3_1. */
-enum sata_np_cap {
+enum sata_np_caps {
 	/** Supports READ LOG DMA EXT. */
-	np_cap_log_ext = 0x8000,
+	sata_np_cap_log_ext = 0x8000,
 	/** Supports Device Automatic Partial to Slumber transitions. */
-	np_cap_dev_slm = 0x4000,
+	sata_np_cap_dev_slm = 0x4000,
 	/** Supports Host Automatic Partial to Slumber transitions. */
-	np_cap_host_slm = 0x2000,
+	sata_np_cap_host_slm = 0x2000,
 	/** Supports NCQ priority information. */
-	np_cap_ncq_prio = 0x1000,
+	sata_np_cap_ncq_prio = 0x1000,
 	/** Supports Unload while NCQ command outstanding. */
-	np_cap_unload_ncq = 0x0800,
+	sata_np_cap_unload_ncq = 0x0800,
 	/** Supports Phy event counters. */
-	np_cap_phy_ctx = 0x0400,
+	sata_np_cap_phy_ctx = 0x0400,
 	/** Supports recepits of host-initiated interface power management. */
-	np_cap_host_pmngmnt = 0x0200,
+	sata_np_cap_host_pmngmnt = 0x0200,
 	
 	/** Supports NCQ. */
-	np_cap_ncq = 0x0100,
+	sata_np_cap_ncq = 0x0100,
 	
 	/** Supports SATA 3. */
-	np_cap_sata_3 = 0x0008,
+	sata_np_cap_sata_3 = 0x0008,
 	/** Supports SATA 2. */
-	np_cap_sata_2 = 0x0004,
+	sata_np_cap_sata_2 = 0x0004,
 	/** Supports SATA 1. */
-	np_cap_sata_1 = 0x0002
+	sata_np_cap_sata_1 = 0x0002
 };
 
 /** SATA capatibilities for packet device - Serial ATA revision 3_1. */
-enum sata_pt_cap {
+enum sata_pt_caps {
 	/** Supports READ LOG DMA EXT. */
-	pt_cap_log_ext = 0x8000,
+	sata_pt_cap_log_ext = 0x8000,
 	/** Supports Device Automatic Partial to Slumber transitions. */
-	pt_cap_dev_slm = 0x4000,
+	sata_pt_cap_dev_slm = 0x4000,
 	/** Supports Host Automatic Partial to Slumber transitions. */
-	pt_cap_host_slm = 0x2000,
+	sata_pt_cap_host_slm = 0x2000,
 	/** Supports Phy event counters. */
-	pt_cap_phy_ctx = 0x0400,
+	sata_pt_cap_phy_ctx = 0x0400,
 	/** Supports recepits of host-initiated interface power management. */
-	pt_cap_host_pmngmnt = 0x0200,
+	sata_pt_cap_host_pmngmnt = 0x0200,
 	
 	/** Supports SATA 3. */
-	pt_cap_sat_3 = 0x0008,
+	sata_pt_cap_sat_3 = 0x0008,
 	/** Supports SATA 2. */
-	pt_cap_sat_2 = 0x0004,
+	sata_pt_cap_sat_2 = 0x0004,
 	/** Supports SATA 1. */
-	pt_cap_sat_1 = 0x0002
+	sata_pt_cap_sat_1 = 0x0002
 };
 
 #endif

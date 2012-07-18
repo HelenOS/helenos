@@ -45,13 +45,16 @@ typedef struct {
 	ddf_dev_t *dev;
 	
 	/** Pointer to AHCI memory registers. */
-	ahci_memregs_t *memregs;
+	volatile ahci_memregs_t *memregs;
 	
 	/** AHCI device global timer. */
 	fibril_timer_t *timer;
 	
 	/** Pointers to sata devices. */
 	void *sata_devs[32];
+	
+	/** Device has harware interrupt. */
+	bool is_hw_interrupt; 
 } ahci_dev_t;
 
 /** SATA Device. */
@@ -63,20 +66,25 @@ typedef struct {
 	uint8_t port_num;
 	
 	/** Port interrupt states shadow registers. */
-	volatile ahci_port_is_t shadow_pxis;
+	ahci_port_is_t shadow_pxis;
 	
 	/** Device in invalid state (disconnected and so on). */
-	volatile bool invalid_device;
+	bool is_invalid_device;
 	
 	/** Pointer to SATA port. */
 	volatile ahci_port_t *port;
+	
 	/** Pointer to command header. */
 	volatile ahci_cmdhdr_t *cmd_header;
+	
 	/** Pointer to command table. */
 	volatile uint32_t *cmd_table;
 	
 	/** Mutex for single operation on device. */
 	fibril_mutex_t lock;
+	
+	/** Mutex for port interrupt state register manipulation. */
+	fibril_mutex_t pxis_lock;
 	
 	/** Mutex for event signaling condition variable. */
 	fibril_mutex_t event_lock;
@@ -95,7 +103,7 @@ typedef struct {
 	char model[STR_BOUNDS(40) + 1];
 	
 	/** Device in invalid state (disconnected and so on). */
-	bool packet_device;
+	bool is_packet_device;
 	
 	/** Highest UDMA mode supported. */
 	uint8_t highest_udma_mode;

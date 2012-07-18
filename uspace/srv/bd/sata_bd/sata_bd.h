@@ -40,7 +40,7 @@
 #include <sys/types.h>
 #include <loc.h>
 
-/** SATA Device. */
+/** SATA Block Device. */
 typedef struct {
 	/** Device name in device tree. */ 
 	char* dev_name; 
@@ -54,7 +54,7 @@ typedef struct {
 	uint64_t blocks; 
 	/** Size of block. */
 	size_t block_size; 
-} sata_dev_t;
+} sata_bd_dev_t;
 
 #endif
 

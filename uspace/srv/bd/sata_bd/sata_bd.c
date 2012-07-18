@@ -50,11 +50,19 @@
 #define NAME       "sata_bd"
 #define NAMESPACE  "bd"
 
-#define MAXDISKS 256
+/** Maximum number of disks handled */
+#define MAXDISKS  256
 
-static sata_dev_t disk[MAXDISKS];
+static sata_bd_dev_t disk[MAXDISKS];
 static int disk_count;
 
+/** Find SATA devices in device tree.
+ *
+ *  @param Device manager handle describing container for searching.  
+ *
+ *  @return EOK if succeed, error code otherwise.
+ *
+ */
 static int scan_device_tree(devman_handle_t funh)
 {
 	devman_handle_t devh;
@@ -106,7 +114,11 @@ static int scan_device_tree(devman_handle_t funh)
 	return EOK;
 }
 
-/** Find sata devices in device tree from root. */
+/** Find sata devices in device tree from root.
+ *
+ *  @return EOK if succeed, error code otherwise.
+ *
+ */
 static int get_sata_disks()
 {
 	devman_handle_t root_fun;
