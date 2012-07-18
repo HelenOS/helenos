@@ -88,6 +88,7 @@ DIRS = \
 	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
+	srv/bd/sata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
@@ -109,6 +110,7 @@ DIRS = \
 	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/block/ahci \
 	drv/char/i8042 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \

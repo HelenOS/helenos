@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
-
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
-
-typedef enum {
-	HW_RES_DEV_IFACE = 0,
-
-	/** Audio device mixer interface */
-	AUDIO_MIXER_IFACE,
-	/** Audio device pcm buffer interface */
-	AUDIO_PCM_BUFFER_IFACE,
-
-	/** Character device interface */
-	CHAR_DEV_IFACE,
-	
-	/** Network interface controller interface */
-	NIC_DEV_IFACE,
-	
-	/** Interface provided by any PCI device. */
-	PCI_DEV_IFACE,
-
-	/** Interface provided by any USB device. */
-	USB_DEV_IFACE,
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
-	/** Interface provided by USB HID devices. */
-	USBHID_DEV_IFACE,
-	/** Interface provided by AHCI devices. */
-	AHCI_DEV_IFACE,
-
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
-
-/*
- * The first argument is actually method (as the "real" method is used
- * for indexing into interfaces.
+/** @addtogroup libdrv
+ * @{
+ */
+/** @file
  */
 
-#define DEV_IPC_GET_ARG1(call) IPC_GET_ARG2((call))
-#define DEV_IPC_GET_ARG2(call) IPC_GET_ARG3((call))
-#define DEV_IPC_GET_ARG3(call) IPC_GET_ARG4((call))
-#define DEV_IPC_GET_ARG4(call) IPC_GET_ARG5((call))
+#ifndef LIBDRV_REMOTE_AHCI_H_
+#define LIBDRV_REMOTE_AHCI_H_
 
+extern remote_iface_t remote_ahci_iface;
 
 #endif
+
+/**
+ * @}
+ */

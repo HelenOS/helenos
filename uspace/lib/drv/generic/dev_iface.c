@@ -47,6 +47,7 @@
 #include "remote_pci.h"
 #include "remote_audio_mixer.h"
 #include "remote_audio_pcm.h"
+#include "remote_ahci.h"
 
 static const iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
@@ -59,6 +60,7 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[USB_DEV_IFACE] = &remote_usb_iface,
 		[USBHC_DEV_IFACE] = &remote_usbhc_iface,
 		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
+		[AHCI_DEV_IFACE] = &remote_ahci_iface,
 	}
 };
 
