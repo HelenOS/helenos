@@ -43,6 +43,16 @@
 
 #include "ddf/driver.h"
 
+typedef enum {
+	AUDIO_CAP_RECORD,
+	AUDIO_CAP_PLAYBACK,
+	AUDIO_CAP_MAX_BUFFER,
+	AUDIO_CAP_BUFFER_POS,
+	AUDIO_CAP_INTERRUPT,
+	AUDIO_CAP_INTERRUPT_MIN_FRAMES,
+	AUDIO_CAP_INTERRUPT_MAX_FRAMES,
+} audio_cap_t;
+
 enum {
 	PCM_EVENT_FRAMES_PLAYED = IPC_FIRST_USER_METHOD,
 	PCM_EVENT_FRAMES_RECORDED,
@@ -59,6 +69,7 @@ void audio_pcm_close(audio_pcm_sess_t *);
 int audio_pcm_get_info_str(audio_pcm_sess_t *, const char **);
 int audio_pcm_test_format(audio_pcm_sess_t *, unsigned *, unsigned *,
     pcm_sample_format_t *);
+int audio_pcm_query_cap(audio_pcm_sess_t *, audio_cap_t, unsigned *);
 
 int audio_pcm_get_buffer(audio_pcm_sess_t *, void **, size_t *,
     async_client_conn_t, void *);
@@ -77,6 +88,7 @@ typedef struct {
 	int (*get_info_str)(ddf_fun_t *, const char **);
 	int (*test_format)(ddf_fun_t *, unsigned *, unsigned *,
 	    pcm_sample_format_t *);
+	unsigned (*query_cap)(ddf_fun_t *, audio_cap_t);
 	int (*get_buffer)(ddf_fun_t *, void **, size_t *);
 	int (*release_buffer)(ddf_fun_t *);
 	int (*set_event_session)(ddf_fun_t *, async_sess_t *);

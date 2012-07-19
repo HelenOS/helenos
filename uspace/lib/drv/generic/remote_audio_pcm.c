@@ -44,6 +44,7 @@
 
 typedef enum {
 	IPC_M_AUDIO_PCM_GET_INFO_STR,
+	IPC_M_AUDIO_PCM_QUERY_CAPS,
 	IPC_M_AUDIO_PCM_TEST_FORMAT,
 	IPC_M_AUDIO_PCM_GET_BUFFER,
 	IPC_M_AUDIO_PCM_RELEASE_BUFFER,
@@ -103,6 +104,20 @@ int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
 		*name = name_place;
 	}
 	async_exchange_end(exch);
+	return ret;
+}
+
+int audio_pcm_query_cap(audio_pcm_sess_t *sess, audio_cap_t cap, unsigned *val)
+{
+	if (!val)
+		return EINVAL;
+	async_exch_t *exch = async_exchange_begin(sess);
+	sysarg_t value = *val;
+	const int ret = async_req_2_1(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_QUERY_CAPS,
+	    value, &value);
+	if (ret == EOK)
+		*val = value;
 	return ret;
 }
 
@@ -231,6 +246,7 @@ int audio_pcm_stop_record(audio_pcm_sess_t *sess)
  * SERVER SIDE
  */
 static void remote_audio_pcm_get_info_str(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_query_caps(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_test_format(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_release_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -242,6 +258,7 @@ static void remote_audio_pcm_stop_record(ddf_fun_t *, void *, ipc_callid_t, ipc_
 /** Remote audio pcm buffer interface operations. */
 static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 	[IPC_M_AUDIO_PCM_GET_INFO_STR] = remote_audio_pcm_get_info_str,
+	[IPC_M_AUDIO_PCM_QUERY_CAPS] = remote_audio_pcm_query_caps,
 	[IPC_M_AUDIO_PCM_TEST_FORMAT] = remote_audio_pcm_test_format,
 	[IPC_M_AUDIO_PCM_GET_BUFFER] = remote_audio_pcm_get_buffer,
 	[IPC_M_AUDIO_PCM_RELEASE_BUFFER] = remote_audio_pcm_release_buffer,
@@ -287,7 +304,19 @@ void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
 	}
 }
 
-static void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_audio_pcm_query_caps(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const audio_pcm_iface_t *pcm_iface = iface;
+	const audio_cap_t cap = DEV_IPC_GET_ARG1(*call);
+	if (pcm_iface->query_cap) {
+		const unsigned value = pcm_iface->query_cap(fun, cap);
+		async_answer_1(callid, EOK, value);
+	} else {
+		async_answer_0(callid, ENOTSUP);
+	}
+}
+
+void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	unsigned channels = DEV_IPC_GET_ARG1(*call);
