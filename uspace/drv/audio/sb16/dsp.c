@@ -32,7 +32,9 @@
  * @brief DSP helper functions implementation
  */
 
+#include <as.h>
 #include <bool.h>
+#include <ddi.h>
 #include <devman.h>
 #include <device/hw_res.h>
 #include <libarch/ddi.h>
@@ -40,12 +42,12 @@
 #include <str_error.h>
 #include <audio_pcm_iface.h>
 
-#include "dma.h"
 #include "ddf_log.h"
 #include "dsp_commands.h"
 #include "dsp.h"
 
-#define MAX_BUFFER_SIZE (PAGE_SIZE)
+/* Maximum allowed transfer size for ISA DMA transfers is 64kB */
+#define MAX_BUFFER_SIZE (4 * 1024) // use 4kB for now
 
 #ifndef DSP_RETRY_COUNT
 #define DSP_RETRY_COUNT 100
@@ -102,12 +104,11 @@ static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
 	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
 	    dsp->sb_dev->handle, IPC_FLAG_BLOCKING);
-	if (!sess)
-		return ENOMEM;
 
 	const int ret = hw_res_dma_channel_setup(sess,
 	    dsp->dma16_channel, pa, size,
 	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
+
 	async_hangup(sess);
 	return ret;
 }
@@ -117,32 +118,34 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 	assert(dsp);
 	if (size > MAX_BUFFER_SIZE || size == 0 || (size % 2) == 1)
 		size = MAX_BUFFER_SIZE;
-	uint8_t *buffer = dma_create_buffer24(size);
-	if (buffer == NULL) {
+	void *buffer = NULL, *pa = NULL;
+	int ret = dmamem_map_anonymous(size, AS_AREA_WRITE | AS_AREA_READ,
+	    0, &pa, &buffer);
+	if (ret != EOK) {
 		ddf_log_error("Failed to allocate DMA buffer.");
 		return ENOMEM;
 	}
 
-	const uintptr_t pa = addr_to_phys(buffer);
-	assert(pa < (1 << 25));
+	ddf_log_verbose("Setup dma buffer at %p(%p).", buffer, pa, size);
+	assert((uintptr_t)pa < (1 << 25));
 
-	/* Set 16 bit channel */
-	const int ret = sb_setup_dma(dsp, pa, size);
+	/* Setup 16 bit channel */
+	ret = sb_setup_dma(dsp, (uintptr_t)pa, size);
 	if (ret == EOK) {
 		dsp->buffer.data = buffer;
 		dsp->buffer.size = size;
-		bzero(dsp->buffer.data, dsp->buffer.size);
 	} else {
 		ddf_log_error("Failed to setup DMA16 channel: %s.",
 		    str_error(ret));
-		dma_destroy_buffer(buffer);
+		dmamem_unmap_anonymous(buffer);
 	}
 	return ret;
 }
 
 static inline void sb_clear_buffer(sb_dsp_t *dsp)
 {
-	dma_destroy_buffer(dsp->buffer.data);
+	assert(dsp);
+	dmamem_unmap_anonymous(dsp->buffer.data);
 	dsp->buffer.data = NULL;
 	dsp->buffer.size = 0;
 }
