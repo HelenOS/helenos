@@ -34,12 +34,13 @@
 #ifndef DRV_UHCI_UTILS_MALLOC32_H
 #define DRV_UHCI_UTILS_MALLOC32_H
 
+#include <as.h>
 #include <assert.h>
-#include <unistd.h>
+#include <ddi.h>
 #include <errno.h>
 #include <malloc.h>
 #include <mem.h>
-#include <as.h>
+#include <unistd.h>
 
 #define UHCI_STRCUTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
@@ -98,18 +99,15 @@ static inline void free32(void *addr)
  */
 static inline void * get_page(void)
 {
-	void *address = as_area_create(AS_AREA_ANY, UHCI_REQUIRED_PAGE_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE);
-	if (address == AS_MAP_FAILED)
-		return NULL;
-	
-	return address;
+	void *address, *phys;
+	const int ret = dmamem_map_anonymous(UHCI_REQUIRED_PAGE_SIZE,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &address);
+	return ret == EOK ? address : NULL;
 }
 
 static inline void return_page(void *page)
 {
-	if (page)
-		as_area_destroy(page);
+	dmamem_unmap_anonymous(page);
 }
 
 #endif
