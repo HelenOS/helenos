@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	bool something_active = false;
 	/*
 	 * Process command-line options. They determine what shall be
 	 * done with the device.
@@ -172,6 +173,7 @@ int main(int argc, char *argv[])
 				while (actions[idx].opt != 0) {
 					if (actions[idx].opt == opt) {
 						actions[idx].active = true;
+						something_active = true;
 						break;
 					}
 					idx++;
@@ -182,15 +184,6 @@ int main(int argc, char *argv[])
 	} while (opt > 0);
 
 	/* Set the default action. */
-	int idx = 0;
-	bool something_active = false;
-	while (actions[idx].opt != 0) {
-		if (actions[idx].active) {
-			something_active = true;
-			break;
-		}
-		idx++;
-	}
 	if (!something_active) {
 		actions[0].active = true;
 	}
