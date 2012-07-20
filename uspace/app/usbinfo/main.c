@@ -61,6 +61,7 @@ static void print_usage(char *app_name)
 	printf(_INDENT "  o Or using BUS.ADDR numbers as printed by lsusb.\n");
 
 	_OPTION("-h --help", "Print this help and exit.");
+	_OPTION("-l --list", "Print a list of host controllers and devices.");
 	_OPTION("-i --identification", "Brief device identification.");
 	_OPTION("-m --match-ids", "Print match ids generated for the device.");
 	_OPTION("-t --descriptor-tree", "Print descriptor tree.");
@@ -81,6 +82,7 @@ static void print_usage(char *app_name)
 static struct option long_options[] = {
 	{"help", no_argument, NULL, 'h'},
 	{"identification", no_argument, NULL, 'i'},
+	{"list", no_argument, NULL, 'l'},
 	{"match-ids", no_argument, NULL, 'm'},
 	{"descriptor-tree", no_argument, NULL, 't'},
 	{"descriptor-tree-full", no_argument, NULL, 'T'},
@@ -90,7 +92,7 @@ static struct option long_options[] = {
 	{"hid-report-usages", no_argument, NULL, 'R'},
 	{0, 0, NULL, 0}
 };
-static const char *short_options = "himtTsSrR";
+static const char *short_options = "hilmtTsSrR";
 
 static usbinfo_action_t actions[] = {
 	{
@@ -156,6 +158,9 @@ int main(int argc, char *argv[])
 		switch (opt) {
 			case -1:
 				break;
+			case 'l':
+				list();
+				return 0;
 			case '?':
 				print_usage(argv[0]);
 				return 1;

@@ -46,7 +46,6 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
