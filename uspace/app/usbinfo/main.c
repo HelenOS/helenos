@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'l':
 				list();
-				return 0;
+				break;
 			case '?':
 				print_usage(argv[0]);
 				return 1;
