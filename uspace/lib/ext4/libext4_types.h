@@ -201,7 +201,6 @@ typedef struct ext4_superblock {
 #define EXT4_FEATURE_INCOMPAT_EA_INODE          0x0400 /* EA in inode */
 #define EXT4_FEATURE_INCOMPAT_DIRDATA           0x1000 /* data in dirent */
 
-// TODO MODIFY features corresponding with implementation
 #define EXT4_FEATURE_COMPAT_SUPP		(EXT4_FEATURE_COMPAT_DIR_INDEX)
 
 #define EXT4_FEATURE_INCOMPAT_SUPP      (EXT4_FEATURE_INCOMPAT_FILETYPE | \
@@ -210,7 +209,10 @@ typedef struct ext4_superblock {
 
 #define EXT4_FEATURE_RO_COMPAT_SUPP     (EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER | \
 										 EXT4_FEATURE_RO_COMPAT_DIR_NLINK | \
-										 EXT4_FEATURE_RO_COMPAT_HUGE_FILE)
+										 EXT4_FEATURE_RO_COMPAT_HUGE_FILE | \
+										 EXT4_FEATURE_RO_COMPAT_LARGE_FILE | \
+										 EXT4_FEATURE_RO_COMPAT_GDT_CSUM | \
+										 EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE)
 
 
 /*****************************************************************************/
@@ -227,7 +229,7 @@ typedef struct ext4_filesystem {
 
 #define EXT4_BLOCK_GROUP_INODE_UNINIT	0x0001 /* Inode table/bitmap not in use */
 #define EXT4_BLOCK_GROUP_BLOCK_UNINIT	0x0002 /* Block bitmap not in use */
-#define EXT4_BLOCK_GROUP_INODE_ZEROED	0x0004 /* On-disk itable initialized to zero */
+#define EXT4_BLOCK_GROUP_ITABLE_ZEROED	0x0004 /* On-disk itable initialized to zero */
 
 /*
  * Structure of a blocks group descriptor
