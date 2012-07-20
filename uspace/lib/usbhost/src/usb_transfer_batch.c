@@ -95,7 +95,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 	}
 	return instance;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Correctly dispose all used data structures.
  *
  * @param[in] instance Batch structure to use.
@@ -115,7 +115,7 @@ void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
 	}
 	free(instance);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Prepare data and call the right callback.
  *
  * @param[in] instance Batch structure to use.

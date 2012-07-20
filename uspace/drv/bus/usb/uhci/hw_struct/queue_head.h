@@ -46,7 +46,7 @@ typedef struct queue_head {
 	/** Pointer to the contained entities (execution controlled by vertical flag*/
 	volatile link_pointer_t element;
 } __attribute__((packed)) qh_t;
-/*----------------------------------------------------------------------------*/
+
 /** Initialize queue head structure
  *
  * @param[in] instance qh_t structure to initialize.
@@ -60,7 +60,7 @@ static inline void qh_init(qh_t *instance)
 	instance->element = LINK_POINTER_TERM;
 	instance->next = LINK_POINTER_TERM;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Set queue head next pointer
  *
  * @param[in] instance qh_t structure to use.
@@ -80,7 +80,7 @@ static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
 		instance->next = LINK_POINTER_TERM;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Set queue head element pointer
  *
  * @param[in] instance qh_t structure to use.

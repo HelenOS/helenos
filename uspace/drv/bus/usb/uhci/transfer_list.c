@@ -41,7 +41,7 @@
 
 static void transfer_list_remove_batch(
     transfer_list_t *instance, uhci_transfer_batch_t *uhci_batch);
-/*----------------------------------------------------------------------------*/
+
 /** Initialize transfer list structures.
  *
  * @param[in] instance Memory place to use.
@@ -68,7 +68,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Dispose transfer list structures.
  *
  * @param[in] instance Memory place to use.
@@ -96,7 +96,7 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 	/* Set queue_head.next to point to the follower */
 	qh_set_next_qh(instance->queue_head, next->queue_head);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Add transfer batch to the list and queue.
  *
  * @param[in] instance List to use.
@@ -143,7 +143,7 @@ void transfer_list_add_batch(
 	    USB_TRANSFER_BATCH_ARGS(*uhci_batch->usb_batch), instance->name);
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Add completed batches to the provided list.
  *
  * @param[in] instance List to use.
@@ -170,7 +170,7 @@ void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Walk the list and finish all batches with EINTR.
  *
  * @param[in] instance List to use.
@@ -187,7 +187,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Remove a transfer batch from the list and queue.
  *
  * @param[in] instance List to use.

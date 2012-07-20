@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,45 +25,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusbhid
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * HID class-specific requests.
+ * @brief OHCI driver
  */
+#ifndef DRV_OHCI_HW_MEM_ACCESS_H
+#define DRV_OHCI_HW_MEM_ACCESS_H
 
-#ifndef USB_KBD_HIDREQ_H_
-#define USB_KBD_HIDREQ_H_
+#include <byteorder.h>
 
-#include <stdint.h>
+#define OHCI_MEM32_WR(reg, val) reg = host2uint32_t_le(val)
+#define OHCI_MEM32_RD(reg) uint32_t_le2host(reg)
+#define OHCI_MEM32_SET(reg, val) reg |= host2uint32_t_le(val)
+#define OHCI_MEM32_CLR(reg, val) reg &= host2uint32_t_le(~val)
 
-#include <usb/hid/hid.h>
-#include <usb/dev/pipes.h>
+#endif
 
-
-
-int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
-
-int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_protocol_t protocol);
-
-int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration);
-
-int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
-    size_t *actual_size);
-
-int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_protocol_t *protocol);
-
-int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
-
-
-
-#endif /* USB_KBD_HIDREQ_H_ */
-
-/**
+/*
  * @}
  */
+

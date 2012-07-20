@@ -71,7 +71,7 @@ static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 
-/*----------------------------------------------------------------------------*/
+
 /** Get number of PIO ranges used in IRQ code.
  * @return Number of ranges.
  */
@@ -79,7 +79,7 @@ size_t hc_irq_pio_range_count(void)
 {
 	return sizeof(uhci_irq_pio_ranges) / sizeof(irq_pio_range_t);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
  */
@@ -87,7 +87,7 @@ size_t hc_irq_cmd_count(void)
 {
 	return sizeof(uhci_irq_commands) / sizeof(irq_cmd_t);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
  * @param[in] ranges_size Size of the ranges buffer (bytes).
@@ -117,7 +117,7 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Take action based on the interrupt cause.
  *
  * @param[in] instance UHCI structure to use.
@@ -174,7 +174,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		}
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize UHCI hc driver structure
  *
  * @param[in] instance Memory place to initialize.
@@ -234,7 +234,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize UHCI hc hw resources.
  *
  * @param[in] instance UHCI structure to use.
@@ -276,7 +276,7 @@ void hc_init_hw(const hc_t *instance)
 	pio_write_16(&registers->usbcmd,
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize UHCI hc memory structures.
  *
  * @param[in] instance UHCI structure to use.
@@ -318,7 +318,7 @@ int hc_init_mem_structures(hc_t *instance)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize UHCI hc transfer lists.
  *
  * @param[in] instance UHCI structure to use.
@@ -380,7 +380,7 @@ do { \
 	return EOK;
 #undef CHECK_RET_CLEAR_RETURN
 }
-/*----------------------------------------------------------------------------*/
+
 /** Schedule batch for execution.
  *
  * @param[in] instance UHCI structure to use.
@@ -408,7 +408,7 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Polling function, emulates interrupts.
  *
  * @param[in] arg UHCI hc structure to use.
@@ -431,7 +431,7 @@ int hc_interrupt_emulator(void* arg)
 	}
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Debug function, checks consistency of memory structures.
  *
  * @param[in] arg UHCI structure to use.

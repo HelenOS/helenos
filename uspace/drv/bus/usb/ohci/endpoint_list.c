@@ -64,7 +64,7 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Set the next list in transfer list chain.
  *
  * @param[in] instance List to lead.
@@ -79,7 +79,7 @@ void endpoint_list_set_next(
 	assert(next);
 	ed_append_ed(instance->list_head, next->list_head);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Add endpoint to the list and queue.
  *
  * @param[in] instance List to use.
@@ -131,7 +131,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Remove endpoint from the list and queue.
  *
  * @param[in] instance List to use.
@@ -161,7 +161,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 		prev_ed = prev->ed;
 		qpos = "NOT FIRST";
 	}
-	assert((prev_ed->next & ED_NEXT_PTR_MASK) == addr_to_phys(ep->ed));
+	assert(ed_next(prev_ed) == addr_to_phys(ep->ed));
 	prev_ed->next = ep->ed->next;
 	/* Make sure ED is updated */
 	write_barrier();
