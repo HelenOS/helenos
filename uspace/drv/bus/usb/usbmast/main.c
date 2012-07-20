@@ -301,7 +301,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	(void) async_share_out_finalize(callid, &comm_buf);
-	if (comm_buf == (void *) -1) {
+	if (comm_buf == AS_MAP_FAILED) {
 		async_answer_0(callid, EHANGUP);
 		return;
 	}

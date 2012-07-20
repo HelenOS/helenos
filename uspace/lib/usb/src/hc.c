@@ -26,12 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusb
  * @{
  */
 /** @file
  * General communication with host controller driver (implementation).
  */
+
 #include <usb/debug.h>
 
 #include <assert.h>
@@ -43,6 +45,7 @@
 static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
 {
 	assert(connection);
+	
 	fibril_mutex_lock(&connection->guard);
 	if (connection->ref_count == 0) {
 		assert(connection->hc_sess == NULL);
@@ -54,6 +57,7 @@ static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
 			return ENOMEM;
 		}
 	}
+	
 	++connection->ref_count;
 	fibril_mutex_unlock(&connection->guard);
 	return EOK;
@@ -62,13 +66,15 @@ static int usb_hc_connection_add_ref(usb_hc_connection_t *connection)
 static int usb_hc_connection_del_ref(usb_hc_connection_t *connection)
 {
 	assert(connection);
+	
 	fibril_mutex_lock(&connection->guard);
 	if (connection->ref_count == 0) {
 		/* Closing already closed connection... */
-		assert(connection->hc_sess = NULL);
+		assert(connection->hc_sess == NULL);
 		fibril_mutex_unlock(&connection->guard);
 		return EOK;
 	}
+	
 	--connection->ref_count;
 	int ret = EOK;
 	if (connection->ref_count == 0) {

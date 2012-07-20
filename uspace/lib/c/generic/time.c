@@ -42,6 +42,7 @@
 #include <as.h>
 #include <ddi.h>
 #include <libc.h>
+#include <unistd.h>
 
 /** Pointer to kernel shared variables with time */
 struct {

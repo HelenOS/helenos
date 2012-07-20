@@ -32,6 +32,7 @@
 /** @file
  *
  */
+
 #ifndef LIBUSBHOST_HOST_HCD_H
 #define LIBUSBHOST_HOST_HCD_H
 
@@ -105,6 +106,7 @@ static inline hcd_t * fun_to_hcd(const ddf_fun_t *fun)
 extern usbhc_iface_t hcd_iface;
 
 #endif
+
 /**
  * @}
  */

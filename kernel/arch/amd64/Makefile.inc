@@ -54,7 +54,6 @@ FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer -fno-optimize-sibling-calls
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
-SUNCC_CFLAGS += -m64 -xmodel=kernel
 
 BITS = 64
 ENDIANESS = LE
@@ -66,7 +65,6 @@ ifeq ($(PROCESSOR),opteron)
 	CMN2 := -march=opteron
 	GCC_CFLAGS += $(CMN2)
 	ICC_CFLAGS += $(CMN2)
-	SUNCC_CFLAGS += -xtarget=opteron
 endif
 
 ARCH_SOURCES = \

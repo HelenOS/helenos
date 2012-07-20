@@ -123,7 +123,7 @@ def mkuimage(inf_name, outf_name, image_name, load_addr, start_addr):
 	header.arch = 2			# ARM
 	header.img_type = 2		# Kernel
 	header.compression = 0		# None
-	header.img_name = image_name
+	header.img_name = image_name.encode('ascii')
 
 	header_crc = calc_crc32(header.pack())
 	header.header_crc = header_crc
@@ -139,7 +139,7 @@ def mkuimage(inf_name, outf_name, image_name, load_addr, start_addr):
 def calc_crc32(byteseq):
 	signed_crc = zlib.crc32(byteseq, 0)
 	if signed_crc < 0:
-		return (long(signed_crc) + (long(2) ** long(32))) # 2^32L
+		return signed_crc + (1 << 32)
 	else:
 		return signed_crc
 
@@ -147,10 +147,10 @@ def calc_crc32(byteseq):
 #
 def print_syntax(cmd):
 	print("syntax: " + cmd + " [<options>] <raw_image> <uImage>")
-	print
+	print()
 	print("\traw_image\tInput image name (raw binary data)")
 	print("\tuImage\t\tOutput uImage name (U-Boot image)")
-	print
+	print()
 	print("options:")
 	print("\t-name <name>\tImage name (default: 'Noname')")
 	print("\t-laddr <name>\tLoad address (default: 0x00000000)")

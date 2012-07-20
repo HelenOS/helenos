@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusbhost
  * @{
  */
 /** @file
  * @brief HCD DDF interface implementation
  */
+
 #include <ddf/driver.h>
 #include <errno.h>
 
@@ -323,6 +325,7 @@ usbhc_iface_t hcd_iface = {
 	.read = usb_read,
 	.write = usb_write,
 };
+
 /**
  * @}
  */

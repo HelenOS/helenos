@@ -39,6 +39,7 @@
 
 #include <malloc.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <str.h>
 #include <task.h>
 #include <time.h>

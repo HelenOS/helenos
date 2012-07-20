@@ -102,10 +102,6 @@ ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
-SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
-	-xnolib -xc99=all -features=extensions \
-	-erroff=E_ZERO_SIZED_STRUCT_UNION
-
 CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
@@ -125,7 +121,6 @@ endif
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -g
 	ICC_CFLAGS += -g
-	SUNCC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
@@ -182,13 +177,6 @@ ifeq ($(COMPILER),icc)
 	INSTRUMENTATION =
 endif
 
-ifeq ($(COMPILER),suncc)
-	CFLAGS = $(SUNCC_CFLAGS)
-	DEFS += $(CONFIG_DEFS)
-	DEPEND_DEFS = $(DEFS)
-	INSTRUMENTATION =
-endif
-
 ifeq ($(COMPILER),clang)
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
@@ -207,6 +195,7 @@ GENERIC_SOURCES = \
 	generic/src/adt/list.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
+	generic/src/console/prompt.c \
 	generic/src/cpu/cpu.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \

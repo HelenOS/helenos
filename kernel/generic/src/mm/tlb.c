@@ -161,7 +161,7 @@ void tlb_shootdown_ipi_recv(void)
 	ASSERT(CPU->tlb_messages_count <= TLB_MESSAGE_QUEUE_LEN);
 	
 	size_t i;
-	for (i = 0; i < CPU->tlb_messages_count; CPU->tlb_messages_count--) {
+	for (i = 0; i < CPU->tlb_messages_count; i++) {
 		tlb_invalidate_type_t type = CPU->tlb_messages[i].type;
 		asid_t asid = CPU->tlb_messages[i].asid;
 		uintptr_t page = CPU->tlb_messages[i].page;
@@ -187,6 +187,7 @@ void tlb_shootdown_ipi_recv(void)
 			break;
 	}
 	
+	CPU->tlb_messages_count = 0;
 	irq_spinlock_unlock(&CPU->lock, false);
 	CPU->tlb_active = true;
 }

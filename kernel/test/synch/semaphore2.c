@@ -92,7 +92,8 @@ const char *test_semaphore2(void)
 	k = random(7) + 1;
 	TPRINTF("Creating %" PRIu32 " consumers\n", k);
 	for (i = 0; i < k; i++) {
-		thrd = thread_create(consumer, NULL, TASK, 0, "consumer", false);
+		thrd = thread_create(consumer, NULL, TASK,
+		    THREAD_FLAG_NONE, "consumer");
 		if (thrd)
 			thread_ready(thrd);
 		else

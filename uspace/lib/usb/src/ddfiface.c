@@ -32,6 +32,7 @@
 /** @file
  * Implementations of DDF interfaces functions (actual implementation).
  */
+
 #include <devman.h>
 #include <async.h>
 #include <usb_iface.h>

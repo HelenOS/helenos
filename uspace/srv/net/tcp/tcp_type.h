@@ -38,6 +38,7 @@
 #include <adt/list.h>
 #include <async.h>
 #include <bool.h>
+#include <fibril.h>
 #include <fibril_synch.h>
 #include <socket_core.h>
 #include <sys/types.h>
@@ -330,6 +331,8 @@ typedef struct {
 	socket_cores_t sockets;
 } tcp_client_t;
 
+#define TCP_SOCK_FRAGMENT_SIZE 1024
+
 typedef struct tcp_sockdata {
 	/** Lock */
 	fibril_mutex_t lock;
@@ -347,6 +350,13 @@ typedef struct tcp_sockdata {
 	struct tcp_sock_lconn **lconn;
 	/** List of connections (from lconn) that are ready to be accepted */
 	list_t ready;
+	/** Receiving fibril */
+	fid_t recv_fibril;
+	uint8_t recv_buffer[TCP_SOCK_FRAGMENT_SIZE];
+	size_t recv_buffer_used;
+	fibril_mutex_t recv_buffer_lock;
+	fibril_condvar_t recv_buffer_cv;
+	tcp_error_t recv_error;
 } tcp_sockdata_t;
 
 typedef struct tcp_sock_lconn {

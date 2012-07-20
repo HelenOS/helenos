@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": UDP (User Datagram Protocol) service\n");
 
-	rc = log_init(NAME, LVL_WARN);
+	rc = log_init(NAME, LVL_DEBUG);
 	if (rc != EOK) {
 		printf(NAME ": Failed to initialize log.\n");
 		return 1;

@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusbhost
  * @{
  */
 /** @file
  * USB transfer transaction structures.
  */
+
 #ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 #define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
@@ -152,7 +154,9 @@ static inline usb_direction_t usb_transfer_batch_direction(
 	}
 	assert(false);
 }
+
 #endif
+
 /**
  * @}
  */

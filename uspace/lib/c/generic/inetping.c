@@ -48,30 +48,30 @@ int inetping_init(inetping_ev_ops_t *ev_ops)
 	int rc;
 
 	assert(inetping_sess == NULL);
-
+	
 	inetping_ev_ops = ev_ops;
-
+	
 	rc = loc_service_get_id(SERVICE_NAME_INETPING, &inetping_svc,
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return ENOENT;
-
+	
 	inetping_sess = loc_service_connect(EXCHANGE_SERIALIZE, inetping_svc,
 	    IPC_FLAG_BLOCKING);
 	if (inetping_sess == NULL)
 		return ENOENT;
-
+	
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
 
 	rc = async_connect_to_me(exch, 0, 0, 0, inetping_cb_conn, NULL);
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_hangup(inetping_sess);
 		inetping_sess = NULL;
 		return rc;
 	}
-
+	
 	return EOK;
 }
 

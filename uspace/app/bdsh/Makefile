@@ -47,6 +47,8 @@ SOURCES = \
 	cmds/modules/sleep/sleep.c \
 	cmds/modules/cp/cp.c \
 	cmds/modules/mv/mv.c \
+	cmds/modules/printf/printf.c \
+	cmds/modules/echo/echo.c \
 	cmds/modules/mount/mount.c \
 	cmds/modules/unmount/unmount.c \
 	cmds/modules/kcon/kcon.c \

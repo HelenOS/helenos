@@ -1,0 +1,13 @@
+At this stage printf is very young and limited, as it hopefully
+will be developed along with BDSH. Functionality is heavily related
+on libc printf already available. BDSH printf implements only 3 format  
+flags, with no options/precision/width modifiers allowed. Also, 
+one output control is available - '\n'. '\' character stands
+as an escape character, i.e. every special character after it 
+will be treated as general char and will be printed out.
+What's missing:
+ * Error checking for format string.
+ * Add more output controls (\t \r ...)
+ * Add width/precision options for number printings
+ * Add more format flags (%f %b ...)
+ 

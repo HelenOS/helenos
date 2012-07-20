@@ -70,6 +70,7 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 	TELNET_IAC, TELNET_WILL, TELNET_SUPPRESS_GO_AHEAD,
 	TELNET_IAC, TELNET_WONT, TELNET_LINEMODE
 };
+
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
@@ -271,10 +272,9 @@ static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
  */
 static int network_user_fibril(void *arg)
 {
-	int rc;
 	telnet_user_t *user = arg;
 
-	rc = loc_service_register(user->service_name, &user->service_id);
+	int rc = loc_service_register(user->service_name, &user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));
@@ -283,11 +283,11 @@ static int network_user_fibril(void *arg)
 
 	telnet_user_log(user, "Service %s registerd with id %" PRIun ".",
 	    user->service_name, user->service_id);
-
+	
 	fid_t spawn_fibril = fibril_create(spawn_task_fibril, user);
 	assert(spawn_fibril);
 	fibril_add_ready(spawn_fibril);
-
+	
 	/* Wait for all clients to exit. */
 	fibril_mutex_lock(&user->guard);
 	while (!user_can_be_destroyed_no_lock(user)) {
@@ -303,7 +303,7 @@ static int network_user_fibril(void *arg)
 		fibril_condvar_wait_timeout(&user->refcount_cv, &user->guard, 1000);
 	}
 	fibril_mutex_unlock(&user->guard);
-
+	
 	rc = loc_service_unregister(user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user,
@@ -323,17 +323,16 @@ int main(int argc, char *argv[])
 	
 	async_set_client_connection(client_connection);
 	int rc = loc_server_register(NAME);
-	if (rc < 0) {
-		fprintf(stderr, NAME ": Unable to register server: %s.\n",
-		    str_error(rc));
-		return 1;
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Unable to register server\n", NAME);
+		return rc;
 	}
-
+	
 	struct sockaddr_in addr;
-
+	
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
-
+	
 	rc = inet_pton(AF_INET, "127.0.0.1", (void *)
 	    &addr.sin_addr.s_addr);
 	if (rc != EOK) {

@@ -41,15 +41,16 @@ DIRS = \
 	app/ext2info \
 	app/getterm \
 	app/init \
-	app/inetcfg \
+	app/inet \
 	app/kill \
 	app/killall \
 	app/klog \
-	app/locinfo \
+	app/loc \
 	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
+	app/nterm \
 	app/redir \
 	app/sbi \
 	app/sportdmp \
@@ -67,15 +68,15 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/websrv \
 	app/sysinfo \
 	app/mkbd \
+	app/websrv \
 	srv/clipboard \
-	srv/loc \
+	srv/locsrv \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \
-	srv/net/inet \
+	srv/net/inetsrv \
 	srv/net/loopip \
 	srv/net/tcp \
 	srv/net/udp \
@@ -83,6 +84,7 @@ DIRS = \
 	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
+	srv/bd/sata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
@@ -103,6 +105,7 @@ DIRS = \
 	srv/hw/char/s3c24xx_uart \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/block/ahci \
 	drv/char/i8042 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
@@ -134,6 +137,11 @@ endif
 ifeq ($(CONFIG_BINUTILS),y)
 DIRS += \
 	app/binutils
+endif
+
+ifeq ($(CONFIG_MSIM),y)
+DIRS += \
+	app/msim
 endif
 
 ## Platform-specific hardware support

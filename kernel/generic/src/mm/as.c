@@ -129,7 +129,7 @@ void as_init(void)
 {
 	as_arch_init();
 	
-	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0,
+	as_slab = slab_cache_create("as_t", sizeof(as_t), 0,
 	    as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
@@ -666,12 +666,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		page_table_lock(as, false);
 		
 		/*
-		 * Start TLB shootdown sequence.
-		 */
-		ipl_t ipl = tlb_shootdown_start(TLB_INVL_PAGES, as->asid,
-		    area->base + P2SZ(pages), area->pages - pages);
-		
-		/*
 		 * Remove frames belonging to used space starting from
 		 * the highest addresses downwards until an overlap with
 		 * the resized address space area is found. Note that this
@@ -725,6 +719,22 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 						panic("Cannot remove used space.");
 				}
 				
+				/*
+				 * Start TLB shootdown sequence.
+				 *
+				 * The sequence is rather short and can be
+				 * repeated multiple times. The reason is that
+				 * we don't want to have used_space_remove()
+				 * inside the sequence as it may use a blocking
+				 * memory allocation for its B+tree. Blocking
+				 * while holding the tlblock spinlock is
+				 * forbidden and would hit a kernel assertion.
+				 */
+
+				ipl_t ipl = tlb_shootdown_start(TLB_INVL_PAGES,
+				    as->asid, area->base + P2SZ(pages),
+				    area->pages - pages);
+		
 				for (; i < size; i++) {
 					pte_t *pte = page_mapping_find(as,
 					    ptr + P2SZ(i), false);
@@ -742,24 +752,25 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 					
 					page_mapping_remove(as, ptr + P2SZ(i));
 				}
+		
+				/*
+				 * Finish TLB shootdown sequence.
+				 */
+		
+				tlb_invalidate_pages(as->asid,
+				    area->base + P2SZ(pages),
+				    area->pages - pages);
+		
+				/*
+				 * Invalidate software translation caches
+				 * (e.g. TSB on sparc64, PHT on ppc32).
+				 */
+				as_invalidate_translation_cache(as,
+				    area->base + P2SZ(pages),
+				    area->pages - pages);
+				tlb_shootdown_finalize(ipl);
 			}
 		}
-		
-		/*
-		 * Finish TLB shootdown sequence.
-		 */
-		
-		tlb_invalidate_pages(as->asid, area->base + P2SZ(pages),
-		    area->pages - pages);
-		
-		/*
-		 * Invalidate software translation caches
-		 * (e.g. TSB on sparc64, PHT on ppc32).
-		 */
-		as_invalidate_translation_cache(as, area->base + P2SZ(pages),
-		    area->pages - pages);
-		tlb_shootdown_finalize(ipl);
-		
 		page_table_unlock(as, false);
 	} else {
 		/*

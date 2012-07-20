@@ -596,7 +596,7 @@ static int process_request(answerbox_t *box, call_t *call)
 {
 	if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME) {
 		int phoneid = phone_alloc(TASK);
-		if (phoneid < 0) { /* Failed to allocate phone */
+		if (phoneid < 0) {  /* Failed to allocate phone */
 			IPC_SET_RETVAL(call->data, ELIMIT);
 			ipc_answer(box, call);
 			return -1;
@@ -882,9 +882,9 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 	}
 	
 	/*
-	 * Userspace is not allowed to change interface and method of system
+	 * User space is not allowed to change interface and method of system
 	 * methods on forward, allow changing ARG1, ARG2, ARG3 and ARG4 by
-	 * means of method, arg1, arg2 and arg3.
+	 * means of imethod, arg1, arg2 and arg3.
 	 * If the interface and method is immutable, don't change anything.
 	 */
 	if (!method_is_immutable(IPC_GET_IMETHOD(call->data))) {
@@ -896,13 +896,13 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 			IPC_SET_ARG2(call->data, arg1);
 			IPC_SET_ARG3(call->data, arg2);
 			
-			if (slow) {
+			if (slow)
 				IPC_SET_ARG4(call->data, arg3);
-				/*
-				 * For system methods we deliberately don't
-				 * overwrite ARG5.
-				 */
-			}
+			
+			/*
+			 * For system methods we deliberately don't
+			 * overwrite ARG5.
+			 */
 		} else {
 			IPC_SET_IMETHOD(call->data, imethod);
 			IPC_SET_ARG1(call->data, arg1);

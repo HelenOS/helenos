@@ -284,9 +284,9 @@ static bool area_create(size_t size)
 {
 	/* Align the heap area size on page boundary */
 	size_t asize = ALIGN_UP(size, PAGE_SIZE);
-	void *astart = as_area_create((void *) -1, asize,
+	void *astart = as_area_create(AS_AREA_ANY, asize,
 	    AS_AREA_WRITE | AS_AREA_READ);
-	if (astart == (void *) -1)
+	if (astart == AS_MAP_FAILED)
 		return false;
 	
 	heap_area_t *area = (heap_area_t *) astart;

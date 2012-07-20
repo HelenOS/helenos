@@ -36,7 +36,6 @@
 #define LIBC_ERRNO_H_
 
 #include <abi/errno.h>
-#include <fibril.h>
 
 #define errno  (*(__errno()))
 

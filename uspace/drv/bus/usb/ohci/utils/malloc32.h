@@ -36,6 +36,7 @@
 
 #include <assert.h>
 #include <malloc.h>
+#include <unistd.h>
 #include <errno.h>
 #include <mem.h>
 #include <as.h>

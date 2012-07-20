@@ -183,8 +183,8 @@ static void niagara_init(void)
 		return;
 	
 	instance = malloc(sizeof(niagara_instance_t), FRAME_ATOMIC);
-	instance->thread = thread_create(kniagarapoll, NULL, TASK, 0,
-	    "kniagarapoll", true);
+	instance->thread = thread_create(kniagarapoll, NULL, TASK,
+	    THREAD_FLAG_UNCOUNTED, "kniagarapoll");
 	
 	if (!instance->thread) {
 		free(instance);

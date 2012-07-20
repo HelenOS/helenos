@@ -184,7 +184,7 @@ ra_arena_t *ra_arena_create(void)
 	if (!arena)
 		return NULL;
 
-	spinlock_initialize(&arena->lock, "arena_lock");
+	irq_spinlock_initialize(&arena->lock, "arena_lock");
 	list_initialize(&arena->spans);
 
 	return arena;
@@ -208,9 +208,9 @@ bool ra_span_add(ra_arena_t *arena, uintptr_t base, size_t size)
 		return false;
 
 	/* TODO: check for overlaps */
-	spinlock_lock(&arena->lock);
+	irq_spinlock_lock(&arena->lock, true);
 	list_append(&span->span_link, &arena->spans);
-	spinlock_unlock(&arena->lock);
+	irq_spinlock_unlock(&arena->lock, true);
 	return true;
 }
 
@@ -389,7 +389,7 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 	ASSERT(alignment >= 1);
 	ASSERT(ispwr2(alignment));
 
-	spinlock_lock(&arena->lock);
+	irq_spinlock_lock(&arena->lock, true);
 	list_foreach(arena->spans, cur) {
 		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
 
@@ -397,7 +397,7 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 		if (base)
 			break;
 	}
-	spinlock_unlock(&arena->lock);
+	irq_spinlock_unlock(&arena->lock, true);
 
 	return base;
 }
@@ -405,17 +405,17 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 /* Return resources to arena. */
 void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 {
-	spinlock_lock(&arena->lock);
+	irq_spinlock_lock(&arena->lock, true);
 	list_foreach(arena->spans, cur) {
 		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
 
 		if (iswithin(span->base, span->size, base, size)) {
 			ra_span_free(span, base, size);
-			spinlock_unlock(&arena->lock);
+			irq_spinlock_unlock(&arena->lock, true);
 			return;
 		}
 	}
-	spinlock_unlock(&arena->lock);
+	irq_spinlock_unlock(&arena->lock, true);
 
 	panic("Freeing to wrong arena (base=%" PRIxn ", size=%" PRIdn ").",
 	    base, size);
@@ -423,7 +423,7 @@ void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 
 void ra_init(void)
 {
-	ra_segment_cache = slab_cache_create("segment_cache",
+	ra_segment_cache = slab_cache_create("ra_segment_t",
 	    sizeof(ra_segment_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 }
 

@@ -62,7 +62,8 @@ const char *test_thread1(void)
 	
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
-		if (!(t = thread_create(threadtest, NULL, TASK, 0, "threadtest", false))) {
+		if (!(t = thread_create(threadtest, NULL, TASK,
+		    THREAD_FLAG_NONE, "threadtest"))) {
 			TPRINTF("Could not create thread %d\n", i);
 			break;
 		}

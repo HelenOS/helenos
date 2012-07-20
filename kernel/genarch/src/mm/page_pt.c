@@ -42,11 +42,13 @@
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
+#include <arch/barrier.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
 #include <align.h>
 #include <macros.h>
+#include <bitops.h>
 
 static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void pt_mapping_remove(as_t *, uintptr_t);
@@ -84,8 +86,10 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		write_barrier();
+		SET_PTL1_PRESENT(ptl0, PTL0_INDEX(page));
 	}
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
@@ -96,8 +100,10 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		write_barrier();
+		SET_PTL2_PRESENT(ptl1, PTL1_INDEX(page));	
 	}
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
@@ -108,14 +114,18 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
+		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		write_barrier();
+		SET_PTL3_PRESENT(ptl2, PTL2_INDEX(page));
 	}
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
-	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
+	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags | PAGE_NOT_PRESENT);
+	write_barrier();
+	SET_FRAME_PRESENT(ptl3, PTL3_INDEX(page));
 }
 
 /** Remove mapping of page from hierarchical page tables.
@@ -277,18 +287,42 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
+
+	read_barrier();
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
+
+#if (PTL1_ENTRIES != 0)
+	read_barrier();
+#endif
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
+
+#if (PTL2_ENTRIES != 0)
+	read_barrier();
+#endif
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
 	return &ptl3[PTL3_INDEX(page)];
+}
+
+/** Return the size of the region mapped by a single PTL0 entry.
+ *
+ * @return Size of the region mapped by a single PTL0 entry.
+ */
+static uintptr_t ptl0_step_get(void)
+{
+	size_t va_bits;
+
+	va_bits = fnzb(PTL0_ENTRIES) + fnzb(PTL1_ENTRIES) + fnzb(PTL2_ENTRIES) +
+	    fnzb(PTL3_ENTRIES) + PAGE_WIDTH;
+
+	return 1UL << (va_bits - fnzb(PTL0_ENTRIES));
 }
 
 /** Make the mappings in the given range global accross all address spaces.
@@ -308,7 +342,7 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 void pt_mapping_make_global(uintptr_t base, size_t size)
 {
 	uintptr_t ptl0 = PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
-	uintptr_t ptl0step = (((uintptr_t) -1) / PTL0_ENTRIES) + 1;
+	uintptr_t ptl0_step = ptl0_step_get();
 	size_t order;
 	uintptr_t addr;
 
@@ -320,19 +354,18 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 	order = PTL3_SIZE;
 #endif
 
-	ASSERT(ispwr2(ptl0step));
 	ASSERT(size > 0);
 
-	for (addr = ALIGN_DOWN(base, ptl0step); addr - 1 < base + size - 1;
-	    addr += ptl0step) {
+	for (addr = ALIGN_DOWN(base, ptl0_step); addr - 1 < base + size - 1;
+	    addr += ptl0_step) {
 		uintptr_t l1;
 
 		l1 = (uintptr_t) frame_alloc(order, FRAME_KA | FRAME_LOWMEM);
 		memsetb((void *) l1, FRAME_SIZE << order, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(addr),
-		    PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
-		    PAGE_WRITE);
+		    PAGE_PRESENT | PAGE_USER | PAGE_CACHEABLE |
+		    PAGE_EXEC | PAGE_WRITE | PAGE_READ);
 	}
 }
 

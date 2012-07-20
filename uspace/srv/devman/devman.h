@@ -209,7 +209,6 @@ struct fun_node {
 	link_t loc_fun;
 };
 
-
 /** Represents device tree. */
 typedef struct dev_tree {
 	/** Root device node. */

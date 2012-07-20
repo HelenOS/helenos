@@ -71,7 +71,7 @@ INIT_TASKS = \
 	$(USPACE_PATH)/srv/ns/ns \
 	$(USPACE_PATH)/srv/loader/loader \
 	$(USPACE_PATH)/app/init/init \
-	$(USPACE_PATH)/srv/loc/loc \
+	$(USPACE_PATH)/srv/locsrv/locsrv \
 	$(USPACE_PATH)/srv/bd/rd/rd \
 	$(USPACE_PATH)/srv/vfs/vfs
 
@@ -97,6 +97,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
+	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
 	$(USPACE_PATH)/srv/clipboard/clipboard \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
@@ -106,7 +107,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
-	$(USPACE_PATH)/srv/net/inet/inet \
+	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
@@ -121,7 +122,8 @@ RD_DRVS = \
 	test/test3 \
 	nic/ne2k \
 	nic/e1k \
-	nic/rtl8139
+	nic/rtl8139 \
+	block/ahci
 
 RD_DRV_CFG =
 
@@ -156,10 +158,10 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/ext2info/ext2info \
-	$(USPACE_PATH)/app/inetcfg/inetcfg \
+	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
-	$(USPACE_PATH)/app/locinfo/locinfo \
+	$(USPACE_PATH)/app/loc/loc \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
@@ -176,6 +178,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
 	$(USPACE_PATH)/app/nettest3/nettest3 \
 	$(USPACE_PATH)/app/netecho/netecho \
+	$(USPACE_PATH)/app/nterm/nterm \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
@@ -197,6 +200,11 @@ ifeq ($(CONFIG_BINUTILS),y)
 RD_APPS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/binutils/bin/as \
 	$(USPACE_PATH)/app/binutils/bin/ld
+endif
+
+ifeq ($(CONFIG_MSIM),y)
+RD_APPS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/app/msim/msim
 endif
 
 COMPONENTS = \

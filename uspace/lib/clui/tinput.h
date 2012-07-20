@@ -36,8 +36,6 @@
 #ifndef LIBCLUI_TINPUT_H_
 #define LIBCLUI_TINPUT_H_
 
-#include <adt/list.h>
-#include <async.h>
 #include <inttypes.h>
 #include <io/console.h>
 #include <stdio.h>
