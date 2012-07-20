@@ -60,7 +60,7 @@ static int usbmid_device_add(usb_device_t *dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a MID device is about to be removed from the host.
  *
  * @param dev USB device representing the removed device.
@@ -114,7 +114,7 @@ static int usbmid_device_remove(usb_device_t *dev)
 	}
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a MID device was removed from the host.
  *
  * @param dev USB device representing the removed device.

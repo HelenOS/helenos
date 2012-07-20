@@ -46,7 +46,7 @@
 #include <usb/dev/hub.h>
 #include <usb/hc.h>
 
-#define NAME "lsusb"
+#include "usbinfo.h"
 
 #define MAX_USB_ADDRESS USB11_ADDRESS_MAX
 #define MAX_PATH_LENGTH 1024
@@ -89,7 +89,7 @@ static void print_hc_devices(devman_handle_t hc_handle)
 	usb_hc_connection_close(&conn);
 }
 
-int main(int argc, char *argv[])
+void list(void)
 {
 	category_id_t usbhc_cat;
 	service_id_t *svcs;
@@ -101,13 +101,13 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf(NAME ": Error resolving category '%s'",
 		    USB_HC_CATEGORY);
-		return 1;
+		return;
 	}
 
 	rc = loc_category_get_svcs(usbhc_cat, &svcs, &count);
 	if (rc != EOK) {
 		printf(NAME ": Error getting list of host controllers.\n");
-		return 1;
+		return;
 	}
 
 	for (i = 0; i < count; i++) {
@@ -130,8 +130,6 @@ int main(int argc, char *argv[])
 	}
 
 	free(svcs);
-
-	return 0;
 }
 
 

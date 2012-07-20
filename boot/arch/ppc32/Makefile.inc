@@ -42,7 +42,15 @@ RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/bus/cuda_adb/cuda_adb
 
 RD_DRVS += \
-	infrastructure/rootmac
+	infrastructure/rootmac \
+	bus/pci/pciintel \
+	bus/usb/ohci \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid \
+	bus/usb/vhc
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

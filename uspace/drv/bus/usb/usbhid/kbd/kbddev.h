@@ -49,7 +49,7 @@
 
 struct usb_hid_dev;
 
-/*----------------------------------------------------------------------------*/
+
 /**
  * USB/HID keyboard device type.
  *
@@ -81,11 +81,8 @@ typedef struct usb_kbd_t {
 	/** Currently active lock keys. */
 	unsigned lock_keys;
 
-	/** IPC session to the console device (for sending key events). */
-	async_sess_t *console_sess;
-
-	/** @todo What is this actually? */
-	ddf_dev_ops_t ops;
+	/** IPC session to client (for sending key events). */
+	async_sess_t *client_sess;
 
 	/** Information for auto-repeat of keys. */
 	usb_kbd_repeat_t repeat;
@@ -115,14 +112,14 @@ typedef struct usb_kbd_t {
 	ddf_fun_t *fun;
 } usb_kbd_t;
 
-/*----------------------------------------------------------------------------*/
+
 
 extern const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 
 const char *HID_KBD_FUN_NAME;
 const char *HID_KBD_CLASS_NAME;
 
-/*----------------------------------------------------------------------------*/
+
 
 int usb_kbd_init(struct usb_hid_dev *hid_dev, void **data);
 

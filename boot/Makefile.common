@@ -100,6 +100,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
+	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
 	$(USPACE_PATH)/srv/clipboard/clipboard \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
@@ -125,7 +126,8 @@ RD_DRVS = \
 	test/test3 \
 	nic/ne2k \
 	nic/e1k \
-	nic/rtl8139
+	nic/rtl8139 \
+	block/ahci
 
 RD_DRV_CFG =
 
