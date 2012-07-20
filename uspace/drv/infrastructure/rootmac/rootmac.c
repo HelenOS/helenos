@@ -136,9 +136,14 @@ failure:
  */
 static int rootmac_dev_add(ddf_dev_t *dev)
 {
+#if 0
 	/* Register functions */
 	if (!rootmac_add_fun(dev, "pci0", "intel_pci", &pci_data))
 		ddf_msg(LVL_ERROR, "Failed to add functions for Mac platform.");
+#else
+	(void)pci_data;
+	(void)rootmac_add_fun;
+#endif
 	
 	return EOK;
 }
