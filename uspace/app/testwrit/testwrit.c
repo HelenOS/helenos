@@ -44,31 +44,26 @@ int main(int argc, char **argv)
 	FILE *file;
 	char *file_name;
 	
+	/* Prepare some example data */
+	memset(buffer, 0xcafebabe, BUF_SIZE);
+
 	if (argc != 3) {
 		printf("syntax: testwrit <iterations> <target file>\n");
 		return 1;
 	}
 
-	for (i = 0; i < BUF_SIZE; ++i) {
-		if ((i % 64) == 0) {
-			buffer[i] = '\n';
-		} else {
-			buffer[i] = '.';
-		}
-	}
-
-	buffer[BUF_SIZE - 1] = '\n';
-
 	char *end;
 	iterations = strtoul(argv[1], &end, 10);
 	file_name = argv[2];
 
+	/* Open target file */
 	file = fopen(file_name, "a");
 	if (file == NULL) {
 		printf("Failed opening file\n");
 		return 1;
 	}
 	
+	/* Writing loop */
 	for (i = 0; i < iterations; ++i) {
 		fwrite(buffer, 1, BUF_SIZE, file);
 	}
