@@ -77,7 +77,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	}
 
 	/* Initialize block caching by libblock */
-	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WT);
+	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WB);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		EXT4FS_DBG("block cache init error: \%d", rc);
@@ -103,7 +103,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	if (state != EXT4_SUPERBLOCK_STATE_VALID_FS) {
 		block_cache_fini(fs->device);
 		block_fini(fs->device);
-		EXT4FS_DBG("invalid state error");
+		EXT4FS_DBG("Unable to mount: Invalid state error");
 		return ENOTSUP;
 	}
 
@@ -116,6 +116,9 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 		EXT4FS_DBG("state write error: \%d", rc);
 		return rc;
 	}
+
+	uint16_t mnt_count = ext4_superblock_get_mount_count(fs->superblock);
+	ext4_superblock_set_mount_count(fs->superblock, mnt_count + 1);
 
 	return EOK;
 }
@@ -188,6 +191,7 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
 	incompatible_features = ext4_superblock_get_features_incompatible(fs->superblock);
 	incompatible_features &= ~EXT4_FEATURE_INCOMPAT_SUPP;
 	if (incompatible_features > 0) {
+		EXT4FS_DBG("Not supported incompatible features");
 		return ENOTSUP;
 	}
 
@@ -198,8 +202,200 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
 	compatible_read_only = ext4_superblock_get_features_read_only(fs->superblock);
 	compatible_read_only &= ~EXT4_FEATURE_RO_COMPAT_SUPP;
 	if (compatible_read_only > 0) {
+		EXT4FS_DBG("Not supported readonly features - mounting READ-ONLY");
 		*read_only = true;
 		return EOK;
+	}
+
+	return EOK;
+}
+
+
+/** Convert block address to relative index in block group.
+ *
+ * @param sb			superblock pointer
+ * @param block_addr	block number to convert
+ * @return				relative number of block
+ */
+uint32_t ext4_filesystem_blockaddr2_index_in_group(ext4_superblock_t *sb,
+		uint32_t block_addr)
+{
+	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+	uint32_t first_block = ext4_superblock_get_first_data_block(sb);
+
+	/* First block == 0 or 1 */
+	if (first_block == 0) {
+		return block_addr % blocks_per_group;
+	} else {
+		return (block_addr - 1) % blocks_per_group;
+	}
+}
+
+
+/** Convert relative block address in group to absolute address.
+ *
+ * @param sb			superblock pointer
+ * @param block_addr	block number to convert
+ * @return				absolute block address
+ */
+uint32_t ext4_filesystem_index_in_group2blockaddr(ext4_superblock_t *sb,
+		uint32_t index, uint32_t bgid)
+{
+	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
+
+	if (ext4_superblock_get_first_data_block(sb) == 0) {
+		return bgid * blocks_per_group + index;
+	} else {
+		return bgid * blocks_per_group + index + 1;
+	}
+
+}
+
+/** Initialize block bitmap in block group.
+ * 
+ * @param bg_ref	reference to block group
+ * @return			error code
+ */
+static int ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
+{
+	int rc;
+
+	/* Load bitmap */
+	uint32_t bitmap_block_addr = ext4_block_group_get_block_bitmap(
+			bg_ref->block_group, bg_ref->fs->superblock);
+	block_t *bitmap_block;
+
+	rc = block_get(&bitmap_block, bg_ref->fs->device,
+			bitmap_block_addr, BLOCK_FLAGS_NOREAD);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	uint8_t *bitmap = bitmap_block->data;
+
+	/* Initialize all bitmap bits to zero */
+	uint32_t block_size = ext4_superblock_get_block_size(bg_ref->fs->superblock);
+	memset(bitmap, 0, block_size);
+
+	/* Determine first block and first data block in group */
+	uint32_t first_idx = 0;
+
+	uint32_t first_data = ext4_balloc_get_first_data_block_in_group(
+			bg_ref->fs->superblock, bg_ref);
+	uint32_t first_data_idx = ext4_filesystem_blockaddr2_index_in_group(
+			bg_ref->fs->superblock, first_data);
+
+	/* Set bits from to first block to first data block - 1 to one (allocated) */
+	for (uint32_t block = first_idx; block < first_data_idx; ++block) {
+		ext4_bitmap_set_bit(bitmap, block);
+	}
+
+	bitmap_block->dirty = true;
+
+	/* Save bitmap */
+	rc = block_put(bitmap_block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return EOK;
+}
+
+/** Initialize i-node bitmap in block group.
+ * 
+ * @param bg_ref	reference to block group
+ * @return			error code
+ */
+static int ext4_filesystem_init_inode_bitmap(ext4_block_group_ref_t *bg_ref)
+{
+	int rc;
+
+	/* Load bitmap */
+	uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
+			bg_ref->block_group, bg_ref->fs->superblock);
+	block_t *bitmap_block;
+
+	rc = block_get(&bitmap_block, bg_ref->fs->device,
+			bitmap_block_addr, BLOCK_FLAGS_NOREAD);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	uint8_t *bitmap = bitmap_block->data;
+
+	/* Initialize all bitmap bits to zero */
+	uint32_t block_size = ext4_superblock_get_block_size(bg_ref->fs->superblock);
+	uint32_t inodes_per_group =
+			ext4_superblock_get_inodes_per_group(bg_ref->fs->superblock);
+	memset(bitmap, 0, (inodes_per_group + 7) / 8);
+
+	uint32_t start_bit = inodes_per_group;
+	uint32_t end_bit = block_size * 8;
+
+	uint32_t i;
+	for (i = start_bit; i < ((start_bit + 7) & ~7UL); i++) {
+		ext4_bitmap_set_bit(bitmap, i);
+	}
+
+	if (i < end_bit) {
+		memset(bitmap + (i >> 3), 0xff, (end_bit - i) >> 3);
+	}
+
+	bitmap_block->dirty = true;
+
+	/* Save bitmap */
+	rc = block_put(bitmap_block);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return EOK;
+}
+
+/** Initialize i-node table in block group.
+ * 
+ * @param bg_ref	reference to block group
+ * @return			error code
+ */static int ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
+{
+	int rc;
+
+	ext4_superblock_t *sb = bg_ref->fs->superblock;
+
+	uint32_t inode_size = ext4_superblock_get_inode_size(sb);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	uint32_t inodes_per_block = block_size / inode_size;
+
+	uint32_t inodes_in_group =
+			ext4_superblock_get_inodes_in_group(sb, bg_ref->index);
+
+	uint32_t table_blocks = inodes_in_group / inodes_per_block;
+
+	if (inodes_in_group % inodes_per_block) {
+		table_blocks++;
+	}
+
+	/* Compute initialization bounds */
+	uint32_t first_block = ext4_block_group_get_inode_table_first_block(
+			bg_ref->block_group, sb);
+
+	uint32_t last_block = first_block + table_blocks - 1;
+
+	/* Initialization of all itable blocks */
+	for (uint32_t fblock = first_block; fblock <= last_block; ++fblock) {
+		block_t *block;
+		rc = block_get(&block, bg_ref->fs->device, fblock, BLOCK_FLAGS_NOREAD);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		memset(block->data, 0, block_size);
+		block->dirty = true;
+
+		rc = block_put(block);
+		if (rc != EOK) {
+			return rc;
+		}
 	}
 
 	return EOK;
@@ -248,6 +444,54 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 	newref->dirty = false;
 
 	*ref = newref;
+
+	if (ext4_block_group_has_flag(newref->block_group,
+			EXT4_BLOCK_GROUP_BLOCK_UNINIT)) {
+
+		rc = ext4_filesystem_init_block_bitmap(newref);
+		if (rc != EOK) {
+			block_put(newref->block);
+			free(newref);
+			return rc;
+		}
+		ext4_block_group_clear_flag(newref->block_group,
+				EXT4_BLOCK_GROUP_BLOCK_UNINIT);
+
+		newref->dirty = true;
+	}
+
+	if (ext4_block_group_has_flag(newref->block_group,
+			EXT4_BLOCK_GROUP_INODE_UNINIT)) {
+
+		rc = ext4_filesystem_init_inode_bitmap(newref);
+		if (rc != EOK) {
+			block_put(newref->block);
+			free(newref);
+			return rc;
+		}
+
+		ext4_block_group_clear_flag(newref->block_group,
+				EXT4_BLOCK_GROUP_INODE_UNINIT);
+
+		ext4_block_group_set_itable_unused(newref->block_group,
+				newref->fs->superblock, 0);
+
+
+		if (! ext4_block_group_has_flag(newref->block_group,
+				EXT4_BLOCK_GROUP_ITABLE_ZEROED)) {
+
+			rc = ext4_filesystem_init_inode_table(newref);
+			if (rc != EOK) {
+				return rc;
+			}
+
+			ext4_block_group_set_flag(newref->block_group,
+					EXT4_BLOCK_GROUP_ITABLE_ZEROED);
+
+		}
+		newref->dirty = true;
+
+	}
 
 	return EOK;
 }
@@ -1167,9 +1411,6 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
  */
 int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
 {
-
-	EXT4FS_DBG("adding orphan \%u", inode_ref->index);
-
 	uint32_t next_orphan = ext4_superblock_get_last_orphan(
 			inode_ref->fs->superblock);
 
@@ -1191,9 +1432,6 @@ int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
  */
 int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
 {
-
-	EXT4FS_DBG("adding orphan \%u", inode_ref->index);
-
 	int rc;
 
 	/* Get head of the linked list */

@@ -140,14 +140,6 @@ int ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_dir)
 	ext4_block_group_set_free_inodes_count(bg_ref->block_group,
 			sb, free_inodes);
 
-	/* Set unused i-nodes count if supported */
-	if (ext4_block_group_has_flag(bg_ref->block_group, EXT4_BLOCK_GROUP_INODE_UNINIT)) {
-		uint32_t unused_inodes = ext4_block_group_get_itable_unused(
-				bg_ref->block_group, sb);
-		unused_inodes++;
-		ext4_block_group_set_itable_unused(bg_ref->block_group, sb, unused_inodes);
-	}
-
 	bg_ref->dirty = true;
 
 	/* Put back the modified block group */
@@ -239,13 +231,6 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 			/* Modify filesystem counters */
 			free_inodes--;
 			ext4_block_group_set_free_inodes_count(bg, sb, free_inodes);
-
-			/* Decrement unused i-nodes counter if supported */
-			if (ext4_block_group_has_flag(bg, EXT4_BLOCK_GROUP_INODE_UNINIT)) {
-				uint16_t unused_inodes = ext4_block_group_get_itable_unused(bg, sb);
-				unused_inodes--;
-				ext4_block_group_set_itable_unused(bg, sb, unused_inodes);
-			}
 
 			/* Increment used directories counter */
 			if (is_dir) {

@@ -39,46 +39,6 @@
 #include <sys/types.h>
 #include "libext4.h"
 
-/** Convert block address to relative index in block group.
- *
- * @param sb			superblock pointer
- * @param block_addr	block number to convert
- * @return				relative number of block
- */
-static uint32_t ext4_balloc_blockaddr2_index_in_group(ext4_superblock_t *sb,
-		uint32_t block_addr)
-{
-	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
-	uint32_t first_block = ext4_superblock_get_first_data_block(sb);
-
-	/* First block == 0 or 1 */
-	if (first_block == 0) {
-		return block_addr % blocks_per_group;
-	} else {
-		return (block_addr - 1) % blocks_per_group;
-	}
-}
-
-/** Convert relative block number to absolute.
- *
- * @param sb			superblock pointer
- * @param index			relative index of block in group
- * @param bgid			index of block group
- * @return				absolute number of block
- */
-static uint32_t ext4_balloc_index_in_group2blockaddr(ext4_superblock_t *sb,
-		uint32_t index, uint32_t bgid)
-{
-	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
-
-	if (ext4_superblock_get_first_data_block(sb) == 0) {
-		return bgid * blocks_per_group + index;
-	} else {
-		return bgid * blocks_per_group + index + 1;
-	}
-
-}
-
 /** Compute number of block group from block address.
  *
  * @param sb			superblock pointer
@@ -115,7 +75,8 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 
 	/* Compute indexes */
 	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, block_addr);
-	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(sb, block_addr);
+	uint32_t index_in_group =
+			ext4_filesystem_blockaddr2_index_in_group(sb, block_addr);
 
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
@@ -212,7 +173,7 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	}
 
 	uint32_t index_in_group_first =
-			ext4_balloc_blockaddr2_index_in_group(sb, first);
+			ext4_filesystem_blockaddr2_index_in_group(sb, first);
 
 
 	/* Load block with bitmap */
@@ -277,7 +238,7 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
  * @param bgid		index of block group
  * @return			absolute block index of first block
  */
-static uint32_t ext4_balloc_get_first_data_block_in_group(
+uint32_t ext4_balloc_get_first_data_block_in_group(
 		ext4_superblock_t *sb, ext4_block_group_ref_t *bg_ref)
 {
 	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
@@ -414,7 +375,8 @@ int ext4_balloc_alloc_block(
 
 	/* Load block group number for goal and relative index */
 	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, goal);
-	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(sb, goal);
+	uint32_t index_in_group =
+			ext4_filesystem_blockaddr2_index_in_group(sb, goal);
 
 
 	/* Load block group reference */
@@ -429,7 +391,7 @@ int ext4_balloc_alloc_block(
 	uint32_t first_in_group =
 			ext4_balloc_get_first_data_block_in_group(sb, bg_ref);
 
-	uint32_t first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
+	uint32_t first_in_group_index = ext4_filesystem_blockaddr2_index_in_group(
 			sb, first_in_group);
 
 	if (index_in_group < first_in_group_index) {
@@ -459,7 +421,7 @@ int ext4_balloc_alloc_block(
 			return rc;
 		}
 
-		allocated_block = ext4_balloc_index_in_group2blockaddr(
+		allocated_block = ext4_filesystem_index_in_group2blockaddr(
 							sb, index_in_group, block_group);
 
 		goto success;
@@ -485,7 +447,7 @@ int ext4_balloc_alloc_block(
 				return rc;
 			}
 
-			allocated_block = ext4_balloc_index_in_group2blockaddr(
+			allocated_block = ext4_filesystem_index_in_group2blockaddr(
 					sb, tmp_idx, block_group);
 
 			goto success;
@@ -503,7 +465,7 @@ int ext4_balloc_alloc_block(
 			return rc;
 		}
 
-		allocated_block = ext4_balloc_index_in_group2blockaddr(
+		allocated_block = ext4_filesystem_index_in_group2blockaddr(
 				sb, rel_block_idx, block_group);
 
 		goto success;
@@ -519,7 +481,7 @@ int ext4_balloc_alloc_block(
 			return rc;
 		}
 
-		allocated_block = ext4_balloc_index_in_group2blockaddr(
+		allocated_block = ext4_filesystem_index_in_group2blockaddr(
 				sb, rel_block_idx, block_group);
 
 		goto success;
@@ -556,11 +518,11 @@ int ext4_balloc_alloc_block(
 		/* Compute indexes */
 		first_in_group = ext4_balloc_get_first_data_block_in_group(
 				sb, bg_ref);
-		index_in_group = ext4_balloc_blockaddr2_index_in_group(sb,
+		index_in_group = ext4_filesystem_blockaddr2_index_in_group(sb,
 						first_in_group);
 		blocks_in_group = ext4_superblock_get_blocks_in_group(sb, bgid);
 
-		first_in_group_index = ext4_balloc_blockaddr2_index_in_group(
+		first_in_group_index = ext4_filesystem_blockaddr2_index_in_group(
 			sb, first_in_group);
 
 		if (index_in_group < first_in_group_index) {
@@ -577,7 +539,7 @@ int ext4_balloc_alloc_block(
 				return rc;
 			}
 
-			allocated_block = ext4_balloc_index_in_group2blockaddr(
+			allocated_block = ext4_filesystem_index_in_group2blockaddr(
 					sb, rel_block_idx, bgid);
 
 			goto success;
@@ -593,7 +555,7 @@ int ext4_balloc_alloc_block(
 				return rc;
 			}
 
-			allocated_block = ext4_balloc_index_in_group2blockaddr(
+			allocated_block = ext4_filesystem_index_in_group2blockaddr(
 					sb, rel_block_idx, bgid);
 
 			goto success;
@@ -655,7 +617,8 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref,
 
 	/* Compute indexes */
 	uint32_t block_group = ext4_balloc_get_bgid_of_block(sb, fblock);
-	uint32_t index_in_group = ext4_balloc_blockaddr2_index_in_group(sb, fblock);
+	uint32_t index_in_group =
+			ext4_filesystem_blockaddr2_index_in_group(sb, fblock);
 
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
