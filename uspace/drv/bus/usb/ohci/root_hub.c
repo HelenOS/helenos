@@ -565,8 +565,7 @@ int set_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 	if (port < 1 || port > instance->port_count)
 		return EINVAL;
 
-	switch (feature)
-	{
+	switch (feature) {
 	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
 		{
 			const uint32_t rhda =
@@ -586,7 +585,7 @@ int set_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
 		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
-		    "on port %zu.\n", port);
+		    "on port %"PRIu16".\n", port);
 		OHCI_WR(instance->registers->rh_port_status[port - 1],
 		    1 << feature);
 		return EOK;
@@ -648,7 +647,7 @@ int clear_feature_port(const rh_t *instance, uint16_t feature, uint16_t port)
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
-		    "C_SUSPEND, C_OC or C_RESET on port %zu.\n", port);
+		    "C_SUSPEND, C_OC or C_RESET on port %"PRIu16".\n", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(instance->registers->rh_port_status[port - 1],
 		    1 << feature);
