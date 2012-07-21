@@ -41,33 +41,57 @@ typedef struct {
 } irq_pio_range_t;
 
 typedef enum {
-	/** Read 1 byte from the I/O space. */
+	/** Read 1 byte from the I/O space.
+	 *
+	 * *addr(8) -> scratch[dstarg]
+	 */
 	CMD_PIO_READ_8 = 1,
-	/** Read 2 bytes from the I/O space. */
+	
+	/** Read 2 bytes from the I/O space.
+	 *
+	 * *addr(16) -> scratch[dstarg]
+	 */
 	CMD_PIO_READ_16,
-	/** Read 4 bytes from the I/O space. */
+	
+	/** Read 4 bytes from the I/O space.
+	 *
+	 * *addr(32) -> scratch[dstarg]
+	 */
 	CMD_PIO_READ_32,
 	
-	/** Write 1 byte to the I/O space. */
+	/** Write 1 byte to the I/O space.
+	 *
+	 * value(8) -> *addr
+	 */
 	CMD_PIO_WRITE_8,
-	/** Write 2 bytes to the I/O space. */
+	
+	/** Write 2 bytes to the I/O space.
+	 *
+	 * value(16) -> *addr
+	 */
 	CMD_PIO_WRITE_16,
-	/** Write 4 bytes to the I/O space. */
+	
+	/** Write 4 bytes to the I/O space.
+	 *
+	 * value(32) -> *addr
+	 */
 	CMD_PIO_WRITE_32,
 	
-	/**
-	 * Write 1 byte from the source argument
-	 * to the I/O space.
+	/** Write 1 byte to the I/O space.
+	 *
+	 * scratch[srcarg](8) -> *addr
 	 */
 	CMD_PIO_WRITE_A_8,
-	/**
-	 * Write 2 bytes from the source argument
-	 * to the I/O space.
+	
+	/** Write 2 bytes to the I/O space.
+	 *
+	 * scratch[srcarg](16) -> *addr
 	 */
 	CMD_PIO_WRITE_A_16,
-	/**
-	 * Write 4 bytes from the source argument
-	 * to the I/O space.
+	
+	/** Write 4 bytes to the I/O space.
+	 *
+	 * scratch[srcarg](32) -> *addr
 	 */
 	CMD_PIO_WRITE_A_32,
 	
@@ -77,10 +101,10 @@ typedef enum {
 	 */
 	CMD_BTEST,
 	
-	/**
-	 * Predicate the execution of the following
-	 * N commands by the boolean value of the source
-	 * argument.
+	/** Predicate the execution of the following commands.
+	 *
+	 * if (scratch[srcarg] == 0)
+	 *  (skip the following 'value' commands)
 	 */
 	CMD_PREDICATE,
 	
