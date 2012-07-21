@@ -38,16 +38,16 @@
  * This framework allows applications to register to receive a notification
  * when interrupt is detected. The application may provide a simple 'top-half'
  * handler as part of its registration, which can perform simple operations
- * (read/write port/memory, add information to notification ipc message).
+ * (read/write port/memory, add information to notification IPC message).
  *
  * The structure of a notification message is as follows:
  * - IMETHOD: interface and method as registered by
  *            the SYS_IRQ_REGISTER syscall
- * - ARG1: payload modified by a 'top-half' handler
- * - ARG2: payload modified by a 'top-half' handler
- * - ARG3: payload modified by a 'top-half' handler
- * - ARG4: payload modified by a 'top-half' handler
- * - ARG5: payload modified by a 'top-half' handler
+ * - ARG1: payload modified by a 'top-half' handler (scratch[1])
+ * - ARG2: payload modified by a 'top-half' handler (scratch[2])
+ * - ARG3: payload modified by a 'top-half' handler (scratch[3])
+ * - ARG4: payload modified by a 'top-half' handler (scratch[4])
+ * - ARG5: payload modified by a 'top-half' handler (scratch[5])
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *                  in multithreaded drivers)
  *
@@ -86,9 +86,7 @@
 
 static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 {
-	size_t i;
-
-	for (i = 0; i < rangecount; i++) {
+	for (size_t i = 0; i < rangecount; i++) {
 #ifdef IO_SPACE_BOUNDARY
 		if ((void *) ranges[i].base >= IO_SPACE_BOUNDARY)
 #endif
@@ -99,16 +97,13 @@ static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
     irq_cmd_t *cmds, size_t cmdcount)
 {
-	uintptr_t *pbase;
-	size_t i, j;
-
 	/* Copy the physical base addresses aside. */
-	pbase = malloc(rangecount * sizeof(uintptr_t), 0);
-	for (i = 0; i < rangecount; i++)
+	uintptr_t *pbase = malloc(rangecount * sizeof(uintptr_t), 0);
+	for (size_t i = 0; i < rangecount; i++)
 		pbase[i] = ranges[i].base;
-
+	
 	/* Map the PIO ranges into the kernel virtual address space. */
-	for (i = 0; i < rangecount; i++) {
+	for (size_t i = 0; i < rangecount; i++) {
 #ifdef IO_SPACE_BOUNDARY
 		if ((void *) ranges[i].base < IO_SPACE_BOUNDARY)
 			continue;
@@ -121,50 +116,50 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 			return ENOMEM;
 		}
 	}
-
+	
 	/* Rewrite the pseudocode addresses from physical to kernel virtual. */
-	for (i = 0; i < cmdcount; i++) {
+	for (size_t i = 0; i < cmdcount; i++) {
 		uintptr_t addr;
 		size_t size;
-
+		
 		/* Process only commands that use an address. */
 		switch (cmds[i].cmd) {
 		case CMD_PIO_READ_8:
-        	case CMD_PIO_WRITE_8:
-        	case CMD_PIO_WRITE_A_8:
+		case CMD_PIO_WRITE_8:
+		case CMD_PIO_WRITE_A_8:
 			size = 1;
 			break;
-        	case CMD_PIO_READ_16:
-        	case CMD_PIO_WRITE_16:
-        	case CMD_PIO_WRITE_A_16:
+		case CMD_PIO_READ_16:
+		case CMD_PIO_WRITE_16:
+		case CMD_PIO_WRITE_A_16:
 			size = 2;
 			break;
-        	case CMD_PIO_READ_32:
-        	case CMD_PIO_WRITE_32:
-        	case CMD_PIO_WRITE_A_32:
+		case CMD_PIO_READ_32:
+		case CMD_PIO_WRITE_32:
+		case CMD_PIO_WRITE_A_32:
 			size = 4;
 			break;
 		default:
 			/* Move onto the next command. */
 			continue;
 		}
-
+		
 		addr = (uintptr_t) cmds[i].addr;
 		
+		size_t j;
 		for (j = 0; j < rangecount; j++) {
-
 			/* Find the matching range. */
 			if (!iswithin(pbase[j], ranges[j].size, addr, size))
 				continue;
-
+			
 			/* Switch the command to a kernel virtual address. */
 			addr -= pbase[j];
 			addr += ranges[j].base;
-
+			
 			cmds[i].addr = (void *) addr;
 			break;
 		}
-
+		
 		if (j == rangecount) {
 			/*
 			 * The address used in this command is outside of all
@@ -175,7 +170,7 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 			return EINVAL;
 		}
 	}
-
+	
 	free(pbase);
 	return EOK;
 }
@@ -206,7 +201,7 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 {
 	irq_pio_range_t *ranges = NULL;
 	irq_cmd_t *cmds = NULL;
-
+	
 	irq_code_t *code = malloc(sizeof(*code), 0);
 	int rc = copy_from_uspace(code, ucode, sizeof(*code));
 	if (rc != EOK)
@@ -221,7 +216,7 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	    sizeof(code->ranges[0]) * code->rangecount);
 	if (rc != EOK)
 		goto error;
-
+	
 	cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, 0);
 	rc = copy_from_uspace(cmds, code->cmds,
 	    sizeof(code->cmds[0]) * code->cmdcount);
@@ -232,30 +227,33 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	    code->cmdcount);
 	if (rc != EOK)
 		goto error;
-
+	
 	code->ranges = ranges;
 	code->cmds = cmds;
-
+	
 	return code;
-
+	
 error:
 	if (cmds)
 		free(cmds);
+	
 	if (ranges)
 		free(ranges);
+	
 	free(code);
 	return NULL;
 }
 
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
- * @param box		Receiving answerbox.
- * @param inr		IRQ number.
- * @param devno		Device number.
- * @param imethod	Interface and method to be associated with the
- *			notification.
- * @param ucode		Uspace pointer to top-half pseudocode.
- * @return		EOK on success or a negative error code.
+ * @param box     Receiving answerbox.
+ * @param inr     IRQ number.
+ * @param devno   Device number.
+ * @param imethod Interface and method to be associated with the
+ *                notification.
+ * @param ucode   Uspace pointer to top-half pseudocode.
+ *
+ * @return EOK on success or a negative error code.
  *
  */
 int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
@@ -265,7 +263,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 		(sysarg_t) inr,
 		(sysarg_t) devno
 	};
-
+	
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
 	
@@ -328,10 +326,12 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 
 /** Unregister task from IRQ notification.
  *
- * @param box		Answerbox associated with the notification.
- * @param inr		IRQ number.
- * @param devno		Device number.
- * @return		EOK on success or a negative error code.
+ * @param box   Answerbox associated with the notification.
+ * @param inr   IRQ number.
+ * @param devno Device number.
+ *
+ * @return EOK on success or a negative error code.
+ *
  */
 int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 {
@@ -339,7 +339,7 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 		(sysarg_t) inr,
 		(sysarg_t) devno
 	};
-
+	
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
 	
@@ -435,13 +435,13 @@ loop:
 		
 		/* Remove from the hash table. */
 		hash_table_remove(&irq_uspace_hash_table, key, 2);
-
+		
 		/*
 		 * Release both locks so that we can free the pseudo code.
 		 */
 		irq_spinlock_unlock(&box->irq_lock, false);
 		irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
-
+		
 		code_free(irq->notif_cfg.code);
 		free(irq);
 		
@@ -581,7 +581,7 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 void ipc_irq_top_half_handler(irq_t *irq)
 {
 	ASSERT(irq);
-
+	
 	ASSERT(interrupts_disabled());
 	ASSERT(irq_spinlock_locked(&irq->lock));
 	
