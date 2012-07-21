@@ -48,17 +48,68 @@
 
 #define NAME  "ahci"
 
-/** Number of ticks for watchdog timer. */
-#define AHCI_TIMER_TICKS  800000
-
-/** Number of ticks for timer based interrupt. */
-#define AHCI_TIMER_NO_INTR_TICKS  8000
-
 #define LO(ptr) \
 	((uint32_t) (((uint64_t) ((uintptr_t) (ptr))) & 0xffffffff))
 
 #define HI(ptr) \
 	((uint32_t) (((uint64_t) ((uintptr_t) (ptr))) >> 32))
+
+/** Interrupt pseudocode for a single port
+ *
+ * The interrupt handling works as follows:
+ *
+ * 1. Port interrupt status register is read
+ *    (stored as arg2).
+ * 2. If port interrupt is indicated, then:
+ *    3. Port interrupt status register is cleared.
+ *    4. Global interrupt status register is read
+ *       and cleared (any potential interrupts from
+ *       other ports are reasserted automatically).
+ *    5. Port number is stored as arg1.
+ *    6. The interrupt is accepted.
+ *
+ */
+#define AHCI_PORT_CMDS(port) \
+	{ \
+		/* Read port interrupt status register */ \
+		.cmd = CMD_PIO_READ_32, \
+		.addr = NULL, \
+		.dstarg = 2 \
+	}, \
+	{ \
+		/* Check if port asserted interrupt */ \
+		.cmd = CMD_PREDICATE, \
+		.value = 5, \
+		.srcarg = 2, \
+	}, \
+	{ \
+		/* Clear port interrupt status register */ \
+		.cmd = CMD_PIO_WRITE_A_32, \
+		.addr = NULL, \
+		.srcarg = 2 \
+	}, \
+	{ \
+		/* Read global interrupt status register */ \
+		.cmd = CMD_PIO_READ_32, \
+		.addr = NULL, \
+		.dstarg = 0 \
+	}, \
+	{ \
+		/* Clear global interrupt status register */ \
+		.cmd = CMD_PIO_WRITE_A_32, \
+		.addr = NULL, \
+		.srcarg = 0 \
+	}, \
+	{ \
+		/* Indicate port interrupt assertion */ \
+		.cmd = CMD_LOAD, \
+		.value = (port), \
+		.dstarg = 1 \
+	}, \
+	{ \
+		/* Accept the interrupt */ \
+		.cmd = CMD_ACCEPT \
+	}
 
 static int ahci_get_sata_device_name(ddf_fun_t *, size_t, char *);
 static int ahci_get_num_blocks(ddf_fun_t *, uint64_t *);
@@ -242,26 +293,27 @@ static int ahci_write_blocks(ddf_fun_t *fun, uint64_t blocknum,
 /*-- AHCI Commands -----------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
-/** Get and clear AHCI port interrupt state register.
+/** Wait for interrupt event.
  *
  * @param sata SATA device structure.
  *
  * @return Value of interrupt state register.
  *
  */
-static ahci_port_is_t ahci_get_and_clear_pxis(sata_dev_t *sata)
+static ahci_port_is_t ahci_wait_event(sata_dev_t *sata)
 {
-	ahci_port_is_t pxis;
+	fibril_mutex_lock(&sata->event_lock);
 	
-	fibril_mutex_lock(&sata->pxis_lock);
+	while (sata->event_pxis == 0)
+		fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
 	
-	pxis.u32 = sata->ahci->memregs->ports[sata->port_num].pxis;
-	sata->ahci->memregs->ports[sata->port_num].pxis = pxis.u32;
+	ahci_port_is_t pxis = sata->event_pxis;
+	sata->event_pxis = 0;
 	
 	if (ahci_port_is_permanent_error(pxis))
 		sata->is_invalid_device = true;
 	
-	fibril_mutex_unlock(&sata->pxis_lock);
+	fibril_mutex_unlock(&sata->event_lock);
 	
 	return pxis;
 }
@@ -274,10 +326,6 @@ static ahci_port_is_t ahci_get_and_clear_pxis(sata_dev_t *sata)
  */
 static void ahci_identify_device_cmd(sata_dev_t *sata, void *phys)
 {
-	/* Clear interrupt state registers */
-	ahci_get_and_clear_pxis(sata);
-	sata->shadow_pxis.u32 = 0;
-	
 	volatile sata_std_command_frame_t *cmd =
 	    (sata_std_command_frame_t *) sata->cmd_table;
 	
@@ -307,7 +355,7 @@ static void ahci_identify_device_cmd(sata_dev_t *sata, void *phys)
 	sata->cmd_header->prdtl = 1;
 	sata->cmd_header->flags =
 	    AHCI_CMDHDR_FLAGS_CLEAR_BUSY_UPON_OK |
-	    AHCI_CMDHDR_FLAGS_2DWCMD; 
+	    AHCI_CMDHDR_FLAGS_2DWCMD;
 	sata->cmd_header->bytesprocessed = 0;
 	
 	/* Run command. */
@@ -323,11 +371,7 @@ static void ahci_identify_device_cmd(sata_dev_t *sata, void *phys)
  */
 static void ahci_identify_packet_device_cmd(sata_dev_t *sata, void *phys)
 {
-	/* Clear interrupt state registers */
-	ahci_get_and_clear_pxis(sata);
-	sata->shadow_pxis.u32 = 0;
-	
-	volatile sata_std_command_frame_t * cmd =
+	volatile sata_std_command_frame_t *cmd =
 	    (sata_std_command_frame_t *) sata->cmd_table;
 	
 	cmd->fis_type = SATA_CMD_FIS_TYPE;
@@ -354,7 +398,7 @@ static void ahci_identify_packet_device_cmd(sata_dev_t *sata, void *phys)
 	prdt->ioc = 0;
 	
 	sata->cmd_header->prdtl = 1;
-	sata->cmd_header->flags = 
+	sata->cmd_header->flags =
 	    AHCI_CMDHDR_FLAGS_CLEAR_BUSY_UPON_OK |
 	    AHCI_CMDHDR_FLAGS_2DWCMD;
 	sata->cmd_header->bytesprocessed = 0;
@@ -381,20 +425,19 @@ static int ahci_identify_device(sata_dev_t *sata)
 	
 	void *phys;
 	sata_identify_data_t *idata;
-	dmamem_map_anonymous(512, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    (void **) &idata);
-	bzero(idata, 512);
+	int rc = dmamem_map_anonymous(SATA_IDENTIFY_DEVICE_BUFFER_LENGTH,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, (void **) &idata);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Cannot allocate buffer to identify device.");
+		return rc;
+	}
+	
+	bzero(idata, SATA_IDENTIFY_DEVICE_BUFFER_LENGTH);
 	
 	fibril_mutex_lock(&sata->lock);
 	
 	ahci_identify_device_cmd(sata, phys);
-	
-	fibril_mutex_lock(&sata->event_lock);
-	fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
-	fibril_mutex_unlock(&sata->event_lock);
-	
-	ahci_port_is_t pxis = sata->shadow_pxis;
-	sata->shadow_pxis.u32 &= ~pxis.u32;
+	ahci_port_is_t pxis = ahci_wait_event(sata);
 	
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -404,13 +447,7 @@ static int ahci_identify_device(sata_dev_t *sata)
 	
 	if (ahci_port_is_tfes(pxis)) {
 		ahci_identify_packet_device_cmd(sata, phys);
-		
-		fibril_mutex_lock(&sata->event_lock);
-		fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
-		fibril_mutex_unlock(&sata->event_lock);
-		
-		pxis = sata->shadow_pxis;
-		sata->shadow_pxis.u32 &= ~pxis.u32;
+		pxis = ahci_wait_event(sata);
 		
 		if ((sata->is_invalid_device) || (ahci_port_is_error(pxis))) {
 			ddf_msg(LVL_ERROR,
@@ -440,7 +477,7 @@ static int ahci_identify_device(sata_dev_t *sata)
 			ddf_msg(LVL_ERROR,
 			    "%s: Sector length other than 512 B not supported",
 			    sata->model);
-			goto error; 	
+			goto error;
 		}
 		
 		if ((logsec & 0x0200) && ((logsec & 0x000f) != 0)) {
@@ -448,7 +485,7 @@ static int ahci_identify_device(sata_dev_t *sata)
 			ddf_msg(LVL_ERROR,
 			    "%s: Sector length other than 512 B not supported",
 			    sata->model);
-			goto error; 	
+			goto error;
 		}
 	}
 	
@@ -487,7 +524,7 @@ static int ahci_identify_device(sata_dev_t *sata)
 		    sata->model);
 		goto error;
 	} else {
-		for (unsigned int i = 0; i < 7; i++) {
+		for (uint8_t i = 0; i < 7; i++) {
 			if (udma_mask & (1 << i))
 				sata->highest_udma_mode = i;
 		}
@@ -514,10 +551,6 @@ error:
  */
 static void ahci_set_mode_cmd(sata_dev_t *sata, void* phys, uint8_t mode)
 {
-	/* Clear interrupt state registers */
-	ahci_get_and_clear_pxis(sata);
-	sata->shadow_pxis.u32 = 0;
-	
 	volatile sata_std_command_frame_t *cmd =
 	    (sata_std_command_frame_t *) sata->cmd_table;
 	
@@ -598,13 +631,7 @@ static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 	
 	uint8_t mode = 0x40 | (sata->highest_udma_mode & 0x07);
 	ahci_set_mode_cmd(sata, phys, mode);
-	
-	fibril_mutex_lock(&sata->event_lock);
-	fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
-	fibril_mutex_unlock(&sata->event_lock);
-	
-	ahci_port_is_t pxis = sata->shadow_pxis;
-	sata->shadow_pxis.u32 &= ~pxis.u32;
+	ahci_port_is_t pxis = ahci_wait_event(sata);
 	
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -640,10 +667,6 @@ error:
  */
 static void ahci_rb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
 {
-	/* Clear interrupt state registers */
-	ahci_get_and_clear_pxis(sata);
-	sata->shadow_pxis.u32 = 0;
-	
 	volatile sata_ncq_command_frame_t *cmd =
 	    (sata_ncq_command_frame_t *) sata->cmd_table;
 	
@@ -708,13 +731,7 @@ static int ahci_rb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
 	}
 	
 	ahci_rb_fpdma_cmd(sata, phys, blocknum);
-	
-	fibril_mutex_lock(&sata->event_lock);
-	fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
-	fibril_mutex_unlock(&sata->event_lock);
-	
-	ahci_port_is_t pxis = sata->shadow_pxis;
-	sata->shadow_pxis.u32 &= ~pxis.u32;
+	ahci_port_is_t pxis = ahci_wait_event(sata);
 	
 	if ((sata->is_invalid_device) || (ahci_port_is_error(pxis))) {
 		ddf_msg(LVL_ERROR,
@@ -736,11 +753,7 @@ static int ahci_rb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
  */
 static void ahci_wb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
 {
-	/* Clear interrupt state registers */
-	ahci_get_and_clear_pxis(sata);
-	sata->shadow_pxis.u32 = 0;
-	
-	volatile sata_ncq_command_frame_t * cmd =
+	volatile sata_ncq_command_frame_t *cmd =
 	    (sata_ncq_command_frame_t *) sata->cmd_table;
 	
 	cmd->fis_type = SATA_CMD_FIS_TYPE;
@@ -766,7 +779,7 @@ static void ahci_wb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
 	cmd->lba4 = (blocknum >> 32) & 0xff;
 	cmd->lba5 = (blocknum >> 40) & 0xff;
 	
-	volatile ahci_cmd_prdt_t * prdt =
+	volatile ahci_cmd_prdt_t *prdt =
 	    (ahci_cmd_prdt_t *) (&sata->cmd_table[0x20]);
 	
 	prdt->data_address_low = LO(phys);
@@ -805,13 +818,7 @@ static int ahci_wb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
 	}
 	
 	ahci_wb_fpdma_cmd(sata, phys, blocknum);
-	
-	fibril_mutex_lock(&sata->event_lock);
-	fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
-	fibril_mutex_unlock(&sata->event_lock);
-	
-	ahci_port_is_t pxis = sata->shadow_pxis;
-	sata->shadow_pxis.u32 &= ~pxis.u32;
+	ahci_port_is_t pxis = ahci_wait_event(sata);
 	
 	if ((sata->is_invalid_device) || (ahci_port_is_error(pxis))) {
 		ddf_msg(LVL_ERROR,
@@ -823,110 +830,50 @@ static int ahci_wb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
 }
 
 /*----------------------------------------------------------------------------*/
-/*-- Interrupts and timer unified handling -----------------------------------*/
+/*-- Interrupts handling -----------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
 static irq_pio_range_t ahci_ranges[] = {
 	{
 		.base = 0,
-		.size = 32,
+		.size = 0,
 	}
 };
 
 static irq_cmd_t ahci_cmds[] = {
-	{
-		/* Disable interrupt - interrupt is deasserted in qemu 1.0.1 */
-		.cmd = CMD_PIO_WRITE_32,
-		.addr = NULL,
-		.value = AHCI_GHC_GHC_AE
-	},
-	{
-		.cmd = CMD_PIO_READ_32,
-		.addr = NULL,
-		.dstarg = 1
-	},
-	{
-		/* Clear interrupt status register - for vbox and real hw */
-		.cmd = CMD_PIO_WRITE_A_32,
-		.addr = NULL,
-		.srcarg = 1
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
+	AHCI_PORT_CMDS(0),
+	AHCI_PORT_CMDS(1),
+	AHCI_PORT_CMDS(2),
+	AHCI_PORT_CMDS(3),
+	AHCI_PORT_CMDS(4),
+	AHCI_PORT_CMDS(5),
+	AHCI_PORT_CMDS(6),
+	AHCI_PORT_CMDS(7),
+	AHCI_PORT_CMDS(8),
+	AHCI_PORT_CMDS(9),
+	AHCI_PORT_CMDS(10),
+	AHCI_PORT_CMDS(11),
+	AHCI_PORT_CMDS(12),
+	AHCI_PORT_CMDS(13),
+	AHCI_PORT_CMDS(14),
+	AHCI_PORT_CMDS(15),
+	AHCI_PORT_CMDS(16),
+	AHCI_PORT_CMDS(17),
+	AHCI_PORT_CMDS(18),
+	AHCI_PORT_CMDS(19),
+	AHCI_PORT_CMDS(20),
+	AHCI_PORT_CMDS(21),
+	AHCI_PORT_CMDS(22),
+	AHCI_PORT_CMDS(23),
+	AHCI_PORT_CMDS(24),
+	AHCI_PORT_CMDS(25),
+	AHCI_PORT_CMDS(26),
+	AHCI_PORT_CMDS(27),
+	AHCI_PORT_CMDS(28),
+	AHCI_PORT_CMDS(29),
+	AHCI_PORT_CMDS(30),
+	AHCI_PORT_CMDS(31)
 };
-
-/** Unified AHCI interrupt and timer interrupt handler.
- *
- * @param ahci     AHCI device.
- * @param is_timer Indicate timer interrupt.
- *
- */
-static void ahci_interrupt_or_timer(ahci_dev_t *ahci, bool is_timer)
-{
-	/*
-	 * Get current value of hardware interrupt state register,
-	 * clear hardware register (write to clear behavior).
-	 */
-	ahci_ghc_is_t is;
-	
-	is.u32 = ahci->memregs->ghc.is;
-	ahci->memregs->ghc.is = is.u32;
-	
-	if (!is_timer)
-		ahci->is_hw_interrupt = true;
-	else if (is.u32)
-		ahci->is_hw_interrupt = false;
-	
-	uint32_t port_event_flags = 0;
-	uint32_t port_mask = 1;
-	for (unsigned int i = 0; i < 32; i++) {
-		sata_dev_t *sata = (sata_dev_t *) ahci->sata_devs[i];
-		if (sata != NULL) {
-			ahci_port_is_t pxis = ahci_get_and_clear_pxis(sata);
-			
-			/* Add value to shadow copy of port interrupt state register. */
-			sata->shadow_pxis.u32 |= pxis.u32;
-			
-			/* Evaluate port event. */
-			if ((ahci_port_is_end_of_operation(pxis)) ||
-			    (ahci_port_is_error(pxis)))
-				port_event_flags |= port_mask;
-		}
-		
-		port_mask <<= 1;
-	}
-	
-	port_mask = 1;
-	for (unsigned int i = 0; i < 32; i++) {
-		sata_dev_t *sata = (sata_dev_t *) ahci->sata_devs[i];
-		if ((port_event_flags & port_mask) && (sata != NULL)) {
-			fibril_mutex_lock(&sata->event_lock);
-			fibril_condvar_signal(&sata->event_condvar);
-			fibril_mutex_unlock(&sata->event_lock);
-		}
-		
-		port_mask <<= 1;
-	}
-}
-
-/** AHCI timer interrupt handler.
- *
- * @param arg AHCI device.
- *
- */
-static void ahci_timer(void *arg)
-{
-	ahci_dev_t *ahci = (ahci_dev_t *) arg;
-	
-	ahci_interrupt_or_timer(ahci, 1);
-	
-	if (ahci->is_hw_interrupt)
-		fibril_timer_set(ahci->timer, AHCI_TIMER_TICKS, ahci_timer, ahci);
-	else
-		fibril_timer_set(ahci->timer, AHCI_TIMER_NO_INTR_TICKS,
-		    ahci_timer, ahci);
-}
 
 /** AHCI interrupt handler.
  *
@@ -938,11 +885,26 @@ static void ahci_timer(void *arg)
 static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
 	ahci_dev_t *ahci = (ahci_dev_t *) dev->driver_data;
+	unsigned int port = IPC_GET_ARG1(*icall);
+	ahci_port_is_t pxis = IPC_GET_ARG2(*icall);
 	
-	ahci_interrupt_or_timer(ahci, 0);
+	if (port >= AHCI_MAX_PORTS)
+		return;
 	
-	/* Enable interrupt. */
-	ahci->memregs->ghc.ghc |= AHCI_GHC_GHC_IE;
+	sata_dev_t *sata = (sata_dev_t *) ahci->sata_devs[port];
+	if (sata == NULL)
+		return;
+	
+	/* Evaluate port event */
+	if ((ahci_port_is_end_of_operation(pxis)) ||
+	    (ahci_port_is_error(pxis))) {
+		fibril_mutex_lock(&sata->event_lock);
+		
+		sata->event_pxis = pxis;
+		fibril_condvar_signal(&sata->event_condvar);
+		
+		fibril_mutex_unlock(&sata->event_lock);
+	}
 }
 
 /*----------------------------------------------------------------------------*/
@@ -950,7 +912,7 @@ static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 /*----------------------------------------------------------------------------*/
 
 /** Allocate SATA device structure with buffers for hardware.
- * 
+ *
  * @param port AHCI port structure
  *
  * @return SATA device structure if succeed, NULL otherwise.
@@ -959,10 +921,10 @@ static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 static sata_dev_t *ahci_sata_allocate(volatile ahci_port_t *port)
 {
 	size_t size = 4096;
-	void* phys = NULL;
-	void* virt_fb = NULL;
-	void* virt_cmd = NULL;
-	void* virt_table = NULL;
+	void *phys = NULL;
+	void *virt_fb = NULL;
+	void *virt_cmd = NULL;
+	void *virt_table = NULL;
 	
 	sata_dev_t *sata = malloc(sizeof(sata_dev_t));
 	if (sata == NULL)
@@ -1053,7 +1015,7 @@ static void ahci_sata_hw_start(sata_dev_t *sata)
 }
 
 /** Create and initialize connected SATA structure device
- * 
+ *
  * @param ahci     AHCI device structure.
  * @param dev      DDF device structure.
  * @param port     AHCI port structure.
@@ -1077,12 +1039,11 @@ static int ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
 	
 	/* Initialize synchronization structures */
 	fibril_mutex_initialize(&sata->lock);
-	fibril_mutex_initialize(&sata->pxis_lock);
 	fibril_mutex_initialize(&sata->event_lock);
 	fibril_condvar_initialize(&sata->event_condvar);
-
+	
 	ahci_sata_hw_start(sata);
-
+	
 	/* Identify device. */
 	if (ahci_identify_device(sata) != EOK)
 		goto error;
@@ -1149,7 +1110,7 @@ static void ahci_sata_devices_create(ahci_dev_t *ahci, ddf_dev_t *dev)
 }
 
 /** Create AHCI device structure, intialize it and register interrupt routine.
- *  
+ *
  * @param dev DDF device structure.
  *
  * @return AHCI device structure if succeed, NULL otherwise.
@@ -1164,11 +1125,6 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	bzero(ahci, sizeof(ahci_dev_t));
 	
 	ahci->dev = dev;
-
-	/* Create timer for AHCI. */
-	ahci->timer = fibril_timer_create();
-	if (ahci->timer == NULL)
-		goto error_create_timer;
 	
 	hw_res_list_parsed_t hw_res_parsed;
 	hw_res_list_parsed_init(&hw_res_parsed);
@@ -1186,15 +1142,22 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	
 	/* Register interrupt handler */
 	ahci_ranges[0].base = (size_t) hw_res_parsed.mem_ranges.ranges[0].address;
-	ahci_ranges[0].size = sizeof(ahci_dev_t);
+	ahci_ranges[0].size = sizeof(ahci_memregs_t);
 	
-	ahci_cmds[0].addr =
-	    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
-	    AHCI_GHC_GHC_REGISTER_OFFSET;
-	ahci_cmds[1].addr =
-	    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
-	    AHCI_GHC_IS_REGISTER_OFFSET;
-	ahci_cmds[2].addr = ahci_cmds[1].addr;
+	for (unsigned int port = 0; port < AHCI_MAX_PORTS; port++) {
+		size_t base = port * 7;
+		
+		ahci_cmds[base].addr =
+		    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
+		    AHCI_PORTS_REGISTERS_OFFSET + port * AHCI_PORT_REGISTERS_SIZE +
+		    AHCI_PORT_IS_REGISTER_OFFSET;
+		ahci_cmds[base + 2].addr = ahci_cmds[base].addr;
+		
+		ahci_cmds[base + 3].addr =
+		    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
+		    AHCI_GHC_IS_REGISTER_OFFSET;
+		ahci_cmds[base + 4].addr = ahci_cmds[base + 3].addr;
+	}
 	
 	irq_code_t ct;
 	ct.cmdcount = sizeof(ahci_cmds) / sizeof(irq_cmd_t);
@@ -1204,9 +1167,8 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	
 	int rc = register_interrupt_handler(dev, hw_res_parsed.irqs.irqs[0],
 	    ahci_interrupt, &ct);
-	
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed register_interrupt_handler function.");
+		ddf_msg(LVL_ERROR, "Failed registering interrupt handler.");
 		goto error_register_interrupt_handler;
 	}
 	
@@ -1229,9 +1191,6 @@ error_map_registers:
 	hw_res_list_parsed_clean(&hw_res_parsed);
 	
 error_get_res_parsed:
-	fibril_timer_destroy(ahci->timer);
-	
-error_create_timer:
 	free(ahci);
 	return NULL;
 }
@@ -1248,7 +1207,7 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
 	
 	ccc.u32 = ahci->memregs->ghc.ccc_ctl;
 	ccc.en = 0;
-	ahci->memregs->ghc.ccc_ctl = ccc.u32;	
+	ahci->memregs->ghc.ccc_ctl = ccc.u32;
 	
 	/* Set master latency timer. */
 	pci_config_space_write_8(ahci->dev->parent_sess, AHCI_PCI_MLT, 32);
@@ -1262,7 +1221,7 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
 	pci_config_space_write_16(ahci->dev->parent_sess, AHCI_PCI_CMD, cmd.u16);
 	
 	/* Enable AHCI and interrupt. */
-	ahci->memregs->ghc.ghc = AHCI_GHC_GHC_AE | AHCI_GHC_GHC_IE; 
+	ahci->memregs->ghc.ghc = AHCI_GHC_GHC_AE | AHCI_GHC_GHC_IE;
 }
 
 /** AHCI device driver initialization
@@ -1289,8 +1248,7 @@ static int ahci_dev_add(ddf_dev_t *dev)
 	
 	dev->driver_data = ahci;
 	
-	/* Set timer and AHCI hardware start. */
-	fibril_timer_set(ahci->timer, AHCI_TIMER_TICKS, ahci_timer, ahci);
+	/* Start AHCI hardware. */
 	ahci_ahci_hw_start(ahci);
 	
 	/* Create device structures for sata devices attached to AHCI. */
