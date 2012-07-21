@@ -95,11 +95,17 @@ typedef enum {
 	 */
 	CMD_PIO_WRITE_A_32,
 	
-	/**
-	 * Perform a bit masking on the source argument
-	 * and store the result into the destination argument.
+	/** Load value.
+	 *
+	 * value -> scratch[dstarg]
 	 */
-	CMD_BTEST,
+	CMD_LOAD,
+	
+	/** Perform bitwise conjunction.
+	 *
+	 * scratch[srcarg] & value -> scratch[dstarg]
+	 */
+	CMD_AND,
 	
 	/** Predicate the execution of the following commands.
 	 *

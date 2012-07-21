@@ -175,6 +175,46 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 	return EOK;
 }
 
+/** Statically check the top-half pseudocode
+ *
+ * Check the top-half pseudocode for invalid or unsafe
+ * constructs.
+ *
+ */
+static int code_check(irq_cmd_t *cmds, size_t cmdcount)
+{
+	for (size_t i = 0; i < cmdcount; i++) {
+		/*
+		 * Check for accepted ranges.
+		 */
+		if (cmds[i].cmd >= CMD_LAST)
+			return EINVAL;
+		
+		if (cmds[i].srcarg >= IPC_CALL_LEN)
+			return EINVAL;
+		
+		if (cmds[i].dstarg >= IPC_CALL_LEN)
+			return EINVAL;
+		
+		switch (cmds[i].cmd) {
+		case CMD_PREDICATE:
+			/*
+			 * Check for control flow overflow.
+			 * Note that jumping just beyond the last
+			 * command is a correct behaviour.
+			 */
+			if (i + cmds[i].value > cmdcount)
+				return EINVAL;
+			
+			break;
+		default:
+			break;
+		}
+	}
+	
+	return EOK;
+}
+
 /** Free the top-half pseudocode.
  *
  * @param code Pointer to the top-half pseudocode.
@@ -222,7 +262,11 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	    sizeof(code->cmds[0]) * code->cmdcount);
 	if (rc != EOK)
 		goto error;
-
+	
+	rc = code_check(cmds, code->cmdcount);
+	if (rc != EOK)
+		goto error;
+	
 	rc = ranges_map_and_apply(ranges, code->rangecount, cmds,
 	    code->cmdcount);
 	if (rc != EOK)
@@ -491,32 +535,21 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 		return IRQ_DECLINE;
 	
 	for (size_t i = 0; i < code->cmdcount; i++) {
-		uint32_t dstval;
-		
 		uintptr_t srcarg = code->cmds[i].srcarg;
 		uintptr_t dstarg = code->cmds[i].dstarg;
 		
-		if (srcarg >= IPC_CALL_LEN)
-			break;
-		
-		if (dstarg >= IPC_CALL_LEN)
-			break;
-	
 		switch (code->cmds[i].cmd) {
 		case CMD_PIO_READ_8:
-			dstval = pio_read_8((ioport8_t *) code->cmds[i].addr);
-			if (dstarg)
-				scratch[dstarg] = dstval;
+			scratch[dstarg] =
+			    pio_read_8((ioport8_t *) code->cmds[i].addr);
 			break;
 		case CMD_PIO_READ_16:
-			dstval = pio_read_16((ioport16_t *) code->cmds[i].addr);
-			if (dstarg)
-				scratch[dstarg] = dstval;
+			scratch[dstarg] =
+			    pio_read_16((ioport16_t *) code->cmds[i].addr);
 			break;
 		case CMD_PIO_READ_32:
-			dstval = pio_read_32((ioport32_t *) code->cmds[i].addr);
-			if (dstarg)
-				scratch[dstarg] = dstval;
+			scratch[dstarg] =
+			    pio_read_32((ioport32_t *) code->cmds[i].addr);
 			break;
 		case CMD_PIO_WRITE_8:
 			pio_write_8((ioport8_t *) code->cmds[i].addr,
@@ -531,34 +564,28 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			    (uint32_t) code->cmds[i].value);
 			break;
 		case CMD_PIO_WRITE_A_8:
-			if (srcarg) {
-				pio_write_8((ioport8_t *) code->cmds[i].addr,
-				    (uint8_t) scratch[srcarg]);
-			}
+			pio_write_8((ioport8_t *) code->cmds[i].addr,
+			    (uint8_t) scratch[srcarg]);
 			break;
 		case CMD_PIO_WRITE_A_16:
-			if (srcarg) {
-				pio_write_16((ioport16_t *) code->cmds[i].addr,
-				    (uint16_t) scratch[srcarg]);
-			}
+			pio_write_16((ioport16_t *) code->cmds[i].addr,
+			    (uint16_t) scratch[srcarg]);
 			break;
 		case CMD_PIO_WRITE_A_32:
-			if (srcarg) {
-				pio_write_32((ioport32_t *) code->cmds[i].addr,
-				    (uint32_t) scratch[srcarg]);
-			}
+			pio_write_32((ioport32_t *) code->cmds[i].addr,
+			    (uint32_t) scratch[srcarg]);
 			break;
-		case CMD_BTEST:
-			if ((srcarg) && (dstarg)) {
-				dstval = scratch[srcarg] & code->cmds[i].value;
-				scratch[dstarg] = dstval;
-			}
+		case CMD_LOAD:
+			scratch[dstarg] = code->cmds[i].value;
+			break;
+		case CMD_AND:
+			scratch[dstarg] = scratch[srcarg] &
+			    code->cmds[i].value;
 			break;
 		case CMD_PREDICATE:
-			if ((srcarg) && (!scratch[srcarg])) {
+			if (scratch[srcarg] == 0)
 				i += code->cmds[i].value;
-				continue;
-			}
+			
 			break;
 		case CMD_ACCEPT:
 			return IRQ_ACCEPT;

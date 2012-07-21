@@ -119,7 +119,7 @@ static const irq_cmd_t i8042_cmds[] = {
 		.dstarg = 1
 	},
 	{
-		.cmd = CMD_BTEST,
+		.cmd = CMD_AND,
 		.value = i8042_OUTPUT_FULL,
 		.srcarg = 1,
 		.dstarg = 3
