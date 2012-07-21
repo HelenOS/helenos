@@ -304,11 +304,11 @@ static ahci_port_is_t ahci_wait_event(sata_dev_t *sata)
 {
 	fibril_mutex_lock(&sata->event_lock);
 	
+	sata->event_pxis = 0;
 	while (sata->event_pxis == 0)
 		fibril_condvar_wait(&sata->event_condvar, &sata->event_lock);
 	
 	ahci_port_is_t pxis = sata->event_pxis;
-	sata->event_pxis = 0;
 	
 	if (ahci_port_is_permanent_error(pxis))
 		sata->is_invalid_device = true;
