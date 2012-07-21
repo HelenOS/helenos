@@ -909,8 +909,15 @@ static int ext4fs_mounted(service_id_t service_id, const char *opts,
 		return ENOMEM;
 	}
 
+	enum cache_mode cmode;
+	if (str_cmp(opts, "wtcache") == 0) {
+		cmode = CACHE_MODE_WT;
+	} else {
+		cmode = CACHE_MODE_WB;
+	}
+
 	/* Initialize the filesystem */
-	rc = ext4_filesystem_init(fs, service_id);
+	rc = ext4_filesystem_init(fs, service_id, cmode);
 	if (rc != EOK) {
 		free(fs);
 		free(inst);

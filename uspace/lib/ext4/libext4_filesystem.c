@@ -46,7 +46,8 @@
  * @param service_id		identifier if device with the filesystem
  * @return					error code
  */
-int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
+int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
+		enum cache_mode cmode)
 {
 	int rc;
 
@@ -74,7 +75,7 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	}
 
 	/* Initialize block caching by libblock */
-	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WB);
+	rc = block_cache_init(service_id, block_size, 0, cmode);
 	if (rc != EOK) {
 		block_fini(fs->device);
 		return rc;
@@ -135,6 +136,7 @@ int ext4_filesystem_fini(ext4_filesystem_t *fs)
 	free(fs->superblock);
 
 	/* Finish work with block library */
+	block_cache_fini(fs->device);
 	block_fini(fs->device);
 
 	return rc;
@@ -876,6 +878,18 @@ finish:
 
 	/* Mark inode dirty for writing to the physical device */
 	inode_ref->dirty = true;
+
+	/* Free block with extended attributes if present */
+	uint32_t xattr_block = ext4_inode_get_file_acl(
+			inode_ref->inode, fs->superblock);
+	if (xattr_block) {
+		rc = ext4_balloc_free_block(inode_ref, xattr_block);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		ext4_inode_set_file_acl(inode_ref->inode, fs->superblock, 0);
+	}
 
 	/* Free inode by allocator */
 	if (ext4_inode_is_type(fs->superblock, inode_ref->inode,

@@ -36,7 +36,8 @@
 #include <libblock.h>
 #include "libext4_types.h"
 
-extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t);
+extern int ext4_filesystem_init(ext4_filesystem_t *,
+		service_id_t, enum cache_mode);
 extern int ext4_filesystem_fini(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_sanity(ext4_filesystem_t *fs);
 extern int ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
