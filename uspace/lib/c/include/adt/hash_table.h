@@ -90,12 +90,13 @@ extern bool hash_table_create(hash_table_t *, size_t, size_t,
 extern void hash_table_clear(hash_table_t *);
 extern void hash_table_insert(hash_table_t *, link_t *);
 extern bool hash_table_insert_unique(hash_table_t *, link_t *);
-extern link_t *hash_table_find(hash_table_t *, unsigned long []);
+extern link_t *hash_table_find(const hash_table_t *, unsigned long []);
 extern size_t hash_table_remove(hash_table_t *, unsigned long [], size_t);
 extern void hash_table_remove_item(hash_table_t *, link_t *);
 extern void hash_table_destroy(hash_table_t *);
 extern void hash_table_apply(hash_table_t *, bool (*)(link_t *, void *), 
 	void *);
+
 
 #endif
 

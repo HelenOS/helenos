@@ -218,7 +218,7 @@ bool hash_table_insert_unique(hash_table_t *h, link_t *item)
  * @return Matching item on success, NULL if there is no such item.
  *
  */
-link_t *hash_table_find(hash_table_t *h, unsigned long key[])
+link_t *hash_table_find(const hash_table_t *h, unsigned long key[])
 {
 	assert(h && h->bucket);
 	assert(h->op && h->op->key_hash && h->op->match);
