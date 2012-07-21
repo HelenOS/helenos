@@ -59,7 +59,6 @@ static uint32_t ext4_balloc_get_bgid_of_block(ext4_superblock_t *sb,
 	}
 }
 
-
 /** Free block.
  *
  * @param inode_ref			inode, where the block is allocated
@@ -82,7 +81,6 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bg_ref \%d", rc);
 		return rc;
 	}
 
@@ -92,7 +90,6 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bitmap \%d", rc);
 		return rc;
 	}
 
@@ -106,7 +103,6 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	if (rc != EOK) {
 		/* Error in saving bitmap */
 		ext4_filesystem_put_block_group_ref(bg_ref);
-		EXT4FS_DBG("error in saving bitmap \%d", rc);
 		return rc;
 	}
 
@@ -134,7 +130,6 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	/* Release block group reference */
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in saving bg_ref \%d", rc);
 		return rc;
 	}
 
@@ -168,7 +163,6 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group_first, &bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bg_ref \%d", rc);
 		return rc;
 	}
 
@@ -183,7 +177,6 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bitmap \%d", rc);
 		return rc;
 	}
 
@@ -196,7 +189,6 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	if (rc != EOK) {
 		/* Error in saving bitmap */
 		ext4_filesystem_put_block_group_ref(bg_ref);
-		EXT4FS_DBG("error in saving bitmap \%d", rc);
 		return rc;
 	}
 
@@ -224,7 +216,6 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	/* Release block group reference */
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in saving bg_ref \%d", rc);
 		return rc;
 	}
 
@@ -367,7 +358,6 @@ int ext4_balloc_alloc_block(
 	uint32_t goal = ext4_balloc_find_goal(inode_ref);
 	if (goal == 0) {
 		/* no goal found => partition is full */
-		EXT4FS_DBG("ERROR (goal == 0)");
 		return ENOSPC;
 	}
 
@@ -383,7 +373,6 @@ int ext4_balloc_alloc_block(
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(inode_ref->fs, block_group, &bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("initial BG ref not loaded");
 		return rc;
 	}
 
@@ -406,7 +395,6 @@ int ext4_balloc_alloc_block(
 			bitmap_block_addr, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		ext4_filesystem_put_block_group_ref(bg_ref);
-		EXT4FS_DBG("initial bitmap not loaded");
 		return rc;
 	}
 
@@ -416,7 +404,6 @@ int ext4_balloc_alloc_block(
 		bitmap_block->dirty = true;
 		rc = block_put(bitmap_block);
 		if (rc != EOK) {
-			EXT4FS_DBG("goal check: error in saving bitmap \%d", rc);
 			ext4_filesystem_put_block_group_ref(bg_ref);
 			return rc;
 		}
@@ -443,7 +430,6 @@ int ext4_balloc_alloc_block(
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
 			if (rc != EOK) {
-				EXT4FS_DBG("near blocks: error in saving initial bitmap \%d", rc);
 				return rc;
 			}
 
@@ -461,7 +447,6 @@ int ext4_balloc_alloc_block(
 		bitmap_block->dirty = true;
 		rc = block_put(bitmap_block);
 		if (rc != EOK) {
-			EXT4FS_DBG("free byte: error in saving initial bitmap \%d", rc);
 			return rc;
 		}
 
@@ -477,7 +462,6 @@ int ext4_balloc_alloc_block(
 		bitmap_block->dirty = true;
 		rc = block_put(bitmap_block);
 		if (rc != EOK) {
-			EXT4FS_DBG("free bit: error in saving initial bitmap \%d", rc);
 			return rc;
 		}
 
@@ -500,7 +484,6 @@ int ext4_balloc_alloc_block(
 	while (count > 0) {
 		rc = ext4_filesystem_get_block_group_ref(inode_ref->fs, bgid, &bg_ref);
 		if (rc != EOK) {
-			EXT4FS_DBG("ERROR: unable to load block group \%u", bgid);
 			return rc;
 		}
 
@@ -511,7 +494,6 @@ int ext4_balloc_alloc_block(
 		rc = block_get(&bitmap_block, inode_ref->fs->device, bitmap_block_addr, 0);
 		if (rc != EOK) {
 			ext4_filesystem_put_block_group_ref(bg_ref);
-			EXT4FS_DBG("ERROR: unable to load bitmap block");
 			return rc;
 		}
 
@@ -530,12 +512,12 @@ int ext4_balloc_alloc_block(
 		}
 
 		/* Try to find free byte in bitmap */
-		rc = ext4_bitmap_find_free_byte_and_set_bit(bitmap_block->data, index_in_group, &rel_block_idx, blocks_in_group);
+		rc = ext4_bitmap_find_free_byte_and_set_bit(bitmap_block->data,
+				index_in_group, &rel_block_idx, blocks_in_group);
 		if (rc == EOK) {
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
 			if (rc != EOK) {
-				EXT4FS_DBG("ERROR: unable to save bitmap block");
 				return rc;
 			}
 
@@ -551,7 +533,6 @@ int ext4_balloc_alloc_block(
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
 			if (rc != EOK) {
-				EXT4FS_DBG("ERROR: unable to save bitmap block");
 				return rc;
 			}
 
@@ -624,7 +605,6 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref,
 	ext4_block_group_ref_t *bg_ref;
 	rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bg_ref \%d", rc);
 		return rc;
 	}
 
@@ -634,7 +614,6 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref,
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in loading bitmap \%d", rc);
 		return rc;
 	}
 
@@ -652,7 +631,6 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref,
 	if (rc != EOK) {
 		/* Error in saving bitmap */
 		ext4_filesystem_put_block_group_ref(bg_ref);
-		EXT4FS_DBG("error in saving bitmap \%d", rc);
 		return rc;
 	}
 
@@ -686,7 +664,6 @@ terminate:
 
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in saving bg_ref \%d", rc);
 		return rc;
 	}
 

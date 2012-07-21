@@ -243,7 +243,6 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 
 			rc = ext4_filesystem_put_block_group_ref(bg_ref);
 			if (rc != EOK) {
-				EXT4FS_DBG("ERROR: unable to put block group reference");
 				return rc;
 			}
 

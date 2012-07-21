@@ -63,11 +63,6 @@ extern int ext4_filesystem_release_inode_block(
 extern int ext4_filesystem_append_inode_block(ext4_inode_ref_t *,
 		uint32_t *, uint32_t *);
 
-extern int ext4_filesystem_add_orphan(ext4_inode_ref_t *);
-extern int ext4_filesystem_delete_orphan(ext4_inode_ref_t *);
-
-extern uint16_t ext4_group_desc_csum(ext4_superblock_t *, uint32_t,
-		ext4_block_group_t *);
 #endif
 
 /**

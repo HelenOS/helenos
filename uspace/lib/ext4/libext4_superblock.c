@@ -1080,8 +1080,6 @@ int ext4_superblock_check_sanity(ext4_superblock_t *sb)
 		return ENOTSUP;
 	}
 
-	// TODO more checks !!!
-
 	return EOK;
 }
 

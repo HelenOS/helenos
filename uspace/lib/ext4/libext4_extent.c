@@ -505,7 +505,6 @@ static int ext4_extent_release(
 
 	rc = ext4_balloc_free_blocks(inode_ref, start, block_count);
 	if (rc != EOK) {
-		EXT4FS_DBG("Error in releasing data blocks");
 		return rc;
 	}
 
@@ -533,7 +532,6 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 
 	rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
-		EXT4FS_DBG("ERROR get_block");
 		return rc;
 	}
 
@@ -549,7 +547,6 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 		for (uint32_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, ++idx) {
 			rc = ext4_extent_release_branch(inode_ref, idx);
 			if (rc != EOK) {
-				EXT4FS_DBG("error recursion");
 				return rc;
 			}
 		}
@@ -563,7 +560,6 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 		for (uint32_t i = 0; i < ext4_extent_header_get_entries_count(header); ++i, ++ext) {
 			rc = ext4_extent_release(inode_ref, ext);
 			if (rc != EOK) {
-				EXT4FS_DBG("error recursion");
 				return rc;
 			}
 		}
@@ -573,7 +569,6 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 
 	rc = block_put(block);
 	if (rc != EOK) {
-		EXT4FS_DBG("ERROR block_put returned \%d", rc);
 		return rc;
 	}
 
@@ -836,7 +831,6 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		uint32_t new_fblock;
 		rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
 		if (rc != EOK) {
-			EXT4FS_DBG("error in block allocation");
 			return rc;
 		}
 
@@ -844,7 +838,6 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		rc = block_get(&block, inode_ref->fs->device,
 				new_fblock, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK) {
-			EXT4FS_DBG("error in block_get");
 			return rc;
 		}
 
@@ -1048,7 +1041,6 @@ append_extent:
 	/* Allocate new data block */
 	rc = ext4_balloc_alloc_block(inode_ref, &phys_block);
 	if (rc != EOK) {
-		EXT4FS_DBG("error in block allocation, rc = \%d", rc);
 		goto finish;
 	}
 

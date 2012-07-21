@@ -317,13 +317,11 @@ static int ext4_directory_hinfo_init(ext4_hash_info_t *hinfo, block_t *root_bloc
 
 	/* Check unused flags */
 	if (root->info.unused_flags != 0) {
-		EXT4FS_DBG("ERR: unused_flags = \%u", root->info.unused_flags);
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
 	/* Check indirect levels */
 	if (root->info.indirect_levels > 1) {
-		EXT4FS_DBG("ERR: indirect_levels = \%u", root->info.indirect_levels);
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
@@ -896,7 +894,6 @@ static int ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
 
 		/* Linux limitation */
 		if ((levels > 0) && (root_limit == root_count)) {
-			EXT4FS_DBG("Directory index is full");
 			return ENOSPC;
 		}
 
@@ -1038,7 +1035,6 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock, name_len, name);
 	if (rc != EOK) {
 		block_put(root_block);
-		EXT4FS_DBG("hinfo initialization error");
 		return EXT4_ERR_BAD_DX_DIR;
 	}
 
@@ -1047,7 +1043,6 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 	ext4_directory_dx_block_t *dx_block, *dx_it;
 	rc = ext4_directory_dx_get_leaf(&hinfo, parent, root_block, &dx_block, dx_blocks);
 	if (rc != EOK) {
-		EXT4FS_DBG("get leaf error");
 		rc = EXT4_ERR_BAD_DX_DIR;
 		goto release_index;
 	}
@@ -1101,7 +1096,6 @@ int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 	/* Cleanup */
 	rc = block_put(new_block);
 	if (rc != EOK) {
-		EXT4FS_DBG("error writing new block");
 		return rc;
 	}
 
@@ -1113,7 +1107,6 @@ release_target_index:
 
 	rc = block_put(target_block);
 	if (rc != EOK) {
-		EXT4FS_DBG("error writing target block");
 		return rc;
 	}
 
@@ -1128,7 +1121,6 @@ release_index:
 	while (dx_it <= dx_block) {
 		rc = block_put(dx_it->block);
 		if (rc != EOK) {
-			EXT4FS_DBG("error writing index block");
 			return rc;
 		}
 		dx_it++;

@@ -55,7 +55,6 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	/* Initialize block library (4096 is size of communication channel) */
 	rc = block_init(EXCHANGE_SERIALIZE, fs->device, 4096);
 	if (rc != EOK) {
-		EXT4FS_DBG("block init error: \%d", rc);
 		return rc;
 	}
 
@@ -64,7 +63,6 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	rc = ext4_superblock_read_direct(fs->device, &temp_superblock);
 	if (rc != EOK) {
 		block_fini(fs->device);
-		EXT4FS_DBG("superblock read error: \%d", rc);
 		return rc;
 	}
 
@@ -72,7 +70,6 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	uint32_t block_size = ext4_superblock_get_block_size(temp_superblock);
 	if (block_size > EXT4_MAX_BLOCK_SIZE) {
 		block_fini(fs->device);
-		EXT4FS_DBG("get blocksize error: \%d", rc);
 		return ENOTSUP;
 	}
 
@@ -80,7 +77,6 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	rc = block_cache_init(service_id, block_size, 0, CACHE_MODE_WB);
 	if (rc != EOK) {
 		block_fini(fs->device);
-		EXT4FS_DBG("block cache init error: \%d", rc);
 		return rc;
 	}
 
@@ -103,7 +99,6 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	if (state != EXT4_SUPERBLOCK_STATE_VALID_FS) {
 		block_cache_fini(fs->device);
 		block_fini(fs->device);
-		EXT4FS_DBG("Unable to mount: Invalid state error");
 		return ENOTSUP;
 	}
 
@@ -113,7 +108,6 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id)
 	if (rc != EOK) {
 		block_cache_fini(fs->device);
 		block_fini(fs->device);
-		EXT4FS_DBG("state write error: \%d", rc);
 		return rc;
 	}
 
@@ -191,7 +185,6 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
 	incompatible_features = ext4_superblock_get_features_incompatible(fs->superblock);
 	incompatible_features &= ~EXT4_FEATURE_INCOMPAT_SUPP;
 	if (incompatible_features > 0) {
-		EXT4FS_DBG("Not supported incompatible features");
 		return ENOTSUP;
 	}
 
@@ -202,7 +195,6 @@ int ext4_filesystem_check_features(ext4_filesystem_t *fs, bool *read_only)
 	compatible_read_only = ext4_superblock_get_features_read_only(fs->superblock);
 	compatible_read_only &= ~EXT4_FEATURE_RO_COMPAT_SUPP;
 	if (compatible_read_only > 0) {
-		EXT4FS_DBG("Not supported readonly features - mounting READ-ONLY");
 		*read_only = true;
 		return EOK;
 	}
@@ -356,7 +348,8 @@ static int ext4_filesystem_init_inode_bitmap(ext4_block_group_ref_t *bg_ref)
  * 
  * @param bg_ref	reference to block group
  * @return			error code
- */static int ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
+ */
+static int ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
 {
 	int rc;
 
@@ -1402,92 +1395,6 @@ int ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 	*iblock = new_block_idx;
 
 	return EOK;
-}
-
-/** Add orphaned i-node to the orphans linked list.
- *
- * @param inode_ref		i-node to be added to orphans list
- * @return				error code
- */
-int ext4_filesystem_add_orphan(ext4_inode_ref_t *inode_ref)
-{
-	uint32_t next_orphan = ext4_superblock_get_last_orphan(
-			inode_ref->fs->superblock);
-
-	/* Deletion time is used for holding next item of the list */
-	ext4_inode_set_deletion_time(inode_ref->inode, next_orphan);
-
-	/* Head of the list is in the superblock */
-	ext4_superblock_set_last_orphan(
-			inode_ref->fs->superblock, inode_ref->index);
-	inode_ref->dirty = true;
-
-	return EOK;
-}
-
-/** Delete orphaned i-node from the orphans linked list.
- *
- * @param inode_ref		i-node to be deleted from the orphans list
- * @return				error code
- */
-int ext4_filesystem_delete_orphan(ext4_inode_ref_t *inode_ref)
-{
-	int rc;
-
-	/* Get head of the linked list */
-	uint32_t last_orphan = ext4_superblock_get_last_orphan(
-			inode_ref->fs->superblock);
-
-	assert (last_orphan != 0);
-
-	ext4_inode_ref_t *current;
-	rc = ext4_filesystem_get_inode_ref(inode_ref->fs, last_orphan, &current);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	uint32_t next_orphan = ext4_inode_get_deletion_time(current->inode);
-
-	/* Check if the head is the target */
-	if (last_orphan == inode_ref->index) {
-		ext4_superblock_set_last_orphan(inode_ref->fs->superblock, next_orphan);
-		return EOK;
-	}
-
-	bool found = false;
-
-	/* Walk thourgh the linked list */
-	while (next_orphan != 0) {
-
-		/* Found? */
-		if (next_orphan == inode_ref->index) {
-			next_orphan = ext4_inode_get_deletion_time(inode_ref->inode);
-			ext4_inode_set_deletion_time(current->inode, next_orphan);
-			current->dirty = true;
-			found = true;
-			break;
-		}
-
-		ext4_filesystem_put_inode_ref(current);
-
-		rc = ext4_filesystem_get_inode_ref(inode_ref->fs, next_orphan, &current);
-		if (rc != EOK) {
-			return rc;
-		}
-		next_orphan = ext4_inode_get_deletion_time(current->inode);
-
-	}
-
-	rc = ext4_filesystem_put_inode_ref(current);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (!found) {
-		return ENOENT;
-	} else {
-		return EOK;
-	}
 }
 
 /**

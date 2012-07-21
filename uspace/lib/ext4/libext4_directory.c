@@ -412,8 +412,6 @@ int ext4_directory_add_entry(ext4_inode_ref_t * parent,
 		/* Needed to clear dir index flag if corrupted */
 		ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
 		parent->dirty = true;
-
-		EXT4FS_DBG("index is corrupted - doing linear algorithm, index flag cleared");
 	}
 
 	/* Linear algorithm */
@@ -521,7 +519,6 @@ int ext4_directory_find_entry(ext4_directory_search_result_t *result,
 		ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
 		parent->dirty = true;
 
-		EXT4FS_DBG("index is corrupted - doing linear search");
 	}
 
 	/* Linear algorithm */
