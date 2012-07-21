@@ -37,6 +37,7 @@
 #include <adt/hash_table.h>
 #include <sys/typefmt.h>
 #include <abi/ipc/methods.h>
+#include <macros.h>
 #include "ipc_desc.h"
 #include "proto.h"
 #include "trace.h"
@@ -63,8 +64,7 @@ typedef struct {
 connection_t connections[MAX_PHONE];
 int have_conn[MAX_PHONE];
 
-#define PCALL_TABLE_CHAINS 32
-hash_table_t pending_calls;
+static hash_table_t pending_calls;
 
 /*
  * Pseudo-protocols
@@ -72,40 +72,47 @@ hash_table_t pending_calls;
 proto_t *proto_system;		/**< Protocol describing system IPC methods. */
 proto_t	*proto_unknown;		/**< Protocol with no known methods. */
 
-static hash_index_t pending_call_hash(unsigned long key[]);
-static int pending_call_compare(unsigned long key[], hash_count_t keys,
-    link_t *item);
-static void pending_call_remove_callback(link_t *item);
+static size_t pending_call_key_hash(unsigned long key[]);
+static size_t pending_call_hash(const link_t *item);
+static bool pending_call_match(unsigned long key[], size_t keys,
+    const link_t *item);
 
-hash_table_operations_t pending_call_ops = {
+static hash_table_ops_t pending_call_ops = {
 	.hash = pending_call_hash,
-	.compare = pending_call_compare,
-	.remove_callback = pending_call_remove_callback
+	.key_hash = pending_call_key_hash,
+	.match = pending_call_match,
+	.equal = 0,
+	.remove_callback = 0
 };
 
 
-static hash_index_t pending_call_hash(unsigned long key[])
+static size_t pending_call_key_hash(unsigned long key[])
 {
-//	printf("pending_call_hash\n");
-	return key[0] % PCALL_TABLE_CHAINS;
+	size_t hash = 17;
+	hash = 31 * hash + key[1];
+	hash = 31 * hash + key[0];
+	return hash;
 }
 
-static int pending_call_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t pending_call_hash(const link_t *item)
 {
-	pending_call_t *hs;
-
-//	printf("pending_call_compare\n");
-	hs = hash_table_get_instance(item, pending_call_t, link);
-
-	// FIXME: this will fail if sizeof(long) < sizeof(void *).
-	return key[0] == hs->call_hash;
+	pending_call_t *hs = hash_table_get_instance(item, pending_call_t, link);
+	unsigned long key[] = {
+		LOWER32(hs->call_hash),
+		UPPER32(hs->call_hash)
+	};
+	return pending_call_key_hash(key);
 }
 
-static void pending_call_remove_callback(link_t *item)
+static bool pending_call_match(unsigned long key[], size_t keys, 
+	const link_t *item)
 {
-//	printf("pending_call_remove_callback\n");
+	assert(keys == 2);
+	pending_call_t *hs = hash_table_get_instance(item, pending_call_t, link);
+
+	return MERGE_LOUP32(key[0], key[1]) == hs->call_hash;
 }
+
 
 
 void ipcp_connection_set(int phone, int server, proto_t *proto)
@@ -176,7 +183,7 @@ void ipcp_init(void)
 		++desc;
 	}
 
-	hash_table_create(&pending_calls, PCALL_TABLE_CHAINS, 1, &pending_call_ops);
+	hash_table_create(&pending_calls, 0, 2, &pending_call_ops);
 }
 
 void ipcp_cleanup(void)
@@ -189,7 +196,6 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 {
 	pending_call_t *pcall;
 	proto_t *proto;
-	unsigned long key[1];
 	oper_t *oper;
 	sysarg_t *args;
 	int i;
@@ -253,9 +259,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	pcall->call_hash = hash;
 	pcall->oper = oper;
 
-	key[0] = hash;
-
-	hash_table_insert(&pending_calls, key, &pcall->link);
+	hash_table_insert(&pending_calls, &pcall->link);
 }
 
 static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
@@ -335,7 +339,6 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 {
 	link_t *item;
 	pending_call_t *pcall;
-	unsigned long key[1];
 	
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
@@ -346,7 +349,10 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	}
 	
 	hash = hash & ~IPC_CALLID_ANSWERED;
-	key[0] = hash;
+	unsigned long key[] = {
+		LOWER32(hash),
+		UPPER32(hash)
+	};
 	
 	item = hash_table_find(&pending_calls, key);
 	if (item == NULL)
@@ -357,7 +363,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	 */
 	
 	pcall = hash_table_get_instance(item, pending_call_t, link);
-	hash_table_remove(&pending_calls, key, 1);
+	hash_table_remove(&pending_calls, key, 2);
 	
 	parse_answer(hash, pcall, call);
 	free(pcall);

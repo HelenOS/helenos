@@ -70,6 +70,38 @@ typedef struct list {
 	for (link_t *iterator = (list).head.next; \
 	    iterator != &(list).head; iterator = iterator->next)
 
+/** Unlike list_foreach(), allows removing items while traversing a list.
+ * 
+ * @code
+ * list_t mylist;
+ * typedef struct item {
+ *     int value;
+ *     link_t item_link;
+ * } item_t;
+ * 
+ * //..
+ * 
+ * // Print each list element's value and remove the element from the list.
+ * list_foreach_safe(mylist, cur_link, next_link) {
+ *     item_t *cur_item = list_get_instance(cur_link, item_t, item_link);
+ *     printf("%d\n", cur_item->value);
+ *     list_remove(cur_link);
+ * }
+ * @endcode
+ * 
+ * @param list List to traverse.
+ * @param iterator Iterator to the current element of the list.
+ *             The item this iterator points may be safely removed
+ *             from the list.
+ * @param next_iter Iterator to the next element of the list.
+ */
+#define list_foreach_safe(list, iterator, next_iter) \
+	for (link_t *iterator = (list).head.next, \
+		*next_iter = iterator->next; \
+		iterator != &(list).head; \
+		iterator = next_iter, next_iter = iterator->next)
+
+
 #define assert_link_not_used(link) \
 	assert(((link)->prev == NULL) && ((link)->next == NULL))
 

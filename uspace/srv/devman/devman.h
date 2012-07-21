@@ -51,7 +51,6 @@
 #define NAME "devman"
 
 #define MATCH_EXT ".ma"
-#define DEVICE_BUCKETS 256
 
 #define LOC_DEVICE_NAMESPACE "devices"
 #define LOC_SEPARATOR '\\'

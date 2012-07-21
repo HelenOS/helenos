@@ -55,8 +55,6 @@
 #define min(a, b)		((a) < (b) ? (a) : (b))
 #define max(a, b)		((a) > (b) ? (a) : (b))
 
-#define NODES_BUCKETS	256
-
 /** All root nodes have index 0. */
 #define TMPFS_SOME_ROOT		0
 /** Global counter for assigning node indices. Shared by all instances. */
@@ -145,12 +143,28 @@ hash_table_t nodes;
 #define NODES_KEY_INDEX	1
 
 /* Implementation of hash table interface for the nodes hash table. */
-static hash_index_t nodes_hash(unsigned long key[])
+static size_t nodes_key_hash(unsigned long key[])
 {
-	return key[NODES_KEY_INDEX] % NODES_BUCKETS;
+	/* Based on Effective Java, 2nd Edition. */
+	size_t hash = 17;
+	hash = 37 * hash + key[NODES_KEY_DEV];
+	hash = 37 * hash + key[NODES_KEY_INDEX];
+	return hash;
 }
 
-static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t nodes_hash(const link_t *item)
+{
+	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t, nh_link);
+	
+	unsigned long key[] = {
+		[NODES_KEY_DEV] = nodep->service_id,
+		[NODES_KEY_INDEX] = nodep->index
+	};
+	
+	return nodes_key_hash(key);
+}
+
+static bool nodes_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
 	    nh_link);
@@ -191,9 +205,11 @@ static void nodes_remove_callback(link_t *item)
 }
 
 /** TMPFS nodes hash table operations. */
-hash_table_operations_t nodes_ops = {
+hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
-	.compare = nodes_compare,
+	.key_hash = nodes_key_hash,
+	.match = nodes_match,
+	.equal = 0,
 	.remove_callback = nodes_remove_callback
 };
 
@@ -219,7 +235,7 @@ static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentryp)
 
 bool tmpfs_init(void)
 {
-	if (!hash_table_create(&nodes, NODES_BUCKETS, 2, &nodes_ops))
+	if (!hash_table_create(&nodes, 0, 2, &nodes_ops))
 		return false;
 	
 	return true;
@@ -330,11 +346,7 @@ int tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 		nodep->type = TMPFS_FILE;
 
 	/* Insert the new node into the nodes hash table. */
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = nodep->service_id,
-		[NODES_KEY_INDEX] = nodep->index
-	};
-	hash_table_insert(&nodes, key, &nodep->nh_link);
+	hash_table_insert(&nodes, &nodep->nh_link);
 	*rfn = FS_NODE(nodep);
 	return EOK;
 }

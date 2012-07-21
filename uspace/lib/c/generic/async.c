@@ -114,8 +114,6 @@
 #include <stdlib.h>
 #include <macros.h>
 
-#define CLIENT_HASH_TABLE_BUCKETS  32
-#define CONN_HASH_TABLE_BUCKETS    32
 
 /** Session data */
 struct async_sess {
@@ -391,14 +389,26 @@ static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
-static hash_index_t client_hash(unsigned long key[])
+static size_t client_key_hash(unsigned long key[])
 {
 	assert(key);
-	
-	return (((key[0]) >> 4) % CLIENT_HASH_TABLE_BUCKETS);
+	/* LOWER32(in_task_id) */
+	return key[0] >> 4;
 }
 
-static int client_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t client_hash(const link_t *item)
+{
+	client_t *client = hash_table_get_instance(item, client_t, link);
+	
+	unsigned long key[2] = {
+		LOWER32(client->in_task_id),
+		UPPER32(client->in_task_id),
+	};
+
+	return client_key_hash(key);
+}
+
+static bool client_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	assert(key);
 	assert(keys == 2);
@@ -409,15 +419,14 @@ static int client_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	    (key[1] == UPPER32(client->in_task_id)));
 }
 
-static void client_remove(link_t *item)
-{
-}
 
 /** Operations for the client hash table. */
-static hash_table_operations_t client_hash_table_ops = {
+static hash_table_ops_t client_hash_table_ops = {
 	.hash = client_hash,
-	.compare = client_compare,
-	.remove_callback = client_remove
+	.key_hash = client_key_hash,
+	.match = client_match,
+	.equal = 0,
+	.remove_callback = 0
 };
 
 /** Compute hash into the connection hash table based on the source phone hash.
@@ -427,11 +436,17 @@ static hash_table_operations_t client_hash_table_ops = {
  * @return Index into the connection hash table.
  *
  */
-static hash_index_t conn_hash(unsigned long key[])
+static size_t conn_key_hash(unsigned long key[])
 {
 	assert(key);
-	
-	return (((key[0]) >> 4) % CONN_HASH_TABLE_BUCKETS);
+	return key[0] >> 4;
+}
+
+static size_t conn_hash(const link_t *item)
+{
+	connection_t *conn = hash_table_get_instance(item, connection_t, link);
+	unsigned long key = conn->in_phone_hash;
+	return conn_key_hash(&key);
 }
 
 /** Compare hash table item with a key.
@@ -443,7 +458,7 @@ static hash_index_t conn_hash(unsigned long key[])
  * @return True on match, false otherwise.
  *
  */
-static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static bool conn_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	assert(key);
 	assert(item);
@@ -452,14 +467,24 @@ static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	return (key[0] == conn->in_phone_hash);
 }
 
+static bool conn_equal(const link_t *item1, const link_t *item2)
+{
+	connection_t *c1 = hash_table_get_instance(item1, connection_t, link);
+	connection_t *c2 = hash_table_get_instance(item2, connection_t, link);
+	
+	return c1->in_phone_hash == c2->in_phone_hash;
+}
+
 static void conn_remove(link_t *item)
 {
 }
 
 /** Operations for the connection hash table. */
-static hash_table_operations_t conn_hash_table_ops = {
+static hash_table_ops_t conn_hash_table_ops = {
 	.hash = conn_hash,
-	.compare = conn_compare,
+	.key_hash = conn_key_hash,
+	.match = conn_match,
+	.equal = conn_equal,
 	.remove_callback = conn_remove
 };
 
@@ -714,7 +739,7 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 			client->data = async_client_data_create();
 		
 			atomic_set(&client->refcnt, 1);
-			hash_table_insert(&client_hash_table, key, &client->link);
+			hash_table_insert(&client_hash_table, &client->link);
 		}
 	}
 
@@ -914,10 +939,9 @@ fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	}
 	
 	/* Add connection to the connection hash table */
-	unsigned long key = conn->in_phone_hash;
 	
 	futex_down(&async_futex);
-	hash_table_insert(&conn_hash_table, &key, &conn->link);
+	hash_table_insert(&conn_hash_table, &conn->link);
 	futex_up(&async_futex);
 	
 	fibril_add_ready(conn->wdata.fid);
@@ -1109,12 +1133,10 @@ void async_destroy_manager(void)
  */
 void __async_init(void)
 {
-	if (!hash_table_create(&client_hash_table, CLIENT_HASH_TABLE_BUCKETS,
-	    2, &client_hash_table_ops))
+	if (!hash_table_create(&client_hash_table, 0, 2, &client_hash_table_ops))
 		abort();
 	
-	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_BUCKETS,
-	    1, &conn_hash_table_ops))
+	if (!hash_table_create(&conn_hash_table, 0, 1, &conn_hash_table_ops))
 		abort();
 	
 	session_ns = (async_sess_t *) malloc(sizeof(async_sess_t));

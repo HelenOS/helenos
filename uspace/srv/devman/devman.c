@@ -65,52 +65,76 @@ static fun_node_t *find_node_child(dev_tree_t *, fun_node_t *, const char *);
 
 /* hash table operations */
 
-static hash_index_t devices_hash(unsigned long key[])
+static size_t devices_key_hash(unsigned long key[])
 {
-	return key[0] % DEVICE_BUCKETS;
+	return key[0];
 }
 
-static int devman_devices_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t devman_devices_hash(const link_t *item)
+{
+	dev_node_t *dev = hash_table_get_instance(item, dev_node_t, devman_dev);
+	unsigned long key = dev->handle;
+	return devices_key_hash(&key);
+}
+
+static size_t devman_functions_hash(const link_t *item)
+{
+	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, devman_fun);
+	unsigned long key = fun->handle;
+	return devices_key_hash(&key);
+}
+
+static size_t loc_functions_hash(const link_t *item)
+{
+	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, loc_fun);
+	unsigned long key = fun->service_id;
+	return devices_key_hash(&key);
+}
+
+static bool devman_devices_match(unsigned long key[], size_t keys,
+    const link_t *item)
 {
 	dev_node_t *dev = hash_table_get_instance(item, dev_node_t, devman_dev);
 	return (dev->handle == (devman_handle_t) key[0]);
 }
 
-static int devman_functions_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static bool devman_functions_match(unsigned long key[], size_t keys,
+    const link_t *item)
 {
 	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, devman_fun);
 	return (fun->handle == (devman_handle_t) key[0]);
 }
 
-static int loc_functions_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static bool loc_functions_match(unsigned long key[], size_t keys,
+    const link_t *item)
 {
 	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, loc_fun);
 	return (fun->service_id == (service_id_t) key[0]);
 }
 
-static void devices_remove_callback(link_t *item)
-{
-}
 
-static hash_table_operations_t devman_devices_ops = {
-	.hash = devices_hash,
-	.compare = devman_devices_compare,
-	.remove_callback = devices_remove_callback
+static hash_table_ops_t devman_devices_ops = {
+	.hash = devman_devices_hash,
+	.key_hash = devices_key_hash,
+	.match = devman_devices_match,
+	.equal = 0,
+	.remove_callback = 0
 };
 
-static hash_table_operations_t devman_functions_ops = {
-	.hash = devices_hash,
-	.compare = devman_functions_compare,
-	.remove_callback = devices_remove_callback
+static hash_table_ops_t devman_functions_ops = {
+	.hash = devman_functions_hash,
+	.key_hash = devices_key_hash,
+	.match = devman_functions_match,
+	.equal = 0,
+	.remove_callback = 0
 };
 
-static hash_table_operations_t loc_devices_ops = {
-	.hash = devices_hash,
-	.compare = loc_functions_compare,
-	.remove_callback = devices_remove_callback
+static hash_table_ops_t loc_devices_ops = {
+	.hash = loc_functions_hash,
+	.key_hash = devices_key_hash,
+	.match = loc_functions_match,
+	.equal = 0,
+	.remove_callback = 0
 };
 
 /**
@@ -973,12 +997,9 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 	
 	tree->current_handle = 0;
 	
-	hash_table_create(&tree->devman_devices, DEVICE_BUCKETS, 1,
-	    &devman_devices_ops);
-	hash_table_create(&tree->devman_functions, DEVICE_BUCKETS, 1,
-	    &devman_functions_ops);
-	hash_table_create(&tree->loc_functions, DEVICE_BUCKETS, 1,
-	    &loc_devices_ops);
+	hash_table_create(&tree->devman_devices, 0, 1, &devman_devices_ops);
+	hash_table_create(&tree->devman_functions, 0, 1, &devman_functions_ops);
+	hash_table_create(&tree->loc_functions, 0, 1, &loc_devices_ops);
 	
 	fibril_rwlock_initialize(&tree->rwlock);
 	
@@ -1281,8 +1302,7 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 
 	/* Add the node to the handle-to-node map. */
 	dev->handle = ++tree->current_handle;
-	unsigned long key = dev->handle;
-	hash_table_insert(&tree->devman_devices, &key, &dev->devman_dev);
+	hash_table_insert(&tree->devman_devices, &dev->devman_dev);
 
 	/* Add the node to the list of its parent's children. */
 	dev->pfun = pfun;
@@ -1345,8 +1365,7 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
 	
 	/* Add the node to the handle-to-node map. */
 	fun->handle = ++tree->current_handle;
-	unsigned long key = fun->handle;
-	hash_table_insert(&tree->devman_functions, &key, &fun->devman_fun);
+	hash_table_insert(&tree->devman_functions, &fun->devman_fun);
 
 	/* Add the node to the list of its parent's children. */
 	fun->dev = dev;
@@ -1498,8 +1517,7 @@ void tree_add_loc_function(dev_tree_t *tree, fun_node_t *fun)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	unsigned long key = (unsigned long) fun->service_id;
-	hash_table_insert(&tree->loc_functions, &key, &fun->loc_fun);
+	hash_table_insert(&tree->loc_functions, &fun->loc_fun);
 }
 
 /** @}

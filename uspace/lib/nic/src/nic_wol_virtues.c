@@ -39,31 +39,27 @@
 #include <assert.h>
 #include <errno.h>
 
-#define NIC_WV_HASH_COUNT 32
 
-/**
- * Hash table helper function
+/*
+ * Hash table helper functions
  */
-static int nic_wv_compare(unsigned long key[], hash_count_t keys,
-	link_t *item)
+
+static size_t nic_wv_key_hash(unsigned long keys[])
+{
+	return keys[0];
+}
+
+static size_t nic_wv_hash(const link_t *item)
+{
+	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *) item;
+	unsigned long key = virtue->id;
+	return nic_wv_key_hash(&key);
+}
+
+static bool nic_wv_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *) item;
 	return (virtue->id == (nic_wv_id_t) key[0]);
-}
-
-/**
- * Hash table helper function
- */
-static void nic_wv_rc(link_t *item)
-{
-}
-
-/**
- * Hash table helper function
- */
-static hash_index_t nic_wv_hash(unsigned long keys[])
-{
-	return keys[0] % NIC_WV_HASH_COUNT;
 }
 
 /**
@@ -76,12 +72,14 @@ static hash_index_t nic_wv_hash(unsigned long keys[])
  */
 int nic_wol_virtues_init(nic_wol_virtues_t *wvs)
 {
-	bzero(wvs, sizeof (nic_wol_virtues_t));
-	wvs->table_operations.compare = nic_wv_compare;
+	bzero(wvs, sizeof(nic_wol_virtues_t));
 	wvs->table_operations.hash = nic_wv_hash;
-	wvs->table_operations.remove_callback = nic_wv_rc;
-	if (!hash_table_create(&wvs->table, NIC_WV_HASH_COUNT, 1,
-		&wvs->table_operations)) {
+	wvs->table_operations.key_hash = nic_wv_key_hash;
+	wvs->table_operations.match = nic_wv_match;
+	wvs->table_operations.equal = 0;
+	wvs->table_operations.remove_callback = 0;
+	
+	if (!hash_table_create(&wvs->table, 0, 1, &wvs->table_operations)) {
 		return ENOMEM;
 	}
 	size_t i;
@@ -171,8 +169,7 @@ int nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
 		virtue->id = wvs->next_id++;
 	} while (NULL !=
 		hash_table_find(&wvs->table, (unsigned long *) &virtue->id));
-	hash_table_insert(&wvs->table,
-		(unsigned long *) &virtue->id, &virtue->item);
+	hash_table_insert(&wvs->table, &virtue->item);
 	virtue->next = wvs->lists[virtue->type];
 	wvs->lists[virtue->type] = virtue;
 	wvs->lists_sizes[virtue->type]++;

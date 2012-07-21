@@ -45,6 +45,7 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 
+
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {
 	link_t		link;
@@ -112,42 +113,36 @@ static FIBRIL_MUTEX_INITIALIZE(used_lock);
  */ 
 static hash_table_t up_hash;
 
-#define UPH_BUCKETS_LOG	12
-#define UPH_BUCKETS	(1 << UPH_BUCKETS_LOG)
-
 #define UPH_SID_KEY	0
 #define UPH_PFC_KEY	1
 #define UPH_PDI_KEY	2
 
-static hash_index_t pos_hash(unsigned long key[])
+static size_t pos_key_hash(unsigned long key[])
 {
-	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
-	fat_cluster_t pfc = (fat_cluster_t)key[UPH_PFC_KEY];
-	unsigned pdi = (unsigned)key[UPH_PDI_KEY];
-
-	hash_index_t h;
-
-	/*
-	 * The least significant half of all bits are the least significant bits
-	 * of the parent node's first cluster.
-	 *
-	 * The least significant half of the most significant half of all bits
-	 * are the least significant bits of the node's dentry index within the
-	 * parent directory node.
-	 *
-	 * The most significant half of the most significant half of all bits
-	 * are the least significant bits of the device handle.
-	 */
-	h = pfc & ((1 << (UPH_BUCKETS_LOG / 2)) - 1);
-	h |= (pdi & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
-	    (UPH_BUCKETS_LOG / 2); 
-	h |= (service_id & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
-	    (3 * (UPH_BUCKETS_LOG / 4));
-
-	return h;
+	/* Inspired by Effective Java, 2nd edition. */
+	size_t hash = 17;
+	
+	hash = 31 * hash + key[UPH_PFC_KEY];
+	hash = 31 * hash + key[UPH_PDI_KEY];
+	hash = 31 * hash + key[UPH_SID_KEY];
+	
+	return hash;
 }
 
-static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t pos_hash(const link_t *item)
+{
+	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uph_link);
+	
+	unsigned long pkey[] = {
+		[UPH_SID_KEY] = fidx->service_id,
+		[UPH_PFC_KEY] = fidx->pfc,
+		[UPH_PDI_KEY] = fidx->pdi,
+	};
+	
+	return pos_key_hash(pkey);
+}
+
+static bool pos_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
 	fat_cluster_t pfc;
@@ -169,15 +164,12 @@ static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	return 0;
 }
 
-static void pos_remove_callback(link_t *item)
-{
-	/* nothing to do */
-}
-
-static hash_table_operations_t uph_ops = {
+static hash_table_ops_t uph_ops = {
 	.hash = pos_hash,
-	.compare = pos_compare,
-	.remove_callback = pos_remove_callback,
+	.key_hash = pos_key_hash,
+	.match = pos_match,
+	.equal = 0,
+	.remove_callback = 0,
 };
 
 /**
@@ -186,27 +178,34 @@ static hash_table_operations_t uph_ops = {
  */
 static hash_table_t ui_hash;
 
-#define UIH_BUCKETS_LOG	12
-#define UIH_BUCKETS	(1 << UIH_BUCKETS_LOG)
-
 #define UIH_SID_KEY	0
 #define UIH_INDEX_KEY	1
 
-static hash_index_t idx_hash(unsigned long key[])
+static size_t idx_key_hash(unsigned long key[])
 {
-	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
-	fs_index_t index = (fs_index_t)key[UIH_INDEX_KEY];
-
-	hash_index_t h;
-
-	h = service_id & ((1 << (UIH_BUCKETS_LOG / 2)) - 1);
-	h |= (index & ((1 << (UIH_BUCKETS_LOG / 2)) - 1)) <<
-	    (UIH_BUCKETS_LOG / 2);
-
-	return h;
+	/* 
+	 * Compute a simple hash unlimited by specific table size as per: 
+	 * Effective Java, 2nd edition.
+	 */
+	size_t hash = 17;
+	hash = 31 * hash + key[UIH_SID_KEY];
+	hash = 31 * hash + key[UIH_INDEX_KEY];
+	return hash;
 }
 
-static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t idx_hash(const link_t *item)
+{
+	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
+	
+	unsigned long ikey[] = {
+		[UIH_SID_KEY] = fidx->service_id,
+		[UIH_INDEX_KEY] = fidx->index,
+	};
+
+	return idx_key_hash(ikey);
+}
+
+static bool idx_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
 	fs_index_t index;
@@ -233,9 +232,11 @@ static void idx_remove_callback(link_t *item)
 	free(fidx);
 }
 
-static hash_table_operations_t uih_ops = {
+static hash_table_ops_t uih_ops = {
 	.hash = idx_hash,
-	.compare = idx_compare,
+	.key_hash = idx_key_hash,
+	.match = idx_match,
+	.equal = 0,
 	.remove_callback = idx_remove_callback,
 };
 
@@ -400,12 +401,7 @@ int fat_idx_get_new(fat_idx_t **fidxp, service_id_t service_id)
 		return rc;
 	}
 		
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = service_id,
-		[UIH_INDEX_KEY] = fidx->index,
-	};
-	
-	hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
+	hash_table_insert(&ui_hash, &fidx->uih_link);
 	fibril_mutex_lock(&fidx->lock);
 	fibril_mutex_unlock(&used_lock);
 
@@ -437,16 +433,11 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 			return NULL;
 		}
 		
-		unsigned long ikey[] = {
-			[UIH_SID_KEY] = service_id,
-			[UIH_INDEX_KEY] = fidx->index,
-		};
-	
 		fidx->pfc = pfc;
 		fidx->pdi = pdi;
 
-		hash_table_insert(&up_hash, pkey, &fidx->uph_link);
-		hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
+		hash_table_insert(&up_hash, &fidx->uph_link);
+		hash_table_insert(&ui_hash, &fidx->uih_link);
 	}
 	fibril_mutex_lock(&fidx->lock);
 	fibril_mutex_unlock(&used_lock);
@@ -456,27 +447,15 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 
 void fat_idx_hashin(fat_idx_t *idx)
 {
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = idx->service_id,
-		[UPH_PFC_KEY] = idx->pfc,
-		[UPH_PDI_KEY] = idx->pdi,
-	};
-
 	fibril_mutex_lock(&used_lock);
-	hash_table_insert(&up_hash, pkey, &idx->uph_link);
+	hash_table_insert(&up_hash, &idx->uph_link);
 	fibril_mutex_unlock(&used_lock);
 }
 
 void fat_idx_hashout(fat_idx_t *idx)
 {
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = idx->service_id,
-		[UPH_PFC_KEY] = idx->pfc,
-		[UPH_PDI_KEY] = idx->pdi,
-	};
-
 	fibril_mutex_lock(&used_lock);
-	hash_table_remove(&up_hash, pkey, 3);
+	hash_table_remove_item(&up_hash, &idx->uph_link);
 	fibril_mutex_unlock(&used_lock);
 }
 
@@ -531,9 +510,9 @@ void fat_idx_destroy(fat_idx_t *idx)
 
 int fat_idx_init(void)
 {
-	if (!hash_table_create(&up_hash, UPH_BUCKETS, 3, &uph_ops)) 
+	if (!hash_table_create(&up_hash, 0, 3, &uph_ops)) 
 		return ENOMEM;
-	if (!hash_table_create(&ui_hash, UIH_BUCKETS, 2, &uih_ops)) {
+	if (!hash_table_create(&ui_hash, 0, 2, &uih_ops)) {
 		hash_table_destroy(&up_hash);
 		return ENOMEM;
 	}

@@ -64,7 +64,6 @@
 #define OPEN_NODES_KEYS 2
 #define OPEN_NODES_DEV_HANDLE_KEY 0
 #define OPEN_NODES_INODE_KEY 1
-#define OPEN_NODES_BUCKETS 256
 
 typedef struct ext2fs_instance {
 	link_t link;
@@ -122,14 +121,32 @@ static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
 
 /* Hash table interface for open nodes hash table */
-static hash_index_t open_nodes_hash(unsigned long key[])
+static size_t open_nodes_key_hash(unsigned long key[])
 {
-	/* TODO: This is very simple and probably can be improved */
-	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
+	/* Hash construction recommended in Effective Java, 2nd Edition. */
+	size_t hash = 17;
+	hash = 31 * hash + key[OPEN_NODES_DEV_HANDLE_KEY];
+	hash = 31 * hash + key[OPEN_NODES_INODE_KEY];
+	return hash;
 }
 
-static int open_nodes_compare(unsigned long key[], hash_count_t keys, 
-    link_t *item)
+static size_t open_nodes_hash(const link_t *item)
+{
+	ext2fs_node_t *enode = hash_table_get_instance(item, ext2fs_node_t, link);
+
+	assert(enode->instance);
+	assert(enode->inode_ref);
+	
+	unsigned long key[] = {
+		[OPEN_NODES_DEV_HANDLE_KEY] = enode->instance->service_id,
+		[OPEN_NODES_INODE_KEY] = enode->inode_ref->index,
+	};
+	
+	return open_nodes_key_hash(key);
+}
+
+static bool open_nodes_match(unsigned long key[], size_t keys, 
+    const link_t *item)
 {
 	ext2fs_node_t *enode = hash_table_get_instance(item, ext2fs_node_t, link);
 	assert(keys > 0);
@@ -144,15 +161,12 @@ static int open_nodes_compare(unsigned long key[], hash_count_t keys,
 	return (enode->inode_ref->index == key[OPEN_NODES_INODE_KEY]);
 }
 
-static void open_nodes_remove_cb(link_t *link)
-{
-	/* We don't use remove callback for this hash table */
-}
-
-static hash_table_operations_t open_nodes_ops = {
+static hash_table_ops_t open_nodes_ops = {
 	.hash = open_nodes_hash,
-	.compare = open_nodes_compare,
-	.remove_callback = open_nodes_remove_cb,
+	.key_hash = open_nodes_key_hash,
+	.match = open_nodes_match,
+	.equal = 0,
+	.remove_callback = 0,
 };
 
 /**
@@ -160,8 +174,7 @@ static hash_table_operations_t open_nodes_ops = {
  */
 int ext2fs_global_init(void)
 {
-	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
-	    OPEN_NODES_KEYS, &open_nodes_ops)) {
+	if (!hash_table_create(&open_nodes, 0, OPEN_NODES_KEYS, &open_nodes_ops)) {
 		return ENOMEM;
 	}
 	return EOK;
@@ -361,7 +374,7 @@ int ext2fs_node_get_core(fs_node_t **rfn, ext2fs_instance_t *inst,
 	node->data = enode;
 	*rfn = node;
 	
-	hash_table_insert(&open_nodes, key, &enode->link);
+	hash_table_insert(&open_nodes, &enode->link);
 	inst->open_nodes_count++;
 	
 	EXT2FS_DBG("inode: %u", inode_ref->index);

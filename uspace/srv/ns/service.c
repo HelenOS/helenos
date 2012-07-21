@@ -39,7 +39,6 @@
 #include "service.h"
 #include "ns.h"
 
-#define SERVICE_HASH_TABLE_CHAINS  20
 
 /** Service hash table item. */
 typedef struct {
@@ -57,10 +56,17 @@ typedef struct {
  * @return Hash index corresponding to key[0].
  *
  */
-static hash_index_t service_hash(unsigned long key[])
+static size_t service_key_hash(unsigned long key[])
 {
 	assert(key);
-	return (key[0] % SERVICE_HASH_TABLE_CHAINS);
+	return key[0];
+}
+
+static size_t service_hash(const link_t *item)
+{
+	hashed_service_t *hs = hash_table_get_instance(item, hashed_service_t, link);
+	unsigned long key = hs->service;
+	return service_key_hash(&key);
 }
 
 /** Compare a key with hashed item.
@@ -78,7 +84,7 @@ static hash_index_t service_hash(unsigned long key[])
  * @return Non-zero if the key matches the item, zero otherwise.
  *
  */
-static int service_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static bool service_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	assert(key);
 	assert(keys <= 3);
@@ -104,9 +110,11 @@ static void service_remove(link_t *item)
 }
 
 /** Operations for service hash table. */
-static hash_table_operations_t service_hash_table_ops = {
+static hash_table_ops_t service_hash_table_ops = {
 	.hash = service_hash,
-	.compare = service_compare,
+	.key_hash = service_key_hash,
+	.match = service_match,
+	.equal = 0,
 	.remove_callback = service_remove
 };
 
@@ -126,8 +134,7 @@ static list_t pending_conn;
 
 int service_init(void)
 {
-	if (!hash_table_create(&service_hash_table, SERVICE_HASH_TABLE_CHAINS,
-	    3, &service_hash_table_ops)) {
+	if (!hash_table_create(&service_hash_table, 0, 3, &service_hash_table_ops)) {
 		printf(NAME ": No memory available for services\n");
 		return ENOMEM;
 	}
@@ -192,7 +199,7 @@ int register_service(sysarg_t service, sysarg_t phone, ipc_call_t *call)
 	hs->service = service;
 	hs->phone = phone;
 	hs->in_phone_hash = call->in_phone_hash;
-	hash_table_insert(&service_hash_table, keys, &hs->link);
+	hash_table_insert(&service_hash_table, &hs->link);
 	
 	return EOK;
 }

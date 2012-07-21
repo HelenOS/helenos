@@ -62,8 +62,6 @@
  */
 #define NODE_CACHE_SIZE  200
 
-#define NODES_BUCKETS  256
-
 #define NODES_KEY_SRVC   0
 #define NODES_KEY_INDEX  1
 
@@ -225,33 +223,47 @@ static size_t nodes_cached = 0;
 /** Hash table of all cdfs nodes */
 static hash_table_t nodes;
 
-static hash_index_t nodes_hash(unsigned long key[])
+static size_t nodes_key_hash(unsigned long key[])
 {
-	return key[NODES_KEY_INDEX] % NODES_BUCKETS;
+	return key[NODES_KEY_INDEX];
 }
 
-static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t nodes_hash(const link_t *item)
 {
-	cdfs_node_t *node =
-	    hash_table_get_instance(item, cdfs_node_t, nh_link);
+	cdfs_node_t *node = hash_table_get_instance(item, cdfs_node_t, nh_link);
 	
-	switch (keys) {
-	case 1:
+	unsigned long key[] = {
+		[NODES_KEY_INDEX] = node->index
+	};
+	
+	return nodes_key_hash(key);
+}
+
+static bool nodes_match(unsigned long key[], size_t keys, const link_t *item)
+{
+	cdfs_node_t *node = hash_table_get_instance(item, cdfs_node_t, nh_link);
+	
+	if (keys == 1) {
 		return (node->service_id == key[NODES_KEY_SRVC]);
-	case 2:
+	} else {
+		assert(keys == 2);
 		return ((node->service_id == key[NODES_KEY_SRVC]) &&
 		    (node->index == key[NODES_KEY_INDEX]));
-	default:
-		assert((keys == 1) || (keys == 2));
 	}
+}
+
+static bool nodes_equal(const link_t *item1, const link_t *item2)
+{
+	cdfs_node_t *node1 = hash_table_get_instance(item1, cdfs_node_t, nh_link);
+	cdfs_node_t *node2 = hash_table_get_instance(item2, cdfs_node_t, nh_link);
 	
-	return 0;
+	return node1->service_id == node2->service_id 
+		&& node1->index == node2->index;
 }
 
 static void nodes_remove_callback(link_t *item)
 {
-	cdfs_node_t *node =
-	    hash_table_get_instance(item, cdfs_node_t, nh_link);
+	cdfs_node_t *node = hash_table_get_instance(item, cdfs_node_t, nh_link);
 	
 	assert(node->type == CDFS_DIRECTORY);
 	
@@ -267,9 +279,11 @@ static void nodes_remove_callback(link_t *item)
 }
 
 /** Nodes hash table operations */
-static hash_table_operations_t nodes_ops = {
+static hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
-	.compare = nodes_compare,
+	.key_hash = nodes_key_hash,
+	.match = nodes_match,
+	.equal = nodes_equal,
 	.remove_callback = nodes_remove_callback
 };
 
@@ -352,12 +366,7 @@ static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
 		node->type = CDFS_FILE;
 	
 	/* Insert the new node into the nodes hash table. */
-	unsigned long key[] = {
-		[NODES_KEY_SRVC] = node->service_id,
-		[NODES_KEY_INDEX] = node->index
-	};
-	
-	hash_table_insert(&nodes, key, &node->nh_link);
+	hash_table_insert(&nodes, &node->nh_link);
 	
 	*rfn = FS_NODE(node);
 	nodes_cached++;
@@ -911,36 +920,33 @@ static int cdfs_truncate(service_id_t service_id, fs_index_t index,
 	return ENOTSUP;
 }
 
+static bool cache_remove_closed(link_t *item, void *arg)
+{
+	size_t *premove_cnt = (size_t*)arg;
+	
+	/* Some nodes were requested to be removed from the cache. */
+	if (0 < *premove_cnt) {
+		cdfs_node_t *node =	hash_table_get_instance(item, cdfs_node_t, nh_link);
+
+		if (!node->opened) {
+			hash_table_remove_item(&nodes, item);
+			
+			--nodes_cached;
+			--*premove_cnt;
+		}
+	}
+	
+	/* Only continue if more nodes were requested to be removed. */
+	return 0 < *premove_cnt;
+}
+
 static void cleanup_cache(service_id_t service_id)
 {
 	if (nodes_cached > NODE_CACHE_SIZE) {
-		size_t remove = nodes_cached - NODE_CACHE_SIZE;
+		size_t remove_cnt = nodes_cached - NODE_CACHE_SIZE;
 		
-		// FIXME: this accesses the internals of the hash table
-		//        and should be rewritten in a clean way
-		
-		for (hash_index_t chain = 0; chain < nodes.entries; chain++) {
-			for (link_t *link = nodes.entry[chain].head.next;
-			    link != &nodes.entry[chain].head;
-			    link = link->next) {
-				if (remove == 0)
-					return;
-				
-				cdfs_node_t *node =
-				    hash_table_get_instance(link, cdfs_node_t, nh_link);
-				if (node->opened == 0) {
-					link_t *tmp = link;
-					link = link->prev;
-					
-					list_remove(tmp);
-					nodes.op->remove_callback(tmp);
-					nodes_cached--;
-					remove--;
-					
-					continue;
-				}
-			}
-		}
+		if (0 < remove_cnt)
+			hash_table_apply(&nodes, cache_remove_closed, &remove_cnt);
 	}
 }
 
@@ -1006,7 +1012,7 @@ vfs_out_ops_t cdfs_ops = {
  */
 bool cdfs_init(void)
 {
-	if (!hash_table_create(&nodes, NODES_BUCKETS, 2, &nodes_ops))
+	if (!hash_table_create(&nodes, 0, 2, &nodes_ops))
 		return false;
 	
 	return true;

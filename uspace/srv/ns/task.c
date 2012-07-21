@@ -42,8 +42,6 @@
 #include "task.h"
 #include "ns.h"
 
-#define TASK_HASH_TABLE_CHAINS  256
-#define P2I_HASH_TABLE_CHAINS   256
 
 /* TODO:
  *
@@ -70,10 +68,24 @@ typedef struct {
  * @return Hash index corresponding to key[0].
  *
  */
-static hash_index_t task_hash(unsigned long key[])
+static size_t task_key_hash(unsigned long key[])
 {
-	assert(key);
-	return (LOWER32(key[0]) % TASK_HASH_TABLE_CHAINS);
+	size_t hash = 17;
+	hash = 37 * hash + key[1];
+	hash = 37 * hash + key[0];
+	return hash;
+}
+
+static size_t task_hash(const link_t *item)
+{
+	hashed_task_t *ht = hash_table_get_instance(item, hashed_task_t, link);
+
+	unsigned long key[] = {
+		LOWER32(ht->id),
+		UPPER32(ht->id)
+	};
+	
+	return task_key_hash(key);
 }
 
 /** Compare a key with hashed item.
@@ -85,19 +97,16 @@ static hash_index_t task_hash(unsigned long key[])
  * @return Non-zero if the key matches the item, zero otherwise.
  *
  */
-static int task_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static bool task_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	assert(key);
-	assert(keys <= 2);
+	assert(keys == 2);
 	assert(item);
 	
 	hashed_task_t *ht = hash_table_get_instance(item, hashed_task_t, link);
 	
-	if (keys == 2)
-		return ((LOWER32(key[1]) == UPPER32(ht->id))
-		    && (LOWER32(key[0]) == LOWER32(ht->id)));
-	else
-		return (LOWER32(key[0]) == LOWER32(ht->id));
+	return (key[0] == LOWER32(ht->id))
+		&& (key[1] == UPPER32(ht->id));
 }
 
 /** Perform actions after removal of item from the hash table.
@@ -112,9 +121,11 @@ static void task_remove(link_t *item)
 }
 
 /** Operations for task hash table. */
-static hash_table_operations_t task_hash_table_ops = {
+static hash_table_ops_t task_hash_table_ops = {
 	.hash = task_hash,
-	.compare = task_compare,
+	.key_hash = task_key_hash,
+	.match = task_match,
+	.equal = 0,
 	.remove_callback = task_remove
 };
 
@@ -134,10 +145,17 @@ typedef struct {
  * @return Hash index corresponding to key[0].
  *
  */
-static hash_index_t p2i_hash(unsigned long key[])
+static size_t p2i_key_hash(unsigned long key[])
 {
 	assert(key);
-	return (key[0] % TASK_HASH_TABLE_CHAINS);
+	return key[0];
+}
+
+static size_t p2i_hash(const link_t *item)
+{
+	p2i_entry_t *entry = hash_table_get_instance(item, p2i_entry_t, link);
+	unsigned long key = entry->in_phone_hash;
+	return p2i_key_hash(&key);
 }
 
 /** Compare a key with hashed item.
@@ -149,7 +167,7 @@ static hash_index_t p2i_hash(unsigned long key[])
  * @return Non-zero if the key matches the item, zero otherwise.
  *
  */
-static int p2i_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static bool p2i_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	assert(key);
 	assert(keys == 1);
@@ -172,9 +190,11 @@ static void p2i_remove(link_t *item)
 }
 
 /** Operations for task hash table. */
-static hash_table_operations_t p2i_ops = {
+static hash_table_ops_t p2i_ops = {
 	.hash = p2i_hash,
-	.compare = p2i_compare,
+	.key_hash = p2i_key_hash,
+	.match = p2i_match,
+	.equal = 0,
 	.remove_callback = p2i_remove
 };
 
@@ -192,14 +212,12 @@ static list_t pending_wait;
 
 int task_init(void)
 {
-	if (!hash_table_create(&task_hash_table, TASK_HASH_TABLE_CHAINS,
-	    2, &task_hash_table_ops)) {
+	if (!hash_table_create(&task_hash_table, 0, 2, &task_hash_table_ops)) {
 		printf(NAME ": No memory available for tasks\n");
 		return ENOMEM;
 	}
 	
-	if (!hash_table_create(&phone_to_id, P2I_HASH_TABLE_CHAINS,
-	    1, &p2i_ops)) {
+	if (!hash_table_create(&phone_to_id, 0, 1, &p2i_ops)) {
 		printf(NAME ": No memory available for tasks\n");
 		return ENOMEM;
 	}
@@ -292,10 +310,10 @@ out:
 
 int ns_task_id_intro(ipc_call_t *call)
 {
-	unsigned long keys[2];
 	
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-	keys[0] = call->in_phone_hash;
+
+	unsigned long keys[] = { call->in_phone_hash };
 	
 	link_t *link = hash_table_find(&phone_to_id, keys);
 	if (link != NULL)
@@ -316,21 +334,18 @@ int ns_task_id_intro(ipc_call_t *call)
 	link_initialize(&entry->link);
 	entry->in_phone_hash = call->in_phone_hash;
 	entry->id = id;
-	hash_table_insert(&phone_to_id, keys, &entry->link);
+	hash_table_insert(&phone_to_id, &entry->link);
 	
 	/*
 	 * Insert into the main table.
 	 */
-	
-	keys[0] = LOWER32(id);
-	keys[1] = UPPER32(id);
 	
 	link_initialize(&ht->link);
 	ht->id = id;
 	ht->finished = false;
 	ht->have_rval = false;
 	ht->retval = -1;
-	hash_table_insert(&task_hash_table, keys, &ht->link);
+	hash_table_insert(&task_hash_table, &ht->link);
 	
 	return EOK;
 }

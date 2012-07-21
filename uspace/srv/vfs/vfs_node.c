@@ -57,15 +57,17 @@ hash_table_t nodes;
 #define KEY_DEV_HANDLE	1
 #define KEY_INDEX	2
 
-static hash_index_t nodes_hash(unsigned long []);
-static int nodes_compare(unsigned long [], hash_count_t, link_t *);
-static void nodes_remove_callback(link_t *);
+static size_t nodes_key_hash(unsigned long []);
+static size_t nodes_hash(const link_t *);
+static bool nodes_match(unsigned long [], size_t, const link_t *);
 
 /** VFS node hash table operations. */
-hash_table_operations_t nodes_ops = {
+hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
-	.compare = nodes_compare,
-	.remove_callback = nodes_remove_callback
+	.key_hash = nodes_key_hash,
+	.match = nodes_match,
+	.equal = 0,
+	.remove_callback = 0,
 };
 
 /** Initialize the VFS node hash table.
@@ -74,7 +76,7 @@ hash_table_operations_t nodes_ops = {
  */
 bool vfs_nodes_init(void)
 {
-	return hash_table_create(&nodes, NODES_BUCKETS, 3, &nodes_ops);
+	return hash_table_create(&nodes, 0, 3, &nodes_ops);
 }
 
 static inline void _vfs_node_addref(vfs_node_t *node)
@@ -206,7 +208,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		node->type = result->type;
 		link_initialize(&node->nh_link);
 		fibril_rwlock_initialize(&node->contents_rwlock);
-		hash_table_insert(&nodes, key, &node->nh_link);
+		hash_table_insert(&nodes, &node->nh_link);
 	} else {
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);
 		if (node->type == VFS_NODE_UNKNOWN &&
@@ -239,15 +241,31 @@ void vfs_node_put(vfs_node_t *node)
 	vfs_node_delref(node);
 }
 
-hash_index_t nodes_hash(unsigned long key[])
+size_t nodes_key_hash(unsigned long key[])
 {
-	hash_index_t a = key[KEY_FS_HANDLE] << (NODES_BUCKETS_LOG / 4);
-	hash_index_t b = (a | key[KEY_DEV_HANDLE]) << (NODES_BUCKETS_LOG / 2);
-	
-	return (b | key[KEY_INDEX]) & (NODES_BUCKETS - 1);
+	/* Combine into a hash like they do in Effective Java, 2nd edition. */
+	size_t hash = 17;
+	hash = 37 * hash + key[KEY_FS_HANDLE];
+	hash = 37 * hash + key[KEY_DEV_HANDLE];
+	hash = 37 * hash + key[KEY_INDEX];
+	return hash;
 }
 
-int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
+size_t nodes_hash(const link_t *item)
+{
+	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
+	
+	unsigned long key[] = {
+		[KEY_FS_HANDLE] = node->fs_handle,
+		[KEY_DEV_HANDLE] = node->service_id,
+		[KEY_INDEX] = node->index
+	};
+	
+	return nodes_key_hash(key);
+}
+
+
+bool nodes_match(unsigned long key[], size_t keys, const link_t *item)
 {
 	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
 	return (node->fs_handle == (fs_handle_t) key[KEY_FS_HANDLE]) &&
@@ -255,9 +273,6 @@ int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	    (node->index == key[KEY_INDEX]);
 }
 
-void nodes_remove_callback(link_t *item)
-{
-}
 
 struct refcnt_data {
 	/** Sum of all reference counts for this file system instance. */
@@ -266,7 +281,7 @@ struct refcnt_data {
 	service_id_t service_id;
 };
 
-static void refcnt_visitor(link_t *item, void *arg)
+static bool refcnt_visitor(link_t *item, void *arg)
 {
 	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
 	struct refcnt_data *rd = (void *) arg;
@@ -274,6 +289,8 @@ static void refcnt_visitor(link_t *item, void *arg)
 	if ((node->fs_handle == rd->fs_handle) &&
 	    (node->service_id == rd->service_id))
 		rd->refcnt += node->refcnt;
+	
+	return true;
 }
 
 unsigned

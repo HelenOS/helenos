@@ -72,16 +72,27 @@ static FIBRIL_MUTEX_INITIALIZE(services_mutex);
 
 #define SERVICES_KEYS        1
 #define SERVICES_KEY_HANDLE  0
-#define SERVICES_BUCKETS     256
 
 /* Implementation of hash table interface for the nodes hash table. */
-static hash_index_t services_hash(unsigned long key[])
+
+static size_t services_key_hash(unsigned long key[])
 {
-	return key[SERVICES_KEY_HANDLE] % SERVICES_BUCKETS;
+	return key[SERVICES_KEY_HANDLE];
 }
 
-static int services_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t services_hash(const link_t *item)
 {
+	service_t *dev = hash_table_get_instance(item, service_t, link);
+	unsigned long key[] = {
+		[SERVICES_KEY_HANDLE] = dev->service_id
+	};
+	
+	return services_key_hash(key);
+}
+
+static bool services_match(unsigned long key[], size_t keys, const link_t *item)
+{
+	assert(keys == 1);
 	service_t *dev = hash_table_get_instance(item, service_t, link);
 	return (dev->service_id == (service_id_t) key[SERVICES_KEY_HANDLE]);
 }
@@ -91,9 +102,11 @@ static void services_remove_callback(link_t *item)
 	free(hash_table_get_instance(item, service_t, link));
 }
 
-static hash_table_operations_t services_ops = {
+static hash_table_ops_t services_ops = {
 	.hash = services_hash,
-	.compare = services_compare,
+	.key_hash = services_key_hash,
+	.match = services_match,
+	.equal = 0, 
 	.remove_callback = services_remove_callback
 };
 
@@ -255,7 +268,7 @@ restart:
 			 * fibrils will not race with us when we drop the mutex
 			 * below.
 			 */
-			hash_table_insert(&services, key, &dev->link);
+			hash_table_insert(&services, &dev->link);
 			
 			/*
 			 * Drop the mutex to allow recursive locfs requests.
@@ -449,8 +462,7 @@ libfs_ops_t locfs_libfs_ops = {
 
 bool locfs_init(void)
 {
-	if (!hash_table_create(&services, SERVICES_BUCKETS,
-	    SERVICES_KEYS, &services_ops))
+	if (!hash_table_create(&services, 0,  SERVICES_KEYS, &services_ops))
 		return false;
 	
 	return true;

@@ -39,10 +39,9 @@
 #include "trace.h"
 #include "proto.h"
 
-#define SRV_PROTO_TABLE_CHAINS 32
-#define METHOD_OPER_TABLE_CHAINS 32
 
-hash_table_t srv_proto;
+/* Maps service number to protocol */
+static hash_table_t srv_proto;
 
 typedef struct {
 	unsigned srv;
@@ -56,71 +55,69 @@ typedef struct {
 	link_t link;
 } method_oper_t;
 
-static hash_index_t srv_proto_hash(unsigned long key[]);
-static int srv_proto_compare(unsigned long key[], hash_count_t keys,
-    link_t *item);
-static void srv_proto_remove_callback(link_t *item);
 
-hash_table_operations_t srv_proto_ops = {
-	.hash = srv_proto_hash,
-	.compare = srv_proto_compare,
-	.remove_callback = srv_proto_remove_callback
-};
 
-static hash_index_t method_oper_hash(unsigned long key[]);
-static int method_oper_compare(unsigned long key[], hash_count_t keys,
-    link_t *item);
-static void method_oper_remove_callback(link_t *item);
 
-hash_table_operations_t method_oper_ops = {
-	.hash = method_oper_hash,
-	.compare = method_oper_compare,
-	.remove_callback = method_oper_remove_callback
-};
-
-static hash_index_t srv_proto_hash(unsigned long key[])
+static size_t srv_proto_key_hash(unsigned long key[])
 {
-	return key[0] % SRV_PROTO_TABLE_CHAINS;
+	return key[0];
 }
 
-static int srv_proto_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t srv_proto_hash(const link_t *item)
 {
-	srv_proto_t *sp;
+	srv_proto_t *sp = hash_table_get_instance(item, srv_proto_t, link);
+	unsigned long key = sp->srv;
+	return srv_proto_key_hash(&key);	
+}
 
-	sp = hash_table_get_instance(item, srv_proto_t, link);
+static bool srv_proto_match(unsigned long key[], size_t keys, const link_t *item)
+{
+	srv_proto_t *sp = hash_table_get_instance(item, srv_proto_t, link);
 
 	return key[0] == sp->srv;
 }
 
-static void srv_proto_remove_callback(link_t *item)
+static hash_table_ops_t srv_proto_ops = {
+	.hash = srv_proto_hash,
+	.key_hash = srv_proto_key_hash,
+	.match = srv_proto_match,
+	.equal = 0,
+	.remove_callback = 0
+};
+
+
+static size_t method_oper_key_hash(unsigned long key[])
 {
+	return key[0];
 }
 
-static hash_index_t method_oper_hash(unsigned long key[])
+static size_t method_oper_hash(const link_t *item)
 {
-	return key[0] % METHOD_OPER_TABLE_CHAINS;
+	method_oper_t *mo = hash_table_get_instance(item, method_oper_t, link);
+	unsigned long key = mo->method;
+	return method_oper_key_hash(&key);
 }
 
-static int method_oper_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static bool method_oper_match(unsigned long key[], size_t keys, 
+	const link_t *item)
 {
-	method_oper_t *mo;
-
-	mo = hash_table_get_instance(item, method_oper_t, link);
+	method_oper_t *mo = hash_table_get_instance(item, method_oper_t, link);
 
 	return key[0] == mo->method;
 }
 
-static void method_oper_remove_callback(link_t *item)
-{
-}
+static hash_table_ops_t method_oper_ops = {
+	.hash = method_oper_hash,
+	.key_hash = method_oper_key_hash,
+	.match = method_oper_match,
+	.equal = 0,
+	.remove_callback = 0
+};
 
 
 void proto_init(void)
 {
-	hash_table_create(&srv_proto, SRV_PROTO_TABLE_CHAINS, 1,
-	    &srv_proto_ops);
+	hash_table_create(&srv_proto, 0, 1, &srv_proto_ops);
 }
 
 void proto_cleanup(void)
@@ -131,23 +128,20 @@ void proto_cleanup(void)
 void proto_register(int srv, proto_t *proto)
 {
 	srv_proto_t *sp;
-	unsigned long key;
 
 	sp = malloc(sizeof(srv_proto_t));
 	sp->srv = srv;
 	sp->proto = proto;
-	key = srv;
 
-	hash_table_insert(&srv_proto, &key, &sp->link);
+	hash_table_insert(&srv_proto, &sp->link);
 }
 
 proto_t *proto_get_by_srv(int srv)
 {
-	unsigned long key;
 	link_t *item;
 	srv_proto_t *sp;
 
-	key = srv;
+	unsigned long key = srv;
 	item = hash_table_find(&srv_proto, &key);
 	if (item == NULL) return NULL;
 
@@ -158,8 +152,7 @@ proto_t *proto_get_by_srv(int srv)
 static void proto_struct_init(proto_t *proto, const char *name)
 {
 	proto->name = name;
-	hash_table_create(&proto->method_oper, SRV_PROTO_TABLE_CHAINS, 1,
-	    &method_oper_ops);
+	hash_table_create(&proto->method_oper, 0, 1, &method_oper_ops);
 }
 
 proto_t *proto_new(const char *name)
@@ -180,14 +173,12 @@ void proto_delete(proto_t *proto)
 void proto_add_oper(proto_t *proto, int method, oper_t *oper)
 {
 	method_oper_t *mo;
-	unsigned long key;
 
 	mo = malloc(sizeof(method_oper_t));
 	mo->method = method;
 	mo->oper = oper;
-	key = method;
 
-	hash_table_insert(&proto->method_oper, &key, &mo->link);	
+	hash_table_insert(&proto->method_oper, &mo->link);	
 }
 
 oper_t *proto_get_oper(proto_t *proto, int method)

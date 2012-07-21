@@ -39,7 +39,6 @@
 #define OPEN_NODES_KEYS 2
 #define OPEN_NODES_SERVICE_KEY 0
 #define OPEN_NODES_INODE_KEY 1
-#define OPEN_NODES_BUCKETS 256
 
 static bool check_magic_number(uint16_t magic, bool *native,
     mfs_version_t *version, bool *longfilenames);
@@ -60,10 +59,10 @@ static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
 static int mfs_destroy_node(fs_node_t *fn);
-static hash_index_t open_nodes_hash(unsigned long key[]);
-static int open_nodes_compare(unsigned long key[], hash_count_t keys,
-    link_t *item);
-static void open_nodes_remove_cb(link_t *link);
+static size_t open_nodes_hash(const link_t *item);
+static size_t open_nodes_key_hash(unsigned long key[]);
+static bool open_nodes_match(unsigned long key[], size_t keys,
+    const link_t *item);
 static int mfs_node_get(fs_node_t **rfn, service_id_t service_id,
     fs_index_t index);
 static int mfs_instance_get(service_id_t service_id,
@@ -94,47 +93,55 @@ libfs_ops_t mfs_libfs_ops = {
 };
 
 /* Hash table interface for open nodes hash table */
-static hash_index_t
-open_nodes_hash(unsigned long key[])
+
+static size_t
+open_nodes_key_hash(unsigned long key[])
 {
-	/* TODO: This is very simple and probably can be improved */
-	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
+	/* As recommended by Effective Java, 2nd Edition. */
+	size_t hash = 17;
+	hash = 37 * hash + key[OPEN_NODES_SERVICE_KEY];
+	hash = 37 * hash + key[OPEN_NODES_INODE_KEY];
+	return hash;
 }
 
-static int
-open_nodes_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t
+open_nodes_hash(const link_t *item)
 {
-	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
-	assert(keys > 0);
-	if (mnode->instance->service_id !=
-	    ((service_id_t) key[OPEN_NODES_SERVICE_KEY])) {
-		return false;
-	}
-	if (keys == 1) {
-		return true;
-	}
+	struct mfs_node *m = hash_table_get_instance(item, struct mfs_node, link);
+	
+	unsigned long key[] = {
+		[OPEN_NODES_SERVICE_KEY] = m->instance->service_id,
+		[OPEN_NODES_INODE_KEY] = m->ino_i->index,
+	};
+	
+	return open_nodes_key_hash(key);
+}
+
+static bool
+open_nodes_match(unsigned long key[], size_t keys, const link_t *item)
+{
 	assert(keys == 2);
-	return (mnode->ino_i->index == key[OPEN_NODES_INODE_KEY]);
+	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
+	
+	service_id_t service_id = ((service_id_t) key[OPEN_NODES_SERVICE_KEY]);
+	
+	return mnode->instance->service_id == service_id
+		&& mnode->ino_i->index == key[OPEN_NODES_INODE_KEY];
 }
 
-static void
-open_nodes_remove_cb(link_t *link)
-{
-	/* We don't use remove callback for this hash table */
-}
 
-static hash_table_operations_t open_nodes_ops = {
+static hash_table_ops_t open_nodes_ops = {
 	.hash = open_nodes_hash,
-	.compare = open_nodes_compare,
-	.remove_callback = open_nodes_remove_cb,
+	.key_hash = open_nodes_key_hash,
+	.match = open_nodes_match,
+	.equal = 0,
+	.remove_callback = 0,
 };
 
 int
 mfs_global_init(void)
 {
-	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
-	    OPEN_NODES_KEYS, &open_nodes_ops)) {
+	if (!hash_table_create(&open_nodes, 0, OPEN_NODES_KEYS, &open_nodes_ops)) {
 		return ENOMEM;
 	}
 	return EOK;
@@ -407,13 +414,8 @@ mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 
 	link_initialize(&mnode->link);
 
-	unsigned long key[] = {
-		[OPEN_NODES_SERVICE_KEY] = inst->service_id,
-		[OPEN_NODES_INODE_KEY] = inum,
-	};
-
 	fibril_mutex_lock(&open_nodes_lock);
-	hash_table_insert(&open_nodes, key, &mnode->link);
+	hash_table_insert(&open_nodes, &mnode->link);
 	fibril_mutex_unlock(&open_nodes_lock);
 	inst->open_nodes_cnt++;
 
@@ -620,7 +622,7 @@ mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	mnode->fsnode = node;
 	*rfn = node;
 
-	hash_table_insert(&open_nodes, key, &mnode->link);
+	hash_table_insert(&open_nodes, &mnode->link);
 	inst->open_nodes_cnt++;
 
 	fibril_mutex_unlock(&open_nodes_lock);
