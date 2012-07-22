@@ -49,18 +49,36 @@
 
 static const irq_pio_range_t uhci_irq_pio_ranges[] = {
 	{
-		.base = 0,	/* filled later */
+		.base = 0,
 		.size = sizeof(uhci_regs_t)
 	}
 };
 
 static const irq_cmd_t uhci_irq_commands[] = {
-	{ .cmd = CMD_PIO_READ_16, .dstarg = 1, .addr = NULL/*filled later*/},
-	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2,
-	  .value = UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS },
-	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
-	{ .cmd = CMD_PIO_WRITE_A_16, .srcarg = 1, .addr = NULL/*filled later*/},
-	{ .cmd = CMD_ACCEPT },
+	{
+		.cmd = CMD_PIO_READ_16,
+		.dstarg = 1,
+		.addr = NULL
+	},
+	{
+		.cmd = CMD_AND,
+		.srcarg = 1,
+		.dstarg = 2,
+		.value = UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.srcarg = 2,
+		.value = 2
+	},
+	{
+		.cmd = CMD_PIO_WRITE_A_16,
+		.srcarg = 1,
+		.addr = NULL
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 static void hc_init_hw(const hc_t *instance);

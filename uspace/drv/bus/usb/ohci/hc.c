@@ -25,12 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohcihc
  * @{
  */
 /** @file
  * @brief OHCI Host controller driver routines
  */
+
 #include <errno.h>
 #include <str_error.h>
 #include <adt/list.h>
@@ -48,17 +50,36 @@
 
 static const irq_pio_range_t ohci_pio_ranges[] = {
 	{
-		.base = 0,	/* filled later */
+		.base = 0,
 		.size = sizeof(ohci_regs_t)
 	}
 };
 
 static const irq_cmd_t ohci_irq_commands[] = {
-	{ .cmd = CMD_PIO_READ_32, .dstarg = 1, .addr = NULL /* filled later */ },
-	{ .cmd = CMD_BTEST, .srcarg = 1, .dstarg = 2, .value = 0 /* filled later */ },
-	{ .cmd = CMD_PREDICATE, .srcarg = 2, .value = 2 },
-	{ .cmd = CMD_PIO_WRITE_A_32, .srcarg = 1, .addr = NULL /* filled later */ },
-	{ .cmd = CMD_ACCEPT },
+	{
+		.cmd = CMD_PIO_READ_32,
+		.dstarg = 1,
+		.addr = NULL
+	},
+	{
+		.cmd = CMD_AND,
+		.srcarg = 1,
+		.dstarg = 2,
+		.value = OHCI_USED_INTERRUPTS
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.srcarg = 2,
+		.value = 2
+	},
+	{
+		.cmd = CMD_PIO_WRITE_A_32,
+		.srcarg = 1,
+		.addr = NULL
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 static void hc_gain_control(hc_t *instance);
@@ -75,7 +96,6 @@ size_t hc_irq_pio_range_count(void)
 {
 	return sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t);
 }
-
 
 /** Get number of commands used in IRQ code.
  * @return Number of commands.
@@ -110,7 +130,6 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
 	ohci_regs_t *registers = (ohci_regs_t *) regs;
 	cmds[0].addr = (void *) &registers->interrupt_status;
-	cmds[1].value = OHCI_USED_INTERRUPTS;
 	cmds[3].addr = (void *) &registers->interrupt_status;
 
 	return EOK;
@@ -444,6 +463,7 @@ void hc_gain_control(hc_t *instance)
 		async_usleep(50000);
 		return;
 	}
+
 	const unsigned hc_status = C_HCFS_GET(instance->registers->control);
 	/* Interrupt routing disabled && status != USB_RESET => BIOS active */
 	if (hc_status != C_HCFS_RESET) {

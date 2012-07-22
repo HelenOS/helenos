@@ -82,7 +82,7 @@ static irq_cmd_t ne2k_cmds_prototype[] = {
 	},
 	{
 		/* Mask supported interrupt causes */
-		.cmd = CMD_BTEST,
+		.cmd = CMD_AND,
 		.value = (ISR_PRX | ISR_PTX | ISR_RXE | ISR_TXE | ISR_OVW |
 		    ISR_CNT | ISR_RDC),
 		.srcarg = 2,
