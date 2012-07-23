@@ -711,7 +711,7 @@ static void *malloc_internal(const size_t size, const size_t align)
 	if (falign < align)
 		return NULL;
 
-	size_t gross_size = GROSS_SIZE(size);
+	size_t gross_size = GROSS_SIZE(ALIGN_UP(size, BASE_ALIGN));
 	
 	heap_block_head_t *split;
 	
