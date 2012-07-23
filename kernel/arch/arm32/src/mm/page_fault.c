@@ -141,7 +141,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 	if (instr.condition == 0xf) {
 		panic("page_fault - instruction does not access memory "
 		    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
-		    instr_union.pc, (void *) badvaddr);
+		    *(uint32_t*)instr_union.instr, (void *) badvaddr);
 		return PF_ACCESS_EXEC;
 	}
 
@@ -161,7 +161,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 
 	panic("page_fault - instruction doesn't access memory "
 	    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
-	    instr_union.pc, (void *) badvaddr);
+	    *(uint32_t*)instr_union.instr, (void *) badvaddr);
 
 	return PF_ACCESS_EXEC;
 }
