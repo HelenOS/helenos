@@ -119,8 +119,8 @@ static void enable_paging()
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
 #ifdef PROCESSOR_armv7_a
-		/* Mask to enable paging, alignment and caching */
-		"ldr r1, =0x00000007\n"
+		/* Mask to enable paging, caching */
+		"ldr r1, =0x00000005\n"
 #else
 		/* Mask to enable paging */
 		"ldr r1, =0x00000001\n"

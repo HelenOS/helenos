@@ -27,11 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -march=armv4
-#TODO enable this when the breakage is fixed
-#(fat fails on invalid instruction, tmpfs hangs, there may be other issues)
-#fat: page_fault - instruction doesn't access memory (instr_code: 0x1508, badvaddr:0x.
-#$(subst _,-,$(PROCESSOR))
+GCC_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -march=$(subst _,-,$(PROCESSOR))
 
 ENDIANESS = LE
 
