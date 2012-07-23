@@ -706,6 +706,11 @@ static void *malloc_internal(const size_t size, const size_t align)
 		return NULL;
 	
 	size_t falign = lcm(align, BASE_ALIGN);
+
+	/* Check for integer overflow. */
+	if (falign < align)
+		return NULL;
+
 	size_t gross_size = GROSS_SIZE(size);
 	
 	heap_block_head_t *split;
