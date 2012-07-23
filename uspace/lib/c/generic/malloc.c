@@ -109,7 +109,7 @@
 	(((uintptr_t) (area)->end) - sizeof(heap_block_foot_t))
 
 #define AREA_LAST_BLOCK_HEAD(area) \
-	((uintptr_t) BLOCK_HEAD(((heap_block_foot_t *)AREA_LAST_BLOCK_FOOT(area))))
+	((uintptr_t) BLOCK_HEAD(((heap_block_foot_t *) AREA_LAST_BLOCK_FOOT(area))))
 
 /** Get header in heap block.
  *
@@ -348,7 +348,8 @@ static bool area_grow(heap_area_t *area, size_t size)
 	if (ret != EOK)
 		return false;
 	
-	heap_block_head_t *last_head = (heap_block_head_t *) AREA_LAST_BLOCK_HEAD(area);
+	heap_block_head_t *last_head =
+	    (heap_block_head_t *) AREA_LAST_BLOCK_HEAD(area);
 	
 	if (last_head->free) {
 		/* Add the new space to the last block. */
@@ -650,27 +651,32 @@ static void *malloc_area(heap_area_t *area, heap_block_head_t *first_block,
 }
 
 /** Try to enlarge any of the heap areas.
- *  If successful, allocate block of the given size in the area.
  *
+ * If successful, allocate block of the given size in the area.
  * Should be called only inside the critical section.
  *
- * @param size Gross size of item to allocate (bytes).
+ * @param size  Gross size of item to allocate (bytes).
  * @param align Memory address alignment.
+ *
+ * @return Allocated block.
+ * @return NULL on failure.
  *
  */
 static void *heap_grow_and_alloc(size_t size, size_t align)
 {
 	if (size == 0)
 		return NULL;
-		
+	
 	/* First try to enlarge some existing area */
 	for (heap_area_t *area = first_heap_area; area != NULL;
 	    area = area->next) {
-	    
+		
 		if (area_grow(area, size + align)) {
-			heap_block_head_t *first = (heap_block_head_t *) AREA_LAST_BLOCK_HEAD(area);
+			heap_block_head_t *first =
+			    (heap_block_head_t *) AREA_LAST_BLOCK_HEAD(area);
 			
-			void *addr = malloc_area(area, first, NULL, size, align);
+			void *addr =
+			    malloc_area(area, first, NULL, size, align);
 			malloc_assert(addr != NULL);
 			return addr;
 		}
@@ -678,9 +684,11 @@ static void *heap_grow_and_alloc(size_t size, size_t align)
 	
 	/* Eventually try to create a new area */
 	if (area_create(AREA_OVERHEAD(size + align))) {
-		heap_block_head_t *first = (heap_block_head_t *) AREA_FIRST_BLOCK_HEAD(last_heap_area);
+		heap_block_head_t *first =
+		    (heap_block_head_t *) AREA_FIRST_BLOCK_HEAD(last_heap_area);
 		
-		void *addr = malloc_area(last_heap_area, first, NULL, size, align);
+		void *addr =
+		    malloc_area(last_heap_area, first, NULL, size, align);
 		malloc_assert(addr != NULL);
 		return addr;
 	}
@@ -706,17 +714,15 @@ static void *malloc_internal(const size_t size, const size_t align)
 		return NULL;
 	
 	size_t falign = lcm(align, BASE_ALIGN);
-
+	
 	/* Check for integer overflow. */
 	if (falign < align)
 		return NULL;
-
+	
 	size_t gross_size = GROSS_SIZE(ALIGN_UP(size, BASE_ALIGN));
 	
-	heap_block_head_t *split;
-	
 	/* Try the next fit approach */
-	split = next_fit;
+	heap_block_head_t *split = next_fit;
 	
 	if (split != NULL) {
 		void *addr = malloc_area(split->area, split, NULL, gross_size,
