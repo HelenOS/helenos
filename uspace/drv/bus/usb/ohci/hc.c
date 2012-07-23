@@ -65,7 +65,7 @@ static const irq_cmd_t ohci_irq_commands[] = {
 		.cmd = CMD_AND,
 		.srcarg = 1,
 		.dstarg = 2,
-		.value = OHCI_USED_INTERRUPTS
+		.value = 0
 	},
 	{
 		.cmd = CMD_PREDICATE,
@@ -131,6 +131,7 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 	ohci_regs_t *registers = (ohci_regs_t *) regs;
 	cmds[0].addr = (void *) &registers->interrupt_status;
 	cmds[3].addr = (void *) &registers->interrupt_status;
+	OHCI_WR(cmds[1].value, OHCI_USED_INTERRUPTS);
 
 	return EOK;
 }
