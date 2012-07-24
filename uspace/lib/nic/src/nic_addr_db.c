@@ -43,10 +43,7 @@
 #include <adt/hash_table.h>
 #include <macros.h>
 
-
-
-/* Couple address bytes into KEY_CNT key fields. Align up to fit all bytes. */
-//#define KEY_CNT ((NIC_ADDR_MAX_LENGTH + sizeof(unsigned long) - 1) / sizeof(unsigned long))
+/* The key count hash table field is not used. Use this dummy value. */
 #define KEY_CNT 1
 
 /**
@@ -70,7 +67,6 @@ typedef struct nic_addr_entry {
 static bool nic_addr_match(unsigned long *key, size_t key_cnt, 
 	const link_t *item)
 {
-	/* Ugly type-punning hack. */
 	uint8_t *addr = (uint8_t*)key;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
 
@@ -93,7 +89,6 @@ static size_t nic_addr_hash(const link_t *item)
 {
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
 	
-	/* Ugly type-punning hack. */
 	unsigned long *key = (unsigned long*)entry->addr;
 	return nic_addr_key_hash(key);
 }
