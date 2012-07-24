@@ -146,11 +146,6 @@ typedef struct rcu_thread_data {
 } rcu_thread_data_t;
 
 
-#ifndef member_to_inst
-#define member_to_inst(ptr_member, type, member_identif) \
-	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
-#endif
-
 /** Use to assign a pointer to newly initialized data to a rcu reader 
  * accessible pointer.
  * 
@@ -204,6 +199,7 @@ typedef struct rcu_thread_data {
 
 extern void rcu_read_lock(void);
 extern void rcu_read_unlock(void);
+extern bool rcu_read_locked(void);
 extern void rcu_synchronize(void);
 extern void rcu_call(rcu_item_t *rcu_item, rcu_func_t func);
 

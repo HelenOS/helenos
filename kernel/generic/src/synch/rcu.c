@@ -387,6 +387,16 @@ void rcu_read_unlock(void)
 	preemption_enable();
 }
 
+/** Returns true if in an rcu reader section. */
+bool rcu_read_locked(void)
+{
+	preemption_disable();
+	bool locked = 0 < *CPU->rcu.pnesting_cnt;
+	preemption_enable();
+	
+	return locked;
+}
+
 /** Unlocks the local reader section using the given nesting count. 
  * 
  * Preemption or interrupts must be disabled. 
