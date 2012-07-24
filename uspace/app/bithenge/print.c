@@ -32,6 +32,8 @@
 /**
  * @file
  * Write a tree as JSON or other text formats.
+ * @todo Allow more control over the printing style, and handle printing in
+ * limited space.
  */
 
 #include <errno.h>
@@ -43,26 +45,48 @@
 typedef struct {
 	bithenge_print_type_t type;
 	bool first;
-} print_internal_data_t;
+	int depth;
+} state_t;
 
-static int print_internal_func(bithenge_node_t *key, bithenge_node_t *value, void *data_)
+static int print_node(state_t *, bithenge_node_t *);
+
+static void newline(state_t *state)
 {
-	print_internal_data_t *data = (print_internal_data_t *)data_;
+	printf("\n");
+	for (int i = 0; i < state->depth; i++) {
+		printf("    ");
+	}
+}
+
+static void increase_depth(state_t *state)
+{
+	state->depth++;
+}
+
+static void decrease_depth(state_t *state)
+{
+	state->depth--;
+}
+
+static int print_internal_func(bithenge_node_t *key, bithenge_node_t *value, void *data)
+{
+	state_t *state = (state_t *)data;
 	int rc = EOK;
-	if (!data->first)
-		printf(", ");
-	data->first = false;
-	bool add_quotes = data->type == BITHENGE_PRINT_JSON
+	if (!state->first)
+		printf(",");
+	newline(state);
+	state->first = false;
+	bool add_quotes = state->type == BITHENGE_PRINT_JSON
 	    && bithenge_node_type(key) != BITHENGE_NODE_STRING;
 	if (add_quotes)
 		printf("\"");
-	rc = bithenge_print_node(data->type, key);
+	rc = print_node(state, key);
 	if (rc != EOK)
 		goto end;
 	if (add_quotes)
 		printf("\"");
 	printf(": ");
-	rc = bithenge_print_node(data->type, value);
+	rc = print_node(state, value);
 	if (rc != EOK)
 		goto end;
 end:
@@ -71,22 +95,27 @@ end:
 	return rc;
 }
 
-static int print_internal(bithenge_print_type_t type, bithenge_node_t *node)
+static int print_internal(state_t *state, bithenge_node_t *node)
 {
 	int rc;
-	print_internal_data_t data = { type, true };
 	printf("{");
-	rc = bithenge_node_for_each(node, print_internal_func, &data);
+	increase_depth(state);
+	state->first = true;
+	rc = bithenge_node_for_each(node, print_internal_func, state);
 	if (rc != EOK)
 		return rc;
+	decrease_depth(state);
+	if (!state->first)
+		newline(state);
+	state->first = false;
 	printf("}");
 	return EOK;
 }
 
-static int print_boolean(bithenge_print_type_t type, bithenge_node_t *node)
+static int print_boolean(state_t *state, bithenge_node_t *node)
 {
 	bool value = bithenge_boolean_node_value(node);
-	switch (type) {
+	switch (state->type) {
 	case BITHENGE_PRINT_PYTHON:
 		printf(value ? "True" : "False");
 		break;
@@ -97,14 +126,14 @@ static int print_boolean(bithenge_print_type_t type, bithenge_node_t *node)
 	return EOK;
 }
 
-static int print_integer(bithenge_print_type_t type, bithenge_node_t *node)
+static int print_integer(state_t *state, bithenge_node_t *node)
 {
 	bithenge_int_t value = bithenge_integer_node_value(node);
 	printf("%" BITHENGE_PRId, value);
 	return EOK;
 }
 
-static int print_string(bithenge_print_type_t type, bithenge_node_t *node)
+static int print_string(state_t *state, bithenge_node_t *node)
 {
 	const char *value = bithenge_string_node_value(node);
 	printf("\"");
@@ -125,14 +154,14 @@ static int print_string(bithenge_print_type_t type, bithenge_node_t *node)
 	return EOK;
 }
 
-static int print_blob(bithenge_print_type_t type, bithenge_node_t *node)
+static int print_blob(state_t *state, bithenge_node_t *node)
 {
 	bithenge_blob_t *blob = bithenge_node_as_blob(node);
 	aoff64_t pos = 0;
 	char buffer[1024];
 	aoff64_t size = sizeof(buffer);
 	int rc;
-	printf(type == BITHENGE_PRINT_PYTHON ? "b\"" : "\"");
+	printf(state->type == BITHENGE_PRINT_PYTHON ? "b\"" : "\"");
 	do {
 		rc = bithenge_blob_read(blob, pos, buffer, &size);
 		if (rc != EOK)
@@ -145,25 +174,31 @@ static int print_blob(bithenge_print_type_t type, bithenge_node_t *node)
 	return EOK;
 }
 
+static int print_node(state_t *state, bithenge_node_t *tree)
+{
+	switch (bithenge_node_type(tree)) {
+	case BITHENGE_NODE_INTERNAL:
+		return print_internal(state, tree);
+	case BITHENGE_NODE_BOOLEAN:
+		return print_boolean(state, tree);
+	case BITHENGE_NODE_INTEGER:
+		return print_integer(state, tree);
+	case BITHENGE_NODE_STRING:
+		return print_string(state, tree);
+	case BITHENGE_NODE_BLOB:
+		return print_blob(state, tree);
+	}
+	return ENOTSUP;
+}
+
 /** Print a tree as text.
  * @param type The format to use.
  * @param tree The root node of the tree to print.
  * @return EOK on success or an error code from errno.h. */
 int bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 {
-	switch (bithenge_node_type(tree)) {
-	case BITHENGE_NODE_INTERNAL:
-		return print_internal(type, tree);
-	case BITHENGE_NODE_BOOLEAN:
-		return print_boolean(type, tree);
-	case BITHENGE_NODE_INTEGER:
-		return print_integer(type, tree);
-	case BITHENGE_NODE_STRING:
-		return print_string(type, tree);
-	case BITHENGE_NODE_BLOB:
-		return print_blob(type, tree);
-	}
-	return ENOTSUP;
+	state_t state = {type, true, 0};
+	return print_node(&state, tree);
 }
 
 /** @}

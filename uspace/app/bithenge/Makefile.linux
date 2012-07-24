@@ -50,3 +50,4 @@ $(BINARY): $(OBJECTS)
 
 clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
+	rm -f $(BINARY)
