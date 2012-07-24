@@ -39,6 +39,7 @@
 
 #define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#define bzero(dst, cnt)        memset((dst), 0, (cnt))
 
 extern void memsetb(void *, size_t, uint8_t);
 extern void memsetw(void *, size_t, uint16_t);
