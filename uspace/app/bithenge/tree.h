@@ -93,6 +93,9 @@ typedef int (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *v
 typedef struct bithenge_internal_node_ops_t {
 	/** @copydoc bithenge_node_t::bithenge_node_for_each */
 	int (*for_each)(bithenge_node_t *self, bithenge_for_each_func_t func, void *data);
+	/** @copydoc bithenge_node_t::bithenge_node_get */
+	int (*get)(bithenge_node_t *self, bithenge_node_t *key,
+	    bithenge_node_t **out);
 	/** Destroys the internal node.
 	 * @param self The node to destroy. */
 	void (*destroy)(bithenge_node_t *self);
@@ -130,6 +133,9 @@ static inline int bithenge_node_for_each(bithenge_node_t *self,
 	assert(self->type == BITHENGE_NODE_INTERNAL);
 	return self->internal_ops->for_each(self, func, data);
 }
+
+int bithenge_node_get(bithenge_node_t *, bithenge_node_t *,
+    bithenge_node_t **);
 
 /** Get the value of a boolean node.
  * @memberof bithenge_node_t

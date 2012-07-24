@@ -79,6 +79,52 @@ void bithenge_node_dec_ref(bithenge_node_t *node)
 		node_destroy(node);
 }
 
+typedef struct {
+	bithenge_node_t *key;
+	bithenge_node_t **out;
+} get_for_each_data_t;
+
+static int get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
+    void *raw_data)
+{
+	get_for_each_data_t *data = (get_for_each_data_t *)raw_data;
+	bool equal = bithenge_node_equal(key, data->key);
+	bithenge_node_dec_ref(key);
+	if (equal) {
+		*data->out = value;
+		return EEXIST;
+	}
+	bithenge_node_dec_ref(value);
+	return EOK;
+}
+
+/** Get a child of a node. Takes ownership of the key. If the node does not
+ * provide this function, for_each will be used as an alternative, which may be
+ * very slow.
+ * @memberof bithenge_node_t
+ * @param self The internal node to find a child of.
+ * @param key The key to search for.
+ * @param[out] out Holds the found node.
+ * @return EOK on success, ENOENT if not found, or another error code from
+ * errno.h. */
+int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
+    bithenge_node_t **out)
+{
+	assert(self->type == BITHENGE_NODE_INTERNAL);
+	if (self->internal_ops->get)
+		return self->internal_ops->get(self, key, out);
+	*out = NULL;
+	get_for_each_data_t data = {key, out};
+	int rc = bithenge_node_for_each(self, get_for_each_func, &data);
+	bithenge_node_dec_ref(key);
+	if (rc == EEXIST && *out)
+		return EOK;
+	if (rc == EOK)
+		rc = ENOENT;
+	bithenge_node_dec_ref(*out);
+	return rc;
+}
+
 typedef struct
 {
 	bithenge_node_t base;
