@@ -408,10 +408,11 @@ int ns_task_disconnect(ipc_call_t *call)
 	keys[1] = UPPER32(id);
 	
 	link_t *link = hash_table_find(&task_hash_table, keys);
+	if (link == NULL)
+		return EOK;
+
 	hashed_task_t *ht =
 	    hash_table_get_instance(link, hashed_task_t, link);
-	if (ht == NULL)
-		return EOK;
 	
 	ht->finished = true;
 	
