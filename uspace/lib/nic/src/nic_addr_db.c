@@ -34,15 +34,15 @@
  * @file
  * @brief Generic hash-set based database of addresses
  */
+#include "nic_addr_db.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <bool.h>
 #include <errno.h>
 #include <mem.h>
+#include <adt/hash_table.h>
+#include <macros.h>
 
-#include "nic_addr_db.h"
-#include "adt/hash_table.h"
-//#include "string.h"
 
 
 /* Couple address bytes into KEY_CNT key fields. Align up to fit all bytes. */

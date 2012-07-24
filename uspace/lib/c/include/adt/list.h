@@ -101,12 +101,6 @@ typedef struct list {
 		iterator != &(list).head; \
 		iterator = next_iter, next_iter = iterator->next)
 
-#ifndef member_to_inst
-#define member_to_inst(ptr_member, type, member_identif) \
-	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
-#endif
-
-
 #define assert_link_not_used(link) \
 	assert(((link)->prev == NULL) && ((link)->next == NULL))
 
