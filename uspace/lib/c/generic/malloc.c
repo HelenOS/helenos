@@ -719,6 +719,12 @@ static void *malloc_internal(const size_t size, const size_t align)
 	if (falign < align)
 		return NULL;
 	
+	/*
+	 * The size of the allocated block needs to be naturally
+	 * aligned, because the footer structure also needs to reside
+	 * on a naturally aligned address in order to avoid unaligned
+	 * memory accesses.
+	 */
 	size_t gross_size = GROSS_SIZE(ALIGN_UP(size, BASE_ALIGN));
 	
 	/* Try the next fit approach */
@@ -759,6 +765,8 @@ static void *malloc_internal(const size_t size, const size_t align)
  */
 void *calloc(const size_t nmemb, const size_t size)
 {
+	// FIXME: Check for overflow
+	
 	void *block = malloc(nmemb * size);
 	if (block == NULL)
 		return NULL;
@@ -898,7 +906,7 @@ void free(const void *addr)
 {
 	if (addr == NULL)
 		return;
-
+	
 	futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */
