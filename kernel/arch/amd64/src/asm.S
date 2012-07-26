@@ -361,7 +361,15 @@ syscall_entry:
 	 * Call syscall_handler() with the 7th argument passed on stack.
 	 */
 	call syscall_handler
-	
+
+	/*
+	 * Test if the saved return address is canonical and not-kernel.
+	 * We do this by looking at the 16 most significant bits
+	 * of the saved return address (two bytes at offset 6).
+	 */
+	testw $0xffff, ISTATE_OFFSET_RIP+6(%rsp)
+	jnz bad_rip 
+
 	cli
 	
 	/*
@@ -386,6 +394,15 @@ syscall_entry:
 	xorq %r10, %r10
 
 	sysretq
+
+bad_rip:
+	movq %rsp, %rdi
+	movabs $bad_rip_msg, %rsi
+	callq fault_from_uspace
+	/* not reached */
+	
+bad_rip_msg:
+	.asciz "Invalid instruction pointer."
 
 /** Print Unicode character to EGA display.
  *
