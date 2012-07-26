@@ -47,49 +47,78 @@ typedef struct {
 	unsigned int refs;
 } bithenge_transform_t;
 
+/** Context and parameters used when applying transforms. */
+typedef struct {
+	/** @privatesection */
+} bithenge_transform_context_t;
+
 /** Operations that may be provided by a transform. */
 typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
-	int (*apply)(bithenge_transform_t *self, bithenge_node_t *in, bithenge_node_t **out);
+	int (*apply)(bithenge_transform_t *self,
+	    bithenge_transform_context_t *context, bithenge_node_t *in,
+	    bithenge_node_t **out);
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_length */
-	int (*prefix_length)(bithenge_transform_t *self, bithenge_blob_t *blob, aoff64_t *out);
+	int (*prefix_length)(bithenge_transform_t *self,
+	    bithenge_transform_context_t *context, bithenge_blob_t *blob,
+	    aoff64_t *out);
 	/** Destroy the transform.
 	 * @param self The transform. */
 	void (*destroy)(bithenge_transform_t *self);
 } bithenge_transform_ops_t;
 
-/** Apply a transform.
+/** Initialize a transform context. It must be destroyed with @a
+ * bithenge_transform_context_destroy after it is used.
+ * @param[out] context The context to initialize. */
+static inline void bithenge_transform_context_init(
+    bithenge_transform_context_t *context)
+{
+}
+
+/** Destroy a transform context.
+ * @param context The context to destroy.
+ * @return EOK on success or an error code from errno.h. */
+static inline void bithenge_transform_context_destroy(
+    bithenge_transform_context_t *context)
+{
+}
+
+/** Apply a transform. Takes ownership of nothing.
  * @memberof bithenge_transform_t
  * @param self The transform.
+ * @param context The context.
  * @param in The input tree.
  * @param[out] out Where the output tree will be stored.
  * @return EOK on success or an error code from errno.h. */
 static inline int bithenge_transform_apply(bithenge_transform_t *self,
-    bithenge_node_t *in, bithenge_node_t **out)
+    bithenge_transform_context_t *context, bithenge_node_t *in,
+    bithenge_node_t **out)
 {
 	assert(self);
 	assert(self->ops);
-	return self->ops->apply(self, in, out);
+	return self->ops->apply(self, context, in, out);
 }
 
 /** Find the length of the prefix of a blob this transform can use as input. In
  * other words, figure out how many bytes this transform will use up.  This
  * method is optional and can return an error, but it must succeed for struct
- * subtransforms.
+ * subtransforms. Takes ownership of nothing.
  * @memberof bithenge_transform_t
  * @param self The transform.
+ * @param context The context.
  * @param blob The blob.
  * @param[out] out Where the prefix length will be stored.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
  * errno.h. */
 static inline int bithenge_transform_prefix_length(bithenge_transform_t *self,
-    bithenge_blob_t *blob, aoff64_t *out)
+    bithenge_transform_context_t *context, bithenge_blob_t *blob,
+    aoff64_t *out)
 {
 	assert(self);
 	assert(self->ops);
 	if (!self->ops->prefix_length)
 		return ENOTSUP;
-	return self->ops->prefix_length(self, blob, out);
+	return self->ops->prefix_length(self, context, blob, out);
 }
 
 /** Increment a transform's reference count.

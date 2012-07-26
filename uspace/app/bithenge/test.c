@@ -68,8 +68,12 @@ int main(int argc, char *argv[])
 		printf("\n");
 		bithenge_node_dec_ref(node);
 	} else {
+		bithenge_transform_context_t context;
 		bithenge_transform_t *transform = NULL;
 		bithenge_node_t *node = NULL, *node2 = NULL;
+
+		bithenge_transform_context_init(&context);
+
 		rc = bithenge_parse_script(argv[1], &transform);
 		if (rc != EOK) {
 			printf("Error parsing script: %s\n", str_error(rc));
@@ -82,7 +86,7 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 
-		rc = bithenge_transform_apply(transform, node, &node2);
+		rc = bithenge_transform_apply(transform, &context, node, &node2);
 		if (rc != EOK) {
 			printf("Error applying transform: %s\n", str_error(rc));
 			goto error;
@@ -108,6 +112,7 @@ error:
 		bithenge_node_dec_ref(node);
 		bithenge_node_dec_ref(node2);
 		bithenge_transform_dec_ref(transform);
+		bithenge_transform_context_destroy(&context);
 		return 1;
 	}
 
