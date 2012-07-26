@@ -45,14 +45,17 @@
 #include <atomic.h>
 #include <synch/rcu.h>
 
-/* Must be a power of 2. */
-#define CHT_MIN_BUCKET_CNT 128 
+/* Logarithm of the min bucket count. */
+#define CHT_MIN_ORDER 6
+/* Logarithm of the max bucket count. */
+#define CHT_MAX_ORDER (8 * sizeof(size_t))
+/* Minimum number of hash table buckets. */
+#define CHT_MIN_BUCKET_CNT (1 << CHT_MIN_ORDER)
 /* Must be a power of 2. */
 #define CHT_MAX_LOAD 2 
 
 typedef cht_ptr_t marked_ptr_t;
 typedef bool (*equal_pred_t)(void *arg, const cht_link_t *item);
-
 
 typedef enum mark {
 	N_NORMAL = 0,
@@ -87,6 +90,7 @@ static mark_t get_mark(marked_ptr_t link);
 static size_t key_hash(cht_t *h, void *key);
 static size_t node_hash(cht_t *h, const cht_link_t *item);
 
+static size_t calc_split_hash(size_t split_idx, size_t order);
 static size_t calc_bucket_idx(size_t hash, size_t order);
 static size_t grow_idx(size_t idx);
 static size_t shrink_idx(size_t idx);
@@ -98,6 +102,7 @@ bool cht_create(cht_t *h, size_t init_size, cht_ops_t *op)
 	ASSERT(h);
 	ASSERT(op && op->hash && op->key_hash && op->equal && op->key_equal);
 
+	/* All operations are compulsory. */
 	if (!op || !op->hash || !op->key_hash || !op->equal || !op->key_equal)
 		return false;
 	
@@ -118,15 +123,51 @@ bool cht_create(cht_t *h, size_t init_size, cht_ops_t *op)
 	return true;
 }
 
+static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid)
+{
+	size_t bucket_cnt = (1 << order);
+	cht_buckets_t *b = malloc(
+		sizeof(cht_buckets_t) + (bucket_cnt - 1) * sizeof(marked_ptr_t));
+	
+	if (!b)
+		return 0;
+	
+	b->order = order;
+	
+	marked_ptr_t head_link 
+		= set_invalid ? make_link(0, N_INVALID) : make_link(0, N_NORMAL);
+	
+	for (size_t i = 0; i < bucket_cnt; ++i) {
+		b->head[i] = head_link;
+	}
+	
+	return b;
+}
+
+static size_t size_to_order(size_t bucket_cnt)
+{
+	size_t order = CHT_MIN_ORDER;
+
+	/* Find a power of two such that bucket_cnt <= 2^order */
+	do {
+		if (bucket_cnt <= (1 << order))
+			return order;
+		
+		++order;
+	} while (order < CHT_MAX_ORDER);
+	
+	return order;
+}
+
+
 void cht_destroy(cht_t *h)
 {
 	/* todo: impl */
-	1 = 1;
-	rcu_synchronize();
 }
 
 cht_link_t *cht_find(cht_t *h, void *key)
 {
+	/* Make the most recent changes of the table visible. */
 	read_barrier();
 	return cht_find_lazy(h, key);
 }
@@ -141,7 +182,10 @@ cht_link_t *cht_find_lazy(cht_t *h, void *key)
 	
 	cht_buckets_t *b = rcu_access(h->b);
 	size_t idx = calc_bucket_idx(hash, b->order);
-	/* todo: access once? */
+	/* 
+	 * No need for access_once. b->head[idx] will point to an allocated node 
+	 * even if marked invalid until we exit rcu read section.
+	 */
 	marked_ptr_t head = b->head[idx];
 	
 	if (N_INVALID == get_mark(head))
@@ -330,8 +374,124 @@ bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 {
 	rcu_read_lock();
 
+	cht_buckets_t *b = rcu_access(h->b);
+	size_t hash = node_hash(h, item);
+	size_t idx = calc_bucket_idx(hash, b->order);
+	marked_ptr_t *phead = &b->head[idx];
+
+	bool resizing = false;
+	bool inserted;
+	
+	do {
+		walk_mode_t walk_mode = WM_NORMAL;
+		bool join_finishing;
+		
+		resizing = resizing || (N_NORMAL != get_mark(*phead));
+		
+		/* The table is resizing. Get the correct bucket head. */
+		if (resizing) {
+			upd_resizing_head(hash, &phead, &join_finishing, &walk_mode);
+		}
+		
+		wnd_t wnd = {
+			.ppred = phead,
+			.cur = get_next(*phead),
+			.last = 0
+		};
+		
+		if (!find_wnd_and_gc(h, hash, walk_mode, &wnd, &resizing)) {
+			/* Could not GC a node; or detected an unexpected resize. */
+			continue;
+		}
+		
+		if (unique && has_duplicates(h, item, hash, wnd)) {
+			rcu_read_unlock();
+			return false;
+		}
+		
+		inserted = insert_at(item, wnd, walk_mode, &resizing);		
+	} while (!inserted);
+	
+	item_inserted(h);
 	
 	rcu_read_unlock();
+	return true;
+}
+
+static bool insert_at(cht_link_t *item, const wnd_t *wnd, walk_mode_t walk_mode,
+	bool *resizing)
+{
+	marked_ptr_t ret;
+	
+	if (walk_mode == WM_NORMAL) {
+		item->link = make_link(wnd->cur, N_NORMAL);
+		/* Initialize the item before adding it to a bucket. */
+		memory_barrier();
+		
+		/* Link a clean/normal predecessor to the item. */
+		ret = cas_link(wnd->ppred, wnd->cur, N_NORMAL, item, N_NORMAL);
+		
+		if (ret == make_link(wnd->cur, N_NORMAL)) {
+			return true;
+		} else {
+			*resizing = ((N_JOIN_FOLLOWS | N_JOIN) & get_mark(ret));
+			return false;
+		}
+	} else if (walk_mode == WM_MOVE_JOIN_FOLLOWS) {
+		/* Move JOIN_FOLLOWS mark but filter out the DELETED mark. */
+		mark_t jf_mark = get_mark(*wnd->ppred) & N_JOIN_FOLLOWS;
+		item->link = make_link(wnd->cur, jf_mark);
+		/* Initialize the item before adding it to a bucket. */
+		memory_barrier();
+		
+		/* Link the not-deleted predecessor to the item. Move its JF mark. */
+		ret = cas_link(wnd->ppred, wnd->cur, jf_mark, item, N_NORMAL);
+		
+		return ret == make_link(wnd->cur, jf_mark);
+	} else {
+		ASSERT(walk_mode == WM_LEAVE_JOIN);
+
+		item->link = make_link(wnd->cur, N_NORMAL);
+		/* Initialize the item before adding it to a bucket. */
+		memory_barrier();
+		
+		mark_t pred_mark = get_mark(*wnd->ppred);
+		/* If the predecessor is a join node it may be marked deleted.*/
+		mark_t exp_pred_mark = (N_JOIN & pred_mark) ? pred_mark : N_NORMAL;
+
+		ret = cas_link(wnd->ppred, wnd->cur, exp_pred_mark, item, exp_pred_mark);
+		return ret == make_link(wnd->cur, exp_pred_mark);
+	}
+}
+
+static bool has_duplicates(cht_t *h, cht_link_t *item, size_t hash, 
+	const wnd_t *cwnd)
+{
+	ASSERT(0 == wnd->cur || hash <= node_hash(h, wnd->cur));
+	
+	if (0 == wnd->cur || hash < node_hash(h, wnd->cur))
+		return false;
+
+	/* 
+	 * Load the most recent node marks. Otherwise we might pronounce a 
+	 * logically deleted node for a duplicate of the item just because 
+	 * the deleted node's DEL mark had not yet propagated to this cpu.
+	 */
+	read_barrier();
+
+	cht_link_t *cur = wnd->cur;
+	
+	do {
+		bool deleted = (N_DELETED & get_mark(cur->link));
+		
+		/* Skip logically deleted nodes. */
+		if (!deleted && h->op->equal(item, cur))
+			return true;
+		
+		cur = get_next(cur->link);
+	} while (cur && node_hash(h, cur) == hash);
+	
+	return false;	
 }
 
 
@@ -568,7 +728,7 @@ static bool find_wnd_and_gc_pred(cht_t *h, size_t hash, walk_mode_t walk_mode,
 		}
 		
 		/* The searched for node is not in the current bucket. */
-		if (wnd->cur)
+		if (!wnd->cur)
 			return true;
 		
 		cur_hash = node_hash(h, wnd->cur);
@@ -626,23 +786,6 @@ static bool gc_deleted_node(cht_t *h, walk_mode_t walk_mode, wnd_t *wnd,
 	
 	return true;
 }
-
-
-static bool find_dup_node_to_del(cht_t *h, bool is_pos, void *key_or_pos, 
-	size_t hash, wnd_t *wnd)
-{
-	ASSERT(!wnd->cur || hash <= node_hash(h, wnd->cur));
-	
-	if (!wnd->cur || hash < node_hash(h, wnd->cur))
-		return false;
-	
-	
-	if (is_pos) {
-		
-	} else {
-	}
-}
-
 
 static bool join_completed(cht_t *h, const wnd_t *wnd)
 {
@@ -727,7 +870,8 @@ static void upd_resizing_head(cht_t *h, size_t hash, marked_ptr_t **phead,
 			
 			/* The moved bucket has not yet been split. */
 			if (N_NORMAL != get_mark(*pnew_head)) {
-				split_bucket(pmoved_head, pnew_head);
+				size_t split_hash = calc_split_hash(new_idx, h->new_b->order);
+				split_bucket(pmoved_head, pnew_head, split_hash);
 				/* 
 				 * split_bucket() makes the new head visible. No 
 				 * JOIN_FOLLOWS in this part of split bucket.
@@ -752,7 +896,8 @@ static void upd_resizing_head(cht_t *h, size_t hash, marked_ptr_t **phead,
 		if (move_src_idx != old_idx) {
 			/* Bucket join not yet completed. */
 			if (N_INVALID != get_mark(*pold_head)) {
-				join_buckets(pold_head, pnew_head);
+				size_t split_hash = calc_split_hash(old_idx, b->order);
+				join_buckets(pold_head, pnew_head, split_hash);
 			}
 			
 			/* The resizer sets pold_head to 0 when all cpus see the bucket join.*/
@@ -776,11 +921,13 @@ static void upd_resizing_head(cht_t *h, size_t hash, marked_ptr_t **phead,
 }
 
 
+#if 0
 static void move_head(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
 {
 	start_head_move(psrc_head);
 	complete_head_move(psrc_head, pdest_head);
 }
+#endif
 
 static void help_head_move(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
 {
@@ -885,6 +1032,8 @@ static void split_bucket(cht_t *h, marked_ptr_t *psrc_head,
 	wnd_t wnd;
 	bool done;
 	
+	rcu_read_lock();
+	
 	/* Mark the last node of the first part of the split bucket as JF. */
 	mark_join_follows(h, psrc_head, split_hash, &wnd);
 	
@@ -906,6 +1055,8 @@ static void split_bucket(cht_t *h, marked_ptr_t *psrc_head,
 	
 	/* Link the dest head to the second part of the split. */
 	cas_link(pdest_head, 0, N_INVALID, wnd.cur, N_NORMAL);
+	
+	rcu_read_unlock();
 }
 
 static void mark_join_follows(cht_t *h, marked_ptr_t *psrc_head, 
@@ -964,7 +1115,7 @@ static void mark_join_node(cht_link_t *join_node)
 
 
 static void join_buckets(cht_t *h, marked_ptr_t *psrc_head, 
-	marked_ptr_t *pdest_head)
+	marked_ptr_t *pdest_head, size_t split_hash)
 {
 	/* Buckets already joined. */
 	if (N_INVALID == get_mark(*psrc_head))
@@ -1035,6 +1186,8 @@ static void join_buckets(cht_t *h, marked_ptr_t *psrc_head,
 	 *  [src_head | Inv]-----------> [JN] -> .. 
 	 */
 	
+	rcu_read_lock();
+	
 	/* Mark src_head immutable - signals updaters bucket join started. */
 	mark_const(psrc_head);
 	/* todo: cas order barrier*/
@@ -1050,6 +1203,8 @@ static void join_buckets(cht_t *h, marked_ptr_t *psrc_head,
 	} 
 	
 	cas_link(psrc_head, join_node, N_CONST, join_node, N_INVALID);
+	
+	rcu_read_unlock();
 }
 
 static void link_to_join_node(cht_t *h, marked_ptr_t *pdest_head, 
@@ -1088,31 +1243,379 @@ static void free_later(cht_t *h, cht_link_t *item)
 	 */
 	rcu_call(&item->rcu_link, (rcu_func_t)h->op->remove_callback);
 	
-	/* todo: --items */
+	item_removed(h);
 }
 
-static size_t size_to_order(size_t bucket_cnt)
+static void item_removed(cht_t *h)
 {
+	/* todo: impl */
 }
 
-static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid)
+static void item_inserted(cht_t *h)
 {
-	size_t bucket_cnt = (1 << order);
-	cht_buckets_t *b = malloc(
-		sizeof(cht_buckets_t) + (bucket_cnt - 1) * sizeof(uintptr_t));
+	/* todo: impl */
+}
+
+static void resize_table(void *arg)
+{
+	cht_t *h = (cht_t *)arg;
 	
-	if (!b)
-		return 0;
+	ASSERT(h->b);
+	ASSERT(0 < (read_barrier(), atomic_get(&h->resize_reqs)));
+
+	/* Load the most current h->item_cnt. */
+	read_barrier();
+	do {
+		size_t cur_items = h->item_cnt;
+		size_t bucket_cnt = (1 << h->b->order);
+
+		if (cur_items >= CHT_MAX_LOAD * bucket_cnt) {
+			grow_table(h);
+		} else if (cur_items <= CHT_MAX_LOAD * bucket_cnt / 4) {
+			shrink_table(h);
+		}
+		
+		/* Load the most current h->item_cnt and h->resize_reqs. */
+		read_barrier();
+	} while (0 < atomic_predec(&h->resize_reqs));
+}
+
+static void grow_table(cht_t *h)
+{
+	if (h->b->order >= CHT_MAX_ORDER)
+		return;
 	
-	b->order = order;
+	h->new_b = alloc_buckets(h->b->order + 1, true);
+
+	/* Failed to alloc a new table - try next time the resizer is run. */
+	if (!h->new_b) 
+		return;
+
+	/* Wait for all readers and updaters to see the initialized new table. */
+	rcu_synchronize();
 	
-	marked_ptr_t head_link = set_invalid ? make_link(0, N_INVALID) : 0;
+	size_t old_bucket_cnt = (1 << h->b->order);
 	
-	for (size_t i = 0; i < bucket_cnt; ++i) {
-		b->head[i] = head_link;
+	/* 
+	 * Give updaters a chance to help out with the resize. Do the minimum 
+	 * work needed to announce a resize is in progress, ie start moving heads.
+	 */
+	for (size_t idx = 0; idx < old_bucket_cnt; ++idx) {
+		start_head_move(&h->b->head[idx]);
 	}
 	
-	return b;
+	/* Complete moving heads and split any buckets not yet split by updaters. */
+	for (size_t old_idx = 0; old_idx < old_bucket_cnt; ++old_idx) {
+		marked_ptr_t *move_dest_head = &h->new_b->head[grow_idx(old_idx)];
+		marked_ptr_t *move_src_head = &h->b->head[old_idx];
+
+		/* Head move not yet completed. */
+		if (N_INVALID != get_mark(*move_src_head)) {
+			complete_head_move(move_src_head, move_dest_head);
+		}
+
+		size_t split_idx = grow_to_split_idx(old_idx);
+		size_t split_hash = calc_split_hash(split_idx, h->new_b->order);
+		marked_ptr_t *split_dest_head = &h->new_b->head[split_idx];
+
+		split_bucket(h, move_dest_head, split_dest_head, split_hash);
+	}
+	
+	/* 
+	 * Wait for all updaters to notice the new heads. Once everyone sees
+	 * the invalid old bucket heads they will know a resize is in progress
+	 * and updaters will modify the correct new buckets. 
+	 */
+	rcu_synchronize();
+	
+	/* Clear the JOIN_FOLLOWS mark and remove the link between the split buckets.*/
+	for (size_t old_idx = 0; old_idx < old_bucket_cnt; ++old_idx) {
+		size_t new_idx = grow_idx(old_idx);
+		
+		cleanup_join_follows(h, &h->new_b[new_idx]);
+	}
+	
+	/* 
+	 * Wait for everyone to notice that buckets were split, ie link connecting
+	 * the join follows and join node has been cut. 
+	 */
+	rcu_synchronize();
+	
+	/* Clear the JOIN mark and GC any deleted join nodes. */
+	for (size_t old_idx = 0; old_idx < old_bucket_cnt; ++old_idx) {
+		size_t new_idx = grow_to_split_idx(old_idx);
+		
+		cleanup_join_node(h, &h->new_b[new_idx]);
+	}
+	
+	/* Wait for everyone to see that the table is clear of any resize marks. */
+	rcu_synchronize();
+	
+	cht_buckets_t *old_b = h->b;
+	rcu_assign(h->b, h->new_b);
+	
+	/* Wait for everyone to start using the new table. */
+	rcu_synchronize();
+	
+	free(old_b);
+	
+	/* Not needed; just for increased readability. */
+	h->new_b = 0;
+}
+
+static void shrink_table(cht_t *h)
+{
+	if (h->b->order <= CHT_MIN_ORDER)
+		return;
+	
+	h->new_b = alloc_buckets(h->b->order - 1, true);
+
+	/* Failed to alloc a new table - try next time the resizer is run. */
+	if (!h->new_b) 
+		return;
+
+	/* Wait for all readers and updaters to see the initialized new table. */
+	rcu_synchronize();
+	
+	size_t old_bucket_cnt = (1 << h->b->order);
+	
+	/* 
+	 * Give updaters a chance to help out with the resize. Do the minimum 
+	 * work needed to announce a resize is in progress, ie start moving heads.
+	 */
+	for (size_t old_idx = 0; old_idx < old_bucket_cnt; ++old_idx) {
+		size_t new_idx = shrink_idx(old_idx);
+		
+		/* This bucket should be moved. */
+		if (grow_idx(new_idx) == old_idx) {
+			start_head_move(&h->b->head[old_idx]);
+		} else {
+			/* This bucket should join the moved bucket once the move is done.*/
+		}
+	}
+	
+	/* Complete moving heads and join buckets with the moved buckets. */
+	for (size_t old_idx = 0; old_idx < old_bucket_cnt; ++old_idx) {
+		size_t new_idx = shrink_idx(old_idx);
+		
+		/* This bucket should be moved. */
+		if (grow_idx(new_idx) == old_idx) {
+			/* Head move not yet completed. */
+			if (N_INVALID != get_mark(h->b->head[old_idx])) {
+				complete_head_move(&h->b->head[old_idx], &h->new_b->head[new_idx]);
+			}
+		} else {
+			/* This bucket should join the moved bucket. */
+			size_t split_hash = calc_split_hash(old_idx, h->b->order);
+			join_buckets(h, &h->b->head[old_idx], &h->new_b->head[new_idx], 
+				split_hash);
+		}
+	}
+	
+	/* 
+	 * Wait for all updaters to notice the new heads. Once everyone sees
+	 * the invalid old bucket heads they will know a resize is in progress
+	 * and updaters will modify the correct new buckets. 
+	 */
+	rcu_synchronize();
+	
+	/* Let everyone know joins are complete and fully visible. */
+	for (size_t old_idx = 0; old_idx < old_bucket_cnt; ++old_idx) {
+		size_t move_src_idx = grow_idx(shrink_idx(old_idx));
+	
+		/* Set the invalid joinee head to NULL. */
+		if (old_idx != move_src_idx) {
+			ASSERT(N_INVALID == h->b->head[old_idx]);
+			
+			if (0 != get_next(h->b->head[old_idx]))
+				h->b->head[old_idx] = make_link(0, N_INVALID);
+		}
+	}
+	
+	/* todo comment join node vs reset joinee head*/
+	rcu_synchronize();
+
+	size_t new_bucket_cnt = (1 << h->new_b->order);
+		
+	/* Clear the JOIN mark and GC any deleted join nodes. */
+	for (size_t new_idx = 0; new_idx < new_bucket_cnt; ++new_idx) {
+		cleanup_join_node(h, &h->new_b[new_idx]);
+	}
+
+	/* Wait for everyone to see that the table is clear of any resize marks. */
+	rcu_synchronize();
+	
+	cht_buckets_t *old_b = h->b;
+	rcu_assign(h->b, h->new_b);
+	
+	/* Wait for everyone to start using the new table. */
+	rcu_synchronize();
+	
+	free(old_b);
+	
+	/* Not needed; just for increased readability. */
+	h->new_b = 0;
+}
+
+static void cleanup_join_node(cht_t *h, marked_ptr_t *new_head)
+{
+	rcu_read_lock();
+
+	cht_link_t *cur = get_next(*new_head);
+		
+	while (cur) {
+		/* Clear the join node's JN mark - even if it is marked as deleted. */
+		if (N_JOIN & get_mark(cur->link)) {
+			clear_join_and_gc(h, cur, new_head);
+			break;
+		}
+		
+		cur = get_next(cur->link);
+	}
+	
+	rcu_read_unlock();
+}
+
+static void clear_join_and_gc(cht_t *h, cht_link_t *join_node, 
+	marked_ptr_t *new_head)
+{
+	ASSERT(join_node && (N_JOIN & get_mark(join_node->link)));
+	
+	bool done;
+	
+	/* Clear the JN mark. */
+	do {
+		marked_ptr_t jn_link = join_node->link;
+		cht_link_t *next = get_next(jn_link);
+		/* Clear the JOIN mark but keep the DEL mark if present. */
+		mark_t cleared_mark = get_mark(jn_link) & N_DELETED;
+
+		marked_ptr_t ret = 
+			_cas_link(&join_node->link, jn_link, make_link(next, cleared_mark));
+
+		/* Done if the mark was cleared. Retry if a new node was inserted. */
+		done = (ret == jn_link);
+	} while (!done);
+	
+	if (!(N_DELETED & get_mark(join_node->link)))
+		return;
+
+	/* The join node had been marked as deleted - GC it. */
+	
+	size_t jn_hash = node_hash(h, join_node);
+	do {
+		bool resizing;
+		
+		wnd_t wnd = {
+			.ppred = new_head,
+			.cur = get_next(*new_head)
+		};
+		
+		done = find_wnd_and_gc_pred(h, jn_hash, WM_NORMAL, same_node_pred, 
+			join_node, &wnd, &resizing);
+		
+		ASSERT(!resizing);
+	} while (!done);
+}
+
+static void cleanup_join_follows(cht_t *h, marked_ptr_t *new_head)
+{
+	ASSERT(new_head);
+	
+	rcu_read_lock();
+
+	wnd_t wnd = {
+		.ppred = 0,
+		.cur = 0
+	};
+	marked_ptr_t *cur_link = new_head;
+		
+	/*
+	 * Find the non-deleted node with a JF mark and clear the JF mark.
+	 * The JF node may be deleted and/or the mark moved to its neighbors
+	 * at any time. Therefore, we GC deleted nodes until we find the JF 
+	 * node in order to remove stale/deleted JF nodes left behind eg by 
+	 * delayed threads that did not yet get a chance to unlink the deleted 
+	 * JF node and move its mark. 
+	 * 
+	 * Note that the head may be marked JF (but never DELETED).
+	 */
+	while (true) {
+		bool is_jf_node = N_JOIN_FOLLOWS & get_mark(*cur_link);
+		
+		/* GC any deleted nodes on the way - even deleted JOIN_FOLLOWS. */
+		if (N_DELETED & get_mark(*cur_link)) {
+			ASSERT(cur_link != new_head);
+			ASSERT(wnd.ppred && wnd.cur);
+			ASSERT(cur_link == &wnd.cur->link);
+
+			bool dummy;
+			bool deleted = gc_deleted_node(h, WM_MOVE_JOIN_FOLLOWS, &wnd, &dummy);
+
+			/* Failed to GC or collected a deleted JOIN_FOLLOWS. */
+			if (!deleted || is_jf_node) {
+				/* Retry from the head of the bucket. */
+				cur_link = new_head;
+				continue;
+			}
+		} else {
+			/* Found a non-deleted JF. Clear its JF mark. */
+			if (is_jf_node) {
+				cht_link_t *next = get_next(*cur_link);
+				marked_ptr_t ret 
+					= cas_link(cur_link, next, N_JOIN_FOLLOWS, 0, N_NORMAL);
+
+				/* Successfully cleared the JF mark of a non-deleted node. */
+				if (ret == make_link(next, N_JOIN_FOLLOWS)) {
+					break;
+				} else {
+					/* 
+					 * The JF node had been deleted or a new node inserted 
+					 * right after it. Retry from the head.
+					 */
+					cur_link = new_head;
+					continue;
+				}
+			} else {
+				wnd.ppred = cur_link;
+				wnd.cur = get_next(*cur_link);				
+			}
+		}
+
+		/* We must encounter a JF node before we reach the end of the bucket. */
+		ASSERT(wnd.cur);
+		cur_link = &wnd.cur->link;
+	}
+	
+	rcu_read_unlock();
+}
+
+
+static size_t calc_split_hash(size_t split_idx, size_t order)
+{
+	ASSERT(1 <= order && order <= 8 * sizeof(size_t));
+	return split_idx << (8 * sizeof(size_t) - order);
+}
+
+static size_t calc_bucket_idx(size_t hash, size_t order)
+{
+	ASSERT(1 <= order && order <= 8 * sizeof(size_t));
+	return hash >> (8 * sizeof(size_t) - order);
+}
+
+static size_t grow_to_split_idx(size_t old_idx)
+{
+	return grow_idx(old_idx) | 1;
+}
+
+static size_t grow_idx(size_t idx)
+{
+	return idx << 1;
+}
+
+static size_t shrink_idx(size_t idx)
+{
+	return idx >> 1;
 }
 
 
@@ -1127,7 +1630,7 @@ static size_t node_hash(cht_t *h, const cht_link_t *item)
 }
 
 
-static marked_ptr_t make_link(cht_link_t *next, mark_t mark)
+static marked_ptr_t make_link(const cht_link_t *next, mark_t mark)
 {
 	marked_ptr_t ptr = (marked_ptr_t) next;
 	
@@ -1167,8 +1670,8 @@ static bool same_node_pred(void *node, const cht_link_t *item2)
 	return item1 == item2;
 }
 
-static marked_ptr_t cas_link(marked_ptr_t *link, cht_link_t *cur_next, 
-	mark_t cur_mark, cht_link_t *new_next, mark_t new_mark)
+static marked_ptr_t cas_link(marked_ptr_t *link, const cht_link_t *cur_next, 
+	mark_t cur_mark, const cht_link_t *new_next, mark_t new_mark)
 {
 	return _cas_link(link, make_link(cur_next, cur_mark), 
 		make_link(new_next, new_mark));
@@ -1177,7 +1680,28 @@ static marked_ptr_t cas_link(marked_ptr_t *link, cht_link_t *cur_next,
 static marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur, 
 	marked_ptr_t new)
 {
-	
+	/*
+	 * cas(x) on the same location x on one cpu must be ordered, but do not
+	 * have to be ordered wrt to other cas(y) to a different location y
+	 * on the same cpu.
+	 * 
+	 * cas(x) must act as a write barrier on x, ie if cas(x) succeeds 
+	 * and is observed by another cpu, then all cpus must be able to 
+	 * make the effects of cas(x) visible just by issuing a load barrier.
+	 * For example:
+	 * cpu1         cpu2            cpu3
+	 *                              cas(x, 0 -> 1), succeeds 
+	 *              cas(x, 0 -> 1), fails
+	 *              MB
+	 *              y = 7
+	 * sees y == 7
+	 * loadMB must be enough to make cas(x) on cpu3 visible to cpu1, ie x == 1.
+	 * 
+	 * If cas() did not work this way:
+	 * - our head move protocol would not be correct.
+	 * - freeing an item linked to a moved head after another item was
+	 *   inserted in front of it, would require more than one grace period.
+	 */
 }
 
 /** @}
