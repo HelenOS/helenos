@@ -398,6 +398,7 @@ syscall_entry:
 bad_rip:
 	movq %rsp, %rdi
 	movabs $bad_rip_msg, %rsi
+	xorb %al, %al
 	callq fault_from_uspace
 	/* not reached */
 	
