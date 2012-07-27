@@ -58,6 +58,7 @@ typedef struct {
 extern const char *test_atomic1(void);
 extern const char *test_avltree1(void);
 extern const char *test_btree1(void);
+extern const char *test_cht1(void);
 extern const char *test_mips1(void);
 extern const char *test_fault1(void);
 extern const char *test_falloc1(void);

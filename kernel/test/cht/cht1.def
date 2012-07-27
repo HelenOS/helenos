@@ -1,0 +1,6 @@
+{
+	"cht",
+	"Concurrent hash table test",
+	&test_cht1,
+	true
+},

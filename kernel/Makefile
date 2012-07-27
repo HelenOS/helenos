@@ -296,6 +296,7 @@ ifeq ($(CONFIG_TEST),y)
 		test/test.c \
 		test/atomic/atomic1.c \
 		test/btree/btree1.c \
+		test/cht/cht1.c \
 		test/avltree/avltree1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
