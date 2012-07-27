@@ -40,6 +40,7 @@
 #include <synch/condvar.h>
 #include <synch/semaphore.h>
 #include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <proc/thread.h>
 #include <cpu/cpu_mask.h>
 #include <cpu.h>
@@ -127,6 +128,13 @@ typedef struct rcu_data {
 	 */
 	atomic_t delaying_cpu_cnt;
 	
+	/** Excludes simultaneous rcu_barrier() calls. */
+	mutex_t barrier_mtx;
+	/** Number of cpus that we are waiting for to complete rcu_barrier(). */
+	atomic_t barrier_wait_cnt;
+	/** rcu_barrier() waits for the completion of barrier callbacks on this wq.*/
+	waitq_t barrier_wq;
+	
 	/** Interruptible attached detector thread pointer. */
 	thread_t *detector_thr;
 	
@@ -145,6 +153,8 @@ static void start_detector(void);
 static void start_reclaimers(void);
 static void rcu_read_unlock_impl(size_t *pnesting_cnt);
 static void synch_complete(rcu_item_t *rcu_item);
+static void add_barrier_cb(void *arg);
+static void barrier_complete(rcu_item_t *barrier_item);
 static void check_qs(void);
 static void record_qs(void);
 static void signal_read_unlock(void);
@@ -194,6 +204,10 @@ void rcu_init(void)
 	list_initialize(&rcu.cur_preempted);
 	list_initialize(&rcu.next_preempted);
 	rcu.preempt_blocking_det = false;
+	
+	mutex_initialize(&rcu.barrier_mtx, MUTEX_PASSIVE);
+	atomic_set(&rcu.barrier_wait_cnt, 0);
+	waitq_initialize(&rcu.barrier_wq);
 	
 	atomic_set(&rcu.delaying_cpu_cnt, 0);
 	
@@ -296,8 +310,6 @@ void rcu_thread_exiting(void)
  */
 void rcu_stop(void)
 {
-	/* todo: stop accepting new callbacks instead of just letting them linger?*/
-	
 	/* Stop and wait for reclaimers. */
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_active; ++cpu_id) {
 		ASSERT(cpus[cpu_id].rcu.reclaimer_thr != 0);
@@ -538,13 +550,25 @@ typedef struct synch_item {
 /** Blocks until all preexisting readers exit their critical sections. */
 void rcu_synchronize(void)
 {
+	_rcu_synchronize(false);
+}
+
+/** Blocks until all preexisting readers exit their critical sections. */
+void rcu_synchronize_expedite(void)
+{
+	_rcu_synchronize(true);
+}
+
+/** Blocks until all preexisting readers exit their critical sections. */
+void _rcu_synchronize(bool expedite)
+{
 	/* Calling from a reader section will deadlock. */
 	ASSERT(THREAD == 0 || 0 == THREAD->rcu.nesting_cnt);
 	
 	synch_item_t completion; 
 
 	waitq_initialize(&completion.wq);
-	rcu_call(&completion.rcu_item, synch_complete);
+	_rcu_call(expedite, &completion.rcu_item, synch_complete);
 	waitq_sleep(&completion.wq);
 	waitq_complete_wakeup(&completion.wq);
 }
@@ -555,6 +579,56 @@ static void synch_complete(rcu_item_t *rcu_item)
 	synch_item_t *completion = member_to_inst(rcu_item, synch_item_t, rcu_item);
 	ASSERT(completion);
 	waitq_wakeup(&completion->wq, WAKEUP_FIRST);
+}
+
+/** Waits for all outstanding rcu calls to complete. */
+void rcu_barrier(void)
+{
+	/* 
+	 * Serialize rcu_barrier() calls so we don't overwrite cpu.barrier_item
+	 * currently in use by rcu_barrier().
+	 */
+	mutex_lock(&rcu.barrier_mtx);
+	
+	/* 
+	 * Ensure we queue a barrier callback on all cpus before the already
+	 * enqueued barrier callbacks start signaling completion.
+	 */
+	atomic_set(&rcu.barrier_wait_cnt, 1);
+
+	DEFINE_CPU_MASK(cpu_mask);
+	cpu_mask_active(cpu_mask);
+	
+	cpu_mask_for_each(*cpu_mask, cpu_id) {
+		smp_call(cpu_id, add_barrier_cb, 0);
+	}
+	
+	if (0 < atomic_predec(&rcu.barrier_wait_cnt)) {
+		waitq_sleep(&rcu.barrier_wq);
+	}
+	
+	mutex_unlock(&rcu.barrier_mtx);
+}
+
+/** Issues a rcu_barrier() callback on the local cpu. 
+ * 
+ * Executed with interrupts disabled.  
+ */
+static void add_barrier_cb(void *arg)
+{
+	ASSERT(interrupts_disabled() || PREEMPTION_DISABLED);
+	atomic_inc(&rcu.barrier_wait_cnt);
+	rcu_call(&CPU->rcu.barrier_item, barrier_complete);
+}
+
+/** Local cpu's rcu_barrier() completion callback. */
+static void barrier_complete(rcu_item_t *barrier_item)
+{
+	/* Is this the last barrier callback completed? */
+	if (0 == atomic_predec(&rcu.barrier_wait_cnt)) {
+		/* Notify rcu_barrier() that we're done. */
+		waitq_wakeup(&rcu.barrier_wq, WAKEUP_FIRST);
+	}
 }
 
 /** Adds a callback to invoke after all preexisting readers finish. 

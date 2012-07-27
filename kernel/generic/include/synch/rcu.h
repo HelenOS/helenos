@@ -110,6 +110,9 @@ typedef struct rcu_cpu_data {
 	/** The reclaimer should expedite GPs for cbs in arriving_cbs. */
 	bool expedite_arriving;
 	
+	/** Protected by global rcu.barrier_mtx. */
+	rcu_item_t barrier_item;
+	
 	/** Interruptable attached reclaimer thread. */
 	struct thread *reclaimer_thr;
 	
@@ -201,7 +204,9 @@ extern void rcu_read_lock(void);
 extern void rcu_read_unlock(void);
 extern bool rcu_read_locked(void);
 extern void rcu_synchronize(void);
+extern void rcu_synchronize_expedite(void);
 extern void rcu_call(rcu_item_t *rcu_item, rcu_func_t func);
+extern void rcu_barrier(void);
 
 extern void rcu_print_stat(void);
 
@@ -214,9 +219,9 @@ extern void rcu_thread_exiting(void);
 extern void rcu_after_thread_ran(void);
 extern void rcu_before_thread_runs(void);
 
-/* Debugging/testing support. Not part of public API. Do not use! */
 extern uint64_t rcu_completed_gps(void);
 extern void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func);
+extern void _rcu_synchronize(bool expedite);
 
 #endif
 

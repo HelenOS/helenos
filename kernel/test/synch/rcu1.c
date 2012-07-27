@@ -805,6 +805,44 @@ static bool do_synch(void)
 }
 
 /*-------------------------------------------------------------------*/
+typedef struct {
+	rcu_item_t rcu_item;
+	atomic_t done;
+} barrier_t;
+
+static void barrier_callback(rcu_item_t *item)
+{
+	barrier_t *b = member_to_inst(item, barrier_t, rcu_item);
+	atomic_set(&b->done, 1);
+}
+
+static bool do_barrier(void)
+{
+	TPRINTF("\nrcu_barrier: Wait for outstanding rcu callbacks to complete\n");
+	
+	barrier_t *barrier = malloc(sizeof(barrier_t), FRAME_ATOMIC);
+	
+	if (!barrier) {
+		TPRINTF("[out-of-mem]\n");
+		return false;
+	}
+	
+	atomic_set(&barrier->done, 0);
+	
+	rcu_call(&barrier->rcu_item, barrier_callback);
+	rcu_barrier();
+	
+	if (1 == atomic_get(&barrier->done)) {
+		free(barrier);
+		return true;
+	} else {
+		TPRINTF("rcu_barrier() exited prematurely.\n");
+		/* Leak some mem. */
+		return false;
+	}
+}
+
+/*-------------------------------------------------------------------*/
 
 typedef struct {
 	size_t iters;
@@ -968,6 +1006,7 @@ const char *test_rcu1(void)
 		{ 1, do_one_cb, "do_one_cb" },
 		{ 1, do_reader_preempt, "do_reader_preempt" },
 		{ 1, do_synch, "do_synch" },
+		{ 1, do_barrier, "do_barrier" },
 		{ 1, do_reader_exit, "do_reader_exit" },
 		{ 1, do_nop_readers, "do_nop_readers" },
 		{ 1, do_seq_check, "do_seq_check" },
