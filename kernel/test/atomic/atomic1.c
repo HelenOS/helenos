@@ -59,5 +59,16 @@ const char *test_atomic1(void)
 	if (atomic_get(&a) != 10)
 		return "Failed atomic_get() after atomic_predec()";
 	
+	void *ptr = 0;
+	void *a_ptr = &a;
+	if (atomic_cas_ptr(&ptr, 0, a_ptr) != 0)
+		return "Failed atomic_cas_ptr(): bad return value";
+	if (ptr != a_ptr)
+		return "Failed atomic_cas_ptr(): bad pointer value";
+	if (atomic_cas_ptr(&ptr, 0, 0) != a_ptr)
+		return "Failed atomic_cas_ptr(): indicated change";
+	if (ptr != a_ptr)
+		return "Failed atomic_cas_ptr(): changed the ptr";
+	
 	return NULL;
 }

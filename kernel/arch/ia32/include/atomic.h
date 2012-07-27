@@ -112,6 +112,7 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 	return v;
 }
 
+
 /** ia32 specific fast spinlock */
 NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
@@ -140,6 +141,46 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 	 */
 	CS_ENTER_BARRIER();
 }
+
+
+#define _atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, prefix) \
+	asm volatile ( \
+		prefix " cmpxchgl %[newval], %[ptr]\n" \
+		: /* Output operands. */ \
+		/* Old/current value is returned in eax. */ \
+		[oldval] "=a" (old_val), \
+		/* (*ptr) will be read and written to, hence "+" */ \
+		[ptr] "+m" (*pptr) \
+		: /* Input operands. */ \
+		/* Expected value must be in eax. */ \
+		[expval] "a" (exp_val), \
+		/* The new value may be in any register. */ \
+		[newval] "r" (new_val) \
+		: "memory" \
+	)
+	
+/** Atomically compares and swaps the pointer at pptr. */
+NO_TRACE static inline void * atomic_cas_ptr(void **pptr, 
+	void *exp_val, void *new_val)
+{
+	void *old_val;
+	_atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, "lock\n");
+	return old_val;
+}
+
+/** Compare-and-swap of a pointer that is atomic wrt to local cpu's interrupts.
+ * 
+ * This function is NOT smp safe and is not atomic with respect to other cpus.
+ */
+NO_TRACE static inline void * atomic_cas_ptr_local(void **pptr, 
+	void *exp_val, void *new_val)
+{
+	void *old_val;
+	_atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, "");
+	return old_val;
+}
+
+#undef _atomic_cas_ptr_impl
 
 #endif
 
