@@ -34,8 +34,8 @@
 typedef struct val {
 	/* Place at the top to simplify re-casting. */
 	cht_link_t link;
-	int hash;
-	int unique_id;
+	size_t hash;
+	size_t unique_id;
 	bool deleted;
 	bool mark;
 } val_t;
@@ -49,7 +49,7 @@ static size_t val_hash(const cht_link_t *item)
 
 static size_t val_key_hash(void *key)
 {
-	return (int)key % 10;
+	return (uintptr_t)key % 10;
 }
 
 static bool val_equal(const cht_link_t *item1, const cht_link_t *item2)
@@ -62,7 +62,7 @@ static bool val_equal(const cht_link_t *item1, const cht_link_t *item2)
 static bool val_key_equal(void *key, const cht_link_t *item2)
 {
 	val_t *v2 = member_to_inst(item2, val_t, link);
-	return (int)key == v2->unique_id;
+	return (uintptr_t)key == v2->unique_id;
 }
 
 static void val_rm_callback(cht_link_t *item)
@@ -82,7 +82,7 @@ static cht_ops_t val_ops = {
 	.remove_callback = val_rm_callback,
 };
 
-static void set_val(val_t *v, size_t h, int uid)
+static void set_val(val_t *v, size_t h, size_t uid)
 {
 	v->hash = h;
 	v->unique_id = uid;

@@ -140,7 +140,7 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 }
 
 
-#define _atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, prefix)
+#define _atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, prefix) \
 	asm volatile ( \
 		prefix " cmpxchgq %[newval], %[ptr]\n" \
 		: /* Output operands. */ \
