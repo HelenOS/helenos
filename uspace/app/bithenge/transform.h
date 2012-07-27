@@ -50,53 +50,113 @@ typedef struct {
 /** Context and parameters used when applying transforms. */
 typedef struct {
 	/** @privatesection */
-} bithenge_transform_context_t;
+	bithenge_node_t **params;
+	int num_params;
+} bithenge_scope_t;
 
 /** Operations that may be provided by a transform. */
 typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
-	int (*apply)(bithenge_transform_t *self,
-	    bithenge_transform_context_t *context, bithenge_node_t *in,
-	    bithenge_node_t **out);
+	int (*apply)(bithenge_transform_t *self, bithenge_scope_t *scope,
+	    bithenge_node_t *in, bithenge_node_t **out);
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_length */
 	int (*prefix_length)(bithenge_transform_t *self,
-	    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-	    aoff64_t *out);
+	    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out);
 	/** Destroy the transform.
 	 * @param self The transform. */
 	void (*destroy)(bithenge_transform_t *self);
+	/** The number of parameters required. */
+	int num_params;
 } bithenge_transform_ops_t;
 
-/** Initialize a transform context. It must be destroyed with @a
- * bithenge_transform_context_destroy after it is used.
- * @param[out] context The context to initialize. */
-static inline void bithenge_transform_context_init(
-    bithenge_transform_context_t *context)
+/** Initialize a transform scope. It must be destroyed with @a
+ * bithenge_scope_destroy after it is used.
+ * @param[out] scope The scope to initialize. */
+static inline void bithenge_scope_init(bithenge_scope_t *scope)
 {
+	scope->params = NULL;
+	scope->num_params = 0;
 }
 
-/** Destroy a transform context.
- * @param context The context to destroy.
+/** Destroy a transform scope.
+ * @param scope The scope to destroy.
  * @return EOK on success or an error code from errno.h. */
-static inline void bithenge_transform_context_destroy(
-    bithenge_transform_context_t *context)
+static inline void bithenge_scope_destroy(bithenge_scope_t *scope)
 {
+	for (int i = 0; i < scope->num_params; i++)
+		bithenge_node_dec_ref(scope->params[i]);
+	free(scope->params);
+}
+
+/** Allocate parameters. The parameters must then be set with @a
+ * bithenge_scope_set_param.
+ * @param scope The scope in which to allocate parameters.
+ * @param num_params The number of parameters to allocate.
+ * @return EOK on success or an error code from errno.h. */
+static inline int bithenge_scope_alloc_params(bithenge_scope_t *scope,
+    int num_params)
+{
+	scope->params = malloc(sizeof(*scope->params) * num_params);
+	if (!scope->params)
+		return ENOMEM;
+	scope->num_params = num_params;
+	return EOK;
+}
+
+/** Set a parameter. Takes a reference to @a value. Note that range checking is
+ * not done in release builds.
+ * @param scope The scope in which to allocate parameters.
+ * @param i The index of the parameter to set.
+ * @param value The value to store in the parameter.
+ * @return EOK on success or an error code from errno.h. */
+static inline int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
+    bithenge_node_t *node)
+{
+	assert(scope);
+	assert(i >= 0 && i < scope->num_params);
+	scope->params[i] = node;
+	return EOK;
+}
+
+/** Get a parameter. Note that range checking is not done in release builds.
+ * @param scope The scope to get the parameter from.
+ * @param i The index of the parameter to set.
+ * @param[out] out Stores a new reference to the parameter.
+ * @return EOK on success or an error code from errno.h. */
+static inline int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
+    bithenge_node_t **out)
+{
+	assert(scope);
+	assert(i >= 0 && i < scope->num_params);
+	*out = scope->params[i];
+	bithenge_node_inc_ref(*out);
+	return EOK;
+}
+
+/** Get the number of parameters required by a transform. Takes ownership of
+ * nothing.
+ * @param self The transform.
+ * @return The number of parameters required. */
+static inline int bithenge_transform_num_params(bithenge_transform_t *self)
+{
+	assert(self);
+	assert(self->ops);
+	return self->ops->num_params;
 }
 
 /** Apply a transform. Takes ownership of nothing.
  * @memberof bithenge_transform_t
  * @param self The transform.
- * @param context The context.
+ * @param scope The scope.
  * @param in The input tree.
  * @param[out] out Where the output tree will be stored.
  * @return EOK on success or an error code from errno.h. */
 static inline int bithenge_transform_apply(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_node_t *in,
-    bithenge_node_t **out)
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	assert(self);
 	assert(self->ops);
-	return self->ops->apply(self, context, in, out);
+	return self->ops->apply(self, scope, in, out);
 }
 
 /** Find the length of the prefix of a blob this transform can use as input. In
@@ -105,20 +165,19 @@ static inline int bithenge_transform_apply(bithenge_transform_t *self,
  * subtransforms. Takes ownership of nothing.
  * @memberof bithenge_transform_t
  * @param self The transform.
- * @param context The context.
+ * @param scope The scope.
  * @param blob The blob.
  * @param[out] out Where the prefix length will be stored.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
  * errno.h. */
 static inline int bithenge_transform_prefix_length(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	assert(self);
 	assert(self->ops);
 	if (!self->ops->prefix_length)
 		return ENOTSUP;
-	return self->ops->prefix_length(self, context, blob, out);
+	return self->ops->prefix_length(self, scope, blob, out);
 }
 
 /** Increment a transform's reference count.

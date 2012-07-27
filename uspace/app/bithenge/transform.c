@@ -60,9 +60,8 @@ static void transform_indestructible(bithenge_transform_t *self)
 	assert(false);
 }
 
-static int ascii_apply(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_node_t *in,
-    bithenge_node_t **out)
+static int ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_node_t *in, bithenge_node_t **out)
 {
 	int rc;
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
@@ -102,33 +101,29 @@ bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1
 };
 
-static int prefix_length_1(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+static int prefix_length_1(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 1;
 	return EOK;
 }
 
-static int prefix_length_2(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+static int prefix_length_2(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 2;
 	return EOK;
 }
 
-static int prefix_length_4(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+static int prefix_length_4(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 4;
 	return EOK;
 }
 
-static int prefix_length_8(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+static int prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_blob_t *blob, aoff64_t *out)
 {
 	*out = 8;
 	return EOK;
@@ -136,7 +131,7 @@ static int prefix_length_8(bithenge_transform_t *self,
 
 #define MAKE_UINT_TRANSFORM(NAME, TYPE, ENDIAN, PREFIX_LENGTH_FUNC)            \
 	static int NAME##_apply(bithenge_transform_t *self,                    \
-	    bithenge_transform_context_t *context, bithenge_node_t *in,        \
+	    bithenge_scope_t *scope, bithenge_node_t *in,                      \
 	    bithenge_node_t **out)                                             \
 	{                                                                      \
 		int rc;                                                        \
@@ -175,8 +170,7 @@ MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint32_t_le2host, prefix_length_8);
 MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint32_t_be2host, prefix_length_8);
 
 static int zero_terminated_apply(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_node_t *in,
-    bithenge_node_t **out)
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	int rc;
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
@@ -200,8 +194,7 @@ static int zero_terminated_apply(bithenge_transform_t *self,
 }
 
 static int zero_terminated_prefix_length(bithenge_transform_t *self,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	int rc;
 	char buffer[4096];
@@ -250,7 +243,7 @@ bithenge_named_transform_t *bithenge_primitive_transforms = primitive_transforms
 typedef struct {
 	bithenge_node_t base;
 	struct struct_transform *transform;
-	bithenge_transform_context_t *context;
+	bithenge_scope_t *scope;
 	bithenge_blob_t *blob;
 } struct_node_t;
 
@@ -280,14 +273,14 @@ static struct_transform_t *transform_as_struct(bithenge_transform_t *xform)
 }
 
 static int struct_node_for_one(const char *name,
-    bithenge_transform_t *subxform, bithenge_transform_context_t *context,
+    bithenge_transform_t *subxform, bithenge_scope_t *scope,
     bithenge_blob_t **blob, bithenge_for_each_func_t func, void *data)
 {
 	int rc;
 	bithenge_node_t *subxform_result = NULL;
 
 	aoff64_t sub_size;
-	rc = bithenge_transform_prefix_length(subxform, context, *blob,
+	rc = bithenge_transform_prefix_length(subxform, scope, *blob,
 	    &sub_size);
 	if (rc != EOK)
 		goto error;
@@ -298,7 +291,7 @@ static int struct_node_for_one(const char *name,
 	if (rc != EOK)
 		goto error;
 
-	rc = bithenge_transform_apply(subxform, context, subblob_node,
+	rc = bithenge_transform_apply(subxform, scope, subblob_node,
 	    &subxform_result);
 	bithenge_node_dec_ref(subblob_node);
 	if (rc != EOK)
@@ -356,7 +349,7 @@ static int struct_node_for_each(bithenge_node_t *base,
 
 	for (size_t i = 0; subxforms[i].transform; i++) {
 		rc = struct_node_for_one(subxforms[i].name,
-		    subxforms[i].transform, struct_node->context, &blob, func,
+		    subxforms[i].transform, struct_node->scope, &blob, func,
 		    data);
 		if (rc != EOK)
 			goto error;
@@ -390,8 +383,7 @@ static const bithenge_internal_node_ops_t struct_node_ops = {
 };
 
 static int struct_transform_apply(bithenge_transform_t *base,
-    bithenge_transform_context_t *context, bithenge_node_t *in,
-    bithenge_node_t **out)
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	struct_transform_t *self = transform_as_struct(base);
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
@@ -408,15 +400,14 @@ static int struct_transform_apply(bithenge_transform_t *base,
 	bithenge_transform_inc_ref(base);
 	node->transform = self;
 	bithenge_node_inc_ref(in);
-	node->context = context;
+	node->scope = scope;
 	node->blob = bithenge_node_as_blob(in);
 	*out = struct_as_node(node);
 	return EOK;
 }
 
 static int struct_transform_prefix_length(bithenge_transform_t *base,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	struct_transform_t *self = transform_as_struct(base);
 	int rc = EOK;
@@ -432,7 +423,7 @@ static int struct_transform_prefix_length(bithenge_transform_t *base,
 		bithenge_transform_t *subxform =
 		    self->subtransforms[i].transform;
 		aoff64_t sub_size;
-		rc = bithenge_transform_prefix_length(subxform, context, blob,
+		rc = bithenge_transform_prefix_length(subxform, scope, blob,
 		    &sub_size);
 		if (rc != EOK)
 			goto error;
@@ -516,9 +507,8 @@ static compose_transform_t *transform_as_compose(bithenge_transform_t *xform)
 	return (compose_transform_t *)xform;
 }
 
-static int compose_apply(bithenge_transform_t *base,
-    bithenge_transform_context_t *context, bithenge_node_t *in,
-    bithenge_node_t **out)
+static int compose_apply(bithenge_transform_t *base, bithenge_scope_t *scope,
+    bithenge_node_t *in, bithenge_node_t **out)
 {
 	int rc;
 	compose_transform_t *self = transform_as_compose(base);
@@ -527,7 +517,7 @@ static int compose_apply(bithenge_transform_t *base,
 	/* i ranges from (self->num - 1) to 0 inside the loop. */
 	for (size_t i = self->num; i--; ) {
 		bithenge_node_t *tmp;
-		rc = bithenge_transform_apply(self->xforms[i], context, in,
+		rc = bithenge_transform_apply(self->xforms[i], scope, in,
 		    &tmp);
 		bithenge_node_dec_ref(in);
 		if (rc != EOK)
@@ -540,12 +530,11 @@ static int compose_apply(bithenge_transform_t *base,
 }
 
 static int compose_prefix_length(bithenge_transform_t *base,
-    bithenge_transform_context_t *context, bithenge_blob_t *blob,
-    aoff64_t *out)
+    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	compose_transform_t *self = transform_as_compose(base);
 	return bithenge_transform_prefix_length(self->xforms[self->num - 1],
-	    context, blob, out);
+	    scope, blob, out);
 }
 
 static void compose_destroy(bithenge_transform_t *base)
