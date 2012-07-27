@@ -39,6 +39,7 @@
 #include <adt/list.h>
 #include <synch/rcu.h>
 #include <macros.h>
+#include <synch/workqueue.h>
 
 typedef uintptr_t cht_ptr_t;
 
@@ -52,7 +53,7 @@ typedef struct cht_link {
 
 /** Set of operations for a concurrent hash table. */
 typedef struct cht_ops {
-	size_t (*hash)(cht_link_t *node);
+	size_t (*hash)(const cht_link_t *item);
 	size_t (*key_hash)(void *key);
 	bool (*equal)(const cht_link_t *item1, const cht_link_t *item2);
 	bool (*key_equal)(void *key, const cht_link_t *item);
@@ -69,10 +70,13 @@ typedef struct cht_buckets {
 typedef struct {
 	cht_ops_t *op;
 	
+	size_t min_order;
 	cht_buckets_t *b;
 	cht_buckets_t *new_b;
-	
+
+	work_t resize_work;
 	atomic_t resize_reqs;
+	
 	atomic_t item_cnt;
 } cht_t;
 
@@ -83,11 +87,14 @@ typedef struct {
 #define cht_read_lock()     rcu_read_lock()
 #define cht_read_unlock()   rcu_read_unlock()
 
-extern void cht_create(cht_t *h, size_t init_size, cht_ops_t *op);
+extern bool cht_create(cht_t *h, size_t init_size, size_t min_size, cht_ops_t *op);
 extern void cht_destroy(cht_t *h);
 
 extern cht_link_t *cht_find(cht_t *h, void *key);
 extern cht_link_t *cht_find_lazy(cht_t *h, void *key);
+extern cht_link_t *cht_find_next(cht_t *h, const cht_link_t *item);
+extern cht_link_t *cht_find_next_lazy(cht_t *h, const cht_link_t *item);
+
 extern void cht_insert(cht_t *h, cht_link_t *item);
 extern bool cht_insert_unique(cht_t *h, cht_link_t *item);
 extern size_t cht_remove_key(cht_t *h, void *key);

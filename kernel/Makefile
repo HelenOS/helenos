@@ -191,6 +191,7 @@ GENERIC_SOURCES = \
 	generic/src/adt/avl.c \
 	generic/src/adt/bitmap.c \
 	generic/src/adt/btree.c \
+	generic/src/adt/cht.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
 	generic/src/console/chardev.c \

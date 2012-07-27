@@ -36,8 +36,7 @@
 
 #include <stdint.h>
 
-/** Produces a uniform hash affecting all output bits from the skewed input.
- */
+/** Produces a uniform hash affecting all output bits from the skewed input. */
 static inline uint32_t hash_mix32(uint32_t hash)
 {
 	/*
@@ -54,8 +53,7 @@ static inline uint32_t hash_mix32(uint32_t hash)
 	return hash;	
 }
 
-/** Produces a uniform hash affecting all output bits from the skewed input.
- */
+/** Produces a uniform hash affecting all output bits from the skewed input. */
 static inline uint64_t hash_mix64(uint64_t hash)
 {
 	/*
@@ -67,10 +65,10 @@ static inline uint64_t hash_mix64(uint64_t hash)
 	hash = hash ^ (hash >> 4);
 	hash = hash * 0x27d4eb2d;
 	hash = hash ^ (hash >> 15);	
+	return hash;
 }
 
-/** Produces a uniform hash affecting all output bits from the skewed input.
- */
+/** Produces a uniform hash affecting all output bits from the skewed input. */
 static inline size_t hash_mix(size_t hash) 
 {
 #ifdef __32_BITS__
