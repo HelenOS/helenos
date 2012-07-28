@@ -702,11 +702,25 @@ int ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	/* Initialize i-node */
 	ext4_inode_t *inode = (*inode_ref)->inode;
 
+	uint16_t mode;
 	if (is_dir) {
-		ext4_inode_set_mode(fs->superblock, inode, EXT4_INODE_MODE_DIRECTORY);
+		/*
+		 * Default directory permissions to be compatible with other systems
+		 * 0777 (octal) == rwxrwxrwx
+		 */
+		mode = 0777;
+		mode |= EXT4_INODE_MODE_DIRECTORY;
+		ext4_inode_set_mode(fs->superblock, inode, mode);
 		ext4_inode_set_links_count(inode, 1); /* '.' entry */
 	} else {
-		ext4_inode_set_mode(fs->superblock, inode, EXT4_INODE_MODE_FILE);
+		/*
+		 * Default file permissions to be compatible with other systems
+		 * 0666 (octal) == rw-rw-rw-
+		 */
+
+		mode = 0666;
+		mode |= EXT4_INODE_MODE_FILE;
+		ext4_inode_set_mode(fs->superblock, inode, mode);
 		ext4_inode_set_links_count(inode, 0);
 	}
 
