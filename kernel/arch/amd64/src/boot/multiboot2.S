@@ -115,13 +115,18 @@ multiboot2_header_start:
 multiboot2_header_end:
 
 multiboot2_image_start:
+	cli
 	cld
 	
 	/* Initialize stack pointer */
 	movl $START_STACK, %esp
 	
-	/* Initialize Global Descriptor Table register */
+	/*
+	 * Initialize Global Descriptor Table and
+	 * Interrupt Descriptor Table registers
+	 */
 	lgdtl bootstrap_gdtr
+	lidtl bootstrap_idtr
 	
 	/* Kernel data + stack */
 	movw $GDT_SELECTOR(KDATA_DES), %cx

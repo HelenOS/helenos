@@ -3,5 +3,12 @@
 # this is a statically-linked executable. This will mark the binary as
 # the program loader.
 #
-.section .interp , ""
+
+#ifdef UARCH_arm32
+#define AT_NOTE	%note
+#else
+#define AT_NOTE	@note
+#endif
+
+.section .interp, "a", AT_NOTE
 	.string "kernel"

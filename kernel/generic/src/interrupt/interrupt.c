@@ -49,6 +49,7 @@
 #include <macros.h>
 #include <panic.h>
 #include <print.h>
+#include <stdarg.h>
 #include <symtab.h>
 #include <proc/thread.h>
 #include <arch/cycle.h>
@@ -164,14 +165,8 @@ NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 	panic_badtrap(istate, n, "Unhandled exception %u.", n);
 }
 
-/** Terminate thread and task if exception came from userspace.
- *
- */
-NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
+static NO_TRACE void fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
 {
-	if (!istate_from_uspace(istate))
-		return;
-	
 	printf("Task %s (%" PRIu64 ") killed due to an exception at "
 	    "program counter %p.\n", TASK->name, TASK->taskid,
 	    (void *) istate_get_pc(istate));
@@ -180,14 +175,36 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	stack_trace_istate(istate);
 	
 	printf("Kill message: ");
-	
-	va_list args;
-	va_start(args, fmt);
 	vprintf(fmt, args);
-	va_end(args);
 	printf("\n");
 	
 	task_kill_self(true);
+}
+
+/** Terminate thread and task after the exception came from userspace.
+ *
+ */
+NO_TRACE void fault_from_uspace(istate_t *istate, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	fault_from_uspace_core(istate, fmt, args);
+	va_end(args);
+}
+
+/** Terminate thread and task if exception came from userspace.
+ *
+ */
+NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
+{
+	if (!istate_from_uspace(istate))
+		return;
+	
+	va_list args;
+	va_start(args, fmt);
+	fault_from_uspace_core(istate, fmt, args);
+	va_end(args);
 }
 
 /** Get istate structure of a thread.
