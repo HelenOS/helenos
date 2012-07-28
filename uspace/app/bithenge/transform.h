@@ -100,6 +100,8 @@ static inline int bithenge_scope_alloc_params(bithenge_scope_t *scope,
 	if (!scope->params)
 		return ENOMEM;
 	scope->num_params = num_params;
+	for (int i = 0; i < num_params; i++)
+		scope->params[i] = NULL;
 	return EOK;
 }
 
