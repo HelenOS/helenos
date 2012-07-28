@@ -46,7 +46,8 @@
  * @param num_params The number of parameters required. If this is nonzero, the
  * transform will get its own context with parameters, probably provided by a
  * param_wrapper. If this is zero, the existing outer context will be used with
- * whatever parameters it has.
+ * whatever parameters it has, so they can be passed to any param_wrappers
+ * within.
  * @return EOK or an error code from errno.h. */
 int bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops, int num_params)
@@ -63,6 +64,83 @@ int bithenge_init_transform(bithenge_transform_t *self,
 static void transform_indestructible(bithenge_transform_t *self)
 {
 	assert(false);
+}
+
+typedef struct {
+	bithenge_transform_t base;
+	bithenge_transform_t *transform;
+} param_transform_t;
+
+static inline param_transform_t *transform_as_param(
+    bithenge_transform_t *base)
+{
+	return (param_transform_t *)base;
+}
+
+static inline bithenge_transform_t *param_as_transform(
+    param_transform_t *self)
+{
+	return &self->base;
+}
+
+static int param_transform_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	param_transform_t *self = transform_as_param(base);
+	return bithenge_transform_apply(self->transform, scope, in, out);
+}
+
+static int param_transform_prefix_length(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
+{
+	param_transform_t *self = transform_as_param(base);
+	return bithenge_transform_prefix_length(self->transform, scope, in,
+	    out);
+}
+
+static void param_transform_destroy(bithenge_transform_t *base)
+{
+	param_transform_t *self = transform_as_param(base);
+	bithenge_transform_dec_ref(self->transform);
+	free(self);
+}
+
+static const bithenge_transform_ops_t param_transform_ops = {
+	.apply = param_transform_apply,
+	.prefix_length = param_transform_prefix_length,
+	.destroy = param_transform_destroy,
+};
+
+/** Create a wrapper transform with a different number of parameters. Takes a
+ * reference to @a transform, which it will use for all operations.
+ * @param[out] out Holds the created transform.
+ * @param transform The transform to wrap.
+ * @param num_params The number of parameters to require.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_param_transform(bithenge_transform_t **out,
+    bithenge_transform_t *transform, int num_params)
+{
+	assert(transform);
+	assert(bithenge_transform_num_params(transform) == 0);
+	assert(num_params != 0);
+
+	int rc;
+	param_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+	rc = bithenge_init_transform(param_as_transform(self),
+	    &param_transform_ops, num_params);
+	if (rc != EOK)
+		goto error;
+	self->transform = transform;
+	*out = param_as_transform(self);
+	return EOK;
+error:
+	bithenge_transform_dec_ref(transform);
+	free(self);
+	return rc;
 }
 
 static int ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -104,6 +182,63 @@ static const bithenge_transform_ops_t ascii_ops = {
 /** The ASCII text transform. */
 bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1, 0
+};
+
+static int known_length_apply(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	bithenge_node_t *length_node;
+	int rc = bithenge_scope_get_param(scope, 0, &length_node);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(length_node) != BITHENGE_NODE_INTEGER) {
+		bithenge_node_dec_ref(length_node);
+		return EINVAL;
+	}
+	bithenge_int_t length = bithenge_integer_node_value(length_node);
+	bithenge_node_dec_ref(length_node);
+
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	aoff64_t size;
+	rc = bithenge_blob_size(bithenge_node_as_blob(in), &size);
+	if (rc != EOK)
+		return rc;
+	if (length != (bithenge_int_t)size)
+		return EINVAL;
+
+	bithenge_node_inc_ref(in);
+	*out = in;
+	return EOK;
+}
+
+static int known_length_prefix_length(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
+{
+	bithenge_node_t *length_node;
+	int rc = bithenge_scope_get_param(scope, 0, &length_node);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(length_node) != BITHENGE_NODE_INTEGER) {
+		bithenge_node_dec_ref(length_node);
+		return EINVAL;
+	}
+	bithenge_int_t length = bithenge_integer_node_value(length_node);
+	bithenge_node_dec_ref(length_node);
+
+	*out = (aoff64_t)length;
+	return EOK;
+}
+
+static const bithenge_transform_ops_t known_length_ops = {
+	.apply = known_length_apply,
+	.prefix_length = known_length_prefix_length,
+	.destroy = transform_indestructible,
+};
+
+/** Pass through a blob, but require its length to equal the first argument. */
+bithenge_transform_t bithenge_known_length_transform = {
+	&known_length_ops, 1, 1
 };
 
 static int prefix_length_1(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -231,6 +366,7 @@ bithenge_transform_t bithenge_zero_terminated_transform = {
 
 static bithenge_named_transform_t primitive_transforms[] = {
 	{"ascii", &bithenge_ascii_transform},
+	{"known_length", &bithenge_known_length_transform},
 	{"uint8", &bithenge_uint8_transform},
 	{"uint16le", &bithenge_uint16le_transform},
 	{"uint16be", &bithenge_uint16be_transform},

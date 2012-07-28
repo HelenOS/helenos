@@ -31,9 +31,10 @@
 
 #include <endian.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <memory.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
@@ -43,8 +44,9 @@
 #define EOK 0
 #define ELIMIT EINVAL
 
+typedef intmax_t bithenge_int_t;
+#define BITHENGE_PRId PRIdMAX
 typedef uint64_t aoff64_t;
-
 typedef const char *string_iterator_t;
 
 static inline string_iterator_t string_iterator(const char *string)
@@ -127,6 +129,13 @@ static inline uint64_t uint64_t_le2host(uint64_t val)
 static inline uint64_t uint64_t_be2host(uint64_t val)
 {
 	return be64toh(val);
+}
+
+static inline int bithenge_parse_int(const char *start, bithenge_int_t *result)
+{
+	errno = 0;
+	*result = strtoll(start, NULL, 10);
+	return errno;
 }
 
 #endif

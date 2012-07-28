@@ -32,11 +32,15 @@
 #include <bool.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
+
+typedef int64_t bithenge_int_t;
+#define BITHENGE_PRId PRId64
 
 typedef struct {
 	const char *string;
@@ -73,6 +77,11 @@ static inline void *memchr(const void *s, int c, size_t n)
 		if (((char *)s)[i] == c)
 			return (void *)(s + i);
 	return NULL;
+}
+
+static inline int bithenge_parse_int(const char *start, bithenge_int_t *result)
+{
+	return str_uint64_t(start, NULL, 10, false, result);
 }
 
 #endif

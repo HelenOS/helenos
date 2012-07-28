@@ -230,11 +230,9 @@ static int param_wrapper_apply(bithenge_transform_t *base,
 	in = NULL;
 
 error:
-	bithenge_node_dec_ref(in);
 	bithenge_scope_destroy(&inner);
 	return rc;
 }
-
 
 static int param_wrapper_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *outer, bithenge_blob_t *in, aoff64_t *out)
@@ -251,10 +249,10 @@ static int param_wrapper_prefix_length(bithenge_transform_t *base,
 	in = NULL;
 
 error:
-	bithenge_blob_dec_ref(in);
 	bithenge_scope_destroy(&inner);
 	return rc;
 }
+
 static void param_wrapper_destroy(bithenge_transform_t *base)
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);

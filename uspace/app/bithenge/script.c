@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "expression.h"
 #include "os.h"
 #include "script.h"
 #include "transform.h"
@@ -52,6 +53,7 @@ typedef enum {
 	TOKEN_ERROR = -128,
 	TOKEN_EOF,
 	TOKEN_IDENTIFIER,
+	TOKEN_INTEGER,
 	TOKEN_LEFT_ARROW,
 
 	/* Keywords */
@@ -94,6 +96,8 @@ typedef struct {
 		/** The value of a TOKEN_IDENTIFIER token. Unless changed to
 		 * NULL, it will be freed when the next token is read. */
 		char *token_string;
+		/** The value of a TOKEN_INTEGER token. */
+		bithenge_int_t token_int;
 	};
 } state_t;
 
@@ -201,6 +205,14 @@ static void next_token(state_t *state)
 			state->token = TOKEN_IDENTIFIER;
 			state->token_string = value;
 		}
+	} else if (isdigit(ch)) {
+		while (isdigit(state->buffer[state->buffer_pos]))
+			state->buffer_pos++;
+		state->token = TOKEN_INTEGER;
+		int rc = bithenge_parse_int(state->buffer +
+		    state->old_buffer_pos, &state->token_int);
+		if (rc != EOK)
+			error_errno(state, rc);
 	} else if (ch == '<') {
 		state->token = ch;
 		state->buffer_pos++;
@@ -307,6 +319,82 @@ static void add_named_transform(state_t *state, bithenge_transform_t *xform, cha
 
 static bithenge_transform_t *parse_transform(state_t *state);
 
+static bithenge_expression_t *parse_expression(state_t *state)
+{
+	if (state->token == TOKEN_INTEGER) {
+		bithenge_int_t val = state->token_int;
+		next_token(state);
+		bithenge_node_t *node;
+		int rc = bithenge_new_integer_node(&node, val);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+
+		bithenge_expression_t *expr;
+		rc = bithenge_const_expression(&expr, node);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+
+		return expr;
+	} else {
+		syntax_error(state, "expression expected");
+		return NULL;
+	}
+}
+
+// state->token must be TOKEN_IDENTIFIER when this is called
+static bithenge_transform_t *parse_invocation(state_t *state)
+{
+	bithenge_transform_t *result = get_named_transform(state,
+	    state->token_string);
+	if (!result)
+		syntax_error(state, "transform not found");
+	next_token(state);
+
+	bithenge_expression_t **params = NULL;
+	int num_params = 0;
+	if (state->token == '(') {
+		next_token(state);
+		while (state->error == EOK && state->token != ')') {
+			if (num_params)
+				expect(state, ',');
+			params = state_realloc(state, params,
+			    (num_params + 1)*sizeof(*params));
+			if (state->error != EOK)
+				break;
+			params[num_params] = parse_expression(state);
+			num_params++;
+		}
+		expect(state, ')');
+	}
+
+	/* TODO: show correct error position */
+	if (state->error == EOK
+	    && bithenge_transform_num_params(result) != num_params)
+		syntax_error(state, "incorrect number of parameters before");
+
+	if (state->error != EOK) {
+		while (num_params--)
+			bithenge_expression_dec_ref(params[num_params]);
+		free(params);
+		bithenge_transform_dec_ref(result);
+		return NULL;
+	}
+
+	if (num_params) {
+		int rc = bithenge_param_wrapper(&result, result, params);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			result = NULL;
+		}
+	}
+
+	return result;
+}
+
 static bithenge_transform_t *parse_struct(state_t *state)
 {
 	size_t num = 0;
@@ -357,12 +445,7 @@ static bithenge_transform_t *parse_struct(state_t *state)
 static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
 	if (state->token == TOKEN_IDENTIFIER) {
-		bithenge_transform_t *result = get_named_transform(state,
-		    state->token_string);
-		if (!result)
-			syntax_error(state, "transform not found");
-		next_token(state);
-		return result;
+		return parse_invocation(state);
 	} else if (state->token == TOKEN_STRUCT) {
 		return parse_struct(state);
 	} else {

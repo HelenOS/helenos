@@ -38,17 +38,8 @@
 #define BITHENGE_TREE_H_
 
 #include <assert.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include "os.h"
-
-#ifdef INTMAX_MAX
-typedef intmax_t bithenge_int_t;
-#define BITHENGE_PRId PRIdMAX
-#else
-typedef int64_t bithenge_int_t;
-#define BITHENGE_PRId PRId64
-#endif
 
 /** Indicates the type of a tree node. */
 typedef enum {
