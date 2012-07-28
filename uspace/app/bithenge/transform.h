@@ -87,6 +87,25 @@ static inline void bithenge_scope_destroy(bithenge_scope_t *scope)
 	free(scope->params);
 }
 
+/** Copy a scope.
+ * @param[out] out The scope to fill in; must have been initialized with @a
+ * bithenge_scope_init.
+ * @param scope The scope to copy.
+ * @return EOK on success or an error code from errno.h. */
+static inline int bithenge_scope_copy(bithenge_scope_t *out,
+    bithenge_scope_t *scope)
+{
+	out->params = malloc(sizeof(*out->params) * scope->num_params);
+	if (!out->params)
+		return ENOMEM;
+	memcpy(out->params, scope->params, sizeof(*out->params) *
+	    scope->num_params);
+	out->num_params = scope->num_params;
+	for (int i = 0; i < out->num_params; i++)
+		bithenge_node_inc_ref(out->params[i]);
+	return EOK;
+}
+
 /** Allocate parameters. The parameters must then be set with @a
  * bithenge_scope_set_param.
  * @param scope The scope in which to allocate parameters.

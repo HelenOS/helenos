@@ -73,8 +73,10 @@ typedef struct {
 	/** Rather than constantly checking return values, the parser uses this
 	 * to indicate whether an error has occurred. */
 	int error;
+
 	/** The list of named transforms. */
 	transform_list_t *transform_list;
+
 	/** The name of the script file. */
 	const char *filename;
 	/** The script file being read from. */
@@ -90,6 +92,7 @@ typedef struct {
 	int lineno;
 	/** Added to a buffer position to find the column number. */
 	int line_offset;
+
 	/** The type of the current token. */
 	token_type_t token;
 	union {
@@ -99,6 +102,11 @@ typedef struct {
 		/** The value of a TOKEN_INTEGER token. */
 		bithenge_int_t token_int;
 	};
+
+	/** The names of the current transform's parameters. */
+	char **parameter_names;
+	/** The number of parameters. */
+	int num_params;
 } state_t;
 
 /** Free the previous token's data. This must be called before changing
@@ -339,6 +347,28 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		}
 
 		return expr;
+	} else if (state->token == TOKEN_IDENTIFIER) {
+		int i;
+		for (i = 0; i < state->num_params; i++)
+			if (!str_cmp(state->parameter_names[i],
+			    state->token_string))
+				break;
+
+		if (i == state->num_params) {
+			syntax_error(state, "unknown identifier");
+			return NULL;
+		}
+
+		bithenge_expression_t *expr;
+		int rc = bithenge_param_expression(&expr, i);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+
+		next_token(state);
+
+		return expr;
 	} else {
 		syntax_error(state, "expression expected");
 		return NULL;
@@ -493,10 +523,43 @@ static void parse_definition(state_t *state)
 {
 	expect(state, TOKEN_TRANSFORM);
 	char *name = expect_identifier(state);
+
+	if (state->token == '(') {
+		next_token(state);
+		while (state->error == EOK && state->token != ')') {
+			if (state->num_params)
+				expect(state, ',');
+			state->parameter_names = state_realloc(state,
+			    state->parameter_names,
+			    (state->num_params + 1)*sizeof(*state->parameter_names));
+			if (state->error != EOK)
+				break;
+			state->parameter_names[state->num_params++] =
+			    expect_identifier(state);
+		}
+		expect(state, ')');
+	}
+
 	expect(state, '=');
 	bithenge_transform_t *xform = parse_transform(state);
 	expect(state, ';');
+
+	if (state->error == EOK && state->num_params) {
+		int rc = bithenge_new_param_transform(&xform, xform,
+		    state->num_params);
+		if (rc != EOK) {
+			xform = NULL;
+			error_errno(state, rc);
+		}
+	}
+
 	add_named_transform(state, xform, name);
+
+	for (int i = 0; i < state->num_params; i++)
+		free(state->parameter_names[i]);
+	free(state->parameter_names);
+	state->parameter_names = NULL;
+	state->num_params = 0;
 }
 
 /** Initialize the state. */
@@ -504,6 +567,8 @@ static void state_init(state_t *state, const char *filename)
 {
 	state->error = EOK;
 	state->transform_list = NULL;
+	state->parameter_names = NULL;
+	state->num_params = 0;
 	state->token = TOKEN_ERROR;
 	state->old_buffer_pos = state->buffer_pos = BUFFER_SIZE - 1;
 	state->lineno = 1;
@@ -531,6 +596,9 @@ static void state_destroy(state_t *state)
 		free(entry);
 		entry = next;
 	}
+	for (int i = 0; i < state->num_params; i++)
+		free(state->parameter_names[i]);
+	free(state->parameter_names);
 }
 
 /** Parse a script file.

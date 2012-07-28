@@ -81,7 +81,13 @@ static inline void *memchr(const void *s, int c, size_t n)
 
 static inline int bithenge_parse_int(const char *start, bithenge_int_t *result)
 {
-	return str_uint64_t(start, NULL, 10, false, result);
+	const char *real_start = *start == '-' ? start + 1 : start;
+	uint64_t val;
+	int rc = str_uint64_t(real_start, NULL, 10, false, &val);
+	*result = val;
+	if (*start == '-')
+		*result = -*result;
+	return rc;
 }
 
 #endif

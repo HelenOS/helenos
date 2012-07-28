@@ -384,7 +384,7 @@ bithenge_named_transform_t *bithenge_primitive_transforms = primitive_transforms
 typedef struct {
 	bithenge_node_t base;
 	struct struct_transform *transform;
-	bithenge_scope_t *scope;
+	bithenge_scope_t scope;
 	bithenge_blob_t *blob;
 } struct_node_t;
 
@@ -490,7 +490,7 @@ static int struct_node_for_each(bithenge_node_t *base,
 
 	for (size_t i = 0; subxforms[i].transform; i++) {
 		rc = struct_node_for_one(subxforms[i].name,
-		    subxforms[i].transform, struct_node->scope, &blob, func,
+		    subxforms[i].transform, &struct_node->scope, &blob, func,
 		    data);
 		if (rc != EOK)
 			goto error;
@@ -515,6 +515,7 @@ static void struct_node_destroy(bithenge_node_t *base)
 	struct_node_t *node = node_as_struct(base);
 	bithenge_transform_dec_ref(struct_as_transform(node->transform));
 	bithenge_blob_dec_ref(node->blob);
+	bithenge_scope_destroy(&node->scope);
 	free(node);
 }
 
@@ -532,16 +533,22 @@ static int struct_transform_apply(bithenge_transform_t *base,
 	struct_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
-	int rc = bithenge_init_internal_node(struct_as_node(node),
+	bithenge_scope_init(&node->scope);
+	int rc = bithenge_scope_copy(&node->scope, scope);
+	if (rc != EOK) {
+		free(node);
+		return rc;
+	}
+	rc = bithenge_init_internal_node(struct_as_node(node),
 	    &struct_node_ops);
 	if (rc != EOK) {
+		bithenge_scope_destroy(&node->scope);
 		free(node);
 		return rc;
 	}
 	bithenge_transform_inc_ref(base);
 	node->transform = self;
 	bithenge_node_inc_ref(in);
-	node->scope = scope;
 	node->blob = bithenge_node_as_blob(in);
 	*out = struct_as_node(node);
 	return EOK;
