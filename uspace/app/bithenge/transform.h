@@ -45,6 +45,7 @@ typedef struct {
 	/** @privatesection */
 	const struct bithenge_transform_ops *ops;
 	unsigned int refs;
+	int num_params;
 } bithenge_transform_t;
 
 /** Context and parameters used when applying transforms. */
@@ -65,8 +66,6 @@ typedef struct bithenge_transform_ops {
 	/** Destroy the transform.
 	 * @param self The transform. */
 	void (*destroy)(bithenge_transform_t *self);
-	/** The number of parameters required. */
-	int num_params;
 } bithenge_transform_ops_t;
 
 /** Initialize a transform scope. It must be destroyed with @a
@@ -135,15 +134,14 @@ static inline int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
 	return EOK;
 }
 
-/** Get the number of parameters required by a transform. Takes ownership of
- * nothing.
+/** Get the number of parameters required by a transform. This number is used
+ * by the parser and param-wrapper. Takes ownership of nothing.
  * @param self The transform.
  * @return The number of parameters required. */
 static inline int bithenge_transform_num_params(bithenge_transform_t *self)
 {
 	assert(self);
-	assert(self->ops);
-	return self->ops->num_params;
+	return self->num_params;
 }
 
 /** Apply a transform. Takes ownership of nothing.
@@ -219,7 +217,7 @@ extern bithenge_transform_t bithenge_zero_terminated_transform;
 extern bithenge_named_transform_t *bithenge_primitive_transforms;
 
 int bithenge_init_transform(bithenge_transform_t *self,
-    const bithenge_transform_ops_t *ops);
+    const bithenge_transform_ops_t *ops, int num_params);
 int bithenge_new_struct(bithenge_transform_t **out,
     bithenge_named_transform_t *subtransforms);
 int bithenge_new_composed_transform(bithenge_transform_t **,

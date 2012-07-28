@@ -43,15 +43,20 @@
 /** Initialize a new transform.
  * @param[out] self Transform to initialize.
  * @param[in] ops Operations provided by the transform.
+ * @param num_params The number of parameters required. If this is nonzero, the
+ * transform will get its own context with parameters, probably provided by a
+ * param_wrapper. If this is zero, the existing outer context will be used with
+ * whatever parameters it has.
  * @return EOK or an error code from errno.h. */
 int bithenge_init_transform(bithenge_transform_t *self,
-    const bithenge_transform_ops_t *ops)
+    const bithenge_transform_ops_t *ops, int num_params)
 {
 	assert(ops);
 	assert(ops->apply);
 	assert(ops->destroy);
 	self->ops = ops;
 	self->refs = 1;
+	self->num_params = num_params;
 	return EOK;
 }
 
@@ -98,7 +103,7 @@ static const bithenge_transform_ops_t ascii_ops = {
 
 /** The ASCII text transform. */
 bithenge_transform_t bithenge_ascii_transform = {
-	&ascii_ops, 1
+	&ascii_ops, 1, 0
 };
 
 static int prefix_length_1(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -158,7 +163,7 @@ static int prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *scope,
 	};                                                                     \
 	                                                                       \
 	bithenge_transform_t bithenge_##NAME##_transform = {                   \
-		&NAME##_ops, 1                                                 \
+		&NAME##_ops, 1, 0                                              \
 	}
 
 MAKE_UINT_TRANSFORM(uint8   , uint8_t ,                 , prefix_length_1);
@@ -221,7 +226,7 @@ static const bithenge_transform_ops_t zero_terminated_ops = {
 
 /** The zero-terminated data transform. */
 bithenge_transform_t bithenge_zero_terminated_transform = {
-	&zero_terminated_ops, 1
+	&zero_terminated_ops, 1, 0
 };
 
 static bithenge_named_transform_t primitive_transforms[] = {
@@ -479,7 +484,7 @@ int bithenge_new_struct(bithenge_transform_t **out,
 		goto error;
 	}
 	rc = bithenge_init_transform(struct_as_transform(self),
-	    &struct_transform_ops);
+	    &struct_transform_ops, 0);
 	if (rc != EOK)
 		goto error;
 	self->subtransforms = subtransforms;
@@ -578,7 +583,7 @@ int bithenge_new_composed_transform(bithenge_transform_t **out,
 		goto error;
 	}
 	rc = bithenge_init_transform(compose_as_transform(self),
-	    &compose_transform_ops);
+	    &compose_transform_ops, 0);
 	if (rc != EOK)
 		goto error;
 	self->xforms = xforms;

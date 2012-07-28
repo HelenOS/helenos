@@ -270,9 +270,6 @@ static const bithenge_transform_ops_t param_wrapper_ops = {
 	.apply = param_wrapper_apply,
 	.prefix_length = param_wrapper_prefix_length,
 	.destroy = param_wrapper_destroy,
-	.num_params = 0, /* This transform should not be used inside another
-			    param_wrapper or explicitly in a script, so this
-			    number doesn't matter. */
 };
 
 /** Create a transform that calculates parameters for another transform. Takes
@@ -294,7 +291,7 @@ int bithenge_param_wrapper(bithenge_transform_t **out,
 	}
 
 	rc = bithenge_init_transform(param_wrapper_as_transform(self),
-	    &param_wrapper_ops);
+	    &param_wrapper_ops, 0);
 	if (rc != EOK)
 		goto error;
 
