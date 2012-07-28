@@ -1,0 +1,13 @@
+transform pascal_string = struct {
+	.len <- uint8;
+	.string <- ascii <- known_length(.len);
+};
+
+transform item(first_len, second_len) = struct {
+	.id <- uint32le <- known_length(4); # the known_length is unnecessary
+	.name <- pascal_string;
+	.first <- known_length(first_len);
+	.second <- known_length(second_len);
+};
+
+transform main() = item(3, 0);

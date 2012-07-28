@@ -386,6 +386,7 @@ typedef struct {
 	struct struct_transform *transform;
 	bithenge_scope_t scope;
 	bithenge_blob_t *blob;
+	bool prefix;
 } struct_node_t;
 
 typedef struct struct_transform {
@@ -496,13 +497,15 @@ static int struct_node_for_each(bithenge_node_t *base,
 			goto error;
 	}
 
-	aoff64_t remaining;
-	rc = bithenge_blob_size(blob, &remaining);
-	if (rc != EOK)
-		goto error;
-	if (remaining != 0) {
-		rc = EINVAL;
-		goto error;
+	if (!struct_node->prefix) {
+		aoff64_t remaining;
+		rc = bithenge_blob_size(blob, &remaining);
+		if (rc != EOK)
+			goto error;
+		if (remaining != 0) {
+			rc = EINVAL;
+			goto error;
+		}
 	}
 
 error:
@@ -513,9 +516,14 @@ error:
 static void struct_node_destroy(bithenge_node_t *base)
 {
 	struct_node_t *node = node_as_struct(base);
+
+	/* We didn't inc_ref for the scope in struct_transform_make_node, so
+	 * make sure it doesn't try to dec_ref. */
+	node->scope.current_node = NULL;
+	bithenge_scope_destroy(&node->scope);
+
 	bithenge_transform_dec_ref(struct_as_transform(node->transform));
 	bithenge_blob_dec_ref(node->blob);
-	bithenge_scope_destroy(&node->scope);
 	free(node);
 }
 
@@ -524,12 +532,10 @@ static const bithenge_internal_node_ops_t struct_node_ops = {
 	.destroy = struct_node_destroy,
 };
 
-static int struct_transform_apply(bithenge_transform_t *base,
-    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+static int struct_transform_make_node(struct_transform_t *self,
+    bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
+    bool prefix)
 {
-	struct_transform_t *self = transform_as_struct(base);
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
 	struct_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
@@ -546,21 +552,43 @@ static int struct_transform_apply(bithenge_transform_t *base,
 		free(node);
 		return rc;
 	}
-	bithenge_transform_inc_ref(base);
+	bithenge_transform_inc_ref(struct_as_transform(self));
+	bithenge_blob_inc_ref(blob);
 	node->transform = self;
-	bithenge_node_inc_ref(in);
-	node->blob = bithenge_node_as_blob(in);
+	node->blob = blob;
+	node->prefix = prefix;
 	*out = struct_as_node(node);
-	bithenge_node_inc_ref(*out);
+
+	/* We should inc_ref(*out) here, but that would make a cycle. Instead,
+	 * we leave it 1 too low, so that when the only remaining use of *out
+	 * is the scope, *out will be destroyed. Also see the comment in
+	 * struct_node_destroy. */
 	bithenge_scope_set_current_node(&node->scope, *out);
+
 	return EOK;
+}
+
+static int struct_transform_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	struct_transform_t *self = transform_as_struct(base);
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	return struct_transform_make_node(self, out, scope,
+	    bithenge_node_as_blob(in), false);
 }
 
 static int struct_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	struct_transform_t *self = transform_as_struct(base);
-	int rc = EOK;
+	bithenge_node_t *struct_node;
+	int rc = struct_transform_make_node(self, &struct_node, scope, blob,
+	    true);
+	if (rc != EOK)
+		return rc;
+	bithenge_scope_t *inner = &node_as_struct(struct_node)->scope;
+
 	bithenge_node_t *node;
 	bithenge_blob_inc_ref(blob);
 	rc = bithenge_new_offset_blob(&node, blob, 0);
@@ -573,7 +601,7 @@ static int struct_transform_prefix_length(bithenge_transform_t *base,
 		bithenge_transform_t *subxform =
 		    self->subtransforms[i].transform;
 		aoff64_t sub_size;
-		rc = bithenge_transform_prefix_length(subxform, scope, blob,
+		rc = bithenge_transform_prefix_length(subxform, inner, blob,
 		    &sub_size);
 		if (rc != EOK)
 			goto error;
@@ -584,9 +612,11 @@ static int struct_transform_prefix_length(bithenge_transform_t *base,
 			goto error;
 		blob = bithenge_node_as_blob(node);
 	}
+
 error:
+	bithenge_node_dec_ref(struct_node);
 	bithenge_blob_dec_ref(blob);
-	return EOK;
+	return rc;
 }
 
 static void free_subtransforms(bithenge_named_transform_t *subtransforms)
