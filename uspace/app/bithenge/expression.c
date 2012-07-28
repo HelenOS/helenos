@@ -57,6 +57,39 @@ int bithenge_init_expression(bithenge_expression_t *self,
 	return EOK;
 }
 
+static void expression_indestructible(bithenge_expression_t *self)
+{
+	assert(false);
+}
+
+static int current_node_evaluate(bithenge_expression_t *self,
+    bithenge_scope_t *scope, bithenge_node_t **out)
+{
+	*out = bithenge_scope_get_current_node(scope);
+	if (!*out)
+		return EINVAL;
+	return EOK;
+}
+
+static const bithenge_expression_ops_t current_node_ops = {
+	.evaluate = current_node_evaluate,
+	.destroy = expression_indestructible,
+};
+
+static bithenge_expression_t current_node_expression = {
+	&current_node_ops, 1
+};
+
+/** Create an expression that gets the current node being created.
+ * @param[out] out Holds the new expression.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_current_node_expression(bithenge_expression_t **out)
+{
+	bithenge_expression_inc_ref(&current_node_expression);
+	*out = &current_node_expression;
+	return EOK;
+}
+
 typedef struct {
 	bithenge_expression_t base;
 	int index;
@@ -175,6 +208,82 @@ int bithenge_const_expression(bithenge_expression_t **out,
 	self->node = node;
 	*out = const_as_expression(self);
 	return EOK;
+}
+
+typedef struct {
+	bithenge_expression_t base;
+	bithenge_expression_t *expr;
+	bithenge_node_t *key;
+} member_expression_t;
+
+static member_expression_t *expression_as_member(bithenge_expression_t *base)
+{
+	return (member_expression_t *)base;
+}
+
+static bithenge_expression_t *member_as_expression(member_expression_t *expr)
+{
+	return &expr->base;
+}
+
+static int member_expression_evaluate(bithenge_expression_t *base, 
+    bithenge_scope_t *scope, bithenge_node_t **out)
+{
+	member_expression_t *self = expression_as_member(base);
+	bithenge_node_t *node;
+	int rc = bithenge_expression_evaluate(self->expr, scope, &node);
+	if (rc != EOK)
+		return rc;
+	bithenge_node_inc_ref(self->key);
+	rc = bithenge_node_get(node, self->key, out);
+	bithenge_node_dec_ref(node);
+	return rc;
+}
+
+static void member_expression_destroy(bithenge_expression_t *base)
+{
+	member_expression_t *self = expression_as_member(base);
+	bithenge_expression_dec_ref(self->expr);
+	bithenge_node_dec_ref(self->key);
+	free(self);
+}
+
+static const bithenge_expression_ops_t member_expression_ops = {
+	.evaluate = member_expression_evaluate,
+	.destroy = member_expression_destroy,
+};
+
+/** Create an expression that gets a member from a node. Takes references to
+ * @a expr and @a key.
+ * @param[out] out Holds the new expression.
+ * @param expr Calculates the node to get the member of.
+ * @param key The member to get.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_member_expression(bithenge_expression_t **out,
+    bithenge_expression_t *expr, bithenge_node_t *key)
+{
+	int rc;
+	member_expression_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_expression(member_as_expression(self),
+	    &member_expression_ops);
+	if (rc != EOK)
+		goto error;
+
+	self->expr = expr;
+	self->key = key;
+	*out = member_as_expression(self);
+	return EOK;
+
+error:
+	bithenge_expression_dec_ref(expr);
+	bithenge_node_dec_ref(key);
+	free(self);
+	return rc;
 }
 
 typedef struct {

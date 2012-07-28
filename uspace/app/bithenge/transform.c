@@ -551,6 +551,8 @@ static int struct_transform_apply(bithenge_transform_t *base,
 	bithenge_node_inc_ref(in);
 	node->blob = bithenge_node_as_blob(in);
 	*out = struct_as_node(node);
+	bithenge_node_inc_ref(*out);
+	bithenge_scope_set_current_node(&node->scope, *out);
 	return EOK;
 }
 

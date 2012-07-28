@@ -51,8 +51,9 @@ typedef struct {
 /** Context and parameters used when applying transforms. */
 typedef struct {
 	/** @privatesection */
-	bithenge_node_t **params;
 	int num_params;
+	bithenge_node_t **params;
+	bithenge_node_t *current_node;
 } bithenge_scope_t;
 
 /** Operations that may be provided by a transform. */
@@ -73,8 +74,9 @@ typedef struct bithenge_transform_ops {
  * @param[out] scope The scope to initialize. */
 static inline void bithenge_scope_init(bithenge_scope_t *scope)
 {
-	scope->params = NULL;
 	scope->num_params = 0;
+	scope->params = NULL;
+	scope->current_node = NULL;
 }
 
 /** Destroy a transform scope.
@@ -82,6 +84,7 @@ static inline void bithenge_scope_init(bithenge_scope_t *scope)
  * @return EOK on success or an error code from errno.h. */
 static inline void bithenge_scope_destroy(bithenge_scope_t *scope)
 {
+	bithenge_node_dec_ref(scope->current_node);
 	for (int i = 0; i < scope->num_params; i++)
 		bithenge_node_dec_ref(scope->params[i]);
 	free(scope->params);
@@ -103,11 +106,37 @@ static inline int bithenge_scope_copy(bithenge_scope_t *out,
 	out->num_params = scope->num_params;
 	for (int i = 0; i < out->num_params; i++)
 		bithenge_node_inc_ref(out->params[i]);
+	out->current_node = scope->current_node;
+	if (out->current_node)
+		bithenge_node_inc_ref(out->current_node);
 	return EOK;
 }
 
+/** Set the current node being created. Takes a reference to @a node.
+ * @param scope The scope to set the current node in.
+ * @param node The current node being created.
+ * @return EOK on success or an error code from errno.h. */
+static inline void bithenge_scope_set_current_node(bithenge_scope_t *scope,
+    bithenge_node_t *node)
+{
+	bithenge_node_dec_ref(scope->current_node);
+	scope->current_node = node;
+}
+
+/** Get the current node being created, which may be NULL.
+ * @param scope The scope to get the current node from.
+ * @return The node being created, or NULL. */
+static inline bithenge_node_t *bithenge_scope_get_current_node(
+    bithenge_scope_t *scope)
+{
+	if (scope->current_node)
+		bithenge_node_inc_ref(scope->current_node);
+	return scope->current_node;
+}
+
 /** Allocate parameters. The parameters must then be set with @a
- * bithenge_scope_set_param.
+ * bithenge_scope_set_param. This must not be called on a scope that already
+ * has parameters.
  * @param scope The scope in which to allocate parameters.
  * @param num_params The number of parameters to allocate.
  * @return EOK on success or an error code from errno.h. */

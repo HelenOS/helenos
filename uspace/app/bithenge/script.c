@@ -118,11 +118,11 @@ static void done_with_token(state_t *state)
 	state->token = TOKEN_ERROR;
 }
 
-/** Note that an error has occurred. */
+/** Note that an error has occurred if error is not EOK. */
 static void error_errno(state_t *state, int error)
 {
 	// Don't overwrite a previous error.
-	if (state->error == EOK) {
+	if (state->error == EOK && error != EOK) {
 		done_with_token(state);
 		state->token = TOKEN_ERROR;
 		state->error = error;
@@ -219,8 +219,7 @@ static void next_token(state_t *state)
 		state->token = TOKEN_INTEGER;
 		int rc = bithenge_parse_int(state->buffer +
 		    state->old_buffer_pos, &state->token_int);
-		if (rc != EOK)
-			error_errno(state, rc);
+		error_errno(state, rc);
 	} else if (ch == '<') {
 		state->token = ch;
 		state->buffer_pos++;
@@ -367,6 +366,37 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		}
 
 		next_token(state);
+
+		return expr;
+	} else if (state->token == '.') {
+		next_token(state);
+
+		const char *id = expect_identifier(state);
+		bithenge_node_t *key = NULL;
+		bithenge_expression_t *expr = NULL;
+		int rc = bithenge_current_node_expression(&expr);
+		error_errno(state, rc);
+
+		if (state->error == EOK) {
+			rc = bithenge_new_string_node(&key, id, true);
+			id = NULL;
+			error_errno(state, rc);
+		}
+
+		if (state->error == EOK) {
+			rc = bithenge_member_expression(&expr, expr, key);
+			key = NULL;
+			if (rc != EOK)
+				expr = NULL;
+			error_errno(state, rc);
+		}
+
+		if (state->error != EOK) {
+			free((char *)id);
+			bithenge_node_dec_ref(key);
+			bithenge_expression_dec_ref(expr);
+			return NULL;
+		}
 
 		return expr;
 	} else {
@@ -587,7 +617,8 @@ static void state_destroy(state_t *state)
 {
 	done_with_token(state);
 	state->token = TOKEN_ERROR;
-	fclose(state->file);
+	if (state->file)
+		fclose(state->file);
 	transform_list_t *entry = state->transform_list;
 	while (entry) {
 		transform_list_t *next = entry->next;

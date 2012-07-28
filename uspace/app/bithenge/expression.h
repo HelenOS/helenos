@@ -92,8 +92,11 @@ static inline int bithenge_expression_evaluate(bithenge_expression_t *self,
 
 int bithenge_init_expression(bithenge_expression_t *,
     const bithenge_expression_ops_t *);
+int bithenge_current_node_expression(bithenge_expression_t **);
 int bithenge_param_expression(bithenge_expression_t **, int);
 int bithenge_const_expression(bithenge_expression_t **, bithenge_node_t *);
+int bithenge_member_expression(bithenge_expression_t **,
+    bithenge_expression_t *, bithenge_node_t *);
 int bithenge_param_wrapper(bithenge_transform_t **, bithenge_transform_t *,
     bithenge_expression_t **);
 
