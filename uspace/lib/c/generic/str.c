@@ -1084,7 +1084,7 @@ _strtoul(const char *nptr, char **endptr, int base, char *sgn)
 		c = *str;
 		c = (c >= 'a' ? c - 'a' + 10 : (c >= 'A' ? c - 'A' + 10 :
 		    (c <= '9' ? c - '0' : 0xff)));
-		if (c > base) {
+		if (c >= base) {
 			break;
 		}
 		
