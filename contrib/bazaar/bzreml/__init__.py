@@ -118,6 +118,7 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 		try:
 			body = StringIO()
 			
+			commit_message_new = None
 			for revision_ac_id in revision_sequence(branch, revision_old_id, revision_new_id):
 				revision_ac = branch.repository.get_revision(revision_ac_id)
 				revision_ac_no = branch.revision_id_to_revno(revision_ac_id)
@@ -152,7 +153,13 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				if (commit_message == ""):
 					commit_message = "(empty)"
 				
+				if commit_message_new == None:
+					commit_message_new = commit_message
+				
 				body.write("\n")
+			
+			if commit_message_new == None:
+				commit_message_new = "(none)"
 			
 			tree_old = branch.repository.revision_tree(revision_old_id)
 			tree_new = branch.repository.revision_tree(revision_new_id)
@@ -198,7 +205,7 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 			finally:
 				tree_old.unlock()
 			
-			subject = "r%d - %s" % (revision_new_no, commit_message)
+			subject = "r%d - %s" % (revision_new_no, commit_message_new)
 			
 			send_smtp("localhost", config_sender(config), config_to(config), subject, body.getvalue())
 		finally:
