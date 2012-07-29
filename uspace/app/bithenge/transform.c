@@ -383,15 +383,18 @@ bithenge_named_transform_t *bithenge_primitive_transforms = primitive_transforms
 
 typedef struct {
 	bithenge_node_t base;
-	struct struct_transform *transform;
 	bithenge_scope_t scope;
+	struct struct_transform *transform;
 	bithenge_blob_t *blob;
+	aoff64_t *ends;
+	size_t num_ends;
 	bool prefix;
 } struct_node_t;
 
 typedef struct struct_transform {
 	bithenge_transform_t base;
 	bithenge_named_transform_t *subtransforms;
+	size_t num_subtransforms;
 } struct_transform_t;
 
 static bithenge_node_t *struct_as_node(struct_node_t *node)
@@ -414,103 +417,167 @@ static struct_transform_t *transform_as_struct(bithenge_transform_t *xform)
 	return (struct_transform_t *)xform;
 }
 
-static int struct_node_for_one(const char *name,
-    bithenge_transform_t *subxform, bithenge_scope_t *scope,
-    bithenge_blob_t **blob, bithenge_for_each_func_t func, void *data)
+static int struct_node_field_offset(struct_node_t *self, aoff64_t *out,
+    size_t index)
 {
-	int rc;
-	bithenge_node_t *subxform_result = NULL;
-
-	aoff64_t sub_size;
-	rc = bithenge_transform_prefix_length(subxform, scope, *blob,
-	    &sub_size);
-	if (rc != EOK)
-		goto error;
-
-	bithenge_node_t *subblob_node;
-	bithenge_blob_inc_ref(*blob);
-	rc = bithenge_new_subblob(&subblob_node, *blob, 0, sub_size);
-	if (rc != EOK)
-		goto error;
-
-	rc = bithenge_transform_apply(subxform, scope, subblob_node,
-	    &subxform_result);
-	bithenge_node_dec_ref(subblob_node);
-	if (rc != EOK)
-		goto error;
-
-	if (name) {
-		bithenge_node_t *name_node;
-		rc = bithenge_new_string_node(&name_node, name, false);
-		if (rc != EOK)
-			goto error;
-		rc = func(name_node, subxform_result, data);
-		subxform_result = NULL;
-		if (rc != EOK)
-			goto error;
-	} else {
-		if (bithenge_node_type(subxform_result) !=
-		    BITHENGE_NODE_INTERNAL) {
-			rc = EINVAL;
-			goto error;
-		}
-		rc = bithenge_node_for_each(subxform_result, func, data);
-		if (rc != EOK)
-			goto error;
+	if (index == 0) {
+		*out = 0;
+		return EOK;
 	}
+	index--;
+	aoff64_t prev_offset =
+	    self->num_ends ? self->ends[self->num_ends - 1] : 0;
+	for (; self->num_ends <= index; self->num_ends++) {
+		bithenge_node_t *subblob_node;
+		bithenge_blob_inc_ref(self->blob);
+		int rc = bithenge_new_offset_blob(&subblob_node, self->blob,
+		    prev_offset);
+		if (rc != EOK)
+			return rc;
+
+		bithenge_blob_t *subblob = bithenge_node_as_blob(subblob_node);
+		aoff64_t field_size;
+		rc = bithenge_transform_prefix_length(
+		    self->transform->subtransforms[self->num_ends].transform,
+		    &self->scope, subblob, &field_size);
+		bithenge_node_dec_ref(subblob_node);
+		if (rc != EOK)
+			return rc;
+
+		prev_offset = self->ends[self->num_ends] =
+		    prev_offset + field_size;
+	}
+	*out = self->ends[index];
+	return EOK;
+}
+
+static int struct_node_subtransform(struct_node_t *self, bithenge_node_t **out,
+    size_t index)
+{
+	aoff64_t start_pos, end_pos;
+	int rc = struct_node_field_offset(self, &start_pos, index);
+	if (rc != EOK)
+		return rc;
+	rc = struct_node_field_offset(self, &end_pos, index + 1);
+	if (rc != EOK)
+		return rc;
 
 	bithenge_node_t *blob_node;
-	rc = bithenge_new_offset_blob(&blob_node, *blob, sub_size);
-	*blob = NULL;
+	bithenge_blob_inc_ref(self->blob);
+	rc = bithenge_new_subblob(&blob_node, self->blob, start_pos,
+	    end_pos - start_pos);
 	if (rc != EOK)
-		goto error;
-	*blob = bithenge_node_as_blob(blob_node);
+		return rc;
 
-error:
-	bithenge_node_dec_ref(subxform_result);
-	return rc;
+	rc = bithenge_transform_apply(
+	    self->transform->subtransforms[index].transform, &self->scope,
+	    blob_node, out);
+	bithenge_node_dec_ref(blob_node);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 static int struct_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
 	int rc = EOK;
-	struct_node_t *struct_node = node_as_struct(base);
+	struct_node_t *self = node_as_struct(base);
 	bithenge_named_transform_t *subxforms =
-	    struct_node->transform->subtransforms;
-
-	bithenge_node_t *blob_node = NULL;
-	bithenge_blob_t *blob = NULL;
-	bithenge_blob_inc_ref(struct_node->blob);
-	rc = bithenge_new_offset_blob(&blob_node, struct_node->blob, 0);
-	if (rc != EOK) {
-		blob = NULL;
-		goto error;
-	}
-	blob = bithenge_node_as_blob(blob_node);
+	    self->transform->subtransforms;
 
 	for (size_t i = 0; subxforms[i].transform; i++) {
-		rc = struct_node_for_one(subxforms[i].name,
-		    subxforms[i].transform, &struct_node->scope, &blob, func,
-		    data);
+		bithenge_node_t *subxform_result;
+		rc = struct_node_subtransform(self, &subxform_result, i);
 		if (rc != EOK)
-			goto error;
+			return rc;
+
+		if (subxforms[i].name) {
+			bithenge_node_t *name_node;
+			rc = bithenge_new_string_node(&name_node,
+			    subxforms[i].name, false);
+			if (rc == EOK) {
+				rc = func(name_node, subxform_result, data);
+				subxform_result = NULL;
+			}
+		} else {
+			if (bithenge_node_type(subxform_result) !=
+			    BITHENGE_NODE_INTERNAL) {
+				rc = EINVAL;
+			} else {
+				rc = bithenge_node_for_each(subxform_result,
+				    func, data);
+			}
+		}
+		bithenge_node_dec_ref(subxform_result);
+		if (rc != EOK)
+			return rc;
 	}
 
-	if (!struct_node->prefix) {
-		aoff64_t remaining;
-		rc = bithenge_blob_size(blob, &remaining);
+	if (!self->prefix) {
+		aoff64_t blob_size, end_pos;
+		rc = bithenge_blob_size(self->blob, &blob_size);
 		if (rc != EOK)
-			goto error;
-		if (remaining != 0) {
+			return rc;
+		rc = struct_node_field_offset(self, &end_pos,
+		    self->transform->num_subtransforms);
+		if (rc != EOK)
+			return rc;
+		if (blob_size != end_pos) {
 			rc = EINVAL;
-			goto error;
+			return rc;
 		}
 	}
 
-error:
-	bithenge_blob_dec_ref(blob);
 	return rc;
+}
+
+static int struct_node_get(bithenge_node_t *base, bithenge_node_t *key,
+    bithenge_node_t **out)
+{
+	struct_node_t *self = node_as_struct(base);
+
+	if (bithenge_node_type(key) != BITHENGE_NODE_STRING) {
+		bithenge_node_dec_ref(key);
+		return ENOENT;
+	}
+	const char *name = bithenge_string_node_value(key);
+
+	for (size_t i = 0; self->transform->subtransforms[i].transform; i++) {
+		if (self->transform->subtransforms[i].name
+		    && !str_cmp(name, self->transform->subtransforms[i].name)) {
+			bithenge_node_dec_ref(key);
+			return struct_node_subtransform(self, out, i);
+		}
+	}
+
+	for (size_t i = 0; self->transform->subtransforms[i].transform; i++) {
+		if (self->transform->subtransforms[i].name)
+			continue;
+		bithenge_node_t *subxform_result;
+		int rc = struct_node_subtransform(self, &subxform_result, i);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(key);
+			return rc;
+		}
+		if (bithenge_node_type(subxform_result) !=
+		    BITHENGE_NODE_INTERNAL) {
+			bithenge_node_dec_ref(subxform_result);
+			bithenge_node_dec_ref(key);
+			return EINVAL;
+		}
+		bithenge_node_inc_ref(key);
+		rc = bithenge_node_get(subxform_result, key, out);
+		bithenge_node_dec_ref(subxform_result);
+		if (rc != ENOENT) {
+			bithenge_node_dec_ref(key);
+			return rc;
+		}
+	}
+
+	bithenge_node_dec_ref(key);
+	return ENOENT;
 }
 
 static void struct_node_destroy(bithenge_node_t *base)
@@ -524,11 +591,13 @@ static void struct_node_destroy(bithenge_node_t *base)
 
 	bithenge_transform_dec_ref(struct_as_transform(node->transform));
 	bithenge_blob_dec_ref(node->blob);
+	free(node->ends);
 	free(node);
 }
 
 static const bithenge_internal_node_ops_t struct_node_ops = {
 	.for_each = struct_node_for_each,
+	.get = struct_node_get,
 	.destroy = struct_node_destroy,
 };
 
@@ -539,24 +608,36 @@ static int struct_transform_make_node(struct_transform_t *self,
 	struct_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
+
 	bithenge_scope_init(&node->scope);
 	int rc = bithenge_scope_copy(&node->scope, scope);
 	if (rc != EOK) {
 		free(node);
 		return rc;
 	}
+
+	node->ends = malloc(sizeof(*node->ends) * self->num_subtransforms);
+	if (!node->ends) {
+		bithenge_scope_destroy(&node->scope);
+		free(node);
+		return ENOMEM;
+	}
+
 	rc = bithenge_init_internal_node(struct_as_node(node),
 	    &struct_node_ops);
 	if (rc != EOK) {
 		bithenge_scope_destroy(&node->scope);
+		free(node->ends);
 		free(node);
 		return rc;
 	}
+
 	bithenge_transform_inc_ref(struct_as_transform(self));
 	bithenge_blob_inc_ref(blob);
 	node->transform = self;
 	node->blob = blob;
 	node->prefix = prefix;
+	node->num_ends = 0;
 	*out = struct_as_node(node);
 
 	/* We should inc_ref(*out) here, but that would make a cycle. Instead,
@@ -587,35 +668,10 @@ static int struct_transform_prefix_length(bithenge_transform_t *base,
 	    true);
 	if (rc != EOK)
 		return rc;
-	bithenge_scope_t *inner = &node_as_struct(struct_node)->scope;
 
-	bithenge_node_t *node;
-	bithenge_blob_inc_ref(blob);
-	rc = bithenge_new_offset_blob(&node, blob, 0);
-	blob = NULL;
-	if (rc != EOK)
-		goto error;
-	blob = bithenge_node_as_blob(node);
-	*out = 0;
-	for (size_t i = 0; self->subtransforms[i].transform; i++) {
-		bithenge_transform_t *subxform =
-		    self->subtransforms[i].transform;
-		aoff64_t sub_size;
-		rc = bithenge_transform_prefix_length(subxform, inner, blob,
-		    &sub_size);
-		if (rc != EOK)
-			goto error;
-		*out += sub_size;
-		rc = bithenge_new_offset_blob(&node, blob, sub_size);
-		blob = NULL;
-		if (rc != EOK)
-			goto error;
-		blob = bithenge_node_as_blob(node);
-	}
-
-error:
+	rc = struct_node_field_offset(node_as_struct(struct_node), out,
+	    self->num_subtransforms);
 	bithenge_node_dec_ref(struct_node);
-	bithenge_blob_dec_ref(blob);
 	return rc;
 }
 
@@ -663,6 +719,10 @@ int bithenge_new_struct(bithenge_transform_t **out,
 	if (rc != EOK)
 		goto error;
 	self->subtransforms = subtransforms;
+	self->num_subtransforms = 0;
+	for (self->num_subtransforms = 0;
+	    subtransforms[self->num_subtransforms].transform;
+	    self->num_subtransforms++);
 	*out = struct_as_transform(self);
 	return EOK;
 error:

@@ -1,5 +1,9 @@
-transform pascal_string = struct {
+transform length = struct {
 	.len <- uint8;
+};
+
+transform pascal_string = struct {
+	<- length;
 	.string <- ascii <- known_length(.len);
 };
 
