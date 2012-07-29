@@ -180,10 +180,10 @@ static inline void rcu_read_lock(void)
 	preemption_disable();
 
 	/* Record a QS if not in a reader critical section. */
-	if (0 == *CPU->rcu.pnesting_cnt)
+	if (0 == CPU->rcu.nesting_cnt)
 		_rcu_record_qs();
 
-	++(*CPU->rcu.pnesting_cnt);
+	++CPU->rcu.nesting_cnt;
 
 	preemption_enable();
 }
@@ -194,7 +194,7 @@ static inline void rcu_read_unlock(void)
 	ASSERT(CPU);
 	preemption_disable();
 	
-	if (0 == --(*CPU->rcu.pnesting_cnt)) {
+	if (0 == --CPU->rcu.nesting_cnt) {
 		_rcu_record_qs();
 		
 		/* 

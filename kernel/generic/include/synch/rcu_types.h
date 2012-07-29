@@ -60,10 +60,13 @@ typedef struct rcu_cpu_data {
 	/** The cpu recorded a quiescent state last time during this grace period */
 	rcu_gp_t last_seen_gp;
 	
-	/** Pointer to the currently used nesting count (THREAD's or CPU's). */
-	size_t *pnesting_cnt;
-	/** Temporary nesting count if THREAD is NULL, eg in scheduler(). */
-	size_t tmp_nesting_cnt;
+	/** The number of times an RCU reader section is nested on this cpu. 
+	 * 
+	 * If positive, it is definitely executing reader code. If zero, 
+	 * the thread might already be executing reader code thanks to
+	 * cpu instruction reordering.
+	 */
+	size_t nesting_cnt;
 
 	/** Callbacks to invoke once the current grace period ends, ie cur_cbs_gp.
 	 * Accessed by the local reclaimer only.
@@ -127,11 +130,9 @@ typedef struct rcu_cpu_data {
 
 /** RCU related per-thread data. */
 typedef struct rcu_thread_data {
-	/** The number of times an RCU reader section is nested. 
-	 * 
-	 * If positive, it is definitely executing reader code. If zero, 
-	 * the thread might already be executing reader code thanks to
-	 * cpu instruction reordering.
+	/** 
+	 * Nesting count of the thread's RCU read sections when the thread 
+	 * is not running.
 	 */
 	size_t nesting_cnt;
 	

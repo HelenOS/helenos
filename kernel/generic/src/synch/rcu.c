@@ -224,8 +224,7 @@ void rcu_cpu_init(void)
 	
 	CPU->rcu.last_seen_gp = 0;
 	
-	CPU->rcu.pnesting_cnt = &CPU->rcu.tmp_nesting_cnt;
-	CPU->rcu.tmp_nesting_cnt = 0;
+	CPU->rcu.nesting_cnt = 0;
 	
 	CPU->rcu.cur_cbs = 0;
 	CPU->rcu.cur_cbs_cnt = 0;
@@ -285,10 +284,9 @@ void rcu_thread_exiting(void)
 	 * so that interrupt handlers do not modify the exiting thread's
 	 * reader section nesting count while we examine/process it.
 	 */
-	ASSERT(&CPU->rcu.tmp_nesting_cnt == CPU->rcu.pnesting_cnt);
 	
 	/* 
-	 * The thread forgot to exit its reader critical secion. 
+	 * The thread forgot to exit its reader critical section. 
 	 * It is a bug, but rather than letting the entire system lock up
 	 * forcefully leave the reader section. The thread is not holding 
 	 * any references anyway since it is exiting so it is safe.
@@ -372,7 +370,7 @@ uint64_t rcu_completed_gps(void)
 bool rcu_read_locked(void)
 {
 	preemption_disable();
-	bool locked = 0 < *CPU->rcu.pnesting_cnt;
+	bool locked = 0 < CPU->rcu.nesting_cnt;
 	preemption_enable();
 	
 	return locked;
@@ -482,7 +480,7 @@ void rcu_synchronize_expedite(void)
 void _rcu_synchronize(bool expedite)
 {
 	/* Calling from a reader section will deadlock. */
-	ASSERT(THREAD == 0 || 0 == THREAD->rcu.nesting_cnt);
+	ASSERT(0 == CPU->rcu.nesting_cnt);
 	
 	synch_item_t completion; 
 
@@ -1198,7 +1196,7 @@ static void sample_local_cpu(void *arg)
 	/* Cpu did not pass a quiescent state yet. */
 	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
 		/* Interrupted a reader in a reader critical section. */
-		if (0 < (*CPU->rcu.pnesting_cnt)) {
+		if (0 < CPU->rcu.nesting_cnt) {
 			ASSERT(!CPU->idle);
 			/* Note to notify the detector from rcu_read_unlock(). */
 			CPU->rcu.is_delaying_gp = true;
@@ -1275,7 +1273,11 @@ static bool wait_for_preempt_reader(void)
 void rcu_after_thread_ran(void)
 {
 	ASSERT(interrupts_disabled());
-	ASSERT(CPU->rcu.pnesting_cnt == &THREAD->rcu.nesting_cnt);
+	
+	/* Save the thread's nesting count when its not running. */
+	THREAD->rcu.nesting_cnt = CPU->rcu.nesting_cnt;
+	/* Interrupt handlers might use RCU while idle in scheduler(). */
+	CPU->rcu.nesting_cnt = 0;
 	
 	/* Preempted a reader critical section for the first time. */
 	if (0 < THREAD->rcu.nesting_cnt && !THREAD->rcu.was_preempted) {
@@ -1316,13 +1318,6 @@ void rcu_after_thread_ran(void)
 	}
 	
 	/* 
-	 * After this point THREAD is 0 and stays 0 until the scheduler()
-	 * switches to a new thread. Use a temporary nesting counter for readers
-	 * in handlers of interrupts that are raised while idle in the scheduler.
-	 */
-	CPU->rcu.pnesting_cnt = &CPU->rcu.tmp_nesting_cnt;
-
-	/* 
 	 * Forcefully associate the detector with the highest priority
 	 * even if preempted due to its time slice running out.
 	 * 
@@ -1354,9 +1349,10 @@ static void upd_max_cbs_in_slice(void)
 void rcu_before_thread_runs(void)
 {
 	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
-	ASSERT(&CPU->rcu.tmp_nesting_cnt == CPU->rcu.pnesting_cnt);
+	ASSERT(0 == CPU->rcu.nesting_cnt);
 	
-	CPU->rcu.pnesting_cnt = &THREAD->rcu.nesting_cnt;
+	/* Load the thread's saved nesting count from before it was preempted. */
+	CPU->rcu.nesting_cnt = THREAD->rcu.nesting_cnt;
 }
 
 
