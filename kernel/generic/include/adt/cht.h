@@ -37,7 +37,7 @@
 
 #include <stdint.h>
 #include <adt/list.h>
-#include <synch/rcu.h>
+#include <synch/rcu_types.h>
 #include <macros.h>
 #include <synch/workqueue.h>
 

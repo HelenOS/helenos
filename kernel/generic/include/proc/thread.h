@@ -40,7 +40,7 @@
 #include <time/timeout.h>
 #include <cpu.h>
 #include <synch/spinlock.h>
-#include <synch/rcu.h>
+#include <synch/rcu_types.h>
 #include <adt/avl.h>
 #include <mm/slab.h>
 #include <arch/cpu.h>

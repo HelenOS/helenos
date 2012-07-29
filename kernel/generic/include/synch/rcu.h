@@ -35,118 +35,10 @@
 #ifndef KERN_RCU_H_
 #define KERN_RCU_H_
 
-#include <adt/list.h>
-#include <synch/semaphore.h>
+#include <synch/rcu_types.h>
 #include <compiler/barrier.h>
 
 
-/* Fwd decl. */
-struct thread;
-struct rcu_item;
-
-/** Grace period number typedef. */
-typedef uint64_t rcu_gp_t;
-
-/** RCU callback type. The passed rcu_item_t maybe freed. */
-typedef void (*rcu_func_t)(struct rcu_item *rcu_item);
-
-typedef struct rcu_item {
-	rcu_func_t func;
-	struct rcu_item *next;
-} rcu_item_t;
-
-
-/** RCU related per-cpu data. */
-typedef struct rcu_cpu_data {
-	/** The cpu recorded a quiescent state last time during this grace period */
-	rcu_gp_t last_seen_gp;
-	
-	/** Pointer to the currently used nesting count (THREAD's or CPU's). */
-	size_t *pnesting_cnt;
-	/** Temporary nesting count if THREAD is NULL, eg in scheduler(). */
-	size_t tmp_nesting_cnt;
-
-	/** Callbacks to invoke once the current grace period ends, ie cur_cbs_gp.
-	 * Accessed by the local reclaimer only.
-	 */
-	rcu_item_t *cur_cbs;
-	/** Number of callbacks in cur_cbs. */
-	size_t cur_cbs_cnt;
-	/** Callbacks to invoke once the next grace period ends, ie next_cbs_gp. 
-	 * Accessed by the local reclaimer only.
-	 */
-	rcu_item_t *next_cbs;
-	/** Number of callbacks in next_cbs. */
-	size_t next_cbs_cnt;
-	/** New callbacks are place at the end of this list. */
-	rcu_item_t *arriving_cbs;
-	/** Tail of arriving_cbs list. Disable interrupts to access. */
-	rcu_item_t **parriving_cbs_tail;
-	/** Number of callbacks currently in arriving_cbs. 
-	 * Disable interrupts to access.
-	 */
-	size_t arriving_cbs_cnt;
-
-	/** At the end of this grace period callbacks in cur_cbs will be invoked.*/
-	rcu_gp_t cur_cbs_gp;
-	/** At the end of this grace period callbacks in next_cbs will be invoked.
-	 * 
-	 * Should be the next grace period but it allows the reclaimer to 
-	 * notice if it missed a grace period end announcement. In that
-	 * case it can execute next_cbs without waiting for another GP.
-	 * 
-	 * Invariant: next_cbs_gp >= cur_cbs_gp
-	 */
-	rcu_gp_t next_cbs_gp;
-	
-	/** This cpu has not yet passed a quiescent state and it is delaying the
-	 * detector. Once it reaches a QS it must sema_up(rcu.remaining_readers).
-	 */
-	bool is_delaying_gp;
-	
-	/** Positive if there are callbacks pending in arriving_cbs. */
-	semaphore_t arrived_flag;
-	
-	/** The reclaimer should expedite GPs for cbs in arriving_cbs. */
-	bool expedite_arriving;
-	
-	/** Protected by global rcu.barrier_mtx. */
-	rcu_item_t barrier_item;
-	
-	/** Interruptable attached reclaimer thread. */
-	struct thread *reclaimer_thr;
-	
-	/* Some statistics. */
-	size_t stat_max_cbs;
-	size_t stat_avg_cbs;
-	size_t stat_missed_gps;
-	size_t stat_missed_gp_in_wait;
-	size_t stat_max_slice_cbs;
-	size_t last_arriving_cnt;
-} rcu_cpu_data_t;
-
-
-/** RCU related per-thread data. */
-typedef struct rcu_thread_data {
-	/** The number of times an RCU reader section is nested. 
-	 * 
-	 * If positive, it is definitely executing reader code. If zero, 
-	 * the thread might already be executing reader code thanks to
-	 * cpu instruction reordering.
-	 */
-	size_t nesting_cnt;
-	
-	/** True if the thread was preempted in a reader section. 
-	 *
-	 * The thread is place into rcu.cur_preempted or rcu.next_preempted
-	 * and must remove itself in rcu_read_unlock(). 
-	 * 
-	 * Access with interrupts disabled.
-	 */
-	bool was_preempted;
-	/** Preempted threads link. Access with rcu.prempt_lock.*/
-	link_t preempt_link;
-} rcu_thread_data_t;
 
 
 /** Use to assign a pointer to newly initialized data to a rcu reader 
@@ -200,8 +92,15 @@ typedef struct rcu_thread_data {
  */
 #define rcu_access(ptr) ACCESS_ONCE(ptr)
 
-extern void rcu_read_lock(void);
-extern void rcu_read_unlock(void);
+
+
+
+#include <debug.h>
+#include <preemption.h>
+#include <cpu.h>
+#include <proc/thread.h>
+
+
 extern bool rcu_read_locked(void);
 extern void rcu_synchronize(void);
 extern void rcu_synchronize_expedite(void);
@@ -222,6 +121,99 @@ extern void rcu_before_thread_runs(void);
 extern uint64_t rcu_completed_gps(void);
 extern void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func);
 extern void _rcu_synchronize(bool expedite);
+
+
+/* Fwd decl. required by the inlined implementation. Not part of public API. */
+extern rcu_gp_t _rcu_cur_gp;
+extern void _rcu_signal_read_unlock(void);
+
+
+/** Unconditionally records a quiescent state for the local cpu. */
+static inline void _rcu_record_qs(void)
+{
+	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	
+	/* 
+	 * A new GP was started since the last time we passed a QS. 
+	 * Notify the detector we have reached a new QS.
+	 */
+	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
+		rcu_gp_t cur_gp = ACCESS_ONCE(_rcu_cur_gp);
+		/* 
+		 * Contain memory accesses within a reader critical section. 
+		 * If we are in rcu_lock() it also makes changes prior to the
+		 * start of the GP visible in the reader section.
+		 */
+		memory_barrier();
+		/*
+		 * Acknowledge we passed a QS since the beginning of rcu.cur_gp.
+		 * Cache coherency will lazily transport the value to the
+		 * detector while it sleeps in gp_sleep(). 
+		 * 
+		 * Note that there is a theoretical possibility that we
+		 * overwrite a more recent/greater last_seen_gp here with 
+		 * an older/smaller value. If this cpu is interrupted here
+		 * while in rcu_lock() reader sections in the interrupt handler 
+		 * will update last_seen_gp to the same value as is currently 
+		 * in local cur_gp. However, if the cpu continues processing 
+		 * interrupts and the detector starts a new GP immediately, 
+		 * local interrupt handlers may update last_seen_gp again (ie 
+		 * properly ack the new GP) with a value greater than local cur_gp. 
+		 * Resetting last_seen_gp to a previous value here is however 
+		 * benign and we only have to remember that this reader may end up 
+		 * in cur_preempted even after the GP ends. That is why we
+		 * append next_preempted to cur_preempted rather than overwriting 
+		 * it as if cur_preempted were empty.
+		 */
+		CPU->rcu.last_seen_gp = cur_gp;
+	}
+}
+
+/** Delimits the start of an RCU reader critical section. 
+ * 
+ * Reader sections may be nested and are preemptable. You must not
+ * however block/sleep within reader sections.
+ */
+static inline void rcu_read_lock(void)
+{
+	ASSERT(CPU);
+	preemption_disable();
+
+	/* Record a QS if not in a reader critical section. */
+	if (0 == *CPU->rcu.pnesting_cnt)
+		_rcu_record_qs();
+
+	++(*CPU->rcu.pnesting_cnt);
+
+	preemption_enable();
+}
+
+/** Delimits the end of an RCU reader critical section. */
+static inline void rcu_read_unlock(void)
+{
+	ASSERT(CPU);
+	preemption_disable();
+	
+	if (0 == --(*CPU->rcu.pnesting_cnt)) {
+		_rcu_record_qs();
+		
+		/* 
+		 * The thread was preempted while in a critical section or 
+		 * the detector is eagerly waiting for this cpu's reader 
+		 * to finish. 
+		 * 
+		 * Note that THREAD may be 0 in scheduler() and not just during boot.
+		 */
+		if ((THREAD && THREAD->rcu.was_preempted) || CPU->rcu.is_delaying_gp) {
+			/* Rechecks with disabled interrupts. */
+			_rcu_signal_read_unlock();
+		}
+	}
+
+	
+	preemption_enable();
+}
+
 
 #endif
 

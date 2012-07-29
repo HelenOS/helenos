@@ -30,6 +30,7 @@
 #include <print.h>
 #include <debug.h>
 #include <adt/cht.h>
+#include <synch/rcu.h>
 
 typedef struct val {
 	/* Place at the top to simplify re-casting. */

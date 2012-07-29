@@ -37,7 +37,7 @@
 
 #include <mm/tlb.h>
 #include <synch/spinlock.h>
-#include <synch/rcu.h>
+#include <synch/rcu_types.h>
 #include <proc/scheduler.h>
 #include <arch/cpu.h>
 #include <arch/context.h>
