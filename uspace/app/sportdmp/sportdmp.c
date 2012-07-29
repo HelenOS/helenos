@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	}
 	
 	service_id_t svc_id;
-	int rc = loc_service_get_id(svc_path, &svc_id, IPC_FLAG_BLOCKING);
+	int rc = loc_service_get_id(svc_path, &svc_id, 0);
 	if (rc != EOK) {
 		fprintf(stderr, "Cannot find device service %s\n", svc_path);
 		return 1;
