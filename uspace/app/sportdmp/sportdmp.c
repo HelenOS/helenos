@@ -36,7 +36,7 @@
 
 static void syntax_print(void)
 {
-	fprintf(stderr, "Usage: sportdmp <baud> <device_service>\n");
+	fprintf(stderr, "Usage: sportdmp [--baud=<baud>] [device_service]\n");
 }
 
 int main(int argc, char **argv)
@@ -44,21 +44,33 @@ int main(int argc, char **argv)
 	const char* svc_path = "devices/\\hw\\pci0\\00:01.0\\com1\\a";
 	sysarg_t baud = 9600;
 	
-	if (argc > 1) {
+	int arg = 1;
+		
+	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
+		size_t arg_offset = str_lsize(argv[arg], 7);
+		char* arg_str = argv[arg] + arg_offset;
+		if (str_length(arg_str) == 0) {
+			fprintf(stderr, "--baud requires an argument\n");
+			syntax_print();
+			return 1;
+		}
 		char *endptr;
-		baud = strtol(argv[1], &endptr, 10);
+		baud = strtol(arg_str, &endptr, 10);
 		if (*endptr != '\0') {
 			fprintf(stderr, "Invalid value for baud\n");
 			syntax_print();
 			return 1;
 		}
+		arg++;
 	}
 	
-	if (argc > 2) {
-		svc_path = argv[2];
+	if (argc > arg) {
+		svc_path = argv[arg];
+		arg++;
 	}
 	
-	if (argc > 3) {
+	if (argc > arg) {
+		fprintf(stderr, "Too many arguments\n");
 		syntax_print();
 		return 1;
 	}
