@@ -199,17 +199,13 @@ static inline void rcu_read_unlock(void)
 		
 		/* 
 		 * The thread was preempted while in a critical section or 
-		 * the detector is eagerly waiting for this cpu's reader 
-		 * to finish. 
-		 * 
-		 * Note that THREAD may be 0 in scheduler() and not just during boot.
+		 * the detector is eagerly waiting for this cpu's reader to finish. 
 		 */
-		if ((THREAD && THREAD->rcu.was_preempted) || CPU->rcu.is_delaying_gp) {
+		if (CPU->rcu.signal_unlock) {
 			/* Rechecks with disabled interrupts. */
 			_rcu_signal_read_unlock();
 		}
 	}
-
 	
 	preemption_enable();
 }

@@ -238,6 +238,7 @@ void rcu_cpu_init(void)
 	CPU->rcu.next_cbs_gp = 0;
 	
 	CPU->rcu.is_delaying_gp = false;
+	CPU->rcu.signal_unlock = false;
 	
 	semaphore_initialize(&CPU->rcu.arrived_flag, 0);
 
@@ -409,6 +410,8 @@ void _rcu_signal_read_unlock(void)
 {
 	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
 	
+	/* todo: make NMI safe with cpu-local atomic ops. */
+	
 	/*
 	 * We have to disable interrupts in order to make checking
 	 * and resetting was_preempted and is_delaying_gp atomic 
@@ -456,6 +459,10 @@ void _rcu_signal_read_unlock(void)
 		
 		irq_spinlock_unlock(&rcu.preempt_lock, false);
 	}
+	
+	/* If there was something to signal to the detector we have done so. */
+	CPU->rcu.signal_unlock = false;
+	
 	interrupts_restore(ipl);
 }
 
@@ -1200,6 +1207,14 @@ static void sample_local_cpu(void *arg)
 			ASSERT(!CPU->idle);
 			/* Note to notify the detector from rcu_read_unlock(). */
 			CPU->rcu.is_delaying_gp = true;
+			/* 
+			 * Set signal_unlock only after setting is_delaying_gp so
+			 * that NMI handlers do not accidentally clear it in unlock()
+			 * before seeing and acting upon is_delaying_gp.
+			 */
+			compiler_barrier();
+			CPU->rcu.signal_unlock = true;
+			
 			atomic_inc(&rcu.delaying_cpu_cnt);
 		} else {
 			/* 
@@ -1273,8 +1288,18 @@ static bool wait_for_preempt_reader(void)
 void rcu_after_thread_ran(void)
 {
 	ASSERT(interrupts_disabled());
+	/* todo: make is_delaying_gp and was_preempted NMI safe via local atomics.*/
+
+	/* 
+	 * Prevent NMI handlers from interfering. The detector will be notified
+	 * here if CPU->rcu.is_delaying_gp and the current thread is no longer 
+	 * running so there is nothing to signal to the detector.
+	 */
+	CPU->rcu.signal_unlock = false;
+	/* Separates clearing of .signal_unlock from CPU->rcu.nesting_cnt = 0. */
+	compiler_barrier();
 	
-	/* Save the thread's nesting count when its not running. */
+	/* Save the thread's nesting count when it is not running. */
 	THREAD->rcu.nesting_cnt = CPU->rcu.nesting_cnt;
 	/* Interrupt handlers might use RCU while idle in scheduler(). */
 	CPU->rcu.nesting_cnt = 0;
@@ -1299,6 +1324,7 @@ void rcu_after_thread_ran(void)
 		irq_spinlock_unlock(&rcu.preempt_lock, false);
 	}
 	
+	
 	/* 
 	 * The preempted reader has been noted globally. There are therefore
 	 * no readers running on this cpu so this is a quiescent state.
@@ -1316,7 +1342,7 @@ void rcu_after_thread_ran(void)
 		CPU->rcu.is_delaying_gp = false;
 		semaphore_up(&rcu.remaining_readers);
 	}
-	
+
 	/* 
 	 * Forcefully associate the detector with the highest priority
 	 * even if preempted due to its time slice running out.
@@ -1353,6 +1379,15 @@ void rcu_before_thread_runs(void)
 	
 	/* Load the thread's saved nesting count from before it was preempted. */
 	CPU->rcu.nesting_cnt = THREAD->rcu.nesting_cnt;
+	/* 
+	 * In the unlikely event that a NMI occurs between the loading of the 
+	 * variables and setting signal_unlock, the NMI handler may invoke 
+	 * rcu_read_unlock() and clear signal_unlock. In that case we will
+	 * incorrectly overwrite signal_unlock from false to true. This event
+	 * situation benign and the next rcu_read_unlock() will at worst 
+	 * needlessly invoke _rcu_signal_unlock().
+	 */
+	CPU->rcu.signal_unlock = THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp;
 }
 
 

@@ -106,6 +106,12 @@ typedef struct rcu_cpu_data {
 	 */
 	bool is_delaying_gp;
 	
+	/** True if we should signal the detector that we exited a reader section.
+	 * 
+	 * Equal to (THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp).
+	 */
+	bool signal_unlock;
+	
 	/** Positive if there are callbacks pending in arriving_cbs. */
 	semaphore_t arrived_flag;
 	
