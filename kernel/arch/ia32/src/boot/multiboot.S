@@ -72,13 +72,18 @@ multiboot_header:
 	.long multiboot_image_start
 
 multiboot_image_start:
+	cli
 	cld
 	
 	/* Initialize stack pointer */
 	movl $START_STACK, %esp
 	
-	/* Initialize Global Descriptor Table register */
+	/*
+	 * Initialize Global Descriptor Table and
+	 * Interrupt Descriptor Table registers
+	 */
 	lgdtl bootstrap_gdtr
+	lidtl bootstrap_idtr
 	
 	/* Kernel data + stack */
 	movw $GDT_SELECTOR(KDATA_DES), %cx
@@ -700,6 +705,11 @@ early_puts:
 .align 4096
 page_directory:
 	.space 4096, 0
+
+.global bootstrap_idtr
+bootstrap_idtr:
+	.word 0
+	.long 0
 
 .global bootstrap_gdtr
 bootstrap_gdtr:

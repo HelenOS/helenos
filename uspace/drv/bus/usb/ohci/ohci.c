@@ -74,7 +74,7 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(&ohci->hc, status);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get USB address assigned to root hub.
  *
  * @param[in] fun Root hub function.
@@ -91,7 +91,7 @@ static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Gets handle of the respective hc (this device, hc function).
  *
  * @param[in] root_hub_fun Root hub function seeking hc handle.
@@ -109,23 +109,23 @@ static int rh_get_hc_handle(
 		*handle = hc_fun->handle;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = rh_get_hc_handle,
 	.get_my_address = rh_get_my_address,
 };
-/*----------------------------------------------------------------------------*/
+
 /** Standard USB HC options (HC interface) */
 static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
-/*----------------------------------------------------------------------------*/
+
 /** Standard USB RH options (RH interface) */
 static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize hc and rh ddf structures and their respective drivers.
  *
  * @param[in] device DDF instance of the device to use.

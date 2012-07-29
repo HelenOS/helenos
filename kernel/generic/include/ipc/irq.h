@@ -36,10 +36,10 @@
 #define KERN_IPC_IRQ_H_
 
 /** Maximum number of IPC IRQ programmed I/O ranges. */
-#define IRQ_MAX_RANGE_COUNT	8
+#define IRQ_MAX_RANGE_COUNT  8
 
 /** Maximum length of IPC IRQ program. */
-#define IRQ_MAX_PROG_SIZE  20
+#define IRQ_MAX_PROG_SIZE  256
 
 #include <ipc/ipc.h>
 #include <ddi/irq.h>

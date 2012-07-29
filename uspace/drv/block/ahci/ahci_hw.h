@@ -373,9 +373,6 @@ typedef union {
 	uint32_t u32;
 } ahci_ghc_ghc_t;
 
-/** AHCI GHC register offset. */
-#define AHCI_GHC_GHC_REGISTER_OFFSET  1
-
 /** AHCI Enable mask bit. */
 #define AHCI_GHC_GHC_AE  0x80000000
 
@@ -383,15 +380,19 @@ typedef union {
 #define AHCI_GHC_GHC_IE  0x00000002
 
 /** AHCI Memory register Interrupt pending register. */
-typedef struct {
-	/** Interrupt pending status, if set, indicates that
-	 * the corresponding port has an interrupt pending.
-	 */
-	uint32_t u32;
-} ahci_ghc_is_t;
+typedef uint32_t ahci_ghc_is_t;
 
 /** AHCI GHC register offset. */
-#define AHCI_GHC_IS_REGISTER_OFFSET  2	
+#define AHCI_GHC_IS_REGISTER_OFFSET  2
+
+/** AHCI ports registers offset. */
+#define AHCI_PORTS_REGISTERS_OFFSET  64
+
+/** AHCI port registers size. */
+#define AHCI_PORT_REGISTERS_SIZE  32
+
+/** AHCI port IS register offset. */
+#define AHCI_PORT_IS_REGISTER_OFFSET  4
 
 /** AHCI Memory register Ports implemented. */
 typedef struct {
@@ -530,7 +531,7 @@ typedef struct
 	/** Global Host Control */
 	uint32_t ghc;
 	/** Interrupt Status */
-	uint32_t is;
+	ahci_ghc_is_t is;
 	/** Ports Implemented */
 	uint32_t pi;
 	/** Version */
@@ -602,49 +603,7 @@ typedef struct {
 } ahci_port_fbu_t;
 
 /** AHCI Memory register Port x Interrupt Status. */
-typedef union {
-	struct {
-		/** Device to Host Register FIS Interrupt. */
-		unsigned int dhrs : 1;
-		/** PIO Setup FIS Interrupt. */
-		unsigned int pss : 1;
-		/** DMA Setup FIS Interrupt. */
-		unsigned int dss : 1;
-		/** Set Device Bits Interrupt. */
-		unsigned int sdbs : 1;
-		/** Unknown FIS Interrupt. */
-		unsigned int ufs : 1;
-		/** Descriptor Processed. */
-		unsigned int dps : 1;
-		/** Port Connect Change Status. */
-		unsigned int pcs : 1;
-		/** Device Mechanical Presence Status. */
-		unsigned int dmps : 1;
-		/** Reserved. */
-		unsigned int reserved1 : 14;
-		/** PhyRdy Change Status. */
-		unsigned int prcs : 1;
-		/** Incorrect Port Multiplier Status. */
-		unsigned int ipms : 1;
-		/** Overflow Status. */
-		unsigned int ofs : 1;
-		/** Reserved. */
-		unsigned int reserved2 : 1;
-		/** Interface Non-fatal Error Status. */
-		unsigned int infs : 1;
-		/** Interface Fatal Error Status. */
-		unsigned int ifs : 1;
-		/** Host Bus Data Error Status. */
-		unsigned int hbds : 1;
-		/** Host Bus Fatal Error Status. */
-		unsigned int hbfs : 1;
-		/** Task File Error Status. */
-		unsigned int tfes : 1;
-		/** Cold Port Detect Status. */
-		unsigned int cpds : 1;
-	};
-	uint32_t u32;
-} ahci_port_is_t;
+typedef uint32_t ahci_port_is_t;
 
 #define AHCI_PORT_IS_DHRS  (1 << 0)
 #define AHCI_PORT_IS_PSS   (1 << 1)
@@ -699,7 +658,7 @@ typedef union {
  */
 static inline int ahci_port_is_end_of_operation(ahci_port_is_t port_is)
 {
-	return port_is.u32 & AHCI_PORT_END_OF_OPERATION;
+	return port_is & AHCI_PORT_END_OF_OPERATION;
 }
 
 /** Evaluate error status from port interrupt status.
@@ -711,7 +670,7 @@ static inline int ahci_port_is_end_of_operation(ahci_port_is_t port_is)
  */
 static inline int ahci_port_is_error(ahci_port_is_t port_is)
 {
-	return port_is.u32 & AHCI_PORT_IS_ERROR;
+	return port_is & AHCI_PORT_IS_ERROR;
 }
 
 /** Evaluate permanent error status from port interrupt status.
@@ -723,7 +682,7 @@ static inline int ahci_port_is_error(ahci_port_is_t port_is)
  */
 static inline int ahci_port_is_permanent_error(ahci_port_is_t port_is)
 {
-	return port_is.u32 & AHCI_PORT_IS_PERMANENT_ERROR;
+	return port_is & AHCI_PORT_IS_PERMANENT_ERROR;
 }
 
 /** Evaluate task file error status from port interrupt status.
@@ -735,7 +694,7 @@ static inline int ahci_port_is_permanent_error(ahci_port_is_t port_is)
  */
 static inline int ahci_port_is_tfes(ahci_port_is_t port_is)
 {
-	return port_is.u32 & AHCI_PORT_IS_TFES;
+	return port_is & AHCI_PORT_IS_TFES;
 }
 
 /** AHCI Memory register Port x Interrupt Enable. */
@@ -993,7 +952,7 @@ typedef volatile struct
 	/** Port x FIS Base Address Upper 32-Bits. */
 	uint32_t pxfbu;
 	/** Port x Interrupt Status. */
-	uint32_t pxis;
+	ahci_port_is_t pxis;
 	/** Port x Interrupt Enable. */
 	uint32_t pxie;
 	/** Port x Command and Status. */
@@ -1029,13 +988,13 @@ typedef volatile struct {
 	/** Generic Host Control. */
 	ahci_ghc_t ghc;
 	/** Reserved. */
-	uint32_t reserved[13]; 
+	uint32_t reserved[13];
 	/** Reserved for NVMHCI. */
 	uint32_t reservedfornvmhci[16];
 	/** Vendor Specific registers. */
 	uint32_t vendorspecificsregs[24];
 	/** Ports. */
-	ahci_port_t ports[32];
+	ahci_port_t ports[AHCI_MAX_PORTS];
 } ahci_memregs_t;
 
 /** AHCI Command header entry.

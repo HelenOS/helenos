@@ -47,14 +47,8 @@ typedef struct {
 	/** Pointer to AHCI memory registers. */
 	volatile ahci_memregs_t *memregs;
 	
-	/** AHCI device global timer. */
-	fibril_timer_t *timer;
-	
 	/** Pointers to sata devices. */
-	void *sata_devs[32];
-	
-	/** Device has harware interrupt. */
-	bool is_hw_interrupt; 
+	void *sata_devs[AHCI_MAX_PORTS];
 } ahci_dev_t;
 
 /** SATA Device. */
@@ -62,11 +56,8 @@ typedef struct {
 	/** Pointer to AHCI device. */
 	ahci_dev_t *ahci;
 	
-	/** SATA port number(0-31). */
+	/** SATA port number (0-31). */
 	uint8_t port_num;
-	
-	/** Port interrupt states shadow registers. */
-	ahci_port_is_t shadow_pxis;
 	
 	/** Device in invalid state (disconnected and so on). */
 	bool is_invalid_device;
@@ -83,19 +74,21 @@ typedef struct {
 	/** Mutex for single operation on device. */
 	fibril_mutex_t lock;
 	
-	/** Mutex for port interrupt state register manipulation. */
-	fibril_mutex_t pxis_lock;
-	
 	/** Mutex for event signaling condition variable. */
 	fibril_mutex_t event_lock;
+	
 	/** Event signaling condition variable. */
 	fibril_condvar_t event_condvar;
 	
+	/** Event interrupt state. */
+	ahci_port_is_t event_pxis;
+	
 	/** Block device service id. */
-	service_id_t service_id; 
+	service_id_t service_id;
 	
 	/** Number of device data blocks. */
 	uint64_t blocks;
+	
 	/** Size of device data blocks. */
 	size_t block_size;
 	

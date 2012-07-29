@@ -47,7 +47,6 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -171,6 +170,7 @@ endif
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
+		drv/bus/pci/pciintel \
 		srv/hw/bus/cuda_adb
 endif
 

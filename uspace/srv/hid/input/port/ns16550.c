@@ -83,7 +83,7 @@ static irq_cmd_t ns16550_cmds[] = {
 		.dstarg = 1
 	},
 	{
-		.cmd = CMD_BTEST,
+		.cmd = CMD_AND,
 		.value = LSR_DATA_READY,
 		.srcarg = 1,
 		.dstarg = 3

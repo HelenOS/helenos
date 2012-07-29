@@ -75,7 +75,7 @@ static inline void * uhci_transfer_batch_setup_buffer(
 	return uhci_batch->device_buffer + sizeof(qh_t) +
 	    uhci_batch->td_count * sizeof(td_t);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get offset to data buffer accessible to the HC hw.
  * @param uhci_batch UHCI batch structure.
  * @return Pointer to the data buffer.
@@ -88,7 +88,7 @@ static inline void * uhci_transfer_batch_data_buffer(
 	return uhci_transfer_batch_setup_buffer(uhci_batch) +
 	    uhci_batch->usb_batch->setup_size;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Aborts the batch.
  * Sets error to EINTR and size off transferd data to 0, before finishing the
  * batch.
@@ -102,7 +102,7 @@ static inline void uhci_transfer_batch_abort(uhci_transfer_batch_t *uhci_batch)
 	uhci_batch->usb_batch->transfered_size = 0;
 	uhci_transfer_batch_finish_dispose(uhci_batch);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Linked list conversion wrapper.
  * @param l Linked list link.
  * @return Pointer to the uhci batch structure.

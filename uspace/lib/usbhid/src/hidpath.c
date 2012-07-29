@@ -40,7 +40,7 @@
 #include <usb/debug.h>
 #include <assert.h>
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Compares two usages if they are same or not or one of the usages is not
  * set.
@@ -62,7 +62,7 @@
 #define USB_HID_SAME_USAGE_PAGE(page1, page2)	\
 	((page1 == page2) || (page1 == 0) || (page2 == 0))
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Appends one item (couple of usage_path and usage) into the usage path
  * structure
@@ -92,7 +92,7 @@ int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
 	return EOK;
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Removes last item from the usage path structure
  * @param usage_path 
@@ -113,7 +113,7 @@ void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path)
 	}
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Nulls last item of the usage path structure.
  *
@@ -132,7 +132,7 @@ void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path)
 	}
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Modifies last item of usage path structure by given usage page or usage
  *
@@ -163,7 +163,7 @@ void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path,
 	
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  *
  *
@@ -187,7 +187,7 @@ void usb_hid_print_usage_path(usb_hid_report_path_t *path)
 	}
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Compares two usage paths structures
  *
@@ -353,7 +353,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 	}
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Allocates and initializes new usage path structure.
  *
@@ -375,7 +375,7 @@ usb_hid_report_path_t *usb_hid_report_path(void)
 	}
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Releases given usage path structure.
  *
@@ -394,7 +394,7 @@ void usb_hid_report_path_free(usb_hid_report_path_t *path)
 	free(path);
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Clone content of given usage path to the new one
  *
@@ -440,7 +440,7 @@ usb_hid_report_path_t *usb_hid_report_path_clone(
 	return new_usage_path;
 }
 
-/*---------------------------------------------------------------------------*/
+
 /**
  * Sets report id in usage path structure
  *
