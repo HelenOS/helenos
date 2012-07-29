@@ -41,10 +41,11 @@ static void syntax_print(void)
 
 int main(int argc, char **argv)
 {
-	const char* svc_path = "devices/\\hw\\pci0\\00:01.0\\com1\\a";
 	sysarg_t baud = 9600;
+	service_id_t svc_id;
 	
 	int arg = 1;
+	int rc;
 		
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
 		size_t arg_offset = str_lsize(argv[arg], 7);
@@ -65,8 +66,40 @@ int main(int argc, char **argv)
 	}
 	
 	if (argc > arg) {
-		svc_path = argv[arg];
+		rc = loc_service_get_id(argv[arg], &svc_id, 0);
+		if (rc != EOK) {
+			fprintf(stderr, "Cannot find device service %s\n",
+			    argv[arg]);
+			return 1;
+		}
 		arg++;
+	}
+	else {
+		category_id_t serial_cat_id;
+		
+		rc = loc_category_get_id("serial", &serial_cat_id, 0);
+		if (rc != EOK) {
+			fprintf(stderr, "Failed getting id of category "
+			    "'serial'\n");
+			return 1;
+		}
+		
+		service_id_t *svc_ids;
+		size_t svc_count;
+		
+		rc = loc_category_get_svcs(serial_cat_id, &svc_ids, &svc_count);		if (rc != EOK) {
+			fprintf(stderr, "Failed getting list of services\n");
+			return 1;
+		}
+		
+		if (svc_count == 0) {
+			fprintf(stderr, "No service in category 'serial'\n");
+			free(svc_ids);
+			return 1;
+		}
+		
+		svc_id = svc_ids[0];
+		free(svc_ids);
 	}
 	
 	if (argc > arg) {
@@ -75,17 +108,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	service_id_t svc_id;
-	int rc = loc_service_get_id(svc_path, &svc_id, 0);
-	if (rc != EOK) {
-		fprintf(stderr, "Cannot find device service %s\n", svc_path);
-		return 1;
-	}
 	
 	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
-		fprintf(stderr, "Failed connecting to service %s\n", svc_path);
+		fprintf(stderr, "Failed connecting to service\n");
 	}
 	
 	async_exch_t *exch = async_exchange_begin(sess);
