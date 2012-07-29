@@ -519,6 +519,42 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 
 }
 
+/** Test whether p is a prefix of s.
+ *
+ * Do a char-by-char comparison of two NULL-terminated strings
+ * and determine if p is a prefix of s.
+ *
+ * @param s The string in which to look
+ * @param p The string to check if it is a prefix of s
+ *
+ * @return true iff p is prefix of s else false
+ *
+ */
+bool str_test_prefix(const char *s, const char *p)
+{
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
+	
+	size_t off1 = 0;
+	size_t off2 = 0;
+
+	while (true) {
+		c1 = str_decode(s, &off1, STR_NO_LIMIT);
+		c2 = str_decode(p, &off2, STR_NO_LIMIT);
+		
+		if (c2 == 0)
+			return true;
+
+		if (c1 != c2)
+			return false;
+		
+		if (c1 == 0)
+			break;
+	}
+
+	return false;
+}
+
 /** Copy string.
  *
  * Copy source string @a src to destination buffer @a dest.
