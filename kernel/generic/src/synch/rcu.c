@@ -163,6 +163,8 @@ static rcu_data_t rcu;
 
 static void start_reclaimers(void);
 static void synch_complete(rcu_item_t *rcu_item);
+static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item, 
+	rcu_func_t func);
 static void add_barrier_cb(void *arg);
 static void barrier_complete(rcu_item_t *barrier_item);
 static bool arriving_cbs_empty(void);
@@ -564,11 +566,18 @@ static void barrier_complete(rcu_item_t *barrier_item)
  */
 void rcu_call(rcu_item_t *rcu_item, rcu_func_t func)
 {
-	_rcu_call(false, rcu_item, func);
+	rcu_call_impl(false, rcu_item, func);
 }
 
 /** rcu_call() implementation. See rcu_call() for comments. */
 void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func)
+{
+	rcu_call_impl(expedite, rcu_item, func);
+}
+
+/** rcu_call() inline-able implementation. See rcu_call() for comments. */
+static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item, 
+	rcu_func_t func)
 {
 	ASSERT(rcu_item);
 	
@@ -579,19 +588,20 @@ void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func)
 	
 	ipl_t ipl = interrupts_disable();
 
-	*CPU->rcu.parriving_cbs_tail = rcu_item;
-	CPU->rcu.parriving_cbs_tail = &rcu_item->next;
+	rcu_cpu_data_t *r = &CPU->rcu;
+	*r->parriving_cbs_tail = rcu_item;
+	r->parriving_cbs_tail = &rcu_item->next;
 	
-	size_t cnt = ++CPU->rcu.arriving_cbs_cnt;
+	size_t cnt = ++r->arriving_cbs_cnt;
 	interrupts_restore(ipl);
 	
 	if (expedite) {
-		CPU->rcu.expedite_arriving = true;
+		r->expedite_arriving = true;
 	}
 	
 	/* Added first callback - notify the reclaimer. */
-	if (cnt == 1 && !semaphore_count_get(&CPU->rcu.arrived_flag)) {
-		semaphore_up(&CPU->rcu.arrived_flag);
+	if (cnt == 1 && !semaphore_count_get(&r->arrived_flag)) {
+		semaphore_up(&r->arrived_flag);
 	}
 	
 	preemption_enable();
