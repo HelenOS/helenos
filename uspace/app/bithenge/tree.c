@@ -125,6 +125,59 @@ int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
 	return rc;
 }
 
+/** Initialize an internal node.
+ * @memberof bithenge_node_t
+ * @param[out] self The node.
+ * @param[in] ops The operations provided.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_init_internal_node(bithenge_node_t *self,
+    const bithenge_internal_node_ops_t *ops)
+{
+	self->type = BITHENGE_NODE_INTERNAL;
+	self->refs = 1;
+	self->internal_ops = ops;
+	return EOK;
+}
+
+static void internal_node_indestructible(bithenge_node_t *self)
+{
+	assert(false);
+}
+
+static int empty_internal_node_for_each(bithenge_node_t *base,
+    bithenge_for_each_func_t func, void *data)
+{
+	return EOK;
+}
+
+static int empty_internal_node_get(bithenge_node_t *self, bithenge_node_t *key,
+    bithenge_node_t **out)
+{
+	return ENOENT;
+}
+
+static const bithenge_internal_node_ops_t empty_internal_node_ops = {
+	.for_each = empty_internal_node_for_each,
+	.get = empty_internal_node_get,
+	.destroy = internal_node_indestructible,
+};
+
+static bithenge_node_t empty_internal_node = {
+	BITHENGE_NODE_INTERNAL,
+	1,
+	{ .internal_ops = &empty_internal_node_ops },
+};
+
+/** Create an empty internal node.
+ * @param[out] out Holds the created node.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_empty_internal_node(bithenge_node_t **out)
+{
+	bithenge_node_inc_ref(&empty_internal_node);
+	*out = &empty_internal_node;
+	return EOK;
+}
+
 typedef struct
 {
 	bithenge_node_t base;
@@ -172,20 +225,6 @@ static bithenge_internal_node_ops_t simple_internal_node_ops = {
 	.for_each = simple_internal_node_for_each,
 	.destroy = simple_internal_node_destroy,
 };
-
-/** Initialize an internal node.
- * @memberof bithenge_node_t
- * @param[out] self The node.
- * @param[in] ops The operations provided.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_init_internal_node(bithenge_node_t *self,
-    const bithenge_internal_node_ops_t *ops)
-{
-	self->type = BITHENGE_NODE_INTERNAL;
-	self->refs = 1;
-	self->internal_ops = ops;
-	return EOK;
-}
 
 /** Create an internal node from a set of keys and values. This function takes
  * ownership of a reference to the key and value nodes, and optionally the

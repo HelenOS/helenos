@@ -57,8 +57,12 @@ typedef enum {
 	TOKEN_LEFT_ARROW,
 
 	/* Keywords */
+	TOKEN_ELSE,
+	TOKEN_FALSE,
+	TOKEN_IF,
 	TOKEN_STRUCT,
 	TOKEN_TRANSFORM,
+	TOKEN_TRUE,
 } token_type_t;
 
 /** Singly-linked list of named transforms. */
@@ -203,11 +207,23 @@ static void next_token(state_t *state)
 		    state->buffer_pos - state->old_buffer_pos);
 		if (!value) {
 			error_errno(state, ENOMEM);
+		} else if (!str_cmp(value, "else")) {
+			state->token = TOKEN_ELSE;
+			free(value);
+		} else if (!str_cmp(value, "false")) {
+			state->token = TOKEN_FALSE;
+			free(value);
+		} else if (!str_cmp(value, "if")) {
+			state->token = TOKEN_IF;
+			free(value);
 		} else if (!str_cmp(value, "struct")) {
 			state->token = TOKEN_STRUCT;
 			free(value);
 		} else if (!str_cmp(value, "transform")) {
 			state->token = TOKEN_TRANSFORM;
+			free(value);
+		} else if (!str_cmp(value, "true")) {
+			state->token = TOKEN_TRUE;
 			free(value);
 		} else {
 			state->token = TOKEN_IDENTIFIER;
@@ -328,7 +344,25 @@ static bithenge_transform_t *parse_transform(state_t *state);
 
 static bithenge_expression_t *parse_expression(state_t *state)
 {
-	if (state->token == TOKEN_INTEGER) {
+	if (state->token == TOKEN_TRUE || state->token == TOKEN_FALSE) {
+		bool val = state->token == TOKEN_TRUE;
+		next_token(state);
+		bithenge_node_t *node;
+		int rc = bithenge_new_boolean_node(&node, val);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+
+		bithenge_expression_t *expr;
+		rc = bithenge_const_expression(&expr, node);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+
+		return expr;
+	} else if (state->token == TOKEN_INTEGER) {
 		bithenge_int_t val = state->token_int;
 		next_token(state);
 		bithenge_node_t *node;
@@ -455,6 +489,35 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 	return result;
 }
 
+static bithenge_transform_t *parse_if(state_t *state)
+{
+	expect(state, TOKEN_IF);
+	expect(state, '(');
+	bithenge_expression_t *expr = parse_expression(state);
+	expect(state, ')');
+	expect(state, '{');
+	bithenge_transform_t *true_xform = parse_transform(state);
+	expect(state, '}');
+	expect(state, TOKEN_ELSE);
+	expect(state, '{');
+	bithenge_transform_t *false_xform = parse_transform(state);
+	expect(state, '}');
+	if (state->error != EOK) {
+		bithenge_expression_dec_ref(expr);
+		bithenge_transform_dec_ref(true_xform);
+		bithenge_transform_dec_ref(false_xform);
+		return NULL;
+	}
+	bithenge_transform_t *if_xform;
+	int rc = bithenge_if_transform(&if_xform, expr, true_xform,
+	    false_xform);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+	return if_xform;
+}
+
 static bithenge_transform_t *parse_struct(state_t *state)
 {
 	size_t num = 0;
@@ -506,6 +569,8 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
 	if (state->token == TOKEN_IDENTIFIER) {
 		return parse_invocation(state);
+	} else if (state->token == TOKEN_IF) {
+		return parse_if(state);
 	} else if (state->token == TOKEN_STRUCT) {
 		return parse_struct(state);
 	} else {

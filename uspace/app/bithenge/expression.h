@@ -99,6 +99,8 @@ int bithenge_member_expression(bithenge_expression_t **,
     bithenge_expression_t *, bithenge_node_t *);
 int bithenge_param_wrapper(bithenge_transform_t **, bithenge_transform_t *,
     bithenge_expression_t **);
+int bithenge_if_transform(bithenge_transform_t **, bithenge_expression_t *,
+    bithenge_transform_t *, bithenge_transform_t *);
 
 #endif
 

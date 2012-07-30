@@ -160,6 +160,7 @@ static inline const char *bithenge_string_node_value(bithenge_node_t *self)
 
 int bithenge_init_internal_node(bithenge_node_t *,
     const bithenge_internal_node_ops_t *);
+int bithenge_new_empty_internal_node(bithenge_node_t **);
 int bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **,
     bithenge_int_t, bool needs_free);
 int bithenge_new_boolean_node(bithenge_node_t **, bool);
