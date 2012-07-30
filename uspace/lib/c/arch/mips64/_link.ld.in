@@ -14,14 +14,15 @@ PHDRS {
 
 SECTIONS {
 #ifdef LOADER
+	. = 0x70004000 + SIZEOF_HEADERS;
+	
 	.interp : {
 		*(.interp);
-	} :interp
-	
-	. = 0x70004000 + SIZEOF_HEADERS;
+	} :interp :text
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
+	
 	.init : {
 		*(.init);
 	} :text
