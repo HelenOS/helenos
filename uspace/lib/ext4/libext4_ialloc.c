@@ -238,6 +238,25 @@ int ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 				ext4_block_group_set_used_dirs_count(bg, sb, used_dirs);
 			}
 
+			/* Decrease unused inodes count */
+			if (ext4_block_group_has_flag(bg,
+				EXT4_BLOCK_GROUP_ITABLE_ZEROED)) {
+
+				uint32_t unused =
+						ext4_block_group_get_itable_unused(bg, sb);
+
+				uint32_t inodes_in_group =
+						ext4_superblock_get_inodes_in_group(sb, bgid);
+
+				uint32_t free = inodes_in_group - unused;
+
+				if (index_in_group >= free) {
+					unused = inodes_in_group - (index_in_group + 1);
+
+					ext4_block_group_set_itable_unused(bg, sb, unused);
+				}
+			}
+
 			/* Save modified block group */
 			bg_ref->dirty = true;
 
