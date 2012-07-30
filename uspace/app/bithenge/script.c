@@ -341,6 +341,7 @@ static void add_named_transform(state_t *state, bithenge_transform_t *xform, cha
 }
 
 static bithenge_transform_t *parse_transform(state_t *state);
+static bithenge_transform_t *parse_struct(state_t *state);
 
 static bithenge_expression_t *parse_expression(state_t *state)
 {
@@ -489,20 +490,48 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 	return result;
 }
 
-static bithenge_transform_t *parse_if(state_t *state)
+static bithenge_transform_t *parse_if(state_t *state, bool in_struct)
 {
 	expect(state, TOKEN_IF);
 	expect(state, '(');
 	bithenge_expression_t *expr = parse_expression(state);
 	expect(state, ')');
 	expect(state, '{');
-	bithenge_transform_t *true_xform = parse_transform(state);
+	bithenge_transform_t *true_xform =
+	    in_struct ? parse_struct(state) : parse_transform(state);
 	expect(state, '}');
-	expect(state, TOKEN_ELSE);
-	expect(state, '{');
-	bithenge_transform_t *false_xform = parse_transform(state);
-	expect(state, '}');
+	bithenge_transform_t *false_xform = NULL;
+	if (state->token == TOKEN_ELSE) {
+		next_token(state);
+		expect(state, '{');
+		false_xform =
+		    in_struct ? parse_struct(state) : parse_transform(state);
+		expect(state, '}');
+	} else {
+		if (in_struct) {
+			bithenge_node_t *node;
+			int rc = bithenge_new_empty_internal_node(&node);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				goto error;
+			}
+			bithenge_expression_t *expr;
+			rc = bithenge_const_expression(&expr, node);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				goto error;
+			}
+			rc = bithenge_expression_transform(&false_xform, expr);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				false_xform = NULL;
+				goto error;
+			}
+		} else
+			syntax_error(state, "else expected");
+	}
 	if (state->error != EOK) {
+error:
 		bithenge_expression_dec_ref(expr);
 		bithenge_transform_dec_ref(true_xform);
 		bithenge_transform_dec_ref(false_xform);
@@ -518,30 +547,32 @@ static bithenge_transform_t *parse_if(state_t *state)
 	return if_xform;
 }
 
+/* The TOKEN_STRUCT and '{' must already have been skipped. */
 static bithenge_transform_t *parse_struct(state_t *state)
 {
 	size_t num = 0;
 	bithenge_named_transform_t *subxforms;
 	/* We keep an extra space for the {NULL, NULL} terminator. */
 	subxforms = state_malloc(state, sizeof(*subxforms));
-	expect(state, TOKEN_STRUCT);
-	expect(state, '{');
 	while (state->error == EOK && state->token != '}') {
-		if (state->token == '.') {
-			expect(state, '.');
-			subxforms[num].name = expect_identifier(state);
-			expect(state, TOKEN_LEFT_ARROW);
-		} else {
+		if (state->token == TOKEN_IF) {
+			subxforms[num].transform = parse_if(state, true);
 			subxforms[num].name = NULL;
+		} else {
+			if (state->token == '.') {
+				next_token(state);
+				subxforms[num].name = expect_identifier(state);
+			} else {
+				subxforms[num].name = NULL;
+			}
 			expect(state, TOKEN_LEFT_ARROW);
+			subxforms[num].transform = parse_transform(state);
+			expect(state, ';');
 		}
-		subxforms[num].transform = parse_transform(state);
-		expect(state, ';');
 		num++;
 		subxforms = state_realloc(state, subxforms,
 		    (num + 1)*sizeof(*subxforms));
 	}
-	expect(state, '}');
 
 	if (state->error != EOK) {
 		while (num--) {
@@ -570,9 +601,13 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 	if (state->token == TOKEN_IDENTIFIER) {
 		return parse_invocation(state);
 	} else if (state->token == TOKEN_IF) {
-		return parse_if(state);
+		return parse_if(state, false);
 	} else if (state->token == TOKEN_STRUCT) {
-		return parse_struct(state);
+		next_token(state);
+		expect(state, '{');
+		bithenge_transform_t *xform = parse_struct(state);
+		expect(state, '}');
+		return xform;
 	} else {
 		syntax_error(state, "unexpected (transform expected)");
 		return NULL;

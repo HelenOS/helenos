@@ -419,6 +419,88 @@ error:
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_expression_t *expr;
+} expression_transform_t;
+
+static inline bithenge_transform_t *expression_as_transform(
+    expression_transform_t *self)
+{
+	return &self->base;
+}
+
+static inline expression_transform_t *transform_as_expression(
+    bithenge_transform_t *base)
+{
+	return (expression_transform_t *)base;
+}
+
+static int expression_transform_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	expression_transform_t *self = transform_as_expression(base);
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	aoff64_t len;
+	int rc = bithenge_blob_size(bithenge_node_as_blob(in), &len);
+	if (rc != EOK)
+		return rc;
+	if (len != 0)
+		return EINVAL;
+	return bithenge_expression_evaluate(self->expr, scope, out);
+}
+
+static int expression_transform_prefix_length(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
+{
+	*out = 0;
+	return EOK;
+}
+
+static void expression_transform_destroy(bithenge_transform_t *base)
+{
+	expression_transform_t *self = transform_as_expression(base);
+	bithenge_expression_dec_ref(self->expr);
+	free(self);
+}
+
+static const bithenge_transform_ops_t expression_transform_ops = {
+	.apply = expression_transform_apply,
+	.prefix_length = expression_transform_prefix_length,
+	.destroy = expression_transform_destroy,
+};
+
+/** Create a transform that takes an empty blob and produces the result of an
+ * expression. Takes a reference to the expression.
+ * @param[out] out Holds the new transform.
+ * @param expr The expression to evaluate.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_expression_transform(bithenge_transform_t ** out,
+    bithenge_expression_t *expr)
+{
+	int rc;
+	expression_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_transform(expression_as_transform(self),
+	    &expression_transform_ops, 0);
+	if (rc != EOK)
+		goto error;
+
+	self->expr = expr;
+	*out = expression_as_transform(self);
+	return EOK;
+
+error:
+	free(self);
+	bithenge_expression_dec_ref(expr);
+	return rc;
+}
+
+typedef struct {
+	bithenge_transform_t base;
+	bithenge_expression_t *expr;
 	bithenge_transform_t *true_xform, *false_xform;
 } if_transform_t;
 
