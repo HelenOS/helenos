@@ -468,10 +468,6 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 		ext4_block_group_clear_flag(newref->block_group,
 				EXT4_BLOCK_GROUP_INODE_UNINIT);
 
-//		ext4_block_group_set_itable_unused(newref->block_group,
-//				newref->fs->superblock, 0);
-
-
 		if (! ext4_block_group_has_flag(newref->block_group,
 				EXT4_BLOCK_GROUP_ITABLE_ZEROED)) {
 
