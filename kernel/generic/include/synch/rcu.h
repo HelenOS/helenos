@@ -123,6 +123,36 @@ extern void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func);
 extern void _rcu_synchronize(bool expedite);
 
 
+#ifdef RCU_PREEMPT_A
+
+#define RCU_CNT_INC       (1 << 1)
+#define RCU_WAS_PREEMPTED (1 << 0)
+
+/* Fwd. decl. because of inlining. */
+void _rcu_preempted_unlock(void);
+
+/** Delimits the start of an RCU reader critical section. 
+ * 
+ * Reader sections may be nested and are preemptable. You must not
+ * however block/sleep within reader sections.
+ */
+static inline void rcu_read_lock(void)
+{
+	THE->rcu_nesting += RCU_CNT_INC;
+}
+
+/** Delimits the end of an RCU reader critical section. */
+static inline void rcu_read_unlock(void)
+{
+	THE->rcu_nesting -= RCU_CNT_INC;
+	
+	if (RCU_WAS_PREEMPTED == THE->rcu_nesting) {
+		_rcu_preempted_unlock();
+	}
+}
+
+#elif defined(RCU_PREEMPT_PODZIMEK)
+
 /* Fwd decl. required by the inlined implementation. Not part of public API. */
 extern rcu_gp_t _rcu_cur_gp;
 extern void _rcu_signal_read_unlock(void);
@@ -209,7 +239,7 @@ static inline void rcu_read_unlock(void)
 	
 	preemption_enable();
 }
-
+#endif
 
 #endif
 

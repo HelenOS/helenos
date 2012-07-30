@@ -38,6 +38,11 @@
 #include <adt/list.h>
 #include <synch/semaphore.h>
 
+#if !defined(RCU_PREEMPT_PODZIMEK) && !defined(RCU_PREEMPT_A)
+#define RCU_PREEMPT_A
+//#error You must select an RCU algorithm.
+#endif
+
 
 /* Fwd decl. */
 struct thread;
@@ -57,9 +62,21 @@ typedef struct rcu_item {
 
 /** RCU related per-cpu data. */
 typedef struct rcu_cpu_data {
-	/** The cpu recorded a quiescent state last time during this grace period */
+	/** The cpu recorded a quiescent state last time during this grace period.*/
 	rcu_gp_t last_seen_gp;
+
+#ifdef RCU_PREEMPT_PODZIMEK
+	/** This cpu has not yet passed a quiescent state and it is delaying the
+	 * detector. Once it reaches a QS it must sema_up(rcu.remaining_readers).
+	 */
+	bool is_delaying_gp;
 	
+	/** True if we should signal the detector that we exited a reader section.
+	 * 
+	 * Equal to (THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp).
+	 */
+	bool signal_unlock;
+
 	/** The number of times an RCU reader section is nested on this cpu. 
 	 * 
 	 * If positive, it is definitely executing reader code. If zero, 
@@ -67,7 +84,8 @@ typedef struct rcu_cpu_data {
 	 * cpu instruction reordering.
 	 */
 	size_t nesting_cnt;
-
+#endif
+	
 	/** Callbacks to invoke once the current grace period ends, ie cur_cbs_gp.
 	 * Accessed by the local reclaimer only.
 	 */
@@ -101,17 +119,6 @@ typedef struct rcu_cpu_data {
 	 */
 	rcu_gp_t next_cbs_gp;
 	
-	/** This cpu has not yet passed a quiescent state and it is delaying the
-	 * detector. Once it reaches a QS it must sema_up(rcu.remaining_readers).
-	 */
-	bool is_delaying_gp;
-	
-	/** True if we should signal the detector that we exited a reader section.
-	 * 
-	 * Equal to (THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp).
-	 */
-	bool signal_unlock;
-	
 	/** Positive if there are callbacks pending in arriving_cbs. */
 	semaphore_t arrived_flag;
 	
@@ -141,6 +148,8 @@ typedef struct rcu_thread_data {
 	 * is not running.
 	 */
 	size_t nesting_cnt;
+
+#ifdef RCU_PREEMPT_PODZIMEK
 	
 	/** True if the thread was preempted in a reader section. 
 	 *
@@ -150,6 +159,8 @@ typedef struct rcu_thread_data {
 	 * Access with interrupts disabled.
 	 */
 	bool was_preempted;
+#endif
+	
 	/** Preempted threads link. Access with rcu.prempt_lock.*/
 	link_t preempt_link;
 } rcu_thread_data_t;

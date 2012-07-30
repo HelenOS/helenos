@@ -59,6 +59,9 @@ void the_initialize(the_t *the)
 	the->task = NULL;
 	the->as = NULL;
 	the->magic = MAGIC;
+#ifdef RCU_PREEMPT_A	
+	the->rcu_nesting = 0;
+#endif
 }
 
 /** Copy THE structure
