@@ -4,11 +4,18 @@
 # the program loader.
 #
 
-#ifdef UARCH_arm32
-#define AT_NOTE	%note
-#else
-#define AT_NOTE	@note
+#if ((defined(UARCH_abs32le)) && (defined(COMPILER_gcc_cross)) \
+    && (defined(CROSS_TARGET_arm32)))
+	#define ATSIGN(arg)  % ## arg
 #endif
 
-.section .interp, "a", AT_NOTE
+#ifdef UARCH_arm32
+	#define ATSIGN(arg)  % ## arg
+#endif
+
+#ifndef ATSIGN
+	#define ATSIGN(arg)  @ ## arg
+#endif
+
+.section .interp, "a", ATSIGN(progbits)
 	.string "kernel"

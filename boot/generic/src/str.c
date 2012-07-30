@@ -353,8 +353,12 @@ bool chr_check(wchar_t ch)
 /** Compare two NULL terminated strings.
  *
  * Do a char-by-char comparison of two NULL-terminated strings.
- * The strings are considered equal iff they consist of the same
- * characters on the minimum of their lengths.
+ * The strings are considered equal iff their length is equal
+ * and both strings consist of the same sequence of characters.
+ *
+ * A string is smaller than another string iff it is shorter or
+ * has a character with lower value at the first position where
+ * the strings differ.
  *
  * @param s1 First string to compare.
  * @param s2 Second string to compare.

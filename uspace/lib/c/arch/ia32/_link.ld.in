@@ -18,16 +18,18 @@ PHDRS {
 }
 
 SECTIONS {
-#if defined(LOADER) || defined(DLEXE)
-	.interp : {
-		*(.interp);
-	} :interp
-#endif
 #ifdef LOADER
 	. = 0x70001000 + SIZEOF_HEADERS;
 #else
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
+	
+#if defined(LOADER) || defined(DLEXE)
+	.interp : {
+		*(.interp);
+	} :interp :text
+#endif
+	
 	.init : {
 		*(.init);
 	} :text
