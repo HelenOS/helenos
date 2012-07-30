@@ -107,6 +107,7 @@ def revision_sequence(branch, revision_old_id, revision_new_id):
 	for revision_ac_id in branch.repository.iter_reverse_revision_history(revision_new_id):
 		if (revision_ac_id == revision_old_id):
 			break
+		
 		yield revision_ac_id
 
 def send_email(branch, revision_old_id, revision_new_id, config):
@@ -116,10 +117,11 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 		branch.lock_read()
 		branch.repository.lock_read()
 		try:
-			body = StringIO()
+			revision_prev_id = revision_old_id
 			
-			commit_message_new = None
-			for revision_ac_id in revision_sequence(branch, revision_old_id, revision_new_id):
+			for revision_ac_id in reversed(list(revision_sequence(branch, revision_old_id, revision_new_id))):
+				body = StringIO()
+				
 				revision_ac = branch.repository.get_revision(revision_ac_id)
 				revision_ac_no = branch.revision_id_to_revno(revision_ac_id)
 				
@@ -139,7 +141,7 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				
 				body.write("\n")
 				
-				commit_message = ""
+				commit_message = None
 				body.write("Log:\n")
 				if (not revision_ac.message):
 					body.write("(empty)\n")
@@ -147,67 +149,62 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 					log = revision_ac.message.rstrip("\n\r")
 					for line in log.split("\n"):
 						body.write("%s\n" % line)
-						if (commit_message == ""):
+						if (commit_message == None):
 							commit_message = line
 				
-				if (commit_message == ""):
+				if (commit_message == None):
 					commit_message = "(empty)"
 				
-				if commit_message_new == None:
-					commit_message_new = commit_message
+				body.write("\n")
+				
+				tree_prev = branch.repository.revision_tree(revision_prev_id)
+				tree_ac = branch.repository.revision_tree(revision_ac_id)
+				
+				delta = tree_ac.changes_from(tree_prev)
+				
+				if (len(delta.added) > 0):
+					body.write("Added:\n")
+					for item in delta.added:
+						body.write("    %s\n" % item[0])
+				
+				if (len(delta.removed) > 0):
+					body.write("Removed:\n")
+					for item in delta.removed:
+						body.write("    %s\n" % item[0])
+				
+				if (len(delta.renamed) > 0):
+					body.write("Renamed:\n")
+					for item in delta.renamed:
+						body.write("    %s -> %s\n" % (item[0], item[1]))
+				
+				if (len(delta.kind_changed) > 0):
+					body.write("Changed:\n")
+					for item in delta.kind_changed:
+						body.write("    %s\n" % item[0])
+				
+				if (len(delta.modified) > 0):
+					body.write("Modified:\n")
+					for item in delta.modified:
+						body.write("    %s\n" % item[0])
 				
 				body.write("\n")
-			
-			if commit_message_new == None:
-				commit_message_new = "(none)"
-			
-			tree_old = branch.repository.revision_tree(revision_old_id)
-			tree_new = branch.repository.revision_tree(revision_new_id)
-			
-			revision_new_no = branch.revision_id_to_revno(revision_new_id)
-			delta = tree_new.changes_from(tree_old)
-			
-			if (len(delta.added) > 0):
-				body.write("Added:\n")
-				for item in delta.added:
-					body.write("    %s\n" % item[0])
-			
-			if (len(delta.removed) > 0):
-				body.write("Removed:\n")
-				for item in delta.removed:
-					body.write("    %s\n" % item[0])
-			
-			if (len(delta.renamed) > 0):
-				body.write("Renamed:\n")
-				for item in delta.renamed:
-					body.write("    %s -> %s\n" % (item[0], item[1]))
-			
-			if (len(delta.kind_changed) > 0):
-				body.write("Changed:\n")
-				for item in delta.kind_changed:
-					body.write("    %s\n" % item[0])
-			
-			if (len(delta.modified) > 0):
-				body.write("Modified:\n")
-				for item in delta.modified:
-					body.write("    %s\n" % item[0])
-			
-			body.write("\n")
-			
-			tree_old.lock_read()
-			try:
-				tree_new.lock_read()
+				
+				tree_prev.lock_read()
 				try:
-					diff = DiffTree.from_trees_options(tree_old, tree_new, body, "utf8", None, "", "", None)
-					diff.show_diff(None, None)
+					tree_ac.lock_read()
+					try:
+						diff = DiffTree.from_trees_options(tree_prev, tree_ac, body, "utf8", None, "", "", None)
+						diff.show_diff(None, None)
+					finally:
+						tree_ac.unlock()
 				finally:
-					tree_new.unlock()
-			finally:
-				tree_old.unlock()
+					tree_prev.unlock()
+				
+				subject = "r%d - %s" % (revision_ac_no, commit_message)
+				send_smtp("localhost", config_sender(config), config_to(config), subject, body.getvalue())
+				
+				revision_prev_id = revision_ac_id
 			
-			subject = "r%d - %s" % (revision_new_no, commit_message_new)
-			
-			send_smtp("localhost", config_sender(config), config_to(config), subject, body.getvalue())
 		finally:
 			branch.repository.unlock()
 			branch.unlock()
