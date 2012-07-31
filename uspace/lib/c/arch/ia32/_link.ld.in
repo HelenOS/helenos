@@ -30,6 +30,9 @@ SECTIONS {
 	} :interp :text
 #endif
 	
+	/* Make sure the code is aligned reasonably */
+	. = ALIGN(., 16);
+	
 	.init : {
 		*(.init);
 	} :text
@@ -38,7 +41,7 @@ SECTIONS {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-
+	
 #if defined(SHLIB) || defined(DLEXE)
 	.rel.plt : {
 		*(.rel.plt);
@@ -81,14 +84,15 @@ SECTIONS {
 	
 #if defined(SHLIB) || defined(DLEXE)
 	.data.rel : {
-                *(.data.rel .data.rel.*);
+		*(.data.rel .data.rel.*);
 	} :data
-
+	
 	.got : {
-                *(.got);
+		*(.got);
 	} :data
+	
 	.got.plt : {
-                *(.got.plt);
+		*(.got.plt);
 	} :data
 #endif
 	
