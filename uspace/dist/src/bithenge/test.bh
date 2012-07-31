@@ -7,11 +7,30 @@ transform pascal_string = struct {
 	.string <- ascii <- known_length(.len);
 };
 
-transform item(first_len, second_len) = struct {
-	.id <- uint32le <- known_length(4); # the known_length is unnecessary
+transform u32(little_endian) =
+	if (little_endian) {
+		uint32le
+	} else {
+		uint32be
+	};
+
+transform item(little_endian, len) = struct {
+	.type <- u32(little_endian);
 	.name <- pascal_string;
-	.first <- known_length(first_len);
-	.second <- known_length(second_len);
+	switch (.type) {
+		3: {
+			.val <- u32(little_endian);
+		};
+		14: {
+			.text <- ascii <- known_length(len);
+		};
+		else: {
+			.unknown <- known_length(len);
+		};
+	}
 };
 
-transform main() = item(3, 0);
+transform main() = struct {
+	.first_item <- item(true, 3);
+	.second_item <- item(false, 4);
+};

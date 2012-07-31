@@ -90,8 +90,14 @@ static inline int bithenge_expression_evaluate(bithenge_expression_t *self,
 	return self->ops->evaluate(self, scope, out);
 }
 
+typedef enum {
+	BITHENGE_EXPRESSION_EQUALS,
+} bithenge_binary_op_t;
+
 int bithenge_init_expression(bithenge_expression_t *,
     const bithenge_expression_ops_t *);
+int bithenge_binary_expression(bithenge_expression_t **, bithenge_binary_op_t,
+    bithenge_expression_t *, bithenge_expression_t *);
 int bithenge_current_node_expression(bithenge_expression_t **);
 int bithenge_param_expression(bithenge_expression_t **, int);
 int bithenge_const_expression(bithenge_expression_t **, bithenge_node_t *);

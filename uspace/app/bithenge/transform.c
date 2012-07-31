@@ -184,6 +184,22 @@ bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1, 0
 };
 
+static int invalid_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_node_t *in, bithenge_node_t **out)
+{
+	return EINVAL;
+}
+
+static const bithenge_transform_ops_t invalid_ops = {
+	.apply = invalid_apply,
+	.destroy = transform_indestructible,
+};
+
+/** A transform that always raises an error. */
+bithenge_transform_t bithenge_invalid_transform = {
+	&invalid_ops, 1, 0
+};
+
 static int known_length_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {

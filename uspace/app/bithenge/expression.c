@@ -62,6 +62,95 @@ static void expression_indestructible(bithenge_expression_t *self)
 	assert(false);
 }
 
+typedef struct {
+	bithenge_expression_t base;
+	bithenge_binary_op_t op;
+	bithenge_expression_t *a, *b;
+} binary_expression_t;
+
+static inline binary_expression_t *expression_as_binary(
+    bithenge_expression_t *base)
+{
+	return (binary_expression_t *)base;
+}
+
+static inline bithenge_expression_t *binary_as_expression(
+    binary_expression_t *self)
+{
+	return &self->base;
+}
+
+static int binary_expression_evaluate(bithenge_expression_t *base,
+    bithenge_scope_t *scope, bithenge_node_t **out)
+{
+	binary_expression_t *self = expression_as_binary(base);
+	bithenge_node_t *a, *b;
+	int rc = bithenge_expression_evaluate(self->a, scope, &a);
+	if (rc != EOK)
+		return rc;
+	rc = bithenge_expression_evaluate(self->b, scope, &b);
+	if (rc != EOK) {
+		bithenge_node_dec_ref(a);
+		return rc;
+	}
+	switch (self->op) {
+	case BITHENGE_EXPRESSION_EQUALS:
+		rc = bithenge_new_boolean_node(out, bithenge_node_equal(a, b));
+		break;
+	}
+	bithenge_node_dec_ref(a);
+	bithenge_node_dec_ref(b);
+	return rc;
+}
+
+static void binary_expression_destroy(bithenge_expression_t *base)
+{
+	binary_expression_t *self = expression_as_binary(base);
+	bithenge_expression_dec_ref(self->a);
+	bithenge_expression_dec_ref(self->b);
+	free(self);
+}
+
+static const bithenge_expression_ops_t binary_expression_ops = {
+	.evaluate = binary_expression_evaluate,
+	.destroy = binary_expression_destroy,
+};
+
+/** Create a binary expression. Takes ownership of @a a and @a b.
+ * @param[out] out Holds the new expression.
+ * @param op The operator to apply.
+ * @param a The first operand.
+ * @param b The second operand.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_binary_expression(bithenge_expression_t **out,
+    bithenge_binary_op_t op, bithenge_expression_t *a,
+    bithenge_expression_t *b)
+{
+	int rc;
+	binary_expression_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_expression(binary_as_expression(self),
+	    &binary_expression_ops);
+	if (rc != EOK)
+		goto error;
+
+	self->op = op;
+	self->a = a;
+	self->b = b;
+	*out = binary_as_expression(self);
+	return EOK;
+
+error:
+	bithenge_expression_dec_ref(a);
+	bithenge_expression_dec_ref(b);
+	free(self);
+	return rc;
+}
+
 static int current_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {

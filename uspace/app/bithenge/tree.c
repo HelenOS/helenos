@@ -324,7 +324,7 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
 }
 
 /** Check whether the contents of two nodes are equal. Does not yet work for
- * internal nodes.
+ * internal nodes. Takes ownership of nothing.
  * @memberof bithenge_node_t
  * @param a, b Nodes to compare.
  * @return Whether the nodes are equal. If an error occurs, returns false.
