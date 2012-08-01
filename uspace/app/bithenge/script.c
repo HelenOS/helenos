@@ -494,6 +494,35 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 	return result;
 }
 
+/** Create a transform that just produces an empty node.
+ * @param state The parser state.
+ * @return The new transform, or NULL on error. */
+static bithenge_transform_t *make_empty_transform(state_t *state)
+{
+	bithenge_node_t *node;
+	int rc = bithenge_new_empty_internal_node(&node);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+
+	bithenge_expression_t *expr;
+	rc = bithenge_const_expression(&expr, node);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+
+	bithenge_transform_t *xform;
+	rc = bithenge_expression_transform(&xform, expr);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+
+	return xform;
+}
+
 static bithenge_transform_t *parse_if(state_t *state, bool in_struct)
 {
 	expect(state, TOKEN_IF);
@@ -504,6 +533,7 @@ static bithenge_transform_t *parse_if(state_t *state, bool in_struct)
 	bithenge_transform_t *true_xform =
 	    in_struct ? parse_struct(state) : parse_transform(state);
 	expect(state, '}');
+
 	bithenge_transform_t *false_xform = NULL;
 	if (state->token == TOKEN_ELSE) {
 		next_token(state);
@@ -512,35 +542,19 @@ static bithenge_transform_t *parse_if(state_t *state, bool in_struct)
 		    in_struct ? parse_struct(state) : parse_transform(state);
 		expect(state, '}');
 	} else {
-		if (in_struct) {
-			bithenge_node_t *node;
-			int rc = bithenge_new_empty_internal_node(&node);
-			if (rc != EOK) {
-				error_errno(state, rc);
-				goto error;
-			}
-			bithenge_expression_t *expr;
-			rc = bithenge_const_expression(&expr, node);
-			if (rc != EOK) {
-				error_errno(state, rc);
-				goto error;
-			}
-			rc = bithenge_expression_transform(&false_xform, expr);
-			if (rc != EOK) {
-				error_errno(state, rc);
-				false_xform = NULL;
-				goto error;
-			}
-		} else
+		if (in_struct)
+			false_xform = make_empty_transform(state);
+		else
 			syntax_error(state, "else expected");
 	}
+
 	if (state->error != EOK) {
-error:
 		bithenge_expression_dec_ref(expr);
 		bithenge_transform_dec_ref(true_xform);
 		bithenge_transform_dec_ref(false_xform);
 		return NULL;
 	}
+
 	bithenge_transform_t *if_xform;
 	int rc = bithenge_if_transform(&if_xform, expr, true_xform,
 	    false_xform);
