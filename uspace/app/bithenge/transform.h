@@ -56,7 +56,9 @@ typedef struct {
 	bithenge_node_t *current_node;
 } bithenge_scope_t;
 
-/** Operations that may be provided by a transform. */
+/** Operations that may be provided by a transform. All transforms must provide
+ * apply and/or prefix_apply. To be used in struct transforms and repeat
+ * transforms, transforms must provide prefix_length and/or prefix_apply. */
 typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
 	int (*apply)(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -64,6 +66,10 @@ typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_length */
 	int (*prefix_length)(bithenge_transform_t *self,
 	    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out);
+	/** @copydoc bithenge_transform_t::bithenge_transform_prefix_apply */
+	int (*prefix_apply)(bithenge_transform_t *self,
+	    bithenge_scope_t *scope, bithenge_blob_t *blob,
+	    bithenge_node_t **out_node, aoff64_t *out_size);
 	/** Destroy the transform.
 	 * @param self The transform. */
 	void (*destroy)(bithenge_transform_t *self);
@@ -192,42 +198,6 @@ static inline int bithenge_transform_num_params(bithenge_transform_t *self)
 	return self->num_params;
 }
 
-/** Apply a transform. Takes ownership of nothing.
- * @memberof bithenge_transform_t
- * @param self The transform.
- * @param scope The scope.
- * @param in The input tree.
- * @param[out] out Where the output tree will be stored.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_transform_apply(bithenge_transform_t *self,
-    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
-{
-	assert(self);
-	assert(self->ops);
-	return self->ops->apply(self, scope, in, out);
-}
-
-/** Find the length of the prefix of a blob this transform can use as input. In
- * other words, figure out how many bytes this transform will use up.  This
- * method is optional and can return an error, but it must succeed for struct
- * subtransforms. Takes ownership of nothing.
- * @memberof bithenge_transform_t
- * @param self The transform.
- * @param scope The scope.
- * @param blob The blob.
- * @param[out] out Where the prefix length will be stored.
- * @return EOK on success, ENOTSUP if not supported, or another error code from
- * errno.h. */
-static inline int bithenge_transform_prefix_length(bithenge_transform_t *self,
-    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
-{
-	assert(self);
-	assert(self->ops);
-	if (!self->ops->prefix_length)
-		return ENOTSUP;
-	return self->ops->prefix_length(self, scope, blob, out);
-}
-
 /** Increment a transform's reference count.
  * @param self The transform to reference. */
 static inline void bithenge_transform_inc_ref(bithenge_transform_t *self)
@@ -268,6 +238,12 @@ extern bithenge_named_transform_t *bithenge_primitive_transforms;
 
 int bithenge_init_transform(bithenge_transform_t *,
     const bithenge_transform_ops_t *, int);
+int bithenge_transform_apply(bithenge_transform_t *, bithenge_scope_t *,
+    bithenge_node_t *, bithenge_node_t **);
+int bithenge_transform_prefix_length(bithenge_transform_t *,
+    bithenge_scope_t *, bithenge_blob_t *, aoff64_t *);
+int bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
+    bithenge_blob_t *, bithenge_node_t **, aoff64_t *);
 int bithenge_new_param_transform(bithenge_transform_t **,
     bithenge_transform_t *, int);
 int bithenge_new_struct(bithenge_transform_t **,

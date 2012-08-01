@@ -53,7 +53,7 @@ int bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops, int num_params)
 {
 	assert(ops);
-	assert(ops->apply);
+	assert(ops->apply || ops->prefix_apply);
 	assert(ops->destroy);
 	self->ops = ops;
 	self->refs = 1;
@@ -64,6 +64,104 @@ int bithenge_init_transform(bithenge_transform_t *self,
 static void transform_indestructible(bithenge_transform_t *self)
 {
 	assert(false);
+}
+
+/** Apply a transform. Takes ownership of nothing.
+ * @memberof bithenge_transform_t
+ * @param self The transform.
+ * @param scope The scope.
+ * @param in The input tree.
+ * @param[out] out Where the output tree will be stored.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_transform_apply(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	assert(self);
+	assert(self->ops);
+	if (self->ops->apply)
+		return self->ops->apply(self, scope, in, out);
+
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	aoff64_t self_size, whole_size;
+	int rc = bithenge_transform_prefix_apply(self, scope,
+	    bithenge_node_as_blob(in), out, &self_size);
+	if (rc != EOK)
+		return rc;
+	rc = bithenge_blob_size(bithenge_node_as_blob(in), &whole_size);
+	if (rc == EOK && whole_size != self_size)
+		rc = EINVAL;
+	if (rc != EOK) {
+		bithenge_node_dec_ref(*out);
+		return rc;
+	}
+	return EOK;
+}
+
+/** Find the length of the prefix of a blob this transform can use as input. In
+ * other words, figure out how many bytes this transform will use up.  This
+ * method is optional and can return an error, but it must succeed for struct
+ * subtransforms. Takes ownership of nothing.
+ * @memberof bithenge_transform_t
+ * @param self The transform.
+ * @param scope The scope.
+ * @param blob The blob.
+ * @param[out] out Where the prefix length will be stored.
+ * @return EOK on success, ENOTSUP if not supported, or another error code from
+ * errno.h. */
+int bithenge_transform_prefix_length(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
+{
+	assert(self);
+	assert(self->ops);
+	if (self->ops->prefix_length)
+		return self->ops->prefix_length(self, scope, blob, out);
+	if (!self->ops->prefix_apply)
+		return ENOTSUP;
+
+	bithenge_node_t *node;
+	int rc = bithenge_transform_prefix_apply(self, scope, blob, &node,
+	    out);
+	if (rc != EOK)
+		return rc;
+	bithenge_node_dec_ref(node);
+	return EOK;
+}
+
+/** Apply this transform to a prefix of a blob. In other words, feed as much of
+ * the blob into this transform as possible. Takes ownership of nothing.
+ * @memberof bithenge_transform_t
+ * @param self The transform.
+ * @param scope The scope.
+ * @param blob The blob.
+ * @param[out] out_node Holds the result of applying this transform to the
+ * prefix.
+ * @param[out] out_size Holds the size of the prefix.
+ * @return EOK on success, ENOTSUP if not supported, or another error code from
+ * errno.h. */
+int bithenge_transform_prefix_apply(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	assert(self);
+	assert(self->ops);
+	if (self->ops->prefix_apply)
+		return self->ops->prefix_apply(self, scope, blob, out_node,
+		    out_size);
+	if (!self->ops->prefix_length)
+		return ENOTSUP;
+
+	int rc = bithenge_transform_prefix_length(self, scope, blob, out_size);
+	if (rc != EOK)
+		return rc;
+	bithenge_node_t *prefix_blob;
+	bithenge_blob_inc_ref(blob);
+	rc = bithenge_new_subblob(&prefix_blob, blob, 0, *out_size);
+	if (rc != EOK)
+		return rc;
+	rc = bithenge_transform_apply(self, scope, prefix_blob, out_node);
+	bithenge_node_dec_ref(prefix_blob);
+	return rc;
 }
 
 typedef struct {
@@ -470,27 +568,51 @@ static int struct_node_field_offset(struct_node_t *self, aoff64_t *out,
 static int struct_node_subtransform(struct_node_t *self, bithenge_node_t **out,
     size_t index)
 {
-	aoff64_t start_pos, end_pos;
+	aoff64_t start_pos;
 	int rc = struct_node_field_offset(self, &start_pos, index);
 	if (rc != EOK)
 		return rc;
-	rc = struct_node_field_offset(self, &end_pos, index + 1);
-	if (rc != EOK)
-		return rc;
 
-	bithenge_node_t *blob_node;
-	bithenge_blob_inc_ref(self->blob);
-	rc = bithenge_new_subblob(&blob_node, self->blob, start_pos,
-	    end_pos - start_pos);
-	if (rc != EOK)
-		return rc;
+	if (index == self->num_ends) {
+		/* We can apply the subtransform and cache its prefix length at
+		 * the same time. */
+		bithenge_node_t *blob_node;
+		bithenge_blob_inc_ref(self->blob);
+		rc = bithenge_new_offset_blob(&blob_node, self->blob,
+		    start_pos);
+		if (rc != EOK)
+			return rc;
 
-	rc = bithenge_transform_apply(
-	    self->transform->subtransforms[index].transform, &self->scope,
-	    blob_node, out);
-	bithenge_node_dec_ref(blob_node);
-	if (rc != EOK)
-		return rc;
+		aoff64_t size;
+		rc = bithenge_transform_prefix_apply(
+		    self->transform->subtransforms[index].transform,
+		    &self->scope, bithenge_node_as_blob(blob_node), out,
+		    &size);
+		bithenge_node_dec_ref(blob_node);
+		if (rc != EOK)
+			return rc;
+
+		self->ends[self->num_ends++] = start_pos + size;
+	} else {
+		aoff64_t end_pos;
+		int rc = struct_node_field_offset(self, &end_pos, index + 1);
+		if (rc != EOK)
+			return rc;
+
+		bithenge_node_t *blob_node;
+		bithenge_blob_inc_ref(self->blob);
+		rc = bithenge_new_subblob(&blob_node, self->blob, start_pos,
+		    end_pos - start_pos);
+		if (rc != EOK)
+			return rc;
+
+		rc = bithenge_transform_apply(
+		    self->transform->subtransforms[index].transform,
+		    &self->scope, blob_node, out);
+		bithenge_node_dec_ref(blob_node);
+		if (rc != EOK)
+			return rc;
+	}
 
 	return EOK;
 }
@@ -691,6 +813,26 @@ static int struct_transform_prefix_length(bithenge_transform_t *base,
 	return rc;
 }
 
+static int struct_transform_prefix_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	struct_transform_t *self = transform_as_struct(base);
+	int rc = struct_transform_make_node(self, out_node, scope, blob,
+	    true);
+	if (rc != EOK)
+		return rc;
+
+	rc = struct_node_field_offset(node_as_struct(*out_node), out_size,
+	    self->num_subtransforms);
+	if (rc != EOK) {
+		bithenge_node_dec_ref(*out_node);
+		return rc;
+	}
+
+	return EOK;
+}
+
 static void free_subtransforms(bithenge_named_transform_t *subtransforms)
 {
 	for (size_t i = 0; subtransforms[i].transform; i++) {
@@ -710,6 +852,7 @@ static void struct_transform_destroy(bithenge_transform_t *base)
 static bithenge_transform_ops_t struct_transform_ops = {
 	.apply = struct_transform_apply,
 	.prefix_length = struct_transform_prefix_length,
+	.prefix_apply = struct_transform_prefix_apply,
 	.destroy = struct_transform_destroy,
 };
 
