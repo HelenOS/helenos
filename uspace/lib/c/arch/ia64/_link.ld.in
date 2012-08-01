@@ -13,20 +13,18 @@ PHDRS {
 
 SECTIONS {
 #ifdef LOADER
+	. = 0x800000000 + SIZEOF_HEADERS;
+	
 	.interp : {
 		*(.interp);
-	} :interp
-	
-	. = 0x800000000 + SIZEOF_HEADERS;
+	} :interp :text
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
-	/*
-	 * XXX This is just a work around. Problem: .init section does not
-	 * have the proper alignment.
-	 */
+	
+	/* Make sure the code is aligned reasonably */
 	. = ALIGN(., 16);
-
+	
 	.init : {
 		*(.init);
 	} :text
