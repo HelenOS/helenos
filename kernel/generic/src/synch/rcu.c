@@ -867,10 +867,10 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 				spinlock_unlock(&rcu.gp_lock);
 				return false;			
 			}
-			
-			upd_missed_gp_in_wait(rcu.completed_gp);
 		}
 	}
+	
+	upd_missed_gp_in_wait(rcu.completed_gp);
 	
 	*completed_gp = rcu.completed_gp;
 	spinlock_unlock(&rcu.gp_lock);
@@ -1125,7 +1125,8 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 	*completed_gp = rcu.completed_gp;
 	spinlock_unlock(&rcu.gp_lock);	
 	
-	upd_missed_gp_in_wait(*completed_gp);
+	if (!interrupted)
+		upd_missed_gp_in_wait(*completed_gp);
 	
 	return !interrupted;
 }
@@ -1143,8 +1144,6 @@ static bool cv_wait_for_gp(rcu_gp_t wait_on_gp)
 			SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		interrupted = (ret == ESYNCH_INTERRUPTED);
 	}
-	
-	ASSERT(wait_on_gp <= rcu.completed_gp);
 	
 	return interrupted;
 }
