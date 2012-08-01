@@ -284,19 +284,24 @@ int bithenge_const_expression(bithenge_expression_t **out,
 {
 	int rc;
 	const_expression_t *self = malloc(sizeof(*self));
-	if (!self)
-		return ENOMEM;
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	rc = bithenge_init_expression(const_as_expression(self),
 	    &const_expression_ops);
-	if (rc != EOK) {
-		free(self);
-		return rc;
-	}
+	if (rc != EOK)
+		goto error;
 
 	self->node = node;
 	*out = const_as_expression(self);
 	return EOK;
+
+error:
+	free(self);
+	bithenge_node_dec_ref(node);
+	return rc;
 }
 
 typedef struct {
