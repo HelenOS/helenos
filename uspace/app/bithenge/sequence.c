@@ -36,6 +36,7 @@
 
 #include <stdlib.h>
 #include "blob.h"
+#include "expression.h"
 #include "os.h"
 #include "sequence.h"
 #include "tree.h"
@@ -524,6 +525,241 @@ int bithenge_new_struct(bithenge_transform_t **out,
 error:
 	free_subtransforms(subtransforms);
 	free(self);
+	return rc;
+}
+
+
+
+typedef struct {
+	bithenge_transform_t base;
+	bithenge_expression_t *expr;
+	bithenge_transform_t *xform;
+} repeat_transform_t;
+
+static inline bithenge_transform_t *repeat_as_transform(
+    repeat_transform_t *self)
+{
+	return &self->base;
+}
+
+static inline repeat_transform_t *transform_as_repeat(
+    bithenge_transform_t *base)
+{
+	return (repeat_transform_t *)base;
+}
+
+typedef struct {
+	seq_node_t base;
+	bool prefix;
+	bithenge_int_t count;
+	bithenge_transform_t *xform;
+} repeat_node_t;
+
+static seq_node_t *repeat_as_seq(repeat_node_t *self)
+{
+	return &self->base;
+}
+
+static repeat_node_t *seq_as_repeat(seq_node_t *base)
+{
+	return (repeat_node_t *)base;
+}
+
+static bithenge_node_t *repeat_as_node(repeat_node_t *self)
+{
+	return seq_as_node(repeat_as_seq(self));
+}
+
+static repeat_node_t *node_as_repeat(bithenge_node_t *base)
+{
+	return seq_as_repeat(node_as_seq(base));
+}
+
+static int repeat_node_for_each(bithenge_node_t *base,
+    bithenge_for_each_func_t func, void *data)
+{
+	int rc = EOK;
+	repeat_node_t *self = node_as_repeat(base);
+
+	for (bithenge_int_t i = 0; i < self->count; i++) {
+		bithenge_node_t *subxform_result;
+		rc = seq_node_subtransform(repeat_as_seq(self),
+		    &subxform_result, i);
+		if (rc != EOK)
+			return rc;
+
+		bithenge_node_t *key_node;
+		rc = bithenge_new_integer_node(&key_node, i);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(subxform_result);
+			return rc;
+		}
+		rc = func(key_node, subxform_result, data);
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (!self->prefix) {
+		bool complete;
+		rc = seq_node_complete(repeat_as_seq(self), &complete);
+		if (rc != EOK)
+			return rc;
+		if (!complete)
+			return EINVAL;
+	}
+
+	return rc;
+}
+
+static int repeat_node_get(bithenge_node_t *base, bithenge_node_t *key,
+    bithenge_node_t **out)
+{
+	repeat_node_t *self = node_as_repeat(base);
+
+	if (bithenge_node_type(key) != BITHENGE_NODE_INTEGER) {
+		bithenge_node_dec_ref(key);
+		return ENOENT;
+	}
+
+	bithenge_int_t index = bithenge_integer_node_value(key);
+	bithenge_node_dec_ref(key);
+	if (index < 0 || index >= self->count)
+		return ENOENT;
+	return seq_node_subtransform(repeat_as_seq(self), out, index);
+}
+
+static void repeat_node_destroy(bithenge_node_t *base)
+{
+	repeat_node_t *self = node_as_repeat(base);
+	seq_node_destroy(repeat_as_seq(self));
+	bithenge_transform_dec_ref(self->xform);
+	free(self);
+}
+
+static const bithenge_internal_node_ops_t repeat_node_ops = {
+	.for_each = repeat_node_for_each,
+	.get = repeat_node_get,
+	.destroy = repeat_node_destroy,
+};
+
+static int repeat_node_get_transform(seq_node_t *base,
+    bithenge_transform_t **out, bithenge_int_t index)
+{
+	repeat_node_t *self = seq_as_repeat(base);
+	*out = self->xform;
+	bithenge_transform_inc_ref(*out);
+	return EOK;
+}
+
+static const seq_node_ops_t repeat_node_seq_ops = {
+	.get_transform = repeat_node_get_transform,
+};
+
+static int repeat_transform_make_node(repeat_transform_t *self,
+    bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
+    bool prefix)
+{
+	bithenge_int_t count;
+	bithenge_node_t *count_node;
+	int rc = bithenge_expression_evaluate(self->expr, scope, &count_node);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(count_node) != BITHENGE_NODE_INTEGER) {
+		bithenge_node_dec_ref(count_node);
+		return EINVAL;
+	}
+	count = bithenge_integer_node_value(count_node);
+	bithenge_node_dec_ref(count_node);
+	if (count < 0)
+		return EINVAL;
+
+	repeat_node_t *node = malloc(sizeof(*node));
+	if (!node)
+		return ENOMEM;
+
+	rc = bithenge_init_internal_node(repeat_as_node(node),
+	    &repeat_node_ops);
+	if (rc != EOK) {
+		free(node);
+		return rc;
+	}
+
+	rc = seq_node_init(repeat_as_seq(node), &repeat_node_seq_ops, scope,
+	    blob, count);
+	if (rc != EOK) {
+		free(node);
+		return rc;
+	}
+
+	bithenge_transform_inc_ref(self->xform);
+	node->xform = self->xform;
+	node->count = count;
+	*out = repeat_as_node(node);
+	return EOK;
+}
+
+static int repeat_transform_prefix_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	repeat_transform_t *self = transform_as_repeat(base);
+	int rc = repeat_transform_make_node(self, out_node, scope, blob, true);
+	if (rc != EOK)
+		return rc;
+
+	bithenge_int_t count = node_as_repeat(*out_node)->count;
+	rc = seq_node_field_offset(node_as_seq(*out_node), out_size, count);
+	if (rc != EOK) {
+		bithenge_node_dec_ref(*out_node);
+		return rc;
+	}
+	return EOK;
+}
+
+static void repeat_transform_destroy(bithenge_transform_t *base)
+{
+	repeat_transform_t *self = transform_as_repeat(base);
+	bithenge_transform_dec_ref(self->xform);
+	bithenge_expression_dec_ref(self->expr);
+	free(self);
+}
+
+static const bithenge_transform_ops_t repeat_transform_ops = {
+	.prefix_apply = repeat_transform_prefix_apply,
+	.destroy = repeat_transform_destroy,
+};
+
+/** Create a transform that applies its subtransform repeatedly. Takes a
+ * reference to @a xform and @a expr.
+ * @param[out] out Holds the new transform.
+ * @param xform The subtransform to apply repeatedly.
+ * @param expr Used to calculate the number of times @a xform will be applied.
+ * May be NULL, in which case @a xform will be applied indefinitely.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_repeat_transform(bithenge_transform_t **out,
+    bithenge_transform_t *xform, bithenge_expression_t *expr)
+{
+	int rc;
+	repeat_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_transform(repeat_as_transform(self),
+	    &repeat_transform_ops, 0);
+	if (rc != EOK)
+		goto error;
+
+	self->expr = expr;
+	self->xform = xform;
+	*out = repeat_as_transform(self);
+	return EOK;
+
+error:
+	free(self);
+	bithenge_expression_dec_ref(expr);
+	bithenge_transform_dec_ref(xform);
 	return rc;
 }
 

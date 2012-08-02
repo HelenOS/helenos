@@ -41,6 +41,8 @@
 
 int bithenge_new_struct(bithenge_transform_t **,
     bithenge_named_transform_t *);
+int bithenge_repeat_transform(bithenge_transform_t **, bithenge_transform_t *,
+    bithenge_expression_t *);
 
 #endif
 
