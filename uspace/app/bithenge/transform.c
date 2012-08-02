@@ -164,72 +164,192 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 	return rc;
 }
 
+/** Initialize a transform scope. It must be destroyed with @a
+ * bithenge_scope_destroy after it is used.
+ * @param[out] scope The scope to initialize. */
+void bithenge_scope_init(bithenge_scope_t *scope)
+{
+	scope->num_params = 0;
+	scope->params = NULL;
+	scope->current_node = NULL;
+}
+
+/** Destroy a transform scope.
+ * @param scope The scope to destroy.
+ * @return EOK on success or an error code from errno.h. */
+void bithenge_scope_destroy(bithenge_scope_t *scope)
+{
+	bithenge_node_dec_ref(scope->current_node);
+	for (int i = 0; i < scope->num_params; i++)
+		bithenge_node_dec_ref(scope->params[i]);
+	free(scope->params);
+}
+
+/** Copy a scope.
+ * @param[out] out The scope to fill in; must have been initialized with @a
+ * bithenge_scope_init.
+ * @param scope The scope to copy.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_scope_copy(bithenge_scope_t *out, bithenge_scope_t *scope)
+{
+	out->params = malloc(sizeof(*out->params) * scope->num_params);
+	if (!out->params)
+		return ENOMEM;
+	memcpy(out->params, scope->params, sizeof(*out->params) *
+	    scope->num_params);
+	out->num_params = scope->num_params;
+	for (int i = 0; i < out->num_params; i++)
+		bithenge_node_inc_ref(out->params[i]);
+	out->current_node = scope->current_node;
+	if (out->current_node)
+		bithenge_node_inc_ref(out->current_node);
+	return EOK;
+}
+
+/** Set the current node being created. Takes a reference to @a node.
+ * @param scope The scope to set the current node in.
+ * @param node The current node being created, or NULL.
+ * @return EOK on success or an error code from errno.h. */
+void bithenge_scope_set_current_node(bithenge_scope_t *scope,
+    bithenge_node_t *node)
+{
+	bithenge_node_dec_ref(scope->current_node);
+	scope->current_node = node;
+}
+
+/** Get the current node being created, which may be NULL.
+ * @param scope The scope to get the current node from.
+ * @return The node being created, or NULL. */
+bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
+{
+	if (scope->current_node)
+		bithenge_node_inc_ref(scope->current_node);
+	return scope->current_node;
+}
+
+/** Allocate parameters. The parameters must then be set with @a
+ * bithenge_scope_set_param. This must not be called on a scope that already
+ * has parameters.
+ * @param scope The scope in which to allocate parameters.
+ * @param num_params The number of parameters to allocate.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
+{
+	scope->params = malloc(sizeof(*scope->params) * num_params);
+	if (!scope->params)
+		return ENOMEM;
+	scope->num_params = num_params;
+	for (int i = 0; i < num_params; i++)
+		scope->params[i] = NULL;
+	return EOK;
+}
+
+/** Set a parameter. Takes a reference to @a value. Note that range checking is
+ * not done in release builds.
+ * @param scope The scope in which to allocate parameters.
+ * @param i The index of the parameter to set.
+ * @param value The value to store in the parameter.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
+    bithenge_node_t *node)
+{
+	assert(scope);
+	assert(i >= 0 && i < scope->num_params);
+	scope->params[i] = node;
+	return EOK;
+}
+
+/** Get a parameter. Note that range checking is not done in release builds.
+ * @param scope The scope to get the parameter from.
+ * @param i The index of the parameter to set.
+ * @param[out] out Stores a new reference to the parameter.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
+    bithenge_node_t **out)
+{
+	assert(scope);
+	assert(i >= 0 && i < scope->num_params);
+	*out = scope->params[i];
+	bithenge_node_inc_ref(*out);
+	return EOK;
+}
+
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_transform_t *transform;
-} param_transform_t;
+} scope_transform_t;
 
-static inline param_transform_t *transform_as_param(
+static inline scope_transform_t *transform_as_param(
     bithenge_transform_t *base)
 {
-	return (param_transform_t *)base;
+	return (scope_transform_t *)base;
 }
 
 static inline bithenge_transform_t *param_as_transform(
-    param_transform_t *self)
+    scope_transform_t *self)
 {
 	return &self->base;
 }
 
-static int param_transform_apply(bithenge_transform_t *base,
+static int scope_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
-	param_transform_t *self = transform_as_param(base);
-	return bithenge_transform_apply(self->transform, scope, in, out);
+	scope_transform_t *self = transform_as_param(base);
+	bithenge_scope_t inner_scope;
+	bithenge_scope_init(&inner_scope);
+	int rc = bithenge_scope_copy(&inner_scope, scope);
+	if (rc != EOK)
+		goto error;
+	bithenge_scope_set_current_node(&inner_scope, NULL);
+	rc = bithenge_transform_apply(self->transform, scope, in, out);
+error:
+	bithenge_scope_destroy(&inner_scope);
+	return rc;
 }
 
-static int param_transform_prefix_length(bithenge_transform_t *base,
+static int scope_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
 {
-	param_transform_t *self = transform_as_param(base);
+	scope_transform_t *self = transform_as_param(base);
 	return bithenge_transform_prefix_length(self->transform, scope, in,
 	    out);
 }
 
-static void param_transform_destroy(bithenge_transform_t *base)
+static void scope_transform_destroy(bithenge_transform_t *base)
 {
-	param_transform_t *self = transform_as_param(base);
+	scope_transform_t *self = transform_as_param(base);
 	bithenge_transform_dec_ref(self->transform);
 	free(self);
 }
 
-static const bithenge_transform_ops_t param_transform_ops = {
-	.apply = param_transform_apply,
-	.prefix_length = param_transform_prefix_length,
-	.destroy = param_transform_destroy,
+static const bithenge_transform_ops_t scope_transform_ops = {
+	.apply = scope_transform_apply,
+	.prefix_length = scope_transform_prefix_length,
+	.destroy = scope_transform_destroy,
 };
 
-/** Create a wrapper transform with a different number of parameters. Takes a
- * reference to @a transform, which it will use for all operations.
+/** Create a wrapper transform that creates a new outer scope. This ensures
+ * nothing from the transform's users is passed in, other than parameters. The
+ * wrapper may have a different value for num_params. Takes a reference to
+ * @a transform, which it will use for all operations.
  * @param[out] out Holds the created transform.
  * @param transform The transform to wrap.
- * @param num_params The number of parameters to require.
+ * @param num_params The number of parameters to require, which may be 0.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_param_transform(bithenge_transform_t **out,
+int bithenge_new_scope_transform(bithenge_transform_t **out,
     bithenge_transform_t *transform, int num_params)
 {
 	assert(transform);
 	assert(bithenge_transform_num_params(transform) == 0);
-	assert(num_params != 0);
 
 	int rc;
-	param_transform_t *self = malloc(sizeof(*self));
+	scope_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
 		goto error;
 	}
 	rc = bithenge_init_transform(param_as_transform(self),
-	    &param_transform_ops, num_params);
+	    &scope_transform_ops, num_params);
 	if (rc != EOK)
 		goto error;
 	self->transform = transform;
@@ -496,20 +616,20 @@ static bithenge_named_transform_t primitive_transforms[] = {
 bithenge_named_transform_t *bithenge_primitive_transforms = primitive_transforms;
 
 typedef struct {
+	bithenge_transform_t base;
+	bithenge_named_transform_t *subtransforms;
+	size_t num_subtransforms;
+} struct_transform_t;
+
+typedef struct {
 	bithenge_node_t base;
 	bithenge_scope_t scope;
-	struct struct_transform *transform;
+	struct_transform_t *transform;
 	bithenge_blob_t *blob;
 	aoff64_t *ends;
 	size_t num_ends;
 	bool prefix;
 } struct_node_t;
-
-typedef struct struct_transform {
-	bithenge_transform_t base;
-	bithenge_named_transform_t *subtransforms;
-	size_t num_subtransforms;
-} struct_transform_t;
 
 static bithenge_node_t *struct_as_node(struct_node_t *node)
 {

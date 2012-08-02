@@ -669,7 +669,8 @@ static const bithenge_transform_ops_t if_transform_ops = {
  * @param[out] out Holds the new transform.
  * @param expr The boolean expression to evaluate.
  * @param true_xform The transform to apply if the expression is true.
- * @param false_xform The transform to apply if the expression is false. */
+ * @param false_xform The transform to apply if the expression is false.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_if_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr, bithenge_transform_t *true_xform,
     bithenge_transform_t *false_xform)

@@ -75,119 +75,6 @@ typedef struct bithenge_transform_ops {
 	void (*destroy)(bithenge_transform_t *self);
 } bithenge_transform_ops_t;
 
-/** Initialize a transform scope. It must be destroyed with @a
- * bithenge_scope_destroy after it is used.
- * @param[out] scope The scope to initialize. */
-static inline void bithenge_scope_init(bithenge_scope_t *scope)
-{
-	scope->num_params = 0;
-	scope->params = NULL;
-	scope->current_node = NULL;
-}
-
-/** Destroy a transform scope.
- * @param scope The scope to destroy.
- * @return EOK on success or an error code from errno.h. */
-static inline void bithenge_scope_destroy(bithenge_scope_t *scope)
-{
-	bithenge_node_dec_ref(scope->current_node);
-	for (int i = 0; i < scope->num_params; i++)
-		bithenge_node_dec_ref(scope->params[i]);
-	free(scope->params);
-}
-
-/** Copy a scope.
- * @param[out] out The scope to fill in; must have been initialized with @a
- * bithenge_scope_init.
- * @param scope The scope to copy.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_scope_copy(bithenge_scope_t *out,
-    bithenge_scope_t *scope)
-{
-	out->params = malloc(sizeof(*out->params) * scope->num_params);
-	if (!out->params)
-		return ENOMEM;
-	memcpy(out->params, scope->params, sizeof(*out->params) *
-	    scope->num_params);
-	out->num_params = scope->num_params;
-	for (int i = 0; i < out->num_params; i++)
-		bithenge_node_inc_ref(out->params[i]);
-	out->current_node = scope->current_node;
-	if (out->current_node)
-		bithenge_node_inc_ref(out->current_node);
-	return EOK;
-}
-
-/** Set the current node being created. Takes a reference to @a node.
- * @param scope The scope to set the current node in.
- * @param node The current node being created.
- * @return EOK on success or an error code from errno.h. */
-static inline void bithenge_scope_set_current_node(bithenge_scope_t *scope,
-    bithenge_node_t *node)
-{
-	bithenge_node_dec_ref(scope->current_node);
-	scope->current_node = node;
-}
-
-/** Get the current node being created, which may be NULL.
- * @param scope The scope to get the current node from.
- * @return The node being created, or NULL. */
-static inline bithenge_node_t *bithenge_scope_get_current_node(
-    bithenge_scope_t *scope)
-{
-	if (scope->current_node)
-		bithenge_node_inc_ref(scope->current_node);
-	return scope->current_node;
-}
-
-/** Allocate parameters. The parameters must then be set with @a
- * bithenge_scope_set_param. This must not be called on a scope that already
- * has parameters.
- * @param scope The scope in which to allocate parameters.
- * @param num_params The number of parameters to allocate.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_scope_alloc_params(bithenge_scope_t *scope,
-    int num_params)
-{
-	scope->params = malloc(sizeof(*scope->params) * num_params);
-	if (!scope->params)
-		return ENOMEM;
-	scope->num_params = num_params;
-	for (int i = 0; i < num_params; i++)
-		scope->params[i] = NULL;
-	return EOK;
-}
-
-/** Set a parameter. Takes a reference to @a value. Note that range checking is
- * not done in release builds.
- * @param scope The scope in which to allocate parameters.
- * @param i The index of the parameter to set.
- * @param value The value to store in the parameter.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
-    bithenge_node_t *node)
-{
-	assert(scope);
-	assert(i >= 0 && i < scope->num_params);
-	scope->params[i] = node;
-	return EOK;
-}
-
-/** Get a parameter. Note that range checking is not done in release builds.
- * @param scope The scope to get the parameter from.
- * @param i The index of the parameter to set.
- * @param[out] out Stores a new reference to the parameter.
- * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
-    bithenge_node_t **out)
-{
-	assert(scope);
-	assert(i >= 0 && i < scope->num_params);
-	*out = scope->params[i];
-	bithenge_node_inc_ref(*out);
-	return EOK;
-}
-
 /** Get the number of parameters required by a transform. This number is used
  * by the parser and param-wrapper. Takes ownership of nothing.
  * @param self The transform.
@@ -244,12 +131,21 @@ int bithenge_transform_prefix_length(bithenge_transform_t *,
     bithenge_scope_t *, bithenge_blob_t *, aoff64_t *);
 int bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_blob_t *, bithenge_node_t **, aoff64_t *);
-int bithenge_new_param_transform(bithenge_transform_t **,
+int bithenge_new_scope_transform(bithenge_transform_t **,
     bithenge_transform_t *, int);
 int bithenge_new_struct(bithenge_transform_t **,
     bithenge_named_transform_t *);
 int bithenge_new_composed_transform(bithenge_transform_t **,
     bithenge_transform_t **, size_t);
+
+void bithenge_scope_init(bithenge_scope_t *);
+void bithenge_scope_destroy(bithenge_scope_t *);
+int bithenge_scope_copy(bithenge_scope_t *, bithenge_scope_t *);
+void bithenge_scope_set_current_node(bithenge_scope_t *, bithenge_node_t *);
+bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *);
+int bithenge_scope_alloc_params(bithenge_scope_t *, int);
+int bithenge_scope_set_param(bithenge_scope_t *, int, bithenge_node_t *);
+int bithenge_scope_get_param(bithenge_scope_t *, int, bithenge_node_t **);
 
 #endif
 

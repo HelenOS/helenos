@@ -784,8 +784,8 @@ static void parse_definition(state_t *state)
 	bithenge_transform_t *xform = parse_transform(state);
 	expect(state, ';');
 
-	if (state->error == EOK && state->num_params) {
-		int rc = bithenge_new_param_transform(&xform, xform,
+	if (state->error == EOK) {
+		int rc = bithenge_new_scope_transform(&xform, xform,
 		    state->num_params);
 		if (rc != EOK) {
 			xform = NULL;
