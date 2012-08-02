@@ -133,8 +133,6 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_blob_t *, bithenge_node_t **, aoff64_t *);
 int bithenge_new_scope_transform(bithenge_transform_t **,
     bithenge_transform_t *, int);
-int bithenge_new_struct(bithenge_transform_t **,
-    bithenge_named_transform_t *);
 int bithenge_new_composed_transform(bithenge_transform_t **,
     bithenge_transform_t **, size_t);
 

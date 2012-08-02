@@ -40,6 +40,7 @@
 #include "expression.h"
 #include "os.h"
 #include "script.h"
+#include "sequence.h"
 #include "transform.h"
 #include "tree.h"
 

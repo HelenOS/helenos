@@ -38,6 +38,7 @@ SOURCES = \
 	file.c \
 	print.c \
 	script.c \
+	sequence.c \
 	source.c \
 	test.c \
 	transform.c \
