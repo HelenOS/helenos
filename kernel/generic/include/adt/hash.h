@@ -65,7 +65,12 @@ static inline uint64_t hash_mix64(uint64_t hash)
 	hash = hash ^ (hash >> 4);
 	hash = hash * 0x27d4eb2d;
 	hash = hash ^ (hash >> 15);	
-	return hash;
+	/* 
+	 * Lower order bits are mixed more thoroughly. Swap them with
+	 * the higher order bits and make the resulting higher order bits
+	 * more usable.
+	 */
+	return (hash << 32) | (hash >> 32);
 }
 
 /** Produces a uniform hash affecting all output bits from the skewed input. */
