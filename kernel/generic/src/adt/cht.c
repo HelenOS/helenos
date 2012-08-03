@@ -48,13 +48,13 @@
 #include <synch/rcu.h>
 
 
-/* Logarithm of the min bucket count. 2^6 == 64 buckets. */
+/* Logarithm of the min bucket count. Must be at least 3. 2^6 == 64 buckets. */
 #define CHT_MIN_ORDER 6
 /* Logarithm of the max bucket count. */
 #define CHT_MAX_ORDER (8 * sizeof(size_t))
 /* Minimum number of hash table buckets. */
 #define CHT_MIN_BUCKET_CNT (1 << CHT_MIN_ORDER)
-/* Must be a power of 2. */
+/* Does not have to be a power of 2. */
 #define CHT_MAX_LOAD 2 
 
 typedef cht_ptr_t marked_ptr_t;
@@ -82,7 +82,7 @@ typedef struct wnd {
 	cht_link_t *last;
 } wnd_t;
 
-/* Fwd decl. */
+
 static size_t size_to_order(size_t bucket_cnt, size_t min_order);
 static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid);
 static cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key, 
@@ -152,7 +152,8 @@ static marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur,
 static void cas_order_barrier(void);
 
 
-bool cht_create(cht_t *h, size_t init_size, size_t min_size, cht_ops_t *op)
+bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load, 
+	cht_ops_t *op)
 {
 	ASSERT(h);
 	ASSERT(op && op->hash && op->key_hash && op->equal && op->key_equal);
@@ -169,6 +170,7 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, cht_ops_t *op)
 	if (!h->b)
 		return false;
 	
+	h->max_load = (max_load == 0) ? CHT_MAX_LOAD : max_load;
 	h->min_order = min_order;
 	h->new_b = 0;
 	h->op = op;
@@ -1359,8 +1361,8 @@ static void item_removed(cht_t *h)
 	size_t items = (size_t) atomic_predec(&h->item_cnt);
 	size_t bucket_cnt = (1 << h->b->order);
 	
-	bool need_shrink = (items == CHT_MAX_LOAD * bucket_cnt / 4);
-	bool missed_shrink = (items == CHT_MAX_LOAD * bucket_cnt / 8);
+	bool need_shrink = (items == h->max_load * bucket_cnt / 4);
+	bool missed_shrink = (items == h->max_load * bucket_cnt / 8);
 	
 	if ((need_shrink || missed_shrink) && h->b->order > h->min_order) {
 		atomic_count_t resize_reqs = atomic_preinc(&h->resize_reqs);
@@ -1376,8 +1378,8 @@ static void item_inserted(cht_t *h)
 	size_t items = (size_t) atomic_preinc(&h->item_cnt);
 	size_t bucket_cnt = (1 << h->b->order);
 	
-	bool need_grow = (items == CHT_MAX_LOAD * bucket_cnt);
-	bool missed_grow = (items == 2 * CHT_MAX_LOAD * bucket_cnt);
+	bool need_grow = (items == h->max_load * bucket_cnt);
+	bool missed_grow = (items == 2 * h->max_load * bucket_cnt);
 	
 	if ((need_grow || missed_grow) && h->b->order < CHT_MAX_ORDER) {
 		atomic_count_t resize_reqs = atomic_preinc(&h->resize_reqs);
@@ -1405,7 +1407,7 @@ static void resize_table(work_t *arg)
 		read_barrier();
 		size_t cur_items = (size_t) atomic_get(&h->item_cnt);
 		size_t bucket_cnt = (1 << h->b->order);
-		size_t max_items = CHT_MAX_LOAD * bucket_cnt;
+		size_t max_items = h->max_load * bucket_cnt;
 
 		if (cur_items >= max_items && h->b->order < CHT_MAX_ORDER) {
 			grow_table(h);

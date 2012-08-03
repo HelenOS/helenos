@@ -234,7 +234,7 @@ static const char * do_sanity_test(cht_t *h)
 static const char * sanity_test(void)
 {
 	cht_t h;
-	if (!cht_create(&h, 5, 0, &val_ops))
+	if (!cht_create(&h, 5, 0, 0, &val_ops))
 		return "Could not create the table.";
 	
 	rcu_read_lock();
@@ -444,7 +444,7 @@ static bool do_stress(void)
 {
 	cht_t h;
 	
-	if (!cht_create(&h, 0, 0, &stress_ops)) {
+	if (!cht_create(&h, 0, 0, 0, &stress_ops)) {
 		TPRINTF("Failed to create the table\n");
 		return false;
 	}
