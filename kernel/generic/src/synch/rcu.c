@@ -1027,6 +1027,9 @@ void rcu_thread_exiting(void)
 			rm_preempted_reader();
 			interrupts_restore(ipl);
 		}
+
+		printf("Bug: thread (id %" PRIu64 " \"%s\") exited while in RCU read"
+			" section.\n", THREAD->tid, THREAD->name);
 	}
 }
 
@@ -1451,6 +1454,7 @@ void rcu_thread_exiting(void)
 	ASSERT(THREAD != 0);
 	ASSERT(THREAD->state == Exiting);
 	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	
 	/* 
 	 * The thread forgot to exit its reader critical section. 
 	 * It is a bug, but rather than letting the entire system lock up
@@ -1460,6 +1464,9 @@ void rcu_thread_exiting(void)
 	if (0 < THREAD->rcu.nesting_cnt) {
 		THREAD->rcu.nesting_cnt = 1;
 		read_unlock_impl(&THREAD->rcu.nesting_cnt);
+
+		printf("Bug: thread (id %" PRIu64 " \"%s\") exited while in RCU read"
+			" section.\n", THREAD->tid, THREAD->name);
 	}
 }
 
