@@ -1,0 +1,6 @@
+transform main = struct {
+	.none <- repeat(0) { uint8 };
+	.one <- repeat(1) { uint8 };
+	.count <- uint8;
+	.many <- repeat(.count) { uint8 };
+};

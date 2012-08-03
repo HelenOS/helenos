@@ -61,6 +61,7 @@ typedef enum {
 	TOKEN_ELSE,
 	TOKEN_FALSE,
 	TOKEN_IF,
+	TOKEN_REPEAT,
 	TOKEN_STRUCT,
 	TOKEN_SWITCH,
 	TOKEN_TRANSFORM,
@@ -217,6 +218,9 @@ static void next_token(state_t *state)
 			free(value);
 		} else if (!str_cmp(value, "if")) {
 			state->token = TOKEN_IF;
+			free(value);
+		} else if (!str_cmp(value, "repeat")) {
+			state->token = TOKEN_REPEAT;
 			free(value);
 		} else if (!str_cmp(value, "struct")) {
 			state->token = TOKEN_STRUCT;
@@ -653,6 +657,31 @@ static bithenge_transform_t *parse_switch(state_t *state, bool in_struct)
 	return switch_xform;
 }
 
+static bithenge_transform_t *parse_repeat(state_t *state)
+{
+	expect(state, TOKEN_REPEAT);
+	expect(state, '(');
+	bithenge_expression_t *expr = parse_expression(state);
+	expect(state, ')');
+	expect(state, '{');
+	bithenge_transform_t *xform = parse_transform(state);
+	expect(state, '}');
+
+	if (state->error != EOK) {
+		bithenge_expression_dec_ref(expr);
+		bithenge_transform_dec_ref(xform);
+		return NULL;
+	}
+
+	bithenge_transform_t *repeat_xform;
+	int rc = bithenge_repeat_transform(&repeat_xform, xform, expr);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+	return repeat_xform;
+}
+
 /* The TOKEN_STRUCT and '{' must already have been skipped. */
 static bithenge_transform_t *parse_struct(state_t *state)
 {
@@ -711,6 +740,8 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 		return parse_invocation(state);
 	} else if (state->token == TOKEN_IF) {
 		return parse_if(state, false);
+	} else if (state->token == TOKEN_REPEAT) {
+		return parse_repeat(state);
 	} else if (state->token == TOKEN_STRUCT) {
 		next_token(state);
 		expect(state, '{');

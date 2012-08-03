@@ -694,6 +694,7 @@ static int repeat_transform_make_node(repeat_transform_t *self,
 	bithenge_transform_inc_ref(self->xform);
 	node->xform = self->xform;
 	node->count = count;
+	node->prefix = prefix;
 	*out = repeat_as_node(node);
 	return EOK;
 }
