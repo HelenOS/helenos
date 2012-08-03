@@ -85,6 +85,7 @@ typedef struct wnd {
 
 static size_t size_to_order(size_t bucket_cnt, size_t min_order);
 static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid);
+static inline cht_link_t *find_lazy(cht_t *h, void *key);
 static cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key, 
 	size_t search_hash);
 static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash, 
@@ -241,8 +242,12 @@ cht_link_t *cht_find(cht_t *h, void *key)
 	return cht_find_lazy(h, key);
 }
 
-
 cht_link_t *cht_find_lazy(cht_t *h, void *key)
+{
+	return find_lazy(h, key);
+}
+
+static inline cht_link_t *find_lazy(cht_t *h, void *key)
 {
 	ASSERT(h);
 	ASSERT(rcu_read_locked());
@@ -279,7 +284,7 @@ cht_link_t *cht_find_next_lazy(cht_t *h, const cht_link_t *item)
 	return find_duplicate(h, item, node_hash(h, item), get_next(item->link));
 }
 
-static cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key, 
+static inline cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key, 
 	size_t search_hash)
 {
 	cht_link_t *cur = get_next(head);
@@ -290,14 +295,8 @@ static cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key,
 		 * splitting the bucket). The resizer makes sure that any node we 
 		 * may find by following the next pointers is allocated.
 		 */
-		size_t cur_hash = node_hash(h, cur);
-
-		if (cur_hash >= search_hash) {
-			if (cur_hash != search_hash)
-				return 0;
-
-			int present = !(N_DELETED & get_mark(cur->link));
-			if (present && h->op->key_equal(key, cur))
+		if (h->op->key_equal(key, cur)) {
+			if (!(N_DELETED & get_mark(cur->link)))
 				return cur;
 		}
 		
@@ -464,7 +463,7 @@ static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 	marked_ptr_t *phead = &b->head[idx];
 
 	bool resizing = false;
-	bool inserted;
+	bool inserted = false;
 	
 	do {
 		walk_mode_t walk_mode = WM_NORMAL;
@@ -502,8 +501,8 @@ static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 	return true;
 }
 
-static bool insert_at(cht_link_t *item, const wnd_t *wnd, walk_mode_t walk_mode,
-	bool *resizing)
+inline static bool insert_at(cht_link_t *item, const wnd_t *wnd, 
+	walk_mode_t walk_mode, bool *resizing)
 {
 	marked_ptr_t ret;
 	
@@ -549,7 +548,7 @@ static bool insert_at(cht_link_t *item, const wnd_t *wnd, walk_mode_t walk_mode,
 	}
 }
 
-static bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash, 
+static inline bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash, 
 	const wnd_t *wnd)
 {
 	ASSERT(0 == wnd->cur || hash <= node_hash(h, wnd->cur));
@@ -681,7 +680,7 @@ static bool remove_pred(cht_t *h, size_t hash, equal_pred_t pred, void *pred_arg
 }
 
 
-static bool delete_at(cht_t *h, wnd_t *wnd, walk_mode_t walk_mode, 
+static inline bool delete_at(cht_t *h, wnd_t *wnd, walk_mode_t walk_mode, 
 	bool *deleted_but_gc, bool *resizing)
 {
 	ASSERT(wnd->cur);
@@ -710,7 +709,8 @@ static bool delete_at(cht_t *h, wnd_t *wnd, walk_mode_t walk_mode,
 	return true;
 }
 
-static bool mark_deleted(cht_link_t *cur, walk_mode_t walk_mode, bool *resizing)
+static inline bool mark_deleted(cht_link_t *cur, walk_mode_t walk_mode, 
+	bool *resizing)
 {
 	ASSERT(cur);
 	
@@ -745,7 +745,8 @@ static bool mark_deleted(cht_link_t *cur, walk_mode_t walk_mode, bool *resizing)
 	return true;
 }
 
-static bool unlink_from_pred(wnd_t *wnd, walk_mode_t walk_mode, bool *resizing)
+static inline bool unlink_from_pred(wnd_t *wnd, walk_mode_t walk_mode, 
+	bool *resizing)
 {
 	ASSERT(wnd->cur && (N_DELETED & get_mark(wnd->cur->link)));
 	
@@ -1022,7 +1023,8 @@ static void move_head(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
 }
 #endif
 
-static void help_head_move(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
+static inline void help_head_move(marked_ptr_t *psrc_head, 
+	marked_ptr_t *pdest_head)
 {
 	/* Head move has to in progress already when calling this func. */
 	ASSERT(N_CONST & get_mark(*psrc_head));
@@ -1356,7 +1358,7 @@ static void free_later(cht_t *h, cht_link_t *item)
 	item_removed(h);
 }
 
-static void item_removed(cht_t *h)
+static inline void item_removed(cht_t *h)
 {
 	size_t items = (size_t) atomic_predec(&h->item_cnt);
 	size_t bucket_cnt = (1 << h->b->order);
@@ -1373,7 +1375,7 @@ static void item_removed(cht_t *h)
 	}
 }
 
-static void item_inserted(cht_t *h)
+static inline void item_inserted(cht_t *h)
 {
 	size_t items = (size_t) atomic_preinc(&h->item_cnt);
 	size_t bucket_cnt = (1 << h->b->order);
@@ -1744,46 +1746,46 @@ static void cleanup_join_follows(cht_t *h, marked_ptr_t *new_head)
 }
 
 
-static size_t calc_split_hash(size_t split_idx, size_t order)
+static inline size_t calc_split_hash(size_t split_idx, size_t order)
 {
 	ASSERT(1 <= order && order <= 8 * sizeof(size_t));
 	return split_idx << (8 * sizeof(size_t) - order);
 }
 
-static size_t calc_bucket_idx(size_t hash, size_t order)
+static inline size_t calc_bucket_idx(size_t hash, size_t order)
 {
 	ASSERT(1 <= order && order <= 8 * sizeof(size_t));
 	return hash >> (8 * sizeof(size_t) - order);
 }
 
-static size_t grow_to_split_idx(size_t old_idx)
+static inline size_t grow_to_split_idx(size_t old_idx)
 {
 	return grow_idx(old_idx) | 1;
 }
 
-static size_t grow_idx(size_t idx)
+static inline size_t grow_idx(size_t idx)
 {
 	return idx << 1;
 }
 
-static size_t shrink_idx(size_t idx)
+static inline size_t shrink_idx(size_t idx)
 {
 	return idx >> 1;
 }
 
 
-static size_t key_hash(cht_t *h, void *key)
+static inline size_t key_hash(cht_t *h, void *key)
 {
 	return hash_mix(h->op->key_hash(key));
 }
 
-static size_t node_hash(cht_t *h, const cht_link_t *item)
+static inline size_t node_hash(cht_t *h, const cht_link_t *item)
 {
 	return hash_mix(h->op->hash(item));
 }
 
 
-static marked_ptr_t make_link(const cht_link_t *next, mark_t mark)
+static inline marked_ptr_t make_link(const cht_link_t *next, mark_t mark)
 {
 	marked_ptr_t ptr = (marked_ptr_t) next;
 	
@@ -1794,19 +1796,19 @@ static marked_ptr_t make_link(const cht_link_t *next, mark_t mark)
 }
 
 
-static cht_link_t * get_next(marked_ptr_t link)
+static inline cht_link_t * get_next(marked_ptr_t link)
 {
 	return (cht_link_t*)(link & ~N_MARK_MASK);
 }
 
 
-static mark_t get_mark(marked_ptr_t link)
+static inline mark_t get_mark(marked_ptr_t link)
 {
 	return (mark_t)(link & N_MARK_MASK);
 }
 
 
-static void next_wnd(wnd_t *wnd)
+static inline void next_wnd(wnd_t *wnd)
 {
 	ASSERT(wnd);
 	ASSERT(wnd->cur);
@@ -1823,14 +1825,14 @@ static bool same_node_pred(void *node, const cht_link_t *item2)
 	return item1 == item2;
 }
 
-static marked_ptr_t cas_link(marked_ptr_t *link, const cht_link_t *cur_next, 
+static inline marked_ptr_t cas_link(marked_ptr_t *link, const cht_link_t *cur_next, 
 	mark_t cur_mark, const cht_link_t *new_next, mark_t new_mark)
 {
 	return _cas_link(link, make_link(cur_next, cur_mark), 
 		make_link(new_next, new_mark));
 }
 
-static marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur, 
+static inline marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur, 
 	marked_ptr_t new)
 {
 	/*
@@ -1859,7 +1861,7 @@ static marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur,
 	return (marked_ptr_t) ret;
 }
 
-static void cas_order_barrier(void)
+static inline void cas_order_barrier(void)
 {
 	/* Make sure CAS to different memory locations are ordered. */
 	write_barrier();
