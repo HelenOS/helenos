@@ -123,8 +123,7 @@ static const char * do_sanity_test(cht_t *h)
 	/* Different hashes and keys. */
 	set_val(v[4], 2, key[4]);
 	set_val(v[5], 3, key[5]);
-		
-	
+			
 	if (!cht_insert_unique(h, &v[0]->link))
 		return "Duplicates in empty";
 
@@ -155,7 +154,6 @@ static const char * do_sanity_test(cht_t *h)
 	if (item)
 		return "Found nonexisting duplicate 5";
 	
-	
 	item = cht_find(h, (void*)v[3]->unique_id);
 	if (!item || item != &v[3]->link)
 		return "Missing 3.";
@@ -163,7 +161,6 @@ static const char * do_sanity_test(cht_t *h)
 	item = cht_find_next(h, &v[3]->link);
 	if (item)
 		return "Found nonexisting duplicate 3, same hash as others.";
-	
 	
 	item = cht_find(h, (void*)v[0]->unique_id);
 	((val_t*)item)->mark = true;
@@ -219,11 +216,11 @@ static const char * do_sanity_test(cht_t *h)
 	if (!cht_find(h, (void*)key[3]))
 		return "Removed incorrect key";
 	
-	for (size_t k = 0; k < sizeof(v)/sizeof(v[0]); ++k) {
+	for (size_t k = 0; k < sizeof(v) / sizeof(v[0]); ++k) {
 		cht_remove_key(h, (void*)key[k]);
 	}
 	
-	for (size_t k = 0; k < sizeof(v)/sizeof(v[0]); ++k) {
+	for (size_t k = 0; k < sizeof(v) / sizeof(v[0]); ++k) {
 		if (cht_find(h, (void*)key[k]))
 			return "Found a key in a cleared table";
 	}
@@ -394,7 +391,7 @@ static void op_stresser(void *arg)
 					}
 				}
 				work->elem[elem_idx].inserted = false;
-			} else if (work->elem[elem_idx].deleted){
+			} else if (work->elem[elem_idx].deleted) {
 				work->elem[elem_idx].deleted = false;
 				
 				if (item_op) {
@@ -554,6 +551,7 @@ const char *test_cht1(void)
 	const char *err = sanity_test();
 	if (err)
 		return err;
+	printf("Basic sanity test: ok.\n");
 	
 	if (!do_stress()) 
 		return "CHT stress test failed.";

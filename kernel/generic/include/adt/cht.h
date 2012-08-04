@@ -45,8 +45,15 @@ typedef uintptr_t cht_ptr_t;
 
 /** Concurrent hash table node link. */
 typedef struct cht_link {
-	/* Must be placed first. */
-	rcu_item_t rcu_link;
+	/* Must be placed first. 
+	 * 
+	 * The function pointer (rcu_link.func) is used to store the item's 
+	 * memoized hash.
+	 */
+	union {
+		rcu_item_t rcu_link;
+		size_t hash;
+	};
 	/** Link to the next item in the bucket including any marks. */
 	cht_ptr_t link;
 } cht_link_t;
@@ -70,10 +77,11 @@ typedef struct cht_buckets {
 typedef struct {
 	cht_ops_t *op;
 	
-	size_t min_order;
 	cht_buckets_t *b;
 	cht_buckets_t *new_b;
+	size_t invalid_hash;
 
+	size_t min_order;
 	size_t max_load;
 	work_t resize_work;
 	atomic_t resize_reqs;
