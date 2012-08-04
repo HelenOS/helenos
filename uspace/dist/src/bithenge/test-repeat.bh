@@ -1,6 +1,16 @@
-transform main = struct {
+transform with_count = struct {
 	.none <- repeat(0) { uint8 };
 	.one <- repeat(1) { uint8 };
 	.count <- uint8;
 	.many <- repeat(.count) { uint8 };
+};
+
+transform without_count = struct {
+	.error <- repeat { uint8 <- zero_terminated };
+	.end <- repeat { uint8 };
+};
+
+transform main = struct {
+	.with_count <- with_count;
+	.without_count <- without_count;
 };

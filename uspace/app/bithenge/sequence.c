@@ -50,6 +50,7 @@ typedef struct {
 	bithenge_scope_t scope;
 	aoff64_t *ends;
 	size_t num_ends;
+	bool end_on_empty;
 	bithenge_int_t num_xforms;
 } seq_node_t;
 
@@ -93,6 +94,21 @@ static int seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
 			return rc;
 		}
 
+		if (self->end_on_empty) {
+			bool empty;
+			rc = bithenge_blob_empty(
+			    bithenge_node_as_blob(subblob_node), &empty);
+			if (rc == EOK && empty) {
+				self->num_xforms = self->num_ends;
+				rc = ENOENT;
+			}
+			if (rc != EOK) {
+				bithenge_transform_dec_ref(subxform);
+				bithenge_node_dec_ref(subblob_node);
+				return rc;
+			}
+		}
+
 		bithenge_blob_t *subblob = bithenge_node_as_blob(subblob_node);
 		aoff64_t field_size;
 		rc = bithenge_transform_prefix_length(subxform, &self->scope,
@@ -101,6 +117,14 @@ static int seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
 		bithenge_transform_dec_ref(subxform);
 		if (rc != EOK)
 			return rc;
+
+		if (self->num_xforms == -1) {
+			aoff64_t *new_ends = realloc(self->ends,
+			    (self->num_ends + 1)*sizeof(*new_ends));
+			if (!new_ends)
+				return ENOMEM;
+			self->ends = new_ends;
+		}
 
 		prev_offset = self->ends[self->num_ends] =
 		    prev_offset + field_size;
@@ -134,6 +158,21 @@ static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 			return rc;
 		}
 
+		if (self->end_on_empty) {
+			bool empty;
+			rc = bithenge_blob_empty(
+			    bithenge_node_as_blob(blob_node), &empty);
+			if (rc == EOK && empty) {
+				self->num_xforms = self->num_ends;
+				rc = ENOENT;
+			}
+			if (rc != EOK) {
+				bithenge_transform_dec_ref(subxform);
+				bithenge_node_dec_ref(blob_node);
+				return rc;
+			}
+		}
+
 		aoff64_t size;
 		rc = bithenge_transform_prefix_apply(subxform, &self->scope,
 		    bithenge_node_as_blob(blob_node), out, &size);
@@ -142,6 +181,13 @@ static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 		if (rc != EOK)
 			return rc;
 
+		if (self->num_xforms == -1) {
+			aoff64_t *new_ends = realloc(self->ends,
+			    (self->num_ends + 1)*sizeof(*new_ends));
+			if (!new_ends)
+				return ENOMEM;
+			self->ends = new_ends;
+		}
 		self->ends[self->num_ends++] = start_pos + size;
 	} else {
 		aoff64_t end_pos;
@@ -197,17 +243,21 @@ static bithenge_scope_t *seq_node_scope(seq_node_t *self)
 }
 
 static int seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
-    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_int_t num_xforms)
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_int_t num_xforms,
+    bool end_on_empty)
 {
 	self->ops = ops;
-	self->ends = malloc(sizeof(*self->ends) * num_xforms);
-	if (!self->ends) {
-		return ENOMEM;
-	}
+	if (num_xforms != -1) {
+		self->ends = malloc(sizeof(*self->ends) * num_xforms);
+		if (!self->ends)
+			return ENOMEM;
+	} else
+		self->ends = NULL;
 	bithenge_blob_inc_ref(blob);
 	self->blob = blob;
 	self->num_xforms = num_xforms;
 	self->num_ends = 0;
+	self->end_on_empty = end_on_empty;
 	bithenge_scope_init(&self->scope);
 	int rc = bithenge_scope_copy(&self->scope, scope);
 	if (rc != EOK) {
@@ -404,7 +454,7 @@ static int struct_transform_make_node(struct_transform_t *self,
 	}
 
 	rc = seq_node_init(struct_as_seq(node), &struct_node_seq_ops, scope,
-	    blob, self->num_subtransforms);
+	    blob, self->num_subtransforms, false);
 	if (rc != EOK) {
 		free(node);
 		return rc;
@@ -581,10 +631,14 @@ static int repeat_node_for_each(bithenge_node_t *base,
 	int rc = EOK;
 	repeat_node_t *self = node_as_repeat(base);
 
-	for (bithenge_int_t i = 0; i < self->count; i++) {
+	for (bithenge_int_t i = 0; self->count == -1 || i < self->count; i++) {
 		bithenge_node_t *subxform_result;
 		rc = seq_node_subtransform(repeat_as_seq(self),
 		    &subxform_result, i);
+		if (rc != EOK && self->count == -1) {
+			rc = EOK;
+			break;
+		}
 		if (rc != EOK)
 			return rc;
 
@@ -623,7 +677,7 @@ static int repeat_node_get(bithenge_node_t *base, bithenge_node_t *key,
 
 	bithenge_int_t index = bithenge_integer_node_value(key);
 	bithenge_node_dec_ref(key);
-	if (index < 0 || index >= self->count)
+	if (index < 0 || (self->count != -1 && index >= self->count))
 		return ENOENT;
 	return seq_node_subtransform(repeat_as_seq(self), out, index);
 }
@@ -659,25 +713,28 @@ static int repeat_transform_make_node(repeat_transform_t *self,
     bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
     bool prefix)
 {
-	bithenge_int_t count;
-	bithenge_node_t *count_node;
-	int rc = bithenge_expression_evaluate(self->expr, scope, &count_node);
-	if (rc != EOK)
-		return rc;
-	if (bithenge_node_type(count_node) != BITHENGE_NODE_INTEGER) {
+	bithenge_int_t count = -1;
+	if (self->expr != NULL) {
+		bithenge_node_t *count_node;
+		int rc = bithenge_expression_evaluate(self->expr, scope,
+		    &count_node);
+		if (rc != EOK)
+			return rc;
+		if (bithenge_node_type(count_node) != BITHENGE_NODE_INTEGER) {
+			bithenge_node_dec_ref(count_node);
+			return EINVAL;
+		}
+		count = bithenge_integer_node_value(count_node);
 		bithenge_node_dec_ref(count_node);
-		return EINVAL;
+		if (count < 0)
+			return EINVAL;
 	}
-	count = bithenge_integer_node_value(count_node);
-	bithenge_node_dec_ref(count_node);
-	if (count < 0)
-		return EINVAL;
 
 	repeat_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
 
-	rc = bithenge_init_internal_node(repeat_as_node(node),
+	int rc = bithenge_init_internal_node(repeat_as_node(node),
 	    &repeat_node_ops);
 	if (rc != EOK) {
 		free(node);
@@ -685,7 +742,7 @@ static int repeat_transform_make_node(repeat_transform_t *self,
 	}
 
 	rc = seq_node_init(repeat_as_seq(node), &repeat_node_seq_ops, scope,
-	    blob, count);
+	    blob, count, count == -1);
 	if (rc != EOK) {
 		free(node);
 		return rc;
@@ -699,6 +756,16 @@ static int repeat_transform_make_node(repeat_transform_t *self,
 	return EOK;
 }
 
+static int repeat_transform_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	repeat_transform_t *self = transform_as_repeat(base);
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	return repeat_transform_make_node(self, out, scope,
+	    bithenge_node_as_blob(in), false);
+}
+
 static int repeat_transform_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
@@ -709,10 +776,22 @@ static int repeat_transform_prefix_apply(bithenge_transform_t *base,
 		return rc;
 
 	bithenge_int_t count = node_as_repeat(*out_node)->count;
-	rc = seq_node_field_offset(node_as_seq(*out_node), out_size, count);
-	if (rc != EOK) {
-		bithenge_node_dec_ref(*out_node);
-		return rc;
+	if (count != -1) {
+		rc = seq_node_field_offset(node_as_seq(*out_node), out_size, count);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(*out_node);
+			return rc;
+		}
+	} else {
+		*out_size = 0;
+		for (count = 1; ; count++) {
+			aoff64_t size;
+			rc = seq_node_field_offset(node_as_seq(*out_node),
+			    &size, count);
+			if (rc != EOK)
+				break;
+			*out_size = size;
+		}
 	}
 	return EOK;
 }
@@ -726,6 +805,7 @@ static void repeat_transform_destroy(bithenge_transform_t *base)
 }
 
 static const bithenge_transform_ops_t repeat_transform_ops = {
+	.apply = repeat_transform_apply,
 	.prefix_apply = repeat_transform_prefix_apply,
 	.destroy = repeat_transform_destroy,
 };

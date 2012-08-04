@@ -148,6 +148,22 @@ static inline int bithenge_blob_read(bithenge_blob_t *self, aoff64_t offset,
 	return self->base.blob_ops->read(self, offset, buffer, size);
 }
 
+/** Check whether the blob is empty.
+ *
+ * @memberof bithenge_blob_t
+ * @param self The blob.
+ * @param[out] out Holds whether the blob is empty.
+ * @return EOK on success or an error code from errno.h. */
+static inline int bithenge_blob_empty(bithenge_blob_t *self, bool *out)
+{
+	assert(self);
+	assert(self->base.blob_ops);
+	aoff64_t size;
+	int rc = bithenge_blob_size(self, &size);
+	*out = size == 0;
+	return rc;
+}
+
 /** Cast a blob node to a generic node.
  * @memberof bithenge_blob_t
  * @param blob The blob to cast.

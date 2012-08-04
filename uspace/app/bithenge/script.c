@@ -660,9 +660,12 @@ static bithenge_transform_t *parse_switch(state_t *state, bool in_struct)
 static bithenge_transform_t *parse_repeat(state_t *state)
 {
 	expect(state, TOKEN_REPEAT);
-	expect(state, '(');
-	bithenge_expression_t *expr = parse_expression(state);
-	expect(state, ')');
+	bithenge_expression_t *expr = NULL;
+	if (state->token == '(') {
+		next_token(state);
+		expr = parse_expression(state);
+		expect(state, ')');
+	}
 	expect(state, '{');
 	bithenge_transform_t *xform = parse_transform(state);
 	expect(state, '}');
