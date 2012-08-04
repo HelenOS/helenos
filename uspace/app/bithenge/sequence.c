@@ -43,6 +43,8 @@
 
 
 
+/***************** seq_node                                  *****************/
+
 typedef struct {
 	bithenge_node_t base;
 	const struct seq_node_ops *ops;
@@ -237,6 +239,12 @@ static void seq_node_destroy(seq_node_t *self)
 	free(self->ends);
 }
 
+static void seq_node_set_num_xforms(seq_node_t *self,
+    bithenge_int_t num_xforms)
+{
+	self->num_xforms = num_xforms;
+}
+
 static bithenge_scope_t *seq_node_scope(seq_node_t *self)
 {
 	return &self->scope;
@@ -268,6 +276,8 @@ static int seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
 }
 
 
+
+/***************** bithenge_new_struct                       *****************/
 
 typedef struct {
 	bithenge_transform_t base;
@@ -580,6 +590,8 @@ error:
 
 
 
+/***************** bithenge_repeat_transform                 *****************/
+
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_expression_t *expr;
@@ -635,7 +647,10 @@ static int repeat_node_for_each(bithenge_node_t *base,
 		bithenge_node_t *subxform_result;
 		rc = seq_node_subtransform(repeat_as_seq(self),
 		    &subxform_result, i);
-		if (rc != EOK && self->count == -1) {
+		if ((rc == EINVAL || rc == ENOENT) && self->count == -1) {
+			self->count = i;
+			seq_node_set_num_xforms(repeat_as_seq(self),
+			    self->count);
 			rc = EOK;
 			break;
 		}
@@ -835,6 +850,274 @@ int bithenge_repeat_transform(bithenge_transform_t **out,
 	self->expr = expr;
 	self->xform = xform;
 	*out = repeat_as_transform(self);
+	return EOK;
+
+error:
+	free(self);
+	bithenge_expression_dec_ref(expr);
+	bithenge_transform_dec_ref(xform);
+	return rc;
+}
+
+
+
+/***************** bithenge_do_while_transform               *****************/
+
+typedef struct {
+	bithenge_transform_t base;
+	bithenge_expression_t *expr;
+	bithenge_transform_t *xform;
+} do_while_transform_t;
+
+static inline bithenge_transform_t *do_while_as_transform(
+    do_while_transform_t *self)
+{
+	return &self->base;
+}
+
+static inline do_while_transform_t *transform_as_do_while(
+    bithenge_transform_t *base)
+{
+	return (do_while_transform_t *)base;
+}
+
+typedef struct {
+	seq_node_t base;
+	bool prefix;
+	bithenge_expression_t *expr;
+	bithenge_transform_t *xform;
+	bithenge_int_t count;
+} do_while_node_t;
+
+static seq_node_t *do_while_as_seq(do_while_node_t *self)
+{
+	return &self->base;
+}
+
+static do_while_node_t *seq_as_do_while(seq_node_t *base)
+{
+	return (do_while_node_t *)base;
+}
+
+static bithenge_node_t *do_while_as_node(do_while_node_t *self)
+{
+	return seq_as_node(do_while_as_seq(self));
+}
+
+static do_while_node_t *node_as_do_while(bithenge_node_t *base)
+{
+	return seq_as_do_while(node_as_seq(base));
+}
+
+static int do_while_node_for_each(bithenge_node_t *base,
+    bithenge_for_each_func_t func, void *data)
+{
+	int rc = EOK;
+	do_while_node_t *self = node_as_do_while(base);
+
+	for (bithenge_int_t i = 0; ; i++) {
+		bithenge_node_t *subxform_result;
+		rc = seq_node_subtransform(do_while_as_seq(self),
+		    &subxform_result, i);
+		if (rc != EOK)
+			return rc;
+
+		bithenge_node_t *key_node;
+		rc = bithenge_new_integer_node(&key_node, i);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(subxform_result);
+			return rc;
+		}
+		bithenge_node_inc_ref(subxform_result);
+		rc = func(key_node, subxform_result, data);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(subxform_result);
+			return rc;
+		}
+
+		bithenge_scope_t scope;
+		bithenge_scope_init(&scope);
+		rc = bithenge_scope_copy(&scope,
+		    seq_node_scope(do_while_as_seq(self)));
+		bithenge_scope_set_current_node(&scope, subxform_result);
+		if (rc != EOK) {
+			bithenge_scope_destroy(&scope);
+			return rc;
+		}
+		bithenge_node_t *expr_result;
+		rc = bithenge_expression_evaluate(self->expr, &scope,
+		    &expr_result);
+		bithenge_scope_destroy(&scope);
+		if (rc != EOK)
+			return rc;
+		if (bithenge_node_type(expr_result) != BITHENGE_NODE_BOOLEAN) {
+			bithenge_node_dec_ref(expr_result);
+			return EINVAL;
+		}
+		bool cond = bithenge_boolean_node_value(expr_result);
+		bithenge_node_dec_ref(expr_result);
+		if (!cond) {
+			self->count = i + 1;
+			seq_node_set_num_xforms(do_while_as_seq(self),
+			    self->count);
+			break;
+		}
+	}
+
+	if (!self->prefix) {
+		bool complete;
+		rc = seq_node_complete(do_while_as_seq(self), &complete);
+		if (rc != EOK)
+			return rc;
+		if (!complete)
+			return EINVAL;
+	}
+
+	return rc;
+}
+
+static void do_while_node_destroy(bithenge_node_t *base)
+{
+	do_while_node_t *self = node_as_do_while(base);
+	seq_node_destroy(do_while_as_seq(self));
+	bithenge_expression_dec_ref(self->expr);
+	bithenge_transform_dec_ref(self->xform);
+	free(self);
+}
+
+static const bithenge_internal_node_ops_t do_while_node_ops = {
+	.for_each = do_while_node_for_each,
+	.destroy = do_while_node_destroy,
+};
+
+static int do_while_node_get_transform(seq_node_t *base,
+    bithenge_transform_t **out, bithenge_int_t index)
+{
+	do_while_node_t *self = seq_as_do_while(base);
+	*out = self->xform;
+	bithenge_transform_inc_ref(*out);
+	return EOK;
+}
+
+static const seq_node_ops_t do_while_node_seq_ops = {
+	.get_transform = do_while_node_get_transform,
+};
+
+static int do_while_transform_make_node(do_while_transform_t *self,
+    bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
+    bool prefix)
+{
+	do_while_node_t *node = malloc(sizeof(*node));
+	if (!node)
+		return ENOMEM;
+
+	int rc = bithenge_init_internal_node(do_while_as_node(node),
+	    &do_while_node_ops);
+	if (rc != EOK) {
+		free(node);
+		return rc;
+	}
+
+	rc = seq_node_init(do_while_as_seq(node), &do_while_node_seq_ops,
+	    scope, blob, -1, false);
+	if (rc != EOK) {
+		free(node);
+		return rc;
+	}
+
+	bithenge_transform_inc_ref(self->xform);
+	node->xform = self->xform;
+	bithenge_expression_inc_ref(self->expr);
+	node->expr = self->expr;
+	node->prefix = prefix;
+	node->count = -1;
+	*out = do_while_as_node(node);
+	return EOK;
+}
+
+static int do_while_transform_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	do_while_transform_t *self = transform_as_do_while(base);
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	return do_while_transform_make_node(self, out, scope,
+	    bithenge_node_as_blob(in), false);
+}
+
+static int for_each_noop(bithenge_node_t *key, bithenge_node_t *value,
+    void *data)
+{
+	bithenge_node_dec_ref(key);
+	bithenge_node_dec_ref(value);
+	return EOK;
+}
+
+static int do_while_transform_prefix_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	do_while_transform_t *self = transform_as_do_while(base);
+	int rc = do_while_transform_make_node(self, out_node, scope, blob,
+	    true);
+	if (rc != EOK)
+		return rc;
+
+	rc = bithenge_node_for_each(*out_node, for_each_noop, NULL);
+	if (rc != EOK) {
+		bithenge_node_dec_ref(*out_node);
+		return rc;
+	}
+
+	rc = seq_node_field_offset(node_as_seq(*out_node), out_size,
+	    node_as_do_while(*out_node)->count);
+	if (rc != EOK) {
+		bithenge_node_dec_ref(*out_node);
+		return rc;
+	}
+
+	return EOK;
+}
+
+static void do_while_transform_destroy(bithenge_transform_t *base)
+{
+	do_while_transform_t *self = transform_as_do_while(base);
+	bithenge_transform_dec_ref(self->xform);
+	bithenge_expression_dec_ref(self->expr);
+	free(self);
+}
+
+static const bithenge_transform_ops_t do_while_transform_ops = {
+	.apply = do_while_transform_apply,
+	.prefix_apply = do_while_transform_prefix_apply,
+	.destroy = do_while_transform_destroy,
+};
+
+/** Create a transform that applies its subtransform while an expression on the
+ * result returns true. Takes a reference to @a xform and @a expr.
+ * @param[out] out Holds the new transform.
+ * @param xform The subtransform to apply repeatedly.
+ * @param expr Applied in the result of each application of @a xform to
+ * determine whether there will be more.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_do_while_transform(bithenge_transform_t **out,
+    bithenge_transform_t *xform, bithenge_expression_t *expr)
+{
+	int rc;
+	do_while_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_transform(do_while_as_transform(self),
+	    &do_while_transform_ops, 0);
+	if (rc != EOK)
+		goto error;
+
+	self->expr = expr;
+	self->xform = xform;
+	*out = do_while_as_transform(self);
 	return EOK;
 
 error:

@@ -200,6 +200,7 @@ int bithenge_scope_copy(bithenge_scope_t *out, bithenge_scope_t *scope)
 	out->num_params = scope->num_params;
 	for (int i = 0; i < out->num_params; i++)
 		bithenge_node_inc_ref(out->params[i]);
+	bithenge_node_dec_ref(out->current_node);
 	out->current_node = scope->current_node;
 	if (out->current_node)
 		bithenge_node_inc_ref(out->current_node);
@@ -475,6 +476,25 @@ bithenge_transform_t bithenge_known_length_transform = {
 	&known_length_ops, 1, 1
 };
 
+static int nonzero_boolean_apply(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	if (bithenge_node_type(in) != BITHENGE_NODE_INTEGER)
+		return EINVAL;
+	bool value = bithenge_integer_node_value(in) != 0;
+	return bithenge_new_boolean_node(out, value);
+}
+
+static const bithenge_transform_ops_t nonzero_boolean_ops = {
+	.apply = nonzero_boolean_apply,
+	.destroy = transform_indestructible,
+};
+
+/** A transform that converts integers to booleans, true if nonzero. */
+bithenge_transform_t bithenge_nonzero_boolean_transform = {
+	&nonzero_boolean_ops, 1, 0
+};
+
 static int prefix_length_1(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_blob_t *blob, aoff64_t *out)
 {
@@ -601,6 +621,7 @@ bithenge_transform_t bithenge_zero_terminated_transform = {
 static bithenge_named_transform_t primitive_transforms[] = {
 	{"ascii", &bithenge_ascii_transform},
 	{"known_length", &bithenge_known_length_transform},
+	{"nonzero_boolean", &bithenge_nonzero_boolean_transform},
 	{"uint8", &bithenge_uint8_transform},
 	{"uint16le", &bithenge_uint16le_transform},
 	{"uint16be", &bithenge_uint16be_transform},

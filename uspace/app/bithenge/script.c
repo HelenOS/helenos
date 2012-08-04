@@ -58,6 +58,7 @@ typedef enum {
 	TOKEN_LEFT_ARROW,
 
 	/* Keywords */
+	TOKEN_DO,
 	TOKEN_ELSE,
 	TOKEN_FALSE,
 	TOKEN_IF,
@@ -66,6 +67,7 @@ typedef enum {
 	TOKEN_SWITCH,
 	TOKEN_TRANSFORM,
 	TOKEN_TRUE,
+	TOKEN_WHILE,
 } token_type_t;
 
 /** Singly-linked list of named transforms. */
@@ -210,6 +212,9 @@ static void next_token(state_t *state)
 		    state->buffer_pos - state->old_buffer_pos);
 		if (!value) {
 			error_errno(state, ENOMEM);
+		} else if (!str_cmp(value, "do")) {
+			state->token = TOKEN_DO;
+			free(value);
 		} else if (!str_cmp(value, "else")) {
 			state->token = TOKEN_ELSE;
 			free(value);
@@ -233,6 +238,9 @@ static void next_token(state_t *state)
 			free(value);
 		} else if (!str_cmp(value, "true")) {
 			state->token = TOKEN_TRUE;
+			free(value);
+		} else if (!str_cmp(value, "while")) {
+			state->token = TOKEN_WHILE;
 			free(value);
 		} else {
 			state->token = TOKEN_IDENTIFIER;
@@ -685,6 +693,32 @@ static bithenge_transform_t *parse_repeat(state_t *state)
 	return repeat_xform;
 }
 
+static bithenge_transform_t *parse_do_while(state_t *state)
+{
+	expect(state, TOKEN_DO);
+	expect(state, '{');
+	bithenge_transform_t *xform = parse_transform(state);
+	expect(state, '}');
+	expect(state, TOKEN_WHILE);
+	expect(state, '(');
+	bithenge_expression_t *expr = parse_expression(state);
+	expect(state, ')');
+
+	if (state->error != EOK) {
+		bithenge_expression_dec_ref(expr);
+		bithenge_transform_dec_ref(xform);
+		return NULL;
+	}
+
+	bithenge_transform_t *do_while_xform;
+	int rc = bithenge_do_while_transform(&do_while_xform, xform, expr);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		return NULL;
+	}
+	return do_while_xform;
+}
+
 /* The TOKEN_STRUCT and '{' must already have been skipped. */
 static bithenge_transform_t *parse_struct(state_t *state)
 {
@@ -739,7 +773,9 @@ static bithenge_transform_t *parse_struct(state_t *state)
  * @return The parsed transform, or NULL if an error occurred. */
 static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
-	if (state->token == TOKEN_IDENTIFIER) {
+	if (state->token == TOKEN_DO) {
+		return parse_do_while(state);
+	} else if (state->token == TOKEN_IDENTIFIER) {
 		return parse_invocation(state);
 	} else if (state->token == TOKEN_IF) {
 		return parse_if(state, false);

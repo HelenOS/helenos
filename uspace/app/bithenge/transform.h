@@ -111,8 +111,9 @@ typedef struct {
 } bithenge_named_transform_t;
 
 extern bithenge_transform_t bithenge_ascii_transform;
-extern bithenge_transform_t bithenge_known_length_transform;
 extern bithenge_transform_t bithenge_invalid_transform;
+extern bithenge_transform_t bithenge_known_length_transform;
+extern bithenge_transform_t bithenge_nonzero_boolean_transform;
 extern bithenge_transform_t bithenge_uint8_transform;
 extern bithenge_transform_t bithenge_uint16le_transform;
 extern bithenge_transform_t bithenge_uint16be_transform;

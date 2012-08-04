@@ -6,11 +6,19 @@ transform with_count = struct {
 };
 
 transform without_count = struct {
-	.error <- repeat { uint8 <- zero_terminated };
-	.end <- repeat { uint8 };
+	.until_error <- repeat { uint8 <- zero_terminated };
+	.until_end <- repeat { uint8 };
 };
+
+transform do_while = do {
+	struct {
+		.valid <- nonzero_boolean <- uint8;
+		.val <- uint8;
+	}
+} while (.valid);
 
 transform main = struct {
 	.with_count <- with_count;
-	.without_count <- without_count;
+	.without_count <- without_count <- known_length(9);
+	.do_while <- do_while;
 };
