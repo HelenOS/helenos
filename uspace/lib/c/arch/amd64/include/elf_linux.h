@@ -65,6 +65,18 @@ typedef struct {
 	uint64_t rflags;
 	uint64_t rsp;
 	uint64_t ss;
+
+	/*
+	 * The following registers need to be part of elf_regs_t.
+	 * Unfortunately, we don't have any information about them in our
+	 * istate_t.
+	 */
+	uint64_t unused_fs_base;
+	uint64_t unused_gs_base;
+	uint64_t unused_ds;
+	uint64_t unused_es;
+	uint64_t unused_fs;
+	uint64_t unused_gs;
 } elf_regs_t;
 
 /** Convert istate_t to elf_regs_t. */
@@ -90,6 +102,16 @@ static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
 	elf_regs->rflags = istate->rflags;
 	elf_regs->rsp = istate->rsp;
 	elf_regs->ss = istate->ss;
+
+	/*
+	 * Reset the registers for which there is not enough info in istate_t.
+	 */
+	elf_regs->unused_fs_base = 0;
+	elf_regs->unused_gs_base = 0;
+	elf_regs->unused_ds = 0;
+	elf_regs->unused_es = 0;
+	elf_regs->unused_fs = 0;
+	elf_regs->unused_gs = 0;
 }
 
 #endif
