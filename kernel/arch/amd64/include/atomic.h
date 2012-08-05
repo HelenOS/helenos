@@ -140,7 +140,7 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 }
 
 
-#define _atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, prefix) \
+#define _atomic_cas_impl(pptr, exp_val, new_val, old_val, prefix) \
 	asm volatile ( \
 		prefix " cmpxchgq %[newval], %[ptr]\n" \
 		: /* Output operands. */ \
@@ -161,7 +161,7 @@ NO_TRACE static inline void * atomic_cas_ptr(void **pptr,
 	void *exp_val, void *new_val)
 {
 	void *old_val;
-	_atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, "lock\n");
+	_atomic_cas_impl(pptr, exp_val, new_val, old_val, "lock\n");
 	return old_val;
 }
 
@@ -173,22 +173,46 @@ NO_TRACE static inline void * atomic_cas_ptr_local(void **pptr,
 	void *exp_val, void *new_val)
 {
 	void *old_val;
-	_atomic_cas_ptr_impl(pptr, exp_val, new_val, old_val, "");
+	_atomic_cas_impl(pptr, exp_val, new_val, old_val, "");
 	return old_val;
 }
 
-/** Atomicaly sets *ptr to new_val and returns the previous value. */
-NO_TRACE static inline void * atomic_swap_ptr(void **pptr, void *new_val)
+
+#define _atomic_swap_impl(pptr, new_val) \
+({ \
+	typeof(*(pptr)) new_in_old_out = new_val; \
+	asm volatile ( \
+		"xchgq %[val], %[p_ptr]\n" \
+		: [val] "+r" (new_in_old_out), \
+		  [p_ptr] "+m" (*pptr) \
+	); \
+	\
+	new_in_old_out; \
+})
+
+/* 
+ * Issuing a xchg instruction always implies lock prefix semantics.
+ * Therefore, it is cheaper to use a cmpxchg without a lock prefix 
+ * in a loop.
+ */
+#define _atomic_swap_local_impl(pptr, new_val) \
+({ \
+	typeof(*(pptr)) exp_val; \
+	typeof(*(pptr)) old_val; \
+	\
+	do { \
+		exp_val = *pptr; \
+		_atomic_cas_impl(pptr, exp_val, new_val, old_val, ""); \
+	} while (old_val != exp_val); \
+	\
+	old_val; \
+})
+
+
+/** Atomicaly sets *ptr to val and returns the previous value. */
+NO_TRACE static inline void * atomic_set_return_ptr(void **pptr, void *val)
 {
-	void *new_in_old_out = new_val;
-	
-	asm volatile (
-		"xchgq %[val], %[pptr]\n"
-		: [val] "+r" (new_in_old_out),
-		  [pptr] "+m" (*pptr)
-	);
-	
-	return new_in_old_out;
+	return _atomic_swap_impl(pptr, val);
 }
 
 /** Sets *ptr to new_val and returns the previous value. NOT smp safe.
@@ -196,27 +220,34 @@ NO_TRACE static inline void * atomic_swap_ptr(void **pptr, void *new_val)
  * This function is only atomic wrt to local interrupts and it is
  * NOT atomic wrt to other cpus.
  */
-NO_TRACE static inline void * atomic_swap_ptr_local(void **pptr, void *new_val)
+NO_TRACE static inline void * atomic_set_return_ptr_local(
+	void **pptr, void *new_val)
 {
-	/* 
-	 * Issuing a xchg instruction always implies lock prefix semantics.
-	 * Therefore, it is cheaper to use a cmpxchg without a lock prefix 
-	 * in a loop.
-	 */
-	void *exp_val;
-	void *old_val;
-	
-	do {
-		exp_val = *pptr;
-		old_val = atomic_cas_ptr_local(pptr, exp_val, new_val);
-	} while (old_val != exp_val);
-	
-	return old_val;
+	return _atomic_swap_local_impl(pptr, new_val);
+}
+
+/** Atomicaly sets *ptr to val and returns the previous value. */
+NO_TRACE static inline native_t atomic_set_return_native_t(
+	native_t *p, native_t val)
+{
+	return _atomic_swap_impl(p, val);
+}
+
+/** Sets *ptr to new_val and returns the previous value. NOT smp safe.
+ * 
+ * This function is only atomic wrt to local interrupts and it is
+ * NOT atomic wrt to other cpus.
+ */
+NO_TRACE static inline native_t atomic_set_return_native_t_local(
+	native_t *p, native_t new_val)
+{
+	return _atomic_swap_local_impl(p, new_val);
 }
 
 
 #undef _atomic_cas_ptr_impl
-
+#undef _atomic_swap_impl
+#undef _atomic_swap_local_impl
 
 #endif
 
