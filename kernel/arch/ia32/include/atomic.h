@@ -180,6 +180,44 @@ NO_TRACE static inline void * atomic_cas_ptr_local(void **pptr,
 	return old_val;
 }
 
+
+/** Atomicaly sets *ptr to new_val and returns the previous value. */
+NO_TRACE static inline void * atomic_swap_ptr(void **pptr, void *new_val)
+{
+	void *new_in_old_out = new_val;
+	
+	asm volatile (
+		"xchgl %[val], %[pptr]\n"
+		: [val] "+r" (new_in_old_out),
+		  [pptr] "+m" (*pptr)
+	);
+	
+	return new_in_old_out;
+}
+
+/** Sets *ptr to new_val and returns the previous value. NOT smp safe.
+ * 
+ * This function is only atomic wrt to local interrupts and it is
+ * NOT atomic wrt to other cpus.
+ */
+NO_TRACE static inline void * atomic_swap_ptr_local(void **pptr, void *new_val)
+{
+	/* 
+	 * Issuing a xchg instruction always implies lock prefix semantics.
+	 * Therefore, it is cheaper to use a cmpxchg without a lock prefix 
+	 * in a loop.
+	 */
+	void *exp_val;
+	void *old_val;
+	
+	do {
+		exp_val = *pptr;
+		old_val = atomic_cas_ptr_local(pptr, exp_val, new_val);
+	} while (old_val != exp_val);
+	
+	return old_val;
+}
+
 #undef _atomic_cas_ptr_impl
 
 #endif

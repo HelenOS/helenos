@@ -70,5 +70,11 @@ const char *test_atomic1(void)
 	if (ptr != a_ptr)
 		return "Failed atomic_cas_ptr(): changed the ptr";
 	
+	ptr = 0;
+	if (atomic_swap_ptr(&ptr, a_ptr) != 0) 
+		return "Failed atomic_swap_ptr()";
+	if (atomic_swap_ptr_local(&ptr, 0) != a_ptr || ptr != 0) 
+		return "Failed atomic_swap_ptr_local()";
+	
 	return NULL;
 }
