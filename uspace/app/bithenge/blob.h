@@ -55,6 +55,9 @@ typedef struct bithenge_random_access_blob_ops_t {
 	/** @copydoc bithenge_blob_t::bithenge_blob_read */
 	int (*read)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
 	    aoff64_t *size);
+	/** @copydoc bithenge_blob_t::bithenge_blob_read_bits */
+	int (*read_bits)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
+	    aoff64_t *size, bool little_endian);
 	/** Destroy the blob.
 	 * @param blob The blob. */
 	void (*destroy)(bithenge_blob_t *self);
@@ -145,7 +148,38 @@ static inline int bithenge_blob_read(bithenge_blob_t *self, aoff64_t offset,
 {
 	assert(self);
 	assert(self->base.blob_ops);
+	if (!self->base.blob_ops->read)
+		return EINVAL;
 	return self->base.blob_ops->read(self, offset, buffer, size);
+}
+
+/** Read part of the bit blob. If the requested data extends beyond the end of
+ * the blob, the data up until the end of the blob will be read. If the offset
+ * is beyond the end of the blob, even if the size is zero, an error will be
+ * returned.
+ *
+ * @memberof bithenge_blob_t
+ * @param self The blob.
+ * @param offset Byte offset within the blob.
+ * @param[out] buffer Buffer to read into. If an error occurs, the contents are
+ * undefined.
+ * @param[in,out] size Number of bytes to read; may be 0. If the requested
+ * range extends beyond the end of the blob, the actual number of bytes read
+ * should be stored here. If an error occurs, the contents are undefined.
+ * @param little_endian If true, bytes will be filled starting at the least
+ * significant bit; otherwise, they will be filled starting at the most
+ * significant bit.
+ * @return EOK on success or an error code from errno.h.
+ */
+static inline int bithenge_blob_read_bits(bithenge_blob_t *self,
+    aoff64_t offset, char *buffer, aoff64_t *size, bool little_endian)
+{
+	assert(self);
+	assert(self->base.blob_ops);
+	if (!self->base.blob_ops->read_bits)
+		return EINVAL;
+	return self->base.blob_ops->read_bits(self, offset, buffer, size,
+	    little_endian);
 }
 
 /** Check whether the blob is empty.

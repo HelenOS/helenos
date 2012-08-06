@@ -54,7 +54,7 @@ int bithenge_init_random_access_blob(bithenge_blob_t *blob,
 	assert(blob);
 	assert(ops);
 	assert(ops->destroy);
-	assert(ops->read);
+	assert(ops->read || ops->read_bits);
 	assert(ops->size);
 
 	blob->base.type = BITHENGE_NODE_BLOB;
@@ -338,6 +338,20 @@ static int subblob_read(bithenge_blob_t *base, aoff64_t offset,
 	return bithenge_blob_read(blob->source, offset, buffer, size);
 }
 
+static int subblob_read_bits(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size, bool little_endian)
+{
+	subblob_t *blob = blob_as_subblob(base);
+	if (blob->size_matters) {
+		if (offset > blob->size)
+			return EINVAL;
+		*size = min(*size, blob->size - offset);
+	}
+	offset += blob->offset;
+	return bithenge_blob_read_bits(blob->source, offset, buffer, size,
+	    little_endian);
+}
+
 static void subblob_destroy(bithenge_blob_t *base)
 {
 	subblob_t *blob = blob_as_subblob(base);
@@ -348,6 +362,7 @@ static void subblob_destroy(bithenge_blob_t *base)
 static const bithenge_random_access_blob_ops_t subblob_ops = {
 	.size = subblob_size,
 	.read = subblob_read,
+	.read_bits = subblob_read_bits,
 	.destroy = subblob_destroy,
 };
 

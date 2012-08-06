@@ -362,6 +362,10 @@ error:
 	return rc;
 }
 
+
+
+/***************** ascii                                     *****************/
+
 static int ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
 {
@@ -403,6 +407,169 @@ bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1, 0
 };
 
+
+
+/***************** bit                                       *****************/
+
+static int bit_prefix_apply(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	char buffer;
+	*out_size = 1;
+	int rc = bithenge_blob_read_bits(blob, 0, &buffer, out_size, true);
+	if (rc != EOK)
+		return rc;
+	if (*out_size != 1)
+		return EINVAL;
+	return bithenge_new_boolean_node(out_node, (buffer & 1) != 0);
+}
+
+static const bithenge_transform_ops_t bit_ops = {
+	.prefix_apply = bit_prefix_apply,
+	.destroy = transform_indestructible,
+};
+
+/** A transform that decodes a bit as a boolean. */
+bithenge_transform_t bithenge_bit_transform = {
+	&bit_ops, 1, 0
+};
+
+
+
+/***************** bits_be, bits_le                          *****************/
+
+typedef struct {
+	bithenge_blob_t base;
+	bithenge_blob_t *bytes;
+	bool little_endian;
+} bits_xe_blob_t;
+
+static bits_xe_blob_t *blob_as_bits_xe(bithenge_blob_t *base)
+{
+	return (bits_xe_blob_t *)base;
+}
+
+static bithenge_blob_t *bits_xe_as_blob(bits_xe_blob_t *self)
+{
+	return &self->base;
+}
+
+static int bits_xe_size(bithenge_blob_t *base, aoff64_t *out)
+{
+	bits_xe_blob_t *self = blob_as_bits_xe(base);
+	int rc = bithenge_blob_size(self->bytes, out);
+	*out *= 8;
+	return rc;
+}
+
+static uint8_t reverse_byte(uint8_t val)
+{
+	val = ((val & 0x0f) << 4) ^ ((val & 0xf0) >> 4);
+	val = ((val & 0x33) << 2) ^ ((val & 0xcc) >> 2);
+	val = ((val & 0x55) << 1) ^ ((val & 0xaa) >> 1);
+	return val;
+}
+
+static int bits_xe_read_bits(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size, bool little_endian)
+{
+	bits_xe_blob_t *self = blob_as_bits_xe(base);
+	aoff64_t bytes_offset = offset / 8;
+	aoff64_t bit_offset = offset % 8;
+	aoff64_t output_num_bytes = (*size + 7) / 8;
+	aoff64_t bytes_size = (*size + bit_offset + 7) / 8;
+	bool separate_buffer = bit_offset != 0;
+	uint8_t *bytes_buffer;
+	if (separate_buffer) {
+		/* Allocate an extra byte, to make sure byte1 can be read. */
+		bytes_buffer = malloc(bytes_size + 1);
+		if (!bytes_buffer)
+			return ENOMEM;
+	} else
+		bytes_buffer = (uint8_t *)buffer;
+
+	int rc = bithenge_blob_read(self->bytes, bytes_offset,
+	    (char *)bytes_buffer, &bytes_size);
+	if (rc != EOK)
+		goto end;
+	*size = min(*size, bytes_size * 8 - bit_offset);
+
+	if (little_endian != self->little_endian)
+		for (aoff64_t i = 0; i < bytes_size; i++)
+			bytes_buffer[i] = reverse_byte(bytes_buffer[i]);
+
+	if (bit_offset || separate_buffer) {
+		for (aoff64_t i = 0; i < output_num_bytes; i++) {
+			uint8_t byte0 = bytes_buffer[i];
+			uint8_t	byte1 = bytes_buffer[i + 1];
+			buffer[i] = little_endian ?
+			    (byte0 >> bit_offset) ^ (byte1 << (8 - bit_offset)) :
+			    (byte0 << bit_offset) ^ (byte1 >> (8 - bit_offset));
+		}
+	}
+
+end:
+	if (separate_buffer)
+		free(bytes_buffer);
+	return rc;
+}
+
+static void bits_xe_destroy(bithenge_blob_t *base)
+{
+	bits_xe_blob_t *self = blob_as_bits_xe(base);
+	bithenge_blob_dec_ref(self->bytes);
+	free(self);
+}
+
+static const bithenge_random_access_blob_ops_t bits_xe_blob_ops = {
+	.size = bits_xe_size,
+	.read_bits = bits_xe_read_bits,
+	.destroy = bits_xe_destroy,
+};
+
+static int bits_xe_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
+    bithenge_node_t *in, bithenge_node_t **out)
+{
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	bits_xe_blob_t *blob = malloc(sizeof(*blob));
+	if (!blob)
+		return ENOMEM;
+	int rc = bithenge_init_random_access_blob(bits_xe_as_blob(blob),
+	    &bits_xe_blob_ops);
+	if (rc != EOK) {
+		free(blob);
+		return rc;
+	}
+	bithenge_node_inc_ref(in);
+	blob->bytes = bithenge_node_as_blob(in);
+	blob->little_endian = (self == &bithenge_bits_le_transform);
+	*out = bithenge_blob_as_node(bits_xe_as_blob(blob));
+	return EOK;
+}
+
+static const bithenge_transform_ops_t bits_xe_ops = {
+	.apply = bits_xe_apply,
+	.destroy = transform_indestructible,
+};
+
+/** A transform that converts a byte blob to a bit blob, most-significant bit
+ * first. */
+bithenge_transform_t bithenge_bits_be_transform = {
+	&bits_xe_ops, 1, 0
+};
+
+/** A transform that converts a byte blob to a bit blob, least-significant bit
+ * first. */
+bithenge_transform_t bithenge_bits_le_transform = {
+	&bits_xe_ops, 1, 0
+};
+
+
+
+/***************** invalid                                   *****************/
+
 static int invalid_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
 {
@@ -418,6 +585,10 @@ static const bithenge_transform_ops_t invalid_ops = {
 bithenge_transform_t bithenge_invalid_transform = {
 	&invalid_ops, 1, 0
 };
+
+
+
+/***************** known_length                              *****************/
 
 static int known_length_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
@@ -563,6 +734,78 @@ MAKE_UINT_TRANSFORM(uint32be, uint32_t, uint32_t_be2host, prefix_length_4);
 MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint32_t_le2host, prefix_length_8);
 MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint32_t_be2host, prefix_length_8);
 
+
+
+/***************** uint_be, uint_le                          *****************/
+
+static int uint_xe_prefix_apply(bithenge_transform_t *self,
+    bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	bool little_endian = (self == &bithenge_uint_le_transform);
+	bithenge_node_t *num_bits_node;
+	int rc = bithenge_scope_get_param(scope, 0, &num_bits_node);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(num_bits_node) != BITHENGE_NODE_INTEGER) {
+		bithenge_node_dec_ref(num_bits_node);
+		return EINVAL;
+	}
+	bithenge_int_t num_bits = bithenge_integer_node_value(num_bits_node);
+	bithenge_node_dec_ref(num_bits_node);
+	if (num_bits < 0)
+		return EINVAL;
+	if ((size_t)num_bits > sizeof(bithenge_int_t) * 8 - 1)
+		return EINVAL;
+
+	*out_size = num_bits;
+	uint8_t buffer[sizeof(bithenge_int_t)];
+	rc = bithenge_blob_read_bits(blob, 0, (char *)buffer, out_size,
+	    little_endian);
+	if (rc != EOK)
+		return rc;
+	if (*out_size != (aoff64_t)num_bits)
+		return EINVAL;
+
+	bithenge_int_t result = 0;
+	bithenge_int_t num_easy_bytes = num_bits / 8;
+	if (little_endian) {
+		for (bithenge_int_t i = 0; i < num_easy_bytes; i++)
+			result += buffer[i] << 8 * i;
+		if (num_bits % 8)
+			result += (buffer[num_easy_bytes] &
+			    ((1 << num_bits % 8) - 1)) << 8 * num_easy_bytes;
+	} else {
+		for (bithenge_int_t i = 0; i < num_easy_bytes; i++)
+			result += buffer[i] << (num_bits - 8 * (i + 1));
+		if (num_bits % 8)
+			result += buffer[num_easy_bytes] >> (8 - num_bits % 8);
+	}
+
+	return bithenge_new_integer_node(out_node, result);
+}
+
+static const bithenge_transform_ops_t uint_xe_ops = {
+	.prefix_apply = uint_xe_prefix_apply,
+	.destroy = transform_indestructible,
+};
+
+/** A transform that reads an unsigned integer from an arbitrary number of
+ * bits, most-significant bit first. */
+bithenge_transform_t bithenge_uint_be_transform = {
+	&uint_xe_ops, 1, 1
+};
+
+/** A transform that reads an unsigned integer from an arbitrary number of
+ * bits, least-significant bit first. */
+bithenge_transform_t bithenge_uint_le_transform = {
+	&uint_xe_ops, 1, 1
+};
+
+
+
+/***************** zero_terminated                           *****************/
+
 static int zero_terminated_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
@@ -620,15 +863,20 @@ bithenge_transform_t bithenge_zero_terminated_transform = {
 
 static bithenge_named_transform_t primitive_transforms[] = {
 	{"ascii", &bithenge_ascii_transform},
+	{"bit", &bithenge_bit_transform},
+	{"bits_be", &bithenge_bits_be_transform},
+	{"bits_le", &bithenge_bits_le_transform},
 	{"known_length", &bithenge_known_length_transform},
 	{"nonzero_boolean", &bithenge_nonzero_boolean_transform},
 	{"uint8", &bithenge_uint8_transform},
-	{"uint16le", &bithenge_uint16le_transform},
 	{"uint16be", &bithenge_uint16be_transform},
-	{"uint32le", &bithenge_uint32le_transform},
+	{"uint16le", &bithenge_uint16le_transform},
 	{"uint32be", &bithenge_uint32be_transform},
-	{"uint64le", &bithenge_uint64le_transform},
+	{"uint32le", &bithenge_uint32le_transform},
 	{"uint64be", &bithenge_uint64be_transform},
+	{"uint64le", &bithenge_uint64le_transform},
+	{"uint_be", &bithenge_uint_be_transform},
+	{"uint_le", &bithenge_uint_le_transform},
 	{"zero_terminated", &bithenge_zero_terminated_transform},
 	{NULL, NULL}
 };
