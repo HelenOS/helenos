@@ -423,17 +423,19 @@ static int param_wrapper_apply(bithenge_transform_t *base,
     bithenge_scope_t *outer, bithenge_node_t *in, bithenge_node_t **out)
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
-	bithenge_scope_t inner;
-	bithenge_scope_init(&inner);
-	int rc = param_wrapper_fill_scope(self, &inner, outer);
+	bithenge_scope_t *inner;
+	int rc = bithenge_scope_new(&inner);
+	if (rc != EOK)
+		return rc;
+	rc = param_wrapper_fill_scope(self, inner, outer);
 	if (rc != EOK)
 		goto error;
 
-	rc = bithenge_transform_apply(self->transform, &inner, in, out);
+	rc = bithenge_transform_apply(self->transform, inner, in, out);
 	in = NULL;
 
 error:
-	bithenge_scope_destroy(&inner);
+	bithenge_scope_dec_ref(inner);
 	return rc;
 }
 
@@ -441,18 +443,19 @@ static int param_wrapper_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *outer, bithenge_blob_t *in, aoff64_t *out)
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
-	bithenge_scope_t inner;
-	bithenge_scope_init(&inner);
-	int rc = param_wrapper_fill_scope(self, &inner, outer);
+	bithenge_scope_t *inner;
+	int rc = bithenge_scope_new(&inner);
+	if (rc != EOK)
+		return rc;
+	rc = param_wrapper_fill_scope(self, inner, outer);
 	if (rc != EOK)
 		goto error;
 
-	rc = bithenge_transform_prefix_length(self->transform, &inner, in,
-	    out);
+	rc = bithenge_transform_prefix_length(self->transform, inner, in, out);
 	in = NULL;
 
 error:
-	bithenge_scope_destroy(&inner);
+	bithenge_scope_dec_ref(inner);
 	return rc;
 }
 

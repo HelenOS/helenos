@@ -68,27 +68,35 @@ int main(int argc, char *argv[])
 		printf("\n");
 		bithenge_node_dec_ref(node);
 	} else {
-		bithenge_scope_t scope;
+		bithenge_scope_t *scope = NULL;
 		bithenge_transform_t *transform = NULL;
 		bithenge_node_t *node = NULL, *node2 = NULL;
 
-		bithenge_scope_init(&scope);
+		rc = bithenge_scope_new(&scope);
+		if (rc != EOK) {
+			printf("Error creating scope: %s\n", str_error(rc));
+			scope = NULL;
+			goto error;
+		}
 
 		rc = bithenge_parse_script(argv[1], &transform);
 		if (rc != EOK) {
 			printf("Error parsing script: %s\n", str_error(rc));
+			transform = NULL;
 			goto error;
 		}
 
-		int rc = bithenge_node_from_source(&node, argv[2]);
+		rc = bithenge_node_from_source(&node, argv[2]);
 		if (rc != EOK) {
 			printf("Error creating node from source: %s\n", str_error(rc));
+			node = NULL;
 			goto error;
 		}
 
-		rc = bithenge_transform_apply(transform, &scope, node, &node2);
+		rc = bithenge_transform_apply(transform, scope, node, &node2);
 		if (rc != EOK) {
 			printf("Error applying transform: %s\n", str_error(rc));
+			node2 = NULL;
 			goto error;
 		}
 
@@ -104,6 +112,8 @@ int main(int argc, char *argv[])
 		}
 		bithenge_node_dec_ref(node2);
 		node2 = NULL;
+		bithenge_scope_dec_ref(scope);
+		scope = NULL;
 		printf("\n");
 
 		return 0;
@@ -112,7 +122,7 @@ error:
 		bithenge_node_dec_ref(node);
 		bithenge_node_dec_ref(node2);
 		bithenge_transform_dec_ref(transform);
-		bithenge_scope_destroy(&scope);
+		bithenge_scope_dec_ref(scope);
 		return 1;
 	}
 

@@ -51,10 +51,15 @@ typedef struct {
 /** Context and parameters used when applying transforms. */
 typedef struct {
 	/** @privatesection */
+	unsigned int refs;
 	int num_params;
 	bithenge_node_t **params;
 	bithenge_node_t *current_node;
 } bithenge_scope_t;
+
+static inline void bithenge_scope_inc_ref(bithenge_scope_t *self) {
+	self->refs++;
+}
 
 /** Operations that may be provided by a transform. All transforms must provide
  * apply and/or prefix_apply. To be used in struct transforms and repeat
@@ -142,8 +147,8 @@ int bithenge_new_scope_transform(bithenge_transform_t **,
 int bithenge_new_composed_transform(bithenge_transform_t **,
     bithenge_transform_t **, size_t);
 
-void bithenge_scope_init(bithenge_scope_t *);
-void bithenge_scope_destroy(bithenge_scope_t *);
+int bithenge_scope_new(bithenge_scope_t **);
+void bithenge_scope_dec_ref(bithenge_scope_t *);
 int bithenge_scope_copy(bithenge_scope_t *, bithenge_scope_t *);
 void bithenge_scope_set_current_node(bithenge_scope_t *, bithenge_node_t *);
 bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *);

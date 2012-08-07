@@ -164,25 +164,34 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 	return rc;
 }
 
-/** Initialize a transform scope. It must be destroyed with @a
- * bithenge_scope_destroy after it is used.
- * @param[out] scope The scope to initialize. */
-void bithenge_scope_init(bithenge_scope_t *scope)
+/** Create a transform scope. It must be dereferenced with @a
+ * bithenge_scope_dec_ref after it is used.
+ * @param[out] out Holds the new scope.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_scope_new(bithenge_scope_t **out)
 {
-	scope->num_params = 0;
-	scope->params = NULL;
-	scope->current_node = NULL;
+	bithenge_scope_t *self = malloc(sizeof(*self));
+	if (!self)
+		return ENOMEM;
+	self->refs = 1;
+	self->num_params = 0;
+	self->params = NULL;
+	self->current_node = NULL;
+	*out = self;
+	return EOK;
 }
 
-/** Destroy a transform scope.
- * @param scope The scope to destroy.
- * @return EOK on success or an error code from errno.h. */
-void bithenge_scope_destroy(bithenge_scope_t *scope)
+/** Dereference a transform scope.
+ * @param self The scope to dereference. */
+void bithenge_scope_dec_ref(bithenge_scope_t *self)
 {
-	bithenge_node_dec_ref(scope->current_node);
-	for (int i = 0; i < scope->num_params; i++)
-		bithenge_node_dec_ref(scope->params[i]);
-	free(scope->params);
+	if (!--self->refs) {
+		bithenge_node_dec_ref(self->current_node);
+		for (int i = 0; i < self->num_params; i++)
+			bithenge_node_dec_ref(self->params[i]);
+		free(self->params);
+		free(self);
+	}
 }
 
 /** Copy a scope.
@@ -296,15 +305,17 @@ static int scope_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	scope_transform_t *self = transform_as_param(base);
-	bithenge_scope_t inner_scope;
-	bithenge_scope_init(&inner_scope);
-	int rc = bithenge_scope_copy(&inner_scope, scope);
+	bithenge_scope_t *inner_scope;
+	int rc = bithenge_scope_new(&inner_scope);
+	if (rc != EOK)
+		return rc;
+	rc = bithenge_scope_copy(inner_scope, scope);
 	if (rc != EOK)
 		goto error;
-	bithenge_scope_set_current_node(&inner_scope, NULL);
+	bithenge_scope_set_current_node(inner_scope, NULL);
 	rc = bithenge_transform_apply(self->transform, scope, in, out);
 error:
-	bithenge_scope_destroy(&inner_scope);
+	bithenge_scope_dec_ref(inner_scope);
 	return rc;
 }
 

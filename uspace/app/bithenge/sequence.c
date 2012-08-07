@@ -49,7 +49,7 @@ typedef struct {
 	bithenge_node_t base;
 	const struct seq_node_ops *ops;
 	bithenge_blob_t *blob;
-	bithenge_scope_t scope;
+	bithenge_scope_t *scope;
 	aoff64_t *ends;
 	size_t num_ends;
 	bool end_on_empty;
@@ -113,7 +113,7 @@ static int seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
 
 		bithenge_blob_t *subblob = bithenge_node_as_blob(subblob_node);
 		aoff64_t field_size;
-		rc = bithenge_transform_prefix_length(subxform, &self->scope,
+		rc = bithenge_transform_prefix_length(subxform, self->scope,
 		    subblob, &field_size);
 		bithenge_node_dec_ref(subblob_node);
 		bithenge_transform_dec_ref(subxform);
@@ -176,7 +176,7 @@ static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 		}
 
 		aoff64_t size;
-		rc = bithenge_transform_prefix_apply(subxform, &self->scope,
+		rc = bithenge_transform_prefix_apply(subxform, self->scope,
 		    bithenge_node_as_blob(blob_node), out, &size);
 		bithenge_node_dec_ref(blob_node);
 		bithenge_transform_dec_ref(subxform);
@@ -208,8 +208,8 @@ static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 			return rc;
 		}
 
-		rc = bithenge_transform_apply(subxform, &self->scope,
-		    blob_node, out);
+		rc = bithenge_transform_apply(subxform, self->scope, blob_node,
+		    out);
 		bithenge_node_dec_ref(blob_node);
 		bithenge_transform_dec_ref(subxform);
 		if (rc != EOK)
@@ -234,7 +234,7 @@ static int seq_node_complete(seq_node_t *self, bool *out)
 
 static void seq_node_destroy(seq_node_t *self)
 {
-	bithenge_scope_destroy(&self->scope);
+	bithenge_scope_dec_ref(self->scope);
 	bithenge_blob_dec_ref(self->blob);
 	free(self->ends);
 }
@@ -247,7 +247,7 @@ static void seq_node_set_num_xforms(seq_node_t *self,
 
 static bithenge_scope_t *seq_node_scope(seq_node_t *self)
 {
-	return &self->scope;
+	return self->scope;
 }
 
 static int seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
@@ -266,10 +266,15 @@ static int seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
 	self->num_xforms = num_xforms;
 	self->num_ends = 0;
 	self->end_on_empty = end_on_empty;
-	bithenge_scope_init(&self->scope);
-	int rc = bithenge_scope_copy(&self->scope, scope);
+	int rc = bithenge_scope_new(&self->scope);
 	if (rc != EOK) {
-		bithenge_scope_destroy(&self->scope);
+		free(self->ends);
+		return rc;
+	}
+	rc = bithenge_scope_copy(self->scope, scope);
+	if (rc != EOK) {
+		bithenge_scope_dec_ref(self->scope);
+		free(self->ends);
 		return rc;
 	}
 	return EOK;
@@ -935,19 +940,23 @@ static int do_while_node_for_each(bithenge_node_t *base,
 			return rc;
 		}
 
-		bithenge_scope_t scope;
-		bithenge_scope_init(&scope);
-		rc = bithenge_scope_copy(&scope,
-		    seq_node_scope(do_while_as_seq(self)));
-		bithenge_scope_set_current_node(&scope, subxform_result);
+		bithenge_scope_t *scope;
+		rc = bithenge_scope_new(&scope);
 		if (rc != EOK) {
-			bithenge_scope_destroy(&scope);
+			bithenge_node_dec_ref(subxform_result);
+			return rc;
+		}
+		rc = bithenge_scope_copy(scope,
+		    seq_node_scope(do_while_as_seq(self)));
+		bithenge_scope_set_current_node(scope, subxform_result);
+		if (rc != EOK) {
+			bithenge_scope_dec_ref(scope);
 			return rc;
 		}
 		bithenge_node_t *expr_result;
-		rc = bithenge_expression_evaluate(self->expr, &scope,
+		rc = bithenge_expression_evaluate(self->expr, scope,
 		    &expr_result);
-		bithenge_scope_destroy(&scope);
+		bithenge_scope_dec_ref(scope);
 		if (rc != EOK)
 			return rc;
 		if (bithenge_node_type(expr_result) != BITHENGE_NODE_BOOLEAN) {
