@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		bithenge_transform_t *transform = NULL;
 		bithenge_node_t *node = NULL, *node2 = NULL;
 
-		rc = bithenge_scope_new(&scope);
+		rc = bithenge_scope_new(&scope, NULL);
 		if (rc != EOK) {
 			printf("Error creating scope: %s\n", str_error(rc));
 			scope = NULL;

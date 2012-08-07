@@ -266,17 +266,9 @@ static int seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
 	self->num_xforms = num_xforms;
 	self->num_ends = 0;
 	self->end_on_empty = end_on_empty;
-	int rc = bithenge_scope_new(&self->scope);
-	if (rc != EOK) {
-		free(self->ends);
-		return rc;
-	}
-	rc = bithenge_scope_copy(self->scope, scope);
-	if (rc != EOK) {
-		bithenge_scope_dec_ref(self->scope);
-		free(self->ends);
-		return rc;
-	}
+	self->scope = scope;
+	if (self->scope)
+		bithenge_scope_inc_ref(self->scope);
 	return EOK;
 }
 
@@ -467,9 +459,21 @@ static int struct_transform_make_node(struct_transform_t *self,
 		free(node);
 		return rc;
 	}
+	bithenge_scope_t *inner;
+	rc = bithenge_scope_new(&inner, scope);
+	if (rc != EOK) {
+		free(node);
+		return rc;
+	}
+	/* We should inc_ref(node) here, but that would make a cycle. Instead,
+	 * we leave it 1 too low, so that when the only remaining use of node
+	 * is the scope, node will be destroyed. Also see the comment in
+	 * struct_node_destroy. */
+	bithenge_scope_set_current_node(inner, struct_as_node(node));
 
-	rc = seq_node_init(struct_as_seq(node), &struct_node_seq_ops, scope,
+	rc = seq_node_init(struct_as_seq(node), &struct_node_seq_ops, inner,
 	    blob, self->num_subtransforms, false);
+	bithenge_scope_dec_ref(inner);
 	if (rc != EOK) {
 		free(node);
 		return rc;
@@ -479,13 +483,6 @@ static int struct_transform_make_node(struct_transform_t *self,
 	node->transform = self;
 	node->prefix = prefix;
 	*out = struct_as_node(node);
-
-	/* We should inc_ref(*out) here, but that would make a cycle. Instead,
-	 * we leave it 1 too low, so that when the only remaining use of *out
-	 * is the scope, *out will be destroyed. Also see the comment in
-	 * struct_node_destroy. */
-	bithenge_scope_set_current_node(seq_node_scope(struct_as_seq(node)),
-	    *out);
 
 	return EOK;
 }
@@ -941,18 +938,13 @@ static int do_while_node_for_each(bithenge_node_t *base,
 		}
 
 		bithenge_scope_t *scope;
-		rc = bithenge_scope_new(&scope);
+		rc = bithenge_scope_new(&scope,
+		    seq_node_scope(do_while_as_seq(self)));
 		if (rc != EOK) {
 			bithenge_node_dec_ref(subxform_result);
 			return rc;
 		}
-		rc = bithenge_scope_copy(scope,
-		    seq_node_scope(do_while_as_seq(self)));
 		bithenge_scope_set_current_node(scope, subxform_result);
-		if (rc != EOK) {
-			bithenge_scope_dec_ref(scope);
-			return rc;
-		}
 		bithenge_node_t *expr_result;
 		rc = bithenge_expression_evaluate(self->expr, scope,
 		    &expr_result);

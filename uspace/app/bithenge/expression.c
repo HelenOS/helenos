@@ -424,7 +424,7 @@ static int param_wrapper_apply(bithenge_transform_t *base,
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
 	bithenge_scope_t *inner;
-	int rc = bithenge_scope_new(&inner);
+	int rc = bithenge_scope_new(&inner, outer);
 	if (rc != EOK)
 		return rc;
 	rc = param_wrapper_fill_scope(self, inner, outer);
@@ -444,7 +444,7 @@ static int param_wrapper_prefix_length(bithenge_transform_t *base,
 {
 	param_wrapper_t *self = transform_as_param_wrapper(base);
 	bithenge_scope_t *inner;
-	int rc = bithenge_scope_new(&inner);
+	int rc = bithenge_scope_new(&inner, outer);
 	if (rc != EOK)
 		return rc;
 	rc = param_wrapper_fill_scope(self, inner, outer);
@@ -453,6 +453,27 @@ static int param_wrapper_prefix_length(bithenge_transform_t *base,
 
 	rc = bithenge_transform_prefix_length(self->transform, inner, in, out);
 	in = NULL;
+
+error:
+	bithenge_scope_dec_ref(inner);
+	return rc;
+}
+
+static int param_wrapper_prefix_apply(bithenge_transform_t *base,
+    bithenge_scope_t *outer, bithenge_blob_t *in, bithenge_node_t **out_node,
+    aoff64_t *out_length)
+{
+	param_wrapper_t *self = transform_as_param_wrapper(base);
+	bithenge_scope_t *inner;
+	int rc = bithenge_scope_new(&inner, outer);
+	if (rc != EOK)
+		return rc;
+	rc = param_wrapper_fill_scope(self, inner, outer);
+	if (rc != EOK)
+		goto error;
+
+	rc = bithenge_transform_prefix_apply(self->transform, inner, in,
+	    out_node, out_length);
 
 error:
 	bithenge_scope_dec_ref(inner);
@@ -473,6 +494,7 @@ static void param_wrapper_destroy(bithenge_transform_t *base)
 static const bithenge_transform_ops_t param_wrapper_ops = {
 	.apply = param_wrapper_apply,
 	.prefix_length = param_wrapper_prefix_length,
+	.prefix_apply = param_wrapper_prefix_apply,
 	.destroy = param_wrapper_destroy,
 };
 

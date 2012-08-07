@@ -49,9 +49,10 @@ typedef struct {
 } bithenge_transform_t;
 
 /** Context and parameters used when applying transforms. */
-typedef struct {
+typedef struct bithenge_scope {
 	/** @privatesection */
 	unsigned int refs;
+	struct bithenge_scope *outer;
 	int num_params;
 	bithenge_node_t **params;
 	bithenge_node_t *current_node;
@@ -147,7 +148,7 @@ int bithenge_new_scope_transform(bithenge_transform_t **,
 int bithenge_new_composed_transform(bithenge_transform_t **,
     bithenge_transform_t **, size_t);
 
-int bithenge_scope_new(bithenge_scope_t **);
+int bithenge_scope_new(bithenge_scope_t **, bithenge_scope_t *);
 void bithenge_scope_dec_ref(bithenge_scope_t *);
 int bithenge_scope_copy(bithenge_scope_t *, bithenge_scope_t *);
 void bithenge_scope_set_current_node(bithenge_scope_t *, bithenge_node_t *);

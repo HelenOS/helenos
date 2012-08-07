@@ -165,15 +165,19 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 }
 
 /** Create a transform scope. It must be dereferenced with @a
- * bithenge_scope_dec_ref after it is used.
+ * bithenge_scope_dec_ref after it is used. Takes ownership of nothing.
  * @param[out] out Holds the new scope.
+ * @param outer The outer scope, or NULL.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_scope_new(bithenge_scope_t **out)
+int bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 {
 	bithenge_scope_t *self = malloc(sizeof(*self));
 	if (!self)
 		return ENOMEM;
 	self->refs = 1;
+	if (outer)
+		bithenge_scope_inc_ref(outer);
+	self->outer = outer;
 	self->num_params = 0;
 	self->params = NULL;
 	self->current_node = NULL;
@@ -185,13 +189,16 @@ int bithenge_scope_new(bithenge_scope_t **out)
  * @param self The scope to dereference. */
 void bithenge_scope_dec_ref(bithenge_scope_t *self)
 {
-	if (!--self->refs) {
-		bithenge_node_dec_ref(self->current_node);
-		for (int i = 0; i < self->num_params; i++)
-			bithenge_node_dec_ref(self->params[i]);
-		free(self->params);
-		free(self);
-	}
+	if (!self)
+		return;
+	if (--self->refs)
+		return;
+	bithenge_node_dec_ref(self->current_node);
+	for (int i = 0; i < self->num_params; i++)
+		bithenge_node_dec_ref(self->params[i]);
+	bithenge_scope_dec_ref(self->outer);
+	free(self->params);
+	free(self);
 }
 
 /** Copy a scope.
@@ -278,10 +285,14 @@ int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
     bithenge_node_t **out)
 {
 	assert(scope);
-	assert(i >= 0 && i < scope->num_params);
-	*out = scope->params[i];
-	bithenge_node_inc_ref(*out);
-	return EOK;
+	if (scope->num_params) {
+		assert(i >= 0 && i < scope->num_params);
+		*out = scope->params[i];
+		bithenge_node_inc_ref(*out);
+		return EOK;
+	} else {
+		return bithenge_scope_get_param(scope->outer, i, out);
+	}
 }
 
 typedef struct {
@@ -306,15 +317,10 @@ static int scope_transform_apply(bithenge_transform_t *base,
 {
 	scope_transform_t *self = transform_as_param(base);
 	bithenge_scope_t *inner_scope;
-	int rc = bithenge_scope_new(&inner_scope);
+	int rc = bithenge_scope_new(&inner_scope, scope);
 	if (rc != EOK)
 		return rc;
-	rc = bithenge_scope_copy(inner_scope, scope);
-	if (rc != EOK)
-		goto error;
-	bithenge_scope_set_current_node(inner_scope, NULL);
 	rc = bithenge_transform_apply(self->transform, scope, in, out);
-error:
 	bithenge_scope_dec_ref(inner_scope);
 	return rc;
 }
