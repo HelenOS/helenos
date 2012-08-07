@@ -304,6 +304,10 @@ error:
 	return rc;
 }
 
+
+
+/***************** member_expression                         *****************/
+
 typedef struct {
 	bithenge_expression_t base;
 	bithenge_expression_t *expr;
@@ -379,6 +383,84 @@ error:
 	free(self);
 	return rc;
 }
+
+
+
+/***************** scope_member_expression                   *****************/
+
+typedef struct {
+	bithenge_expression_t base;
+	bithenge_node_t *key;
+} scope_member_expression_t;
+
+static scope_member_expression_t *expression_as_scope_member(
+    bithenge_expression_t *base)
+{
+	return (scope_member_expression_t *)base;
+}
+
+static bithenge_expression_t *scope_member_as_expression(
+    scope_member_expression_t *expr)
+{
+	return &expr->base;
+}
+
+static int scope_member_expression_evaluate(bithenge_expression_t *base, 
+    bithenge_scope_t *scope, bithenge_node_t **out)
+{
+	scope_member_expression_t *self = expression_as_scope_member(base);
+	for (; scope && !bithenge_scope_is_barrier(scope);
+	    scope = bithenge_scope_outer(scope)) {
+		bithenge_node_inc_ref(self->key);
+		bithenge_node_t *cur = bithenge_scope_get_current_node(scope);
+		int rc = bithenge_node_get(cur, self->key, out);
+		bithenge_node_dec_ref(cur);
+		if (rc != ENOENT) /* EOK or error */
+			return rc;
+	}
+	return ENOENT;
+}
+
+static void scope_member_expression_destroy(bithenge_expression_t *base)
+{
+	scope_member_expression_t *self = expression_as_scope_member(base);
+	bithenge_node_dec_ref(self->key);
+	free(self);
+}
+
+static const bithenge_expression_ops_t scope_member_expression_ops = {
+	.evaluate = scope_member_expression_evaluate,
+	.destroy = scope_member_expression_destroy,
+};
+
+int bithenge_scope_member_expression(bithenge_expression_t **out,
+    bithenge_node_t *key)
+{
+	int rc;
+	scope_member_expression_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_expression(scope_member_as_expression(self),
+	    &scope_member_expression_ops);
+	if (rc != EOK)
+		goto error;
+
+	self->key = key;
+	*out = scope_member_as_expression(self);
+	return EOK;
+
+error:
+	bithenge_node_dec_ref(key);
+	free(self);
+	return rc;
+}
+
+
+
+/***************** param_wrapper                             *****************/
 
 typedef struct {
 	bithenge_transform_t base;

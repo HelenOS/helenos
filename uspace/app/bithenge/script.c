@@ -362,11 +362,12 @@ static bithenge_transform_t *parse_struct(state_t *state);
 
 static bithenge_expression_t *parse_expression(state_t *state)
 {
+	int rc;
 	if (state->token == TOKEN_TRUE || state->token == TOKEN_FALSE) {
 		bool val = state->token == TOKEN_TRUE;
 		next_token(state);
 		bithenge_node_t *node;
-		int rc = bithenge_new_boolean_node(&node, val);
+		rc = bithenge_new_boolean_node(&node, val);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			return NULL;
@@ -384,7 +385,7 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		bithenge_int_t val = state->token_int;
 		next_token(state);
 		bithenge_node_t *node;
-		int rc = bithenge_new_integer_node(&node, val);
+		rc = bithenge_new_integer_node(&node, val);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			return NULL;
@@ -411,7 +412,7 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		}
 
 		bithenge_expression_t *expr;
-		int rc = bithenge_param_expression(&expr, i);
+		rc = bithenge_param_expression(&expr, i);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			return NULL;
@@ -426,8 +427,6 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		const char *id = expect_identifier(state);
 		bithenge_node_t *key = NULL;
 		bithenge_expression_t *expr = NULL;
-		int rc = bithenge_current_node_expression(&expr);
-		error_errno(state, rc);
 
 		if (state->error == EOK) {
 			rc = bithenge_new_string_node(&key, id, true);
@@ -436,7 +435,7 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		}
 
 		if (state->error == EOK) {
-			rc = bithenge_member_expression(&expr, expr, key);
+			rc = bithenge_scope_member_expression(&expr, key);
 			key = NULL;
 			if (rc != EOK)
 				expr = NULL;
@@ -856,7 +855,7 @@ static void parse_definition(state_t *state)
 	expect(state, ';');
 
 	if (state->error == EOK) {
-		int rc = bithenge_new_scope_transform(&xform, xform,
+		int rc = bithenge_new_barrier_transform(&xform, xform,
 		    state->num_params);
 		if (rc != EOK) {
 			xform = NULL;

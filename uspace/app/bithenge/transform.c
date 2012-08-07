@@ -178,6 +178,7 @@ int bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 	if (outer)
 		bithenge_scope_inc_ref(outer);
 	self->outer = outer;
+	self->barrier = false;
 	self->num_params = 0;
 	self->params = NULL;
 	self->current_node = NULL;
@@ -201,6 +202,14 @@ void bithenge_scope_dec_ref(bithenge_scope_t *self)
 	free(self);
 }
 
+/** Get the outer scope of a scope, which may be NULL.
+ * @param self The scope to examine.
+ * @return The outer scope, which may be NULL. */
+bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
+{
+	return self->outer;
+}
+
 /** Set the current node being created. Takes a reference to @a node.
  * @param scope The scope to set the current node in.
  * @param node The current node being created, or NULL.
@@ -210,6 +219,22 @@ void bithenge_scope_set_current_node(bithenge_scope_t *scope,
 {
 	bithenge_node_dec_ref(scope->current_node);
 	scope->current_node = node;
+}
+
+/** Set a scope as a barrier.
+ * @param self The scope to change. */
+void bithenge_scope_set_barrier(bithenge_scope_t *self)
+{
+	self->barrier = true;
+}
+
+/** Check whether a scope is a barrier, meaning that variable lookup stops at
+ * it.
+ * @param self The scope to check.
+ * @return Whether the scope is a barrier. */
+bool bithenge_scope_is_barrier(bithenge_scope_t *self)
+{
+	return self->barrier;
 }
 
 /** Get the current node being created, which may be NULL.
@@ -276,80 +301,104 @@ int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_transform_t *transform;
-} scope_transform_t;
+} barrier_transform_t;
 
-static inline scope_transform_t *transform_as_param(
+static inline barrier_transform_t *transform_as_barrier(
     bithenge_transform_t *base)
 {
-	return (scope_transform_t *)base;
+	return (barrier_transform_t *)base;
 }
 
-static inline bithenge_transform_t *param_as_transform(
-    scope_transform_t *self)
+static inline bithenge_transform_t *barrier_as_transform(
+    barrier_transform_t *self)
 {
 	return &self->base;
 }
 
-static int scope_transform_apply(bithenge_transform_t *base,
+static int barrier_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
-	scope_transform_t *self = transform_as_param(base);
+	barrier_transform_t *self = transform_as_barrier(base);
 	bithenge_scope_t *inner_scope;
 	int rc = bithenge_scope_new(&inner_scope, scope);
 	if (rc != EOK)
 		return rc;
+	bithenge_scope_set_barrier(inner_scope);
 	rc = bithenge_transform_apply(self->transform, scope, in, out);
 	bithenge_scope_dec_ref(inner_scope);
 	return rc;
 }
 
-static int scope_transform_prefix_length(bithenge_transform_t *base,
+static int barrier_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
 {
-	scope_transform_t *self = transform_as_param(base);
-	return bithenge_transform_prefix_length(self->transform, scope, in,
-	    out);
+	barrier_transform_t *self = transform_as_barrier(base);
+	bithenge_scope_t *inner_scope;
+	int rc = bithenge_scope_new(&inner_scope, scope);
+	if (rc != EOK)
+		return rc;
+	bithenge_scope_set_barrier(inner_scope);
+	rc = bithenge_transform_prefix_length(self->transform, scope, in, out);
+	bithenge_scope_dec_ref(inner_scope);
+	return rc;
 }
 
-static void scope_transform_destroy(bithenge_transform_t *base)
+static int barrier_transform_prefix_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *in, bithenge_node_t **out_node,
+    aoff64_t *out_length)
 {
-	scope_transform_t *self = transform_as_param(base);
+	barrier_transform_t *self = transform_as_barrier(base);
+	bithenge_scope_t *inner_scope;
+	int rc = bithenge_scope_new(&inner_scope, scope);
+	if (rc != EOK)
+		return rc;
+	bithenge_scope_set_barrier(inner_scope);
+	rc = bithenge_transform_prefix_apply(self->transform, scope, in,
+	    out_node, out_length);
+	bithenge_scope_dec_ref(inner_scope);
+	return rc;
+}
+
+static void barrier_transform_destroy(bithenge_transform_t *base)
+{
+	barrier_transform_t *self = transform_as_barrier(base);
 	bithenge_transform_dec_ref(self->transform);
 	free(self);
 }
 
-static const bithenge_transform_ops_t scope_transform_ops = {
-	.apply = scope_transform_apply,
-	.prefix_length = scope_transform_prefix_length,
-	.destroy = scope_transform_destroy,
+static const bithenge_transform_ops_t barrier_transform_ops = {
+	.apply = barrier_transform_apply,
+	.prefix_length = barrier_transform_prefix_length,
+	.prefix_apply = barrier_transform_prefix_apply,
+	.destroy = barrier_transform_destroy,
 };
 
-/** Create a wrapper transform that creates a new outer scope. This ensures
- * nothing from the transform's users is passed in, other than parameters. The
- * wrapper may have a different value for num_params. Takes a reference to
- * @a transform, which it will use for all operations.
+/** Create a wrapper transform that creates a new scope. This ensures nothing
+ * from the outer scope is passed in, other than parameters. The wrapper may
+ * have a different value for num_params. Takes a reference to @a transform,
+ * which it will use for all operations.
  * @param[out] out Holds the created transform.
  * @param transform The transform to wrap.
  * @param num_params The number of parameters to require, which may be 0.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_scope_transform(bithenge_transform_t **out,
+int bithenge_new_barrier_transform(bithenge_transform_t **out,
     bithenge_transform_t *transform, int num_params)
 {
 	assert(transform);
 	assert(bithenge_transform_num_params(transform) == 0);
 
 	int rc;
-	scope_transform_t *self = malloc(sizeof(*self));
+	barrier_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
 		goto error;
 	}
-	rc = bithenge_init_transform(param_as_transform(self),
-	    &scope_transform_ops, num_params);
+	rc = bithenge_init_transform(barrier_as_transform(self),
+	    &barrier_transform_ops, num_params);
 	if (rc != EOK)
 		goto error;
 	self->transform = transform;
-	*out = param_as_transform(self);
+	*out = barrier_as_transform(self);
 	return EOK;
 error:
 	bithenge_transform_dec_ref(transform);
