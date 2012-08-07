@@ -51,7 +51,8 @@
 /** Single-character symbols are represented by the character itself. Every
  * other token uses one of these values: */
 typedef enum {
-	TOKEN_ERROR = -128,
+	TOKEN_EQUALS = -128,
+	TOKEN_ERROR,
 	TOKEN_EOF,
 	TOKEN_IDENTIFIER,
 	TOKEN_INTEGER,
@@ -260,6 +261,13 @@ static void next_token(state_t *state)
 			state->buffer_pos++;
 			state->token = TOKEN_LEFT_ARROW;
 		}
+	} else if (ch == '=') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '=') {
+			state->token = TOKEN_EQUALS;
+			state->buffer_pos++;
+		}
 	} else {
 		state->token = ch;
 		state->buffer_pos++;
@@ -359,8 +367,52 @@ static void add_named_transform(state_t *state, bithenge_transform_t *xform, cha
 
 static bithenge_transform_t *parse_transform(state_t *state);
 static bithenge_transform_t *parse_struct(state_t *state);
+static bithenge_expression_t *parse_expression(state_t *state);
 
-static bithenge_expression_t *parse_expression(state_t *state)
+
+
+/***************** Expressions                               *****************/
+
+typedef enum {
+	PRECEDENCE_NONE,
+	PRECEDENCE_EQUALS,
+	PRECEDENCE_ADD,
+	PRECEDENCE_MULTIPLY,
+} precedence_t;
+
+static bithenge_binary_op_t token_as_binary_operator(token_type_t token)
+{
+	switch ((int)token) {
+	case '+':
+		return BITHENGE_EXPRESSION_ADD;
+	case '-':
+		return BITHENGE_EXPRESSION_SUBTRACT;
+	case '*':
+		return BITHENGE_EXPRESSION_MULTIPLY;
+	case TOKEN_EQUALS:
+		return BITHENGE_EXPRESSION_EQUALS;
+	default:
+		return BITHENGE_EXPRESSION_INVALID_BINARY_OP;
+	}
+}
+
+static precedence_t binary_operator_precedence(bithenge_binary_op_t op)
+{
+	switch (op) {
+	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
+	case BITHENGE_EXPRESSION_SUBTRACT:
+		return PRECEDENCE_ADD;
+	case BITHENGE_EXPRESSION_MULTIPLY:
+		return PRECEDENCE_MULTIPLY;
+	case BITHENGE_EXPRESSION_EQUALS:
+		return PRECEDENCE_EQUALS;
+	default:
+		assert(false);
+		return PRECEDENCE_NONE;
+	}
+}
+
+static bithenge_expression_t *parse_term(state_t *state)
 {
 	int rc;
 	if (state->token == TOKEN_TRUE || state->token == TOKEN_FALSE) {
@@ -450,13 +502,55 @@ static bithenge_expression_t *parse_expression(state_t *state)
 		}
 
 		return expr;
+	} else if (state->token == '(') {
+		next_token(state);
+		bithenge_expression_t *expr = parse_expression(state);
+		expect(state, ')');
+		return expr;
 	} else {
 		syntax_error(state, "expression expected");
 		return NULL;
 	}
 }
 
-// state->token must be TOKEN_IDENTIFIER when this is called
+static bithenge_expression_t *parse_expression_precedence(state_t *state,
+    precedence_t prev_precedence)
+{
+	bithenge_expression_t *expr = parse_term(state);
+	while (state->error == EOK) {
+		bithenge_binary_op_t op =
+		    token_as_binary_operator(state->token);
+		if (op == BITHENGE_EXPRESSION_INVALID_BINARY_OP)
+			break;
+		precedence_t precedence = binary_operator_precedence(op);
+		if (precedence <= prev_precedence)
+			break;
+		next_token(state);
+
+		bithenge_expression_t *expr2 = parse_term(state);
+		if (state->error != EOK) {
+			bithenge_expression_dec_ref(expr2);
+			break;
+		}
+		int rc = bithenge_binary_expression(&expr, op, expr, expr2);
+		if (rc != EOK)
+			error_errno(state, rc);
+	}
+	if (state->error != EOK) {
+		bithenge_expression_dec_ref(expr);
+		expr = NULL;
+	}
+	return expr;
+}
+
+static bithenge_expression_t *parse_expression(state_t *state)
+{
+	return parse_expression_precedence(state, PRECEDENCE_NONE);
+}
+
+
+
+/* state->token must be TOKEN_IDENTIFIER when this is called. */
 static bithenge_transform_t *parse_invocation(state_t *state)
 {
 	bithenge_transform_t *result = get_named_transform(state,

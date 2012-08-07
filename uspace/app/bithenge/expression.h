@@ -91,6 +91,10 @@ static inline int bithenge_expression_evaluate(bithenge_expression_t *self,
 }
 
 typedef enum {
+	BITHENGE_EXPRESSION_INVALID_BINARY_OP,
+	BITHENGE_EXPRESSION_ADD,
+	BITHENGE_EXPRESSION_SUBTRACT,
+	BITHENGE_EXPRESSION_MULTIPLY,
 	BITHENGE_EXPRESSION_EQUALS,
 } bithenge_binary_op_t;
 

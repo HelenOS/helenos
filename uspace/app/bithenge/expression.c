@@ -93,11 +93,44 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		bithenge_node_dec_ref(a);
 		return rc;
 	}
+
+	/* Check types and get values. */
+	bithenge_int_t a_int, b_int;
 	switch (self->op) {
+	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
+	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
+	case BITHENGE_EXPRESSION_MULTIPLY:
+		rc = EINVAL;
+		if (bithenge_node_type(a) != BITHENGE_NODE_INTEGER)
+			goto error;
+		if (bithenge_node_type(b) != BITHENGE_NODE_INTEGER)
+			goto error;
+		a_int = bithenge_integer_node_value(a);
+		b_int = bithenge_integer_node_value(b);
+		break;
+	default:
+		break;
+	}
+
+	switch (self->op) {
+	case BITHENGE_EXPRESSION_ADD:
+		rc = bithenge_new_integer_node(out, a_int + b_int);
+		break;
+	case BITHENGE_EXPRESSION_SUBTRACT:
+		rc = bithenge_new_integer_node(out, a_int - b_int);
+		break;
+	case BITHENGE_EXPRESSION_MULTIPLY:
+		rc = bithenge_new_integer_node(out, a_int * b_int);
+		break;
 	case BITHENGE_EXPRESSION_EQUALS:
 		rc = bithenge_new_boolean_node(out, bithenge_node_equal(a, b));
 		break;
+	case BITHENGE_EXPRESSION_INVALID_BINARY_OP:
+		assert(false);
+		break;
 	}
+
+error:
 	bithenge_node_dec_ref(a);
 	bithenge_node_dec_ref(b);
 	return rc;
