@@ -34,11 +34,9 @@
 #include <fibril_synch.h>
 #include <align.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include "mfs.h"
 
-#define OPEN_NODES_KEYS 2
-#define OPEN_NODES_SERVICE_KEY 0
-#define OPEN_NODES_INODE_KEY 1
 
 static bool check_magic_number(uint16_t magic, bool *native,
     mfs_version_t *version, bool *longfilenames);
@@ -59,10 +57,6 @@ static int mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 static int mfs_unlink(fs_node_t *, fs_node_t *, const char *name);
 static int mfs_destroy_node(fs_node_t *fn);
-static size_t open_nodes_hash(const link_t *item);
-static size_t open_nodes_key_hash(unsigned long key[]);
-static bool open_nodes_match(unsigned long key[], size_t keys,
-    const link_t *item);
 static int mfs_node_get(fs_node_t **rfn, service_id_t service_id,
     fs_index_t index);
 static int mfs_instance_get(service_id_t service_id,
@@ -94,46 +88,39 @@ libfs_ops_t mfs_libfs_ops = {
 
 /* Hash table interface for open nodes hash table */
 
+typedef struct {
+	service_id_t service_id;
+	fs_index_t index;
+} node_key_t;
+
 static size_t
-open_nodes_key_hash(unsigned long key[])
+open_nodes_key_hash(void *key)
 {
-	/* As recommended by Effective Java, 2nd Edition. */
-	size_t hash = 17;
-	hash = 37 * hash + key[OPEN_NODES_SERVICE_KEY];
-	hash = 37 * hash + key[OPEN_NODES_INODE_KEY];
-	return hash;
+	node_key_t *node_key = (node_key_t*)key;
+	return hash_combine(node_key->service_id, node_key->index);
 }
 
 static size_t
-open_nodes_hash(const link_t *item)
+open_nodes_hash(const ht_link_t *item)
 {
-	struct mfs_node *m = hash_table_get_instance(item, struct mfs_node, link);
-	
-	unsigned long key[] = {
-		[OPEN_NODES_SERVICE_KEY] = m->instance->service_id,
-		[OPEN_NODES_INODE_KEY] = m->ino_i->index,
-	};
-	
-	return open_nodes_key_hash(key);
+	struct mfs_node *m = hash_table_get_inst(item, struct mfs_node, link);
+	return hash_combine(m->instance->service_id, m->ino_i->index);
 }
 
 static bool
-open_nodes_match(unsigned long key[], size_t keys, const link_t *item)
+open_nodes_key_equal(void *key, const ht_link_t *item)
 {
-	assert(keys == 2);
-	struct mfs_node *mnode = hash_table_get_instance(item, struct mfs_node, link);
-	
-	service_id_t service_id = ((service_id_t) key[OPEN_NODES_SERVICE_KEY]);
-	
-	return mnode->instance->service_id == service_id
-		&& mnode->ino_i->index == key[OPEN_NODES_INODE_KEY];
-}
+	node_key_t *node_key = (node_key_t*)key;
+	struct mfs_node *mnode = hash_table_get_inst(item, struct mfs_node, link);
 
+	return node_key->service_id == mnode->instance->service_id
+		&& node_key->index == mnode->ino_i->index;
+}
 
 static hash_table_ops_t open_nodes_ops = {
 	.hash = open_nodes_hash,
 	.key_hash = open_nodes_key_hash,
-	.match = open_nodes_match,
+	.key_equal = open_nodes_key_equal,
 	.equal = 0,
 	.remove_callback = 0,
 };
@@ -141,7 +128,7 @@ static hash_table_ops_t open_nodes_ops = {
 int
 mfs_global_init(void)
 {
-	if (!hash_table_create(&open_nodes, 0, OPEN_NODES_KEYS, &open_nodes_ops)) {
+	if (!hash_table_create(&open_nodes, 0, 0, &open_nodes_ops)) {
 		return ENOMEM;
 	}
 	return EOK;
@@ -412,8 +399,6 @@ mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	mnode->instance = inst;
 	mnode->refcnt = 1;
 
-	link_initialize(&mnode->link);
-
 	fibril_mutex_lock(&open_nodes_lock);
 	hash_table_insert(&open_nodes, &mnode->link);
 	fibril_mutex_unlock(&open_nodes_lock);
@@ -514,11 +499,7 @@ mfs_node_put(fs_node_t *fsnode)
 	assert(mnode->refcnt > 0);
 	mnode->refcnt--;
 	if (mnode->refcnt == 0) {
-		unsigned long key[] = {
-			[OPEN_NODES_SERVICE_KEY] = mnode->instance->service_id,
-			[OPEN_NODES_INODE_KEY] = mnode->ino_i->index
-		};
-		hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
+		hash_table_remove_item(&open_nodes, &mnode->link);
 		assert(mnode->instance->open_nodes_cnt > 0);
 		mnode->instance->open_nodes_cnt--;
 		rc = mfs_put_inode(mnode);
@@ -577,14 +558,15 @@ mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	fibril_mutex_lock(&open_nodes_lock);
 
 	/* Check if the node is not already open */
-	unsigned long key[] = {
-		[OPEN_NODES_SERVICE_KEY] = inst->service_id,
-		[OPEN_NODES_INODE_KEY] = index,
+	node_key_t key = {
+		.service_id = inst->service_id,
+		.index = index
 	};
-	link_t *already_open = hash_table_find(&open_nodes, key);
+	
+	ht_link_t *already_open = hash_table_find(&open_nodes, &key);
 
 	if (already_open) {
-		mnode = hash_table_get_instance(already_open, struct mfs_node, link);
+		mnode = hash_table_get_inst(already_open, struct mfs_node, link);
 		*rfn = mnode->fsnode;
 		mnode->refcnt++;
 
@@ -615,7 +597,6 @@ mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	ino_i->index = index;
 	mnode->ino_i = ino_i;
 	mnode->refcnt = 1;
-	link_initialize(&mnode->link);
 
 	mnode->instance = inst;
 	node->data = mnode;

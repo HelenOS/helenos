@@ -35,6 +35,7 @@
  * @brief Generic hash-set based database of addresses
  */
 #include "nic_addr_db.h"
+#include "libarch/common.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <bool.h>
@@ -42,58 +43,59 @@
 #include <mem.h>
 #include <adt/hash_table.h>
 #include <macros.h>
+#include <stdint.h>
 
-/* The key count hash table field is not used. Use this dummy value. */
-#define KEY_CNT 1
-
-/**
- * Maximal length of addresses in the DB (in bytes).
- */
-#define NIC_ADDR_MAX_LENGTH		16
 
 /**
  * Helper structure for keeping the address in the hash set.
  */
 typedef struct nic_addr_entry {
-	link_t link;
-	uint8_t addr[NIC_ADDR_MAX_LENGTH];
+	ht_link_t link;
+	uint8_t len;
+	uint8_t addr[1];
 } nic_addr_entry_t;
 
 
 /* 
  * Hash table helper functions 
  */
+typedef struct {
+	size_t len;
+	const uint8_t *addr;
+} addr_key_t;
 
-static bool nic_addr_match(unsigned long *key, size_t key_cnt, 
-	const link_t *item)
+static bool nic_addr_key_equal(void *key_arg, const ht_link_t *item)
 {
-	uint8_t *addr = (uint8_t*)key;
+	addr_key_t *key = (addr_key_t*)key_arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-
-	return 0 == bcmp(entry->addr, addr, NIC_ADDR_MAX_LENGTH);
+	
+	return 0 == bcmp(entry->addr, key->addr, entry->len);
 }
 
-static size_t nic_addr_key_hash(unsigned long *key)
+static size_t addr_hash(size_t len, const uint8_t *addr)
 {
-	uint8_t *addr = (uint8_t*)key;
 	size_t hash = 0;
-
-	for (int i = NIC_ADDR_MAX_LENGTH - 1; i >= 0; --i) {
-		hash = (hash << 8) ^ (hash >> 24) ^ addr[i];
+	
+	for (size_t i = 0; i < len; ++i) {
+		hash = (hash << 5) ^ addr[i];
 	}
 	
 	return hash;
 }
 
-static size_t nic_addr_hash(const link_t *item)
+static size_t nic_addr_key_hash(void *k)
 {
-	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-	
-	unsigned long *key = (unsigned long*)entry->addr;
-	return nic_addr_key_hash(key);
+	addr_key_t *key = (addr_key_t*)k;
+	return addr_hash(key->len, key->addr);
 }
 
-static void nic_addr_removed(link_t *item)
+static size_t nic_addr_hash(const ht_link_t *item)
+{
+	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
+	return addr_hash(entry->len, entry->addr);
+}
+
+static void nic_addr_removed(ht_link_t *item)
 {
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
 	
@@ -103,7 +105,7 @@ static void nic_addr_removed(link_t *item)
 static hash_table_ops_t set_ops = {
 	.hash = nic_addr_hash,
 	.key_hash = nic_addr_key_hash,
-	.match = nic_addr_match,
+	.key_equal = nic_addr_key_equal,
 	.equal = 0,
 	.remove_callback = nic_addr_removed
 };
@@ -121,11 +123,11 @@ static hash_table_ops_t set_ops = {
 int nic_addr_db_init(nic_addr_db_t *db, size_t addr_len)
 {
 	assert(db);
-	if (addr_len > NIC_ADDR_MAX_LENGTH) {
-		return EINVAL;
-	}
 	
-	if (!hash_table_create(&db->set, 0, KEY_CNT, &set_ops))
+	if (addr_len > UCHAR_MAX)
+		return EINVAL;
+	
+	if (!hash_table_create(&db->set, 0, 0, &set_ops))
 		return ENOMEM;
 	
 	db->addr_len = addr_len;
@@ -151,7 +153,6 @@ void nic_addr_db_clear(nic_addr_db_t *db)
 void nic_addr_db_destroy(nic_addr_db_t *db)
 {
 	assert(db);
-	nic_addr_db_clear(db);
 	hash_table_destroy(&db->set);
 }
 
@@ -170,19 +171,20 @@ void nic_addr_db_destroy(nic_addr_db_t *db)
 int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
-	/* Ugly type-punning hack. */
-	unsigned long *key = (unsigned long*)addr;
+
+	addr_key_t key = {
+		.len = db->addr_len,
+		.addr = addr
+	};
 	
-	if (hash_table_find(&db->set, key))
+	if (hash_table_find(&db->set, &key))
 		return EEXIST;
 	
-	nic_addr_entry_t *entry = malloc(sizeof(nic_addr_entry_t));
+	nic_addr_entry_t *entry = malloc(sizeof(nic_addr_entry_t) + db->addr_len - 1);
 	if (entry == NULL) 
 		return ENOMEM;
-	
-	link_initialize(&entry->link);
-	
-	bzero(entry->addr, NIC_ADDR_MAX_LENGTH);
+
+	entry->len = (uint8_t) db->addr_len;
 	memcpy(entry->addr, addr, db->addr_len);
 	
 	hash_table_insert(&db->set, &entry->link);
@@ -201,16 +203,16 @@ int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
-	unsigned long *key = (unsigned long*)addr;
 	
-	link_t *item = hash_table_find(&db->set, key);
+	addr_key_t key = {
+		.len = db->addr_len,
+		.addr = addr
+	};
 	
-	if (item) {
-		hash_table_remove_item(&db->set, item);
+	if (hash_table_remove(&db->set, &key))
 		return EOK;
-	} else {
+	else
 		return ENOENT;
-	}
 }
 
 /**
@@ -224,9 +226,13 @@ int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
 int nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
-	unsigned long *key = (unsigned long*)addr;
 	
-	return 0 != hash_table_find(&db->set, key);
+	addr_key_t key = {
+		.len = db->addr_len,
+		.addr = addr
+	};
+	
+	return 0 != hash_table_find(&db->set, &key);
 }
 
 /**
@@ -240,7 +246,7 @@ typedef struct {
 /**
  * Helper function for nic_addr_db_foreach
  */
-static bool nic_addr_db_fe_helper(link_t *item, void *arg) 
+static bool nic_addr_db_fe_helper(ht_link_t *item, void *arg) 
 {
 	nic_addr_db_fe_arg_t *hs = (nic_addr_db_fe_arg_t *) arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);

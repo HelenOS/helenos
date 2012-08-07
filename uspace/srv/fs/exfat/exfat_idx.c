@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <str.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
@@ -90,6 +91,7 @@ static unused_t *unused_find(service_id_t service_id, bool lock)
 
 	if (lock)
 		fibril_mutex_lock(&unused_lock);
+
 	list_foreach(unused_list, l) {
 		u = list_get_instance(l, unused_t, link);
 		if (u->service_id == service_id) 
@@ -111,61 +113,48 @@ static FIBRIL_MUTEX_INITIALIZE(used_lock);
  */ 
 static hash_table_t up_hash;
 
-#define UPH_SID_KEY	0
-#define UPH_PFC_KEY	1
-#define UPH_PDI_KEY	2
-
-static size_t pos_key_hash(unsigned long key[])
-{
-	/* Inspired by Effective Java, 2nd edition. */
-	size_t hash = 17;
-	
-	hash = 31 * hash + key[UPH_PFC_KEY];
-	hash = 31 * hash + key[UPH_PDI_KEY];
-	hash = 31 * hash + key[UPH_SID_KEY];
-	
-	return hash;
-}
-
-static size_t pos_hash(const link_t *item)
-{
-	exfat_idx_t *fidx = list_get_instance(item, exfat_idx_t, uph_link);
-	
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = fidx->service_id,
-		[UPH_PFC_KEY] = fidx->pfc,
-		[UPH_PDI_KEY] = fidx->pdi,
-	};
-	
-	return pos_key_hash(pkey);
-}
-
-static bool pos_match(unsigned long key[], size_t keys, const link_t *item)
-{
-	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
+typedef struct {
+	service_id_t service_id;
 	exfat_cluster_t pfc;
 	unsigned pdi;
-	exfat_idx_t *fidx = list_get_instance(item, exfat_idx_t, uph_link);
+} pos_key_t;
 
-	switch (keys) {
-	case 1:
-		return (service_id == fidx->service_id);
-	case 3:
-		pfc = (exfat_cluster_t) key[UPH_PFC_KEY];
-		pdi = (unsigned) key[UPH_PDI_KEY];
-		return (service_id == fidx->service_id) && (pfc == fidx->pfc) &&
-		    (pdi == fidx->pdi);
-	default:
-		assert((keys == 1) || (keys == 3));
-	}
+static inline size_t pos_key_hash(void *key)
+{
+	pos_key_t *pos = (pos_key_t*)key;
+	
+	size_t hash = 0;
+	hash = hash_combine(pos->pfc, pos->pdi);
+	return hash_combine(hash, pos->service_id);
+}
 
-	return 0;
+static size_t pos_hash(const ht_link_t *item)
+{
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uph_link);
+	
+	pos_key_t pkey = {
+		.service_id = fidx->service_id,
+		.pfc = fidx->pfc,
+		.pdi = fidx->pdi,
+	};
+	
+	return pos_key_hash(&pkey);
+}
+
+static bool pos_key_equal(void *key, const ht_link_t *item)
+{
+	pos_key_t *pos = (pos_key_t*)key;
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uph_link);
+	
+	return pos->service_id == fidx->service_id
+		&& pos->pdi == fidx->pdi
+		&& pos->pfc == fidx->pfc;
 }
 
 static hash_table_ops_t uph_ops = {
 	.hash = pos_hash,
 	.key_hash = pos_key_hash,
-	.match = pos_match,
+	.key_equal = pos_key_equal,
 	.equal = 0,
 	.remove_callback = 0,
 };
@@ -176,59 +165,34 @@ static hash_table_ops_t uph_ops = {
  */
 static hash_table_t ui_hash;
 
-#define UIH_SID_KEY	0
-#define UIH_INDEX_KEY	1
-
-static size_t idx_key_hash(unsigned long key[])
-{
-	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
-	fs_index_t index = (fs_index_t)key[UIH_INDEX_KEY];
-
-	/* 
-	 * Compute a simple hash unlimited by specific table size as per: 
-	 * Effective Java, 2nd edition.
-	 */
-	size_t hash = 17;
-	hash = 31 * hash + (size_t)service_id;
-	hash = 31 * hash + (size_t)index;
-	return hash;
-}
-
-static size_t idx_hash(const link_t *item)
-{
-	exfat_idx_t *fidx = list_get_instance(item, exfat_idx_t, uih_link);
-	
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = fidx->service_id,
-		[UIH_INDEX_KEY] = fidx->index,
-	};
-
-	return idx_key_hash(ikey);
-}
-
-static bool idx_match(unsigned long key[], size_t keys, const link_t *item)
-{
-	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
+typedef struct {
+	service_id_t service_id;
 	fs_index_t index;
-	exfat_idx_t *fidx = list_get_instance(item, exfat_idx_t, uih_link);
+} idx_key_t;
 
-	switch (keys) {
-	case 1:
-		return (service_id == fidx->service_id);
-	case 2:
-		index = (fs_index_t) key[UIH_INDEX_KEY];
-		return (service_id == fidx->service_id) &&
-		    (index == fidx->index);
-	default:
-		assert((keys == 1) || (keys == 2));
-	}
-
-	return 0;
+static size_t idx_key_hash(void *key_arg)
+{
+	idx_key_t *key = (idx_key_t*)key_arg;
+	return hash_combine(key->service_id, key->index);
 }
 
-static void idx_remove_callback(link_t *item)
+static size_t idx_hash(const ht_link_t *item)
 {
-	exfat_idx_t *fidx = list_get_instance(item, exfat_idx_t, uih_link);
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uih_link);
+	return hash_combine(fidx->service_id, fidx->index);
+}
+
+static bool idx_key_equal(void *key_arg, const ht_link_t *item)
+{
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uih_link);
+	idx_key_t *key = (idx_key_t*)key_arg;
+	
+	return key->index == fidx->index && key->service_id == fidx->service_id;
+}
+
+static void idx_remove_callback(ht_link_t *item)
+{
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uih_link);
 
 	free(fidx);
 }
@@ -236,7 +200,7 @@ static void idx_remove_callback(link_t *item)
 static hash_table_ops_t uih_ops = {
 	.hash = idx_hash,
 	.key_hash = idx_key_hash,
-	.match = idx_match,
+	.key_equal = idx_key_equal,
 	.equal = 0,
 	.remove_callback = idx_remove_callback,
 };
@@ -378,8 +342,6 @@ static int exfat_idx_create(exfat_idx_t **fidxp, service_id_t service_id)
 		return ENOSPC;
 	}
 		
-	link_initialize(&fidx->uph_link);
-	link_initialize(&fidx->uih_link);
 	fibril_mutex_initialize(&fidx->lock);
 	fidx->service_id = service_id;
 	fidx->pfc = 0;	/* no parent yet */
@@ -414,17 +376,17 @@ exfat_idx_t *
 exfat_idx_get_by_pos(service_id_t service_id, exfat_cluster_t pfc, unsigned pdi)
 {
 	exfat_idx_t *fidx;
-	link_t *l;
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = service_id,
-		[UPH_PFC_KEY] = pfc,
-		[UPH_PDI_KEY] = pdi,
+	
+	pos_key_t pos_key = {
+		.service_id = service_id,
+		.pfc = pfc,
+		.pdi = pdi,
 	};
 
 	fibril_mutex_lock(&used_lock);
-	l = hash_table_find(&up_hash, pkey);
+	ht_link_t *l = hash_table_find(&up_hash, &pos_key);
 	if (l) {
-		fidx = hash_table_get_instance(l, exfat_idx_t, uph_link);
+		fidx = hash_table_get_inst(l, exfat_idx_t, uph_link);
 	} else {
 		int rc;
 
@@ -455,14 +417,8 @@ void exfat_idx_hashin(exfat_idx_t *idx)
 
 void exfat_idx_hashout(exfat_idx_t *idx)
 {
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = idx->service_id,
-		[UPH_PFC_KEY] = idx->pfc,
-		[UPH_PDI_KEY] = idx->pdi,
-	};
-
 	fibril_mutex_lock(&used_lock);
-	hash_table_remove(&up_hash, pkey, 3);
+	hash_table_remove_item(&up_hash, &idx->uph_link);
 	fibril_mutex_unlock(&used_lock);
 }
 
@@ -470,16 +426,16 @@ exfat_idx_t *
 exfat_idx_get_by_index(service_id_t service_id, fs_index_t index)
 {
 	exfat_idx_t *fidx = NULL;
-	link_t *l;
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = service_id,
-		[UIH_INDEX_KEY] = index,
+
+	idx_key_t idx_key = {
+		.service_id = service_id,
+		.index = index,
 	};
 
 	fibril_mutex_lock(&used_lock);
-	l = hash_table_find(&ui_hash, ikey);
+	ht_link_t *l = hash_table_find(&ui_hash, &idx_key);
 	if (l) {
-		fidx = hash_table_get_instance(l, exfat_idx_t, uih_link);
+		fidx = hash_table_get_inst(l, exfat_idx_t, uih_link);
 		fibril_mutex_lock(&fidx->lock);
 	}
 	fibril_mutex_unlock(&used_lock);
@@ -493,12 +449,10 @@ exfat_idx_get_by_index(service_id_t service_id, fs_index_t index)
  */
 void exfat_idx_destroy(exfat_idx_t *idx)
 {
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = idx->service_id,
-		[UIH_INDEX_KEY] = idx->index,
+	idx_key_t idx_key = {
+		.service_id = idx->service_id,
+		.index = idx->index,
 	};
-	service_id_t service_id = idx->service_id;
-	fs_index_t index = idx->index;
 
 	/* TODO: assert(idx->pfc == FAT_CLST_RES0); */
 	assert(idx->pfc == 0);
@@ -509,18 +463,18 @@ void exfat_idx_destroy(exfat_idx_t *idx)
 	 * present in the position hash (uph). We therefore hash it out from
 	 * the index hash only.
 	 */
-	hash_table_remove(&ui_hash, ikey, 2);
+	hash_table_remove(&ui_hash, &idx_key);
 	fibril_mutex_unlock(&used_lock);
 	/* Release the VFS index. */
-	exfat_index_free(service_id, index);
+	exfat_index_free(idx_key.service_id, idx_key.index);
 	/* The index structure itself is freed in idx_remove_callback(). */
 }
 
 int exfat_idx_init(void)
 {
-	if (!hash_table_create(&up_hash, 0, 3, &uph_ops)) 
+	if (!hash_table_create(&up_hash, 0, 0, &uph_ops)) 
 		return ENOMEM;
-	if (!hash_table_create(&ui_hash, 0, 2, &uih_ops)) {
+	if (!hash_table_create(&ui_hash, 0, 0, &uih_ops)) {
 		hash_table_destroy(&up_hash);
 		return ENOMEM;
 	}
@@ -530,6 +484,7 @@ int exfat_idx_init(void)
 void exfat_idx_fini(void)
 {
 	/* We assume the hash tables are empty. */
+	assert(hash_table_empty(&up_hash) && hash_table_empty(&ui_hash));
 	hash_table_destroy(&up_hash);
 	hash_table_destroy(&ui_hash);
 }
@@ -554,23 +509,40 @@ int exfat_idx_init_by_service_id(service_id_t service_id)
 	return rc;
 }
 
+static bool rm_pos_service_id(ht_link_t *item, void *arg)
+{
+	service_id_t service_id = *(service_id_t*)arg;
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uph_link);
+
+	if (fidx->service_id == service_id) {
+		hash_table_remove_item(&up_hash, item);
+	}
+	
+	return true;
+}
+
+static bool rm_idx_service_id(ht_link_t *item, void *arg)
+{
+	service_id_t service_id = *(service_id_t*)arg;
+	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uih_link);
+
+	if (fidx->service_id == service_id) {
+		hash_table_remove_item(&ui_hash, item);
+	}
+	
+	return true;
+}
+
 void exfat_idx_fini_by_service_id(service_id_t service_id)
 {
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = service_id 
-	};
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = service_id 
-	};
-
 	/*
 	 * Remove this instance's index structure from up_hash and ui_hash.
 	 * Process up_hash first and ui_hash second because the index structure
 	 * is actually removed in idx_remove_callback(). 
 	 */
 	fibril_mutex_lock(&used_lock);
-	hash_table_remove(&up_hash, pkey, 1);
-	hash_table_remove(&ui_hash, ikey, 1);
+	hash_table_apply(&up_hash, rm_pos_service_id, &service_id);
+	hash_table_apply(&ui_hash, rm_idx_service_id, &service_id);
 	fibril_mutex_unlock(&used_lock);
 
 	/*

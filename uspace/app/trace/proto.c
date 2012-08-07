@@ -44,72 +44,66 @@
 static hash_table_t srv_proto;
 
 typedef struct {
-	unsigned srv;
+	int srv;
 	proto_t *proto;
-	link_t link;
+	ht_link_t link;
 } srv_proto_t;
 
 typedef struct {
-	sysarg_t method;
+	int method;
 	oper_t *oper;
-	link_t link;
+	ht_link_t link;
 } method_oper_t;
 
+/* Hash table operations. */
 
-
-
-static size_t srv_proto_key_hash(unsigned long key[])
+static size_t srv_proto_key_hash(void *key)
 {
-	return key[0];
+	return *(int *)key;
 }
 
-static size_t srv_proto_hash(const link_t *item)
+static size_t srv_proto_hash(const ht_link_t *item)
 {
-	srv_proto_t *sp = hash_table_get_instance(item, srv_proto_t, link);
-	unsigned long key = sp->srv;
-	return srv_proto_key_hash(&key);	
+	srv_proto_t *sp = hash_table_get_inst(item, srv_proto_t, link);
+	return sp->srv;
 }
 
-static bool srv_proto_match(unsigned long key[], size_t keys, const link_t *item)
+static bool srv_proto_key_equal(void *key, const ht_link_t *item)
 {
-	srv_proto_t *sp = hash_table_get_instance(item, srv_proto_t, link);
-
-	return key[0] == sp->srv;
+	srv_proto_t *sp = hash_table_get_inst(item, srv_proto_t, link);
+	return sp->srv == *(int *)key;
 }
 
 static hash_table_ops_t srv_proto_ops = {
 	.hash = srv_proto_hash,
 	.key_hash = srv_proto_key_hash,
-	.match = srv_proto_match,
+	.key_equal = srv_proto_key_equal,
 	.equal = 0,
 	.remove_callback = 0
 };
 
 
-static size_t method_oper_key_hash(unsigned long key[])
+static size_t method_oper_key_hash(void *key)
 {
-	return key[0];
+	return *(int *)key;
 }
 
-static size_t method_oper_hash(const link_t *item)
+static size_t method_oper_hash(const ht_link_t *item)
 {
-	method_oper_t *mo = hash_table_get_instance(item, method_oper_t, link);
-	unsigned long key = mo->method;
-	return method_oper_key_hash(&key);
+	method_oper_t *mo = hash_table_get_inst(item, method_oper_t, link);
+	return mo->method;
 }
 
-static bool method_oper_match(unsigned long key[], size_t keys, 
-	const link_t *item)
+static bool method_oper_key_equal(void *key, const ht_link_t *item)
 {
-	method_oper_t *mo = hash_table_get_instance(item, method_oper_t, link);
-
-	return key[0] == mo->method;
+	method_oper_t *mo = hash_table_get_inst(item, method_oper_t, link);
+	return mo->method == *(int *)key;
 }
 
 static hash_table_ops_t method_oper_ops = {
 	.hash = method_oper_hash,
 	.key_hash = method_oper_key_hash,
-	.match = method_oper_match,
+	.key_equal = method_oper_key_equal,
 	.equal = 0,
 	.remove_callback = 0
 };
@@ -117,7 +111,9 @@ static hash_table_ops_t method_oper_ops = {
 
 void proto_init(void)
 {
-	hash_table_create(&srv_proto, 0, 1, &srv_proto_ops);
+	/* todo: check return value. */
+	bool ok = hash_table_create(&srv_proto, 0, 0, &srv_proto_ops);
+	assert(ok);
 }
 
 void proto_cleanup(void)
@@ -138,21 +134,19 @@ void proto_register(int srv, proto_t *proto)
 
 proto_t *proto_get_by_srv(int srv)
 {
-	link_t *item;
-	srv_proto_t *sp;
-
-	unsigned long key = srv;
-	item = hash_table_find(&srv_proto, &key);
+	ht_link_t *item = hash_table_find(&srv_proto, &srv);
 	if (item == NULL) return NULL;
 
-	sp = hash_table_get_instance(item, srv_proto_t, link);
+	srv_proto_t *sp = hash_table_get_inst(item, srv_proto_t, link);
 	return sp->proto;
 }
 
 static void proto_struct_init(proto_t *proto, const char *name)
 {
 	proto->name = name;
-	hash_table_create(&proto->method_oper, 0, 1, &method_oper_ops);
+	/* todo: check return value. */
+	bool ok = hash_table_create(&proto->method_oper, 0, 0, &method_oper_ops);
+	assert(ok);
 }
 
 proto_t *proto_new(const char *name)
@@ -183,15 +177,10 @@ void proto_add_oper(proto_t *proto, int method, oper_t *oper)
 
 oper_t *proto_get_oper(proto_t *proto, int method)
 {
-	unsigned long key;
-	link_t *item;
-	method_oper_t *mo;
-
-	key = method;
-	item = hash_table_find(&proto->method_oper, &key);
+	ht_link_t *item = hash_table_find(&proto->method_oper, &method);
 	if (item == NULL) return NULL;
 
-	mo = hash_table_get_instance(item, method_oper_t, link);
+	method_oper_t *mo = hash_table_get_inst(item, method_oper_t, link);
 	return mo->oper;
 }
 

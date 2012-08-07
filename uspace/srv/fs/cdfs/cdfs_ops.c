@@ -36,8 +36,10 @@
  *        server.
  */
 
+#include "cdfs_ops.h"
 #include <bool.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <malloc.h>
 #include <mem.h>
 #include <loc.h>
@@ -49,21 +51,11 @@
 #include <macros.h>
 #include "cdfs.h"
 #include "cdfs_endian.h"
-#include "cdfs_ops.h"
 
 /** Standard CD-ROM block size */
 #define BLOCK_SIZE  2048
 
-/** Implicit node cache size
- *
- * More nodes can be actually cached if the files remain
- * opended.
- *
- */
-#define NODE_CACHE_SIZE  200
-
-#define NODES_KEY_SRVC   0
-#define NODES_KEY_INDEX  1
+#define NODE_CACHE_SIZE 200
 
 /** All root nodes have index 0 */
 #define CDFS_SOME_ROOT  0
@@ -202,7 +194,7 @@ typedef struct {
 	fs_index_t index;         /**< Node index */
 	service_id_t service_id;  /**< Service ID of block device */
 	
-	link_t nh_link;           /**< Nodes hash table link */
+	ht_link_t nh_link;        /**< Nodes hash table link */
 	cdfs_dentry_type_t type;  /**< Dentry type */
 	
 	unsigned int lnkcnt;      /**< Link count */
@@ -223,47 +215,38 @@ static size_t nodes_cached = 0;
 /** Hash table of all cdfs nodes */
 static hash_table_t nodes;
 
-static size_t nodes_key_hash(unsigned long key[])
+/* 
+ * Hash table support functions.
+ */
+
+typedef struct {
+	service_id_t service_id;
+    fs_index_t index;
+} ht_key_t;
+
+static size_t nodes_key_hash(void *k)
 {
-	return key[NODES_KEY_INDEX];
+	ht_key_t *key = (ht_key_t*)k;
+	return hash_combine(key->service_id, key->index);
 }
 
-static size_t nodes_hash(const link_t *item)
+static size_t nodes_hash(const ht_link_t *item)
 {
-	cdfs_node_t *node = hash_table_get_instance(item, cdfs_node_t, nh_link);
-	
-	unsigned long key[] = {
-		[NODES_KEY_INDEX] = node->index
-	};
-	
-	return nodes_key_hash(key);
+	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
+	return hash_combine(node->service_id, node->index);
 }
 
-static bool nodes_match(unsigned long key[], size_t keys, const link_t *item)
+static bool nodes_key_equal(void *k, const ht_link_t *item)
 {
-	cdfs_node_t *node = hash_table_get_instance(item, cdfs_node_t, nh_link);
+	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
+	ht_key_t *key = (ht_key_t*)k;
 	
-	if (keys == 1) {
-		return (node->service_id == key[NODES_KEY_SRVC]);
-	} else {
-		assert(keys == 2);
-		return ((node->service_id == key[NODES_KEY_SRVC]) &&
-		    (node->index == key[NODES_KEY_INDEX]));
-	}
+	return key->service_id == node->service_id && key->index == node->index;
 }
 
-static bool nodes_equal(const link_t *item1, const link_t *item2)
+static void nodes_remove_callback(ht_link_t *item)
 {
-	cdfs_node_t *node1 = hash_table_get_instance(item1, cdfs_node_t, nh_link);
-	cdfs_node_t *node2 = hash_table_get_instance(item2, cdfs_node_t, nh_link);
-	
-	return node1->service_id == node2->service_id 
-		&& node1->index == node2->index;
-}
-
-static void nodes_remove_callback(link_t *item)
-{
-	cdfs_node_t *node = hash_table_get_instance(item, cdfs_node_t, nh_link);
+	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	
 	assert(node->type == CDFS_DIRECTORY);
 	
@@ -282,23 +265,23 @@ static void nodes_remove_callback(link_t *item)
 static hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
 	.key_hash = nodes_key_hash,
-	.match = nodes_match,
-	.equal = nodes_equal,
+	.key_equal = nodes_key_equal,
+	.equal = 0,
 	.remove_callback = nodes_remove_callback
 };
 
 static int cdfs_node_get(fs_node_t **rfn, service_id_t service_id,
     fs_index_t index)
 {
-	unsigned long key[] = {
-		[NODES_KEY_SRVC] = service_id,
-		[NODES_KEY_INDEX] = index
+	ht_key_t key = {
+		.index = index,
+		.service_id = service_id
 	};
 	
-	link_t *link = hash_table_find(&nodes, key);
+	ht_link_t *link = hash_table_find(&nodes, &key);
 	if (link) {
 		cdfs_node_t *node =
-		    hash_table_get_instance(link, cdfs_node_t, nh_link);
+		    hash_table_get_inst(link, cdfs_node_t, nh_link);
 		
 		*rfn = FS_NODE(node);
 	} else
@@ -324,7 +307,6 @@ static void cdfs_node_initialize(cdfs_node_t *node)
 	node->processed = false;
 	node->opened = 0;
 	
-	link_initialize(&node->nh_link);
 	list_initialize(&node->cs_list);
 }
 
@@ -516,15 +498,15 @@ static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
 
 static fs_node_t *get_cached_node(service_id_t service_id, fs_index_t index)
 {
-	unsigned long key[] = {
-		[NODES_KEY_SRVC] = service_id,
-		[NODES_KEY_INDEX] = index
+	ht_key_t key = {
+		.index = index,
+		.service_id = service_id
 	};
 	
-	link_t *link = hash_table_find(&nodes, key);
+	ht_link_t *link = hash_table_find(&nodes, &key);
 	if (link) {
 		cdfs_node_t *node =
-		    hash_table_get_instance(link, cdfs_node_t, nh_link);
+		    hash_table_get_inst(link, cdfs_node_t, nh_link);
 		return FS_NODE(node);
 	}
 	
@@ -810,13 +792,21 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
 	return EOK;
 }
 
+static bool rm_service_id_nodes(ht_link_t *item, void *arg) 
+{
+	service_id_t service_id = *(service_id_t*)arg;
+	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
+	
+	if (node->service_id == service_id) {
+		hash_table_remove_item(&nodes, &node->nh_link);
+	}
+	
+	return true;
+}
+
 static void cdfs_instance_done(service_id_t service_id)
 {
-	unsigned long key[] = {
-		[NODES_KEY_SRVC] = service_id
-	};
-	
-	hash_table_remove(&nodes, key, 1);
+	hash_table_apply(&nodes, rm_service_id_nodes, &service_id);
 	block_cache_fini(service_id);
 	block_fini(service_id);
 }
@@ -830,17 +820,17 @@ static int cdfs_unmounted(service_id_t service_id)
 static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
-	unsigned long key[] = {
-		[NODES_KEY_SRVC] = service_id,
-		[NODES_KEY_INDEX] = index
+	ht_key_t key = {
+		.index = index,
+		.service_id = service_id
 	};
 	
-	link_t *link = hash_table_find(&nodes, key);
+	ht_link_t *link = hash_table_find(&nodes, &key);
 	if (link == NULL)
 		return ENOENT;
 	
 	cdfs_node_t *node =
-	    hash_table_get_instance(link, cdfs_node_t, nh_link);
+	    hash_table_get_inst(link, cdfs_node_t, nh_link);
 	
 	if (!node->processed) {
 		int rc = cdfs_readdir(service_id, FS_NODE(node));
@@ -920,13 +910,13 @@ static int cdfs_truncate(service_id_t service_id, fs_index_t index,
 	return ENOTSUP;
 }
 
-static bool cache_remove_closed(link_t *item, void *arg)
+static bool cache_remove_closed(ht_link_t *item, void *arg)
 {
 	size_t *premove_cnt = (size_t*)arg;
 	
 	/* Some nodes were requested to be removed from the cache. */
 	if (0 < *premove_cnt) {
-		cdfs_node_t *node =	hash_table_get_instance(item, cdfs_node_t, nh_link);
+		cdfs_node_t *node =	hash_table_get_inst(item, cdfs_node_t, nh_link);
 
 		if (!node->opened) {
 			hash_table_remove_item(&nodes, item);
@@ -956,17 +946,17 @@ static int cdfs_close(service_id_t service_id, fs_index_t index)
 	if (index == 0)
 		return EOK;
 	
-	unsigned long key[] = {
-		[NODES_KEY_SRVC] = service_id,
-		[NODES_KEY_INDEX] = index
+	ht_key_t key = {
+		.index = index,
+		.service_id = service_id
 	};
 	
-	link_t *link = hash_table_find(&nodes, key);
+	ht_link_t *link = hash_table_find(&nodes, &key);
 	if (link == 0)
 		return ENOENT;
 	
 	cdfs_node_t *node =
-	    hash_table_get_instance(link, cdfs_node_t, nh_link);
+	    hash_table_get_inst(link, cdfs_node_t, nh_link);
 	
 	assert(node->opened > 0);
 	
@@ -1012,7 +1002,7 @@ vfs_out_ops_t cdfs_ops = {
  */
 bool cdfs_init(void)
 {
-	if (!hash_table_create(&nodes, 0, 2, &nodes_ops))
+	if (!hash_table_create(&nodes, 0, 0, &nodes_ops))
 		return false;
 	
 	return true;

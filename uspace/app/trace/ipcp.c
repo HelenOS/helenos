@@ -52,7 +52,7 @@ typedef struct {
 
 	ipc_callid_t call_hash;
 
-	link_t link;
+	ht_link_t link;
 } pending_call_t;
 
 typedef struct {
@@ -72,47 +72,34 @@ static hash_table_t pending_calls;
 proto_t *proto_system;		/**< Protocol describing system IPC methods. */
 proto_t	*proto_unknown;		/**< Protocol with no known methods. */
 
-static size_t pending_call_key_hash(unsigned long key[]);
-static size_t pending_call_hash(const link_t *item);
-static bool pending_call_match(unsigned long key[], size_t keys,
-    const link_t *item);
+
+static size_t pending_call_key_hash(void *key)
+{
+	ipc_callid_t *call_id = (ipc_callid_t *)key;
+	return *call_id;
+}
+
+static size_t pending_call_hash(const ht_link_t *item)
+{
+	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);
+	return hs->call_hash;
+}
+
+static bool pending_call_key_equal(void *key, const ht_link_t *item)
+{
+	ipc_callid_t *call_id = (ipc_callid_t *)key;
+	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);
+
+	return *call_id == hs->call_hash;
+}
 
 static hash_table_ops_t pending_call_ops = {
 	.hash = pending_call_hash,
 	.key_hash = pending_call_key_hash,
-	.match = pending_call_match,
+	.key_equal = pending_call_key_equal,
 	.equal = 0,
 	.remove_callback = 0
 };
-
-
-static size_t pending_call_key_hash(unsigned long key[])
-{
-	size_t hash = 17;
-	hash = 31 * hash + key[1];
-	hash = 31 * hash + key[0];
-	return hash;
-}
-
-static size_t pending_call_hash(const link_t *item)
-{
-	pending_call_t *hs = hash_table_get_instance(item, pending_call_t, link);
-	unsigned long key[] = {
-		LOWER32(hs->call_hash),
-		UPPER32(hs->call_hash)
-	};
-	return pending_call_key_hash(key);
-}
-
-static bool pending_call_match(unsigned long key[], size_t keys, 
-	const link_t *item)
-{
-	assert(keys == 2);
-	pending_call_t *hs = hash_table_get_instance(item, pending_call_t, link);
-
-	return MERGE_LOUP32(key[0], key[1]) == hs->call_hash;
-}
-
 
 
 void ipcp_connection_set(int phone, int server, proto_t *proto)
@@ -183,7 +170,8 @@ void ipcp_init(void)
 		++desc;
 	}
 
-	hash_table_create(&pending_calls, 0, 2, &pending_call_ops);
+	bool ok = hash_table_create(&pending_calls, 0, 0, &pending_call_ops);
+	assert(ok);
 }
 
 void ipcp_cleanup(void)
@@ -337,7 +325,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 
 void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 {
-	link_t *item;
+	ht_link_t *item;
 	pending_call_t *pcall;
 	
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
@@ -349,12 +337,8 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	}
 	
 	hash = hash & ~IPC_CALLID_ANSWERED;
-	unsigned long key[] = {
-		LOWER32(hash),
-		UPPER32(hash)
-	};
 	
-	item = hash_table_find(&pending_calls, key);
+	item = hash_table_find(&pending_calls, &hash);
 	if (item == NULL)
 		return; /* No matching question found */
 	
@@ -362,8 +346,8 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	 * Response matched to question.
 	 */
 	
-	pcall = hash_table_get_instance(item, pending_call_t, link);
-	hash_table_remove(&pending_calls, key, 2);
+	pcall = hash_table_get_inst(item, pending_call_t, link);
+	hash_table_remove(&pending_calls, &hash);
 	
 	parse_answer(hash, pcall, call);
 	free(pcall);

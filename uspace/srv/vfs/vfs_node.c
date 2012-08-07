@@ -40,6 +40,7 @@
 #include <str.h>
 #include <fibril_synch.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
@@ -57,15 +58,16 @@ hash_table_t nodes;
 #define KEY_DEV_HANDLE	1
 #define KEY_INDEX	2
 
-static size_t nodes_key_hash(unsigned long []);
-static size_t nodes_hash(const link_t *);
-static bool nodes_match(unsigned long [], size_t, const link_t *);
+static size_t nodes_key_hash(void *);
+static size_t nodes_hash(const ht_link_t *);
+static bool nodes_key_equal(void *, const ht_link_t *);
+static vfs_triplet_t node_triplet(vfs_node_t *node);
 
 /** VFS node hash table operations. */
 hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
 	.key_hash = nodes_key_hash,
-	.match = nodes_match,
+	.key_equal = nodes_key_equal,
 	.equal = 0,
 	.remove_callback = 0,
 };
@@ -76,7 +78,7 @@ hash_table_ops_t nodes_ops = {
  */
 bool vfs_nodes_init(void)
 {
-	return hash_table_create(&nodes, 0, 3, &nodes_ops);
+	return hash_table_create(&nodes, 0, 0, &nodes_ops);
 }
 
 static inline void _vfs_node_addref(vfs_node_t *node)
@@ -115,13 +117,7 @@ void vfs_node_delref(vfs_node_t *node)
 		 * Remove it from the VFS node hash table.
 		 */
 		
-		unsigned long key[] = {
-			[KEY_FS_HANDLE] = node->fs_handle,
-			[KEY_DEV_HANDLE] = node->service_id,
-			[KEY_INDEX] = node->index
-		};
-		
-		hash_table_remove(&nodes, key, 3);
+		hash_table_remove_item(&nodes, &node->nh_link);
 		free_vfs_node = true;
 		
 		if (!node->lnkcnt)
@@ -159,12 +155,7 @@ void vfs_node_delref(vfs_node_t *node)
 void vfs_node_forget(vfs_node_t *node)
 {
 	fibril_mutex_lock(&nodes_mutex);
-	unsigned long key[] = {
-		[KEY_FS_HANDLE] = node->fs_handle,
-		[KEY_DEV_HANDLE] = node->service_id,
-		[KEY_INDEX] = node->index
-	};
-	hash_table_remove(&nodes, key, 3);
+	hash_table_remove_item(&nodes, &node->nh_link);
 	fibril_mutex_unlock(&nodes_mutex);
 	free(node);
 }
@@ -183,16 +174,10 @@ void vfs_node_forget(vfs_node_t *node)
  */
 vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 {
-	unsigned long key[] = {
-		[KEY_FS_HANDLE] = result->triplet.fs_handle,
-		[KEY_DEV_HANDLE] = result->triplet.service_id,
-		[KEY_INDEX] = result->triplet.index
-	};
-	link_t *tmp;
 	vfs_node_t *node;
 
 	fibril_mutex_lock(&nodes_mutex);
-	tmp = hash_table_find(&nodes, key);
+	ht_link_t *tmp = hash_table_find(&nodes, &result->triplet);
 	if (!tmp) {
 		node = (vfs_node_t *) malloc(sizeof(vfs_node_t));
 		if (!node) {
@@ -206,11 +191,10 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		node->size = result->size;
 		node->lnkcnt = result->lnkcnt;
 		node->type = result->type;
-		link_initialize(&node->nh_link);
 		fibril_rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, &node->nh_link);
 	} else {
-		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);
+		node = hash_table_get_inst(tmp, vfs_node_t, nh_link);
 		if (node->type == VFS_NODE_UNKNOWN &&
 		    result->type != VFS_NODE_UNKNOWN) {
 			/* Upgrade the node type. */
@@ -241,39 +225,6 @@ void vfs_node_put(vfs_node_t *node)
 	vfs_node_delref(node);
 }
 
-size_t nodes_key_hash(unsigned long key[])
-{
-	/* Combine into a hash like they do in Effective Java, 2nd edition. */
-	size_t hash = 17;
-	hash = 37 * hash + key[KEY_FS_HANDLE];
-	hash = 37 * hash + key[KEY_DEV_HANDLE];
-	hash = 37 * hash + key[KEY_INDEX];
-	return hash;
-}
-
-size_t nodes_hash(const link_t *item)
-{
-	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
-	
-	unsigned long key[] = {
-		[KEY_FS_HANDLE] = node->fs_handle,
-		[KEY_DEV_HANDLE] = node->service_id,
-		[KEY_INDEX] = node->index
-	};
-	
-	return nodes_key_hash(key);
-}
-
-
-bool nodes_match(unsigned long key[], size_t keys, const link_t *item)
-{
-	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
-	return (node->fs_handle == (fs_handle_t) key[KEY_FS_HANDLE]) &&
-	    (node->service_id == key[KEY_DEV_HANDLE]) &&
-	    (node->index == key[KEY_INDEX]);
-}
-
-
 struct refcnt_data {
 	/** Sum of all reference counts for this file system instance. */
 	unsigned refcnt;
@@ -281,9 +232,9 @@ struct refcnt_data {
 	service_id_t service_id;
 };
 
-static bool refcnt_visitor(link_t *item, void *arg)
+static bool refcnt_visitor(ht_link_t *item, void *arg)
 {
-	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
+	vfs_node_t *node = hash_table_get_inst(item, vfs_node_t, nh_link);
 	struct refcnt_data *rd = (void *) arg;
 
 	if ((node->fs_handle == rd->fs_handle) &&
@@ -329,6 +280,41 @@ int vfs_open_node_remote(vfs_node_t *node)
 	async_wait_for(req, &rc);
 	
 	return rc;
+}
+
+
+static size_t nodes_key_hash(void *key)
+{
+	vfs_triplet_t *tri = key;
+	size_t hash = hash_combine(tri->fs_handle, tri->index);
+	return hash_combine(hash, tri->service_id);
+}
+
+static size_t nodes_hash(const ht_link_t *item)
+{
+	vfs_node_t *node = hash_table_get_inst(item, vfs_node_t, nh_link);
+	vfs_triplet_t tri = node_triplet(node);
+	return nodes_key_hash(&tri);
+}
+
+static bool nodes_key_equal(void *key, const ht_link_t *item)
+{
+	vfs_triplet_t *tri = key;
+	vfs_node_t *node = hash_table_get_inst(item, vfs_node_t, nh_link);
+	return node->fs_handle == tri->fs_handle 
+		&& node->service_id == tri->service_id
+		&& node->index == tri->index;
+}
+
+static inline vfs_triplet_t node_triplet(vfs_node_t *node)
+{
+	vfs_triplet_t tri = {
+		.fs_handle = node->fs_handle,
+		.service_id = node->service_id,
+		.index = node->index
+	};
+	
+	return tri;
 }
 
 /**

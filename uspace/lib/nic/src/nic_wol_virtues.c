@@ -36,6 +36,7 @@
  */
 
 #include "nic_wol_virtues.h"
+#include "nic.h"
 #include <assert.h>
 #include <errno.h>
 
@@ -44,22 +45,21 @@
  * Hash table helper functions
  */
 
-static size_t nic_wv_key_hash(unsigned long keys[])
+static size_t nic_wv_key_hash(void *key)
 {
-	return keys[0];
+	return *(nic_wv_id_t*) key;
 }
 
-static size_t nic_wv_hash(const link_t *item)
+static size_t nic_wv_hash(const ht_link_t *item)
 {
 	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *) item;
-	unsigned long key = virtue->id;
-	return nic_wv_key_hash(&key);
+	return virtue->id;
 }
 
-static bool nic_wv_match(unsigned long key[], size_t keys, const link_t *item)
+static bool nic_wv_key_equal(void *key, const ht_link_t *item)
 {
 	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *) item;
-	return (virtue->id == (nic_wv_id_t) key[0]);
+	return (virtue->id == *(nic_wv_id_t*) key);
 }
 
 /**
@@ -75,11 +75,11 @@ int nic_wol_virtues_init(nic_wol_virtues_t *wvs)
 	bzero(wvs, sizeof(nic_wol_virtues_t));
 	wvs->table_operations.hash = nic_wv_hash;
 	wvs->table_operations.key_hash = nic_wv_key_hash;
-	wvs->table_operations.match = nic_wv_match;
+	wvs->table_operations.key_equal = nic_wv_key_equal;
 	wvs->table_operations.equal = 0;
 	wvs->table_operations.remove_callback = 0;
 	
-	if (!hash_table_create(&wvs->table, 0, 1, &wvs->table_operations)) {
+	if (!hash_table_create(&wvs->table, 0, 0, &wvs->table_operations)) {
 		return ENOMEM;
 	}
 	size_t i;
@@ -167,8 +167,7 @@ int nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
 	}
 	do {
 		virtue->id = wvs->next_id++;
-	} while (NULL !=
-		hash_table_find(&wvs->table, (unsigned long *) &virtue->id));
+	} while (NULL != hash_table_find(&wvs->table, &virtue->id));
 	hash_table_insert(&wvs->table, &virtue->item);
 	virtue->next = wvs->lists[virtue->type];
 	wvs->lists[virtue->type] = virtue;
@@ -187,14 +186,14 @@ int nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
  */
 nic_wol_virtue_t *nic_wol_virtues_remove(nic_wol_virtues_t *wvs, nic_wv_id_t id)
 {
-	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *)
-		hash_table_find(&wvs->table, (unsigned long *) &id);
+	nic_wol_virtue_t *virtue = 
+		(nic_wol_virtue_t *) hash_table_find(&wvs->table, &id);
 	if (virtue == NULL) {
 		return NULL;
 	}
 
 	/* Remove from filter_table */
-	hash_table_remove(&wvs->table, (unsigned long *) &id, 1);
+	hash_table_remove_item(&wvs->table, &virtue->item);
 
 	/* Remove from filter_types */
 	assert(wvs->lists[virtue->type] != NULL);
@@ -231,8 +230,7 @@ const nic_wol_virtue_t *nic_wol_virtues_find(const nic_wol_virtues_t *wvs,
 	 * returned link to be const as well. But in this case, when we're returning
 	 * constant virtue the retyping is correct.
 	 */
-	link_t *virtue = hash_table_find(
-		&((nic_wol_virtues_t *) wvs)->table, (unsigned long *) &id);
+	ht_link_t *virtue = hash_table_find(&((nic_wol_virtues_t *) wvs)->table, &id);
 	return (const nic_wol_virtue_t *) virtue;
 }
 

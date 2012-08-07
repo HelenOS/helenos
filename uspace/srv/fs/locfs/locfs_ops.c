@@ -60,7 +60,7 @@ typedef struct {
 	service_id_t service_id;
 	async_sess_t *sess;       /**< If NULL, the structure is incomplete. */
 	size_t refcount;
-	link_t link;
+	ht_link_t link;
 	fibril_condvar_t cv;      /**< Broadcast when completed. */
 } service_t;
 
@@ -70,42 +70,34 @@ static hash_table_t services;
 /** Hash table mutex */
 static FIBRIL_MUTEX_INITIALIZE(services_mutex);
 
-#define SERVICES_KEYS        1
-#define SERVICES_KEY_HANDLE  0
-
 /* Implementation of hash table interface for the nodes hash table. */
 
-static size_t services_key_hash(unsigned long key[])
+static size_t services_key_hash(void *key)
 {
-	return key[SERVICES_KEY_HANDLE];
+	return *(service_id_t*)key;
 }
 
-static size_t services_hash(const link_t *item)
+static size_t services_hash(const ht_link_t *item)
 {
-	service_t *dev = hash_table_get_instance(item, service_t, link);
-	unsigned long key[] = {
-		[SERVICES_KEY_HANDLE] = dev->service_id
-	};
-	
-	return services_key_hash(key);
+	service_t *dev = hash_table_get_inst(item, service_t, link);
+	return dev->service_id;
 }
 
-static bool services_match(unsigned long key[], size_t keys, const link_t *item)
+static bool services_key_equal(void *key, const ht_link_t *item)
 {
-	assert(keys == 1);
-	service_t *dev = hash_table_get_instance(item, service_t, link);
-	return (dev->service_id == (service_id_t) key[SERVICES_KEY_HANDLE]);
+	service_t *dev = hash_table_get_inst(item, service_t, link);
+	return (dev->service_id == *(service_id_t*)key);
 }
 
-static void services_remove_callback(link_t *item)
+static void services_remove_callback(ht_link_t *item)
 {
-	free(hash_table_get_instance(item, service_t, link));
+	free(hash_table_get_inst(item, service_t, link));
 }
 
 static hash_table_ops_t services_ops = {
 	.hash = services_hash,
 	.key_hash = services_key_hash,
-	.match = services_match,
+	.key_equal = services_key_equal,
 	.equal = 0, 
 	.remove_callback = services_remove_callback
 };
@@ -241,14 +233,10 @@ static int locfs_node_open(fs_node_t *fn)
 	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
 		
-		unsigned long key[] = {
-			[SERVICES_KEY_HANDLE] = (unsigned long) node->service_id
-		};
-		link_t *lnk;
-		
 		fibril_mutex_lock(&services_mutex);
+		ht_link_t *lnk;
 restart:
-		lnk = hash_table_find(&services, key);
+		lnk = hash_table_find(&services, &node->service_id);
 		if (lnk == NULL) {
 			service_t *dev = (service_t *) malloc(sizeof(service_t));
 			if (dev == NULL) {
@@ -291,7 +279,7 @@ restart:
 				 * Connecting failed, need to remove the
 				 * entry and free the device structure.
 				 */
-				hash_table_remove(&services, key, SERVICES_KEYS);
+				hash_table_remove(&services, &node->service_id);
 				fibril_mutex_unlock(&services_mutex);
 				
 				return ENOENT;
@@ -300,7 +288,7 @@ restart:
 			/* Set the correct session. */
 			dev->sess = sess;
 		} else {
-			service_t *dev = hash_table_get_instance(lnk, service_t, link);
+			service_t *dev = hash_table_get_inst(lnk, service_t, link);
 			
 			if (!dev->sess) {
 				/*
@@ -462,7 +450,7 @@ libfs_ops_t locfs_libfs_ops = {
 
 bool locfs_init(void)
 {
-	if (!hash_table_create(&services, 0,  SERVICES_KEYS, &services_ops))
+	if (!hash_table_create(&services, 0,  0, &services_ops))
 		return false;
 	
 	return true;
@@ -566,18 +554,14 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
 		
-		unsigned long key[] = {
-			[SERVICES_KEY_HANDLE] = (unsigned long) index
-		};
-		
 		fibril_mutex_lock(&services_mutex);
-		link_t *lnk = hash_table_find(&services, key);
+		ht_link_t *lnk = hash_table_find(&services, &index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
 		
-		service_t *dev = hash_table_get_instance(lnk, service_t, link);
+		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 		
 		ipc_callid_t callid;
@@ -632,18 +616,15 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	
 	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
-		unsigned long key[] = {
-			[SERVICES_KEY_HANDLE] = (unsigned long) index
-		};
 		
 		fibril_mutex_lock(&services_mutex);
-		link_t *lnk = hash_table_find(&services, key);
+		ht_link_t *lnk = hash_table_find(&services, &index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
 		
-		service_t *dev = hash_table_get_instance(lnk, service_t, link);
+		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 		
 		ipc_callid_t callid;
@@ -702,24 +683,21 @@ static int locfs_close(service_id_t service_id, fs_index_t index)
 	}
 	
 	if (type == LOC_OBJECT_SERVICE) {
-		unsigned long key[] = {
-			[SERVICES_KEY_HANDLE] = (unsigned long) index
-		};
 		
 		fibril_mutex_lock(&services_mutex);
-		link_t *lnk = hash_table_find(&services, key);
+		ht_link_t *lnk = hash_table_find(&services, &index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
 		
-		service_t *dev = hash_table_get_instance(lnk, service_t, link);
+		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 		dev->refcount--;
 		
 		if (dev->refcount == 0) {
 			async_hangup(dev->sess);
-			hash_table_remove(&services, key, SERVICES_KEYS);
+			hash_table_remove(&services, &index);
 		}
 		
 		fibril_mutex_unlock(&services_mutex);
@@ -743,18 +721,15 @@ static int locfs_sync(service_id_t service_id, fs_index_t index)
 	}
 	
 	if (type == LOC_OBJECT_SERVICE) {
-		unsigned long key[] = {
-			[SERVICES_KEY_HANDLE] = (unsigned long) index
-		};
-		
+
 		fibril_mutex_lock(&services_mutex);
-		link_t *lnk = hash_table_find(&services, key);
+		ht_link_t *lnk = hash_table_find(&services, &index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
 		
-		service_t *dev = hash_table_get_instance(lnk, service_t, link);
+		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 		
 		/* Make a request at the driver */

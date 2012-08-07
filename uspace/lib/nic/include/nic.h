@@ -39,6 +39,7 @@
 #define __NIC_H__
 
 #include <adt/list.h>
+#include <adt/hash_table.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 #include <ops/nic.h>
@@ -52,7 +53,7 @@ typedef struct nic nic_t;
  * Single WOL virtue descriptor.
  */
 typedef struct nic_wol_virtue {
-	link_t item;
+	ht_link_t item;
 	nic_wv_id_t id;
 	nic_wv_type_t type;
 	const void *data;

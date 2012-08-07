@@ -104,6 +104,12 @@ typedef struct list {
 #define assert_link_not_used(link) \
 	assert(((link)->prev == NULL) && ((link)->next == NULL))
 
+/** Returns true if the link is definitely part of a list. False if not sure. */
+static inline int link_in_use(link_t *link)
+{
+	return link->prev != NULL && link->next != NULL;
+}
+
 /** Initialize doubly-linked circular list link
  *
  * Initialize doubly-linked list link.

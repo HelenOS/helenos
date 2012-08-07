@@ -201,7 +201,7 @@ typedef struct {
 
 /* Client connection data */
 typedef struct {
-	link_t link;
+	ht_link_t link;
 	
 	task_id_t in_task_id;
 	atomic_t refcnt;
@@ -213,7 +213,7 @@ typedef struct {
 	awaiter_t wdata;
 	
 	/** Hash table link. */
-	link_t link;
+	ht_link_t link;
 	
 	/** Incoming client task ID. */
 	task_id_t in_task_id;
@@ -389,34 +389,23 @@ static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
-static size_t client_key_hash(unsigned long key[])
+static size_t client_key_hash(void *k)
 {
-	assert(key);
-	/* LOWER32(in_task_id) */
-	return key[0] >> 4;
+	task_id_t key = *(task_id_t*)k;
+	return key;
 }
 
-static size_t client_hash(const link_t *item)
+static size_t client_hash(const ht_link_t *item)
 {
-	client_t *client = hash_table_get_instance(item, client_t, link);
-	
-	unsigned long key[2] = {
-		LOWER32(client->in_task_id),
-		UPPER32(client->in_task_id),
-	};
-
-	return client_key_hash(key);
+	client_t *client = hash_table_get_inst(item, client_t, link);
+	return client_key_hash(&client->in_task_id);
 }
 
-static bool client_match(unsigned long key[], size_t keys, const link_t *item)
+static bool client_key_equal(void *k, const ht_link_t *item)
 {
-	assert(key);
-	assert(keys == 2);
-	assert(item);
-	
-	client_t *client = hash_table_get_instance(item, client_t, link);
-	return (key[0] == LOWER32(client->in_task_id) &&
-	    (key[1] == UPPER32(client->in_task_id)));
+	task_id_t key = *(task_id_t*)k;
+	client_t *client = hash_table_get_inst(item, client_t, link);
+	return key == client->in_task_id;
 }
 
 
@@ -424,7 +413,7 @@ static bool client_match(unsigned long key[], size_t keys, const link_t *item)
 static hash_table_ops_t client_hash_table_ops = {
 	.hash = client_hash,
 	.key_hash = client_key_hash,
-	.match = client_match,
+	.key_equal = client_key_equal,
 	.equal = 0,
 	.remove_callback = 0
 };
@@ -436,56 +425,33 @@ static hash_table_ops_t client_hash_table_ops = {
  * @return Index into the connection hash table.
  *
  */
-static size_t conn_key_hash(unsigned long key[])
+static size_t conn_key_hash(void *key)
 {
-	assert(key);
-	return key[0] >> 4;
+	sysarg_t in_phone_hash  = *(sysarg_t*)key;
+	return in_phone_hash ;
 }
 
-static size_t conn_hash(const link_t *item)
+static size_t conn_hash(const ht_link_t *item)
 {
-	connection_t *conn = hash_table_get_instance(item, connection_t, link);
-	unsigned long key = conn->in_phone_hash;
-	return conn_key_hash(&key);
+	connection_t *conn = hash_table_get_inst(item, connection_t, link);
+	return conn_key_hash(&conn->in_phone_hash);
 }
 
-/** Compare hash table item with a key.
- *
- * @param key  Array containing the source phone hash as the only item.
- * @param keys Expected 1 but ignored.
- * @param item Connection hash table item.
- *
- * @return True on match, false otherwise.
- *
- */
-static bool conn_match(unsigned long key[], size_t keys, const link_t *item)
+static bool conn_key_equal(void *key, const ht_link_t *item)
 {
-	assert(key);
-	assert(item);
-	
-	connection_t *conn = hash_table_get_instance(item, connection_t, link);
-	return (key[0] == conn->in_phone_hash);
+	sysarg_t in_phone_hash = *(sysarg_t*)key;
+	connection_t *conn = hash_table_get_inst(item, connection_t, link);
+	return (in_phone_hash == conn->in_phone_hash);
 }
 
-static bool conn_equal(const link_t *item1, const link_t *item2)
-{
-	connection_t *c1 = hash_table_get_instance(item1, connection_t, link);
-	connection_t *c2 = hash_table_get_instance(item2, connection_t, link);
-	
-	return c1->in_phone_hash == c2->in_phone_hash;
-}
-
-static void conn_remove(link_t *item)
-{
-}
 
 /** Operations for the connection hash table. */
 static hash_table_ops_t conn_hash_table_ops = {
 	.hash = conn_hash,
 	.key_hash = conn_key_hash,
-	.match = conn_match,
-	.equal = conn_equal,
-	.remove_callback = conn_remove
+	.key_equal = conn_key_equal,
+	.equal = 0,
+	.remove_callback = 0
 };
 
 /** Sort in current fibril's timeout request.
@@ -533,15 +499,14 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	
 	futex_down(&async_futex);
 	
-	unsigned long key = call->in_phone_hash;
-	link_t *hlp = hash_table_find(&conn_hash_table, &key);
+	ht_link_t *hlp = hash_table_find(&conn_hash_table, &call->in_phone_hash);
 	
 	if (!hlp) {
 		futex_up(&async_futex);
 		return false;
 	}
 	
-	connection_t *conn = hash_table_get_instance(hlp, connection_t, link);
+	connection_t *conn = hash_table_get_inst(hlp, connection_t, link);
 	
 	msg_t *msg = malloc(sizeof(*msg));
 	if (!msg) {
@@ -721,16 +686,12 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 
 static client_t *async_client_get(task_id_t client_id, bool create)
 {
-	unsigned long key[2] = {
-		LOWER32(client_id),
-		UPPER32(client_id),
-	};
 	client_t *client = NULL;
 
 	futex_down(&async_futex);
-	link_t *lnk = hash_table_find(&client_hash_table, key);
+	ht_link_t *lnk = hash_table_find(&client_hash_table, &client_id);
 	if (lnk) {
-		client = hash_table_get_instance(lnk, client_t, link);
+		client = hash_table_get_inst(lnk, client_t, link);
 		atomic_inc(&client->refcnt);
 	} else if (create) {
 		client = malloc(sizeof(client_t));
@@ -750,15 +711,11 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 static void async_client_put(client_t *client)
 {
 	bool destroy;
-	unsigned long key[2] = {
-		LOWER32(client->in_task_id),
-		UPPER32(client->in_task_id)
-	};
-	
+
 	futex_down(&async_futex);
 	
 	if (atomic_predec(&client->refcnt) == 0) {
-		hash_table_remove(&client_hash_table, key, 2);
+		hash_table_remove(&client_hash_table, &client->in_task_id);
 		destroy = true;
 	} else
 		destroy = false;
@@ -854,8 +811,7 @@ static int connection_fibril(void *arg)
 	 * Remove myself from the connection hash table.
 	 */
 	futex_down(&async_futex);
-	unsigned long key = fibril_connection->in_phone_hash;
-	hash_table_remove(&conn_hash_table, &key, 1);
+	hash_table_remove(&conn_hash_table, &fibril_connection->in_phone_hash);
 	futex_up(&async_futex);
 	
 	/*
@@ -1133,10 +1089,10 @@ void async_destroy_manager(void)
  */
 void __async_init(void)
 {
-	if (!hash_table_create(&client_hash_table, 0, 2, &client_hash_table_ops))
+	if (!hash_table_create(&client_hash_table, 0, 0, &client_hash_table_ops))
 		abort();
 	
-	if (!hash_table_create(&conn_hash_table, 0, 1, &conn_hash_table_ops))
+	if (!hash_table_create(&conn_hash_table, 0, 0, &conn_hash_table_ops))
 		abort();
 	
 	session_ns = (async_sess_t *) malloc(sizeof(async_sess_t));

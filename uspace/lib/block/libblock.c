@@ -253,37 +253,30 @@ void *block_bb_get(service_id_t service_id)
 	return devcon->bb_buf;
 }
 
-static size_t cache_key_hash(unsigned long *key)
+static size_t cache_key_hash(void *key)
 {
-	/* As recommended by Effective Java, 2nd Edition. */
-	size_t hash = 17;
-	hash = 31 * hash + key[1];
-	hash = 31 * hash + key[0];
-	return hash;
+	aoff64_t *lba = (aoff64_t*)key;
+	return *lba;
 }
 
-static size_t cache_hash(const link_t *item)
+static size_t cache_hash(const ht_link_t *item)
 {
-	block_t *b = hash_table_get_instance(item, block_t, hash_link);
-	unsigned long key[] = {
-		LOWER32(b->lba),
-		UPPER32(b->lba)
-	};
-	
-	return cache_key_hash(key);
+	block_t *b = hash_table_get_inst(item, block_t, hash_link);
+	return b->lba;
 }
 
-static bool cache_match(unsigned long *key, size_t keys, const link_t *item)
+static bool cache_key_equal(void *key, const ht_link_t *item)
 {
-	block_t *b = hash_table_get_instance(item, block_t, hash_link);
-	return b->lba == MERGE_LOUP32(key[0], key[1]);
+	aoff64_t *lba = (aoff64_t*)key;
+	block_t *b = hash_table_get_inst(item, block_t, hash_link);
+	return b->lba == *lba;
 }
 
 
 static hash_table_ops_t cache_ops = {
 	.hash = cache_hash,
 	.key_hash = cache_key_hash,
-	.match = cache_match,
+	.key_equal = cache_key_equal,
 	.equal = 0,
 	.remove_callback = 0
 };
@@ -316,7 +309,7 @@ int block_cache_init(service_id_t service_id, size_t size, unsigned blocks,
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
-	if (!hash_table_create(&cache->block_hash, 0, 2, &cache_ops)) {
+	if (!hash_table_create(&cache->block_hash, 0, 0, &cache_ops)) {
 		free(cache);
 		return ENOMEM;
 	}
@@ -354,11 +347,7 @@ int block_cache_fini(service_id_t service_id)
 				return rc;
 		}
 
-		unsigned long key[2] = {
-			LOWER32(b->lba),
-			UPPER32(b->lba)
-		};
-		hash_table_remove(&cache->block_hash, key, 2);
+		hash_table_remove_item(&cache->block_hash, &b->hash_link);
 		
 		free(b->data);
 		free(b);
@@ -390,7 +379,6 @@ static void block_initialize(block_t *b)
 	b->toxic = false;
 	fibril_rwlock_initialize(&b->contents_lock);
 	link_initialize(&b->free_link);
-	link_initialize(&b->hash_link);
 }
 
 /** Instantiate a block in memory and get a reference to it.
@@ -410,11 +398,7 @@ int block_get(block_t **block, service_id_t service_id, aoff64_t ba, int flags)
 	devcon_t *devcon;
 	cache_t *cache;
 	block_t *b;
-	link_t *l;
-	unsigned long key[2] = {
-		LOWER32(ba),
-		UPPER32(ba)
-	};
+	link_t *link;
 
 	int rc;
 	
@@ -430,13 +414,13 @@ retry:
 	b = NULL;
 
 	fibril_mutex_lock(&cache->lock);
-	l = hash_table_find(&cache->block_hash, key);
-	if (l) {
+	ht_link_t *hlink = hash_table_find(&cache->block_hash, &ba);
+	if (hlink) {
 found:
 		/*
 		 * We found the block in the cache.
 		 */
-		b = hash_table_get_instance(l, block_t, hash_link);
+		b = hash_table_get_inst(hlink, block_t, hash_link);
 		fibril_mutex_lock(&b->lock);
 		if (b->refcnt++ == 0)
 			list_remove(&b->free_link);
@@ -474,8 +458,8 @@ recycle:
 				rc = ENOMEM;
 				goto out;
 			}
-			l = list_first(&cache->free_list);
-			b = list_get_instance(l, block_t, free_link);
+			link = list_first(&cache->free_list);
+			b = list_get_instance(link, block_t, free_link);
 
 			fibril_mutex_lock(&b->lock);
 			if (b->dirty) {
@@ -515,8 +499,8 @@ recycle:
 					fibril_mutex_unlock(&b->lock);
 					goto retry;
 				}
-				l = hash_table_find(&cache->block_hash, key);
-				if (l) {
+				hlink = hash_table_find(&cache->block_hash, &ba);
+				if (hlink) {
 					/*
 					 * Someone else must have already
 					 * instantiated the block while we were
@@ -538,11 +522,7 @@ recycle:
 			 * table.
 			 */
 			list_remove(&b->free_link);
-			unsigned long temp_key[2] = {
-				LOWER32(b->lba),
-				UPPER32(b->lba)
-			};
-			hash_table_remove(&cache->block_hash, temp_key, 2);
+			hash_table_remove_item(&cache->block_hash, &b->hash_link);
 		}
 
 		block_initialize(b);
@@ -662,11 +642,7 @@ retry:
 			/*
 			 * Take the block out of the cache and free it.
 			 */
-			unsigned long key[2] = {
-				LOWER32(block->lba),
-				UPPER32(block->lba)
-			};
-			hash_table_remove(&cache->block_hash, key, 2);
+			hash_table_remove_item(&cache->block_hash, &block->hash_link);
 			fibril_mutex_unlock(&block->lock);
 			free(block->data);
 			free(block);

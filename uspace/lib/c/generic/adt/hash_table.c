@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2012 Adam Hraska
+ * 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,14 +63,13 @@
 
 static size_t round_up_size(size_t size);
 static bool alloc_table(size_t bucket_cnt, list_t **pbuckets);
-static void item_inserted(hash_table_t *h);
-static void item_removed(hash_table_t *h);
-static inline void remove_item(hash_table_t *h, link_t *item);
-static size_t remove_duplicates(hash_table_t *h, unsigned long key[]);
-static size_t remove_matching(hash_table_t *h, unsigned long key[], size_t key_cnt);
+static void clear_items(hash_table_t *h);
+static void resize(hash_table_t *h, size_t new_bucket_cnt);
+static void grow_if_needed(hash_table_t *h);
+static void shrink_if_needed(hash_table_t *h);
 
 /* Dummy do nothing callback to invoke in place of remove_callback == NULL. */
-static void nop_remove_callback(link_t *item)
+static void nop_remove_callback(ht_link_t *item)
 {
 	/* no-op */
 }
@@ -89,52 +90,32 @@ static void nop_remove_callback(link_t *item)
  * @return True on success
  *
  */
-bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_keys,
+bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_load,
     hash_table_ops_t *op)
 {
 	assert(h);
-	assert(op && op->hash && op->key_hash && op->match);
-	assert(max_keys > 0);
+	assert(op && op->hash && op->key_hash && op->key_equal);
+	
+	/* Check for compulsory ops. */
+	if (!op || !op->hash || !op->key_hash || !op->key_equal)
+		return false;
 	
 	h->bucket_cnt = round_up_size(init_size);
 	
 	if (!alloc_table(h->bucket_cnt, &h->bucket))
 		return false;
 	
-	h->max_keys = max_keys;
-	h->items = 0;
+	h->max_load = (max_load == 0) ? HT_MAX_LOAD : max_load;
+	h->item_cnt = 0;
 	h->op = op;
-	
-	if (h->op->remove_callback == 0) 
+	h->full_item_cnt = h->max_load * h->bucket_cnt;
+	h->apply_ongoing = false;
+
+	if (h->op->remove_callback == 0) {
 		h->op->remove_callback = nop_remove_callback;
+	}
 	
 	return true;
-}
-
-/** Remove all elements from the hash table
- *
- * @param h Hash table to be cleared
- */
-void hash_table_clear(hash_table_t *h)
-{
-	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
-		list_foreach_safe(h->bucket[idx], cur, next) {
-			list_remove(cur);
-			h->op->remove_callback(cur);
-		}
-	}
-	
-	h->items = 0;
-
-	/* Shrink the table to its minimum size if possible. */
-	if (HT_MIN_BUCKETS < h->bucket_cnt) {
-		list_t *new_buckets;
-		if (alloc_table(HT_MIN_BUCKETS, &new_buckets)) {
-			free(h->bucket);
-			h->bucket = new_buckets;
-			h->bucket_cnt = HT_MIN_BUCKETS;
-		}
-	}
 }
 
 /** Destroy a hash table instance.
@@ -144,13 +125,65 @@ void hash_table_clear(hash_table_t *h)
  */
 void hash_table_destroy(hash_table_t *h)
 {
-	assert(h);
-	assert(h->bucket);
+	assert(h && h->bucket);
+	assert(!h->apply_ongoing);
+	
+	clear_items(h);
 	
 	free(h->bucket);
 
 	h->bucket = 0;
 	h->bucket_cnt = 0;
+}
+
+/** Returns true if there are no items in the table. */
+bool hash_table_empty(hash_table_t *h)
+{
+	assert(h && h->bucket);
+	return h->item_cnt == 0;
+}
+
+/** Returns the number of items in the table. */
+size_t hash_table_size(hash_table_t *h)
+{
+	assert(h && h->bucket);
+	return h->item_cnt;
+}
+
+/** Remove all elements from the hash table
+ *
+ * @param h Hash table to be cleared
+ */
+void hash_table_clear(hash_table_t *h)
+{
+	assert(h && h->bucket);
+	assert(!h->apply_ongoing);
+	
+	clear_items(h);
+	
+	/* Shrink the table to its minimum size if possible. */
+	if (HT_MIN_BUCKETS < h->bucket_cnt) {
+		resize(h, HT_MIN_BUCKETS);
+	}
+}
+
+/** Unlinks and removes all items but does not resize. */
+static void clear_items(hash_table_t *h)
+{
+	if (h->item_cnt == 0)
+		return;
+	
+	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
+		list_foreach_safe(h->bucket[idx], cur, next) {
+			assert(cur);
+			ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+			
+			list_remove(cur);
+			h->op->remove_callback(cur_link);
+		}
+	}
+	
+	h->item_cnt = 0;
 }
 
 /** Insert item into a hash table.
@@ -159,18 +192,17 @@ void hash_table_destroy(hash_table_t *h)
  * @param key  Array of all keys necessary to compute hash index.
  * @param item Item to be inserted into the hash table.
  */
-void hash_table_insert(hash_table_t *h, link_t *item)
+void hash_table_insert(hash_table_t *h, ht_link_t *item)
 {
 	assert(item);
 	assert(h && h->bucket);
-	assert(h->op && h->op->hash);
+	assert(!h->apply_ongoing);
 	
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
 	
-	assert(idx < h->bucket_cnt);
-	
-	list_append(item, &h->bucket[idx]);
-	item_inserted(h);
+	list_append(&item->link, &h->bucket[idx]);
+	++h->item_cnt;
+	grow_if_needed(h);
 }
 
 
@@ -183,16 +215,14 @@ void hash_table_insert(hash_table_t *h, link_t *item)
  * @return False if such an item had already been inserted. 
  * @return True if the inserted item was the only item with such a lookup key.
  */
-bool hash_table_insert_unique(hash_table_t *h, link_t *item)
+bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
 {
 	assert(item);
 	assert(h && h->bucket && h->bucket_cnt);
 	assert(h->op && h->op->hash && h->op->equal);
+	assert(!h->apply_ongoing);
 	
-	size_t item_hash = h->op->hash(item);
-	size_t idx = item_hash % h->bucket_cnt;
-	
-	assert(idx < h->bucket_cnt);
+	size_t idx = h->op->hash(item) % h->bucket_cnt;
 	
 	/* Check for duplicates. */
 	list_foreach(h->bucket[idx], cur) {
@@ -200,12 +230,14 @@ bool hash_table_insert_unique(hash_table_t *h, link_t *item)
 		 * We could filter out items using their hashes first, but 
 		 * calling equal() might very well be just as fast.
 		 */
-		if (h->op->equal(cur, item))
+		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+		if (h->op->equal(cur_link, item))
 			return false;
 	}
 	
-	list_append(item, &h->bucket[idx]);
-	item_inserted(h);
+	list_append(&item->link, &h->bucket[idx]);
+	++h->item_cnt;
+	grow_if_needed(h);
 	
 	return true;
 }
@@ -218,52 +250,48 @@ bool hash_table_insert_unique(hash_table_t *h, link_t *item)
  * @return Matching item on success, NULL if there is no such item.
  *
  */
-link_t *hash_table_find(const hash_table_t *h, unsigned long key[])
+ht_link_t *hash_table_find(const hash_table_t *h, void *key)
 {
 	assert(h && h->bucket);
-	assert(h->op && h->op->key_hash && h->op->match);
 	
-	size_t key_hash = h->op->key_hash(key);
-	size_t idx = key_hash % h->bucket_cnt;
+	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
 
-	assert(idx < h->bucket_cnt);
-	
 	list_foreach(h->bucket[idx], cur) {
+		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
 		/* 
 		 * Is this is the item we are looking for? We could have first 
-		 * checked if the hashes match but op->match() may very well be 
+		 * checked if the hashes match but op->key_equal() may very well be 
 		 * just as fast as op->hash().
 		 */
-		if (h->op->match(key, h->max_keys, cur)) {
-			return cur;
+		if (h->op->key_equal(key, cur_link)) {
+			return cur_link;
 		}
 	}
 	
 	return NULL;
 }
 
+/** Find the next item equal to item. */
+ht_link_t *hash_table_find_next(const hash_table_t *h, ht_link_t *item)
+{
+	assert(item);
+	assert(h && h->bucket);
 
-/** Apply function to all items in hash table.
- *
- * @param h   Hash table.
- * @param f   Function to be applied. Return false if no more items 
- *            should be visited. The functor must not delete the successor
- *            of the item passed in the first argument.
- * @param arg Argument to be passed to the function.
- *
- */
-void hash_table_apply(hash_table_t *h, bool (*f)(link_t *, void *), void *arg)
-{	
-	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
-		list_foreach_safe(h->bucket[idx], cur, next) {
-			/* 
-			 * The next pointer had already been saved. f() may safely 
-			 * delete cur (but not next!).
-			 */
-			if (!f(cur, arg))
-				return;
+	/* Traverse the circular list until we reach the starting item again. */
+	for (link_t *cur = item->link.next; cur != &item->link; cur = cur->next) {
+		assert(cur);
+		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+		/* 
+		 * Is this is the item we are looking for? We could have first 
+		 * checked if the hashes match but op->equal() may very well be 
+		 * just as fast as op->hash().
+		 */
+		if (h->op->equal(cur_link, item)) {
+			return cur_link;
 		}
 	}
+
+	return NULL;
 }
 
 /** Remove all matching items from hash table.
@@ -277,90 +305,79 @@ void hash_table_apply(hash_table_t *h, bool (*f)(link_t *, void *), void *arg)
  * 
  * @return Returns the number of removed items.
  */
-size_t hash_table_remove(hash_table_t *h, unsigned long key[], size_t key_cnt)
+size_t hash_table_remove(hash_table_t *h, void *key)
 {
 	assert(h && h->bucket);
-	assert(h && h->op && h->op->hash &&
-	    h->op->remove_callback);
-	assert(key_cnt <= h->max_keys);
+	assert(!h->apply_ongoing);
 	
-	/* All keys are known, remove from a specific bucket. */
-	if (key_cnt == h->max_keys) {
-		return remove_duplicates(h, key);
-	} else {
-		/*
-		* Fewer keys were passed.
-		* Any partially matching entries are to be removed.
-		*/
-		return remove_matching(h, key, key_cnt);
-	}
-}
+	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
 
-/** Removes an item already present in the table. The item must be in the table.*/
-void hash_table_remove_item(hash_table_t *h, link_t *item)
-{
-	assert(item);
-	assert(h && h->bucket);
-	
-	remove_item(h, item);
-}
-
-/** Unlink the item from a bucket, update statistics and resize if needed. */
-static inline void remove_item(hash_table_t *h, link_t *item)
-{
-	assert(item);
-	
-	list_remove(item);
-	item_removed(h);
-	h->op->remove_callback(item);
-}
-
-/** Removes all items matching key in the bucket key hashes to. */
-static size_t remove_duplicates(hash_table_t *h, unsigned long key[])
-{
-	assert(h && h->bucket);
-	assert(h->op && h->op->key_hash && h->op->match);
-	
-	size_t key_hash = h->op->key_hash(key);
-	size_t idx = key_hash % h->bucket_cnt;
-
-	assert(idx < h->bucket_cnt);
-	
 	size_t removed = 0;
 	
 	list_foreach_safe(h->bucket[idx], cur, next) {
-		if (h->op->match(key, h->max_keys, cur)) {
+		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+		
+		if (h->op->key_equal(key, cur_link)) {
 			++removed;
-			remove_item(h, cur);
+			list_remove(cur);
+			h->op->remove_callback(cur_link);
 		}
 	}
+
+	h->item_cnt -= removed;
+	shrink_if_needed(h);
 	
 	return removed;
 }
 
-/** Removes all items in any bucket in the table that match the partial key. */
-static size_t remove_matching(hash_table_t *h, unsigned long key[], 
-	size_t key_cnt)
+/** Removes an item already present in the table. The item must be in the table.*/
+void hash_table_remove_item(hash_table_t *h, ht_link_t *item)
 {
+	assert(item);
 	assert(h && h->bucket);
-	assert(key_cnt < h->max_keys);
+	assert(link_in_use(&item->link));
+
+	list_remove(&item->link);
+	--h->item_cnt;
+	h->op->remove_callback(item);
+	shrink_if_needed(h);
+}
+
+/** Apply function to all items in hash table.
+ *
+ * @param h   Hash table.
+ * @param f   Function to be applied. Return false if no more items 
+ *            should be visited. The functor may only delete the supplied
+ *            item. It must not delete the successor of the item passed 
+ *            in the first argument.
+ * @param arg Argument to be passed to the function.
+ */
+void hash_table_apply(hash_table_t *h, bool (*f)(ht_link_t *, void *), void *arg)
+{	
+	assert(f);
+	assert(h && h->bucket);
 	
-	size_t removed = 0;
-	/*
-	 * Fewer keys were passed.
-	 * Any partially matching entries are to be removed.
-	 */
+	if (h->item_cnt == 0)
+		return;
+	
+	h->apply_ongoing = true;
+	
 	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
 		list_foreach_safe(h->bucket[idx], cur, next) {
-			if (h->op->match(key, key_cnt, cur)) {
-				++removed;
-				remove_item(h, cur);
-			}
+			ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+			/* 
+			 * The next pointer had already been saved. f() may safely 
+			 * delete cur (but not next!).
+			 */
+			if (!f(cur_link, arg))
+				return;
 		}
 	}
 	
-	return removed;
+	h->apply_ongoing = false;
 	
+	shrink_if_needed(h);
+	grow_if_needed(h);
 }
 
 /** Rounds up size to the nearest suitable table size. */
@@ -391,37 +408,11 @@ static bool alloc_table(size_t bucket_cnt, list_t **pbuckets)
 	return true;
 }
 
-/** Allocates and rehashes items to a new table. Frees the old table. */
-static void resize(hash_table_t *h, size_t new_bucket_cnt) 
-{
-	assert(h && h->bucket);
-	
-	list_t *new_buckets;
 
-	/* Leave the table as is if we cannot resize. */
-	if (!alloc_table(new_bucket_cnt, &new_buckets))
-		return;
-	
-	/* Rehash all the items to the new table. */
-	for (size_t old_idx = 0; old_idx < h->bucket_cnt; ++old_idx) {
-		list_foreach_safe(h->bucket[old_idx], cur, next) {
-			size_t new_idx = h->op->hash(cur) % new_bucket_cnt;
-			list_remove(cur);
-			list_append(cur, &new_buckets[new_idx]);
-		}
-	}
-	
-	free(h->bucket);
-	h->bucket = new_buckets;
-	h->bucket_cnt = new_bucket_cnt;
-}
-
-/** Shrinks the table if needed. */
-static void item_removed(hash_table_t *h)
+/** Shrinks the table if the table is only sparely populated. */
+static inline void shrink_if_needed(hash_table_t *h)
 {
-	--h->items;
-	
-	if (HT_MIN_BUCKETS < h->items && h->items <= HT_MAX_LOAD * h->bucket_cnt / 4) {
+	if (h->item_cnt <= h->full_item_cnt / 4 && HT_MIN_BUCKETS < h->bucket_cnt) {
 		/* 
 		 * Keep the bucket_cnt odd (possibly also prime). 
 		 * Shrink from 2n + 1 to n. Integer division discards the +1.
@@ -431,17 +422,50 @@ static void item_removed(hash_table_t *h)
 	}
 }
 
-/** Grows the table if needed. */
-static void item_inserted(hash_table_t *h)
+/** Grows the table if table load exceeds the maximum allowed. */
+static inline void grow_if_needed(hash_table_t *h)
 {
-	++h->items;
-	
 	/* Grow the table if the average bucket load exceeds the maximum. */
-	if (HT_MAX_LOAD * h->bucket_cnt < h->items) {
+	if (h->full_item_cnt < h->item_cnt) {
 		/* Keep the bucket_cnt odd (possibly also prime). */
 		size_t new_bucket_cnt = 2 * h->bucket_cnt + 1;
 		resize(h, new_bucket_cnt);
 	}
+}
+
+/** Allocates and rehashes items to a new table. Frees the old table. */
+static void resize(hash_table_t *h, size_t new_bucket_cnt) 
+{
+	assert(h && h->bucket);
+	assert(HT_MIN_BUCKETS <= new_bucket_cnt);
+	
+	/* We are traversing the table and resizing would mess up the buckets. */
+	if (h->apply_ongoing)
+		return;
+	
+	list_t *new_buckets;
+
+	/* Leave the table as is if we cannot resize. */
+	if (!alloc_table(new_bucket_cnt, &new_buckets))
+		return;
+	
+	if (0 < h->item_cnt) {
+		/* Rehash all the items to the new table. */
+		for (size_t old_idx = 0; old_idx < h->bucket_cnt; ++old_idx) {
+			list_foreach_safe(h->bucket[old_idx], cur, next) {
+				ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+
+				size_t new_idx = h->op->hash(cur_link) % new_bucket_cnt;
+				list_remove(cur);
+				list_append(cur, &new_buckets[new_idx]);
+			}
+		}
+	}
+	
+	free(h->bucket);
+	h->bucket = new_buckets;
+	h->bucket_cnt = new_bucket_cnt;
+	h->full_item_cnt = h->max_load * h->bucket_cnt;
 }
 
 
