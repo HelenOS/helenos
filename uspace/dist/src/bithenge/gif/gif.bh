@@ -50,17 +50,17 @@ transform gif_color_map(length) = repeat(length) {
 	gif_color_map_entry
 };
 
-transform gif_color_map_from_bits_per_pixel(bits_per_pixel_minus_one) = struct {
+transform gif_color_map_from_bits_per_pixel(bits_per_pixel) = struct {
 	# We need to emulate missing << operator
-	switch (bits_per_pixel_minus_one) {
-		0: { <- gif_color_map(2); };
-		1: { <- gif_color_map(4); };
-		2: { <- gif_color_map(8); };
-		3: { <- gif_color_map(16); };
-		4: { <- gif_color_map(32); };
-		5: { <- gif_color_map(64); };
-		6: { <- gif_color_map(128); };
-		7: { <- gif_color_map(256); };
+	switch (bits_per_pixel) {
+		1: { <- gif_color_map(2); };
+		2: { <- gif_color_map(4); };
+		3: { <- gif_color_map(8); };
+		4: { <- gif_color_map(16); };
+		5: { <- gif_color_map(32); };
+		6: { <- gif_color_map(64); };
+		7: { <- gif_color_map(128); };
+		8: { <- gif_color_map(256); };
 	}
 };
 
@@ -90,11 +90,11 @@ transform gif_image_block = struct {
 		.use_local_color_map <- bit;
 		.interlacing <- bit;
 		.reserved_bits <- uint_be(3);
-		.bits_per_pixel_minus_one <- uint_be(3);
+		.bits_per_pixel <- (in + 1) <- uint_be(3);
 	} <- bits_be <- known_length(1);
 	
 	if (.use_local_color_map) {
-		.local_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel_minus_one);
+		.local_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel);
 	}
 	
 	.lzw_initial_size <- uint8;
@@ -135,12 +135,12 @@ transform main = struct {
 		.global_color_map_exists <- bit;
 		.color_resolution <- uint_be(3);
 		.reserved_bit <- uint_be(1);
-		.bits_per_pixel_minus_one <- uint_be(3);
+		.bits_per_pixel <- (in + 1) <- uint_be(3);
 	} <- bits_be <- known_length(1);
 	.background_color_index <- uint8;
 	.reserved <- uint8;
 	if (.global_color_map_exists) {
-		.global_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel_minus_one);
+		.global_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel);
 	}
 	.blocks <- repeat {
 		gif_block
