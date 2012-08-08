@@ -99,7 +99,8 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 	}
 
 	/* Check types and get values. */
-	bithenge_int_t a_int, b_int;
+	/* Assigning 0 only to make the compiler happy. */
+	bithenge_int_t a_int = 0, b_int = 0;
 	switch (self->op) {
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
 	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
