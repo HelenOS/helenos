@@ -1871,7 +1871,7 @@ static inline size_t shrink_idx(size_t idx)
 static inline size_t calc_key_hash(cht_t *h, void *key)
 {
 	/* Mimick calc_node_hash. */
-	return hash_mix(h->op->key_hash(key)) & ~1U;
+	return hash_mix(h->op->key_hash(key)) & ~(size_t)1;
 }
 
 static inline size_t node_hash(cht_t *h, const cht_link_t *item)
@@ -1890,7 +1890,7 @@ static inline size_t calc_node_hash(cht_t *h, const cht_link_t *item)
 	 * Clear the lowest order bit in order for sentinel's node hash
 	 * to be the greatest possible.
 	 */
-	return hash_mix(h->op->hash(item)) & ~1U;
+	return hash_mix(h->op->hash(item)) & ~(size_t)1;
 }
 
 static inline void memoize_node_hash(cht_t *h, cht_link_t *item)
