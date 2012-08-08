@@ -62,6 +62,10 @@ static void expression_indestructible(bithenge_expression_t *self)
 	assert(false);
 }
 
+
+
+/***************** binary_expression                         *****************/
+
 typedef struct {
 	bithenge_expression_t base;
 	bithenge_binary_op_t op;
@@ -184,6 +188,45 @@ error:
 	return rc;
 }
 
+
+
+/***************** in_node_expression                        *****************/
+
+static int in_node_evaluate(bithenge_expression_t *self,
+    bithenge_scope_t *scope, bithenge_node_t **out)
+{
+	for (; scope && !bithenge_scope_is_barrier(scope);
+	    scope = bithenge_scope_outer(scope)) {
+		*out = bithenge_scope_in_node(scope);
+		if (*out)
+			return EOK;
+	}
+	return EINVAL;
+}
+
+static const bithenge_expression_ops_t in_node_ops = {
+	.evaluate = in_node_evaluate,
+	.destroy = expression_indestructible,
+};
+
+static bithenge_expression_t in_node_expression = {
+	&in_node_ops, 1
+};
+
+/** Create an expression that gets the current input node.
+ * @param[out] out Holds the new expression.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_in_node_expression(bithenge_expression_t **out)
+{
+	bithenge_expression_inc_ref(&in_node_expression);
+	*out = &in_node_expression;
+	return EOK;
+}
+
+
+
+/***************** current_node_expression                   *****************/
+
 static int current_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
@@ -211,6 +254,10 @@ int bithenge_current_node_expression(bithenge_expression_t **out)
 	*out = &current_node_expression;
 	return EOK;
 }
+
+
+
+/***************** param_expression                          *****************/
 
 typedef struct {
 	bithenge_expression_t base;
@@ -269,6 +316,10 @@ int bithenge_param_expression(bithenge_expression_t **out, int index)
 	*out = param_as_expression(self);
 	return EOK;
 }
+
+
+
+/***************** const_expression                          *****************/
 
 typedef struct {
 	bithenge_expression_t base;
@@ -650,6 +701,11 @@ error:
 	return rc;
 }
 
+
+
+/***************** expression_transform           *****************/
+
+/* Also used by inputless_transform. */
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_expression_t *expr;
@@ -671,24 +727,17 @@ static int expression_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	expression_transform_t *self = transform_as_expression(base);
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
-	aoff64_t len;
-	int rc = bithenge_blob_size(bithenge_node_as_blob(in), &len);
+	bithenge_scope_t *inner;
+	int rc = bithenge_scope_new(&inner, scope);
 	if (rc != EOK)
 		return rc;
-	if (len != 0)
-		return EINVAL;
-	return bithenge_expression_evaluate(self->expr, scope, out);
+	bithenge_scope_set_in_node(inner, in);
+	rc = bithenge_expression_evaluate(self->expr, inner, out);
+	bithenge_scope_dec_ref(inner);
+	return rc;
 }
 
-static int expression_transform_prefix_length(bithenge_transform_t *base,
-    bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
-{
-	*out = 0;
-	return EOK;
-}
-
+/* Also used by inputless_transform. */
 static void expression_transform_destroy(bithenge_transform_t *base)
 {
 	expression_transform_t *self = transform_as_expression(base);
@@ -698,12 +747,11 @@ static void expression_transform_destroy(bithenge_transform_t *base)
 
 static const bithenge_transform_ops_t expression_transform_ops = {
 	.apply = expression_transform_apply,
-	.prefix_length = expression_transform_prefix_length,
 	.destroy = expression_transform_destroy,
 };
 
-/** Create a transform that takes an empty blob and produces the result of an
- * expression. Takes a reference to the expression.
+/** Create a transform that evaluates an expression on the input node. Takes a
+ * reference to the expression.
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
  * @return EOK on success or an error code from errno.h. */
@@ -731,6 +779,66 @@ error:
 	bithenge_expression_dec_ref(expr);
 	return rc;
 }
+
+
+
+/***************** inputless_transform            *****************/
+
+static int inputless_transform_prefix_length(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
+{
+	*out = 0;
+	return EOK;
+}
+
+static int inputless_transform_prefix_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_blob_t *in, bithenge_node_t **out_node,
+    aoff64_t *out_size)
+{
+	expression_transform_t *self = transform_as_expression(base);
+	*out_size = 0;
+	return bithenge_expression_evaluate(self->expr, scope, out_node);
+}
+
+static const bithenge_transform_ops_t inputless_transform_ops = {
+	.prefix_length = inputless_transform_prefix_length,
+	.prefix_apply = inputless_transform_prefix_apply,
+	.destroy = expression_transform_destroy,
+};
+
+/** Create a transform that takes an empty blob and produces the result of an
+ * expression. Takes a reference to the expression.
+ * @param[out] out Holds the new transform.
+ * @param expr The expression to evaluate.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_inputless_transform(bithenge_transform_t ** out,
+    bithenge_expression_t *expr)
+{
+	int rc;
+	expression_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_transform(expression_as_transform(self),
+	    &inputless_transform_ops, 0);
+	if (rc != EOK)
+		goto error;
+
+	self->expr = expr;
+	*out = expression_as_transform(self);
+	return EOK;
+
+error:
+	free(self);
+	bithenge_expression_dec_ref(expr);
+	return rc;
+}
+
+
+
+/***************** if_transform                              *****************/
 
 typedef struct {
 	bithenge_transform_t base;

@@ -102,6 +102,7 @@ int bithenge_init_expression(bithenge_expression_t *,
     const bithenge_expression_ops_t *);
 int bithenge_binary_expression(bithenge_expression_t **, bithenge_binary_op_t,
     bithenge_expression_t *, bithenge_expression_t *);
+int bithenge_in_node_expression(bithenge_expression_t **);
 int bithenge_current_node_expression(bithenge_expression_t **);
 int bithenge_param_expression(bithenge_expression_t **, int);
 int bithenge_const_expression(bithenge_expression_t **, bithenge_node_t *);
@@ -112,6 +113,8 @@ int bithenge_scope_member_expression(bithenge_expression_t **,
 int bithenge_param_wrapper(bithenge_transform_t **, bithenge_transform_t *,
     bithenge_expression_t **);
 int bithenge_expression_transform(bithenge_transform_t **,
+    bithenge_expression_t *);
+int bithenge_inputless_transform(bithenge_transform_t **,
     bithenge_expression_t *);
 int bithenge_if_transform(bithenge_transform_t **, bithenge_expression_t *,
     bithenge_transform_t *, bithenge_transform_t *);

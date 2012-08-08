@@ -182,6 +182,7 @@ int bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 	self->num_params = 0;
 	self->params = NULL;
 	self->current_node = NULL;
+	self->in_node = NULL;
 	*out = self;
 	return EOK;
 }
@@ -210,15 +211,43 @@ bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
 	return self->outer;
 }
 
+/** Get the current node being created, which may be NULL.
+ * @param scope The scope to get the current node from.
+ * @return The node being created, or NULL. */
+bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
+{
+	if (scope->current_node)
+		bithenge_node_inc_ref(scope->current_node);
+	return scope->current_node;
+}
+
 /** Set the current node being created. Takes a reference to @a node.
  * @param scope The scope to set the current node in.
- * @param node The current node being created, or NULL.
- * @return EOK on success or an error code from errno.h. */
+ * @param node The current node being created, or NULL. */
 void bithenge_scope_set_current_node(bithenge_scope_t *scope,
     bithenge_node_t *node)
 {
 	bithenge_node_dec_ref(scope->current_node);
 	scope->current_node = node;
+}
+
+/** Get the current input node, which may be NULL.
+ * @param scope The scope to get the current input node from.
+ * @return The input node, or NULL. */
+bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *scope)
+{
+	if (scope->in_node)
+		bithenge_node_inc_ref(scope->in_node);
+	return scope->in_node;
+}
+
+/** Set the current input node. Takes a reference to @a node.
+ * @param scope The scope to set the input node in.
+ * @param node The input node, or NULL. */
+void bithenge_scope_set_in_node(bithenge_scope_t *scope, bithenge_node_t *node)
+{
+	bithenge_node_dec_ref(scope->in_node);
+	scope->in_node = node;
 }
 
 /** Set a scope as a barrier.
@@ -235,16 +264,6 @@ void bithenge_scope_set_barrier(bithenge_scope_t *self)
 bool bithenge_scope_is_barrier(bithenge_scope_t *self)
 {
 	return self->barrier;
-}
-
-/** Get the current node being created, which may be NULL.
- * @param scope The scope to get the current node from.
- * @return The node being created, or NULL. */
-bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
-{
-	if (scope->current_node)
-		bithenge_node_inc_ref(scope->current_node);
-	return scope->current_node;
 }
 
 /** Allocate parameters. The parameters must then be set with @a

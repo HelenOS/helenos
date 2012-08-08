@@ -63,6 +63,7 @@ typedef enum {
 	TOKEN_ELSE,
 	TOKEN_FALSE,
 	TOKEN_IF,
+	TOKEN_IN,
 	TOKEN_REPEAT,
 	TOKEN_STRUCT,
 	TOKEN_SWITCH,
@@ -224,6 +225,9 @@ static void next_token(state_t *state)
 			free(value);
 		} else if (!str_cmp(value, "if")) {
 			state->token = TOKEN_IF;
+			free(value);
+		} else if (!str_cmp(value, "in")) {
+			state->token = TOKEN_IN;
 			free(value);
 		} else if (!str_cmp(value, "repeat")) {
 			state->token = TOKEN_REPEAT;
@@ -433,6 +437,15 @@ static bithenge_expression_t *parse_term(state_t *state)
 		}
 
 		return expr;
+	} else if (state->token == TOKEN_IN) {
+		next_token(state);
+		bithenge_expression_t *expr;
+		rc = bithenge_in_node_expression(&expr);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+		return expr;
 	} else if (state->token == TOKEN_INTEGER) {
 		bithenge_int_t val = state->token_int;
 		next_token(state);
@@ -620,7 +633,7 @@ static bithenge_transform_t *make_empty_transform(state_t *state)
 	}
 
 	bithenge_transform_t *xform;
-	rc = bithenge_expression_transform(&xform, expr);
+	rc = bithenge_inputless_transform(&xform, expr);
 	if (rc != EOK) {
 		error_errno(state, rc);
 		return NULL;
@@ -866,7 +879,23 @@ static bithenge_transform_t *parse_struct(state_t *state)
  * @return The parsed transform, or NULL if an error occurred. */
 static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
-	if (state->token == TOKEN_DO) {
+	if (state->token == '(') {
+		next_token(state);
+		bithenge_expression_t *expr = parse_expression(state);
+		expect(state, ')');
+		if (state->error != EOK) {
+			bithenge_expression_dec_ref(expr);
+			return NULL;
+		}
+
+		bithenge_transform_t *xform;
+		int rc = bithenge_expression_transform(&xform, expr);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+		return xform;
+	} else if (state->token == TOKEN_DO) {
 		return parse_do_while(state);
 	} else if (state->token == TOKEN_IDENTIFIER) {
 		return parse_invocation(state);

@@ -15,13 +15,13 @@ transform u32(little_endian) =
 	};
 
 transform item(little_endian, len) = struct {
-	.type <- u32(little_endian);
+	.type <- (3*in+1) <- u32(little_endian);
 	.name <- pascal_string;
 	switch (.type) {
-		3: {
+		10: {
 			.val <- u32(little_endian);
 		};
-		14: {
+		11: {
 			.text <- ascii <- known_length(len);
 		};
 		else: {
