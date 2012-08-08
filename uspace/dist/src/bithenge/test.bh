@@ -1,9 +1,7 @@
-transform length = struct {
-	.len <- uint8;
-};
-
 transform pascal_string = struct {
-	<- length;
+	<- struct { # An inner struct for testing purposes
+		.len <- uint8;
+	};
 	.string <- ascii <- known_length(.len);
 };
 
@@ -15,7 +13,7 @@ transform u32(little_endian) =
 	};
 
 transform item(little_endian, len) = struct {
-	.type <- (3*in+1) <- u32(little_endian);
+	.type <- (3 * in + 1) <- u32(little_endian);
 	.name <- pascal_string;
 	switch (.type) {
 		10: {
@@ -31,6 +29,8 @@ transform item(little_endian, len) = struct {
 };
 
 transform main() = struct {
-	.first_item <- item(true, 3);
-	.second_item <- item(false, 4);
+	.first_len <- (3);
+	.second_len <- (6 - 2);
+	.first_item <- item(true, .first_len);
+	.second_item <- item(false, .second_len);
 };

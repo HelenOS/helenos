@@ -118,6 +118,8 @@ typedef struct {
 	char **parameter_names;
 	/** The number of parameters. */
 	int num_params;
+	/** @a parse_expression sets this when TOKEN_IN is used. */
+	bool in_node_used;
 } state_t;
 
 /** Free the previous token's data. This must be called before changing
@@ -439,6 +441,7 @@ static bithenge_expression_t *parse_term(state_t *state)
 		return expr;
 	} else if (state->token == TOKEN_IN) {
 		next_token(state);
+		state->in_node_used = true;
 		bithenge_expression_t *expr;
 		rc = bithenge_in_node_expression(&expr);
 		if (rc != EOK) {
@@ -881,6 +884,7 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
 	if (state->token == '(') {
 		next_token(state);
+		state->in_node_used = false;
 		bithenge_expression_t *expr = parse_expression(state);
 		expect(state, ')');
 		if (state->error != EOK) {
@@ -889,7 +893,11 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 		}
 
 		bithenge_transform_t *xform;
-		int rc = bithenge_expression_transform(&xform, expr);
+		int rc;
+		if (state->in_node_used)
+			rc = bithenge_expression_transform(&xform, expr);
+		else
+			rc = bithenge_inputless_transform(&xform, expr);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			return NULL;
