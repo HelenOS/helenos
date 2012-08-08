@@ -51,19 +51,29 @@ typedef struct {
 	hw_resource_list_t hw_resources;
 } rootmac_fun_t;
 
-static hw_resource_t pci_conf_regs = {
-	.type = IO_RANGE,
-	.res.io_range = {
-		.address = 0xCF8,
-		.size = 8,
-		.endianness = LITTLE_ENDIAN
+static hw_resource_t pci_conf_regs[] = {
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0xfec00000,
+			.size = 4,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0xfee00000,
+			.size = 4,
+			.endianness = LITTLE_ENDIAN
+		}
 	}
 };
 
 static rootmac_fun_t pci_data = {
 	.hw_resources = {
-		1,
-		&pci_conf_regs
+		2,
+		pci_conf_regs
 	}
 };
 
@@ -126,9 +136,14 @@ failure:
  */
 static int rootmac_dev_add(ddf_dev_t *dev)
 {
+#if 0
 	/* Register functions */
-	if (!rootmac_add_fun(dev, "pci0", "pangea_pci", &pci_data))
+	if (!rootmac_add_fun(dev, "pci0", "intel_pci", &pci_data))
 		ddf_msg(LVL_ERROR, "Failed to add functions for Mac platform.");
+#else
+	(void)pci_data;
+	(void)rootmac_add_fun;
+#endif
 	
 	return EOK;
 }

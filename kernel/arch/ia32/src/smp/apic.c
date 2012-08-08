@@ -258,11 +258,11 @@ int apic_poll_errors(void)
 	return !esr.err_bitmap;
 }
 
-static void ipi_wait_for_idle(void)
+/* Waits for the destination cpu to accept the previous ipi. */
+static void l_apic_wait_for_delivery(void)
 {
 	icr_t icr;
 	
-	/* Wait for the destination cpu to accept the previous ipi. */
 	do {
 		icr.lo = l_apic[ICRlo];
 	} while (icr.delivs != DELIVS_IDLE);
@@ -280,7 +280,7 @@ int l_apic_send_custom_ipi(uint8_t apicid, uint8_t vector)
 	icr_t icr;
 
 	/* Wait for a destination cpu to accept our previous ipi. */
-	ipi_wait_for_idle();
+	l_apic_wait_for_delivery();
 	
 	icr.lo = l_apic[ICRlo];
 	icr.hi = l_apic[ICRhi];
@@ -297,13 +297,6 @@ int l_apic_send_custom_ipi(uint8_t apicid, uint8_t vector)
 	l_apic[ICRhi] = icr.hi;
 	l_apic[ICRlo] = icr.lo;
 	
-#ifdef CONFIG_DEBUG
-	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING) {
-		printf("IPI is pending.\n");
-	}
-#endif
-	
 	return apic_poll_errors();
 }
 
@@ -319,7 +312,7 @@ int l_apic_broadcast_custom_ipi(uint8_t vector)
 	icr_t icr;
 
 	/* Wait for a destination cpu to accept our previous ipi. */
-	ipi_wait_for_idle();
+	l_apic_wait_for_delivery();
 	
 	icr.lo = l_apic[ICRlo];
 	icr.delmod = DELMOD_FIXED;
@@ -330,13 +323,6 @@ int l_apic_broadcast_custom_ipi(uint8_t vector)
 	icr.vector = vector;
 	
 	l_apic[ICRlo] = icr.lo;
-	
-	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING) {
-#ifdef CONFIG_DEBUG
-		printf("IPI is pending.\n");
-#endif
-	}
 	
 	return apic_poll_errors();
 }
@@ -378,13 +364,9 @@ int l_apic_send_init_ipi(uint8_t apicid)
 	if (!apic_poll_errors())
 		return 0;
 	
+	l_apic_wait_for_delivery();
+
 	icr.lo = l_apic[ICRlo];
-	if (icr.delivs == DELIVS_PENDING) {
-#ifdef CONFIG_DEBUG
-		printf("IPI is pending.\n");
-#endif
-	}
-	
 	icr.delmod = DELMOD_INIT;
 	icr.destmod = DESTMOD_PHYS;
 	icr.level = LEVEL_DEASSERT;
@@ -517,16 +499,6 @@ void l_apic_init(void)
 	dfr.value = l_apic[DFR];
 	dfr.model = MODEL_FLAT;
 	l_apic[DFR] = dfr.value;
-	
-	if (CPU->arch.id != l_apic_id()) {
-#ifdef CONFIG_DEBUG
-		printf("lapic error: LAPIC ID (%" PRIu8 ") and hw ID assigned by BSP"
-			" (%u) differ. Correcting to LAPIC ID.\n", l_apic_id(), 
-			CPU->arch.id);
-#endif
-		CPU->arch.id = l_apic_id();
-	}
-	
 }
 
 /** Local APIC End of Interrupt. */

@@ -42,6 +42,7 @@
 #include <console/console.h>
 #include <console/chardev.h>
 #include <console/cmd.h>
+#include <console/prompt.h>
 #include <print.h>
 #include <panic.h>
 #include <typedefs.h>
@@ -201,14 +202,25 @@ NO_TRACE static const char *cmdtab_search_one(const char *name,
  * @return Number of found matches
  *
  */
-NO_TRACE static int cmdtab_compl(char *input, size_t size)
+NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
 {
 	const char *name = input;
 	
 	size_t found = 0;
+	
+	/*
+	 * Maximum Match Length: Length of longest matching common
+	 * substring in case more than one match is found.
+	 */
+	size_t max_match_len = size;
+	size_t max_match_len_tmp = size;
+	size_t input_len = str_length(input);
 	link_t *pos = NULL;
 	const char *hint;
 	char *output = malloc(MAX_CMDLINE, 0);
+	size_t hints_to_show = MAX_TAB_HINTS - 1;
+	size_t total_hints_shown = 0;
+	bool continue_showing_hints = true;
 	
 	output[0] = 0;
 	
@@ -220,14 +232,46 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size)
 		found++;
 	}
 	
+	/*
+	 * If the number of possible completions is more than MAX_TAB_HINTS,
+	 * ask the user whether to display them or not.
+	 */
+	if (found > MAX_TAB_HINTS) {
+		printf("\n");
+		continue_showing_hints =
+		    console_prompt_display_all_hints(indev, found);
+	}
+	
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = NULL;
 		while (cmdtab_search_one(name, &pos)) {
 			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
-			printf("%s (%s)\n", hlp->name, hlp->description);
+			
+			if (continue_showing_hints) {
+				printf("%s (%s)\n", hlp->name, hlp->description);
+				--hints_to_show;
+				++total_hints_shown;
+				
+				if ((hints_to_show == 0) && (total_hints_shown != found)) {
+					/* Ask user to continue */
+					continue_showing_hints =
+					    console_prompt_more_hints(indev, &hints_to_show);
+				}
+			}
+			
 			pos = pos->next;
+			
+			for (max_match_len_tmp = 0;
+			    (output[max_match_len_tmp] ==
+			    hlp->name[input_len + max_match_len_tmp]) &&
+			    (max_match_len_tmp < max_match_len); ++max_match_len_tmp);
+			
+			max_match_len = max_match_len_tmp;
 		}
+		
+		/* Keep only the characters common in all completions */
+		output[max_match_len] = 0;
 	}
 	
 	if (found > 0)
@@ -280,8 +324,10 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			if (position == 0)
 				continue;
 			
-			/* Find the beginning of the word
-			   and copy it to tmp */
+			/*
+			 * Find the beginning of the word
+			 * and copy it to tmp
+			 */
 			size_t beg;
 			for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
 			    beg--);
@@ -294,32 +340,38 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			int found;
 			if (beg == 0) {
 				/* Command completion */
-				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE));
+				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev);
 			} else {
 				/* Symbol completion */
-				found = symtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE));
+				found = symtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev);
 			}
 			
 			if (found == 0)
 				continue;
-			
-			if (found > 1) {
-				/* No unique hint, list was printed */
-				printf("%s> ", prompt);
-				printf("%ls", current);
-				print_cc('\b', wstr_length(current) - position);
-				continue;
-			}
-			
-			/* We have a hint */
-			
+
+			/*
+			 * We have hints, possibly many. In case of more than one hint,
+			 * tmp will contain the common prefix.
+			 */
 			size_t off = 0;
 			size_t i = 0;
 			while ((ch = str_decode(tmp, &off, STR_NO_LIMIT)) != 0) {
 				if (!wstr_linsert(current, ch, position + i, MAX_CMDLINE))
 					break;
+				
 				i++;
 			}
+			
+			if (found > 1) {
+				/* No unique hint, list was printed */
+				printf("%s> ", prompt);
+				printf("%ls", current);
+				position += str_length(tmp);
+				print_cc('\b', wstr_length(current) - position);
+				continue;
+			}
+			
+			/* We have a hint */
 			
 			printf("%ls", current + position);
 			position += str_length(tmp);
@@ -540,7 +592,7 @@ NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
 
 /** Parse command line.
  *
- * @param cmdline Command line as read from input device. 
+ * @param cmdline Command line as read from input device.
  * @param size    Size (in bytes) of the string.
  *
  * @return Structure describing the command.

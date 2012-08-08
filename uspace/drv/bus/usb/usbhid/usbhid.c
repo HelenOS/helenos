@@ -57,7 +57,7 @@ const usb_endpoint_description_t *usb_hid_endpoints[] = {
 	&usb_hid_generic_poll_endpoint_description,
 	NULL
 };
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
@@ -73,7 +73,7 @@ static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
@@ -89,7 +89,7 @@ static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
@@ -109,7 +109,7 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static bool usb_hid_ids_match(const usb_hid_dev_t *hid_dev,
     const usb_hid_subdriver_mapping_t *mapping)
 {
@@ -121,7 +121,7 @@ static bool usb_hid_ids_match(const usb_hid_dev_t *hid_dev,
 	    && hid_dev->usb_dev->descriptors.device.product_id
 	    == mapping->product_id);
 }
-/*----------------------------------------------------------------------------*/
+
 static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
     const usb_hid_subdriver_mapping_t *mapping)
 {
@@ -177,7 +177,7 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 
 	return matches;
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
     const usb_hid_subdriver_t **subdrivers, unsigned count)
 {
@@ -210,7 +210,7 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
@@ -262,7 +262,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	/* We have all subdrivers determined, save them into the hid device */
 	return usb_hid_save_subdrivers(hid_dev, subdrivers, count);
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, const usb_device_t *dev)
 {
 	assert(hid_dev);
@@ -289,7 +289,7 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, const usb_device_t *dev)
 	}
 	return ENOTSUP;
 }
-/*----------------------------------------------------------------------------*/
+
 static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev != NULL);
@@ -321,7 +321,7 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /*
  * This functions initializes required structures from the device's descriptors
  * and starts new fibril for polling the keyboard for events and another one for
@@ -457,7 +457,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
     size_t buffer_size, void *arg)
 {
@@ -499,7 +499,7 @@ bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 
 	return cont;
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 {
 	assert(dev);
@@ -516,17 +516,17 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 
 	hid_dev->running = false;
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_hid_new_report(usb_hid_dev_t *hid_dev)
 {
 	++hid_dev->report_nr;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_hid_report_number(const usb_hid_dev_t *hid_dev)
 {
 	return hid_dev->report_nr;
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);

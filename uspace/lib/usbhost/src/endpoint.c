@@ -71,7 +71,7 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
 	}
 	return instance;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Properly dispose of endpoint_t structure.
  * @param instance endpoint_t structure.
  */
@@ -83,7 +83,7 @@ void endpoint_destroy(endpoint_t *instance)
 	assert(instance->hc_data.data == NULL);
 	free(instance);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Set device specific data and hooks.
  * @param instance endpoint_t structure.
  * @param data device specific data.
@@ -100,7 +100,7 @@ void endpoint_set_hc_data(endpoint_t *instance,
 	instance->hc_data.toggle_set = toggle_set;
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Clear device specific data and hooks.
  * @param instance endpoint_t structure.
  * @note This function does not free memory pointed to by data pointer.
@@ -114,7 +114,7 @@ void endpoint_clear_hc_data(endpoint_t *instance)
 	instance->hc_data.toggle_set = NULL;
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Mark the endpoint as active and block access for further fibrils.
  * @param instance endpoint_t structure.
  */
@@ -127,7 +127,7 @@ void endpoint_use(endpoint_t *instance)
 	instance->active = true;
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Mark the endpoint as inactive and allow access for further fibrils.
  * @param instance endpoint_t structure.
  */
@@ -139,7 +139,7 @@ void endpoint_release(endpoint_t *instance)
 	fibril_mutex_unlock(&instance->guard);
 	fibril_condvar_signal(&instance->avail);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get the value of toggle bit.
  * @param instance endpoint_t structure.
  * @note Will use provided hook.
@@ -155,7 +155,7 @@ int endpoint_toggle_get(endpoint_t *instance)
 	fibril_mutex_unlock(&instance->guard);
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Set the value of toggle bit.
  * @param instance endpoint_t structure.
  * @note Will use provided hook.

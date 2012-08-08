@@ -40,5 +40,5 @@ stacktrace_fp_get:
 	mov pc, lr
 
 stacktrace_pc_get:
-	mov r0, lr 
+	mov r0, lr
 	mov pc, lr

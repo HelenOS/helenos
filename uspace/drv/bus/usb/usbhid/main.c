@@ -112,7 +112,7 @@ static int usb_hid_device_add(usb_device_t *dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Callback for a device about to be removed from the driver.
  *
@@ -125,7 +125,7 @@ static int usb_hid_device_rem(usb_device_t *dev)
 	// TODO: Call deinit (stops autorepeat too)
 	return ENOTSUP;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Callback for removing a device from the driver.
  *
@@ -151,21 +151,21 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** USB generic driver callbacks */
 static const usb_driver_ops_t usb_hid_driver_ops = {
 	.device_add = usb_hid_device_add,
 	.device_rem = usb_hid_device_rem,
 	.device_gone = usb_hid_device_gone,
 };
-/*----------------------------------------------------------------------------*/
+
 /** The driver itself. */
 static const usb_driver_t usb_hid_driver = {
         .name = NAME,
         .ops = &usb_hid_driver_ops,
         .endpoints = usb_hid_endpoints
 };
-/*----------------------------------------------------------------------------*/
+
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB HID driver.\n");

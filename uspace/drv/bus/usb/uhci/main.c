@@ -43,16 +43,16 @@
 #define NAME "uhci"
 
 static int uhci_dev_add(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t uhci_driver_ops = {
 	.dev_add = uhci_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t uhci_driver = {
 	.name = NAME,
 	.driver_ops = &uhci_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize a new ddf driver instance for uhci hc and hub.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -74,7 +74,7 @@ int uhci_dev_add(ddf_dev_t *device)
 
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Number of arguments in argv vector (ignored).

@@ -114,6 +114,15 @@
 #define SET_FRAME_FLAGS(ptl3, i, x)  SET_FRAME_FLAGS_ARCH(ptl3, i, x)
 
 /*
+ * These macros are provided to set the present bit within the page tables.
+ *
+ */
+#define SET_PTL1_PRESENT(ptl0, i)   SET_PTL1_PRESENT_ARCH(ptl0, i)
+#define SET_PTL2_PRESENT(ptl1, i)   SET_PTL2_PRESENT_ARCH(ptl1, i)
+#define SET_PTL3_PRESENT(ptl2, i)   SET_PTL3_PRESENT_ARCH(ptl2, i)
+#define SET_FRAME_PRESENT(ptl3, i)  SET_FRAME_PRESENT_ARCH(ptl3, i)
+
+/*
  * Macros for querying the last-level PTEs.
  *
  */

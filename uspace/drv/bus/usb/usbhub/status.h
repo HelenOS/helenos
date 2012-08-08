@@ -41,8 +41,9 @@
  * structure holding port status and changes flags.
  * should not be accessed directly, use supplied getter/setter methods.
  *
- * For more information refer to table 11-15 in
- * "Universal Serial Bus Specification Revision 1.1"
+ * For more information refer to tables 11-15 and 11-16 in
+ * "Universal Serial Bus Specification Revision 1.1" pages 274 and 277
+ * (290 and 293 in pdf)
  *
  */
 typedef uint32_t usb_port_status_t;
