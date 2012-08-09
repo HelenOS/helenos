@@ -195,8 +195,7 @@ error:
 static int in_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
-	for (; scope && !bithenge_scope_is_barrier(scope);
-	    scope = bithenge_scope_outer(scope)) {
+	for (; scope; scope = bithenge_scope_outer(scope)) {
 		*out = bithenge_scope_in_node(scope);
 		if (*out)
 			return EOK;
@@ -617,6 +616,7 @@ static int subblob_expression_evaluate(bithenge_expression_t *base,
 static void subblob_expression_destroy(bithenge_expression_t *base)
 {
 	subblob_expression_t *self = expression_as_subblob(base);
+	bithenge_expression_dec_ref(self->blob);
 	bithenge_expression_dec_ref(self->start);
 	bithenge_expression_dec_ref(self->limit);
 	free(self);

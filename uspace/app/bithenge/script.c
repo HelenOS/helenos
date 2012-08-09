@@ -484,15 +484,14 @@ static bithenge_expression_t *parse_term(state_t *state)
 			return NULL;
 		}
 
+		next_token(state);
+
 		bithenge_expression_t *expr;
 		rc = bithenge_param_expression(&expr, i);
 		if (rc != EOK) {
 			error_errno(state, rc);
 			return NULL;
 		}
-
-		next_token(state);
-
 		return expr;
 	} else if (state->token == '.') {
 		next_token(state);

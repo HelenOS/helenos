@@ -40,6 +40,10 @@
 #include "blob.h"
 #include "transform.h"
 
+
+
+/***************** transform                                 *****************/
+
 /** Initialize a new transform.
  * @param[out] self Transform to initialize.
  * @param[in] ops Operations provided by the transform.
@@ -163,6 +167,10 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 	bithenge_node_dec_ref(prefix_blob);
 	return rc;
 }
+
+
+
+/***************** scope                                     *****************/
 
 /** Create a transform scope. It must be dereferenced with @a
  * bithenge_scope_dec_ref after it is used. Takes ownership of nothing.
@@ -317,6 +325,10 @@ int bithenge_scope_get_param(bithenge_scope_t *scope, int i,
 	}
 }
 
+
+
+/***************** barrier_transform                         *****************/
+
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_transform_t *transform;
@@ -343,7 +355,8 @@ static int barrier_transform_apply(bithenge_transform_t *base,
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_barrier(inner_scope);
-	rc = bithenge_transform_apply(self->transform, scope, in, out);
+	bithenge_scope_set_in_node(inner_scope, in);
+	rc = bithenge_transform_apply(self->transform, inner_scope, in, out);
 	bithenge_scope_dec_ref(inner_scope);
 	return rc;
 }
@@ -357,7 +370,9 @@ static int barrier_transform_prefix_length(bithenge_transform_t *base,
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_barrier(inner_scope);
-	rc = bithenge_transform_prefix_length(self->transform, scope, in, out);
+	bithenge_scope_set_in_node(inner_scope, bithenge_blob_as_node(in));
+	rc = bithenge_transform_prefix_length(self->transform, inner_scope, in,
+	    out);
 	bithenge_scope_dec_ref(inner_scope);
 	return rc;
 }
@@ -372,7 +387,8 @@ static int barrier_transform_prefix_apply(bithenge_transform_t *base,
 	if (rc != EOK)
 		return rc;
 	bithenge_scope_set_barrier(inner_scope);
-	rc = bithenge_transform_prefix_apply(self->transform, scope, in,
+	bithenge_scope_set_in_node(inner_scope, bithenge_blob_as_node(in));
+	rc = bithenge_transform_prefix_apply(self->transform, inner_scope, in,
 	    out_node, out_length);
 	bithenge_scope_dec_ref(inner_scope);
 	return rc;
