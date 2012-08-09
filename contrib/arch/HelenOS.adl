@@ -1,4 +1,4 @@
-system architecture HelenOS version 0.4.1 {
+system architecture HelenOS version 0.5.0 {
 	/* SPARTAN kernel */
 	inst kernel kernel;
 	
