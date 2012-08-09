@@ -544,6 +544,130 @@ error:
 
 
 
+/***************** subblob_expression                        *****************/
+
+typedef struct {
+	bithenge_expression_t base;
+	bithenge_expression_t *blob, *start, *limit;
+	bool absolute_limit;
+} subblob_expression_t;
+
+static subblob_expression_t *expression_as_subblob(bithenge_expression_t *base)
+{
+	return (subblob_expression_t *)base;
+}
+
+static bithenge_expression_t *subblob_as_expression(subblob_expression_t *expr)
+{
+	return &expr->base;
+}
+
+static int subblob_expression_evaluate(bithenge_expression_t *base, 
+    bithenge_scope_t *scope, bithenge_node_t **out)
+{
+	subblob_expression_t *self = expression_as_subblob(base);
+	bithenge_node_t *start_node;
+	int rc = bithenge_expression_evaluate(self->start, scope, &start_node);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(start_node) != BITHENGE_NODE_INTEGER) {
+		bithenge_node_dec_ref(start_node);
+		return EINVAL;
+	}
+	bithenge_int_t start = bithenge_integer_node_value(start_node);
+	bithenge_node_dec_ref(start_node);
+
+	bithenge_int_t limit = -1;
+	if (self->limit) {
+		bithenge_node_t *limit_node;
+		rc = bithenge_expression_evaluate(self->limit, scope,
+		    &limit_node);
+		if (rc != EOK)
+			return rc;
+		if (bithenge_node_type(limit_node) != BITHENGE_NODE_INTEGER) {
+			bithenge_node_dec_ref(limit_node);
+			return EINVAL;
+		}
+		limit = bithenge_integer_node_value(limit_node);
+		bithenge_node_dec_ref(limit_node);
+		if (self->absolute_limit)
+			limit -= start;
+	}
+
+	if (start < 0 || (self->limit && limit < 0))
+		return EINVAL;
+
+	bithenge_node_t *blob;
+	rc = bithenge_expression_evaluate(self->blob, scope, &blob);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(blob) != BITHENGE_NODE_BLOB) {
+		bithenge_node_dec_ref(blob);
+		return EINVAL;
+	}
+
+	if (self->limit)
+		return bithenge_new_subblob(out, bithenge_node_as_blob(blob),
+		    start, limit);
+	else
+		return bithenge_new_offset_blob(out,
+		    bithenge_node_as_blob(blob), start);
+}
+
+static void subblob_expression_destroy(bithenge_expression_t *base)
+{
+	subblob_expression_t *self = expression_as_subblob(base);
+	bithenge_expression_dec_ref(self->start);
+	bithenge_expression_dec_ref(self->limit);
+	free(self);
+}
+
+static const bithenge_expression_ops_t subblob_expression_ops = {
+	.evaluate = subblob_expression_evaluate,
+	.destroy = subblob_expression_destroy,
+};
+
+/** Create an expression that gets a subblob. Takes references to @a blob,
+ * @a start, and @a limit.
+ * @param[out] out Holds the new expression.
+ * @param blob Calculates the blob.
+ * @param start Calculates the start offset within the blob.
+ * @param limit Calculates the limit. Can be NULL, in which case an offset blob
+ * is returned.
+ * @param absolute_limit If true, the limit is an absolute offset; otherwise,
+ * it is relative to the start.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_subblob_expression(bithenge_expression_t **out,
+    bithenge_expression_t *blob, bithenge_expression_t *start,
+    bithenge_expression_t *limit, bool absolute_limit)
+{
+	int rc;
+	subblob_expression_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_expression(subblob_as_expression(self),
+	    &subblob_expression_ops);
+	if (rc != EOK)
+		goto error;
+
+	self->blob = blob;
+	self->start = start;
+	self->limit = limit;
+	self->absolute_limit = absolute_limit;
+	*out = subblob_as_expression(self);
+	return EOK;
+
+error:
+	bithenge_expression_dec_ref(blob);
+	bithenge_expression_dec_ref(start);
+	bithenge_expression_dec_ref(limit);
+	free(self);
+	return rc;
+}
+
 /***************** param_wrapper                             *****************/
 
 typedef struct {

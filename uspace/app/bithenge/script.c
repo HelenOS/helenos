@@ -529,10 +529,51 @@ static bithenge_expression_t *parse_term(state_t *state)
 	}
 }
 
+static bithenge_expression_t *parse_postfix_expression(state_t *state)
+{
+	bithenge_expression_t *expr = parse_term(state);
+	while (state->error == EOK) {
+		if (state->token == '[') {
+			next_token(state);
+			bithenge_expression_t *start = parse_expression(state);
+			bool absolute_limit;
+			if (state->token == ',') {
+				absolute_limit = false;
+				next_token(state);
+			} else if (state->token == ':') {
+				absolute_limit = true;
+				next_token(state);
+			} else {
+				syntax_error(state, "expected ',' or ':'");
+			}
+			bithenge_expression_t *limit = NULL;
+			if (!(state->token == ']' && absolute_limit))
+				limit = parse_expression(state);
+			expect(state, ']');
+
+			if (state->error != EOK) {
+				bithenge_expression_dec_ref(expr);
+				bithenge_expression_dec_ref(start);
+				bithenge_expression_dec_ref(limit);
+				return NULL;
+			}
+			int rc = bithenge_subblob_expression(&expr, expr,
+			    start, limit, absolute_limit);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				return NULL;
+			}
+		} else {
+			break;
+		}
+	}
+	return expr;
+}
+
 static bithenge_expression_t *parse_expression_precedence(state_t *state,
     precedence_t prev_precedence)
 {
-	bithenge_expression_t *expr = parse_term(state);
+	bithenge_expression_t *expr = parse_postfix_expression(state);
 	while (state->error == EOK) {
 		bithenge_binary_op_t op =
 		    token_as_binary_operator(state->token);
@@ -543,7 +584,7 @@ static bithenge_expression_t *parse_expression_precedence(state_t *state,
 			break;
 		next_token(state);
 
-		bithenge_expression_t *expr2 = parse_term(state);
+		bithenge_expression_t *expr2 = parse_postfix_expression(state);
 		if (state->error != EOK) {
 			bithenge_expression_dec_ref(expr2);
 			break;

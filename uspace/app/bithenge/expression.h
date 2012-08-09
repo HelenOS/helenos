@@ -110,6 +110,9 @@ int bithenge_member_expression(bithenge_expression_t **,
     bithenge_expression_t *, bithenge_node_t *);
 int bithenge_scope_member_expression(bithenge_expression_t **,
     bithenge_node_t *);
+int bithenge_subblob_expression(bithenge_expression_t **,
+    bithenge_expression_t *, bithenge_expression_t *, bithenge_expression_t *,
+    bool);
 int bithenge_param_wrapper(bithenge_transform_t **, bithenge_transform_t *,
     bithenge_expression_t **);
 int bithenge_expression_transform(bithenge_transform_t **,
