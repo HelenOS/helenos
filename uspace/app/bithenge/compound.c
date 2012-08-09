@@ -259,5 +259,79 @@ error:
 	return rc;
 }
 
+
+
+/***************** partial_transform                         *****************/
+
+typedef struct {
+	bithenge_transform_t base;
+	bithenge_transform_t *xform;
+} partial_transform_t;
+
+static inline bithenge_transform_t *partial_as_transform(
+    partial_transform_t *self)
+{
+	return &self->base;
+}
+
+static inline partial_transform_t *transform_as_partial(
+    bithenge_transform_t *base)
+{
+	return (partial_transform_t *)base;
+}
+
+static int partial_transform_apply(bithenge_transform_t *base,
+    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
+{
+	partial_transform_t *self = transform_as_partial(base);
+	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
+		return EINVAL;
+	uint64_t size;
+	return bithenge_transform_prefix_apply(self->xform, scope,
+	    bithenge_node_as_blob(in), out, &size);
+}
+
+static void partial_transform_destroy(bithenge_transform_t *base)
+{
+	partial_transform_t *self = transform_as_partial(base);
+	bithenge_transform_dec_ref(self->xform);
+	free(self);
+}
+
+static const bithenge_transform_ops_t partial_transform_ops = {
+	.apply = partial_transform_apply,
+	.destroy = partial_transform_destroy,
+};
+
+/** Create a transform that doesn't require its subtransform to use the whole
+ * input. Takes a reference to @a xform.
+ * @param[out] out Holds the new transform.
+ * @param xform The subtransform to apply.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_partial_transform(bithenge_transform_t **out,
+    bithenge_transform_t *xform)
+{
+	int rc;
+	partial_transform_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_init_transform(partial_as_transform(self),
+	    &partial_transform_ops, 0);
+	if (rc != EOK)
+		goto error;
+
+	self->xform = xform;
+	*out = partial_as_transform(self);
+	return EOK;
+
+error:
+	free(self);
+	bithenge_transform_dec_ref(xform);
+	return rc;
+}
+
 /** @}
  */

@@ -65,6 +65,7 @@ typedef enum {
 	TOKEN_FALSE,
 	TOKEN_IF,
 	TOKEN_IN,
+	TOKEN_PARTIAL,
 	TOKEN_REPEAT,
 	TOKEN_STRUCT,
 	TOKEN_SWITCH,
@@ -231,6 +232,9 @@ static void next_token(state_t *state)
 			free(value);
 		} else if (!str_cmp(value, "in")) {
 			state->token = TOKEN_IN;
+			free(value);
+		} else if (!str_cmp(value, "partial")) {
+			state->token = TOKEN_PARTIAL;
 			free(value);
 		} else if (!str_cmp(value, "repeat")) {
 			state->token = TOKEN_REPEAT;
@@ -870,6 +874,73 @@ static bithenge_transform_t *parse_do_while(state_t *state)
 	return do_while_xform;
 }
 
+static bithenge_transform_t *parse_partial(state_t *state)
+{
+	expect(state, TOKEN_PARTIAL);
+	bithenge_transform_t *offset_xform = NULL;
+	if (state->token == '(') {
+		next_token(state);
+		bithenge_expression_t *offset = parse_expression(state);
+		expect(state, ')');
+
+		bithenge_expression_t *in_expr;
+		int rc = bithenge_in_node_expression(&in_expr);
+		if (rc != EOK)
+			error_errno(state, rc);
+		if (state->error != EOK) {
+			bithenge_expression_dec_ref(offset);
+			return NULL;
+		}
+
+		rc = bithenge_subblob_expression(&offset, in_expr, offset,
+		    NULL, true);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+
+		rc = bithenge_expression_transform(&offset_xform, offset);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+	}
+	expect(state, '{');
+	bithenge_transform_t *xform = parse_transform(state);
+	expect(state, '}');
+	if (state->error != EOK) {
+		bithenge_transform_dec_ref(offset_xform);
+		bithenge_transform_dec_ref(xform);
+		return NULL;
+	}
+
+	int rc = bithenge_partial_transform(&xform, xform);
+	if (rc != EOK) {
+		error_errno(state, rc);
+		bithenge_transform_dec_ref(offset_xform);
+		return NULL;
+	}
+
+	if (offset_xform) {
+		bithenge_transform_t **xforms = malloc(2 * sizeof(*xforms));
+		if (!xforms) {
+			error_errno(state, ENOMEM);
+			bithenge_transform_dec_ref(xform);
+			bithenge_transform_dec_ref(offset_xform);
+			return NULL;
+		}
+		xforms[0] = xform;
+		xforms[1] = offset_xform;
+		rc = bithenge_new_composed_transform(&xform, xforms, 2);
+		if (rc != EOK) {
+			error_errno(state, rc);
+			return NULL;
+		}
+	}
+
+	return xform;
+}
+
 /* The TOKEN_STRUCT and '{' must already have been skipped. */
 static bithenge_transform_t *parse_struct(state_t *state)
 {
@@ -951,6 +1022,8 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 		return parse_invocation(state);
 	} else if (state->token == TOKEN_IF) {
 		return parse_if(state, false);
+	} else if (state->token == TOKEN_PARTIAL) {
+		return parse_partial(state);
 	} else if (state->token == TOKEN_REPEAT) {
 		return parse_repeat(state);
 	} else if (state->token == TOKEN_STRUCT) {
