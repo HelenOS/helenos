@@ -536,9 +536,34 @@ static bithenge_expression_t *parse_term(state_t *state)
 
 static bithenge_expression_t *parse_postfix_expression(state_t *state)
 {
+	int rc;
 	bithenge_expression_t *expr = parse_term(state);
 	while (state->error == EOK) {
-		if (state->token == '[') {
+		if (state->token == '.') {
+			next_token(state);
+
+			const char *id = expect_identifier(state);
+
+			if (state->error != EOK) {
+				free((char *)id);
+				bithenge_expression_dec_ref(expr);
+				return NULL;
+			}
+
+			bithenge_node_t *key = NULL;
+			rc = bithenge_new_string_node(&key, id, true);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				bithenge_expression_dec_ref(expr);
+				return NULL;
+			}
+
+			rc = bithenge_member_expression(&expr, expr, key);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				return NULL;
+			}
+		} else if (state->token == '[') {
 			next_token(state);
 			bithenge_expression_t *start = parse_expression(state);
 			bool absolute_limit = false;
@@ -562,8 +587,8 @@ static bithenge_expression_t *parse_postfix_expression(state_t *state)
 				bithenge_expression_dec_ref(limit);
 				return NULL;
 			}
-			int rc = bithenge_subblob_expression(&expr, expr,
-			    start, limit, absolute_limit);
+			rc = bithenge_subblob_expression(&expr, expr, start,
+			    limit, absolute_limit);
 			if (rc != EOK) {
 				error_errno(state, rc);
 				return NULL;
