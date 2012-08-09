@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "compound.h"
 #include "expression.h"
 #include "os.h"
 #include "script.h"
@@ -536,7 +537,7 @@ static bithenge_expression_t *parse_postfix_expression(state_t *state)
 		if (state->token == '[') {
 			next_token(state);
 			bithenge_expression_t *start = parse_expression(state);
-			bool absolute_limit;
+			bool absolute_limit = false;
 			if (state->token == ',') {
 				absolute_limit = false;
 				next_token(state);

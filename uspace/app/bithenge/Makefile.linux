@@ -35,6 +35,7 @@ BINARY = bithenge
 
 SOURCES = \
 	blob.c \
+	compound.c \
 	expression.c \
 	file.c \
 	print.c \

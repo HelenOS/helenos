@@ -99,7 +99,7 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 	}
 
 	/* Check types and get values. */
-	bithenge_int_t a_int, b_int;
+	bithenge_int_t a_int = 0, b_int = 0;
 	switch (self->op) {
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
 	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
@@ -957,119 +957,6 @@ int bithenge_inputless_transform(bithenge_transform_t ** out,
 error:
 	free(self);
 	bithenge_expression_dec_ref(expr);
-	return rc;
-}
-
-
-
-/***************** if_transform                              *****************/
-
-typedef struct {
-	bithenge_transform_t base;
-	bithenge_expression_t *expr;
-	bithenge_transform_t *true_xform, *false_xform;
-} if_transform_t;
-
-static inline bithenge_transform_t *if_as_transform(if_transform_t *self)
-{
-	return &self->base;
-}
-
-static inline if_transform_t *transform_as_if(bithenge_transform_t *base)
-{
-	return (if_transform_t *)base;
-}
-
-static int if_transform_choose(if_transform_t *self, bithenge_scope_t *scope,
-    bool *out)
-{
-	bithenge_node_t *cond_node;
-	int rc = bithenge_expression_evaluate(self->expr, scope, &cond_node);
-	if (rc != EOK)
-		return rc;
-	if (bithenge_node_type(cond_node) != BITHENGE_NODE_BOOLEAN) {
-		bithenge_node_dec_ref(cond_node);
-		return EINVAL;
-	}
-	*out = bithenge_boolean_node_value(cond_node);
-	bithenge_node_dec_ref(cond_node);
-	return EOK;
-}
-
-static int if_transform_apply(bithenge_transform_t *base,
-    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
-{
-	if_transform_t *self = transform_as_if(base);
-	bool cond;
-	int rc = if_transform_choose(self, scope, &cond);
-	if (rc != EOK)
-		return rc;
-	return bithenge_transform_apply(
-	    cond ? self->true_xform : self->false_xform, scope, in, out);
-}
-
-static int if_transform_prefix_length(bithenge_transform_t *base,
-    bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
-{
-	if_transform_t *self = transform_as_if(base);
-	bool cond;
-	int rc = if_transform_choose(self, scope, &cond);
-	if (rc != EOK)
-		return rc;
-	return bithenge_transform_prefix_length(
-	    cond ? self->true_xform : self->false_xform, scope, in, out);
-}
-
-static void if_transform_destroy(bithenge_transform_t *base)
-{
-	if_transform_t *self = transform_as_if(base);
-	bithenge_expression_dec_ref(self->expr);
-	bithenge_transform_dec_ref(self->true_xform);
-	bithenge_transform_dec_ref(self->false_xform);
-	free(self);
-}
-
-static const bithenge_transform_ops_t if_transform_ops = {
-	.apply = if_transform_apply,
-	.prefix_length = if_transform_prefix_length,
-	.destroy = if_transform_destroy,
-};
-
-/** Create a transform that applies either of two transforms depending on a
- * boolean expression. Takes references to @a expr, @a true_xform, and
- * @a false_xform.
- * @param[out] out Holds the new transform.
- * @param expr The boolean expression to evaluate.
- * @param true_xform The transform to apply if the expression is true.
- * @param false_xform The transform to apply if the expression is false.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_if_transform(bithenge_transform_t **out,
-    bithenge_expression_t *expr, bithenge_transform_t *true_xform,
-    bithenge_transform_t *false_xform)
-{
-	int rc;
-	if_transform_t *self = malloc(sizeof(*self));
-	if (!self) {
-		rc = ENOMEM;
-		goto error;
-	}
-
-	rc = bithenge_init_transform(if_as_transform(self), &if_transform_ops,
-	    0);
-	if (rc != EOK)
-		goto error;
-
-	self->expr = expr;
-	self->true_xform = true_xform;
-	self->false_xform = false_xform;
-	*out = if_as_transform(self);
-	return EOK;
-
-error:
-	free(self);
-	bithenge_expression_dec_ref(expr);
-	bithenge_transform_dec_ref(true_xform);
-	bithenge_transform_dec_ref(false_xform);
 	return rc;
 }
 

@@ -119,8 +119,6 @@ int bithenge_expression_transform(bithenge_transform_t **,
     bithenge_expression_t *);
 int bithenge_inputless_transform(bithenge_transform_t **,
     bithenge_expression_t *);
-int bithenge_if_transform(bithenge_transform_t **, bithenge_expression_t *,
-    bithenge_transform_t *, bithenge_transform_t *);
 
 #endif
 

@@ -34,6 +34,7 @@ BINARY = bithenge
 SOURCES = \
 	helenos/block.c \
 	blob.c \
+	compound.c \
 	expression.c \
 	file.c \
 	print.c \

@@ -147,8 +147,6 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_blob_t *, bithenge_node_t **, aoff64_t *);
 int bithenge_new_barrier_transform(bithenge_transform_t **,
     bithenge_transform_t *, int);
-int bithenge_new_composed_transform(bithenge_transform_t **,
-    bithenge_transform_t **, size_t);
 
 int bithenge_scope_new(bithenge_scope_t **, bithenge_scope_t *);
 void bithenge_scope_dec_ref(bithenge_scope_t *);
