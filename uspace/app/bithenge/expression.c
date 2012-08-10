@@ -103,7 +103,13 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 	switch (self->op) {
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
 	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
-	case BITHENGE_EXPRESSION_MULTIPLY:
+	case BITHENGE_EXPRESSION_MULTIPLY: /* fallthrough */
+	case BITHENGE_EXPRESSION_INTEGER_DIVIDE: /* fallthrough */
+	case BITHENGE_EXPRESSION_MODULO: /* fallthrough */
+	case BITHENGE_EXPRESSION_LESS_THAN: /* fallthrough */
+	case BITHENGE_EXPRESSION_LESS_THAN_OR_EQUAL: /* fallthrough */
+	case BITHENGE_EXPRESSION_GREATER_THAN: /* fallthrough */
+	case BITHENGE_EXPRESSION_GREATER_THAN_OR_EQUAL:
 		rc = EINVAL;
 		if (bithenge_node_type(a) != BITHENGE_NODE_INTEGER)
 			goto error;
@@ -126,8 +132,47 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 	case BITHENGE_EXPRESSION_MULTIPLY:
 		rc = bithenge_new_integer_node(out, a_int * b_int);
 		break;
+	case BITHENGE_EXPRESSION_INTEGER_DIVIDE:
+		/* Integer division can behave in three major ways when the
+		 * operands are signed: truncated, floored, or Euclidean. When
+		 * b > 0, we give the same result as floored and Euclidean;
+		 * otherwise, we currently raise an error. See
+		 * https://en.wikipedia.org/wiki/Modulo_operation and its
+		 * references. */
+		if (b_int <= 0) {
+			rc = EINVAL;
+			break;
+		}
+		rc = bithenge_new_integer_node(out,
+		    (a_int / b_int) + (a_int % b_int < 0 ? -1 : 0));
+		break;
+	case BITHENGE_EXPRESSION_MODULO:
+		/* This is consistent with division; see above. */
+		if (b_int <= 0) {
+			rc = EINVAL;
+			break;
+		}
+		rc = bithenge_new_integer_node(out,
+		    (a_int % b_int) + (a_int % b_int < 0 ? b_int : 0));
+		break;
+	case BITHENGE_EXPRESSION_LESS_THAN:
+		rc = bithenge_new_boolean_node(out, a_int < b_int);
+		break;
+	case BITHENGE_EXPRESSION_LESS_THAN_OR_EQUAL:
+		rc = bithenge_new_boolean_node(out, a_int <= b_int);
+		break;
+	case BITHENGE_EXPRESSION_GREATER_THAN:
+		rc = bithenge_new_boolean_node(out, a_int > b_int);
+		break;
+	case BITHENGE_EXPRESSION_GREATER_THAN_OR_EQUAL:
+		rc = bithenge_new_boolean_node(out, a_int >= b_int);
+		break;
 	case BITHENGE_EXPRESSION_EQUALS:
 		rc = bithenge_new_boolean_node(out, bithenge_node_equal(a, b));
+		break;
+	case BITHENGE_EXPRESSION_NOT_EQUALS:
+		rc = bithenge_new_boolean_node(out,
+		    ~bithenge_node_equal(a, b));
 		break;
 	case BITHENGE_EXPRESSION_INVALID_BINARY_OP:
 		assert(false);
@@ -494,8 +539,10 @@ static int scope_member_expression_evaluate(bithenge_expression_t *base,
 	scope_member_expression_t *self = expression_as_scope_member(base);
 	for (; scope && !bithenge_scope_is_barrier(scope);
 	    scope = bithenge_scope_outer(scope)) {
-		bithenge_node_inc_ref(self->key);
 		bithenge_node_t *cur = bithenge_scope_get_current_node(scope);
+		if (!cur)
+			continue;
+		bithenge_node_inc_ref(self->key);
 		int rc = bithenge_node_get(cur, self->key, out);
 		bithenge_node_dec_ref(cur);
 		if (rc != ENOENT) /* EOK or error */

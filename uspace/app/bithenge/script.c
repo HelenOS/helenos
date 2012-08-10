@@ -55,9 +55,13 @@ typedef enum {
 	TOKEN_EQUALS = -128,
 	TOKEN_ERROR,
 	TOKEN_EOF,
+	TOKEN_GREATER_THAN_OR_EQUAL,
 	TOKEN_IDENTIFIER,
 	TOKEN_INTEGER,
+	TOKEN_INTEGER_DIVIDE,
 	TOKEN_LEFT_ARROW,
+	TOKEN_LESS_THAN_OR_EQUAL,
+	TOKEN_NOT_EQUAL,
 
 	/* Keywords */
 	TOKEN_DO,
@@ -271,12 +275,36 @@ static void next_token(state_t *state)
 		if (state->buffer[state->buffer_pos] == '-') {
 			state->buffer_pos++;
 			state->token = TOKEN_LEFT_ARROW;
+		} else if (state->buffer[state->buffer_pos] == '=') {
+			state->buffer_pos++;
+			state->token = TOKEN_LESS_THAN_OR_EQUAL;
+		}
+	} else if (ch == '>') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '=') {
+			state->buffer_pos++;
+			state->token = TOKEN_GREATER_THAN_OR_EQUAL;
 		}
 	} else if (ch == '=') {
 		state->token = ch;
 		state->buffer_pos++;
 		if (state->buffer[state->buffer_pos] == '=') {
 			state->token = TOKEN_EQUALS;
+			state->buffer_pos++;
+		}
+	} else if (ch == '/') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '/') {
+			state->token = TOKEN_INTEGER_DIVIDE;
+			state->buffer_pos++;
+		}
+	} else if (ch == '!') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '=') {
+			state->token = TOKEN_NOT_EQUAL;
 			state->buffer_pos++;
 		}
 	} else {
@@ -387,6 +415,7 @@ static bithenge_expression_t *parse_expression(state_t *state);
 typedef enum {
 	PRECEDENCE_NONE,
 	PRECEDENCE_EQUALS,
+	PRECEDENCE_COMPARE,
 	PRECEDENCE_ADD,
 	PRECEDENCE_MULTIPLY,
 } precedence_t;
@@ -400,8 +429,22 @@ static bithenge_binary_op_t token_as_binary_operator(token_type_t token)
 		return BITHENGE_EXPRESSION_SUBTRACT;
 	case '*':
 		return BITHENGE_EXPRESSION_MULTIPLY;
+	case TOKEN_INTEGER_DIVIDE:
+		return BITHENGE_EXPRESSION_INTEGER_DIVIDE;
+	case '%':
+		return BITHENGE_EXPRESSION_MODULO;
+	case '<':
+		return BITHENGE_EXPRESSION_LESS_THAN;
+	case TOKEN_LESS_THAN_OR_EQUAL:
+		return BITHENGE_EXPRESSION_LESS_THAN_OR_EQUAL;
+	case '>':
+		return BITHENGE_EXPRESSION_GREATER_THAN;
+	case TOKEN_GREATER_THAN_OR_EQUAL:
+		return BITHENGE_EXPRESSION_GREATER_THAN_OR_EQUAL;
 	case TOKEN_EQUALS:
 		return BITHENGE_EXPRESSION_EQUALS;
+	case TOKEN_NOT_EQUAL:
+		return BITHENGE_EXPRESSION_NOT_EQUALS;
 	default:
 		return BITHENGE_EXPRESSION_INVALID_BINARY_OP;
 	}
@@ -413,9 +456,17 @@ static precedence_t binary_operator_precedence(bithenge_binary_op_t op)
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
 	case BITHENGE_EXPRESSION_SUBTRACT:
 		return PRECEDENCE_ADD;
-	case BITHENGE_EXPRESSION_MULTIPLY:
+	case BITHENGE_EXPRESSION_MULTIPLY: /* fallthrough */
+	case BITHENGE_EXPRESSION_INTEGER_DIVIDE: /* fallthrough */
+	case BITHENGE_EXPRESSION_MODULO:
 		return PRECEDENCE_MULTIPLY;
-	case BITHENGE_EXPRESSION_EQUALS:
+	case BITHENGE_EXPRESSION_LESS_THAN: /* fallthrough */
+	case BITHENGE_EXPRESSION_LESS_THAN_OR_EQUAL: /* fallthrough */
+	case BITHENGE_EXPRESSION_GREATER_THAN: /* fallthrough */
+	case BITHENGE_EXPRESSION_GREATER_THAN_OR_EQUAL:
+		return PRECEDENCE_COMPARE;
+	case BITHENGE_EXPRESSION_EQUALS: /* fallthrough */
+	case BITHENGE_EXPRESSION_NOT_EQUALS:
 		return PRECEDENCE_EQUALS;
 	default:
 		assert(false);
@@ -613,7 +664,8 @@ static bithenge_expression_t *parse_expression_precedence(state_t *state,
 			break;
 		next_token(state);
 
-		bithenge_expression_t *expr2 = parse_postfix_expression(state);
+		bithenge_expression_t *expr2 =
+		    parse_expression_precedence(state, precedence);
 		if (state->error != EOK) {
 			bithenge_expression_dec_ref(expr2);
 			break;
