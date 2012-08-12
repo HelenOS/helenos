@@ -296,6 +296,16 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	bool pm_mode = false;
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 
+	if (boottime != 0) {
+		/* There is no need to read the current time from the
+		 * device because it has already been cached.
+		 */
+
+		time_t cur_time = boottime + uptime_get();
+		*t = *gmtime(&cur_time);
+		return EOK;
+	}
+
 	fibril_mutex_lock(&rtc->mutex);
 
 	/* now read the registers */
@@ -365,6 +375,8 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	/* Try to normalize the content of the tm structure */
 	time_t r = mktime(t);
+
+	boottime = r - uptime_get();
 
 	return r < 0 ? EINVAL : EOK;
 }
@@ -577,7 +589,6 @@ rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t method = IPC_GET_IMETHOD(*call);
 	rtc_t *rtc = RTC_FROM_FNODE(fun);
 	bool batt_ok;
-	sysarg_t r = EOK;
 
 	switch (method) {
 	case CLOCK_GET_BATTERY_STATUS:
@@ -585,24 +596,6 @@ rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 		batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
 		    RTC_D_BATTERY_OK;
 		async_answer_1(callid, EOK, batt_ok);
-		break;
-	case CLOCK_GET_BOOTTIME:
-		/* Get the boot time */
-		if (boottime == 0) {
-			struct tm cur_tm;
-			time_t uptime;
-
-			uptime = uptime_get();
-			r = rtc_time_get(fun, &cur_tm);
-			if (r == EOK) {
-				time_t current_time = mktime(&cur_tm);
-				if (current_time < uptime)
-					r = EINVAL;
-				else
-					boottime = current_time - uptime;
-			}
-		}
-		async_answer_1(callid, r, boottime);
 		break;
 	default:
 		async_answer_0(callid, ENOTSUP);

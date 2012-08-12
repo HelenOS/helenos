@@ -33,7 +33,6 @@
 
 typedef enum {
 	CLOCK_GET_BATTERY_STATUS = DEV_FIRST_CUSTOM_METHOD,
-	CLOCK_GET_BOOTTIME,
 } clock_ctl_t;
 
 #endif
