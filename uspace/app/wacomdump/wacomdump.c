@@ -32,7 +32,7 @@
 #include <loc.h>
 #include <stdio.h>
 
-#define BUF_SIZE 32
+#define BUF_SIZE 64
 
 #define START_OF_PACKET 128
 #define CONTROL_PACKET 64
@@ -48,68 +48,285 @@
 #define CMD_QUERY_STYLUS '*'
 #define CMD_QUERY_TOUCH '%'
 
-/* packet_consumer_fn(uint8_t *packet, size_t size)
+typedef struct isdv4_event isdv4_event_t;
+
+typedef void (*isdv4_event_fn)(const isdv4_event_t *);
+
+typedef struct {
+	/* Stylus information */
+	unsigned int stylus_max_x;
+	unsigned int stylus_max_y;
+	unsigned int stylus_max_pressure;
+	unsigned int stylus_max_xtilt;
+	unsigned int stylus_max_ytilt;
+	bool stylus_tilt_supported;
+
+	/* Touch information */
+	unsigned int touch_type;
+	unsigned int touch_max_x;
+	unsigned int touch_max_y;
+
+	/* Event state */
+	bool stylus_in_proximity;
+	bool stylus_is_eraser;
+	bool button1_pressed;
+	bool button2_pressed;
+
+	/* Session to the serial device */
+	async_sess_t *sess;
+
+	/* Receive buffer state */
+	uint8_t *buf;
+	size_t buf_size;
+	size_t buf_end;
+
+	/* Callbacks */
+	isdv4_event_fn emit_event_fn;
+} isdv4_state_t;
+
+typedef enum {
+	UNKNOWN, PRESS, RELEASE, PROXIMITY_IN, PROXIMITY_OUT, MOVE
+} isdv4_event_type_t;
+
+typedef enum {
+	STYLUS_TIP, STYLUS_ERASER, TOUCH
+} isdv4_source_type_t;
+
+typedef struct isdv4_event {
+	isdv4_event_type_t type;
+	isdv4_source_type_t source;
+	unsigned int x;
+	unsigned int y;
+	unsigned int pressure;
+	unsigned int button;
+} isdv4_event_t;
+
+static void isdv4_event_init(isdv4_event_t *event)
+{
+	memset(event, 0, sizeof(isdv4_event_t));
+}
+
+/* packet_consumer_fn(uint8_t *packet, size_t size, isdv4_state_t *state)
    return true if reading of packets should continue */
-typedef bool (*packet_consumer_fn)(uint8_t *, size_t);
+typedef bool (*packet_consumer_fn)(uint8_t *, size_t, isdv4_state_t *);
 
 static void syntax_print(void)
 {
 	fprintf(stderr, "Usage: wacomdump [--baud=<baud>] [device_service]\n");
 }
 
-static bool parse_packet(uint8_t *packet, size_t size)
+static void print_event(const isdv4_event_t *event)
+{
+	const char *type = NULL;
+	switch (event->type) {
+		case PRESS:
+			type = "PRESS";
+			break;
+		case RELEASE:
+			type = "RELEASE";
+			break;
+		case PROXIMITY_IN:
+			type = "PROXIMITY IN";
+			break;
+		case PROXIMITY_OUT:
+			type = "PROXIMITY OUT";
+			break;
+		case MOVE:
+			type = "MOVE";
+			return;
+		case UNKNOWN:
+			type = "UNKNOWN";
+			break;
+	}
+	
+	const char *source = NULL;
+	switch (event->source) {
+		case STYLUS_TIP:
+			source = "stylus tip";
+			break;
+		case STYLUS_ERASER:
+			source = "stylus eraser";
+			break;
+		case TOUCH:
+			source = "touch";
+			break;
+	}
+	
+	const char *buttons = "none";
+	switch (event->button) {
+		case 1:
+			buttons = "button1";
+			break;
+		case 2:
+			buttons = "button2";
+			break;
+		case 3:
+			buttons = "both";
+			break;
+	}
+	
+	printf("%s %s %u %u %u %s\n", type, source, event->x, event->y,
+	    event->pressure, buttons);
+}
+
+static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 {
 	if (size < 1) {
-		printf("Invalid packet size");
+		printf("Invalid packet size\n");
 		return false;
 	}
-
 	bool control_packet = ((packet[0] & CONTROL_PACKET) > 0);
-	if (!control_packet) {
-		/* This is an event initiated by the device */
-		printf("Event");
-		if (size == 5 || size == 7) {
-			printf(" touch");
-			if (packet[0] & FINGER1) {
-				printf(" finger1");
-			}
-			if (packet[0] & FINGER2) {
-				printf(" finger2");
-			}
-			int x = ((packet[1] & 127) << 7) | (packet[2] & 127);
-			int y = ((packet[3] & 127) << 7) | (packet[4] & 127);
-			printf(" x=%d y=%d", x, y);
-		}
-		else if (size == 9) {
-			printf(" stylus");
-			if (packet[0] & TIP) {
-				printf(" tip");
-			}
-			if (packet[0] & BUTTON1) {
-				printf(" button1");
-			}
-			if (packet[0] & BUTTON2) {
-				printf(" button2");
-			}
-			if (packet[0] & PROXIMITY) {
-				printf(" proximity");
-			}
-			int x = ((packet[1] & 127) << 7) | (packet[2] & 124) | ((packet[6] >> 5) & 3);
-			int y = ((packet[3] & 127) << 7) | (packet[4] & 124) | ((packet[6] >> 3) & 3);
-			int xtilt = (packet[8] & 127);
-			int ytilt = (packet[7] & 127);
-			printf(" x=%d y=%d xtilt=%d ytilt=%d", x, y, xtilt, ytilt);
-		}
-	}
-	else {
-		printf("Response");
+	if (control_packet) {
+		printf("This is not an event packet\n");
+		return true;
 	}
 
-	printf("\n");
+	/* This is an event initiated by the device */
+	isdv4_event_t event;
+	isdv4_event_init(&event);
+
+/*	size_t dbg_ctr;*/
+/*	printf("Packet: ");*/
+/*	for (dbg_ctr = 0; dbg_ctr < size; dbg_ctr++) {*/
+/*		printf("%02hhx ", packet[dbg_ctr]);*/
+/*	}*/
+/*	printf("\n");*/
+
+	if (size == 5 || size == 7) {
+		/* This is a touch event */
+		bool finger1 = (packet[0] & FINGER1) > 0;
+		event.x = ((packet[1] & 127) << 7) | (packet[2] & 127);
+		event.y = ((packet[3] & 127) << 7) | (packet[4] & 127);
+		event.source = TOUCH;
+		printf("TOUCH finger finger1=%d x=%u y=%u\n", finger1, event.x, event.y);
+
+		if (!state->stylus_in_proximity) {
+			if (!finger1 && state->button1_pressed) {
+				state->button1_pressed = false;
+
+				event.type = RELEASE;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			else if (finger1 && !state->button1_pressed) {
+				state->button1_pressed = true;
+
+				event.type = PRESS;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			else {
+				event.type = MOVE;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+		}
+	}
+	else if (size == 9) {
+		/* This is a stylus event */
+		bool tip = packet[0] & TIP;
+		bool button1 = packet[0] & BUTTON1;
+		bool button2 = packet[0] & BUTTON2;
+		bool proximity = packet[0] & PROXIMITY;
+		event.x = ((packet[1] & 127) << 7) | (packet[2] & 124) | ((packet[6] >> 5) & 3);
+		event.y = ((packet[3] & 127) << 7) | (packet[4] & 124) | ((packet[6] >> 3) & 3);
+		event.pressure = (packet[5] & 127) | ((packet[6] & 7) << 7);
+
+		bool eraser = !tip && button2;
+		printf("STYLUS tip=%d button1=%d button2=%d proximity=%d x=%u y=%u p=%u\n",
+		    tip, button1, button2, proximity, event.x, event.y, event.pressure);
+
+		if (proximity && !state->stylus_in_proximity) {
+			/* Stylus came into proximity */
+			state->stylus_in_proximity = true;
+			state->stylus_is_eraser = eraser;
+			event.source = (state->stylus_is_eraser ? STYLUS_ERASER : STYLUS_TIP);
+			event.type = PROXIMITY_IN;
+			state->emit_event_fn(&event);
+		}
+		else if (!proximity && state->stylus_in_proximity) {
+			/* Stylus came out of proximity */
+			state->stylus_in_proximity = false;
+			event.source = (state->stylus_is_eraser ? STYLUS_ERASER : STYLUS_TIP);
+			event.type = PROXIMITY_OUT;
+			state->emit_event_fn(&event);
+		}
+		else {
+			/* Proximity state didn't change, but we need to check if it is still eraser */
+			if (eraser != state->stylus_is_eraser) {
+				event.type = PROXIMITY_OUT;
+				event.source = eraser ? STYLUS_TIP : STYLUS_ERASER;
+				state->emit_event_fn(&event);
+				event.type = PROXIMITY_IN;
+				event.source = eraser ? STYLUS_ERASER : STYLUS_TIP;
+				state->emit_event_fn(&event);
+				state->stylus_is_eraser = eraser;
+			}
+		}
+		
+		if (!state->stylus_is_eraser) {
+			if (button1 && !state->button1_pressed) {
+				state->button1_pressed = true;
+				event.type = PRESS;
+				event.source = STYLUS_TIP;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			else if (!button1 && state->button1_pressed) {
+				state->button1_pressed = false;
+				event.type = RELEASE;
+				event.source = STYLUS_TIP;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			if (button2 && !state->button2_pressed) {
+				state->button2_pressed = true;
+				event.type = PRESS;
+				event.source = STYLUS_TIP;
+				event.button = 2;
+				state->emit_event_fn(&event);
+			}
+			else if (!button2 && state->button2_pressed) {
+				state->button2_pressed = false;
+				event.type = RELEASE;
+				event.source = STYLUS_TIP;
+				event.button = 2;
+				state->emit_event_fn(&event);
+			}
+			event.type = MOVE;
+			event.source = STYLUS_TIP;
+			event.button = (button1 ? 1 : 0) | (button2 ? 2 : 0);
+			state->emit_event_fn(&event);
+		}
+		else {
+			if (button1 && !state->button1_pressed) {
+				state->button1_pressed = true;
+				event.type = PRESS;
+				event.source = STYLUS_ERASER;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			else if (!button1 && state->button1_pressed) {
+				state->button1_pressed = false;
+				event.type = RELEASE;
+				event.source = STYLUS_ERASER;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			event.type = MOVE;
+			event.source = STYLUS_ERASER;
+			event.button = (button1 ? 1 : 0);
+			state->emit_event_fn(&event);
+		}
+		//int xtilt = (packet[8] & 127);
+		//int ytilt = (packet[7] & 127);
+	}
+
 	return true;
 }
 
-static bool parse_response_stylus(uint8_t *packet, size_t size)
+static bool parse_response_stylus(uint8_t *packet, size_t size,
+    isdv4_state_t *state)
 {
 	if (size != 11) {
 		fprintf(stderr, "Unexpected length of stylus response packet\n");
@@ -157,7 +374,8 @@ static const char *touch_type(unsigned int data_id)
 	return "unknown";
 }
 
-static bool parse_response_touch(uint8_t *packet, size_t size)
+static bool parse_response_touch(uint8_t *packet, size_t size,
+    isdv4_state_t *state)
 {
 	if (size != 11) {
 		fprintf(stderr, "Unexpected length of touch response packet\n");
@@ -169,86 +387,111 @@ static bool parse_response_touch(uint8_t *packet, size_t size)
 		return false;
 	}
 
-	unsigned int data_id = (packet[0] & 63);
+	state->touch_type = (packet[0] & 63);
 	unsigned int version = ((packet[9] & 127) << 7) | (packet[10] & 127);
 
 	unsigned int touch_resolution = packet[1] & 127;
-	unsigned int sensor_id = packet[2] & 7;
-	unsigned int max_x = ((packet[2] >> 5) & 3) | ((packet[3] & 127) << 7) |
+	state->touch_max_x = ((packet[2] >> 5) & 3) | ((packet[3] & 127) << 7) |
 	    (packet[4] & 124);
-	unsigned int max_y = ((packet[2] >> 3) & 3) | ((packet[5] & 127) << 7) |
+	state->touch_max_y = ((packet[2] >> 3) & 3) | ((packet[5] & 127) << 7) |
 	    (packet[6] & 124);
-	unsigned int capacitance_res = packet[7] & 127;
-
+	
 	if (touch_resolution == 0)
 		touch_resolution = 10;
 
-	if (max_x == 0 || max_y == 0) {
-		max_x = (1 << touch_resolution);
-		max_y = (1 << touch_resolution);
+	if (state->touch_max_x == 0 || state->touch_max_y == 0) {
+		state->touch_max_x = (1 << touch_resolution);
+		state->touch_max_y = (1 << touch_resolution);
 	}
 
-	printf("Touch info: data_id=%u (%s) version=%u sensor_id=%u max_x=%u "
-	    "max_y=%u capacitance_res=%u\n", data_id, touch_type(data_id), version,
-	    sensor_id, max_x, max_y, capacitance_res);
+	printf("Touch info: data_id=%u (%s) version=%u max_x=%u "
+	    "max_y=%u\n", state->touch_type, touch_type(state->touch_type), version,
+	    state->touch_max_x, state->touch_max_y);
 	return false;
 }
 
-static void read_packets(async_sess_t *sess, packet_consumer_fn consumer)
+static void read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 {
-	uint8_t buf[BUF_SIZE];
-	ssize_t buf_end = 0;
-	
-	while (true) {
-		ssize_t read = char_dev_read(sess, buf + buf_end, BUF_SIZE - buf_end);
+	bool reading = true;
+	bool silence = true;
+	while (reading) {
+		ssize_t read = char_dev_read(state->sess, state->buf + state->buf_end,
+		    state->buf_size - state->buf_end);
 		if (read < 0) {
 			fprintf(stderr, "Failed reading from serial device\n");
 			return;
 		}
-		buf_end += read;
+		state->buf_end += read;
 		
-		ssize_t i = 0;
+		if (!silence && read == 0) {
+			silence = true;
+			usleep(100000); /* 100 ms */
+			continue;
+		}
+		else if (read > 0) {
+			silence = false;
+		}
+		
+		size_t i = 0;
 		
 		/* Skip data until a start of packet is found */
-		while (i < buf_end && (buf[i] & START_OF_PACKET) == 0) i++;
+		while (i < state->buf_end && (state->buf[i] & START_OF_PACKET) == 0) i++;
 		
-		ssize_t start = i;
-		ssize_t end = i;
-		ssize_t processed_end = i;
+		size_t start = i;
+		size_t end = i;
+		size_t processed_end = i;
 		
 		/* Process packets one by one */
-		while (i < buf_end) {
+		while (reading && i < state->buf_end) {
 			/* Find a start of next packet */
 			i++; /* We need to skip the first byte with START_OF_PACKET set */
-			while (i < buf_end && (buf[i] & START_OF_PACKET) == 0) i++;
+			while (i < state->buf_end && (state->buf[i] & START_OF_PACKET) == 0) i++;
 			end = i;
 			
 			/* If we have whole packet, process it */
-			if (end - start > 0 && (end != buf_end || read == 0)) {
-				if (!consumer(buf + start, end - start)) {
-					return;
-				}
+			if (end > start && (end != state->buf_end || read == 0)) {
+				reading = consumer(state->buf + start, end - start, state);
 				start = end;
 				processed_end = end;
 			}
 		}
 		
-		if (processed_end == 0 && buf_end == BUF_SIZE) {
+		if (processed_end == 0 && state->buf_end == BUF_SIZE) {
 			fprintf(stderr, "Buffer overflow detected, discarding contents\n");
-			buf_end = 0;
+			state->buf_end = 0;
 		}
 		
 		/* Shift the buffer contents to the left */
-		size_t unprocessed_len = buf_end - processed_end;
-		memcpy(buf, buf + processed_end, unprocessed_len);
-		buf_end = unprocessed_len;
+		size_t unprocessed_len = state->buf_end - processed_end;
+		memcpy(state->buf, state->buf + processed_end, unprocessed_len);
+		state->buf_end = unprocessed_len;
 	}
-	
-	/* not reached */
 }
 static bool write_command(async_sess_t *sess, uint8_t command)
 {
 	return char_dev_write(sess, &command, 1) == 1;
+}
+
+static void isdv4_init(isdv4_state_t *state, async_sess_t *sess,
+    uint8_t *buf, size_t buf_size, isdv4_event_fn event_fn)
+{
+	memset(state, 0, sizeof(isdv4_state_t));
+	state->sess = sess;
+	state->buf = buf;
+	state->buf_size = buf_size;
+	state->emit_event_fn = event_fn;
+}
+
+static void isdv4_init_tablet(isdv4_state_t *state)
+{
+	write_command(state->sess, CMD_STOP);
+	usleep(250000); /* 250 ms */
+	while (char_dev_read(state->sess, state->buf, state->buf_size) > 0);
+	write_command(state->sess, CMD_QUERY_STYLUS);
+	read_packets(state, parse_response_stylus);
+	write_command(state->sess, CMD_QUERY_TOUCH);
+	read_packets(state, parse_response_touch);
+	write_command(state->sess, CMD_START);
 }
 
 int main(int argc, char **argv)
@@ -337,16 +580,13 @@ int main(int argc, char **argv)
 		return 2;
 	}
 	
-	write_command(sess, CMD_STOP);
-	usleep(250000); /* 250 ms */
 	uint8_t buf[BUF_SIZE];
-	while (char_dev_read(sess, buf, BUF_SIZE) > 0);
-	write_command(sess, CMD_QUERY_STYLUS);
-	read_packets(sess, parse_response_stylus);
-	write_command(sess, CMD_QUERY_TOUCH);
-	read_packets(sess, parse_response_touch);
-	write_command(sess, CMD_START);
-	read_packets(sess, parse_packet);
+	
+	isdv4_state_t state;
+	isdv4_init(&state, sess, buf, BUF_SIZE, print_event);
+	isdv4_init_tablet(&state);
+	
+	read_packets(&state, parse_event);
 	
 	return 0;
 }
