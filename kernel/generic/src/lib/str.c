@@ -458,15 +458,16 @@ bool chr_check(wchar_t ch)
  * The strings are considered equal iff their length is equal
  * and both strings consist of the same sequence of characters.
  *
- * A string is smaller than another string iff it is shorter or
- * has a character with lower value at the first position where
- * the strings differ.
+ * A string S1 is less than another string S2 if it has a character with
+ * lower value at the first character position where the strings differ.
+ * If the strings differ in length, the shorter one is treated as if
+ * padded by characters with a value of zero.
  *
  * @param s1 First string to compare.
  * @param s2 Second string to compare.
  *
- * @return 0 if the strings are equal, -1 if first is smaller,
- *         1 if second smaller.
+ * @return 0 if the strings are equal, -1 if the first is less than the second,
+ *         1 if the second is less than the first.
  *
  */
 int str_cmp(const char *s1, const char *s2)
@@ -502,16 +503,18 @@ int str_cmp(const char *s1, const char *s2)
  * and both strings consist of the same sequence of characters,
  * up to max_len characters.
  *
- * A string is smaller than another string iff it is shorter or
- * has a character with lower value at the first position where
- * the strings differ, considering only first max_len characters.
+ * A string S1 is less than another string S2 if it has a character with
+ * lower value at the first character position where the strings differ.
+ * If the strings differ in length, the shorter one is treated as if
+ * padded by characters with a value of zero. Only the first max_len
+ * characters are considered.
  *
  * @param s1      First string to compare.
  * @param s2      Second string to compare.
  * @param max_len Maximum number of characters to consider.
  *
- * @return 0 if the strings are equal, -1 if first is smaller,
- *         1 if second smaller.
+ * @return 0 if the strings are equal, -1 if the first is less than the second,
+ *         1 if the second is less than the first.
  *
  */
 int str_lcmp(const char *s1, const char *s2, size_t max_len)

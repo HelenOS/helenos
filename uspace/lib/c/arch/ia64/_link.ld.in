@@ -22,10 +22,7 @@ SECTIONS {
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
 	
-	/*
-	 * XXX This is just a work around. Problem: .init section does not
-	 * have the proper alignment.
-	 */
+	/* Make sure the code is aligned reasonably */
 	. = ALIGN(., 16);
 	
 	.init : {

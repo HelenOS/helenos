@@ -34,7 +34,7 @@
 context_save:
 	stmia r0!, {sp, lr}
 	stmia r0!, {r4-r11}
-
+	
 	# return 1
 	mov r0, #1
 	mov pc, lr
@@ -42,8 +42,8 @@ context_save:
 context_restore:
 	ldmia r0!, {sp, lr}
 	ldmia r0!, {r4-r11}
-
-	#return 0
+	
+	# return 0
 	mov r0, #0
 	mov pc, lr
 
