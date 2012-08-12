@@ -47,7 +47,6 @@
 #include <futex.h>
 #include <fibril.h>
 #include <macros.h>
-#include "private/libc.h"
 
 /**
  * Structures of this type are used for keeping track
@@ -564,79 +563,6 @@ int ipc_forward_slow(ipc_callid_t callid, int phoneid, sysarg_t imethod,
 	
 	return __SYSCALL4(SYS_IPC_FORWARD_SLOW, callid, phoneid, (sysarg_t) &data,
 	    mode);
-}
-
-/** Wrapper for answering the IPC_M_SHARE_IN calls.
- *
- * This wrapper only makes it more comfortable to answer IPC_M_SHARE_IN
- * calls so that the user doesn't have to remember the meaning of each
- * IPC argument.
- *
- * @param callid Hash of the IPC_M_DATA_READ call to answer.
- * @param src    Source address space base.
- * @param flags Flags to be used for sharing. Bits can be only cleared.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int ipc_share_in_finalize(ipc_callid_t callid, void *src, unsigned int flags)
-{
-	return ipc_answer_3(callid, EOK, (sysarg_t) src, (sysarg_t) flags,
-	    (sysarg_t) __entry);
-}
-
-/** Wrapper for answering the IPC_M_SHARE_OUT calls.
- *
- * This wrapper only makes it more comfortable to answer IPC_M_SHARE_OUT
- * calls so that the user doesn't have to remember the meaning of each
- * IPC argument.
- *
- * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
- * @param dst    Destination address space area base address.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int ipc_share_out_finalize(ipc_callid_t callid, void **dst)
-{
-	return ipc_answer_2(callid, EOK, (sysarg_t) __entry, (sysarg_t) dst);
-}
-
-/** Wrapper for answering the IPC_M_DATA_READ calls.
- *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
- * calls so that the user doesn't have to remember the meaning of each
- * IPC argument.
- *
- * @param callid Hash of the IPC_M_DATA_READ call to answer.
- * @param src    Source address for the IPC_M_DATA_READ call.
- * @param size   Size for the IPC_M_DATA_READ call. Can be smaller than
- *               the maximum size announced by the sender.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int ipc_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
-{
-	return ipc_answer_2(callid, EOK, (sysarg_t) src, (sysarg_t) size);
-}
-
-/** Wrapper for answering the IPC_M_DATA_WRITE calls.
- *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE
- * calls so that the user doesn't have to remember the meaning of each
- * IPC argument.
- *
- * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
- * @param dst    Final destination address for the IPC_M_DATA_WRITE call.
- * @param size   Final size for the IPC_M_DATA_WRITE call.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
-{
-	return ipc_answer_2(callid, EOK, (sysarg_t) dst, (sysarg_t) size);
 }
 
 /** Connect to a task specified by id.

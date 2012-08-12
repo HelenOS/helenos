@@ -124,11 +124,6 @@ extern int ipc_forward_fast(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
 extern int ipc_forward_slow(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
-extern int ipc_share_in_finalize(ipc_callid_t, void *, unsigned int);
-extern int ipc_share_out_finalize(ipc_callid_t, void **);
-extern int ipc_data_read_finalize(ipc_callid_t, const void *, size_t);
-extern int ipc_data_write_finalize(ipc_callid_t, void *, size_t);
-
 extern int ipc_connect_kbox(task_id_t);
 
 #endif
