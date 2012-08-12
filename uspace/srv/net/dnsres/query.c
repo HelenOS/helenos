@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <mem.h>
 
 #include "dns_std.h"
 #include "dns_type.h"
@@ -52,6 +53,8 @@ int dns_name2host(const char *name, dns_host_info_t *info)
 	question.qname = (char *)name;
 	question.qtype = DTYPE_A;
 	question.qclass = DC_IN;
+
+	memset(&msg, 0, sizeof(msg));
 
 	list_initialize(&msg.question);
 	list_append(&question.msg, &msg.question);

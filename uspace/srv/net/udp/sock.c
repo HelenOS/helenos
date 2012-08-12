@@ -358,15 +358,15 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 		case UDP_EOK:
 			rc = EOK;
 			break;
-/*		case TCP_ENOTEXIST:
+		case UDP_ENORES:
 			rc = ENOTCONN;
 			break;
-		case TCP_ECLOSING:
-			rc = ENOTCONN;
+		case UDP_EUNSPEC:
+			rc = EINVAL;
 			break;
-		case TCP_ERESET:
-			rc = ECONNABORTED;
-			break;*/
+		case UDP_ENOROUTE:
+			rc = EIO;
+			break;
 		default:
 			assert(false);
 		}

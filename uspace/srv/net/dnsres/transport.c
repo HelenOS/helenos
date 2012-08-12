@@ -34,25 +34,58 @@
  */
 
 #include <errno.h>
+#include <net/in.h>
+#include <net/inet.h>
+#include <net/socket.h>
+#include <stdlib.h>
 
 #include "dns_msg.h"
 #include "dns_type.h"
 #include "transport.h"
 
+#include <stdio.h>
 int dns_request(dns_message_t *req, dns_message_t **rresp)
 {
 	dns_message_t *resp;
 	int rc;
 	void *req_data;
 	size_t req_size;
+	struct sockaddr_in addr;
+	int fd;
+
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(53);
+	addr.sin_addr.s_addr = htonl((192 << 24) | (168 << 16) | (0 << 8) | 1);
+
+	req_data = NULL;
+	fd = -1;
 
 	rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
-		return rc;
+		goto error;
+
+	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (fd < 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	printf("fd=%d req_data=%p, req_size=%zu\n", fd, req_data, req_size);
+	rc = sendto(fd, req_data, req_size, 0, (struct sockaddr *)&addr,
+	    sizeof(addr));
+	if (rc != EOK)
+		goto error;
 
 	resp = NULL;
 	*rresp = resp;
 	return EOK;
+
+error:
+	if (req_data != NULL)
+		free(req_data);
+	if (fd >= 0)
+		closesocket(fd);
+	return rc;
 }
 
 /** @}

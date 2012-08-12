@@ -34,6 +34,7 @@
  */
 
 #include <bitops.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -86,15 +87,17 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 			if (buf != NULL && pi < buf_size)
 				buf[pi] = (uint8_t)lsize;
 
-			if (c == '\0')
-				break;
-
+			lsize = 0;
 			pi = di;
 			++di;
+
+			if (c == '\0')
+				break;
 		} else {
-			++lsize;
 			if (buf != NULL && di < buf_size)
-				buf[di++] = c;
+				buf[di] = c;
+			++di;
+			++lsize;
 		}
 	}
 
@@ -125,7 +128,10 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
 	if (rc != EOK)
 		return rc;
 
+	printf("name_size=%zu\n", name_size);
+
 	*act_size = name_size + sizeof(uint16_t) + sizeof(uint16_t);
+	printf("act_size=%zu\n", *act_size);
 	if (buf == NULL)
 		return EOK;
 
@@ -137,7 +143,6 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
 	dns_uint16_t_encode(question->qclass, buf + di, buf_size - di);
 	di += sizeof(uint16_t);
 
-	*act_size = di;
 	return EOK;
 }
 
@@ -150,23 +155,25 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	size_t di;
 	int rc;
 
-	hdr.id = msg->id;
+	hdr.id = host2uint16_t_be(msg->id);
 
-	hdr.opbits =
+	hdr.opbits = host2uint16_t_be(
 	    (msg->qr << OPB_QR) |
 	    (msg->opcode << OPB_OPCODE_l) |
 	    (msg->aa ? BIT_V(uint16_t, OPB_AA) : 0) |
 	    (msg->tc ? BIT_V(uint16_t, OPB_TC) : 0) |
 	    (msg->rd ? BIT_V(uint16_t, OPB_RD) : 0) |
 	    (msg->ra ? BIT_V(uint16_t, OPB_RA) : 0) |
-	    msg->rcode;
+	    msg->rcode
+	);
 
-	hdr.qd_count = list_count(&msg->question);
+	hdr.qd_count = host2uint16_t_be(list_count(&msg->question));
 	hdr.an_count = 0;
 	hdr.ns_count = 0;
 	hdr.ar_count = 0;
 
 	size = sizeof(dns_header_t);
+	printf("dns header size=%zu\n", size);
 
 	list_foreach(msg->question, link) {
 		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
@@ -174,6 +181,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 		if (rc != EOK)
 			return rc;
 
+		printf("q_size=%zu\n", q_size);
 		size += q_size;
 	}
 
@@ -192,6 +200,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 		di += q_size;
 	}
 
+	printf("-> size=%zu, di=%zu\n", size, di);
 	*rdata = data;
 	*rsize = size;
 	return EOK;
