@@ -178,6 +178,8 @@ typedef struct ns8250 {
 	cyclic_buffer_t input_buffer;
 	/** The fibril mutex for synchronizing the access to the device. */
 	fibril_mutex_t mutex;
+	/** Indicates that some data has become available */
+	fibril_condvar_t input_buffer_available;
 	/** True if device is removed. */
 	bool removed;
 } ns8250_t;
@@ -237,9 +239,13 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
 static int ns8250_read(ddf_fun_t *fun, char *buf, size_t count)
 {
 	ns8250_t *ns = NS8250(fun);
-	int ret = EOK;
+	int ret = 0;
+	
+	if (count == 0) return 0;
 	
 	fibril_mutex_lock(&ns->mutex);
+	while (buf_is_empty(&ns->input_buffer))
+		fibril_condvar_wait(&ns->input_buffer_available, &ns->mutex);
 	while (!buf_is_empty(&ns->input_buffer) && (size_t)ret < count) {
 		buf[ret] = (char)buf_pop_front(&ns->input_buffer);
 		ret++;
@@ -738,6 +744,7 @@ static void ns8250_read_from_device(ns8250_t *ns)
 			uint8_t val = ns8250_read_8(regs);
 			
 			if (ns->client_connected) {
+				bool buf_was_empty = buf_is_empty(&ns->input_buffer);
 				if (!buf_push_back(&ns->input_buffer, val)) {
 					ddf_msg(LVL_WARN, "Buffer overflow on "
 					    "%s.", ns->dev->name);
@@ -745,6 +752,8 @@ static void ns8250_read_from_device(ns8250_t *ns)
 					ddf_msg(LVL_DEBUG2, "Character %c saved "
 					    "to the buffer of %s.",
 					    val, ns->dev->name);
+					if (buf_was_empty)
+						fibril_condvar_broadcast(&ns->input_buffer_available);
 				}
 			}
 		}
@@ -810,6 +819,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	}
 	
 	fibril_mutex_initialize(&ns->mutex);
+	fibril_condvar_initialize(&ns->input_buffer_available);
 	ns->dev = dev;
 	
 	rc = ns8250_dev_initialize(ns);
