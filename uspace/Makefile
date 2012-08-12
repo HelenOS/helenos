@@ -69,6 +69,7 @@ DIRS = \
 	app/ping \
 	app/sysinfo \
 	app/mkbd \
+	app/wacomdump \
 	app/websrv \
 	srv/clipboard \
 	srv/locsrv \
