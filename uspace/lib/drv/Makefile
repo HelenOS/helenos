@@ -44,7 +44,7 @@ SOURCES = \
 	generic/remote_pci.c \
 	generic/remote_usbhc.c \
 	generic/remote_usbhid.c \
-	generic/remote_clock_dev.c
+	generic/remote_clock_dev.c \
 	generic/remote_ahci.c
 
 include $(USPACE_PREFIX)/Makefile.common
