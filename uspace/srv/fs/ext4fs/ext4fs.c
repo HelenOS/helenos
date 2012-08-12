@@ -53,7 +53,7 @@ vfs_info_t ext4fs_vfs_info = {
 
 int main(int argc, char **argv)
 {
-	printf("%s: HelenOS EXT4 file system server\n", NAME);
+	printf("%s: HelenOS ext4 file system server\n", NAME);
 	
 	if (argc == 3) {
 		if (!str_cmp(argv[1], "--instance"))
