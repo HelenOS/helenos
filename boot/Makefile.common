@@ -105,6 +105,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
+	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
@@ -172,6 +173,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
 	$(USPACE_PATH)/app/testread/testread \
+	$(USPACE_PATH)/app/testwrit/testwrit \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
