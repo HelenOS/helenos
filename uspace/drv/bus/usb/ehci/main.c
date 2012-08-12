@@ -48,11 +48,11 @@
 #define NAME "ehci"
 
 static int ehci_dev_add(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t ehci_driver_ops = {
 	.dev_add = ehci_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t ehci_driver = {
 	.name = NAME,
 	.driver_ops = &ehci_driver_ops
@@ -61,7 +61,7 @@ static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
 
-/*----------------------------------------------------------------------------*/
+
 /** Initializes a new ddf driver instance of EHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -120,7 +120,7 @@ if (ret != EOK) { \
 	return EOK;
 #undef CHECK_RET_RETURN
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initializes global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).

@@ -79,7 +79,7 @@ static irq_cmd_t pl050_cmds[] = {
 		.dstarg = 1
 	},
 	{
-		.cmd = CMD_BTEST,
+		.cmd = CMD_AND,
 		.value = PL050_STAT_RXFULL,
 		.srcarg = 1,
 		.dstarg = 3

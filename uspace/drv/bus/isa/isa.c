@@ -200,8 +200,10 @@ static isa_fun_t *isa_fun_create(isa_bus_t *isa, const char *name)
 		return NULL;
 
 	isa_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(isa_fun_t));
-	if (fun == NULL)
+	if (fun == NULL) {
+		ddf_fun_destroy(fnode);
 		return NULL;
+	}
 
 	fibril_mutex_initialize(&fun->mutex);
 	fun->fnode = fnode;
@@ -551,8 +553,8 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 		return NULL;
 
 	isa_fun_t *fun = isa_fun_create(isa, fun_name);
+	free(fun_name);
 	if (fun == NULL) {
-		free(fun_name);
 		return NULL;
 	}
 

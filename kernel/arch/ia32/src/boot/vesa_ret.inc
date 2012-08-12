@@ -1,5 +1,6 @@
 .code32
 vesa_init_protected:
+	cli
 	cld
 	
 	/* Initialize stack pointer */

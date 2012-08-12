@@ -78,9 +78,9 @@ screenbuffer_t *screenbuffer_create(sysarg_t cols, sysarg_t rows,
 	screenbuffer_t *scrbuf;
 	
 	if ((flags & SCREENBUFFER_FLAG_SHARED) == SCREENBUFFER_FLAG_SHARED) {
-		scrbuf = (screenbuffer_t *) as_area_create((void *) -1, size,
+		scrbuf = (screenbuffer_t *) as_area_create(AS_AREA_ANY, size,
 		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
-		if (scrbuf == (void *) -1)
+		if (scrbuf == AS_MAP_FAILED)
 			return NULL;
 	} else {
 		scrbuf = (screenbuffer_t *) malloc(size);

@@ -37,21 +37,51 @@
 #include <stdint.h>
 #include <malloc.h>
 
+#include "mem_access.h"
+
+#define HCCA_INT_EP_COUNT  32
+
 /** Host controller communication area.
  * Shared memory used for communication between the controller and the driver.
  */
 typedef struct hcca {
-	uint32_t int_ep[32];
+	/** Interrupt endpoints */
+	uint32_t int_ep[HCCA_INT_EP_COUNT];
+	/** Frame number. */
 	uint16_t frame_number;
 	uint16_t pad1;
+	/** Pointer to the last completed TD. (useless) */
 	uint32_t done_head;
+	/** Padding to make the size 256B */
 	uint32_t reserved[30];
 } hcca_t;
 
-static inline void * hcca_get(void)
+/** Allocate properly aligned structure.
+ *
+ * The returned structure is zeroed upon allocation.
+ *
+ * @return Usable HCCA memory structure.
+ */
+static inline hcca_t * hcca_get(void)
 {
 	assert(sizeof(hcca_t) == 256);
-	return memalign(256, sizeof(hcca_t));
+	hcca_t *hcca = memalign(256, sizeof(hcca_t));
+	if (hcca)
+		bzero(hcca, sizeof(hcca_t));
+	return hcca;
+}
+
+/** Set HCCA interrupt endpoint pointer table entry.
+ * @param hcca HCCA memory structure.
+ * @param index table index.
+ * @param pa Physical address.
+ */
+static inline void hcca_set_int_ep(hcca_t *hcca, unsigned index, uintptr_t pa)
+{
+	assert(hcca);
+	assert(index < HCCA_INT_EP_COUNT);
+	OHCI_MEM32_WR(hcca->int_ep[index], pa);
+
 }
 #endif
 /**

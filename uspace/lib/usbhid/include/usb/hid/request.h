@@ -41,7 +41,7 @@
 #include <usb/hid/hid.h>
 #include <usb/dev/pipes.h>
 
-/*----------------------------------------------------------------------------*/
+
 
 int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
@@ -60,7 +60,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 
 int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
 
-/*----------------------------------------------------------------------------*/
+
 
 #endif /* USB_KBD_HIDREQ_H_ */
 

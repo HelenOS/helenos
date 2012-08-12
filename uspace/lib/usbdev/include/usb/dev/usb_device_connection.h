@@ -71,7 +71,7 @@ static inline int usb_device_connection_initialize(
 	instance->address = address;
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Register endpoint on the device.
  * @param instance device connection structure to use.
  * @param ep USB endpoint number.
@@ -90,7 +90,7 @@ static inline int usb_device_register_endpoint(
 	return usb_hc_register_endpoint(instance->hc_connection,
 	    instance->address, ep, type, direction, packet_size, interval);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Unregister endpoint on the device.
  * @param instance device connection structure
  * @param ep Endpoint number.
@@ -104,7 +104,7 @@ static inline int usb_device_unregister_endpoint(
 	return usb_hc_unregister_endpoint(instance->hc_connection,
 	    instance->address, ep, dir);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get data from the device.
  * @param[in] instance device connection structure to use.
  * @param[in] ep target endpoint's number.
@@ -121,7 +121,7 @@ static inline int usb_device_control_read(usb_device_connection_t *instance,
 	return usb_hc_read(instance->hc_connection,
 	    instance->address, ep, setup, data, size, rsize);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Send data to the device.
  * @param instance device connection structure to use.
  * @param ep target endpoint's number.
@@ -137,7 +137,7 @@ static inline int usb_device_control_write(usb_device_connection_t *instance,
 	return usb_hc_write(instance->hc_connection,
 	    instance->address, ep, setup, data, size);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Wrapper for read calls with no setup stage.
  * @param[in] instance device connection structure.
  * @param[in] address USB device address.
@@ -152,7 +152,7 @@ static inline int usb_device_read(usb_device_connection_t *instance,
 {
 	return usb_device_control_read(instance, ep, 0, data, size, real_size);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Wrapper for write calls with no setup stage.
  * @param instance device connection structure.
  * @param address USB device address.

@@ -155,13 +155,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 {
 	(void) interrupts_disable();
 	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) + STACK_SIZE
-	    - (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
+	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	    kernel_uarg->uspace_stack_size -
+	    (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
 	    (uintptr_t) kernel_uarg->uspace_uarg);
-
-	for (;;)
-		;
-	/* not reached */
+	
+	/* Not reached */
+	while (1);
 }
 
 void arch_reboot(void)

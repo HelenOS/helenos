@@ -47,10 +47,11 @@ static int show_cat(const char *cat_name, category_id_t cat_id)
 	service_id_t *svc_ids;
 	size_t svc_cnt;
 	char *svc_name;
+	char *server_name;
 	int rc;
 	size_t j;
 
-	printf("%s (%" PRIun "):\n", cat_name, cat_id);
+	printf("%s:\n", cat_name);
 
 	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
 	if (rc != EOK) {
@@ -66,8 +67,22 @@ static int show_cat(const char *cat_name, category_id_t cat_id)
 			    PRIun ").\n", svc_ids[j]);
 			continue;
 		}
-		printf("\t%s (%" PRIun ")\n", svc_name, svc_ids[j]);
+
+		rc = loc_service_get_server_name(svc_ids[j], &server_name);
+		if (rc != EOK && rc != EINVAL) {
+			free(svc_name);
+			printf(NAME ": Unknown service name (SID %"
+			    PRIun ").\n", svc_ids[j]);
+			continue;
+		}
+
+		if (rc == EOK)
+			printf("\t%s : %s\n", svc_name, server_name);
+		else
+			printf("\t%s\n", svc_name);
+	
 		free(svc_name);
+		free(server_name);
 	}
 
 	free(svc_ids);

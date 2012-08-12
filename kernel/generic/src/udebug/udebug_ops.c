@@ -94,7 +94,7 @@ static int _thread_op_begin(thread_t *thread, bool being_go)
 	irq_spinlock_exchange(&threads_lock, &thread->lock);
 	
 	/* Verify that 'thread' is a userspace thread. */
-	if ((thread->flags & THREAD_FLAG_USPACE) == 0) {
+	if (!thread->uspace) {
 		/* It's not, deny its existence */
 		irq_spinlock_unlock(&thread->lock, true);
 		mutex_unlock(&TASK->udebug.lock);
@@ -199,7 +199,7 @@ int udebug_begin(call_t *call)
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		
 		mutex_lock(&thread->udebug.lock);
-		if ((thread->flags & THREAD_FLAG_USPACE) != 0) {
+		if (thread->uspace) {
 			thread->udebug.active = true;
 			mutex_unlock(&thread->udebug.lock);
 			condvar_broadcast(&thread->udebug.active_cv);
@@ -392,11 +392,11 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		
 		irq_spinlock_lock(&thread->lock, false);
-		int flags = thread->flags;
+		bool uspace = thread->uspace;
 		irq_spinlock_unlock(&thread->lock, false);
 		
 		/* Not interested in kernel threads. */
-		if ((flags & THREAD_FLAG_USPACE) == 0)
+		if (!uspace)
 			continue;
 		
 		if (copied_ids < max_ids) {

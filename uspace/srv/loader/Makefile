@@ -43,7 +43,7 @@ STATIC_ONLY = y
 
 GENERIC_SOURCES = \
 	main.c \
-	interp.s
+	interp.S
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

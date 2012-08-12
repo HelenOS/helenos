@@ -71,6 +71,7 @@ GENERIC_SOURCES = \
 	generic/device/clock_dev.c \
 	generic/device/nic.c \
 	generic/device/pci.c \
+	generic/device/ahci.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \
