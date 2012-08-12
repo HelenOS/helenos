@@ -119,7 +119,6 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 	irq_spinlock_initialize(&box->lock, "ipc.box.lock");
 	irq_spinlock_initialize(&box->irq_lock, "ipc.box.irqlock");
 	waitq_initialize(&box->wq);
-	link_initialize(&box->sync_box_link);
 	list_initialize(&box->connected_phones);
 	list_initialize(&box->calls);
 	list_initialize(&box->dispatched_calls);
@@ -160,49 +159,6 @@ void ipc_phone_init(phone_t *phone)
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);
-}
-
-/** Helper function to facilitate synchronous calls.
- *
- * @param phone   Destination kernel phone structure.
- * @param request Call structure with request.
- *
- * @return EOK on success or EINTR if the sleep was interrupted.
- *
- */
-int ipc_call_sync(phone_t *phone, call_t *request)
-{
-	answerbox_t *sync_box = slab_alloc(ipc_answerbox_slab, 0);
-	ipc_answerbox_init(sync_box, TASK);
-	
-	/*
-	 * Put the answerbox on the TASK's list of synchronous answerboxes so
-	 * that it can be cleaned up if the call is interrupted.
-	 */
-	irq_spinlock_lock(&TASK->lock, true);
-	list_append(&sync_box->sync_box_link, &TASK->sync_boxes);
-	irq_spinlock_unlock(&TASK->lock, true);
-	
-	/* We will receive data in a special box. */
-	request->callerbox = sync_box;
-	
-	ipc_call(phone, request);
-	if (!ipc_wait_for_call(sync_box, SYNCH_NO_TIMEOUT,
-	    SYNCH_FLAGS_INTERRUPTIBLE)) {
-		/* The answerbox and the call will be freed by ipc_cleanup(). */
-		return EINTR;
-	}
-	
-	/*
-	 * The answer arrived without interruption so we can remove the
-	 * answerbox from the TASK's list of synchronous answerboxes.
-	 */
-	irq_spinlock_lock(&TASK->lock, true);
-	list_remove(&sync_box->sync_box_link);
-	irq_spinlock_unlock(&TASK->lock, true);
-	
-	slab_free(ipc_answerbox_slab, sync_box);
-	return EOK;
 }
 
 /** Answer a message which was not dispatched and is not listed in any queue.
@@ -605,20 +561,6 @@ void ipc_cleanup(void)
 	ipc_cleanup_call_list(&TASK->answerbox.dispatched_calls);
 	ipc_cleanup_call_list(&TASK->answerbox.calls);
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
-	
-	/* Wait for all answers to interrupted synchronous calls to arrive */
-	ipl_t ipl = interrupts_disable();
-	while (!list_empty(&TASK->sync_boxes)) {
-		answerbox_t *box = list_get_instance(
-		    list_first(&TASK->sync_boxes), answerbox_t, sync_box_link);
-		
-		list_remove(&box->sync_box_link);
-		call_t *call = ipc_wait_for_call(box, SYNCH_NO_TIMEOUT,
-		    SYNCH_FLAGS_NONE);
-		ipc_call_free(call);
-		slab_free(ipc_answerbox_slab, box);
-	}
-	interrupts_restore(ipl);
 	
 	/* Wait for all answers to asynchronous calls to arrive */
 	while (true) {
