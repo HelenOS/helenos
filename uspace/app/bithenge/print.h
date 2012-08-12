@@ -50,6 +50,8 @@ typedef enum {
 } bithenge_print_type_t;
 
 int bithenge_print_node(bithenge_print_type_t, bithenge_node_t *);
+int bithenge_print_node_to_string(char **, size_t *, bithenge_print_type_t,
+    bithenge_node_t *);
 
 #endif
 

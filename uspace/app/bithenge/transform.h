@@ -53,6 +53,7 @@ typedef struct bithenge_scope {
 	/** @privatesection */
 	unsigned int refs;
 	struct bithenge_scope *outer;
+	char *error;
 	bool barrier;
 	int num_params;
 	bithenge_node_t **params;
@@ -151,6 +152,8 @@ int bithenge_new_barrier_transform(bithenge_transform_t **,
 int bithenge_scope_new(bithenge_scope_t **, bithenge_scope_t *);
 void bithenge_scope_dec_ref(bithenge_scope_t *);
 bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *);
+const char *bithenge_scope_get_error(bithenge_scope_t *);
+int bithenge_scope_error(bithenge_scope_t *, const char *, ...);
 bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *);
 void bithenge_scope_set_current_node(bithenge_scope_t *, bithenge_node_t *);
 bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *);

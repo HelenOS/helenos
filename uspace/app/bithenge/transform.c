@@ -36,8 +36,10 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include "blob.h"
+#include "print.h"
 #include "transform.h"
 
 
@@ -186,6 +188,7 @@ int bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 	if (outer)
 		bithenge_scope_inc_ref(outer);
 	self->outer = outer;
+	self->error = NULL;
 	self->barrier = false;
 	self->num_params = 0;
 	self->params = NULL;
@@ -208,6 +211,7 @@ void bithenge_scope_dec_ref(bithenge_scope_t *self)
 		bithenge_node_dec_ref(self->params[i]);
 	bithenge_scope_dec_ref(self->outer);
 	free(self->params);
+	free(self->error);
 	free(self);
 }
 
@@ -217,6 +221,66 @@ void bithenge_scope_dec_ref(bithenge_scope_t *self)
 bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
 {
 	return self->outer;
+}
+
+/** Get the error message stored in the scope, which may be NULL. The error
+ * message only exists as long as the scope does.
+ * @param scope The scope to get the error message from.
+ * @return The error message, or NULL. */
+const char *bithenge_scope_get_error(bithenge_scope_t *scope)
+{
+	return scope->error;
+}
+
+/** Set the error message for the scope. The error message is stored in the
+ * outermost scope, but if any scope already has an error message this error
+ * message is ignored.
+ * @param scope The scope.
+ * @param format The format string.
+ * @return EINVAL normally, or another error code from errno.h. */
+int bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
+{
+	if (scope->error)
+		return EINVAL;
+	while (scope->outer) {
+		scope = scope->outer;
+		if (scope->error)
+			return EINVAL;
+	}
+	size_t space_left = 256;
+	scope->error = malloc(space_left);
+	if (!scope->error)
+		return ENOMEM;
+	char *out = scope->error;
+	va_list ap;
+	va_start(ap, format);
+
+	while (*format) {
+		if (format[0] == '%' && format[1] == 't') {
+			format += 2;
+			int rc = bithenge_print_node_to_string(&out,
+			    &space_left, BITHENGE_PRINT_PYTHON,
+			    va_arg(ap, bithenge_node_t *));
+			if (rc != EOK) {
+				va_end(ap);
+				return rc;
+			}
+		} else {
+			const char *end = str_chr(format, '%');
+			if (!end)
+				end = format + str_length(format);
+			size_t size = min((size_t)(end - format),
+			    space_left - 1);
+			memcpy(out, format, size);
+			format = end;
+			out += size;
+			space_left -= size;
+		}
+	}
+	*out = '\0';
+
+	va_end(ap);
+	return EINVAL;
 }
 
 /** Get the current node being created, which may be NULL.

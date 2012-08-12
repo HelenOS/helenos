@@ -49,24 +49,8 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	if (argc < 3) {
-		// {True: {}, -1351: "\"false\"", "true": False, 0: b"..."}
-		const char data[] = "'Twas brillig, and the slithy toves";
-		bithenge_node_t *node;
-		bithenge_node_t *subnodes[8];
-		bithenge_new_boolean_node(&subnodes[0], true);
-		bithenge_new_simple_internal_node(&subnodes[1], NULL, 0, false);
-		bithenge_new_integer_node(&subnodes[2], -1351);
-		bithenge_new_string_node(&subnodes[3], "\"false\"", false);
-		bithenge_new_string_node(&subnodes[4], "true", false);
-		bithenge_new_boolean_node(&subnodes[5], false);
-		bithenge_new_integer_node(&subnodes[6], 0);
-		bithenge_new_blob_from_data(&subnodes[7], data, sizeof(data));
-		bithenge_new_simple_internal_node(&node, subnodes, 4, false);
-		bithenge_print_node(BITHENGE_PRINT_PYTHON, node);
-		printf("\n");
-		bithenge_print_node(BITHENGE_PRINT_JSON, node);
-		printf("\n");
-		bithenge_node_dec_ref(node);
+		fprintf(stderr, "Usage: %s <script> <source>\n", argv[0]);
+		return 1;
 	} else {
 		bithenge_scope_t *scope = NULL;
 		bithenge_transform_t *transform = NULL;
@@ -95,7 +79,9 @@ int main(int argc, char *argv[])
 
 		rc = bithenge_transform_apply(transform, scope, node, &node2);
 		if (rc != EOK) {
-			printf("Error applying transform: %s\n", str_error(rc));
+			const char *message = bithenge_scope_get_error(scope);
+			printf("Error applying transform: %s\n",
+			    message ? message : str_error(rc));
 			node2 = NULL;
 			goto error;
 		}
@@ -107,7 +93,9 @@ int main(int argc, char *argv[])
 
 		rc = bithenge_print_node(BITHENGE_PRINT_PYTHON, node2);
 		if (rc != EOK) {
-			printf("Error printing node: %s\n", str_error(rc));
+			const char *message = bithenge_scope_get_error(scope);
+			printf("Error printing node: %s\n",
+			    message ? message : str_error(rc));
 			goto error;
 		}
 		bithenge_node_dec_ref(node2);

@@ -417,10 +417,32 @@ static void struct_node_destroy(bithenge_node_t *base)
 {
 	struct_node_t *node = node_as_struct(base);
 
-	/* We didn't inc_ref for the scope in struct_transform_make_node, so
-	 * make sure it doesn't try to dec_ref. */
-	seq_node_scope(struct_as_seq(node))->current_node = NULL;
-	seq_node_destroy(struct_as_seq(node));
+	/* Treat the scope carefully because of the circular reference. In
+	 * struct_transform_make_node, things are set up so node owns a
+	 * reference to the scope, but scope doesn't own a reference to node,
+	 * so node's reference count is too low. */
+	bithenge_scope_t *scope = seq_node_scope(struct_as_seq(node));
+	if (scope->refs == 1) {
+		/* Mostly normal destroy, but we didn't inc_ref(node) for the
+		 * scope in struct_transform_make_node, so make sure it doesn't
+		 * try to dec_ref. */
+		scope->current_node = NULL;
+		seq_node_destroy(struct_as_seq(node));
+	} else if (scope->refs > 1) {
+		/* The scope is still needed, but node isn't otherwise needed.
+		 * Switch things around so scope owns a reference to node, but
+		 * not vice versa, and scope's reference count is too low. */
+		bithenge_node_inc_ref(base);
+		bithenge_scope_dec_ref(scope);
+		return;
+	} else {
+		/* This happens after the previous case, when scope is no
+		 * longer used and is being destroyed. Since scope is already
+		 * being destroyed, set it to NULL here so we don't try to
+		 * destroy it twice. */
+		struct_as_seq(node)->scope = NULL;
+		seq_node_destroy(struct_as_seq(node));
+	}
 
 	bithenge_transform_dec_ref(struct_as_transform(node->transform));
 	free(node);

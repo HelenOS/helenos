@@ -26,15 +26,27 @@
 
 # FAT filesystem script.
 # Largely based on https://en.wikipedia.org/wiki/File_Allocation_Table
+# Currently only FAT12 and FAT16 are supported.
 
 transform u8 = uint8;
 transform u16 = uint16le;
 transform u32 = uint32le;
 
+transform fat_attributes = struct {
+	.read_only <- bit;
+	.hidden <- bit;
+	.system <- bit;
+	.volume_label <- bit;
+	.subdirectory <- bit;
+	.archive <- bit;
+	.device <- bit;
+	.reserved <- bit;
+} <- bits_le <- known_length(1);
+
 transform fat_dir_entry(disk) = struct {
 	.filename <- known_length(8);
 	.extension <- known_length(3);
-	.attrs <- u8;
+	.attrs <- fat_attributes;
 	.flags <- u8;
 	.ctime_fine <- u8;
 	.ctime <- u16;
@@ -78,33 +90,46 @@ transform fat_super(disk) = struct {
 		.num_sectors_32 <- u32;
 	};
 
-	.num_sectors <- if (.bpb331.ignore) {
-		(.num_sectors_16)
-	} else {
-		(.bpb331.num_sectors_32)
-	};
-
-	.first_root_sector <- (.num_reserved_sectors + .num_fats * .sectors_per_fat);
-	.first_data_sector <- (.first_root_sector +
-	    (.num_root_entries * 32 + .bytes_per_sector - 1) //
-	    .bytes_per_sector);
-	.num_clusters <- (2 + (.num_sectors - .first_data_sector) // .sectors_per_cluster);
-	.bits <- if (.num_clusters < 4085) { (12) }
-	    else { if (.num_clusters < 65525) { (16) } else { (32) } };
-
-	.fats <- partial(.num_reserved_sectors * .bytes_per_sector) {
-		repeat(.num_fats) {
-			fat_table(.bits, .num_clusters) <-
-				known_length(.sectors_per_fat * .bytes_per_sector)
-		}
-	} <- (disk);
-
-	.root <- partial(.first_root_sector * .bytes_per_sector) {
-		repeat(.num_root_entries) { fat_dir_entry(disk) } } <- (disk);
+	.drive_number <- u8;
+	.chkdsk_flags <- u8;
+	.extended_boot_signature <- u8;
+	if (.extended_boot_signature == 41) {
+		.volume_id <- u32;
+		.volume_label <- ascii <- known_length(11);
+		.type <- ascii <- known_length(8);
+	}
 
 	.boot_signature <- (disk[510,2]); # b"\x55\xaa"; TODO: what if .bytes_per_sector < 512?
 };
 
-transform fat_filesystem = partial { fat_super(in) };
+transform fat_filesystem_tree(disk) = struct {
+	.super <- partial{fat_super(disk)} <- (disk);
+
+	.num_sectors <- if (.super.bpb331.ignore) {
+		(.super.num_sectors_16)
+	} else {
+		(.super.bpb331.num_sectors_32)
+	};
+
+	.first_root_sector <- (.super.num_reserved_sectors + .super.num_fats * .super.sectors_per_fat);
+	.first_data_sector <- (.first_root_sector +
+	    (.super.num_root_entries * 32 + .super.bytes_per_sector - 1) //
+	    .super.bytes_per_sector);
+	.num_clusters <- (2 + (.num_sectors - .first_data_sector) // .super.sectors_per_cluster);
+	.bits <- if (.num_clusters < 4085) { (12) }
+	    else { if (.num_clusters < 65525) { (16) } else { (32) } };
+
+	.fats <- partial(.super.num_reserved_sectors * .super.bytes_per_sector) {
+		repeat(.super.num_fats) {
+			fat_table(.bits, .num_clusters) <-
+				known_length(.super.sectors_per_fat * .super.bytes_per_sector)
+		}
+	} <- (disk);
+
+	.root <- partial(.first_root_sector * .super.bytes_per_sector) {
+		repeat(.super.num_root_entries) { fat_dir_entry(disk) } } <- (disk);
+};
+
+transform fat_filesystem = partial {fat_filesystem_tree(in)};
 
 transform main = fat_filesystem;

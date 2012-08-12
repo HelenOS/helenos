@@ -463,6 +463,8 @@ static int member_expression_evaluate(bithenge_expression_t *base,
 	bithenge_node_inc_ref(self->key);
 	rc = bithenge_node_get(node, self->key, out);
 	bithenge_node_dec_ref(node);
+	if (rc == ENOENT)
+		return bithenge_scope_error(scope, "No member %t", self->key);
 	return rc;
 }
 
@@ -548,7 +550,7 @@ static int scope_member_expression_evaluate(bithenge_expression_t *base,
 		if (rc != ENOENT) /* EOK or error */
 			return rc;
 	}
-	return ENOENT;
+	return bithenge_scope_error(scope, "No scope member %t", self->key);
 }
 
 static void scope_member_expression_destroy(bithenge_expression_t *base)
