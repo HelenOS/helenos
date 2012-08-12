@@ -73,10 +73,7 @@ INIT_TASKS = \
 	$(USPACE_PATH)/app/init/init \
 	$(USPACE_PATH)/srv/locsrv/locsrv \
 	$(USPACE_PATH)/srv/bd/rd/rd \
-	$(USPACE_PATH)/srv/vfs/vfs \
-	
-# TODO: For comfort ext4fs debugging - delete before merge
-INIT_TASKS += $(USPACE_PATH)/srv/bd/ata_bd/ata_bd
+	$(USPACE_PATH)/srv/vfs/vfs
 
 ifeq ($(RDFMT),tmpfs)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/tmpfs/tmpfs
