@@ -286,9 +286,8 @@ static int partial_transform_apply(bithenge_transform_t *base,
 	partial_transform_t *self = transform_as_partial(base);
 	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
 		return EINVAL;
-	uint64_t size;
 	return bithenge_transform_prefix_apply(self->xform, scope,
-	    bithenge_node_as_blob(in), out, &size);
+	    bithenge_node_as_blob(in), out, NULL);
 }
 
 static void partial_transform_destroy(bithenge_transform_t *base)

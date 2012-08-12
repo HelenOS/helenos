@@ -969,7 +969,8 @@ static int inputless_transform_prefix_apply(bithenge_transform_t *base,
     aoff64_t *out_size)
 {
 	expression_transform_t *self = transform_as_expression(base);
-	*out_size = 0;
+	if (out_size)
+		*out_size = 0;
 	return bithenge_expression_evaluate(self->expr, scope, out_node);
 }
 

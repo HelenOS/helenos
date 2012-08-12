@@ -545,11 +545,13 @@ static int struct_transform_prefix_apply(bithenge_transform_t *base,
 	if (rc != EOK)
 		return rc;
 
-	rc = seq_node_field_offset(node_as_seq(*out_node), out_size,
-	    self->num_subtransforms);
-	if (rc != EOK) {
-		bithenge_node_dec_ref(*out_node);
-		return rc;
+	if (out_size) {
+		rc = seq_node_field_offset(node_as_seq(*out_node), out_size,
+		    self->num_subtransforms);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(*out_node);
+			return rc;
+		}
 	}
 
 	return EOK;
@@ -814,22 +816,25 @@ static int repeat_transform_prefix_apply(bithenge_transform_t *base,
 	if (rc != EOK)
 		return rc;
 
-	bithenge_int_t count = node_as_repeat(*out_node)->count;
-	if (count != -1) {
-		rc = seq_node_field_offset(node_as_seq(*out_node), out_size, count);
-		if (rc != EOK) {
-			bithenge_node_dec_ref(*out_node);
-			return rc;
-		}
-	} else {
-		*out_size = 0;
-		for (count = 1; ; count++) {
-			aoff64_t size;
+	if (out_size) {
+		bithenge_int_t count = node_as_repeat(*out_node)->count;
+		if (count != -1) {
 			rc = seq_node_field_offset(node_as_seq(*out_node),
-			    &size, count);
-			if (rc != EOK)
-				break;
-			*out_size = size;
+			    out_size, count);
+			if (rc != EOK) {
+				bithenge_node_dec_ref(*out_node);
+				return rc;
+			}
+		} else {
+			*out_size = 0;
+			for (count = 1; ; count++) {
+				aoff64_t size;
+				rc = seq_node_field_offset(
+				    node_as_seq(*out_node), &size, count);
+				if (rc != EOK)
+					break;
+				*out_size = size;
+			}
 		}
 	}
 	return EOK;
@@ -1086,17 +1091,19 @@ static int do_while_transform_prefix_apply(bithenge_transform_t *base,
 	if (rc != EOK)
 		return rc;
 
-	rc = bithenge_node_for_each(*out_node, for_each_noop, NULL);
-	if (rc != EOK) {
-		bithenge_node_dec_ref(*out_node);
-		return rc;
-	}
+	if (out_size) {
+		rc = bithenge_node_for_each(*out_node, for_each_noop, NULL);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(*out_node);
+			return rc;
+		}
 
-	rc = seq_node_field_offset(node_as_seq(*out_node), out_size,
-	    node_as_do_while(*out_node)->count);
-	if (rc != EOK) {
-		bithenge_node_dec_ref(*out_node);
-		return rc;
+		rc = seq_node_field_offset(node_as_seq(*out_node), out_size,
+		    node_as_do_while(*out_node)->count);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(*out_node);
+			return rc;
+		}
 	}
 
 	return EOK;

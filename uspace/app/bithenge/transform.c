@@ -142,7 +142,8 @@ int bithenge_transform_prefix_length(bithenge_transform_t *self,
  * @param blob The blob.
  * @param[out] out_node Holds the result of applying this transform to the
  * prefix.
- * @param[out] out_size Holds the size of the prefix.
+ * @param[out] out_size Holds the size of the prefix. Can be null, in which
+ * case the size is not determined.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
  * errno.h. */
 int bithenge_transform_prefix_apply(bithenge_transform_t *self,
@@ -157,16 +158,19 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 	if (!self->ops->prefix_length)
 		return ENOTSUP;
 
-	int rc = bithenge_transform_prefix_length(self, scope, blob, out_size);
+	aoff64_t size;
+	int rc = bithenge_transform_prefix_length(self, scope, blob, &size);
 	if (rc != EOK)
 		return rc;
 	bithenge_node_t *prefix_blob;
 	bithenge_blob_inc_ref(blob);
-	rc = bithenge_new_subblob(&prefix_blob, blob, 0, *out_size);
+	rc = bithenge_new_subblob(&prefix_blob, blob, 0, size);
 	if (rc != EOK)
 		return rc;
 	rc = bithenge_transform_apply(self, scope, prefix_blob, out_node);
 	bithenge_node_dec_ref(prefix_blob);
+	if (out_size)
+		*out_size = size;
 	return rc;
 }
 
@@ -559,12 +563,14 @@ static int bit_prefix_apply(bithenge_transform_t *self,
     aoff64_t *out_size)
 {
 	char buffer;
-	*out_size = 1;
-	int rc = bithenge_blob_read_bits(blob, 0, &buffer, out_size, true);
+	aoff64_t size = 1;
+	int rc = bithenge_blob_read_bits(blob, 0, &buffer, &size, true);
 	if (rc != EOK)
 		return rc;
-	if (*out_size != 1)
+	if (size != 1)
 		return EINVAL;
+	if (out_size)
+		*out_size = size;
 	return bithenge_new_boolean_node(out_node, (buffer & 1) != 0);
 }
 
@@ -901,14 +907,16 @@ static int uint_xe_prefix_apply(bithenge_transform_t *self,
 	if ((size_t)num_bits > sizeof(bithenge_int_t) * 8 - 1)
 		return EINVAL;
 
-	*out_size = num_bits;
+	aoff64_t size = num_bits;
 	uint8_t buffer[sizeof(bithenge_int_t)];
-	rc = bithenge_blob_read_bits(blob, 0, (char *)buffer, out_size,
+	rc = bithenge_blob_read_bits(blob, 0, (char *)buffer, &size,
 	    little_endian);
 	if (rc != EOK)
 		return rc;
-	if (*out_size != (aoff64_t)num_bits)
+	if (size != (aoff64_t)num_bits)
 		return EINVAL;
+	if (out_size)
+		*out_size = size;
 
 	bithenge_int_t result = 0;
 	bithenge_int_t num_easy_bytes = num_bits / 8;
