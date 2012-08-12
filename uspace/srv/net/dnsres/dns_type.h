@@ -68,7 +68,7 @@ typedef struct {
 
 /** Unencoded DNS message question section */
 typedef struct {
-	link_t *msg;
+	link_t msg;
 	/** Domain name in text format (dot notation) */
 	char *qname;
 	/** Query type */

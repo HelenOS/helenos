@@ -38,7 +38,7 @@
 
 #include "dns_type.h"
 
-extern int dns_name2host(char *, dns_host_info_t *);
+extern int dns_name2host(const char *, dns_host_info_t *);
 
 #endif
 

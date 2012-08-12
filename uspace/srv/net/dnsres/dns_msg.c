@@ -44,6 +44,7 @@
 
 #define NAME  "dnsres"
 
+#include <stdio.h>
 static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
 {
@@ -54,22 +55,31 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 
 	pi = 0;
 	di = 1;
+	off = 0;
 
+	printf("dns_name_encode(name='%s', buf=%p, buf_size=%zu, act_size=%p\n",
+	    name, buf, buf_size, act_size);
 	lsize = 0;
 	while (true) {
+		printf("off=%zu\n", off);
 		c = str_decode(name, &off, STR_NO_LIMIT);
+		printf("c=%d\n", (int)c);
 		if (c > 127) {
 			/* Non-ASCII character */
+			printf("non-ascii character\n");
 			return EINVAL;
 		}
 
 		if (c == '.' || c == '\0') {
 			/* Empty string, starting with period or two consecutive periods. */
-			if (lsize == 0)
+			if (lsize == 0) {
+				printf("empty token\n");
 				return EINVAL;
+			}
 
 			if (lsize > DNS_LABEL_MAX_SIZE) {
 				/* Label too long */
+				printf("label too long\n");
 				return EINVAL;
 			}
 
@@ -82,6 +92,7 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 			pi = di;
 			++di;
 		} else {
+			++lsize;
 			if (buf != NULL && di < buf_size)
 				buf[di++] = c;
 		}
@@ -115,6 +126,9 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
 		return rc;
 
 	*act_size = name_size + sizeof(uint16_t) + sizeof(uint16_t);
+	if (buf == NULL)
+		return EOK;
+
 	di = name_size;
 
 	dns_uint16_t_encode(question->qtype, buf + di, buf_size - di);

@@ -38,12 +38,19 @@
 
 #include "dns_msg.h"
 #include "dns_std.h"
+#include "query.h"
 
 #define NAME  "dnsres"
 
 int main(int argc, char *argv[])
 {
+	dns_host_info_t hinfo;
+	int rc;
+
 	printf("%s: DNS Resolution Service\n", NAME);
+	rc = dns_name2host("helenos.org", &hinfo);
+	printf("dns_name2host() -> rc = %d\n", rc);
+
 	return 0;
 }
 

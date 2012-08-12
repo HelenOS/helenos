@@ -38,20 +38,23 @@
 #include "dns_std.h"
 #include "dns_type.h"
 #include "query.h"
+#include "transport.h"
 
 static uint16_t msg_id;
 
-int dns_name2host(char *name, dns_host_info_t *info)
+int dns_name2host(const char *name, dns_host_info_t *info)
 {
 	dns_message_t msg;
+	dns_message_t *amsg;
 	dns_question_t question;
+	int rc;
 
-	question.qname = name;
+	question.qname = (char *)name;
 	question.qtype = DTYPE_A;
 	question.qclass = DC_IN;
 
 	list_initialize(&msg.question);
-	list_append(question.msg, &msg.question);
+	list_append(&question.msg, &msg.question);
 
 	msg.id = msg_id++;
 	msg.qr = QR_QUERY;
@@ -60,6 +63,10 @@ int dns_name2host(char *name, dns_host_info_t *info)
 	msg.tc = false;
 	msg.rd = true;
 	msg.ra = false;
+
+	rc = dns_request(&msg, &amsg);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }
