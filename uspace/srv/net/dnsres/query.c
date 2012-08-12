@@ -33,18 +33,36 @@
  * @file
  */
 
-#ifndef DNS_MSG_H
-#define DNS_MSG_H
+#include <errno.h>
 
-#include <adt/list.h>
-#include <bool.h>
-#include <stdint.h>
 #include "dns_std.h"
 #include "dns_type.h"
+#include "query.h"
 
-extern int dns_message_encode(dns_message_t *, void **, size_t *);
+static uint16_t msg_id;
 
-#endif
+int dns_name2host(char *name, dns_host_info_t *info)
+{
+	dns_message_t msg;
+	dns_question_t question;
+
+	question.qname = name;
+	question.qtype = DTYPE_A;
+	question.qclass = DC_IN;
+
+	list_initialize(&msg.question);
+	list_append(question.msg, &msg.question);
+
+	msg.id = msg_id++;
+	msg.qr = QR_QUERY;
+	msg.opcode = OPC_QUERY;
+	msg.aa = false;
+	msg.tc = false;
+	msg.rd = true;
+	msg.ra = false;
+
+	return EOK;
+}
 
 /** @}
  */

@@ -84,11 +84,17 @@ typedef enum dns_qclass {
 } dns_class_t, dns_qclass_t;
 
 typedef struct {
+	/** Identifier assigned by the query originator */
 	uint16_t id;
+	/** QR, Opcode, AA, TC,RD, RA, Z, Rcode */
 	uint16_t opbits;
+	/** Number of entries in query section */
 	uint16_t qd_count;
+	/** Number of RRs in the answer section */
 	uint16_t an_count;
+	/** Number of name server RRs in the authority records section */
 	uint16_t ns_count;
+	/** Number of RRs in the additional records section */
 	uint16_t ar_count;
 } dns_header_t;
 
@@ -99,16 +105,16 @@ typedef struct {
  */
 enum dns_opbits {
 	OPB_QR 		= 15,
-	QPB_OPCODE_h	= 14,
-	QPB_OPCODE_l	= 11,
-	QPB_AA		= 10,
-	QPB_TC		= 9,
-	QPB_RD		= 8,
-	QPB_RA		= 7,
-	QPB_Z_h		= 6,
-	QPB_Z_l		= 4,
-	QPB_RCODE_h	= 3,
-	QPB_RCODE_l	= 0
+	OPB_OPCODE_h	= 14,
+	OPB_OPCODE_l	= 11,
+	OPB_AA		= 10,
+	OPB_TC		= 9,
+	OPB_RD		= 8,
+	OPB_RA		= 7,
+	OPB_Z_h		= 6,
+	OPB_Z_l		= 4,
+	OPB_RCODE_h	= 3,
+	OPB_RCODE_l	= 0
 };
 
 typedef enum dns_query_response {

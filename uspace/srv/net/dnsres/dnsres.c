@@ -26,6 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup dnsres
+ * @{
+ */
+/**
+ * @file
+ */
+
 #include <stdio.h>
 #include <errno.h>
 
@@ -39,3 +46,6 @@ int main(int argc, char *argv[])
 	printf("%s: DNS Resolution Service\n", NAME);
 	return 0;
 }
+
+/** @}
+ */

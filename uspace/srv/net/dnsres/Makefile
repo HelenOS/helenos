@@ -30,6 +30,9 @@ USPACE_PREFIX = ../../..
 BINARY = dnsres
 
 SOURCES = \
-	dnsres.c
+	dns_msg.c \
+	dnsres.c \
+	query.c \
+	transport.c
 
 include $(USPACE_PREFIX)/Makefile.common

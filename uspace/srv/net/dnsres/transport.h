@@ -33,16 +33,12 @@
  * @file
  */
 
-#ifndef DNS_MSG_H
-#define DNS_MSG_H
+#ifndef TRANSPORT_H
+#define TRANSPORT_H
 
-#include <adt/list.h>
-#include <bool.h>
-#include <stdint.h>
-#include "dns_std.h"
 #include "dns_type.h"
 
-extern int dns_message_encode(dns_message_t *, void **, size_t *);
+extern int dns_request(dns_message_t *, dns_message_t **);
 
 #endif
 

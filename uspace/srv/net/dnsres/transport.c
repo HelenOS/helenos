@@ -33,18 +33,27 @@
  * @file
  */
 
-#ifndef DNS_MSG_H
-#define DNS_MSG_H
+#include <errno.h>
 
-#include <adt/list.h>
-#include <bool.h>
-#include <stdint.h>
-#include "dns_std.h"
+#include "dns_msg.h"
 #include "dns_type.h"
+#include "transport.h"
 
-extern int dns_message_encode(dns_message_t *, void **, size_t *);
+int dns_request(dns_message_t *req, dns_message_t **rresp)
+{
+	dns_message_t *resp;
+	int rc;
+	void *req_data;
+	size_t req_size;
 
-#endif
+	rc = dns_message_encode(req, &req_data, &req_size);
+	if (rc != EOK)
+		return rc;
+
+	resp = NULL;
+	*rresp = resp;
+	return EOK;
+}
 
 /** @}
  */
