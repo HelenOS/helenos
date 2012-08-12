@@ -95,7 +95,10 @@ int ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_id,
 	
 	uint16_t state = ext4_superblock_get_state(fs->superblock);
 	
-	if (state != EXT4_SUPERBLOCK_STATE_VALID_FS) {
+	if (((state & EXT4_SUPERBLOCK_STATE_VALID_FS) !=
+	    EXT4_SUPERBLOCK_STATE_VALID_FS) ||
+	    ((state & EXT4_SUPERBLOCK_STATE_ERROR_FS) ==
+	    EXT4_SUPERBLOCK_STATE_ERROR_FS)) {
 		block_cache_fini(fs->device);
 		block_fini(fs->device);
 		return ENOTSUP;
