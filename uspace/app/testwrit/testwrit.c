@@ -30,15 +30,13 @@
  * @{
  */
 
-
 #include <stdio.h>
 #include <unistd.h>
 
-#define BUF_SIZE 1024
+#define BUF_SIZE  1024
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-
 	char buffer[BUF_SIZE];
 	uint64_t iterations, i;
 	FILE *file;
@@ -46,16 +44,16 @@ int main(int argc, char **argv)
 	
 	/* Prepare some example data */
 	memset(buffer, 0xcafebabe, BUF_SIZE);
-
+	
 	if (argc != 3) {
 		printf("syntax: testwrit <iterations> <target file>\n");
 		return 1;
 	}
-
+	
 	char *end;
 	iterations = strtoul(argv[1], &end, 10);
 	file_name = argv[2];
-
+	
 	/* Open target file */
 	file = fopen(file_name, "a");
 	if (file == NULL) {
@@ -69,10 +67,9 @@ int main(int argc, char **argv)
 	}
 	
 	fclose(file);
-
+	
 	return 0;
 }
-
 
 /**
  * @}

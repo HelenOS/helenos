@@ -28,7 +28,7 @@
 
 /** @addtogroup libext4
  * @{
- */ 
+ */
 
 #ifndef LIBEXT4_LIBEXT4_IALLOC_H_
 #define LIBEXT4_LIBEXT4_IALLOC_H_
@@ -37,6 +37,7 @@
 
 extern int ext4_ialloc_free_inode(ext4_filesystem_t *, uint32_t, bool);
 extern int ext4_ialloc_alloc_inode(ext4_filesystem_t *, uint32_t *, bool);
+
 #endif
 
 /**

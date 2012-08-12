@@ -28,12 +28,13 @@
 
 /** @addtogroup libext4
  * @{
- */ 
+ */
 
 #ifndef LIBEXT4_LIBEXT4_CRC_H_
 #define LIBEXT4_LIBEXT4_CRC_H_
 
 extern uint16_t crc16(uint16_t, const uint8_t *, size_t);
+
 #endif
 
 /**

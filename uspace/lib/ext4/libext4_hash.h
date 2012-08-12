@@ -28,7 +28,7 @@
 
 /** @addtogroup libext4
  * @{
- */ 
+ */
 
 #ifndef LIBEXT4_LIBEXT4_HASH_H_
 #define LIBEXT4_LIBEXT4_HASH_H_

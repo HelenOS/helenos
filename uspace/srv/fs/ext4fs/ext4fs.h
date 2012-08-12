@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef EXT4FS_EXT4FS_H_
 #define EXT4FS_EXT4FS_H_
