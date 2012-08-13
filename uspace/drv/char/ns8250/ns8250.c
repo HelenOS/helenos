@@ -81,6 +81,8 @@
 
 /** Interrupt ID Register definition. */
 #define	NS8250_IID_ACTIVE	(1 << 0)
+#define NS8250_IID_CAUSE_MASK 0x0e
+#define NS8250_IID_CAUSE_RXSTATUS 0x06
 
 /** FIFO Control Register definition. */
 #define	NS8250_FCR_FIFOENABLE	(1 << 0)
@@ -465,7 +467,7 @@ failed:
 static inline void ns8250_port_interrupts_enable(ns8250_regs_t *regs)
 {
 	/* Interrupt when data received. */
-	pio_write_8(&regs->ier, NS8250_IER_RXREADY);
+	pio_write_8(&regs->ier, NS8250_IER_RXREADY | NS8250_IER_RXSTATUS);
 	pio_write_8(&regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS 
 	    | NS8250_MCR_OUT2);
 }
@@ -503,6 +505,9 @@ static int ns8250_interrupt_enable(ns8250_t *ns)
 	}
 	async_msg_1(exch, IRC_ENABLE_INTERRUPT, ns->irq);
 	async_exchange_end(exch);
+
+	/* Read LSR to clear possible previous LSR interrupt */
+	pio_read_8(&ns->regs->lsr);
 
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(ns->regs);
@@ -765,15 +770,26 @@ static void ns8250_read_from_device(ns8250_t *ns)
 
 /** The interrupt handler.
  *
- * The serial port is initialized to interrupt when some data come, so the
- * interrupt is handled by reading the incomming data.
+ * The serial port is initialized to interrupt when some data come or line
+ * status register changes, so the interrupt is handled by reading the incoming
+ * data and reading the line status register.
  *
  * @param dev		The serial port device.
  */
 static inline void ns8250_interrupt_handler(ddf_dev_t *dev, ipc_callid_t iid,
     ipc_call_t *icall)
 {
-	ns8250_read_from_device(NS8250_FROM_DEV(dev));
+	ns8250_t *ns = NS8250_FROM_DEV(dev);
+
+	uint8_t iir = pio_read_8(&ns->regs->iid);
+	if ((iir & NS8250_IID_CAUSE_MASK) == NS8250_IID_CAUSE_RXSTATUS) {
+		uint8_t lsr = pio_read_8(&ns->regs->lsr);
+		if (lsr & NS8250_LSR_OE) {
+			ddf_msg(LVL_WARN, "Overrun error on %s", ns->dev->name);
+		}
+	}
+	
+	ns8250_read_from_device(ns);
 }
 
 /** Register the interrupt handler for the device.
