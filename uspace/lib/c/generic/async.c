@@ -636,7 +636,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	futex_down(&async_futex);
 	
 	if (usecs) {
-		gettimeofday(&conn->wdata.to_event.expires, NULL);
+		getuptime(&conn->wdata.to_event.expires);
 		tv_add(&conn->wdata.to_event.expires, usecs);
 	} else
 		conn->wdata.to_event.inlist = false;
@@ -965,7 +965,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 static void handle_expired_timeouts(void)
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	getuptime(&tv);
 	
 	futex_down(&async_futex);
 	
@@ -1022,7 +1022,7 @@ static int async_manager_worker(void)
 			    list_first(&timeout_list), awaiter_t, to_event.link);
 			
 			struct timeval tv;
-			gettimeofday(&tv, NULL);
+			getuptime(&tv);
 			
 			if (tv_gteq(&tv, &waiter->to_event.expires)) {
 				futex_up(&async_futex);
@@ -1329,7 +1329,7 @@ int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 	if (timeout < 0)
 		timeout = 0;
 
-	gettimeofday(&msg->wdata.to_event.expires, NULL);
+	getuptime(&msg->wdata.to_event.expires);
 	tv_add(&msg->wdata.to_event.expires, timeout);
 	
 	/*
@@ -1411,7 +1411,7 @@ void async_usleep(suseconds_t timeout)
 	
 	msg->wdata.fid = fibril_get_id();
 	
-	gettimeofday(&msg->wdata.to_event.expires, NULL);
+	getuptime(&msg->wdata.to_event.expires);
 	tv_add(&msg->wdata.to_event.expires, timeout);
 	
 	futex_down(&async_futex);
