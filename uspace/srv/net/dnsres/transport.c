@@ -51,11 +51,16 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	void *req_data;
 	size_t req_size;
 	struct sockaddr_in addr;
+	struct sockaddr_in laddr;
 	int fd;
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(53);
-	addr.sin_addr.s_addr = htonl((192 << 24) | (168 << 16) | (0 << 8) | 1);
+	addr.sin_addr.s_addr = htonl((10 << 24) | (0 << 16) | (0 << 8) | 1);
+
+	laddr.sin_family = AF_INET;
+	laddr.sin_port = htons(12345);
+	laddr.sin_addr.s_addr = INADDR_ANY;
 
 	req_data = NULL;
 	fd = -1;
@@ -70,11 +75,18 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 		goto error;
 	}
 
+	rc = bind(fd, (struct sockaddr *)&laddr, sizeof(laddr));
+	if (rc != EOK)
+		goto error;
+
 	printf("fd=%d req_data=%p, req_size=%zu\n", fd, req_data, req_size);
 	rc = sendto(fd, req_data, req_size, 0, (struct sockaddr *)&addr,
 	    sizeof(addr));
 	if (rc != EOK)
 		goto error;
+
+	closesocket(fd);
+	free(req_data);
 
 	resp = NULL;
 	*rresp = resp;

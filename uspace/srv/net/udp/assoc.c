@@ -263,9 +263,15 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, udp_sock_t *fsock)
 	log_msg(LVL_DEBUG, "udp_assoc_recv()");
 
 	fibril_mutex_lock(&assoc->lock);
-	while (list_empty(&assoc->rcv_queue)) {
+	while (list_empty(&assoc->rcv_queue) && !assoc->reset) {
 		log_msg(LVL_DEBUG, "udp_assoc_recv() - waiting");
 		fibril_condvar_wait(&assoc->rcv_queue_cv, &assoc->lock);
+	}
+
+	if (assoc->reset) {
+		log_msg(LVL_DEBUG, "udp_assoc_recv() - association was reset");
+		fibril_mutex_unlock(&assoc->lock);
+		return ECONNABORTED;
 	}
 
 	log_msg(LVL_DEBUG, "udp_assoc_recv() - got a message");
@@ -305,6 +311,19 @@ void udp_assoc_received(udp_sockpair_t *rsp, udp_msg_t *msg)
 		log_msg(LVL_DEBUG, "Out of memory. Message dropped.");
 		/* XXX Generate ICMP error? */
 	}
+}
+
+/** Reset association.
+ *
+ * This causes any pendingreceive operations to return immediately with
+ * UDP_ERESET.
+ */
+void udp_assoc_reset(udp_assoc_t *assoc)
+{
+	fibril_mutex_lock(&assoc->lock);
+	assoc->reset = true;
+	fibril_condvar_broadcast(&assoc->rcv_queue_cv);
+	fibril_mutex_unlock(&assoc->lock);
 }
 
 static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,

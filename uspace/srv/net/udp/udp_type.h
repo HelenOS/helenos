@@ -50,7 +50,9 @@ typedef enum {
 	/* Foreign socket unspecified */
 	UDP_EUNSPEC,
 	/* No route to destination */
-	UDP_ENOROUTE
+	UDP_ENOROUTE,
+	/** Association reset by user */
+	UDP_ERESET
 } udp_error_t;
 
 typedef enum {
@@ -117,6 +119,9 @@ typedef struct {
 
 	/** Association identification (local and foreign socket) */
 	udp_sockpair_t ident;
+
+	/** True if association was reset by user */
+	bool reset;
 
 	/** True if association was deleted by user */
 	bool deleted;
