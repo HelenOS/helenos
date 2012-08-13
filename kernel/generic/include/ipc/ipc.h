@@ -112,12 +112,6 @@ typedef struct {
 	/** Identification of the caller. */
 	struct task *sender;
 	
-	/*
-	 * The caller box is different from sender->answerbox
-	 * for synchronous calls.
-	 */
-	answerbox_t *callerbox;
-	
 	/** Private data to internal IPC. */
 	sysarg_t priv;
 	

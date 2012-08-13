@@ -70,7 +70,6 @@ static slab_cache_t *ipc_answerbox_slab;
 static void _ipc_call_init(call_t *call)
 {
 	memsetb(call, sizeof(*call), 0);
-	call->callerbox = &TASK->answerbox;
 	call->sender = TASK;
 	call->buffer = NULL;
 }
@@ -169,7 +168,7 @@ void ipc_phone_init(phone_t *phone)
  */
 static void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
-	answerbox_t *callerbox = call->callerbox;
+	answerbox_t *callerbox = &call->sender->answerbox;
 	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
 	
 	/* Count sent answer */
