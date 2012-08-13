@@ -31,11 +31,13 @@
 #include <ipc/serial_ctl.h>
 #include <loc.h>
 #include <stdio.h>
+#include <macros.h>
 
 #define BUF_SIZE 64
 
 #define START_OF_PACKET 128
 #define CONTROL_PACKET 64
+#define TOUCH_EVENT 16
 #define FINGER1 1
 #define FINGER2 2
 #define TIP 1
@@ -69,8 +71,10 @@ typedef struct {
 	/* Event state */
 	bool stylus_in_proximity;
 	bool stylus_is_eraser;
-	bool button1_pressed;
-	bool button2_pressed;
+	bool tip_pressed; /* Reported as stylus button 1 */
+	bool button1_pressed; /* Reported as stylus button 2 */
+	bool button2_pressed; /* Reported as stylus button 3 */
+	bool finger1_pressed; /* Reported as touch button 1 */
 
 	/* Session to the serial device */
 	async_sess_t *sess;
@@ -185,12 +189,6 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 	isdv4_event_t event;
 	isdv4_event_init(&event);
 
-/*	size_t dbg_ctr;*/
-/*	printf("Packet: ");*/
-/*	for (dbg_ctr = 0; dbg_ctr < size; dbg_ctr++) {*/
-/*		printf("%02hhx ", packet[dbg_ctr]);*/
-/*	}*/
-/*	printf("\n");*/
 
 	if (size == 5 || size == 7) {
 		/* This is a touch event */
@@ -198,18 +196,17 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 		event.x = ((packet[1] & 127) << 7) | (packet[2] & 127);
 		event.y = ((packet[3] & 127) << 7) | (packet[4] & 127);
 		event.source = TOUCH;
-		printf("TOUCH finger finger1=%d x=%u y=%u\n", finger1, event.x, event.y);
 
 		if (!state->stylus_in_proximity) {
-			if (!finger1 && state->button1_pressed) {
-				state->button1_pressed = false;
+			if (!finger1 && state->finger1_pressed) {
+				state->finger1_pressed = false;
 
 				event.type = RELEASE;
 				event.button = 1;
 				state->emit_event_fn(&event);
 			}
-			else if (finger1 && !state->button1_pressed) {
-				state->button1_pressed = true;
+			else if (finger1 && !state->finger1_pressed) {
+				state->finger1_pressed = true;
 
 				event.type = PRESS;
 				event.button = 1;
@@ -232,14 +229,10 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 		event.y = ((packet[3] & 127) << 7) | (packet[4] & 124) | ((packet[6] >> 3) & 3);
 		event.pressure = (packet[5] & 127) | ((packet[6] & 7) << 7);
 
-		bool eraser = !tip && button2;
-		printf("STYLUS tip=%d button1=%d button2=%d proximity=%d x=%u y=%u p=%u\n",
-		    tip, button1, button2, proximity, event.x, event.y, event.pressure);
-
 		if (proximity && !state->stylus_in_proximity) {
 			/* Stylus came into proximity */
 			state->stylus_in_proximity = true;
-			state->stylus_is_eraser = eraser;
+			state->stylus_is_eraser = !tip && button2;
 			event.source = (state->stylus_is_eraser ? STYLUS_ERASER : STYLUS_TIP);
 			event.type = PROXIMITY_IN;
 			state->emit_event_fn(&event);
@@ -253,61 +246,84 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 		}
 		else {
 			/* Proximity state didn't change, but we need to check if it is still eraser */
-			if (eraser != state->stylus_is_eraser) {
+			if (state->stylus_is_eraser && !button2) {
 				event.type = PROXIMITY_OUT;
-				event.source = eraser ? STYLUS_TIP : STYLUS_ERASER;
+				event.source = STYLUS_ERASER;
 				state->emit_event_fn(&event);
 				event.type = PROXIMITY_IN;
-				event.source = eraser ? STYLUS_ERASER : STYLUS_TIP;
+				event.source = STYLUS_TIP;
 				state->emit_event_fn(&event);
-				state->stylus_is_eraser = eraser;
+				state->stylus_is_eraser = false;
+			}
+			else if (!state->stylus_is_eraser && !tip && button2) {
+				event.type = PROXIMITY_OUT;
+				event.source = STYLUS_TIP;
+				state->emit_event_fn(&event);
+				event.type = PROXIMITY_IN;
+				event.source = STYLUS_ERASER;
+				state->emit_event_fn(&event);
+				state->stylus_is_eraser = true;
 			}
 		}
 		
 		if (!state->stylus_is_eraser) {
+			if (tip && !state->tip_pressed) {
+				state->tip_pressed = true;
+				event.type = PRESS;
+				event.source = STYLUS_TIP;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
+			else if (!tip && state->tip_pressed) {
+				state->tip_pressed = false;
+				event.type = RELEASE;
+				event.source = STYLUS_TIP;
+				event.button = 1;
+				state->emit_event_fn(&event);
+			}
 			if (button1 && !state->button1_pressed) {
 				state->button1_pressed = true;
 				event.type = PRESS;
 				event.source = STYLUS_TIP;
-				event.button = 1;
+				event.button = 2;
 				state->emit_event_fn(&event);
 			}
 			else if (!button1 && state->button1_pressed) {
 				state->button1_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_TIP;
-				event.button = 1;
+				event.button = 2;
 				state->emit_event_fn(&event);
 			}
 			if (button2 && !state->button2_pressed) {
 				state->button2_pressed = true;
 				event.type = PRESS;
 				event.source = STYLUS_TIP;
-				event.button = 2;
+				event.button = 3;
 				state->emit_event_fn(&event);
 			}
 			else if (!button2 && state->button2_pressed) {
 				state->button2_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_TIP;
-				event.button = 2;
+				event.button = 3;
 				state->emit_event_fn(&event);
 			}
 			event.type = MOVE;
 			event.source = STYLUS_TIP;
-			event.button = (button1 ? 1 : 0) | (button2 ? 2 : 0);
+			event.button = (tip ? 1: 0) | (button1 ? 2 : 0) | (button2 ? 4 : 0);
 			state->emit_event_fn(&event);
 		}
 		else {
-			if (button1 && !state->button1_pressed) {
-				state->button1_pressed = true;
+			if (tip && !state->tip_pressed) {
+				state->tip_pressed = true;
 				event.type = PRESS;
 				event.source = STYLUS_ERASER;
 				event.button = 1;
 				state->emit_event_fn(&event);
 			}
-			else if (!button1 && state->button1_pressed) {
-				state->button1_pressed = false;
+			else if (!tip && state->tip_pressed) {
+				state->tip_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_ERASER;
 				event.button = 1;
@@ -315,11 +331,9 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 			}
 			event.type = MOVE;
 			event.source = STYLUS_ERASER;
-			event.button = (button1 ? 1 : 0);
+			event.button = (tip ? 1 : 0);
 			state->emit_event_fn(&event);
 		}
-		//int xtilt = (packet[8] & 127);
-		//int ytilt = (packet[7] & 127);
 	}
 
 	return true;
@@ -413,8 +427,9 @@ static bool parse_response_touch(uint8_t *packet, size_t size,
 static void read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 {
 	bool reading = true;
-	bool silence = true;
+	size_t packet_remaining = 1;
 	while (reading) {
+		if (packet_remaining == 0) packet_remaining = 1;
 		ssize_t read = char_dev_read(state->sess, state->buf + state->buf_end,
 		    state->buf_size - state->buf_end);
 		if (read < 0) {
@@ -422,15 +437,6 @@ static void read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 			return;
 		}
 		state->buf_end += read;
-		
-		if (!silence && read == 0) {
-			silence = true;
-			usleep(100000); /* 100 ms */
-			continue;
-		}
-		else if (read > 0) {
-			silence = false;
-		}
 		
 		size_t i = 0;
 		
@@ -443,13 +449,29 @@ static void read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 		
 		/* Process packets one by one */
 		while (reading && i < state->buf_end) {
-			/* Find a start of next packet */
+			/* Determine the packet length */
+			if (state->buf[i] & CONTROL_PACKET) {
+				packet_remaining = 11;
+			}
+			else if (state->buf[i] & TOUCH_EVENT) {
+				packet_remaining = 5;
+			}
+			else {
+				packet_remaining = 9;
+			}
+			
+			/* Find the end of the packet */
 			i++; /* We need to skip the first byte with START_OF_PACKET set */
-			while (i < state->buf_end && (state->buf[i] & START_OF_PACKET) == 0) i++;
+			packet_remaining--; 
+			while (packet_remaining > 0 && i < state->buf_end &&
+			    (state->buf[i] & START_OF_PACKET) == 0) {
+				i++;
+				packet_remaining--;
+			}
 			end = i;
 			
 			/* If we have whole packet, process it */
-			if (end > start && (end != state->buf_end || read == 0)) {
+			if (end > start && packet_remaining == 0) {
 				reading = consumer(state->buf + start, end - start, state);
 				start = end;
 				processed_end = end;
@@ -486,7 +508,7 @@ static void isdv4_init_tablet(isdv4_state_t *state)
 {
 	write_command(state->sess, CMD_STOP);
 	usleep(250000); /* 250 ms */
-	while (char_dev_read(state->sess, state->buf, state->buf_size) > 0);
+	// FIXME: Read all possible garbage before sending commands
 	write_command(state->sess, CMD_QUERY_STYLUS);
 	read_packets(state, parse_response_stylus);
 	write_command(state->sess, CMD_QUERY_TOUCH);
