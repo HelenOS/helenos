@@ -71,8 +71,6 @@ typedef struct rtc {
 	uint32_t io_addr;
 	/** The I/O port used to access the CMOS registers */
 	ioport8_t *port;
-	/** true if a client is connected to the device */
-	bool client_connected;
 	/** true if device is removed */
 	bool removed;
 } rtc_t;
@@ -532,8 +530,6 @@ rtc_dev_add(ddf_dev_t *dev)
 
 	ddf_fun_add_to_category(fun, "clock");
 
-	rtc->client_connected = false;
-
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized",
 	    dev->name);
 
@@ -560,10 +556,6 @@ rtc_dev_remove(ddf_dev_t *dev)
 	int rc;
 
 	fibril_mutex_lock(&rtc->mutex);
-	if (rtc->client_connected) {
-		fibril_mutex_unlock(&rtc->mutex);
-		return EBUSY;
-	}
 
 	rtc->removed = true;
 	fibril_mutex_unlock(&rtc->mutex);
@@ -616,14 +608,10 @@ rtc_open(ddf_fun_t *fun)
 
 	fibril_mutex_lock(&rtc->mutex);
 
-	if (rtc->client_connected)
-		rc = ELIMIT;
-	else if (rtc->removed)
+	if (rtc->removed)
 		rc = ENXIO;
-	else {
+	else
 		rc = EOK;
-		rtc->client_connected = true;
-	}
 
 	fibril_mutex_unlock(&rtc->mutex);
 	return rc;
@@ -636,14 +624,6 @@ rtc_open(ddf_fun_t *fun)
 static void
 rtc_close(ddf_fun_t *fun)
 {
-	rtc_t *rtc = RTC_FROM_FNODE(fun);
-
-	fibril_mutex_lock(&rtc->mutex);
-
-	assert(rtc->client_connected);
-	rtc->client_connected = false;
-
-	fibril_mutex_unlock(&rtc->mutex);
 }
 
 /** Convert from BCD mode to binary mode
