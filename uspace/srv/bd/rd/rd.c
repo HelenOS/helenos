@@ -42,6 +42,7 @@
 #include <ipc/ns.h>
 #include <sysinfo.h>
 #include <as.h>
+#include <bd_srv.h>
 #include <ddi.h>
 #include <align.h>
 #include <bool.h>
@@ -52,7 +53,6 @@
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <loc.h>
-#include <ipc/bd.h>
 #include <macros.h>
 #include <inttypes.h>
 
@@ -67,8 +67,12 @@ static size_t rd_size;
 /** Block size */
 static const size_t block_size = 512;
 
-static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf);
-static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
+static int rd_open(bd_srv_t *);
+static int rd_close(bd_srv_t *);
+static int rd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int rd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int rd_get_block_size(bd_srv_t *, size_t *);
+static int rd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 /** This rwlock protects the ramdisk's data.
  *
@@ -77,104 +81,39 @@ static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
  * be protected by this rwlock.
  *
  */
-fibril_rwlock_t rd_lock;
+static fibril_rwlock_t rd_lock;
 
-/** Handle one connection to ramdisk.
- *
- * @param iid   Hash of the request that opened the connection.
- * @param icall Call data of the request that opened the connection.
- */
-static void rd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static bd_ops_t rd_bd_ops = {
+	.open = rd_open,
+	.close = rd_close,
+	.read_blocks = rd_read_blocks,
+	.write_blocks = rd_write_blocks,
+	.get_block_size = rd_get_block_size,
+	.get_num_blocks = rd_get_num_blocks
+};
+
+static bd_srv_t bd_srv;
+
+static void rd_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-	void *fs_va = NULL;
-	uint64_t ba;
-	size_t cnt;
-	size_t comm_size;
-	
-	/*
-	 * Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	async_answer_0(iid, EOK);
-	
-	/*
-	 * Now we wait for the client to send us its communication as_area.
-	 */
-	unsigned int flags;
-	if (async_share_out_receive(&callid, &comm_size, &flags)) {
-		(void) async_share_out_finalize(callid, &fs_va);
-		if (fs_va == AS_MAP_FAILED) {
-			async_answer_0(callid, EHANGUP);
-			return;
-		}
-	} else {
-		/*
-		 * The client doesn't speak the same protocol.
-		 * At this point we can't handle protocol variations.
-		 * Close the connection.
-		 */
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-	
-	while (true) {
-		callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call)) {
-			/*
-			 * The other side has hung up.
-			 * Exit the fibril.
-			 */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = rd_read_blocks(ba, cnt, fs_va);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = rd_write_blocks(ba, cnt, fs_va);
-			break;
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, block_size);
-			continue;
-		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(rd_size / block_size),
-			    UPPER32(rd_size / block_size));
-			continue;
-		default:
-			/*
-			 * The client doesn't speak the same protocol.
-			 * Instead of closing the connection, we just ignore
-			 * the call. This can be useful if the client uses a
-			 * newer version of the protocol.
-			 */
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
-	}
+	bd_conn(iid, icall, &bd_srv);
+}
+
+/** Open device. */
+static int rd_open(bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Close device. */
+static int rd_close(bd_srv_t *bd)
+{
+	return EOK;
 }
 
 /** Read blocks from the device. */
-static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf)
+static int rd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+    size_t size)
 {
 	if ((ba + cnt) * block_size > rd_size) {
 		/* Reading past the end of the device. */
@@ -182,14 +121,15 @@ static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 	}
 	
 	fibril_rwlock_read_lock(&rd_lock);
-	memcpy(buf, rd_addr + ba * block_size, block_size * cnt);
+	memcpy(buf, rd_addr + ba * block_size, min(block_size * cnt, size));
 	fibril_rwlock_read_unlock(&rd_lock);
 	
 	return EOK;
 }
 
 /** Write blocks to the device. */
-static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
+static int rd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
 {
 	if ((ba + cnt) * block_size > rd_size) {
 		/* Writing past the end of the device. */
@@ -197,7 +137,7 @@ static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 	}
 	
 	fibril_rwlock_write_lock(&rd_lock);
-	memcpy(rd_addr + ba * block_size, buf, block_size * cnt);
+	memcpy(rd_addr + ba * block_size, buf, min(block_size * cnt, size));
 	fibril_rwlock_write_unlock(&rd_lock);
 	
 	return EOK;
@@ -234,7 +174,10 @@ static bool rd_init(void)
 	printf("%s: Found RAM disk at %p, %" PRIun " bytes\n", NAME,
 	    (void *) addr_phys, size);
 	
-	async_set_client_connection(rd_connection);
+	bd_srv_init(&bd_srv);
+	bd_srv.ops = &rd_bd_ops;
+	
+	async_set_client_connection(rd_client_conn);
 	ret = loc_server_register(NAME);
 	if (ret != EOK) {
 		printf("%s: Unable to register driver (%d)\n", NAME, ret);
@@ -251,6 +194,20 @@ static bool rd_init(void)
 	fibril_rwlock_initialize(&rd_lock);
 	
 	return true;
+}
+
+/** Get device block size. */
+static int rd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	*rsize = block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int rd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	*rnb = rd_size / block_size;
+	return EOK;
 }
 
 int main(int argc, char **argv)

@@ -61,6 +61,8 @@ GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
 	generic/as.c \
+	generic/bd.c \
+	generic/bd_srv.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \

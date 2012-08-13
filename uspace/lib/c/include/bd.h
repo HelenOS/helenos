@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmast
+/** @addtogroup libc
  * @{
  */
 /** @file
- * USB mass storage commands.
  */
 
-#ifndef USBMAST_H_
-#define USBMAST_H_
+#ifndef LIBC_BD_H_
+#define LIBC_BD_H_
 
-#include <bd_srv.h>
+#include <async.h>
 #include <sys/types.h>
-#include <usb/usb.h>
 
-/** Mass storage device. */
-typedef struct usbmast_dev {
-	/** DDF device */
-	ddf_dev_t *ddf_dev;
-	/** USB device */
-	usb_device_t *usb_dev;
-	/** Number of LUNs */
-	unsigned lun_count;
-	/** LUN functions */
-	ddf_fun_t **luns;
-} usbmast_dev_t;
-
-
-/** Mass storage function.
- *
- * Serves as soft state for function/LUN.
- */
 typedef struct {
-	/** Mass storage device the function belongs to */
-	usbmast_dev_t *mdev;
-	/** DDF function */
-	ddf_fun_t *ddf_fun;
-	/** LUN */
-	unsigned lun;
-	/** Total number of blocks */
-	uint64_t nblocks;
-	/** Block size in bytes */
-	size_t block_size;
-	/** Block device server structure */
-	bd_srv_t bd;
-} usbmast_fun_t;
+	async_sess_t *sess;
+} bd_t;
+
+extern int bd_open(async_sess_t *, bd_t **);
+extern void bd_close(bd_t *);
+extern int bd_read_blocks(bd_t *, aoff64_t, size_t, void *, size_t);
+extern int bd_read_toc(bd_t *, uint8_t, void *, size_t);
+extern int bd_write_blocks(bd_t *, aoff64_t, size_t, const void *, size_t);
+extern int bd_get_block_size(bd_t *, size_t *);
+extern int bd_get_num_blocks(bd_t *, aoff64_t *);
 
 #endif
 
-/**
- * @}
+/** @}
  */
