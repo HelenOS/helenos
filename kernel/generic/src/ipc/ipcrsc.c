@@ -150,7 +150,7 @@ call_t *get_call(sysarg_t callid)
 	irq_spinlock_lock(&TASK->answerbox.lock, true);
 	
 	list_foreach(TASK->answerbox.dispatched_calls, lst) {
-		call_t *call = list_get_instance(lst, call_t, link);
+		call_t *call = list_get_instance(lst, call_t, ab_link);
 		if ((sysarg_t) call == callid) {
 			result = call;
 			break;

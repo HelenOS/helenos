@@ -190,7 +190,7 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 	if (do_lock)
 		irq_spinlock_lock(&callerbox->lock, true);
 	
-	list_append(&call->link, &callerbox->answers);
+	list_append(&call->ab_link, &callerbox->answers);
 	
 	if (do_lock)
 		irq_spinlock_unlock(&callerbox->lock, true);
@@ -208,7 +208,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
 {
 	/* Remove from active box */
 	irq_spinlock_lock(&box->lock, true);
-	list_remove(&call->link);
+	list_remove(&call->ab_link);
 	irq_spinlock_unlock(&box->lock, true);
 	
 	/* Send back answer */
@@ -254,7 +254,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	}
 	
 	irq_spinlock_lock(&box->lock, true);
-	list_append(&call->link, &box->calls);
+	list_append(&call->ab_link, &box->calls);
 	irq_spinlock_unlock(&box->lock, true);
 	
 	waitq_wakeup(&box->wq, WAKEUP_FIRST);
@@ -355,7 +355,7 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 	irq_spinlock_lock(&TASK->lock, true);
 	TASK->ipc_info.forwarded++;
 	irq_spinlock_pass(&TASK->lock, &oldbox->lock);
-	list_remove(&call->link);
+	list_remove(&call->ab_link);
 	irq_spinlock_unlock(&oldbox->lock, true);
 	
 	if (mode & IPC_FF_ROUTE_FROM_ME) {
@@ -405,8 +405,8 @@ restart:
 		irq_spinlock_lock(&box->irq_lock, false);
 		
 		request = list_get_instance(list_first(&box->irq_notifs),
-		    call_t, link);
-		list_remove(&request->link);
+		    call_t, ab_link);
+		list_remove(&request->ab_link);
 		
 		irq_spinlock_unlock(&box->irq_lock, false);
 	} else if (!list_empty(&box->answers)) {
@@ -415,8 +415,8 @@ restart:
 		
 		/* Handle asynchronous answers */
 		request = list_get_instance(list_first(&box->answers),
-		    call_t, link);
-		list_remove(&request->link);
+		    call_t, ab_link);
+		list_remove(&request->ab_link);
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
@@ -424,11 +424,11 @@ restart:
 		
 		/* Handle requests */
 		request = list_get_instance(list_first(&box->calls),
-		    call_t, link);
-		list_remove(&request->link);
+		    call_t, ab_link);
+		list_remove(&request->ab_link);
 		
 		/* Append request to dispatch queue */
-		list_append(&request->link, &box->dispatched_calls);
+		list_append(&request->ab_link, &box->dispatched_calls);
 	} else {
 		/* This can happen regularly after ipc_cleanup */
 		irq_spinlock_unlock(&box->lock, true);
@@ -454,11 +454,12 @@ restart:
 void ipc_cleanup_call_list(list_t *lst)
 {
 	while (!list_empty(lst)) {
-		call_t *call = list_get_instance(list_first(lst), call_t, link);
+		call_t *call = list_get_instance(list_first(lst), call_t,
+		    ab_link);
 		if (call->buffer)
 			free(call->buffer);
 		
-		list_remove(&call->link);
+		list_remove(&call->ab_link);
 		
 		IPC_SET_RETVAL(call->data, EHANGUP);
 		_ipc_answer_free_call(call, true);
@@ -688,7 +689,7 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf(" --- incomming calls ---\n");
 	list_foreach(task->answerbox.calls, cur) {
-		call_t *call = list_get_instance(cur, call_t, link);
+		call_t *call = list_get_instance(cur, call_t, ab_link);
 		
 #ifdef __32_BITS__
 		printf("%10p ", call);
@@ -708,7 +709,7 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf(" --- dispatched calls ---\n");
 	list_foreach(task->answerbox.dispatched_calls, cur) {
-		call_t *call = list_get_instance(cur, call_t, link);
+		call_t *call = list_get_instance(cur, call_t, ab_link);
 		
 #ifdef __32_BITS__
 		printf("%10p ", call);
@@ -728,7 +729,7 @@ void ipc_print_task(task_id_t taskid)
 	
 	printf(" --- incoming answers ---\n");
 	list_foreach(task->answerbox.answers, cur) {
-		call_t *call = list_get_instance(cur, call_t, link);
+		call_t *call = list_get_instance(cur, call_t, ab_link);
 		
 #ifdef __32_BITS__
 		printf("%10p ", call);

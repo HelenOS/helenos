@@ -105,7 +105,8 @@ typedef struct {
 } ipc_data_t;
 
 typedef struct {
-	link_t link;
+	/** Answerbox link. */
+	link_t ab_link;
 	
 	unsigned int flags;
 	
