@@ -73,7 +73,7 @@ int usb_driver_main(const usb_driver_t *drv)
 
 	return ddf_driver_main(&generic_driver);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Count number of pipes the driver expects.
  *
  * @param drv USB driver.
@@ -86,7 +86,7 @@ static inline size_t count_other_pipes(
 	for (count = 0; endpoints != NULL && endpoints[count] != NULL; ++count);
 	return count;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a new device is supposed to be controlled by this driver.
  *
  * This callback is a wrapper for USB specific version of @c device_add.
@@ -123,7 +123,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 		usb_device_deinit(dev);
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a device is supposed to be removed from the system.
  *
  * This callback is a wrapper for USB specific version of @c device_remove.
@@ -145,7 +145,7 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	usb_device_deinit(usb_dev);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a device was removed from the system.
  *
  * This callback is a wrapper for USB specific version of @c device_gone.
@@ -166,7 +166,7 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Destroy existing pipes of a USB device.
  *
  * @param dev Device where to destroy the pipes.
@@ -177,7 +177,7 @@ static void destroy_current_pipes(usb_device_t *dev)
 	dev->pipes = NULL;
 	dev->pipes_count = 0;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Change interface setting of a device.
  * This function selects new alternate setting of an interface by issuing
  * proper USB command to the device and also creates new USB pipes

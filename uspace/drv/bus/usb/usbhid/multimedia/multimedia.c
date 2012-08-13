@@ -53,7 +53,7 @@
 
 #define NAME  "multimedia-keys"
 
-/*----------------------------------------------------------------------------*/
+
 /**
  * Logitech UltraX device type.
  */
@@ -69,7 +69,7 @@ typedef struct usb_multimedia_t {
 } usb_multimedia_t;
 
 
-/*----------------------------------------------------------------------------*/
+
 /**
  * Default handler for IPC methods not handled by DDF.
  *
@@ -105,11 +105,11 @@ static void default_connection_handler(ddf_fun_t *fun,
 	} else
 		async_answer_0(icallid, EINVAL);
 }
-/*----------------------------------------------------------------------------*/
+
 static ddf_dev_ops_t multimedia_ops = {
 	.default_handler = default_connection_handler
 };
-/*----------------------------------------------------------------------------*/
+
 /**
  * Processes key events.
  *
@@ -154,7 +154,7 @@ static void usb_multimedia_push_ev(
 		usb_log_warning("Failed to send multimedia key.\n");
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 {
 	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
@@ -215,7 +215,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	usb_log_debug(NAME " HID/multimedia structure initialized.\n");
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 {
 	ddf_fun_t *fun = data;
@@ -238,7 +238,7 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 		    "Failed to deinit multimedia subdriver, data missing.\n");
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 {
 	// TODO: checks

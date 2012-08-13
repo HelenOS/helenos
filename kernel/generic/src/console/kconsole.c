@@ -201,13 +201,16 @@ NO_TRACE static const char *cmdtab_search_one(const char *name,
  * @return Number of found matches
  *
  */
-NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
+NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev)
 {
 	const char *name = input;
 	
 	size_t found = 0;
-	/* Maximum Match Length : Length of longest matching common substring in
-	   case more than one match is found */
+	
+	/*
+	 * Maximum Match Length: Length of longest matching common
+	 * substring in case more than one match is found.
+	 */
 	size_t max_match_len = size;
 	size_t max_match_len_tmp = size;
 	size_t input_len = str_length(input);
@@ -228,10 +231,14 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
 		found++;
 	}
 	
-	/* If possible completions are more than MAX_TAB_HINTS, ask user whether to display them or not. */
+	/*
+	 * If the number of possible completions is more than MAX_TAB_HINTS,
+	 * ask the user whether to display them or not.
+	 */
 	if (found > MAX_TAB_HINTS) {
 		printf("\n");
-		continue_showing_hints = console_prompt_display_all_hints(indev, found);
+		continue_showing_hints =
+		    console_prompt_display_all_hints(indev, found);
 	}
 	
 	if ((found > 1) && (str_length(output) != 0)) {
@@ -239,23 +246,30 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t * indev)
 		pos = NULL;
 		while (cmdtab_search_one(name, &pos)) {
 			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
-
+			
 			if (continue_showing_hints) {
 				printf("%s (%s)\n", hlp->name, hlp->description);
 				--hints_to_show;
 				++total_hints_shown;
-
-				if (hints_to_show == 0 && total_hints_shown != found) { /* Time to ask user to continue */
-					continue_showing_hints = console_prompt_more_hints(indev, &hints_to_show);
+				
+				if ((hints_to_show == 0) && (total_hints_shown != found)) {
+					/* Ask user to continue */
+					continue_showing_hints =
+					    console_prompt_more_hints(indev, &hints_to_show);
 				}
 			}
-
+			
 			pos = pos->next;
-			for(max_match_len_tmp = 0; output[max_match_len_tmp] == hlp->name[input_len + max_match_len_tmp]
-					&& max_match_len_tmp < max_match_len; ++max_match_len_tmp);
+			
+			for (max_match_len_tmp = 0;
+			    (output[max_match_len_tmp] ==
+			    hlp->name[input_len + max_match_len_tmp]) &&
+			    (max_match_len_tmp < max_match_len); ++max_match_len_tmp);
+			
 			max_match_len = max_match_len_tmp;
 		}
-		/* keep only the characters common in all completions */
+		
+		/* Keep only the characters common in all completions */
 		output[max_match_len] = 0;
 	}
 	
@@ -309,8 +323,10 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			if (position == 0)
 				continue;
 			
-			/* Find the beginning of the word
-			   and copy it to tmp */
+			/*
+			 * Find the beginning of the word
+			 * and copy it to tmp
+			 */
 			size_t beg;
 			for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
 			    beg--);
@@ -332,13 +348,16 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			if (found == 0)
 				continue;
 
-			/* We have hints, may be many. In case of more than one hint,
-			   tmp will contain the common prefix. */
+			/*
+			 * We have hints, possibly many. In case of more than one hint,
+			 * tmp will contain the common prefix.
+			 */
 			size_t off = 0;
 			size_t i = 0;
 			while ((ch = str_decode(tmp, &off, STR_NO_LIMIT)) != 0) {
 				if (!wstr_linsert(current, ch, position + i, MAX_CMDLINE))
 					break;
+				
 				i++;
 			}
 			

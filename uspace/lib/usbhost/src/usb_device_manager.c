@@ -60,7 +60,7 @@ static usb_address_t usb_device_manager_get_free_address(
 
 	return new_address;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize device manager structure.
  *
  * @param[in] instance Memory place to initialize.
@@ -81,7 +81,7 @@ void usb_device_manager_init(
 	instance->max_speed = max_speed;
 	fibril_mutex_initialize(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Request USB address.
  * @param instance usb_device_manager
  * @param address Pointer to requested address value, place to store new address
@@ -123,7 +123,7 @@ int usb_device_manager_request_address(usb_device_manager_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Bind USB address to devman handle.
  *
  * @param[in] instance Device manager structure to use.
@@ -155,7 +155,7 @@ int usb_device_manager_bind_address(usb_device_manager_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Release used USB address.
  *
  * @param[in] instance Device manager structure to use.
@@ -181,7 +181,7 @@ int usb_device_manager_release_address(
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Find USB address associated with the device.
  *
  * @param[in] instance Device manager structure to use.
@@ -204,7 +204,7 @@ usb_address_t usb_device_manager_find_address(
 	fibril_mutex_unlock(&instance->guard);
 	return ENOENT;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Find devman handle and speed assigned to USB address.
  *
  * @param[in] instance Device manager structure to use.

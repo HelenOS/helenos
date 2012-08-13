@@ -46,7 +46,6 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -58,6 +57,7 @@ DIRS = \
 	app/taskdump \
 	app/tester \
 	app/testread \
+	app/testwrit \
 	app/tetris \
 	app/trace \
 	app/top \
@@ -84,6 +84,7 @@ DIRS = \
 	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
+	srv/bd/sata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
@@ -96,6 +97,7 @@ DIRS = \
 	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
+	srv/fs/ext4fs \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
@@ -104,6 +106,7 @@ DIRS = \
 	srv/hw/char/s3c24xx_uart \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/block/ahci \
 	drv/char/i8042 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
@@ -168,6 +171,7 @@ endif
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
+		drv/bus/pci/pciintel \
 		srv/hw/bus/cuda_adb
 endif
 
@@ -193,6 +197,7 @@ LIBS = \
 	lib/net \
 	lib/nic \
 	lib/ext2 \
+	lib/ext4 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \

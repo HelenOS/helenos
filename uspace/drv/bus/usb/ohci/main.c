@@ -62,16 +62,16 @@ static int ohci_dev_add(ddf_dev_t *device)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t ohci_driver_ops = {
 	.dev_add = ohci_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t ohci_driver = {
 	.name = NAME,
 	.driver_ops = &ohci_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initializes global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).

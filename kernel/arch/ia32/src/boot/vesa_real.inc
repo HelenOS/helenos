@@ -29,7 +29,12 @@
 
 .code32
 vesa_init:
+	lidtl vesa_idtr
 	jmp $GDT_SELECTOR(VESA_INIT_DES), $vesa_init_real - vesa_init
+
+vesa_idtr:
+	.word 0x3ff
+	.long 0
 
 .code16
 vesa_init_real:

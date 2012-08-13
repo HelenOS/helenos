@@ -54,7 +54,7 @@ SANDBOX = pack
 PACK = $(TOOLS_PATH)/pack.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
-MKEXT2 = $(TOOLS_PATH)/mkext2.py
+MKEXT4 = $(TOOLS_PATH)/mkext4.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
@@ -83,8 +83,8 @@ ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
 endif
 
-ifeq ($(RDFMT),ext2fs)
-	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext2fs/ext2fs
+ifeq ($(RDFMT),ext4fs)
+	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext4fs/ext4fs
 endif
 
 RD_SRVS_ESSENTIAL = \
@@ -97,6 +97,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
+	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
 	$(USPACE_PATH)/srv/clipboard/clipboard \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
@@ -104,6 +105,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
+	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
@@ -121,7 +123,8 @@ RD_DRVS = \
 	test/test3 \
 	nic/ne2k \
 	nic/e1k \
-	nic/rtl8139
+	nic/rtl8139 \
+	block/ahci
 
 RD_DRV_CFG =
 
@@ -170,6 +173,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
 	$(USPACE_PATH)/app/testread/testread \
+	$(USPACE_PATH)/app/testwrit/testwrit \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/nettest1/nettest1 \

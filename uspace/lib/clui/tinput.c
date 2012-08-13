@@ -600,7 +600,11 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 		max_length = max(max_length, str_length(compl[i]));
 	
 	unsigned int cols = max(1, (ti->con_cols + 1) / (max_length + 1));
-	unsigned int col_width = ti->con_cols / cols;
+	unsigned int padding = 0;
+	if ((cols * max_length) + (cols - 1) < ti->con_cols) {
+		padding = ti->con_cols - (cols * max_length) - (cols - 1);
+	}
+	unsigned int col_width = max_length + padding / cols;
 	unsigned int rows = cnum / cols + ((cnum % cols) != 0);
 	
 	unsigned int row, col;
