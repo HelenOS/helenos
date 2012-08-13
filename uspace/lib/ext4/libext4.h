@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericipc
+/** @addtogroup libext4
  * @{
  */
-/** @file
- */
 
-#ifndef KERN_SYSIPC_H_
-#define KERN_SYSIPC_H_
+#ifndef LIBEXT4_LIBEXT4_H_
+#define LIBEXT4_LIBEXT4_H_
 
-#include <ipc/ipc.h>
-#include <ipc/irq.h>
-#include <typedefs.h>
+#include "libext4_balloc.h"
+#include "libext4_bitmap.h"
+#include "libext4_block_group.h"
+#include "libext4_crc.h"
+#include "libext4_directory.h"
+#include "libext4_directory_index.h"
+#include "libext4_extent.h"
+#include "libext4_filesystem.h"
+#include "libext4_hash.h"
+#include "libext4_ialloc.h"
+#include "libext4_inode.h"
+#include "libext4_superblock.h"
+#include "libext4_types.h"
 
-extern sysarg_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_answer_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_answer_slow(sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_wait_for_call(ipc_data_t *, uint32_t, unsigned int);
-extern sysarg_t sys_ipc_poke(void);
-extern sysarg_t sys_ipc_forward_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, unsigned int);
-extern sysarg_t sys_ipc_forward_slow(sysarg_t, sysarg_t, ipc_data_t *,
-    unsigned int);
-extern sysarg_t sys_ipc_hangup(sysarg_t);
-extern sysarg_t sys_irq_register(inr_t, devno_t, sysarg_t, irq_code_t *);
-extern sysarg_t sys_irq_unregister(inr_t, devno_t);
-
-#ifdef __32_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *);
-
-#endif  /* __32_BITS__ */
-
-#ifdef __64_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg_t);
-
-#endif  /* __64_BITS__ */
+#include <stdio.h>
+#define EXT4FS_DBG(format, ...) \
+	printf("ext4fs: %s: " format "\n", \
+	    __FUNCTION__, ##__VA_ARGS__) \
 
 #endif
 
-/** @}
+/**
+ * @}
  */

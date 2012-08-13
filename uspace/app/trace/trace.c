@@ -317,63 +317,6 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
 	}
 }
 
-static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
-{
-	ipc_call_t question, reply;
-	int rc;
-	int phoneid;
-
-	phoneid = sc_args[0];
-
-	IPC_SET_IMETHOD(question, sc_args[1]);
-	IPC_SET_ARG1(question, sc_args[2]);
-	IPC_SET_ARG2(question, sc_args[3]);
-	IPC_SET_ARG3(question, sc_args[4]);
-	IPC_SET_ARG4(question, 0);
-	IPC_SET_ARG5(question, 0);
-
-	memset(&reply, 0, sizeof(reply));
-	rc = udebug_mem_read(sess, &reply.args, sc_args[5], sizeof(reply.args));
-	if (rc < 0)
-		return;
-	
-	ipcp_call_sync(phoneid, &question, &reply);
-}
-
-static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
-{
-	ipc_call_t question;
-	int rc;
-
-	memset(&question, 0, sizeof(question));
-	rc = udebug_mem_read(sess, &question.args, sc_args[1],
-	    sizeof(question.args));
-
-	if (rc < 0) {
-		printf("Error: mem_read->%d\n", rc);
-		return;
-	}
-
-	thread_ipc_req[thread_id] = question;
-}
-
-static void sc_ipc_call_sync_slow_e(unsigned thread_id, sysarg_t *sc_args)
-{
-	ipc_call_t reply;
-	int rc;
-
-	memset(&reply, 0, sizeof(reply));
-	rc = udebug_mem_read(sess, &reply.args, sc_args[2],
-	    sizeof(reply.args));
-
-	if (rc < 0) {
-		printf("Error: mem_read->%d\n", rc);
-		return;
-	}
-
-	ipcp_call_sync(sc_args[0], &thread_ipc_req[thread_id], &reply);
-}
-
 static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
@@ -407,14 +350,6 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 		printf("%s", syscall_desc[sc_id].name);
 		print_sc_args(sc_args, syscall_desc[sc_id].n_args);
 	}
-
-	switch (sc_id) {
-	case SYS_IPC_CALL_SYNC_SLOW:
-		sc_ipc_call_sync_slow_b(thread_id, sc_args);
-		break;
-	default:
-		break;
-	}
 }
 
 static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
@@ -446,12 +381,6 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 		break;
 	case SYS_IPC_CALL_ASYNC_SLOW:
 		sc_ipc_call_async_slow(sc_args, sc_rc);
-		break;
-	case SYS_IPC_CALL_SYNC_FAST:
-		sc_ipc_call_sync_fast(sc_args);
-		break;
-	case SYS_IPC_CALL_SYNC_SLOW:
-		sc_ipc_call_sync_slow_e(thread_id, sc_args);
 		break;
 	case SYS_IPC_WAIT:
 		sc_ipc_wait(sc_args, sc_rc);

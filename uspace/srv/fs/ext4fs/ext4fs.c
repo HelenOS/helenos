@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericipc
+/** @addtogroup fs
  * @{
  */
-/** @file
+/**
+ * @file  ext4fs.c
+ * @brief Ext4 file system driver for HelenOS.
  */
 
-#ifndef KERN_SYSIPC_H_
-#define KERN_SYSIPC_H_
+#include <async.h>
+#include <errno.h>
+#include <libfs.h>
+#include <ns.h>
+#include <stdio.h>
+#include <task.h>
+#include <ipc/services.h>
+#include "ext4fs.h"
+#include "../../vfs/vfs.h"
 
-#include <ipc/ipc.h>
-#include <ipc/irq.h>
-#include <typedefs.h>
+#define NAME  "ext4fs"
 
-extern sysarg_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_answer_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_answer_slow(sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_wait_for_call(ipc_data_t *, uint32_t, unsigned int);
-extern sysarg_t sys_ipc_poke(void);
-extern sysarg_t sys_ipc_forward_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, unsigned int);
-extern sysarg_t sys_ipc_forward_slow(sysarg_t, sysarg_t, ipc_data_t *,
-    unsigned int);
-extern sysarg_t sys_ipc_hangup(sysarg_t);
-extern sysarg_t sys_irq_register(inr_t, devno_t, sysarg_t, irq_code_t *);
-extern sysarg_t sys_irq_unregister(inr_t, devno_t);
+vfs_info_t ext4fs_vfs_info = {
+	.name = NAME,
+	.instance = 0
+};
 
-#ifdef __32_BITS__
+int main(int argc, char **argv)
+{
+	printf("%s: HelenOS ext4 file system server\n", NAME);
+	
+	if (argc == 3) {
+		if (!str_cmp(argv[1], "--instance"))
+			ext4fs_vfs_info.instance = strtol(argv[2], NULL, 10);
+		else {
+			printf("%s: Unrecognized parameters\n", NAME);
+			return 1;
+		}
+	}
+	
+	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_VFS, 0, 0);
+	if (!vfs_sess) {
+		printf("%s: Failed to connect to VFS\n", NAME);
+		return 2;
+	}
+	
+	int rc = ext4fs_global_init();
+	if (rc != EOK) {
+		printf("%s: Global initialization failed\n", NAME);
+		return rc;
+	}
+	
+	rc = fs_register(vfs_sess, &ext4fs_vfs_info, &ext4fs_ops,
+	    &ext4fs_libfs_ops);
+	if (rc != EOK) {
+		printf("%s: Failed to register file system\n", NAME);
+		return rc;
+	}
+	
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
+	async_manager();
+	
+	/* Not reached */
+	return 0;
+}
 
-extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *);
-
-#endif  /* __32_BITS__ */
-
-#ifdef __64_BITS__
-
-extern sysarg_t sys_ipc_connect_kbox(sysarg_t);
-
-#endif  /* __64_BITS__ */
-
-#endif
-
-/** @}
+/**
+ * @}
  */
