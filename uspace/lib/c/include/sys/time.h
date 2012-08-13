@@ -75,6 +75,7 @@ extern suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2);
 extern int tv_gt(struct timeval *tv1, struct timeval *tv2);
 extern int tv_gteq(struct timeval *tv1, struct timeval *tv2);
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
+extern int getuptime(struct timeval *tv);
 
 extern void udelay(useconds_t);
 

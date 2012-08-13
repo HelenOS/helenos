@@ -49,6 +49,9 @@
 #include <ctype.h>
 #include <assert.h>
 #include <unistd.h>
+#include <loc.h>
+#include <device/clock_dev.h>
+#include <malloc.h>
 
 #define ASCTIME_BUF_LEN 26
 
@@ -480,6 +483,69 @@ int tv_gteq(struct timeval *tv1, struct timeval *tv2)
  */
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
+	int rc;
+	struct tm t;
+	category_id_t cat_id;
+	size_t svc_cnt;
+	service_id_t *svc_ids = NULL;
+	service_id_t svc_id;
+	char *svc_name = NULL;
+
+	static async_sess_t *clock_conn = NULL;
+
+	if (tz) {
+		tz->tz_minuteswest = 0;
+		tz->tz_dsttime = DST_NONE;
+	}
+
+	if (clock_conn == NULL) {
+		rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
+		if (rc != EOK)
+			goto ret_uptime;
+
+		rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
+		if (rc != EOK)
+			goto ret_uptime;
+
+		if (svc_cnt == 0)
+			goto ret_uptime;
+
+		rc = loc_service_get_name(svc_ids[0], &svc_name);
+		if (rc != EOK)
+			goto ret_uptime;
+
+		rc = loc_service_get_id(svc_name, &svc_id, 0);
+		if (rc != EOK)
+			goto ret_uptime;
+
+		clock_conn = loc_service_connect(EXCHANGE_SERIALIZE,
+		    svc_id, IPC_FLAG_BLOCKING);
+		if (!clock_conn)
+			goto ret_uptime;
+	}
+
+	rc = clock_dev_time_get(clock_conn, &t);
+	if (rc != EOK)
+		goto ret_uptime;
+
+	tv->tv_usec = 0;
+	tv->tv_sec = mktime(&t);
+
+	free(svc_name);
+	free(svc_ids);
+
+	return EOK;
+
+ret_uptime:
+
+	free(svc_name);
+	free(svc_ids);
+
+	return getuptime(tv);
+}
+
+int getuptime(struct timeval *tv)
+{
 	if (ktime == NULL) {
 		uintptr_t faddr;
 		int rc = sysinfo_get_value("clock.faddr", &faddr);
@@ -500,11 +566,6 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		ktime = addr;
 	}
 	
-	if (tz) {
-		tz->tz_minuteswest = 0;
-		tz->tz_dsttime = DST_NONE;
-	}
-	
 	sysarg_t s2 = ktime->seconds2;
 	
 	read_barrier();
@@ -518,7 +579,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		tv->tv_usec = 0;
 	} else
 		tv->tv_sec = s1;
-	
+
 	return 0;
 }
 
