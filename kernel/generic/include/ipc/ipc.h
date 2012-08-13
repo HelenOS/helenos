@@ -105,6 +105,9 @@ typedef struct {
 } ipc_data_t;
 
 typedef struct {
+	/** Task link. */
+	link_t ta_link;
+
 	/** Answerbox link. */
 	link_t ab_link;
 	

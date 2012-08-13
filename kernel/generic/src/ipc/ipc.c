@@ -229,6 +229,11 @@ void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
+
+	spinlock_lock(&TASK->active_calls_lock);
+	list_append(&call->ta_link, &TASK->active_calls);
+	spinlock_unlock(&TASK->active_calls_lock);
+
 	IPC_SET_RETVAL(call->data, err);
 	_ipc_answer_free_call(call, false);
 }
@@ -249,6 +254,11 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
+
+		spinlock_lock(&TASK->active_calls_lock);
+		list_append(&call->ta_link, &TASK->active_calls);
+		spinlock_unlock(&TASK->active_calls_lock);
+
 		call->data.phone = phone;
 		call->data.task_id = TASK->taskid;
 	}
@@ -418,6 +428,13 @@ restart:
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
 		atomic_dec(&request->data.phone->active_calls);
+
+		/*
+		 * Remove the call from this task's active call list.
+		 */
+		spinlock_lock(&TASK->active_calls_lock);
+		list_remove(&request->ta_link);
+		spinlock_unlock(&TASK->active_calls_lock);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
