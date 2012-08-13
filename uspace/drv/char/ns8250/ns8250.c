@@ -705,10 +705,13 @@ static void ns8250_initialize_port(ns8250_t *ns)
 	ns8250_port_set_baud_rate(ns->regs, 38400);
 	/* 8 bits, no parity, two stop bits. */
 	ns8250_port_set_com_props(ns->regs, SERIAL_NO_PARITY, 8, 2);
-	/* Enable FIFO, clear them, with 14-byte threshold. */
+	/*
+	 * Enable FIFO, clear them, with 4-byte threshold for greater
+	 * reliability.
+	 */
 	pio_write_8(&ns->regs->iid, NS8250_FCR_FIFOENABLE
-	    | NS8250_FCR_RXFIFORESET | NS8250_FCR_TXFIFORESET 
-	    | NS8250_FCR_RXTRIGGERLOW | NS8250_FCR_RXTRIGGERHI);
+	    | NS8250_FCR_RXFIFORESET | NS8250_FCR_TXFIFORESET
+	    | NS8250_FCR_RXTRIGGERLOW);
 	/*
 	 * RTS/DSR set (Request to Send and Data Terminal Ready lines enabled),
 	 * Aux Output2 set - needed for interrupts.
