@@ -32,6 +32,7 @@ USPACE_PREFIX = ../..
 BINARY = wacomdump
 
 SOURCES = \
-	wacomdump.c
+	wacomdump.c \
+	isdv4.c
 
 include $(USPACE_PREFIX)/Makefile.common
