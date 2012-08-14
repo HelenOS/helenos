@@ -138,6 +138,9 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		if (!method) {
 			/* The other side has hung up */
+		    	fibril_mutex_lock(&srv->lock);
+			srv->connected = false;
+		    	fibril_mutex_unlock(&srv->lock);
 			async_answer_0(callid, EOK);
 			break;
 		}

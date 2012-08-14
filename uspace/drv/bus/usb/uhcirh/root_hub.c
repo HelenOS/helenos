@@ -78,7 +78,7 @@ int uhci_root_hub_init(
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Cleanup UHCI root hub instance.
  *
  * @param[in] instance Root hub structure to use.
@@ -91,7 +91,7 @@ void uhci_root_hub_fini(uhci_root_hub_t* instance)
 		uhci_port_fini(&instance->ports[i]);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * @}
  */

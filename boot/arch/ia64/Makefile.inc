@@ -30,9 +30,19 @@ BFD_NAME = elf64-ia64-little
 BFD_OUTPUT = $(BFD_NAME)
 BFD_ARCH = ia64
 
+#
+# FIXME:
+#
+# The -fno-selective-scheduling and -fno-selective-scheduling2 options
+# should be removed as soon as a bug in GCC concerning unchecked
+# speculative loads is fixed.
+#
+# See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53975 for reference.
+#
+
 BITS = 64
 ENDIANESS = LE
-EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
+EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata -fno-selective-scheduling -fno-selective-scheduling2
 
 RD_SRVS_NON_ESSENTIAL +=
 

@@ -48,6 +48,8 @@
 
 #define TMPFS_COMM_SIZE		1024
 
+static uint8_t tmpfs_buf[TMPFS_COMM_SIZE];
+
 struct rdentry {
 	uint8_t type;
 	uint32_t len;
@@ -67,7 +69,7 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 		tmpfs_node_t *nodep;
 		uint32_t size;
 		
-		if (block_seqread(dsid, bufpos, buflen, pos, &entry,
+		if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, &entry,
 		    sizeof(entry)) != EOK)
 			return false;
 		
@@ -87,7 +89,7 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 				return false;
 			}
 			
-			if (block_seqread(dsid, bufpos, buflen, pos, fname,
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, fname,
 			    entry.len) != EOK) {
 				(void) ops->destroy(fn);
 				free(fname);
@@ -103,7 +105,7 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 			}
 			free(fname);
 			
-			if (block_seqread(dsid, bufpos, buflen, pos, &size,
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, &size,
 			    sizeof(size)) != EOK)
 				return false;
 			
@@ -115,7 +117,7 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 				return false;
 			
 			nodep->size = size;
-			if (block_seqread(dsid, bufpos, buflen, pos, nodep->data,
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, nodep->data,
 			    size) != EOK)
 				return false;
 			
@@ -131,7 +133,7 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 				return false;
 			}
 			
-			if (block_seqread(dsid, bufpos, buflen, pos, fname,
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, fname,
 			    entry.len) != EOK) {
 				(void) ops->destroy(fn);
 				free(fname);
@@ -175,7 +177,7 @@ bool tmpfs_restore(service_id_t dsid)
 	aoff64_t pos = 0;
 	
 	char tag[6];
-	if (block_seqread(dsid, &bufpos, &buflen, &pos, tag, 5) != EOK)
+	if (block_seqread(dsid, tmpfs_buf, &bufpos, &buflen, &pos, tag, 5) != EOK)
 		goto error;
 	
 	tag[5] = 0;

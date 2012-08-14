@@ -36,6 +36,7 @@
 #ifndef USBMAST_H_
 #define USBMAST_H_
 
+#include <bd_srv.h>
 #include <sys/types.h>
 #include <usb/usb.h>
 
@@ -67,6 +68,8 @@ typedef struct {
 	uint64_t nblocks;
 	/** Block size in bytes */
 	size_t block_size;
+	/** Block device server structure */
+	bd_srv_t bd;
 } usbmast_fun_t;
 
 #endif

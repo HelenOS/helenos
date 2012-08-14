@@ -61,6 +61,8 @@ GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
 	generic/as.c \
+	generic/bd.c \
+	generic/bd_srv.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
@@ -70,6 +72,7 @@ GENERIC_SOURCES = \
 	generic/device/char_dev.c \
 	generic/device/nic.c \
 	generic/device/pci.c \
+	generic/device/ahci.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \

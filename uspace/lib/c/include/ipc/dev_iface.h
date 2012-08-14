@@ -50,6 +50,8 @@ typedef enum {
 	USBHC_DEV_IFACE,
 	/** Interface provided by USB HID devices. */
 	USBHID_DEV_IFACE,
+	/** Interface provided by AHCI devices. */
+	AHCI_DEV_IFACE,
 
 	DEV_IFACE_MAX
 } dev_inferface_idx_t;

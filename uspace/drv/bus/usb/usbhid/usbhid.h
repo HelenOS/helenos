@@ -94,7 +94,7 @@ struct usb_hid_subdriver {
 	void *data;
 };
 
-/*----------------------------------------------------------------------------*/
+
 /**
  * Structure for holding general HID device data.
  */
@@ -131,7 +131,7 @@ struct usb_hid_dev {
 	volatile bool running;
 };
 
-/*----------------------------------------------------------------------------*/
+
 
 enum {
 	USB_HID_KBD_POLL_EP_NO = 0,
@@ -142,7 +142,7 @@ enum {
 
 extern const usb_endpoint_description_t *usb_hid_endpoints[];
 
-/*----------------------------------------------------------------------------*/
+
 
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 

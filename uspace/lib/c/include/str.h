@@ -78,6 +78,8 @@ extern bool chr_check(wchar_t ch);
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
 
+extern bool str_test_prefix(const char *s, const char *p);
+
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);

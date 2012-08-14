@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Vojtech Horky
+# Copyright (c) 2012 Frantisek Princ
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-BINARY = lsusb
-
-LIBS = \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
-	$(LIBUSB_PREFIX)/libusb.a \
-	$(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS = \
-	-I$(LIBUSB_PREFIX)/include \
-	-I$(LIBUSBDEV_PREFIX)/include \
-	-I$(LIBDRV_PREFIX)/include
+USPACE_PREFIX = ../../..
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a $(LIBEXT4_PREFIX)/libext4.a
+EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX) -I$(LIBEXT4_PREFIX)
+BINARY = ext4fs
 
 SOURCES = \
-	main.c
+	ext4fs.c \
+	ext4fs_ops.c
 
 include $(USPACE_PREFIX)/Makefile.common

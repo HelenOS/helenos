@@ -40,7 +40,7 @@
 #include <adt/list.h>
 
 
-/*---------------------------------------------------------------------------*/
+
 /*
  * Flags of usage paths comparison modes.
  *
@@ -72,7 +72,7 @@
  */
 #define USB_HID_PATH_COMPARE_ANYWHERE		8
 
-/*----------------------------------------------------------------------------*/
+
 /** 
  * Item of usage path structure. Last item of linked list describes one item
  * in report, the others describe superior Collection tags. Usage and Usage
@@ -92,7 +92,7 @@ typedef struct {
 } usb_hid_report_usage_path_t;
 
 
-/*---------------------------------------------------------------------------*/
+
 /** 
  * USB HID usage path structure.
  * */
@@ -111,7 +111,7 @@ typedef struct {
 	list_t items;	/* of usb_hid_report_usage_path_t */
 } usb_hid_report_path_t;
 
-/*---------------------------------------------------------------------------*/
+
 usb_hid_report_path_t *usb_hid_report_path(void);
 
 void usb_hid_report_path_free(usb_hid_report_path_t *path);

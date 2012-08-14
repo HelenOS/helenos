@@ -45,6 +45,7 @@
 #include "remote_usbhc.h"
 #include "remote_usbhid.h"
 #include "remote_pci.h"
+#include "remote_ahci.h"
 
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
@@ -54,7 +55,8 @@ static iface_dipatch_table_t remote_ifaces = {
 		&remote_pci_iface,
 		&remote_usb_iface,
 		&remote_usbhc_iface,
-		&remote_usbhid_iface
+		&remote_usbhid_iface,
+		&remote_ahci_iface
 	}
 };
 
