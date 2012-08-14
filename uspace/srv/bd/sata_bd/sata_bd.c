@@ -37,9 +37,9 @@
  */
 
 #include <sys/types.h>
+#include <bd_srv.h>
 #include <errno.h>
 #include <stdio.h>
-#include <ipc/bd.h>
 #include <str.h>
 #include <loc.h>
 #include <macros.h>
@@ -55,6 +55,27 @@
 
 static sata_bd_dev_t disk[MAXDISKS];
 static int disk_count;
+
+static int sata_bd_open(bd_srv_t *);
+static int sata_bd_close(bd_srv_t *);
+static int sata_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int sata_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int sata_bd_get_block_size(bd_srv_t *, size_t *);
+static int sata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
+static bd_ops_t sata_bd_ops = {
+	.open = sata_bd_open,
+	.close = sata_bd_close,
+	.read_blocks = sata_bd_read_blocks,
+	.write_blocks = sata_bd_write_blocks,
+	.get_block_size = sata_bd_get_block_size,
+	.get_num_blocks = sata_bd_get_num_blocks
+};
+
+static sata_bd_dev_t *bd_srv_sata(bd_srv_t *bd)
+{
+	return (sata_bd_dev_t *)bd->arg;
+}
 
 /** Find SATA devices in device tree.
  *
@@ -81,7 +102,11 @@ static int scan_device_tree(devman_handle_t funh)
 		    &disk[disk_count].block_size);
 		
 		ahci_get_num_blocks(disk[disk_count].sess, &disk[disk_count].blocks);
-				
+		
+		bd_srv_init(&disk[disk_count].bd);
+		disk[disk_count].bd.ops = &sata_bd_ops;
+		disk[disk_count].bd.arg = &disk[disk_count];
+		
 		printf("Device %s - %s , blocks: %lu, block_size: %lu\n", 
 		    disk[disk_count].dev_name, disk[disk_count].sata_dev_name,
 			    (long unsigned int) disk[disk_count].blocks,
@@ -140,17 +165,7 @@ static int get_sata_disks()
 /** Block device connection handler. */
 static void sata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	void *fs_va = NULL;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
 	service_id_t dsid;
-	/* Size of the communication area. */
-	size_t comm_size;	
-	unsigned int flags;
-	int retval = 0;
-	uint64_t ba;
-	size_t cnt;
 	int disk_id, i;
 
 	/* Get the device service ID. */
@@ -167,63 +182,63 @@ static void sata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == (void *) -1) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	while (true) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (method) {
-			case BD_READ_BLOCKS:
-				ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-				cnt = IPC_GET_ARG3(call);
-				if (cnt * disk[disk_id].block_size > comm_size) {
-					retval = ELIMIT;
-					break;
-				}
-				retval = ahci_read_blocks(disk[disk_id].sess, ba, cnt, fs_va);
-				break;
-			case BD_WRITE_BLOCKS:
-				ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-				cnt = IPC_GET_ARG3(call);
-				if (cnt * disk[disk_id].block_size > comm_size) {
-					retval = ELIMIT;
-					break;
-				}
-				retval = ahci_write_blocks(disk[disk_id].sess, ba, cnt, fs_va);
-				break;
-			case BD_GET_BLOCK_SIZE:
-				async_answer_1(callid, EOK, disk[disk_id].block_size);
-				continue;
-			case BD_GET_NUM_BLOCKS:
-				async_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
-				    UPPER32(disk[disk_id].blocks));
-				break;
-			default:
-				retval = EINVAL;
-				break;
-			}
-		async_answer_0(callid, retval);
-	}
+	bd_conn(iid, icall, &disk[disk_id].bd);
 }
+
+/** Open device. */
+static int sata_bd_open(bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Close device. */
+static int sata_bd_close(bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Read blocks from partition. */
+static int sata_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+    size_t size)
+{
+	sata_bd_dev_t *sbd = bd_srv_sata(bd);
+
+	if (size < cnt * sbd->block_size)
+		return EINVAL;
+
+	return ahci_read_blocks(sbd->sess, ba, cnt, buf);
+}
+
+/** Write blocks to partition. */
+static int sata_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
+{
+	sata_bd_dev_t *sbd = bd_srv_sata(bd);
+
+	if (size < cnt * sbd->block_size)
+		return EINVAL;
+
+	return ahci_write_blocks(sbd->sess, ba, cnt, (void *)buf);
+}
+
+/** Get device block size. */
+static int sata_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	sata_bd_dev_t *sbd = bd_srv_sata(bd);
+
+	*rsize = sbd->block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int sata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	sata_bd_dev_t *sbd = bd_srv_sata(bd);
+
+	*rnb = sbd->blocks;
+	return EOK;
+}
+
 
 int main(int argc, char **argv)
 {

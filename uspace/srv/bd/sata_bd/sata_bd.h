@@ -37,23 +37,27 @@
 
 #define SATA_DEV_NAME_LENGTH 256
 
-#include <sys/types.h>
+#include <async.h>
+#include <bd_srv.h>
 #include <loc.h>
+#include <sys/types.h>
 
 /** SATA Block Device. */
 typedef struct {
-	/** Device name in device tree. */ 
-	char* dev_name; 
-	/** SATA Device name. */ 
-	char sata_dev_name[SATA_DEV_NAME_LENGTH]; 
+	/** Device name in device tree. */
+	char *dev_name;
+	/** SATA Device name. */
+	char sata_dev_name[SATA_DEV_NAME_LENGTH];
 	/** Session to device methods. */
-	async_sess_t* sess; 
+	async_sess_t *sess;
 	/** Loc service id. */
 	service_id_t service_id;
 	/** Number of blocks. */
-	uint64_t blocks; 
+	uint64_t blocks;
 	/** Size of block. */
-	size_t block_size; 
+	size_t block_size;
+	/** Block device server structure */
+	bd_srv_t bd;
 } sata_bd_dev_t;
 
 #endif

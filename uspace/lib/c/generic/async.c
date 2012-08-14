@@ -113,6 +113,7 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <macros.h>
+#include "private/libc.h"
 
 #define CLIENT_HASH_TABLE_BUCKETS  32
 #define CONN_HASH_TABLE_BUCKETS    32
@@ -2165,7 +2166,8 @@ bool async_share_in_receive(ipc_callid_t *callid, size_t *size)
  */
 int async_share_in_finalize(ipc_callid_t callid, void *src, unsigned int flags)
 {
-	return ipc_share_in_finalize(callid, src, flags);
+	return ipc_answer_3(callid, EOK, (sysarg_t) src, (sysarg_t) flags,
+	    (sysarg_t) __entry);
 }
 
 /** Wrapper for IPC_M_SHARE_OUT calls using the async framework.
@@ -2232,7 +2234,7 @@ bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *f
  */
 int async_share_out_finalize(ipc_callid_t callid, void **dst)
 {
-	return ipc_share_out_finalize(callid, dst);
+	return ipc_answer_2(callid, EOK, (sysarg_t) __entry, (sysarg_t) dst);
 }
 
 /** Start IPC_M_DATA_READ using the async framework.
@@ -2316,7 +2318,7 @@ bool async_data_read_receive(ipc_callid_t *callid, size_t *size)
  */
 int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 {
-	return ipc_data_read_finalize(callid, src, size);
+	return ipc_answer_2(callid, EOK, (sysarg_t) src, (sysarg_t) size);
 }
 
 /** Wrapper for forwarding any read request
@@ -2419,7 +2421,7 @@ bool async_data_write_receive(ipc_callid_t *callid, size_t *size)
  */
 int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 {
-	return ipc_data_write_finalize(callid, dst, size);
+	return ipc_answer_2(callid, EOK, (sysarg_t) dst, (sysarg_t) size);
 }
 
 /** Wrapper for receiving binary data or strings

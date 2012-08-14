@@ -431,12 +431,22 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	fun_node_t *fun = create_fun_node();
+	/* One reference for creation, one for us */
+	fun_add_ref(fun);
 	fun_add_ref(fun);
 	fun->ftype = ftype;
+	
+	/*
+	 * We can lock the function here even when holding the tree because
+	 * we know it cannot be held by anyone else yet.
+	 */
+	fun_busy_lock(fun);
 	
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		dev_del_ref(pdev);
+		fun_busy_unlock(fun);
+		fun_del_ref(fun);
 		delete_fun_node(fun);
 		async_answer_0(callid, ENOMEM);
 		return;
@@ -449,10 +459,15 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	
 	rc = online_function(fun);
 	if (rc != EOK) {
-		/* XXX clean up */
+		/* XXX Set some failed state? */
+		fun_busy_unlock(fun);
+		fun_del_ref(fun);
 		async_answer_0(callid, rc);
 		return;
 	}
+	
+	fun_busy_unlock(fun);
+	fun_del_ref(fun);
 	
 	/* Return device handle to parent's driver. */
 	async_answer_1(callid, EOK, fun->handle);
@@ -521,9 +536,12 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
+	fun_busy_lock(fun);
+	
 	fibril_rwlock_read_lock(&device_tree.rwlock);
 	if (fun->dev == NULL || fun->dev->drv != drv) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		fun_busy_unlock(fun);
 		fun_del_ref(fun);
 		async_answer_0(iid, ENOENT);
 		return;
@@ -532,11 +550,13 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 	
 	rc = online_function(fun);
 	if (rc != EOK) {
+		fun_busy_unlock(fun);
 		fun_del_ref(fun);
 		async_answer_0(iid, (sysarg_t) rc);
 		return;
 	}
 	
+	fun_busy_unlock(fun);
 	fun_del_ref(fun);
 	
 	async_answer_0(iid, (sysarg_t) EOK);
@@ -558,8 +578,11 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
+	fun_busy_lock(fun);
+	
 	fibril_rwlock_write_lock(&device_tree.rwlock);
 	if (fun->dev == NULL || fun->dev->drv != drv) {
+		fun_busy_unlock(fun);
 		fun_del_ref(fun);
 		async_answer_0(iid, ENOENT);
 		return;
@@ -568,11 +591,13 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 	
 	rc = offline_function(fun);
 	if (rc != EOK) {
+		fun_busy_unlock(fun);
 		fun_del_ref(fun);
 		async_answer_0(iid, (sysarg_t) rc);
 		return;
 	}
 	
+	fun_busy_unlock(fun);
 	fun_del_ref(fun);
 	async_answer_0(iid, (sysarg_t) EOK);
 }
@@ -590,6 +615,8 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
+	fun_busy_lock(fun);
+	
 	fibril_rwlock_write_lock(&tree->rwlock);
 	
 	log_msg(LVL_DEBUG, "devman_remove_function(fun='%s')", fun->pathname);
@@ -597,6 +624,8 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	/* Check function state */
 	if (fun->state == FUN_REMOVED) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
+		fun_busy_unlock(fun);
+		fun_del_ref(fun);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
@@ -637,6 +666,8 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 				dev_del_ref(dev);
 				if (gone_rc == EOK)
 					gone_rc = ENOTSUP;
+				fun_busy_unlock(fun);
+				fun_del_ref(fun);
 				async_answer_0(callid, gone_rc);
 				return;
 			}
@@ -663,6 +694,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 				log_msg(LVL_ERROR, "Failed unregistering tree "
 				    "service.");
 				fibril_rwlock_write_unlock(&tree->rwlock);
+				fun_busy_unlock(fun);
 				fun_del_ref(fun);
 				async_answer_0(callid, EIO);
 				return;
@@ -672,6 +704,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	
 	remove_fun_node(&device_tree, fun);
 	fibril_rwlock_write_unlock(&tree->rwlock);
+	fun_busy_unlock(fun);
 	
 	/* Delete ref added when inserting function into tree */
 	fun_del_ref(fun);
