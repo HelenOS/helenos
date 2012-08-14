@@ -73,7 +73,7 @@ static logging_namespace_t *find_namespace_and_attach_writer(void)
 
 static int handle_receive_message(logging_namespace_t *namespace, int level)
 {
-	bool skip_message = (level > DEFAULT_LOGGING_LEVEL) && !namespace_has_reader(namespace);
+	bool skip_message = (level > DEFAULT_LOGGING_LEVEL) && !namespace_has_reader(namespace, level);
 	if (skip_message) {
 		/* Abort the actual message buffer transfer. */
 		ipc_callid_t callid;

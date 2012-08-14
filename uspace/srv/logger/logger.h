@@ -41,7 +41,7 @@
 #include <bool.h>
 #include <fibril_synch.h>
 
-#define DEFAULT_LOGGING_LEVEL LVL_WARN
+#define DEFAULT_LOGGING_LEVEL LVL_NOTE
 
 #define NAME "logger"
 #define MAX_NAMESPACE_LENGTH 256
@@ -66,7 +66,7 @@ void namespace_reader_detach(logging_namespace_t *);
 void namespace_writer_detach(logging_namespace_t *);
 
 void namespace_wait_for_reader_change(logging_namespace_t *, bool *);
-bool namespace_has_reader(logging_namespace_t *);
+bool namespace_has_reader(logging_namespace_t *, log_level_t);
 void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
 log_message_t *namespace_get_next_message(logging_namespace_t *);
 

@@ -39,11 +39,14 @@
  * Logging namespaces.
  */
 
+
 struct logging_namespace {
 	fibril_mutex_t guard;
 	size_t writers_count;
 	fibril_condvar_t reader_appeared_cv;
 	bool has_reader;
+	FILE *logfile;
+	log_level_t logfile_level;
 	const char *name;
 	link_t link;
 	prodcons_t messages;
@@ -107,6 +110,23 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 		return NULL;
 	}
 
+	char *logfilename;
+	int rc = asprintf(&logfilename, "/log/%s", name);
+	if (rc < 0) {
+		free(namespace->name);
+		free(namespace);
+		return NULL;
+	}
+	namespace->logfile = fopen(logfilename, "a");
+	free(logfilename);
+	if (namespace->logfile == NULL) {
+		free(namespace->name);
+		free(namespace);
+		return NULL;
+	}
+
+	namespace->logfile_level = DEFAULT_LOGGING_LEVEL;
+
 	fibril_mutex_initialize(&namespace->guard);
 	fibril_condvar_initialize(&namespace->reader_appeared_cv);
 	prodcons_initialize(&namespace->messages);
@@ -152,6 +172,7 @@ static void namespace_destroy_careful(logging_namespace_t *namespace)
 	fibril_mutex_unlock(&namespace_list_guard);
 
 	// TODO - destroy pending messages
+	fclose(namespace->logfile);
 	free(namespace->name);
 	free(namespace);
 }
@@ -222,10 +243,11 @@ void namespace_writer_detach(logging_namespace_t *namespace)
 	namespace_destroy_careful(namespace);
 }
 
-bool namespace_has_reader(logging_namespace_t *namespace)
+bool namespace_has_reader(logging_namespace_t *namespace, log_level_t level)
 {
 	fibril_mutex_lock(&namespace->guard);
-	bool has_reader = namespace->has_reader;
+	bool has_reader = namespace->has_reader
+	    || level <= namespace->logfile_level;
 	fibril_mutex_unlock(&namespace->guard);
 	return has_reader;
 }
@@ -246,6 +268,10 @@ void namespace_add_message(logging_namespace_t *namespace, const char *message, 
 {
 	if (level <= DEFAULT_LOGGING_LEVEL) {
 		printf("[%s %d]: %s\n", namespace->name, level, message);
+	}
+	if (level <= namespace->logfile_level) {
+		fprintf(namespace->logfile, "[%d]: %s\n", level, message);
+		fflush(namespace->logfile);
 	}
 
 	fibril_mutex_lock(&namespace->guard);
