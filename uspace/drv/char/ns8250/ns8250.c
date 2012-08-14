@@ -744,9 +744,8 @@ static void ns8250_read_from_device(ns8250_t *ns)
 	ns8250_regs_t *regs = ns->regs;
 	bool cont = true;
 	
+	fibril_mutex_lock(&ns->mutex);
 	while (cont) {
-		fibril_mutex_lock(&ns->mutex);
-		
 		cont = ns8250_received(regs);
 		if (cont) {
 			uint8_t val = ns8250_read_8(regs);
@@ -756,6 +755,7 @@ static void ns8250_read_from_device(ns8250_t *ns)
 				if (!buf_push_back(&ns->input_buffer, val)) {
 					ddf_msg(LVL_WARN, "Buffer overflow on "
 					    "%s.", ns->dev->name);
+					break;
 				} else {
 					ddf_msg(LVL_DEBUG2, "Character %c saved "
 					    "to the buffer of %s.",
@@ -765,10 +765,9 @@ static void ns8250_read_from_device(ns8250_t *ns)
 				}
 			}
 		}
-		
-		fibril_mutex_unlock(&ns->mutex);
-		fibril_yield();
 	}
+	fibril_mutex_unlock(&ns->mutex);
+	fibril_yield();
 }
 
 /** The interrupt handler.
