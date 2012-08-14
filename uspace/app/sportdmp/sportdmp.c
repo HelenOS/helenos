@@ -139,12 +139,9 @@ int main(int argc, char **argv)
 		}
 		ssize_t i;
 		for (i = 0; i < read; i++) {
-			if ((buf[i] >= 32) && (buf[i] < 128))
-				putchar((wchar_t) buf[i]);
-			else
-				putchar('.');
-			fflush(stdout);
+			printf("%02hhx ", buf[i]);
 		}
+		fflush(stdout);
 	}
 	
 	free(buf);
