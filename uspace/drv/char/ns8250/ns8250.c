@@ -1081,7 +1081,7 @@ static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
  */
 static void ns8250_init(void)
 {
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME, LVL_WARN);
 	
 	ns8250_dev_ops.open = &ns8250_open;
 	ns8250_dev_ops.close = &ns8250_close;
