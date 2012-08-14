@@ -121,8 +121,8 @@ extern int block_cache_fini(service_id_t);
 extern int block_get(block_t **, service_id_t, aoff64_t, int);
 extern int block_put(block_t *);
 
-extern int block_seqread(service_id_t, size_t *, size_t *, aoff64_t *, void *,
-    size_t);
+extern int block_seqread(service_id_t, void *, size_t *, size_t *, aoff64_t *,
+    void *, size_t);
 
 extern int block_get_bsize(service_id_t, size_t *);
 extern int block_get_nblocks(service_id_t, aoff64_t *);

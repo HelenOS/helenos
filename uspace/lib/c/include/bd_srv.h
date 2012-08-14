@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmast
+/** @addtogroup libc
  * @{
  */
 /** @file
- * USB mass storage commands.
  */
 
-#ifndef USBMAST_H_
-#define USBMAST_H_
+#ifndef LIBC_BD_SRV_H_
+#define LIBC_BD_SRV_H_
 
-#include <bd_srv.h>
+#include <async.h>
+#include <fibril_synch.h>
+#include <bool.h>
 #include <sys/types.h>
-#include <usb/usb.h>
 
-/** Mass storage device. */
-typedef struct usbmast_dev {
-	/** DDF device */
-	ddf_dev_t *ddf_dev;
-	/** USB device */
-	usb_device_t *usb_dev;
-	/** Number of LUNs */
-	unsigned lun_count;
-	/** LUN functions */
-	ddf_fun_t **luns;
-} usbmast_dev_t;
+typedef struct bd_ops bd_ops_t;
 
-
-/** Mass storage function.
- *
- * Serves as soft state for function/LUN.
- */
 typedef struct {
-	/** Mass storage device the function belongs to */
-	usbmast_dev_t *mdev;
-	/** DDF function */
-	ddf_fun_t *ddf_fun;
-	/** LUN */
-	unsigned lun;
-	/** Total number of blocks */
-	uint64_t nblocks;
-	/** Block size in bytes */
-	size_t block_size;
-	/** Block device server structure */
-	bd_srv_t bd;
-} usbmast_fun_t;
+	fibril_mutex_t lock;
+	bool connected;
+	bd_ops_t *ops;
+	void *arg;
+	async_sess_t *client_sess;
+} bd_srv_t;
+
+typedef struct bd_ops {
+	int (*open)(bd_srv_t *);
+	int (*close)(bd_srv_t *);
+	int (*read_blocks)(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+	int (*read_toc)(bd_srv_t *, uint8_t, void *, size_t);
+	int (*write_blocks)(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+	int (*get_block_size)(bd_srv_t *, size_t *);
+	int (*get_num_blocks)(bd_srv_t *, aoff64_t *);
+} bd_ops_t;
+
+extern void bd_srv_init(bd_srv_t *);
+
+extern int bd_conn(ipc_callid_t, ipc_call_t *, void *);
 
 #endif
 
-/**
- * @}
+/** @}
  */
