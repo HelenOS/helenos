@@ -185,6 +185,13 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 		}
 	}
 
+	/*
+	 * Remove the call from the sender's active call list.
+	 */
+	spinlock_lock(&call->sender->active_calls_lock);
+	list_remove(&call->ta_link);
+	spinlock_unlock(&call->sender->active_calls_lock);
+
 	call->data.task_id = TASK->taskid;
 	
 	if (do_lock)
@@ -428,13 +435,6 @@ restart:
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
 		atomic_dec(&request->data.phone->active_calls);
-
-		/*
-		 * Remove the call from this task's active call list.
-		 */
-		spinlock_lock(&TASK->active_calls_lock);
-		list_remove(&request->ta_link);
-		spinlock_unlock(&TASK->active_calls_lock);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
