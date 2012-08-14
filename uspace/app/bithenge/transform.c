@@ -476,20 +476,32 @@ static const bithenge_transform_ops_t barrier_transform_ops = {
 	.destroy = barrier_transform_destroy,
 };
 
-/** Create a wrapper transform that creates a new scope. This ensures nothing
- * from the outer scope is passed in, other than parameters. The wrapper may
- * have a different value for num_params. Takes a reference to @a transform,
- * which it will use for all operations.
- * @param[out] out Holds the created transform.
- * @param transform The transform to wrap.
- * @param num_params The number of parameters to require, which may be 0.
+/** Set the subtransform of a barrier transform. This must be done before the
+ * barrier transform is used. Takes a reference to @a transform.
+ * @param base The barrier transform.
+ * @param transform The subtransform to use for all operations.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_barrier_transform(bithenge_transform_t **out,
-    bithenge_transform_t *transform, int num_params)
+int bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
+    bithenge_transform_t *transform)
 {
 	assert(transform);
 	assert(bithenge_transform_num_params(transform) == 0);
 
+	barrier_transform_t *self = transform_as_barrier(base);
+	assert(!self->transform);
+	self->transform = transform;
+	return EOK;
+}
+
+/** Create a wrapper transform that creates a new scope. This ensures nothing
+ * from the outer scope is passed in, other than parameters. The wrapper may
+ * have a different value for num_params. The subtransform must be set with @a
+ * bithenge_barrier_transform_set_subtransform before the result is used.
+ * @param[out] out Holds the created transform.
+ * @param num_params The number of parameters to require, which may be 0.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_barrier_transform(bithenge_transform_t **out, int num_params)
+{
 	int rc;
 	barrier_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
@@ -500,11 +512,10 @@ int bithenge_new_barrier_transform(bithenge_transform_t **out,
 	    &barrier_transform_ops, num_params);
 	if (rc != EOK)
 		goto error;
-	self->transform = transform;
+	self->transform = NULL;
 	*out = barrier_as_transform(self);
 	return EOK;
 error:
-	bithenge_transform_dec_ref(transform);
 	free(self);
 	return rc;
 }

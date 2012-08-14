@@ -52,8 +52,11 @@
 /** Single-character symbols are represented by the character itself. Every
  * other token uses one of these values: */
 typedef enum {
-	TOKEN_EQUALS = -128,
-	TOKEN_ERROR,
+	TOKEN_ERROR = -128,
+
+	TOKEN_AND,
+	TOKEN_CONCAT,
+	TOKEN_EQUALS,
 	TOKEN_EOF,
 	TOKEN_GREATER_THAN_OR_EQUAL,
 	TOKEN_IDENTIFIER,
@@ -62,6 +65,7 @@ typedef enum {
 	TOKEN_LEFT_ARROW,
 	TOKEN_LESS_THAN_OR_EQUAL,
 	TOKEN_NOT_EQUAL,
+	TOKEN_OR,
 
 	/* Keywords */
 	TOKEN_DO,
@@ -307,6 +311,27 @@ static void next_token(state_t *state)
 			state->token = TOKEN_NOT_EQUAL;
 			state->buffer_pos++;
 		}
+	} else if (ch == '&') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '&') {
+			state->token = TOKEN_AND;
+			state->buffer_pos++;
+		}
+	} else if (ch == '|') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '|') {
+			state->token = TOKEN_OR;
+			state->buffer_pos++;
+		}
+	} else if (ch == '+') {
+		state->token = ch;
+		state->buffer_pos++;
+		if (state->buffer[state->buffer_pos] == '+') {
+			state->token = TOKEN_CONCAT;
+			state->buffer_pos++;
+		}
 	} else {
 		state->token = ch;
 		state->buffer_pos++;
@@ -414,6 +439,7 @@ static bithenge_expression_t *parse_expression(state_t *state);
 
 typedef enum {
 	PRECEDENCE_NONE,
+	PRECEDENCE_AND,
 	PRECEDENCE_EQUALS,
 	PRECEDENCE_COMPARE,
 	PRECEDENCE_ADD,
@@ -445,6 +471,12 @@ static bithenge_binary_op_t token_as_binary_operator(token_type_t token)
 		return BITHENGE_EXPRESSION_EQUALS;
 	case TOKEN_NOT_EQUAL:
 		return BITHENGE_EXPRESSION_NOT_EQUALS;
+	case TOKEN_AND:
+		return BITHENGE_EXPRESSION_AND;
+	case TOKEN_OR:
+		return BITHENGE_EXPRESSION_OR;
+	case TOKEN_CONCAT:
+		return BITHENGE_EXPRESSION_CONCAT;
 	default:
 		return BITHENGE_EXPRESSION_INVALID_BINARY_OP;
 	}
@@ -454,7 +486,8 @@ static precedence_t binary_operator_precedence(bithenge_binary_op_t op)
 {
 	switch (op) {
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
-	case BITHENGE_EXPRESSION_SUBTRACT:
+	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
+	case BITHENGE_EXPRESSION_CONCAT:
 		return PRECEDENCE_ADD;
 	case BITHENGE_EXPRESSION_MULTIPLY: /* fallthrough */
 	case BITHENGE_EXPRESSION_INTEGER_DIVIDE: /* fallthrough */
@@ -468,6 +501,9 @@ static precedence_t binary_operator_precedence(bithenge_binary_op_t op)
 	case BITHENGE_EXPRESSION_EQUALS: /* fallthrough */
 	case BITHENGE_EXPRESSION_NOT_EQUALS:
 		return PRECEDENCE_EQUALS;
+	case BITHENGE_EXPRESSION_AND: /* fallthrough */
+	case BITHENGE_EXPRESSION_OR:
+		return PRECEDENCE_AND;
 	default:
 		assert(false);
 		return PRECEDENCE_NONE;
@@ -608,7 +644,16 @@ static bithenge_expression_t *parse_postfix_expression(state_t *state)
 				return NULL;
 			}
 
-			rc = bithenge_member_expression(&expr, expr, key);
+			bithenge_expression_t *key_expr;
+			rc = bithenge_const_expression(&key_expr, key);
+			if (rc != EOK) {
+				error_errno(state, rc);
+				bithenge_expression_dec_ref(expr);
+				return NULL;
+			}
+
+			rc = bithenge_binary_expression(&expr,
+			    BITHENGE_EXPRESSION_MEMBER, expr, key_expr);
 			if (rc != EOK) {
 				error_errno(state, rc);
 				return NULL;
@@ -617,30 +662,44 @@ static bithenge_expression_t *parse_postfix_expression(state_t *state)
 			next_token(state);
 			bithenge_expression_t *start = parse_expression(state);
 			bool absolute_limit = false;
-			if (state->token == ',') {
-				absolute_limit = false;
+			if (state->token == ',' || state->token == ':') {
+				absolute_limit = state->token == ':';
 				next_token(state);
-			} else if (state->token == ':') {
-				absolute_limit = true;
-				next_token(state);
-			} else {
-				syntax_error(state, "expected ',' or ':'");
-			}
-			bithenge_expression_t *limit = NULL;
-			if (!(state->token == ']' && absolute_limit))
-				limit = parse_expression(state);
-			expect(state, ']');
+				bithenge_expression_t *limit = NULL;
+				if (!(state->token == ']' && absolute_limit))
+					limit = parse_expression(state);
+				expect(state, ']');
 
-			if (state->error != EOK) {
+				if (state->error != EOK) {
+					bithenge_expression_dec_ref(expr);
+					bithenge_expression_dec_ref(start);
+					bithenge_expression_dec_ref(limit);
+					return NULL;
+				}
+				rc = bithenge_subblob_expression(&expr, expr, start,
+				    limit, absolute_limit);
+				if (rc != EOK) {
+					error_errno(state, rc);
+					return NULL;
+				}
+			} else if (state->token == ']') {
+				next_token(state);
+
+				if (state->error != EOK) {
+					bithenge_expression_dec_ref(expr);
+					bithenge_expression_dec_ref(start);
+					return NULL;
+				}
+				rc = bithenge_binary_expression(&expr,
+				    BITHENGE_EXPRESSION_MEMBER, expr, start);
+				if (rc != EOK) {
+					error_errno(state, rc);
+					return NULL;
+				}
+			} else {
+				syntax_error(state, "expected ',', ':', or ']'");
 				bithenge_expression_dec_ref(expr);
 				bithenge_expression_dec_ref(start);
-				bithenge_expression_dec_ref(limit);
-				return NULL;
-			}
-			rc = bithenge_subblob_expression(&expr, expr, start,
-			    limit, absolute_limit);
-			if (rc != EOK) {
-				error_errno(state, rc);
 				return NULL;
 			}
 		} else {
@@ -1172,20 +1231,32 @@ static void parse_definition(state_t *state)
 		expect(state, ')');
 	}
 
+	bithenge_transform_t *barrier = NULL;
+	if (state->error == EOK) {
+		int rc = bithenge_new_barrier_transform(&barrier,
+		    state->num_params);
+		if (rc != EOK) {
+			barrier = NULL;
+			error_errno(state, rc);
+		}
+	}
+
+	add_named_transform(state, barrier, name);
+
 	expect(state, '=');
 	bithenge_transform_t *xform = parse_transform(state);
 	expect(state, ';');
 
 	if (state->error == EOK) {
-		int rc = bithenge_new_barrier_transform(&xform, xform,
-		    state->num_params);
-		if (rc != EOK) {
-			xform = NULL;
+		int rc = bithenge_barrier_transform_set_subtransform(barrier,
+		    xform);
+		xform = NULL;
+		if (rc != EOK)
 			error_errno(state, rc);
-		}
 	}
 
-	add_named_transform(state, xform, name);
+	if (state->error != EOK)
+		bithenge_transform_dec_ref(xform);
 
 	for (int i = 0; i < state->num_params; i++)
 		free(state->parameter_names[i]);

@@ -618,6 +618,8 @@ error:
 
 /***************** bithenge_repeat_transform                 *****************/
 
+/* TODO: ignore errors */
+
 typedef struct {
 	bithenge_transform_t base;
 	bithenge_expression_t *expr;

@@ -49,7 +49,7 @@ SOURCES = \
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 $(BINARY): $(OBJECTS)
-	$(CC) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
 	find . -name '*.o' -follow -exec rm \{\} \;

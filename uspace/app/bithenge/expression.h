@@ -92,17 +92,25 @@ static inline int bithenge_expression_evaluate(bithenge_expression_t *self,
 
 typedef enum {
 	BITHENGE_EXPRESSION_INVALID_BINARY_OP,
+
 	BITHENGE_EXPRESSION_ADD,
 	BITHENGE_EXPRESSION_SUBTRACT,
 	BITHENGE_EXPRESSION_MULTIPLY,
 	BITHENGE_EXPRESSION_INTEGER_DIVIDE,
 	BITHENGE_EXPRESSION_MODULO,
+
 	BITHENGE_EXPRESSION_LESS_THAN,
 	BITHENGE_EXPRESSION_GREATER_THAN,
 	BITHENGE_EXPRESSION_LESS_THAN_OR_EQUAL,
 	BITHENGE_EXPRESSION_GREATER_THAN_OR_EQUAL,
 	BITHENGE_EXPRESSION_EQUALS,
 	BITHENGE_EXPRESSION_NOT_EQUALS,
+
+	BITHENGE_EXPRESSION_AND,
+	BITHENGE_EXPRESSION_OR,
+
+	BITHENGE_EXPRESSION_MEMBER,
+	BITHENGE_EXPRESSION_CONCAT,
 } bithenge_binary_op_t;
 
 int bithenge_init_expression(bithenge_expression_t *,
@@ -113,8 +121,6 @@ int bithenge_in_node_expression(bithenge_expression_t **);
 int bithenge_current_node_expression(bithenge_expression_t **);
 int bithenge_param_expression(bithenge_expression_t **, int);
 int bithenge_const_expression(bithenge_expression_t **, bithenge_node_t *);
-int bithenge_member_expression(bithenge_expression_t **,
-    bithenge_expression_t *, bithenge_node_t *);
 int bithenge_scope_member_expression(bithenge_expression_t **,
     bithenge_node_t *);
 int bithenge_subblob_expression(bithenge_expression_t **,

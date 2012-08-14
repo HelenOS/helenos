@@ -180,18 +180,18 @@ static int print_blob(state_t *state, bithenge_node_t *node)
 {
 	bithenge_blob_t *blob = bithenge_node_as_blob(node);
 	aoff64_t pos = 0;
-	char buffer[1024];
+	uint8_t buffer[1024];
 	aoff64_t size = sizeof(buffer);
 	int rc;
 	state_printf(state,
 	    state->type == BITHENGE_PRINT_PYTHON ? "b\"" : "\"");
 	do {
-		rc = bithenge_blob_read(blob, pos, buffer, &size);
+		rc = bithenge_blob_read(blob, pos, (char *)buffer, &size);
 		if (rc != EOK)
 			return rc;
 		for (aoff64_t i = 0; i < size; i++)
 			state_printf(state, "\\x%02x",
-			    (unsigned int)(uint8_t)buffer[i]);
+			    (unsigned int)buffer[i]);
 		pos += size;
 	} while (size == sizeof(buffer));
 	state_printf(state, "\"");

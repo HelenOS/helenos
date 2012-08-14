@@ -242,6 +242,8 @@ int bithenge_new_blob_from_buffer(bithenge_node_t **, const void *, size_t,
 int bithenge_new_offset_blob(bithenge_node_t **, bithenge_blob_t *, aoff64_t);
 int bithenge_new_subblob(bithenge_node_t **, bithenge_blob_t *, aoff64_t,
     aoff64_t);
+int bithenge_concat_blob(bithenge_node_t **, bithenge_blob_t *,
+    bithenge_blob_t *);
 bool bithenge_blob_equal(bithenge_blob_t *, bithenge_blob_t *);
 
 #endif

@@ -43,7 +43,23 @@ transform fat_attributes = struct {
 	.reserved <- bit;
 } <- bits_le <- known_length(1);
 
-transform fat_dir_entry(disk) = struct {
+transform file_data(data, bits, fat, cluster_size, start) = (in.data) <- struct {
+	.cluster <- (data[(start-2)*cluster_size, cluster_size]);
+	.last_cluster_number <- switch (bits) {
+		12: (488);       # 0x00000ff8
+		16: (65528);     # 0x0000fff8
+		32: (268435448); # 0x0ffffff8
+	};
+	.next <- (fat[start]);
+	if (.next == 0 || .next >= .last_cluster_number) {
+		.data <- (.cluster);
+	} else {
+		.rest <- file_data(data, bits, fat, cluster_size, .next);
+		.data <- (.cluster ++ .rest);
+	}
+};
+
+transform fat_dir_entry(data, bits, fat, cluster_size, self_start, parent) = struct {
 	.filename <- known_length(8);
 	.extension <- known_length(3);
 	.attrs <- fat_attributes;
@@ -57,6 +73,18 @@ transform fat_dir_entry(disk) = struct {
 	.mdate <- u16;
 	.start <- u16;
 	.size <- u32;
+	.size_shown <- if (.size > 32) { (32) } else { (.size) };
+
+	if (.start != 0 && .start != self_start && .start != parent) {
+		.data
+		    <- if (.attrs.subdirectory) {
+		        repeat { fat_dir_entry(data, bits, fat, cluster_size, .start, self_start) }
+		    } else {
+		        (in[0,.size_shown])
+		    }
+		    <- if (.size != 0) { (in[0,.size]) } else { (in) }
+		    <- file_data(data, bits, fat, cluster_size, .start);
+	}
 };
 
 transform fat_table(bits, num_clusters) = switch (bits) {
@@ -111,6 +139,7 @@ transform fat_filesystem_tree(disk) = struct {
 		(.super.bpb331.num_sectors_32)
 	};
 
+	.cluster_size <- (.super.sectors_per_cluster * .super.bytes_per_sector);
 	.first_root_sector <- (.super.num_reserved_sectors + .super.num_fats * .super.sectors_per_fat);
 	.first_data_sector <- (.first_root_sector +
 	    (.super.num_root_entries * 32 + .super.bytes_per_sector - 1) //
@@ -127,7 +156,11 @@ transform fat_filesystem_tree(disk) = struct {
 	} <- (disk);
 
 	.root <- partial(.first_root_sector * .super.bytes_per_sector) {
-		repeat(.super.num_root_entries) { fat_dir_entry(disk) } } <- (disk);
+		repeat(.super.num_root_entries) {
+			fat_dir_entry(disk[.first_data_sector * .super.bytes_per_sector:],
+			    .bits, .fats[0], .cluster_size, 0, 0)
+		}
+	} <- (disk);
 };
 
 transform fat_filesystem = partial {fat_filesystem_tree(in)};

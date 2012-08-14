@@ -458,6 +458,134 @@ int bithenge_new_subblob(bithenge_node_t **out, bithenge_blob_t *source,
 	return new_subblob(out, source, offset, size, true);
 }
 
+typedef struct {
+	bithenge_blob_t base;
+	bithenge_blob_t *a, *b;
+	aoff64_t a_size;
+} concat_blob_t;
+
+static inline concat_blob_t *blob_as_concat(bithenge_blob_t *base)
+{
+	return (concat_blob_t *)base;
+}
+
+static inline bithenge_blob_t *concat_as_blob(concat_blob_t *blob)
+{
+	return &blob->base;
+}
+
+static int concat_blob_size(bithenge_blob_t *base, aoff64_t *size)
+{
+	concat_blob_t *self = blob_as_concat(base);
+	int rc = bithenge_blob_size(self->b, size);
+	*size += self->a_size;
+	return rc;
+}
+
+static int concat_blob_read(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size)
+{
+	int rc = EOK;
+	concat_blob_t *self = blob_as_concat(base);
+
+	aoff64_t a_size = 0, b_size = 0;
+	if (offset < self->a_size) {
+		a_size = *size;
+		rc = bithenge_blob_read(self->a, offset, buffer, &a_size);
+		if (rc != EOK)
+			return rc;
+	}
+	if (offset + *size > self->a_size) {
+		b_size = *size - a_size;
+		rc = bithenge_blob_read(self->b,
+		    offset + a_size - self->a_size, buffer + a_size, &b_size);
+		if (rc != EOK)
+			return rc;
+	}
+	assert(a_size + b_size <= *size);
+	*size = a_size + b_size;
+	return rc;
+}
+
+static int concat_blob_read_bits(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size, bool little_endian)
+{
+	int rc = EOK;
+	concat_blob_t *self = blob_as_concat(base);
+
+	aoff64_t a_size = 0, b_size = 0;
+	if (offset < self->a_size) {
+		a_size = *size;
+		rc = bithenge_blob_read_bits(self->a, offset, buffer, &a_size,
+		    little_endian);
+		if (rc != EOK)
+			return rc;
+	}
+	if (offset + *size > self->a_size) {
+		b_size = offset + *size - self->a_size;
+		rc = bithenge_blob_read_bits(self->b,
+		    offset + a_size - self->a_size, buffer + a_size, &b_size,
+		    little_endian);
+		if (rc != EOK)
+			return rc;
+	}
+	*size = a_size + b_size;
+	return rc;
+}
+
+static void concat_blob_destroy(bithenge_blob_t *base)
+{
+	concat_blob_t *self = blob_as_concat(base);
+	bithenge_blob_dec_ref(self->a);
+	bithenge_blob_dec_ref(self->b);
+	free(self);
+}
+
+static const bithenge_random_access_blob_ops_t concat_blob_ops = {
+	.size = concat_blob_size,
+	.read = concat_blob_read,
+	.read_bits = concat_blob_read_bits,
+	.destroy = concat_blob_destroy,
+};
+
+/** Create a concatenated blob. Takes references to @a a and @a b.
+ * @param[out] out Holds the new blob.
+ * @param a The first blob.
+ * @param b The second blob.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_concat_blob(bithenge_node_t **out, bithenge_blob_t *a,
+    bithenge_blob_t *b)
+{
+	assert(out);
+	assert(a);
+	assert(b);
+	int rc;
+	concat_blob_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_blob_size(a, &self->a_size);
+	if (rc != EOK)
+		goto error;
+
+	rc = bithenge_init_random_access_blob(concat_as_blob(self),
+	    &concat_blob_ops);
+	if (rc != EOK)
+		goto error;
+	self->a = a;
+	self->b = b;
+	*out = bithenge_blob_as_node(concat_as_blob(self));
+	return EOK;
+
+error:
+	bithenge_blob_dec_ref(a);
+	bithenge_blob_dec_ref(b);
+	free(self);
+	return rc;
+}
+
 /** Check whether the contents of two blobs are equal.
  * @memberof bithenge_blob_t
  * @param a, b Blobs to compare.

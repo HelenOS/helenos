@@ -100,6 +100,7 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 
 	/* Check types and get values. */
 	bithenge_int_t a_int = 0, b_int = 0;
+	bool a_bool = false, b_bool = false;
 	switch (self->op) {
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
 	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
@@ -118,6 +119,22 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		a_int = bithenge_integer_node_value(a);
 		b_int = bithenge_integer_node_value(b);
 		break;
+	case BITHENGE_EXPRESSION_AND: /* fallthrough */
+	case BITHENGE_EXPRESSION_OR:
+		rc = EINVAL;
+		if (bithenge_node_type(a) != BITHENGE_NODE_BOOLEAN)
+			goto error;
+		if (bithenge_node_type(b) != BITHENGE_NODE_BOOLEAN)
+			goto error;
+		a_bool = bithenge_boolean_node_value(a);
+		b_bool = bithenge_boolean_node_value(b);
+		break;
+	case BITHENGE_EXPRESSION_CONCAT:
+		if (bithenge_node_type(a) != BITHENGE_NODE_BLOB)
+			goto error;
+		if (bithenge_node_type(b) != BITHENGE_NODE_BLOB)
+			goto error;
+		break;
 	default:
 		break;
 	}
@@ -134,7 +151,7 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		break;
 	case BITHENGE_EXPRESSION_INTEGER_DIVIDE:
 		/* Integer division can behave in three major ways when the
-		 * operands are signed: truncated, floored, or Euclidean. When
+		  operands are signed: truncated, floored, or Euclidean. When
 		 * b > 0, we give the same result as floored and Euclidean;
 		 * otherwise, we currently raise an error. See
 		 * https://en.wikipedia.org/wiki/Modulo_operation and its
@@ -172,7 +189,23 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		break;
 	case BITHENGE_EXPRESSION_NOT_EQUALS:
 		rc = bithenge_new_boolean_node(out,
-		    ~bithenge_node_equal(a, b));
+		    !bithenge_node_equal(a, b));
+		break;
+	case BITHENGE_EXPRESSION_AND:
+		rc = bithenge_new_boolean_node(out, a_bool && b_bool);
+		break;
+	case BITHENGE_EXPRESSION_OR:
+		rc = bithenge_new_boolean_node(out, a_bool || b_bool);
+		break;
+	case BITHENGE_EXPRESSION_MEMBER:
+		rc = bithenge_node_get(a, b, out);
+		b = NULL;
+		break;
+	case BITHENGE_EXPRESSION_CONCAT:
+		rc = bithenge_concat_blob(out, bithenge_node_as_blob(a),
+		    bithenge_node_as_blob(b));
+		a = NULL;
+		b = NULL;
 		break;
 	case BITHENGE_EXPRESSION_INVALID_BINARY_OP:
 		assert(false);
@@ -429,88 +462,6 @@ int bithenge_const_expression(bithenge_expression_t **out,
 error:
 	free(self);
 	bithenge_node_dec_ref(node);
-	return rc;
-}
-
-
-
-/***************** member_expression                         *****************/
-
-typedef struct {
-	bithenge_expression_t base;
-	bithenge_expression_t *expr;
-	bithenge_node_t *key;
-} member_expression_t;
-
-static member_expression_t *expression_as_member(bithenge_expression_t *base)
-{
-	return (member_expression_t *)base;
-}
-
-static bithenge_expression_t *member_as_expression(member_expression_t *expr)
-{
-	return &expr->base;
-}
-
-static int member_expression_evaluate(bithenge_expression_t *base, 
-    bithenge_scope_t *scope, bithenge_node_t **out)
-{
-	member_expression_t *self = expression_as_member(base);
-	bithenge_node_t *node;
-	int rc = bithenge_expression_evaluate(self->expr, scope, &node);
-	if (rc != EOK)
-		return rc;
-	bithenge_node_inc_ref(self->key);
-	rc = bithenge_node_get(node, self->key, out);
-	bithenge_node_dec_ref(node);
-	if (rc == ENOENT)
-		return bithenge_scope_error(scope, "No member %t", self->key);
-	return rc;
-}
-
-static void member_expression_destroy(bithenge_expression_t *base)
-{
-	member_expression_t *self = expression_as_member(base);
-	bithenge_expression_dec_ref(self->expr);
-	bithenge_node_dec_ref(self->key);
-	free(self);
-}
-
-static const bithenge_expression_ops_t member_expression_ops = {
-	.evaluate = member_expression_evaluate,
-	.destroy = member_expression_destroy,
-};
-
-/** Create an expression that gets a member from a node. Takes references to
- * @a expr and @a key.
- * @param[out] out Holds the new expression.
- * @param expr Calculates the node to get the member of.
- * @param key The member to get.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_member_expression(bithenge_expression_t **out,
-    bithenge_expression_t *expr, bithenge_node_t *key)
-{
-	int rc;
-	member_expression_t *self = malloc(sizeof(*self));
-	if (!self) {
-		rc = ENOMEM;
-		goto error;
-	}
-
-	rc = bithenge_init_expression(member_as_expression(self),
-	    &member_expression_ops);
-	if (rc != EOK)
-		goto error;
-
-	self->expr = expr;
-	self->key = key;
-	*out = member_as_expression(self);
-	return EOK;
-
-error:
-	bithenge_expression_dec_ref(expr);
-	bithenge_node_dec_ref(key);
-	free(self);
 	return rc;
 }
 
