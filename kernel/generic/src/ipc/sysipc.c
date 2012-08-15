@@ -464,6 +464,8 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	case IPC_M_STATE_CHANGE_AUTHORIZE:
 		rc = a_preprocess_m_state_change_authorize(answer, olddata);
 		break;
+	default:
+		break;
 	}
 	
 	return rc;
