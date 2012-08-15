@@ -125,8 +125,9 @@ static void file_save_as(void);
 static int file_insert(char *fname);
 static int file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
-static char *filename_prompt(char const *prompt, char const *init_value);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
+
+static char *prompt(char const *prompt, char const *init_value);
 
 static void pane_text_display(void);
 static void pane_row_display(void);
@@ -141,6 +142,8 @@ static void caret_update(void);
 static void caret_move(int drow, int dcolumn, enum dir_spec align_dir);
 static void caret_move_word_left(void);
 static void caret_move_word_right(void);
+static void caret_move_to_line(int row);
+static void caret_go_to_line_ask(void);
 
 static bool selection_active(void);
 static void selection_sel_all(void);
@@ -403,6 +406,9 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	case KC_LEFT:
 		caret_move_word_left();
 		break;
+	case KC_L:
+		caret_go_to_line_ask();
+		break;
 	default:
 		break;
 	}
@@ -519,7 +525,7 @@ static void file_save_as(void)
 	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
 	char *fname;
 	
-	fname = filename_prompt("Save As", old_fname);
+	fname = prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
 		return;
@@ -534,8 +540,8 @@ static void file_save_as(void)
 	doc.file_name = fname;
 }
 
-/** Ask for a file name. */
-static char *filename_prompt(char const *prompt, char const *init_value)
+/** Ask for a string. */
+static char *prompt(char const *prompt, char const *init_value)
 {
 	kbd_event_t ev;
 	char *str;
@@ -1076,6 +1082,61 @@ static void caret_move_word_right(void)
 
 	pane.rflags |= REDRAW_TEXT;
 }
+
+/** Change the caret position to a beginning of a given line
+ */
+static void caret_move_to_line(int row)
+{
+	spt_t pt;
+	coord_t coord;
+	int num_rows;
+
+	tag_get_pt(&pane.caret_pos, &pt);
+	spt_get_coord(&pt, &coord);
+	coord.row = row;
+	coord.column = 1;
+
+	/* Clamp coordinates. */
+	if (coord.row < 1) coord.row = 1;
+	sheet_get_num_rows(&doc.sh, &num_rows);
+	if (coord.row > num_rows) coord.row = num_rows;
+
+	/*
+	 * Select the point before the character at the designated
+	 * coordinates. The character can be wider than one cell (e.g. tab).
+	 */
+	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &pt);
+	sheet_remove_tag(&doc.sh, &pane.caret_pos);
+	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+
+	/* Set the new value for @c ideal_column. */
+	spt_get_coord(&pt, &coord);
+	pane.ideal_column = coord.column;
+
+	caret_update();
+}
+
+/** Ask for line and go to it. */
+static void caret_go_to_line_ask(void)
+{
+	char *sline;
+	
+	sline = prompt("Go to line", "");
+	if (sline == NULL) {
+		status_display("Go to line cancelled.");
+		return;
+	}
+	
+	char *endptr;
+	int line = strtol(sline, &endptr, 10);
+	if (*endptr != '\0') {
+		status_display("Invalid number entered.");
+		return;
+	}
+	
+	caret_move_to_line(line);
+}
+
 
 /** Check for non-empty selection. */
 static bool selection_active(void)
