@@ -26,13 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
+USPACE_PREFIX = ../../..
 #LIBS = 
 #EXTRA_CFLAGS = 
-BINARY = wacomdump
+BINARY = isdv4_tablet
 
 SOURCES = \
-	wacomdump.c \
+	main.c \
 	isdv4.c
 
 include $(USPACE_PREFIX)/Makefile.common

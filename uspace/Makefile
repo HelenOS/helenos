@@ -69,7 +69,6 @@ DIRS = \
 	app/ping \
 	app/sysinfo \
 	app/mkbd \
-	app/wacomdump \
 	app/websrv \
 	srv/clipboard \
 	srv/locsrv \
@@ -99,6 +98,7 @@ DIRS = \
 	srv/fs/ext2fs \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
+	srv/hid/isdv4_tablet \
 	srv/hid/fb \
 	srv/hid/input \
 	srv/hid/remcons \

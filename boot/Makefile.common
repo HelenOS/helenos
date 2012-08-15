@@ -106,6 +106,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
+	$(USPACE_PATH)/srv/hid/isdv4_tablet/isdv4_tablet \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
@@ -186,7 +187,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
-	$(USPACE_PATH)/app/wacomdump/wacomdump \
 	$(USPACE_PATH)/app/websrv/websrv
 
 ifeq ($(CONFIG_PCC),y)

@@ -34,10 +34,11 @@
 #include <fibril_synch.h>
 #include <abi/ipc/methods.h>
 #include <ipc/mouseev.h>
+#include <inttypes.h>
 
 #include "isdv4.h"
 
-#define NAME "wacomdump"
+#define NAME "isdv4_tablet"
 
 static async_sess_t *client_sess = NULL;
 static fibril_mutex_t client_mutex;
@@ -45,7 +46,7 @@ static isdv4_state_t state;
 
 static void syntax_print(void)
 {
-	fprintf(stderr, "Usage: wacomdump [--baud=<baud>] [--print-events] [device_service]\n");
+	fprintf(stderr, "Usage: %s [--baud=<baud>] [--print-events] [device_service]\n", NAME);
 }
 
 static int read_fibril(void *unused)
@@ -174,6 +175,7 @@ int main(int argc, char **argv)
 {
 	sysarg_t baud = 38400;
 	service_id_t svc_id;
+	char *serial_port_name = NULL;
 
 	int arg = 1;
 	int rc;
@@ -204,7 +206,8 @@ int main(int argc, char **argv)
 	}
 
 	if (argc > arg) {
-		rc = loc_service_get_id(argv[arg], &svc_id, 0);
+		serial_port_name = argv[arg];
+		rc = loc_service_get_id(serial_port_name, &svc_id, 0);
 		if (rc != EOK) {
 			fprintf(stderr, "Cannot find device service %s\n",
 			    argv[arg]);
@@ -237,6 +240,13 @@ int main(int argc, char **argv)
 		}
 
 		svc_id = svc_ids[0];
+
+		rc = loc_service_get_name(svc_id, &serial_port_name);
+		if (rc != EOK) {
+			fprintf(stderr, "Failed getting name of serial service\n");
+			return 1;
+		}
+
 		free(svc_ids);
 	}
 
@@ -247,6 +257,8 @@ int main(int argc, char **argv)
 	}
 
 	fibril_mutex_initialize(&client_mutex);
+
+	printf(NAME ": Using serial port %s\n", serial_port_name);
 
 	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
 	    IPC_FLAG_BLOCKING);
@@ -300,9 +312,16 @@ int main(int argc, char **argv)
 	}
 
 	service_id_t service_id;
-	rc = loc_service_register("mouse/wacom", &service_id);
+	char *service_name;
+	rc = asprintf(&service_name, "mouse/isdv4-%" PRIun, svc_id);
+	if (rc < 0) {
+		printf(NAME ": Unable to create service name\n");
+		return rc;
+	}
+
+	rc = loc_service_register(service_name, &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register device mouse/wacom.\n");
+		printf(NAME ": Unable to register service %s.\n", service_name);
 		return rc;
 	}
 
