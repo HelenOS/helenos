@@ -118,7 +118,7 @@ typedef struct {
 	fibril_mutex_t lock;
 	service_id_t service_id;
 	int disk_id;
-	bd_srv_t bd;
+	bd_srvs_t bds;
 } disk_t;
 
 #endif

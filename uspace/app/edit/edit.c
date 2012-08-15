@@ -841,8 +841,8 @@ static void pane_row_range_display(int r0, int r1)
 
 		/* Fill until the end of display area. */
 
-		if (str_length(row_buf) < (unsigned) scr_columns)
-			fill = scr_columns - str_length(row_buf);
+		if ((unsigned)s_column - 1 < scr_columns)
+			fill = scr_columns - (s_column - 1);
 		else
 			fill = 0;
 

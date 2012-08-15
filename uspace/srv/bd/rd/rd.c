@@ -67,7 +67,7 @@ static size_t rd_size;
 /** Block size */
 static const size_t block_size = 512;
 
-static int rd_open(bd_srv_t *);
+static int rd_open(bd_srvs_t *, bd_srv_t *);
 static int rd_close(bd_srv_t *);
 static int rd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 static int rd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
@@ -92,15 +92,15 @@ static bd_ops_t rd_bd_ops = {
 	.get_num_blocks = rd_get_num_blocks
 };
 
-static bd_srv_t bd_srv;
+static bd_srvs_t bd_srvs;
 
 static void rd_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	bd_conn(iid, icall, &bd_srv);
+	bd_conn(iid, icall, &bd_srvs);
 }
 
 /** Open device. */
-static int rd_open(bd_srv_t *bd)
+static int rd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
@@ -174,8 +174,8 @@ static bool rd_init(void)
 	printf("%s: Found RAM disk at %p, %" PRIun " bytes\n", NAME,
 	    (void *) addr_phys, size);
 	
-	bd_srv_init(&bd_srv);
-	bd_srv.ops = &rd_bd_ops;
+	bd_srvs_init(&bd_srvs);
+	bd_srvs.ops = &rd_bd_ops;
 	
 	async_set_client_connection(rd_client_conn);
 	ret = loc_server_register(NAME);

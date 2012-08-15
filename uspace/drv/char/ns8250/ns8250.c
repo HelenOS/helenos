@@ -81,6 +81,8 @@
 
 /** Interrupt ID Register definition. */
 #define	NS8250_IID_ACTIVE	(1 << 0)
+#define NS8250_IID_CAUSE_MASK 0x0e
+#define NS8250_IID_CAUSE_RXSTATUS 0x06
 
 /** FIFO Control Register definition. */
 #define	NS8250_FCR_FIFOENABLE	(1 << 0)
@@ -178,6 +180,8 @@ typedef struct ns8250 {
 	cyclic_buffer_t input_buffer;
 	/** The fibril mutex for synchronizing the access to the device. */
 	fibril_mutex_t mutex;
+	/** Indicates that some data has become available */
+	fibril_condvar_t input_buffer_available;
 	/** True if device is removed. */
 	bool removed;
 } ns8250_t;
@@ -237,9 +241,13 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
 static int ns8250_read(ddf_fun_t *fun, char *buf, size_t count)
 {
 	ns8250_t *ns = NS8250(fun);
-	int ret = EOK;
+	int ret = 0;
+	
+	if (count == 0) return 0;
 	
 	fibril_mutex_lock(&ns->mutex);
+	while (buf_is_empty(&ns->input_buffer))
+		fibril_condvar_wait(&ns->input_buffer_available, &ns->mutex);
 	while (!buf_is_empty(&ns->input_buffer) && (size_t)ret < count) {
 		buf[ret] = (char)buf_pop_front(&ns->input_buffer);
 		ret++;
@@ -459,7 +467,7 @@ failed:
 static inline void ns8250_port_interrupts_enable(ns8250_regs_t *regs)
 {
 	/* Interrupt when data received. */
-	pio_write_8(&regs->ier, NS8250_IER_RXREADY);
+	pio_write_8(&regs->ier, NS8250_IER_RXREADY | NS8250_IER_RXSTATUS);
 	pio_write_8(&regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS 
 	    | NS8250_MCR_OUT2);
 }
@@ -497,6 +505,9 @@ static int ns8250_interrupt_enable(ns8250_t *ns)
 	}
 	async_msg_1(exch, IRC_ENABLE_INTERRUPT, ns->irq);
 	async_exchange_end(exch);
+
+	/* Read LSR to clear possible previous LSR interrupt */
+	pio_read_8(&ns->regs->lsr);
 
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(ns->regs);
@@ -694,10 +705,13 @@ static void ns8250_initialize_port(ns8250_t *ns)
 	ns8250_port_set_baud_rate(ns->regs, 38400);
 	/* 8 bits, no parity, two stop bits. */
 	ns8250_port_set_com_props(ns->regs, SERIAL_NO_PARITY, 8, 2);
-	/* Enable FIFO, clear them, with 14-byte threshold. */
+	/*
+	 * Enable FIFO, clear them, with 4-byte threshold for greater
+	 * reliability.
+	 */
 	pio_write_8(&ns->regs->iid, NS8250_FCR_FIFOENABLE
-	    | NS8250_FCR_RXFIFORESET | NS8250_FCR_TXFIFORESET 
-	    | NS8250_FCR_RXTRIGGERLOW | NS8250_FCR_RXTRIGGERHI);
+	    | NS8250_FCR_RXFIFORESET | NS8250_FCR_TXFIFORESET
+	    | NS8250_FCR_RXTRIGGERLOW);
 	/*
 	 * RTS/DSR set (Request to Send and Data Terminal Ready lines enabled),
 	 * Aux Output2 set - needed for interrupts.
@@ -730,41 +744,54 @@ static void ns8250_read_from_device(ns8250_t *ns)
 	ns8250_regs_t *regs = ns->regs;
 	bool cont = true;
 	
+	fibril_mutex_lock(&ns->mutex);
 	while (cont) {
-		fibril_mutex_lock(&ns->mutex);
-		
 		cont = ns8250_received(regs);
 		if (cont) {
 			uint8_t val = ns8250_read_8(regs);
 			
 			if (ns->client_connected) {
+				bool buf_was_empty = buf_is_empty(&ns->input_buffer);
 				if (!buf_push_back(&ns->input_buffer, val)) {
 					ddf_msg(LVL_WARN, "Buffer overflow on "
 					    "%s.", ns->dev->name);
+					break;
 				} else {
 					ddf_msg(LVL_DEBUG2, "Character %c saved "
 					    "to the buffer of %s.",
 					    val, ns->dev->name);
+					if (buf_was_empty)
+						fibril_condvar_broadcast(&ns->input_buffer_available);
 				}
 			}
 		}
-		
-		fibril_mutex_unlock(&ns->mutex);
-		fibril_yield();
 	}
+	fibril_mutex_unlock(&ns->mutex);
+	fibril_yield();
 }
 
 /** The interrupt handler.
  *
- * The serial port is initialized to interrupt when some data come, so the
- * interrupt is handled by reading the incomming data.
+ * The serial port is initialized to interrupt when some data come or line
+ * status register changes, so the interrupt is handled by reading the incoming
+ * data and reading the line status register.
  *
  * @param dev		The serial port device.
  */
 static inline void ns8250_interrupt_handler(ddf_dev_t *dev, ipc_callid_t iid,
     ipc_call_t *icall)
 {
-	ns8250_read_from_device(NS8250_FROM_DEV(dev));
+	ns8250_t *ns = NS8250_FROM_DEV(dev);
+
+	uint8_t iir = pio_read_8(&ns->regs->iid);
+	if ((iir & NS8250_IID_CAUSE_MASK) == NS8250_IID_CAUSE_RXSTATUS) {
+		uint8_t lsr = pio_read_8(&ns->regs->lsr);
+		if (lsr & NS8250_LSR_OE) {
+			ddf_msg(LVL_WARN, "Overrun error on %s", ns->dev->name);
+		}
+	}
+	
+	ns8250_read_from_device(ns);
 }
 
 /** Register the interrupt handler for the device.
@@ -810,6 +837,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	}
 	
 	fibril_mutex_initialize(&ns->mutex);
+	fibril_condvar_initialize(&ns->input_buffer_available);
 	ns->dev = dev;
 	
 	rc = ns8250_dev_initialize(ns);
@@ -1052,7 +1080,7 @@ static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
  */
 static void ns8250_init(void)
 {
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME, LVL_WARN);
 	
 	ns8250_dev_ops.open = &ns8250_open;
 	ns8250_dev_ops.close = &ns8250_close;

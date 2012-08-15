@@ -103,7 +103,7 @@ static void print_syntax(void);
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 
-static int ata_bd_open(bd_srv_t *);
+static int ata_bd_open(bd_srvs_t *, bd_srv_t *);
 static int ata_bd_close(bd_srv_t *);
 static int ata_bd_read_blocks(bd_srv_t *, uint64_t ba, size_t cnt, void *buf,
     size_t);
@@ -145,7 +145,7 @@ static bd_ops_t ata_bd_ops = {
 
 static disk_t *bd_srv_disk(bd_srv_t *bd)
 {
-	return (disk_t *)bd->arg;
+	return (disk_t *)bd->srvs->sarg;
 }
 
 int main(int argc, char **argv)
@@ -311,7 +311,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	bd_conn(iid, icall, &ata_disk[disk_id].bd);
+	bd_conn(iid, icall, &ata_disk[disk_id].bds);
 }
 
 /** Initialize a disk.
@@ -335,9 +335,9 @@ static int disk_init(disk_t *d, int disk_id)
 	d->present = false;
 	fibril_mutex_initialize(&d->lock);
 
-	bd_srv_init(&d->bd);
-	d->bd.ops = &ata_bd_ops;
-	d->bd.arg = d;
+	bd_srvs_init(&d->bds);
+	d->bds.ops = &ata_bd_ops;
+	d->bds.sarg = d;
 
 	/* Try identify command. */
 	rc = drive_identify(disk_id, &idata);
@@ -466,7 +466,7 @@ static int disk_init(disk_t *d, int disk_id)
 	return EOK;
 }
 
-static int ata_bd_open(bd_srv_t *bd)
+static int ata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
