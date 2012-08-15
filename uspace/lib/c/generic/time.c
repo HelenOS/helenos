@@ -840,40 +840,66 @@ size_t strftime(char *restrict s, size_t maxsize,
 	return maxsize - remaining;
 }
 
-struct tm *gmtime(const time_t *timer)
-{
-	assert(timer != NULL);
 
-	static struct tm result;
+/** Converts a time value to a broken-down UTC time
+ *
+ * @param time    Time to convert
+ * @param result  Structure to store the result to
+ *
+ * @return        EOK or a negative error code
+ */
+int utctime2tm(const time_t time, struct tm *restrict result)
+{
+	assert(result != NULL);
 
 	/* Set result to epoch. */
-	result.tm_sec = 0;
-	result.tm_min = 0;
-	result.tm_hour = 0;
-	result.tm_mday = 1;
-	result.tm_mon = 0;
-	result.tm_year = 70; /* 1970 */
+	result->tm_sec = 0;
+	result->tm_min = 0;
+	result->tm_hour = 0;
+	result->tm_mday = 1;
+	result->tm_mon = 0;
+	result->tm_year = 70; /* 1970 */
 
-	if (_normalize_time(&result, *timer) == -1) {
-		errno = EOVERFLOW;
-		return NULL;
-	}
+	if (_normalize_time(result, time) == -1)
+		return EOVERFLOW;
 
-	return &result;
+	return EOK;
 }
+
+/** Converts a time value to a null terminated string of the form
+ *  "Wed Jun 30 21:49:08 1993\n" expressed in UTC.
+ *
+ * @param time   Time to convert.
+ * @param buf    Buffer to store the string to, must be at least
+ *               ASCTIME_BUF_LEN bytes long.
+ *
+ * @return       EOK or a negative error code.
+ */
+int utctime2str(const time_t time, char *restrict buf)
+{
+	struct tm t;
+	int r;
+
+	if ((r = utctime2tm(time, &t)) != EOK)
+		return r;
+
+	tm2str(&t, buf);
+	return EOK;
+}
+
 
 /**
  * Converts broken-down time to a string in format
  * "Sun Jan 1 00:00:00 1970\n". (Obsolete)
  *
  * @param timeptr Broken-down time structure.
- * @return Pointer to a statically allocated string.
+ * @param buf     Buffer to store string to, must be at least ASCTIME_BUF_LEN
+ *                bytes long.
  */
-char *asctime(const struct tm *timeptr)
+void tm2str(const struct tm *restrict timeptr, char *restrict buf)
 {
-	static char buf[ASCTIME_BUF_LEN];
-
 	assert(timeptr != NULL);
+	assert(buf != NULL);
 
 	static const char *wday[] = {
 		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
@@ -889,53 +915,58 @@ char *asctime(const struct tm *timeptr)
 	    timeptr->tm_mday, timeptr->tm_hour,
 	    timeptr->tm_min, timeptr->tm_sec,
 	    1900 + timeptr->tm_year);
-
-	return buf;
-
 }
 
 /**
- * Converts a time value to a broken-down local time.
+ * Converts a time value to a broken-down local time, expressed relative
+ * to the user's specified timezone.
  *
- * @param timer Time to convert.
- * @return Normalized broken-down time in local timezone, NULL on overflow.
+ * @param timer     Time to convert.
+ * @param result    Structure to store the result to.
+ *
+ * @return          EOK on success or a negative error code.
  */
-struct tm *localtime(const time_t *timer)
+int localtime2tm(const time_t time, struct tm *restrict result)
 {
 	// TODO: deal with timezone
 	// currently assumes system and all times are in GMT
 
-	static struct tm result;
-
 	/* Set result to epoch. */
-	result.tm_sec = 0;
-	result.tm_min = 0;
-	result.tm_hour = 0;
-	result.tm_mday = 1;
-	result.tm_mon = 0;
-	result.tm_year = 70; /* 1970 */
+	result->tm_sec = 0;
+	result->tm_min = 0;
+	result->tm_hour = 0;
+	result->tm_mday = 1;
+	result->tm_mon = 0;
+	result->tm_year = 70; /* 1970 */
 
-	if (_normalize_time(&result, *timer) == -1) {
-		errno = EOVERFLOW;
-		return NULL;
-	}
+	if (_normalize_time(result, time) == -1)
+		return EOVERFLOW;
 
-	return &result;
+	return EOK;
 }
 
 /**
- * Equivalent to asctime(localtime(clock)).
+ * Converts the calendar time to a null terminated string
+ * of the form "Wed Jun 30 21:49:08 1993\n" expressed relative to the
+ * user's specified timezone.
  * 
- * @param timer Time to convert.
- * @return Pointer to a statically allocated string holding the date.
+ * @param timer  Time to convert.
+ * @param buf    Buffer to store the string to. Must be at least
+ *               ASCTIME_BUF_LEN bytes long.
+ *
+ * @return       EOK on success or a negative error code.
  */
-char *ctime(const time_t *timer)
+int localtime2str(const time_t time, char *buf)
 {
-	struct tm *loctime = localtime(timer);
-	if (loctime == NULL) {
-		return NULL;
-	}
-	return asctime(loctime);
+	struct tm loctime;
+	int r;
+
+	if ((r = localtime2tm(time, &loctime)) != EOK)
+		return r;
+
+	tm2str(&loctime, buf);
+
+	return EOK;
 }
 
 /**

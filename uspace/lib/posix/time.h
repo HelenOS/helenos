@@ -86,13 +86,17 @@ extern void posix_tzset(void);
 /* Broken-down Time */
 extern struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result);
+extern struct tm *posix_gmtime(const time_t *restrict timep);
 extern struct tm *posix_localtime_r(const time_t *restrict timer,
     struct tm *restrict result);
+extern struct tm *posix_localtime(const time_t *restrict timep);
 
 /* Formatting Calendar Time */
 extern char *posix_asctime_r(const struct tm *restrict timeptr,
     char *restrict buf);
+extern char *posix_asctime(const struct tm *restrict timeptr);
 extern char *posix_ctime_r(const time_t *timer, char *buf);
+extern char *posix_ctime(const time_t *timer);
 
 /* Clocks */
 extern int posix_clock_getres(posix_clockid_t clock_id,
@@ -108,20 +112,24 @@ extern int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
 extern posix_clock_t posix_clock(void);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define timespec posix_timespec
-	#define itimerspec posix_itimerspec
-	#define timer_t posix_timer_t
+	#define timespec    posix_timespec
+	#define itimerspec  posix_itimerspec
+	#define timer_t     posix_timer_t
 
-	#define daylight posix_daylight
-	#define timezone posix_timezone
-	#define tzname posix_tzname
-	#define tzset posix_tzset
+	#define daylight    posix_daylight
+	#define timezone    posix_timezone
+	#define tzname      posix_tzname
+	#define tzset       posix_tzset
 
-	#define gmtime_r posix_gmtime_r
+	#define gmtime_r    posix_gmtime_r
+	#define gmtime      posix_gmtime
 	#define localtime_r posix_localtime_r
+	#define localtime   posix_localtime
 
-	#define asctime_r posix_asctime_r
-	#define ctime_r posix_ctime_r
+	#define asctime_r   posix_asctime_r
+	#define asctime     posix_asctime
+	#define ctime_r     posix_ctime_r
+	#define ctime       posix_ctime
 
 	#define clock_getres posix_clock_getres
 	#define clock_gettime posix_clock_gettime

@@ -300,8 +300,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		 */
 
 		time_t cur_time = boottime + uptime_get();
-		*t = *gmtime(&cur_time);
-		return EOK;
+		return localtime2tm(cur_time, t);
 	}
 
 	fibril_mutex_lock(&rtc->mutex);
