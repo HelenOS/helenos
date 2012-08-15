@@ -50,9 +50,9 @@
 #include <stdio.h>
 #include <libarch/ddi.h>
 #include <ddi.h>
-#include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
+#include <bd_srv.h>
 #include <fibril_synch.h>
 #include <stdint.h>
 #include <str.h>
@@ -97,15 +97,22 @@ static ata_cmd_t *cmd;
 static ata_ctl_t *ctl;
 
 /** Per-disk state. */
-static disk_t disk[MAX_DISKS];
+static disk_t ata_disk[MAX_DISKS];
 
 static void print_syntax(void);
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
-static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
-    void *buf);
-static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
-    const void *buf);
+
+static int ata_bd_open(bd_srvs_t *, bd_srv_t *);
+static int ata_bd_close(bd_srv_t *);
+static int ata_bd_read_blocks(bd_srv_t *, uint64_t ba, size_t cnt, void *buf,
+    size_t);
+static int ata_bd_read_toc(bd_srv_t *, uint8_t session, void *buf, size_t);
+static int ata_bd_write_blocks(bd_srv_t *, uint64_t ba, size_t cnt,
+    const void *buf, size_t);
+static int ata_bd_get_block_size(bd_srv_t *, size_t *);
+static int ata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
 static int ata_rcmd_read(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_rcmd_write(int disk_id, uint64_t ba, size_t cnt,
@@ -125,6 +132,21 @@ static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
 static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
     unsigned timeout);
+
+static bd_ops_t ata_bd_ops = {
+	.open = ata_bd_open,
+	.close = ata_bd_close,
+	.read_blocks = ata_bd_read_blocks,
+	.read_toc = ata_bd_read_toc,
+	.write_blocks = ata_bd_write_blocks,
+	.get_block_size = ata_bd_get_block_size,
+	.get_num_blocks = ata_bd_get_num_blocks
+};
+
+static disk_t *bd_srv_disk(bd_srv_t *bd)
+{
+	return (disk_t *)bd->srvs->sarg;
+}
 
 int main(int argc, char **argv)
 {
@@ -160,10 +182,10 @@ int main(int argc, char **argv)
 		printf("Identify drive %d... ", i);
 		fflush(stdout);
 
-		rc = disk_init(&disk[i], i);
+		rc = disk_init(&ata_disk[i], i);
 
 		if (rc == EOK) {
-			disk_print_summary(&disk[i]);
+			disk_print_summary(&ata_disk[i]);
 		} else {
 			printf("Not found.\n");
 		}
@@ -173,11 +195,11 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		/* Skip unattached drives. */
-		if (disk[i].present == false)
+		if (ata_disk[i].present == false)
 			continue;
 		
 		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
-		rc = loc_service_register(name, &disk[i].service_id);
+		rc = loc_service_register(name, &ata_disk[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -216,8 +238,8 @@ static void disk_print_summary(disk_t *d)
 		switch (d->amode) {
 		case am_chs:
 			printf("CHS %u cylinders, %u heads, %u sectors",
-			    disk->geom.cylinders, disk->geom.heads,
-			    disk->geom.sectors);
+			    d->geom.cylinders, d->geom.heads,
+			    d->geom.sectors);
 			break;
 		case am_lba28:
 			printf("LBA-28");
@@ -272,16 +294,7 @@ static int ata_bd_init(void)
 /** Block device connection handler */
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	void *fs_va = NULL;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
 	service_id_t dsid;
-	size_t comm_size;	/**< Size of the communication area. */
-	unsigned int flags;
-	int retval;
-	uint64_t ba;
-	size_t cnt;
 	int disk_id, i;
 
 	/* Get the device service ID. */
@@ -290,80 +303,15 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (disk[i].service_id == dsid)
+		if (ata_disk[i].service_id == dsid)
 			disk_id = i;
 
-	if (disk_id < 0 || disk[disk_id].present == false) {
+	if (disk_id < 0 || ata_disk[disk_id].present == false) {
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == AS_MAP_FAILED) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	while (true) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (method) {
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * disk[disk_id].block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = ata_bd_read_blocks(disk_id, ba, cnt, fs_va);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * disk[disk_id].block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = ata_bd_write_blocks(disk_id, ba, cnt, fs_va);
-			break;
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, disk[disk_id].block_size);
-			continue;
-		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
-			    UPPER32(disk[disk_id].blocks));
-			continue;
-		case BD_READ_TOC:
-			cnt = IPC_GET_ARG1(call);
-			if (disk[disk_id].dev_type == ata_pkt_dev)
-				retval = ata_pcmd_read_toc(disk_id, cnt, fs_va,
-				    disk[disk_id].block_size);
-			else
-				retval = EINVAL;
-			break;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
-	}
+	bd_conn(iid, icall, &ata_disk[disk_id].bds);
 }
 
 /** Initialize a disk.
@@ -383,8 +331,13 @@ static int disk_init(disk_t *d, int disk_id)
 	int rc;
 	unsigned i;
 
+	d->disk_id = disk_id;
 	d->present = false;
 	fibril_mutex_initialize(&d->lock);
+
+	bd_srvs_init(&d->bds);
+	d->bds.ops = &ata_bd_ops;
+	d->bds.sarg = d;
 
 	/* Try identify command. */
 	rc = drive_identify(disk_id, &idata);
@@ -513,49 +466,93 @@ static int disk_init(disk_t *d, int disk_id)
 	return EOK;
 }
 
-/** Read multiple blocks from the device. */
-static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
-    void *buf) {
+static int ata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
 
+static int ata_bd_close(bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Read multiple blocks from the device. */
+static int ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+    void *buf, size_t size)
+{
+	disk_t *disk = bd_srv_disk(bd);
 	int rc;
 
+	if (size < cnt * disk->block_size)
+		return EINVAL;
+
 	while (cnt > 0) {
-		if (disk[disk_id].dev_type == ata_reg_dev)
-			rc = ata_rcmd_read(disk_id, ba, 1, buf);
+		if (disk->dev_type == ata_reg_dev)
+			rc = ata_rcmd_read(disk->disk_id, ba, 1, buf);
 		else
-			rc = ata_pcmd_read_12(disk_id, ba, 1, buf,
-			    disk[disk_id].block_size);
+			rc = ata_pcmd_read_12(disk->disk_id, ba, 1, buf,
+			    disk->block_size);
 
 		if (rc != EOK)
 			return rc;
 
 		++ba;
 		--cnt;
-		buf += disk[disk_id].block_size;
+		buf += disk->block_size;
 	}
 
 	return EOK;
 }
 
-/** Write multiple blocks to the device. */
-static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
-    const void *buf) {
+/** Read TOC from device. */
+static int ata_bd_read_toc(bd_srv_t *bd, uint8_t session, void *buf, size_t size)
+{
+	disk_t *disk = bd_srv_disk(bd);
 
+	return ata_pcmd_read_toc(disk->disk_id, session, buf, size);
+}
+
+/** Write multiple blocks to the device. */
+static int ata_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+    const void *buf, size_t size)
+{
+	disk_t *disk = bd_srv_disk(bd);
 	int rc;
 
-	if (disk[disk_id].dev_type != ata_reg_dev)
+	if (disk->dev_type != ata_reg_dev)
 		return ENOTSUP;
 
+	if (size < cnt * disk->block_size)
+		return EINVAL;
+
 	while (cnt > 0) {
-		rc = ata_rcmd_write(disk_id, ba, 1, buf);
+		rc = ata_rcmd_write(disk->disk_id, ba, 1, buf);
 		if (rc != EOK)
 			return rc;
 
 		++ba;
 		--cnt;
-		buf += disk[disk_id].block_size;
+		buf += disk->block_size;
 	}
 
+	return EOK;
+}
+
+/** Get device block size. */
+static int ata_bd_get_block_size(bd_srv_t *bd, size_t *rbsize)
+{
+	disk_t *disk = bd_srv_disk(bd);
+
+	*rbsize = disk->block_size;
+	return EOK;
+}
+
+/** Get device number of blocks. */
+static int ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	disk_t *disk = bd_srv_disk(bd);
+
+	*rnb = disk->blocks;
 	return EOK;
 }
 
@@ -684,7 +681,7 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
 	size_t data_size;
 	uint16_t val;
 
-	d = &disk[dev_idx];
+	d = &ata_disk[dev_idx];
 	fibril_mutex_lock(&d->lock);
 
 	/* New value for Drive/Head register */
@@ -873,7 +870,7 @@ static int ata_rcmd_read(int disk_id, uint64_t ba, size_t blk_cnt,
 	disk_t *d;
 	block_coord_t bc;
 
-	d = &disk[disk_id];
+	d = &ata_disk[disk_id];
 	
 	/* Silence warning. */
 	memset(&bc, 0, sizeof(bc));
@@ -918,7 +915,7 @@ static int ata_rcmd_read(int disk_id, uint64_t ba, size_t blk_cnt,
 	if ((status & SR_DRQ) != 0) {
 		/* Read data from the device buffer. */
 
-		for (i = 0; i < disk[disk_id].block_size / 2; i++) {
+		for (i = 0; i < ata_disk[disk_id].block_size / 2; i++) {
 			data = pio_read_16(&cmd->data_port);
 			((uint16_t *) buf)[i] = data;
 		}
@@ -949,7 +946,7 @@ static int ata_rcmd_write(int disk_id, uint64_t ba, size_t cnt,
 	disk_t *d;
 	block_coord_t bc;
 
-	d = &disk[disk_id];
+	d = &ata_disk[disk_id];
 	
 	/* Silence warning. */
 	memset(&bc, 0, sizeof(bc));
@@ -994,7 +991,7 @@ static int ata_rcmd_write(int disk_id, uint64_t ba, size_t cnt,
 	if ((status & SR_DRQ) != 0) {
 		/* Write data to the device buffer. */
 
-		for (i = 0; i < disk[disk_id].block_size / 2; i++) {
+		for (i = 0; i < d->block_size / 2; i++) {
 			pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
 		}
 	}

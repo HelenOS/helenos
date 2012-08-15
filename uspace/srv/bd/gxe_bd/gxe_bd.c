@@ -38,9 +38,9 @@
 #include <stdio.h>
 #include <libarch/ddi.h>
 #include <ddi.h>
-#include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
+#include <bd_srv.h>
 #include <fibril_synch.h>
 #include <loc.h>
 #include <sys/types.h>
@@ -64,6 +64,7 @@ enum {
 	MAX_DISKS	= 2
 };
 
+/** GXE disk hardware registers */
 typedef struct {
 	uint32_t offset_lo;
 	uint32_t pad0;
@@ -82,27 +83,51 @@ typedef struct {
 	uint8_t pad5[0x3fc0];
 
 	uint8_t buffer[512];
+} gxe_bd_hw_t;
+
+/** GXE block device soft state */
+typedef struct {
+	/** Block device service structure */
+	bd_srvs_t bds;
+	int disk_id;
 } gxe_bd_t;
 
-
 static const size_t block_size = 512;
-static size_t comm_size;
 
 static uintptr_t dev_physical = 0x13000000;
-static gxe_bd_t *dev;
+static gxe_bd_hw_t *dev;
 
 static service_id_t service_id[MAX_DISKS];
 
 static fibril_mutex_t dev_lock[MAX_DISKS];
 
+static gxe_bd_t gxe_bd[MAX_DISKS];
+
 static int gxe_bd_init(void);
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
-static int gxe_bd_read_blocks(int disk_id, uint64_t ba, unsigned cnt,
-    void *buf);
-static int gxe_bd_write_blocks(int disk_id, uint64_t ba, unsigned cnt,
-    const void *buf);
 static int gxe_bd_read_block(int disk_id, uint64_t ba, void *buf);
 static int gxe_bd_write_block(int disk_id, uint64_t ba, const void *buf);
+
+static int gxe_bd_open(bd_srvs_t *, bd_srv_t *);
+static int gxe_bd_close(bd_srv_t *);
+static int gxe_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int gxe_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int gxe_bd_get_block_size(bd_srv_t *, size_t *);
+static int gxe_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
+static bd_ops_t gxe_bd_ops = {
+	.open = gxe_bd_open,
+	.close = gxe_bd_close,
+	.read_blocks = gxe_bd_read_blocks,
+	.write_blocks = gxe_bd_write_blocks,
+	.get_block_size = gxe_bd_get_block_size,
+	.get_num_blocks = gxe_bd_get_num_blocks
+};
+
+static gxe_bd_t *bd_srv_gxe(bd_srv_t *bd)
+{
+	return (gxe_bd_t *)bd->srvs->sarg;
+}
 
 int main(int argc, char **argv)
 {
@@ -129,7 +154,7 @@ static int gxe_bd_init(void)
 	}
 	
 	void *vaddr;
-	rc = pio_enable((void *) dev_physical, sizeof(gxe_bd_t), &vaddr);
+	rc = pio_enable((void *) dev_physical, sizeof(gxe_bd_hw_t), &vaddr);
 	if (rc != EOK) {
 		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
@@ -139,6 +164,10 @@ static int gxe_bd_init(void)
 	
 	for (unsigned int i = 0; i < MAX_DISKS; i++) {
 		char name[16];
+		
+		bd_srvs_init(&gxe_bd[i].bds);
+		gxe_bd[i].bds.ops = &gxe_bd_ops;
+		gxe_bd[i].bds.sarg = (void *)&gxe_bd[i];
 		
 		snprintf(name, 16, "%s/disk%u", NAMESPACE, i);
 		rc = loc_service_register(name, &service_id[i]);
@@ -156,15 +185,7 @@ static int gxe_bd_init(void)
 
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	void *fs_va = NULL;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
 	service_id_t dsid;
-	unsigned int flags;
-	int retval;
-	uint64_t ba;
-	unsigned cnt;
 	int disk_id, i;
 
 	/* Get the device handle. */
@@ -181,75 +202,30 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
+	bd_conn(iid, icall, &gxe_bd[disk_id].bds);
+}
 
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
+/** Open device. */
+static int gxe_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
 
-	if (comm_size < block_size) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == AS_MAP_FAILED) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	while (true) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (method) {
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = gxe_bd_read_blocks(disk_id, ba, cnt, fs_va);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = gxe_bd_write_blocks(disk_id, ba, cnt, fs_va);
-			break;
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, block_size);
-			continue;
-		case BD_GET_NUM_BLOCKS:
-			retval = ENOTSUP;
-			break;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
-	}
+/** Close device. */
+static int gxe_bd_close(bd_srv_t *bd)
+{
+	return EOK;
 }
 
 /** Read multiple blocks from the device. */
-static int gxe_bd_read_blocks(int disk_id, uint64_t ba, unsigned cnt,
-    void *buf) {
-
+static int gxe_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    void *buf, size_t size)
+{
+	int disk_id = bd_srv_gxe(bd)->disk_id;
 	int rc;
+
+	if (size < cnt * block_size)
+		return EINVAL;
 
 	while (cnt > 0) {
 		rc = gxe_bd_read_block(disk_id, ba, buf);
@@ -265,10 +241,14 @@ static int gxe_bd_read_blocks(int disk_id, uint64_t ba, unsigned cnt,
 }
 
 /** Write multiple blocks to the device. */
-static int gxe_bd_write_blocks(int disk_id, uint64_t ba, unsigned cnt,
-    const void *buf) {
-
+static int gxe_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
+{
+	int disk_id = bd_srv_gxe(bd)->disk_id;
 	int rc;
+
+	if (size < cnt * block_size)
+		return EINVAL;
 
 	while (cnt > 0) {
 		rc = gxe_bd_write_block(disk_id, ba, buf);
@@ -281,6 +261,19 @@ static int gxe_bd_write_blocks(int disk_id, uint64_t ba, unsigned cnt,
 	}
 
 	return EOK;
+}
+
+/** Get device block size. */
+static int gxe_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	*rsize = block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int gxe_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	return ENOTSUP;
 }
 
 /** Read a block from the device. */

@@ -35,6 +35,7 @@
 #ifndef __ATA_BD_H__
 #define __ATA_BD_H__
 
+#include <bd_srv.h>
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <str.h>
@@ -116,6 +117,8 @@ typedef struct {
 
 	fibril_mutex_t lock;
 	service_id_t service_id;
+	int disk_id;
+	bd_srvs_t bds;
 } disk_t;
 
 #endif

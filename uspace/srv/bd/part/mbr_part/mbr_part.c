@@ -43,7 +43,7 @@
  * supported.
  *
  * Referemces:
- *	
+ *
  * The source of MBR structures for this driver have been the following
  * Wikipedia articles:
  *	- http://en.wikipedia.org/wiki/Master_Boot_Record
@@ -56,9 +56,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
+#include <bd_srv.h>
 #include <fibril_synch.h>
 #include <loc.h>
 #include <sys/types.h>
@@ -99,6 +99,8 @@ typedef struct part {
 	aoff64_t length;
 	/** Device representing the partition (outbound device) */
 	service_id_t dsid;
+	/** Block device service sturcture */
+	bd_srvs_t bds;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -139,7 +141,7 @@ typedef struct {
 static size_t block_size;
 
 /** Partitioned device (inbound device) */
-static service_id_t indef_sid;
+static service_id_t indev_sid;
 
 /** List of partitions. This structure is an empty head. */
 static part_t plist_head;
@@ -149,9 +151,28 @@ static int mbr_part_read(void);
 static part_t *mbr_part_new(void);
 static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part);
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf);
-static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf);
 static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
+
+static int mbr_bd_open(bd_srvs_t *, bd_srv_t *);
+static int mbr_bd_close(bd_srv_t *);
+static int mbr_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int mbr_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int mbr_bd_get_block_size(bd_srv_t *, size_t *);
+static int mbr_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
+static bd_ops_t mbr_bd_ops = {
+	.open = mbr_bd_open,
+	.close = mbr_bd_close,
+	.read_blocks = mbr_bd_read_blocks,
+	.write_blocks = mbr_bd_write_blocks,
+	.get_block_size = mbr_bd_get_block_size,
+	.get_num_blocks = mbr_bd_get_num_blocks
+};
+
+static part_t *bd_srv_part(bd_srv_t *bd)
+{
+	return (part_t *)bd->srvs->sarg;
+}
 
 int main(int argc, char **argv)
 {
@@ -182,13 +203,13 @@ static int mbr_init(const char *dev_name)
 	uint64_t size_mb;
 	part_t *part;
 
-	rc = loc_service_get_id(dev_name, &indef_sid, 0);
+	rc = loc_service_get_id(dev_name, &indev_sid, 0);
 	if (rc != EOK) {
 		printf(NAME ": could not resolve device `%s'.\n", dev_name);
 		return rc;
 	}
 
-	rc = block_init(EXCHANGE_SERIALIZE, indef_sid, 2048);
+	rc = block_init(EXCHANGE_SERIALIZE, indev_sid, 2048);
 	if (rc != EOK)  {
 		printf(NAME ": could not init libblock.\n");
 		return rc;
@@ -196,7 +217,7 @@ static int mbr_init(const char *dev_name)
 
 	/* Determine and verify block size. */
 
-	rc = block_get_bsize(indef_sid, &block_size);
+	rc = block_get_bsize(indev_sid, &block_size);
 	if (rc != EOK) {
 		printf(NAME ": error getting block size.\n");
 		return rc;
@@ -280,7 +301,7 @@ static int mbr_part_read(void)
 	 * Read primary partition entries.
 	 */
 
-	rc = block_read_direct(indef_sid, 0, 1, brb);
+	rc = block_read_direct(indev_sid, 0, 1, brb);
 	if (rc != EOK) {
 		printf(NAME ": Failed reading MBR block.\n");
 		return rc;
@@ -331,7 +352,7 @@ static int mbr_part_read(void)
 		 * of the extended partition.
 		 */
 		ba = cp.start_addr;
-		rc = block_read_direct(indef_sid, ba, 1, brb);
+		rc = block_read_direct(indev_sid, ba, 1, brb);
 		if (rc != EOK) {
 			printf(NAME ": Failed reading EBR block at %"
 			    PRIu32 ".\n", ba);
@@ -380,22 +401,17 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 
 	part->present = (pte->ptype != PT_UNUSED) ? true : false;
 
+	bd_srvs_init(&part->bds);
+	part->bds.ops = &mbr_bd_ops;
+	part->bds.sarg = part;
+
 	part->dsid = 0;
 	part->next = NULL;
 }
 
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	size_t comm_size;
-	void *fs_va = NULL;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
 	service_id_t dh;
-	unsigned int flags;
-	int retval;
-	uint64_t ba;
-	size_t cnt;
 	part_t *part;
 
 	/* Get the device handle. */
@@ -416,87 +432,67 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	assert(part->present == true);
+	bd_conn(iid, icall, &part->bds);
+}
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
+/** Open device. */
+static int mbr_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
 
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == AS_MAP_FAILED) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	while (1) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (method) {
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = mbr_bd_read(part, ba, cnt, fs_va);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = mbr_bd_write(part, ba, cnt, fs_va);
-			break;
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, block_size);
-			continue;
-		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(part->length),
-			    UPPER32(part->length));
-			continue;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
-	}
+/** Close device. */
+static int mbr_bd_close(bd_srv_t *bd)
+{
+	return EOK;
 }
 
 /** Read blocks from partition. */
-static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf)
+static int mbr_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+    size_t size)
 {
-	uint64_t gba;
+	part_t *p = bd_srv_part(bd);
+	aoff64_t gba;
+
+	if (cnt * block_size < size)
+		return EINVAL;
 
 	if (mbr_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
-	return block_read_direct(indef_sid, gba, cnt, buf);
+	return block_read_direct(indev_sid, gba, cnt, buf);
 }
 
 /** Write blocks to partition. */
-static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf)
+static int mbr_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
 {
-	uint64_t gba;
+	part_t *p = bd_srv_part(bd);
+	aoff64_t gba;
+
+	if (cnt * block_size < size)
+		return EINVAL;
 
 	if (mbr_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
-	return block_write_direct(indef_sid, gba, cnt, buf);
+	return block_write_direct(indev_sid, gba, cnt, buf);
+}
+
+/** Get device block size. */
+static int mbr_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	*rsize = block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int mbr_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	part_t *part = bd_srv_part(bd);
+
+	*rnb = part->length;
+	return EOK;
 }
 
 /** Translate block segment address with range checking. */

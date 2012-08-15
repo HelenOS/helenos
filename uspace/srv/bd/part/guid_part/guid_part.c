@@ -46,9 +46,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
+#include <bd_srv.h>
 #include <fibril_synch.h>
 #include <loc.h>
 #include <sys/types.h>
@@ -82,6 +82,8 @@ typedef struct part {
 	aoff64_t length;
 	/** Service representing the partition (outbound device) */
 	service_id_t dsid;
+	/** Block device service structure */
+	bd_srvs_t bds;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -99,9 +101,28 @@ static int gpt_read(void);
 static part_t *gpt_part_new(void);
 static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part);
 static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf);
-static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf);
 static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba);
+
+static int gpt_bd_open(bd_srvs_t *, bd_srv_t *);
+static int gpt_bd_close(bd_srv_t *);
+static int gpt_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int gpt_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int gpt_bd_get_block_size(bd_srv_t *, size_t *);
+static int gpt_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
+static bd_ops_t gpt_bd_ops = {
+	.open = gpt_bd_open,
+	.close = gpt_bd_close,
+	.read_blocks = gpt_bd_read_blocks,
+	.write_blocks = gpt_bd_write_blocks,
+	.get_block_size = gpt_bd_get_block_size,
+	.get_num_blocks = gpt_bd_get_num_blocks
+};
+
+static part_t *bd_srv_part(bd_srv_t *bd)
+{
+	return (part_t *)bd->srvs->sarg;
+}
 
 int main(int argc, char **argv)
 {
@@ -303,22 +324,17 @@ static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part)
 			part->present = true;
 	}
 
+	bd_srvs_init(&part->bds);
+	part->bds.ops = &gpt_bd_ops;
+	part->bds.sarg = part;
+
 	part->dsid = 0;
 	part->next = NULL;
 }
 
 static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	size_t comm_size;
-	void *fs_va = NULL;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
 	service_id_t dh;
-	unsigned int flags;
-	int retval;
-	aoff64_t ba;
-	size_t cnt;
 	part_t *part;
 
 	/* Get the device handle. */
@@ -340,70 +356,30 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	assert(part->present == true);
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
+	bd_conn(iid, icall, &part->bds);
+}
 
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
+/** Open device. */
+static int gpt_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
 
-	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == AS_MAP_FAILED) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	while (true) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (method) {
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = gpt_bd_read(part, ba, cnt, fs_va);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = gpt_bd_write(part, ba, cnt, fs_va);
-			break;
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, block_size);
-			continue;
-		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(part->length),
-			    UPPER32(part->length));
-			continue;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
-	}
+/** Close device. */
+static int gpt_bd_close(bd_srv_t *bd)
+{
+	return EOK;
 }
 
 /** Read blocks from partition. */
-static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf)
+static int gpt_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+    size_t size)
 {
+	part_t *p = bd_srv_part(bd);
 	aoff64_t gba;
+
+	if (cnt * block_size < size)
+		return EINVAL;
 
 	if (gpt_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
@@ -412,15 +388,37 @@ static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf)
 }
 
 /** Write blocks to partition. */
-static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf)
+static int gpt_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *buf, size_t size)
 {
+	part_t *p = bd_srv_part(bd);
 	aoff64_t gba;
+
+	if (cnt * block_size < size)
+		return EINVAL;
 
 	if (gpt_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
 
 	return block_write_direct(indev_sid, gba, cnt, buf);
 }
+
+/** Get device block size. */
+static int gpt_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	*rsize = block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int gpt_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	part_t *part = bd_srv_part(bd);
+
+	*rnb = part->length;
+	return EOK;
+}
+
 
 /** Translate block segment address with range checking. */
 static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba)
