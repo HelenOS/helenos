@@ -31,15 +31,85 @@
 #include <ipc/serial_ctl.h>
 #include <loc.h>
 #include <stdio.h>
+#include <fibril_synch.h>
+#include <abi/ipc/methods.h>
+#include <ipc/mouseev.h>
 
 #include "isdv4.h"
 
+#define NAME "wacomdump"
+
+static async_sess_t *client_sess = NULL;
+static fibril_mutex_t client_mutex;
+static isdv4_state_t state;
+
 static void syntax_print(void)
 {
-	fprintf(stderr, "Usage: wacomdump [--baud=<baud>] [device_service]\n");
+	fprintf(stderr, "Usage: wacomdump [--baud=<baud>] [--print-events] [device_service]\n");
 }
 
-static void print_event(const isdv4_event_t *event)
+static int read_fibril(void *unused)
+{
+	int rc = isdv4_read_events(&state);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed reading events");
+		return rc;
+	}
+
+	isdv4_fini(&state);
+	return EOK;
+}
+
+static void mouse_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	async_answer_0(iid, EOK);
+	
+	async_sess_t *sess =
+	    async_callback_receive(EXCHANGE_SERIALIZE);
+	fibril_mutex_lock(&client_mutex);
+		if (client_sess == NULL) {
+			client_sess = sess;
+		}
+	fibril_mutex_unlock(&client_mutex);
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call))
+			break;
+		
+		async_answer_0(callid, ENOTSUP);
+	}
+}
+
+static void emit_event(const isdv4_event_t *event)
+{
+	fibril_mutex_lock(&client_mutex);
+	async_sess_t *sess = client_sess;
+	fibril_mutex_unlock(&client_mutex);
+	
+	if (!sess) return;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (exch) {
+		unsigned int max_x = state.stylus_max_x;
+		unsigned int max_y = state.stylus_max_y;
+		if (event->source == TOUCH) {
+			max_x = state.touch_max_x;
+			max_y = state.touch_max_y;
+		}
+		async_msg_4(exch, MOUSEEV_ABS_MOVE_EVENT, event->x, event->y,
+				    max_x, max_y);
+		if (event->type == PRESS || event->type == RELEASE) {
+			async_msg_2(exch, MOUSEEV_BUTTON_EVENT, event->button,
+				    event->type == PRESS);
+		}
+	}
+	async_exchange_end(exch);
+}
+
+static void print_and_emit_event(const isdv4_event_t *event)
 {
 	const char *type = NULL;
 	switch (event->type) {
@@ -57,8 +127,8 @@ static void print_event(const isdv4_event_t *event)
 			break;
 		case MOVE:
 			type = "MOVE";
-			return;
-		case UNKNOWN:
+			break;
+		default:
 			type = "UNKNOWN";
 			break;
 	}
@@ -76,21 +146,10 @@ static void print_event(const isdv4_event_t *event)
 			break;
 	}
 
-	const char *buttons = "none";
-	switch (event->button) {
-		case 1:
-			buttons = "button1";
-			break;
-		case 2:
-			buttons = "button2";
-			break;
-		case 3:
-			buttons = "both";
-			break;
-	}
-
-	printf("%s %s %u %u %u %s\n", type, source, event->x, event->y,
-	    event->pressure, buttons);
+	printf("%s %s %u %u %u %u\n", type, source, event->x, event->y,
+	    event->pressure, event->button);
+	
+	emit_event(event);
 }
 
 static const char *touch_type(unsigned int data_id)
@@ -119,6 +178,8 @@ int main(int argc, char **argv)
 	int arg = 1;
 	int rc;
 
+	isdv4_event_fn event_fn = emit_event;
+
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
 		size_t arg_offset = str_lsize(argv[arg], 7);
 		char* arg_str = argv[arg] + arg_offset;
@@ -134,6 +195,11 @@ int main(int argc, char **argv)
 			syntax_print();
 			return 1;
 		}
+		arg++;
+	}
+
+	if (argc > arg && str_cmp(argv[arg], "--print-events") == 0) {
+		event_fn = print_and_emit_event;
 		arg++;
 	}
 
@@ -180,6 +246,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	fibril_mutex_initialize(&client_mutex);
+
 	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
@@ -196,8 +264,7 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	isdv4_state_t state;
-	rc = isdv4_init(&state, sess, print_event);
+	rc = isdv4_init(&state, sess, event_fn);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed initializing isdv4 state");
 		return 2;
@@ -220,14 +287,41 @@ int main(int argc, char **argv)
 	}
 	printf(" Touch: %ux%u type: %s\n", state.touch_max_x, state.touch_max_y,
 		touch_type(state.touch_type));
+	
+	fid_t fibril = fibril_create(read_fibril, NULL);
+	/* From this on, state is to be used only by read_fibril */
+	fibril_add_ready(fibril);
 
-	rc = isdv4_read_events(&state);
+	async_set_client_connection(mouse_connection);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		fprintf(stderr, "Failed reading events");
-		return 2;
+		printf("%s: Unable to register driver.\n", NAME);
+		return rc;
 	}
 
-	isdv4_fini(&state);
+	service_id_t service_id;
+	rc = loc_service_register("mouse/wacom", &service_id);
+	if (rc != EOK) {
+		printf(NAME ": Unable to register device mouse/wacom.\n");
+		return rc;
+	}
 
+	category_id_t mouse_category;
+	rc = loc_category_get_id("mouse", &mouse_category, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf(NAME ": Unable to get mouse category id.\n");
+	}
+	else {
+		rc = loc_service_add_to_cat(service_id, mouse_category);
+		if (rc != EOK) {
+			printf(NAME ": Unable to add device to mouse category.\n");
+		}
+	}
+
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
+	async_manager();
+
+	/* Not reached */
 	return 0;
 }
