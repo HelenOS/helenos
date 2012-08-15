@@ -57,7 +57,7 @@ typedef struct {
 	/** Size of block. */
 	size_t block_size;
 	/** Block device server structure */
-	bd_srv_t bd;
+	bd_srvs_t bds;
 } sata_bd_dev_t;
 
 #endif

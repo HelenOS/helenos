@@ -87,8 +87,8 @@ typedef struct {
 
 /** GXE block device soft state */
 typedef struct {
-	/** Block device server structure */
-	bd_srv_t bd;
+	/** Block device service structure */
+	bd_srvs_t bds;
 	int disk_id;
 } gxe_bd_t;
 
@@ -108,7 +108,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 static int gxe_bd_read_block(int disk_id, uint64_t ba, void *buf);
 static int gxe_bd_write_block(int disk_id, uint64_t ba, const void *buf);
 
-static int gxe_bd_open(bd_srv_t *);
+static int gxe_bd_open(bd_srvs_t *, bd_srv_t *);
 static int gxe_bd_close(bd_srv_t *);
 static int gxe_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 static int gxe_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
@@ -126,7 +126,7 @@ static bd_ops_t gxe_bd_ops = {
 
 static gxe_bd_t *bd_srv_gxe(bd_srv_t *bd)
 {
-	return (gxe_bd_t *)bd->arg;
+	return (gxe_bd_t *)bd->srvs->sarg;
 }
 
 int main(int argc, char **argv)
@@ -165,9 +165,9 @@ static int gxe_bd_init(void)
 	for (unsigned int i = 0; i < MAX_DISKS; i++) {
 		char name[16];
 		
-		bd_srv_init(&gxe_bd[i].bd);
-		gxe_bd[i].bd.ops = &gxe_bd_ops;
-		gxe_bd[i].bd.arg = (void *)&gxe_bd[i];
+		bd_srvs_init(&gxe_bd[i].bds);
+		gxe_bd[i].bds.ops = &gxe_bd_ops;
+		gxe_bd[i].bds.sarg = (void *)&gxe_bd[i];
 		
 		snprintf(name, 16, "%s/disk%u", NAMESPACE, i);
 		rc = loc_service_register(name, &service_id[i]);
@@ -202,11 +202,11 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	bd_conn(iid, icall, &gxe_bd[disk_id].bd);
+	bd_conn(iid, icall, &gxe_bd[disk_id].bds);
 }
 
 /** Open device. */
-static int gxe_bd_open(bd_srv_t *bd)
+static int gxe_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }

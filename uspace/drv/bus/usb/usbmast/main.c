@@ -81,7 +81,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
 
-static int usbmast_bd_open(bd_srv_t *);
+static int usbmast_bd_open(bd_srvs_t *, bd_srv_t *);
 static int usbmast_bd_close(bd_srv_t *);
 static int usbmast_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 static int usbmast_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
@@ -99,7 +99,7 @@ static bd_ops_t usbmast_bd_ops = {
 
 static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
 {
-	return (usbmast_fun_t *)bd->arg;
+	return (usbmast_fun_t *)bd->srvs->sarg;
 }
 
 /** Callback when a device is removed from the system.
@@ -239,9 +239,9 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	mfun->mdev = mdev;
 	mfun->lun = lun;
 
-	bd_srv_init(&mfun->bd);
-	mfun->bd.ops = &usbmast_bd_ops;
-	mfun->bd.arg = mfun;
+	bd_srvs_init(&mfun->bds);
+	mfun->bds.ops = &usbmast_bd_ops;
+	mfun->bds.sarg = mfun;
 
 	/* Set up a connection handler. */
 	fun->conn_handler = usbmast_bd_connection;
@@ -310,11 +310,11 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 	usbmast_fun_t *mfun;
 
 	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
-	bd_conn(iid, icall, &mfun->bd);
+	bd_conn(iid, icall, &mfun->bds);
 }
 
 /** Open device. */
-static int usbmast_bd_open(bd_srv_t *bd)
+static int usbmast_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
