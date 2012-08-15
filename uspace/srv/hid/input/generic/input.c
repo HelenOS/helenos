@@ -190,6 +190,17 @@ void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 	async_exchange_end(exch);
 }
 
+/** Mouse pointer has moved in absolute mode. */
+void mouse_push_event_abs_move(mouse_dev_t *mdev, unsigned int x, unsigned int y,
+    unsigned int max_x, unsigned int max_y)
+{
+	if (max_x && max_y) {
+		async_exch_t *exch = async_exchange_begin(client_sess);
+		async_msg_4(exch, INPUT_EVENT_ABS_MOVE, x, y, max_x, max_y);
+		async_exchange_end(exch);
+	}
+}
+
 /** Mouse button has been pressed. */
 void mouse_push_event_button(mouse_dev_t *mdev, int bnum, int press)
 {
