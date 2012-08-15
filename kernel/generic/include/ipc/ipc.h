@@ -105,15 +105,36 @@ typedef struct {
 } ipc_data_t;
 
 typedef struct {
-	/** Task link. */
+	/**
+	 * Task link.
+	 * Valid only when the call is not forgotten.
+	 * Protected by the task's active_calls_lock.
+	 */
 	link_t ta_link;
 
 	/** Answerbox link. */
 	link_t ab_link;
 	
 	unsigned int flags;
+
+	/** Protects the forget member. */
+	SPINLOCK_DECLARE(forget_lock);
+
+	/**
+	 * True if the caller 'forgot' this call and donated it to the callee.
+	 * Forgotten calls are discarded upon answering (the answer is not
+	 * delivered) and answered calls cannot be forgotten. Forgotten calls
+	 * also do not figure on the task's active call list.
+	 *
+	 * We keep this separate from the flags so that it is not necessary
+	 * to take a lock when accessing them.
+	 */
+	bool forget;
 	
-	/** Identification of the caller. */
+	/**
+	 * Identification of the caller.
+	 * Valid only when the call is not forgotten.
+	 */
 	struct task *sender;
 	
 	/** Private data to internal IPC. */

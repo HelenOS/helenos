@@ -70,6 +70,8 @@ static slab_cache_t *ipc_answerbox_slab;
 static void _ipc_call_init(call_t *call)
 {
 	memsetb(call, sizeof(*call), 0);
+	spinlock_initialize(&call->forget_lock, "forget_lock");
+	call->forget = false;
 	call->sender = TASK;
 	call->buffer = NULL;
 }
@@ -160,6 +162,16 @@ void ipc_phone_init(phone_t *phone)
 	atomic_set(&phone->active_calls, 0);
 }
 
+/** Demasquerade the caller phone. */
+static void ipc_caller_phone_demasquerade(call_t *call)
+{
+	if (call->flags & IPC_CALL_FORWARDED) {
+		if (call->caller_phone) {
+			call->data.phone = call->caller_phone;
+		}
+	}
+}
+
 /** Answer a message which was not dispatched and is not listed in any queue.
  *
  * @param call       Call structure to be answered.
@@ -168,29 +180,43 @@ void ipc_phone_init(phone_t *phone)
  */
 static void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
-	answerbox_t *callerbox = &call->sender->answerbox;
-	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
-	
 	/* Count sent answer */
 	irq_spinlock_lock(&TASK->lock, true);
 	TASK->ipc_info.answer_sent++;
 	irq_spinlock_unlock(&TASK->lock, true);
+
+	spinlock_lock(&call->forget_lock);
+	if (call->forget) {
+		/* This is a forgotten call and call->sender is not valid. */
+		spinlock_unlock(&call->forget_lock);
+		/* TODO: free the call and its resources */
+		return;
+	} else {
+		/*
+		 * Hold the sender task so that it does not suddenly disappear
+		 * while we are working with it.
+		 */
+		task_hold(call->sender);
+
+		/*
+		 * Remove the call from the sender's active call list.
+		 * We enforce this locking order so that any potential
+		 * concurrently executing forget operation is forced to
+		 * release its active_calls_lock and lose the race to
+		 * forget this soon to be answered call. 
+		 */
+		spinlock_lock(&call->sender->active_calls_lock);
+		list_remove(&call->ta_link);
+		spinlock_unlock(&call->sender->active_calls_lock);
+	}
+	spinlock_unlock(&call->forget_lock);
+
+	answerbox_t *callerbox = &call->sender->answerbox;
+	bool do_lock = ((!selflocked) || (callerbox != &TASK->answerbox));
 	
 	call->flags |= IPC_CALL_ANSWERED;
 	
-	if (call->flags & IPC_CALL_FORWARDED) {
-		if (call->caller_phone) {
-			/* Demasquerade the caller phone. */
-			call->data.phone = call->caller_phone;
-		}
-	}
-
-	/*
-	 * Remove the call from the sender's active call list.
-	 */
-	spinlock_lock(&call->sender->active_calls_lock);
-	list_remove(&call->ta_link);
-	spinlock_unlock(&call->sender->active_calls_lock);
+	ipc_caller_phone_demasquerade(call);
 
 	call->data.task_id = TASK->taskid;
 	
@@ -203,6 +229,8 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 		irq_spinlock_unlock(&callerbox->lock, true);
 	
 	waitq_wakeup(&callerbox->wq, WAKEUP_FIRST);
+
+	task_release(call->sender);
 }
 
 /** Answer a message which is in a callee queue.
@@ -546,6 +574,95 @@ restart_phones:
 		ipc_call_free(call);
 }
 
+static void ipc_forget_all_active_calls(void)
+{
+	call_t *call;
+
+restart:
+	spinlock_lock(&TASK->active_calls_lock);
+	if (list_empty(&TASK->active_calls)) {
+		/*
+		 * We are done, there are no more active calls.
+		 * Nota bene: there may still be answers waiting for pick up.
+		 */
+		spinlock_unlock(&TASK->active_calls_lock);	
+		return;	
+	}
+	
+	call = list_get_instance(list_first(&TASK->active_calls), call_t,
+	    ta_link);
+
+	if (!spinlock_trylock(&call->forget_lock)) {
+		/*
+		 * Avoid deadlock and let _ipc_answer_free_call() win the race
+		 * to answer the first call on the list.
+		 */
+		spinlock_unlock(&TASK->active_calls_lock);	
+		goto restart;
+	}
+
+	/*
+	 * Forget the call and donate it to the task which holds up the answer.
+	 */
+
+	call->forget = true;
+	call->sender = NULL;
+	list_remove(&call->ta_link);
+
+	ipc_caller_phone_demasquerade(call);
+	atomic_dec(&call->data.phone->active_calls);
+
+	spinlock_unlock(&call->forget_lock);
+	spinlock_unlock(&TASK->active_calls_lock);
+	goto restart;
+}
+
+/** Wait for all answers to asynchronous calls to arrive. */
+static void ipc_wait_for_all_answered_calls(void)
+{
+	call_t *call;
+	size_t i;
+
+restart:
+	/*
+	 * Go through all phones, until they are all FREE. Locking is not
+	 * needed, no one else should modify it when we are in cleanup
+	 */
+	for (i = 0; i < IPC_MAX_PHONES; i++) {
+		if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
+		    atomic_get(&TASK->phones[i].active_calls) == 0) {
+			TASK->phones[i].state = IPC_PHONE_FREE;
+			TASK->phones[i].callee = NULL;
+		}
+
+		/*
+		 * Just for sure, we might have had some IPC_PHONE_CONNECTING
+		 * phones
+		 */
+		if (TASK->phones[i].state == IPC_PHONE_CONNECTED)
+			ipc_phone_hangup(&TASK->phones[i]);
+
+		/*
+		 * If the hangup succeeded, it has sent a HANGUP message, the
+		 * IPC is now in HUNGUP state, we wait for the reply to come
+		 */
+		if (TASK->phones[i].state != IPC_PHONE_FREE)
+			break;
+	}
+		
+	/* Got into cleanup */
+	if (i == IPC_MAX_PHONES)
+		return;
+		
+	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
+	    SYNCH_FLAGS_NONE);
+	ASSERT((call->flags & IPC_CALL_ANSWERED) ||
+	    (call->flags & IPC_CALL_NOTIF));
+		
+	ipc_call_free(call);
+	goto restart;
+}
+
 /** Clean up all IPC communication of the current task.
  *
  * Note: ipc_hangup sets returning answerbox to TASK->answerbox, you
@@ -555,8 +672,7 @@ restart_phones:
 void ipc_cleanup(void)
 {
 	/* Disconnect all our phones ('ipc_phone_hangup') */
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++)
+	for (size_t i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&TASK->phones[i]);
 	
 	/* Unsubscribe from any event notifications. */
@@ -578,49 +694,9 @@ void ipc_cleanup(void)
 	ipc_cleanup_call_list(&TASK->answerbox.dispatched_calls);
 	ipc_cleanup_call_list(&TASK->answerbox.calls);
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
-	
-	/* Wait for all answers to asynchronous calls to arrive */
-	while (true) {
-		/*
-		 * Go through all phones, until they are all FREE
-		 * Locking is not needed, no one else should modify
-		 * it when we are in cleanup
-		 */
-		for (i = 0; i < IPC_MAX_PHONES; i++) {
-			if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
-			    atomic_get(&TASK->phones[i].active_calls) == 0) {
-				TASK->phones[i].state = IPC_PHONE_FREE;
-				TASK->phones[i].callee = NULL;
-			}
-			
-			/*
-			 * Just for sure, we might have had some
-			 * IPC_PHONE_CONNECTING phones
-			 */
-			if (TASK->phones[i].state == IPC_PHONE_CONNECTED)
-				ipc_phone_hangup(&TASK->phones[i]);
-			
-			/*
-			 * If the hangup succeeded, it has sent a HANGUP
-			 * message, the IPC is now in HUNGUP state, we
-			 * wait for the reply to come
-			 */
-			
-			if (TASK->phones[i].state != IPC_PHONE_FREE)
-				break;
-		}
-		
-		/* Got into cleanup */
-		if (i == IPC_MAX_PHONES)
-			break;
-		
-		call_t *call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
-		    SYNCH_FLAGS_NONE);
-		ASSERT((call->flags & IPC_CALL_ANSWERED) ||
-		    (call->flags & IPC_CALL_NOTIF));
-		
-		ipc_call_free(call);
-	}
+
+	ipc_forget_all_active_calls();
+	ipc_wait_for_all_answered_calls();
 }
 
 /** Initilize IPC subsystem

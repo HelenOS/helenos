@@ -419,6 +419,23 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int rc = EOK;
 
+	spinlock_lock(&answer->forget_lock);
+	if (answer->forget) {
+		/*
+		 * This is a forgotten call and answer->sender is not valid.
+		 */
+		spinlock_unlock(&answer->forget_lock);
+		/* TODO: free the call and its resources */
+		return rc;
+	} else {
+		/*
+		 * Hold the sender task so that it cannot suddenly disappear
+		 * while we are working with it.
+		 */
+		task_hold(answer->sender);
+	}
+	spinlock_unlock(&answer->forget_lock);
+
 	if ((native_t) IPC_GET_RETVAL(answer->data) == EHANGUP) {
 		/* In case of forward, hangup the forwared phone,
 		 * not the originator
@@ -433,8 +450,10 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		mutex_unlock(&answer->data.phone->lock);
 	}
 	
-	if (!olddata)
+	if (!olddata) {
+		task_release(answer->sender);
 		return rc;
+	}
 	
 	switch (IPC_GET_IMETHOD(*olddata)) {
 	case IPC_M_CONNECTION_CLONE:
@@ -468,6 +487,8 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		break;
 	}
 	
+	task_release(answer->sender);
+
 	return rc;
 }
 
