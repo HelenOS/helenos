@@ -710,6 +710,26 @@ static void process_answer(call_t *call)
 	}
 }
 
+static int r_process_m_connect_to_me(answerbox_t *box, call_t *call)
+{
+	int phoneid = phone_alloc(TASK);
+
+	if (phoneid < 0) {  /* Failed to allocate phone */
+		IPC_SET_RETVAL(call->data, ELIMIT);
+		ipc_answer(box, call);
+		return -1;
+	}
+		
+	IPC_SET_ARG5(call->data, phoneid);
+	
+	return EOK;
+}
+
+static int r_process_m_debug(answerbox_t *box, call_t *call)
+{
+	return -1;
+}
+
 /** Do basic kernel processing of received call request.
  *
  * @param box  Destination answerbox structure.
@@ -721,25 +741,20 @@ static void process_answer(call_t *call)
  */
 static int process_request(answerbox_t *box, call_t *call)
 {
-	if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME) {
-		int phoneid = phone_alloc(TASK);
-		if (phoneid < 0) {  /* Failed to allocate phone */
-			IPC_SET_RETVAL(call->data, ELIMIT);
-			ipc_answer(box, call);
-			return -1;
-		}
-		
-		IPC_SET_ARG5(call->data, phoneid);
-	}
-	
+	int rc = EOK;
+
 	switch (IPC_GET_IMETHOD(call->data)) {
+	case IPC_M_CONNECT_TO_ME:
+		rc = r_process_m_connect_to_me(box, call);
+		break;
 	case IPC_M_DEBUG:
-		return -1;
+		rc = r_process_m_debug(box, call);
+		break;
 	default:
 		break;
 	}
 	
-	return 0;
+	return rc;
 }
 
 /** Check that the task did not exceed the allowed limit of asynchronous calls
