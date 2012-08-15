@@ -61,14 +61,14 @@ static aoff64_t num_blocks;
 static FILE *img;
 
 static service_id_t service_id;
-static bd_srv_t bd_srv;
+static bd_srvs_t bd_srvs;
 static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
 static int file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 
-static int file_bd_open(bd_srv_t *);
+static int file_bd_open(bd_srvs_t *, bd_srv_t *);
 static int file_bd_close(bd_srv_t *);
 static int file_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 static int file_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
@@ -153,8 +153,8 @@ static void print_usage(void)
 
 static int file_bd_init(const char *fname)
 {
-	bd_srv_init(&bd_srv);
-	bd_srv.ops = &file_bd_ops;
+	bd_srvs_init(&bd_srvs);
+	bd_srvs.ops = &file_bd_ops;
 	
 	async_set_client_connection(file_bd_connection);
 	int rc = loc_server_register(NAME);
@@ -187,11 +187,11 @@ static int file_bd_init(const char *fname)
 
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	bd_conn(iid, icall, &bd_srv);
+	bd_conn(iid, icall, &bd_srvs);
 }
 
 /** Open device. */
-static int file_bd_open(bd_srv_t *bd)
+static int file_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }

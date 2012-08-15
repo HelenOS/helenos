@@ -101,6 +101,7 @@ DIRS = \
 	srv/fs/ext4fs \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
+	srv/hid/isdv4_tablet \
 	srv/hid/fb \
 	srv/hid/input \
 	srv/hid/remcons \

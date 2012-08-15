@@ -35,6 +35,7 @@
 #ifndef LIBC_BD_SRV_H_
 #define LIBC_BD_SRV_H_
 
+#include <adt/list.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <bool.h>
@@ -42,16 +43,21 @@
 
 typedef struct bd_ops bd_ops_t;
 
+/** Service setup (per sevice) */
 typedef struct {
-	fibril_mutex_t lock;
-	bool connected;
 	bd_ops_t *ops;
-	void *arg;
+	void *sarg;
+} bd_srvs_t;
+
+/** Server structure (per client session) */
+typedef struct {
+	bd_srvs_t *srvs;
 	async_sess_t *client_sess;
+	void *carg;
 } bd_srv_t;
 
 typedef struct bd_ops {
-	int (*open)(bd_srv_t *);
+	int (*open)(bd_srvs_t *, bd_srv_t *);
 	int (*close)(bd_srv_t *);
 	int (*read_blocks)(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 	int (*read_toc)(bd_srv_t *, uint8_t, void *, size_t);
@@ -60,9 +66,9 @@ typedef struct bd_ops {
 	int (*get_num_blocks)(bd_srv_t *, aoff64_t *);
 } bd_ops_t;
 
-extern void bd_srv_init(bd_srv_t *);
+extern void bd_srvs_init(bd_srvs_t *);
 
-extern int bd_conn(ipc_callid_t, ipc_call_t *, void *);
+extern int bd_conn(ipc_callid_t, ipc_call_t *, bd_srvs_t *);
 
 #endif
 

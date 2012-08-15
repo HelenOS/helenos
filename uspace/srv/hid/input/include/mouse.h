@@ -62,6 +62,8 @@ typedef struct mouse_dev {
 
 extern void mouse_push_data(mouse_dev_t *, sysarg_t);
 extern void mouse_push_event_move(mouse_dev_t *, int, int, int);
+extern void mouse_push_event_abs_move(mouse_dev_t *, unsigned int, unsigned int,
+    unsigned int, unsigned int);
 extern void mouse_push_event_button(mouse_dev_t *, int, int);
 
 #endif

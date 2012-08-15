@@ -99,8 +99,8 @@ typedef struct part {
 	aoff64_t length;
 	/** Device representing the partition (outbound device) */
 	service_id_t dsid;
-	/** Block device server structure */
-	bd_srv_t bd;
+	/** Block device service sturcture */
+	bd_srvs_t bds;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -153,7 +153,7 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part);
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
 
-static int mbr_bd_open(bd_srv_t *);
+static int mbr_bd_open(bd_srvs_t *, bd_srv_t *);
 static int mbr_bd_close(bd_srv_t *);
 static int mbr_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 static int mbr_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
@@ -171,7 +171,7 @@ static bd_ops_t mbr_bd_ops = {
 
 static part_t *bd_srv_part(bd_srv_t *bd)
 {
-	return (part_t *)bd->arg;
+	return (part_t *)bd->srvs->sarg;
 }
 
 int main(int argc, char **argv)
@@ -401,9 +401,9 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 
 	part->present = (pte->ptype != PT_UNUSED) ? true : false;
 
-	bd_srv_init(&part->bd);
-	part->bd.ops = &mbr_bd_ops;
-	part->bd.arg = part;
+	bd_srvs_init(&part->bds);
+	part->bds.ops = &mbr_bd_ops;
+	part->bds.sarg = part;
 
 	part->dsid = 0;
 	part->next = NULL;
@@ -432,11 +432,11 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	assert(part->present == true);
-	bd_conn(iid, icall, &part->bd);
+	bd_conn(iid, icall, &part->bds);
 }
 
 /** Open device. */
-static int mbr_bd_open(bd_srv_t *bd)
+static int mbr_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }

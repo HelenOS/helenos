@@ -56,7 +56,7 @@
 static sata_bd_dev_t disk[MAXDISKS];
 static int disk_count;
 
-static int sata_bd_open(bd_srv_t *);
+static int sata_bd_open(bd_srvs_t *, bd_srv_t *);
 static int sata_bd_close(bd_srv_t *);
 static int sata_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
 static int sata_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
@@ -74,7 +74,7 @@ static bd_ops_t sata_bd_ops = {
 
 static sata_bd_dev_t *bd_srv_sata(bd_srv_t *bd)
 {
-	return (sata_bd_dev_t *)bd->arg;
+	return (sata_bd_dev_t *)bd->srvs->sarg;
 }
 
 /** Find SATA devices in device tree.
@@ -103,9 +103,9 @@ static int scan_device_tree(devman_handle_t funh)
 		
 		ahci_get_num_blocks(disk[disk_count].sess, &disk[disk_count].blocks);
 		
-		bd_srv_init(&disk[disk_count].bd);
-		disk[disk_count].bd.ops = &sata_bd_ops;
-		disk[disk_count].bd.arg = &disk[disk_count];
+		bd_srvs_init(&disk[disk_count].bds);
+		disk[disk_count].bds.ops = &sata_bd_ops;
+		disk[disk_count].bds.sarg = &disk[disk_count];
 		
 		printf("Device %s - %s , blocks: %lu, block_size: %lu\n", 
 		    disk[disk_count].dev_name, disk[disk_count].sata_dev_name,
@@ -182,11 +182,11 @@ static void sata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	bd_conn(iid, icall, &disk[disk_id].bd);
+	bd_conn(iid, icall, &disk[disk_id].bds);
 }
 
 /** Open device. */
-static int sata_bd_open(bd_srv_t *bd)
+static int sata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
