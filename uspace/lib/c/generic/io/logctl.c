@@ -39,8 +39,6 @@
 #include <ns.h>
 #include <str.h>
 
-#define SYSINFO_LOGGGER_BOOT_ARGUMENT "init_args.logger"
-
 /** IPC session with the logger service. */
 static async_sess_t *logger_session = NULL;
 
@@ -127,28 +125,6 @@ int logctl_set_log_level(const char *namespace, const char *context, log_level_t
 		return rc2;
 
 	return (int) reg_msg_rc;
-}
-
-
-int logctl_get_boot_level(log_level_t *level)
-{
-	size_t argument_size;
-	void *argument = sysinfo_get_data(SYSINFO_LOGGGER_BOOT_ARGUMENT, &argument_size);
-	if (argument == NULL)
-		return EINVAL;
-
-	char level_str[20];
-	str_cpy(level_str, 20, (const char *) argument);
-
-	log_level_t boot_level;
-	int rc = log_level_from_str(level_str, &boot_level);
-	if (rc != EOK)
-		return rc;
-
-	if (level != NULL)
-		*level = (log_level_t) boot_level;
-
-	return EOK;
 }
 
 /** @}
