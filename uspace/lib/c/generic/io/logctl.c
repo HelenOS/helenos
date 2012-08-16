@@ -44,15 +44,24 @@
 /** IPC session with the logger service. */
 static async_sess_t *logger_session = NULL;
 
-static int connect_to_logger()
+static int start_logger_exchange(async_exch_t **exchange_out)
 {
-	if (logger_session != NULL)
-		return EOK;
+	assert(exchange_out != NULL);
 
-	logger_session = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_LOGGER, LOGGER_INTERFACE_CONTROL, 0);
-	if (logger_session == NULL)
+	if (logger_session == NULL) {
+		logger_session = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_LOGGER, LOGGER_INTERFACE_CONTROL, 0);
+		if (logger_session == NULL)
+			return ENOMEM;
+	}
+
+	assert(logger_session != NULL);
+
+	async_exch_t *exchange = async_exchange_begin(logger_session);
+	if (exchange == NULL)
 		return ENOMEM;
+
+	*exchange_out = exchange;
 
 	return EOK;
 }
@@ -60,13 +69,10 @@ static int connect_to_logger()
 
 int logctl_set_default_level(log_level_t new_level)
 {
-	int rc = connect_to_logger();
+	async_exch_t *exchange = NULL;
+	int rc = start_logger_exchange(&exchange);
 	if (rc != EOK)
 		return rc;
-
-	async_exch_t *exchange = async_exchange_begin(logger_session);
-	if (exchange == NULL)
-		return ENOMEM;
 
 	rc = (int) async_req_1_0(exchange,
 	    LOGGER_CTL_SET_DEFAULT_LEVEL, new_level);
@@ -78,13 +84,10 @@ int logctl_set_default_level(log_level_t new_level)
 
 int logctl_set_namespace_level(const char *namespace, log_level_t new_level)
 {
-	int rc = connect_to_logger();
+	async_exch_t *exchange = NULL;
+	int rc = start_logger_exchange(&exchange);
 	if (rc != EOK)
 		return rc;
-
-	async_exch_t *exchange = async_exchange_begin(logger_session);
-	if (exchange == NULL)
-		return ENOMEM;
 
 	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_NAMESPACE_LEVEL,
 	    new_level, NULL);
