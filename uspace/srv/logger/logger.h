@@ -43,6 +43,7 @@
 
 #define NAME "logger"
 #define MAX_NAMESPACE_LENGTH 256
+#define LOG_LEVEL_USE_DEFAULT (LVL_LIMIT + 1)
 
 typedef struct logging_namespace logging_namespace_t;
 

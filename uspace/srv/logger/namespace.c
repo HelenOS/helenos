@@ -54,6 +54,18 @@ struct logging_namespace {
 static FIBRIL_MUTEX_INITIALIZE(namespace_list_guard);
 static LIST_INITIALIZE(namespace_list);
 
+static log_level_t namespace_get_actual_log_level(logging_namespace_t *namespace)
+{
+	fibril_mutex_lock(&namespace->guard);
+	log_level_t level = namespace->level;
+	fibril_mutex_unlock(&namespace->guard);
+
+	if (level == LOG_LEVEL_USE_DEFAULT)
+		level = get_default_logging_level();
+
+	return level;
+}
+
 static logging_namespace_t *namespace_find_no_lock(const char *name)
 {
 	list_foreach(namespace_list, it) {
@@ -99,7 +111,7 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 		return NULL;
 	}
 
-	namespace->level = get_default_logging_level();
+	namespace->level = LOG_LEVEL_USE_DEFAULT;
 
 	fibril_mutex_initialize(&namespace->guard);
 	fibril_condvar_initialize(&namespace->level_changed_cv);
@@ -187,10 +199,7 @@ void namespace_writer_detach(logging_namespace_t *namespace)
 
 bool namespace_has_reader(logging_namespace_t *namespace, log_level_t level)
 {
-	fibril_mutex_lock(&namespace->guard);
-	bool has_reader = level <= namespace->level;
-	fibril_mutex_unlock(&namespace->guard);
-	return has_reader;
+	return level <= namespace_get_actual_log_level(namespace);
 }
 
 void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_reader_now)
@@ -207,7 +216,7 @@ void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_
 
 void namespace_add_message(logging_namespace_t *namespace, const char *message, log_level_t level)
 {
-	if (level <= namespace->level) {
+	if (level <= namespace_get_actual_log_level(namespace)) {
 		printf("[%s %d]: %s\n", namespace->name, level, message);
 		fprintf(namespace->logfile, "[%d]: %s\n", level, message);
 		fflush(namespace->logfile);
