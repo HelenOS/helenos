@@ -1,0 +1,389 @@
+/*
+ * Copyright (c) 2006 Jakub Vana
+ * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Petr Koupy
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup kfb
+ * @{
+ */
+/**
+ * @file
+ */
+
+#include <abi/fb/visuals.h>
+#include <sys/types.h>
+#include <errno.h>
+
+#include <malloc.h>
+#include <mem.h>
+#include <as.h>
+#include <align.h>
+
+#include <sysinfo.h>
+#include <ddi.h>
+
+#include <adt/list.h>
+
+#include <io/mode.h>
+#include <io/pixelmap.h>
+#include <io/chargrid.h>
+
+#include <pixconv.h>
+
+#include <graph.h>
+
+#include "kfb.h"
+#include "port.h"
+
+#define FB_POS(x, y)  ((y) * kfb.scanline + (x) * kfb.pixel_bytes)
+
+typedef struct {
+	sysarg_t width;
+	sysarg_t height;
+	size_t offset;
+	size_t scanline;
+	visual_t visual;
+	
+	pixel2visual_t pixel2visual;
+	visual2pixel_t visual2pixel;
+	visual_mask_t visual_mask;
+	size_t pixel_bytes;
+	
+	size_t size;
+	uint8_t *addr;
+} kfb_t;
+
+static kfb_t kfb;
+
+static vslmode_list_element_t pixel_mode;
+
+static pixel_t color_table[16] = {
+	[COLOR_BLACK]       = 0x000000,
+	[COLOR_BLUE]        = 0x0000f0,
+	[COLOR_GREEN]       = 0x00f000,
+	[COLOR_CYAN]        = 0x00f0f0,
+	[COLOR_RED]         = 0xf00000,
+	[COLOR_MAGENTA]     = 0xf000f0,
+	[COLOR_YELLOW]      = 0xf0f000,
+	[COLOR_WHITE]       = 0xf0f0f0,
+
+	[COLOR_BLACK + 8]   = 0x000000,
+	[COLOR_BLUE + 8]    = 0x0000ff,
+	[COLOR_GREEN + 8]   = 0x00ff00,
+	[COLOR_CYAN + 8]    = 0x00ffff,
+	[COLOR_RED + 8]     = 0xff0000,
+	[COLOR_MAGENTA + 8] = 0xff00ff,
+	[COLOR_YELLOW + 8]  = 0xffff00,
+	[COLOR_WHITE + 8]   = 0xffffff,
+};
+
+static inline void attrs_rgb(char_attrs_t attrs, pixel_t *bgcolor, pixel_t *fgcolor)
+{
+	switch (attrs.type) {
+	case CHAR_ATTR_STYLE:
+		switch (attrs.val.style) {
+		case STYLE_NORMAL:
+			*bgcolor = color_table[COLOR_WHITE];
+			*fgcolor = color_table[COLOR_BLACK];
+			break;
+		case STYLE_EMPHASIS:
+			*bgcolor = color_table[COLOR_WHITE];
+			*fgcolor = color_table[COLOR_RED];
+			break;
+		case STYLE_INVERTED:
+			*bgcolor = color_table[COLOR_BLACK];
+			*fgcolor = color_table[COLOR_WHITE];
+			break;
+		case STYLE_SELECTED:
+			*bgcolor = color_table[COLOR_RED];
+			*fgcolor = color_table[COLOR_WHITE];
+			break;
+		}
+		break;
+	case CHAR_ATTR_INDEX:
+		*bgcolor = color_table[(attrs.val.index.bgcolor & 7) |
+		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
+		*fgcolor = color_table[(attrs.val.index.fgcolor & 7) |
+		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
+		break;
+	case CHAR_ATTR_RGB:
+		*bgcolor = attrs.val.rgb.bgcolor;
+		*fgcolor = attrs.val.rgb.fgcolor;
+		break;
+	}
+}
+
+static int kfb_claim(visualizer_t *vs)
+{
+	return EOK;
+}
+
+static int kfb_yield(visualizer_t *vs)
+{
+	if (vs->mode_set) {
+		vs->ops.handle_damage = NULL;
+	}
+
+	return EOK;
+}
+
+static int kfb_handle_damage_pixels(visualizer_t *vs,
+    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
+    sysarg_t x_offset, sysarg_t y_offset)
+{
+	pixelmap_t *map = &vs->cells;
+
+	if (x_offset == 0 && y_offset == 0) {
+		/* Faster damage routine ignoring offsets. */
+		for (sysarg_t y = y0; y < height + y0; ++y) {
+			for (sysarg_t x = x0; x < width + x0; ++x) {
+				kfb.pixel2visual(kfb.addr + FB_POS(x, y),
+				    *pixelmap_pixel_at(map, x, y));
+			}
+		}
+	} else {
+		for (sysarg_t y = y0; y < height + y0; ++y) {
+			for (sysarg_t x = x0; x < width + x0; ++x) {
+				kfb.pixel2visual(kfb.addr + FB_POS(x, y),
+				    *pixelmap_pixel_at(map,
+				    (x + x_offset) % map->width,
+				    (y + y_offset) % map->height));
+			}
+		}
+	}
+
+	return EOK;
+}
+
+static int kfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
+{
+	vs->ops.handle_damage = kfb_handle_damage_pixels;
+	return EOK;
+}
+
+static int kfb_suspend(visualizer_t *vs)
+{
+	return EOK;
+}
+
+static int kfb_wakeup(visualizer_t *vs)
+{
+	return EOK;
+}
+
+static visualizer_ops_t kfb_ops = {
+	.claim = kfb_claim,
+	.yield = kfb_yield,
+	.change_mode = kfb_change_mode,
+	.handle_damage = NULL,
+	.suspend = kfb_suspend,
+	.wakeup = kfb_wakeup
+};
+
+int port_init(ddf_dev_t *dev)
+{
+	sysarg_t present;
+	int rc = sysinfo_get_value("fb", &present);
+	if (rc != EOK)
+		present = false;
+
+	if (!present)
+		return ENOENT;
+	
+	sysarg_t kind;
+	rc = sysinfo_get_value("fb.kind", &kind);
+	if (rc != EOK)
+		kind = (sysarg_t) -1;
+	
+	if (kind != 1)
+		return EINVAL;
+
+	sysarg_t paddr;
+	rc = sysinfo_get_value("fb.address.physical", &paddr);
+	if (rc != EOK)
+		return rc;
+	
+	sysarg_t offset;
+	rc = sysinfo_get_value("fb.offset", &offset);
+	if (rc != EOK)
+		offset = 0;
+	
+	sysarg_t width;
+	rc = sysinfo_get_value("fb.width", &width);
+	if (rc != EOK)
+		return rc;
+	
+	sysarg_t height;
+	rc = sysinfo_get_value("fb.height", &height);
+	if (rc != EOK)
+		return rc;
+	
+	sysarg_t scanline;
+	rc = sysinfo_get_value("fb.scanline", &scanline);
+	if (rc != EOK)
+		return rc;
+	
+	sysarg_t visual;
+	rc = sysinfo_get_value("fb.visual", &visual);
+	if (rc != EOK)
+		return rc;
+	
+	kfb.width = width;
+	kfb.height = height;
+	kfb.offset = offset;
+	kfb.scanline = scanline;
+	kfb.visual = visual;
+
+	switch (visual) {
+	case VISUAL_INDIRECT_8:
+		kfb.pixel2visual = pixel2bgr_323;
+		kfb.visual2pixel = bgr_323_2pixel;
+		kfb.visual_mask = visual_mask_323;
+		kfb.pixel_bytes = 1;
+		break;
+	case VISUAL_RGB_5_5_5_LE:
+		kfb.pixel2visual = pixel2rgb_555_le;
+		kfb.visual2pixel = rgb_555_le_2pixel;
+		kfb.visual_mask = visual_mask_555;
+		kfb.pixel_bytes = 2;
+		break;
+	case VISUAL_RGB_5_5_5_BE:
+		kfb.pixel2visual = pixel2rgb_555_be;
+		kfb.visual2pixel = rgb_555_be_2pixel;
+		kfb.visual_mask = visual_mask_555;
+		kfb.pixel_bytes = 2;
+		break;
+	case VISUAL_RGB_5_6_5_LE:
+		kfb.pixel2visual = pixel2rgb_565_le;
+		kfb.visual2pixel = rgb_565_le_2pixel;
+		kfb.visual_mask = visual_mask_565;
+		kfb.pixel_bytes = 2;
+		break;
+	case VISUAL_RGB_5_6_5_BE:
+		kfb.pixel2visual = pixel2rgb_565_be;
+		kfb.visual2pixel = rgb_565_be_2pixel;
+		kfb.visual_mask = visual_mask_565;
+		kfb.pixel_bytes = 2;
+		break;
+	case VISUAL_RGB_8_8_8:
+		kfb.pixel2visual = pixel2rgb_888;
+		kfb.visual2pixel = rgb_888_2pixel;
+		kfb.visual_mask = visual_mask_888;
+		kfb.pixel_bytes = 3;
+		break;
+	case VISUAL_BGR_8_8_8:
+		kfb.pixel2visual = pixel2bgr_888;
+		kfb.visual2pixel = bgr_888_2pixel;
+		kfb.visual_mask = visual_mask_888;
+		kfb.pixel_bytes = 3;
+		break;
+	case VISUAL_RGB_8_8_8_0:
+		kfb.pixel2visual = pixel2rgb_8880;
+		kfb.visual2pixel = rgb_8880_2pixel;
+		kfb.visual_mask = visual_mask_8880;
+		kfb.pixel_bytes = 4;
+		break;
+	case VISUAL_RGB_0_8_8_8:
+		kfb.pixel2visual = pixel2rgb_0888;
+		kfb.visual2pixel = rgb_0888_2pixel;
+		kfb.visual_mask = visual_mask_0888;
+		kfb.pixel_bytes = 4;
+		break;
+	case VISUAL_BGR_0_8_8_8:
+		kfb.pixel2visual = pixel2bgr_0888;
+		kfb.visual2pixel = bgr_0888_2pixel;
+		kfb.visual_mask = visual_mask_0888;
+		kfb.pixel_bytes = 4;
+		break;
+	case VISUAL_BGR_8_8_8_0:
+		kfb.pixel2visual = pixel2bgr_8880;
+		kfb.visual2pixel = bgr_8880_2pixel;
+		kfb.visual_mask = visual_mask_8880;
+		kfb.pixel_bytes = 4;
+		break;
+	default:
+		return EINVAL;
+	}
+	
+	kfb.size = scanline * height;
+	rc = physmem_map((void *) paddr + offset,
+	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
+	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
+	if (rc != EOK)
+		return rc;
+	
+	ddf_fun_t *fun_vs = ddf_fun_create(dev, fun_exposed, "vsl0");
+	if (fun_vs == NULL) {
+		as_area_destroy(kfb.addr);
+		return ENOMEM;
+	}
+	fun_vs->ops = &graph_vsl_device_ops;
+
+	visualizer_t *vs = ddf_fun_data_alloc(fun_vs, sizeof(visualizer_t));
+	if (vs == NULL) {
+		as_area_destroy(kfb.addr);
+		return ENOMEM;
+	}
+	graph_init_visualizer(vs);
+
+	pixel_mode.mode.index = 0;
+	pixel_mode.mode.version = 0;
+	pixel_mode.mode.refresh_rate = 0;
+	pixel_mode.mode.screen_aspect.width = width;
+	pixel_mode.mode.screen_aspect.height = height;
+	pixel_mode.mode.screen_width = width;
+	pixel_mode.mode.screen_height = height;
+	pixel_mode.mode.cell_aspect.width = 1;
+	pixel_mode.mode.cell_aspect.height = 1;
+	pixel_mode.mode.cell_visual.pixel_visual = visual;
+
+	link_initialize(&pixel_mode.link);
+	list_append(&pixel_mode.link, &vs->modes);
+
+	vs->def_mode_idx = 0;
+
+	vs->ops = kfb_ops;
+	vs->dev_ctx = NULL;
+
+	rc = ddf_fun_bind(fun_vs);
+	if (rc != EOK) {
+		list_remove(&pixel_mode.link);
+		ddf_fun_destroy(fun_vs);
+		as_area_destroy(kfb.addr);
+		return rc;
+	}
+
+	vs->reg_svc_handle = fun_vs->handle;
+	ddf_fun_add_to_category(fun_vs, "visualizer");
+
+	return EOK;
+}
+
+/** @}
+ */

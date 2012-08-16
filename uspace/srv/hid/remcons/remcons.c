@@ -362,6 +362,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%s: HelenOS Remote console service\n", NAME);
+	task_retval(0);
 
 	while (true) {
 		struct sockaddr_in raddr;
