@@ -53,13 +53,13 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <loc.h>
-#include <input.h>
-#include <kbd.h>
-#include <kbd_port.h>
-#include <kbd_ctl.h>
-#include <mouse_proto.h>
-#include <layout.h>
-#include <mouse.h>
+#include "layout.h"
+#include "kbd.h"
+#include "kbd_port.h"
+#include "kbd_ctl.h"
+#include "mouse.h"
+#include "mouse_proto.h"
+#include "input.h"
 
 #define NUM_LAYOUTS  3
 
@@ -645,8 +645,18 @@ static int input_start_dev_discovery(void)
 	return dev_check_new();
 }
 
+static void usage(char *name)
+{
+	printf("Usage: %s <service_name>\n", name);
+}
+
 int main(int argc, char **argv)
 {
+	if (argc < 2) {
+		usage(argv[0]);
+		return 1;
+	}
+	
 	printf("%s: HelenOS input service\n", NAME);
 	
 	sysarg_t obio;
@@ -681,9 +691,9 @@ int main(int argc, char **argv)
 	snprintf(kbd, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	
 	service_id_t service_id;
-	rc = loc_service_register(kbd, &service_id);
+	rc = loc_service_register(argv[1], &service_id);
 	if (rc != EOK) {
-		printf("%s: Unable to register service %s\n", NAME, kbd);
+		printf("%s: Unable to register service %s\n", NAME, argv[1]);
 		return rc;
 	}
 	
@@ -691,6 +701,7 @@ int main(int argc, char **argv)
 	input_start_dev_discovery();
 	
 	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
 	async_manager();
 	
 	/* Not reached. */

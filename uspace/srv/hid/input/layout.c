@@ -36,9 +36,9 @@
  */
 
 #include <errno.h>
-#include <input.h>
-#include <layout.h>
 #include <stdlib.h>
+#include "input.h"
+#include "layout.h"
 
 /** Create a new layout instance. */
 layout_t *layout_create(layout_ops_t *ops)

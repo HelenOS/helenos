@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,23 +28,26 @@
  */
 
 /** @addtogroup inputgen generic
- * @brief	Generic scancode parser.
- * @ingroup  input
+ * @brief HelenOS input server.
+ * @ingroup input
  * @{
- */ 
+ */
 /** @file
  */
 
-#ifndef KBD_STROKE_H_
-#define KBD_STROKE_H_
+#ifndef INPUT_H_
+#define INPUT_H_
 
-#include <kbd.h>
+#include <bool.h>
+#include <async.h>
 
-extern void stroke_sim(kbd_dev_t *, unsigned, unsigned);
+#define NAME  "input"
+
+extern bool irc_service;
+extern async_sess_t *irc_sess;
 
 #endif
 
 /**
  * @}
- */ 
-
+ */

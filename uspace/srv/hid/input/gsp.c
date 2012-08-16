@@ -30,9 +30,9 @@
  * @addtogroup kbdgen generic
  * @ingroup  input
  * @{
- */ 
+ */
 /** @file
- * @brief	Generic scancode parser.
+ * @brief Generic scancode parser.
  *
  * The scancode parser is a simple finite state machine. It is described
  * using sequences of input symbols (scancodes) and the corresponding output
@@ -48,12 +48,12 @@
  * sequence.
  */
 
-#include <gsp.h>
 #include <adt/hash_table.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "gsp.h"
 
-#define TRANS_TABLE_CHAINS 256
+#define TRANS_TABLE_CHAINS  256
 
 /*
  * Hash table operations for the transition function.

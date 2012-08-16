@@ -37,7 +37,7 @@
 #ifndef MOUSE_PROTO_H_
 #define MOUSE_PROTO_H_
 
-#include <mouse_port.h>
+#include "mouse_port.h"
 
 struct mouse_dev;
 

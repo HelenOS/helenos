@@ -37,7 +37,7 @@
 #ifndef KBD_CTL_H_
 #define KBD_CTL_H_
 
-#include <kbd_port.h>
+#include "kbd_port.h"
 
 struct kbd_dev;
 

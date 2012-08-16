@@ -38,11 +38,11 @@
 #include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>
-#include <input.h>
-#include <kbd.h>
-#include <kbd_port.h>
 #include <ddi.h>
 #include <errno.h>
+#include "../input.h"
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static int ns16550_port_init(kbd_dev_t *);
 static void ns16550_port_yield(void);

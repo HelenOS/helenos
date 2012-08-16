@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,27 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief HelenOS input server.
- * @ingroup input
+/** @addtogroup input
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Stroke simulator.
+ *
+ * When simulating a keyboard using a serial TTY we need to convert the
+ * recognized strokes (such as Shift-A) to sequences of key presses and
+ * releases (such as 'press Shift, press A, release A, release Shift').
+ *
  */
 
-#ifndef INPUT_H_
-#define INPUT_H_
+#include <io/console.h>
+#include <io/keycode.h>
+#include "stroke.h"
+#include "kbd.h"
 
-#include <bool.h>
-#include <async.h>
+/** Correspondence between modifers and the modifier keycodes. */
+static unsigned int mods_keys[][2] = {
+	{ KM_LSHIFT, KC_LSHIFT },
+	{ 0, 0 }
+};
 
-#define NAME       "input"
-#define NAMESPACE  "hid"
+/** Simulate keystroke using sequences of key presses and releases. */
+void stroke_sim(kbd_dev_t *kdev, unsigned mod, unsigned key)
+{
+	int i;
 
-extern bool irc_service;
-extern async_sess_t *irc_sess;
+	/* Simulate modifier presses. */
+	i = 0;
+	while (mods_keys[i][0] != 0) {
+		if (mod & mods_keys[i][0]) {
+			kbd_push_event(kdev, KEY_PRESS, mods_keys[i][1]);
+		}
+		++i;
+	}
 
-#endif
+	/* Simulate key press and release. */
+	if (key != 0) {
+		kbd_push_event(kdev, KEY_PRESS, key);
+		kbd_push_event(kdev, KEY_RELEASE, key);
+	}
+
+	/* Simulate modifier releases. */
+	i = 0;
+	while (mods_keys[i][0] != 0) {
+		if (mod & mods_keys[i][0]) {
+			kbd_push_event(kdev, KEY_RELEASE, mods_keys[i][1]);
+		}
+		++i;
+	}
+}
 
 /**
  * @}
