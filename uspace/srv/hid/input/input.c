@@ -687,9 +687,6 @@ int main(int argc, char **argv)
 		return rc;
 	}
 	
-	char kbd[LOC_NAME_MAXLEN + 1];
-	snprintf(kbd, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
-	
 	service_id_t service_id;
 	rc = loc_service_register(argv[1], &service_id);
 	if (rc != EOK) {
