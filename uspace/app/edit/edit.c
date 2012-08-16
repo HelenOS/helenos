@@ -90,7 +90,7 @@ typedef struct {
  */
 typedef struct {
 	char *file_name;
-	sheet_t sh;
+	sheet_t *sh;
 } doc_t;
 
 static console_ctrl_t *con;
@@ -174,6 +174,7 @@ int main(int argc, char *argv[])
 	kbd_event_t ev;
 	coord_t coord;
 	bool new_file;
+	int rc;
 
 	spt_t pt;
 
@@ -188,12 +189,16 @@ int main(int argc, char *argv[])
 	pane.sh_column = 1;
 
 	/* Start with an empty sheet. */
-	sheet_init(&doc.sh);
+	rc = sheet_create(&doc.sh);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		return -1;
+	}
 
 	/* Place caret at the beginning of file. */
 	coord.row = coord.column = 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &pt);
-	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, &pt);
+	sheet_place_tag(doc.sh, &pt, &pane.caret_pos);
 	pane.ideal_column = coord.column;
 
 	if (argc == 2) {
@@ -215,7 +220,7 @@ int main(int argc, char *argv[])
 
 	/* Place selection start tag. */
 	tag_get_pt(&pane.caret_pos, &pt);
-	sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+	sheet_place_tag(doc.sh, &pt, &pane.sel_start);
 
 	/* Initial display */
 	cursor_visible = true;
@@ -446,9 +451,9 @@ static void caret_movement(int drow, int dcolumn, enum dir_spec align_dir,
 
 	if (select == false) {
 		/* Move sel_start to the same point as caret. */
-		sheet_remove_tag(&doc.sh, &pane.sel_start);
+		sheet_remove_tag(doc.sh, &pane.sel_start);
 		tag_get_pt(&pane.caret_pos, &pt);
-		sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+		sheet_place_tag(doc.sh, &pt, &pane.sel_start);
 	}
 
 	if (select) {
@@ -669,7 +674,7 @@ static int file_save_range(char const *fname, spt_t const *spos,
 	sp = *spos;
 
 	do {
-		sheet_copy_out(&doc.sh, &sp, epos, buf, BUF_SIZE, &bep);
+		sheet_copy_out(doc.sh, &sp, epos, buf, BUF_SIZE, &bep);
 		bytes = str_size(buf);
 
 		n_written = fwrite(buf, 1, bytes, f);
@@ -704,7 +709,7 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 	sp = *spos;
 
 	while (true) {
-		sheet_copy_out(&doc.sh, &sp, epos, &buf[bpos], buf_size - bpos,
+		sheet_copy_out(doc.sh, &sp, epos, &buf[bpos], buf_size - bpos,
 		    &bep);
 		bytes = str_size(&buf[bpos]);
 		bpos += bytes;
@@ -726,7 +731,7 @@ static void pane_text_display(void)
 {
 	int sh_rows, rows;
 
-	sheet_get_num_rows(&doc.sh, &sh_rows);
+	sheet_get_num_rows(doc.sh, &sh_rows);
 	rows = min(sh_rows - pane.sh_row + 1, pane.rows);
 
 	/* Draw rows from the sheet. */
@@ -796,15 +801,15 @@ static void pane_row_range_display(int r0, int r1)
 		/* Starting point for row display */
 		rbc.row = pane.sh_row + i;
 		rbc.column = pane.sh_column;
-		sheet_get_cell_pt(&doc.sh, &rbc, dir_before, &rb);
+		sheet_get_cell_pt(doc.sh, &rbc, dir_before, &rb);
 
 		/* Ending point for row display */
 		rec.row = pane.sh_row + i;
 		rec.column = pane.sh_column + pane.columns;
-		sheet_get_cell_pt(&doc.sh, &rec, dir_before, &re);
+		sheet_get_cell_pt(doc.sh, &rec, dir_before, &re);
 
 		/* Copy the text of the row to the buffer. */
-		sheet_copy_out(&doc.sh, &rb, &re, row_buf, ROW_BUF_SIZE, &dep);
+		sheet_copy_out(doc.sh, &rb, &re, row_buf, ROW_BUF_SIZE, &dep);
 
 		/* Display text from the buffer. */
 
@@ -873,16 +878,19 @@ static void pane_status_display(void)
 {
 	spt_t caret_pt;
 	coord_t coord;
+	int last_row;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
+
+	sheet_get_num_rows(doc.sh, &last_row);
 
 	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
 
 	console_set_pos(con, 0, scr_rows - 1);
 	console_set_style(con, STYLE_INVERTED);
-	int n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
-	    "Ctrl-E Save As", coord.row, coord.column, fname);
+	int n = printf(" %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+	    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
 	
 	int pos = scr_columns - 1 - n;
 	printf("%*s", pos, "");
@@ -918,7 +926,7 @@ static void insert_char(wchar_t c)
 	chr_encode(c, cbuf, &offs, STR_BOUNDS(1) + 1);
 	cbuf[offs] = '\0';
 
-	(void) sheet_insert(&doc.sh, &pt, dir_before, cbuf);
+	(void) sheet_insert(doc.sh, &pt, dir_before, cbuf);
 
 	pane.rflags |= REDRAW_ROW;
 	if (c == '\n')
@@ -935,9 +943,9 @@ static void delete_char_before(void)
 	spt_get_coord(&ep, &coord);
 
 	coord.column -= 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &sp);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, &sp);
 
-	(void) sheet_delete(&doc.sh, &sp, &ep);
+	(void) sheet_delete(doc.sh, &sp, &ep);
 
 	pane.rflags |= REDRAW_ROW;
 	if (coord.column < 1)
@@ -953,10 +961,10 @@ static void delete_char_after(void)
 	tag_get_pt(&pane.caret_pos, &sp);
 	spt_get_coord(&sp, &sc);
 
-	sheet_get_cell_pt(&doc.sh, &sc, dir_after, &ep);
+	sheet_get_cell_pt(doc.sh, &sc, dir_after, &ep);
 	spt_get_coord(&ep, &ec);
 
-	(void) sheet_delete(&doc.sh, &sp, &ep);
+	(void) sheet_delete(doc.sh, &sp, &ep);
 
 	pane.rflags |= REDRAW_ROW;
 	if (ec.row != sc.row)
@@ -1028,11 +1036,11 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 			coord.column = 1;
 		else {
 			coord.row--;
-			sheet_get_row_width(&doc.sh, coord.row, &coord.column);
+			sheet_get_row_width(doc.sh, coord.row, &coord.column);
 		}
 	}
 	if (drow > 0) {
-		sheet_get_num_rows(&doc.sh, &num_rows);
+		sheet_get_num_rows(doc.sh, &num_rows);
 		if (coord.row > num_rows) coord.row = num_rows;
 	}
 
@@ -1045,9 +1053,9 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	 * Select the point before or after the character at the designated
 	 * coordinates. The character can be wider than one cell (e.g. tab).
 	 */
-	sheet_get_cell_pt(&doc.sh, &coord, align_dir, &pt);
-	sheet_remove_tag(&doc.sh, &pane.caret_pos);
-	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+	sheet_get_cell_pt(doc.sh, &coord, align_dir, &pt);
+	sheet_remove_tag(doc.sh, &pane.caret_pos);
+	sheet_place_tag(doc.sh, &pt, &pane.caret_pos);
 
 	/* For non-vertical movement set the new value for @c ideal_column. */
 	if (!pure_vertical) {
@@ -1067,8 +1075,8 @@ static void caret_move_word_left(void)
 
 		tag_get_pt(&pane.caret_pos, &pt);
 
-		sheet_remove_tag(&doc.sh, &pane.sel_start);
-		sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+		sheet_remove_tag(doc.sh, &pane.sel_start);
+		sheet_place_tag(doc.sh, &pt, &pane.sel_start);
 	} while (!pt_is_word_beginning(&pt));
 
 	pane.rflags |= REDRAW_TEXT;
@@ -1083,8 +1091,8 @@ static void caret_move_word_right(void)
 
 		tag_get_pt(&pane.caret_pos, &pt);
 
-		sheet_remove_tag(&doc.sh, &pane.sel_start);
-		sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+		sheet_remove_tag(doc.sh, &pane.sel_start);
+		sheet_place_tag(doc.sh, &pt, &pane.sel_start);
 	} while (!pt_is_word_beginning(&pt));
 
 	pane.rflags |= REDRAW_TEXT;
@@ -1162,9 +1170,9 @@ static void selection_delete(void)
 		return;
 
 	if (rel < 0)
-		sheet_delete(&doc.sh, &pa, &pb);
+		sheet_delete(doc.sh, &pa, &pb);
 	else
-		sheet_delete(&doc.sh, &pb, &pa);
+		sheet_delete(doc.sh, &pb, &pa);
 
 	if (ca.row == cb.row)
 		pane.rflags |= REDRAW_ROW;
@@ -1186,10 +1194,10 @@ static void selection_sel_all(void)
 /** Select select all text in a given range with the given direction */
 static void selection_sel_range(spt_t pa, spt_t pb)
 {
-	sheet_remove_tag(&doc.sh, &pane.sel_start);
-	sheet_place_tag(&doc.sh, &pa, &pane.sel_start);
-	sheet_remove_tag(&doc.sh, &pane.caret_pos);
-	sheet_place_tag(&doc.sh, &pb, &pane.caret_pos);
+	sheet_remove_tag(doc.sh, &pane.sel_start);
+	sheet_place_tag(doc.sh, &pa, &pane.sel_start);
+	sheet_remove_tag(doc.sh, &pane.caret_pos);
+	sheet_place_tag(doc.sh, &pb, &pane.caret_pos);
 
 	pane.rflags |= REDRAW_TEXT;
 	caret_update();
@@ -1272,7 +1280,7 @@ static void pt_get_sof(spt_t *pt)
 	coord_t coord;
 
 	coord.row = coord.column = 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, pt);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, pt);
 }
 
 /** Get end-of-file s-point. */
@@ -1281,11 +1289,11 @@ static void pt_get_eof(spt_t *pt)
 	coord_t coord;
 	int num_rows;
 
-	sheet_get_num_rows(&doc.sh, &num_rows);
+	sheet_get_num_rows(doc.sh, &num_rows);
 	coord.row = num_rows + 1;
 	coord.column = 1;
 
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, pt);
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, pt);
 }
 
 /** Get start-of-line s-point for given s-point cpt */
@@ -1296,7 +1304,7 @@ static void pt_get_sol(spt_t *cpt, spt_t *spt)
 	spt_get_coord(cpt, &coord);
 	coord.column = 1;
 
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, spt);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, spt);
 }
 
 /** Get end-of-line s-point for given s-point cpt */
@@ -1306,10 +1314,10 @@ static void pt_get_eol(spt_t *cpt, spt_t *ept)
 	int row_width;
 
 	spt_get_coord(cpt, &coord);
-	sheet_get_row_width(&doc.sh, coord.row, &row_width);
+	sheet_get_row_width(doc.sh, coord.row, &row_width);
 	coord.column = row_width - 1;
 
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, ept);
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, ept);
 }
 
 /** Check whether the spt is at a beginning of a word */
@@ -1335,7 +1343,7 @@ static bool pt_is_word_beginning(spt_t *pt)
 	spt_get_coord(pt, &coord);
 
 	coord.column -= 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &lp);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, &lp);
 
 	return pt_is_delimiter(&lp)
 	    || (pt_is_punctuation(pt) && !pt_is_punctuation(&lp))
@@ -1357,7 +1365,7 @@ static bool pt_is_delimiter(spt_t *pt)
 	spt_get_coord(pt, &coord);
 
 	coord.column += 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, &rp);
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, &rp);
 
 	ch = range_get_str(pt, &rp);
 	if (ch == NULL)
@@ -1383,7 +1391,7 @@ static bool pt_is_punctuation(spt_t *pt)
 	spt_get_coord(pt, &coord);
 
 	coord.column += 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, &rp);
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, &rp);
 
 	ch = range_get_str(pt, &rp);
 	if (ch == NULL)
