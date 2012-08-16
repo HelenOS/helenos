@@ -126,7 +126,7 @@ static bd_ops_t gxe_bd_ops = {
 
 static gxe_bd_t *bd_srv_gxe(bd_srv_t *bd)
 {
-	return (gxe_bd_t *)bd->srvs->sarg;
+	return (gxe_bd_t *) bd->srvs->sarg;
 }
 
 int main(int argc, char **argv)

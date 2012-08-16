@@ -36,7 +36,7 @@
 #ifndef LIBEXT2_LIBEXT2_BLOCK_GROUP_H_
 #define LIBEXT2_LIBEXT2_BLOCK_GROUP_H_
 
-#include <libblock.h>
+#include <block.h>
 
 typedef struct ext2_block_group {
 	uint32_t block_bitmap_block; // Block ID for block bitmap

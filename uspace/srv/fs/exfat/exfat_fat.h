@@ -36,7 +36,7 @@
 
 #include "../../vfs/vfs.h"
 #include <stdint.h>
-#include <libblock.h>
+#include <block.h>
 
 #define EXFAT_ROOT_IDX		0
 #define EXFAT_BITMAP_IDX	1

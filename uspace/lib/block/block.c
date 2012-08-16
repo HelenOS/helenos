@@ -36,7 +36,6 @@
  * @brief
  */
 
-#include "libblock.h"
 #include "../../srv/vfs/vfs.h"
 #include <ipc/loc.h>
 #include <ipc/services.h>
@@ -55,6 +54,7 @@
 #include <stdio.h>
 #include <sys/typefmt.h>
 #include <stacktrace.h>
+#include "block.h"
 
 /** Lock protecting the device connection list */
 static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
@@ -838,7 +838,7 @@ int block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
 	/* copy the data from the buffer */
 	memcpy(data, buffer + offset, bytes);
 	free(buffer);
-
+	
 	return EOK;
 }
 
