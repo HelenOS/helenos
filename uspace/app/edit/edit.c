@@ -428,7 +428,9 @@ static void key_handle_shift_ctrl(kbd_event_t const *ev)
 	}
 }
 
-static void key_handle_movement(unsigned int key, bool select)
+/** Move caret while preserving or resetting selection. */
+static void caret_movement(int drow, int dcolumn, enum dir_spec align_dir,
+    bool select)
 {
 	spt_t pt;
 	spt_t caret_pt;
@@ -440,34 +442,7 @@ static void key_handle_movement(unsigned int key, bool select)
 	tag_get_pt(&pane.sel_start, &pt);
 	had_sel = !spt_equal(&caret_pt, &pt);
 
-	switch (key) {
-	case KC_LEFT:
-		caret_move(0, -1, dir_before);
-		break;
-	case KC_RIGHT:
-		caret_move(0, 0, dir_after);
-		break;
-	case KC_UP:
-		caret_move(-1, 0, dir_before);
-		break;
-	case KC_DOWN:
-		caret_move(+1, 0, dir_before);
-		break;
-	case KC_HOME:
-		caret_move(0, -ED_INFTY, dir_before);
-		break;
-	case KC_END:
-		caret_move(0, +ED_INFTY, dir_before);
-		break;
-	case KC_PAGE_UP:
-		caret_move(-pane.rows, 0, dir_before);
-		break;
-	case KC_PAGE_DOWN:
-		caret_move(+pane.rows, 0, dir_before);
-		break;
-	default:
-		break;
-	}
+	caret_move(drow, dcolumn, align_dir);
 
 	if (select == false) {
 		/* Move sel_start to the same point as caret. */
@@ -489,6 +464,38 @@ static void key_handle_movement(unsigned int key, bool select)
 	} else if (had_sel == true) {
 		/* Redraw because text was unselected. */
 		pane.rflags |= REDRAW_TEXT;
+	}
+}
+
+static void key_handle_movement(unsigned int key, bool select)
+{
+	switch (key) {
+	case KC_LEFT:
+		caret_movement(0, -1, dir_before, select);
+		break;
+	case KC_RIGHT:
+		caret_movement(0, 0, dir_after, select);
+		break;
+	case KC_UP:
+		caret_movement(-1, 0, dir_before, select);
+		break;
+	case KC_DOWN:
+		caret_movement(+1, 0, dir_before, select);
+		break;
+	case KC_HOME:
+		caret_movement(0, -ED_INFTY, dir_before, select);
+		break;
+	case KC_END:
+		caret_movement(0, +ED_INFTY, dir_before, select);
+		break;
+	case KC_PAGE_UP:
+		caret_movement(-pane.rows, 0, dir_before, select);
+		break;
+	case KC_PAGE_DOWN:
+		caret_movement(+pane.rows, 0, dir_before, select);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -1089,31 +1096,11 @@ static void caret_move_to_line(int row)
 {
 	spt_t pt;
 	coord_t coord;
-	int num_rows;
 
 	tag_get_pt(&pane.caret_pos, &pt);
 	spt_get_coord(&pt, &coord);
-	coord.row = row;
-	coord.column = 1;
 
-	/* Clamp coordinates. */
-	if (coord.row < 1) coord.row = 1;
-	sheet_get_num_rows(&doc.sh, &num_rows);
-	if (coord.row > num_rows) coord.row = num_rows;
-
-	/*
-	 * Select the point before the character at the designated
-	 * coordinates. The character can be wider than one cell (e.g. tab).
-	 */
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &pt);
-	sheet_remove_tag(&doc.sh, &pane.caret_pos);
-	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
-
-	/* Set the new value for @c ideal_column. */
-	spt_get_coord(&pt, &coord);
-	pane.ideal_column = coord.column;
-
-	caret_update();
+	caret_movement(row - coord.row, 0, dir_before, false);
 }
 
 /** Ask for line and go to it. */
