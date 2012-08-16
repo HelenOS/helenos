@@ -217,8 +217,9 @@ void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_
 void namespace_add_message(logging_namespace_t *namespace, const char *message, log_level_t level)
 {
 	if (level <= namespace_get_actual_log_level(namespace)) {
-		printf("[%s %d]: %s\n", namespace->name, level, message);
-		fprintf(namespace->logfile, "[%d]: %s\n", level, message);
+		const char *level_name = log_level_str(level);
+		printf("[%s %s]: %s\n", namespace->name, level_name, message);
+		fprintf(namespace->logfile, "%s: %s\n", level_name, message);
 		fflush(namespace->logfile);
 		fflush(stdout);
 	}

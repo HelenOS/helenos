@@ -45,6 +45,15 @@
 /** Log messages are printed under this name. */
 static const char *log_prog_name;
 
+static const char *log_level_names[] = {
+	"fatal",
+	"error",
+	"warn",
+	"note",
+	"debug",
+	"debug2"
+};
+
 /** IPC session with the logger service. */
 static async_sess_t *logger_session;
 
@@ -159,6 +168,14 @@ static log_level_t get_current_observed_level(void)
 	log_level_t level = current_observed_level;
 	fibril_rwlock_read_unlock(&current_observed_level_lock);
 	return level;
+}
+
+const char *log_level_str(log_level_t level)
+{
+	if (level >= LVL_LIMIT)
+		return "unknown";
+	else
+		return log_level_names[level];
 }
 
 /** Initialize the logging system.
