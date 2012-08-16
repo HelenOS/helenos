@@ -46,6 +46,36 @@
 #include <malloc.h>
 #include "logger.h"
 
+static void connection_handler_control(void)
+{
+	printf(NAME "/control: new client.\n");
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+
+		if (!IPC_GET_IMETHOD(call))
+			break;
+
+		int rc;
+
+		switch (IPC_GET_IMETHOD(call)) {
+		case LOGGER_CTL_GET_DEFAULT_LEVEL:
+			async_answer_1(callid, EOK, get_default_logging_level());
+			break;
+		case LOGGER_CTL_SET_DEFAULT_LEVEL:
+			rc = set_default_logging_level(IPC_GET_ARG1(call));
+			async_answer_0(callid, rc);
+			break;
+		default:
+			async_answer_0(callid, EINVAL);
+			break;
+		}
+	}
+
+	printf(NAME "/control: client terminated.\n");
+}
+
 static logging_namespace_t *find_namespace_and_attach_writer(void)
 {
 	ipc_call_t call;
@@ -73,7 +103,7 @@ static logging_namespace_t *find_namespace_and_attach_writer(void)
 
 static int handle_receive_message(logging_namespace_t *namespace, int level)
 {
-	bool skip_message = (level > DEFAULT_LOGGING_LEVEL) && !namespace_has_reader(namespace, level);
+	bool skip_message = (level > (int)get_default_logging_level()) && !namespace_has_reader(namespace, level);
 	if (skip_message) {
 		/* Abort the actual message buffer transfer. */
 		ipc_callid_t callid;
@@ -220,6 +250,10 @@ static void connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	logging_namespace_t *namespace = NULL;
 
 	switch (iface) {
+	case LOGGER_INTERFACE_CONTROL:
+		async_answer_0(iid, EOK);
+		connection_handler_control();
+		break;
 	case LOGGER_INTERFACE_SINK:
 		/* First call has to be the registration. */
 		async_answer_0(iid, EOK);

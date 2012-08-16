@@ -27,12 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = logger
-STATIC_NEEDED = y
+BINARY = logset
 
 SOURCES = \
-	level.c \
-	main.c \
-	namespace.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

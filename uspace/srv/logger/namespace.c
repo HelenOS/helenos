@@ -125,7 +125,7 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 		return NULL;
 	}
 
-	namespace->logfile_level = DEFAULT_LOGGING_LEVEL;
+	namespace->logfile_level = get_default_logging_level();
 
 	fibril_mutex_initialize(&namespace->guard);
 	fibril_condvar_initialize(&namespace->reader_appeared_cv);
@@ -266,7 +266,7 @@ void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_
 
 void namespace_add_message(logging_namespace_t *namespace, const char *message, log_level_t level)
 {
-	if (level <= DEFAULT_LOGGING_LEVEL) {
+	if (level <= get_default_logging_level()) {
 		printf("[%s %d]: %s\n", namespace->name, level, message);
 	}
 	if (level <= namespace->logfile_level) {

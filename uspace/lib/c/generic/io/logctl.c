@@ -26,52 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup logger
+/** @addtogroup libc
  * @{
  */
-/** @file Common logger service definitions.
- */
 
-#ifndef LOGGER_H_
-#define LOGGER_H_
+#include <assert.h>
+#include <unistd.h>
+#include <errno.h>
+#include <io/logctl.h>
+#include <ipc/logger.h>
+#include <ns.h>
 
-#include <adt/list.h>
-#include <adt/prodcons.h>
-#include <io/log.h>
-#include <bool.h>
-#include <fibril_synch.h>
+/** IPC session with the logger service. */
+static async_sess_t *logger_session = NULL;
 
-#define NAME "logger"
-#define MAX_NAMESPACE_LENGTH 256
+static int connect_to_logger()
+{
+	if (logger_session != NULL)
+		return EOK;
 
-typedef struct {
-	link_t link;
-	log_level_t level;
-	const char *message;
-} log_message_t;
+	logger_session = service_connect_blocking(EXCHANGE_SERIALIZE,
+	    SERVICE_LOGGER, LOGGER_INTERFACE_CONTROL, 0);
+	if (logger_session == NULL)
+		return ENOMEM;
 
-typedef struct logging_namespace logging_namespace_t;
+	return EOK;
+}
 
-log_message_t *message_create(const char *, log_level_t);
-void message_destroy(log_message_t *);
 
-logging_namespace_t *namespace_create(const char *);
-const char *namespace_get_name(logging_namespace_t *);
-void namespace_destroy(logging_namespace_t *);
-logging_namespace_t *namespace_reader_attach(const char *);
-logging_namespace_t *namespace_writer_attach(const char *);
-void namespace_reader_detach(logging_namespace_t *);
-void namespace_writer_detach(logging_namespace_t *);
+int logctl_set_default_level(log_level_t new_level)
+{
+	int rc = connect_to_logger();
+	if (rc != EOK)
+		return rc;
 
-void namespace_wait_for_reader_change(logging_namespace_t *, bool *);
-bool namespace_has_reader(logging_namespace_t *, log_level_t);
-void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
-log_message_t *namespace_get_next_message(logging_namespace_t *);
+	async_exch_t *exchange = async_exchange_begin(logger_session);
+	if (exchange == NULL)
+		return ENOMEM;
 
-log_level_t get_default_logging_level(void);
-int set_default_logging_level(log_level_t);
+	rc = (int) async_req_1_0(exchange,
+	    LOGGER_CTL_SET_DEFAULT_LEVEL, new_level);
 
-#endif
+	async_exchange_end(exchange);
+
+	return rc;
+}
 
 /** @}
  */

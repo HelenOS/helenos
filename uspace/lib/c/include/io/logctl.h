@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Vojtech Horky
+ * Copyright (c) 2011-2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup logger
+/** @addtogroup libc
  * @{
  */
-/** @file Common logger service definitions.
- */
 
-#ifndef LOGGER_H_
-#define LOGGER_H_
+#ifndef LIBC_IO_LOGCTL_H_
+#define LIBC_IO_LOGCTL_H_
 
-#include <adt/list.h>
-#include <adt/prodcons.h>
 #include <io/log.h>
-#include <bool.h>
-#include <fibril_synch.h>
 
-#define NAME "logger"
-#define MAX_NAMESPACE_LENGTH 256
-
-typedef struct {
-	link_t link;
-	log_level_t level;
-	const char *message;
-} log_message_t;
-
-typedef struct logging_namespace logging_namespace_t;
-
-log_message_t *message_create(const char *, log_level_t);
-void message_destroy(log_message_t *);
-
-logging_namespace_t *namespace_create(const char *);
-const char *namespace_get_name(logging_namespace_t *);
-void namespace_destroy(logging_namespace_t *);
-logging_namespace_t *namespace_reader_attach(const char *);
-logging_namespace_t *namespace_writer_attach(const char *);
-void namespace_reader_detach(logging_namespace_t *);
-void namespace_writer_detach(logging_namespace_t *);
-
-void namespace_wait_for_reader_change(logging_namespace_t *, bool *);
-bool namespace_has_reader(logging_namespace_t *, log_level_t);
-void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
-log_message_t *namespace_get_next_message(logging_namespace_t *);
-
-log_level_t get_default_logging_level(void);
-int set_default_logging_level(log_level_t);
+extern int logctl_set_default_level(log_level_t);
 
 #endif
 

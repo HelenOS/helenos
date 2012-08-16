@@ -26,52 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup logger
+/** @addtogroup logset
  * @{
  */
-/** @file Common logger service definitions.
+/** @file Change logger behavior.
  */
+#include <stdio.h>
+#include <async.h>
+#include <errno.h>
+#include <str_error.h>
+#include <io/logctl.h>
 
-#ifndef LOGGER_H_
-#define LOGGER_H_
+int main(int argc, char *argv[])
+{
+	/* The only action is to set default logging level. */
 
-#include <adt/list.h>
-#include <adt/prodcons.h>
-#include <io/log.h>
-#include <bool.h>
-#include <fibril_synch.h>
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s <default-logging-level>\n", argv[0]);
+		return 1;
+	}
 
-#define NAME "logger"
-#define MAX_NAMESPACE_LENGTH 256
+	log_level_t new_default_level = (log_level_t) strtol(argv[1], NULL, 0);
 
-typedef struct {
-	link_t link;
-	log_level_t level;
-	const char *message;
-} log_message_t;
+	int rc = logctl_set_default_level(new_default_level);
 
-typedef struct logging_namespace logging_namespace_t;
+	if (rc != EOK) {
+		fprintf(stderr, "Failed to change default logging level: %s.\n",
+		    str_error(rc));
+		return 2;
+	}
 
-log_message_t *message_create(const char *, log_level_t);
-void message_destroy(log_message_t *);
-
-logging_namespace_t *namespace_create(const char *);
-const char *namespace_get_name(logging_namespace_t *);
-void namespace_destroy(logging_namespace_t *);
-logging_namespace_t *namespace_reader_attach(const char *);
-logging_namespace_t *namespace_writer_attach(const char *);
-void namespace_reader_detach(logging_namespace_t *);
-void namespace_writer_detach(logging_namespace_t *);
-
-void namespace_wait_for_reader_change(logging_namespace_t *, bool *);
-bool namespace_has_reader(logging_namespace_t *, log_level_t);
-void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
-log_message_t *namespace_get_next_message(logging_namespace_t *);
-
-log_level_t get_default_logging_level(void);
-int set_default_logging_level(log_level_t);
-
-#endif
+	return 0;
+}
 
 /** @}
  */
