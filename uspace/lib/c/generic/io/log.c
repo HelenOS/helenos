@@ -240,7 +240,7 @@ int log_init(const char *prog_name, log_level_t level)
 	return rc;
 }
 
-bool __log_shall_record(log_level_t level)
+bool _log_shall_record(log_level_t level)
 {
 	return get_current_observed_level() >= level;
 }
@@ -252,12 +252,12 @@ bool __log_shall_record(log_level_t level)
  *			reporting level.
  * @param fmt		Format string (no traling newline).
  */
-void __log_msg(log_level_t level, const char *fmt, ...)
+void _log_msg(log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
 	va_start(args, fmt);
-	__log_msgv(level, fmt, args);
+	_log_msgv(level, fmt, args);
 	va_end(args);
 }
 
@@ -268,7 +268,7 @@ void __log_msg(log_level_t level, const char *fmt, ...)
  *			reporting level.
  * @param fmt		Format string (no trailing newline)
  */
-void __log_msgv(log_level_t level, const char *fmt, va_list args)
+void _log_msgv(log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 

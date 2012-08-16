@@ -52,25 +52,25 @@ typedef enum {
 extern const char *log_level_str(log_level_t);
 extern int log_level_from_str(const char *, log_level_t *);
 
-extern bool __log_shall_record(log_level_t);
+extern bool _log_shall_record(log_level_t);
 extern int log_init(const char *, log_level_t);
 
 #define log_msg(level, format, ...) \
 	do { \
-		if (__log_shall_record((level))) { \
-			__log_msg(level, format, ##__VA_ARGS__); \
+		if (_log_shall_record((level))) { \
+			_log_msg(level, format, ##__VA_ARGS__); \
 		} \
 	} while (false)
 
 #define log_msgv(level, format, args) \
 	do { \
-		if (__log_shall_record((level))) { \
-			__log_msgv(level, format, args); \
+		if (_log_shall_record((level))) { \
+			_log_msgv(level, format, args); \
 		} \
 	} while (false)
 
-extern void __log_msg(log_level_t, const char *, ...);
-extern void __log_msgv(log_level_t, const char *, va_list);
+extern void _log_msg(log_level_t, const char *, ...);
+extern void _log_msgv(log_level_t, const char *, va_list);
 
 #endif
 
