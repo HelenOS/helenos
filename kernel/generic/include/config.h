@@ -46,6 +46,7 @@
 
 #define CONFIG_INIT_TASKS        32
 #define CONFIG_TASK_NAME_BUFLEN  32
+#define CONFIG_TASK_ARGUMENTS_BUFLEN 64
 
 #ifndef __ASM__
 
@@ -55,6 +56,7 @@ typedef struct {
 	uintptr_t paddr;
 	size_t size;
 	char name[CONFIG_TASK_NAME_BUFLEN];
+	char arguments[CONFIG_TASK_ARGUMENTS_BUFLEN];
 } init_task_t;
 
 typedef struct {
