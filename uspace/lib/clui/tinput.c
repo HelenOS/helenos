@@ -616,7 +616,7 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 			if (compl_idx >= cnum)
 				break;
 			if (col) {
-				printf("-");
+				printf(" ");
 				display_col++;
 			}
 			printf("%s", compl[compl_idx]);
@@ -624,13 +624,12 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 			display_col += compl_width;
 			if (col < cols - 1) {
 				for (i = compl_width; i < col_width; i++) {
-					printf("=");
+					printf(" ");
 					display_col++;
 				}
 			}
 		}
 		if ((display_col % ti->con_cols) > 0) printf("\n");
-		printf("%u %u\n", display_col, (unsigned int) ti->con_cols);
 	}
 	fflush(stdout);
 }
