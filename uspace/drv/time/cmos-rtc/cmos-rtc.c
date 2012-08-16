@@ -50,6 +50,7 @@
 #include <devman.h>
 #include <macros.h>
 #include <ipc/clock_ctl.h>
+#include <time.h>
 
 #include "cmos-regs.h"
 
@@ -74,13 +75,6 @@ typedef struct rtc {
 	/** true if device is removed */
 	bool removed;
 } rtc_t;
-
-/** Pointer to the kernel shared variables with time */
-struct {
-	volatile sysarg_t seconds1;
-	volatile sysarg_t useconds;
-	volatile sysarg_t seconds2;
-} *kuptime = NULL;
 
 static int  rtc_time_get(ddf_fun_t *fun, struct tm *t);
 static int  rtc_time_set(ddf_fun_t *fun, struct tm *t);
@@ -649,49 +643,14 @@ bin2bcd(unsigned binary)
 	return ((binary / 10) << 4) + (binary % 10);
 }
 
-/** Get the current uptime
- *
- * The time variables are memory mapped (read-only) from kernel which
- * updates them periodically.
- *
- * As it is impossible to read 2 values atomically, we use a trick:
- * First we read the seconds, then we read the microseconds, then we
- * read the seconds again. If a second elapsed in the meantime, set
- * the microseconds to zero.
- *
- * This assures that the values returned by two subsequent calls
- * to gettimeofday() are monotonous.
- *
- */
 static time_t
 uptime_get(void)
 {
-	if (kuptime == NULL) {
-		uintptr_t faddr;
-		int rc = sysinfo_get_value("clock.faddr", &faddr);
-		if (rc != EOK) {
-			errno = rc;
-			return -1;
-		}
-		
-		void *addr;
-		rc = physmem_map((void *) faddr, 1,
-		    AS_AREA_READ | AS_AREA_CACHEABLE, &addr);
-		if (rc != EOK) {
-			as_area_destroy(addr);
-			errno = rc;
-			return -1;
-		}
-		
-		kuptime = addr;
-	}
+	struct timeval tv;
 
-	sysarg_t s2 = kuptime->seconds2;
-	
-	read_barrier();
-	sysarg_t s1 = kuptime->seconds1;
-	
-	return max(s1, s2);
+	getuptime(&tv);
+
+	return tv.tv_sec;
 }
 
 int
