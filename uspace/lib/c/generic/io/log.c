@@ -82,7 +82,7 @@ static int logger_register(async_sess_t *session, const char *prog_name)
 	return reg_msg_rc;
 }
 
-static int logger_message(async_sess_t *session, log_context_t ctx, log_level_t level, const char *message)
+static int logger_message(async_sess_t *session, log_t ctx, log_level_t level, const char *message)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
 	if (exchange == NULL) {
@@ -175,11 +175,11 @@ int log_init(const char *prog_name, log_level_t level)
  *
  * This function always returns a valid context.
  */
-log_context_t log_context_create(const char *name)
+log_t log_create(const char *name)
 {
 	async_exch_t *exchange = async_exchange_begin(logger_session);
 	if (exchange == NULL)
-		return LOG_CONTEXT_DEFAULT;
+		return LOG_DEFAULT;
 
 	ipc_call_t answer;
 	aid_t reg_msg = async_send_0(exchange, LOGGER_CREATE_CONTEXT, &answer);
@@ -190,7 +190,7 @@ log_context_t log_context_create(const char *name)
 	async_exchange_end(exchange);
 
 	if ((rc != EOK) || (reg_msg_rc != EOK))
-		return LOG_CONTEXT_DEFAULT;
+		return LOG_DEFAULT;
 
 	return IPC_GET_ARG1(answer);
 }
@@ -202,12 +202,12 @@ log_context_t log_context_create(const char *name)
  *			reporting level.
  * @param fmt		Format string (no traling newline).
  */
-void log_ctx_msg(log_context_t ctx, log_level_t level, const char *fmt, ...)
+void log_log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
 	va_start(args, fmt);
-	log_ctx_msgv(ctx, level, fmt, args);
+	log_log_msgv(ctx, level, fmt, args);
 	va_end(args);
 }
 
@@ -218,7 +218,7 @@ void log_ctx_msg(log_context_t ctx, log_level_t level, const char *fmt, ...)
  *			reporting level.
  * @param fmt		Format string (no trailing newline)
  */
-void log_ctx_msgv(log_context_t ctx, log_level_t level, const char *fmt, va_list args)
+void log_log_msgv(log_t ctx, log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 

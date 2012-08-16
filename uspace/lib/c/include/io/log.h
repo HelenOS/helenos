@@ -50,24 +50,24 @@ typedef enum {
 	LVL_LIMIT
 } log_level_t;
 
-typedef sysarg_t log_context_t;
+typedef sysarg_t log_t;
 #define PRIlogctx PRIxn
-#define LOG_CONTEXT_DEFAULT 0
+#define LOG_DEFAULT 0
 
 extern const char *log_level_str(log_level_t);
 extern int log_level_from_str(const char *, log_level_t *);
 
 extern int log_init(const char *, log_level_t);
 
-extern log_context_t log_context_create(const char *);
+extern log_t log_create(const char *);
 
 #define log_msg(level, format, ...) \
-	log_ctx_msg(LOG_CONTEXT_DEFAULT, (level), (format), ##__VA_ARGS__)
+	log_log_msg(LOG_DEFAULT, (level), (format), ##__VA_ARGS__)
 #define log_msgv(level, format, args) \
-	log_ctx_msgv(LOG_CONTEXT_DEFAULT, (level), (format), (args))
+	log_log_msgv(LOG_DEFAULT, (level), (format), (args))
 
-extern void log_ctx_msg(log_context_t, log_level_t, const char *, ...);
-extern void log_ctx_msgv(log_context_t, log_level_t, const char *, va_list);
+extern void log_log_msg(log_t, log_level_t, const char *, ...);
+extern void log_log_msgv(log_t, log_level_t, const char *, va_list);
 
 #endif
 
