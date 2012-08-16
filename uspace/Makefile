@@ -47,7 +47,6 @@ DIRS = \
 	app/klog \
 	app/loc \
 	app/logset \
-	app/logview \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \

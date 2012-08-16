@@ -43,42 +43,16 @@
 struct logging_namespace {
 	fibril_mutex_t guard;
 	size_t writers_count;
-	fibril_condvar_t reader_appeared_cv;
-	bool has_reader;
+	fibril_condvar_t level_changed_cv;
 	FILE *logfile;
-	log_level_t logfile_level;
+	log_level_t level;
 	const char *name;
+
 	link_t link;
-	prodcons_t messages;
 };
 
 static FIBRIL_MUTEX_INITIALIZE(namespace_list_guard);
 static LIST_INITIALIZE(namespace_list);
-
-log_message_t *message_create(const char *name, log_level_t level)
-{
-	log_message_t *message = malloc(sizeof(log_message_t));
-	if (message == NULL)
-		return NULL;
-
-	message->message = str_dup(name);
-	if (message->message == NULL) {
-		free(message);
-		return NULL;
-	}
-
-	message->level = level;
-	link_initialize(&message->link);
-
-	return message;
-}
-
-void message_destroy(log_message_t *message)
-{
-	assert(message);
-	free(message->message);
-	free(message);
-}
 
 static logging_namespace_t *namespace_find_no_lock(const char *name)
 {
@@ -125,12 +99,10 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 		return NULL;
 	}
 
-	namespace->logfile_level = get_default_logging_level();
+	namespace->level = get_default_logging_level();
 
 	fibril_mutex_initialize(&namespace->guard);
-	fibril_condvar_initialize(&namespace->reader_appeared_cv);
-	prodcons_initialize(&namespace->messages);
-	namespace->has_reader = false;
+	fibril_condvar_initialize(&namespace->level_changed_cv);
 	namespace->writers_count = 0;
 	link_initialize(&namespace->link);
 
@@ -160,7 +132,7 @@ static void namespace_destroy_careful(logging_namespace_t *namespace)
 	fibril_mutex_lock(&namespace_list_guard);
 
 	fibril_mutex_lock(&namespace->guard);
-	if (namespace->has_reader || (namespace->writers_count > 0)) {
+	if (namespace->writers_count > 0) {
 		fibril_mutex_unlock(&namespace->guard);
 		fibril_mutex_unlock(&namespace_list_guard);
 		return;
@@ -180,26 +152,6 @@ static void namespace_destroy_careful(logging_namespace_t *namespace)
 void namespace_destroy(logging_namespace_t *namespace)
 {
 	namespace_destroy_careful(namespace);
-}
-
-logging_namespace_t *namespace_reader_attach(const char *name)
-{
-	logging_namespace_t *namespace = NULL;
-
-	fibril_mutex_lock(&namespace_list_guard);
-
-	namespace = namespace_find_no_lock(name);
-
-	if (namespace != NULL) {
-		fibril_mutex_lock(&namespace->guard);
-		namespace->has_reader = true;
-		fibril_condvar_broadcast(&namespace->reader_appeared_cv);
-		fibril_mutex_unlock(&namespace->guard);
-	}
-
-	fibril_mutex_unlock(&namespace_list_guard);
-
-	return namespace;
 }
 
 logging_namespace_t *namespace_writer_attach(const char *name)
@@ -223,16 +175,6 @@ logging_namespace_t *namespace_writer_attach(const char *name)
 	return namespace;
 }
 
-void namespace_reader_detach(logging_namespace_t *namespace)
-{
-	fibril_mutex_lock(&namespace->guard);
-	namespace->has_reader = false;
-	fibril_condvar_broadcast(&namespace->reader_appeared_cv);
-	fibril_mutex_unlock(&namespace->guard);
-
-	namespace_destroy_careful(namespace);
-}
-
 void namespace_writer_detach(logging_namespace_t *namespace)
 {
 	fibril_mutex_lock(&namespace->guard);
@@ -246,8 +188,7 @@ void namespace_writer_detach(logging_namespace_t *namespace)
 bool namespace_has_reader(logging_namespace_t *namespace, log_level_t level)
 {
 	fibril_mutex_lock(&namespace->guard);
-	bool has_reader = namespace->has_reader
-	    || level <= namespace->logfile_level;
+	bool has_reader = level <= namespace->level;
 	fibril_mutex_unlock(&namespace->guard);
 	return has_reader;
 }
@@ -255,40 +196,23 @@ bool namespace_has_reader(logging_namespace_t *namespace, log_level_t level)
 void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_reader_now)
 {
 	fibril_mutex_lock(&namespace->guard);
-	bool had_reader = namespace->has_reader;
-	while (had_reader == namespace->has_reader) {
-		fibril_condvar_wait(&namespace->reader_appeared_cv, &namespace->guard);
+	log_level_t previous_level = namespace->level;
+	while (previous_level == namespace->level) {
+		fibril_condvar_wait(&namespace->level_changed_cv, &namespace->guard);
 	}
-	*has_reader_now = namespace->has_reader;
+	*has_reader_now = true;
 	fibril_mutex_unlock(&namespace->guard);
 }
 
 
 void namespace_add_message(logging_namespace_t *namespace, const char *message, log_level_t level)
 {
-	if (level <= get_default_logging_level()) {
+	if (level <= namespace->level) {
 		printf("[%s %d]: %s\n", namespace->name, level, message);
-	}
-	if (level <= namespace->logfile_level) {
 		fprintf(namespace->logfile, "[%d]: %s\n", level, message);
 		fflush(namespace->logfile);
+		fflush(stdout);
 	}
-
-	fibril_mutex_lock(&namespace->guard);
-	if (namespace->has_reader) {
-		log_message_t *msg = message_create(message, level);
-		if (msg != NULL) {
-			prodcons_produce(&namespace->messages, &msg->link);
-		}
-	}
-	fibril_mutex_unlock(&namespace->guard);
-}
-
-log_message_t *namespace_get_next_message(logging_namespace_t *namespace)
-{
-	link_t *message = prodcons_consume(&namespace->messages);
-
-	return list_get_instance(message, log_message_t, link);
 }
 
 

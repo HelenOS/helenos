@@ -26,40 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup logger
+/**
+ * @addtogroup logger
  * @{
  */
-/** @file Common logger service definitions.
+
+/** @file
  */
 
-#ifndef LOGGER_H_
-#define LOGGER_H_
+#include <errno.h>
+#include "logger.h"
 
-#include <adt/list.h>
-#include <adt/prodcons.h>
-#include <io/log.h>
-#include <bool.h>
-#include <fibril_synch.h>
+log_level_t default_logging_level = LVL_NOTE;
+static FIBRIL_MUTEX_INITIALIZE(default_logging_level_guard);
 
-#define NAME "logger"
-#define MAX_NAMESPACE_LENGTH 256
+log_level_t get_default_logging_level(void)
+{
+	fibril_mutex_lock(&default_logging_level_guard);
+	log_level_t result = default_logging_level;
+	fibril_mutex_unlock(&default_logging_level_guard);
+	return result;
+}
 
-typedef struct logging_namespace logging_namespace_t;
+int set_default_logging_level(log_level_t new_level)
+{
+	if (new_level >= LVL_LIMIT)
+		return EINVAL;
+	fibril_mutex_lock(&default_logging_level_guard);
+	default_logging_level = new_level;
+	fibril_mutex_unlock(&default_logging_level_guard);
+	return EOK;
+}
 
-logging_namespace_t *namespace_create(const char *);
-const char *namespace_get_name(logging_namespace_t *);
-void namespace_destroy(logging_namespace_t *);
-logging_namespace_t *namespace_writer_attach(const char *);
-void namespace_writer_detach(logging_namespace_t *);
-
-void namespace_wait_for_reader_change(logging_namespace_t *, bool *);
-bool namespace_has_reader(logging_namespace_t *, log_level_t);
-void namespace_add_message(logging_namespace_t *, const char *, log_level_t);
-
-log_level_t get_default_logging_level(void);
-int set_default_logging_level(log_level_t);
-
-#endif
-
-/** @}
+/**
+ * @}
  */

@@ -103,7 +103,7 @@ static logging_namespace_t *find_namespace_and_attach_writer(void)
 
 static int handle_receive_message(logging_namespace_t *namespace, int level)
 {
-	bool skip_message = (level > (int)get_default_logging_level()) && !namespace_has_reader(namespace, level);
+	bool skip_message = !namespace_has_reader(namespace, level);
 	if (skip_message) {
 		/* Abort the actual message buffer transfer. */
 		ipc_callid_t callid;
@@ -157,92 +157,6 @@ static void connection_handler_sink(logging_namespace_t *namespace)
 	namespace_writer_detach(namespace);
 }
 
-
-static logging_namespace_t *find_namespace_and_attach_reader(void)
-{
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-
-	if (IPC_GET_IMETHOD(call) != LOGGER_CONNECT) {
-		async_answer_0(callid, EINVAL);
-		return NULL;
-	}
-
-	void *name;
-	int rc = async_data_write_accept(&name, true, 1, MAX_NAMESPACE_LENGTH, 0, NULL);
-
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		return NULL;
-	}
-
-	logging_namespace_t *result = namespace_reader_attach((const char *) name);
-	if (result == NULL) {
-		rc = ENOENT;
-	}
-
-	async_answer_0(callid, rc);
-
-	free(name);
-
-	return result;
-}
-
-
-static int handle_send_message(logging_namespace_t *namespace, int *level)
-{
-	ipc_callid_t callid;
-	size_t size;
-	bool expects_data_read = async_data_read_receive(&callid, &size);
-	if (!expects_data_read) {
-		return EINVAL;
-	}
-
-	log_message_t *message = namespace_get_next_message(namespace);
-	size_t message_len = str_size(message->message) + 1;
-
-	if (size > message_len) {
-		size = message_len;
-	}
-
-	async_data_read_finalize(callid, message->message, size);
-
-	*level = (int) message->level;
-	message_destroy(message);
-
-	return EOK;
-}
-
-
-static void connection_handler_source(logging_namespace_t *namespace)
-{
-	printf(NAME "/source: new client for %s.\n", namespace_get_name(namespace));
-
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		if (!IPC_GET_IMETHOD(call))
-			break;
-
-		int rc;
-		int message_level = 0;
-
-		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_GET_MESSAGE:
-			rc = handle_send_message(namespace, &message_level);
-			async_answer_1(callid, rc, message_level);
-			break;
-		default:
-			async_answer_0(callid, EINVAL);
-			break;
-		}
-	}
-
-	printf(NAME "/source: client %s terminated.\n", namespace_get_name(namespace));
-	namespace_reader_detach(namespace);
-}
-
 static void connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	logger_interface_t iface = IPC_GET_ARG1(*icall);
@@ -263,16 +177,6 @@ static void connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		connection_handler_sink(namespace);
-		break;
-	case LOGGER_INTERFACE_SOURCE:
-		async_answer_0(iid, EOK);
-		/* First call has to find existing namespace. */
-		namespace = find_namespace_and_attach_reader();
-		if (namespace == NULL) {
-			fprintf(stderr, NAME ": failed to attach client.\n");
-			break;
-		}
-		connection_handler_source(namespace);
 		break;
 	default:
 		async_answer_0(iid, EINVAL);
