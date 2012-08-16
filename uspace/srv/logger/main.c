@@ -125,9 +125,9 @@ static logging_namespace_t *find_namespace_and_attach_writer(void)
 	return result;
 }
 
-static int handle_receive_message(logging_namespace_t *namespace, int level)
+static int handle_receive_message(logging_namespace_t *namespace, sysarg_t context, int level)
 {
-	bool skip_message = !namespace_has_reader(namespace, level);
+	bool skip_message = !namespace_has_reader(namespace, context, level);
 	if (skip_message) {
 		/* Abort the actual message buffer transfer. */
 		ipc_callid_t callid;
@@ -146,10 +146,29 @@ static int handle_receive_message(logging_namespace_t *namespace, int level)
 		return rc;
 	}
 
-	namespace_add_message(namespace, message, level);
+	namespace_add_message(namespace, message, context, level);
 
 	free(message);
 
+	return EOK;
+}
+
+static int handle_create_context(logging_namespace_t *namespace, sysarg_t *idx)
+{
+	void *name;
+	int rc = async_data_write_accept(&name, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = namespace_create_context(namespace, name);
+
+	free(name);
+
+	if (rc < 0)
+		return rc;
+
+	*idx = (sysarg_t) rc;
 	return EOK;
 }
 
@@ -165,10 +184,15 @@ static void connection_handler_sink(logging_namespace_t *namespace)
 			break;
 
 		int rc;
+		sysarg_t arg = 0;
 
 		switch (IPC_GET_IMETHOD(call)) {
+		case LOGGER_CREATE_CONTEXT:
+			rc = handle_create_context(namespace, &arg);
+			async_answer_1(callid, rc, arg);
+			break;
 		case LOGGER_MESSAGE:
-			rc = handle_receive_message(namespace, IPC_GET_ARG1(call));
+			rc = handle_receive_message(namespace, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			async_answer_0(callid, rc);
 			break;
 		default:

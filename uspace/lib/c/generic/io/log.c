@@ -85,14 +85,15 @@ static int logger_register(async_sess_t *session, const char *prog_name)
 	return reg_msg_rc;
 }
 
-static int logger_message(async_sess_t *session, log_level_t level, const char *message)
+static int logger_message(async_sess_t *session, log_context_t ctx, log_level_t level, const char *message)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
 	if (exchange == NULL) {
 		return ENOMEM;
 	}
 
-	aid_t reg_msg = async_send_1(exchange, LOGGER_MESSAGE, level, NULL);
+	aid_t reg_msg = async_send_2(exchange, LOGGER_MESSAGE,
+	    ctx, level, NULL);
 	int rc = async_data_write_start(exchange, message, str_size(message));
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
@@ -240,7 +241,31 @@ int log_init(const char *prog_name, log_level_t level)
 	return rc;
 }
 
-bool _log_shall_record(log_level_t level)
+/** Create logging context.
+ *
+ * This function always returns a valid context.
+ */
+log_context_t log_context_create(const char *name)
+{
+	async_exch_t *exchange = async_exchange_begin(logger_session);
+	if (exchange == NULL)
+		return LOG_CONTEXT_DEFAULT;
+
+	ipc_call_t answer;
+	aid_t reg_msg = async_send_0(exchange, LOGGER_CREATE_CONTEXT, &answer);
+	int rc = async_data_write_start(exchange, name, str_size(name));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if ((rc != EOK) || (reg_msg_rc != EOK))
+		return LOG_CONTEXT_DEFAULT;
+
+	return IPC_GET_ARG1(answer);
+}
+
+bool _log_shall_record(log_context_t context, log_level_t level)
 {
 	return get_current_observed_level() >= level;
 }
@@ -252,12 +277,12 @@ bool _log_shall_record(log_level_t level)
  *			reporting level.
  * @param fmt		Format string (no traling newline).
  */
-void _log_msg(log_level_t level, const char *fmt, ...)
+void _log_ctx_msg(log_context_t ctx, log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
 	va_start(args, fmt);
-	_log_msgv(level, fmt, args);
+	_log_ctx_msgv(ctx, level, fmt, args);
 	va_end(args);
 }
 
@@ -268,7 +293,7 @@ void _log_msg(log_level_t level, const char *fmt, ...)
  *			reporting level.
  * @param fmt		Format string (no trailing newline)
  */
-void _log_msgv(log_level_t level, const char *fmt, va_list args)
+void _log_ctx_msgv(log_context_t ctx, log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 
@@ -282,7 +307,7 @@ void _log_msgv(log_level_t level, const char *fmt, va_list args)
 	}
 
 	vsnprintf(message_buffer, MESSAGE_BUFFER_SIZE, fmt, args);
-	logger_message(logger_session, level, message_buffer);
+	logger_message(logger_session, ctx, level, message_buffer);
 }
 
 /** @}

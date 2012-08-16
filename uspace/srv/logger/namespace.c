@@ -40,6 +40,12 @@
  * Logging namespaces.
  */
 
+#define CONTEXT_SIZE 16
+
+typedef struct {
+	const char *name;
+	log_level_t level;
+} logging_context_t;
 
 struct logging_namespace {
 	fibril_mutex_t guard;
@@ -49,16 +55,24 @@ struct logging_namespace {
 	log_level_t level;
 	const char *name;
 
+	// FIXME: make dynamic
+	size_t context_count;
+	logging_context_t context[CONTEXT_SIZE];
+
 	link_t link;
 };
 
 static FIBRIL_MUTEX_INITIALIZE(namespace_list_guard);
 static LIST_INITIALIZE(namespace_list);
 
-static log_level_t namespace_get_actual_log_level(logging_namespace_t *namespace)
+static log_level_t namespace_get_actual_log_level(logging_namespace_t *namespace, sysarg_t context)
 {
 	fibril_mutex_lock(&namespace->guard);
-	log_level_t level = namespace->level;
+	if (context >= namespace->context_count) {
+		fibril_mutex_unlock(&namespace->guard);
+		return LVL_FATAL;
+	}
+	log_level_t level = namespace->context[context].level;
 	fibril_mutex_unlock(&namespace->guard);
 
 	if (level == LOG_LEVEL_USE_DEFAULT)
@@ -113,6 +127,10 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 	}
 
 	namespace->level = LOG_LEVEL_USE_DEFAULT;
+
+	namespace->context_count = 1;
+	namespace->context[0].name = "";
+	namespace->context[0].level = LOG_LEVEL_USE_DEFAULT;
 
 	fibril_mutex_initialize(&namespace->guard);
 	fibril_condvar_initialize(&namespace->level_changed_cv);
@@ -205,6 +223,9 @@ int namespace_change_level(logging_namespace_t *namespace, log_level_t level)
 
 	fibril_mutex_lock(&namespace->guard);
 	namespace->level = level;
+	for (size_t i = 0; i < namespace->context_count; i++) {
+		namespace->context[i].level = level;
+	}
 	fibril_condvar_broadcast(&namespace->level_changed_cv);
 	fibril_mutex_unlock(&namespace->guard);
 
@@ -212,9 +233,35 @@ int namespace_change_level(logging_namespace_t *namespace, log_level_t level)
 }
 
 
-bool namespace_has_reader(logging_namespace_t *namespace, log_level_t level)
+bool namespace_has_reader(logging_namespace_t *namespace, sysarg_t context, log_level_t level)
 {
-	return level <= namespace_get_actual_log_level(namespace);
+	return level <= namespace_get_actual_log_level(namespace, context);
+}
+
+int namespace_create_context(logging_namespace_t *namespace, const char *name)
+{
+	int rc;
+	fibril_mutex_lock(&namespace->guard);
+	if (namespace->context_count >= CONTEXT_SIZE) {
+		rc = ELIMIT;
+		goto leave;
+	}
+
+	namespace->context[namespace->context_count].level
+	    = LOG_LEVEL_USE_DEFAULT;
+	namespace->context[namespace->context_count].name
+	    = str_dup(name);
+	if (namespace->context[namespace->context_count].name == NULL) {
+		rc = ENOMEM;
+		goto leave;
+	}
+	rc = (int) namespace->context_count;
+	namespace->context_count++;
+
+
+leave:
+	fibril_mutex_unlock(&namespace->guard);
+	return rc;
 }
 
 void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_reader_now)
@@ -229,12 +276,22 @@ void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_
 }
 
 
-void namespace_add_message(logging_namespace_t *namespace, const char *message, log_level_t level)
+void namespace_add_message(logging_namespace_t *namespace, const char *message, sysarg_t context, log_level_t level)
 {
-	if (level <= namespace_get_actual_log_level(namespace)) {
+	if (level <= namespace_get_actual_log_level(namespace, context)) {
 		const char *level_name = log_level_str(level);
-		printf("[%s %s]: %s\n", namespace->name, level_name, message);
-		fprintf(namespace->logfile, "%s: %s\n", level_name, message);
+		if (context == 0) {
+			printf("[%s %s]: %s\n",
+			    namespace->name, level_name, message);
+			fprintf(namespace->logfile, "%s: %s\n",
+			    level_name, message);
+		} else {
+			const char *context_name = namespace->context[context].name;
+			printf("[%s/%s %s]: %s\n",
+			    namespace->name, context_name, level_name, message);
+			fprintf(namespace->logfile, "[%s] %s: %s\n",
+			    context_name, level_name, message);
+		}
 		fflush(namespace->logfile);
 		fflush(stdout);
 	}

@@ -35,6 +35,7 @@
 #define LIBC_IO_LOG_H_
 
 #include <stdarg.h>
+#include <inttypes.h>
 #include <bool.h>
 
 typedef enum {
@@ -49,28 +50,39 @@ typedef enum {
 	LVL_LIMIT
 } log_level_t;
 
+typedef sysarg_t log_context_t;
+#define PRIlogctx PRIxn
+#define LOG_CONTEXT_DEFAULT 0
+
 extern const char *log_level_str(log_level_t);
 extern int log_level_from_str(const char *, log_level_t *);
 
-extern bool _log_shall_record(log_level_t);
+extern bool _log_shall_record(log_context_t, log_level_t);
 extern int log_init(const char *, log_level_t);
 
+extern log_context_t log_context_create(const char *);
+
+#define log_ctx_msg(context, level, format, ...) \
+	do { \
+		if (_log_shall_record((context), (level))) { \
+			_log_ctx_msg((context), (level), format, ##__VA_ARGS__); \
+		} \
+	} while (false)
+
+#define log_ctx_msgv(context, level, format, args) \
+	do { \
+		if (_log_shall_record((context), (level))) { \
+			_log_ctx_msgv((context), (level), format, args); \
+		} \
+	} while (false)
+
 #define log_msg(level, format, ...) \
-	do { \
-		if (_log_shall_record((level))) { \
-			_log_msg(level, format, ##__VA_ARGS__); \
-		} \
-	} while (false)
-
+	log_ctx_msg(LOG_CONTEXT_DEFAULT, (level), (format), ##__VA_ARGS__)
 #define log_msgv(level, format, args) \
-	do { \
-		if (_log_shall_record((level))) { \
-			_log_msgv(level, format, args); \
-		} \
-	} while (false)
+	log_ctx_msgv(LOG_CONTEXT_DEFAULT, (level), (format), (args))
 
-extern void _log_msg(log_level_t, const char *, ...);
-extern void _log_msgv(log_level_t, const char *, va_list);
+extern void _log_ctx_msg(log_context_t, log_level_t, const char *, ...);
+extern void _log_ctx_msgv(log_context_t, log_level_t, const char *, va_list);
 
 #endif
 
