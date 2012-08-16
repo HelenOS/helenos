@@ -125,8 +125,9 @@ static void file_save_as(void);
 static int file_insert(char *fname);
 static int file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
-static char *filename_prompt(char const *prompt, char const *init_value);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
+
+static char *prompt(char const *prompt, char const *init_value);
 
 static void pane_text_display(void);
 static void pane_row_display(void);
@@ -141,6 +142,8 @@ static void caret_update(void);
 static void caret_move(int drow, int dcolumn, enum dir_spec align_dir);
 static void caret_move_word_left(void);
 static void caret_move_word_right(void);
+static void caret_move_to_line(int row);
+static void caret_go_to_line_ask(void);
 
 static bool selection_active(void);
 static void selection_sel_all(void);
@@ -403,6 +406,9 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	case KC_LEFT:
 		caret_move_word_left();
 		break;
+	case KC_L:
+		caret_go_to_line_ask();
+		break;
 	default:
 		break;
 	}
@@ -422,7 +428,9 @@ static void key_handle_shift_ctrl(kbd_event_t const *ev)
 	}
 }
 
-static void key_handle_movement(unsigned int key, bool select)
+/** Move caret while preserving or resetting selection. */
+static void caret_movement(int drow, int dcolumn, enum dir_spec align_dir,
+    bool select)
 {
 	spt_t pt;
 	spt_t caret_pt;
@@ -434,34 +442,7 @@ static void key_handle_movement(unsigned int key, bool select)
 	tag_get_pt(&pane.sel_start, &pt);
 	had_sel = !spt_equal(&caret_pt, &pt);
 
-	switch (key) {
-	case KC_LEFT:
-		caret_move(0, -1, dir_before);
-		break;
-	case KC_RIGHT:
-		caret_move(0, 0, dir_after);
-		break;
-	case KC_UP:
-		caret_move(-1, 0, dir_before);
-		break;
-	case KC_DOWN:
-		caret_move(+1, 0, dir_before);
-		break;
-	case KC_HOME:
-		caret_move(0, -ED_INFTY, dir_before);
-		break;
-	case KC_END:
-		caret_move(0, +ED_INFTY, dir_before);
-		break;
-	case KC_PAGE_UP:
-		caret_move(-pane.rows, 0, dir_before);
-		break;
-	case KC_PAGE_DOWN:
-		caret_move(+pane.rows, 0, dir_before);
-		break;
-	default:
-		break;
-	}
+	caret_move(drow, dcolumn, align_dir);
 
 	if (select == false) {
 		/* Move sel_start to the same point as caret. */
@@ -483,6 +464,38 @@ static void key_handle_movement(unsigned int key, bool select)
 	} else if (had_sel == true) {
 		/* Redraw because text was unselected. */
 		pane.rflags |= REDRAW_TEXT;
+	}
+}
+
+static void key_handle_movement(unsigned int key, bool select)
+{
+	switch (key) {
+	case KC_LEFT:
+		caret_movement(0, -1, dir_before, select);
+		break;
+	case KC_RIGHT:
+		caret_movement(0, 0, dir_after, select);
+		break;
+	case KC_UP:
+		caret_movement(-1, 0, dir_before, select);
+		break;
+	case KC_DOWN:
+		caret_movement(+1, 0, dir_before, select);
+		break;
+	case KC_HOME:
+		caret_movement(0, -ED_INFTY, dir_before, select);
+		break;
+	case KC_END:
+		caret_movement(0, +ED_INFTY, dir_before, select);
+		break;
+	case KC_PAGE_UP:
+		caret_movement(-pane.rows, 0, dir_before, select);
+		break;
+	case KC_PAGE_DOWN:
+		caret_movement(+pane.rows, 0, dir_before, select);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -519,7 +532,7 @@ static void file_save_as(void)
 	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
 	char *fname;
 	
-	fname = filename_prompt("Save As", old_fname);
+	fname = prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
 		return;
@@ -534,8 +547,8 @@ static void file_save_as(void)
 	doc.file_name = fname;
 }
 
-/** Ask for a file name. */
-static char *filename_prompt(char const *prompt, char const *init_value)
+/** Ask for a string. */
+static char *prompt(char const *prompt, char const *init_value)
 {
 	kbd_event_t ev;
 	char *str;
@@ -841,8 +854,8 @@ static void pane_row_range_display(int r0, int r1)
 
 		/* Fill until the end of display area. */
 
-		if (str_length(row_buf) < (unsigned) scr_columns)
-			fill = scr_columns - str_length(row_buf);
+		if ((unsigned)s_column - 1 < scr_columns)
+			fill = scr_columns - (s_column - 1);
 		else
 			fill = 0;
 
@@ -1076,6 +1089,41 @@ static void caret_move_word_right(void)
 
 	pane.rflags |= REDRAW_TEXT;
 }
+
+/** Change the caret position to a beginning of a given line
+ */
+static void caret_move_to_line(int row)
+{
+	spt_t pt;
+	coord_t coord;
+
+	tag_get_pt(&pane.caret_pos, &pt);
+	spt_get_coord(&pt, &coord);
+
+	caret_movement(row - coord.row, 0, dir_before, false);
+}
+
+/** Ask for line and go to it. */
+static void caret_go_to_line_ask(void)
+{
+	char *sline;
+	
+	sline = prompt("Go to line", "");
+	if (sline == NULL) {
+		status_display("Go to line cancelled.");
+		return;
+	}
+	
+	char *endptr;
+	int line = strtol(sline, &endptr, 10);
+	if (*endptr != '\0') {
+		status_display("Invalid number entered.");
+		return;
+	}
+	
+	caret_move_to_line(line);
+}
+
 
 /** Check for non-empty selection. */
 static bool selection_active(void)

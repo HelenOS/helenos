@@ -384,6 +384,17 @@ static void cons_mouse_move(sysarg_t dx, sysarg_t dy)
 	fb_pointer_update(fb_sess, mouse.x, mouse.y, true);
 }
 
+static void cons_mouse_abs_move(sysarg_t x, sysarg_t y,
+    sysarg_t max_x, sysarg_t max_y)
+{
+	if (max_x && max_y) {
+		mouse.x = limit(x * xres / max_x, 0, xres);
+		mouse.y = limit(y * yres / max_y, 0, yres);
+		
+		fb_pointer_update(fb_sess, mouse.x, mouse.y, true);
+	}
+}
+
 static console_t *cons_find_icon(sysarg_t x, sysarg_t y)
 {
 	sysarg_t status_start =
@@ -500,6 +511,11 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case INPUT_EVENT_MOVE:
 			cons_mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			async_answer_0(callid, EOK);
+			break;
+		case INPUT_EVENT_ABS_MOVE:
+			cons_mouse_abs_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+			    IPC_GET_ARG3(call), IPC_GET_ARG4(call));
 			async_answer_0(callid, EOK);
 			break;
 		case INPUT_EVENT_BUTTON:

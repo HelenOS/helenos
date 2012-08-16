@@ -35,7 +35,7 @@
 #ifndef CYCLIC_BUFFER_H_
 #define CYCLIC_BUFFER_H_
 
-#define BUF_LEN 256
+#define BUF_LEN 4096
 
 typedef struct cyclic_buffer {
 	uint8_t buf[BUF_LEN];

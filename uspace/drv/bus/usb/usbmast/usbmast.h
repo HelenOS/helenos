@@ -68,8 +68,8 @@ typedef struct {
 	uint64_t nblocks;
 	/** Block size in bytes */
 	size_t block_size;
-	/** Block device server structure */
-	bd_srv_t bd;
+	/** Block device service structure */
+	bd_srvs_t bds;
 } usbmast_fun_t;
 
 #endif
