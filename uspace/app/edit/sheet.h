@@ -49,15 +49,8 @@ enum dir_spec {
 };
 
 /** Sheet */
-typedef struct {
-	/* Note: This structure is opaque for the user. */
-
-	size_t text_size;
-	size_t dbuf_size;
-	char *data;
-
-	list_t tags;
-} sheet_t;
+struct sheet;
+typedef struct sheet sheet_t;
 
 /** Character cell coordinates
  *
@@ -96,7 +89,7 @@ typedef struct {
 	size_t b_off;
 } tag_t;
 
-extern int sheet_init(sheet_t *);
+extern int sheet_create(sheet_t **);
 extern int sheet_insert(sheet_t *, spt_t *, enum dir_spec, char *);
 extern int sheet_delete(sheet_t *, spt_t *, spt_t *);
 extern void sheet_copy_out(sheet_t *, spt_t const *, spt_t const *, char *,
