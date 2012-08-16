@@ -173,27 +173,34 @@ static inline bool answer_need_old(call_t *call)
 	}
 }
 
-static int a_preprocess_m_connection_clone(call_t *answer, ipc_data_t *olddata)
+static void cleanup_m_connection_clone(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid = (int) IPC_GET_ARG1(*olddata);
 	phone_t *phone = &TASK->phones[phoneid];
 
+	/*
+	 * In this case, the connection was established at the request time and
+	 * therefore we need to slam the phone.  We don't merely hangup as that
+	 * would result in sending IPC_M_HUNGUP to the third party on the other
+	 * side of the cloned phone.
+	 */
+	mutex_lock(&phone->lock);
+	if (phone->state == IPC_PHONE_CONNECTED) {
+		irq_spinlock_lock(&phone->callee->lock, true);
+		list_remove(&phone->link);
+		phone->state = IPC_PHONE_SLAMMED;
+		irq_spinlock_unlock(&phone->callee->lock, true);
+	}
+	mutex_unlock(&phone->lock);
+}
+
+static int a_preprocess_m_connection_clone(call_t *answer, ipc_data_t *olddata)
+{
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/*
-		 * The recipient of the cloned phone rejected the offer.  In
-		 * this case, the connection was established at the request
-		 * time and therefore we need to slam the phone.  We don't
-		 * merely hangup as that would result in sending IPC_M_HUNGUP
-		 * to the third party on the other side of the cloned phone.
+		 * The recipient of the cloned phone rejected the offer.
 		 */
-		mutex_lock(&phone->lock);
-		if (phone->state == IPC_PHONE_CONNECTED) {
-			irq_spinlock_lock(&phone->callee->lock, true);
-			list_remove(&phone->link);
-			phone->state = IPC_PHONE_SLAMMED;
-			irq_spinlock_unlock(&phone->callee->lock, true);
-		}
-		mutex_unlock(&phone->lock);
+		cleanup_m_connection_clone(answer, olddata);
 	}
 
 	return EOK;
@@ -205,7 +212,7 @@ static int a_preprocess_m_clone_establish(call_t *answer, ipc_data_t *olddata)
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/*
-		 * The other party on the cloned phoned rejected our request
+		 * The other party on the cloned phone rejected our request
 		 * for connection on the protocol level.  We need to break the
 		 * connection without sending IPC_M_HUNGUP back.
 		 */
@@ -222,13 +229,20 @@ static int a_preprocess_m_clone_establish(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
+static void cleanup_m_connect_to_me(call_t *answer, ipc_data_t *olddata)
+{
+	int phoneid = (int) IPC_GET_ARG5(*olddata);
+	
+	phone_dealloc(phoneid);
+}
+
 static int a_preprocess_m_connect_to_me(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid = (int) IPC_GET_ARG5(*olddata);
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
-		phone_dealloc(phoneid);
+		cleanup_m_connect_to_me(answer, olddata);
 	} else {
 		/* The connection was accepted */
 		phone_connect(phoneid, &answer->sender->answerbox);
@@ -239,11 +253,16 @@ static int a_preprocess_m_connect_to_me(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
+static void cleanup_m_connect_me_to(call_t *answer, ipc_data_t *olddata)
+{
+	phone_dealloc(answer->priv);
+}
+
 static int a_preprocess_m_connect_me_to(call_t *answer, ipc_data_t *olddata)
 {
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
 
-	/* If the users accepted call, connect */
+	/* If the user accepted call, connect */
 	if (IPC_GET_RETVAL(answer->data) == EOK)
 		ipc_phone_connect(phone, &TASK->answerbox);
 
@@ -405,6 +424,27 @@ a_preprocess_m_state_change_authorize(call_t *answer, ipc_data_t *olddata)
 	return rc;
 }
 
+/** Cleanup additional resources associated with the answer. */
+static void cleanup_forgotten(call_t *answer, ipc_data_t *olddata)
+{
+	if (!olddata)
+		return;
+
+	switch (IPC_GET_IMETHOD(*olddata)) {
+	case IPC_M_CONNECTION_CLONE:
+		cleanup_m_connection_clone(answer, olddata);
+		break;
+	case IPC_M_CONNECT_TO_ME:
+		cleanup_m_connect_to_me(answer, olddata);
+		break;
+	case IPC_M_CONNECT_ME_TO:
+		cleanup_m_connect_me_to(answer, olddata);
+		break;
+	default:
+		break;
+	}
+}
+
 /** Interpret process answer as control information.
  *
  * This function is called directly after sys_ipc_answer().
@@ -425,7 +465,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 * This is a forgotten call and answer->sender is not valid.
 		 */
 		spinlock_unlock(&answer->forget_lock);
-		/* TODO: free the call and its resources */
+		cleanup_forgotten(answer, olddata);
 		return rc;
 	} else {
 		/*

@@ -189,7 +189,7 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 	if (call->forget) {
 		/* This is a forgotten call and call->sender is not valid. */
 		spinlock_unlock(&call->forget_lock);
-		/* TODO: free the call and its resources */
+		ipc_call_free(call);
 		return;
 	} else {
 		/*
