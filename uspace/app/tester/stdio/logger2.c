@@ -35,9 +35,25 @@
 
 const char *test_logger2(void)
 {
+	log_context_t ctx_alpha = log_context_create("alpha");
+	log_context_t ctx_bravo = log_context_create("bravo");
+
+	TPRINTF("Alpha context is %" PRIlogctx ".\n", ctx_alpha);
+	TPRINTF("Bravo context is %" PRIlogctx ".\n", ctx_bravo);
+
 	while (true) {
-		for (log_level_t level = 0; level < LVL_LIMIT; level++) {
+		/*
+		 * Intentionally skipping FATAL to allow muting
+		 * the output completely by setting visible level to FATAL.
+		 */
+		for (log_level_t level = LVL_ERROR; level < LVL_LIMIT; level++) {
 			log_msg(level, "Printing level %d (%s).",
+			    (int) level, log_level_str(level));
+			log_ctx_msg(ctx_alpha, level,
+			    "Printing level %d (%s) in alpha context.",
+			    (int) level, log_level_str(level));
+			log_ctx_msg(ctx_bravo, level,
+			    "Printing level %d (%s) in bravo context.",
 			    (int) level, log_level_str(level));
 			async_usleep(1000 * 100);
 		}
