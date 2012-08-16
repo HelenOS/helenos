@@ -35,11 +35,11 @@
 
 const char *test_logger2(void)
 {
-	log_t log_alpha = log_create("alpha");
-	log_t log_bravo = log_create("bravo");
+	log_t log_alpha = log_create("alpha", LOG_DEFAULT);
+	log_t log_bravo = log_create("bravo", log_alpha);
 
-	TPRINTF("Alpha context is %" PRIlogctx ".\n", log_alpha);
-	TPRINTF("Bravo context is %" PRIlogctx ".\n", log_bravo);
+	TPRINTF("Alpha is %" PRIlogctx ".\n", log_alpha);
+	TPRINTF("Bravo is %" PRIlogctx ".\n", log_bravo);
 
 	while (true) {
 		/*
@@ -53,7 +53,7 @@ const char *test_logger2(void)
 			    "Printing level %d (%s) into alpha log.",
 			    (int) level, log_level_str(level));
 			log_log_msg(log_bravo, level,
-			    "Printing level %d (%s) into bravo log.",
+			    "Printing level %d (%s) into bravo sub-log.",
 			    (int) level, log_level_str(level));
 			async_usleep(1000 * 100);
 		}

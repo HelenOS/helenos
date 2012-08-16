@@ -42,6 +42,20 @@
 #include <ipc/logger.h>
 #include <ns.h>
 
+typedef struct {
+	char *name;
+	sysarg_t top_log_id;
+	sysarg_t log_id;
+} log_info_t;
+
+static log_info_t default_log = {
+	.name = NULL,
+	.top_log_id = 0,
+	.log_id = 0
+};
+
+static sysarg_t default_top_log_id;
+
 /** Log messages are printed under this name. */
 static const char *log_prog_name;
 
@@ -61,7 +75,6 @@ static async_sess_t *logger_session;
 /** Maximum length of a single log message (in bytes). */
 #define MESSAGE_BUFFER_SIZE 4096
 
-static sysarg_t toplog_id;
 
 static int logger_register(async_sess_t *session, const char *prog_name)
 {
@@ -85,7 +98,8 @@ static int logger_register(async_sess_t *session, const char *prog_name)
 	if (reg_msg_rc != EOK)
 		return reg_msg_rc;
 
-	toplog_id = IPC_GET_ARG1(answer);
+	default_top_log_id = IPC_GET_ARG1(answer);
+	default_log.top_log_id = default_top_log_id;
 
 	return EOK;
 }
@@ -96,9 +110,10 @@ static int logger_message(async_sess_t *session, log_t ctx, log_level_t level, c
 	if (exchange == NULL) {
 		return ENOMEM;
 	}
+	log_info_t *log_info = ctx != 0 ? (log_info_t *) ctx : &default_log;
 
 	aid_t reg_msg = async_send_3(exchange, LOGGER_WRITER_MESSAGE,
-	    toplog_id, ctx, level, NULL);
+	    log_info->top_log_id, log_info->log_id, level, NULL);
 	int rc = async_data_write_start(exchange, message, str_size(message));
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
@@ -183,24 +198,53 @@ int log_init(const char *prog_name, log_level_t level)
  *
  * This function always returns a valid context.
  */
-log_t log_create(const char *name)
+log_t log_create(const char *name, log_t parent)
 {
-	async_exch_t *exchange = async_exchange_begin(logger_session);
-	if (exchange == NULL)
+	log_info_t *info = malloc(sizeof(log_info_t));
+	if (info == NULL)
 		return LOG_DEFAULT;
 
+	if (parent == LOG_DEFAULT) {
+		info->name = str_dup(name);
+		if (info->name == NULL) {
+			free(info);
+			return LOG_DEFAULT;
+		}
+		info->top_log_id = default_top_log_id;
+	} else {
+		log_info_t *parent_info = (log_info_t *) parent;
+		int rc = asprintf(&info->name, "%s/%s",
+		    parent_info->name, name);
+		if (rc < 0) {
+			free(info);
+			return LOG_DEFAULT;
+		}
+		info->top_log_id = parent_info->top_log_id;
+	}
+
+	async_exch_t *exchange = async_exchange_begin(logger_session);
+	if (exchange == NULL)
+		goto error;
+
 	ipc_call_t answer;
-	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_SUB_LOG, toplog_id, &answer);
-	int rc = async_data_write_start(exchange, name, str_size(name));
+	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_SUB_LOG,
+	    info->top_log_id, &answer);
+	int rc = async_data_write_start(exchange, info->name, str_size(info->name));
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);
 
 	if ((rc != EOK) || (reg_msg_rc != EOK))
-		return LOG_DEFAULT;
+		goto error;
 
-	return IPC_GET_ARG1(answer);
+	info->log_id = IPC_GET_ARG1(answer);
+	return (sysarg_t) info;
+
+error:
+	free(info->name);
+	free(info);
+	return LOG_DEFAULT;
 }
 
 /** Write an entry to the log.

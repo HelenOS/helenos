@@ -58,8 +58,7 @@ extern const char *log_level_str(log_level_t);
 extern int log_level_from_str(const char *, log_level_t *);
 
 extern int log_init(const char *, log_level_t);
-
-extern log_t log_create(const char *);
+extern log_t log_create(const char *, log_t);
 
 #define log_msg(level, format, ...) \
 	log_log_msg(LOG_DEFAULT, (level), (format), ##__VA_ARGS__)
