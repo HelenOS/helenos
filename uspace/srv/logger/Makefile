@@ -31,8 +31,10 @@ BINARY = logger
 STATIC_NEEDED = y
 
 SOURCES = \
+	ctl.c \
 	level.c \
 	main.c \
-	namespace.c
+	namespace.c \
+	writer.c
 
 include $(USPACE_PREFIX)/Makefile.common

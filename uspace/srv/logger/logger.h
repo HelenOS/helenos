@@ -38,6 +38,7 @@
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <io/log.h>
+#include <async.h>
 #include <bool.h>
 #include <fibril_synch.h>
 
@@ -63,6 +64,10 @@ int namespace_change_context_level(logging_namespace_t *, const char *, log_leve
 
 log_level_t get_default_logging_level(void);
 int set_default_logging_level(log_level_t);
+
+
+void logger_connection_handler_control(ipc_callid_t);
+void logger_connection_handler_writer(ipc_callid_t);
 
 #endif
 
