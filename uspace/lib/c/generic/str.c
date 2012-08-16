@@ -398,6 +398,33 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
 	return len;
 }
 
+/** Get character display width on a character cell display.
+ *
+ * @param ch	Character
+ * @return	Width of character in cells.
+ */
+size_t chr_width(wchar_t ch)
+{
+	return 1;
+}
+
+/** Get string display width on a character cell display.
+ *
+ * @param str	String
+ * @return	Width of string in cells.
+ */
+size_t str_width(const char *str)
+{
+	size_t width = 0;
+	size_t offset = 0;
+	wchar_t ch;
+	
+	while ((ch = str_decode(str, &offset, STR_NO_LIMIT)) != 0)
+		width += chr_width(ch);
+	
+	return width;
+}
+
 /** Check whether character is plain ASCII.
  *
  * @return True if character is plain ASCII.
