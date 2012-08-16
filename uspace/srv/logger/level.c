@@ -51,7 +51,7 @@ log_level_t get_default_logging_level(void)
 int set_default_logging_level(log_level_t new_level)
 {
 	if (new_level >= LVL_LIMIT)
-		return EINVAL;
+		return ERANGE;
 	fibril_mutex_lock(&default_logging_level_guard);
 	default_logging_level = new_level;
 	fibril_mutex_unlock(&default_logging_level_guard);

@@ -61,6 +61,8 @@ static async_sess_t *logger_session;
 /** Maximum length of a single log message (in bytes). */
 #define MESSAGE_BUFFER_SIZE 4096
 
+static sysarg_t toplog_id;
+
 static int logger_register(async_sess_t *session, const char *prog_name)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
@@ -68,7 +70,8 @@ static int logger_register(async_sess_t *session, const char *prog_name)
 		return ENOMEM;
 	}
 
-	aid_t reg_msg = async_send_0(exchange, LOGGER_REGISTER, NULL);
+	ipc_call_t answer;
+	aid_t reg_msg = async_send_0(exchange, LOGGER_WRITER_CREATE_TOPLEVEL_LOG, &answer);
 	int rc = async_data_write_start(exchange, prog_name, str_size(prog_name));
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
@@ -79,7 +82,12 @@ static int logger_register(async_sess_t *session, const char *prog_name)
 		return rc;
 	}
 
-	return reg_msg_rc;
+	if (reg_msg_rc != EOK)
+		return reg_msg_rc;
+
+	toplog_id = IPC_GET_ARG1(answer);
+
+	return EOK;
 }
 
 static int logger_message(async_sess_t *session, log_t ctx, log_level_t level, const char *message)
@@ -89,8 +97,8 @@ static int logger_message(async_sess_t *session, log_t ctx, log_level_t level, c
 		return ENOMEM;
 	}
 
-	aid_t reg_msg = async_send_2(exchange, LOGGER_MESSAGE,
-	    ctx, level, NULL);
+	aid_t reg_msg = async_send_3(exchange, LOGGER_WRITER_MESSAGE,
+	    toplog_id, ctx, level, NULL);
 	int rc = async_data_write_start(exchange, message, str_size(message));
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
@@ -182,7 +190,7 @@ log_t log_create(const char *name)
 		return LOG_DEFAULT;
 
 	ipc_call_t answer;
-	aid_t reg_msg = async_send_0(exchange, LOGGER_CREATE_CONTEXT, &answer);
+	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_SUB_LOG, toplog_id, &answer);
 	int rc = async_data_write_start(exchange, name, str_size(name));
 	sysarg_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);

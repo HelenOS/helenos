@@ -41,26 +41,32 @@
 #include <async.h>
 #include <bool.h>
 #include <fibril_synch.h>
+#include <stdio.h>
 
 #define NAME "logger"
-#define MAX_NAMESPACE_LENGTH 256
+#define MAX_SUBLOGS 64
 #define LOG_LEVEL_USE_DEFAULT (LVL_LIMIT + 1)
 
-typedef struct logging_namespace logging_namespace_t;
+typedef struct {
+	const char *name;
+	log_level_t logged_level;
+} logger_sublog_t;
 
-logging_namespace_t *namespace_create(const char *);
-const char *namespace_get_name(logging_namespace_t *);
-void namespace_destroy(logging_namespace_t *);
-logging_namespace_t *namespace_writer_attach(const char *);
-void namespace_writer_detach(logging_namespace_t *);
+typedef struct {
+	const char *name;
+	FILE *logfile;
+	log_level_t logged_level;
+	size_t sublog_count;
+	logger_sublog_t sublogs[MAX_SUBLOGS];
 
-int namespace_change_level(logging_namespace_t *, log_level_t);
+	link_t link;
+} logger_toplevel_log_t;
 
-bool namespace_has_reader(logging_namespace_t *, sysarg_t, log_level_t);
-void namespace_add_message(logging_namespace_t *, const char *, sysarg_t, log_level_t);
 
-int namespace_create_context(logging_namespace_t *, const char *);
-int namespace_change_context_level(logging_namespace_t *, const char *, log_level_t);
+logger_toplevel_log_t *find_or_create_toplevel_log(const char *);
+logger_toplevel_log_t *find_toplevel_log(sysarg_t);
+bool shall_log_message(logger_toplevel_log_t *, sysarg_t, log_level_t);
+int add_sub_log(logger_toplevel_log_t *, const char *, sysarg_t *);
 
 log_level_t get_default_logging_level(void);
 int set_default_logging_level(log_level_t);

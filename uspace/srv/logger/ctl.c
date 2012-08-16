@@ -42,48 +42,53 @@
 #include <ipc/logger.h>
 #include "logger.h"
 
-static int handle_namespace_level_change(sysarg_t new_level)
+static int handle_toplog_level_change(sysarg_t new_level)
 {
-	void *namespace_name;
-	int rc = async_data_write_accept(&namespace_name, true, 0, 0, 0, NULL);
+	void *top_name;
+	int rc = async_data_write_accept(&top_name, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	logging_namespace_t *namespace = namespace_writer_attach((const char *) namespace_name);
-	free(namespace_name);
-	if (namespace == NULL)
+	logger_toplevel_log_t *toplog = find_or_create_toplevel_log(top_name);
+	free(top_name);
+	if (toplog == NULL)
 		return ENOENT;
 
-	rc = namespace_change_level(namespace, (log_level_t) new_level);
-	namespace_writer_detach(namespace);
+	toplog->logged_level = new_level;
 
-	return rc;
+	return EOK;
 }
 
-static int handle_context_level_change(sysarg_t new_level)
+static int handle_log_level_change(sysarg_t new_level)
 {
-	void *namespace_name;
-	int rc = async_data_write_accept(&namespace_name, true, 0, 0, 0, NULL);
+	void *top_name;
+	int rc = async_data_write_accept(&top_name, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	logging_namespace_t *namespace = namespace_writer_attach((const char *) namespace_name);
-	free(namespace_name);
-	if (namespace == NULL)
+	logger_toplevel_log_t *toplog = find_or_create_toplevel_log(top_name);
+	free(top_name);
+	if (toplog == NULL)
 		return ENOENT;
 
-	void *context_name;
-	rc = async_data_write_accept(&context_name, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
-		namespace_writer_detach(namespace);
+
+	void *log_name;
+	rc = async_data_write_accept(&log_name, true, 0, 0, 0, NULL);
+	if (rc != EOK)
 		return rc;
+
+	rc = ENOENT;
+	for (size_t i = 0; i < toplog->sublog_count; i++) {
+		if (str_cmp(toplog->sublogs[i].name, (const char *) log_name) == 0) {
+			toplog->sublogs[i].logged_level = new_level;
+			rc = EOK;
+			break;
+		}
 	}
 
-	rc = namespace_change_context_level(namespace, context_name, new_level);
-	free(context_name);
-	namespace_writer_detach(namespace);
+	free(log_name);
 
 	return rc;
 }
@@ -100,24 +105,22 @@ void logger_connection_handler_control(ipc_callid_t callid)
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
-		int rc;
-
 		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_CTL_GET_DEFAULT_LEVEL:
-			async_answer_1(callid, EOK, get_default_logging_level());
-			break;
-		case LOGGER_CTL_SET_DEFAULT_LEVEL:
-			rc = set_default_logging_level(IPC_GET_ARG1(call));
+		case LOGGER_CTL_SET_DEFAULT_LEVEL: {
+			int rc = set_default_logging_level(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
-		case LOGGER_CTL_SET_NAMESPACE_LEVEL:
-			rc = handle_namespace_level_change(IPC_GET_ARG1(call));
+		}
+		case LOGGER_CTL_SET_TOP_LOG_LEVEL: {
+			int rc = handle_toplog_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
-		case LOGGER_CTL_SET_CONTEXT_LEVEL:
-			rc = handle_context_level_change(IPC_GET_ARG1(call));
+		}
+		case LOGGER_CTL_SET_LOG_LEVEL: {
+			int rc = handle_log_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
+		}
 		default:
 			async_answer_0(callid, EINVAL);
 			break;

@@ -33,8 +33,8 @@ STATIC_NEEDED = y
 SOURCES = \
 	ctl.c \
 	level.c \
+	logs.c \
 	main.c \
-	namespace.c \
 	writer.c
 
 include $(USPACE_PREFIX)/Makefile.common

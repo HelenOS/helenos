@@ -48,89 +48,73 @@
 #include "logger.h"
 
 
-static logging_namespace_t *find_namespace_and_attach_writer(void)
+static logger_toplevel_log_t *handle_create_toplevel_log(void)
 {
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-
-	if (IPC_GET_IMETHOD(call) != LOGGER_REGISTER) {
-		async_answer_0(callid, EINVAL);
-		return NULL;
-	}
-
 	void *name;
-	int rc = async_data_write_accept(&name, true, 1, MAX_NAMESPACE_LENGTH, 0, NULL);
-	async_answer_0(callid, rc);
-
-	if (rc != EOK) {
+	int rc = async_data_write_accept(&name, true, 1, 0, 0, NULL);
+	if (rc != EOK)
 		return NULL;
-	}
 
-	logging_namespace_t *result = namespace_writer_attach((const char *) name);
+	logger_toplevel_log_t *log = find_or_create_toplevel_log(name);
 
 	free(name);
 
-	return result;
+	return log;
 }
 
-static int handle_receive_message(logging_namespace_t *namespace, sysarg_t context, int level)
+static int handle_receive_message(sysarg_t toplevel_log_id, sysarg_t log_id, sysarg_t level)
 {
-	bool skip_message = !namespace_has_reader(namespace, context, level);
-	if (skip_message) {
-		/* Abort the actual message buffer transfer. */
-		ipc_callid_t callid;
-		size_t size;
-		int rc = ENAK;
-		if (!async_data_write_receive(&callid, &size))
-			rc = EINVAL;
+	logger_toplevel_log_t *log = find_toplevel_log(toplevel_log_id);
+	if (log == NULL)
+		return ENOENT;
 
-		async_answer_0(callid, rc);
-		return rc;
-	}
+	if (log_id > log->sublog_count)
+		return ENOENT;
 
 	void *message;
-	int rc = async_data_write_accept(&message, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
+	int rc = async_data_write_accept(&message, true, 1, 0, 0, NULL);
+	if (rc != EOK)
 		return rc;
+
+	if (!shall_log_message(log, log_id, level)) {
+		free(message);
+		return EOK;
 	}
 
-	namespace_add_message(namespace, message, context, level);
+	printf("[%s/%s] %s: %s\n",
+	    log->name, log->sublogs[log_id].name,
+	    log_level_str(level),
+	    (const char *) message);
 
 	free(message);
 
 	return EOK;
 }
 
-static int handle_create_context(logging_namespace_t *namespace, sysarg_t *idx)
+static int handle_create_sub_log(sysarg_t toplevel_log_id, sysarg_t *log_id)
 {
+	logger_toplevel_log_t *log = find_toplevel_log(toplevel_log_id);
+	if (log == NULL)
+		return ENOENT;
+
 	void *name;
 	int rc = async_data_write_accept(&name, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
+	if (rc != EOK)
 		return rc;
-	}
 
-	rc = namespace_create_context(namespace, name);
+	rc = add_sub_log(log, name, log_id);
 
 	free(name);
 
-	if (rc < 0)
-		return rc;
-
-	*idx = (sysarg_t) rc;
-	return EOK;
+	return rc;
 }
 
 void logger_connection_handler_writer(ipc_callid_t callid)
 {
-	/* First call has to be the registration. */
+	/* Acknowledge the connection. */
 	async_answer_0(callid, EOK);
-	logging_namespace_t *namespace = find_namespace_and_attach_writer();
-	if (namespace == NULL) {
-		fprintf(stderr, NAME ": failed to register namespace.\n");
-		return;
-	}
 
-	printf(NAME "/writer: new client %s.\n", namespace_get_name(namespace));
+	printf(NAME "/writer: new client.\n");
 
 	while (true) {
 		ipc_call_t call;
@@ -139,26 +123,35 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
-		int rc;
-		sysarg_t arg = 0;
-
 		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_CREATE_CONTEXT:
-			rc = handle_create_context(namespace, &arg);
-			async_answer_1(callid, rc, arg);
+		case LOGGER_WRITER_CREATE_TOPLEVEL_LOG: {
+			logger_toplevel_log_t *log = handle_create_toplevel_log();
+			if (log == NULL) {
+				async_answer_0(callid, ENOMEM);
+				break;
+			}
+			async_answer_1(callid, EOK, (sysarg_t) log);
 			break;
-		case LOGGER_MESSAGE:
-			rc = handle_receive_message(namespace, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+		}
+		case LOGGER_WRITER_MESSAGE: {
+			int rc = handle_receive_message(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call), IPC_GET_ARG3(call));
 			async_answer_0(callid, rc);
 			break;
+		}
+		case LOGGER_WRITER_CREATE_SUB_LOG: {
+			sysarg_t log_id;
+			int rc = handle_create_sub_log(IPC_GET_ARG1(call), &log_id);
+			async_answer_1(callid, rc, log_id);
+			break;
+		}
 		default:
 			async_answer_0(callid, EINVAL);
 			break;
 		}
 	}
 
-	printf(NAME "/sink: client %s terminated.\n", namespace_get_name(namespace));
-	namespace_writer_detach(namespace);
+	// FIXME: destroy created logs
 }
 
 

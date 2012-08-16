@@ -89,7 +89,7 @@ int logctl_set_namespace_level(const char *namespace, log_level_t new_level)
 	if (rc != EOK)
 		return rc;
 
-	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_NAMESPACE_LEVEL,
+	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_TOP_LOG_LEVEL,
 	    new_level, NULL);
 	rc = async_data_write_start(exchange, namespace, str_size(namespace));
 	sysarg_t reg_msg_rc;
@@ -111,7 +111,7 @@ int logctl_set_context_level(const char *namespace, const char *context, log_lev
 	if (rc != EOK)
 		return rc;
 
-	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_CONTEXT_LEVEL,
+	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_LOG_LEVEL,
 	    new_level, NULL);
 	rc = async_data_write_start(exchange, namespace, str_size(namespace));
 	int rc2 = async_data_write_start(exchange, context, str_size(context));
