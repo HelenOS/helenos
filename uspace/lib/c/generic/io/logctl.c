@@ -82,7 +82,7 @@ int logctl_set_default_level(log_level_t new_level)
 	return rc;
 }
 
-int logctl_set_namespace_level(const char *namespace, log_level_t new_level)
+int logctl_set_top_log_level(const char *namespace, log_level_t new_level)
 {
 	async_exch_t *exchange = NULL;
 	int rc = start_logger_exchange(&exchange);
@@ -104,7 +104,7 @@ int logctl_set_namespace_level(const char *namespace, log_level_t new_level)
 	return (int) reg_msg_rc;
 }
 
-int logctl_set_context_level(const char *namespace, const char *context, log_level_t new_level)
+int logctl_set_log_level(const char *namespace, const char *context, log_level_t new_level)
 {
 	async_exch_t *exchange = NULL;
 	int rc = start_logger_exchange(&exchange);
