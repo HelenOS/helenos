@@ -194,31 +194,33 @@ int log_init(const char *prog_name, log_level_t level)
 	return rc;
 }
 
-/** Create logging context.
+/** Create a new (sub-) log.
  *
- * This function always returns a valid context.
+ * This function always returns a valid log_t. In case of errors,
+ * @c parent is returned and errors are silently ignored.
+ *
+ * @param name Log name under which message will be reported (appended to parents name).
+ * @param parent Parent log.
+ * @return Opaque identifier of the newly created log.
  */
 log_t log_create(const char *name, log_t parent)
 {
 	log_info_t *info = malloc(sizeof(log_info_t));
 	if (info == NULL)
 		return LOG_DEFAULT;
+	info->name = NULL;
 
 	if (parent == LOG_DEFAULT) {
 		info->name = str_dup(name);
-		if (info->name == NULL) {
-			free(info);
-			return LOG_DEFAULT;
-		}
+		if (info->name == NULL)
+			goto error;
 		info->top_log_id = default_top_log_id;
 	} else {
 		log_info_t *parent_info = (log_info_t *) parent;
 		int rc = asprintf(&info->name, "%s/%s",
 		    parent_info->name, name);
-		if (rc < 0) {
-			free(info);
-			return LOG_DEFAULT;
-		}
+		if (rc < 0)
+			goto error;
 		info->top_log_id = parent_info->top_log_id;
 	}
 
@@ -244,7 +246,7 @@ log_t log_create(const char *name, log_t parent)
 error:
 	free(info->name);
 	free(info);
-	return LOG_DEFAULT;
+	return parent;
 }
 
 /** Write an entry to the log.
