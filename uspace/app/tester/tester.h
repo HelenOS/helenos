@@ -88,6 +88,7 @@ extern const char *test_console1(void);
 extern const char *test_stdio1(void);
 extern const char *test_stdio2(void);
 extern const char *test_logger1(void);
+extern const char *test_logger2(void);
 extern const char *test_fault1(void);
 extern const char *test_fault2(void);
 extern const char *test_fault3(void);

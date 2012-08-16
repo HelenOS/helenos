@@ -56,6 +56,7 @@ test_t tests[] = {
 #include "stdio/stdio1.def"
 #include "stdio/stdio2.def"
 #include "stdio/logger1.def"
+#include "stdio/logger2.def"
 #include "fault/fault1.def"
 #include "fault/fault2.def"
 #include "fault/fault3.def"
