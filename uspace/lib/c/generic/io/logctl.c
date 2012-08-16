@@ -76,6 +76,31 @@ int logctl_set_default_level(log_level_t new_level)
 	return rc;
 }
 
+int logctl_set_namespace_level(const char *namespace, log_level_t new_level)
+{
+	int rc = connect_to_logger();
+	if (rc != EOK)
+		return rc;
+
+	async_exch_t *exchange = async_exchange_begin(logger_session);
+	if (exchange == NULL)
+		return ENOMEM;
+
+	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_NAMESPACE_LEVEL,
+	    new_level, NULL);
+	rc = async_data_write_start(exchange, namespace, str_size(namespace));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return (int) reg_msg_rc;
+}
+
 int logctl_get_boot_level(log_level_t *level)
 {
 	size_t argument_size;

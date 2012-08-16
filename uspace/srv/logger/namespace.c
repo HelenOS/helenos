@@ -33,6 +33,7 @@
 #include <malloc.h>
 #include <str.h>
 #include <stdio.h>
+#include <errno.h>
 #include "logger.h"
 
 /** @file
@@ -196,6 +197,20 @@ void namespace_writer_detach(logging_namespace_t *namespace)
 
 	namespace_destroy_careful(namespace);
 }
+
+int namespace_change_level(logging_namespace_t *namespace, log_level_t level)
+{
+	if (level >= LVL_LIMIT)
+		return ERANGE;
+
+	fibril_mutex_lock(&namespace->guard);
+	namespace->level = level;
+	fibril_condvar_broadcast(&namespace->level_changed_cv);
+	fibril_mutex_unlock(&namespace->guard);
+
+	return EOK;
+}
+
 
 bool namespace_has_reader(logging_namespace_t *namespace, log_level_t level)
 {

@@ -37,28 +37,49 @@
 #include <str_error.h>
 #include <io/logctl.h>
 
-int main(int argc, char *argv[])
+static log_level_t parse_log_level_or_die(const char *log_level)
 {
-	/* The only action is to set default logging level. */
-
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <default-logging-level>\n", argv[0]);
-		return 1;
-	}
-
-	log_level_t new_default_level;
-	int rc = log_level_from_str(argv[1], &new_default_level);
+	log_level_t result;
+	int rc = log_level_from_str(log_level, &result);
 	if (rc != EOK) {
 		fprintf(stderr, "Unrecognised log level '%s': %s.\n",
-		    argv[1], str_error(rc));
+		    log_level, str_error(rc));
+		exit(2);
 	}
+	return result;
+}
 
-	rc = logctl_set_default_level(new_default_level);
+static void usage(const char *progname)
+{
+	fprintf(stderr, "Usage:\n");
+	fprintf(stderr, "  %s <default-logging-level>\n", progname);
+	fprintf(stderr, "  %s <namespace> <logging-level>\n", progname);
+}
 
-	if (rc != EOK) {
-		fprintf(stderr, "Failed to change default logging level: %s.\n",
-		    str_error(rc));
-		return 2;
+int main(int argc, char *argv[])
+{
+	if (argc == 2) {
+		log_level_t new_default_level = parse_log_level_or_die(argv[1]);
+		int rc = logctl_set_default_level(new_default_level);
+
+		if (rc != EOK) {
+			fprintf(stderr, "Failed to change default logging level: %s.\n",
+			    str_error(rc));
+			return 2;
+		}
+	} else if (argc == 3) {
+		log_level_t new_level = parse_log_level_or_die(argv[2]);
+		const char *namespace = argv[1];
+		int rc = logctl_set_namespace_level(namespace, new_level);
+
+		if (rc != EOK) {
+			fprintf(stderr, "Failed to change logging level: %s.\n",
+			    str_error(rc));
+			return 2;
+		}
+	} else {
+		usage(argv[0]);
+		return 1;
 	}
 
 	return 0;
