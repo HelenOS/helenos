@@ -35,7 +35,10 @@
 #include <errno.h>
 #include <io/logctl.h>
 #include <ipc/logger.h>
+#include <sysinfo.h>
 #include <ns.h>
+
+#define SYSINFO_DEFAULT_LOG_LEVEL "logger.level"
 
 /** IPC session with the logger service. */
 static async_sess_t *logger_session = NULL;
@@ -70,6 +73,23 @@ int logctl_set_default_level(log_level_t new_level)
 	async_exchange_end(exchange);
 
 	return rc;
+}
+
+int logctl_get_boot_level(log_level_t *level)
+{
+	sysarg_t boot_level_arg;
+	int rc = sysinfo_get_value(SYSINFO_DEFAULT_LOG_LEVEL, &boot_level_arg);
+	if (rc != EOK)
+		return rc;
+
+	log_level_t boot_level = (log_level_t) boot_level_arg;
+	if (boot_level >= LVL_LIMIT)
+		return EINVAL;
+
+	if (level != NULL)
+		*level = (log_level_t) boot_level;
+
+	return EOK;
 }
 
 /** @}
