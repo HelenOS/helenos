@@ -26,59 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup logger
+/**
+ * @addtogroup logger
  * @{
  */
-/** @file Common logger service definitions.
+
+/** @file
  */
+#include <errno.h>
+#include <sysinfo.h>
+#include <str.h>
+#include "logger.h"
 
-#ifndef LOGGER_H_
-#define LOGGER_H_
-
-#include <adt/list.h>
-#include <adt/prodcons.h>
-#include <io/log.h>
-#include <async.h>
-#include <bool.h>
-#include <fibril_synch.h>
-#include <stdio.h>
-
-#define NAME "logger"
-#define MAX_SUBLOGS 64
-#define LOG_LEVEL_USE_DEFAULT (LVL_LIMIT + 1)
-
-typedef struct {
-	const char *name;
-	log_level_t logged_level;
-} logger_sublog_t;
-
-typedef struct {
-	const char *name;
-	FILE *logfile;
-	log_level_t logged_level;
-	size_t sublog_count;
-	logger_sublog_t sublogs[MAX_SUBLOGS];
-
-	link_t link;
-} logger_toplevel_log_t;
+static void parse_single_level_setting(char *setting)
+{
+	char *tmp;
+	char *key = strtok_r(setting, "=", &tmp);
+	char *value = strtok_r(NULL, "=", &tmp);
+	if (key == NULL)
+		return;
+	if (value == NULL) {
+		log_level_t level;
+		int rc = log_level_from_str(key, &level);
+		if (rc != EOK)
+			return;
+		set_default_logging_level(level);
+		return;
+	}
 
 
-logger_toplevel_log_t *find_or_create_toplevel_log(const char *);
-logger_toplevel_log_t *find_toplevel_log(sysarg_t);
-bool shall_log_message(logger_toplevel_log_t *, sysarg_t, log_level_t);
-int add_sub_log(logger_toplevel_log_t *, const char *, sysarg_t *);
+	log_level_t level;
+	int rc = log_level_from_str(value, &level);
+	if (rc != EOK)
+		return;
 
-log_level_t get_default_logging_level(void);
-int set_default_logging_level(log_level_t);
+	logger_toplevel_log_t *log = find_or_create_toplevel_log(key);
+	if (log == NULL)
+		return;
 
+	log->logged_level = level;
+}
 
-void logger_connection_handler_control(ipc_callid_t);
-void logger_connection_handler_writer(ipc_callid_t);
+void parse_level_settings(char *settings)
+{
+	char *tmp;
+	char *single_setting = strtok_r(settings, " ", &tmp);
+	while (single_setting != NULL) {
+		parse_single_level_setting(single_setting);
+		single_setting = strtok_r(NULL, " ", &tmp);
+	}
+}
 
-void parse_initial_settings(void);
-void parse_level_settings(char *);
+void parse_initial_settings(void)
+{
+	size_t argument_size;
+	void *argument = sysinfo_get_data("init_args.logger", &argument_size);
+	if (argument == NULL)
+		return;
 
-#endif
+	char level_str[200];
+	str_cpy(level_str, 200, (const char *) argument);
 
-/** @}
+	parse_level_settings(level_str);
+}
+
+/**
+ * @}
  */

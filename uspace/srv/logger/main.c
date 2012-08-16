@@ -68,18 +68,14 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Logging Service\n");
 	
-	/* Get default logging level from sysinfo (if available). */
-	log_level_t boot_logging_level = LVL_NOTE;
-	int rc = logctl_get_boot_level(&boot_logging_level);
-	if (rc == EOK)
-		set_default_logging_level(boot_logging_level);
-	else
-		printf(NAME ": Warn: failed to get logging level from sysinfo: %s.\n",
-		    str_error(rc));
+	parse_initial_settings();
+	for (int i = 1; i < argc; i++) {
+		parse_level_settings(argv[i]);
+	}
 
 	async_set_client_connection(connection_handler);
 	
-	rc = service_register(SERVICE_LOGGER);
+	int rc = service_register(SERVICE_LOGGER);
 	if (rc != EOK) {
 		printf(NAME ": failed to register: %s.\n", str_error(rc));
 		return -1;

@@ -32,6 +32,7 @@ STATIC_NEEDED = y
 
 SOURCES = \
 	ctl.c \
+	initlvl.c \
 	level.c \
 	logs.c \
 	main.c \
