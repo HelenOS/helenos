@@ -51,7 +51,8 @@ static const char *log_level_names[] = {
 	"warn",
 	"note",
 	"debug",
-	"debug2"
+	"debug2",
+	NULL
 };
 
 /** IPC session with the logger service. */
@@ -176,6 +177,35 @@ const char *log_level_str(log_level_t level)
 		return "unknown";
 	else
 		return log_level_names[level];
+}
+
+int log_level_from_str(const char *name, log_level_t *level_out)
+{
+	log_level_t level = LVL_FATAL;
+
+	while (log_level_names[level] != NULL) {
+		if (str_cmp(name, log_level_names[level]) == 0) {
+			if (level_out != NULL)
+				*level_out = level;
+			return EOK;
+		}
+		level++;
+	}
+
+	/* Maybe user specified number directly. */
+	char *end_ptr;
+	int level_int = strtol(name, &end_ptr, 0);
+	if ((end_ptr == name) || (str_length(end_ptr) != 0))
+		return EINVAL;
+	if (level_int < 0)
+		return ERANGE;
+	if (level_int >= (int) LVL_LIMIT)
+		return ERANGE;
+
+	if (level_out != NULL)
+		*level_out = (log_level_t) level_int;
+
+	return EOK;
 }
 
 /** Initialize the logging system.

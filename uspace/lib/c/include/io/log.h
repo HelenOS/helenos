@@ -50,6 +50,7 @@ typedef enum {
 } log_level_t;
 
 extern const char *log_level_str(log_level_t);
+extern int log_level_from_str(const char *, log_level_t *);
 
 extern bool __log_shall_record(log_level_t);
 extern int log_init(const char *, log_level_t);

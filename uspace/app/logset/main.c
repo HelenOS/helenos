@@ -46,9 +46,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	log_level_t new_default_level = (log_level_t) strtol(argv[1], NULL, 0);
+	log_level_t new_default_level;
+	int rc = log_level_from_str(argv[1], &new_default_level);
+	if (rc != EOK) {
+		fprintf(stderr, "Unrecognised log level '%s': %s.\n",
+		    argv[1], str_error(rc));
+	}
 
-	int rc = logctl_set_default_level(new_default_level);
+	rc = logctl_set_default_level(new_default_level);
 
 	if (rc != EOK) {
 		fprintf(stderr, "Failed to change default logging level: %s.\n",

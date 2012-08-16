@@ -83,14 +83,13 @@ int logctl_get_boot_level(log_level_t *level)
 	if (argument == NULL)
 		return EINVAL;
 
-	char level_str[10];
-	str_cpy(level_str, 10, (const char *) argument);
+	char level_str[20];
+	str_cpy(level_str, 20, (const char *) argument);
 
-	int level_int = strtol(level_str, NULL, 0);
-
-	log_level_t boot_level = (log_level_t) level_int;
-	if (boot_level >= LVL_LIMIT)
-		return EINVAL;
+	log_level_t boot_level;
+	int rc = log_level_from_str(level_str, &boot_level);
+	if (rc != EOK)
+		return rc;
 
 	if (level != NULL)
 		*level = (log_level_t) boot_level;
