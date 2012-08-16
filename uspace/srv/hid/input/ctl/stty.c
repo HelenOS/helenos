@@ -37,12 +37,12 @@
  * Keyboard emulation on a serial terminal.
  */
 
-#include <kbd.h>
 #include <io/keycode.h>
-#include <kbd_ctl.h>
-#include <kbd_port.h>
-#include <gsp.h>
-#include <stroke.h>
+#include "../stroke.h"
+#include "../gsp.h"
+#include "../kbd.h"
+#include "../kbd_port.h"
+#include "../kbd_ctl.h"
 
 static void stty_ctl_parse(sysarg_t);
 static int stty_ctl_init(kbd_dev_t *);

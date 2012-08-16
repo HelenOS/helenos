@@ -36,7 +36,7 @@
 
 #include "../../vfs/vfs.h"
 #include <stdint.h>
-#include <libblock.h>
+#include <block.h>
 
 #define FAT1		0
 

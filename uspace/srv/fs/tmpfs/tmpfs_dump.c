@@ -43,7 +43,7 @@
 #include <str.h>
 #include <sys/types.h>
 #include <as.h>
-#include <libblock.h>
+#include <block.h>
 #include <byteorder.h>
 
 #define TMPFS_COMM_SIZE		1024

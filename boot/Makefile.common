@@ -88,10 +88,12 @@ ifeq ($(RDFMT),ext4fs)
 endif
 
 RD_SRVS_ESSENTIAL = \
-	$(USPACE_PATH)/srv/hid/fb/fb \
 	$(USPACE_PATH)/srv/hid/input/input \
+	$(USPACE_PATH)/srv/hid/output/output \
 	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/fs/locfs/locfs
+	$(USPACE_PATH)/srv/devman/devman \
+	$(USPACE_PATH)/srv/fs/locfs/locfs \
+	$(USPACE_PATH)/srv/hid/compositor/compositor
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
@@ -113,12 +115,12 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
-	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/devman/devman
+	$(USPACE_PATH)/srv/taskmon/taskmon
 
 RD_DRVS = \
 	infrastructure/root \
 	infrastructure/rootvirt \
+	fb/kfb \
 	test/test1 \
 	test/test2 \
 	test/test3 \
@@ -190,7 +192,10 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv \
-	$(USPACE_PATH)/app/date/date
+	$(USPACE_PATH)/app/date/date \
+	$(USPACE_PATH)/app/vdemo/vdemo \
+	$(USPACE_PATH)/app/vlaunch/vlaunch \
+	$(USPACE_PATH)/app/vterm/vterm
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \

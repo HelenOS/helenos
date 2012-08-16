@@ -99,7 +99,7 @@ static bd_ops_t usbmast_bd_ops = {
 
 static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
 {
-	return (usbmast_fun_t *)bd->srvs->sarg;
+	return (usbmast_fun_t *) bd->srvs->sarg;
 }
 
 /** Callback when a device is removed from the system.

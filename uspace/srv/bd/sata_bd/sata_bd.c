@@ -74,7 +74,7 @@ static bd_ops_t sata_bd_ops = {
 
 static sata_bd_dev_t *bd_srv_sata(bd_srv_t *bd)
 {
-	return (sata_bd_dev_t *)bd->srvs->sarg;
+	return (sata_bd_dev_t *) bd->srvs->sarg;
 }
 
 /** Find SATA devices in device tree.

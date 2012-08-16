@@ -267,6 +267,7 @@ void get_input(cliuser_t *usr)
 
 	if (rc != EOK) {
 		/* Error in communication with console */
+		cli_quit = 1;
 		return;
 	}
 

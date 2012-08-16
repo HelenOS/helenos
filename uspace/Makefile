@@ -72,6 +72,9 @@ DIRS = \
 	app/mkbd \
 	app/date \
 	app/websrv \
+	app/vdemo \
+	app/vlaunch \
+	app/vterm \
 	srv/clipboard \
 	srv/locsrv \
 	srv/devman \
@@ -99,11 +102,12 @@ DIRS = \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
 	srv/fs/ext4fs \
+	srv/hid/compositor \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
 	srv/hid/isdv4_tablet \
-	srv/hid/fb \
 	srv/hid/input \
+	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	drv/infrastructure/root \
@@ -115,6 +119,7 @@ DIRS = \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
+	drv/fb/kfb \
 	drv/bus/usb/ehci \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
@@ -197,7 +202,10 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/fb \
+	lib/graph \
+	lib/gui \
+	lib/softrend \
+	lib/draw \
 	lib/net \
 	lib/nic \
 	lib/ext2 \

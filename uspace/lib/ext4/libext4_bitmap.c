@@ -35,7 +35,7 @@
  */
 
 #include <errno.h>
-#include <libblock.h>
+#include <block.h>
 #include <sys/types.h>
 #include "libext4.h"
 

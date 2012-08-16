@@ -56,6 +56,7 @@
 #include <macros.h>
 
 #include "sheet.h"
+#include "sheet_impl.h"
 
 enum {
 	TAB_WIDTH	= 8,
@@ -65,8 +66,14 @@ enum {
 };
 
 /** Initialize an empty sheet. */
-int sheet_init(sheet_t *sh)
+int sheet_create(sheet_t **rsh)
 {
+	sheet_t *sh;
+
+	sh = calloc(1, sizeof(sheet_t));
+	if (sh == NULL)
+		return ENOMEM;
+
 	sh->dbuf_size = INITIAL_SIZE;
 	sh->text_size = 0;
 
@@ -76,6 +83,7 @@ int sheet_init(sheet_t *sh)
 
 	list_initialize(&sh->tags);
 
+	*rsh = sh;
 	return EOK;
 }
 

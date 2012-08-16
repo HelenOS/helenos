@@ -72,6 +72,9 @@ extern size_t wstr_length(const wchar_t *wstr);
 extern size_t str_nlength(const char *str, size_t size);
 extern size_t wstr_nlength(const wchar_t *str, size_t size);
 
+extern size_t chr_width(wchar_t ch);
+extern size_t str_width(const char *str);
+
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);
 
