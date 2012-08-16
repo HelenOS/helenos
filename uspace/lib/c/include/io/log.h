@@ -57,32 +57,17 @@ typedef sysarg_t log_context_t;
 extern const char *log_level_str(log_level_t);
 extern int log_level_from_str(const char *, log_level_t *);
 
-extern bool _log_shall_record(log_context_t, log_level_t);
 extern int log_init(const char *, log_level_t);
 
 extern log_context_t log_context_create(const char *);
-
-#define log_ctx_msg(context, level, format, ...) \
-	do { \
-		if (_log_shall_record((context), (level))) { \
-			_log_ctx_msg((context), (level), format, ##__VA_ARGS__); \
-		} \
-	} while (false)
-
-#define log_ctx_msgv(context, level, format, args) \
-	do { \
-		if (_log_shall_record((context), (level))) { \
-			_log_ctx_msgv((context), (level), format, args); \
-		} \
-	} while (false)
 
 #define log_msg(level, format, ...) \
 	log_ctx_msg(LOG_CONTEXT_DEFAULT, (level), (format), ##__VA_ARGS__)
 #define log_msgv(level, format, args) \
 	log_ctx_msgv(LOG_CONTEXT_DEFAULT, (level), (format), (args))
 
-extern void _log_ctx_msg(log_context_t, log_level_t, const char *, ...);
-extern void _log_ctx_msgv(log_context_t, log_level_t, const char *, va_list);
+extern void log_ctx_msg(log_context_t, log_level_t, const char *, ...);
+extern void log_ctx_msgv(log_context_t, log_level_t, const char *, va_list);
 
 #endif
 

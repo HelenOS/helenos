@@ -50,7 +50,6 @@ typedef struct {
 struct logging_namespace {
 	fibril_mutex_t guard;
 	size_t writers_count;
-	fibril_condvar_t level_changed_cv;
 	FILE *logfile;
 	log_level_t level;
 	const char *name;
@@ -134,7 +133,6 @@ static logging_namespace_t *namespace_create_no_lock(const char *name)
 	namespace->context[0].level = LOG_LEVEL_USE_DEFAULT;
 
 	fibril_mutex_initialize(&namespace->guard);
-	fibril_condvar_initialize(&namespace->level_changed_cv);
 	namespace->writers_count = 0;
 	link_initialize(&namespace->link);
 
@@ -227,7 +225,6 @@ int namespace_change_level(logging_namespace_t *namespace, log_level_t level)
 	for (size_t i = 0; i < namespace->context_count; i++) {
 		namespace->context[i].level = level;
 	}
-	fibril_condvar_broadcast(&namespace->level_changed_cv);
 	fibril_mutex_unlock(&namespace->guard);
 
 	return EOK;
@@ -276,7 +273,6 @@ int namespace_change_context_level(logging_namespace_t *namespace, const char *c
 		if (str_cmp(namespace->context[i].name, context) == 0) {
 			namespace->context[i].level = new_level;
 			rc = EOK;
-			fibril_condvar_broadcast(&namespace->level_changed_cv);
 			goto leave;
 		}
 	}
@@ -286,16 +282,6 @@ leave:
 	fibril_mutex_unlock(&namespace->guard);
 	return rc;
 }
-
-void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_reader_now)
-{
-	fibril_mutex_lock(&namespace->guard);
-	// FIXME: properly watch for state change
-	fibril_condvar_wait(&namespace->level_changed_cv, &namespace->guard);
-	*has_reader_now = true;
-	fibril_mutex_unlock(&namespace->guard);
-}
-
 
 void namespace_add_message(logging_namespace_t *namespace, const char *message, sysarg_t context, log_level_t level)
 {

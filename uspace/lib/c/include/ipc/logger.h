@@ -45,8 +45,7 @@ typedef enum {
 typedef enum {
 	LOGGER_REGISTER = IPC_FIRST_USER_METHOD,
 	LOGGER_CREATE_CONTEXT,
-	LOGGER_MESSAGE,
-	LOGGER_BLOCK_UNTIL_READER_CHANGED
+	LOGGER_MESSAGE
 } logger_sink_request_t;
 
 typedef enum {
