@@ -37,8 +37,9 @@
 #include <ipc/logger.h>
 #include <sysinfo.h>
 #include <ns.h>
+#include <str.h>
 
-#define SYSINFO_DEFAULT_LOG_LEVEL "logger.level"
+#define SYSINFO_LOGGGER_BOOT_ARGUMENT "init_args.logger"
 
 /** IPC session with the logger service. */
 static async_sess_t *logger_session = NULL;
@@ -77,12 +78,17 @@ int logctl_set_default_level(log_level_t new_level)
 
 int logctl_get_boot_level(log_level_t *level)
 {
-	sysarg_t boot_level_arg;
-	int rc = sysinfo_get_value(SYSINFO_DEFAULT_LOG_LEVEL, &boot_level_arg);
-	if (rc != EOK)
-		return rc;
+	size_t argument_size;
+	void *argument = sysinfo_get_data(SYSINFO_LOGGGER_BOOT_ARGUMENT, &argument_size);
+	if (argument == NULL)
+		return EINVAL;
 
-	log_level_t boot_level = (log_level_t) boot_level_arg;
+	char level_str[10];
+	str_cpy(level_str, 10, (const char *) argument);
+
+	int level_int = strtol(level_str, NULL, 0);
+
+	log_level_t boot_level = (log_level_t) level_int;
 	if (boot_level >= LVL_LIMIT)
 		return EINVAL;
 
