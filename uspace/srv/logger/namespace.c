@@ -70,6 +70,7 @@ static log_level_t namespace_get_actual_log_level(logging_namespace_t *namespace
 	fibril_mutex_lock(&namespace->guard);
 	if (context >= namespace->context_count) {
 		fibril_mutex_unlock(&namespace->guard);
+		fprintf(stderr, "Invalid context!\n");
 		return LVL_FATAL;
 	}
 	log_level_t level = namespace->context[context].level;
@@ -264,13 +265,33 @@ leave:
 	return rc;
 }
 
+int namespace_change_context_level(logging_namespace_t *namespace, const char *context, log_level_t new_level)
+{
+	if (new_level >= LVL_LIMIT)
+		return ERANGE;
+
+	int rc;
+	fibril_mutex_lock(&namespace->guard);
+	for (size_t i = 0; i < namespace->context_count; i++) {
+		if (str_cmp(namespace->context[i].name, context) == 0) {
+			namespace->context[i].level = new_level;
+			rc = EOK;
+			fibril_condvar_broadcast(&namespace->level_changed_cv);
+			goto leave;
+		}
+	}
+	rc =  ENOENT;
+
+leave:
+	fibril_mutex_unlock(&namespace->guard);
+	return rc;
+}
+
 void namespace_wait_for_reader_change(logging_namespace_t *namespace, bool *has_reader_now)
 {
 	fibril_mutex_lock(&namespace->guard);
-	log_level_t previous_level = namespace->level;
-	while (previous_level == namespace->level) {
-		fibril_condvar_wait(&namespace->level_changed_cv, &namespace->guard);
-	}
+	// FIXME: properly watch for state change
+	fibril_condvar_wait(&namespace->level_changed_cv, &namespace->guard);
 	*has_reader_now = true;
 	fibril_mutex_unlock(&namespace->guard);
 }

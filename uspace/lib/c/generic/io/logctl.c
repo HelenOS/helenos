@@ -104,6 +104,32 @@ int logctl_set_namespace_level(const char *namespace, log_level_t new_level)
 	return (int) reg_msg_rc;
 }
 
+int logctl_set_context_level(const char *namespace, const char *context, log_level_t new_level)
+{
+	async_exch_t *exchange = NULL;
+	int rc = start_logger_exchange(&exchange);
+	if (rc != EOK)
+		return rc;
+
+	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_CONTEXT_LEVEL,
+	    new_level, NULL);
+	rc = async_data_write_start(exchange, namespace, str_size(namespace));
+	int rc2 = async_data_write_start(exchange, context, str_size(context));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if (rc != EOK)
+		return rc;
+
+	if (rc2 != EOK)
+		return rc2;
+
+	return (int) reg_msg_rc;
+}
+
+
 int logctl_get_boot_level(log_level_t *level)
 {
 	size_t argument_size;

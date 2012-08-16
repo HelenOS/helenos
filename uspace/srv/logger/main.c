@@ -66,6 +66,33 @@ static int handle_namespace_level_change(sysarg_t new_level)
 	return rc;
 }
 
+static int handle_context_level_change(sysarg_t new_level)
+{
+	void *namespace_name;
+	int rc = async_data_write_accept(&namespace_name, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	logging_namespace_t *namespace = namespace_writer_attach((const char *) namespace_name);
+	free(namespace_name);
+	if (namespace == NULL)
+		return ENOENT;
+
+	void *context_name;
+	rc = async_data_write_accept(&context_name, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
+		namespace_writer_detach(namespace);
+		return rc;
+	}
+
+	rc = namespace_change_context_level(namespace, context_name, new_level);
+	free(context_name);
+	namespace_writer_detach(namespace);
+
+	return rc;
+}
+
 static void connection_handler_control(void)
 {
 	printf(NAME "/control: new client.\n");
@@ -89,6 +116,10 @@ static void connection_handler_control(void)
 			break;
 		case LOGGER_CTL_SET_NAMESPACE_LEVEL:
 			rc = handle_namespace_level_change(IPC_GET_ARG1(call));
+			async_answer_0(callid, rc);
+			break;
+		case LOGGER_CTL_SET_CONTEXT_LEVEL:
+			rc = handle_context_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
 		default:

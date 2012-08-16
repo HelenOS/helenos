@@ -60,6 +60,7 @@ bool namespace_has_reader(logging_namespace_t *, sysarg_t, log_level_t);
 void namespace_add_message(logging_namespace_t *, const char *, sysarg_t, log_level_t);
 
 int namespace_create_context(logging_namespace_t *, const char *);
+int namespace_change_context_level(logging_namespace_t *, const char *, log_level_t);
 
 log_level_t get_default_logging_level(void);
 int set_default_logging_level(log_level_t);

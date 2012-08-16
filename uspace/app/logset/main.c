@@ -54,6 +54,7 @@ static void usage(const char *progname)
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "  %s <default-logging-level>\n", progname);
 	fprintf(stderr, "  %s <namespace> <logging-level>\n", progname);
+	fprintf(stderr, "  %s <namespace> <context> <logging-level>\n", progname);
 }
 
 int main(int argc, char *argv[])
@@ -72,6 +73,16 @@ int main(int argc, char *argv[])
 		const char *namespace = argv[1];
 		int rc = logctl_set_namespace_level(namespace, new_level);
 
+		if (rc != EOK) {
+			fprintf(stderr, "Failed to change logging level: %s.\n",
+			    str_error(rc));
+			return 2;
+		}
+	} else if (argc == 4) {
+		log_level_t new_level = parse_log_level_or_die(argv[3]);
+		const char *namespace = argv[1];
+		const char *context = argv[2];
+		int rc = logctl_set_context_level(namespace, context, new_level);
 		if (rc != EOK) {
 			fprintf(stderr, "Failed to change logging level: %s.\n",
 			    str_error(rc));

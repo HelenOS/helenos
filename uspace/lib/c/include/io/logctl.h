@@ -37,6 +37,7 @@
 
 extern int logctl_set_default_level(log_level_t);
 extern int logctl_set_namespace_level(const char *, log_level_t);
+extern int logctl_set_context_level(const char *, const char *, log_level_t);
 extern int logctl_get_boot_level(log_level_t *);
 
 #endif
