@@ -663,8 +663,7 @@ restart:
 		
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
-	ASSERT((call->flags & IPC_CALL_ANSWERED) ||
-	    (call->flags & IPC_CALL_NOTIF));
+	ASSERT(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
 		
 	ipc_call_free(call);
 	goto restart;
