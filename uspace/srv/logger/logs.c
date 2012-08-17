@@ -121,6 +121,9 @@ error_result_allocated:
 	free(result->name);
 	free(result->full_name);
 	free(result);
+
+	fibril_mutex_unlock(&log_list_guard);
+
 	return NULL;
 }
 
