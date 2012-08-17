@@ -639,8 +639,15 @@ restart:
 		 * Just for sure, we might have had some IPC_PHONE_CONNECTING
 		 * phones
 		 */
-		if (TASK->phones[i].state == IPC_PHONE_CONNECTED)
+		if (TASK->phones[i].state == IPC_PHONE_CONNECTED) {
 			ipc_phone_hangup(&TASK->phones[i]);
+			/*
+			 * Now there is one extra active call, which needs to be
+			 * forgotten.
+			 */
+			ipc_forget_all_active_calls();
+			goto restart;
+		}
 
 		/*
 		 * If the hangup succeeded, it has sent a HANGUP message, the
