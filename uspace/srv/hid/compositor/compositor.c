@@ -48,8 +48,8 @@
 #include <fibril_synch.h>
 #include <adt/prodcons.h>
 #include <adt/list.h>
+#include <io/input.h>
 #include <ipc/graph.h>
-#include <ipc/input.h>
 #include <ipc/window.h>
 
 #include <async.h>
@@ -142,7 +142,28 @@ typedef struct {
 static FIBRIL_MUTEX_INITIALIZE(viewport_list_mtx);
 static LIST_INITIALIZE(viewport_list);
 
-static async_sess_t *input_sess;
+/** Input server proxy */
+static input_t *input;
+
+static int comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+static int comp_mouse_move(input_t *, int, int);
+static int comp_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
+static int comp_mouse_button(input_t *, int, int);
+
+static input_ev_ops_t input_ev_ops = {
+	.key = comp_key_press,
+	.move = comp_mouse_move,
+	.abs_move = comp_abs_move,
+	.button = comp_mouse_button
+};
+
+static void input_disconnect(void);
+
+
+static pointer_t *input_pointer(input_t *input)
+{
+	return input->user;
+}
 
 static pointer_t *pointer_create()
 {
@@ -758,7 +779,7 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 	if (list_empty(&viewport_list)) {
 		fibril_mutex_unlock(&viewport_list_mtx);
 		loc_service_unregister(winreg_id);
-		async_hangup(input_sess);
+		input_disconnect();
 
 		/* Close all clients and their windows. */
 		fibril_mutex_lock(&window_list_mtx);
@@ -1054,10 +1075,16 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 	    dmg_x, dmg_y, dmg_width, dmg_height);
 }
 
-static void comp_mouse_move(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *icall)
+static int comp_abs_move(input_t *input, unsigned x , unsigned y,
+    unsigned max_x, unsigned max_y)
 {
-	int dx = (int) IPC_GET_ARG1(*icall);
-	int dy = (int) IPC_GET_ARG2(*icall);
+	/* XXX TODO */
+	return EOK;
+}
+
+static int comp_mouse_move(input_t *input, int dx, int dy)
+{
+	pointer_t *pointer = input_pointer(input);
 
 	/* Update pointer position. */
 	fibril_mutex_lock(&pointer_list_mtx);
@@ -1117,18 +1144,17 @@ static void comp_mouse_move(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *ic
 		fibril_mutex_unlock(&window_list_mtx);
 	}
 
-	async_answer_0(iid, EOK);
+	return EOK;
 }
 
-static void comp_mouse_button(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *icall)
+static int comp_mouse_button(input_t *input, int bnum, int bpress)
 {
-	sysarg_t btn_num = IPC_GET_ARG1(*icall);
-	bool pressed = (bool) IPC_GET_ARG2(*icall);
+	pointer_t *pointer = input_pointer(input);
 
-	if (pressed) {
+	if (bpress) {
 		pointer->btn_hpos = pointer->hpos;
 		pointer->btn_vpos = pointer->vpos;
-		pointer->btn_num = btn_num;
+		pointer->btn_num = bnum;
 		pointer->pressed = true;
 
 		/* Check whether mouse press belongs to the top-level window. */
@@ -1136,8 +1162,7 @@ static void comp_mouse_button(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *
 		window_t *win = (window_t *) list_first(&window_list);
 		if (!win || !win->surface) {
 			fibril_mutex_unlock(&window_list_mtx);
-			async_answer_0(iid, EOK);
-			return;
+			return EOK;
 		}
 		sysarg_t x, y, width, height;
 		surface_get_resolution(win->surface, &width, &height);
@@ -1153,16 +1178,15 @@ static void comp_mouse_button(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *
 				event->type = ET_POSITION_EVENT;
 				event->data.pos.pos_id = pointer->id;
 				event->data.pos.type = POS_PRESS;
-				event->data.pos.btn_num = btn_num;
+				event->data.pos.btn_num = bnum;
 				event->data.pos.hpos = x;
 				event->data.pos.vpos = y;
 				comp_post_event(event);
 			} else {
-				async_answer_0(iid, ENOMEM);
-				return;
+				return ENOMEM;
 			}
 		}
-	} else if (pointer->pressed && pointer->btn_num == btn_num) {
+	} else if (pointer->pressed && pointer->btn_num == (unsigned)bnum) {
 		pointer->pressed = false;
 
 		fibril_mutex_lock(&window_list_mtx);
@@ -1190,8 +1214,7 @@ static void comp_mouse_button(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *
 		if (!win || !top) {
 			pointer->grab_flags = GF_EMPTY;
 			fibril_mutex_unlock(&window_list_mtx);
-			async_answer_0(iid, EOK);
-			return;
+			return EOK;
 		}
 
 		window_event_t *event = NULL;
@@ -1256,13 +1279,13 @@ static void comp_mouse_button(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *
 				event->type = ET_POSITION_EVENT;
 				event->data.pos.pos_id = pointer->id;
 				event->data.pos.type = POS_RELEASE;
-				event->data.pos.btn_num = btn_num;
+				event->data.pos.btn_num = bnum;
 				event->data.pos.hpos = point_x;
 				event->data.pos.vpos = point_y;
 			}
 			pointer->grab_flags = GF_EMPTY;
 			
-		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (btn_num == 1)) {
+		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (bnum == 1)) {
 
 			/* Bring the window to the foreground. */
 			list_remove(&win->link);
@@ -1285,16 +1308,12 @@ static void comp_mouse_button(pointer_t *pointer, ipc_callid_t iid, ipc_call_t *
 		}
 	}
 
-	async_answer_0(iid, EOK);
+	return EOK;
 }
 
-static void comp_key_press(ipc_callid_t iid, ipc_call_t *icall)
+static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
+    keymod_t mods, wchar_t c)
 {
-	kbd_event_type_t type = IPC_GET_ARG1(*icall);
-	keycode_t key = IPC_GET_ARG2(*icall);
-	keymod_t mods = IPC_GET_ARG3(*icall);
-	wchar_t c = IPC_GET_ARG4(*icall);
-
 	bool win_transform = (mods & KM_ALT) && (
 	    key == KC_W || key == KC_S || key == KC_A || key == KC_D ||
 	    key == KC_Q || key == KC_E || key == KC_R || key == KC_F);
@@ -1377,8 +1396,7 @@ static void comp_key_press(ipc_callid_t iid, ipc_call_t *icall)
 			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 			if (event == NULL) {
 				fibril_mutex_unlock(&window_list_mtx);
-				async_answer_0(iid, ENOMEM);
-				return;
+				return ENOMEM;
 			}
 
 			sysarg_t width, height;
@@ -1447,10 +1465,8 @@ static void comp_key_press(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	} else if (win_close) {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-		if (event == NULL) {
-			async_answer_0(iid, ENOMEM);
-			return;
-		}
+		if (event == NULL)
+			return ENOMEM;
 
 		link_initialize(&event->link);
 		event->type = ET_WINDOW_CLOSE;
@@ -1593,10 +1609,8 @@ static void comp_key_press(ipc_callid_t iid, ipc_call_t *icall)
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-		if (event == NULL) {
-			async_answer_0(iid, ENOMEM);
-			return;
-		}
+		if (event == NULL)
+			return ENOMEM;
 
 		link_initialize(&event->link);
 		event->type = ET_KEYBOARD_EVENT;
@@ -1608,11 +1622,27 @@ static void comp_key_press(ipc_callid_t iid, ipc_call_t *icall)
 		comp_post_event(event);
 	}
 
-	async_answer_0(iid, EOK);
+	return EOK;
 }
 
-static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static int input_connect(const char *svc)
 {
+	async_sess_t *sess;
+	service_id_t dsid;
+
+	int rc = loc_service_get_id(svc, &dsid, 0);
+	if (rc != EOK) {
+		printf("%s: Input service %s not found\n", NAME, svc);
+		return rc;
+	}
+
+	sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
+	if (sess == NULL) {
+		printf("%s: Unable to connect to input service %s\n", NAME,
+		    svc);
+		return EIO;
+	}
+
 	fibril_mutex_lock(&pointer_list_mtx);
 	pointer_t *pointer = pointer_create();
 	if (pointer != NULL) {
@@ -1621,65 +1651,28 @@ static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 	fibril_mutex_unlock(&pointer_list_mtx);
 
-	/* Ignore parameters, the connection is already opened. */
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		if (!IPC_GET_IMETHOD(call)) {
-			fibril_mutex_lock(&pointer_list_mtx);
-			if (pointer != NULL) {
-				list_remove(&pointer->link);
-				pointer_destroy(pointer);
-			}
-			fibril_mutex_unlock(&pointer_list_mtx);
-			async_hangup(input_sess);
-			return;
-		}
-
-		switch (IPC_GET_IMETHOD(call)) {
-		case INPUT_EVENT_KEY:
-			comp_key_press(callid, &call);
-			break;
-		case INPUT_EVENT_MOVE:
-			comp_mouse_move(pointer, callid, &call);
-			break;
-		case INPUT_EVENT_BUTTON:
-			comp_mouse_button(pointer, callid, &call);
-			break;
-		default:
-			async_answer_0(callid, EINVAL);
-		}
+	if (pointer == NULL) {
+		printf("%s: Cannot create pointer.\n", NAME);
+		async_hangup(sess);
+		return ENOMEM;
 	}
-}
 
-static async_sess_t *input_connect(const char *svc)
-{
-	async_sess_t *sess;
-	service_id_t dsid;
-
-	int rc = loc_service_get_id(svc, &dsid, 0);
-	if (rc == EOK) {
-		sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
-		if (sess == NULL) {
-			printf("%s: Unable to connect to input service %s\n", NAME, svc);
-			return NULL;
-		}
-	} else
-		return NULL;
-
-	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_connect_to_me(exch, 0, 0, 0, input_events, NULL);
-	async_exchange_end(exch);
-
+	rc = input_open(sess, &input_ev_ops, pointer, &input);
 	if (rc != EOK) {
 		async_hangup(sess);
-		printf("%s: Unable to create callback connection to service %s (%s)\n",
+		printf("%s: Unable to communicate with service %s (%s)\n",
 		    NAME, svc, str_error(rc));
-		return NULL;
+		return rc;
 	}
 
-	return sess;
+	return EOK;
+}
+
+static void input_disconnect(void)
+{
+    	pointer_t *pointer = input->user;
+	input_close(input);
+	pointer_destroy(pointer);
 }
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
@@ -1732,16 +1725,15 @@ static int compositor_srv_init(char *input_svc, char *name)
 	}
 
 	/* Establish input bidirectional connection. */
-	input_sess = input_connect(input_svc);
-	if (input_sess == NULL) {
-		return -1;
-	}
+	rc = input_connect(input_svc);
+	if (rc != EOK)
+		return rc;
 
 	/* Create viewports and connect them to visualizers. */
 	category_id_t cat_id;
 	rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		async_hangup(input_sess);
+		input_disconnect();
 		return -1;
 	}
 	
@@ -1749,7 +1741,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	size_t svcs_cnt = 0;
 	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
 	if (rc != EOK || svcs_cnt == 0) {
-		async_hangup(input_sess);
+		input_disconnect();
 		return -1;
 	}
 	
@@ -1765,7 +1757,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	}
 	
 	if (list_empty(&viewport_list)) {
-		async_hangup(input_sess);
+		input_disconnect();
 		return -1;
 	}
 	

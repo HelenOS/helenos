@@ -94,6 +94,7 @@ GENERIC_SOURCES = \
 	generic/inetcfg.c \
 	generic/inetping.c \
 	generic/io/asprintf.c \
+	generic/io/input.c \
 	generic/io/io.c \
 	generic/io/chargrid.c \
 	generic/io/output.c \
