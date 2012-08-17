@@ -63,34 +63,6 @@ static async_sess_t *logger_session;
 /** Maximum length of a single log message (in bytes). */
 #define MESSAGE_BUFFER_SIZE 4096
 
-
-static int logger_register(async_sess_t *session, const char *prog_name)
-{
-	async_exch_t *exchange = async_exchange_begin(session);
-	if (exchange == NULL) {
-		return ENOMEM;
-	}
-
-	ipc_call_t answer;
-	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_LOG, LOG_NO_PARENT, &answer);
-	int rc = async_data_write_start(exchange, prog_name, str_size(prog_name));
-	sysarg_t reg_msg_rc;
-	async_wait_for(reg_msg, &reg_msg_rc);
-
-	async_exchange_end(exchange);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (reg_msg_rc != EOK)
-		return reg_msg_rc;
-
-	default_log_id = IPC_GET_ARG1(answer);
-
-	return EOK;
-}
-
 static int logger_message(async_sess_t *session, log_t log, log_level_t level, const char *message)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
@@ -177,9 +149,9 @@ int log_init(const char *prog_name, log_level_t level)
 		return ENOMEM;
 	}
 
-	int rc = logger_register(logger_session, log_prog_name);
+	default_log_id = log_create(prog_name, LOG_NO_PARENT);
 
-	return rc;
+	return EOK;
 }
 
 /** Create a new (sub-) log.
