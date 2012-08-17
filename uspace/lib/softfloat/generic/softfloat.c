@@ -1266,5 +1266,60 @@ int _Qp_fne(long double *a, long double *b)
 	return !is_long_double_eq(ta.data, tb.data);
 }
 
+double __aeabi_i2d(int i)
+{
+	return __floatsidf(i);
+}
+
+double __aeabi_ui2d(unsigned int i)
+{
+	return __floatunsidf(i);
+}
+
+int __aeabi_d2iz(double a)
+{
+	return __fixdfsi(a);
+}
+
+unsigned int __aeabi_d2uiz(double a)
+{
+	return __fixunsdfsi(a);
+}
+
+int __aeabi_dcmpge(double a, double b)
+{
+	return __gedf2(a, b);
+}
+
+int __aeabi_dcmpgt(double a, double b)
+{
+	return __gtdf2(a, b);
+}
+
+int __aeabi_dcmplt(double a, double b)
+{
+	return __ltdf2(a, b);
+}
+
+double __aeabi_dadd(double a, double b)
+{
+	return __adddf3(a, b);
+}
+
+double __aeabi_dsub(double a, double b)
+{
+	return __subdf3(a, b);
+}
+
+double __aeabi_dmul(double a, double b)
+{
+	return __muldf3(a, b);
+}
+
+double __aeabi_ddiv(double a, double b)
+{
+	return __divdf3(a, b);
+}
+
 /** @}
  */

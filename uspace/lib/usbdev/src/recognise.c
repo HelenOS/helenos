@@ -33,6 +33,9 @@
  * Functions for recognition of attached devices.
  */
 
+/** XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <usb/debug.h>
@@ -351,11 +354,12 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 	}
 	
 	if (dev_ops != NULL)
-		child->ops = dev_ops;
+		ddf_fun_set_ops(child, dev_ops);
 	else
-		child->ops = &child_ops;
+		ddf_fun_set_ops(child, &child_ops);
 	
-	child->driver_data = dev_data;
+	ddf_fun_data_implant(child, dev_data);
+	
 	/*
 	 * Store the attached device in fun
 	 * driver data if there is no other data
@@ -372,9 +376,22 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 		new_device->fun = child;
 	}
 	
-	rc = usb_device_create_match_ids(ctrl_pipe, &child->match_ids);
+	match_id_list_t match_ids;
+	init_match_ids(&match_ids);
+	rc = usb_device_create_match_ids(ctrl_pipe, &match_ids);
 	if (rc != EOK)
 		goto failure;
+	
+	list_foreach(match_ids.ids, id_link) {
+		match_id_t *match_id = list_get_instance(id_link, match_id_t, link);
+		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
+		if (rc != EOK) {
+			clean_match_ids(&match_ids);
+			goto failure;
+		}
+	}
+	
+	clean_match_ids(&match_ids);
 	
 	rc = ddf_fun_bind(child);
 	if (rc != EOK)
@@ -385,10 +402,6 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 	
 failure:
 	if (child != NULL) {
-		/* We know nothing about the data if it came from outside. */
-		if (dev_data)
-			child->driver_data = NULL;
-		
 		/* This takes care of match_id deallocation as well. */
 		ddf_fun_destroy(child);
 	}

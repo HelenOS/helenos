@@ -38,7 +38,7 @@
 #include "exfat.h"
 #include "exfat_directory.h"
 #include "exfat_fat.h"
-#include <libblock.h>
+#include <block.h>
 #include <errno.h>
 #include <byteorder.h>
 #include <mem.h>

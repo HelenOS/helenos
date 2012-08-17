@@ -629,7 +629,8 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 				}
 			}
 		}
-		if ((display_col % ti->con_cols) > 0) printf("\n");
+		if ((display_col % ti->con_cols) > 0)
+			printf("\n");
 	}
 	fflush(stdout);
 }

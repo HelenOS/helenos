@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>
@@ -64,6 +65,15 @@
 
 #define SRV_CONSOLE  "/srv/console"
 #define APP_GETTERM  "/app/getterm"
+
+#define SRV_COMPOSITOR  "/srv/compositor"
+
+#define HID_INPUT              "hid/input"
+#define HID_OUTPUT             "hid/output"
+#define HID_COMPOSITOR_SERVER  ":0"
+
+#define srv_start(path, ...) \
+	srv_startl(path, path, ##__VA_ARGS__, NULL)
 
 /** Print banner */
 static void info_print(void)
@@ -142,99 +152,139 @@ static bool mount_locfs(void)
 	    LOCFS_FS_TYPE, NULL, rc);
 }
 
-static void spawn(const char *fname)
+static int srv_startl(const char *path, ...)
 {
-	int rc;
 	struct stat s;
-	
-	if (stat(fname, &s) == ENOENT)
-		return;
-	
-	printf("%s: Spawning %s\n", NAME, fname);
-	rc = task_spawnl(NULL, fname, fname, NULL);
-	if (rc != EOK) {
-		printf("%s: Error spawning %s (%s)\n", NAME, fname,
-		    str_error(rc));
+	if (stat(path, &s) == ENOENT) {
+		printf("%s: Unable to stat %s\n", NAME, path);
+		return ENOENT;
 	}
-}
-
-static void srv_start(const char *fname)
-{
+	
+	printf("%s: Starting %s\n", NAME, path);
+	
+	va_list ap;
+	const char *arg;
+	int cnt = 0;
+	
+	va_start(ap, path);
+	do {
+		arg = va_arg(ap, const char *);
+		cnt++;
+	} while (arg != NULL);
+	va_end(ap);
+	
+	va_start(ap, path);
 	task_id_t id;
-	task_exit_t texit;
-	int rc, retval;
-	struct stat s;
+	int rc = task_spawn(&id, path, cnt, ap);
+	va_end(ap);
 	
-	if (stat(fname, &s) == ENOENT)
-		return;
-	
-	printf("%s: Starting %s\n", NAME, fname);
-	rc = task_spawnl(&id, fname, fname, NULL);
-	if (!id) {
-		printf("%s: Error spawning %s (%s)\n", NAME, fname,
+	if (rc != EOK) {
+		printf("%s: Error spawning %s (%s)\n", NAME, path,
 		    str_error(rc));
-		return;
+		return rc;
 	}
 	
+	if (!id) {
+		printf("%s: Error spawning %s (invalid task id)\n", NAME,
+		    path);
+		return EINVAL;
+	}
+	
+	task_exit_t texit;
+	int retval;
 	rc = task_wait(id, &texit, &retval);
 	if (rc != EOK) {
-		printf("%s: Error waiting for %s (%s)\n", NAME, fname,
+		printf("%s: Error waiting for %s (%s)\n", NAME, path,
 		    str_error(rc));
-		return;
+		return rc;
 	}
 	
 	if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Server %s failed to start (unexpectedly "
-		    "terminated)\n", NAME, fname);
-		return;
+		    "terminated)\n", NAME, path);
+		return EINVAL;
 	}
-
-	if (retval != 0) {
+	
+	if (retval != 0)
 		printf("%s: Server %s failed to start (exit code %d)\n", NAME,
-			fname, retval);
-	}
+		    path, retval);
+	
+	return retval;
 }
 
-static void console(const char *isvc, const char *fbsvc)
+static int console(const char *isvc, const char *osvc)
 {
-	printf("%s: Spawning %s %s %s\n", NAME, SRV_CONSOLE, isvc, fbsvc);
-	
 	/* Wait for the input service to be ready */
 	service_id_t service_id;
 	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
 		    str_error(rc));
-		return;
+		return rc;
 	}
 	
-	/* Wait for the framebuffer service to be ready */
-	rc = loc_service_get_id(fbsvc, &service_id, IPC_FLAG_BLOCKING);
+	/* Wait for the output service to be ready */
+	rc = loc_service_get_id(osvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, fbsvc,
+		printf("%s: Error waiting on %s (%s)\n", NAME, osvc,
 		    str_error(rc));
-		return;
+		return rc;
 	}
 	
-	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, isvc, fbsvc, NULL);
+	return srv_start(SRV_CONSOLE, isvc, osvc);
+}
+
+static int compositor(const char *isvc, const char *name)
+{
+	/* Wait for the input service to be ready */
+	service_id_t service_id;
+	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Error spawning %s %s %s (%s)\n", NAME, SRV_CONSOLE,
-		    isvc, fbsvc, str_error(rc));
+		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
+		    str_error(rc));
+		return rc;
 	}
+	
+	return srv_start(SRV_COMPOSITOR, isvc, name);
+}
+
+static int gui_start(const char *app, const char *srv_name)
+{
+	char winreg[50];
+	snprintf(winreg, sizeof(winreg), "%s%s%s", "comp", srv_name, "/winreg");
+	
+	printf("%s: Spawning %s %s\n", NAME, app, winreg);
+	
+	task_id_t id;
+	int rc = task_spawnl(&id, app, app, winreg, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
+		    winreg, str_error(rc));
+		return -1;
+	}
+	
+	task_exit_t texit;
+	int retval;
+	rc = task_wait(id, &texit, &retval);
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
+		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
+		    app, str_error(rc));
+		return -1;
+	}
+	
+	return retval;
 }
 
 static void getterm(const char *svc, const char *app, bool wmsg)
 {
 	char term[LOC_NAME_MAXLEN];
-	int rc;
-	
 	snprintf(term, LOC_NAME_MAXLEN, "%s/%s", LOCFS_MOUNT_POINT, svc);
 	
 	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
 	
 	/* Wait for the terminal service to be ready */
 	service_id_t service_id;
-	rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
+	int rc = loc_service_get_id(svc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, term,
 		    str_error(rc));
@@ -278,44 +328,39 @@ int main(int argc, char *argv[])
 	
 	if (!mount_root(STRING(RDFMT))) {
 		printf("%s: Exiting\n", NAME);
-		return -1;
+		return 1;
 	}
 	
 	/* Make sure tmpfs is running. */
-	if (str_cmp(STRING(RDFMT), "tmpfs") != 0) {
-		spawn("/srv/tmpfs");
-	}
+	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
+		srv_start("/srv/tmpfs");
 	
-	spawn("/srv/locfs");
-	spawn("/srv/taskmon");
+	srv_start("/srv/locfs");
+	srv_start("/srv/taskmon");
 	
 	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
-		return -2;
+		return 2;
 	}
 	
 	mount_tmpfs();
 	
-	spawn("/srv/devman");
-	spawn("/srv/apic");
-	spawn("/srv/i8259");
-	spawn("/srv/obio");
+	srv_start("/srv/devman");
+	srv_start("/srv/apic");
+	srv_start("/srv/i8259");
+	srv_start("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/s3c24xx_uart");
 	srv_start("/srv/s3c24xx_ts");
 	
-	spawn("/srv/loopip");
-	spawn("/srv/ethip");
-	spawn("/srv/inetsrv");
-	spawn("/srv/tcp");
-	spawn("/srv/udp");
+	srv_start("/srv/loopip");
+	srv_start("/srv/ethip");
+	srv_start("/srv/inetsrv");
+	srv_start("/srv/tcp");
+	srv_start("/srv/udp");
 	
-	spawn("/srv/fb");
-	spawn("/srv/input");
-	console("hid/input", "hid/fb0");
-	
-	spawn("/srv/clipboard");
-	spawn("/srv/remcons");
+	srv_start("/srv/clipboard");
+	srv_start("/srv/remcons");
 	
 	/*
 	 * Start these synchronously so that mount_data() can be
@@ -324,27 +369,37 @@ int main(int argc, char *argv[])
 #ifdef CONFIG_START_BD
 	srv_start("/srv/ata_bd");
 	srv_start("/srv/gxe_bd");
-#else
-	(void) srv_start;
 #endif
 	
 #ifdef CONFIG_MOUNT_DATA
 	/* Make sure fat is running. */
-	if (str_cmp(STRING(RDFMT), "fat") != 0) {
+	if (str_cmp(STRING(RDFMT), "fat") != 0)
 		srv_start("/srv/fat");
-	}
+	
 	mount_data();
 #else
 	(void) mount_data;
 #endif
 	
-	getterm("term/vc0", "/app/bdsh", true);
-	getterm("term/vc1", "/app/bdsh", false);
-	getterm("term/vc2", "/app/bdsh", false);
-	getterm("term/vc3", "/app/bdsh", false);
-	getterm("term/vc4", "/app/bdsh", false);
-	getterm("term/vc5", "/app/bdsh", false);
-	getterm("term/vc6", "/app/klog", false);
+	srv_start("/srv/input", HID_INPUT);
+	srv_start("/srv/output", HID_OUTPUT);
+	
+	int rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
+	if (rc == EOK) {
+		gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
+		gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
+	} else {
+		rc = console(HID_INPUT, HID_OUTPUT);
+		if (rc == EOK) {
+			getterm("term/vc0", "/app/bdsh", true);
+			getterm("term/vc1", "/app/bdsh", false);
+			getterm("term/vc2", "/app/bdsh", false);
+			getterm("term/vc3", "/app/bdsh", false);
+			getterm("term/vc4", "/app/bdsh", false);
+			getterm("term/vc5", "/app/bdsh", false);
+			getterm("term/vc6", "/app/klog", false);
+		}
+	}
 	
 	return 0;
 }

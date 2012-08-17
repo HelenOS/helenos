@@ -150,7 +150,7 @@ static int rootvirt_add_fun(rootvirt_t *rootvirt, virtual_function_t *vfun)
 static int rootvirt_fun_remove(rootvirt_fun_t *rvfun)
 {
 	int rc;
-	const char *name = rvfun->fun->name;
+	const char *name = ddf_fun_get_name(rvfun->fun);
 
 	ddf_msg(LVL_DEBUG, "rootvirt_fun_remove('%s')", name);
 	rc = ddf_fun_offline(rvfun->fun);
@@ -182,7 +182,7 @@ static int rootvirt_dev_add(ddf_dev_t *dev)
 		return ELIMIT;
 	}
 
-	ddf_msg(LVL_DEBUG, "dev_add(handle=%d)", (int)dev->handle);
+	ddf_msg(LVL_DEBUG, "dev_add(handle=%d)", (int)ddf_dev_get_handle(dev));
 
 	rootvirt = ddf_dev_data_alloc(dev, sizeof(rootvirt_t));
 	if (rootvirt == NULL)
@@ -206,7 +206,7 @@ static int rootvirt_dev_add(ddf_dev_t *dev)
 
 static int rootvirt_dev_remove(ddf_dev_t *dev)
 {
-	rootvirt_t *rootvirt = (rootvirt_t *)dev->driver_data;
+	rootvirt_t *rootvirt = (rootvirt_t *)ddf_dev_data_get(dev);
 	int rc;
 
 	while (!list_empty(&rootvirt->functions)) {

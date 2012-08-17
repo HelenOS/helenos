@@ -37,7 +37,7 @@
 
 #include "fat_directory.h"
 #include "fat_fat.h"
-#include <libblock.h>
+#include <block.h>
 #include <errno.h>
 #include <byteorder.h>
 #include <mem.h>

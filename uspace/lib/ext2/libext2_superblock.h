@@ -36,7 +36,7 @@
 #ifndef LIBEXT2_LIBEXT2_SUPERBLOCK_H_
 #define LIBEXT2_LIBEXT2_SUPERBLOCK_H_
 
-#include <libblock.h>
+#include <block.h>
 
 typedef struct ext2_superblock {
 	uint32_t	total_inode_count; // Total number of inodes

@@ -70,6 +70,7 @@ GENERIC_SOURCES = \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
 	generic/device/char_dev.c \
+	generic/device/graph_dev.c \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
@@ -94,6 +95,8 @@ GENERIC_SOURCES = \
 	generic/inetping.c \
 	generic/io/asprintf.c \
 	generic/io/io.c \
+	generic/io/chargrid.c \
+	generic/io/output.c \
 	generic/io/printf.c \
 	generic/io/log.c \
 	generic/io/logctl.c \
@@ -103,6 +106,8 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
+	generic/io/visualizer.c \
+	generic/io/window.c \
 	generic/iplink.c \
 	generic/iplink_srv.c \
 	generic/malloc.c \
