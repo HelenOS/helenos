@@ -501,8 +501,6 @@ void ipc_cleanup_call_list(list_t *lst)
 	while (!list_empty(lst)) {
 		call_t *call = list_get_instance(list_first(lst), call_t,
 		    ab_link);
-		if (call->buffer)
-			free(call->buffer);
 		
 		list_remove(&call->ab_link);
 		
