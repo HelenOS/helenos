@@ -26,25 +26,22 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CFLAGS += -fexec-charset=UTF-8 -finput-charset=UTF-8 -std=gnu99 -pipe
-CFLAGS += -Wall -Wextra -Werror -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes -Werror-implicit-function-declaration -Wwrite-strings
-CFLAGS += -ftrapv
-CFLAGS += -g
-
-LIBBITHENGE_PREFIX = ../../lib/bithenge
-CFLAGS += -I$(LIBBITHENGE_PREFIX)
-LIBS += $(LIBBITHENGE_PREFIX)/libbithenge.a
-
-BINARY = bithenge
+USPACE_PREFIX = ../..
+LIBRARY = libbithenge
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__
 
 SOURCES = \
-	test.c
+	helenos/block.c \
+	blob.c \
+	compound.c \
+	expression.c \
+	file.c \
+	print.c \
+	script.c \
+	sequence.c \
+	source.c \
+	transform.c \
+	tree.c
 
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-$(BINARY): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
-
-clean:
-	find . -name '*.o' -follow -exec rm \{\} \;
-	rm -f $(BINARY)
+include $(USPACE_PREFIX)/Makefile.common

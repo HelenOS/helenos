@@ -75,6 +75,7 @@ void bithenge_node_dec_ref(bithenge_node_t *node)
 {
 	if (!node)
 		return;
+	assert (node->refs > 0);
 	if (--node->refs == 0)
 		node_destroy(node);
 }

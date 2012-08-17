@@ -31,20 +31,25 @@ CFLAGS += -Wall -Wextra -Werror -Wno-clobbered -Wno-unused-parameter -Wmissing-p
 CFLAGS += -ftrapv
 CFLAGS += -g
 
-LIBBITHENGE_PREFIX = ../../lib/bithenge
-CFLAGS += -I$(LIBBITHENGE_PREFIX)
-LIBS += $(LIBBITHENGE_PREFIX)/libbithenge.a
-
-BINARY = bithenge
+LIBRARY = libbithenge.a
 
 SOURCES = \
-	test.c
+	blob.c \
+	compound.c \
+	expression.c \
+	file.c \
+	print.c \
+	script.c \
+	sequence.c \
+	source.c \
+	transform.c \
+	tree.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-$(BINARY): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+$(LIBRARY): $(OBJECTS)
+	$(AR) rcs $@ $^
 
 clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
-	rm -f $(BINARY)
+	rm -f $(LIBRARY)

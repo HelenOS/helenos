@@ -72,6 +72,7 @@ static inline void bithenge_expression_dec_ref(bithenge_expression_t *self)
 	if (!self)
 		return;
 	assert(self->ops);
+	assert(self->refs > 0);
 	if (--self->refs == 0)
 		self->ops->destroy(self);
 }
