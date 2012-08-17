@@ -572,13 +572,9 @@ static void fun_conf_parse(char *conf, isa_bus_t *isa)
 
 static void isa_functions_add(isa_bus_t *isa)
 {
-	char *fun_conf;
-
-	fun_conf = fun_conf_read(CHILD_FUN_CONF_PATH);
-	if (fun_conf != NULL) {
-		fun_conf_parse(fun_conf, isa);
-		free(fun_conf);
-	}
+	char *fun_conf = fun_conf_read(CHILD_FUN_CONF_PATH);
+	fun_conf_parse(fun_conf, isa);
+	free(fun_conf);
 }
 
 static int isa_dev_add(ddf_dev_t *dev)
