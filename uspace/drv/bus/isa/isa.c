@@ -307,17 +307,7 @@ static char *get_device_name(char *line)
 
 	/* Get the name part of the rest of the line. */
 	strtok(line, ":");
-
-	/* Allocate output buffer. */
-	size_t size = str_size(line) + 1;
-	char *name = malloc(size);
-
-	if (name != NULL) {
-		/* Copy the result to the output buffer. */
-		str_cpy(name, size, line);
-	}
-
-	return name;
+	return line;
 }
 
 static inline char *skip_spaces(char *line)
@@ -523,7 +513,6 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 {
 	char *line;
-	char *fun_name = NULL;
 
 	/* Skip empty lines. */
 	do {
@@ -537,12 +526,11 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 	} while (line_empty(line));
 
 	/* Get device name. */
-	fun_name = get_device_name(line);
+	const char *fun_name = get_device_name(line);
 	if (fun_name == NULL)
 		return NULL;
 
 	isa_fun_t *fun = isa_fun_create(isa, fun_name);
-	free(fun_name);
 	if (fun == NULL) {
 		return NULL;
 	}
