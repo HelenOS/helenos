@@ -625,14 +625,17 @@ static void ipc_wait_for_all_answered_calls(void)
 
 restart:
 	/*
-	 * Go through all phones, until they are all FREE. Locking is not
-	 * needed, no one else should modify it when we are in cleanup
+	 * Go through all phones, until they are all free.
+	 * Locking is needed as there may be connection handshakes in progress.
 	 */
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
-		    atomic_get(&TASK->phones[i].active_calls) == 0) {
-			TASK->phones[i].state = IPC_PHONE_FREE;
-			TASK->phones[i].callee = NULL;
+		phone_t *phone = &TASK->phones[i];
+
+		mutex_lock(&phone->lock);	
+		if ((phone->state == IPC_PHONE_HUNGUP) &&
+		    (atomic_get(&phone->active_calls) == 0)) {
+			phone->state = IPC_PHONE_FREE;
+			phone->callee = NULL;
 		}
 
 		/*
@@ -644,9 +647,10 @@ restart:
 		 * at any time, in which case we will get an IPC_PHONE_SLAMMED
 		 * phone.
 		 */
-		if ((TASK->phones[i].state == IPC_PHONE_CONNECTED) ||
-		    (TASK->phones[i].state == IPC_PHONE_SLAMMED)) {
-			ipc_phone_hangup(&TASK->phones[i]);
+		if ((phone->state == IPC_PHONE_CONNECTED) ||
+		    (phone->state == IPC_PHONE_SLAMMED)) {
+			mutex_unlock(&phone->lock);
+			ipc_phone_hangup(phone);
 			/*
 			 * Now there may be one extra active call, which needs
 			 * to be forgotten.
@@ -659,8 +663,12 @@ restart:
 		 * If the hangup succeeded, it has sent a HANGUP message, the
 		 * IPC is now in HUNGUP state, we wait for the reply to come
 		 */
-		if (TASK->phones[i].state != IPC_PHONE_FREE)
+		if (phone->state != IPC_PHONE_FREE) {
+			mutex_unlock(&phone->lock);
 			break;
+		}
+
+		mutex_unlock(&phone->lock);
 	}
 		
 	/* Got into cleanup */
@@ -670,7 +678,6 @@ restart:
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
 	ASSERT(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
-		
 	ipc_call_free(call);
 	goto restart;
 }
