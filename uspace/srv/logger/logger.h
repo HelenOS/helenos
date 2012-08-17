@@ -56,6 +56,8 @@ typedef struct {
 struct logger_log {
 	link_t link;
 
+	fibril_mutex_t guard;
+
 	char *name;
 	char *full_name;
 	logger_log_t *parent;
@@ -63,10 +65,11 @@ struct logger_log {
 	logger_dest_t *dest;
 };
 
-logger_log_t *find_log_by_name(const char *name);
-logger_log_t *find_or_create_log(const char *name, sysarg_t parent);
-logger_log_t *find_log_by_id(sysarg_t);
+logger_log_t *find_log_by_name_and_acquire(const char *name);
+logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent);
+logger_log_t *find_log_by_id_and_acquire(sysarg_t);
 bool shall_log_message(logger_log_t *, log_level_t);
+void log_release(logger_log_t *);
 
 log_level_t get_default_logging_level(void);
 int set_default_logging_level(log_level_t);

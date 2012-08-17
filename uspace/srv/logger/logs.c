@@ -61,7 +61,7 @@ static logger_dest_t *create_dest(const char *name)
 	return result;
 }
 
-logger_log_t *find_or_create_log(const char *name, sysarg_t parent_id)
+logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_id)
 {
 	logger_log_t *result = NULL;
 	logger_log_t *parent = (logger_log_t *) parent_id;
@@ -87,18 +87,20 @@ logger_log_t *find_or_create_log(const char *name, sysarg_t parent_id)
 		result->dest = parent->dest;
 	}
 	result->parent = parent;
+	fibril_mutex_initialize(&result->guard);
 
 	link_initialize(&result->link);
 
-	list_append(&result->link, &log_list);
+	fibril_mutex_lock(&result->guard);
 
+	list_append(&result->link, &log_list);
 leave:
 	fibril_mutex_unlock(&log_list_guard);
 
 	return result;
 }
 
-logger_log_t *find_log_by_name(const char *name)
+logger_log_t *find_log_by_name_and_acquire(const char *name)
 {
 	logger_log_t *result = NULL;
 
@@ -106,6 +108,7 @@ logger_log_t *find_log_by_name(const char *name)
 	list_foreach(log_list, it) {
 		logger_log_t *log = list_get_instance(it, logger_log_t, link);
 		if (str_cmp(log->full_name, name) == 0) {
+			fibril_mutex_lock(&log->guard);
 			result = log;
 			break;
 		}
@@ -115,7 +118,7 @@ logger_log_t *find_log_by_name(const char *name)
 	return result;
 }
 
-logger_log_t *find_log_by_id(sysarg_t id)
+logger_log_t *find_log_by_id_and_acquire(sysarg_t id)
 {
 	logger_log_t *result = NULL;
 
@@ -123,6 +126,7 @@ logger_log_t *find_log_by_id(sysarg_t id)
 	list_foreach(log_list, it) {
 		logger_log_t *log = list_get_instance(it, logger_log_t, link);
 		if ((sysarg_t) log == id) {
+			fibril_mutex_lock(&log->guard);
 			result = log;
 			break;
 		}
@@ -146,7 +150,16 @@ static log_level_t get_actual_log_level(logger_log_t *log)
 
 bool shall_log_message(logger_log_t *log, log_level_t level)
 {
-	return level <= get_actual_log_level(log);
+	fibril_mutex_lock(&log_list_guard);
+	bool result = level <= get_actual_log_level(log);
+	fibril_mutex_unlock(&log_list_guard);
+	return result;
+}
+
+void log_release(logger_log_t *log)
+{
+	assert(fibril_mutex_is_locked(&log->guard));
+	fibril_mutex_unlock(&log->guard);
 }
 
 /**

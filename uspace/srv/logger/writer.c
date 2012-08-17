@@ -55,7 +55,7 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 	if (rc != EOK)
 		return NULL;
 
-	logger_log_t *log = find_or_create_log(name, parent);
+	logger_log_t *log = find_or_create_log_and_acquire(name, parent);
 
 	free(name);
 
@@ -64,27 +64,31 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 
 static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 {
-	logger_log_t *log = find_log_by_id(log_id);
+	logger_log_t *log = find_log_by_id_and_acquire(log_id);
 	if (log == NULL)
 		return ENOENT;
 
-	void *message;
+	void *message = NULL;
 	int rc = async_data_write_accept(&message, true, 1, 0, 0, NULL);
 	if (rc != EOK)
-		return rc;
+		goto leave;
 
 	if (!shall_log_message(log, level)) {
-		free(message);
-		return EOK;
+		rc = EOK;
+		goto leave;
 	}
 
 	printf("[%s] %s: %s\n",
 	    log->full_name, log_level_str(level),
 	    (const char *) message);
 
+	rc = EOK;
+
+leave:
+	log_release(log);
 	free(message);
 
-	return EOK;
+	return rc;
 }
 
 void logger_connection_handler_writer(ipc_callid_t callid)
@@ -108,6 +112,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 				async_answer_0(callid, ENOMEM);
 				break;
 			}
+			log_release(log);
 			async_answer_1(callid, EOK, (sysarg_t) log);
 			break;
 		}
