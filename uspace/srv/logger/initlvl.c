@@ -34,6 +34,7 @@
 /** @file
  */
 #include <errno.h>
+#include <str_error.h>
 #include <sysinfo.h>
 #include <str.h>
 #include "logger.h"
@@ -60,8 +61,9 @@ static void parse_single_level_setting(char *setting)
 	if (rc != EOK)
 		return;
 
-	logger_log_t *log = find_or_create_log_and_acquire(key, 0);
-	if (log == NULL)
+	logger_log_t *log;
+	rc = find_or_create_log_and_acquire(key, 0, &log);
+	if (rc != EOK)
 		return;
 
 	log->logged_level = level;

@@ -55,7 +55,9 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 	if (rc != EOK)
 		return NULL;
 
-	logger_log_t *log = find_or_create_log_and_acquire(name, parent);
+	logger_log_t *log = NULL;
+	rc = find_or_create_log_and_acquire(name, parent, &log);
+	if (rc)
 
 	free(name);
 
@@ -81,10 +83,7 @@ static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 	printf("[%s] %s: %s\n",
 	    log->full_name, log_level_str(level),
 	    (const char *) message);
-	fprintf(log->dest->logfile, "[%s] %s: %s\n",
-	    log->full_name, log_level_str(level),
-	    (const char *) message);
-	fflush(log->dest->logfile);
+	write_to_log(log, level, message);
 
 	rc = EOK;
 

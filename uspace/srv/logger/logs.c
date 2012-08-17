@@ -41,12 +41,14 @@ static FIBRIL_MUTEX_INITIALIZE(log_list_guard);
 static LIST_INITIALIZE(log_list);
 
 
-static logger_log_t *find_log_by_name_and_parent_no_lock(const char *name, logger_log_t *parent)
+static logger_log_t *find_log_by_name_and_parent_no_list_lock_and_acquire(const char *name, logger_log_t *parent)
 {
 	list_foreach(log_list, it) {
 		logger_log_t *log = list_get_instance(it, logger_log_t, link);
-		if ((parent == log->parent) && (str_cmp(log->name, name) == 0))
+		if ((parent == log->parent) && (str_cmp(log->name, name) == 0)) {
+			fibril_mutex_lock(&log->guard);
 			return log;
+		}
 	}
 
 	return NULL;
@@ -57,46 +59,46 @@ static int create_dest(const char *name, logger_dest_t **dest)
 	logger_dest_t *result = malloc(sizeof(logger_dest_t));
 	if (result == NULL)
 		return ENOMEM;
-	char *logfilename;
-	int rc = asprintf(&logfilename, "/log/%s", name);
+	int rc = asprintf(&result->filename, "/log/%s", name);
 	if (rc < 0) {
 		free(result);
 		return ENOMEM;
 	}
-	result->logfile = fopen(logfilename, "a");
-	free(logfilename);
-	if (result->logfile == NULL) {
-		free(result);
-		return ENOMEM;
-	}
+	result->logfile = NULL;
+	fibril_mutex_initialize(&result->guard);
 	*dest = result;
 	return EOK;
 }
 
-logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_id)
+int find_or_create_log_and_acquire(const char *name, sysarg_t parent_id, logger_log_t **log_out)
 {
+	int rc;
 	logger_log_t *result = NULL;
 	logger_log_t *parent = (logger_log_t *) parent_id;
 
 	fibril_mutex_lock(&log_list_guard);
 
-	result = find_log_by_name_and_parent_no_lock(name, parent);
-	if (result != NULL)
+	result = find_log_by_name_and_parent_no_list_lock_and_acquire(name, parent);
+	if (result != NULL) {
+		rc = EOK;
 		goto leave;
+	}
 
 	result = calloc(1, sizeof(logger_log_t));
-	if (result == NULL)
+	if (result == NULL) {
+		rc = ENOMEM;
 		goto leave;
+	}
 
 	result->logged_level = LOG_LEVEL_USE_DEFAULT;
 	result->name = str_dup(name);
 	if (parent == NULL) {
 		result->full_name = str_dup(name);
-		int rc = create_dest(name, &result->dest);
+		rc = create_dest(name, &result->dest);
 		if (rc != EOK)
 			goto error_result_allocated;
 	} else {
-		int rc = asprintf(&result->full_name, "%s/%s",
+		rc = asprintf(&result->full_name, "%s/%s",
 		    parent->full_name, name);
 		if (rc < 0)
 			goto error_result_allocated;
@@ -115,7 +117,12 @@ logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_i
 leave:
 	fibril_mutex_unlock(&log_list_guard);
 
-	return result;
+	if (rc == EOK) {
+		assert(fibril_mutex_is_locked(&result->guard));
+		*log_out = result;
+	}
+
+	return rc;
 
 error_result_allocated:
 	free(result->name);
@@ -124,7 +131,7 @@ error_result_allocated:
 
 	fibril_mutex_unlock(&log_list_guard);
 
-	return NULL;
+	return rc;
 }
 
 logger_log_t *find_log_by_name_and_acquire(const char *name)
@@ -187,6 +194,24 @@ void log_release(logger_log_t *log)
 {
 	assert(fibril_mutex_is_locked(&log->guard));
 	fibril_mutex_unlock(&log->guard);
+}
+
+void write_to_log(logger_log_t *log, log_level_t level, const char *message)
+{
+	assert(fibril_mutex_is_locked(&log->guard));
+	assert(log->dest != NULL);
+	fibril_mutex_lock(&log->dest->guard);
+	if (log->dest->logfile == NULL)
+		log->dest->logfile = fopen(log->dest->filename, "a");
+
+	if (log->dest->logfile != NULL) {
+		fprintf(log->dest->logfile, "[%s] %s: %s\n",
+		    log->full_name, log_level_str(level),
+		    (const char *) message);
+		fflush(log->dest->logfile);
+	}
+
+	fibril_mutex_unlock(&log->dest->guard);
 }
 
 /**
