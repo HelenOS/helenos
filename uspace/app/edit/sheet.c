@@ -322,6 +322,23 @@ bool spt_equal(spt_t const *a, spt_t const *b)
 	return a->b_off == b->b_off;
 }
 
+/** Get a character at spt and return next spt */
+wchar_t spt_next_char(spt_t spt, spt_t *next)
+{
+	wchar_t ch = str_decode(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	if (next)
+		*next = spt;
+	return ch;
+}
+
+wchar_t spt_prev_char(spt_t spt, spt_t *prev)
+{
+	wchar_t ch = str_decode_reverse(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	if (prev)
+		*prev = spt;
+	return ch;
+}
+
 /** Place a tag on the specified s-point. */
 void sheet_place_tag(sheet_t *sh, spt_t const *pt, tag_t *tag)
 {

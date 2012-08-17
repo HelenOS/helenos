@@ -91,58 +91,56 @@ static void on_vlaunch(widget_t *widget, void *data)
 
 int main(int argc, char *argv[])
 {
-	if (argc >= 2) {
-		winreg = argv[1];
-		window_t *main_window = window_open(argv[1], true, true, "vlaunch");
-		if (!main_window) {
-			printf("Cannot open main window.\n");
-			return 1;
-		}
-
-		pixel_t grd_bg = PIXEL(255, 240, 240, 240);
-		pixel_t btn_bg = PIXEL(255, 0, 0, 0);
-		pixel_t btn_fg = PIXEL(255, 240, 240, 240);
-		pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
-		pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
-
-		label_t *lbl_caption = create_label(NULL, "Launch application:", 16, lbl_bg, lbl_fg);
-		button_t *btn_vterm = create_button(NULL, "vterm", 16, btn_bg, btn_fg);
-		button_t *btn_vdemo = create_button(NULL, "vdemo", 16, btn_bg, btn_fg);
-		button_t *btn_vlaunch = create_button(NULL, "vlaunch", 16, btn_bg, btn_fg);
-		grid_t *grid = create_grid(window_root(main_window), 4, 1, grd_bg);
-		if (!lbl_caption || !btn_vterm || !btn_vdemo || !btn_vlaunch || !grid) {
-			window_close(main_window);
-			printf("Cannot create widgets.\n");
-			return 1;
-		}
-
-		sig_connect(
-		    &btn_vterm->clicked,
-		    NULL,
-		    on_vterm);
-		sig_connect(
-		    &btn_vdemo->clicked,
-		    NULL,
-		    on_vdemo);
-		sig_connect(
-		    &btn_vlaunch->clicked,
-		    NULL,
-		    on_vlaunch);
-
-		grid->add(grid, &lbl_caption->widget, 0, 0, 1, 1);
-		grid->add(grid, &btn_vterm->widget, 1, 0, 1, 1);
-		grid->add(grid, &btn_vdemo->widget, 2, 0, 1, 1);
-		grid->add(grid, &btn_vlaunch->widget, 3, 0, 1, 1);
-		window_resize(main_window, 180, 130);
-
-		window_exec(main_window);
-		task_retval(0);
-		async_manager();
-		return 1;
-	} else {
+	if (argc < 2) {
 		printf("Compositor server not specified.\n");
 		return 1;
 	}
+	
+	winreg = argv[1];
+	window_t *main_window = window_open(argv[1], true, true, "vlaunch");
+	if (!main_window) {
+		printf("Cannot open main window.\n");
+		return 1;
+	}
+	
+	pixel_t grd_bg = PIXEL(255, 240, 240, 240);
+	pixel_t btn_bg = PIXEL(255, 0, 0, 0);
+	pixel_t btn_fg = PIXEL(255, 240, 240, 240);
+	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
+	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
+	
+	label_t *lbl_caption = create_label(NULL, "Launch application:", 16,
+	    lbl_bg, lbl_fg);
+	button_t *btn_vterm = create_button(NULL, "vterm", 16, btn_bg,
+	    btn_fg);
+	button_t *btn_vdemo = create_button(NULL, "vdemo", 16, btn_bg,
+	    btn_fg);
+	button_t *btn_vlaunch = create_button(NULL, "vlaunch", 16, btn_bg,
+	    btn_fg);
+	grid_t *grid = create_grid(window_root(main_window), 4, 1, grd_bg);
+	
+	if ((!lbl_caption) || (!btn_vterm) || (!btn_vdemo) ||
+	    (!btn_vlaunch) || (!grid)) {
+		window_close(main_window);
+		printf("Cannot create widgets.\n");
+		return 1;
+	}
+	
+	sig_connect(&btn_vterm->clicked, NULL, on_vterm);
+	sig_connect(&btn_vdemo->clicked, NULL, on_vdemo);
+	sig_connect(&btn_vlaunch->clicked, NULL, on_vlaunch);
+	
+	grid->add(grid, &lbl_caption->widget, 0, 0, 1, 1);
+	grid->add(grid, &btn_vterm->widget, 1, 0, 1, 1);
+	grid->add(grid, &btn_vdemo->widget, 2, 0, 1, 1);
+	grid->add(grid, &btn_vlaunch->widget, 3, 0, 1, 1);
+	
+	window_resize(main_window, 180, 130);
+	window_exec(main_window);
+	task_retval(0);
+	async_manager();
+	
+	return 0;
 }
 
 /** @}

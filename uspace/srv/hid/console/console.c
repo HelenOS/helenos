@@ -35,13 +35,14 @@
 #include <async.h>
 #include <stdio.h>
 #include <adt/prodcons.h>
-#include <ipc/input.h>
+#include <io/input.h>
 #include <ipc/console.h>
 #include <ipc/vfs.h>
 #include <errno.h>
 #include <str_error.h>
 #include <loc.h>
 #include <event.h>
+#include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <io/chargrid.h>
 #include <io/console.h>
@@ -80,8 +81,8 @@ typedef struct {
 	frontbuf_handle_t fbid;  /**< Front buffer handle */
 } console_t;
 
-/** Session to the input server */
-static async_sess_t *input_sess;
+/** Input server proxy */
+static input_t *input;
 
 /** Session to the output server */
 static async_sess_t *output_sess;
@@ -99,6 +100,18 @@ static FIBRIL_MUTEX_INITIALIZE(switch_mtx);
 static console_t *prev_console = &consoles[0];
 static console_t *active_console = &consoles[0];
 static console_t *kernel_console = &consoles[KERNEL_CONSOLE];
+
+static int input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+static int input_ev_move(input_t *, int, int);
+static int input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
+static int input_ev_button(input_t *, int, int);
+
+static input_ev_ops_t input_ev_ops = {
+	.key = input_ev_key,
+	.move = input_ev_move,
+	.abs_move = input_ev_abs_move,
+	.button = input_ev_button
+};
 
 static void cons_update(console_t *cons)
 {
@@ -194,73 +207,55 @@ static console_t *cons_get_active_uspace(void)
 	return active_uspace;
 }
 
-static void input_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static int input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
+    keymod_t mods, wchar_t c)
 {
-	/* Ignore parameters, the connection is already opened */
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call)) {
-			/* TODO: Handle hangup */
-			async_hangup(input_sess);
-			return;
+	if ((key >= KC_F1) && (key < KC_F1 + CONSOLE_COUNT) &&
+	    ((mods & KM_CTRL) == 0)) {
+		cons_switch(&consoles[key - KC_F1]);
+	} else {
+		/* Got key press/release event */
+		kbd_event_t *event =
+		    (kbd_event_t *) malloc(sizeof(kbd_event_t));
+		if (event == NULL) {
+			return ENOMEM;
 		}
 		
-		kbd_event_type_t type;
-		keycode_t key;
-		keymod_t mods;
-		wchar_t c;
+		link_initialize(&event->link);
+		event->type = type;
+		event->key = key;
+		event->mods = mods;
+		event->c = c;
 		
-		switch (IPC_GET_IMETHOD(call)) {
-		case INPUT_EVENT_KEY:
-			type = IPC_GET_ARG1(call);
-			key = IPC_GET_ARG2(call);
-			mods = IPC_GET_ARG3(call);
-			c = IPC_GET_ARG4(call);
-			
-			if ((key >= KC_F1) && (key < KC_F1 + CONSOLE_COUNT) &&
-			    ((mods & KM_CTRL) == 0))
-				cons_switch(&consoles[key - KC_F1]);
-			else {
-				/* Got key press/release event */
-				kbd_event_t *event =
-				    (kbd_event_t *) malloc(sizeof(kbd_event_t));
-				if (event == NULL) {
-					async_answer_0(callid, ENOMEM);
-					break;
-				}
-				
-				link_initialize(&event->link);
-				event->type = type;
-				event->key = key;
-				event->mods = mods;
-				event->c = c;
-				
-				/*
-				 * Kernel console does not read events
-				 * from us, so we will redirect them
-				 * to the (last) active userspace console
-				 * if necessary.
-				 */
-				console_t *target_console = cons_get_active_uspace();
-				
-				prodcons_produce(&target_console->input_pc,
-				    &event->link);
-			}
-			
-			async_answer_0(callid, EOK);
-			break;
-		case INPUT_EVENT_MOVE:
-			async_answer_0(callid, EOK);
-			break;
-		case INPUT_EVENT_BUTTON:
-			async_answer_0(callid, EOK);
-			break;
-		default:
-			async_answer_0(callid, EINVAL);
-		}
+		/*
+		 * Kernel console does not read events
+		 * from us, so we will redirect them
+		 * to the (last) active userspace console
+		 * if necessary.
+		 */
+		console_t *target_console = cons_get_active_uspace();
+		
+		prodcons_produce(&target_console->input_pc,
+		    &event->link);
 	}
+	
+	return EOK;
+}
+
+static int input_ev_move(input_t *input, int dx, int dy)
+{
+	return EOK;
+}
+
+static int input_ev_abs_move(input_t *input, unsigned x , unsigned y,
+    unsigned max_x, unsigned max_y)
+{
+	return EOK;
+}
+
+static int input_ev_button(input_t *input, int bnum, int bpress)
+{
+	return EOK;
 }
 
 /** Process a character from the client (TTY emulation). */
@@ -517,34 +512,33 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static async_sess_t *input_connect(const char *svc)
+static int input_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
 	
 	int rc = loc_service_get_id(svc, &dsid, 0);
-	if (rc == EOK) {
-		sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
-		if (sess == NULL) {
-			printf("%s: Unable to connect to input service %s\n", NAME,
-			    svc);
-			return NULL;
-		}
-	} else
-		return NULL;
-	
-	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_connect_to_me(exch, 0, 0, 0, input_events, NULL);
-	async_exchange_end(exch);
-	
 	if (rc != EOK) {
-		async_hangup(sess);
-		printf("%s: Unable to create callback connection to service %s (%s)\n",
-		    NAME, svc, str_error(rc));
-		return NULL;
+		printf("%s: Input service %s not found\n", NAME, svc);
+		return rc;
+	}
+
+	sess = loc_service_connect(EXCHANGE_ATOMIC, dsid, 0);
+	if (sess == NULL) {
+		printf("%s: Unable to connect to input service %s\n", NAME,
+		    svc);
+		return EIO;
 	}
 	
-	return sess;
+	rc = input_open(sess, &input_ev_ops, NULL, &input);
+	if (rc != EOK) {
+		async_hangup(sess);
+		printf("%s: Unable to communicate with service %s (%s)\n",
+		    NAME, svc, str_error(rc));
+		return rc;
+	}
+	
+	return EOK;
 }
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
@@ -573,9 +567,11 @@ static async_sess_t *output_connect(const char *svc)
 
 static bool console_srv_init(char *input_svc, char *output_svc)
 {
+	int rc;
+	
 	/* Connect to input service */
-	input_sess = input_connect(input_svc);
-	if (input_sess == NULL)
+	rc = input_connect(input_svc);
+	if (rc != EOK)
 		return false;
 	
 	/* Connect to output service */
@@ -585,7 +581,7 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 	
 	/* Register server */
 	async_set_client_connection(client_connection);
-	int rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME,
 		    str_error(rc));

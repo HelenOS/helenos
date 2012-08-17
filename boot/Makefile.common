@@ -151,7 +151,9 @@ endif
 RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
 	$(USPACE_PATH)/app/getterm/getterm \
-	$(USPACE_PATH)/app/klog/klog
+	$(USPACE_PATH)/app/klog/klog \
+	$(USPACE_PATH)/app/vlaunch/vlaunch \
+	$(USPACE_PATH)/app/vterm/vterm
 
 RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/blkdump/blkdump \
@@ -195,7 +197,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/date/date \
 	$(USPACE_PATH)/app/vdemo/vdemo \
 	$(USPACE_PATH)/app/vlaunch/vlaunch \
-	$(USPACE_PATH)/app/vterm/vterm
+	$(USPACE_PATH)/app/vterm/vterm \
+	$(USPACE_PATH)/app/vdemo/vdemo
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \

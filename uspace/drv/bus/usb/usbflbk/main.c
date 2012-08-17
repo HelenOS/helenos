@@ -68,7 +68,7 @@ static int usbfallback_device_add(usb_device_t *dev)
 	usb_log_info("Pretending to control %s `%s'" \
 	    " (node `%s', handle %" PRIun ").\n",
 	    dev->interface_no < 0 ? "device" : "interface",
-	    dev->ddf_dev->name, fun_name, dev->ddf_dev->handle);
+	    ddf_dev_get_name(dev->ddf_dev), fun_name, ddf_dev_get_handle(dev->ddf_dev));
 
 	return EOK;
 }
@@ -84,7 +84,7 @@ static int usbfallback_device_gone(usb_device_t *dev)
 	ddf_fun_t *ctl_fun = dev->driver_data;
 	const int ret = ddf_fun_unbind(ctl_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to unbind %s.\n", ctl_fun->name);
+		usb_log_error("Failed to unbind %s.\n", ddf_fun_get_name(ctl_fun));
 		return ret;
 	}
 	ddf_fun_destroy(ctl_fun);

@@ -55,6 +55,7 @@
 #define SPASCII_STR_BUFSIZE(spa_size) ((spa_size) + 1)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
+extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);

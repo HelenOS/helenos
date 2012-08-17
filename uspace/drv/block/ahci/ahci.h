@@ -33,6 +33,7 @@
 #ifndef __AHCI_H__
 #define __AHCI_H__
 
+#include <async.h>
 #include <sys/types.h>
 #include <devman.h>
 #include <ddf/interrupt.h>
@@ -49,12 +50,18 @@ typedef struct {
 	
 	/** Pointers to sata devices. */
 	void *sata_devs[AHCI_MAX_PORTS];
+
+	/** Parent session */
+	async_sess_t *parent_sess;
 } ahci_dev_t;
 
 /** SATA Device. */
 typedef struct {
 	/** Pointer to AHCI device. */
 	ahci_dev_t *ahci;
+	
+	/** Pointer to ddf function. */
+	ddf_fun_t *fun;
 	
 	/** SATA port number (0-31). */
 	uint8_t port_num;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,71 +25,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief UHCI driver initialization
  */
-#include <ddf/driver.h>
-#include <errno.h>
-#include <str_error.h>
 
-#include <usb/ddfiface.h>
-#include <usb/debug.h>
+#ifndef LIBC_IO_INPUT_H_
+#define LIBC_IO_INPUT_H_
 
-#include "uhci.h"
+#include <async.h>
+#include <io/kbd_event.h>
+#include <sys/types.h>
 
-#define NAME "uhci"
+struct input_ev_ops;
 
-static int uhci_dev_add(ddf_dev_t *device);
+typedef struct {
+	async_sess_t *sess;
+	struct input_ev_ops *ev_ops;
+	void *user;
+} input_t;
 
-static driver_ops_t uhci_driver_ops = {
-	.dev_add = uhci_dev_add,
-};
+typedef struct input_ev_ops {
+	int (*key)(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+	int (*move)(input_t *, int, int);
+	int (*abs_move)(input_t *, unsigned, unsigned, unsigned, unsigned);
+	int (*button)(input_t *, int, int);
+} input_ev_ops_t;
 
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
+extern int input_open(async_sess_t *, input_ev_ops_t *, void *, input_t **);
+extern void input_close(input_t *);
+extern int input_yield(input_t *);
+extern int input_reclaim(input_t *);
 
-/** Initialize a new ddf driver instance for uhci hc and hub.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-int uhci_dev_add(ddf_dev_t *device)
-{
-	usb_log_debug2("uhci_dev_add() called\n");
-	assert(device);
+#endif
 
-	const int ret = device_setup_uhci(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize UHCI driver: %s.\n",
-		    str_error(ret));
-	} else {
-		usb_log_info("Controlling new UHCI device '%s'.\n",
-		    ddf_dev_get_name(device));
-	}
-
-	return ret;
-}
-
-/** Initialize global driver structures (NONE).
- *
- * @param[in] argc Number of arguments in argv vector (ignored).
- * @param[in] argv Cmdline argument vector (ignored).
- * @return Error code.
- *
- * Driver debug level is set here.
- */
-int main(int argc, char *argv[])
-{
-	printf(NAME ": HelenOS UHCI driver.\n");
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
-	return ddf_driver_main(&uhci_driver);
-}
-/**
- * @}
+/** @}
  */

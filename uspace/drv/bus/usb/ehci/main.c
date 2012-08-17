@@ -83,7 +83,7 @@ if (ret != EOK) { \
 	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_RETURN(ret,
 	    "Failed to get memory addresses for %" PRIun ": %s.\n",
-	    device->handle, str_error(ret));
+	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
 	    reg_base, reg_size, irq);
 
@@ -103,7 +103,7 @@ if (ret != EOK) { \
 	}
 	/* High Speed, no bandwidth */
 	hcd_init(ehci_hc, USB_SPEED_HIGH, 0, NULL);
-	hc_fun->ops = &hc_ops;
+	ddf_fun_set_ops(hc_fun,  &hc_ops);
 
 	ret = ddf_fun_bind(hc_fun);
 	CHECK_RET_RETURN(ret,
@@ -115,7 +115,7 @@ if (ret != EOK) { \
 	    str_error(ret));
 
 	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 
 	return EOK;
 #undef CHECK_RET_RETURN

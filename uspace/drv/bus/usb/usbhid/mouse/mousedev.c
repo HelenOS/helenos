@@ -34,6 +34,9 @@
  * USB Mouse driver API.
  */
 
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <usb/hid/hid.h>
@@ -114,7 +117,7 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	usb_mouse_t *mouse_dev = fun->driver_data;
+	usb_mouse_t *mouse_dev = ddf_fun_data_get(fun);
 
 	if (mouse_dev == NULL) {
 		usb_log_debug("%s: Missing parameters.\n", __FUNCTION__);
@@ -122,7 +125,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 		return;
 	}
 
-	usb_log_debug("%s: fun->name: %s\n", __FUNCTION__, fun->name);
+	usb_log_debug("%s: fun->name: %s\n", __FUNCTION__, ddf_fun_get_name(fun));
 	usb_log_debug("%s: mouse_sess: %p\n",
 	    __FUNCTION__, mouse_dev->mouse_sess);
 
@@ -132,11 +135,11 @@ static void default_connection_handler(ddf_fun_t *fun,
 		if (mouse_dev->mouse_sess == NULL) {
 			mouse_dev->mouse_sess = sess;
 			usb_log_debug("Console session to %s set ok (%p).\n",
-			    fun->name, sess);
+			    ddf_fun_get_name(fun), sess);
 			async_answer_0(icallid, EOK);
 		} else {
 			usb_log_error("Console session to %s already set.\n",
-			    fun->name);
+			    ddf_fun_get_name(fun));
 			async_answer_0(icallid, ELIMIT);
 			async_hangup(sess);
 		}
@@ -248,11 +251,10 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 #define FUN_UNBIND_DESTROY(fun) \
 if (fun) { \
 	if (ddf_fun_unbind((fun)) == EOK) { \
-		(fun)->driver_data = NULL; \
 		ddf_fun_destroy((fun)); \
 	} else { \
 		usb_log_error("Could not unbind function `%s', it " \
-		    "will not be destroyed.\n", (fun)->name); \
+		    "will not be destroyed.\n", ddf_fun_get_name(fun)); \
 	} \
 } else (void)0
 
@@ -271,20 +273,19 @@ static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
 		return ENOMEM;
 	}
 
-	fun->ops = &ops;
-	fun->driver_data = mouse;
+	ddf_fun_set_ops(fun, &ops);
+	ddf_fun_data_implant(fun, mouse);
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function `%s': %s.\n",
-		    fun->name, str_error(rc));
-		fun->driver_data = NULL;
+		    ddf_fun_get_name(fun), str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	usb_log_debug("Adding DDF function `%s' to category %s...\n",
-	    fun->name, HID_MOUSE_CATEGORY);
+	    ddf_fun_get_name(fun), HID_MOUSE_CATEGORY);
 	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
@@ -418,7 +419,6 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 	FUN_UNBIND_DESTROY(mouse_dev->mouse_fun);
 
 	free(mouse_dev->buttons);
-	free(mouse_dev);
 }
 
 int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)

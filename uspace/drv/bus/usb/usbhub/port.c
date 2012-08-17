@@ -435,8 +435,9 @@ int add_device_phase1_worker_fibril(void *arg)
 
 		usb_log_info("Detected new device on `%s' (port %zu), "
 		    "address %d (handle %" PRIun ").\n",
-		    data->hub->usb_device->ddf_dev->name,
-		    data->port->port_number, new_address, child_fun->handle);
+		    ddf_dev_get_name(data->hub->usb_device->ddf_dev),
+		    data->port->port_number, new_address,
+		    ddf_fun_get_handle(child_fun));
 	} else {
 		usb_log_error("Failed registering device on port %zu: %s.\n",
 		    data->port->port_number, str_error(rc));

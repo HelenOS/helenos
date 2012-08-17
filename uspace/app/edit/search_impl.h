@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,71 +25,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup edit
  * @{
  */
-/** @file
- * @brief UHCI driver initialization
- */
-#include <ddf/driver.h>
-#include <errno.h>
-#include <str_error.h>
-
-#include <usb/ddfiface.h>
-#include <usb/debug.h>
-
-#include "uhci.h"
-
-#define NAME "uhci"
-
-static int uhci_dev_add(ddf_dev_t *device);
-
-static driver_ops_t uhci_driver_ops = {
-	.dev_add = uhci_dev_add,
-};
-
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-
-/** Initialize a new ddf driver instance for uhci hc and hub.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-int uhci_dev_add(ddf_dev_t *device)
-{
-	usb_log_debug2("uhci_dev_add() called\n");
-	assert(device);
-
-	const int ret = device_setup_uhci(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize UHCI driver: %s.\n",
-		    str_error(ret));
-	} else {
-		usb_log_info("Controlling new UHCI device '%s'.\n",
-		    ddf_dev_get_name(device));
-	}
-
-	return ret;
-}
-
-/** Initialize global driver structures (NONE).
- *
- * @param[in] argc Number of arguments in argv vector (ignored).
- * @param[in] argv Cmdline argument vector (ignored).
- * @return Error code.
- *
- * Driver debug level is set here.
- */
-int main(int argc, char *argv[])
-{
-	printf(NAME ": HelenOS UHCI driver.\n");
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
-	return ddf_driver_main(&uhci_driver);
-}
 /**
- * @}
+ * @file
+ */
+
+#ifndef SEARCH_IMPL_H__
+#define SEARCH_IMPL_H__
+
+#include "search.h"
+
+/** Search state */
+typedef struct search {
+	/* Note: This structure is opaque for the user. */
+
+	const wchar_t *pattern;
+	size_t pattern_length;
+	ssize_t *back_table;
+	size_t pattern_pos;
+	void *client_data;
+	search_ops_t ops;
+} search_t;
+
+#endif
+
+/** @}
  */

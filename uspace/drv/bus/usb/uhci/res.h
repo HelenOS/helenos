@@ -37,9 +37,9 @@
 
 #include <ddf/driver.h>
 
-int get_my_registers(const ddf_dev_t *, uintptr_t *, size_t *, int *);
-int enable_interrupts(const ddf_dev_t *);
-int disable_legacy(const ddf_dev_t *);
+int get_my_registers(ddf_dev_t *, uintptr_t *, size_t *, int *);
+int enable_interrupts(ddf_dev_t *);
+int disable_legacy(ddf_dev_t *);
 
 #endif
 /**

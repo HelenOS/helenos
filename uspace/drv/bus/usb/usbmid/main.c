@@ -50,7 +50,7 @@
  */
 static int usbmid_device_add(usb_device_t *dev)
 {
-	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
+	usb_log_info("Taking care of new MID `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 
 	const bool accept = usbmid_explore_device(dev);
 
@@ -126,7 +126,7 @@ static int usbmid_device_gone(usb_device_t *dev)
 	usb_mid_t *usb_mid = dev->driver_data;
 	assert(usb_mid);
 
-	usb_log_info("USB MID gone: `%s'.\n", dev->ddf_dev->name);
+	usb_log_info("USB MID gone: `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 
 	/* Remove ctl function */
 	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
