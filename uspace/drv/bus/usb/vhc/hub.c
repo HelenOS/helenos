@@ -99,20 +99,21 @@ int hub_register_in_devman_fibril(void *arg)
 	 */
 	async_sess_t *sess;
 	do {
-		sess = devman_device_connect(EXCHANGE_SERIALIZE, hc_dev->handle, 0);
+		sess = devman_device_connect(EXCHANGE_SERIALIZE,
+		    ddf_fun_get_handle(hc_dev), 0);
 	} while (!sess);
 	async_hangup(sess);
 
 	int rc;
 
 	usb_hc_connection_t hc_conn;
-	usb_hc_connection_initialize(&hc_conn, hc_dev->handle);
+	usb_hc_connection_initialize(&hc_conn, ddf_fun_get_handle(hc_dev));
 
 	rc = usb_hc_connection_open(&hc_conn);
 	assert(rc == EOK);
 
 	ddf_fun_t *hub_dev;
-	rc = usb_hc_new_device_wrapper(hc_dev->dev, &hc_conn, USB_SPEED_FULL,
+	rc = usb_hc_new_device_wrapper(ddf_fun_get_dev(hc_dev), &hc_conn, USB_SPEED_FULL,
 	    pretend_port_rest, NULL, NULL, &rh_ops, hc_dev, &hub_dev);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to create root hub: %s.\n",
@@ -122,7 +123,7 @@ int hub_register_in_devman_fibril(void *arg)
 	usb_hc_connection_close(&hc_conn);
 
 	usb_log_info("Created root hub function (handle %zu).\n",
-	    (size_t) hub_dev->handle);
+	    (size_t) ddf_fun_get_handle(hub_dev));
 
 	return 0;
 }

@@ -49,8 +49,6 @@
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
-#include <devman.h>
-#include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include <ipc/irc.h>
 #include <ns.h>
@@ -70,20 +68,31 @@
 	((1 << 31) | (bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
 
 /** Obtain PCI function soft-state from DDF function node */
-#define PCI_FUN(fnode) ((pci_fun_t *) (fnode)->driver_data)
+static pci_fun_t *pci_fun(ddf_fun_t *fnode)
+{
+	return ddf_fun_data_get(fnode);
+}
 
 /** Obtain PCI bus soft-state from DDF device node */
-#define PCI_BUS(dnode) ((pci_bus_t *) (dnode)->driver_data)
+#if 0
+static pci_bus_t *pci_bus(ddf_dev_t *dnode)
+{
+	return ddf_dev_data_get(dnode);
+}
+#endif
 
 /** Obtain PCI bus soft-state from function soft-state */
-#define PCI_BUS_FROM_FUN(fun) ((fun)->busptr)
+static pci_bus_t *pci_bus_from_fun(pci_fun_t *fun)
+{
+	return fun->busptr;
+}
 
 /** Max is 47, align to something nice. */
 #define ID_MAX_STR_LEN 50
 
 static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 {
-	pci_fun_t *fun = PCI_FUN(fnode);
+	pci_fun_t *fun = pci_fun(fnode);
 	
 	if (fun == NULL)
 		return NULL;
@@ -94,7 +103,7 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 {
 	/* This is an old ugly way */
 	assert(fnode);
-	pci_fun_t *dev_data = (pci_fun_t *) fnode->driver_data;
+	pci_fun_t *dev_data = pci_fun(fnode);
 	
 	sysarg_t apic;
 	sysarg_t i8259;
@@ -137,7 +146,7 @@ static int pci_config_space_write_32(ddf_fun_t *fun, uint32_t address,
 {
 	if (address > 252)
 		return EINVAL;
-	pci_conf_write_32(PCI_FUN(fun), address, data);
+	pci_conf_write_32(pci_fun(fun), address, data);
 	return EOK;
 }
 
@@ -146,7 +155,7 @@ static int pci_config_space_write_16(
 {
 	if (address > 254)
 		return EINVAL;
-	pci_conf_write_16(PCI_FUN(fun), address, data);
+	pci_conf_write_16(pci_fun(fun), address, data);
 	return EOK;
 }
 
@@ -155,7 +164,7 @@ static int pci_config_space_write_8(
 {
 	if (address > 255)
 		return EINVAL;
-	pci_conf_write_8(PCI_FUN(fun), address, data);
+	pci_conf_write_8(pci_fun(fun), address, data);
 	return EOK;
 }
 
@@ -164,7 +173,7 @@ static int pci_config_space_read_32(
 {
 	if (address > 252)
 		return EINVAL;
-	*data = pci_conf_read_32(PCI_FUN(fun), address);
+	*data = pci_conf_read_32(pci_fun(fun), address);
 	return EOK;
 }
 
@@ -173,7 +182,7 @@ static int pci_config_space_read_16(
 {
 	if (address > 254)
 		return EINVAL;
-	*data = pci_conf_read_16(PCI_FUN(fun), address);
+	*data = pci_conf_read_16(pci_fun(fun), address);
 	return EOK;
 }
 
@@ -182,7 +191,7 @@ static int pci_config_space_read_8(
 {
 	if (address > 255)
 		return EINVAL;
-	*data = pci_conf_read_8(PCI_FUN(fun), address);
+	*data = pci_conf_read_8(pci_fun(fun), address);
 	return EOK;
 }
 
@@ -224,7 +233,7 @@ static driver_t pci_driver = {
 
 static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
-	pci_bus_t *bus = PCI_BUS_FROM_FUN(fun);
+	pci_bus_t *bus = pci_bus_from_fun(fun);
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 	
@@ -251,7 +260,7 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 
 static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
-	pci_bus_t *bus = PCI_BUS_FROM_FUN(fun);
+	pci_bus_t *bus = pci_bus_from_fun(fun);
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 	
@@ -479,7 +488,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	if (range_addr != 0) {
 		ddf_msg(LVL_DEBUG, "Function %s : address = %" PRIx64
-		    ", size = %x", fun->fnode->name, range_addr,
+		    ", size = %x", ddf_fun_get_name(fun->fnode), range_addr,
 		    (unsigned int) range_size);
 	}
 	
@@ -505,7 +514,7 @@ void pci_add_interrupt(pci_fun_t *fun, int irq)
 	
 	hw_res_list->count++;
 	
-	ddf_msg(LVL_NOTE, "Function %s uses irq %x.", fun->fnode->name, irq);
+	ddf_msg(LVL_NOTE, "Function %s uses irq %x.", ddf_fun_get_name(fun->fnode), irq);
 }
 
 void pci_read_interrupt(pci_fun_t *fun)
@@ -522,21 +531,22 @@ void pci_read_interrupt(pci_fun_t *fun)
  */
 void pci_bus_scan(pci_bus_t *bus, int bus_num) 
 {
-	ddf_fun_t *fnode;
 	pci_fun_t *fun;
+	int rc;
 	
 	int child_bus = 0;
 	int dnum, fnum;
 	bool multi;
 	uint8_t header_type;
 	
-	fun = pci_fun_new(bus);
-	
 	for (dnum = 0; dnum < 32; dnum++) {
 		multi = true;
 		for (fnum = 0; multi && fnum < 8; fnum++) {
+			fun = pci_fun_new(bus);
+			
 			pci_fun_init(fun, bus_num, dnum, fnum);
 			if (fun->vendor_id == 0xffff) {
+				pci_fun_delete(fun);
 				/*
 				 * The device is not present, go on scanning the
 				 * bus.
@@ -558,35 +568,32 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			char *fun_name = pci_fun_create_name(fun);
 			if (fun_name == NULL) {
 				ddf_msg(LVL_ERROR, "Out of memory.");
+				pci_fun_delete(fun);
 				return;
 			}
 			
-			fnode = ddf_fun_create(bus->dnode, fun_inner, fun_name);
+			rc = ddf_fun_set_name(fun->fnode, fun_name);
 			free(fun_name);
-			if (fnode == NULL) {
-				ddf_msg(LVL_ERROR, "Failed creating function.");
+			if (rc != EOK) {
+				ddf_msg(LVL_ERROR, "Failed setting function name.");
+				pci_fun_delete(fun);
 				return;
 			}
-			
-			fun->fnode = fnode;
 			
 			pci_alloc_resource_list(fun);
 			pci_read_bars(fun);
 			pci_read_interrupt(fun);
 			
-			fnode->ops = &pci_fun_ops;
-			fnode->driver_data = fun;
+			ddf_fun_set_ops(fun->fnode, &pci_fun_ops);
 			
 			ddf_msg(LVL_DEBUG, "Adding new function %s.",
-			    fnode->name);
+			    ddf_fun_get_name(fun->fnode));
 			
 			pci_fun_create_match_ids(fun);
 			
-			if (ddf_fun_bind(fnode) != EOK) {
+			if (ddf_fun_bind(fun->fnode) != EOK) {
 				pci_clean_resource_list(fun);
-				clean_match_ids(&fnode->match_ids);
-				free((char *) fnode->name);
-				fnode->name = NULL;
+				pci_fun_delete(fun);
 				continue;
 			}
 			
@@ -600,14 +607,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 				if (child_bus > bus_num)
 					pci_bus_scan(bus, child_bus);
 			}
-			
-			fun = pci_fun_new(bus);
 		}
-	}
-	
-	if (fun->vendor_id == 0xffff) {
-		/* Free the auxiliary function structure. */
-		pci_fun_delete(fun);
 	}
 }
 
@@ -616,10 +616,10 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	pci_bus_t *bus = NULL;
 	ddf_fun_t *ctl = NULL;
 	bool got_res = false;
+	async_sess_t *sess;
 	int rc;
 	
 	ddf_msg(LVL_DEBUG, "pci_dev_add");
-	dnode->parent_sess = NULL;
 	
 	bus = ddf_dev_data_alloc(dnode, sizeof(pci_bus_t));
 	if (bus == NULL) {
@@ -630,11 +630,9 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	fibril_mutex_initialize(&bus->conf_mutex);
 
 	bus->dnode = dnode;
-	dnode->driver_data = bus;
 	
-	dnode->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    dnode->handle, IPC_FLAG_BLOCKING);
-	if (!dnode->parent_sess) {
+	sess = ddf_dev_parent_sess_create(dnode, EXCHANGE_SERIALIZE);
+	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "pci_dev_add failed to connect to the "
 		    "parent driver.");
 		rc = ENOENT;
@@ -643,7 +641,7 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	
 	hw_resource_list_t hw_resources;
 	
-	rc = hw_res_get_resource_list(dnode->parent_sess, &hw_resources);
+	rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "pci_dev_add failed to get hw resources "
 		    "for the device.");
@@ -707,9 +705,6 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	return EOK;
 	
 fail:
-	if (dnode->parent_sess)
-		async_hangup(dnode->parent_sess);
-	
 	if (got_res)
 		hw_res_clean_resource_list(&hw_resources);
 	
@@ -741,12 +736,18 @@ static void pciintel_init(void)
 pci_fun_t *pci_fun_new(pci_bus_t *bus)
 {
 	pci_fun_t *fun;
+	ddf_fun_t *fnode;
 	
-	fun = (pci_fun_t *) calloc(1, sizeof(pci_fun_t));
+	fnode = ddf_fun_create(bus->dnode, fun_inner, NULL);
+	if (fnode == NULL)
+		return NULL;
+
+	fun = ddf_fun_data_alloc(fnode, sizeof(pci_fun_t));
 	if (fun == NULL)
 		return NULL;
 
 	fun->busptr = bus;
+	fun->fnode = fnode;
 	return fun;
 }
 
@@ -765,9 +766,9 @@ void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
 
 void pci_fun_delete(pci_fun_t *fun)
 {
-	assert(fun != NULL);
 	hw_res_clean_resource_list(&fun->hw_resources);
-	free(fun);
+	if (fun->fnode != NULL)
+		ddf_fun_destroy(fun->fnode);
 }
 
 char *pci_fun_create_name(pci_fun_t *fun)

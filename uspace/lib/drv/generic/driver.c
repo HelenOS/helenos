@@ -36,6 +36,8 @@
 /** @file
  */
 
+#define _DDF_DATA_IMPLANT
+
 #include <assert.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
@@ -57,6 +59,7 @@
 #include "dev_iface.h"
 #include "ddf/driver.h"
 #include "ddf/interrupt.h"
+#include "private/driver.h"
 
 /** Driver structure */
 static driver_t *driver;
@@ -522,6 +525,8 @@ static ddf_fun_t *create_function(void)
  */
 static void delete_device(ddf_dev_t *dev)
 {
+	if (dev->parent_sess)
+		async_hangup(dev->parent_sess);
 	if (dev->driver_data != NULL)
 		free(dev->driver_data);
 	free(dev);
@@ -596,6 +601,98 @@ void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
 	return data;
 }
 
+/** Implant foreign driver-specific device data.
+ *
+ * XXX This is used to transition USB to new interface. Do not use
+ * in new code. Use of this function must be removed.
+ */
+void ddf_fun_data_implant(ddf_fun_t *fun, void *data)
+{
+	assert(fun->driver_data == NULL);
+	fun->driver_data = data;
+}
+
+/** Return driver-specific device data. */
+void *ddf_dev_data_get(ddf_dev_t *dev)
+{
+	return dev->driver_data;
+}
+
+/** Get device handle. */
+devman_handle_t ddf_dev_get_handle(ddf_dev_t *dev)
+{
+	return dev->handle;
+}
+
+/** Return device name.
+ *
+ * @param dev	Device
+ * @return	Device name. Valid as long as @a dev is valid.
+ */
+const char *ddf_dev_get_name(ddf_dev_t *dev)
+{
+	return dev->name;
+}
+
+/** Create session with the parent function.
+ *
+ * The session will be automatically closed when @a dev is destroyed.
+ *
+ * @param dev	Device
+ * @param mgmt	Exchange management style
+ * @return	New session or NULL if session could not be created
+ */
+async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *dev, exch_mgmt_t mgmt)
+{
+	assert(dev->parent_sess == NULL);
+	dev->parent_sess = devman_parent_device_connect(mgmt, dev->handle,
+	    IPC_FLAG_BLOCKING);
+
+	return dev->parent_sess;
+}
+
+/** Return existing session with the parent function.
+ *
+ * @param dev	Device
+ * @return	Existing session or NULL if there is no session
+ */
+async_sess_t *ddf_dev_parent_sess_get(ddf_dev_t *dev)
+{
+	return dev->parent_sess;
+}
+
+/** Set function name (if it was not specified when node was created.)
+ *
+ * @param dev	Device whose name has not been set yet
+ * @param name	Name, will be copied
+ * @return	EOK on success, ENOMEM if out of memory
+ */
+int ddf_fun_set_name(ddf_fun_t *dev, const char *name)
+{
+	assert(dev->name == NULL);
+
+	dev->name = str_dup(name);
+	if (dev->name == NULL)
+		return ENOENT;
+
+	return EOK;
+}
+
+/** Get device to which function belongs. */
+ddf_dev_t *ddf_fun_get_dev(ddf_fun_t *fun)
+{
+	return fun->dev;
+}
+
+/** Get function handle.
+ *
+ * XXX USB uses this, but its use should be eliminated.
+ */
+devman_handle_t ddf_fun_get_handle(ddf_fun_t *fun)
+{
+	return fun->handle;
+}
+
 /** Create a DDF function node.
  *
  * Create a DDF function (in memory). Both child devices and external clients
@@ -607,7 +704,9 @@ void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
  *
  * This function should only fail if there is not enough free memory.
  * Specifically, this function succeeds even if @a dev already has
- * a (bound) function with the same name.
+ * a (bound) function with the same name. @a name can be NULL in which
+ * case the caller will set the name later using ddf_fun_set_name().
+ * He must do this before binding the function.
  *
  * Type: A function of type fun_inner indicates that DDF should attempt
  * to attach child devices to the function. fun_exposed means that
@@ -615,7 +714,7 @@ void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
  *
  * @param dev		Device to which we are adding function
  * @param ftype		Type of function (fun_inner or fun_exposed)
- * @param name		Name of function
+ * @param name		Name of function or NULL
  *
  * @return		New function or @c NULL if memory is not available
  */
@@ -632,10 +731,12 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 	fun->bound = false;
 	fun->ftype = ftype;
 	
-	fun->name = str_dup(name);
-	if (fun->name == NULL) {
-		delete_function(fun);
-		return NULL;
+	if (name != NULL) {
+		fun->name = str_dup(name);
+		if (fun->name == NULL) {
+			delete_function(fun);
+			return NULL;
+		}
 	}
 	
 	return fun;
@@ -653,6 +754,22 @@ void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
 	
 	fun->driver_data = data;
 	return data;
+}
+
+/** Return driver-specific function data. */
+void *ddf_fun_data_get(ddf_fun_t *fun)
+{
+	return fun->driver_data;
+}
+
+/** Return function name.
+ *
+ * @param fun	Function
+ * @return	Function name. Valid as long as @a fun is valid.
+ */
+const char *ddf_fun_get_name(ddf_fun_t *fun)
+{
+	return fun->name;
 }
 
 /** Destroy DDF function node.
@@ -804,6 +921,23 @@ int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 	
 	add_match_id(&fun->match_ids, match_id);
 	return EOK;
+}
+
+/** Set function ops. */
+void ddf_fun_set_ops(ddf_fun_t *fun, ddf_dev_ops_t *dev_ops)
+{
+	assert(fun->conn_handler == NULL);
+	fun->ops = dev_ops;
+}
+
+/** Set user-defined connection handler.
+ *
+ * This allows handling connections the non-devman way.
+ */
+void ddf_fun_set_conn_handler(ddf_fun_t *fun, async_client_conn_t conn)
+{
+	assert(fun->ops == NULL);
+	fun->conn_handler = conn;
 }
 
 /** Get default handler for client requests */

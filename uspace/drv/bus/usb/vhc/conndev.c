@@ -93,7 +93,7 @@ static void receive_device_name(async_sess_t *sess)
 void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
     ipc_call_t *icall)
 {
-	vhc_data_t *vhc = fun->dev->driver_data;
+	vhc_data_t *vhc = ddf_dev_data_get(ddf_fun_get_dev(fun));
 	
 	async_sess_t *callback =
 	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
@@ -124,7 +124,7 @@ void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
  */
 void on_client_close(ddf_fun_t *fun)
 {
-	vhc_data_t *vhc = fun->dev->driver_data;
+	vhc_data_t *vhc = ddf_dev_data_get(ddf_fun_get_dev(fun));
 
 	if (plugged_device_handle != 0) {
 		usb_log_info("Virtual device `%s' disconnected (id: %" PRIxn ").\n",
