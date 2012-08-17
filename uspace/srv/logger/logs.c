@@ -52,13 +52,25 @@ static logger_log_t *find_log_by_name_and_parent_no_lock(const char *name, logge
 	return NULL;
 }
 
-static logger_dest_t *create_dest(const char *name)
+static int create_dest(const char *name, logger_dest_t **dest)
 {
 	logger_dest_t *result = malloc(sizeof(logger_dest_t));
+	if (result == NULL)
+		return ENOMEM;
 	char *logfilename;
-	asprintf(&logfilename, "/log/%s", name);
+	int rc = asprintf(&logfilename, "/log/%s", name);
+	if (rc < 0) {
+		free(result);
+		return ENOMEM;
+	}
 	result->logfile = fopen(logfilename, "a");
-	return result;
+	free(logfilename);
+	if (result->logfile == NULL) {
+		free(result);
+		return ENOMEM;
+	}
+	*dest = result;
+	return EOK;
 }
 
 logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_id)
@@ -72,18 +84,22 @@ logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_i
 	if (result != NULL)
 		goto leave;
 
-	result = malloc(sizeof(logger_log_t));
+	result = calloc(1, sizeof(logger_log_t));
 	if (result == NULL)
 		goto leave;
-
 
 	result->logged_level = LOG_LEVEL_USE_DEFAULT;
 	result->name = str_dup(name);
 	if (parent == NULL) {
 		result->full_name = str_dup(name);
-		result->dest = create_dest(name);
+		int rc = create_dest(name, &result->dest);
+		if (rc != EOK)
+			goto error_result_allocated;
 	} else {
-		asprintf(&result->full_name, "%s/%s", parent->full_name, name);
+		int rc = asprintf(&result->full_name, "%s/%s",
+		    parent->full_name, name);
+		if (rc < 0)
+			goto error_result_allocated;
 		result->dest = parent->dest;
 	}
 	result->parent = parent;
@@ -94,10 +110,18 @@ logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_i
 	fibril_mutex_lock(&result->guard);
 
 	list_append(&result->link, &log_list);
+
+
 leave:
 	fibril_mutex_unlock(&log_list_guard);
 
 	return result;
+
+error_result_allocated:
+	free(result->name);
+	free(result->full_name);
+	free(result);
+	return NULL;
 }
 
 logger_log_t *find_log_by_name_and_acquire(const char *name)
