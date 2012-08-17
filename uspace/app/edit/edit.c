@@ -376,6 +376,7 @@ static void key_handle_shift(kbd_event_t const *ev)
 /** Handle Ctrl-key combination. */
 static void key_handle_ctrl(kbd_event_t const *ev)
 {
+	spt_t pt;
 	switch (ev->key) {
 	case KC_Q:
 		done = true;
@@ -422,6 +423,14 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	case KC_N:
 		search_repeat();
 		break;
+	case KC_HOME:
+		pt_get_sof(&pt);
+		caret_move(pt, false, true);
+		break;
+	case KC_END:
+		pt_get_eof(&pt);
+		caret_move(pt, false, true);
+		break;
 	default:
 		break;
 	}
@@ -429,6 +438,7 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 
 static void key_handle_shift_ctrl(kbd_event_t const *ev)
 {
+	spt_t pt;
 	switch(ev->key) {
 	case KC_LEFT:
 		caret_move_word_left(true);
@@ -438,6 +448,14 @@ static void key_handle_shift_ctrl(kbd_event_t const *ev)
 		break;
 	case KC_F:
 		search_prompt(true);
+		break;
+	case KC_HOME:
+		pt_get_sof(&pt);
+		caret_move(pt, true, true);
+		break;
+	case KC_END:
+		pt_get_eof(&pt);
+		caret_move(pt, true, true);
 		break;
 	default:
 		break;
