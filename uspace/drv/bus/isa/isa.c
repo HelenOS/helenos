@@ -329,7 +329,7 @@ static inline char *skip_spaces(char *line)
 	return line;
 }
 
-static void isa_fun_set_irq(isa_fun_t *fun, int irq)
+static void isa_fun_add_irq(isa_fun_t *fun, int irq)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
@@ -345,7 +345,7 @@ static void isa_fun_set_irq(isa_fun_t *fun, int irq)
 	}
 }
 
-static void isa_fun_set_dma(isa_fun_t *fun, int dma)
+static void isa_fun_add_dma(isa_fun_t *fun, int dma)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
@@ -378,7 +378,7 @@ static void isa_fun_set_dma(isa_fun_t *fun, int dma)
 	}
 }
 
-static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
+static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
@@ -406,7 +406,7 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 	irq = (int) strtol(val, &end, 10);
 
 	if (val != end)
-		isa_fun_set_irq(fun, irq);
+		isa_fun_add_irq(fun, irq);
 }
 
 static void fun_parse_dma(isa_fun_t *fun, char *val)
@@ -418,7 +418,7 @@ static void fun_parse_dma(isa_fun_t *fun, char *val)
 	dma = (unsigned int) strtol(val, &end, 10);
 	
 	if (val != end)
-		isa_fun_set_dma(fun, dma);
+		isa_fun_add_dma(fun, dma);
 }
 
 static void fun_parse_io_range(isa_fun_t *fun, char *val)
@@ -438,7 +438,7 @@ static void fun_parse_io_range(isa_fun_t *fun, char *val)
 	if (val == end)
 		return;
 
-	isa_fun_set_io_range(fun, addr, len);
+	isa_fun_add_io_range(fun, addr, len);
 }
 
 static void get_match_id(char **id, char *val)
