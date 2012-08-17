@@ -68,7 +68,7 @@ struct logger_log {
 };
 
 logger_log_t *find_log_by_name_and_acquire(const char *name);
-int find_or_create_log_and_acquire(const char *, sysarg_t, logger_log_t **);
+logger_log_t *find_or_create_log_and_acquire(const char *, sysarg_t);
 logger_log_t *find_log_by_id_and_acquire(sysarg_t);
 bool shall_log_message(logger_log_t *, log_level_t);
 void log_release(logger_log_t *);

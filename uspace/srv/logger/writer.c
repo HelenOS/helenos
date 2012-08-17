@@ -55,9 +55,7 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 	if (rc != EOK)
 		return NULL;
 
-	logger_log_t *log = NULL;
-	rc = find_or_create_log_and_acquire(name, parent, &log);
-	if (rc)
+	logger_log_t *log = find_or_create_log_and_acquire(name, parent);
 
 	free(name);
 

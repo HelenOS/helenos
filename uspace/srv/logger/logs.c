@@ -41,14 +41,12 @@ static FIBRIL_MUTEX_INITIALIZE(log_list_guard);
 static LIST_INITIALIZE(log_list);
 
 
-static logger_log_t *find_log_by_name_and_parent_no_list_lock_and_acquire(const char *name, logger_log_t *parent)
+static logger_log_t *find_log_by_name_and_parent_no_list_lock(const char *name, logger_log_t *parent)
 {
 	list_foreach(log_list, it) {
 		logger_log_t *log = list_get_instance(it, logger_log_t, link);
-		if ((parent == log->parent) && (str_cmp(log->name, name) == 0)) {
-			fibril_mutex_lock(&log->guard);
+		if ((parent == log->parent) && (str_cmp(log->name, name) == 0))
 			return log;
-		}
 	}
 
 	return NULL;
@@ -70,68 +68,74 @@ static int create_dest(const char *name, logger_dest_t **dest)
 	return EOK;
 }
 
-int find_or_create_log_and_acquire(const char *name, sysarg_t parent_id, logger_log_t **log_out)
+static logger_log_t *create_log_no_locking(const char *name, logger_log_t *parent)
 {
-	int rc;
+	logger_log_t *result = calloc(1, sizeof(logger_log_t));
+	if (result == NULL)
+		return NULL;
+
+	result->name = str_dup(name);
+	if (result->name == NULL)
+		goto error;
+
+	/*
+	 * Notice that we create new dest as the last
+	 * operation that can fail and thus there is no code
+	 * to deallocate dest.
+	 */
+	if (parent == NULL) {
+		result->full_name = str_dup(name);
+		if (result->full_name == NULL)
+			goto error;
+		int rc = create_dest(name, &result->dest);
+		if (rc != EOK)
+			goto error;
+	} else {
+		int rc = asprintf(&result->full_name, "%s/%s",
+		    parent->full_name, name);
+		if (rc < 0)
+			goto error;
+		result->dest = parent->dest;
+	}
+
+	/* Following initializations cannot fail. */
+	result->logged_level = LOG_LEVEL_USE_DEFAULT;
+	fibril_mutex_initialize(&result->guard);
+	link_initialize(&result->link);
+	result->parent = parent;
+
+	return result;
+
+error:
+	free(result->name);
+	free(result->full_name);
+	free(result);
+	return NULL;
+
+}
+
+logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_id)
+{
 	logger_log_t *result = NULL;
 	logger_log_t *parent = (logger_log_t *) parent_id;
 
 	fibril_mutex_lock(&log_list_guard);
 
-	result = find_log_by_name_and_parent_no_list_lock_and_acquire(name, parent);
-	if (result != NULL) {
-		rc = EOK;
-		goto leave;
-	}
-
-	result = calloc(1, sizeof(logger_log_t));
+	result = find_log_by_name_and_parent_no_list_lock(name, parent);
 	if (result == NULL) {
-		rc = ENOMEM;
-		goto leave;
+		result = create_log_no_locking(name, parent);
+		if (result == NULL)
+			goto leave;
 	}
-
-	result->logged_level = LOG_LEVEL_USE_DEFAULT;
-	result->name = str_dup(name);
-	if (parent == NULL) {
-		result->full_name = str_dup(name);
-		rc = create_dest(name, &result->dest);
-		if (rc != EOK)
-			goto error_result_allocated;
-	} else {
-		rc = asprintf(&result->full_name, "%s/%s",
-		    parent->full_name, name);
-		if (rc < 0)
-			goto error_result_allocated;
-		result->dest = parent->dest;
-	}
-	result->parent = parent;
-	fibril_mutex_initialize(&result->guard);
-
-	link_initialize(&result->link);
 
 	fibril_mutex_lock(&result->guard);
 
 	list_append(&result->link, &log_list);
 
-
 leave:
 	fibril_mutex_unlock(&log_list_guard);
 
-	if (rc == EOK) {
-		assert(fibril_mutex_is_locked(&result->guard));
-		*log_out = result;
-	}
-
-	return rc;
-
-error_result_allocated:
-	free(result->name);
-	free(result->full_name);
-	free(result);
-
-	fibril_mutex_unlock(&log_list_guard);
-
-	return rc;
+	return result;
 }
 
 logger_log_t *find_log_by_name_and_acquire(const char *name)
