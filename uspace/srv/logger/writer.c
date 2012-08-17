@@ -81,6 +81,10 @@ static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 	printf("[%s] %s: %s\n",
 	    log->full_name, log_level_str(level),
 	    (const char *) message);
+	fprintf(log->dest->logfile, "[%s] %s: %s\n",
+	    log->full_name, log_level_str(level),
+	    (const char *) message);
+	fflush(log->dest->logfile);
 
 	rc = EOK;
 
