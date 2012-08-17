@@ -58,7 +58,7 @@ typedef struct search_ops {
 } search_ops_t;
 
 extern bool char_exact_equals(const wchar_t, const wchar_t);
-extern search_t *search_init(const char *, void *, search_ops_t);
+extern search_t *search_init(const char *, void *, search_ops_t, bool);
 extern int search_next_match(search_t *, match_t *);
 extern void search_fini(search_t *);
 

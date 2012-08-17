@@ -40,21 +40,36 @@
 #include "search.h"
 #include "search_impl.h"
 
-search_t *search_init(const char *pattern, void *client_data, search_ops_t ops)
+search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
+    bool reverse)
 {
 	search_t *search = calloc(1, sizeof(search_t));
 	if (search == NULL)
 		return NULL;
 	
-	search->pattern = str_to_awstr(pattern);
-	if (search->pattern == NULL) {
+	wchar_t *p = str_to_awstr(pattern);
+	if (p == NULL) {
 		free(search);
 		return NULL;
 	}
 	
+	search->pattern_length = wstr_length(p);
+	
+	if (reverse) {
+		/* Reverse the pattern */
+		size_t pos, half;
+		half = search->pattern_length / 2;
+		for (pos = 0; pos < half; pos++) {
+			wchar_t tmp = p[pos];
+			p[pos] = p[search->pattern_length - pos - 1];
+			p[search->pattern_length - pos - 1] = tmp;
+		}
+	}
+	
+	search->pattern = p;
+	
 	search->client_data = client_data;
 	search->ops = ops;
-	search->pattern_length = wstr_length(search->pattern);
 	search->back_table = calloc(search->pattern_length, sizeof(ssize_t));
 	if (search->back_table == NULL) {
 		free(search->pattern);

@@ -86,6 +86,7 @@ typedef struct {
 	int ideal_column;
 	
 	char *previous_search;
+	bool previous_search_reverse;
 } pane_t;
 
 /** Document
@@ -158,8 +159,8 @@ static void selection_delete(void);
 static void selection_copy(void);
 static void insert_clipboard_data(void);
 
-static void search(void);
-static void search_forward(char *pattern);
+static void search(char *pattern, bool reverse);
+static void search_prompt(bool reverse);
 static void search_repeat(void);
 
 static void pt_get_sof(spt_t *pt);
@@ -416,7 +417,7 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 		caret_go_to_line_ask();
 		break;
 	case KC_F:
-		search();
+		search_prompt(false);
 		break;
 	case KC_N:
 		search_repeat();
@@ -434,6 +435,9 @@ static void key_handle_shift_ctrl(kbd_event_t const *ev)
 		break;
 	case KC_RIGHT:
 		caret_move_word_right(true);
+		break;
+	case KC_F:
+		search_prompt(true);
 		break;
 	default:
 		break;
@@ -1160,6 +1164,15 @@ static int search_spt_producer(void *data, wchar_t *ret)
 	return EOK;
 }
 
+static int search_spt_reverse_producer(void *data, wchar_t *ret)
+{
+	assert(data != NULL);
+	assert(ret != NULL);
+	spt_t *spt = data;
+	*ret = spt_prev_char(*spt, spt);
+	return EOK;
+}
+
 static int search_spt_mark(void *data, void **mark)
 {
 	assert(data != NULL);
@@ -1185,16 +1198,27 @@ static search_ops_t search_spt_ops = {
 	.mark_free = search_spt_mark_free,
 };
 
+static search_ops_t search_spt_reverse_ops = {
+	.equals = char_exact_equals,
+	.producer = search_spt_reverse_producer,
+	.mark = search_spt_mark,
+	.mark_free = search_spt_mark_free,
+};
+
 /** Ask for line and go to it. */
-static void search(void)
+static void search_prompt(bool reverse)
 {
 	char *pattern;
+	
+	const char *prompt_text = "Find next";
+	if (reverse)
+		prompt_text = "Find previous";
 	
 	const char *default_value = "";
 	if (pane.previous_search)
 		default_value = pane.previous_search;
 	
-	pattern = prompt("Search for", default_value);
+	pattern = prompt(prompt_text, default_value);
 	if (pattern == NULL) {
 		status_display("Search cancelled.");
 		return;
@@ -1203,8 +1227,9 @@ static void search(void)
 	if (pane.previous_search)
 		free(pane.previous_search);
 	pane.previous_search = pattern;
+	pane.previous_search_reverse = reverse;
 	
-	search_forward(pattern);
+	search(pattern, reverse);
 }
 
 static void search_repeat(void)
@@ -1214,21 +1239,30 @@ static void search_repeat(void)
 		return;
 	}
 	
-	search_forward(pane.previous_search);
+	search(pane.previous_search, pane.previous_search_reverse);
 }
 
-static void search_forward(char *pattern)
+static void search(char *pattern, bool reverse)
 {
 	status_display("Searching...");
 	
 	spt_t sp, producer_pos;
 	tag_get_pt(&pane.caret_pos, &sp);
 	
-	/* Start searching on the position after caret */
-	spt_next_char(sp, &sp);
+	/* Start searching on the position before/after caret */
+	if (!reverse) {
+		spt_next_char(sp, &sp);
+	}
+	else {
+		spt_prev_char(sp, &sp);
+	}
 	producer_pos = sp;
 	
-	search_t *search = search_init(pattern, &producer_pos, search_spt_ops);
+	search_ops_t ops = search_spt_ops;
+	if (reverse)
+		ops = search_spt_reverse_ops;
+	
+	search_t *search = search_init(pattern, &producer_pos, ops, reverse);
 	if (search == NULL) {
 		status_display("Failed initializing search.");
 		return;
@@ -1248,7 +1282,12 @@ static void search_forward(char *pattern)
 		caret_move(*end, false, true);
 		while (match.length > 0) {
 			match.length--;
-			spt_prev_char(*end, end);
+			if (reverse) {
+				spt_next_char(*end, end);
+			}
+			else {
+				spt_prev_char(*end, end);
+			}
 		}
 		caret_move(*end, true, true);
 		free(end);
