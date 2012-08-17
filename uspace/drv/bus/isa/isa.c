@@ -310,7 +310,7 @@ static char *get_device_name(char *line)
 	return line;
 }
 
-static inline char *skip_spaces(char *line)
+static inline const char *skip_spaces(const char *line)
 {
 	/* Skip leading spaces. */
 	while (*line != '\0' && isspace(*line))
@@ -387,7 +387,7 @@ static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 	}
 }
 
-static void fun_parse_irq(isa_fun_t *fun, char *val)
+static void fun_parse_irq(isa_fun_t *fun, const char *val)
 {
 	int irq = 0;
 	char *end = NULL;
@@ -399,19 +399,18 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 		isa_fun_add_irq(fun, irq);
 }
 
-static void fun_parse_dma(isa_fun_t *fun, char *val)
+static void fun_parse_dma(isa_fun_t *fun, const char *val)
 {
-	unsigned int dma = 0;
 	char *end = NULL;
 	
 	val = skip_spaces(val);
-	dma = (unsigned int) strtol(val, &end, 10);
+	int dma = strtol(val, &end, 10);
 	
 	if (val != end)
 		isa_fun_add_dma(fun, dma);
 }
 
-static void fun_parse_io_range(isa_fun_t *fun, char *val)
+static void fun_parse_io_range(isa_fun_t *fun, const char *val)
 {
 	size_t addr, len;
 	char *end = NULL;
@@ -431,9 +430,9 @@ static void fun_parse_io_range(isa_fun_t *fun, char *val)
 	isa_fun_add_io_range(fun, addr, len);
 }
 
-static void get_match_id(char **id, char *val)
+static void get_match_id(char **id, const char *val)
 {
-	char *end = val;
+	const char *end = val;
 
 	while (!isspace(*end))
 		end++;
@@ -443,7 +442,7 @@ static void get_match_id(char **id, char *val)
 	str_cpy(*id, size, val);
 }
 
-static void fun_parse_match_id(isa_fun_t *fun, char *val)
+static void fun_parse_match_id(isa_fun_t *fun, const char *val)
 {
 	char *id = NULL;
 	int score = 0;
@@ -479,8 +478,8 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 	free(id);
 }
 
-static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,
-    void (*read_fn)(isa_fun_t *, char *))
+static bool prop_parse(isa_fun_t *fun, const char *line, const char *prop,
+    void (*read_fn)(isa_fun_t *, const char *))
 {
 	size_t proplen = str_size(prop);
 
@@ -495,7 +494,7 @@ static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,
 	return false;
 }
 
-static void fun_prop_parse(isa_fun_t *fun, char *line)
+static void fun_prop_parse(isa_fun_t *fun, const char *line)
 {
 	/* Skip leading spaces. */
 	line = skip_spaces(line);
