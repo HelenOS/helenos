@@ -42,55 +42,22 @@
 #include <ipc/logger.h>
 #include "logger.h"
 
-static int handle_toplog_level_change(sysarg_t new_level)
-{
-	void *top_name;
-	int rc = async_data_write_accept(&top_name, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	logger_toplevel_log_t *toplog = find_or_create_toplevel_log(top_name);
-	free(top_name);
-	if (toplog == NULL)
-		return ENOENT;
-
-	toplog->logged_level = new_level;
-
-	return EOK;
-}
-
 static int handle_log_level_change(sysarg_t new_level)
 {
-	void *top_name;
-	int rc = async_data_write_accept(&top_name, true, 0, 0, 0, NULL);
+	void *full_name;
+	int rc = async_data_write_accept(&full_name, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	logger_toplevel_log_t *toplog = find_or_create_toplevel_log(top_name);
-	free(top_name);
-	if (toplog == NULL)
+	logger_log_t *log = find_log_by_name(full_name);
+	free(full_name);
+	if (log == NULL)
 		return ENOENT;
 
+	log->logged_level = new_level;
 
-	void *log_name;
-	rc = async_data_write_accept(&log_name, true, 0, 0, 0, NULL);
-	if (rc != EOK)
-		return rc;
-
-	rc = ENOENT;
-	for (size_t i = 0; i < toplog->sublog_count; i++) {
-		if (str_cmp(toplog->sublogs[i].name, (const char *) log_name) == 0) {
-			toplog->sublogs[i].logged_level = new_level;
-			rc = EOK;
-			break;
-		}
-	}
-
-	free(log_name);
-
-	return rc;
+	return EOK;
 }
 
 void logger_connection_handler_control(ipc_callid_t callid)
@@ -108,11 +75,6 @@ void logger_connection_handler_control(ipc_callid_t callid)
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOGGER_CTL_SET_DEFAULT_LEVEL: {
 			int rc = set_default_logging_level(IPC_GET_ARG1(call));
-			async_answer_0(callid, rc);
-			break;
-		}
-		case LOGGER_CTL_SET_TOP_LOG_LEVEL: {
-			int rc = handle_toplog_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
 		}

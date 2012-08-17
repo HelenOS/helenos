@@ -60,7 +60,7 @@ static void parse_single_level_setting(char *setting)
 	if (rc != EOK)
 		return;
 
-	logger_toplevel_log_t *log = find_or_create_toplevel_log(key);
+	logger_log_t *log = find_or_create_log(key, 0);
 	if (log == NULL)
 		return;
 

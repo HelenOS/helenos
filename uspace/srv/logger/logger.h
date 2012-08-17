@@ -47,26 +47,26 @@
 #define MAX_SUBLOGS 64
 #define LOG_LEVEL_USE_DEFAULT (LVL_LIMIT + 1)
 
-typedef struct {
-	const char *name;
-	log_level_t logged_level;
-} logger_sublog_t;
+typedef struct logger_log logger_log_t;
 
 typedef struct {
-	const char *name;
 	FILE *logfile;
-	log_level_t logged_level;
-	size_t sublog_count;
-	logger_sublog_t sublogs[MAX_SUBLOGS];
+} logger_dest_t;
 
+struct logger_log {
 	link_t link;
-} logger_toplevel_log_t;
 
+	char *name;
+	char *full_name;
+	logger_log_t *parent;
+	log_level_t logged_level;
+	logger_dest_t *dest;
+};
 
-logger_toplevel_log_t *find_or_create_toplevel_log(const char *);
-logger_toplevel_log_t *find_toplevel_log(sysarg_t);
-bool shall_log_message(logger_toplevel_log_t *, sysarg_t, log_level_t);
-int add_sub_log(logger_toplevel_log_t *, const char *, sysarg_t *);
+logger_log_t *find_log_by_name(const char *name);
+logger_log_t *find_or_create_log(const char *name, sysarg_t parent);
+logger_log_t *find_log_by_id(sysarg_t);
+bool shall_log_message(logger_log_t *, log_level_t);
 
 log_level_t get_default_logging_level(void);
 int set_default_logging_level(log_level_t);

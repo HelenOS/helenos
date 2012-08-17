@@ -52,7 +52,8 @@ typedef enum {
 
 typedef sysarg_t log_t;
 #define PRIlogctx PRIxn
-#define LOG_DEFAULT 0
+#define LOG_DEFAULT ((log_t) -1)
+#define LOG_NO_PARENT ((log_t) 0)
 
 extern const char *log_level_str(log_level_t);
 extern int log_level_from_str(const char *, log_level_t *);

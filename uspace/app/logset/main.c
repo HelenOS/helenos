@@ -70,19 +70,9 @@ int main(int argc, char *argv[])
 		}
 	} else if (argc == 3) {
 		log_level_t new_level = parse_log_level_or_die(argv[2]);
-		const char *toplog = argv[1];
-		int rc = logctl_set_top_log_level(toplog, new_level);
+		const char *logname = argv[1];
+		int rc = logctl_set_log_level(logname, new_level);
 
-		if (rc != EOK) {
-			fprintf(stderr, "Failed to change logging level: %s.\n",
-			    str_error(rc));
-			return 2;
-		}
-	} else if (argc == 4) {
-		log_level_t new_level = parse_log_level_or_die(argv[3]);
-		const char *toplog = argv[1];
-		const char *log = argv[2];
-		int rc = logctl_set_log_level(toplog, log, new_level);
 		if (rc != EOK) {
 			fprintf(stderr, "Failed to change logging level: %s.\n",
 			    str_error(rc));

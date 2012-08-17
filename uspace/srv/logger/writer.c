@@ -48,27 +48,24 @@
 #include "logger.h"
 
 
-static logger_toplevel_log_t *handle_create_toplevel_log(void)
+static logger_log_t *handle_create_log(sysarg_t parent)
 {
 	void *name;
 	int rc = async_data_write_accept(&name, true, 1, 0, 0, NULL);
 	if (rc != EOK)
 		return NULL;
 
-	logger_toplevel_log_t *log = find_or_create_toplevel_log(name);
+	logger_log_t *log = find_or_create_log(name, parent);
 
 	free(name);
 
 	return log;
 }
 
-static int handle_receive_message(sysarg_t toplevel_log_id, sysarg_t log_id, sysarg_t level)
+static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 {
-	logger_toplevel_log_t *log = find_toplevel_log(toplevel_log_id);
+	logger_log_t *log = find_log_by_id(log_id);
 	if (log == NULL)
-		return ENOENT;
-
-	if (log_id > log->sublog_count)
 		return ENOENT;
 
 	void *message;
@@ -76,37 +73,18 @@ static int handle_receive_message(sysarg_t toplevel_log_id, sysarg_t log_id, sys
 	if (rc != EOK)
 		return rc;
 
-	if (!shall_log_message(log, log_id, level)) {
+	if (!shall_log_message(log, level)) {
 		free(message);
 		return EOK;
 	}
 
-	printf("[%s/%s] %s: %s\n",
-	    log->name, log->sublogs[log_id].name,
-	    log_level_str(level),
+	printf("[%s] %s: %s\n",
+	    log->full_name, log_level_str(level),
 	    (const char *) message);
 
 	free(message);
 
 	return EOK;
-}
-
-static int handle_create_sub_log(sysarg_t toplevel_log_id, sysarg_t *log_id)
-{
-	logger_toplevel_log_t *log = find_toplevel_log(toplevel_log_id);
-	if (log == NULL)
-		return ENOENT;
-
-	void *name;
-	int rc = async_data_write_accept(&name, true, 0, 0, 0, NULL);
-	if (rc != EOK)
-		return rc;
-
-	rc = add_sub_log(log, name, log_id);
-
-	free(name);
-
-	return rc;
 }
 
 void logger_connection_handler_writer(ipc_callid_t callid)
@@ -124,8 +102,8 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_WRITER_CREATE_TOPLEVEL_LOG: {
-			logger_toplevel_log_t *log = handle_create_toplevel_log();
+		case LOGGER_WRITER_CREATE_LOG: {
+			logger_log_t *log = handle_create_log(IPC_GET_ARG1(call));
 			if (log == NULL) {
 				async_answer_0(callid, ENOMEM);
 				break;
@@ -135,14 +113,8 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 		}
 		case LOGGER_WRITER_MESSAGE: {
 			int rc = handle_receive_message(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call), IPC_GET_ARG3(call));
+			    IPC_GET_ARG2(call));
 			async_answer_0(callid, rc);
-			break;
-		}
-		case LOGGER_WRITER_CREATE_SUB_LOG: {
-			sysarg_t log_id;
-			int rc = handle_create_sub_log(IPC_GET_ARG1(call), &log_id);
-			async_answer_1(callid, rc, log_id);
 			break;
 		}
 		default:
