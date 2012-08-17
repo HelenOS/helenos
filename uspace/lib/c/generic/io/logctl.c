@@ -73,7 +73,7 @@ int logctl_set_default_level(log_level_t new_level)
 		return rc;
 
 	rc = (int) async_req_1_0(exchange,
-	    LOGGER_CTL_SET_DEFAULT_LEVEL, new_level);
+	    LOGGER_CONTROL_SET_DEFAULT_LEVEL, new_level);
 
 	async_exchange_end(exchange);
 
@@ -87,7 +87,7 @@ int logctl_set_log_level(const char *logname, log_level_t new_level)
 	if (rc != EOK)
 		return rc;
 
-	aid_t reg_msg = async_send_1(exchange, LOGGER_CTL_SET_LOG_LEVEL,
+	aid_t reg_msg = async_send_1(exchange, LOGGER_CONTROL_SET_LOG_LEVEL,
 	    new_level, NULL);
 	rc = async_data_write_start(exchange, logname, str_size(logname));
 	sysarg_t reg_msg_rc;

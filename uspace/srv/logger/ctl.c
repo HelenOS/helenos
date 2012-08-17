@@ -73,12 +73,12 @@ void logger_connection_handler_control(ipc_callid_t callid)
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_CTL_SET_DEFAULT_LEVEL: {
+		case LOGGER_CONTROL_SET_DEFAULT_LEVEL: {
 			int rc = set_default_logging_level(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
 		}
-		case LOGGER_CTL_SET_LOG_LEVEL: {
+		case LOGGER_CONTROL_SET_LOG_LEVEL: {
 			int rc = handle_log_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;

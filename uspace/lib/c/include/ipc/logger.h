@@ -36,8 +36,8 @@
 #include <ipc/common.h>
 
 typedef enum {
-	LOGGER_CTL_SET_DEFAULT_LEVEL = IPC_FIRST_USER_METHOD,
-	LOGGER_CTL_SET_LOG_LEVEL
+	LOGGER_CONTROL_SET_DEFAULT_LEVEL = IPC_FIRST_USER_METHOD,
+	LOGGER_CONTROL_SET_LOG_LEVEL
 } logger_control_request_t;
 
 typedef enum {
@@ -47,17 +47,10 @@ typedef enum {
 } logger_writer_request_t;
 
 typedef enum {
-	 LOGGER_CONNECT = IPC_FIRST_USER_METHOD,
-	 LOGGER_GET_MESSAGE
-} logger_source_request_t;
-
-typedef enum {
 	/** Interface for controlling logger behavior. */
 	LOGGER_INTERFACE_CONTROL,
 	/** Interface for servers writing to the log. */
-	LOGGER_INTERFACE_SINK,
-	/** Interface for clients displaying the log. */
-	LOGGER_INTERFACE_SOURCE
+	LOGGER_INTERFACE_WRITER
 } logger_interface_t;
 
 #endif

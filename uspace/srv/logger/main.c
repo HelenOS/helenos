@@ -55,7 +55,7 @@ static void connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	case LOGGER_INTERFACE_CONTROL:
 		logger_connection_handler_control(iid);
 		break;
-	case LOGGER_INTERFACE_SINK:
+	case LOGGER_INTERFACE_WRITER:
 		logger_connection_handler_writer(iid);
 		break;
 	default:
