@@ -65,13 +65,13 @@ static LIST_INITIALIZE(client_list);
 
 static int inet_init(void)
 {
-	log_msg(LVL_DEBUG, "inet_init()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_init()");
 	
 	async_set_client_connection(inet_client_conn);
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering server (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
 		return EEXIST;
 	}
 	
@@ -79,21 +79,21 @@ static int inet_init(void)
 	rc = loc_service_register_with_iface(SERVICE_NAME_INET, &sid,
 	    INET_PORT_DEFAULT);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
 	
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETCFG, &sid,
 	    INET_PORT_CFG);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
 	
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING, &sid,
 	    INET_PORT_PING);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
 	
@@ -107,7 +107,7 @@ static int inet_init(void)
 static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	log_msg(LVL_DEBUG, "inet_callback_create_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_callback_create_srv()");
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL) {
@@ -142,7 +142,7 @@ static int inet_find_dir(inet_addr_t *src, inet_addr_t *dest, uint8_t tos,
 	}
 
 	if (dir->aobj == NULL) {
-		log_msg(LVL_DEBUG, "inet_send: No route to destination.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send: No route to destination.");
 		return ENOENT;
 	}
 
@@ -193,7 +193,7 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
 	inet_addr_t local;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inet_get_srcaddr_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
 
 	remote.ipv4 = IPC_GET_ARG1(*call);
 	tos = IPC_GET_ARG2(*call);
@@ -211,7 +211,7 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
 	int df;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inet_send_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
 
 	dgram.src.ipv4 = IPC_GET_ARG1(*call);
 	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
@@ -237,7 +237,7 @@ static void inet_set_proto_srv(inet_client_t *client, ipc_callid_t callid,
 	sysarg_t proto;
 
 	proto = IPC_GET_ARG1(*call);
-	log_msg(LVL_DEBUG, "inet_set_proto_srv(%lu)", (unsigned long) proto);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_set_proto_srv(%lu)", (unsigned long) proto);
 
 	if (proto > UINT8_MAX) {
 		async_answer_0(callid, EINVAL);
@@ -271,7 +271,7 @@ static void inet_default_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	inet_client_t client;
 
-	log_msg(LVL_DEBUG, "inet_default_conn()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_default_conn()");
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
@@ -377,7 +377,7 @@ int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 {
 	inet_client_t *client;
 
-	log_msg(LVL_DEBUG, "inet_recv_dgram_local()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_recv_dgram_local()");
 
 	/* ICMP messages are handled internally */
 	if (proto == IP_PROTO_ICMP)
@@ -385,7 +385,7 @@ int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 
 	client = inet_client_find(proto);
 	if (client == NULL) {
-		log_msg(LVL_DEBUG, "No client found for protocol 0x%" PRIx8,
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "No client found for protocol 0x%" PRIx8,
 		    proto);
 		return ENOENT;
 	}

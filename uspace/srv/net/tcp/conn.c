@@ -163,7 +163,7 @@ error:
  */
 static void tcp_conn_free(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_free(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_free(%p)", conn->name, conn);
 	tcp_tqueue_fini(&conn->retransmit);
 
 	if (conn->rcv_buf != NULL)
@@ -183,7 +183,7 @@ static void tcp_conn_free(tcp_conn_t *conn)
  */
 void tcp_conn_addref(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG2, "%s: tcp_conn_addref(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p)", conn->name, conn);
 	atomic_inc(&conn->refcnt);
 }
 
@@ -195,7 +195,7 @@ void tcp_conn_addref(tcp_conn_t *conn)
  */
 void tcp_conn_delref(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG2, "%s: tcp_conn_delref(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p)", conn->name, conn);
 
 	if (atomic_predec(&conn->refcnt) == 0)
 		tcp_conn_free(conn);
@@ -210,7 +210,7 @@ void tcp_conn_delref(tcp_conn_t *conn)
  */
 void tcp_conn_delete(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_delete(%p)", conn->name, conn);
 
 	assert(conn->deleted == false);
 	tcp_conn_delref(conn);
@@ -244,7 +244,7 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 {
 	tcp_cstate_t old_state;
 
-	log_msg(LVL_DEBUG, "tcp_conn_state_set(%p)", conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set(%p)", conn);
 
 	old_state = conn->cstate;
 	conn->cstate = nstate;
@@ -252,10 +252,10 @@ static void tcp_conn_state_set(tcp_conn_t *conn, tcp_cstate_t nstate)
 
 	/* Run user callback function */
 	if (conn->cstate_cb != NULL) {
-		log_msg(LVL_DEBUG, "tcp_conn_state_set() - run user CB");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - run user CB");
 		conn->cstate_cb(conn, conn->cstate_cb_arg);
 	} else {
-		log_msg(LVL_DEBUG, "tcp_conn_state_set() - no user CB");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_state_set() - no user CB");
 	}
 
 	assert(old_state != st_closed);
@@ -292,15 +292,15 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 	switch (conn->cstate) {
 	case st_syn_received:
 	case st_established:
-		log_msg(LVL_DEBUG, "%s: FIN sent -> Fin-Wait-1", conn->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN sent -> Fin-Wait-1", conn->name);
 		tcp_conn_state_set(conn, st_fin_wait_1);
 		break;
 	case st_close_wait:
-		log_msg(LVL_DEBUG, "%s: FIN sent -> Last-Ack", conn->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN sent -> Last-Ack", conn->name);
 		tcp_conn_state_set(conn, st_last_ack);
 		break;
 	default:
-		log_msg(LVL_ERROR, "%s: Connection state %d", conn->name,
+		log_msg(LOG_DEFAULT, LVL_ERROR, "%s: Connection state %d", conn->name,
 		    conn->cstate);
 		assert(false);
 	}
@@ -311,7 +311,7 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 /** Match socket with pattern. */
 static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 {
-	log_msg(LVL_DEBUG2, "tcp_socket_match(sock=(%x,%u), pat=(%x,%u))",
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_socket_match(sock=(%x,%u), pat=(%x,%u))",
 	    sock->addr.ipv4, sock->port, patt->addr.ipv4, patt->port);
 
 	if (patt->addr.ipv4 != TCP_IPV4_ANY &&
@@ -322,7 +322,7 @@ static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 	    patt->port != sock->port)
 		return false;
 
-	log_msg(LVL_DEBUG2, " -> match");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " -> match");
 
 	return true;
 }
@@ -330,7 +330,7 @@ static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 /** Match socket pair with pattern. */
 static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 {
-	log_msg(LVL_DEBUG2, "tcp_sockpair_match(%p, %p)", sp, pattern);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "tcp_sockpair_match(%p, %p)", sp, pattern);
 
 	if (!tcp_socket_match(&sp->local, &pattern->local))
 		return false;
@@ -352,14 +352,14 @@ static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
  */
 tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
 
 	fibril_mutex_lock(&conn_list_lock);
 
 	list_foreach(conn_list, link) {
 		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
 		tcp_sockpair_t *csp = &conn->ident;
-		log_msg(LVL_DEBUG2, "compare with conn (f:(%x,%u), l:(%x,%u))",
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare with conn (f:(%x,%u), l:(%x,%u))",
 		    csp->foreign.addr.ipv4, csp->foreign.port,
 		    csp->local.addr.ipv4, csp->local.port);
 		if (tcp_sockpair_match(sp, csp)) {
@@ -379,7 +379,7 @@ tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
  */
 static void tcp_conn_reset(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
 	tcp_conn_state_set(conn, st_closed);
 	conn->reset = true;
 
@@ -397,7 +397,7 @@ static void tcp_conn_reset(tcp_conn_t *conn)
 static void tcp_reset_signal(tcp_conn_t *conn)
 {
 	/* TODO */
-	log_msg(LVL_DEBUG, "%s: tcp_reset_signal()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_reset_signal()", conn->name);
 }
 
 /** Determine if SYN has been received.
@@ -421,7 +421,7 @@ bool tcp_conn_got_syn(tcp_conn_t *conn)
 	case st_time_wait:
 		return true;
 	case st_closed:
-		log_msg(LVL_WARN, "state=%d", (int) conn->cstate);
+		log_msg(LOG_DEFAULT, LVL_WARN, "state=%d", (int) conn->cstate);
 		assert(false);
 	}
 
@@ -435,34 +435,34 @@ bool tcp_conn_got_syn(tcp_conn_t *conn)
  */
 static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_sa_listen(%p, %p)", conn, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_sa_listen(%p, %p)", conn, seg);
 
 	if ((seg->ctrl & CTL_RST) != 0) {
-		log_msg(LVL_DEBUG, "Ignoring incoming RST.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Ignoring incoming RST.");
 		return;
 	}
 
 	if ((seg->ctrl & CTL_ACK) != 0) {
-		log_msg(LVL_DEBUG, "Incoming ACK, send acceptable RST.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Incoming ACK, send acceptable RST.");
 		tcp_reply_rst(&conn->ident, seg);
 		return;
 	}
 
 	if ((seg->ctrl & CTL_SYN) == 0) {
-		log_msg(LVL_DEBUG, "SYN not present. Ignoring segment.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "SYN not present. Ignoring segment.");
 		return;
 	}
 
-	log_msg(LVL_DEBUG, "Got SYN, sending SYN, ACK.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got SYN, sending SYN, ACK.");
 
 	conn->rcv_nxt = seg->seq + 1;
 	conn->irs = seg->seq;
 
 
-	log_msg(LVL_DEBUG, "rcv_nxt=%u", conn->rcv_nxt);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "rcv_nxt=%u", conn->rcv_nxt);
 
 	if (seg->len > 1)
-		log_msg(LVL_WARN, "SYN combined with data, ignoring data.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "SYN combined with data, ignoring data.");
 
 	/* XXX select ISS */
 	conn->iss = 1;
@@ -492,17 +492,17 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_sa_syn_sent(%p, %p)", conn, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_sa_syn_sent(%p, %p)", conn, seg);
 
 	if ((seg->ctrl & CTL_ACK) != 0) {
-		log_msg(LVL_DEBUG, "snd_una=%u, seg.ack=%u, snd_nxt=%u",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "snd_una=%u, seg.ack=%u, snd_nxt=%u",
 		    conn->snd_una, seg->ack, conn->snd_nxt);
 		if (!seq_no_ack_acceptable(conn, seg->ack)) {
 			if ((seg->ctrl & CTL_RST) == 0) {
-				log_msg(LVL_WARN, "ACK not acceptable, send RST");
+				log_msg(LOG_DEFAULT, LVL_WARN, "ACK not acceptable, send RST");
 				tcp_reply_rst(&conn->ident, seg);
 			} else {
-				log_msg(LVL_WARN, "RST,ACK not acceptable, drop");
+				log_msg(LOG_DEFAULT, LVL_WARN, "RST,ACK not acceptable, drop");
 			}
 			return;
 		}
@@ -511,13 +511,13 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	if ((seg->ctrl & CTL_RST) != 0) {
 		/* If we get here, we have either an acceptable ACK or no ACK */
 		if ((seg->ctrl & CTL_ACK) != 0) {
-			log_msg(LVL_DEBUG, "%s: Connection reset. -> Closed",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: Connection reset. -> Closed",
 			    conn->name);
 			/* Reset connection */
 			tcp_conn_reset(conn);
 			return;
 		} else {
-			log_msg(LVL_DEBUG, "%s: RST without ACK, drop",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: RST without ACK, drop",
 			    conn->name);
 			return;
 		}
@@ -526,7 +526,7 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* XXX precedence */
 
 	if ((seg->ctrl & CTL_SYN) == 0) {
-		log_msg(LVL_DEBUG, "No SYN bit, ignoring segment.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "No SYN bit, ignoring segment.");
 		return;
 	}
 
@@ -543,25 +543,25 @@ static void tcp_conn_sa_syn_sent(tcp_conn_t *conn, tcp_segment_t *seg)
 		tcp_tqueue_ack_received(conn);
 	}
 
-	log_msg(LVL_DEBUG, "Sent SYN, got SYN.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Sent SYN, got SYN.");
 
 	/*
 	 * Surprisingly the spec does not deal with initial window setting.
 	 * Set SND.WND = SEG.WND and set SND.WL1 so that next segment
 	 * will always be accepted as new window setting.
 	 */
-	log_msg(LVL_DEBUG, "SND.WND := %" PRIu32 ", SND.WL1 := %" PRIu32 ", "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "SND.WND := %" PRIu32 ", SND.WL1 := %" PRIu32 ", "
 	    "SND.WL2 = %" PRIu32, seg->wnd, seg->seq, seg->seq);
 	conn->snd_wnd = seg->wnd;
 	conn->snd_wl1 = seg->seq;
 	conn->snd_wl2 = seg->seq;
 
 	if (seq_no_syn_acked(conn)) {
-		log_msg(LVL_DEBUG, "%s: syn acked -> Established", conn->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: syn acked -> Established", conn->name);
 		tcp_conn_state_set(conn, st_established);
 		tcp_tqueue_ctrl_seg(conn, CTL_ACK /* XXX */);
 	} else {
-		log_msg(LVL_DEBUG, "%s: syn not acked -> Syn-Received",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: syn not acked -> Syn-Received",
 		    conn->name);
 		tcp_conn_state_set(conn, st_syn_received);
 		tcp_tqueue_ctrl_seg(conn, CTL_SYN | CTL_ACK /* XXX */);
@@ -581,11 +581,11 @@ static void tcp_conn_sa_queue(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	tcp_segment_t *pseg;
 
-	log_msg(LVL_DEBUG, "tcp_conn_sa_seq(%p, %p)", conn, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_sa_seq(%p, %p)", conn, seg);
 
 	/* Discard unacceptable segments ("old duplicates") */
 	if (!seq_no_segment_acceptable(conn, seg)) {
-		log_msg(LVL_DEBUG, "Replying ACK to unacceptable segment.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Replying ACK to unacceptable segment.");
 		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 		tcp_segment_delete(seg);
 		return;
@@ -681,7 +681,7 @@ static cproc_t tcp_conn_seg_proc_syn(tcp_conn_t *conn, tcp_segment_t *seg)
 	 */
 	assert(seq_no_in_rcv_wnd(conn, seg->seq));
 
-	log_msg(LVL_WARN, "SYN is in receive window, should send reset. XXX");
+	log_msg(LOG_DEFAULT, LVL_WARN, "SYN is in receive window, should send reset. XXX");
 
 	/*
 	 * TODO
@@ -704,13 +704,13 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
 {
 	if (!seq_no_ack_acceptable(conn, seg->ack)) {
 		/* ACK is not acceptable, send RST. */
-		log_msg(LVL_WARN, "Segment ACK not acceptable, sending RST.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Segment ACK not acceptable, sending RST.");
 		tcp_reply_rst(&conn->ident, seg);
 		tcp_segment_delete(seg);
 		return cp_done;
 	}
 
-	log_msg(LVL_DEBUG, "%s: SYN ACKed -> Established", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: SYN ACKed -> Established", conn->name);
 
 	tcp_conn_state_set(conn, st_established);
 
@@ -729,23 +729,23 @@ static cproc_t tcp_conn_seg_proc_ack_sr(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_seg_proc_ack_est(%p, %p)", conn, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_seg_proc_ack_est(%p, %p)", conn, seg);
 
-	log_msg(LVL_DEBUG, "SEG.ACK=%u, SND.UNA=%u, SND.NXT=%u",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.ACK=%u, SND.UNA=%u, SND.NXT=%u",
 	    (unsigned)seg->ack, (unsigned)conn->snd_una,
 	    (unsigned)conn->snd_nxt);
 
 	if (!seq_no_ack_acceptable(conn, seg->ack)) {
-		log_msg(LVL_DEBUG, "ACK not acceptable.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "ACK not acceptable.");
 		if (!seq_no_ack_duplicate(conn, seg->ack)) {
-			log_msg(LVL_WARN, "Not acceptable, not duplicate. "
+			log_msg(LOG_DEFAULT, LVL_WARN, "Not acceptable, not duplicate. "
 			    "Send ACK and drop.");
 			/* Not acceptable, not duplicate. Send ACK and drop. */
 			tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 			tcp_segment_delete(seg);
 			return cp_done;
 		} else {
-			log_msg(LVL_DEBUG, "Ignoring duplicate ACK.");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Ignoring duplicate ACK.");
 		}
 	} else {
 		/* Update SND.UNA */
@@ -757,7 +757,7 @@ static cproc_t tcp_conn_seg_proc_ack_est(tcp_conn_t *conn, tcp_segment_t *seg)
 		conn->snd_wl1 = seg->seq;
 		conn->snd_wl2 = seg->ack;
 
-		log_msg(LVL_DEBUG, "Updating send window, SND.WND=%" PRIu32
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Updating send window, SND.WND=%" PRIu32
 		    ", SND.WL1=%" PRIu32 ", SND.WL2=%" PRIu32,
 		    conn->snd_wnd, conn->snd_wl1, conn->snd_wl2);
 	}
@@ -784,7 +784,7 @@ static cproc_t tcp_conn_seg_proc_ack_fw1(tcp_conn_t *conn, tcp_segment_t *seg)
 		return cp_done;
 
 	if (conn->fin_is_acked) {
-		log_msg(LVL_DEBUG, "%s: FIN acked -> Fin-Wait-2", conn->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN acked -> Fin-Wait-2", conn->name);
 		tcp_conn_state_set(conn, st_fin_wait_2);
 	}
 
@@ -849,7 +849,7 @@ static cproc_t tcp_conn_seg_proc_ack_la(tcp_conn_t *conn, tcp_segment_t *seg)
 		return cp_done;
 
 	if (conn->fin_is_acked) {
-		log_msg(LVL_DEBUG, "%s: FIN acked -> Closed", conn->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN acked -> Closed", conn->name);
 		tcp_conn_remove(conn);
 		tcp_conn_state_set(conn, st_closed);
 		return cp_done;
@@ -880,11 +880,11 @@ static cproc_t tcp_conn_seg_proc_ack_tw(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_ack(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_seg_proc_ack(%p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_seg_proc_ack(%p, %p)",
 	    conn->name, conn, seg);
 
 	if ((seg->ctrl & CTL_ACK) == 0) {
-		log_msg(LVL_WARN, "Segment has no ACK. Dropping.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Segment has no ACK. Dropping.");
 		tcp_segment_delete(seg);
 		return cp_done;
 	}
@@ -939,7 +939,7 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	size_t text_size;
 	size_t xfer_size;
 
-	log_msg(LVL_DEBUG, "%s: tcp_conn_seg_proc_text(%p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_seg_proc_text(%p, %p)",
 	    conn->name, conn, seg);
 
 	switch (conn->cstate) {
@@ -981,7 +981,7 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 	/* Signal to the receive function that new data has arrived */
 	fibril_condvar_broadcast(&conn->rcv_buf_cv);
 
-	log_msg(LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes of data.", xfer_size);
 
 	/* Advance RCV.NXT */
 	conn->rcv_nxt += xfer_size;
@@ -997,7 +997,7 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* Trim part of segment which we just received */
 		tcp_conn_trim_seg_to_wnd(conn, seg);
 	} else {
-		log_msg(LVL_DEBUG, "%s: Nothing left in segment, dropping "
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: Nothing left in segment, dropping "
 		    "(xfer_size=%zu, SEG.LEN=%zu, seg->ctrl=%u)",
 		    conn->name, xfer_size, seg->len, (unsigned)seg->ctrl);
 		/* Nothing left in segment */
@@ -1017,14 +1017,14 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_seg_proc_fin(%p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_seg_proc_fin(%p, %p)",
 	    conn->name, conn, seg);
-	log_msg(LVL_DEBUG, " seg->len=%zu, seg->ctl=%u", (size_t) seg->len,
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " seg->len=%zu, seg->ctl=%u", (size_t) seg->len,
 	    (unsigned) seg->ctrl);
 
 	/* Only process FIN if no text is left in segment. */
 	if (tcp_segment_text_size(seg) == 0 && (seg->ctrl & CTL_FIN) != 0) {
-		log_msg(LVL_DEBUG, " - FIN found in segment.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - FIN found in segment.");
 
 		/* Send ACK */
 		tcp_tqueue_ctrl_seg(conn, CTL_ACK);
@@ -1041,17 +1041,17 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
 			assert(false);
 		case st_syn_received:
 		case st_established:
-			log_msg(LVL_DEBUG, "%s: FIN received -> Close-Wait",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN received -> Close-Wait",
 			    conn->name);
 			tcp_conn_state_set(conn, st_close_wait);
 			break;
 		case st_fin_wait_1:
-			log_msg(LVL_DEBUG, "%s: FIN received -> Closing",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN received -> Closing",
 			    conn->name);
 			tcp_conn_state_set(conn, st_closing);
 			break;
 		case st_fin_wait_2:
-			log_msg(LVL_DEBUG, "%s: FIN received -> Time-Wait",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: FIN received -> Time-Wait",
 			    conn->name);
 			tcp_conn_state_set(conn, st_time_wait);
 			/* Start the Time-Wait timer */
@@ -1090,13 +1090,13 @@ static cproc_t tcp_conn_seg_proc_fin(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_conn_seg_process(%p, %p)", conn, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_seg_process(%p, %p)", conn, seg);
 	tcp_segment_dump(seg);
 
 	/* Check whether segment is acceptable */
 	/* XXX Permit valid ACKs, URGs and RSTs */
 /*	if (!seq_no_segment_acceptable(conn, seg)) {
-		log_msg(LVL_WARN, "Segment not acceptable, dropping.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Segment not acceptable, dropping.");
 		if ((seg->ctrl & CTL_RST) == 0) {
 			tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 		}
@@ -1130,7 +1130,7 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 	 * incoming segments queue.
 	 */
 	if (seg->len > 0) {
-		log_msg(LVL_DEBUG, "Re-insert segment %p. seg->len=%zu",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Re-insert segment %p. seg->len=%zu",
 		    seg, (size_t) seg->len);
 		tcp_iqueue_insert_seg(&conn->incoming, seg);
 	} else {
@@ -1145,7 +1145,7 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "%c: tcp_conn_segment_arrived(%p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%c: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);
 
 	switch (conn->cstate) {
@@ -1164,7 +1164,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 		/* Process segments in order of sequence number */
 		tcp_conn_sa_queue(conn, seg); break;
 	case st_closed:
-		log_msg(LVL_DEBUG, "state=%d", (int) conn->cstate);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "state=%d", (int) conn->cstate);
 		assert(false);
 	}
 }
@@ -1177,18 +1177,18 @@ static void tw_timeout_func(void *arg)
 {
 	tcp_conn_t *conn = (tcp_conn_t *) arg;
 
-	log_msg(LVL_DEBUG, "tw_timeout_func(%p)", conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tw_timeout_func(%p)", conn);
 
 	fibril_mutex_lock(&conn->lock);
 
 	if (conn->cstate == st_closed) {
-		log_msg(LVL_DEBUG, "Connection already closed.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Connection already closed.");
 		fibril_mutex_unlock(&conn->lock);
 		tcp_conn_delref(conn);
 		return;
 	}
 
-	log_msg(LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: TW Timeout -> Closed", conn->name);
 	tcp_conn_remove(conn);
 	tcp_conn_state_set(conn, st_closed);
 
@@ -1239,7 +1239,7 @@ void tcp_conn_trim_seg_to_wnd(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 void tcp_unexpected_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", sp, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_unexpected_segment(%p, %p)", sp, seg);
 
 	if ((seg->ctrl & CTL_RST) == 0)
 		tcp_reply_rst(sp, seg);
@@ -1267,7 +1267,7 @@ void tcp_reply_rst(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_segment_t *rseg;
 
-	log_msg(LVL_DEBUG, "tcp_reply_rst(%p, %p)", sp, seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_reply_rst(%p, %p)", sp, seg);
 
 	rseg = tcp_segment_make_rst(seg);
 	tcp_transmit_segment(sp, rseg);

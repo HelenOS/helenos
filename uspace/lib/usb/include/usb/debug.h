@@ -58,7 +58,7 @@ void usb_dump_standard_descriptor(FILE *, const char *, const char *,
 #endif
 
 #define usb_log_printf(level, format, ...) \
-	log_msg(level, format, ##__VA_ARGS__)
+	log_msg(LOG_DEFAULT, level, format, ##__VA_ARGS__)
 
 /** Log fatal error. */
 #define usb_log_fatal(format, ...) \

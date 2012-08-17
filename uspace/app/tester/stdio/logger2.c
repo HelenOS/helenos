@@ -47,12 +47,12 @@ const char *test_logger2(void)
 		 * the output completely by setting visible level to FATAL.
 		 */
 		for (log_level_t level = LVL_ERROR; level < LVL_LIMIT; level++) {
-			log_msg(level, "Printing level %d (%s).",
+			log_msg(LOG_DEFAULT, level, "Printing level %d (%s).",
 			    (int) level, log_level_str(level));
-			log_log_msg(log_alpha, level,
+			log_msg(log_alpha, level,
 			    "Printing level %d (%s) into alpha log.",
 			    (int) level, log_level_str(level));
-			log_log_msg(log_bravo, level,
+			log_msg(log_bravo, level,
 			    "Printing level %d (%s) into bravo sub-log.",
 			    (int) level, log_level_str(level));
 			async_usleep(1000 * 100);

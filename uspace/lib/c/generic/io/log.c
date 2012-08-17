@@ -191,12 +191,12 @@ log_t log_create(const char *name, log_t parent)
  *			reporting level.
  * @param fmt		Format string (no traling newline).
  */
-void log_log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
+void log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
 	va_start(args, fmt);
-	log_log_msgv(ctx, level, fmt, args);
+	log_msgv(ctx, level, fmt, args);
 	va_end(args);
 }
 
@@ -207,7 +207,7 @@ void log_log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
  *			reporting level.
  * @param fmt		Format string (no trailing newline)
  */
-void log_log_msgv(log_t ctx, log_level_t level, const char *fmt, va_list args)
+void log_msgv(log_t ctx, log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 

@@ -56,7 +56,7 @@ int icmp_recv(inet_dgram_t *dgram)
 {
 	uint8_t type;
 
-	log_msg(LVL_DEBUG, "icmp_recv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmp_recv()");
 
 	if (dgram->size < 1)
 		return EINVAL;
@@ -83,7 +83,7 @@ static int icmp_recv_echo_request(inet_dgram_t *dgram)
 	inet_dgram_t rdgram;
 	int rc;
 
-	log_msg(LVL_DEBUG, "icmp_recv_echo_request()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmp_recv_echo_request()");
 
 	if (dgram->size < sizeof(icmp_echo_t))
 		return EINVAL;
@@ -123,7 +123,7 @@ static int icmp_recv_echo_reply(inet_dgram_t *dgram)
 	inetping_sdu_t sdu;
 	uint16_t ident;
 
-	log_msg(LVL_DEBUG, "icmp_recv_echo_reply()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmp_recv_echo_reply()");
 
 	if (dgram->size < sizeof(icmp_echo_t))
 		return EINVAL;

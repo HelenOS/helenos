@@ -35,7 +35,7 @@
 const char *test_logger1(void)
 {
 	for (log_level_t level = 0; level < LVL_LIMIT; level++) {
-		log_msg(level, "Testing logger, level %d.", (int) level);
+		log_msg(LOG_DEFAULT, level, "Testing logger, level %d.", (int) level);
 	}
 
 	return NULL;

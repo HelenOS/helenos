@@ -87,7 +87,7 @@ void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 {
 	tcp_segment_t *seg;
 
-	log_msg(LVL_DEBUG, "tcp_tqueue_ctrl_seg(%p, %u)", conn, ctrl);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_tqueue_ctrl_seg(%p, %u)", conn, ctrl);
 
 	seg = tcp_segment_make_ctrl(ctrl);
 	tcp_tqueue_seg(conn, seg);
@@ -98,7 +98,7 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	tcp_segment_t *rt_seg;
 	tcp_tqueue_entry_t *tqe;
 
-	log_msg(LVL_DEBUG, "%s: tcp_tqueue_seg(%p, %p)", conn->name, conn,
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_tqueue_seg(%p, %p)", conn->name, conn,
 	    seg);
 
 	/*
@@ -108,14 +108,14 @@ void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
 	if (seg->len > 0) {
 		rt_seg = tcp_segment_dup(seg);
 		if (rt_seg == NULL) {
-			log_msg(LVL_ERROR, "Memory allocation failed.");
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed.");
 			/* XXX Handle properly */
 			return;
 		}
 
 		tqe = calloc(1, sizeof(tcp_tqueue_entry_t));
 		if (tqe == NULL) {
-			log_msg(LVL_ERROR, "Memory allocation failed.");
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed.");
 			/* XXX Handle properly */
 			return;
 		}
@@ -164,14 +164,14 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	tcp_segment_t *seg;
 
-	log_msg(LVL_DEBUG, "%s: tcp_tqueue_new_data()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_tqueue_new_data()", conn->name);
 
 	/* Number of free sequence numbers in send window */
 	avail_wnd = (conn->snd_una + conn->snd_wnd) - conn->snd_nxt;
 	snd_buf_seqlen = conn->snd_buf_used + (conn->snd_buf_fin ? 1 : 0);
 
 	xfer_seqlen = min(snd_buf_seqlen, avail_wnd);
-	log_msg(LVL_DEBUG, "%s: snd_buf_seqlen = %zu, SND.WND = %zu, "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: snd_buf_seqlen = %zu, SND.WND = %zu, "
 	    "xfer_seqlen = %zu", conn->name, snd_buf_seqlen, conn->snd_wnd,
 	    xfer_seqlen);
 
@@ -184,7 +184,7 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	data_size = xfer_seqlen - (send_fin ? 1 : 0);
 
 	if (send_fin) {
-		log_msg(LVL_DEBUG, "%s: Sending out FIN.", conn->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: Sending out FIN.", conn->name);
 		/* We are sending out FIN */
 		ctrl = CTL_FIN;
 	} else {
@@ -193,7 +193,7 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 
 	seg = tcp_segment_make_data(ctrl, conn->snd_buf, data_size);
 	if (seg == NULL) {
-		log_msg(LVL_ERROR, "Memory allocation failure.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failure.");
 		return;
 	}
 
@@ -222,7 +222,7 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 {
 	link_t *cur, *next;
 
-	log_msg(LVL_DEBUG, "%s: tcp_tqueue_ack_received(%p)", conn->name,
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_tqueue_ack_received(%p)", conn->name,
 	    conn);
 
 	cur = conn->retransmit.list.head.next;
@@ -238,8 +238,8 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 			list_remove(cur);
 
 			if ((tqe->seg->ctrl & CTL_FIN) != 0) {
-				log_msg(LVL_DEBUG, "Fin has been acked");
-				log_msg(LVL_DEBUG, "SND.UNA=%" PRIu32
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "Fin has been acked");
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "SND.UNA=%" PRIu32
 				    " SEG.SEQ=%" PRIu32 " SEG.LEN=%" PRIu32,
 				    conn->snd_una, tqe->seg->seq, tqe->seg->len);
 				/* Our FIN has been acked */
@@ -266,7 +266,7 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 
 void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_conn_transmit_segment(%p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_transmit_segment(%p, %p)",
 	    conn->name, conn, seg);
 
 	seg->wnd = conn->rcv_wnd;
@@ -281,11 +281,11 @@ void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 
 void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "tcp_transmit_segment(f:(%x,%u),l:(%x,%u), %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_transmit_segment(f:(%x,%u),l:(%x,%u), %p)",
 	    sp->foreign.addr.ipv4, sp->foreign.port,
 	    sp->local.addr.ipv4, sp->local.port, seg);
 
-	log_msg(LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
 	    seg->seq, seg->wnd);
 
 	tcp_segment_dump(seg);
@@ -299,7 +299,7 @@ void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_pdu_t *pdu;
 
 	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
-		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
 
@@ -314,12 +314,12 @@ static void retransmit_timeout_func(void *arg)
 	tcp_segment_t *rt_seg;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "### %s: retransmit_timeout_func(%p)", conn->name, conn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: retransmit_timeout_func(%p)", conn->name, conn);
 
 	fibril_mutex_lock(&conn->lock);
 
 	if (conn->cstate == st_closed) {
-		log_msg(LVL_DEBUG, "Connection already closed.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Connection already closed.");
 		fibril_mutex_unlock(&conn->lock);
 		tcp_conn_delref(conn);
 		return;
@@ -327,7 +327,7 @@ static void retransmit_timeout_func(void *arg)
 
 	link = list_first(&conn->retransmit.list);
 	if (link == NULL) {
-		log_msg(LVL_DEBUG, "Nothing to retransmit");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Nothing to retransmit");
 		fibril_mutex_unlock(&conn->lock);
 		tcp_conn_delref(conn);
 		return;
@@ -337,14 +337,14 @@ static void retransmit_timeout_func(void *arg)
 
 	rt_seg = tcp_segment_dup(tqe->seg);
 	if (rt_seg == NULL) {
-		log_msg(LVL_ERROR, "Memory allocation failed.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed.");
 		fibril_mutex_unlock(&conn->lock);
 		tcp_conn_delref(conn);
 		/* XXX Handle properly */
 		return;
 	}
 
-	log_msg(LVL_DEBUG, "### %s: retransmitting segment", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: retransmitting segment", conn->name);
 	tcp_conn_transmit_segment(tqe->conn, rt_seg);
 
 	/* Reset retransmission timer */
@@ -357,7 +357,7 @@ static void retransmit_timeout_func(void *arg)
 /** Set or re-set retransmission timer */
 static void tcp_tqueue_timer_set(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "### %s: tcp_tqueue_timer_set()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: tcp_tqueue_timer_set()", conn->name);
 
 	/* Clear first to make sure we update refcnt correctly */
 	tcp_tqueue_timer_clear(conn);
@@ -370,7 +370,7 @@ static void tcp_tqueue_timer_set(tcp_conn_t *conn)
 /** Clear retransmission timer */
 static void tcp_tqueue_timer_clear(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "### %s: tcp_tqueue_timer_clear()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "### %s: tcp_tqueue_timer_clear()", conn->name);
 
 	if (fibril_timer_clear(conn->retransmit.timer) == fts_active)
 		tcp_conn_delref(conn);

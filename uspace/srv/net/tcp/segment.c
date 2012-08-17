@@ -247,13 +247,13 @@ size_t tcp_segment_text_size(tcp_segment_t *seg)
  */
 void tcp_segment_dump(tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG2, "Segment dump:");
-	log_msg(LVL_DEBUG2, " - ctrl = %u", (unsigned)seg->ctrl);
-	log_msg(LVL_DEBUG2, " - seq = % " PRIu32, seg->seq);
-	log_msg(LVL_DEBUG2, " - ack = % " PRIu32, seg->ack);
-	log_msg(LVL_DEBUG2, " - len = % " PRIu32, seg->len);
-	log_msg(LVL_DEBUG2, " - wnd = % " PRIu32, seg->wnd);
-	log_msg(LVL_DEBUG2, " - up = % " PRIu32, seg->up);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "Segment dump:");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " - ctrl = %u", (unsigned)seg->ctrl);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " - seq = % " PRIu32, seg->seq);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " - ack = % " PRIu32, seg->ack);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " - len = % " PRIu32, seg->len);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " - wnd = % " PRIu32, seg->wnd);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, " - up = % " PRIu32, seg->up);
 }
 
 /**

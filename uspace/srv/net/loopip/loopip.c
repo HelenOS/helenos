@@ -74,7 +74,7 @@ typedef struct {
 static int loopip_recv_fibril(void *arg)
 {
 	while (true) {
-		log_msg(LVL_DEBUG, "loopip_recv_fibril(): Wait for one item");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_recv_fibril(): Wait for one item");
 		link_t *link = prodcons_consume(&loopip_rcv_queue);
 		rqueue_entry_t *rqe = list_get_instance(link, rqueue_entry_t, link);
 
@@ -95,7 +95,7 @@ static int loopip_init(void)
 	
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering server.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
 
@@ -107,19 +107,19 @@ static int loopip_init(void)
 
 	rc = loc_service_register(svc_name, &sid);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering service %s.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.", svc_name);
 		return rc;
 	}
 
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed resolving category 'iplink'.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		return rc;
 	}
 
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed adding %s to category.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.", svc_name);
 		return rc;
 	}
 
@@ -134,19 +134,19 @@ static int loopip_init(void)
 
 static void loopip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	log_msg(LVL_DEBUG, "loopip_client_conn()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_client_conn()");
 	iplink_conn(iid, icall, &loopip_iplink);
 }
 
 static int loopip_open(iplink_srv_t *srv)
 {
-	log_msg(LVL_DEBUG, "loopip_open()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_open()");
 	return EOK;
 }
 
 static int loopip_close(iplink_srv_t *srv)
 {
-	log_msg(LVL_DEBUG, "loopip_close()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_close()");
 	return EOK;
 }
 
@@ -154,7 +154,7 @@ static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 {
 	rqueue_entry_t *rqe;
 
-	log_msg(LVL_DEBUG, "loopip_send()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_send()");
 
 	rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
@@ -183,20 +183,20 @@ static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 
 static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 {
-	log_msg(LVL_DEBUG, "loopip_get_mtu()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mtu()");
 	*mtu = 1500;
 	return EOK;
 }
 
 static int loopip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
 {
-	log_msg(LVL_DEBUG, "loopip_addr_add(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_add(0x%" PRIx32 ")", addr->ipv4);
 	return EOK;
 }
 
 static int loopip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
 {
-	log_msg(LVL_DEBUG, "loopip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
 	return EOK;
 }
 

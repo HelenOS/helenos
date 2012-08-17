@@ -61,13 +61,8 @@ extern int log_level_from_str(const char *, log_level_t *);
 extern int log_init(const char *);
 extern log_t log_create(const char *, log_t);
 
-#define log_msg(level, format, ...) \
-	log_log_msg(LOG_DEFAULT, (level), (format), ##__VA_ARGS__)
-#define log_msgv(level, format, args) \
-	log_log_msgv(LOG_DEFAULT, (level), (format), (args))
-
-extern void log_log_msg(log_t, log_level_t, const char *, ...);
-extern void log_log_msgv(log_t, log_level_t, const char *, va_list);
+extern void log_msg(log_t, log_level_t, const char *, ...);
+extern void log_msgv(log_t, log_level_t, const char *, va_list);
 
 #endif
 
