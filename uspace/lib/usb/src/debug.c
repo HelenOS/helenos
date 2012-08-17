@@ -40,31 +40,6 @@
 #include <ddf/log.h>
 #include <usb/debug.h>
 
-/** Enable logging.
- *
- * @param level Maximal enabled level (including this one).
- * @param message_prefix Prefix for each printed message.
- */
-void usb_log_enable(log_level_t level, const char *message_prefix)
-{
-	log_init(message_prefix);
-}
-
-/** Print logging message.
- *
- * @param level Verbosity level of the message.
- * @param format Formatting directive.
- */
-void usb_log_printf(log_level_t level, const char *format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	log_msgv(level, format, args);
-	va_end(args);
-}
-
-
 #define REMAINDER_STR_FMT " (%zu)..."
 /* string + terminator + number width (enough for 4GB)*/
 #define REMAINDER_STR_LEN (5 + 1 + 10)

@@ -86,7 +86,7 @@ int uhci_dev_add(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI driver.\n");
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return ddf_driver_main(&uhci_driver);
 }
