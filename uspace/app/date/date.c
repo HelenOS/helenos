@@ -115,7 +115,7 @@ main(int argc, char **argv)
 		goto exit;
 	}
 
-	/* Check if the are available services in the clock category */
+	/* Check if there are available services in the clock category */
 	if (svc_cnt == 0) {
 		printf(NAME ": No available service found in \
 		    the clock category\n");
