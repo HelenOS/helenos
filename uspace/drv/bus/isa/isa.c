@@ -563,18 +563,13 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 	return fun_conf;
 }
 
-static void fun_conf_parse(char *conf, isa_bus_t *isa)
+static void isa_functions_add(isa_bus_t *isa)
 {
+	char *conf = fun_conf_read(CHILD_FUN_CONF_PATH);
 	while (conf != NULL && *conf != '\0') {
 		conf = isa_fun_read_info(conf, isa);
 	}
-}
-
-static void isa_functions_add(isa_bus_t *isa)
-{
-	char *fun_conf = fun_conf_read(CHILD_FUN_CONF_PATH);
-	fun_conf_parse(fun_conf, isa);
-	free(fun_conf);
+	free(conf);
 }
 
 static int isa_dev_add(ddf_dev_t *dev)
