@@ -68,7 +68,7 @@ static driver_t kbd_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS XT keyboard driver.\n");
-	ddf_log_init(NAME, LVL_NOTE);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&kbd_driver);
 }
 

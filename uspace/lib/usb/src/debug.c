@@ -73,7 +73,7 @@ void usb_log_enable(usb_log_level_t level, const char *message_prefix)
 			free(fname);
 		}
 	}
-	log_init(message_prefix, LVL_DEBUG);
+	log_init(message_prefix);
 }
 
 /** Get log level name prefix.

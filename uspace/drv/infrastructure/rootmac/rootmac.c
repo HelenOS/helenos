@@ -178,7 +178,7 @@ static hw_res_ops_t fun_hw_res_ops = {
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Mac platform driver\n", NAME);
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	rootmac_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
 	return ddf_driver_main(&rootmac_driver);
 }

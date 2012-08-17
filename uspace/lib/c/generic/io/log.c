@@ -134,12 +134,9 @@ int log_level_from_str(const char *name, log_level_t *level_out)
 /** Initialize the logging system.
  *
  * @param prog_name	Program name, will be printed as part of message
- * @param level		Minimum message level to print
  */
-int log_init(const char *prog_name, log_level_t level)
+int log_init(const char *prog_name)
 {
-	assert(level < LVL_LIMIT);
-
 	log_prog_name = str_dup(prog_name);
 	if (log_prog_name == NULL)
 		return ENOMEM;

@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
-	log_init("tester", LVL_NOTE);
+	log_init("tester");
 
 	test_quiet = false;
 	test_argc = argc - 2;

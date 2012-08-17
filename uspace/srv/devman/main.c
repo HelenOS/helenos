@@ -1427,7 +1427,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Device Manager\n", NAME);
 	
-	int rc = log_init(NAME, LVL_WARN);
+	int rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Error initializing logging subsystem.\n", NAME);
 		return rc;

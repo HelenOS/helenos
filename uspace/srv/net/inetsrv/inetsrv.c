@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": HelenOS Internet Protocol service\n");
 
-	if (log_init(NAME, LVL_WARN) != EOK) {
+	if (log_init(NAME) != EOK) {
 		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}

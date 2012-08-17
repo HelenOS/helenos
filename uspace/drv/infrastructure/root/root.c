@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");
 
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&root_driver);
 }
 
