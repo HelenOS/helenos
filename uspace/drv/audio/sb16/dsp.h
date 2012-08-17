@@ -38,6 +38,7 @@
 #include <libarch/ddi.h>
 #include <errno.h>
 #include <pcm/sample_format.h>
+#include <audio_pcm_iface.h>
 
 #include "registers.h"
 
@@ -71,7 +72,7 @@ typedef struct sb_dsp_t {
 int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16);
 void sb_dsp_interrupt(sb_dsp_t *dsp);
-
+unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap);
 int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
   pcm_sample_format_t *format);
 int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size);

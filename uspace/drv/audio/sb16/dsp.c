@@ -226,6 +226,25 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 #endif
 }
 
+unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
+{
+	switch(cap) {
+	case AUDIO_CAP_RECORD:
+	case AUDIO_CAP_PLAYBACK:
+	case AUDIO_CAP_INTERRUPT:
+		return 1;
+	case AUDIO_CAP_MAX_BUFFER:
+		return MAX_BUFFER_SIZE;
+	case AUDIO_CAP_INTERRUPT_MIN_FRAMES:
+		return 1;
+	case AUDIO_CAP_INTERRUPT_MAX_FRAMES:
+		return 16535;
+	case AUDIO_CAP_BUFFER_POS:
+	default:
+		return 0;
+	}
+}
+
 int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
   pcm_sample_format_t *format)
 {
