@@ -526,7 +526,7 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 	char *fun_name = NULL;
 
 	/* Skip empty lines. */
-	while (true) {
+	do {
 		line = str_get_line(fun_conf, &fun_conf);
 
 		if (line == NULL) {
@@ -534,9 +534,7 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 			return NULL;
 		}
 
-		if (!line_empty(line))
-			break;
-	}
+	} while (line_empty(line));
 
 	/* Get device name. */
 	fun_name = get_device_name(line);
