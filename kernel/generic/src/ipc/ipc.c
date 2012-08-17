@@ -636,14 +636,20 @@ restart:
 		}
 
 		/*
-		 * Just for sure, we might have had some IPC_PHONE_CONNECTING
-		 * phones
+		 * We might have had some IPC_PHONE_CONNECTING phones at the
+		 * beginning of ipc_cleanup(). Depending on whether these were
+		 * forgotten or answered, they will eventually enter the
+		 * IPC_PHONE_FREE or IPC_PHONE_CONNECTED states, respectively.
+		 * In the latter case, the other side may slam the open phones
+		 * at any time, in which case we will get an IPC_PHONE_SLAMMED
+		 * phone.
 		 */
-		if (TASK->phones[i].state == IPC_PHONE_CONNECTED) {
+		if ((TASK->phones[i].state == IPC_PHONE_CONNECTED) ||
+		    (TASK->phones[i].state == IPC_PHONE_SLAMMED)) {
 			ipc_phone_hangup(&TASK->phones[i]);
 			/*
-			 * Now there is one extra active call, which needs to be
-			 * forgotten.
+			 * Now there may be one extra active call, which needs
+			 * to be forgotten.
 			 */
 			ipc_forget_all_active_calls();
 			goto restart;
