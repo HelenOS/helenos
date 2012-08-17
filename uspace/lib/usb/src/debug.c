@@ -40,61 +40,14 @@
 #include <ddf/log.h>
 #include <usb/debug.h>
 
-/** Level of logging messages. */
-static usb_log_level_t log_level = USB_LOG_LEVEL_WARNING;
-
-/** Prefix for logging messages. */
-static const char *log_prefix = "usb";
-
-/** Serialization mutex for logging functions. */
-static FIBRIL_MUTEX_INITIALIZE(log_serializer);
-
-/** File where to store the log. */
-static FILE *log_stream = NULL;
-
-
 /** Enable logging.
  *
  * @param level Maximal enabled level (including this one).
  * @param message_prefix Prefix for each printed message.
  */
-void usb_log_enable(usb_log_level_t level, const char *message_prefix)
+void usb_log_enable(log_level_t level, const char *message_prefix)
 {
-	log_prefix = message_prefix;
-	log_level = level;
-	if (log_stream == NULL) {
-		char *fname;
-		int rc = asprintf(&fname, "/log/%s", message_prefix);
-		if (rc > 0) {
-			log_stream = fopen(fname, "w");
-			if (log_stream != NULL)
-				setvbuf(log_stream, NULL, _IOFBF, BUFSIZ);
-			
-			free(fname);
-		}
-	}
 	log_init(message_prefix);
-}
-
-/** Get log level name prefix.
- *
- * @param level Log level.
- * @return String prefix for the message.
- */
-static const char *log_level_name(usb_log_level_t level)
-{
-	switch (level) {
-		case USB_LOG_LEVEL_FATAL:
-			return " FATAL";
-		case USB_LOG_LEVEL_ERROR:
-			return " ERROR";
-		case USB_LOG_LEVEL_WARNING:
-			return " WARN";
-		case USB_LOG_LEVEL_INFO:
-			return " info";
-		default:
-			return "";
-	}
 }
 
 /** Print logging message.
@@ -102,57 +55,13 @@ static const char *log_level_name(usb_log_level_t level)
  * @param level Verbosity level of the message.
  * @param format Formatting directive.
  */
-void usb_log_printf(usb_log_level_t level, const char *format, ...)
+void usb_log_printf(log_level_t level, const char *format, ...)
 {
-	FILE *screen_stream = NULL;
-	switch (level) {
-		case USB_LOG_LEVEL_FATAL:
-		case USB_LOG_LEVEL_ERROR:
-			screen_stream = stderr;
-			break;
-		default:
-			screen_stream = stdout;
-			break;
-	}
-	assert(screen_stream != NULL);
-
 	va_list args;
-
-	/*
-	 * Serialize access to log files.
-	 * Print to screen only messages with higher level than the one
-	 * specified during logging initialization.
-	 * Print also to file, to it print one more (lower) level as well.
-	 */
-	fibril_mutex_lock(&log_serializer);
-
-	const char *level_name = log_level_name(level);
-
-	if ((log_stream != NULL) && (level <= log_level + 1)) {
-		va_start(args, format);
-
-		fprintf(log_stream, "[%s]%s: ", log_prefix, level_name);
-		vfprintf(log_stream, format, args);
-		fflush(log_stream);
-
-		va_end(args);
-	}
-
-	if (level <= log_level) {
-		va_start(args, format);
-
-		fprintf(screen_stream, "[%s]%s: ", log_prefix, level_name);
-		vfprintf(screen_stream, format, args);
-		fflush(screen_stream);
-
-		va_end(args);
-	}
 
 	va_start(args, format);
 	log_msgv(level, format, args);
 	va_end(args);
-
-	fibril_mutex_unlock(&log_serializer);
 }
 
 
