@@ -32,6 +32,7 @@ BINARY = edit
 
 SOURCES = \
 	edit.c \
-	sheet.c
+	sheet.c \
+	search.c
 
 include $(USPACE_PREFIX)/Makefile.common
