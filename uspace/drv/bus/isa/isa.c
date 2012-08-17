@@ -267,9 +267,9 @@ cleanup:
 static char *str_get_line(char *str, char **next)
 {
 	char *line = str;
+	*next = NULL;
 
 	if (str == NULL) {
-		*next = NULL;
 		return NULL;
 	}
 
@@ -279,8 +279,6 @@ static char *str_get_line(char *str, char **next)
 
 	if (*str != '\0') {
 		*next = str + 1;
-	} else {
-		*next = NULL;
 	}
 
 	*str = '\0';
@@ -445,13 +443,11 @@ static void get_match_id(char **id, const char *val)
 static void fun_parse_match_id(isa_fun_t *fun, const char *val)
 {
 	char *id = NULL;
-	int score = 0;
 	char *end = NULL;
-	int rc;
 
 	val = skip_spaces(val);
 
-	score = (int)strtol(val, &end, 10);
+	int score = (int)strtol(val, &end, 10);
 	if (val == end) {
 		ddf_msg(LVL_ERROR, "Cannot read match score for function "
 		    "%s.", fun->fnode->name);
@@ -469,7 +465,7 @@ static void fun_parse_match_id(isa_fun_t *fun, const char *val)
 	ddf_msg(LVL_DEBUG, "Adding match id '%s' with score %d to "
 	    "function %s", id, score, fun->fnode->name);
 
-	rc = ddf_fun_add_match_id(fun->fnode, id, score);
+	int rc = ddf_fun_add_match_id(fun->fnode, id, score);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match ID: %s",
 		    str_error(rc));
@@ -574,12 +570,10 @@ static void isa_functions_add(isa_bus_t *isa)
 
 static int isa_dev_add(ddf_dev_t *dev)
 {
-	isa_bus_t *isa;
-
 	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) dev->handle);
 
-	isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));
+	isa_bus_t *isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));
 	if (isa == NULL)
 		return ENOMEM;
 
@@ -616,7 +610,6 @@ static int isa_dev_add(ddf_dev_t *dev)
 static int isa_dev_remove(ddf_dev_t *dev)
 {
 	isa_bus_t *isa = ISA_BUS(dev);
-	int rc;
 
 	fibril_mutex_lock(&isa->mutex);
 
@@ -624,7 +617,7 @@ static int isa_dev_remove(ddf_dev_t *dev)
 		isa_fun_t *fun = list_get_instance(list_first(&isa->functions),
 		    isa_fun_t, bus_link);
 
-		rc = ddf_fun_offline(fun->fnode);
+		int rc = ddf_fun_offline(fun->fnode);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&isa->mutex);
 			ddf_msg(LVL_ERROR, "Failed offlining %s", fun->fnode->name);
