@@ -104,7 +104,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	usb_device_t *dev = ddf_dev_data_alloc(gen_dev, sizeof(usb_device_t));
 	if (dev == NULL) {
 		usb_log_error("USB device `%s' structure allocation failed.\n",
-		    gen_dev->name);
+		    ddf_dev_get_name(gen_dev));
 		return ENOMEM;
 	}
 
@@ -113,7 +113,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	int rc = usb_device_init(dev, gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("USB device `%s' init failed (%s): %s.\n",
-		    gen_dev->name, err_msg, str_error(rc));
+		    ddf_dev_get_name(gen_dev), err_msg, str_error(rc));
 		return rc;
 	}
 
@@ -138,7 +138,7 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	if (driver->ops->device_rem == NULL)
 		return ENOTSUP;
 	/* Just tell the driver to stop whatever it is doing */
-	usb_device_t *usb_dev = gen_dev->driver_data;
+	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
 	const int ret = driver->ops->device_rem(usb_dev);
 	if (ret != EOK)
 		return ret;
@@ -159,7 +159,7 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	if (driver->ops->device_gone == NULL)
 		return ENOTSUP;
-	usb_device_t *usb_dev = gen_dev->driver_data;
+	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
 	const int ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
 		usb_device_deinit(usb_dev);
@@ -414,7 +414,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	devman_handle_t hc_handle;
 	usb_address_t address;
 
-	int rc = usb_get_info_by_handle(ddf_dev->handle,
+	int rc = usb_get_info_by_handle(ddf_dev_get_handle(ddf_dev),
 	    &hc_handle, &address, &usb_dev->interface_no);
 	if (rc != EOK) {
 		*errstr_ptr = "device parameters retrieval";

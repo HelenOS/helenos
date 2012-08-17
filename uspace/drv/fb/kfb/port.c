@@ -343,7 +343,7 @@ int port_init(ddf_dev_t *dev)
 		as_area_destroy(kfb.addr);
 		return ENOMEM;
 	}
-	fun_vs->ops = &graph_vsl_device_ops;
+	ddf_fun_set_ops(fun_vs, &graph_vsl_device_ops);
 
 	visualizer_t *vs = ddf_fun_data_alloc(fun_vs, sizeof(visualizer_t));
 	if (vs == NULL) {
@@ -379,7 +379,7 @@ int port_init(ddf_dev_t *dev)
 		return rc;
 	}
 
-	vs->reg_svc_handle = fun_vs->handle;
+	vs->reg_svc_handle = ddf_fun_get_handle(fun_vs);
 	ddf_fun_add_to_category(fun_vs, "visualizer");
 
 	return EOK;

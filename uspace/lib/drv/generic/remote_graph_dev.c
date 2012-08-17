@@ -55,12 +55,12 @@ static void remote_graph_connect(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 {
 	graph_dev_ops_t *graph_dev_ops = (graph_dev_ops_t *) ops;
 
-	if (!graph_dev_ops->connect || !fun->driver_data) {
+	if (!graph_dev_ops->connect || !ddf_fun_data_get(fun)) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	(*graph_dev_ops->connect)(fun->driver_data, callid, call, NULL);
+	(*graph_dev_ops->connect)(ddf_fun_data_get(fun), callid, call, NULL);
 }
 
 /**

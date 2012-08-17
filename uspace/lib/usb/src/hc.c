@@ -114,16 +114,13 @@ if (exch) { \
  * @return Error code.
  */
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
-    const ddf_dev_t *device)
+    ddf_dev_t *device)
 {
-	assert(connection);
-
-	if (device == NULL) {
+	if (device == NULL)
 		return EBADMEM;
-	}
 
 	devman_handle_t hc_handle;
-	const int rc = usb_get_hc_by_handle(device->handle, &hc_handle);
+	const int rc = usb_get_hc_by_handle(ddf_dev_get_handle(device), &hc_handle);
 	if (rc == EOK) {
 		usb_hc_connection_initialize(connection, hc_handle);
 	}
