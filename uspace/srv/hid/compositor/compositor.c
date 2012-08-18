@@ -1074,8 +1074,36 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 static int comp_abs_move(input_t *input, unsigned x , unsigned y,
     unsigned max_x, unsigned max_y)
 {
-	/* XXX TODO */
-	return EOK;
+	/* XXX TODO Use absolute coordinates directly */
+	
+	pointer_t *pointer = input_pointer(input);
+	
+	sysarg_t width, height;
+	
+	fibril_mutex_lock(&viewport_list_mtx);
+	if (list_empty(&viewport_list)) {
+		printf("No viewport found\n");
+		fibril_mutex_unlock(&viewport_list_mtx);
+		return EOK; /* XXX */
+	}
+	link_t *link = list_first(&viewport_list);
+	viewport_t *vp = list_get_instance(link, viewport_t, link);
+	surface_get_resolution(vp->surface, &width, &height);
+	desktop_point_t vp_pos = vp->pos;
+	fibril_mutex_unlock(&viewport_list_mtx);
+
+	desktop_point_t pos_in_viewport;
+	pos_in_viewport.x = x * width / max_x;
+	pos_in_viewport.y = y * height / max_y;
+	
+	/* Calculate offset from pointer */
+	fibril_mutex_lock(&pointer_list_mtx);
+	desktop_vector_t delta;
+	delta.x = (vp_pos.x + pos_in_viewport.x) - pointer->pos.x;
+	delta.y = (vp_pos.y + pos_in_viewport.y) - pointer->pos.y;
+	fibril_mutex_unlock(&pointer_list_mtx);
+	
+	return comp_mouse_move(input, delta.x, delta.y);
 }
 
 static int comp_mouse_move(input_t *input, int dx, int dy)
