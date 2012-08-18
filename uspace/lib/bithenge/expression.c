@@ -87,15 +87,18 @@ static inline bithenge_expression_t *binary_as_expression(
 static int binary_expression_evaluate(bithenge_expression_t *base,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
+	int rc;
 	binary_expression_t *self = expression_as_binary(base);
 	bithenge_node_t *a, *b;
-	int rc = bithenge_expression_evaluate(self->a, scope, &a);
+	rc = bithenge_expression_evaluate(self->a, scope, &a);
 	if (rc != EOK)
 		return rc;
-	rc = bithenge_expression_evaluate(self->b, scope, &b);
-	if (rc != EOK) {
-		bithenge_node_dec_ref(a);
-		return rc;
+	if (self->op != BITHENGE_EXPRESSION_CONCAT) {
+		rc = bithenge_expression_evaluate(self->b, scope, &b);
+		if (rc != EOK) {
+			bithenge_node_dec_ref(a);
+			return rc;
+		}
 	}
 
 	/* Check types and get values. */
@@ -131,8 +134,6 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		break;
 	case BITHENGE_EXPRESSION_CONCAT:
 		if (bithenge_node_type(a) != BITHENGE_NODE_BLOB)
-			goto error;
-		if (bithenge_node_type(b) != BITHENGE_NODE_BLOB)
 			goto error;
 		break;
 	default:
@@ -202,8 +203,10 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		b = NULL;
 		break;
 	case BITHENGE_EXPRESSION_CONCAT:
-		rc = bithenge_concat_blob(out, bithenge_node_as_blob(a),
-		    bithenge_node_as_blob(b));
+		bithenge_expression_inc_ref(self->b);
+		bithenge_scope_inc_ref(scope);
+		rc = bithenge_concat_blob_lazy(out, bithenge_node_as_blob(a),
+		    self->b, scope);
 		a = NULL;
 		b = NULL;
 		break;
@@ -958,6 +961,220 @@ int bithenge_inputless_transform(bithenge_transform_t ** out,
 error:
 	free(self);
 	bithenge_expression_dec_ref(expr);
+	return rc;
+}
+
+
+
+/***************** concat_blob                    *****************/
+
+typedef struct {
+	bithenge_blob_t base;
+	bithenge_blob_t *a, *b;
+	aoff64_t a_size;
+	bithenge_expression_t *b_expr;
+	bithenge_scope_t *scope;
+} concat_blob_t;
+
+static inline concat_blob_t *blob_as_concat(bithenge_blob_t *base)
+{
+	return (concat_blob_t *)base;
+}
+
+static inline bithenge_blob_t *concat_as_blob(concat_blob_t *blob)
+{
+	return &blob->base;
+}
+
+static int concat_blob_evaluate_b(concat_blob_t *self)
+{
+	if (self->b)
+		return EOK;
+	bithenge_node_t *b_node;
+	int rc = bithenge_expression_evaluate(self->b_expr, self->scope,
+	    &b_node);
+	if (rc != EOK)
+		return rc;
+	if (bithenge_node_type(b_node) != BITHENGE_NODE_BLOB) {
+		bithenge_node_dec_ref(b_node);
+		return bithenge_scope_error(self->scope,
+		    "Concatenation arguments must be blobs");
+	}
+	self->b = bithenge_node_as_blob(b_node);
+	bithenge_expression_dec_ref(self->b_expr);
+	bithenge_scope_dec_ref(self->scope);
+	self->b_expr = NULL;
+	self->scope = NULL;
+	return EOK;
+}
+
+static int concat_blob_size(bithenge_blob_t *base, aoff64_t *size)
+{
+	concat_blob_t *self = blob_as_concat(base);
+	int rc = concat_blob_evaluate_b(self);
+	if (rc != EOK)
+		return rc;
+	rc = bithenge_blob_size(self->b, size);
+	*size += self->a_size;
+	return rc;
+}
+
+static int concat_blob_read(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size)
+{
+	int rc;
+	concat_blob_t *self = blob_as_concat(base);
+
+	aoff64_t a_size = 0, b_size = 0;
+	if (offset < self->a_size) {
+		a_size = *size;
+		rc = bithenge_blob_read(self->a, offset, buffer, &a_size);
+		if (rc != EOK)
+			return rc;
+	}
+	if (offset + *size > self->a_size) {
+		rc = concat_blob_evaluate_b(self);
+		if (rc != EOK)
+			return rc;
+		b_size = *size - a_size;
+		rc = bithenge_blob_read(self->b,
+		    offset + a_size - self->a_size, buffer + a_size, &b_size);
+		if (rc != EOK)
+			return rc;
+	}
+	assert(a_size + b_size <= *size);
+	*size = a_size + b_size;
+	return EOK;
+}
+
+static int concat_blob_read_bits(bithenge_blob_t *base, aoff64_t offset,
+    char *buffer, aoff64_t *size, bool little_endian)
+{
+	int rc;
+	concat_blob_t *self = blob_as_concat(base);
+
+	aoff64_t a_size = 0, b_size = 0;
+	if (offset < self->a_size) {
+		a_size = *size;
+		rc = bithenge_blob_read_bits(self->a, offset, buffer, &a_size,
+		    little_endian);
+		if (rc != EOK)
+			return rc;
+	}
+	if (offset + *size > self->a_size) {
+		rc = concat_blob_evaluate_b(self);
+		if (rc != EOK)
+			return rc;
+		b_size = offset + *size - self->a_size;
+		rc = bithenge_blob_read_bits(self->b,
+		    offset + a_size - self->a_size, buffer + a_size, &b_size,
+		    little_endian);
+		if (rc != EOK)
+			return rc;
+	}
+	assert(a_size + b_size <= *size);
+	*size = a_size + b_size;
+	return EOK;
+}
+
+static void concat_blob_destroy(bithenge_blob_t *base)
+{
+	concat_blob_t *self = blob_as_concat(base);
+	bithenge_blob_dec_ref(self->a);
+	bithenge_blob_dec_ref(self->b);
+	bithenge_expression_dec_ref(self->b_expr);
+	bithenge_scope_dec_ref(self->scope);
+	free(self);
+}
+
+static const bithenge_random_access_blob_ops_t concat_blob_ops = {
+	.size = concat_blob_size,
+	.read = concat_blob_read,
+	.read_bits = concat_blob_read_bits,
+	.destroy = concat_blob_destroy,
+};
+
+/** Create a concatenated blob. Takes references to @a a and @a b.
+ * @param[out] out Holds the new blob.
+ * @param a The first blob.
+ * @param b The second blob.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_concat_blob(bithenge_node_t **out, bithenge_blob_t *a,
+    bithenge_blob_t *b)
+{
+	assert(out);
+	assert(a);
+	assert(b);
+	int rc;
+	concat_blob_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_blob_size(a, &self->a_size);
+	if (rc != EOK)
+		goto error;
+
+	rc = bithenge_init_random_access_blob(concat_as_blob(self),
+	    &concat_blob_ops);
+	if (rc != EOK)
+		goto error;
+	self->a = a;
+	self->b = b;
+	self->b_expr = NULL;
+	self->scope = NULL;
+	*out = bithenge_blob_as_node(concat_as_blob(self));
+	return EOK;
+
+error:
+	bithenge_blob_dec_ref(a);
+	bithenge_blob_dec_ref(b);
+	free(self);
+	return rc;
+}
+
+/** Create a lazy concatenated blob. Takes references to @a a, @a b_expr, and
+ * @a scope.
+ * @param[out] out Holds the new blob.
+ * @param a The first blob.
+ * @param b_expr An expression to calculate the second blob.
+ * @param scope The scope in which @a b_expr should be evaluated.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_concat_blob_lazy(bithenge_node_t **out, bithenge_blob_t *a,
+    bithenge_expression_t *b_expr, bithenge_scope_t *scope)
+{
+	assert(out);
+	assert(a);
+	assert(b_expr);
+	assert(scope);
+	int rc;
+	concat_blob_t *self = malloc(sizeof(*self));
+	if (!self) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = bithenge_blob_size(a, &self->a_size);
+	if (rc != EOK)
+		goto error;
+
+	rc = bithenge_init_random_access_blob(concat_as_blob(self),
+	    &concat_blob_ops);
+	if (rc != EOK)
+		goto error;
+	self->a = a;
+	self->b = NULL;
+	self->b_expr = b_expr;
+	self->scope = scope;
+	*out = bithenge_blob_as_node(concat_as_blob(self));
+	return EOK;
+
+error:
+	bithenge_blob_dec_ref(a);
+	bithenge_expression_dec_ref(b_expr);
+	bithenge_scope_dec_ref(scope);
+	free(self);
 	return rc;
 }
 

@@ -37,6 +37,7 @@
 #ifndef BITHENGE_EXPRESSION_H_
 #define BITHENGE_EXPRESSION_H_
 
+#include "blob.h"
 #include "transform.h"
 #include "tree.h"
 
@@ -133,6 +134,11 @@ int bithenge_expression_transform(bithenge_transform_t **,
     bithenge_expression_t *);
 int bithenge_inputless_transform(bithenge_transform_t **,
     bithenge_expression_t *);
+
+int bithenge_concat_blob(bithenge_node_t **, bithenge_blob_t *,
+    bithenge_blob_t *);
+int bithenge_concat_blob_lazy(bithenge_node_t **, bithenge_blob_t *,
+    bithenge_expression_t *, bithenge_scope_t *);
 
 #endif
 

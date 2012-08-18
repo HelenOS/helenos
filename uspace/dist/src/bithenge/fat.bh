@@ -54,7 +54,7 @@ transform file_data(data, bits, fat, cluster_size, start) = (in.data) <- struct 
 	if (.next == 0 || .next >= .last_cluster_number) {
 		.data <- (.cluster);
 	} else {
-		.rest <- file_data(data, bits, fat, cluster_size, .next);
+		.rest <- file_data(data, bits, fat, cluster_size, .next) <- known_length(0);
 		.data <- (.cluster ++ .rest);
 	}
 };
