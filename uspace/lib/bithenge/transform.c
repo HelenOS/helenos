@@ -891,8 +891,8 @@ MAKE_UINT_TRANSFORM(uint16le, uint16_t, uint16_t_le2host, prefix_length_2);
 MAKE_UINT_TRANSFORM(uint16be, uint16_t, uint16_t_be2host, prefix_length_2);
 MAKE_UINT_TRANSFORM(uint32le, uint32_t, uint32_t_le2host, prefix_length_4);
 MAKE_UINT_TRANSFORM(uint32be, uint32_t, uint32_t_be2host, prefix_length_4);
-MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint32_t_le2host, prefix_length_8);
-MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint32_t_be2host, prefix_length_8);
+MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint64_t_le2host, prefix_length_8);
+MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint64_t_be2host, prefix_length_8);
 
 
 

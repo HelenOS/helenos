@@ -75,7 +75,7 @@ transform fat_dir_entry(data, bits, fat, cluster_size, self_start, parent) = str
 	.size <- u32;
 	.size_shown <- if (.size > 32) { (32) } else { (.size) };
 
-	if (.start != 0 && .start != self_start && .start != parent) {
+	if (.start != 0 && .start != self_start && .start != parent && .filename[0] != 229) {
 		.data
 		    <- if (.attrs.subdirectory) {
 		        repeat { fat_dir_entry(data, bits, fat, cluster_size, .start, self_start) }

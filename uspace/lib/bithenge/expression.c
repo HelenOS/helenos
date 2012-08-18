@@ -1065,10 +1065,11 @@ static int concat_blob_read_bits(bithenge_blob_t *base, aoff64_t offset,
 		rc = concat_blob_evaluate_b(self);
 		if (rc != EOK)
 			return rc;
-		b_size = offset + *size - self->a_size;
+		b_size = *size - a_size;
+		assert(a_size % 8 == 0); /* TODO: don't require this */
 		rc = bithenge_blob_read_bits(self->b,
-		    offset + a_size - self->a_size, buffer + a_size, &b_size,
-		    little_endian);
+		    offset + a_size - self->a_size, buffer + a_size / 8,
+		    &b_size, little_endian);
 		if (rc != EOK)
 			return rc;
 	}

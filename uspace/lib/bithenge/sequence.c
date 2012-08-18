@@ -914,7 +914,6 @@ static inline do_while_transform_t *transform_as_do_while(
 
 typedef struct {
 	seq_node_t base;
-	bool prefix;
 	bithenge_expression_t *expr;
 	bithenge_transform_t *xform;
 	bithenge_int_t count;
@@ -994,15 +993,6 @@ static int do_while_node_for_each(bithenge_node_t *base,
 		}
 	}
 
-	if (!self->prefix) {
-		bool complete;
-		rc = seq_node_complete(do_while_as_seq(self), &complete);
-		if (rc != EOK)
-			return rc;
-		if (!complete)
-			return EINVAL;
-	}
-
 	return rc;
 }
 
@@ -1034,8 +1024,7 @@ static const seq_node_ops_t do_while_node_seq_ops = {
 };
 
 static int do_while_transform_make_node(do_while_transform_t *self,
-    bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
-    bool prefix)
+    bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob)
 {
 	do_while_node_t *node = malloc(sizeof(*node));
 	if (!node)
@@ -1059,20 +1048,9 @@ static int do_while_transform_make_node(do_while_transform_t *self,
 	node->xform = self->xform;
 	bithenge_expression_inc_ref(self->expr);
 	node->expr = self->expr;
-	node->prefix = prefix;
 	node->count = -1;
 	*out = do_while_as_node(node);
 	return EOK;
-}
-
-static int do_while_transform_apply(bithenge_transform_t *base,
-    bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
-{
-	do_while_transform_t *self = transform_as_do_while(base);
-	if (bithenge_node_type(in) != BITHENGE_NODE_BLOB)
-		return EINVAL;
-	return do_while_transform_make_node(self, out, scope,
-	    bithenge_node_as_blob(in), false);
 }
 
 static int for_each_noop(bithenge_node_t *key, bithenge_node_t *value,
@@ -1088,8 +1066,7 @@ static int do_while_transform_prefix_apply(bithenge_transform_t *base,
     aoff64_t *out_size)
 {
 	do_while_transform_t *self = transform_as_do_while(base);
-	int rc = do_while_transform_make_node(self, out_node, scope, blob,
-	    true);
+	int rc = do_while_transform_make_node(self, out_node, scope, blob);
 	if (rc != EOK)
 		return rc;
 
@@ -1120,7 +1097,6 @@ static void do_while_transform_destroy(bithenge_transform_t *base)
 }
 
 static const bithenge_transform_ops_t do_while_transform_ops = {
-	.apply = do_while_transform_apply,
 	.prefix_apply = do_while_transform_prefix_apply,
 	.destroy = do_while_transform_destroy,
 };

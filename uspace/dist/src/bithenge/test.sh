@@ -11,6 +11,11 @@ else
 	echo "Valgrind not found."
 fi
 
+test_file() {
+	echo "Testing $1 on $2..."
+	${BITHENGE} $1 $2 2>&1|diff $3 -
+}
+
 for BH in *.bh
 do
 	for DAT in $(basename ${BH} .bh).dat $(basename ${BH} .bh).*.dat
@@ -18,9 +23,11 @@ do
 		OUT=$(basename ${DAT} .dat).out
 		[ -e ${DAT} ] || continue
 		[ -e ${OUT} ] || continue
-		echo "Testing ${BH} on ${DAT}..."
-		${BITHENGE} ${BH} ${DAT} 2>&1|diff ${OUT} -
+		test_file ${BH} ${DAT} ${OUT}
 	done
 done
+
+test_file trip.bh file:trip.dat trip.out
+test_file repeat.bh hex:7f07020305070b0D11020004000800102040010101040009 repeat.out
 
 echo "Done!"

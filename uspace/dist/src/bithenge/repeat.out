@@ -40,5 +40,9 @@
             "valid": False,
             "val": 9
         }
+    },
+    "do_while_item": {
+        "valid": True,
+        "val": 4
     }
 }

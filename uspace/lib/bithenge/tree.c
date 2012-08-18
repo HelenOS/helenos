@@ -101,9 +101,10 @@ static int get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
 
 /** Get a child of a node. Takes ownership of the key. If the node does not
  * provide this function, for_each will be used as an alternative, which may be
- * very slow.
+ * very slow. Also works for blob nodes to find the byte value at a given
+ * index.
  * @memberof bithenge_node_t
- * @param self The internal node to find a child of.
+ * @param self The internal/blob node to find a child of.
  * @param key The key to search for.
  * @param[out] out Holds the found node.
  * @return EOK on success, ENOENT if not found, or another error code from
@@ -111,6 +112,25 @@ static int get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
 int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
     bithenge_node_t **out)
 {
+	if (self->type == BITHENGE_NODE_BLOB) {
+		if (bithenge_node_type(key) != BITHENGE_NODE_INTEGER) {
+			bithenge_node_dec_ref(key);
+			return ENOENT;
+		}
+		bithenge_int_t offset = bithenge_integer_node_value(key);
+		bithenge_node_dec_ref(key);
+		uint8_t byte;
+		aoff64_t size = 1;
+		int rc = bithenge_blob_read(bithenge_node_as_blob(self),
+		    offset, (char *)&byte, &size);
+		if (rc != EOK)
+			return rc;
+		if (size != 1)
+			return ENOENT;
+
+		return bithenge_new_integer_node(out, byte);
+	}
+
 	assert(self->type == BITHENGE_NODE_INTERNAL);
 	if (self->internal_ops->get)
 		return self->internal_ops->get(self, key, out);
