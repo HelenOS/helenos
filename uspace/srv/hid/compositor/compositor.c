@@ -91,13 +91,10 @@ typedef struct {
 	link_t link;
 	sysarg_t id;
 	uint8_t state;
-	sysarg_t hpos;
-	sysarg_t vpos;
+	desktop_point_t pos;
 	sysarg_t btn_num;
-	sysarg_t btn_hpos;
-	sysarg_t btn_vpos;
-	int accum_dx;
-	int accum_dy;
+	desktop_point_t btn_pos;
+	desktop_vector_t accum;
 	sysarg_t grab_flags;
 	bool pressed;
 	cursor_t cursor;
@@ -134,8 +131,7 @@ typedef struct {
 	service_id_t dsid;
 	vslmode_t mode;
 	async_sess_t *sess;
-	sysarg_t hpos;
-	sysarg_t vpos;
+	desktop_point_t pos;
 	surface_t *surface;
 } viewport_t;
 
@@ -173,13 +169,12 @@ static pointer_t *pointer_create()
 	}
 
 	link_initialize(&p->link);
-	p->hpos = coord_origin;
-	p->vpos = coord_origin;
+	p->pos.x = coord_origin;
+	p->pos.y = coord_origin;
 	p->btn_num = 1;
-	p->btn_hpos = p->hpos;
-	p->btn_vpos = p->vpos;
-	p->accum_dx = 0;
-	p->accum_dy = 0;
+	p->btn_pos = p->pos;
+	p->accum.x = 0;
+	p->accum.y = 0;
 	p->grab_flags = GF_EMPTY;
 	p->pressed = false;
 	p->state = 0;
@@ -306,14 +301,14 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 		surface_get_resolution(vp->surface, &w_dmg_vp, &h_dmg_vp);
 		bool isec_vp = rectangle_intersect(
 		    x_dmg_glob, y_dmg_glob, w_dmg_glob, h_dmg_glob,
-		    vp->hpos, vp->vpos, w_dmg_vp, h_dmg_vp,
+		    vp->pos.x, vp->pos.y, w_dmg_vp, h_dmg_vp,
 		    &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
 
 		if (isec_vp) {
 
 			/* Paint background color. */
-			for (sysarg_t y = y_dmg_vp - vp->vpos; y <  y_dmg_vp - vp->vpos + h_dmg_vp; ++y) {
-				for (sysarg_t x = x_dmg_vp - vp->hpos; x < x_dmg_vp - vp->hpos + w_dmg_vp; ++x) {
+			for (sysarg_t y = y_dmg_vp - vp->pos.y; y <  y_dmg_vp - vp->pos.y + h_dmg_vp; ++y) {
+				for (sysarg_t x = x_dmg_vp - vp->pos.x; x < x_dmg_vp - vp->pos.x + w_dmg_vp; ++x) {
 					surface_put_pixel(vp->surface, x, y, bg_color);
 				}
 			}
@@ -351,16 +346,17 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 					/* Prepare conversion from global coordinates to viewport
 					 * coordinates. */
 					transform = win->transform;
-					double hpos = vp->hpos;
-					double vpos = vp->vpos;
-					transform_translate(&transform, -hpos, -vpos);
+					double_point_t pos;
+					pos.x = vp->pos.x;
+					pos.y = vp->pos.y;
+					transform_translate(&transform, -pos.x, -pos.y);
 
 					source_set_transform(&source, transform);				
 					source_set_texture(&source, win->surface, false);
 					source_set_alpha(&source, PIXEL(win->opacity, 0, 0, 0));
 
 					drawctx_transfer(&context,
-					    x_dmg_win - vp->hpos, y_dmg_win - vp->vpos, w_dmg_win, h_dmg_win);
+					    x_dmg_win - vp->pos.x, y_dmg_win - vp->pos.y, w_dmg_win, h_dmg_win);
 				}
 			}
 
@@ -374,7 +370,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				surface_get_resolution(sf_ptr, &w_dmg_ptr, &h_dmg_ptr);
 				bool isec_ptr = rectangle_intersect(
 				    x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp,
-				    ptr->hpos, ptr->vpos, w_dmg_ptr, h_dmg_ptr,
+				    ptr->pos.x, ptr->pos.y, w_dmg_ptr, h_dmg_ptr,
 				    &x_dmg_ptr, &y_dmg_ptr, &w_dmg_ptr, &h_dmg_ptr);
 
 				if (isec_ptr) {
@@ -385,10 +381,10 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 					 * cost more regarding the performance. */
 
 					pixel_t pix = 0;
-					sysarg_t x_vp = x_dmg_ptr - vp->hpos;
-					sysarg_t y_vp = y_dmg_ptr - vp->vpos;
-					sysarg_t x_ptr = x_dmg_ptr - ptr->hpos;
-					sysarg_t y_ptr = y_dmg_ptr - ptr->vpos;
+					sysarg_t x_vp = x_dmg_ptr - vp->pos.x;
+					sysarg_t y_vp = y_dmg_ptr - vp->pos.y;
+					sysarg_t x_ptr = x_dmg_ptr - ptr->pos.x;
+					sysarg_t y_ptr = y_dmg_ptr - ptr->pos.y;
 
 					for (sysarg_t y = 0; y < h_dmg_ptr; ++y) {
 						for (sysarg_t x = 0; x < w_dmg_ptr; ++x) {
@@ -900,8 +896,8 @@ static viewport_t *viewport_create(const char *vsl_name)
 	}
 
 	link_initialize(&vp->link);
-	vp->hpos = coord_origin;
-	vp->vpos = coord_origin;
+	vp->pos.x = coord_origin;
+	vp->pos.y = coord_origin;
 
 	/* Establish output bidirectional connection. */
 	vp->sess = vsl_connect(vsl_name);
@@ -1001,10 +997,10 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 {
 	/* window_list_mtx locked by caller */
 
-	int dx = pointer->accum_dx;
-	int dy = pointer->accum_dy;
-	pointer->accum_dx = 0;
-	pointer->accum_dy = 0;
+	int dx = pointer->accum.x;
+	int dy = pointer->accum.y;
+	pointer->accum.x = 0;
+	pointer->accum.y = 0;
 
 	bool move = (pointer->grab_flags & GF_MOVE_X) || (pointer->grab_flags & GF_MOVE_Y);
 	bool scale = (pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_SCALE_Y);
@@ -1088,17 +1084,16 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 
 	/* Update pointer position. */
 	fibril_mutex_lock(&pointer_list_mtx);
-	sysarg_t old_hpos = pointer->hpos;
-	sysarg_t old_vpos = pointer->vpos;
+	desktop_point_t old_pos = pointer->pos;
 	sysarg_t cursor_width;
 	sysarg_t cursor_height;
 	surface_get_resolution(pointer->cursor.states[pointer->state], 
 	     &cursor_width, &cursor_height);
-	pointer->hpos += dx;
-	pointer->vpos += dy;
+	pointer->pos.x += dx;
+	pointer->pos.y += dy;
 	fibril_mutex_unlock(&pointer_list_mtx);
-	comp_damage(old_hpos, old_vpos, cursor_width, cursor_height);
-	comp_damage(old_hpos + dx, old_vpos + dy, cursor_width, cursor_height);
+	comp_damage(old_pos.x, old_pos.y, cursor_width, cursor_height);
+	comp_damage(old_pos.x + dx, old_pos.y + dy, cursor_width, cursor_height);
 
 	fibril_mutex_lock(&window_list_mtx);
 	window_t *top = (window_t *) list_first(&window_list);
@@ -1110,7 +1105,7 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 			sysarg_t point_x, point_y;
 			sysarg_t width, height;
 			surface_get_resolution(top->surface, &width, &height);
-			within_client = comp_coord_to_client(pointer->hpos, pointer->vpos,
+			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
 			    top->transform, width, height, &point_x, &point_y);
 			fibril_mutex_unlock(&window_list_mtx);
 
@@ -1129,8 +1124,8 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 			}
 		} else {
 			/* Pointer is grabbed by top-level window action. */
-			pointer->accum_dx += dx;
-			pointer->accum_dy += dy;
+			pointer->accum.x += dx;
+			pointer->accum.y += dy;
 #if ANIMATE_WINDOW_TRANSFORMS == 1
 			sysarg_t x, y, width, height;
 			comp_window_animate(pointer, top, &x, &y, &width, &height);
@@ -1152,8 +1147,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	pointer_t *pointer = input_pointer(input);
 
 	if (bpress) {
-		pointer->btn_hpos = pointer->hpos;
-		pointer->btn_vpos = pointer->vpos;
+		pointer->btn_pos = pointer->pos;
 		pointer->btn_num = bnum;
 		pointer->pressed = true;
 
@@ -1166,7 +1160,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		}
 		sysarg_t x, y, width, height;
 		surface_get_resolution(win->surface, &width, &height);
-		bool within_client = comp_coord_to_client(pointer->hpos, pointer->vpos,
+		bool within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
 		    win->transform, width, height, &x, &y);
 		fibril_mutex_unlock(&window_list_mtx);
 
@@ -1201,7 +1195,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 			win = list_get_instance(link, window_t, link);
 			if (win->surface) {
 				surface_get_resolution(win->surface, &width, &height);
-				within_client = comp_coord_to_client(pointer->hpos, pointer->vpos,
+				within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
 				    win->transform, width, height, &point_x, &point_y);
 			}
 			if (within_client) {
@@ -1517,29 +1511,29 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		if (vp) {
 			switch (key) {
 			case KC_I:
-				vp->hpos += 0;
-				vp->vpos += -20;
+				vp->pos.x += 0;
+				vp->pos.y += -20;
 				break;
 			case KC_K:
-				vp->hpos += 0;
-				vp->vpos += 20;
+				vp->pos.x += 0;
+				vp->pos.y += 20;
 				break;
 			case KC_J:
-				vp->hpos += -20;
-				vp->vpos += 0;
+				vp->pos.x += -20;
+				vp->pos.y += 0;
 				break;
 			case KC_L:
-				vp->hpos += 20;
-				vp->vpos += 0;
+				vp->pos.x += 20;
+				vp->pos.y += 0;
 				break;
 			default:
-				vp->hpos += 0;
-				vp->vpos += 0;
+				vp->pos.x += 0;
+				vp->pos.y += 0;
 				break;
 			}
 			
-			sysarg_t x = vp->hpos;
-			sysarg_t y = vp->vpos;
+			sysarg_t x = vp->pos.x;
+			sysarg_t y = vp->pos.y;
 			sysarg_t width, height;
 			surface_get_resolution(vp->surface, &width, &height);
 			fibril_mutex_unlock(&viewport_list_mtx);

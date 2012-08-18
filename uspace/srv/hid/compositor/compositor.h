@@ -35,6 +35,20 @@
 #ifndef COMPOSITOR_COMPOSITOR_H_
 #define COMPOSITOR_COMPOSITOR_H_
 
+typedef native_t desktop_coord_t;
+typedef struct {
+	desktop_coord_t x;
+	desktop_coord_t y;
+} desktop_point_t;
+typedef desktop_point_t desktop_vector_t;
+
+/* TODO remove? */
+typedef struct {
+	double x;
+	double y;
+} double_point_t;
+typedef double_point_t double_vector_t;
+
 #endif
 
 /** @}
