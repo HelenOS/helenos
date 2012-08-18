@@ -46,6 +46,7 @@
 #define SSIZE_MAX  INT32_MAX
 
 typedef uint32_t sysarg_t;
+typedef int32_t native_t;
 
 typedef int32_t ssize_t;
 typedef uint32_t size_t;
