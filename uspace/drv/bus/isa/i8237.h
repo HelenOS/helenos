@@ -37,7 +37,7 @@
 #ifndef DRV_BUS_ISA_I8237_H
 #define DRV_BUS_ISA_I8237_H
 
-extern int dma_setup_channel(unsigned int, uint32_t, uint16_t, uint8_t);
+extern int dma_channel_setup(unsigned, uint32_t, uint16_t, uint8_t);
 
 #endif
 

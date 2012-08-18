@@ -98,7 +98,7 @@ typedef struct isa_fun {
 static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
 {
 	isa_fun_t *fun = ISA_FUN(fnode);
-	assert(fun != NULL);
+	assert(fun);
 
 	return &fun->hw_resources;
 }
@@ -107,7 +107,7 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 {
 	/* This is an old ugly way, copied from pci driver */
 	assert(fnode);
-	isa_fun_t *isa_fun = fnode->driver_data;
+	isa_fun_t *isa_fun = ISA_FUN(fnode);
 
 	sysarg_t apic;
 	sysarg_t i8259;
@@ -151,16 +151,17 @@ static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
 {
 	assert(fnode);
 	isa_fun_t *isa_fun = fnode->driver_data;
+	assert(isa_fun);
 	const hw_resource_list_t *res = &isa_fun->hw_resources;
 	assert(res);
 	
-	const unsigned int ch = channel;
 	for (size_t i = 0; i < res->count; ++i) {
+		/* Check for assigned channel */
 		if (((res->resources[i].type == DMA_CHANNEL_16) &&
-		    (res->resources[i].res.dma_channel.dma16 == ch)) ||
+		    (res->resources[i].res.dma_channel.dma16 == channel)) ||
 		    ((res->resources[i].type == DMA_CHANNEL_8) &&
-		    (res->resources[i].res.dma_channel.dma8 == ch))) {
-			return dma_setup_channel(channel, pa, size, mode);
+		    (res->resources[i].res.dma_channel.dma8 == channel))) {
+			return dma_channel_setup(channel, pa, size, mode);
 		}
 	}
 	
@@ -402,7 +403,7 @@ static void fun_parse_dma(isa_fun_t *fun, const char *val)
 	char *end = NULL;
 	
 	val = skip_spaces(val);
-	int dma = strtol(val, &end, 10);
+	const int dma = strtol(val, &end, 10);
 	
 	if (val != end)
 		isa_fun_add_dma(fun, dma);

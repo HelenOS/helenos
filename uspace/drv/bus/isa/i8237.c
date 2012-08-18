@@ -320,9 +320,8 @@ static inline int dma_controller_init(dma_controller_t *controller)
  *                - Use SINGLE/BLOCK/ON DEMAND transfer mode
  *
  * @return Error code.
- *
  */
-int dma_setup_channel(unsigned int channel, uint32_t pa, uint16_t size,
+int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
     uint8_t mode)
 {
 	if ((channel == 0) || (channel == 4))
