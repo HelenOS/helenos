@@ -168,10 +168,34 @@ static int isa_fun_setup_dma(ddf_fun_t *fnode,
 	return EINVAL;
 }
 
+static int isa_fun_remain_dma(ddf_fun_t *fnode,
+    unsigned channel, uint16_t *size)
+{
+	assert(size);
+	assert(fnode);
+	isa_fun_t *isa_fun = fnode->driver_data;
+	assert(isa_fun);
+	const hw_resource_list_t *res = &isa_fun->hw_resources;
+	assert(res);
+	
+	for (size_t i = 0; i < res->count; ++i) {
+		/* Check for assigned channel */
+		if (((res->resources[i].type == DMA_CHANNEL_16) &&
+		    (res->resources[i].res.dma_channel.dma16 == channel)) ||
+		    ((res->resources[i].type == DMA_CHANNEL_8) &&
+		    (res->resources[i].res.dma_channel.dma8 == channel))) {
+			return dma_channel_remain(channel, size);
+		}
+	}
+	
+	return EINVAL;
+}
+
 static hw_res_ops_t isa_fun_hw_res_ops = {
 	.get_resource_list = isa_fun_get_resources,
 	.enable_interrupt = isa_fun_enable_interrupt,
 	.dma_channel_setup = isa_fun_setup_dma,
+	.dma_channel_remain = isa_fun_remain_dma,
 };
 
 static ddf_dev_ops_t isa_fun_ops;

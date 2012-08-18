@@ -428,6 +428,41 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
 	return EOK;
 }
 
+extern int dma_channel_remain(unsigned channel, uint16_t *size)
+{
+	assert(size);
+	if ((channel == 0) || (channel == 4))
+		return ENOTSUP;
+	
+	if (channel > 7)
+		return ENOENT;
+	
+	fibril_mutex_lock(&guard);
+	if (!controller_8237.initialized) {
+		fibril_mutex_unlock(&guard);
+		return EIO;
+	}
+
+	const dma_channel_t dma_channel = controller_8237.channels[channel];
+	/* Get size - reset flip-flop */
+	pio_write_8(dma_channel.flip_flop_address, 0);
+	
+	/* Low byte */
+	const uint8_t value_low = pio_read_8(dma_channel.size_reg_address);
+	ddf_msg(LVL_DEBUG2, "Read size low byte: %p:%zx.",
+	    dma_channel.size_reg_address, value_low);
+	
+	/* High byte */
+	const uint8_t value_high = pio_read_8(dma_channel.size_reg_address);
+	ddf_msg(LVL_DEBUG2, "Read size high byte: %p:%zx.",
+	    dma_channel.size_reg_address, value_high);
+	fibril_mutex_unlock(&guard);
+
+	const int remain = (value_high << 8 | value_low) + 1;
+	/* 16 bit DMA size is in words */
+	*size =  channel >= 4 ? remain << 1 : remain;
+	return EOK;
+}
 /**
  * @}
  */
