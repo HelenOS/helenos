@@ -337,6 +337,10 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
 	/* 8 bit channels use only 4 bits from the page register. */
 	if ((channel > 0) && (channel < 4) && (pa >= (1 << 20)))
 		return EINVAL;
+
+	/* Buffers cannot cross 64K page boundaries */
+	if ((pa & 0xffff0000) !=  ((pa + size) & 0xffff0000))
+		return EINVAL;
 	
 	fibril_mutex_lock(&guard);
 	
