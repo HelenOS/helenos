@@ -95,7 +95,7 @@ typedef struct isa_fun {
 	link_t bus_link;
 } isa_fun_t;
 
-static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *isa_fun_get_resources(ddf_fun_t *fnode)
 {
 	isa_fun_t *fun = ISA_FUN(fnode);
 	assert(fun);
@@ -103,7 +103,7 @@ static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
+static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
 {
 	/* This is an old ugly way, copied from pci driver */
 	assert(fnode);
@@ -146,7 +146,7 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
-static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
+static int isa_fun_setup_dma(ddf_fun_t *fnode,
     unsigned int channel, uint32_t pa, uint16_t size, uint8_t mode)
 {
 	assert(fnode);
@@ -169,9 +169,9 @@ static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
 }
 
 static hw_res_ops_t isa_fun_hw_res_ops = {
-	.get_resource_list = isa_get_fun_resources,
-	.enable_interrupt = isa_enable_fun_interrupt,
-	.dma_channel_setup = isa_dma_channel_fun_setup,
+	.get_resource_list = isa_fun_get_resources,
+	.enable_interrupt = isa_fun_enable_interrupt,
+	.dma_channel_setup = isa_fun_setup_dma,
 };
 
 static ddf_dev_ops_t isa_fun_ops;
