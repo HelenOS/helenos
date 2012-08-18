@@ -198,7 +198,9 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 	.dma_channel_remain = isa_fun_remain_dma,
 };
 
-static ddf_dev_ops_t isa_fun_ops;
+static ddf_dev_ops_t isa_fun_ops= {
+	.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops,
+};
 
 static int isa_dev_add(ddf_dev_t *dev);
 static int isa_dev_remove(ddf_dev_t *dev);
@@ -684,17 +686,10 @@ static int isa_fun_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-
-static void isa_init()
-{
-	ddf_log_init(NAME, LVL_ERROR);
-	isa_fun_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
-}
-
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS ISA bus driver\n");
-	isa_init();
+	ddf_log_init(NAME, LVL_ERROR);
 	return ddf_driver_main(&isa_driver);
 }
 
