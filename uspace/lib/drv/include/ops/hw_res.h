@@ -44,6 +44,7 @@ typedef struct {
 	hw_resource_list_t *(*get_resource_list)(ddf_fun_t *);
 	bool (*enable_interrupt)(ddf_fun_t *);
 	int (*dma_channel_setup)(ddf_fun_t *, unsigned, uint32_t, uint16_t, uint8_t);
+	int (*dma_channel_remain)(ddf_fun_t *, unsigned, uint16_t *);
 } hw_res_ops_t;
 
 #endif

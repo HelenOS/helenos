@@ -52,6 +52,7 @@ typedef enum {
 	HW_RES_GET_RESOURCE_LIST = 0,
 	HW_RES_ENABLE_INTERRUPT,
 	HW_RES_DMA_CHANNEL_SETUP,
+	HW_RES_DMA_CHANNEL_REMAIN,
 } hw_res_method_t;
 
 /** HW resource types */
@@ -115,6 +116,7 @@ extern bool hw_res_enable_interrupt(async_sess_t *);
 
 extern int hw_res_dma_channel_setup(async_sess_t *, unsigned int, uint32_t,
     uint16_t, uint8_t);
+extern int hw_res_dma_channel_remain(async_sess_t *, unsigned);
 
 #endif
 

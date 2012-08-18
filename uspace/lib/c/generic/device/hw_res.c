@@ -114,5 +114,24 @@ int hw_res_dma_channel_setup(async_sess_t *sess,
 	return ret;
 }
 
+/**
+ * Query remaining bytes in the buffer.
+ * @param channel DMA Channel 1,2,3 for 8 bit transfers, 5,6,7 for 16 bit.
+ * @return Number of bytes remaining in the buffer(>=0) or error code(<0).
+ */
+int hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (exch == NULL)
+		return ENOMEM;
+	sysarg_t remain;
+	const int ret = async_req_2_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_DMA_CHANNEL_REMAIN, channel, &remain);
+	async_exchange_end(exch);
+	if (ret == EOK)
+		return remain;
+	return ret;
+}
+
 /** @}
  */
