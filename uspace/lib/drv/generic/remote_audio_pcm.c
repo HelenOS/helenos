@@ -48,6 +48,7 @@ typedef enum {
 	IPC_M_AUDIO_PCM_TEST_FORMAT,
 	IPC_M_AUDIO_PCM_GET_BUFFER,
 	IPC_M_AUDIO_PCM_RELEASE_BUFFER,
+	IPC_M_AUDIO_PCM_GET_BUFFER_POS,
 	IPC_M_AUDIO_PCM_START_PLAYBACK,
 	IPC_M_AUDIO_PCM_STOP_PLAYBACK,
 	IPC_M_AUDIO_PCM_START_CAPTURE,
@@ -112,12 +113,28 @@ int audio_pcm_query_cap(audio_pcm_sess_t *sess, audio_cap_t cap, unsigned *val)
 	if (!val)
 		return EINVAL;
 	async_exch_t *exch = async_exchange_begin(sess);
-	sysarg_t value = *val;
+	sysarg_t value = 0;
 	const int ret = async_req_2_1(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_QUERY_CAPS,
-	    value, &value);
+	    cap, &value);
 	if (ret == EOK)
 		*val = value;
+	async_exchange_end(exch);
+	return ret;
+}
+
+int audio_pcm_get_buffer_pos(audio_pcm_sess_t *sess, size_t *pos)
+{
+	if (!pos)
+		return EINVAL;
+	async_exch_t *exch = async_exchange_begin(sess);
+	sysarg_t value = 0;;
+	const int ret = async_req_1_1(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_GET_BUFFER_POS, &value);
+	if (ret == EOK)
+		*pos = value;
+	async_exchange_end(exch);
 	return ret;
 }
 
@@ -247,6 +264,7 @@ int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
  */
 static void remote_audio_pcm_get_info_str(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_query_caps(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_get_buffer_pos(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_test_format(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_release_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -259,6 +277,7 @@ static void remote_audio_pcm_stop_capture(ddf_fun_t *, void *, ipc_callid_t, ipc
 static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 	[IPC_M_AUDIO_PCM_GET_INFO_STR] = remote_audio_pcm_get_info_str,
 	[IPC_M_AUDIO_PCM_QUERY_CAPS] = remote_audio_pcm_query_caps,
+	[IPC_M_AUDIO_PCM_GET_BUFFER_POS] = remote_audio_pcm_get_buffer_pos,
 	[IPC_M_AUDIO_PCM_TEST_FORMAT] = remote_audio_pcm_test_format,
 	[IPC_M_AUDIO_PCM_GET_BUFFER] = remote_audio_pcm_get_buffer,
 	[IPC_M_AUDIO_PCM_RELEASE_BUFFER] = remote_audio_pcm_release_buffer,
@@ -314,6 +333,14 @@ void remote_audio_pcm_query_caps(ddf_fun_t *fun, void *iface, ipc_callid_t calli
 	} else {
 		async_answer_0(callid, ENOTSUP);
 	}
+}
+void remote_audio_pcm_get_buffer_pos(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const audio_pcm_iface_t *pcm_iface = iface;
+	size_t pos = 0;
+	const int ret = pcm_iface->get_buffer_pos ?
+	    pcm_iface->get_buffer_pos(fun, &pos) : ENOTSUP;
+	async_answer_1(callid, ret, pos);
 }
 
 void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
