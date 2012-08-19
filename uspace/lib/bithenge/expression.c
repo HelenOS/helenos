@@ -103,7 +103,7 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 
 	/* Check types and get values. */
 	bithenge_int_t a_int = 0, b_int = 0;
-	bool a_bool = false, b_bool = false;
+	bool a_bool = false, b_bool = false, out_bool = false;
 	switch (self->op) {
 	case BITHENGE_EXPRESSION_ADD: /* fallthrough */
 	case BITHENGE_EXPRESSION_SUBTRACT: /* fallthrough */
@@ -186,11 +186,16 @@ static int binary_expression_evaluate(bithenge_expression_t *base,
 		rc = bithenge_new_boolean_node(out, a_int >= b_int);
 		break;
 	case BITHENGE_EXPRESSION_EQUALS:
-		rc = bithenge_new_boolean_node(out, bithenge_node_equal(a, b));
+		rc = bithenge_node_equal(&out_bool, a, b);
+		if (rc != EOK)
+			break;
+		rc = bithenge_new_boolean_node(out, out_bool);
 		break;
 	case BITHENGE_EXPRESSION_NOT_EQUALS:
-		rc = bithenge_new_boolean_node(out,
-		    !bithenge_node_equal(a, b));
+		rc = bithenge_node_equal(&out_bool, a, b);
+		if (rc != EOK)
+			break;
+		rc = bithenge_new_boolean_node(out, !out_bool);
 		break;
 	case BITHENGE_EXPRESSION_AND:
 		rc = bithenge_new_boolean_node(out, a_bool && b_bool);

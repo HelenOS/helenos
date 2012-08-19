@@ -89,8 +89,11 @@ static int get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
     void *raw_data)
 {
 	get_for_each_data_t *data = (get_for_each_data_t *)raw_data;
-	bool equal = bithenge_node_equal(key, data->key);
+	bool equal;
+	int rc = bithenge_node_equal(&equal, key, data->key);
 	bithenge_node_dec_ref(key);
+	if (rc != EOK)
+		return rc;
 	if (equal) {
 		*data->out = value;
 		return EEXIST;
@@ -347,28 +350,35 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
 /** Check whether the contents of two nodes are equal. Does not yet work for
  * internal nodes. Takes ownership of nothing.
  * @memberof bithenge_node_t
+ * @param[out] out Holds whether the nodes are equal.
  * @param a, b Nodes to compare.
- * @return Whether the nodes are equal. If an error occurs, returns false.
+ * @return EOK on success or an error code from errno.h.
  * @todo Add support for internal nodes.
  */
-bool bithenge_node_equal(bithenge_node_t *a, bithenge_node_t *b)
+int bithenge_node_equal(bool *out, bithenge_node_t *a, bithenge_node_t *b)
 {
-	if (a->type != b->type)
-		return false;
+	if (a->type != b->type) {
+		*out = false;
+		return EOK;
+	}
 	switch (a->type) {
 	case BITHENGE_NODE_INTERNAL:
-		return false;
+		*out = false;
+		return EOK;
 	case BITHENGE_NODE_BOOLEAN:
-		return a->boolean_value == b->boolean_value;
+		*out = a->boolean_value == b->boolean_value;
+		return EOK;
 	case BITHENGE_NODE_INTEGER:
-		return a->integer_value == b->integer_value;
+		*out = a->integer_value == b->integer_value;
+		return EOK;
 	case BITHENGE_NODE_STRING:
-		return !str_cmp(a->string_value.ptr, b->string_value.ptr);
+		*out = !str_cmp(a->string_value.ptr, b->string_value.ptr);
+		return EOK;
 	case BITHENGE_NODE_BLOB:
-		return bithenge_blob_equal(bithenge_node_as_blob(a),
+		return bithenge_blob_equal(out, bithenge_node_as_blob(a),
 		    bithenge_node_as_blob(b));
 	}
-	return false;
+	return EINVAL;
 }
 
 /** @}

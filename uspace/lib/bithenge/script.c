@@ -730,8 +730,10 @@ static bithenge_expression_t *parse_expression_precedence(state_t *state,
 			break;
 		}
 		int rc = bithenge_binary_expression(&expr, op, expr, expr2);
-		if (rc != EOK)
+		if (rc != EOK) {
+			expr = NULL;
 			error_errno(state, rc);
+		}
 	}
 	if (state->error != EOK) {
 		bithenge_expression_dec_ref(expr);
@@ -939,8 +941,10 @@ static bithenge_transform_t *parse_switch(state_t *state, bool in_struct)
 		num--;
 		int rc = bithenge_if_transform(&switch_xform, exprs[num],
 		    xforms[num], switch_xform);
-		if (rc != EOK)
+		if (rc != EOK) {
+			switch_xform = NULL;
 			error_errno(state, rc);
+		}
 	}
 
 	while (num >= 1) {
@@ -1188,12 +1192,11 @@ static bithenge_transform_t *parse_transform(state_t *state)
 		    (num + 1) * sizeof(*xforms));
 		if (state->error != EOK)
 			break;
-		xforms[num] = parse_transform_no_compose(state);
-		num++;
+		xforms[num++] = parse_transform_no_compose(state);
 	}
 	if (state->error != EOK) {
-		while (xforms && num--)
-			bithenge_transform_dec_ref(xforms[num]);
+		while (xforms && num > 1)
+			bithenge_transform_dec_ref(xforms[--num]);
 		free(xforms);
 		bithenge_transform_dec_ref(result);
 		return NULL;

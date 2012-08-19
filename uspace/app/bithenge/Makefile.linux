@@ -40,6 +40,10 @@ BINARY = bithenge
 SOURCES = \
 	test.c
 
+ifdef COVERAGE
+	CFLAGS += -fprofile-arcs -ftest-coverage
+endif
+
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 $(BINARY): $(OBJECTS)

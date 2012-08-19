@@ -487,16 +487,11 @@ static int struct_transform_make_node(struct_transform_t *self,
 		free(node);
 		return rc;
 	}
-	/* We should inc_ref(node) here, but that would make a cycle. Instead,
-	 * we leave it 1 too low, so that when the only remaining use of node
-	 * is the scope, node will be destroyed. Also see the comment in
-	 * struct_node_destroy. */
-	bithenge_scope_set_current_node(inner, struct_as_node(node));
 
 	rc = seq_node_init(struct_as_seq(node), &struct_node_seq_ops, inner,
 	    blob, self->num_subtransforms, false);
-	bithenge_scope_dec_ref(inner);
 	if (rc != EOK) {
+		bithenge_scope_dec_ref(inner);
 		free(node);
 		return rc;
 	}
@@ -504,6 +499,14 @@ static int struct_transform_make_node(struct_transform_t *self,
 	bithenge_transform_inc_ref(struct_as_transform(self));
 	node->transform = self;
 	node->prefix = prefix;
+
+	/* We should inc_ref(node) here, but that would make a cycle. Instead,
+	 * we leave it 1 too low, so that when the only remaining use of node
+	 * is the scope, node will be destroyed. Also see the comment in
+	 * struct_node_destroy. */
+	bithenge_scope_set_current_node(inner, struct_as_node(node));
+	bithenge_scope_dec_ref(inner);
+
 	*out = struct_as_node(node);
 
 	return EOK;
@@ -833,8 +836,12 @@ static int repeat_transform_prefix_apply(bithenge_transform_t *base,
 				aoff64_t size;
 				rc = seq_node_field_offset(
 				    node_as_seq(*out_node), &size, count);
-				if (rc != EOK)
+				if (rc == EINVAL || rc == ENOENT)
 					break;
+				if (rc != EOK) {
+					bithenge_node_dec_ref(*out_node);
+					return rc;
+				}
 				*out_size = size;
 			}
 		}

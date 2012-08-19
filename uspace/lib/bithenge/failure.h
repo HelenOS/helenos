@@ -26,12 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef __HELENOS__
-#include "helenos/os.h"
-#else
-#include "linux/os.h"
+/** @addtogroup bithenge
+ * @{
+ */
+/**
+ * @file
+ * Fake system call errors for testing.
+ */
+
+#ifndef BITHENGE_FAILURE_H_
+#define BITHENGE_FAILURE_H_
+
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+void *bithenge_failure_malloc(size_t);
+void *bithenge_failure_realloc(void *, size_t);
+ssize_t bithenge_failure_read(int, void *, size_t);
+off_t bithenge_failure_lseek(int, off_t, int);
+
+#ifndef BITHENGE_FAILURE_DECLS_ONLY
+#define malloc bithenge_failure_malloc
+#define realloc bithenge_failure_realloc
+#define read bithenge_failure_read
+#define lseek bithenge_failure_lseek
 #endif
 
-#ifdef BITHENGE_FAILURE_ENABLE
-#include "failure.h"
 #endif
+
+/** @}
+ */

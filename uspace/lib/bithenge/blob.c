@@ -460,10 +460,11 @@ int bithenge_new_subblob(bithenge_node_t **out, bithenge_blob_t *source,
 
 /** Check whether the contents of two blobs are equal.
  * @memberof bithenge_blob_t
+ * @param[out] out Holds whether the blobs are equal.
  * @param a, b Blobs to compare.
- * @return Whether the blobs are equal. If an error occurs, returns false.
+ * @return EOK on success, or an error code from errno.h.
  */
-bool bithenge_blob_equal(bithenge_blob_t *a, bithenge_blob_t *b)
+int bithenge_blob_equal(bool *out, bithenge_blob_t *a, bithenge_blob_t *b)
 {
 	assert(a);
 	assert(a->base.blob_ops);
@@ -475,15 +476,18 @@ bool bithenge_blob_equal(bithenge_blob_t *a, bithenge_blob_t *b)
 	do {
 		rc = bithenge_blob_read(a, offset, buffer_a, &size_a);
 		if (rc != EOK)
-			return false;
+			return rc;
 		rc = bithenge_blob_read(b, offset, buffer_b, &size_b);
 		if (rc != EOK)
-			return false;
-		if (size_a != size_b || bcmp(buffer_a, buffer_b, size_a))
-			return false;
+			return rc;
+		if (size_a != size_b || bcmp(buffer_a, buffer_b, size_a)) {
+			*out = false;
+			return EOK;
+		}
 		offset += size_a;
 	} while (size_a == sizeof(buffer_a));
-	return true;
+	*out = true;
+	return EOK;
 }
 
 /** @}

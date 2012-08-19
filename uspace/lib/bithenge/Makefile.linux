@@ -45,6 +45,15 @@ SOURCES = \
 	transform.c \
 	tree.c
 
+ifdef COVERAGE
+	CFLAGS += -fprofile-arcs -ftest-coverage
+endif
+
+ifdef FAILURE
+	CFLAGS += -DBITHENGE_FAILURE_ENABLE=1
+	SOURCES += failure.c
+endif
+
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 $(LIBRARY): $(OBJECTS)
