@@ -335,12 +335,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	/* Check supported parameters */
 	ddf_log_debug("Requested playback: %u frames, %uHz, %s, %u channel(s).",
 	    frames, sampling_rate, pcm_sample_format_str(format), channels);
-	if (channels != 1 && channels != 2)
-		return ENOTSUP;
-	if (sampling_rate > DSP_RATE_LIMIT)
-		return ENOTSUP;
-	// FIXME We only support 16 bit playback
-	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
+	if (sb_dsp_test_format(dsp, &channels, &sampling_rate, &format) != EOK)
 		return ENOTSUP;
 
 	/* Client requested regular interrupts */
@@ -407,12 +402,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 	/* Check supported parameters */
 	ddf_log_debug("Requested record: %u frames, %uHz, %s, %u channel(s).",
 	    frames, sampling_rate, pcm_sample_format_str(format), channels);
-	if (channels != 1 && channels != 2)
-		return ENOTSUP;
-	if (sampling_rate > DSP_RATE_LIMIT)
-		return ENOTSUP;
-	// FIXME We only support 16 bit recording
-	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
+	if (sb_dsp_test_format(dsp, &channels, &sampling_rate, &format) != EOK)
 		return ENOTSUP;
 
 	/* client requested regular interrupts */
