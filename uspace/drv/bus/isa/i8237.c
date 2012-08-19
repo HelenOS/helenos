@@ -272,12 +272,11 @@ static dma_controller_t controller_8237 = {
 	.initialized = false,
 };
 
-/* Initialize I/O access to DMA controller I/O ports.
+/** Initialize I/O access to DMA controller I/O ports.
  *
  * @param controller DMA Controller structure to initialize.
  *
  * @return Error code.
- *
  */
 static inline int dma_controller_init(dma_controller_t *controller)
 {
@@ -306,6 +305,24 @@ static inline int dma_controller_init(dma_controller_t *controller)
 	return EOK;
 }
 
+/** Helper function. Channels 4,5,6, and 7 are 8 bit DMA.
+ * @pram channel DMA channel.
+ * @reutrn True, if channel is 4,5,6, or 7, false otherwise.
+ */
+static inline bool is_dma16(unsigned channel)
+{
+	return (channel >= 4) && (channel < 8);
+}
+
+/** Helper function. Channels 0,1,2, and 3 are 8 bit DMA.
+ * @pram channel DMA channel.
+ * @reutrn True, if channel is 0,1,2, or 3, false otherwise.
+ */
+static inline bool is_dma8(unsigned channel)
+{
+	return (channel < 4);
+}
+
 /** Setup DMA channel to specified place and mode.
  *
  * @param channel DMA Channel 1, 2, 3 for 8 bit transfers,
@@ -324,18 +341,18 @@ static inline int dma_controller_init(dma_controller_t *controller)
 int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
     uint8_t mode)
 {
+	if (!is_dma8(channel) && !is_dma16(channel))
+		return ENOENT;
+
 	if ((channel == 0) || (channel == 4))
 		return ENOTSUP;
-	
-	if (channel > 7)
-		return ENOENT;
 	
 	/* DMA is limited to 24bit addresses. */
 	if (pa >= (1 << 24))
 		return EINVAL;
 	
 	/* 8 bit channels use only 4 bits from the page register. */
-	if ((channel > 0) && (channel < 4) && (pa >= (1 << 20)))
+	if (is_dma8(channel) && (pa >= (1 << 20)))
 		return EINVAL;
 
 	/* Buffers cannot cross 64K page boundaries */
@@ -352,17 +369,17 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
 		return EIO;
 	}
 	
-	/* 16 bit transfers are a bit special */
 	ddf_msg(LVL_DEBUG, "Unspoiled address: %p and size: %zu.", pa, size);
-	if (channel > 4) {
+	
+	/* 16 bit transfers are a bit special */
+	if (is_dma16(channel)) {
 		/* Size must be aligned to 16 bits */
 		if ((size & 1) != 0) {
 			fibril_mutex_unlock(&guard);
 			return EINVAL;
 		}
-		
+		/* Size is in 2byte words */
 		size >>= 1;
-		
 		/* Address is fun: lower 16 bits need to be shifted by 1 */
 		pa = ((pa & 0xffff) >> 1) | (pa & 0xff0000);
 	}
@@ -428,14 +445,22 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
 	return EOK;
 }
 
-extern int dma_channel_remain(unsigned channel, uint16_t *size)
+/** Query remaining buffer size.
+ *
+ * @param channel DMA Channel 1, 2, 3 for 8 bit transfers,
+ *                    5, 6, 7 for 16 bit.
+ * @param size    Place to store number of bytes pending in the assigned buffer.
+ *
+ * @return Error code.
+ */
+int dma_channel_remain(unsigned channel, uint16_t *size)
 {
 	assert(size);
+	if (!is_dma8(channel) && !is_dma16(channel))
+		return ENOENT;
+	
 	if ((channel == 0) || (channel == 4))
 		return ENOTSUP;
-	
-	if (channel > 7)
-		return ENOENT;
 	
 	fibril_mutex_lock(&guard);
 	if (!controller_8237.initialized) {
@@ -460,7 +485,7 @@ extern int dma_channel_remain(unsigned channel, uint16_t *size)
 
 	const int remain = (value_high << 8 | value_low) + 1;
 	/* 16 bit DMA size is in words */
-	*size =  channel >= 4 ? remain << 1 : remain;
+	*size =  is_dma16(channel) ? remain << 1 : remain;
 	return EOK;
 }
 /**
