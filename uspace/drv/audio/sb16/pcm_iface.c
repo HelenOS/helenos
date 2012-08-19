@@ -69,6 +69,15 @@ static int sb_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 	sb_dsp_t *dsp = fun->driver_data;
 	return sb_dsp_get_buffer(dsp, buffer, size);
 }
+
+static int sb_get_buffer_position(ddf_fun_t *fun, size_t *size)
+{
+	assert(fun);
+	assert(fun->driver_data);
+	sb_dsp_t *dsp = fun->driver_data;
+	return sb_dsp_get_buffer_position(dsp, size);
+}
+
 static int sb_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 {
 	assert(fun);
@@ -129,6 +138,7 @@ audio_pcm_iface_t sb_pcm_iface = {
 	.get_buffer = sb_get_buffer,
 	.release_buffer = sb_release_buffer,
 	.set_event_session = sb_set_event_session,
+	.get_buffer_pos = sb_get_buffer_position,
 
 	.start_playback = sb_start_playback,
 	.stop_playback = sb_stop_playback,

@@ -249,10 +249,12 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 {
+	ddf_log_verbose("Querying cap %u", cap);
 	switch(cap) {
 	case AUDIO_CAP_CAPTURE:
 	case AUDIO_CAP_PLAYBACK:
 	case AUDIO_CAP_INTERRUPT:
+	case AUDIO_CAP_BUFFER_POS:
 		return 1;
 	case AUDIO_CAP_MAX_BUFFER:
 		return MAX_BUFFER_SIZE;
@@ -260,10 +262,27 @@ unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 		return 1;
 	case AUDIO_CAP_INTERRUPT_MAX_FRAMES:
 		return 16535;
-	case AUDIO_CAP_BUFFER_POS:
 	default:
 		return 0;
 	}
+}
+
+int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
+{
+	if (!dsp->buffer.data)
+		return ENOENT;
+
+	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
+	    dsp->sb_dev->handle, IPC_FLAG_BLOCKING);
+
+	// TODO: Assumes DMA 16
+	const int remain = hw_res_dma_channel_remain(sess, dsp->dma16_channel);
+	async_hangup(sess);
+	if (remain >= 0) {
+		*pos = dsp->buffer.size - remain;
+		return EOK;
+	}
+	return remain;
 }
 
 int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
