@@ -51,10 +51,10 @@ typedef struct volume_item {
 
 /* CT1335 channels */
 static const channel_t channels_table_ct1335[] = {
-	{ "", 0x02, 1, 8, false }, /* Master, Mono, 3bit volume level */
-	{ "", 0x06, 1, 8, false }, /* Midi, Mono, 3bit volume level */
-	{ "", 0x08, 1, 8, false }, /* CD, Mono, 3bit volume level */
-	{ "", 0x0a, 1, 4, false }, /* Voice, Mono, 2bit volume level */
+	{ "Mono", 0x02, 1, 8, false }, /* Master, Mono, 3bit volume level */
+	{ "Mono", 0x06, 1, 8, false }, /* Midi, Mono, 3bit volume level */
+	{ "Mono", 0x08, 1, 8, false }, /* CD, Mono, 3bit volume level */
+	{ "Mono", 0x0a, 1, 4, false }, /* Voice, Mono, 2bit volume level */
 };
 
 /* CT1345 channels */
@@ -69,7 +69,7 @@ static const channel_t channels_table_ct1345[] = {
 	{ "Right", 0x2e, 1, 8, true }, /* Line, Right, 3bit volume level */
 	{ "Left", 0x04, 5, 8, true }, /* Voice, Left, 3bit volume level */
 	{ "Right", 0x04, 1, 8, true }, /* Voice, Right, 3bit volume level */
-	{ "", 0x0a, 1, 4, false }, /* Mic, Mono, 2bit volume level */
+	{ "Mono", 0x0a, 1, 4, false }, /* Mic, Mono, 2bit volume level */
 };
 
 /* CT1745 channels */
@@ -84,8 +84,8 @@ static const channel_t channels_table_ct1745[] = {
 	{ "Right", 0x37, 3, 32, false }, /* CD, Right, 5bit volume level */
 	{ "Left", 0x38, 3, 32, false }, /* Line, Left, 5bit volume level */
 	{ "Right", 0x39, 3, 32, false }, /* Line, Right, 5bit volume level */
-	{ "", 0x3a, 3, 32, false }, /* Mic, Mono, 5bit volume level */
-	{ "", 0x3b, 6, 4, false }, /* PC speaker, Mono, 2bit level */
+	{ "Mono", 0x3a, 3, 32, false }, /* Mic, Mono, 5bit volume level */
+	{ "Mono", 0x3b, 6, 4, false }, /* PC speaker, Mono, 2bit level */
 	{ "Left", 0x3f, 6, 4, false }, /* Input Gain, Left, 2bit level */
 	{ "Right", 0x40, 6, 4, false }, /* Input Gain, Right, 2bit level */
 	{ "Left", 0x41, 6, 4, false }, /* Output Gain, Left, 2bit level */
