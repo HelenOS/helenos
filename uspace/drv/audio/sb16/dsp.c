@@ -329,7 +329,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 {
 	assert(dsp);
 
-	if (!dsp->event_session)
+	if (!dsp->buffer.data)
 		return EINVAL;
 
 	/* Check supported parameters */
@@ -340,6 +340,8 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 
 	/* Client requested regular interrupts */
 	if (frames) {
+		if (!dsp->event_session)
+			return EINVAL;
 		dsp->event_exchange = async_exchange_begin(dsp->event_session);
 		if (!dsp->event_exchange)
 			return ENOMEM;
@@ -395,8 +397,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
-
-	if (!dsp->event_session)
+	if (!dsp->buffer.data)
 		return EINVAL;
 
 	/* Check supported parameters */
@@ -407,6 +408,8 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 
 	/* client requested regular interrupts */
 	if (frames) {
+		if (!dsp->event_session)
+			return EINVAL;
 		dsp->event_exchange = async_exchange_begin(dsp->event_session);
 		if (!dsp->event_exchange)
 			return ENOMEM;
