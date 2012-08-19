@@ -100,6 +100,22 @@ static inline void sb_dsp_reset(sb_dsp_t *dsp)
 	pio_write_8(&dsp->regs->dsp_reset, 0);
 }
 
+static inline void sb_dsp_start_active(sb_dsp_t *dsp, uint8_t command)
+{
+	sb_dsp_write(dsp, command);
+	sb_dsp_write(dsp, dsp->active.mode);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
+	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+}
+
+static inline void sb_dsp_set_sampling_rate(sb_dsp_t *dsp, unsigned rate)
+{
+	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
+	sb_dsp_write(dsp, rate >> 8);
+	sb_dsp_write(dsp, rate & 0xff);
+	ddf_log_verbose("Sampling rate: %hhx:%hhx.", rate >> 8, rate & 0xff);
+}
+
 static inline int sb_setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
 	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
@@ -195,17 +211,11 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 
 #ifndef AUTO_DMA_MODE
 	if (dsp->status == DSP_PLAYBACK) {
-		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
-		sb_dsp_write(dsp, dsp->active.mode);
-		sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
-		sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+		sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
 	}
 
 	if (dsp->status == DSP_RECORDING) {
-		sb_dsp_write(dsp, SINGLE_DMA_16B_AD);
-		sb_dsp_write(dsp, dsp->active.mode);
-		sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
-		sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+		sb_dsp_start_active(dsp, SINGLE_DMA_16B_AD);
 	}
 #endif
 
@@ -348,30 +358,19 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 		dsp->ignore_interrupts = false;
 	}
 
-	const bool sign = (format == PCM_SAMPLE_SINT16_LE);
-
-	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
-	sb_dsp_write(dsp, sampling_rate >> 8);
-	sb_dsp_write(dsp, sampling_rate & 0xff);
-
-	ddf_log_verbose("Sample rate: %hhx:%hhx.",
-	    sampling_rate >> 8, sampling_rate & 0xff);
-
-#ifdef AUTO_DMA_MODE
-	sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
-#else
-	sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
-#endif
-
 	dsp->active.mode = 0
-	    | (sign ? DSP_MODE_SIGNED : 0)
+	    | (pcm_sample_format_is_signed(format) ? DSP_MODE_SIGNED : 0)
 	    | (channels == 2 ? DSP_MODE_STEREO : 0);
 	dsp->active.samples = frames * channels;
 	dsp->active.frame_count = 0;
 
-	sb_dsp_write(dsp, dsp->active.mode);
-	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
-	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+	sb_dsp_set_sampling_rate(dsp, sampling_rate);
+
+#ifdef AUTO_DMA_MODE
+	sb_dsp_start_active(dsp, AUTO_DMA_16B_DA_FIFO);
+#else
+	sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
+#endif
 
 	ddf_log_verbose("Playback started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
@@ -416,30 +415,19 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 		dsp->ignore_interrupts = false;
 	}
 
-	const bool sign = (format == PCM_SAMPLE_SINT16_LE);
-
-	sb_dsp_write(dsp, SET_SAMPLING_RATE_OUTPUT);
-	sb_dsp_write(dsp, sampling_rate >> 8);
-	sb_dsp_write(dsp, sampling_rate & 0xff);
-
-	ddf_log_verbose("Sampling rate: %hhx:%hhx.",
-	    sampling_rate >> 8, sampling_rate & 0xff);
-
-#ifdef AUTO_DMA_MODE
-	sb_dsp_write(dsp, AUTO_DMA_16B_AD_FIFO);
-#else
-	sb_dsp_write(dsp, SINGLE_DMA_16B_AD);
-#endif
-
-	dsp->active.mode = 0 |
-	    (sign ? DSP_MODE_SIGNED : 0) |
-	    (channels == 2 ? DSP_MODE_STEREO : 0);
+	dsp->active.mode = 0
+	    | (pcm_sample_format_is_signed(format) ? DSP_MODE_SIGNED : 0)
+	    | (channels == 2 ? DSP_MODE_STEREO : 0);
 	dsp->active.samples = frames * channels;
 	dsp->active.frame_count = 0;
 
-	sb_dsp_write(dsp, dsp->active.mode);
-	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
-	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+	sb_dsp_set_sampling_rate(dsp, sampling_rate);
+
+#ifdef AUTO_DMA_MODE
+	sb_dsp_start_active(dsp, AUTO_DMA_16B_AD_FIFO);
+#else
+	sb_dsp_start_active(dsp, SINGLE_DMA_16B_AD);
+#endif
 
 	ddf_log_verbose("Recording started started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
