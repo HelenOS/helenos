@@ -66,7 +66,6 @@ static void playback_initialize(playback_t *pb, hound_sess_t *sess)
 	fibril_condvar_initialize(&pb->cv);
 }
 
-
 static void data_callback(void* arg, void *buffer, ssize_t size)
 {
 	playback_t *pb = arg;
@@ -123,9 +122,19 @@ static void play(playback_t *pb, unsigned channels, unsigned rate, pcm_sample_fo
 static const struct option opts[] = {
 	{"device", required_argument, 0, 'd'},
 	{"record", no_argument, 0, 'r'},
+	{"help", no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
 
+static void print_help(const char* name)
+{
+	printf("Usage: %s [options] file\n", name);
+	printf("supported options:\n");
+	printf("\t -h, --help\t Print this help.\n");
+	printf("\t -r, --record\t Start recording instead of playback.\n");
+	printf("\t -d, --device\t Use specified device instead of sound "
+	    "service. Use location path or special device `default'\n");
+}
 
 int main(int argc, char *argv[])
 {
@@ -135,7 +144,7 @@ int main(int argc, char *argv[])
 	optind = 0;
 	int ret = 0;
 	while (ret != -1) {
-		ret = getopt_long(argc, argv, "d:r", opts, &idx);
+		ret = getopt_long(argc, argv, "d:rh", opts, &idx);
 		switch (ret) {
 		case 'd':
 			direct = true;
@@ -144,11 +153,15 @@ int main(int argc, char *argv[])
 		case 'r':
 			record = true;
 			break;
+		case 'h':
+			print_help(*argv);
+			return 0;
 		};
 	}
 
 	if (optind == argc) {
 		printf("Not enough arguments.\n");
+		print_help(*argv);
 		return 1;
 	}
 	const char *file = argv[optind];
