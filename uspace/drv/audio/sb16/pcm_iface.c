@@ -103,22 +103,22 @@ static int sb_stop_playback(ddf_fun_t *fun)
 	return sb_dsp_stop_playback(dsp);
 }
 
-static int sb_start_record(ddf_fun_t *fun, unsigned frames,
+static int sb_start_capture(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_start_record(
+	return sb_dsp_start_capture(
 	    dsp, frames, channels, sample_rate, format);
 }
 
-static int sb_stop_record(ddf_fun_t *fun)
+static int sb_stop_capture(ddf_fun_t *fun)
 {
 	assert(fun);
 	assert(fun->driver_data);
 	sb_dsp_t *dsp = fun->driver_data;
-	return sb_dsp_stop_record(dsp);
+	return sb_dsp_stop_capture(dsp);
 }
 
 audio_pcm_iface_t sb_pcm_iface = {
@@ -133,8 +133,8 @@ audio_pcm_iface_t sb_pcm_iface = {
 	.start_playback = sb_start_playback,
 	.stop_playback = sb_stop_playback,
 
-	.start_record = sb_start_record,
-	.stop_record = sb_stop_record
+	.start_capture = sb_start_capture,
+	.stop_capture = sb_stop_capture,
 };
 /**
  * @}

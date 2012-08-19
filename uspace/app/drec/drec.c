@@ -88,11 +88,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
-		case PCM_EVENT_FRAMES_RECORDED:
+		case PCM_EVENT_FRAMES_CAPTURED:
 			printf("%u frames\n", IPC_GET_ARG1(call));
 			async_answer_0(callid, EOK);
 			break;
-		case PCM_EVENT_RECORDING_TERMINATED:
+		case PCM_EVENT_CAPTURE_TERMINATED:
 			printf("Recording terminated\n");
 			return;
 		default:
@@ -123,7 +123,7 @@ static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
 	    sampling_rate, pcm_sample_format_str(format), channels);
 	const unsigned frames = rec->buffer.size /
 	    (BUFFER_PARTS * channels * pcm_sample_format_size(format));
-	int ret = audio_pcm_start_record(rec->device,
+	int ret = audio_pcm_start_capture(rec->device,
 	    frames, channels, sampling_rate, format);
 	if (ret != EOK) {
 		printf("Failed to start recording: %s.\n", str_error(ret));
@@ -132,7 +132,7 @@ static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
 
 	getchar();
 	printf("\n");
-	audio_pcm_stop_record(rec->device);
+	audio_pcm_stop_capture(rec->device);
 }
 
 int main(int argc, char *argv[])

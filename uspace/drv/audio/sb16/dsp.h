@@ -62,7 +62,7 @@ typedef struct sb_dsp_t {
 	} active;
 	enum {
 		DSP_PLAYBACK,
-		DSP_RECORDING,
+		DSP_CAPTURE,
 		DSP_STOPPED,
 	} status;
 	async_sess_t *event_session;
@@ -82,9 +82,9 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp);
 int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
 int sb_dsp_stop_playback(sb_dsp_t *dsp);
-int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
+int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_record(sb_dsp_t *dsp);
+int sb_dsp_stop_capture(sb_dsp_t *dsp);
 
 #endif
 /**

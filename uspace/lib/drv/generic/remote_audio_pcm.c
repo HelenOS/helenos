@@ -50,8 +50,8 @@ typedef enum {
 	IPC_M_AUDIO_PCM_RELEASE_BUFFER,
 	IPC_M_AUDIO_PCM_START_PLAYBACK,
 	IPC_M_AUDIO_PCM_STOP_PLAYBACK,
-	IPC_M_AUDIO_PCM_START_RECORD,
-	IPC_M_AUDIO_PCM_STOP_RECORD,
+	IPC_M_AUDIO_PCM_START_CAPTURE,
+	IPC_M_AUDIO_PCM_STOP_CAPTURE,
 } audio_pcm_iface_funcs_t;
 
 /*
@@ -218,7 +218,7 @@ int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
 	return ret;
 }
 
-int audio_pcm_start_record(audio_pcm_sess_t *sess, unsigned frames,
+int audio_pcm_start_capture(audio_pcm_sess_t *sess, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	if (channels > UINT16_MAX)
@@ -227,17 +227,17 @@ int audio_pcm_start_record(audio_pcm_sess_t *sess, unsigned frames,
 	const sysarg_t packed = (channels << 16) | (format & UINT16_MAX);
 	async_exch_t *exch = async_exchange_begin(sess);
 	const int ret = async_req_4_0(exch,
-	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_START_RECORD,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_START_CAPTURE,
 	    frames, sample_rate, packed);
 	async_exchange_end(exch);
 	return ret;
 }
 
-int audio_pcm_stop_record(audio_pcm_sess_t *sess)
+int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	const int ret = async_req_1_0(exch,
-	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_STOP_RECORD);
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_STOP_CAPTURE);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -252,8 +252,8 @@ static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_c
 static void remote_audio_pcm_release_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_start_playback(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_stop_playback(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_start_record(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_stop_record(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_start_capture(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_stop_capture(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote audio pcm buffer interface operations. */
 static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
@@ -264,8 +264,8 @@ static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 	[IPC_M_AUDIO_PCM_RELEASE_BUFFER] = remote_audio_pcm_release_buffer,
 	[IPC_M_AUDIO_PCM_START_PLAYBACK] = remote_audio_pcm_start_playback,
 	[IPC_M_AUDIO_PCM_STOP_PLAYBACK] = remote_audio_pcm_stop_playback,
-	[IPC_M_AUDIO_PCM_START_RECORD] = remote_audio_pcm_start_record,
-	[IPC_M_AUDIO_PCM_STOP_RECORD] = remote_audio_pcm_stop_record,
+	[IPC_M_AUDIO_PCM_START_CAPTURE] = remote_audio_pcm_start_capture,
+	[IPC_M_AUDIO_PCM_STOP_CAPTURE] = remote_audio_pcm_stop_capture,
 };
 
 /** Remote audio mixer interface structure. */
@@ -435,7 +435,7 @@ void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
 	async_answer_0(callid, ret);
 }
 
-void remote_audio_pcm_start_record(ddf_fun_t *fun, void *iface,
+void remote_audio_pcm_start_capture(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
@@ -445,19 +445,19 @@ void remote_audio_pcm_start_record(ddf_fun_t *fun, void *iface,
 	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 16) & UINT16_MAX;
 	const pcm_sample_format_t format = DEV_IPC_GET_ARG3(*call) & UINT16_MAX;
 
-	const int ret = pcm_iface->start_record
-	    ? pcm_iface->start_record(fun, frames, channels, rate, format)
+	const int ret = pcm_iface->start_capture
+	    ? pcm_iface->start_capture(fun, frames, channels, rate, format)
 	    : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 
-void remote_audio_pcm_stop_record(ddf_fun_t *fun, void *iface,
+void remote_audio_pcm_stop_capture(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
-	const int ret = pcm_iface->stop_record ?
-	    pcm_iface->stop_record(fun) : ENOTSUP;
+	const int ret = pcm_iface->stop_capture ?
+	    pcm_iface->stop_capture(fun) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 

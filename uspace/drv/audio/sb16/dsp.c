@@ -214,7 +214,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
 	}
 
-	if (dsp->status == DSP_RECORDING) {
+	if (dsp->status == DSP_CAPTURE) {
 		sb_dsp_start_active(dsp, SINGLE_DMA_16B_AD);
 	}
 #endif
@@ -231,9 +231,9 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 			async_msg_1(dsp->event_exchange,
 			    PCM_EVENT_FRAMES_PLAYED, dsp->active.frame_count);
 			break;
-		case DSP_RECORDING:
+		case DSP_CAPTURE:
 			async_msg_1(dsp->event_exchange,
-			    PCM_EVENT_FRAMES_RECORDED, dsp->active.frame_count);
+			    PCM_EVENT_FRAMES_CAPTURED, dsp->active.frame_count);
 			break;
 		default:
 		case DSP_STOPPED:
@@ -250,7 +250,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 {
 	switch(cap) {
-	case AUDIO_CAP_RECORD:
+	case AUDIO_CAP_CAPTURE:
 	case AUDIO_CAP_PLAYBACK:
 	case AUDIO_CAP_INTERRUPT:
 		return 1;
@@ -392,7 +392,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp)
 	return EOK;
 }
 
-int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
+int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -400,7 +400,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 		return EINVAL;
 
 	/* Check supported parameters */
-	ddf_log_debug("Requested record: %u frames, %uHz, %s, %u channel(s).",
+	ddf_log_debug("Requested capture: %u frames, %uHz, %s, %u channel(s).",
 	    frames, sampling_rate, pcm_sample_format_str(format), channels);
 	if (sb_dsp_test_format(dsp, &channels, &sampling_rate, &format) != EOK)
 		return ENOTSUP;
@@ -432,17 +432,17 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 	ddf_log_verbose("Recording started started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
 	    sampling_rate / (dsp->active.samples * channels));
-	dsp->status = DSP_RECORDING;
+	dsp->status = DSP_CAPTURE;
 
 	return EOK;
 }
 
-int sb_dsp_stop_record(sb_dsp_t *dsp)
+int sb_dsp_stop_capture(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	sb_dsp_write(dsp, DMA_16B_EXIT);
-	ddf_log_debug("Stopped recording");
-	async_msg_0(dsp->event_exchange, PCM_EVENT_RECORDING_TERMINATED);
+	ddf_log_debug("Stopped capture");
+	async_msg_0(dsp->event_exchange, PCM_EVENT_CAPTURE_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
 	return EOK;

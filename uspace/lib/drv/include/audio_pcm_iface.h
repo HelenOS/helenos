@@ -44,7 +44,7 @@
 #include "ddf/driver.h"
 
 typedef enum {
-	AUDIO_CAP_RECORD,
+	AUDIO_CAP_CAPTURE,
 	AUDIO_CAP_PLAYBACK,
 	AUDIO_CAP_MAX_BUFFER,
 	AUDIO_CAP_BUFFER_POS,
@@ -55,9 +55,9 @@ typedef enum {
 
 enum {
 	PCM_EVENT_FRAMES_PLAYED = IPC_FIRST_USER_METHOD,
-	PCM_EVENT_FRAMES_RECORDED,
+	PCM_EVENT_FRAMES_CAPTURED,
 	PCM_EVENT_PLAYBACK_TERMINATED,
-	PCM_EVENT_RECORDING_TERMINATED
+	PCM_EVENT_CAPTURE_TERMINATED
 };
 
 typedef async_sess_t audio_pcm_sess_t;
@@ -79,9 +79,9 @@ int audio_pcm_start_playback(audio_pcm_sess_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
 int audio_pcm_stop_playback(audio_pcm_sess_t *);
 
-int audio_pcm_start_record(audio_pcm_sess_t *, unsigned,
+int audio_pcm_start_capture(audio_pcm_sess_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_record(audio_pcm_sess_t *);
+int audio_pcm_stop_capture(audio_pcm_sess_t *);
 
 /** Audio pcm communication interface. */
 typedef struct {
@@ -95,9 +95,9 @@ typedef struct {
 	int (*start_playback)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
 	int (*stop_playback)(ddf_fun_t *);
-	int (*start_record)(ddf_fun_t *, unsigned,
+	int (*start_capture)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_record)(ddf_fun_t *);
+	int (*stop_capture)(ddf_fun_t *);
 } audio_pcm_iface_t;
 
 #endif

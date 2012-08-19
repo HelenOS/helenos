@@ -152,7 +152,7 @@ static int device_source_connection_callback(audio_source_t *source)
 		}
 		const unsigned frames = dev->buffer.size /
 		    (BUFFER_PARTS * pcm_format_frame_size(&dev->sink.format));
-		ret = audio_pcm_start_record(dev->sess, frames,
+		ret = audio_pcm_start_capture(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
 		if (ret != EOK) {
@@ -162,7 +162,7 @@ static int device_source_connection_callback(audio_source_t *source)
 			return ret;
 		}
 	} else { /* Disconnected */
-		int ret = audio_pcm_stop_record(dev->sess);
+		int ret = audio_pcm_stop_capture(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));
@@ -207,15 +207,13 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			    dev->buffer.size / BUFFER_PARTS);
 			break;
 		}
-		case PCM_EVENT_PLAYBACK_TERMINATED: {
+		case PCM_EVENT_PLAYBACK_TERMINATED:
 			log_verbose("Playback terminated!");
 			return;
-		}
-		case PCM_EVENT_FRAMES_RECORDED: {
+		case PCM_EVENT_FRAMES_CAPTURED:
 			//TODO implement
 			break;
-		}
-		case PCM_EVENT_RECORDING_TERMINATED:
+		case PCM_EVENT_CAPTURE_TERMINATED:
 			log_verbose("Recording terminated!");
 			return;
 		}
