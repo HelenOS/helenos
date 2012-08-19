@@ -166,6 +166,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	dsp->event_exchange = NULL;
 	dsp->sb_dev = dev;
 	dsp->status = DSP_STOPPED;
+	dsp->ignore_interrupts = false;
 	sb_dsp_reset(dsp);
 	/* "DSP takes about 100 microseconds to initialize itself" */
 	udelay(100);
@@ -191,6 +192,26 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
+
+#ifndef AUTO_DMA_MODE
+	if (dsp->status == DSP_PLAYBACK) {
+		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
+		sb_dsp_write(dsp, dsp->active.mode);
+		sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
+		sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+	}
+
+	if (dsp->status == DSP_RECORDING) {
+		sb_dsp_write(dsp, SINGLE_DMA_16B_AD);
+		sb_dsp_write(dsp, dsp->active.mode);
+		sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
+		sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
+	}
+#endif
+
+	if (dsp->ignore_interrupts)
+		return;
+
 	dsp->active.frame_count +=
 	    dsp->active.samples / ((dsp->active.mode & DSP_MODE_STEREO) ? 2 : 1);
 
@@ -214,16 +235,6 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	} else {
 		ddf_log_warning("Interrupt with no event consumer.");
 	}
-#ifndef AUTO_DMA_MODE
-	if (dsp->active.playing)
-		sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
-	else
-		sb_dsp_write(dsp, SINGLE_DMA_16B_AD);
-
-	sb_dsp_write(dsp, dsp->active.mode);
-	sb_dsp_write(dsp, (dsp->active.samples - 1) & 0xff);
-	sb_dsp_write(dsp, (dsp->active.samples - 1) >> 8);
-#endif
 }
 
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
@@ -332,9 +343,13 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
 		return ENOTSUP;
 
-	dsp->event_exchange = async_exchange_begin(dsp->event_session);
-	if (!dsp->event_exchange)
-		return ENOMEM;
+	/* Client requested regular interrupts */
+	if (frames) {
+		dsp->event_exchange = async_exchange_begin(dsp->event_session);
+		if (!dsp->event_exchange)
+			return ENOMEM;
+		dsp->ignore_interrupts = false;
+	}
 
 	const bool sign = (format == PCM_SAMPLE_SINT16_LE);
 
@@ -348,7 +363,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 #ifdef AUTO_DMA_MODE
 	sb_dsp_write(dsp, AUTO_DMA_16B_DA_FIFO);
 #else
-	sb_dsp_write(dsp, SINGLE_DMA_16B_DA_FIFO);
+	sb_dsp_write(dsp, SINGLE_DMA_16B_DA);
 #endif
 
 	dsp->active.mode = 0
@@ -400,9 +415,13 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 	if (format != PCM_SAMPLE_UINT16_LE && format != PCM_SAMPLE_SINT16_LE)
 		return ENOTSUP;
 
-	dsp->event_exchange = async_exchange_begin(dsp->event_session);
-	if (!dsp->event_exchange)
-		return ENOMEM;
+	/* client requested regular interrupts */
+	if (frames) {
+		dsp->event_exchange = async_exchange_begin(dsp->event_session);
+		if (!dsp->event_exchange)
+			return ENOMEM;
+		dsp->ignore_interrupts = false;
+	}
 
 	const bool sign = (format == PCM_SAMPLE_SINT16_LE);
 
@@ -416,7 +435,7 @@ int sb_dsp_start_record(sb_dsp_t *dsp, unsigned frames,
 #ifdef AUTO_DMA_MODE
 	sb_dsp_write(dsp, AUTO_DMA_16B_AD_FIFO);
 #else
-	sb_dsp_write(dsp, SINGLE_DMA_16B_AD_FIFO);
+	sb_dsp_write(dsp, SINGLE_DMA_16B_AD);
 #endif
 
 	dsp->active.mode = 0 |

@@ -46,6 +46,7 @@ typedef struct sb_dsp_t {
 	sb16_regs_t *regs;
 	int dma8_channel;
 	int dma16_channel;
+	bool ignore_interrupts;
 	struct {
 		uint8_t major;
 		uint8_t minor;
