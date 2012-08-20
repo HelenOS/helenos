@@ -47,7 +47,7 @@
 #include "dsp.h"
 
 /* Maximum allowed transfer size for ISA DMA transfers is 64kB */
-#define MAX_BUFFER_SIZE (4 * 1024) // use 4kB for now
+#define MAX_BUFFER_SIZE (64 * 1024)
 
 #ifndef DSP_RETRY_COUNT
 #define DSP_RETRY_COUNT 100
