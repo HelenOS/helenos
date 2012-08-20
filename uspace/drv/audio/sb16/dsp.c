@@ -186,6 +186,14 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 	return ret;
 }
 
+static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
+{
+	assert(dsp);
+	if (!dsp->event_exchange)
+		ddf_log_warning("No one listening for event %u", event);
+	async_msg_1(dsp->event_exchange, event, dsp->active.frame_count);
+}
+
 static inline size_t sample_count(pcm_sample_format_t format, size_t byte_count)
 {
 	return byte_count / pcm_sample_format_size(format);
@@ -234,16 +242,14 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	switch (dsp->state)
 	{
 	case DSP_PLAYBACK_ACTIVE_EVENTS:
-		async_msg_1(dsp->event_exchange,
-		    PCM_EVENT_FRAMES_PLAYED, dsp->active.frame_count);
+		dsp_report_event(dsp, PCM_EVENT_FRAMES_PLAYED);
 	case DSP_PLAYBACK_NOEVENTS:
 #ifndef AUTO_DMA_MODE
 	sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
 #endif
 		break;
 	case DSP_CAPTURE_ACTIVE_EVENTS:
-		async_msg_1(dsp->event_exchange,
-		    PCM_EVENT_FRAMES_CAPTURED, dsp->active.frame_count);
+		dsp_report_event(dsp, PCM_EVENT_FRAMES_CAPTURED);
 	case DSP_CAPTURE_NOEVENTS:
 #ifndef AUTO_DMA_MODE
 	sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
@@ -417,6 +423,8 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 
 	sb_dsp_change_state(dsp,
 	    frames ? DSP_PLAYBACK_ACTIVE_EVENTS : DSP_PLAYBACK_NOEVENTS);
+	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
+		dsp_report_event(dsp, PCM_EVENT_PLAYBACK_STARTED);
 
 	return EOK;
 }
@@ -424,9 +432,14 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 int sb_dsp_stop_playback(sb_dsp_t *dsp)
 {
 	assert(dsp);
+	if (dsp->state != DSP_PLAYBACK_NOEVENTS &&
+	    dsp->state != DSP_PLAYBACK_ACTIVE_EVENTS)
+		return EINVAL;
+
 	sb_dsp_write(dsp, DMA_16B_EXIT);
 	ddf_log_debug("Stopping playback on buffer.");
-	async_msg_0(dsp->event_exchange, PCM_EVENT_PLAYBACK_TERMINATED);
+	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
+		dsp_report_event(dsp, PCM_EVENT_PLAYBACK_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
 	sb_dsp_change_state(dsp, DSP_STOPPED);
@@ -474,15 +487,22 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 	    sampling_rate / (dsp->active.samples * channels));
 	sb_dsp_change_state(dsp,
 	    frames ? DSP_CAPTURE_ACTIVE_EVENTS : DSP_CAPTURE_NOEVENTS);
+	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
+		dsp_report_event(dsp, PCM_EVENT_CAPTURE_STARTED);
 	return EOK;
 }
 
 int sb_dsp_stop_capture(sb_dsp_t *dsp)
 {
 	assert(dsp);
+	if (dsp->state != DSP_CAPTURE_NOEVENTS &&
+	    dsp->state != DSP_CAPTURE_ACTIVE_EVENTS)
+		return EINVAL;
+
 	sb_dsp_write(dsp, DMA_16B_EXIT);
 	ddf_log_debug("Stopped capture");
-	async_msg_0(dsp->event_exchange, PCM_EVENT_CAPTURE_TERMINATED);
+	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
+		dsp_report_event(dsp, PCM_EVENT_CAPTURE_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
 	sb_dsp_change_state(dsp, DSP_STOPPED);
