@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef BITHENGE_OS_H_
+#define BITHENGE_OS_H_
+
 #ifdef __HELENOS__
 #include "helenos/os.h"
 #else
@@ -39,4 +42,6 @@ static inline int bithenge_should_fail(void)
 {
 	return 0;
 }
+#endif
+
 #endif

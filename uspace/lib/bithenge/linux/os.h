@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BITHENGE_OS_H_
-#define BITHENGE_OS_H_
+#ifndef BITHENGE_LINUX_OS_H_
+#define BITHENGE_LINUX_OS_H_
 
 #include <endian.h>
 #include <errno.h>
