@@ -43,16 +43,16 @@
 struct surface {
 	surface_flags_t flags;
 
-	sysarg_t dirty_x_lo;
-	sysarg_t dirty_x_hi;
-	sysarg_t dirty_y_lo;
-	sysarg_t dirty_y_hi;
+	surface_coord_t dirty_x_lo;
+	surface_coord_t dirty_x_hi;
+	surface_coord_t dirty_y_lo;
+	surface_coord_t dirty_y_hi;
 
 	pixelmap_t pixmap;
 };
 
-surface_t *surface_create(
-    sysarg_t width, sysarg_t height, pixel_t *pixbuf, surface_flags_t flags)
+surface_t *surface_create(surface_coord_t width, surface_coord_t height,
+    pixel_t *pixbuf, surface_flags_t flags)
 {
 	surface_t *surface = (surface_t *) malloc(sizeof(surface_t));
 	if (!surface) {
@@ -117,7 +117,7 @@ pixelmap_t *surface_pixmap_access(surface_t *surface)
 	return &surface->pixmap;
 }
 
-void surface_get_resolution(surface_t *surface, sysarg_t *width, sysarg_t *height)
+void surface_get_resolution(surface_t *surface, surface_coord_t *width, surface_coord_t *height)
 {
 	assert(width);
 	assert(height);
@@ -126,8 +126,8 @@ void surface_get_resolution(surface_t *surface, sysarg_t *width, sysarg_t *heigh
 	*height = surface->pixmap.height;
 }
 
-void surface_get_damaged_region(surface_t *surface, sysarg_t *x, sysarg_t *y,
-    sysarg_t *width, sysarg_t *height)
+void surface_get_damaged_region(surface_t *surface, surface_coord_t *x, surface_coord_t *y,
+    surface_coord_t *width, surface_coord_t *height)
 {
 	assert(x);
 	assert(y);
@@ -150,7 +150,7 @@ void surface_reset_damaged_region(surface_t *surface)
 	surface->dirty_y_hi = 0;
 }
 
-void surface_put_pixel(surface_t *surface, sysarg_t x, sysarg_t y, pixel_t pixel)
+void surface_put_pixel(surface_t *surface, surface_coord_t x, surface_coord_t y, pixel_t pixel)
 {
 	surface->dirty_x_lo = surface->dirty_x_lo > x ? x : surface->dirty_x_lo;
 	surface->dirty_x_hi = surface->dirty_x_hi < x ? x : surface->dirty_x_hi;
@@ -162,7 +162,7 @@ void surface_put_pixel(surface_t *surface, sysarg_t x, sysarg_t y, pixel_t pixel
 	}
 }
 
-pixel_t surface_get_pixel(surface_t *surface, sysarg_t x, sysarg_t y)
+pixel_t surface_get_pixel(surface_t *surface, surface_coord_t x, surface_coord_t y)
 {
 	if (x < surface->pixmap.width && y < surface->pixmap.height) {
 		return pixelmap_get_pixel(&surface->pixmap, x, y);

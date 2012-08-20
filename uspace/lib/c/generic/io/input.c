@@ -142,8 +142,8 @@ static void input_ev_abs_move(input_t *input, ipc_callid_t callid,
 
 	x = IPC_GET_ARG1(*call);
 	y = IPC_GET_ARG2(*call);
-	max_x = IPC_GET_ARG2(*call);
-	max_y = IPC_GET_ARG3(*call);
+	max_x = IPC_GET_ARG3(*call);
+	max_y = IPC_GET_ARG4(*call);
 
 	rc = input->ev_ops->abs_move(input, x, y, max_x, max_y);
 	async_answer_0(callid, rc);
