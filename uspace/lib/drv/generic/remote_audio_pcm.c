@@ -58,6 +58,13 @@ typedef enum {
 /*
  * CLIENT SIDE
  */
+
+/**
+ * Open audio session with device identified by location service string.
+ *
+ * @param name Location service string.
+ * @return Pointer to a new audio device session, NULL on failure.
+ */
 audio_pcm_sess_t *audio_pcm_open(const char *name)
 {
 	devman_handle_t device_handle = 0;
@@ -68,17 +75,41 @@ audio_pcm_sess_t *audio_pcm_open(const char *name)
 	    IPC_FLAG_BLOCKING);
 }
 
+/**
+ * Open audio session with device identified by location service id
+ *
+ * @param name Location service id.
+ * @return Pointer to a new audio device session, NULL on failure.
+ */
 audio_pcm_sess_t *audio_pcm_open_service(service_id_t id)
 {
 	return loc_service_connect(EXCHANGE_SERIALIZE, id, IPC_FLAG_BLOCKING);
 }
 
+/**
+ * Close open audio device session.
+ *
+ * @param name Open audio device session.
+ *
+ * @note Calling this function on already closed or invalid session results
+ * in undefined behavior.
+ */
 void audio_pcm_close(audio_pcm_sess_t *sess)
 {
 	if (sess)
 		async_hangup(sess);
 }
 
+/**
+ * Get a short description string.
+ *
+ * @param sess Audio device session.
+ * @param name Place to store newly allocated string.
+ *
+ * @return Error code.
+ *
+ * @note Caller is responsible for freeing newly allocated memory.
+ */
 int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -108,6 +139,16 @@ int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
 	return ret;
 }
 
+
+/**
+ * Query value of specified capability.
+ *
+ * @param sess Audio device session.
+ * @param cap  Audio device capability.
+ * @param val  Place to store queried value.
+ *
+ * @return Error code.
+ */
 int audio_pcm_query_cap(audio_pcm_sess_t *sess, audio_cap_t cap, unsigned *val)
 {
 	if (!val)
@@ -123,6 +164,16 @@ int audio_pcm_query_cap(audio_pcm_sess_t *sess, audio_cap_t cap, unsigned *val)
 	return ret;
 }
 
+/**
+ * Query current position in device buffer.
+ *
+ * @param sess Audio device session.
+ * @param pos Place to store the result.
+ *
+ * @return Error code.
+ *
+ * Works for both playback and capture.
+ */
 int audio_pcm_get_buffer_pos(audio_pcm_sess_t *sess, size_t *pos)
 {
 	if (!pos)
@@ -138,6 +189,19 @@ int audio_pcm_get_buffer_pos(audio_pcm_sess_t *sess, size_t *pos)
 	return ret;
 }
 
+/**
+ * Test format parameters for device support.
+ *
+ * @param sess Audio device session.
+ * @param channels Number of channels
+ * @param rate Sampling rate.
+ * @format Sample format.
+ *
+ * @return Error code.
+ *
+ * Works for both playback and capture. This function modifies provided
+ * parameters to the nearest values supported by the device.
+ */
 int audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
     unsigned *rate, pcm_sample_format_t *format)
 {
@@ -167,6 +231,17 @@ int audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
 	return ret;
 }
 
+/**
+ * Get device accessible playback/capture buffer.
+ *
+ * @param sess Audio device session.
+ * @param buffer Place to store pointer to the buffer.
+ * @param size Place to store buffer size (bytes).
+ * @param event_rec Event callback function.
+ * @param arg Event callback custom parameter.
+ *
+ * @return Error code.
+ */
 int audio_pcm_get_buffer(audio_pcm_sess_t *sess, void **buffer, size_t *size,
     async_client_conn_t event_rec, void* arg)
 {
@@ -199,6 +274,13 @@ int audio_pcm_get_buffer(audio_pcm_sess_t *sess, void **buffer, size_t *size,
 	return ret;
 }
 
+/**
+ * Release device accessible playback/capture buffer.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
 int audio_pcm_release_buffer(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -209,6 +291,20 @@ int audio_pcm_release_buffer(audio_pcm_sess_t *sess)
 	return ret;
 }
 
+/**
+ * Start playback on buffer from position 0.
+ *
+ * @param sess Audio device session.
+ * @param frames Size of fragment (in frames).
+ * @param channels Number of channels.
+ * @param sample_rate Sampling rate (for one channel).
+ * @param format Sample format.
+ *
+ * @return Error code.
+ *
+ * Event will be generated after every fragment. Set fragment size to
+ * 0 to turn off event generation.
+ */
 int audio_pcm_start_playback(audio_pcm_sess_t *sess, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
@@ -225,6 +321,13 @@ int audio_pcm_start_playback(audio_pcm_sess_t *sess, unsigned frames,
 	return ret;
 }
 
+/**
+ * Stop current playback.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
 int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -235,6 +338,20 @@ int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
 	return ret;
 }
 
+/**
+ * Start capture on buffer from position 0.
+ *
+ * @param sess Audio device session.
+ * @param frames Size of fragment (in frames).
+ * @param channels Number of channels.
+ * @param sample_rate Sampling rate (for one channel).
+ * @param format Sample format.
+ *
+ * @return Error code.
+ *
+ * Event will be generated after every fragment. Set fragment size to
+ * 0 to turn off event generation.
+ */
 int audio_pcm_start_capture(audio_pcm_sess_t *sess, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
@@ -250,6 +367,13 @@ int audio_pcm_start_capture(audio_pcm_sess_t *sess, unsigned frames,
 	return ret;
 }
 
+/**
+ * Stop current playback.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
 int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
