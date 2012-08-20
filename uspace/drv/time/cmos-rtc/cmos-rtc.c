@@ -187,6 +187,8 @@ rtc_dev_initialize(rtc_t *rtc)
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", ddf_dev_get_name(rtc->dev));
 
+	rtc->boottime = 0;
+
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 
@@ -311,8 +313,6 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 		return localtime2tm(cur_time, t);
 	}
-
-	fibril_mutex_lock(&rtc->mutex);
 
 	/* now read the registers */
 	do {
