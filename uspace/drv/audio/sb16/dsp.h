@@ -41,6 +41,15 @@
 #include <audio_pcm_iface.h>
 
 #include "registers.h"
+typedef enum {
+	DSP_PLAYBACK_ACTIVE_EVENTS,
+	DSP_CAPTURE_ACTIVE_EVENTS,
+	DSP_PLAYBACK_NOEVENTS,
+	DSP_CAPTURE_NOEVENTS,
+	DSP_STOPPED,
+	DSP_READY,
+	DSP_NO_BUFFER,
+} dsp_state_t;
 
 typedef struct sb_dsp_t {
 	sb16_regs_t *regs;
@@ -60,11 +69,7 @@ typedef struct sb_dsp_t {
 		uint16_t samples;
 		unsigned frame_count;
 	} active;
-	enum {
-		DSP_PLAYBACK,
-		DSP_CAPTURE,
-		DSP_STOPPED,
-	} status;
+	dsp_state_t state;
 	async_sess_t *event_session;
 	async_exch_t *event_exchange;
 	ddf_dev_t *sb_dev;

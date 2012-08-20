@@ -61,6 +61,31 @@
 
 #define AUTO_DMA_MODE
 
+static inline const char * dsp_state_to_str(dsp_state_t state)
+{
+	static const char* state_names[] = {
+		[DSP_PLAYBACK_ACTIVE_EVENTS] = "PLAYBACK w/ EVENTS",
+		[DSP_CAPTURE_ACTIVE_EVENTS] = "CAPTURE w/o ACTIVE",
+		[DSP_PLAYBACK_NOEVENTS] = "PLAYBACK w/. EVENTS",
+		[DSP_CAPTURE_NOEVENTS] = "CAPTURE w/o EVENTS",
+		[DSP_STOPPED] = "STOPPED",
+		[DSP_READY] = "READY",
+		[DSP_NO_BUFFER] = "NO BUFFER",
+	};
+	if (state < (sizeof(state_names) / sizeof(state_names[0])))
+		return state_names[state];
+	return "UNKNOWN";
+}
+
+
+static inline void sb_dsp_change_state(sb_dsp_t *dsp, dsp_state_t state)
+{
+	assert(dsp);
+	ddf_log_verbose("Changing state from %s to %s",
+	    dsp_state_to_str(dsp->state), dsp_state_to_str(state));
+	dsp->state = state;
+}
+
 static inline int sb_dsp_read(sb_dsp_t *dsp, uint8_t *data)
 {
 	assert(data);
@@ -161,14 +186,6 @@ static inline int sb_setup_buffer(sb_dsp_t *dsp, size_t size)
 	return ret;
 }
 
-static inline void sb_clear_buffer(sb_dsp_t *dsp)
-{
-	assert(dsp);
-	dmamem_unmap_anonymous(dsp->buffer.data);
-	dsp->buffer.data = NULL;
-	dsp->buffer.size = 0;
-}
-
 static inline size_t sample_count(pcm_sample_format_t format, size_t byte_count)
 {
 	return byte_count / pcm_sample_format_size(format);
@@ -184,8 +201,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	dsp->event_session = NULL;
 	dsp->event_exchange = NULL;
 	dsp->sb_dev = dev;
-	dsp->status = DSP_STOPPED;
-	dsp->ignore_interrupts = false;
+	dsp->state = DSP_NO_BUFFER;
 	sb_dsp_reset(dsp);
 	/* "DSP takes about 100 microseconds to initialize itself" */
 	udelay(100);
@@ -212,41 +228,29 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 {
 	assert(dsp);
 
-#ifndef AUTO_DMA_MODE
-	if (dsp->status == DSP_PLAYBACK) {
-		sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
-	}
-
-	if (dsp->status == DSP_CAPTURE) {
-		sb_dsp_start_active(dsp, SINGLE_DMA_16B_AD);
-	}
-#endif
-
-	if (dsp->ignore_interrupts)
-		return;
-
 	dsp->active.frame_count +=
 	    dsp->active.samples / ((dsp->active.mode & DSP_MODE_STEREO) ? 2 : 1);
 
-	if (dsp->event_exchange) {
-		switch (dsp->status) {
-		case DSP_PLAYBACK:
-			async_msg_1(dsp->event_exchange,
-			    PCM_EVENT_FRAMES_PLAYED, dsp->active.frame_count);
-			break;
-		case DSP_CAPTURE:
-			async_msg_1(dsp->event_exchange,
-			    PCM_EVENT_FRAMES_CAPTURED, dsp->active.frame_count);
-			break;
-		default:
-		case DSP_STOPPED:
-			ddf_log_warning("Interrupt while DSP stopped and "
-			    "event exchange present. Terminating exchange");
-			async_exchange_end(dsp->event_exchange);
-			dsp->event_exchange = NULL;
-		}
-	} else {
-		ddf_log_warning("Interrupt with no event consumer.");
+	switch (dsp->state)
+	{
+	case DSP_PLAYBACK_ACTIVE_EVENTS:
+		async_msg_1(dsp->event_exchange,
+		    PCM_EVENT_FRAMES_PLAYED, dsp->active.frame_count);
+	case DSP_PLAYBACK_NOEVENTS:
+#ifndef AUTO_DMA_MODE
+	sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
+#endif
+		break;
+	case DSP_CAPTURE_ACTIVE_EVENTS:
+		async_msg_1(dsp->event_exchange,
+		    PCM_EVENT_FRAMES_CAPTURED, dsp->active.frame_count);
+	case DSP_CAPTURE_NOEVENTS:
+#ifndef AUTO_DMA_MODE
+	sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
+#endif
+		break;
+	default:
+		ddf_log_warning("Interrupt while DSP not active");
 	}
 }
 
@@ -272,9 +276,10 @@ unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 
 int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 {
-	if (!dsp->buffer.data)
+	if (dsp->state == DSP_NO_BUFFER)
 		return ENOENT;
 
+	assert(dsp->buffer.data);
 	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
 	    dsp->sb_dev->handle, IPC_FLAG_BLOCKING);
 
@@ -313,29 +318,6 @@ int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
 	return ret;
 }
 
-int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
-{
-	assert(dsp);
-	assert(size);
-
-	/* buffer is already setup by for someone, refuse to work until
-	 * it's released */
-	if (dsp->buffer.data)
-		return EBUSY;
-
-	const int ret = sb_setup_buffer(dsp, *size);
-	if (ret == EOK) {
-		ddf_log_debug("Providing buffer: %p, %zu B.",
-		    dsp->buffer.data, dsp->buffer.size);
-
-		if (buffer)
-			*buffer = dsp->buffer.data;
-		if (size)
-			*size = dsp->buffer.size;
-	}
-	return ret;
-}
-
 int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
 {
 	assert(dsp);
@@ -353,16 +335,42 @@ async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp)
 	return dsp->event_session;
 }
 
+int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
+{
+	assert(dsp);
+	assert(size);
+
+	/* buffer is already setup by for someone, refuse to work until
+	 * it's released */
+	if (dsp->state != DSP_NO_BUFFER)
+		return EBUSY;
+	assert(dsp->buffer.data == NULL);
+
+	const int ret = sb_setup_buffer(dsp, *size);
+	if (ret == EOK) {
+		ddf_log_debug("Providing buffer: %p, %zu B.",
+		    dsp->buffer.data, dsp->buffer.size);
+
+		if (buffer)
+			*buffer = dsp->buffer.data;
+		if (size)
+			*size = dsp->buffer.size;
+		sb_dsp_change_state(dsp, DSP_READY);
+	}
+	return ret;
+}
+
 int sb_dsp_release_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	sb_clear_buffer(dsp);
-	async_exchange_end(dsp->event_exchange);
-	dsp->event_exchange = NULL;
-	if (dsp->event_session)
-		async_hangup(dsp->event_session);
-	dsp->event_session = NULL;
+	if (dsp->state != DSP_READY && dsp->state != DSP_STOPPED)
+		return EINVAL;
+	assert(dsp->buffer.data);
+	dmamem_unmap_anonymous(dsp->buffer.data);
+	dsp->buffer.data = NULL;
+	dsp->buffer.size = 0;
 	ddf_log_debug("DSP buffer released.");
+	sb_dsp_change_state(dsp, DSP_NO_BUFFER);
 	return EOK;
 }
 
@@ -387,7 +395,6 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 		dsp->event_exchange = async_exchange_begin(dsp->event_session);
 		if (!dsp->event_exchange)
 			return ENOMEM;
-		dsp->ignore_interrupts = false;
 	}
 
 	dsp->active.mode = 0
@@ -408,7 +415,8 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	    "(~1/%u sec)", dsp->active.samples,
 	    sampling_rate / (dsp->active.samples * channels));
 
-	dsp->status = DSP_PLAYBACK;
+	sb_dsp_change_state(dsp,
+	    frames ? DSP_PLAYBACK_ACTIVE_EVENTS : DSP_PLAYBACK_NOEVENTS);
 
 	return EOK;
 }
@@ -421,6 +429,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp)
 	async_msg_0(dsp->event_exchange, PCM_EVENT_PLAYBACK_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
+	sb_dsp_change_state(dsp, DSP_STOPPED);
 	return EOK;
 }
 
@@ -444,7 +453,6 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 		dsp->event_exchange = async_exchange_begin(dsp->event_session);
 		if (!dsp->event_exchange)
 			return ENOMEM;
-		dsp->ignore_interrupts = false;
 	}
 
 	dsp->active.mode = 0
@@ -464,8 +472,8 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 	ddf_log_verbose("Recording started started, interrupt every %u samples "
 	    "(~1/%u sec)", dsp->active.samples,
 	    sampling_rate / (dsp->active.samples * channels));
-	dsp->status = DSP_CAPTURE;
-
+	sb_dsp_change_state(dsp,
+	    frames ? DSP_CAPTURE_ACTIVE_EVENTS : DSP_CAPTURE_NOEVENTS);
 	return EOK;
 }
 
@@ -477,6 +485,7 @@ int sb_dsp_stop_capture(sb_dsp_t *dsp)
 	async_msg_0(dsp->event_exchange, PCM_EVENT_CAPTURE_TERMINATED);
 	async_exchange_end(dsp->event_exchange);
 	dsp->event_exchange = NULL;
+	sb_dsp_change_state(dsp, DSP_STOPPED);
 	return EOK;
 }
 /**
