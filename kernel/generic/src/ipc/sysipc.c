@@ -255,7 +255,7 @@ static int a_preprocess_m_connect_to_me(call_t *answer, ipc_data_t *olddata)
 
 static void cleanup_m_connect_me_to(call_t *answer, ipc_data_t *olddata)
 {
-	phone_dealloc(answer->priv);
+	/* FIXME: answer->priv phone needs to be deallocated. */
 }
 
 static int a_preprocess_m_connect_me_to(call_t *answer, ipc_data_t *olddata)
