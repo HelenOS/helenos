@@ -91,7 +91,8 @@ int null_answer_process(call_t *call)
 sysipc_ops_t *sysipc_ops_get(sysarg_t imethod)
 {
 	if (imethod < sizeof(sysipc_ops) / (sizeof(sysipc_ops_t)))
-		return sysipc_ops[imethod];
+		return sysipc_ops[imethod] ? sysipc_ops[imethod] : &null_ops;
+
 	return &null_ops;
 }
 
