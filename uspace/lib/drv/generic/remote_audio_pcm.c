@@ -112,12 +112,14 @@ void audio_pcm_close(audio_pcm_sess_t *sess)
  */
 int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
 {
+	if (!name)
+		return EINVAL;
 	async_exch_t *exch = async_exchange_begin(sess);
 	sysarg_t name_size;
 	const int ret = async_req_1_1(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_GET_INFO_STR, &name_size);
-	if (ret == EOK && name) {
+	if (ret == EOK) {
 		char *name_place = calloc(1, name_size);
 		if (!name_place) {
 			/* Make the other side fail
