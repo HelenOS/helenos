@@ -555,7 +555,8 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Device node */
 		
 		fibril_mutex_lock(&services_mutex);
-		ht_link_t *lnk = hash_table_find(&services, &index);
+		service_id_t service_index = index;
+		ht_link_t *lnk = hash_table_find(&services, &service_index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
@@ -618,7 +619,8 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Device node */
 		
 		fibril_mutex_lock(&services_mutex);
-		ht_link_t *lnk = hash_table_find(&services, &index);
+		service_id_t service_index = index;
+		ht_link_t *lnk = hash_table_find(&services, &service_index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
@@ -685,7 +687,8 @@ static int locfs_close(service_id_t service_id, fs_index_t index)
 	if (type == LOC_OBJECT_SERVICE) {
 		
 		fibril_mutex_lock(&services_mutex);
-		ht_link_t *lnk = hash_table_find(&services, &index);
+		service_id_t service_index = index;
+		ht_link_t *lnk = hash_table_find(&services, &service_index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
@@ -697,7 +700,8 @@ static int locfs_close(service_id_t service_id, fs_index_t index)
 		
 		if (dev->refcount == 0) {
 			async_hangup(dev->sess);
-			hash_table_remove(&services, &index);
+			service_id_t service_index = index;
+			hash_table_remove(&services, &service_index);
 		}
 		
 		fibril_mutex_unlock(&services_mutex);
@@ -723,7 +727,8 @@ static int locfs_sync(service_id_t service_id, fs_index_t index)
 	if (type == LOC_OBJECT_SERVICE) {
 
 		fibril_mutex_lock(&services_mutex);
-		ht_link_t *lnk = hash_table_find(&services, &index);
+		service_id_t service_index = index;
+		ht_link_t *lnk = hash_table_find(&services, &service_index);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;

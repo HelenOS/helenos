@@ -1870,7 +1870,7 @@ static inline size_t shrink_idx(size_t idx)
 
 static inline size_t calc_key_hash(cht_t *h, void *key)
 {
-	/* Mimick calc_node_hash. */
+	/* Mimic calc_node_hash. */
 	return hash_mix(h->op->key_hash(key)) & ~(size_t)1;
 }
 
