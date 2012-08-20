@@ -183,6 +183,7 @@ int bithenge_transform_prefix_apply(bithenge_transform_t *self,
 
 /** Create a transform scope. It must be dereferenced with @a
  * bithenge_scope_dec_ref after it is used. Takes ownership of nothing.
+ * @memberof bithenge_scope_t
  * @param[out] out Holds the new scope.
  * @param outer The outer scope, or NULL.
  * @return EOK on success or an error code from errno.h. */
@@ -206,7 +207,8 @@ int bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 }
 
 /** Dereference a transform scope.
- * @param self The scope to dereference. */
+ * @memberof bithenge_scope_t
+ * @param self The scope to dereference, or NULL. */
 void bithenge_scope_dec_ref(bithenge_scope_t *self)
 {
 	if (!self)
@@ -223,6 +225,7 @@ void bithenge_scope_dec_ref(bithenge_scope_t *self)
 }
 
 /** Get the outer scope of a scope, which may be NULL.
+ * @memberof bithenge_scope_t
  * @param self The scope to examine.
  * @return The outer scope, which may be NULL. */
 bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
@@ -232,6 +235,7 @@ bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
 
 /** Get the error message stored in the scope, which may be NULL. The error
  * message only exists as long as the scope does.
+ * @memberof bithenge_scope_t
  * @param scope The scope to get the error message from.
  * @return The error message, or NULL. */
 const char *bithenge_scope_get_error(bithenge_scope_t *scope)
@@ -242,6 +246,7 @@ const char *bithenge_scope_get_error(bithenge_scope_t *scope)
 /** Set the error message for the scope. The error message is stored in the
  * outermost scope, but if any scope already has an error message this error
  * message is ignored.
+ * @memberof bithenge_scope_t
  * @param scope The scope.
  * @param format The format string.
  * @return EINVAL normally, or another error code from errno.h. */
@@ -291,6 +296,7 @@ int bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
 }
 
 /** Get the current node being created, which may be NULL.
+ * @memberof bithenge_scope_t
  * @param scope The scope to get the current node from.
  * @return The node being created, or NULL. */
 bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
@@ -301,6 +307,7 @@ bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
 }
 
 /** Set the current node being created. Takes a reference to @a node.
+ * @memberof bithenge_scope_t
  * @param scope The scope to set the current node in.
  * @param node The current node being created, or NULL. */
 void bithenge_scope_set_current_node(bithenge_scope_t *scope,
@@ -311,6 +318,7 @@ void bithenge_scope_set_current_node(bithenge_scope_t *scope,
 }
 
 /** Get the current input node, which may be NULL.
+ * @memberof bithenge_scope_t
  * @param scope The scope to get the current input node from.
  * @return The input node, or NULL. */
 bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *scope)
@@ -321,6 +329,7 @@ bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *scope)
 }
 
 /** Set the current input node. Takes a reference to @a node.
+ * @memberof bithenge_scope_t
  * @param scope The scope to set the input node in.
  * @param node The input node, or NULL. */
 void bithenge_scope_set_in_node(bithenge_scope_t *scope, bithenge_node_t *node)
@@ -330,6 +339,7 @@ void bithenge_scope_set_in_node(bithenge_scope_t *scope, bithenge_node_t *node)
 }
 
 /** Set a scope as a barrier.
+ * @memberof bithenge_scope_t
  * @param self The scope to change. */
 void bithenge_scope_set_barrier(bithenge_scope_t *self)
 {
@@ -338,6 +348,7 @@ void bithenge_scope_set_barrier(bithenge_scope_t *self)
 
 /** Check whether a scope is a barrier, meaning that variable lookup stops at
  * it.
+ * @memberof bithenge_scope_t
  * @param self The scope to check.
  * @return Whether the scope is a barrier. */
 bool bithenge_scope_is_barrier(bithenge_scope_t *self)
@@ -348,6 +359,7 @@ bool bithenge_scope_is_barrier(bithenge_scope_t *self)
 /** Allocate parameters. The parameters must then be set with @a
  * bithenge_scope_set_param. This must not be called on a scope that already
  * has parameters.
+ * @memberof bithenge_scope_t
  * @param scope The scope in which to allocate parameters.
  * @param num_params The number of parameters to allocate.
  * @return EOK on success or an error code from errno.h. */
@@ -362,11 +374,12 @@ int bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
 	return EOK;
 }
 
-/** Set a parameter. Takes a reference to @a value. Note that range checking is
+/** Set a parameter. Takes a reference to @a node. Note that range checking is
  * not done in release builds.
+ * @memberof bithenge_scope_t
  * @param scope The scope in which to allocate parameters.
  * @param i The index of the parameter to set.
- * @param value The value to store in the parameter.
+ * @param node The value to store in the parameter.
  * @return EOK on success or an error code from errno.h. */
 int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
     bithenge_node_t *node)
@@ -382,6 +395,7 @@ int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
 }
 
 /** Get a parameter. Note that range checking is not done in release builds.
+ * @memberof bithenge_scope_t
  * @param scope The scope to get the parameter from.
  * @param i The index of the parameter to set.
  * @param[out] out Stores a new reference to the parameter.
@@ -866,6 +880,7 @@ static int prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *scope,
 	return EOK;
 }
 
+/** @cond internal */
 #define MAKE_UINT_TRANSFORM(NAME, TYPE, ENDIAN, PREFIX_LENGTH_FUNC)            \
 	static int NAME##_apply(bithenge_transform_t *self,                    \
 	    bithenge_scope_t *scope, bithenge_node_t *in,                      \
@@ -905,6 +920,7 @@ MAKE_UINT_TRANSFORM(uint32le, uint32_t, uint32_t_le2host, prefix_length_4);
 MAKE_UINT_TRANSFORM(uint32be, uint32_t, uint32_t_be2host, prefix_length_4);
 MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint64_t_le2host, prefix_length_8);
 MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint64_t_be2host, prefix_length_8);
+/** @endcond */
 
 
 

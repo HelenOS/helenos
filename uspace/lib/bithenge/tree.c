@@ -357,8 +357,7 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
  * @param[out] out Holds whether the nodes are equal.
  * @param a, b Nodes to compare.
  * @return EOK on success or an error code from errno.h.
- * @todo Add support for internal nodes.
- */
+ * @todo Add support for internal nodes. */
 int bithenge_node_equal(bool *out, bithenge_node_t *a, bithenge_node_t *b)
 {
 	if (a->type != b->type) {

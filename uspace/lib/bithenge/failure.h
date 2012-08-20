@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @cond internal */
 /** @addtogroup bithenge
  * @{
  */
@@ -70,3 +71,6 @@ int bithenge_failure_fstat(int, struct stat *);
 
 /** @}
  */
+
+/** @endcond */
+

@@ -45,11 +45,15 @@
 #include "transform.h"
 #include "tree.h"
 
-/** Tokens with more characters than this may be read incorrectly. */
-#define MAX_TOKEN_SIZE 256
+/** @cond internal */
 #define BUFFER_SIZE 4096
+/** @endcond */
 
-/** Single-character symbols are represented by the character itself. Every
+/** Tokens with more characters than this may be read incorrectly. */
+static const int MAX_TOKEN_SIZE = 256;
+
+/** @cond internal
+ * Single-character symbols are represented by the character itself. Every
  * other token uses one of these values: */
 typedef enum {
 	TOKEN_ERROR = -128,
@@ -81,6 +85,7 @@ typedef enum {
 	TOKEN_TRUE,
 	TOKEN_WHILE,
 } token_type_t;
+/** @endcond */
 
 /** Singly-linked list of named transforms. */
 typedef struct transform_list {
@@ -437,6 +442,7 @@ static bithenge_expression_t *parse_expression(state_t *state);
 
 /***************** Expressions                               *****************/
 
+/** @cond internal */
 typedef enum {
 	PRECEDENCE_NONE,
 	PRECEDENCE_AND,
@@ -445,6 +451,7 @@ typedef enum {
 	PRECEDENCE_ADD,
 	PRECEDENCE_MULTIPLY,
 } precedence_t;
+/** @endcond */
 
 static bithenge_binary_op_t token_as_binary_operator(token_type_t token)
 {

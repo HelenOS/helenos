@@ -232,16 +232,21 @@ static inline void bithenge_blob_dec_ref(bithenge_blob_t *blob)
 		bithenge_node_dec_ref(bithenge_blob_as_node(blob));
 }
 
+/** @memberof bithenge_blob_t */
 int bithenge_init_random_access_blob(bithenge_blob_t *,
     const bithenge_random_access_blob_ops_t *);
+/** @memberof bithenge_sequential_blob_t */
 int bithenge_init_sequential_blob(bithenge_sequential_blob_t *,
     const bithenge_sequential_blob_ops_t *);
+/** @memberof bithenge_blob_t */
 int bithenge_new_blob_from_data(bithenge_node_t **, const void *, size_t);
+/** @memberof bithenge_blob_t */
 int bithenge_new_blob_from_buffer(bithenge_node_t **, const void *, size_t,
     bool);
 int bithenge_new_offset_blob(bithenge_node_t **, bithenge_blob_t *, aoff64_t);
 int bithenge_new_subblob(bithenge_node_t **, bithenge_blob_t *, aoff64_t,
     aoff64_t);
+/** @memberof bithenge_blob_t */
 int bithenge_blob_equal(bool *, bithenge_blob_t *, bithenge_blob_t *);
 
 #endif

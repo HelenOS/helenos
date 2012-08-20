@@ -55,15 +55,18 @@ typedef enum {
 	BITHENGE_NODE_BLOB,
 } bithenge_node_type_t;
 
+/** A tree node. It can have any of the types in @a bithenge_node_type_t. */
 typedef struct bithenge_node_t {
 	/** @privatesection */
 	bithenge_node_type_t type;
 	unsigned int refs;
 	union {
+		/** @privatesection */
 		const struct bithenge_internal_node_ops_t *internal_ops;
 		bool boolean_value;
 		bithenge_int_t integer_value;
 		struct {
+			/** @privatesection */
 			const char *ptr;
 			bool needs_free;
 		} string_value;
@@ -110,6 +113,7 @@ static inline void bithenge_node_inc_ref(bithenge_node_t *node)
 	node->refs++;
 }
 
+/** @memberof bithenge_node_t */
 void bithenge_node_dec_ref(bithenge_node_t *node);
 
 /** Iterate over a node's children.
@@ -125,6 +129,7 @@ static inline int bithenge_node_for_each(bithenge_node_t *self,
 	return self->internal_ops->for_each(self, func, data);
 }
 
+/** @memberof bithenge_node_t */
 int bithenge_node_get(bithenge_node_t *, bithenge_node_t *,
     bithenge_node_t **);
 
@@ -158,14 +163,21 @@ static inline const char *bithenge_string_node_value(bithenge_node_t *self)
 	return self->string_value.ptr;
 }
 
+/** @memberof bithenge_node_t */
 int bithenge_init_internal_node(bithenge_node_t *,
     const bithenge_internal_node_ops_t *);
+/** @memberof bithenge_node_t */
 int bithenge_new_empty_internal_node(bithenge_node_t **);
+/** @memberof bithenge_node_t */
 int bithenge_new_simple_internal_node(bithenge_node_t **, bithenge_node_t **,
     bithenge_int_t, bool needs_free);
+/** @memberof bithenge_node_t */
 int bithenge_new_boolean_node(bithenge_node_t **, bool);
+/** @memberof bithenge_node_t */
 int bithenge_new_integer_node(bithenge_node_t **, bithenge_int_t);
+/** @memberof bithenge_node_t */
 int bithenge_new_string_node(bithenge_node_t **, const char *, bool);
+/** @memberof bithenge_node_t */
 int bithenge_node_equal(bool *, bithenge_node_t *, bithenge_node_t *);
 
 #endif

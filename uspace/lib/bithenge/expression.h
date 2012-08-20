@@ -92,6 +92,7 @@ static inline int bithenge_expression_evaluate(bithenge_expression_t *self,
 	return self->ops->evaluate(self, scope, out);
 }
 
+/** The binary operators supported by @a bithenge_binary_expression(). */
 typedef enum {
 	BITHENGE_EXPRESSION_INVALID_BINARY_OP,
 

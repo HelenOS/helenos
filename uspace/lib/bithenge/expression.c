@@ -529,6 +529,12 @@ static const bithenge_expression_ops_t scope_member_expression_ops = {
 	.destroy = scope_member_expression_destroy,
 };
 
+/** Create an expression that gets a member from one of the current nodes being
+ * created. It searches from the current scope outwards, stopping at barrier
+ * scopes.
+ * @param[out] out Holds the new expression.
+ * @param key The key to search for in nodes being created.
+ * @return EOK on success or an error code from errno.h. */
 int bithenge_scope_member_expression(bithenge_expression_t **out,
     bithenge_node_t *key)
 {

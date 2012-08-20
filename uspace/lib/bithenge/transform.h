@@ -61,7 +61,12 @@ typedef struct bithenge_scope {
 	bithenge_node_t *in_node;
 } bithenge_scope_t;
 
-static inline void bithenge_scope_inc_ref(bithenge_scope_t *self) {
+/** Increment a scope's reference count.
+ * @memberof bithenge_scope_t
+ * @param self The scope to reference. */
+static inline void bithenge_scope_inc_ref(bithenge_scope_t *self)
+{
+	assert(self);
 	self->refs++;
 }
 
@@ -116,10 +121,28 @@ static inline void bithenge_transform_dec_ref(bithenge_transform_t *self)
 
 /** A transform with a name. */
 typedef struct {
+	/** The transform's name. */
 	const char *name;
+	/** The transform. */
 	bithenge_transform_t *transform;
 } bithenge_named_transform_t;
 
+/** Transform that decodes an 8-bit unsigned integer */
+extern bithenge_transform_t bithenge_uint8_transform;
+/** Transform that decodes a 16-bit little-endian unsigned integer */
+extern bithenge_transform_t bithenge_uint16le_transform;
+/** Transform that decodes a 16-bit big-endian unsigned integer */
+extern bithenge_transform_t bithenge_uint16be_transform;
+/** Transform that decodes a 32-bit little-endian unsigned integer */
+extern bithenge_transform_t bithenge_uint32le_transform;
+/** Transform that decodes a 32-bit big-endian unsigned integer */
+extern bithenge_transform_t bithenge_uint32be_transform;
+/** Transform that decodes a 64-bit little-endian unsigned integer */
+extern bithenge_transform_t bithenge_uint64le_transform;
+/** Transform that decodes a 64-bit big-endian unsigned integer */
+extern bithenge_transform_t bithenge_uint64be_transform;
+
+/** @cond */
 extern bithenge_transform_t bithenge_ascii_transform;
 extern bithenge_transform_t bithenge_bit_transform;
 extern bithenge_transform_t bithenge_bits_be_transform;
@@ -127,43 +150,55 @@ extern bithenge_transform_t bithenge_bits_le_transform;
 extern bithenge_transform_t bithenge_invalid_transform;
 extern bithenge_transform_t bithenge_known_length_transform;
 extern bithenge_transform_t bithenge_nonzero_boolean_transform;
-extern bithenge_transform_t bithenge_uint8_transform;
-extern bithenge_transform_t bithenge_uint16le_transform;
-extern bithenge_transform_t bithenge_uint16be_transform;
-extern bithenge_transform_t bithenge_uint32le_transform;
-extern bithenge_transform_t bithenge_uint32be_transform;
-extern bithenge_transform_t bithenge_uint64le_transform;
-extern bithenge_transform_t bithenge_uint64be_transform;
 extern bithenge_transform_t bithenge_uint_le_transform;
 extern bithenge_transform_t bithenge_uint_be_transform;
 extern bithenge_transform_t bithenge_zero_terminated_transform;
 extern bithenge_named_transform_t *bithenge_primitive_transforms;
+/** @endcond */
 
+/** @memberof bithenge_transform_t */
 int bithenge_init_transform(bithenge_transform_t *,
     const bithenge_transform_ops_t *, int);
+/** @memberof bithenge_transform_t */
 int bithenge_transform_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_node_t *, bithenge_node_t **);
+/** @memberof bithenge_transform_t */
 int bithenge_transform_prefix_length(bithenge_transform_t *,
     bithenge_scope_t *, bithenge_blob_t *, aoff64_t *);
+/** @memberof bithenge_transform_t */
 int bithenge_transform_prefix_apply(bithenge_transform_t *, bithenge_scope_t *,
     bithenge_blob_t *, bithenge_node_t **, aoff64_t *);
 int bithenge_new_barrier_transform(bithenge_transform_t **, int);
 int bithenge_barrier_transform_set_subtransform(bithenge_transform_t *,
     bithenge_transform_t *);
 
+/** @memberof bithenge_scope_t */
 int bithenge_scope_new(bithenge_scope_t **, bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 void bithenge_scope_dec_ref(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 const char *bithenge_scope_get_error(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 int bithenge_scope_error(bithenge_scope_t *, const char *, ...);
+/** @memberof bithenge_scope_t */
 bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 void bithenge_scope_set_current_node(bithenge_scope_t *, bithenge_node_t *);
+/** @memberof bithenge_scope_t */
 bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 void bithenge_scope_set_in_node(bithenge_scope_t *, bithenge_node_t *);
+/** @memberof bithenge_scope_t */
 void bithenge_scope_set_barrier(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 bool bithenge_scope_is_barrier(bithenge_scope_t *);
+/** @memberof bithenge_scope_t */
 int bithenge_scope_alloc_params(bithenge_scope_t *, int);
+/** @memberof bithenge_scope_t */
 int bithenge_scope_set_param(bithenge_scope_t *, int, bithenge_node_t *);
+/** @memberof bithenge_scope_t */
 int bithenge_scope_get_param(bithenge_scope_t *, int, bithenge_node_t **);
 
 #endif
