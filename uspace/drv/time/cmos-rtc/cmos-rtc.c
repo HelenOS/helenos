@@ -47,7 +47,6 @@
 #include <ops/clock_dev.h>
 #include <fibril_synch.h>
 #include <device/hw_res.h>
-#include <devman.h>
 #include <macros.h>
 #include <ipc/clock_ctl.h>
 #include <time.h>
@@ -57,9 +56,6 @@
 #define NAME "cmos-rtc"
 
 #define REG_COUNT 2
-
-#define RTC_FROM_FNODE(fnode)  ((rtc_t *) ((fnode)->dev->driver_data))
-#define RTC_FROM_DEV(devnode)  ((rtc_t *) ((devnode)->driver_data))
 
 typedef struct rtc {
 	/** DDF device node */
@@ -76,6 +72,8 @@ typedef struct rtc {
 	bool removed;
 } rtc_t;
 
+static rtc_t *dev_rtc(ddf_dev_t *dev);
+static rtc_t *fun_rtc(ddf_fun_t *fun);
 static int  rtc_time_get(ddf_fun_t *fun, struct tm *t);
 static int  rtc_time_set(ddf_fun_t *fun, struct tm *t);
 static int  rtc_dev_add(ddf_dev_t *dev);
@@ -115,6 +113,20 @@ static clock_dev_ops_t rtc_clock_dev_ops = {
 	.time_set = rtc_time_set,
 };
 
+/** Obtain soft state structure from device node */
+static rtc_t *
+dev_rtc(ddf_dev_t *dev)
+{
+	return ddf_dev_data_get(dev);
+}
+
+/** Obtain soft state structure from function node */
+static rtc_t *
+fun_rtc(ddf_fun_t *fun)
+{
+	return dev_rtc(ddf_fun_get_dev(fun));
+}
+
 /** Initialize the RTC driver */
 static void
 rtc_init(void)
@@ -135,10 +147,6 @@ rtc_init(void)
 static void
 rtc_dev_cleanup(rtc_t *rtc)
 {
-	if (rtc->dev->parent_sess) {
-		async_hangup(rtc->dev->parent_sess);
-		rtc->dev->parent_sess = NULL;
-	}
 }
 
 /** Enable the I/O ports of the device
@@ -154,7 +162,7 @@ rtc_pio_enable(rtc_t *rtc)
 	    (void **) &rtc->port)) {
 
 		ddf_msg(LVL_ERROR, "Cannot map the port %#" PRIx32
-		    " for device %s", rtc->io_addr, rtc->dev->name);
+		    " for device %s", rtc->io_addr, ddf_dev_get_name(rtc->dev));
 		return false;
 	}
 
@@ -174,28 +182,28 @@ rtc_dev_initialize(rtc_t *rtc)
 	size_t i;
 	hw_resource_t *res;
 	bool ioport = false;
+	async_sess_t *parent_sess;
 
-	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", rtc->dev->name);
+	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", ddf_dev_get_name(rtc->dev));
 
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 
 	/* Connect to the parent's driver */
 
-	rtc->dev->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    rtc->dev->handle, IPC_FLAG_BLOCKING);
-	if (!rtc->dev->parent_sess) {
+	parent_sess = ddf_dev_parent_sess_create(rtc->dev, EXCHANGE_SERIALIZE);
+	if (!parent_sess) {
 		ddf_msg(LVL_ERROR, "Failed to connect to parent driver\
-		    of device %s.", rtc->dev->name);
+		    of device %s.", ddf_dev_get_name(rtc->dev));
 		rc = ENOENT;
 		goto error;
 	}
 
 	/* Get the HW resources */
-	rc = hw_res_get_resource_list(rtc->dev->parent_sess, &hw_resources);
+	rc = hw_res_get_resource_list(parent_sess, &hw_resources);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to get HW resources\
-		    for device %s", rtc->dev->name);
+		    for device %s", ddf_dev_get_name(rtc->dev));
 		goto error;
 	}
 
@@ -205,21 +213,22 @@ rtc_dev_initialize(rtc_t *rtc)
 		if (res->type == IO_RANGE) {
 			if (res->res.io_range.size < REG_COUNT) {
 				ddf_msg(LVL_ERROR, "I/O range assigned to \
-				    device %s is too small", rtc->dev->name);
+				    device %s is too small",
+				    ddf_dev_get_name(rtc->dev));
 				rc = ELIMIT;
 				goto error;
 			}
 			rtc->io_addr = res->res.io_range.address;
 			ioport = true;
 			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address \
-			    0x%x", rtc->dev->name, rtc->io_addr);
+			    0x%x", ddf_dev_get_name(rtc->dev), rtc->io_addr);
 		}
 	}
 
 	if (!ioport) {
 		/* No I/O address assigned to this device */
 		ddf_msg(LVL_ERROR, "Missing HW resource for device %s",
-		    rtc->dev->name);
+		    ddf_dev_get_name(rtc->dev));
 		rc = ENOENT;
 		goto error;
 	}
@@ -286,7 +295,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 {
 	bool bcd_mode;
 	bool pm_mode = false;
-	rtc_t *rtc = RTC_FROM_FNODE(fun);
+	rtc_t *rtc = fun_rtc(fun);
 
 	if (boottime != 0) {
 		/* There is no need to read the current time from the
@@ -388,7 +397,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	int  reg_b;
 	int  reg_a;
 	int  epoch;
-	rtc_t *rtc = RTC_FROM_FNODE(fun);
+	rtc_t *rtc = fun_rtc(fun);
 
 	/* Try to normalize the content of the tm structure */
 	if ((norm_time = mktime(t)) < 0)
@@ -485,7 +494,7 @@ rtc_dev_add(ddf_dev_t *dev)
 	bool need_cleanup = false;
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_add %s (handle = %d)",
-	    dev->name, (int) dev->handle);
+	    ddf_dev_get_name(dev), (int) ddf_dev_get_handle(dev));
 
 	rtc = ddf_dev_data_alloc(dev, sizeof(rtc_t));
 	if (!rtc)
@@ -512,7 +521,7 @@ rtc_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	fun->ops = &rtc_dev_ops;
+	ddf_fun_set_ops(fun, &rtc_dev_ops);
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function");
@@ -524,7 +533,7 @@ rtc_dev_add(ddf_dev_t *dev)
 	ddf_fun_add_to_category(fun, "clock");
 
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized",
-	    dev->name);
+	    ddf_dev_get_name(dev));
 
 	return rc;
 
@@ -545,7 +554,7 @@ error:
 static int
 rtc_dev_remove(ddf_dev_t *dev)
 {
-	rtc_t *rtc = RTC_FROM_DEV(dev);
+	rtc_t *rtc = dev_rtc(dev);
 	int rc;
 
 	fibril_mutex_lock(&rtc->mutex);
@@ -572,7 +581,7 @@ static void
 rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*call);
-	rtc_t *rtc = RTC_FROM_FNODE(fun);
+	rtc_t *rtc = fun_rtc(fun);
 	bool batt_ok;
 
 	switch (method) {
@@ -597,7 +606,7 @@ static int
 rtc_open(ddf_fun_t *fun)
 {
 	int rc;
-	rtc_t *rtc = RTC_FROM_FNODE(fun);
+	rtc_t *rtc = fun_rtc(fun);
 
 	fibril_mutex_lock(&rtc->mutex);
 
