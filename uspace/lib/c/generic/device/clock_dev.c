@@ -61,9 +61,8 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
 
 	sysarg_t rc;
 	if (ret != EOK) {
-		async_wait_for(req, &rc);
-		if (rc == EOK)
-			return ret;
+		async_forget(req);
+		return ret;
 	}
 
 	async_wait_for(req, &rc);
@@ -93,9 +92,8 @@ clock_dev_time_set(async_sess_t *sess, struct tm *t)
 
 	sysarg_t rc;
 	if (ret != EOK) {
-		async_wait_for(req, &rc);
-		if (rc == EOK)
-			return ret;
+		async_forget(req);
+		return ret;
 	}
 
 	async_wait_for(req, &rc);
