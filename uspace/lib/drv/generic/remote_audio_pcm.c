@@ -45,6 +45,8 @@
 typedef enum {
 	IPC_M_AUDIO_PCM_GET_INFO_STR,
 	IPC_M_AUDIO_PCM_QUERY_CAPS,
+	IPC_M_AUDIO_PCM_REGISTER_EVENTS,
+	IPC_M_AUDIO_PCM_UNREGISTER_EVENTS,
 	IPC_M_AUDIO_PCM_TEST_FORMAT,
 	IPC_M_AUDIO_PCM_GET_BUFFER,
 	IPC_M_AUDIO_PCM_RELEASE_BUFFER,
@@ -234,18 +236,57 @@ int audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
 }
 
 /**
- * Get device accessible playback/capture buffer.
+ * Register callback for device generated events.
  *
  * @param sess Audio device session.
- * @param buffer Place to store pointer to the buffer.
- * @param size Place to store buffer size (bytes).
  * @param event_rec Event callback function.
  * @param arg Event callback custom parameter.
  *
  * @return Error code.
  */
-int audio_pcm_get_buffer(audio_pcm_sess_t *sess, void **buffer, size_t *size,
-    async_client_conn_t event_rec, void* arg)
+int audio_pcm_register_event_callback(audio_pcm_sess_t *sess,
+    async_client_conn_t event_callback, void *arg)
+{
+	if (!event_callback)
+		return EINVAL;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	int ret = async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_REGISTER_EVENTS);
+	if (ret == EOK) {
+		ret = async_connect_to_me(exch, 0, 0, 0, event_callback, arg);
+	}
+	async_exchange_end(exch);
+	return ret;
+}
+
+/**
+ * Unregister callback for device generated events.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
+int audio_pcm_unregister_event_callback(audio_pcm_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_1_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_UNREGISTER_EVENTS);
+	async_exchange_end(exch);
+	return ret;
+}
+
+/**
+ * Get device accessible playback/capture buffer.
+ *
+ * @param sess Audio device session.
+ * @param buffer Place to store pointer to the buffer.
+ * @param size Place to store buffer size (bytes).
+ *
+ * @return Error code.
+ */
+int audio_pcm_get_buffer(audio_pcm_sess_t *sess, void **buffer, size_t *size)
 {
 	if (!buffer || !size)
 		return EINVAL;
@@ -253,22 +294,15 @@ int audio_pcm_get_buffer(audio_pcm_sess_t *sess, void **buffer, size_t *size,
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	sysarg_t buffer_size = *size;
-	const int ret = async_req_2_1(exch,
-	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_GET_BUFFER,
-	    (sysarg_t)buffer_size, &buffer_size);
+	int ret = async_req_2_1(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_GET_BUFFER, (sysarg_t)buffer_size, &buffer_size);
 	if (ret == EOK) {
 		void *dst = NULL;
-		int ret = async_share_in_start_0_0(exch, buffer_size, &dst);
+		ret = async_share_in_start_0_0(exch, buffer_size, &dst);
 		if (ret != EOK) {
 			async_exchange_end(exch);
 			return ret;
 		}
-		ret = async_connect_to_me(exch, 0, 0, 0, event_rec, arg);
-		if (ret != EOK) {
-			async_exchange_end(exch);
-			return ret;
-		}
-
 		*buffer = dst;
 		*size = buffer_size;
 	}
@@ -390,6 +424,8 @@ int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
  */
 static void remote_audio_pcm_get_info_str(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_query_caps(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_events_register(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_events_unregister(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_get_buffer_pos(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_test_format(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -403,6 +439,8 @@ static void remote_audio_pcm_stop_capture(ddf_fun_t *, void *, ipc_callid_t, ipc
 static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 	[IPC_M_AUDIO_PCM_GET_INFO_STR] = remote_audio_pcm_get_info_str,
 	[IPC_M_AUDIO_PCM_QUERY_CAPS] = remote_audio_pcm_query_caps,
+	[IPC_M_AUDIO_PCM_REGISTER_EVENTS] = remote_audio_pcm_events_register,
+	[IPC_M_AUDIO_PCM_UNREGISTER_EVENTS] = remote_audio_pcm_events_unregister,
 	[IPC_M_AUDIO_PCM_GET_BUFFER_POS] = remote_audio_pcm_get_buffer_pos,
 	[IPC_M_AUDIO_PCM_TEST_FORMAT] = remote_audio_pcm_test_format,
 	[IPC_M_AUDIO_PCM_GET_BUFFER] = remote_audio_pcm_get_buffer,
@@ -460,6 +498,56 @@ void remote_audio_pcm_query_caps(ddf_fun_t *fun, void *iface, ipc_callid_t calli
 		async_answer_0(callid, ENOTSUP);
 	}
 }
+
+static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const audio_pcm_iface_t *pcm_iface = iface;
+	if (!pcm_iface->get_event_session ||
+	    !pcm_iface->set_event_session) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	async_answer_0(callid, EOK);
+
+	ipc_call_t callback_call;
+	ipc_callid_t callback_id = async_get_call(&callback_call);
+	async_sess_t *sess =
+	    async_callback_receive_start(EXCHANGE_ATOMIC, &callback_call);
+	if (sess == NULL) {
+		ddf_msg(LVL_DEBUG, "Failed to create event callback");
+		pcm_iface->release_buffer(fun);
+		async_answer_0(callback_id, EAGAIN);
+		return;
+	}
+	const int ret = pcm_iface->set_event_session(fun, sess);
+	if (ret != EOK) {
+		ddf_msg(LVL_DEBUG, "Failed to set event callback.");
+		pcm_iface->release_buffer(fun);
+		async_hangup(sess);
+		async_answer_0(callback_id, ret);
+		return;
+	}
+	ddf_msg(LVL_DEBUG2, "Event session setup OK.");
+	async_answer_0(callback_id, EOK);
+}
+
+static void remote_audio_pcm_events_unregister(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	const audio_pcm_iface_t *pcm_iface = iface;
+	if (!pcm_iface->get_event_session ||
+	    !pcm_iface->set_event_session) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+	async_sess_t *sess = pcm_iface->get_event_session(fun);
+	if (sess) {
+		async_hangup(sess);
+		pcm_iface->set_event_session(fun, NULL);
+	}
+	async_answer_0(callid, EOK);
+}
+
 void remote_audio_pcm_get_buffer_pos(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
@@ -486,8 +574,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	const audio_pcm_iface_t *pcm_iface = iface;
 
 	if (!pcm_iface->get_buffer ||
-	    !pcm_iface->release_buffer ||
-	    !pcm_iface->set_event_session) {
+	    !pcm_iface->release_buffer) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
@@ -527,29 +614,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	ddf_msg(LVL_DEBUG2, "Buffer shared with size %zu, creating callback.",
-	    share_size);
-	{
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_ATOMIC, &call);
-		if (sess == NULL) {
-			ddf_msg(LVL_DEBUG, "Failed to create event callback");
-			pcm_iface->release_buffer(fun);
-			async_answer_0(callid, EAGAIN);
-			return;
-		}
-		ret = pcm_iface->set_event_session(fun, sess);
-		if (ret != EOK) {
-			ddf_msg(LVL_DEBUG, "Failed to set event callback.");
-			pcm_iface->release_buffer(fun);
-			async_answer_0(callid, ret);
-			return;
-		}
-		ddf_msg(LVL_DEBUG2, "Buffer and event session setup OK.");
-		async_answer_0(callid, EOK);
-	}
+	ddf_msg(LVL_DEBUG2, "Buffer shared with size %zu.", share_size);
 }
 
 void remote_audio_pcm_release_buffer(ddf_fun_t *fun, void *iface,

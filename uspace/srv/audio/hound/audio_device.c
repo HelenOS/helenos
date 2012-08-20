@@ -102,6 +102,8 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 			    str_error(ret));
 			return ret;
 		}
+		audio_pcm_register_event_callback(dev->sess,
+		    device_event_callback, dev);
 
 		/* Fill the buffer first */
 		audio_sink_mix_inputs(&dev->sink,
@@ -175,6 +177,7 @@ static int device_source_connection_callback(audio_source_t *source)
 			    str_error(ret));
 			return ret;
 		}
+		audio_pcm_unregister_event_callback(dev->sess);
 	}
 
 	return EOK;
@@ -245,7 +248,7 @@ static int get_buffer(audio_device_t *dev)
 	dev->buffer.size = 0;
 
 	return audio_pcm_get_buffer(dev->sess, &dev->buffer.base,
-	    &dev->buffer.size, device_event_callback, dev);
+	    &dev->buffer.size);
 }
 
 static int release_buffer(audio_device_t *dev)

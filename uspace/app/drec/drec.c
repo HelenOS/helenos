@@ -172,10 +172,16 @@ int main(int argc, char *argv[])
 	record_initialize(&rec, session);
 
 	ret = audio_pcm_get_buffer(rec.device, &rec.buffer.base,
-	    &rec.buffer.size, device_event_callback, &rec);
+	    &rec.buffer.size);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
 		goto close_session;
+	}
+	ret = audio_pcm_register_event_callback(rec.device,
+	    device_event_callback, &rec);
+	if (ret != EOK) {
+		printf("Failed to register for events: %s.\n", str_error(ret));
+		goto cleanup;
 	}
 	printf("Buffer: %p %zu.\n", rec.buffer.base, rec.buffer.size);
 	uintptr_t ptr = 0;
@@ -208,6 +214,7 @@ int main(int argc, char *argv[])
 cleanup:
 	munmap(rec.buffer.base, rec.buffer.size);
 	audio_pcm_release_buffer(rec.device);
+	audio_pcm_unregister_event_callback(rec.device);
 close_session:
 	async_hangup(session);
 	return ret == EOK ? 0 : 1;

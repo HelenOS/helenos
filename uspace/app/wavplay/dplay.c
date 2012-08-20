@@ -122,12 +122,19 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 }
 
 
-static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
+static void play(playback_t *pb, unsigned channels, unsigned sampling_rate,
     pcm_sample_format_t format)
 {
 	assert(pb);
 	assert(pb->device);
 	pb->buffer.position = pb->buffer.base;
+	printf("Registering event callback\n");
+	int ret = audio_pcm_register_event_callback(pb->device,
+	    device_event_callback, pb);
+	if (ret != EOK) {
+		printf("Failed to register event callback.\n");
+		return;
+	}
 	printf("Playing: %dHz, %s, %d channel(s).\n",
 	    sampling_rate, pcm_sample_format_str(format), channels);
 	const size_t bytes = fread(pb->buffer.base, sizeof(uint8_t),
@@ -138,8 +145,8 @@ static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
 	fibril_mutex_lock(&pb->mutex);
 	const unsigned frames = pb->buffer.size /
 	    (BUFFER_PARTS * channels * pcm_sample_format_size(format));
-	int ret = audio_pcm_start_playback(pb->device,
-	    frames, channels, sampling_rate, format);
+	ret = audio_pcm_start_playback(pb->device, frames, channels,
+	    sampling_rate, format);
 	if (ret != EOK) {
 		fibril_mutex_unlock(&pb->mutex);
 		printf("Failed to start playback: %s.\n", str_error(ret));
@@ -151,6 +158,7 @@ static void play(playback_t *pb, unsigned channels,  unsigned sampling_rate,
 
 	fibril_mutex_unlock(&pb->mutex);
 	printf("\n");
+	audio_pcm_unregister_event_callback(pb->device);
 }
 
 int dplay(const char *device, const char *file)
@@ -176,8 +184,7 @@ int dplay(const char *device, const char *file)
 	playback_t pb;
 	playback_initialize(&pb, session);
 
-	ret = audio_pcm_get_buffer(pb.device, &pb.buffer.base,
-	    &pb.buffer.size, device_event_callback, &pb);
+	ret = audio_pcm_get_buffer(pb.device, &pb.buffer.base, &pb.buffer.size);
 	if (ret != EOK) {
 		printf("Failed to get PCM buffer: %s.\n", str_error(ret));
 		goto close_session;

@@ -54,7 +54,10 @@
 #endif
 
 #define DSP_RESET_RESPONSE 0xaa
-#define DSP_RATE_LIMIT 45000
+
+/* These are only for SB16 (DSP4.00+) */
+#define DSP_RATE_UPPER_LIMIT 44100
+#define DSP_RATE_LOWER_LIMIT 5000
 
 #define AUTO_DMA_MODE
 
@@ -293,14 +296,18 @@ int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
 		*channels = 2;
 		ret = ELIMIT;
 	}
-	if (*rate > DSP_RATE_LIMIT) {
-		*rate = DSP_RATE_LIMIT;
-		ret = ELIMIT;
-	}
 	//TODO 8bit DMA supports 8bit formats
 	if (*format != PCM_SAMPLE_SINT16_LE && *format != PCM_SAMPLE_UINT16_LE) {
 		*format = pcm_sample_format_is_signed(*format) ?
 		    PCM_SAMPLE_SINT16_LE : PCM_SAMPLE_UINT16_LE;
+		ret = ELIMIT;
+	}
+	if (*rate > DSP_RATE_UPPER_LIMIT) {
+		*rate = DSP_RATE_UPPER_LIMIT;
+		ret = ELIMIT;
+	}
+	if (*rate < DSP_RATE_LOWER_LIMIT) {
+		*rate = DSP_RATE_LOWER_LIMIT;
 		ret = ELIMIT;
 	}
 	return ret;
@@ -332,12 +339,18 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
 {
 	assert(dsp);
-	assert(session);
 	if (dsp->event_session)
 		return EBUSY;
 	dsp->event_session = session;
-	ddf_log_debug("Set event session.");
+	ddf_log_debug("Set event session to %p.", session);
 	return EOK;
+}
+
+async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp)
+{
+	assert(dsp);
+	ddf_log_debug("Get event session: %p.", dsp->event_session);
+	return dsp->event_session;
 }
 
 int sb_dsp_release_buffer(sb_dsp_t *dsp)
