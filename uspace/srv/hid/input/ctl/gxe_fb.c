@@ -32,16 +32,16 @@
  */
 /**
  * @file
- * @brief	GXEmul framebuffer-mode keyboard controller driver.
+ * @brief GXEmul framebuffer-mode keyboard controller driver.
  */
 
-#include <kbd.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <kbd_ctl.h>
-#include <kbd_port.h>
-#include <gsp.h>
-#include <stroke.h>
+#include "../stroke.h"
+#include "../gsp.h"
+#include "../kbd.h"
+#include "../kbd_port.h"
+#include "../kbd_ctl.h"
 
 static void gxe_fb_ctl_parse(sysarg_t);
 static int gxe_fb_ctl_init(kbd_dev_t *);

@@ -69,7 +69,7 @@ int uhci_dev_add(ddf_dev_t *device)
 		    str_error(ret));
 	} else {
 		usb_log_info("Controlling new UHCI device '%s'.\n",
-		    device->name);
+		    ddf_dev_get_name(device));
 	}
 
 	return ret;

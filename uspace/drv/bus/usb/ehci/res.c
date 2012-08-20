@@ -75,13 +75,13 @@
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int get_my_registers(const ddf_dev_t *dev,
+int get_my_registers(ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
 	assert(dev);
 	
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, dev->handle, IPC_FLAG_BLOCKING);
+	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	
@@ -114,10 +114,10 @@ int get_my_registers(const ddf_dev_t *dev,
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int enable_interrupts(const ddf_dev_t *device)
+int enable_interrupts(ddf_dev_t *device)
 {
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, device->handle, IPC_FLAG_BLOCKING);
+	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	
@@ -133,14 +133,14 @@ int enable_interrupts(const ddf_dev_t *device)
  * @param eecp Value of EHCI Extended Capabilities pointer.
  * @return Error code.
  */
-static int disable_extended_caps(const ddf_dev_t *device, unsigned eecp)
+static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 {
 	/* nothing to do */
 	if (eecp == 0)
 		return EOK;
 
 	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, device->handle, IPC_FLAG_BLOCKING);
+	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 
@@ -233,7 +233,7 @@ static int disable_extended_caps(const ddf_dev_t *device, unsigned eecp)
 #undef CHECK_RET_HANGUP_RETURN
 }
 
-int disable_legacy(const ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
+int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 {
 	assert(device);
 	usb_log_debug("Disabling EHCI legacy support.\n");

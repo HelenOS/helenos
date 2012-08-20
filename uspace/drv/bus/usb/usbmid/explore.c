@@ -171,7 +171,7 @@ bool usbmid_explore_device(usb_device_t *dev)
 		usb_log_error("Failed to create control function.\n");
 		return false;
 	}
-	usb_mid->ctl_fun->ops = &mid_device_ops;
+	ddf_fun_set_ops(usb_mid->ctl_fun, &mid_device_ops);
 
 	/* Bind control function. */
 	rc = ddf_fun_bind(usb_mid->ctl_fun);

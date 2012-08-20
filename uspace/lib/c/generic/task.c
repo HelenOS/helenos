@@ -200,6 +200,42 @@ error:
 /** Create a new task by running an executable from the filesystem.
  *
  * This is really just a convenience wrapper over the more complicated
+ * loader API. Arguments are passed in a va_list.
+ *
+ * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param path Pathname of the binary to execute.
+ * @param cnt  Number of arguments.
+ * @param ap   Command-line arguments.
+ *
+ * @return Zero on success or negative error code.
+ *
+ */
+int task_spawn(task_id_t *task_id, const char *path, int cnt, va_list ap)
+{
+	/* Allocate argument list. */
+	const char **arglist = malloc(cnt * sizeof(const char *));
+	if (arglist == NULL)
+		return ENOMEM;
+	
+	/* Fill in arguments. */
+	const char *arg;
+	cnt = 0;
+	do {
+		arg = va_arg(ap, const char *);
+		arglist[cnt++] = arg;
+	} while (arg != NULL);
+	
+	/* Spawn task. */
+	int rc = task_spawnv(task_id, path, arglist);
+	
+	/* Free argument list. */
+	free(arglist);
+	return rc;
+}
+
+/** Create a new task by running an executable from the filesystem.
+ *
+ * This is really just a convenience wrapper over the more complicated
  * loader API. Arguments are passed as a null-terminated list of arguments.
  *
  * @param id   If not NULL, the ID of the task is stored here on success.
@@ -215,7 +251,6 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 	
 	va_list ap;
 	const char *arg;
-	const char **arglist;
 	int cnt = 0;
 	
 	va_start(ap, path);
@@ -225,25 +260,10 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 	} while (arg != NULL);
 	va_end(ap);
 	
-	/* Allocate argument list. */
-	arglist = malloc(cnt * sizeof(const char *));
-	if (arglist == NULL)
-		return ENOMEM;
-	
-	/* Fill in arguments. */
-	cnt = 0;
 	va_start(ap, path);
-	do {
-		arg = va_arg(ap, const char *);
-		arglist[cnt++] = arg;
-	} while (arg != NULL);
+	int rc = task_spawn(task_id, path, cnt, ap);
 	va_end(ap);
 	
-	/* Spawn task. */
-	int rc = task_spawnv(task_id, path, arglist);
-	
-	/* Free argument list. */
-	free(arglist);
 	return rc;
 }
 

@@ -35,12 +35,12 @@
  * @brief PC keyboard controller driver.
  */
 
-#include <kbd.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <kbd_ctl.h>
-#include <kbd_port.h>
-#include <gsp.h>
+#include "../gsp.h"
+#include "../kbd.h"
+#include "../kbd_port.h"
+#include "../kbd_ctl.h"
 
 static void pc_ctl_parse(sysarg_t);
 static int pc_ctl_init(kbd_dev_t *);

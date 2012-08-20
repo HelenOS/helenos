@@ -102,13 +102,14 @@ static int usb_hid_device_add(usb_device_t *dev)
 
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
-		    dev->ddf_dev->name);
+		    ddf_dev_get_name(dev->ddf_dev));
 		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 	hid_dev->running = true;
 
-	usb_log_info("HID device `%s' ready to use.\n", dev->ddf_dev->name);
+	usb_log_info("HID device `%s' ready to use.\n",
+	    ddf_dev_get_name(dev->ddf_dev));
 
 	return EOK;
 }
@@ -148,7 +149,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	}
 
 	usb_hid_deinit(hid_dev);
-	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
+	usb_log_debug2("%s destruction complete.\n", ddf_dev_get_name(dev->ddf_dev));
 	return EOK;
 }
 

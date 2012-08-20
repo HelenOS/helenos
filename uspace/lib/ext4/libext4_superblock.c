@@ -37,7 +37,7 @@
 
 #include <byteorder.h>
 #include <errno.h>
-#include <libblock.h>
+#include <block.h>
 #include <malloc.h>
 #include "libext4.h"
 

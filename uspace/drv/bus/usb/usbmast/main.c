@@ -99,7 +99,7 @@ static bd_ops_t usbmast_bd_ops = {
 
 static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
 {
-	return (usbmast_fun_t *)bd->srvs->sarg;
+	return (usbmast_fun_t *) bd->srvs->sarg;
 }
 
 /** Callback when a device is removed from the system.
@@ -159,7 +159,7 @@ static int usbmast_device_add(usb_device_t *dev)
 	mdev->ddf_dev = dev->ddf_dev;
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n", dev->ddf_dev->name);
+	usb_log_info("Initializing mass storage `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
 	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
 	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
@@ -244,21 +244,21 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	mfun->bds.sarg = mfun;
 
 	/* Set up a connection handler. */
-	fun->conn_handler = usbmast_bd_connection;
+	ddf_fun_set_conn_handler(fun, usbmast_bd_connection);
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
 	rc = usbmast_inquiry(mfun, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
-		    mdev->ddf_dev->name, str_error(rc));
+		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
 
 	usb_log_info("Mass storage `%s' LUN %u: " \
 	    "%s by %s rev. %s is %s (%s).\n",
-	    mdev->ddf_dev->name,
+	    ddf_dev_get_name(mdev->ddf_dev),
 	    lun,
 	    inquiry.product,
 	    inquiry.vendor,
@@ -271,7 +271,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	rc = usbmast_read_capacity(mfun, &nblocks, &block_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
-		    mdev->ddf_dev->name, str_error(rc));
+		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
@@ -309,7 +309,7 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
 {
 	usbmast_fun_t *mfun;
 
-	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
+	mfun = (usbmast_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
 	bd_conn(iid, icall, &mfun->bds);
 }
 

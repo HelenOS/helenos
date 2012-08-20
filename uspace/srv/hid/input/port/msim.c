@@ -37,10 +37,10 @@
 
 #include <async.h>
 #include <sysinfo.h>
-#include <kbd_port.h>
-#include <kbd.h>
 #include <ddi.h>
 #include <errno.h>
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static int msim_port_init(kbd_dev_t *);
 static void msim_port_yield(void);

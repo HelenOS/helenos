@@ -52,14 +52,14 @@
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int get_my_registers(const ddf_dev_t *dev,
+int get_my_registers(ddf_dev_t *dev,
     uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
 {
 	assert(dev);
 
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
-	    IPC_FLAG_BLOCKING);
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 
@@ -93,11 +93,11 @@ int get_my_registers(const ddf_dev_t *dev,
  * @param[in] device Device asking for interrupts
  * @return Error code.
  */
-int enable_interrupts(const ddf_dev_t *device)
+int enable_interrupts(ddf_dev_t *device)
 {
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
-	    IPC_FLAG_BLOCKING);
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 	

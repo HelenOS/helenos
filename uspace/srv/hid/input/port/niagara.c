@@ -30,21 +30,21 @@
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
- */ 
+ */
 /** @file
- * @brief	Niagara console keyboard port driver.
+ * @brief Niagara console keyboard port driver.
  */
 
 #include <as.h>
 #include <ddi.h>
 #include <async.h>
-#include <kbd.h>
-#include <kbd_port.h>
 #include <sysinfo.h>
 #include <stdio.h>
 #include <thread.h>
 #include <bool.h>
 #include <errno.h>
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static int niagara_port_init(kbd_dev_t *);
 static void niagara_port_yield(void);

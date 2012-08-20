@@ -36,8 +36,8 @@
  */
 
 #include <assert.h>
+#include <block.h>
 #include <errno.h>
-#include <libblock.h>
 #include <loc.h>
 #include <macros.h>
 #include <stdlib.h>
