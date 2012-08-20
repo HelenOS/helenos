@@ -28,7 +28,6 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libbithenge
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__
 
 SOURCES = \
