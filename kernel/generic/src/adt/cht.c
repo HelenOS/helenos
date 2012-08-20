@@ -60,25 +60,90 @@
 typedef cht_ptr_t marked_ptr_t;
 typedef bool (*equal_pred_t)(void *arg, const cht_link_t *item);
 
+/** The following mark items and bucket heads. 
+ * 
+ * They are stored in the two low order bits of the next item pointers.
+ * Some marks may be combined. Some marks share the same binary value and
+ * are distinguished only by context (eg bucket head vs an ordinary item),
+ * in particular by walk_mode_t.
+ */
 typedef enum mark {
+	/** Normal non-deleted item or a valid bucket head. */
 	N_NORMAL = 0,
+	/** Logically deleted item that might have already been unlinked.
+	 * 
+	 * May be combined with N_JOIN and N_JOIN_FOLLOWS. Applicable only 
+	 * to items; never to bucket heads. 
+	 * 
+	 * Once marked deleted an item remains marked deleted.	 
+	 */
 	N_DELETED = 1,
+	/** Immutable bucket head. 
+	 * 
+	 * The bucket is being moved or joined with another and its (old) head 
+	 * must not be modified.
+	 * 
+	 * May be combined with N_INVALID. Applicable only to old bucket heads,
+	 * ie cht_t.b and not cht_t.new_b.
+	 */
 	N_CONST = 1,
+	/** Invalid bucket head. The bucket head must not be modified. 
+	 * 
+	 * Old bucket heads (ie cht_t.b) are marked invalid if they have
+	 * already been moved to cht_t.new_b or if the bucket had already
+	 * been merged with another when shrinking the table. New bucket
+	 * heads (ie cht_t.new_b) are marked invalid if the old bucket had
+	 * not yet been moved or if an old bucket had not yet been split
+	 * when growing the table.
+	 */
 	N_INVALID = 3,
+	/** The item is a join node, ie joining two buckets
+	 * 
+	 * A join node is either the first node of the second part of
+	 * a bucket to be split; or it is the first node of the bucket
+	 * to be merged into/appended to/joined with another bucket.
+	 * 
+	 * May be combined with N_DELETED. Applicable only to items, never 
+	 * to bucket heads.
+	 * 
+	 * Join nodes are referred to from two different buckets and may,
+	 * therefore, not be safely/atomically unlinked from both buckets.
+	 * As a result join nodes are not unlinked but rather just marked
+	 * deleted. Once resize completes join nodes marked deleted are
+	 * garbage collected.
+	 */
 	N_JOIN = 2,
+	/** The next node is a join node and will soon be marked so. 
+	 * 
+	 * A join-follows node is the last node of the first part of bucket
+	 * that is to be split, ie it is the last node that will remain
+	 * in the same bucket after splitting it.
+	 * 
+	 * May be combined with N_DELETED. Applicable to items as well
+	 * as to bucket heads of the bucket to be split (but only in cht_t.new_b). 
+	 */
 	N_JOIN_FOLLOWS = 2,
+	/** Bit mask to filter out the address to the next item from the next ptr. */
 	N_MARK_MASK = 3
 } mark_t;
 
+/** Determines */
 typedef enum walk_mode {
+	/** The table is not resizing. */
 	WM_NORMAL = 4,
+	/** The table is undergoing a resize. Join nodes may be encountered. */
 	WM_LEAVE_JOIN,
+	/** The table is growing. A join-follows node may be encountered. */
 	WM_MOVE_JOIN_FOLLOWS
 } walk_mode_t;
 
+/** Bucket position window. */
 typedef struct wnd {
+	/** Pointer to cur's predecessor. */
 	marked_ptr_t *ppred;
+	/** Current item. */
 	cht_link_t *cur;
+	/** Last encountered item. Deleted or not. */
 	cht_link_t *last;
 } wnd_t;
 
@@ -161,7 +226,21 @@ static marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur,
 	marked_ptr_t new);
 static void cas_order_barrier(void);
 
-
+/** Creates a concurrent hash table.
+ * 
+ * @param h         Valid pointer to a cht_t instance.
+ * @param init_size The initial number of buckets the table should contain.
+ *                  The table may be shrunk below this value if deemed necessary.
+ *                  Uses the default value if 0.
+ * @param min_size  Minimum number of buckets that the table should contain.
+ *                  The number of buckets never drops below this value,
+ *                  although it may be rounded up internally as appropriate.
+ *                  Uses the default value if 0.
+ * @param max_load  Maximum average number of items per bucket that allowed
+ *                  before the table grows.
+ * @param op        Item specific operations. All operations are compulsory.
+ * @return True if successfully created the table. False otherwise.
+ */
 bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load, 
 	cht_ops_t *op)
 {
@@ -201,6 +280,15 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	return true;
 }
 
+/** Allocates and initializes 2^order buckets.
+ * 
+ * All bucket heads are initialized to point to the sentinel node.
+ * 
+ * @param order       The number of buckets to allocate is 2^order.
+ * @param set_invalid Bucket heads are marked invalid if true; otherwise
+ *                    they are marked N_NORMAL.
+ * @return Newly allocated and initialized buckets or NULL if not enough memory.
+ */
 static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid)
 {
 	size_t bucket_cnt = (1 << order);
@@ -224,6 +312,7 @@ static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid)
 	return b;
 }
 
+/** Returns the smallest k such that bucket_cnt <= 2^k and min_order <= k.*/
 static size_t size_to_order(size_t bucket_cnt, size_t min_order)
 {
 	size_t order = min_order;
@@ -239,7 +328,12 @@ static size_t size_to_order(size_t bucket_cnt, size_t min_order)
 	return order;
 }
 
-
+/** Destroys a CHT successfully created via cht_create().
+ * 
+ * Waits for all outstanding concurrent operations to complete and
+ * frees internal allocated resources. The table is however not cleared
+ * and items already present in the table (if any) are leaked.
+ */
 void cht_destroy(cht_t *h)
 {
 	/* Wait for resize to complete. */
@@ -252,8 +346,28 @@ void cht_destroy(cht_t *h)
 	
 	free(h->b);
 	h->b = 0;
+	
+	/* You must clear the table of items. Otherwise cht_destroy will leak. */
+	ASSERT(atomic_get(&h->item_cnt) == 0);
 }
 
+/** Returns the first item equal to the search key or NULL if not found.
+ * 
+ * The call must be enclosed in a rcu_read_lock() unlock() pair. The 
+ * returned item is guaranteed to be allocated until rcu_read_unlock()
+ * although the item may be concurrently removed from the table by another
+ * cpu.
+ * 
+ * Further items matching the key may be retrieved via cht_find_next().
+ * 
+ * cht_find() sees the effects of any completed cht_remove(), cht_insert().
+ * If a concurrent remove or insert had not yet completed cht_find() may
+ * or may not see the effects of it (eg it may find an item being removed).
+ * 
+ * @param h   CHT to operate on.
+ * @param key Search key as defined by cht_ops_t.key_equal() and .key_hash().
+ * @return First item equal to the key or NULL if such an item does not exist.
+ */
 cht_link_t *cht_find(cht_t *h, void *key)
 {
 	/* Make the most recent changes to the table visible. */
@@ -261,14 +375,26 @@ cht_link_t *cht_find(cht_t *h, void *key)
 	return cht_find_lazy(h, key);
 }
 
+/** Returns the first item equal to the search key or NULL if not found.
+ * 
+ * Unlike cht_find(), cht_find_lazy() may not see the effects of 
+ * cht_remove() or cht_insert() even though they have already completed.
+ * It may take a couple of milliseconds for those changes to propagate
+ * and become visible to cht_find_lazy(). On the other hand, cht_find_lazy() 
+ * operates a bit faster than cht_find().
+ * 
+ * See cht_find() for more details.
+ */
 cht_link_t *cht_find_lazy(cht_t *h, void *key)
 {
 	return find_lazy(h, key);
 }
 
+/** Finds the first item equal to the search key. */
 static inline cht_link_t *find_lazy(cht_t *h, void *key)
 {
 	ASSERT(h);
+	/* See docs to cht_find() and cht_find_lazy(). */
 	ASSERT(rcu_read_locked());
 	
 	size_t hash = calc_key_hash(h, key);
@@ -281,12 +407,21 @@ static inline cht_link_t *find_lazy(cht_t *h, void *key)
 	 */
 	marked_ptr_t head = b->head[idx];
 	
+	/* Undergoing a resize - take the slow path. */
 	if (N_INVALID == get_mark(head))
 		return find_resizing(h, key, hash, head, idx);
 	
 	return search_bucket(h, head, key, hash);
 }
 
+/** Returns the next item matching \a item. 
+ * 
+ * Must be enclosed in a rcu_read_lock()/unlock() pair. Effects of 
+ * completed cht_remove(), cht_insert() are guaranteed to be visible
+ * to cht_find_next().
+ * 
+ * See cht_find() for more details.  
+ */
 cht_link_t *cht_find_next(cht_t *h, const cht_link_t *item)
 {
 	/* Make the most recent changes to the table visible. */
@@ -294,6 +429,14 @@ cht_link_t *cht_find_next(cht_t *h, const cht_link_t *item)
 	return cht_find_next_lazy(h, item);
 }
 
+/** Returns the next item matching \a item. 
+ * 
+ * Must be enclosed in a rcu_read_lock()/unlock() pair. Effects of 
+ * completed cht_remove(), cht_insert() may or may not be visible
+ * to cht_find_next_lazy().
+ * 
+ * See cht_find_lazy() for more details.  
+ */
 cht_link_t *cht_find_next_lazy(cht_t *h, const cht_link_t *item)
 {
 	ASSERT(h);
@@ -303,6 +446,7 @@ cht_link_t *cht_find_next_lazy(cht_t *h, const cht_link_t *item)
 	return find_duplicate(h, item, calc_node_hash(h, item), get_next(item->link));
 }
 
+/** Searches the bucket at head for key using search_hash. */
 static inline cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key, 
 	size_t search_hash)
 {
@@ -350,6 +494,7 @@ try_again:
 	return 0;
 }
 
+/** Searches for the key while the table is undergoing a resize. */
 static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash, 
 	marked_ptr_t old_head, size_t old_idx)
 {
@@ -486,17 +631,47 @@ static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash,
 	}
 }
 
-
+/** Inserts an item. Succeeds even if an equal item is already present. */
 void cht_insert(cht_t *h, cht_link_t *item)
 {
 	insert_impl(h, item, false);
 }
 
+/** Inserts a unique item. Returns false if an equal item was already present. 
+ * 
+ * Use this function to atomically check if an equal/duplicate item had
+ * not yet been inserted into the table and to insert this item into the 
+ * table.
+ * 
+ * The following is NOT thread-safe, so do not use:
+ * \code
+ * if (!cht_find(h, key)) {
+ *     // A concurrent insert here may go unnoticed by cht_find() above.
+ *     item = malloc(..);
+ *     cht_insert(h, item);
+ *     // Now we may have two items with equal search keys.
+ * }
+ * \endcode
+ * 
+ * Replace such code with:
+ * \code
+ * item = malloc(..);
+ * if (!cht_insert_unique(h, item)) {
+ *     // Whoops, someone beat us to it - an equal item had already been inserted.
+ *     free(item); 
+ * } else {
+ *     // Successfully inserted the item and we are guaranteed that
+ *     // there are no other equal items.
+ * }
+ * \endcode
+ * 
+ */
 bool cht_insert_unique(cht_t *h, cht_link_t *item)
 {
 	return insert_impl(h, item, true);
 }
 
+/** Inserts the item into the table and checks for duplicates if unique is true.*/
 static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 {
 	rcu_read_lock();
@@ -546,6 +721,18 @@ static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 	return true;
 }
 
+/** Inserts item between wnd.ppred and wnd.cur. 
+ * 
+ * @param item      Item to link to wnd.ppred and wnd.cur.
+ * @param wnd       The item will be inserted before wnd.cur. Wnd.ppred
+ *                  must be N_NORMAL.
+ * @param walk_mode 
+ * @param resizing  Set to true only if the table is undergoing resize 
+ *         and it was not expected (ie walk_mode == WM_NORMAL).
+ * @return True if the item was successfully linked to wnd.ppred. False
+ *         if whole insert operation must be retried because the predecessor
+ *         of wnd.cur has changed.
+ */
 inline static bool insert_at(cht_link_t *item, const wnd_t *wnd, 
 	walk_mode_t walk_mode, bool *resizing)
 {
@@ -593,6 +780,15 @@ inline static bool insert_at(cht_link_t *item, const wnd_t *wnd,
 	}
 }
 
+/** Returns true the chain starting at wnd hash an item equal to \a item.
+ * 
+ * @param h    CHT to operate on.
+ * @param item Item whose duplicates the function looks for.
+ * @param hash Hash of \a item.
+ * @param[in] wnd  wnd.cur is the first node with a hash greater to or equal
+ *             to item's hash.
+ * @return True if a non-deleted item equal to \a item exists in the table.
+ */
 static inline bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash, 
 	const wnd_t *wnd)
 {
@@ -613,6 +809,7 @@ static inline bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash,
 	return 0 != find_duplicate(h, item, hash, wnd->cur);
 }
 
+/** Returns an item that is equal to \a item starting in a chain at \a start. */
 static cht_link_t *find_duplicate(cht_t *h, const cht_link_t *item, size_t hash, 
 	cht_link_t *start)
 {
@@ -636,6 +833,7 @@ try_again:
 		ASSERT(cur);
 	} 
 
+	/* Skip logically deleted nodes with rcu_call() in progress. */
 	if (h->invalid_hash == node_hash(h, cur)) {
 		cur = get_next(cur->link);
 		goto try_again;
@@ -644,6 +842,7 @@ try_again:
 	return 0;	
 }
 
+/** Removes all items matching the search key. Returns the number of items removed.*/
 size_t cht_remove_key(cht_t *h, void *key)
 {
 	ASSERT(h);
@@ -657,10 +856,20 @@ size_t cht_remove_key(cht_t *h, void *key)
 	return removed;
 }
 
+/** Removes a specific item from the table. 
+ * 
+ * The called must hold rcu read lock. 
+ * 
+ * @param item Item presumably present in the table and to be removed.
+ * @return True if the item was removed successfully; or false if it had
+ *     already been deleted. 
+ */
 bool cht_remove_item(cht_t *h, cht_link_t *item)
 {
 	ASSERT(h);
 	ASSERT(item);
+	/* Otherwise a concurrent cht_remove_key might free the item. */
+	ASSERT(rcu_read_locked());
 
 	/* 
 	 * Even though we know the node we want to delete we must unlink it
@@ -671,7 +880,7 @@ bool cht_remove_item(cht_t *h, cht_link_t *item)
 	return remove_pred(h, hash, same_node_pred, item);
 }
 
-
+/** Removes an item equal to pred_arg according to the predicate pred. */
 static bool remove_pred(cht_t *h, size_t hash, equal_pred_t pred, void *pred_arg)
 {
 	rcu_read_lock();
@@ -738,7 +947,21 @@ static bool remove_pred(cht_t *h, size_t hash, equal_pred_t pred, void *pred_arg
 	return true;
 }
 
-
+/** Unlinks wnd.cur from wnd.ppred and schedules a deferred free for the item.
+ * 
+ * Ignores nodes marked N_JOIN if walk mode is WM_LEAVE_JOIN.
+ * 
+ * @param h   CHT to operate on.
+ * @param wnd Points to the item to delete and its N_NORMAL predecessor.
+ * @param walk_mode Bucket chaing walk mode.
+ * @param deleted_but_gc Set to true if the item had been logically deleted, 
+ *         but a garbage collecting walk of the bucket is in order for
+ *         it to be fully unlinked.         
+ * @param resizing Set to true if the table is undergoing an unexpected
+ *         resize (ie walk_mode == WM_NORMAL).
+ * @return False if the wnd.ppred changed in the meantime and the whole
+ *         delete operation must be retried.
+ */
 static inline bool delete_at(cht_t *h, wnd_t *wnd, walk_mode_t walk_mode, 
 	bool *deleted_but_gc, bool *resizing)
 {
@@ -768,6 +991,7 @@ static inline bool delete_at(cht_t *h, wnd_t *wnd, walk_mode_t walk_mode,
 	return true;
 }
 
+/** Marks cur logically deleted. Returns false to request a retry. */
 static inline bool mark_deleted(cht_link_t *cur, walk_mode_t walk_mode, 
 	bool *resizing)
 {
@@ -804,6 +1028,7 @@ static inline bool mark_deleted(cht_link_t *cur, walk_mode_t walk_mode,
 	return true;
 }
 
+/** Unlinks wnd.cur from wnd.ppred. Returns false if it should be retried. */
 static inline bool unlink_from_pred(wnd_t *wnd, walk_mode_t walk_mode, 
 	bool *resizing)
 {
@@ -848,7 +1073,31 @@ static inline bool unlink_from_pred(wnd_t *wnd, walk_mode_t walk_mode,
 	return true;
 }
 
-
+/** Finds the first non-deleted item equal to \a pred_arg according to \a pred.
+ * 
+ * The function returns the candidate item in \a wnd. Logically deleted
+ * nodes are garbage collected so the predecessor will most likely not
+ * be marked as deleted. 
+ * 
+ * Unlike find_wnd_and_gc(), this function never returns a node that
+ * is known to have already been marked N_DELETED.
+ *
+ * Any logically deleted nodes (ie those marked N_DELETED) are garbage
+ * collected, ie free in the background via rcu_call (except for join-nodes
+ * if walk_mode == WM_LEAVE_JOIN).
+ * 
+ * @param h         CHT to operate on.
+ * @param hash      Hash the search for.
+ * @param walk_mode Bucket chain walk mode.
+ * @param pred      Predicate used to find an item equal to pred_arg.
+ * @param pred_arg  Argument to pass to the equality predicate \a pred.
+ * @param[in,out] wnd The search starts with wnd.cur. If the desired
+ *                  item is found wnd.cur will point to it.
+ * @param resizing  Set to true if the table is resizing but it was not
+ *                  expected (ie walk_mode == WM_NORMAL).
+ * @return False if the operation has to be retried. True otherwise 
+ *        (even if an equal item had not been found).
+ */
 static bool find_wnd_and_gc_pred(cht_t *h, size_t hash, walk_mode_t walk_mode, 
 	equal_pred_t pred, void *pred_arg, wnd_t *wnd, bool *resizing)
 {
@@ -898,7 +1147,27 @@ try_again:
 	return true;
 }
 
-/* todo: comment different semantics (eg deleted JN first w/ specific hash) */
+/** Find the first item (deleted or not) with a hash greater or equal to \a hash.
+ * 
+ * The function returns the first item with a hash that is greater or 
+ * equal to \a hash in \a wnd. Moreover it garbage collects logically
+ * deleted node that have not yet been unlinked and freed. Therefore,
+ * the returned node's predecessor will most likely be N_NORMAL.
+ * 
+ * Unlike find_wnd_and_gc_pred(), this function may return a node
+ * that is known to had been marked N_DELETED.
+ *  
+ * @param h         CHT to operate on.
+ * @param hash      Hash of the item to find.
+ * @param walk_mode Bucket chain walk mode.
+ * @param[in,out] wnd wnd.cur denotes the first node of the chain. If the 
+ *                  the operation is successful, \a wnd points to the desired 
+ *                  item.
+ * @param resizing  Set to true if a table resize was detected but walk_mode
+ *                  suggested the table was not undergoing a resize.
+ * @return False indicates the operation must be retried. True otherwise 
+ *       (even if an item with exactly the same has was not found).
+ */
 static bool find_wnd_and_gc(cht_t *h, size_t hash, walk_mode_t walk_mode, 
 	wnd_t *wnd, bool *resizing)
 {
@@ -928,6 +1197,7 @@ try_again:
 	return true;
 }
 
+/** Garbage collects the N_DELETED node at \a wnd skipping join nodes. */
 static bool gc_deleted_node(cht_t *h, walk_mode_t walk_mode, wnd_t *wnd,
 	bool *resizing)
 {
@@ -957,6 +1227,14 @@ static bool gc_deleted_node(cht_t *h, walk_mode_t walk_mode, wnd_t *wnd,
 	return true;
 }
 
+/** Returns true if a bucket join had already completed.
+ * 
+ * May only be called if upd_resizing_head() indicates a bucket join 
+ * may be in progress.
+ * 
+ * If it returns false, the search must be retried in order to guarantee
+ * all item that should have been encountered have been seen.
+ */
 static bool join_completed(cht_t *h, const wnd_t *wnd)
 {
 	/* 
@@ -1008,6 +1286,20 @@ static bool join_completed(cht_t *h, const wnd_t *wnd)
 	return false;
 }
 
+/** When resizing returns the bucket head to start the search with in \a phead.
+ * 
+ * If a resize had been detected (eg cht_t.b.head[idx] is marked immutable).
+ * upd_resizing_head() moves the bucket for \a hash from the old head
+ * to the new head. Moreover, it splits or joins buckets as necessary.
+ * 
+ * @param h     CHT to operate on.
+ * @param hash  Hash of an item whose chain we would like to traverse.
+ * @param[out] phead Head of the bucket to search for \a hash.
+ * @param[out] join_finishing Set to true if a bucket join might be
+ *              in progress and the bucket may have to traversed again
+ *              as indicated by join_completed().
+ * @param[out] walk_mode Specifies how to interpret node marks.  
+ */
 static void upd_resizing_head(cht_t *h, size_t hash, marked_ptr_t **phead, 
 	bool *join_finishing,  walk_mode_t *walk_mode)
 {
@@ -1111,6 +1403,14 @@ static void move_head(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
 }
 #endif
 
+/** Moves an immutable head \a psrc_head of cht_t.b to \a pdest_head of cht_t.new_b. 
+ * 
+ * The function guarantees the move will be visible on this cpu once
+ * it completes. In particular, *pdest_head will not be N_INVALID.
+ * 
+ * Unlike complete_head_move(), help_head_move() checks if the head had already
+ * been moved and tries to avoid moving the bucket heads if possible.
+ */
 static inline void help_head_move(marked_ptr_t *psrc_head, 
 	marked_ptr_t *pdest_head)
 {
@@ -1131,12 +1431,17 @@ static inline void help_head_move(marked_ptr_t *psrc_head,
 	ASSERT(!(N_CONST & get_mark(*pdest_head)));
 }
 
+/** Initiates the move of the old head \a psrc_head.
+ * 
+ * The move may be completed with help_head_move(). 
+ */
 static void start_head_move(marked_ptr_t *psrc_head)
 {
 	/* Mark src head immutable. */
 	mark_const(psrc_head);
 }
 
+/** Marks the head immutable. */
 static void mark_const(marked_ptr_t *psrc_head)
 {
 	marked_ptr_t ret, src_link;
@@ -1151,6 +1456,7 @@ static void mark_const(marked_ptr_t *psrc_head)
 	} while(ret != src_link && !(N_CONST & get_mark(ret)));
 }
 
+/** Completes moving head psrc_head to pdest_head (started by start_head_move()).*/
 static void complete_head_move(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
 {
 	ASSERT(N_JOIN_FOLLOWS != get_mark(*psrc_head));
@@ -1168,6 +1474,19 @@ static void complete_head_move(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head
 	cas_order_barrier();
 }
 
+/** Splits the bucket at psrc_head and links to the remainder from pdest_head.
+ * 
+ * Items with hashes greater or equal to \a split_hash are moved to bucket
+ * with head at \a pdest_head. 
+ * 
+ * @param h           CHT to operate on.
+ * @param psrc_head   Head of the bucket to split (in cht_t.new_b).
+ * @param pdest_head  Head of the bucket that points to the second part
+ *                    of the split bucket in psrc_head. (in cht_t.new_b)
+ * @param split_hash  Hash of the first possible item in the remainder of 
+ *                    psrc_head, ie the smallest hash pdest_head is allowed
+ *                    to point to..
+ */
 static void split_bucket(cht_t *h, marked_ptr_t *psrc_head, 
 	marked_ptr_t *pdest_head, size_t split_hash)
 {
@@ -1250,6 +1569,23 @@ static void split_bucket(cht_t *h, marked_ptr_t *psrc_head,
 	rcu_read_unlock();
 }
 
+/** Finds and marks the last node of psrc_head w/ hash less than split_hash.
+ * 
+ * Finds a node in psrc_head with the greatest hash that is strictly less 
+ * than split_hash and marks it with N_JOIN_FOLLOWS. 
+ * 
+ * Returns a window pointing to that node. 
+ * 
+ * Any logically deleted nodes along the way are 
+ * garbage collected; therefore, the predecessor node (if any) will most 
+ * likely not be marked N_DELETED.
+ * 
+ * @param h          CHT to operate on.
+ * @param psrc_head  Bucket head.
+ * @param split_hash The smallest hash a join node (ie the node following
+ *                   the desired join-follows node) may have.
+ * @param[out] wnd   Points to the node marked with N_JOIN_FOLLOWS.
+ */
 static void mark_join_follows(cht_t *h, marked_ptr_t *psrc_head, 
 	size_t split_hash, wnd_t *wnd)
 {
@@ -1287,6 +1623,7 @@ static void mark_join_follows(cht_t *h, marked_ptr_t *psrc_head,
 	} while (!done);
 }
 
+/** Marks join_node with N_JOIN. */
 static void mark_join_node(cht_link_t *join_node)
 {
 	/* See comment in split_bucket(). */
@@ -1309,7 +1646,13 @@ static void mark_join_node(cht_link_t *join_node)
 	} while(!done);
 }
 
-
+/** Appends the bucket at psrc_head to the bucket at pdest_head.
+ * 
+ * @param h          CHT to operate on.
+ * @param psrc_head  Bucket to merge with pdest_head.
+ * @param pdest_head Bucket to be joined by psrc_head.
+ * @param split_hash The smallest hash psrc_head may contain.
+ */
 static void join_buckets(cht_t *h, marked_ptr_t *psrc_head, 
 	marked_ptr_t *pdest_head, size_t split_hash)
 {
@@ -1406,6 +1749,15 @@ static void join_buckets(cht_t *h, marked_ptr_t *psrc_head,
 	rcu_read_unlock();
 }
 
+/** Links the tail of pdest_head to join_node.
+ * 
+ * @param h          CHT to operate on.
+ * @param pdest_head Head of the bucket whose tail is to be linked to join_node.
+ * @param join_node  A node marked N_JOIN with a hash greater or equal to
+ *                   split_hash.
+ * @param split_hash The least hash that is greater than the hash of any items
+ *                   (originally) in pdest_head.
+ */
 static void link_to_join_node(cht_t *h, marked_ptr_t *pdest_head, 
 	cht_link_t *join_node, size_t split_hash)
 {
@@ -1438,6 +1790,10 @@ static void link_to_join_node(cht_t *h, marked_ptr_t *pdest_head,
 	} while (!done);
 }
 
+/** Instructs RCU to free the item once all preexisting references are dropped. 
+ * 
+ * The item is freed via op->remove_callback().
+ */
 static void free_later(cht_t *h, cht_link_t *item)
 {
 	ASSERT(item != &sentinel);
@@ -1451,6 +1807,11 @@ static void free_later(cht_t *h, cht_link_t *item)
 	item_removed(h);
 }
 
+/** Notes that an item had been unlinked from the table and shrinks it if needed.
+ * 
+ * If the number of items in the table drops below 1/4 of the maximum 
+ * allowed load the table is shrunk in the background.
+ */
 static inline void item_removed(cht_t *h)
 {
 	size_t items = (size_t) atomic_predec(&h->item_cnt);
@@ -1468,6 +1829,10 @@ static inline void item_removed(cht_t *h)
 	}
 }
 
+/** Notes an item had been inserted and grows the table if needed. 
+ * 
+ * The table is resized in the background.
+ */
 static inline void item_inserted(cht_t *h)
 {
 	size_t items = (size_t) atomic_preinc(&h->item_cnt);
@@ -1485,6 +1850,7 @@ static inline void item_inserted(cht_t *h)
 	}
 }
 
+/** Resize request handler. Invoked on the system work queue. */
 static void resize_table(work_t *arg)
 {
 	cht_t *h = member_to_inst(arg, cht_t, resize_work);
@@ -1516,6 +1882,7 @@ static void resize_table(work_t *arg)
 	} while (!done);
 }
 
+/** Increases the number of buckets two-fold. Blocks until done. */
 static void grow_table(cht_t *h)
 {
 	if (h->b->order >= CHT_MAX_ORDER)
@@ -1601,6 +1968,7 @@ static void grow_table(cht_t *h)
 	h->new_b = 0;
 }
 
+/** Halfs the number of buckets. Blocks until done. */
 static void shrink_table(cht_t *h)
 {
 	if (h->b->order <= h->min_order)
@@ -1699,6 +2067,7 @@ static void shrink_table(cht_t *h)
 	h->new_b = 0;
 }
 
+/** Finds and clears the N_JOIN mark from a node in new_head (if present). */
 static void cleanup_join_node(cht_t *h, marked_ptr_t *new_head)
 {
 	rcu_read_lock();
@@ -1718,6 +2087,7 @@ static void cleanup_join_node(cht_t *h, marked_ptr_t *new_head)
 	rcu_read_unlock();
 }
 
+/** Clears the join_node's N_JOIN mark frees it if marked N_DELETED as well. */
 static void clear_join_and_gc(cht_t *h, cht_link_t *join_node, 
 	marked_ptr_t *new_head)
 {
@@ -1765,6 +2135,7 @@ static void clear_join_and_gc(cht_t *h, cht_link_t *join_node,
 	} while (!done);
 }
 
+/** Finds a non-deleted node with N_JOIN_FOLLOWS and clears the mark. */
 static void cleanup_join_follows(cht_t *h, marked_ptr_t *new_head)
 {
 	ASSERT(new_head);
@@ -1840,40 +2211,50 @@ static void cleanup_join_follows(cht_t *h, marked_ptr_t *new_head)
 	rcu_read_unlock();
 }
 
-
+/** Returns the first possible hash following a bucket split point. 
+ * 
+ * In other words the returned hash is the smallest possible hash
+ * the remainder of the split bucket may contain.
+ */
 static inline size_t calc_split_hash(size_t split_idx, size_t order)
 {
 	ASSERT(1 <= order && order <= 8 * sizeof(size_t));
 	return split_idx << (8 * sizeof(size_t) - order);
 }
 
+/** Returns the bucket head index given the table size order and item hash. */
 static inline size_t calc_bucket_idx(size_t hash, size_t order)
 {
 	ASSERT(1 <= order && order <= 8 * sizeof(size_t));
 	return hash >> (8 * sizeof(size_t) - order);
 }
 
+/** Returns the bucket index of destination*/
 static inline size_t grow_to_split_idx(size_t old_idx)
 {
 	return grow_idx(old_idx) | 1;
 }
 
+/** Returns the destination index of a bucket head when the table is growing. */
 static inline size_t grow_idx(size_t idx)
 {
 	return idx << 1;
 }
 
+/** Returns the destination index of a bucket head when the table is shrinking.*/
 static inline size_t shrink_idx(size_t idx)
 {
 	return idx >> 1;
 }
 
+/** Returns a mixed hash of the search key.*/
 static inline size_t calc_key_hash(cht_t *h, void *key)
 {
 	/* Mimic calc_node_hash. */
 	return hash_mix(h->op->key_hash(key)) & ~(size_t)1;
 }
 
+/** Returns a memoized mixed hash of the item. */
 static inline size_t node_hash(cht_t *h, const cht_link_t *item)
 {
 	ASSERT(item->hash == h->invalid_hash 
@@ -1883,6 +2264,7 @@ static inline size_t node_hash(cht_t *h, const cht_link_t *item)
 	return item->hash;
 }
 
+/** Calculates and mixed the hash of the item. */
 static inline size_t calc_node_hash(cht_t *h, const cht_link_t *item)
 {
 	ASSERT(item != &sentinel);
@@ -1893,11 +2275,13 @@ static inline size_t calc_node_hash(cht_t *h, const cht_link_t *item)
 	return hash_mix(h->op->hash(item)) & ~(size_t)1;
 }
 
+/** Computes and memoizes the hash of the item. */
 static inline void memoize_node_hash(cht_t *h, cht_link_t *item)
 {
 	item->hash = calc_node_hash(h, item);
 }
 
+/** Packs the next pointer address and the mark into a single pointer. */
 static inline marked_ptr_t make_link(const cht_link_t *next, mark_t mark)
 {
 	marked_ptr_t ptr = (marked_ptr_t) next;
@@ -1908,19 +2292,19 @@ static inline marked_ptr_t make_link(const cht_link_t *next, mark_t mark)
 	return ptr | mark;
 }
 
-
+/** Strips any marks from the next item link and returns the next item's address.*/
 static inline cht_link_t * get_next(marked_ptr_t link)
 {
 	return (cht_link_t*)(link & ~N_MARK_MASK);
 }
 
-
+/** Returns the current node's mark stored in the next item link. */
 static inline mark_t get_mark(marked_ptr_t link)
 {
 	return (mark_t)(link & N_MARK_MASK);
 }
 
-
+/** Moves the window by one item so that is points to the next item. */
 static inline void next_wnd(wnd_t *wnd)
 {
 	ASSERT(wnd);
@@ -1931,13 +2315,14 @@ static inline void next_wnd(wnd_t *wnd)
 	wnd->cur = get_next(wnd->cur->link);
 }
 
-
+/** Predicate that matches only exactly the same node. */
 static bool same_node_pred(void *node, const cht_link_t *item2)
 {
 	const cht_link_t *item1 = (const cht_link_t*) node;
 	return item1 == item2;
 }
 
+/** Compare-and-swaps a next item link. */
 static inline marked_ptr_t cas_link(marked_ptr_t *link, const cht_link_t *cur_next, 
 	mark_t cur_mark, const cht_link_t *new_next, mark_t new_mark)
 {
@@ -1945,6 +2330,7 @@ static inline marked_ptr_t cas_link(marked_ptr_t *link, const cht_link_t *cur_ne
 		make_link(new_next, new_mark));
 }
 
+/** Compare-and-swaps a next item link. */
 static inline marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur, 
 	marked_ptr_t new)
 {
@@ -1975,6 +2361,7 @@ static inline marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur,
 	return (marked_ptr_t) ret;
 }
 
+/** Orders compare-and-swaps to different memory locations. */
 static inline void cas_order_barrier(void)
 {
 	/* Make sure CAS to different memory locations are ordered. */
