@@ -35,7 +35,7 @@
 
 #include <minix.h>
 #include <macros.h>
-#include <libblock.h>
+#include <block.h>
 #include <libfs.h>
 #include <adt/list.h>
 #include <malloc.h>

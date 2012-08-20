@@ -36,7 +36,7 @@
 #ifndef LIBEXT2_LIBEXT2_FILESYSTEM_H_
 #define LIBEXT2_LIBEXT2_FILESYSTEM_H_
 
-#include <libblock.h>
+#include <block.h>
 #include "libext2_superblock.h"
 #include "libext2_block_group.h"
 #include "libext2_inode.h"

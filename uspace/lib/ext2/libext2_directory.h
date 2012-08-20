@@ -36,7 +36,7 @@
 #ifndef LIBEXT2_LIBEXT2_DIRECTORY_H_
 #define LIBEXT2_LIBEXT2_DIRECTORY_H_
 
-#include <libblock.h>
+#include <block.h>
 #include "libext2_filesystem.h"
 #include "libext2_inode.h"
 

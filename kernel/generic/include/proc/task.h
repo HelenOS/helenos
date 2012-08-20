@@ -97,7 +97,6 @@ typedef struct task {
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
 	stats_ipc_t ipc_info;   /**< IPC statistics */
-	list_t sync_boxes;      /**< List of synchronous answerboxes. */
 	event_t events[EVENT_TASK_END - EVENT_END];
 	
 #ifdef CONFIG_UDEBUG

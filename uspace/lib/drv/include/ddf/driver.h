@@ -41,12 +41,13 @@
 #include <ipc/dev_iface.h>
 #include "../dev_iface.h"
 
-typedef struct ddf_dev ddf_dev_t;
-typedef struct ddf_fun ddf_fun_t;
 
 /*
  * Device
  */
+
+typedef struct ddf_dev ddf_dev_t;
+typedef struct ddf_fun ddf_fun_t;
 
 /** Devices operations */
 typedef struct ddf_dev_ops {
@@ -74,67 +75,10 @@ typedef struct ddf_dev_ops {
 } ddf_dev_ops_t;
 
 /** Device structure */
-struct ddf_dev {
-	/**
-	 * Globally unique device identifier (assigned to the device by the
-	 * device manager).
-	 */
-	devman_handle_t handle;
-	
-	/** Reference count */
-	atomic_t refcnt;
-	
-	/**
-	 * Session to the parent device driver (if it is different from this
-	 * driver)
-	 */
-	async_sess_t *parent_sess;
-	
-	/** Device name */
-	const char *name;
-	
-	/** Driver-specific data associated with this device */
-	void *driver_data;
-	
-	/** Link in the list of devices handled by the driver */
-	link_t link;
-};
+struct ddf_dev;
 
 /** Function structure */
-struct ddf_fun {
-	/** True if bound to the device manager */
-	bool bound;
-	
-	/** Function indentifier (asigned by device manager) */
-	devman_handle_t handle;
-	
-	/** Reference count */
-	atomic_t refcnt;
-	
-	/** Device which this function belogs to */
-	ddf_dev_t *dev;
-	
-	/** Function type */
-	fun_type_t ftype;
-	
-	/** Function name */
-	const char *name;
-	
-	/** List of device ids for driver matching */
-	match_id_list_t match_ids;
-	
-	/** Driver-specific data associated with this function */
-	void *driver_data;
-	
-	/** Implementation of operations provided by this function */
-	ddf_dev_ops_t *ops;
-	
-	/** Connection handler or @c NULL to use the DDF default handler. */
-	async_client_conn_t conn_handler;
-	
-	/** Link in the list of functions handled by the driver */
-	link_t link;
-};
+struct ddf_fun;
 
 /*
  * Driver
@@ -166,18 +110,34 @@ typedef struct driver {
 	driver_ops_t *driver_ops;
 } driver_t;
 
+/** XXX Only to transition USB */
+#ifdef _DDF_DATA_IMPLANT
+extern void ddf_fun_data_implant(ddf_fun_t *, void *);
+#endif
+
 extern int ddf_driver_main(driver_t *);
 
 extern void *ddf_dev_data_alloc(ddf_dev_t *, size_t);
+extern void *ddf_dev_data_get(ddf_dev_t *);
+extern devman_handle_t ddf_dev_get_handle(ddf_dev_t *);
+extern const char *ddf_dev_get_name(ddf_dev_t *);
+extern async_sess_t *ddf_dev_parent_sess_create(ddf_dev_t *, exch_mgmt_t);
+extern async_sess_t *ddf_dev_parent_sess_get(ddf_dev_t *);
 extern ddf_fun_t *ddf_fun_create(ddf_dev_t *, fun_type_t, const char *);
+extern devman_handle_t ddf_fun_get_handle(ddf_fun_t *);
 extern void ddf_fun_destroy(ddf_fun_t *);
 extern void *ddf_fun_data_alloc(ddf_fun_t *, size_t);
+extern void *ddf_fun_data_get(ddf_fun_t *);
+extern const char *ddf_fun_get_name(ddf_fun_t *);
+extern int ddf_fun_set_name(ddf_fun_t *, const char *);
+extern ddf_dev_t *ddf_fun_get_dev(ddf_fun_t *);
 extern int ddf_fun_bind(ddf_fun_t *);
 extern int ddf_fun_unbind(ddf_fun_t *);
 extern int ddf_fun_online(ddf_fun_t *);
 extern int ddf_fun_offline(ddf_fun_t *);
 extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
-
+extern void ddf_fun_set_ops(ddf_fun_t *, ddf_dev_ops_t *);
+extern void ddf_fun_set_conn_handler(ddf_fun_t *, async_client_conn_t);
 extern int ddf_fun_add_to_category(ddf_fun_t *, const char *);
 
 #endif

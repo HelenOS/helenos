@@ -52,8 +52,6 @@ const sc_desc_t syscall_desc[] = {
     [SYS_AS_AREA_RESIZE] = { "as_area_resize",		3,	V_ERRNO },
     [SYS_AS_AREA_DESTROY] = { "as_area_destroy",	1,	V_ERRNO },
 
-    [SYS_IPC_CALL_SYNC_FAST] = { "ipc_call_sync_fast",	6,	V_ERRNO },
-    [SYS_IPC_CALL_SYNC_SLOW] = { "ipc_call_sync_slow",	3,	V_ERRNO },
     [SYS_IPC_CALL_ASYNC_FAST] = { "ipc_call_async_fast", 6,	V_HASH },
     [SYS_IPC_CALL_ASYNC_SLOW] = { "ipc_call_async_slow", 2,	V_HASH },
 

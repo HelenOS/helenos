@@ -1075,7 +1075,6 @@ void dev_del_ref(dev_node_t *dev)
 		delete_dev_node(dev);
 }
 
-
 /** Find the device node structure of the device witch has the specified handle.
  *
  * @param tree		The device tree where we look for the device node.
@@ -1162,6 +1161,7 @@ fun_node_t *create_fun_node(void)
 	
 	fun->state = FUN_INIT;
 	atomic_set(&fun->refcnt, 0);
+	fibril_mutex_initialize(&fun->busy_lock);
 	link_initialize(&fun->dev_functions);
 	list_initialize(&fun->match_ids.ids);
 	
@@ -1202,6 +1202,18 @@ void fun_del_ref(fun_node_t *fun)
 {
 	if (atomic_predec(&fun->refcnt) == 0)
 		delete_fun_node(fun);
+}
+
+/** Make function busy for reconfiguration operations. */
+void fun_busy_lock(fun_node_t *fun)
+{
+	fibril_mutex_lock(&fun->busy_lock);
+}
+
+/** Mark end of reconfiguration operation. */
+void fun_busy_unlock(fun_node_t *fun)
+{
+	fibril_mutex_unlock(&fun->busy_lock);
 }
 
 /** Find the function node with the specified handle.

@@ -36,6 +36,7 @@
 #define LIBC_IO_CONSOLE_H_
 
 #include <sys/time.h>
+#include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <async.h>
 #include <bool.h>
@@ -68,29 +69,6 @@ typedef struct {
 	/** Input response with timeout */
 	aid_t input_aid;
 } console_ctrl_t;
-
-typedef enum {
-	KEY_PRESS,
-	KEY_RELEASE
-} kbd_event_type_t;
-
-/** Console event structure. */
-typedef struct {
-	/** List handle */
-	link_t link;
-	
-	/** Press or release event. */
-	kbd_event_type_t type;
-	
-	/** Keycode of the key that was pressed or released. */
-	keycode_t key;
-	
-	/** Bitmask of modifiers held. */
-	keymod_t mods;
-	
-	/** The character that was generated or '\0' for none. */
-	wchar_t c;
-} kbd_event_t;
 
 extern console_ctrl_t *console_init(FILE *, FILE *);
 extern void console_done(console_ctrl_t *);

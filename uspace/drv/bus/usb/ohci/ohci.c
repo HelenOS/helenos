@@ -32,6 +32,10 @@
 /** @file
  * @brief OHCI driver
  */
+
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
@@ -51,10 +55,9 @@ typedef struct ohci {
 	hc_t hc;
 } ohci_t;
 
-static inline ohci_t * dev_to_ohci(ddf_dev_t *dev)
+static inline ohci_t *dev_to_ohci(ddf_dev_t *dev)
 {
-	assert(dev);
-	return dev->driver_data;
+	return ddf_dev_data_get(dev);
 }
 /** IRQ handling callback, identifies device
  *
@@ -86,7 +89,7 @@ static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
 	assert(fun);
 
 	if (address != NULL) {
-		*address = dev_to_ohci(fun->dev)->hc.rh.address;
+		*address = dev_to_ohci(ddf_fun_get_dev(fun))->hc.rh.address;
 	}
 
 	return EOK;
@@ -102,11 +105,11 @@ static int rh_get_hc_handle(
     ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
-	ddf_fun_t *hc_fun = dev_to_ohci(fun->dev)->hc_fun;
+	ddf_fun_t *hc_fun = dev_to_ohci(ddf_fun_get_dev(fun))->hc_fun;
 	assert(hc_fun);
 
 	if (handle != NULL)
-		*handle = hc_fun->handle;
+		*handle = ddf_fun_get_handle(hc_fun);
 	return EOK;
 }
 
@@ -151,11 +154,9 @@ int device_setup_ohci(ddf_dev_t *device)
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) { \
-		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	} \
 	if (instance->rh_fun) { \
-		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
 	usb_log_error(message); \
@@ -166,14 +167,14 @@ if (ret != EOK) { \
 	int ret = instance->hc_fun ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to create OHCI HC function: %s.\n", str_error(ret));
-	instance->hc_fun->ops = &hc_ops;
-	instance->hc_fun->driver_data = &instance->hc;
+	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
+	ddf_fun_data_implant(instance->hc_fun, &instance->hc);
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
 	ret = instance->rh_fun ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to create OHCI RH function: %s.\n", str_error(ret));
-	instance->rh_fun->ops = &rh_ops;
+	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
 
 	uintptr_t reg_base = 0;
 	size_t reg_size = 0;
@@ -182,7 +183,7 @@ if (ret != EOK) { \
 	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to get register memory addresses for %" PRIun ": %s.\n",
-	    device->handle, str_error(ret));
+	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 

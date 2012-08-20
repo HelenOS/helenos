@@ -172,7 +172,6 @@ extern long double __powitf2(long double, int);
 extern long double __powixf2(long double, int);
 
 /* SPARC quadruple-precision wrappers */
-
 extern void _Qp_add(long double *, long double *, long double *);
 extern void _Qp_sub(long double *, long double *, long double *);
 extern void _Qp_mul(long double *, long double *, long double *);
@@ -202,6 +201,21 @@ extern int _Qp_fgt(long double *, long double *);
 extern int _Qp_fle(long double*, long double *);
 extern int _Qp_flt(long double *, long double *);
 extern int _Qp_fne(long double *, long double *);
+
+/* ARM EABI */
+extern double __aeabi_i2d(int);
+extern double __aeabi_ui2d(unsigned int);
+extern unsigned int __aeabi_d2uiz(double);
+extern int __aeabi_d2iz(double);
+
+extern int __aeabi_dcmpge(double, double);
+extern int __aeabi_dcmpgt(double, double);
+extern int __aeabi_dcmplt(double, double);
+
+extern double __aeabi_dadd(double, double);
+extern double __aeabi_dsub(double, double);
+extern double __aeabi_dmul(double, double);
+extern double __aeabi_ddiv(double, double);
 
 /* Not implemented yet */
 extern void _Qp_sqrt(long double *, long double *);
