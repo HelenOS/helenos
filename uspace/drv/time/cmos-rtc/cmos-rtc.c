@@ -70,6 +70,8 @@ typedef struct rtc {
 	ioport8_t *port;
 	/** true if device is removed */
 	bool removed;
+	/** time at which the system booted */
+	time_t boottime;
 } rtc_t;
 
 static rtc_t *dev_rtc(ddf_dev_t *dev);
@@ -93,7 +95,6 @@ static void rtc_register_write(rtc_t *rtc, int reg, int data);
 static time_t uptime_get(void);
 
 static ddf_dev_ops_t rtc_dev_ops;
-static time_t boottime = 0;
 
 /** The RTC device driver's standard operations */
 static driver_ops_t rtc_ops = {
@@ -297,12 +298,17 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	bool pm_mode = false;
 	rtc_t *rtc = fun_rtc(fun);
 
-	if (boottime != 0) {
+	fibril_mutex_lock(&rtc->mutex);
+
+	if (rtc->boottime != 0) {
 		/* There is no need to read the current time from the
 		 * device because it has already been cached.
 		 */
 
-		time_t cur_time = boottime + uptime_get();
+		time_t cur_time = rtc->boottime + uptime_get();
+
+		fibril_mutex_unlock(&rtc->mutex);
+
 		return localtime2tm(cur_time, t);
 	}
 
@@ -371,12 +377,12 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		t->tm_year += 100;
 	}
 
-	fibril_mutex_unlock(&rtc->mutex);
-
 	/* Try to normalize the content of the tm structure */
 	time_t r = mktime(t);
 
-	boottime = r - uptime_get();
+	rtc->boottime = r - uptime_get();
+
+	fibril_mutex_unlock(&rtc->mutex);
 
 	return r < 0 ? EINVAL : EOK;
 }
@@ -409,10 +415,10 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 		return EINVAL;
 	}
 
-	/* boottime must be recomputed */
-	boottime = 0;
-
 	fibril_mutex_lock(&rtc->mutex);
+
+	/* boottime must be recomputed */
+	rtc->boottime = 0;
 
 	/* Detect the RTC epoch */
 	if (rtc_register_read(rtc, RTC_YEAR) < 100)
