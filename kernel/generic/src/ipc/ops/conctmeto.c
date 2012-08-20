@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2012 Jakub Jermar 
  * All rights reserved.
  *
@@ -33,15 +34,44 @@
  */
 
 #include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <ipc/ipcrsc.h>
+#include <abi/errno.h>
+#include <arch.h>
 
-static sysipc_ops_t ipc_m_connect_me_to_ops = {
-	.request_preprocess = null_request_preprocess,
+static int request_preprocess(call_t *call, phone_t *phone)
+{
+	int newphid = phone_alloc(TASK);
+
+	if (newphid < 0)
+		return ELIMIT;
+		
+	/* Set arg5 for server */
+	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
+	call->flags |= IPC_CALL_CONN_ME_TO;
+	call->priv = newphid;
+
+	return EOK;
+}
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
+
+	/* If the user accepted call, connect */
+	if (IPC_GET_RETVAL(answer->data) == EOK)
+		ipc_phone_connect(phone, &TASK->answerbox);
+
+	return EOK;
+}
+
+
+sysipc_ops_t ipc_m_connect_me_to_ops = {
+	.request_preprocess = request_preprocess,
 	.request_process = null_request_process,
-	.answer_preprocess = null_answer_preprocess,
+	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };
-
-sysipc_ops_t *ipc_m_connect_me_to_ops_p = &ipc_m_connect_me_to_ops;
 
 /** @}
  */

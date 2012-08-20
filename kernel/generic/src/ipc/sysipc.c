@@ -33,52 +33,25 @@
  */
 
 #include <arch.h>
-#include <proc/task.h>
-#include <proc/thread.h>
 #include <errno.h>
 #include <memstr.h>
-#include <debug.h>
 #include <ipc/ipc.h>
 #include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
+#include <ipc/sysipc_ops.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
 #include <ipc/kbox.h>
 #include <synch/waitq.h>
-#include <udebug/udebug_ipc.h>
 #include <arch/interrupt.h>
 #include <syscall/copy.h>
 #include <security/cap.h>
 #include <console/console.h>
-#include <mm/as.h>
 #include <print.h>
 #include <macros.h>
 
-/**
- * Maximum buffer size allowed for IPC_M_DATA_WRITE and IPC_M_DATA_READ
- * requests.
- */
-#define DATA_XFER_LIMIT  (64 * 1024)
-
 #define STRUCT_TO_USPACE(dst, src)  copy_to_uspace((dst), (src), sizeof(*(src)))
-
-/** Get phone from the current task by ID.
- *
- * @param phoneid Phone ID.
- * @param phone   Place to store pointer to phone.
- *
- * @return EOK on success, EINVAL if ID is invalid.
- *
- */
-static int phone_get(sysarg_t phoneid, phone_t **phone)
-{
-	if (phoneid >= IPC_MAX_PHONES)
-		return EINVAL;
-	
-	*phone = &TASK->phones[phoneid];
-	return EOK;
-}
 
 /** Decide if the interface and method is a system method.
  *
@@ -173,278 +146,6 @@ static inline bool answer_need_old(call_t *call)
 	}
 }
 
-static void cleanup_m_connection_clone(call_t *answer, ipc_data_t *olddata)
-{
-	int phoneid = (int) IPC_GET_ARG1(*olddata);
-	phone_t *phone = &TASK->phones[phoneid];
-
-	/*
-	 * In this case, the connection was established at the request time and
-	 * therefore we need to slam the phone.  We don't merely hangup as that
-	 * would result in sending IPC_M_HUNGUP to the third party on the other
-	 * side of the cloned phone.
-	 */
-	mutex_lock(&phone->lock);
-	if (phone->state == IPC_PHONE_CONNECTED) {
-		irq_spinlock_lock(&phone->callee->lock, true);
-		list_remove(&phone->link);
-		phone->state = IPC_PHONE_SLAMMED;
-		irq_spinlock_unlock(&phone->callee->lock, true);
-	}
-	mutex_unlock(&phone->lock);
-}
-
-static int a_preprocess_m_connection_clone(call_t *answer, ipc_data_t *olddata)
-{
-	if (IPC_GET_RETVAL(answer->data) != EOK) {
-		/*
-		 * The recipient of the cloned phone rejected the offer.
-		 */
-		cleanup_m_connection_clone(answer, olddata);
-	}
-
-	return EOK;
-}
-
-static int a_preprocess_m_clone_establish(call_t *answer, ipc_data_t *olddata)
-{
-	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
-
-	if (IPC_GET_RETVAL(answer->data) != EOK) {
-		/*
-		 * The other party on the cloned phone rejected our request
-		 * for connection on the protocol level.  We need to break the
-		 * connection without sending IPC_M_HUNGUP back.
-		 */
-		mutex_lock(&phone->lock);
-		if (phone->state == IPC_PHONE_CONNECTED) {
-			irq_spinlock_lock(&phone->callee->lock, true);
-			list_remove(&phone->link);
-			phone->state = IPC_PHONE_SLAMMED;
-			irq_spinlock_unlock(&phone->callee->lock, true);
-		}
-		mutex_unlock(&phone->lock);
-	}
-	
-	return EOK;
-}
-
-static void cleanup_m_connect_to_me(call_t *answer, ipc_data_t *olddata)
-{
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
-	
-	phone_dealloc(phoneid);
-}
-
-static int a_preprocess_m_connect_to_me(call_t *answer, ipc_data_t *olddata)
-{
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
-
-	if (IPC_GET_RETVAL(answer->data) != EOK) {
-		/* The connection was not accepted */
-		cleanup_m_connect_to_me(answer, olddata);
-	} else {
-		/* The connection was accepted */
-		phone_connect(phoneid, &answer->sender->answerbox);
-		/* Set 'phone hash' as arg5 of response */
-		IPC_SET_ARG5(answer->data, (sysarg_t) &TASK->phones[phoneid]);
-	}
-
-	return EOK;
-}
-
-static void cleanup_m_connect_me_to(call_t *answer, ipc_data_t *olddata)
-{
-	/* FIXME: answer->priv phone needs to be deallocated. */
-}
-
-static int a_preprocess_m_connect_me_to(call_t *answer, ipc_data_t *olddata)
-{
-	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
-
-	/* If the user accepted call, connect */
-	if (IPC_GET_RETVAL(answer->data) == EOK)
-		ipc_phone_connect(phone, &TASK->answerbox);
-
-	return EOK;
-}
-
-static int a_preprocess_m_share_out(call_t *answer, ipc_data_t *olddata)
-{
-	int rc = EOK;
-
-	if (!IPC_GET_RETVAL(answer->data)) {
-		/* Accepted, handle as_area receipt */
-
-		irq_spinlock_lock(&answer->sender->lock, true);
-		as_t *as = answer->sender->as;
-		irq_spinlock_unlock(&answer->sender->lock, true);
-
-		uintptr_t dst_base = (uintptr_t) -1;
-		rc = as_area_share(as, IPC_GET_ARG1(*olddata),
-		    IPC_GET_ARG2(*olddata), AS, IPC_GET_ARG3(*olddata),
-		    &dst_base, IPC_GET_ARG1(answer->data));
-			
-		if (rc == EOK) {
-			rc = copy_to_uspace((void *) IPC_GET_ARG2(answer->data),
-			    &dst_base, sizeof(dst_base));
-		}
-			
-		IPC_SET_RETVAL(answer->data, rc);
-	}
-
-	return rc;
-}
-
-static int a_preprocess_m_share_in(call_t *answer, ipc_data_t *olddata)
-{
-	if (!IPC_GET_RETVAL(answer->data)) {
-		irq_spinlock_lock(&answer->sender->lock, true);
-		as_t *as = answer->sender->as;
-		irq_spinlock_unlock(&answer->sender->lock, true);
-			
-		uintptr_t dst_base = (uintptr_t) -1;
-		int rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
-		    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
-		    &dst_base, IPC_GET_ARG3(answer->data));
-		IPC_SET_ARG4(answer->data, dst_base);
-		IPC_SET_RETVAL(answer->data, rc);
-	}
-	
-	return EOK;
-}
-
-static int a_preprocess_m_data_read(call_t *answer, ipc_data_t *olddata)
-{
-	ASSERT(!answer->buffer);
-	if (!IPC_GET_RETVAL(answer->data)) {
-		/* The recipient agreed to send data. */
-		uintptr_t src = IPC_GET_ARG1(answer->data);
-		uintptr_t dst = IPC_GET_ARG1(*olddata);
-		size_t max_size = IPC_GET_ARG2(*olddata);
-		size_t size = IPC_GET_ARG2(answer->data);
-		if (size && size <= max_size) {
-			/*
-			 * Copy the destination VA so that this piece of
-			 * information is not lost.
-			 */
-			IPC_SET_ARG1(answer->data, dst);
-				
-			answer->buffer = malloc(size, 0);
-			int rc = copy_from_uspace(answer->buffer,
-			    (void *) src, size);
-			if (rc) {
-				IPC_SET_RETVAL(answer->data, rc);
-				free(answer->buffer);
-				answer->buffer = NULL;
-			}
-		} else if (!size) {
-			IPC_SET_RETVAL(answer->data, EOK);
-		} else {
-			IPC_SET_RETVAL(answer->data, ELIMIT);
-		}
-	}
-
-	return EOK;
-}
-
-static int a_preprocess_m_data_write(call_t *answer, ipc_data_t *olddata)
-{
-	ASSERT(answer->buffer);
-	if (!IPC_GET_RETVAL(answer->data)) {
-		/* The recipient agreed to receive data. */
-		uintptr_t dst = (uintptr_t)IPC_GET_ARG1(answer->data);
-		size_t size = (size_t)IPC_GET_ARG2(answer->data);
-		size_t max_size = (size_t)IPC_GET_ARG2(*olddata);
-			
-		if (size <= max_size) {
-			int rc = copy_to_uspace((void *) dst,
-			    answer->buffer, size);
-			if (rc)
-				IPC_SET_RETVAL(answer->data, rc);
-		} else {
-			IPC_SET_RETVAL(answer->data, ELIMIT);
-		}
-	}
-	free(answer->buffer);
-	answer->buffer = NULL;
-
-	return EOK;
-}
-
-static int
-a_preprocess_m_state_change_authorize(call_t *answer, ipc_data_t *olddata)
-{
-	int rc = EOK;
-
-	if (!IPC_GET_RETVAL(answer->data)) {
-		/* The recipient authorized the change of state. */
-		phone_t *recipient_phone;
-		task_t *other_task_s;
-		task_t *other_task_r;
-
-		rc = phone_get(IPC_GET_ARG1(answer->data),
-		    &recipient_phone);
-		if (rc != EOK) {
-			IPC_SET_RETVAL(answer->data, ENOENT);
-			return ENOENT;
-		}
-
-		mutex_lock(&recipient_phone->lock);
-		if (recipient_phone->state != IPC_PHONE_CONNECTED) {
-			mutex_unlock(&recipient_phone->lock);
-			IPC_SET_RETVAL(answer->data, EINVAL);
-			return EINVAL;
-		}
-
-		other_task_r = recipient_phone->callee->task;
-		other_task_s = (task_t *) IPC_GET_ARG5(*olddata);
-
-		/*
-		 * See if both the sender and the recipient meant the
-		 * same third party task.
-		 */
-		if (other_task_r != other_task_s) {
-			IPC_SET_RETVAL(answer->data, EINVAL);
-			rc = EINVAL;
-		} else {
-			rc = event_task_notify_5(other_task_r,
-			    EVENT_TASK_STATE_CHANGE, false,
-			    IPC_GET_ARG1(*olddata),
-			    IPC_GET_ARG2(*olddata),
-			    IPC_GET_ARG3(*olddata),
-			    LOWER32(olddata->task_id),
-			    UPPER32(olddata->task_id));
-			IPC_SET_RETVAL(answer->data, rc);
-		}
-
-		mutex_unlock(&recipient_phone->lock);
-	}
-
-	return rc;
-}
-
-/** Cleanup additional resources associated with the answer. */
-static void cleanup_forgotten(call_t *answer, ipc_data_t *olddata)
-{
-	if (!olddata)
-		return;
-
-	switch (IPC_GET_IMETHOD(*olddata)) {
-	case IPC_M_CONNECTION_CLONE:
-		cleanup_m_connection_clone(answer, olddata);
-		break;
-	case IPC_M_CONNECT_TO_ME:
-		cleanup_m_connect_to_me(answer, olddata);
-		break;
-	case IPC_M_CONNECT_ME_TO:
-		cleanup_m_connect_me_to(answer, olddata);
-		break;
-	default:
-		break;
-	}
-}
-
 /** Interpret process answer as control information.
  *
  * This function is called directly after sys_ipc_answer().
@@ -465,7 +166,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 * This is a forgotten call and answer->sender is not valid.
 		 */
 		spinlock_unlock(&answer->forget_lock);
-		cleanup_forgotten(answer, olddata);
+		/* TODO: cleanup? */
 		return rc;
 	} else {
 		/*
@@ -495,196 +196,14 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		return rc;
 	}
 	
-	switch (IPC_GET_IMETHOD(*olddata)) {
-	case IPC_M_CONNECTION_CLONE:
-		rc = a_preprocess_m_connection_clone(answer, olddata);
-		break;
-	case IPC_M_CLONE_ESTABLISH:
-		rc = a_preprocess_m_clone_establish(answer, olddata);
-		break;
-	case IPC_M_CONNECT_TO_ME:
-		rc = a_preprocess_m_connect_to_me(answer, olddata);
-		break;
-	case IPC_M_CONNECT_ME_TO:
-		rc = a_preprocess_m_connect_me_to(answer, olddata);
-		break;
-	case IPC_M_SHARE_OUT:
-		rc = a_preprocess_m_share_out(answer, olddata);
-		break;
-	case IPC_M_SHARE_IN:
-		rc = a_preprocess_m_share_in(answer, olddata);
-		break;
-	case IPC_M_DATA_READ:
-		rc = a_preprocess_m_data_read(answer, olddata);
-		break;
-	case IPC_M_DATA_WRITE:
-		rc = a_preprocess_m_data_write(answer, olddata);
-		break;
-	case IPC_M_STATE_CHANGE_AUTHORIZE:
-		rc = a_preprocess_m_state_change_authorize(answer, olddata);
-		break;
-	default:
-		break;
-	}
+
+	sysipc_ops_t *ops = sysipc_ops_get(IPC_GET_IMETHOD(*olddata));
+	if (ops->answer_preprocess)
+		rc = ops->answer_preprocess(answer, olddata);
 	
 	task_release(answer->sender);
 
 	return rc;
-}
-
-static void phones_lock(phone_t *p1, phone_t *p2)
-{
-	if (p1 < p2) {
-		mutex_lock(&p1->lock);
-		mutex_lock(&p2->lock);
-	} else if (p1 > p2) {
-		mutex_lock(&p2->lock);
-		mutex_lock(&p1->lock);
-	} else
-		mutex_lock(&p1->lock);
-}
-
-static void phones_unlock(phone_t *p1, phone_t *p2)
-{
-	mutex_unlock(&p1->lock);
-	if (p1 != p2)
-		mutex_unlock(&p2->lock);
-}
-
-static int r_preprocess_m_connection_clone(call_t *call, phone_t *phone)
-{
-	phone_t *cloned_phone;
-
-	if (phone_get(IPC_GET_ARG1(call->data), &cloned_phone) != EOK)
-		return ENOENT;
-		
-	phones_lock(cloned_phone, phone);
-		
-	if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
-	    phone->state != IPC_PHONE_CONNECTED) {
-		phones_unlock(cloned_phone, phone);
-		return EINVAL;
-	}
-		
-	/*
-	 * We can be pretty sure now that both tasks exist and we are
-	 * connected to them. As we continue to hold the phone locks,
-	 * we are effectively preventing them from finishing their
-	 * potential cleanup.
-	 *
-	 */
-	int newphid = phone_alloc(phone->callee->task);
-	if (newphid < 0) {
-		phones_unlock(cloned_phone, phone);
-		return ELIMIT;
-	}
-		
-	ipc_phone_connect(&phone->callee->task->phones[newphid],
-	    cloned_phone->callee);
-	phones_unlock(cloned_phone, phone);
-		
-	/* Set the new phone for the callee. */
-	IPC_SET_ARG1(call->data, newphid);
-
-	return EOK;
-}
-
-static int r_preprocess_m_clone_establish(call_t *call, phone_t *phone)
-{
-	IPC_SET_ARG5(call->data, (sysarg_t) phone);
-
-	return EOK;	
-}
-
-static int r_preprocess_m_connect_me_to(call_t *call, phone_t *phone)
-{
-	int newphid = phone_alloc(TASK);
-
-	if (newphid < 0)
-		return ELIMIT;
-		
-	/* Set arg5 for server */
-	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
-	call->flags |= IPC_CALL_CONN_ME_TO;
-	call->priv = newphid;
-
-	return EOK;
-}
-
-static int r_preprocess_m_share_out(call_t *call, phone_t *phone)
-{
-	size_t size = as_area_get_size(IPC_GET_ARG1(call->data));
-
-	if (!size)
-		return EPERM;
-	IPC_SET_ARG2(call->data, size);
-
-	return EOK;
-}
-
-static int r_preprocess_m_data_read(call_t *call, phone_t *phone)
-{
-	size_t size = IPC_GET_ARG2(call->data);
-
-	if (size > DATA_XFER_LIMIT) {
-		int flags = IPC_GET_ARG3(call->data);
-
-		if (flags & IPC_XF_RESTRICT)
-			IPC_SET_ARG2(call->data, DATA_XFER_LIMIT);
-		else
-			return ELIMIT;
-	}
-
-	return EOK;
-}
-
-static int r_preprocess_m_data_write(call_t *call, phone_t *phone)
-{
-	uintptr_t src = IPC_GET_ARG1(call->data);
-	size_t size = IPC_GET_ARG2(call->data);
-
-	if (size > DATA_XFER_LIMIT) {
-		int flags = IPC_GET_ARG3(call->data);
-
-		if (flags & IPC_XF_RESTRICT) {
-			size = DATA_XFER_LIMIT;
-			IPC_SET_ARG2(call->data, size);
-		} else
-			return ELIMIT;
-	}
-
-	call->buffer = (uint8_t *) malloc(size, 0);
-	int rc = copy_from_uspace(call->buffer, (void *) src, size);
-	if (rc != 0) {
-		free(call->buffer);
-		return rc;
-	}
-		
-	return EOK;
-}
-
-static int r_preprocess_m_state_change_authorize(call_t *call, phone_t *phone)
-{
-	phone_t *sender_phone;
-	task_t *other_task_s;
-
-	if (phone_get(IPC_GET_ARG5(call->data), &sender_phone) != EOK)
-		return ENOENT;
-
-	mutex_lock(&sender_phone->lock);
-	if (sender_phone->state != IPC_PHONE_CONNECTED) {
-		mutex_unlock(&sender_phone->lock);
-		return EINVAL;
-	}
-
-	other_task_s = sender_phone->callee->task;
-
-	mutex_unlock(&sender_phone->lock);
-
-	/* Remember the third party task hash. */
-	IPC_SET_ARG5(call->data, (sysarg_t) other_task_s);
-
-	return EOK;
 }
 
 /** Called before the request is sent.
@@ -699,36 +218,9 @@ static int request_preprocess(call_t *call, phone_t *phone)
 {
 	int rc = EOK;
 
-	switch (IPC_GET_IMETHOD(call->data)) {
-	case IPC_M_CONNECTION_CLONE:
-		rc = r_preprocess_m_connection_clone(call, phone); 
-		break;
-	case IPC_M_CLONE_ESTABLISH:
-		rc = r_preprocess_m_clone_establish(call, phone); 
-		break;
-	case IPC_M_CONNECT_ME_TO:
-		rc = r_preprocess_m_connect_me_to(call, phone); 
-		break;
-	case IPC_M_SHARE_OUT:
-		rc = r_preprocess_m_share_out(call, phone); 
-		break;
-	case IPC_M_DATA_READ:
-		rc = r_preprocess_m_data_read(call, phone); 
-		break;
-	case IPC_M_DATA_WRITE:
-		rc = r_preprocess_m_data_write(call, phone); 
-		break;
-	case IPC_M_STATE_CHANGE_AUTHORIZE:
-		rc = r_preprocess_m_state_change_authorize(call, phone); 
-		break;
-#ifdef CONFIG_UDEBUG
-	case IPC_M_DEBUG:
-		rc = udebug_request_preprocess(call, phone);
-		break;
-#endif
-	default:
-		break;
-	}
+	sysipc_ops_t *ops = sysipc_ops_get(IPC_GET_IMETHOD(call->data));
+	if (ops->request_preprocess)
+		rc = ops->request_preprocess(call, phone);
 	
 	return rc;
 }
@@ -771,25 +263,6 @@ static void process_answer(call_t *call)
 	}
 }
 
-static int r_process_m_connect_to_me(answerbox_t *box, call_t *call)
-{
-	int phoneid = phone_alloc(TASK);
-
-	if (phoneid < 0) {  /* Failed to allocate phone */
-		IPC_SET_RETVAL(call->data, ELIMIT);
-		ipc_answer(box, call);
-		return -1;
-	}
-		
-	IPC_SET_ARG5(call->data, phoneid);
-	
-	return EOK;
-}
-
-static int r_process_m_debug(answerbox_t *box, call_t *call)
-{
-	return -1;
-}
 
 /** Do basic kernel processing of received call request.
  *
@@ -804,16 +277,9 @@ static int process_request(answerbox_t *box, call_t *call)
 {
 	int rc = EOK;
 
-	switch (IPC_GET_IMETHOD(call->data)) {
-	case IPC_M_CONNECT_TO_ME:
-		rc = r_process_m_connect_to_me(box, call);
-		break;
-	case IPC_M_DEBUG:
-		rc = r_process_m_debug(box, call);
-		break;
-	default:
-		break;
-	}
+	sysipc_ops_t *ops = sysipc_ops_get(IPC_GET_IMETHOD(call->data));
+	if (ops->request_process)
+		rc = ops->request_process(call, box);
 	
 	return rc;
 }

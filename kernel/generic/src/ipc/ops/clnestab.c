@@ -33,11 +33,44 @@
  */
 
 #include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <synch/mutex.h>
+#include <abi/errno.h>
+
+static int request_preprocess(call_t *call, phone_t *phone)
+{
+	IPC_SET_ARG5(call->data, (sysarg_t) phone);
+
+	return EOK;	
+}
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
+
+	if (IPC_GET_RETVAL(answer->data) != EOK) {
+		/*
+		 * The other party on the cloned phone rejected our request
+		 * for connection on the protocol level.  We need to break the
+		 * connection without sending IPC_M_HUNGUP back.
+		 */
+		mutex_lock(&phone->lock);
+		if (phone->state == IPC_PHONE_CONNECTED) {
+			irq_spinlock_lock(&phone->callee->lock, true);
+			list_remove(&phone->link);
+			phone->state = IPC_PHONE_SLAMMED;
+			irq_spinlock_unlock(&phone->callee->lock, true);
+		}
+		mutex_unlock(&phone->lock);
+	}
+	
+	return EOK;
+}
 
 sysipc_ops_t ipc_m_clone_establish_ops = {
-	.request_preprocess = null_request_preprocess,
+	.request_preprocess = request_preprocess,
 	.request_process = null_request_process,
-	.answer_preprocess = null_answer_preprocess,
+	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };
 

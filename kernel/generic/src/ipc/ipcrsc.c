@@ -131,6 +131,7 @@
 #include <proc/task.h>
 #include <ipc/ipcrsc.h>
 #include <debug.h>
+#include <abi/errno.h>
 
 /** Find call_t * in call table according to callid.
  *
@@ -159,6 +160,23 @@ call_t *get_call(sysarg_t callid)
 	
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 	return result;
+}
+
+/** Get phone from the current task by ID.
+ *
+ * @param phoneid Phone ID.
+ * @param phone   Place to store pointer to phone.
+ *
+ * @return EOK on success, EINVAL if ID is invalid.
+ *
+ */
+int phone_get(sysarg_t phoneid, phone_t **phone)
+{
+	if (phoneid >= IPC_MAX_PHONES)
+		return EINVAL;
+	
+	*phone = &TASK->phones[phoneid];
+	return EOK;
 }
 
 /** Allocate new phone slot in the specified task.

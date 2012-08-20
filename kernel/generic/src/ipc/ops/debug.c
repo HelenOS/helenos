@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jakub Jermar 
+ * Copyright (c) 2008 Jiri Svoboda 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,21 @@
  */
 
 #include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <udebug/udebug_ipc.h>
+
+static int request_process(call_t *call, answerbox_t *box)
+{
+	return -1;
+}
 
 sysipc_ops_t ipc_m_debug_ops = {
+#ifdef CONFIG_UDEBUG
+	.request_preprocess = udebug_request_preprocess,
+#else
 	.request_preprocess = null_request_preprocess,
-	.request_process = null_request_process,
+#endif
+	.request_process = request_process,
 	.answer_preprocess = null_answer_preprocess,
 	.answer_process = null_answer_process,
 };

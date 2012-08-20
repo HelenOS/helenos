@@ -33,11 +33,35 @@
  */
 
 #include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <mm/as.h>
+#include <synch/spinlock.h>
+#include <proc/task.h>
+#include <abi/errno.h>
+#include <arch.h>
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	if (!IPC_GET_RETVAL(answer->data)) {
+		irq_spinlock_lock(&answer->sender->lock, true);
+		as_t *as = answer->sender->as;
+		irq_spinlock_unlock(&answer->sender->lock, true);
+			
+		uintptr_t dst_base = (uintptr_t) -1;
+		int rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
+		    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
+		    &dst_base, IPC_GET_ARG3(answer->data));
+		IPC_SET_ARG4(answer->data, dst_base);
+		IPC_SET_RETVAL(answer->data, rc);
+	}
+	
+	return EOK;
+}
 
 sysipc_ops_t ipc_m_share_in_ops = {
 	.request_preprocess = null_request_preprocess,
 	.request_process = null_request_process,
-	.answer_preprocess = null_answer_preprocess,
+	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };
 

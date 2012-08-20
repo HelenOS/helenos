@@ -33,11 +33,56 @@
  */
 
 #include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <mm/as.h>
+#include <synch/spinlock.h>
+#include <proc/task.h>
+#include <syscall/copy.h>
+#include <abi/errno.h>
+#include <arch.h>
+
+static int request_preprocess(call_t *call, phone_t *phone)
+{
+	size_t size = as_area_get_size(IPC_GET_ARG1(call->data));
+
+	if (!size)
+		return EPERM;
+	IPC_SET_ARG2(call->data, size);
+
+	return EOK;
+}
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	int rc = EOK;
+
+	if (!IPC_GET_RETVAL(answer->data)) {
+		/* Accepted, handle as_area receipt */
+
+		irq_spinlock_lock(&answer->sender->lock, true);
+		as_t *as = answer->sender->as;
+		irq_spinlock_unlock(&answer->sender->lock, true);
+
+		uintptr_t dst_base = (uintptr_t) -1;
+		rc = as_area_share(as, IPC_GET_ARG1(*olddata),
+		    IPC_GET_ARG2(*olddata), AS, IPC_GET_ARG3(*olddata),
+		    &dst_base, IPC_GET_ARG1(answer->data));
+			
+		if (rc == EOK) {
+			rc = copy_to_uspace((void *) IPC_GET_ARG2(answer->data),
+			    &dst_base, sizeof(dst_base));
+		}
+			
+		IPC_SET_RETVAL(answer->data, rc);
+	}
+
+	return rc;
+}
 
 sysipc_ops_t ipc_m_share_out_ops = {
-	.request_preprocess = null_request_preprocess,
+	.request_preprocess = request_preprocess,
 	.request_process = null_request_process,
-	.answer_preprocess = null_answer_preprocess,
+	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };
 

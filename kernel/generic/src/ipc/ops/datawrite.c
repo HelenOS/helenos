@@ -33,11 +33,67 @@
  */
 
 #include <ipc/sysipc_ops.h>
+#include <ipc/ipc.h>
+#include <mm/slab.h>
+#include <abi/errno.h>
+#include <syscall/copy.h>
+#include <config.h>
+
+static int request_preprocess(call_t *call, phone_t *phone)
+{
+	uintptr_t src = IPC_GET_ARG1(call->data);
+	size_t size = IPC_GET_ARG2(call->data);
+
+	if (size > DATA_XFER_LIMIT) {
+		int flags = IPC_GET_ARG3(call->data);
+
+		if (flags & IPC_XF_RESTRICT) {
+			size = DATA_XFER_LIMIT;
+			IPC_SET_ARG2(call->data, size);
+		} else
+			return ELIMIT;
+	}
+
+	call->buffer = (uint8_t *) malloc(size, 0);
+	int rc = copy_from_uspace(call->buffer, (void *) src, size);
+	if (rc != 0) {
+		free(call->buffer);
+		return rc;
+	}
+		
+	return EOK;
+}
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	ASSERT(answer->buffer);
+
+	if (!IPC_GET_RETVAL(answer->data)) {
+		/* The recipient agreed to receive data. */
+		uintptr_t dst = (uintptr_t)IPC_GET_ARG1(answer->data);
+		size_t size = (size_t)IPC_GET_ARG2(answer->data);
+		size_t max_size = (size_t)IPC_GET_ARG2(*olddata);
+			
+		if (size <= max_size) {
+			int rc = copy_to_uspace((void *) dst,
+			    answer->buffer, size);
+			if (rc)
+				IPC_SET_RETVAL(answer->data, rc);
+		} else {
+			IPC_SET_RETVAL(answer->data, ELIMIT);
+		}
+	}
+	free(answer->buffer);
+	answer->buffer = NULL;
+
+	return EOK;
+}
+
 
 sysipc_ops_t ipc_m_data_write_ops = {
-	.request_preprocess = null_request_preprocess,
+	.request_preprocess = request_preprocess,
 	.request_process = null_request_process,
-	.answer_preprocess = null_answer_preprocess,
+	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };
 
