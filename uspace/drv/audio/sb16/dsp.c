@@ -321,7 +321,7 @@ int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
 int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
 {
 	assert(dsp);
-	if (dsp->event_session)
+	if (dsp->event_session && session)
 		return EBUSY;
 	dsp->event_session = session;
 	ddf_log_debug("Set event session to %p.", session);
