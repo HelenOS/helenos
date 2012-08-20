@@ -65,7 +65,7 @@ typedef struct rtc {
 	/** The fibril mutex for synchronizing the access to the device */
 	fibril_mutex_t mutex;
 	/** The base I/O address of the device registers */
-	uint32_t io_addr;
+	ioport8_t *io_addr;
 	/** The I/O port used to access the CMOS registers */
 	ioport8_t *port;
 	/** true if device is removed */
@@ -221,7 +221,7 @@ rtc_dev_initialize(rtc_t *rtc)
 				rc = ELIMIT;
 				goto error;
 			}
-			rtc->io_addr = res->res.io_range.address;
+			rtc->io_addr = (ioport8_t *) res->res.io_range.address;
 			ioport = true;
 			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address \
 			    0x%x", ddf_dev_get_name(rtc->dev), rtc->io_addr);
