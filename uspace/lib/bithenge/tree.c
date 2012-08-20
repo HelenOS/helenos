@@ -197,6 +197,8 @@ static bithenge_node_t empty_internal_node = {
  * @return EOK on success or an error code from errno.h. */
 int bithenge_new_empty_internal_node(bithenge_node_t **out)
 {
+	if (bithenge_should_fail())
+		return ENOMEM;
 	bithenge_node_inc_ref(&empty_internal_node);
 	*out = &empty_internal_node;
 	return EOK;
@@ -300,6 +302,8 @@ static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, 1, .boolean_value = 
 int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 {
 	assert(out);
+	if (bithenge_should_fail())
+		return ENOMEM;
 	*out = value ? &true_node : &false_node;
 	(*out)->refs++;
 	return EOK;

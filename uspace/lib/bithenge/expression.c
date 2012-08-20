@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include "blob.h"
 #include "expression.h"
+#include "os.h"
 #include "transform.h"
 #include "tree.h"
 
@@ -52,6 +53,8 @@ int bithenge_init_expression(bithenge_expression_t *self,
 	assert(ops);
 	assert(ops->evaluate);
 	assert(ops->destroy);
+	if (bithenge_should_fail())
+		return ENOMEM;
 	self->ops = ops;
 	self->refs = 1;
 	return EOK;
@@ -303,6 +306,8 @@ static bithenge_expression_t in_node_expression = {
  * @return EOK on success or an error code from errno.h. */
 int bithenge_in_node_expression(bithenge_expression_t **out)
 {
+	if (bithenge_should_fail())
+		return ENOMEM;
 	bithenge_expression_inc_ref(&in_node_expression);
 	*out = &in_node_expression;
 	return EOK;

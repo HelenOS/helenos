@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include "blob.h"
+#include "os.h"
 #include "print.h"
 #include "transform.h"
 
@@ -61,6 +62,8 @@ int bithenge_init_transform(bithenge_transform_t *self,
 	assert(ops);
 	assert(ops->apply || ops->prefix_apply);
 	assert(ops->destroy);
+	if (bithenge_should_fail())
+		return ENOMEM;
 	self->ops = ops;
 	self->refs = 1;
 	self->num_params = num_params;
@@ -370,6 +373,10 @@ int bithenge_scope_set_param( bithenge_scope_t *scope, int i,
 {
 	assert(scope);
 	assert(i >= 0 && i < scope->num_params);
+	if (bithenge_should_fail()) {
+		bithenge_node_dec_ref(node);
+		return ENOMEM;
+	}
 	scope->params[i] = node;
 	return EOK;
 }
@@ -486,6 +493,11 @@ int bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
 {
 	assert(transform);
 	assert(bithenge_transform_num_params(transform) == 0);
+
+	if (bithenge_should_fail()) {
+		bithenge_transform_dec_ref(transform);
+		return ENOMEM;
+	}
 
 	barrier_transform_t *self = transform_as_barrier(base);
 	assert(!self->transform);

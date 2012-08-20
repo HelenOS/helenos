@@ -34,4 +34,9 @@
 
 #ifdef BITHENGE_FAILURE_ENABLE
 #include "failure.h"
+#else
+static inline int bithenge_should_fail(void)
+{
+	return 0;
+}
 #endif

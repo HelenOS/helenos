@@ -57,6 +57,9 @@ int bithenge_init_random_access_blob(bithenge_blob_t *blob,
 	assert(ops->read || ops->read_bits);
 	assert(ops->size);
 
+	if (bithenge_should_fail())
+		return ENOMEM;
+
 	blob->base.type = BITHENGE_NODE_BLOB;
 	blob->base.refs = 1;
 	blob->base.blob_ops = ops;
@@ -194,6 +197,8 @@ static inline bithenge_blob_t *memory_as_blob(memory_blob_t *blob)
 static int memory_size(bithenge_blob_t *base, aoff64_t *size)
 {
 	memory_blob_t *blob = blob_as_memory(base);
+	if (bithenge_should_fail())
+		return EIO;
 	*size = blob->size;
 	return EOK;
 }
@@ -223,44 +228,6 @@ static const bithenge_random_access_blob_ops_t memory_ops = {
 	.destroy = memory_destroy,
 };
 
-/** Create a blob node from data. Unlike with @a
- * bithenge_blob_t::bithenge_new_blob_from_buffer, the data is copied into a
- * new buffer and the original data can be changed after this call. The blob
- * must be freed with @a bithenge_node_t::bithenge_node_destroy after it is
- * used.
- * @memberof bithenge_blob_t
- * @param[out] out Stores the created blob node.
- * @param[in] data The data.
- * @param len The length of the data.
- * @return EOK on success or an error code from errno.h. */
-int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
-    size_t len)
-{
-	int rc;
-	assert(data || !len);
-
-	memory_blob_t *blob = malloc(sizeof(*blob));
-	if (!blob)
-		return ENOMEM;
-	rc = bithenge_init_random_access_blob(memory_as_blob(blob),
-	    &memory_ops);
-	if (rc != EOK) {
-		free(blob);
-		return rc;
-	}
-	char *buffer = malloc(len);
-	if (!buffer) {
-		free(blob);
-		return rc;
-	}
-	memcpy(buffer, data, len);
-	blob->buffer = buffer;
-	blob->size = len;
-	blob->needs_free = true;
-	*out = bithenge_blob_as_node(memory_as_blob(blob));
-	return EOK;
-}
-
 /** Create a blob node from a buffer. The buffer must exist as long as the blob
  * does. The blob must be freed with @a bithenge_node_t::bithenge_node_destroy
  * after it is used.
@@ -279,20 +246,49 @@ int bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
 	assert(buffer || !len);
 
 	memory_blob_t *blob = malloc(sizeof(*blob));
-	if (!blob)
-		return ENOMEM;
+	if (!blob) {
+		rc = ENOMEM;
+		goto error;
+	}
 	rc = bithenge_init_random_access_blob(memory_as_blob(blob),
 	    &memory_ops);
-	if (rc != EOK) {
-		free(blob);
-		return rc;
-	}
+	if (rc != EOK)
+		goto error;
 	blob->buffer = buffer;
 	blob->size = len;
 	blob->needs_free = needs_free;
 	*out = bithenge_blob_as_node(memory_as_blob(blob));
 	return EOK;
+	
+error:
+	if (needs_free)
+		free((void *)buffer);
+	free(blob);
+	return rc;
 }
+
+/** Create a blob node from data. Unlike with @a
+ * bithenge_blob_t::bithenge_new_blob_from_buffer, the data is copied into a
+ * new buffer and the original data can be changed after this call. The blob
+ * must be freed with @a bithenge_node_t::bithenge_node_destroy after it is
+ * used.
+ * @memberof bithenge_blob_t
+ * @param[out] out Stores the created blob node.
+ * @param[in] data The data.
+ * @param len The length of the data.
+ * @return EOK on success or an error code from errno.h. */
+int bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
+    size_t len)
+{
+	char *buffer = malloc(len);
+	if (!buffer)
+		return ENOMEM;
+	memcpy(buffer, data, len);
+
+	return bithenge_new_blob_from_buffer(out, buffer, len, true);
+}
+
+
 
 typedef struct {
 	bithenge_blob_t base;

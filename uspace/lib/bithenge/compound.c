@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include "compound.h"
 #include "expression.h"
+#include "os.h"
 #include "transform.h"
 #include "tree.h"
 

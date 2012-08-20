@@ -6,7 +6,7 @@ BITHENGE=../../../app/bithenge/bithenge
 
 if type valgrind >/dev/null 2>&1
 then
-	BITHENGE="valgrind -q --show-reachable=yes ${BITHENGE}"
+	BITHENGE="valgrind -q --show-reachable=yes --error-exitcode=64 ${BITHENGE}"
 else
 	echo "Valgrind not found."
 fi
