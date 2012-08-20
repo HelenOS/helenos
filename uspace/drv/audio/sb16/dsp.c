@@ -255,6 +255,18 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	sb_dsp_start_active(dsp, SINGLE_DMA_16B_DA);
 #endif
 		break;
+	case DSP_CAPTURE_TERMINATE:
+		dsp_report_event(dsp, PCM_EVENT_CAPTURE_TERMINATED);
+		async_exchange_end(dsp->event_exchange);
+		dsp->event_exchange = NULL;
+		sb_dsp_change_state(dsp, DSP_STOPPED);
+		break;
+	case DSP_PLAYBACK_TERMINATE:
+		dsp_report_event(dsp, PCM_EVENT_PLAYBACK_TERMINATED);
+		async_exchange_end(dsp->event_exchange);
+		dsp->event_exchange = NULL;
+		sb_dsp_change_state(dsp, DSP_STOPPED);
+		break;
 	default:
 		ddf_log_warning("Interrupt while DSP not active");
 	}
@@ -438,11 +450,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp)
 
 	sb_dsp_write(dsp, DMA_16B_EXIT);
 	ddf_log_debug("Stopping playback on buffer.");
-	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
-		dsp_report_event(dsp, PCM_EVENT_PLAYBACK_TERMINATED);
-	async_exchange_end(dsp->event_exchange);
-	dsp->event_exchange = NULL;
-	sb_dsp_change_state(dsp, DSP_STOPPED);
+	sb_dsp_change_state(dsp, DSP_PLAYBACK_TERMINATE);
 	return EOK;
 }
 
@@ -501,11 +509,7 @@ int sb_dsp_stop_capture(sb_dsp_t *dsp)
 
 	sb_dsp_write(dsp, DMA_16B_EXIT);
 	ddf_log_debug("Stopped capture");
-	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
-		dsp_report_event(dsp, PCM_EVENT_CAPTURE_TERMINATED);
-	async_exchange_end(dsp->event_exchange);
-	dsp->event_exchange = NULL;
-	sb_dsp_change_state(dsp, DSP_STOPPED);
+	sb_dsp_change_state(dsp, DSP_CAPTURE_TERMINATE);
 	return EOK;
 }
 /**
