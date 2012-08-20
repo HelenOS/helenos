@@ -28,6 +28,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <mem.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,12 @@ static const char *cmdname = "cmp";
 #define CMP_VERSION "0.0.1"
 #define CMP_BUFLEN 1024
 
+static struct option const long_options[] = {
+	{ "help", no_argument, 0, 'h' },
+	{ "version", no_argument, 0, 'v' },
+	{ 0, 0, 0, 0 }
+};
+
 /* Dispays help for cat in various levels */
 void help_cmd_cmp(unsigned int level)
 {
@@ -54,6 +61,9 @@ void help_cmd_cmp(unsigned int level)
 		help_cmd_cmp(HELP_SHORT);
 		printf(
 		"Usage:  %s [options] <file1> <file2>\n"
+		"Options:\n"
+		"  -h, --help       A short option summary\n"
+		"  -v, --version    Print version information and exit\n"
 		"No output is printed; the return code is 1 if the files differ.\n",
 		cmdname);
 	}
@@ -63,68 +73,81 @@ void help_cmd_cmp(unsigned int level)
 
 static int cmp_files(const char *fn0, const char *fn1)
 {
-	int fd0, fd1;
-	char buffer0[CMP_BUFLEN], buffer1[CMP_BUFLEN];
-	ssize_t size0, size1;
-	ssize_t offset0, offset1;
+	int rc = 0;
+	const char *fn[2] = {fn0, fn1};
+	int fd[2] = {-1, -1};
+	char buffer[2][CMP_BUFLEN];
+	ssize_t offset[2];
 
-	fd0 = open(fn0, O_RDONLY);
-	if (fd0 < 0) {
-		printf("Unable to open %s\n", fn0);
-		return errno;
-	}
-	fd1 = open(fn1, O_RDONLY);
-	if (fd1 < 0) {
-		printf("Unable to open %s\n", fn1);
-		return errno;
+	for (int i = 0; i < 2; i++) {
+		fd[i] = open(fn[i], O_RDONLY);
+		if (fd[i] < 0) {
+			rc = errno;
+			printf("Unable to open %s\n", fn[i]);
+			goto end;
+		}
 	}
 
 	do {
-		offset0 = offset1 = 0;
+		for (int i = 0; i < 2; i++) {
+			offset[i] = 0;
+			ssize_t size;
+			do {
+				size = read(fd[i], buffer[i] + offset[i],
+				    CMP_BUFLEN - offset[i]);
+				if (size < 0) {
+					rc = errno;
+					printf("Error reading from %s\n",
+					    fn[i]);
+					goto end;
+				}
+				offset[i] += size;
+			} while (size && offset[i] < CMP_BUFLEN);
+		}
 
-		do {
-			size0 = read(fd0, buffer0 + offset0,
-			    CMP_BUFLEN - offset0);
-			if (size0 < 0) {
-				printf("Error reading from %s\n", fn0);
-				return errno;
-			}
-			offset0 += size0;
-		} while (size0 && offset0 < CMP_BUFLEN);
+		if (offset[0] != offset[1] ||
+		    bcmp(buffer[0], buffer[1], offset[0])) {
+			rc = 1;
+			goto end;
+		}
+	} while (offset[0] == CMP_BUFLEN);
 
-		do {
-			size1 = read(fd1, buffer1 + offset1,
-			    CMP_BUFLEN - offset1);
-			if (size1 < 0) {
-				printf("Error reading from %s\n", fn1);
-				return errno;
-			}
-			offset1 += size1;
-		} while (size1 && offset1 < CMP_BUFLEN);
-
-		if (offset0 != offset1)
-			return 1;
-		if (bcmp(buffer0, buffer1, offset0))
-			return 1;
-	} while (offset0 == CMP_BUFLEN);
-
-	return 0;
+end:
+	if (fd[0] >= 0)
+		close(fd[0]);
+	if (fd[1] >= 0)
+		close(fd[1]);
+	return rc;
 }
 
 /* Main entry point for cmd, accepts an array of arguments */
 int cmd_cmp(char **argv)
 {
-	unsigned int argc;
 	int rc;
+	unsigned int argc;
+	int c, opt_ind;
 	
 	argc = cli_count_args(argv);
-	if (argc != 3) {
+
+	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+		c = getopt_long(argc, argv, "hv", long_options, &opt_ind);
+		switch (c) {
+		case 'h':
+			help_cmd_cmp(HELP_LONG);
+			return CMD_SUCCESS;
+		case 'v':
+			printf("%s\n", CMP_VERSION);
+			return CMD_SUCCESS;
+		}
+	}
+
+	if (argc - optind != 2) {
 		printf("%s - incorrect number of arguments. Try `%s --help'\n",
 			cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 
-	rc = cmp_files(argv[1], argv[2]);
+	rc = cmp_files(argv[optind], argv[optind + 1]);
 	if (rc)
 		return CMD_FAILURE;
 	else
