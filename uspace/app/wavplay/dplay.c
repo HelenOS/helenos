@@ -90,6 +90,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
+		case PCM_EVENT_PLAYBACK_STARTED:
 		case PCM_EVENT_FRAMES_PLAYED:
 			printf("%u frames\n", IPC_GET_ARG1(call));
 			async_answer_0(callid, EOK);
@@ -127,7 +128,8 @@ static void play(playback_t *pb, unsigned channels, unsigned sampling_rate,
 {
 	assert(pb);
 	assert(pb->device);
-	pb->buffer.position = pb->buffer.base;
+	const size_t buffer_part = pb->buffer.size / BUFFER_PARTS;
+	pb->buffer.position = pb->buffer.base + buffer_part;
 	printf("Registering event callback\n");
 	int ret = audio_pcm_register_event_callback(pb->device,
 	    device_event_callback, pb);
@@ -138,9 +140,9 @@ static void play(playback_t *pb, unsigned channels, unsigned sampling_rate,
 	printf("Playing: %dHz, %s, %d channel(s).\n",
 	    sampling_rate, pcm_sample_format_str(format), channels);
 	const size_t bytes = fread(pb->buffer.base, sizeof(uint8_t),
-	    pb->buffer.size, pb->source);
-	if (bytes != pb->buffer.size)
-		bzero(pb->buffer.base + bytes, pb->buffer.size - bytes);
+	    buffer_part, pb->source);
+	if (bytes != buffer_part)
+		bzero(pb->buffer.base + bytes, buffer_part - bytes);
 	printf("Buffer data ready.\n");
 	fibril_mutex_lock(&pb->mutex);
 	const unsigned frames = pb->buffer.size /
