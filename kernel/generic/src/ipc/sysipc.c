@@ -242,21 +242,6 @@ static void process_answer(call_t *call)
 	    (call->flags & IPC_CALL_FORWARDED))
 		IPC_SET_RETVAL(call->data, EFORWARD);
 	
-	if (call->buffer) {
-		/*
-		 * This must be an affirmative answer to IPC_M_DATA_READ
-		 * or IPC_M_DEBUG/UDEBUG_M_MEM_READ...
-		 *
-		 */
-		uintptr_t dst = IPC_GET_ARG1(call->data);
-		size_t size = IPC_GET_ARG2(call->data);
-		int rc = copy_to_uspace((void *) dst, call->buffer, size);
-		if (rc)
-			IPC_SET_RETVAL(call->data, rc);
-		free(call->buffer);
-		call->buffer = NULL;
-	}
-
 	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->answer_process)
 		(void) ops->answer_process(call);

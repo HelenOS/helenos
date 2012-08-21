@@ -35,10 +35,27 @@
 #include <ipc/sysipc_ops.h>
 #include <ipc/ipc.h>
 #include <udebug/udebug_ipc.h>
+#include <syscall/copy.h>
+#include <abi/errno.h>
 
 static int request_process(call_t *call, answerbox_t *box)
 {
 	return -1;
+}
+
+static int answer_process(call_t *answer)
+{
+	if (answer->buffer) {
+		uintptr_t dst = IPC_GET_ARG1(answer->data);
+		size_t size = IPC_GET_ARG2(answer->data);
+		int rc;
+
+		rc = copy_to_uspace((void *) dst, answer->buffer, size);
+		if (rc)
+			IPC_SET_RETVAL(answer->data, rc);
+	}
+
+	return EOK;
 }
 
 sysipc_ops_t ipc_m_debug_ops = {
@@ -49,7 +66,7 @@ sysipc_ops_t ipc_m_debug_ops = {
 #endif
 	.request_process = request_process,
 	.answer_preprocess = null_answer_preprocess,
-	.answer_process = null_answer_process,
+	.answer_process = answer_process,
 };
 
 /** @}

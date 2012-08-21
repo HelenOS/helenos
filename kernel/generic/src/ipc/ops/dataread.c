@@ -90,11 +90,26 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
+static int answer_process(call_t *answer)
+{
+	if (answer->buffer) {
+		uintptr_t dst = IPC_GET_ARG1(answer->data);
+		size_t size = IPC_GET_ARG2(answer->data);
+		int rc;
+
+		rc = copy_to_uspace((void *) dst, answer->buffer, size);
+		if (rc)
+			IPC_SET_RETVAL(answer->data, rc);
+	}
+
+	return EOK;
+}
+
 sysipc_ops_t ipc_m_data_read_ops = {
 	.request_preprocess = request_preprocess,
 	.request_process = null_request_process,
 	.answer_preprocess = answer_preprocess,
-	.answer_process = null_answer_process,
+	.answer_process = answer_process,
 };
 
 /** @}
