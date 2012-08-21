@@ -142,7 +142,10 @@ typedef struct {
 	
 	/** Data passed from/to userspace. */
 	ipc_data_t data;
-	
+
+	/** Method as it was sent in the request. */
+	sysarg_t request_method;
+
 	/** Buffer for IPC_M_DATA_WRITE and IPC_M_DATA_READ. */
 	uint8_t *buffer;
 	

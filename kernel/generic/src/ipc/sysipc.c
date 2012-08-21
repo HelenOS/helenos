@@ -197,7 +197,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	}
 	
 
-	sysipc_ops_t *ops = sysipc_ops_get(IPC_GET_IMETHOD(*olddata));
+	sysipc_ops_t *ops = sysipc_ops_get(answer->request_method);
 	if (ops->answer_preprocess)
 		rc = ops->answer_preprocess(answer, olddata);
 	
@@ -218,7 +218,9 @@ static int request_preprocess(call_t *call, phone_t *phone)
 {
 	int rc = EOK;
 
-	sysipc_ops_t *ops = sysipc_ops_get(IPC_GET_IMETHOD(call->data));
+	call->request_method = IPC_GET_IMETHOD(call->data);
+
+	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->request_preprocess)
 		rc = ops->request_preprocess(call, phone);
 	
@@ -261,6 +263,10 @@ static void process_answer(call_t *call)
 		free(call->buffer);
 		call->buffer = NULL;
 	}
+
+	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
+	if (ops->answer_process)
+		(void) ops->answer_process(call);
 }
 
 
@@ -277,7 +283,7 @@ static int process_request(answerbox_t *box, call_t *call)
 {
 	int rc = EOK;
 
-	sysipc_ops_t *ops = sysipc_ops_get(IPC_GET_IMETHOD(call->data));
+	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->request_process)
 		rc = ops->request_process(call, box);
 	
