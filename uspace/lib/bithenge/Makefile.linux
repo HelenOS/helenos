@@ -30,20 +30,21 @@ CFLAGS += -fexec-charset=UTF-8 -finput-charset=UTF-8 -std=gnu99 -pipe
 CFLAGS += -Wall -Wextra -Werror -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes -Werror-implicit-function-declaration -Wwrite-strings
 CFLAGS += -ftrapv
 CFLAGS += -g
+CFLAGS += -Iinclude
 
 LIBRARY = libbithenge.a
 
 SOURCES = \
-	blob.c \
-	compound.c \
-	expression.c \
-	file.c \
-	print.c \
-	script.c \
-	sequence.c \
-	source.c \
-	transform.c \
-	tree.c
+	src/blob.c \
+	src/compound.c \
+	src/expression.c \
+	src/file.c \
+	src/print.c \
+	src/script.c \
+	src/sequence.c \
+	src/source.c \
+	src/transform.c \
+	src/tree.c
 
 ifdef COVERAGE
 	CFLAGS += -fprofile-arcs -ftest-coverage

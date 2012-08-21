@@ -32,7 +32,7 @@ CFLAGS += -ftrapv
 CFLAGS += -g
 
 LIBBITHENGE_PREFIX = ../../lib/bithenge
-CFLAGS += -I$(LIBBITHENGE_PREFIX)
+CFLAGS += -I$(LIBBITHENGE_PREFIX)/include
 LIBS += $(LIBBITHENGE_PREFIX)/libbithenge.a
 
 BINARY = bithenge
