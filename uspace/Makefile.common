@@ -289,12 +289,12 @@ $(LSONAME):
 endif
 
 ifneq ($(LIBRARY),)
-$(LIBRARY).a: $(OBJECTS)
+%.a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 endif
 
 ifneq ($(SLIBRARY),)
-$(LIBRARY).la: $(LOBJECTS)
+%.la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 
