@@ -44,7 +44,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "os.h"
 
 int bithenge_should_fail(void);
 void *bithenge_failure_malloc(size_t);

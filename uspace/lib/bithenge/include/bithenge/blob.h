@@ -38,6 +38,7 @@
 #define BITHENGE_BLOB_H_
 
 #include <sys/types.h>
+#include <errno.h>
 #include "tree.h"
 
 /** A blob of raw binary data.

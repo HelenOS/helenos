@@ -39,6 +39,7 @@
 #include <bithenge/blob.h>
 #include <bithenge/file.h>
 #include <bithenge/source.h>
+#include "common.h"
 
 #ifdef __HELENOS__
 #include <loc.h>

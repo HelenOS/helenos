@@ -44,6 +44,14 @@
 #include <bithenge/script.h>
 #include <bithenge/transform.h>
 #include <bithenge/tree.h>
+#include <bithenge/os.h>
+
+#ifdef __HELENOS__
+#include <str_error.h>
+#else
+#include <string.h>
+#define str_error strerror
+#endif
 
 int main(int argc, char *argv[])
 {

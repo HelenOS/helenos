@@ -52,7 +52,7 @@ endif
 
 ifdef FAILURE
 	CFLAGS += -DBITHENGE_FAILURE_ENABLE=1
-	SOURCES += failure.c
+	SOURCES += src/failure.c
 endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))

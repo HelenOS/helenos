@@ -39,9 +39,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <bithenge/blob.h>
-#include <bithenge/os.h>
 #include <bithenge/print.h>
 #include <bithenge/transform.h>
+#include "common.h"
 
 
 

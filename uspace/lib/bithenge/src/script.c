@@ -39,11 +39,11 @@
 #include <stdlib.h>
 #include <bithenge/compound.h>
 #include <bithenge/expression.h>
-#include <bithenge/os.h>
 #include <bithenge/script.h>
 #include <bithenge/sequence.h>
 #include <bithenge/transform.h>
 #include <bithenge/tree.h>
+#include "common.h"
 
 /** @cond internal */
 #define BUFFER_SIZE 4096

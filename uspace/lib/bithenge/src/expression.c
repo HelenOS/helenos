@@ -37,9 +37,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
+#include "common.h"
 #include <bithenge/blob.h>
 #include <bithenge/expression.h>
-#include <bithenge/os.h>
 #include <bithenge/transform.h>
 #include <bithenge/tree.h>
 

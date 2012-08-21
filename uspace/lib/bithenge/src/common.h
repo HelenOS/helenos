@@ -27,24 +27,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BITHENGE_OS_H_
-#define BITHENGE_OS_H_
-
+#ifndef BITHENGE_COMMON_H_
+#define BITHENGE_COMMON_H_
 
 #ifdef __HELENOS__
-typedef int64_t bithenge_int_t;
-#define BITHENGE_PRId PRId64
-
+#include "helenos/common.h"
 #else
-/* Assuming GNU/Linux system. */
+#include "linux/common.h"
+#endif
 
-#include <inttypes.h>
-#include <stdbool.h>
-#define BITHENGE_PRId PRIdMAX
-typedef intmax_t bithenge_int_t;
-typedef uint64_t aoff64_t;
-#define EOK 0
-
+#ifdef BITHENGE_FAILURE_ENABLE
+#include "failure.h"
+#else
+static inline int bithenge_should_fail(void)
+{
+	return 0;
+}
 #endif
 
 #endif

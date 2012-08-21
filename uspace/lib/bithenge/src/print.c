@@ -42,6 +42,7 @@
 #include <bithenge/blob.h>
 #include <bithenge/print.h>
 #include <bithenge/tree.h>
+#include "common.h"
 
 typedef struct {
 	bithenge_print_type_t type;

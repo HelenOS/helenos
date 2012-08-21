@@ -26,9 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BITHENGE_HELENOS_OS_H_
-#define BITHENGE_HELENOS_OS_H_
+#ifndef BITHENGE_HELENOS_COMMON_H_
+#define BITHENGE_HELENOS_COMMON_H_
 
+#include <bithenge/os.h>
 #include <bool.h>
 #include <byteorder.h>
 #include <errno.h>
@@ -36,10 +37,10 @@
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <str.h>
 #include <str_error.h>
 
-typedef int64_t bithenge_int_t;
 #define BITHENGE_PRId PRId64
 
 typedef struct {

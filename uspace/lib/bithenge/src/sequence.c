@@ -37,9 +37,9 @@
 #include <stdlib.h>
 #include <bithenge/blob.h>
 #include <bithenge/expression.h>
-#include <bithenge/os.h>
 #include <bithenge/sequence.h>
 #include <bithenge/tree.h>
+#include "common.h"
 
 
 
