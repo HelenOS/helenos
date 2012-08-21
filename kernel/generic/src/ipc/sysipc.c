@@ -242,13 +242,6 @@ static void process_answer(call_t *call)
 	    (call->flags & IPC_CALL_FORWARDED))
 		IPC_SET_RETVAL(call->data, EFORWARD);
 	
-	if (call->flags & IPC_CALL_CONN_ME_TO) {
-		if (IPC_GET_RETVAL(call->data))
-			phone_dealloc(call->priv);
-		else
-			IPC_SET_ARG5(call->data, call->priv);
-	}
-	
 	if (call->buffer) {
 		/*
 		 * This must be an affirmative answer to IPC_M_DATA_READ

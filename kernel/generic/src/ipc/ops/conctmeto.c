@@ -48,7 +48,6 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		
 	/* Set arg5 for server */
 	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
-	call->flags |= IPC_CALL_CONN_ME_TO;
 	call->priv = newphid;
 
 	return EOK;
@@ -65,12 +64,21 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
+static int answer_process(call_t *answer)
+{
+	if (IPC_GET_RETVAL(answer->data))
+		phone_dealloc(answer->priv);
+	else
+		IPC_SET_ARG5(answer->data, answer->priv);
+	
+	return EOK;
+}
 
 sysipc_ops_t ipc_m_connect_me_to_ops = {
 	.request_preprocess = request_preprocess,
 	.request_process = null_request_process,
 	.answer_preprocess = answer_preprocess,
-	.answer_process = null_answer_process,
+	.answer_process = answer_process,
 };
 
 /** @}
