@@ -39,9 +39,9 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "blob.h"
-#include "print.h"
-#include "tree.h"
+#include <bithenge/blob.h>
+#include <bithenge/print.h>
+#include <bithenge/tree.h>
 
 typedef struct {
 	bithenge_print_type_t type;

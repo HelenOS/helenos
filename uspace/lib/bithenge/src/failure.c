@@ -45,7 +45,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #define BITHENGE_FAILURE_DECLS_ONLY 1
-#include "failure.h"
+#include <bithenge/failure.h>
 #include "os.h"
 
 /* This file raises fake errors from system calls, to test that Bithenge

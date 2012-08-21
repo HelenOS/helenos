@@ -37,11 +37,11 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "blob.h"
-#include "expression.h"
-#include "os.h"
-#include "transform.h"
-#include "tree.h"
+#include <bithenge/blob.h>
+#include <bithenge/expression.h>
+#include <bithenge/os.h>
+#include <bithenge/transform.h>
+#include <bithenge/tree.h>
 
 /** Initialize a new expression.
  * @param[out] self Expression to initialize.

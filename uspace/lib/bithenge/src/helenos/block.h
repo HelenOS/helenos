@@ -38,7 +38,7 @@
 #define BITHENGE_BLOCK_H_
 
 #include <loc.h>
-#include "../blob.h"
+#include <bithenge/tree.h>
 
 int bithenge_new_block_blob(bithenge_node_t **, service_id_t);
 

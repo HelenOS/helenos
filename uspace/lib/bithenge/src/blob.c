@@ -37,9 +37,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "blob.h"
-#include "os.h"
-#include "tree.h"
+#include <bithenge/blob.h>
+#include <bithenge/os.h>
+#include <bithenge/tree.h>
 
 /** Initialize a random access blob.
  * @memberof bithenge_blob_t

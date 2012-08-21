@@ -38,12 +38,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include "blob.h"
-#include "source.h"
-#include "print.h"
-#include "script.h"
-#include "transform.h"
-#include "tree.h"
+#include <bithenge/blob.h>
+#include <bithenge/source.h>
+#include <bithenge/print.h>
+#include <bithenge/script.h>
+#include <bithenge/transform.h>
+#include <bithenge/tree.h>
 
 int main(int argc, char *argv[])
 {

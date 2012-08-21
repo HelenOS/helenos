@@ -36,9 +36,9 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include "blob.h"
-#include "file.h"
-#include "source.h"
+#include <bithenge/blob.h>
+#include <bithenge/file.h>
+#include <bithenge/source.h>
 
 #ifdef __HELENOS__
 #include <loc.h>

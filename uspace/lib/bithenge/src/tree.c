@@ -36,9 +36,9 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include "blob.h"
-#include "os.h"
-#include "tree.h"
+#include <bithenge/blob.h>
+#include <bithenge/os.h>
+#include <bithenge/tree.h>
 
 static void blob_destroy(bithenge_node_t *base)
 {

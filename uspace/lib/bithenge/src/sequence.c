@@ -35,11 +35,11 @@
  */
 
 #include <stdlib.h>
-#include "blob.h"
-#include "expression.h"
-#include "os.h"
-#include "sequence.h"
-#include "tree.h"
+#include <bithenge/blob.h>
+#include <bithenge/expression.h>
+#include <bithenge/os.h>
+#include <bithenge/sequence.h>
+#include <bithenge/tree.h>
 
 
 

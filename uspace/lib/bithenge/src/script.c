@@ -37,13 +37,13 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "compound.h"
-#include "expression.h"
-#include "os.h"
-#include "script.h"
-#include "sequence.h"
-#include "transform.h"
-#include "tree.h"
+#include <bithenge/compound.h>
+#include <bithenge/expression.h>
+#include <bithenge/os.h>
+#include <bithenge/script.h>
+#include <bithenge/sequence.h>
+#include <bithenge/transform.h>
+#include <bithenge/tree.h>
 
 /** @cond internal */
 #define BUFFER_SIZE 4096

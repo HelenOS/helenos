@@ -28,19 +28,19 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libbithenge
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__ -Iinclude
 
 SOURCES = \
-	helenos/block.c \
-	blob.c \
-	compound.c \
-	expression.c \
-	file.c \
-	print.c \
-	script.c \
-	sequence.c \
-	source.c \
-	transform.c \
-	tree.c
+	src/helenos/block.c \
+	src/blob.c \
+	src/compound.c \
+	src/expression.c \
+	src/file.c \
+	src/print.c \
+	src/script.c \
+	src/sequence.c \
+	src/source.c \
+	src/transform.c \
+	src/tree.c
 
 include $(USPACE_PREFIX)/Makefile.common

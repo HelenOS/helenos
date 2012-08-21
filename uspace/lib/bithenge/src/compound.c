@@ -35,11 +35,11 @@
  */
 
 #include <stdlib.h>
-#include "compound.h"
-#include "expression.h"
-#include "os.h"
-#include "transform.h"
-#include "tree.h"
+#include <bithenge/compound.h>
+#include <bithenge/expression.h>
+#include <bithenge/os.h>
+#include <bithenge/transform.h>
+#include <bithenge/tree.h>
 
 
 

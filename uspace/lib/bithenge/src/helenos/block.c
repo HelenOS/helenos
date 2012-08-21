@@ -41,7 +41,7 @@
 #include <loc.h>
 #include <macros.h>
 #include <stdlib.h>
-#include "../blob.h"
+#include <bithenge/blob.h>
 #include "block.h"
 
 typedef struct {

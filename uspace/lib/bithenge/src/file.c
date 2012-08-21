@@ -43,9 +43,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "blob.h"
-#include "file.h"
-#include "os.h"
+#include <bithenge/blob.h>
+#include <bithenge/file.h>
+#include <bithenge/os.h>
 
 typedef struct {
 	bithenge_blob_t base;

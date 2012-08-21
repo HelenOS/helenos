@@ -38,10 +38,10 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "blob.h"
-#include "os.h"
-#include "print.h"
-#include "transform.h"
+#include <bithenge/blob.h>
+#include <bithenge/os.h>
+#include <bithenge/print.h>
+#include <bithenge/transform.h>
 
 
 
