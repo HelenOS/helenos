@@ -40,11 +40,11 @@
 #include <async.h>
 #include <unistd.h>
 #include <sysinfo.h>
-#include <kbd_port.h>
-#include <kbd.h>
 #include <ddi.h>
 #include <stdio.h>
 #include <errno.h>
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static int pl050_port_init(kbd_dev_t *);
 static void pl050_port_yield(void);

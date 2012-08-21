@@ -6,12 +6,16 @@
 
 # Originally by Vojtech Horky.
 
+# Block prefixed with a byte length
+transform block = (in.data) <- struct {
+	.bLength <- uint8;
+	.data <- known_length(.bLength - 1);
+};
+
 # USB configuration descriptor
 # This is not the full configuration descriptor (i.e. with interface
 # and endpoint descriptors included) but only the header. 
 transform usb_configuration_descriptor_bare = struct {
-	.bLength <- uint8; # assert bLength = 9
-	.bDescriptorType <- uint8; # assert: bDescriptorType == 2
 	.wTotalLength <- uint16le;
 	.bNumInterfaces <- uint8;
 	.bConfigurationValue <- uint8;
@@ -22,8 +26,6 @@ transform usb_configuration_descriptor_bare = struct {
 
 # USB interface descriptor
 transform usb_interface_descriptor = struct {
-	.bLength <- uint8; # assert bLength = 9
-	.bDescriptorType <- uint8; # assert: bDescriptorType == 4
 	.bInterfaceNumber <- uint8;
 	.bAlternateSetting <- uint8;
 	.bNumEndpoints <- uint8;
@@ -35,8 +37,6 @@ transform usb_interface_descriptor = struct {
 
 # USB endpoint descriptor
 transform usb_endpoint_descriptor = struct {
-	.bLength <- uint8; # assert bLength = 7
-	.bDescriptorType <- uint8; # assert: bDescriptorType == 5
 	.bEndpointAddress  <- uint8;
 	.bmAttributes <- uint8;
 	.wMaxPacketSize <- uint16le;
@@ -45,22 +45,24 @@ transform usb_endpoint_descriptor = struct {
 
 # USB HID descriptor
 transform usb_hid_descriptor = struct {
-	.bLength <- uint8;
-	.bDescriptorType <- uint8; # assert: bDescriptorType == 33
 	.bcdHID <- uint16le;
 	.bCountryCode <- uint8;
 	.bNumDescriptors <- uint8;
-	# Following is repeated bNumDescriptors times
-	.bDescriptorType <- uint8;
-	.wDescriptorLength <- uint16le;
+	<- repeat(.bNumDescriptors) { struct {
+		.bDescriptorType <- uint8;
+		.wDescriptorLength <- uint16le;
+	} };
 };
 
-# Fixed configuration for QEMU USB keyboard. 
-transform qemu_usb_keyboard = struct {
-	.configuration_descriptor <- usb_configuration_descriptor_bare;
-	.interface_descriptor <- usb_interface_descriptor;
-	.hid_descriptor <- usb_hid_descriptor;
-	.endpoint_descriptor <- usb_endpoint_descriptor;
-}; 
+# USB descriptor
+transform usb_descriptor = struct {
+	.bDescriptorType <- uint8;
+	<- switch (.bDescriptorType) {
+		 2: usb_configuration_descriptor_bare;
+		 4: usb_interface_descriptor;
+		 5: usb_endpoint_descriptor;
+		33: usb_hid_descriptor;
+	};
+} <- block;
 
-transform main = qemu_usb_keyboard;
+transform main = repeat { usb_descriptor };

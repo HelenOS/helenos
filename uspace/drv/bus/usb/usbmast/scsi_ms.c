@@ -87,7 +87,7 @@ static int usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
 		rc = usb_massstor_cmd(mfun, 0xDEADBEEF, cmd);
 		if (rc != EOK) {
 			usb_log_error("Inquiry transport failed, device %s: %s.\n",
-			   mfun->mdev->ddf_dev->name, str_error(rc));
+			   ddf_dev_get_name(mfun->mdev->ddf_dev), str_error(rc));
 			return rc;
 		}
 
@@ -95,7 +95,7 @@ static int usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
 			return EOK;
 
 		usb_log_error("SCSI command failed, device %s.\n",
-		    mfun->mdev->ddf_dev->name);
+		    ddf_dev_get_name(mfun->mdev->ddf_dev));
 
 		rc = usbmast_request_sense(mfun, &sense_buf, sizeof(sense_buf));
 		if (rc != EOK) {
@@ -146,13 +146,13 @@ int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 
 	if (rc != EOK) {
 		usb_log_error("Inquiry transport failed, device %s: %s.\n",
-		   mfun->mdev->ddf_dev->name, str_error(rc));
+		   ddf_dev_get_name(mfun->mdev->ddf_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
 		usb_log_error("Inquiry command failed, device %s.\n",
-		   mfun->mdev->ddf_dev->name);
+		   ddf_dev_get_name(mfun->mdev->ddf_dev));
 		return EIO;
 	}
 
@@ -214,7 +214,7 @@ int usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
 
         if (rc != EOK || cmd.status != CMDS_GOOD) {
 		usb_log_error("Request Sense failed, device %s: %s.\n",
-		   mfun->mdev->ddf_dev->name, str_error(rc));
+		   ddf_dev_get_name(mfun->mdev->ddf_dev), str_error(rc));
 		return rc;
 	}
 
@@ -256,13 +256,13 @@ int usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
 
         if (rc != EOK) {
 		usb_log_error("Read Capacity (10) transport failed, device %s: %s.\n",
-		   mfun->mdev->ddf_dev->name, str_error(rc));
+		   ddf_dev_get_name(mfun->mdev->ddf_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
 		usb_log_error("Read Capacity (10) command failed, device %s.\n",
-		   mfun->mdev->ddf_dev->name);
+		   ddf_dev_get_name(mfun->mdev->ddf_dev));
 		return EIO;
 	}
 
@@ -313,13 +313,13 @@ int usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
 
         if (rc != EOK) {
 		usb_log_error("Read (10) transport failed, device %s: %s.\n",
-		   mfun->mdev->ddf_dev->name, str_error(rc));
+		   ddf_dev_get_name(mfun->mdev->ddf_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
 		usb_log_error("Read (10) command failed, device %s.\n",
-		   mfun->mdev->ddf_dev->name);
+		   ddf_dev_get_name(mfun->mdev->ddf_dev));
 		return EIO;
 	}
 
@@ -369,13 +369,13 @@ int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
 
         if (rc != EOK) {
 		usb_log_error("Write (10) transport failed, device %s: %s.\n",
-		   mfun->mdev->ddf_dev->name, str_error(rc));
+		   ddf_dev_get_name(mfun->mdev->ddf_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
 		usb_log_error("Write (10) command failed, device %s.\n",
-		   mfun->mdev->ddf_dev->name);
+		   ddf_dev_get_name(mfun->mdev->ddf_dev));
 		return EIO;
 	}
 

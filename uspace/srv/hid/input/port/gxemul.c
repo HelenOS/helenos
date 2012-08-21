@@ -30,17 +30,17 @@
 /** @addtogroup kbd_port
  * @{
  * @ingroup  kbd
- */ 
+ */
 /** @file
- * @brief	GXEmul keyboard port driver.
+ * @brief GXEmul keyboard port driver.
  */
 
 #include <async.h>
 #include <sysinfo.h>
-#include <kbd_port.h>
-#include <kbd.h>
 #include <ddi.h>
 #include <errno.h>
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static int gxemul_port_init(kbd_dev_t *);
 static void gxemul_port_yield(void);

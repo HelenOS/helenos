@@ -44,7 +44,7 @@
 #include "exfat_bitmap.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
-#include <libblock.h>
+#include <block.h>
 #include <ipc/services.h>
 #include <ipc/loc.h>
 #include <macros.h>

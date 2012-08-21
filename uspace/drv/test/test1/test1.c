@@ -144,21 +144,25 @@ static int test1_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
 	test1_t *test1;
+	const char *dev_name;
 	int rc;
 
+	dev_name = ddf_dev_get_name(dev);
 	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
-	    dev->name, (int) dev->handle);
+	    dev_name, (int) ddf_dev_get_handle(dev));
 
 	test1 = ddf_dev_data_alloc(dev, sizeof(test1_t));
 	if (test1 == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.\n");
-		return ENOMEM;
+		rc = ENOMEM;
+		goto error;
 	}
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun_a == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
-		return ENOMEM;
+		rc = ENOMEM;
+		goto error;
 	}
 
 	test1->fun_a = fun_a;
@@ -167,30 +171,31 @@ static int test1_dev_add(ddf_dev_t *dev)
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
 		ddf_fun_destroy(fun_a);
-		return rc;
+		goto error;
 	}
 
 	ddf_fun_add_to_category(fun_a, "virtual");
 
-	if (str_cmp(dev->name, "null") == 0) {
-		fun_a->ops = &char_device_ops;
+	if (str_cmp(dev_name, "null") == 0) {
+		ddf_fun_set_ops(fun_a,  &char_device_ops);
 		ddf_fun_add_to_category(fun_a, "virt-null");
-	} else if (str_cmp(dev->name, "test1") == 0) {
+	} else if (str_cmp(dev_name, "test1") == 0) {
 		(void) register_fun_verbose(dev,
 		    "cloning myself ;-)", "clone",
 		    "virtual&test1", 10, EOK, &test1->clone);
 		(void) register_fun_verbose(dev,
 		    "cloning myself twice ;-)", "clone",
 		    "virtual&test1", 10, EEXISTS, NULL);
-	} else if (str_cmp(dev->name, "clone") == 0) {
+	} else if (str_cmp(dev_name, "clone") == 0) {
 		(void) register_fun_verbose(dev,
 		    "run by the same task", "child",
 		    "virtual&test1&child", 10, EOK, &test1->child);
 	}
 
-	ddf_msg(LVL_DEBUG, "Device `%s' accepted.", dev->name);
-
+	ddf_msg(LVL_DEBUG, "Device `%s' accepted.", dev_name);
 	return EOK;
+error:
+	return rc;
 }
 
 static int fun_remove(ddf_fun_t *fun, const char *name)
@@ -231,7 +236,7 @@ static int fun_unbind(ddf_fun_t *fun, const char *name)
 
 static int test1_dev_remove(ddf_dev_t *dev)
 {
-	test1_t *test1 = (test1_t *)dev->driver_data;
+	test1_t *test1 = (test1_t *)ddf_dev_data_get(dev);
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);
@@ -259,7 +264,7 @@ static int test1_dev_remove(ddf_dev_t *dev)
 
 static int test1_dev_gone(ddf_dev_t *dev)
 {
-	test1_t *test1 = (test1_t *)dev->driver_data;
+	test1_t *test1 = (test1_t *)ddf_dev_data_get(dev);
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);

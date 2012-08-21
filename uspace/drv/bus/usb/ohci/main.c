@@ -58,7 +58,7 @@ static int ohci_dev_add(ddf_dev_t *device)
 		    str_error(ret));
 		return ret;
 	}
-	usb_log_info("Controlling new OHCI device '%s'.\n", device->name);
+	usb_log_info("Controlling new OHCI device '%s'.\n", ddf_dev_get_name(device));
 
 	return EOK;
 }

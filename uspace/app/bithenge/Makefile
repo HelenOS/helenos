@@ -27,21 +27,11 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__ -Ihelenos
+LIBS = $(LIBBITHENGE_PREFIX)/libbithenge.a $(LIBBLOCK_PREFIX)/libblock.a
+EXTRA_CFLAGS = -I$(LIBBITHENGE_PREFIX) -D__HELENOS__
 BINARY = bithenge
 
 SOURCES = \
-	helenos/block.c \
-	blob.c \
-	expression.c \
-	file.c \
-	print.c \
-	script.c \
-	sequence.c \
-	source.c \
-	test.c \
-	transform.c \
-	tree.c
+	test.c
 
 include $(USPACE_PREFIX)/Makefile.common

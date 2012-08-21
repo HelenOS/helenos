@@ -28,27 +28,26 @@
 
 CFLAGS += -fexec-charset=UTF-8 -finput-charset=UTF-8 -std=gnu99 -pipe
 CFLAGS += -Wall -Wextra -Werror -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes -Werror-implicit-function-declaration -Wwrite-strings
+CFLAGS += -ftrapv
 CFLAGS += -g
-CFLAGS += -Ilinux
+
+LIBBITHENGE_PREFIX = ../../lib/bithenge
+CFLAGS += -I$(LIBBITHENGE_PREFIX)
+LIBS += $(LIBBITHENGE_PREFIX)/libbithenge.a
 
 BINARY = bithenge
 
 SOURCES = \
-	blob.c \
-	expression.c \
-	file.c \
-	print.c \
-	script.c \
-	sequence.c \
-	source.c \
-	test.c \
-	transform.c \
-	tree.c
+	test.c
+
+ifdef COVERAGE
+	CFLAGS += -fprofile-arcs -ftest-coverage
+endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 $(BINARY): $(OBJECTS)
-	$(CC) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 clean:
 	find . -name '*.o' -follow -exec rm \{\} \;

@@ -1,0 +1,168 @@
+# Copyright (c) 2012 Sean Bartell
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# FAT filesystem script.
+# Largely based on https://en.wikipedia.org/wiki/File_Allocation_Table
+# Currently only FAT12 and FAT16 are supported.
+
+transform u8 = uint8;
+transform u16 = uint16le;
+transform u32 = uint32le;
+
+transform fat_attributes = struct {
+	.read_only <- bit;
+	.hidden <- bit;
+	.system <- bit;
+	.volume_label <- bit;
+	.subdirectory <- bit;
+	.archive <- bit;
+	.device <- bit;
+	.reserved <- bit;
+} <- bits_le <- known_length(1);
+
+transform file_data(data, bits, fat, cluster_size, start) = (in.data) <- struct {
+	.cluster <- (data[(start-2)*cluster_size, cluster_size]);
+	.last_cluster_number <- switch (bits) {
+		12: (488);       # 0x00000ff8
+		16: (65528);     # 0x0000fff8
+		32: (268435448); # 0x0ffffff8
+	};
+	.next <- (fat[start]);
+	if (.next == 0 || .next >= .last_cluster_number) {
+		.data <- (.cluster);
+	} else {
+		.rest <- file_data(data, bits, fat, cluster_size, .next) <- known_length(0);
+		.data <- (.cluster ++ .rest);
+	}
+};
+
+transform fat_dir_entry(data, bits, fat, cluster_size, self_start, parent) = struct {
+	.filename <- known_length(8);
+	.extension <- known_length(3);
+	.attrs <- fat_attributes;
+	.flags <- u8;
+	.ctime_fine <- u8;
+	.ctime <- u16;
+	.cdate <- u16;
+	.adate <- u16;
+	.permissions <- u16;
+	.mtime <- u16;
+	.mdate <- u16;
+	.start <- u16;
+	.size <- u32;
+	.size_shown <- if (.size > 32) { (32) } else { (.size) };
+
+	if (.start != 0 && .start != self_start && .start != parent && .filename[0] != 229) {
+		.data
+		    <- if (.attrs.subdirectory) {
+		        repeat { fat_dir_entry(data, bits, fat, cluster_size, .start, self_start) }
+		    } else {
+		        (in[0,.size_shown])
+		    }
+		    <- if (.size != 0) { (in[0,.size]) } else { (in) }
+		    <- file_data(data, bits, fat, cluster_size, .start);
+	}
+};
+
+transform fat_table(bits, num_clusters) = switch (bits) {
+	12: partial {repeat(num_clusters) { uint_le(12) }} <- bits_le;
+	16: partial {repeat(num_clusters) { u16 }};
+	32: partial {repeat(num_clusters) { u32 }};
+};
+
+transform fat_super(disk) = struct {
+	.jump_instruction <- known_length(3);
+	.oem_name <- ascii <- known_length(8);
+
+	# DOS 2.0 BPB
+	.bytes_per_sector <- u16; # must be power of two, at least 32
+	.sectors_per_cluster <- u8; # must be power of two
+	.num_reserved_sectors <- u16;
+	.num_fats <- u8; # at least 1
+	.num_root_entries <- u16; # 0 for FAT32
+	.num_sectors_16 <- u16;
+	.media_descriptor <- u8;
+	.sectors_per_fat <- u16; # 0 for FAT32
+
+	# DOS 3.0/3.2/3.31 BPB
+	.sectors_per_track <- u16;
+	.num_heads <- u16;
+
+	# DOS 3.31 BPB
+	.bpb331 <- struct {
+		.ignore <- nonzero_boolean <- (.num_sectors_16);
+		.num_hidden_sectors <- u32;
+		.num_sectors_32 <- u32;
+	};
+
+	.drive_number <- u8;
+	.chkdsk_flags <- u8;
+	.extended_boot_signature <- u8;
+	if (.extended_boot_signature == 41) {
+		.volume_id <- u32;
+		.volume_label <- ascii <- known_length(11);
+		.type <- ascii <- known_length(8);
+	}
+
+	.boot_signature <- (disk[510,2]); # b"\x55\xaa"; TODO: what if .bytes_per_sector < 512?
+};
+
+transform fat_filesystem_tree(disk) = struct {
+	.super <- partial{fat_super(disk)} <- (disk);
+
+	.num_sectors <- if (.super.bpb331.ignore) {
+		(.super.num_sectors_16)
+	} else {
+		(.super.bpb331.num_sectors_32)
+	};
+
+	.cluster_size <- (.super.sectors_per_cluster * .super.bytes_per_sector);
+	.first_root_sector <- (.super.num_reserved_sectors + .super.num_fats * .super.sectors_per_fat);
+	.first_data_sector <- (.first_root_sector +
+	    (.super.num_root_entries * 32 + .super.bytes_per_sector - 1) //
+	    .super.bytes_per_sector);
+	.num_clusters <- (2 + (.num_sectors - .first_data_sector) // .super.sectors_per_cluster);
+	.bits <- if (.num_clusters < 4085) { (12) }
+	    else { if (.num_clusters < 65525) { (16) } else { (32) } };
+
+	.fats <- partial(.super.num_reserved_sectors * .super.bytes_per_sector) {
+		repeat(.super.num_fats) {
+			fat_table(.bits, .num_clusters) <-
+				known_length(.super.sectors_per_fat * .super.bytes_per_sector)
+		}
+	} <- (disk);
+
+	.root <- partial(.first_root_sector * .super.bytes_per_sector) {
+		repeat(.super.num_root_entries) {
+			fat_dir_entry(disk[.first_data_sector * .super.bytes_per_sector:],
+			    .bits, .fats[0], .cluster_size, 0, 0)
+		}
+	} <- (disk);
+};
+
+transform fat_filesystem = partial {fat_filesystem_tree(in)};
+
+transform main = fat_filesystem;
