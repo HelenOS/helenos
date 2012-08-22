@@ -86,7 +86,7 @@ void posix_tzset(void)
 struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result)
 {
-	int rc = utctime2tm(*timer, result);
+	int rc = time_utc2tm(*timer, result);
 	if (rc != EOK) {
 		errno = rc;
 		return NULL;
@@ -152,7 +152,7 @@ struct tm *posix_localtime(const time_t *restrict timep)
 char *posix_asctime_r(const struct tm *restrict timeptr,
     char *restrict buf)
 {
-	tm2str(timeptr, buf);
+	time_tm2str(timeptr, buf);
 	return buf;
 }
 
@@ -183,7 +183,7 @@ char *posix_asctime(const struct tm *restrict timeptr)
  */
 char *posix_ctime_r(const time_t *timer, char *buf)
 {
-	int r = localtime2str(*timer, buf);
+	int r = time_local2str(*timer, buf);
 	if (r != EOK) {
 		errno = r;
 		return NULL;

@@ -80,11 +80,11 @@ extern int getuptime(struct timeval *tv);
 extern void udelay(useconds_t);
 
 extern time_t mktime(struct tm *tm);
-extern int utctime2tm(const time_t time, struct tm *result);
-extern int utctime2str(const time_t time, char *buf);
-extern void tm2str(const struct tm *timeptr, char *buf);
-extern int localtime2tm(const time_t time, struct tm *result);
-extern int localtime2str(const time_t time, char *buf);
+extern int time_utc2tm(const time_t time, struct tm *result);
+extern int time_utc2str(const time_t time, char *buf);
+extern void time_tm2str(const struct tm *timeptr, char *buf);
+extern int time_local2tm(const time_t time, struct tm *result);
+extern int time_local2str(const time_t time, char *buf);
 extern double difftime(time_t time1, time_t time0);
 extern size_t strftime(char *restrict s, size_t maxsize,
     const char *restrict format, const struct tm *restrict tm);

@@ -311,7 +311,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 		fibril_mutex_unlock(&rtc->mutex);
 
-		return localtime2tm(cur_time, t);
+		return time_local2tm(cur_time, t);
 	}
 
 	/* now read the registers */

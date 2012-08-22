@@ -848,7 +848,7 @@ size_t strftime(char *restrict s, size_t maxsize,
  *
  * @return        EOK or a negative error code
  */
-int utctime2tm(const time_t time, struct tm *restrict result)
+int time_utc2tm(const time_t time, struct tm *restrict result)
 {
 	assert(result != NULL);
 
@@ -875,15 +875,15 @@ int utctime2tm(const time_t time, struct tm *restrict result)
  *
  * @return       EOK or a negative error code.
  */
-int utctime2str(const time_t time, char *restrict buf)
+int time_utc2str(const time_t time, char *restrict buf)
 {
 	struct tm t;
 	int r;
 
-	if ((r = utctime2tm(time, &t)) != EOK)
+	if ((r = time_utc2tm(time, &t)) != EOK)
 		return r;
 
-	tm2str(&t, buf);
+	time_tm2str(&t, buf);
 	return EOK;
 }
 
@@ -896,7 +896,7 @@ int utctime2str(const time_t time, char *restrict buf)
  * @param buf     Buffer to store string to, must be at least ASCTIME_BUF_LEN
  *                bytes long.
  */
-void tm2str(const struct tm *restrict timeptr, char *restrict buf)
+void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
 {
 	assert(timeptr != NULL);
 	assert(buf != NULL);
@@ -926,7 +926,7 @@ void tm2str(const struct tm *restrict timeptr, char *restrict buf)
  *
  * @return          EOK on success or a negative error code.
  */
-int localtime2tm(const time_t time, struct tm *restrict result)
+int time_local2tm(const time_t time, struct tm *restrict result)
 {
 	// TODO: deal with timezone
 	// currently assumes system and all times are in GMT
@@ -956,15 +956,15 @@ int localtime2tm(const time_t time, struct tm *restrict result)
  *
  * @return       EOK on success or a negative error code.
  */
-int localtime2str(const time_t time, char *buf)
+int time_local2str(const time_t time, char *buf)
 {
 	struct tm loctime;
 	int r;
 
-	if ((r = localtime2tm(time, &loctime)) != EOK)
+	if ((r = time_local2tm(time, &loctime)) != EOK)
 		return r;
 
-	tm2str(&loctime, buf);
+	time_tm2str(&loctime, buf);
 
 	return EOK;
 }
