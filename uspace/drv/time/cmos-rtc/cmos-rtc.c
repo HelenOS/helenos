@@ -164,8 +164,9 @@ rtc_pio_enable(rtc_t *rtc)
 	if (pio_enable((void *)(uintptr_t) rtc->io_addr, REG_COUNT,
 	    (void **) &rtc->port)) {
 
-		ddf_msg(LVL_ERROR, "Cannot map the port %#" PRIx32
-		    " for device %s", rtc->io_addr, ddf_dev_get_name(rtc->dev));
+		ddf_msg(LVL_ERROR, "Cannot map the port %lx"
+		    " for device %s", (intptr_t)rtc->io_addr,
+		    ddf_dev_get_name(rtc->dev));
 		return false;
 	}
 
@@ -227,7 +228,8 @@ rtc_dev_initialize(rtc_t *rtc)
 		rtc->io_addr = (ioport8_t *) res->res.io_range.address;
 		ioport = true;
 		ddf_msg(LVL_NOTE, "Device %s was assigned I/O address "
-		    "0x%x", ddf_dev_get_name(rtc->dev), rtc->io_addr);
+		    "0x%lx", ddf_dev_get_name(rtc->dev),
+		    (intptr_t) rtc->io_addr);
 		rc = EOK;
 		break;
 	}
