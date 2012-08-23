@@ -67,11 +67,11 @@ struct logger_log {
 	logger_dest_t *dest;
 };
 
-logger_log_t *find_log_by_name_and_acquire(const char *name);
-logger_log_t *find_or_create_log_and_acquire(const char *, sysarg_t);
-logger_log_t *find_log_by_id_and_acquire(sysarg_t);
+logger_log_t *find_log_by_name_and_lock(const char *name);
+logger_log_t *find_or_create_log_and_lock(const char *, sysarg_t);
+logger_log_t *find_log_by_id_and_lock(sysarg_t);
 bool shall_log_message(logger_log_t *, log_level_t);
-void log_release(logger_log_t *);
+void log_unlock(logger_log_t *);
 void write_to_log(logger_log_t *, log_level_t, const char *);
 
 log_level_t get_default_logging_level(void);

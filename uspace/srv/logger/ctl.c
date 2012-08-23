@@ -50,14 +50,14 @@ static int handle_log_level_change(sysarg_t new_level)
 		return rc;
 	}
 
-	logger_log_t *log = find_log_by_name_and_acquire(full_name);
+	logger_log_t *log = find_log_by_name_and_lock(full_name);
 	free(full_name);
 	if (log == NULL)
 		return ENOENT;
 
 	log->logged_level = new_level;
 
-	log_release(log);
+	log_unlock(log);
 
 	return EOK;
 }

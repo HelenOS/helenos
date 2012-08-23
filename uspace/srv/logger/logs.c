@@ -114,7 +114,7 @@ error:
 
 }
 
-logger_log_t *find_or_create_log_and_acquire(const char *name, sysarg_t parent_id)
+logger_log_t *find_or_create_log_and_lock(const char *name, sysarg_t parent_id)
 {
 	logger_log_t *result = NULL;
 	logger_log_t *parent = (logger_log_t *) parent_id;
@@ -138,7 +138,7 @@ leave:
 	return result;
 }
 
-logger_log_t *find_log_by_name_and_acquire(const char *name)
+logger_log_t *find_log_by_name_and_lock(const char *name)
 {
 	logger_log_t *result = NULL;
 
@@ -156,7 +156,7 @@ logger_log_t *find_log_by_name_and_acquire(const char *name)
 	return result;
 }
 
-logger_log_t *find_log_by_id_and_acquire(sysarg_t id)
+logger_log_t *find_log_by_id_and_lock(sysarg_t id)
 {
 	logger_log_t *result = NULL;
 
@@ -194,7 +194,7 @@ bool shall_log_message(logger_log_t *log, log_level_t level)
 	return result;
 }
 
-void log_release(logger_log_t *log)
+void log_unlock(logger_log_t *log)
 {
 	assert(fibril_mutex_is_locked(&log->guard));
 	fibril_mutex_unlock(&log->guard);

@@ -55,7 +55,7 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 	if (rc != EOK)
 		return NULL;
 
-	logger_log_t *log = find_or_create_log_and_acquire(name, parent);
+	logger_log_t *log = find_or_create_log_and_lock(name, parent);
 
 	free(name);
 
@@ -64,7 +64,7 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 
 static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 {
-	logger_log_t *log = find_log_by_id_and_acquire(log_id);
+	logger_log_t *log = find_log_by_id_and_lock(log_id);
 	if (log == NULL)
 		return ENOENT;
 
@@ -86,7 +86,7 @@ static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 	rc = EOK;
 
 leave:
-	log_release(log);
+	log_unlock(log);
 	free(message);
 
 	return rc;
@@ -113,7 +113,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 				async_answer_0(callid, ENOMEM);
 				break;
 			}
-			log_release(log);
+			log_unlock(log);
 			async_answer_1(callid, EOK, (sysarg_t) log);
 			break;
 		}

@@ -61,13 +61,13 @@ static void parse_single_level_setting(char *setting)
 	if (rc != EOK)
 		return;
 
-	logger_log_t *log = find_or_create_log_and_acquire(key, 0);
+	logger_log_t *log = find_or_create_log_and_lock(key, 0);
 	if (log == NULL)
 		return;
 
 	log->logged_level = level;
 
-	log_release(log);
+	log_unlock(log);
 }
 
 void parse_level_settings(char *settings)
