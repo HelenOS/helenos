@@ -113,7 +113,7 @@ static int tcp_sock_create(tcp_client_t *client, tcp_sockdata_t **rsock)
 	log_msg(LVL_DEBUG, "tcp_sock_create()");
 	*rsock = NULL;
 
-	sock = calloc(sizeof(tcp_sockdata_t), 1);
+	sock = calloc(1, sizeof(tcp_sockdata_t));
 	if (sock == NULL)
 		return ENOMEM;
 
@@ -276,7 +276,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	fibril_mutex_lock(&socket->lock);
 
 	socket->backlog = backlog;
-	socket->lconn = calloc(sizeof(tcp_conn_t *), backlog);
+	socket->lconn = calloc(backlog, sizeof(tcp_conn_t *));
 	if (socket->lconn == NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, ENOMEM);
@@ -292,7 +292,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	for (i = 0; i < backlog; i++) {
 
-		lconn = calloc(sizeof(tcp_sock_lconn_t), 1);
+		lconn = calloc(1, sizeof(tcp_sock_lconn_t));
 		if (lconn == NULL) {
 			/* XXX Clean up */
 			fibril_mutex_unlock(&socket->lock);

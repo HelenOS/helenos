@@ -37,10 +37,12 @@
 
 #include <sys/types.h>
 #include <stdarg.h>
+#include <io/verify.h>
 
 extern size_t klog_write(const void *, size_t);
 extern void klog_update(void);
-extern int klog_printf(const char *, ...);
+extern int klog_printf(const char *, ...)
+    PRINTF_ATTRIBUTE(1, 2);
 extern int klog_vprintf(const char *, va_list);
 
 #endif

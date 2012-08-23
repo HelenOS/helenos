@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2012 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ERRORS_H
-#define ERRORS_H
+/** @addtogroup generic
+ * @{
+ */
+/** @file
+ */
 
-#include <io/verify.h>
+#ifndef KERN_PRINTF_VERIFY_H_
+#define KERN_PRINTF_VERIFY_H_
 
-/* Various error levels */
-#define CL_EFATAL  -1
-#define CL_EOK     0
-#define CL_EFAIL   1
-#define CL_EBUSY   2
-#define CL_ENOENT  3
-#define CL_ENOMEM  4
-#define CL_EPERM   5
-#define CL_ENOTSUP 6
-#define CL_EEXEC   7
-#define CL_EEXISTS 8
-#define CL_ETOOBIG 9
+#ifndef NVERIFY_PRINTF
 
-/* Just like 'errno' */
-extern volatile int cli_errno;
+#define PRINTF_ATTRIBUTE(start, end) \
+	__attribute__((format(gnu_printf, start, end)))
 
-extern void cli_error(int, const char *, ...)
-    PRINTF_ATTRIBUTE(2, 3);
+#else /* NVERIFY_PRINTF */
+
+#define PRINTF_ATTRIBUTE(start, end)
+
+#endif /* NVERIFY_PRINTF */
 
 #endif
+
+/** @}
+ */
