@@ -63,7 +63,7 @@ static async_sess_t *logger_session;
 /** Maximum length of a single log message (in bytes). */
 #define MESSAGE_BUFFER_SIZE 4096
 
-static int logger_message(async_sess_t *session, log_t log, log_level_t level, const char *message)
+static int logger_message(async_sess_t *session, log_t log, log_level_t level, char *message)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
 	if (exchange == NULL) {
@@ -71,6 +71,9 @@ static int logger_message(async_sess_t *session, log_t log, log_level_t level, c
 	}
 	if (log == LOG_DEFAULT)
 		log = default_log_id;
+
+	// FIXME: remove when all USB drivers use libc logging explicitly
+	str_rtrim(message, '\n');
 
 	aid_t reg_msg = async_send_2(exchange, LOGGER_WRITER_MESSAGE,
 	    log, level, NULL);
