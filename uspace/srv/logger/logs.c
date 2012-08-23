@@ -126,11 +126,10 @@ logger_log_t *find_or_create_log_and_lock(const char *name, sysarg_t parent_id)
 		result = create_log_no_locking(name, parent);
 		if (result == NULL)
 			goto leave;
+		list_append(&result->link, &log_list);
 	}
 
 	fibril_mutex_lock(&result->guard);
-
-	list_append(&result->link, &log_list);
 
 leave:
 	fibril_mutex_unlock(&log_list_guard);
