@@ -53,8 +53,7 @@ static void usage(const char *progname)
 {
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "  %s <default-logging-level>\n", progname);
-	fprintf(stderr, "  %s <namespace> <logging-level>\n", progname);
-	fprintf(stderr, "  %s <namespace> <context> <logging-level>\n", progname);
+	fprintf(stderr, "  %s <log-name> <logging-level>\n", progname);
 }
 
 int main(int argc, char *argv[])
