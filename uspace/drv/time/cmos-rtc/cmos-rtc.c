@@ -216,20 +216,24 @@ rtc_dev_initialize(rtc_t *rtc)
 	for (i = 0; i < hw_resources.count; ++i) {
 		res = &hw_resources.resources[i];
 
-		if (res->type == IO_RANGE) {
-			if (res->res.io_range.size < REG_COUNT) {
-				ddf_msg(LVL_ERROR, "I/O range assigned to \
-				    device %s is too small",
-				    ddf_dev_get_name(rtc->dev));
-				rc = ELIMIT;
-				goto error;
-			}
-			rtc->io_addr = (ioport8_t *) res->res.io_range.address;
-			ioport = true;
-			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address \
-			    0x%x", ddf_dev_get_name(rtc->dev), rtc->io_addr);
+		if (res->res.io_range.size < REG_COUNT) {
+			ddf_msg(LVL_ERROR, "I/O range assigned to \
+			    device %s is too small",
+			    ddf_dev_get_name(rtc->dev));
+			rc = ELIMIT;
+			continue;
 		}
+
+		rtc->io_addr = (ioport8_t *) res->res.io_range.address;
+		ioport = true;
+		ddf_msg(LVL_NOTE, "Device %s was assigned I/O address "
+		    "0x%x", ddf_dev_get_name(rtc->dev), rtc->io_addr);
+		rc = EOK;
+		break;
 	}
+
+	if (rc != EOK)
+		goto error;
 
 	if (!ioport) {
 		/* No I/O address assigned to this device */
