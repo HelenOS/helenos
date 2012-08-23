@@ -74,7 +74,7 @@ do { \
 	uint8_t data = 0; \
 	const ssize_t size = chardev_read(sess, &data, 1); \
 	if (size != 1) { \
-		ddf_msg(LVL_ERROR, "Failed reading byte: %d)", size);\
+		ddf_msg(LVL_ERROR, "Failed reading byte: %zd)", size);\
 		return size < 0 ? size : EIO; \
 	} \
 	if (data != (value)) { \

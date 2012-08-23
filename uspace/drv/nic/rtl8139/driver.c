@@ -619,8 +619,8 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 
 		/* Check if the header is valid, otherwise we are lost in the buffer */
 		if (size == 0 || size > RTL8139_FRAME_MAX_LENGTH) {
-			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4"PRIu16", "
-			    "header 0x%4"PRIx16". Offset: %zu)", size, frame_header, 
+			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4" PRIu16 ", "
+			    "header 0x%4" PRIx16 ". Offset: %d)", size, frame_header,
 			    rx_offset);
 			goto rx_err;
 		}
@@ -1161,7 +1161,7 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	rtl8139->tx_used = 0;
 
 	/* Allocate buffer for receiver */
-	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %zu bytes",
+	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
 
 	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, AS_AREA_READ, 0,
@@ -1248,7 +1248,7 @@ static int rtl8139_pio_enable(ddf_dev_t *dev)
 
 	/* Gain control over port's registers. */
 	if (pio_enable(rtl8139->io_addr, RTL8139_IO_SIZE, &rtl8139->io_port)) {
-		ddf_msg(LVL_ERROR, "Cannot gain the port %lx for device %s.", rtl8139->io_addr,
+		ddf_msg(LVL_ERROR, "Cannot gain the port %p for device %s.", rtl8139->io_addr,
 		    ddf_dev_get_name(dev));
 		return EADDRNOTAVAIL;
 	}
@@ -1295,7 +1295,7 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun;
 
 	assert(dev);
-	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %d)",
+	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %zu)",
 	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
 
 	/* Init device structure for rtl8139 */
@@ -1327,7 +1327,7 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 
 	rc = nic_connect_to_services(nic_data);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to connect to services", rc);
+		ddf_msg(LVL_ERROR, "Failed to connect to services (%d)", rc);
 		goto err_irq;
 	}
 
@@ -2138,9 +2138,10 @@ static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 		pio_write_32(rtl8139->io_port + TIMERINT, 10);
 		pio_write_32(rtl8139->io_port + TCTR, 0);
 
-		ddf_msg(LVL_DEBUG, "Periodic mode. Interrupt mask %"PRIx16", poll.full_skips %"
-		    PRIu32", last timer %"PRIu32".", rtl8139->int_mask, 
-		    rtl8139->poll_timer.full_skips, rtl8139->poll_timer.last_val);
+		ddf_msg(LVL_DEBUG, "Periodic mode. Interrupt mask %" PRIx16 ", "
+		    "poll.full_skips %zu, last timer %" PRIu32,
+		    rtl8139->int_mask, rtl8139->poll_timer.full_skips,
+		    rtl8139->poll_timer.last_val);
 		break;
 	default:
 		rc = ENOTSUP;
