@@ -70,6 +70,8 @@ typedef struct rtc {
 	ioport8_t *port;
 	/** true if device is removed */
 	bool removed;
+	/** number of connected clients */
+	int clients_connected;
 	/** time at which the system booted */
 	time_t boottime;
 } rtc_t;
@@ -188,6 +190,7 @@ rtc_dev_initialize(rtc_t *rtc)
 	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", ddf_dev_get_name(rtc->dev));
 
 	rtc->boottime = 0;
+	rtc->clients_connected = 0;
 
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
@@ -564,6 +567,10 @@ rtc_dev_remove(ddf_dev_t *dev)
 	int rc;
 
 	fibril_mutex_lock(&rtc->mutex);
+	if (rtc->clients_connected > 0) {
+		fibril_mutex_unlock(&rtc->mutex);
+		return EBUSY;
+	}
 
 	rtc->removed = true;
 	fibril_mutex_unlock(&rtc->mutex);
@@ -618,8 +625,10 @@ rtc_open(ddf_fun_t *fun)
 
 	if (rtc->removed)
 		rc = ENXIO;
-	else
+	else {
 		rc = EOK;
+		rtc->clients_connected++;
+	}
 
 	fibril_mutex_unlock(&rtc->mutex);
 	return rc;
@@ -632,6 +641,14 @@ rtc_open(ddf_fun_t *fun)
 static void
 rtc_close(ddf_fun_t *fun)
 {
+	rtc_t *rtc = fun_rtc(fun);
+
+	fibril_mutex_lock(&rtc->mutex);
+
+	rtc->clients_connected--;
+	assert(rtc->clients_connected >= 0);
+
+	fibril_mutex_unlock(&rtc->mutex);
 }
 
 /** Convert from BCD mode to binary mode
