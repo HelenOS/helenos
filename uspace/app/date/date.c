@@ -110,8 +110,8 @@ main(int argc, char **argv)
 	/* Get the list of available services in the clock category */
 	rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
 	if (rc != EOK) {
-		printf(NAME ": Cannot get the list of services in category \
-		    clock\n");
+		printf(NAME ": Cannot get the list of services in the clock \
+		    category\n");
 		goto exit;
 	}
 
