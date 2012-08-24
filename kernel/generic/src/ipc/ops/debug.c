@@ -64,7 +64,9 @@ sysipc_ops_t ipc_m_debug_ops = {
 #else
 	.request_preprocess = null_request_preprocess,
 #endif
+	.request_forget = null_request_forget,
 	.request_process = request_process,
+	.answer_cleanup = null_answer_cleanup,
 	.answer_preprocess = null_answer_preprocess,
 	.answer_process = answer_process,
 };

@@ -107,7 +107,9 @@ static int answer_process(call_t *answer)
 
 sysipc_ops_t ipc_m_data_read_ops = {
 	.request_preprocess = request_preprocess,
+	.request_forget = null_request_forget,
 	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
 	.answer_preprocess = answer_preprocess,
 	.answer_process = answer_process,
 };

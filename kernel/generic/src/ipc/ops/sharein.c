@@ -60,7 +60,9 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 sysipc_ops_t ipc_m_share_in_ops = {
 	.request_preprocess = null_request_preprocess,
+	.request_forget = null_request_forget,
 	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
 	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };

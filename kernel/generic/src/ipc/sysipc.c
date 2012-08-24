@@ -159,6 +159,7 @@ static inline bool answer_need_old(call_t *call)
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int rc = EOK;
+	sysipc_ops_t *ops;
 
 	spinlock_lock(&answer->forget_lock);
 	if (answer->forget) {
@@ -166,7 +167,11 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 * This is a forgotten call and answer->sender is not valid.
 		 */
 		spinlock_unlock(&answer->forget_lock);
-		/* TODO: cleanup? */
+
+		ops = sysipc_ops_get(answer->request_method);
+		if (ops->answer_cleanup)
+			ops->answer_cleanup(answer, olddata);
+
 		return rc;
 	} else {
 		/*
@@ -197,7 +202,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	}
 	
 
-	sysipc_ops_t *ops = sysipc_ops_get(answer->request_method);
+	ops = sysipc_ops_get(answer->request_method);
 	if (ops->answer_preprocess)
 		rc = ops->answer_preprocess(answer, olddata);
 	

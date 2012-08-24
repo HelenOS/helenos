@@ -39,7 +39,9 @@
 
 typedef struct {
 	int (* request_preprocess)(call_t *, phone_t *);
+	void (* request_forget)(call_t *);
 	int (* request_process)(call_t *, answerbox_t *);
+	void (* answer_cleanup)(call_t *, ipc_data_t *);
 	int (* answer_preprocess)(call_t *, ipc_data_t *);
 	int (* answer_process)(call_t *);
 } sysipc_ops_t;
@@ -47,7 +49,9 @@ typedef struct {
 extern sysipc_ops_t *sysipc_ops_get(sysarg_t);
 
 extern int null_request_preprocess(call_t *, phone_t *);
+extern void null_request_forget(call_t *);
 extern int null_request_process(call_t *, answerbox_t *);
+extern void null_answer_cleanup(call_t *, ipc_data_t *);
 extern int null_answer_preprocess(call_t *, ipc_data_t *);
 extern int null_answer_process(call_t *);
 

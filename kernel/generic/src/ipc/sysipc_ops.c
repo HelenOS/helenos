@@ -63,7 +63,9 @@ static sysipc_ops_t *sysipc_ops[] = {
 
 static sysipc_ops_t null_ops = {
 	.request_preprocess = null_request_preprocess,
+	.request_forget = null_request_forget,
 	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
 	.answer_preprocess = null_answer_preprocess,
 	.answer_process = null_answer_process,
 };
@@ -73,9 +75,17 @@ int null_request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
+void null_request_forget(call_t *call)
+{
+}
+
 int null_request_process(call_t *call, answerbox_t *box)
 {
 	return EOK;
+}
+
+void null_answer_cleanup(call_t *call, ipc_data_t *data)
+{
 }
 
 int null_answer_preprocess(call_t *call, ipc_data_t *data)

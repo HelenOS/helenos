@@ -44,6 +44,7 @@
 #include <abi/ipc/methods.h>
 #include <ipc/kbox.h>
 #include <ipc/event.h>
+#include <ipc/sysipc_ops.h>
 #include <errno.h>
 #include <mm/slab.h>
 #include <arch.h>
@@ -612,6 +613,11 @@ restart:
 
 	spinlock_unlock(&call->forget_lock);
 	spinlock_unlock(&TASK->active_calls_lock);
+
+	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
+	if (ops->request_forget)
+		ops->request_forget(call);
+
 	goto restart;
 }
 

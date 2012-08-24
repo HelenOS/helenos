@@ -96,29 +96,34 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
+static void answer_cleanup(call_t *answer, ipc_data_t *olddata)
+{
+	int phoneid = (int) IPC_GET_ARG1(*olddata);
+	phone_t *phone = &TASK->phones[phoneid];
+
+	/*
+	 * In this case, the connection was established at the request
+	 * time and therefore we need to slam the phone.  We don't
+	 * merely hangup as that would result in sending IPC_M_HUNGUP
+	 * to the third party on the other side of the cloned phone.
+	 */
+	mutex_lock(&phone->lock);
+	if (phone->state == IPC_PHONE_CONNECTED) {
+		irq_spinlock_lock(&phone->callee->lock, true);
+		list_remove(&phone->link);
+		phone->state = IPC_PHONE_SLAMMED;
+		irq_spinlock_unlock(&phone->callee->lock, true);
+	}
+	mutex_unlock(&phone->lock);
+}
+
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/*
 		 * The recipient of the cloned phone rejected the offer.
 		 */
-		int phoneid = (int) IPC_GET_ARG1(*olddata);
-		phone_t *phone = &TASK->phones[phoneid];
-
-		/*
-		 * In this case, the connection was established at the request
-		 * time and therefore we need to slam the phone.  We don't
-		 * merely hangup as that would result in sending IPC_M_HUNGUP
-		 * to the third party on the other side of the cloned phone.
-		 */
-		mutex_lock(&phone->lock);
-		if (phone->state == IPC_PHONE_CONNECTED) {
-			irq_spinlock_lock(&phone->callee->lock, true);
-			list_remove(&phone->link);
-			phone->state = IPC_PHONE_SLAMMED;
-			irq_spinlock_unlock(&phone->callee->lock, true);
-		}
-		mutex_unlock(&phone->lock);
+		answer_cleanup(answer, olddata);
 	}
 
 	return EOK;
@@ -126,7 +131,9 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 sysipc_ops_t ipc_m_connection_clone_ops = {
 	.request_preprocess = request_preprocess,
+	.request_forget = null_request_forget,
 	.request_process = null_request_process,
+	.answer_cleanup = answer_cleanup,
 	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };

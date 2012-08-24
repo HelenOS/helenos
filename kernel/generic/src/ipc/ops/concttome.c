@@ -54,15 +54,20 @@ static int request_process(call_t *call, answerbox_t *box)
 	return EOK;
 }
 
+static void answer_cleanup(call_t *answer, ipc_data_t *olddata)
+{
+	int phoneid = (int) IPC_GET_ARG5(*olddata);
+
+	phone_dealloc(phoneid);
+}
+
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid = (int) IPC_GET_ARG5(*olddata);
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
-		int phoneid = (int) IPC_GET_ARG5(*olddata);
-	
-		phone_dealloc(phoneid);
+		answer_cleanup(answer, olddata);
 	} else {
 		/* The connection was accepted */
 		phone_connect(phoneid, &answer->sender->answerbox);
@@ -76,7 +81,9 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 sysipc_ops_t ipc_m_connect_to_me_ops = {
 	.request_preprocess = null_request_preprocess,
+	.request_forget = null_request_forget,
 	.request_process = request_process,
+	.answer_cleanup = answer_cleanup,
 	.answer_preprocess = answer_preprocess,
 	.answer_process = null_answer_process,
 };

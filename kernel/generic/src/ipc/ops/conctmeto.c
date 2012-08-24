@@ -53,6 +53,11 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
+static void request_forget(call_t *call)
+{
+	phone_dealloc(call->priv);
+}
+
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
@@ -76,7 +81,9 @@ static int answer_process(call_t *answer)
 
 sysipc_ops_t ipc_m_connect_me_to_ops = {
 	.request_preprocess = request_preprocess,
+	.request_forget = request_forget,
 	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
 	.answer_preprocess = answer_preprocess,
 	.answer_process = answer_process,
 };
