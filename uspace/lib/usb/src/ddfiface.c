@@ -67,7 +67,7 @@ usb_iface_t usb_iface_hub_child_impl = {
 int usb_iface_get_hc_handle_device_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
-	return usb_get_hc_by_handle(fun->handle, handle);
+	return usb_get_hc_by_handle(ddf_fun_get_handle(fun), handle);
 }
 
 /** Get host controller handle, interface implementation for HC driver.
@@ -81,7 +81,7 @@ int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *fun, devman_handle_t *handle)
 	assert(fun);
 
 	if (handle != NULL) {
-		*handle = fun->handle;
+		*handle = ddf_fun_get_handle(fun);
 	}
 
 	return EOK;
@@ -98,7 +98,7 @@ int usb_iface_get_my_address_forward_impl(ddf_fun_t *fun,
     usb_address_t *address)
 {
 	assert(fun);
-	return usb_get_address_by_handle(fun->handle, address);
+	return usb_get_address_by_handle(ddf_fun_get_handle(fun), address);
 }
 
 /** Get USB device address, interface implementation for child of
@@ -115,9 +115,7 @@ int usb_iface_get_my_address_forward_impl(ddf_fun_t *fun,
 int usb_iface_get_my_address_from_device_data(ddf_fun_t *fun,
     usb_address_t *address)
 {
-	assert(fun);
-	assert(fun->driver_data);
-	const usb_hub_attached_device_t *device = fun->driver_data;
+	const usb_hub_attached_device_t *device = ddf_fun_data_get(fun);
 	assert(device->fun == fun);
 	if (address)
 		*address = device->address;

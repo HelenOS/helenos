@@ -113,7 +113,7 @@ static int tcp_sock_create(tcp_client_t *client, tcp_sockdata_t **rsock)
 	log_msg(LVL_DEBUG, "tcp_sock_create()");
 	*rsock = NULL;
 
-	sock = calloc(sizeof(tcp_sockdata_t), 1);
+	sock = calloc(1, sizeof(tcp_sockdata_t));
 	if (sock == NULL)
 		return ENOMEM;
 
@@ -276,7 +276,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	fibril_mutex_lock(&socket->lock);
 
 	socket->backlog = backlog;
-	socket->lconn = calloc(sizeof(tcp_conn_t *), backlog);
+	socket->lconn = calloc(backlog, sizeof(tcp_conn_t *));
 	if (socket->lconn == NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, ENOMEM);
@@ -292,7 +292,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	for (i = 0; i < backlog; i++) {
 
-		lconn = calloc(sizeof(tcp_sock_lconn_t), 1);
+		lconn = calloc(1, sizeof(tcp_sock_lconn_t));
 		if (lconn == NULL) {
 			/* XXX Clean up */
 			fibril_mutex_unlock(&socket->lock);
@@ -778,6 +778,11 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 		}
 	}
 
+	/* Grab recv_buffer_lock because of CV wait in tcp_sock_recv_fibril() */
+	fibril_mutex_lock(&socket->recv_buffer_lock);
+	socket->sock_core = NULL;
+	fibril_mutex_unlock(&socket->recv_buffer_lock);
+
 	rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
 	    tcp_free_sock_data);
 	if (rc != EOK) {
@@ -838,10 +843,11 @@ static int tcp_sock_recv_fibril(void *arg)
 
 	log_msg(LVL_DEBUG, "tcp_sock_recv_fibril()");
 
+	fibril_mutex_lock(&sock->recv_buffer_lock);
+
 	while (true) {
 		log_msg(LVL_DEBUG, "call tcp_uc_receive()");
-		fibril_mutex_lock(&sock->recv_buffer_lock);
-		while (sock->recv_buffer_used != 0)
+		while (sock->recv_buffer_used != 0 && sock->sock_core != NULL)
 			fibril_condvar_wait(&sock->recv_buffer_cv,
 			    &sock->recv_buffer_lock);
 
@@ -851,8 +857,8 @@ static int tcp_sock_recv_fibril(void *arg)
 		if (trc != TCP_EOK) {
 			sock->recv_error = trc;
 			fibril_condvar_broadcast(&sock->recv_buffer_cv);
-			fibril_mutex_unlock(&sock->recv_buffer_lock);
-			tcp_sock_notify_data(sock->sock_core);
+			if (sock->sock_core != NULL)
+				tcp_sock_notify_data(sock->sock_core);
 			break;
 		}
 
@@ -860,9 +866,11 @@ static int tcp_sock_recv_fibril(void *arg)
 
 		sock->recv_buffer_used = data_len;
 		fibril_condvar_broadcast(&sock->recv_buffer_cv);
-		fibril_mutex_unlock(&sock->recv_buffer_lock);
-		tcp_sock_notify_data(sock->sock_core);
+		if (sock->sock_core != NULL)
+			tcp_sock_notify_data(sock->sock_core);
 	}
+
+	fibril_mutex_unlock(&sock->recv_buffer_lock);
 
 	tcp_uc_delete(sock->conn);
 

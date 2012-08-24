@@ -28,11 +28,10 @@
 
 /** @addtogroup fs
  * @{
- */ 
-
+ */
 /**
- * @file	ext4fs.c
- * @brief	EXT4 file system driver for HelenOS.
+ * @file  ext4fs.c
+ * @brief Ext4 file system driver for HelenOS.
  */
 
 #include <async.h>
@@ -45,57 +44,54 @@
 #include "ext4fs.h"
 #include "../../vfs/vfs.h"
 
-#define NAME	"ext4fs"
+#define NAME  "ext4fs"
 
 vfs_info_t ext4fs_vfs_info = {
 	.name = NAME,
-	.instance = 0,
+	.instance = 0
 };
 
-/**
- * Entry point of ext4fs server.
- * Initialize data structures and IPC, then accepts connections in server mode.
- */
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS EXT4 file system server\n");
-
+	printf("%s: HelenOS ext4 file system server\n", NAME);
+	
 	if (argc == 3) {
 		if (!str_cmp(argv[1], "--instance"))
 			ext4fs_vfs_info.instance = strtol(argv[2], NULL, 10);
 		else {
-			printf(NAME " Unrecognized parameters\n");
-			return -1;
+			printf("%s: Unrecognized parameters\n", NAME);
+			return 1;
 		}
 	}
-
+	
 	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-		SERVICE_VFS, 0, 0);
+	    SERVICE_VFS, 0, 0);
 	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
-		return -1;
+		printf("%s: Failed to connect to VFS\n", NAME);
+		return 2;
 	}
-
+	
 	int rc = ext4fs_global_init();
 	if (rc != EOK) {
-		printf(NAME ": Failed global initialization\n");
-		return 1;
+		printf("%s: Global initialization failed\n", NAME);
+		return rc;
 	}
-
+	
 	rc = fs_register(vfs_sess, &ext4fs_vfs_info, &ext4fs_ops,
 	    &ext4fs_libfs_ops);
 	if (rc != EOK) {
-		fprintf(stdout, NAME ": Failed to register fs (%d)\n", rc);
-		return 1;
+		printf("%s: Failed to register file system\n", NAME);
+		return rc;
 	}
-
-	printf(NAME ": Accepting connections\n");
+	
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-	/* not reached */
+	
+	/* Not reached */
 	return 0;
 }
 
 /**
  * @}
- */ 
+ */

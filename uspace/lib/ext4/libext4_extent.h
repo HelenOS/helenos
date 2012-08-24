@@ -28,7 +28,7 @@
 
 /** @addtogroup libext4
  * @{
- */ 
+ */
 
 #ifndef LIBEXT4_LIBEXT4_EXTENT_H_
 #define LIBEXT4_LIBEXT4_EXTENT_H_
@@ -51,10 +51,10 @@ extern uint16_t ext4_extent_header_get_magic(ext4_extent_header_t *);
 extern void ext4_extent_header_set_magic(ext4_extent_header_t *, uint16_t);
 extern uint16_t ext4_extent_header_get_entries_count(ext4_extent_header_t *);
 extern void ext4_extent_header_set_entries_count(ext4_extent_header_t *,
-		uint16_t);
+    uint16_t);
 extern uint16_t ext4_extent_header_get_max_entries_count(ext4_extent_header_t *);
 extern void ext4_extent_header_set_max_entries_count(ext4_extent_header_t *,
-		uint16_t);
+    uint16_t);
 extern uint16_t ext4_extent_header_get_depth(ext4_extent_header_t *);
 extern void ext4_extent_header_set_depth(ext4_extent_header_t *, uint16_t);
 extern uint32_t ext4_extent_header_get_generation(ext4_extent_header_t *);
@@ -63,7 +63,8 @@ extern void ext4_extent_header_set_generation(ext4_extent_header_t *, uint32_t);
 extern int ext4_extent_find_block(ext4_inode_ref_t *, uint32_t, uint32_t *);
 extern int ext4_extent_release_blocks_from(ext4_inode_ref_t *, uint32_t);
 
-extern int ext4_extent_append_block(ext4_inode_ref_t *, uint32_t *, uint32_t *, bool);
+extern int ext4_extent_append_block(ext4_inode_ref_t *, uint32_t *, uint32_t *,
+    bool);
 
 #endif
 

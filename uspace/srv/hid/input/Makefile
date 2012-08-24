@@ -28,14 +28,9 @@
 #
 
 USPACE_PREFIX = ../../..
-EXTRA_CFLAGS = -Iinclude
 BINARY = input
 
 SOURCES = \
-	generic/gsp.c \
-	generic/input.c \
-	generic/layout.c \
-	generic/stroke.c \
 	layout/cz.c \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
@@ -55,6 +50,10 @@ SOURCES = \
 	ctl/kbdev.c \
 	ctl/pc.c \
 	ctl/stty.c \
-	ctl/sun.c
+	ctl/sun.c \
+	gsp.c \
+	input.c \
+	layout.c \
+	stroke.c
 
 include $(USPACE_PREFIX)/Makefile.common

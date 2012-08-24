@@ -46,7 +46,6 @@
 #include <ipc/irc.h>
 #include <sysinfo.h>
 #include <as.h>
-#include <devman.h>
 #include <ddf/interrupt.h>
 #include <ops/nic.h>
 #include <errno.h>
@@ -249,14 +248,14 @@ void nic_set_poll_handlers(nic_t *nic_data,
 int nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
 {
 	ddf_dev_t *dev = nic_data->dev;
+	async_sess_t *parent_sess;
 	
 	/* Connect to the parent's driver. */
-	dev->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
-		dev->handle, IPC_FLAG_BLOCKING);
-	if (dev->parent_sess == NULL)
+	parent_sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	if (parent_sess == NULL)
 		return EPARTY;
 	
-	return hw_res_get_list_parsed(nic_data->dev->parent_sess, resources, 0);
+	return hw_res_get_list_parsed(parent_sess, resources, 0);
 }
 
 /** Allocate frame
@@ -649,21 +648,18 @@ void nic_received_frame_list(nic_t *nic_data, nic_frame_list_t *frames)
  * @return Allocated structure or NULL.
  *
  */
-static nic_t *nic_create(void)
+static nic_t *nic_create(ddf_dev_t *dev)
 {
-	nic_t *nic_data = malloc(sizeof(nic_t));
+	nic_t *nic_data = ddf_dev_data_alloc(dev, sizeof(nic_t));
 	if (nic_data == NULL)
 		return NULL;
 	
 	/* Force zero to all uninitialized fields (e.g. added in future) */
-	bzero(nic_data, sizeof(nic_t));
 	if (nic_rxc_init(&nic_data->rx_control) != EOK) {
-		free(nic_data);
 		return NULL;
 	}
 	
 	if (nic_wol_virtues_init(&nic_data->wol_virtues) != EOK) {
-		free(nic_data);
 		return NULL;
 	}
 	
@@ -704,15 +700,11 @@ static nic_t *nic_create(void)
  */
 nic_t *nic_create_and_bind(ddf_dev_t *device)
 {
-	assert(device);
-	assert(!device->driver_data);
-	
-	nic_t *nic_data = nic_create();
+	nic_t *nic_data = nic_create(device);
 	if (!nic_data)
 		return NULL;
 	
 	nic_data->dev = device;
-	device->driver_data = nic_data;
 	
 	return nic_data;
 }
@@ -723,13 +715,9 @@ nic_t *nic_create_and_bind(ddf_dev_t *device)
  *
  * @param data
  */
-static void nic_destroy(nic_t *nic_data) {
-	if (nic_data->client_session != NULL) {
-		async_hangup(nic_data->client_session);
-	}
-
+static void nic_destroy(nic_t *nic_data)
+{
 	free(nic_data->specific);
-	free(nic_data);
 }
 
 /**
@@ -739,14 +727,9 @@ static void nic_destroy(nic_t *nic_data) {
  *
  * @param device The NIC device structure
  */
-void nic_unbind_and_destroy(ddf_dev_t *device){
-	if (!device)
-		return;
-	if (!device->driver_data)
-		return;
-
-	nic_destroy((nic_t *) device->driver_data);
-	device->driver_data = NULL;
+void nic_unbind_and_destroy(ddf_dev_t *device)
+{
+	nic_destroy(nic_get_from_ddf_dev(device));
 	return;
 }
 
@@ -982,8 +965,8 @@ void nic_set_ddf_fun(nic_t *nic_data, ddf_fun_t *fun)
  */
 nic_t *nic_get_from_ddf_dev(ddf_dev_t *dev)
 {
-	return (nic_t *) dev->driver_data;
-};
+	return (nic_t *) ddf_dev_data_get(dev);
+}
 
 /** 
  * @param dev DDF function associated with NIC
@@ -991,8 +974,8 @@ nic_t *nic_get_from_ddf_dev(ddf_dev_t *dev)
  */
 nic_t *nic_get_from_ddf_fun(ddf_fun_t *fun)
 {
-	return (nic_t *) fun->driver_data;
-};
+	return (nic_t *) ddf_fun_data_get(fun);
+}
 
 /**
  * Raises the send_packets and send_bytes in device statistics.

@@ -101,10 +101,17 @@ def merge_marker(revision):
 	
 	return ""
 
+def iter_reverse_revision_history(repository, revision_id):
+	"""Iterate backwards through revision ids in the lefthand history"""
+	
+	graph = repository.get_graph()
+	stop_revisions = (None, _mod_revision.NULL_REVISION)
+	return graph.iter_lefthand_ancestry(revision_id, stop_revisions)
+
 def revision_sequence(branch, revision_old_id, revision_new_id):
 	"""Calculate a sequence of revisions"""
 	
-	for revision_ac_id in branch.repository.iter_reverse_revision_history(revision_new_id):
+	for revision_ac_id in iter_reverse_revision_history(branch.repository, revision_new_id):
 		if (revision_ac_id == revision_old_id):
 			break
 		

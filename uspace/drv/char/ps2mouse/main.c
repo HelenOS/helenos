@@ -97,7 +97,7 @@ if (ret != EOK) { \
 	    "Failed to initialize mouse driver: %s.", str_error(ret));
 
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 	return EOK;
 }
 /**

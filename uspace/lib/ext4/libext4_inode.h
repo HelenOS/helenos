@@ -28,12 +28,12 @@
 
 /** @addtogroup libext4
  * @{
- */ 
+ */
 
 #ifndef LIBEXT4_LIBEXT4_INODE_H_
 #define LIBEXT4_LIBEXT4_INODE_H_
 
-#include <libblock.h>
+#include <block.h>
 #include <sys/types.h>
 #include "libext4_types.h"
 
@@ -55,25 +55,17 @@ extern uint32_t ext4_inode_get_gid(ext4_inode_t *);
 extern void ext4_inode_set_gid(ext4_inode_t *, uint32_t);
 extern uint16_t ext4_inode_get_links_count(ext4_inode_t *);
 extern void ext4_inode_set_links_count(ext4_inode_t *, uint16_t);
-extern uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *, ext4_inode_t *);
-extern int ext4_inode_set_blocks_count(ext4_superblock_t *, ext4_inode_t *, uint64_t);
+extern uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *,
+    ext4_inode_t *);
+extern int ext4_inode_set_blocks_count(ext4_superblock_t *, ext4_inode_t *,
+    uint64_t);
 extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 extern void ext4_inode_set_flags(ext4_inode_t *, uint32_t);
 extern uint32_t ext4_inode_get_generation(ext4_inode_t *);
 extern void ext4_inode_set_generation(ext4_inode_t *, uint32_t);
 extern uint64_t ext4_inode_get_file_acl(ext4_inode_t *, ext4_superblock_t *);
-extern void ext4_inode_set_file_acl(ext4_inode_t *, ext4_superblock_t *, uint64_t);
-/*
-uint16_t extra_isize;
-uint32_t ctime_extra; // Extra change time (nsec << 2 | epoch)
-uint32_t mtime_extra; // Extra Modification time (nsec << 2 | epoch)
-uint32_t atime_extra; // Extra Access time (nsec << 2 | epoch)
-uint32_t crtime; // File creation time
-uint32_t crtime_extra; // Extra file creation time (nsec << 2 | epoch)
-uint32_t version_hi;   // High 32 bits for 64-bit version
-*/
-
-/******************************************/
+extern void ext4_inode_set_file_acl(ext4_inode_t *, ext4_superblock_t *,
+    uint64_t);
 
 extern uint32_t ext4_inode_get_direct_block(ext4_inode_t *, uint32_t);
 extern void ext4_inode_set_direct_block(ext4_inode_t *, uint32_t, uint32_t);

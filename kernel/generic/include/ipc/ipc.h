@@ -76,9 +76,6 @@ typedef struct answerbox {
 	
 	waitq_t wq;
 	
-	/** Linkage for the list of task's synchronous answerboxes. */
-	link_t sync_box_link;
-	
 	/** Phones connected to this answerbox. */
 	list_t connected_phones;
 	/** Received calls. */
@@ -115,12 +112,6 @@ typedef struct {
 	/** Identification of the caller. */
 	struct task *sender;
 	
-	/*
-	 * The caller box is different from sender->answerbox
-	 * for synchronous calls.
-	 */
-	answerbox_t *callerbox;
-	
 	/** Private data to internal IPC. */
 	sysarg_t priv;
 	
@@ -146,7 +137,6 @@ extern call_t *ipc_call_alloc(unsigned int);
 extern void ipc_call_free(call_t *);
 
 extern int ipc_call(phone_t *, call_t *);
-extern int ipc_call_sync(phone_t *, call_t *);
 extern call_t *ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int);
 extern int ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);
 extern void ipc_answer(answerbox_t *, call_t *);

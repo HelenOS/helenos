@@ -38,7 +38,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <libblock.h>
+#include <block.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/typefmt.h>

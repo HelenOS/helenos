@@ -34,6 +34,9 @@
  * USB HID keyboard device structure and API.
  */
 
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
@@ -161,14 +164,8 @@ typedef enum usb_kbd_flags {
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	if (fun == NULL || fun->driver_data == NULL) {
-		usb_log_error("%s: Missing parameter.\n", __FUNCTION__);
-		async_answer_0(icallid, EINVAL);
-		return;
-	}
-
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
-	usb_kbd_t *kbd_dev = fun->driver_data;
+	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);
 
 	switch (method) {
 	case KBDEV_SET_IND:
@@ -500,20 +497,19 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 
 	/* Store the initialized HID device and HID ops
 	 * to the DDF function. */
-	fun->ops = &kbdops;
-	fun->driver_data = kbd_dev;
+	ddf_fun_set_ops(fun, &kbdops);
+	ddf_fun_data_implant(fun, kbd_dev);
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		fun->driver_data = NULL; /* We did not allocate this. */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	usb_log_debug("%s function created. Handle: %" PRIun "\n",
-	    HID_KBD_FUN_NAME, fun->handle);
+	    HID_KBD_FUN_NAME, ddf_fun_get_handle(fun));
 
 	usb_log_debug("Adding DDF function to category %s...\n",
 	    HID_KBD_CLASS_NAME);
@@ -523,12 +519,11 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
 		if (ddf_fun_unbind(fun) == EOK) {
-			fun->driver_data = NULL; /* We did not allocate this. */
 			ddf_fun_destroy(fun);
 		} else {
 			usb_log_error(
 			    "Failed to unbind `%s', will not destroy.\n",
-			    fun->name);
+			    ddf_fun_get_name(fun));
 		}
 		return rc;
 	}
@@ -756,14 +751,13 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	if (kbd_dev->fun) {
 		if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
 			usb_log_warning("Failed to unbind %s.\n",
-			    kbd_dev->fun->name);
+			    ddf_fun_get_name(kbd_dev->fun));
 		} else {
-			usb_log_debug2("%s unbound.\n", kbd_dev->fun->name);
-			kbd_dev->fun->driver_data = NULL;
+			usb_log_debug2("%s unbound.\n",
+			    ddf_fun_get_name(kbd_dev->fun));
 			ddf_fun_destroy(kbd_dev->fun);
 		}
 	}
-	free(kbd_dev);
 }
 
 void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)

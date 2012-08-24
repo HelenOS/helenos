@@ -28,7 +28,7 @@
 
 /** @addtogroup libext4
  * @{
- */ 
+ */
 
 #ifndef LIBEXT4_LIBEXT4_H_
 #define LIBEXT4_LIBEXT4_H_
@@ -48,7 +48,9 @@
 #include "libext4_types.h"
 
 #include <stdio.h>
-#define EXT4FS_DBG(format, ...) {printf("ext4fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
+#define EXT4FS_DBG(format, ...) \
+	printf("ext4fs: %s: " format "\n", \
+	    __FUNCTION__, ##__VA_ARGS__) \
 
 #endif
 

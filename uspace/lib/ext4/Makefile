@@ -28,8 +28,8 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libext4
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBPOSIX_PREFIX)
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBPOSIX_PREFIX)/libposix.a 
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 
 SOURCES = \
 	libext4_balloc.c \
@@ -44,6 +44,5 @@ SOURCES = \
 	libext4_ialloc.c \
 	libext4_inode.c \
 	libext4_superblock.c
-	
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -998,8 +998,8 @@ static cproc_t tcp_conn_seg_proc_text(tcp_conn_t *conn, tcp_segment_t *seg)
 		tcp_conn_trim_seg_to_wnd(conn, seg);
 	} else {
 		log_msg(LVL_DEBUG, "%s: Nothing left in segment, dropping "
-		    "(xfer_size=%zu, SEG.LEN=%zu, seg->ctrl=%u)",
-		    conn->name, xfer_size, seg->len, (unsigned)seg->ctrl);
+		    "(xfer_size=%zu, SEG.LEN=%" PRIu32 ", seg->ctrl=%u)",
+		    conn->name, xfer_size, seg->len, (unsigned int) seg->ctrl);
 		/* Nothing left in segment */
 		tcp_segment_delete(seg);
 		return cp_done;
@@ -1145,7 +1145,7 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
  */
 void tcp_conn_segment_arrived(tcp_conn_t *conn, tcp_segment_t *seg)
 {
-	log_msg(LVL_DEBUG, "%c: tcp_conn_segment_arrived(%p)",
+	log_msg(LVL_DEBUG, "%s: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);
 
 	switch (conn->cstate) {

@@ -37,6 +37,9 @@
  * @brief Bridge between NICF, DDF and business logic for the NIC
  */
 
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -60,7 +63,7 @@
  */
 #define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
 
-#define DRIVER_DATA(dev) ((nic_t *) ((dev)->driver_data))
+#define DRIVER_DATA(dev) ((nic_t *) ddf_dev_data_get(dev))
 #define NE2K(device) ((ne2k_t *) nic_get_specific(DRIVER_DATA(device)))
 
 static irq_pio_range_t ne2k_ranges_prototype[] = {
@@ -168,17 +171,13 @@ static ddf_dev_ops_t ne2k_dev_ops;
 
 static void ne2k_dev_cleanup(ddf_dev_t *dev)
 {
-	if (dev->driver_data != NULL) {
+	if (ddf_dev_data_get(dev) != NULL) {
 		ne2k_t *ne2k = NE2K(dev);
 		if (ne2k) {
 			free(ne2k->code.ranges);
 			free(ne2k->code.cmds);
 		}
 		nic_unbind_and_destroy(dev);
-	}
-	if (dev->parent_sess != NULL) {
-		async_hangup(dev->parent_sess);
-		dev->parent_sess = NULL;
 	}
 }
 
@@ -278,7 +277,7 @@ static int ne2k_on_stopping(nic_t *nic_data)
 
 static int ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 {
-	nic_t *nic_data = DRIVER_DATA(fun);
+	nic_t *nic_data = DRIVER_DATA(ddf_fun_get_dev(fun));
 	int rc = nic_report_address(nic_data, address);
 	if (rc != EOK) {
 		return EINVAL;
@@ -409,8 +408,8 @@ static int ne2k_dev_add(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 	nic_set_ddf_fun(nic_data, fun);
-	fun->ops = &ne2k_dev_ops;
-	fun->driver_data = nic_data;
+	ddf_fun_set_ops(fun, &ne2k_dev_ops);
+	ddf_fun_data_implant(fun, nic_data);
 	
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {

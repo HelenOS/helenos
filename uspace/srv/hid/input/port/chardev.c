@@ -36,12 +36,12 @@
 
 #include <ipc/char.h>
 #include <async.h>
-#include <input.h>
-#include <kbd_port.h>
-#include <kbd.h>
 #include <loc.h>
 #include <errno.h>
 #include <stdio.h>
+#include "../input.h"
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 

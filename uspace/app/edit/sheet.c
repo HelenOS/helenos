@@ -56,6 +56,7 @@
 #include <macros.h>
 
 #include "sheet.h"
+#include "sheet_impl.h"
 
 enum {
 	TAB_WIDTH	= 8,
@@ -65,8 +66,14 @@ enum {
 };
 
 /** Initialize an empty sheet. */
-int sheet_init(sheet_t *sh)
+int sheet_create(sheet_t **rsh)
 {
+	sheet_t *sh;
+
+	sh = calloc(1, sizeof(sheet_t));
+	if (sh == NULL)
+		return ENOMEM;
+
 	sh->dbuf_size = INITIAL_SIZE;
 	sh->text_size = 0;
 
@@ -76,6 +83,7 @@ int sheet_init(sheet_t *sh)
 
 	list_initialize(&sh->tags);
 
+	*rsh = sh;
 	return EOK;
 }
 
@@ -312,6 +320,23 @@ void spt_get_coord(spt_t const *pos, coord_t *coord)
 bool spt_equal(spt_t const *a, spt_t const *b)
 {
 	return a->b_off == b->b_off;
+}
+
+/** Get a character at spt and return next spt */
+wchar_t spt_next_char(spt_t spt, spt_t *next)
+{
+	wchar_t ch = str_decode(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	if (next)
+		*next = spt;
+	return ch;
+}
+
+wchar_t spt_prev_char(spt_t spt, spt_t *prev)
+{
+	wchar_t ch = str_decode_reverse(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	if (prev)
+		*prev = spt;
+	return ch;
 }
 
 /** Place a tag on the specified s-point. */
