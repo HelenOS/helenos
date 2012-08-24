@@ -1283,6 +1283,11 @@ int ext4_filesystem_release_inode_block(ext4_inode_ref_t *inode_ref,
 	 */
 	block_t *block;
 	while (level > 0) {
+		
+		/* Sparse check */
+		if (current_block == 0)
+			return EOK;
+		
 		int rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK)
 			return rc;
