@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,23 +32,15 @@
 /** @file
  */
 
-#ifndef LIBC_IPC_CONSOLE_H_
-#define LIBC_IPC_CONSOLE_H_
-
-#include <ipc/vfs.h>
+#ifndef LIBC_IO_CONCAPS_H_
+#define LIBC_IO_CONCAPS_H_
 
 typedef enum {
-	CONSOLE_GET_SIZE = VFS_OUT_LAST,
-	CONSOLE_GET_COLOR_CAP,
-	CONSOLE_GET_EVENT,
-	CONSOLE_GET_POS,
-	CONSOLE_SET_POS,
-	CONSOLE_CLEAR,
-	CONSOLE_SET_STYLE,
-	CONSOLE_SET_COLOR,
-	CONSOLE_SET_RGB_COLOR,
-	CONSOLE_SET_CURSOR_VISIBILITY
-} console_request_t;
+	CONSOLE_CAP_NONE = 0,
+	CONSOLE_CAP_STYLE = 1,
+	CONSOLE_CAP_INDEXED = 2,
+	CONSOLE_CAP_RGB = 4
+} console_caps_t;
 
 #endif
 

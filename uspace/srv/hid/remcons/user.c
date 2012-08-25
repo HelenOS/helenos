@@ -34,9 +34,6 @@
 #include <async.h>
 #include <stdio.h>
 #include <adt/prodcons.h>
-#include <ipc/input.h>
-#include <ipc/console.h>
-#include <ipc/vfs.h>
 #include <errno.h>
 #include <str_error.h>
 #include <loc.h>
@@ -94,14 +91,16 @@ telnet_user_t *telnet_user_create(int socket)
 	user->socket_closed = false;
 	user->locsrv_connection_count = 0;
 
-
-	fibril_mutex_lock(&users_guard);
-	list_append(&user->link, &users);
-	fibril_mutex_unlock(&users_guard);
-
 	user->cursor_x = 0;
 
 	return user;
+}
+
+void telnet_user_add(telnet_user_t *user)
+{
+	fibril_mutex_lock(&users_guard);
+	list_append(&user->link, &users);
+	fibril_mutex_unlock(&users_guard);
 }
 
 /** Destroy telnet user structure.
@@ -198,6 +197,7 @@ static int telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byte)
 		int recv_length = recv(user->socket, user->socket_buffer, BUFFER_SIZE, 0);
 		if ((recv_length == 0) || (recv_length == ENOTCONN)) {
 			user->socket_closed = true;
+			user->srvs.aborted = true;
 			return ENOENT;
 		}
 		if (recv_length < 0) {

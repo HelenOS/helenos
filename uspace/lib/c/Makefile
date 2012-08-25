@@ -105,6 +105,7 @@ GENERIC_SOURCES = \
 	generic/io/vprintf.c \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
+	generic/io/con_srv.c \
 	generic/io/console.c \
 	generic/io/visualizer.c \
 	generic/io/window.c \

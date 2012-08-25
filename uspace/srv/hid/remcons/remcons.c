@@ -33,19 +33,15 @@
  */
 
 #include <async.h>
-#include <stdio.h>
-#include <adt/prodcons.h>
-#include <ipc/input.h>
-#include <ipc/console.h>
-#include <ipc/vfs.h>
 #include <errno.h>
+#include <io/con_srv.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
 #include <loc.h>
 #include <event.h>
 #include <io/keycode.h>
 #include <align.h>
-#include <malloc.h>
-#include <as.h>
 #include <fibril_synch.h>
 #include <task.h>
 #include <net/in.h>
@@ -74,118 +70,133 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
+static int remcons_open(con_srvs_t *, con_srv_t *);
+static int remcons_close(con_srv_t *);
+static int remcons_write(con_srv_t *, void *, size_t);
+static void remcons_sync(con_srv_t *);
+static void remcons_clear(con_srv_t *);
+static void remcons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
+static int remcons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
+static int remcons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
+static int remcons_get_color_cap(con_srv_t *, console_caps_t *);
+static int remcons_get_event(con_srv_t *, kbd_event_t *);
 
-/** Handling client requests (VFS and console interface).
- *
- * @param user Telnet user the requests belong to.
- */
-static void client_connection_message_loop(telnet_user_t *user)
+static con_ops_t con_ops = {
+	.open = remcons_open,
+	.close = remcons_close,
+	.read = NULL,
+	.write = remcons_write,
+	.sync = remcons_sync,
+	.clear = remcons_clear,
+	.set_pos = remcons_set_pos,
+	.get_pos = remcons_get_pos,
+	.get_size = remcons_get_size,
+	.get_color_cap = remcons_get_color_cap,
+	.set_style = NULL,
+	.set_color = NULL,
+	.set_rgb_color = NULL,
+	.set_cursor_visibility = NULL,
+	.get_event = remcons_get_event
+};
+
+static telnet_user_t *srv_to_user(con_srv_t *srv)
 {
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = 0;
+	return srv->srvs->sarg;
+}
 
-		/*
-		 * The getterm task might terminate while we are here,
-		 * waiting for a call. Also, the socket might be closed
-		 * meanwhile.
-		 * We want to detect this situation early, so we use a
-		 * timeout variant of async_get_call().
-		 */
-		while (callid == 0) {
-			callid = async_get_call_timeout(&call, 1000);
+static int remcons_open(con_srvs_t *srvs, con_srv_t *srv)
+{
+	telnet_user_t *user = srv_to_user(srv);
 
-			if (telnet_user_is_zombie(user)) {
-				if (callid != 0) {
-					async_answer_0(callid, EINTR);
-				}
-				return;
-			}
-		}
-		
-		if (!IPC_GET_IMETHOD(call)) {
-			return;
-		}
+	telnet_user_log(user, "New client connected (%p).", srv);
 
-		switch (IPC_GET_IMETHOD(call)) {
-		case CONSOLE_GET_SIZE:
-			async_answer_2(callid, EOK, 100, 1);
-			break;
-		case CONSOLE_GET_POS:
-			fibril_mutex_lock(&user->guard);
-			async_answer_2(callid, EOK, user->cursor_x, 0);
-			fibril_mutex_unlock(&user->guard);
-			break;
-		case CONSOLE_GET_EVENT: {
-			kbd_event_t event;
-			int rc = telnet_user_get_next_keyboard_event(user, &event);
-			if (rc != EOK) {
-				/* Silently ignore. */
-				async_answer_0(callid, EOK);
-				break;
-			}
-			async_answer_4(callid, EOK, event.type, event.key, event.mods, event.c);
-			break;
-		}
-		case CONSOLE_GOTO: {
-			int new_x = IPC_GET_ARG1(call);
-			telnet_user_update_cursor_x(user, new_x);
-			async_answer_0(callid, ENOTSUP);
-			break;
-		}
-		case VFS_OUT_READ:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		case VFS_OUT_WRITE: {
-			uint8_t *buf;
-			size_t size;
-			int rc = async_data_write_accept((void **)&buf, false, 0, 0, 0, &size);
+	/* Force character mode. */
+	send(user->socket, (void *)telnet_force_character_mode_command,
+	    telnet_force_character_mode_command_count, 0);
 
-			if (rc != EOK) {
-				async_answer_0(callid, rc);
-				break;
-			}
+	return EOK;
+}
 
-			rc = telnet_user_send_data(user, buf, size);
-			free(buf);
+static int remcons_close(con_srv_t *srv)
+{
+	telnet_user_t *user = srv_to_user(srv);
 
-			if (rc != EOK) {
-				async_answer_0(callid, rc);
-				break;
-			}
+	telnet_user_notify_client_disconnected(user);
+	telnet_user_log(user, "Client disconnected (%p).", srv);
 
-			async_answer_1(callid, EOK, size);
-			break;
-		}
-		case VFS_OUT_SYNC:
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_CLEAR:
-			async_answer_0(callid, EOK);
-			break;
+	return EOK;
+}
 
-		case CONSOLE_GET_COLOR_CAP:
-			async_answer_1(callid, EOK, CONSOLE_CAP_NONE);
-			break;
-		case CONSOLE_SET_STYLE:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		case CONSOLE_SET_COLOR:
-			async_answer_0(callid, ENOTSUP);
-			break;
-		case CONSOLE_SET_RGB_COLOR:
-			async_answer_0(callid, ENOTSUP);
-			break;
+static int remcons_write(con_srv_t *srv, void *data, size_t size)
+{
+	telnet_user_t *user = srv_to_user(srv);
+	int rc;
 
-		case CONSOLE_CURSOR_VISIBILITY:
-			async_answer_0(callid, ENOTSUP);
-			break;
+	rc = telnet_user_send_data(user, data, size);
+	if (rc != EOK)
+		return rc;
 
-		default:
-			async_answer_0(callid, EINVAL);
-			break;
-		}
+	return size;
+}
+
+static void remcons_sync(con_srv_t *srv)
+{
+	(void) srv;
+}
+
+static void remcons_clear(con_srv_t *srv)
+{
+	(void) srv;
+}
+
+static void remcons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
+{
+	telnet_user_t *user = srv_to_user(srv);
+
+	telnet_user_update_cursor_x(user, col);
+}
+
+static int remcons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
+{
+	telnet_user_t *user = srv_to_user(srv);
+
+	*col = user->cursor_x;
+	*row = 0;
+
+	return EOK;
+}
+
+static int remcons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
+{
+	(void) srv;
+
+	*cols = 100;
+	*rows = 1;
+
+	return EOK;
+}
+
+static int remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
+{
+	(void) srv;
+	*ccaps = CONSOLE_CAP_NONE;
+
+	return EOK;
+}
+
+static int remcons_get_event(con_srv_t *srv, kbd_event_t *event)
+{
+	telnet_user_t *user = srv_to_user(srv);
+	int rc;
+
+	rc = telnet_user_get_next_keyboard_event(user, event);
+	if (rc != EOK) {
+		/* XXX What? */
+		memset(event, 0, sizeof(*event));
+		return EOK;
 	}
+
+	return EOK;
 }
 
 /** Callback when client connects to a telnet terminal. */
@@ -197,19 +208,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	async_answer_0(iid, EOK);
-
-	telnet_user_log(user, "New client connected (%" PRIxn").", iid);
-
-	/* Force character mode. */
-	send(user->socket, (void *)telnet_force_character_mode_command,
-	    telnet_force_character_mode_command_count, 0);
 
 	/* Handle messages. */
-	client_connection_message_loop(user);
-
-	telnet_user_notify_client_disconnected(user);
-	telnet_user_log(user, "Client disconnected (%" PRIxn").", iid);
+	con_conn(iid, icall, &user->srvs);
 }
 
 /** Fibril for spawning the task running after user connects.
@@ -231,6 +232,7 @@ static int spawn_task_fibril(void *arg)
 		    APP_GETTERM, term, APP_SHELL, str_error(rc));
 		fibril_mutex_lock(&user->guard);
 		user->task_finished = true;
+		user->srvs.aborted = true;
 		fibril_condvar_signal(&user->refcount_cv);
 		fibril_mutex_unlock(&user->guard);
 		return EOK;
@@ -250,6 +252,7 @@ static int spawn_task_fibril(void *arg)
 	/* Announce destruction. */
 	fibril_mutex_lock(&user->guard);
 	user->task_finished = true;
+	user->srvs.aborted = true;
 	fibril_condvar_signal(&user->refcount_cv);
 	fibril_mutex_unlock(&user->guard);
 
@@ -294,6 +297,7 @@ static int network_user_fibril(void *arg)
 		if (user->task_finished) {
 			closesocket(user->socket);
 			user->socket_closed = true;
+			user->srvs.aborted = true;
 			continue;
 		} else if (user->socket_closed) {
 			if (user->task_id != 0) {
@@ -378,6 +382,13 @@ int main(int argc, char *argv[])
 
 		telnet_user_t *user = telnet_user_create(conn_sd);
 		assert(user);
+
+		con_srvs_init(&user->srvs);
+		user->srvs.ops = &con_ops;
+		user->srvs.sarg = user;
+		user->srvs.abort_timeout = 1000;
+
+		telnet_user_add(user);
 
 		fid_t fid = fibril_create(network_user_fibril, user);
 		assert(fid);

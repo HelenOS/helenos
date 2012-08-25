@@ -35,8 +35,10 @@
 #ifndef TELNET_USER_H_
 #define TELNET_USER_H_
 
+#include <adt/prodcons.h>
 #include <fibril_synch.h>
 #include <inttypes.h>
+#include <io/con_srv.h>
 #include "remcons.h"
 
 #define BUFFER_SIZE 32
@@ -54,6 +56,8 @@ typedef struct {
 	service_id_t service_id;
 	/** Path name of the service. */
 	char *service_name;
+	/** Console service setup */
+	con_srvs_t srvs;
 
 	/** Producer-consumer of kbd_event_t. */
 	prodcons_t in_events;
@@ -76,6 +80,7 @@ typedef struct {
 } telnet_user_t;
 
 extern telnet_user_t *telnet_user_create(int);
+extern void telnet_user_add(telnet_user_t *);
 extern void telnet_user_destroy(telnet_user_t *);
 extern telnet_user_t *telnet_user_get_for_client_connection(service_id_t);
 extern bool telnet_user_is_zombie(telnet_user_t *);
