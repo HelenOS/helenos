@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,58 +32,61 @@
 /** @file
  */
 
-#ifndef LIBC_IO_CONSOLE_H_
-#define LIBC_IO_CONSOLE_H_
+#ifndef LIBC_CON_SRV_H_
+#define LIBC_CON_SRV_H_
 
-#include <sys/time.h>
+#include <adt/list.h>
+#include <async.h>
+#include <fibril_synch.h>
+#include <io/color.h>
 #include <io/concaps.h>
 #include <io/kbd_event.h>
-#include <io/keycode.h>
-#include <async.h>
+#include <io/pixel.h>
+#include <io/style.h>
 #include <bool.h>
-#include <stdio.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
-/** Console control structure. */
+typedef struct con_ops con_ops_t;
+
+/** Service setup (per sevice) */
 typedef struct {
-	/** Console input file */
-	FILE *input;
-	
-	/** Console output file */
-	FILE *output;
-	
-	/** Console input session */
-	async_sess_t *input_sess;
-	
-	/** Console output session */
-	async_sess_t *output_sess;
-	
-	/** Input request call with timeout */
-	ipc_call_t input_call;
-	
-	/** Input response with timeout */
-	aid_t input_aid;
-} console_ctrl_t;
+	con_ops_t *ops;
+	void *sarg;
+	/** Period to check for abort */
+	suseconds_t abort_timeout;
+	bool aborted;
+} con_srvs_t;
 
-extern console_ctrl_t *console_init(FILE *, FILE *);
-extern void console_done(console_ctrl_t *);
-extern bool console_kcon(void);
+/** Server structure (per client session) */
+typedef struct {
+	con_srvs_t *srvs;
+	async_sess_t *client_sess;
+	void *carg;
+} con_srv_t;
 
-extern void console_flush(console_ctrl_t *);
-extern void console_clear(console_ctrl_t *);
+typedef struct con_ops {
+	int (*open)(con_srvs_t *, con_srv_t *);
+	int (*close)(con_srv_t *);
+	int (*read)(con_srv_t *, void *, size_t);
+	int (*write)(con_srv_t *, void *, size_t);
+	void (*sync)(con_srv_t *);
+	void (*clear)(con_srv_t *);
+	void (*set_pos)(con_srv_t *, sysarg_t col, sysarg_t row);
+	int (*get_pos)(con_srv_t *, sysarg_t *, sysarg_t *);
+	int (*get_size)(con_srv_t *, sysarg_t *, sysarg_t *);
+	int (*get_color_cap)(con_srv_t *, console_caps_t *);
+	void (*set_style)(con_srv_t *, console_style_t);
+	void (*set_color)(con_srv_t *, console_color_t, console_color_t,
+	    console_color_attr_t);
+	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
+	void (*set_cursor_visibility)(con_srv_t *, bool);
+	int (*get_event)(con_srv_t *, kbd_event_t *);
+} con_ops_t;
 
-extern int console_get_size(console_ctrl_t *, sysarg_t *, sysarg_t *);
-extern int console_get_pos(console_ctrl_t *, sysarg_t *, sysarg_t *);
-extern void console_set_pos(console_ctrl_t *, sysarg_t, sysarg_t);
+extern void con_srvs_init(con_srvs_t *);
 
-extern void console_set_style(console_ctrl_t *, uint8_t);
-extern void console_set_color(console_ctrl_t *, uint8_t, uint8_t, uint8_t);
-extern void console_set_rgb_color(console_ctrl_t *, uint32_t, uint32_t);
-
-extern void console_cursor_visibility(console_ctrl_t *, bool);
-extern int console_get_color_cap(console_ctrl_t *, sysarg_t *);
-extern bool console_get_kbd_event(console_ctrl_t *, kbd_event_t *);
-extern bool console_get_kbd_event_timeout(console_ctrl_t *, kbd_event_t *,
-    suseconds_t *);
+extern int con_conn(ipc_callid_t, ipc_call_t *, con_srvs_t *);
 
 #endif
 
