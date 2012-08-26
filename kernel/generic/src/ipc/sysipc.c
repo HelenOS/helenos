@@ -174,6 +174,26 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 		return rc;
 	} else {
+		ASSERT(answer->active);
+
+		/*
+		 * Mark the call as inactive to prevent _ipc_answer_free_call()
+		 * from attempting to remove the call from the active list
+		 * itself.
+		 */
+		answer->active = false;
+
+		/*
+		 * Remove the call from the sender's active call list.
+		 * We enforce this locking order so that any potential
+		 * concurrently executing forget operation is forced to
+		 * release its active_calls_lock and lose the race to
+		 * forget this soon to be answered call. 
+		 */
+		spinlock_lock(&answer->sender->active_calls_lock);
+		list_remove(&answer->ta_link);
+		spinlock_unlock(&answer->sender->active_calls_lock);
+
 		/*
 		 * Hold the sender task so that it cannot suddenly disappear
 		 * while we are working with it.

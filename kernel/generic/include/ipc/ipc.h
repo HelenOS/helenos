@@ -130,6 +130,9 @@ typedef struct {
 	 * to take a lock when accessing them.
 	 */
 	bool forget;
+
+	/** True if the call is in the active list. */
+	bool active;
 	
 	/**
 	 * Identification of the caller.

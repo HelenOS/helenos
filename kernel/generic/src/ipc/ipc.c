@@ -72,6 +72,7 @@ static void _ipc_call_init(call_t *call)
 {
 	memsetb(call, sizeof(*call), 0);
 	spinlock_initialize(&call->forget_lock, "forget_lock");
+	call->active = false;
 	call->forget = false;
 	call->sender = TASK;
 	call->buffer = NULL;
@@ -200,15 +201,15 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 		task_hold(call->sender);
 
 		/*
-		 * Remove the call from the sender's active call list.
-		 * We enforce this locking order so that any potential
-		 * concurrently executing forget operation is forced to
-		 * release its active_calls_lock and lose the race to
-		 * forget this soon to be answered call. 
+		 * If the call is still active, i.e. it was answered
+		 * in a non-standard way, remove the call from the
+		 * sender's active call list.
 		 */
-		spinlock_lock(&call->sender->active_calls_lock);
-		list_remove(&call->ta_link);
-		spinlock_unlock(&call->sender->active_calls_lock);
+		if (call->active) {
+			spinlock_lock(&call->sender->active_calls_lock);
+			list_remove(&call->ta_link);
+			spinlock_unlock(&call->sender->active_calls_lock);
+		}
 	}
 	spinlock_unlock(&call->forget_lock);
 
@@ -290,6 +291,8 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
+
+		call->active = true;
 
 		spinlock_lock(&TASK->active_calls_lock);
 		list_append(&call->ta_link, &TASK->active_calls);
@@ -593,8 +596,9 @@ restart:
 
 	if (!spinlock_trylock(&call->forget_lock)) {
 		/*
-		 * Avoid deadlock and let _ipc_answer_free_call() win the race
-		 * to answer the first call on the list.
+		 * Avoid deadlock and let async_answer() or
+		 *  _ipc_answer_free_call() win the race to dequeue the first
+		 * call on the list.
 		 */
 		spinlock_unlock(&TASK->active_calls_lock);	
 		goto restart;
