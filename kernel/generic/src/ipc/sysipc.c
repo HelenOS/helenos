@@ -193,12 +193,6 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		spinlock_lock(&answer->sender->active_calls_lock);
 		list_remove(&answer->ta_link);
 		spinlock_unlock(&answer->sender->active_calls_lock);
-
-		/*
-		 * Hold the sender task so that it cannot suddenly disappear
-		 * while we are working with it.
-		 */
-		task_hold(answer->sender);
 	}
 	spinlock_unlock(&answer->forget_lock);
 
@@ -216,18 +210,13 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		mutex_unlock(&answer->data.phone->lock);
 	}
 	
-	if (!olddata) {
-		task_release(answer->sender);
+	if (!olddata)
 		return rc;
-	}
-	
 
 	ops = sysipc_ops_get(answer->request_method);
 	if (ops->answer_preprocess)
 		rc = ops->answer_preprocess(answer, olddata);
 	
-	task_release(answer->sender);
-
 	return rc;
 }
 

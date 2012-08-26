@@ -195,12 +195,6 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 		return;
 	} else {
 		/*
-		 * Hold the sender task so that it does not suddenly disappear
-		 * while we are working with it.
-		 */
-		task_hold(call->sender);
-
-		/*
 		 * If the call is still active, i.e. it was answered
 		 * in a non-standard way, remove the call from the
 		 * sender's active call list.
@@ -231,8 +225,6 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 		irq_spinlock_unlock(&callerbox->lock, true);
 	
 	waitq_wakeup(&callerbox->wq, WAKEUP_FIRST);
-
-	task_release(call->sender);
 }
 
 /** Answer a message which is in a callee queue.
