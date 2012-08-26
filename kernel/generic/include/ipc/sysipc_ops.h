@@ -38,11 +38,67 @@
 #include <ipc/ipc.h>
 
 typedef struct {
+	/**
+	 * This callback is called from request_preprocess().
+	 * 
+	 * Context:		caller
+	 * Caller alive:	guaranteed
+	 * Races with:		N/A
+	 * Invoked on:		all calls
+	 */
 	int (* request_preprocess)(call_t *, phone_t *);
+
+	/**
+	 * This callback is called when the IPC cleanup code wins the race to
+	 * forget the call.
+	 *
+	 * Context:		caller
+	 * Caller alive:	guaranteed
+	 * Races with:		request_process(), answer_cleanup()
+	 * Invoked on:		all forgotten calls
+	 */	
 	void (* request_forget)(call_t *);
+
+	/**
+	 * This callback is called from process_request().
+	 *
+	 * Context:		callee
+	 * Caller alive:	no guarantee
+	 * Races with:		request_forget()
+	 * Invoked on:		all calls
+	 */	
 	int (* request_process)(call_t *, answerbox_t *);
+
+	/**
+	 * This callback is called when answer_preprocess() loses the race to
+	 * answer the call.
+	 *
+	 * Context:		callee
+	 * Caller alive:	no guarantee
+	 * Races with:		request_forget()
+	 * Invoked on:		all forgotten calls
+	 */
 	void (* answer_cleanup)(call_t *, ipc_data_t *);
+
+	/**
+	 * This callback is called when answer_preprocess() wins the race to
+	 * answer the call.
+	 *
+	 * Context:		callee
+	 * Caller alive:	guaranteed
+	 * Races with:		N/A
+	 * Invoked on:		all answered calls
+	 */
 	int (* answer_preprocess)(call_t *, ipc_data_t *);
+
+	/**
+	 * This callback is called from process_answer().
+	 *
+	 * Context:		caller
+	 * Caller alive:	guaranteed
+	 * Races with:		N/A
+	 * Invoked on:		all answered calls
+	 */
 	int (* answer_process)(call_t *);
 } sysipc_ops_t;
 
