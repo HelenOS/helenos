@@ -43,8 +43,13 @@ static int request_process(call_t *call, answerbox_t *box)
 {
 	int phoneid = phone_alloc(TASK);
 
-	if (phoneid < 0) {  /* Failed to allocate phone */
+	if (phoneid < 0) {
 		IPC_SET_RETVAL(call->data, ELIMIT);
+		/*
+		 * This is a shortcut which bypasses the standard call
+		 * processing hooks. We are still playing it save here as
+		 * there is no state to be cleaned up at this stage.
+		 */
 		ipc_answer(box, call);
 		return -1;
 	}
