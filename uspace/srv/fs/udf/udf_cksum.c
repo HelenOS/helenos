@@ -72,19 +72,6 @@ static uint16_t crc_table[256] = {
 	0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
-/** Calculate CRC16
- *
- */
-uint16_t udf_cksum(uint8_t *buf, size_t len)
-{
-	uint16_t crc = 0;
-	
-	while (len-- > 0)
-		crc = crc_table[(crc >> 8 ^ *buf++) & 0xff] ^ (crc << 8);
-	
-	return crc;
-}
-
 /** Unicode checksum
  *
  */
@@ -102,26 +89,6 @@ uint16_t udf_unicode_cksum(uint16_t *buf, size_t len)
 	}
 	
 	return crc;
-}
-
-/** EA checksum
- *
- * Calculate a 16-bit checksum of the Implementation Use
- * Extended Attribute header or Application Use Extended Attribute
- * header. The fields AttributeType through ImplementationIdentifier
- * (or ApplicationIdentifier) inclusively represent the
- * data covered by the checksum (48 bytes).
- *
- */
-uint16_t udf_ea_cksum(uint8_t *data)
-{
-	uint16_t checksum = 0;
-	size_t count;
-	
-	for (count = 0; count < 48; count++)
-		checksum += *data++;
-	
-	return checksum;
 }
 
 /** Calculate descriptor tag checksum

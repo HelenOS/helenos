@@ -56,7 +56,7 @@
  * @return EOK on success or a negative error code.
  *
  */
-int udf_read_extended_allocator(udf_node_t *node, uint16_t icb_flag,
+static int udf_read_extended_allocator(udf_node_t *node, uint16_t icb_flag,
     uint32_t pos)
 {
 	block_t *block = NULL;
@@ -184,7 +184,7 @@ int udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
 			 * condition according to 167 4/14.6.8
 			 */
 			if (FLE32(long_d->length) >> 30 == 3) {
-				udf_read_extended_allocator (node, icb_flag, pos_long_ad);
+				udf_read_extended_allocator(node, icb_flag, pos_long_ad);
 				break;
 			}
 			
@@ -295,118 +295,6 @@ int udf_read_icb(udf_node_t *node)
 	return EOK;
 }
 
-/** Read ICB sequence of allocators in Unallocated space entry descriptor
- *
- * This function read ICB sequence if free space is saved by space table.
- * Not finished.
- *
- * @param uased       Unallocated space entry descriptor
- * @param icb_flag    Type of allocators in sequence.
- *                    According to ECMA 167 4/14.8.8
- * @param start_alloc Offset of the allocator
- * @param len         Length of sequence
- *
- * @return EOK on success or a negative error code.
- *
- */
-int udf_read_free_space(uint8_t *uased, uint16_t icb_flag,
-    uint32_t start_alloc, uint32_t len)
-{
-	switch (icb_flag) {
-	case UDF_SHORT_AD:
-		log_msg(LVL_DEBUG,
-		    "UAICB: sequence of allocation descriptors - icbflag = short_ad_t");
-		
-		/* Identify number of current partition */
-		
-		size_t cnt = len / sizeof(udf_short_ad_t);
-		size_t n = 0;
-		
-		while (n < cnt) {
-			udf_short_ad_t *short_d =
-			    (udf_short_ad_t *) (uased + start_alloc + n * sizeof(udf_short_ad_t));
-			
-			if (short_d->length == 0)
-				break;
-			
-			n++;
-		}
-		
-		break;
-		
-	case UDF_LONG_AD:
-		log_msg(LVL_DEBUG,
-		    "UAICB: sequence of allocation descriptors - icbflag = long_ad_t");
-		
-		cnt = len / sizeof(udf_long_ad_t);
-		n = 0;
-		
-		while (n < cnt) {
-			udf_long_ad_t *long_d =
-			    (udf_long_ad_t *) (uased + start_alloc + n * sizeof(udf_long_ad_t));
-			
-			if (long_d->length == 0)
-				break;
-			
-			n++;
-		}
-		
-		break;
-		
-	case UDF_EXTENDED_AD:
-		log_msg(LVL_DEBUG,
-		    "UAICB: sequence of allocation descriptors - icbflag = extended_ad_t");
-		break;
-		
-	case UDF_DATA_AD:
-		log_msg(LVL_DEBUG,
-		    "UAICB: sequence of allocation descriptors - icbflag = 3, node contains data itself");
-		break;
-	}
-	
-	return EOK;
-}
-
-/** Read Unallocated space entry descriptor
- *
- * Read ICB sequence if free space is saved by space table.
- * Not finished.
- *
- */
-int udf_read_unallocated_space_entry(udf_instance_t * instance, uint64_t pos,
-    uint32_t len)
-{
-	block_t *block = NULL;
-	int rc = block_get(&block, instance->service_id, pos, BLOCK_FLAGS_NONE);
-	if (rc != EOK)
-		return rc;
-	
-	udf_descriptor_tag_t *desc = (udf_descriptor_tag_t *) block->data;
-	if (desc->checksum != udf_tag_checksum((uint8_t *) desc)) {
-		block_put(block);
-		return EINVAL;
-	}
-	
-	if (FLE16(desc->id) != UDF_UASPACE_ENTRY) {
-		// FIXME: Memory leak
-		return EINVAL;
-	}
-	
-	udf_unallocated_space_entry_descriptor_t *uased =
-	    (udf_unallocated_space_entry_descriptor_t *) block->data;
-	if (uased->icbtag.file_type != UDF_ICBTYPE_UASE) {
-		// FIXME: Memory leak
-		return EINVAL;
-	}
-	
-	uint16_t icb_flag = uased->icbtag.flags & UDF_ICBFLAG_MASK;
-	
-	rc = udf_read_free_space((uint8_t *) uased, icb_flag,
-	    UDF_UASE_OFFSET, uased->ad_lenght);
-	
-	return block_put(block);
-}
-
 /** Read data from disk - filling UDF node by allocators
  *
  * @param node UDF node
@@ -420,25 +308,6 @@ int udf_node_get_core(udf_node_t *node)
 	return udf_read_icb(node);
 }
 
-/** Read directory entry
- *
- * @param fid   Returned value
- * @param block Returned value
- * @param node  UDF node
- * @param pos   Number of FID which we need to find
- *
- * @return EOK on success or a negative error code.
- *
- */
-int udf_get_fid(udf_file_identifier_descriptor_t **fid, block_t **block,
-    udf_node_t *node, aoff64_t pos)
-{
-	if (node->data == NULL)
-		return udf_get_fid_in_allocator(fid, block, node, pos);
-	
-	return udf_get_fid_in_data(fid, node, pos);
-}
-
 /** Read directory entry if all FIDs is saved inside of descriptor
  *
  * @param fid  Returned value
@@ -448,7 +317,7 @@ int udf_get_fid(udf_file_identifier_descriptor_t **fid, block_t **block,
  * @return EOK on success or a negative error code.
  *
  */
-int udf_get_fid_in_data(udf_file_identifier_descriptor_t **fid,
+static int udf_get_fid_in_data(udf_file_identifier_descriptor_t **fid,
     udf_node_t *node, aoff64_t pos)
 {
 	size_t fid_sum = 0;
@@ -487,6 +356,25 @@ int udf_get_fid_in_data(udf_file_identifier_descriptor_t **fid,
 	}
 	
 	return ENOENT;
+}
+
+/** Read directory entry
+ *
+ * @param fid   Returned value
+ * @param block Returned value
+ * @param node  UDF node
+ * @param pos   Number of FID which we need to find
+ *
+ * @return EOK on success or a negative error code.
+ *
+ */
+int udf_get_fid(udf_file_identifier_descriptor_t **fid, block_t **block,
+    udf_node_t *node, aoff64_t pos)
+{
+	if (node->data == NULL)
+		return udf_get_fid_in_allocator(fid, block, node, pos);
+	
+	return udf_get_fid_in_data(fid, node, pos);
 }
 
 /** Read directory entry if all FIDS is saved in allocators.

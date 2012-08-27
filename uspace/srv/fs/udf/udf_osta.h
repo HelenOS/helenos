@@ -51,8 +51,6 @@
 #define CRC_MARK           0x0023
 #define PERIOD             0x002E
 
-extern size_t udf_uncompress_unicode(size_t, uint8_t *, uint16_t *, size_t);
-extern size_t udf_compress_unicode(size_t, uint8_t, uint16_t *, uint8_t *);
 extern size_t udf_translate_name(uint16_t *, uint16_t *, size_t);
 extern void udf_to_unix_name(char *, size_t, char *, size_t, udf_charspec_t *);
 

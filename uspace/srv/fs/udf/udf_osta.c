@@ -95,8 +95,8 @@ static bool legal_check(uint16_t ch)
  * @return Number of Unicode characters which were uncompressed.
  *
  */
-size_t udf_uncompress_unicode(size_t number_of_bytes, uint8_t *udf_compressed,
-    uint16_t *unicode, size_t unicode_max_len)
+static size_t udf_uncompress_unicode(size_t number_of_bytes,
+    uint8_t *udf_compressed, uint16_t *unicode, size_t unicode_max_len)
 {
 	/* Use udf_compressed to store current byte being read. */
 	uint8_t comp_id = udf_compressed[0];
@@ -128,56 +128,6 @@ size_t udf_uncompress_unicode(size_t number_of_bytes, uint8_t *udf_compressed,
 	}
 	
 	return unicode_idx;
-}
-
-/** Convert Unicode wide characters to OSTA CS0 compressed Unicode string.
- *
- * The Unicode MUST be in the byte order of the compiler in order
- * to obtain correct results. Returns an error if the compression ID
- * is invalid.
- *
- * NOTE: This routine assumes the implementation already knows,
- * by the local environment, how many bits are appropriate and therefore
- * does no checking to test if the input characters fit into that number
- * of bits or not.
- *
- * @param[in]  number_of_chars Number of unicode characters.
- * @param[in]  comp_id         Compression ID to be used.
- * @param[in]  unicode         Unicode characters to compress.
- * @param[out] udf_compressed  Compressed string, as bytes.
- *
- * @return The total number of bytes in the compressed OSTA CS0 string,
- *         including the compression ID.
- *
- */
-size_t udf_compress_unicode(size_t number_of_chars, uint8_t comp_id,
-    uint16_t *unicode, uint8_t *udf_compressed)
-{
-	if ((comp_id != 8) && (comp_id != 16))
-		return 0;
-	
-	/* Place compression code in first byte. */
-	udf_compressed[0] = comp_id;
-	
-	size_t byte_idx = 1;
-	size_t unicode_idx = 0;
-	
-	while (unicode_idx < number_of_chars) {
-		if (comp_id == 16) {
-			/*
-			 * First, place the high bits of the char
-			 * into the byte stream.
-			 */
-			udf_compressed[byte_idx++] =
-			    (unicode[unicode_idx] & 0xFF00) >> 8;
-		}
-		
-		/* Then place the low bits into the stream. */
-		udf_compressed[byte_idx++] = unicode[unicode_idx] & 0x00FF;
-		unicode_idx++;
-	}
-	
-	return byte_idx;
 }
 
 /** Translate a long file name

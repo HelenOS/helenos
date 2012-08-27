@@ -38,9 +38,7 @@
 
 #define UDF_TAG_SIZE  16
 
-extern uint16_t udf_cksum(uint8_t *, size_t);
 extern uint16_t udf_unicode_cksum(uint16_t *, size_t);
-extern uint16_t udf_ea_cksum(uint8_t *);
 extern uint8_t udf_tag_checksum(uint8_t *);
 
 #endif /* UDF_CKSUM_H_ */

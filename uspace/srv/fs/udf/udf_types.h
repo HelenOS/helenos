@@ -141,8 +141,6 @@ typedef struct udf_unallocated_space_descriptor {
 	udf_extent_t allocation_descriptors[0];
 } __attribute__((packed)) udf_unallocated_space_descriptor_t;
 
-extern void udf_prepare_tag(udf_descriptor_tag_t *);
-
 #endif
 
 /**
