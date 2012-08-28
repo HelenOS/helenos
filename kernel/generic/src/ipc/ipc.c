@@ -164,16 +164,6 @@ void ipc_phone_init(phone_t *phone)
 	atomic_set(&phone->active_calls, 0);
 }
 
-/** Demasquerade the caller phone. */
-static void ipc_caller_phone_demasquerade(call_t *call)
-{
-	if (call->flags & IPC_CALL_FORWARDED) {
-		if (call->caller_phone) {
-			call->data.phone = call->caller_phone;
-		}
-	}
-}
-
 /** Answer a message which was not dispatched and is not listed in any queue.
  *
  * @param call       Call structure to be answered.
@@ -212,8 +202,6 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 	
 	call->flags |= IPC_CALL_ANSWERED;
 	
-	ipc_caller_phone_demasquerade(call);
-
 	call->data.task_id = TASK->taskid;
 	
 	if (do_lock)
@@ -256,6 +244,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
  */
 void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
+	call->caller_phone = phone;
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
 
@@ -284,6 +273,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 
+		call->caller_phone = phone;
 		call->active = true;
 
 		spinlock_lock(&TASK->active_calls_lock);
@@ -400,8 +390,6 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 	irq_spinlock_unlock(&oldbox->lock, true);
 	
 	if (mode & IPC_FF_ROUTE_FROM_ME) {
-		if (!call->caller_phone)
-			call->caller_phone = call->data.phone;
 		call->data.phone = newphone;
 		call->data.task_id = TASK->taskid;
 	}
@@ -458,7 +446,7 @@ restart:
 		request = list_get_instance(list_first(&box->answers),
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
-		atomic_dec(&request->data.phone->active_calls);
+		atomic_dec(&request->caller_phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
@@ -604,11 +592,10 @@ restart:
 	call->sender = NULL;
 	list_remove(&call->ta_link);
 
-	ipc_caller_phone_demasquerade(call);
-	atomic_dec(&call->data.phone->active_calls);
-
 	spinlock_unlock(&call->forget_lock);
 	spinlock_unlock(&TASK->active_calls_lock);
+
+	atomic_dec(&call->caller_phone->active_calls);
 
 	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->request_forget)

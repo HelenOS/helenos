@@ -140,6 +140,9 @@ typedef struct {
 	 */
 	struct task *sender;
 	
+	/** Phone which was used to send the call. */
+	phone_t *caller_phone;
+	
 	/** Private data to internal IPC. */
 	sysarg_t priv;
 	
@@ -151,13 +154,6 @@ typedef struct {
 
 	/** Buffer for IPC_M_DATA_WRITE and IPC_M_DATA_READ. */
 	uint8_t *buffer;
-	
-	/*
-	 * The forward operation can masquerade the caller phone. For those
-	 * cases, we must keep it aside so that the answer is processed
-	 * correctly.
-	 */
-	phone_t *caller_phone;
 } call_t;
 
 extern answerbox_t *ipc_phone_0;
