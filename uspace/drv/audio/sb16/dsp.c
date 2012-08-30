@@ -275,7 +275,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 {
-	ddf_log_verbose("Querying cap %u", cap);
+	ddf_log_verbose("Querying cap %s", audio_pcm_cap_str(cap));
 	switch(cap) {
 	case AUDIO_CAP_CAPTURE:
 	case AUDIO_CAP_PLAYBACK:
@@ -289,7 +289,7 @@ unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 	case AUDIO_CAP_INTERRUPT_MAX_FRAMES:
 		return 16535;
 	default:
-		return 0;
+		return ENOTSUP;
 	}
 }
 
