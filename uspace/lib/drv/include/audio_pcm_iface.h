@@ -80,11 +80,19 @@ int audio_pcm_get_buffer(audio_pcm_sess_t *, void **, size_t *);
 int audio_pcm_get_buffer_pos(audio_pcm_sess_t *, size_t *);
 int audio_pcm_release_buffer(audio_pcm_sess_t *);
 
-int audio_pcm_start_playback(audio_pcm_sess_t *, unsigned,
+int audio_pcm_start_playback_fragment(audio_pcm_sess_t *, unsigned,
+    unsigned, unsigned, pcm_sample_format_t);
+int audio_pcm_last_playback_fragment(audio_pcm_sess_t *);
+
+int audio_pcm_start_playback(audio_pcm_sess_t *,
     unsigned, unsigned, pcm_sample_format_t);
 int audio_pcm_stop_playback(audio_pcm_sess_t *);
 
-int audio_pcm_start_capture(audio_pcm_sess_t *, unsigned,
+int audio_pcm_start_capture_fragment(audio_pcm_sess_t *, unsigned,
+    unsigned, unsigned, pcm_sample_format_t);
+int audio_pcm_last_capture_fragment(audio_pcm_sess_t *);
+
+int audio_pcm_start_capture(audio_pcm_sess_t *,
     unsigned, unsigned, pcm_sample_format_t);
 int audio_pcm_stop_capture(audio_pcm_sess_t *);
 
@@ -101,10 +109,10 @@ typedef struct {
 	async_sess_t * (*get_event_session)(ddf_fun_t *);
 	int (*start_playback)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_playback)(ddf_fun_t *);
+	int (*stop_playback)(ddf_fun_t *, bool);
 	int (*start_capture)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_capture)(ddf_fun_t *);
+	int (*stop_capture)(ddf_fun_t *, bool);
 } audio_pcm_iface_t;
 
 #endif

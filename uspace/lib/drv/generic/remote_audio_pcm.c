@@ -341,7 +341,7 @@ int audio_pcm_release_buffer(audio_pcm_sess_t *sess)
  * Event will be generated after every fragment. Set fragment size to
  * 0 to turn off event generation.
  */
-int audio_pcm_start_playback(audio_pcm_sess_t *sess, unsigned frames,
+int audio_pcm_start_playback_fragment(audio_pcm_sess_t *sess, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	if (channels > UINT16_MAX)
@@ -356,9 +356,42 @@ int audio_pcm_start_playback(audio_pcm_sess_t *sess, unsigned frames,
 	async_exchange_end(exch);
 	return ret;
 }
+/**
+ * Stops playback after current fragment.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
+int audio_pcm_last_playback_fragment(audio_pcm_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_2_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_PLAYBACK, false);
+	async_exchange_end(exch);
+	return ret;
+}
 
 /**
- * Stop current playback.
+ * Start playback on buffer from the current position.
+ *
+ * @param sess Audio device session.
+ * @param channels Number of channels.
+ * @param sample_rate Sampling rate (for one channel).
+ * @param format Sample format.
+ *
+ * @return Error code.
+ */
+int audio_pcm_start_playback(audio_pcm_sess_t *sess,
+    unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
+{
+	return audio_pcm_start_playback_fragment(
+	    sess, 0, channels, sample_rate, format);
+}
+
+/**
+ * Immediately stops current playback.
  *
  * @param sess Audio device session.
  *
@@ -367,15 +400,15 @@ int audio_pcm_start_playback(audio_pcm_sess_t *sess, unsigned frames,
 int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	const int ret = async_req_1_0(exch,
+	const int ret = async_req_2_0(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
-	    IPC_M_AUDIO_PCM_STOP_PLAYBACK);
+	    IPC_M_AUDIO_PCM_STOP_PLAYBACK, true);
 	async_exchange_end(exch);
 	return ret;
 }
 
 /**
- * Start capture on buffer from position 0.
+ * Start capture on buffer from the current position.
  *
  * @param sess Audio device session.
  * @param frames Size of fragment (in frames).
@@ -388,7 +421,7 @@ int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
  * Event will be generated after every fragment. Set fragment size to
  * 0 to turn off event generation.
  */
-int audio_pcm_start_capture(audio_pcm_sess_t *sess, unsigned frames,
+int audio_pcm_start_capture_fragment(audio_pcm_sess_t *sess, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	if (channels > UINT16_MAX)
@@ -404,7 +437,42 @@ int audio_pcm_start_capture(audio_pcm_sess_t *sess, unsigned frames,
 }
 
 /**
- * Stop current playback.
+ * Start capture on buffer from the current position.
+ *
+ * @param sess Audio device session.
+ * @param channels Number of channels.
+ * @param sample_rate Sampling rate (for one channel).
+ * @param format Sample format.
+ *
+ * @return Error code.
+ */
+int audio_pcm_start_capture(audio_pcm_sess_t *sess,
+    unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
+{
+	return audio_pcm_start_capture_fragment(
+	    sess, 0, channels, sample_rate, format);
+}
+
+/**
+ * Stops capture at the end of current fragment.
+ *
+ * Won't work if capture was started with fragment size 0.
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
+int audio_pcm_last_capture_fragment(audio_pcm_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_2_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_CAPTURE, false);
+	async_exchange_end(exch);
+	return ret;
+}
+
+/**
+ * Immediately stops current capture.
  *
  * @param sess Audio device session.
  *
@@ -413,8 +481,9 @@ int audio_pcm_start_capture(audio_pcm_sess_t *sess, unsigned frames,
 int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	const int ret = async_req_1_0(exch,
-	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_STOP_CAPTURE);
+	const int ret = async_req_2_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_CAPTURE, true);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -647,9 +716,10 @@ void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
+	const bool immediate = DEV_IPC_GET_ARG1(*call);
 
 	const int ret = pcm_iface->stop_playback ?
-	    pcm_iface->stop_playback(fun) : ENOTSUP;
+	    pcm_iface->stop_playback(fun, immediate) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 
@@ -673,9 +743,10 @@ void remote_audio_pcm_stop_capture(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
+	const bool immediate = DEV_IPC_GET_ARG1(*call);
 
 	const int ret = pcm_iface->stop_capture ?
-	    pcm_iface->stop_capture(fun) : ENOTSUP;
+	    pcm_iface->stop_capture(fun, immediate) : ENOTSUP;
 	async_answer_0(callid, ret);
 }
 

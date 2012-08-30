@@ -123,7 +123,7 @@ static void record(record_t *rec, unsigned channels, unsigned sampling_rate,
 	    sampling_rate, pcm_sample_format_str(format), channels);
 	const unsigned frames = rec->buffer.size /
 	    (BUFFER_PARTS * channels * pcm_sample_format_size(format));
-	int ret = audio_pcm_start_capture(rec->device,
+	int ret = audio_pcm_start_capture_fragment(rec->device,
 	    frames, channels, sampling_rate, format);
 	if (ret != EOK) {
 		printf("Failed to start recording: %s.\n", str_error(ret));

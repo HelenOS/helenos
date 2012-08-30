@@ -402,6 +402,9 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	if (!dsp->buffer.data)
 		return EINVAL;
 
+	if (dsp->state != DSP_READY && dsp->state != DSP_STOPPED)
+		return EINVAL;
+
 	/* Check supported parameters */
 	ddf_log_debug("Requested playback: %u frames, %uHz, %s, %u channel(s).",
 	    frames, sampling_rate, pcm_sample_format_str(format), channels);
@@ -443,17 +446,29 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	return EOK;
 }
 
-int sb_dsp_stop_playback(sb_dsp_t *dsp)
+int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 {
 	assert(dsp);
-	if (dsp->state != DSP_PLAYBACK_NOEVENTS &&
-	    dsp->state != DSP_PLAYBACK_ACTIVE_EVENTS)
-		return EINVAL;
-
-	sb_dsp_write(dsp, DMA_16B_EXIT);
-	ddf_log_debug("Stopping playback on buffer.");
-	sb_dsp_change_state(dsp, DSP_PLAYBACK_TERMINATE);
-	return EOK;
+	if ((dsp->state == DSP_PLAYBACK_NOEVENTS ||
+	    dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS) &&
+	    immediate)
+	{
+		sb_dsp_write(dsp, DMA_16B_PAUSE);
+		sb_dsp_reset(dsp);
+		ddf_log_debug("Stopped playback");
+		sb_dsp_change_state(dsp, DSP_STOPPED);
+		return EOK;
+	}
+	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
+	{
+		/* Stop after current fragment */
+		assert(!immediate);
+		sb_dsp_write(dsp, DMA_16B_EXIT);
+		ddf_log_debug("Last playback fragment");
+		sb_dsp_change_state(dsp, DSP_PLAYBACK_TERMINATE);
+		return EOK;
+	}
+	return EINVAL;
 }
 
 int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
@@ -461,6 +476,8 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 {
 	assert(dsp);
 	if (!dsp->buffer.data)
+		return EINVAL;
+	if (dsp->state != DSP_READY && dsp->state != DSP_STOPPED)
 		return EINVAL;
 
 	/* Check supported parameters */
@@ -502,17 +519,29 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 	return EOK;
 }
 
-int sb_dsp_stop_capture(sb_dsp_t *dsp)
+int sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
 {
 	assert(dsp);
-	if (dsp->state != DSP_CAPTURE_NOEVENTS &&
-	    dsp->state != DSP_CAPTURE_ACTIVE_EVENTS)
-		return EINVAL;
-
-	sb_dsp_write(dsp, DMA_16B_EXIT);
-	ddf_log_debug("Stopped capture");
-	sb_dsp_change_state(dsp, DSP_CAPTURE_TERMINATE);
-	return EOK;
+	if ((dsp->state == DSP_CAPTURE_NOEVENTS ||
+	    dsp->state == DSP_CAPTURE_ACTIVE_EVENTS) &&
+	    immediate)
+	{
+		sb_dsp_write(dsp, DMA_16B_PAUSE);
+		sb_dsp_reset(dsp);
+		ddf_log_debug("Stopped capture fragment");
+		sb_dsp_change_state(dsp, DSP_STOPPED);
+		return EOK;
+	}
+	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
+	{
+		/* Stop after current fragment */
+		assert(!immediate);
+		sb_dsp_write(dsp, DMA_16B_EXIT);
+		ddf_log_debug("Last capture fragment");
+		sb_dsp_change_state(dsp, DSP_CAPTURE_TERMINATE);
+		return EOK;
+	}
+	return EINVAL;
 }
 /**
  * @}

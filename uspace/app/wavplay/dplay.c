@@ -112,7 +112,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 		const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
 		   buffer_part, pb->source);
 		if (bytes == 0) {
-			audio_pcm_stop_playback(pb->device);
+			audio_pcm_last_playback_fragment(pb->device);
 		}
 		bzero(pb->buffer.position + bytes, buffer_part - bytes);
 		pb->buffer.position += buffer_part;
@@ -147,7 +147,7 @@ static void play(playback_t *pb, unsigned channels, unsigned sampling_rate,
 	fibril_mutex_lock(&pb->mutex);
 	const unsigned frames = pb->buffer.size /
 	    (BUFFER_PARTS * channels * pcm_sample_format_size(format));
-	ret = audio_pcm_start_playback(pb->device, frames, channels,
+	ret = audio_pcm_start_playback_fragment(pb->device, frames, channels,
 	    sampling_rate, format);
 	if (ret != EOK) {
 		fibril_mutex_unlock(&pb->mutex);

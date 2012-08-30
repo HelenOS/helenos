@@ -95,9 +95,9 @@ static int sb_start_playback(ddf_fun_t *fun, unsigned frames,
 	    fun_to_dsp(fun), frames, channels, sample_rate, format);
 }
 
-static int sb_stop_playback(ddf_fun_t *fun)
+static int sb_stop_playback(ddf_fun_t *fun, bool immediate)
 {
-	return sb_dsp_stop_playback(fun_to_dsp(fun));
+	return sb_dsp_stop_playback(fun_to_dsp(fun), immediate);
 }
 
 static int sb_start_capture(ddf_fun_t *fun, unsigned frames,
@@ -107,9 +107,9 @@ static int sb_start_capture(ddf_fun_t *fun, unsigned frames,
 	    fun_to_dsp(fun), frames, channels, sample_rate, format);
 }
 
-static int sb_stop_capture(ddf_fun_t *fun)
+static int sb_stop_capture(ddf_fun_t *fun, bool immediate)
 {
-	return sb_dsp_stop_capture(fun_to_dsp(fun));
+	return sb_dsp_stop_capture(fun_to_dsp(fun), immediate);
 }
 
 audio_pcm_iface_t sb_pcm_iface = {

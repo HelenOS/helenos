@@ -89,10 +89,10 @@ async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp);
 int sb_dsp_release_buffer(sb_dsp_t *dsp);
 int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_playback(sb_dsp_t *dsp);
+int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate);
 int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_capture(sb_dsp_t *dsp);
+int sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate);
 
 #endif
 /**
