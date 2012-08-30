@@ -172,7 +172,7 @@ static void play(playback_t *pb)
 	pb->buffer.position = pb->buffer.base;
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
 	    pcm_sample_format_str(pb->f.sample_format), pb->f.channels);
-	static suseconds_t work_time = 8000; /* 2 ms */
+	static useconds_t work_time = 8000; /* 8 ms */
 	size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
 		    pb->buffer.size, pb->source);
 	if (bytes == 0)
@@ -182,15 +182,20 @@ static void play(playback_t *pb)
 	do {
 		size_t pos = 0;
 		audio_pcm_get_buffer_pos(pb->device, &pos);
-		useconds_t usecs = pcm_format_size_to_usec(bytes - pos, &pb->f);
+		size_t to_play = bytes - pos;
+		useconds_t usecs = (bytes > pos) ?
+		    pcm_format_size_to_usec(to_play, &pb->f) : 0;
 
 		pb->buffer.position += bytes;
 
 		printf("%u usecs to play %zu bytes from pos %zu.\n",
-		    usecs, bytes, pos);
-		async_usleep(usecs - work_time);
-		audio_pcm_get_buffer_pos(pb->device, &pos);
-		printf("Woke up at position %zu/%zu.\n", pos, pb->buffer.size);
+		    usecs, to_play, pos);
+		if (usecs > work_time) {
+			async_usleep(usecs - work_time);
+			audio_pcm_get_buffer_pos(pb->device, &pos);
+//			printf("Woke up at position %zu/%zu.\n",
+//			    pos, pb->buffer.size);
+		}
 
 		/* Remove any overflow */
 		while (pb->buffer.position >= pb->buffer.base + pb->buffer.size)
@@ -201,7 +206,7 @@ static void play(playback_t *pb)
 			    (pb->buffer.position - pb->buffer.base);
 			/* This was the last part,
 			 * zero 200 bytes or until the end of buffer. */
-			bzero(pb->buffer.position, min(200, remain));
+			bzero(pb->buffer.position, min(1024, remain));
 			if ((pb->buffer.base + pos) > pb->buffer.position) {
 				printf("Overflow: %zu vs. %zu!\n",
 				    pos, pb->buffer.position - pb->buffer.base);
@@ -222,14 +227,16 @@ static void play(playback_t *pb)
 		if (bytes == 0)
 			break;
 		audio_pcm_get_buffer_pos(pb->device, &pos);
-		printf("Half buffer copied at pos %zu", pos);
+		printf("Half buffer copied at pos %zu ", pos);
 		/* Wait until the rest of the buffer is ready */
 		udelay(pcm_format_size_to_usec(pb->buffer.size - pos, &pb->f));
 		/* copy the other part of the buffer */
-		audio_pcm_get_buffer_pos(pb->device, &pos);
-		printf(" the other half copied at pos %zu\n", pos);
-		bytes += fread(pb->buffer.position + bytes, sizeof(uint8_t),
-			    pb->buffer.size / 2, pb->source);
+		if (bytes ==  (pb->buffer.size / 2)) {
+			bytes += fread(pb->buffer.position + bytes,
+			    sizeof(uint8_t), pb->buffer.size / 2, pb->source);
+			audio_pcm_get_buffer_pos(pb->device, &pos);
+			printf("the other half copied at pos %zu\n", pos);
+		}
 	} while (1);
 	audio_pcm_stop_playback(pb->device);
 }
