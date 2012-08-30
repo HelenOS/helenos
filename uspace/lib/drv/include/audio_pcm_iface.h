@@ -71,7 +71,7 @@ void audio_pcm_close(audio_pcm_sess_t *);
 int audio_pcm_get_info_str(audio_pcm_sess_t *, const char **);
 int audio_pcm_test_format(audio_pcm_sess_t *, unsigned *, unsigned *,
     pcm_sample_format_t *);
-int audio_pcm_query_cap(audio_pcm_sess_t *, audio_cap_t, unsigned *);
+int audio_pcm_query_cap(audio_pcm_sess_t *, audio_cap_t);
 int audio_pcm_register_event_callback(audio_pcm_sess_t *,
     async_client_conn_t, void *);
 int audio_pcm_unregister_event_callback(audio_pcm_sess_t *);
