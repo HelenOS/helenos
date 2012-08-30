@@ -447,6 +447,7 @@ restart:
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
 		atomic_dec(&request->caller_phone->active_calls);
+		ASSERT(atomic_get(&request->caller_phone->active_calls) >= 0);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
@@ -596,6 +597,7 @@ restart:
 	spinlock_unlock(&TASK->active_calls_lock);
 
 	atomic_dec(&call->caller_phone->active_calls);
+	ASSERT(atomic_get(&call->caller_phone->active_calls) >= 0);
 
 	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->request_forget)
@@ -716,6 +718,40 @@ void ipc_init(void)
 	    sizeof(answerbox_t), 0, NULL, NULL, 0);
 }
 
+
+static void ipc_print_call_list(list_t *list)
+{
+	list_foreach(*list, cur) {
+		call_t *call = list_get_instance(cur, call_t, ab_link);
+		
+#ifdef __32_BITS__
+		printf("%10p ", call);
+#endif
+		
+#ifdef __64_BITS__
+		printf("%18p ", call);
+#endif
+		
+		spinlock_lock(&call->forget_lock);
+
+		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
+		    " %-6" PRIun " %-6" PRIun " %-7x",
+		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
+		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
+		    call->flags);
+
+		if (call->forget) {
+			printf(" ? (call forgotten)\n");
+		} else {
+			printf(" %" PRIu64 " (%s)\n",
+			    call->sender->taskid, call->sender->name);
+		}
+
+		spinlock_unlock(&call->forget_lock);
+	}
+}
+
 /** List answerbox contents.
  *
  * @param taskid Task ID.
@@ -787,64 +823,11 @@ void ipc_print_task(task_id_t taskid)
 #endif
 	
 	printf(" --- incomming calls ---\n");
-	list_foreach(task->answerbox.calls, cur) {
-		call_t *call = list_get_instance(cur, call_t, ab_link);
-		
-#ifdef __32_BITS__
-		printf("%10p ", call);
-#endif
-		
-#ifdef __64_BITS__
-		printf("%18p ", call);
-#endif
-		
-		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
-		    " %-6" PRIun " %-6" PRIun " %-7x %" PRIu64 " (%s)\n",
-		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
-		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
-		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
-		    call->flags, call->sender->taskid, call->sender->name);
-	}
-	
+	ipc_print_call_list(&task->answerbox.calls);
 	printf(" --- dispatched calls ---\n");
-	list_foreach(task->answerbox.dispatched_calls, cur) {
-		call_t *call = list_get_instance(cur, call_t, ab_link);
-		
-#ifdef __32_BITS__
-		printf("%10p ", call);
-#endif
-		
-#ifdef __64_BITS__
-		printf("%18p ", call);
-#endif
-		
-		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
-		    " %-6" PRIun " %-6" PRIun " %-7x %" PRIu64 " (%s)\n",
-		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
-		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
-		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
-		    call->flags, call->sender->taskid, call->sender->name);
-	}
-	
+	ipc_print_call_list(&task->answerbox.dispatched_calls);
 	printf(" --- incoming answers ---\n");
-	list_foreach(task->answerbox.answers, cur) {
-		call_t *call = list_get_instance(cur, call_t, ab_link);
-		
-#ifdef __32_BITS__
-		printf("%10p ", call);
-#endif
-		
-#ifdef __64_BITS__
-		printf("%18p ", call);
-#endif
-		
-		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
-		    " %-6" PRIun " %-6" PRIun " %-7x %" PRIu64 " (%s)\n",
-		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
-		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
-		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
-		    call->flags, call->sender->taskid, call->sender->name);
-	}
+	ipc_print_call_list(&task->answerbox.answers);
 	
 	irq_spinlock_unlock(&task->answerbox.lock, false);
 	irq_spinlock_unlock(&task->lock, true);
