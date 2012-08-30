@@ -37,6 +37,7 @@
 #define PCM_SAMPLE_FORMAT_H_
 
 #include <bool.h>
+#include <time.h>
 
 typedef enum {
 	PCM_SAMPLE_UINT8,
@@ -118,6 +119,27 @@ static inline size_t pcm_sample_format_size(pcm_sample_format_t format)
 	default:
 		return 0;
 	}
+}
+
+static inline size_t pcm_sample_format_frame_size(unsigned channels,
+    pcm_sample_format_t format)
+{
+	return pcm_sample_format_size(format) * channels;
+}
+
+static inline size_t pcm_sample_format_size_to_frames(size_t size,
+    unsigned channels, pcm_sample_format_t format)
+{
+	const size_t frame_size = pcm_sample_format_frame_size(channels, format);
+	return (size + frame_size - 1) / frame_size;
+}
+
+static inline useconds_t pcm_sample_format_size_to_usec(size_t size,
+    unsigned sample_rate, unsigned channels, pcm_sample_format_t format)
+{
+	const long long frames =
+	    pcm_sample_format_size_to_frames(size, channels, format);
+	return (frames * 1000000ULL) / sample_rate;
 }
 
 static inline const char * pcm_sample_format_str(pcm_sample_format_t format)

@@ -60,7 +60,14 @@ static const pcm_format_t AUDIO_FORMAT_ANY = {
 
 static inline size_t pcm_format_frame_size(const pcm_format_t *a)
 {
-	return a->channels * pcm_sample_format_size(a->sample_format);
+	return pcm_sample_format_frame_size(a->channels, a->sample_format);
+}
+
+static inline suseconds_t pcm_format_size_to_usec(size_t size,
+    const pcm_format_t *a)
+{
+	return pcm_sample_format_size_to_usec(size, a->sampling_rate,
+	    a->channels, a->sample_format);
 }
 
 bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b);
