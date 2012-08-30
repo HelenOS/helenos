@@ -57,6 +57,38 @@ typedef enum {
 	IPC_M_AUDIO_PCM_STOP_CAPTURE,
 } audio_pcm_iface_funcs_t;
 
+const char *audio_pcm_cap_str(audio_cap_t cap)
+{
+	static const char *caps[] = {
+		[AUDIO_CAP_CAPTURE] = "CAPTURE",
+		[AUDIO_CAP_PLAYBACK] = "PLAYBACK",
+		[AUDIO_CAP_MAX_BUFFER] = "MAXIMUM BUFFER SIZE",
+		[AUDIO_CAP_BUFFER_POS] = "KNOWS BUFFER POSITION",
+		[AUDIO_CAP_INTERRUPT] = "FRAGMENT INTERRUPTS",
+		[AUDIO_CAP_INTERRUPT_MIN_FRAMES] = "MINIMUM FRAGMENT SIZE",
+		[AUDIO_CAP_INTERRUPT_MAX_FRAMES] = "MAXIMUM FRAGMENT SIZE",
+	};
+	if (cap > (sizeof(caps) / sizeof(*caps)))
+		return "UNKNOWN CAP";
+	return caps[cap];
+
+}
+
+const char *audio_pcm_event_str(pcm_event_t event)
+{
+	static const char *events[] = {
+		[PCM_EVENT_PLAYBACK_STARTED] = "PLAYBACK STARTED",
+		[PCM_EVENT_CAPTURE_STARTED] = "CAPTURE STARTED",
+		[PCM_EVENT_FRAMES_PLAYED] = "FRAGMENT PLAYED",
+		[PCM_EVENT_FRAMES_CAPTURED] = "FRAGMENT CAPTURED",
+		[PCM_EVENT_PLAYBACK_TERMINATED] = "PLAYBACK TERMINATED",
+		[PCM_EVENT_CAPTURE_TERMINATED] = "CAPTURE TERMINATED",
+	};
+	if (event > (sizeof(events) / sizeof(*events)))
+		return "UNKNOWN EVENT";
+	return events[event];
+}
+
 /*
  * CLIENT SIDE
  */

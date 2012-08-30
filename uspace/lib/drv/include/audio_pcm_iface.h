@@ -59,8 +59,11 @@ typedef enum {
 	PCM_EVENT_FRAMES_PLAYED,
 	PCM_EVENT_FRAMES_CAPTURED,
 	PCM_EVENT_PLAYBACK_TERMINATED,
-	PCM_EVENT_CAPTURE_TERMINATED
+	PCM_EVENT_CAPTURE_TERMINATED,
 } pcm_event_t;
+
+const char *audio_pcm_cap_str(audio_cap_t);
+const char *audio_pcm_event_str(pcm_event_t);
 
 typedef async_sess_t audio_pcm_sess_t;
 
