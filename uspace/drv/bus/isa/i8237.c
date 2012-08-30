@@ -37,10 +37,10 @@
 #include <assert.h>
 #include <bool.h>
 #include <errno.h>
-#include <fibril_synch.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <ddf/log.h>
+#include <fibril_synch.h>
+#include <libarch/ddi.h>
 #include "i8237.h"
 
 /** DMA Slave controller I/O Address. */
@@ -453,7 +453,7 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
  *
  * @return Error code.
  */
-int dma_channel_remain(unsigned channel, uint16_t *size)
+int dma_channel_remain(unsigned channel, size_t *size)
 {
 	assert(size);
 	if (!is_dma8(channel) && !is_dma16(channel))
@@ -483,9 +483,13 @@ int dma_channel_remain(unsigned channel, uint16_t *size)
 	    dma_channel.size_reg_address, value_high);
 	fibril_mutex_unlock(&guard);
 
-	const int remain = (value_high << 8 | value_low) + 1;
-	/* 16 bit DMA size is in words */
-	*size =  is_dma16(channel) ? remain << 1 : remain;
+	uint16_t remain = (value_high << 8 | value_low) ;
+	/* 16 bit DMA size is in words,
+	 * the upper bits are bogus for 16bit transfers so we need to get
+	 * rid of them. Using limited type works well.*/
+	if (is_dma16(channel))
+		remain <<= 1;
+	*size =  is_dma16(channel) ? remain + 2: remain + 1;
 	return EOK;
 }
 /**

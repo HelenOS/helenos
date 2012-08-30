@@ -38,7 +38,7 @@
 #define DRV_BUS_ISA_I8237_H
 
 extern int dma_channel_setup(unsigned, uint32_t, uint16_t, uint8_t);
-extern int dma_channel_remain(unsigned, uint16_t *);
+extern int dma_channel_remain(unsigned, size_t *);
 
 #endif
 

@@ -129,7 +129,7 @@ static void remote_hw_res_dma_channel_remain(ddf_fun_t *fun, void *ops,
 		return;
 	}
 	const unsigned channel = DEV_IPC_GET_ARG1(*call);
-	uint16_t remain = 0;
+	size_t remain = 0;
 	const int ret = hw_res_ops->dma_channel_remain(fun, channel, &remain);
 	async_answer_1(callid, ret, remain);
 }

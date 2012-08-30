@@ -169,7 +169,7 @@ static int isa_fun_setup_dma(ddf_fun_t *fnode,
 }
 
 static int isa_fun_remain_dma(ddf_fun_t *fnode,
-    unsigned channel, uint16_t *size)
+    unsigned channel, size_t *size)
 {
 	assert(size);
 	assert(fnode);
