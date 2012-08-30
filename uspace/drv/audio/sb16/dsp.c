@@ -65,8 +65,8 @@ static inline const char * dsp_state_to_str(dsp_state_t state)
 {
 	static const char* state_names[] = {
 		[DSP_PLAYBACK_ACTIVE_EVENTS] = "PLAYBACK w/ EVENTS",
-		[DSP_CAPTURE_ACTIVE_EVENTS] = "CAPTURE w/o ACTIVE",
-		[DSP_PLAYBACK_NOEVENTS] = "PLAYBACK w/. EVENTS",
+		[DSP_CAPTURE_ACTIVE_EVENTS] = "CAPTURE w/ EVENTS",
+		[DSP_PLAYBACK_NOEVENTS] = "PLAYBACK w/o EVENTS",
 		[DSP_CAPTURE_NOEVENTS] = "CAPTURE w/o EVENTS",
 		[DSP_PLAYBACK_TERMINATE] = "PLAYBACK TERMINATE",
 		[DSP_CAPTURE_TERMINATE] = "CAPTURE TERMINATE",
@@ -407,7 +407,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	if (sb_dsp_test_format(dsp, &channels, &sampling_rate, &format) != EOK)
 		return ENOTSUP;
 
-	/* Client requested regular interrupts */
+	/* Client requested regular events */
 	if (frames) {
 		if (!dsp->event_session)
 			return EINVAL;
@@ -430,9 +430,8 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	dsp_start_current_active(dsp, SINGLE_DMA_16B_DA);
 #endif
 
-	ddf_log_verbose("Playback started, interrupt every %u samples "
-	    "(~1/%u sec)", dsp->active.samples,
-	    sampling_rate / (dsp->active.samples * channels));
+	ddf_log_verbose("Playback started, event every %u samples",
+	    dsp->active.samples);
 
 	dsp_change_state(dsp,
 	    frames ? DSP_PLAYBACK_ACTIVE_EVENTS : DSP_PLAYBACK_NOEVENTS);
@@ -480,7 +479,7 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 	if (sb_dsp_test_format(dsp, &channels, &sampling_rate, &format) != EOK)
 		return ENOTSUP;
 
-	/* client requested regular interrupts */
+	/* Client requested regular events */
 	if (frames) {
 		if (!dsp->event_session)
 			return EINVAL;
@@ -503,9 +502,8 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 	dsp_start_current_active(dsp, SINGLE_DMA_16B_AD);
 #endif
 
-	ddf_log_verbose("Recording started started, interrupt every %u samples "
-	    "(~1/%u sec)", dsp->active.samples,
-	    sampling_rate / (dsp->active.samples * channels));
+	ddf_log_verbose("Capture started started, event every %u samples",
+	    dsp->active.samples);
 	dsp_change_state(dsp,
 	    frames ? DSP_CAPTURE_ACTIVE_EVENTS : DSP_CAPTURE_NOEVENTS);
 	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
