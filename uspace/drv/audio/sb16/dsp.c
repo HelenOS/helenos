@@ -70,7 +70,6 @@ static inline const char * dsp_state_to_str(dsp_state_t state)
 		[DSP_CAPTURE_NOEVENTS] = "CAPTURE w/o EVENTS",
 		[DSP_PLAYBACK_TERMINATE] = "PLAYBACK TERMINATE",
 		[DSP_CAPTURE_TERMINATE] = "CAPTURE TERMINATE",
-		[DSP_STOPPED] = "STOPPED",
 		[DSP_READY] = "READY",
 		[DSP_NO_BUFFER] = "NO BUFFER",
 	};
@@ -261,13 +260,13 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		dsp_report_event(dsp, PCM_EVENT_CAPTURE_TERMINATED);
 		async_exchange_end(dsp->event_exchange);
 		dsp->event_exchange = NULL;
-		dsp_change_state(dsp, DSP_STOPPED);
+		dsp_change_state(dsp, DSP_READY);
 		break;
 	case DSP_PLAYBACK_TERMINATE:
 		dsp_report_event(dsp, PCM_EVENT_PLAYBACK_TERMINATED);
 		async_exchange_end(dsp->event_exchange);
 		dsp->event_exchange = NULL;
-		dsp_change_state(dsp, DSP_STOPPED);
+		dsp_change_state(dsp, DSP_READY);
 		break;
 	default:
 		ddf_log_warning("Interrupt while DSP not active");
@@ -383,7 +382,7 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 int sb_dsp_release_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
-	if (dsp->state != DSP_READY && dsp->state != DSP_STOPPED)
+	if (dsp->state != DSP_READY)
 		return EINVAL;
 	assert(dsp->buffer.data);
 	dmamem_unmap_anonymous(dsp->buffer.data);
@@ -399,10 +398,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 {
 	assert(dsp);
 
-	if (!dsp->buffer.data)
-		return EINVAL;
-
-	if (dsp->state != DSP_READY && dsp->state != DSP_STOPPED)
+	if (!dsp->buffer.data || dsp->state != DSP_READY)
 		return EINVAL;
 
 	/* Check supported parameters */
@@ -456,7 +452,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 		dsp_write(dsp, DMA_16B_PAUSE);
 		dsp_reset(dsp);
 		ddf_log_debug("Stopped playback");
-		dsp_change_state(dsp, DSP_STOPPED);
+		dsp_change_state(dsp, DSP_READY);
 		return EOK;
 	}
 	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
@@ -475,9 +471,7 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
-	if (!dsp->buffer.data)
-		return EINVAL;
-	if (dsp->state != DSP_READY && dsp->state != DSP_STOPPED)
+	if (!dsp->buffer.data || dsp->state != DSP_READY)
 		return EINVAL;
 
 	/* Check supported parameters */
@@ -529,7 +523,7 @@ int sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
 		dsp_write(dsp, DMA_16B_PAUSE);
 		dsp_reset(dsp);
 		ddf_log_debug("Stopped capture fragment");
-		dsp_change_state(dsp, DSP_STOPPED);
+		dsp_change_state(dsp, DSP_READY);
 		return EOK;
 	}
 	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
