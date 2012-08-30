@@ -627,7 +627,6 @@ static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, ipc_ca
 		async_answer_0(callback_id, ret);
 		return;
 	}
-	ddf_msg(LVL_DEBUG2, "Event session setup OK.");
 	async_answer_0(callback_id, EOK);
 }
 
