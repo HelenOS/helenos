@@ -63,6 +63,13 @@ static inline size_t pcm_format_frame_size(const pcm_format_t *a)
 	return pcm_sample_format_frame_size(a->channels, a->sample_format);
 }
 
+static inline suseconds_t pcm_format_size_to_frames(size_t size,
+    const pcm_format_t *a)
+{
+	return pcm_sample_format_size_to_frames(size, a->channels,
+	    a->sample_format);
+}
+
 static inline suseconds_t pcm_format_size_to_usec(size_t size,
     const pcm_format_t *a)
 {
