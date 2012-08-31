@@ -35,7 +35,7 @@
 #ifndef POSIX_SYS_MMAN_H_
 #define POSIX_SYS_MMAN_H_
 
-#include "../libc/sys/mman.h"
+#include "libc/sys/mman.h"
 
 #undef PROT_NONE
 #undef PROT_READ

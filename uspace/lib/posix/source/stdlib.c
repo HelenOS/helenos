@@ -36,14 +36,14 @@
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "stdlib.h"
+#include "posix/stdlib.h"
 
-#include "errno.h"
-#include "fcntl.h"
-#include "limits.h"
-#include "string.h"
-#include "sys/stat.h"
-#include "unistd.h"
+#include "posix/errno.h"
+#include "posix/fcntl.h"
+#include "posix/limits.h"
+#include "posix/string.h"
+#include "posix/sys/stat.h"
+#include "posix/unistd.h"
 
 #include "libc/sort.h"
 #include "libc/str.h"

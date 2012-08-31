@@ -36,10 +36,10 @@
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "strings.h"
+#include "posix/strings.h"
 
-#include "string.h"
-#include "ctype.h"
+#include "posix/string.h"
+#include "posix/ctype.h"
 
 #include "libc/mem.h"
 

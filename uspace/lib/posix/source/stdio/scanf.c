@@ -35,20 +35,20 @@
 #define LIBPOSIX_INTERNAL
 
 /* Must be first. */
-#include "../stdbool.h"
+#include "posix/stdbool.h"
 
-#include "../assert.h"
-#include "../errno.h"
+#include "posix/assert.h"
+#include "posix/errno.h"
 
-#include "../stdio.h"
-#include "../stdlib.h"
-#include "../stddef.h"
-#include "../string.h"
-#include "../ctype.h"
-#include "../sys/types.h"
+#include "posix/stdio.h"
+#include "posix/stdlib.h"
+#include "posix/stddef.h"
+#include "posix/string.h"
+#include "posix/ctype.h"
+#include "posix/sys/types.h"
 
 #include "../internal/common.h"
-#include "../libc/malloc.h"
+#include "libc/malloc.h"
 
 /** Unified data type for possible data sources for scanf. */
 typedef union __data_source {

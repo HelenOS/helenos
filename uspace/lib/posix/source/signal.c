@@ -34,12 +34,12 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "signal.h"
+#include "posix/signal.h"
 #include "internal/common.h"
-#include "limits.h"
-#include "stdlib.h"
-#include "string.h"
-#include "errno.h"
+#include "posix/limits.h"
+#include "posix/stdlib.h"
+#include "posix/string.h"
+#include "posix/errno.h"
 
 #include "libc/fibril_synch.h"
 #include "libc/task.h"

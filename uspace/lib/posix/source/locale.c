@@ -35,11 +35,11 @@
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "locale.h"
+#include "posix/locale.h"
 
-#include "errno.h"
-#include "limits.h"
-#include "string.h"
+#include "posix/errno.h"
+#include "posix/limits.h"
+#include "posix/string.h"
 
 /* Just a very basic dummy implementation.
  * This should allow code using locales to work properly, but doesn't provide

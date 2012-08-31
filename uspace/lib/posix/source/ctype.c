@@ -35,7 +35,7 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "ctype.h"
+#include "posix/ctype.h"
 
 /**
  * Checks whether character is a hexadecimal digit.

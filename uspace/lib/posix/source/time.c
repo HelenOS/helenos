@@ -36,15 +36,15 @@
 #define LIBPOSIX_INTERNAL
 
 /* Must be first. */
-#include "stdbool.h"
+#include "posix/stdbool.h"
 
 #include "internal/common.h"
-#include "time.h"
+#include "posix/time.h"
 
-#include "ctype.h"
-#include "errno.h"
-#include "signal.h"
-#include "assert.h"
+#include "posix/ctype.h"
+#include "posix/errno.h"
+#include "posix/signal.h"
+#include "posix/assert.h"
 
 #include "libc/malloc.h"
 #include "libc/task.h"

@@ -34,10 +34,10 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "pwd.h"
-#include "string.h"
-#include "errno.h"
-#include "assert.h"
+#include "posix/pwd.h"
+#include "posix/string.h"
+#include "posix/errno.h"
+#include "posix/assert.h"
 
 static bool entry_read = false;
 

@@ -36,11 +36,11 @@
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "unistd.h"
+#include "posix/unistd.h"
 
-#include "errno.h"
-#include "string.h"
-#include "fcntl.h"
+#include "posix/errno.h"
+#include "posix/string.h"
+#include "posix/fcntl.h"
 
 #include "libc/task.h"
 #include "libc/stats.h"

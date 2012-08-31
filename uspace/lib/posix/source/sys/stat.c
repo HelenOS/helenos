@@ -36,10 +36,10 @@
 #define LIBPOSIX_INTERNAL
 
 #include "../internal/common.h"
-#include "stat.h"
+#include "posix/sys/stat.h"
 
-#include "../errno.h"
-#include "../libc/mem.h"
+#include "posix/errno.h"
+#include "libc/mem.h"
 
 /**
  * Convert HelenOS stat struct into POSIX stat struct (if possible).

@@ -35,19 +35,19 @@
 #define LIBPOSIX_INTERNAL
 
 /* Must be first. */
-#include "../stdbool.h"
+#include "posix/stdbool.h"
 
 #include "../internal/common.h"
-#include "../stdlib.h"
+#include "posix/stdlib.h"
 
-#include "../assert.h"
-#include "../ctype.h"
-#include "../stdint.h"
-#include "../strings.h"
-#include "../errno.h"
-#include "../limits.h"
+#include "posix/assert.h"
+#include "posix/ctype.h"
+#include "posix/stdint.h"
+#include "posix/strings.h"
+#include "posix/errno.h"
+#include "posix/limits.h"
 
-#include "../float.h"
+#include "posix/float.h"
 
 #ifndef HUGE_VALL
 	#define HUGE_VALL (+1.0l / +0.0l)

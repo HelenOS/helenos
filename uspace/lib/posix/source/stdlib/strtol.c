@@ -35,12 +35,12 @@
 #define LIBPOSIX_INTERNAL
 
 #include "../internal/common.h"
-#include "../stdlib.h"
+#include "posix/stdlib.h"
 
-#include "../ctype.h"
-#include "../errno.h"
-#include "../inttypes.h"
-#include "../limits.h"
+#include "posix/ctype.h"
+#include "posix/errno.h"
+#include "posix/inttypes.h"
+#include "posix/limits.h"
 
 #define intmax_t posix_intmax_t
 #define uintmax_t posix_uintmax_t

@@ -36,13 +36,13 @@
 #define LIBPOSIX_INTERNAL
 
 #include "../internal/common.h"
-#include "wait.h"
+#include "posix/sys/wait.h"
 
-#include "../libc/task.h"
-#include "../assert.h"
-#include "../errno.h"
-#include "../limits.h"
-#include "../signal.h"
+#include "libc/task.h"
+#include "posix/assert.h"
+#include "posix/errno.h"
+#include "posix/limits.h"
+#include "posix/signal.h"
 
 int __posix_wifexited(int status) {
 	return status != INT_MIN;

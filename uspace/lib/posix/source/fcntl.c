@@ -35,11 +35,11 @@
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "fcntl.h"
+#include "posix/fcntl.h"
 
 #include "libc/unistd.h"
 #include "libc/vfs/vfs.h"
-#include "errno.h"
+#include "posix/errno.h"
 
 /**
  * Performs set of operations on the opened files.

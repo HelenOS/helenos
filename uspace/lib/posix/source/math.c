@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
@@ -30,49 +29,37 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file Data types definitions.
+/** @file Mathematical operations.
  */
 
-#ifndef POSIX_SYS_TYPES_H_
-#define POSIX_SYS_TYPES_H_
+#define LIBPOSIX_INTERNAL
 
-#include "../libc/sys/types.h"
+#include "internal/common.h"
+#include "posix/math.h"
 
-typedef unsigned int posix_ino_t;
-typedef unsigned int posix_nlink_t;
-typedef unsigned int posix_uid_t;
-typedef unsigned int posix_gid_t;
-typedef off64_t posix_off_t;
-typedef long posix_blksize_t;
-typedef long posix_blkcnt_t;
-typedef int64_t posix_pid_t;
-typedef sysarg_t posix_dev_t;
+/**
+ * 
+ * @param x
+ * @param exp
+ * @return
+ */
+double posix_ldexp(double x, int exp)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
 
-/* PThread Types */
-typedef struct posix_thread_attr posix_thread_attr_t;
-
-/* Clock Types */
-typedef long posix_clock_t;
-typedef int posix_clockid_t;
-
-#ifndef LIBPOSIX_INTERNAL
-	#define ino_t posix_ino_t
-	#define nlink_t posix_nlink_t
-	#define uid_t posix_uid_t
-	#define gid_t posix_gid_t
-	#define off_t posix_off_t
-	#define blksize_t posix_blksize_t
-	#define blkcnt_t posix_blkcnt_t
-	#define pid_t posix_pid_t
-	#define dev_t posix_dev_t
-	
-	#define pthread_attr_t posix_thread_attr_t
-	
-	#define clock_t posix_clock_t
-	#define clockid_t posix_clockid_t
-#endif
-
-#endif /* POSIX_SYS_TYPES_H_ */
+/**
+ * 
+ * @param num
+ * @param exp
+ * @return
+ */
+double posix_frexp(double num, int *exp)
+{
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
 
 /** @}
  */

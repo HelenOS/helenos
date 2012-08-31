@@ -36,17 +36,17 @@
 #define LIBPOSIX_INTERNAL
 
 /* Has to be first. */
-#include "stdbool.h"
+#include "posix/stdbool.h"
 
 #include "internal/common.h"
-#include "stdio.h"
+#include "posix/stdio.h"
 
-#include "assert.h"
-#include "errno.h"
-#include "stdlib.h"
-#include "string.h"
-#include "sys/types.h"
-#include "unistd.h"
+#include "posix/assert.h"
+#include "posix/errno.h"
+#include "posix/stdlib.h"
+#include "posix/string.h"
+#include "posix/sys/types.h"
+#include "posix/unistd.h"
 
 #include "libc/io/printf_core.h"
 #include "libc/str.h"
@@ -58,7 +58,7 @@
 /* not the best of solutions, but freopen and ungetc will eventually
  * need to be implemented in libc anyway
  */
-#include "../c/generic/private/stdio.h"
+#include "../../c/generic/private/stdio.h"
 
 /** Clears the stream's error and end-of-file indicators.
  *

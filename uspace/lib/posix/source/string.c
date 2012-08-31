@@ -36,13 +36,13 @@
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "string.h"
+#include "posix/string.h"
 
-#include "assert.h"
-#include "errno.h"
-#include "limits.h"
-#include "stdlib.h"
-#include "signal.h"
+#include "posix/assert.h"
+#include "posix/errno.h"
+#include "posix/limits.h"
+#include "posix/stdlib.h"
+#include "posix/signal.h"
 
 #include "libc/str_error.h"
 

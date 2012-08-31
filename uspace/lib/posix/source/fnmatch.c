@@ -41,16 +41,16 @@
  * will be fairly straightforward.
  */
 
-#include "stdbool.h"
-#include "ctype.h"
-#include "string.h"
-#include "stdlib.h"
-#include "assert.h"
+#include "posix/stdbool.h"
+#include "posix/ctype.h"
+#include "posix/string.h"
+#include "posix/stdlib.h"
+#include "posix/assert.h"
 
 #define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
-#include "fnmatch.h"
+#include "posix/fnmatch.h"
 
 /* Returned by _match... functions. */
 #define INVALID_PATTERN -1

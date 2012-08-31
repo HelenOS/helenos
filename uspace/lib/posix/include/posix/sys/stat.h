@@ -36,7 +36,7 @@
 #ifndef POSIX_SYS_STAT_H_
 #define POSIX_SYS_STAT_H_
 
-#include "../libc/sys/stat.h"
+#include "libc/sys/stat.h"
 #include "types.h"
 #include "../time.h"
 

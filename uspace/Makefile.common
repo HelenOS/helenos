@@ -224,7 +224,7 @@ endif
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
 ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)
+	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
 	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
 endif
 

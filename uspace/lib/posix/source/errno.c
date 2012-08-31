@@ -32,9 +32,9 @@
 /** @file System error numbers.
  */
 
-#include "errno.h"
+#include "posix/errno.h"
 
-#include "stdlib.h"
+#include "posix/stdlib.h"
 #include "libc/fibril.h"
 
 static fibril_local int _posix_errno;

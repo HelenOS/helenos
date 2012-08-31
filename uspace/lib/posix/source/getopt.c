@@ -35,7 +35,7 @@
 
 #include "internal/common.h"
 #include "libc/getopt.h"
-#include "getopt.h"
+#include "posix/getopt.h"
 
 
 int posix_getopt_long(int argc, char * const argv[],
