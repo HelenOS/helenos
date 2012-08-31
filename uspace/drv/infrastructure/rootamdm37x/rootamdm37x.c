@@ -34,6 +34,7 @@
 
 /** @file
  */
+#define _DDF_DATA_IMPLANT
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
@@ -48,10 +49,6 @@
 #include "usbhost_cm.h"
 
 #define NAME  "rootamdm37x"
-
-/** Obtain function soft-state from DDF function node */
-#define ROOTARM_FUN(fnode) \
-	((rootamdm37x_fun_t *) (fnode)->driver_data)
 
 typedef struct {
 	hw_resource_list_t hw_resources;
@@ -257,48 +254,31 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
-	ddf_fun_t *fnode = NULL;
-	match_id_t *match_id = NULL;
-	
-	/* Create new device. */
-	fnode = ddf_fun_create(dev, fun_inner, name);
+	/* Create new device function. */
+	ddf_fun_t *fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL)
-		goto failure;
+		return ENOMEM;
 	
-	fnode->driver_data = (void*)fun;
 	
-	/* Initialize match id list */
-	match_id = create_match_id();
-	if (match_id == NULL)
-		goto failure;
-	
-	match_id->id = str_match_id;
-	match_id->score = 100;
-	add_match_id(&fnode->match_ids, match_id);
+	/* Add match id */
+	if (ddf_fun_add_match_id(fnode, str_match_id, 100) != EOK) {
+		// TODO This will try to free our data!
+		ddf_fun_destroy(fnode);
+		return false;
+	}
 	
 	/* Set provided operations to the device. */
-	fnode->ops = &rootamdm37x_fun_ops;
+	ddf_fun_data_implant(fnode, (void*)fun);
+	ddf_fun_set_ops(fnode, &rootamdm37x_fun_ops);
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
-		goto failure;
+		ddf_fun_destroy(fnode);
+		return false;
 	}
 	
 	return true;
-	
-failure:
-	if (match_id != NULL)
-		match_id->id = NULL;
-	
-	if (fnode != NULL) {
-		fnode->driver_data = NULL;
-		ddf_fun_destroy(fnode);
-	}
-	
-	ddf_msg(LVL_ERROR, "Failed adding function '%s'.", name);
-	
-	return false;
 }
 
 /** Add the root device.
@@ -348,7 +328,7 @@ static driver_t rootamdm37x_driver = {
 
 static hw_resource_list_t *rootamdm37x_get_resources(ddf_fun_t *fnode)
 {
-	rootamdm37x_fun_t *fun = ROOTARM_FUN(fnode);
+	rootamdm37x_fun_t *fun = ddf_fun_data_get(fnode);
 	assert(fun != NULL);
 	return &fun->hw_resources;
 }
