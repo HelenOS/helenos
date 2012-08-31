@@ -66,7 +66,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 		return ELIMIT;
 	}
 
-	vhc_data_t *data = malloc(sizeof(vhc_data_t));
+	vhc_data_t *data = ddf_dev_data_alloc(dev, sizeof(vhc_data_t));
 	if (data == NULL) {
 		usb_log_fatal("Failed to allocate memory.\n");
 		return ENOMEM;
@@ -88,13 +88,11 @@ static int vhc_dev_add(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 
-	hc->ops = &vhc_ops;
+	ddf_fun_set_ops(hc, &vhc_ops);
 	list_initialize(&data->devices);
 	fibril_mutex_initialize(&data->guard);
 	data->hub = &virtual_hub_device;
 	data->hc_fun = hc;
-
-	dev->driver_data = data;
 
 	rc = ddf_fun_bind(hc);
 	if (rc != EOK) {
@@ -115,9 +113,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	virtual_hub_device_init(hc);
 
 	usb_log_info("Virtual USB host controller ready (dev %zu, hc %zu).\n",
-	    (size_t) dev->handle, (size_t) hc->handle);
-
-
+	    (size_t) ddf_dev_get_handle(dev), (size_t) ddf_fun_get_handle(hc));
 
 	rc = vhc_virtdev_plug_hub(data, data->hub, NULL);
 	if (rc != EOK) {

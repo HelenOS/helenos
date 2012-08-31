@@ -73,7 +73,7 @@ int usb_driver_main(const usb_driver_t *drv)
 
 	return ddf_driver_main(&generic_driver);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Count number of pipes the driver expects.
  *
  * @param drv USB driver.
@@ -86,7 +86,7 @@ static inline size_t count_other_pipes(
 	for (count = 0; endpoints != NULL && endpoints[count] != NULL; ++count);
 	return count;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a new device is supposed to be controlled by this driver.
  *
  * This callback is a wrapper for USB specific version of @c device_add.
@@ -104,7 +104,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	usb_device_t *dev = ddf_dev_data_alloc(gen_dev, sizeof(usb_device_t));
 	if (dev == NULL) {
 		usb_log_error("USB device `%s' structure allocation failed.\n",
-		    gen_dev->name);
+		    ddf_dev_get_name(gen_dev));
 		return ENOMEM;
 	}
 
@@ -113,7 +113,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 	int rc = usb_device_init(dev, gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("USB device `%s' init failed (%s): %s.\n",
-		    gen_dev->name, err_msg, str_error(rc));
+		    ddf_dev_get_name(gen_dev), err_msg, str_error(rc));
 		return rc;
 	}
 
@@ -123,7 +123,7 @@ int generic_device_add(ddf_dev_t *gen_dev)
 		usb_device_deinit(dev);
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a device is supposed to be removed from the system.
  *
  * This callback is a wrapper for USB specific version of @c device_remove.
@@ -138,14 +138,14 @@ int generic_device_remove(ddf_dev_t *gen_dev)
 	if (driver->ops->device_rem == NULL)
 		return ENOTSUP;
 	/* Just tell the driver to stop whatever it is doing */
-	usb_device_t *usb_dev = gen_dev->driver_data;
+	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
 	const int ret = driver->ops->device_rem(usb_dev);
 	if (ret != EOK)
 		return ret;
 	usb_device_deinit(usb_dev);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a device was removed from the system.
  *
  * This callback is a wrapper for USB specific version of @c device_gone.
@@ -159,14 +159,14 @@ int generic_device_gone(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	if (driver->ops->device_gone == NULL)
 		return ENOTSUP;
-	usb_device_t *usb_dev = gen_dev->driver_data;
+	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
 	const int ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
 		usb_device_deinit(usb_dev);
 
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Destroy existing pipes of a USB device.
  *
  * @param dev Device where to destroy the pipes.
@@ -177,7 +177,7 @@ static void destroy_current_pipes(usb_device_t *dev)
 	dev->pipes = NULL;
 	dev->pipes_count = 0;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Change interface setting of a device.
  * This function selects new alternate setting of an interface by issuing
  * proper USB command to the device and also creates new USB pipes
@@ -414,7 +414,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	devman_handle_t hc_handle;
 	usb_address_t address;
 
-	int rc = usb_get_info_by_handle(ddf_dev->handle,
+	int rc = usb_get_info_by_handle(ddf_dev_get_handle(ddf_dev),
 	    &hc_handle, &address, &usb_dev->interface_no);
 	if (rc != EOK) {
 		*errstr_ptr = "device parameters retrieval";

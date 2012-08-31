@@ -47,7 +47,7 @@ static void ohci_ep_toggle_set(void *ohci_ep, int toggle)
 	assert(instance->ed);
 	ed_toggle_set(instance->ed, toggle);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback to get value of toggle bit.
  *
  * @param[in] hcd_ep hcd endpoint structure
@@ -60,7 +60,7 @@ static int ohci_ep_toggle_get(void *ohci_ep)
 	assert(instance->ed);
 	return ed_toggle_get(instance->ed);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Creates new hcd endpoint representation.
  *
  * @param[in] ep USBD endpoint structure
@@ -92,7 +92,7 @@ int ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 	hc_enqueue_endpoint(hcd->private_data, ep);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Disposes hcd endpoint structure
  *
  * @param[in] hcd driver using this instance.

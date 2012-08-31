@@ -38,7 +38,7 @@
 #include "exfat_bitmap.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
-#include <libblock.h>
+#include <block.h>
 #include <errno.h>
 #include <byteorder.h>
 #include <align.h>

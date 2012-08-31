@@ -43,7 +43,7 @@
 #include "utils/malloc32.h"
 
 static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t);
-/*----------------------------------------------------------------------------*/
+
 /** Safely destructs ohci_transfer_batch_t structure
  *
  * @param[in] ohci_batch Instance to destroy.
@@ -66,7 +66,7 @@ static void ohci_transfer_batch_dispose(ohci_transfer_batch_t *ohci_batch)
 	free32(ohci_batch->device_buffer);
 	free(ohci_batch);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Finishes usb_transfer_batch and destroys the structure.
  *
  * @param[in] uhci_batch Instance to finish and destroy.
@@ -79,7 +79,7 @@ void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *ohci_batch)
 	    ohci_batch->device_buffer + ohci_batch->usb_batch->setup_size);
 	ohci_transfer_batch_dispose(ohci_batch);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] usb_batch Pointer to generic USB batch structure.
@@ -157,7 +157,7 @@ if (ptr == NULL) { \
 	return ohci_batch;
 #undef CHECK_NULL_DISPOSE_RET
 }
-/*----------------------------------------------------------------------------*/
+
 /** Check batch TDs' status.
  *
  * @param[in] ohci_batch Batch structure to use.
@@ -198,22 +198,23 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 		    ohci_batch->tds[i]->status, ohci_batch->tds[i]->cbp,
 		    ohci_batch->tds[i]->next, ohci_batch->tds[i]->be);
 
-		/* If the TD got all its data through, it will report 0 bytes
-		 * remain, the sole exception is INPUT with data rounding flag
-		 * (short), i.e. every INPUT. Nice thing is that short packets
-		 * will correctly report remaining data, thus making
-		 * this computation correct (short packets need to be produced
-		 * by the last TD)
-		 * NOTE: This also works for CONTROL transfer as
-		 * the first TD will return 0 remain.
-		 * NOTE: Short packets don't break the assumption that
-		 * we leave the very last(unused) TD behind.
-		 */
-		ohci_batch->usb_batch->transfered_size
-		    -= td_remain_size(ohci_batch->tds[i]);
-
 		ohci_batch->usb_batch->error = td_error(ohci_batch->tds[i]);
-		if (ohci_batch->usb_batch->error != EOK) {
+		if (ohci_batch->usb_batch->error == EOK) {
+			/* If the TD got all its data through, it will report
+			 * 0 bytes remain, the sole exception is INPUT with
+			 * data rounding flag (short), i.e. every INPUT.
+			 * Nice thing is that short packets will correctly
+			 * report remaining data, thus making this computation
+			 * correct (short packets need to be produced by the
+			 * last TD)
+			 * NOTE: This also works for CONTROL transfer as
+			 * the first TD will return 0 remain.
+			 * NOTE: Short packets don't break the assumption that
+			 * we leave the very last(unused) TD behind.
+			 */
+			ohci_batch->usb_batch->transfered_size
+			    -= td_remain_size(ohci_batch->tds[i]);
+		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.\n",
 			    ohci_batch->usb_batch, i,
 			    ohci_batch->tds[i]->status);
@@ -230,16 +231,15 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 			leave_td = i + 1;
 
 			/* Check TD assumption */
-			const uint32_t pa =
-			    addr_to_phys(ohci_batch->tds[leave_td]);
-			assert((ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK)
-			    == pa);
+			assert(ed_head_td(ohci_batch->ed) ==
+			    addr_to_phys(ohci_batch->tds[leave_td]));
 
+			/* Set tail to the same TD */
 			ed_set_tail_td(ohci_batch->ed,
 			    ohci_batch->tds[leave_td]);
 
 			/* Clear possible ED HALT */
-			ohci_batch->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+			ed_clear_halt(ohci_batch->ed);
 			break;
 		}
 	}
@@ -252,13 +252,12 @@ bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *ohci_batch)
 	ohci_ep->td = ohci_batch->tds[leave_td];
 
 	/* Make sure that we are leaving the right TD behind */
-	const uint32_t pa = addr_to_phys(ohci_ep->td);
-	assert(pa == (ohci_batch->ed->td_head & ED_TDHEAD_PTR_MASK));
-	assert(pa == (ohci_batch->ed->td_tail & ED_TDTAIL_PTR_MASK));
+	assert(addr_to_phys(ohci_ep->td) == ed_head_td(ohci_batch->ed));
+	assert(addr_to_phys(ohci_ep->td) == ed_tail_td(ohci_batch->ed));
 
 	return true;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Starts execution of the TD list
  *
  * @param[in] ohci_batch Batch structure to use
@@ -268,7 +267,7 @@ void ohci_transfer_batch_commit(const ohci_transfer_batch_t *ohci_batch)
 	assert(ohci_batch);
 	ed_set_tail_td(ohci_batch->ed, ohci_batch->tds[ohci_batch->td_count]);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Prepare generic control transfer
  *
  * @param[in] ohci_batch Batch structure to use.
@@ -344,7 +343,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir
 	    usb_str_direction(dir),
 	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
-/*----------------------------------------------------------------------------*/
+
 /** Prepare generic data transfer
  *
  * @param[in] ohci_batch Batch structure to use.
@@ -391,7 +390,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch, usb_direction_t dir)
 	    usb_str_direction(dir),
 	    USB_TRANSFER_BATCH_ARGS(*ohci_batch->usb_batch));
 }
-/*----------------------------------------------------------------------------*/
+
 /** Transfer setup table. */
 static void (*const batch_setup[])(ohci_transfer_batch_t*, usb_direction_t) =
 {

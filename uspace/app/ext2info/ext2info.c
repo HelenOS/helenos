@@ -39,7 +39,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <libblock.h>
+#include <block.h>
 #include <mem.h>
 #include <loc.h>
 #include <byteorder.h>

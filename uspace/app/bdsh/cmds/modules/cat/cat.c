@@ -175,14 +175,14 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	off64_t file_size = 0, length = 0;
 
 	bool reading_stdin = dash_represents_stdin && (str_cmp(fname, "-") == 0);
-
+	
 	if (reading_stdin) {
 		fd = fileno(stdin);
 		/* Allow storing the whole UTF-8 character. */
 		blen = STR_BOUNDS(1);
-	} else {
+	} else
 		fd = open(fname, O_RDONLY);
-	}
+	
 	if (fd < 0) {
 		printf("Unable to open %s\n", fname);
 		return 1;
@@ -221,13 +221,14 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		if (reading_stdin) {
 			bytes_to_read = 1;
 		} else {
-			if ((length != CAT_FULL_FILE)
-			    && (length - (off64_t)count <= (off64_t)(blen - copied_bytes))) {
+			if ((length != CAT_FULL_FILE) &&
+			    (length - (off64_t)count <= (off64_t)(blen - copied_bytes))) {
 				bytes_to_read = (size_t) (length - count);
 			} else {
 				bytes_to_read = blen - copied_bytes;
 			}
 		}
+		
 		bytes = read(fd, buff + copied_bytes, bytes_to_read);
 		bytes += copied_bytes;
 		copied_bytes = 0;
@@ -260,10 +261,9 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			count += bytes;
 			reads++;
 		}
-
-		if (reading_stdin) {
+		
+		if (reading_stdin)
 			fflush(stdout);
-		}
 	} while (bytes > 0 && !should_quit && (count < length || length == CAT_FULL_FILE));
 
 	close(fd);

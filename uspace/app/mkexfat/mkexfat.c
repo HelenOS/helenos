@@ -37,7 +37,7 @@
  */
 
 #include <stdio.h>
-#include <libblock.h>
+#include <block.h>
 #include <assert.h>
 #include <errno.h>
 #include <malloc.h>

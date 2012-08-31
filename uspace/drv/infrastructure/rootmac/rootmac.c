@@ -43,58 +43,67 @@
 
 #define NAME  "rootmac"
 
-/** Obtain function soft-state from DDF function node */
-#define ROOTMAC_FUN(fnode) \
-	((rootmac_fun_t *) (fnode)->driver_data)
-
 typedef struct {
 	hw_resource_list_t hw_resources;
 } rootmac_fun_t;
 
-static hw_resource_t pci_conf_regs = {
-	.type = IO_RANGE,
-	.res.io_range = {
-		.address = 0xCF8,
-		.size = 8,
-		.endianness = LITTLE_ENDIAN
+static hw_resource_t pci_conf_regs[] = {
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0xfec00000,
+			.size = 4,
+			.endianness = LITTLE_ENDIAN
+		}
+	},
+	{
+		.type = IO_RANGE,
+		.res.io_range = {
+			.address = 0xfee00000,
+			.size = 4,
+			.endianness = LITTLE_ENDIAN
+		}
 	}
 };
 
 static rootmac_fun_t pci_data = {
 	.hw_resources = {
-		1,
-		&pci_conf_regs
+		2,
+		pci_conf_regs
 	}
 };
 
 static ddf_dev_ops_t rootmac_fun_ops;
 
+/** Obtain function soft-state from DDF function node */
+static rootmac_fun_t *rootmac_fun(ddf_fun_t *fnode)
+{
+	return ddf_fun_data_get(fnode);
+}
+
 static bool rootmac_add_fun(ddf_dev_t *dev, const char *name,
-    const char *str_match_id, rootmac_fun_t *fun)
+    const char *str_match_id, rootmac_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
 	ddf_fun_t *fnode = NULL;
-	match_id_t *match_id = NULL;
+	int rc;
 	
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL)
 		goto failure;
 	
-	fnode->driver_data = fun;
+	rootmac_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(rootmac_fun_t));
+	*fun = *fun_proto;
 	
-	/* Initialize match id list */
-	match_id = create_match_id();
-	if (match_id == NULL)
+	/* Add match ID */
+	rc = ddf_fun_add_match_id(fnode, str_match_id, 100);
+	if (rc != EOK)
 		goto failure;
 	
-	match_id->id = str_match_id;
-	match_id->score = 100;
-	add_match_id(&fnode->match_ids, match_id);
-	
 	/* Set provided operations to the device. */
-	fnode->ops = &rootmac_fun_ops;
+	ddf_fun_set_ops(fnode, &rootmac_fun_ops);
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
@@ -105,9 +114,6 @@ static bool rootmac_add_fun(ddf_dev_t *dev, const char *name,
 	return true;
 	
 failure:
-	if (match_id != NULL)
-		match_id->id = NULL;
-	
 	if (fnode != NULL)
 		ddf_fun_destroy(fnode);
 	
@@ -126,9 +132,14 @@ failure:
  */
 static int rootmac_dev_add(ddf_dev_t *dev)
 {
+#if 0
 	/* Register functions */
-	if (!rootmac_add_fun(dev, "pci0", "pangea_pci", &pci_data))
+	if (!rootmac_add_fun(dev, "pci0", "intel_pci", &pci_data))
 		ddf_msg(LVL_ERROR, "Failed to add functions for Mac platform.");
+#else
+	(void)pci_data;
+	(void)rootmac_add_fun;
+#endif
 	
 	return EOK;
 }
@@ -146,7 +157,7 @@ static driver_t rootmac_driver = {
 
 static hw_resource_list_t *rootmac_get_resources(ddf_fun_t *fnode)
 {
-	rootmac_fun_t *fun = ROOTMAC_FUN(fnode);
+	rootmac_fun_t *fun = rootmac_fun(fnode);
 	assert(fun != NULL);
 	
 	return &fun->hw_resources;

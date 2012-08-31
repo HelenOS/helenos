@@ -40,6 +40,7 @@
 #include <sys/types.h>
 
 #include "ddf/interrupt.h"
+#include "private/driver.h"
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall);
 static interrupt_context_t *create_interrupt_context(void);

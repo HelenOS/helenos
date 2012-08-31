@@ -594,38 +594,45 @@ static size_t common_pref_len(const char *a, const char *b)
 static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 {
 	unsigned int i;
-	/* Determine the maximum length of the completion in chars */
-	size_t max_length = 0;
+	/* Determine the maximum width of the completion in chars */
+	size_t max_width = 0;
 	for (i = 0; i < cnum; i++)
-		max_length = max(max_length, str_length(compl[i]));
+		max_width = max(max_width, str_width(compl[i]));
 	
-	unsigned int cols = max(1, (ti->con_cols + 1) / (max_length + 1));
-	unsigned int col_width = ti->con_cols / cols;
+	unsigned int cols = max(1, (ti->con_cols + 1) / (max_width + 1));
+	unsigned int padding = 0;
+	if ((cols * max_width) + (cols - 1) < ti->con_cols) {
+		padding = ti->con_cols - (cols * max_width) - (cols - 1);
+	}
+	unsigned int col_width = max_width + padding / cols;
 	unsigned int rows = cnum / cols + ((cnum % cols) != 0);
 	
 	unsigned int row, col;
 	
 	for (row = 0; row < rows; row++) {
-		bool wlc = false;
+		unsigned int display_col = 0;
 		for (col = 0; col < cols; col++) {
 			size_t compl_idx = col * rows + row;
 			if (compl_idx >= cnum)
 				break;
-			if (col)
+			if (col) {
 				printf(" ");
-			printf("%s", compl[compl_idx]);
-			size_t compl_len = str_length(compl[compl_idx]);
-			if (col == cols -1) {
-				wlc = (compl_len == max_length);
+				display_col++;
 			}
-			else {
-				for (i = compl_len; i < col_width; i++) {
+			printf("%s", compl[compl_idx]);
+			size_t compl_width = str_width(compl[compl_idx]);
+			display_col += compl_width;
+			if (col < cols - 1) {
+				for (i = compl_width; i < col_width; i++) {
 					printf(" ");
+					display_col++;
 				}
 			}
 		}
-		if (!wlc) printf("\n");
+		if ((display_col % ti->con_cols) > 0)
+			printf("\n");
 	}
+	fflush(stdout);
 }
 
 

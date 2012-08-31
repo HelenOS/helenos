@@ -104,7 +104,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 		async_usleep(delay);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Main routine to be executed by a fibril for handling auto-repeat.
  *
@@ -131,7 +131,7 @@ int usb_kbd_repeat_fibril(void *arg)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Start repeating particular key.
  *
@@ -148,7 +148,7 @@ void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
 	kbd->repeat.key_new = key;
 	fibril_mutex_unlock(&kbd->repeat_mtx);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Stop repeating particular key.
  *

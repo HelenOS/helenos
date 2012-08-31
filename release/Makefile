@@ -32,7 +32,7 @@ EXPORT_DIR = /var/tmp/helenos/HelenOS-$(RELEASE)
 SRC_ARCHIVE = HelenOS-$(RELEASE).tar.bz2
 
 PROFILES = amd64 arm32/GXemul arm32/integratorcp arm32/gta02 ia32 \
-    ia64/i460GX ia64/ski mips32/GXemul mips32/msim sparc64/niagara \
+    ia64/i460GX ia64/ski mips32/GXemul mips32/msim ppc32 \
     sparc64/ultra
 
 BZR = bzr
@@ -70,7 +70,7 @@ $(IMG_FILE):
 
 release: src_rel
 	for profile in $(PROFILES); do \
-		$(MAKE) -C $(EXPORT_DIR) clean ; \
+		$(MAKE) -C $(EXPORT_DIR) distclean ; \
 		$(MAKE) -C $(EXPORT_DIR) PROFILE=$$profile ; \
 		$(MAKE) PROFILE=$$profile releasefile ; \
 	done
@@ -78,7 +78,7 @@ release: src_rel
 $(EXPORT_DIR) export:
 	rm -rf $(EXPORT_DIR)
 	mkdir -p $(EXPORT_DIR)
-	$(BZR) export $(EXPORT_DIR)
+	$(BZR) export $(EXPORT_DIR) ../
 
 src_rel $(SRC_ARCHIVE): export
 	$(TAR) -C $(shell dirname $(EXPORT_DIR)) \

@@ -76,8 +76,7 @@ static inline void usb_hc_connection_initialize(usb_hc_connection_t *connection,
 	fibril_mutex_initialize(&connection->guard);
 }
 
-int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
-    const ddf_dev_t *);
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *, ddf_dev_t *);
 
 void usb_hc_connection_deinitialize(usb_hc_connection_t *);
 

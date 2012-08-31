@@ -44,6 +44,13 @@
 import bzrlib.branch
 from bzrlib.errors import TipChangeRejected
 
+def iter_reverse_revision_history(repository, revision_id):
+	"""Iterate backwards through revision ids in the lefthand history"""
+	
+	graph = repository.get_graph()
+	stop_revisions = (None, _mod_revision.NULL_REVISION)
+	return graph.iter_lefthand_ancestry(revision_id, stop_revisions)
+
 def pre_change_branch_tip(params):
 	repo = params.branch.repository
 	
@@ -53,13 +60,13 @@ def pre_change_branch_tip(params):
 	
 	# First permitted case is appending changesets to main branch.Look for
 	# old tip in new main branch.
-	for revision_id in repo.iter_reverse_revision_history(params.new_revid):
+	for revision_id in iter_reverse_revision_history(repo, params.new_revid):
 		if revision_id == params.old_revid:
 			return	# Found old tip
 	
 	# Another permitted case is backing out changesets. Look for new tip
 	# in old branch.
-	for revision_id in repo.iter_reverse_revision_history(params.old_revid):
+	for revision_id in iter_reverse_revision_history(repo, params.old_revid):
 		if revision_id == params.new_revid:
 			return	# Found new tip
 	

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,9 +46,13 @@ typedef enum {
 	VISUAL_BGR_8_8_8,
 	VISUAL_BGR_0_8_8_8,
 	VISUAL_BGR_8_8_8_0,
+	VISUAL_ABGR_8_8_8_8,
+	VISUAL_BGRA_8_8_8_8,
 	VISUAL_RGB_8_8_8,
 	VISUAL_RGB_0_8_8_8,
-	VISUAL_RGB_8_8_8_0
+	VISUAL_RGB_8_8_8_0,
+	VISUAL_ARGB_8_8_8_8,
+	VISUAL_RGBA_8_8_8_8
 } visual_t;
 
 #endif

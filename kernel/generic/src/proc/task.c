@@ -155,7 +155,6 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&task->futexes_lock, MUTEX_PASSIVE);
 	
 	list_initialize(&task->threads);
-	list_initialize(&task->sync_boxes);
 	
 	ipc_answerbox_init(&task->answerbox, task);
 	

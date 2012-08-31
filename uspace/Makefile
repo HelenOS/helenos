@@ -46,7 +46,6 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/lsusb \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -58,6 +57,7 @@ DIRS = \
 	app/taskdump \
 	app/tester \
 	app/testread \
+	app/testwrit \
 	app/tetris \
 	app/trace \
 	app/top \
@@ -71,6 +71,9 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	app/websrv \
+	app/vdemo \
+	app/vlaunch \
+	app/vterm \
 	srv/clipboard \
 	srv/locsrv \
 	srv/devman \
@@ -84,32 +87,39 @@ DIRS = \
 	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
+	srv/bd/sata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
 	srv/fs/exfat \
+	srv/fs/udf \
 	srv/fs/fat \
 	srv/fs/cdfs \
 	srv/fs/tmpfs \
 	srv/fs/mfs \
 	srv/fs/locfs \
 	srv/fs/ext2fs \
+	srv/fs/ext4fs \
+	srv/hid/compositor \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
-	srv/hid/fb \
+	srv/hid/isdv4_tablet \
 	srv/hid/input \
+	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
+	drv/block/ahci \
 	drv/char/i8042 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
+	drv/fb/kfb \
 	drv/bus/usb/ehci \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
@@ -168,6 +178,7 @@ endif
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
+		drv/bus/pci/pciintel \
 		srv/hw/bus/cuda_adb
 endif
 
@@ -194,10 +205,14 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/fb \
+	lib/graph \
+	lib/gui \
+	lib/softrend \
+	lib/draw \
 	lib/net \
 	lib/nic \
 	lib/ext2 \
+	lib/ext4 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \

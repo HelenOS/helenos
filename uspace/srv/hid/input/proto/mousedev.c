@@ -42,12 +42,12 @@
 #include <async.h>
 #include <errno.h>
 #include <ipc/mouseev.h>
-#include <input.h>
 #include <loc.h>
-#include <mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
 #include <sys/typefmt.h>
+#include "../mouse.h"
+#include "../mouse_port.h"
+#include "../mouse_proto.h"
+#include "../input.h"
 
 /** Mousedev softstate */
 typedef struct {
@@ -93,6 +93,12 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 			mouse_push_event_move(mousedev->mouse_dev,
 			    IPC_GET_ARG1(call), IPC_GET_ARG2(call),
 			    IPC_GET_ARG3(call));
+			retval = EOK;
+			break;
+		case MOUSEEV_ABS_MOVE_EVENT:
+			mouse_push_event_abs_move(mousedev->mouse_dev,
+				IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+				IPC_GET_ARG3(call), IPC_GET_ARG4(call));
 			retval = EOK;
 			break;
 		case MOUSEEV_BUTTON_EVENT:

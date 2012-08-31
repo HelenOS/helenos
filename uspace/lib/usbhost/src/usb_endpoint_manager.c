@@ -60,7 +60,7 @@ static inline bool ep_match(const endpoint_t *ep,
 	    && (endpoint == ep->endpoint)
 	    && (address == ep->address);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Get list that holds endpoints for given address.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param addr USB address, must be >= 0.
@@ -72,7 +72,7 @@ static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
 	assert(addr >= 0);
 	return &instance->endpoint_lists[addr % ENDPOINT_LIST_COUNT];
 }
-/*----------------------------------------------------------------------------*/
+
 /** Internal search function, works on locked structure.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param address USB address, must be valid.
@@ -96,7 +96,7 @@ static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
 	}
 	return NULL;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 1.1 specification.
  * @param speed Device's speed.
@@ -144,7 +144,7 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 		return 0;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize to default state.
  * You need to provide valid bw_count function if you plan to use
  * add_endpoint/remove_endpoint pair.
@@ -167,7 +167,7 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 	}
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Check setup packet data for signs of toggle reset.
  *
  * @param[in] instance usb_endpoint_manager structure, non-null.
@@ -226,7 +226,7 @@ void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
 	break;
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Register endpoint structure.
  * Checks for duplicates.
  * @param instance usb_endpoint_manager, non-null.
@@ -261,7 +261,7 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Unregister endpoint structure.
  * Checks for duplicates.
  * @param instance usb_endpoint_manager, non-null.
@@ -285,7 +285,7 @@ int usb_endpoint_manager_unregister_ep(
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Find endpoint_t representing the given communication route.
  * @param instance usb_endpoint_manager, non-null.
  * @param address
@@ -300,7 +300,7 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 	return ep;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Create and register new endpoint_t structure.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param address USB address.
@@ -363,7 +363,7 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Unregister and destroy endpoint_t structure representing given route.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param address USB address.
@@ -394,7 +394,7 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
 	endpoint_destroy(ep);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Unregister and destroy all endpoints using given address.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param address USB address.

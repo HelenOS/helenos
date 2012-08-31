@@ -37,6 +37,9 @@ typedef enum {
 	HW_RES_DEV_IFACE = 0,
 	/** Character device interface */
 	CHAR_DEV_IFACE,
+
+	/** Graphic device interface */
+	GRAPH_DEV_IFACE,
 	
 	/** Network interface controller interface */
 	NIC_DEV_IFACE,
@@ -50,6 +53,8 @@ typedef enum {
 	USBHC_DEV_IFACE,
 	/** Interface provided by USB HID devices. */
 	USBHID_DEV_IFACE,
+	/** Interface provided by AHCI devices. */
+	AHCI_DEV_IFACE,
 
 	DEV_IFACE_MAX
 } dev_inferface_idx_t;

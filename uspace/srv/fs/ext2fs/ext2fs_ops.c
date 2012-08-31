@@ -38,7 +38,7 @@
 #include "ext2fs.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
-#include <libblock.h>
+#include <block.h>
 #include <libext2.h>
 #include <ipc/services.h>
 #include <ipc/loc.h>

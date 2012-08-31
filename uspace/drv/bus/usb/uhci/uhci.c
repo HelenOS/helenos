@@ -32,6 +32,10 @@
 /** @file
  * @brief UHCI driver
  */
+
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
@@ -59,12 +63,11 @@ typedef struct uhci {
 	rh_t rh;
 } uhci_t;
 
-static inline uhci_t * dev_to_uhci(const ddf_dev_t *dev)
+static inline uhci_t *dev_to_uhci(ddf_dev_t *dev)
 {
-	assert(dev);
-	return dev->driver_data;
+	return ddf_dev_data_get(dev);
 }
-/*----------------------------------------------------------------------------*/
+
 /** IRQ handling callback, forward status from call to diver structure.
  *
  * @param[in] dev DDF instance of the device to use.
@@ -82,12 +85,12 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(&uhci->hc, status);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Operations supported by the HC driver */
 static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
 };
-/*----------------------------------------------------------------------------*/
+
 /** Gets handle of the respective hc.
  *
  * @param[in] fun DDF function of uhci device.
@@ -96,20 +99,19 @@ static ddf_dev_ops_t hc_ops = {
  */
 static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
-	assert(fun);
-	ddf_fun_t *hc_fun = dev_to_uhci(fun->dev)->hc_fun;
+	ddf_fun_t *hc_fun = dev_to_uhci(ddf_fun_get_dev(fun))->hc_fun;
 	assert(hc_fun);
 
 	if (handle != NULL)
-		*handle = hc_fun->handle;
+		*handle = ddf_fun_get_handle(hc_fun);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** USB interface implementation used by RH */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
 };
-/*----------------------------------------------------------------------------*/
+
 /** Get root hub hw resources (I/O registers).
  *
  * @param[in] fun Root hub function.
@@ -117,24 +119,23 @@ static usb_iface_t usb_iface = {
  */
 static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
 {
-	assert(fun);
-	rh_t *rh = fun->driver_data;
+	rh_t *rh = ddf_fun_data_get(fun);
 	assert(rh);
 	return &rh->resource_list;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Interface to provide the root hub driver with hw info */
 static hw_res_ops_t hw_res_iface = {
 	.get_resource_list = get_resource_list,
 	.enable_interrupt = NULL,
 };
-/*----------------------------------------------------------------------------*/
+
 /** RH function support for uhci_rhd */
 static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize hc and rh DDF structures and their respective drivers.
  *
  * @param[in] device DDF instance of the device to use.
@@ -159,10 +160,8 @@ int device_setup_uhci(ddf_dev_t *device)
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	if (instance->hc_fun) \
-		instance->hc_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->hc_fun); \
 	if (instance->rh_fun) {\
-		instance->rh_fun->driver_data = NULL; \
 		ddf_fun_destroy(instance->rh_fun); \
 	} \
 	usb_log_error(message); \
@@ -173,14 +172,14 @@ if (ret != EOK) { \
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci_hc");
 	int ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI HC function.\n");
-	instance->hc_fun->ops = &hc_ops;
-	instance->hc_fun->driver_data = &instance->hc.generic;
+	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
+	ddf_fun_data_implant(instance->hc_fun, &instance->hc.generic);
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci_rh");
 	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI RH function.\n");
-	instance->rh_fun->ops = &rh_ops;
-	instance->rh_fun->driver_data = &instance->rh;
+	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
+	ddf_fun_data_implant(instance->rh_fun, &instance->rh);
 
 	uintptr_t reg_base = 0;
 	size_t reg_size = 0;
@@ -189,7 +188,7 @@ if (ret != EOK) { \
 	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to get I/O addresses for %" PRIun ": %s.\n",
-	    device->handle, str_error(ret));
+	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 

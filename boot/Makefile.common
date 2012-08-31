@@ -54,7 +54,7 @@ SANDBOX = pack
 PACK = $(TOOLS_PATH)/pack.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
-MKEXT2 = $(TOOLS_PATH)/mkext2.py
+MKEXT4 = $(TOOLS_PATH)/mkext4.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
@@ -83,45 +83,52 @@ ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
 endif
 
-ifeq ($(RDFMT),ext2fs)
-	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext2fs/ext2fs
+ifeq ($(RDFMT),ext4fs)
+	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext4fs/ext4fs
 endif
 
 RD_SRVS_ESSENTIAL = \
-	$(USPACE_PATH)/srv/hid/fb/fb \
 	$(USPACE_PATH)/srv/hid/input/input \
+	$(USPACE_PATH)/srv/hid/output/output \
 	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/fs/locfs/locfs
+	$(USPACE_PATH)/srv/devman/devman \
+	$(USPACE_PATH)/srv/fs/locfs/locfs \
+	$(USPACE_PATH)/srv/hid/compositor/compositor
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
+	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
 	$(USPACE_PATH)/srv/clipboard/clipboard \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/fs/mfs/mfs \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
+	$(USPACE_PATH)/srv/fs/udf/udf \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
+	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
+	$(USPACE_PATH)/srv/hid/isdv4_tablet/isdv4_tablet \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
-	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/devman/devman
+	$(USPACE_PATH)/srv/taskmon/taskmon
 
 RD_DRVS = \
 	infrastructure/root \
 	infrastructure/rootvirt \
+	fb/kfb \
 	test/test1 \
 	test/test2 \
 	test/test3 \
 	nic/ne2k \
 	nic/e1k \
-	nic/rtl8139
+	nic/rtl8139 \
+	block/ahci
 
 RD_DRV_CFG =
 
@@ -145,7 +152,9 @@ endif
 RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
 	$(USPACE_PATH)/app/getterm/getterm \
-	$(USPACE_PATH)/app/klog/klog
+	$(USPACE_PATH)/app/klog/klog \
+	$(USPACE_PATH)/app/vlaunch/vlaunch \
+	$(USPACE_PATH)/app/vterm/vterm
 
 RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/blkdump/blkdump \
@@ -170,6 +179,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
 	$(USPACE_PATH)/app/testread/testread \
+	$(USPACE_PATH)/app/testwrit/testwrit \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
@@ -184,7 +194,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
-	$(USPACE_PATH)/app/websrv/websrv
+	$(USPACE_PATH)/app/websrv/websrv \
+	$(USPACE_PATH)/app/vdemo/vdemo
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \

@@ -132,7 +132,7 @@ static int test3_dev_add(ddf_dev_t *dev)
 	test3_t *test3;
 
 	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
-	    dev->name, (int) dev->handle);
+	    ddf_dev_get_name(dev), (int) ddf_dev_get_handle(dev));
 
 	test3 = ddf_dev_data_alloc(dev, sizeof(test3_t));
 	if (test3 == NULL) {
@@ -154,7 +154,7 @@ static int test3_dev_add(ddf_dev_t *dev)
 
 static int test3_dev_remove(ddf_dev_t *dev)
 {
-	test3_t *test3 = (test3_t *)dev->driver_data;
+	test3_t *test3 = (test3_t *)ddf_dev_data_get(dev);
 	char *fun_name;
 	int rc;
 	size_t i;

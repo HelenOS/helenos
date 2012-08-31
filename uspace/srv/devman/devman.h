@@ -173,6 +173,8 @@ struct fun_node {
 	atomic_t refcnt;
 	/** State */
 	fun_state_t state;
+	/** Locked while performing reconfiguration operations */
+	fibril_mutex_t busy_lock;
 	
 	/** The global unique identifier of the function */
 	devman_handle_t handle;
@@ -278,6 +280,7 @@ extern dev_node_t *create_dev_node(void);
 extern void delete_dev_node(dev_node_t *node);
 extern void dev_add_ref(dev_node_t *);
 extern void dev_del_ref(dev_node_t *);
+
 extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
@@ -289,6 +292,8 @@ extern fun_node_t *create_fun_node(void);
 extern void delete_fun_node(fun_node_t *);
 extern void fun_add_ref(fun_node_t *);
 extern void fun_del_ref(fun_node_t *);
+extern void fun_busy_lock(fun_node_t *);
+extern void fun_busy_unlock(fun_node_t *);
 extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
