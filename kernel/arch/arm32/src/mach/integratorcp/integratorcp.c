@@ -69,7 +69,6 @@ struct arm_machine_ops icp_machine_ops = {
 };
 
 static bool hw_map_init_called = false;
-static bool vga_init = false;
 uint32_t sdram[8] = {
 	16777216,	/* 16mb */
 	33554432,	/* 32mb */
@@ -285,6 +284,7 @@ icp_frame_init(void)
 void icp_output_init(void)
 {
 #ifdef CONFIG_FB
+	static bool vga_init = false;
 	if (!vga_init) {
 		icp_vga_init();
 		vga_init = true;
