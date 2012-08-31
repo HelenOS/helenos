@@ -40,13 +40,17 @@
 #define AMDM37x_DISPC_BASE_ADDRESS 0x48050400
 #define AMDM37x_DISPC_SIZE 1024
 
+#define __paddname(line) PADD32_ ## line
+#define _paddname(line) __paddname(line)
+#define PADD32(count) uint32_t _paddname(__LINE__)[count]
+
 #include <typedefs.h>
 
 typedef struct {
 	const ioport32_t revision;
 #define AMDMD37X_DISPC_REVISION_MASK  0xff
 
-	uint32_t padd0_[3];
+	PADD32(3);
 	ioport32_t sysconfig;
 #define AMDMD37X_DISPC_SYSCONFIG_AUTOIDLE_FLAG  (1 << 0)
 #define AMDMD37X_DISPC_SYSCONFIG_SOFTRESET_FLAG  (1 << 1)
@@ -81,7 +85,7 @@ typedef struct {
 #define AMDMD37X_DISPC_IRQ_SYNCLOSTDIGITAL_FLAG  (1 << 15)
 #define AMDMD37X_DISPC_IRQ_WAKEUP_FLAG  (1 << 16)
 
-	uint32_t padd1_[8];
+	PADD32(8);
 	ioport32_t control;
 #define AMDMD37X_DISPC_CONTROL_LCD_ENABLE_FLAG  (1 << 0)
 #define AMDMD37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG  (1 << 1)
@@ -144,7 +148,7 @@ typedef struct {
 #define AMDMD37X_DISPC_CONFIG_LCDPALPHABLENDERENABLDE_FLAG  (1 << 18)
 #define AMDMD37X_DISPC_CONFIG_TVALPHABLENDERENABLE_FLAG  (1 << 19)
 
-	uint32_t padd2_;
+	PADD32(1);
 	ioport32_t default_color[2];
 	ioport32_t trans_color[2];
 #define AMDMD37X_DISPC_COLOR_MASK 0xffffff
@@ -196,21 +200,22 @@ typedef struct {
 	ioport32_t size_dig;
 	ioport32_t size_lcd;
 
-	ioport32_t gfx_ba[2];
-	ioport32_t gfx_position;
+	struct {
+		ioport32_t ba[2];
+		ioport32_t position;
 #define AMDMD37X_DISPC_GFX_POSITION_GFXPOSX_MASK  0x7ff
 #define AMDMD37X_DISPC_GFX_POSITION_GFXPOSX_SHIFT  0
 #define AMDMD37X_DISPC_GFX_POSITION_GFXPOSY_MASK  0x7ff
 #define AMDMD37X_DISPC_GFX_POSITION_GFXPOSY_SHIFT  16
 
-	ioport32_t gfx_size;
+		ioport32_t size;
 #define AMDMD37X_DISPC_SIZE_WIDTH_MASK  0x7ff
 #define AMDMD37X_DISPC_SIZE_WIDTH_SHIFT  0
 #define AMDMD37X_DISPC_SIZE_HEIGHT_MASK  0x7ff
 #define AMDMD37X_DISPC_SIZE_HEIGHT_SHIFT  16
 
-	uint32_t padd3_[4];
-	ioport32_t gfx_attributes;
+		PADD32(4);
+		ioport32_t attributes;
 #define AMDMD37X_DISPC_GFX_ATTRIBUTES_ENABLE_FLAG  (1 << 0)
 #define AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_MASK  0xf
 #define AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_SHIFT  0xf
@@ -235,14 +240,47 @@ typedef struct {
 #define AMDMD37X_DISPC_GFX_ATTRIBUTES_PREMULTIALPHA_FLAG  (1 << 28)
 
 
-	ioport32_t gfx_fifo_threshold;
-	const ioport32_t fifo_size_status;
-	ioport32_t gfx_row_inc;
-	ioport32_t gfx_pixel_inc;
-	ioport32_t gfx_window_skip;
-	ioport32_t gfx_table_ba;
-	// TODO complete me...
+		ioport32_t fifo_threshold;
+		const ioport32_t fifo_size_status;
+		ioport32_t row_inc;
+		ioport32_t pixel_inc;
+		ioport32_t window_skip;
+		ioport32_t table_ba;
+	} gfx;
 
+	struct {
+		ioport32_t ba[2];
+		ioport32_t position;
+		ioport32_t size;
+		ioport32_t attributes;
+		ioport32_t fifo_threshold;
+		const ioport32_t fifo_size_status;
+		ioport32_t row_inc;
+		ioport32_t pixel_inc;
+		ioport32_t fir;
+		ioport32_t picture_size;
+		ioport32_t accui[2];
+		struct {
+			ioport32_t hi;
+			ioport32_t hvi;
+		} fir_coef[8];
+		ioport32_t conv_coef[5];
+		PADD32(2);
+	} vid[2];
+	/* 0x1d4 */
+	ioport32_t data_cycle[3];
+	/* 0x1e0 */
+	ioport32_t vid_fir_coef_v[8];
+	/* 0x200 */
+	PADD32(8);
+	/* 0x220 */
+	ioport32_t cpr_coef_r;
+	ioport32_t cpr_coef_g;
+	ioport32_t cpr_coef_b;
+	ioport32_t gfx_preload;
+
+	/* 0x230 */
+	ioport32_t vid_preload[2];
 
 } __attribute__((packed)) amdm37x_dispc_regs_t;
 
@@ -252,7 +290,9 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 {
 	ASSERT(regs);
 
-	/* prepare sizes */
+	printf("DISPC rev: %x\n", regs->revision);
+
+	/* Prepare sizes */
 	const uint32_t size_reg =
 	    (((x - 1) & AMDMD37X_DISPC_SIZE_WIDTH_MASK)
 	        << AMDMD37X_DISPC_SIZE_WIDTH_SHIFT) |
@@ -291,39 +331,39 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	    << AMDMD37X_DISPC_CONFIG_LOADMODE_SHIFT;
 	regs->config = config;
 
-	/* Set framebuffer base address */
-	regs->gfx_ba[0] = pa;
-	regs->gfx_ba[1] = pa;
 
-	/* setup fb size */
-	regs->gfx_size = size_reg;
+	/* Set framebuffer base address */
+	regs->gfx.ba[0] = pa;
+	regs->gfx.ba[1] = pa;
+	regs->gfx.position = 0;
+
+	/* Setup fb size */
+	regs->gfx.size = size_reg;
+
+	/* Pixel format */
 	unsigned format = 0;
-	switch (bpp) {
-		case 32:
-			format = AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGBX;
-		case 24:
-			format = AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGB24;
-			break;
-		case 16:
-			format = AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGB16;
-			break;
-		default:
+	switch (bpp)
+	{
+	case 32: format = AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGBX; break;
+	case 24: format = AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGB24; break;
+	case 16: format = AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGB16; break;
+	default:
 		ASSERT(false);
 	}
 
 	/* Start gfx engine */
-	uint32_t attribs = regs->gfx_attributes;
+	uint32_t attribs = regs->gfx.attributes;
 	attribs &= ~(AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_MASK
 	    << AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_SHIFT);
 	attribs |= format << AMDMD37X_DISPC_GFX_ATTRIBUTES_FORMAT_SHIFT;
 	attribs |= AMDMD37X_DISPC_GFX_ATTRIBUTES_ENABLE_FLAG;
-	regs->gfx_attributes = attribs;
+	regs->gfx.attributes = attribs;
 
 	/* Enable output */
 	regs->control |= AMDMD37X_DISPC_CONTROL_LCD_ENABLE_FLAG;
-	regs->control |= AMDMD37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG;
+//	regs->control |= AMDMD37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG;
 	regs->control |= AMDMD37X_DISPC_CONTROL_GOLCD_FLAG;
-	regs->control |= AMDMD37X_DISPC_CONTROL_GODIGITAL_FLAG;
+//	regs->control |= AMDMD37X_DISPC_CONTROL_GODIGITAL_FLAG;
 }
 
 
