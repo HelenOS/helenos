@@ -71,21 +71,12 @@
 #undef FD_CLOEXEC
 #define FD_CLOEXEC         1 /* Close on exec. */
 
-#undef open
-#define open(path, ...) \
-	({ \
-		int rc = open(path, ##__VA_ARGS__); \
-		if (rc < 0) { \
-			errno = -rc; \
-			rc = -1; \
-		} \
-		rc; \
-	})
-
+extern int posix_open(const char *pathname, int flags, ...);
 extern int posix_fcntl(int fd, int cmd, ...);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define fcntl posix_fcntl
+	#define open posix_open
 #endif
 
 #endif /* POSIX_FCNTL_H_ */

@@ -94,5 +94,30 @@ int posix_fcntl(int fd, int cmd, ...)
 	}
 }
 
+/**
+ * Open, possibly create, a file.
+ *
+ * @param pathname Path to the file.
+ * @param flags Access mode flags.
+ */
+int posix_open(const char *pathname, int flags, ...)
+{
+	mode_t mode = 0;
+	if ((flags & O_CREAT) > 0) {
+		va_list args;
+		va_start(args, flags);
+		mode = va_arg(args, mode_t);
+		va_end(args);
+	}
+
+	int rc = open(pathname, flags, mode);
+	if (rc < 0) {
+		errno = -rc;
+		rc = -1;
+	}
+
+	return rc;
+}
+
 /** @}
  */
