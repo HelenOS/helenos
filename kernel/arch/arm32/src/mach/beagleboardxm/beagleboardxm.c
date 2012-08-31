@@ -118,7 +118,7 @@ static void bbxm_setup_fb(unsigned width, unsigned height, unsigned bpp)
 	case 16:
 		prop.visual = VISUAL_RGB_5_6_5_LE; break;
 	case 24:
-		prop.visual = VISUAL_RGB_8_8_8; break;
+		prop.visual = VISUAL_BGR_8_8_8; break;
 	case 32:
 		prop.visual = VISUAL_RGB_8_8_8_0; break;
 	default:
