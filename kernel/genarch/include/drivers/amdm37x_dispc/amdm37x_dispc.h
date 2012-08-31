@@ -289,8 +289,6 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
     unsigned x, unsigned y, unsigned bpp, uintptr_t pa)
 {
 	ASSERT(regs);
-#define WRITE_DUMP(name, value) \
-	printf("Writing %s %p: %x. New: %x\n", #name, &regs->name, value, regs->name)
 	/* Init sequence for dispc is in chapter 7.6.5.1.4 p. 1810,
 	 * no idea what parts of that work. */
 
@@ -334,15 +332,11 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 
 	/* setup output */
 	regs->size_lcd = size_reg;
-	WRITE_DUMP(size_lcd, size_reg);
 	regs->size_dig = size_reg;
-	WRITE_DUMP(size_dig, size_reg);
 
 	/* Nice blue default color */
 	regs->default_color[0] = 0x0000ff;
 	regs->default_color[1] = 0x0000ff;
-	WRITE_DUMP(default_color[0], 0xff);
-	WRITE_DUMP(default_color[1], 0xff);
 
 	/* Setup control register */
 	uint32_t control = 0 |
@@ -351,33 +345,25 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 		AMDM37X_DISPC_CONTROL_GPOUT0_FLAG |
 		AMDM37X_DISPC_CONTROL_GPOUT1_FLAG;
 	regs->control = control;
-	WRITE_DUMP(control, control);
 
 	/* No gamma stuff only data */
 	uint32_t config = (AMDM37X_DISPC_CONFIG_LOADMODE_DATAEVERYFRAME
 	            << AMDM37X_DISPC_CONFIG_LOADMODE_SHIFT);
 	regs->config = config;
-	WRITE_DUMP(config, config);
 
 
 	/* Set framebuffer base address */
 	regs->gfx.ba[0] = pa;
 	regs->gfx.ba[1] = pa;
 	regs->gfx.position = 0;
-	WRITE_DUMP(gfx.ba[0], pa);
-	WRITE_DUMP(gfx.ba[1], pa);
-	WRITE_DUMP(gfx.position, 0);
 
 	/* Setup fb size */
 	regs->gfx.size = size_reg;
-	WRITE_DUMP(gfx.size, size_reg);
-
 
 	/* Set pixel format */
 	uint32_t attribs = 0 |
 	    (attrib_pixel_format << AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_SHIFT);
 	regs->gfx.attributes = attribs;
-	WRITE_DUMP(gfx.attributes, attribs);
 
 	/* 0x03ff03c0 is the default */
 	regs->gfx.fifo_threshold = 0x03ff03c0;
@@ -390,11 +376,6 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	regs->gfx.window_skip = 0;
 	/* Gamma and palette table */
 	regs->gfx.table_ba = 0;
-	WRITE_DUMP(gfx.fifo_threshold, 0x03ff03c0);
-	WRITE_DUMP(gfx.row_inc, 1);
-	WRITE_DUMP(gfx.pixel_inc, 1);
-	WRITE_DUMP(gfx.window_skip, 0);
-	WRITE_DUMP(gfx.table_ba, 0);
 
 	/* enable frame buffer graphics */
 	regs->gfx.attributes |= AMDM37X_DISPC_GFX_ATTRIBUTES_ENABLE_FLAG;
