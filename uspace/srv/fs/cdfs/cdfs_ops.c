@@ -43,7 +43,7 @@
 #include <loc.h>
 #include <libfs.h>
 #include <errno.h>
-#include <libblock.h>
+#include <block.h>
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>

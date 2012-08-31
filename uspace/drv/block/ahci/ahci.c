@@ -33,7 +33,6 @@
 #include <as.h>
 #include <errno.h>
 #include <stdio.h>
-#include <devman.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
@@ -159,6 +158,18 @@ static driver_t ahci_driver = {
 	.driver_ops = &driver_ops
 };
 
+/** Get SATA structure from DDF function. */
+static sata_dev_t *fun_sata_dev(ddf_fun_t *fun)
+{
+	return ddf_fun_data_get(fun);
+}
+
+/** Get AHCI structure from DDF device. */
+static ahci_dev_t *dev_ahci_dev(ddf_dev_t *dev)
+{
+	return ddf_dev_data_get(dev);
+}
+
 /** Get SATA device name.
  *
  * @param fun                  Device function handling the call.
@@ -171,7 +182,7 @@ static driver_t ahci_driver = {
 static int ahci_get_sata_device_name(ddf_fun_t *fun,
     size_t sata_dev_name_length, char *sata_dev_name)
 {
-	sata_dev_t *sata = (sata_dev_t *) fun->driver_data;
+	sata_dev_t *sata = fun_sata_dev(fun);
 	str_cpy(sata_dev_name, sata_dev_name_length, sata->model);
 	return EOK;
 }
@@ -186,7 +197,7 @@ static int ahci_get_sata_device_name(ddf_fun_t *fun,
  */
 static int ahci_get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
 {
-	sata_dev_t *sata = (sata_dev_t *) fun->driver_data;
+	sata_dev_t *sata = fun_sata_dev(fun);
 	*num_blocks = sata->blocks;
 	return EOK;
 }
@@ -201,7 +212,7 @@ static int ahci_get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
  */
 static int ahci_get_block_size(ddf_fun_t *fun, size_t *block_size)
 {
-	sata_dev_t *sata = (sata_dev_t *) fun->driver_data;
+	sata_dev_t *sata = fun_sata_dev(fun);
 	*block_size = sata->block_size;
 	return EOK;
 }
@@ -219,7 +230,7 @@ static int ahci_get_block_size(ddf_fun_t *fun, size_t *block_size)
 static int ahci_read_blocks(ddf_fun_t *fun, uint64_t blocknum,
     size_t count, void *buf)
 {
-	sata_dev_t *sata = (sata_dev_t *) fun->driver_data;
+	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	void *phys;
 	void *ibuf;
@@ -262,7 +273,7 @@ static int ahci_read_blocks(ddf_fun_t *fun, uint64_t blocknum,
 static int ahci_write_blocks(ddf_fun_t *fun, uint64_t blocknum,
     size_t count, void *buf)
 {
-	sata_dev_t *sata = (sata_dev_t *) fun->driver_data;
+	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	void *phys;
 	void *ibuf;
@@ -884,7 +895,7 @@ static irq_cmd_t ahci_cmds[] = {
  */
 static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	ahci_dev_t *ahci = (ahci_dev_t *) dev->driver_data;
+	ahci_dev_t *ahci = dev_ahci_dev(dev);
 	unsigned int port = IPC_GET_ARG1(*icall);
 	ahci_port_is_t pxis = IPC_GET_ARG2(*icall);
 	
@@ -918,20 +929,22 @@ static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
  * @return SATA device structure if succeed, NULL otherwise.
  *
  */
-static sata_dev_t *ahci_sata_allocate(volatile ahci_port_t *port)
+static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *port)
 {
 	size_t size = 4096;
 	void *phys = NULL;
 	void *virt_fb = NULL;
 	void *virt_cmd = NULL;
 	void *virt_table = NULL;
+	ddf_fun_t *fun;
 	
-	sata_dev_t *sata = malloc(sizeof(sata_dev_t));
+	fun = ddf_fun_create(ahci->dev, fun_exposed, NULL);
+	
+	sata_dev_t *sata = ddf_fun_data_alloc(fun, sizeof(sata_dev_t));
 	if (sata == NULL)
 		return NULL;
 	
-	bzero(sata, sizeof(sata_dev_t));
-	
+	sata->fun = fun;
 	sata->port = port;
 	
 	/* Allocate and init retfis structure. */
@@ -1028,7 +1041,9 @@ static int ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
     volatile ahci_port_t *port, unsigned int port_num)
 {
 	ddf_fun_t *fun = NULL;
-	sata_dev_t *sata = ahci_sata_allocate(port);
+	int rc;
+	
+	sata_dev_t *sata = ahci_sata_allocate(ahci, port);
 	if (sata == NULL)
 		return EINTR;
 	
@@ -1060,15 +1075,15 @@ static int ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
 	sata_devices_count++;
 	fibril_mutex_unlock(&sata_devices_count_lock);
 	
-	fun = ddf_fun_create(dev, fun_exposed, sata_dev_name);
-	if (fun == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function.");
+	rc= ddf_fun_set_name(sata->fun, sata_dev_name);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed setting function name.");
 		goto error;
 	}
 	
-	fun->ops = &ahci_ops;
-	fun->driver_data = sata;
-	int rc = ddf_fun_bind(fun);
+	ddf_fun_set_ops(fun, &ahci_ops);
+	
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function.");
 		goto error;
@@ -1118,17 +1133,20 @@ static void ahci_sata_devices_create(ahci_dev_t *ahci, ddf_dev_t *dev)
  */
 static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 {
-	ahci_dev_t *ahci = malloc(sizeof(ahci_dev_t));
+	ahci_dev_t *ahci = ddf_dev_data_alloc(dev, sizeof(ahci_dev_t));
 	if (!ahci)
 		return NULL;
 	
-	bzero(ahci, sizeof(ahci_dev_t));
+	/* Connect to parent device */
+	ahci->parent_sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	if (ahci->parent_sess == NULL)
+		return NULL;
 	
 	ahci->dev = dev;
 	
 	hw_res_list_parsed_t hw_res_parsed;
 	hw_res_list_parsed_init(&hw_res_parsed);
-	if (hw_res_get_list_parsed(dev->parent_sess, &hw_res_parsed, 0) != EOK)
+	if (hw_res_get_list_parsed(ahci->parent_sess, &hw_res_parsed, 0) != EOK)
 		goto error_get_res_parsed;
 	
 	/* Map AHCI registers. */
@@ -1210,15 +1228,15 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
 	ahci->memregs->ghc.ccc_ctl = ccc.u32;
 	
 	/* Set master latency timer. */
-	pci_config_space_write_8(ahci->dev->parent_sess, AHCI_PCI_MLT, 32);
+	pci_config_space_write_8(ahci->parent_sess, AHCI_PCI_MLT, 32);
 	
 	/* Enable PCI interrupt and bus mastering */
 	ahci_pcireg_cmd_t cmd;
 	
-	pci_config_space_read_16(ahci->dev->parent_sess, AHCI_PCI_CMD, &cmd.u16);
+	pci_config_space_read_16(ahci->parent_sess, AHCI_PCI_CMD, &cmd.u16);
 	cmd.id = 0;
 	cmd.bme = 1;
-	pci_config_space_write_16(ahci->dev->parent_sess, AHCI_PCI_CMD, cmd.u16);
+	pci_config_space_write_16(ahci->parent_sess, AHCI_PCI_CMD, cmd.u16);
 	
 	/* Enable AHCI and interrupt. */
 	ahci->memregs->ghc.ghc = AHCI_GHC_GHC_AE | AHCI_GHC_GHC_IE;
@@ -1236,17 +1254,9 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
  */
 static int ahci_dev_add(ddf_dev_t *dev)	
 {
-	/* Connect to parent device */
-	dev->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    dev->handle, IPC_FLAG_BLOCKING);
-	if (dev->parent_sess == NULL)
-		return EINTR;
-	
 	ahci_dev_t *ahci = ahci_ahci_create(dev);
 	if (ahci == NULL)
 		goto error;
-	
-	dev->driver_data = ahci;
 	
 	/* Start AHCI hardware. */
 	ahci_ahci_hw_start(ahci);
@@ -1257,7 +1267,6 @@ static int ahci_dev_add(ddf_dev_t *dev)
 	return EOK;
 	
 error:
-	async_hangup(dev->parent_sess);
 	return EINTR;
 }
 

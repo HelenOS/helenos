@@ -35,6 +35,7 @@
 #define LIBC_IO_LOG_H_
 
 #include <stdarg.h>
+#include <io/verify.h>
 
 typedef enum {
 	LVL_FATAL,
@@ -43,13 +44,14 @@ typedef enum {
 	LVL_NOTE,
 	LVL_DEBUG,
 	LVL_DEBUG2,
-
+	
 	/** For checking range of values */
 	LVL_LIMIT
 } log_level_t;
 
 extern int log_init(const char *, log_level_t);
-extern void log_msg(log_level_t, const char *, ...);
+extern void log_msg(log_level_t, const char *, ...)
+    PRINTF_ATTRIBUTE(2, 3);
 extern void log_msgv(log_level_t, const char *, va_list);
 
 #endif

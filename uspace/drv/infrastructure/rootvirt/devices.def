@@ -4,6 +4,12 @@
  * Unless the list is empty, the last item shall be followed by a comma.
  */
 
+/* Kernel framebuffer */
+{
+    .name = "kfb",
+    .match_id = "virtual&kfb"
+},
+
 #ifdef CONFIG_TEST_DRIVERS
 
 {

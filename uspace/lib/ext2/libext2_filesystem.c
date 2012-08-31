@@ -38,7 +38,7 @@
 #include "libext2_block_group.h"
 #include "libext2_inode.h"
 #include <errno.h>
-#include <libblock.h>
+#include <block.h>
 #include <malloc.h>
 #include <assert.h>
 #include <byteorder.h>

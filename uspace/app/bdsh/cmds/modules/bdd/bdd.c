@@ -37,7 +37,7 @@
 #include "bdd.h"
 #include "cmds.h"
 
-#include <libblock.h>
+#include <block.h>
 #include <loc.h>
 #include <errno.h>
 #include <assert.h>

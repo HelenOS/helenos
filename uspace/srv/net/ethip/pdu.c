@@ -68,8 +68,9 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 	memcpy((uint8_t *)data + sizeof(eth_header_t), frame->data,
 	    frame->size);
 
-	log_msg(LVL_DEBUG, "Encoding Ethernet frame src=%llx dest=%llx etype=%x",
-	    frame->src, frame->dest, frame->etype_len);
+	log_msg(LVL_DEBUG, "Encoding Ethernet frame "
+	    "src=%" PRIx64 " dest=%" PRIx64 " etype=%x",
+	    frame->src.addr, frame->dest.addr, frame->etype_len);
 	log_msg(LVL_DEBUG, "Encoded Ethernet frame (%zu bytes)", size);
 
 	*rdata = data;
@@ -103,8 +104,9 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	memcpy(frame->data, (uint8_t *)data + sizeof(eth_header_t),
 	    frame->size);
 
-	log_msg(LVL_DEBUG, "Decoding Ethernet frame src=%llx dest=%llx etype=%x",
-	    frame->src, frame->dest, frame->etype_len);
+	log_msg(LVL_DEBUG, "Decoding Ethernet frame "
+	    "src=%" PRIx64 " dest=%" PRIx64 " etype=%x",
+	    frame->src.addr, frame->dest.addr, frame->etype_len);
 	log_msg(LVL_DEBUG, "Decoded Ethernet frame payload (%zu bytes)", frame->size);
 
 	return EOK;

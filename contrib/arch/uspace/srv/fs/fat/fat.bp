@@ -6,7 +6,7 @@
 		?mounted {
 			?ipc_m_data_write /* mount options */ ;
 			tentative {
-				[/uspace/lib/libblock/fnc.block_init%rd]
+				[/uspace/lib/block/fnc.block_init%rd]
 			}
 		} +
 		

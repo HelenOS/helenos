@@ -32,10 +32,10 @@
  */
 
 #include <errno.h>
-#include <kbd.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <layout.h>
+#include "../layout.h"
+#include "../kbd.h"
 
 static int us_dvorak_create(layout_t *);
 static void us_dvorak_destroy(layout_t *);

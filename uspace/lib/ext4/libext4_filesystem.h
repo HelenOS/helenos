@@ -33,7 +33,7 @@
 #ifndef LIBEXT4_LIBEXT4_FILESYSTEM_H_
 #define LIBEXT4_LIBEXT4_FILESYSTEM_H_
 
-#include <libblock.h>
+#include <block.h>
 #include "libext4_types.h"
 
 extern int ext4_filesystem_init(ext4_filesystem_t *, service_id_t,

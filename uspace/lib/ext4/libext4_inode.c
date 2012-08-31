@@ -36,7 +36,7 @@
 
 #include <byteorder.h>
 #include <errno.h>
-#include <libblock.h>
+#include <block.h>
 #include "libext4.h"
 
 /** Compute number of bits for block count.

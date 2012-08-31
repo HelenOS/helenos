@@ -31,6 +31,6 @@ USPACE_PREFIX = ../..
 LIBRARY = libblock
 
 SOURCES = \
-	libblock.c
+	block.c
 
 include $(USPACE_PREFIX)/Makefile.common
