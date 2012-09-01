@@ -447,7 +447,6 @@ restart:
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
 		atomic_dec(&request->caller_phone->active_calls);
-		ASSERT(atomic_get(&request->caller_phone->active_calls) >= 0);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
 		call_cnt++;
@@ -597,7 +596,6 @@ restart:
 	spinlock_unlock(&TASK->active_calls_lock);
 
 	atomic_dec(&call->caller_phone->active_calls);
-	ASSERT(atomic_get(&call->caller_phone->active_calls) >= 0);
 
 	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->request_forget)
