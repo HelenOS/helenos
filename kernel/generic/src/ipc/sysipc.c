@@ -411,23 +411,26 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
 	call_t *call = get_call(callid);
+	bool need_old;
+	int rc;
+
 	if (!call)
 		return ENOENT;
-	
-	call->flags |= IPC_CALL_FORWARDED;
 	
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
-		ipc_answer(&TASK->answerbox, call);
-		return ENOENT;
+		rc = ENOENT;
+		goto error;
 	}
 	
 	if (!method_is_forwardable(IPC_GET_IMETHOD(call->data))) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
-		ipc_answer(&TASK->answerbox, call);
-		return EPERM;
+		rc = EPERM;
+		goto error;
 	}
+
+	call->flags |= IPC_CALL_FORWARDED;
 	
 	/*
 	 * User space is not allowed to change interface and method of system
@@ -464,6 +467,17 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 	}
 	
 	return ipc_forward(call, phone, &TASK->answerbox, mode);
+
+error:
+	need_old = answer_need_old(call);
+	ipc_data_t old;
+
+	if (need_old)
+		old = call->data;
+
+	answer_preprocess(call, need_old ? &old : NULL);
+	ipc_answer(&TASK->answerbox, call);
+	return rc;
 }
 
 /** Forward a received call to another destination - fast version.
