@@ -161,7 +161,7 @@ rtc_dev_cleanup(rtc_t *rtc)
 static bool
 rtc_pio_enable(rtc_t *rtc)
 {
-	if (pio_enable((void *)(uintptr_t) rtc->io_addr, REG_COUNT,
+	if (pio_enable((void *) rtc->io_addr, REG_COUNT,
 	    (void **) &rtc->port)) {
 
 		ddf_msg(LVL_ERROR, "Cannot map the port %lx"
