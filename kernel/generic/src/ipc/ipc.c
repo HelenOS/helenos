@@ -170,7 +170,7 @@ void ipc_phone_init(phone_t *phone)
  * @param selflocked If true, then TASK->answebox is locked.
  *
  */
-static void _ipc_answer_free_call(call_t *call, bool selflocked)
+void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
 	/* Count sent answer */
 	irq_spinlock_lock(&TASK->lock, true);
@@ -305,10 +305,7 @@ int ipc_call(phone_t *phone, call_t *call)
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_CONNECTED) {
 		mutex_unlock(&phone->lock);
-		if (call->flags & IPC_CALL_FORWARDED) {
-			IPC_SET_RETVAL(call->data, EFORWARD);
-			_ipc_answer_free_call(call, false);
-		} else {
+		if (!(call->flags & IPC_CALL_FORWARDED)) {
 			if (phone->state == IPC_PHONE_HUNGUP)
 				ipc_backsend_err(phone, call, EHANGUP);
 			else

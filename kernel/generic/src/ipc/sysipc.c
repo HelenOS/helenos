@@ -411,13 +411,18 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
 	call_t *call = get_call(callid);
-	bool need_old;
+	phone_t *phone;
+	bool need_old = answer_need_old(call);
+	bool after_forward = false;
+	ipc_data_t old;
 	int rc;
 
 	if (!call)
 		return ENOENT;
+
+	if (need_old)
+		old = call->data;
 	
-	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK) {
 		rc = ENOENT;
 		goto error;
@@ -464,18 +469,22 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 		}
 	}
 	
-	return ipc_forward(call, phone, &TASK->answerbox, mode);
+	rc = ipc_forward(call, phone, &TASK->answerbox, mode);
+	if (rc != EOK) {
+		after_forward = true;
+		goto error;
+	}
+
+	return EOK;
 
 error:
-	need_old = answer_need_old(call);
-	ipc_data_t old;
-
-	if (need_old)
-		old = call->data;
-
 	IPC_SET_RETVAL(call->data, EFORWARD);
 	answer_preprocess(call, need_old ? &old : NULL);
-	ipc_answer(&TASK->answerbox, call);
+	if (after_forward)
+		_ipc_answer_free_call(call, false);
+	else
+		ipc_answer(&TASK->answerbox, call);
+
 	return rc;
 }
 
