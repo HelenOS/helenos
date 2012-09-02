@@ -165,7 +165,7 @@ rtc_pio_enable(rtc_t *rtc)
 	    (void **) &rtc->port)) {
 
 		ddf_msg(LVL_ERROR, "Cannot map the port %lx"
-		    " for device %s", (intptr_t)rtc->io_addr,
+		    " for device %s", (long unsigned int)rtc->io_addr,
 		    ddf_dev_get_name(rtc->dev));
 		return false;
 	}
@@ -225,11 +225,11 @@ rtc_dev_initialize(rtc_t *rtc)
 			continue;
 		}
 
-		rtc->io_addr = (ioport8_t *) res->res.io_range.address;
+		rtc->io_addr = (ioport8_t *) (long) res->res.io_range.address;
 		ioport = true;
 		ddf_msg(LVL_NOTE, "Device %s was assigned I/O address "
 		    "0x%lx", ddf_dev_get_name(rtc->dev),
-		    (intptr_t) rtc->io_addr);
+		    (unsigned long int) rtc->io_addr);
 		rc = EOK;
 		break;
 	}
