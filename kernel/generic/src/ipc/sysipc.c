@@ -419,13 +419,11 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 	
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK) {
-		IPC_SET_RETVAL(call->data, EFORWARD);
 		rc = ENOENT;
 		goto error;
 	}
 	
 	if (!method_is_forwardable(IPC_GET_IMETHOD(call->data))) {
-		IPC_SET_RETVAL(call->data, EFORWARD);
 		rc = EPERM;
 		goto error;
 	}
@@ -475,6 +473,7 @@ error:
 	if (need_old)
 		old = call->data;
 
+	IPC_SET_RETVAL(call->data, EFORWARD);
 	answer_preprocess(call, need_old ? &old : NULL);
 	ipc_answer(&TASK->answerbox, call);
 	return rc;
