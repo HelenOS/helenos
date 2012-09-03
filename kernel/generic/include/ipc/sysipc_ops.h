@@ -65,7 +65,7 @@ typedef struct {
 	 * Context:		callee
 	 * Caller alive:	no guarantee
 	 * Races with:		request_forget()
-	 * Invoked on:		all calls
+	 * Invoked on:		calls that are received by the callee
 	 */	
 	int (* request_process)(call_t *, answerbox_t *);
 
