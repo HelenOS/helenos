@@ -45,6 +45,7 @@
 #include <ipc/kbox.h>
 #include <ipc/event.h>
 #include <ipc/sysipc_ops.h>
+#include <ipc/sysipc_priv.h>
 #include <errno.h>
 #include <mm/slab.h>
 #include <arch.h>
@@ -474,20 +475,28 @@ restart:
 
 /** Answer all calls from list with EHANGUP answer.
  *
+ * @param box Answerbox with the list.
  * @param lst Head of the list to be cleaned up.
- *
  */
-void ipc_cleanup_call_list(list_t *lst)
+void ipc_cleanup_call_list(answerbox_t *box, list_t *lst)
 {
+	irq_spinlock_lock(&box->lock, true);
 	while (!list_empty(lst)) {
 		call_t *call = list_get_instance(list_first(lst), call_t,
 		    ab_link);
 		
 		list_remove(&call->ab_link);
-		
+
+		irq_spinlock_unlock(&box->lock, true);
+
+		ipc_data_t old = call->data;
 		IPC_SET_RETVAL(call->data, EHANGUP);
+		answer_preprocess(call, &old);
 		_ipc_answer_free_call(call, true);
+
+		irq_spinlock_lock(&box->lock, true);
 	}
+	irq_spinlock_unlock(&box->lock, true);
 }
 
 /** Disconnects all phones connected to an answerbox.
@@ -693,10 +702,9 @@ void ipc_cleanup(void)
 #endif
 	
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
-	irq_spinlock_lock(&TASK->answerbox.lock, true);
-	ipc_cleanup_call_list(&TASK->answerbox.dispatched_calls);
-	ipc_cleanup_call_list(&TASK->answerbox.calls);
-	irq_spinlock_unlock(&TASK->answerbox.lock, true);
+	ipc_cleanup_call_list(&TASK->answerbox,
+	    &TASK->answerbox.dispatched_calls);
+	ipc_cleanup_call_list(&TASK->answerbox, &TASK->answerbox.calls);
 
 	ipc_forget_all_active_calls();
 	ipc_wait_for_all_answered_calls();

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2012 Jakub Jermar 
  * All rights reserved.
  *
@@ -33,64 +32,14 @@
 /** @file
  */
 
-#include <ipc/sysipc_ops.h>
+#ifndef KERN_SYSIPC_PRIV_H_
+#define KERN_SYSIPC_PRIV_H_
+
 #include <ipc/ipc.h>
-#include <ipc/ipcrsc.h>
-#include <abi/errno.h>
-#include <arch.h>
 
-static int request_preprocess(call_t *call, phone_t *phone)
-{
-	/* Start with the assumption that there is no allocated phoneid. */
-	IPC_SET_ARG5(call->data, -1);
-	return EOK;
-}
+extern int answer_preprocess(call_t *, ipc_data_t *);
 
-static int request_process(call_t *call, answerbox_t *box)
-{
-	int phoneid = phone_alloc(TASK);
-
-	IPC_SET_ARG5(call->data, phoneid);
-	
-	return EOK;
-}
-
-static void answer_cleanup(call_t *answer, ipc_data_t *olddata)
-{
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
-
-	if (phoneid >= 0)
-		phone_dealloc(phoneid);
-}
-
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
-{
-	int phoneid = (int) IPC_GET_ARG5(*olddata);
-
-	if (IPC_GET_RETVAL(answer->data) != EOK) {
-		/* The connection was not accepted */
-		answer_cleanup(answer, olddata);
-	} else if (phoneid >= 0) {
-		/* The connection was accepted */
-		phone_connect(phoneid, &answer->sender->answerbox);
-		/* Set 'phone hash' as arg5 of response */
-		IPC_SET_ARG5(answer->data, (sysarg_t) &TASK->phones[phoneid]);
-	} else {
-		IPC_SET_RETVAL(answer->data, ELIMIT);
-	}
-
-	return EOK;
-}
-
-
-sysipc_ops_t ipc_m_connect_to_me_ops = {
-	.request_preprocess = request_preprocess,
-	.request_forget = null_request_forget,
-	.request_process = request_process,
-	.answer_cleanup = answer_cleanup,
-	.answer_preprocess = answer_preprocess,
-	.answer_process = null_answer_process,
-};
+#endif
 
 /** @}
  */

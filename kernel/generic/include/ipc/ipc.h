@@ -178,7 +178,7 @@ extern void ipc_answerbox_init(answerbox_t *, struct task *);
 extern void ipc_cleanup(void);
 extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
-extern void ipc_cleanup_call_list(list_t *);
+extern void ipc_cleanup_call_list(answerbox_t *, list_t *);
 
 extern void ipc_print_task(task_id_t);
 

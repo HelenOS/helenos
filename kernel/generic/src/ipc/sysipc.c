@@ -39,6 +39,7 @@
 #include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>
 #include <ipc/sysipc_ops.h>
+#include <ipc/sysipc_priv.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
@@ -156,7 +157,7 @@ static inline bool answer_need_old(call_t *call)
  * @return Return EOK on success or a negative error code.
  *
  */
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int rc = EOK;
 	sysipc_ops_t *ops;
