@@ -63,10 +63,10 @@
 
 
 /** GXemul testarm serial console output register */
-#define TESTARM_SCONS_ADDR 	0x10000000
+#define TESTARM_SCONS_ADDR	0x10000000
 
 /** IntegratorCP serial console output register */
-#define ICP_SCONS_ADDR 		0x16000000
+#define ICP_SCONS_ADDR		0x16000000
 
 extern void bootstrap(void);
 
