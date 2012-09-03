@@ -198,17 +198,15 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	spinlock_unlock(&answer->forget_lock);
 
 	if ((native_t) IPC_GET_RETVAL(answer->data) == EHANGUP) {
-		/* In case of forward, hangup the forwared phone,
-		 * not the originator
-		 */
-		mutex_lock(&answer->data.phone->lock);
-		irq_spinlock_lock(&TASK->answerbox.lock, true);
-		if (answer->data.phone->state == IPC_PHONE_CONNECTED) {
-			list_remove(&answer->data.phone->link);
-			answer->data.phone->state = IPC_PHONE_SLAMMED;
+		phone_t *phone = answer->caller_phone;
+		mutex_lock(&phone->lock);
+		if (phone->state == IPC_PHONE_CONNECTED) {
+			irq_spinlock_lock(&phone->callee->lock, true);
+			list_remove(&phone->link);
+			phone->state = IPC_PHONE_SLAMMED;
+			irq_spinlock_unlock(&phone->callee->lock, true);
 		}
-		irq_spinlock_unlock(&TASK->answerbox.lock, true);
-		mutex_unlock(&answer->data.phone->lock);
+		mutex_unlock(&phone->lock);
 	}
 	
 	if (!olddata)
