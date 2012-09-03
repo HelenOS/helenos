@@ -479,7 +479,7 @@ static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
 
 error:
 	IPC_SET_RETVAL(call->data, EFORWARD);
-	answer_preprocess(call, need_old ? &old : NULL);
+	(void) answer_preprocess(call, need_old ? &old : NULL);
 	if (after_forward)
 		_ipc_answer_free_call(call, false);
 	else
