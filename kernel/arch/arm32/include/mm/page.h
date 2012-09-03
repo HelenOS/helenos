@@ -128,10 +128,12 @@
 #define SET_FRAME_PRESENT_ARCH(ptl3, i) \
 	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
-#if defined(PROCESSOR_armv7_a)
-#include "page_armv7.h"
+#if defined(PROCESSOR_armv6) | defined(PROCESSOR_armv7_a)
+#include "page_armv6.h"
 #elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 #include "page_armv4.h"
+#else
+#error "Unsupported architecture"
 #endif
 
 #endif
