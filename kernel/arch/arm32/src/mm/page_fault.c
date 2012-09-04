@@ -145,11 +145,63 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		return PF_ACCESS_EXEC;
 	}
 
+	/* See ARM Architecture reference manual ARMv7-A and ARMV7-R edition
+	 * A5.3 (PDF p. 206) */
+	static const struct {
+		uint32_t mask;
+		uint32_t value;
+		pf_access_t access;
+	} ls_inst[] = {
+		/* Store word */
+		{ 0x0e700000, 0x04000000, PF_ACCESS_WRITE }, /*STR imm x2*/
+		{ 0x0e700000, 0x04200000, PF_ACCESS_WRITE }, /*STR imm STRT*/
+		{ 0x0e700010, 0x06000000, PF_ACCESS_WRITE }, /*STR reg x2*/
+		{ 0x0e700010, 0x06200000, PF_ACCESS_WRITE }, /*STR reg STRT*/
+		/* Store byte */
+		{ 0x0e700000, 0x04400000, PF_ACCESS_WRITE }, /*STRB imm x2*/
+		{ 0x0e700000, 0x04600000, PF_ACCESS_WRITE }, /*STRB imm STRBT*/
+		{ 0x0e700010, 0x06400000, PF_ACCESS_WRITE }, /*STRB reg x2*/
+		{ 0x0e700010, 0x06600000, PF_ACCESS_WRITE }, /*STRB reg STRBT*/
+		/* Load word */
+		{ 0x0e700000, 0x04100000, PF_ACCESS_READ }, /*LDR imm x2*/
+		{ 0x0e700000, 0x04300000, PF_ACCESS_READ }, /*LDR imm LDRT*/
+		{ 0x0e700010, 0x06100000, PF_ACCESS_READ }, /*LDR reg x2*/
+		{ 0x0e700010, 0x06300000, PF_ACCESS_READ }, /*LDR reg LDRT*/
+		/* Load byte */
+		{ 0x0e700000, 0x04500000, PF_ACCESS_READ }, /*LDRB imm x2*/
+		{ 0x0e700000, 0x04700000, PF_ACCESS_READ }, /*LDRB imm LDRBT*/
+		{ 0x0e700010, 0x06500000, PF_ACCESS_READ }, /*LDRB reg x2*/
+		{ 0x0e700010, 0x06700000, PF_ACCESS_READ }, /*LDRB reg LDRBT*/
+		/* Store half-word/dual  A5.2.8 */
+		{ 0x0e1000f0, 0x000000b0, PF_ACCESS_WRITE }, /*STRH imm reg*/
+		{ 0x0e1000f0, 0x000000f0, PF_ACCESS_WRITE }, /*STRD imm reg*/
+		/* Load half-word/dual A5.2.8 */
+		{ 0x0e1000f0, 0x001000b0, PF_ACCESS_READ }, /*LDRH imm reg*/
+		{ 0x0e0000f0, 0x000000d0, PF_ACCESS_READ }, /*LDRH imm reg*/
+		{ 0x0e1000f0, 0x001000f0, PF_ACCESS_READ }, /*LDRD imm reg*/
+		/* Block data transfer, Store */
+		{ 0x0e100000, 0x08000000, PF_ACCESS_WRITE }, /* STM variants */
+		{ 0x0e100000, 0x08100000, PF_ACCESS_READ },  /* LDM variants */
+	};
+	pf_access_t access = PF_ACCESS_UNKNOWN;
+	uint32_t inst = *(uint32_t*)instr_addr;
+	for (unsigned i = 0; i < sizeof(ls_inst) / sizeof(ls_inst[0]); ++i) {
+		if ((inst & ls_inst[i].mask) == ls_inst[i].value) {
+			if (access != PF_ACCESS_UNKNOWN)
+				printf("Double match: %x %u\n", inst, i);
+			access = ls_inst[i].access;
+		}
+	}
+
 	/* load store instructions */
 	if (is_load_store_instruction(instr)) {
 		if (instr.access == 1) {
+			if (access != PF_ACCESS_READ)
+				printf("MISMATCH READ(%u): %x\n", access, inst);
 			return PF_ACCESS_READ;
 		} else {
+			if (access != PF_ACCESS_WRITE)
+				printf("MISMATCH WRITE(%u): %x\n", access, inst);
 			return PF_ACCESS_WRITE;
 		}
 	}
