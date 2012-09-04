@@ -76,51 +76,6 @@ static inline uintptr_t read_fault_address_register(void)
 	return ret;
 }
 
-/** Decides whether the instruction is load/store or not.
- *
- * @param instr Instruction
- *
- * @return true when instruction is load/store, false otherwise
- *
- */
-static inline bool is_load_store_instruction(instruction_t instr)
-{
-	/* load store immediate offset */
-	if (instr.type == 0x2)
-		return true;
-	
-	/* load store register offset */
-	if ((instr.type == 0x3) && (instr.bit4 == 0))
-		return true;
-	
-	/* load store multiple */
-	if (instr.type == 0x4)
-		return true;
-	
-	/* oprocessor load/store */
-	if (instr.type == 0x6)
-		return true;
-	
-	return false;
-}
-
-/** Decides whether the instruction is swap or not.
- *
- * @param instr Instruction
- *
- * @return true when instruction is swap, false otherwise
- */
-static inline bool is_swap_instruction(instruction_t instr)
-{
-	/* swap, swapb instruction */
-	if ((instr.type == 0x0) &&
-	    ((instr.opcode == 0x8) || (instr.opcode == 0xa)) &&
-	    (instr.access == 0x0) && (instr.bits567 == 0x4) && (instr.bit4 == 1))
-		return true;
-	
-	return false;
-}
-
 /** Decides whether read or write into memory is requested.
  *
  * @param instr_addr   Address of instruction which tries to access memory.
@@ -169,41 +124,16 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		/* Swap */
 		{ 0x0fb00000, 0x01000000, PF_ACCESS_WRITE },
 	};
-	pf_access_t access = PF_ACCESS_UNKNOWN;
 	uint32_t inst = *(uint32_t*)instr_addr;
 	for (unsigned i = 0; i < sizeof(ls_inst) / sizeof(ls_inst[0]); ++i) {
 		if ((inst & ls_inst[i].mask) == ls_inst[i].value) {
-			if (access != PF_ACCESS_UNKNOWN)
-				printf("Double match: %x %u\n", inst, i);
-			access = ls_inst[i].access;
+			return ls_inst[i].access;
 		}
-	}
-
-	/* load store instructions */
-	if (is_load_store_instruction(instr)) {
-		if (instr.access == 1) {
-			if (access != PF_ACCESS_READ)
-				printf("MISMATCH READ(%u): %x\n", access, inst);
-			return PF_ACCESS_READ;
-		} else {
-			if (access != PF_ACCESS_WRITE)
-				printf("MISMATCH WRITE(%u): %x\n", access, inst);
-			return PF_ACCESS_WRITE;
-		}
-	}
-
-	/* swap, swpb instruction */
-	if (is_swap_instruction(instr)) {
-		if (access != PF_ACCESS_WRITE)
-			printf("MISMATCH WRITE(%u): %x\n", access, inst);
-		return PF_ACCESS_WRITE;
 	}
 
 	panic("page_fault - instruction doesn't access memory "
 	    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
 	    instr_union.pc, (void *) badvaddr);
-
-	return PF_ACCESS_EXEC;
 }
 
 /** Handles "data abort" exception (load or store at invalid address).
