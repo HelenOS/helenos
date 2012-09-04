@@ -166,6 +166,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		/* Block data transfer, Store */
 		{ 0x0e100000, 0x08000000, PF_ACCESS_WRITE }, /* STM variants */
 		{ 0x0e100000, 0x08100000, PF_ACCESS_READ },  /* LDM variants */
+		/* Swap */
+		{ 0x0fb00000, 0x01000000, PF_ACCESS_WRITE },
 	};
 	pf_access_t access = PF_ACCESS_UNKNOWN;
 	uint32_t inst = *(uint32_t*)instr_addr;
@@ -192,6 +194,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 
 	/* swap, swpb instruction */
 	if (is_swap_instruction(instr)) {
+		if (access != PF_ACCESS_WRITE)
+			printf("MISMATCH WRITE(%u): %x\n", access, inst);
 		return PF_ACCESS_WRITE;
 	}
 
