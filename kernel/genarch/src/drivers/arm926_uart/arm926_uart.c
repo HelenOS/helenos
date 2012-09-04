@@ -82,7 +82,7 @@ static void arm926_uart_irq_handler(irq_t *irq)
 {
 	arm926_uart_t *uart = irq->instance;
 
-	// TODO make pio_read accept consts pointers and remove the cast
+	// TODO make pio_read accept const pointers and remove the cast
 	while ((pio_read_32((ioport32_t*)&uart->regs->flag) & ARM926_UART_FLAG_RXFE_FLAG) == 0) {
 		/* We ignore all error flags here */
 		const uint8_t data = pio_read_32(&uart->regs->data);
@@ -108,7 +108,7 @@ bool arm926_uart_init(
 	    ARM926_UART_CONTROL_CTSE_FLAG;
 
 	/* Mask all interrupts */
-	uart->regs->interrupt_mask = ARM926_UART_INTERRUPT_ALL;
+	uart->regs->interrupt_mask = 0;
 
 	outdev_initialize("arm926_uart_dev", &uart->outdev, &arm926_uart_ops);
 	uart->outdev.data = uart;
@@ -132,7 +132,7 @@ void arm926_uart_input_wire(arm926_uart_t *uart, indev_t *indev)
 	uart->indev = indev;
 	irq_register(&uart->irq);
 	/* Enable receive interrupt */
-	uart->regs->interrupt_mask &= ~ARM926_UART_INTERRUPT_RX_FLAG;
+	uart->regs->interrupt_mask |= ARM926_UART_INTERRUPT_RX_FLAG;
 }
 
 /** @}
