@@ -57,6 +57,9 @@
 
 #define REG_COUNT 2
 
+#define REG_SEL_PORT(port)  (port)
+#define REG_RW_PORT(port)   ((port) + 1)
+
 typedef struct rtc {
 	/** DDF device node */
 	ddf_dev_t *dev;
@@ -266,8 +269,8 @@ error:
 static int
 rtc_register_read(rtc_t *rtc, int reg)
 {
-	pio_write_8(rtc->port, reg);
-	return pio_read_8(rtc->port + 1);
+	pio_write_8(REG_SEL_PORT(rtc->port), reg);
+	return pio_read_8(REG_RW_PORT(rtc->port));
 }
 
 /** Write a register to the CMOS memory
@@ -279,8 +282,8 @@ rtc_register_read(rtc_t *rtc, int reg)
 static void
 rtc_register_write(rtc_t *rtc, int reg, int data)
 {
-	pio_write_8(rtc->port, reg);
-	pio_write_8(rtc->port + 1, data);
+	pio_write_8(REG_SEL_PORT(rtc->port), reg);
+	pio_write_8(REG_RW_PORT(rtc->port), data);
 }
 
 /** Check if an update is in progress
