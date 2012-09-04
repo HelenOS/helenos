@@ -150,7 +150,7 @@ int udf_volume_recongnition(service_id_t service_id)
 /** Convert descriptor tag fields from little-endian to current byte order
  *
  */
-void udf_prepare_tag(udf_descriptor_tag_t *tag)
+static void udf_prepare_tag(udf_descriptor_tag_t *tag)
 {
 	GET_LE16(tag->id);
 	GET_LE16(tag->version);
@@ -158,6 +158,41 @@ void udf_prepare_tag(udf_descriptor_tag_t *tag)
 	GET_LE16(tag->descriptor_crc);
 	GET_LE16(tag->descriptor_crc_length);
 	GET_LE32(tag->location);
+}
+
+/** Read AVD by using one of default sector size from array
+ *
+ * @param service_id
+ * @param avd         Returned value - Anchor Volume Descriptor
+ * @param sector_size Expected sector size
+ *
+ * @return EOK on success or a negative error code.
+ *
+ */
+static int udf_get_anchor_volume_descriptor_by_ssize(service_id_t service_id,
+    udf_anchor_volume_descriptor_t *avd, uint32_t sector_size)
+{
+	int rc = block_read_bytes_direct(service_id,
+	    UDF_AVDP_SECTOR * sector_size,
+	    sizeof(udf_anchor_volume_descriptor_t), avd);
+	if (rc != EOK)
+		return rc;
+	
+	if (avd->tag.checksum != udf_tag_checksum((uint8_t *) &avd->tag))
+		return EINVAL;
+	
+	// TODO: Should be tested in big-endian mode
+	udf_prepare_tag(&avd->tag);
+	
+	if (avd->tag.id != UDF_TAG_AVDP)
+		return EINVAL;
+	
+	GET_LE32(avd->main_extent.length);
+	GET_LE32(avd->main_extent.location);
+	GET_LE32(avd->reserve_extent.length);
+	GET_LE32(avd->reserve_extent.location);
+	
+	return EOK;
 }
 
 /** Identification of the sector size
@@ -199,41 +234,6 @@ int udf_get_anchor_volume_descriptor(service_id_t service_id,
 	}
 	
 	return EINVAL;
-}
-
-/** Read AVD by using one of default sector size from array
- *
- * @param service_id
- * @param avd         Returned value - Anchor Volume Descriptor
- * @param sector_size Expected sector size
- *
- * @return EOK on success or a negative error code.
- *
- */
-int udf_get_anchor_volume_descriptor_by_ssize(service_id_t service_id,
-    udf_anchor_volume_descriptor_t *avd, uint32_t sector_size)
-{
-	int rc = block_read_bytes_direct(service_id,
-	    UDF_AVDP_SECTOR * sector_size,
-	    sizeof(udf_anchor_volume_descriptor_t), avd);
-	if (rc != EOK)
-		return rc;
-	
-	if (avd->tag.checksum != udf_tag_checksum((uint8_t *) &avd->tag))
-		return EINVAL;
-	
-	// TODO: Should be tested in BegEndian mode
-	udf_prepare_tag(&avd->tag);
-	
-	if (avd->tag.id != UDF_TAG_AVDP)
-		return EINVAL;
-	
-	GET_LE32(avd->main_extent.length);
-	GET_LE32(avd->main_extent.location);
-	GET_LE32(avd->reserve_extent.length);
-	GET_LE32(avd->reserve_extent.location);
-	
-	return EOK;
 }
 
 /** Check on prevailing primary volume descriptor
