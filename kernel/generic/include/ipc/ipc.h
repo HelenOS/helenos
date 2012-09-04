@@ -71,6 +71,9 @@ typedef struct {
 
 typedef struct answerbox {
 	IRQ_SPINLOCK_DECLARE(lock);
+
+	/** Answerbox is active until it enters cleanup. */
+	bool active;
 	
 	struct task *task;
 	
@@ -170,7 +173,7 @@ extern void ipc_answer(answerbox_t *, call_t *);
 extern void _ipc_answer_free_call(call_t *, bool);
 
 extern void ipc_phone_init(phone_t *);
-extern void ipc_phone_connect(phone_t *, answerbox_t *);
+extern bool ipc_phone_connect(phone_t *, answerbox_t *);
 extern int ipc_phone_hangup(phone_t *);
 
 extern void ipc_answerbox_init(answerbox_t *, struct task *);

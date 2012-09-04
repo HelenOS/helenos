@@ -41,7 +41,7 @@
 extern call_t *get_call(sysarg_t);
 extern int phone_get(sysarg_t, phone_t **);
 extern int phone_alloc(task_t *);
-extern void phone_connect(int, answerbox_t *);
+extern bool phone_connect(int, answerbox_t *);
 extern void phone_dealloc(int);
 
 #endif

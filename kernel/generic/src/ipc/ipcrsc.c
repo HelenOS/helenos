@@ -240,18 +240,19 @@ void phone_dealloc(int phoneid)
  *
  * @param phoneid Phone handle to be connected.
  * @param box     Answerbox to which to connect the phone handle.
+ * @return        True if the phone was connected, false otherwise.
  *
  * The procedure _enforces_ that the user first marks the phone
  * busy (e.g. via phone_alloc) and then connects the phone, otherwise
  * race condition may appear.
  *
  */
-void phone_connect(int phoneid, answerbox_t *box)
+bool phone_connect(int phoneid, answerbox_t *box)
 {
 	phone_t *phone = &TASK->phones[phoneid];
 	
 	ASSERT(phone->state == IPC_PHONE_CONNECTING);
-	ipc_phone_connect(phone, box);
+	return ipc_phone_connect(phone, box);
 }
 
 /** @}

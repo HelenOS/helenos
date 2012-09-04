@@ -86,7 +86,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		return ELIMIT;
 	}
 		
-	ipc_phone_connect(&phone->callee->task->phones[newphid],
+	(void) ipc_phone_connect(&phone->callee->task->phones[newphid],
 	    cloned_phone->callee);
 	phones_unlock(cloned_phone, phone);
 		

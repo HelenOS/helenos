@@ -64,7 +64,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 	/* If the user accepted call, connect */
 	if (IPC_GET_RETVAL(answer->data) == EOK)
-		ipc_phone_connect(phone, &TASK->answerbox);
+		(void) ipc_phone_connect(phone, &TASK->answerbox);
 
 	return EOK;
 }

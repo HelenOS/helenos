@@ -47,6 +47,14 @@
 void ipc_kbox_cleanup(void)
 {
 	/*
+	 * Not really needed, just to be consistent with the meaning of
+	 * answerbox_t.active.
+	 */
+	irq_spinlock_lock(&TASK->kb.box.lock, true);
+	TASK->kb.box.active = false;
+	irq_spinlock_unlock(&TASK->kb.box.lock, true);
+
+	/*
 	 * Only hold kb.cleanup_lock while setting kb.finished -
 	 * this is enough.
 	 */
@@ -233,7 +241,7 @@ int ipc_connect_kbox(task_id_t taskid)
 	}
 	
 	/* Connect the newly allocated phone to the kbox */
-	ipc_phone_connect(&TASK->phones[newphid], &task->kb.box);
+	(void) ipc_phone_connect(&TASK->phones[newphid], &task->kb.box);
 	
 	if (task->kb.thread != NULL) {
 		mutex_unlock(&task->kb.cleanup_lock);

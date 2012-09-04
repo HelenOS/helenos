@@ -72,9 +72,15 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		answer_cleanup(answer, olddata);
 	} else if (phoneid >= 0) {
 		/* The connection was accepted */
-		phone_connect(phoneid, &answer->sender->answerbox);
-		/* Set 'phone hash' as arg5 of response */
-		IPC_SET_ARG5(answer->data, (sysarg_t) &TASK->phones[phoneid]);
+		if (phone_connect(phoneid, &answer->sender->answerbox)) {
+			/* Set 'phone hash' as arg5 of response */
+			IPC_SET_ARG5(answer->data,
+			    (sysarg_t) &TASK->phones[phoneid]);
+		} else {
+			/* The answerbox is shutting down. */
+			IPC_SET_RETVAL(answer->data, ENOENT);
+			answer_cleanup(answer, olddata);
+		}
 	} else {
 		IPC_SET_RETVAL(answer->data, ELIMIT);
 	}

@@ -136,20 +136,26 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
  *
  * @param phone Initialized phone structure.
  * @param box   Initialized answerbox structure.
- *
+ * @return      True if the phone was connected, false otherwise.
  */
-void ipc_phone_connect(phone_t *phone, answerbox_t *box)
+bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
+	bool active;
+
 	mutex_lock(&phone->lock);
-	
-	phone->state = IPC_PHONE_CONNECTED;
-	phone->callee = box;
-	
 	irq_spinlock_lock(&box->lock, true);
-	list_append(&phone->link, &box->connected_phones);
+
+	active = box->active;
+	if (active) {
+		phone->state = IPC_PHONE_CONNECTED;
+		phone->callee = box;
+		list_append(&phone->link, &box->connected_phones);
+	}
+
 	irq_spinlock_unlock(&box->lock, true);
-	
 	mutex_unlock(&phone->lock);
+
+	return active;
 }
 
 /** Initialize a phone structure.
@@ -683,6 +689,16 @@ restart:
  */
 void ipc_cleanup(void)
 {
+	/*
+	 * Mark the answerbox as inactive.
+	 *
+	 * The main purpose for doing this is to prevent any pending callback
+	 * connections from getting established beyond this point.
+	 */
+	irq_spinlock_lock(&TASK->answerbox.lock, true);
+	TASK->answerbox.active = false;
+	irq_spinlock_unlock(&TASK->answerbox.lock, true);
+
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (size_t i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&TASK->phones[i]);

@@ -205,17 +205,20 @@ task_t *task_create(as_t *as, const char *name)
 
 	event_task_init(task);
 	
+	task->answerbox.active = true;
+
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
 	udebug_task_init(&task->udebug);
 	
 	/* Init kbox stuff */
+	task->kb.box.active = true;
 	task->kb.finished = false;
 #endif
 	
 	if ((ipc_phone_0) &&
 	    (container_check(ipc_phone_0->task->container, task->container)))
-		ipc_phone_connect(&task->phones[0], ipc_phone_0);
+		(void) ipc_phone_connect(&task->phones[0], ipc_phone_0);
 	
 	btree_create(&task->futexes);
 	
