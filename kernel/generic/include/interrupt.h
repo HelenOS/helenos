@@ -58,7 +58,8 @@ typedef struct {
 IRQ_SPINLOCK_EXTERN(exctbl_lock);
 extern exc_table_t exc_table[];
 
-extern void fault_from_uspace(istate_t *, const char *, ...);
+extern void fault_from_uspace(istate_t *, const char *, ...)
+    PRINTF_ATTRIBUTE(2, 3);
 extern void fault_if_from_uspace(istate_t *, const char *, ...)
     PRINTF_ATTRIBUTE(2, 3);
 extern istate_t *istate_get(thread_t *);

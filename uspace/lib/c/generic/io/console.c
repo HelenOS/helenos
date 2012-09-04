@@ -37,7 +37,6 @@
 #include <libc.h>
 #include <async.h>
 #include <errno.h>
-#include <stdio.h>
 #include <malloc.h>
 #include <vfs/vfs_sess.h>
 #include <io/console.h>
@@ -125,7 +124,7 @@ void console_set_rgb_color(console_ctrl_t *ctrl, uint32_t bgcolor,
 void console_cursor_visibility(console_ctrl_t *ctrl, bool show)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_req_1_0(exch, CONSOLE_CURSOR_VISIBILITY, (show != false));
+	async_req_1_0(exch, CONSOLE_SET_CURSOR_VISIBILITY, (show != false));
 	async_exchange_end(exch);
 }
 
@@ -150,7 +149,7 @@ int console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
 void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_req_2_0(exch, CONSOLE_GOTO, col, row);
+	async_req_2_0(exch, CONSOLE_SET_POS, col, row);
 	async_exchange_end(exch);
 }
 

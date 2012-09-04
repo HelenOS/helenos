@@ -44,7 +44,7 @@ COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check releasefile release
+.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release
 
 all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
 	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
@@ -57,6 +57,12 @@ precheck: clean
 
 cscope:
 	find abi kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
+
+cscope_parts:
+	find abi -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_abi.out
+	find kernel -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_kernel.out
+	find boot -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_boot.out
+	find uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE)_uspace.out
 
 # Pre-integration build check
 check: $(CHECK)

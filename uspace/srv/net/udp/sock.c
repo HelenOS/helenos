@@ -103,7 +103,7 @@ static void udp_sock_socket(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	ipc_call_t answer;
 
 	log_msg(LVL_DEBUG, "udp_sock_socket()");
-	sock = calloc(sizeof(udp_sockdata_t), 1);
+	sock = calloc(1, sizeof(udp_sockdata_t));
 	if (sock == NULL) {
 		async_answer_0(callid, ENOMEM);
 		return;

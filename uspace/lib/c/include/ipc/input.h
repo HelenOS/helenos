@@ -45,6 +45,7 @@ typedef enum {
 typedef enum {
 	INPUT_EVENT_KEY = IPC_FIRST_USER_METHOD,
 	INPUT_EVENT_MOVE,
+	INPUT_EVENT_ABS_MOVE,
 	INPUT_EVENT_BUTTON
 } input_notif_t;
 

@@ -35,11 +35,11 @@
  * @brief Apple ADB keyboard controller driver.
  */
 
-#include <kbd.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <kbd_ctl.h>
-#include <kbd_port.h>
+#include "../kbd.h"
+#include "../kbd_ctl.h"
+#include "../kbd_port.h"
 
 static void apple_ctl_parse(sysarg_t);
 static int apple_ctl_init(kbd_dev_t *);

@@ -41,7 +41,7 @@
 #include "vhcd.h"
 
 #define GET_VHC_DATA(fun) \
-	((vhc_data_t *)fun->dev->driver_data)
+	((vhc_data_t *)ddf_dev_data_get(ddf_fun_get_dev(fun)))
 #define VHC_DATA(vhc, fun) \
 	vhc_data_t *vhc = GET_VHC_DATA(fun); assert(vhc->magic == 0xdeadbeef)
 
@@ -482,7 +482,7 @@ static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
 {
 	VHC_DATA(vhc, root_hub_fun);
 
-	*handle = vhc->hc_fun->handle;
+	*handle = ddf_fun_get_handle(vhc->hc_fun);
 
 	return EOK;
 }
@@ -491,7 +491,7 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, usb_address_t *address)
 {
 	VHC_DATA(vhc, root_hub_fun);
 
-	devman_handle_t handle = root_hub_fun->handle;
+	devman_handle_t handle = ddf_fun_get_handle(root_hub_fun);
 
 	usb_log_debug("tell_address_rh(handle=%" PRIun ")\n", handle);
 	const usb_address_t addr =

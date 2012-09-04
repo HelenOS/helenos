@@ -28,32 +28,9 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBFB_PREFIX)/libfb.a
-EXTRA_CFLAGS += -I$(LIBFB_PREFIX)
 BINARY = console
 
 SOURCES = \
-	console.c \
-	images.c
-
-IMAGES = \
-	gfx/helenos.tga \
-	gfx/nameic.tga \
-	gfx/cons_data.tga \
-	gfx/cons_dis.tga \
-	gfx/cons_dis_sel.tga \
-	gfx/cons_idle.tga \
-	gfx/cons_sel.tga \
-	gfx/cons_kernel.tga \
-	gfx/anim_1.tga \
-	gfx/anim_2.tga \
-	gfx/anim_3.tga \
-	gfx/anim_4.tga
-
-PRE_DEPEND = images.c images.h
-EXTRA_CLEAN = images.c images.h
+	console.c
 
 include $(USPACE_PREFIX)/Makefile.common
-
-images.c images.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images CONSOLE_IMAGES $^

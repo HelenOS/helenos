@@ -186,7 +186,7 @@ if (ret != EOK) { \
 	    "Failed to bind root hub function: %s.\n", str_error(ret));
 
 	ret = usb_device_manager_bind_address(&instance->generic.dev_manager,
-	    instance->rh.address, hub_fun->handle);
+	    instance->rh.address, ddf_fun_get_handle(hub_fun));
 	if (ret != EOK)
 		usb_log_warning("Failed to bind root hub address: %s.\n",
 		    str_error(ret));

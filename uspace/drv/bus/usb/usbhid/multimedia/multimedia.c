@@ -85,12 +85,8 @@ static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	usb_log_debug(NAME " default_connection_handler()\n");
-	if (fun == NULL || fun->driver_data == NULL) {
-		async_answer_0(icallid, EINVAL);
-		return;
-	}
 
-	usb_multimedia_t *multim_dev = fun->driver_data;
+	usb_multimedia_t *multim_dev = ddf_fun_data_get(fun);
 
 	async_sess_t *sess =
 	    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
@@ -171,7 +167,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		return ENOMEM;
 	}
 
-	fun->ops = &multimedia_ops;
+	ddf_fun_set_ops(fun, &multimedia_ops);
 
 	usb_multimedia_t *multim_dev =
 	    ddf_fun_data_alloc(fun, sizeof(usb_multimedia_t));
@@ -193,7 +189,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	}
 
 	usb_log_debug(NAME " function created (handle: %" PRIun ").\n",
-	    fun->handle);
+	    ddf_fun_get_handle(fun));
 
 	rc = ddf_fun_add_to_category(fun, "keyboard");
 	if (rc != EOK) {
@@ -202,7 +198,7 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		    str_error(rc));
 		if (ddf_fun_unbind(fun) != EOK) {
 			usb_log_error("Failed to unbind %s, won't destroy.\n",
-			    fun->name);
+			    ddf_fun_get_name(fun));
 		} else {
 			ddf_fun_destroy(fun);
 		}
@@ -219,23 +215,20 @@ int usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 {
 	ddf_fun_t *fun = data;
-	if (fun != NULL && fun->driver_data != NULL) {
-		usb_multimedia_t *multim_dev = fun->driver_data;
-		/* Hangup session to the console */
-		if (multim_dev->console_sess)
-			async_hangup(multim_dev->console_sess);
-		if (ddf_fun_unbind(fun) != EOK) {
-			usb_log_error("Failed to unbind %s, won't destroy.\n",
-			    fun->name);
-		} else {
-			usb_log_debug2("%s unbound.\n", fun->name);
-			/* This frees multim_dev too as it was stored in
-			 * fun->data */
-			ddf_fun_destroy(fun);
-		}
+
+	usb_multimedia_t *multim_dev = ddf_fun_data_get(fun);
+
+	/* Hangup session to the console */
+	if (multim_dev->console_sess)
+		async_hangup(multim_dev->console_sess);
+	if (ddf_fun_unbind(fun) != EOK) {
+		usb_log_error("Failed to unbind %s, won't destroy.\n",
+		    ddf_fun_get_name(fun));
 	} else {
-		usb_log_error(
-		    "Failed to deinit multimedia subdriver, data missing.\n");
+		usb_log_debug2("%s unbound.\n", ddf_fun_get_name(fun));
+		/* This frees multim_dev too as it was stored in
+		 * fun->data */
+		ddf_fun_destroy(fun);
 	}
 }
 
@@ -243,11 +236,11 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 {
 	// TODO: checks
 	ddf_fun_t *fun = data;
-	if (hid_dev == NULL || fun == NULL || fun->driver_data == NULL) {
+	if (hid_dev == NULL) {
 		return false;
 	}
 
-	usb_multimedia_t *multim_dev = fun->driver_data;
+	usb_multimedia_t *multim_dev = ddf_fun_data_get(fun);
 
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL)

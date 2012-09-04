@@ -36,13 +36,13 @@
 
 #include <ipc/adb.h>
 #include <async.h>
-#include <input.h>
-#include <kbd_port.h>
-#include <kbd.h>
 #include <vfs/vfs.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <loc.h>
+#include "../input.h"
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static void adb_kbd_reg0_data(uint16_t data);

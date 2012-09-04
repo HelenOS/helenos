@@ -278,7 +278,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 
 	usb_log_info("%s: New device, address %d (handle %" PRIun ").\n",
 	    port->id_string, port->attached_device.address,
-	    port->attached_device.fun->handle);
+	    ddf_fun_get_handle(port->attached_device.fun));
 	return EOK;
 }
 
