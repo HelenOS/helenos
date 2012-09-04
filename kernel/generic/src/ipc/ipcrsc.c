@@ -193,12 +193,14 @@ int phone_alloc(task_t *task)
 	
 	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if ((task->phones[i].state == IPC_PHONE_HUNGUP) &&
-		    (atomic_get(&task->phones[i].active_calls) == 0))
-			task->phones[i].state = IPC_PHONE_FREE;
+		phone_t *phone = &task->phones[i];
+
+		if ((phone->state == IPC_PHONE_HUNGUP) &&
+		    (atomic_get(&phone->active_calls) == 0))
+			phone->state = IPC_PHONE_FREE;
 		
-		if (task->phones[i].state == IPC_PHONE_FREE) {
-			task->phones[i].state = IPC_PHONE_CONNECTING;
+		if (phone->state == IPC_PHONE_FREE) {
+			phone->state = IPC_PHONE_CONNECTING;
 			break;
 		}
 	}
