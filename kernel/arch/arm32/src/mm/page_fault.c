@@ -41,29 +41,40 @@
 #include <interrupt.h>
 #include <print.h>
 
-/** Returns value stored in fault status register.
+/** Returns value stored in comnbined/data fault status register.
  *
  *  @return Value stored in CP15 fault status register (FSR).
+ *
+ *  "VMSAv6 added a fifth fault status bit (bit[10]) to both the IFSR and DFSR.
+ *  It is IMPLEMENTATION DEFINED how this bit is encoded in earlier versions of
+ *  the architecture. A write flag (bit[11] of the DFSR) has also been
+ *  introduced."
+ *  ARM Architecture Reference Manual version i ch. B4.6 (PDF p. 719)
+ *
+ *  See ch. B4.9.6 for location of data/instruction FSR.
+ *
  */
-static inline fault_status_t read_fault_status_register(void)
+static inline fault_status_t read_data_fault_status_register(void)
 {
-	fault_status_union_t fsu;
+	fault_status_t fsu;
 	
-	/* fault status is stored in CP15 register 5 */
+	/* Combined/Data fault status is stored in CP15 register 5, c0. */
 	asm volatile (
 		"mrc p15, 0, %[dummy], c5, c0, 0"
-		: [dummy] "=r" (fsu.dummy)
+		: [dummy] "=r" (fsu.raw)
 	);
 	
-	return fsu.fs;
+	return fsu;
 }
 
-/** Returns FAR (fault address register) content.
+/** Returns DFAR (fault address register) content.
  *
- * @return FAR (fault address register) content (address that caused a page
+ * This register is equivalent to FAR on pre armv6 machines.
+ *
+ * @return DFAR (fault address register) content (address that caused a page
  *         fault)
  */
-static inline uintptr_t read_fault_address_register(void)
+static inline uintptr_t read_data_fault_address_register(void)
 {
 	uintptr_t ret;
 	
@@ -121,6 +132,7 @@ static inline bool is_swap_instruction(instruction_t instr)
 	return false;
 }
 
+#if defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 /** Decides whether read or write into memory is requested.
  *
  * @param instr_addr   Address of instruction which tries to access memory.
@@ -165,6 +177,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 
 	return PF_ACCESS_EXEC;
 }
+#endif
 
 /** Handles "data abort" exception (load or store at invalid address).
  *
@@ -174,12 +187,17 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
  */
 void data_abort(unsigned int exc_no, istate_t *istate)
 {
-	fault_status_t fsr __attribute__ ((unused)) =
-	    read_fault_status_register();
-	uintptr_t badvaddr = read_fault_address_register();
+	uintptr_t badvaddr = read_data_fault_address_register();
 
-	pf_access_t access = get_memory_access_type(istate->pc, badvaddr);
-
+#if defined(PROCESSOR_armv6) | defined(PROCESSOR_armv7_a)
+	fault_status_t fsr = read_data_fault_status_register();
+	const pf_access_t access =
+	    fsr.data.wr ? PF_ACCESS_WRITE : PF_ACCESS_READ;
+#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
+	const pf_access_t access = get_memory_access_type(istate->pc, badvaddr);
+#else
+#error "Unsupported architecture"
+#endif
 	int ret = as_page_fault(badvaddr, access, istate);
 
 	if (ret == AS_PF_FAULT) {
@@ -196,6 +214,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
  */
 void prefetch_abort(unsigned int exc_no, istate_t *istate)
 {
+	/* NOTE: We should use IFAR and IFSR here. */
 	int ret = as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
 
 	if (ret == AS_PF_FAULT) {

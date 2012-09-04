@@ -39,20 +39,28 @@
 #include <typedefs.h>
 
 
-/** Decribes CP15 "fault status register" (FSR). */
-typedef struct {
-	unsigned status : 3;
-	unsigned domain : 4;
-	unsigned zero : 1;
-	unsigned should_be_zero : 24;
-} ATTRIBUTE_PACKED fault_status_t;
-
-
-/** Help union used for casting integer value into #fault_status_t. */
+/** Decribes CP15 "fault status register" (FSR).
+ *
+ * See ARM Architecture Reference Manual ch. B4.9.6 (pdf p.743).
+ */
 typedef union {
-	fault_status_t fs;
-	uint32_t dummy;
-} fault_status_union_t;
+	struct {
+		unsigned status : 4;
+		unsigned domain : 4;
+		unsigned zero : 1;
+		unsigned sbz0 : 1;
+		unsigned fs : 1; /**< armv6+ mandated, earlier IPLM. DEFINED */
+		unsigned wr : 1; /**< armv6+ only */
+		unsigned should_be_zero : 20;
+	} ATTRIBUTE_PACKED data;
+	struct {
+		unsigned status : 4;
+		unsigned sbz0 : 6;
+		unsigned fs : 1;
+		unsigned should_be_zero : 21;
+	} ATTRIBUTE_PACKED inst;
+	uint32_t raw;
+} fault_status_t;
 
 
 /** Simplified description of instruction code.
