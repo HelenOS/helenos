@@ -125,7 +125,7 @@ static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
 
 	if (!clock_dev_ops->time_set) {
 		/* The driver does not support the time_set() functionality */
-		async_data_write_finalize(cid, NULL, 0);
+		async_answer_0(cid, ENOTSUP);
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
