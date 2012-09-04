@@ -152,18 +152,12 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		uint32_t value;
 		pf_access_t access;
 	} ls_inst[] = {
-		/* Store word */
-		{ 0x0e500000, 0x04000000, PF_ACCESS_WRITE }, /*STR imm*/
-		{ 0x0e500010, 0x06000000, PF_ACCESS_WRITE }, /*STR reg*/
-		/* Store byte */
-		{ 0x0e500000, 0x04400000, PF_ACCESS_WRITE }, /*STRB imm*/
-		{ 0x0e500010, 0x06400000, PF_ACCESS_WRITE }, /*STRB reg*/
-		/* Load word */
-		{ 0x0e500000, 0x04100000, PF_ACCESS_READ }, /*LDR imm*/
-		{ 0x0e500010, 0x06100000, PF_ACCESS_READ }, /*LDR reg*/
-		/* Load byte */
-		{ 0x0e500000, 0x04500000, PF_ACCESS_READ }, /*LDRB imm x2*/
-		{ 0x0e500010, 0x06500000, PF_ACCESS_READ }, /*LDRB reg x2*/
+		/* Store word/byte */
+		{ 0x0e100000, 0x04000000, PF_ACCESS_WRITE }, /*STR(B) imm*/
+		{ 0x0e100010, 0x06000000, PF_ACCESS_WRITE }, /*STR(B) reg*/
+		/* Load word/byte */
+		{ 0x0e100000, 0x04100000, PF_ACCESS_READ }, /*LDR imm*/
+		{ 0x0e100010, 0x06100000, PF_ACCESS_READ }, /*LDR reg*/
 		/* Store half-word/dual  A5.2.8 */
 		{ 0x0e1000b0, 0x000000b0, PF_ACCESS_WRITE }, /*STRH imm reg*/
 		/* Load half-word/dual A5.2.8 */
