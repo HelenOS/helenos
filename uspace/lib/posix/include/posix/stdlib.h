@@ -49,6 +49,7 @@
 #define EXIT_SUCCESS 0
 #define _Exit exit
 extern int posix_atexit(void (*func)(void));
+extern void exit(int status);
 
 /* Absolute Value */
 extern int posix_abs(int i);

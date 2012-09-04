@@ -37,6 +37,7 @@
 #include "helenos.h"
 #include <tinput.h>
 #include <errno.h>
+#include <stdlib.h>
 
 static tinput_t *input_prompt;
 
