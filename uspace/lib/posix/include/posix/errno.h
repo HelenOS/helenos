@@ -66,8 +66,6 @@
 #undef errno
 #define errno (*__posix_errno())
 
-#include "unistd.h"
-
 extern int *__posix_errno(void);
 
 #define __TOP_ERRNO (-NO_DATA)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,27 +29,12 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file Standard type definitions.
- */
+#ifndef POSIX_MALLOC_H_
+#define POSIX_MALLOC_H_
 
-#ifndef POSIX_STDDEF_H_
-#define POSIX_STDDEF_H_
+/* Empty. Just to satisfy preprocessor. */
 
-#include "sys/types.h"
-
-#ifndef NULL
-	#define NULL  ((void *) 0)
-#endif
-
-#define offsetof(type,member) ((size_t) &(((type *) 0)->member))
-
-typedef ssize_t posix_ptrdiff_t;
-
-#ifndef LIBPOSIX_INTERNAL
-	#define ptrdiff_t posix_ptrdiff_t
-#endif
-
-#endif /* POSIX_STDDEF_H_ */
+#endif /* POSIX_MALLOC_H_ */
 
 /** @}
  */

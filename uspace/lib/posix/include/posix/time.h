@@ -36,7 +36,6 @@
 #ifndef POSIX_TIME_H_
 #define POSIX_TIME_H_
 
-#include "libc/time.h"
 #include "sys/types.h"
 
 #ifndef NULL

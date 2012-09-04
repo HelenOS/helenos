@@ -35,7 +35,6 @@
 #ifndef POSIX_SIGNAL_H_
 #define POSIX_SIGNAL_H_
 
-#include "libc/errno.h"
 #include "sys/types.h"
 
 extern void __posix_default_signal_handler(int signo);

@@ -41,13 +41,13 @@
  * will be fairly straightforward.
  */
 
+#define LIBPOSIX_INTERNAL
+
 #include "posix/stdbool.h"
 #include "posix/ctype.h"
 #include "posix/string.h"
 #include "posix/stdlib.h"
 #include "posix/assert.h"
-
-#define LIBPOSIX_INTERNAL
 
 #include "internal/common.h"
 #include "posix/fnmatch.h"
@@ -181,16 +181,16 @@ struct _char_class {
 static const struct _char_class _char_classes[] = {
 	{ "alnum", isalnum },
 	{ "alpha", isalpha },
-	{ "blank", isblank },
-	{ "cntrl", iscntrl },
+	{ "blank", posix_isblank },
+	{ "cntrl", posix_iscntrl },
 	{ "digit", isdigit },
-	{ "graph", isgraph },
+	{ "graph", posix_isgraph },
 	{ "lower", islower },
-	{ "print", isprint },
-	{ "punct", ispunct },
+	{ "print", posix_isprint },
+	{ "punct", posix_ispunct },
 	{ "space", isspace },
 	{ "upper", isupper },
-	{ "xdigit", isxdigit }
+	{ "xdigit", posix_isxdigit }
 };
 
 /**
@@ -203,7 +203,7 @@ static const struct _char_class _char_classes[] = {
 static int _class_compare(const void *key, const void *elem)
 {
 	const struct _char_class *class = elem;
-	return strcmp((const char *) key, class->name);
+	return posix_strcmp((const char *) key, class->name);
 }
 
 /**
@@ -216,7 +216,7 @@ static int _class_compare(const void *key, const void *elem)
 static bool _is_in_class (const char *cname, int c)
 {
 	/* Search for class in the array of supported character classes. */
-	const struct _char_class *class = bsearch(cname, _char_classes,
+	const struct _char_class *class = posix_bsearch(cname, _char_classes,
 	    sizeof(_char_classes) / sizeof(struct _char_class),
 	    sizeof(struct _char_class), _class_compare);
 
@@ -548,7 +548,7 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 		    *string == '.' && *(string - 1) == '/') {
 			end = string;
 		} else {
-			end = strchrnul(string, pathname ? '/' : '\0');
+			end = gnu_strchrnul(string, pathname ? '/' : '\0');
 		}
 
 		/* Try to match every possible offset. */
@@ -580,7 +580,7 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 static char *_casefold(const char *s)
 {
 	assert(s != NULL);
-	char *result = strdup(s);
+	char *result = posix_strdup(s);
 	for (char *i = result; *i != '\0'; ++i) {
 		*i = tolower(*i);
 	}

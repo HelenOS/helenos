@@ -36,7 +36,7 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
-#include "libc/stdlib.h"
+#include "sys/types.h"
 
 #ifndef NULL
 	#define NULL  ((void *) 0)
@@ -50,6 +50,7 @@
 #define _Exit exit
 extern int posix_atexit(void (*func)(void));
 extern void exit(int status);
+extern void abort(void) __attribute__((noreturn));
 
 /* Absolute Value */
 extern int posix_abs(int i);

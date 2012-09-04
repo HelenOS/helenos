@@ -37,6 +37,7 @@
 
 #include "../internal/common.h"
 #include "posix/sys/stat.h"
+#include "libc/sys/stat.h"
 
 #include "posix/errno.h"
 #include "libc/mem.h"

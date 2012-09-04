@@ -36,8 +36,8 @@
 #ifndef POSIX_UNISTD_H_
 #define POSIX_UNISTD_H_
 
-#include "libc/unistd.h"
 #include "sys/types.h"
+#include "stddef.h"
 
 /* Process Termination */
 #define _exit exit

@@ -36,7 +36,6 @@
 #ifndef POSIX_SYS_STAT_H_
 #define POSIX_SYS_STAT_H_
 
-#include "libc/sys/stat.h"
 #include "types.h"
 #include "../time.h"
 
@@ -129,6 +128,7 @@ extern int posix_lstat(const char *restrict path, struct posix_stat *restrict st
 extern int posix_stat(const char *restrict path, struct posix_stat *restrict st);
 extern int posix_chmod(const char *path, mode_t mode);
 extern mode_t posix_umask(mode_t mask);
+extern int mkdir(const char *, mode_t);
 
 #ifndef LIBPOSIX_INTERNAL
 	#define fstat posix_fstat

@@ -37,6 +37,7 @@
 #define POSIX_SYS_TYPES_H_
 
 #include "libc/sys/types.h"
+#include "libc/sys/time.h"
 
 typedef unsigned int posix_ino_t;
 typedef unsigned int posix_nlink_t;

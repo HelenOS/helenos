@@ -40,7 +40,7 @@
 #include "unistd.h"
 #include "libc/stdio.h"
 #include "sys/types.h"
-#include "libc/stdarg.h"
+#include "stdarg.h"
 #include "limits.h"
 
 /* Identifying the Terminal */
