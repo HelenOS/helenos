@@ -115,6 +115,8 @@ typedef struct {
 	 */
 	link_t ta_link;
 
+	atomic_t refcnt;
+
 	/** Answerbox link. */
 	link_t ab_link;
 	
@@ -165,6 +167,8 @@ extern void ipc_init(void);
 
 extern call_t *ipc_call_alloc(unsigned int);
 extern void ipc_call_free(call_t *);
+extern void ipc_call_hold(call_t *);
+extern void ipc_call_release(call_t *);
 
 extern int ipc_call(phone_t *, call_t *);
 extern call_t *ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int);

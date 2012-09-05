@@ -79,6 +79,20 @@ static void _ipc_call_init(call_t *call)
 	call->buffer = NULL;
 }
 
+void ipc_call_hold(call_t *call)
+{
+	atomic_inc(&call->refcnt);
+}
+
+void ipc_call_release(call_t *call)
+{
+	if (atomic_predec(&call->refcnt) == 0) {
+		if (call->buffer)
+			free(call->buffer);
+		slab_free(ipc_call_slab, call);
+	}
+}
+
 /** Allocate and initialize a call structure.
  *
  * The call is initialized, so that the reply will be directed to
@@ -87,14 +101,16 @@ static void _ipc_call_init(call_t *call)
  * @param flags Parameters for slab_alloc (e.g FRAME_ATOMIC).
  *
  * @return If flags permit it, return NULL, or initialized kernel
- *         call structure.
+ *         call structure with one reference.
  *
  */
 call_t *ipc_call_alloc(unsigned int flags)
 {
 	call_t *call = slab_alloc(ipc_call_slab, flags);
-	if (call)
+	if (call) {
 		_ipc_call_init(call);
+		ipc_call_hold(call);
+	}
 	
 	return call;
 }
@@ -106,10 +122,7 @@ call_t *ipc_call_alloc(unsigned int flags)
  */
 void ipc_call_free(call_t *call)
 {
-	/* Check to see if we have data in the IPC_M_DATA_SEND buffer. */
-	if (call->buffer)
-		free(call->buffer);
-	slab_free(ipc_call_slab, call);
+	ipc_call_release(call);
 }
 
 /** Initialize an answerbox structure.
@@ -604,6 +617,13 @@ restart:
 	call->sender = NULL;
 	list_remove(&call->ta_link);
 
+	/*
+	 * The call may be freed by _ipc_answer_free_call() before we are done
+	 * with it; to avoid working with a destroyed call_t structure, we
+	 * must hold a reference to it.
+	 */
+	ipc_call_hold(call);
+
 	spinlock_unlock(&call->forget_lock);
 	spinlock_unlock(&TASK->active_calls_lock);
 
@@ -612,6 +632,8 @@ restart:
 	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
 	if (ops->request_forget)
 		ops->request_forget(call);
+
+	ipc_call_release(call);
 
 	goto restart;
 }

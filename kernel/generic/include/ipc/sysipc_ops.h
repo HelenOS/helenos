@@ -54,7 +54,8 @@ typedef struct {
 	 *
 	 * Context:		caller
 	 * Caller alive:	guaranteed
-	 * Races with:		request_process(), answer_cleanup()
+	 * Races with:		request_process(), answer_cleanup(),
+	 *			_ipc_answer_free_call()
 	 * Invoked on:		all forgotten calls
 	 */	
 	void (* request_forget)(call_t *);
