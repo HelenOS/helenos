@@ -18,6 +18,9 @@ SECTIONS {
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
 	
+	/* Workaround proper alignment of the .init section */
+	. = ALIGN(., 16);
+	
 	.init : {
 		*(.init);
 	} :text
