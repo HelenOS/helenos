@@ -146,7 +146,6 @@ static inline void amdm37x_irc_dump(amdm37x_irc_regs_t *regs)
 #undef DUMP_REG
 }
 
-
 static inline void amdm37x_irc_init(amdm37x_irc_regs_t *regs)
 {
 	/* AMDM37x TRM sec 12.5.1 p. 2425 */

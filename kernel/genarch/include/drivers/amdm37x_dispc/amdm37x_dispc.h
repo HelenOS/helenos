@@ -323,7 +323,7 @@ static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	    (((y - 1) & AMDM37X_DISPC_SIZE_HEIGHT_MASK)
 	        << AMDM37X_DISPC_SIZE_HEIGHT_SHIFT);
 
-	/* modes taken from u-boot */
+	/* modes taken from u-boot, for 1024x768 */
 	// TODO replace magic values with actual correct values
 //	regs->timing_h = 0x1a4024c9;
 //	regs->timing_v = 0x02c00509;

@@ -80,7 +80,7 @@ static void init_boot_pt(void)
 	 * Create 1:1 virtual-physical mapping in kernel space
 	 * (upper 2 GB), physical addresses start from 0.
 	 */
-	/* BeagleBoard-xM (MD37x) memory starts at 2GB border,
+	/* BeagleBoard-xM (DM37x) memory starts at 2GB border,
 	 * thus mapping only lower 2GB is not not enough.
 	 * Map entire AS 1:1 instead and hope it works. */
 	for (page = split_page; page < PTL0_ENTRIES; page++)
