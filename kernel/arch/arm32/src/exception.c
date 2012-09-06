@@ -129,37 +129,25 @@ void install_exception_handlers(void)
  * supported. When they are, a hardware configuration input selects whether
  * the normal vectors or the high vectors are to be used from
  * reset." ARM Architecture Reference Manual A2.6.11 (p. 64 in the PDF).
+ *
+ * ARM920T (gta02) TRM A2.3.5 (PDF p. 36) and ARM926EJ-S (icp) 2.3.2 (PDF p. 42)
+ * say that armv4 an armv5 chips that we support implement this.
  */
 static void high_vectors(void)
 {
 	uint32_t control_reg = 0;
-	// TODO CHeck the armv6 way and implement it
-#if defined(PROCESSOR_armv7_a) | defined(ROCESSOR_armv6)
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"
 		: [control_reg] "=r" (control_reg)
 	);
-#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
-	asm volatile (
-		"mrc p15, 0, %[control_reg], c1, c0"
-		: [control_reg] "=r" (control_reg)
-	);
-#endif
 	
 	/* switch on the high vectors bit */
 	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
 	
-#if defined(PROCESSOR_armv7_a) | defined(ROCESSOR_armv6)
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
 		:: [control_reg] "r" (control_reg)
 	);
-#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
-	asm volatile (
-		"mcr p15, 0, %[control_reg], c1, c0"
-		:: [control_reg] "r" (control_reg)
-	);
-#endif
 }
 #endif
 
