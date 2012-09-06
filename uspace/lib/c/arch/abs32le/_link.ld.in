@@ -14,21 +14,20 @@ PHDRS {
 SECTIONS {
 #ifdef LOADER
 	. = 0x70001000 + SIZEOF_HEADERS;
-	
-	.interp : {
-		*(.interp);
-	} :interp :text
 #else
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
-	
-	/* Make sure the code is aligned reasonably */
-	. = ALIGN(., 16);
 	
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
+	
+#ifdef LOADER
+	.interp : {
+		*(.interp);
+	} :interp :text
+#endif
 	
 	. = . + 0x1000;
 	
