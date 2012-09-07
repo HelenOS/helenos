@@ -28,18 +28,17 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
 LIBRARY = libsoftfloat
 
 SOURCES = \
-	generic/add.c \
-	generic/common.c \
-	generic/comparison.c \
-	generic/conversion.c \
-	generic/div.c \
-	generic/mul.c \
-	generic/other.c \
-	generic/softfloat.c \
-	generic/sub.c
+	softfloat.c \
+	common.c \
+	add.c \
+	sub.c \
+	div.c \
+	mul.c \
+	comparison.c \
+	conversion.c \
+	other.c
 
 include $(USPACE_PREFIX)/Makefile.common

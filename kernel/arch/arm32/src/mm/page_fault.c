@@ -87,51 +87,6 @@ static inline uintptr_t read_data_fault_address_register(void)
 	return ret;
 }
 
-/** Decides whether the instruction is load/store or not.
- *
- * @param instr Instruction
- *
- * @return true when instruction is load/store, false otherwise
- *
- */
-static inline bool is_load_store_instruction(instruction_t instr)
-{
-	/* load store immediate offset */
-	if (instr.type == 0x2)
-		return true;
-	
-	/* load store register offset */
-	if ((instr.type == 0x3) && (instr.bit4 == 0))
-		return true;
-	
-	/* load store multiple */
-	if (instr.type == 0x4)
-		return true;
-	
-	/* oprocessor load/store */
-	if (instr.type == 0x6)
-		return true;
-	
-	return false;
-}
-
-/** Decides whether the instruction is swap or not.
- *
- * @param instr Instruction
- *
- * @return true when instruction is swap, false otherwise
- */
-static inline bool is_swap_instruction(instruction_t instr)
-{
-	/* swap, swapb instruction */
-	if ((instr.type == 0x0) &&
-	    ((instr.opcode == 0x8) || (instr.opcode == 0xa)) &&
-	    (instr.access == 0x0) && (instr.bits567 == 0x4) && (instr.bit4 == 1))
-		return true;
-	
-	return false;
-}
-
 #if defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
 /** Decides whether read or write into memory is requested.
  *
@@ -139,7 +94,7 @@ static inline bool is_swap_instruction(instruction_t instr)
  * @param badvaddr     Virtual address the instruction tries to access.
  *
  * @return Type of access into memory, PF_ACCESS_EXEC if no memory access is
- * 	   requested.
+ *	   requested.
  */
 static pf_access_t get_memory_access_type(uint32_t instr_addr,
     uintptr_t badvaddr)
@@ -157,25 +112,40 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		return PF_ACCESS_EXEC;
 	}
 
-	/* load store instructions */
-	if (is_load_store_instruction(instr)) {
-		if (instr.access == 1) {
-			return PF_ACCESS_READ;
-		} else {
-			return PF_ACCESS_WRITE;
+	/* See ARM Architecture reference manual ARMv7-A and ARMV7-R edition
+	 * A5.3 (PDF p. 206) */
+	static const struct {
+		uint32_t mask;
+		uint32_t value;
+		pf_access_t access;
+	} ls_inst[] = {
+		/* Store word/byte */
+		{ 0x0e100000, 0x04000000, PF_ACCESS_WRITE }, /*STR(B) imm*/
+		{ 0x0e100010, 0x06000000, PF_ACCESS_WRITE }, /*STR(B) reg*/
+		/* Load word/byte */
+		{ 0x0e100000, 0x04100000, PF_ACCESS_READ }, /*LDR(B) imm*/
+		{ 0x0e100010, 0x06100000, PF_ACCESS_READ }, /*LDR(B) reg*/
+		/* Store half-word/dual  A5.2.8 */
+		{ 0x0e1000b0, 0x000000b0, PF_ACCESS_WRITE }, /*STRH imm reg*/
+		/* Load half-word/dual A5.2.8 */
+		{ 0x0e0000f0, 0x000000d0, PF_ACCESS_READ }, /*LDRH imm reg*/
+		{ 0x0e1000b0, 0x001000b0, PF_ACCESS_READ }, /*LDRH imm reg*/
+		/* Block data transfer, Store */
+		{ 0x0e100000, 0x08000000, PF_ACCESS_WRITE }, /* STM variants */
+		{ 0x0e100000, 0x08100000, PF_ACCESS_READ },  /* LDM variants */
+		/* Swap */
+		{ 0x0fb00000, 0x01000000, PF_ACCESS_WRITE },
+	};
+	const uint32_t inst = *(uint32_t*)instr_addr;
+	for (unsigned i = 0; i < sizeof(ls_inst) / sizeof(ls_inst[0]); ++i) {
+		if ((inst & ls_inst[i].mask) == ls_inst[i].value) {
+			return ls_inst[i].access;
 		}
-	}
-
-	/* swap, swpb instruction */
-	if (is_swap_instruction(instr)) {
-		return PF_ACCESS_WRITE;
 	}
 
 	panic("page_fault - instruction doesn't access memory "
 	    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
-	    *(uint32_t*)instr_union.instr, (void *) badvaddr);
-
-	return PF_ACCESS_EXEC;
+	    inst, (void *) badvaddr);
 }
 #endif
 

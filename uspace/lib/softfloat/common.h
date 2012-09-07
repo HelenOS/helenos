@@ -36,7 +36,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include <sftypes.h>
+#include "sftypes.h"
 
 extern float64 finish_float64(int32_t, uint64_t, char);
 extern float128 finish_float128(int32_t, uint64_t, uint64_t, char, uint64_t);

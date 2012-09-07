@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2007 Michal Kebrt, Petr Stepan
- *
+ * Copyright (c) 2005 Jakub Vana
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,79 +27,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32interrupt
- * @{
- */
+#include <stdio.h>
+#include <stdlib.h>
+#include <atomic.h>
+#include <thread.h>
+#include <inttypes.h>
+#include "../tester.h"
 
-#ifndef KERN_arm32_ISTATE_H_
-#define KERN_arm32_ISTATE_H_
+#define THREADS   150
+#define ATTEMPTS  100
 
-#include <trace.h>
+#define E_10E8     UINT32_C(271828182)
+#define PRECISION  100000000
 
-#ifdef KERNEL
+static atomic_t threads_finished;
+static atomic_t threads_fault;
 
-#include <arch/regutils.h>
-
-#else /* KERNEL */
-
-#include <libarch/regutils.h>
-
-#endif /* KERNEL */
-
-/** Struct representing CPU state saved when an exception occurs. */
-typedef struct istate {
-	uint32_t dummy;
-	uint32_t spsr;
-	uint32_t sp;
-	uint32_t lr;
+static void e(void *data)
+{
+	for (unsigned int i = 0; i < ATTEMPTS; i++) {
+		double le = -1;
+		double e = 0;
+		double f = 1;
+		
+		for (double d = 1; e != le; d *= f, f += 1) {
+			le = e;
+			e = e + 1 / d;
+		}
+		
+		if ((uint32_t) (e * PRECISION) != E_10E8) {
+			atomic_inc(&threads_fault);
+			break;
+		}
+	}
 	
-	uint32_t r0;
-	uint32_t r1;
-	uint32_t r2;
-	uint32_t r3;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t r9;
-	uint32_t r10;
-	uint32_t fp;
-	uint32_t r12;
+	atomic_inc(&threads_finished);
+}
+
+const char *test_float1(void)
+{
+	atomic_count_t total = 0;
 	
-	uint32_t pc;
-} istate_t;
-
-/** Set Program Counter member of given istate structure.
- *
- * @param istate  istate structure
- * @param retaddr new value of istate's PC member
- *
- */
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-{
-	istate->pc = retaddr;
+	atomic_set(&threads_finished, 0);
+	atomic_set(&threads_fault, 0);
+	
+	TPRINTF("Creating threads");
+	for (unsigned int i = 0; i < THREADS; i++) {
+		if (thread_create(e, NULL, "e", NULL) < 0) {
+			TPRINTF("\nCould not create thread %u\n", i);
+			break;
+		}
+		
+		TPRINTF(".");
+		total++;
+	}
+	
+	TPRINTF("\n");
+	
+	while (atomic_get(&threads_finished) < total) {
+		TPRINTF("Threads left: %" PRIua "\n",
+		    total - atomic_get(&threads_finished));
+		sleep(1);
+	}
+	
+	if (atomic_get(&threads_fault) == 0)
+		return NULL;
+	
+	return "Test failed";
 }
-
-/** Return true if exception happened while in userspace. */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
-{
-	return (istate->spsr & STATUS_REG_MODE_MASK) == USER_MODE;
-}
-
-/** Return Program Counter member of given istate structure. */
-NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	return istate->pc;
-}
-
-NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	return istate->fp;
-}
-
-#endif
-
-/** @}
- */

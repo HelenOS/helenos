@@ -33,10 +33,10 @@
 /** @file Multiplication functions.
  */
 
-#include <sftypes.h>
-#include <mul.h>
-#include <comparison.h>
-#include <common.h>
+#include "sftypes.h"
+#include "mul.h"
+#include "comparison.h"
+#include "common.h"
 
 /** Multiply two single-precision floats.
  *

@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -march=$(subst _,-,$(PROCESSOR))
+GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR))
 
 BITS = 32
 ENDIANESS = LE

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt, Petr Stepan
- *
+ * Copyright (c) 2012 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,79 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32interrupt
- * @{
- */
+#include <stdio.h>
+#include <stdlib.h>
+#include <sftypes.h>
+#include <add.h>
+#include <bool.h>
+#include "../tester.h"
 
-#ifndef KERN_arm32_ISTATE_H_
-#define KERN_arm32_ISTATE_H_
+#define OPERANDS   5
+#define PRECISION  10000
 
-#include <trace.h>
+#define PRIdCMPTYPE  PRId32
 
-#ifdef KERNEL
+typedef int32_t cmptype_t;
 
-#include <arch/regutils.h>
+static float float_op_a[OPERANDS] =
+	{3.5, -2.1, 100.0, 50.0, -1024.0};
 
-#else /* KERNEL */
+static float float_op_b[OPERANDS] =
+	{-2.1, 100.0, 50.0, -1024.0, 3.5};
 
-#include <libarch/regutils.h>
-
-#endif /* KERNEL */
-
-/** Struct representing CPU state saved when an exception occurs. */
-typedef struct istate {
-	uint32_t dummy;
-	uint32_t spsr;
-	uint32_t sp;
-	uint32_t lr;
+static cmptype_t cmpabs(cmptype_t a)
+{
+	if (a >= 0)
+		return a;
 	
-	uint32_t r0;
-	uint32_t r1;
-	uint32_t r2;
-	uint32_t r3;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t r9;
-	uint32_t r10;
-	uint32_t fp;
-	uint32_t r12;
+	return -a;
+}
+
+static bool test_float_add(void)
+{
+	bool correct = true;
 	
-	uint32_t pc;
-} istate_t;
-
-/** Set Program Counter member of given istate structure.
- *
- * @param istate  istate structure
- * @param retaddr new value of istate's PC member
- *
- */
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-{
-	istate->pc = retaddr;
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		for (unsigned int j = 0; j < OPERANDS; j++) {
+			float a = float_op_a[i];
+			float b = float_op_b[j];
+			float c = a + b;
+			
+			float_t sa;
+			float_t sb;
+			float_t sc;
+			
+			sa.val = float_op_a[i];
+			sb.val = float_op_b[i];
+			sc.data = add_float(sa.data, sb.data);
+			
+			cmptype_t ic = (cmptype_t) (c * PRECISION);
+			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
+			cmptype_t diff = cmpabs(ic - isc);
+			
+			if (diff != 0) {
+				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n", i, j, diff);
+				correct = false;
+			}
+		}
+	}
+	
+	return correct;
 }
 
-/** Return true if exception happened while in userspace. */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+const char *test_softfloat1(void)
 {
-	return (istate->spsr & STATUS_REG_MODE_MASK) == USER_MODE;
+	if (!test_float_add())
+		return "Float addition failed";
+	
+	return NULL;
 }
-
-/** Return Program Counter member of given istate structure. */
-NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	return istate->pc;
-}
-
-NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	return istate->fp;
-}
-
-#endif
-
-/** @}
- */

@@ -33,8 +33,8 @@
 /** @file Common helper operations.
  */
 
-#include <sftypes.h>
-#include <common.h>
+#include "sftypes.h"
+#include "common.h"
 
 /* Table for fast leading zeroes counting. */
 char zeroTable[256] = {
@@ -56,7 +56,7 @@ char zeroTable[256] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-/** 
+/**
  * Take fraction shifted by 10 bits to the left, round it, normalize it
  * and detect exceptions
  * 
@@ -74,7 +74,7 @@ float64 finish_float64(int32_t cexp, uint64_t cfrac, char sign)
 	/* find first nonzero digit and shift result and detect possibly underflow */
 	while ((cexp > 0) && (cfrac) &&
 	    (!(cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1))))) {
-		cexp--; 
+		cexp--;
 		cfrac <<= 1;
 		/* TODO: fix underflow */
 	}
@@ -109,7 +109,7 @@ float64 finish_float64(int32_t cexp, uint64_t cfrac, char sign)
 	if (cfrac & (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1))) {
 		++cexp;
 		cfrac >>= 1;
-	}	
+	}
 
 	/* check overflow */
 	if (cexp >= FLOAT64_MAX_EXPONENT) {
