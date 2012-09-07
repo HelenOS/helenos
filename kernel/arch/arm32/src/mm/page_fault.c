@@ -82,7 +82,7 @@ static inline uintptr_t read_fault_address_register(void)
  * @param badvaddr     Virtual address the instruction tries to access.
  *
  * @return Type of access into memory, PF_ACCESS_EXEC if no memory access is
- * 	   requested.
+ *	   requested.
  */
 static pf_access_t get_memory_access_type(uint32_t instr_addr,
     uintptr_t badvaddr)
@@ -124,7 +124,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		/* Swap */
 		{ 0x0fb00000, 0x01000000, PF_ACCESS_WRITE },
 	};
-	uint32_t inst = *(uint32_t*)instr_addr;
+	const uint32_t inst = *(uint32_t*)instr_addr;
 	for (unsigned i = 0; i < sizeof(ls_inst) / sizeof(ls_inst[0]); ++i) {
 		if ((inst & ls_inst[i].mask) == ls_inst[i].value) {
 			return ls_inst[i].access;
@@ -133,7 +133,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 
 	panic("page_fault - instruction doesn't access memory "
 	    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
-	    instr_union.pc, (void *) badvaddr);
+	    inst, (void *) badvaddr);
 }
 
 /** Handles "data abort" exception (load or store at invalid address).
