@@ -50,11 +50,11 @@ static ext2_superblock_t *fake_superblock1()
 	return (ext2_superblock_t *) buf;
 }
 
-const char *test_libext2_1(void)
+const char *test_ext2_1(void)
 {
 	ext2_superblock_t *fake1;
 	
-	TPRINTF("Testing libext2 superblock getters...\n");
+	TPRINTF("Testing ext2 superblock getters...\n");
 	TPRINTF("Simple test for correct position and byte order\n");
 	
 	fake1 = fake_superblock1();
