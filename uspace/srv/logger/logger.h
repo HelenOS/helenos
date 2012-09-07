@@ -44,7 +44,6 @@
 #include <stdio.h>
 
 #define NAME "logger"
-#define MAX_SUBLOGS 64
 #define LOG_LEVEL_USE_DEFAULT (LVL_LIMIT + 1)
 
 typedef struct logger_log logger_log_t;
