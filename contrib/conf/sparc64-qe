@@ -1,0 +1,3 @@
+#!/bin/sh
+
+qemu-system-sparc64 $@ -M sun4u -boot d -cdrom image.iso
