@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -march=armv4
+GCC_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -march=armv4 -mapcs-frame
 
 ENDIANESS = LE
 
