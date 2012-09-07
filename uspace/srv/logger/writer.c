@@ -97,7 +97,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 	/* Acknowledge the connection. */
 	async_answer_0(callid, EOK);
 
-	printf(NAME "/writer: new client.\n");
+	logger_log("writer: new client.\n");
 
 	logger_registered_logs_t registered_logs;
 	registered_logs_init(&registered_logs);
@@ -138,6 +138,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 	}
 
 	unregister_logs(&registered_logs);
+	logger_log("writer: client terminated.\n");
 }
 
 

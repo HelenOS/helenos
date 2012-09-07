@@ -275,7 +275,7 @@ void log_release(logger_log_t *log)
 		log_release(log->parent);
 	}
 
-	printf("Destroying log %s.\n", log->full_name);
+	logger_log("Destroyed log %s.\n", log->full_name);
 
 	free(log->name);
 	free(log->full_name);

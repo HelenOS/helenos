@@ -65,7 +65,7 @@ static int handle_log_level_change(sysarg_t new_level)
 void logger_connection_handler_control(ipc_callid_t callid)
 {
 	async_answer_0(callid, EOK);
-	printf(NAME "/control: new client.\n");
+	logger_log("control: new client.\n");
 
 	while (true) {
 		ipc_call_t call;
@@ -91,7 +91,7 @@ void logger_connection_handler_control(ipc_callid_t callid)
 		}
 	}
 
-	printf(NAME "/control: client terminated.\n");
+	logger_log("control: client terminated.\n");
 }
 
 

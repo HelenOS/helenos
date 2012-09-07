@@ -46,6 +46,12 @@
 #define NAME "logger"
 #define LOG_LEVEL_USE_DEFAULT (LVL_LIMIT + 1)
 
+#ifdef LOGGER_LOG
+#define logger_log(fmt, ...) printf(NAME ": " fmt, ##__VA_ARGS__)
+#else
+#define logger_log(fmt, ...) (void)0
+#endif
+
 typedef struct logger_log logger_log_t;
 
 typedef struct {
