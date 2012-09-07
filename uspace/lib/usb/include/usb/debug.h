@@ -50,13 +50,6 @@ void usb_dump_standard_descriptor(FILE *, const char *, const char *,
 #define USB_LOG_LEVEL_DEBUG LVL_DEBUG
 #define USB_LOG_LEVEL_DEBUG2 LVL_DEBUG2
 
-/** Default log level. */
-#ifdef CONFIG_USB_VERBOSE
-	#define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_DEBUG
-#else
-	#define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_INFO
-#endif
-
 #define usb_log_printf(level, format, ...) \
 	log_msg(LOG_DEFAULT, level, format, ##__VA_ARGS__)
 
