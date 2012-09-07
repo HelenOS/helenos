@@ -35,17 +35,15 @@
 /** @file Softfloat API.
  */
 
-#include <softfloat.h>
-#include <sftypes.h>
-
-#include <add.h>
-#include <sub.h>
-#include <mul.h>
-#include <div.h>
-
-#include <conversion.h>
-#include <comparison.h>
-#include <other.h>
+#include "softfloat.h"
+#include "sftypes.h"
+#include "add.h"
+#include "sub.h"
+#include "mul.h"
+#include "div.h"
+#include "conversion.h"
+#include "comparison.h"
+#include "other.h"
 
 /* Arithmetic functions */
 
@@ -1276,6 +1274,11 @@ double __aeabi_ui2d(unsigned int i)
 	return __floatunsidf(i);
 }
 
+int __aeabi_f2iz(float a)
+{
+	return __fixsfsi(a);
+}
+
 int __aeabi_d2iz(double a)
 {
 	return __fixdfsi(a);
@@ -1299,6 +1302,31 @@ int __aeabi_dcmpgt(double a, double b)
 int __aeabi_dcmplt(double a, double b)
 {
 	return __ltdf2(a, b);
+}
+
+int __aeabi_dcmpeq(double a, double b)
+{
+	return __eqdf2(a, b);
+}
+
+float __aeabi_fadd(float a, float b)
+{
+	return __addsf3(a, b);
+}
+
+float __aeabi_fsub(float a, float b)
+{
+	return __subsf3(a, b);
+}
+
+float __aeabi_fmul(float a, float b)
+{
+	return __mulsf3(a, b);
+}
+
+float __aeabi_fdiv(float a, float b)
+{
+	return __divsf3(a, b);
 }
 
 double __aeabi_dadd(double a, double b)

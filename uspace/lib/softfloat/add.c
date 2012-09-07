@@ -33,10 +33,10 @@
 /** @file Addition functions.
  */
 
-#include <sftypes.h>
-#include <add.h>
-#include <comparison.h>
-#include <common.h>
+#include "sftypes.h"
+#include "add.h"
+#include "comparison.h"
+#include "common.h"
 
 /** Add two single-precision floats with the same sign.
  *

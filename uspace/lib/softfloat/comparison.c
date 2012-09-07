@@ -33,9 +33,9 @@
 /** @file Comparison functions.
  */
 
-#include <sftypes.h>
-#include <comparison.h>
-#include <common.h>
+#include "sftypes.h"
+#include "comparison.h"
+#include "common.h"
 
 /**
  * Determines whether the given float represents NaN (either signalling NaN or

@@ -206,11 +206,19 @@ extern int _Qp_fne(long double *, long double *);
 extern double __aeabi_i2d(int);
 extern double __aeabi_ui2d(unsigned int);
 extern unsigned int __aeabi_d2uiz(double);
+
+extern int __aeabi_f2iz(float);
 extern int __aeabi_d2iz(double);
 
 extern int __aeabi_dcmpge(double, double);
 extern int __aeabi_dcmpgt(double, double);
 extern int __aeabi_dcmplt(double, double);
+extern int __aeabi_dcmpeq(double, double);
+
+extern float __aeabi_fadd(float, float);
+extern float __aeabi_fsub(float, float);
+extern float __aeabi_fmul(float, float);
+extern float __aeabi_fdiv(float, float);
 
 extern double __aeabi_dadd(double, double);
 extern double __aeabi_dsub(double, double);
