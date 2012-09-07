@@ -36,20 +36,9 @@
 #ifndef POSIX_STRING_H_
 #define POSIX_STRING_H_
 
-#include <mem.h>
-#include <str.h>
+#include "sys/types.h"
 
-/* available in str.h
- *
- * char *strtok(char *restrict, const char *restrict);
- * char *strtok_r(char *restrict, const char *restrict, char **restrict);
- *
- * available in mem.h
- *
- * void *memset(void *, int, size_t);
- * void *memcpy(void *, const void *, size_t);
- * void *memmove(void *, const void *, size_t);
- *
+/*
  * TODO: not implemented due to missing locale support
  *
  * int      strcoll_l(const char *, const char *, locale_t);
@@ -60,6 +49,26 @@
 #ifndef NULL
 	#define NULL  ((void *) 0)
 #endif
+
+/*
+ * These are the same as in HelenOS libc.
+ * It would be possible to directly include <str.h> and <mem.h> but
+ * it is better not to pollute POSIX namespace with other functions
+ * defined in that header.
+ *
+ * Because libposix is always linked with libc, providing only these
+ * forward declarations ought to be enough.
+ */
+/* From str.h. */
+extern char * strtok_r(char *, const char *, char **);
+extern char * strtok(char *, const char *);
+
+/* From mem.h */
+#define bzero(ptr, len)  memset((ptr), 0, (len))
+extern void *memset(void *, int, size_t);
+extern void *memcpy(void *, const void *, size_t);
+extern void *memmove(void *, const void *, size_t);
+
 
 /* Copying and Concatenation */
 extern char *posix_strcpy(char *restrict dest, const char *restrict src);

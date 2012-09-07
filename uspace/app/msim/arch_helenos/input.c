@@ -31,6 +31,9 @@
  */
 /** @file HelenOS specific functions for MSIM simulator.
  */
+
+/* Because of asprintf. */
+#define _GNU_SOURCE
 #include "../../io/input.h"
 #include "../../io/output.h"
 #include "../../fault.h"

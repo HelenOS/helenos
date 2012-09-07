@@ -38,10 +38,78 @@
 
 #include "stddef.h"
 #include "unistd.h"
-#include "libc/stdio.h"
+#include "libc/io/verify.h"
 #include "sys/types.h"
 #include "stdarg.h"
 #include "limits.h"
+
+/*
+ * These are the same as in HelenOS libc.
+ * It would be possible to directly include <stdio.h> but
+ * it is better not to pollute POSIX namespace with other functions
+ * defined in that header.
+ *
+ * Because libposix is always linked with libc, providing only these
+ * forward declarations ought to be enough.
+ */
+#define EOF (-1)
+
+#define BUFSIZ  4096
+#define SEEK_SET  0
+#define SEEK_CUR  1
+#define SEEK_END  2
+
+typedef struct _IO_FILE FILE;
+
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
+
+extern int fgetc(FILE *);
+extern char *fgets(char *, int, FILE *);
+
+extern int getchar(void);
+extern char *gets(char *, size_t);
+
+extern int fputc(wchar_t, FILE *);
+extern int fputs(const char *, FILE *);
+
+extern int putchar(wchar_t);
+extern int puts(const char *);
+
+extern int fprintf(FILE *, const char*, ...) PRINTF_ATTRIBUTE(2, 3);
+extern int vfprintf(FILE *, const char *, va_list);
+
+extern int printf(const char *, ...) PRINTF_ATTRIBUTE(1, 2);
+extern int vprintf(const char *, va_list);
+
+extern int snprintf(char *, size_t , const char *, ...) PRINTF_ATTRIBUTE(3, 4);
+#ifdef _GNU_SOURCE
+extern int asprintf(char **, const char *, ...) PRINTF_ATTRIBUTE(2, 3);
+#endif
+extern int vsnprintf(char *, size_t, const char *, va_list);
+
+extern FILE *fopen(const char *, const char *);
+extern FILE *fdopen(int, const char *);
+extern int fclose(FILE *);
+
+extern size_t fread(void *, size_t, size_t, FILE *);
+extern size_t fwrite(const void *, size_t, size_t, FILE *);
+
+extern int fseek(FILE *, off64_t, int);
+extern void rewind(FILE *);
+extern off64_t ftell(FILE *);
+extern int feof(FILE *);
+extern int fileno(FILE *);
+
+extern int fflush(FILE *);
+extern int ferror(FILE *);
+extern void clearerr(FILE *);
+
+extern void setvbuf(FILE *, void *, int, size_t);
+
+
+/* POSIX specific stuff. */
 
 /* Identifying the Terminal */
 #undef L_ctermid

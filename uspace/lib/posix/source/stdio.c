@@ -48,6 +48,7 @@
 #include "posix/sys/types.h"
 #include "posix/unistd.h"
 
+#include "libc/stdio.h"
 #include "libc/io/printf_core.h"
 #include "libc/str.h"
 #include "libc/malloc.h"

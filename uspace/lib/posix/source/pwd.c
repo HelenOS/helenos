@@ -34,6 +34,7 @@
 
 #define LIBPOSIX_INTERNAL
 
+#include "posix/stdbool.h"
 #include "posix/pwd.h"
 #include "posix/string.h"
 #include "posix/errno.h"
