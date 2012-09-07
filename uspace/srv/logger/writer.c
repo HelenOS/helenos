@@ -99,6 +99,9 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 
 	printf(NAME "/writer: new client.\n");
 
+	logger_registered_logs_t registered_logs;
+	registered_logs_init(&registered_logs);
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
@@ -111,6 +114,11 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 			logger_log_t *log = handle_create_log(IPC_GET_ARG1(call));
 			if (log == NULL) {
 				async_answer_0(callid, ENOMEM);
+				break;
+			}
+			if (!register_log(&registered_logs, log)) {
+				log_unlock(log);
+				async_answer_0(callid, ELIMIT);
 				break;
 			}
 			log_unlock(log);
@@ -129,7 +137,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 		}
 	}
 
-	// FIXME: destroy created logs
+	unregister_logs(&registered_logs);
 }
 
 

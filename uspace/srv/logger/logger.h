@@ -57,6 +57,8 @@ typedef struct {
 struct logger_log {
 	link_t link;
 
+	size_t ref_counter;
+
 	fibril_mutex_t guard;
 
 	char *name;
@@ -66,12 +68,24 @@ struct logger_log {
 	logger_dest_t *dest;
 };
 
+#define MAX_REFERENCED_LOGS_PER_CLIENT 100
+
+typedef struct {
+	size_t logs_count;
+	logger_log_t *logs[MAX_REFERENCED_LOGS_PER_CLIENT];
+} logger_registered_logs_t;
+
 logger_log_t *find_log_by_name_and_lock(const char *name);
 logger_log_t *find_or_create_log_and_lock(const char *, sysarg_t);
 logger_log_t *find_log_by_id_and_lock(sysarg_t);
 bool shall_log_message(logger_log_t *, log_level_t);
 void log_unlock(logger_log_t *);
 void write_to_log(logger_log_t *, log_level_t, const char *);
+void log_release(logger_log_t *);
+
+void registered_logs_init(logger_registered_logs_t *);
+bool register_log(logger_registered_logs_t *, logger_log_t *);
+void unregister_logs(logger_registered_logs_t *);
 
 log_level_t get_default_logging_level(void);
 int set_default_logging_level(log_level_t);

@@ -66,6 +66,7 @@ static void parse_single_level_setting(char *setting)
 		return;
 
 	log->logged_level = level;
+	log->ref_counter++;
 
 	log_unlock(log);
 }

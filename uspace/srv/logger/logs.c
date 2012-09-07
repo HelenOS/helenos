@@ -127,6 +127,11 @@ logger_log_t *find_or_create_log_and_lock(const char *name, sysarg_t parent_id)
 		if (result == NULL)
 			goto leave;
 		list_append(&result->link, &log_list);
+		if (result->parent != NULL) {
+			fibril_mutex_lock(&result->parent->guard);
+			result->parent->ref_counter++;
+			fibril_mutex_unlock(&result->parent->guard);
+		}
 	}
 
 	fibril_mutex_lock(&result->guard);
@@ -199,6 +204,86 @@ void log_unlock(logger_log_t *log)
 	fibril_mutex_unlock(&log->guard);
 }
 
+/** Decreases reference counter on the log and destory the log if
+ * necessary.
+ *
+ * Precondition: log is locked.
+ *
+ * @param log Log to release from using by the caller.
+ */
+void log_release(logger_log_t *log)
+{
+	assert(fibril_mutex_is_locked(&log->guard));
+	assert(log->ref_counter > 0);
+
+	/* We are definitely not the last ones. */
+	if (log->ref_counter > 1) {
+		log->ref_counter--;
+		fibril_mutex_unlock(&log->guard);
+		return;
+	}
+
+	/*
+	 * To prevent deadlock, we need to get the list lock first.
+	 * Deadlock scenario:
+	 * Us: LOCKED(log), want to LOCK(list)
+	 * Someone else calls find_log_by_name_and_lock(log->fullname) ->
+	 *   LOCKED(list), wants to LOCK(log)
+	 */
+	fibril_mutex_unlock(&log->guard);
+
+	/* Ensuring correct locking order. */
+	fibril_mutex_lock(&log_list_guard);
+	/*
+	 * The reference must be still valid because we have not decreased
+	 * the reference counter.
+	 */
+	fibril_mutex_lock(&log->guard);
+	assert(log->ref_counter > 0);
+	log->ref_counter--;
+
+	if (log->ref_counter > 0) {
+		/*
+		 * Meanwhile, someone else increased the ref counter.
+		 * No big deal, we just return immediatelly.
+		 */
+		fibril_mutex_unlock(&log->guard);
+		fibril_mutex_unlock(&log_list_guard);
+		return;
+	}
+
+	/*
+	 * Here we are on a destroy path. We need to
+	 * - remove ourselves from the list
+	 * - decrease reference of the parent (if not top-level log)
+	 *   - we must do that after we relaase list lock to prevent
+	 *     deadlock with ourselves
+	 * - destroy dest (if top-level log)
+	 */
+	assert(log->ref_counter == 0);
+
+	list_remove(&log->link);
+	fibril_mutex_unlock(&log_list_guard);
+	fibril_mutex_unlock(&log->guard);
+
+	if (log->parent == NULL) {
+		fclose(log->dest->logfile);
+		free(log->dest->filename);
+		free(log->dest);
+	} else {
+		fibril_mutex_lock(&log->parent->guard);
+		log_release(log->parent);
+	}
+
+	printf("Destroying log %s.\n", log->full_name);
+
+	free(log->name);
+	free(log->full_name);
+
+	free(log);
+}
+
+
 void write_to_log(logger_log_t *log, log_level_t level, const char *message)
 {
 	assert(fibril_mutex_is_locked(&log->guard));
@@ -215,6 +300,35 @@ void write_to_log(logger_log_t *log, log_level_t level, const char *message)
 	}
 
 	fibril_mutex_unlock(&log->dest->guard);
+}
+
+void registered_logs_init(logger_registered_logs_t *logs)
+{
+	logs->logs_count = 0;
+}
+
+bool register_log(logger_registered_logs_t *logs, logger_log_t *new_log)
+{
+	if (logs->logs_count >= MAX_REFERENCED_LOGS_PER_CLIENT) {
+		return false;
+	}
+
+	assert(fibril_mutex_is_locked(&new_log->guard));
+	new_log->ref_counter++;
+
+	logs->logs[logs->logs_count] = new_log;
+	logs->logs_count++;
+
+	return true;
+}
+
+void unregister_logs(logger_registered_logs_t *logs)
+{
+	for (size_t i = 0; i < logs->logs_count; i++) {
+		logger_log_t *log = logs->logs[i];
+		fibril_mutex_lock(&log->guard);
+		log_release(log);
+	}
 }
 
 /**
