@@ -64,7 +64,19 @@ static int start_logger_exchange(async_exch_t **exchange_out)
 	return EOK;
 }
 
-
+/** Set default reported log level (global setting).
+ *
+ * This setting affects all logger clients whose reporting level was
+ * not yet changed.
+ *
+ * If logging level of client A is changed with logctl_set_log_level()
+ * to some level, this call will have no effect at that client's reporting
+ * level. Even if the actual value of the reporting level of client A is
+ * the same as current (previous) default log level.
+ *
+ * @param new_level New reported logging level.
+ * @return Error code of the conversion or EOK on success.
+ */
 int logctl_set_default_level(log_level_t new_level)
 {
 	async_exch_t *exchange = NULL;
@@ -80,6 +92,14 @@ int logctl_set_default_level(log_level_t new_level)
 	return rc;
 }
 
+/** Set reported log level of a single log.
+ *
+ * @see logctl_set_default_level
+ *
+ * @param logname Log name.
+ * @param new_level New reported logging level.
+ * @return Error code of the conversion or EOK on success.
+ */
 int logctl_set_log_level(const char *logname, log_level_t new_level)
 {
 	async_exch_t *exchange = NULL;

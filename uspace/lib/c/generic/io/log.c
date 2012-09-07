@@ -42,11 +42,13 @@
 #include <ipc/logger.h>
 #include <ns.h>
 
+/** Id of the first log we create at logger. */
 static sysarg_t default_log_id;
 
 /** Log messages are printed under this name. */
 static const char *log_prog_name;
 
+/** Names of individual log levels. */
 static const char *log_level_names[] = {
 	"fatal",
 	"error",
@@ -63,6 +65,14 @@ static async_sess_t *logger_session;
 /** Maximum length of a single log message (in bytes). */
 #define MESSAGE_BUFFER_SIZE 4096
 
+/** Send formatted message to the logger service.
+ *
+ * @param session Initialized IPC session with the logger.
+ * @param log Log to use.
+ * @param level Verbosity level of the message.
+ * @param message The actual message.
+ * @return Error code of the conversion or EOK on success.
+ */
 static int logger_message(async_sess_t *session, log_t log, log_level_t level, char *message)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
@@ -97,6 +107,11 @@ static int logger_message(async_sess_t *session, log_t log, log_level_t level, c
 	return reg_msg_rc;
 }
 
+/** Get name of the log level.
+ *
+ * @param level The log level.
+ * @return String name or "unknown".
+ */
 const char *log_level_str(log_level_t level)
 {
 	if (level >= LVL_LIMIT)
@@ -105,6 +120,12 @@ const char *log_level_str(log_level_t level)
 		return log_level_names[level];
 }
 
+/** Convert log level name to the enum.
+ *
+ * @param[in] name Log level name or log level number.
+ * @param[out] level_out Where to store the result (set to NULL to ignore).
+ * @return Error code of the conversion or EOK on success.
+ */
 int log_level_from_str(const char *name, log_level_t *level_out)
 {
 	log_level_t level = LVL_FATAL;
@@ -136,7 +157,7 @@ int log_level_from_str(const char *name, log_level_t *level_out)
 
 /** Initialize the logging system.
  *
- * @param prog_name	Program name, will be printed as part of message
+ * @param prog_name Program name, will be printed as part of message
  */
 int log_init(const char *prog_name)
 {
@@ -189,10 +210,12 @@ log_t log_create(const char *name, log_t parent)
 
 /** Write an entry to the log.
  *
- * @param level		Message verbosity level. Message is only printed
- *			if verbosity is less than or equal to current
- *			reporting level.
- * @param fmt		Format string (no traling newline).
+ * The message is printed only if the verbosity level is less than or
+ * equal to currently set reporting level of the log.
+ *
+ * @param ctx Log to use (use LOG_DEFAULT if you have no idea what it means).
+ * @param level Severity level of the message.
+ * @param fmt Format string in printf-like format (without trailing newline).
  */
 void log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
 {
@@ -205,10 +228,10 @@ void log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
 
 /** Write an entry to the log (va_list variant).
  *
- * @param level		Message verbosity level. Message is only printed
- *			if verbosity is less than or equal to current
- *			reporting level.
- * @param fmt		Format string (no trailing newline)
+ * @param ctx Log to use (use LOG_DEFAULT if you have no idea what it means).
+ * @param level Severity level of the message.
+ * @param fmt Format string in printf-like format (without trailing newline).
+ * @param args Arguments.
  */
 void log_msgv(log_t ctx, log_level_t level, const char *fmt, va_list args)
 {
