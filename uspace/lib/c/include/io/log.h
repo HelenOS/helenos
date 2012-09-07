@@ -36,7 +36,7 @@
 
 #include <stdarg.h>
 #include <inttypes.h>
-#include <bool.h>
+#include <io/verify.h>
 
 typedef enum {
 	LVL_FATAL,
@@ -45,7 +45,7 @@ typedef enum {
 	LVL_NOTE,
 	LVL_DEBUG,
 	LVL_DEBUG2,
-
+	
 	/** For checking range of values */
 	LVL_LIMIT
 } log_level_t;
@@ -61,7 +61,8 @@ extern int log_level_from_str(const char *, log_level_t *);
 extern int log_init(const char *);
 extern log_t log_create(const char *, log_t);
 
-extern void log_msg(log_t, log_level_t, const char *, ...);
+extern void log_msg(log_t, log_level_t, const char *, ...)
+    PRINTF_ATTRIBUTE(3, 4);
 extern void log_msgv(log_t, log_level_t, const char *, va_list);
 
 #endif

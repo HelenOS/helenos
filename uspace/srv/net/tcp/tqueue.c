@@ -171,7 +171,7 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 	snd_buf_seqlen = conn->snd_buf_used + (conn->snd_buf_fin ? 1 : 0);
 
 	xfer_seqlen = min(snd_buf_seqlen, avail_wnd);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: snd_buf_seqlen = %zu, SND.WND = %zu, "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: snd_buf_seqlen = %zu, SND.WND = %" PRIu32 ", "
 	    "xfer_seqlen = %zu", conn->name, snd_buf_seqlen, conn->snd_wnd,
 	    xfer_seqlen);
 

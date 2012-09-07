@@ -102,6 +102,12 @@ void bootstrap(void)
 		cnt++;
 	}
 	
+	if (top >= (size_t) loader_address_pa) {
+		printf("Inflated components overlap loader area.\n");
+		printf("The boot image is too large. Halting.\n");
+		halt();
+	}
+	
 	void *balloc_base;
 	void *balloc_base_pa;
 	ofw_alloc("boot allocator area", &balloc_base, &balloc_base_pa,

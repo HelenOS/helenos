@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <as.h>
 #include <ipc/output.h>
+#include <io/concaps.h>
 #include <io/output.h>
 
 int output_yield(async_sess_t *sess)

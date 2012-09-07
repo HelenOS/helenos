@@ -96,6 +96,7 @@ DIRS = \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
 	srv/fs/exfat \
+	srv/fs/udf \
 	srv/fs/fat \
 	srv/fs/cdfs \
 	srv/fs/tmpfs \

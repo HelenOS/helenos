@@ -94,6 +94,7 @@ GENERIC_SOURCES = \
 	generic/inetcfg.c \
 	generic/inetping.c \
 	generic/io/asprintf.c \
+	generic/io/input.c \
 	generic/io/io.c \
 	generic/io/chargrid.c \
 	generic/io/output.c \
@@ -105,6 +106,7 @@ GENERIC_SOURCES = \
 	generic/io/vprintf.c \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
+	generic/io/con_srv.c \
 	generic/io/console.c \
 	generic/io/visualizer.c \
 	generic/io/window.c \

@@ -107,6 +107,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/mfs/mfs \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
+	$(USPACE_PATH)/srv/fs/udf/udf \
 	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
@@ -173,7 +174,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
-	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/sportdmp/sportdmp \
 	$(USPACE_PATH)/app/redir/redir \

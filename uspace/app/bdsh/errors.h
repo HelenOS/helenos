@@ -29,6 +29,8 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
+#include <io/verify.h>
+
 /* Various error levels */
 #define CL_EFATAL  -1
 #define CL_EOK     0
@@ -45,6 +47,7 @@
 /* Just like 'errno' */
 extern volatile int cli_errno;
 
-extern void cli_error(int, const char *, ...);
+extern void cli_error(int, const char *, ...)
+    PRINTF_ATTRIBUTE(2, 3);
 
 #endif

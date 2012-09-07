@@ -40,6 +40,7 @@
 #include <fibril_synch.h>
 #include <font.h>
 #include <io/chargrid.h>
+#include <io/con_srv.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <atomic.h>
@@ -65,6 +66,7 @@ typedef struct terminal {
 	sysarg_t top_row;
 	
 	service_id_t dsid;
+	con_srvs_t srvs;
 } terminal_t;
 
 extern bool init_terminal(terminal_t *, widget_t *, sysarg_t, sysarg_t);
