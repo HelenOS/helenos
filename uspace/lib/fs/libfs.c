@@ -630,14 +630,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 							(void) ops->node_put(fn);
 						async_answer_0(rid, rc);
 					} else {
-						aoff64_t size = ops->size_get(fn);
-						async_answer_5(rid, fs_handle,
-						    service_id,
-						    ops->index_get(fn),
-						    LOWER32(size),
-						    UPPER32(size),
-						    ops->lnkcnt_get(fn));
-						(void) ops->node_put(fn);
+						(void) ops->node_put(cur);
+						cur = fn;
+						goto out_with_answer;
 					}
 				} else
 					async_answer_0(rid, ENOSPC);
@@ -714,14 +709,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						(void) ops->node_put(fn);
 					async_answer_0(rid, rc);
 				} else {
-					aoff64_t size = ops->size_get(fn);
-					async_answer_5(rid, fs_handle,
-					    service_id,
-					    ops->index_get(fn),
-					    LOWER32(size),
-					    UPPER32(size),
-					    ops->lnkcnt_get(fn));
-					(void) ops->node_put(fn);
+					(void) ops->node_put(cur);
+					cur = fn;
+					goto out_with_answer;
 				}
 			} else
 				async_answer_0(rid, ENOSPC);
