@@ -75,7 +75,7 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 
 	client = inetping_client_find(ident);
 	if (client == NULL) {
-		log_msg(LVL_DEBUG, "Unknown ICMP ident. Dropping.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ICMP ident. Dropping.");
 		return ENOENT;
 	}
 
@@ -106,7 +106,7 @@ static void inetping_send_srv(inetping_client_t *client, ipc_callid_t callid,
 	inetping_sdu_t sdu;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetping_send_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_send_srv()");
 
 	rc = async_data_write_accept((void **) &sdu.data, false, 0, 0, 0,
 	    &sdu.size);
@@ -132,7 +132,7 @@ static void inetping_get_srcaddr_srv(inetping_client_t *client,
 	inet_addr_t local;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetping_get_srcaddr_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_get_srcaddr_srv()");
 
 	remote.ipv4 = IPC_GET_ARG1(*call);
 	local.ipv4 = 0;
@@ -191,7 +191,7 @@ void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	inetping_client_t client;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetping_conn()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_conn()");
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);

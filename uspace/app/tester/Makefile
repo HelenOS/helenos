@@ -44,6 +44,8 @@ SOURCES = \
 	console/console1.c \
 	stdio/stdio1.c \
 	stdio/stdio2.c \
+	stdio/logger1.c \
+	stdio/logger2.c \
 	fault/fault1.c \
 	fault/fault2.c \
 	fault/fault3.c \

@@ -1339,7 +1339,7 @@ static int ahci_enable_interrupt(int irq)
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS AHCI device driver\n", NAME);
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	fibril_mutex_initialize(&sata_devices_count_lock);
 	return ddf_driver_main(&ahci_driver);
 }

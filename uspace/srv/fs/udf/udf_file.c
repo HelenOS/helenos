@@ -70,7 +70,7 @@ static int udf_read_extended_allocator(udf_node_t *node, uint16_t icb_flag,
 	    FLE16(exd->extent_location.partition_num)].start +
 	    FLE32(exd->extent_location.lblock_num);
 	
-	log_msg(LVL_DEBUG,
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "Extended allocator: start=%d, block_num=%d, len=%d", start,
 	    FLE32(exd->extent_location.lblock_num), FLE32(exd->info_length));
 	
@@ -99,7 +99,7 @@ int udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
 	
 	switch (icb_flag) {
 	case UDF_SHORT_AD:
-		log_msg(LVL_DEBUG,
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "ICB: sequence of allocation descriptors - icbflag = short_ad_t");
 		
 		/*
@@ -166,7 +166,7 @@ int udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
 		break;
 		
 	case UDF_LONG_AD:
-		log_msg(LVL_DEBUG,
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "ICB: sequence of allocation descriptors - icbflag = long_ad_t");
 		
 		while (true) {
@@ -202,12 +202,12 @@ int udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
 		break;
 		
 	case UDF_EXTENDED_AD:
-		log_msg(LVL_DEBUG,
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "ICB: sequence of allocation descriptors - icbflag = extended_ad_t");
 		break;
 		
 	case UDF_DATA_AD:
-		log_msg(LVL_DEBUG,
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "ICB: sequence of allocation descriptors - icbflag = 3, node contains data itself");
 		
 		node->data = malloc(node->data_size);
@@ -252,7 +252,7 @@ int udf_read_icb(udf_node_t *node)
 		/* One sector size descriptors */
 		switch (FLE16(data->id)) {
 		case UDF_FILE_ENTRY:
-			log_msg(LVL_DEBUG, "ICB: File entry descriptor found");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "ICB: File entry descriptor found");
 			
 			udf_file_entry_descriptor_t *file =
 			    (udf_file_entry_descriptor_t *) block->data;
@@ -266,7 +266,7 @@ int udf_read_icb(udf_node_t *node)
 			return rc;
 			
 		case UDF_EFILE_ENTRY:
-			log_msg(LVL_DEBUG, "ICB: Extended file entry descriptor found");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "ICB: Extended file entry descriptor found");
 			
 			udf_extended_file_entry_descriptor_t *efile =
 			    (udf_extended_file_entry_descriptor_t *) block->data;
@@ -280,7 +280,7 @@ int udf_read_icb(udf_node_t *node)
 			return rc;
 			
 		case UDF_ICB_TERMINAL:
-			log_msg(LVL_DEBUG, "ICB: Terminal entry descriptor found");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "ICB: Terminal entry descriptor found");
 			block_put(block);
 			return EOK;
 		}

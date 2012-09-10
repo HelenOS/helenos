@@ -73,20 +73,20 @@ void tcp_ncsim_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_squeue_entry_t *old_qe;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_bounce_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_bounce_seg()");
 	tcp_rqueue_bounce_seg(sp, seg);
 	return;
 
 	if (0 /*random() % 4 == 3*/) {
 		/* Drop segment */
-		log_msg(LVL_ERROR, "NCSim dropping segment");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "NCSim dropping segment");
 		tcp_segment_delete(seg);
 		return;
 	}
 
 	sqe = calloc(1, sizeof(tcp_squeue_entry_t));
 	if (sqe == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating SQE.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating SQE.");
 		return;
 	}
 
@@ -125,7 +125,7 @@ static int tcp_ncsim_fibril(void *arg)
 	tcp_squeue_entry_t *sqe;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_fibril()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril()");
 
 
 	while (true) {
@@ -138,7 +138,7 @@ static int tcp_ncsim_fibril(void *arg)
 			link = list_first(&sim_queue);
 			sqe = list_get_instance(link, tcp_squeue_entry_t, link);
 
-			log_msg(LVL_DEBUG, "NCSim - Sleep");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "NCSim - Sleep");
 			rc = fibril_condvar_wait_timeout(&sim_queue_cv,
 			    &sim_queue_lock, sqe->delay);
 		} while (rc != ETIMEOUT);
@@ -146,7 +146,7 @@ static int tcp_ncsim_fibril(void *arg)
 		list_remove(link);
 		fibril_mutex_unlock(&sim_queue_lock);
 
-		log_msg(LVL_DEBUG, "NCSim - End Sleep");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "NCSim - End Sleep");
 		tcp_rqueue_bounce_seg(&sqe->sp, sqe->seg);
 		free(sqe);
 	}
@@ -160,11 +160,11 @@ void tcp_ncsim_fibril_start(void)
 {
 	fid_t fid;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_fibril_start()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril_start()");
 
 	fid = fibril_create(tcp_ncsim_fibril, NULL);
 	if (fid == 0) {
-		log_msg(LVL_ERROR, "Failed creating ncsim fibril.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating ncsim fibril.");
 		return;
 	}
 

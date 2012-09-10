@@ -192,7 +192,7 @@ static int test3_fun_offline(ddf_fun_t *fun)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test3 virtual device driver\n");
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&test3_driver);
 }
 

@@ -68,10 +68,10 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 	memcpy((uint8_t *)data + sizeof(eth_header_t), frame->data,
 	    frame->size);
 
-	log_msg(LVL_DEBUG, "Encoding Ethernet frame "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Encoding Ethernet frame "
 	    "src=%" PRIx64 " dest=%" PRIx64 " etype=%x",
 	    frame->src.addr, frame->dest.addr, frame->etype_len);
-	log_msg(LVL_DEBUG, "Encoded Ethernet frame (%zu bytes)", size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Encoded Ethernet frame (%zu bytes)", size);
 
 	*rdata = data;
 	*rsize = size;
@@ -83,10 +83,10 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 {
 	eth_header_t *hdr;
 
-	log_msg(LVL_DEBUG, "eth_pdu_decode()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "eth_pdu_decode()");
 
 	if (size < sizeof(eth_header_t)) {
-		log_msg(LVL_DEBUG, "PDU too short (%zu)", size);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "PDU too short (%zu)", size);
 		return EINVAL;
 	}
 
@@ -104,10 +104,10 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	memcpy(frame->data, (uint8_t *)data + sizeof(eth_header_t),
 	    frame->size);
 
-	log_msg(LVL_DEBUG, "Decoding Ethernet frame "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Decoding Ethernet frame "
 	    "src=%" PRIx64 " dest=%" PRIx64 " etype=%x",
 	    frame->src.addr, frame->dest.addr, frame->etype_len);
-	log_msg(LVL_DEBUG, "Decoded Ethernet frame payload (%zu bytes)", frame->size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Decoded Ethernet frame payload (%zu bytes)", frame->size);
 
 	return EOK;
 }
@@ -144,7 +144,7 @@ int arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 	arp_eth_packet_fmt_t *pfmt;
 	uint16_t fopcode;
 
-	log_msg(LVL_DEBUG, "arp_pdu_encode()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "arp_pdu_encode()");
 
 	size = sizeof(arp_eth_packet_fmt_t);
 
@@ -184,35 +184,35 @@ int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 {
 	arp_eth_packet_fmt_t *pfmt;
 
-	log_msg(LVL_DEBUG, "arp_pdu_decode()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "arp_pdu_decode()");
 
 	if (size < sizeof(arp_eth_packet_fmt_t)) {
-		log_msg(LVL_DEBUG, "ARP PDU too short (%zu)", size);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "ARP PDU too short (%zu)", size);
 		return EINVAL;
 	}
 
 	pfmt = (arp_eth_packet_fmt_t *)data;
 
 	if (uint16_t_be2host(pfmt->hw_addr_space) != AHRD_ETHERNET) {
-		log_msg(LVL_DEBUG, "HW address space != %u (%" PRIu16 ")",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "HW address space != %u (%" PRIu16 ")",
 		    AHRD_ETHERNET, uint16_t_be2host(pfmt->hw_addr_space));
 		return EINVAL;
 	}
 
 	if (uint16_t_be2host(pfmt->proto_addr_space) != 0x0800) {
-		log_msg(LVL_DEBUG, "Proto address space != %u (%" PRIu16 ")",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Proto address space != %u (%" PRIu16 ")",
 		    ETYPE_IP, uint16_t_be2host(pfmt->proto_addr_space));
 		return EINVAL;
 	}
 
 	if (pfmt->hw_addr_size != ETH_ADDR_SIZE) {
-		log_msg(LVL_DEBUG, "HW address size != %zu (%zu)",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "HW address size != %zu (%zu)",
 		    (size_t)ETH_ADDR_SIZE, (size_t)pfmt->hw_addr_size);
 		return EINVAL;
 	}
 
 	if (pfmt->proto_addr_size != IPV4_ADDR_SIZE) {
-		log_msg(LVL_DEBUG, "Proto address size != %zu (%zu)",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Proto address size != %zu (%zu)",
 		    (size_t)IPV4_ADDR_SIZE, (size_t)pfmt->proto_addr_size);
 		return EINVAL;
 	}
@@ -221,7 +221,7 @@ int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 	case AOP_REQUEST: packet->opcode = aop_request; break;
 	case AOP_REPLY: packet->opcode = aop_reply; break;
 	default:
-		log_msg(LVL_DEBUG, "Invalid ARP opcode (%" PRIu16 ")",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Invalid ARP opcode (%" PRIu16 ")",
 		    uint16_t_be2host(pfmt->opcode));
 		return EINVAL;
 	}
@@ -232,7 +232,7 @@ int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 	mac48_decode(pfmt->target_hw_addr, &packet->target_hw_addr);
 	packet->target_proto_addr.ipv4 =
 	    uint32_t_be2host(pfmt->target_proto_addr);
-	log_msg(LVL_DEBUG, "packet->tpa = %x\n", pfmt->target_proto_addr);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "packet->tpa = %x\n", pfmt->target_proto_addr);
 
 	return EOK;
 }
