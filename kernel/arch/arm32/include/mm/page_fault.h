@@ -48,17 +48,19 @@ typedef union {
 		unsigned status : 4;
 		unsigned domain : 4;
 		unsigned zero : 1;
-		unsigned sbz0 : 1;
+		unsigned lpae : 1; /**< Needs LPAE support implemented */
 		unsigned fs : 1; /**< armv6+ mandated, earlier IPLM. DEFINED */
 		unsigned wr : 1; /**< armv6+ only */
-		unsigned should_be_zero : 20;
-	} ATTRIBUTE_PACKED data;
+		unsigned ext : 1 ; /**< external abort */
+		unsigned cm : 1; /**< Cache maintenance, needs LPAE support */
+		unsigned should_be_zero : 18;
+	} data;
 	struct {
 		unsigned status : 4;
 		unsigned sbz0 : 6;
 		unsigned fs : 1;
 		unsigned should_be_zero : 21;
-	} ATTRIBUTE_PACKED inst;
+	} inst;
 	uint32_t raw;
 } fault_status_t;
 
