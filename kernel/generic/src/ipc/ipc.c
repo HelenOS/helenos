@@ -553,6 +553,10 @@ restart_phones:
 		if (notify_box) {
 			mutex_unlock(&phone->lock);
 			irq_spinlock_unlock(&box->lock, true);
+
+			// FIXME: phone can become deallocated at any time now
+
+			// FIXME: call->sender == TASK
 			
 			/*
 			 * Send one message to the answerbox for each
