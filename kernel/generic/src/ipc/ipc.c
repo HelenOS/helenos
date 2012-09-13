@@ -264,13 +264,15 @@ void ipc_answer(answerbox_t *box, call_t *call)
  */
 void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
-	call->caller_phone = phone;
-	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
+	call->caller_phone = phone;
 
+	call->active = true;
 	spinlock_lock(&TASK->active_calls_lock);
 	list_append(&call->ta_link, &TASK->active_calls);
 	spinlock_unlock(&TASK->active_calls_lock);
+
+	call->data.phone = phone;
 
 	IPC_SET_RETVAL(call->data, err);
 	_ipc_answer_free_call(call, false);
@@ -292,10 +294,9 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
-
 		call->caller_phone = phone;
-		call->active = true;
 
+		call->active = true;
 		spinlock_lock(&TASK->active_calls_lock);
 		list_append(&call->ta_link, &TASK->active_calls);
 		spinlock_unlock(&TASK->active_calls_lock);
