@@ -372,6 +372,7 @@ int ipc_phone_hangup(phone_t *phone)
 		
 		call_t *call = ipc_call_alloc(0);
 		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
+		call->request_method = IPC_M_PHONE_HUNGUP;
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
 		_ipc_call(phone, box, call);
 	}
@@ -565,6 +566,7 @@ restart_phones:
 			 * disconnected.
 			 */
 			IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
+			call->request_method = IPC_M_PHONE_HUNGUP;
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
 			_ipc_call(phone, box, call);
 			
