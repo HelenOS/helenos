@@ -33,7 +33,6 @@
 #include <loc.h>
 #include <time.h>
 #include <malloc.h>
-#include <ipc/clock_ctl.h>
 #include <getopt.h>
 #include <ctype.h>
 
@@ -144,14 +143,6 @@ main(int argc, char **argv)
 		printf(NAME ": Cannot connect to the device\n");
 		goto exit;
 	}
-
-	/* Check the battery status (if present) */
-	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_req_0_1(exch, CLOCK_GET_BATTERY_STATUS, &battery_ok);
-	async_exchange_end(exch);
-
-	if (rc == EOK && !battery_ok)
-		printf(NAME ": Warning! RTC battery dead\n");
 
 	/* Read the current date/time */
 	rc = clock_dev_time_get(sess, &t);
