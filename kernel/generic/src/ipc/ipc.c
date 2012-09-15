@@ -75,7 +75,7 @@ static void _ipc_call_init(call_t *call)
 	spinlock_initialize(&call->forget_lock, "forget_lock");
 	call->active = false;
 	call->forget = false;
-	call->sender = TASK;
+	call->sender = NULL;
 	call->buffer = NULL;
 }
 
@@ -174,11 +174,13 @@ bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 /** Initialize a phone structure.
  *
  * @param phone Phone structure to be initialized.
+ * @param caller Owning task.
  *
  */
-void ipc_phone_init(phone_t *phone)
+void ipc_phone_init(phone_t *phone, task_t *caller)
 {
 	mutex_initialize(&phone->lock, MUTEX_PASSIVE);
+	phone->caller = caller;
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_set(&phone->active_calls, 0);
@@ -264,13 +266,16 @@ void ipc_answer(answerbox_t *box, call_t *call)
  */
 void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
+	task_t *caller = phone->caller;
+
 	atomic_inc(&phone->active_calls);
 	call->caller_phone = phone;
+	call->sender = caller;
 
 	call->active = true;
-	spinlock_lock(&TASK->active_calls_lock);
-	list_append(&call->ta_link, &TASK->active_calls);
-	spinlock_unlock(&TASK->active_calls_lock);
+	spinlock_lock(&caller->active_calls_lock);
+	list_append(&call->ta_link, &caller->active_calls);
+	spinlock_unlock(&caller->active_calls_lock);
 
 	call->data.phone = phone;
 
@@ -287,22 +292,25 @@ void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
  */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
+	task_t *caller = phone->caller;
+
 	/* Count sent ipc call */
-	irq_spinlock_lock(&TASK->lock, true);
-	TASK->ipc_info.call_sent++;
-	irq_spinlock_unlock(&TASK->lock, true);
+	irq_spinlock_lock(&caller->lock, true);
+	caller->ipc_info.call_sent++;
+	irq_spinlock_unlock(&caller->lock, true);
 	
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->caller_phone = phone;
+		call->sender = caller;
 
 		call->active = true;
-		spinlock_lock(&TASK->active_calls_lock);
-		list_append(&call->ta_link, &TASK->active_calls);
-		spinlock_unlock(&TASK->active_calls_lock);
+		spinlock_lock(&caller->active_calls_lock);
+		list_append(&call->ta_link, &caller->active_calls);
+		spinlock_unlock(&caller->active_calls_lock);
 
 		call->data.phone = phone;
-		call->data.task_id = TASK->taskid;
+		call->data.task_id = phone->caller->taskid;
 	}
 	
 	irq_spinlock_lock(&box->lock, true);
@@ -558,8 +566,6 @@ restart_phones:
 
 			// FIXME: phone can become deallocated at any time now
 
-			// FIXME: call->sender == TASK
-			
 			/*
 			 * Send one message to the answerbox for each
 			 * phone. Used to make sure the kbox thread

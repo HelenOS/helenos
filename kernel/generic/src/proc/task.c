@@ -160,7 +160,7 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	
 	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_init(&task->phones[i]);
+		ipc_phone_init(&task->phones[i], task);
 
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);

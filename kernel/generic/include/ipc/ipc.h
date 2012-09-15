@@ -64,6 +64,7 @@ typedef enum {
 typedef struct {
 	mutex_t lock;
 	link_t link;
+	struct task *caller;
 	struct answerbox *callee;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
@@ -176,7 +177,7 @@ extern int ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);
 extern void ipc_answer(answerbox_t *, call_t *);
 extern void _ipc_answer_free_call(call_t *, bool);
 
-extern void ipc_phone_init(phone_t *);
+extern void ipc_phone_init(phone_t *, struct task *);
 extern bool ipc_phone_connect(phone_t *, answerbox_t *);
 extern int ipc_phone_hangup(phone_t *);
 
