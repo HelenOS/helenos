@@ -26,14 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_CLOCK_CTL_H_
-#define LIBC_IPC_CLOCK_CTL_H_
+/** @addtogroup libdrv
+ * @{
+ */
+/** @file
+ */
 
-#include <ipc/dev_iface.h>
+#ifndef LIBDRV_REMOTE_BATTERY_DEV_H_
+#define LIBDRV_REMOTE_BATTERY_DEV_H_
 
-typedef enum {
-	CLOCK_GET_BATTERY_STATUS = DEV_FIRST_CUSTOM_METHOD,
-} clock_ctl_t;
+extern remote_iface_t remote_battery_dev_iface;
 
 #endif
+
+/**
+ * @}
+ */
 

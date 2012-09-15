@@ -45,10 +45,10 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ops/clock_dev.h>
+#include <ops/battery_dev.h>
 #include <fibril_synch.h>
 #include <device/hw_res.h>
 #include <macros.h>
-#include <ipc/clock_ctl.h>
 #include <time.h>
 
 #include "cmos-regs.h"
@@ -93,8 +93,6 @@ static bool rtc_update_in_progress(rtc_t *rtc);
 static int  rtc_register_read(rtc_t *rtc, int reg);
 static unsigned bcd2bin(unsigned bcd);
 static unsigned bin2bcd(unsigned binary);
-static void rtc_default_handler(ddf_fun_t *fun,
-    ipc_callid_t callid, ipc_call_t *call);
 static int rtc_dev_remove(ddf_dev_t *dev);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
 static time_t uptime_get(void);
@@ -117,6 +115,12 @@ static driver_t rtc_driver = {
 static clock_dev_ops_t rtc_clock_dev_ops = {
 	.time_get = rtc_time_get,
 	.time_set = rtc_time_set,
+};
+
+/** Battery powered device interface */
+static battery_dev_ops_t rtc_battery_dev_ops = {
+	.battery_status_get = NULL,
+	.battery_charge_level_get = NULL,
 };
 
 /** Obtain soft state structure from device node */
@@ -143,7 +147,8 @@ rtc_init(void)
 	rtc_dev_ops.close = rtc_close;
 
 	rtc_dev_ops.interfaces[CLOCK_DEV_IFACE] = &rtc_clock_dev_ops;
-	rtc_dev_ops.default_handler = &rtc_default_handler;
+	rtc_dev_ops.interfaces[BATTERY_DEV_IFACE] = &rtc_battery_dev_ops;
+	rtc_dev_ops.default_handler = NULL;
 }
 
 /** Clean up the RTC soft state
@@ -594,28 +599,6 @@ rtc_dev_remove(ddf_dev_t *dev)
 	rtc_dev_cleanup(rtc);
 
 	return rc;
-}
-
-/** Default handler for client requests not handled
- *  by the standard interface
- */
-static void
-rtc_default_handler(ddf_fun_t *fun, ipc_callid_t callid, ipc_call_t *call)
-{
-	sysarg_t method = IPC_GET_IMETHOD(*call);
-	rtc_t *rtc = fun_rtc(fun);
-	bool batt_ok;
-
-	switch (method) {
-	case CLOCK_GET_BATTERY_STATUS:
-		/* Get the RTC battery status */
-		batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
-		    RTC_D_BATTERY_OK;
-		async_answer_1(callid, EOK, batt_ok);
-		break;
-	default:
-		async_answer_0(callid, ENOTSUP);
-	}
 }
 
 /** Open the device

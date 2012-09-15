@@ -103,7 +103,7 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 	async_answer_0(callid, rc);
 }
 
-/** Process the write request from the remote client
+/** Process the time_set() request from the remote client
  *
  * @param fun   The function to which the data are written
  * @param ops   The local ops structure
