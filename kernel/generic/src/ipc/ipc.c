@@ -310,7 +310,7 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 		spinlock_unlock(&caller->active_calls_lock);
 
 		call->data.phone = phone;
-		call->data.task_id = phone->caller->taskid;
+		call->data.task_id = caller->taskid;
 	}
 	
 	irq_spinlock_lock(&box->lock, true);
