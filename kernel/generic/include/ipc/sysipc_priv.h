@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,17 +32,12 @@
 /** @file
  */
 
-#ifndef KERN_IPCRSC_H_
-#define KERN_IPCRSC_H_
+#ifndef KERN_SYSIPC_PRIV_H_
+#define KERN_SYSIPC_PRIV_H_
 
-#include <proc/task.h>
 #include <ipc/ipc.h>
 
-extern call_t *get_call(sysarg_t);
-extern int phone_get(sysarg_t, phone_t **);
-extern int phone_alloc(task_t *);
-extern bool phone_connect(int, answerbox_t *);
-extern void phone_dealloc(int);
+extern int answer_preprocess(call_t *, ipc_data_t *);
 
 #endif
 

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,19 +33,60 @@
 /** @file
  */
 
-#ifndef KERN_IPCRSC_H_
-#define KERN_IPCRSC_H_
-
-#include <proc/task.h>
+#include <ipc/sysipc_ops.h>
 #include <ipc/ipc.h>
+#include <ipc/ipcrsc.h>
+#include <abi/errno.h>
+#include <arch.h>
 
-extern call_t *get_call(sysarg_t);
-extern int phone_get(sysarg_t, phone_t **);
-extern int phone_alloc(task_t *);
-extern bool phone_connect(int, answerbox_t *);
-extern void phone_dealloc(int);
+static int request_preprocess(call_t *call, phone_t *phone)
+{
+	int newphid = phone_alloc(TASK);
 
-#endif
+	if (newphid < 0)
+		return ELIMIT;
+		
+	/* Set arg5 for server */
+	IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
+	call->priv = newphid;
+
+	return EOK;
+}
+
+static void request_forget(call_t *call)
+{
+	phone_dealloc(call->priv);
+}
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
+
+	/* If the user accepted call, connect */
+	if (IPC_GET_RETVAL(answer->data) == EOK)
+		(void) ipc_phone_connect(phone, &TASK->answerbox);
+
+	return EOK;
+}
+
+static int answer_process(call_t *answer)
+{
+	if (IPC_GET_RETVAL(answer->data))
+		phone_dealloc(answer->priv);
+	else
+		IPC_SET_ARG5(answer->data, answer->priv);
+	
+	return EOK;
+}
+
+sysipc_ops_t ipc_m_connect_me_to_ops = {
+	.request_preprocess = request_preprocess,
+	.request_forget = request_forget,
+	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
+	.answer_preprocess = answer_preprocess,
+	.answer_process = answer_process,
+};
 
 /** @}
  */

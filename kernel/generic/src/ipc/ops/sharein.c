@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,19 +32,40 @@
 /** @file
  */
 
-#ifndef KERN_IPCRSC_H_
-#define KERN_IPCRSC_H_
-
-#include <proc/task.h>
+#include <ipc/sysipc_ops.h>
 #include <ipc/ipc.h>
+#include <mm/as.h>
+#include <synch/spinlock.h>
+#include <proc/task.h>
+#include <abi/errno.h>
+#include <arch.h>
 
-extern call_t *get_call(sysarg_t);
-extern int phone_get(sysarg_t, phone_t **);
-extern int phone_alloc(task_t *);
-extern bool phone_connect(int, answerbox_t *);
-extern void phone_dealloc(int);
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	if (!IPC_GET_RETVAL(answer->data)) {
+		irq_spinlock_lock(&answer->sender->lock, true);
+		as_t *as = answer->sender->as;
+		irq_spinlock_unlock(&answer->sender->lock, true);
+			
+		uintptr_t dst_base = (uintptr_t) -1;
+		int rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
+		    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
+		    &dst_base, IPC_GET_ARG3(answer->data));
+		IPC_SET_ARG4(answer->data, dst_base);
+		IPC_SET_RETVAL(answer->data, rc);
+	}
+	
+	return EOK;
+}
 
-#endif
+sysipc_ops_t ipc_m_share_in_ops = {
+	.request_preprocess = null_request_preprocess,
+	.request_forget = null_request_forget,
+	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
+	.answer_preprocess = answer_preprocess,
+	.answer_process = null_answer_process,
+};
 
 /** @}
  */

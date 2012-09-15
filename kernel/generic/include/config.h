@@ -48,6 +48,12 @@
 #define CONFIG_TASK_NAME_BUFLEN  32
 #define CONFIG_TASK_ARGUMENTS_BUFLEN 64
 
+/**
+ * Maximum buffer size allowed for IPC_M_DATA_WRITE and IPC_M_DATA_READ
+ * requests.
+ */
+#define DATA_XFER_LIMIT  (64 * 1024)
+
 #ifndef __ASM__
 
 #include <typedefs.h>

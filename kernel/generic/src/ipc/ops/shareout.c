@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,19 +32,61 @@
 /** @file
  */
 
-#ifndef KERN_IPCRSC_H_
-#define KERN_IPCRSC_H_
-
-#include <proc/task.h>
+#include <ipc/sysipc_ops.h>
 #include <ipc/ipc.h>
+#include <mm/as.h>
+#include <synch/spinlock.h>
+#include <proc/task.h>
+#include <syscall/copy.h>
+#include <abi/errno.h>
+#include <arch.h>
 
-extern call_t *get_call(sysarg_t);
-extern int phone_get(sysarg_t, phone_t **);
-extern int phone_alloc(task_t *);
-extern bool phone_connect(int, answerbox_t *);
-extern void phone_dealloc(int);
+static int request_preprocess(call_t *call, phone_t *phone)
+{
+	size_t size = as_area_get_size(IPC_GET_ARG1(call->data));
 
-#endif
+	if (!size)
+		return EPERM;
+	IPC_SET_ARG2(call->data, size);
+
+	return EOK;
+}
+
+static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+{
+	int rc = EOK;
+
+	if (!IPC_GET_RETVAL(answer->data)) {
+		/* Accepted, handle as_area receipt */
+
+		irq_spinlock_lock(&answer->sender->lock, true);
+		as_t *as = answer->sender->as;
+		irq_spinlock_unlock(&answer->sender->lock, true);
+
+		uintptr_t dst_base = (uintptr_t) -1;
+		rc = as_area_share(as, IPC_GET_ARG1(*olddata),
+		    IPC_GET_ARG2(*olddata), AS, IPC_GET_ARG3(*olddata),
+		    &dst_base, IPC_GET_ARG1(answer->data));
+			
+		if (rc == EOK) {
+			rc = copy_to_uspace((void *) IPC_GET_ARG2(answer->data),
+			    &dst_base, sizeof(dst_base));
+		}
+			
+		IPC_SET_RETVAL(answer->data, rc);
+	}
+
+	return rc;
+}
+
+sysipc_ops_t ipc_m_share_out_ops = {
+	.request_preprocess = request_preprocess,
+	.request_forget = null_request_forget,
+	.request_process = null_request_process,
+	.answer_cleanup = null_answer_cleanup,
+	.answer_preprocess = answer_preprocess,
+	.answer_process = null_answer_process,
+};
 
 /** @}
  */
