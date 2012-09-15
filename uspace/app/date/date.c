@@ -60,7 +60,6 @@ main(int argc, char **argv)
 	bool          read_only = true;
 	char          *wdate = NULL;
 	char          *wtime = NULL;
-	sysarg_t      battery_ok;
 	struct tm     t;
 	int           n_args = argc;
 
