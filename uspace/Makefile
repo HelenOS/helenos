@@ -46,6 +46,7 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
+	app/logset \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -77,6 +78,7 @@ DIRS = \
 	app/vterm \
 	srv/clipboard \
 	srv/locsrv \
+	srv/logger \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \

@@ -33,12 +33,12 @@
 /** @file Division functions.
  */
 
-#include <sftypes.h>
-#include <add.h>
-#include <div.h>
-#include <comparison.h>
-#include <mul.h>
-#include <common.h>
+#include "sftypes.h"
+#include "add.h"
+#include "div.h"
+#include "comparison.h"
+#include "mul.h"
+#include "common.h"
 
 /** Divide two single-precision floats.
  *

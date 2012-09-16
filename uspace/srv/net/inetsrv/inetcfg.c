@@ -60,7 +60,7 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 
 	ilink = inet_link_get_by_id(link_id);
 	if (ilink == NULL) {
-		log_msg(LVL_DEBUG, "Link %lu not found.",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %lu not found.",
 		    (unsigned long) link_id);
 		return ENOENT;
 	}
@@ -76,7 +76,7 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 	addr->name = str_dup(name);
 	rc = inet_addrobj_add(addr);
 	if (rc != EOK) {
-		log_msg(LVL_DEBUG, "Duplicate address name '%s'.", addr->name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Duplicate address name '%s'.", addr->name);
 		inet_addrobj_delete(addr);
 		return rc;
 	}
@@ -84,7 +84,7 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 	iaddr.ipv4 = addr->naddr.ipv4;
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
 		inet_addrobj_remove(addr);
 		inet_addrobj_delete(addr);
 		return rc;
@@ -129,13 +129,13 @@ static int inetcfg_addr_get_id(char *name, sysarg_t link_id, sysarg_t *addr_id)
 
 	ilink = inet_link_get_by_id(link_id);
 	if (ilink == NULL) {
-		log_msg(LVL_DEBUG, "Link %zu not found.", (size_t) link_id);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %zu not found.", (size_t) link_id);
 		return ENOENT;
 	}
 
 	addr = inet_addrobj_find_by_name(name, ilink);
 	if (addr == NULL) {
-		log_msg(LVL_DEBUG, "Address '%s' not found.", name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Address '%s' not found.", name);
 		return ENOENT;
 	}
 
@@ -227,7 +227,7 @@ static int inetcfg_sroute_get_id(char *name, sysarg_t *sroute_id)
 
 	sroute = inet_sroute_find_by_name(name);
 	if (sroute == NULL) {
-		log_msg(LVL_DEBUG, "Static route '%s' not found.", name);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Static route '%s' not found.", name);
 		return ENOENT;
 	}
 
@@ -244,7 +244,7 @@ static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
 	sysarg_t addr_id;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_addr_create_static_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_create_static_srv()");
 
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
@@ -268,7 +268,7 @@ static void inetcfg_addr_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t addr_id;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_addr_delete_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_delete_srv()");
 
 	addr_id = IPC_GET_ARG1(*call);
 
@@ -286,7 +286,7 @@ static void inetcfg_addr_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	int rc;
 
 	addr_id = IPC_GET_ARG1(*call);
-	log_msg(LVL_DEBUG, "inetcfg_addr_get_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_srv()");
 
 	ainfo.naddr.ipv4 = 0;
 	ainfo.naddr.bits = 0;
@@ -320,7 +320,7 @@ static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t addr_id;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_addr_get_id_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_id_srv()");
 
 	link_id = IPC_GET_ARG1(*call);
 
@@ -347,7 +347,7 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t *id_buf;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_get_addr_list_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_addr_list_srv()");
 
 	if (!async_data_read_receive(&rcallid, &max_size)) {
 		async_answer_0(rcallid, EREFUSED);
@@ -381,7 +381,7 @@ static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t *id_buf;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_get_link_list_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_link_list_srv()");
 
 	if (!async_data_read_receive(&rcallid, &max_size)) {
 		async_answer_0(rcallid, EREFUSED);
@@ -414,7 +414,7 @@ static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t *id_buf;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_get_sroute_list_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_sroute_list_srv()");
 
 	if (!async_data_read_receive(&rcallid, &max_size)) {
 		async_answer_0(rcallid, EREFUSED);
@@ -448,7 +448,7 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	int rc;
 
 	link_id = IPC_GET_ARG1(*call);
-	log_msg(LVL_DEBUG, "inetcfg_link_get_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_link_get_srv()");
 
 	linfo.name = NULL;
 
@@ -481,7 +481,7 @@ static void inetcfg_sroute_create_srv(ipc_callid_t callid,
 	sysarg_t sroute_id;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_sroute_create_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_create_srv()");
 
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
@@ -505,7 +505,7 @@ static void inetcfg_sroute_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t sroute_id;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_sroute_delete_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_delete_srv()");
 
 	sroute_id = IPC_GET_ARG1(*call);
 
@@ -523,7 +523,7 @@ static void inetcfg_sroute_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	int rc;
 
 	sroute_id = IPC_GET_ARG1(*call);
-	log_msg(LVL_DEBUG, "inetcfg_sroute_get_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_get_srv()");
 
 	srinfo.dest.ipv4 = 0;
 	srinfo.dest.bits = 0;
@@ -556,7 +556,7 @@ static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
 	sysarg_t sroute_id;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inetcfg_sroute_get_id_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_get_id_srv()");
 
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
@@ -573,7 +573,7 @@ static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
 
 void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	log_msg(LVL_DEBUG, "inet_cfg_conn()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_cfg_conn()");
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);

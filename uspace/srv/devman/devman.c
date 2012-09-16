@@ -150,7 +150,7 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
 	list_prepend(&drv->drivers, &drivers_list->drivers);
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 
-	log_msg(LVL_NOTE, "Driver `%s' was added to the list of available "
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Driver `%s' was added to the list of available "
 	    "drivers.", drv->name);
 }
 
@@ -241,7 +241,7 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
  */
 bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 {
-	log_msg(LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
 	
 	bool suc = false;
 	char *buf = NULL;
@@ -251,7 +251,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
-		log_msg(LVL_ERROR, "Unable to open `%s' for reading: %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
 		    conf_path, str_error(fd));
 		goto cleanup;
 	}
@@ -260,21 +260,21 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	len = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
 	if (len == 0) {
-		log_msg(LVL_ERROR, "Configuration file '%s' is empty.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
 		goto cleanup;
 	}
 	
 	buf = malloc(len + 1);
 	if (buf == NULL) {
-		log_msg(LVL_ERROR, "Memory allocation failed when parsing file "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed when parsing file "
 		    "'%s'.", conf_path);
 		goto cleanup;
 	}
 	
 	ssize_t read_bytes = read_all(fd, buf, len);
 	if (read_bytes <= 0) {
-		log_msg(LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
 		    read_bytes);
 		goto cleanup;
 	}
@@ -313,7 +313,7 @@ cleanup:
  */
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
-	log_msg(LVL_DEBUG, "get_driver_info(base_path=\"%s\", name=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "get_driver_info(base_path=\"%s\", name=\"%s\")",
 	    base_path, name);
 	
 	assert(base_path != NULL && name != NULL && drv != NULL);
@@ -345,7 +345,7 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 	/* Check whether the driver's binary exists. */
 	struct stat s;
 	if (stat(drv->binary_path, &s) == ENOENT) { /* FIXME!! */
-		log_msg(LVL_ERROR, "Driver not found at path `%s'.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver not found at path `%s'.",
 		    drv->binary_path);
 		goto cleanup;
 	}
@@ -373,7 +373,7 @@ cleanup:
  */
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 {
-	log_msg(LVL_DEBUG, "lookup_available_drivers(dir=\"%s\")", dir_path);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "lookup_available_drivers(dir=\"%s\")", dir_path);
 	
 	int drv_cnt = 0;
 	DIR *dir = NULL;
@@ -407,7 +407,7 @@ bool create_root_nodes(dev_tree_t *tree)
 	fun_node_t *fun;
 	dev_node_t *dev;
 	
-	log_msg(LVL_DEBUG, "create_root_nodes()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "create_root_nodes()");
 	
 	fibril_rwlock_write_lock(&tree->rwlock);
 	
@@ -494,7 +494,7 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
  */
 void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
 {
-	log_msg(LVL_DEBUG, "attach_driver(dev=\"%s\",drv=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "attach_driver(dev=\"%s\",drv=\"%s\")",
 	    dev->pfun->pathname, drv->name);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
@@ -519,7 +519,7 @@ void detach_driver(dev_tree_t *tree, dev_node_t *dev)
 	
 	assert(drv != NULL);
 	
-	log_msg(LVL_DEBUG, "detach_driver(dev=\"%s\",drv=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "detach_driver(dev=\"%s\",drv=\"%s\")",
 	    dev->pfun->pathname, drv->name);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
@@ -544,11 +544,11 @@ bool start_driver(driver_t *drv)
 
 	assert(fibril_mutex_is_locked(&drv->driver_mutex));
 	
-	log_msg(LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
 	
 	rc = task_spawnl(NULL, drv->binary_path, drv->binary_path, NULL);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
 		    drv->name, drv->binary_path, str_error(rc));
 		return false;
 	}
@@ -593,7 +593,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	dev_node_t *dev;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
 	    driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
@@ -613,7 +613,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 			continue;
 		}
 
-		log_msg(LVL_DEBUG, "pass_devices_to_driver: dev->refcnt=%d\n",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "pass_devices_to_driver: dev->refcnt=%d\n",
 		    (int)atomic_get(&dev->refcnt));
 		dev_add_ref(dev);
 
@@ -649,7 +649,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * the driver would be added to the device list and started
 	 * immediately and possibly started here as well.
 	 */
-	log_msg(LVL_DEBUG, "Driver `%s' enters running state.", driver->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Driver `%s' enters running state.", driver->name);
 	driver->state = DRIVER_RUNNING;
 
 	fibril_mutex_unlock(&driver->driver_mutex);
@@ -666,7 +666,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
  */
 void initialize_running_driver(driver_t *driver, dev_tree_t *tree)
 {
-	log_msg(LVL_DEBUG, "initialize_running_driver(driver=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "initialize_running_driver(driver=\"%s\")",
 	    driver->name);
 	
 	/*
@@ -760,7 +760,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
 	 */
-	log_msg(LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
 	    drv->name, dev->pfun->name);
 	
 	/* Send the device to the driver. */
@@ -826,7 +826,7 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	 */
 	driver_t *drv = find_best_match_driver(drivers_list, dev);
 	if (drv == NULL) {
-		log_msg(LVL_ERROR, "No driver found for device `%s'.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "No driver found for device `%s'.",
 		    dev->pfun->pathname);
 		return false;
 	}
@@ -866,7 +866,7 @@ int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 	
 	assert(dev != NULL);
 	
-	log_msg(LVL_DEBUG, "driver_dev_remove(%p)", dev);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_remove(%p)", dev);
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
 	drv = dev->drv;
@@ -889,7 +889,7 @@ int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 	
 	assert(dev != NULL);
 	
-	log_msg(LVL_DEBUG, "driver_dev_gone(%p)", dev);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_gone(%p)", dev);
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
 	drv = dev->drv;
@@ -910,7 +910,7 @@ int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 	driver_t *drv;
 	devman_handle_t handle;
 	
-	log_msg(LVL_DEBUG, "driver_fun_online(%p)", fun);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_fun_online(%p)", fun);
 
 	fibril_rwlock_read_lock(&tree->rwlock);
 	
@@ -938,7 +938,7 @@ int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 	driver_t *drv;
 	devman_handle_t handle;
 	
-	log_msg(LVL_DEBUG, "driver_fun_offline(%p)", fun);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_fun_offline(%p)", fun);
 
 	fibril_rwlock_read_lock(&tree->rwlock);
 	if (fun->dev == NULL) {
@@ -969,7 +969,7 @@ int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
  */
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
-	log_msg(LVL_DEBUG, "init_device_tree()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "init_device_tree()");
 	
 	tree->current_handle = 0;
 	
@@ -1260,7 +1260,7 @@ static bool set_fun_path(dev_tree_t *tree, fun_node_t *fun, fun_node_t *parent)
 	
 	fun->pathname = (char *) malloc(pathsize);
 	if (fun->pathname == NULL) {
-		log_msg(LVL_ERROR, "Failed to allocate device path.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to allocate device path.");
 		return false;
 	}
 	
@@ -1288,7 +1288,7 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	log_msg(LVL_DEBUG, "insert_dev_node(dev=%p, pfun=%p [\"%s\"])",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "insert_dev_node(dev=%p, pfun=%p [\"%s\"])",
 	    dev, pfun, pfun->pathname);
 
 	/* Add the node to the handle-to-node map. */
@@ -1312,7 +1312,7 @@ void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	log_msg(LVL_DEBUG, "remove_dev_node(dev=%p)", dev);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "remove_dev_node(dev=%p)", dev);
 	
 	/* Remove node from the handle-to-node map. */
 	unsigned long key = dev->handle;

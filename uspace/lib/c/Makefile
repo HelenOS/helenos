@@ -102,6 +102,7 @@ GENERIC_SOURCES = \
 	generic/io/output.c \
 	generic/io/printf.c \
 	generic/io/log.c \
+	generic/io/logctl.c \
 	generic/io/klog.c \
 	generic/io/snprintf.c \
 	generic/io/vprintf.c \

@@ -33,10 +33,10 @@
 /** @file Substraction functions.
  */
 
-#include <sftypes.h>
-#include <sub.h>
-#include <comparison.h>
-#include <common.h>
+#include "sftypes.h"
+#include "sub.h"
+#include "comparison.h"
+#include "common.h"
 
 /** Subtract two single-precision floats with the same sign.
  *

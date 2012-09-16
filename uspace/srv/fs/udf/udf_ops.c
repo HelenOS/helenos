@@ -310,7 +310,7 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 	/* Check Volume Recognition Sequence */
 	rc = udf_volume_recongnition(service_id);
 	if (rc != EOK) {
-		log_msg(LVL_NOTE, "VRS failed");
+		log_msg(LOG_DEFAULT, LVL_NOTE, "VRS failed");
 		fs_instance_destroy(service_id);
 		free(instance);
 		block_fini(service_id);
@@ -321,21 +321,21 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 	udf_anchor_volume_descriptor_t avd;
 	rc = udf_get_anchor_volume_descriptor(service_id, &avd);
 	if (rc != EOK) {
-		log_msg(LVL_NOTE, "Anchor read failed");
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Anchor read failed");
 		fs_instance_destroy(service_id);
 		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
 	
-	log_msg(LVL_DEBUG,
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "Volume: Anchor volume descriptor found. Sector size=%" PRIu32,
 	    instance->sector_size);
-	log_msg(LVL_DEBUG,
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "Anchor: main sequence [length=%" PRIu32 " (bytes), start=%"
 	    PRIu32 " (sector)]", avd.main_extent.length,
 	    avd.main_extent.location);
-	log_msg(LVL_DEBUG,
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "Anchor: reserve sequence [length=%" PRIu32 " (bytes), start=%"
 	    PRIu32 " (sector)]", avd.reserve_extent.length,
 	    avd.reserve_extent.location);
@@ -352,7 +352,7 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 	/* Read Volume Descriptor Sequence */
 	rc = udf_read_volume_descriptor_sequence(service_id, avd.main_extent);
 	if (rc != EOK) {
-		log_msg(LVL_NOTE, "Volume Descriptor Sequence read failed");
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Volume Descriptor Sequence read failed");
 		fs_instance_destroy(service_id);
 		free(instance);
 		block_cache_fini(service_id);
@@ -363,7 +363,7 @@ static int udf_mounted(service_id_t service_id, const char *opts,
 	fs_node_t *rfn;
 	rc = udf_node_get(&rfn, service_id, instance->volumes[DEFAULT_VOL].root_dir);
 	if (rc != EOK) {
-		log_msg(LVL_NOTE, "Can't create root node");
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Can't create root node");
 		fs_instance_destroy(service_id);
 		free(instance);
 		block_cache_fini(service_id);

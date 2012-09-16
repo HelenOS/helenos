@@ -33,10 +33,10 @@
 /** @file Conversion of precision and conversion between integers and floats.
  */
 
-#include <sftypes.h>
-#include <conversion.h>
-#include <comparison.h>
-#include <common.h>
+#include "sftypes.h"
+#include "conversion.h"
+#include "comparison.h"
+#include "common.h"
 
 float64 float32_to_float64(float32 a)
 {

@@ -67,14 +67,14 @@ static int ethip_nic_check_new(void)
 
 	rc = loc_category_get_id("nic", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed resolving category 'nic'.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'nic'.");
 		fibril_mutex_unlock(&ethip_discovery_lock);
 		return ENOENT;
 	}
 
 	rc = loc_category_get_svcs(iplink_cat, &svcs, &count);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed getting list of IP links.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting list of IP links.");
 		fibril_mutex_unlock(&ethip_discovery_lock);
 		return EIO;
 	}
@@ -92,11 +92,11 @@ static int ethip_nic_check_new(void)
 		}
 
 		if (!already_known) {
-			log_msg(LVL_DEBUG, "Found NIC '%lu'",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Found NIC '%lu'",
 			    (unsigned long) svcs[i]);
 			rc = ethip_nic_open(svcs[i]);
 			if (rc != EOK)
-				log_msg(LVL_ERROR, "Could not open NIC.");
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not open NIC.");
 		}
 	}
 
@@ -109,7 +109,7 @@ static ethip_nic_t *ethip_nic_new(void)
 	ethip_nic_t *nic = calloc(1, sizeof(ethip_nic_t));
 
 	if (nic == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating NIC structure. "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating NIC structure. "
 		    "Out of memory.");
 		return NULL;
 	}
@@ -125,7 +125,7 @@ static ethip_link_addr_t *ethip_nic_addr_new(iplink_srv_addr_t *addr)
 	ethip_link_addr_t *laddr = calloc(1, sizeof(ethip_link_addr_t));
 
 	if (laddr == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating NIC address structure. "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating NIC address structure. "
 		    "Out of memory.");
 		return NULL;
 	}
@@ -152,20 +152,20 @@ static int ethip_nic_open(service_id_t sid)
 	bool in_list = false;
 	nic_address_t nic_address;
 	
-	log_msg(LVL_DEBUG, "ethip_nic_open()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_open()");
 	ethip_nic_t *nic = ethip_nic_new();
 	if (nic == NULL)
 		return ENOMEM;
 	
 	int rc = loc_service_get_name(sid, &nic->svc_name);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed getting service name.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting service name.");
 		goto error;
 	}
 	
 	nic->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
 	if (nic->sess == NULL) {
-		log_msg(LVL_ERROR, "Failed connecting '%s'", nic->svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting '%s'", nic->svc_name);
 		goto error;
 	}
 	
@@ -173,12 +173,12 @@ static int ethip_nic_open(service_id_t sid)
 	
 	rc = nic_callback_create(nic->sess, ethip_nic_cb_conn, nic);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed creating callback connection "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating callback connection "
 		    "from '%s'", nic->svc_name);
 		goto error;
 	}
 
-	log_msg(LVL_DEBUG, "Opened NIC '%s'", nic->svc_name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened NIC '%s'", nic->svc_name);
 	list_append(&nic->nic_list, &ethip_nic_list);
 	in_list = true;
 
@@ -188,7 +188,7 @@ static int ethip_nic_open(service_id_t sid)
 
 	rc = nic_get_address(nic->sess, &nic_address);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Error getting MAC address of NIC '%s'.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting MAC address of NIC '%s'.",
 		    nic->svc_name);
 		goto error;
 	}
@@ -197,12 +197,12 @@ static int ethip_nic_open(service_id_t sid)
 
 	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Error activating NIC '%s'.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error activating NIC '%s'.",
 		    nic->svc_name);
 		goto error;
 	}
 
-	log_msg(LVL_DEBUG, "Initialized IP link service, MAC = 0x%" PRIx64,
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service, MAC = 0x%" PRIx64,
 	    nic->mac_addr.addr);
 
 	return EOK;
@@ -224,7 +224,7 @@ static void ethip_nic_cat_change_cb(void)
 static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	log_msg(LVL_DEBUG, "ethip_nic_addr_changed()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_changed()");
 	async_answer_0(callid, ENOTSUP);
 }
 
@@ -235,30 +235,30 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 	void *data;
 	size_t size;
 
-	log_msg(LVL_DEBUG, "ethip_nic_received() nic=%p", nic);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_received() nic=%p", nic);
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
-		log_msg(LVL_DEBUG, "data_write_accept() failed");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "data_write_accept() failed");
 		return;
 	}
 
-	log_msg(LVL_DEBUG, "Ethernet PDU contents (%zu bytes)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Ethernet PDU contents (%zu bytes)",
 	    size);
 
-	log_msg(LVL_DEBUG, "call ethip_received");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "call ethip_received");
 	rc = ethip_received(&nic->iplink, data, size);
-	log_msg(LVL_DEBUG, "free data");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "free data");
 	free(data);
 
-	log_msg(LVL_DEBUG, "ethip_nic_received() done, rc=%d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_received() done, rc=%d", rc);
 	async_answer_0(callid, rc);
 }
 
 static void ethip_nic_device_state(ethip_nic_t *nic, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	log_msg(LVL_DEBUG, "ethip_nic_device_state()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_device_state()");
 	async_answer_0(callid, ENOTSUP);
 }
 
@@ -266,7 +266,7 @@ static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	ethip_nic_t *nic = (ethip_nic_t *)arg;
 
-	log_msg(LVL_DEBUG, "ethnip_nic_cb_conn()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethnip_nic_cb_conn()");
 
 	while (true) {
 		ipc_call_t call;
@@ -297,7 +297,7 @@ int ethip_nic_discovery_start(void)
 {
 	int rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering callback for NIC "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for NIC "
 		    "discovery (%d).", rc);
 		return rc;
 	}
@@ -307,30 +307,30 @@ int ethip_nic_discovery_start(void)
 
 ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 {
-	log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid(%u)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid(%u)",
 	    (unsigned) iplink_sid);
 
 	list_foreach(ethip_nic_list, link) {
-		log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - element");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - element");
 		ethip_nic_t *nic = list_get_instance(link, ethip_nic_t,
 		    nic_list);
 
 		if (nic->iplink_sid == iplink_sid) {
-			log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - found %p", nic);
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - found %p", nic);
 			return nic;
 		}
 	}
 
-	log_msg(LVL_DEBUG, "ethip_nic_find_by_iplink_sid - not found");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - not found");
 	return NULL;
 }
 
 int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 {
 	int rc;
-	log_msg(LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
 	rc = nic_send_frame(nic->sess, data, size);
-	log_msg(LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "nic_send_frame -> %d", rc);
 	return rc;
 }
 
@@ -338,7 +338,7 @@ int ethip_nic_addr_add(ethip_nic_t *nic, iplink_srv_addr_t *addr)
 {
 	ethip_link_addr_t *laddr;
 
-	log_msg(LVL_DEBUG, "ethip_nic_addr_add()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_add()");
 	laddr = ethip_nic_addr_new(addr);
 	if (laddr == NULL)
 		return ENOMEM;
@@ -351,7 +351,7 @@ int ethip_nic_addr_remove(ethip_nic_t *nic, iplink_srv_addr_t *addr)
 {
 	ethip_link_addr_t *laddr;
 
-	log_msg(LVL_DEBUG, "ethip_nic_addr_remove()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_remove()");
 
 	laddr = ethip_nic_addr_find(nic, addr);
 	if (laddr == NULL)
@@ -365,7 +365,7 @@ int ethip_nic_addr_remove(ethip_nic_t *nic, iplink_srv_addr_t *addr)
 ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
     iplink_srv_addr_t *addr)
 {
-	log_msg(LVL_DEBUG, "ethip_nic_addr_find()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_find()");
 
 	list_foreach(nic->addr_list, link) {
 		ethip_link_addr_t *laddr = list_get_instance(link,

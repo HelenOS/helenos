@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB HID driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return usb_driver_main(&usb_hid_driver);
 }

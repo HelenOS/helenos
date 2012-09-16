@@ -73,7 +73,8 @@ INIT_TASKS = \
 	$(USPACE_PATH)/app/init/init \
 	$(USPACE_PATH)/srv/locsrv/locsrv \
 	$(USPACE_PATH)/srv/bd/rd/rd \
-	$(USPACE_PATH)/srv/vfs/vfs
+	$(USPACE_PATH)/srv/vfs/vfs \
+	$(USPACE_PATH)/srv/logger/logger
 
 ifeq ($(RDFMT),tmpfs)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/tmpfs/tmpfs
@@ -169,10 +170,10 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/loc/loc \
+	$(USPACE_PATH)/app/logset/logset \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkexfat/mkexfat \
 	$(USPACE_PATH)/app/mkmfs/mkmfs \
-	$(USPACE_PATH)/app/lsusb/lsusb \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/sportdmp/sportdmp \
 	$(USPACE_PATH)/app/redir/redir \
