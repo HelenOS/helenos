@@ -143,7 +143,7 @@ fun_rtc(ddf_fun_t *fun)
 static void
 rtc_init(void)
 {
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 
 	rtc_dev_ops.open = rtc_open;
 	rtc_dev_ops.close = rtc_close;
