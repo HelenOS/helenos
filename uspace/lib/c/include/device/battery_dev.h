@@ -39,7 +39,7 @@
 
 typedef enum {
 	BATTERY_OK,
-	BATTERY_EXHAUSTED,
+	BATTERY_LOW,
 	BATTERY_NOT_PRESENT,
 } battery_status_t;
 
