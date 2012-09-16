@@ -81,6 +81,8 @@ typedef struct rtc {
 
 static rtc_t *dev_rtc(ddf_dev_t *dev);
 static rtc_t *fun_rtc(ddf_fun_t *fun);
+static int
+rtc_battery_status_get(ddf_fun_t *fun, battery_status_t *status);
 static int  rtc_time_get(ddf_fun_t *fun, struct tm *t);
 static int  rtc_time_set(ddf_fun_t *fun, struct tm *t);
 static int  rtc_dev_add(ddf_dev_t *dev);
@@ -119,7 +121,7 @@ static clock_dev_ops_t rtc_clock_dev_ops = {
 
 /** Battery powered device interface */
 static battery_dev_ops_t rtc_battery_dev_ops = {
-	.battery_status_get = NULL,
+	.battery_status_get = rtc_battery_status_get,
 	.battery_charge_level_get = NULL,
 };
 
@@ -498,6 +500,25 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	rtc_register_write(rtc, RTC_STATUS_A, reg_a);
 
 	fibril_mutex_unlock(&rtc->mutex);
+
+	return EOK;
+}
+
+/** Get the status of the real time clock battery
+ *
+ * @param fun    The RTC function
+ * @param status The status of the battery
+ *
+ * @return       EOK on success or a negative error code
+ */
+static int
+rtc_battery_status_get(ddf_fun_t *fun, battery_status_t *status)
+{
+	rtc_t *rtc = fun_rtc(fun);
+	const bool batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
+	    RTC_D_BATTERY_OK;
+
+	*status = batt_ok ? BATTERY_OK : BATTERY_LOW;
 
 	return EOK;
 }
