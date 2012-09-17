@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,80 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+ /** @addtogroup libc
  * @{
  */
-
 /** @file
  */
 
-#include <assert.h>
+#include <ipc/dev_iface.h>
+#include <device/clock_dev.h>
+#include <errno.h>
+#include <async.h>
+#include <time.h>
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_clock_dev.h"
-#include "remote_battery_dev.h"
-#include "remote_graph_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_ahci.h"
-
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_graph_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_clock_dev_iface,
-		&remote_battery_dev_iface,
-		&remote_ahci_iface
-	}
-};
-
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
-
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
-
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
-
-/**
- * @}
+/** Read the current time from the device
+ *
+ * @param sess     Session of the device
+ * @param t        The current time that will be read from the device
+ *
+ * @return         EOK on success or a negative error code
  */
+int
+clock_dev_time_get(async_sess_t *sess, struct tm *t)
+{
+	aid_t req;
+	int ret;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	req = async_send_1(exch, DEV_IFACE_ID(CLOCK_DEV_IFACE),
+	    CLOCK_DEV_TIME_GET, NULL);
+	ret = async_data_read_start(exch, t, sizeof(*t));
+
+	async_exchange_end(exch);
+
+	sysarg_t rc;
+	if (ret != EOK) {
+		async_forget(req);
+		return ret;
+	}
+
+	async_wait_for(req, &rc);
+	return (int)rc;
+}
+
+/** Set the current time
+ *
+ * @param sess   Session of the device
+ * @param t      The current time that will be written to the device
+ *
+ * @return       EOK on success or a negative error code
+ */
+int
+clock_dev_time_set(async_sess_t *sess, struct tm *t)
+{
+	aid_t req;
+	int ret;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	req = async_send_1(exch, DEV_IFACE_ID(CLOCK_DEV_IFACE),
+	    CLOCK_DEV_TIME_SET, NULL);
+	ret = async_data_write_start(exch, t, sizeof(*t));
+
+	async_exchange_end(exch);
+
+	sysarg_t rc;
+	if (ret != EOK) {
+		async_forget(req);
+		return ret;
+	}
+
+	async_wait_for(req, &rc);
+	return (int)rc;
+}
+
+/** @}
+ */
+

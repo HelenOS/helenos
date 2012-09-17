@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+ /** @addtogroup libc
  * @{
  */
-
 /** @file
  */
 
-#include <assert.h>
+#include <ipc/dev_iface.h>
+#include <device/battery_dev.h>
+#include <errno.h>
+#include <async.h>
+#include <time.h>
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_clock_dev.h"
-#include "remote_battery_dev.h"
-#include "remote_graph_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_ahci.h"
-
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_graph_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_clock_dev_iface,
-		&remote_battery_dev_iface,
-		&remote_ahci_iface
-	}
-};
-
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
-
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
-
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
-
-/**
- * @}
+/** Read the current battery status from the device
+ *
+ * @param sess     Session of the device
+ * @param status   Current status of the battery
+ *
+ * @return         EOK on success or a negative error code
  */
+int
+battery_status_get(async_sess_t *sess, battery_status_t *batt_status)
+{
+	sysarg_t status;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	int const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
+	    BATTERY_STATUS_GET, &status);
+
+	async_exchange_end(exch);
+
+	if (rc == EOK)
+		*batt_status = (battery_status_t) status;
+
+	return rc;
+}
+
+/** Read the current battery charge level from the device
+ *
+ * @param sess     Session of the device
+ * @param level    Battery charge level (0 - 100)
+ *
+ * @return         EOK on success or a negative error code
+ */
+int
+battery_charge_level_get(async_sess_t *sess, int *level)
+{
+	sysarg_t charge_level;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	int const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
+	    BATTERY_CHARGE_LEVEL_GET, &charge_level);
+
+	async_exchange_end(exch);
+
+	if (rc == EOK)
+		*level = (int) charge_level;
+
+	return rc;
+}
+
+/** @}
+ */
+

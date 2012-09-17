@@ -62,23 +62,8 @@
 	#endif
 #endif
 
-#undef ASCTIME_BUF_LEN
-#define ASCTIME_BUF_LEN 26
-
 #undef CLOCK_REALTIME
 #define CLOCK_REALTIME ((posix_clockid_t) 0)
-
-struct posix_tm {
-	int tm_sec;         /* Seconds [0,60]. */
-	int tm_min;         /* Minutes [0,59]. */
-	int tm_hour;        /* Hour [0,23]. */
-	int tm_mday;        /* Day of month [1,31]. */
-	int tm_mon;         /* Month of year [0,11]. */
-	int tm_year;        /* Years since 1900. */
-	int tm_wday;        /* Day of week [0,6] (Sunday = 0). */
-	int tm_yday;        /* Day of year [0,365]. */
-	int tm_isdst;       /* Daylight Savings flag. */
-};
 
 struct posix_timespec {
 	time_t tv_sec; /* Seconds. */
@@ -98,26 +83,20 @@ extern long posix_timezone;
 extern char *posix_tzname[2];
 extern void posix_tzset(void);
 
-/* Elapsed Time */
-extern double posix_difftime(time_t time1, time_t time0);
-
 /* Broken-down Time */
-extern time_t posix_mktime(struct posix_tm *tm);
-extern struct posix_tm *posix_gmtime(const time_t *timer);
-extern struct posix_tm *posix_gmtime_r(const time_t *restrict timer,
-    struct posix_tm *restrict result);
-extern struct posix_tm *posix_localtime(const time_t *timer);
-extern struct posix_tm *posix_localtime_r(const time_t *restrict timer,
-    struct posix_tm *restrict result);
+extern struct tm *posix_gmtime_r(const time_t *restrict timer,
+    struct tm *restrict result);
+extern struct tm *posix_gmtime(const time_t *restrict timep);
+extern struct tm *posix_localtime_r(const time_t *restrict timer,
+    struct tm *restrict result);
+extern struct tm *posix_localtime(const time_t *restrict timep);
 
 /* Formatting Calendar Time */
-extern char *posix_asctime(const struct posix_tm *timeptr);
-extern char *posix_asctime_r(const struct posix_tm *restrict timeptr,
+extern char *posix_asctime_r(const struct tm *restrict timeptr,
     char *restrict buf);
-extern char *posix_ctime(const time_t *timer);
+extern char *posix_asctime(const struct tm *restrict timeptr);
 extern char *posix_ctime_r(const time_t *timer, char *buf);
-extern size_t posix_strftime(char *restrict s, size_t maxsize,
-    const char *restrict format, const struct posix_tm *restrict tm);
+extern char *posix_ctime(const time_t *timer);
 
 /* Clocks */
 extern int posix_clock_getres(posix_clockid_t clock_id,
@@ -133,29 +112,24 @@ extern int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
 extern posix_clock_t posix_clock(void);
 
 #ifndef LIBPOSIX_INTERNAL
-	#define tm posix_tm
-	#define timespec posix_timespec
-	#define itimerspec posix_itimerspec
-	#define timer_t posix_timer_t
+	#define timespec    posix_timespec
+	#define itimerspec  posix_itimerspec
+	#define timer_t     posix_timer_t
 
-	#define daylight posix_daylight
-	#define timezone posix_timezone
-	#define tzname posix_tzname
-	#define tzset posix_tzset
+	#define daylight    posix_daylight
+	#define timezone    posix_timezone
+	#define tzname      posix_tzname
+	#define tzset       posix_tzset
 
-	#define difftime posix_difftime
-
-	#define mktime posix_mktime
-	#define gmtime posix_gmtime
-	#define gmtime_r posix_gmtime_r
-	#define localtime posix_localtime
+	#define gmtime_r    posix_gmtime_r
+	#define gmtime      posix_gmtime
 	#define localtime_r posix_localtime_r
+	#define localtime   posix_localtime
 
-	#define asctime posix_asctime
-	#define asctime_r posix_asctime_r
-	#define ctime posix_ctime
-	#define ctime_r posix_ctime_r
-	#define strftime posix_strftime
+	#define asctime_r   posix_asctime_r
+	#define asctime     posix_asctime
+	#define ctime_r     posix_ctime_r
+	#define ctime       posix_ctime
 
 	#define clock_getres posix_clock_getres
 	#define clock_gettime posix_clock_gettime

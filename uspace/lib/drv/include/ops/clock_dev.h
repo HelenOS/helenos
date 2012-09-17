@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libdrv
  * @{
  */
-
 /** @file
  */
 
-#include <assert.h>
+#ifndef LIBDRV_OPS_CLOCK_DEV_H_
+#define LIBDRV_OPS_CLOCK_DEV_H_
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_clock_dev.h"
-#include "remote_battery_dev.h"
-#include "remote_graph_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_ahci.h"
+#include <time.h>
+#include "../ddf/driver.h"
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_graph_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_clock_dev_iface,
-		&remote_battery_dev_iface,
-		&remote_ahci_iface
-	}
-};
+typedef struct {
+	int (*time_get)(ddf_fun_t *, struct tm *);
+	int (*time_set)(ddf_fun_t *, struct tm *);
+} clock_dev_ops_t;
 
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
-
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
-
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
+#endif
 
 /**
  * @}

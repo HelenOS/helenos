@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
- * @{
- */
+#ifndef _CMOS_RTC_H_
+#define _CMOS_RTC_H_
 
-/** @file
- */
+#define RTC_SEC           0x00
+#define RTC_MIN           0x02
+#define RTC_HOUR          0x04
+#define RTC_DAY           0x07
+#define RTC_MON           0x08
+#define RTC_YEAR          0x09
 
-#include <assert.h>
+#define RTC_STATUS_B      0x0B
+#define RTC_B_24H         0x02 /* 24h mode */
+#define RTC_B_BCD         0x04 /* BCD mode */
+#define RTC_B_INH         0x80 /* Inhibit updates */
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_clock_dev.h"
-#include "remote_battery_dev.h"
-#include "remote_graph_dev.h"
-#include "remote_nic.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
-#include "remote_ahci.h"
+#define RTC_STATUS_D      0x0D
+#define RTC_D_BATTERY_OK  0x80 /* Battery status */
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_graph_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_clock_dev_iface,
-		&remote_battery_dev_iface,
-		&remote_ahci_iface
-	}
-};
+#define RTC_STATUS_A      0x0A
+#define RTC_A_UPDATE      0x80 /* Update in progress */
+#define RTC_A_CLK_STOP    0x70 /* Stop the clock */
 
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+#endif
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count)
-		return NULL;
-	
-	return rem_iface->methods[iface_method_idx];
-}
-
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
-
-/**
- * @}
- */

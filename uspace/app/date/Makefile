@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2012 Maurizio Lombardi
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
-BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-AFLAGS = -a32
+USPACE_PREFIX = ../..
+BINARY = date
 
-ENDIANESS = BE
+SOURCES = \
+	date.c
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc:common
+include $(USPACE_PREFIX)/Makefile.common
