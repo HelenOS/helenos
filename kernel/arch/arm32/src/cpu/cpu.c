@@ -115,7 +115,7 @@ void cpu_arch_init(void)
 	/* Disable alignment checks */
 	control_reg &= ~CP15_R1_ALIGN_CHECK_EN;
 	/* Enable caching */
-	control_reg |= CP15_R1_CACHE_EN;
+	control_reg |= CP15_R1_CACHE_EN | CP15_R1_INST_CACHE_EN;
 	
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
