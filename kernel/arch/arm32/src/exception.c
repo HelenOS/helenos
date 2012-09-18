@@ -142,7 +142,7 @@ static void high_vectors(void)
 	);
 	
 	/* switch on the high vectors bit */
-	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
+	control_reg |= CP15_R1_HIGH_VECTORS_EN;
 	
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"

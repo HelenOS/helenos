@@ -107,11 +107,15 @@ void cpu_arch_init(void)
 	);
 	
 	/* Turn off tex remap */
-	control_reg &= ~CP15_R1_TRE_BIT;
+	control_reg &= ~CP15_R1_TEX_REMAP_EN;
 	/* Turn off accessed flag */
-	control_reg &= ~(CP15_R1_AFE_BIT | CP15_R1_HA_ENABLE_BIT | CP15_R1_ALIGNMENT_ENABLE_BIT);
+	control_reg &= ~(CP15_R1_ACCESS_FLAG_EN | CP15_R1_HW_ACCESS_FLAG_EN);
+	/* Enable unaligned access (U bit is armv6 only) */
+	control_reg |= CP15_R1_UNALIGNED_EN;
+	/* Disable alignment checks */
+	control_reg &= ~CP15_R1_ALIGN_CHECK_EN;
 	/* Enable caching */
-	control_reg |= CP15_R1_CACHE_ENABLE_BIT;
+	control_reg |= CP15_R1_CACHE_EN;
 	
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
