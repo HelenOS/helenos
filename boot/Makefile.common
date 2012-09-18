@@ -197,9 +197,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv \
 	$(USPACE_PATH)/app/date/date \
-	$(USPACE_PATH)/app/vdemo/vdemo \
-	$(USPACE_PATH)/app/vlaunch/vlaunch \
-	$(USPACE_PATH)/app/vterm/vterm \
 	$(USPACE_PATH)/app/vdemo/vdemo
 
 ifeq ($(CONFIG_PCC),y)

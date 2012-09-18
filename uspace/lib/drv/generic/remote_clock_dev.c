@@ -84,7 +84,7 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 
 	if (!clock_dev_ops->time_get) {
 		/* The driver does not provide the time_get() functionality */
-		async_data_read_finalize(cid, NULL, 0);
+		async_answer_0(cid, ENOTSUP);
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
@@ -93,7 +93,7 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 
 	if (rc != EOK) {
 		/* Some error occurred */
-		async_data_read_finalize(cid, NULL, 0);
+		async_answer_0(cid, rc);
 		async_answer_0(callid, rc);
 		return;
 	}
