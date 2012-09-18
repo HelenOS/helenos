@@ -95,10 +95,12 @@ static void bbxm_setup_fb(unsigned width, unsigned height, unsigned bpp)
 		frame *= 2;
 		++order;
 	}
-	printf("Allocating %d (2^%d) frames.\n", size, order);
 	/* prefer highmem as we don't care about virtual mapping. */
 	void *buffer = frame_alloc(order, FRAME_LOWMEM);
-	ASSERT(buffer);
+	if (!buffer) {
+		printf("Failed to allocate framebuffer.\n");
+		return;
+	}
 
 	amdm37x_dispc_setup_fb(beagleboard.dispc, width, height, bpp,
 	    (uintptr_t) buffer);
