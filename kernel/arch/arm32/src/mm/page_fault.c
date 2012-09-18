@@ -75,8 +75,7 @@ typedef enum {
 
 static inline const char * dfsr_source_to_str(dfsr_source_t source)
 {
-	switch (source)
-	{
+	switch (source)	{
 	case DFSR_SOURCE_TRANSLATION_L1:
 		return "Translation fault L1";
 	case DFSR_SOURCE_TRANSLATION_L2:
@@ -248,8 +247,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
 	const fault_status_t fsr = read_data_fault_status_register();
 	const dfsr_source_t source = fsr.raw & DFSR_SOURCE_MASK;
 
-	switch (source)
-	{
+	switch (source)	{
 	case DFSR_SOURCE_TRANSLATION_L1:
 	case DFSR_SOURCE_TRANSLATION_L2:
 	case DFSR_SOURCE_PERMISSION_L1:
