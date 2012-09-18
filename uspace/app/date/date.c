@@ -40,7 +40,6 @@
 
 static int read_date_from_arg(char *wdate, struct tm *t);
 static int read_time_from_arg(char *wdate, struct tm *t);
-static int read_num_from_str(char *str, size_t len, int *n);
 static int tm_sanity_check(struct tm *t);
 static bool is_leap_year(int year);
 
@@ -201,6 +200,7 @@ static int
 read_date_from_arg(char *wdate, struct tm *t)
 {
 	int rc;
+	uint32_t tmp;
 
 	if (str_size(wdate) != 10) /* str_size("DD/MM/YYYY") == 10 */
 		return EINVAL;
@@ -210,17 +210,21 @@ read_date_from_arg(char *wdate, struct tm *t)
 		return EINVAL;
 	}
 
-	rc = read_num_from_str(&wdate[0], 2, &t->tm_mday);
+	rc = str_uint32_t(&wdate[0], NULL, 10, false, &tmp);
 	if (rc != EOK)
 		return rc;
 
-	rc = read_num_from_str(&wdate[3], 2, &t->tm_mon);
+	t->tm_mday = tmp;
+
+	rc = str_uint32_t(&wdate[3], NULL, 10, false, &tmp);
 	if (rc != EOK)
 		return rc;
-	t->tm_mon--;
 
-	rc = read_num_from_str(&wdate[6], 4, &t->tm_year);
-	t->tm_year -= 1900;
+	t->tm_mon = tmp - 1;
+
+	rc = str_uint32_t(&wdate[6], NULL, 10, false, &tmp);
+	t->tm_year = tmp - 1900;
+
 	return rc;
 }
 
@@ -233,6 +237,7 @@ read_time_from_arg(char *wtime, struct tm *t)
 	int rc;
 	size_t len = str_size(wtime);
 	bool sec_present = len == 8;
+	uint32_t tmp;
 
 	/* str_size("HH:MM") == 5 */
 	/* str_size("HH:MM:SS") == 8 */
@@ -245,37 +250,25 @@ read_time_from_arg(char *wtime, struct tm *t)
 	if (wtime[2] != ':')
 		return EINVAL;
 
-	rc = read_num_from_str(&wtime[0], 2, &t->tm_hour);
+	rc = str_uint32_t(&wtime[0], NULL, 10, false, &tmp);
 	if (rc != EOK)
 		return rc;
 
-	rc = read_num_from_str(&wtime[3], 2, &t->tm_min);
+	t->tm_hour = tmp;
+
+	rc = str_uint32_t(&wtime[3], NULL, 10, false, &tmp);
 	if (rc != EOK)
 		return rc;
 
-	if (sec_present)
-		rc = read_num_from_str(&wtime[6], 2, &t->tm_sec);
-	else
+	t->tm_min = tmp;
+
+	if (sec_present) {
+		rc = str_uint32_t(&wtime[6], NULL, 10, false, &tmp);
+		t->tm_sec = tmp;
+	} else
 		t->tm_sec = 0;
 
 	return rc;
-}
-
-static int
-read_num_from_str(char *str, size_t len, int *n)
-{
-	size_t i;
-
-	*n = 0;
-
-	for (i = 0; i < len; ++i, ++str) {
-		if (!isdigit(*str))
-			return EINVAL;
-		*n *= 10;
-		*n += *str - '0';
-	}
-
-	return EOK;
 }
 
 /** Check if the tm structure contains valid values
