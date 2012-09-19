@@ -62,7 +62,7 @@
 #define CP15_R1_NMFI_EN           (1 << 27)
 #define CP15_R1_TEX_REMAP_EN      (1 << 28)
 #define CP15_R1_ACCESS_FLAG_EN    (1 << 29)
-#define CP15_r1_THUMB_EXC_EN      (1 << 30)
+#define CP15_R1_THUMB_EXC_EN      (1 << 30)
 
 /* ARM Processor Operation Modes */
 #define USER_MODE        0x10
