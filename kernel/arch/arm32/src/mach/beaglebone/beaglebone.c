@@ -34,9 +34,11 @@
 
 #include <arch/exception.h>
 #include <arch/mach/beaglebone/beaglebone.h>
+#include <genarch/drivers/am335x_irc/am335x_irc.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
+#include <mm/km.h>
 
 static void bbone_init(void);
 static void bbone_timer_irq_start(void);
@@ -48,6 +50,10 @@ static void bbone_output_init(void);
 static void bbone_input_init(void);
 static size_t bbone_get_irq_count(void);
 static const char *bbone_get_platform_name(void);
+
+static struct beaglebone {
+	am335x_irc_regs_t *irc_addr;
+} bbone;
 
 struct arm_machine_ops bbone_machine_ops = {
 	bbone_init,
@@ -64,6 +70,11 @@ struct arm_machine_ops bbone_machine_ops = {
 
 static void bbone_init(void)
 {
+	/* Initialize the interrupt controller */
+	bbone.irc_addr = (void *) km_map(AM335x_IRC_BASE_ADDRESS,
+	    AM335x_IRC_SIZE, PAGE_NOT_CACHEABLE);
+
+	am335x_irc_init(bbone.irc_addr);
 }
 
 static void bbone_timer_irq_start(void)
