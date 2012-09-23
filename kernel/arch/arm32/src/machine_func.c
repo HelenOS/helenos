@@ -41,6 +41,7 @@
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <arch/mach/testarm/testarm.h>
+#include <arch/mach/beagleboardxm/beagleboardxm.h>
 #include <arch/mach/beaglebone/beaglebone.h>
 
 /** Pointer to machine_ops structure being used. */
