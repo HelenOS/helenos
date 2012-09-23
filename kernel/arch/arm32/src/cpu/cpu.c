@@ -96,22 +96,39 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 	cpu->rev_num = (ident << 28) >> 28;
 }
 
-/** Does nothing on ARM. */
+/** Enables unaligned access and caching for armv6+ */
 void cpu_arch_init(void)
 {
-#if defined(PROCESSOR_armv7_a)
+#if defined(PROCESSOR_armv7_a) | defined(PROCESSOR_armv6)
 	uint32_t control_reg = 0;
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"
 		: [control_reg] "=r" (control_reg)
 	);
 	
-	/* Turn off tex remap */
-	control_reg &= ~CP15_R1_TRE_BIT;
-	/* Turn off accessed flag */
-	control_reg &= ~(CP15_R1_AFE_BIT | CP15_R1_HA_ENABLE_BIT);
-	/* Enable caching */
-	control_reg |= CP15_R1_CACHE_ENABLE_BIT;
+	/* Turn off tex remap, RAZ ignores writes prior to armv7 */
+	control_reg &= ~CP15_R1_TEX_REMAP_EN;
+	/* Turn off accessed flag, RAZ ignores writes prior to armv7 */
+	control_reg &= ~(CP15_R1_ACCESS_FLAG_EN | CP15_R1_HW_ACCESS_FLAG_EN);
+	/* Enable unaligned access, RAZ ignores writes prior to armv6
+	 * switchable on armv6, RAO ignores writes on armv7,
+	 * see ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
+	 * L.3.1 (p. 2456) */
+	control_reg |= CP15_R1_UNALIGNED_EN;
+	/* Disable alignment checks, this turns unaligned access to undefined,
+	 * unless U bit is set. */
+	control_reg &= ~CP15_R1_ALIGN_CHECK_EN;
+	/* Enable caching, On arm prior to armv7 there is only one level
+	 * of caches. Data cache is coherent.
+	 * "This means that the behavior of accesses from the same observer to
+	 * different VAs, that are translated to the same PA
+	 * with the same memory attributes, is fully coherent."
+	 *    ARM Architecture Reference Manual ARMv7-A and ARMv7-R Edition
+	 *    B3.11.1 (p. 1383)
+	 * ICache coherency is elaborate on in barrier.h.
+	 * We are safe to turn these on.
+	 */
+	control_reg |= CP15_R1_CACHE_EN | CP15_R1_INST_CACHE_EN;
 	
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
@@ -121,7 +138,7 @@ void cpu_arch_init(void)
 }
 
 /** Retrieves processor identification and stores it to #CPU.arch */
-void cpu_identify(void) 
+void cpu_identify(void)
 {
 	arch_cpu_identify(&CPU->arch);
 }

@@ -41,6 +41,92 @@
 #include <interrupt.h>
 #include <print.h>
 
+
+/**
+ * FSR encoding ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition.
+ *
+ * B3.13.3 page B3-1406 (PDF page 1406)
+ */
+typedef enum {
+	DFSR_SOURCE_ALIGN = 0x0001,
+	DFSR_SOURCE_CACHE_MAINTENANCE = 0x0004,
+	DFSR_SOURCE_SYNC_EXTERNAL_TRANSLATION_L1 = 0x000c,
+	DFSR_SOURCE_SYNC_EXTERNAL_TRANSLATION_L2 = 0x000e,
+	DFSR_SOURCE_SYNC_PARITY_TRANSLATION_L1 = 0x040c,
+	DFSR_SOURCE_SYNC_PARITY_TRANSLATION_L2 = 0x040e,
+	DFSR_SOURCE_TRANSLATION_L1 = 0x0005,
+	DFSR_SOURCE_TRANSLATION_L2 = 0x0007,
+	DFSR_SOURCE_ACCESS_FLAG_L1 = 0x0003,  /**< @note: This used to be alignment enc. */
+	DFSR_SOURCE_ACCESS_FLAG_L2 = 0x0006,
+	DFSR_SOURCE_DOMAIN_L1 = 0x0009,
+	DFSR_SOURCE_DOMAIN_L2 = 0x000b,
+	DFSR_SOURCE_PERMISSION_L1 = 0x000d,
+	DFSR_SOURCE_PERMISSION_L2 = 0x000f,
+	DFSR_SOURCE_DEBUG = 0x0002,
+	DFSR_SOURCE_SYNC_EXTERNAL = 0x0008,
+	DFSR_SOURCE_TLB_CONFLICT = 0x0400,
+	DFSR_SOURCE_LOCKDOWN = 0x0404, /**< @note: Implementation defined */
+	DFSR_SOURCE_COPROCESSOR = 0x040a, /**< @note Implementation defined */
+	DFSR_SOURCE_SYNC_PARITY = 0x0409,
+	DFSR_SOURCE_ASYNC_EXTERNAL = 0x0406,
+	DFSR_SOURCE_ASYNC_PARITY = 0x0408,
+	DFSR_SOURCE_MASK = 0x0000040f,
+} dfsr_source_t;
+
+static inline const char * dfsr_source_to_str(dfsr_source_t source)
+{
+	switch (source)	{
+	case DFSR_SOURCE_TRANSLATION_L1:
+		return "Translation fault L1";
+	case DFSR_SOURCE_TRANSLATION_L2:
+		return "Translation fault L2";
+	case DFSR_SOURCE_PERMISSION_L1:
+		return "Permission fault L1";
+	case DFSR_SOURCE_PERMISSION_L2:
+		return "Permission fault L2";
+	case DFSR_SOURCE_ALIGN:
+		return "Alignment fault";
+	case DFSR_SOURCE_CACHE_MAINTENANCE:
+		return "Instruction cache maintenance fault";
+	case DFSR_SOURCE_SYNC_EXTERNAL_TRANSLATION_L1:
+		return "Synchronous external abort on translation table walk level 1";
+	case DFSR_SOURCE_SYNC_EXTERNAL_TRANSLATION_L2:
+		return "Synchronous external abort on translation table walk level 2";
+	case DFSR_SOURCE_SYNC_PARITY_TRANSLATION_L1:
+		return "Synchronous parity error on translation table walk level 1";
+	case DFSR_SOURCE_SYNC_PARITY_TRANSLATION_L2:
+		return "Synchronous parity error on translation table walk level 2";
+	case DFSR_SOURCE_ACCESS_FLAG_L1:
+		return "Access flag fault L1";
+	case DFSR_SOURCE_ACCESS_FLAG_L2:
+		return "Access flag fault L2";
+	case DFSR_SOURCE_DOMAIN_L1:
+		return "Domain fault L1";
+	case DFSR_SOURCE_DOMAIN_L2:
+		return "Domain flault L2";
+	case DFSR_SOURCE_DEBUG:
+		return "Debug event";
+	case DFSR_SOURCE_SYNC_EXTERNAL:
+		return "Synchronous external abort";
+	case DFSR_SOURCE_TLB_CONFLICT:
+		return "TLB conflict abort";
+	case DFSR_SOURCE_LOCKDOWN:
+		return "Lockdown (Implementation defined)";
+	case DFSR_SOURCE_COPROCESSOR:
+		return "Coprocessor abort (Implementation defined)";
+	case DFSR_SOURCE_SYNC_PARITY:
+		return "Synchronous parity error on memory access";
+	case DFSR_SOURCE_ASYNC_EXTERNAL:
+		return "Asynchronous external abort";
+	case DFSR_SOURCE_ASYNC_PARITY:
+		return "Asynchronous parity error on memory access";
+	case DFSR_SOURCE_MASK:
+		break;
+	}
+	return "Unknown data abort";
+}
+
+
 /** Returns value stored in comnbined/data fault status register.
  *
  *  @return Value stored in CP15 fault status register (FSR).
@@ -157,10 +243,44 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
  */
 void data_abort(unsigned int exc_no, istate_t *istate)
 {
-	uintptr_t badvaddr = read_data_fault_address_register();
+	const uintptr_t badvaddr = read_data_fault_address_register();
+	const fault_status_t fsr = read_data_fault_status_register();
+	const dfsr_source_t source = fsr.raw & DFSR_SOURCE_MASK;
+
+	switch (source)	{
+	case DFSR_SOURCE_TRANSLATION_L1:
+	case DFSR_SOURCE_TRANSLATION_L2:
+	case DFSR_SOURCE_PERMISSION_L1:
+	case DFSR_SOURCE_PERMISSION_L2:
+		/* Page fault is handled further down */
+		break;
+	case DFSR_SOURCE_ALIGN:
+	case DFSR_SOURCE_CACHE_MAINTENANCE:
+	case DFSR_SOURCE_SYNC_EXTERNAL_TRANSLATION_L1:
+	case DFSR_SOURCE_SYNC_EXTERNAL_TRANSLATION_L2:
+	case DFSR_SOURCE_SYNC_PARITY_TRANSLATION_L1:
+	case DFSR_SOURCE_SYNC_PARITY_TRANSLATION_L2:
+	case DFSR_SOURCE_ACCESS_FLAG_L1:
+	case DFSR_SOURCE_ACCESS_FLAG_L2:
+	case DFSR_SOURCE_DOMAIN_L1:
+	case DFSR_SOURCE_DOMAIN_L2:
+	case DFSR_SOURCE_DEBUG:
+	case DFSR_SOURCE_SYNC_EXTERNAL:
+	case DFSR_SOURCE_TLB_CONFLICT:
+	case DFSR_SOURCE_LOCKDOWN:
+	case DFSR_SOURCE_COPROCESSOR:
+	case DFSR_SOURCE_SYNC_PARITY:
+	case DFSR_SOURCE_ASYNC_EXTERNAL:
+	case DFSR_SOURCE_ASYNC_PARITY:
+	case DFSR_SOURCE_MASK:
+		/* Weird abort stuff */
+		fault_if_from_uspace(istate, "Unhandled abort %s at address: "
+		    "%#x.", dfsr_source_to_str(source), badvaddr);
+		panic("Unhandled abort %s at address: %#x.",
+		    dfsr_source_to_str(source), badvaddr);
+	}
 
 #if defined(PROCESSOR_armv6) | defined(PROCESSOR_armv7_a)
-	fault_status_t fsr = read_data_fault_status_register();
 	const pf_access_t access =
 	    fsr.data.wr ? PF_ACCESS_WRITE : PF_ACCESS_READ;
 #elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
@@ -168,7 +288,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
 #else
 #error "Unsupported architecture"
 #endif
-	int ret = as_page_fault(badvaddr, access, istate);
+	const int ret = as_page_fault(badvaddr, access, istate);
 
 	if (ret == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);

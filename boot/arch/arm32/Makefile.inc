@@ -48,7 +48,7 @@ BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE
-EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR))
+EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 
 ifeq ($(MACHINE), gta02)
 RD_SRVS_ESSENTIAL += \

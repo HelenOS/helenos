@@ -46,8 +46,26 @@
 #define read_barrier()    asm volatile ("" ::: "memory")
 #define write_barrier()   asm volatile ("" ::: "memory")
 
-#define smc_coherence(a)
-#define smc_coherence_block(a, l)
+/*
+ * There are multiple ways ICache can be implemented on ARM machines. Namely
+ * PIPT, VIPT, and ASID and VMID tagged VIVT (see ARM Architecture Reference
+ * Manual B3.11.2 (p. 1383).  However, CortexA8 Manual states: "For maximum
+ * compatibility across processors, ARM recommends that operating systems target
+ * the ARMv7 base architecture that uses ASID-tagged VIVT instruction caches,
+ * and do not assume the presence of the IVIPT extension. Software that relies
+ * on the IVIPT extension might fail in an unpredictable way on an ARMv7
+ * implementation that does not include the IVIPT extension." (7.2.6 p. 245).
+ * Only PIPT invalidates cache for all VA aliases if one block is invalidated.
+ *
+ * @note: Supporting ASID and VMID tagged VIVT may need to add ICache
+ * maintenance to other places than just smc.
+ */
+
+/* Available on both all supported arms,
+ * invalidates entire ICache so the written value does not matter. */
+#define smc_coherence(a) asm volatile ( "mcr p15, 0, r0, c7, c5, 0")
+#define smc_coherence_block(a, l) smc_coherence(a)
+
 
 #endif
 
