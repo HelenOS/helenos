@@ -98,6 +98,7 @@ static unsigned bin2bcd(unsigned binary);
 static int rtc_dev_remove(ddf_dev_t *dev);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
 static time_t uptime_get(void);
+static bool is_battery_ok(rtc_t *rtc);
 
 static ddf_dev_ops_t rtc_dev_ops;
 
@@ -333,6 +334,12 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		return time_local2tm(cur_time, t);
 	}
 
+	/* Check if the RTC battery is OK */
+	if (!is_battery_ok(rtc)) {
+		fibril_mutex_unlock(&rtc->mutex);
+		return EIO;
+	}
+
 	/* now read the registers */
 	do {
 		/* Suspend until the update process has finished */
@@ -436,6 +443,11 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 
 	fibril_mutex_lock(&rtc->mutex);
 
+	if (!is_battery_ok(rtc)) {
+		fibril_mutex_unlock(&rtc->mutex);
+		return EIO;
+	}
+
 	/* boottime must be recomputed */
 	rtc->boottime = 0;
 
@@ -515,12 +527,27 @@ static int
 rtc_battery_status_get(ddf_fun_t *fun, battery_status_t *status)
 {
 	rtc_t *rtc = fun_rtc(fun);
-	const bool batt_ok = rtc_register_read(rtc, RTC_STATUS_D) &
-	    RTC_D_BATTERY_OK;
+
+	fibril_mutex_lock(&rtc->mutex);
+	const bool batt_ok = is_battery_ok(rtc);
+	fibril_mutex_unlock(&rtc->mutex);
 
 	*status = batt_ok ? BATTERY_OK : BATTERY_LOW;
 
 	return EOK;
+}
+
+/** Check if the battery is working properly or not.
+ *  The caller already holds the rtc->mutex lock.
+ *
+ *  @param rtc   The RTC instance.
+ *
+ *  @return      true if the battery is ok, false otherwise.
+ */
+static bool
+is_battery_ok(rtc_t *rtc)
+{
+	return rtc_register_read(rtc, RTC_STATUS_D) & RTC_D_BATTERY_OK;
 }
 
 /** The dev_add callback of the rtc driver
