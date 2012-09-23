@@ -50,44 +50,61 @@ typedef struct {
 
 	const uint8_t padd0[12];
 
+	/* This register controls the various parameters
+	 * of the OCP interface.
+	 */
 	ioport32_t sysconfig;
 #define AM335x_IRC_SYSCONFIG_AUTOIDLE_FLAG   (1 << 0)
 #define AM335x_IRC_SYSCONFIG_SOFTRESET_FLAG  (1 << 1)
 
+	/* This register provides status information about the module */
 	const ioport32_t sysstatus;
 #define AM335x_IRC_SYSSTATUS_RESET_DONE_FLAG (1 << 0)
 
 	const uint8_t padd1[40];
 
+	/* This register supplies the currently active IRQ interrupt number */
 	ioport32_t sir_irq;
 #define AM335x_IRC_SIR_IRQ_ACTIVEIRQ_MASK       0x7F
 #define AM335x_IRC_SIR_IRQ_SPURIOUSIRQFLAG_MASK 0xFFFFFFF8
 
+	/* This register supplies the currently active FIQ interrupt number */
 	const ioport32_t sir_fiq;
 #define AM335x_IRC_FIQ_IRQ_ACTIVEFIQ_MASK       0x7F
 #define AM335x_IRC_FIQ_IRQ_SPURIOUSFIQFLAG_MASK 0xFFFFFFF8
 
-	ioport32_t control; /* New IRQ/FIQ agreement */
+	/* This register contains the new interrupt agreement bits */
+	ioport32_t control;
 #define AM335x_IRC_CONTROL_NEWIRQAGR_FLAG       (1 << 0)
 #define AM335x_IRC_CONTROL_NEWFIQAGR_FLAG       (1 << 1)
 
+	/* This register controls protection of the other registers.
+	 * This register can only be accessed in priviledged mode, regardless
+	 * of the current value of the protection bit.
+	 */
 	ioport32_t protection;
 #define AM335x_IRC_PROTECTION_FLAG              (1 << 0)
 
+	/* This register controls the clock auto-idle for the functional
+	 * clock and the input synchronizers.
+	 */
 	ioport32_t idle;
 #define AM335x_IRC_IDLE_FUNCIDLE_FLAG           (1 << 0)
 #define AM335x_IRC_IDLE_TURBO_FLAG              (1 << 1)
 
 	const uint8_t padd2[12];
 
+	/* This register supplies the currently active IRQ priority level */
 	const ioport32_t irq_priority;
 #define AM335x_IRC_IRQ_PRIORITY_IRQPRIORITY_MASK     0x7F
 #define AM335x_IRC_IRQ_PRIORITY_SPURIOUSIRQFLAG_MASK 0xFFFFFFF8
 
+	/* This register supplies the currently active FIQ priority level */
 	const ioport32_t fiq_priority;
 #define AM335x_IRC_FIQ_PRIORITY_FIQPRIORITY_MASK     0x7F
 #define AM335x_IRC_FIQ_PRIORITY_SPURIOUSIRQFLAG_MASK 0xFFFFFFF8
 
+	/* This register sets the priority threshold */
 	ioport32_t threshold;
 #define AM335x_IRC_THRESHOLD_PRIORITYTHRESHOLD_MASK     0xFF
 #define AM335x_IRC_THRESHOLD_PRIORITYTHRESHOLD_ENABLED  0x00
@@ -174,6 +191,61 @@ static inline void am335x_irc_init(am335x_irc_regs_t *regs)
 	 */
 	for (i = 0; i < 4; ++i)
 		regs->interrupts[i].mir_set = 0xFFFFFFFF;
+}
+
+/** Get the currently active IRQ interrupt number
+ *
+ * @param regs     Pointer to the irc memory mapped registers
+ *
+ * @return         The active IRQ interrupt number
+ */
+static inline unsigned am335x_irc_inum_get(am335x_irc_regs_t *regs)
+{
+	return regs->sir_irq & AM335x_IRC_SIR_IRQ_ACTIVEIRQ_MASK;
+}
+
+/** Reset IRQ output and enable new IRQ generation
+ *
+ * @param regs    Pointer to the irc memory mapped registers
+ */
+static inline void am335x_irc_irq_ack(am335x_irc_regs_t *regs)
+{
+	regs->control = AM335x_IRC_CONTROL_NEWIRQAGR_FLAG;
+}
+
+/** Reset FIQ output and enable new FIQ generation
+ *
+ * @param regs    Pointer to the irc memory mapped registers
+ */
+static inline void am335x_irc_fiq_ack(am335x_irc_regs_t *regs)
+{
+	regs->control = AM335x_IRC_CONTROL_NEWFIQAGR_FLAG;
+}
+
+/** Clear an interrupt mask bit
+ *
+ * @param regs    Pointer to the irc memory mapped registers
+ * @param inum    The interrupt to be enabled
+ */
+static inline void am335x_irc_enable(am335x_irc_regs_t *regs, unsigned inum)
+{
+	ASSERT(inum < AM335x_IRC_IRQ_COUNT);
+	const unsigned set = inum / 32;
+	const unsigned pos = inum % 32;
+	regs->interrupts[set].mir_clear = (1 << pos);
+}
+
+/** Set an interrupt mask bit
+ *
+ * @param regs    Pointer to the irc memory mapped registers
+ * @param inum    The interrupt to be disabled
+ */
+static inline void am335x_irc_disable(am335x_irc_regs_t *regs, unsigned inum)
+{
+	ASSERT(inum < AM335x_IRC_IRQ_COUNT);
+	const unsigned set = inum / 32;
+	const unsigned pos = inum % 32;
+	regs->interrupts[set].mir_set = (1 << pos);
 }
 
 #endif
