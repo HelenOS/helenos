@@ -37,6 +37,55 @@
 
 #include <ipc/ipc.h>
 
+/**
+ * This header declares the per-method IPC callbacks. Using these callbacks,
+ * each IPC method (but system methods in particular), can define actions that
+ * will be called at specific moments in the call life-cycle.
+ *
+ * Normally, the kernel will attempt to invoke the following callbacks in the
+ * following order on each call:
+ *
+ * request_preprocess()
+ * request_process()
+ * answer_preprocess()
+ * answer_process()
+ *
+ * This callback invocation sequence is a natural order of processing. Note,
+ * however, that due to various special circumstances, callbacks may be called
+ * also in a different than natural order of processing. This means that some
+ * callbacks may be skipped and some others may be called instead.
+ *
+ * The additional callbacks that may be called are as follows:
+ *
+ * request_forget()
+ * answer_cleanup()
+ *
+ * There are several notable scenarios in which some callbacks of the natural
+ * order of processing will be skipped.
+ *
+ * The request_process(), answer_preprocess() and answer_process() callbacks
+ * will be skipped if the call cannot be dispatched to the callee. This may
+ * happen when e.g. the request_preprocess() callback fails or the connection to
+ * the callee is not functional. The next callback that will be invoked on the
+ * call is request_forget().
+ *
+ * The request_process() callback will be skipped if the callee terminates
+ * before picking up the request. In this case, the terminating task will
+ * cleanup its dispatched calls list and so the next callback invoked on the
+ * call will usually be answer_preprocess(). If, in the meantime, the caller
+ * terminates too, it may happen that the call will be forgotten instead of
+ * answered, in which case the kernel will invoke the request_forget() and
+ * answer_cleanup() callbacks instead. The order in which they are invoked is
+ * not defined. 
+ *
+ * The answer_process() callback will be skipped if the caller terminates before
+ * picking up the answer. This means that this callback is not suitable for
+ * releasing system resources allocated by the preceding callbacks.
+ *
+ * The comments for each callback type describe the specifics of each callback
+ * such as the context in which it is invoked and various constraints.
+ */
+
 typedef struct {
 	/**
 	 * This callback is called from request_preprocess().
@@ -66,7 +115,7 @@ typedef struct {
 	 * Context:		callee
 	 * Caller alive:	no guarantee
 	 * Races with:		request_forget()
-	 * Invoked on:		calls that are received by the callee
+	 * Invoked on:		calls that are explicitly received by the callee
 	 */	
 	int (* request_process)(call_t *, answerbox_t *);
 
@@ -98,7 +147,7 @@ typedef struct {
 	 * Context:		caller
 	 * Caller alive:	guaranteed
 	 * Races with:		N/A
-	 * Invoked on:		all answered calls
+	 * Invoked on:		answered calls explicitly received by the caller
 	 */
 	int (* answer_process)(call_t *);
 } sysipc_ops_t;
