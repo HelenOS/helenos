@@ -254,17 +254,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
 	_ipc_answer_free_call(call, false);
 }
 
-/** Simulate sending back a message.
- *
- * Most errors are better handled by forming a normal backward
- * message and sending it as a normal answer.
- *
- * @param phone Phone structure the call should appear to come from.
- * @param call  Call structure to be answered.
- * @param err   Return value to be used for the answer.
- *
- */
-void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
+static void _ipc_call_actions_internal(phone_t *phone, call_t *call)
 {
 	task_t *caller = phone->caller;
 
@@ -278,7 +268,22 @@ void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 	spinlock_unlock(&caller->active_calls_lock);
 
 	call->data.phone = phone;
+	call->data.task_id = caller->taskid;
+}
 
+/** Simulate sending back a message.
+ *
+ * Most errors are better handled by forming a normal backward
+ * message and sending it as a normal answer.
+ *
+ * @param phone Phone structure the call should appear to come from.
+ * @param call  Call structure to be answered.
+ * @param err   Return value to be used for the answer.
+ *
+ */
+void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
+{
+	_ipc_call_actions_internal(phone, call);
 	IPC_SET_RETVAL(call->data, err);
 	_ipc_answer_free_call(call, false);
 }
@@ -299,19 +304,8 @@ static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 	caller->ipc_info.call_sent++;
 	irq_spinlock_unlock(&caller->lock, true);
 	
-	if (!(call->flags & IPC_CALL_FORWARDED)) {
-		atomic_inc(&phone->active_calls);
-		call->caller_phone = phone;
-		call->sender = caller;
-
-		call->active = true;
-		spinlock_lock(&caller->active_calls_lock);
-		list_append(&call->ta_link, &caller->active_calls);
-		spinlock_unlock(&caller->active_calls_lock);
-
-		call->data.phone = phone;
-		call->data.task_id = caller->taskid;
-	}
+	if (!(call->flags & IPC_CALL_FORWARDED))
+		_ipc_call_actions_internal(phone, call);
 	
 	irq_spinlock_lock(&box->lock, true);
 	list_append(&call->ab_link, &box->calls);
