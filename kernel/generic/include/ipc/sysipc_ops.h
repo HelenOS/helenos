@@ -64,23 +64,23 @@
  * order of processing will be skipped.
  *
  * The request_process(), answer_preprocess() and answer_process() callbacks
- * will be skipped if the call cannot be dispatched to the callee. This may
- * happen when e.g. the request_preprocess() callback fails or the connection to
- * the callee is not functional. The next callback that will be invoked on the
- * call is request_forget().
+ * will be skipped if the call cannot be delivered to the callee. This may
+ * happen when e.g. the request_preprocess() callback fails or the connection
+ * to the callee is not functional. The next callback that will be invoked on
+ * the call is request_forget().
  *
  * The request_process() callback will be skipped if the callee terminates
  * before picking up the request. In this case, the terminating task will
- * cleanup its dispatched calls list and so the next callback invoked on the
- * call will usually be answer_preprocess(). If, in the meantime, the caller
+ * cleanup its incoming calls list and so the next callback invoked on the call
+ * will usually be answer_preprocess(). If, in the meantime, the caller
  * terminates too, it may happen that the call will be forgotten instead of
  * answered, in which case the kernel will invoke the request_forget() and
  * answer_cleanup() callbacks instead. The order in which they are invoked is
  * not defined. 
  *
- * The answer_process() callback will be skipped if the caller terminates before
- * picking up the answer. This means that this callback is not suitable for
- * releasing system resources allocated by the preceding callbacks.
+ * The answer_process() callback will be skipped if the caller terminates
+ * before picking up the answer. This means that this callback is not suitable
+ * for releasing system resources allocated by the preceding callbacks.
  *
  * The comments for each callback type describe the specifics of each callback
  * such as the context in which it is invoked and various constraints.
