@@ -78,10 +78,6 @@
  * answer_cleanup() callbacks instead. The order in which they are invoked is
  * not defined. 
  *
- * The answer_process() callback will be skipped if the caller terminates
- * before picking up the answer. This means that this callback is not suitable
- * for releasing system resources allocated by the preceding callbacks.
- *
  * The comments for each callback type describe the specifics of each callback
  * such as the context in which it is invoked and various constraints.
  */

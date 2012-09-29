@@ -706,6 +706,11 @@ restart:
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
 	ASSERT(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
+
+	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
+	if (ops->answer_process)
+		ops->answer_process(call);
+
 	ipc_call_free(call);
 	goto restart;
 }
