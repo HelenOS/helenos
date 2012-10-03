@@ -37,6 +37,17 @@
 
 #include <ipc/ipc.h>
 
+#define SYSIPC_OP(op, call, ...) \
+	({ \
+		int rc = EOK; \
+		\
+		sysipc_ops_t *ops; \
+		ops = sysipc_ops_get((call)->request_method); \
+		if (ops->op) \
+			rc = ops->op((call), ##__VA_ARGS__); \
+		rc; \
+	})
+
 /**
  * This header declares the per-method IPC callbacks. Using these callbacks,
  * each IPC method (but system methods in particular), can define actions that
@@ -94,7 +105,7 @@ typedef struct {
 	 *			_ipc_answer_free_call()
 	 * Invoked on:		all forgotten calls
 	 */	
-	void (* request_forget)(call_t *);
+	int (* request_forget)(call_t *);
 
 	/**
 	 * This callback is called from process_request().
@@ -115,7 +126,7 @@ typedef struct {
 	 * Races with:		request_forget()
 	 * Invoked on:		all forgotten calls
 	 */
-	void (* answer_cleanup)(call_t *, ipc_data_t *);
+	int (* answer_cleanup)(call_t *, ipc_data_t *);
 
 	/**
 	 * This callback is called when answer_preprocess() wins the race to
@@ -142,9 +153,9 @@ typedef struct {
 extern sysipc_ops_t *sysipc_ops_get(sysarg_t);
 
 extern int null_request_preprocess(call_t *, phone_t *);
-extern void null_request_forget(call_t *);
+extern int null_request_forget(call_t *);
 extern int null_request_process(call_t *, answerbox_t *);
-extern void null_answer_cleanup(call_t *, ipc_data_t *);
+extern int null_answer_cleanup(call_t *, ipc_data_t *);
 extern int null_answer_preprocess(call_t *, ipc_data_t *);
 extern int null_answer_process(call_t *);
 

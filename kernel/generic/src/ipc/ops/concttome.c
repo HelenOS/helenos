@@ -48,12 +48,14 @@ static int request_process(call_t *call, answerbox_t *box)
 	return EOK;
 }
 
-static void answer_cleanup(call_t *answer, ipc_data_t *olddata)
+static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
 	int phoneid = (int) IPC_GET_ARG5(*olddata);
 
 	if (phoneid >= 0)
 		phone_dealloc(phoneid);
+
+	return EOK;
 }
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)

@@ -512,13 +512,8 @@ void ipc_cleanup_call_list(answerbox_t *box, list_t *lst)
 
 		irq_spinlock_unlock(&box->lock, true);
 
-		if (lst == &box->calls) {
-			sysipc_ops_t *ops;
-
-			ops = sysipc_ops_get(call->request_method);
-			if (ops->request_process)
-				(void) ops->request_process(call, box);
-		}
+		if (lst == &box->calls)
+			SYSIPC_OP(request_process, call, box);
 
 		ipc_data_t old = call->data;
 		IPC_SET_RETVAL(call->data, EHANGUP);
@@ -644,9 +639,7 @@ restart:
 
 	atomic_dec(&call->caller_phone->active_calls);
 
-	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
-	if (ops->request_forget)
-		ops->request_forget(call);
+	SYSIPC_OP(request_forget, call);
 
 	ipc_call_release(call);
 
@@ -715,9 +708,7 @@ restart:
 	    SYNCH_FLAGS_NONE);
 	ASSERT(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
 
-	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
-	if (ops->answer_process)
-		ops->answer_process(call);
+	SYSIPC_OP(answer_process, call);
 
 	ipc_call_free(call);
 	goto restart;

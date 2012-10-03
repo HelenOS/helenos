@@ -44,7 +44,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;	
 }
 
-static void answer_cleanup(call_t *answer, ipc_data_t *olddata)
+static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
 
@@ -56,6 +56,8 @@ static void answer_cleanup(call_t *answer, ipc_data_t *olddata)
 		irq_spinlock_unlock(&phone->callee->lock, true);
 	}
 	mutex_unlock(&phone->lock);
+
+	return EOK;
 }
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)

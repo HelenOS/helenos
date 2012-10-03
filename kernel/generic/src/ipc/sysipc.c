@@ -160,7 +160,6 @@ static inline bool answer_need_old(call_t *call)
 int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	int rc = EOK;
-	sysipc_ops_t *ops;
 
 	spinlock_lock(&answer->forget_lock);
 	if (answer->forget) {
@@ -169,10 +168,7 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 */
 		spinlock_unlock(&answer->forget_lock);
 
-		ops = sysipc_ops_get(answer->request_method);
-		if (ops->answer_cleanup)
-			ops->answer_cleanup(answer, olddata);
-
+		SYSIPC_OP(answer_cleanup, answer, olddata);
 		return rc;
 	} else {
 		ASSERT(answer->active);
@@ -212,11 +208,7 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	if (!olddata)
 		return rc;
 
-	ops = sysipc_ops_get(answer->request_method);
-	if (ops->answer_preprocess)
-		rc = ops->answer_preprocess(answer, olddata);
-	
-	return rc;
+	return SYSIPC_OP(answer_preprocess, answer, olddata);
 }
 
 /** Called before the request is sent.
@@ -229,15 +221,8 @@ int answer_preprocess(call_t *answer, ipc_data_t *olddata)
  */
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	int rc = EOK;
-
 	call->request_method = IPC_GET_IMETHOD(call->data);
-
-	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
-	if (ops->request_preprocess)
-		rc = ops->request_preprocess(call, phone);
-	
-	return rc;
+	return SYSIPC_OP(request_preprocess, call, phone);
 }
 
 /*******************************************************************************
@@ -255,9 +240,7 @@ static void process_answer(call_t *call)
 	    (call->flags & IPC_CALL_FORWARDED))
 		IPC_SET_RETVAL(call->data, EFORWARD);
 	
-	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
-	if (ops->answer_process)
-		(void) ops->answer_process(call);
+	SYSIPC_OP(answer_process, call);
 }
 
 
@@ -272,13 +255,7 @@ static void process_answer(call_t *call)
  */
 static int process_request(answerbox_t *box, call_t *call)
 {
-	int rc = EOK;
-
-	sysipc_ops_t *ops = sysipc_ops_get(call->request_method);
-	if (ops->request_process)
-		rc = ops->request_process(call, box);
-	
-	return rc;
+	return SYSIPC_OP(request_process, call, box);
 }
 
 /** Check that the task did not exceed the allowed limit of asynchronous calls
