@@ -512,6 +512,14 @@ void ipc_cleanup_call_list(answerbox_t *box, list_t *lst)
 
 		irq_spinlock_unlock(&box->lock, true);
 
+		if (lst == &box->calls) {
+			sysipc_ops_t *ops;
+
+			ops = sysipc_ops_get(call->request_method);
+			if (ops->request_process)
+				(void) ops->request_process(call, box);
+		}
+
 		ipc_data_t old = call->data;
 		IPC_SET_RETVAL(call->data, EHANGUP);
 		answer_preprocess(call, &old);
@@ -752,9 +760,9 @@ void ipc_cleanup(void)
 #endif
 	
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
+	ipc_cleanup_call_list(&TASK->answerbox, &TASK->answerbox.calls);
 	ipc_cleanup_call_list(&TASK->answerbox,
 	    &TASK->answerbox.dispatched_calls);
-	ipc_cleanup_call_list(&TASK->answerbox, &TASK->answerbox.calls);
 
 	ipc_forget_all_active_calls();
 	ipc_wait_for_all_answered_calls();

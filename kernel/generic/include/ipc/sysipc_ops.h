@@ -69,15 +69,6 @@
  * to the callee is not functional. The next callback that will be invoked on
  * the call is request_forget().
  *
- * The request_process() callback will be skipped if the callee terminates
- * before picking up the request. In this case, the terminating task will
- * cleanup its incoming calls list and so the next callback invoked on the call
- * will usually be answer_preprocess(). If, in the meantime, the caller
- * terminates too, it may happen that the call will be forgotten instead of
- * answered, in which case the kernel will invoke the request_forget() and
- * answer_cleanup() callbacks instead. The order in which they are invoked is
- * not defined. 
- *
  * The comments for each callback type describe the specifics of each callback
  * such as the context in which it is invoked and various constraints.
  */
@@ -111,7 +102,7 @@ typedef struct {
 	 * Context:		callee
 	 * Caller alive:	no guarantee
 	 * Races with:		request_forget()
-	 * Invoked on:		calls that are explicitly received by the callee
+	 * Invoked on:		all calls delivered to the callee
 	 */	
 	int (* request_process)(call_t *, answerbox_t *);
 
@@ -143,7 +134,7 @@ typedef struct {
 	 * Context:		caller
 	 * Caller alive:	guaranteed
 	 * Races with:		N/A
-	 * Invoked on:		answered calls explicitly received by the caller
+	 * Invoked on:		all answered calls
 	 */
 	int (* answer_process)(call_t *);
 } sysipc_ops_t;

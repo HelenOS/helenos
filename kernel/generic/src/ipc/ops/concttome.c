@@ -39,13 +39,6 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int request_preprocess(call_t *call, phone_t *phone)
-{
-	/* Start with the assumption that there is no allocated phoneid. */
-	IPC_SET_ARG5(call->data, -1);
-	return EOK;
-}
-
 static int request_process(call_t *call, answerbox_t *box)
 {
 	int phoneid = phone_alloc(TASK);
@@ -90,7 +83,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 
 sysipc_ops_t ipc_m_connect_to_me_ops = {
-	.request_preprocess = request_preprocess,
+	.request_preprocess = null_request_preprocess,
 	.request_forget = null_request_forget,
 	.request_process = request_process,
 	.answer_cleanup = answer_cleanup,
