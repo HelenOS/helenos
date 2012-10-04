@@ -69,7 +69,7 @@ static bool test_float_add(void)
 			float_t sc;
 			
 			sa.val = float_op_a[i];
-			sb.val = float_op_b[i];
+			sb.val = float_op_b[j];
 			sc.data = add_float(sa.data, sb.data);
 			
 			cmptype_t ic = (cmptype_t) (c * PRECISION);
