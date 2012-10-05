@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Vojtech Horky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,84 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup msim
+/** @addtogroup libposix
  * @{
  */
-/** @file HelenOS specific functions for MSIM simulator.
+/** @file Mathematical operations.
  */
 
-/* Because of asprintf. */
-#define _GNU_SOURCE
-#include "../../io/input.h"
-#include "../../io/output.h"
-#include "../../fault.h"
-#include "helenos.h"
-#include <tinput.h>
-#include <errno.h>
-#include <stdlib.h>
+#define LIBPOSIX_INTERNAL
 
-static tinput_t *input_prompt;
+#include "internal/common.h"
+#include "posix/math.h"
 
-/** Terminal and readline initialization
- *
+/**
+ * 
+ * @param x
+ * @param exp
+ * @return
  */
-void input_init(void)
+double posix_ldexp(double x, int exp)
 {
-	input_prompt = tinput_new();
-	if (input_prompt == NULL) {
-		die(1, "Failed to intialize input.");
-	}
-	helenos_dprinter_init();
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
 }
 
-void input_inter(void)
+/**
+ * 
+ * @param num
+ * @param exp
+ * @return
+ */
+double posix_frexp(double num, int *exp)
 {
+	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
 }
 
-void input_shadow( void)
-{
-}
-
-void input_back( void)
-{
-}
-
-char *helenos_input_get_next_command(void)
-{
-	tinput_set_prompt(input_prompt, "[msim] ");
-
-	char *commline = NULL;
-	int rc = tinput_read(input_prompt, &commline);
-
-	if (rc == ENOENT) {
-		rc = asprintf(&commline, "quit");
-		mprintf("Quit\n");
-		if (rc != EOK) {
-			exit(1);
-		}
-	}
-
-	/* On error, it remains NULL. */
-	return commline;
-}
-
-
-bool stdin_poll(char *key)
-{
-	kbd_event_t ev;
-	suseconds_t timeout = 0;
-	errno = EOK;
-	console_flush(input_prompt->console);
-	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
-	if (!has_input) {
-		return false;
-	}
-
-	if (ev.type != KEY_PRESS)
-		return false;
-
-	*key = ev.c;
-
-	return true;
-}
-
+/** @}
+ */

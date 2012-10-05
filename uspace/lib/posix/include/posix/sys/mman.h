@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Vojtech Horky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,84 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup msim
+/** @addtogroup libposix
  * @{
  */
-/** @file HelenOS specific functions for MSIM simulator.
+/** @file Memory management declarations.
  */
 
-/* Because of asprintf. */
-#define _GNU_SOURCE
-#include "../../io/input.h"
-#include "../../io/output.h"
-#include "../../fault.h"
-#include "helenos.h"
-#include <tinput.h>
-#include <errno.h>
-#include <stdlib.h>
+#ifndef POSIX_SYS_MMAN_H_
+#define POSIX_SYS_MMAN_H_
 
-static tinput_t *input_prompt;
+#include "sys/types.h"
+#include <abi/mm/as.h>
 
-/** Terminal and readline initialization
- *
+#define MAP_FAILED ((void *) -1)
+
+#define MAP_SHARED     (1 << 0)
+#define MAP_PRIVATE    (1 << 1)
+#define MAP_FIXED      (1 << 2)
+#define MAP_ANONYMOUS  (1 << 3)
+
+#undef PROT_NONE
+#undef PROT_READ
+#undef PROT_WRITE
+#undef PROT_EXEC
+#define PROT_NONE  0
+#define PROT_READ  AS_AREA_READ
+#define PROT_WRITE AS_AREA_WRITE
+#define PROT_EXEC  AS_AREA_EXEC
+
+extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
+    posix_off_t offset);
+extern int munmap(void *start, size_t length);
+
+#endif /* POSIX_SYS_MMAN_H_ */
+
+/** @}
  */
-void input_init(void)
-{
-	input_prompt = tinput_new();
-	if (input_prompt == NULL) {
-		die(1, "Failed to intialize input.");
-	}
-	helenos_dprinter_init();
-}
-
-void input_inter(void)
-{
-}
-
-void input_shadow( void)
-{
-}
-
-void input_back( void)
-{
-}
-
-char *helenos_input_get_next_command(void)
-{
-	tinput_set_prompt(input_prompt, "[msim] ");
-
-	char *commline = NULL;
-	int rc = tinput_read(input_prompt, &commline);
-
-	if (rc == ENOENT) {
-		rc = asprintf(&commline, "quit");
-		mprintf("Quit\n");
-		if (rc != EOK) {
-			exit(1);
-		}
-	}
-
-	/* On error, it remains NULL. */
-	return commline;
-}
-
-
-bool stdin_poll(char *key)
-{
-	kbd_event_t ev;
-	suseconds_t timeout = 0;
-	errno = EOK;
-	console_flush(input_prompt->console);
-	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
-	if (!has_input) {
-		return false;
-	}
-
-	if (ev.type != KEY_PRESS)
-		return false;
-
-	*key = ev.c;
-
-	return true;
-}
-

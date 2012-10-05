@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Vojtech Horky
+ * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,84 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup msim
+/** @addtogroup libposix
  * @{
  */
-/** @file HelenOS specific functions for MSIM simulator.
+/** @file System error numbers.
  */
 
-/* Because of asprintf. */
-#define _GNU_SOURCE
-#include "../../io/input.h"
-#include "../../io/output.h"
-#include "../../fault.h"
-#include "helenos.h"
-#include <tinput.h>
-#include <errno.h>
-#include <stdlib.h>
+#include "posix/errno.h"
 
-static tinput_t *input_prompt;
+#include "posix/stdlib.h"
+#include "libc/fibril.h"
 
-/** Terminal and readline initialization
- *
+static fibril_local int _posix_errno;
+
+int *__posix_errno(void)
+{
+	if (*__errno() != 0) {
+		_posix_errno = abs(*__errno());
+		*__errno() = 0;
+	}
+	return &_posix_errno;
+}
+
+/** @}
  */
-void input_init(void)
-{
-	input_prompt = tinput_new();
-	if (input_prompt == NULL) {
-		die(1, "Failed to intialize input.");
-	}
-	helenos_dprinter_init();
-}
-
-void input_inter(void)
-{
-}
-
-void input_shadow( void)
-{
-}
-
-void input_back( void)
-{
-}
-
-char *helenos_input_get_next_command(void)
-{
-	tinput_set_prompt(input_prompt, "[msim] ");
-
-	char *commline = NULL;
-	int rc = tinput_read(input_prompt, &commline);
-
-	if (rc == ENOENT) {
-		rc = asprintf(&commline, "quit");
-		mprintf("Quit\n");
-		if (rc != EOK) {
-			exit(1);
-		}
-	}
-
-	/* On error, it remains NULL. */
-	return commline;
-}
-
-
-bool stdin_poll(char *key)
-{
-	kbd_event_t ev;
-	suseconds_t timeout = 0;
-	errno = EOK;
-	console_flush(input_prompt->console);
-	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
-	if (!has_input) {
-		return false;
-	}
-
-	if (ev.type != KEY_PRESS)
-		return false;
-
-	*key = ev.c;
-
-	return true;
-}
-

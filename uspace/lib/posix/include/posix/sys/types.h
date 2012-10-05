@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012 Vojtech Horky
+ * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,84 +27,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup msim
+/** @addtogroup libposix
  * @{
  */
-/** @file HelenOS specific functions for MSIM simulator.
+/** @file Data types definitions.
  */
 
-/* Because of asprintf. */
-#define _GNU_SOURCE
-#include "../../io/input.h"
-#include "../../io/output.h"
-#include "../../fault.h"
-#include "helenos.h"
-#include <tinput.h>
-#include <errno.h>
-#include <stdlib.h>
+#ifndef POSIX_SYS_TYPES_H_
+#define POSIX_SYS_TYPES_H_
 
-static tinput_t *input_prompt;
+#include "libc/sys/types.h"
+#include "libc/sys/time.h"
 
-/** Terminal and readline initialization
- *
+typedef unsigned int posix_ino_t;
+typedef unsigned int posix_nlink_t;
+typedef unsigned int posix_uid_t;
+typedef unsigned int posix_gid_t;
+typedef off64_t posix_off_t;
+typedef long posix_blksize_t;
+typedef long posix_blkcnt_t;
+typedef int64_t posix_pid_t;
+typedef sysarg_t posix_dev_t;
+
+/* PThread Types */
+typedef struct posix_thread_attr posix_thread_attr_t;
+
+/* Clock Types */
+typedef long posix_clock_t;
+typedef int posix_clockid_t;
+
+#ifndef LIBPOSIX_INTERNAL
+	#define ino_t posix_ino_t
+	#define nlink_t posix_nlink_t
+	#define uid_t posix_uid_t
+	#define gid_t posix_gid_t
+	#define off_t posix_off_t
+	#define blksize_t posix_blksize_t
+	#define blkcnt_t posix_blkcnt_t
+	#define pid_t posix_pid_t
+	#define dev_t posix_dev_t
+	
+	#define pthread_attr_t posix_thread_attr_t
+	
+	#define clock_t posix_clock_t
+	#define clockid_t posix_clockid_t
+#endif
+
+#endif /* POSIX_SYS_TYPES_H_ */
+
+/** @}
  */
-void input_init(void)
-{
-	input_prompt = tinput_new();
-	if (input_prompt == NULL) {
-		die(1, "Failed to intialize input.");
-	}
-	helenos_dprinter_init();
-}
-
-void input_inter(void)
-{
-}
-
-void input_shadow( void)
-{
-}
-
-void input_back( void)
-{
-}
-
-char *helenos_input_get_next_command(void)
-{
-	tinput_set_prompt(input_prompt, "[msim] ");
-
-	char *commline = NULL;
-	int rc = tinput_read(input_prompt, &commline);
-
-	if (rc == ENOENT) {
-		rc = asprintf(&commline, "quit");
-		mprintf("Quit\n");
-		if (rc != EOK) {
-			exit(1);
-		}
-	}
-
-	/* On error, it remains NULL. */
-	return commline;
-}
-
-
-bool stdin_poll(char *key)
-{
-	kbd_event_t ev;
-	suseconds_t timeout = 0;
-	errno = EOK;
-	console_flush(input_prompt->console);
-	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
-	if (!has_input) {
-		return false;
-	}
-
-	if (ev.type != KEY_PRESS)
-		return false;
-
-	*key = ev.c;
-
-	return true;
-}
-

@@ -26,84 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup msim
+/** @addtogroup libposix
  * @{
  */
-/** @file HelenOS specific functions for MSIM simulator.
+
+#ifndef POSIX_STDARG_H_
+#define POSIX_STDARG_H_
+
+typedef __builtin_va_list va_list;
+
+#define va_start(ap, last)  __builtin_va_start(ap, last)
+#define va_arg(ap, type)    __builtin_va_arg(ap, type)
+#define va_end(ap)          __builtin_va_end(ap)
+#define va_copy(dst, src)   __builtin_va_copy(dst, src)
+
+#endif
+
+/** @}
  */
-
-/* Because of asprintf. */
-#define _GNU_SOURCE
-#include "../../io/input.h"
-#include "../../io/output.h"
-#include "../../fault.h"
-#include "helenos.h"
-#include <tinput.h>
-#include <errno.h>
-#include <stdlib.h>
-
-static tinput_t *input_prompt;
-
-/** Terminal and readline initialization
- *
- */
-void input_init(void)
-{
-	input_prompt = tinput_new();
-	if (input_prompt == NULL) {
-		die(1, "Failed to intialize input.");
-	}
-	helenos_dprinter_init();
-}
-
-void input_inter(void)
-{
-}
-
-void input_shadow( void)
-{
-}
-
-void input_back( void)
-{
-}
-
-char *helenos_input_get_next_command(void)
-{
-	tinput_set_prompt(input_prompt, "[msim] ");
-
-	char *commline = NULL;
-	int rc = tinput_read(input_prompt, &commline);
-
-	if (rc == ENOENT) {
-		rc = asprintf(&commline, "quit");
-		mprintf("Quit\n");
-		if (rc != EOK) {
-			exit(1);
-		}
-	}
-
-	/* On error, it remains NULL. */
-	return commline;
-}
-
-
-bool stdin_poll(char *key)
-{
-	kbd_event_t ev;
-	suseconds_t timeout = 0;
-	errno = EOK;
-	console_flush(input_prompt->console);
-	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
-	if (!has_input) {
-		return false;
-	}
-
-	if (ev.type != KEY_PRESS)
-		return false;
-
-	*key = ev.c;
-
-	return true;
-}
-
