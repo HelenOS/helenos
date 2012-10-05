@@ -1,0 +1,13 @@
+{
+    "from": {
+        "name": "Raleigh",
+        "lat": 36,
+        "lon": 79
+    },
+    "to": {
+        "name": "Denver",
+        "lat": 40,
+        "lon": 105
+    },
+    "distance": 2353
+}

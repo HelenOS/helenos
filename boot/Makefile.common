@@ -158,6 +158,7 @@ RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/vterm/vterm
 
 RD_APPS_NON_ESSENTIAL = \
+	$(USPACE_PATH)/app/bithenge/bithenge \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
 	$(USPACE_PATH)/app/devctl/devctl \

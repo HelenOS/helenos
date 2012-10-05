@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2012 Sean Bartell
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,42 +27,20 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBCLUI_PREFIX)/libclui.a \
-	$(LIBFMTUTIL_PREFIX)/libfmtutil.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX) \
-	-I$(LIBFMTUTIL_PREFIX) -I. -Icmds/ -Icmds/builtins -Icmds/modules
-BINARY = bdsh
+LIBRARY = libbithenge
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -D__HELENOS__ -Iinclude
 
 SOURCES = \
-	cmds/modules/help/help.c \
-	cmds/modules/mkdir/mkdir.c \
-	cmds/modules/mkfile/mkfile.c \
-	cmds/modules/rm/rm.c \
-	cmds/modules/bdd/bdd.c \
-	cmds/modules/cat/cat.c \
-	cmds/modules/touch/touch.c \
-	cmds/modules/ls/ls.c \
-	cmds/modules/pwd/pwd.c \
-	cmds/modules/sleep/sleep.c \
-	cmds/modules/cp/cp.c \
-	cmds/modules/mv/mv.c \
-	cmds/modules/printf/printf.c \
-	cmds/modules/echo/echo.c \
-	cmds/modules/mount/mount.c \
-	cmds/modules/unmount/unmount.c \
-	cmds/modules/kcon/kcon.c \
-	cmds/modules/cmp/cmp.c \
-	cmds/builtins/batch/batch.c \
-	cmds/builtins/exit/exit.c \
-	cmds/builtins/cd/cd.c \
-	cmds/mod_cmds.c \
-	cmds/builtin_cmds.c \
-	compl.c \
-	errors.c \
-	input.c \
-	util.c \
-	exec.c \
-	scli.c \
-	tok.c
+	src/helenos/block.c \
+	src/blob.c \
+	src/compound.c \
+	src/expression.c \
+	src/file.c \
+	src/print.c \
+	src/script.c \
+	src/sequence.c \
+	src/source.c \
+	src/transform.c \
+	src/tree.c
 
 include $(USPACE_PREFIX)/Makefile.common
