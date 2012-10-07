@@ -42,11 +42,21 @@
 #define PRIdCMPTYPE  PRId32
 
 typedef int32_t cmptype_t;
+typedef void (* float_op_t)(float, float, float *, float_t *);
+typedef void (* double_op_t)(double, double, double *, double_t *);
+typedef void (* template_t)(void *, unsigned, unsigned, cmptype_t *,
+    cmptype_t *);
 
-static float float_op_a[OPERANDS] =
+static float fop_a[OPERANDS] =
 	{3.5, -2.1, 100.0, 50.0, -1024.0, 0.0};
 
-static float float_op_b[OPERANDS] =
+static float fop_b[OPERANDS] =
+	{-2.1, 100.0, 50.0, -1024.0, 3.5, 0.0};
+
+static double dop_a[OPERANDS] =
+	{3.5, -2.1, 100.0, 50.0, -1024.0, 0.0};
+
+static double dop_b[OPERANDS] =
 	{-2.1, 100.0, 50.0, -1024.0, 3.5, 0.0};
 
 static cmptype_t cmpabs(cmptype_t a)
@@ -57,38 +67,51 @@ static cmptype_t cmpabs(cmptype_t a)
 	return -a;
 }
 
-static bool test_float_add(void)
+static void
+float_template(void *f, unsigned i, unsigned j, cmptype_t *pic,
+    cmptype_t *pisc)
+{
+	float c;
+	float_t sc;
+
+	float_op_t op = (float_op_t) f;
+	
+	op(fop_a[i], fop_b[j], &c, &sc);
+
+	*pic = (cmptype_t) (c * PRECISION);
+	*pisc = (cmptype_t) (sc.val * PRECISION);
+}
+
+static void
+double_template(void *f, unsigned i, unsigned j, cmptype_t *pic,
+    cmptype_t *pisc)
+{
+	double c;
+	double_t sc;
+
+	double_op_t op = (double_op_t) f;
+	
+	op(dop_a[i], dop_b[j], &c, &sc);
+
+	*pic = (cmptype_t) (c * PRECISION);
+	*pisc = (cmptype_t) (sc.val * PRECISION);
+}
+
+static bool test_template(template_t template, void *f)
 {
 	bool correct = true;
 	
 	for (unsigned int i = 0; i < OPERANDS; i++) {
-		for (unsigned int j = 0; j < OPERANDS; j++) {
-			float a = float_op_a[i];
-			float b = float_op_b[j];
-			float c = a + b;
-			
-			float_t sa;
-			float_t sb;
-			float_t sc;
-			
-			sa.val = float_op_a[i];
-			sb.val = float_op_b[j];
-			if (sa.data.parts.sign == sb.data.parts.sign)
-				sc.data = add_float(sa.data, sb.data);
-			else if (sa.data.parts.sign) {
-				sa.data.parts.sign = 0;
-				sc.data = sub_float(sb.data, sa.data);
-			} else {
-				sb.data.parts.sign = 0;
-				sc.data = sub_float(sa.data, sb.data);
-			}
-				
-			cmptype_t ic = (cmptype_t) (c * PRECISION);
-			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
+		for (unsigned int j = 0; j < OPERANDS; j++) {			
+			cmptype_t ic;
+			cmptype_t isc;
+
+			template(f, i, j, &ic, &isc);	
 			cmptype_t diff = cmpabs(ic - isc);
 			
 			if (diff != 0) {
-				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n", i, j, diff);
+				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n",
+				    i, j, diff);
 				correct = false;
 			}
 		}
@@ -97,82 +120,135 @@ static bool test_float_add(void)
 	return correct;
 }
 
-static bool test_float_mul(void)
+static void float_add_operator(float a, float b, float *pc, float_t *psc)
 {
-	bool correct = true;
+	*pc = a + b;
 	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		for (unsigned int j = 0; j < OPERANDS; j++) {
-			float a = float_op_a[i];
-			float b = float_op_b[j];
-			float c = a * b;
-			
-			float_t sa;
-			float_t sb;
-			float_t sc;
-			
-			sa.val = float_op_a[i];
-			sb.val = float_op_b[j];
-			sc.data = mul_float(sa.data, sb.data);
-				
-			cmptype_t ic = (cmptype_t) (c * PRECISION);
-			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
-			cmptype_t diff = cmpabs(ic - isc);
-			
-			if (diff != 0) {
-				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n", i, j, diff);
-				correct = false;
-			}
-		}
+	float_t sa;
+	float_t sb;
+	
+	sa.val = a;
+	sb.val = b;
+	if (sa.data.parts.sign == sb.data.parts.sign)
+		psc->data = add_float(sa.data, sb.data);
+	else if (sa.data.parts.sign) {
+		sa.data.parts.sign = 0;
+		psc->data = sub_float(sb.data, sa.data);
+	} else {
+		sb.data.parts.sign = 0;
+		psc->data = sub_float(sa.data, sb.data);
 	}
-	
-	return correct;
 }
 
-static bool test_float_div(void)
+static void float_mul_operator(float a, float b, float *pc, float_t *psc)
 {
-	bool correct = true;
+	*pc = a * b;
 	
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		for (unsigned int j = 0; j < OPERANDS; j++) {
-			float a = float_op_a[i];
-			float b = float_op_b[j];
+	float_t sa;
+	float_t sb;
+	
+	sa.val = a;
+	sb.val = b;
+	psc->data = mul_float(sa.data, sb.data);
+}
 
-			if (b == 0.0)
-				continue;
-
-			float c = a / b;
-			
-			float_t sa;
-			float_t sb;
-			float_t sc;
-			
-			sa.val = float_op_a[i];
-			sb.val = float_op_b[j];
-			sc.data = div_float(sa.data, sb.data);
-				
-			cmptype_t ic = (cmptype_t) (c * PRECISION);
-			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
-			cmptype_t diff = cmpabs(ic - isc);
-			
-			if (diff != 0) {
-				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n", i, j, diff);
-				correct = false;
-			}
-		}
+static void float_div_operator(float a, float b, float *pc, float_t *psc)
+{
+	if ((cmptype_t) b == 0) {
+		*pc = 0.0;
+		psc->val = 0.0;
+		return;
 	}
+
+	*pc = a / b;
 	
-	return correct;
+	float_t sa;
+	float_t sb;
+	
+	sa.val = a;
+	sb.val = b;
+	psc->data = div_float(sa.data, sb.data);
+}
+
+static void double_add_operator(double a, double b, double *pc, double_t *psc)
+{
+	*pc = a + b;
+	
+	double_t sa;
+	double_t sb;
+	
+	sa.val = a;
+	sb.val = b;
+	if (sa.data.parts.sign == sb.data.parts.sign)
+		psc->data = add_double(sa.data, sb.data);
+	else if (sa.data.parts.sign) {
+		sa.data.parts.sign = 0;
+		psc->data = sub_double(sb.data, sa.data);
+	} else {
+		sb.data.parts.sign = 0;
+		psc->data = sub_double(sa.data, sb.data);
+	}
+}
+
+static void double_mul_operator(double a, double b, double *pc, double_t *psc)
+{
+	*pc = a * b;
+	
+	double_t sa;
+	double_t sb;
+	
+	sa.val = a;
+	sb.val = b;
+	psc->data = mul_double(sa.data, sb.data);
+}
+
+static void double_div_operator(double a, double b, double *pc, double_t *psc)
+{
+	if ((cmptype_t) b == 0) {
+		*pc = 0.0;
+		psc->val = 0.0;
+		return;
+	}
+
+	*pc = a / b;
+	
+	double_t sa;
+	double_t sb;
+	
+	sa.val = a;
+	sb.val = b;
+	psc->data = div_double(sa.data, sb.data);
 }
 
 const char *test_softfloat1(void)
 {
-	if (!test_float_add())
-		return "Float addition failed";
-	if (!test_float_mul())
-		return "Float multiplication failed";
-	if (!test_float_div())
-		return "Float division failed";
+	const char *err = NULL;
+
+	if (!test_template(float_template, float_add_operator)) {
+		err = "Float addition failed";
+		TPRINTF("%s\n", err);
+	}
+	if (!test_template(float_template, float_mul_operator)) {
+		err = "Float multiplication failed";
+		TPRINTF("%s\n", err);
+	}
+	if (!test_template(float_template, float_div_operator)) {
+		err = "Float division failed";
+		TPRINTF("%s\n", err);
+	}
+	if (!test_template(double_template, double_add_operator)) {
+		err = "Double addition failed";
+		TPRINTF("%s\n", err);
+	}
+	if (!test_template(double_template, double_mul_operator)) {
+		err = "Double multiplication failed";
+		TPRINTF("%s\n", err);
+	}
+	if (!test_template(double_template, double_div_operator)) {
+		err = "Double division failed";
+		TPRINTF("%s\n", err);
+	}
 	
-	return NULL;
+	return err;
 }
+
