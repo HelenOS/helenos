@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <sftypes.h>
 #include <add.h>
+#include <sub.h>
 #include <bool.h>
 #include "../tester.h"
 
@@ -70,8 +71,16 @@ static bool test_float_add(void)
 			
 			sa.val = float_op_a[i];
 			sb.val = float_op_b[j];
-			sc.data = add_float(sa.data, sb.data);
-			
+			if (sa.data.parts.sign == sb.data.parts.sign)
+				sc.data = add_float(sa.data, sb.data);
+			else if (sa.data.parts.sign) {
+				sa.data.parts.sign = 0;
+				sc.data = sub_float(sb.data, sa.data);
+			} else {
+				sb.data.parts.sign = 0;
+				sc.data = sub_float(sa.data, sb.data);
+			}
+				
 			cmptype_t ic = (cmptype_t) (c * PRECISION);
 			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
 			cmptype_t diff = cmpabs(ic - isc);
