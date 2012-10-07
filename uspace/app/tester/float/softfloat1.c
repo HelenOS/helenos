@@ -31,10 +31,12 @@
 #include <sftypes.h>
 #include <add.h>
 #include <sub.h>
+#include <mul.h>
+#include <div.h>
 #include <bool.h>
 #include "../tester.h"
 
-#define OPERANDS   5
+#define OPERANDS  6 
 #define PRECISION  10000
 
 #define PRIdCMPTYPE  PRId32
@@ -42,10 +44,10 @@
 typedef int32_t cmptype_t;
 
 static float float_op_a[OPERANDS] =
-	{3.5, -2.1, 100.0, 50.0, -1024.0};
+	{3.5, -2.1, 100.0, 50.0, -1024.0, 0.0};
 
 static float float_op_b[OPERANDS] =
-	{-2.1, 100.0, 50.0, -1024.0, 3.5};
+	{-2.1, 100.0, 50.0, -1024.0, 3.5, 0.0};
 
 static cmptype_t cmpabs(cmptype_t a)
 {
@@ -95,10 +97,82 @@ static bool test_float_add(void)
 	return correct;
 }
 
+static bool test_float_mul(void)
+{
+	bool correct = true;
+	
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		for (unsigned int j = 0; j < OPERANDS; j++) {
+			float a = float_op_a[i];
+			float b = float_op_b[j];
+			float c = a * b;
+			
+			float_t sa;
+			float_t sb;
+			float_t sc;
+			
+			sa.val = float_op_a[i];
+			sb.val = float_op_b[j];
+			sc.data = mul_float(sa.data, sb.data);
+				
+			cmptype_t ic = (cmptype_t) (c * PRECISION);
+			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
+			cmptype_t diff = cmpabs(ic - isc);
+			
+			if (diff != 0) {
+				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n", i, j, diff);
+				correct = false;
+			}
+		}
+	}
+	
+	return correct;
+}
+
+static bool test_float_div(void)
+{
+	bool correct = true;
+	
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		for (unsigned int j = 0; j < OPERANDS; j++) {
+			float a = float_op_a[i];
+			float b = float_op_b[j];
+
+			if (b == 0.0)
+				continue;
+
+			float c = a / b;
+			
+			float_t sa;
+			float_t sb;
+			float_t sc;
+			
+			sa.val = float_op_a[i];
+			sb.val = float_op_b[j];
+			sc.data = div_float(sa.data, sb.data);
+				
+			cmptype_t ic = (cmptype_t) (c * PRECISION);
+			cmptype_t isc = (cmptype_t) (sc.val * PRECISION);
+			cmptype_t diff = cmpabs(ic - isc);
+			
+			if (diff != 0) {
+				TPRINTF("i=%u, j=%u diff=%" PRIdCMPTYPE "\n", i, j, diff);
+				correct = false;
+			}
+		}
+	}
+	
+	return correct;
+}
+
 const char *test_softfloat1(void)
 {
 	if (!test_float_add())
 		return "Float addition failed";
+	if (!test_float_mul())
+		return "Float multiplication failed";
+	if (!test_float_div())
+		return "Float division failed";
 	
 	return NULL;
 }
