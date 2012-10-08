@@ -267,7 +267,13 @@ void log_release(logger_log_t *log)
 	fibril_mutex_unlock(&log->guard);
 
 	if (log->parent == NULL) {
-		fclose(log->dest->logfile);
+		/*
+		 * Due to lazy file opening in write_to_log(),
+		 * it is possible that no file was actually opened.
+		 */
+		if (log->dest->logfile != NULL) {
+			fclose(log->dest->logfile);
+		}
 		free(log->dest->filename);
 		free(log->dest);
 	} else {
