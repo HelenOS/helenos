@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <str.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
@@ -57,8 +58,8 @@ typedef struct {
  * are currently unused.
  */
 typedef struct {
-	link_t		link;
-	service_id_t	service_id;
+	link_t link;
+	service_id_t service_id;
 
 	/** Next unassigned index. */
 	fs_index_t next;
@@ -96,7 +97,7 @@ static unused_t *unused_find(service_id_t service_id, bool lock)
 		if (u->service_id == service_id) 
 			return u;
 	}
-	
+
 	if (lock)
 		fibril_mutex_unlock(&unused_lock);
 	return NULL;
@@ -112,72 +113,50 @@ static FIBRIL_MUTEX_INITIALIZE(used_lock);
  */ 
 static hash_table_t up_hash;
 
-#define UPH_BUCKETS_LOG	12
-#define UPH_BUCKETS	(1 << UPH_BUCKETS_LOG)
-
-#define UPH_SID_KEY	0
-#define UPH_PFC_KEY	1
-#define UPH_PDI_KEY	2
-
-static hash_index_t pos_hash(unsigned long key[])
-{
-	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
-	fat_cluster_t pfc = (fat_cluster_t)key[UPH_PFC_KEY];
-	unsigned pdi = (unsigned)key[UPH_PDI_KEY];
-
-	hash_index_t h;
-
-	/*
-	 * The least significant half of all bits are the least significant bits
-	 * of the parent node's first cluster.
-	 *
-	 * The least significant half of the most significant half of all bits
-	 * are the least significant bits of the node's dentry index within the
-	 * parent directory node.
-	 *
-	 * The most significant half of the most significant half of all bits
-	 * are the least significant bits of the device handle.
-	 */
-	h = pfc & ((1 << (UPH_BUCKETS_LOG / 2)) - 1);
-	h |= (pdi & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
-	    (UPH_BUCKETS_LOG / 2); 
-	h |= (service_id & ((1 << (UPH_BUCKETS_LOG / 4)) - 1)) <<
-	    (3 * (UPH_BUCKETS_LOG / 4));
-
-	return h;
-}
-
-static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
-{
-	service_id_t service_id = (service_id_t)key[UPH_SID_KEY];
+typedef struct {
+	service_id_t service_id;
 	fat_cluster_t pfc;
 	unsigned pdi;
-	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uph_link);
+} pos_key_t;
 
-	switch (keys) {
-	case 1:
-		return (service_id == fidx->service_id);
-	case 3:
-		pfc = (fat_cluster_t) key[UPH_PFC_KEY];
-		pdi = (unsigned) key[UPH_PDI_KEY];
-		return (service_id == fidx->service_id) && (pfc == fidx->pfc) &&
-		    (pdi == fidx->pdi);
-	default:
-		assert((keys == 1) || (keys == 3));
-	}
-
-	return 0;
-}
-
-static void pos_remove_callback(link_t *item)
+static inline size_t pos_key_hash(void *key)
 {
-	/* nothing to do */
+	pos_key_t *pos = (pos_key_t*)key;
+	
+	size_t hash = 0;
+	hash = hash_combine(pos->pfc, pos->pdi);
+	return hash_combine(hash, pos->service_id);
 }
 
-static hash_table_operations_t uph_ops = {
+static size_t pos_hash(const ht_link_t *item)
+{
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uph_link);
+	
+	pos_key_t pkey = {
+		.service_id = fidx->service_id,
+		.pfc = fidx->pfc,
+		.pdi = fidx->pdi,
+	};
+	
+	return pos_key_hash(&pkey);
+}
+
+static bool pos_key_equal(void *key, const ht_link_t *item)
+{
+	pos_key_t *pos = (pos_key_t*)key;
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uph_link);
+	
+	return pos->service_id == fidx->service_id
+		&& pos->pdi == fidx->pdi
+		&& pos->pfc == fidx->pfc;
+}
+
+static hash_table_ops_t uph_ops = {
 	.hash = pos_hash,
-	.compare = pos_compare,
-	.remove_callback = pos_remove_callback,
+	.key_hash = pos_key_hash,
+	.key_equal = pos_key_equal,
+	.equal = 0,
+	.remove_callback = 0,
 };
 
 /**
@@ -186,56 +165,43 @@ static hash_table_operations_t uph_ops = {
  */
 static hash_table_t ui_hash;
 
-#define UIH_BUCKETS_LOG	12
-#define UIH_BUCKETS	(1 << UIH_BUCKETS_LOG)
-
-#define UIH_SID_KEY	0
-#define UIH_INDEX_KEY	1
-
-static hash_index_t idx_hash(unsigned long key[])
-{
-	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
-	fs_index_t index = (fs_index_t)key[UIH_INDEX_KEY];
-
-	hash_index_t h;
-
-	h = service_id & ((1 << (UIH_BUCKETS_LOG / 2)) - 1);
-	h |= (index & ((1 << (UIH_BUCKETS_LOG / 2)) - 1)) <<
-	    (UIH_BUCKETS_LOG / 2);
-
-	return h;
-}
-
-static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
-{
-	service_id_t service_id = (service_id_t)key[UIH_SID_KEY];
+typedef struct {
+	service_id_t service_id;
 	fs_index_t index;
-	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
+} idx_key_t;
 
-	switch (keys) {
-	case 1:
-		return (service_id == fidx->service_id);
-	case 2:
-		index = (fs_index_t) key[UIH_INDEX_KEY];
-		return (service_id == fidx->service_id) &&
-		    (index == fidx->index);
-	default:
-		assert((keys == 1) || (keys == 2));
-	}
-
-	return 0;
+static size_t idx_key_hash(void *key_arg)
+{
+	idx_key_t *key = (idx_key_t*)key_arg;
+	return hash_combine(key->service_id, key->index);
 }
 
-static void idx_remove_callback(link_t *item)
+static size_t idx_hash(const ht_link_t *item)
 {
-	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
+	return hash_combine(fidx->service_id, fidx->index);
+}
+
+static bool idx_key_equal(void *key_arg, const ht_link_t *item)
+{
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
+	idx_key_t *key = (idx_key_t*)key_arg;
+	
+	return key->index == fidx->index && key->service_id == fidx->service_id;
+}
+
+static void idx_remove_callback(ht_link_t *item)
+{
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
 
 	free(fidx);
 }
 
-static hash_table_operations_t uih_ops = {
+static hash_table_ops_t uih_ops = {
 	.hash = idx_hash,
-	.compare = idx_compare,
+	.key_hash = idx_key_hash,
+	.key_equal = idx_key_equal,
+	.equal = 0,
 	.remove_callback = idx_remove_callback,
 };
 
@@ -376,8 +342,6 @@ static int fat_idx_create(fat_idx_t **fidxp, service_id_t service_id)
 		return ENOSPC;
 	}
 		
-	link_initialize(&fidx->uph_link);
-	link_initialize(&fidx->uih_link);
 	fibril_mutex_initialize(&fidx->lock);
 	fidx->service_id = service_id;
 	fidx->pfc = FAT_CLST_RES0;	/* no parent yet */
@@ -400,12 +364,7 @@ int fat_idx_get_new(fat_idx_t **fidxp, service_id_t service_id)
 		return rc;
 	}
 		
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = service_id,
-		[UIH_INDEX_KEY] = fidx->index,
-	};
-	
-	hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
+	hash_table_insert(&ui_hash, &fidx->uih_link);
 	fibril_mutex_lock(&fidx->lock);
 	fibril_mutex_unlock(&used_lock);
 
@@ -417,17 +376,17 @@ fat_idx_t *
 fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 {
 	fat_idx_t *fidx;
-	link_t *l;
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = service_id,
-		[UPH_PFC_KEY] = pfc,
-		[UPH_PDI_KEY] = pdi,
+
+	pos_key_t pos_key = {
+		.service_id = service_id,
+		.pfc = pfc,
+		.pdi = pdi,
 	};
 
 	fibril_mutex_lock(&used_lock);
-	l = hash_table_find(&up_hash, pkey);
+	ht_link_t *l = hash_table_find(&up_hash, &pos_key);
 	if (l) {
-		fidx = hash_table_get_instance(l, fat_idx_t, uph_link);
+		fidx = hash_table_get_inst(l, fat_idx_t, uph_link);
 	} else {
 		int rc;
 
@@ -437,16 +396,11 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 			return NULL;
 		}
 		
-		unsigned long ikey[] = {
-			[UIH_SID_KEY] = service_id,
-			[UIH_INDEX_KEY] = fidx->index,
-		};
-	
 		fidx->pfc = pfc;
 		fidx->pdi = pdi;
 
-		hash_table_insert(&up_hash, pkey, &fidx->uph_link);
-		hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
+		hash_table_insert(&up_hash, &fidx->uph_link);
+		hash_table_insert(&ui_hash, &fidx->uih_link);
 	}
 	fibril_mutex_lock(&fidx->lock);
 	fibril_mutex_unlock(&used_lock);
@@ -456,27 +410,15 @@ fat_idx_get_by_pos(service_id_t service_id, fat_cluster_t pfc, unsigned pdi)
 
 void fat_idx_hashin(fat_idx_t *idx)
 {
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = idx->service_id,
-		[UPH_PFC_KEY] = idx->pfc,
-		[UPH_PDI_KEY] = idx->pdi,
-	};
-
 	fibril_mutex_lock(&used_lock);
-	hash_table_insert(&up_hash, pkey, &idx->uph_link);
+	hash_table_insert(&up_hash, &idx->uph_link);
 	fibril_mutex_unlock(&used_lock);
 }
 
 void fat_idx_hashout(fat_idx_t *idx)
 {
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = idx->service_id,
-		[UPH_PFC_KEY] = idx->pfc,
-		[UPH_PDI_KEY] = idx->pdi,
-	};
-
 	fibril_mutex_lock(&used_lock);
-	hash_table_remove(&up_hash, pkey, 3);
+	hash_table_remove_item(&up_hash, &idx->uph_link);
 	fibril_mutex_unlock(&used_lock);
 }
 
@@ -484,16 +426,16 @@ fat_idx_t *
 fat_idx_get_by_index(service_id_t service_id, fs_index_t index)
 {
 	fat_idx_t *fidx = NULL;
-	link_t *l;
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = service_id,
-		[UIH_INDEX_KEY] = index,
+
+	idx_key_t idx_key = {
+		.service_id = service_id,
+		.index = index,
 	};
 
 	fibril_mutex_lock(&used_lock);
-	l = hash_table_find(&ui_hash, ikey);
+	ht_link_t *l = hash_table_find(&ui_hash, &idx_key);
 	if (l) {
-		fidx = hash_table_get_instance(l, fat_idx_t, uih_link);
+		fidx = hash_table_get_inst(l, fat_idx_t, uih_link);
 		fibril_mutex_lock(&fidx->lock);
 	}
 	fibril_mutex_unlock(&used_lock);
@@ -507,12 +449,10 @@ fat_idx_get_by_index(service_id_t service_id, fs_index_t index)
  */
 void fat_idx_destroy(fat_idx_t *idx)
 {
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = idx->service_id,
-		[UIH_INDEX_KEY] = idx->index,
+	idx_key_t idx_key = {
+		.service_id = idx->service_id,
+		.index = idx->index,
 	};
-	service_id_t service_id = idx->service_id;
-	fs_index_t index = idx->index;
 
 	assert(idx->pfc == FAT_CLST_RES0);
 
@@ -522,18 +462,18 @@ void fat_idx_destroy(fat_idx_t *idx)
 	 * present in the position hash (uph). We therefore hash it out from
 	 * the index hash only.
 	 */
-	hash_table_remove(&ui_hash, ikey, 2);
+	hash_table_remove(&ui_hash, &idx_key);
 	fibril_mutex_unlock(&used_lock);
 	/* Release the VFS index. */
-	fat_index_free(service_id, index);
+	fat_index_free(idx_key.service_id, idx_key.index);
 	/* The index structure itself is freed in idx_remove_callback(). */
 }
 
 int fat_idx_init(void)
 {
-	if (!hash_table_create(&up_hash, UPH_BUCKETS, 3, &uph_ops)) 
+	if (!hash_table_create(&up_hash, 0, 0, &uph_ops)) 
 		return ENOMEM;
-	if (!hash_table_create(&ui_hash, UIH_BUCKETS, 2, &uih_ops)) {
+	if (!hash_table_create(&ui_hash, 0, 0, &uih_ops)) {
 		hash_table_destroy(&up_hash);
 		return ENOMEM;
 	}
@@ -543,6 +483,7 @@ int fat_idx_init(void)
 void fat_idx_fini(void)
 {
 	/* We assume the hash tables are empty. */
+	assert(hash_table_empty(&up_hash) && hash_table_empty(&ui_hash));
 	hash_table_destroy(&up_hash);
 	hash_table_destroy(&ui_hash);
 }
@@ -567,23 +508,40 @@ int fat_idx_init_by_service_id(service_id_t service_id)
 	return rc;
 }
 
+static bool rm_pos_service_id(ht_link_t *item, void *arg)
+{
+	service_id_t service_id = *(service_id_t*)arg;
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uph_link);
+
+	if (fidx->service_id == service_id) {
+		hash_table_remove_item(&up_hash, item);
+	}
+	
+	return true;
+}
+
+static bool rm_idx_service_id(ht_link_t *item, void *arg)
+{
+	service_id_t service_id = *(service_id_t*)arg;
+	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
+
+	if (fidx->service_id == service_id) {
+		hash_table_remove_item(&ui_hash, item);
+	}
+	
+	return true;
+}
+
 void fat_idx_fini_by_service_id(service_id_t service_id)
 {
-	unsigned long ikey[] = {
-		[UIH_SID_KEY] = service_id
-	};
-	unsigned long pkey[] = {
-		[UPH_SID_KEY] = service_id
-	};
-
 	/*
 	 * Remove this instance's index structure from up_hash and ui_hash.
 	 * Process up_hash first and ui_hash second because the index structure
 	 * is actually removed in idx_remove_callback(). 
 	 */
 	fibril_mutex_lock(&used_lock);
-	hash_table_remove(&up_hash, pkey, 1);
-	hash_table_remove(&ui_hash, ikey, 1);
+	hash_table_apply(&up_hash, rm_pos_service_id, &service_id);
+	hash_table_apply(&ui_hash, rm_idx_service_id, &service_id);
 	fibril_mutex_unlock(&used_lock);
 
 	/*

@@ -48,6 +48,7 @@
 #include <bool.h>
 #include <str.h>
 #include <getopt.h>
+#include <macros.h>
 #include "exfat.h"
 #include "upcase.h"
 
@@ -86,7 +87,6 @@
 /** Index of the first free cluster on the device */
 #define FIRST_FREE_CLUSTER   2
 
-#define min(x, y) ((x) < (y) ? (x) : (y))
 
 typedef struct exfat_cfg {
 	aoff64_t volume_start;

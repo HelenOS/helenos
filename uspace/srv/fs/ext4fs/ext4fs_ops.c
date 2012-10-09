@@ -41,19 +41,13 @@
 #include <macros.h>
 #include <malloc.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <ipc/loc.h>
 #include "ext4fs.h"
 #include "../../vfs/vfs.h"
 
 #define EXT4FS_NODE(node) \
 	((node) ? (ext4fs_node_t *) (node)->data : NULL)
-
-#define OPEN_NODES_KEYS  2
-
-#define OPEN_NODES_DEV_HANDLE_KEY  0
-#define OPEN_NODES_INODE_KEY       1
-
-#define OPEN_NODES_BUCKETS  256
 
 /**
  * Type for holding an instance of mounted partition.
@@ -72,7 +66,7 @@ typedef struct ext4fs_node {
 	ext4fs_instance_t *instance;
 	ext4_inode_ref_t *inode_ref;
 	fs_node_t *fs_node;
-	link_t link;
+	ht_link_t link;
 	unsigned int references;
 } ext4fs_node_t;
 
@@ -114,47 +108,39 @@ static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
 
 /* Hash table interface for open nodes hash table */
-static hash_index_t open_nodes_hash(unsigned long key[])
+
+typedef struct {
+	service_id_t service_id;
+	fs_index_t index;
+} node_key_t;
+
+static size_t open_nodes_key_hash(void *key_arg)
 {
-	/* TODO: This is very simple and probably can be improved */
-	return key[OPEN_NODES_INODE_KEY] % OPEN_NODES_BUCKETS;
+	node_key_t *key = (node_key_t *)key_arg;
+	return hash_combine(key->service_id, key->index);
 }
 
-/** Compare given item with values in hash table.
- *
- */
-static int open_nodes_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t open_nodes_hash(const ht_link_t *item)
 {
-	assert(keys > 0);
-	
-	ext4fs_node_t *enode =
-	    hash_table_get_instance(item, ext4fs_node_t, link);
-	
-	if (enode->instance->service_id !=
-	    ((service_id_t) key[OPEN_NODES_DEV_HANDLE_KEY]))
-		return false;
-	
-	if (keys == 1)
-		return true;
-	
-	assert(keys == 2);
-	
-	return (enode->inode_ref->index == key[OPEN_NODES_INODE_KEY]);
+	ext4fs_node_t *enode = hash_table_get_inst(item, ext4fs_node_t, link);
+	return hash_combine(enode->instance->service_id, enode->inode_ref->index);	
 }
 
-/** Empty callback to correct hash table initialization.
- *
- */
-static void open_nodes_remove_cb(link_t *link)
+static bool open_nodes_key_equal(void *key_arg, const ht_link_t *item)
 {
-	/* We don't use remove callback for this hash table */
+	node_key_t *key = (node_key_t *)key_arg;
+	ext4fs_node_t *enode = hash_table_get_inst(item, ext4fs_node_t, link);
+	
+	return key->service_id == enode->instance->service_id
+		&& key->index == enode->inode_ref->index;
 }
 
-static hash_table_operations_t open_nodes_ops = {
+static hash_table_ops_t open_nodes_ops = {
 	.hash = open_nodes_hash,
-	.compare = open_nodes_compare,
-	.remove_callback = open_nodes_remove_cb,
+	.key_hash = open_nodes_key_hash,
+	.key_equal = open_nodes_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL,
 };
 
 /** Basic initialization of the driver.
@@ -167,8 +153,7 @@ static hash_table_operations_t open_nodes_ops = {
  */
 int ext4fs_global_init(void)
 {
-	if (!hash_table_create(&open_nodes, OPEN_NODES_BUCKETS,
-	    OPEN_NODES_KEYS, &open_nodes_ops))
+	if (!hash_table_create(&open_nodes, 0, 0, &open_nodes_ops))
 		return ENOMEM;
 	
 	return EOK;
@@ -314,15 +299,15 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	fibril_mutex_lock(&open_nodes_lock);
 	
 	/* Check if the node is not already open */
-	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = inst->service_id,
-		[OPEN_NODES_INODE_KEY] = index
+	node_key_t key = {
+		.service_id = inst->service_id,
+		.index = index
 	};
 	
-	link_t *already_open = hash_table_find(&open_nodes, key);
+	ht_link_t *already_open = hash_table_find(&open_nodes, &key);
 	ext4fs_node_t *enode = NULL;
 	if (already_open) {
-		enode = hash_table_get_instance(already_open, ext4fs_node_t, link);
+		enode = hash_table_get_inst(already_open, ext4fs_node_t, link);
 		*rfn = enode->fs_node;
 		enode->references++;
 		
@@ -363,12 +348,11 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
 	enode->instance = inst;
 	enode->references = 1;
 	enode->fs_node = fs_node;
-	link_initialize(&enode->link);
 	
 	fs_node->data = enode;
 	*rfn = fs_node;
 	
-	hash_table_insert(&open_nodes, key, &enode->link);
+	hash_table_insert(&open_nodes, &enode->link);
 	inst->open_nodes_count++;
 	
 	fibril_mutex_unlock(&open_nodes_lock);
@@ -385,12 +369,7 @@ int ext4fs_node_get_core(fs_node_t **rfn, ext4fs_instance_t *inst,
  */
 int ext4fs_node_put_core(ext4fs_node_t *enode)
 {
-	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = enode->instance->service_id,
-		[OPEN_NODES_INODE_KEY] = enode->inode_ref->index
-	};
-	
-	hash_table_remove(&open_nodes, key, OPEN_NODES_KEYS);
+	hash_table_remove_item(&open_nodes, &enode->link);
 	assert(enode->instance->open_nodes_count > 0);
 	enode->instance->open_nodes_count--;
 	
@@ -497,15 +476,8 @@ int ext4fs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	enode->instance = inst;
 	enode->references = 1;
 	
-	link_initialize(&enode->link);
-	
-	unsigned long key[] = {
-		[OPEN_NODES_DEV_HANDLE_KEY] = inst->service_id,
-		[OPEN_NODES_INODE_KEY] = inode_ref->index
-	};
-	
 	fibril_mutex_lock(&open_nodes_lock);
-	hash_table_insert(&open_nodes, key, &enode->link);
+	hash_table_insert(&open_nodes, &enode->link);
 	fibril_mutex_unlock(&open_nodes_lock);
 	inst->open_nodes_count++;
 	
