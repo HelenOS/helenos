@@ -34,7 +34,9 @@
 
 #include <arch/exception.h>
 #include <arch/mach/beaglebone/beaglebone.h>
-#include <genarch/drivers/am335x_irc/am335x_irc.h>
+#include <genarch/drivers/am335x/irc.h>
+#include <genarch/drivers/am335x/uart.h>
+#include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
@@ -53,19 +55,20 @@ static const char *bbone_get_platform_name(void);
 
 static struct beaglebone {
 	am335x_irc_regs_t *irc_addr;
+	am335x_uart_t uart;
 } bbone;
 
 struct arm_machine_ops bbone_machine_ops = {
-	bbone_init,
-	bbone_timer_irq_start,
-	bbone_cpu_halt,
-	bbone_get_memory_extents,
-	bbone_irq_exception,
-	bbone_frame_init,
-	bbone_output_init,
-	bbone_input_init,
-	bbone_get_irq_count,
-	bbone_get_platform_name
+	.machine_init = bbone_init,
+	.machine_timer_irq_start = bbone_timer_irq_start,
+	.machine_cpu_halt = bbone_cpu_halt,
+	.machine_get_memory_extents = bbone_get_memory_extents,
+	.machine_irq_exception = bbone_irq_exception,
+	.machine_frame_init = bbone_frame_init,
+	.machine_output_init = bbone_output_init,
+	.machine_input_init = bbone_input_init,
+	.machine_get_irq_count = bbone_get_irq_count,
+	.machine_get_platform_name = bbone_get_platform_name,
 };
 
 static void bbone_init(void)
@@ -104,15 +107,28 @@ static void bbone_frame_init(void)
 
 static void bbone_output_init(void)
 {
+	const bool ok = am335x_uart_init(&bbone.uart,
+	    AM335x_UART0_IRQ, AM335x_UART0_BASE_ADDRESS,
+	    AM335x_UART0_SIZE);
+
+	if (ok)
+		stdout_wire(&bbone.uart.outdev);
 }
 
 static void bbone_input_init(void)
 {
+	srln_instance_t *srln_instance = srln_init();
+	if (srln_instance) {
+		indev_t *sink = stdin_wire();
+		indev_t *srln = srln_wire(srln_instance, sink);
+		am335x_uart_input_wire(&bbone.uart, srln);
+		am335x_irc_enable(bbone.irc_addr, AM335x_UART0_IRQ);
+	}
 }
 
 size_t bbone_get_irq_count(void)
 {
-	return 0;
+	return AM335x_IRC_IRQ_COUNT;
 }
 
 const char *bbone_get_platform_name(void)

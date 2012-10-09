@@ -33,7 +33,7 @@
  * @brief Texas Instruments AMDM37x on-chip uart serial line driver.
  */
 
-#include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
+#include <genarch/drivers/amdm37x/uart.h>
 #include <ddi/device.h>
 #include <str.h>
 #include <mm/km.h>

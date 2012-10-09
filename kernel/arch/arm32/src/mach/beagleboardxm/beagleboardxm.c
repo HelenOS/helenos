@@ -34,10 +34,10 @@
 
 #include <arch/exception.h>
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
-#include <genarch/drivers/amdm37x_irc/amdm37x_irc.h>
-#include <genarch/drivers/amdm37x_uart/amdm37x_uart.h>
-#include <genarch/drivers/amdm37x_gpt/amdm37x_gpt.h>
-#include <genarch/drivers/amdm37x_dispc/amdm37x_dispc.h>
+#include <genarch/drivers/amdm37x/uart.h>
+#include <genarch/drivers/amdm37x/irc.h>
+#include <genarch/drivers/amdm37x/gpt.h>
+#include <genarch/drivers/amdm37x/dispc.h>
 #include <genarch/fb/fb.h>
 #include <genarch/srln/srln.h>
 #include <interrupt.h>

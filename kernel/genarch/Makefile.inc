@@ -105,9 +105,14 @@ ifeq ($(CONFIG_S3C24XX_UART),y)
 		genarch/src/drivers/s3c24xx_uart/s3c24xx_uart.c
 endif
 
+ifeq ($(CONFIG_AM335X_UART),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/am335x/uart.c
+endif
+
 ifeq ($(CONFIG_AMDM37X_UART),y)
 	GENARCH_SOURCES += \
-		genarch/src/drivers/amdm37x_uart/amdm37x_uart.c
+		genarch/src/drivers/amdm37x/uart.c
 endif
 
 ifeq ($(CONFIG_VIA_CUDA),y)
