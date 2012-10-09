@@ -78,8 +78,8 @@ static hash_table_ops_t srv_proto_ops = {
 	.hash = srv_proto_hash,
 	.key_hash = srv_proto_key_hash,
 	.key_equal = srv_proto_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 
@@ -104,8 +104,8 @@ static hash_table_ops_t method_oper_ops = {
 	.hash = method_oper_hash,
 	.key_hash = method_oper_key_hash,
 	.key_equal = method_oper_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 

@@ -86,8 +86,8 @@ static hash_table_ops_t trans_ops = {
 	.hash = trans_hash,
 	.key_hash = trans_key_hash,
 	.key_equal = trans_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 

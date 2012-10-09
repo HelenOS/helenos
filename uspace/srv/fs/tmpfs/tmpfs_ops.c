@@ -195,7 +195,7 @@ hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
 	.key_hash = nodes_key_hash,
 	.key_equal = nodes_key_equal,
-	.equal = 0,
+	.equal = NULL,
 	.remove_callback = nodes_remove_callback
 };
 

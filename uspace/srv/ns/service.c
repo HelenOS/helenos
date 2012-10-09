@@ -71,8 +71,8 @@ static hash_table_ops_t service_hash_table_ops = {
 	.hash = service_hash,
 	.key_hash = service_key_hash,
 	.key_equal = service_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 /** Service hash table structure. */

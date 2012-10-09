@@ -97,8 +97,8 @@ static hash_table_ops_t pending_call_ops = {
 	.hash = pending_call_hash,
 	.key_hash = pending_call_key_hash,
 	.key_equal = pending_call_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 

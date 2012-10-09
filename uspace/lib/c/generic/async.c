@@ -415,8 +415,8 @@ static hash_table_ops_t client_hash_table_ops = {
 	.hash = client_hash,
 	.key_hash = client_key_hash,
 	.key_equal = client_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 /** Compute hash into the connection hash table based on the source phone hash.
@@ -451,8 +451,8 @@ static hash_table_ops_t conn_hash_table_ops = {
 	.hash = conn_hash,
 	.key_hash = conn_key_hash,
 	.key_equal = conn_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 /** Sort in current fibril's timeout request.
