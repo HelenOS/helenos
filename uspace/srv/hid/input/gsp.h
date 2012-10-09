@@ -55,7 +55,7 @@ typedef struct {
 
 /** Scancode parser transition. */
 typedef struct {
-	link_t link;		/**< Link to hash table in @c gsp_t */ 
+	ht_link_t link;		/**< Link to hash table in @c gsp_t */ 
 
 	/* Preconditions */
 

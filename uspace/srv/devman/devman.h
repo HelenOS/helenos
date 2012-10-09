@@ -51,7 +51,6 @@
 #define NAME "devman"
 
 #define MATCH_EXT ".ma"
-#define DEVICE_BUCKETS 256
 
 #define LOC_DEVICE_NAMESPACE "devices"
 #define LOC_SEPARATOR '\\'
@@ -150,7 +149,7 @@ struct dev_node {
 	/**
 	 * Used by the hash table of devices indexed by devman device handles.
 	 */
-	link_t devman_dev;
+	ht_link_t devman_dev;
 	
 	/**
 	 * Whether this device was already passed to the driver.
@@ -203,12 +202,12 @@ struct fun_node {
 	/**
 	 * Used by the hash table of functions indexed by devman device handles.
 	 */
-	link_t devman_fun;
+	ht_link_t devman_fun;
 	
 	/**
 	 * Used by the hash table of functions indexed by service IDs.
 	 */
-	link_t loc_fun;
+	ht_link_t loc_fun;
 };
 
 /** Represents device tree. */

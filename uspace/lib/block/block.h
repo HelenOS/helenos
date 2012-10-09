@@ -83,7 +83,7 @@ typedef struct block {
 	/** Link for placing the block into the free block list. */
 	link_t free_link;
 	/** Link for placing the block into the block hash table. */ 
-	link_t hash_link;
+	ht_link_t hash_link;
 	/** Buffer with the block data. */
 	void *data;
 } block_t;
