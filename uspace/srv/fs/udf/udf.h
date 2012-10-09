@@ -41,6 +41,7 @@
 #include <bool.h>
 #include "../../vfs/vfs.h"
 #include "udf_types.h"
+#include <adt/hash_table.h>
 
 #define UDF_NODE(node) \
 	((node) ? (udf_node_t *) (node)->data : NULL)
@@ -104,7 +105,7 @@ typedef struct udf_node {
 	fibril_mutex_t lock;
 	
 	fs_index_t index;  /* FID logical block */
-	link_t link;
+	ht_link_t link;
 	size_t ref_cnt;
 	size_t link_cnt;
 	
