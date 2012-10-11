@@ -159,8 +159,8 @@ static void bbxm_init(void)
 	    AMDM37x_DISPC_SIZE, PAGE_NOT_CACHEABLE);
 	ASSERT(beagleboard.dispc);
 
-	/* Initialize timer, pick timer1, because it is in always-power domain
-	 * and has special capabilities for regular ticks */
+	/* Initialize timer. Use timer1, because it is in WKUP power domain
+	 * (always on) and has special capabilities for precise 1ms ticks */
 	amdm37x_gpt_timer_ticks_init(&beagleboard.timer,
 	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, HZ);
 }
