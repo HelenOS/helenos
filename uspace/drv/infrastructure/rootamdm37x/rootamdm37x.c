@@ -46,6 +46,7 @@
 #include "uhh.h"
 #include "usbtll.h"
 #include "core_cm.h"
+#include "clock_control_cm.h"
 #include "usbhost_cm.h"
 
 #define NAME  "rootamdm37x"
@@ -120,38 +121,64 @@ static ddf_dev_ops_t rootamdm37x_fun_ops =
 
 static int usb_clocks(bool on)
 {
-	usbhost_cm_regs_t *usb_host_cm = NULL;
-	core_cm_regs_t *l4_core_cm = NULL;
+	static usbhost_cm_regs_t *usb_host_cm = NULL;
+	static core_cm_regs_t *l4_core_cm = NULL;
+	static clock_control_cm_regs_t *clock_control_cm = NULL;
 
-	int ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
-	    (void**)&usb_host_cm);
-	if (ret != EOK)
-		return ret;
+	if (!usb_host_cm) {
+		const int ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS,
+		    USBHOST_CM_SIZE, (void**)&usb_host_cm);
+		if (ret != EOK)
+			return ret;
+	}
 
-	ret = pio_enable((void*)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
-	    (void**)&l4_core_cm);
-	if (ret != EOK)
-		return ret;
+	if (!l4_core_cm) {
+		const int ret = pio_enable((void*)CORE_CM_BASE_ADDRESS,
+		    CORE_CM_SIZE, (void**)&l4_core_cm);
+		if (ret != EOK)
+			return ret;
+	}
+
+	if (!clock_control_cm) {
+		const int ret = pio_enable((void*)CLOCK_CONTROL_CM_BASE_ADDRESS,
+		    CLOCK_CONTROL_CM_SIZE, (void**)&clock_control_cm);
+		if (ret != EOK)
+			return ret;
+	}
 
 	assert(l4_core_cm);
 	assert(usb_host_cm);
+	assert(clock_control_cm);
+
+	/* Always set DPLL5 to automatic */
+	uint32_t reg = clock_control_cm->autoidle2_pll
+	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK <<
+	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
+	reg |= (CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC <<
+	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
+	clock_control_cm->autoidle2_pll = reg;
+
 	if (on) {
+		/* Enable interface and function clock for USB TLL */
 		l4_core_cm->iclken3 |= CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
 		l4_core_cm->fclken3 |= CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
+
+		/* Enable interface and function clock for USB hosts */
 		usb_host_cm->iclken |= USBHOST_CM_ICLKEN_EN_USBHOST;
 		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
 		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
 	} else {
+		/* Disable interface and function clock for USB hosts */
 		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
 		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
 		usb_host_cm->iclken &= ~USBHOST_CM_ICLKEN_EN_USBHOST;
+
+		/* Disable interface and function clock for USB TLL */
 		l4_core_cm->fclken3 &= ~CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
 		l4_core_cm->iclken3 &= ~CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
 	}
 
-	//TODO Unmap those registers.
-
-	return ret;
+	return EOK;
 }
 
 /** Initialize USB TLL port connections.
@@ -262,7 +289,6 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	
 	/* Add match id */
 	if (ddf_fun_add_match_id(fnode, str_match_id, 100) != EOK) {
-		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
 		return false;
 	}
@@ -274,6 +300,7 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
+		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
 		return false;
 	}
