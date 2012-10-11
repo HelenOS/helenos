@@ -36,6 +36,8 @@
  */
 #define _DDF_DATA_IMPLANT
 
+#define DEBUG_CM
+
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
@@ -151,12 +153,17 @@ static int usb_clocks(bool on)
 	assert(clock_control_cm);
 
 	/* Always set DPLL5 to automatic */
-	uint32_t reg = clock_control_cm->autoidle2_pll
+	uint32_t reg = clock_control_cm->autoidle2_pll;
 	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK <<
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
 	reg |= (CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC <<
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
 	clock_control_cm->autoidle2_pll = reg;
+
+#ifdef DEBUG_CM
+	printf("DPLL5 could be on: %x %x.\n",
+	    clock_control_cm->idlest_ckgen, clock_control_cm->idlest2_ckgen);
+#endif
 
 	if (on) {
 		/* Enable interface and function clock for USB TLL */
@@ -167,6 +174,10 @@ static int usb_clocks(bool on)
 		usb_host_cm->iclken |= USBHOST_CM_ICLKEN_EN_USBHOST;
 		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
 		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
+#ifdef DEBUG_CM
+	printf("DPLL5 (and everything else) should be on: %x %x.\n",
+	    clock_control_cm->idlest_ckgen, clock_control_cm->idlest2_ckgen);
+#endif
 	} else {
 		/* Disable interface and function clock for USB hosts */
 		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
