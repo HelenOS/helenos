@@ -152,13 +152,28 @@ static int usb_clocks(bool on)
 	assert(usb_host_cm);
 	assert(clock_control_cm);
 
-	/* Always set DPLL5 to automatic */
-	uint32_t reg = clock_control_cm->autoidle2_pll;
+	uint32_t reg;
+
+	/* Set DPLL3 and DPLL4 to automatic */
+	reg = clock_control_cm->autoidle_pll;
+	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK <<
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_SHIFT);
+	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK <<
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_SHIFT);
+	reg |= (CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC <<
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_SHIFT);
+	reg |= (CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC <<
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_SHIFT);
+	clock_control_cm->autoidle_pll = reg;
+
+	/* Set DPLL5 to automatic */
+	reg = clock_control_cm->autoidle2_pll;
 	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK <<
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
 	reg |= (CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC <<
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
 	clock_control_cm->autoidle2_pll = reg;
+
 
 #ifdef DEBUG_CM
 	printf("DPLL5 could be on: %x %x.\n",
