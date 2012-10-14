@@ -135,7 +135,7 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
  * @param pio_addr I/O start address.
  * @param size     Size of the I/O region.
  * @param virt     Virtual address for application's
- *                 PIO operations.
+ *                 PIO operations. Can be NULL for PMIO.
  *
  * @return EOK on success.
  * @return Negative error code on failure.
@@ -145,11 +145,14 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 {
 #ifdef IO_SPACE_BOUNDARY
 	if (pio_addr < IO_SPACE_BOUNDARY) {
-		*virt = pio_addr;
+		if (virt)
+			*virt = pio_addr;
 		return iospace_enable(task_get_id(), pio_addr, size);
 	}
 #endif
-	
+	if (!virt)
+		return EINVAL;
+
 	void *phys_frame =
 	    (void *) ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
 	size_t offset = pio_addr - phys_frame;
