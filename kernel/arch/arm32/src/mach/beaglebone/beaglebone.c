@@ -36,6 +36,7 @@
 #include <arch/mach/beaglebone/beaglebone.h>
 #include <genarch/drivers/am335x/irc.h>
 #include <genarch/drivers/am335x/uart.h>
+#include <genarch/drivers/am335x/timer.h>
 #include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
@@ -55,6 +56,7 @@ static const char *bbone_get_platform_name(void);
 
 static struct beaglebone {
 	am335x_irc_regs_t *irc_addr;
+	am335x_timer_t timer;
 	am335x_uart_t uart;
 } bbone;
 
@@ -80,12 +82,41 @@ static void bbone_init(void)
 	am335x_irc_init(bbone.irc_addr);
 }
 
+static irq_ownership_t bbone_timer_irq_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void bbone_timer_irq_handler(irq_t *irq)
+{
+	am335x_timer_intr_ack(&bbone.timer);
+	spinlock_unlock(&irq->lock);
+	clock();
+	spinlock_lock(&irq->lock);
+}
+
 static void bbone_timer_irq_start(void)
 {
+	/* Initialize the IRQ */
+	static irq_t timer_irq;
+	irq_initialize(&timer_irq);
+	timer_irq.devno = device_assign_devno();
+	timer_irq.inr = AM335x_DMTIMER0_IRQ;
+	timer_irq.claim = bbone_timer_irq_claim;
+	timer_irq.handler = bbone_timer_irq_handler;
+	irq_register(&timer_irq);
+
+	/* Initialize the DMTIMER0 */
+	am335x_timer_init(&bbone.timer, DMTIMER0, HZ);
+	/* Enable the interrupt */
+	am335x_irc_enable(bbone.irc_addr, AM335x_DMTIMER0_IRQ);
+	/* Start the timer */
+	am335x_timer_start(&bbone.timer);
 }
 
 static void bbone_cpu_halt(void)
 {
+	while (1);
 }
 
 /** Get extents of available memory.
