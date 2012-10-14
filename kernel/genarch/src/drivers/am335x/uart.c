@@ -87,12 +87,9 @@ bool am335x_uart_init(
 
 	ASSERT(uart->regs);
 
-	/* See TI OMAP35X TRM ch 17.5.1.1 p. 2732 for startup routine */
-#if 0
 	/* Soft reset the port */
 	uart->regs->sysc = AM335x_UART_SYSC_SOFTRESET_FLAG;
 	while (!(uart->regs->syss & AM335x_UART_SYSS_RESETDONE_FLAG)) ;
-#endif
 
 	/* Enable access to EFR register */
 	const uint8_t lcr = uart->regs->lcr; /* Save old value */
@@ -111,8 +108,8 @@ bool am335x_uart_init(
 	/* Enable FIFOs */
 	uart->regs->fcr = AM335x_UART_FCR_FIFO_EN_FLAG;
 
-	/* Eneble fine granularity for RX FIFO and set trigger level to 1,
-	 * TX FIFO, trigger level is irelevant*/
+	/* Enable fine granularity for RX FIFO and set trigger level to 1,
+	 * TX FIFO, trigger level is irrilevant*/
 	uart->regs->lcr = 0xbf;              /* Sets config mode B */
 	uart->regs->scr = AM335x_UART_SCR_RX_TRIG_GRANU1_FLAG;
 	uart->regs->tlr = 1 << AM335x_UART_TLR_RX_FIFO_TRIG_SHIFT;
@@ -161,3 +158,4 @@ void am335x_uart_input_wire(am335x_uart_t *uart, indev_t *indev)
 /**
  * @}
  */
+
