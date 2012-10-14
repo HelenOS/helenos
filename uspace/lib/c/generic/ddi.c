@@ -168,6 +168,36 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	return EOK;
 }
 
+void pio_write_8(ioport8_t *reg, uint8_t val)
+{
+	arch_pio_write_8(reg, val);
+}
+
+void pio_write_16(ioport16_t *reg, uint16_t val)
+{
+	arch_pio_write_16(reg, val);
+}
+
+void pio_write_32(ioport32_t *reg, uint32_t val)
+{
+	arch_pio_write_32(reg, val);
+}
+
+uint8_t pio_read_8(ioport8_t *reg)
+{
+	return arch_pio_read_8(reg);
+}
+
+uint16_t pio_read_16(ioport16_t *reg)
+{
+	return arch_pio_read_16(reg);
+}
+
+uint32_t pio_read_32(ioport32_t *reg)
+{
+	return arch_pio_read_32(reg);
+}
+
 /** Register IRQ notification.
  *
  * @param inr    IRQ number.

@@ -50,6 +50,13 @@ extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 
 extern int pio_enable(void *, size_t, void **);
+extern void pio_write_8(ioport8_t *, uint8_t);
+extern void pio_write_16(ioport16_t *, uint16_t);
+extern void pio_write_32(ioport32_t *, uint32_t);
+
+extern uint8_t pio_read_8(ioport8_t *);
+extern uint16_t pio_read_16(ioport16_t *);
+extern uint32_t pio_read_32(ioport32_t *);
 
 extern int irq_register(int, int, int, irq_code_t *);
 extern int irq_unregister(int, int);

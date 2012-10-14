@@ -35,32 +35,32 @@
 #include <sys/types.h>
 #include <libarch/types.h>
 
-static inline void pio_write_8(ioport8_t *port, uint8_t v)
+static inline void arch_pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
 }
 
-static inline void pio_write_16(ioport16_t *port, uint16_t v)
+static inline void arch_pio_write_16(ioport16_t *port, uint16_t v)
 {
 	*port = v;
 }
 
-static inline void pio_write_32(ioport32_t *port, uint32_t v)
+static inline void arch_pio_write_32(ioport32_t *port, uint32_t v)
 {
 	*port = v;
 }
 
-static inline uint8_t pio_read_8(ioport8_t *port)
+static inline uint8_t arch_pio_read_8(ioport8_t *port)
 {
 	return *port;
 }
 
-static inline uint16_t pio_read_16(ioport16_t *port)
+static inline uint16_t arch_pio_read_16(ioport16_t *port)
 {
 	return *port;
 }
 
-static inline uint32_t pio_read_32(ioport32_t *port)
+static inline uint32_t arch_pio_read_32(ioport32_t *port)
 {
 	return *port;
 }
