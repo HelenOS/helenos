@@ -119,13 +119,13 @@ int dmamem_unmap_anonymous(void *virt)
  * @return ENOMEM if there was some problem in allocating memory.
  *
  */
-int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
+static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 {
-	ddi_ioarg_t arg;
-	
-	arg.task_id = id;
-	arg.ioaddr = ioaddr;
-	arg.size = size;
+	const ddi_ioarg_t arg = {
+		.task_id = id,
+		.ioaddr = ioaddr,
+		.size = size
+	};
 	
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
