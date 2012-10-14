@@ -32,7 +32,6 @@
  * @brief UHCI root hub port routines
  */
 #include <ddi.h>
-#include <libarch/ddi.h>  /* pio_read and pio_write */
 #include <fibril_synch.h> /* async_usleep */
 #include <errno.h>
 #include <str_error.h>

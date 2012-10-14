@@ -39,7 +39,6 @@
 #include <ddi.h>
 #include <as.h>
 #include <sysinfo.h>
-#include <libarch/ddi.h>
 #include <libarch/barrier.h>
 #include <stdio.h>
 #include <ddf/driver.h>

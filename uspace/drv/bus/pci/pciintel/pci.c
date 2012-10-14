@@ -57,7 +57,6 @@
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <pci_dev_iface.h>
 
 #include "pci.h"

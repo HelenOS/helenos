@@ -44,7 +44,7 @@
 #include <sysinfo.h>
 #include <ipc/irc.h>
 #include <ipc/ns.h>
-#include <libarch/ddi.h>
+#include <ddi.h>
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
