@@ -121,26 +121,34 @@ static int usb_clocks(amdm37x_t *device, bool on)
 
 	if (on) {
 		/* Enable interface and function clock for USB TLL */
-		device->cm.core->iclken3 |= CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
-		device->cm.core->fclken3 |= CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
+		pio_set_32(&device->cm.core->fclken3,
+		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
+		pio_set_32(&device->cm.core->iclken3,
+		    CORE_CM_ICLKEN3_EN_USBTLL_FLAG, 5);
 
 		/* Enable interface and function clock for USB hosts */
-		device->cm.usbhost->iclken |= USBHOST_CM_ICLKEN_EN_USBHOST;
-		device->cm.usbhost->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
-		device->cm.usbhost->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
+		pio_set_32(&device->cm.usbhost->fclken,
+		    USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG |
+		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
+		pio_set_32(&device->cm.usbhost->iclken,
+		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
 #ifdef DEBUG_CM
 	printf("DPLL5 (and everything else) should be on: %x %x.\n",
 	    device->cm.clocks->idlest_ckgen, device->cm.clocks->idlest2_ckgen);
 #endif
 	} else {
 		/* Disable interface and function clock for USB hosts */
-		device->cm.usbhost->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
-		device->cm.usbhost->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
-		device->cm.usbhost->iclken &= ~USBHOST_CM_ICLKEN_EN_USBHOST;
+		pio_clear_32(&device->cm.usbhost->iclken,
+		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
+		pio_clear_32(&device->cm.usbhost->fclken,
+		    USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG |
+		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
 
 		/* Disable interface and function clock for USB TLL */
-		device->cm.core->fclken3 &= ~CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
-		device->cm.core->iclken3 &= ~CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
+		pio_clear_32(&device->cm.core->iclken3,
+		    CORE_CM_ICLKEN3_EN_USBTLL_FLAG, 5);
+		pio_clear_32(&device->cm.core->fclken3,
+		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
 	}
 
 	return EOK;
