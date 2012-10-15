@@ -152,6 +152,8 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 			*virt = pio_addr;
 		return iospace_enable(task_get_id(), pio_addr, size);
 	}
+#else
+	(void) iospace_enable;
 #endif
 	if (!virt)
 		return EINVAL;
