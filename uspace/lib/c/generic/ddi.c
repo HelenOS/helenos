@@ -33,7 +33,9 @@
  */
 
 #include <assert.h>
+#include <atomic.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <abi/ddi/arg.h>
@@ -45,6 +47,7 @@
 #include <align.h>
 #include <libarch/config.h>
 #include "private/libc.h"
+
 
 /** Return unique device number.
  *
@@ -170,32 +173,41 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 
 void pio_write_8(ioport8_t *reg, uint8_t val)
 {
+	pio_trace_log(reg, val, true);
 	arch_pio_write_8(reg, val);
 }
 
 void pio_write_16(ioport16_t *reg, uint16_t val)
 {
+	pio_trace_log(reg, val, true);
 	arch_pio_write_16(reg, val);
 }
 
 void pio_write_32(ioport32_t *reg, uint32_t val)
 {
+	pio_trace_log(reg, val, true);
 	arch_pio_write_32(reg, val);
 }
 
 uint8_t pio_read_8(ioport8_t *reg)
 {
-	return arch_pio_read_8(reg);
+	const uint8_t val = arch_pio_read_8(reg);
+	pio_trace_log(reg, val, false);
+	return val;
 }
 
 uint16_t pio_read_16(ioport16_t *reg)
 {
-	return arch_pio_read_16(reg);
+	const uint16_t val = arch_pio_read_16(reg);
+	pio_trace_log(reg, val, false);
+	return val;
 }
 
 uint32_t pio_read_32(ioport32_t *reg)
 {
-	return arch_pio_read_32(reg);
+	const uint32_t val = arch_pio_read_32(reg);
+	pio_trace_log(reg, val, false);
+	return val;
 }
 
 /** Register IRQ notification.

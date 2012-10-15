@@ -35,6 +35,7 @@
 #ifndef LIBC_DDI_H_
 #define LIBC_DDI_H_
 
+#include <bool.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <abi/ddi/irq.h>
@@ -51,6 +52,13 @@ extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 
 extern int pio_enable(void *, size_t, void **);
+
+typedef void (*trace_fnc)(volatile void *place, uint32_t val,
+    volatile void* base, size_t size, void *data, bool write);
+
+extern int pio_trace_enable(void *, size_t, trace_fnc, void *);
+extern void pio_trace_log(volatile void *, uint32_t val, bool write);
+extern void pio_trace_disable(void *);
 
 extern void pio_write_8(ioport8_t *, uint8_t);
 extern void pio_write_16(ioport16_t *, uint16_t);

@@ -139,7 +139,8 @@ GENERIC_SOURCES = \
 	generic/arg_parse.c \
 	generic/sort.c \
 	generic/stats.c \
-	generic/assert.c
+	generic/assert.c \
+	generic/pio_trace.c
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
