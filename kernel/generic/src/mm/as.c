@@ -2053,7 +2053,7 @@ sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
     uintptr_t bound)
 {
 	uintptr_t virt = base;
-	as_area_t *area = as_area_create(AS, flags | AS_AREA_CACHEABLE, size,
+	as_area_t *area = as_area_create(AS, flags, size,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, bound);
 	if (area == NULL)
 		return (sysarg_t) -1;
