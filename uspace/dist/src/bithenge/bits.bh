@@ -1,0 +1,25 @@
+transform main = struct {
+	.bits_le <- repeat(8) { bit } <- bits_le <- known_length(1);
+	.bits_be <- repeat(8) { bit } <- bits_be <- known_length(1);
+	<- struct {
+		.le0 <- uint_le(0);
+		.le1 <- uint_le(1);
+		.le2 <- uint_le(2);
+		.le3 <- uint_le(3);
+		.le4 <- uint_le(4);
+		.le5 <- uint_le(5);
+		.le6 <- uint_le(6);
+		.le7 <- uint_le(7);
+		.le8 <- uint_le(8);
+
+		.be8 <- uint_be(8);
+		.be7 <- uint_be(7);
+		.be6 <- uint_be(6);
+		.be5 <- uint_be(5);
+		.be4 <- uint_be(4);
+		.be3 <- uint_be(3);
+		.be2 <- uint_be(2);
+		.be1 <- uint_be(1);
+		.be0 <- uint_be(0);
+	} <- bits_be <- known_length(9);
+};

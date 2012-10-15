@@ -382,7 +382,7 @@ static const usb_driver_t usbmast_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return usb_driver_main(&usbmast_driver);
 }

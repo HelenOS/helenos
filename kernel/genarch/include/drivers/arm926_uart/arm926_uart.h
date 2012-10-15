@@ -34,8 +34,8 @@
  * @brief ARM926 on-chip UART (PrimeCell UART, PL011) driver.
  */
 
-#ifndef KERN_S3C24XX_UART_H_
-#define KERN_S3C24XX_UART_H_
+#ifndef KERN_ARM926_UART_H_
+#define KERN_ARM926_UART_H_
 
 #include <ddi/irq.h>
 #include <console/chardev.h>

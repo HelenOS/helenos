@@ -51,7 +51,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from bzrlib import errors
-from bzrlib import revision
+from bzrlib import revision as _mod_revision
 from bzrlib import __version__ as bzrlib_version
 
 from bzrlib.branch import Branch

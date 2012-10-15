@@ -35,7 +35,9 @@
 #ifndef LIBC_DDI_H_
 #define LIBC_DDI_H_
 
+#include <bool.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <abi/ddi/irq.h>
 #include <task.h>
 
@@ -49,8 +51,75 @@ extern int dmamem_map_anonymous(size_t, unsigned int, unsigned int, void **,
 extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 
-extern int iospace_enable(task_id_t, void *, unsigned long);
 extern int pio_enable(void *, size_t, void **);
+
+typedef void (*trace_fnc)(volatile void *place, uint32_t val,
+    volatile void* base, size_t size, void *data, bool write);
+
+extern int pio_trace_enable(void *, size_t, trace_fnc, void *);
+extern void pio_trace_log(volatile void *, uint32_t val, bool write);
+extern void pio_trace_disable(void *);
+
+extern void pio_write_8(ioport8_t *, uint8_t);
+extern void pio_write_16(ioport16_t *, uint16_t);
+extern void pio_write_32(ioport32_t *, uint32_t);
+
+extern uint8_t pio_read_8(ioport8_t *);
+extern uint16_t pio_read_16(ioport16_t *);
+extern uint32_t pio_read_32(ioport32_t *);
+
+static inline uint8_t pio_change_8(
+    ioport8_t *reg, uint8_t val, uint8_t mask, useconds_t delay)
+{
+	uint8_t v = pio_read_8(reg);
+	udelay(delay);
+	pio_write_8(reg, (v & ~mask) | val);
+	return v;
+}
+
+static inline uint16_t pio_change_16(
+    ioport16_t *reg, uint16_t val, uint16_t mask, useconds_t delay)
+{
+	uint16_t v = pio_read_16(reg);
+	udelay(delay);
+	pio_write_16(reg, (v & ~mask) | val);
+	return v;
+}
+
+static inline uint32_t pio_change_32(
+    ioport32_t *reg, uint32_t val, uint32_t mask, useconds_t delay)
+{
+	uint32_t v = pio_read_32(reg);
+	udelay(delay);
+	pio_write_32(reg, (v & ~mask) | val);
+	return v;
+}
+
+static inline uint8_t pio_set_8(ioport8_t *r, uint8_t v, useconds_t d)
+{
+	return pio_change_8(r, v, 0, d);
+}
+static inline uint16_t pio_set_16(ioport16_t *r, uint16_t v, useconds_t d)
+{
+	return pio_change_16(r, v, 0, d);
+}
+static inline uint32_t pio_set_32(ioport32_t *r, uint32_t v, useconds_t d)
+{
+	return pio_change_32(r, v, 0, d);
+}
+
+static inline uint8_t pio_clear_8(ioport8_t *r, uint8_t v, useconds_t d)
+{
+	return pio_change_8(r, 0, v, d);
+}
+static inline uint16_t pio_clear_16(ioport16_t *r, uint16_t v, useconds_t d)
+{
+	return pio_change_16(r, 0, v, d);
+}
+static inline uint32_t pio_clear_32(ioport32_t *r, uint32_t v, useconds_t d)
+{
+	return pio_change_32(r, 0, v, d);
+}
 
 extern int irq_register(int, int, int, irq_code_t *);
 extern int irq_unregister(int, int);

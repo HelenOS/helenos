@@ -44,7 +44,7 @@
 #include <sysinfo.h>
 #include <ipc/irc.h>
 #include <ipc/ns.h>
-#include <libarch/ddi.h>
+#include <ddi.h>
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
@@ -2380,7 +2380,7 @@ int main(void)
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
 	
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	ddf_msg(LVL_NOTE, "HelenOS E1000 driver started");
 	return ddf_driver_main(&e1000_driver);
 }

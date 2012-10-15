@@ -1,0 +1,48 @@
+{
+    "with_count": {
+        "none": {},
+        "one": {
+            0: 127
+        },
+        "count": 7,
+        "many": {
+            0: 2,
+            1: 3,
+            2: 5,
+            3: 7,
+            4: 11,
+            5: 13,
+            6: 17
+        }
+    },
+    "without_count": {
+        "until_error": {
+            0: 2,
+            1: 4,
+            2: 8
+        },
+        "until_end": {
+            0: 16,
+            1: 32,
+            2: 64
+        }
+    },
+    "do_while": {
+        0: {
+            "valid": True,
+            "val": 1
+        },
+        1: {
+            "valid": True,
+            "val": 4
+        },
+        2: {
+            "valid": False,
+            "val": 9
+        }
+    },
+    "do_while_item": {
+        "valid": True,
+        "val": 4
+    }
+}

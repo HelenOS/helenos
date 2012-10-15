@@ -194,7 +194,7 @@ static int rootpc_dev_add(ddf_dev_t *dev)
 
 static void root_pc_init(void)
 {
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	rootpc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
 }
 

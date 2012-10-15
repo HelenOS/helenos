@@ -711,7 +711,7 @@ static int isa_fun_offline(ddf_fun_t *fun)
 
 static void isa_init()
 {
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	isa_fun_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
 }
 

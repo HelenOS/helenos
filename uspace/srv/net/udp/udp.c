@@ -49,17 +49,17 @@ static int udp_init(void)
 {
 	int rc;
 
-	log_msg(LVL_DEBUG, "udp_init()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_init()");
 
 	rc = udp_inet_init();
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed connecting to internet service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting to internet service.");
 		return ENOENT;
 	}
 
 	rc = udp_sock_init();
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed initializing socket service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing socket service.");
 		return ENOENT;
 	}
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": UDP (User Datagram Protocol) service\n");
 
-	rc = log_init(NAME, LVL_DEBUG);
+	rc = log_init(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Failed to initialize log.\n");
 		return 1;

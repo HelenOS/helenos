@@ -35,24 +35,48 @@
 #define LIBC_IO_LOG_H_
 
 #include <stdarg.h>
+#include <inttypes.h>
 #include <io/verify.h>
 
+/** Log message level. */
 typedef enum {
+	/** Fatal error, program is not able to recover at all. */
 	LVL_FATAL,
+	/** Serious error but the program can recover from it. */
 	LVL_ERROR,
+	/** Easily recoverable problem. */
 	LVL_WARN,
+	/** Information message that ought to be printed by default. */
 	LVL_NOTE,
+	/** Debugging purpose message. */
 	LVL_DEBUG,
+	/** More detailed debugging message. */
 	LVL_DEBUG2,
 	
 	/** For checking range of values */
 	LVL_LIMIT
 } log_level_t;
 
-extern int log_init(const char *, log_level_t);
-extern void log_msg(log_level_t, const char *, ...)
-    PRINTF_ATTRIBUTE(2, 3);
-extern void log_msgv(log_level_t, const char *, va_list);
+/** Log itself (logging target). */
+typedef sysarg_t log_t;
+/** Formatting directive for printing log_t. */
+#define PRIlogctx PRIxn
+
+/** Default log (target). */
+#define LOG_DEFAULT ((log_t) -1)
+
+/** Use when creating new top-level log. */
+#define LOG_NO_PARENT ((log_t) 0)
+
+extern const char *log_level_str(log_level_t);
+extern int log_level_from_str(const char *, log_level_t *);
+
+extern int log_init(const char *);
+extern log_t log_create(const char *, log_t);
+
+extern void log_msg(log_t, log_level_t, const char *, ...)
+    PRINTF_ATTRIBUTE(3, 4);
+extern void log_msgv(log_t, log_level_t, const char *, va_list);
 
 #endif
 

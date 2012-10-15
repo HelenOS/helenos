@@ -73,19 +73,19 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_sockpair_t rident;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_bounce_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_bounce_seg()");
 
 #ifdef BOUNCE_TRANSCODE
 	tcp_pdu_t *pdu;
 	tcp_segment_t *dseg;
 
 	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
-		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
 
 	if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
-		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
 
@@ -111,13 +111,13 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_rqueue_entry_t *rqe;
-	log_msg(LVL_DEBUG, "tcp_rqueue_insert_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_insert_seg()");
 
 	tcp_segment_dump(seg);
 
 	rqe = calloc(1, sizeof(tcp_rqueue_entry_t));
 	if (rqe == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating RQE.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating RQE.");
 		return;
 	}
 
@@ -133,7 +133,7 @@ static int tcp_rqueue_fibril(void *arg)
 	link_t *link;
 	tcp_rqueue_entry_t *rqe;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_fibril()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_fibril()");
 
 	while (true) {
 		link = prodcons_consume(&rqueue);
@@ -151,11 +151,11 @@ void tcp_rqueue_fibril_start(void)
 {
 	fid_t fid;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_fibril_start()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_fibril_start()");
 
 	fid = fibril_create(tcp_rqueue_fibril, NULL);
 	if (fid == 0) {
-		log_msg(LVL_ERROR, "Failed creating rqueue fibril.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating rqueue fibril.");
 		return;
 	}
 

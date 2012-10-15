@@ -57,7 +57,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <stdio.h>
-#include <libarch/ddi.h>
+#include <ddi.h>
 #include "dp8390.h"
 
 /** Page size */

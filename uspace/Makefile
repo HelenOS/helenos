@@ -34,6 +34,7 @@
 
 DIRS = \
 	app/bdsh \
+	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
@@ -46,6 +47,7 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
+	app/logset \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -70,12 +72,14 @@ DIRS = \
 	app/ping \
 	app/sysinfo \
 	app/mkbd \
+	app/date \
 	app/websrv \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
 	srv/clipboard \
 	srv/locsrv \
+	srv/logger \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \
@@ -132,7 +136,7 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139
+	drv/nic/rtl8139 \
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -161,6 +165,7 @@ ifeq ($(UARCH),amd64)
 		drv/bus/pci/pciintel \
 		drv/bus/isa \
 		drv/char/ns8250 \
+		drv/time/cmos-rtc \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
@@ -171,6 +176,7 @@ ifeq ($(UARCH),ia32)
 		drv/bus/pci/pciintel \
 		drv/bus/isa \
 		drv/char/ns8250 \
+		drv/time/cmos-rtc \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
@@ -218,6 +224,7 @@ LIBS = \
 	lib/usbdev \
 	lib/usbhid \
 	lib/usbvirt \
+	lib/bithenge \
 	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))

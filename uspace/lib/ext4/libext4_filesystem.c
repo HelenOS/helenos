@@ -471,8 +471,6 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 
 /** Compute checksum of block group descriptor.
  *
- * It uses crc functions from Linux kernel implementation.
- *
  * @param sb   Superblock
  * @param bgid Index of block group in the filesystem
  * @param bg   Block group to compute checksum for
