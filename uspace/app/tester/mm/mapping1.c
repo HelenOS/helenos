@@ -42,7 +42,7 @@ static void *create_as_area(size_t size)
 	TPRINTF("Creating AS area...\n");
 	
 	void *result = as_area_create(AS_AREA_ANY, size,
-	    AS_AREA_READ | AS_AREA_WRITE);
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	if (result == AS_MAP_FAILED)
 		return NULL;
 	
