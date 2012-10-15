@@ -163,76 +163,41 @@ static int usb_tll_init(amdm37x_t *device)
 {
 
 	/* Reset USB TLL */
-	device->tll->sysconfig |= TLL_SYSCONFIG_SOFTRESET_FLAG;
+	pio_set_32(&device->tll->sysconfig, TLL_SYSCONFIG_SOFTRESET_FLAG, 5);
 	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
-	while (!(device->tll->sysstatus & TLL_SYSSTATUS_RESET_DONE_FLAG));
+	while (!(pio_read_32(&device->tll->sysstatus) & TLL_SYSSTATUS_RESET_DONE_FLAG));
 	ddf_msg(LVL_DEBUG, "USB TLL Reset done.");
 
-	{
 	/* Setup idle mode (smart idle) */
-	uint32_t sysc = device->tll->sysconfig;
-	sysc |= TLL_SYSCONFIG_CLOCKACTIVITY_FLAG | TLL_SYSCONFIG_AUTOIDLE_FLAG;
-	sysc = (sysc
-	    & ~(TLL_SYSCONFIG_SIDLE_MODE_MASK << TLL_SYSCONFIG_SIDLE_MODE_SHIFT)
-	    ) | (0x2 << TLL_SYSCONFIG_SIDLE_MODE_SHIFT);
-	device->tll->sysconfig = sysc;
-	ddf_msg(LVL_DEBUG2, "Set TLL->sysconfig (%p) to %x:%x.",
-	    &device->tll->sysconfig, device->tll->sysconfig, sysc);
-	}
+	pio_change_32(&device->tll->sysconfig,
+	    TLL_SYSCONFIG_CLOCKACTIVITY_FLAG | TLL_SYSCONFIG_AUTOIDLE_FLAG |
+	    TLL_SYSCONFIG_SIDLE_MODE_SMART, TLL_SYSCONFIG_SIDLE_MODE_MASK, 5);
 
-	{
 	/* Smart idle for UHH */
-	uint32_t sysc = device->uhh->sysconfig;
-	sysc |= UHH_SYSCONFIG_CLOCKACTIVITY_FLAG | UHH_SYSCONFIG_AUTOIDLE_FLAG;
-	sysc = (sysc
-	    & ~(UHH_SYSCONFIG_SIDLE_MODE_MASK << UHH_SYSCONFIG_SIDLE_MODE_SHIFT)
-	    ) | (0x2 << UHH_SYSCONFIG_SIDLE_MODE_SHIFT);
-	sysc = (sysc
-	    & ~(UHH_SYSCONFIG_MIDLE_MODE_MASK << UHH_SYSCONFIG_MIDLE_MODE_SHIFT)
-	    ) | (0x2 << UHH_SYSCONFIG_MIDLE_MODE_SHIFT);
-	ddf_msg(LVL_DEBUG2, "Set UHH->sysconfig (%p) to %x.",
-	    &device->uhh->sysconfig, device->uhh->sysconfig);
-	device->uhh->sysconfig = sysc;
-
-	/* All ports are connected on BBxM */
-	device->uhh->hostconfig |= (UHH_HOSTCONFIG_P1_CONNECT_STATUS_FLAG
-	    | UHH_HOSTCONFIG_P2_CONNECT_STATUS_FLAG
-	    | UHH_HOSTCONFIG_P3_CONNECT_STATUS_FLAG);
+	pio_change_32(&device->uhh->sysconfig,
+	    UHH_SYSCONFIG_CLOCKACTIVITY_FLAG | UHH_SYSCONFIG_AUTOIDLE_FLAG |
+	    UHH_SYSCONFIG_SIDLE_MODE_SMART, UHH_SYSCONFIG_SIDLE_MODE_MASK, 5);
 
 	/* Set all ports to go through TLL(UTMI)
 	 * Direct connection can only work in HS mode */
-	device->uhh->hostconfig |= (UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG
-	    | UHH_HOSTCONFIG_P2_ULPI_BYPASS_FLAG
-	    | UHH_HOSTCONFIG_P3_ULPI_BYPASS_FLAG);
-	ddf_msg(LVL_DEBUG2, "Set UHH->hostconfig (%p) to %x.",
-	    &device->uhh->hostconfig, device->uhh->hostconfig);
-	}
+	pio_set_32(&device->uhh->hostconfig,
+	    UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG |
+	    UHH_HOSTCONFIG_P2_ULPI_BYPASS_FLAG |
+	    UHH_HOSTCONFIG_P3_ULPI_BYPASS_FLAG, 5);
 
-	device->tll->shared_conf |= TLL_SHARED_CONF_FCLK_IS_ON_FLAG;
-	ddf_msg(LVL_DEBUG2, "Set shared conf port (%p) to %x.",
-	    &device->tll->shared_conf, device->tll->shared_conf);
+	/* What is this? */
+	pio_set_32(&device->tll->shared_conf, TLL_SHARED_CONF_FCLK_IS_ON_FLAG, 5);
 
 	for (unsigned i = 0; i < 3; ++i) {
-		uint32_t ch = device->tll->channel_conf[i];
-		/* Clear Channel mode and FSLS mode */
-		ch &= ~(TLL_CHANNEL_CONF_CHANMODE_MASK
-		    << TLL_CHANNEL_CONF_CHANMODE_SHIFT)
-		    & ~(TLL_CHANNEL_CONF_FSLSMODE_MASK
-		    << TLL_CHANNEL_CONF_FSLSMODE_SHIFT);
-
-		/* Serial mode is the only one capable of FS/LS operation. */
-		ch |= (TLL_CHANNEL_CONF_CHANMODE_UTMI_SERIAL_MODE
-		    << TLL_CHANNEL_CONF_CHANMODE_SHIFT);
-
-		/* Select FS/LS mode, no idea what the difference is
+		/* Serial mode is the only one capable of FS/LS operation.
+		 * Select FS/LS mode, no idea what the difference is
 		 * one of bidirectional modes might be good choice
 		 * 2 = 3pin bidi phy. */
-		ch |= (2 << TLL_CHANNEL_CONF_FSLSMODE_SHIFT);
-
-		/* Write to register */
-		ddf_msg(LVL_DEBUG2, "Setting port %u(%p) to %x.",
-		    i, &device->tll->channel_conf[i], ch);
-		device->tll->channel_conf[i] = ch;
+		pio_change_32(&device->tll->channel_conf[i],
+		    TLL_CHANNEL_CONF_CHANMODE_UTMI_SERIAL_MODE |
+		    TLL_CHANNEL_CONF_FSLSMODE_3PIN_BIDI_PHY,
+		    TLL_CHANNEL_CONF_CHANMODE_MASK |
+		    TLL_CHANNEL_CONF_FSLSMODE_MASK, 5);
 	}
 	return EOK;
 }
