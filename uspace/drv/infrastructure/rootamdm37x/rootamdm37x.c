@@ -98,27 +98,20 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 
 static int usb_clocks(amdm37x_t *device, bool on)
 {
-	uint32_t reg;
+	/* Set DPLL3 to automatic */
+	pio_change_32(&device->cm.clocks->autoidle_pll,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK, 5);
 
-	/* Set DPLL3 and DPLL4 to automatic */
-	reg = device->cm.clocks->autoidle_pll;
-	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK <<
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_SHIFT);
-	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK <<
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_SHIFT);
-	reg |= (CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC <<
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_SHIFT);
-	reg |= (CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC <<
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_SHIFT);
-	device->cm.clocks->autoidle_pll = reg;
+	/* Set DPLL4 to automatic */
+	pio_change_32(&device->cm.clocks->autoidle_pll,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK, 5);
 
 	/* Set DPLL5 to automatic */
-	reg = device->cm.clocks->autoidle2_pll;
-	reg &= ~(CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK <<
-	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
-	reg |= (CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC <<
-	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_SHIFT);
-	device->cm.clocks->autoidle2_pll = reg;
+	pio_change_32(&device->cm.clocks->autoidle2_pll,
+	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
+	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK, 5);
 
 
 #ifdef DEBUG_CM
