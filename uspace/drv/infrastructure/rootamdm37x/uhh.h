@@ -34,6 +34,7 @@
  */
 #ifndef AMDM37x_UHH_H
 #define AMDM37x_UHH_H
+#include <macros.h>
 #include <sys/types.h>
 
 #define AMDM37x_UHH_BASE_ADDRESS  0x48064000
@@ -44,7 +45,7 @@ typedef struct {
 #define UHH_REVISION_MINOR_MASK  0x0f
 #define UHH_REVISION_MAJOR_MASK  0xf0
 
-	uint32_t padd0_[3];
+	PADD32[3];
 	ioport32_t sysconfig;
 #define UHH_SYSCONFIG_AUTOIDLE_FLAG  (1 << 0)
 #define UHH_SYSCONFIG_SOFTRESET_FLAG  (1 << 1)
@@ -64,7 +65,7 @@ typedef struct {
 #define UHH_SYSSTATUS_OHCI_RESETDONE_FLAG  (1 << 1)
 #define UHH_SYSSTATUS_EHCI_RESETDONE_FLAG  (1 << 2)
 
-	uint32_t padd1_[10];
+	PADD32[10];
 	ioport32_t hostconfig;
 #define UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG  (1 << 0)
 #define UHH_HOSTCONFIG_AUTOPPD_ON_OVERCUR_EN_FLAG  (1 << 1)

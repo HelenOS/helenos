@@ -34,6 +34,7 @@
  */
 #ifndef AMDM37x_USBHOST_CM_H
 #define AMDM37x_USBHOST_CM_H
+#include <macros.h>
 #include <sys/types.h>
 
 /* AM/DM37x TRM p.447 */
@@ -45,20 +46,20 @@ typedef struct {
 #define USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG  (1 << 0)
 #define USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG  (1 << 1)
 
-	uint32_t padd0_[3];
+	PADD32[3];
 	ioport32_t iclken;
 #define USBHOST_CM_ICLKEN_EN_USBHOST  (1 << 0)
 
-	uint32_t padd1_[3];
+	PADD32[3];
 	const ioport32_t idlest;
 #define USBHOST_CM_IDLEST_ST_USBHOST_STDBY_FLAG  (1 << 0)
 #define USBHOST_CM_IDLEST_ST_USBHOST_IDLE_FLAG  (1 << 1)
 
-	uint32_t padd2_[3];
+	PADD32[3];
 	ioport32_t autoidle;
 #define USBHOST_CM_AUTOIDLE_AUTO_USBHOST_FLAG  (1 << 0)
 
-	uint32_t padd3_[4];
+	PADD32[4];
 	ioport32_t sleepdep;
 #define USBHOST_CM_SLEEPDEP_EN_MPU_FLAG  (1 << 1)
 #define USBHOST_CM_SLEEPDEP_EN_IVA2_FLAG  (1 << 2)

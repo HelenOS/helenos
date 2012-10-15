@@ -35,6 +35,7 @@
 #ifndef AMDM37x_CORE_CM_H
 #define AMDM37x_CORE_CM_H
 #include <sys/types.h>
+#include <macros.h>
 
 /* AM/DM37x TRM p.447 */
 #define CORE_CM_BASE_ADDRESS  0x48004a00
@@ -60,12 +61,12 @@ typedef struct {
 #define CORE_CM_FCLKEN1_EN_MMC2_FLAG  (1 << 25)
 #define CORE_CM_FCLKEN1_EN_MMC3_FLAG  (1 << 30)
 
-	uint32_t padd0_;
+	PADD32;
 	ioport32_t fclken3;
 #define CORE_CM_FCLKEN3_EN_TS_FLAG  (1 << 1)
 #define CORE_CM_FCLKEN3_EN_USBTLL_FLAG  (1 << 2)
 
-	uint32_t padd1_;
+	PADD32;
 	ioport32_t iclken1;
 #define CORE_CM_ICLKEN1_EN_SDRC_FLAG  (1 << 1)
 #define CORE_CM_ICLKEN1_EN_HSOTGUSB_FLAG  (1 << 4)
@@ -94,7 +95,7 @@ typedef struct {
 	ioport32_t iclken3;
 #define CORE_CM_ICLKEN3_EN_USBTLL_FLAG  (1 << 2)
 
-	uint32_t padd2_;
+	PADD32;
 	const ioport32_t idlest1;
 #define CORE_CM_IDLEST1_ST_SDRC_FLAG  (1 << 1)
 #define CORE_CM_IDLEST1_ST_SDMA_FLAG  (1 << 2)
@@ -125,7 +126,7 @@ typedef struct {
 	const ioport32_t idlest3;
 #define CORE_CM_IDLEST3_ST_USBTLL_FLAG  (1 << 2)
 
-	uint32_t padd3_;
+	PADD32;
 	ioport32_t autoidle1;
 #define CORE_CM_AUTOIDLE1_AUTO_HSOTGUSB_FLAG  (1 << 4)
 #define CORE_CM_AUTOIDLE1_AUTO_SCMCTRL_FLAG  (1 << 6)
@@ -153,7 +154,7 @@ typedef struct {
 	ioport32_t autoidle3;
 #define CORE_CM_AUTOIDLE3_AUTO_USBTLL_FLAG  (1 << 2)
 
-	uint32_t padd4_;
+	PADD32;
 	ioport32_t clksel;
 #define CORE_CM_CLKSEL_CLKSEL_L3_MASK  (0x3 << 0)
 #define CORE_CM_CLKSEL_CLKSEL_L3_DIVIDED1  (0x1 << 0)
@@ -167,7 +168,7 @@ typedef struct {
 #define CORE_CM_CLKSEL_CLKSEL_GPT10_FLAG (1 << 6)
 #define CORE_CM_CLKSEL_CLKSEL_GPT11_FLAG (1 << 7)
 
-	uint32_t padd5_;
+	PADD32;
 	ioport32_t clkstctrl;
 #define CORE_CM_CLKCTRL_CLKCTRL_L3_MASK  (0x3 << 0)
 #define CORE_CM_CLKCTRL_CLKCTRL_L3_AUTO_EN  (0x0 << 0)
