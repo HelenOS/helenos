@@ -47,9 +47,9 @@
 
 #include "uhh.h"
 #include "usbtll.h"
-#include "core_cm.h"
-#include "clock_control_cm.h"
-#include "usbhost_cm.h"
+#include "cm/core.h"
+#include "cm/clock_control.h"
+#include "cm/usbhost.h"
 
 #define NAME  "rootamdm37x"
 
