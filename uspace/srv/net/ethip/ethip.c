@@ -76,7 +76,7 @@ static int ethip_init(void)
 	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering server.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
 	
@@ -95,7 +95,7 @@ int ethip_iplink_init(ethip_nic_t *nic)
 	static unsigned link_num = 0;
 	char *svc_name = NULL;
 
-	log_msg(LVL_DEBUG, "ethip_iplink_init()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_iplink_init()");
 
 	iplink_srv_init(&nic->iplink);
 	nic->iplink.ops = &ethip_iplink_ops;
@@ -103,13 +103,13 @@ int ethip_iplink_init(ethip_nic_t *nic)
 
 	rc = asprintf(&svc_name, "net/eth%u", ++link_num);
 	if (rc < 0) {
-		log_msg(LVL_ERROR, "Out of memory.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
 		goto error;
 	}
 
 	rc = loc_service_register(svc_name, &sid);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering service %s.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.", svc_name);
 		goto error;
 	}
 
@@ -117,13 +117,13 @@ int ethip_iplink_init(ethip_nic_t *nic)
 
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed resolving category 'iplink'.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		goto error;
 	}
 
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed adding %s to category.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.", svc_name);
 		goto error;
 	}
 
@@ -141,10 +141,10 @@ static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	service_id_t sid;
 
 	sid = (service_id_t)IPC_GET_ARG1(*icall);
-	log_msg(LVL_DEBUG, "ethip_client_conn(%u)", (unsigned)sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_client_conn(%u)", (unsigned)sid);
 	nic = ethip_nic_find_by_iplink_sid(sid);
 	if (nic == NULL) {
-		log_msg(LVL_WARN, "Uknown service ID.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Uknown service ID.");
 		return;
 	}
 
@@ -153,13 +153,13 @@ static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 static int ethip_open(iplink_srv_t *srv)
 {
-	log_msg(LVL_DEBUG, "ethip_open()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_open()");
 	return EOK;
 }
 
 static int ethip_close(iplink_srv_t *srv)
 {
-	log_msg(LVL_DEBUG, "ethip_close()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_close()");
 	return EOK;
 }
 
@@ -172,11 +172,11 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	mac48_addr_t dest_mac_addr;
 	int rc;
 
-	log_msg(LVL_DEBUG, "ethip_send()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send()");
 
 	rc = arp_translate(nic, &sdu->lsrc, &sdu->ldest, &dest_mac_addr);
 	if (rc != EOK) {
-		log_msg(LVL_WARN, "Failed to look up IP address 0x%" PRIx32,
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IP address 0x%" PRIx32,
 		    sdu->ldest.ipv4);
 		return rc;
 	}
@@ -199,18 +199,18 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 
 int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 {
-	log_msg(LVL_DEBUG, "ethip_received(): srv=%p", srv);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_received(): srv=%p", srv);
 	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
 	eth_frame_t frame;
 	iplink_srv_sdu_t sdu;
 	int rc;
 
-	log_msg(LVL_DEBUG, "ethip_received()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_received()");
 
-	log_msg(LVL_DEBUG, " - eth_pdu_decode");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode");
 	rc = eth_pdu_decode(data, size, &frame);
 	if (rc != EOK) {
-		log_msg(LVL_DEBUG, " - eth_pdu_decode failed");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode failed");
 		return rc;
 	}
 
@@ -219,16 +219,16 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		arp_received(nic, &frame);
 		break;
 	case ETYPE_IP:
-		log_msg(LVL_DEBUG, " - construct SDU");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - construct SDU");
 		sdu.lsrc.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 1;
 		sdu.ldest.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 4;
 		sdu.data = frame.data;
 		sdu.size = frame.size;
-		log_msg(LVL_DEBUG, " - call iplink_ev_recv");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
 		rc = iplink_ev_recv(&nic->iplink, &sdu);
 		break;
 	default:
-		log_msg(LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
 		    frame.etype_len);
 	}
 
@@ -238,7 +238,7 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 
 static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 {
-	log_msg(LVL_DEBUG, "ethip_get_mtu()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mtu()");
 	*mtu = 1500;
 	return EOK;
 }
@@ -247,7 +247,7 @@ static int ethip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
 {
 	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
 
-	log_msg(LVL_DEBUG, "ethip_addr_add(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_add(0x%" PRIx32 ")", addr->ipv4);
 	return ethip_nic_addr_add(nic, addr);
 }
 
@@ -255,7 +255,7 @@ static int ethip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
 {
 	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
 
-	log_msg(LVL_DEBUG, "ethip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
 	return ethip_nic_addr_add(nic, addr);
 }
 
@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 
 	printf(NAME ": HelenOS IP over Ethernet service\n");
 
-	if (log_init(NAME, LVL_WARN) != EOK) {
+	if (log_init(NAME) != EOK) {
 		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}

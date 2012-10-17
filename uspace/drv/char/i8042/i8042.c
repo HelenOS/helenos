@@ -40,7 +40,6 @@
 
 #include <device/hw_res.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
@@ -301,7 +300,7 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	
 	const bool enabled = hw_res_enable_interrupt(parent_sess);
 	if (!enabled) {
-		log_msg(LVL_ERROR, "Failed to enable interrupts: %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to enable interrupts: %s.",
 		    ddf_dev_get_name(ddf_dev));
 		rc = EIO;
 		goto error;

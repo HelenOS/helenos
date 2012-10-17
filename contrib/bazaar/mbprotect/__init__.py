@@ -43,6 +43,7 @@
 
 import bzrlib.branch
 from bzrlib.errors import TipChangeRejected
+from bzrlib import revision as _mod_revision
 
 def iter_reverse_revision_history(repository, revision_id):
 	"""Iterate backwards through revision ids in the lefthand history"""

@@ -98,6 +98,7 @@ enum multiboot_info_flags {
 };
 
 extern void multiboot_extract_command(char *, size_t, const char *);
+extern void multiboot_extract_argument(char *, size_t, const char *);
 extern void multiboot_info_parse(uint32_t, const multiboot_info_t *);
 
 #endif /* __ASM__ */

@@ -49,13 +49,12 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <as.h>
 #include <libfs.h>
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 #define max(a, b)		((a) > (b) ? (a) : (b))
-
-#define NODES_BUCKETS	256
 
 /** All root nodes have index 0. */
 #define TMPFS_SOME_ROOT		0
@@ -141,37 +140,38 @@ libfs_ops_t tmpfs_libfs_ops = {
 /** Hash table of all TMPFS nodes. */
 hash_table_t nodes;
 
-#define NODES_KEY_DEV	0	
-#define NODES_KEY_INDEX	1
+/* 
+ * Implementation of hash table interface for the nodes hash table. 
+ */
 
-/* Implementation of hash table interface for the nodes hash table. */
-static hash_index_t nodes_hash(unsigned long key[])
+typedef struct {
+	service_id_t service_id;
+	fs_index_t index;
+} node_key_t;
+
+static size_t nodes_key_hash(void *k)
 {
-	return key[NODES_KEY_INDEX] % NODES_BUCKETS;
+	node_key_t *key = (node_key_t *)k;
+	return hash_combine(key->service_id, key->index);
 }
 
-static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t nodes_hash(const ht_link_t *item)
 {
-	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
-	    nh_link);
+	tmpfs_node_t *nodep = hash_table_get_inst(item, tmpfs_node_t, nh_link);
+	return hash_combine(nodep->service_id, nodep->index);
+}
+
+static bool nodes_key_equal(void *key_arg, const ht_link_t *item)
+{
+	tmpfs_node_t *node = hash_table_get_inst(item, tmpfs_node_t, nh_link);
+	node_key_t *key = (node_key_t *)key_arg;
 	
-	switch (keys) {
-	case 1:
-		return (nodep->service_id == key[NODES_KEY_DEV]);
-	case 2:	
-		return ((nodep->service_id == key[NODES_KEY_DEV]) &&
-		    (nodep->index == key[NODES_KEY_INDEX]));
-	default:
-		assert((keys == 1) || (keys == 2));
-	}
-
-	return 0;
+	return key->service_id == node->service_id && key->index == node->index;
 }
 
-static void nodes_remove_callback(link_t *item)
+static void nodes_remove_callback(ht_link_t *item)
 {
-	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
-	    nh_link);
+	tmpfs_node_t *nodep = hash_table_get_inst(item, tmpfs_node_t, nh_link);
 
 	while (!list_empty(&nodep->cs_list)) {
 		tmpfs_dentry_t *dentryp = list_get_instance(
@@ -191,9 +191,11 @@ static void nodes_remove_callback(link_t *item)
 }
 
 /** TMPFS nodes hash table operations. */
-hash_table_operations_t nodes_ops = {
+hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
-	.compare = nodes_compare,
+	.key_hash = nodes_key_hash,
+	.key_equal = nodes_key_equal,
+	.equal = NULL,
 	.remove_callback = nodes_remove_callback
 };
 
@@ -206,7 +208,6 @@ static void tmpfs_node_initialize(tmpfs_node_t *nodep)
 	nodep->lnkcnt = 0;
 	nodep->size = 0;
 	nodep->data = NULL;
-	link_initialize(&nodep->nh_link);
 	list_initialize(&nodep->cs_list);
 }
 
@@ -219,7 +220,7 @@ static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentryp)
 
 bool tmpfs_init(void)
 {
-	if (!hash_table_create(&nodes, NODES_BUCKETS, 2, &nodes_ops))
+	if (!hash_table_create(&nodes, 0, 0, &nodes_ops))
 		return false;
 	
 	return true;
@@ -237,19 +238,20 @@ static bool tmpfs_instance_init(service_id_t service_id)
 	return true;
 }
 
-static void tmpfs_instance_done(service_id_t service_id)
+static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 {
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = service_id
-	};
-	/*
-	 * Here we are making use of one special feature of our hash table
-	 * implementation, which allows to remove more items based on a partial
-	 * key match. In the following, we are going to remove all nodes
-	 * matching our device handle. The nodes_remove_callback() function will
-	 * take care of resource deallocation.
-	 */
-	hash_table_remove(&nodes, key, 1);
+	service_id_t sid = *(service_id_t*)arg;
+	tmpfs_node_t *node = hash_table_get_inst(item, tmpfs_node_t, nh_link);
+	
+	if (node->service_id == sid) {
+		hash_table_remove_item(&nodes, &node->nh_link);
+	}
+	return true;
+}
+
+static void tmpfs_instance_done(service_id_t service_id)
+{	
+	hash_table_apply(&nodes, rm_service_id_nodes, &service_id);
 }
 
 int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
@@ -271,14 +273,16 @@ int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 int tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = service_id,
-		[NODES_KEY_INDEX] = index
+	node_key_t key = {
+		.service_id = service_id,
+		.index = index
 	};
-	link_t *lnk = hash_table_find(&nodes, key);
+	
+	ht_link_t *lnk = hash_table_find(&nodes, &key);
+	
 	if (lnk) {
 		tmpfs_node_t *nodep;
-		nodep = hash_table_get_instance(lnk, tmpfs_node_t, nh_link);
+		nodep = hash_table_get_inst(lnk, tmpfs_node_t, nh_link);
 		*rfn = FS_NODE(nodep);
 	} else {
 		*rfn = NULL;
@@ -330,11 +334,7 @@ int tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 		nodep->type = TMPFS_FILE;
 
 	/* Insert the new node into the nodes hash table. */
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = nodep->service_id,
-		[NODES_KEY_INDEX] = nodep->index
-	};
-	hash_table_insert(&nodes, key, &nodep->nh_link);
+	hash_table_insert(&nodes, &nodep->nh_link);
 	*rfn = FS_NODE(nodep);
 	return EOK;
 }
@@ -345,12 +345,8 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	
 	assert(!nodep->lnkcnt);
 	assert(list_empty(&nodep->cs_list));
-
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = nodep->service_id,
-		[NODES_KEY_INDEX] = nodep->index
-	};
-	hash_table_remove(&nodes, key, 2);
+	
+	hash_table_remove_item(&nodes, &nodep->nh_link);
 
 	/*
 	 * The nodes_remove_callback() function takes care of the actual
@@ -475,16 +471,16 @@ static int tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
-	link_t *hlp;
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = service_id,
-		[NODES_KEY_INDEX] = index
+	node_key_t key = {
+		.service_id = service_id,
+		.index = index
 	};
-	hlp = hash_table_find(&nodes, key);
+	
+	ht_link_t *hlp = hash_table_find(&nodes, &key);
 	if (!hlp)
 		return ENOENT;
-	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
-	    nh_link);
+	
+	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
 	
 	/*
 	 * Receive the read request.
@@ -537,16 +533,17 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
-	link_t *hlp;
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = service_id,
-		[NODES_KEY_INDEX] = index
+	node_key_t key = {
+		.service_id = service_id,
+		.index = index
 	};
-	hlp = hash_table_find(&nodes, key);
+	
+	ht_link_t *hlp = hash_table_find(&nodes, &key);
+	
 	if (!hlp)
 		return ENOENT;
-	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
-	    nh_link);
+	
+	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
 
 	/*
 	 * Receive the write request.
@@ -599,14 +596,16 @@ static int tmpfs_truncate(service_id_t service_id, fs_index_t index,
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = service_id,
-		[NODES_KEY_INDEX] = index
+	node_key_t key = {
+		.service_id = service_id,
+		.index = index
 	};
-	link_t *hlp = hash_table_find(&nodes, key);
+	
+	ht_link_t *hlp = hash_table_find(&nodes, &key);
+	
 	if (!hlp)
 		return ENOENT;
-	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t, nh_link);
+	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
 	
 	if (size == nodep->size)
 		return EOK;
@@ -635,15 +634,15 @@ static int tmpfs_close(service_id_t service_id, fs_index_t index)
 
 static int tmpfs_destroy(service_id_t service_id, fs_index_t index)
 {
-	link_t *hlp;
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = service_id,
-		[NODES_KEY_INDEX] = index
+	node_key_t key = {
+		.service_id = service_id,
+		.index = index
 	};
-	hlp = hash_table_find(&nodes, key);
+	
+	ht_link_t *hlp = hash_table_find(&nodes, &key);
 	if (!hlp)
 		return ENOENT;
-	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
+	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t,
 	    nh_link);
 	return tmpfs_destroy_node(FS_NODE(nodep));
 }

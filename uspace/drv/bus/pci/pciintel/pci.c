@@ -57,7 +57,6 @@
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <pci_dev_iface.h>
 
 #include "pci.h"
@@ -728,7 +727,7 @@ static int pci_fun_offline(ddf_fun_t *fun)
 
 static void pciintel_init(void)
 {
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
 	pci_fun_ops.interfaces[PCI_DEV_IFACE] = &pci_dev_ops;
 }

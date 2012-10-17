@@ -56,7 +56,7 @@ inet_sroute_t *inet_sroute_new(void)
 	inet_sroute_t *sroute = calloc(1, sizeof(inet_sroute_t));
 
 	if (sroute == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating static route object. "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating static route object. "
 		    "Out of memory.");
 		return NULL;
 	}
@@ -99,7 +99,7 @@ inet_sroute_t *inet_sroute_find(inet_addr_t *addr)
 	uint32_t mask;
 	inet_sroute_t *best;
 
-	log_msg(LVL_DEBUG, "inet_sroute_find(%x)", (unsigned)addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find(%x)", (unsigned)addr->ipv4);
 
 	fibril_mutex_lock(&sroute_list_lock);
 
@@ -116,13 +116,13 @@ inet_sroute_t *inet_sroute_find(inet_addr_t *addr)
 		mask = inet_netmask(sroute->dest.bits);
 		if ((sroute->dest.ipv4 & mask) == (addr->ipv4 & mask)) {
 			fibril_mutex_unlock(&sroute_list_lock);
-			log_msg(LVL_DEBUG, "inet_sroute_find: found %p",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: found %p",
 			    sroute);
 			return sroute;
 		}
 	}
 
-	log_msg(LVL_DEBUG, "inet_sroute_find: Not found");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: Not found");
 	fibril_mutex_unlock(&sroute_list_lock);
 
 	return NULL;
@@ -135,7 +135,7 @@ inet_sroute_t *inet_sroute_find(inet_addr_t *addr)
  */
 inet_sroute_t *inet_sroute_find_by_name(const char *name)
 {
-	log_msg(LVL_DEBUG, "inet_sroute_find_by_name('%s')",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find_by_name('%s')",
 	    name);
 
 	fibril_mutex_lock(&sroute_list_lock);
@@ -146,13 +146,13 @@ inet_sroute_t *inet_sroute_find_by_name(const char *name)
 
 		if (str_cmp(sroute->name, name) == 0) {
 			fibril_mutex_unlock(&sroute_list_lock);
-			log_msg(LVL_DEBUG, "inet_sroute_find_by_name: found %p",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find_by_name: found %p",
 			    sroute);
 			return sroute;
 		}
 	}
 
-	log_msg(LVL_DEBUG, "inet_sroute_find_by_name: Not found");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find_by_name: Not found");
 	fibril_mutex_unlock(&sroute_list_lock);
 
 	return NULL;
@@ -165,7 +165,7 @@ inet_sroute_t *inet_sroute_find_by_name(const char *name)
  */
 inet_sroute_t *inet_sroute_get_by_id(sysarg_t id)
 {
-	log_msg(LVL_DEBUG, "inet_sroute_get_by_id(%zu)", (size_t)id);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_get_by_id(%zu)", (size_t)id);
 
 	fibril_mutex_lock(&sroute_list_lock);
 

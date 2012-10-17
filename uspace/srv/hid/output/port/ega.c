@@ -35,7 +35,6 @@
 #include <align.h>
 #include <as.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <io/chargrid.h>
 #include "../output.h"
 #include "ega.h"
@@ -210,8 +209,7 @@ int ega_init(void)
 	if (rc != EOK)
 		return rc;
 	
-	rc = iospace_enable(task_get_id(), (void *) EGA_IO_BASE,
-	    EGA_IO_SIZE);
+	rc = pio_enable((void*)EGA_IO_BASE, EGA_IO_SIZE, NULL);
 	if (rc != EOK)
 		return rc;
 	

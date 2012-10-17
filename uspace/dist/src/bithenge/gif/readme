@@ -1,0 +1,9 @@
+
+File `loader.gif' was retrieved from
+   http://www.ajaxload.info/
+using default settings.
+
+File `blue_1x1.gif' was generated with ImageMagick using command
+   convert -size 1x1 xc:blue gif87:blue_1x1.gif
+
+File `helenos.gif' is a converted uspace/srv/hid/console/gfx/helenos.tga.

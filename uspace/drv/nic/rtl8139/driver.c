@@ -33,7 +33,6 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
-#include <libarch/ddi.h>
 #include <libarch/barrier.h>
 
 #include <as.h>
@@ -2186,7 +2185,7 @@ int main(void)
 	nic_driver_implement(
 		&rtl8139_driver_ops, &rtl8139_dev_ops, &rtl8139_nic_iface);
 
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	ddf_msg(LVL_NOTE, "HelenOS RTL8139 driver started");
 	return ddf_driver_main(&rtl8139_driver);
 }

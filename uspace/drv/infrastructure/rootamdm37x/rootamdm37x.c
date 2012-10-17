@@ -36,6 +36,8 @@
  */
 #define _DDF_DATA_IMPLANT
 
+#define DEBUG_CM
+
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
@@ -45,10 +47,177 @@
 
 #include "uhh.h"
 #include "usbtll.h"
-#include "core_cm.h"
-#include "usbhost_cm.h"
+#include "cm/core.h"
+#include "cm/clock_control.h"
+#include "cm/usbhost.h"
 
 #define NAME  "rootamdm37x"
+
+typedef struct {
+	uhh_regs_t *uhh;
+	tll_regs_t *tll;
+	struct {
+		core_cm_regs_t *core;
+		clock_control_cm_regs_t *clocks;
+		usbhost_cm_regs_t *usbhost;
+	} cm;
+} amdm37x_t;
+
+#ifdef DEBUG_CM
+static void log(volatile void *place, uint32_t val, volatile void* base, size_t size, void *data, bool write)
+{
+	printf("PIO %s: %p(%p) %#"PRIx32"\n", write ? "WRITE" : "READ",
+	    (place - base) + data, place, val);
+}
+#endif
+
+static int amdm37x_hw_access_init(amdm37x_t *device)
+{
+	assert(device);
+	int ret = EOK;
+
+	ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
+	    (void**)&device->cm.usbhost);
+	if (ret != EOK)
+		return ret;
+
+	ret = pio_enable((void*)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
+	    (void**)&device->cm.core);
+	if (ret != EOK)
+		return ret;
+
+	ret = pio_enable((void*)CLOCK_CONTROL_CM_BASE_ADDRESS,
+		    CLOCK_CONTROL_CM_SIZE, (void**)&device->cm.clocks);
+	if (ret != EOK)
+		return ret;
+
+	ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
+	    AMDM37x_USBTLL_SIZE, (void**)&device->tll);
+	if (ret != EOK)
+		return ret;
+
+	ret = pio_enable((void*)AMDM37x_UHH_BASE_ADDRESS,
+	    AMDM37x_UHH_SIZE, (void**)&device->uhh);
+	if (ret != EOK)
+		return ret;
+
+#ifdef DEBUG_CM
+	pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
+	pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
+	pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
+	pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
+	pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
+#endif
+	return EOK;
+}
+
+static int usb_clocks(amdm37x_t *device, bool on)
+{
+	/* Set DPLL3 to automatic */
+	pio_change_32(&device->cm.clocks->autoidle_pll,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK, 5);
+
+	/* Set DPLL4 to automatic */
+	pio_change_32(&device->cm.clocks->autoidle_pll,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC,
+	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK, 5);
+
+	/* Set DPLL5 to automatic */
+	pio_change_32(&device->cm.clocks->autoidle2_pll,
+	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
+	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK, 5);
+
+
+#ifdef DEBUG_CM
+	printf("DPLL5 could be on: %"PRIx32" %"PRIx32".\n",
+	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
+	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
+#endif
+
+	if (on) {
+		/* Enable interface and function clock for USB TLL */
+		pio_set_32(&device->cm.core->fclken3,
+		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
+		pio_set_32(&device->cm.core->iclken3,
+		    CORE_CM_ICLKEN3_EN_USBTLL_FLAG, 5);
+
+		/* Enable interface and function clock for USB hosts */
+		pio_set_32(&device->cm.usbhost->fclken,
+		    USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG |
+		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
+		pio_set_32(&device->cm.usbhost->iclken,
+		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
+#ifdef DEBUG_CM
+	printf("DPLL5 (and everything else) should be on: %"PRIx32" %"PRIx32".\n",
+	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
+	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
+#endif
+	} else {
+		/* Disable interface and function clock for USB hosts */
+		pio_clear_32(&device->cm.usbhost->iclken,
+		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
+		pio_clear_32(&device->cm.usbhost->fclken,
+		    USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG |
+		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
+
+		/* Disable interface and function clock for USB TLL */
+		pio_clear_32(&device->cm.core->iclken3,
+		    CORE_CM_ICLKEN3_EN_USBTLL_FLAG, 5);
+		pio_clear_32(&device->cm.core->fclken3,
+		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
+	}
+
+	return EOK;
+}
+
+/** Initialize USB TLL port connections.
+ *
+ * Different modes are on page 3312 of the Manual Figure 22-34.
+ * Select mode than can operate in FS/LS.
+ */
+static int usb_tll_init(amdm37x_t *device)
+{
+
+	/* Reset USB TLL */
+	pio_set_32(&device->tll->sysconfig, TLL_SYSCONFIG_SOFTRESET_FLAG, 5);
+	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
+	while (!(pio_read_32(&device->tll->sysstatus) & TLL_SYSSTATUS_RESET_DONE_FLAG));
+	ddf_msg(LVL_DEBUG, "USB TLL Reset done.");
+
+	/* Setup idle mode (smart idle) */
+	pio_change_32(&device->tll->sysconfig,
+	    TLL_SYSCONFIG_CLOCKACTIVITY_FLAG | TLL_SYSCONFIG_AUTOIDLE_FLAG |
+	    TLL_SYSCONFIG_SIDLE_MODE_SMART, TLL_SYSCONFIG_SIDLE_MODE_MASK, 5);
+
+	/* Smart idle for UHH */
+	pio_change_32(&device->uhh->sysconfig,
+	    UHH_SYSCONFIG_CLOCKACTIVITY_FLAG | UHH_SYSCONFIG_AUTOIDLE_FLAG |
+	    UHH_SYSCONFIG_SIDLE_MODE_SMART, UHH_SYSCONFIG_SIDLE_MODE_MASK, 5);
+
+	/* Set all ports to go through TLL(UTMI)
+	 * Direct connection can only work in HS mode */
+	pio_set_32(&device->uhh->hostconfig,
+	    UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG |
+	    UHH_HOSTCONFIG_P2_ULPI_BYPASS_FLAG |
+	    UHH_HOSTCONFIG_P3_ULPI_BYPASS_FLAG, 5);
+
+	/* What is this? */
+	pio_set_32(&device->tll->shared_conf, TLL_SHARED_CONF_FCLK_IS_ON_FLAG, 5);
+
+	for (unsigned i = 0; i < 3; ++i) {
+		/* Serial mode is the only one capable of FS/LS operation.
+		 * Select FS/LS mode, no idea what the difference is
+		 * one of bidirectional modes might be good choice
+		 * 2 = 3pin bidi phy. */
+		pio_change_32(&device->tll->channel_conf[i],
+		    TLL_CHANNEL_CONF_CHANMODE_UTMI_SERIAL_MODE |
+		    TLL_CHANNEL_CONF_FSLSMODE_3PIN_BIDI_PHY,
+		    TLL_CHANNEL_CONF_CHANMODE_MASK |
+		    TLL_CHANNEL_CONF_FSLSMODE_MASK, 5);
+	}
+	return EOK;
+}
 
 typedef struct {
 	hw_resource_list_t hw_resources;
@@ -101,7 +270,7 @@ static hw_resource_t ehci_res[] = {
 static const rootamdm37x_fun_t ehci = {
 	.hw_resources = {
 	    .resources = ehci_res,
-	    .count = sizeof(ehci_res)/sizeof(ehci_res[0]),
+	    .count = sizeof(ehci_res) / sizeof(ehci_res[0]),
 	}
 };
 
@@ -118,137 +287,6 @@ static ddf_dev_ops_t rootamdm37x_fun_ops =
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static int usb_clocks(bool on)
-{
-	usbhost_cm_regs_t *usb_host_cm = NULL;
-	core_cm_regs_t *l4_core_cm = NULL;
-
-	int ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
-	    (void**)&usb_host_cm);
-	if (ret != EOK)
-		return ret;
-
-	ret = pio_enable((void*)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
-	    (void**)&l4_core_cm);
-	if (ret != EOK)
-		return ret;
-
-	assert(l4_core_cm);
-	assert(usb_host_cm);
-	if (on) {
-		l4_core_cm->iclken3 |= CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
-		l4_core_cm->fclken3 |= CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
-		usb_host_cm->iclken |= USBHOST_CM_ICLKEN_EN_USBHOST;
-		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
-		usb_host_cm->fclken |= USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
-	} else {
-		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG;
-		usb_host_cm->fclken &= ~USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG;
-		usb_host_cm->iclken &= ~USBHOST_CM_ICLKEN_EN_USBHOST;
-		l4_core_cm->fclken3 &= ~CORE_CM_FCLKEN3_EN_USBTLL_FLAG;
-		l4_core_cm->iclken3 &= ~CORE_CM_ICLKEN3_EN_USBTLL_FLAG;
-	}
-
-	//TODO Unmap those registers.
-
-	return ret;
-}
-
-/** Initialize USB TLL port connections.
- *
- * Different modes are on page 3312 of the Manual Figure 22-34.
- * Select mode than can operate in FS/LS.
- */
-static int usb_tll_init()
-{
-	tll_regs_t *usb_tll = NULL;
-	uhh_regs_t *uhh_conf = NULL;
-
-	int ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
-	    AMDM37x_USBTLL_SIZE, (void**)&usb_tll);
-	if (ret != EOK)
-		return ret;
-
-	ret = pio_enable((void*)AMDM37x_UHH_BASE_ADDRESS,
-	    AMDM37x_UHH_SIZE, (void**)&uhh_conf);
-	if (ret != EOK)
-		return ret;
-
-	/* Reset USB TLL */
-	usb_tll->sysconfig |= TLL_SYSCONFIG_SOFTRESET_FLAG;
-	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
-	while (!(usb_tll->sysstatus & TLL_SYSSTATUS_RESET_DONE_FLAG));
-	ddf_msg(LVL_DEBUG, "USB TLL Reset done.");
-
-	{
-	/* Setup idle mode (smart idle) */
-	uint32_t sysc = usb_tll->sysconfig;
-	sysc |= TLL_SYSCONFIG_CLOCKACTIVITY_FLAG | TLL_SYSCONFIG_AUTOIDLE_FLAG;
-	sysc = (sysc
-	    & ~(TLL_SYSCONFIG_SIDLE_MODE_MASK << TLL_SYSCONFIG_SIDLE_MODE_SHIFT)
-	    ) | (0x2 << TLL_SYSCONFIG_SIDLE_MODE_SHIFT);
-	usb_tll->sysconfig = sysc;
-	ddf_msg(LVL_DEBUG2, "Set TLL->sysconfig (%p) to %x:%x.",
-	    &usb_tll->sysconfig, usb_tll->sysconfig, sysc);
-	}
-
-	{
-	/* Smart idle for UHH */
-	uint32_t sysc = uhh_conf->sysconfig;
-	sysc |= UHH_SYSCONFIG_CLOCKACTIVITY_FLAG | UHH_SYSCONFIG_AUTOIDLE_FLAG;
-	sysc = (sysc
-	    & ~(UHH_SYSCONFIG_SIDLE_MODE_MASK << UHH_SYSCONFIG_SIDLE_MODE_SHIFT)
-	    ) | (0x2 << UHH_SYSCONFIG_SIDLE_MODE_SHIFT);
-	sysc = (sysc
-	    & ~(UHH_SYSCONFIG_MIDLE_MODE_MASK << UHH_SYSCONFIG_MIDLE_MODE_SHIFT)
-	    ) | (0x2 << UHH_SYSCONFIG_MIDLE_MODE_SHIFT);
-	ddf_msg(LVL_DEBUG2, "Set UHH->sysconfig (%p) to %x.",
-	    &uhh_conf->sysconfig, uhh_conf->sysconfig);
-	uhh_conf->sysconfig = sysc;
-
-	/* All ports are connected on BBxM */
-	uhh_conf->hostconfig |= (UHH_HOSTCONFIG_P1_CONNECT_STATUS_FLAG
-	    | UHH_HOSTCONFIG_P2_CONNECT_STATUS_FLAG
-	    | UHH_HOSTCONFIG_P3_CONNECT_STATUS_FLAG);
-
-	/* Set all ports to go through TLL(UTMI)
-	 * Direct connection can only work in HS mode */
-	uhh_conf->hostconfig |= (UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG
-	    | UHH_HOSTCONFIG_P2_ULPI_BYPASS_FLAG
-	    | UHH_HOSTCONFIG_P3_ULPI_BYPASS_FLAG);
-	ddf_msg(LVL_DEBUG2, "Set UHH->hostconfig (%p) to %x.",
-	    &uhh_conf->hostconfig, uhh_conf->hostconfig);
-	}
-
-	usb_tll->shared_conf |= TLL_SHARED_CONF_FCLK_IS_ON_FLAG;
-	ddf_msg(LVL_DEBUG2, "Set shared conf port (%p) to %x.",
-	    &usb_tll->shared_conf, usb_tll->shared_conf);
-
-	for (unsigned i = 0; i < 3; ++i) {
-		uint32_t ch = usb_tll->channel_conf[i];
-		/* Clear Channel mode and FSLS mode */
-		ch &= ~(TLL_CHANNEL_CONF_CHANMODE_MASK
-		    << TLL_CHANNEL_CONF_CHANMODE_SHIFT)
-		    & ~(TLL_CHANNEL_CONF_FSLSMODE_MASK
-		    << TLL_CHANNEL_CONF_FSLSMODE_SHIFT);
-
-		/* Serial mode is the only one capable of FS/LS operation. */
-		ch |= (TLL_CHANNEL_CONF_CHANMODE_UTMI_SERIAL_MODE
-		    << TLL_CHANNEL_CONF_CHANMODE_SHIFT);
-
-		/* Select FS/LS mode, no idea what the difference is
-		 * one of bidirectional modes might be good choice
-		 * 2 = 3pin bidi phy. */
-		ch |= (2 << TLL_CHANNEL_CONF_FSLSMODE_SHIFT);
-
-		/* Write to register */
-		ddf_msg(LVL_DEBUG2, "Setting port %u(%p) to %x.",
-		    i, &usb_tll->channel_conf[i], ch);
-		usb_tll->channel_conf[i] = ch;
-	}
-	return EOK;
-}
-
 static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
     const char *str_match_id, const rootamdm37x_fun_t *fun)
 {
@@ -262,7 +300,6 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	
 	/* Add match id */
 	if (ddf_fun_add_match_id(fnode, str_match_id, 100) != EOK) {
-		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
 		return false;
 	}
@@ -274,6 +311,7 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
+		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
 		return false;
 	}
@@ -291,16 +329,26 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
  */
 static int rootamdm37x_dev_add(ddf_dev_t *dev)
 {
-	int ret = usb_clocks(true);
+	assert(dev);
+	amdm37x_t *device = ddf_dev_data_alloc(dev, sizeof(amdm37x_t));
+	if (!device)
+		return ENOMEM;
+	int ret = amdm37x_hw_access_init(device);
+	if (ret != EOK) {
+		ddf_msg(LVL_FATAL, "Failed to setup hw access!.\n");
+		return ret;
+	}
+
+	ret = usb_clocks(device, true);
 	if (ret != EOK) {
 		ddf_msg(LVL_FATAL, "Failed to enable USB HC clocks!.\n");
 		return ret;
 	}
 
-	ret = usb_tll_init();
+	ret = usb_tll_init(device);
 	if (ret != EOK) {
 		ddf_msg(LVL_FATAL, "Failed to init USB TLL!.\n");
-		usb_clocks(false);
+		usb_clocks(device, false);
 		return ret;
 	}
 
@@ -342,7 +390,7 @@ static bool rootamdm37x_enable_interrupt(ddf_fun_t *fun)
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS AM/DM37x(OMAP37x) platform driver\n", NAME);
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&rootamdm37x_driver);
 }
 

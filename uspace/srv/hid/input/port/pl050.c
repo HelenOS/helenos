@@ -36,11 +36,9 @@
  */
 
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <async.h>
 #include <unistd.h>
 #include <sysinfo.h>
-#include <ddi.h>
 #include <stdio.h>
 #include <errno.h>
 #include "../kbd_port.h"
