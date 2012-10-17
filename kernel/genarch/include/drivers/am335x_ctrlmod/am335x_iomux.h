@@ -33,27 +33,27 @@
  * @brief Texas Instruments AM335x CONTROL_MODULE: I/O multiplexing.
  */
 
-#ifndef KERN_AM335X_CTRLMOD_IOMUX_H_
-#define KERN_AM335X_CTRLMOD_IOMUX_H_
+#ifndef KERN_AM335X_IOMUX_H_
+#define KERN_AM335X_IOMUX_H_
 
 #include <typedefs.h>
 
 /* Pad Control Register for each configurable pin p. 876 */
-#define AM335X_CTRLMOD_SLEWRATE_SLOW_FLAG  (1 << 6)
-#define AM335X_CTRLMOD_RX_ENABLE_FLAG  (1 << 5)
-#define AM335X_CTRLMOD_PULLUP_FLAG  (1 << 4)
-#define AM335X_CTRLMOD_PULLUPDOWN_ENABLE_FLAG  (1 << 3)
-#define AM335X_CTRLMOD_MUXMODE0  0
-#define AM335X_CTRLMOD_MUXMODE1  1
-#define AM335X_CTRLMOD_MUXMODE2  2
-#define AM335X_CTRLMOD_MUXMODE3  3
-#define AM335X_CTRLMOD_MUXMODE4  4
-#define AM335X_CTRLMOD_MUXMODE5  5
-#define AM335X_CTRLMOD_MUXMODE6  6
-#define AM335X_CTRLMOD_MUXMODE7  7
+#define AM335X_IOMUX_SLEWRATE_SLOW_FLAG  (1 << 6)
+#define AM335X_IOMUX_RX_ENABLE_FLAG  (1 << 5)
+#define AM335X_IOMUX_PULLUP_FLAG  (1 << 4)
+#define AM335X_IOMUX_PULLUPDOWN_ENABLE_FLAG  (1 << 3)
+#define AM335X_IOMUX_MODE0  0
+#define AM335X_IOMUX_MODE1  1
+#define AM335X_IOMUX_MODE2  2
+#define AM335X_IOMUX_MODE3  3
+#define AM335X_IOMUX_MODE4  4
+#define AM335X_IOMUX_MODE5  5
+#define AM335X_IOMUX_MODE6  6
+#define AM335X_IOMUX_MODE7  7
 
 /* AM335X CONTROL_MODULE configurable I/O pin. Table 9-10 at p. 886 */
-#define AM335X_CTRLMOD_CONF_BASE_ADDRESS 0x44E10800
+#define AM335X_IOMUX_CONF_BASE_ADDRESS 0x44E10800
 
 typedef struct {
 	ioport32_t gpmc_ad1;
@@ -264,6 +264,5 @@ typedef struct {
 	ioport32_t iforce;
 	ioport32_t vsense;
 	ioport32_t testout;
-} am335x_ctrlmod_conf_regs_t;
-
-#endif /* KERN_AM335X_CTRLMOD_IOMUX_H_ */
+} am335x_iomux_conf_regs_t;
+#endif /* KERN_AM335X_IOMUX_H_ */
