@@ -42,42 +42,22 @@
 #error "This is internal libnic header, please don't include it"
 #endif
 
-#include <adt/hash_set.h>
-
-/**
- * Initial size of DB's hash set
- */
-#define NIC_ADDR_DB_INIT_SIZE 	8
-/**
- * Maximal length of addresses in the DB (in bytes).
- */
-#define NIC_ADDR_MAX_LENGTH		16
+#include <adt/hash_table.h>
 
 /**
  * Fibril-safe database of addresses implemented using hash set.
  */
 typedef struct nic_addr_db {
-	hash_set_t set;
+	hash_table_t set;
 	size_t addr_len;
 } nic_addr_db_t;
 
-/**
- * Helper structure for keeping the address in the hash set.
- */
-typedef struct nic_addr_entry {
-	link_t item;
-	size_t addr_len;
-	uint8_t addr[NIC_ADDR_MAX_LENGTH];
-} nic_addr_entry_t;
 
 extern int nic_addr_db_init(nic_addr_db_t *db, size_t addr_len);
 extern void nic_addr_db_clear(nic_addr_db_t *db);
 extern void nic_addr_db_destroy(nic_addr_db_t *db);
-extern size_t nic_addr_db_count(const nic_addr_db_t *db);
 extern int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr);
 extern int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr);
-extern void nic_addr_db_remove_selected(nic_addr_db_t *db,
-	int (*func)(const uint8_t *, void *), void *arg);
 extern int nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr);
 extern void nic_addr_db_foreach(const nic_addr_db_t *db,
 	void (*func)(const uint8_t *, void *), void *arg);

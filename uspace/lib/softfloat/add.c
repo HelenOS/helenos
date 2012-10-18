@@ -89,7 +89,7 @@ float32 add_float32(float32 a, float32 b)
 	if (exp1 == 0) {
 		/* both are denormalized */
 		frac1 += frac2;
-		if (frac1 & FLOAT32_HIDDEN_BIT_MASK ) {
+		if (frac1 & FLOAT32_HIDDEN_BIT_MASK) {
 			/* result is not denormalized */
 			a.parts.exp = 1;
 		}
@@ -111,7 +111,7 @@ float32 add_float32(float32 a, float32 b)
 	frac1 <<= 6;
 	frac2 <<= 6;
 	
-	if (expdiff < (FLOAT32_FRACTION_SIZE + 2) ) {
+	if (expdiff < (FLOAT32_FRACTION_SIZE + 2)) {
 		frac2 >>= expdiff;
 		frac1 += frac2;
 	} else {
@@ -120,7 +120,7 @@ float32 add_float32(float32 a, float32 b)
 		return a;
 	}
 	
-	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7) ) {
+	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
 		frac1 >>= 1;
 	}
@@ -134,7 +134,7 @@ float32 add_float32(float32 a, float32 b)
 		frac1 >>= 1;
 	}
 	
-	if ((exp1 == FLOAT32_MAX_EXPONENT ) || (exp2 > exp1)) {
+	if ((exp1 == FLOAT32_MAX_EXPONENT) || (exp2 > exp1)) {
 		/* overflow - set infinity as result */
 		a.parts.exp = FLOAT32_MAX_EXPONENT;
 		a.parts.fraction = 0;
@@ -249,7 +249,7 @@ float64 add_float64(float64 a, float64 b)
 		frac1 >>= 1;
 	}
 	
-	if ((exp1 == FLOAT64_MAX_EXPONENT ) || (exp2 > exp1)) {
+	if ((exp1 == FLOAT64_MAX_EXPONENT) || (exp2 > exp1)) {
 		/* overflow - set infinity as result */
 		a.parts.exp = FLOAT64_MAX_EXPONENT;
 		a.parts.fraction = 0;
@@ -258,7 +258,7 @@ float64 add_float64(float64 a, float64 b)
 	
 	a.parts.exp = exp1;
 	/* Clear hidden bit and shift */
-	a.parts.fraction = ((frac1 >> 6 ) & (~FLOAT64_HIDDEN_BIT_MASK));
+	a.parts.fraction = ((frac1 >> 6) & (~FLOAT64_HIDDEN_BIT_MASK));
 	return a;
 }
 

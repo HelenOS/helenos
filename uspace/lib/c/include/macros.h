@@ -51,6 +51,12 @@
 	((((uint64_t) (lo)) & 0xffffffff) \
 	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
 
+#ifndef member_to_inst
+#define member_to_inst(ptr_member, type, member_identif) \
+	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
+#endif
+
+
 #endif
 
 /** @}

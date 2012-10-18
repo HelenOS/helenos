@@ -41,68 +41,48 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <adt/list.h>
+#include <bool.h>
 #include "udf_idx.h"
 #include "udf.h"
-
-#define UDF_IDX_KEYS  2
-#define UDF_IDX_KEY   1
-
-#define UDF_IDX_SERVICE_ID_KEY  0
-#define UDF_IDX_BUCKETS         1024
 
 static FIBRIL_MUTEX_INITIALIZE(udf_idx_lock);
 
 static hash_table_t udf_idx;
 
-/** Calculate value of hash by key
- *
- * @param Key for calculation of function
- *
- * @return Value of hash function
- *
- */
-static hash_index_t udf_idx_hash(unsigned long key[])
+typedef struct {
+	service_id_t service_id;
+	fs_index_t index;
+} udf_ht_key_t; 
+
+static size_t udf_idx_hash(const ht_link_t *item)
 {
-	/* TODO: This is very simple and probably can be improved */
-	return key[UDF_IDX_KEY] % UDF_IDX_BUCKETS;
+	udf_node_t *node = hash_table_get_inst(item, udf_node_t, link);
+	return hash_combine(node->instance->service_id, node->index);
 }
 
-/** Compare two items of hash table
- *
- * @param key  Key of hash table item. Include several items.
- * @param keys Number of parts of key.
- * @param item Item of hash table
- *
- * @return True if input value of key equivalent key of node from hash table
- *
- */
-static int udf_idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static size_t udf_idx_key_hash(void *k)
 {
-	assert(keys > 0);
-	
-	udf_node_t *node = hash_table_get_instance(item, udf_node_t, link);
-	
-	if (node->instance->service_id !=
-	    ((service_id_t) key[UDF_IDX_SERVICE_ID_KEY]))
-		return false;
-	
-	assert(keys == 2);
-	return (node->index == key[UDF_IDX_KEY]);
+	udf_ht_key_t *key = (udf_ht_key_t *) k;
+	return hash_combine(key->service_id, key->index);
 }
 
-/** Remove callback
- *
- */
-static void udf_idx_remove_cb(link_t *link)
+static bool udf_idx_key_equal(void *k, const ht_link_t *item)
 {
-	/* We don't use remove callback for this hash table */
+	udf_ht_key_t *key = (udf_ht_key_t *) k;
+	udf_node_t *node = hash_table_get_inst(item, udf_node_t, link);
+
+	return (key->service_id == node->instance->service_id) &&
+	    (key->index == node->index);
 }
 
-static hash_table_operations_t udf_idx_ops = {
+static hash_table_ops_t udf_idx_ops = {
 	.hash = udf_idx_hash,
-	.compare = udf_idx_compare,
-	.remove_callback = udf_idx_remove_cb,
+	.key_hash = udf_idx_key_hash,
+	.key_equal = udf_idx_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL 
 };
 
 /** Initialization of hash table
@@ -112,8 +92,7 @@ static hash_table_operations_t udf_idx_ops = {
  */
 int udf_idx_init(void)
 {
-	if (!hash_table_create(&udf_idx, UDF_IDX_BUCKETS, UDF_IDX_KEYS,
-	    &udf_idx_ops))
+	if (!hash_table_create(&udf_idx, 0, 0, &udf_idx_ops))
 		return ENOMEM;
 	
 	return EOK;
@@ -142,15 +121,15 @@ int udf_idx_fini(void)
 int udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
 {
 	fibril_mutex_lock(&udf_idx_lock);
-	
-	unsigned long key[] = {
-		[UDF_IDX_SERVICE_ID_KEY] = instance->service_id,
-		[UDF_IDX_KEY] = index
+
+	udf_ht_key_t key = {
+		.service_id = instance->service_id,
+		.index = index
 	};
 	
-	link_t *already_open = hash_table_find(&udf_idx, key);
+	ht_link_t *already_open = hash_table_find(&udf_idx, &key);
 	if (already_open) {
-		udf_node_t *node = hash_table_get_instance(already_open,
+		udf_node_t *node = hash_table_get_inst(already_open,
 		    udf_node_t, link);
 		node->ref_cnt++;
 		
@@ -201,15 +180,9 @@ int udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
 	udf_node->allocators = NULL;
 	
 	fibril_mutex_initialize(&udf_node->lock);
-	link_initialize(&udf_node->link);
 	fs_node->data = udf_node;
 	
-	unsigned long key[] = {
-		[UDF_IDX_SERVICE_ID_KEY] = instance->service_id,
-		[UDF_IDX_KEY] = index
-	};
-	
-	hash_table_insert(&udf_idx, key, &udf_node->link);
+	hash_table_insert(&udf_idx, &udf_node->link);
 	instance->open_nodes_count++;
 	
 	*udfn = udf_node;
@@ -231,12 +204,7 @@ int udf_idx_del(udf_node_t *node)
 	
 	fibril_mutex_lock(&udf_idx_lock);
 	
-	unsigned long key[] = {
-		[UDF_IDX_SERVICE_ID_KEY] = node->instance->service_id,
-		[UDF_IDX_KEY] = node->index
-	};
-	
-	hash_table_remove(&udf_idx, key, UDF_IDX_KEYS);
+	hash_table_remove_item(&udf_idx, &node->link);
 	
 	assert(node->instance->open_nodes_count > 0);
 	node->instance->open_nodes_count--;

@@ -53,6 +53,7 @@
 #include <str.h>
 #include <byteorder.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>

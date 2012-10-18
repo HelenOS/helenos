@@ -1,0 +1,25 @@
+bithenge basic.bh basic.dat | to /tmp/bithenge-test.out
+cmp basic.out /tmp/bithenge-test.out
+
+bithenge bits.bh bits.dat | to /tmp/bithenge-test.out
+cmp bits.out /tmp/bithenge-test.out
+
+bithenge cond.bh cond.dat | to /tmp/bithenge-test.out
+cmp cond.out /tmp/bithenge-test.out
+
+bithenge expression.bh expression.dat | to /tmp/bithenge-test.out
+cmp expression.out /tmp/bithenge-test.out
+
+bithenge fat.bh fat.dat | to /tmp/bithenge-test.out
+cmp fat.out /tmp/bithenge-test.out
+
+bithenge repeat.bh repeat.dat | to /tmp/bithenge-test.out
+cmp repeat.out /tmp/bithenge-test.out
+
+bithenge trip.bh trip.dat | to /tmp/bithenge-test.out
+cmp trip.out /tmp/bithenge-test.out
+
+bithenge usbdesc.bh usbdesc.kbd.dat | to /tmp/bithenge-test.out
+cmp usbdesc.kbd.out /tmp/bithenge-test.out
+
+echo Success

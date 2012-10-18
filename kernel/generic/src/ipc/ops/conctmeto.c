@@ -53,9 +53,10 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
-static void request_forget(call_t *call)
+static int request_forget(call_t *call)
 {
 	phone_dealloc(call->priv);
+	return EOK;
 }
 
 static int answer_preprocess(call_t *answer, ipc_data_t *olddata)

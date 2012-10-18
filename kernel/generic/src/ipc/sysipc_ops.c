@@ -75,8 +75,9 @@ int null_request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
-void null_request_forget(call_t *call)
+int null_request_forget(call_t *call)
 {
+	return EOK;
 }
 
 int null_request_process(call_t *call, answerbox_t *box)
@@ -84,8 +85,9 @@ int null_request_process(call_t *call, answerbox_t *box)
 	return EOK;
 }
 
-void null_answer_cleanup(call_t *call, ipc_data_t *data)
+int null_answer_cleanup(call_t *call, ipc_data_t *data)
 {
+	return EOK;
 }
 
 int null_answer_preprocess(call_t *call, ipc_data_t *data)

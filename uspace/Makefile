@@ -34,6 +34,7 @@
 
 DIRS = \
 	app/bdsh \
+	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
@@ -218,6 +219,7 @@ LIBS = \
 	lib/usbdev \
 	lib/usbhid \
 	lib/usbvirt \
+	lib/bithenge \
 	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))

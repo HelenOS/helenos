@@ -49,36 +49,57 @@
  */
 
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "gsp.h"
 
-#define TRANS_TABLE_CHAINS  256
-
 /*
- * Hash table operations for the transition function.
+ * Transition function hash table operations.
  */
+typedef struct {
+	int old_state;
+	int input;
+} trans_key_t;
 
-static hash_index_t trans_op_hash(unsigned long key[]);
-static int trans_op_compare(unsigned long key[], hash_count_t keys,
-    link_t *item);
-static void trans_op_remove_callback(link_t *item);
+static size_t trans_key_hash(void *key)
+{
+	trans_key_t *trans_key = (trans_key_t *)key;
+	return hash_combine(trans_key->input, trans_key->old_state);
+}
 
-static hash_table_operations_t trans_ops = {
-	.hash = trans_op_hash,
-	.compare = trans_op_compare,
-	.remove_callback = trans_op_remove_callback
+static size_t trans_hash(const ht_link_t *item)
+{
+	gsp_trans_t *t = hash_table_get_inst(item, gsp_trans_t, link);
+	return hash_combine(t->input, t->old_state);
+}
+
+static bool trans_key_equal(void *key, const ht_link_t *item)
+{
+	trans_key_t *trans_key = (trans_key_t *)key;
+	gsp_trans_t *t = hash_table_get_inst(item, gsp_trans_t, link);
+	
+	return trans_key->input == t->input && trans_key->old_state == t->old_state;
+}
+
+static hash_table_ops_t trans_ops = {
+	.hash = trans_hash,
+	.key_hash = trans_key_hash,
+	.key_equal = trans_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
 };
+
 
 static gsp_trans_t *trans_lookup(gsp_t *p, int state, int input);
 static void trans_insert(gsp_t *p, gsp_trans_t *t);
 static gsp_trans_t *trans_new(void);
 
-/** Initialise scancode parser. */
+/** Initialize scancode parser. */
 void gsp_init(gsp_t *p)
 {
 	p->states = 1;
-	hash_table_create(&p->trans, TRANS_TABLE_CHAINS, 2, &trans_ops);
+	hash_table_create(&p->trans, 0, 0, &trans_ops);
 }
 
 /** Insert a series of definitions into the parser.
@@ -222,16 +243,17 @@ int gsp_step(gsp_t *p, int state, int input, unsigned *mods, unsigned *key)
  */
 static gsp_trans_t *trans_lookup(gsp_t *p, int state, int input)
 {
-	link_t *item;
-	unsigned long key[2];
+	ht_link_t *item;
+	
+	trans_key_t key = {
+		.input = input,
+		.old_state = state
+	};
 
-	key[0] = state;
-	key[1] = input;
-
-	item = hash_table_find(&p->trans, key);
+	item = hash_table_find(&p->trans, &key);
 	if (item == NULL) return NULL;
 
-	return hash_table_get_instance(item, gsp_trans_t, link);
+	return hash_table_get_inst(item, gsp_trans_t, link);
 }
 
 /** Define a new transition.
@@ -241,12 +263,7 @@ static gsp_trans_t *trans_lookup(gsp_t *p, int state, int input)
  */
 static void trans_insert(gsp_t *p, gsp_trans_t *t)
 {
-	unsigned long key[2];
-
-	key[0] = t->old_state;
-	key[1] = t->input;
-
-	hash_table_insert(&p->trans, key, &t->link);
+	hash_table_insert(&p->trans, &t->link);
 }
 
 /** Allocate transition structure. */
@@ -263,28 +280,6 @@ static gsp_trans_t *trans_new(void)
 	return t;
 }
 
-/*
- * Transition function hash table operations.
- */
-
-static hash_index_t trans_op_hash(unsigned long key[])
-{
-	return (key[0] * 17 + key[1]) % TRANS_TABLE_CHAINS;
-}
-
-static int trans_op_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
-{
-	gsp_trans_t *t;
-
-	t = hash_table_get_instance(item, gsp_trans_t, link);
-	return ((key[0] == (unsigned long) t->old_state)
-	    && (key[1] == (unsigned long) t->input));
-}
-
-static void trans_op_remove_callback(link_t *item)
-{
-}
 
 /**
  * @}

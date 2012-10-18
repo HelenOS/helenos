@@ -37,6 +37,53 @@
 
 #include <ipc/ipc.h>
 
+#define SYSIPC_OP(op, call, ...) \
+	({ \
+		int rc = EOK; \
+		\
+		sysipc_ops_t *ops; \
+		ops = sysipc_ops_get((call)->request_method); \
+		if (ops->op) \
+			rc = ops->op((call), ##__VA_ARGS__); \
+		rc; \
+	})
+
+/**
+ * This header declares the per-method IPC callbacks. Using these callbacks,
+ * each IPC method (but system methods in particular), can define actions that
+ * will be called at specific moments in the call life-cycle.
+ *
+ * Normally, the kernel will attempt to invoke the following callbacks in the
+ * following order on each call:
+ *
+ * request_preprocess()
+ * request_process()
+ * answer_preprocess()
+ * answer_process()
+ *
+ * This callback invocation sequence is a natural order of processing. Note,
+ * however, that due to various special circumstances, callbacks may be called
+ * also in a different than natural order of processing. This means that some
+ * callbacks may be skipped and some others may be called instead.
+ *
+ * The additional callbacks that may be called are as follows:
+ *
+ * request_forget()
+ * answer_cleanup()
+ *
+ * There are several notable scenarios in which some callbacks of the natural
+ * order of processing will be skipped.
+ *
+ * The request_process(), answer_preprocess() and answer_process() callbacks
+ * will be skipped if the call cannot be delivered to the callee. This may
+ * happen when e.g. the request_preprocess() callback fails or the connection
+ * to the callee is not functional. The next callback that will be invoked on
+ * the call is request_forget().
+ *
+ * The comments for each callback type describe the specifics of each callback
+ * such as the context in which it is invoked and various constraints.
+ */
+
 typedef struct {
 	/**
 	 * This callback is called from request_preprocess().
@@ -58,7 +105,7 @@ typedef struct {
 	 *			_ipc_answer_free_call()
 	 * Invoked on:		all forgotten calls
 	 */	
-	void (* request_forget)(call_t *);
+	int (* request_forget)(call_t *);
 
 	/**
 	 * This callback is called from process_request().
@@ -66,7 +113,7 @@ typedef struct {
 	 * Context:		callee
 	 * Caller alive:	no guarantee
 	 * Races with:		request_forget()
-	 * Invoked on:		calls that are received by the callee
+	 * Invoked on:		all calls delivered to the callee
 	 */	
 	int (* request_process)(call_t *, answerbox_t *);
 
@@ -79,7 +126,7 @@ typedef struct {
 	 * Races with:		request_forget()
 	 * Invoked on:		all forgotten calls
 	 */
-	void (* answer_cleanup)(call_t *, ipc_data_t *);
+	int (* answer_cleanup)(call_t *, ipc_data_t *);
 
 	/**
 	 * This callback is called when answer_preprocess() wins the race to
@@ -106,9 +153,9 @@ typedef struct {
 extern sysipc_ops_t *sysipc_ops_get(sysarg_t);
 
 extern int null_request_preprocess(call_t *, phone_t *);
-extern void null_request_forget(call_t *);
+extern int null_request_forget(call_t *);
 extern int null_request_process(call_t *, answerbox_t *);
-extern void null_answer_cleanup(call_t *, ipc_data_t *);
+extern int null_answer_cleanup(call_t *, ipc_data_t *);
 extern int null_answer_preprocess(call_t *, ipc_data_t *);
 extern int null_answer_process(call_t *);
 

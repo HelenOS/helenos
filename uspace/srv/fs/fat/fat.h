@@ -189,9 +189,9 @@ struct fat_node;
  */
 typedef struct {
 	/** Used indices (position) hash table link. */
-	link_t		uph_link;
+	ht_link_t		uph_link;
 	/** Used indices (index) hash table link. */
-	link_t		uih_link;
+	ht_link_t		uih_link;
 
 	fibril_mutex_t	lock;
 	service_id_t	service_id;

@@ -95,8 +95,8 @@ void ipc_kbox_cleanup(void)
 	}
 	
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues. */
-	ipc_cleanup_call_list(&TASK->kb.box, &TASK->kb.box.dispatched_calls);
 	ipc_cleanup_call_list(&TASK->kb.box, &TASK->kb.box.calls);
+	ipc_cleanup_call_list(&TASK->kb.box, &TASK->kb.box.dispatched_calls);
 }
 
 /** Handle hangup message in kbox.
