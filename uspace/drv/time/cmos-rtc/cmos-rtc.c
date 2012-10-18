@@ -99,6 +99,8 @@ static int rtc_dev_remove(ddf_dev_t *dev);
 static void rtc_register_write(rtc_t *rtc, int reg, int data);
 static time_t uptime_get(void);
 static bool is_battery_ok(rtc_t *rtc);
+static int  rtc_fun_online(ddf_fun_t *fun);
+static int  rtc_fun_offline(ddf_fun_t *fun);
 
 static ddf_dev_ops_t rtc_dev_ops;
 
@@ -106,6 +108,8 @@ static ddf_dev_ops_t rtc_dev_ops;
 static driver_ops_t rtc_ops = {
 	.dev_add = rtc_dev_add,
 	.dev_remove = rtc_dev_remove,
+	.fun_online = rtc_fun_online,
+	.fun_offline = rtc_fun_offline,
 };
 
 /** The RTC device driver structure */
@@ -637,6 +641,12 @@ rtc_dev_remove(ddf_dev_t *dev)
 	rtc->removed = true;
 	fibril_mutex_unlock(&rtc->mutex);
 
+	rc = rtc_fun_offline(rtc->fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to offline function");
+		return rc;
+	}
+
 	rc = ddf_fun_unbind(rtc->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to unbind function");
@@ -723,6 +733,20 @@ uptime_get(void)
 	getuptime(&tv);
 
 	return tv.tv_sec;
+}
+
+static int
+rtc_fun_online(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "rtc_fun_online()");
+	return ddf_fun_online(fun);
+}
+
+static int
+rtc_fun_offline(ddf_fun_t *fun)
+{
+	ddf_msg(LVL_DEBUG, "rtc_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int
