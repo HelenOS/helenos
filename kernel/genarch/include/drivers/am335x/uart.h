@@ -33,8 +33,8 @@
  * @brief Texas Instruments AM335x UART driver.
  */
 
-#ifndef _AM335x_UART_H_
-#define _AM335x_UART_H_
+#ifndef _KERN_AM335X_UART_H_
+#define _KERN_AM335X_UART_H_
 
 #include "uart_regs.h"
 
@@ -62,8 +62,6 @@
 #define AM335x_UART5_SIZE            4096
 #define AM335x_UART5_IRQ             46
 
-#endif
-
 typedef struct {
 	am335x_uart_regs_t *regs;
 	indev_t *indev;
@@ -75,6 +73,7 @@ typedef struct {
 bool am335x_uart_init(am335x_uart_t *, inr_t, uintptr_t, size_t);
 void am335x_uart_input_wire(am335x_uart_t *, indev_t *);
 
+#endif
 
 /**
  * @}

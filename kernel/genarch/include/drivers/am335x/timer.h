@@ -33,8 +33,8 @@
  * @brief Texas Instruments AM335x timer driver.
  */
 
-#ifndef _AM335X_TIMER_H_
-#define _AM335X_TIMER_H_
+#ifndef _KERN_AM335X_TIMER_H_
+#define _KERN_AM335X_TIMER_H_
 
 #include "timer_regs.h"
 

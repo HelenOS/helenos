@@ -34,8 +34,8 @@
  * @brief Texas Instruments AM335x UART memory mapped registers.
  */
 
-#ifndef KERN_AM335x_UART_H_
-#define KERN_AM335x_UART_H_
+#ifndef _KERN_AM335X_UART_REGS_H_
+#define _KERN_AM335X_UART_REGS_H_
 
 #include <typedefs.h>
 #include <console/chardev.h>

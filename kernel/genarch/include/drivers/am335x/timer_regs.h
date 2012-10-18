@@ -33,6 +33,9 @@
  * @brief Texas Instruments AM335x DMTIMER memory mapped registers.
  */
 
+#ifndef _KERN_AM335X_TIMER_REGS_H_
+#define _KERN_AM335X_TIMER_REGS_H_
+
 #include <typedefs.h>
 
 typedef struct am335x_timer_regs {
@@ -147,6 +150,8 @@ typedef struct am335x_timer_regs {
 	ioport32_t tcar2;
 
 } am335x_timer_regs_t;
+
+#endif
 
 /**
  * @}
