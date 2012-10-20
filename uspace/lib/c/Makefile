@@ -76,6 +76,7 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dlfcn.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \
@@ -143,7 +144,6 @@ GENERIC_SOURCES = \
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
-		generic/dlfcn.c \
 		generic/rtld/rtld.c \
 		generic/rtld/dynamic.c \
 		generic/rtld/module.c \
