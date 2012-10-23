@@ -1,0 +1,62 @@
+{
+    "bytes0": b"\x31",
+    "bytes1": b"\x37",
+    "str0": "1",
+    "str1": "7",
+    "compare_ints_0_1": {
+        "l": True,
+        "g": False,
+        "ge": False,
+        "le": True,
+        "eq": False,
+        "ne": True
+    },
+    "compare_ints_0_0": {
+        "l": False,
+        "g": False,
+        "ge": True,
+        "le": True,
+        "eq": True,
+        "ne": False
+    },
+    "compare_ints_1_0": {
+        "l": False,
+        "g": True,
+        "ge": True,
+        "le": False,
+        "eq": False,
+        "ne": True
+    },
+    "arithmetic_0_1": {
+        "sum": 1,
+        "difference": -1,
+        "product": 0,
+        "quotient": 0,
+        "remainder": 0
+    },
+    "arithmetic_17_n3": {
+        "sum": 14,
+        "difference": 20,
+        "product": -51
+    },
+    "arithmetic_n17_3": {
+        "sum": -14,
+        "difference": -20,
+        "product": -51,
+        "quotient": -6,
+        "remainder": 1
+    },
+    "concat_bytes": b"\x31\x37\x31",
+    "concat_bits": 3271729,
+    "equality": {
+        "neqs": False,
+        "bytes0_eq_bytes1": False,
+        "bytes0_ne_bytes0": False,
+        "str0_ne_str1": True,
+        "str1_eq_str1": True,
+        "bytes1_eq_1": False
+    },
+    "subblob": {
+        "subblob": b"\x31"
+    }
+}

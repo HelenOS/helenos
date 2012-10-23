@@ -53,6 +53,10 @@ typedef enum {
 	USBHC_DEV_IFACE,
 	/** Interface provided by USB HID devices. */
 	USBHID_DEV_IFACE,
+	/** Interface provided by Real Time Clock devices */
+	CLOCK_DEV_IFACE,
+	/** Interface provided by battery powered devices */
+	BATTERY_DEV_IFACE,
 	/** Interface provided by AHCI devices. */
 	AHCI_DEV_IFACE,
 

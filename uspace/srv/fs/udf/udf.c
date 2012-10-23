@@ -60,14 +60,14 @@ vfs_info_t udf_vfs_info = {
 
 int main(int argc, char *argv[])
 {
-	log_init(NAME, LVL_NOTE);
-	log_msg(LVL_NOTE, "HelenOS UDF 1.02 file system server");
+	log_init(NAME);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "HelenOS UDF 1.02 file system server");
 	
 	if (argc == 3) {
 		if (!str_cmp(argv[1], "--instance"))
 			udf_vfs_info.instance = strtol(argv[2], NULL, 10);
 		else {
-			log_msg(LVL_FATAL, "Unrecognized parameters");
+			log_msg(LOG_DEFAULT, LVL_FATAL, "Unrecognized parameters");
 			return 1;
 		}
 	}
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 	async_sess_t *vfs_sess =
 	    service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_VFS, 0, 0);
 	if (!vfs_sess) {
-		log_msg(LVL_FATAL, "Failed to connect to VFS");
+		log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to connect to VFS");
 		return 2;
 	}
 	
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		goto err;
 	
-	log_msg(LVL_NOTE, "Accepting connections");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Accepting connections");
 	task_retval(0);
 	async_manager();
 	
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 	return 0;
 	
 err:
-	log_msg(LVL_FATAL, "Failed to register file system (%d)", rc);
+	log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to register file system (%d)", rc);
 	return rc;
 }
 

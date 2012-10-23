@@ -1,0 +1,20 @@
+{
+    "first_len": 3,
+    "second_len": 4,
+    "first_item": {
+        "type": 52,
+        "name": {
+            "len": 6,
+            "string": "Item 1"
+        },
+        "unknown": b"\xcf\x80\x78"
+    },
+    "second_item": {
+        "type": 10,
+        "name": {
+            "len": 6,
+            "string": "Item 2"
+        },
+        "val": 12345
+    }
+}

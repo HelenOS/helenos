@@ -1,0 +1,68 @@
+##
+##
+## USB DESCRIPTORS
+##
+##
+
+# Originally by Vojtech Horky.
+
+# Block prefixed with a byte length
+transform block = (in.data) <- struct {
+	.bLength <- uint8;
+	.data <- known_length(.bLength - 1);
+};
+
+# USB configuration descriptor
+# This is not the full configuration descriptor (i.e. with interface
+# and endpoint descriptors included) but only the header. 
+transform usb_configuration_descriptor_bare = struct {
+	.wTotalLength <- uint16le;
+	.bNumInterfaces <- uint8;
+	.bConfigurationValue <- uint8;
+	.iConfiguration <- uint8;
+	.bmAttributes <- uint8;
+	.MaxPower <- uint8;
+};
+
+# USB interface descriptor
+transform usb_interface_descriptor = struct {
+	.bInterfaceNumber <- uint8;
+	.bAlternateSetting <- uint8;
+	.bNumEndpoints <- uint8;
+	.bInterfaceClass <- uint8;
+	.bInterfaceSubClass <- uint8;
+	.bInterfaceProtocol <- uint8;
+	.iInterface <- uint8;
+};
+
+# USB endpoint descriptor
+transform usb_endpoint_descriptor = struct {
+	.bEndpointAddress  <- uint8;
+	.bmAttributes <- uint8;
+	.wMaxPacketSize <- uint16le;
+	.bInterval <- uint8;
+};
+
+# USB HID descriptor
+transform usb_hid_descriptor = struct {
+	.bcdHID <- uint16le;
+	.bCountryCode <- uint8;
+	.bNumDescriptors <- uint8;
+	<- repeat(.bNumDescriptors) { struct {
+		.bDescriptorType <- uint8;
+		.wDescriptorLength <- uint16le;
+	} };
+};
+
+# USB descriptor
+transform usb_descriptor = struct {
+	.bDescriptorType <- uint8;
+	<- switch (.bDescriptorType) {
+		 2: usb_configuration_descriptor_bare;
+		 4: usb_interface_descriptor;
+		 5: usb_endpoint_descriptor;
+		33: usb_hid_descriptor;
+	};
+} <- block;
+
+transform main = repeat { usb_descriptor };

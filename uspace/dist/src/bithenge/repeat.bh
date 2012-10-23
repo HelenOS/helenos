@@ -1,0 +1,27 @@
+transform with_count = struct {
+	.none <- repeat(0) { uint8 };
+	.one <- repeat(1) { uint8 };
+	.count <- uint8;
+	if (true) { # test whether .count is still accessible
+		.many <- repeat(.count) { uint8 };
+	}
+};
+
+transform without_count = struct {
+	.until_error <- repeat { uint8 <- zero_terminated };
+	.until_end <- repeat { uint8 };
+};
+
+transform do_while = do {
+	struct {
+		.valid <- nonzero_boolean <- uint8;
+		.val <- uint8;
+	}
+} while (.valid);
+
+transform main = struct {
+	.with_count <- with_count;
+	.without_count <- without_count <- known_length(9);
+	.do_while <- do_while;
+	.do_while_item <- (.do_while[1]);
+};

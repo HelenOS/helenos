@@ -160,7 +160,10 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 	
 	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_init(&task->phones[i]);
+		ipc_phone_init(&task->phones[i], task);
+
+	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
+	list_initialize(&task->active_calls);
 	
 #ifdef CONFIG_UDEBUG
 	/* Init kbox stuff */
@@ -202,17 +205,20 @@ task_t *task_create(as_t *as, const char *name)
 
 	event_task_init(task);
 	
+	task->answerbox.active = true;
+
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
 	udebug_task_init(&task->udebug);
 	
 	/* Init kbox stuff */
+	task->kb.box.active = true;
 	task->kb.finished = false;
 #endif
 	
 	if ((ipc_phone_0) &&
 	    (container_check(ipc_phone_0->task->container, task->container)))
-		ipc_phone_connect(&task->phones[0], ipc_phone_0);
+		(void) ipc_phone_connect(&task->phones[0], ipc_phone_0);
 	
 	btree_create(&task->futexes);
 	

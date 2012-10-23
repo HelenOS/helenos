@@ -1,0 +1,40 @@
+{
+    "bits_le": {
+        0: True,
+        1: False,
+        2: True,
+        3: False,
+        4: False,
+        5: True,
+        6: True,
+        7: False
+    },
+    "bits_be": {
+        0: False,
+        1: True,
+        2: True,
+        3: False,
+        4: False,
+        5: True,
+        6: False,
+        7: True
+    },
+    "le0": 0,
+    "le1": 1,
+    "le2": 2,
+    "le3": 4,
+    "le4": 8,
+    "le5": 16,
+    "le6": 32,
+    "le7": 64,
+    "le8": 128,
+    "be8": 128,
+    "be7": 64,
+    "be6": 32,
+    "be5": 16,
+    "be4": 8,
+    "be3": 4,
+    "be2": 2,
+    "be1": 1,
+    "be0": 0
+}

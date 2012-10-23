@@ -46,7 +46,7 @@ udp_error_t udp_uc_create(udp_assoc_t **assoc)
 {
 	udp_assoc_t *nassoc;
 
-	log_msg(LVL_DEBUG, "udp_uc_create()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_create()");
 	nassoc = udp_assoc_new(NULL, NULL);
 	if (nassoc == NULL)
 		return UDP_ENORES;
@@ -58,7 +58,7 @@ udp_error_t udp_uc_create(udp_assoc_t **assoc)
 
 udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 {
-	log_msg(LVL_DEBUG, "udp_uc_set_foreign(%p, %p)", assoc, fsock);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_foreign(%p, %p)", assoc, fsock);
 
 	udp_assoc_set_foreign(assoc, fsock);
 	return UDP_EOK;
@@ -66,7 +66,7 @@ udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 
 udp_error_t udp_uc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
 {
-	log_msg(LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, lsock);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, lsock);
 
 	udp_assoc_set_local(assoc, lsock);
 	return UDP_EOK;
@@ -78,7 +78,7 @@ udp_error_t udp_uc_send(udp_assoc_t *assoc, udp_sock_t *fsock, void *data,
 	int rc;
 	udp_msg_t msg;
 
-	log_msg(LVL_DEBUG, "%s: udp_uc_send()", assoc->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_uc_send()", assoc->name);
 
 	msg.data = data;
 	msg.data_size = size;
@@ -102,7 +102,7 @@ udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
 	udp_msg_t *msg;
 	int rc;
 
-	log_msg(LVL_DEBUG, "%s: udp_uc_receive()", assoc->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_uc_receive()", assoc->name);
 	rc = udp_assoc_recv(assoc, &msg, fsock);
 	switch (rc) {
 	}
@@ -117,13 +117,13 @@ udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
 
 void udp_uc_status(udp_assoc_t *assoc, udp_assoc_status_t *astatus)
 {
-	log_msg(LVL_DEBUG, "udp_uc_status()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_status()");
 //	cstatus->cstate = conn->cstate;
 }
 
 void udp_uc_destroy(udp_assoc_t *assoc)
 {
-	log_msg(LVL_DEBUG, "udp_uc_destroy()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_destroy()");
 	udp_assoc_remove(assoc);
 	udp_assoc_delete(assoc);
 }

@@ -27,6 +27,7 @@
 #
 
 GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
+BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 AFLAGS = -a32
 
 ENDIANESS = BE

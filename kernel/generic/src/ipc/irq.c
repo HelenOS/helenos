@@ -509,7 +509,7 @@ loop:
 static void send_call(irq_t *irq, call_t *call)
 {
 	irq_spinlock_lock(&irq->notif_cfg.answerbox->irq_lock, false);
-	list_append(&call->link, &irq->notif_cfg.answerbox->irq_notifs);
+	list_append(&call->ab_link, &irq->notif_cfg.answerbox->irq_notifs);
 	irq_spinlock_unlock(&irq->notif_cfg.answerbox->irq_lock, false);
 	
 	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
