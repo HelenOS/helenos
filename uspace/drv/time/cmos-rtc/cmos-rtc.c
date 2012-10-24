@@ -409,12 +409,18 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 
 	/* Try to normalize the content of the tm structure */
 	time_t r = mktime(t);
+	int result;
 
-	rtc->boottime = r - uptime_get();
+	if (r < 0)
+		result = EINVAL;
+	else {
+		rtc->boottime = r - uptime_get();
+		result = EOK;
+	}
 
 	fibril_mutex_unlock(&rtc->mutex);
 
-	return r < 0 ? EINVAL : EOK;
+	return result;
 }
 
 /** Set the time in the RTC
