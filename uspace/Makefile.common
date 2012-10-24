@@ -102,6 +102,7 @@ DEPEND_PREV = $(DEPEND).prev
 LIB_PREFIX = $(USPACE_PREFIX)/lib
 
 LIBC_PREFIX = $(LIB_PREFIX)/c
+LIBC_INCLUDES_FLAGS = -I$(LIBC_PREFIX)/include -I$(LIBC_PREFIX)/arch/$(UARCH)/include
 LIBSOFTFLOAT_PREFIX = $(LIB_PREFIX)/softfloat
 LIBSOFTINT_PREFIX = $(LIB_PREFIX)/softint
 
@@ -180,21 +181,21 @@ clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.lo' -follow -exec rm \{\} \;
 
-GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+GCC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -D__$(ENDIANESS)__
 
-ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+ICC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -D__$(ENDIANESS)__
 
-CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+CLANG_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
