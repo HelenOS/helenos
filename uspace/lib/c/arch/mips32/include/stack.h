@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips32/include/stack.h
+../../../../../../kernel/arch/mips32/include/arch/stack.h

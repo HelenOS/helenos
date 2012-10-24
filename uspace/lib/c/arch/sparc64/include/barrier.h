@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/sparc64/include/barrier.h
+../../../../../../kernel/arch/sparc64/include/arch/barrier.h

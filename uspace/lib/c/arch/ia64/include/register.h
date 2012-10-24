@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/ia64/include/register.h
+../../../../../../kernel/arch/ia64/include/arch/register.h

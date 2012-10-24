@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/ia64/include/elf.h
+../../../../../../kernel/arch/ia64/include/arch/elf.h

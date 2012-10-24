@@ -35,7 +35,7 @@ VERSION_DEF = $(ROOT_PATH)/version
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 COMMON_HEADER = $(ROOT_PATH)/common.h
-COMMON_HEADER_ARCH = arch/$(KARCH)/include/common.h
+COMMON_HEADER_ARCH = arch/$(KARCH)/include/arch/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 CONFIG_HEADER = $(ROOT_PATH)/config.h
@@ -59,8 +59,6 @@ DUMP = kernel.dump
 REAL_MAP = generic/src/debug/real_map
 
 ABI_INCLUDE = generic/include/abi
-ARCH_INCLUDE = generic/include/arch
-GENARCH_INCLUDE = generic/include/genarch
 
 GENMAP = tools/genmap.py
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
@@ -75,13 +73,14 @@ all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CON
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ABI_INCLUDE) $(ARCH_INCLUDE) $(GENARCH_INCLUDE) arch/*/_link.ld arch/*/include/common.h
+	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ABI_INCLUDE) arch/*/_link.ld arch/*/include/arch/common.h
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 
 ## Common compiler flags
 #
 
-INCLUDES = generic/include
+INCLUDES = generic/include genarch/include arch/$(KARCH)/include
+INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
 	OPTIMIZATION = s
@@ -91,18 +90,18 @@ endif
 
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
-ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
-CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
@@ -434,18 +433,12 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(ABI_INCLUDE) $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
+$(DEPEND): $(ABI_INCLUDE) $(COMMON_HEADER_ARCH)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
 $(ABI_INCLUDE): ../abi/include/
 	ln -sfn ../../$< $@
 
-$(ARCH_INCLUDE): arch/$(KARCH)/include/
-	ln -sfn ../../$< $@
-
-$(GENARCH_INCLUDE): genarch/include/
-	ln -sfn ../../$< $@
-
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../$< $@
+	ln -sfn ../../../../$< $@

@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips32/include/istate.h
+../../../../../../kernel/arch/mips32/include/arch/istate.h

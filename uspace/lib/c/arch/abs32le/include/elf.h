@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/abs32le/include/elf.h
+../../../../../../kernel/arch/abs32le/include/arch/elf.h

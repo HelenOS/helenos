@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips32/include/context_offset.h
+../../../../../../kernel/arch/mips32/include/arch/context_offset.h

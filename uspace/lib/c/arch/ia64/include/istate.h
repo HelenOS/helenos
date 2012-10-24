@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/ia64/include/istate.h
+../../../../../../kernel/arch/ia64/include/arch/istate.h

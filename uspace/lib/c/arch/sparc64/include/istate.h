@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/sparc64/include/istate.h
+../../../../../../kernel/arch/sparc64/include/arch/istate.h

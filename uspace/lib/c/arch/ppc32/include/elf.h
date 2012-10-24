@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/ppc32/include/elf.h
+../../../../../../kernel/arch/ppc32/include/arch/elf.h

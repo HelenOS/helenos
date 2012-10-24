@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/abs32le/include/barrier.h
+../../../../../../kernel/arch/abs32le/include/arch/barrier.h

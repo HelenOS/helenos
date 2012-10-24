@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/arm32/include/elf.h
+../../../../../../kernel/arch/arm32/include/arch/elf.h

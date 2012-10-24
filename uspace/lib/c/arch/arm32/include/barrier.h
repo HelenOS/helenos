@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/arm32/include/barrier.h
+../../../../../../kernel/arch/arm32/include/arch/barrier.h

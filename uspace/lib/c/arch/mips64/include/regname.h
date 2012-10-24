@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips64/include/asm/regname.h
+../../../../../../kernel/arch/mips64/include/arch/asm/regname.h

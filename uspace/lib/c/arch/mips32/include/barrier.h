@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips32/include/barrier.h
+../../../../../../kernel/arch/mips32/include/arch/barrier.h

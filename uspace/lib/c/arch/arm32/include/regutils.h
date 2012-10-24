@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/arm32/include/regutils.h
+../../../../../../kernel/arch/arm32/include/arch/regutils.h

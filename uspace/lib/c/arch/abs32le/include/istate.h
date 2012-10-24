@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/abs32le/include/istate.h
+../../../../../../kernel/arch/abs32le/include/arch/istate.h

@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/ppc32/include/barrier.h
+../../../../../../kernel/arch/ppc32/include/arch/barrier.h

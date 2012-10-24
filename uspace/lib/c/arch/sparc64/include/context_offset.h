@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/sparc64/include/context_offset.h
+../../../../../../kernel/arch/sparc64/include/arch/context_offset.h

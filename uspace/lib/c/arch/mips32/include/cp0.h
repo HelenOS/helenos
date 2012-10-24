@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips32/include/cp0.h
+../../../../../../kernel/arch/mips32/include/arch/cp0.h

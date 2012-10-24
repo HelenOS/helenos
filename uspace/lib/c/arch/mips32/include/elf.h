@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/mips32/include/elf.h
+../../../../../../kernel/arch/mips32/include/arch/elf.h

@@ -1,1 +1,1 @@
-../../../../../../kernel/arch/amd64/include/elf.h
+../../../../../../kernel/arch/amd64/include/arch/elf.h
