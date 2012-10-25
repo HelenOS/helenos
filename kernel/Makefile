@@ -58,8 +58,6 @@ DISASM = kernel.disasm
 DUMP = kernel.dump
 REAL_MAP = generic/src/debug/real_map
 
-ABI_INCLUDE = generic/include/abi
-
 GENMAP = tools/genmap.py
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 
@@ -73,13 +71,13 @@ all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CON
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ABI_INCLUDE) arch/*/_link.ld arch/*/include/arch/common.h
+	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 
 ## Common compiler flags
 #
 
-INCLUDES = generic/include genarch/include arch/$(KARCH)/include
+INCLUDES = generic/include genarch/include arch/$(KARCH)/include ../abi/include
 INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
@@ -433,12 +431,9 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(ABI_INCLUDE) $(COMMON_HEADER_ARCH)
+$(DEPEND): $(COMMON_HEADER_ARCH)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
-
-$(ABI_INCLUDE): ../abi/include/
-	ln -sfn ../../$< $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../../$< $@

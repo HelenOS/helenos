@@ -30,8 +30,6 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-INCLUDE_ABI = include/abi
-
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 COMMON_HEADER = $(ROOT_PATH)/common.h
 COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
@@ -44,9 +42,9 @@ LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
-PRE_DEPEND = $(INCLUDE_ABI) $(COMMON_HEADER_ARCH)
+PRE_DEPEND = $(COMMON_HEADER_ARCH)
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
-EXTRA_CLEAN = $(INCLUDE_ABI) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
 LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
@@ -155,8 +153,6 @@ SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-$(INCLUDE_ABI): ../../../abi/include/
-	ln -sfn ../$< $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
