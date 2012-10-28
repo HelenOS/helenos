@@ -55,6 +55,7 @@
 #include <genarch/fb/bfb.h>
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
+#include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
 
@@ -185,6 +186,16 @@ void arch_post_smp_init(void)
 			indev_t *srln = srln_wire(srln_instance, sink);
 			ns16550_wire(ns16550_instance, srln);
 		}
+	}
+#endif
+	
+#ifdef CONFIG_NS16550_DSRLNOUT
+	/*
+	 * Initialize dummy serial output to the ns16550.
+	 */
+	outdev_t *dsrlndev = dsrlnout_init(NS16550_BASE);
+	if (dsrlndev) {
+		stdout_wire(dsrlndev);
 	}
 #endif
 	
