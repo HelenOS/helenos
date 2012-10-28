@@ -49,9 +49,11 @@
 #include <genarch/acpi/acpi.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/drivers/i8042/i8042.h>
+#include <genarch/drivers/ns16550/ns16550.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/fb/bfb.h>
 #include <genarch/kbrd/kbrd.h>
+#include <genarch/srln/srln.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
 
@@ -211,6 +213,23 @@ void arch_post_smp_init(void)
 			i8042_wire(i8042_instance, kbrd);
 			trap_virtual_enable_irqs(1 << IRQ_KBD);
 			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
+		}
+	}
+#endif
+
+#ifdef CONFIG_NS16550
+	/*
+	 * Initialize the ns16550 controller. Then initialize the serial
+	 * input module and connect it to ns16550.
+	 */
+	ns16550_instance_t *ns16550_instance
+	    = ns16550_init((ns16550_t *) NS16550_BASE, IRQ_NS16550, NULL, NULL);
+	if (ns16550_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			ns16550_wire(ns16550_instance, srln);
 		}
 	}
 #endif
