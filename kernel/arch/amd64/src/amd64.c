@@ -231,6 +231,7 @@ void arch_post_smp_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
 			ns16550_wire(ns16550_instance, srln);
+			trap_virtual_enable_irqs(1 << IRQ_NS16550);
 		}
 	}
 #endif
