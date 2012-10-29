@@ -54,7 +54,6 @@
 #include <genarch/fb/bfb.h>
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
-#include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
 
@@ -218,14 +217,14 @@ void arch_post_smp_init(void)
 	}
 #endif
 
-#ifdef CONFIG_NS16550
+#if (defined(CONFIG_NS16550) || defined(CONFIG_NS16550_OUT))
 	/*
-	 * Initialize the ns16550 controller. Then initialize the serial
-	 * input module and connect it to ns16550.
+	 * Initialize the ns16550 controller.
 	 */
 	ns16550_instance_t *ns16550_instance
 	    = ns16550_init((ns16550_t *) NS16550_BASE, IRQ_NS16550, NULL, NULL);
 	if (ns16550_instance) {
+#ifdef CONFIG_NS16550
 		srln_instance_t *srln_instance = srln_init();
 		if (srln_instance) {
 			indev_t *sink = stdin_wire();
@@ -233,16 +232,13 @@ void arch_post_smp_init(void)
 			ns16550_wire(ns16550_instance, srln);
 			trap_virtual_enable_irqs(1 << IRQ_NS16550);
 		}
-	}
 #endif
-
-#ifdef CONFIG_NS16550_DSRLNOUT
-	/*
-	 * Initialize dummy serial output to the ns16550.
-	 */
-	outdev_t *dsrlndev = dsrlnout_init(NS16550_BASE);
-	if (dsrlndev) {
-		stdout_wire(dsrlndev);
+#ifdef CONFIG_NS16550_OUT
+		outdev_t *ns16550_out = ns16550_output(ns16550_instance);
+		if (ns16550_out) {
+			stdout_wire(ns16550_out);
+		}
+#endif
 	}
 #endif
 	

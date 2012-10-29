@@ -40,8 +40,10 @@
 #include <console/chardev.h>
 #include <mm/slab.h>
 #include <ddi/device.h>
+#include <str.h>
 
 #define LSR_DATA_READY  0x01
+#define LSR_TH_READY    0x20
 
 static irq_ownership_t ns16550_claim(irq_t *irq)
 {
@@ -61,7 +63,7 @@ static void ns16550_irq_handler(irq_t *irq)
 	
 	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
 		uint8_t data = pio_read_8(&dev->rbr);
-		indev_push_character(instance->kbrdin, data);
+		indev_push_character(instance->input, data);
 	}
 }
 
@@ -71,6 +73,30 @@ static void ns16550_clear_buffer(ns16550_t *dev)
 	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
 		(void) pio_read_8(&dev->rbr);
 }
+
+static void ns16550_sendb(ns16550_t *dev, uint8_t byte)
+{
+	while (!(pio_read_8(&dev->lsr) & LSR_TH_READY))
+		;
+	pio_write_8(&dev->thr, byte);
+}
+
+static void ns16550_putchar(outdev_t *dev, wchar_t ch)
+{
+	ns16550_instance_t *instance = (ns16550_instance_t *) dev->data;
+	
+	if ((!instance->parea.mapped) || (console_override)) {
+		if (ascii_check(ch))
+			ns16550_sendb(instance->ns16550, (uint8_t) ch);
+		else
+			ns16550_sendb(instance->ns16550, U_SPECIAL);
+	}
+}
+
+static outdev_operations_t ns16550_ops = {
+	.write = ns16550_putchar,
+	.redraw = NULL
+};
 
 /** Initialize ns16550.
  *
@@ -89,7 +115,8 @@ ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir
 	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
 	if (instance) {
 		instance->ns16550 = dev;
-		instance->kbrdin = NULL;
+		instance->input = NULL;
+		instance->output = NULL;
 		
 		irq_initialize(&instance->irq);
 		instance->irq.devno = device_assign_devno();
@@ -99,17 +126,23 @@ ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir
 		instance->irq.instance = instance;
 		instance->irq.cir = cir;
 		instance->irq.cir_arg = cir_arg;
+		
+		instance->parea.pbase = (uintptr_t) dev;
+		instance->parea.frames = 1;
+		instance->parea.unpriv = false;
+		instance->parea.mapped = false;
+		ddi_parea_register(&instance->parea);
 	}
 	
 	return instance;
 }
 
-void ns16550_wire(ns16550_instance_t *instance, indev_t *kbrdin)
+void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 {
 	ASSERT(instance);
-	ASSERT(kbrdin);
+	ASSERT(input);
 	
-	instance->kbrdin = kbrdin;
+	instance->input = input;
 	irq_register(&instance->irq);
 	
 	ns16550_clear_buffer(instance->ns16550);
@@ -117,6 +150,23 @@ void ns16550_wire(ns16550_instance_t *instance, indev_t *kbrdin)
 	/* Enable interrupts */
 	pio_write_8(&instance->ns16550->ier, IER_ERBFI);
 	pio_write_8(&instance->ns16550->mcr, MCR_OUT2);
+}
+
+outdev_t *ns16550_output(ns16550_instance_t *instance)
+{
+	ASSERT(instance);
+	
+	if (instance->output == NULL) {
+		instance->output = malloc(sizeof(outdev_t),
+		    FRAME_ATOMIC);
+		if (instance->output) {
+			outdev_initialize("ns16550", instance->output,
+			    &ns16550_ops);
+			instance->output->data = instance;
+		}
+	}
+	
+	return instance->output;
 }
 
 /** @}

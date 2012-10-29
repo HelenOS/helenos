@@ -37,6 +37,7 @@
 #ifndef KERN_NS16550_H_
 #define KERN_NS16550_H_
 
+#include <ddi/ddi.h>
 #include <ddi/irq.h>
 #include <typedefs.h>
 #include <console/chardev.h>
@@ -49,7 +50,10 @@
 
 /** NS16550 registers. */
 typedef struct {
-	ioport8_t rbr;      /**< Receiver Buffer Register. */
+	union {
+		ioport8_t rbr;      /**< Receiver Buffer Register (read). */
+		ioport8_t thr;      /**< Transmitter Holder Register (write). */
+	} __attribute__ ((packed));
 	ioport8_t ier;      /**< Interrupt Enable Register. */
 	union {
 		ioport8_t iir;  /**< Interrupt Ident Register (read). */
@@ -64,11 +68,14 @@ typedef struct {
 typedef struct {
 	irq_t irq;
 	ns16550_t *ns16550;
-	indev_t *kbrdin;
+	indev_t *input;
+	outdev_t *output;
+	parea_t parea;
 } ns16550_instance_t;
 
 extern ns16550_instance_t *ns16550_init(ns16550_t *, inr_t, cir_t, void *);
 extern void ns16550_wire(ns16550_instance_t *, indev_t *);
+extern outdev_t *ns16550_output(ns16550_instance_t *);
 
 #endif
 
