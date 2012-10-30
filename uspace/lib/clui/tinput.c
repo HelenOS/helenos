@@ -103,7 +103,7 @@ static void tinput_display_prompt(tinput_t *ti)
 
 static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 {
-	wchar_t *dbuf = malloc(INPUT_MAX_SIZE + 1);
+	wchar_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(wchar_t));
 	if (!dbuf)
 		return;	
 	
