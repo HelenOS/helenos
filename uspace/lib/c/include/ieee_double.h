@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,41 +25,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef IEEE_DOUBLE_H_
+#define IEEE_DOUBLE_H_
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
-
-#ifndef LIBC_MACROS_H_
-#define LIBC_MACROS_H_
-
-#define min(a, b)  ((a) < (b) ? (a) : (b))
-#define max(a, b)  ((a) > (b) ? (a) : (b))
-#define abs(a)     ((a) >= 0 ? (a) : (-a))
+#include <stdint.h>
+#include <bool.h>
 
 
-#define KiB2SIZE(kb)  ((kb) << 10)
-#define MiB2SIZE(mb)  ((mb) << 20)
+/** Represents a non-negative floating point number: significand * 2^exponent */
+typedef struct fp_num_t_tag {
+	/** Significand (aka mantissa). */
+	uint64_t significand;
+	/** Binary exponent. */
+	int exponent;
+} fp_num_t;
 
-#define STRING(arg)      STRING_ARG(arg)
-#define STRING_ARG(arg)  #arg
 
-#define LOWER32(arg)  (((uint64_t) (arg)) & 0xffffffff)
-#define UPPER32(arg)  (((((uint64_t) arg)) >> 32) & 0xffffffff)
+/** Double number description according to IEEE 754. */
+typedef struct ieee_double_t_tag {
+	/** The number is a NaN or infinity. */
+	bool is_special;
+	/** Not a number. */
+	bool is_nan;
+	bool is_negative;
+	/** The number denoted infinity. */
+	bool is_infinity;
+	/** The number could not be represented as a normalized double. */
+	bool is_denormal;
+	/**
+	 * The predecessor double is closer than the successor. This happens 
+	 * if a normal number is of the form 2^k and it is not the smallest
+	 * normal number. 
+	 */
+	bool is_accuracy_step;
+	/** 
+	 * If !is_special the double's value is:
+	 *   pos_val.significand * 2^pos_val.exponent
+	 */
+	fp_num_t pos_val;
+} ieee_double_t;
 
-#define MERGE_LOUP32(lo, up) \
-	((((uint64_t) (lo)) & 0xffffffff) \
-	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
 
-#ifndef member_to_inst
-#define member_to_inst(ptr_member, type, member_identif) \
-	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
+ieee_double_t extract_ieee_double(double val);
+
 #endif
-
-
-#endif
-
-/** @}
- */

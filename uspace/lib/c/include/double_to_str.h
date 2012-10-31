@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,41 +25,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef DOUBLE_TO_STR_H_
+#define DOUBLE_TO_STR_H_
 
-/** @addtogroup libc
- * @{
+#include <unistd.h>
+
+/** Maximum number of digits double_to_*_str conversion functions produce. 
+ *
+ * Both double_to_short_str and double_to_fixed_str generate digits out
+ * of a 64bit unsigned int number representation. The max number of 
+ * of digits is therefore 20. Add 1 to help users who forget to reserve
+ * space for a null terminator.
  */
-/** @file
+#define MAX_DOUBLE_STR_LEN (20 + 1)
+
+/** Maximum buffer size needed to store the output of double_to_*_str 
+ *  functions. 
  */
-
-#ifndef LIBC_MACROS_H_
-#define LIBC_MACROS_H_
-
-#define min(a, b)  ((a) < (b) ? (a) : (b))
-#define max(a, b)  ((a) > (b) ? (a) : (b))
-#define abs(a)     ((a) >= 0 ? (a) : (-a))
+#define MAX_DOUBLE_STR_BUF_SIZE  21
 
 
-#define KiB2SIZE(kb)  ((kb) << 10)
-#define MiB2SIZE(mb)  ((mb) << 20)
-
-#define STRING(arg)      STRING_ARG(arg)
-#define STRING_ARG(arg)  #arg
-
-#define LOWER32(arg)  (((uint64_t) (arg)) & 0xffffffff)
-#define UPPER32(arg)  (((((uint64_t) arg)) >> 32) & 0xffffffff)
-
-#define MERGE_LOUP32(lo, up) \
-	((((uint64_t) (lo)) & 0xffffffff) \
-	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
-
-#ifndef member_to_inst
-#define member_to_inst(ptr_member, type, member_identif) \
-	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
-#endif
+/* Fwd decl.*/
+struct ieee_double_t_tag;
 
 
-#endif
+int double_to_short_str(struct ieee_double_t_tag val, char *buf, size_t buf_size, 
+	int *dec_exponent);
 
-/** @}
- */
+int double_to_fixed_str(struct ieee_double_t_tag ieee_val, int signif_d_cnt,
+	int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent);
+
+
+#endif 

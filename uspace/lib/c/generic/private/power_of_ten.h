@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,41 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef POWER_OF_TEN_H_
+#define POWER_OF_TEN_H_
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
-
-#ifndef LIBC_MACROS_H_
-#define LIBC_MACROS_H_
-
-#define min(a, b)  ((a) < (b) ? (a) : (b))
-#define max(a, b)  ((a) > (b) ? (a) : (b))
-#define abs(a)     ((a) >= 0 ? (a) : (-a))
+/* Fwd decl. */
+struct fp_num_t_tag;
 
 
-#define KiB2SIZE(kb)  ((kb) << 10)
-#define MiB2SIZE(mb)  ((mb) << 20)
-
-#define STRING(arg)      STRING_ARG(arg)
-#define STRING_ARG(arg)  #arg
-
-#define LOWER32(arg)  (((uint64_t) (arg)) & 0xffffffff)
-#define UPPER32(arg)  (((((uint64_t) arg)) >> 32) & 0xffffffff)
-
-#define MERGE_LOUP32(lo, up) \
-	((((uint64_t) (lo)) & 0xffffffff) \
-	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
-
-#ifndef member_to_inst
-#define member_to_inst(ptr_member, type, member_identif) \
-	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
-#endif
+void get_power_of_ten(int binary_exp, struct fp_num_t_tag *power_of_10, 
+	int *decimal_exp);
 
 
 #endif
-
-/** @}
- */

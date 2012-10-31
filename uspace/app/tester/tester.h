@@ -84,6 +84,7 @@ extern const char *test_print2(void);
 extern const char *test_print3(void);
 extern const char *test_print4(void);
 extern const char *test_print5(void);
+extern const char *test_print6(void);
 extern const char *test_console1(void);
 extern const char *test_stdio1(void);
 extern const char *test_stdio2(void);
