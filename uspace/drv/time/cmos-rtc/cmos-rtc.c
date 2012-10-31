@@ -744,8 +744,15 @@ uptime_get(void)
 static int
 rtc_fun_online(ddf_fun_t *fun)
 {
+	int rc;
+
 	ddf_msg(LVL_DEBUG, "rtc_fun_online()");
-	return ddf_fun_online(fun);
+
+	rc = ddf_fun_online(fun);
+	if (rc == EOK)
+		ddf_fun_add_to_category(fun, "clock");
+
+	return rc;
 }
 
 static int
