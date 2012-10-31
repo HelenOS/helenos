@@ -25,6 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef DOUBLE_TO_STR_H_
 #define DOUBLE_TO_STR_H_
 
@@ -44,16 +45,11 @@
  */
 #define MAX_DOUBLE_STR_BUF_SIZE  21
 
-
 /* Fwd decl.*/
 struct ieee_double_t_tag;
 
-
-int double_to_short_str(struct ieee_double_t_tag val, char *buf, size_t buf_size, 
-	int *dec_exponent);
-
-int double_to_fixed_str(struct ieee_double_t_tag ieee_val, int signif_d_cnt,
-	int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent);
-
+extern int double_to_short_str(struct ieee_double_t_tag, char *, size_t, int *);
+extern int double_to_fixed_str(struct ieee_double_t_tag, int, int, char *,
+    size_t, int *);
 
 #endif 

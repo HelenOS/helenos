@@ -25,12 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef IEEE_DOUBLE_H_
 #define IEEE_DOUBLE_H_
 
 #include <stdint.h>
 #include <bool.h>
-
 
 /** Represents a non-negative floating point number: significand * 2^exponent */
 typedef struct fp_num_t_tag {
@@ -39,7 +39,6 @@ typedef struct fp_num_t_tag {
 	/** Binary exponent. */
 	int exponent;
 } fp_num_t;
-
 
 /** Double number description according to IEEE 754. */
 typedef struct ieee_double_t_tag {
@@ -65,7 +64,6 @@ typedef struct ieee_double_t_tag {
 	fp_num_t pos_val;
 } ieee_double_t;
 
-
-ieee_double_t extract_ieee_double(double val);
+extern ieee_double_t extract_ieee_double(double);
 
 #endif

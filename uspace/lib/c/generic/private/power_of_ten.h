@@ -25,15 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef POWER_OF_TEN_H_
 #define POWER_OF_TEN_H_
 
 /* Fwd decl. */
 struct fp_num_t_tag;
 
-
-void get_power_of_ten(int binary_exp, struct fp_num_t_tag *power_of_10, 
-	int *decimal_exp);
-
+extern void get_power_of_ten(int, struct fp_num_t_tag *, int *);
 
 #endif
