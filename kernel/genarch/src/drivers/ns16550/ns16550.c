@@ -101,15 +101,18 @@ static outdev_operations_t ns16550_ops = {
 /** Initialize ns16550.
  *
  * @param dev      Addrress of the beginning of the device in I/O space.
- * @param devno    Device number.
  * @param inr      Interrupt number.
  * @param cir      Clear interrupt function.
  * @param cir_arg  First argument to cir.
+ * @param output   Where to store pointer to the output device
+ *                 or NULL if the caller is not interested in
+ *                 writing to the serial port.
  *
  * @return Keyboard instance or NULL on failure.
  *
  */
-ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir_arg)
+ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir,
+    void *cir_arg, outdev_t **output)
 {
 	ns16550_instance_t *instance
 	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
@@ -117,6 +120,20 @@ ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir
 		instance->ns16550 = dev;
 		instance->input = NULL;
 		instance->output = NULL;
+		
+		if (output) {
+			instance->output = malloc(sizeof(outdev_t),
+			    FRAME_ATOMIC);
+			if (!instance->output) {
+				free(instance);
+				return NULL;
+			}
+			
+			outdev_initialize("ns16550", instance->output,
+			    &ns16550_ops);
+			instance->output->data = instance;
+			*output = instance->output;
+		}
 		
 		irq_initialize(&instance->irq);
 		instance->irq.devno = device_assign_devno();
@@ -150,23 +167,6 @@ void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 	/* Enable interrupts */
 	pio_write_8(&instance->ns16550->ier, IER_ERBFI);
 	pio_write_8(&instance->ns16550->mcr, MCR_OUT2);
-}
-
-outdev_t *ns16550_output(ns16550_instance_t *instance)
-{
-	ASSERT(instance);
-	
-	if (instance->output == NULL) {
-		instance->output = malloc(sizeof(outdev_t),
-		    FRAME_ATOMIC);
-		if (instance->output) {
-			outdev_initialize("ns16550", instance->output,
-			    &ns16550_ops);
-			instance->output->data = instance;
-		}
-	}
-	
-	return instance->output;
 }
 
 /** @}

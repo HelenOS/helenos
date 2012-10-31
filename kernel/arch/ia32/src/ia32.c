@@ -175,8 +175,15 @@ void arch_post_smp_init(void)
 	/*
 	 * Initialize the ns16550 controller.
 	 */
+#ifdef CONFIG_NS16550_OUT
+	outdev_t *ns16550_out;
+	outdev_t **ns16550_out_ptr = &ns16550_out;
+#else
+	outdev_t **ns16550_out_ptr = NULL;
+#endif
 	ns16550_instance_t *ns16550_instance
-	    = ns16550_init((ns16550_t *) NS16550_BASE, IRQ_NS16550, NULL, NULL);
+	    = ns16550_init((ns16550_t *) NS16550_BASE, IRQ_NS16550, NULL, NULL,
+	    ns16550_out_ptr);
 	if (ns16550_instance) {
 #ifdef CONFIG_NS16550
 		srln_instance_t *srln_instance = srln_init();
@@ -188,7 +195,6 @@ void arch_post_smp_init(void)
 		}
 #endif
 #ifdef CONFIG_NS16550_OUT
-		outdev_t *ns16550_out = ns16550_output(ns16550_instance);
 		if (ns16550_out) {
 			stdout_wire(ns16550_out);
 		}

@@ -73,9 +73,9 @@ typedef struct {
 	parea_t parea;
 } ns16550_instance_t;
 
-extern ns16550_instance_t *ns16550_init(ns16550_t *, inr_t, cir_t, void *);
+extern ns16550_instance_t *ns16550_init(ns16550_t *, inr_t, cir_t, void *,
+    outdev_t **);
 extern void ns16550_wire(ns16550_instance_t *, indev_t *);
-extern outdev_t *ns16550_output(ns16550_instance_t *);
 
 #endif
 
