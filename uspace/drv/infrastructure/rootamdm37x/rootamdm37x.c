@@ -154,8 +154,8 @@ static void usb_clocks_enable(amdm37x_t *device, bool on)
 		if (DEBUG_CM) {
 			printf("DPLL5 (and everything else) should be on: %"
 			    PRIx32" %"PRIx32".\n",
-			    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
-			    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
+			    pio_read_32(&device->cm.clocks->idlest_ckgen),
+			    pio_read_32(&device->cm.clocks->idlest2_ckgen));
 		}
 	} else {
 		/* Disable interface and function clock for USB hosts */
