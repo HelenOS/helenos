@@ -63,7 +63,7 @@ typedef struct {
 	} cm;
 } amdm37x_t;
 
-static void log(volatile void *place, uint32_t val, volatile void* base, size_t size, void *data, bool write)
+static void log(const volatile void *place, uint32_t val, volatile void* base, size_t size, void *data, bool write)
 {
 	printf("PIO %s: %p(%p) %#"PRIx32"\n", write ? "WRITE" : "READ",
 	    (place - base) + data, place, val);

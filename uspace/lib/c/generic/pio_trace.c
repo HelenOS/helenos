@@ -90,7 +90,7 @@ static pio_regions_t * get_regions(void)
 }
 
 
-void pio_trace_log(volatile void *r, uint32_t val, bool write)
+void pio_trace_log(const volatile void *r, uint32_t val, bool write)
 {
 	pio_regions_t *regions = get_regions();
 	fibril_rwlock_read_lock(&regions->guard);
