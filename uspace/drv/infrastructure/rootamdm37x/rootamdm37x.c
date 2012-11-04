@@ -111,8 +111,12 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 	return EOK;
 }
 
-static int usb_clocks(amdm37x_t *device, bool on)
+/** Set DPLL3,4,5 to autoidle
+ * @param device Register map.
+ */
+static void dpll_autoidle(amdm37x_t *device)
 {
+	assert(device);
 	/* Set DPLL3 to automatic */
 	pio_change_32(&device->cm.clocks->autoidle_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC,
@@ -127,14 +131,14 @@ static int usb_clocks(amdm37x_t *device, bool on)
 	pio_change_32(&device->cm.clocks->autoidle2_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK, 5);
+}
 
-
-#ifdef DEBUG_CM
-	printf("DPLL5 could be on: %"PRIx32" %"PRIx32".\n",
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
-#endif
-
+/** Enable/disable function and interface clocks for USBTLL and USBHOST.
+ * @param device Register map.
+ * @param on True to swoitch clocks on.
+ */
+static void usb_clocks_enable(amdm37x_t *device, bool on)
+{
 	if (on) {
 		/* Enable interface and function clock for USB TLL */
 		pio_set_32(&device->cm.core->fclken3,
@@ -167,8 +171,6 @@ static int usb_clocks(amdm37x_t *device, bool on)
 		pio_clear_32(&device->cm.core->fclken3,
 		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
 	}
-
-	return EOK;
 }
 
 /** Initialize USB TLL port connections.
@@ -178,7 +180,6 @@ static int usb_clocks(amdm37x_t *device, bool on)
  */
 static int usb_tll_init(amdm37x_t *device)
 {
-
 	/* Reset USB TLL */
 	pio_set_32(&device->tll->sysconfig, TLL_SYSCONFIG_SOFTRESET_FLAG, 5);
 	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
@@ -339,16 +340,17 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 
-	ret = usb_clocks(device, true);
-	if (ret != EOK) {
-		ddf_msg(LVL_FATAL, "Failed to enable USB HC clocks!.\n");
-		return ret;
-	}
+	/* Set dplls to automatic */
+	dpll_autoidle(device);
 
+	/* Enable function and interface clocks */
+	usb_clocks_enable(device, true);
+
+	/* Init TLL */
 	ret = usb_tll_init(device);
 	if (ret != EOK) {
 		ddf_msg(LVL_FATAL, "Failed to init USB TLL!.\n");
-		usb_clocks(device, false);
+		usb_clocks_enable(device, false);
 		return ret;
 	}
 
