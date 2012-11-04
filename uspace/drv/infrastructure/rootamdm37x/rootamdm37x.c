@@ -36,7 +36,7 @@
  */
 #define _DDF_DATA_IMPLANT
 
-#define DEBUG_CM
+#define DEBUG_CM 1
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
@@ -63,13 +63,11 @@ typedef struct {
 	} cm;
 } amdm37x_t;
 
-#ifdef DEBUG_CM
 static void log(volatile void *place, uint32_t val, volatile void* base, size_t size, void *data, bool write)
 {
 	printf("PIO %s: %p(%p) %#"PRIx32"\n", write ? "WRITE" : "READ",
 	    (place - base) + data, place, val);
 }
-#endif
 
 static int amdm37x_hw_access_init(amdm37x_t *device)
 {
@@ -101,13 +99,13 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 	if (ret != EOK)
 		return ret;
 
-#ifdef DEBUG_CM
-	pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
-	pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
-	pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
-	pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
-	pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
-#endif
+	if (DEBUG_CM) {
+		pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
+		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
+		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
+	}
 	return EOK;
 }
 
@@ -152,11 +150,13 @@ static void usb_clocks_enable(amdm37x_t *device, bool on)
 		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
 		pio_set_32(&device->cm.usbhost->iclken,
 		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
-#ifdef DEBUG_CM
-	printf("DPLL5 (and everything else) should be on: %"PRIx32" %"PRIx32".\n",
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
-#endif
+
+		if (DEBUG_CM) {
+			printf("DPLL5 (and everything else) should be on: %"
+			    PRIx32" %"PRIx32".\n",
+			    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
+			    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
+		}
 	} else {
 		/* Disable interface and function clock for USB hosts */
 		pio_clear_32(&device->cm.usbhost->iclken,
