@@ -129,9 +129,13 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 	((((uint64_t) (lo)) & UINT32_C(0xffffffff)) \
 	    | ((((uint64_t) (up)) & UINT32_C(0xffffffff)) << 32))
 
-/* Test for result wrap-around into positive numbers. */
-#define overflows_add(a, b) \
-	(((a) + (b) < (a)) && ((a) + (b)))
+/* Test for sum overflow. */
+#define overflows(a, b) \
+	((a) + (b) < (a))
+
+/* Test for sum overflow into positive numbers. */
+#define overflows_into_positive(a, b)	\
+	(overflows((a), (b)) && ((a) + (b) > 0))
 
 /** Pseudorandom generator
  *

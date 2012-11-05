@@ -298,7 +298,13 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 {
 	ASSERT((addr % PAGE_SIZE) == 0);
 	ASSERT(mutex_locked(&as->lock));
-	ASSERT(!overflows_add(addr, P2SZ(count)));
+
+	/*
+	 * If the addition of the supposed area address and size overflows,
+	 * report conflict.
+	 */
+	if (overflows_into_positive(addr, P2SZ(count)))
+		return false;
 	
 	/*
 	 * We don't want any area to have conflicts with NULL page.
@@ -330,7 +336,8 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		if (area != avoid) {
 			mutex_lock(&area->lock);
 
-			/* If at least one of the two areas are protected
+			/*
+			 * If at least one of the two areas are protected
 			 * by the AS_AREA_GUARD flag then we must be sure
 			 * that they are separated by at least one unmapped
 			 * page.
@@ -338,6 +345,12 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 			int const gp = (guarded || 
 			    (area->flags & AS_AREA_GUARD)) ? 1 : 0;
 			
+			/*
+			 * The area comes from the left neighbour node, which
+			 * means that there already are some areas in the leaf
+			 * node, which in turn means that adding gp is safe and
+			 * will not cause an integer overflow.
+			 */
 			if (overlaps(addr, P2SZ(count), area->base,
 			    P2SZ(area->pages + gp))) {
 				mutex_unlock(&area->lock);
@@ -353,10 +366,20 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		area = (as_area_t *) node->value[0];
 		
 		if (area != avoid) {
+			int gp;
+
 			mutex_lock(&area->lock);
 
-			int const gp = (guarded ||
-			    (area->flags & AS_AREA_GUARD)) ? 1 : 0;
+			gp = (guarded || (area->flags & AS_AREA_GUARD)) ? 1 : 0;
+			if (gp && overflows(addr, P2SZ(count))) {
+				/*
+				 * Guard page not needed if the supposed area
+				 * is adjacent to the end of the address space.
+				 * We already know that the following test is
+				 * going to fail...
+				 */
+				gp--;
+			}
 			
 			if (overlaps(addr, P2SZ(count + gp), area->base,
 			    P2SZ(area->pages))) {
@@ -372,17 +395,27 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	btree_key_t i;
 	for (i = 0; i < leaf->keys; i++) {
 		area = (as_area_t *) leaf->value[i];
+		int agp;
+		int gp;
 		
 		if (area == avoid)
 			continue;
 		
 		mutex_lock(&area->lock);
 
-		int const gp = (guarded ||
-		    (area->flags & AS_AREA_GUARD)) ? 1 : 0;
+		gp = (guarded || (area->flags & AS_AREA_GUARD)) ? 1 : 0;
+		agp = gp;
+
+		/*
+		 * Sanitize the two possible unsigned integer overflows.
+		 */
+		if (gp && overflows(addr, P2SZ(count)))
+			gp--;
+		if (agp && overflows(area->base, P2SZ(area->pages)))
+			agp--;
 
 		if (overlaps(addr, P2SZ(count + gp), area->base,
-		    P2SZ(area->pages + gp))) {
+		    P2SZ(area->pages + agp))) {
 			mutex_unlock(&area->lock);
 			return false;
 		}
@@ -532,7 +565,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 		}
 	}
 
-	if (overflows_add(*base, size))
+	if (overflows_into_positive(*base, size))
 		return NULL;
 
 	if (!check_area_conflicts(as, *base, pages, guarded, NULL)) {
@@ -815,7 +848,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 * Growing the area.
 		 */
 
-		if (overflows_add(address, P2SZ(pages)))
+		if (overflows_into_positive(address, P2SZ(pages)))
 			return EINVAL;
 
 		/*
