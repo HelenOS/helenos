@@ -382,7 +382,9 @@ static void op_stresser(void *arg)
 			
 			if (work->elem[elem_idx].inserted) {
 				if (item_op) {
+					rcu_read_lock();
 					cht_remove_item(work->h, &work->elem[elem_idx].link);
+					rcu_read_unlock();
 				} else {
 					void *key = (void*)work->elem[elem_idx].key;
 					if (1 != cht_remove_key(work->h, key)) {
