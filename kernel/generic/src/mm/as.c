@@ -298,6 +298,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 {
 	ASSERT((addr % PAGE_SIZE) == 0);
 	ASSERT(mutex_locked(&as->lock));
+	ASSERT(!overflows_add(addr, P2SZ(count)));
 	
 	/*
 	 * We don't want any area to have conflicts with NULL page.
@@ -512,7 +513,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	
 	if (size == 0)
 		return NULL;
-	
+
 	size_t pages = SIZE2FRAMES(size);
 	
 	/* Writeable executable areas are not supported. */
@@ -530,6 +531,9 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 			return NULL;
 		}
 	}
+
+	if (overflows_add(*base, size))
+		return NULL;
 
 	if (!check_area_conflicts(as, *base, pages, guarded, NULL)) {
 		mutex_unlock(&as->lock);
@@ -809,6 +813,12 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	} else {
 		/*
 		 * Growing the area.
+		 */
+
+		if (overflows_add(address, P2SZ(pages)))
+			return EINVAL;
+
+		/*
 		 * Check for overlaps with other address space areas.
 		 */
 		bool const guarded = area->flags & AS_AREA_GUARD;
