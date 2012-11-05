@@ -150,7 +150,8 @@ typedef struct wnd {
 
 /* Sentinel node used by all buckets. Stores the greatest possible hash value.*/
 static const cht_link_t sentinel = {
-	.link = 0,
+	/* NULL and N_NORMAL */
+	.link = 0 | N_NORMAL,
 	.hash = -1
 };
 
@@ -264,7 +265,7 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	
 	h->max_load = (max_load == 0) ? CHT_MAX_LOAD : max_load;
 	h->min_order = min_order;
-	h->new_b = 0;
+	h->new_b = NULL;
 	h->op = op;
 	atomic_set(&h->item_cnt, 0);
 	atomic_set(&h->resize_reqs, 0);
@@ -297,7 +298,7 @@ static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid)
 	cht_buckets_t *b = malloc(bytes, FRAME_ATOMIC);
 	
 	if (!b)
-		return 0;
+		return NULL;
 	
 	b->order = order;
 	
@@ -345,7 +346,7 @@ void cht_destroy(cht_t *h)
 	rcu_barrier();
 	
 	free(h->b);
-	h->b = 0;
+	h->b = NULL;
 	
 	/* You must clear the table of items. Otherwise cht_destroy will leak. */
 	ASSERT(atomic_get(&h->item_cnt) == 0);
@@ -456,7 +457,7 @@ static inline cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key,
 	 * may find by following the next pointers is allocated.
 	 */
 
-	cht_link_t *cur = 0;
+	cht_link_t *cur = NULL;
 	marked_ptr_t prev = head;
 
 try_again:
@@ -491,7 +492,7 @@ try_again:
 		goto try_again;
 	}
 	
-	return 0;
+	return NULL;
 }
 
 /** Searches for the key while the table is undergoing a resize. */
@@ -606,7 +607,7 @@ static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash,
 			 * Note that old_head (the bucket to be merged into new_head) 
 			 * points to an allocated join node (if non-null) even if marked 
 			 * invalid. Before the resizer lets join nodes to be unlinked
-			 * (and freed) it sets old_head to 0 and waits for a grace period.
+			 * (and freed) it sets old_head to NULL and waits for a grace period.
 			 * So either the invalid old_head points to join node; or old_head
 			 * is null and we would have seen a completed bucket join while
 			 * traversing search_head.
@@ -615,7 +616,7 @@ static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash,
 			return search_bucket(h, old_head, key, hash);
 		}
 		
-		return 0;
+		return NULL;
 	} else {
 		/* 
 		 * Resize is almost done. The resizer is waiting to make
@@ -699,7 +700,7 @@ static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 		wnd_t wnd = {
 			.ppred = phead,
 			.cur = get_next(*phead),
-			.last = 0
+			.last = NULL
 		};
 		
 		if (!find_wnd_and_gc(h, hash, walk_mode, &wnd, &resizing)) {
@@ -806,7 +807,7 @@ static inline bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash,
 	 * the deleted node's DEL mark had not yet propagated to this cpu.
 	 */
 	read_barrier();
-	return 0 != find_duplicate(h, item, hash, wnd->cur);
+	return NULL != find_duplicate(h, item, hash, wnd->cur);
 }
 
 /** Returns an item that is equal to \a item starting in a chain at \a start. */
@@ -839,7 +840,7 @@ try_again:
 		goto try_again;
 	}
 	
-	return 0;	
+	return NULL;
 }
 
 /** Removes all items matching the search key. Returns the number of items removed.*/
@@ -907,7 +908,7 @@ static bool remove_pred(cht_t *h, size_t hash, equal_pred_t pred, void *pred_arg
 		wnd_t wnd = {
 			.ppred = phead,
 			.cur = get_next(*phead),
-			.last = 0
+			.last = NULL
 		};
 		
 		if (!find_wnd_and_gc_pred(
@@ -1193,7 +1194,7 @@ try_again:
 		goto try_again;
 	}
 
-	/* wnd->cur may be 0 or even marked N_DELETED. */
+	/* wnd->cur may be NULL or even marked N_DELETED. */
 	return true;
 }
 
@@ -1965,7 +1966,7 @@ static void grow_table(cht_t *h)
 	free(old_b);
 	
 	/* Not needed; just for increased readability. */
-	h->new_b = 0;
+	h->new_b = NULL;
 }
 
 /** Halfs the number of buckets. Blocks until done. */
@@ -2064,7 +2065,7 @@ static void shrink_table(cht_t *h)
 	free(old_b);
 	
 	/* Not needed; just for increased readability. */
-	h->new_b = 0;
+	h->new_b = NULL;
 }
 
 /** Finds and clears the N_JOIN mark from a node in new_head (if present). */
@@ -2143,8 +2144,8 @@ static void cleanup_join_follows(cht_t *h, marked_ptr_t *new_head)
 	rcu_read_lock();
 
 	wnd_t wnd = {
-		.ppred = 0,
-		.cur = 0
+		.ppred = NULL,
+		.cur = NULL
 	};
 	marked_ptr_t *cur_link = new_head;
 		

@@ -115,13 +115,13 @@ static const char *test_custom_workq_stop(void)
 		"Errors are expected.\n");
 	test_custom_workq_impl(true, "test-workq-stop");
 	/* Errors are expected. */
-	return 0;
+	return NULL;
 }
 
 
 const char *test_workqueue_all(void)
 {
-	const char *err = 0;
+	const char *err = NULL;
 	const char *res;
 	
 	basic_test();

@@ -111,7 +111,7 @@ bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_load,
 	h->full_item_cnt = h->max_load * h->bucket_cnt;
 	h->apply_ongoing = false;
 
-	if (h->op->remove_callback == 0) {
+	if (h->op->remove_callback == NULL) {
 		h->op->remove_callback = nop_remove_callback;
 	}
 	
@@ -132,7 +132,7 @@ void hash_table_destroy(hash_table_t *h)
 	
 	free(h->bucket);
 
-	h->bucket = 0;
+	h->bucket = NULL;
 	h->bucket_cnt = 0;
 }
 

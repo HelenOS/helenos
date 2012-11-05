@@ -96,17 +96,17 @@ static void set_val(val_t *v, size_t h, size_t uid)
 
 static const char * do_sanity_test(cht_t *h)
 {
-	if (cht_find_lazy(h, 0))
+	if (cht_find_lazy(h, (void*)0))
 		return "Found lazy in empty table.";
 	
-	if (cht_find(h, 0))
+	if (cht_find(h, (void*)0))
 		return "Found in empty table.";
 	
-	if (cht_remove_key(h, 0))
+	if (cht_remove_key(h, (void*)0))
 		return "Removed from empty table.";
 	
 	const int val_cnt = 6;
-	val_t *v[6] = {0};
+	val_t *v[6] = { NULL };
 	
 	for (int i = 0; i < val_cnt; ++i)
 		v[i] = malloc(sizeof(val_t), 0);
@@ -144,7 +144,7 @@ static const char * do_sanity_test(cht_t *h)
 		return "Refused unique ins 4, 5.";
 	
 	if (cht_find(h, (void*)0))
-		return "Fantom find.";
+		return "Phantom find.";
 	
 	cht_link_t *item = cht_find(h, (void*)v[5]->unique_id);
 	if (!item || item != &v[5]->link)
@@ -225,7 +225,7 @@ static const char * do_sanity_test(cht_t *h)
 			return "Found a key in a cleared table";
 	}
 
-	return 0;
+	return NULL;
 }
 
 static const char * sanity_test(void)
@@ -558,5 +558,5 @@ const char *test_cht1(void)
 	if (!do_stress()) 
 		return "CHT stress test failed.";
 	else
-		return 0;
+		return NULL;
 }

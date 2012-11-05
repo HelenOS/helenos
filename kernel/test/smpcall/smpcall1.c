@@ -84,7 +84,7 @@ const char *test_smpcall1(void)
 {
 	/* Number of received calls that were sent by cpu[i]. */
 	size_t call_cnt[MAX_CPUS] = {0};
-	thread_t *thread[MAX_CPUS] = {0};
+	thread_t *thread[MAX_CPUS] = { NULL };
 	
 	unsigned int cpu_count = min(config.cpu_active, MAX_CPUS);
 	size_t running_thread_cnt = 0;

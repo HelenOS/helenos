@@ -236,7 +236,7 @@ void rcu_init(void)
 	atomic_set(&rcu.delaying_cpu_cnt, 0);
 #endif
 	
-	rcu.detector_thr = 0;
+	rcu.detector_thr = NULL;
 	
 	rcu.stat_expedited_cnt = 0;
 	rcu.stat_delayed_cnt = 0;
@@ -259,11 +259,11 @@ void rcu_cpu_init(void)
 	CPU->rcu.signal_unlock = false;
 #endif
 	
-	CPU->rcu.cur_cbs = 0;
+	CPU->rcu.cur_cbs = NULL;
 	CPU->rcu.cur_cbs_cnt = 0;
-	CPU->rcu.next_cbs = 0;
+	CPU->rcu.next_cbs = NULL;
 	CPU->rcu.next_cbs_cnt = 0;
-	CPU->rcu.arriving_cbs = 0;
+	CPU->rcu.arriving_cbs = NULL;
 	CPU->rcu.parriving_cbs_tail = &CPU->rcu.arriving_cbs;
 	CPU->rcu.arriving_cbs_cnt = 0;
 
@@ -274,7 +274,7 @@ void rcu_cpu_init(void)
 
 	/* BSP creates reclaimer threads before AP's rcu_cpu_init() runs. */
 	if (config.cpu_active == 1)
-		CPU->rcu.reclaimer_thr = 0;
+		CPU->rcu.reclaimer_thr = NULL;
 	
 	CPU->rcu.stat_max_cbs = 0;
 	CPU->rcu.stat_avg_cbs = 0;
@@ -316,13 +316,13 @@ void rcu_stop(void)
 {
 	/* Stop and wait for reclaimers. */
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_active; ++cpu_id) {
-		ASSERT(cpus[cpu_id].rcu.reclaimer_thr != 0);
+		ASSERT(cpus[cpu_id].rcu.reclaimer_thr != NULL);
 	
 		if (cpus[cpu_id].rcu.reclaimer_thr) {
 			thread_interrupt(cpus[cpu_id].rcu.reclaimer_thr);
 			thread_join(cpus[cpu_id].rcu.reclaimer_thr);
 			thread_detach(cpus[cpu_id].rcu.reclaimer_thr);
-			cpus[cpu_id].rcu.reclaimer_thr = 0;
+			cpus[cpu_id].rcu.reclaimer_thr = NULL;
 		}
 	}
 
@@ -332,7 +332,7 @@ void rcu_stop(void)
 		thread_interrupt(rcu.detector_thr);
 		thread_join(rcu.detector_thr);
 		thread_detach(rcu.detector_thr);
-		rcu.detector_thr = 0;
+		rcu.detector_thr = NULL;
 	}
 #endif
 }
@@ -356,7 +356,7 @@ static void start_reclaimers(void)
 		snprintf(name, THREAD_NAME_BUFLEN - 1, "rcu-rec/%u", cpu_id);
 		
 		cpus[cpu_id].rcu.reclaimer_thr = 
-			thread_create(reclaimer, 0, TASK, THREAD_FLAG_NONE, name);
+			thread_create(reclaimer, NULL, TASK, THREAD_FLAG_NONE, name);
 
 		if (!cpus[cpu_id].rcu.reclaimer_thr) 
 			panic("Failed to create RCU reclaimer thread on cpu%u.", cpu_id);
@@ -372,7 +372,7 @@ static void start_reclaimers(void)
 static void start_detector(void)
 {
 	rcu.detector_thr = 
-		thread_create(detector, 0, TASK, THREAD_FLAG_NONE, "rcu-det");
+		thread_create(detector, NULL, TASK, THREAD_FLAG_NONE, "rcu-det");
 	
 	if (!rcu.detector_thr) 
 		panic("Failed to create RCU detector thread.");
@@ -409,7 +409,7 @@ static void read_unlock_impl(size_t *pnesting_cnt)
 		 * the detector is eagerly waiting for this cpu's reader 
 		 * to finish. 
 		 * 
-		 * Note that THREAD may be 0 in scheduler() and not just during boot.
+		 * Note that THREAD may be NULL in scheduler() and not just during boot.
 		 */
 		if ((THREAD && THREAD->rcu.was_preempted) || CPU->rcu.is_delaying_gp) {
 			/* Rechecks with disabled interrupts. */
@@ -521,7 +521,7 @@ void rcu_barrier(void)
 	cpu_mask_active(cpu_mask);
 	
 	cpu_mask_for_each(*cpu_mask, cpu_id) {
-		smp_call(cpu_id, add_barrier_cb, 0);
+		smp_call(cpu_id, add_barrier_cb, NULL);
 	}
 	
 	if (0 < atomic_predec(&rcu.barrier_wait_cnt)) {
@@ -582,7 +582,7 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 	ASSERT(rcu_item);
 	
 	rcu_item->func = func;
-	rcu_item->next = 0;
+	rcu_item->next = NULL;
 	
 	preemption_disable();
 	
@@ -610,13 +610,13 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 static bool cur_cbs_empty(void)
 {
 	ASSERT(THREAD && THREAD->wired);
-	return 0 == CPU->rcu.cur_cbs;
+	return NULL == CPU->rcu.cur_cbs;
 }
 
 static bool next_cbs_empty(void)
 {
 	ASSERT(THREAD && THREAD->wired);
-	return 0 == CPU->rcu.next_cbs;
+	return NULL == CPU->rcu.next_cbs;
 }
 
 /** Disable interrupts to get an up-to-date result. */
@@ -627,7 +627,7 @@ static bool arriving_cbs_empty(void)
 	 * Accessing with interrupts enabled may at worst lead to 
 	 * a false negative if we race with a local interrupt handler.
 	 */
-	return 0 == CPU->rcu.arriving_cbs;
+	return NULL == CPU->rcu.arriving_cbs;
 }
 
 static bool all_cbs_empty(void)
@@ -740,7 +740,7 @@ static void exec_cbs(rcu_item_t **phead)
 		rcu_item = next;
 	}
 	
-	*phead = 0;
+	*phead = NULL;
 }
 
 static void upd_stat_cb_cnts(size_t arriving_cnt)
@@ -778,7 +778,7 @@ static bool advance_cbs(void)
 	CPU->rcu.next_cbs = CPU->rcu.arriving_cbs;
 	CPU->rcu.next_cbs_cnt = CPU->rcu.arriving_cbs_cnt;
 	
-	CPU->rcu.arriving_cbs = 0;
+	CPU->rcu.arriving_cbs = NULL;
 	CPU->rcu.parriving_cbs_tail = &CPU->rcu.arriving_cbs;
 	CPU->rcu.arriving_cbs_cnt = 0;
 	
@@ -1288,7 +1288,7 @@ static void interrupt_delaying_cpus(cpu_mask_t *cpu_mask)
 {
 	atomic_set(&rcu.delaying_cpu_cnt, 0);
 	
-	sample_cpus(cpu_mask, 0);
+	sample_cpus(cpu_mask, NULL);
 }
 
 /** Invoked on a cpu delaying grace period detection. 
@@ -1451,7 +1451,7 @@ void rcu_before_thread_runs(void)
  */
 void rcu_thread_exiting(void)
 {
-	ASSERT(THREAD != 0);
+	ASSERT(THREAD != NULL);
 	ASSERT(THREAD->state == Exiting);
 	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
 	

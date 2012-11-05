@@ -42,7 +42,7 @@
 #define MAX_THREADS 32
 
 static int one_idx = 0;
-static thread_t *thread[MAX_THREADS] = {0};
+static thread_t *thread[MAX_THREADS] = { NULL };
 
 typedef struct {
 	rcu_item_t rcu;
@@ -99,7 +99,7 @@ static void run_all(void (*func)(void*))
 	one_idx = 0;
 	
 	for (size_t i = 0; i < thread_cnt; ++i) {
-		run_thread(i, func, 0);
+		run_thread(i, func, NULL);
 	}
 }
 
@@ -122,7 +122,7 @@ static void join_all(void)
 			} while (!joined);
 			
 			thread_detach(thread[i]);
-			thread[i] = 0;
+			thread[i] = NULL;
 		}
 	}
 }
@@ -144,7 +144,7 @@ static void join_one(void)
 	if (thread[one_idx]) {
 		thread_join(thread[one_idx]);
 		thread_detach(thread[one_idx]);
-		thread[one_idx] = 0;
+		thread[one_idx] = NULL;
 	}
 }
 
@@ -336,7 +336,7 @@ static bool do_one_cb(void)
 	one_cb_is_done = 0;
 	
 	TPRINTF("\nRun a single reader that posts one callback.\n");
-	run_one(one_cb_reader, 0);
+	run_one(one_cb_reader, NULL);
 	join_one();
 	
 	TPRINTF("\nJoined one-cb reader, wait for callback.\n");
@@ -1014,7 +1014,7 @@ const char *test_rcu1(void)
 		{ 1, do_nop_callbacks, "do_nop_callbacks" },
 		{ 0, do_expedite, "do_expedite" },
 		{ 1, do_stress, "do_stress" },
-		{ 0, 0, 0 }
+		{ 0, NULL, NULL }
 	};
 	
 	bool success = true;
@@ -1022,7 +1022,7 @@ const char *test_rcu1(void)
 	uint64_t completed_gps = rcu_completed_gps();
 	uint64_t delta_gps = 0;
 	
-	for (int i = 0; test_func[i].func != 0; ++i) {
+	for (int i = 0; test_func[i].func; ++i) {
 		if (!test_func[i].include) {
 			TPRINTF("\nSubtest %s() skipped.\n", test_func[i].desc);
 			continue;
@@ -1046,7 +1046,7 @@ const char *test_rcu1(void)
 	}
 
 	if (success)
-		return 0;
+		return NULL;
 	else
 		return "One of the tests failed.";
 }
