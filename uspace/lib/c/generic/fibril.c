@@ -38,6 +38,8 @@
 #include <thread.h>
 #include <tls.h>
 #include <malloc.h>
+#include <abi/mm/as.h>
+#include <as.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <libarch/barrier.h>
@@ -194,7 +196,7 @@ int fibril_switch(fibril_switch_type_t stype)
 					 * case, its fibril will not have the
 					 * stack member filled.
 					 */
-					free(stack);
+					as_area_destroy(stack);
 				}
 				fibril_teardown(srcf->clean_after_me);
 				srcf->clean_after_me = NULL;
@@ -268,9 +270,11 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	if (fibril == NULL)
 		return 0;
 	
-	fibril->stack =
-	    (char *) malloc(FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize());
-	if (!fibril->stack) {
+	fibril->stack = as_area_create((void *) -1,
+	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(),
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
+	    AS_AREA_NORESERVE);
+	if (fibril->stack == (void *) -1) {
 		fibril_teardown(fibril);
 		return 0;
 	}
@@ -297,7 +301,7 @@ void fibril_destroy(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
 	
-	free(fibril->stack);
+	as_area_destroy(fibril->stack);
 	fibril_teardown(fibril);
 }
 
