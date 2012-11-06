@@ -150,7 +150,8 @@ static int fun_offline(const char *path)
 
 	rc = devman_fun_offline(funh);
 	if (rc != EOK) {
-		printf(NAME ": Failed to offline function '%s'.\n", path);
+		printf(NAME ": Failed to offline function '%s' (%s)\n", path,
+		    str_error(rc));
 		return rc;
 	}
 

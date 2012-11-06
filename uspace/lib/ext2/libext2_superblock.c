@@ -36,7 +36,7 @@
 #include "libext2.h"
 #include <errno.h>
 #include <malloc.h>
-#include <libblock.h>
+#include <block.h>
 #include <byteorder.h>
 
 /**

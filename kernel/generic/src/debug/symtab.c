@@ -42,6 +42,7 @@
 #include <typedefs.h>
 #include <typedefs.h>
 #include <errno.h>
+#include <console/prompt.h>
 
 /** Get name of a symbol that seems most likely to correspond to address.
  *
@@ -208,7 +209,7 @@ void symtab_print_search(const char *name)
  * @return 0 - nothing found, 1 - success, >1 print duplicates
  *
  */
-int symtab_compl(char *input, size_t size)
+int symtab_compl(char *input, size_t size, indev_t *indev)
 {
 #ifdef CONFIG_SYMTAB
 	const char *name = input;
@@ -226,7 +227,24 @@ int symtab_compl(char *input, size_t size)
 	const char *hint;
 	char output[MAX_SYMBOL_NAME];
 	
+	/*
+	 * Maximum Match Length: Length of longest matching common substring in
+	 * case more than one match is found.
+	 */
+	size_t max_match_len = size;
+	size_t max_match_len_tmp = size;
+	size_t input_len = str_length(input);
+	char *sym_name;
+	size_t hints_to_show = MAX_TAB_HINTS - 1;
+	size_t total_hints_shown = 0;
+	bool continue_showing_hints = true;
+	
 	output[0] = 0;
+	
+	while ((hint = symtab_search_one(name, &pos)))
+		pos++;
+	
+	pos = 0;
 	
 	while ((hint = symtab_search_one(name, &pos))) {
 		if ((found == 0) || (str_length(output) > str_length(hint)))
@@ -236,13 +254,46 @@ int symtab_compl(char *input, size_t size)
 		found++;
 	}
 	
+	/*
+	 * If the number of possible completions is more than MAX_TAB_HINTS,
+	 * ask the user whether to display them or not.
+	 */
+	if (found > MAX_TAB_HINTS) {
+		printf("\n");
+		continue_showing_hints =
+		    console_prompt_display_all_hints(indev, found);
+	}
+	
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = 0;
 		while (symtab_search_one(name, &pos)) {
-			printf("%s\n", symbol_table[pos].symbol_name);
+			sym_name = symbol_table[pos].symbol_name;
 			pos++;
+			
+			if (continue_showing_hints) {
+				/* We are still showing hints */
+				printf("%s\n", sym_name);
+				--hints_to_show;
+				++total_hints_shown;
+				
+				if ((hints_to_show == 0) && (total_hints_shown != found)) {
+					/* Ask the user to continue */
+					continue_showing_hints =
+					    console_prompt_more_hints(indev, &hints_to_show);
+				}
+			}
+			
+			for (max_match_len_tmp = 0;
+			    (output[max_match_len_tmp] ==
+			    sym_name[input_len + max_match_len_tmp]) &&
+			    (max_match_len_tmp < max_match_len); ++max_match_len_tmp);
+			
+			max_match_len = max_match_len_tmp;
 		}
+		
+		/* Keep only the characters common in all completions */
+		output[max_match_len] = 0;
 	}
 	
 	if (found > 0)

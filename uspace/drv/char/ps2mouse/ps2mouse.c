@@ -34,7 +34,6 @@
 
 #include <bool.h>
 #include <errno.h>
-#include <devman.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/console.h>
@@ -75,7 +74,7 @@ do { \
 	uint8_t data = 0; \
 	const ssize_t size = chardev_read(sess, &data, 1); \
 	if (size != 1) { \
-		ddf_msg(LVL_ERROR, "Failed reading byte: %d)", size);\
+		ddf_msg(LVL_ERROR, "Failed reading byte: %zd)", size);\
 		return size < 0 ? size : EIO; \
 	} \
 	if (data != (value)) { \
@@ -113,35 +112,26 @@ static ddf_dev_ops_t mouse_ops = {
  */
 int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 {
-	assert(mouse);
-	assert(dev);
 	mouse->client_sess = NULL;
-	mouse->parent_sess = devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    dev->handle, IPC_FLAG_BLOCKING);
+	mouse->parent_sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
 	if (!mouse->parent_sess)
 		return ENOMEM;
 
 	mouse->mouse_fun = ddf_fun_create(dev, fun_exposed, "mouse");
 	if (!mouse->mouse_fun) {
-		async_hangup(mouse->parent_sess);
 		return ENOMEM;
 	}
-	mouse->mouse_fun->ops = &mouse_ops;
-	mouse->mouse_fun->driver_data = mouse;
+	ddf_fun_set_ops(mouse->mouse_fun, &mouse_ops);
 
 	int ret = ddf_fun_bind(mouse->mouse_fun);
 	if (ret != EOK) {
-		async_hangup(mouse->parent_sess);
-		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
 		return ENOMEM;
 	}
 
 	ret = ddf_fun_add_to_category(mouse->mouse_fun, "mouse");
 	if (ret != EOK) {
-		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
 		return ENOMEM;
 	}
@@ -160,9 +150,7 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	if (size != 1) {
 		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
 		async_exchange_end(exch);
-		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
 		return EIO;
 	}
@@ -172,18 +160,14 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	if (size != 1 || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
-		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
 		return EIO;
 	}
 
 	mouse->polling_fibril = fibril_create(polling_f, mouse);
 	if (!mouse->polling_fibril) {
-		async_hangup(mouse->parent_sess);
 		ddf_fun_unbind(mouse->mouse_fun);
-		mouse->mouse_fun->driver_data = NULL;
 		ddf_fun_destroy(mouse->mouse_fun);
 		return ENOMEM;
 	}
@@ -367,14 +351,8 @@ static int probe_intellimouse(async_exch_t *exch, bool buttons)
 void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	if (fun == NULL || fun->driver_data == NULL) {
-		ddf_msg(LVL_ERROR, "%s: Missing parameter.", __FUNCTION__);
-		async_answer_0(icallid, EINVAL);
-		return;
-	}
-
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
-	ps2_mouse_t *mouse = fun->driver_data;
+	ps2_mouse_t *mouse = ddf_dev_data_get(ddf_fun_get_dev(fun));
 
 	switch (method) {
 	/* This might be ugly but async_callback_receive_start makes no

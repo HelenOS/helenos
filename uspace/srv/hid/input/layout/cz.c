@@ -32,12 +32,12 @@
  */
 
 #include <errno.h>
-#include <input.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <bool.h>
-#include <layout.h>
 #include <stdlib.h>
+#include "../input.h"
+#include "../layout.h"
 
 static int cz_create(layout_t *);
 static void cz_destroy(layout_t *);

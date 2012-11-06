@@ -48,11 +48,11 @@
 #define NAME "ehci"
 
 static int ehci_dev_add(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t ehci_driver_ops = {
 	.dev_add = ehci_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t ehci_driver = {
 	.name = NAME,
 	.driver_ops = &ehci_driver_ops
@@ -61,7 +61,7 @@ static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
 
-/*----------------------------------------------------------------------------*/
+
 /** Initializes a new ddf driver instance of EHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -83,7 +83,7 @@ if (ret != EOK) { \
 	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
 	CHECK_RET_RETURN(ret,
 	    "Failed to get memory addresses for %" PRIun ": %s.\n",
-	    device->handle, str_error(ret));
+	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
 	    reg_base, reg_size, irq);
 
@@ -103,7 +103,7 @@ if (ret != EOK) { \
 	}
 	/* High Speed, no bandwidth */
 	hcd_init(ehci_hc, USB_SPEED_HIGH, 0, NULL);
-	hc_fun->ops = &hc_ops;
+	ddf_fun_set_ops(hc_fun,  &hc_ops);
 
 	ret = ddf_fun_bind(hc_fun);
 	CHECK_RET_RETURN(ret,
@@ -115,12 +115,12 @@ if (ret != EOK) { \
 	    str_error(ret));
 
 	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 
 	return EOK;
 #undef CHECK_RET_RETURN
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initializes global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -131,7 +131,7 @@ if (ret != EOK) { \
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 	return ddf_driver_main(&ehci_driver);
 }
 /**

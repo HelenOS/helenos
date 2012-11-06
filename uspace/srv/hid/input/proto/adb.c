@@ -36,9 +36,9 @@
  */
 
 #include <bool.h>
-#include <mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
+#include "../mouse.h"
+#include "../mouse_port.h"
+#include "../mouse_proto.h"
 
 static mouse_dev_t *mouse_dev;
 static bool b1_pressed;

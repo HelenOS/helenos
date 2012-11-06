@@ -13,18 +13,21 @@ PHDRS {
 
 SECTIONS {
 #ifdef LOADER
-	.interp : {
-		*(.interp);
-	} :interp
-	
 	. = 0x70001000 + SIZEOF_HEADERS;
 #else
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
+	
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
+	
+#ifdef LOADER
+	.interp : {
+		*(.interp);
+	} :interp :text
+#endif
 	
 	. = . + 0x1000;
 	

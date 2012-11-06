@@ -48,6 +48,8 @@ static void multiboot2_module(const multiboot2_module_t *module)
 		init.tasks[init.cnt].size = module->end - module->start;
 		multiboot_extract_command(init.tasks[init.cnt].name,
 		    CONFIG_TASK_NAME_BUFLEN, module->string);
+		multiboot_extract_argument(init.tasks[init.cnt].arguments,
+		    CONFIG_TASK_ARGUMENTS_BUFLEN, module->string);
 		
 		init.cnt++;
 	}

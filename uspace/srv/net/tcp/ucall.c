@@ -69,7 +69,7 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 {
 	tcp_conn_t *nconn;
 
-	log_msg(LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %s, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %p, %s, %s, %p)",
 	    lsock, fsock, acpass == ap_active ? "active" : "passive",
 	    oflags == tcp_open_nonblock ? "nonblock" : "none", conn);
 
@@ -87,7 +87,7 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 	}
 
 	/* Wait for connection to be established or reset */
-	log_msg(LVL_DEBUG, "tcp_uc_open: Wait for connection.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open: Wait for connection.");
 	fibril_mutex_lock(&nconn->lock);
 	while (nconn->cstate == st_listen ||
 	    nconn->cstate == st_syn_sent ||
@@ -96,17 +96,17 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 	}
 
 	if (nconn->cstate != st_established) {
-		log_msg(LVL_DEBUG, "tcp_uc_open: Connection was reset.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open: Connection was reset.");
 		assert(nconn->cstate == st_closed);
 		fibril_mutex_unlock(&nconn->lock);
 		return TCP_ERESET;
 	}
 
 	fibril_mutex_unlock(&nconn->lock);
-	log_msg(LVL_DEBUG, "tcp_uc_open: Connection was established.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open: Connection was established.");
 
 	*conn = nconn;
-	log_msg(LVL_DEBUG, "tcp_uc_open -> %p", nconn);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open -> %p", nconn);
 	return TCP_EOK;
 }
 
@@ -117,7 +117,7 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 	size_t buf_free;
 	size_t xfer_size;
 
-	log_msg(LVL_DEBUG, "%s: tcp_uc_send()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_uc_send()", conn->name);
 
 	fibril_mutex_lock(&conn->lock);
 
@@ -140,7 +140,7 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 	while (size > 0) {
 		buf_free = conn->snd_buf_size - conn->snd_buf_used;
 		while (buf_free == 0 && !conn->reset) {
-			log_msg(LVL_DEBUG, "%s: buf_free == 0, waiting.",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: buf_free == 0, waiting.",
 			    conn->name);
 			fibril_condvar_wait(&conn->snd_buf_cv, &conn->lock);
 			buf_free = conn->snd_buf_size - conn->snd_buf_used;
@@ -174,7 +174,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 {
 	size_t xfer_size;
 
-	log_msg(LVL_DEBUG, "%s: tcp_uc_receive()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_uc_receive()", conn->name);
 
 	fibril_mutex_lock(&conn->lock);
 
@@ -185,7 +185,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 
 	/* Wait for data to become available */
 	while (conn->rcv_buf_used == 0 && !conn->rcv_buf_fin && !conn->reset) {
-		log_msg(LVL_DEBUG, "tcp_uc_receive() - wait for data");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_receive() - wait for data");
 		fibril_condvar_wait(&conn->rcv_buf_cv, &conn->lock);
 	}
 
@@ -222,7 +222,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 	/* Send new size of receive window */
 	tcp_tqueue_ctrl_seg(conn, CTL_ACK);
 
-	log_msg(LVL_DEBUG, "%s: tcp_uc_receive() - returning %zu bytes",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_uc_receive() - returning %zu bytes",
 	    conn->name, xfer_size);
 
 	fibril_mutex_unlock(&conn->lock);
@@ -233,7 +233,7 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 /** CLOSE user call */
 tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "%s: tcp_uc_close()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_uc_close()", conn->name);
 
 	fibril_mutex_lock(&conn->lock);
 
@@ -257,13 +257,13 @@ tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 /** ABORT user call */
 void tcp_uc_abort(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "tcp_uc_abort()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_abort()");
 }
 
 /** STATUS user call */
 void tcp_uc_status(tcp_conn_t *conn, tcp_conn_status_t *cstatus)
 {
-	log_msg(LVL_DEBUG, "tcp_uc_status()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_status()");
 	cstatus->cstate = conn->cstate;
 }
 
@@ -275,13 +275,13 @@ void tcp_uc_status(tcp_conn_t *conn, tcp_conn_status_t *cstatus)
  */
 void tcp_uc_delete(tcp_conn_t *conn)
 {
-	log_msg(LVL_DEBUG, "tcp_uc_delete()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_delete()");
 	tcp_conn_delete(conn);
 }
 
 void tcp_uc_set_cstate_cb(tcp_conn_t *conn, tcp_cstate_cb_t cb, void *arg)
 {
-	log_msg(LVL_DEBUG, "tcp_uc_set_ctate_cb(%p, %p, %p)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_set_ctate_cb(%p, %p, %p)",
 	    conn, cb, arg);
 
 	conn->cstate_cb = cb;
@@ -297,13 +297,13 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
-	log_msg(LVL_DEBUG, "tcp_as_segment_arrived(f:(%x,%u), l:(%x,%u))",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_as_segment_arrived(f:(%x,%u), l:(%x,%u))",
 	    sp->foreign.addr.ipv4, sp->foreign.port,
 	    sp->local.addr.ipv4, sp->local.port);
 
 	conn = tcp_conn_find_ref(sp);
 	if (conn == NULL) {
-		log_msg(LVL_WARN, "No connection found.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "No connection found.");
 		tcp_unexpected_segment(sp, seg);
 		return;
 	}
@@ -311,7 +311,7 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	fibril_mutex_lock(&conn->lock);
 
 	if (conn->cstate == st_closed) {
-		log_msg(LVL_WARN, "Connection is closed.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Connection is closed.");
 		tcp_unexpected_segment(sp, seg);
 		fibril_mutex_unlock(&conn->lock);
 		tcp_conn_delref(conn);
@@ -338,7 +338,7 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 /** User timeout */
 void tcp_to_user(void)
 {
-	log_msg(LVL_DEBUG, "tcp_to_user()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_to_user()");
 }
 
 /**

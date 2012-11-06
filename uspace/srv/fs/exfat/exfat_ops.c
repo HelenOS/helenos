@@ -44,7 +44,7 @@
 #include "exfat_bitmap.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
-#include <libblock.h>
+#include <block.h>
 #include <ipc/services.h>
 #include <ipc/loc.h>
 #include <macros.h>
@@ -53,6 +53,7 @@
 #include <str.h>
 #include <byteorder.h>
 #include <adt/hash_table.h>
+#include <adt/hash.h>
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>

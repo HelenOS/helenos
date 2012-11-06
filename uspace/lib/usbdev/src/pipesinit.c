@@ -153,7 +153,7 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
 static int process_endpoint(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     usb_standard_interface_descriptor_t *interface,
-    usb_standard_endpoint_descriptor_t *endpoint,
+    usb_standard_endpoint_descriptor_t *endpoint_desc,
     usb_device_connection_t *wire)
 {
 
@@ -162,15 +162,15 @@ static int process_endpoint(
 	 */
 
 	/* Actual endpoint number is in bits 0..3 */
-	const usb_endpoint_t ep_no = endpoint->endpoint_address & 0x0F;
+	const usb_endpoint_t ep_no = endpoint_desc->endpoint_address & 0x0F;
 
 	const usb_endpoint_description_t description = {
 		/* Endpoint direction is set by bit 7 */
-		.direction = (endpoint->endpoint_address & 128)
+		.direction = (endpoint_desc->endpoint_address & 128)
 		    ? USB_DIRECTION_IN : USB_DIRECTION_OUT,
 		/* Transfer type is in bits 0..2 and
 		 * the enum values corresponds 1:1 */
-		.transfer_type = endpoint->attributes & 3,
+		.transfer_type = endpoint_desc->attributes & 3,
 
 		/* Get interface characteristics. */
 		.interface_class = interface->interface_class,
@@ -193,14 +193,15 @@ static int process_endpoint(
 	}
 
 	int rc = usb_pipe_initialize(&ep_mapping->pipe, wire,
-	    ep_no, description.transfer_type, endpoint->max_packet_size,
+	    ep_no, description.transfer_type,
+	    uint16_usb2host(endpoint_desc->max_packet_size),
 	    description.direction);
 	if (rc != EOK) {
 		return rc;
 	}
 
 	ep_mapping->present = true;
-	ep_mapping->descriptor = endpoint;
+	ep_mapping->descriptor = endpoint_desc;
 	ep_mapping->interface = interface;
 
 	return EOK;

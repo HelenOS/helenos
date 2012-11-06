@@ -45,6 +45,7 @@ typedef struct pciintel_bus {
 	/** DDF device node */
 	ddf_dev_t *dnode;
 	uint32_t conf_io_addr;
+	uint32_t conf_io_data;
 	void *conf_data_port;
 	void *conf_addr_port;
 	fibril_mutex_t conf_mutex;

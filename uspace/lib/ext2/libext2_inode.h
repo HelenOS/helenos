@@ -36,7 +36,7 @@
 #ifndef LIBEXT2_LIBEXT2_INODE_H_
 #define LIBEXT2_LIBEXT2_INODE_H_
 
-#include <libblock.h>
+#include <block.h>
 #include "libext2_superblock.h"
 
 typedef struct ext2_inode {

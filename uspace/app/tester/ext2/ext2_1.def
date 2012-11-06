@@ -1,0 +1,6 @@
+{
+	"ext2_1",
+	"Superblock getters test",
+	&test_ext2_1,
+	true
+},

@@ -61,7 +61,7 @@ typedef struct tmpfs_node {
 	fs_node_t *bp;		/**< Back pointer to the FS node. */
 	fs_index_t index;	/**< TMPFS node index. */
 	service_id_t service_id;/**< Service ID of block device. */
-	link_t nh_link;		/**< Nodes hash table link. */
+	ht_link_t nh_link;		/**< Nodes hash table link. */
 	tmpfs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
 	size_t size;		/**< File size if type is TMPFS_FILE. */

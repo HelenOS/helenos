@@ -37,6 +37,8 @@
 
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 #define max(a, b)  ((a) > (b) ? (a) : (b))
+#define abs(a)     ((a) >= 0 ? (a) : (-a))
+
 
 #define KiB2SIZE(kb)  ((kb) << 10)
 #define MiB2SIZE(mb)  ((mb) << 20)
@@ -50,6 +52,12 @@
 #define MERGE_LOUP32(lo, up) \
 	((((uint64_t) (lo)) & 0xffffffff) \
 	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
+
+#ifndef member_to_inst
+#define member_to_inst(ptr_member, type, member_identif) \
+	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
+#endif
+
 
 #endif
 

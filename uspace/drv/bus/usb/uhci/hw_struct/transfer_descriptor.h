@@ -99,7 +99,7 @@ void td_init(td_t *instance, int error_count, size_t size, bool toggle,
 int td_status(const td_t *instance);
 
 void td_print_status(const td_t *instance);
-/*----------------------------------------------------------------------------*/
+
 /** Helper function for parsing actual size out of TD.
  *
  * @param[in] instance TD structure to use.
@@ -112,7 +112,7 @@ static inline size_t td_act_size(const td_t *instance)
 	/* Actual size is encoded as n-1 (UHCI design guide p. 23) */
 	return ((s >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Check whether less than max data were received on SPD marked transfer.
  *
  * @param[in] instance TD structure to use.
@@ -128,7 +128,7 @@ static inline bool td_is_short(const td_t *instance)
 	return
 	    (instance->status | TD_STATUS_SPD_FLAG) && act_size < max_size;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Helper function for parsing value of toggle bit.
  *
  * @param[in] instance TD structure to use.
@@ -139,7 +139,7 @@ static inline int td_toggle(const td_t *instance)
 	assert(instance);
 	return (instance->device & TD_DEVICE_DATA_TOGGLE_ONE_FLAG) ? 1 : 0;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Helper function for parsing value of active bit
  *
  * @param[in] instance TD structure to use.
@@ -150,7 +150,7 @@ static inline bool td_is_active(const td_t *instance)
 	assert(instance);
 	return (instance->status & TD_STATUS_ERROR_ACTIVE) != 0;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Helper function for setting IOC bit.
  *
  * @param[in] instance TD structure to use.
@@ -160,7 +160,7 @@ static inline void td_set_ioc(td_t *instance)
 	assert(instance);
 	instance->status |= TD_STATUS_IOC_FLAG;
 }
-/*----------------------------------------------------------------------------*/
+
 #endif
 /**
  * @}

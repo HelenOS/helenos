@@ -87,6 +87,13 @@
 	vesa_meeting_point:
 		/* Returned back to protected mode */
 		
+		/*
+		 * Initialize Global Descriptor Table and
+		 * Interrupt Descriptor Table registers
+		 */
+		lgdtl bootstrap_gdtr
+		lidtl bootstrap_idtr
+		
 		movzx %ax, %ecx
 		mov %ecx, KA2PA(bfb_scanline)
 		

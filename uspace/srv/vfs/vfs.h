@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <adt/list.h>
+#include <adt/hash_table.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
 #include <loc.h>
@@ -111,7 +112,7 @@ typedef struct {
 	/** Number of names this node has in the file system namespace. */
 	unsigned lnkcnt;
 
-	link_t nh_link;		/**< Node hash-table link. */
+	ht_link_t nh_link;		/**< Node hash-table link. */
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
 

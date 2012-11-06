@@ -41,9 +41,17 @@
 #include <io/printf_core.h>
 #include <ctype.h>
 #include <str.h>
+#include <double_to_str.h>
+#include <ieee_double.h>
+#include <assert.h>
+#include <macros.h>
+
 
 /** show prefixes 0x or 0 */
 #define __PRINTF_FLAG_PREFIX       0x00000001
+
+/** show the decimal point even if no fractional digits present */
+#define __PRINTF_FLAG_DECIMALPT    0x00000001
 
 /** signed / unsigned number */
 #define __PRINTF_FLAG_SIGNED       0x00000002
@@ -65,6 +73,10 @@
 
 /** number has - sign */
 #define __PRINTF_FLAG_NEGATIVE     0x00000100
+
+/** don't print trailing zeros in the fractional part */
+#define __PRINTF_FLAG_NOFRACZEROS  0x00000200
+
 
 /**
  * Buffer big enough for 64-bit number printed in base 2, sign, prefix and 0
@@ -108,6 +120,49 @@ static const char *nullstr = "(NULL)";
 static const char *digits_small = "0123456789abcdef";
 static const char *digits_big = "0123456789ABCDEF";
 static const char invalch = U_SPECIAL;
+
+
+
+/** Unformatted double number string representation. */
+typedef struct {
+	/** Buffer with len digits, no sign or leading zeros. */
+	char *str;
+	/** Number of digits in str. */
+	int len;
+	/** Decimal exponent, ie number = str * 10^dec_exp */
+	int dec_exp;
+	/** True if negative. */
+	bool neg;
+} double_str_t;
+
+
+
+/** Returns the sign character or 0 if no sign should be printed. */
+static int get_sign_char(bool negative, uint32_t flags)
+{
+	if (negative) {
+		return '-';
+	} else if (flags & __PRINTF_FLAG_SHOWPLUS) {
+		return '+';
+	} else if (flags & __PRINTF_FLAG_SPACESIGN) {
+		return ' ';
+	} else {
+		return 0;
+	}
+}
+
+/** Prints count times character ch. */
+static int print_padding(char ch, int count, printf_spec_t *ps)
+{
+	for (int i = 0; i < count; ++i) {
+		if (ps->str_write(&ch, 1, ps->data) < 0) {
+			return -1;
+		}
+	}
+
+	return count;
+}
+
 
 /** Print one or more characters without adding newline.
  *
@@ -280,8 +335,9 @@ static int print_str(char *str, int width, unsigned int precision,
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
 	
-	/* Print leading spaces. */
 	size_t strw = str_length(str);
+
+	/* Precision unspecified - print everything. */
 	if ((precision == 0) || (precision > strw))
 		precision = strw;
 	
@@ -328,8 +384,9 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
 	
-	/* Print leading spaces. */
 	size_t strw = wstr_length(str);
+
+	/* Precision not specified - print everything. */
 	if ((precision == 0) || (precision > strw))
 		precision = strw;
 	
@@ -376,6 +433,11 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 static int print_number(uint64_t num, int width, int precision, int base,
     uint32_t flags, printf_spec_t *ps)
 {
+	/* Precision not specified. */
+	if (precision < 0) {
+		precision = 0;
+	}
+	
 	const char *digits;
 	if (flags & __PRINTF_FLAG_BIGCHARS)
 		digits = digits_big;
@@ -526,6 +588,658 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	return ((int) counter);
 }
 
+/** Prints a special double (ie NaN, infinity) padded to width characters. */
+static int print_special(ieee_double_t val, int width, uint32_t flags, 
+	printf_spec_t *ps)
+{
+	assert(val.is_special);
+
+	char sign = get_sign_char(val.is_negative, flags);
+
+	const int str_len = 3;
+	const char *str;
+	
+	if (flags & __PRINTF_FLAG_BIGCHARS) {
+		str = val.is_infinity ? "INF" : "NAN";
+	} else {
+		str = val.is_infinity ? "inf" : "nan";
+	}
+
+	int padding_len = max(0, width - ((sign ? 1 : 0) + str_len));
+
+	int counter = 0;
+	int ret;
+
+	/* Leading padding. */
+	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
+		if ((ret = print_padding(' ', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	if (sign) {
+		if ((ret = ps->str_write(&sign, 1, ps->data)) < 0)
+			return -1;
+		
+		counter += ret;
+	}
+
+	if ((ret = ps->str_write(str, str_len, ps->data)) < 0)
+		return -1;
+	
+	counter += ret;
+
+
+	/* Trailing padding. */
+	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+		if ((ret = print_padding(' ', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	return counter;
+}
+
+/** Trims trailing zeros but leaves a single "0" intact. */
+static void fp_trim_trailing_zeros(char *buf, int *len, int *dec_exp)
+{
+	/* Cut the zero off by adjusting the exponent. */
+	while (2 <= *len && '0' == buf[*len - 1]) {
+		--*len;
+		++*dec_exp;
+	}
+}
+
+/** Textually round up the last digit thereby eliminating it. */
+static void fp_round_up(char *buf, int *len, int *dec_exp)
+{
+	assert(1 <= *len);
+
+	char *last_digit = &buf[*len - 1];
+
+	int carry = ('5' <= *last_digit);
+
+	/* Cut the digit off by adjusting the exponent. */
+	--*len;
+	++*dec_exp;
+	--last_digit;
+
+	if (carry) {
+		/* Skip all the digits to cut off/round to zero. */
+		while (buf <= last_digit && '9' == *last_digit) {
+			--last_digit;
+		}
+
+		/* last_digit points to the last digit to round but not '9' */
+		if (buf <= last_digit) {
+			*last_digit += 1;
+			int new_len = last_digit - buf + 1;
+			*dec_exp += *len - new_len;
+			*len = new_len;
+		} else {
+			/* All len digits rounded to 0. */
+			buf[0] = '1';
+			*dec_exp += *len;
+			*len = 1;
+		}
+	} else {
+		/* The only digit was rounded to 0. */
+		if (last_digit < buf) {
+			buf[0] = '0';
+			*dec_exp = 0;
+			*len = 1;
+		}
+	}
+}
+
+
+/** Format and print the double string repressentation according 
+ *  to the %f specifier. 
+ */
+static int print_double_str_fixed(double_str_t *val_str, int precision, int width, 
+	uint32_t flags, printf_spec_t *ps)
+{
+	int len = val_str->len;
+	char *buf = val_str->str;
+	int dec_exp = val_str->dec_exp;
+
+	assert(0 < len);
+	assert(0 <= precision);
+	assert(0 <= dec_exp || -dec_exp <= precision);
+
+	/* Number of integral digits to print (at least leading zero). */
+	int int_len = max(1, len + dec_exp);
+
+	char sign = get_sign_char(val_str->neg, flags);
+
+	/* Fractional portion lengths. */
+	int last_frac_signif_pos = max(0, -dec_exp);
+	int leading_frac_zeros = max(0, last_frac_signif_pos - len);
+	int signif_frac_figs = min(last_frac_signif_pos, len);
+	int trailing_frac_zeros = precision - last_frac_signif_pos;
+	char *buf_frac = buf + len - signif_frac_figs;
+
+	if (flags & __PRINTF_FLAG_NOFRACZEROS) {
+		trailing_frac_zeros = 0;
+	}
+
+	int frac_len = leading_frac_zeros + signif_frac_figs + trailing_frac_zeros;
+
+	bool has_decimal_pt = (0 < frac_len) || (flags & __PRINTF_FLAG_DECIMALPT);
+
+	/* Number of non-padding chars to print. */
+	int num_len = (sign ? 1 : 0) + int_len + (has_decimal_pt ? 1 : 0) + frac_len;
+
+	int padding_len = max(0, width - num_len);
+	int ret = 0;
+	int counter = 0;
+
+	/* Leading padding and sign. */
+
+	if (!(flags & (__PRINTF_FLAG_LEFTALIGNED | __PRINTF_FLAG_ZEROPADDED))) {
+		if ((ret = print_padding(' ', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	if (sign) {
+		if ((ret = ps->str_write(&sign, 1, ps->data)) < 0) 
+			return -1;
+		
+		counter += ret;
+	}
+
+	if (flags & __PRINTF_FLAG_ZEROPADDED) {
+		if ((ret = print_padding('0', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	/* Print the intergral part of the buffer. */
+
+	int buf_int_len = min(len, len + dec_exp);
+
+	if (0 < buf_int_len) {
+		if ((ret = ps->str_write(buf, buf_int_len, ps->data)) < 0) 
+			return -1;
+
+		counter += ret;
+
+		/* Print trailing zeros of the integral part of the number. */
+		if ((ret = print_padding('0', int_len - buf_int_len, ps)) < 0) 
+			return -1;
+	} else {
+		/* Single leading integer 0. */
+		char ch = '0';
+		if ((ret = ps->str_write(&ch, 1, ps->data)) < 0) 
+			return -1;
+	}
+
+	counter += ret;
+	
+	/* Print the decimal point and the fractional part. */
+	if (has_decimal_pt) {
+		char ch = '.';
+
+		if ((ret = ps->str_write(&ch, 1, ps->data)) < 0) 
+			return -1;
+		
+		counter += ret;
+
+		/* Print leading zeros of the fractional part of the number. */
+		if ((ret = print_padding('0', leading_frac_zeros, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+
+		/* Print significant digits of the fractional part of the number. */
+		if (0 < signif_frac_figs) {
+			if ((ret = ps->str_write(buf_frac, signif_frac_figs, ps->data)) < 0) 
+				return -1;
+
+			counter += ret;
+		}
+
+		/* Print trailing zeros of the fractional part of the number. */
+		if ((ret = print_padding('0', trailing_frac_zeros, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	/* Trailing padding. */
+	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+		if ((ret = print_padding(' ', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	return counter;
+}
+
+
+/** Convert, format and print a double according to the %f specifier. 
+ *
+ * @param g     Double to print.
+ * @param precision Number of fractional digits to print. If 0 no
+ *              decimal point will be printed unless the flag
+ *              __PRINTF_FLAG_DECIMALPT is specified.
+ * @param width Minimum number of characters to display. Pads 
+ *              with '0' or ' ' depending on the set flags;
+ * @param flags Printf flags.
+ * @param ps    Printing functions.
+ *
+ * @return The number of characters printed; negative on failure.
+ */
+static int print_double_fixed(double g, int precision, int width, uint32_t flags, 
+	printf_spec_t *ps)
+{
+	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+		flags &= ~__PRINTF_FLAG_ZEROPADDED;
+	}
+
+	if (flags & __PRINTF_FLAG_DECIMALPT) {
+		flags &= ~__PRINTF_FLAG_NOFRACZEROS;
+	}
+
+	ieee_double_t val = extract_ieee_double(g);
+
+	if (val.is_special) {
+		return print_special(val, width, flags, ps);
+	} 
+
+	char buf[MAX_DOUBLE_STR_BUF_SIZE];
+	const size_t buf_size = MAX_DOUBLE_STR_BUF_SIZE;
+	double_str_t val_str;
+
+	val_str.str = buf;
+	val_str.neg = val.is_negative;
+
+	if (0 <= precision) {
+		/* 
+		 * Request one more digit so we can round the result. The last
+		 * digit it returns may have an error of at most +/- 1. 
+		 */
+		val_str.len = double_to_fixed_str(val, -1, precision + 1, buf, buf_size, 
+			&val_str.dec_exp);
+
+		/* 
+		 * Round using the last digit to produce precision fractional digits. 
+		 * If less than precision+1 fractional digits were output the last 
+		 * digit is definitely inaccurate so also round to get rid of it. 
+		 */
+		fp_round_up(buf, &val_str.len, &val_str.dec_exp);
+
+		/* Rounding could have introduced trailing zeros. */
+		if (flags & __PRINTF_FLAG_NOFRACZEROS) {
+			fp_trim_trailing_zeros(buf, &val_str.len, &val_str.dec_exp);
+		}
+	} else {
+		/* Let the implementation figure out the proper precision. */
+		val_str.len = double_to_short_str(val, buf, buf_size, &val_str.dec_exp);
+		
+		/* Precision needed for the last significant digit. */
+		precision = max(0, -val_str.dec_exp);
+	}
+
+	return print_double_str_fixed(&val_str, precision, width, flags, ps);
+}
+
+/** Prints the decimal exponent part of a %e specifier formatted number. */
+static int print_exponent(int exp_val, uint32_t flags, printf_spec_t *ps)
+{
+	int counter = 0;
+	int ret;
+
+	char exp_ch = (flags & __PRINTF_FLAG_BIGCHARS) ? 'E' : 'e';
+
+	if ((ret = ps->str_write(&exp_ch, 1, ps->data)) < 0) 
+		return -1;
+	
+	counter += ret;
+
+	char exp_sign = (exp_val < 0) ? '-' : '+';
+
+	if ((ret = ps->str_write(&exp_sign, 1, ps->data)) < 0)
+		return -1;
+
+	counter += ret;
+
+	/* Print the exponent. */
+	exp_val = abs(exp_val);
+	
+	char exp_str[4] = { 0 };
+
+	exp_str[0] = '0' + exp_val / 100;
+	exp_str[1] = '0' + (exp_val % 100) / 10 ;
+	exp_str[2] = '0' + (exp_val % 10);
+	
+	int exp_len = (exp_str[0] == '0') ? 2 : 3;
+	const char *exp_str_start = &exp_str[3] - exp_len;
+
+	if ((ret = ps->str_write(exp_str_start, exp_len, ps->data)) < 0) 
+		return -1;
+
+	counter += ret;
+
+	return counter;
+}
+
+
+/** Format and print the double string repressentation according 
+ *  to the %e specifier. 
+ */
+static int print_double_str_scient(double_str_t *val_str, int precision, 
+	int width, uint32_t flags, printf_spec_t *ps)
+{
+	int len = val_str->len;
+	int dec_exp = val_str->dec_exp;
+	char *buf  = val_str->str;
+
+	assert(0 < len);
+
+	char sign = get_sign_char(val_str->neg, flags);
+	bool has_decimal_pt = (0 < precision) || (flags & __PRINTF_FLAG_DECIMALPT);
+	int dec_pt_len = has_decimal_pt ? 1 : 0;
+
+	/* Fractional part lengths. */
+	int signif_frac_figs = len - 1;
+	int trailing_frac_zeros = precision - signif_frac_figs;
+
+	if (flags & __PRINTF_FLAG_NOFRACZEROS) {
+		trailing_frac_zeros = 0;
+	}
+
+	int frac_len = signif_frac_figs + trailing_frac_zeros;
+
+	int exp_val = dec_exp + len - 1;
+	/* Account for exponent sign and 'e'; minimum 2 digits. */
+	int exp_len = 2 + (abs(exp_val) >= 100 ? 3 : 2);
+
+	/* Number of non-padding chars to print. */
+	int num_len = (sign ? 1 : 0) + 1 + dec_pt_len + frac_len + exp_len;
+
+	int padding_len = max(0, width - num_len);
+	int ret = 0;
+	int counter = 0;
+
+	if (!(flags & (__PRINTF_FLAG_LEFTALIGNED | __PRINTF_FLAG_ZEROPADDED))) {
+		if ((ret = print_padding(' ', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	if (sign) {
+		if ((ret = ps->str_write(&sign, 1, ps->data)) < 0) 
+			return -1;
+		
+		counter += ret;
+	}
+
+	if (flags & __PRINTF_FLAG_ZEROPADDED) {
+		if ((ret = print_padding('0', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	/* Single leading integer. */
+	if ((ret = ps->str_write(buf, 1, ps->data)) < 0) 
+		return -1;
+
+	counter += ret;
+
+	/* Print the decimal point and the fractional part. */
+	if (has_decimal_pt) {
+		char ch = '.';
+
+		if ((ret = ps->str_write(&ch, 1, ps->data)) < 0) 
+			return -1;
+		
+		counter += ret;
+
+		/* Print significant digits of the fractional part of the number. */
+		if (0 < signif_frac_figs) {
+			if ((ret = ps->str_write(buf + 1, signif_frac_figs, ps->data)) < 0) 
+				return -1;
+
+			counter += ret;
+		}
+
+		/* Print trailing zeros of the fractional part of the number. */
+		if ((ret = print_padding('0', trailing_frac_zeros, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	/* Print the exponent. */
+	if ((ret = print_exponent(exp_val, flags, ps)) < 0) 
+		return -1;
+
+	counter += ret;
+
+	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+		if ((ret = print_padding(' ', padding_len, ps)) < 0) 
+			return -1;
+
+		counter += ret;
+	}
+
+	return counter;
+}
+
+
+/** Convert, format and print a double according to the %e specifier. 
+ *
+ * Note that if g is large, the output may be huge (3e100 prints 
+ * with at least 100 digits).
+ *
+ * %e style: [-]d.dddde+dd
+ *  left-justified:  [-]d.dddde+dd[space_pad]
+ *  right-justified: [space_pad][-][zero_pad]d.dddde+dd
+ *
+ * @param g     Double to print.
+ * @param precision Number of fractional digits to print, ie
+ *              precision + 1 significant digits to display. If 0 no
+ *              decimal point will be printed unless the flag
+ *              __PRINTF_FLAG_DECIMALPT is specified. If negative
+ *              the shortest accurate number will be printed.
+ * @param width Minimum number of characters to display. Pads 
+ *              with '0' or ' ' depending on the set flags;
+ * @param flags Printf flags.
+ * @param ps    Printing functions.
+ *
+ * @return The number of characters printed; negative on failure.
+ */
+static int print_double_scientific(double g, int precision, int width, 
+	uint32_t flags, printf_spec_t *ps)
+{
+	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+		flags &= ~__PRINTF_FLAG_ZEROPADDED;
+	}
+
+	ieee_double_t val = extract_ieee_double(g);
+
+	if (val.is_special) {
+		return print_special(val, width, flags, ps);
+	} 
+
+	char buf[MAX_DOUBLE_STR_BUF_SIZE];
+	const size_t buf_size = MAX_DOUBLE_STR_BUF_SIZE;
+	double_str_t val_str;
+
+	val_str.str = buf;
+	val_str.neg = val.is_negative;
+
+	if (0 <= precision) {
+		/* 
+		 * Request one more digit (in addition to the leading integer) 
+		 * so we can round the result. The last digit it returns may 
+		 * have an error of at most +/- 1. 
+		 */
+		val_str.len = double_to_fixed_str(val, precision + 2, -1, buf, buf_size, 
+			&val_str.dec_exp);
+
+		/* 
+		 * Round the extra digit to produce precision+1 significant digits. 
+		 * If less than precision+2 significant digits were returned the last 
+		 * digit is definitely inaccurate so also round to get rid of it. 
+		 */
+		fp_round_up(buf, &val_str.len, &val_str.dec_exp);
+
+		/* Rounding could have introduced trailing zeros. */
+		if (flags & __PRINTF_FLAG_NOFRACZEROS) {
+			fp_trim_trailing_zeros(buf, &val_str.len, &val_str.dec_exp);
+		}
+	} else {
+		/* Let the implementation figure out the proper precision. */
+		val_str.len = double_to_short_str(val, buf, buf_size, &val_str.dec_exp);
+		
+		/* Use all produced digits. */
+		precision = val_str.len - 1;
+	}
+
+	return print_double_str_scient(&val_str, precision, width, flags, ps);
+}
+
+
+/** Convert, format and print a double according to the %g specifier. 
+ *
+ * %g style chooses between %f and %e. 
+ *
+ * @param g     Double to print.
+ * @param precision Number of significant digits to display; excluding
+ *              any leading zeros from this count. If negative
+ *              the shortest accurate number will be printed.
+ * @param width Minimum number of characters to display. Pads 
+ *              with '0' or ' ' depending on the set flags;
+ * @param flags Printf flags.
+ * @param ps    Printing functions.
+ *
+ * @return The number of characters printed; negative on failure.
+ */
+static int print_double_generic(double g, int precision, int width, 
+	uint32_t flags, printf_spec_t *ps)
+{
+	ieee_double_t val = extract_ieee_double(g);
+
+	if (val.is_special) {
+		return print_special(val, width, flags, ps);
+	} 
+
+	char buf[MAX_DOUBLE_STR_BUF_SIZE];
+	const size_t buf_size = MAX_DOUBLE_STR_BUF_SIZE;
+	int dec_exp;
+	int len;
+
+	/* Honor the user requested number of significant digits. */
+	if (0 <= precision) {
+		/* 
+		 * Do a quick and dirty conversion of a single digit to determine 
+		 * the decimal exponent.
+		 */
+		len = double_to_fixed_str(val, 1, -1, buf, buf_size, &dec_exp);
+		assert(0 < len);
+
+		precision = max(1, precision);
+
+		if (-4 <= dec_exp && dec_exp < precision) {
+			precision = precision - (dec_exp + 1);
+			return print_double_fixed(g, precision, width, 
+				flags | __PRINTF_FLAG_NOFRACZEROS, ps);
+		} else {
+			--precision;
+			return print_double_scientific(g, precision, width, 
+				flags | __PRINTF_FLAG_NOFRACZEROS, ps);
+		}
+	} else {
+		/* Convert to get the decimal exponent and digit count.*/
+		len = double_to_short_str(val, buf, buf_size, &dec_exp);
+		assert(0 < len);
+
+		if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+			flags &= ~__PRINTF_FLAG_ZEROPADDED;
+		}
+
+		double_str_t val_str;
+		val_str.str = buf;
+		val_str.len = len;
+		val_str.neg = val.is_negative;
+		val_str.dec_exp = dec_exp;
+
+		int first_digit_pos = len + dec_exp;
+		int last_digit_pos = dec_exp;
+
+		/* The whole number (15 digits max) fits between dec places 15 .. -6 */
+		if (len <= 15 && -6 <= last_digit_pos && first_digit_pos <= 15) {
+			/* Precision needed for the last significant digit. */
+			precision = max(0, -val_str.dec_exp);
+			return print_double_str_fixed(&val_str, precision, width, flags, ps);
+		} else {
+			/* Use all produced digits. */
+			precision = val_str.len - 1;
+			return print_double_str_scient(&val_str, precision, width, flags, ps);
+		}
+	}
+}
+
+
+/** Convert, format and print a double according to the specifier. 
+ *
+ * Depending on the specifier it prints the double using the styles
+ * %g, %f or %e by means of print_double_generic(), print_double_fixed(),
+ * print_double_scientific().
+ *
+ * @param g     Double to print.
+ * @param spec  Specifier of the style to print in; one of: 'g','G','f','F',
+ *              'e','E'.
+ * @param precision Number of fractional digits to display. If negative
+ *              the shortest accurate number will be printed for style %g;
+ *              negative precision defaults to 6 for styles %f, %e.
+ * @param width Minimum number of characters to display. Pads 
+ *              with '0' or ' ' depending on the set flags;
+ * @param flags Printf flags.
+ * @param ps    Printing functions.
+ *
+ * @return The number of characters printed; negative on failure.
+ */
+static int print_double(double g, char spec, int precision, int width, 
+	uint32_t flags, printf_spec_t *ps)
+{
+	switch (spec) {
+	case 'F':
+		flags |= __PRINTF_FLAG_BIGCHARS;
+		/* Fall through.*/
+	case 'f':
+		precision = (precision < 0) ? 6 : precision;
+		return print_double_fixed(g, precision, width, flags, ps);
+
+	case 'E':
+		flags |= __PRINTF_FLAG_BIGCHARS;
+		/* Fall through.*/
+	case 'e':
+		precision = (precision < 0) ? 6 : precision;
+		return print_double_scientific(g, precision, width, flags, ps);
+
+	case 'G':
+		flags |= __PRINTF_FLAG_BIGCHARS;
+		/* Fall through.*/
+	case 'g':
+		return print_double_generic(g, precision, width, flags, ps);
+
+	default:
+		assert(false);
+		return -1;
+	}
+}
+
 /** Print formatted string.
  *
  * Print string formatted according to the fmt parameter and variadic arguments.
@@ -655,6 +1369,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				switch (uc) {
 				case '#':
 					flags |= __PRINTF_FLAG_PREFIX;
+					flags |= __PRINTF_FLAG_DECIMALPT;
 					break;
 				case '-':
 					flags |= __PRINTF_FLAG_LEFTALIGNED;
@@ -700,11 +1415,12 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			}
 			
 			/* Precision and '*' operator */
-			int precision = 0;
+			int precision = -1;
 			if (uc == '.') {
 				i = nxt;
 				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 				if (isdigit(uc)) {
+					precision = 0;
 					while (true) {
 						precision *= 10;
 						precision += uc - '0';
@@ -722,8 +1438,8 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 					precision = (int) va_arg(ap, int);
 					if (precision < 0) {
-						/* Ignore negative precision */
-						precision = 0;
+						/* Ignore negative precision - use default instead */
+						precision = -1;
 					}
 				}
 			}
@@ -773,6 +1489,8 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			 * String and character conversions.
 			 */
 			case 's':
+				precision = max(0,  precision);
+				
 				if (qualifier == PrintfQualifierLong)
 					retval = print_wstr(va_arg(ap, wchar_t *), width, precision, flags, ps);
 				else
@@ -796,6 +1514,27 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					counter = -counter;
 					goto out;
 				};
+				
+				counter += retval;
+				j = nxt;
+				goto next_char;
+				
+			/*
+			 * Floating point values
+			 */
+			case 'G':
+			case 'g':
+			case 'F':
+			case 'f':
+			case 'E':
+			case 'e':
+				retval = print_double(va_arg(ap, double), uc, precision, 
+					width, flags, ps);
+				
+				if (retval < 0) {
+					counter = -counter;
+					goto out;
+				}
 				
 				counter += retval;
 				j = nxt;

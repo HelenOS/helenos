@@ -203,10 +203,10 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	uint16_t flags_foff;
 	uint16_t foff;
 
-	log_msg(LVL_DEBUG, "inet_pdu_decode()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode()");
 
 	if (size < sizeof(ip_header_t)) {
-		log_msg(LVL_DEBUG, "PDU too short (%zu)", size);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "PDU too short (%zu)", size);
 		return EINVAL;
 	}
 
@@ -215,18 +215,18 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	version = BIT_RANGE_EXTRACT(uint8_t, VI_VERSION_h, VI_VERSION_l,
 	    hdr->ver_ihl);
 	if (version != 4) {
-		log_msg(LVL_DEBUG, "Version (%d) != 4", version);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Version (%d) != 4", version);
 		return EINVAL;
 	}
 
 	tot_len = uint16_t_be2host(hdr->tot_len);
 	if (tot_len < sizeof(ip_header_t)) {
-		log_msg(LVL_DEBUG, "Total Length too small (%zu)", tot_len);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Total Length too small (%zu)", tot_len);
 		return EINVAL;
 	}
 
 	if (tot_len > size) {
-		log_msg(LVL_DEBUG, "Total Length = %zu > PDU size = %zu",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Total Length = %zu > PDU size = %zu",
 			tot_len, size);
 		return EINVAL;
 	}
@@ -255,7 +255,7 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	packet->size = tot_len - data_offs;
 	packet->data = calloc(packet->size, 1);
 	if (packet->data == NULL) {
-		log_msg(LVL_WARN, "Out of memory.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Out of memory.");
 		return ENOMEM;
 	}
 

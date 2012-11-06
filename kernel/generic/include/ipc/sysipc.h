@@ -39,9 +39,6 @@
 #include <ipc/irq.h>
 #include <typedefs.h>
 
-extern sysarg_t sys_ipc_call_sync_fast(sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, ipc_data_t *);
-extern sysarg_t sys_ipc_call_sync_slow(sysarg_t, ipc_data_t *, ipc_data_t *);
 extern sysarg_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *);

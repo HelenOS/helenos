@@ -35,7 +35,7 @@
 
 #include <minix.h>
 #include <macros.h>
-#include <libblock.h>
+#include <block.h>
 #include <libfs.h>
 #include <adt/list.h>
 #include <malloc.h>
@@ -141,7 +141,7 @@ struct mfs_node {
 	struct mfs_instance *instance;
 	unsigned refcnt;
 	fs_node_t *fsnode;
-	link_t link;
+	ht_link_t link;
 };
 
 /* mfs_ops.c */

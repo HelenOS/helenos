@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <assert.h>
 #include <errno.h>
 #include <align.h>
@@ -211,15 +214,14 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
 	pio_write_8(rtl8139->io_port + CONFIG1, config1_new);
 	rtl8139_regs_lock(rtl8139->io_port);
 
+	async_sess_t *pci_sess =
+		ddf_dev_parent_sess_get(nic_get_ddf_dev(rtl8139->nic_data));
+
 	if (bit_val) {
-		async_sess_t *pci_sess =
-			nic_get_ddf_dev(rtl8139->nic_data)->parent_sess;
 		uint8_t pmen;
 		pci_config_space_read_8(pci_sess, 0x55, &pmen);
 		pci_config_space_write_8(pci_sess, 0x55, pmen | 1 | (1 << 7));
 	} else {
-		async_sess_t *pci_sess =
-			nic_get_ddf_dev(rtl8139->nic_data)->parent_sess;
 		uint8_t pmen;
 		pci_config_space_read_8(pci_sess, 0x55, &pmen);
 		pci_config_space_write_8(pci_sess, 0x55, pmen & ~(1 | (1 << 7)));
@@ -617,8 +619,8 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 
 		/* Check if the header is valid, otherwise we are lost in the buffer */
 		if (size == 0 || size > RTL8139_FRAME_MAX_LENGTH) {
-			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4"PRIu16", "
-			    "header 0x%4"PRIx16". Offset: %zu)", size, frame_header, 
+			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4" PRIu16 ", "
+			    "header 0x%4" PRIx16 ". Offset: %d)", size, frame_header,
 			    rx_offset);
 			goto rx_err;
 		}
@@ -1051,13 +1053,8 @@ static void rtl8139_dev_cleanup(ddf_dev_t *dev)
 {
 	assert(dev);
 
-	if (dev->driver_data)
+	if (ddf_dev_data_get(dev))
 		nic_unbind_and_destroy(dev);
-
-	if (dev->parent_sess != NULL) {
-		async_hangup(dev->parent_sess);
-		dev->parent_sess = NULL;
-	}
 }
 
 /** Fill the irq and io_addr part of device data structure
@@ -1079,24 +1076,24 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
 	assert(rtl8139);
 
 	if (hw_resources->irqs.count != 1) {
-		ddf_msg(LVL_ERROR, "%s device: unexpected irq count", dev->name);
+		ddf_msg(LVL_ERROR, "%s device: unexpected irq count", ddf_dev_get_name(dev));
 		return EINVAL;
 	};
 	if (hw_resources->io_ranges.count != 1) {
-		ddf_msg(LVL_ERROR, "%s device: unexpected io ranges count", dev->name);
+		ddf_msg(LVL_ERROR, "%s device: unexpected io ranges count", ddf_dev_get_name(dev));
 		return EINVAL;
 	}
 
 	rtl8139->irq = hw_resources->irqs.irqs[0];
-	ddf_msg(LVL_DEBUG, "%s device: irq 0x%x assigned", dev->name, rtl8139->irq);
+	ddf_msg(LVL_DEBUG, "%s device: irq 0x%x assigned", ddf_dev_get_name(dev), rtl8139->irq);
 
 	rtl8139->io_addr = IOADDR_TO_PTR(hw_resources->io_ranges.ranges[0].address);
 	if (hw_resources->io_ranges.ranges[0].size < RTL8139_IO_SIZE) {
 		ddf_msg(LVL_ERROR, "i/o range assigned to the device "
-		    "%s is too small.", dev->name);
+		    "%s is too small.", ddf_dev_get_name(dev));
 		return EINVAL;
 	}
-	ddf_msg(LVL_DEBUG, "%s device: i/o addr %p assigned.", dev->name, rtl8139->io_addr);
+	ddf_msg(LVL_DEBUG, "%s device: i/o addr %p assigned.", ddf_dev_get_name(dev), rtl8139->io_addr);
 
 	return EOK;
 }
@@ -1164,7 +1161,7 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	rtl8139->tx_used = 0;
 
 	/* Allocate buffer for receiver */
-	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %zu bytes",
+	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
 
 	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, AS_AREA_READ, 0,
@@ -1191,7 +1188,7 @@ err_tx_alloc:
  */
 static int rtl8139_device_initialize(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "rtl8139_dev_initialize %s", dev->name);
+	ddf_msg(LVL_DEBUG, "rtl8139_dev_initialize %s", ddf_dev_get_name(dev));
 
 	int ret = EOK;
 
@@ -1200,7 +1197,7 @@ static int rtl8139_device_initialize(ddf_dev_t *dev)
 	/* Allocate driver data for the device. */
 	rtl8139_t *rtl8139 = rtl8139_create_dev_data(dev);
 	if (rtl8139 == NULL) {
-		ddf_msg(LVL_ERROR, "Not enough memory for initializing %s.", dev->name);
+		ddf_msg(LVL_ERROR, "Not enough memory for initializing %s.", ddf_dev_get_name(dev));
 		return ENOMEM;
 	}
 
@@ -1245,14 +1242,14 @@ failed:
  */
 static int rtl8139_pio_enable(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, NAME ": rtl8139_pio_enable %s", dev->name);
+	ddf_msg(LVL_DEBUG, NAME ": rtl8139_pio_enable %s", ddf_dev_get_name(dev));
 
 	rtl8139_t *rtl8139 = nic_get_specific(nic_get_from_ddf_dev(dev));
 
 	/* Gain control over port's registers. */
 	if (pio_enable(rtl8139->io_addr, RTL8139_IO_SIZE, &rtl8139->io_port)) {
-		ddf_msg(LVL_ERROR, "Cannot gain the port %lx for device %s.", rtl8139->io_addr,
-		    dev->name);
+		ddf_msg(LVL_ERROR, "Cannot gain the port %p for device %s.", rtl8139->io_addr,
+		    ddf_dev_get_name(dev));
 		return EADDRNOTAVAIL;
 	}
 
@@ -1298,7 +1295,8 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun;
 
 	assert(dev);
-	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %d)", dev->name, dev->handle);
+	ddf_msg(LVL_NOTE, "RTL8139_dev_add %s (handle = %zu)",
+	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
 
 	/* Init device structure for rtl8139 */
 	int rc = rtl8139_device_initialize(dev);
@@ -1329,7 +1327,7 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 
 	rc = nic_connect_to_services(nic_data);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to connect to services", rc);
+		ddf_msg(LVL_ERROR, "Failed to connect to services (%d)", rc);
 		goto err_irq;
 	}
 
@@ -1339,8 +1337,8 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 		goto err_srv;
 	}
 	nic_set_ddf_fun(nic_data, fun);
-	fun->ops = &rtl8139_dev_ops;
-	fun->driver_data = nic_data;
+	ddf_fun_set_ops(fun, &rtl8139_dev_ops);
+	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -1354,7 +1352,7 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	}
 
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
-	    dev->name);
+	    ddf_dev_get_name(dev));
 
 	return EOK;
 	
@@ -2140,9 +2138,10 @@ static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 		pio_write_32(rtl8139->io_port + TIMERINT, 10);
 		pio_write_32(rtl8139->io_port + TCTR, 0);
 
-		ddf_msg(LVL_DEBUG, "Periodic mode. Interrupt mask %"PRIx16", poll.full_skips %"
-		    PRIu32", last timer %"PRIu32".", rtl8139->int_mask, 
-		    rtl8139->poll_timer.full_skips, rtl8139->poll_timer.last_val);
+		ddf_msg(LVL_DEBUG, "Periodic mode. Interrupt mask %" PRIx16 ", "
+		    "poll.full_skips %zu, last timer %" PRIu32,
+		    rtl8139->int_mask, rtl8139->poll_timer.full_skips,
+		    rtl8139->poll_timer.last_val);
 		break;
 	default:
 		rc = ENOTSUP;
@@ -2187,7 +2186,7 @@ int main(void)
 	nic_driver_implement(
 		&rtl8139_driver_ops, &rtl8139_dev_ops, &rtl8139_nic_iface);
 
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	ddf_msg(LVL_NOTE, "HelenOS RTL8139 driver started");
 	return ddf_driver_main(&rtl8139_driver);
 }

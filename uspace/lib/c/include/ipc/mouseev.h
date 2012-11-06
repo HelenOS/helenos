@@ -46,6 +46,7 @@ typedef enum {
 
 typedef enum {
 	MOUSEEV_MOVE_EVENT = IPC_FIRST_USER_METHOD,
+	MOUSEEV_ABS_MOVE_EVENT,
 	MOUSEEV_BUTTON_EVENT
 } mouseev_notif_t;
 

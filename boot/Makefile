@@ -46,8 +46,8 @@ endif
 ifeq ($(RDFMT),fat)
 	$(MKFAT) 1048576 $(DIST_PATH) $@
 endif
-ifeq ($(RDFMT),ext2fs)
-	$(MKEXT2) 1048576 $(DIST_PATH) $@
+ifeq ($(RDFMT),ext4fs)
+	$(MKEXT4) 1048576 $(DIST_PATH) $@
 endif
 
 build_dist: clean_dist

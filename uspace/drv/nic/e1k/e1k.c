@@ -32,6 +32,9 @@
  *
  */
 
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -70,13 +73,21 @@
 #define DRIVER_DATA_NIC(nic) \
 	((e1000_t *) nic_get_specific(nic))
 
-/** device_t* -> nic_driver_data_t* cast */
-#define NIC_DATA_DEV(dev) \
-	((nic_t *) ((dev)->driver_data))
+/** ddf_fun_t * -> nic_driver_data_t* cast */
+#define NIC_DATA_FUN(fun) \
+	((nic_t *) ddf_fun_data_get(fun))
 
-/** device_t* -> e1000_t* cast */
+/** ddf_dev_t * -> nic_driver_data_t* cast */
+#define NIC_DATA_DEV(dev) \
+	((nic_t *) ddf_dev_data_get(dev))
+
+/** ddf_dev_t * -> e1000_t* cast */
 #define DRIVER_DATA_DEV(dev) \
 	(DRIVER_DATA_NIC(NIC_DATA_DEV(dev)))
+
+/** ddf_fun_t * -> e1000_t* cast */
+#define DRIVER_DATA_FUN(fun) \
+	(DRIVER_DATA_NIC(NIC_DATA_FUN(fun)))
 
 /** Cast pointer to uint64_t
  *
@@ -304,13 +315,9 @@ static int e1000_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
  * @return EOK
  *
  */
-static int e1000_get_cable_state(ddf_fun_t *dev, nic_cable_state_t *state)
+static int e1000_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
-	assert(dev);
-	assert(DRIVER_DATA_DEV(dev));
-	assert(state);
-	
-	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	if (E1000_REG_READ(e1000, E1000_STATUS) & (STATUS_LU))
 		*state = NIC_CS_PLUGGED;
 	else
@@ -327,10 +334,10 @@ static uint16_t e1000_calculate_itr_interval_from_usecs(suseconds_t useconds)
 /** Get operation mode of the device
  *
  */
-static int e1000_get_operation_mode(ddf_fun_t *dev, int *speed,
+static int e1000_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role)
 {
-	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	uint32_t status = E1000_REG_READ(e1000, E1000_STATUS);
 	
 	if (status & STATUS_FD)
@@ -375,7 +382,7 @@ static void e1000_link_restart(e1000_t *e1000)
 /** Set operation mode of the device
  *
  */
-static int e1000_set_operation_mode(ddf_fun_t *dev, int speed,
+static int e1000_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role)
 {
 	if ((speed != 10) && (speed != 100) && (speed != 1000))
@@ -384,7 +391,7 @@ static int e1000_set_operation_mode(ddf_fun_t *dev, int speed,
 	if ((duplex != NIC_CM_HALF_DUPLEX) && (duplex != NIC_CM_FULL_DUPLEX))
 		return EINVAL;
 	
-	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
 	fibril_mutex_lock(&e1000->ctrl_lock);
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
@@ -423,9 +430,9 @@ static int e1000_set_operation_mode(ddf_fun_t *dev, int speed,
  * @return EOK if advertisement mode set successfully
  *
  */
-static int e1000_autoneg_enable(ddf_fun_t *dev, uint32_t advertisement)
+static int e1000_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 {
-	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
 	fibril_mutex_lock(&e1000->ctrl_lock);
 	
@@ -451,9 +458,9 @@ static int e1000_autoneg_enable(ddf_fun_t *dev, uint32_t advertisement)
  * @return EOK
  *
  */
-static int e1000_autoneg_disable(ddf_fun_t *dev)
+static int e1000_autoneg_disable(ddf_fun_t *fun)
 {
-	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
 	fibril_mutex_lock(&e1000->ctrl_lock);
 	
@@ -490,9 +497,9 @@ static int e1000_autoneg_restart(ddf_fun_t *dev)
  * @param[out] mode   Current mode
  *
  */
-static int e1000_defective_get_mode(ddf_fun_t *device, uint32_t *mode)
+static int e1000_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 {
-	e1000_t *e1000 = DRIVER_DATA_DEV(device);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
 	*mode = 0;
 	uint32_t rctl = E1000_REG_READ(e1000, E1000_RCTL);
@@ -511,9 +518,9 @@ static int e1000_defective_get_mode(ddf_fun_t *device, uint32_t *mode)
  * @return EOK of mode was set
  *
  */
-static int e1000_defective_set_mode(ddf_fun_t *device, uint32_t mode)
+static int e1000_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 {
-	e1000_t *e1000 = DRIVER_DATA_DEV(device);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	int rc = EOK;
 	
 	fibril_mutex_lock(&e1000->rx_lock);
@@ -1037,7 +1044,7 @@ static void e1000_on_vlan_mask_change(nic_t *nic,
  * @return ENOTSUP
  *
  */
-static int e1000_vlan_set_tag(ddf_fun_t *device, uint16_t tag, bool add,
+static int e1000_vlan_set_tag(ddf_fun_t *fun, uint16_t tag, bool add,
     bool strip)
 {
 	/* VLAN CFI bit cannot be set */
@@ -1051,7 +1058,7 @@ static int e1000_vlan_set_tag(ddf_fun_t *device, uint16_t tag, bool add,
 	if (!strip && add)
 		return ENOTSUP;
 	
-	e1000_t *e1000 = DRIVER_DATA_DEV(device);
+	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
 	e1000->vlan_tag = tag;
 	e1000->vlan_tag_add = add;
@@ -1854,9 +1861,6 @@ static int e1000_on_stopping(nic_t *nic)
  */
 static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 {
-	assert(dev);
-	assert(!dev->driver_data);
-	
 	nic_t *nic = nic_create_and_bind(dev);
 	if (!nic)
 		return NULL;
@@ -1895,7 +1899,7 @@ inline static void e1000_delete_dev_data(ddf_dev_t *dev)
 {
 	assert(dev);
 	
-	if (dev->driver_data != NULL)
+	if (ddf_dev_data_get(dev) != NULL)
 		nic_unbind_and_destroy(dev);
 }
 
@@ -1909,11 +1913,6 @@ static void e1000_dev_cleanup(ddf_dev_t *dev)
 	assert(dev);
 	
 	e1000_delete_dev_data(dev);
-	
-	if (dev->parent_sess != NULL) {
-		async_hangup(dev->parent_sess);
-		dev->parent_sess = NULL;
-	}
 }
 
 /** Fill the irq and io_addr part of device data structure
@@ -1930,10 +1929,6 @@ static void e1000_dev_cleanup(ddf_dev_t *dev)
 static int e1000_fill_resource_info(ddf_dev_t *dev,
     const hw_res_list_parsed_t *hw_resources)
 {
-	assert(dev != NULL);
-	assert(hw_resources != NULL);
-	assert(dev->driver_data != NULL);
-	
 	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
 	
 	if (hw_resources->irqs.count != 1)
@@ -2002,7 +1997,7 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	}
 	
 	uint16_t device_id;
-	rc = pci_config_space_read_16(dev->parent_sess, PCI_DEVICE_ID,
+	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev), PCI_DEVICE_ID,
 	    &device_id);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot access PCI configuration space");
@@ -2120,7 +2115,7 @@ int e1000_dev_add(ddf_dev_t *dev)
 		return rc;
 	
 	/* Device initialization */
-	nic_t *nic = dev->driver_data;
+	nic_t *nic = ddf_dev_data_get(dev);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
 	/* Map registers */
@@ -2146,8 +2141,8 @@ int e1000_dev_add(ddf_dev_t *dev)
 	if (fun == NULL)
 		goto err_tx_structure;
 	nic_set_ddf_fun(nic, fun);
-	fun->ops = &e1000_dev_ops;
-	fun->driver_data = nic;
+	ddf_fun_set_ops(fun, &e1000_dev_ops);
+	ddf_fun_data_implant(fun, nic);
 	
 	rc = e1000_register_int_handler(nic);
 	if (rc != EOK)
@@ -2277,9 +2272,9 @@ static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
  * @return EOK if succeed
  * @return Negative error code otherwise
  */
-static int e1000_set_addr(ddf_fun_t *dev, const nic_address_t *addr)
+static int e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
-	nic_t *nic = NIC_DATA_DEV(dev);
+	nic_t *nic = NIC_DATA_FUN(fun);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
 	fibril_mutex_lock(&e1000->rx_lock);
@@ -2385,7 +2380,7 @@ int main(void)
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
 	
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	ddf_msg(LVL_NOTE, "HelenOS E1000 driver started");
 	return ddf_driver_main(&e1000_driver);
 }

@@ -159,12 +159,12 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 	hub_dev->running = true;
 	usb_log_info("Controlling hub '%s' (%zu ports).\n",
-	    hub_dev->usb_device->ddf_dev->name, hub_dev->port_count);
+	    ddf_dev_get_name(hub_dev->usb_device->ddf_dev), hub_dev->port_count);
 
 	usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Turn off power to all ports.
  *
@@ -175,7 +175,7 @@ int usb_hub_device_remove(usb_device_t *usb_dev)
 {
 	return ENOTSUP;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Remove all attached devices
  * @param usb_dev generic usb device information
@@ -218,7 +218,7 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	usb_log_info("USB hub driver, stopped and cleaned.\n");
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback for polling hub for changes.
  *
  * @param dev Device where the change occured.
@@ -255,7 +255,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	}
 	return true;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Load hub-specific information into hub_dev structure and process if needed
  *
@@ -330,7 +330,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	}
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Set configuration of and USB device
  *
@@ -377,7 +377,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	}
 	return opResult;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process hub over current change
  *
@@ -415,7 +415,7 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 	}
 
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Process hub interrupts.
  *
@@ -484,7 +484,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 		}
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * callback called from hub polling fibril when the fibril terminates
  *

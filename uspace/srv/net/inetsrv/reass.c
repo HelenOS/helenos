@@ -85,7 +85,7 @@ int inet_reass_queue_packet(inet_packet_t *packet)
 	reass_dgram_t *rdg;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inet_reass_queue_packet()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_reass_queue_packet()");
 
 	fibril_mutex_lock(&reass_dgram_map_lock);
 
@@ -94,7 +94,7 @@ int inet_reass_queue_packet(inet_packet_t *packet)
 	if (rdg == NULL) {
 		/* Only happens when we are out of memory */
 		fibril_mutex_unlock(&reass_dgram_map_lock);
-		log_msg(LVL_DEBUG, "Allocation failed, packet dropped.");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Allocation failed, packet dropped.");
 		return ENOMEM;
 	}
 
