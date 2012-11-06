@@ -2348,18 +2348,58 @@ static inline marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur,
 	 * cpu1         cpu2            cpu3
 	 *                              cas(x, 0 -> 1), succeeds 
 	 *              cas(x, 0 -> 1), fails
-	 *              MB
+	 *              MB, to order load of x in cas and store to y
 	 *              y = 7
 	 * sees y == 7
 	 * loadMB must be enough to make cas(x) on cpu3 visible to cpu1, ie x == 1.
 	 * 
 	 * If cas() did not work this way:
-	 * - our head move protocol would not be correct.
-	 * - freeing an item linked to a moved head after another item was
+	 * a) our head move protocol would not be correct.
+	 * b) freeing an item linked to a moved head after another item was
 	 *   inserted in front of it, would require more than one grace period.
+	 * 
+	 * Ad (a): In the following example, cpu1 starts moving old_head
+	 * to new_head, cpu2 completes the move and cpu3 notices cpu2
+	 * completed the move before cpu1 gets a chance to notice cpu2
+	 * had already completed the move. Our requirements for cas() 
+	 * assume cpu3 will see a valid and mutable value in new_head 
+	 * after issuing a load memory barrier once it has determined 
+	 * the old_head's value had been successfully moved to new_head 
+	 * (because it sees old_head marked invalid).
+	 * 
+	 *  cpu1             cpu2             cpu3
+	 *   cas(old_head, <addr, N>, <addr, Const>), succeeds
+	 *   cas-order-barrier
+	 *   // Move from old_head to new_head started, now the interesting stuff:
+	 *   cas(new_head, <0, Inv>, <addr, N>), succeeds
+	 * 
+	 *                    cas(new_head, <0, Inv>, <addr, N>), but fails
+	 *                    cas-order-barrier
+	 *                    cas(old_head, <addr, Const>, <addr, Inv>), succeeds
+	 *                                     
+	 *                                     Sees old_head marked Inv (by cpu2)
+	 *                                     load-MB
+	 *                                     assert(new_head == <addr, N>)
+	 *   
+	 *   cas-order-barrier
+	 *  
+	 * Even though cpu1 did not yet issue a cas-order-barrier, cpu1's store
+	 * to new_head (successful cas()) must be made visible to cpu3 with
+	 * a load memory barrier if cpu1's store to new_head is visible
+	 * on another cpu (cpu2) and that cpu's (cpu2's) store to old_head
+	 * is already visible to cpu3.	 * 
 	 */
-	void *ret = atomic_cas_ptr((void**)link, (void *)cur, (void *)new);
-	return (marked_ptr_t) ret;
+	void *expected = (void*)cur;
+	
+	/* 
+	 * Use the acquire-release model, although we could probably
+	 * get away even with the relaxed memory model due to our use
+	 * of explicit memory barriers.
+	 */
+	__atomic_compare_exchange_n((void**)link, &expected, (void *)new, false,
+		__ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+	
+	return (marked_ptr_t) expected;
 }
 
 /** Orders compare-and-swaps to different memory locations. */
