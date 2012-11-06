@@ -73,11 +73,17 @@ mem_backend_t anon_backend = {
 
 bool anon_create(as_area_t *area)
 {
+	if (area->flags & AS_AREA_NORESERVE)
+		return true;
+
 	return reserve_try_alloc(area->pages);
 }
 
 bool anon_resize(as_area_t *area, size_t new_pages)
 {
+	if (area->flags & AS_AREA_NORESERVE)
+		return true;
+
 	if (new_pages > area->pages)
 		return reserve_try_alloc(new_pages - area->pages);
 	else if (new_pages < area->pages)
@@ -99,6 +105,7 @@ void anon_share(as_area_t *area)
 {
 	ASSERT(mutex_locked(&area->as->lock));
 	ASSERT(mutex_locked(&area->lock));
+	ASSERT(!(area->flags & AS_AREA_NORESERVE));
 
 	/*
 	 * Copy used portions of the area to sh_info's page map.
@@ -138,6 +145,9 @@ void anon_share(as_area_t *area)
 
 void anon_destroy(as_area_t *area)
 {
+	if (area->flags & AS_AREA_NORESERVE)
+		return;
+
 	reserve_free(area->pages);
 }
 
@@ -224,7 +234,29 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   do not forget to distinguish between
 		 *   the different causes
 		 */
-		kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);
+
+		unsigned int flags;
+
+		if (area->flags & AS_AREA_NORESERVE) {
+			/*
+			 * This is a NORESERVE area, which means that no
+			 * physical memory has been reserved beforehands.
+			 * We therefore need to make an atomic and reserving
+			 * allocation.
+			 */
+			flags = FRAME_ATOMIC;
+		} else {
+			/*
+			 * The physical memory has already been reserved
+			 * when this part of the area was created. Avoid
+			 * double reservation by using the appropriate flag.
+			 */
+			flags = FRAME_NO_RESERVE;
+		}
+
+		kpage = km_temporary_page_get(&frame, flags);
+		if (!kpage)
+			return AS_PF_FAULT;
 		memsetb((void *) kpage, PAGE_SIZE, 0);
 		km_temporary_page_put(kpage);
 	}
@@ -254,7 +286,21 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	ASSERT(page_table_locked(area->as));
 	ASSERT(mutex_locked(&area->lock));
 
-	frame_free_noreserve(frame);
+	if (area->flags & AS_AREA_NORESERVE) {
+		/*
+		 * In case of the NORESERVE areas, physical memory will not be
+		 * unreserved when the area is destroyed so we need to use the
+		 * normal unreserving frame_free().
+		 */
+		frame_free(frame);
+	} else {
+		/*
+		 * The reserve will be given back when the area is destroyed or
+		 * resized, so use the frame_free_noreserve() which does not
+		 * manipulate the reserve or it would be given back twice.
+		 */
+		frame_free_noreserve(frame);
+	}
 }
 
 /** @}
