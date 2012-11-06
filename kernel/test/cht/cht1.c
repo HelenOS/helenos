@@ -529,6 +529,7 @@ static bool do_stress(void)
 	TPRINTF("Joining resize stressers.\n");
 	for (size_t i = op_thread_cnt; i < total_thr_cnt; ++i) {
 		thread_join(thr[i]);
+		thread_detach(thr[i]);
 		failed = pwork[i].failed || failed;
 	}
 	
@@ -536,6 +537,7 @@ static bool do_stress(void)
 	for (int i = (int)op_thread_cnt - 1; i >= 0; --i) {
 		TPRINTF("%d threads remain\n", i);
 		thread_join(thr[i]);
+		thread_detach(thr[i]);
 		failed = pwork[i].failed || failed;
 	}
 	
