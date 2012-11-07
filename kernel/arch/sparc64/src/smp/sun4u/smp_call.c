@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sync
+/** @addtogroup sparc64
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Sun4u specific smp call support.
  */
 
-#ifndef KERN_CONDVAR_H_
-#define KERN_CONDVAR_H_
+#include <smp/smp_call.h>
+#include <arch/smp/sun4u/ipi.h>
+#include <arch/interrupt.h>
 
-#include <typedefs.h>
-#include <synch/waitq.h>
-#include <synch/mutex.h>
-#include <synch/spinlock.h>
-#include <abi/synch.h>
-
-typedef struct {
-	waitq_t wq;
-} condvar_t;
-
-#define condvar_wait(cv, mtx) \
-	_condvar_wait_timeout((cv), (mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-#define condvar_wait_timeout(cv, mtx, usec) \
-	_condvar_wait_timeout((cv), (mtx), (usec), SYNCH_FLAGS_NONE)
-
-#ifdef CONFIG_SMP
-#define _condvar_wait_timeout_spinlock(cv, lock, usec, flags) \
-	_condvar_wait_timeout_spinlock_impl((cv), (lock), (usec), (flags))
-#else
-#define _condvar_wait_timeout_spinlock(cv, lock, usec, flags) \
-	_condvar_wait_timeout_spinlock_impl((cv), NULL, (usec), (flags))
-#endif
-
-extern void condvar_initialize(condvar_t *cv);
-extern void condvar_signal(condvar_t *cv);
-extern void condvar_broadcast(condvar_t *cv);
-extern int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec,
-    int flags);
-extern int _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock, 
-	uint32_t usec, int flags);
-extern int _condvar_wait_timeout_irq_spinlock(condvar_t *cv, 
-	irq_spinlock_t *irq_lock, uint32_t usec, int flags);
-
-
-#endif
+void arch_smp_call_ipi(unsigned int cpu_id)
+{
+	/* 
+	 * Required by ipi_unicast_arch(). That functions resolves a potential
+	 * deadlock should both the destination and source cpus be sending
+	 * unicast ipis to each other with interrupts disabled.
+	 */
+	ipl_t ipl = interrupts_disable();
+	ipi_unicast_arch(cpu_id, IPI_SMP_CALL);
+	interrupts_restore(ipl);
+}
 
 /** @}
  */

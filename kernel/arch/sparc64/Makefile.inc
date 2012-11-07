@@ -100,6 +100,7 @@ endif
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \
 		arch/$(KARCH)/src/smp/$(USARCH)/smp.c \
+		arch/$(KARCH)/src/smp/$(USARCH)/smp_call.c \
 		arch/$(KARCH)/src/smp/$(USARCH)/ipi.c
 endif
 

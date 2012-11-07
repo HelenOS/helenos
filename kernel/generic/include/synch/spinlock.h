@@ -44,7 +44,7 @@
 
 #ifdef CONFIG_SMP
 
-typedef struct {
+typedef struct spinlock {
 	atomic_t val;
 	
 #ifdef CONFIG_DEBUG_SPINLOCK
@@ -161,6 +161,9 @@ NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 
 /* On UP systems, spinlocks are effectively left out. */
 
+/* Allow the use of spinlock_t as an incomplete type. */
+typedef struct spinlock spinlock_t;
+
 #define SPINLOCK_DECLARE(name)
 #define SPINLOCK_EXTERN(name)
 
@@ -175,7 +178,7 @@ NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define spinlock_initialize(lock, name)
 
 #define spinlock_lock(lock)     preemption_disable()
-#define spinlock_trylock(lock)  (preemption_disable(), 1)
+#define spinlock_trylock(lock)  ({ preemption_disable(); 1; })
 #define spinlock_unlock(lock)   preemption_enable()
 #define spinlock_locked(lock)	1
 #define spinlock_unlocked(lock)	1

@@ -119,7 +119,7 @@ int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
  *
  * @return See comment for waitq_sleep_timeout().
  */
-int _condvar_wait_timeout_spinlock(condvar_t *cv, spinlock_t *lock, 
+int _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock, 
 	uint32_t usec, int flags)
 {
 	int rc;

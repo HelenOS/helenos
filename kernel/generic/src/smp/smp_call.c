@@ -130,7 +130,7 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 
 		/*
 		 * If a platform supports SMP it must implement arch_smp_call_ipi().
-		 * It should issue an IPI an cpu_id and invoke smp_call_ipi_recv()
+		 * It should issue an IPI on cpu_id and invoke smp_call_ipi_recv()
 		 * on cpu_id in turn. 
 		 * 
 		 * Do not implement as just an empty dummy function. Instead
