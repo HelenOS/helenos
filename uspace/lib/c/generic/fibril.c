@@ -273,7 +273,7 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	fibril->stack = as_area_create((void *) -1,
 	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(),
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
-	    AS_AREA_NORESERVE);
+	    AS_AREA_LATE_RESERVE);
 	if (fibril->stack == (void *) -1) {
 		fibril_teardown(fibril);
 		return 0;

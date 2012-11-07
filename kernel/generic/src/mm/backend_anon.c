@@ -73,7 +73,7 @@ mem_backend_t anon_backend = {
 
 bool anon_create(as_area_t *area)
 {
-	if (area->flags & AS_AREA_NORESERVE)
+	if (area->flags & AS_AREA_LATE_RESERVE)
 		return true;
 
 	return reserve_try_alloc(area->pages);
@@ -81,7 +81,7 @@ bool anon_create(as_area_t *area)
 
 bool anon_resize(as_area_t *area, size_t new_pages)
 {
-	if (area->flags & AS_AREA_NORESERVE)
+	if (area->flags & AS_AREA_LATE_RESERVE)
 		return true;
 
 	if (new_pages > area->pages)
@@ -105,7 +105,7 @@ void anon_share(as_area_t *area)
 {
 	ASSERT(mutex_locked(&area->as->lock));
 	ASSERT(mutex_locked(&area->lock));
-	ASSERT(!(area->flags & AS_AREA_NORESERVE));
+	ASSERT(!(area->flags & AS_AREA_LATE_RESERVE));
 
 	/*
 	 * Copy used portions of the area to sh_info's page map.
@@ -145,7 +145,7 @@ void anon_share(as_area_t *area)
 
 void anon_destroy(as_area_t *area)
 {
-	if (area->flags & AS_AREA_NORESERVE)
+	if (area->flags & AS_AREA_LATE_RESERVE)
 		return;
 
 	reserve_free(area->pages);
@@ -235,7 +235,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   the different causes
 		 */
 
-		if (area->flags & AS_AREA_NORESERVE) {
+		if (area->flags & AS_AREA_LATE_RESERVE) {
 			/*
 			 * Reserve the memory for this page now.
 			 */
@@ -273,11 +273,11 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	ASSERT(page_table_locked(area->as));
 	ASSERT(mutex_locked(&area->lock));
 
-	if (area->flags & AS_AREA_NORESERVE) {
+	if (area->flags & AS_AREA_LATE_RESERVE) {
 		/*
-		 * In case of the NORESERVE areas, physical memory will not be
-		 * unreserved when the area is destroyed so we need to use the
-		 * normal unreserving frame_free().
+		 * In case of the late reserve areas, physical memory will not
+		 * be unreserved when the area is destroyed so we need to use
+		 * the normal unreserving frame_free().
 		 */
 		frame_free(frame);
 	} else {
