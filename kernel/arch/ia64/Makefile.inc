@@ -70,6 +70,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/smp/smp.c \
+	arch/$(KARCH)/src/smp/smp_call.c \
 	arch/$(KARCH)/src/drivers/it.c
 
 ifeq ($(MACHINE),ski)
