@@ -257,6 +257,8 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	} else {
 		frame = (uintptr_t) frame_alloc(ONE_FRAME,
 		    FRAME_LOWMEM | flags);
+		if (!frame)
+			return (uintptr_t) NULL;
 		page = PA2KA(frame);
 	}
 
