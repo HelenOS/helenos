@@ -695,11 +695,10 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		mutex_unlock(&as->lock);
 		return ENOENT;
 	}
-	
-	if (area->backend == &phys_backend) {
+
+	if (!area->backend->is_resizable(area)) {
 		/*
-		 * Remapping of address space areas associated
-		 * with memory mapped devices is not supported.
+		 * The backend does not support resizing for this area.
 		 */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
@@ -1056,10 +1055,9 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		return ENOENT;
 	}
 	
-	if ((!src_area->backend) || (!src_area->backend->share)) {
+	if (!src_area->backend->is_shareable(src_area)) {
 		/*
-		 * There is no backend or the backend does not
-		 * know how to share the area.
+		 * The backend does not permit sharing of this area.
 		 */
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);

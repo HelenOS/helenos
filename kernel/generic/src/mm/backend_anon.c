@@ -58,6 +58,9 @@ static bool anon_resize(as_area_t *, size_t);
 static void anon_share(as_area_t *);
 static void anon_destroy(as_area_t *);
 
+static bool anon_is_resizable(as_area_t *);
+static bool anon_is_shareable(as_area_t *);
+
 static int anon_page_fault(as_area_t *, uintptr_t, pf_access_t);
 static void anon_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
@@ -66,6 +69,9 @@ mem_backend_t anon_backend = {
 	.resize = anon_resize,
 	.share = anon_share,
 	.destroy = anon_destroy,
+
+	.is_resizable = anon_is_resizable,
+	.is_shareable = anon_is_shareable,
 
 	.page_fault = anon_page_fault,
 	.frame_free = anon_frame_free,
@@ -151,6 +157,15 @@ void anon_destroy(as_area_t *area)
 	reserve_free(area->pages);
 }
 
+bool anon_is_resizable(as_area_t *area)
+{
+	return true;
+}
+
+bool anon_is_shareable(as_area_t *area)
+{
+	return !(area->flags & AS_AREA_LATE_RESERVE);
+}
 
 /** Service a page fault in the anonymous memory address space area.
  *

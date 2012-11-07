@@ -57,6 +57,9 @@ static bool elf_resize(as_area_t *, size_t);
 static void elf_share(as_area_t *);
 static void elf_destroy(as_area_t *);
 
+static bool elf_is_resizable(as_area_t *);
+static bool elf_is_shareable(as_area_t *);
+
 static int elf_page_fault(as_area_t *, uintptr_t, pf_access_t);
 static void elf_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
@@ -65,6 +68,9 @@ mem_backend_t elf_backend = {
 	.resize = elf_resize,
 	.share = elf_share,
 	.destroy = elf_destroy,
+
+	.is_resizable = elf_is_resizable,
+	.is_shareable = elf_is_shareable,
 
 	.page_fault = elf_page_fault,
 	.frame_free = elf_frame_free,
@@ -211,6 +217,17 @@ void elf_destroy(as_area_t *area)
 	if (area->pages > nonanon_pages)
 		reserve_free(area->pages - nonanon_pages);
 }
+
+bool elf_is_resizable(as_area_t *area)
+{
+	return true;
+}
+
+bool elf_is_shareable(as_area_t *area)
+{
+	return true;
+}
+
 
 /** Service a page fault in the ELF backend address space area.
  *

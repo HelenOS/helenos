@@ -223,6 +223,9 @@ typedef struct mem_backend {
 	void (* share)(as_area_t *);
 	void (* destroy)(as_area_t *);
 
+	bool (* is_resizable)(as_area_t *);
+	bool (* is_shareable)(as_area_t *);
+
 	int (* page_fault)(as_area_t *, uintptr_t, pf_access_t);
 	void (* frame_free)(as_area_t *, uintptr_t, uintptr_t);
 } mem_backend_t;
