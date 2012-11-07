@@ -94,10 +94,26 @@ typedef struct task {
 	cap_t capabilities;
 	
 	/* IPC stuff */
-	answerbox_t answerbox;  /**< Communication endpoint */
+
+	/** Receiving communication endpoint */
+	answerbox_t answerbox;
+
+	/** Sending communication endpoints */
 	phone_t phones[IPC_MAX_PHONES];
-	stats_ipc_t ipc_info;   /**< IPC statistics */
+
+	/** Spinlock protecting the active_calls list. */
+	SPINLOCK_DECLARE(active_calls_lock);
+
+	/**
+	 * List of all calls sent by this task that have not yet been
+	 * answered.
+	 */
+	list_t active_calls;
+
 	event_t events[EVENT_TASK_END - EVENT_END];
+
+	/** IPC statistics */
+	stats_ipc_t ipc_info;
 	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */

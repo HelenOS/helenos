@@ -44,24 +44,26 @@
 struct surface;
 typedef struct surface surface_t;
 
+typedef sysarg_t surface_coord_t;
+
 typedef enum {
 	SURFACE_FLAG_NONE = 0,
 	SURFACE_FLAG_SHARED = 1
 } surface_flags_t;
 
-extern surface_t *surface_create(sysarg_t, sysarg_t, pixel_t *, surface_flags_t);
+extern surface_t *surface_create(surface_coord_t, surface_coord_t, pixel_t *, surface_flags_t);
 extern void surface_destroy(surface_t *);
 
 extern bool surface_is_shared(surface_t *);
 extern pixel_t *surface_direct_access(surface_t *);
 extern pixelmap_t *surface_pixmap_access(surface_t *);
-extern void surface_get_resolution(surface_t *, sysarg_t *, sysarg_t *);
-extern void surface_get_damaged_region(surface_t *, sysarg_t *, sysarg_t *,
-    sysarg_t *, sysarg_t *);
+extern void surface_get_resolution(surface_t *, surface_coord_t *, surface_coord_t *);
+extern void surface_get_damaged_region(surface_t *, surface_coord_t *, surface_coord_t *,
+    surface_coord_t *, surface_coord_t *);
 extern void surface_reset_damaged_region(surface_t *);
 
-extern void surface_put_pixel(surface_t *, sysarg_t, sysarg_t, pixel_t);
-extern pixel_t surface_get_pixel(surface_t *, sysarg_t, sysarg_t);
+extern void surface_put_pixel(surface_t *, surface_coord_t, surface_coord_t, pixel_t);
+extern pixel_t surface_get_pixel(surface_t *, surface_coord_t, surface_coord_t);
 
 #endif
 

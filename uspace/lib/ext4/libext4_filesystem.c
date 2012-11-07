@@ -471,8 +471,6 @@ int ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid,
 
 /** Compute checksum of block group descriptor.
  *
- * It uses crc functions from Linux kernel implementation.
- *
  * @param sb   Superblock
  * @param bgid Index of block group in the filesystem
  * @param bg   Block group to compute checksum for
@@ -1283,6 +1281,11 @@ int ext4_filesystem_release_inode_block(ext4_inode_ref_t *inode_ref,
 	 */
 	block_t *block;
 	while (level > 0) {
+		
+		/* Sparse check */
+		if (current_block == 0)
+			return EOK;
+		
 		int rc = block_get(&block, fs->device, current_block, 0);
 		if (rc != EOK)
 			return rc;

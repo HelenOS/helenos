@@ -133,6 +133,8 @@ LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
 
 LIBSCSI_PREFIX = $(LIB_PREFIX)/scsi
 
+LIBBITHENGE_PREFIX = $(LIB_PREFIX)/bithenge
+
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
 else
@@ -224,7 +226,7 @@ endif
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
 ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)
+	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
 	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
 endif
 

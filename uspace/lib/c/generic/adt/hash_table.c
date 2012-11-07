@@ -61,12 +61,12 @@
 #define HT_MAX_LOAD     2
 
 
-static size_t round_up_size(size_t size);
-static bool alloc_table(size_t bucket_cnt, list_t **pbuckets);
-static void clear_items(hash_table_t *h);
-static void resize(hash_table_t *h, size_t new_bucket_cnt);
-static void grow_if_needed(hash_table_t *h);
-static void shrink_if_needed(hash_table_t *h);
+static size_t round_up_size(size_t);
+static bool alloc_table(size_t, list_t **);
+static void clear_items(hash_table_t *);
+static void resize(hash_table_t *, size_t);
+static void grow_if_needed(hash_table_t *);
+static void shrink_if_needed(hash_table_t *);
 
 /* Dummy do nothing callback to invoke in place of remove_callback == NULL. */
 static void nop_remove_callback(ht_link_t *item)

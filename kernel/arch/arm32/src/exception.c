@@ -122,7 +122,7 @@ static void high_vectors(void)
 	uint32_t control_reg;
 	
 	asm volatile (
-		"mrc p15, 0, %[control_reg], c1, c1"
+		"mrc p15, 0, %[control_reg], c1, c0"
 		: [control_reg] "=r" (control_reg)
 	);
 	
@@ -130,7 +130,7 @@ static void high_vectors(void)
 	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
 	
 	asm volatile (
-		"mcr p15, 0, %[control_reg], c1, c1"
+		"mcr p15, 0, %[control_reg], c1, c0"
 		:: [control_reg] "r" (control_reg)
 	);
 }

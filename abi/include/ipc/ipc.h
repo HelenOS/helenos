@@ -56,11 +56,8 @@
 /** Call was forwarded */
 #define IPC_CALL_FORWARDED  (1 << 2)
 
-/** Identify connect_me_to answer */
-#define IPC_CALL_CONN_ME_TO  (1 << 3)
-
 /** Interrupt notification */
-#define IPC_CALL_NOTIF  (1 << 4)
+#define IPC_CALL_NOTIF  (1 << 3)
 
 
 /** Bits used in call hashes.

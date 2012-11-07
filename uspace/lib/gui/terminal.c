@@ -38,8 +38,9 @@
 #include <io/chargrid.h>
 #include <surface.h>
 #include <gfx/font-8x16.h>
+#include <io/con_srv.h>
+#include <io/concaps.h>
 #include <io/console.h>
-#include <ipc/console.h>
 #include <task.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
@@ -59,6 +60,46 @@
 	(CONSOLE_CAP_STYLE | CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB)
 
 static LIST_INITIALIZE(terms);
+
+static int term_open(con_srvs_t *, con_srv_t *);
+static int term_close(con_srv_t *);
+static int term_read(con_srv_t *, void *, size_t);
+static int term_write(con_srv_t *, void *, size_t);
+static void term_sync(con_srv_t *);
+static void term_clear(con_srv_t *);
+static void term_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
+static int term_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
+static int term_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
+static int term_get_color_cap(con_srv_t *, console_caps_t *);
+static void term_set_style(con_srv_t *, console_style_t);
+static void term_set_color(con_srv_t *, console_color_t, console_color_t,
+    console_color_attr_t);
+static void term_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
+static void term_set_cursor_visibility(con_srv_t *, bool);
+static int term_get_event(con_srv_t *, kbd_event_t *);
+
+static con_ops_t con_ops = {
+	.open = term_open,
+	.close = term_close,
+	.read = term_read,
+	.write = term_write,
+	.sync = term_sync,
+	.clear = term_clear,
+	.set_pos = term_set_pos,
+	.get_pos = term_get_pos,
+	.get_size = term_get_size,
+	.get_color_cap = term_get_color_cap,
+	.set_style = term_set_style,
+	.set_color = term_set_color,
+	.set_rgb_color = term_set_rgb_color,
+	.set_cursor_visibility = term_set_cursor_visibility,
+	.get_event = term_get_event
+};
+
+static terminal_t *srv_to_terminal(con_srv_t *srv)
+{
+	return srv->srvs->sarg;
+}
 
 static void getterm(const char *svc, const char *app)
 {
@@ -340,41 +381,20 @@ static void term_damage(terminal_t *term)
 	fibril_mutex_unlock(&term->mtx);
 }
 
-static void term_set_cursor(terminal_t *term, sysarg_t col, sysarg_t row)
+static int term_open(con_srvs_t *srvs, con_srv_t *srv)
 {
-	fibril_mutex_lock(&term->mtx);
-	chargrid_set_cursor(term->frontbuf, col, row);
-	fibril_mutex_unlock(&term->mtx);
-	
-	term_update(term);
+	return EOK;
 }
 
-static void term_set_cursor_visibility(terminal_t *term, bool visible)
+static int term_close(con_srv_t *srv)
 {
-	fibril_mutex_lock(&term->mtx);
-	chargrid_set_cursor_visibility(term->frontbuf, visible);
-	fibril_mutex_unlock(&term->mtx);
-	
-	term_update(term);
+	return EOK;
 }
 
-static void term_read(terminal_t *term, ipc_callid_t iid, ipc_call_t *icall)
+static int term_read(con_srv_t *srv, void *buf, size_t size)
 {
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	char *buf = (char *) malloc(size);
-	if (buf == NULL) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
-		return;
-	}
-	
+	terminal_t *term = srv_to_terminal(srv);
+	uint8_t *bbuf = buf;
 	size_t pos = 0;
 	
 	/*
@@ -385,7 +405,7 @@ static void term_read(terminal_t *term, ipc_callid_t iid, ipc_call_t *icall)
 	while (pos < size) {
 		/* Copy to the buffer remaining characters. */
 		while ((pos < size) && (term->char_remains_len > 0)) {
-			buf[pos] = term->char_remains[0];
+			bbuf[pos] = term->char_remains[0];
 			pos++;
 			
 			/* Unshift the array. */
@@ -415,9 +435,7 @@ static void term_read(terminal_t *term, ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	(void) async_data_read_finalize(callid, buf, size);
-	async_answer_1(iid, EOK, size);
-	free(buf);
+	return size;
 }
 
 static void term_write_char(terminal_t *term, wchar_t ch)
@@ -448,27 +466,28 @@ static void term_write_char(terminal_t *term, wchar_t ch)
 		term_update(term);
 }
 
-static void term_write(terminal_t *term, ipc_callid_t iid, ipc_call_t *icall)
+static int term_write(con_srv_t *srv, void *data, size_t size)
 {
-	void *buf;
-	size_t size;
-	int rc = async_data_write_accept(&buf, false, 0, 0, 0, &size);
-	
-	if (rc != EOK) {
-		async_answer_0(iid, rc);
-		return;
-	}
+	terminal_t *term = srv_to_terminal(srv);
 	
 	size_t off = 0;
 	while (off < size)
-		term_write_char(term, str_decode(buf, &off, size));
+		term_write_char(term, str_decode(data, &off, size));
 	
-	async_answer_1(iid, EOK, size);
-	free(buf);
+	return size;
 }
 
-static void term_clear(terminal_t *term)
+static void term_sync(con_srv_t *srv)
 {
+	terminal_t *term = srv_to_terminal(srv);
+	
+	term_update(term);
+}
+
+static void term_clear(con_srv_t *srv)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	
 	fibril_mutex_lock(&term->mtx);
 	chargrid_clear(term->frontbuf);
 	fibril_mutex_unlock(&term->mtx);
@@ -476,48 +495,97 @@ static void term_clear(terminal_t *term)
 	term_update(term);
 }
 
-static void term_get_cursor(terminal_t *term, ipc_callid_t iid, ipc_call_t *icall)
+static void term_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 {
-	sysarg_t col;
-	sysarg_t row;
+	terminal_t *term = srv_to_terminal(srv);
 	
 	fibril_mutex_lock(&term->mtx);
-	chargrid_get_cursor(term->frontbuf, &col, &row);
+	chargrid_set_cursor(term->frontbuf, col, row);
 	fibril_mutex_unlock(&term->mtx);
 	
-	async_answer_2(iid, EOK, col, row);
+	term_update(term);
 }
 
-static void term_set_style(terminal_t *term, console_style_t style)
+static int term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 {
+	terminal_t *term = srv_to_terminal(srv);
+	
+	fibril_mutex_lock(&term->mtx);
+	chargrid_get_cursor(term->frontbuf, col, row);
+	fibril_mutex_unlock(&term->mtx);
+	
+	return EOK;
+}
+
+static int term_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	
+	fibril_mutex_lock(&term->mtx);
+	*cols = term->cols;
+	*rows = term->rows;
+	fibril_mutex_unlock(&term->mtx);
+	
+	return EOK;
+}
+
+static int term_get_color_cap(con_srv_t *srv, console_caps_t *caps)
+{
+	(void) srv;
+	*caps = TERM_CAPS;
+	
+	return EOK;
+}
+
+static void term_set_style(con_srv_t *srv, console_style_t style)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_style(term->frontbuf, style);
 	fibril_mutex_unlock(&term->mtx);
 }
 
-static void term_set_color(terminal_t *term, console_color_t bgcolor,
+static void term_set_color(con_srv_t *srv, console_color_t bgcolor,
     console_color_t fgcolor, console_color_attr_t attr)
 {
+	terminal_t *term = srv_to_terminal(srv);
+	
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_color(term->frontbuf, bgcolor, fgcolor, attr);
 	fibril_mutex_unlock(&term->mtx);
 }
 
-static void term_set_rgb_color(terminal_t *term, pixel_t bgcolor,
+static void term_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
     pixel_t fgcolor)
 {
+	terminal_t *term = srv_to_terminal(srv);
+	
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_rgb_color(term->frontbuf, bgcolor, fgcolor);
 	fibril_mutex_unlock(&term->mtx);
 }
 
-static void term_get_event(terminal_t *term, ipc_callid_t iid, ipc_call_t *icall)
+static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 {
-	link_t *link = prodcons_consume(&term->input_pc);
-	kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+	terminal_t *term = srv_to_terminal(srv);
 	
-	async_answer_4(iid, EOK, event->type, event->key, event->mods, event->c);
-	free(event);
+	fibril_mutex_lock(&term->mtx);
+	chargrid_set_cursor_visibility(term->frontbuf, visible);
+	fibril_mutex_unlock(&term->mtx);
+	
+	term_update(term);
+}
+
+static int term_get_event(con_srv_t *srv, kbd_event_t *event)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	link_t *link = prodcons_consume(&term->input_pc);
+	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
+	
+	*event = *kevent;
+	free(kevent);
+	return EOK;
 }
 
 void deinit_terminal(terminal_t *term)
@@ -611,70 +679,9 @@ static void term_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 	
 	if (atomic_postinc(&term->refcnt) == 0)
-		term_set_cursor_visibility(term, true);
+		chargrid_set_cursor_visibility(term->frontbuf, true);
 	
-	/* Accept the connection */
-	async_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call))
-			return;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case VFS_OUT_READ:
-			term_read(term, callid, &call);
-			break;
-		case VFS_OUT_WRITE:
-			term_write(term, callid, &call);
-			break;
-		case VFS_OUT_SYNC:
-			term_update(term);
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_CLEAR:
-			term_clear(term);
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_GOTO:
-			term_set_cursor(term, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_GET_POS:
-			term_get_cursor(term, callid, &call);
-			break;
-		case CONSOLE_GET_SIZE:
-			async_answer_2(callid, EOK, term->cols, term->rows);
-			break;
-		case CONSOLE_GET_COLOR_CAP:
-			async_answer_1(callid, EOK, TERM_CAPS);
-			break;
-		case CONSOLE_SET_STYLE:
-			term_set_style(term, IPC_GET_ARG1(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_SET_COLOR:
-			term_set_color(term, IPC_GET_ARG1(call), IPC_GET_ARG2(call),
-			    IPC_GET_ARG3(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_SET_RGB_COLOR:
-			term_set_rgb_color(term, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_CURSOR_VISIBILITY:
-			term_set_cursor_visibility(term, IPC_GET_ARG1(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_GET_EVENT:
-			term_get_event(term, callid, &call);
-			break;
-		default:
-			async_answer_0(callid, EINVAL);
-		}
-	}
+	con_conn(iid, icall, &term->srvs);
 }
 
 bool init_terminal(terminal_t *term, widget_t *parent, sysarg_t width,
@@ -726,6 +733,10 @@ bool init_terminal(terminal_t *term, widget_t *parent, sysarg_t width,
 	term->top_row = 0;
 	
 	async_set_client_connection(term_connection);
+	con_srvs_init(&term->srvs);
+	term->srvs.ops = &con_ops;
+	term->srvs.sarg = term;
+	
 	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		widget_deinit(&term->widget);

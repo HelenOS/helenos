@@ -89,7 +89,7 @@ static hash_table_ops_t task_hash_table_ops = {
 	.hash = task_hash,
 	.key_hash = task_key_hash,
 	.key_equal = task_key_equal,
-	.equal = 0,
+	.equal = NULL,
 	.remove_callback = task_remove
 };
 
@@ -140,7 +140,7 @@ static hash_table_ops_t p2i_ops = {
 	.hash = p2i_hash,
 	.key_hash = p2i_key_hash,
 	.key_equal = p2i_key_equal,
-	.equal = 0,
+	.equal = NULL,
 	.remove_callback = p2i_remove
 };
 

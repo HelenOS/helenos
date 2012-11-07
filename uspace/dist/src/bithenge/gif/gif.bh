@@ -1,0 +1,148 @@
+#
+# Copyright (c) 2012 Vojtech Horky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+#
+# Graphics Interchange Format (image/gif)
+#
+
+
+transform chars(len) = ascii <- known_length(len);
+transform word = uint16le;
+
+
+
+transform gif_signature = chars(3);
+
+transform gif_version = chars(3);
+
+transform gif_color_map_entry = struct {
+	.red <- uint8;
+	.green <- uint8;
+	.blue <- uint8;
+};
+
+transform gif_color_map(length) = repeat(length) {
+	gif_color_map_entry
+};
+
+transform gif_color_map_from_bits_per_pixel(bits_per_pixel) = struct {
+	# We need to emulate missing << operator
+	switch (bits_per_pixel) {
+		1: { <- gif_color_map(2); };
+		2: { <- gif_color_map(4); };
+		3: { <- gif_color_map(8); };
+		4: { <- gif_color_map(16); };
+		5: { <- gif_color_map(32); };
+		6: { <- gif_color_map(64); };
+		7: { <- gif_color_map(128); };
+		8: { <- gif_color_map(256); };
+	}
+};
+
+
+# Process GIF data block:
+#  - first byte denotes block size (.length)
+#  - followed by .length bytes of the actual data (not processed here)
+#  - followed by next block or terminator (zero)
+transform generic_data_block = do {
+	struct {
+		.length <- uint8;
+		.has_next <- nonzero_boolean <- (.length);
+		if (.has_next) {
+			.data <- known_length(.length);
+		}
+	}
+} while (.has_next);
+
+
+transform gif_image_block = struct {
+	.left <- word;
+	.top <- word;
+	.width <- word;
+	.height <- word;
+	
+	<- struct {
+		.use_local_color_map <- bit;
+		.interlacing <- bit;
+		.reserved_bits <- uint_be(3);
+		.bits_per_pixel <- (in + 1) <- uint_be(3);
+	} <- bits_be <- known_length(1);
+	
+	if (.use_local_color_map) {
+		.local_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel);
+	}
+	
+	.lzw_initial_size <- uint8;
+	.lzw_data <- generic_data_block;	
+};
+
+# TODO: interpret known extensions
+transform gif_extension = struct {
+	.function <- uint8;
+	.data <- generic_data_block;
+};
+
+# Switch over known blocks (image, extensions, end)
+transform gif_block = struct {
+	.kind <- uint8;
+	switch (.kind) {
+		33: { # exclamation mark -> extension block
+			.extension <- gif_extension;
+		};
+		44: { # comma -> image
+			.image <- gif_image_block;
+		};
+		59: { # semicolon -> terminator
+			.after_terminator <- repeat { uint8 };
+		};
+		else: {
+			.unknown <- repeat { uint8 };
+		};
+	}
+}; 
+
+transform main = struct {
+	.signature <- gif_signature;
+	.version <- gif_version;
+	.width <- word;
+	.height <- word;
+	<- struct {
+		.global_color_map_exists <- bit;
+		.color_resolution <- uint_be(3);
+		.reserved_bit <- uint_be(1);
+		.bits_per_pixel <- (in + 1) <- uint_be(3);
+	} <- bits_be <- known_length(1);
+	.background_color_index <- uint8;
+	.reserved <- uint8;
+	if (.global_color_map_exists) {
+		.global_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel);
+	}
+	.blocks <- repeat {
+		gif_block
+	}; 
+};

@@ -36,18 +36,12 @@
 #define LIBC_IO_CONSOLE_H_
 
 #include <sys/time.h>
+#include <io/concaps.h>
 #include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <async.h>
 #include <bool.h>
 #include <stdio.h>
-
-typedef enum {
-	CONSOLE_CAP_NONE = 0,
-	CONSOLE_CAP_STYLE = 1,
-	CONSOLE_CAP_INDEXED = 2,
-	CONSOLE_CAP_RGB = 4
-} console_caps_t;
 
 /** Console control structure. */
 typedef struct {

@@ -37,59 +37,21 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <usb/usb.h>
+#include <io/log.h>
 #include <assert.h>
 
 void usb_dump_standard_descriptor(FILE *, const char *, const char *,
     const uint8_t *, size_t);
 
-/** Logging level. */
-typedef enum {
-	/** Fatal, unrecoverable, error.
-	 * Such error prevents the driver from working at all.
-	 */
-	USB_LOG_LEVEL_FATAL,
+#define USB_LOG_LEVEL_FATAL LVL_FATAL
+#define USB_LOG_LEVEL_ERROR LVL_ERROR
+#define USB_LOG_LEVEL_WARNING LVL_WARN
+#define USB_LOG_LEVEL_INFO LVL_NOTE
+#define USB_LOG_LEVEL_DEBUG LVL_DEBUG
+#define USB_LOG_LEVEL_DEBUG2 LVL_DEBUG2
 
-	/** Serious but recoverable error
-	 * Shall be used for errors fatal for single device but not for
-	 * driver itself.
-	 */
-	USB_LOG_LEVEL_ERROR,
-
-	/** Warning.
-	 * Problems from which the driver is able to recover gracefully.
-	 */
-	USB_LOG_LEVEL_WARNING,
-
-	/** Information message.
-	 * This should be the last level that is printed by default to
-	 * the screen.
-	 * Typical usage is to inform that new device was found and what
-	 * are its capabilities.
-	 * Do not use for repetitive actions (such as device polling).
-	 */
-	USB_LOG_LEVEL_INFO,
-
-	/** Debugging message. */
-	USB_LOG_LEVEL_DEBUG,
-
-	/** More detailed debugging message. */
-	USB_LOG_LEVEL_DEBUG2,
-
-	/** Terminating constant for logging levels. */
-	USB_LOG_LEVEL_MAX
-} usb_log_level_t;
-
-/** Default log level. */
-#ifdef CONFIG_USB_VERBOSE
-	#define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_DEBUG
-#else
-	#define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_INFO
-#endif
-
-void usb_log_enable(usb_log_level_t, const char *);
-
-void usb_log_printf(usb_log_level_t, const char *, ...)
-	PRINTF_ATTRIBUTE(2, 3);
+#define usb_log_printf(level, format, ...) \
+	log_msg(LOG_DEFAULT, level, format, ##__VA_ARGS__)
 
 /** Log fatal error. */
 #define usb_log_fatal(format, ...) \

@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <str.h>
+#include <io/log.h>
 #include "tester.h"
 
 bool test_quiet;
@@ -51,12 +52,17 @@ test_t tests[] = {
 #include "print/print3.def"
 #include "print/print4.def"
 #include "print/print5.def"
+#include "print/print6.def"
 #include "console/console1.def"
 #include "stdio/stdio1.def"
 #include "stdio/stdio2.def"
+#include "stdio/logger1.def"
+#include "stdio/logger2.def"
 #include "fault/fault1.def"
 #include "fault/fault2.def"
 #include "fault/fault3.def"
+#include "float/float1.def"
+#include "float/softfloat1.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"
 #include "ipc/starve.def"
@@ -67,7 +73,7 @@ test_t tests[] = {
 #include "mm/mapping1.def"
 #include "hw/serial/serial1.def"
 #include "hw/misc/virtchar1.def"
-#include "libext2/libext2_1.def"
+#include "ext2/ext2_1.def"
 	{NULL, NULL, NULL, false}
 };
 
@@ -137,6 +143,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
+	log_init("tester");
+
 	test_quiet = false;
 	test_argc = argc - 2;
 	test_argv = argv + 2;

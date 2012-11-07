@@ -24,15 +24,6 @@ SECTIONS {
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
 	
-#if defined(LOADER) || defined(DLEXE)
-	.interp : {
-		*(.interp);
-	} :interp :text
-#endif
-	
-	/* Make sure the code is aligned reasonably */
-	. = ALIGN(., 16);
-	
 	.init : {
 		*(.init);
 	} :text
@@ -70,6 +61,13 @@ SECTIONS {
 		*(.hash);
 	} :text
 #endif
+	
+#if defined(LOADER) || defined(DLEXE)
+	.interp : {
+		*(.interp);
+	} :interp :text
+#endif
+	
 	. = . + 0x1000;
 	
 #if defined(SHLIB) || defined(DLEXE)

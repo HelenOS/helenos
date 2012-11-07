@@ -110,7 +110,6 @@ static sysarg_t scr_columns;
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
 #define TAB_WIDTH 8
-#define ED_INFTY 65536
 
 /** Maximum filename length that can be entered. */
 #define INFNAME_MAX_LEN 128
@@ -506,6 +505,7 @@ static void caret_move(spt_t new_caret_pt, bool select, bool update_ideal_column
 
 static void key_handle_movement(unsigned int key, bool select)
 {
+	spt_t pt;
 	switch (key) {
 	case KC_LEFT:
 		caret_move_relative(0, -1, dir_before, select);
@@ -520,10 +520,14 @@ static void key_handle_movement(unsigned int key, bool select)
 		caret_move_relative(+1, 0, dir_before, select);
 		break;
 	case KC_HOME:
-		caret_move_relative(0, -ED_INFTY, dir_after, select);
+		tag_get_pt(&pane.caret_pos, &pt);
+		pt_get_sol(&pt, &pt);
+		caret_move(pt, select, true);
 		break;
 	case KC_END:
-		caret_move_relative(0, +ED_INFTY, dir_before, select);
+		tag_get_pt(&pane.caret_pos, &pt);
+		pt_get_eol(&pt, &pt);
+		caret_move(pt, select, true);
 		break;
 	case KC_PAGE_UP:
 		caret_move_relative(-pane.rows, 0, dir_before, select);

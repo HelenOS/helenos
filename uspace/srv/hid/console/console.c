@@ -36,16 +36,15 @@
 #include <stdio.h>
 #include <adt/prodcons.h>
 #include <io/input.h>
-#include <ipc/console.h>
 #include <ipc/vfs.h>
 #include <errno.h>
 #include <str_error.h>
 #include <loc.h>
 #include <event.h>
+#include <io/con_srv.h>
 #include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <io/chargrid.h>
-#include <io/console.h>
 #include <io/output.h>
 #include <align.h>
 #include <malloc.h>
@@ -79,6 +78,7 @@ typedef struct {
 	
 	chargrid_t *frontbuf;    /**< Front buffer */
 	frontbuf_handle_t fbid;  /**< Front buffer handle */
+	con_srvs_t srvs;         /**< Console service setup */
 } console_t;
 
 /** Input server proxy */
@@ -113,6 +113,46 @@ static input_ev_ops_t input_ev_ops = {
 	.button = input_ev_button
 };
 
+static int cons_open(con_srvs_t *, con_srv_t *);
+static int cons_close(con_srv_t *);
+static int cons_read(con_srv_t *, void *, size_t);
+static int cons_write(con_srv_t *, void *, size_t);
+static void cons_sync(con_srv_t *);
+static void cons_clear(con_srv_t *);
+static void cons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
+static int cons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
+static int cons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
+static int cons_get_color_cap(con_srv_t *, console_caps_t *);
+static void cons_set_style(con_srv_t *, console_style_t);
+static void cons_set_color(con_srv_t *, console_color_t, console_color_t,
+    console_color_attr_t);
+static void cons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
+static void cons_set_cursor_visibility(con_srv_t *, bool);
+static int cons_get_event(con_srv_t *, kbd_event_t *);
+
+static con_ops_t con_ops = {
+	.open = cons_open,
+	.close = cons_close,
+	.read = cons_read,
+	.write = cons_write,
+	.sync = cons_sync,
+	.clear = cons_clear,
+	.set_pos = cons_set_pos,
+	.get_pos = cons_get_pos,
+	.get_size = cons_get_size,
+	.get_color_cap = cons_get_color_cap,
+	.set_style = cons_set_style,
+	.set_color = cons_set_color,
+	.set_rgb_color = cons_set_rgb_color,
+	.set_cursor_visibility = cons_set_cursor_visibility,
+	.get_event = cons_get_event
+};
+
+static console_t *srv_to_console(con_srv_t *srv)
+{
+	return srv->srvs->sarg;
+}
+
 static void cons_update(console_t *cons)
 {
 	fibril_mutex_lock(&switch_mtx);
@@ -137,15 +177,6 @@ static void cons_update_cursor(console_t *cons)
 	
 	fibril_mutex_unlock(&cons->mtx);
 	fibril_mutex_unlock(&switch_mtx);
-}
-
-static void cons_clear(console_t *cons)
-{
-	fibril_mutex_lock(&cons->mtx);
-	chargrid_clear(cons->frontbuf);
-	fibril_mutex_unlock(&cons->mtx);
-	
-	cons_update(cons);
 }
 
 static void cons_damage(console_t *cons)
@@ -287,16 +318,7 @@ static void cons_write_char(console_t *cons, wchar_t ch)
 		cons_update(cons);
 }
 
-static void cons_set_cursor(console_t *cons, sysarg_t col, sysarg_t row)
-{
-	fibril_mutex_lock(&cons->mtx);
-	chargrid_set_cursor(cons->frontbuf, col, row);
-	fibril_mutex_unlock(&cons->mtx);
-	
-	cons_update_cursor(cons);
-}
-
-static void cons_set_cursor_visibility(console_t *cons, bool visible)
+static void cons_set_cursor_vis(console_t *cons, bool visible)
 {
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_cursor_visibility(cons->frontbuf, visible);
@@ -305,54 +327,20 @@ static void cons_set_cursor_visibility(console_t *cons, bool visible)
 	cons_update_cursor(cons);
 }
 
-static void cons_get_cursor(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
+static int cons_open(con_srvs_t *srvs, con_srv_t *srv)
 {
-	sysarg_t col;
-	sysarg_t row;
-	
-	fibril_mutex_lock(&cons->mtx);
-	chargrid_get_cursor(cons->frontbuf, &col, &row);
-	fibril_mutex_unlock(&cons->mtx);
-	
-	async_answer_2(iid, EOK, col, row);
+	return EOK;
 }
 
-static void cons_write(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
+static int cons_close(con_srv_t *srv)
 {
-	void *buf;
-	size_t size;
-	int rc = async_data_write_accept(&buf, false, 0, 0, 0, &size);
-	
-	if (rc != EOK) {
-		async_answer_0(iid, rc);
-		return;
-	}
-	
-	size_t off = 0;
-	while (off < size)
-		cons_write_char(cons, str_decode(buf, &off, size));
-	
-	async_answer_1(iid, EOK, size);
-	free(buf);
+	return EOK;
 }
 
-static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
+static int cons_read(con_srv_t *srv, void *buf, size_t size)
 {
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	char *buf = (char *) malloc(size);
-	if (buf == NULL) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
-		return;
-	}
-	
+	uint8_t *bbuf = buf;
+	console_t *cons = srv_to_console(srv);
 	size_t pos = 0;
 	
 	/*
@@ -363,7 +351,7 @@ static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 	while (pos < size) {
 		/* Copy to the buffer remaining characters. */
 		while ((pos < size) && (cons->char_remains_len > 0)) {
-			buf[pos] = cons->char_remains[0];
+			bbuf[pos] = cons->char_remains[0];
 			pos++;
 			
 			/* Unshift the array. */
@@ -388,42 +376,128 @@ static void cons_read(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
 			free(event);
 		}
 	}
-	
-	(void) async_data_read_finalize(callid, buf, size);
-	async_answer_1(iid, EOK, size);
-	free(buf);
+
+	return size;
 }
 
-static void cons_set_style(console_t *cons, console_style_t style)
+static int cons_write(con_srv_t *srv, void *data, size_t size)
 {
+	console_t *cons = srv_to_console(srv);
+
+	size_t off = 0;
+	while (off < size)
+		cons_write_char(cons, str_decode(data, &off, size));
+	return size;
+}
+
+static void cons_sync(con_srv_t *srv)
+{
+	console_t *cons = srv_to_console(srv);
+	
+	cons_update(cons);
+}
+
+static void cons_clear(con_srv_t *srv)
+{
+	console_t *cons = srv_to_console(srv);
+	
+	fibril_mutex_lock(&cons->mtx);
+	chargrid_clear(cons->frontbuf);
+	fibril_mutex_unlock(&cons->mtx);
+	
+	cons_update(cons);
+}
+
+static void cons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
+{
+	console_t *cons = srv_to_console(srv);
+	
+	fibril_mutex_lock(&cons->mtx);
+	chargrid_set_cursor(cons->frontbuf, col, row);
+	fibril_mutex_unlock(&cons->mtx);
+	
+	cons_update_cursor(cons);
+}
+
+static int cons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
+{
+	console_t *cons = srv_to_console(srv);
+	
+	fibril_mutex_lock(&cons->mtx);
+	chargrid_get_cursor(cons->frontbuf, col, row);
+	fibril_mutex_unlock(&cons->mtx);
+	
+	return EOK;
+}
+
+static int cons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
+{
+	console_t *cons = srv_to_console(srv);
+	
+	fibril_mutex_lock(&cons->mtx);
+	*cols = cons->cols;
+	*rows = cons->rows;
+	fibril_mutex_unlock(&cons->mtx);
+	
+	return EOK;
+}
+
+static int cons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
+{
+	console_t *cons = srv_to_console(srv);
+	
+	fibril_mutex_lock(&cons->mtx);
+	*ccaps = cons->ccaps;
+	fibril_mutex_unlock(&cons->mtx);
+	
+	return EOK;
+}
+
+static void cons_set_style(con_srv_t *srv, console_style_t style)
+{
+	console_t *cons = srv_to_console(srv);
+	
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_style(cons->frontbuf, style);
 	fibril_mutex_unlock(&cons->mtx);
 }
 
-static void cons_set_color(console_t *cons, console_color_t bgcolor,
+static void cons_set_color(con_srv_t *srv, console_color_t bgcolor,
     console_color_t fgcolor, console_color_attr_t attr)
 {
+	console_t *cons = srv_to_console(srv);
+	
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_color(cons->frontbuf, bgcolor, fgcolor, attr);
 	fibril_mutex_unlock(&cons->mtx);
 }
 
-static void cons_set_rgb_color(console_t *cons, pixel_t bgcolor,
+static void cons_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
     pixel_t fgcolor)
 {
+	console_t *cons = srv_to_console(srv);
+	
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_rgb_color(cons->frontbuf, bgcolor, fgcolor);
 	fibril_mutex_unlock(&cons->mtx);
 }
 
-static void cons_get_event(console_t *cons, ipc_callid_t iid, ipc_call_t *icall)
+static void cons_set_cursor_visibility(con_srv_t *srv, bool visible)
 {
-	link_t *link = prodcons_consume(&cons->input_pc);
-	kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+	console_t *cons = srv_to_console(srv);
 	
-	async_answer_4(iid, EOK, event->type, event->key, event->mods, event->c);
-	free(event);
+	cons_set_cursor_vis(cons, visible);
+}
+
+static int cons_get_event(con_srv_t *srv, kbd_event_t *event)
+{
+	console_t *cons = srv_to_console(srv);
+	link_t *link = prodcons_consume(&cons->input_pc);
+	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
+	
+	*event = *kevent;
+	free(kevent);
+	return EOK;
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -446,71 +520,11 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 	
 	if (atomic_postinc(&cons->refcnt) == 0)
-		cons_set_cursor_visibility(cons, true);
+		cons_set_cursor_vis(cons, true);
 	
-	/* Accept the connection */
-	async_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		if (!IPC_GET_IMETHOD(call))
-			return;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case VFS_OUT_READ:
-			cons_read(cons, callid, &call);
-			break;
-		case VFS_OUT_WRITE:
-			cons_write(cons, callid, &call);
-			break;
-		case VFS_OUT_SYNC:
-			cons_update(cons);
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_CLEAR:
-			cons_clear(cons);
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_GOTO:
-			cons_set_cursor(cons, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_GET_POS:
-			cons_get_cursor(cons, callid, &call);
-			break;
-		case CONSOLE_GET_SIZE:
-			async_answer_2(callid, EOK, cons->cols, cons->rows);
-			break;
-		case CONSOLE_GET_COLOR_CAP:
-			async_answer_1(callid, EOK, cons->ccaps);
-			break;
-		case CONSOLE_SET_STYLE:
-			cons_set_style(cons, IPC_GET_ARG1(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_SET_COLOR:
-			cons_set_color(cons, IPC_GET_ARG1(call), IPC_GET_ARG2(call),
-			    IPC_GET_ARG3(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_SET_RGB_COLOR:
-			cons_set_rgb_color(cons, IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_CURSOR_VISIBILITY:
-			cons_set_cursor_visibility(cons, IPC_GET_ARG1(call));
-			async_answer_0(callid, EOK);
-			break;
-		case CONSOLE_GET_EVENT:
-			cons_get_event(cons, callid, &call);
-			break;
-		default:
-			async_answer_0(callid, EINVAL);
-		}
-	}
+	con_conn(iid, icall, &cons->srvs);
 }
+
 
 static int input_connect(const char *svc)
 {
@@ -622,6 +636,10 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 			printf("%s: Unable to create frontbuffer %zu\n", NAME, i);
 			return false;
 		}
+		
+		con_srvs_init(&consoles[i].srvs);
+		consoles[i].srvs.ops = &con_ops;
+		consoles[i].srvs.sarg = &consoles[i];
 		
 		char vc[LOC_NAME_MAXLEN + 1];
 		snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);

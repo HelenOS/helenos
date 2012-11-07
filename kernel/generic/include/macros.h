@@ -51,10 +51,21 @@
 NO_TRACE static inline int overlaps(uint64_t s1, uint64_t sz1, uint64_t s2,
     uint64_t sz2)
 {
-	uint64_t e1 = s1 + sz1;
-	uint64_t e2 = s2 + sz2;
-	
-	return ((s1 < e2) && (s2 < e1));
+	uint64_t e1 = s1 + sz1 - 1;
+	uint64_t e2 = s2 + sz2 - 1;
+
+	/* both sizes are non-zero */
+	if (sz1 && sz2)
+		return ((s1 <= e2) && (s2 <= e1));
+
+	/* one size is non-zero */
+	if (sz2)
+		return ((s1 >= s2) && (s1 <= e2));
+	if (sz1)
+		return ((s2 >= s1) && (s2 <= e1));
+
+	/* both are zero */
+	return (s1 == s2);
 }
 
 /** Return true if the second interval is within the first interval.
@@ -117,6 +128,14 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 #define MERGE_LOUP32(lo, up) \
 	((((uint64_t) (lo)) & UINT32_C(0xffffffff)) \
 	    | ((((uint64_t) (up)) & UINT32_C(0xffffffff)) << 32))
+
+/* Test for sum overflow. */
+#define overflows(a, b) \
+	((a) + (b) < (a))
+
+/* Test for sum overflow into positive numbers. */
+#define overflows_into_positive(a, b)	\
+	(overflows((a), (b)) && ((a) + (b) > 0))
 
 /** Pseudorandom generator
  *

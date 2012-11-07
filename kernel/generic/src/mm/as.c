@@ -284,26 +284,34 @@ NO_TRACE void as_release(as_t *as)
 
 /** Check area conflicts with other areas.
  *
- * @param as    Address space.
- * @param addr  Starting virtual address of the area being tested.
- * @param count Number of pages in the area being tested.
- * @param avoid Do not touch this area.
+ * @param as      Address space.
+ * @param addr    Starting virtual address of the area being tested.
+ * @param count   Number of pages in the area being tested.
+ * @param guarded True if the area being tested is protected by guard pages.
+ * @param avoid   Do not touch this area.
  *
  * @return True if there is no conflict, false otherwise.
  *
  */
 NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
-    size_t count, as_area_t *avoid)
+    size_t count, bool guarded, as_area_t *avoid)
 {
 	ASSERT((addr % PAGE_SIZE) == 0);
 	ASSERT(mutex_locked(&as->lock));
+
+	/*
+	 * If the addition of the supposed area address and size overflows,
+	 * report conflict.
+	 */
+	if (overflows_into_positive(addr, P2SZ(count)))
+		return false;
 	
 	/*
 	 * We don't want any area to have conflicts with NULL page.
 	 */
 	if (overlaps(addr, P2SZ(count), (uintptr_t) NULL, PAGE_SIZE))
 		return false;
-	
+
 	/*
 	 * The leaf node is found in O(log n), where n is proportional to
 	 * the number of address space areas belonging to as.
@@ -327,9 +335,24 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		
 		if (area != avoid) {
 			mutex_lock(&area->lock);
+
+			/*
+			 * If at least one of the two areas are protected
+			 * by the AS_AREA_GUARD flag then we must be sure
+			 * that they are separated by at least one unmapped
+			 * page.
+			 */
+			int const gp = (guarded || 
+			    (area->flags & AS_AREA_GUARD)) ? 1 : 0;
 			
+			/*
+			 * The area comes from the left neighbour node, which
+			 * means that there already are some areas in the leaf
+			 * node, which in turn means that adding gp is safe and
+			 * will not cause an integer overflow.
+			 */
 			if (overlaps(addr, P2SZ(count), area->base,
-			    P2SZ(area->pages))) {
+			    P2SZ(area->pages + gp))) {
 				mutex_unlock(&area->lock);
 				return false;
 			}
@@ -343,9 +366,22 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		area = (as_area_t *) node->value[0];
 		
 		if (area != avoid) {
+			int gp;
+
 			mutex_lock(&area->lock);
+
+			gp = (guarded || (area->flags & AS_AREA_GUARD)) ? 1 : 0;
+			if (gp && overflows(addr, P2SZ(count))) {
+				/*
+				 * Guard page not needed if the supposed area
+				 * is adjacent to the end of the address space.
+				 * We already know that the following test is
+				 * going to fail...
+				 */
+				gp--;
+			}
 			
-			if (overlaps(addr, P2SZ(count), area->base,
+			if (overlaps(addr, P2SZ(count + gp), area->base,
 			    P2SZ(area->pages))) {
 				mutex_unlock(&area->lock);
 				return false;
@@ -359,14 +395,27 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	btree_key_t i;
 	for (i = 0; i < leaf->keys; i++) {
 		area = (as_area_t *) leaf->value[i];
+		int agp;
+		int gp;
 		
 		if (area == avoid)
 			continue;
 		
 		mutex_lock(&area->lock);
-		
-		if (overlaps(addr, P2SZ(count), area->base,
-		    P2SZ(area->pages))) {
+
+		gp = (guarded || (area->flags & AS_AREA_GUARD)) ? 1 : 0;
+		agp = gp;
+
+		/*
+		 * Sanitize the two possible unsigned integer overflows.
+		 */
+		if (gp && overflows(addr, P2SZ(count)))
+			gp--;
+		if (agp && overflows(area->base, P2SZ(area->pages)))
+			agp--;
+
+		if (overlaps(addr, P2SZ(count + gp), area->base,
+		    P2SZ(area->pages + agp))) {
 			mutex_unlock(&area->lock);
 			return false;
 		}
@@ -391,16 +440,17 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
  * The address space must be already locked when calling
  * this function.
  *
- * @param as    Address space.
- * @param bound Lowest address bound.
- * @param size  Requested size of the allocation.
+ * @param as      Address space.
+ * @param bound   Lowest address bound.
+ * @param size    Requested size of the allocation.
+ * @param guarded True if the allocation must be protected by guard pages.
  *
  * @return Address of the beginning of unmapped address space area.
  * @return -1 if no suitable address space area was found.
  *
  */
 NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
-    size_t size)
+    size_t size, bool guarded)
 {
 	ASSERT(mutex_locked(&as->lock));
 	
@@ -422,9 +472,17 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	
 	/* First check the bound address itself */
 	uintptr_t addr = ALIGN_UP(bound, PAGE_SIZE);
-	if ((addr >= bound) &&
-	    (check_area_conflicts(as, addr, pages, NULL)))
-		return addr;
+	if (addr >= bound) {
+		if (guarded) {
+			/* Leave an unmapped page between the lower
+			 * bound and the area's start address.
+			 */
+			addr += P2SZ(1);
+		}
+
+		if (check_area_conflicts(as, addr, pages, guarded, NULL))
+			return addr;
+	}
 	
 	/* Eventually check the addresses behind each area */
 	list_foreach(as->as_area_btree.leaf_list, cur) {
@@ -438,9 +496,17 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 			
 			addr =
 			    ALIGN_UP(area->base + P2SZ(area->pages), PAGE_SIZE);
+
+			if (guarded || area->flags & AS_AREA_GUARD) {
+				/* We must leave an unmapped page
+				 * between the two areas.
+				 */
+				addr += P2SZ(1);
+			}
+
 			bool avail =
 			    ((addr >= bound) && (addr >= area->base) &&
-			    (check_area_conflicts(as, addr, pages, area)));
+			    (check_area_conflicts(as, addr, pages, guarded, area)));
 			
 			mutex_unlock(&area->lock);
 			
@@ -480,24 +546,29 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	
 	if (size == 0)
 		return NULL;
-	
+
 	size_t pages = SIZE2FRAMES(size);
 	
 	/* Writeable executable areas are not supported. */
 	if ((flags & AS_AREA_EXEC) && (flags & AS_AREA_WRITE))
 		return NULL;
+
+	bool const guarded = flags & AS_AREA_GUARD;
 	
 	mutex_lock(&as->lock);
 	
 	if (*base == (uintptr_t) -1) {
-		*base = as_get_unmapped_area(as, bound, size);
+		*base = as_get_unmapped_area(as, bound, size, guarded);
 		if (*base == (uintptr_t) -1) {
 			mutex_unlock(&as->lock);
 			return NULL;
 		}
 	}
-	
-	if (!check_area_conflicts(as, *base, pages, NULL)) {
+
+	if (overflows_into_positive(*base, size))
+		return NULL;
+
+	if (!check_area_conflicts(as, *base, pages, guarded, NULL)) {
 		mutex_unlock(&as->lock);
 		return NULL;
 	}
@@ -775,9 +846,16 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	} else {
 		/*
 		 * Growing the area.
+		 */
+
+		if (overflows_into_positive(address, P2SZ(pages)))
+			return EINVAL;
+
+		/*
 		 * Check for overlaps with other address space areas.
 		 */
-		if (!check_area_conflicts(as, address, pages, area)) {
+		bool const guarded = area->flags & AS_AREA_GUARD;
+		if (!check_area_conflicts(as, address, pages, guarded, area)) {
 			mutex_unlock(&area->lock);
 			mutex_unlock(&as->lock);
 			return EADDRNOTAVAIL;

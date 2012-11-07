@@ -70,10 +70,13 @@ GENERIC_SOURCES = \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
 	generic/device/char_dev.c \
+	generic/device/clock_dev.c \
+	generic/device/battery_dev.c \
 	generic/device/graph_dev.c \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dlfcn.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \
@@ -100,16 +103,21 @@ GENERIC_SOURCES = \
 	generic/io/output.c \
 	generic/io/printf.c \
 	generic/io/log.c \
+	generic/io/logctl.c \
 	generic/io/klog.c \
 	generic/io/snprintf.c \
 	generic/io/vprintf.c \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
+	generic/io/con_srv.c \
 	generic/io/console.c \
 	generic/io/visualizer.c \
 	generic/io/window.c \
 	generic/iplink.c \
 	generic/iplink_srv.c \
+	generic/ieee_double.c \
+	generic/power_of_ten.c \
+	generic/double_to_str.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
@@ -139,7 +147,6 @@ GENERIC_SOURCES = \
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
-		generic/dlfcn.c \
 		generic/rtld/rtld.c \
 		generic/rtld/dynamic.c \
 		generic/rtld/module.c \

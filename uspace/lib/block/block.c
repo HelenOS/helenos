@@ -254,8 +254,8 @@ static hash_table_ops_t cache_ops = {
 	.hash = cache_hash,
 	.key_hash = cache_key_hash,
 	.key_equal = cache_key_equal,
-	.equal = 0,
-	.remove_callback = 0
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 int block_cache_init(service_id_t service_id, size_t size, unsigned blocks,

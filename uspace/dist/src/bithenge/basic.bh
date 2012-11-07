@@ -1,0 +1,11 @@
+transform main = struct {
+	.u8 <- uint8;
+	.u16le <- uint16le;
+	.u16be <- uint16be;
+	.u32le <- uint32le;
+	.u32be <- uint32be;
+	.u64le <- uint64le;
+	.u64be <- uint64be;
+	.empty_blob <- known_length(0);
+	.ascii <- ascii <- known_length(8);
+};

@@ -155,8 +155,8 @@ static hash_table_ops_t uph_ops = {
 	.hash = pos_hash,
 	.key_hash = pos_key_hash,
 	.key_equal = pos_key_equal,
-	.equal = 0,
-	.remove_callback = 0,
+	.equal = NULL,
+	.remove_callback = NULL,
 };
 
 /**
@@ -201,7 +201,7 @@ static hash_table_ops_t uih_ops = {
 	.hash = idx_hash,
 	.key_hash = idx_key_hash,
 	.key_equal = idx_key_equal,
-	.equal = 0,
+	.equal = NULL,
 	.remove_callback = idx_remove_callback,
 };
 

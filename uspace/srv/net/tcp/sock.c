@@ -90,7 +90,7 @@ static void tcp_free_sock_data(socket_core_t *sock_core)
 
 static void tcp_sock_notify_data(socket_core_t *sock_core)
 {
-	log_msg(LVL_DEBUG, "tcp_sock_notify_data(%d)", sock_core->socket_id);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_notify_data(%d)", sock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(sock_core->sess);
 	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t)sock_core->socket_id,
 	    TCP_SOCK_FRAGMENT_SIZE, 0, 0, 1);
@@ -99,7 +99,7 @@ static void tcp_sock_notify_data(socket_core_t *sock_core)
 
 static void tcp_sock_notify_aconn(socket_core_t *lsock_core)
 {
-	log_msg(LVL_DEBUG, "tcp_sock_notify_aconn(%d)", lsock_core->socket_id);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_notify_aconn(%d)", lsock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(lsock_core->sess);
 	async_msg_5(exch, NET_SOCKET_ACCEPTED, (sysarg_t)lsock_core->socket_id,
 	    TCP_SOCK_FRAGMENT_SIZE, 0, 0, 0);
@@ -110,10 +110,10 @@ static int tcp_sock_create(tcp_client_t *client, tcp_sockdata_t **rsock)
 {
 	tcp_sockdata_t *sock;
 
-	log_msg(LVL_DEBUG, "tcp_sock_create()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_create()");
 	*rsock = NULL;
 
-	sock = calloc(sizeof(tcp_sockdata_t), 1);
+	sock = calloc(1, sizeof(tcp_sockdata_t));
 	if (sock == NULL)
 		return ENOMEM;
 
@@ -132,7 +132,7 @@ static int tcp_sock_create(tcp_client_t *client, tcp_sockdata_t **rsock)
 
 static void tcp_sock_uncreate(tcp_sockdata_t *sock)
 {
-	log_msg(LVL_DEBUG, "tcp_sock_uncreate()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_uncreate()");
 	free(sock);
 }
 
@@ -141,7 +141,7 @@ static int tcp_sock_finish_setup(tcp_sockdata_t *sock, int *sock_id)
 	socket_core_t *sock_core;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_sock_finish_setup()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_finish_setup()");
 
 	sock->recv_fibril = fibril_create(tcp_sock_recv_fibril, sock);
 	if (sock->recv_fibril == 0)
@@ -170,7 +170,7 @@ static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	int rc;
 	ipc_call_t answer;
 
-	log_msg(LVL_DEBUG, "tcp_sock_socket()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_socket()");
 
 	rc = tcp_sock_create(client, &sock);
 	if (rc != EOK) {
@@ -207,15 +207,15 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
 
-	log_msg(LVL_DEBUG, "tcp_sock_bind()");
-	log_msg(LVL_DEBUG, " - async_data_write_accept");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_bind()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - async_data_write_accept");
 	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &addr_len);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
 
-	log_msg(LVL_DEBUG, " - call socket_bind");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_bind");
 	rc = socket_bind(&client->sockets, &gsock, SOCKET_GET_SOCKET_ID(call),
 	    addr, addr_len, TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
 	    last_used_port);
@@ -224,7 +224,7 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		return;
 	}
 
-	log_msg(LVL_DEBUG, " - call socket_cores_find");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_cores_find");
 	sock_core = socket_cores_find(&client->sockets, SOCKET_GET_SOCKET_ID(call));
 	if (sock_core != NULL) {
 		socket = (tcp_sockdata_t *)sock_core->specific_data;
@@ -232,7 +232,7 @@ static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		(void) socket;
 	}
 
-	log_msg(LVL_DEBUG, " - success");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - success");
 	async_answer_0(callid, EOK);
 }
 
@@ -249,7 +249,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	tcp_sock_lconn_t *lconn;
 	int i;
 
-	log_msg(LVL_DEBUG, "tcp_sock_listen()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_listen()");
 
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 	backlog = SOCKET_GET_BACKLOG(call);
@@ -276,14 +276,14 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	fibril_mutex_lock(&socket->lock);
 
 	socket->backlog = backlog;
-	socket->lconn = calloc(sizeof(tcp_conn_t *), backlog);
+	socket->lconn = calloc(backlog, sizeof(tcp_conn_t *));
 	if (socket->lconn == NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
 
-	log_msg(LVL_DEBUG, " - open connections");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - open connections");
 
 	lsocket.addr.ipv4 = TCP_IPV4_ANY;
 	lsocket.port = sock_core->port;
@@ -292,7 +292,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	for (i = 0; i < backlog; i++) {
 
-		lconn = calloc(sizeof(tcp_sock_lconn_t), 1);
+		lconn = calloc(1, sizeof(tcp_sock_lconn_t));
 		if (lconn == NULL) {
 			/* XXX Clean up */
 			fibril_mutex_unlock(&socket->lock);
@@ -336,7 +336,7 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	tcp_sock_t lsocket;
 	tcp_sock_t fsocket;
 
-	log_msg(LVL_DEBUG, "tcp_sock_connect()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_connect()");
 
 	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &addr_len);
 	if (rc != EOK || addr_len != sizeof(struct sockaddr_in)) {
@@ -376,13 +376,13 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
-			log_msg(LVL_DEBUG, "tcp_sock_connect: Failed to "
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_connect: Failed to "
 			    "determine local address.");
 			return;
 		}
 
 		socket->laddr.ipv4 = loc_addr.ipv4;
-		log_msg(LVL_DEBUG, "Local IP address is %x", socket->laddr.ipv4);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Local IP address is %x", socket->laddr.ipv4);
 	}
 
 	lsocket.addr.ipv4 = socket->laddr.ipv4;
@@ -430,7 +430,7 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	tcp_sock_lconn_t *lconn;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_sock_accept()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_accept()");
 
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 	asock_id = SOCKET_GET_NEW_SOCKET_ID(call);
@@ -444,7 +444,7 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
 
-	log_msg(LVL_DEBUG, " - verify socket->conn");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - verify socket->conn");
 	if (socket->conn != NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, EINVAL);
@@ -497,7 +497,7 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	}
 
 	asocket->conn = conn;
-	log_msg(LVL_DEBUG, "tcp_sock_accept():create asocket\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_accept():create asocket\n");
 
 	rc = tcp_sock_finish_setup(asocket, &asock_id);
 	if (rc != EOK) {
@@ -509,7 +509,7 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	fibril_add_ready(asocket->recv_fibril);
 
-	log_msg(LVL_DEBUG, "tcp_sock_accept(): find acore\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_accept(): find acore\n");
 
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, TCP_SOCK_FRAGMENT_SIZE);
 	SOCKET_SET_SOCKET_ID(answer, asock_id);
@@ -520,7 +520,7 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	    IPC_GET_ARG3(answer));
 	
 	/* Push one fragment notification to client's queue */
-	log_msg(LVL_DEBUG, "tcp_sock_accept(): notify data\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_accept(): notify data\n");
 	fibril_mutex_unlock(&socket->lock);
 }
 
@@ -538,7 +538,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	tcp_error_t trc;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_sock_send()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_send()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 	fragments = SOCKET_GET_DATA_FRAGMENTS(call);
 	SOCKET_GET_FLAGS(call);
@@ -610,7 +610,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 
 static void tcp_sock_sendto(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	log_msg(LVL_DEBUG, "tcp_sock_sendto()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_sendto()");
 	async_answer_0(callid, ENOTSUP);
 }
 
@@ -628,7 +628,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	tcp_sock_t *rsock;
 	int rc;
 
-	log_msg(LVL_DEBUG, "%p: tcp_sock_recv[from]()", client);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%p: tcp_sock_recv[from]()", client);
 
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 	flags = SOCKET_GET_FLAGS(call);
@@ -650,15 +650,15 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	(void)flags;
 
-	log_msg(LVL_DEBUG, "tcp_sock_recvfrom(): lock recv_buffer_lock");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_recvfrom(): lock recv_buffer_lock");
 	fibril_mutex_lock(&socket->recv_buffer_lock);
 	while (socket->recv_buffer_used == 0 && socket->recv_error == TCP_EOK) {
-		log_msg(LVL_DEBUG, "wait for recv_buffer_cv + recv_buffer_used != 0");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "wait for recv_buffer_cv + recv_buffer_used != 0");
 		fibril_condvar_wait(&socket->recv_buffer_cv,
 		    &socket->recv_buffer_lock);
 	}
 
-	log_msg(LVL_DEBUG, "Got data in sock recv_buffer");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got data in sock recv_buffer");
 
 	data_len = socket->recv_buffer_used;
 	rc = socket->recv_error;
@@ -678,7 +678,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		assert(false);
 	}
 
-	log_msg(LVL_DEBUG, "**** recv result -> %d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "**** recv result -> %d", rc);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
@@ -693,7 +693,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		addr.sin_addr.s_addr = host2uint32_t_be(rsock->addr.ipv4);
 		addr.sin_port = host2uint16_t_be(rsock->port);
 
-		log_msg(LVL_DEBUG, "addr read receive");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read receive");
 		if (!async_data_read_receive(&rcallid, &addr_length)) {
 			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);
@@ -704,7 +704,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		if (addr_length > sizeof(addr))
 			addr_length = sizeof(addr);
 
-		log_msg(LVL_DEBUG, "addr read finalize");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read finalize");
 		rc = async_data_read_finalize(rcallid, &addr, addr_length);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->recv_buffer_lock);
@@ -714,7 +714,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		}
 	}
 
-	log_msg(LVL_DEBUG, "data read receive");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read receive");
 	if (!async_data_read_receive(&rcallid, &length)) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
@@ -725,11 +725,11 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	if (length > data_len)
 		length = data_len;
 
-	log_msg(LVL_DEBUG, "data read finalize");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read finalize");
 	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
 
 	socket->recv_buffer_used -= length;
-	log_msg(LVL_DEBUG, "tcp_sock_recvfrom: %zu left in buffer",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_recvfrom: %zu left in buffer",
 	    socket->recv_buffer_used);
 	if (socket->recv_buffer_used > 0) {
 		memmove(socket->recv_buffer, socket->recv_buffer + length,
@@ -757,7 +757,7 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	tcp_error_t trc;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_sock_close()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
 
 	sock_core = socket_cores_find(&client->sockets, socket_id);
@@ -797,13 +797,13 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 
 static void tcp_sock_getsockopt(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	log_msg(LVL_DEBUG, "tcp_sock_getsockopt()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_getsockopt()");
 	async_answer_0(callid, ENOTSUP);
 }
 
 static void tcp_sock_setsockopt(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	log_msg(LVL_DEBUG, "tcp_sock_setsockopt()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_setsockopt()");
 	async_answer_0(callid, ENOTSUP);
 }
 
@@ -814,7 +814,7 @@ static void tcp_sock_cstate_cb(tcp_conn_t *conn, void *arg)
 	tcp_sock_lconn_t *lconn = (tcp_sock_lconn_t *)arg;
 	tcp_sockdata_t *socket = lconn->socket;
 
-	log_msg(LVL_DEBUG, "tcp_sock_cstate_cb()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_cstate_cb()");
 	fibril_mutex_lock(&socket->lock);
 	assert(conn == lconn->conn);
 
@@ -827,7 +827,7 @@ static void tcp_sock_cstate_cb(tcp_conn_t *conn, void *arg)
 	assert_link_not_used(&lconn->ready_list);
 	list_append(&lconn->ready_list, &socket->ready);
 
-	log_msg(LVL_DEBUG, "tcp_sock_cstate_cb(): notify accept");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_cstate_cb(): notify accept");
 
 	/* Push one accept notification to client's queue */
 	tcp_sock_notify_aconn(socket->sock_core);
@@ -841,12 +841,12 @@ static int tcp_sock_recv_fibril(void *arg)
 	xflags_t xflags;
 	tcp_error_t trc;
 
-	log_msg(LVL_DEBUG, "tcp_sock_recv_fibril()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_recv_fibril()");
 
 	fibril_mutex_lock(&sock->recv_buffer_lock);
 
 	while (true) {
-		log_msg(LVL_DEBUG, "call tcp_uc_receive()");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "call tcp_uc_receive()");
 		while (sock->recv_buffer_used != 0 && sock->sock_core != NULL)
 			fibril_condvar_wait(&sock->recv_buffer_cv,
 			    &sock->recv_buffer_lock);
@@ -862,7 +862,7 @@ static int tcp_sock_recv_fibril(void *arg)
 			break;
 		}
 
-		log_msg(LVL_DEBUG, "got data - broadcast recv_buffer_cv");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "got data - broadcast recv_buffer_cv");
 
 		sock->recv_buffer_used = data_len;
 		fibril_condvar_broadcast(&sock->recv_buffer_cv);
@@ -894,7 +894,7 @@ static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
-		log_msg(LVL_DEBUG, "tcp_sock_connection: METHOD=%d\n",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_connection: METHOD=%d\n",
 		    (int)IPC_GET_IMETHOD(call));
 
 		switch (IPC_GET_IMETHOD(call)) {
@@ -939,7 +939,7 @@ static void tcp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 
 	/* Clean up */
-	log_msg(LVL_DEBUG, "tcp_sock_connection: Clean up");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_connection: Clean up");
 	async_hangup(client.sess);
 	socket_cores_release(NULL, &client.sockets, &gsock, tcp_free_sock_data);
 }

@@ -48,6 +48,7 @@
 
 /** Struct representing CPU state saved when an exception occurs. */
 typedef struct istate {
+	uint32_t dummy;
 	uint32_t spsr;
 	uint32_t sp;
 	uint32_t lr;

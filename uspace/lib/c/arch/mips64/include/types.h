@@ -47,6 +47,7 @@
 #define SSIZE_MAX  INT64_MAX
 
 typedef uint64_t sysarg_t;
+typedef int64_t native_t;
 
 typedef int64_t ssize_t;
 typedef uint64_t size_t;
