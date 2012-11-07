@@ -235,28 +235,15 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   the different causes
 		 */
 
-		unsigned int flags;
-
 		if (area->flags & AS_AREA_NORESERVE) {
 			/*
-			 * This is a NORESERVE area, which means that no
-			 * physical memory has been reserved beforehands.
-			 * We therefore need to make an atomic and reserving
-			 * allocation.
+			 * Reserve the memory for this page now.
 			 */
-			flags = FRAME_ATOMIC;
-		} else {
-			/*
-			 * The physical memory has already been reserved
-			 * when this part of the area was created. Avoid
-			 * double reservation by using the appropriate flag.
-			 */
-			flags = FRAME_NO_RESERVE;
+			if (!reserve_try_alloc(1))
+				return AS_PF_FAULT;
 		}
 
-		kpage = km_temporary_page_get(&frame, flags);
-		if (!kpage)
-			return AS_PF_FAULT;
+		kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);
 		memsetb((void *) kpage, PAGE_SIZE, 0);
 		km_temporary_page_put(kpage);
 	}
