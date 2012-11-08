@@ -59,6 +59,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/mm/page_fault.c \
+	arch/$(KARCH)/src/atomic.c \
 	arch/$(KARCH)/src/ras.c
 
 ifeq ($(MACHINE),gta02)
