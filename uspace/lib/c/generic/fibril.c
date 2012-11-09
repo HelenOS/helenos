@@ -36,6 +36,7 @@
 #include <adt/list.h>
 #include <fibril.h>
 #include <thread.h>
+#include <stack.h>
 #include <tls.h>
 #include <malloc.h>
 #include <abi/mm/as.h>
@@ -270,8 +271,8 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	if (fibril == NULL)
 		return 0;
 	
-	fibril->stack = as_area_create((void *) -1,
-	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(),
+	size_t stack_size = stack_size_get();
+	fibril->stack = as_area_create((void *) -1, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE);
 	if (fibril->stack == (void *) -1) {
@@ -284,7 +285,7 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 
 	context_save(&fibril->ctx);
 	context_set(&fibril->ctx, FADDR(fibril_main), fibril->stack,
-	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(), fibril->tcb);
+	    stack_size, fibril->tcb);
 
 	return (fid_t) fibril;
 }

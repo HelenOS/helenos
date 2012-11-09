@@ -171,6 +171,12 @@ void kinit(void *arg)
 	}
 #endif /* CONFIG_KCONSOLE */
 	
+	/*
+	 * Store the default stack size in sysinfo so that uspace can create
+	 * stack with this default size.
+	 */
+	sysinfo_set_item_val("default.stack_size", NULL, STACK_SIZE);
+	
 	interrupts_enable();
 	
 	/*
