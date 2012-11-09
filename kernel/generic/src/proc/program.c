@@ -81,8 +81,8 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	uintptr_t virt = USTACK_ADDRESS;
 	as_area_t *area = as_area_create(as,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
-	    AS_AREA_LATE_RESERVE, STACK_SIZE, AS_AREA_ATTR_NONE, &anon_backend,
-	    NULL, &virt, 0);
+	    AS_AREA_LATE_RESERVE, STACK_SIZE_USER, AS_AREA_ATTR_NONE,
+	    &anon_backend, NULL, &virt, 0);
 	if (!area) {
 		task_destroy(prg->task);
 		return ENOMEM;
@@ -93,7 +93,7 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	
 	kernel_uarg->uspace_entry = (void *) entry_addr;
 	kernel_uarg->uspace_stack = (void *) virt;
-	kernel_uarg->uspace_stack_size = STACK_SIZE;
+	kernel_uarg->uspace_stack_size = STACK_SIZE_USER;
 	kernel_uarg->uspace_thread_function = NULL;
 	kernel_uarg->uspace_thread_arg = NULL;
 	kernel_uarg->uspace_uarg = NULL;
