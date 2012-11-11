@@ -425,11 +425,12 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	
 	/*
 	 * So far, the area does not conflict with other areas.
-	 * Check if it doesn't conflict with kernel address space.
+	 * Check if it is contained in the user address space.
 	 */
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
-		return !overlaps(addr, P2SZ(count), KERNEL_ADDRESS_SPACE_START,
-		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START);
+		return iswithin(USER_ADDRESS_SPACE_START,
+		    (USER_ADDRESS_SPACE_END - USER_ADDRESS_SPACE_START) + 1,
+		    addr, P2SZ(count));
 	}
 	
 	return true;
