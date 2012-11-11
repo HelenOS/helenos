@@ -36,7 +36,7 @@
  */
 #include <as.h>
 #include <async.h>
-#include <ipc/bd.h>
+#include <bd_srv.h>
 #include <macros.h>
 #include <usb/dev/driver.h>
 #include <usb/debug.h>
@@ -80,6 +80,27 @@ static const usb_endpoint_description_t *mast_endpoints[] = {
 static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
 static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
+
+static int usbmast_bd_open(bd_srvs_t *, bd_srv_t *);
+static int usbmast_bd_close(bd_srv_t *);
+static int usbmast_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int usbmast_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int usbmast_bd_get_block_size(bd_srv_t *, size_t *);
+static int usbmast_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
+static bd_ops_t usbmast_bd_ops = {
+	.open = usbmast_bd_open,
+	.close = usbmast_bd_close,
+	.read_blocks = usbmast_bd_read_blocks,
+	.write_blocks = usbmast_bd_write_blocks,
+	.get_block_size = usbmast_bd_get_block_size,
+	.get_num_blocks = usbmast_bd_get_num_blocks
+};
+
+static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
+{
+	return (usbmast_fun_t *) bd->srvs->sarg;
+}
 
 /** Callback when a device is removed from the system.
  *
@@ -138,7 +159,7 @@ static int usbmast_device_add(usb_device_t *dev)
 	mdev->ddf_dev = dev->ddf_dev;
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n", dev->ddf_dev->name);
+	usb_log_info("Initializing mass storage `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
 	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
 	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
@@ -218,22 +239,26 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	mfun->mdev = mdev;
 	mfun->lun = lun;
 
+	bd_srvs_init(&mfun->bds);
+	mfun->bds.ops = &usbmast_bd_ops;
+	mfun->bds.sarg = mfun;
+
 	/* Set up a connection handler. */
-	fun->conn_handler = usbmast_bd_connection;
+	ddf_fun_set_conn_handler(fun, usbmast_bd_connection);
 
 	usb_log_debug("Inquire...\n");
 	usbmast_inquiry_data_t inquiry;
 	rc = usbmast_inquiry(mfun, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
-		    mdev->ddf_dev->name, str_error(rc));
+		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
 
 	usb_log_info("Mass storage `%s' LUN %u: " \
 	    "%s by %s rev. %s is %s (%s).\n",
-	    mdev->ddf_dev->name,
+	    ddf_dev_get_name(mdev->ddf_dev),
 	    lun,
 	    inquiry.product,
 	    inquiry.vendor,
@@ -246,7 +271,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	rc = usbmast_read_capacity(mfun, &nblocks, &block_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
-		    mdev->ddf_dev->name, str_error(rc));
+		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
@@ -283,66 +308,63 @@ static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
 	usbmast_fun_t *mfun;
-	void *comm_buf = NULL;
-	size_t comm_size;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	unsigned int flags;
-	sysarg_t method;
-	uint64_t ba;
-	size_t cnt;
-	int retval;
 
-	async_answer_0(iid, EOK);
-
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-	
-	(void) async_share_out_finalize(callid, &comm_buf);
-	if (comm_buf == AS_MAP_FAILED) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-	
-	mfun = (usbmast_fun_t *) ((ddf_fun_t *)arg)->driver_data;
-
-	while (true) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-
-		if (!method) {
-			/* The other side hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-
-		switch (method) {
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, mfun->block_size);
-			break;
-		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(mfun->nblocks),
-			    UPPER32(mfun->nblocks));
-			break;
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			retval = usbmast_read(mfun, ba, cnt, comm_buf);
-			async_answer_0(callid, retval);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			retval = usbmast_write(mfun, ba, cnt, comm_buf);
-			async_answer_0(callid, retval);
-			break;
-		default:
-			async_answer_0(callid, EINVAL);
-		}
-	}
+	mfun = (usbmast_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
+	bd_conn(iid, icall, &mfun->bds);
 }
+
+/** Open device. */
+static int usbmast_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Close device. */
+static int usbmast_bd_close(bd_srv_t *bd)
+{
+	return EOK;
+}
+
+/** Read blocks from the device. */
+static int usbmast_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
+    size_t size)
+{
+	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
+
+	if (size < cnt * mfun->block_size)
+		return EINVAL;
+
+	return usbmast_read(mfun, ba, cnt, buf);
+}
+
+/** Write blocks to the device. */
+static int usbmast_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+    const void *buf, size_t size)
+{
+	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
+
+	if (size < cnt * mfun->block_size)
+		return EINVAL;
+
+	return usbmast_write(mfun, ba, cnt, buf);
+}
+
+/** Get device block size. */
+static int usbmast_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
+	*rsize = mfun->block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	usbmast_fun_t *mfun = bd_srv_usbmast(bd);
+	*rnb = mfun->nblocks;
+	return EOK;
+}
+
 
 /** USB mass storage driver ops. */
 static const usb_driver_ops_t usbmast_driver_ops = {
@@ -360,7 +382,7 @@ static const usb_driver_t usbmast_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return usb_driver_main(&usbmast_driver);
 }

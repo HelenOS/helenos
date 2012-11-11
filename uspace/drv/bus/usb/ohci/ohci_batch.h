@@ -62,7 +62,7 @@ ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *batch);
 bool ohci_transfer_batch_is_complete(const ohci_transfer_batch_t *batch);
 void ohci_transfer_batch_commit(const ohci_transfer_batch_t *batch);
 void ohci_transfer_batch_finish_dispose(ohci_transfer_batch_t *batch);
-/*----------------------------------------------------------------------------*/
+
 static inline ohci_transfer_batch_t *ohci_transfer_batch_from_link(link_t *l)
 {
 	assert(l);

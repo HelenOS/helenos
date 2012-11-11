@@ -154,7 +154,7 @@ int main(int argc, char * argv[])
 {
 	int rc;
 
-	usb_log_enable(USB_LOG_LEVEL_DEBUG2, "vusbhid");
+	log_init("vuhid");
 
 	fibril_mutex_initialize(&vuhid_data.iface_count_mutex);
 	fibril_condvar_initialize(&vuhid_data.iface_count_cv);

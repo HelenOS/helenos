@@ -58,18 +58,18 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 	arp_eth_packet_t reply;
 	ethip_link_addr_t *laddr;
 
-	log_msg(LVL_DEBUG, "arp_received()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "arp_received()");
 
 	rc = arp_pdu_decode(frame->data, frame->size, &packet);
 	if (rc != EOK)
 		return;
 
-	log_msg(LVL_DEBUG, "ARP PDU decoded, opcode=%d, tpa=%x",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ARP PDU decoded, opcode=%d, tpa=%x",
 	    packet.opcode, packet.target_proto_addr.ipv4);
 
 	laddr = ethip_nic_addr_find(nic, &packet.target_proto_addr);
 	if (laddr != NULL) {
-		log_msg(LVL_DEBUG, "Request/reply to my address");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Request/reply to my address");
 
 		(void) atrans_add(&packet.sender_proto_addr,
 		    &packet.sender_hw_addr);
@@ -121,7 +121,7 @@ static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet)
 	void *fdata;
 	size_t fsize;
 
-	log_msg(LVL_DEBUG, "arp_send_packet()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "arp_send_packet()");
 
 	rc = arp_pdu_encode(packet, &pdata, &psize);
 	if (rc != EOK)

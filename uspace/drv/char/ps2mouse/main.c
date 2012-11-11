@@ -68,7 +68,7 @@ static driver_t mouse_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS ps/2 mouse driver.\n");
-	ddf_log_init(NAME, LVL_NOTE);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&mouse_driver);
 }
 
@@ -97,7 +97,7 @@ if (ret != EOK) { \
 	    "Failed to initialize mouse driver: %s.", str_error(ret));
 
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 	return EOK;
 }
 /**

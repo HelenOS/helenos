@@ -55,7 +55,7 @@ typedef enum {
 int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	sysarg_t addr;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_ADDRESS, &addr);
@@ -64,7 +64,7 @@ int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
 		*address = (usb_address_t) addr;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Tell interface number given device can use.
  * @param[in] exch IPC communication exchange
  * @param[in] handle Id of the device
@@ -74,7 +74,7 @@ int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
 int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	sysarg_t iface_no;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_INTERFACE, &iface_no);
@@ -82,7 +82,7 @@ int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
 		*usb_iface = (int)iface_no;
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Tell devman handle of device host controller.
  * @param[in] exch IPC communication exchange
  * @param[out] hc_handle devman handle of the HC used by the target device.
@@ -91,7 +91,7 @@ int usb_get_my_interface(async_exch_t *exch, int *usb_iface)
 int usb_get_hc_handle(async_exch_t *exch, devman_handle_t *hc_handle)
 {
 	if (!exch)
-		return EINVAL;
+		return EBADMEM;
 	devman_handle_t h;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
@@ -120,7 +120,7 @@ remote_iface_t remote_usb_iface = {
 	.methods = remote_usb_iface_ops
 };
 
-/*----------------------------------------------------------------------------*/
+
 void remote_usb_get_my_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -139,7 +139,7 @@ void remote_usb_get_my_address(ddf_fun_t *fun, void *iface,
 		async_answer_1(callid, EOK, address);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usb_get_my_interface(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -158,7 +158,7 @@ void remote_usb_get_my_interface(ddf_fun_t *fun, void *iface,
 		async_answer_1(callid, EOK, iface_no);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 void remote_usb_get_hc_handle(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {

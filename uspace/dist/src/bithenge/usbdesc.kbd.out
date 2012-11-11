@@ -1,0 +1,38 @@
+{
+    0: {
+        "bDescriptorType": 2,
+        "wTotalLength": 34,
+        "bNumInterfaces": 1,
+        "bConfigurationValue": 1,
+        "iConfiguration": 8,
+        "bmAttributes": 160,
+        "MaxPower": 50
+    },
+    1: {
+        "bDescriptorType": 4,
+        "bInterfaceNumber": 0,
+        "bAlternateSetting": 0,
+        "bNumEndpoints": 1,
+        "bInterfaceClass": 9,
+        "bInterfaceSubClass": 1,
+        "bInterfaceProtocol": 1,
+        "iInterface": 0
+    },
+    2: {
+        "bDescriptorType": 33,
+        "bcdHID": 273,
+        "bCountryCode": 0,
+        "bNumDescriptors": 1,
+        0: {
+            "bDescriptorType": 34,
+            "wDescriptorLength": 63
+        }
+    },
+    3: {
+        "bDescriptorType": 5,
+        "bEndpointAddress": 129,
+        "bmAttributes": 3,
+        "wMaxPacketSize": 8,
+        "bInterval": 10
+    }
+}

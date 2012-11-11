@@ -18,16 +18,12 @@ PHDRS {
 }
 
 SECTIONS {
-#if defined(LOADER) || defined(DLEXE)
-	.interp : {
-		*(.interp);
-	} :interp
-#endif
 #ifdef LOADER
 	. = 0x70001000 + SIZEOF_HEADERS;
 #else
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
+	
 	.init : {
 		*(.init);
 	} :text
@@ -36,7 +32,7 @@ SECTIONS {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-
+	
 #if defined(SHLIB) || defined(DLEXE)
 	.rel.plt : {
 		*(.rel.plt);
@@ -65,6 +61,13 @@ SECTIONS {
 		*(.hash);
 	} :text
 #endif
+	
+#if defined(LOADER) || defined(DLEXE)
+	.interp : {
+		*(.interp);
+	} :interp :text
+#endif
+	
 	. = . + 0x1000;
 	
 #if defined(SHLIB) || defined(DLEXE)
@@ -79,14 +82,15 @@ SECTIONS {
 	
 #if defined(SHLIB) || defined(DLEXE)
 	.data.rel : {
-                *(.data.rel .data.rel.*);
+		*(.data.rel .data.rel.*);
 	} :data
-
+	
 	.got : {
-                *(.got);
+		*(.got);
 	} :data
+	
 	.got.plt : {
-                *(.got.plt);
+		*(.got.plt);
 	} :data
 #endif
 	

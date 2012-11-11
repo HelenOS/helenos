@@ -129,9 +129,11 @@
 	msr spsr, r2
 	stmfd r13!, {r2}
 2:
+	sub sp, sp, #4
 .endm
 
 .macro LOAD_REGS_FROM_STACK
+	add sp, sp, #4
 	ldmfd r13!, {r0}
 	msr spsr, r0
 	and r0, r0, #0x1f

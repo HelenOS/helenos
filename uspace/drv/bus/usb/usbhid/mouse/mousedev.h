@@ -41,30 +41,29 @@
 
 struct usb_hid_dev;
 
-/*----------------------------------------------------------------------------*/
+
 
 /** Container for USB mouse device. */
 typedef struct {
-	/** IPC session to console (consumer). */
+	/** IPC session to consumer. */
 	async_sess_t *mouse_sess;
 
 	/* Mouse buttons statuses. */
 	int32_t *buttons;
 	size_t buttons_count;
 
-	ddf_dev_ops_t ops;
 	/* DDF mouse function */
 	ddf_fun_t *mouse_fun;
 } usb_mouse_t;
 
-/*----------------------------------------------------------------------------*/
+
 
 extern const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
 
 const char *HID_MOUSE_FUN_NAME;
 const char *HID_MOUSE_CATEGORY;
 
-/*----------------------------------------------------------------------------*/
+
 
 int usb_mouse_init(struct usb_hid_dev *hid_dev, void **data);
 
@@ -74,7 +73,7 @@ void usb_mouse_deinit(struct usb_hid_dev *hid_dev, void *data);
 
 int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
 
-/*----------------------------------------------------------------------------*/
+
 
 #endif // USB_HID_MOUSEDEV_H_
 

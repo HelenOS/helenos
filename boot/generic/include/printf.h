@@ -34,17 +34,7 @@
 
 #include <typedefs.h>
 #include <stdarg.h>
-
-#ifndef NVERIFY_PRINTF
-
-#define PRINTF_ATTRIBUTE(start, end) \
-	__attribute__((format(gnu_printf, start, end)))
-
-#else /* NVERIFY_PRINTF */
-
-#define PRINTF_ATTRIBUTE(start, end)
-
-#endif /* NVERIFY_PRINTF */
+#include <printf_verify.h>
 
 #define EOF  (-1)
 

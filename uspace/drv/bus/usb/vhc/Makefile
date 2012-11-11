@@ -31,8 +31,8 @@ USPACE_PREFIX = ../../../..
 LIBS = \
 	$(LIBUSBDEV_PREFIX)/libusbdev.a \
 	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
+	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 
 EXTRA_CFLAGS += \

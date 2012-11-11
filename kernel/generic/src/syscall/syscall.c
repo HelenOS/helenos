@@ -150,8 +150,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_page_find_mapping,
 	
 	/* IPC related syscalls. */
-	(syshandler_t) sys_ipc_call_sync_fast,
-	(syshandler_t) sys_ipc_call_sync_slow,
 	(syshandler_t) sys_ipc_call_async_fast,
 	(syshandler_t) sys_ipc_call_async_slow,
 	(syshandler_t) sys_ipc_answer_fast,

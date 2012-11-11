@@ -58,7 +58,7 @@ inet_addrobj_t *inet_addrobj_new(void)
 	inet_addrobj_t *addr = calloc(1, sizeof(inet_addrobj_t));
 
 	if (addr == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating address object. "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating address object. "
 		    "Out of memory.");
 		return NULL;
 	}
@@ -113,7 +113,7 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
 	uint32_t mask;
 
-	log_msg(LVL_DEBUG, "inet_addrobj_find(%x)", (unsigned)addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find(%x)", (unsigned)addr->ipv4);
 
 	fibril_mutex_lock(&addr_list_lock);
 
@@ -124,13 +124,13 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 		mask = inet_netmask(naddr->naddr.bits);
 		if ((naddr->naddr.ipv4 & mask) == (addr->ipv4 & mask)) {
 			fibril_mutex_unlock(&addr_list_lock);
-			log_msg(LVL_DEBUG, "inet_addrobj_find: found %p",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
 			    naddr);
 			return naddr;
 		}
 	}
 
-	log_msg(LVL_DEBUG, "inet_addrobj_find: Not found");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: Not found");
 	fibril_mutex_unlock(&addr_list_lock);
 
 	return NULL;
@@ -146,7 +146,7 @@ static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *name, inet_l
 {
 	assert(fibril_mutex_is_locked(&addr_list_lock));
 
-	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name_locked('%s', '%s')",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked('%s', '%s')",
 	    name, ilink->svc_name);
 
 	list_foreach(addr_list, link) {
@@ -154,13 +154,13 @@ static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *name, inet_l
 		    inet_addrobj_t, addr_list);
 
 		if (naddr->ilink == ilink && str_cmp(naddr->name, name) == 0) {
-			log_msg(LVL_DEBUG, "inet_addrobj_find_by_name_locked: found %p",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked: found %p",
 			    naddr);
 			return naddr;
 		}
 	}
 
-	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name_locked: Not found");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked: Not found");
 
 	return NULL;
 }
@@ -176,7 +176,7 @@ inet_addrobj_t *inet_addrobj_find_by_name(const char *name, inet_link_t *ilink)
 {
 	inet_addrobj_t *aobj;
 
-	log_msg(LVL_DEBUG, "inet_addrobj_find_by_name('%s', '%s')",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name('%s', '%s')",
 	    name, ilink->svc_name);
 
 	fibril_mutex_lock(&addr_list_lock);
@@ -193,7 +193,7 @@ inet_addrobj_t *inet_addrobj_find_by_name(const char *name, inet_link_t *ilink)
  */
 inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
 {
-	log_msg(LVL_DEBUG, "inet_addrobj_get_by_id(%zu)", (size_t)id);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_get_by_id(%zu)", (size_t)id);
 
 	fibril_mutex_lock(&addr_list_lock);
 

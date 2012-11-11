@@ -51,8 +51,8 @@ static void totalmemtest(void)
 	void *data1, *data2;
 	void *olddata1 = NULL, *olddata2 = NULL;
 	
-	cache1 = slab_cache_create("cache1_tst", ITEM_SIZE, 0, NULL, NULL, 0);
-	cache2 = slab_cache_create("cache2_tst", ITEM_SIZE, 0, NULL, NULL, 0);
+	cache1 = slab_cache_create("test_cache1", ITEM_SIZE, 0, NULL, NULL, 0);
+	cache2 = slab_cache_create("test_cache2", ITEM_SIZE, 0, NULL, NULL, 0);
 	
 	TPRINTF("Allocating...");
 	
@@ -209,8 +209,8 @@ static void multitest(int size)
 	
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
 	semaphore_initialize(&thr_sem,0);
-	for (i = 0; i < THREADS; i++) {  
-		if (!(t = thread_create(slabtest, NULL, TASK, 0, "slabtest", false))) {
+	for (i = 0; i < THREADS; i++) {
+		if (!(t = thread_create(slabtest, NULL, TASK, THREAD_FLAG_NONE, "slabtest"))) {
 			TPRINTF("Could not create thread %d\n", i);
 		} else
 			thread_ready(t);

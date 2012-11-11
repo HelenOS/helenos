@@ -200,7 +200,7 @@ int ne2k_probe(ne2k_t *ne2k)
 	
 	/* Check if the DP8390 is really there */
 	uint8_t val = pio_read_8(ne2k->port + DP_CR);
-	if ((val & (CR_STP | CR_DM_ABORT)) != (CR_STP | CR_DM_ABORT))
+	if ((val & (CR_STP | CR_TXP | CR_DM_ABORT)) != (CR_STP | CR_DM_ABORT))
 		return EXDEV;
 	
 	/* Disable the receiver and init TCR and DCR */

@@ -106,7 +106,7 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 		    usb_debug_str_buffer(buffer, 8, 8));
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Convert TD status into standard error code
  *
  * @param[in] instance TD structure to use.
@@ -144,7 +144,7 @@ int td_status(const td_t *instance)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Print values in status field (dw1) in a human readable way.
  *
  * @param[in] instance TD structure to use.

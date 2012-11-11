@@ -63,16 +63,16 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
 	inet_packet_t packet;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inet_iplink_recv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv()");
 	rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
 	if (rc != EOK) {
-		log_msg(LVL_DEBUG, "failed decoding PDU");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "failed decoding PDU");
 		return rc;
 	}
 
-	log_msg(LVL_DEBUG, "call inet_recv_packet()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
-	log_msg(LVL_DEBUG, "call inet_recv_packet -> %d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %d", rc);
 	free(packet.data);
 
 	return rc;
@@ -90,14 +90,14 @@ static int inet_link_check_new(void)
 
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed resolving category 'iplink'.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		fibril_mutex_unlock(&inet_discovery_lock);
 		return ENOENT;
 	}
 
 	rc = loc_category_get_svcs(iplink_cat, &svcs, &count);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed getting list of IP links.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting list of IP links.");
 		fibril_mutex_unlock(&inet_discovery_lock);
 		return EIO;
 	}
@@ -115,11 +115,11 @@ static int inet_link_check_new(void)
 		}
 
 		if (!already_known) {
-			log_msg(LVL_DEBUG, "Found IP link '%lu'",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Found IP link '%lu'",
 			    (unsigned long) svcs[i]);
 			rc = inet_link_open(svcs[i]);
 			if (rc != EOK)
-				log_msg(LVL_ERROR, "Could not open IP link.");
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not open IP link.");
 		}
 	}
 
@@ -132,7 +132,7 @@ static inet_link_t *inet_link_new(void)
 	inet_link_t *ilink = calloc(1, sizeof(inet_link_t));
 
 	if (ilink == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating link structure. "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating link structure. "
 		    "Out of memory.");
 		return NULL;
 	}
@@ -155,7 +155,7 @@ static int inet_link_open(service_id_t sid)
 	iplink_addr_t iaddr;
 	int rc;
 
-	log_msg(LVL_DEBUG, "inet_link_open()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_link_open()");
 	ilink = inet_link_new();
 	if (ilink == NULL)
 		return ENOMEM;
@@ -165,31 +165,31 @@ static int inet_link_open(service_id_t sid)
 
 	rc = loc_service_get_name(sid, &ilink->svc_name);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed getting service name.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting service name.");
 		goto error;
 	}
 
 	ilink->sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
 	if (ilink->sess == NULL) {
-		log_msg(LVL_ERROR, "Failed connecting '%s'", ilink->svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting '%s'", ilink->svc_name);
 		goto error;
 	}
 
 	rc = iplink_open(ilink->sess, &inet_iplink_ev_ops, &ilink->iplink);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed opening IP link '%s'",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening IP link '%s'",
 		    ilink->svc_name);
 		goto error;
 	}
 
 	rc = iplink_get_mtu(ilink->iplink, &ilink->def_mtu);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed determinning MTU of link '%s'",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed determinning MTU of link '%s'",
 		    ilink->svc_name);
 		goto error;
 	}
 
-	log_msg(LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
 	list_append(&ilink->link_list, &inet_link_list);
 
 	inet_addrobj_t *addr;
@@ -208,7 +208,7 @@ static int inet_link_open(service_id_t sid)
 	addr->name = str_dup("v4a");
 	rc = inet_addrobj_add(addr);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
 		inet_addrobj_delete(addr);
 		/* XXX Roll back */
 		return rc;
@@ -217,7 +217,7 @@ static int inet_link_open(service_id_t sid)
 	iaddr.ipv4 = addr->naddr.ipv4;
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
 		inet_addrobj_remove(addr);
 		inet_addrobj_delete(addr);
 		/* XXX Roll back */
@@ -244,7 +244,7 @@ int inet_link_discovery_start(void)
 
 	rc = loc_register_cat_change_cb(inet_link_cat_change_cb);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed registering callback for IP link "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for IP link "
 		    "discovery (%d).", rc);
 		return rc;
 	}

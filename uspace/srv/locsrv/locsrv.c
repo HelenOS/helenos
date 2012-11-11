@@ -1352,6 +1352,9 @@ static bool loc_init(void)
 	cat = category_new("serial");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("clock");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("test3");
 	categ_dir_add_cat(&cdir, cat);
 
@@ -1365,6 +1368,12 @@ static bool loc_init(void)
 	categ_dir_add_cat(&cdir, cat);
 	
 	cat = category_new("nic");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("visualizer");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("renderer");
 	categ_dir_add_cat(&cdir, cat);
 	
 	return true;

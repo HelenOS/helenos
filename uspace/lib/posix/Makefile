@@ -32,34 +32,36 @@ LIBRARY = libposix
 SLIBRARY = libposix.so.0.0
 LSONAME = libposix.so0
 
-INCLUDE_LIBC = ./libc
+EXTRA_CFLAGS = -Iinclude/
+
+INCLUDE_LIBC = ./include/libc
 
 PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
 
 SOURCES = \
-	ctype.c \
-	errno.c \
-	fcntl.c \
-	fnmatch.c \
-	getopt.c \
-	locale.c \
-	math.c \
-	pwd.c \
-	signal.c \
-	stdio.c \
-	stdio/scanf.c \
-	stdlib.c \
-	stdlib/strtol.c \
-	stdlib/strtold.c \
-	string.c \
-	strings.c \
-	sys/stat.c \
-	sys/wait.c \
-	time.c \
-	unistd.c
+	source/ctype.c \
+	source/errno.c \
+	source/fcntl.c \
+	source/fnmatch.c \
+	source/getopt.c \
+	source/locale.c \
+	source/math.c \
+	source/pwd.c \
+	source/signal.c \
+	source/stdio.c \
+	source/stdio/scanf.c \
+	source/stdlib.c \
+	source/stdlib/strtol.c \
+	source/stdlib/strtold.c \
+	source/string.c \
+	source/strings.c \
+	source/sys/stat.c \
+	source/sys/wait.c \
+	source/time.c \
+	source/unistd.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
 $(INCLUDE_LIBC): ../c/include
-	ln -s -f -n $^ $@
+	ln -s -f -n ../$^ $@

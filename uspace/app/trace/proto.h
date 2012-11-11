@@ -61,8 +61,6 @@ typedef struct {
 	hash_table_t method_oper;
 } proto_t;
 
-/* Maps service number to protocol */
-extern hash_table_t srv_proto;
 
 extern void proto_init(void);
 extern void proto_cleanup(void);

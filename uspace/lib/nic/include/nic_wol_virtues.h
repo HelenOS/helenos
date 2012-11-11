@@ -50,7 +50,7 @@ typedef struct nic_wol_virtues {
 	/**
 	 * Operations for table
 	 */
-	hash_table_operations_t table_operations;
+	hash_table_ops_t table_operations;
 	/**
 	 * WOL virtues hashed by their ID's.
 	 */

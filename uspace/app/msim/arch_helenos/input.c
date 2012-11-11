@@ -31,12 +31,16 @@
  */
 /** @file HelenOS specific functions for MSIM simulator.
  */
+
+/* Because of asprintf. */
+#define _GNU_SOURCE
 #include "../../io/input.h"
 #include "../../io/output.h"
 #include "../../fault.h"
 #include "helenos.h"
 #include <tinput.h>
 #include <errno.h>
+#include <stdlib.h>
 
 static tinput_t *input_prompt;
 

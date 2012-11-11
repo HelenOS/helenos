@@ -43,16 +43,16 @@
 #define NAME "uhci"
 
 static int uhci_dev_add(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t uhci_driver_ops = {
 	.dev_add = uhci_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t uhci_driver = {
 	.name = NAME,
 	.driver_ops = &uhci_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initialize a new ddf driver instance for uhci hc and hub.
  *
  * @param[in] device DDF instance of the device to initialize.
@@ -69,12 +69,12 @@ int uhci_dev_add(ddf_dev_t *device)
 		    str_error(ret));
 	} else {
 		usb_log_info("Controlling new UHCI device '%s'.\n",
-		    device->name);
+		    ddf_dev_get_name(device));
 	}
 
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize global driver structures (NONE).
  *
  * @param[in] argc Number of arguments in argv vector (ignored).
@@ -86,7 +86,7 @@ int uhci_dev_add(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI driver.\n");
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return ddf_driver_main(&uhci_driver);
 }

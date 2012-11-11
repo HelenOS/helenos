@@ -58,20 +58,20 @@ static int ohci_dev_add(ddf_dev_t *device)
 		    str_error(ret));
 		return ret;
 	}
-	usb_log_info("Controlling new OHCI device '%s'.\n", device->name);
+	usb_log_info("Controlling new OHCI device '%s'.\n", ddf_dev_get_name(device));
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t ohci_driver_ops = {
 	.dev_add = ohci_dev_add,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t ohci_driver = {
 	.name = NAME,
 	.driver_ops = &ohci_driver_ops
 };
-/*----------------------------------------------------------------------------*/
+
 /** Initializes global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
@@ -82,7 +82,7 @@ static driver_t ohci_driver = {
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 	return ddf_driver_main(&ohci_driver);
 }
 /**

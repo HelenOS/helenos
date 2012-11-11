@@ -39,6 +39,7 @@
 #include <arch/mm/frame.h>
 #include <mm/mm.h>
 #include <arch/exception.h>
+#include <arch/barrier.h>
 #include <trace.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
@@ -108,6 +109,14 @@
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
 	set_pt_level1_flags((pte_t *) (ptl3), (size_t) (i), (x))
+
+/* Set PTE present bit accessors for each level. */
+#define SET_PTL1_PRESENT_ARCH(ptl0, i) \
+	set_pt_level0_present((pte_t *) (ptl0), (size_t) (i))
+#define SET_PTL2_PRESENT_ARCH(ptl1, i)
+#define SET_PTL3_PRESENT_ARCH(ptl2, i)
+#define SET_FRAME_PRESENT_ARCH(ptl3, i) \
+	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
@@ -266,6 +275,14 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 	}
 }
 
+NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
+{
+	pte_level0_t *p = &pt[i].l0;
+
+	p->should_be_zero = 0;
+	write_barrier();
+	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
+}
 
 /** Sets flags of level 1 page table entry.
  *
@@ -282,13 +299,10 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_level1_t *p = &pt[i].l1;
 	
-	if (flags & PAGE_NOT_PRESENT) {
+	if (flags & PAGE_NOT_PRESENT)
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
-		p->access_permission_3 = 1;
-	} else {
+	else
 		p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
-		p->access_permission_3 = p->access_permission_0;
-	}
 	
 	p->cacheable = p->bufferable = (flags & PAGE_CACHEABLE) != 0;
 	
@@ -311,9 +325,14 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	}
 }
 
+NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
+{
+	pte_level1_t *p = &pt[i].l1;
 
+	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
+}
+	
 extern void page_arch_init(void);
-
 
 #endif /* __ASM__ */
 

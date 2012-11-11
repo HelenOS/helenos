@@ -203,7 +203,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 static int root_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "root_dev_add, device handle=%" PRIun,
-	    dev->handle);
+	    ddf_dev_get_handle(dev));
 
 	/*
 	 * Register virtual devices root.
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");
 
-	ddf_log_init(NAME, LVL_ERROR);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&root_driver);
 }
 

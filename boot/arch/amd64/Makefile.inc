@@ -41,6 +41,7 @@ RD_DRVS += \
 	char/ns8250 \
 	char/ps2mouse \
 	char/xtkbd \
+	time/cmos-rtc \
 	bus/usb/ehci\
 	bus/usb/ohci \
 	bus/usb/uhci \
