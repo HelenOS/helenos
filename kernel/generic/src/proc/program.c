@@ -78,11 +78,16 @@ int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 	/*
 	 * Create the stack address space area.
 	 */
-	uintptr_t virt = USTACK_ADDRESS;
+	uintptr_t virt = (uintptr_t) -1;
+	uintptr_t bound = USER_ADDRESS_SPACE_END - (STACK_SIZE_USER - 1);
+
+	/* Adjust bound to create space for the desired guard page. */
+	bound -= PAGE_SIZE;
+
 	as_area_t *area = as_area_create(as,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE, STACK_SIZE_USER, AS_AREA_ATTR_NONE,
-	    &anon_backend, NULL, &virt, 0);
+	    &anon_backend, NULL, &virt, bound);
 	if (!area) {
 		task_destroy(prg->task);
 		return ENOMEM;
