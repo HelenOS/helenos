@@ -34,8 +34,258 @@
 /**
  * @file
  * @brief Scalable resizable concurrent lock-free hash table.
+ * 
+ * CHT is a concurrent hash table that is scalable resizable and lock-free.
+ * resizable = the number of buckets of the table increases or decreases
+ *     depending on the average number of elements per bucket (ie load)
+ * scalable = accessing the table from more cpus increases performance
+ *     almost linearly
+ * lock-free = common operations never block; even if any of the operations
+ *     is preempted or interrupted at any time, other operations will still
+ *     make forward progress
  *
+ * CHT is designed for read mostly scenarios. Performance degrades as the
+ * fraction of updates (insert/remove) increases. Other data structures
+ * significantly outperform CHT if the fraction of updates exceeds ~40%.
+ * 
+ * CHT tolerates hardware exceptions and may be accessed from exception
+ * handlers as long as the underlying RCU implementation is exception safe.
+ * 
+ * @par Caveats
+ * 
+ * 0) Never assume an item is still in the table.
+ * The table may be accessed concurrently; therefore, other threads may
+ * insert or remove an item at any time. Do not assume an item is still
+ * in the table if cht_find() just returned it to you. Similarly, an
+ * item may have already been inserted by the time cht_find() returns NULL.
+ * 
+ * 1) Always use RCU read locks when searching the table.
+ * Holding an RCU lock guarantees that an item found in the table remains
+ * valid (eg is not freed) even if the item was removed from the table
+ * in the meantime by another thread.
+ * 
+ * 2) Never update values in place.
+ * Do not update items in the table in place, ie directly. The changes
+ * will not propagate to other readers (on other cpus) immediately or even
+ * correctly. Some readers may then encounter items that have only some
+ * of their fields changed or are completely inconsistent. 
+ * 
+ * Instead consider inserting an updated/changed copy of the item and 
+ * removing the original item. Or contact the maintainer to provide
+ * you with a function that atomically replaces an item with a copy.
+ * 
+ * 3) Use cht_insert_unique() instead of checking for duplicates with cht_find()
+ * The following code is prone to race conditions:
+ * @code
+ * if (NULL == cht_find(&h, key)) {
+ *     // If another thread inserts and item here, we'll insert a duplicate.
+ *     cht_insert(&h, item);
+ * }
+ * @endcode
+ * See cht_insert_unique() on how to correctly fix this.
+ * 
+ *
+ * @par Semantics
+ * 
+ * Lazy readers = cht_find_lazy(), cht_find_next_lazy()
+ * Readers = lazy readers, cht_find(), cht_find_next()
+ * Updates = cht_insert(), cht_insert_unique(), cht_remove_key(), 
+ *     cht_remove_item()
+ * 
+ * Readers (but not lazy readers) are guaranteed to see the effects 
+ * of @e completed updates. In other words, if cht_find() is invoked 
+ * after a cht_insert() @e returned eg on another cpu, cht_find() is 
+ * guaranteed to see the inserted item. 
+ * 
+ * Similarly, updates see the effects of @e completed updates. For example,
+ * issuing cht_remove() after a cht_insert() for that key returned (even 
+ * on another cpu) is guaranteed to remove the inserted item.
+ * 
+ * Reading or updating the table concurrently with other updates
+ * always returns consistent data and never corrupts the table.
+ * However the effects of concurrent updates may or may not be
+ * visible to all other concurrent readers or updaters. Eg, not
+ * all readers may see that an item has already been inserted 
+ * if cht_insert() has not yet returned. 
+ * 
+ * Lazy readers are guaranteed to eventually see updates but it
+ * may take some time (possibly milliseconds) after the update
+ * completes for the change to propagate to lazy readers on all
+ * cpus.
+ * 
+ * @par Implementation
+ * 
+ * Collisions in CHT are resolved with chaining. The number of buckets
+ * is always a power of 2. Each bucket is represented with a single linked 
+ * lock-free list [1]. Items in buckets are sorted by their mixed hashes 
+ * in ascending order. All buckets are terminated with a single global 
+ * sentinel node whose mixed hash value is the greatest possible. 
+ *
+ * CHT with 2^k buckets uses the k most significant bits of a hash value
+ * to determine the bucket number where an item is to be stored. To
+ * avoid storing all items in a single bucket if the user supplied
+ * hash function does not produce uniform hashes, hash values are
+ * mixed first so that the top bits of a mixed hash change even if hash
+ * values differ only in the least significant bits. The mixed hash 
+ * values are cached in cht_link.hash (which is overwritten once the 
+ * item is scheduled for removal via rcu_call).
+ * 
+ * A new item is inserted before all other existing items in the bucket
+ * with the same hash value as the newly inserted item (a la the original
+ * lock-free list [2]). Placing new items at the start of a same-hash 
+ * sequence of items (eg duplicates) allows us to easily check for duplicates 
+ * in cht_insert_unique(). The function can first check that there are 
+ * no duplicates of the newly inserted item amongst the items with the 
+ * same hash as the new item. If there were no duplicates the new item 
+ * is linked before the same-hash items. Inserting a duplicate while 
+ * the function is checking for duplicates is detected as a change of 
+ * the link to the first checked same-hash item (and the search for 
+ * duplicates can be restarted).
+ * 
+ * @par Table resize algorithm
+ * 
+ * Table resize is based on [3] and [5]. First, a new bucket head array
+ * is allocated and initialized. Second, old bucket heads are moved
+ * to the new bucket head array with the protocol mentioned in [5]. 
+ * At this point updaters start using the new bucket heads. Third,
+ * buckets are split (or joined) so that the table can make use of
+ * the extra bucket head slots in the new array (or stop wasting space
+ * with the unnecessary extra slots in the old array). Splitting
+ * or joining buckets employs a custom protocol. Last, the new array 
+ * replaces the original bucket array.
+ * 
+ * A single background work item (of the system work queue) guides
+ * resizing of the table. If an updater detects that the bucket it
+ * is about to access is undergoing a resize (ie its head is moving
+ * or it needs to be split/joined), it helps out and completes the
+ * head move or the bucket split/join.
+ * 
+ * The table always grows or shrinks by a factor of 2. Because items 
+ * are assigned a bucket based on the top k bits of their mixed hash 
+ * values, when growing the table each bucket is split into two buckets 
+ * and all items of the two new buckets come from the single bucket in the 
+ * original table. Ie items from separate buckets in the original table
+ * never intermix in the new buckets. Moreover 
+ * since the buckets are sorted by their mixed hash values the items 
+ * at the beginning of the old bucket will end up in the first new 
+ * bucket while all the remaining items of the old bucket will end up
+ * in the second new bucket. Therefore, there is a single point where 
+ * to split the linked list of the old bucket into two correctly sorted 
+ * linked lists of the new buckets:
+ *                            .- bucket split
+ *                            | 
+ *             <-- first -->  v  <-- second --> 
+ *   [old] --> [00b] -> [01b] -> [10b] -> [11b] -> sentinel
+ *              ^                 ^    
+ *   [new0] -- -+                 |  
+ *   [new1] -- -- -- -- -- -- -- -+
+ * 
+ * Resize in greater detail:
+ * 
+ * a) First, a resizer (a single background system work queue item 
+ * in charge of resizing the table) allocates and initializes a new 
+ * bucket head array. New bucket heads are pointed to the sentinel 
+ * and marked Invalid (in the lower order bits of the pointer to the 
+ * next item, ie the sentinel in this case):
+ * 
+ *   [old, N] --> [00b] -> [01b] -> [10b] -> [11b] -> sentinel
+ *                                                    ^ ^
+ *   [new0, Inv] -------------------------------------+ |
+ *   [new1, Inv] ---------------------------------------+
+ * 
+ * 
+ * b) Second, the resizer starts moving old bucket heads with the following 
+ * lock-free protocol (from [5]) where cas(variable, expected_val, new_val) 
+ * is short for compare-and-swap:
+ * 
+ *   old head     new0 head      transition to next state
+ *   --------     ---------      ------------------------
+ *   addr, N      sentinel, Inv  cas(old, (addr, N), (addr, Const))
+ *                               .. mark the old head as immutable, so that 
+ *                                  updaters do not relink it to other nodes 
+ *                                  until the head move is done.
+ *   addr, Const  sentinel, Inv  cas(new0, (sentinel, Inv), (addr, N))
+ *                               .. move the address to the new head and mark 
+ *                                  the new head normal so updaters can start
+ *                                  using it.
+ *   addr, Const  addr, N        cas(old, (addr, Const), (addr, Inv))
+ *                               .. mark the old head Invalid to signify
+ *                                  the head move is done.
+ *   addr, Inv    addr, N
+ * 
+ * Notice that concurrent updaters may step in at any point and correctly
+ * complete the head move without disrupting the resizer. At worst, the
+ * resizer or other concurrent updaters will attempt a number of CAS() that 
+ * will correctly fail.
+ * 
+ *   [old, Inv] -> [00b] -> [01b] -> [10b] -> [11b] -> sentinel
+ *                 ^                                   ^
+ *   [new0, N] ----+                                   |
+ *   [new1, Inv] --------------------------------------+
+ * 
+ *  
+ * c) Third, buckets are split if the table is growing; or joined if 
+ * shrinking (by the resizer or updaters depending on whoever accesses 
+ * the bucket first). See split_bucket() and join_buckets() for details.
+ * 
+ *  1) Mark the last item of new0 with JOIN_FOLLOWS:
+ *   [old, Inv] -> [00b] -> [01b, JF] -> [10b] -> [11b] -> sentinel
+ *                 ^                                       ^
+ *   [new0, N] ----+                                       |
+ *   [new1, Inv] ------------------------------------------+
+ * 
+ *  2) Mark the first item of new1 with JOIN_NODE:
+ *   [old, Inv] -> [00b] -> [01b, JF] -> [10b, JN] -> [11b] -> sentinel
+ *                 ^                                           ^
+ *   [new0, N] ----+                                           |
+ *   [new1, Inv] ----------------------------------------------+
+ * 
+ *  3) Point new1 to the join-node and mark new1 NORMAL.
+ *   [old, Inv] -> [00b] -> [01b, JF] -> [10b, JN] -> [11b] -> sentinel
+ *                 ^                     ^
+ *   [new0, N] ----+                     |
+ *   [new1, N] --------------------------+
+ * 
+ * 
+ * d) Fourth, the resizer cleans up extra marks added during bucket 
+ * splits/joins but only when it is sure all updaters are accessing
+ * the table via the new bucket heads only (ie it is certain there
+ * are no delayed updaters unaware of the resize and accessing the 
+ * table via the old bucket head).
+ * 
+ *   [old, Inv] ---+
+ *                 v
+ *   [new0, N] --> [00b] -> [01b, N] ---+
+ *                                      v
+ *   [new1, N] --> [10b, N] -> [11b] -> sentinel
+ * 
+ * 
+ * e) Last, the resizer publishes the new bucket head array for everyone
+ * to see and use. This signals the end of the resize and the old bucket
+ * array is freed. 
+ * 
+ * 
+ * To understand details of how the table is resized, read [1, 3, 5]
+ * and comments in join_buckets(), split_bucket().
+ *  
+ * 
+ * [1] High performance dynamic lock-free hash tables and list-based sets, 
+ *     Michael, 2002
+ *     http://www.research.ibm.com/people/m/michael/spaa-2002.pdf
+ * [2] Lock-free linked lists using compare-and-swap,
+ *     Valois, 1995
+ *     http://people.csail.mit.edu/bushl2/rpi/portfolio/lockfree-grape/documents/lock-free-linked-lists.pdf
+ * [3] Resizable, scalable, concurrent hash tables via relativistic programming,
+ *     Triplett, 2011
+ *     http://www.usenix.org/event/atc11/tech/final_files/Triplett.pdf
+ * [4] Split-ordered Lists: Lock-free Extensible Hash Tables,
+ *     Shavit, 2006
+ *     http://www.cs.ucf.edu/~dcm/Teaching/COT4810-Spring2011/Literature/SplitOrderedLists.pdf
+ * [5] Towards a Scalable Non-blocking Coding Style,
+ *     Click, 2008
+ *     http://www.azulsystems.com/events/javaone_2008/2008_CodingNonBlock.pdf
  */
+
 
 #include <adt/cht.h>
 #include <adt/hash.h>
@@ -644,18 +894,18 @@ void cht_insert(cht_t *h, cht_link_t *item)
  * not yet been inserted into the table and to insert this item into the 
  * table.
  * 
- * The following is NOT thread-safe, so do not use:
- * \code
+ * The following is @e NOT thread-safe, so do not use:
+ * @code
  * if (!cht_find(h, key)) {
  *     // A concurrent insert here may go unnoticed by cht_find() above.
  *     item = malloc(..);
  *     cht_insert(h, item);
  *     // Now we may have two items with equal search keys.
  * }
- * \endcode
+ * @endcode
  * 
  * Replace such code with:
- * \code
+ * @code
  * item = malloc(..);
  * if (!cht_insert_unique(h, item)) {
  *     // Whoops, someone beat us to it - an equal item had already been inserted.
@@ -664,7 +914,7 @@ void cht_insert(cht_t *h, cht_link_t *item)
  *     // Successfully inserted the item and we are guaranteed that
  *     // there are no other equal items.
  * }
- * \endcode
+ * @endcode
  * 
  */
 bool cht_insert_unique(cht_t *h, cht_link_t *item)
@@ -1532,7 +1782,7 @@ static void split_bucket(cht_t *h, marked_ptr_t *psrc_head,
 	 *  [src_head | N] -> .. -> [JF] -> [JN]
 	 *  [dest_head | Inv]
 	 * 
-	 * 2)                             ,-- split_hash
+	 * 3)                             ,-- split_hash
 	 *                                v  
 	 *  [src_head | N] -> .. -> [JF] -> [JN]
 	 *                                   ^
