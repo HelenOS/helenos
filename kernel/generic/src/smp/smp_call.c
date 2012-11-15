@@ -106,7 +106,13 @@ void smp_call(unsigned int cpu_id, smp_call_func_t func, void *arg)
 void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg, 
 	smp_call_t *call_info)
 {
-	/* todo: doc deadlock */
+	/* 
+	 * Interrupts must not be disabled or you run the risk of a deadlock 
+	 * if both the destination and source cpus try to send an IPI to each
+	 * other with interrupts disabled. Because the interrupts are disabled 
+	 * the IPIs cannot be delivered and both cpus will forever busy wait 
+	 * for an acknowledgment of the IPI from the other cpu.
+	 */
 	ASSERT(!interrupts_disabled());
 	ASSERT(call_info != NULL);
 	
