@@ -90,13 +90,15 @@ int _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
 	ipl_t ipl;
 
 	ipl = waitq_sleep_prepare(&cv->wq);
+	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
 	mutex_unlock(mtx);
 
 	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
 	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags);
 
-	mutex_lock(mtx);
 	waitq_sleep_finish(&cv->wq, rc, ipl);
+	/* Lock only after releasing the waitq to avoid a possible deadlock. */
+	mutex_lock(mtx);
 
 	return rc;
 }
@@ -127,13 +129,14 @@ int _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
 	
 	ipl = waitq_sleep_prepare(&cv->wq);
 
+	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
 	spinlock_unlock(lock);
 
 	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
 	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags);
 
 	waitq_sleep_finish(&cv->wq, rc, ipl);
-	
+	/* Lock only after releasing the waitq to avoid a possible deadlock. */
 	spinlock_lock(lock);
 	
 	return rc;
