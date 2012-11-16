@@ -39,8 +39,7 @@
 #include <synch/semaphore.h>
 
 #if !defined(RCU_PREEMPT_PODZIMEK) && !defined(RCU_PREEMPT_A)
-#define RCU_PREEMPT_A
-//#error You must select an RCU algorithm.
+#error You must select an RCU algorithm.
 #endif
 
 

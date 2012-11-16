@@ -936,6 +936,7 @@ static void sample_local_cpu(void *arg)
 	cpu_mask_t *reader_cpus = (cpu_mask_t *)arg;
 	
 	bool locked = RCU_CNT_INC <= THE->rcu_nesting;
+	/* smp_call machinery makes the most current _rcu_cur_gp visible. */
 	bool passed_qs = (CPU->rcu.last_seen_gp == _rcu_cur_gp);
 		
 	if (locked && !passed_qs) {
@@ -958,34 +959,44 @@ void rcu_after_thread_ran(void)
 {
 	ASSERT(interrupts_disabled());
 
+	/* 
+	 * In order not to worry about NMI seeing rcu_nesting change work 
+	 * with a local copy.
+	 */
+	size_t nesting_cnt = ACCESS_ONCE(THE->rcu_nesting);
+	
 	/* Preempted a reader critical section for the first time. */
-	if (rcu_read_locked() && !(THE->rcu_nesting & RCU_WAS_PREEMPTED)) {
-		THE->rcu_nesting |= RCU_WAS_PREEMPTED;
+	if (RCU_CNT_INC <= nesting_cnt && !(nesting_cnt & RCU_WAS_PREEMPTED)) {
+		nesting_cnt |= RCU_WAS_PREEMPTED;
 		note_preempted_reader();
 	}
 	
 	/* Save the thread's nesting count when it is not running. */
-	THREAD->rcu.nesting_cnt = THE->rcu_nesting;
-
-	/* Clear rcu_nesting only after noting that a thread was preempted. */
-	compiler_barrier();
-	THE->rcu_nesting = 0;
+	THREAD->rcu.nesting_cnt = nesting_cnt;
+	ACCESS_ONCE(THE->rcu_nesting) = 0;
 
 	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
 		/* 
 		 * Contain any memory accesses of old readers before announcing a QS. 
 		 * Also make changes from the previous GP visible to this cpu.
+		 * Moreover it separates writing to last_seen_gp from 
+		 * note_preempted_reader().
 		 */
 		memory_barrier();
 		/* 
-		* The preempted reader has been noted globally. There are therefore
-		* no readers running on this cpu so this is a quiescent state.
-		*/
+		 * The preempted reader has been noted globally. There are therefore
+		 * no readers running on this cpu so this is a quiescent state.
+		 * 
+		 * Reading the multiword _rcu_cur_gp non-atomically is benign. 
+		 * At worst, the read value will be different from the actual value.
+		 * As a result, both the detector and this cpu will believe
+		 * this cpu has not yet passed a QS although it really did.
+		 */
 		CPU->rcu.last_seen_gp = _rcu_cur_gp;
 	}
 
 	/* 
-	 * Forcefully associate the reclaime with the highest priority
+	 * Forcefully associate the reclaimer with the highest priority
 	 * even if preempted due to its time slice running out.
 	 */
 	if (THREAD == CPU->rcu.reclaimer_thr) {
@@ -1561,6 +1572,9 @@ static void rm_quiescent_cpus(cpu_mask_t *cpu_mask)
 		 * 
 		 * _rcu_cur_gp is modified by local detector thread only. 
 		 * Therefore, it is up-to-date even without a lock. 
+		 * 
+		 * cpu.last_seen_gp may not be up-to-date. At worst, we will
+		 * unnecessarily sample its last_seen_gp with a smp_call. 
 		 */
 		bool cpu_acked_gp = (cpus[cpu_id].rcu.last_seen_gp == _rcu_cur_gp);
 		
@@ -1577,32 +1591,15 @@ static void rm_quiescent_cpus(cpu_mask_t *cpu_mask)
 	}
 }
 
-/** Invokes sample_local_cpu(arg) on each cpu of reader_cpus. */
+/** Serially invokes sample_local_cpu(arg) on each cpu of reader_cpus. */
 static void sample_cpus(cpu_mask_t *reader_cpus, void *arg)
 {
-	const size_t max_conconcurrent_calls = 16;
-	smp_call_t call[max_conconcurrent_calls];
-	size_t outstanding_calls = 0;
-	
 	cpu_mask_for_each(*reader_cpus, cpu_id) {
-		smp_call_async(cpu_id, sample_local_cpu, arg, &call[outstanding_calls]);
-		++outstanding_calls;
+		smp_call(cpu_id, sample_local_cpu, arg);
 
 		/* Update statistic. */
 		if (CPU->id != cpu_id)
 			++rcu.stat_smp_call_cnt;
-		
-		if (outstanding_calls == max_conconcurrent_calls) {
-			for (size_t k = 0; k < outstanding_calls; ++k) {
-				smp_call_wait(&call[k]);
-			}
-			
-			outstanding_calls = 0;
-		}
-	}
-	
-	for (size_t k = 0; k < outstanding_calls; ++k) {
-		smp_call_wait(&call[k]);
 	}
 }
 
