@@ -198,9 +198,8 @@ void irq_spinlock_initialize(irq_spinlock_t *lock, const char *name)
  * Lock a spinlock which requires disabled interrupts.
  *
  * @param lock    IRQ spinlock to be locked.
- * @param irq_dis If true, interrupts are actually disabled
- *                prior locking the spinlock. If false, interrupts
- *                are expected to be already disabled.
+ * @param irq_dis If true, disables interrupts before locking the spinlock.
+ *                If false, interrupts are expected to be already disabled.
  *
  */
 void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)

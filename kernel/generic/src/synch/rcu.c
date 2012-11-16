@@ -491,7 +491,6 @@ void _rcu_synchronize(bool expedite)
 	waitq_initialize(&completion.wq);
 	_rcu_call(expedite, &completion.rcu_item, synch_complete);
 	waitq_sleep(&completion.wq);
-	waitq_complete_wakeup(&completion.wq);
 }
 
 /** rcu_synchronize's callback. */
