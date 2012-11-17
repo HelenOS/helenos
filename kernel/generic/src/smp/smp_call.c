@@ -68,6 +68,14 @@ void smp_call_init(void)
  * If @a cpu_id is the local CPU, the function will be invoked
  * directly.
  * 
+ * All memory accesses of prior to smp_call() will be visible
+ * to @a func on cpu @a cpu_id. Similarly, any changes @a func
+ * makes on cpu @a cpu_id will be visible on this cpu once
+ * smp_call() returns.
+ * 
+ * Invoking @a func on the destination cpu acts as a memory barrier
+ * on that cpu.
+ * 
  * @param cpu_id Destination CPU's logical id (eg CPU->id)
  * @param func Function to call.
  * @param arg Argument to pass to the user supplied function @a func.
@@ -88,11 +96,20 @@ void smp_call(unsigned int cpu_id, smp_call_func_t func, void *arg)
  * Pass @a call_info to smp_call_wait() in order to wait for 
  * @a func to complete.
  * 
- * @a call_info must be valid until @a func returns.
+ * @a call_info must be valid until/after @a func returns. Use
+ * smp_call_wait() to wait until it is safe to free @a call_info.
  * 
  * If @a cpu_id is the local CPU, the function will be invoked
  * directly. If the destination cpu id @a cpu_id is invalid
  * or denotes an inactive cpu, the call is discarded immediately.
+ * 
+ * All memory accesses of the caller prior to smp_call_async()
+ * will be made visible to @a func on the other cpu. Similarly, 
+ * any changes @a func makes on cpu @a cpu_id will be visible
+ * to this cpu when smp_call_wait() returns.
+ * 
+ * Invoking @a func on the destination cpu acts as a memory barrier
+ * on that cpu.
  * 
  * Interrupts must be enabled. Otherwise you run the risk
  * of a deadlock.
@@ -195,6 +212,10 @@ void smp_call_ipi_recv(void)
 	list_t calls_list;
 	list_initialize(&calls_list);
 	
+	/* 
+	 * Acts as a load memory barrier. Any changes made by the cpu that
+	 * added the smp_call to calls_list will be made visible to this cpu.
+	 */
 	spinlock_lock(&CPU->smp_calls_lock);
 	list_concat(&calls_list, &CPU->smp_pending_calls);
 	spinlock_unlock(&CPU->smp_calls_lock);
