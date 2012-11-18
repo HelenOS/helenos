@@ -112,8 +112,8 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	uintptr_t va;
 	va = page;
 	
-	rr.word = rr_read(VA2VRN(va));
-	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
+	rr.word = rr_read(VA2VRN(page));
+	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(page))))) {
 		/*
 		 * The selected region register does not contain required RID.
 		 * Save the old content of the register and replace the RID.
@@ -121,8 +121,8 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 		region_register_t rr0;
 		
 		rr0 = rr;
-		rr0.map.rid = ASID2RID(asid, VA2VRN(va));
-		rr_write(VA2VRN(va), rr0.word);
+		rr0.map.rid = ASID2RID(asid, VA2VRN(page));
+		rr_write(VA2VRN(page), rr0.word);
 		srlz_d();
 		srlz_i();
 	}
@@ -138,40 +138,40 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 		break;
 	case 1: /* cnt 4 - 15 */
 		ps = PAGE_WIDTH + 2;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	case 2: /* cnt 16 - 63 */
 		ps = PAGE_WIDTH + 4;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	case 3: /* cnt 64 - 255 */
 		ps = PAGE_WIDTH + 6;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	case 4: /* cnt 256 - 1023 */
 		ps = PAGE_WIDTH + 8;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	case 5: /* cnt 1024 - 4095 */
 		ps = PAGE_WIDTH + 10;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	case 6: /* cnt 4096 - 16383 */
 		ps = PAGE_WIDTH + 12;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	case 7: /* cnt 16384 - 65535 */
 	case 8: /* cnt 65536 - (256K - 1) */
 		ps = PAGE_WIDTH + 14;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	default:
 		ps = PAGE_WIDTH + 18;
-		va &= ~((1 << ps) - 1);
+		va &= ~((1UL << ps) - 1);
 		break;
 	}
 	
-	for (; va < (page + cnt * PAGE_SIZE); va += (1 << ps))
+	for (; va < (page + cnt * PAGE_SIZE); va += (1UL << ps))
 		asm volatile (
 			"ptc.l %[va], %[ps] ;;"
 			:: [va]"r" (va),
@@ -182,7 +182,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	srlz_i();
 	
 	if (restore_rr) {
-		rr_write(VA2VRN(va), rr.word);
+		rr_write(VA2VRN(page), rr.word);
 		srlz_d();
 		srlz_i();
 	}

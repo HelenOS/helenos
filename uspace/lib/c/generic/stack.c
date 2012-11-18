@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia64_AS_H_
-#define KERN_ia64_AS_H_
+#include <stack.h>
+#include <sysinfo.h>
 
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
+size_t stack_size_get(void)
+{
+	static sysarg_t stack_size = 0;
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH  UINT64_C(0xe000000000000000)
-#define KERNEL_ADDRESS_SPACE_END_ARCH    UINT64_C(0xffffffffffffffff)
-#define USER_ADDRESS_SPACE_START_ARCH    UINT64_C(0x0000000000000000)
-#define USER_ADDRESS_SPACE_END_ARCH      UINT64_C(0xdfffffffffffffff)
+	if (!stack_size)
+		sysinfo_get_value("default.stack_size", &stack_size);
 
-typedef struct {
-} as_arch_t;
-
-#include <genarch/mm/as_ht.h>
-
-#define as_constructor_arch(as, flags)  (as != as)
-#define as_destructor_arch(as)          (as != as)
-#define as_create_arch(as, flags)       (as != as)
-#define as_deinstall_arch(as)
-#define as_invalidate_translation_cache(as, page, cnt)
-
-extern void as_arch_init(void);
-
-#endif
+	return (size_t) stack_size;
+}
 
 /** @}
  */

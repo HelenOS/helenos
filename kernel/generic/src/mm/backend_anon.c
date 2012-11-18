@@ -58,6 +58,9 @@ static bool anon_resize(as_area_t *, size_t);
 static void anon_share(as_area_t *);
 static void anon_destroy(as_area_t *);
 
+static bool anon_is_resizable(as_area_t *);
+static bool anon_is_shareable(as_area_t *);
+
 static int anon_page_fault(as_area_t *, uintptr_t, pf_access_t);
 static void anon_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
@@ -67,17 +70,26 @@ mem_backend_t anon_backend = {
 	.share = anon_share,
 	.destroy = anon_destroy,
 
+	.is_resizable = anon_is_resizable,
+	.is_shareable = anon_is_shareable,
+
 	.page_fault = anon_page_fault,
 	.frame_free = anon_frame_free,
 };
 
 bool anon_create(as_area_t *area)
 {
+	if (area->flags & AS_AREA_LATE_RESERVE)
+		return true;
+
 	return reserve_try_alloc(area->pages);
 }
 
 bool anon_resize(as_area_t *area, size_t new_pages)
 {
+	if (area->flags & AS_AREA_LATE_RESERVE)
+		return true;
+
 	if (new_pages > area->pages)
 		return reserve_try_alloc(new_pages - area->pages);
 	else if (new_pages < area->pages)
@@ -99,6 +111,7 @@ void anon_share(as_area_t *area)
 {
 	ASSERT(mutex_locked(&area->as->lock));
 	ASSERT(mutex_locked(&area->lock));
+	ASSERT(!(area->flags & AS_AREA_LATE_RESERVE));
 
 	/*
 	 * Copy used portions of the area to sh_info's page map.
@@ -138,9 +151,21 @@ void anon_share(as_area_t *area)
 
 void anon_destroy(as_area_t *area)
 {
+	if (area->flags & AS_AREA_LATE_RESERVE)
+		return;
+
 	reserve_free(area->pages);
 }
 
+bool anon_is_resizable(as_area_t *area)
+{
+	return true;
+}
+
+bool anon_is_shareable(as_area_t *area)
+{
+	return !(area->flags & AS_AREA_LATE_RESERVE);
+}
 
 /** Service a page fault in the anonymous memory address space area.
  *
@@ -224,6 +249,20 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   do not forget to distinguish between
 		 *   the different causes
 		 */
+
+		if (area->flags & AS_AREA_LATE_RESERVE) {
+			/*
+			 * Reserve the memory for this page now.
+			 */
+			if (!reserve_try_alloc(1)) {
+				printf("Killing task %" PRIu64 " due to a "
+				    "failed late reservation request.\n",
+				    TASK->taskid);
+				TASK->silent_kill = true;
+				return AS_PF_FAULT;
+			}
+		}
+
 		kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);
 		memsetb((void *) kpage, PAGE_SIZE, 0);
 		km_temporary_page_put(kpage);
@@ -254,7 +293,21 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	ASSERT(page_table_locked(area->as));
 	ASSERT(mutex_locked(&area->lock));
 
-	frame_free_noreserve(frame);
+	if (area->flags & AS_AREA_LATE_RESERVE) {
+		/*
+		 * In case of the late reserve areas, physical memory will not
+		 * be unreserved when the area is destroyed so we need to use
+		 * the normal unreserving frame_free().
+		 */
+		frame_free(frame);
+	} else {
+		/*
+		 * The reserve will be given back when the area is destroyed or
+		 * resized, so use the frame_free_noreserve() which does not
+		 * manipulate the reserve or it would be given back twice.
+		 */
+		frame_free_noreserve(frame);
+	}
 }
 
 /** @}

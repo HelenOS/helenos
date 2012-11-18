@@ -139,6 +139,7 @@ GENERIC_SOURCES = \
 	generic/net/inet.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
+	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \

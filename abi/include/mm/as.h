@@ -36,11 +36,12 @@
 #define ABI_AS_H_
 
 /** Address space area flags. */
-#define AS_AREA_READ       0x01
-#define AS_AREA_WRITE      0x02
-#define AS_AREA_EXEC       0x04
-#define AS_AREA_CACHEABLE  0x08
-#define AS_AREA_GUARD      0x10
+#define AS_AREA_READ         0x01
+#define AS_AREA_WRITE        0x02
+#define AS_AREA_EXEC         0x04
+#define AS_AREA_CACHEABLE    0x08
+#define AS_AREA_GUARD        0x10
+#define AS_AREA_LATE_RESERVE 0x20
 
 /** Address space area info exported to uspace. */
 typedef struct {

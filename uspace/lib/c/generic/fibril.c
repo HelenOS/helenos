@@ -36,8 +36,11 @@
 #include <adt/list.h>
 #include <fibril.h>
 #include <thread.h>
+#include <stack.h>
 #include <tls.h>
 #include <malloc.h>
+#include <abi/mm/as.h>
+#include <as.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <libarch/barrier.h>
@@ -45,10 +48,6 @@
 #include <futex.h>
 #include <assert.h>
 #include <async.h>
-
-#ifndef FIBRIL_INITIAL_STACK_PAGES_NO
-	#define FIBRIL_INITIAL_STACK_PAGES_NO  1
-#endif
 
 /**
  * This futex serializes access to ready_list,
@@ -194,7 +193,7 @@ int fibril_switch(fibril_switch_type_t stype)
 					 * case, its fibril will not have the
 					 * stack member filled.
 					 */
-					free(stack);
+					as_area_destroy(stack);
 				}
 				fibril_teardown(srcf->clean_after_me);
 				srcf->clean_after_me = NULL;
@@ -268,9 +267,11 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	if (fibril == NULL)
 		return 0;
 	
-	fibril->stack =
-	    (char *) malloc(FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize());
-	if (!fibril->stack) {
+	size_t stack_size = stack_size_get();
+	fibril->stack = as_area_create((void *) -1, stack_size,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
+	    AS_AREA_LATE_RESERVE);
+	if (fibril->stack == (void *) -1) {
 		fibril_teardown(fibril);
 		return 0;
 	}
@@ -280,7 +281,7 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 
 	context_save(&fibril->ctx);
 	context_set(&fibril->ctx, FADDR(fibril_main), fibril->stack,
-	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(), fibril->tcb);
+	    stack_size, fibril->tcb);
 
 	return (fid_t) fibril;
 }
@@ -297,7 +298,7 @@ void fibril_destroy(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
 	
-	free(fibril->stack);
+	as_area_destroy(fibril->stack);
 	fibril_teardown(fibril);
 }
 
