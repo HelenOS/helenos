@@ -139,11 +139,13 @@ void _rcu_preempted_unlock(void);
 static inline void rcu_read_lock(void)
 {
 	THE->rcu_nesting += RCU_CNT_INC;
+	compiler_barrier();
 }
 
 /** Delimits the end of an RCU reader critical section. */
 static inline void rcu_read_unlock(void)
 {
+	compiler_barrier();
 	THE->rcu_nesting -= RCU_CNT_INC;
 	
 	if (RCU_WAS_PREEMPTED == THE->rcu_nesting) {
