@@ -49,10 +49,6 @@
 #include <assert.h>
 #include <async.h>
 
-#ifndef FIBRIL_INITIAL_STACK_PAGES_NO
-	#define FIBRIL_INITIAL_STACK_PAGES_NO  1
-#endif
-
 /**
  * This futex serializes access to ready_list,
  * serialized_list and manager_list.

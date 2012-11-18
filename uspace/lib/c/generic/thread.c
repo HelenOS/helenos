@@ -45,10 +45,6 @@
 #include <as.h>
 #include "private/thread.h"
 
-#ifndef THREAD_INITIAL_STACK_PAGES
-	#define THREAD_INITIAL_STACK_PAGES  2
-#endif
-
 /** Main thread function.
  *
  * This function is called from __thread_entry() and is used
