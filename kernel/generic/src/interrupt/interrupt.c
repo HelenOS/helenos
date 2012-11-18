@@ -167,16 +167,18 @@ NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 
 static NO_TRACE void fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
 {
-	printf("Task %s (%" PRIu64 ") killed due to an exception at "
-	    "program counter %p.\n", TASK->name, TASK->taskid,
-	    (void *) istate_get_pc(istate));
+	if (!TASK->silent_kill) {
+		printf("Task %s (%" PRIu64 ") killed due to an exception at "
+		    "program counter %p.\n", TASK->name, TASK->taskid,
+		    (void *) istate_get_pc(istate));
 	
-	istate_decode(istate);
-	stack_trace_istate(istate);
+		istate_decode(istate);
+		stack_trace_istate(istate);
 	
-	printf("Kill message: ");
-	vprintf(fmt, args);
-	printf("\n");
+		printf("Kill message: ");
+		vprintf(fmt, args);
+		printf("\n");
+	}
 	
 	task_kill_self(true);
 }
