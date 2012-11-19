@@ -34,6 +34,92 @@
 /**
  * @file
  * @brief Preemptible read-copy update. Usable from interrupt handlers.
+ * 
+ * @par Podzimek-preempt-RCU (RCU_PREEMPT_PODZIMEK)
+ * 
+ * Podzimek-preempt-RCU is a preemptible variant of Podzimek's non-preemptible
+ * RCU algorithm [1, 2]. Grace period (GP) detection is centralized into a
+ * single detector thread. The detector requests that each cpu announces
+ * that it passed a quiescent state (QS), ie a state when the cpu is
+ * outside of an rcu reader section (CS). Cpus check for QSs during context
+ * switches and when entering and exiting rcu reader sections. Once all 
+ * cpus announce a QS and if there were no threads preempted in a CS, the 
+ * GP ends.
+ * 
+ * The detector increments the global GP counter, _rcu_cur_gp, in order 
+ * to start a new GP. Readers notice the new GP by comparing the changed 
+ * _rcu_cur_gp to a locally stored value last_seen_gp which denotes the
+ * the last GP number for which the cpu noted an explicit QS (and issued
+ * a memory barrier). Readers check for the change in the outer-most
+ * (ie not nested) rcu_read_lock()/unlock() as these functions represent 
+ * a QS. The reader first executes a memory barrier (MB) in order to contain 
+ * memory references within a CS (and to make changes made by writers 
+ * visible in the CS following rcu_read_lock()). Next, the reader notes 
+ * that it reached a QS by updating the cpu local last_seen_gp to the
+ * global GP counter, _rcu_cur_gp. Cache coherency eventually makes
+ * the updated last_seen_gp visible to the detector cpu, much like it
+ * delivered the changed _rcu_cur_gp to all cpus.
+ * 
+ * The detector waits a while after starting a GP and then reads each 
+ * cpu's last_seen_gp to see if it reached a QS. If a cpu did not record 
+ * a QS (might be a long running thread without an RCU reader CS; or cache
+ * coherency has yet to make the most current last_seen_gp visible to
+ * the detector; or the cpu is still in a CS) the cpu is interrupted
+ * via an IPI. If the IPI handler finds the cpu still in a CS, it instructs
+ * the cpu to notify the detector that it had exited the CS via a semaphore. 
+ * The detector then waits on the semaphore for any cpus to exit their
+ * CSs. Lastly, it waits for the last reader preempted in a CS to 
+ * exit its CS if there were any and signals the end of the GP to
+ * separate reclaimer threads wired to each cpu. Reclaimers then
+ * execute the callbacks queued on each of the cpus.
+ * 
+ * 
+ * @par A-RCU algorithm (RCU_PREEMPT_A)
+ * 
+ * A-RCU is based on the user space rcu algorithm in [3] utilizing signals
+ * (urcu) and Podzimek's rcu [1]. Like in Podzimek's rcu, callbacks are 
+ * executed by cpu-bound reclaimer threads. There is however no dedicated 
+ * detector thread and the reclaimers take on the responsibilities of the 
+ * detector when they need to start a new GP. A new GP is again announced 
+ * and acknowledged with _rcu_cur_gp and the cpu local last_seen_gp. Unlike
+ * Podzimek's rcu, cpus check explicitly for QS only during context switches. 
+ * Like in urcu, rcu_read_lock()/unlock() only maintain the nesting count
+ * and never issue any memory barriers. This makes rcu_read_lock()/unlock()
+ * simple and fast.
+ * 
+ * If a new callback is queued for a reclaimer and no GP is in progress,
+ * the reclaimer takes on the role of a detector. The detector increments 
+ * _rcu_cur_gp in order to start a new GP. It waits a while to give cpus 
+ * a chance to switch a context (a natural QS). Then, it examines each
+ * non-idle cpu that has yet to pass a QS via an IPI. The IPI handler
+ * sees the most current _rcu_cur_gp and last_seen_gp and notes a QS
+ * with a memory barrier and an update to last_seen_gp. If the handler
+ * finds the cpu in a CS it does nothing and let the detector poll/interrupt
+ * the cpu again after a short sleep.
+ * 
+ * @par Caveats
+ * 
+ * last_seen_gp and _rcu_cur_gp are always 64bit variables and they
+ * are read non-atomically on 32bit machines. Reading a clobbered
+ * value of last_seen_gp or _rcu_cur_gp or writing a clobbered value
+ * of _rcu_cur_gp to last_seen_gp will at worst force the detector
+ * to unnecessarily interrupt a cpu. Interrupting a cpu makes the 
+ * correct value of _rcu_cur_gp visible to the cpu and correctly
+ * resets last_seen_gp in both algorithms.
+ * 
+ * 
+ * 
+ * [1] Read-copy-update for opensolaris,
+ *     2010, Podzimek
+ *     https://andrej.podzimek.org/thesis.pdf
+ * 
+ * [2] (podzimek-rcu) implementation file "rcu.patch"
+ *     http://d3s.mff.cuni.cz/projects/operating_systems/rcu/rcu.patch
+ * 
+ * [3] User-level implementations of read-copy update,
+ *     2012, appendix
+ *     http://www.rdrop.com/users/paulmck/RCU/urcu-supp-accepted.2011.08.30a.pdf
+ * 
  */
  
 #include <synch/rcu.h>
@@ -991,6 +1077,11 @@ void rcu_after_thread_ran(void)
 		 * At worst, the read value will be different from the actual value.
 		 * As a result, both the detector and this cpu will believe
 		 * this cpu has not yet passed a QS although it really did.
+		 * 
+		 * Reloading _rcu_cur_gp is benign, because it cannot change
+		 * until this cpu acknowledges it passed a QS by writing to
+		 * last_seen_gp. Since interrupts are disabled, only this
+		 * code may to so (IPIs won't get through).
 		 */
 		CPU->rcu.last_seen_gp = _rcu_cur_gp;
 	}
@@ -1054,8 +1145,15 @@ void _rcu_preempted_unlock(void)
 {
 	ipl_t ipl = interrupts_disable();
 	
+	/* todo: Replace with cpu-local atomics to be NMI-safe */
 	if (THE->rcu_nesting == RCU_WAS_PREEMPTED) {
 		THE->rcu_nesting = 0;
+		/* 
+		 * NMI handlers are never preempted but may call rm_preempted_reader()
+		 * if a NMI occurred in _rcu_preempted_unlock() of a preempted thread.
+		 * rm_preempted_reader() will not deadlock because none of the locks
+		 * it uses are locked in this case.
+		 */
 		rm_preempted_reader();
 	}
 	
