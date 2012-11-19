@@ -266,24 +266,29 @@ static void comp_coord_bounding_rect(sysarg_t x_in, sysarg_t y_in,
     sysarg_t w_in, sysarg_t h_in, transform_t win_trans,
     sysarg_t *x_out, sysarg_t *y_out, sysarg_t *w_out, sysarg_t *h_out)
 {
-	sysarg_t x[4];
-	sysarg_t y[4];
-	comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
-	comp_coord_from_client(x_in + w_in, y_in, win_trans, &x[1], &y[1]);
-	comp_coord_from_client(x_in + w_in, y_in + h_in, win_trans, &x[2], &y[2]);
-	comp_coord_from_client(x_in, y_in + h_in, win_trans, &x[3], &y[3]);
-	(*x_out) = x[0];
-	(*y_out) = y[0];
-	(*w_out) = x[0];
-	(*h_out) = y[0];
-	for (int i = 1; i < 4; ++i) {
-		(*x_out) = (x[i] < (*x_out)) ? x[i] : (*x_out);
-		(*y_out) = (y[i] < (*y_out)) ? y[i] : (*y_out);
-		(*w_out) = (x[i] > (*w_out)) ? x[i] : (*w_out);
-		(*h_out) = (y[i] > (*h_out)) ? y[i] : (*h_out);
+	if (w_in > 0 && h_in > 0) {
+		sysarg_t x[4];
+		sysarg_t y[4];
+		comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
+		comp_coord_from_client(x_in + w_in - 1, y_in, win_trans, &x[1], &y[1]);
+		comp_coord_from_client(x_in + w_in - 1, y_in + h_in - 1, win_trans, &x[2], &y[2]);
+		comp_coord_from_client(x_in, y_in + h_in - 1, win_trans, &x[3], &y[3]);
+		(*x_out) = x[0];
+		(*y_out) = y[0];
+		(*w_out) = x[0];
+		(*h_out) = y[0];
+		for (int i = 1; i < 4; ++i) {
+			(*x_out) = (x[i] < (*x_out)) ? x[i] : (*x_out);
+			(*y_out) = (y[i] < (*y_out)) ? y[i] : (*y_out);
+			(*w_out) = (x[i] > (*w_out)) ? x[i] : (*w_out);
+			(*h_out) = (y[i] > (*h_out)) ? y[i] : (*h_out);
+		}
+		(*w_out) = (*w_out) - (*x_out) + 1;
+		(*h_out) = (*h_out) - (*y_out) + 1;
+	} else {
+		(*w_out) = 0;
+		(*h_out) = 0;
 	}
-	(*w_out) -= (*x_out);
-	(*h_out) -= (*y_out);
 }
 
 static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
