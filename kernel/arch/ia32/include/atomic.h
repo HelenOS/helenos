@@ -142,6 +142,103 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 	CS_ENTER_BARRIER();
 }
 
+
+#define _atomic_cas_impl(pptr, exp_val, new_val, old_val, prefix) \
+({ \
+	switch (sizeof(typeof(*(pptr)))) { \
+	case 1: \
+		asm volatile ( \
+			prefix " cmpxchgb %[newval], %[ptr]\n" \
+			: /* Output operands. */ \
+			/* Old/current value is returned in eax. */ \
+			[oldval] "=a" (old_val), \
+			/* (*ptr) will be read and written to, hence "+" */ \
+			[ptr] "+m" (*pptr) \
+			: /* Input operands. */ \
+			/* Expected value must be in eax. */ \
+			[expval] "a" (exp_val), \
+			/* The new value may be in any register. */ \
+			[newval] "r" (new_val) \
+			: "memory" \
+		); \
+		break; \
+	case 2: \
+		asm volatile ( \
+			prefix " cmpxchgw %[newval], %[ptr]\n" \
+			: /* Output operands. */ \
+			/* Old/current value is returned in eax. */ \
+			[oldval] "=a" (old_val), \
+			/* (*ptr) will be read and written to, hence "+" */ \
+			[ptr] "+m" (*pptr) \
+			: /* Input operands. */ \
+			/* Expected value must be in eax. */ \
+			[expval] "a" (exp_val), \
+			/* The new value may be in any register. */ \
+			[newval] "r" (new_val) \
+			: "memory" \
+		); \
+		break; \
+	case 4: \
+		asm volatile ( \
+			prefix " cmpxchgl %[newval], %[ptr]\n" \
+			: /* Output operands. */ \
+			/* Old/current value is returned in eax. */ \
+			[oldval] "=a" (old_val), \
+			/* (*ptr) will be read and written to, hence "+" */ \
+			[ptr] "+m" (*pptr) \
+			: /* Input operands. */ \
+			/* Expected value must be in eax. */ \
+			[expval] "a" (exp_val), \
+			/* The new value may be in any register. */ \
+			[newval] "r" (new_val) \
+			: "memory" \
+		); \
+		break; \
+	} \
+})
+
+
+#ifndef local_atomic_cas
+
+#define local_atomic_cas(pptr, exp_val, new_val) \
+({ \
+	typeof(*(pptr)) old_val; \
+	_atomic_cas_impl(pptr, exp_val, new_val, old_val, ""); \
+	\
+	old_val; \
+})
+
+#else
+/* Check if arch/atomic.h does not accidentally include /atomic.h .*/
+#error Architecture specific cpu local atomics already defined! Check your includes.
+#endif
+
+
+#ifndef local_atomic_exchange
+/* 
+ * Issuing a xchg instruction always implies lock prefix semantics.
+ * Therefore, it is cheaper to use a cmpxchg without a lock prefix 
+ * in a loop.
+ */
+#define local_atomic_exchange(pptr, new_val) \
+({ \
+	typeof(*(pptr)) exp_val; \
+	typeof(*(pptr)) old_val; \
+	\
+	do { \
+		exp_val = *pptr; \
+		old_val = local_atomic_cas(pptr, exp_val, new_val); \
+	} while (old_val != exp_val); \
+	\
+	old_val; \
+})
+
+#else
+/* Check if arch/atomic.h does not accidentally include /atomic.h .*/
+#error Architecture specific cpu local atomics already defined! Check your includes.
+#endif
+
+
 #endif
 
 /** @}
