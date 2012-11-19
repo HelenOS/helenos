@@ -152,7 +152,7 @@ typedef struct rcu_thread_data {
 	
 	/** True if the thread was preempted in a reader section. 
 	 *
-	 * The thread is place into rcu.cur_preempted or rcu.next_preempted
+	 * The thread is placed into rcu.cur_preempted or rcu.next_preempted
 	 * and must remove itself in rcu_read_unlock(). 
 	 * 
 	 * Access with interrupts disabled.

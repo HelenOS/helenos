@@ -66,7 +66,8 @@
  * coherency has yet to make the most current last_seen_gp visible to
  * the detector; or the cpu is still in a CS) the cpu is interrupted
  * via an IPI. If the IPI handler finds the cpu still in a CS, it instructs
- * the cpu to notify the detector that it had exited the CS via a semaphore. 
+ * the cpu to notify the detector that it had exited the CS via a semaphore
+ * (CPU->rcu.is_delaying_gp). 
  * The detector then waits on the semaphore for any cpus to exit their
  * CSs. Lastly, it waits for the last reader preempted in a CS to 
  * exit its CS if there were any and signals the end of the GP to
@@ -289,7 +290,7 @@ static void sample_local_cpu(void *);
 static bool wait_for_preempt_reader(void);
 static void note_preempted_reader(void);
 static void rm_preempted_reader(void);
-static void upd_max_cbs_in_slice(void);
+static void upd_max_cbs_in_slice(size_t arriving_cbs_cnt);
 
 
 
@@ -509,23 +510,17 @@ void _rcu_signal_read_unlock(void)
 {
 	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
 	
-	/* todo: make NMI safe with cpu-local atomic ops. */
-	
 	/*
-	 * We have to disable interrupts in order to make checking
-	 * and resetting was_preempted and is_delaying_gp atomic 
-	 * with respect to local interrupt handlers. Otherwise
-	 * an interrupt could beat us to calling semaphore_up()
-	 * before we reset the appropriate flag.
+	 * If an interrupt occurs here (even a NMI) it may beat us to
+	 * resetting .is_delaying_gp or .was_preempted and up the semaphore
+	 * for us.
 	 */
-	ipl_t ipl = interrupts_disable();
 	
 	/* 
 	 * If the detector is eagerly waiting for this cpu's reader to unlock,
 	 * notify it that the reader did so.
 	 */
-	if (CPU->rcu.is_delaying_gp) {
-		CPU->rcu.is_delaying_gp = false;
+	if (local_atomic_exchange(&CPU->rcu.is_delaying_gp, false)) {
 		semaphore_up(&rcu.remaining_readers);
 	}
 	
@@ -534,17 +529,14 @@ void _rcu_signal_read_unlock(void)
 	 * We might be holding up the current GP. Notify the
 	 * detector if so.
 	 */
-	if (THREAD && THREAD->rcu.was_preempted) {
+	if (THREAD && local_atomic_exchange(&THREAD->rcu.was_preempted, false)) {
 		ASSERT(link_used(&THREAD->rcu.preempt_link));
-		THREAD->rcu.was_preempted = false;
 
 		rm_preempted_reader();
 	}
 	
 	/* If there was something to signal to the detector we have done so. */
 	CPU->rcu.signal_unlock = false;
-	
-	interrupts_restore(ipl);
 }
 
 #endif /* RCU_PREEMPT_PODZIMEK */
@@ -670,22 +662,24 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 	rcu_item->next = NULL;
 	
 	preemption_disable();
-	
-	ipl_t ipl = interrupts_disable();
 
 	rcu_cpu_data_t *r = &CPU->rcu;
-	*r->parriving_cbs_tail = rcu_item;
-	r->parriving_cbs_tail = &rcu_item->next;
+
+	rcu_item_t **prev_tail 
+		= local_atomic_exchange(&r->parriving_cbs_tail, &rcu_item->next);
+	*prev_tail = rcu_item;
 	
-	size_t cnt = ++r->arriving_cbs_cnt;
-	interrupts_restore(ipl);
+	/* Approximate the number of callbacks present. */
+	++r->arriving_cbs_cnt;
 	
 	if (expedite) {
 		r->expedite_arriving = true;
 	}
 	
+	bool first_cb = (prev_tail == &CPU->rcu.arriving_cbs);
+	
 	/* Added first callback - notify the reclaimer. */
-	if (cnt == 1 && !semaphore_count_get(&r->arrived_flag)) {
+	if (first_cb && !semaphore_count_get(&r->arrived_flag)) {
 		semaphore_up(&r->arrived_flag);
 	}
 	
@@ -848,26 +842,42 @@ static bool advance_cbs(void)
 	CPU->rcu.cur_cbs_cnt = CPU->rcu.next_cbs_cnt;
 	CPU->rcu.cur_cbs_gp = CPU->rcu.next_cbs_gp;
 	
-	/* Move arriving_cbs to next_cbs. Empties arriving_cbs. */
-	ipl_t ipl = interrupts_disable();
-
+	/* Move arriving_cbs to next_cbs. */
+	
+	CPU->rcu.next_cbs_cnt = CPU->rcu.arriving_cbs_cnt;
+	CPU->rcu.arriving_cbs_cnt = 0;
+	
 	/* 
 	 * Too many callbacks queued. Better speed up the detection
 	 * or risk exhausting all system memory.
 	 */
-	bool expedite = (EXPEDITE_THRESHOLD < CPU->rcu.arriving_cbs_cnt)
+	bool expedite = (EXPEDITE_THRESHOLD < CPU->rcu.next_cbs_cnt)
 		|| CPU->rcu.expedite_arriving;	
-
 	CPU->rcu.expedite_arriving = false;
-	
+
+	/* Start moving the arriving_cbs list to next_cbs. */
 	CPU->rcu.next_cbs = CPU->rcu.arriving_cbs;
-	CPU->rcu.next_cbs_cnt = CPU->rcu.arriving_cbs_cnt;
 	
-	CPU->rcu.arriving_cbs = NULL;
-	CPU->rcu.parriving_cbs_tail = &CPU->rcu.arriving_cbs;
-	CPU->rcu.arriving_cbs_cnt = 0;
-	
-	interrupts_restore(ipl);
+	/* 
+	 * At least one callback arrived. The tail therefore does not point
+	 * to the head of arriving_cbs and we can safely reset it to NULL.
+	 */
+	if (CPU->rcu.next_cbs) {
+		ASSERT(CPU->rcu.parriving_cbs_tail != &CPU->rcu.arriving_cbs);
+		
+		CPU->rcu.arriving_cbs = NULL;
+		/* Reset arriving_cbs before updating the tail pointer. */
+		compiler_barrier();
+		/* Updating the tail pointer completes the move of arriving_cbs. */
+		ACCESS_ONCE(CPU->rcu.parriving_cbs_tail) = &CPU->rcu.arriving_cbs;
+	} else {
+		/* 
+		 * arriving_cbs was null and parriving_cbs_tail pointed to it 
+		 * so leave it that way. Note that interrupt handlers may have
+		 * added a callback in the meantime so it is not safe to reset
+		 * arriving_cbs or parriving_cbs.
+		 */
+	}
 
 	/* Update statistics of arrived callbacks. */
 	upd_stat_cb_cnts(CPU->rcu.next_cbs_cnt);
@@ -1049,7 +1059,13 @@ void rcu_after_thread_ran(void)
 	 * In order not to worry about NMI seeing rcu_nesting change work 
 	 * with a local copy.
 	 */
-	size_t nesting_cnt = ACCESS_ONCE(THE->rcu_nesting);
+	size_t nesting_cnt = local_atomic_exchange(&THE->rcu_nesting, 0);
+	
+	/* 
+	 * Ensures NMIs see .rcu_nesting without the WAS_PREEMPTED mark and
+	 * do not accidentally call rm_preempted_reader() from unlock().
+	 */
+	compiler_barrier();
 	
 	/* Preempted a reader critical section for the first time. */
 	if (RCU_CNT_INC <= nesting_cnt && !(nesting_cnt & RCU_WAS_PREEMPTED)) {
@@ -1059,7 +1075,6 @@ void rcu_after_thread_ran(void)
 	
 	/* Save the thread's nesting count when it is not running. */
 	THREAD->rcu.nesting_cnt = nesting_cnt;
-	ACCESS_ONCE(THE->rcu_nesting) = 0;
 
 	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
 		/* 
@@ -1094,13 +1109,12 @@ void rcu_after_thread_ran(void)
 		THREAD->priority = -1;
 	} 
 	
-	upd_max_cbs_in_slice();
+	upd_max_cbs_in_slice(CPU->rcu.arriving_cbs_cnt);
 }
 
 /** Called by the scheduler() when switching to a newly scheduled thread. */
 void rcu_before_thread_runs(void)
 {
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
 	ASSERT(!rcu_read_locked());
 	
 	/* Load the thread's saved nesting count from before it was preempted. */
@@ -1114,7 +1128,8 @@ void rcu_before_thread_runs(void)
  */
 void rcu_thread_exiting(void)
 {
-	ASSERT(PREEMPTION_DISABLED || interrupts_disabled());
+	ASSERT(THE->rcu_nesting == 0);
+	
 	/* 
 	 * The thread forgot to exit its reader critical section. 
 	 * It is a bug, but rather than letting the entire system lock up
@@ -1124,9 +1139,7 @@ void rcu_thread_exiting(void)
 	if (RCU_CNT_INC <= THREAD->rcu.nesting_cnt) {
 		/* Emulate _rcu_preempted_unlock() with the proper nesting count. */
 		if (THREAD->rcu.nesting_cnt & RCU_WAS_PREEMPTED) {
-			ipl_t ipl = interrupts_disable();
 			rm_preempted_reader();
-			interrupts_restore(ipl);
 		}
 
 		printf("Bug: thread (id %" PRIu64 " \"%s\") exited while in RCU read"
@@ -1143,21 +1156,24 @@ bool rcu_read_locked(void)
 /** Invoked when a preempted reader finally exits its reader section. */
 void _rcu_preempted_unlock(void)
 {
-	ipl_t ipl = interrupts_disable();
+	ASSERT(0 == THE->rcu_nesting || RCU_WAS_PREEMPTED == THE->rcu_nesting);
 	
-	/* todo: Replace with cpu-local atomics to be NMI-safe */
-	if (THE->rcu_nesting == RCU_WAS_PREEMPTED) {
-		THE->rcu_nesting = 0;
+	size_t prev = local_atomic_exchange(&THE->rcu_nesting, 0);
+	if (prev == RCU_WAS_PREEMPTED) {
 		/* 
 		 * NMI handlers are never preempted but may call rm_preempted_reader()
 		 * if a NMI occurred in _rcu_preempted_unlock() of a preempted thread.
+		 * The only other rcu code that may have been interrupted by the NMI
+		 * in _rcu_preempted_unlock() is: an IPI/sample_local_cpu() and
+		 * the initial part of rcu_after_thread_ran().
+		 * 
 		 * rm_preempted_reader() will not deadlock because none of the locks
-		 * it uses are locked in this case.
+		 * it uses are locked in this case. Neither _rcu_preempted_unlock()
+		 * nor sample_local_cpu() nor the initial part of rcu_after_thread_ran()
+		 * acquire any locks.
 		 */
 		rm_preempted_reader();
 	}
-	
-	interrupts_restore(ipl);
 }
 
 #elif defined(RCU_PREEMPT_PODZIMEK)
@@ -1414,14 +1430,13 @@ static void sample_local_cpu(void *arg)
 		/* Interrupted a reader in a reader critical section. */
 		if (0 < CPU->rcu.nesting_cnt) {
 			ASSERT(!CPU->idle);
-			/* Note to notify the detector from rcu_read_unlock(). */
-			CPU->rcu.is_delaying_gp = true;
 			/* 
-			 * Set signal_unlock only after setting is_delaying_gp so
-			 * that NMI handlers do not accidentally clear it in unlock()
-			 * before seeing and acting upon is_delaying_gp.
+			 * Note to notify the detector from rcu_read_unlock(). 
+			 * 
+			 * ACCESS_ONCE ensures the compiler writes to is_delaying_gp
+			 * only after it determines that we are in a reader CS.
 			 */
-			compiler_barrier();
+			ACCESS_ONCE(CPU->rcu.is_delaying_gp) = true;
 			CPU->rcu.signal_unlock = true;
 			
 			atomic_inc(&rcu.delaying_cpu_cnt);
@@ -1477,21 +1492,21 @@ static bool wait_for_delaying_cpus(void)
 void rcu_after_thread_ran(void)
 {
 	ASSERT(interrupts_disabled());
-	/* todo: make is_delaying_gp and was_preempted NMI safe via local atomics.*/
 
 	/* 
 	 * Prevent NMI handlers from interfering. The detector will be notified
-	 * here if CPU->rcu.is_delaying_gp and the current thread is no longer 
-	 * running so there is nothing to signal to the detector.
+	 * in this function if CPU->rcu.is_delaying_gp. The current thread is 
+	 * no longer running so there is nothing else to signal to the detector.
 	 */
 	CPU->rcu.signal_unlock = false;
-	/* Separates clearing of .signal_unlock from CPU->rcu.nesting_cnt = 0. */
+	/* 
+	 * Separates clearing of .signal_unlock from accesses to 
+	 * THREAD->rcu.was_preempted and CPU->rcu.nesting_cnt.
+	 */
 	compiler_barrier();
 	
 	/* Save the thread's nesting count when it is not running. */
 	THREAD->rcu.nesting_cnt = CPU->rcu.nesting_cnt;
-	/* Interrupt handlers might use RCU while idle in scheduler(). */
-	CPU->rcu.nesting_cnt = 0;
 	
 	/* Preempted a reader critical section for the first time. */
 	if (0 < THREAD->rcu.nesting_cnt && !THREAD->rcu.was_preempted) {
@@ -1505,6 +1520,13 @@ void rcu_after_thread_ran(void)
 	 */
 	_rcu_record_qs();
 
+	/* 
+	 * Interrupt handlers might use RCU while idle in scheduler(). 
+	 * The preempted reader has been noted globally, so the handlers 
+	 * may now start announcing quiescent states.
+	 */
+	CPU->rcu.nesting_cnt = 0;
+	
 	/* 
 	 * This cpu is holding up the current GP. Let the detector know 
 	 * it has just passed a quiescent state. 
@@ -1530,7 +1552,7 @@ void rcu_after_thread_ran(void)
 		THREAD->priority = -1;
 	} 
 	
-	upd_max_cbs_in_slice();
+	upd_max_cbs_in_slice(CPU->rcu.arriving_cbs_cnt);
 }
 
 /** Called by the scheduler() when switching to a newly scheduled thread. */
@@ -1541,12 +1563,20 @@ void rcu_before_thread_runs(void)
 	
 	/* Load the thread's saved nesting count from before it was preempted. */
 	CPU->rcu.nesting_cnt = THREAD->rcu.nesting_cnt;
+	
+	/* 
+	 * Ensures NMI see the proper nesting count before .signal_unlock.
+	 * Otherwise the NMI may incorrectly signal that a preempted reader
+	 * exited its reader section.
+	 */
+	compiler_barrier();
+	
 	/* 
 	 * In the unlikely event that a NMI occurs between the loading of the 
 	 * variables and setting signal_unlock, the NMI handler may invoke 
 	 * rcu_read_unlock() and clear signal_unlock. In that case we will
 	 * incorrectly overwrite signal_unlock from false to true. This event
-	 * situation benign and the next rcu_read_unlock() will at worst 
+	 * is benign and the next rcu_read_unlock() will at worst 
 	 * needlessly invoke _rcu_signal_unlock().
 	 */
 	CPU->rcu.signal_unlock = THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp;
@@ -1731,7 +1761,7 @@ static void note_preempted_reader(void)
 /** Remove the current thread from the global list of preempted readers. */
 static void rm_preempted_reader(void)
 {
-	irq_spinlock_lock(&rcu.preempt_lock, false);
+	irq_spinlock_lock(&rcu.preempt_lock, true);
 	
 	ASSERT(link_used(&THREAD->rcu.preempt_link));
 
@@ -1751,7 +1781,7 @@ static void rm_preempted_reader(void)
 		semaphore_up(&rcu.remaining_readers);
 	}
 
-	irq_spinlock_unlock(&rcu.preempt_lock, false);
+	irq_spinlock_unlock(&rcu.preempt_lock, true);
 }
 
 /** Waits for any preempted readers blocking this grace period to finish.*/
@@ -1774,16 +1804,16 @@ static bool wait_for_preempt_reader(void)
 	return true;
 }
 
-static void upd_max_cbs_in_slice(void)
+static void upd_max_cbs_in_slice(size_t arriving_cbs_cnt)
 {
 	rcu_cpu_data_t *cr = &CPU->rcu;
 	
-	if (cr->arriving_cbs_cnt > cr->last_arriving_cnt) {
-		size_t arrived_cnt = cr->arriving_cbs_cnt - cr->last_arriving_cnt;
+	if (arriving_cbs_cnt > cr->last_arriving_cnt) {
+		size_t arrived_cnt = arriving_cbs_cnt - cr->last_arriving_cnt;
 		cr->stat_max_slice_cbs = max(arrived_cnt, cr->stat_max_slice_cbs);
 	}
 	
-	cr->last_arriving_cnt = cr->arriving_cbs_cnt;
+	cr->last_arriving_cnt = arriving_cbs_cnt;
 }
 
 /** Prints RCU run-time statistics. */
