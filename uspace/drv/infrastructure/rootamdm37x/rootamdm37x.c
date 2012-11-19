@@ -50,6 +50,7 @@
 #include "cm/core.h"
 #include "cm/clock_control.h"
 #include "cm/usbhost.h"
+#include "prm/clock_control.h"
 
 #define NAME  "rootamdm37x"
 
@@ -61,6 +62,9 @@ typedef struct {
 		clock_control_cm_regs_t *clocks;
 		usbhost_cm_regs_t *usbhost;
 	} cm;
+	struct {
+		clock_control_prm_regs_t *clocks;
+	} prm;
 } amdm37x_t;
 
 static void log(const volatile void *place, uint32_t val, volatile void* base, size_t size, void *data, bool write)
@@ -89,6 +93,11 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 	if (ret != EOK)
 		return ret;
 
+	ret = pio_enable((void*)CLOCK_CONTROL_PRM_BASE_ADDRESS,
+	    CLOCK_CONTROL_PRM_SIZE, (void**)&device->prm.clocks);
+	if (ret != EOK)
+		return ret;
+
 	ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
 	    AMDM37x_USBTLL_SIZE, (void**)&device->tll);
 	if (ret != EOK)
@@ -105,26 +114,72 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
 		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
 		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
+		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
 	}
 	return EOK;
 }
 
-/** Set DPLL3,4,5 to autoidle
+
+
+/** Set DPLLs 1,2,3,4,5 to ON (locked) and autoidle.
  * @param device Register map.
+ *
+ * The idea is to get all DPLLs running and make hw control their power mode,
+ * based on the module requirements (module ICLKs and FCLKs).
  */
-static void dpll_autoidle(amdm37x_t *device)
+static void dpll_on_autoidle(amdm37x_t *device)
 {
 	assert(device);
-	/* Set DPLL3 to automatic */
+	/* Get SYS_CLK value, it is used as reference clock by all DPLLs */
+	const unsigned base_clk = pio_read_32(&device->prm.clocks->clksel)
+	    & CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK;
+	const unsigned base_freq = sys_clk_freq_kHz(base_clk);
+	ddf_msg(LVL_DEBUG, "Base frequency: %d.%dMhz",
+	    base_freq / 1000, base_freq % 1000);
+
+
+	/* DPLL1 provides MPU(CPU) clock.
+	 * It uses SYS_CLK as reference clock and core clock (DPLL3) as
+	 * high frequency bypass (MPU then runs on L3 interconnect freq).
+	 * It should be setup by fw or u-boot.*/
+	// TODO: set to autoidle to save power.
+	// TODO: compute current MPU frequency.
+
+	/* DPLL2 provides IVA(video acceleration) clock.
+	 * It uses SYS_CLK as reference clokc and core clock (DPLL3) as
+	 * high frequency bypass (IVA runs on L3 freq).
+	 */
+	// TODO: We can probably turn this off entirely. IVA is left unused.
+	// TODO: Set at least to autoidle to save power
+
+	/* DPLL3 provides tons of clocks:
+	 * CORE_CLK, COREX2_CLK, DSS_TV_CLK, 12M_CLK, 48M_CLK, 96M_CLK, L3_ICLK,
+	 * and L4_ICLK. It uses SYS_CLK as reference clock and low frequency
+	 * bypass. It should be setup by fw or u-boot as it controls critical
+	 * interconnects.
+	 */
+
+	/* Set DPLL3 to automatic to save power */
 	pio_change_32(&device->cm.clocks->autoidle_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK, 5);
 
-	/* Set DPLL4 to automatic */
+	/* DPLL4 provides peripheral domain clocks:
+	 * CAM_MCLK, EMU_PER_ALWON_CLK, DSS1_ALWON_FCLK, and 96M_ALWON_FCLK.
+	 * It uses SYS_CLK as reference clock and low frequency bypass.
+	 * 96M clock is used by McBSP[1,5], MMC[1,2,3], I2C[1,2,3], so
+	 * we can probably turn this off entirely (DSS is still non-functional).
+	 */
+	/* Set DPLL4 to automatic to save power*/
 	pio_change_32(&device->cm.clocks->autoidle_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK, 5);
 
+	/* DPLL5 provide peripheral domain clocks: 120M_FCLK.
+	 * It uses SYS_CLK as reference clock and low frequency bypass.
+	 * 120M clock is used by HS USB and USB TLL.
+	 */
+	// TODO setup DPLL5
 	/* Set DPLL5 to automatic */
 	pio_change_32(&device->cm.clocks->autoidle2_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
@@ -340,8 +395,8 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 
-	/* Set dplls to automatic */
-	dpll_autoidle(device);
+	/* Set dplls to ON and automatic */
+	dpll_on_autoidle(device);
 
 	/* Enable function and interface clocks */
 	usb_clocks_enable(device, true);
