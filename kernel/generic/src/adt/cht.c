@@ -407,7 +407,8 @@ static const cht_link_t sentinel = {
 
 
 static size_t size_to_order(size_t bucket_cnt, size_t min_order);
-static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid);
+static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid, 
+	bool can_block);
 static inline cht_link_t *find_lazy(cht_t *h, void *key);
 static cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key, 
 	size_t search_hash);
@@ -477,6 +478,22 @@ static marked_ptr_t _cas_link(marked_ptr_t *link, marked_ptr_t cur,
 	marked_ptr_t new);
 static void cas_order_barrier(void);
 
+static void dummy_remove_callback(cht_link_t *item)
+{
+	/* empty */
+}
+
+/** Creates a concurrent hash table.
+ * 
+ * @param h         Valid pointer to a cht_t instance.
+ * @param op        Item specific operations. All operations are compulsory.
+ * @return True if successfully created the table. False otherwise.
+ */
+bool cht_create_simple(cht_t *h, cht_ops_t *op)
+{
+	return cht_create(h, 0, 0, 0, false, op); 
+}
+
 /** Creates a concurrent hash table.
  * 
  * @param h         Valid pointer to a cht_t instance.
@@ -489,11 +506,15 @@ static void cas_order_barrier(void);
  *                  Uses the default value if 0.
  * @param max_load  Maximum average number of items per bucket that allowed
  *                  before the table grows.
+ * @param can_block If true creating the table blocks until enough memory
+ *                  is available (possibly indefinitely). Otherwise, 
+ *                  table creation does not block and returns immediately
+ *                  even if not enough memory is available. 
  * @param op        Item specific operations. All operations are compulsory.
  * @return True if successfully created the table. False otherwise.
  */
 bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load, 
-	cht_ops_t *op)
+	bool can_block, cht_ops_t *op)
 {
 	ASSERT(h);
 	ASSERT(op && op->hash && op->key_hash && op->equal && op->key_equal);
@@ -508,7 +529,7 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	size_t min_order = size_to_order(min_size, CHT_MIN_ORDER);
 	size_t order = size_to_order(init_size, min_order);
 	
-	h->b = alloc_buckets(order, false);
+	h->b = alloc_buckets(order, false, can_block);
 	
 	if (!h->b)
 		return false;
@@ -519,6 +540,11 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	h->op = op;
 	atomic_set(&h->item_cnt, 0);
 	atomic_set(&h->resize_reqs, 0);
+	
+	if (NULL == op->remove_callback) {
+		h->op->remove_callback = dummy_remove_callback;
+	}
+	
 	/* 
 	 * Cached item hashes are stored in item->rcu_link.func. Once the item
 	 * is deleted rcu_link.func will contain the value of invalid_hash.
@@ -538,14 +564,17 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
  * @param order       The number of buckets to allocate is 2^order.
  * @param set_invalid Bucket heads are marked invalid if true; otherwise
  *                    they are marked N_NORMAL.
+ * @param can_block   If true memory allocation blocks until enough memory
+ *                    is available (possibly indefinitely). Otherwise, 
+ *                    memory allocation does not block. 
  * @return Newly allocated and initialized buckets or NULL if not enough memory.
  */
-static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid)
+static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid, bool can_block)
 {
 	size_t bucket_cnt = (1 << order);
 	size_t bytes = 
 		sizeof(cht_buckets_t) + (bucket_cnt - 1) * sizeof(marked_ptr_t);
-	cht_buckets_t *b = malloc(bytes, FRAME_ATOMIC);
+	cht_buckets_t *b = malloc(bytes, can_block ? 0 : FRAME_ATOMIC);
 	
 	if (!b)
 		return NULL;
@@ -2144,7 +2173,7 @@ static void grow_table(cht_t *h)
 	if (h->b->order >= CHT_MAX_ORDER)
 		return;
 	
-	h->new_b = alloc_buckets(h->b->order + 1, true);
+	h->new_b = alloc_buckets(h->b->order + 1, true, false);
 
 	/* Failed to alloc a new table - try next time the resizer is run. */
 	if (!h->new_b) 
@@ -2230,7 +2259,7 @@ static void shrink_table(cht_t *h)
 	if (h->b->order <= h->min_order)
 		return;
 	
-	h->new_b = alloc_buckets(h->b->order - 1, true);
+	h->new_b = alloc_buckets(h->b->order - 1, true, false);
 
 	/* Failed to alloc a new table - try next time the resizer is run. */
 	if (!h->new_b) 

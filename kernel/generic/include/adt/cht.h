@@ -131,8 +131,9 @@ typedef struct {
 #define cht_read_lock()     rcu_read_lock()
 #define cht_read_unlock()   rcu_read_unlock()
 
+extern bool cht_create_simple(cht_t *h, cht_ops_t *op);
 extern bool cht_create(cht_t *h, size_t init_size, size_t min_size, 
-	size_t max_load, cht_ops_t *op);
+	size_t max_load, bool can_block, cht_ops_t *op);
 extern void cht_destroy(cht_t *h);
 
 extern cht_link_t *cht_find(cht_t *h, void *key);

@@ -132,9 +132,7 @@ void futex_task_init(struct task *task)
 {
 	task->futexes = malloc(sizeof(struct futex_cache), 0);
 	
-	/* todo: make it block until mem is available */
-	bool ret = cht_create(&task->futexes->ht, 0, 0, 0, &task_futex_ht_ops);
-	ASSERT(ret);
+	cht_create(&task->futexes->ht, 0, 0, 0, true, &task_futex_ht_ops);
 }
 
 /** Destroys the futex structures for the dying task. */
