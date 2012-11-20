@@ -86,7 +86,7 @@ typedef struct {
 #define MPU_CM_CLKSCTRL_CLKTRCTRL_MPU_AUTOMATIC   (0x3)
 
 	const ioport32_t clkstst;
-#define MPU_CM_CLKSTST_CLKACTIVITY_MPU_ACTICE_FLAG   (1 << 0)
+#define MPU_CM_CLKSTST_CLKACTIVITY_MPU_ACTIVE_FLAG   (1 << 0)
 
 } mpu_cm_regs_t;
 

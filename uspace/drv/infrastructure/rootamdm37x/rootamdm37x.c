@@ -154,7 +154,7 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	mpu_cm_regs_t *mpu = device->cm.mpu;
 
 	/* Current MPU frequency. */
-	if (pio_read_32(&mpu->clkstst) & MPU_CM_CLKSTST_CLKACTIVITY_MPU_ACTICE_FLAG) {
+	if (pio_read_32(&mpu->clkstst) & MPU_CM_CLKSTST_CLKACTIVITY_MPU_ACTIVE_FLAG) {
 		if (pio_read_32(&mpu->idlest_pll) & MPU_CM_IDLEST_PLL_ST_MPU_CLK_LOCKED_FLAG) {
 			/* DPLL active and locked */
 			const uint32_t reg = pio_read_32(&mpu->clksel1_pll);
@@ -223,7 +223,7 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	 * 96M clock is used by McBSP[1,5], MMC[1,2,3], I2C[1,2,3], so
 	 * we can probably turn this off entirely (DSS is still non-functional).
 	 */
-	/* Set DPLL4 to automatic to save power*/
+	/* Set DPLL4 to automatic to save power */
 	pio_change_32(&device->cm.clocks->autoidle_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK, 5);
@@ -233,7 +233,7 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	 * 120M clock is used by HS USB and USB TLL.
 	 */
 	// TODO setup DPLL5
-	/* Set DPLL5 to automatic */
+	/* Set DPLL5 to automatic to save power */
 	pio_change_32(&device->cm.clocks->autoidle2_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK, 5);
