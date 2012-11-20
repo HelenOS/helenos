@@ -413,11 +413,11 @@ static cht_link_t *search_bucket(cht_t *h, marked_ptr_t head, void *key,
 	size_t search_hash);
 static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash, 
 	marked_ptr_t old_head, size_t old_idx);
-static bool insert_impl(cht_t *h, cht_link_t *item, bool unique);
+static bool insert_impl(cht_t *h, cht_link_t *item, cht_link_t **dup_item);
 static bool insert_at(cht_link_t *item, const wnd_t *wnd, walk_mode_t walk_mode,
 	bool *resizing);
-static bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash, 
-	const wnd_t *cwnd);
+static bool has_duplicate(cht_t *h, const cht_link_t *item, size_t hash, 
+	cht_link_t *cur, cht_link_t **dup_item);
 static cht_link_t *find_duplicate(cht_t *h, const cht_link_t *item, size_t hash, 
 	cht_link_t *start);
 static bool remove_pred(cht_t *h, size_t hash, equal_pred_t pred, void *pred_arg);
@@ -885,7 +885,7 @@ static cht_link_t *find_resizing(cht_t *h, void *key, size_t hash,
 /** Inserts an item. Succeeds even if an equal item is already present. */
 void cht_insert(cht_t *h, cht_link_t *item)
 {
-	insert_impl(h, item, false);
+	insert_impl(h, item, NULL);
 }
 
 /** Inserts a unique item. Returns false if an equal item was already present. 
@@ -907,8 +907,9 @@ void cht_insert(cht_t *h, cht_link_t *item)
  * Replace such code with:
  * @code
  * item = malloc(..);
- * if (!cht_insert_unique(h, item)) {
- *     // Whoops, someone beat us to it - an equal item had already been inserted.
+ * if (!cht_insert_unique(h, item, &dup_item)) {
+ *     // Whoops, someone beat us to it - an equal item 'dup_item'
+ *     // had already been inserted.
  *     free(item); 
  * } else {
  *     // Successfully inserted the item and we are guaranteed that
@@ -917,13 +918,15 @@ void cht_insert(cht_t *h, cht_link_t *item)
  * @endcode
  * 
  */
-bool cht_insert_unique(cht_t *h, cht_link_t *item)
+bool cht_insert_unique(cht_t *h, cht_link_t *item, cht_link_t **dup_item)
 {
-	return insert_impl(h, item, true);
+	ASSERT(rcu_read_locked());
+	ASSERT(dup_item);
+	return insert_impl(h, item, dup_item);
 }
 
-/** Inserts the item into the table and checks for duplicates if unique is true.*/
-static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
+/** Inserts the item into the table and checks for duplicates if dup_item. */
+static bool insert_impl(cht_t *h, cht_link_t *item, cht_link_t **dup_item)
 {
 	rcu_read_lock();
 
@@ -958,7 +961,7 @@ static bool insert_impl(cht_t *h, cht_link_t *item, bool unique)
 			continue;
 		}
 		
-		if (unique && has_duplicates(h, item, hash, &wnd)) {
+		if (dup_item && has_duplicate(h, item, hash, wnd.cur, dup_item)) {
 			rcu_read_unlock();
 			return false;
 		}
@@ -1031,24 +1034,24 @@ inline static bool insert_at(cht_link_t *item, const wnd_t *wnd,
 	}
 }
 
-/** Returns true the chain starting at wnd hash an item equal to \a item.
+/** Returns true if the chain starting at cur has an item equal to \a item.
  * 
  * @param h    CHT to operate on.
  * @param item Item whose duplicates the function looks for.
  * @param hash Hash of \a item.
- * @param[in] wnd  wnd.cur is the first node with a hash greater to or equal
- *             to item's hash.
+ * @param[in] cur  The first node with a hash greater to or equal to item's hash.
+ * @param[out] dup_item The first duplicate item encountered.
  * @return True if a non-deleted item equal to \a item exists in the table.
  */
-static inline bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash, 
-	const wnd_t *wnd)
+static inline bool has_duplicate(cht_t *h, const cht_link_t *item, size_t hash, 
+	cht_link_t *cur, cht_link_t **dup_item)
 {
-	ASSERT(wnd->cur);
-	ASSERT(wnd->cur == &sentinel || hash <= node_hash(h, wnd->cur)
-		|| node_hash(h, wnd->cur) == h->invalid_hash);
+	ASSERT(cur);
+	ASSERT(cur == &sentinel || hash <= node_hash(h, cur)
+		|| node_hash(h, cur) == h->invalid_hash);
 	
-	/* hash < node_hash(h, wnd->cur) */
-	if (hash != node_hash(h, wnd->cur) && h->invalid_hash != node_hash(h, wnd->cur))
+	/* hash < node_hash(h, cur) */
+	if (hash != node_hash(h, cur) && h->invalid_hash != node_hash(h, cur))
 		return false;
 
 	/* 
@@ -1057,7 +1060,9 @@ static inline bool has_duplicates(cht_t *h, const cht_link_t *item, size_t hash,
 	 * the deleted node's DEL mark had not yet propagated to this cpu.
 	 */
 	read_barrier();
-	return NULL != find_duplicate(h, item, hash, wnd->cur);
+	
+	*dup_item = find_duplicate(h, item, hash, cur);
+	return NULL != *dup_item;
 }
 
 /** Returns an item that is equal to \a item starting in a chain at \a start. */

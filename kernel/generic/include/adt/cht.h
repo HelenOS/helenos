@@ -141,7 +141,7 @@ extern cht_link_t *cht_find_next(cht_t *h, const cht_link_t *item);
 extern cht_link_t *cht_find_next_lazy(cht_t *h, const cht_link_t *item);
 
 extern void cht_insert(cht_t *h, cht_link_t *item);
-extern bool cht_insert_unique(cht_t *h, cht_link_t *item);
+extern bool cht_insert_unique(cht_t *h, cht_link_t *item, cht_link_t **dup_item);
 extern size_t cht_remove_key(cht_t *h, void *key);
 extern bool cht_remove_item(cht_t *h, cht_link_t *item);
 

@@ -123,22 +123,27 @@ static const char * do_sanity_test(cht_t *h)
 	/* Different hashes and keys. */
 	set_val(v[4], 2, key[4]);
 	set_val(v[5], 3, key[5]);
+	
+	cht_link_t *dup;
 			
-	if (!cht_insert_unique(h, &v[0]->link))
+	if (!cht_insert_unique(h, &v[0]->link, &dup))
 		return "Duplicates in empty";
 
-	if (cht_insert_unique(h, &v[1]->link))
+	if (cht_insert_unique(h, &v[1]->link, &dup))
 		return "Inserted a duplicate";
+	
+	if (dup != &v[0]->link)
+		return "Returned wrong duplicate";
 
-	if (!cht_insert_unique(h, &v[3]->link))
+	if (!cht_insert_unique(h, &v[3]->link, &dup))
 		return "Refused non-equal item but with a hash in table.";
 	
 	cht_insert(h, &v[1]->link);
 	cht_insert(h, &v[2]->link);
 	
 	bool ok = true;
-	ok = ok && cht_insert_unique(h, &v[4]->link);
-	ok = ok && cht_insert_unique(h, &v[5]->link);
+	ok = ok && cht_insert_unique(h, &v[4]->link, &dup);
+	ok = ok && cht_insert_unique(h, &v[5]->link, &dup);
 	
 	if (!ok)
 		return "Refused unique ins 4, 5.";
@@ -397,10 +402,14 @@ static void op_stresser(void *arg)
 				work->elem[elem_idx].deleted = false;
 				
 				if (item_op) {
-					if (!cht_insert_unique(work->h, &work->elem[elem_idx].link)) {
+					rcu_read_lock();
+					cht_link_t *dup;
+					if (!cht_insert_unique(work->h, &work->elem[elem_idx].link, 
+						&dup)) {
 						TPRINTF("Err: already inserted\n");
 						work->failed = true;
 					}
+					rcu_read_unlock();
 				} else {
 					cht_insert(work->h, &work->elem[elem_idx].link);
 				}
