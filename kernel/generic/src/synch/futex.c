@@ -34,6 +34,30 @@
 /**
  * @file
  * @brief	Kernel backend for futexes.
+ * 
+ * Kernel futex objects are stored in a global hash table futex_ht 
+ * where the physical address of the futex variable (futex_t.paddr)
+ * is used as the lookup key. As a result multiple address spaces 
+ * may share the same futex variable. 
+ * 
+ * A kernel futex object is created the first time a task accesses
+ * the futex (having a futex variable at a physical address not 
+ * encountered before). Futex object's lifetime is governed by
+ * a reference count that represents the number of all the different
+ * user space virtual addresses from all tasks that map to the
+ * physical address of the futex variable. A futex object is freed
+ * when the last task having accessed the futex exits.
+ * 
+ * Each task keeps track of the futex objects it accessed in a list
+ * of pointers (futex_ptr_t, task->futex_list) to the different futex 
+ * objects.
+ * 
+ * To speed up translation of futex variables' virtual addresses
+ * to their physical addresses, futex pointers accessed by the
+ * task are furthermore stored in a concurrent hash table (CHT,
+ * task->futexes->ht). A single lookup without locks or accesses
+ * to the page table translates a futex variable's virtual address 
+ * into its futex kernel object. 
  */
 
 #include <synch/futex.h>
