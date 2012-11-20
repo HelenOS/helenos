@@ -339,6 +339,12 @@ static void usb_clocks_enable(amdm37x_t *device, bool on)
  */
 static int usb_tll_init(amdm37x_t *device)
 {
+	/* Check access */
+	if (pio_read_32(&device->cm.core->idlest3) & CORE_CM_IDLEST3_ST_USBTLL_FLAG) {
+		ddf_msg(LVL_ERROR, "USB TLL is not accessible");
+		return EIO;
+	}
+
 	/* Reset USB TLL */
 	pio_set_32(&device->tll->sysconfig, TLL_SYSCONFIG_SOFTRESET_FLAG, 5);
 	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
