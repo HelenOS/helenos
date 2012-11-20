@@ -47,10 +47,13 @@
 
 #include "uhh.h"
 #include "usbtll.h"
+
 #include "cm/core.h"
 #include "cm/clock_control.h"
 #include "cm/usbhost.h"
 #include "cm/mpu.h"
+#include "cm/iva2.h"
+
 #include "prm/clock_control.h"
 
 #define NAME  "rootamdm37x"
@@ -60,6 +63,7 @@ typedef struct {
 	tll_regs_t *tll;
 	struct {
 		mpu_cm_regs_t *mpu;
+		iva2_cm_regs_t *iva2;
 		core_cm_regs_t *core;
 		clock_control_cm_regs_t *clocks;
 		usbhost_cm_regs_t *usbhost;
@@ -100,6 +104,11 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 	if (ret != EOK)
 		return ret;
 
+	ret = pio_enable((void*)IVA2_CM_BASE_ADDRESS,
+		    IVA2_CM_SIZE, (void**)&device->cm.iva2);
+	if (ret != EOK)
+		return ret;
+
 	ret = pio_enable((void*)CLOCK_CONTROL_PRM_BASE_ADDRESS,
 	    CLOCK_CONTROL_PRM_SIZE, (void**)&device->prm.clocks);
 	if (ret != EOK)
@@ -120,6 +129,7 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
 		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
 		pio_trace_enable(device->cm.mpu, MPU_CM_SIZE, log, (void*)MPU_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.iva2, IVA2_CM_SIZE, log, (void*)IVA2_CM_BASE_ADDRESS);
 		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
 		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
 		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
@@ -203,7 +213,12 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	 * high frequency bypass (IVA runs on L3 freq).
 	 */
 	// TODO: We can probably turn this off entirely. IVA is left unused.
-	// TODO: Set at least to autoidle to save power
+	/* Enable low power bypass mode, this will take effect the next lock or
+	 * relock sequence. */
+	//TODO: We might need to force re-lock after enabling this
+	pio_set_32(&device->cm.iva2->clken_pll, MPU_CM_CLKEN_PLL_EN_MPU_DPLL_LP_MODE_FLAG, 5);
+	/* Enable automatic relocking */
+	pio_change_32(&device->cm.iva2->autoidle_pll, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_ENABLED, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_MASK, 5);
 
 	/* DPLL3 provides tons of clocks:
 	 * CORE_CLK, COREX2_CLK, DSS_TV_CLK, 12M_CLK, 48M_CLK, 96M_CLK, L3_ICLK,
