@@ -50,6 +50,7 @@
 #include "cm/core.h"
 #include "cm/clock_control.h"
 #include "cm/usbhost.h"
+#include "cm/mpu.h"
 #include "prm/clock_control.h"
 
 #define NAME  "rootamdm37x"
@@ -58,6 +59,7 @@ typedef struct {
 	uhh_regs_t *uhh;
 	tll_regs_t *tll;
 	struct {
+		mpu_cm_regs_t *mpu;
 		core_cm_regs_t *core;
 		clock_control_cm_regs_t *clocks;
 		usbhost_cm_regs_t *usbhost;
@@ -93,6 +95,11 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 	if (ret != EOK)
 		return ret;
 
+	ret = pio_enable((void*)MPU_CM_BASE_ADDRESS,
+		    MPU_CM_SIZE, (void**)&device->cm.mpu);
+	if (ret != EOK)
+		return ret;
+
 	ret = pio_enable((void*)CLOCK_CONTROL_PRM_BASE_ADDRESS,
 	    CLOCK_CONTROL_PRM_SIZE, (void**)&device->prm.clocks);
 	if (ret != EOK)
@@ -112,6 +119,7 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 		pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
 		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
 		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.mpu, MPU_CM_SIZE, log, (void*)MPU_CM_BASE_ADDRESS);
 		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
 		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
 		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
@@ -130,7 +138,8 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 static void dpll_on_autoidle(amdm37x_t *device)
 {
 	assert(device);
-	/* Get SYS_CLK value, it is used as reference clock by all DPLLs */
+	/* Get SYS_CLK value, it is used as reference clock by all DPLLs,
+	 * NFI who sets this or why it is set to specific value. */
 	const unsigned base_clk = pio_read_32(&device->prm.clocks->clksel)
 	    & CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK;
 	const unsigned base_freq = sys_clk_freq_kHz(base_clk);
@@ -142,8 +151,52 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	 * It uses SYS_CLK as reference clock and core clock (DPLL3) as
 	 * high frequency bypass (MPU then runs on L3 interconnect freq).
 	 * It should be setup by fw or u-boot.*/
-	// TODO: set to autoidle to save power.
-	// TODO: compute current MPU frequency.
+	mpu_cm_regs_t *mpu = device->cm.mpu;
+
+	/* Current MPU frequency. */
+	if (pio_read_32(&mpu->clkstst) & MPU_CM_CLKSTST_CLKACTIVITY_MPU_ACTICE_FLAG) {
+		if (pio_read_32(&mpu->idlest_pll) & MPU_CM_IDLEST_PLL_ST_MPU_CLK_LOCKED_FLAG) {
+			/* DPLL active and locked */
+			const uint32_t reg = pio_read_32(&mpu->clksel1_pll);
+			const unsigned multiplier =
+			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_MASK)
+				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_SHIFT;
+			const unsigned divisor =
+			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_MASK)
+				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_SHIFT;
+			const unsigned divisor2 =
+			    (pio_read_32(&mpu->clksel2_pll)
+			        & MPU_CM_CLKSEL2_PLL_MPU_DPLL_CLKOUT_DIV_MASK);
+			if (multiplier && divisor && divisor2) {
+				const unsigned freq =
+				    ((base_freq / divisor) * multiplier) / divisor2;
+				ddf_msg(LVL_NOTE, "MPU running at %d.%d MHz",
+				    freq / 1000, freq % 1000);
+			} else {
+				ddf_msg(LVL_WARN, "Frequency divisor and/or "
+				    "multiplier value invalid: %d %d %d",
+				    multiplier, divisor, divisor2);
+			}
+		} else {
+			/* DPLL in LP bypass mode */
+			const unsigned divisor =
+			    MPU_CM_CLKSEL1_PLL_MPU_CLK_SRC_VAL(
+			        pio_read_32(&mpu->clksel1_pll));
+			ddf_msg(LVL_NOTE, "MPU DPLL in bypass mode, running at"
+			    " CORE CLK / %d MHz", divisor);
+		}
+	} else {
+		ddf_msg(LVL_WARN, "MPU clock domain is not active, we should not be running...");
+	}
+	// TODO: Enable this (automatic MPU downclocking):
+#if 0
+	/* Enable low power bypass mode, this will take effect the next lock or
+	 * relock sequence. */
+	//TODO: We might need to force re-lock after enabling this
+	pio_set_32(&mpu->clken_pll, MPU_CM_CLKEN_PLL_EN_MPU_DPLL_LP_MODE_FLAG, 5);
+	/* Enable automatic relocking */
+	pio_change_32(&mpu->autoidle_pll, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_ENABLED, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_MASK, 5);
+#endif
 
 	/* DPLL2 provides IVA(video acceleration) clock.
 	 * It uses SYS_CLK as reference clokc and core clock (DPLL3) as
