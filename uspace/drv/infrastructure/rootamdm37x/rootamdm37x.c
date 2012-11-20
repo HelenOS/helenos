@@ -172,8 +172,8 @@ static void dpll_on_autoidle(amdm37x_t *device)
 			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_MASK)
 				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_SHIFT;
 			const unsigned divisor =
-			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_MASK)
-				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_SHIFT;
+			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_DIV_MASK)
+				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_DIV_SHIFT;
 			const unsigned divisor2 =
 			    (pio_read_32(&mpu->clksel2_pll)
 			        & MPU_CM_CLKSEL2_PLL_MPU_DPLL_CLKOUT_DIV_MASK);
