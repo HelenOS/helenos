@@ -226,6 +226,42 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	 * bypass. It should be setup by fw or u-boot as it controls critical
 	 * interconnects.
 	 */
+	if (pio_read_32(&device->cm.clocks->idlest_ckgen) & CLOCK_CONTROL_CM_IDLEST_CKGEN_ST_CORE_CLK_FLAG) {
+		/* DPLL active and locked */
+		const uint32_t reg =
+		    pio_read_32(&device->cm.clocks->clksel1_pll);
+		const unsigned multiplier =
+		    CLOCK_CONTROL_CM_CLKSEL1_PLL_CORE_DPLL_MULT_GET(reg);
+		const unsigned divisor =
+		    CLOCK_CONTROL_CM_CLKSEL1_PLL_CORE_DPLL_DIV_GET(reg);
+		const unsigned divisor2 =
+		    CLOCK_CONTROL_CM_CLKSEL1_PLL_CORE_DPLL_CLKOUT_DIV_GET(reg);
+		if (multiplier && divisor && divisor2) {
+			const unsigned freq =
+			    ((base_freq / divisor) * multiplier) / divisor2;
+			ddf_msg(LVL_NOTE, "CORE CLK running at %d.%d MHz",
+			    freq / 1000, freq % 1000);
+			const unsigned l3_div =
+			    pio_read_32(&device->cm.core->clksel)
+			    & CORE_CM_CLKSEL_CLKSEL_L3_MASK;
+			if (l3_div == CORE_CM_CLKSEL_CLKSEL_L3_DIVIDED1 ||
+			    l3_div == CORE_CM_CLKSEL_CLKSEL_L3_DIVIDED2) {
+				ddf_msg(LVL_NOTE, "L3 interface at %d.%d MHz",
+				    (freq / l3_div) / 1000,
+				    (freq / l3_div) % 1000);
+			} else {
+				ddf_msg(LVL_WARN,"L3 interface clock divisor is"
+				    " invalid: %d", l3_div);
+			}
+		} else {
+			ddf_msg(LVL_WARN, "DPLL3 frequency divisor and/or "
+			    "multiplier value invalid: %d %d %d",
+			    multiplier, divisor, divisor2);
+		}
+	} else {
+		ddf_msg(LVL_WARN, "CORE CLK in bypass mode, fruunig at SYS_CLK"
+		   " frreq of %d.%d MHz", base_freq / 1000, base_freq % 1000);
+	}
 
 	/* Set DPLL3 to automatic to save power */
 	pio_change_32(&device->cm.clocks->autoidle_pll,
