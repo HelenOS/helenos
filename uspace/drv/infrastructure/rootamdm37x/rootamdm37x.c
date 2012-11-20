@@ -36,7 +36,7 @@
  */
 #define _DDF_DATA_IMPLANT
 
-#define DEBUG_CM 1
+#define DEBUG_CM 0
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
