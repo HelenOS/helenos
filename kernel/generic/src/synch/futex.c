@@ -297,7 +297,7 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
 	cht_read_lock();
 	
 	futex_t *futex;
-	cht_link_t *futex_ptr_link = cht_find(&TASK->futexes->ht, &uaddr);
+	cht_link_t *futex_ptr_link = cht_find_lazy(&TASK->futexes->ht, &uaddr);
 
 	if (futex_ptr_link) {
 		futex_ptr_t *futex_ptr 
