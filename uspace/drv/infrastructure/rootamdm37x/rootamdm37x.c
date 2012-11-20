@@ -284,6 +284,36 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	 * 120M clock is used by HS USB and USB TLL.
 	 */
 	// TODO setup DPLL5
+	if ((pio_read_32(&device->cm.clocks->clken2_pll)
+	        & CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_MASK)
+	    != CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK) {
+		/* Compute divisors and multiplier */
+		assert((base_freq % 100) == 0);
+		const unsigned mult = 1200;
+		const unsigned div = base_freq / 100;
+		const unsigned div2 = 1;
+
+		/* Set multiplier */
+		pio_change_32(&device->cm.clocks->clksel4_pll,
+		    CLOCK_CONTROL_CM_CLKSEL4_PLL_PERIPH2_DPLL_MULT_CREATE(mult),
+		    CLOCK_CONTROL_CM_CLKSEL4_PLL_PERIPH2_DPLL_MULT_MASK, 10);
+
+		/* Set DPLL divisor */
+		pio_change_32(&device->cm.clocks->clksel4_pll,
+		    CLOCK_CONTROL_CM_CLKSEL4_PLL_PERIPH2_DPLL_DIV_CREATE(div),
+		    CLOCK_CONTROL_CM_CLKSEL4_PLL_PERIPH2_DPLL_DIV_MASK, 10);
+
+		/* Set output clock divisor */
+		pio_change_32(&device->cm.clocks->clksel5_pll,
+		    CLOCK_CONTROL_CM_CLKSEL5_PLL_DIV120M_CREATE(div2),
+		    CLOCK_CONTROL_CM_CLKSEL5_PLL_DIV120M_MASK, 10);
+
+		/* Start DPLL5 */
+		pio_change_32(&device->cm.clocks->clken2_pll,
+		    CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK,
+		    CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_MASK, 10);
+
+	}
 	/* Set DPLL5 to automatic to save power */
 	pio_change_32(&device->cm.clocks->autoidle2_pll,
 	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
