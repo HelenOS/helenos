@@ -426,7 +426,7 @@ int workq_enqueue_noblock(struct work_queue *workq, work_t *work_item,
 	return _workq_enqueue(workq, work_item, func, false);
 }
 
-/** Adds a function to be invoked in a separate thread; may blocking. 
+/** Adds a function to be invoked in a separate thread; may block. 
  * 
  * While the workq_enqueue() is unlikely to block, it may do so if too 
  * many previous work items blocked sleeping.

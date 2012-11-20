@@ -36,9 +36,9 @@
 #define KERN_WORKQUEUE_H_
 
 #include <adt/list.h>
-#include <proc/thread.h>
 
 /* Fwd decl. */
+struct thread;
 struct work_item;
 struct work_queue;
 typedef struct work_queue work_queue_t;
@@ -75,7 +75,7 @@ extern void workq_global_print_info(void);
 
 
 extern void workq_after_thread_ran(void);
-extern void workq_before_thread_is_ready(thread_t *);
+extern void workq_before_thread_is_ready(struct thread *);
 
 #endif /* KERN_WORKQUEUE_H_ */
 
