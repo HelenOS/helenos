@@ -326,7 +326,7 @@ static void dpll_on_autoidle(amdm37x_t *device)
 
 /** Enable/disable function and interface clocks for USBTLL and USBHOST.
  * @param device Register map.
- * @param on True to swoitch clocks on.
+ * @param on True to switch clocks on.
  */
 static void usb_clocks_enable(amdm37x_t *device, bool on)
 {
