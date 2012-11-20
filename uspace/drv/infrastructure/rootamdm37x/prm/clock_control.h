@@ -38,7 +38,7 @@
 #include <macros.h>
 
 /* AM/DM37x TRM p.536 and p.589 */
-#define CLOCK_CONTROL_PRM_BASE_ADDRESS  0x48006d00
+#define CLOCK_CONTROL_PRM_BASE_ADDRESS  0x48306d00
 #define CLOCK_CONTROL_PRM_SIZE  8192
 
 /** Clock control PRM register map
@@ -59,7 +59,7 @@ typedef struct {
 
 } clock_control_prm_regs_t;
 
-static unsigned sys_clk_freq_kHz(unsigned reg_val)
+static inline unsigned sys_clk_freq_kHz(unsigned reg_val)
 {
 	switch(reg_val)
 	{
