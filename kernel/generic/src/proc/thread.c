@@ -517,7 +517,7 @@ void thread_exit(void)
 			 *
 			 */
 			ipc_cleanup();
-			futex_cleanup();
+			futex_task_cleanup();
 			LOG("Cleanup of task %" PRIu64" completed.", TASK->taskid);
 		}
 	}
