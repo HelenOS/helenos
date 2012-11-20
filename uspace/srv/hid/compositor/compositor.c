@@ -1179,75 +1179,68 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 {
 	pointer_t *pointer = input_pointer(input);
 
+	fibril_mutex_lock(&window_list_mtx);
+	window_t *win = NULL;
+	sysarg_t point_x = 0;
+	sysarg_t point_y = 0;
+	sysarg_t width, height;
+	bool within_client = false;
+
+	/* Determine the window which the mouse click belongs to. */
+	list_foreach(window_list, link) {
+		win = list_get_instance(link, window_t, link);
+		if (win->surface) {
+			surface_get_resolution(win->surface, &width, &height);
+			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
+			    win->transform, width, height, &point_x, &point_y);
+		}
+		if (within_client) {
+			break;
+		}
+	}
+
+	/* Check whether the window is top-level window. */
+	window_t *top = (window_t *) list_first(&window_list);
+	if (!win || !top) {
+		fibril_mutex_unlock(&window_list_mtx);
+		return EOK;
+	}
+
+	window_event_t *event = NULL;
+	sysarg_t dmg_x, dmg_y;
+	sysarg_t dmg_width = 0;
+	sysarg_t dmg_height = 0;
+
 	if (bpress) {
 		pointer->btn_pos = pointer->pos;
 		pointer->btn_num = bnum;
 		pointer->pressed = true;
 
-		/* Check whether mouse press belongs to the top-level window. */
-		fibril_mutex_lock(&window_list_mtx);
-		window_t *win = (window_t *) list_first(&window_list);
-		if (!win || !win->surface) {
-			fibril_mutex_unlock(&window_list_mtx);
-			return EOK;
+		/* Bring the window to the foreground. */
+		if ((win != top) && within_client && (bnum == 1)) {
+			list_remove(&win->link);
+			list_prepend(&win->link, &window_list);
+			comp_coord_bounding_rect(0, 0, width, height, win->transform,
+			    &dmg_x, &dmg_y, &dmg_width, &dmg_height);
 		}
-		sysarg_t x, y, width, height;
-		surface_get_resolution(win->surface, &width, &height);
-		bool within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
-		    win->transform, width, height, &x, &y);
-		fibril_mutex_unlock(&window_list_mtx);
 
-		/* Send mouse press to the top-level window. */
+		/* Notify top-level window about mouse press. */
 		if (within_client) {
-			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
+			event = (window_event_t *) malloc(sizeof(window_event_t));
 			if (event) {
 				link_initialize(&event->link);
 				event->type = ET_POSITION_EVENT;
 				event->data.pos.pos_id = pointer->id;
 				event->data.pos.type = POS_PRESS;
 				event->data.pos.btn_num = bnum;
-				event->data.pos.hpos = x;
-				event->data.pos.vpos = y;
-				comp_post_event(event);
-			} else {
-				return ENOMEM;
+				event->data.pos.hpos = point_x;
+				event->data.pos.vpos = point_y;
 			}
+			pointer->grab_flags = GF_EMPTY;
 		}
+
 	} else if (pointer->pressed && pointer->btn_num == (unsigned)bnum) {
 		pointer->pressed = false;
-
-		fibril_mutex_lock(&window_list_mtx);
-		window_t *win = NULL;
-		sysarg_t point_x = 0;
-		sysarg_t point_y = 0;
-		sysarg_t width, height;
-		bool within_client = false;
-
-		/* Determine the window which the mouse release belongs to. */
-		list_foreach(window_list, link) {
-			win = list_get_instance(link, window_t, link);
-			if (win->surface) {
-				surface_get_resolution(win->surface, &width, &height);
-				within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
-				    win->transform, width, height, &point_x, &point_y);
-			}
-			if (within_client) {
-				break;
-			}
-		}
-
-		/* Check whether the window is top-level window. */
-		window_t *top = (window_t *) list_first(&window_list);
-		if (!win || !top) {
-			pointer->grab_flags = GF_EMPTY;
-			fibril_mutex_unlock(&window_list_mtx);
-			return EOK;
-		}
-
-		window_event_t *event = NULL;
-		sysarg_t dmg_x, dmg_y;
-		sysarg_t dmg_width = 0;
-		sysarg_t dmg_height = 0;
 
 		sysarg_t pre_x = 0; 
 		sysarg_t pre_y = 0;
@@ -1312,27 +1305,20 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 			}
 			pointer->grab_flags = GF_EMPTY;
 			
-		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (bnum == 1)) {
-
-			/* Bring the window to the foreground. */
-			list_remove(&win->link);
-			list_prepend(&win->link, &window_list);
-			comp_coord_bounding_rect(0, 0, width, height, win->transform,
-			    &dmg_x, &dmg_y, &dmg_width, &dmg_height);
-			
 		} else {
 			pointer->grab_flags = GF_EMPTY;
 		}
 
-		fibril_mutex_unlock(&window_list_mtx);
+	}
 
-		if (dmg_width > 0 && dmg_height > 0) {
-			comp_damage(dmg_x, dmg_y, dmg_width, dmg_height);
-		}
+	fibril_mutex_unlock(&window_list_mtx);
 
-		if (event) {
-			comp_post_event(event);
-		}
+	if (dmg_width > 0 && dmg_height > 0) {
+		comp_damage(dmg_x, dmg_y, dmg_width, dmg_height);
+	}
+
+	if (event) {
+		comp_post_event(event);
 	}
 
 	return EOK;
