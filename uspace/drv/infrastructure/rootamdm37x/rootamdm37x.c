@@ -178,8 +178,10 @@ static void dpll_on_autoidle(amdm37x_t *device)
 			    (pio_read_32(&mpu->clksel2_pll)
 			        & MPU_CM_CLKSEL2_PLL_MPU_DPLL_CLKOUT_DIV_MASK);
 			if (multiplier && divisor && divisor2) {
+				/** See AMDM37x TRM p. 300 for the formula */
 				const unsigned freq =
-				    ((base_freq / divisor) * multiplier) / divisor2;
+				    ((base_freq * multiplier) / (divisor + 1))
+				    / divisor2;
 				ddf_msg(LVL_NOTE, "MPU running at %d.%d MHz",
 				    freq / 1000, freq % 1000);
 			} else {
@@ -237,8 +239,9 @@ static void dpll_on_autoidle(amdm37x_t *device)
 		const unsigned divisor2 =
 		    CLOCK_CONTROL_CM_CLKSEL1_PLL_CORE_DPLL_CLKOUT_DIV_GET(reg);
 		if (multiplier && divisor && divisor2) {
+			/** See AMDM37x TRM p. 300 for the formula */
 			const unsigned freq =
-			    ((base_freq / divisor) * multiplier) / divisor2;
+			    ((base_freq * multiplier) / (divisor + 1)) / divisor2;
 			ddf_msg(LVL_NOTE, "CORE CLK running at %d.%d MHz",
 			    freq / 1000, freq % 1000);
 			const unsigned l3_div =
@@ -287,10 +290,11 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	if ((pio_read_32(&device->cm.clocks->clken2_pll)
 	        & CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_MASK)
 	    != CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK) {
-		/* Compute divisors and multiplier */
+		/* Compute divisors and multiplier
+		 * See AMDM37x TRM p. 300 for the formula */
 		assert((base_freq % 100) == 0);
 		const unsigned mult = 1200;
-		const unsigned div = base_freq / 100;
+		const unsigned div = (base_freq / 100) - 1;
 		const unsigned div2 = 1;
 
 		/* Set multiplier */
