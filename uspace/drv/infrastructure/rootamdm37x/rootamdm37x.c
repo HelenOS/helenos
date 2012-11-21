@@ -115,7 +115,7 @@ static ddf_dev_ops_t rootamdm37x_fun_ops =
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
+static int rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
     const char *str_match_id, const rootamdm37x_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
@@ -127,9 +127,10 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	
 	
 	/* Add match id */
-	if (ddf_fun_add_match_id(fnode, str_match_id, 100) != EOK) {
+	int ret = ddf_fun_add_match_id(fnode, str_match_id, 100);
+	if (ret != EOK) {
 		ddf_fun_destroy(fnode);
-		return false;
+		return ret;
 	}
 	
 	/* Set provided operations to the device. */
@@ -137,14 +138,15 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	ddf_fun_set_ops(fnode, &rootamdm37x_fun_ops);
 	
 	/* Register function. */
-	if (ddf_fun_bind(fnode) != EOK) {
+	ret = ddf_fun_bind(fnode);
+	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
 		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
-		return false;
+		return ret;
 	}
 	
-	return true;
+	return EOK;
 }
 
 /** Add the root device.
@@ -182,10 +184,10 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 	}
 
 	/* Register functions */
-	if (!rootamdm37x_add_fun(dev, "ohci", "usb/host=ohci", &ohci))
+	if (rootamdm37x_add_fun(dev, "ohci", "usb/host=ohci", &ohci) != EOK)
 		ddf_msg(LVL_ERROR, "Failed to add OHCI function for "
 		    "BeagleBoard-xM platform.");
-	if (!rootamdm37x_add_fun(dev, "ehci", "usb/host=ehci", &ehci))
+	if (rootamdm37x_add_fun(dev, "ehci", "usb/host=ehci", &ehci) != EOK)
 		ddf_msg(LVL_ERROR, "Failed to add EHCI function for "
 		    "BeagleBoard-xM platform.");
 
