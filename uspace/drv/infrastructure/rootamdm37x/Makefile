@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = rootamdm37x
 
 SOURCES = \
+	amdm37x.c \
 	rootamdm37x.c
 
 include $(USPACE_PREFIX)/Makefile.common
