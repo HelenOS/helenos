@@ -238,12 +238,12 @@ void log_msgv(log_t ctx, log_level_t level, const char *fmt, va_list args)
 	assert(level < LVL_LIMIT);
 
 	char *message_buffer = malloc(MESSAGE_BUFFER_SIZE);
-	if (message_buffer == NULL) {
+	if (message_buffer == NULL)
 		return;
-	}
 
 	vsnprintf(message_buffer, MESSAGE_BUFFER_SIZE, fmt, args);
 	logger_message(logger_session, ctx, level, message_buffer);
+	free(message_buffer);
 }
 
 /** @}

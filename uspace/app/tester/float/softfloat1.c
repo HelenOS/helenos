@@ -33,6 +33,7 @@
 #include <sub.h>
 #include <mul.h>
 #include <div.h>
+#include <comparison.h>
 #include <bool.h>
 #include "../tester.h"
 
@@ -44,6 +45,7 @@
 typedef int32_t cmptype_t;
 typedef void (* float_op_t)(float, float, float *, float_t *);
 typedef void (* double_op_t)(double, double, double *, double_t *);
+typedef void (* double_cmp_op_t)(double, double, cmptype_t *, cmptype_t *);
 typedef void (* template_t)(void *, unsigned, unsigned, cmptype_t *,
     cmptype_t *);
 
@@ -65,6 +67,16 @@ static cmptype_t cmpabs(cmptype_t a)
 		return a;
 	
 	return -a;
+}
+
+static int dcmp(double a, double b)
+{
+	if (a < b)
+		return -1;
+	else if (a > b)
+		return 1;
+
+	return 0;
 }
 
 static void
@@ -95,6 +107,15 @@ double_template(void *f, unsigned i, unsigned j, cmptype_t *pic,
 
 	*pic = (cmptype_t) (c * PRECISION);
 	*pisc = (cmptype_t) (sc.val * PRECISION);
+}
+
+static void
+double_compare_template(void *f, unsigned i, unsigned j, cmptype_t *pis,
+    cmptype_t *piss)
+{
+	double_cmp_op_t op = (double_cmp_op_t) f;
+	
+	op(dop_a[i], dop_b[j], pis, piss);
 }
 
 static bool test_template(template_t template, void *f)
@@ -220,6 +241,27 @@ static void double_div_operator(double a, double b, double *pc, double_t *psc)
 	psc->data = div_double(sa.data, sb.data);
 }
 
+static void
+double_cmp_operator(double a, double b, cmptype_t *pis, cmptype_t *piss)
+{
+	*pis = dcmp(a, b);
+
+	double_t sa;
+	double_t sb;
+
+	sa.val = a;
+	sb.val = b;
+
+	if (is_double_lt(sa.data, sb.data))
+		*piss = -1;
+	else if (is_double_gt(sa.data, sb.data))
+		*piss = 1;
+	else if (is_double_eq(sa.data, sb.data))
+		*piss = 0;
+	else
+		*piss = 42;
+}
+
 const char *test_softfloat1(void)
 {
 	const char *err = NULL;
@@ -246,6 +288,10 @@ const char *test_softfloat1(void)
 	}
 	if (!test_template(double_template, double_div_operator)) {
 		err = "Double division failed";
+		TPRINTF("%s\n", err);
+	}
+	if (!test_template(double_compare_template, double_cmp_operator)) {
+		err = "Double comparison failed";
 		TPRINTF("%s\n", err);
 	}
 	

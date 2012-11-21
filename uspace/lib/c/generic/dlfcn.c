@@ -38,6 +38,8 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 
+#ifdef CONFIG_RTLD
+
 #include <rtld/module.h>
 #include <rtld/symbol.h>
 
@@ -85,6 +87,20 @@ void *dlsym(void *mod, const char *sym_name)
 
 	return NULL;
 }
+
+#else /* CONFIG_RTLD not defined */
+
+void *dlopen(const char *path, int flag)
+{
+	return NULL;
+}
+
+void *dlsym(void *mod, const char *sym_name)
+{
+	return NULL;
+}
+
+#endif
 
 /** @}
  */

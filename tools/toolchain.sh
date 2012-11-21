@@ -42,8 +42,8 @@ EOF
 
 MPFR_MAIN=<<EOF
 #if MPFR_VERSION < MPFR_VERSION_NUM(2, 4, 2)
-choke me
-	#endif
+	choke me
+#endif
 EOF
 
 MPC_MAIN=<<EOF

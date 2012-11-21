@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,73 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
- * @{
- */ 
+#ifndef DOUBLE_TO_STR_H_
+#define DOUBLE_TO_STR_H_
 
-/**
- * @file	ext2.c
- * @brief	EXT2 file system driver for HelenOS.
- */
-
-#include "ext2fs.h"
-#include <ipc/services.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
 #include <unistd.h>
-#include <task.h>
-#include <stdio.h>
-#include <libfs.h>
-#include "../../vfs/vfs.h"
 
-#define NAME	"ext2fs"
+/** Maximum number of digits double_to_*_str conversion functions produce. 
+ *
+ * Both double_to_short_str and double_to_fixed_str generate digits out
+ * of a 64bit unsigned int number representation. The max number of 
+ * of digits is therefore 20. Add 1 to help users who forget to reserve
+ * space for a null terminator.
+ */
+#define MAX_DOUBLE_STR_LEN (20 + 1)
 
-vfs_info_t ext2fs_vfs_info = {
-	.name = NAME,
-	.instance = 0,
-};
+/** Maximum buffer size needed to store the output of double_to_*_str 
+ *  functions. 
+ */
+#define MAX_DOUBLE_STR_BUF_SIZE  21
 
-int main(int argc, char **argv)
-{
-	printf(NAME ": HelenOS EXT2 file system server\n");
+/* Fwd decl.*/
+struct ieee_double_t_tag;
 
-	if (argc == 3) {
-		if (!str_cmp(argv[1], "--instance"))
-			ext2fs_vfs_info.instance = strtol(argv[2], NULL, 10);
-		else {
-			printf(NAME " Unrecognized parameters");
-			return -1;
-		}
-	}
-	
-	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_VFS, 0, 0);
-	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
-		return -1;
-	}
+extern int double_to_short_str(struct ieee_double_t_tag, char *, size_t, int *);
+extern int double_to_fixed_str(struct ieee_double_t_tag, int, int, char *,
+    size_t, int *);
 
-	int rc = ext2fs_global_init();
-	if (rc != EOK) {
-		printf(NAME ": Failed global initialization\n");
-		return 1;
-	}	
-		
-	rc = fs_register(vfs_sess, &ext2fs_vfs_info, &ext2fs_ops,
-	    &ext2fs_libfs_ops);
-	if (rc != EOK) {
-		fprintf(stdout, NAME ": Failed to register fs (%d)\n", rc);
-		return 1;
-	}
-	
-	printf(NAME ": Accepting connections\n");
-	task_retval(0);
-	async_manager();
-	/* not reached */
-	return 0;
-}
-
-/**
- * @}
- */ 
+#endif 

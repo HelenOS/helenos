@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libext2
- * @{
- */
-/**
- * @file
- */
+#ifndef POWER_OF_TEN_H_
+#define POWER_OF_TEN_H_
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
+/* Fwd decl. */
+struct fp_num_t_tag;
 
-#include "libext2_superblock.h"
-#include "libext2_block_group.h"
-#include "libext2_inode.h"
-#include "libext2_filesystem.h"
-#include "libext2_directory.h"
+extern void get_power_of_ten(int, struct fp_num_t_tag *, int *);
 
 #endif
-
-/** @}
- */

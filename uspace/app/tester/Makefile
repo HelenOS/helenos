@@ -28,8 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBEXT2_PREFIX)/libext2.a $(LIBBLOCK_PREFIX)/libblock.a $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBEXT2_PREFIX) -I$(LIBSOFTFLOAT_PREFIX)
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBSOFTFLOAT_PREFIX)
 BINARY = tester
 
 SOURCES = \
@@ -41,6 +41,7 @@ SOURCES = \
 	print/print3.c \
 	print/print4.c \
 	print/print5.c \
+	print/print6.c \
 	console/console1.c \
 	stdio/stdio1.c \
 	stdio/stdio2.c \
@@ -61,7 +62,6 @@ SOURCES = \
 	mm/malloc3.c \
 	mm/mapping1.c \
 	hw/misc/virtchar1.c \
-	hw/serial/serial1.c \
-	ext2/ext2_1.c
+	hw/serial/serial1.c
 
 include $(USPACE_PREFIX)/Makefile.common

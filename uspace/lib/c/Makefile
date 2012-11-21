@@ -76,6 +76,7 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dlfcn.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
 	generic/errno.c \
@@ -114,6 +115,9 @@ GENERIC_SOURCES = \
 	generic/io/window.c \
 	generic/iplink.c \
 	generic/iplink_srv.c \
+	generic/ieee_double.c \
+	generic/power_of_ten.c \
+	generic/double_to_str.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
@@ -135,6 +139,7 @@ GENERIC_SOURCES = \
 	generic/net/inet.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
+	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \
@@ -144,7 +149,6 @@ GENERIC_SOURCES = \
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
-		generic/dlfcn.c \
 		generic/rtld/rtld.c \
 		generic/rtld/dynamic.c \
 		generic/rtld/module.c \
