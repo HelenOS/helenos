@@ -34,7 +34,6 @@
 
 /** @file
  */
-#define _DDF_DATA_IMPLANT
 
 #define DEBUG_CM 0
 
@@ -51,6 +50,7 @@ typedef struct {
 	hw_resource_list_t hw_resources;
 } rootamdm37x_fun_t;
 
+/* See amdm37x TRM page. 3316 for these values */
 #define OHCI_BASE_ADDRESS  0x48064400
 #define OHCI_SIZE  1024
 #define EHCI_BASE_ADDRESS  0x48064800
@@ -59,7 +59,6 @@ typedef struct {
 static hw_resource_t ohci_res[] = {
 	{
 		.type = MEM_RANGE,
-		/* See amdm37x TRM page. 3316 for these values */
 		.res.io_range = {
 			.address = OHCI_BASE_ADDRESS,
 			.size = OHCI_SIZE,
@@ -70,13 +69,6 @@ static hw_resource_t ohci_res[] = {
 		.type = INTERRUPT,
 		.res.interrupt = { .irq = 76 },
 	},
-};
-
-static const rootamdm37x_fun_t ohci = {
-	.hw_resources = {
-	    .resources = ohci_res,
-	    .count = sizeof(ohci_res)/sizeof(ohci_res[0]),
-	}
 };
 
 static hw_resource_t ehci_res[] = {
@@ -95,6 +87,13 @@ static hw_resource_t ehci_res[] = {
 	},
 };
 
+static const rootamdm37x_fun_t ohci = {
+	.hw_resources = {
+	    .resources = ohci_res,
+	    .count = sizeof(ohci_res)/sizeof(ohci_res[0]),
+	}
+};
+
 static const rootamdm37x_fun_t ehci = {
 	.hw_resources = {
 	    .resources = ehci_res,
@@ -110,8 +109,7 @@ static hw_res_ops_t fun_hw_res_ops = {
 	.enable_interrupt = &rootamdm37x_enable_interrupt,
 };
 
-static ddf_dev_ops_t rootamdm37x_fun_ops =
-{
+static ddf_dev_ops_t rootamdm37x_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
@@ -125,7 +123,6 @@ static int rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	if (fnode == NULL)
 		return ENOMEM;
 	
-	
 	/* Add match id */
 	int ret = ddf_fun_add_match_id(fnode, str_match_id, 100);
 	if (ret != EOK) {
@@ -133,15 +130,22 @@ static int rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 		return ret;
 	}
 	
+	/* Alloc needed data */
+	rootamdm37x_fun_t *rf =
+	    ddf_fun_data_alloc(fnode, sizeof(rootamdm37x_fun_t));
+	if (!rf) {
+		ddf_fun_destroy(fnode);
+		return ENOMEM;
+	}
+	*rf = *fun;
+
 	/* Set provided operations to the device. */
-	ddf_fun_data_implant(fnode, (void*)fun);
 	ddf_fun_set_ops(fnode, &rootamdm37x_fun_ops);
 	
 	/* Register function. */
 	ret = ddf_fun_bind(fnode);
 	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
-		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
 		return ret;
 	}
