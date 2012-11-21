@@ -55,6 +55,7 @@
 #include "cm/iva2.h"
 
 #include "prm/clock_control.h"
+#include "prm/global_reg.h"
 
 #define NAME  "rootamdm37x"
 
@@ -70,6 +71,7 @@ typedef struct {
 	} cm;
 	struct {
 		clock_control_prm_regs_t *clocks;
+		global_reg_prm_regs_t *global;
 	} prm;
 } amdm37x_t;
 
@@ -114,6 +116,11 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 	if (ret != EOK)
 		return ret;
 
+	ret = pio_enable((void*)GLOBAL_REG_PRM_BASE_ADDRESS,
+	    GLOBAL_REG_PRM_SIZE, (void**)&device->prm.global);
+	if (ret != EOK)
+		return ret;
+
 	ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
 	    AMDM37x_USBTLL_SIZE, (void**)&device->tll);
 	if (ret != EOK)
@@ -133,6 +140,7 @@ static int amdm37x_hw_access_init(amdm37x_t *device)
 		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
 		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
 		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
+		pio_trace_enable(device->prm.global, GLOBAL_REG_PRM_SIZE, log, (void*)GLOBAL_REG_PRM_BASE_ADDRESS);
 	}
 	return EOK;
 }
@@ -150,10 +158,12 @@ static void dpll_on_autoidle(amdm37x_t *device)
 	assert(device);
 	/* Get SYS_CLK value, it is used as reference clock by all DPLLs,
 	 * NFI who sets this or why it is set to specific value. */
-	const unsigned base_clk = pio_read_32(&device->prm.clocks->clksel)
+	const unsigned osc_clk = pio_read_32(&device->prm.clocks->clksel)
 	    & CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK;
-	const unsigned base_freq = sys_clk_freq_kHz(base_clk);
-	ddf_msg(LVL_DEBUG, "Base frequency: %d.%dMhz",
+	const unsigned clk_reg = pio_read_32(&device->prm.global->clksrc_ctrl);
+	const unsigned base_freq = sys_clk_freq_kHz(osc_clk)
+	    / GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKDIV_GET(clk_reg);
+	ddf_msg(LVL_NOTE, "Base frequency: %d.%dMhz",
 	    base_freq / 1000, base_freq % 1000);
 
 
