@@ -215,10 +215,13 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 
 #define local_atomic_cas(pptr, exp_val, new_val) \
 ({ \
-	typeof(*(pptr)) old_val; \
-	_atomic_cas_impl(pptr, exp_val, new_val, old_val, ""); \
+	/* Use proper types and avoid name clashes */ \
+	typeof(*(pptr)) _old_val_cas; \
+	typeof(*(pptr)) _exp_val_cas = exp_val; \
+	typeof(*(pptr)) _new_val_cas = new_val; \
+	_atomic_cas_impl(pptr, _exp_val_cas, _new_val_cas, _old_val_cas, ""); \
 	\
-	old_val; \
+	_old_val_cas; \
 })
 
 #else
@@ -235,15 +238,17 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
  */
 #define local_atomic_exchange(pptr, new_val) \
 ({ \
-	typeof(*(pptr)) exp_val; \
-	typeof(*(pptr)) old_val; \
+	/* Use proper types and avoid name clashes */ \
+	typeof(*(pptr)) _exp_val_x; \
+	typeof(*(pptr)) _old_val_x; \
+	typeof(*(pptr)) _new_val_x = new_val; \
 	\
 	do { \
-		exp_val = *pptr; \
-		old_val = local_atomic_cas(pptr, exp_val, new_val); \
-	} while (old_val != exp_val); \
+		_exp_val_x = *pptr; \
+		_old_val_x = local_atomic_cas(pptr, _exp_val_x, _new_val_x); \
+	} while (_old_val_x != _exp_val_x); \
 	\
-	old_val; \
+	_old_val_x; \
 })
 
 #else
