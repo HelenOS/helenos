@@ -254,13 +254,8 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			/*
 			 * Reserve the memory for this page now.
 			 */
-			if (!reserve_try_alloc(1)) {
-				printf("Killing task %" PRIu64 " due to a "
-				    "failed late reservation request.\n",
-				    TASK->taskid);
-				TASK->silent_kill = true;
-				return AS_PF_FAULT;
-			}
+			if (!reserve_try_alloc(1))
+				return AS_PF_SILENT;
 		}
 
 		kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);

@@ -133,9 +133,6 @@ typedef struct task {
 	/** Accumulated accounting. */
 	uint64_t ucycles;
 	uint64_t kcycles;
-
-	/** If true, do not attempt to print a verbose kill message. */ 
-	bool silent_kill;
 } task_t;
 
 IRQ_SPINLOCK_EXTERN(tasks_lock);
