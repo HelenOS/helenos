@@ -150,12 +150,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
 
 	pf_access_t access = get_memory_access_type(istate->pc, badvaddr);
 
-	int ret = as_page_fault(badvaddr, access, istate);
-
-	if (ret == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);
-		panic_memtrap(istate, access, badvaddr, NULL);
-	}
+	as_page_fault(badvaddr, access, istate);
 }
 
 /** Handles "prefetch abort" exception (instruction couldn't be executed).
@@ -166,13 +161,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
  */
 void prefetch_abort(unsigned int exc_no, istate_t *istate)
 {
-	int ret = as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
-
-	if (ret == AS_PF_FAULT) {
-		fault_if_from_uspace(istate,
-		    "Page fault - prefetch_abort: %#x.", istate->pc);
-		panic_memtrap(istate, PF_ACCESS_EXEC, istate->pc, NULL);
-	}
+	as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
 }
 
 /** @}

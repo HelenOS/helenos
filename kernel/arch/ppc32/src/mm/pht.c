@@ -48,14 +48,12 @@ static unsigned int seed = 42;
  * @param badvaddr Faulting virtual address.
  * @param access   Access mode that caused the fault.
  * @param istate   Pointer to interrupted state.
- * @param pfrc     Pointer to variable where as_page_fault() return code
- *                 will be stored.
  *
  * @return PTE on success, NULL otherwise.
  *
  */
 static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
-    istate_t *istate, int *pfrc)
+    istate_t *istate)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -67,40 +65,22 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 		 * Immediately succeed.
 		 */
 		return pte;
-	} else {
-		/*
-		 * Mapping not found in page tables.
-		 * Resort to higher-level page fault handler.
-		 */
-		int rc = as_page_fault(badvaddr, access, istate);
-		switch (rc) {
-		case AS_PF_OK:
-			/*
-			 * The higher-level page fault handler succeeded,
-			 * The mapping ought to be in place.
-			 */
-			pte = page_mapping_find(as, badvaddr, true);
-			ASSERT((pte) && (pte->present));
-			*pfrc = 0;
-			return pte;
-		case AS_PF_DEFER:
-			*pfrc = rc;
-			return NULL;
-		case AS_PF_FAULT:
-			*pfrc = rc;
-			return NULL;
-		default:
-			panic("Unexpected rc (%d).", rc);
-		}
 	}
-}
+	/*
+	 * Mapping not found in page tables.
+	 * Resort to higher-level page fault handler.
+	 */
+	if (as_page_fault(badvaddr, access, istate) == AS_PF_OK) {
+		/*
+		 * The higher-level page fault handler succeeded,
+		 * The mapping ought to be in place.
+		 */
+		pte = page_mapping_find(as, badvaddr, true);
+		ASSERT((pte) && (pte->present));
+		return pte;
+	}
 
-static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
-{
-	fault_if_from_uspace(istate, "PHT Refill Exception on %p.",
-	    (void *) badvaddr);
-	panic_memtrap(istate, PF_ACCESS_UNKNOWN, badvaddr,
-	    "PHT Refill Exception.");
+	return NULL;
 }
 
 static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
@@ -201,29 +181,14 @@ void pht_refill(unsigned int n, istate_t *istate)
 	else
 		badvaddr = istate->pc;
 	
-	int pfrc;
 	pte_t *pte = find_mapping_and_check(AS, badvaddr,
-	    PF_ACCESS_READ /* FIXME */, istate, &pfrc);
+	    PF_ACCESS_READ /* FIXME */, istate);
 	
-	if (!pte) {
-		switch (pfrc) {
-		case AS_PF_FAULT:
-			pht_refill_fail(badvaddr, istate);
-			return;
-		case AS_PF_DEFER:
-			/*
-			 * The page fault came during copy_from_uspace()
-			 * or copy_to_uspace().
-			 */
-			return;
-		default:
-			panic("Unexpected pfrc (%d).", pfrc);
-		}
+	if (pte) {
+		/* Record access to PTE */
+		pte->accessed = 1;
+		pht_insert(badvaddr, pte);
 	}
-	
-	/* Record access to PTE */
-	pte->accessed = 1;
-	pht_insert(badvaddr, pte);
 }
 
 void pht_invalidate(as_t *as, uintptr_t page, size_t pages)

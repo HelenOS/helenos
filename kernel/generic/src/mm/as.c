@@ -78,6 +78,7 @@
 #include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 
 /**
  * Each architecture decides what functions will be used to carry out
@@ -1362,10 +1363,10 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 {
 	if (!THREAD)
-		return AS_PF_FAULT;
+		goto page_fault;
 	
 	if (!AS)
-		return AS_PF_FAULT;
+		goto page_fault;
 	
 	mutex_lock(&AS->lock);
 	as_area_t *area = find_area_and_lock(AS, page);
@@ -1443,7 +1444,8 @@ page_fault:
 		istate_set_retaddr(istate,
 		    (uintptr_t) &memcpy_to_uspace_failover_address);
 	} else {
-		return AS_PF_FAULT;
+		fault_if_from_uspace(istate, "Page fault: %p.", (void *) page);
+		panic_memtrap(istate, access, page, NULL);
 	}
 	
 	return AS_PF_DEFER;

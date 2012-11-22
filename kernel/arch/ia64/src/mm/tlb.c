@@ -500,11 +500,7 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 		/*
 		 * Forward the page fault to address space page fault handler.
 		 */
-		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p.",
-			    (void *) va);
-			panic_memtrap(istate, PF_ACCESS_EXEC, va, NULL);
-		}
+		as_page_fault(va, PF_ACCESS_EXEC, istate);
 	}
 }
 
@@ -618,11 +614,7 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p.",
-			    (void *) va);
-			panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, NULL);
-		}
+		as_page_fault(va, PF_ACCESS_READ, istate);
 	}
 }
 
@@ -666,11 +658,7 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 		t->d = true;
 		dtc_pte_copy(t);
 	} else {
-		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p.",
-			    (void *) va);
-			panic_memtrap(istate, PF_ACCESS_WRITE, va, NULL);
-		}
+		as_page_fault(va, PF_ACCESS_WRITE, istate);
 	}
 }
 
@@ -699,11 +687,7 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 		t->a = true;
 		itc_pte_copy(t);
 	} else {
-		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p.",
-			    (void *) va);
-			panic_memtrap(istate, PF_ACCESS_EXEC, va, NULL);
-		}
+		as_page_fault(va, PF_ACCESS_EXEC, istate);
 	}
 }
 
@@ -763,11 +747,7 @@ void data_access_rights_fault(uint64_t vector, istate_t *istate)
 	t = page_mapping_find(AS, va, true);
 	ASSERT((t) && (t->p));
 	ASSERT(!t->w);
-	if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault at %p.",
-		    (void *) va);
-		panic_memtrap(istate, PF_ACCESS_WRITE, va, NULL);
-	}
+	as_page_fault(va, PF_ACCESS_WRITE, istate);
 }
 
 /** Page not present fault handler.
@@ -798,11 +778,7 @@ void page_not_present(uint64_t vector, istate_t *istate)
 		else
 			dtc_pte_copy(t);
 	} else {
-		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p.",
-			    (void *) va);
-			panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, NULL);
-		}
+		as_page_fault(va, PF_ACCESS_READ, istate);
 	}
 }
 
