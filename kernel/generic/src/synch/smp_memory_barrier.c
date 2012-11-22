@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2012 Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,80 +29,35 @@
 /** @addtogroup generic
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Syscall implementation that issues a memory barrier on all cpus.
  */
 
-#ifndef ABI_SYSCALL_H_
-#define ABI_SYSCALL_H_
+#include <synch/smp_memory_barrier.h>
+#include <smp/smp_call.h>
+#include <config.h>
 
-typedef enum {
-	SYS_KLOG = 0,
-	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
-	
-	SYS_THREAD_CREATE,
-	SYS_THREAD_EXIT,
-	SYS_THREAD_GET_ID,
-	SYS_THREAD_USLEEP,
-	SYS_THREAD_UDELAY,
-	
-	SYS_TASK_GET_ID,
-	SYS_TASK_SET_NAME,
-	SYS_TASK_KILL,
-	SYS_TASK_EXIT,
-	SYS_PROGRAM_SPAWN_LOADER,
-	
-	SYS_FUTEX_SLEEP,
-	SYS_FUTEX_WAKEUP,
-	SYS_SMC_COHERENCE,
-	SYS_SMP_MEMORY_BARRIER,
-	
-	SYS_AS_AREA_CREATE,
-	SYS_AS_AREA_RESIZE,
-	SYS_AS_AREA_CHANGE_FLAGS,
-	SYS_AS_AREA_DESTROY,
-	
-	SYS_PAGE_FIND_MAPPING,
-	
-	SYS_IPC_CALL_ASYNC_FAST,
-	SYS_IPC_CALL_ASYNC_SLOW,
-	SYS_IPC_ANSWER_FAST,
-	SYS_IPC_ANSWER_SLOW,
-	SYS_IPC_FORWARD_FAST,
-	SYS_IPC_FORWARD_SLOW,
-	SYS_IPC_WAIT,
-	SYS_IPC_POKE,
-	SYS_IPC_HANGUP,
-	SYS_IPC_CONNECT_KBOX,
-	
-	SYS_EVENT_SUBSCRIBE,
-	SYS_EVENT_UNMASK,
-	
-	SYS_CAP_GRANT,
-	SYS_CAP_REVOKE,
-	
-	SYS_DEVICE_ASSIGN_DEVNO,
-	SYS_PHYSMEM_MAP,
-	SYS_PHYSMEM_UNMAP,
-	SYS_DMAMEM_MAP,
-	SYS_DMAMEM_UNMAP,
-	SYS_IOSPACE_ENABLE,
-	SYS_IOSPACE_DISABLE,
-	SYS_IRQ_REGISTER,
-	SYS_IRQ_UNREGISTER,
-	
-	SYS_SYSINFO_GET_KEYS_SIZE,
-	SYS_SYSINFO_GET_KEYS,
-	SYS_SYSINFO_GET_VAL_TYPE,
-	SYS_SYSINFO_GET_VALUE,
-	SYS_SYSINFO_GET_DATA_SIZE,
-	SYS_SYSINFO_GET_DATA,
-	
-	SYS_DEBUG_ACTIVATE_CONSOLE,
-	
-	SYSCALL_END
-} syscall_t;
 
-#endif
+static void issue_mem_bar(void *arg)
+{
+	/* smp_call already issues memory barriers on return from this function */
+}
+
+/** Issues a memory barrier on each cpu that is running a thread of the current
+ * task.
+ * 
+ * @return Irrelevant.
+ */
+sysarg_t sys_smp_memory_barrier(void)
+{
+	for (unsigned int cpu_id = 0; cpu_id < config.cpu_active; ++cpu_id) {
+		smp_call(cpu_id, issue_mem_bar, NULL);
+	}
+	
+	return 0;
+}
 
 /** @}
  */

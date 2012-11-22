@@ -252,6 +252,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
+	generic/src/synch/smp_memory_barrier.c \
 	generic/src/synch/waitq.c \
 	generic/src/synch/futex.c \
 	generic/src/synch/workqueue.c \
