@@ -67,14 +67,17 @@
 #define AS_AREA_ATTR_NONE     0
 #define AS_AREA_ATTR_PARTIAL  1  /**< Not fully initialized area. */
 
-/** The page fault was not resolved by as_page_fault(). */
-#define AS_PF_FAULT  0
-
 /** The page fault was resolved by as_page_fault(). */
-#define AS_PF_OK  1
+#define AS_PF_OK     0 
 
 /** The page fault was caused by memcpy_from_uspace() or memcpy_to_uspace(). */
-#define AS_PF_DEFER  2
+#define AS_PF_DEFER  1
+
+/** The page fault was not resolved by as_page_fault(). */
+#define AS_PF_FAULT  2
+
+/** The page fault was not resolved by as_page_fault(). Non-verbose version. */
+#define AS_PF_SILENT 3
 
 /** Address space structure.
  *

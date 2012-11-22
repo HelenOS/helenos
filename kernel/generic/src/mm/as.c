@@ -78,6 +78,7 @@
 #include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 
 /**
  * Each architecture decides what functions will be used to carry out
@@ -1361,11 +1362,13 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
  */
 int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 {
+	int rc = AS_PF_FAULT;
+
 	if (!THREAD)
-		return AS_PF_FAULT;
+		goto page_fault;
 	
 	if (!AS)
-		return AS_PF_FAULT;
+		goto page_fault;
 	
 	mutex_lock(&AS->lock);
 	as_area_t *area = find_area_and_lock(AS, page);
@@ -1421,7 +1424,8 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	/*
 	 * Resort to the backend page fault handler.
 	 */
-	if (area->backend->page_fault(area, page, access) != AS_PF_OK) {
+	rc = area->backend->page_fault(area, page, access);
+	if (rc != AS_PF_OK) {
 		page_table_unlock(AS, false);
 		mutex_unlock(&area->lock);
 		mutex_unlock(&AS->lock);
@@ -1442,8 +1446,13 @@ page_fault:
 		THREAD->in_copy_to_uspace = false;
 		istate_set_retaddr(istate,
 		    (uintptr_t) &memcpy_to_uspace_failover_address);
+	} else if (rc == AS_PF_SILENT) {
+		printf("Killing task %" PRIu64 " due to a "
+		    "failed late reservation request.\n", TASK->taskid);
+		task_kill_self(true);
 	} else {
-		return AS_PF_FAULT;
+		fault_if_from_uspace(istate, "Page fault: %p.", (void *) page);
+		panic_memtrap(istate, access, page, NULL);
 	}
 	
 	return AS_PF_DEFER;
