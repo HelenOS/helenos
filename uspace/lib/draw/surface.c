@@ -142,6 +142,19 @@ void surface_get_damaged_region(surface_t *surface, surface_coord_t *x, surface_
 	    (surface->dirty_y_hi - surface->dirty_y_lo) + 1 : 0;
 }
 
+void surface_add_damaged_region(surface_t *surface, surface_coord_t x, surface_coord_t y,
+    surface_coord_t width, surface_coord_t height)
+{
+	surface->dirty_x_lo = surface->dirty_x_lo > x ? x : surface->dirty_x_lo;
+	surface->dirty_y_lo = surface->dirty_y_lo > y ? y : surface->dirty_y_lo;
+
+	surface_coord_t x_hi = x + width - 1;
+	surface_coord_t y_hi = y + height - 1;
+
+	surface->dirty_x_hi = surface->dirty_x_hi < x_hi ? x_hi : surface->dirty_x_hi;
+	surface->dirty_y_hi = surface->dirty_y_hi < y_hi ? y_hi : surface->dirty_y_hi;
+}
+
 void surface_reset_damaged_region(surface_t *surface)
 {
 	surface->dirty_x_lo = surface->pixmap.width - 1;

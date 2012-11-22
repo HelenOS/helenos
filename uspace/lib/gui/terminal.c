@@ -195,17 +195,15 @@ static void term_update_char(terminal_t *term, surface_t *surface,
 	
 	uint16_t glyph = fb_font_glyph(field->ch);
 	
-	// FIXME: This font drawing routine is shamelessly
-	//        suboptimal. It should be optimized for
-	//        aligned memory transfers, etc.
-	
 	for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
-		for (unsigned int x = 0; x < FONT_WIDTH; x++) {
-			pixel_t pixel =
-			    (fb_font[glyph][y] & (1 << (7 - x))) ? fgcolor : bgcolor;
-			surface_put_pixel(surface, bx + x, by + y, pixel);
+		pixel_t *dst = pixelmap_pixel_at(
+		    surface_pixmap_access(surface), bx, by + y);
+		int count = FONT_WIDTH;
+		while (count-- != 0) {
+			*dst++ = (fb_font[glyph][y] & (1 << count)) ? fgcolor : bgcolor;
 		}
 	}
+	surface_add_damaged_region(surface, bx, by, FONT_WIDTH, FONT_SCANLINES);
 }
 
 static bool term_update_scroll(terminal_t *term, surface_t *surface,

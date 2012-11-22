@@ -89,6 +89,30 @@ void source_set_mask(source_t *source, surface_t *mask, bool tile)
 	source->mask_tile = tile;
 }
 
+bool source_is_fast(source_t *source)
+{
+	return (source->mask == NULL)
+	    && (source->alpha == (pixel_t) PIXEL(255, 0, 0, 0))
+	    && (source->texture != NULL)
+	    && (source->texture_tile == false)
+	    && transform_is_fast(&source->transform);
+}
+
+pixel_t *source_direct_access(source_t *source, double x, double y)
+{
+	assert(source_is_fast(source));
+
+	long _x = (long) (x + source->transform.m[0][2]);
+	long _y = (long) (y + source->transform.m[1][2]);
+
+	pixelmap_t *pixmap = surface_pixmap_access(source->texture);
+	if (_x < 0 || _x >= (long) pixmap->width || _y < 0 || _y >= (long) pixmap->height) {
+		return NULL;
+	}
+
+	return pixelmap_pixel_at(pixmap, (sysarg_t) _x, (sysarg_t) _y);
+}
+
 pixel_t source_determine_pixel(source_t *source, double x, double y)
 {
 	if (source->mask || source->texture) {

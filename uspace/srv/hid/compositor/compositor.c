@@ -313,10 +313,15 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 			/* Paint background color. */
 			for (sysarg_t y = y_dmg_vp - vp->pos.y; y <  y_dmg_vp - vp->pos.y + h_dmg_vp; ++y) {
-				for (sysarg_t x = x_dmg_vp - vp->pos.x; x < x_dmg_vp - vp->pos.x + w_dmg_vp; ++x) {
-					surface_put_pixel(vp->surface, x, y, bg_color);
+				pixel_t *dst = pixelmap_pixel_at(
+				    surface_pixmap_access(vp->surface), x_dmg_vp - vp->pos.x, y);
+				sysarg_t count = w_dmg_vp;
+				while (count-- != 0) {
+					*dst++ = bg_color;
 				}
 			}
+			surface_add_damaged_region(vp->surface,
+			    x_dmg_vp - vp->pos.x, y_dmg_vp - vp->pos.y, w_dmg_vp, h_dmg_vp);
 
 			transform_t transform;
 			source_t source;
@@ -380,25 +385,28 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 				if (isec_ptr) {
 					/* Pointer is currently painted directly by copying pixels.
-					 * However, it is possible to draw the painter similarly
+					 * However, it is possible to draw the pointer similarly
 					 * as window by using drawctx_transfer. It would allow
 					 * more sophisticated control over drawing, but would also
 					 * cost more regarding the performance. */
 
-					pixel_t pix = 0;
 					sysarg_t x_vp = x_dmg_ptr - vp->pos.x;
 					sysarg_t y_vp = y_dmg_ptr - vp->pos.y;
 					sysarg_t x_ptr = x_dmg_ptr - ptr->pos.x;
 					sysarg_t y_ptr = y_dmg_ptr - ptr->pos.y;
 
 					for (sysarg_t y = 0; y < h_dmg_ptr; ++y) {
-						for (sysarg_t x = 0; x < w_dmg_ptr; ++x) {
-							pix = surface_get_pixel(sf_ptr, x_ptr + x, y_ptr + y);
-							if (ALPHA(pix) == 255) {
-								surface_put_pixel(vp->surface, x_vp + x, y_vp + y, pix);
-							}
+						pixel_t *src = pixelmap_pixel_at(
+						    surface_pixmap_access(sf_ptr), x_ptr, y_ptr + y);
+						pixel_t *dst = pixelmap_pixel_at(
+						    surface_pixmap_access(vp->surface), x_vp, y_vp + y);
+						sysarg_t count = w_dmg_ptr;
+						while (count-- != 0) {
+							*dst = (*src & 0xff000000) ? *src : *dst;
+							++dst; ++src;
 						}
 					}
+					surface_add_damaged_region(vp->surface, x_vp, y_vp, w_dmg_ptr, h_dmg_ptr);
 				}
 			}
 		}
