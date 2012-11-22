@@ -270,10 +270,17 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	    != CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK) {
 		/* Compute divisors and multiplier
 		 * See AMDM37x TRM p. 300 for the formula */
-		assert((base_freq % 100) == 0);
-		const unsigned mult = 1200;
-		const unsigned div = (base_freq / 100) - 1;
+		// TODO: base_freq does not have to be rounded to Mhz
+		// (that's why I used KHz as unit).
+		const unsigned mult = 120;
+		const unsigned div = (base_freq / 1000) - 1;
 		const unsigned div2 = 1;
+		if ( ((base_freq % 1000) != 0) || (div > 127)) {
+			ddf_msg(LVL_ERROR, "Rounding error, or divisor to big "
+			    "freq: %d, div: %d", base_freq, div);
+			return;
+		};
+		assert(div <= 127);
 
 		/* Set multiplier */
 		pio_change_32(&device->cm.clocks->clksel4_pll,
