@@ -39,8 +39,6 @@
 #include <compiler/barrier.h>
 
 
-
-
 /** Use to assign a pointer to newly initialized data to a rcu reader 
  * accessible pointer.
  * 
@@ -133,7 +131,7 @@ void _rcu_preempted_unlock(void);
 
 /** Delimits the start of an RCU reader critical section. 
  * 
- * Reader sections may be nested and are preemptable. You must not
+ * Reader sections may be nested and are preemptible. You must not
  * however block/sleep within reader sections.
  */
 static inline void rcu_read_lock(void)
