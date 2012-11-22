@@ -523,13 +523,16 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 	} else {
 		/* It's a number - convert it */
 		uint64_t value;
-		int rc = str_uint64_t(text, NULL, 0, true, &value);
+		char *end;
+		int rc = str_uint64_t(text, &end, 0, false, &value);
+		if (end != text + len)
+			rc = EINVAL;
 		switch (rc) {
 		case EINVAL:
-			printf("Invalid number.\n");
+			printf("Invalid number '%s'.\n", text);
 			return false;
 		case EOVERFLOW:
-			printf("Integer overflow.\n");
+			printf("Integer overflow in '%s'.\n", text);
 			return false;
 		case EOK:
 			*result = (sysarg_t) value;
@@ -537,7 +540,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 				*result = *((sysarg_t *) *result);
 			break;
 		default:
-			printf("Unknown error.\n");
+			printf("Unknown error parsing '%s'.\n", text);
 			return false;
 		}
 	}

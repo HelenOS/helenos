@@ -61,5 +61,11 @@
 
 #endif
 
+#define _paddname(line) PADD_ ## line ## __
+#define _padd(width, line) uint ## width ## _t _paddname(line)
+#define PADD32 _padd(32, __LINE__)
+#define PADD16 _padd(16, __LINE__)
+#define PADD8 _padd(8, __LINE__)
+
 /** @}
  */

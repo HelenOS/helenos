@@ -29,6 +29,16 @@
 ifeq ($(MACHINE), gta02)
 	BOOT_OUTPUT = image.boot
 	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
+	LADDR = 0x30008000
+	SADDR = 0x30008000
+	POSTBUILD = Makefile.uboot
+endif
+
+ifeq ($(MACHINE), beagleboardxm)
+	BOOT_OUTPUT = image.boot
+	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
+	LADDR = 0x80000000
+	SADDR = 0x80000000
 	POSTBUILD = Makefile.uboot
 endif
 
@@ -38,14 +48,28 @@ BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE
-EXTRA_CFLAGS = -march=armv4
+EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 
+ifeq ($(MACHINE), gta02)
 RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
 	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24xx_uart
+endif
 
+ifeq ($(MACHINE), gxemul)
 RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
+endif
+
+RD_DRVS += \
+	infrastructure/rootamdm37x \
+	bus/usb/ehci \
+	bus/usb/ohci \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

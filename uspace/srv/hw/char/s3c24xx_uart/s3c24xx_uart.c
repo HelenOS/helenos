@@ -37,7 +37,6 @@
  */
 
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <loc.h>
 #include <ipc/char.h>
 #include <async.h>

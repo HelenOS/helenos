@@ -42,9 +42,19 @@
 #include <arch/interrupt.h>
 #include <trace.h>
 
-/** No such instruction on ARM to sleep CPU. */
+/** No such instruction on old ARM to sleep CPU.
+ *
+ * ARMv7 introduced wait for event and wait for interrupt (wfe/wfi).
+ * ARM920T has custom coprocessor action to do the same. See ARM920T Technical
+ * Reference Manual ch 4.9 p. 4-23 (103 in the PDF)
+ */
 NO_TRACE static inline void cpu_sleep(void)
 {
+#ifdef PROCESSOR_armv7_a
+	asm volatile ( "wfe" :: );
+#elif defined(MACHINE_gta02)
+	asm volatile ( "mcr p15,0,R0,c7,c0,4" :: );
+#endif
 }
 
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)

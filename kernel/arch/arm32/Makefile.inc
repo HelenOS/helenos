@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -march=armv4 -fno-omit-frame-pointer -mapcs-frame
+GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 
 BITS = 32
 ENDIANESS = LE
@@ -71,6 +71,10 @@ endif
 
 ifeq ($(MACHINE),integratorcp)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
+endif
+
+ifeq ($(MACHINE),beagleboardxm)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/beagleboardxm/beagleboardxm.c
 endif
 
 ifeq ($(CONFIG_PL050),y)

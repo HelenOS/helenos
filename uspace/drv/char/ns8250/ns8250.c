@@ -50,7 +50,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>

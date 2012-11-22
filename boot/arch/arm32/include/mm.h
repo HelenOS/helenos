@@ -57,11 +57,15 @@ typedef struct {
 	unsigned int descriptor_type : 2;
 	unsigned int bufferable : 1;
 	unsigned int cacheable : 1;
-	unsigned int impl_specific : 1;
+	unsigned int xn : 1;
 	unsigned int domain : 4;
 	unsigned int should_be_zero_1 : 1;
-	unsigned int access_permission : 2;
-	unsigned int should_be_zero_2 : 8;
+	unsigned int access_permission_0 : 2;
+	unsigned int tex : 3;
+	unsigned int access_permission_1 : 2;
+	unsigned int non_global : 1;
+	unsigned int should_be_zero_2 : 1;
+	unsigned int non_secure : 1;
 	unsigned int section_base_addr : 12;
 } __attribute__((packed)) pte_level0_section_t;
 

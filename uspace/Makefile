@@ -191,6 +191,11 @@ ifeq ($(UARCH),sparc64)
 		srv/hw/irc/obio
 endif
 
+ifeq ($(UARCH),arm32)
+	DIRS += \
+		drv/infrastructure/rootamdm37x
+endif
+
 ## System libraries
 #
 

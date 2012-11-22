@@ -116,18 +116,33 @@ void install_exception_handlers(void)
 }
 
 #ifdef HIGH_EXCEPTION_VECTORS
-/** Activates use of high exception vectors addresses. */
+/** Activates use of high exception vectors addresses.
+ *
+ * "High vectors were introduced into some implementations of ARMv4 and are
+ * required in ARMv6 implementations. High vectors allow the exception vector
+ * locations to be moved from their normal address range 0x00000000-0x0000001C
+ * at the bottom of the 32-bit address space, to an alternative address range
+ * 0xFFFF0000-0xFFFF001C near the top of the address space. These alternative
+ * locations are known as the high vectors.
+ *
+ * Prior to ARMv6, it is IMPLEMENTATION DEFINED whether the high vectors are
+ * supported. When they are, a hardware configuration input selects whether
+ * the normal vectors or the high vectors are to be used from
+ * reset." ARM Architecture Reference Manual A2.6.11 (p. 64 in the PDF).
+ *
+ * ARM920T (gta02) TRM A2.3.5 (PDF p. 36) and ARM926EJ-S (icp) 2.3.2 (PDF p. 42)
+ * say that armv4 an armv5 chips that we support implement this.
+ */
 static void high_vectors(void)
 {
-	uint32_t control_reg;
-	
+	uint32_t control_reg = 0;
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"
 		: [control_reg] "=r" (control_reg)
 	);
 	
 	/* switch on the high vectors bit */
-	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
+	control_reg |= CP15_R1_HIGH_VECTORS_EN;
 	
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
@@ -152,6 +167,7 @@ static void irq_exception(unsigned int exc_no, istate_t *istate)
  */
 void exception_init(void)
 {
+	// TODO check for availability of high vectors for <= armv5
 #ifdef HIGH_EXCEPTION_VECTORS
 	high_vectors();
 #endif
