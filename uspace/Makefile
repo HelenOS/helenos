@@ -214,6 +214,7 @@ LIBS = \
 	lib/nic \
 	lib/ext2 \
 	lib/ext4 \
+	lib/urcu \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
