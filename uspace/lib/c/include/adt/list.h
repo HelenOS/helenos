@@ -56,7 +56,25 @@ typedef struct list {
  *
  */
 #define LIST_INITIALIZE(name) \
-	list_t name = { \
+	list_t name = LIST_INITIALIZER(name)
+
+/** Initializer for statically allocated list.
+ * 
+ * @code
+ * struct named_list {
+ *     const char *name;
+ *     list_t list;
+ * } var = { 
+ *     .name = "default name", 
+ *     .list = LIST_INITIALIZER(name_list.list) 
+ * };
+ * @endcode
+ *
+ * @param name Name of the new statically allocated list.
+ *
+ */
+#define LIST_INITIALIZER(name) \
+	{ \
 		.head = { \
 			.prev = &(name).head, \
 			.next = &(name).head \
