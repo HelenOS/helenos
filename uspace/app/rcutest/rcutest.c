@@ -73,7 +73,7 @@ static bool run_stress_tests(void);
 static bool wait_for_one_reader(void);
 static bool basic_sanity_check(void);
 static bool dont_wait_for_new_reader(void);
-
+static bool wait_for_exiting_reader(void);
 
 static test_desc_t test_desc[] = {
 	{
@@ -103,7 +103,7 @@ static test_desc_t test_desc[] = {
 		.type = T_SANITY,
 		.func = basic_sanity_check,
 		.name = "basic-sanity",
-		.desc = "Locks/unlocks and syncs in a single fibril, no contention.",
+		.desc = "Locks/unlocks and syncs in 1 fibril, no contention.",
 	},
 	{
 		.aggregate = false,
@@ -117,7 +117,14 @@ static test_desc_t test_desc[] = {
 		.type = T_SANITY,
 		.func = dont_wait_for_new_reader,
 		.name = "ignore-new-r",
-		.desc = "Syncs with preexisting reader but ignores new reader.",
+		.desc = "Syncs with preexisting reader; ignores new reader.",
+	},
+	{
+		.aggregate = false,
+		.type = T_SANITY,
+		.func = wait_for_exiting_reader,
+		.name = "dereg-unlocks",
+		.desc = "Lets deregister_fibril unlock the reader section.",
 	},
 	{
 		.aggregate = false,
@@ -268,6 +275,7 @@ typedef struct one_reader_info {
 	size_t done_sleeps_cnt;
 	bool synching;
 	bool synched;
+	size_t failed;
 } one_reader_info_t;
 
 
@@ -277,13 +285,20 @@ static int sleeping_reader(one_reader_info_t *arg)
 	
 	printf("lock{");
 	rcu_read_lock();
+	rcu_read_lock();
 	arg->entered_cs = true;
+	rcu_read_unlock();
 
 	printf("r-sleep{");
 	/* 2 sec */
 	async_usleep(2 * USECS_PER_SEC);
 	++arg->done_sleeps_cnt;
 	printf("}");
+	
+	if (arg->synched) {
+		arg->failed = 1;
+		printf("Error: rcu_sync exited prematurely.\n");
+	}
 	
 	arg->exited_cs = true;
 	rcu_read_unlock();
@@ -317,7 +332,7 @@ static bool wait_for_one_reader(void)
 	/* Load info.exited_cs */
 	memory_barrier();
 	
-	if (!info.exited_cs) {
+	if (!info.exited_cs || info.failed) {
 		printf("Error: rcu_sync() returned before the reader exited its CS.\n");
 		/* 
 		 * Sleep some more so we don't free info on stack while the reader 
@@ -333,7 +348,7 @@ static bool wait_for_one_reader(void)
 
 /*--------------------------------------------------------------------*/
 
-#define WAIT_STEP_US  1000 * USECS_PER_MS
+#define WAIT_STEP_US  500 * USECS_PER_MS
 
 typedef struct two_reader_info {
 	bool new_entered_cs;
@@ -495,6 +510,82 @@ static bool dont_wait_for_new_reader(void)
 }
 
 #undef WAIT_STEP_US
+
+/*--------------------------------------------------------------------*/
+#define WAIT_STEP_US  500 * USECS_PER_MS
+
+typedef struct exit_reader_info {
+	bool entered_cs;
+	bool exited_cs;
+	bool synching;
+	bool synched;
+} exit_reader_info_t;
+
+
+static int exiting_locked_reader(exit_reader_info_t *arg)
+{
+	rcu_register_fibril();
+	
+	printf("old-lock{");
+	rcu_read_lock();
+	rcu_read_lock();
+	rcu_read_lock();
+	arg->entered_cs = true;
+	
+	printf("wait-for-sync{");
+	/* Wait for rcu_sync() to start waiting for us. */
+	while (!arg->synching) {
+		async_usleep(WAIT_STEP_US);
+	}
+	printf(" }");
+	
+	rcu_read_unlock();
+	printf(" }");
+
+	arg->exited_cs = true;
+	/* Store exited_cs before unlocking reader section in deregister. */
+	memory_barrier();
+	
+	/* Deregister forcefully unlocks the reader section. */
+	rcu_deregister_fibril();
+	return 0;
+}
+
+
+static bool wait_for_exiting_reader(void)
+{
+	exit_reader_info_t info = { 0 };
+	
+	if (!create_fibril((fibril_func_t) exiting_locked_reader, &info))
+		return false;
+	
+	/* Waits for the preexisting_reader to enter its CS.*/
+	while (!info.entered_cs) {
+		async_usleep(WAIT_STEP_US);
+	}
+	
+	assert(!info.exited_cs);
+	
+	printf("sync[");
+	info.synching = true;
+	rcu_synchronize();
+	info.synched = true;
+	printf(" ]\n");
+	
+	/* Load info.exited_cs */
+	memory_barrier();
+	
+	if (!info.exited_cs) {
+		printf("Error: rcu_deregister_fibril did not unlock the CS.\n");
+		return false;
+	}	
+	
+	return true;
+}
+
+#undef WAIT_STEP_US
+
+
 /*--------------------------------------------------------------------*/
 /*--------------------------------------------------------------------*/
 static test_desc_t *find_test(const char *name)
