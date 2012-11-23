@@ -71,12 +71,15 @@
 #include <stdio.h>
 #include <compiler/barrier.h>
 #include <libarch/barrier.h>
-#include <adt/list.h>
 #include <futex.h>
 #include <macros.h>
 #include <async.h>
+#include <adt/list.h>
 #include <smp_memory_barrier.h>
+#include <assert.h>
 
+
+/** RCU sleeps for RCU_SLEEP_MS before polling an active RCU reader again. */
 #define RCU_SLEEP_MS        10
 
 #define RCU_NESTING_SHIFT   1
@@ -86,11 +89,14 @@
 #define RCU_GROUP_B         (size_t)(1 | RCU_NESTING_INC)
 
 
-typedef struct rcu_fibril_data {
+/** Fibril local RCU data. */
+typedef struct fibril_rcu_data {
 	size_t nesting_cnt;
 	link_t link;
-} rcu_fibril_data_t;
+	bool registered;
+} fibril_rcu_data_t;
 
+/** Process global RCU data. */
 typedef struct rcu_data {
 	fibril_mutex_t mtx;
 	size_t cur_gp;
@@ -100,10 +106,17 @@ typedef struct rcu_data {
 } rcu_data_t;
 
 
-static fibril_local rcu_fibril_data_t rcu_fibril = {
-	.nesting_cnt = 0	
+/** Fibril local RCU data. */
+static fibril_local fibril_rcu_data_t fibril_rcu = {
+	.nesting_cnt = 0,
+	.link = {
+		.next = NULL,
+		.prev = NULL
+	},
+	.registered = false
 };
 
+/** Process global RCU data. */
 static rcu_data_t rcu = {
 	.mtx = FIBRIL_MUTEX_INITIALIZER(rcu.mtx),
 	.cur_gp = 0,
@@ -115,7 +128,7 @@ static rcu_data_t rcu = {
 
 static void wait_for_readers(size_t reader_group);
 static void force_mb_in_all_threads(void);
-static bool is_preexisting_reader(const rcu_fibril_data_t *fib, size_t group);
+static bool is_preexisting_reader(const fibril_rcu_data_t *fib, size_t group);
 
 static bool is_in_group(size_t nesting_cnt, size_t group);
 static bool is_in_reader_section(size_t nesting_cnt);
@@ -129,9 +142,13 @@ static size_t get_other_group(size_t group);
  */
 void rcu_register_fibril(void)
 {
+	assert(!fibril_rcu.registered);
+	
 	futex_down(&rcu.list_futex);
-	list_append(&rcu_fibril.link, &rcu.fibrils_list);
+	list_append(&fibril_rcu.link, &rcu.fibrils_list);
 	futex_up(&rcu.list_futex);
+	
+	fibril_rcu.registered = true;
 }
 
 /** Deregisters a fibril that had been using RCU read sections.
@@ -141,6 +158,8 @@ void rcu_register_fibril(void)
  */
 void rcu_deregister_fibril(void)
 {
+	assert(fibril_rcu.registered);
+	
 	/* 
 	 * Forcefully unlock any reader sections. The fibril is exiting
 	 * so it is not holding any references to data protected by the
@@ -148,11 +167,13 @@ void rcu_deregister_fibril(void)
 	 * rcu_synchronize() would wait indefinitely.
 	 */
 	memory_barrier();
-	rcu_fibril.nesting_cnt = 0;
+	fibril_rcu.nesting_cnt = 0;
 	
 	futex_down(&rcu.list_futex);
-	list_remove(&rcu_fibril.link);
+	list_remove(&fibril_rcu.link);
 	futex_up(&rcu.list_futex);
+
+	fibril_rcu.registered = false;
 }
 
 /** Delimits the start of an RCU reader critical section. 
@@ -161,29 +182,41 @@ void rcu_deregister_fibril(void)
  */
 void rcu_read_lock(void)
 {
-	size_t nesting_cnt = ACCESS_ONCE(rcu_fibril.nesting_cnt);
+	assert(fibril_rcu.registered);
+	
+	size_t nesting_cnt = ACCESS_ONCE(fibril_rcu.nesting_cnt);
 	
 	if (0 == (nesting_cnt >> RCU_NESTING_SHIFT)) {
-		ACCESS_ONCE(rcu_fibril.nesting_cnt) = ACCESS_ONCE(rcu.reader_group);
+		ACCESS_ONCE(fibril_rcu.nesting_cnt) = ACCESS_ONCE(rcu.reader_group);
 		/* Required by MB_FORCE_L */
 		compiler_barrier(); /* CC_BAR_L */
 	} else {
-		ACCESS_ONCE(rcu_fibril.nesting_cnt) = nesting_cnt + RCU_NESTING_INC;
+		ACCESS_ONCE(fibril_rcu.nesting_cnt) = nesting_cnt + RCU_NESTING_INC;
 	}
 }
 
 /** Delimits the start of an RCU reader critical section. */
 void rcu_read_unlock(void)
 {
+	assert(fibril_rcu.registered);
+	
 	/* Required by MB_FORCE_U */
 	compiler_barrier(); /* CC_BAR_U */
 	/* todo: ACCESS_ONCE(nesting_cnt) ? */
-	rcu_fibril.nesting_cnt -= RCU_NESTING_INC;
+	fibril_rcu.nesting_cnt -= RCU_NESTING_INC;
+}
+
+/** Returns true if the current fibril is in an RCU reader section. */
+bool rcu_read_locked(void)
+{
+	return 0 != (fibril_rcu.nesting_cnt >> RCU_NESTING_SHIFT);
 }
 
 /** Blocks until all preexisting readers exit their critical sections. */
 void rcu_synchronize(void)
 {
+	assert(!rcu_read_locked());
+	
 	/* Contain load of rcu.cur_gp. */
 	memory_barrier();
 
@@ -200,7 +233,8 @@ void rcu_synchronize(void)
 	 * full GP, gp_in_progress + 1, to finish. Ie don't wait if the GP
 	 * after that, gp_in_progress + 2, already started.
 	 */
-	if (rcu.cur_gp + 2 >= gp_in_progress) {
+	/* rcu.cur_gp >= gp_in_progress + 2, but tolerates overflows. */
+	if (rcu.cur_gp != gp_in_progress && rcu.cur_gp + 1 != gp_in_progress) {
 		fibril_mutex_unlock(&rcu.mtx);
 		return;
 	}
@@ -279,8 +313,8 @@ static void wait_for_readers(size_t reader_group)
 	
 	while (!list_empty(&rcu.fibrils_list)) {
 		list_foreach_safe(rcu.fibrils_list, fibril_it, next_fibril) {
-			rcu_fibril_data_t *fib = member_to_inst(fibril_it, 
-				rcu_fibril_data_t, link);
+			fibril_rcu_data_t *fib = member_to_inst(fibril_it, 
+				fibril_rcu_data_t, link);
 			
 			if (is_preexisting_reader(fib, reader_group)) {
 				futex_up(&rcu.list_futex);
@@ -298,7 +332,7 @@ static void wait_for_readers(size_t reader_group)
 	futex_up(&rcu.list_futex);
 }
 
-static bool is_preexisting_reader(const rcu_fibril_data_t *fib, size_t group)
+static bool is_preexisting_reader(const fibril_rcu_data_t *fib, size_t group)
 {
 	size_t nesting_cnt = ACCESS_ONCE(fib->nesting_cnt);
 	

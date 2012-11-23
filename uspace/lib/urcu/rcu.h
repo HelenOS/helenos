@@ -38,6 +38,7 @@
 
 #include <compiler/barrier.h>
 #include <libarch/barrier.h>
+#include <bool.h>
 
 /** Use to assign a pointer to newly initialized data to a rcu reader 
  * accessible pointer.
@@ -96,6 +97,8 @@ extern void rcu_deregister_fibril(void);
 
 extern void rcu_read_lock(void);
 extern void rcu_read_unlock(void);
+
+extern bool rcu_read_locked(void);
 
 extern void rcu_synchronize(void);
 
