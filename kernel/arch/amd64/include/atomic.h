@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2012      Adam Hraska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
