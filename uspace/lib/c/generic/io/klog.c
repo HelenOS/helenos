@@ -57,6 +57,11 @@ void klog_update(void)
 	(void) __SYSCALL3(SYS_KLOG, KLOG_UPDATE, (uintptr_t) NULL, 0);
 }
 
+void klog_command(const void *buf, size_t size)
+{
+	(void) __SYSCALL3(SYS_KLOG, KLOG_COMMAND, (sysarg_t) buf, (sysarg_t) size);
+}
+
 /** Print formatted text to klog.
  *
  * @param fmt Format string
