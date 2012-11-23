@@ -33,11 +33,11 @@
 #include <proc/thread.h>
 #include <macros.h>
 #include <str.h>
+#include <errno.h>
+#include <time/delay.h>
 
 #include <synch/rcu.h>
 
-#include "abi/errno.h"
-#include "time/delay.h"
 
 #define MAX_THREADS 32
 
