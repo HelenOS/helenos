@@ -93,6 +93,7 @@ typedef struct rcu_fibril_data {
 
 typedef struct rcu_data {
 	fibril_mutex_t mtx;
+	size_t cur_gp;
 	size_t reader_group;
 	futex_t list_futex;
 	list_t fibrils_list;
@@ -105,6 +106,7 @@ static fibril_local rcu_fibril_data_t rcu_fibril = {
 
 static rcu_data_t rcu = {
 	.mtx = FIBRIL_MUTEX_INITIALIZER(rcu.mtx),
+	.cur_gp = 0,
 	.reader_group = RCU_GROUP_A,
 	.list_futex = FUTEX_INITIALIZER,
 	.fibrils_list = LIST_INITIALIZER(rcu.fibrils_list),
@@ -182,14 +184,34 @@ void rcu_read_unlock(void)
 /** Blocks until all preexisting readers exit their critical sections. */
 void rcu_synchronize(void)
 {
+	/* Contain load of rcu.cur_gp. */
+	memory_barrier();
+
+	/* Approximately the number of the GP in progress. */
+	size_t gp_in_progress = ACCESS_ONCE(rcu.cur_gp);
+	
+	/* todo: early exit for batched sync()s */
+	fibril_mutex_lock(&rcu.mtx);
+	
+	/* 
+	 * Exit early if we were stuck waiting for the mutex for a full grace 
+	 * period. Started waiting during gp_in_progress (or gp_in_progress + 1
+	 * if the value propagated to this cpu too late) so wait for the next
+	 * full GP, gp_in_progress + 1, to finish. Ie don't wait if the GP
+	 * after that, gp_in_progress + 2, already started.
+	 */
+	if (rcu.cur_gp + 2 >= gp_in_progress) {
+		fibril_mutex_unlock(&rcu.mtx);
+		return;
+	}
+	
+	++ACCESS_ONCE(rcu.cur_gp);
+	
 	/* 
 	 * Pairs up with MB_FORCE_L (ie CC_BAR_L). Makes changes prior 
 	 * to rcu_synchronize() visible to new readers. 
 	 */
 	memory_barrier(); /* MB_A */
-	
-	/* todo: early exit for batched sync()s */
-	fibril_mutex_lock(&rcu.mtx);
 	
 	/* 
 	 * Pairs up with MB_A. 
