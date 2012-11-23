@@ -38,12 +38,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <abi/klog.h>
 #include <io/klog.h>
 #include <io/printf_core.h>
 
 size_t klog_write(const void *buf, size_t size)
 {
-	ssize_t ret = (ssize_t) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, size);
+	ssize_t ret = (ssize_t) __SYSCALL3(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf, size);
 	
 	if (ret >= 0)
 		return (size_t) ret;
@@ -53,7 +54,7 @@ size_t klog_write(const void *buf, size_t size)
 
 void klog_update(void)
 {
-	(void) __SYSCALL3(SYS_KLOG, 1, (uintptr_t) NULL, 0);
+	(void) __SYSCALL3(SYS_KLOG, KLOG_UPDATE, (uintptr_t) NULL, 0);
 }
 
 /** Print formatted text to klog.
