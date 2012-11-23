@@ -694,20 +694,24 @@ int cmd_help(cmd_arg_t *argv)
 static int cmd_pio_read_8(cmd_arg_t *argv)
 {
 	uint8_t *ptr = NULL;
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
 	else
 #endif
-		ptr = (uint8_t*) km_map(argv[0].intval, sizeof(uint8_t),
+		ptr = (uint8_t *) km_map(argv[0].intval, sizeof(uint8_t),
 		    PAGE_NOT_CACHEABLE);
+	
 	const uint8_t val = pio_read_8(ptr);
-	printf("read %"PRIxn": %"PRIx8"\n", argv[0].intval, val);
+	printf("read %" PRIxn ": %" PRIx8 "\n", argv[0].intval, val);
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	km_unmap((uintptr_t)ptr, sizeof(uint8_t));
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint8_t));
 	return 1;
 }
 
@@ -720,20 +724,24 @@ static int cmd_pio_read_8(cmd_arg_t *argv)
 static int cmd_pio_read_16(cmd_arg_t *argv)
 {
 	uint16_t *ptr = NULL;
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
-		ptr = (void *)argv[0].intval;
+		ptr = (void *) argv[0].intval;
 	else
 #endif
-		ptr = (uint16_t*)km_map(argv[0].intval, sizeof(uint16_t),
+		ptr = (uint16_t *) km_map(argv[0].intval, sizeof(uint16_t),
 		    PAGE_NOT_CACHEABLE);
+	
 	const uint16_t val = pio_read_16(ptr);
-	printf("read %"PRIxn": %"PRIx16"\n", argv[0].intval, val);
+	printf("read %" PRIxn ": %" PRIx16 "\n", argv[0].intval, val);
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	km_unmap((uintptr_t)ptr, sizeof(uint16_t));
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint16_t));
 	return 1;
 }
 
@@ -746,20 +754,24 @@ static int cmd_pio_read_16(cmd_arg_t *argv)
 static int cmd_pio_read_32(cmd_arg_t *argv)
 {
 	uint32_t *ptr = NULL;
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
 	else
 #endif
-		ptr = (uint32_t*)km_map(argv[0].intval, sizeof(uint32_t),
+		ptr = (uint32_t *) km_map(argv[0].intval, sizeof(uint32_t),
 		    PAGE_NOT_CACHEABLE);
+	
 	const uint32_t val = pio_read_32(ptr);
-	printf("read %"PRIxn": %"PRIx32"\n", argv[0].intval, val);
+	printf("read %" PRIxn ": %" PRIx32 "\n", argv[0].intval, val);
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	km_unmap((uintptr_t)ptr, sizeof(uint32_t));
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint32_t));
 	return 1;
 }
 
@@ -772,21 +784,25 @@ static int cmd_pio_read_32(cmd_arg_t *argv)
 static int cmd_pio_write_8(cmd_arg_t *argv)
 {
 	uint8_t *ptr = NULL;
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
 	else
 #endif
-		ptr = (uint8_t*)km_map(argv[0].intval, sizeof(uint8_t),
+		ptr = (uint8_t *) km_map(argv[0].intval, sizeof(uint8_t),
 		    PAGE_NOT_CACHEABLE);
-	printf("write %"PRIxn": %"PRIx8"\n", argv[0].intval,
-	    (uint8_t)argv[1].intval);
-	pio_write_8(ptr, (uint8_t)argv[1].intval);
+	
+	printf("write %" PRIxn ": %" PRIx8 "\n", argv[0].intval,
+	    (uint8_t) argv[1].intval);
+	pio_write_8(ptr, (uint8_t) argv[1].intval);
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	km_unmap((uintptr_t)ptr, sizeof(uint8_t));
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint8_t));
 	return 1;
 }
 
@@ -799,21 +815,25 @@ static int cmd_pio_write_8(cmd_arg_t *argv)
 static int cmd_pio_write_16(cmd_arg_t *argv)
 {
 	uint16_t *ptr = NULL;
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
 	else
 #endif
-		ptr = (uint16_t*)km_map(argv[0].intval, sizeof(uint16_t),
+		ptr = (uint16_t *) km_map(argv[0].intval, sizeof(uint16_t),
 		    PAGE_NOT_CACHEABLE);
-	printf("write %"PRIxn": %"PRIx16"\n", argv[0].intval,
-	    (uint16_t)argv[1].intval);
-	pio_write_16(ptr, (uint16_t)argv[1].intval);
+	
+	printf("write %" PRIxn ": %" PRIx16 "\n", argv[0].intval,
+	    (uint16_t) argv[1].intval);
+	pio_write_16(ptr, (uint16_t) argv[1].intval);
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	km_unmap((uintptr_t)ptr, sizeof(uint16_t));
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint16_t));
 	return 1;
 }
 
@@ -826,21 +846,25 @@ static int cmd_pio_write_16(cmd_arg_t *argv)
 static int cmd_pio_write_32(cmd_arg_t *argv)
 {
 	uint32_t *ptr = NULL;
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
 	else
 #endif
-		ptr = (uint32_t*)km_map(argv[0].intval, sizeof(uint32_t),
+		ptr = (uint32_t *) km_map(argv[0].intval, sizeof(uint32_t),
 		    PAGE_NOT_CACHEABLE);
-	printf("write %"PRIxn": %"PRIx32"\n", argv[0].intval,
-	    (uint32_t)argv[1].intval);
-	pio_write_32(ptr, (uint32_t)argv[1].intval);
+	
+	printf("write %" PRIxn ": %" PRIx32 "\n", argv[0].intval,
+	    (uint32_t) argv[1].intval);
+	pio_write_32(ptr, (uint32_t) argv[1].intval);
+	
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	km_unmap((uintptr_t)ptr, sizeof(uint32_t));
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint32_t));
 	return 1;
 }
 
