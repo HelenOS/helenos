@@ -198,6 +198,9 @@ static void term_update_char(terminal_t *term, surface_t *surface,
 	for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
 		pixel_t *dst = pixelmap_pixel_at(
 		    surface_pixmap_access(surface), bx, by + y);
+		pixel_t *dst_max = pixelmap_pixel_at(
+		    surface_pixmap_access(surface), bx + FONT_WIDTH - 1, by + y);
+		if (!dst || !dst_max) continue;
 		int count = FONT_WIDTH;
 		while (count-- != 0) {
 			*dst++ = (fb_font[glyph][y] & (1 << count)) ? fgcolor : bgcolor;

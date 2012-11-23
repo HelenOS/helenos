@@ -51,9 +51,13 @@ static inline pixel_t *pixelmap_pixel_at(
     sysarg_t x,
     sysarg_t y)
 {
-	size_t offset = y * pixelmap->width + x;
-	pixel_t *pixel = pixelmap->data + offset;
-	return pixel;
+	if (x < pixelmap->width && y < pixelmap->height) {
+		size_t offset = y * pixelmap->width + x;
+		pixel_t *pixel = pixelmap->data + offset;
+		return pixel;
+	} else {
+		return NULL;
+	}
 }
 
 static inline void pixelmap_put_pixel(

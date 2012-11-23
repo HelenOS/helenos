@@ -170,18 +170,12 @@ void surface_put_pixel(surface_t *surface, surface_coord_t x, surface_coord_t y,
 	surface->dirty_y_lo = surface->dirty_y_lo > y ? y : surface->dirty_y_lo;
 	surface->dirty_y_hi = surface->dirty_y_hi < y ? y : surface->dirty_y_hi;
 
-	if (x < surface->pixmap.width && y < surface->pixmap.height) {
-		pixelmap_put_pixel(&surface->pixmap, x, y, pixel);
-	}
+	pixelmap_put_pixel(&surface->pixmap, x, y, pixel);
 }
 
 pixel_t surface_get_pixel(surface_t *surface, surface_coord_t x, surface_coord_t y)
 {
-	if (x < surface->pixmap.width && y < surface->pixmap.height) {
-		return pixelmap_get_pixel(&surface->pixmap, x, y);
-	} else {
-		return 0;
-	}
+	return pixelmap_get_pixel(&surface->pixmap, x, y);
 }
 
 /** @}
