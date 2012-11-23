@@ -366,11 +366,20 @@ sysarg_t sys_klog(int cmd, const void *buf, size_t size)
 		}
 		data[size] = 0;
 		
-		printf("%s", data);
+		switch (cmd) {
+		case KLOG_WRITE:
+			printf("%s", data);
+			break;
+		case KLOG_COMMAND:
+			for (unsigned int i = 0; i < size; i++)
+				indev_push_character(stdin, data[i]);
+			indev_push_character(stdin, '\n');
+			break;
+		}
+
 		free(data);
-	} else
-		klog_update(NULL);
-	
+	}
+
 	return size;
 }
 
