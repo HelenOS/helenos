@@ -51,6 +51,8 @@ typedef struct {
 	uint32_t s[64];
 } fpu_context_t;
 
+void fpu_setup(void);
+
 #endif
 
 /** @}

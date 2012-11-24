@@ -142,37 +142,47 @@ static void fpu_context_restore_d32(fpu_context_t *ctx)
 
 void fpu_init(void)
 {
+}
+
+void fpu_setup(void)
+{
 	uint32_t fpsid = 0;
-	uint32_t mvfr0 = 0;
 	asm volatile (
 		"vmrs %0,fpsid\n"
-		"vmrs %1,mvfr0\n"
-		:"=r"(fpsid), "=r"(mvfr0)::
+		:"=r"(fpsid)::
 	);
-	//TODO: Identify FPU unit
-	//and set correct functions to save/restore ctx
 	switch (FPSID_SUBACHITECTURE(fpsid))
 	{
 	case FPU_VFPv1:
+		printf("Detected VFPv1\n");
 		save_context = fpu_context_save_s32;
 		restore_context = fpu_context_restore_s32;
 		break;
 	case FPU_VFPv2_COMMONv1:
+		printf("Detected VFPv2\n");
 		save_context = fpu_context_save_d16;
 		restore_context = fpu_context_restore_d16;
 		break;
 	case FPU_VFPv3_COMMONv2:
 	case FPU_VFPv3_NOTRAP:
-	case FPU_VFPv3:
+	case FPU_VFPv3: {
+		uint32_t mvfr0 = 0;
+		asm volatile (
+			"vmrs %0,mvfr0\n"
+			:"=r"(mvfr0)::
+		);
 		/* See page B4-1637 */
 		if ((mvfr0 & 0xf) == 0x1) {
+			printf("Detected VFPv3+ with 32 regs\n");
 			save_context = fpu_context_save_d32;
 			restore_context = fpu_context_restore_d32;
 		} else {
+			printf("Detected VFPv3+ with 16 regs\n");
 			save_context = fpu_context_save_d16;
 			restore_context = fpu_context_restore_d16;
 		}
 		break;
+	}
 
 	}
 }
