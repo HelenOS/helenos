@@ -133,7 +133,9 @@ void cpu_arch_init(void)
 		:: [control_reg] "r" (control_reg)
 	);
 #endif
+#ifdef CONFIG_FPU
 	fpu_setup();
+#endif
 }
 
 /** Retrieves processor identification and stores it to #CPU.arch */

@@ -151,6 +151,10 @@ void fpu_setup(void)
 		"vmrs %0,fpsid\n"
 		:"=r"(fpsid)::
 	);
+	if (fpsid & FPSID_SW_ONLY_FLAG) {
+		printf("No FPU avaiable\n");
+		return;
+	}
 	switch (FPSID_SUBACHITECTURE(fpsid))
 	{
 	case FPU_VFPv1:
@@ -209,10 +213,12 @@ void fpu_disable(void)
 
 void fpu_context_save(fpu_context_t *ctx)
 {
-	save_context(ctx);
+	if (save_context)
+		save_context(ctx);
 }
 
 void fpu_context_restore(fpu_context_t *ctx)
 {
-	restore_context(ctx);
+	if (restore_context)
+		restore_context(ctx);
 }
