@@ -142,6 +142,7 @@ static void fpu_context_restore_d32(fpu_context_t *ctx)
 
 void fpu_init(void)
 {
+	fpu_enable();
 }
 
 void fpu_setup(void)
