@@ -43,10 +43,10 @@
 #define PRIdCMPTYPE  PRId32
 
 typedef int32_t cmptype_t;
-typedef void (* float_op_t)(float, float, float *, float_t *);
-typedef void (* double_op_t)(double, double, double *, double_t *);
+typedef void (* float_binary_op_t)(float, float, float *, float_t *);
+typedef void (* double_binary_op_t)(double, double, double *, double_t *);
 typedef void (* double_cmp_op_t)(double, double, cmptype_t *, cmptype_t *);
-typedef void (* template_t)(void *, unsigned, unsigned, cmptype_t *,
+typedef void (* template_binary_t)(void *, unsigned, unsigned, cmptype_t *,
     cmptype_t *);
 
 static float fop_a[OPERANDS] =
@@ -80,13 +80,13 @@ static int dcmp(double a, double b)
 }
 
 static void
-float_template(void *f, unsigned i, unsigned j, cmptype_t *pic,
+float_template_binary(void *f, unsigned i, unsigned j, cmptype_t *pic,
     cmptype_t *pisc)
 {
 	float c;
 	float_t sc;
 
-	float_op_t op = (float_op_t) f;
+	float_binary_op_t op = (float_binary_op_t) f;
 	
 	op(fop_a[i], fop_b[j], &c, &sc);
 
@@ -95,13 +95,13 @@ float_template(void *f, unsigned i, unsigned j, cmptype_t *pic,
 }
 
 static void
-double_template(void *f, unsigned i, unsigned j, cmptype_t *pic,
+double_template_binary(void *f, unsigned i, unsigned j, cmptype_t *pic,
     cmptype_t *pisc)
 {
 	double c;
 	double_t sc;
 
-	double_op_t op = (double_op_t) f;
+	double_binary_op_t op = (double_binary_op_t) f;
 	
 	op(dop_a[i], dop_b[j], &c, &sc);
 
@@ -118,7 +118,7 @@ double_compare_template(void *f, unsigned i, unsigned j, cmptype_t *pis,
 	op(dop_a[i], dop_b[j], pis, piss);
 }
 
-static bool test_template(template_t template, void *f)
+static bool test_template_binary(template_binary_t template, void *f)
 {
 	bool correct = true;
 	
@@ -266,31 +266,31 @@ const char *test_softfloat1(void)
 {
 	const char *err = NULL;
 
-	if (!test_template(float_template, float_add_operator)) {
+	if (!test_template_binary(float_template_binary, float_add_operator)) {
 		err = "Float addition failed";
 		TPRINTF("%s\n", err);
 	}
-	if (!test_template(float_template, float_mul_operator)) {
+	if (!test_template_binary(float_template_binary, float_mul_operator)) {
 		err = "Float multiplication failed";
 		TPRINTF("%s\n", err);
 	}
-	if (!test_template(float_template, float_div_operator)) {
+	if (!test_template_binary(float_template_binary, float_div_operator)) {
 		err = "Float division failed";
 		TPRINTF("%s\n", err);
 	}
-	if (!test_template(double_template, double_add_operator)) {
+	if (!test_template_binary(double_template_binary, double_add_operator)) {
 		err = "Double addition failed";
 		TPRINTF("%s\n", err);
 	}
-	if (!test_template(double_template, double_mul_operator)) {
+	if (!test_template_binary(double_template_binary, double_mul_operator)) {
 		err = "Double multiplication failed";
 		TPRINTF("%s\n", err);
 	}
-	if (!test_template(double_template, double_div_operator)) {
+	if (!test_template_binary(double_template_binary, double_div_operator)) {
 		err = "Double division failed";
 		TPRINTF("%s\n", err);
 	}
-	if (!test_template(double_compare_template, double_cmp_operator)) {
+	if (!test_template_binary(double_compare_template, double_cmp_operator)) {
 		err = "Double comparison failed";
 		TPRINTF("%s\n", err);
 	}
