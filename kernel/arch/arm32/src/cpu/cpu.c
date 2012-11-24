@@ -42,7 +42,7 @@
 /** Number of indexes left out in the #imp_data array */
 #define IMP_DATA_START_OFFSET 0x40
 
-/** Implementators (vendor) names */
+/** Implementors (vendor) names */
 static const char *imp_data[] = {
 	"?",                                     /* IMP_DATA_START_OFFSET */
 	"ARM Limited",                           /* 0x41 */
@@ -60,7 +60,7 @@ static const char *imp_data[] = {
 };
 
 /** Length of the #imp_data array */
-static unsigned int imp_data_length = sizeof(imp_data) / sizeof(char *);
+static const unsigned int imp_data_length = sizeof(imp_data) / sizeof(char *);
 
 /** Architecture names */
 static const char *arch_data[] = {
@@ -75,11 +75,11 @@ static const char *arch_data[] = {
 };
 
 /** Length of the #arch_data array */
-static unsigned int arch_data_length = sizeof(arch_data) / sizeof(char *);
+static const unsigned int arch_data_length = sizeof(arch_data) / sizeof(char *);
 
 
 /** Retrieves processor identification from CP15 register 0.
- * 
+ *
  * @param cpu Structure for storing CPU identification.
  */
 static void arch_cpu_identify(cpu_arch_t *cpu)
@@ -212,7 +212,7 @@ void cpu_print_report(cpu_t *m)
 		architecture = arch_data[cpu_arch->arch_num];
 	}
 
-	printf("cpu%d: vendor=%s, architecture=ARM%s, part number=%x, "
+	printf("cpu%d: vendor=%s, architecture=ARMv%s, part number=%x, "
 	    "variant=%x, revision=%x\n",
 	    m->id, vendor, architecture, cpu_arch->prim_part_num,
 	    cpu_arch->variant_num, cpu_arch->rev_num);
