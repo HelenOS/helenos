@@ -37,50 +37,46 @@
 #include <cpu.h>
 #include <arch.h>
 #include <print.h>
-#include <fpu_context.h>
 
-/** Number of indexes left out in the #imp_data array */
-#define IMP_DATA_START_OFFSET 0x40
-
-/** Implementors (vendor) names */
-static const char *imp_data[] = {
-	"?",                                     /* IMP_DATA_START_OFFSET */
-	"ARM Limited",                           /* 0x41 */
-	"", "",                                  /* 0x42 - 0x43 */
-	"Digital Equipment Corporation",         /* 0x44 */
-	"", "", "", "", "", "", "", "",          /* 0x45 - 0x4c */
-	"Motorola, Freescale Semicondutor Inc.", /* 0x4d */
-	"", "", "",                              /* 0x4e - 0x50 */
-	"Qualcomm Inc.",                         /* 0x51 */
-	"", "", "", "",                          /* 0x52 - 0x55 */
-	"Marvell Semiconductor",                 /* 0x56 */
-	"", "", "", "", "", "", "", "", "", "",  /* 0x57 - 0x60 */
-	"", "", "", "", "", "", "", "",          /* 0x61 - 0x68 */
-	"Intel Corporation"                      /* 0x69 */
-};
-
-/** Length of the #imp_data array */
-static const unsigned int imp_data_length = sizeof(imp_data) / sizeof(char *);
+/** Implementers (vendor) names */
+static const char * implementer(unsigned id)
+{
+	switch (id)
+	{
+	case 0x41: return "ARM Limited";
+	case 0x44: return "Digital Equipment Corporation";
+	case 0x4d: return "Motorola, Freescale Semiconductor Inc.";
+	case 0x51: return "Qualcomm Inc.";
+	case 0x56: return "Marvell Semiconductor Inc.";
+	case 0x69: return "Intel Corporation";
+	}
+	return "Unknown implementer";
+}
 
 /** Architecture names */
-static const char *arch_data[] = {
-	"?",       /* 0x0 */
-	"4",       /* 0x1 */
-	"4T",      /* 0x2 */
-	"5",       /* 0x3 */
-	"5T",      /* 0x4 */
-	"5TE",     /* 0x5 */
-	"5TEJ",    /* 0x6 */
-	"6"        /* 0x7 */
-};
-
-/** Length of the #arch_data array */
-static const unsigned int arch_data_length = sizeof(arch_data) / sizeof(char *);
+static const char * architecture_string(cpu_arch_t *arch)
+{
+	static const char *arch_data[] = {
+		"ARM",       /* 0x0 */
+		"ARMv4",       /* 0x1 */
+		"ARMv4T",      /* 0x2 */
+		"ARMv5",       /* 0x3 */
+		"ARMv5T",      /* 0x4 */
+		"ARMv5TE",     /* 0x5 */
+		"ARMv5TEJ",    /* 0x6 */
+		"ARMv6"        /* 0x7 */
+	};
+	if (arch->arch_num < (sizeof(arch_data) / sizeof(arch_data[0])))
+		return arch_data[arch->arch_num];
+	else
+		return arch_data[0];
+}
 
 
 /** Retrieves processor identification from CP15 register 0.
  *
  * @param cpu Structure for storing CPU identification.
+ * See page B4-1630 of ARM Architecture Reference Manual.
  */
 static void arch_cpu_identify(cpu_arch_t *cpu)
 {
@@ -95,6 +91,7 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 	cpu->arch_num = (ident << 12) >> 28;
 	cpu->prim_part_num = (ident << 16) >> 20;
 	cpu->rev_num = (ident << 28) >> 28;
+	// TODO CPUs with arch_num == 0xf use CPUID scheme for identification
 }
 
 /** Enables unaligned access and caching for armv6+ */
@@ -138,56 +135,6 @@ void cpu_arch_init(void)
 #endif
 }
 
-void fpu_init(void)
-{
-	//TODO: Identify FPU unit
-	//and set correct functions to save/restore ctx
-}
-
-void fpu_enable(void)
-{
-	/* Enable FPU instructions */
-	asm volatile (
-		"ldr r1, =0x40000000\n"
-		"vmsr fpexc, r1\n"
-		::: "r1"
-	);
-}
-
-void fpu_disable(void)
-{
-	/* Disable FPU instructions */
-	asm volatile (
-		"ldr r1, =0x00000000\n"
-		"vmsr fpexc, r1\n"
-		::: "r1"
-	);
-}
-
-void fpu_context_save(fpu_context_t *ctx)
-{
-	// TODO check and complete. What about fpexc?
-	asm volatile (
-		"vmrs r1, fpscr\n"
-//		"vmrs r2, fpexc\n"
-		"stm %0, {r1, r2}\n"
-		"vstm %0, {d0-d15}\n"
-		::"r" (ctx): "r1","r2","memory"
-	);
-}
-
-void fpu_context_restore(fpu_context_t *ctx)
-{
-	// TODO check and complete. What about fpexc?
-	asm volatile (
-		"ldm %0, {r1, r2}\n"
-		"vmsr fpscr, r1\n"
-//		"vmsr fpexc, r2\n"
-		"vldm %0, {d0-d15}\n"
-		::"r" (ctx): "r1","r2"
-	);
-}
-
 /** Retrieves processor identification and stores it to #CPU.arch */
 void cpu_identify(void)
 {
@@ -197,25 +144,11 @@ void cpu_identify(void)
 /** Prints CPU identification. */
 void cpu_print_report(cpu_t *m)
 {
-	const char *vendor = imp_data[0];
-	const char *architecture = arch_data[0];
-	cpu_arch_t * cpu_arch = &m->arch;
-
-	const unsigned imp_offset = cpu_arch->imp_num - IMP_DATA_START_OFFSET;
-
-	if (imp_offset < imp_data_length) {
-		vendor = imp_data[cpu_arch->imp_num - IMP_DATA_START_OFFSET];
-	}
-
-	// TODO CPUs with arch_num == 0xf use CPUID scheme for identification
-	if (cpu_arch->arch_num < arch_data_length) {
-		architecture = arch_data[cpu_arch->arch_num];
-	}
-
-	printf("cpu%d: vendor=%s, architecture=ARMv%s, part number=%x, "
+	printf("cpu%d: vendor=%s, architecture=%s, part number=%x, "
 	    "variant=%x, revision=%x\n",
-	    m->id, vendor, architecture, cpu_arch->prim_part_num,
-	    cpu_arch->variant_num, cpu_arch->rev_num);
+	    m->id, implementer(m->arch.imp_num),
+	    architecture_string(&m->arch), m->arch.prim_part_num,
+	    m->arch.variant_num, m->arch.rev_num);
 }
 
 /** @}

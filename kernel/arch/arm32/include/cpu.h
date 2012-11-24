@@ -42,7 +42,7 @@
 
 /** Struct representing ARM CPU identification. */
 typedef struct {
-	/** Implementator (vendor) number. */
+	/** Implementor (vendor) number. */
 	uint32_t imp_num;
 
 	/** Variant number. */
