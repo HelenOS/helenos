@@ -616,6 +616,15 @@ static size_t size_to_order(size_t bucket_cnt, size_t min_order)
  */
 void cht_destroy(cht_t *h)
 {
+	cht_destroy_unsafe(h);
+	
+	/* You must clear the table of items. Otherwise cht_destroy will leak. */
+	ASSERT(atomic_get(&h->item_cnt) == 0);
+}
+
+/** Destroys a successfully created CHT but does no error checking. */
+void cht_destroy_unsafe(cht_t *h)
+{
 	/* Wait for resize to complete. */
 	while (0 < atomic_get(&h->resize_reqs)) {
 		rcu_barrier();
@@ -626,9 +635,6 @@ void cht_destroy(cht_t *h)
 	
 	free(h->b);
 	h->b = NULL;
-	
-	/* You must clear the table of items. Otherwise cht_destroy will leak. */
-	ASSERT(atomic_get(&h->item_cnt) == 0);
 }
 
 /** Returns the first item equal to the search key or NULL if not found.

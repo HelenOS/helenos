@@ -164,10 +164,7 @@ int tsk_constructor(void *obj, unsigned int kmflags)
 
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);
-	
-	mutex_initialize(&task->futex_list_lock, MUTEX_PASSIVE);
-	list_initialize(&task->futex_list);
-	
+		
 #ifdef CONFIG_UDEBUG
 	/* Init kbox stuff */
 	task->kb.thread = NULL;

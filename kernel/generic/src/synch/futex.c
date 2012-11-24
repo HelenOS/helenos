@@ -157,10 +157,13 @@ void futex_task_init(struct task *task)
 	task->futexes = malloc(sizeof(struct futex_cache), 0);
 	
 	cht_create(&task->futexes->ht, 0, 0, 0, true, &task_futex_ht_ops);
+	
+	list_initialize(&task->futexes->list);
+	mutex_initialize(&task->futexes->list_lock, MUTEX_PASSIVE);
 }
 
 /** Destroys the futex structures for the dying task. */
-void futex_task_deinit(struct task *task)
+void futex_task_deinit(task_t *task)
 {
 	/* Interrupts are disabled so we must not block (cannot run cht_destroy). */
 	if (interrupts_disabled()) {
@@ -179,19 +182,34 @@ static void destroy_task_cache(work_t *work)
 	struct futex_cache *cache = 
 		member_to_inst(work, struct futex_cache, destroy_work);
 	
-	cht_destroy(&cache->ht);
+	/* 
+	 * Destroy the cache before manually freeing items of the cache in case
+	 * table resize is in progress.
+	 */
+	cht_destroy_unsafe(&cache->ht);
+	
+	/* Manually free futex_ptr cache items. */
+	list_foreach_safe(cache->list, cur_link, next_link) {
+		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, all_link);
+
+		list_remove(cur_link);
+		free(fut_ptr);
+	}
+	
 	free(cache);
 }
 
 /** Remove references from futexes known to the current task. */
 void futex_task_cleanup(void)
 {
-	/* All threads of this task have terminated. This is the last thread. */
-	mutex_lock(&TASK->futex_list_lock);
+	struct futex_cache *futexes = TASK->futexes;
 	
-	list_foreach_safe(TASK->futex_list, cur_link, next_link) {
-		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, cht_link);
-		
+	/* All threads of this task have terminated. This is the last thread. */
+	mutex_lock(&futexes->list_lock);
+	
+	list_foreach_safe(futexes->list, cur_link, next_link) {
+		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, all_link);
+
 		/*
 		 * The function is free to free the futex. All other threads of this
 		 * task have already terminated, so they have also definitely
@@ -201,16 +219,9 @@ void futex_task_cleanup(void)
 		 * of this task may have referenced the futex if it is to be freed.
 		 */
 		futex_release_ref_locked(fut_ptr->futex);
-		
-		/* 
-		 * No need to remove the futex_ptr from the CHT cache of this task
-		 * because futex_task_deinit() will destroy the CHT shortly.
-		 */
-		list_remove(cur_link);
-		free(fut_ptr);
 	}
 	
-	mutex_unlock(&TASK->futex_list_lock);
+	mutex_unlock(&futexes->list_lock);
 }
 
 
@@ -354,9 +365,9 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	
 	/* Cache the mapping from the virtual address to the futex for this task. */
 	if (cht_insert_unique(&TASK->futexes->ht, &fut_ptr->cht_link, &dup_link)) {
-		mutex_lock(&TASK->futex_list_lock);
-		list_append(&fut_ptr->all_link, &TASK->futex_list);
-		mutex_unlock(&TASK->futex_list_lock);
+		mutex_lock(&TASK->futexes->list_lock);
+		list_append(&fut_ptr->all_link, &TASK->futexes->list);
+		mutex_unlock(&TASK->futexes->list_lock);
 	} else {
 		/* Another thread of this task beat us to it. Use that mapping instead.*/
 		free(fut_ptr);
