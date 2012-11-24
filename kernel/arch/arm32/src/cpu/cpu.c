@@ -171,7 +171,7 @@ void fpu_context_save(fpu_context_t *ctx)
 		"vmrs r1, fpscr\n"
 //		"vmrs r2, fpexc\n"
 		"stm %0, {r1, r2}\n"
-		"vstm %0, {d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15}\n"
+		"vstm %0, {d0-d15}\n"
 		::"r" (ctx): "r1","r2","memory"
 	);
 }
@@ -183,7 +183,7 @@ void fpu_context_restore(fpu_context_t *ctx)
 		"ldm %0, {r1, r2}\n"
 		"vmsr fpscr, r1\n"
 //		"vmsr fpexc, r2\n"
-		"vldm %0, {d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15}\n"
+		"vldm %0, {d0-d15}\n"
 		::"r" (ctx): "r1","r2"
 	);
 }
