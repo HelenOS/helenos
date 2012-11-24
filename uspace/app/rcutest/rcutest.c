@@ -43,11 +43,12 @@
 #include <assert.h>
 #include <async.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <compiler/barrier.h>
+#include <futex.h>
 
 #include <rcu.h>
 
-#include "fibril_synch.h"
 
 
 #define USECS_PER_SEC (1000 * 1000)
@@ -85,6 +86,8 @@ static bool wait_for_one_reader(struct test_info*);
 static bool basic_sanity_check(struct test_info*);
 static bool dont_wait_for_new_reader(struct test_info*);
 static bool wait_for_exiting_reader(struct test_info*);
+static bool seq_test(struct test_info*);
+
 
 static test_desc_t test_desc[] = {
 	{
@@ -139,6 +142,13 @@ static test_desc_t test_desc[] = {
 	},
 	{
 		.aggregate = false,
+		.type = T_STRESS,
+		.func = seq_test,
+		.name = "seq",
+		.desc = "Checks lock/unlock/sync w/ global time sequence.",
+	},
+	{
+		.aggregate = false,
 		.type = T_OTHER,
 		.func = NULL,
 		.name = "(null)",
@@ -149,6 +159,12 @@ static test_desc_t test_desc[] = {
 static const size_t test_desc_cnt = sizeof(test_desc) / sizeof(test_desc[0]);
 
 /*--------------------------------------------------------------------*/
+
+static size_t next_rand(size_t seed)
+{
+	return (seed * 1103515245 + 12345) & ((1U << 31) - 1);
+}
+
 
 typedef int (*fibril_func_t)(void *);
 
@@ -599,6 +615,147 @@ static bool wait_for_exiting_reader(test_info_t *test_info)
 
 /*--------------------------------------------------------------------*/
 
+typedef struct {
+	atomic_t time;
+	atomic_t max_start_time_of_done_sync;
+	
+	size_t total_workers;
+	size_t done_reader_cnt;
+	size_t done_updater_cnt;
+	fibril_mutex_t done_cnt_mtx;
+	fibril_condvar_t done_cnt_changed;
+
+	size_t read_iters;
+	size_t upd_iters;
+	
+	atomic_t seed;
+	int failed;
+} seq_test_info_t;
+
+
+static void signal_seq_fibril_done(seq_test_info_t *arg, size_t *cnt)
+{
+	fibril_mutex_lock(&arg->done_cnt_mtx);
+	++*cnt;
+	
+	if (arg->total_workers == arg->done_reader_cnt + arg->done_updater_cnt) {
+		fibril_condvar_signal(&arg->done_cnt_changed);
+	}
+	
+	fibril_mutex_unlock(&arg->done_cnt_mtx);
+}
+
+static int seq_reader(seq_test_info_t *arg)
+{
+	rcu_register_fibril();
+	
+	size_t seed = (size_t) atomic_preinc(&arg->seed);
+	bool first = (seed == 1);
+	
+	for (size_t k = 0; k < arg->read_iters; ++k) {
+		/* Print progress if the first reader fibril. */
+		if (first && 0 == k % (arg->read_iters/100 + 1)) {
+			printf(".");
+		}
+		
+		rcu_read_lock();
+		atomic_count_t start_time = atomic_preinc(&arg->time);
+		
+		/* Do some work. */
+		seed = next_rand(seed);
+		size_t idle_iters = seed % 8;
+		
+		for (size_t i = 0; i < idle_iters; ++i) {
+			fibril_yield();
+		}
+		
+		/* 
+		 * Check if the most recently started rcu_sync of the already
+		 * finished rcu_syncs did not happen to start after this reader
+		 * and, therefore, should have waited for this reader to exit
+		 * (but did not - since it already announced it completed).
+		 */
+		if (start_time <= atomic_get(&arg->max_start_time_of_done_sync)) {
+			arg->failed = 1;
+		}
+		
+		rcu_read_unlock();
+	}
+	
+	rcu_deregister_fibril();
+
+	signal_seq_fibril_done(arg, &arg->done_reader_cnt);
+	return 0;
+}
+
+static int seq_updater(seq_test_info_t *arg)
+{
+	rcu_register_fibril();
+	
+	for (size_t k = 0; k < arg->upd_iters; ++k) {
+		atomic_count_t start_time = atomic_get(&arg->time);
+		rcu_synchronize();
+		
+		/* This is prone to a race but if it happens it errs to the safe side.*/
+		if (atomic_get(&arg->max_start_time_of_done_sync) < start_time) {
+			atomic_set(&arg->max_start_time_of_done_sync, start_time);
+		}
+	}
+	
+	rcu_deregister_fibril();
+	
+	signal_seq_fibril_done(arg, &arg->done_updater_cnt);
+	return 0;
+}
+
+static bool seq_test(test_info_t *test_info)
+{
+	size_t reader_cnt = test_info->thread_cnt; 
+	size_t updater_cnt = test_info->thread_cnt; 
+		
+	seq_test_info_t info = {
+		.time = {0},
+		.max_start_time_of_done_sync = {0},
+		.read_iters = 10 * 1000,
+		.upd_iters = 5 * 1000,
+		.total_workers = updater_cnt + reader_cnt,
+		.done_reader_cnt = 0,
+		.done_updater_cnt = 0,
+		.done_cnt_mtx = FIBRIL_MUTEX_INITIALIZER(info.done_cnt_mtx),
+		.done_cnt_changed = FIBRIL_CONDVAR_INITIALIZER(info.done_cnt_changed),
+		.seed = {0},
+		.failed = 0,
+	};
+	
+	/* Create and start worker fibrils. */
+	for (size_t k = 0; k + k < reader_cnt + updater_cnt; ++k) {
+		bool ok = create_fibril((fibril_func_t) seq_reader, &info);
+		ok = ok && create_fibril((fibril_func_t) seq_updater, &info);
+		
+		if (!ok) {
+			/* Let the already created fibrils corrupt the stack. */
+			return false;
+		}
+	}
+	
+	/* Wait for all worker fibrils to complete their work. */
+	fibril_mutex_lock(&info.done_cnt_mtx);
+	
+	while (info.total_workers != info.done_reader_cnt + info.done_updater_cnt) {
+		fibril_condvar_wait(&info.done_cnt_changed, &info.done_cnt_mtx);
+	}
+	
+	fibril_mutex_unlock(&info.done_cnt_mtx);
+	
+	if (info.failed) {
+		printf("Error: rcu_sync() did not wait for a preexisting reader.");
+	}
+	
+	return 0 == info.failed;
+}
+
+/*--------------------------------------------------------------------*/
+
 static FIBRIL_MUTEX_INITIALIZE(blocking_mtx);
 
 static void dummy_fibril(void *arg)
@@ -711,6 +868,8 @@ static bool parse_cmd_line(int argc, char **argv, test_info_t *info)
 			info->thread_cnt = 1;
 			printf("Err: Invalid number of threads '%s'; using 1.\n", argv[2]);
 		} 
+	} else {
+		info->thread_cnt = 1;
 	}
 	
 	return true;
