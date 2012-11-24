@@ -42,6 +42,13 @@ typedef struct {
 } desktop_point_t;
 typedef desktop_point_t desktop_vector_t;
 
+typedef struct {
+	desktop_coord_t x;
+	desktop_coord_t y;
+	desktop_coord_t w;
+	desktop_coord_t h;
+} desktop_rect_t;
+
 /* TODO remove? */
 typedef struct {
 	double x;
