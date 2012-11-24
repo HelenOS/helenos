@@ -47,10 +47,14 @@
 
 #include <rcu.h>
 
+#include "fibril_synch.h"
+
 
 #define USECS_PER_SEC (1000 * 1000)
 #define USECS_PER_MS  1000
 
+/* fwd decl. */
+struct test_info;
 
 typedef struct test_desc {
 	/* Aggregate test that runs other tests already in the table test_desc. */
@@ -60,20 +64,27 @@ typedef struct test_desc {
 		T_SANITY,
 		T_STRESS
 	} type;
-	bool (*func)(void);
+	bool (*func)(struct test_info*);
 	const char *name;
 	const char *desc;
 } test_desc_t;
 
 
-static bool run_all_tests(void);
-static bool run_sanity_tests(void);
-static bool run_stress_tests(void);
+typedef struct test_info {
+	size_t thread_cnt;
+	test_desc_t *desc;
+} test_info_t;
 
-static bool wait_for_one_reader(void);
-static bool basic_sanity_check(void);
-static bool dont_wait_for_new_reader(void);
-static bool wait_for_exiting_reader(void);
+
+
+static bool run_all_tests(struct test_info*);
+static bool run_sanity_tests(struct test_info*);
+static bool run_stress_tests(struct test_info*);
+
+static bool wait_for_one_reader(struct test_info*);
+static bool basic_sanity_check(struct test_info*);
+static bool dont_wait_for_new_reader(struct test_info*);
+static bool wait_for_exiting_reader(struct test_info*);
 
 static test_desc_t test_desc[] = {
 	{
@@ -156,7 +167,7 @@ static bool create_fibril(int (*func)(void*), void *arg)
 
 /*--------------------------------------------------------------------*/
 
-static bool run_tests(bool (*include_filter)(test_desc_t *)) 
+static bool run_tests(test_info_t *info, bool (*include_filter)(test_desc_t *)) 
 {
 	size_t failed_cnt = 0;
 	size_t ok_cnt = 0;
@@ -166,7 +177,7 @@ static bool run_tests(bool (*include_filter)(test_desc_t *))
 		
 		if (t->func && !t->aggregate && include_filter(t)) {
 			printf("Running \'%s\'...\n", t->name);
-			bool ok = test_desc[i].func();
+			bool ok = test_desc[i].func(info);
 			
 			if (ok) {
 				++ok_cnt;
@@ -197,10 +208,10 @@ static bool all_tests_include_filter(test_desc_t *desc)
 }
 
 /* Runs all available tests tests one-by-one. */
-static bool run_all_tests(void)
+static bool run_all_tests(test_info_t *test_info)
 {
 	printf("Running all tests...\n");
-	return run_tests(all_tests_include_filter);
+	return run_tests(test_info, all_tests_include_filter);
 }
 
 /*--------------------------------------------------------------------*/
@@ -211,10 +222,10 @@ static bool stress_tests_include_filter(test_desc_t *desc)
 }
 
 /* Runs all available stress tests one-by-one. */
-static bool run_stress_tests(void)
+static bool run_stress_tests(test_info_t *test_info)
 {
 	printf("Running stress tests...\n");
-	return run_tests(stress_tests_include_filter);
+	return run_tests(test_info, stress_tests_include_filter);
 }
 
 /*--------------------------------------------------------------------*/
@@ -225,16 +236,16 @@ static bool sanity_tests_include_filter(test_desc_t *desc)
 }
 
 /* Runs all available sanity tests one-by-one. */
-static bool run_sanity_tests(void)
+static bool run_sanity_tests(test_info_t *test_info)
 {
 	printf("Running sanity tests...\n");
-	return run_tests(sanity_tests_include_filter);
+	return run_tests(test_info, sanity_tests_include_filter);
 }
 
 /*--------------------------------------------------------------------*/
 
 /* Locks/unlocks rcu and synchronizes without contention in a single fibril. */
-static bool basic_sanity_check(void)
+static bool basic_sanity_check(test_info_t *test_info)
 {
 	rcu_read_lock();
 	/* nop */
@@ -308,7 +319,7 @@ static int sleeping_reader(one_reader_info_t *arg)
 	return 0;
 }
 
-static bool wait_for_one_reader(void)
+static bool wait_for_one_reader(test_info_t *test_info)
 {
 	one_reader_info_t info = { 0 };
 	
@@ -445,7 +456,7 @@ static int new_reader(two_reader_info_t *arg)
 	return 0;
 }
 
-static bool dont_wait_for_new_reader(void)
+static bool dont_wait_for_new_reader(test_info_t *test_info)
 {
 	two_reader_info_t info = { 0 };
 	
@@ -552,7 +563,7 @@ static int exiting_locked_reader(exit_reader_info_t *arg)
 }
 
 
-static bool wait_for_exiting_reader(void)
+static bool wait_for_exiting_reader(test_info_t *test_info)
 {
 	exit_reader_info_t info = { 0 };
 	
@@ -587,6 +598,38 @@ static bool wait_for_exiting_reader(void)
 
 
 /*--------------------------------------------------------------------*/
+
+static FIBRIL_MUTEX_INITIALIZE(blocking_mtx);
+
+static void dummy_fibril(void *arg)
+{
+	/* Block on an already locked mutex - enters the fibril manager. */
+	fibril_mutex_lock(&blocking_mtx);
+	assert(false);
+}
+
+static bool create_threads(size_t cnt)
+{
+	/* Sanity check. */
+	assert(cnt < 1024);
+	
+	/* Keep this mutex locked so that dummy fibrils never exit. */
+	bool success = fibril_mutex_trylock(&blocking_mtx);
+	assert(success);
+	
+	for (size_t k = 0; k < cnt; ++k) {
+		thread_id_t tid;
+		
+		int ret = thread_create(dummy_fibril, NULL, "urcu-test-worker", &tid);
+		if (EOK != ret) {
+			printf("Failed to create thread '%zu' (error: %d)\n", k + 1, ret);
+			return false;
+		}
+	}
+	
+	return true;
+}
+
 /*--------------------------------------------------------------------*/
 static test_desc_t *find_test(const char *name)
 {
@@ -603,7 +646,6 @@ static test_desc_t *find_test(const char *name)
 	
 	if (EOK == str_uint32_t(name, NULL, 0, true, &test_num)) {
 		if (test_num < test_desc_cnt && test_desc[test_num].func) {
-			printf("[%u]\n", test_num);
 			return &test_desc[test_num];
 		}
 	}
@@ -635,7 +677,7 @@ static void list_tests(void)
 
 static void print_usage(void)
 {
-	printf("Usage: rcutest [test_name|test_number]\n");
+	printf("Usage: rcutest [test_name|test_number] {number_of_threads}\n");
 	list_tests();
 	
 	printf("\nExample usage:\n");
@@ -644,33 +686,61 @@ static void print_usage(void)
 }
 
 
+static bool parse_cmd_line(int argc, char **argv, test_info_t *info)
+{
+	if (argc != 2 && argc != 3) {
+		print_usage();
+		return false;
+	}
+	
+	info->desc = find_test(argv[1]);
+
+	if (!info->desc) {
+		printf("Non-existent test '%s'.\n", argv[1]);
+		list_tests();
+		return false;
+	}
+	
+	if (argc == 3) {
+		uint32_t thread_cnt = 0;
+		int ret = str_uint32_t(argv[2], NULL, 0, true, &thread_cnt);
+		
+		if (ret == EOK && 1 <= thread_cnt && thread_cnt <= 64) {
+			info->thread_cnt = thread_cnt;
+		} else {
+			info->thread_cnt = 1;
+			printf("Err: Invalid number of threads '%s'; using 1.\n", argv[2]);
+		} 
+	}
+	
+	return true;
+}
+
 int main(int argc, char **argv)
 {
 	rcu_register_fibril();
 	
-	if (argc != 2) {
-		print_usage();
-		
-		rcu_deregister_fibril();
-		return 2;
-	}
+	test_info_t info;
 	
-	test_desc_t *t = find_test(argv[1]);
+	bool ok = parse_cmd_line(argc, argv, &info);
+	ok = ok && create_threads(info.thread_cnt - 1);
 	
-	if (t) {
-		printf("Running '%s'...\n", t->name);
-		bool ok = t->func();
+	if (ok) {
+		assert(1 <= info.thread_cnt);
+		test_desc_t *t = info.desc;
 		
+		printf("Running '%s' (in %zu threads)...\n", t->name, info.thread_cnt);
+		ok = t->func(&info);
+
 		printf("%s: '%s'\n", ok ? "Passed" : "FAILED", t->name);
-		
+
 		rcu_deregister_fibril();
+		
+		/* Let the kernel clean up the created background threads. */
 		return ok ? 0 : 1;
 	} else {
-		printf("Non-existent test name.\n");
-		list_tests();
-		
 		rcu_deregister_fibril();
-		return 3;
+		return 2;
 	}
 }
 
