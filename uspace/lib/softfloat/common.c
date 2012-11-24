@@ -306,18 +306,26 @@ void round_float32(int32_t *exp, uint32_t *fraction)
 
 /**
  * Round and normalize number expressed by exponent and fraction with
- * first bit (equal to hidden bit) at 62nd bit.
+ * first bit (equal to hidden bit) at bit 62.
  *
  * @param exp Exponent part.
- * @param fraction Fraction with hidden bit shifted to 62nd bit.
+ * @param fraction Fraction with hidden bit shifted to bit 62.
  */
 void round_float64(int32_t *exp, uint64_t *fraction)
 {
-	/* rounding - if first bit after fraction is set then round up */
+	/*
+	 * Rounding - if first bit after fraction is set then round up.
+	 */
+
+	/*
+	 * Add 1 to the least significant bit of the fraction respecting the
+	 * current shift to bit 62 and see if there will be a carry to bit 63.
+	 */
 	(*fraction) += (0x1 << (64 - FLOAT64_FRACTION_SIZE - 3));
 	
+	/* See if there was a carry to bit 63. */
 	if ((*fraction) & 
-	    (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 3))) {
+	    (FLOAT64_HIDDEN_BIT_MASK << (64 - FLOAT64_FRACTION_SIZE - 1))) {
 		/* rounding overflow */
 		++(*exp);
 		(*fraction) >>= 1;
