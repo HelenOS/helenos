@@ -44,7 +44,6 @@
 #include <sysinfo/sysinfo.h>
 #include <arch/bios/bios.h>
 #include <arch/boot/boot.h>
-#include <arch/debugger.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
 #include <genarch/acpi/acpi.h>
@@ -117,8 +116,6 @@ void arch_post_mm_init(void)
 		}
 #endif
 		
-		/* Enable debugger */
-		debugger_init();
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
