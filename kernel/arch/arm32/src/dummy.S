@@ -31,11 +31,6 @@
 .global calibrate_delay_loop
 .global asm_delay_loop
 
-.global fpu_context_restore
-.global fpu_context_save
-.global fpu_enable
-.global fpu_init
-
 .global sys_tls_set
 .global dummy
 
@@ -45,18 +40,6 @@ calibrate_delay_loop:
 asm_delay_loop:
 	mov	pc, lr
 
-fpu_context_restore:
-	mov	pc, lr
-    
-fpu_context_save:
-	mov	pc, lr
-    
-fpu_enable:
-	mov	pc, lr
-
-fpu_init:
-	mov	pc, lr
-    
 # not used on ARM
 sys_tls_set:
 

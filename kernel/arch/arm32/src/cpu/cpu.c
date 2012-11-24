@@ -37,6 +37,7 @@
 #include <cpu.h>
 #include <arch.h>
 #include <print.h>
+#include <fpu_context.h>
 
 /** Number of indexes left out in the #imp_data array */
 #define IMP_DATA_START_OFFSET 0x40
@@ -135,6 +136,56 @@ void cpu_arch_init(void)
 		:: [control_reg] "r" (control_reg)
 	);
 #endif
+}
+
+void fpu_init(void)
+{
+	//TODO: Identify FPU unit
+	//and set correct functions to save/restore ctx
+}
+
+void fpu_enable(void)
+{
+	/* Enable FPU instructions */
+	asm volatile (
+		"ldr r1, =0x40000000\n"
+		"vmsr fpexc, r1\n"
+		::: "r1"
+	);
+}
+
+void fpu_disable(void)
+{
+	/* Disable FPU instructions */
+	asm volatile (
+		"ldr r1, =0x00000000\n"
+		"vmsr fpexc, r1\n"
+		::: "r1"
+	);
+}
+
+void fpu_context_save(fpu_context_t *ctx)
+{
+	// TODO check and complete. What about fpexc?
+	asm volatile (
+		"vmrs r1, fpscr\n"
+//		"vmrs r2, fpexc\n"
+		"stm %0, {r1, r2}\n"
+		"vstm %0, {d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15}\n"
+		::"r" (ctx): "r1","r2","memory"
+	);
+}
+
+void fpu_context_restore(fpu_context_t *ctx)
+{
+	// TODO check and complete. What about fpexc?
+	asm volatile (
+		"ldm %0, {r1, r2}\n"
+		"vmsr fpscr, r1\n"
+//		"vmsr fpexc, r2\n"
+		"vldm %0, {d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15}\n"
+		::"r" (ctx): "r1","r2"
+	);
 }
 
 /** Retrieves processor identification and stores it to #CPU.arch */

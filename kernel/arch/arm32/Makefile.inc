@@ -34,6 +34,11 @@ ATSIGN = %
 
 GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 
+ifeq ($(CONFIG_FPU),y)
+# This is necessary to allow vmsr insn and fpexc manipulation
+GCC_CFLAGS += -mfloat-abi=hard 
+endif
+
 BITS = 32
 ENDIANESS = LE
 

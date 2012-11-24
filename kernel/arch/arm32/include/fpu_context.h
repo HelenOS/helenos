@@ -40,9 +40,15 @@
 
 #include <typedefs.h>
 
-#define FPU_CONTEXT_ALIGN    0
+#define FPU_CONTEXT_ALIGN    8
 
+/* ARM Architecture reference manual, p B-1529.
+ * We don't enable EX bit so max 32 64bit regs are stored (+2 control regs)
+ */
 typedef struct {
+	uint32_t fpuscr;
+	uint32_t fpuexc;
+	uint32_t s[64];
 } fpu_context_t;
 
 #endif
