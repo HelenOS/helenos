@@ -65,7 +65,7 @@ typedef struct window {
  * Allocate all resources for new window and register it in the compositor.
  * If the window is declared as main, its closure causes termination of the
  * whole application. Note that opened window does not have any surface yet. */
-extern window_t *window_open(char *, bool, bool, const char *);
+extern window_t *window_open(char *, bool, bool, const char *, sysarg_t, sysarg_t);
 
 /**
  * Post resize event into event loop. Window negotiates new surface with

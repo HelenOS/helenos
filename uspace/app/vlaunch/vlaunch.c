@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	}
 	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], true, true, "vlaunch");
+	window_t *main_window = window_open(argv[1], true, true, "vlaunch", 0, 0);
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 1;

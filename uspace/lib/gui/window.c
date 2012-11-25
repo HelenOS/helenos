@@ -533,7 +533,8 @@ static int fetch_input(void *arg)
 	return 0;
 }
 
-window_t *window_open(char *winreg, bool is_main, bool is_decorated, const char *caption)
+window_t *window_open(char *winreg, bool is_main, bool is_decorated, 
+    const char *caption, sysarg_t x_offset, sysarg_t y_offset)
 {
 	int rc;
 
@@ -577,7 +578,7 @@ window_t *window_open(char *winreg, bool is_main, bool is_decorated, const char 
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	
-	rc = win_register(reg_sess, &in_dsid, &out_dsid);
+	rc = win_register(reg_sess, &in_dsid, &out_dsid, x_offset, y_offset);
 	async_hangup(reg_sess);
 	if (rc != EOK) {
 		free(win);

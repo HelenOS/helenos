@@ -206,7 +206,7 @@ static void pointer_destroy(pointer_t *p)
 	}
 }
 
-static window_t *window_create()
+static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 {
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win) {
@@ -216,9 +216,10 @@ static window_t *window_create()
 	link_initialize(&win->link);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
-	transform_translate(&win->transform, coord_origin, coord_origin);
-	win->dx = coord_origin;
-	win->dy = coord_origin;
+	transform_translate(&win->transform, 
+	    coord_origin + x_offset, coord_origin + y_offset);
+	win->dx = coord_origin + x_offset;
+	win->dy = coord_origin + y_offset;
 	win->fx = 1;
 	win->fy = 1;
 	win->angle = 0;
@@ -743,7 +744,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		if (IPC_GET_IMETHOD(call) == WINDOW_REGISTER) {
 			fibril_mutex_lock(&window_list_mtx);
 
-			window_t *win = window_create();
+			window_t *win = window_create(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			if (!win) {
 				async_answer_2(callid, ENOMEM, 0, 0);
 				return;
@@ -1920,7 +1921,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	} else if (compositor_test) {
 		fibril_mutex_lock(&window_list_mtx);
 
-		window_t *red_win = window_create();
+		window_t *red_win = window_create(0, 0);
 		red_win->surface = surface_create(250, 150, NULL, 0);
 		pixel_t red_pix = PIXEL(255, 240, 0, 0);
 		for (sysarg_t y = 0; y <  150; ++y) {
@@ -1930,7 +1931,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		}
 		list_prepend(&red_win->link, &window_list);
 
-		window_t *blue_win = window_create();
+		window_t *blue_win = window_create(0, 0);
 		blue_win->surface = surface_create(200, 100, NULL, 0);
 		pixel_t blue_pix = PIXEL(255, 0, 0, 240);
 		for (sysarg_t y = 0; y <  100; ++y) {
@@ -1940,11 +1941,11 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		}
 		list_prepend(&blue_win->link, &window_list);
 
-		window_t *helenos_win = window_create();
+		window_t *helenos_win = window_create(0, 0);
 		helenos_win->surface = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
 		list_prepend(&helenos_win->link, &window_list);
 
-		window_t *nameic_win = window_create();
+		window_t *nameic_win = window_create(0, 0);
 		nameic_win->surface = decode_tga((void *) nameic_tga, nameic_tga_size, 0);
 		list_prepend(&nameic_win->link, &window_list);
 
