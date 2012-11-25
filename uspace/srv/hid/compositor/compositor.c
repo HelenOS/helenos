@@ -1448,7 +1448,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		pointer->pressed = true;
 
 		/* Bring the window to the foreground. */
-		if ((win != top) && within_client && (bnum == 1)) {
+		if ((win != top) && within_client) {
 			list_remove(&win->link);
 			list_prepend(&win->link, &window_list);
 			comp_coord_bounding_rect(0, 0, width, height, win->transform,
