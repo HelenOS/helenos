@@ -572,7 +572,7 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 	list_foreach(pointer_list, link) {
 		pointer_t *pointer = list_get_instance(link, pointer_t, link);
 		if (pointer->id == pos_id) {
-			pointer->grab_flags = grab_flags;
+			pointer->grab_flags = pointer->pressed ? grab_flags : GF_EMPTY;
 			// TODO change pointer->state according to grab_flags
 			break;
 		}
@@ -645,12 +645,50 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 	async_answer_0(iid, EOK);
 }
 
+static void comp_post_event_win(window_event_t *event, window_t *target)
+{
+	fibril_mutex_lock(&window_list_mtx);
+	window_t *window = NULL;
+	list_foreach(window_list, link) {
+		window = list_get_instance(link, window_t, link);
+		if (window == target) {
+			prodcons_produce(&window->queue, &event->link);
+		}
+	}
+	if (!window) {
+		free(event);
+	}
+	fibril_mutex_unlock(&window_list_mtx);
+}
+
+static void comp_post_event_top(window_event_t *event)
+{
+	fibril_mutex_lock(&window_list_mtx);
+	window_t *win = (window_t *) list_first(&window_list);
+	if (win) {
+		prodcons_produce(&win->queue, &event->link);
+	} else {
+		free(event);
+	}
+	fibril_mutex_unlock(&window_list_mtx);
+}
+
 static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Stop managing the window. */
 	fibril_mutex_lock(&window_list_mtx);
 	list_remove(&win->link);
+	window_t *win_focus = (window_t *) list_first(&window_list);
+	window_event_t *event_focus = (window_event_t *) malloc(sizeof(window_event_t));
+	if (event_focus) {
+		link_initialize(&event_focus->link);
+		event_focus->type = ET_WINDOW_FOCUS;
+	}
 	fibril_mutex_unlock(&window_list_mtx);
+
+	if (event_focus && win_focus) {
+		comp_post_event_win(event_focus, win_focus);
+	}
 
 	/* Calculate damage. */
 	sysarg_t x = 0;
@@ -734,10 +772,22 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				return;
 			}
 
+			window_t *win_unfocus = (window_t *) list_first(&window_list);
 			list_prepend(&win->link, &window_list);
+
+			window_event_t *event_unfocus = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_unfocus) {
+				link_initialize(&event_unfocus->link);
+				event_unfocus->type = ET_WINDOW_UNFOCUS;
+			}
 			
 			async_answer_2(callid, EOK, win->in_dsid, win->out_dsid);
 			fibril_mutex_unlock(&window_list_mtx);
+			
+			if (event_unfocus && win_unfocus) {
+				comp_post_event_win(event_unfocus, win_unfocus);
+			}
+
 			return;
 		} else {
 			async_answer_0(callid, EINVAL);
@@ -1057,18 +1107,6 @@ static viewport_t *viewport_create(const char *vsl_name)
 	return vp;
 }
 
-static void comp_post_event(window_event_t *event)
-{
-	fibril_mutex_lock(&window_list_mtx);
-	window_t *win = (window_t *) list_first(&window_list);
-	if (win) {
-		prodcons_produce(&win->queue, &event->link);
-	} else {
-		free(event);
-	}
-	fibril_mutex_unlock(&window_list_mtx);
-}
-
 static void comp_recalc_transform(window_t *win)
 {
 	transform_t translate;
@@ -1101,6 +1139,7 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
     sysarg_t *dmg_x, sysarg_t *dmg_y, sysarg_t *dmg_width, sysarg_t *dmg_height)
 {
 	/* window_list_mtx locked by caller */
+	/* pointer_list_mtx locked by caller */
 
 	int dx = pointer->accum.x;
 	int dy = pointer->accum.y;
@@ -1180,6 +1219,9 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 static void comp_ghost_animate(pointer_t *pointer,
     desktop_rect_t *rect1, desktop_rect_t *rect2, desktop_rect_t *rect3, desktop_rect_t *rect4)
 {
+	/* window_list_mtx locked by caller */
+	/* pointer_list_mtx locked by caller */
+
 	int dx = pointer->accum_ghost.x;
 	int dy = pointer->accum_ghost.y;
 	pointer->accum_ghost.x = 0;
@@ -1335,6 +1377,7 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 	comp_damage(old_pos.x + dx, old_pos.y + dy, cursor_width, cursor_height);
 
 	fibril_mutex_lock(&window_list_mtx);
+	fibril_mutex_lock(&pointer_list_mtx);
 	window_t *top = (window_t *) list_first(&window_list);
 	if (top && top->surface) {
 
@@ -1346,10 +1389,10 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 			surface_get_resolution(top->surface, &width, &height);
 			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
 			    top->transform, width, height, &point_x, &point_y);
-			fibril_mutex_unlock(&window_list_mtx);
 
+			window_event_t *event = NULL;
 			if (within_client) {
-				window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
+				event = (window_event_t *) malloc(sizeof(window_event_t));
 				if (event) {
 					link_initialize(&event->link);
 					event->type = ET_POSITION_EVENT;
@@ -1358,9 +1401,16 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 					event->data.pos.btn_num = pointer->btn_num;
 					event->data.pos.hpos = point_x;
 					event->data.pos.vpos = point_y;
-					comp_post_event(event);
 				}
 			}
+
+			fibril_mutex_unlock(&pointer_list_mtx);
+			fibril_mutex_unlock(&window_list_mtx);
+
+			if (event) {
+				comp_post_event_top(event);
+			}
+
 		} else {
 			/* Pointer is grabbed by top-level window action. */
 			pointer->accum.x += dx;
@@ -1384,6 +1434,7 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 			sysarg_t x, y, width, height;
 			comp_window_animate(pointer, top, &x, &y, &width, &height);
 #endif
+			fibril_mutex_unlock(&pointer_list_mtx);
 			fibril_mutex_unlock(&window_list_mtx);
 #if ANIMATE_WINDOW_TRANSFORMS == 0
 			comp_damage(dmg_rect1.x, dmg_rect1.y, dmg_rect1.w, dmg_rect1.h);
@@ -1396,6 +1447,7 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 #endif
 		}
 	} else {
+		fibril_mutex_unlock(&pointer_list_mtx);
 		fibril_mutex_unlock(&window_list_mtx);
 	}
 
@@ -1407,6 +1459,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	pointer_t *pointer = input_pointer(input);
 
 	fibril_mutex_lock(&window_list_mtx);
+	fibril_mutex_lock(&pointer_list_mtx);
 	window_t *win = NULL;
 	sysarg_t point_x = 0;
 	sysarg_t point_y = 0;
@@ -1429,11 +1482,14 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	/* Check whether the window is top-level window. */
 	window_t *top = (window_t *) list_first(&window_list);
 	if (!win || !top) {
+		fibril_mutex_unlock(&pointer_list_mtx);
 		fibril_mutex_unlock(&window_list_mtx);
 		return EOK;
 	}
 
-	window_event_t *event = NULL;
+	window_event_t *event_top = NULL;
+	window_event_t *event_unfocus = NULL;
+	window_t *win_unfocus = NULL;
 	sysarg_t dmg_x, dmg_y;
 	sysarg_t dmg_width = 0;
 	sysarg_t dmg_height = 0;
@@ -1449,23 +1505,29 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 
 		/* Bring the window to the foreground. */
 		if ((win != top) && within_client) {
+			win_unfocus = (window_t *) list_first(&window_list);
 			list_remove(&win->link);
 			list_prepend(&win->link, &window_list);
+			event_unfocus = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_unfocus) {
+				link_initialize(&event_unfocus->link);
+				event_unfocus->type = ET_WINDOW_UNFOCUS;
+			}
 			comp_coord_bounding_rect(0, 0, width, height, win->transform,
 			    &dmg_x, &dmg_y, &dmg_width, &dmg_height);
 		}
 
 		/* Notify top-level window about mouse press. */
 		if (within_client) {
-			event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = ET_POSITION_EVENT;
-				event->data.pos.pos_id = pointer->id;
-				event->data.pos.type = POS_PRESS;
-				event->data.pos.btn_num = bnum;
-				event->data.pos.hpos = point_x;
-				event->data.pos.vpos = point_y;
+			event_top = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_top) {
+				link_initialize(&event_top->link);
+				event_top->type = ET_POSITION_EVENT;
+				event_top->data.pos.pos_id = pointer->id;
+				event_top->data.pos.type = POS_PRESS;
+				event_top->data.pos.btn_num = bnum;
+				event_top->data.pos.hpos = point_x;
+				event_top->data.pos.vpos = point_y;
 			}
 			pointer->grab_flags = GF_EMPTY;
 		}
@@ -1500,26 +1562,26 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 			comp_recalc_transform(top);
 
 			/* Commit proper resize action. */
-			event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = ET_WINDOW_RESIZE;
+			event_top = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_top) {
+				link_initialize(&event_top->link);
+				event_top->type = ET_WINDOW_RESIZE;
 
 				int dx = (int) (((double) width) * (scale_back_x - 1.0));
 				int dy = (int) (((double) height) * (scale_back_y - 1.0));
 
 				if (pointer->grab_flags & GF_RESIZE_X) {
-					event->data.rsz.width =
+					event_top->data.rsz.width =
 						((((int) width) + dx) >= 0) ? (width + dx) : 0;
 				} else {
-					event->data.rsz.width = width;
+					event_top->data.rsz.width = width;
 				}
 
 				if (pointer->grab_flags & GF_RESIZE_Y) {
-					event->data.rsz.height =
+					event_top->data.rsz.height =
 						((((int) height) + dy) >= 0) ? (height + dy) : 0;
 				} else {
-					event->data.rsz.height = height;
+					event_top->data.rsz.height = height;
 				}
 			}
 
@@ -1528,15 +1590,15 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (top == win)) {
 			
 			/* Notify top-level window about mouse release. */
-			event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = ET_POSITION_EVENT;
-				event->data.pos.pos_id = pointer->id;
-				event->data.pos.type = POS_RELEASE;
-				event->data.pos.btn_num = bnum;
-				event->data.pos.hpos = point_x;
-				event->data.pos.vpos = point_y;
+			event_top = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_top) {
+				link_initialize(&event_top->link);
+				event_top->type = ET_POSITION_EVENT;
+				event_top->data.pos.pos_id = pointer->id;
+				event_top->data.pos.type = POS_RELEASE;
+				event_top->data.pos.btn_num = bnum;
+				event_top->data.pos.hpos = point_x;
+				event_top->data.pos.vpos = point_y;
 			}
 			pointer->grab_flags = GF_EMPTY;
 			
@@ -1546,6 +1608,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 
 	}
 
+	fibril_mutex_unlock(&pointer_list_mtx);
 	fibril_mutex_unlock(&window_list_mtx);
 
 #if ANIMATE_WINDOW_TRANSFORMS == 0
@@ -1559,8 +1622,12 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		comp_damage(dmg_x, dmg_y, dmg_width, dmg_height);
 	}
 
-	if (event) {
-		comp_post_event(event);
+	if (event_unfocus && win_unfocus) {
+		comp_post_event_win(event_unfocus, win_unfocus);
+	}
+
+	if (event_top) {
+		comp_post_event_top(event_top);
 	}
 
 	return EOK;
@@ -1684,7 +1751,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			}
 
 			fibril_mutex_unlock(&window_list_mtx);
-			comp_post_event(event);
+			comp_post_event_top(event);
 		} else {
 			fibril_mutex_unlock(&window_list_mtx);
 		}
@@ -1726,7 +1793,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		link_initialize(&event->link);
 		event->type = ET_WINDOW_CLOSE;
 
-		comp_post_event(event);
+		comp_post_event_top(event);
 	} else if (win_switch) {
 		fibril_mutex_lock(&window_list_mtx);
 		if (!list_empty(&window_list)) {
@@ -1734,6 +1801,18 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			list_remove(&win1->link);
 			list_append(&win1->link, &window_list);
 			window_t *win2 = (window_t *) list_first(&window_list);
+
+			window_event_t *event1 = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event1) {
+				link_initialize(&event1->link);
+				event1->type = ET_WINDOW_UNFOCUS;
+			}
+
+			window_event_t *event2 = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event2) {
+				link_initialize(&event2->link);
+				event2->type = ET_WINDOW_FOCUS;
+			}
 
 			sysarg_t x1 = 0;
 			sysarg_t y1 = 0;
@@ -1762,6 +1841,15 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			    &x, &y, &width, &height);
 
 			fibril_mutex_unlock(&window_list_mtx);
+
+			if (event1 && win1) {
+				comp_post_event_win(event1, win1);
+			}
+
+			if (event2 && win2) {
+				comp_post_event_win(event2, win2);
+			}
+
 			comp_damage(x, y, width, height);
 		} else {
 			fibril_mutex_unlock(&window_list_mtx);
@@ -1874,7 +1962,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		event->data.kbd.mods = mods;
 		event->data.kbd.c = c;
 
-		comp_post_event(event);
+		comp_post_event_top(event);
 	}
 
 	return EOK;
@@ -1925,7 +2013,7 @@ static int input_connect(const char *svc)
 
 static void input_disconnect(void)
 {
-    	pointer_t *pointer = input->user;
+	pointer_t *pointer = input->user;
 	input_close(input);
 	pointer_destroy(pointer);
 }
