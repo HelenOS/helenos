@@ -46,7 +46,7 @@
  */
 typedef struct {
 	uint32_t fpexc;
-	uint32_t fpuscr;
+	uint32_t fpscr;
 	uint32_t s[64];
 } fpu_context_t;
 
