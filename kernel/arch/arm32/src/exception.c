@@ -166,12 +166,10 @@ static void irq_exception(unsigned int exc_no, istate_t *istate)
  */
 static void undef_insn_exception(unsigned int exc_no, istate_t *istate)
 {
-#ifdef CONFIG_FPU_LAZY
-	scheduler_fpu_lazy_request();
-#else
-	fault_if_from_uspace(istate, "Undefined instruction.");
-	panic_badtrap(istate, exc_no, "Undefined instruction.");
-#endif
+	if (!handle_if_fpu_exception()) {
+		fault_if_from_uspace(istate, "Undefined instruction.");
+		panic_badtrap(istate, exc_no, "Undefined instruction.");
+	}
 }
 
 /** Initializes exception handling.
