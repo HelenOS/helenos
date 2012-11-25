@@ -169,6 +169,13 @@ static void undef_insn_exception(unsigned int exc_no, istate_t *istate)
 	if (!handle_if_fpu_exception()) {
 		fault_if_from_uspace(istate, "Undefined instruction.");
 		panic_badtrap(istate, exc_no, "Undefined instruction.");
+	} else {
+		/*
+		 * Retry the failing instruction,
+		 * ARM Architecture Reference Manual says on p.B1-1169
+		 * that offset for undef instruction exception is 4
+		 */
+		istate->pc -= 4;
 	}
 }
 
