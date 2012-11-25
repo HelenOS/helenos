@@ -53,20 +53,20 @@ extern int dmamem_unmap_anonymous(void *);
 
 extern int pio_enable(void *, size_t, void **);
 
-typedef void (*trace_fnc)(volatile void *place, uint32_t val,
+typedef void (*trace_fnc)(const volatile void *place, uint32_t val,
     volatile void* base, size_t size, void *data, bool write);
 
 extern int pio_trace_enable(void *, size_t, trace_fnc, void *);
-extern void pio_trace_log(volatile void *, uint32_t val, bool write);
+extern void pio_trace_log(const volatile void *, uint32_t val, bool write);
 extern void pio_trace_disable(void *);
 
 extern void pio_write_8(ioport8_t *, uint8_t);
 extern void pio_write_16(ioport16_t *, uint16_t);
 extern void pio_write_32(ioport32_t *, uint32_t);
 
-extern uint8_t pio_read_8(ioport8_t *);
-extern uint16_t pio_read_16(ioport16_t *);
-extern uint32_t pio_read_32(ioport32_t *);
+extern uint8_t pio_read_8(const ioport8_t *);
+extern uint16_t pio_read_16(const ioport16_t *);
+extern uint32_t pio_read_32(const ioport32_t *);
 
 static inline uint8_t pio_change_8(
     ioport8_t *reg, uint8_t val, uint8_t mask, useconds_t delay)

@@ -34,195 +34,23 @@
 
 /** @file
  */
-#define _DDF_DATA_IMPLANT
 
-#define DEBUG_CM
+#define DEBUG_CM 0
 
-#include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
 #include <ops/hw_res.h>
 #include <stdio.h>
-#include <ddi.h>
 
-#include "uhh.h"
-#include "usbtll.h"
-#include "cm/core.h"
-#include "cm/clock_control.h"
-#include "cm/usbhost.h"
+#include "amdm37x.h"
 
 #define NAME  "rootamdm37x"
-
-typedef struct {
-	uhh_regs_t *uhh;
-	tll_regs_t *tll;
-	struct {
-		core_cm_regs_t *core;
-		clock_control_cm_regs_t *clocks;
-		usbhost_cm_regs_t *usbhost;
-	} cm;
-} amdm37x_t;
-
-#ifdef DEBUG_CM
-static void log(volatile void *place, uint32_t val, volatile void* base, size_t size, void *data, bool write)
-{
-	printf("PIO %s: %p(%p) %#"PRIx32"\n", write ? "WRITE" : "READ",
-	    (place - base) + data, place, val);
-}
-#endif
-
-static int amdm37x_hw_access_init(amdm37x_t *device)
-{
-	assert(device);
-	int ret = EOK;
-
-	ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
-	    (void**)&device->cm.usbhost);
-	if (ret != EOK)
-		return ret;
-
-	ret = pio_enable((void*)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
-	    (void**)&device->cm.core);
-	if (ret != EOK)
-		return ret;
-
-	ret = pio_enable((void*)CLOCK_CONTROL_CM_BASE_ADDRESS,
-		    CLOCK_CONTROL_CM_SIZE, (void**)&device->cm.clocks);
-	if (ret != EOK)
-		return ret;
-
-	ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
-	    AMDM37x_USBTLL_SIZE, (void**)&device->tll);
-	if (ret != EOK)
-		return ret;
-
-	ret = pio_enable((void*)AMDM37x_UHH_BASE_ADDRESS,
-	    AMDM37x_UHH_SIZE, (void**)&device->uhh);
-	if (ret != EOK)
-		return ret;
-
-#ifdef DEBUG_CM
-	pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
-	pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
-	pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
-	pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
-	pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
-#endif
-	return EOK;
-}
-
-static int usb_clocks(amdm37x_t *device, bool on)
-{
-	/* Set DPLL3 to automatic */
-	pio_change_32(&device->cm.clocks->autoidle_pll,
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC,
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK, 5);
-
-	/* Set DPLL4 to automatic */
-	pio_change_32(&device->cm.clocks->autoidle_pll,
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC,
-	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK, 5);
-
-	/* Set DPLL5 to automatic */
-	pio_change_32(&device->cm.clocks->autoidle2_pll,
-	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_AUTOMATIC,
-	    CLOCK_CONTROL_CM_AUTOIDLE2_PLL_AUTO_PERIPH2_DPLL_MASK, 5);
-
-
-#ifdef DEBUG_CM
-	printf("DPLL5 could be on: %"PRIx32" %"PRIx32".\n",
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
-#endif
-
-	if (on) {
-		/* Enable interface and function clock for USB TLL */
-		pio_set_32(&device->cm.core->fclken3,
-		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
-		pio_set_32(&device->cm.core->iclken3,
-		    CORE_CM_ICLKEN3_EN_USBTLL_FLAG, 5);
-
-		/* Enable interface and function clock for USB hosts */
-		pio_set_32(&device->cm.usbhost->fclken,
-		    USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG |
-		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
-		pio_set_32(&device->cm.usbhost->iclken,
-		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
-#ifdef DEBUG_CM
-	printf("DPLL5 (and everything else) should be on: %"PRIx32" %"PRIx32".\n",
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest_ckgen),
-	    pio_read_32((ioport32_t*)&device->cm.clocks->idlest2_ckgen));
-#endif
-	} else {
-		/* Disable interface and function clock for USB hosts */
-		pio_clear_32(&device->cm.usbhost->iclken,
-		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
-		pio_clear_32(&device->cm.usbhost->fclken,
-		    USBHOST_CM_FCLKEN_EN_USBHOST1_FLAG |
-		    USBHOST_CM_FCLKEN_EN_USBHOST2_FLAG, 5);
-
-		/* Disable interface and function clock for USB TLL */
-		pio_clear_32(&device->cm.core->iclken3,
-		    CORE_CM_ICLKEN3_EN_USBTLL_FLAG, 5);
-		pio_clear_32(&device->cm.core->fclken3,
-		    CORE_CM_FCLKEN3_EN_USBTLL_FLAG, 5);
-	}
-
-	return EOK;
-}
-
-/** Initialize USB TLL port connections.
- *
- * Different modes are on page 3312 of the Manual Figure 22-34.
- * Select mode than can operate in FS/LS.
- */
-static int usb_tll_init(amdm37x_t *device)
-{
-
-	/* Reset USB TLL */
-	pio_set_32(&device->tll->sysconfig, TLL_SYSCONFIG_SOFTRESET_FLAG, 5);
-	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
-	while (!(pio_read_32(&device->tll->sysstatus) & TLL_SYSSTATUS_RESET_DONE_FLAG));
-	ddf_msg(LVL_DEBUG, "USB TLL Reset done.");
-
-	/* Setup idle mode (smart idle) */
-	pio_change_32(&device->tll->sysconfig,
-	    TLL_SYSCONFIG_CLOCKACTIVITY_FLAG | TLL_SYSCONFIG_AUTOIDLE_FLAG |
-	    TLL_SYSCONFIG_SIDLE_MODE_SMART, TLL_SYSCONFIG_SIDLE_MODE_MASK, 5);
-
-	/* Smart idle for UHH */
-	pio_change_32(&device->uhh->sysconfig,
-	    UHH_SYSCONFIG_CLOCKACTIVITY_FLAG | UHH_SYSCONFIG_AUTOIDLE_FLAG |
-	    UHH_SYSCONFIG_SIDLE_MODE_SMART, UHH_SYSCONFIG_SIDLE_MODE_MASK, 5);
-
-	/* Set all ports to go through TLL(UTMI)
-	 * Direct connection can only work in HS mode */
-	pio_set_32(&device->uhh->hostconfig,
-	    UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG |
-	    UHH_HOSTCONFIG_P2_ULPI_BYPASS_FLAG |
-	    UHH_HOSTCONFIG_P3_ULPI_BYPASS_FLAG, 5);
-
-	/* What is this? */
-	pio_set_32(&device->tll->shared_conf, TLL_SHARED_CONF_FCLK_IS_ON_FLAG, 5);
-
-	for (unsigned i = 0; i < 3; ++i) {
-		/* Serial mode is the only one capable of FS/LS operation.
-		 * Select FS/LS mode, no idea what the difference is
-		 * one of bidirectional modes might be good choice
-		 * 2 = 3pin bidi phy. */
-		pio_change_32(&device->tll->channel_conf[i],
-		    TLL_CHANNEL_CONF_CHANMODE_UTMI_SERIAL_MODE |
-		    TLL_CHANNEL_CONF_FSLSMODE_3PIN_BIDI_PHY,
-		    TLL_CHANNEL_CONF_CHANMODE_MASK |
-		    TLL_CHANNEL_CONF_FSLSMODE_MASK, 5);
-	}
-	return EOK;
-}
 
 typedef struct {
 	hw_resource_list_t hw_resources;
 } rootamdm37x_fun_t;
 
+/* See amdm37x TRM page. 3316 for these values */
 #define OHCI_BASE_ADDRESS  0x48064400
 #define OHCI_SIZE  1024
 #define EHCI_BASE_ADDRESS  0x48064800
@@ -231,7 +59,6 @@ typedef struct {
 static hw_resource_t ohci_res[] = {
 	{
 		.type = MEM_RANGE,
-		/* See amdm37x TRM page. 3316 for these values */
 		.res.io_range = {
 			.address = OHCI_BASE_ADDRESS,
 			.size = OHCI_SIZE,
@@ -242,13 +69,6 @@ static hw_resource_t ohci_res[] = {
 		.type = INTERRUPT,
 		.res.interrupt = { .irq = 76 },
 	},
-};
-
-static const rootamdm37x_fun_t ohci = {
-	.hw_resources = {
-	    .resources = ohci_res,
-	    .count = sizeof(ohci_res)/sizeof(ohci_res[0]),
-	}
 };
 
 static hw_resource_t ehci_res[] = {
@@ -267,6 +87,13 @@ static hw_resource_t ehci_res[] = {
 	},
 };
 
+static const rootamdm37x_fun_t ohci = {
+	.hw_resources = {
+	    .resources = ohci_res,
+	    .count = sizeof(ohci_res)/sizeof(ohci_res[0]),
+	}
+};
+
 static const rootamdm37x_fun_t ehci = {
 	.hw_resources = {
 	    .resources = ehci_res,
@@ -282,12 +109,11 @@ static hw_res_ops_t fun_hw_res_ops = {
 	.enable_interrupt = &rootamdm37x_enable_interrupt,
 };
 
-static ddf_dev_ops_t rootamdm37x_fun_ops =
-{
+static ddf_dev_ops_t rootamdm37x_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
+static int rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
     const char *str_match_id, const rootamdm37x_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
@@ -297,26 +123,34 @@ static bool rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	if (fnode == NULL)
 		return ENOMEM;
 	
-	
 	/* Add match id */
-	if (ddf_fun_add_match_id(fnode, str_match_id, 100) != EOK) {
+	int ret = ddf_fun_add_match_id(fnode, str_match_id, 100);
+	if (ret != EOK) {
 		ddf_fun_destroy(fnode);
-		return false;
+		return ret;
 	}
 	
+	/* Alloc needed data */
+	rootamdm37x_fun_t *rf =
+	    ddf_fun_data_alloc(fnode, sizeof(rootamdm37x_fun_t));
+	if (!rf) {
+		ddf_fun_destroy(fnode);
+		return ENOMEM;
+	}
+	*rf = *fun;
+
 	/* Set provided operations to the device. */
-	ddf_fun_data_implant(fnode, (void*)fun);
 	ddf_fun_set_ops(fnode, &rootamdm37x_fun_ops);
 	
 	/* Register function. */
-	if (ddf_fun_bind(fnode) != EOK) {
+	ret = ddf_fun_bind(fnode);
+	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
-		// TODO This will try to free our data!
 		ddf_fun_destroy(fnode);
-		return false;
+		return ret;
 	}
 	
-	return true;
+	return EOK;
 }
 
 /** Add the root device.
@@ -333,30 +167,31 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 	amdm37x_t *device = ddf_dev_data_alloc(dev, sizeof(amdm37x_t));
 	if (!device)
 		return ENOMEM;
-	int ret = amdm37x_hw_access_init(device);
+	int ret = amdm37x_init(device, DEBUG_CM);
 	if (ret != EOK) {
 		ddf_msg(LVL_FATAL, "Failed to setup hw access!.\n");
 		return ret;
 	}
 
-	ret = usb_clocks(device, true);
-	if (ret != EOK) {
-		ddf_msg(LVL_FATAL, "Failed to enable USB HC clocks!.\n");
-		return ret;
-	}
+	/* Set dplls to ON and automatic */
+	amdm37x_setup_dpll_on_autoidle(device);
 
-	ret = usb_tll_init(device);
+	/* Enable function and interface clocks */
+	amdm37x_usb_clocks_set(device, true);
+
+	/* Init TLL */
+	ret = amdm37x_usb_tll_init(device);
 	if (ret != EOK) {
 		ddf_msg(LVL_FATAL, "Failed to init USB TLL!.\n");
-		usb_clocks(device, false);
+		amdm37x_usb_clocks_set(device, false);
 		return ret;
 	}
 
 	/* Register functions */
-	if (!rootamdm37x_add_fun(dev, "ohci", "usb/host=ohci", &ohci))
+	if (rootamdm37x_add_fun(dev, "ohci", "usb/host=ohci", &ohci) != EOK)
 		ddf_msg(LVL_ERROR, "Failed to add OHCI function for "
 		    "BeagleBoard-xM platform.");
-	if (!rootamdm37x_add_fun(dev, "ehci", "usb/host=ehci", &ehci))
+	if (rootamdm37x_add_fun(dev, "ehci", "usb/host=ehci", &ehci) != EOK)
 		ddf_msg(LVL_ERROR, "Failed to add EHCI function for "
 		    "BeagleBoard-xM platform.");
 
@@ -374,7 +209,7 @@ static driver_t rootamdm37x_driver = {
 	.driver_ops = &rootamdm37x_ops
 };
 
-static hw_resource_list_t *rootamdm37x_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t * rootamdm37x_get_resources(ddf_fun_t *fnode)
 {
 	rootamdm37x_fun_t *fun = ddf_fun_data_get(fnode);
 	assert(fun != NULL);
@@ -383,7 +218,7 @@ static hw_resource_list_t *rootamdm37x_get_resources(ddf_fun_t *fnode)
 
 static bool rootamdm37x_enable_interrupt(ddf_fun_t *fun)
 {
-	/* TODO */
+	//TODO: Implement
 	return false;
 }
 

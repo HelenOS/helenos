@@ -56,7 +56,7 @@ typedef struct {
 #define TLL_SYSCONFIG_SIDLE_MODE_SMART  (0x2 << 3)
 #define TLL_SYSCONFIG_CLOCKACTIVITY_FLAG  (1 << 8)
 
-	ioport32_t sysstatus;
+	const ioport32_t sysstatus;
 #define TLL_SYSSTATUS_RESET_DONE_FLAG  (1 << 0)
 
 	const ioport32_t irqstatus;

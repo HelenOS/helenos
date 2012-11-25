@@ -62,7 +62,7 @@ static inline void arch_pio_write_32(ioport32_t *port, uint32_t v)
 	memory_barrier();
 }
 
-static inline uint8_t arch_pio_read_8(ioport8_t *port)
+static inline uint8_t arch_pio_read_8(const ioport8_t *port)
 {
 	uint8_t rv;
 
@@ -72,7 +72,7 @@ static inline uint8_t arch_pio_read_8(ioport8_t *port)
 	return rv;
 }
 
-static inline uint16_t arch_pio_read_16(ioport16_t *port)
+static inline uint16_t arch_pio_read_16(const ioport16_t *port)
 {
 	uint16_t rv;
 
@@ -82,7 +82,7 @@ static inline uint16_t arch_pio_read_16(ioport16_t *port)
 	return rv;
 }
 
-static inline uint32_t arch_pio_read_32(ioport32_t *port)
+static inline uint32_t arch_pio_read_32(const ioport32_t *port)
 {
 	uint32_t rv;
 

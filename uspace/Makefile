@@ -39,7 +39,6 @@ DIRS = \
 	app/bnchmark \
 	app/devctl \
 	app/edit \
-	app/ext2info \
 	app/getterm \
 	app/init \
 	app/inet \
@@ -104,7 +103,6 @@ DIRS = \
 	srv/fs/tmpfs \
 	srv/fs/mfs \
 	srv/fs/locfs \
-	srv/fs/ext2fs \
 	srv/fs/ext4fs \
 	srv/hid/compositor \
 	srv/hid/console \
@@ -217,7 +215,6 @@ LIBS = \
 	lib/draw \
 	lib/net \
 	lib/nic \
-	lib/ext2 \
 	lib/ext4 \
 	lib/usb \
 	lib/usbhost \
