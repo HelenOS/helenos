@@ -38,7 +38,7 @@
 #include <bool.h>
 #include "../tester.h"
 
-#define OPERANDS  6 
+#define OPERANDS  10
 #define PRECISION  10000
 
 #define PRIdCMPTYPE  PRId32
@@ -55,20 +55,20 @@ typedef void (* template_unary_t)(void *, unsigned, cmptype_t *, cmptype_t *);
 typedef void (* template_binary_t)(void *, unsigned, unsigned, cmptype_t *,
     cmptype_t *);
 
-static float fop_a[OPERANDS] =
-	{3.5, -2.1, 100.0, 50.0, -1024.0, 0.0};
+#define NUMBERS	\
+	3.5, -2.1, 100.0, 50.0, -1024.0, 0.0, 768.3156, 1080.499999, -600.0, 1.0
 
-static float fop_b[OPERANDS] =
-	{-2.1, 100.0, 50.0, -1024.0, 3.5, 0.0};
+static float fop_a[OPERANDS] = {
+	NUMBERS
+};
 
-static double dop_a[OPERANDS] =
-	{3.5, -2.1, 100.0, 50.0, -1024.0, 0.0};
+static double dop_a[OPERANDS] =	{
+	NUMBERS
+};
 
-static double dop_b[OPERANDS] =
-	{-2.1, 100.0, 50.0, -1024.0, 3.5, 0.0};
-
-static unsigned int uop_a[OPERANDS] =
-	{ 4, 2, 100, 50, 1024, 0 };
+static unsigned int uop_a[OPERANDS] = {
+	4, -100, 100, 50, 1024, 0, 1000000, -1U, 0x80000000U, 500
+};
 
 static cmptype_t cmpabs(cmptype_t a)
 {
@@ -126,7 +126,7 @@ float_template_binary(void *f, unsigned i, unsigned j, cmptype_t *pic,
 
 	float_binary_op_t op = (float_binary_op_t) f;
 	
-	op(fop_a[i], fop_b[j], &c, &sc);
+	op(fop_a[i], fop_a[j], &c, &sc);
 
 	*pic = (cmptype_t) (c * PRECISION);
 	*pisc = (cmptype_t) (sc.val * PRECISION);
@@ -141,7 +141,7 @@ double_template_binary(void *f, unsigned i, unsigned j, cmptype_t *pic,
 
 	double_binary_op_t op = (double_binary_op_t) f;
 	
-	op(dop_a[i], dop_b[j], &c, &sc);
+	op(dop_a[i], dop_a[j], &c, &sc);
 
 	*pic = (cmptype_t) (c * PRECISION);
 	*pisc = (cmptype_t) (sc.val * PRECISION);
@@ -153,7 +153,7 @@ double_compare_template(void *f, unsigned i, unsigned j, cmptype_t *pis,
 {
 	double_cmp_op_t op = (double_cmp_op_t) f;
 	
-	op(dop_a[i], dop_b[j], pis, piss);
+	op(dop_a[i], dop_a[j], pis, piss);
 }
 
 static bool test_template_unary(template_unary_t template, void *f)
