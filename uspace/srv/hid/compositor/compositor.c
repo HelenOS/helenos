@@ -285,9 +285,9 @@ static void comp_coord_bounding_rect(sysarg_t x_in, sysarg_t y_in,
 		sysarg_t x[4];
 		sysarg_t y[4];
 		comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
-		comp_coord_from_client(x_in + w_in, y_in, win_trans, &x[1], &y[1]);
-		comp_coord_from_client(x_in + w_in, y_in + h_in, win_trans, &x[2], &y[2]);
-		comp_coord_from_client(x_in, y_in + h_in, win_trans, &x[3], &y[3]);
+		comp_coord_from_client(x_in + w_in - 1, y_in, win_trans, &x[1], &y[1]);
+		comp_coord_from_client(x_in + w_in - 1, y_in + h_in - 1, win_trans, &x[2], &y[2]);
+		comp_coord_from_client(x_in, y_in + h_in - 1, win_trans, &x[3], &y[3]);
 		(*x_out) = x[0];
 		(*y_out) = y[0];
 		(*w_out) = x[0];
@@ -554,7 +554,7 @@ static void comp_window_damage(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		fibril_mutex_lock(&window_list_mtx);
-		comp_coord_bounding_rect(x, y, width, height,
+		comp_coord_bounding_rect(x - 1, y - 1, width + 2, height + 2,
 		    win->transform, &x, &y, &width, &height);
 		fibril_mutex_unlock(&window_list_mtx);
 		comp_damage(x, y, width, height);
@@ -1149,7 +1149,7 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 		_dy = (pointer->grab_flags & GF_MOVE_Y) ? -_dy : _dy;
 
 		if ((pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_RESIZE_X)) {
-			double fx = 1.0 + (_dx / (width * win->fx));
+			double fx = 1.0 + (_dx / ((width - 1) * win->fx));
 			if (fx > 0) {
 				win->fx *= fx;
 				scale_back_x *= fx;
@@ -1157,7 +1157,7 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 		}
 
 		if ((pointer->grab_flags & GF_SCALE_Y) || (pointer->grab_flags & GF_RESIZE_Y)) {
-			double fy = 1.0 + (_dy / (height * win->fy));
+			double fy = 1.0 + (_dy / ((height - 1) * win->fy));
 			if (fy > 0) {
 				win->fy *= fy;
 				scale_back_y *= fy;
@@ -1227,12 +1227,12 @@ static void comp_ghost_animate(pointer_t *pointer,
 		_dy = (pointer->grab_flags & GF_MOVE_Y) ? -_dy : _dy;
 
 		if ((pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_RESIZE_X)) {
-			double fx = 1.0 + (_dx / (width * pointer->ghost.fx));
+			double fx = 1.0 + (_dx / ((width - 1) * pointer->ghost.fx));
 			pointer->ghost.fx *= fx;
 		}
 
 		if ((pointer->grab_flags & GF_SCALE_Y) || (pointer->grab_flags & GF_RESIZE_Y)) {
-			double fy = 1.0 + (_dy / (height * pointer->ghost.fy));
+			double fy = 1.0 + (_dy / ((height - 1) * pointer->ghost.fy));
 			pointer->ghost.fy *= fy;
 		}
 	}
