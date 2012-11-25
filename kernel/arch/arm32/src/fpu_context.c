@@ -62,8 +62,8 @@ static void fpu_context_save_s32(fpu_context_t *ctx)
 {
 	asm volatile (
 		"vmrs r1, fpscr\n"
-		"stm %0, {r1}\n"
-		"vstm %0, {s0-s31}\n"
+		"stmia %0!, {r1}\n"
+		"vstmia %0!, {s0-s31}\n"
 		::"r" (ctx): "r1","memory"
 	);
 }
@@ -75,9 +75,9 @@ static void fpu_context_save_s32(fpu_context_t *ctx)
 static void fpu_context_restore_s32(fpu_context_t *ctx)
 {
 	asm volatile (
-		"ldm %0, {r1}\n"
+		"ldmia %0!, {r1}\n"
 		"vmsr fpscr, r1\n"
-		"vldm %0, {s0-s31}\n"
+		"vldmia %0!, {s0-s31}\n"
 		::"r" (ctx): "r1"
 	);
 }
@@ -90,8 +90,8 @@ static void fpu_context_save_d16(fpu_context_t *ctx)
 {
 	asm volatile (
 		"vmrs r1, fpscr\n"
-		"stm %0, {r1}\n"
-		"vstm %0, {d0-d15}\n"
+		"stmia %0!, {r1}\n"
+		"vstmia %0!, {d0-d15}\n"
 		::"r" (ctx): "r1","memory"
 	);
 }
@@ -103,9 +103,9 @@ static void fpu_context_save_d16(fpu_context_t *ctx)
 static void fpu_context_restore_d16(fpu_context_t *ctx)
 {
 	asm volatile (
-		"ldm %0, {r1}\n"
+		"ldmia %0!, {r1}\n"
 		"vmsr fpscr, r1\n"
-		"vldm %0, {d0-d15}\n"
+		"vldmia %0!, {d0-d15}\n"
 		::"r" (ctx): "r1"
 	);
 }
@@ -118,9 +118,9 @@ static void fpu_context_save_d32(fpu_context_t *ctx)
 {
 	asm volatile (
 		"vmrs r1, fpscr\n"
-		"stm %0, {r1}\n"
-		"vstm %0, {d0-d15}\n"
-		"vstm %0, {d16-d31}\n"
+		"stmia %0!, {r1}\n"
+		"vstmia %0!, {d0-d15}\n"
+		"vstmia %0!, {d16-d31}\n"
 		::"r" (ctx): "r1","memory"
 	);
 }
@@ -132,10 +132,10 @@ static void fpu_context_save_d32(fpu_context_t *ctx)
 static void fpu_context_restore_d32(fpu_context_t *ctx)
 {
 	asm volatile (
-		"ldm %0, {r1}\n"
+		"ldmia %0!, {r1}\n"
 		"vmsr fpscr, r1\n"
-		"vldm %0, {d0-d15}\n"
-		"vldm %0, {d16-d31}\n"
+		"vldmia %0!, {d0-d15}\n"
+		"vldmia %0!, {d16-d31}\n"
 		::"r" (ctx): "r1"
 	);
 }
