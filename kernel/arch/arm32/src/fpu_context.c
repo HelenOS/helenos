@@ -85,11 +85,10 @@ static void fpu_context_save_s32(fpu_context_t *ctx)
 {
 	asm volatile (
 		"vmrs r1, fpexc\n"
-		"stmia %0!, {r1}\n"
-		"vmrs r1, fpscr\n"
-		"stmia %0!, {r1}\n"
+		"vmrs r2, fpscr\n"
+		"stmia %0!, {r1, r2}\n"
 		"vstmia %0!, {s0-s31}\n"
-		::"r" (ctx): "r1","memory"
+		::"r" (ctx): "r1","r2","memory"
 	);
 }
 
@@ -100,12 +99,11 @@ static void fpu_context_save_s32(fpu_context_t *ctx)
 static void fpu_context_restore_s32(fpu_context_t *ctx)
 {
 	asm volatile (
-		"ldmia %0!, {r1}\n"
+		"ldmia %0!, {r1, r2}\n"
 		"vmsr fpexc, r1\n"
-		"ldmia %0!, {r1}\n"
-		"vmsr fpscr, r1\n"
+		"vmsr fpscr, r2\n"
 		"vldmia %0!, {s0-s31}\n"
-		::"r" (ctx): "r1"
+		::"r" (ctx): "r1","r2"
 	);
 }
 
@@ -117,11 +115,10 @@ static void fpu_context_save_d16(fpu_context_t *ctx)
 {
 	asm volatile (
 		"vmrs r1, fpexc\n"
-		"stmia %0!, {r1}\n"
-		"vmrs r1, fpscr\n"
-		"stmia %0!, {r1}\n"
+		"vmrs r2, fpscr\n"
+		"stmia %0!, {r1, r2}\n"
 		"vstmia %0!, {d0-d15}\n"
-		::"r" (ctx): "r1","memory"
+		::"r" (ctx): "r1","r2","memory"
 	);
 }
 
@@ -132,12 +129,11 @@ static void fpu_context_save_d16(fpu_context_t *ctx)
 static void fpu_context_restore_d16(fpu_context_t *ctx)
 {
 	asm volatile (
-		"ldmia %0!, {r1}\n"
+		"ldmia %0!, {r1, r2}\n"
 		"vmsr fpexc, r1\n"
-		"ldmia %0!, {r1}\n"
-		"vmsr fpscr, r1\n"
+		"vmsr fpscr, r2\n"
 		"vldmia %0!, {d0-d15}\n"
-		::"r" (ctx): "r1"
+		::"r" (ctx): "r1","r2"
 	);
 }
 
@@ -258,6 +254,12 @@ void fpu_disable(void)
 
 void fpu_context_save(fpu_context_t *ctx)
 {
+	const uint32_t fpexc = fpexc_read();
+
+	if (fpexc & FPEXC_EX_FLAG) {
+		printf("EX FPU flag is on, things will fail\n");
+		//TODO implement common subarch context saving
+	}
 	if (save_context)
 		save_context(ctx);
 }
