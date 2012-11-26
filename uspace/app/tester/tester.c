@@ -73,7 +73,6 @@ test_t tests[] = {
 #include "mm/mapping1.def"
 #include "hw/serial/serial1.def"
 #include "hw/misc/virtchar1.def"
-#include "ext2/ext2_1.def"
 	{NULL, NULL, NULL, false}
 };
 

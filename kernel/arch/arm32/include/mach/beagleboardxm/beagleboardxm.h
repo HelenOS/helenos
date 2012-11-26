@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,28 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup fs
+/** @addtogroup arm32beagleboardxm beagleboardxm
+ *  @brief BeagleBoard-xM platform.
+ *  @ingroup arm32
  * @{
- */ 
+ */
+/** @file
+ *  @brief BeagleBoard platform driver.
+ */
 
-#ifndef EXT2FS_EXT2FS_H_
-#define EXT2FS_EXT2FS_H_
+#ifndef KERN_arm32_beagleboardxm_H_
+#define KERN_arm32_beagleboardxm_H_
 
-#include <libext2.h>
-#include <libfs.h>
-#include <sys/types.h>
+#include <arch/machine_func.h>
 
-#define min(a, b)		((a) < (b) ? (a) : (b))
-
-extern vfs_out_ops_t ext2fs_ops;
-extern libfs_ops_t ext2fs_libfs_ops;
-
-extern int ext2fs_global_init(void);
-extern int ext2fs_global_fini(void);
+extern struct arm_machine_ops bbxm_machine_ops;
 
 #endif
 
-/**
- * @}
+/** @}
  */
+

@@ -102,6 +102,7 @@ void arch_pre_mm_init(void)
 	start_decrementer();
 }
 
+#ifdef CONFIG_FB
 static bool display_register(ofw_tree_node_t *node, void *arg)
 {
 	uintptr_t fb_addr = 0;
@@ -168,6 +169,7 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 	
 	return true;
 }
+#endif
 
 void arch_post_mm_init(void)
 {

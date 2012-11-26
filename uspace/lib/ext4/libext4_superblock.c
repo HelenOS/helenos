@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *

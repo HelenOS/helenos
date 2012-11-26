@@ -40,7 +40,29 @@
 #define STATUS_REG_IRQ_DISABLED_BIT  (1 << 7)
 #define STATUS_REG_MODE_MASK         0x1f
 
-#define CP15_R1_HIGH_VECTORS_BIT     (1 << 13)
+/* COntrol register bit values see ch. B4.1.130 of ARM Architecture Reference
+ * Manual ARMv7-A and ARMv7-R edition, page 1687 */
+#define CP15_R1_MMU_EN            (1 << 0)
+#define CP15_R1_ALIGN_CHECK_EN    (1 << 1)  /* Allow alignemnt check */
+#define CP15_R1_CACHE_EN          (1 << 2)
+#define CP15_R1_CP15_BARRIER_EN   (1 << 5)
+#define CP15_R1_B_EN              (1 << 7)  /* ARMv6- only big endian switch */
+#define CP15_R1_SWAP_EN           (1 << 10)
+#define CP15_R1_BRANCH_PREDICT_EN (1 << 11)
+#define CP15_R1_INST_CACHE_EN     (1 << 12)
+#define CP15_R1_HIGH_VECTORS_EN   (1 << 13)
+#define CP15_R1_ROUND_ROBIN_EN    (1 << 14)
+#define CP15_R1_HW_ACCESS_FLAG_EN (1 << 17)
+#define CP15_R1_WRITE_XN_EN       (1 << 19) /* Only if virt. supported */
+#define CP15_R1_USPCE_WRITE_XN_EN (1 << 20) /* Only if virt. supported */
+#define CP15_R1_FAST_IRQ_EN       (1 << 21) /* Disbale impl.specific features */
+#define CP15_R1_UNALIGNED_EN      (1 << 22) /* Must be 1 on armv7 */
+#define CP15_R1_IRQ_VECTORS_EN    (1 << 24)
+#define CP15_R1_BIG_ENDIAN_EXC    (1 << 25)
+#define CP15_R1_NMFI_EN           (1 << 27)
+#define CP15_R1_TEX_REMAP_EN      (1 << 28)
+#define CP15_R1_ACCESS_FLAG_EN    (1 << 29)
+#define CP15_R1_THUMB_EXC_EN      (1 << 30)
 
 /* ARM Processor Operation Modes */
 #define USER_MODE        0x10

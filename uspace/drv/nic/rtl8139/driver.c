@@ -33,7 +33,6 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
-#include <libarch/ddi.h>
 #include <libarch/barrier.h>
 
 #include <as.h>

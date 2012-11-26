@@ -36,7 +36,7 @@
 #define RTL8139_DEFS_H_
 
 #include <sys/types.h>
-#include <libarch/ddi.h>
+#include <ddi.h>
 
 /** Size of RTL8139 registers address space */
 #define RTL8139_IO_SIZE  256

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libext2
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_BLOCK_GROUP_H_
-#define LIBEXT2_LIBEXT2_BLOCK_GROUP_H_
+#ifndef LIBC_STACK_H_
+#define LIBC_STACK_H_
 
-#include <block.h>
+#include <libarch/types.h>
 
-typedef struct ext2_block_group {
-	uint32_t block_bitmap_block; // Block ID for block bitmap
-	uint32_t inode_bitmap_block; // Block ID for inode bitmap
-	uint32_t inode_table_first_block; // Block ID of first block of inode table 
-	uint16_t free_block_count; // Count of free blocks
-	uint16_t free_inode_count; // Count of free inodes
-	uint16_t directory_inode_count; // Number of inodes allocated to directories
-} ext2_block_group_t;
-
-typedef struct ext2_block_group_ref {
-	block_t *block; // Reference to a block containing this block group descr
-	ext2_block_group_t *block_group;
-} ext2_block_group_ref_t;
-
-#define EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE 32
-
-extern uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *);
-extern uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *);
-extern uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t *);
-extern uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *);
-extern uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *);
-extern uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *);
-
-extern void	ext2_block_group_set_free_block_count(ext2_block_group_t *, uint16_t);
+extern size_t stack_size_get(void);
 
 #endif
 

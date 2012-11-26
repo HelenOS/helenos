@@ -195,7 +195,7 @@ task_t *task_create(as_t *as, const char *name)
 	task->capabilities = 0;
 	task->ucycles = 0;
 	task->kcycles = 0;
-	
+
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
 	task->ipc_info.answer_sent = 0;

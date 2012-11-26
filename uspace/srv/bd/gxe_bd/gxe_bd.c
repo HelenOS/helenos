@@ -36,7 +36,6 @@
  */
 
 #include <stdio.h>
-#include <libarch/ddi.h>
 #include <ddi.h>
 #include <async.h>
 #include <as.h>

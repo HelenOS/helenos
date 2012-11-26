@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,73 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup amdm37xdrvprm
  * @{
- */ 
-
-/**
- * @file	ext2.c
- * @brief	EXT2 file system driver for HelenOS.
  */
+/** @file
+ * @brief Clock Control Clock Management IO register structure.
+ */
+#ifndef AMDM37X_PRM_CLOCK_CONTROL_H
+#define AMDM37X_PRM_CLOCK_CONTROL_H
+#include <sys/types.h>
+#include <macros.h>
 
-#include "ext2fs.h"
-#include <ipc/services.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
-#include <unistd.h>
-#include <task.h>
-#include <stdio.h>
-#include <libfs.h>
-#include "../../vfs/vfs.h"
+/* AM/DM37x TRM p.536 and p.589 */
+#define CLOCK_CONTROL_PRM_BASE_ADDRESS  0x48306d00
+#define CLOCK_CONTROL_PRM_SIZE  8192
 
-#define NAME	"ext2fs"
+/** Clock control PRM register map
+ */
+typedef struct {
+	PADD32[16];
+	ioport32_t clksel;
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK   (0x7)
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_12M   (0x0)
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_13M   (0x1)
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_19_2M   (0x2)
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_26M   (0x3)
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_38_4M   (0x4)
+#define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_16_8M   (0x5)
 
-vfs_info_t ext2fs_vfs_info = {
-	.name = NAME,
-	.instance = 0,
-};
+	PADD32[12];
+	ioport32_t clkout_ctrl;
+#define CLOCK_CONTROL_PRM_CLKOUT_CTRL_CLKOUOUT_EN_FLAG   (1 << 7)
 
-int main(int argc, char **argv)
+} clock_control_prm_regs_t;
+
+static inline unsigned sys_clk_freq_kHz(unsigned reg_val)
 {
-	printf(NAME ": HelenOS EXT2 file system server\n");
-
-	if (argc == 3) {
-		if (!str_cmp(argv[1], "--instance"))
-			ext2fs_vfs_info.instance = strtol(argv[2], NULL, 10);
-		else {
-			printf(NAME " Unrecognized parameters");
-			return -1;
-		}
+	switch(reg_val)
+	{
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_12M: return 12000;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_13M: return 13000;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_19_2M: return 19200;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_26M: return 26000;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_38_4M: return 38400;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_16_8M: return 16800;
 	}
-	
-	async_sess_t *vfs_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-	    SERVICE_VFS, 0, 0);
-	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
-		return -1;
-	}
-
-	int rc = ext2fs_global_init();
-	if (rc != EOK) {
-		printf(NAME ": Failed global initialization\n");
-		return 1;
-	}	
-		
-	rc = fs_register(vfs_sess, &ext2fs_vfs_info, &ext2fs_ops,
-	    &ext2fs_libfs_ops);
-	if (rc != EOK) {
-		fprintf(stdout, NAME ": Failed to register fs (%d)\n", rc);
-		return 1;
-	}
-	
-	printf(NAME ": Accepting connections\n");
-	task_retval(0);
-	async_manager();
-	/* not reached */
 	return 0;
 }
 
+
+#endif
 /**
  * @}
- */ 
+ */

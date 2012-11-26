@@ -51,6 +51,10 @@ static bool phys_create(as_area_t *);
 static void phys_share(as_area_t *);
 static void phys_destroy(as_area_t *);
 
+static bool phys_is_resizable(as_area_t *);
+static bool phys_is_shareable(as_area_t *);
+
+
 static int phys_page_fault(as_area_t *, uintptr_t, pf_access_t);
 
 mem_backend_t phys_backend = {
@@ -58,6 +62,9 @@ mem_backend_t phys_backend = {
 	.resize = NULL,
 	.share = phys_share,
 	.destroy = phys_destroy,
+
+	.is_resizable = phys_is_resizable,
+	.is_shareable = phys_is_shareable,
 
 	.page_fault = phys_page_fault,
 	.frame_free = NULL,
@@ -86,6 +93,17 @@ void phys_destroy(as_area_t *area)
 {
 	/* Nothing to do. */
 }
+
+bool phys_is_resizable(as_area_t *area)
+{
+	return false;
+}
+
+bool phys_is_shareable(as_area_t *area)
+{
+	return true;
+}
+
 
 /** Service a page fault in the address space area backed by physical memory.
  *

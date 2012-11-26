@@ -55,6 +55,7 @@
 #include <debug.h>
 #include <cpu.h>
 #include <mm/tlb.h>
+#include <mm/km.h>
 #include <arch/mm/tlb.h>
 #include <mm/frame.h>
 #include <main/version.h>
@@ -82,6 +83,81 @@ static cmd_info_t help_info = {
 	.description = "List supported commands.",
 	.func = cmd_help,
 	.argc = 0
+};
+
+/* Data and methods for pio_read_8 command */
+static int cmd_pio_read_8(cmd_arg_t *argv);
+static cmd_arg_t pio_read_8_argv[] = { { .type = ARG_TYPE_INT } };
+static cmd_info_t pio_read_8_info = {
+	.name = "pio_read_8",
+	.description = "pio_read_8 <address> Read 1 byte from memory (or port).",
+	.func = cmd_pio_read_8,
+	.argc = 1,
+	.argv = pio_read_8_argv
+};
+
+/* Data and methods for pio_read_16 command */
+static int cmd_pio_read_16(cmd_arg_t *argv);
+static cmd_arg_t pio_read_16_argv[] = { { .type = ARG_TYPE_INT } };
+static cmd_info_t pio_read_16_info = {
+	.name = "pio_read_16",
+	.description = "pio_read_16 <address> Read 2 bytes from memory (or port).",
+	.func = cmd_pio_read_16,
+	.argc = 1,
+	.argv = pio_read_16_argv
+};
+
+/* Data and methods for pio_read_32 command */
+static int cmd_pio_read_32(cmd_arg_t *argv);
+static cmd_arg_t pio_read_32_argv[] = { { .type = ARG_TYPE_INT } };
+static cmd_info_t pio_read_32_info = {
+	.name = "pio_read_32",
+	.description = "pio_read_32 <address> Read 4 bytes from memory (or port).",
+	.func = cmd_pio_read_32,
+	.argc = 1,
+	.argv = pio_read_32_argv
+};
+
+/* Data and methods for pio_write_8 command */
+static int cmd_pio_write_8(cmd_arg_t *argv);
+static cmd_arg_t pio_write_8_argv[] = {
+	{ .type = ARG_TYPE_INT },
+	{ .type = ARG_TYPE_INT }
+};
+static cmd_info_t pio_write_8_info = {
+	.name = "pio_write_8",
+	.description = "pio_write_8 <address> <value> Write 1 byte to memory (or port).",
+	.func = cmd_pio_write_8,
+	.argc = 2,
+	.argv = pio_write_8_argv
+};
+
+/* Data and methods for pio_write_16 command */
+static int cmd_pio_write_16(cmd_arg_t *argv);
+static cmd_arg_t pio_write_16_argv[] = {
+	{ .type = ARG_TYPE_INT },
+	{ .type = ARG_TYPE_INT }
+};
+static cmd_info_t pio_write_16_info = {
+	.name = "pio_write_16",
+	.description = "pio_write_16 <address> <value> Write 2 bytes to memory (or port).",
+	.func = cmd_pio_write_16,
+	.argc = 2,
+	.argv = pio_write_16_argv
+};
+
+/* Data and methods for pio_write_32 command */
+static int cmd_pio_write_32(cmd_arg_t *argv);
+static cmd_arg_t pio_write_32_argv[] = {
+	{ .type = ARG_TYPE_INT },
+	{ .type = ARG_TYPE_INT }
+};
+static cmd_info_t pio_write_32_info = {
+	.name = "pio_write_32",
+	.description = "pio_write_32 <address> <value> Write 4 bytes to memory (or port).",
+	.func = cmd_pio_write_32,
+	.argc = 2,
+	.argv = pio_write_32_argv
 };
 
 /* Data and methods for 'reboot' command. */
@@ -552,6 +628,12 @@ static cmd_info_t *basic_commands[] = {
 #ifdef CONFIG_UDEBUG
 	&btrace_info,
 #endif
+	&pio_read_8_info,
+	&pio_read_16_info,
+	&pio_read_32_info,
+	&pio_write_8_info,
+	&pio_write_16_info,
+	&pio_write_32_info,
 	NULL
 };
 
@@ -622,6 +704,189 @@ int cmd_help(cmd_arg_t *argv)
 	
 	spinlock_unlock(&cmd_lock);
 	
+	return 1;
+}
+
+/** Read 1 byte from phys memory or io port.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+static int cmd_pio_read_8(cmd_arg_t *argv)
+{
+	uint8_t *ptr = NULL;
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		ptr = (void *) argv[0].intval;
+	else
+#endif
+		ptr = (uint8_t *) km_map(argv[0].intval, sizeof(uint8_t),
+		    PAGE_NOT_CACHEABLE);
+	
+	const uint8_t val = pio_read_8(ptr);
+	printf("read %" PRIxn ": %" PRIx8 "\n", argv[0].intval, val);
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		return 1;
+#endif
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint8_t));
+	return 1;
+}
+
+/** Read 2 bytes from phys memory or io port.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+static int cmd_pio_read_16(cmd_arg_t *argv)
+{
+	uint16_t *ptr = NULL;
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		ptr = (void *) argv[0].intval;
+	else
+#endif
+		ptr = (uint16_t *) km_map(argv[0].intval, sizeof(uint16_t),
+		    PAGE_NOT_CACHEABLE);
+	
+	const uint16_t val = pio_read_16(ptr);
+	printf("read %" PRIxn ": %" PRIx16 "\n", argv[0].intval, val);
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		return 1;
+#endif
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint16_t));
+	return 1;
+}
+
+/** Read 4 bytes from phys memory or io port.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+static int cmd_pio_read_32(cmd_arg_t *argv)
+{
+	uint32_t *ptr = NULL;
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		ptr = (void *) argv[0].intval;
+	else
+#endif
+		ptr = (uint32_t *) km_map(argv[0].intval, sizeof(uint32_t),
+		    PAGE_NOT_CACHEABLE);
+	
+	const uint32_t val = pio_read_32(ptr);
+	printf("read %" PRIxn ": %" PRIx32 "\n", argv[0].intval, val);
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		return 1;
+#endif
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint32_t));
+	return 1;
+}
+
+/** Write 1 byte to phys memory or io port.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+static int cmd_pio_write_8(cmd_arg_t *argv)
+{
+	uint8_t *ptr = NULL;
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		ptr = (void *) argv[0].intval;
+	else
+#endif
+		ptr = (uint8_t *) km_map(argv[0].intval, sizeof(uint8_t),
+		    PAGE_NOT_CACHEABLE);
+	
+	printf("write %" PRIxn ": %" PRIx8 "\n", argv[0].intval,
+	    (uint8_t) argv[1].intval);
+	pio_write_8(ptr, (uint8_t) argv[1].intval);
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		return 1;
+#endif
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint8_t));
+	return 1;
+}
+
+/** Write 2 bytes to phys memory or io port.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+static int cmd_pio_write_16(cmd_arg_t *argv)
+{
+	uint16_t *ptr = NULL;
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		ptr = (void *) argv[0].intval;
+	else
+#endif
+		ptr = (uint16_t *) km_map(argv[0].intval, sizeof(uint16_t),
+		    PAGE_NOT_CACHEABLE);
+	
+	printf("write %" PRIxn ": %" PRIx16 "\n", argv[0].intval,
+	    (uint16_t) argv[1].intval);
+	pio_write_16(ptr, (uint16_t) argv[1].intval);
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		return 1;
+#endif
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint16_t));
+	return 1;
+}
+
+/** Write 4 bytes to phys memory or io port.
+ *
+ * @param argv Argument vector.
+ *
+ * @return 0 on failure, 1 on success.
+ */
+static int cmd_pio_write_32(cmd_arg_t *argv)
+{
+	uint32_t *ptr = NULL;
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		ptr = (void *) argv[0].intval;
+	else
+#endif
+		ptr = (uint32_t *) km_map(argv[0].intval, sizeof(uint32_t),
+		    PAGE_NOT_CACHEABLE);
+	
+	printf("write %" PRIxn ": %" PRIx32 "\n", argv[0].intval,
+	    (uint32_t) argv[1].intval);
+	pio_write_32(ptr, (uint32_t) argv[1].intval);
+	
+#ifdef IO_SPACE_BOUNDARY
+	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
+		return 1;
+#endif
+	
+	km_unmap((uintptr_t) ptr, sizeof(uint32_t));
 	return 1;
 }
 

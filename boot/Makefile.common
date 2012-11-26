@@ -108,7 +108,6 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
 	$(USPACE_PATH)/srv/fs/exfat/exfat \
 	$(USPACE_PATH)/srv/fs/udf/udf \
-	$(USPACE_PATH)/srv/fs/ext2fs/ext2fs \
 	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/hid/isdv4_tablet/isdv4_tablet \
@@ -166,7 +165,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
 	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/ext2info/ext2info \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \

@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2012 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,12 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBEXT2_PREFIX)/libext2.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBEXT2_PREFIX)
-BINARY = ext2info
+USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = rootamdm37x
 
 SOURCES = \
-	ext2info.c
+	amdm37x.c \
+	rootamdm37x.c
 
 include $(USPACE_PREFIX)/Makefile.common
