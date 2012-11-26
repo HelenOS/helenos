@@ -1116,11 +1116,15 @@ static void comp_recalc_transform(window_t *win)
 
 	transform_t scale;
 	transform_identity(&scale);
-	transform_scale(&scale, win->fx, win->fy);
+	if (win->fx != 1 || win->fy != 1) {
+		transform_scale(&scale, win->fx, win->fy);
+	}
 
 	transform_t rotate;
 	transform_identity(&rotate);
-	transform_rotate(&rotate, win->angle);
+	if (win->angle != 0) {
+		transform_rotate(&rotate, win->angle);
+	}
 
 	transform_t transform;
 	transform_t temp;
@@ -1164,7 +1168,7 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 			cy = 1;
 		}
 
-		if (scale || resize) {
+		if ((scale || resize) && (win->angle != 0)) {
 			transform_t rotate;
 			transform_identity(&rotate);
 			transform_rotate(&rotate, win->angle);
@@ -1181,17 +1185,24 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 	if (scale || resize) {
 		double _dx = dx;
 		double _dy = dy;
-		transform_t unrotate;
-		transform_identity(&unrotate);
-		transform_rotate(&unrotate, -win->angle);
-		transform_apply_linear(&unrotate, &_dx, &_dy);
+		if (win->angle != 0) {
+			transform_t unrotate;
+			transform_identity(&unrotate);
+			transform_rotate(&unrotate, -win->angle);
+			transform_apply_linear(&unrotate, &_dx, &_dy);
+		}
 		_dx = (pointer->grab_flags & GF_MOVE_X) ? -_dx : _dx;
 		_dy = (pointer->grab_flags & GF_MOVE_Y) ? -_dy : _dy;
 
 		if ((pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_RESIZE_X)) {
 			double fx = 1.0 + (_dx / ((width - 1) * win->fx));
 			if (fx > 0) {
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+				if (scale) win->fx *= fx;
+#endif
+#if ANIMATE_WINDOW_TRANSFORMS == 1
 				win->fx *= fx;
+#endif
 				scale_back_x *= fx;
 			}
 		}
@@ -1199,7 +1210,12 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 		if ((pointer->grab_flags & GF_SCALE_Y) || (pointer->grab_flags & GF_RESIZE_Y)) {
 			double fy = 1.0 + (_dy / ((height - 1) * win->fy));
 			if (fy > 0) {
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+				if (scale) win->fy *= fy;
+#endif
+#if ANIMATE_WINDOW_TRANSFORMS == 1
 				win->fy *= fy;
+#endif
 				scale_back_y *= fy;
 			}
 		}
@@ -1558,9 +1574,11 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		if ((pointer->grab_flags & GF_RESIZE_X) || (pointer->grab_flags & GF_RESIZE_Y)) {
 
 			surface_get_resolution(top->surface, &width, &height);
+#if ANIMATE_WINDOW_TRANSFORMS == 1
 			top->fx *= (1.0 / scale_back_x);
 			top->fy *= (1.0 / scale_back_y);
 			comp_recalc_transform(top);
+#endif
 
 			/* Commit proper resize action. */
 			event_top = (window_event_t *) malloc(sizeof(window_event_t));
