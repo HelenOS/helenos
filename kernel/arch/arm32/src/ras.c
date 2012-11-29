@@ -66,22 +66,22 @@ void ras_init(void)
 
 void ras_check(unsigned int n, istate_t *istate)
 {
-	uintptr_t rewrite_pc = istate->pc;
+	bool restart = false;
 
 	if (istate_from_uspace(istate)) {
 		if (ras_page[RAS_START]) {
 			if ((ras_page[RAS_START] < istate->pc) &&
 			    (ras_page[RAS_END] > istate->pc)) {
-				rewrite_pc = ras_page[RAS_START];
+				restart = true;
 			}
 			ras_page[RAS_START] = 0;
 			ras_page[RAS_END] = 0xffffffff;
-		}	
+		}
 	}
 
 	exc_dispatch(n, istate);
-
-	istate->pc = rewrite_pc;
+	if (restart)
+		istate->pc = ras_page[RAS_START];
 }
 
 /** @}

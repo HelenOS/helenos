@@ -34,6 +34,12 @@ ATSIGN = %
 
 GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 
+ifeq ($(CONFIG_FPU),y)
+# This is necessary to allow vmsr insn and fpexc manipulation
+# Use vfp32 to allow context save/restore of d16-d31 regs.
+GCC_CFLAGS += -mfloat-abi=hard -mfpu=vfp3
+endif
+
 BITS = 32
 ENDIANESS = LE
 
@@ -45,6 +51,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/arm32.c \
 	arch/$(KARCH)/src/machine_func.c \
 	arch/$(KARCH)/src/context.S \
+	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/ddi/ddi.c \

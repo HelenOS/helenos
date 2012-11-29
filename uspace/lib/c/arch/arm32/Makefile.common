@@ -27,8 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 GCC_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR))
+
+ifeq ($(CONFIG_FPU),y)
+GCC_CFLAGS += -mfloat-abi=hard
+else
+BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
+endif
 
 ENDIANESS = LE
 
