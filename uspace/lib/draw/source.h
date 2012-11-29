@@ -70,6 +70,8 @@ extern void source_set_texture(source_t *, surface_t *, bool);
 extern void source_set_alpha(source_t *, pixel_t);
 extern void source_set_mask(source_t *, surface_t *, bool);
 
+extern bool source_is_fast(source_t *);
+extern pixel_t *source_direct_access(source_t *, double, double);
 extern pixel_t source_determine_pixel(source_t *, double, double);
 
 #endif

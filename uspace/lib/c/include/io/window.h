@@ -70,6 +70,8 @@ typedef enum {
 	ET_KEYBOARD_EVENT,
 	ET_POSITION_EVENT,
 	ET_SIGNAL_EVENT,
+	ET_WINDOW_FOCUS,
+	ET_WINDOW_UNFOCUS,
 	ET_WINDOW_RESIZE,
 	ET_WINDOW_REFRESH,
 	ET_WINDOW_DAMAGE,
@@ -99,7 +101,7 @@ typedef enum {
 	GF_SCALE_Y = 32
 } window_grab_flags_t;
 
-extern int win_register(async_sess_t *, service_id_t *, service_id_t *);
+extern int win_register(async_sess_t *, service_id_t *, service_id_t *, sysarg_t, sysarg_t);
 
 extern int win_get_event(async_sess_t *, window_event_t *);
 

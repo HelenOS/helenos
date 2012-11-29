@@ -135,6 +135,14 @@ void transform_rotate(transform_t *t, double rad)
 	*t = r;
 }
 
+bool transform_is_fast(transform_t *t)
+{
+	return (t->m[0][0] == 1) && (t->m[0][1] == 0)
+	    && (t->m[1][0] == 0) && (t->m[1][1] == 1)
+	    && ((t->m[0][2] - ((long) t->m[0][2])) == 0.0)
+	    && ((t->m[1][2] - ((long) t->m[1][2])) == 0.0);
+}
+
 void transform_apply_linear(const transform_t *t, double *x, double *y)
 {
 	double x_ = *x;

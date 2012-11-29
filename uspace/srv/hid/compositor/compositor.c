@@ -89,23 +89,6 @@ static pixel_t bg_color;
 
 typedef struct {
 	link_t link;
-	sysarg_t id;
-	uint8_t state;
-	desktop_point_t pos;
-	sysarg_t btn_num;
-	desktop_point_t btn_pos;
-	desktop_vector_t accum;
-	sysarg_t grab_flags;
-	bool pressed;
-	cursor_t cursor;
-} pointer_t;
-
-static sysarg_t pointer_id = 0;
-static FIBRIL_MUTEX_INITIALIZE(pointer_list_mtx);
-static LIST_INITIALIZE(pointer_list);
-
-typedef struct {
-	link_t link;
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	prodcons_t queue;
@@ -125,6 +108,25 @@ static FIBRIL_MUTEX_INITIALIZE(window_list_mtx);
 static LIST_INITIALIZE(window_list);
 static double scale_back_x;
 static double scale_back_y;
+
+typedef struct {
+	link_t link;
+	sysarg_t id;
+	uint8_t state;
+	desktop_point_t pos;
+	sysarg_t btn_num;
+	desktop_point_t btn_pos;
+	desktop_vector_t accum;
+	sysarg_t grab_flags;
+	bool pressed;
+	cursor_t cursor;
+	window_t ghost;
+	desktop_vector_t accum_ghost;
+} pointer_t;
+
+static sysarg_t pointer_id = 0;
+static FIBRIL_MUTEX_INITIALIZE(pointer_list_mtx);
+static LIST_INITIALIZE(pointer_list);
 
 typedef struct {
 	link_t link;
@@ -180,6 +182,19 @@ static pointer_t *pointer_create()
 	p->state = 0;
 	cursor_init(&p->cursor, CURSOR_DECODER_EMBEDDED, NULL);
 
+	/* Ghost window for transformation animation. */
+	transform_identity(&p->ghost.transform);
+	transform_translate(&p->ghost.transform, coord_origin, coord_origin);
+	p->ghost.dx = coord_origin;
+	p->ghost.dy = coord_origin;
+	p->ghost.fx = 1;
+	p->ghost.fy = 1;
+	p->ghost.angle = 0;
+	p->ghost.opacity = 255;
+	p->ghost.surface = NULL;
+	p->accum_ghost.x = 0;
+	p->accum_ghost.y = 0;
+
 	return p;
 }
 
@@ -191,7 +206,7 @@ static void pointer_destroy(pointer_t *p)
 	}
 }
 
-static window_t *window_create()
+static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 {
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win) {
@@ -201,9 +216,10 @@ static window_t *window_create()
 	link_initialize(&win->link);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
-	transform_translate(&win->transform, coord_origin, coord_origin);
-	win->dx = coord_origin;
-	win->dy = coord_origin;
+	transform_translate(&win->transform, 
+	    coord_origin + x_offset, coord_origin + y_offset);
+	win->dx = coord_origin + x_offset;
+	win->dy = coord_origin + y_offset;
 	win->fx = 1;
 	win->fy = 1;
 	win->angle = 0;
@@ -266,24 +282,29 @@ static void comp_coord_bounding_rect(sysarg_t x_in, sysarg_t y_in,
     sysarg_t w_in, sysarg_t h_in, transform_t win_trans,
     sysarg_t *x_out, sysarg_t *y_out, sysarg_t *w_out, sysarg_t *h_out)
 {
-	sysarg_t x[4];
-	sysarg_t y[4];
-	comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
-	comp_coord_from_client(x_in + w_in, y_in, win_trans, &x[1], &y[1]);
-	comp_coord_from_client(x_in + w_in, y_in + h_in, win_trans, &x[2], &y[2]);
-	comp_coord_from_client(x_in, y_in + h_in, win_trans, &x[3], &y[3]);
-	(*x_out) = x[0];
-	(*y_out) = y[0];
-	(*w_out) = x[0];
-	(*h_out) = y[0];
-	for (int i = 1; i < 4; ++i) {
-		(*x_out) = (x[i] < (*x_out)) ? x[i] : (*x_out);
-		(*y_out) = (y[i] < (*y_out)) ? y[i] : (*y_out);
-		(*w_out) = (x[i] > (*w_out)) ? x[i] : (*w_out);
-		(*h_out) = (y[i] > (*h_out)) ? y[i] : (*h_out);
+	if (w_in > 0 && h_in > 0) {
+		sysarg_t x[4];
+		sysarg_t y[4];
+		comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
+		comp_coord_from_client(x_in + w_in - 1, y_in, win_trans, &x[1], &y[1]);
+		comp_coord_from_client(x_in + w_in - 1, y_in + h_in - 1, win_trans, &x[2], &y[2]);
+		comp_coord_from_client(x_in, y_in + h_in - 1, win_trans, &x[3], &y[3]);
+		(*x_out) = x[0];
+		(*y_out) = y[0];
+		(*w_out) = x[0];
+		(*h_out) = y[0];
+		for (int i = 1; i < 4; ++i) {
+			(*x_out) = (x[i] < (*x_out)) ? x[i] : (*x_out);
+			(*y_out) = (y[i] < (*y_out)) ? y[i] : (*y_out);
+			(*w_out) = (x[i] > (*w_out)) ? x[i] : (*w_out);
+			(*h_out) = (y[i] > (*h_out)) ? y[i] : (*h_out);
+		}
+		(*w_out) = (*w_out) - (*x_out) + 1;
+		(*h_out) = (*h_out) - (*y_out) + 1;
+	} else {
+		(*w_out) = 0;
+		(*h_out) = 0;
 	}
-	(*w_out) -= (*x_out);
-	(*h_out) -= (*y_out);
 }
 
 static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
@@ -308,10 +329,15 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 			/* Paint background color. */
 			for (sysarg_t y = y_dmg_vp - vp->pos.y; y <  y_dmg_vp - vp->pos.y + h_dmg_vp; ++y) {
-				for (sysarg_t x = x_dmg_vp - vp->pos.x; x < x_dmg_vp - vp->pos.x + w_dmg_vp; ++x) {
-					surface_put_pixel(vp->surface, x, y, bg_color);
+				pixel_t *dst = pixelmap_pixel_at(
+				    surface_pixmap_access(vp->surface), x_dmg_vp - vp->pos.x, y);
+				sysarg_t count = w_dmg_vp;
+				while (count-- != 0) {
+					*dst++ = bg_color;
 				}
 			}
+			surface_add_damaged_region(vp->surface,
+			    x_dmg_vp - vp->pos.x, y_dmg_vp - vp->pos.y, w_dmg_vp, h_dmg_vp);
 
 			transform_t transform;
 			source_t source;
@@ -362,6 +388,82 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 			list_foreach(pointer_list, link) {
 
+				pointer_t *ptr = list_get_instance(link, pointer_t, link);
+				if (ptr->ghost.surface) {
+
+					sysarg_t x_bnd_ghost, y_bnd_ghost, w_bnd_ghost, h_bnd_ghost;
+					sysarg_t x_dmg_ghost, y_dmg_ghost, w_dmg_ghost, h_dmg_ghost;
+					surface_get_resolution(ptr->ghost.surface, &w_bnd_ghost, &h_bnd_ghost);
+					comp_coord_bounding_rect(0, 0, w_bnd_ghost, h_bnd_ghost, ptr->ghost.transform,
+					    &x_bnd_ghost, &y_bnd_ghost, &w_bnd_ghost, &h_bnd_ghost);
+					bool isec_ghost = rectangle_intersect(
+					    x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp,
+					    x_bnd_ghost, y_bnd_ghost, w_bnd_ghost, h_bnd_ghost,
+					    &x_dmg_ghost, &y_dmg_ghost, &w_dmg_ghost, &h_dmg_ghost);
+
+					if (isec_ghost) {
+						/* FIXME: Ghost is currently drawn based on the bounding
+						 * rectangle of the window, which is sufficient as long
+						 * as the windows can be rotated only by 90 degrees. 
+						 * For ghost to be compatible with arbitrary-angle
+						 * rotation, it should be drawn as four lines adjusted
+						 * by the transformation matrix. That would however
+						 * require to equip libdraw with line drawing functionality. */
+
+						transform_t transform = ptr->ghost.transform;
+						double_point_t pos;
+						pos.x = vp->pos.x;
+						pos.y = vp->pos.y;
+						transform_translate(&transform, -pos.x, -pos.y);
+
+						pixel_t ghost_color;
+
+						if (y_bnd_ghost == y_dmg_ghost) {
+							for (sysarg_t x = x_dmg_ghost - vp->pos.x;
+								    x < x_dmg_ghost - vp->pos.x + w_dmg_ghost; ++x) {
+								ghost_color = surface_get_pixel(vp->surface,
+								    x, y_dmg_ghost - vp->pos.y);
+								surface_put_pixel(vp->surface,
+								    x, y_dmg_ghost - vp->pos.y, INVERT(ghost_color));
+							}
+						}
+
+						if (y_bnd_ghost + h_bnd_ghost == y_dmg_ghost + h_dmg_ghost) {
+							for (sysarg_t x = x_dmg_ghost - vp->pos.x;
+								    x < x_dmg_ghost - vp->pos.x + w_dmg_ghost; ++x) {
+								ghost_color = surface_get_pixel(vp->surface,
+								    x, y_dmg_ghost - vp->pos.y + h_dmg_ghost - 1);
+								surface_put_pixel(vp->surface,
+								    x, y_dmg_ghost - vp->pos.y + h_dmg_ghost - 1, INVERT(ghost_color));
+							}
+						}
+
+						if (x_bnd_ghost == x_dmg_ghost) {
+							for (sysarg_t y = y_dmg_ghost - vp->pos.y;
+								    y < y_dmg_ghost - vp->pos.y + h_dmg_ghost; ++y) {
+								ghost_color = surface_get_pixel(vp->surface,
+								    x_dmg_ghost - vp->pos.x, y);
+								surface_put_pixel(vp->surface,
+								    x_dmg_ghost - vp->pos.x, y, INVERT(ghost_color));
+							}
+						}
+
+						if (x_bnd_ghost + w_bnd_ghost == x_dmg_ghost + w_dmg_ghost) {
+							for (sysarg_t y = y_dmg_ghost - vp->pos.y;
+								    y < y_dmg_ghost - vp->pos.y + h_dmg_ghost; ++y) {
+								ghost_color = surface_get_pixel(vp->surface,
+								    x_dmg_ghost - vp->pos.x + w_dmg_ghost - 1, y);
+								surface_put_pixel(vp->surface,
+								    x_dmg_ghost - vp->pos.x + w_dmg_ghost - 1, y, INVERT(ghost_color));
+							}
+						}
+					}
+
+				}
+			}
+
+			list_foreach(pointer_list, link) {
+
 				/* Determine what part of the pointer intersects with the
 				 * updated area of the current viewport. */
 				pointer_t *ptr = list_get_instance(link, pointer_t, link);
@@ -375,26 +477,30 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 				if (isec_ptr) {
 					/* Pointer is currently painted directly by copying pixels.
-					 * However, it is possible to draw the painter similarly
+					 * However, it is possible to draw the pointer similarly
 					 * as window by using drawctx_transfer. It would allow
 					 * more sophisticated control over drawing, but would also
 					 * cost more regarding the performance. */
 
-					pixel_t pix = 0;
 					sysarg_t x_vp = x_dmg_ptr - vp->pos.x;
 					sysarg_t y_vp = y_dmg_ptr - vp->pos.y;
 					sysarg_t x_ptr = x_dmg_ptr - ptr->pos.x;
 					sysarg_t y_ptr = y_dmg_ptr - ptr->pos.y;
 
 					for (sysarg_t y = 0; y < h_dmg_ptr; ++y) {
-						for (sysarg_t x = 0; x < w_dmg_ptr; ++x) {
-							pix = surface_get_pixel(sf_ptr, x_ptr + x, y_ptr + y);
-							if (ALPHA(pix) == 255) {
-								surface_put_pixel(vp->surface, x_vp + x, y_vp + y, pix);
-							}
+						pixel_t *src = pixelmap_pixel_at(
+						    surface_pixmap_access(sf_ptr), x_ptr, y_ptr + y);
+						pixel_t *dst = pixelmap_pixel_at(
+						    surface_pixmap_access(vp->surface), x_vp, y_vp + y);
+						sysarg_t count = w_dmg_ptr;
+						while (count-- != 0) {
+							*dst = (*src & 0xff000000) ? *src : *dst;
+							++dst; ++src;
 						}
 					}
+					surface_add_damaged_region(vp->surface, x_vp, y_vp, w_dmg_ptr, h_dmg_ptr);
 				}
+
 			}
 		}
 	}
@@ -449,7 +555,7 @@ static void comp_window_damage(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		fibril_mutex_lock(&window_list_mtx);
-		comp_coord_bounding_rect(x, y, width, height,
+		comp_coord_bounding_rect(x - 1, y - 1, width + 2, height + 2,
 		    win->transform, &x, &y, &width, &height);
 		fibril_mutex_unlock(&window_list_mtx);
 		comp_damage(x, y, width, height);
@@ -467,7 +573,7 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 	list_foreach(pointer_list, link) {
 		pointer_t *pointer = list_get_instance(link, pointer_t, link);
 		if (pointer->id == pos_id) {
-			pointer->grab_flags = grab_flags;
+			pointer->grab_flags = pointer->pressed ? grab_flags : GF_EMPTY;
 			// TODO change pointer->state according to grab_flags
 			break;
 		}
@@ -540,12 +646,50 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 	async_answer_0(iid, EOK);
 }
 
+static void comp_post_event_win(window_event_t *event, window_t *target)
+{
+	fibril_mutex_lock(&window_list_mtx);
+	window_t *window = NULL;
+	list_foreach(window_list, link) {
+		window = list_get_instance(link, window_t, link);
+		if (window == target) {
+			prodcons_produce(&window->queue, &event->link);
+		}
+	}
+	if (!window) {
+		free(event);
+	}
+	fibril_mutex_unlock(&window_list_mtx);
+}
+
+static void comp_post_event_top(window_event_t *event)
+{
+	fibril_mutex_lock(&window_list_mtx);
+	window_t *win = (window_t *) list_first(&window_list);
+	if (win) {
+		prodcons_produce(&win->queue, &event->link);
+	} else {
+		free(event);
+	}
+	fibril_mutex_unlock(&window_list_mtx);
+}
+
 static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Stop managing the window. */
 	fibril_mutex_lock(&window_list_mtx);
 	list_remove(&win->link);
+	window_t *win_focus = (window_t *) list_first(&window_list);
+	window_event_t *event_focus = (window_event_t *) malloc(sizeof(window_event_t));
+	if (event_focus) {
+		link_initialize(&event_focus->link);
+		event_focus->type = ET_WINDOW_FOCUS;
+	}
 	fibril_mutex_unlock(&window_list_mtx);
+
+	if (event_focus && win_focus) {
+		comp_post_event_win(event_focus, win_focus);
+	}
 
 	/* Calculate damage. */
 	sysarg_t x = 0;
@@ -600,7 +744,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		if (IPC_GET_IMETHOD(call) == WINDOW_REGISTER) {
 			fibril_mutex_lock(&window_list_mtx);
 
-			window_t *win = window_create();
+			window_t *win = window_create(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			if (!win) {
 				async_answer_2(callid, ENOMEM, 0, 0);
 				return;
@@ -629,10 +773,22 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				return;
 			}
 
+			window_t *win_unfocus = (window_t *) list_first(&window_list);
 			list_prepend(&win->link, &window_list);
+
+			window_event_t *event_unfocus = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_unfocus) {
+				link_initialize(&event_unfocus->link);
+				event_unfocus->type = ET_WINDOW_UNFOCUS;
+			}
 			
 			async_answer_2(callid, EOK, win->in_dsid, win->out_dsid);
 			fibril_mutex_unlock(&window_list_mtx);
+			
+			if (event_unfocus && win_unfocus) {
+				comp_post_event_win(event_unfocus, win_unfocus);
+			}
+
 			return;
 		} else {
 			async_answer_0(callid, EINVAL);
@@ -952,18 +1108,6 @@ static viewport_t *viewport_create(const char *vsl_name)
 	return vp;
 }
 
-static void comp_post_event(window_event_t *event)
-{
-	fibril_mutex_lock(&window_list_mtx);
-	window_t *win = (window_t *) list_first(&window_list);
-	if (win) {
-		prodcons_produce(&win->queue, &event->link);
-	} else {
-		free(event);
-	}
-	fibril_mutex_unlock(&window_list_mtx);
-}
-
 static void comp_recalc_transform(window_t *win)
 {
 	transform_t translate;
@@ -972,11 +1116,15 @@ static void comp_recalc_transform(window_t *win)
 
 	transform_t scale;
 	transform_identity(&scale);
-	transform_scale(&scale, win->fx, win->fy);
+	if (win->fx != 1 || win->fy != 1) {
+		transform_scale(&scale, win->fx, win->fy);
+	}
 
 	transform_t rotate;
 	transform_identity(&rotate);
-	transform_rotate(&rotate, win->angle);
+	if (win->angle != 0) {
+		transform_rotate(&rotate, win->angle);
+	}
 
 	transform_t transform;
 	transform_t temp;
@@ -993,9 +1141,10 @@ static void comp_recalc_transform(window_t *win)
 }
 
 static void comp_window_animate(pointer_t *pointer, window_t *win,
-     sysarg_t *dmg_x, sysarg_t *dmg_y, sysarg_t *dmg_width, sysarg_t *dmg_height)
+    sysarg_t *dmg_x, sysarg_t *dmg_y, sysarg_t *dmg_width, sysarg_t *dmg_height)
 {
 	/* window_list_mtx locked by caller */
+	/* pointer_list_mtx locked by caller */
 
 	int dx = pointer->accum.x;
 	int dy = pointer->accum.y;
@@ -1019,7 +1168,7 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 			cy = 1;
 		}
 
-		if (scale || resize) {
+		if ((scale || resize) && (win->angle != 0)) {
 			transform_t rotate;
 			transform_identity(&rotate);
 			transform_rotate(&rotate, win->angle);
@@ -1036,25 +1185,37 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 	if (scale || resize) {
 		double _dx = dx;
 		double _dy = dy;
-		transform_t unrotate;
-		transform_identity(&unrotate);
-		transform_rotate(&unrotate, -win->angle);
-		transform_apply_linear(&unrotate, &_dx, &_dy);
+		if (win->angle != 0) {
+			transform_t unrotate;
+			transform_identity(&unrotate);
+			transform_rotate(&unrotate, -win->angle);
+			transform_apply_linear(&unrotate, &_dx, &_dy);
+		}
 		_dx = (pointer->grab_flags & GF_MOVE_X) ? -_dx : _dx;
 		_dy = (pointer->grab_flags & GF_MOVE_Y) ? -_dy : _dy;
 
 		if ((pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_RESIZE_X)) {
-			double fx = 1.0 + (_dx / (width * win->fx));
+			double fx = 1.0 + (_dx / ((width - 1) * win->fx));
 			if (fx > 0) {
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+				if (scale) win->fx *= fx;
+#endif
+#if ANIMATE_WINDOW_TRANSFORMS == 1
 				win->fx *= fx;
+#endif
 				scale_back_x *= fx;
 			}
 		}
 
 		if ((pointer->grab_flags & GF_SCALE_Y) || (pointer->grab_flags & GF_RESIZE_Y)) {
-			double fy = 1.0 + (_dy / (height * win->fy));
+			double fy = 1.0 + (_dy / ((height - 1) * win->fy));
 			if (fy > 0) {
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+				if (scale) win->fy *= fy;
+#endif
+#if ANIMATE_WINDOW_TRANSFORMS == 1
 				win->fy *= fy;
+#endif
 				scale_back_y *= fy;
 			}
 		}
@@ -1070,6 +1231,115 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 	rectangle_union(x1, y1, width1, height1, x2, y2, width2, height2,
 	    dmg_x, dmg_y, dmg_width, dmg_height);
 }
+
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+static void comp_ghost_animate(pointer_t *pointer,
+    desktop_rect_t *rect1, desktop_rect_t *rect2, desktop_rect_t *rect3, desktop_rect_t *rect4)
+{
+	/* window_list_mtx locked by caller */
+	/* pointer_list_mtx locked by caller */
+
+	int dx = pointer->accum_ghost.x;
+	int dy = pointer->accum_ghost.y;
+	pointer->accum_ghost.x = 0;
+	pointer->accum_ghost.y = 0;
+
+	bool move = (pointer->grab_flags & GF_MOVE_X) || (pointer->grab_flags & GF_MOVE_Y);
+	bool scale = (pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_SCALE_Y);
+	bool resize = (pointer->grab_flags & GF_RESIZE_X) || (pointer->grab_flags & GF_RESIZE_Y);
+
+	sysarg_t width, height;
+	surface_get_resolution(pointer->ghost.surface, &width, &height);
+
+	if (move) {
+		double cx = 0;
+		double cy = 0;
+		if (pointer->grab_flags & GF_MOVE_X) {
+			cx = 1;
+		}
+		if (pointer->grab_flags & GF_MOVE_Y) {
+			cy = 1;
+		}
+
+		if (scale || resize) {
+			transform_t rotate;
+			transform_identity(&rotate);
+			transform_rotate(&rotate, pointer->ghost.angle);
+			transform_apply_linear(&rotate, &cx, &cy);
+		}
+
+		cx = (cx < 0) ? (-1 * cx) : cx;
+		cy = (cy < 0) ? (-1 * cy) : cy;
+
+		pointer->ghost.dx += (cx * dx);
+		pointer->ghost.dy += (cy * dy);
+	}
+
+	if (scale || resize) {
+		double _dx = dx;
+		double _dy = dy;
+		transform_t unrotate;
+		transform_identity(&unrotate);
+		transform_rotate(&unrotate, -pointer->ghost.angle);
+		transform_apply_linear(&unrotate, &_dx, &_dy);
+		_dx = (pointer->grab_flags & GF_MOVE_X) ? -_dx : _dx;
+		_dy = (pointer->grab_flags & GF_MOVE_Y) ? -_dy : _dy;
+
+		if ((pointer->grab_flags & GF_SCALE_X) || (pointer->grab_flags & GF_RESIZE_X)) {
+			double fx = 1.0 + (_dx / ((width - 1) * pointer->ghost.fx));
+			pointer->ghost.fx *= fx;
+		}
+
+		if ((pointer->grab_flags & GF_SCALE_Y) || (pointer->grab_flags & GF_RESIZE_Y)) {
+			double fy = 1.0 + (_dy / ((height - 1) * pointer->ghost.fy));
+			pointer->ghost.fy *= fy;
+		}
+	}
+
+	sysarg_t x1, y1, width1, height1;
+	sysarg_t x2, y2, width2, height2;
+	comp_coord_bounding_rect(0, 0, width, height, pointer->ghost.transform,
+	    &x1, &y1, &width1, &height1);
+	comp_recalc_transform(&pointer->ghost);
+	comp_coord_bounding_rect(0, 0, width, height, pointer->ghost.transform,
+	    &x2, &y2, &width2, &height2);
+
+	sysarg_t x_u, y_u, w_u, h_u;
+	rectangle_union(x1, y1, width1, height1, x2, y2, width2, height2,
+	    &x_u, &y_u, &w_u, &h_u);
+
+	sysarg_t x_i, y_i, w_i, h_i;
+	rectangle_intersect(x1, y1, width1, height1, x2, y2, width2, height2,
+	    &x_i, &y_i, &w_i, &h_i);
+
+	if (w_i == 0 || h_i == 0) {
+		rect1->x = x_u; rect2->x = 0; rect3->x = 0; rect4->x = 0;
+		rect1->y = y_u; rect2->y = 0; rect3->y = 0; rect4->y = 0;
+		rect1->w = w_u; rect2->w = 0; rect3->w = 0; rect4->w = 0;
+		rect1->h = h_u; rect2->h = 0; rect3->h = 0; rect4->h = 0;
+	} else {
+		rect1->x = x_u;
+		rect1->y = y_u;
+		rect1->w = x_i - x_u + 1;
+		rect1->h = h_u;
+
+		rect2->x = x_u;
+		rect2->y = y_u;
+		rect2->w = w_u;
+		rect2->h = y_i - y_u + 1;
+
+		rect3->x = x_i + w_i - 1;
+		rect3->y = y_u;
+		rect3->w = w_u - w_i - x_i + x_u + 1;
+		rect3->h = h_u;
+		
+		rect4->x = x_u;
+		rect4->y = y_i + h_i - 1;
+		rect4->w = w_u;
+		rect4->h = h_u - h_i - y_i + y_u + 1;
+	}
+}
+#endif
 
 static int comp_abs_move(input_t *input, unsigned x , unsigned y,
     unsigned max_x, unsigned max_y)
@@ -1124,6 +1394,7 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 	comp_damage(old_pos.x + dx, old_pos.y + dy, cursor_width, cursor_height);
 
 	fibril_mutex_lock(&window_list_mtx);
+	fibril_mutex_lock(&pointer_list_mtx);
 	window_t *top = (window_t *) list_first(&window_list);
 	if (top && top->surface) {
 
@@ -1135,10 +1406,10 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 			surface_get_resolution(top->surface, &width, &height);
 			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
 			    top->transform, width, height, &point_x, &point_y);
-			fibril_mutex_unlock(&window_list_mtx);
 
+			window_event_t *event = NULL;
 			if (within_client) {
-				window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
+				event = (window_event_t *) malloc(sizeof(window_event_t));
 				if (event) {
 					link_initialize(&event->link);
 					event->type = ET_POSITION_EVENT;
@@ -1147,23 +1418,53 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 					event->data.pos.btn_num = pointer->btn_num;
 					event->data.pos.hpos = point_x;
 					event->data.pos.vpos = point_y;
-					comp_post_event(event);
 				}
 			}
+
+			fibril_mutex_unlock(&pointer_list_mtx);
+			fibril_mutex_unlock(&window_list_mtx);
+
+			if (event) {
+				comp_post_event_top(event);
+			}
+
 		} else {
 			/* Pointer is grabbed by top-level window action. */
 			pointer->accum.x += dx;
 			pointer->accum.y += dy;
+			pointer->accum_ghost.x += dx;
+			pointer->accum_ghost.y += dy;
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+			if (pointer->ghost.surface == NULL) {
+				pointer->ghost.surface = top->surface;
+				pointer->ghost.dx = top->dx;
+				pointer->ghost.dy = top->dy;
+				pointer->ghost.fx = top->fx;
+				pointer->ghost.fy = top->fy;
+				pointer->ghost.angle = top->angle;
+				pointer->ghost.transform = top->transform;
+			}
+			desktop_rect_t dmg_rect1, dmg_rect2, dmg_rect3, dmg_rect4;
+			comp_ghost_animate(pointer, &dmg_rect1, &dmg_rect2, &dmg_rect3, &dmg_rect4);
+#endif
 #if ANIMATE_WINDOW_TRANSFORMS == 1
 			sysarg_t x, y, width, height;
 			comp_window_animate(pointer, top, &x, &y, &width, &height);
 #endif
+			fibril_mutex_unlock(&pointer_list_mtx);
 			fibril_mutex_unlock(&window_list_mtx);
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+			comp_damage(dmg_rect1.x, dmg_rect1.y, dmg_rect1.w, dmg_rect1.h);
+			comp_damage(dmg_rect2.x, dmg_rect2.y, dmg_rect2.w, dmg_rect2.h);
+			comp_damage(dmg_rect3.x, dmg_rect3.y, dmg_rect3.w, dmg_rect3.h);
+			comp_damage(dmg_rect4.x, dmg_rect4.y, dmg_rect4.w, dmg_rect4.h);
+#endif
 #if ANIMATE_WINDOW_TRANSFORMS == 1
 			comp_damage(x, y, width, height);
 #endif
 		}
 	} else {
+		fibril_mutex_unlock(&pointer_list_mtx);
 		fibril_mutex_unlock(&window_list_mtx);
 	}
 
@@ -1174,83 +1475,94 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 {
 	pointer_t *pointer = input_pointer(input);
 
+	fibril_mutex_lock(&window_list_mtx);
+	fibril_mutex_lock(&pointer_list_mtx);
+	window_t *win = NULL;
+	sysarg_t point_x = 0;
+	sysarg_t point_y = 0;
+	sysarg_t width, height;
+	bool within_client = false;
+
+	/* Determine the window which the mouse click belongs to. */
+	list_foreach(window_list, link) {
+		win = list_get_instance(link, window_t, link);
+		if (win->surface) {
+			surface_get_resolution(win->surface, &width, &height);
+			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
+			    win->transform, width, height, &point_x, &point_y);
+		}
+		if (within_client) {
+			break;
+		}
+	}
+
+	/* Check whether the window is top-level window. */
+	window_t *top = (window_t *) list_first(&window_list);
+	if (!win || !top) {
+		fibril_mutex_unlock(&pointer_list_mtx);
+		fibril_mutex_unlock(&window_list_mtx);
+		return EOK;
+	}
+
+	window_event_t *event_top = NULL;
+	window_event_t *event_unfocus = NULL;
+	window_t *win_unfocus = NULL;
+	sysarg_t dmg_x, dmg_y;
+	sysarg_t dmg_width = 0;
+	sysarg_t dmg_height = 0;
+	
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+	desktop_rect_t dmg_rect1, dmg_rect2, dmg_rect3, dmg_rect4;
+#endif
+
 	if (bpress) {
 		pointer->btn_pos = pointer->pos;
 		pointer->btn_num = bnum;
 		pointer->pressed = true;
 
-		/* Check whether mouse press belongs to the top-level window. */
-		fibril_mutex_lock(&window_list_mtx);
-		window_t *win = (window_t *) list_first(&window_list);
-		if (!win || !win->surface) {
-			fibril_mutex_unlock(&window_list_mtx);
-			return EOK;
-		}
-		sysarg_t x, y, width, height;
-		surface_get_resolution(win->surface, &width, &height);
-		bool within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
-		    win->transform, width, height, &x, &y);
-		fibril_mutex_unlock(&window_list_mtx);
-
-		/* Send mouse press to the top-level window. */
-		if (within_client) {
-			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = ET_POSITION_EVENT;
-				event->data.pos.pos_id = pointer->id;
-				event->data.pos.type = POS_PRESS;
-				event->data.pos.btn_num = bnum;
-				event->data.pos.hpos = x;
-				event->data.pos.vpos = y;
-				comp_post_event(event);
-			} else {
-				return ENOMEM;
+		/* Bring the window to the foreground. */
+		if ((win != top) && within_client) {
+			win_unfocus = (window_t *) list_first(&window_list);
+			list_remove(&win->link);
+			list_prepend(&win->link, &window_list);
+			event_unfocus = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_unfocus) {
+				link_initialize(&event_unfocus->link);
+				event_unfocus->type = ET_WINDOW_UNFOCUS;
 			}
+			comp_coord_bounding_rect(0, 0, width, height, win->transform,
+			    &dmg_x, &dmg_y, &dmg_width, &dmg_height);
 		}
+
+		/* Notify top-level window about mouse press. */
+		if (within_client) {
+			event_top = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_top) {
+				link_initialize(&event_top->link);
+				event_top->type = ET_POSITION_EVENT;
+				event_top->data.pos.pos_id = pointer->id;
+				event_top->data.pos.type = POS_PRESS;
+				event_top->data.pos.btn_num = bnum;
+				event_top->data.pos.hpos = point_x;
+				event_top->data.pos.vpos = point_y;
+			}
+			pointer->grab_flags = GF_EMPTY;
+		}
+
 	} else if (pointer->pressed && pointer->btn_num == (unsigned)bnum) {
 		pointer->pressed = false;
 
-		fibril_mutex_lock(&window_list_mtx);
-		window_t *win = NULL;
-		sysarg_t point_x = 0;
-		sysarg_t point_y = 0;
-		sysarg_t width, height;
-		bool within_client = false;
-
-		/* Determine the window which the mouse release belongs to. */
-		list_foreach(window_list, link) {
-			win = list_get_instance(link, window_t, link);
-			if (win->surface) {
-				surface_get_resolution(win->surface, &width, &height);
-				within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
-				    win->transform, width, height, &point_x, &point_y);
-			}
-			if (within_client) {
-				break;
-			}
-		}
-
-		/* Check whether the window is top-level window. */
-		window_t *top = (window_t *) list_first(&window_list);
-		if (!win || !top) {
-			pointer->grab_flags = GF_EMPTY;
-			fibril_mutex_unlock(&window_list_mtx);
-			return EOK;
-		}
-
-		window_event_t *event = NULL;
-		sysarg_t dmg_x, dmg_y;
-		sysarg_t dmg_width = 0;
-		sysarg_t dmg_height = 0;
-
+#if ANIMATE_WINDOW_TRANSFORMS == 0
 		sysarg_t pre_x = 0; 
 		sysarg_t pre_y = 0;
 		sysarg_t pre_width = 0;
 		sysarg_t pre_height = 0;
 
-#if ANIMATE_WINDOW_TRANSFORMS == 0
 		if (pointer->grab_flags != GF_EMPTY) {
+			if (pointer->ghost.surface) {
+				comp_ghost_animate(pointer, &dmg_rect1, &dmg_rect2, &dmg_rect3, &dmg_rect4);
+				pointer->ghost.surface = NULL;
+			}
 			comp_window_animate(pointer, top, &pre_x, &pre_y, &pre_width, &pre_height);
 			dmg_x = pre_x;
 			dmg_y = pre_y;
@@ -1262,31 +1574,33 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		if ((pointer->grab_flags & GF_RESIZE_X) || (pointer->grab_flags & GF_RESIZE_Y)) {
 
 			surface_get_resolution(top->surface, &width, &height);
+#if ANIMATE_WINDOW_TRANSFORMS == 1
 			top->fx *= (1.0 / scale_back_x);
 			top->fy *= (1.0 / scale_back_y);
 			comp_recalc_transform(top);
+#endif
 
 			/* Commit proper resize action. */
-			event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = ET_WINDOW_RESIZE;
+			event_top = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_top) {
+				link_initialize(&event_top->link);
+				event_top->type = ET_WINDOW_RESIZE;
 
 				int dx = (int) (((double) width) * (scale_back_x - 1.0));
 				int dy = (int) (((double) height) * (scale_back_y - 1.0));
 
 				if (pointer->grab_flags & GF_RESIZE_X) {
-					event->data.rsz.width =
+					event_top->data.rsz.width =
 						((((int) width) + dx) >= 0) ? (width + dx) : 0;
 				} else {
-					event->data.rsz.width = width;
+					event_top->data.rsz.width = width;
 				}
 
 				if (pointer->grab_flags & GF_RESIZE_Y) {
-					event->data.rsz.height =
+					event_top->data.rsz.height =
 						((((int) height) + dy) >= 0) ? (height + dy) : 0;
 				} else {
-					event->data.rsz.height = height;
+					event_top->data.rsz.height = height;
 				}
 			}
 
@@ -1295,39 +1609,44 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (top == win)) {
 			
 			/* Notify top-level window about mouse release. */
-			event = (window_event_t *) malloc(sizeof(window_event_t));
-			if (event) {
-				link_initialize(&event->link);
-				event->type = ET_POSITION_EVENT;
-				event->data.pos.pos_id = pointer->id;
-				event->data.pos.type = POS_RELEASE;
-				event->data.pos.btn_num = bnum;
-				event->data.pos.hpos = point_x;
-				event->data.pos.vpos = point_y;
+			event_top = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event_top) {
+				link_initialize(&event_top->link);
+				event_top->type = ET_POSITION_EVENT;
+				event_top->data.pos.pos_id = pointer->id;
+				event_top->data.pos.type = POS_RELEASE;
+				event_top->data.pos.btn_num = bnum;
+				event_top->data.pos.hpos = point_x;
+				event_top->data.pos.vpos = point_y;
 			}
 			pointer->grab_flags = GF_EMPTY;
-			
-		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (bnum == 1)) {
-
-			/* Bring the window to the foreground. */
-			list_remove(&win->link);
-			list_prepend(&win->link, &window_list);
-			comp_coord_bounding_rect(0, 0, width, height, win->transform,
-			    &dmg_x, &dmg_y, &dmg_width, &dmg_height);
 			
 		} else {
 			pointer->grab_flags = GF_EMPTY;
 		}
 
-		fibril_mutex_unlock(&window_list_mtx);
+	}
 
-		if (dmg_width > 0 && dmg_height > 0) {
-			comp_damage(dmg_x, dmg_y, dmg_width, dmg_height);
-		}
+	fibril_mutex_unlock(&pointer_list_mtx);
+	fibril_mutex_unlock(&window_list_mtx);
 
-		if (event) {
-			comp_post_event(event);
-		}
+#if ANIMATE_WINDOW_TRANSFORMS == 0
+		comp_damage(dmg_rect1.x, dmg_rect1.y, dmg_rect1.w, dmg_rect1.h);
+		comp_damage(dmg_rect2.x, dmg_rect2.y, dmg_rect2.w, dmg_rect2.h);
+		comp_damage(dmg_rect3.x, dmg_rect3.y, dmg_rect3.w, dmg_rect3.h);
+		comp_damage(dmg_rect4.x, dmg_rect4.y, dmg_rect4.w, dmg_rect4.h);
+#endif
+
+	if (dmg_width > 0 && dmg_height > 0) {
+		comp_damage(dmg_x, dmg_y, dmg_width, dmg_height);
+	}
+
+	if (event_unfocus && win_unfocus) {
+		comp_post_event_win(event_unfocus, win_unfocus);
+	}
+
+	if (event_top) {
+		comp_post_event_top(event_top);
 	}
 
 	return EOK;
@@ -1451,7 +1770,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			}
 
 			fibril_mutex_unlock(&window_list_mtx);
-			comp_post_event(event);
+			comp_post_event_top(event);
 		} else {
 			fibril_mutex_unlock(&window_list_mtx);
 		}
@@ -1493,7 +1812,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		link_initialize(&event->link);
 		event->type = ET_WINDOW_CLOSE;
 
-		comp_post_event(event);
+		comp_post_event_top(event);
 	} else if (win_switch) {
 		fibril_mutex_lock(&window_list_mtx);
 		if (!list_empty(&window_list)) {
@@ -1501,6 +1820,18 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			list_remove(&win1->link);
 			list_append(&win1->link, &window_list);
 			window_t *win2 = (window_t *) list_first(&window_list);
+
+			window_event_t *event1 = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event1) {
+				link_initialize(&event1->link);
+				event1->type = ET_WINDOW_UNFOCUS;
+			}
+
+			window_event_t *event2 = (window_event_t *) malloc(sizeof(window_event_t));
+			if (event2) {
+				link_initialize(&event2->link);
+				event2->type = ET_WINDOW_FOCUS;
+			}
 
 			sysarg_t x1 = 0;
 			sysarg_t y1 = 0;
@@ -1529,6 +1860,15 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			    &x, &y, &width, &height);
 
 			fibril_mutex_unlock(&window_list_mtx);
+
+			if (event1 && win1) {
+				comp_post_event_win(event1, win1);
+			}
+
+			if (event2 && win2) {
+				comp_post_event_win(event2, win2);
+			}
+
 			comp_damage(x, y, width, height);
 		} else {
 			fibril_mutex_unlock(&window_list_mtx);
@@ -1599,7 +1939,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	} else if (compositor_test) {
 		fibril_mutex_lock(&window_list_mtx);
 
-		window_t *red_win = window_create();
+		window_t *red_win = window_create(0, 0);
 		red_win->surface = surface_create(250, 150, NULL, 0);
 		pixel_t red_pix = PIXEL(255, 240, 0, 0);
 		for (sysarg_t y = 0; y <  150; ++y) {
@@ -1609,7 +1949,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		}
 		list_prepend(&red_win->link, &window_list);
 
-		window_t *blue_win = window_create();
+		window_t *blue_win = window_create(0, 0);
 		blue_win->surface = surface_create(200, 100, NULL, 0);
 		pixel_t blue_pix = PIXEL(255, 0, 0, 240);
 		for (sysarg_t y = 0; y <  100; ++y) {
@@ -1619,11 +1959,11 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		}
 		list_prepend(&blue_win->link, &window_list);
 
-		window_t *helenos_win = window_create();
+		window_t *helenos_win = window_create(0, 0);
 		helenos_win->surface = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
 		list_prepend(&helenos_win->link, &window_list);
 
-		window_t *nameic_win = window_create();
+		window_t *nameic_win = window_create(0, 0);
 		nameic_win->surface = decode_tga((void *) nameic_tga, nameic_tga_size, 0);
 		list_prepend(&nameic_win->link, &window_list);
 
@@ -1641,7 +1981,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		event->data.kbd.mods = mods;
 		event->data.kbd.c = c;
 
-		comp_post_event(event);
+		comp_post_event_top(event);
 	}
 
 	return EOK;
@@ -1692,7 +2032,7 @@ static int input_connect(const char *svc)
 
 static void input_disconnect(void)
 {
-    	pointer_t *pointer = input->user;
+	pointer_t *pointer = input->user;
 	input_close(input);
 	pointer_destroy(pointer);
 }
@@ -1705,7 +2045,7 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 static int compositor_srv_init(char *input_svc, char *name)
 {
 	/* Coordinates of the central pixel. */
-	coord_origin = UINT32_MAX / 2;
+	coord_origin = UINT32_MAX / 4;
 	
 	/* Color of the viewport background. Must be opaque. */
 	bg_color = PIXEL(255, 75, 70, 75);

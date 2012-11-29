@@ -36,6 +36,8 @@
 #ifndef SOFTREND_TRANSFORM_H_
 #define SOFTREND_TRANSFORM_H_
 
+#include <bool.h>
+
 #ifndef PI
 #define PI 3.141592653589793
 #endif
@@ -51,6 +53,8 @@ extern void transform_identity(transform_t *);
 extern void transform_translate(transform_t *, double, double);
 extern void transform_scale(transform_t *, double, double);
 extern void transform_rotate(transform_t *, double);
+
+extern bool transform_is_fast(transform_t *);
 
 extern void transform_apply_linear(const transform_t *, double *, double *);
 extern void transform_apply_affine(const transform_t *, double *, double *);
