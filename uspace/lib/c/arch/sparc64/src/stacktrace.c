@@ -34,7 +34,7 @@
  */
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <libarch/stack.h>
 #include <errno.h>
 

@@ -35,7 +35,7 @@
 #ifndef LIBC_abs32le_ATOMIC_H_
 #define LIBC_abs32le_ATOMIC_H_
 
-#include <bool.h>
+#include <stdbool.h>
 
 #define LIBC_ARCH_ATOMIC_H_
 #define CAS

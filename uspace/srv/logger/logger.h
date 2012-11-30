@@ -39,7 +39,7 @@
 #include <adt/prodcons.h>
 #include <io/log.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 

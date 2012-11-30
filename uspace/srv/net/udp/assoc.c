@@ -35,7 +35,7 @@
  */
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <stdlib.h>

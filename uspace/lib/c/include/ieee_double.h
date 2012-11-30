@@ -30,7 +30,7 @@
 #define IEEE_DOUBLE_H_
 
 #include <stdint.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /** Represents a non-negative floating point number: significand * 2^exponent */
 typedef struct fp_num_t_tag {

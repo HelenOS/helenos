@@ -40,7 +40,7 @@
 #endif
 
 #include <stdint.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef struct atomic {
 	volatile atomic_count_t count;

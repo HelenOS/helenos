@@ -38,7 +38,7 @@
 #include <adt/list.h>
 #include <async.h>
 #include <fibril_synch.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 typedef struct bd_ops bd_ops_t;

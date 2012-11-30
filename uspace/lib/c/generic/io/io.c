@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <str.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <malloc.h>
 #include <async.h>
 #include <io/klog.h>

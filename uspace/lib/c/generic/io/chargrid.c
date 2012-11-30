@@ -36,7 +36,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <as.h>
 #include <io/chargrid.h>
 

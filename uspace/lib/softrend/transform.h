@@ -36,7 +36,7 @@
 #ifndef SOFTREND_TRANSFORM_H_
 #define SOFTREND_TRANSFORM_H_
 
-#include <bool.h>
+#include <stdbool.h>
 
 #ifndef PI
 #define PI 3.141592653589793

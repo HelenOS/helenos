@@ -39,7 +39,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <thread.h>
-#include <bool.h>
+#include <stdbool.h>
 #include "../kbd_port.h"
 #include "../kbd.h"
 

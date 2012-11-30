@@ -39,7 +39,7 @@
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include "../../vfs/vfs.h"
 
 #ifndef dprintf

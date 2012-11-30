@@ -37,7 +37,7 @@
  */
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/input.h>

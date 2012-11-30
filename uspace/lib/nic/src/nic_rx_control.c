@@ -37,7 +37,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <mem.h>
 #include <nic/nic.h>

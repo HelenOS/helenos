@@ -35,7 +35,7 @@
 #ifndef ABI_BOOL_H_
 #define ABI_BOOL_H_
 
-typedef uint8_t bool;
+#define bool _Bool
 
 #endif
 

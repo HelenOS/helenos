@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fibril.h>
 #include <net/socket.h>

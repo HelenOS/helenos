@@ -32,7 +32,7 @@
  * @brief ps2 mouse driver.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <ddf/log.h>
 #include <io/keycode.h>

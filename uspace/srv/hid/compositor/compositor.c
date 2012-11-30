@@ -33,7 +33,7 @@
  */
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <str_error.h>
 #include <byteorder.h>

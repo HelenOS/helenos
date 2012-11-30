@@ -37,7 +37,7 @@
 #ifndef SOFTREND_PIXCONV_H_
 #define SOFTREND_PIXCONV_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <io/pixel.h>
 
 /** Function to render a pixel. */

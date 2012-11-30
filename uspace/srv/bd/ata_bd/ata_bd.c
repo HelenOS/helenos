@@ -59,7 +59,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <byteorder.h>
 #include <task.h>
 #include <macros.h>

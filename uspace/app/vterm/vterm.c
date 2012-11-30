@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <io/pixel.h>
 #include <task.h>

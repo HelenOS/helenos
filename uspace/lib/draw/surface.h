@@ -38,7 +38,7 @@
 #define DRAW_SURFACE_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <io/pixelmap.h>
 
 struct surface;

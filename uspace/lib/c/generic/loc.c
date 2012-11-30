@@ -36,7 +36,7 @@
 #include <async.h>
 #include <errno.h>
 #include <malloc.h>
-#include <bool.h>
+#include <stdbool.h>
 
 static FIBRIL_MUTEX_INITIALIZE(loc_supp_block_mutex);
 static FIBRIL_MUTEX_INITIALIZE(loc_cons_block_mutex);

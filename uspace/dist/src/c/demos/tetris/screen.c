@@ -60,7 +60,7 @@
 #include <unistd.h>
 #include <vfs/vfs.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <io/console.h>
 #include <io/style.h>
 #include "screen.h"

@@ -35,7 +35,7 @@
 #ifndef LIBC_IO_WINDOW_H_
 #define LIBC_IO_WINDOW_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <async.h>
 #include <loc.h>

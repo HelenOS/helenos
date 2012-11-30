@@ -35,7 +35,7 @@
  * @brief ADB protocol driver.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include "../mouse.h"
 #include "../mouse_port.h"
 #include "../mouse_proto.h"

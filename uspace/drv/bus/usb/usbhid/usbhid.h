@@ -43,7 +43,7 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
 #include <usb/hid/hid.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef struct usb_hid_dev usb_hid_dev_t;
 typedef struct usb_hid_subdriver usb_hid_subdriver_t;

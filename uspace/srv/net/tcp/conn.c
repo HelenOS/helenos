@@ -35,7 +35,7 @@
  */
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <io/log.h>
 #include <macros.h>

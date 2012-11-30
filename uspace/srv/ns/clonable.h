@@ -35,7 +35,7 @@
 
 #include <ipc/common.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 extern int clonable_init(void);
 

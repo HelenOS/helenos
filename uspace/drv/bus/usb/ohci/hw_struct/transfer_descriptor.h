@@ -34,7 +34,7 @@
 #ifndef DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
-#include <bool.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "mem_access.h"

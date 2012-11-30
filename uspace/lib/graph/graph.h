@@ -37,7 +37,7 @@
 #define GRAPH_GRAPH_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <loc.h>
 #include <async.h>
 #include <atomic.h>

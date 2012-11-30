@@ -34,7 +34,7 @@
 #include <errno.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "../input.h"
 #include "../layout.h"

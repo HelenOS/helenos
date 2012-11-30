@@ -34,7 +34,7 @@
  */
 
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <malloc.h>
 
 #include "path.h"

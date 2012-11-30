@@ -43,7 +43,7 @@
 #include <io/kbd_event.h>
 #include <io/pixel.h>
 #include <io/style.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/time.h>
 #include <sys/types.h>
 

@@ -33,7 +33,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define EXFAT_FILENAME_LEN	255
 #define EXFAT_NAME_PART_LEN	15

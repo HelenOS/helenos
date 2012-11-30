@@ -33,7 +33,7 @@
  * Hub ports functions.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>

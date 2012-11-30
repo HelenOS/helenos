@@ -44,7 +44,7 @@
 #include <task.h>
 #include <time.h>
 #include <arg_parse.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #include <net/in.h>
 #include <net/in6.h>
