@@ -265,7 +265,7 @@ static bool comp_coord_to_client(sysarg_t x_in, sysarg_t y_in, transform_t win_t
 	}
 }
 
-static void comp_coord_from_client(sysarg_t x_in, sysarg_t y_in, transform_t win_trans,
+static void comp_coord_from_client(double x_in, double y_in, transform_t win_trans,
     sysarg_t *x_out, sysarg_t *y_out)
 {
 	double x = x_in;
@@ -278,8 +278,8 @@ static void comp_coord_from_client(sysarg_t x_in, sysarg_t y_in, transform_t win
 	(*y_out) = (sysarg_t) (y + 0.5);
 }
 
-static void comp_coord_bounding_rect(sysarg_t x_in, sysarg_t y_in,
-    sysarg_t w_in, sysarg_t h_in, transform_t win_trans,
+static void comp_coord_bounding_rect(double x_in, double y_in,
+    double w_in, double h_in, transform_t win_trans,
     sysarg_t *x_out, sysarg_t *y_out, sysarg_t *w_out, sysarg_t *h_out)
 {
 	if (w_in > 0 && h_in > 0) {
@@ -302,6 +302,8 @@ static void comp_coord_bounding_rect(sysarg_t x_in, sysarg_t y_in,
 		(*w_out) = (*w_out) - (*x_out) + 1;
 		(*h_out) = (*h_out) - (*y_out) + 1;
 	} else {
+		(*x_out) = 0;
+		(*y_out) = 0;
 		(*w_out) = 0;
 		(*h_out) = 0;
 	}
@@ -546,19 +548,20 @@ static void comp_window_get_event(window_t *win, ipc_callid_t iid, ipc_call_t *i
 
 static void comp_window_damage(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
-	sysarg_t x = IPC_GET_ARG1(*icall);
-	sysarg_t y = IPC_GET_ARG2(*icall);
-	sysarg_t width = IPC_GET_ARG3(*icall);
-	sysarg_t height = IPC_GET_ARG4(*icall);
+	double x = IPC_GET_ARG1(*icall);
+	double y = IPC_GET_ARG2(*icall);
+	double width = IPC_GET_ARG3(*icall);
+	double height = IPC_GET_ARG4(*icall);
 
 	if (width == 0 || height == 0) {
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		fibril_mutex_lock(&window_list_mtx);
+		sysarg_t x_dmg_glob, y_dmg_glob, w_dmg_glob, h_dmg_glob;
 		comp_coord_bounding_rect(x - 1, y - 1, width + 2, height + 2,
-		    win->transform, &x, &y, &width, &height);
+		    win->transform, &x_dmg_glob, &y_dmg_glob, &w_dmg_glob, &h_dmg_glob);
 		fibril_mutex_unlock(&window_list_mtx);
-		comp_damage(x, y, width, height);
+		comp_damage(x_dmg_glob, y_dmg_glob, w_dmg_glob, h_dmg_glob);
 	}
 
 	async_answer_0(iid, EOK);
