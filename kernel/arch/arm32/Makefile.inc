@@ -75,10 +75,6 @@ ifeq ($(MACHINE),gta02)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
 endif
 
-ifeq ($(MACHINE),testarm)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
-endif
-
 ifeq ($(MACHINE),integratorcp)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
 endif

@@ -62,9 +62,6 @@
 #define S3C24XX_UTXH_TX_EMPTY	0x00000004
 
 
-/** GXemul testarm serial console output register */
-#define TESTARM_SCONS_ADDR	0x10000000
-
 /** IntegratorCP serial console output register */
 #define ICP_SCONS_ADDR		0x16000000
 

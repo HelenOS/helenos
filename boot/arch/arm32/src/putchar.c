@@ -86,19 +86,6 @@ static void scons_sendb_gta02(uint8_t byte)
 
 #endif
 
-#ifdef MACHINE_testarm
-
-/** Send a byte to the GXemul testarm serial console.
- *
- * @param byte		Byte to send.
- */
-static void scons_sendb_testarm(uint8_t byte)
-{
-	*((volatile uint8_t *) TESTARM_SCONS_ADDR) = byte;
-}
-
-#endif
-
 #ifdef MACHINE_integratorcp
 
 /** Send a byte to the IntegratorCP serial console.
@@ -123,9 +110,6 @@ static void scons_sendb(uint8_t byte)
 #endif
 #ifdef MACHINE_gta02
 	scons_sendb_gta02(byte);
-#endif
-#ifdef MACHINE_testarm
-	scons_sendb_testarm(byte);
 #endif
 #ifdef MACHINE_integratorcp
 	scons_sendb_icp(byte);

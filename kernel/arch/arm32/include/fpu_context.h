@@ -30,9 +30,7 @@
  * @{
  */
 /** @file
- *  @brief FPU context (not implemented).
- *
- *  GXemul doesn't support FPU on its ARM CPU.
+ *  @brief FPU context.
  */
 
 #ifndef KERN_arm32_FPU_CONTEXT_H_
