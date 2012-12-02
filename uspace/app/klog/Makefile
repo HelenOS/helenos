@@ -28,6 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
+LIBS = $(LIBCLUI_PREFIX)/libclui.a
+EXTRA_CFLAGS = -I$(LIBCLUI_PREFIX)
 BINARY = klog
 
 SOURCES = \
