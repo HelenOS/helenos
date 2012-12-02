@@ -371,6 +371,8 @@ sysarg_t sys_klog(int cmd, const void *buf, size_t size)
 			printf("%s", data);
 			break;
 		case KLOG_COMMAND:
+			if (!stdin)
+				break;
 			for (unsigned int i = 0; i < size; i++)
 				indev_push_character(stdin, data[i]);
 			indev_push_character(stdin, '\n');
