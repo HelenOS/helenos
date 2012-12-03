@@ -138,9 +138,11 @@ static bool dequeue_work(struct work_queue *workq, work_t **pwork_item);
 static bool worker_unnecessary(struct work_queue *workq);
 static void cv_wait(struct work_queue *workq);
 static void nonblock_init(void);
+
+#ifdef CONFIG_DEBUG
 static bool workq_corrupted(struct work_queue *workq);
 static bool work_item_corrupted(work_t *work_item);
-
+#endif
 
 /** Creates worker thread for the system-wide worker queue. */
 void workq_global_worker_init(void)
@@ -203,7 +205,9 @@ void workq_destroy(struct work_queue *workq)
 	
 	irq_spinlock_lock(&workq->lock, true);
 	bool stopped = workq->stopping;
+#ifdef CONFIG_DEBUG
 	size_t running_workers = workq->cur_worker_cnt;
+#endif
 	irq_spinlock_unlock(&workq->lock, true);
 	
 	if (!stopped) {
@@ -939,13 +943,13 @@ static void nonblock_init(void)
 	}
 }
 
+#ifdef CONFIG_DEBUG
 /** Returns true if the workq is definitely corrupted; false if not sure. 
  * 
  * Can be used outside of any locks.
  */
 static bool workq_corrupted(struct work_queue *workq)
 {
-#ifdef CONFIG_DEBUG
 	/* 
 	 * Needed to make the most current cookie value set by workq_preinit()
 	 * visible even if we access the workq right after it is created but
@@ -954,9 +958,6 @@ static bool workq_corrupted(struct work_queue *workq)
 	 */
 	memory_barrier();
 	return NULL == workq || workq->cookie != WORKQ_MAGIC;
-#else
-	return false;
-#endif
 }
 
 /** Returns true if the work_item is definitely corrupted; false if not sure. 
@@ -965,12 +966,9 @@ static bool workq_corrupted(struct work_queue *workq)
  */
 static bool work_item_corrupted(work_t *work_item)
 {
-#ifdef CONFIG_DEBUG
 	return NULL == work_item || work_item->cookie != WORK_ITEM_MAGIC;
-#else
-	return false;
-#endif
 }
+#endif
 
 /** @}
  */
