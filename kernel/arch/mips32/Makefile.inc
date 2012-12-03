@@ -48,7 +48,12 @@ ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
 endif
-ifeq ($(MACHINE),malta)
+ifeq ($(MACHINE),bmalta)
+	BFD_NAME = elf32-tradbigmips
+	ENDIANESS = BE
+	GCC_CFLAGS += -D__BE__
+endif
+ifeq ($(MACHINE),lmalta)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
 endif

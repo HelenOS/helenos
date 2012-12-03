@@ -675,11 +675,11 @@ def main():
 				check_config(config, "MACHINE")
 				common['CC_ARGS'].append("-mabi=32")
 				
-				if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim") or (config['MACHINE'] == 'malta')):
+				if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 					target = config['PLATFORM']
 					gnu_target = "mipsel-linux-gnu"
 				
-				if (config['MACHINE'] == "bgxemul"):
+				if ((config['MACHINE'] == "bgxemul") or (config['MACHINE'] == "bmalta")):
 					target = "mips32eb"
 					gnu_target = "mips-linux-gnu"
 			

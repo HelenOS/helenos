@@ -48,10 +48,15 @@ ifeq ($(MACHINE),msim)
 	BFD_OUTPUT = binary
 	ENDIANESS = LE
 endif
-ifeq ($(MACHINE),malta)
+ifeq ($(MACHINE),lmalta)
 	BFD_NAME = elf32-tradlittlemips
 	BFD_OUTPUT = elf32-tradlittlemips 
 	ENDIANESS = LE
+endif
+ifeq ($(MACHINE),bmalta)
+	BFD_NAME = elf32-tradbigmips
+	BFD_OUTPUT = elf32-tradbigmips 
+	ENDIANESS = BE
 endif
 
 
