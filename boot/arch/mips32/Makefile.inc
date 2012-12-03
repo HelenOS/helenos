@@ -48,6 +48,12 @@ ifeq ($(MACHINE),msim)
 	BFD_OUTPUT = binary
 	ENDIANESS = LE
 endif
+ifeq ($(MACHINE),malta)
+	BFD_NAME = elf32-tradlittlemips
+	BFD_OUTPUT = elf32-tradlittlemips 
+	ENDIANESS = LE
+endif
+
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

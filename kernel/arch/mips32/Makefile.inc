@@ -48,6 +48,10 @@ ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
 endif
+ifeq ($(MACHINE),malta)
+	BFD_NAME = elf32-tradlittlemips
+	ENDIANESS = LE
+endif
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \

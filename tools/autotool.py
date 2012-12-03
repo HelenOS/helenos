@@ -675,7 +675,7 @@ def main():
 				check_config(config, "MACHINE")
 				common['CC_ARGS'].append("-mabi=32")
 				
-				if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim")):
+				if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim") or (config['MACHINE'] == 'malta')):
 					target = config['PLATFORM']
 					gnu_target = "mipsel-linux-gnu"
 				
