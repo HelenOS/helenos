@@ -122,12 +122,17 @@ static void libc_futex_bench(bench_t *bench)
 static void thread_func(void *arg)
 {
 	bench_t *bench = (bench_t*)arg;
-	assert(bench->type == T_KERN_FUTEX || bench->type == T_LIBC_FUTEX);
 	
-	if (bench->type == T_KERN_FUTEX) 
+	switch (bench->type) {
+	case T_KERN_FUTEX:
 		kernel_futex_bench(bench);
-	else
+		break;
+	case T_LIBC_FUTEX:
 		libc_futex_bench(bench);
+		break;
+	default:
+		assert(false);
+	}
 	
 	/* Signal another thread completed. */
 	futex_up(&bench->done_threads);
@@ -289,9 +294,12 @@ int main(int argc, char **argv)
 	getuptime(&end);
 	int64_t duration = tv_sub(&end, &start);
 	
+	if (0 == duration)
+		duration = 1;
+	
+	uint64_t secs = (uint64_t)duration / 1000 / 1000;
 	uint64_t total_iters = (uint64_t)bench.iters * bench.nthreads;
 	uint64_t iters_per_sec = total_iters * 1000 * 1000 / duration;
-	uint64_t secs = (uint64_t)duration / 1000 / 1000;
 	
 	printf("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64 
 		" secs); %" PRIu64 " iters/sec\n", 
