@@ -40,7 +40,13 @@
 #include <arch/exception.h>
 #include <trace.h>
 
+#if defined(PROCESSOR_R4000)
 #define TLB_ENTRY_COUNT  48
+#elif defined(PROCESSOR_4Kc)
+#define TLB_ENTRY_COUNT  16
+#else
+#error Please define TLB_ENTRY_COUNT for the target processor.
+#endif
 
 #define TLB_WIRED               1
 #define TLB_KSTACK_WIRED_INDEX  0
