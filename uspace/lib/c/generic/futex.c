@@ -35,6 +35,7 @@
 #include <futex.h>
 #include <atomic.h>
 
+
 /** Initialize futex counter.
  *
  * @param futex Futex.
@@ -49,16 +50,16 @@ void futex_initialize(futex_t *futex, int val)
 
 #ifdef FUTEX_UPGRADABLE
 
-int _upgrade_futex = 0;
+int _upgrade_futexes = 0;
 static futex_t upg_and_wait_futex = FUTEX_INITIALIZER;
 
 void futex_upgrade_all_and_wait(void)
 {
 	_futex_down(&upg_and_wait_futex);
 	
-	if (!_upgrade_futex) {
-		rcu_assign(_upgrade_futex, 1);
-		rcu_synchronize();
+	if (!_upgrade_futexes) {
+		rcu_assign(_upgrade_futexes, 1);
+		_rcu_synchronize(BM_BLOCK_THREAD);
 	}
 	
 	_futex_up(&upg_and_wait_futex);

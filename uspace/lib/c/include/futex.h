@@ -52,7 +52,7 @@ extern void futex_initialize(futex_t *futex, int value);
 #ifdef FUTEX_UPGRADABLE
 #include <rcu.h>
 
-#define FUTEX_INITIALIZE(val) {{(val)}, {0}}
+#define FUTEX_INITIALIZE(val) {{ (val) }, 0}
 
 #define futex_down(fut) \
 ({ \
@@ -93,7 +93,7 @@ extern void futex_upgrade_all_and_wait(void);
 		
 #else
 
-#define FUTEX_INITIALIZE(val) {{(val)}}
+#define FUTEX_INITIALIZE(val) {{ (val) }}
 
 #define futex_down(fut)     (void)_futex_down((fut))
 #define futex_trydown(fut)  _futex_trydown((fut))

@@ -78,6 +78,7 @@ static size_t sum_array(size_t *array, size_t len)
 	return sum;
 }
 
+
 static void  kernel_futex_bench(bench_t *bench)
 {
 	futex_t * const fut = &bench->ke_bench_fut;
@@ -135,7 +136,7 @@ static void thread_func(void *arg)
 	}
 	
 	/* Signal another thread completed. */
-	futex_up(&bench->done_threads);
+	_futex_up(&bench->done_threads);
 }
 
 static void run_threads_and_wait(bench_t *bench)
@@ -169,7 +170,7 @@ static void run_threads_and_wait(bench_t *bench)
 	
 	/* Wait for threads to complete. */
 	for (size_t k = 0; k < bench->nthreads; ++k) {
-		futex_down(&bench->done_threads);
+		_futex_down(&bench->done_threads);
 	}
 }
 
