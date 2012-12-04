@@ -225,8 +225,10 @@ void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
 	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
 		if (!call) {
 			call = ipc_prepare_async(private, callback);
-			if (!call)
+			if (!call) {
+				futex_unlock(&ipc_futex);
 				return;
+			}
 		}
 		
 		IPC_SET_IMETHOD(call->u.msg.data, imethod);
