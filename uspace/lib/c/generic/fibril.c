@@ -50,7 +50,7 @@
 #include <async.h>
 #include <futex.h>
 
-#ifdef FUTEX_UPGRADABLE
+#ifdef futex_unlockGRADABLE
 #include <rcu.h>
 #endif
 
@@ -87,7 +87,7 @@ static void fibril_main(void)
 {
 	fibril_t *fibril = __tcb_get()->fibril_data;
 
-#ifdef FUTEX_UPGRADABLE
+#ifdef futex_unlockGRADABLE
 	rcu_register_fibril();
 #endif
 	
@@ -151,7 +151,7 @@ int fibril_switch(fibril_switch_type_t stype)
 {
 	int retval = 0;
 	
-	futex_down(&fibril_futex);
+	futex_lock(&fibril_futex);
 	
 	if (stype == FIBRIL_PREEMPT && list_empty(&ready_list))
 		goto ret_0;
@@ -173,9 +173,9 @@ int fibril_switch(fibril_switch_type_t stype)
 	/* If we are going to manager and none exists, create it */
 	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
 		while (list_empty(&manager_list)) {
-			futex_up(&fibril_futex);
+			futex_unlock(&fibril_futex);
 			async_create_manager();
-			futex_down(&fibril_futex);
+			futex_lock(&fibril_futex);
 		}
 	}
 	
@@ -208,7 +208,7 @@ int fibril_switch(fibril_switch_type_t stype)
 				srcf->clean_after_me = NULL;
 			}
 			
-			return 1;	/* futex_up already done here */
+			return 1;	/* futex_unlock already done here */
 		}
 		
 		/* Save myself to the correct run list */
@@ -251,9 +251,9 @@ int fibril_switch(fibril_switch_type_t stype)
 	}
 	list_remove(&dstf->link);
 	
-	futex_up(&fibril_futex);
+	futex_unlock(&fibril_futex);
 	
-#ifdef FUTEX_UPGRADABLE
+#ifdef futex_unlockGRADABLE
 	if (stype == FIBRIL_FROM_DEAD) {
 		rcu_deregister_fibril();
 	}
@@ -263,7 +263,7 @@ int fibril_switch(fibril_switch_type_t stype)
 	/* not reached */
 	
 ret_0:
-	futex_up(&fibril_futex);
+	futex_unlock(&fibril_futex);
 	return retval;
 }
 
@@ -328,14 +328,14 @@ void fibril_add_ready(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
 	
-	futex_down(&fibril_futex);
+	futex_lock(&fibril_futex);
 	
 	if ((fibril->flags & FIBRIL_SERIALIZED))
 		list_append(&fibril->link, &serialized_list);
 	else
 		list_append(&fibril->link, &ready_list);
 	
-	futex_up(&fibril_futex);
+	futex_unlock(&fibril_futex);
 }
 
 /** Add a fibril to the manager list.
@@ -348,20 +348,20 @@ void fibril_add_manager(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
 	
-	futex_down(&fibril_futex);
+	futex_lock(&fibril_futex);
 	list_append(&fibril->link, &manager_list);
-	futex_up(&fibril_futex);
+	futex_unlock(&fibril_futex);
 }
 
 /** Remove one manager from the manager list. */
 void fibril_remove_manager(void)
 {
-	futex_down(&fibril_futex);
+	futex_lock(&fibril_futex);
 	
 	if (!list_empty(&manager_list))
 		list_remove(list_first(&manager_list));
 	
-	futex_up(&fibril_futex);
+	futex_unlock(&fibril_futex);
 }
 
 /** Return fibril id of the currently running fibril.
