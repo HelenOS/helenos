@@ -78,6 +78,7 @@ extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 extern int getuptime(struct timeval *tv);
 
 extern void udelay(useconds_t);
+extern int usleep(useconds_t);
 
 extern time_t mktime(struct tm *tm);
 extern int time_utc2tm(const time_t time, struct tm *result);

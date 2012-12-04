@@ -39,8 +39,8 @@
 #include <sys/types.h>
 #include <libc.h>
 
-
-#define FUTEX_INITIALIZER  {{1}}
+#define FUTEX_INITIALIZE(val) {{(val)}}
+#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 typedef struct futex {
 	atomic_t val;

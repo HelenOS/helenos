@@ -91,6 +91,10 @@
  */
 #define rcu_access(ptr) ACCESS_ONCE(ptr)
 
+typedef enum blocking_mode {
+	BM_BLOCK_FIBRIL,
+	BM_BLOCK_THREAD
+} blocking_mode_t;
 
 extern void rcu_register_fibril(void);
 extern void rcu_deregister_fibril(void);
@@ -100,7 +104,9 @@ extern void rcu_read_unlock(void);
 
 extern bool rcu_read_locked(void);
 
-extern void rcu_synchronize(void);
+#define rcu_synchronize() _rcu_synchronize(BM_BLOCK_FIBRIL)
+
+extern void _rcu_synchronize(blocking_mode_t);
 
 #endif
 
