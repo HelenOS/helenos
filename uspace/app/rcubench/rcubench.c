@@ -66,45 +66,17 @@ typedef struct bench {
 } bench_t;
 
 
-/* Combats compiler optimizations. */
-static volatile size_t dummy = 0;
-
-static size_t sum_array(size_t *array, size_t len)
-{
-	size_t sum = 0;
-	
-	for (size_t k = 0; k < len; ++k)
-		sum += array[k];
-	
-	return sum;
-}
 
 
 static void  kernel_futex_bench(bench_t *bench)
 {
-	futex_t * const fut = &bench->bench_fut;
 	const size_t iters = bench->iters;
-	size_t sum = 0;
 	
 	for (size_t i = 0; i < iters; ++i) {
-		/* Do some work with the futex locked to encourage contention. */
-		futex_down(fut);
-		sum += sum_array(bench->array, bench->array_size);
-		futex_up(fut);
-		
-		/* 
-		 * Do half as much work to give other threads a chance to acquire 
-		 * the futex.
-		 */
-		sum += sum_array(bench->array, bench->array_size / 2);
+		int val = 0;
+		__SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &val);
+		__SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &val);
 	}
-	
-	/* 
-	 * Writing to a global volatile variable separated with a cc-barrier
-	 * should discourage the compiler from optimizing away sum_array()s.
-	 */
-	compiler_barrier();
-	dummy = sum;
 }
 
 static void libc_futex_lock_bench(bench_t *bench)
@@ -178,7 +150,7 @@ static void run_threads_and_wait(bench_t *bench)
 	}
 }
 
-static const char *results_txt = "/tmp/rcu-bench-results.txt";
+static const char *results_txt = "/tmp/urcu-bench-results.txt";
 
 static bool open_results(void)
 {
@@ -210,8 +182,8 @@ static void print_usage(void)
 {
 	printf("rcubench [test-name] [k-iterations] [n-threads] {work-size}\n");
 	printf("Available tests: \n");
-	printf("  ke-futex .. threads down/up a shared futex and do some work when\n");
-	printf("              in critical section; do a little less work outside CS.\n");
+	printf("  sys-futex.. threads make wakeup/sleepdown futex syscalls in a loop\n");
+	printf("              but for separate variables/futex kernel objects.\n");
 	printf("  lock     .. threads lock/unlock separate futexes.\n");
 	printf("  sema     .. threads down/up separate futexes.\n");
 	printf("eg:\n");
@@ -231,7 +203,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 
 	futex_initialize(&bench->bench_fut, 1);
 	
-	if (0 == str_cmp(argv[1], "ke-futex")) {
+	if (0 == str_cmp(argv[1], "sys-futex")) {
 		bench->func = kernel_futex_bench;
 	} else if (0 == str_cmp(argv[1], "lock")) {
 		bench->func = libc_futex_lock_bench;
