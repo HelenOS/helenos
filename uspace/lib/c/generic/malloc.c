@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <adt/gcdlcm.h>
 #include "private/malloc.h"
+#include "private/thread.h"
 
 /** Magic used in heap headers. */
 #define HEAP_BLOCK_HEAD_MAGIC  UINT32_C(0xBEEF0101)
@@ -784,11 +785,15 @@ void *calloc(const size_t nmemb, const size_t size)
  */
 void *malloc(const size_t size)
 {
-	futex_down(&malloc_futex);
-	void *block = malloc_internal(size, BASE_ALIGN);
-	futex_up(&malloc_futex);
-	
-	return block;
+	/* Do not use futexes for allocations during main thread initialization. */
+	if (0 == atomic_get(&_created_thread_cnt)) {
+		return malloc_internal(size, BASE_ALIGN);
+	} else {
+		futex_down(&malloc_futex);
+		void *block = malloc_internal(size, BASE_ALIGN);
+		futex_up(&malloc_futex);
+		return block;
+	}
 }
 
 /** Allocate memory with specified alignment
@@ -806,12 +811,17 @@ void *memalign(const size_t align, const size_t size)
 	
 	size_t palign =
 	    1 << (fnzb(max(sizeof(void *), align) - 1) + 1);
-	
-	futex_down(&malloc_futex);
-	void *block = malloc_internal(size, palign);
-	futex_up(&malloc_futex);
-	
-	return block;
+
+	/* Do not use futexes for allocations during main thread initialization. */
+	if (0 == atomic_get(&_created_thread_cnt)) {
+		return malloc_internal(size, palign);
+	} else {
+		futex_down(&malloc_futex);
+		void *block = malloc_internal(size, palign);
+		futex_up(&malloc_futex);
+
+		return block;
+	}
 }
 
 /** Reallocate memory block

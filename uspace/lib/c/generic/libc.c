@@ -50,6 +50,7 @@
 #include "private/async.h"
 #include "private/malloc.h"
 #include "private/io.h"
+#include "private/thread.h"
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -71,6 +72,8 @@ void __main(void *pcb_ptr)
 	
 	/* Save the PCB pointer */
 	__pcb = (pcb_t *) pcb_ptr;
+	
+	atomic_inc(&_created_thread_cnt);
 	
 	/* The basic run-time environment is setup */
 	env_setup = true;

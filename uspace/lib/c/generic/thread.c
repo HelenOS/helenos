@@ -45,6 +45,12 @@
 #include <as.h>
 #include "private/thread.h"
 
+/** 
+ * The number of threads that have been created and initialized since 
+ * the start of the program. 
+ */
+atomic_t _created_thread_cnt = {0};
+
 /** Main thread function.
  *
  * This function is called from __thread_entry() and is used
@@ -61,6 +67,8 @@ void __thread_main(uspace_arg_t *uarg)
 		thread_exit(0);
 	
 	__tcb_set(fibril->tcb);
+	
+	atomic_inc(&_created_thread_cnt);
 	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/*

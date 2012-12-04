@@ -40,6 +40,9 @@
 extern void __thread_entry(void);
 extern void __thread_main(uspace_arg_t *);
 
+struct atomic;
+extern struct atomic _created_thread_cnt;
+
 #endif
 
 /** @}
