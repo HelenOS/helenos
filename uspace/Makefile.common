@@ -226,8 +226,13 @@ endif
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
+ifeq ($(FUTEX_UPGRADABLE),y)
+	CFLAGS += -I$(LIBURCU_PREFIX)/
+	LIBS += $(LIBURCU_PREFIX)/liburcu.a
+endif
+
 ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
+	CFLAGS += -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
 	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
 endif
 
