@@ -50,11 +50,15 @@
 #include "private/async.h"
 #include "private/malloc.h"
 #include "private/io.h"
-#include "private/thread.h"
+
+#ifdef FUTEX_UPGRADABLE
+#include <rcu.h>
+#endif
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
 #endif
+
 
 static bool env_setup = false;
 
@@ -62,7 +66,6 @@ void __main(void *pcb_ptr)
 {
 	/* Initialize user task run-time environment */
 	__malloc_init();
-	__async_init();
 	
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)
@@ -73,7 +76,11 @@ void __main(void *pcb_ptr)
 	/* Save the PCB pointer */
 	__pcb = (pcb_t *) pcb_ptr;
 	
-	atomic_inc(&_created_thread_cnt);
+#ifdef FUTEX_UPGRADABLE
+	rcu_register_fibril();
+#endif
+	
+	__async_init();
 	
 	/* The basic run-time environment is setup */
 	env_setup = true;

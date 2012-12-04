@@ -45,11 +45,10 @@
 #include <as.h>
 #include "private/thread.h"
 
-/** 
- * The number of threads that have been created and initialized since 
- * the start of the program. 
- */
-atomic_t _created_thread_cnt = {0};
+#ifdef FUTEX_UPGRADABLE
+#include <rcu.h>
+#endif
+
 
 /** Main thread function.
  *
@@ -68,7 +67,10 @@ void __thread_main(uspace_arg_t *uarg)
 	
 	__tcb_set(fibril->tcb);
 	
-	atomic_inc(&_created_thread_cnt);
+#ifdef FUTEX_UPGRADABLE
+	rcu_register_fibril();
+	futex_upgrade_all_and_wait();
+#endif
 	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/*
@@ -80,6 +82,11 @@ void __thread_main(uspace_arg_t *uarg)
 	
 	/* If there is a manager, destroy it */
 	async_destroy_manager();
+
+#ifdef FUTEX_UPGRADABLE
+	rcu_deregister_fibril();
+#endif
+	
 	fibril_teardown(fibril);
 	
 	thread_exit(0);

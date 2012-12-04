@@ -47,5 +47,24 @@ void futex_initialize(futex_t *futex, int val)
 }
 
 
+#ifdef FUTEX_UPGRADABLE
+
+int _upgrade_futex = 0;
+static futex_t upg_and_wait_futex = FUTEX_INITIALIZER;
+
+void futex_upgrade_all_and_wait(void)
+{
+	_futex_down(&upg_and_wait_futex);
+	
+	if (!_upgrade_futex) {
+		rcu_assign(_upgrade_futex, 1);
+		rcu_synchronize();
+	}
+	
+	_futex_up(&upg_and_wait_futex);
+}
+
+#endif
+
 /** @}
  */

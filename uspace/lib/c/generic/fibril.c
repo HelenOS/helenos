@@ -50,6 +50,10 @@
 #include <async.h>
 #include <futex.h>
 
+#ifdef FUTEX_UPGRADABLE
+#include <rcu.h>
+#endif
+
 /**
  * This futex serializes access to ready_list,
  * serialized_list and manager_list.
@@ -82,6 +86,10 @@ static fibril_local int serialization_count;
 static void fibril_main(void)
 {
 	fibril_t *fibril = __tcb_get()->fibril_data;
+
+#ifdef FUTEX_UPGRADABLE
+	rcu_register_fibril();
+#endif
 	
 	/* Call the implementing function. */
 	fibril->retval = fibril->func(fibril->arg);
@@ -244,6 +252,13 @@ int fibril_switch(fibril_switch_type_t stype)
 	list_remove(&dstf->link);
 	
 	futex_up(&fibril_futex);
+	
+#ifdef FUTEX_UPGRADABLE
+	if (stype == FIBRIL_FROM_DEAD) {
+		rcu_deregister_fibril();
+	}
+#endif
+	
 	context_restore(&dstf->ctx);
 	/* not reached */
 	

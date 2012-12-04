@@ -46,7 +46,6 @@
 #include <stdlib.h>
 #include <adt/gcdlcm.h>
 #include "private/malloc.h"
-#include "private/thread.h"
 
 /** Magic used in heap headers. */
 #define HEAP_BLOCK_HEAD_MAGIC  UINT32_C(0xBEEF0101)
@@ -200,7 +199,7 @@ static futex_t malloc_futex = FUTEX_INITIALIZER;
 #define malloc_assert(expr) \
 	do { \
 		if (!(expr)) {\
-			futex_up(&malloc_futex); \
+			_futex_up(&malloc_futex); \
 			assert_abort(#expr, __FILE__, __LINE__); \
 		} \
 	} while (0)
@@ -785,15 +784,11 @@ void *calloc(const size_t nmemb, const size_t size)
  */
 void *malloc(const size_t size)
 {
-	/* Do not use futexes for allocations during main thread initialization. */
-	if (0 == atomic_get(&_created_thread_cnt)) {
-		return malloc_internal(size, BASE_ALIGN);
-	} else {
-		futex_down(&malloc_futex);
-		void *block = malloc_internal(size, BASE_ALIGN);
-		futex_up(&malloc_futex);
-		return block;
-	}
+	_futex_down(&malloc_futex);
+	void *block = malloc_internal(size, BASE_ALIGN);
+	_futex_up(&malloc_futex);
+
+	return block;
 }
 
 /** Allocate memory with specified alignment
@@ -812,16 +807,11 @@ void *memalign(const size_t align, const size_t size)
 	size_t palign =
 	    1 << (fnzb(max(sizeof(void *), align) - 1) + 1);
 
-	/* Do not use futexes for allocations during main thread initialization. */
-	if (0 == atomic_get(&_created_thread_cnt)) {
-		return malloc_internal(size, palign);
-	} else {
-		futex_down(&malloc_futex);
-		void *block = malloc_internal(size, palign);
-		futex_up(&malloc_futex);
+	_futex_down(&malloc_futex);
+	void *block = malloc_internal(size, palign);
+	_futex_up(&malloc_futex);
 
-		return block;
-	}
+	return block;
 }
 
 /** Reallocate memory block
@@ -837,7 +827,7 @@ void *realloc(const void *addr, const size_t size)
 	if (addr == NULL)
 		return malloc(size);
 	
-	futex_down(&malloc_futex);
+	_futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */
 	heap_block_head_t *head =
@@ -894,7 +884,7 @@ void *realloc(const void *addr, const size_t size)
 			reloc = true;
 	}
 	
-	futex_up(&malloc_futex);
+	_futex_up(&malloc_futex);
 	
 	if (reloc) {
 		ptr = malloc(size);
@@ -917,7 +907,7 @@ void free(const void *addr)
 	if (addr == NULL)
 		return;
 	
-	futex_down(&malloc_futex);
+	_futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */
 	heap_block_head_t *head
@@ -962,15 +952,15 @@ void free(const void *addr)
 	
 	heap_shrink(area);
 	
-	futex_up(&malloc_futex);
+	_futex_up(&malloc_futex);
 }
 
 void *heap_check(void)
 {
-	futex_down(&malloc_futex);
+	_futex_down(&malloc_futex);
 	
 	if (first_heap_area == NULL) {
-		futex_up(&malloc_futex);
+		_futex_up(&malloc_futex);
 		return (void *) -1;
 	}
 	
@@ -984,7 +974,7 @@ void *heap_check(void)
 		    (area->start >= area->end) ||
 		    (((uintptr_t) area->start % PAGE_SIZE) != 0) ||
 		    (((uintptr_t) area->end % PAGE_SIZE) != 0)) {
-			futex_up(&malloc_futex);
+			_futex_up(&malloc_futex);
 			return (void *) area;
 		}
 		
@@ -995,7 +985,7 @@ void *heap_check(void)
 			
 			/* Check heap block consistency */
 			if (head->magic != HEAP_BLOCK_HEAD_MAGIC) {
-				futex_up(&malloc_futex);
+				_futex_up(&malloc_futex);
 				return (void *) head;
 			}
 			
@@ -1003,13 +993,13 @@ void *heap_check(void)
 			
 			if ((foot->magic != HEAP_BLOCK_FOOT_MAGIC) ||
 			    (head->size != foot->size)) {
-				futex_up(&malloc_futex);
+				_futex_up(&malloc_futex);
 				return (void *) foot;
 			}
 		}
 	}
 	
-	futex_up(&malloc_futex);
+	_futex_up(&malloc_futex);
 	
 	return NULL;
 }
