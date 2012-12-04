@@ -48,12 +48,13 @@
 #include <futex.h>
 #include <assert.h>
 #include <async.h>
+#include <futex.h>
 
 /**
  * This futex serializes access to ready_list,
  * serialized_list and manager_list.
  */
-static atomic_t fibril_futex = FUTEX_INITIALIZER;
+static futex_t fibril_futex = FUTEX_INITIALIZER;
 
 static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(serialized_list);

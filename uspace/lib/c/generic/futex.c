@@ -45,7 +45,7 @@
  */
 void futex_initialize(futex_t *futex, int val)
 {
-	atomic_set(futex, val);
+	atomic_set(&futex->val, val);
 }
 
 /** Try to down the futex.
@@ -58,7 +58,7 @@ void futex_initialize(futex_t *futex, int val)
  */
 int futex_trydown(futex_t *futex)
 {
-	return cas(futex, 1, 0);
+	return cas(&futex->val, 1, 0);
 }
 
 /** Down the futex.
@@ -72,8 +72,8 @@ int futex_trydown(futex_t *futex)
  */
 int futex_down(futex_t *futex)
 {
-	if ((atomic_signed_t) atomic_predec(futex) < 0)
-		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count);
+	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
+		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
 	
 	return 0;
 }
@@ -88,8 +88,8 @@ int futex_down(futex_t *futex)
  */
 int futex_up(futex_t *futex)
 {
-	if ((atomic_signed_t) atomic_postinc(futex) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->count);
+	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
+		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
 	
 	return 0;
 }

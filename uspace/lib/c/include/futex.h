@@ -38,9 +38,11 @@
 #include <atomic.h>
 #include <sys/types.h>
 
-#define FUTEX_INITIALIZER  {1}
+#define FUTEX_INITIALIZER  {{1}}
 
-typedef atomic_t futex_t;
+typedef struct futex {
+	atomic_t val;
+} futex_t;
 
 extern void futex_initialize(futex_t *futex, int value);
 extern int futex_down(futex_t *futex);

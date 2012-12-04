@@ -80,7 +80,7 @@ LIST_INITIALIZE(dispatched_calls);
  */
 LIST_INITIALIZE(queued_calls);
 
-static atomic_t ipc_futex = FUTEX_INITIALIZER;
+static futex_t ipc_futex = FUTEX_INITIALIZER;
 
 /** Send asynchronous message via syscall.
  *

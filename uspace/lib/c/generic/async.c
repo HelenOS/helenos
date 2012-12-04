@@ -165,7 +165,7 @@ struct async_exch {
 };
 
 /** Async framework global futex */
-atomic_t async_futex = FUTEX_INITIALIZER;
+futex_t async_futex = FUTEX_INITIALIZER;
 
 /** Number of threads waiting for IPC in the kernel. */
 atomic_t threads_in_ipc_wait = { 0 };
