@@ -49,19 +49,20 @@
 
 #include <rcu.h>
 
+
+/* Results are printed to this file in addition to stdout. */
+static FILE *results_fd = NULL;
+
 typedef struct bench {
-	enum {
-		T_KERN_FUTEX,
-		T_LIBC_FUTEX
-	} type;
+	const char *name;
+	void (*func)(struct bench *);
 	size_t iters;
 	size_t nthreads;
 	size_t array_size;
 	size_t *array;
 	futex_t done_threads;
 	
-	futex_t ke_bench_fut;
-	fibril_mutex_t libc_bench_mtx;
+	futex_t bench_fut;
 } bench_t;
 
 
@@ -81,7 +82,7 @@ static size_t sum_array(size_t *array, size_t len)
 
 static void  kernel_futex_bench(bench_t *bench)
 {
-	futex_t * const fut = &bench->ke_bench_fut;
+	futex_t * const fut = &bench->bench_fut;
 	const size_t iters = bench->iters;
 	size_t sum = 0;
 	
@@ -106,34 +107,37 @@ static void  kernel_futex_bench(bench_t *bench)
 	dummy = sum;
 }
 
-static void libc_futex_bench(bench_t *bench)
+static void libc_futex_lock_bench(bench_t *bench)
 {
-	fibril_mutex_t * const mtx = &bench->libc_bench_mtx;
 	const size_t iters = bench->iters;
+	futex_t loc_fut = FUTEX_INITIALIZER;
 	
 	for (size_t i = 0; i < iters; ++i) {
-		fibril_mutex_lock(mtx);
+		futex_lock(&loc_fut);
 		/* no-op */
 		compiler_barrier();
-		fibril_mutex_unlock(mtx);
+		futex_unlock(&loc_fut);
 	}
 }
 
+static void libc_futex_sema_bench(bench_t *bench)
+{
+	const size_t iters = bench->iters;
+	futex_t loc_fut = FUTEX_INITIALIZER;
+	
+	for (size_t i = 0; i < iters; ++i) {
+		futex_down(&loc_fut);
+		/* no-op */
+		compiler_barrier();
+		futex_up(&loc_fut);
+	}
+}
 
 static void thread_func(void *arg)
 {
 	bench_t *bench = (bench_t*)arg;
 	
-	switch (bench->type) {
-	case T_KERN_FUTEX:
-		kernel_futex_bench(bench);
-		break;
-	case T_LIBC_FUTEX:
-		libc_futex_bench(bench);
-		break;
-	default:
-		assert(false);
-	}
+	bench->func(bench);
 	
 	/* Signal another thread completed. */
 	futex_up(&bench->done_threads);
@@ -174,55 +178,71 @@ static void run_threads_and_wait(bench_t *bench)
 	}
 }
 
+static const char *results_txt = "/tmp/rcu-bench-results.txt";
+
+static bool open_results(void)
+{
+	results_fd = fopen(results_txt, "a");
+	return NULL != results_fd;
+}
+
+static void close_results(void)
+{
+	if (results_fd) {
+		fclose(results_fd);
+	}
+}
+
+static void print_res(const char *fmt, ... )
+{
+	va_list args;
+	va_start(args, fmt);
+	
+	vfprintf(results_fd, fmt, args);
+	vprintf(fmt, args);
+	
+	va_end(args);
+}
+
 static void print_usage(void)
 {
 	printf("rcubench [test-name] [k-iterations] [n-threads] {work-size}\n");
+	printf("Available tests: \n");
+	printf("  ke-futex .. threads down/up a shared futex and do some work when\n");
+	printf("              in critical section; do a little less work outside CS.\n");
+	printf("  lock     .. threads lock/unlock separate futexes.\n");
+	printf("  sema     .. threads down/up separate futexes.\n");
 	printf("eg:\n");
-	printf("  rcubench ke   100000 3 4\n");
-	printf("  rcubench libc 100000 2\n");
-	printf("  rcubench def-ke  \n");
-	printf("  rcubench def-libc\n");
+	printf("  rcubench ke-futex  100000 3 4\n");
+	printf("  rcubench lock 100000 2 ..runs futex_lock/unlock in a loop\n");
+	printf("  rcubench sema 100000 2 ..runs futex_down/up in a loop\n");
+	printf("Results are stored in %s\n", results_txt);
 }
 
 static bool parse_cmd_line(int argc, char **argv, bench_t *bench, 
 	const char **err)
 {
-	if (argc < 2) {
-		*err = "Benchmark name not specified";
+	if (argc < 4) {
+		*err = "Not enough parameters";
 		return false;
 	}
 
-	futex_initialize(&bench->ke_bench_fut, 1);
-	fibril_mutex_initialize(&bench->libc_bench_mtx);
+	futex_initialize(&bench->bench_fut, 1);
 	
-	if (0 == str_cmp(argv[1], "def-ke")) {
-		bench->type = T_KERN_FUTEX;
-		bench->nthreads = 4;
-		bench->iters = 1000 * 1000;
-		bench->array_size = 10;
-		bench->array = malloc(bench->array_size * sizeof(size_t));
-		return NULL != bench->array;
-	} else if (0 == str_cmp(argv[1], "def-libc")) {
-		bench->type = T_LIBC_FUTEX;
-		bench->nthreads = 4;
-		bench->iters = 1000 * 1000;
-		bench->array_size = 0;
-		bench->array = NULL;
-		return true;
-	} else if (0 == str_cmp(argv[1], "ke")) {
-		bench->type = T_KERN_FUTEX;
-	} else if (0 == str_cmp(argv[1], "libc")) {
-		bench->type = T_LIBC_FUTEX;
+	if (0 == str_cmp(argv[1], "ke-futex")) {
+		bench->func = kernel_futex_bench;
+	} else if (0 == str_cmp(argv[1], "lock")) {
+		bench->func = libc_futex_lock_bench;
+	} else if (0 == str_cmp(argv[1], "sema")) {
+		bench->func = libc_futex_sema_bench;
 	} else {
 		*err = "Unknown test name";
 		return false;
 	}
 	
-	if (argc < 4) {
-		*err = "Not enough parameters";
-		return false;
-	}
+	bench->name = argv[1];
 	
+	/* Determine iteration count. */
 	uint32_t iter_cnt = 0;
 	int ret = str_uint32_t(argv[2], NULL, 0, true, &iter_cnt);
 
@@ -233,6 +253,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		return false;
 	} 
 	
+	/* Determine thread count. */
 	uint32_t thread_cnt = 0;
 	ret = str_uint32_t(argv[3], NULL, 0, true, &thread_cnt);
 
@@ -243,6 +264,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		return false;
 	} 
 	
+	/* Set work array size. */
 	if (argc > 4) {
 		uint32_t work_size = 0;
 		ret = str_uint32_t(argv[4], NULL, 0, true, &work_size);
@@ -257,6 +279,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		bench->array_size = 0;
 	}
 	
+	/* Allocate work array. */
 	if (0 < bench->array_size) {
 		bench->array = malloc(bench->array_size * sizeof(size_t));
 		if (!bench->array) {
@@ -283,9 +306,10 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	printf("Running '%s' futex bench in '%zu' threads with '%zu' iterations.\n",
-		bench.type == T_KERN_FUTEX ? "kernel" : "libc", 
-		bench.nthreads, bench.iters);
+	open_results();
+	
+	print_res("Running '%s' futex bench in '%zu' threads with '%zu' iterations.\n",
+		bench.name, bench.nthreads, bench.iters);
 	
 	struct timeval start, end;
 	getuptime(&start);
@@ -295,16 +319,19 @@ int main(int argc, char **argv)
 	getuptime(&end);
 	int64_t duration = tv_sub(&end, &start);
 	
-	if (0 == duration)
-		duration = 1;
-	
 	uint64_t secs = (uint64_t)duration / 1000 / 1000;
 	uint64_t total_iters = (uint64_t)bench.iters * bench.nthreads;
-	uint64_t iters_per_sec = total_iters * 1000 * 1000 / duration;
+	uint64_t iters_per_sec = 0;
 	
-	printf("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64 
+	if (0 < duration) {
+		iters_per_sec = total_iters * 1000 * 1000 / duration;
+	}
+	
+	print_res("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64 
 		" secs); %" PRIu64 " iters/sec\n", 
 		total_iters, duration, secs, iters_per_sec);	
+
+	close_results();
 	
 	return 0;
 }
