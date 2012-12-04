@@ -196,11 +196,13 @@ static void close_results(void)
 static void print_res(const char *fmt, ... )
 {
 	va_list args;
+	
 	va_start(args, fmt);
-	
 	vfprintf(results_fd, fmt, args);
-	vprintf(fmt, args);
+	va_end(args);
 	
+	va_start(args, fmt);
+	vprintf(fmt, args);
 	va_end(args);
 }
 
