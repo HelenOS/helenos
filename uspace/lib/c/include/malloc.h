@@ -47,6 +47,7 @@ extern void *realloc(const void *addr, const size_t size);
 extern void free(const void *addr);
 extern void *heap_check(void);
 
+extern void malloc_enable_multithreaded(void);
 #endif
 
 /** @}

@@ -199,7 +199,7 @@ static futex_t malloc_futex = FUTEX_INITIALIZER;
 #define malloc_assert(expr) \
 	do { \
 		if (!(expr)) {\
-			futex_up(&malloc_futex); \
+			heap_unlock(); \
 			assert_abort(#expr, __FILE__, __LINE__); \
 		} \
 	} while (0)
@@ -209,6 +209,71 @@ static futex_t malloc_futex = FUTEX_INITIALIZER;
 #define malloc_assert(expr)
 
 #endif /* NDEBUG */
+
+
+#ifdef FUTEX_UPGRADABLE
+/** True if the heap may be accessed from multiple threads. */
+static bool multithreaded = false;
+
+/** Makes accesses to the heap thread safe. */
+void malloc_enable_multithreaded(void)
+{
+	multithreaded = true;
+}
+
+/** Serializes access to the heap from multiple threads. */
+static inline void heap_lock(void)
+{
+	if (multithreaded) {
+		futex_down(&malloc_futex);
+	} else {
+		/*
+		 * Malloc never switches fibrils while the heap is locked.
+		 * Similarly, it never creates new threads from within the 
+		 * locked region. Therefore, if there are no other threads 
+		 * except this one, the whole operation will complete without 
+		 * any interruptions.
+		 */
+	}
+}
+
+/** Serializes access to the heap from multiple threads. */
+static inline void heap_unlock(void)
+{
+	if (multithreaded) {
+		futex_up(&malloc_futex);
+	} else {
+		/*
+		 * Malloc never switches fibrils while the heap is locked.
+		 * Similarly, it never creates new threads from within the 
+		 * locked region. Therefore, if there are no other threads 
+		 * except this one, the whole operation will complete without 
+		 * any interruptions.
+		 */
+	}
+}
+
+#else
+
+/** Makes accesses to the heap thread safe. */
+void malloc_enable_multithreaded(void)
+{
+	/* No-op. Already using thread-safe heap locking operations. */
+}
+
+/** Serializes access to the heap from multiple threads. */
+static inline void heap_lock(void)
+{
+	futex_down(&malloc_futex);
+}
+
+/** Serializes access to the heap from multiple threads. */
+static inline void heap_unlock(void)
+{
+	futex_up(&malloc_futex);
+}
+#endif
+
 
 /** Initialize a heap block
  *
@@ -784,9 +849,9 @@ void *calloc(const size_t nmemb, const size_t size)
  */
 void *malloc(const size_t size)
 {
-	futex_down(&malloc_futex);
+	heap_lock();
 	void *block = malloc_internal(size, BASE_ALIGN);
-	futex_up(&malloc_futex);
+	heap_unlock();
 
 	return block;
 }
@@ -807,9 +872,9 @@ void *memalign(const size_t align, const size_t size)
 	size_t palign =
 	    1 << (fnzb(max(sizeof(void *), align) - 1) + 1);
 
-	futex_down(&malloc_futex);
+	heap_lock();
 	void *block = malloc_internal(size, palign);
-	futex_up(&malloc_futex);
+	heap_unlock();
 
 	return block;
 }
@@ -827,7 +892,7 @@ void *realloc(const void *addr, const size_t size)
 	if (addr == NULL)
 		return malloc(size);
 	
-	futex_down(&malloc_futex);
+	heap_lock();
 	
 	/* Calculate the position of the header. */
 	heap_block_head_t *head =
@@ -884,7 +949,7 @@ void *realloc(const void *addr, const size_t size)
 			reloc = true;
 	}
 	
-	futex_up(&malloc_futex);
+	heap_unlock();
 	
 	if (reloc) {
 		ptr = malloc(size);
@@ -907,7 +972,7 @@ void free(const void *addr)
 	if (addr == NULL)
 		return;
 	
-	futex_down(&malloc_futex);
+	heap_lock();
 	
 	/* Calculate the position of the header. */
 	heap_block_head_t *head
@@ -952,15 +1017,15 @@ void free(const void *addr)
 	
 	heap_shrink(area);
 	
-	futex_up(&malloc_futex);
+	heap_unlock();
 }
 
 void *heap_check(void)
 {
-	futex_down(&malloc_futex);
+	heap_lock();
 	
 	if (first_heap_area == NULL) {
-		futex_up(&malloc_futex);
+		heap_unlock();
 		return (void *) -1;
 	}
 	
@@ -974,7 +1039,7 @@ void *heap_check(void)
 		    (area->start >= area->end) ||
 		    (((uintptr_t) area->start % PAGE_SIZE) != 0) ||
 		    (((uintptr_t) area->end % PAGE_SIZE) != 0)) {
-			futex_up(&malloc_futex);
+			heap_unlock();
 			return (void *) area;
 		}
 		
@@ -985,7 +1050,7 @@ void *heap_check(void)
 			
 			/* Check heap block consistency */
 			if (head->magic != HEAP_BLOCK_HEAD_MAGIC) {
-				futex_up(&malloc_futex);
+				heap_unlock();
 				return (void *) head;
 			}
 			
@@ -993,13 +1058,13 @@ void *heap_check(void)
 			
 			if ((foot->magic != HEAP_BLOCK_FOOT_MAGIC) ||
 			    (head->size != foot->size)) {
-				futex_up(&malloc_futex);
+				heap_unlock();
 				return (void *) foot;
 			}
 		}
 	}
 	
-	futex_up(&malloc_futex);
+	heap_unlock();
 	
 	return NULL;
 }

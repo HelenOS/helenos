@@ -121,6 +121,9 @@ int thread_create(void (* function)(void *), void *arg, const char *name,
 		return ENOMEM;
 	}
 	
+	/* Make heap thread safe. */
+	malloc_enable_multithreaded();
+	
 	uarg->uspace_entry = (void *) FADDR(__thread_entry);
 	uarg->uspace_stack = stack;
 	uarg->uspace_stack_size = stack_size;
