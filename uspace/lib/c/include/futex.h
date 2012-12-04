@@ -54,20 +54,20 @@ extern void futex_initialize(futex_t *futex, int value);
 
 #define FUTEX_INITIALIZE(val) {{ (val) }, 0}
 
-#define futex_down(fut) \
+#define futex_lock(fut) \
 ({ \
 	rcu_read_lock(); \
 	(fut)->upgraded = rcu_access(_upgrade_futexes); \
 	if ((fut)->upgraded) \
-		(void) _futex_down((fut)); \
+		(void) futex_down((fut)); \
 })
 
-#define futex_trydown(fut) \
+#define futex_trylock(fut) \
 ({ \
 	rcu_read_lock(); \
 	int _upgraded = rcu_access(_upgrade_futexes); \
 	if (_upgraded) { \
-		int _acquired = _futex_trydown((fut)); \
+		int _acquired = futex_trydown((fut)); \
 		if (!_acquired) { \
 			rcu_read_unlock(); \
 		} else { \
@@ -80,10 +80,10 @@ extern void futex_initialize(futex_t *futex, int value);
 	} \
 })
 		
-#define futex_up(fut) \
+#define futex_unlock(fut) \
 ({ \
 	if ((fut)->upgraded) \
-		(void) _futex_up((fut)); \
+		(void) futex_up((fut)); \
 	rcu_read_unlock(); \
 })
 
@@ -95,9 +95,9 @@ extern void futex_upgrade_all_and_wait(void);
 
 #define FUTEX_INITIALIZE(val) {{ (val) }}
 
-#define futex_down(fut)     (void)_futex_down((fut))
-#define futex_trydown(fut)  _futex_trydown((fut))
-#define futex_up(fut)       (void)_futex_up((fut))
+#define futex_lock(fut)     (void) futex_down((fut))
+#define futex_trylock(fut)  futex_trydown((fut))
+#define futex_unlock(fut)   (void) futex_up((fut))
 		
 #endif
 
@@ -111,7 +111,7 @@ extern void futex_upgrade_all_and_wait(void);
  * @return Zero if the futex was not acquired.
  *
  */
-static inline int _futex_trydown(futex_t *futex)
+static inline int futex_trydown(futex_t *futex)
 {
 	return cas(&futex->val, 1, 0);
 }
@@ -125,7 +125,7 @@ static inline int _futex_trydown(futex_t *futex)
  * @return Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
  *
  */
-static inline int _futex_down(futex_t *futex)
+static inline int futex_down(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
 		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
@@ -141,7 +141,7 @@ static inline int _futex_down(futex_t *futex)
  * @return Zero in the uncontended case.
  *
  */
-static inline int _futex_up(futex_t *futex)
+static inline int futex_up(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
 		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);

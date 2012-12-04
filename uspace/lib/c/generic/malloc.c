@@ -199,7 +199,7 @@ static futex_t malloc_futex = FUTEX_INITIALIZER;
 #define malloc_assert(expr) \
 	do { \
 		if (!(expr)) {\
-			_futex_up(&malloc_futex); \
+			futex_up(&malloc_futex); \
 			assert_abort(#expr, __FILE__, __LINE__); \
 		} \
 	} while (0)
@@ -784,9 +784,9 @@ void *calloc(const size_t nmemb, const size_t size)
  */
 void *malloc(const size_t size)
 {
-	_futex_down(&malloc_futex);
+	futex_down(&malloc_futex);
 	void *block = malloc_internal(size, BASE_ALIGN);
-	_futex_up(&malloc_futex);
+	futex_up(&malloc_futex);
 
 	return block;
 }
@@ -807,9 +807,9 @@ void *memalign(const size_t align, const size_t size)
 	size_t palign =
 	    1 << (fnzb(max(sizeof(void *), align) - 1) + 1);
 
-	_futex_down(&malloc_futex);
+	futex_down(&malloc_futex);
 	void *block = malloc_internal(size, palign);
-	_futex_up(&malloc_futex);
+	futex_up(&malloc_futex);
 
 	return block;
 }
@@ -827,7 +827,7 @@ void *realloc(const void *addr, const size_t size)
 	if (addr == NULL)
 		return malloc(size);
 	
-	_futex_down(&malloc_futex);
+	futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */
 	heap_block_head_t *head =
@@ -884,7 +884,7 @@ void *realloc(const void *addr, const size_t size)
 			reloc = true;
 	}
 	
-	_futex_up(&malloc_futex);
+	futex_up(&malloc_futex);
 	
 	if (reloc) {
 		ptr = malloc(size);
@@ -907,7 +907,7 @@ void free(const void *addr)
 	if (addr == NULL)
 		return;
 	
-	_futex_down(&malloc_futex);
+	futex_down(&malloc_futex);
 	
 	/* Calculate the position of the header. */
 	heap_block_head_t *head
@@ -952,15 +952,15 @@ void free(const void *addr)
 	
 	heap_shrink(area);
 	
-	_futex_up(&malloc_futex);
+	futex_up(&malloc_futex);
 }
 
 void *heap_check(void)
 {
-	_futex_down(&malloc_futex);
+	futex_down(&malloc_futex);
 	
 	if (first_heap_area == NULL) {
-		_futex_up(&malloc_futex);
+		futex_up(&malloc_futex);
 		return (void *) -1;
 	}
 	
@@ -974,7 +974,7 @@ void *heap_check(void)
 		    (area->start >= area->end) ||
 		    (((uintptr_t) area->start % PAGE_SIZE) != 0) ||
 		    (((uintptr_t) area->end % PAGE_SIZE) != 0)) {
-			_futex_up(&malloc_futex);
+			futex_up(&malloc_futex);
 			return (void *) area;
 		}
 		
@@ -985,7 +985,7 @@ void *heap_check(void)
 			
 			/* Check heap block consistency */
 			if (head->magic != HEAP_BLOCK_HEAD_MAGIC) {
-				_futex_up(&malloc_futex);
+				futex_up(&malloc_futex);
 				return (void *) head;
 			}
 			
@@ -993,13 +993,13 @@ void *heap_check(void)
 			
 			if ((foot->magic != HEAP_BLOCK_FOOT_MAGIC) ||
 			    (head->size != foot->size)) {
-				_futex_up(&malloc_futex);
+				futex_up(&malloc_futex);
 				return (void *) foot;
 			}
 		}
 	}
 	
-	_futex_up(&malloc_futex);
+	futex_up(&malloc_futex);
 	
 	return NULL;
 }

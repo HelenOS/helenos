@@ -136,7 +136,7 @@ static void thread_func(void *arg)
 	}
 	
 	/* Signal another thread completed. */
-	_futex_up(&bench->done_threads);
+	futex_up(&bench->done_threads);
 }
 
 static void run_threads_and_wait(bench_t *bench)
@@ -170,7 +170,7 @@ static void run_threads_and_wait(bench_t *bench)
 	
 	/* Wait for threads to complete. */
 	for (size_t k = 0; k < bench->nthreads; ++k) {
-		_futex_down(&bench->done_threads);
+		futex_down(&bench->done_threads);
 	}
 }
 

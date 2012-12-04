@@ -167,9 +167,9 @@ void rcu_register_fibril(void)
 {
 	assert(!fibril_rcu.registered);
 	
-	_futex_down(&rcu.list_futex);
+	futex_down(&rcu.list_futex);
 	list_append(&fibril_rcu.link, &rcu.fibrils_list);
-	_futex_up(&rcu.list_futex);
+	futex_up(&rcu.list_futex);
 	
 	fibril_rcu.registered = true;
 }
@@ -192,9 +192,9 @@ void rcu_deregister_fibril(void)
 	memory_barrier();
 	fibril_rcu.nesting_cnt = 0;
 	
-	_futex_down(&rcu.list_futex);
+	futex_down(&rcu.list_futex);
 	list_remove(&fibril_rcu.link);
-	_futex_up(&rcu.list_futex);
+	futex_up(&rcu.list_futex);
 
 	fibril_rcu.registered = false;
 }
@@ -329,7 +329,7 @@ static void force_mb_in_all_threads(void)
 /** Waits for readers of reader_group to exit their readers sections. */
 static void wait_for_readers(size_t reader_group, blocking_mode_t blocking_mode)
 {
-	_futex_down(&rcu.list_futex);
+	futex_down(&rcu.list_futex);
 	
 	list_t quiescent_fibrils;
 	list_initialize(&quiescent_fibrils);
@@ -340,9 +340,9 @@ static void wait_for_readers(size_t reader_group, blocking_mode_t blocking_mode)
 				fibril_rcu_data_t, link);
 			
 			if (is_preexisting_reader(fib, reader_group)) {
-				_futex_up(&rcu.list_futex);
+				futex_up(&rcu.list_futex);
 				sync_sleep(blocking_mode);
-				_futex_down(&rcu.list_futex);
+				futex_down(&rcu.list_futex);
 				/* Break to while loop. */
 				break;
 			} else {
@@ -353,12 +353,12 @@ static void wait_for_readers(size_t reader_group, blocking_mode_t blocking_mode)
 	}
 	
 	list_concat(&rcu.fibrils_list, &quiescent_fibrils);
-	_futex_up(&rcu.list_futex);
+	futex_up(&rcu.list_futex);
 }
 
 static void lock_sync(blocking_mode_t blocking_mode)
 {
-	_futex_down(&rcu.sync_lock.futex);
+	futex_down(&rcu.sync_lock.futex);
 	if (rcu.sync_lock.locked) {
 		if (blocking_mode == BM_BLOCK_FIBRIL) {
 			blocked_fibril_t blocked_fib;
@@ -368,9 +368,9 @@ static void lock_sync(blocking_mode_t blocking_mode)
 			
 			do {
 				blocked_fib.is_ready = false;
-				_futex_up(&rcu.sync_lock.futex);
+				futex_up(&rcu.sync_lock.futex);
 				fibril_switch(FIBRIL_TO_MANAGER);
-				_futex_down(&rcu.sync_lock.futex);
+				futex_down(&rcu.sync_lock.futex);
 			} while (rcu.sync_lock.locked);
 			
 			list_remove(&blocked_fib.link);
@@ -378,8 +378,8 @@ static void lock_sync(blocking_mode_t blocking_mode)
 		} else {
 			assert(blocking_mode == BM_BLOCK_THREAD);
 			rcu.sync_lock.blocked_thread_cnt++;
-			_futex_up(&rcu.sync_lock.futex);
-			_futex_down(&rcu.sync_lock.futex_blocking_threads);
+			futex_up(&rcu.sync_lock.futex);
+			futex_down(&rcu.sync_lock.futex_blocking_threads);
 		}
 	} else {
 		rcu.sync_lock.locked = true;
@@ -396,7 +396,7 @@ static void unlock_sync(void)
 	 */
 	if (0 < rcu.sync_lock.blocked_thread_cnt) {
 		--rcu.sync_lock.blocked_thread_cnt;
-		_futex_up(&rcu.sync_lock.futex_blocking_threads);
+		futex_up(&rcu.sync_lock.futex_blocking_threads);
 	} else {
 		/* Unlock but wake up any fibrils waiting for the lock. */
 		
@@ -411,7 +411,7 @@ static void unlock_sync(void)
 		}
 		
 		rcu.sync_lock.locked = false;
-		_futex_up(&rcu.sync_lock.futex);
+		futex_up(&rcu.sync_lock.futex);
 	}
 }
 
@@ -422,7 +422,7 @@ static void sync_sleep(blocking_mode_t blocking_mode)
 	 * Release the futex to avoid deadlocks in singlethreaded apps 
 	 * but keep sync locked. 
 	 */
-	_futex_up(&rcu.sync_lock.futex);
+	futex_up(&rcu.sync_lock.futex);
 
 	if (blocking_mode == BM_BLOCK_FIBRIL) {
 		async_usleep(RCU_SLEEP_MS * 1000);
@@ -430,7 +430,7 @@ static void sync_sleep(blocking_mode_t blocking_mode)
 		usleep(RCU_SLEEP_MS * 1000);
 	}
 		
-	_futex_down(&rcu.sync_lock.futex);
+	futex_down(&rcu.sync_lock.futex);
 }
 
 
