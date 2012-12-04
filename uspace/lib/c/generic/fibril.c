@@ -50,7 +50,7 @@
 #include <async.h>
 #include <futex.h>
 
-#ifdef futex_unlockGRADABLE
+#ifdef FUTEX_UPGRADABLE
 #include <rcu.h>
 #endif
 
@@ -87,7 +87,7 @@ static void fibril_main(void)
 {
 	fibril_t *fibril = __tcb_get()->fibril_data;
 
-#ifdef futex_unlockGRADABLE
+#ifdef FUTEX_UPGRADABLE
 	rcu_register_fibril();
 #endif
 	
@@ -253,7 +253,7 @@ int fibril_switch(fibril_switch_type_t stype)
 	
 	futex_unlock(&fibril_futex);
 	
-#ifdef futex_unlockGRADABLE
+#ifdef FUTEX_UPGRADABLE
 	if (stype == FIBRIL_FROM_DEAD) {
 		rcu_deregister_fibril();
 	}
