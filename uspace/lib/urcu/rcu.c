@@ -222,7 +222,7 @@ void rcu_read_lock(void)
 void rcu_read_unlock(void)
 {
 	assert(fibril_rcu.registered);
-	/* assert(rcu_read_locked()); */
+	assert(rcu_read_locked());
 	
 	/* Required by MB_FORCE_U */
 	compiler_barrier(); /* CC_BAR_U */
