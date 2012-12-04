@@ -37,6 +37,8 @@
 
 #include <atomic.h>
 #include <sys/types.h>
+#include <libc.h>
+
 
 #define FUTEX_INITIALIZER  {{1}}
 
@@ -44,10 +46,59 @@ typedef struct futex {
 	atomic_t val;
 } futex_t;
 
+
 extern void futex_initialize(futex_t *futex, int value);
-extern int futex_down(futex_t *futex);
-extern int futex_trydown(futex_t *futex);
-extern int futex_up(futex_t *futex);
+
+#define futex_down(fut)     (void)_futex_down((fut))
+#define futex_trydown(fut)  _futex_trydown((fut))
+#define futex_up(fut)       (void)_futex_up((fut))
+
+
+/** Try to down the futex.
+ *
+ * @param futex Futex.
+ *
+ * @return Non-zero if the futex was acquired.
+ * @return Zero if the futex was not acquired.
+ *
+ */
+static inline int _futex_trydown(futex_t *futex)
+{
+	return cas(&futex->val, 1, 0);
+}
+
+/** Down the futex.
+ *
+ * @param futex Futex.
+ *
+ * @return ENOENT if there is no such virtual address.
+ * @return Zero in the uncontended case.
+ * @return Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
+ *
+ */
+static inline int _futex_down(futex_t *futex)
+{
+	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
+		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
+	
+	return 0;
+}
+
+/** Up the futex.
+ *
+ * @param futex Futex.
+ *
+ * @return ENOENT if there is no such virtual address.
+ * @return Zero in the uncontended case.
+ *
+ */
+static inline int _futex_up(futex_t *futex)
+{
+	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
+		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
+	
+	return 0;
+}
 
 #endif
 

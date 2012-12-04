@@ -34,8 +34,6 @@
 
 #include <futex.h>
 #include <atomic.h>
-#include <libc.h>
-#include <sys/types.h>
 
 /** Initialize futex counter.
  *
@@ -48,51 +46,6 @@ void futex_initialize(futex_t *futex, int val)
 	atomic_set(&futex->val, val);
 }
 
-/** Try to down the futex.
- *
- * @param futex Futex.
- *
- * @return Non-zero if the futex was acquired.
- * @return Zero if the futex was not acquired.
- *
- */
-int futex_trydown(futex_t *futex)
-{
-	return cas(&futex->val, 1, 0);
-}
-
-/** Down the futex.
- *
- * @param futex Futex.
- *
- * @return ENOENT if there is no such virtual address.
- * @return Zero in the uncontended case.
- * @return Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
- *
- */
-int futex_down(futex_t *futex)
-{
-	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
-	
-	return 0;
-}
-
-/** Up the futex.
- *
- * @param futex Futex.
- *
- * @return ENOENT if there is no such virtual address.
- * @return Zero in the uncontended case.
- *
- */
-int futex_up(futex_t *futex)
-{
-	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
-	
-	return 0;
-}
 
 /** @}
  */
