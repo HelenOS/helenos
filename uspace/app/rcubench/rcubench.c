@@ -58,8 +58,6 @@ typedef struct bench {
 	void (*func)(struct bench *);
 	size_t iters;
 	size_t nthreads;
-	size_t array_size;
-	size_t *array;
 	futex_t done_threads;
 	
 	futex_t bench_fut;
@@ -71,9 +69,9 @@ typedef struct bench {
 static void  kernel_futex_bench(bench_t *bench)
 {
 	const size_t iters = bench->iters;
+	int val = 0;
 	
 	for (size_t i = 0; i < iters; ++i) {
-		int val = 0;
 		__SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &val);
 		__SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &val);
 	}
@@ -180,14 +178,14 @@ static void print_res(const char *fmt, ... )
 
 static void print_usage(void)
 {
-	printf("rcubench [test-name] [k-iterations] [n-threads] {work-size}\n");
+	printf("rcubench [test-name] [k-iterations] [n-threads]\n");
 	printf("Available tests: \n");
 	printf("  sys-futex.. threads make wakeup/sleepdown futex syscalls in a loop\n");
 	printf("              but for separate variables/futex kernel objects.\n");
 	printf("  lock     .. threads lock/unlock separate futexes.\n");
 	printf("  sema     .. threads down/up separate futexes.\n");
 	printf("eg:\n");
-	printf("  rcubench ke-futex  100000 3 4\n");
+	printf("  rcubench sys-futex  100000 3\n");
 	printf("  rcubench lock 100000 2 ..runs futex_lock/unlock in a loop\n");
 	printf("  rcubench sema 100000 2 ..runs futex_down/up in a loop\n");
 	printf("Results are stored in %s\n", results_txt);
@@ -237,32 +235,6 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		*err = "Err: Invalid number of threads";
 		return false;
 	} 
-	
-	/* Set work array size. */
-	if (argc > 4) {
-		uint32_t work_size = 0;
-		ret = str_uint32_t(argv[4], NULL, 0, true, &work_size);
-
-		if (ret == EOK && work_size <= 10000) {
-			bench->array_size = work_size;
-		} else {
-			*err = "Err: Work size too large";
-			return false;
-		} 
-	} else {
-		bench->array_size = 0;
-	}
-	
-	/* Allocate work array. */
-	if (0 < bench->array_size) {
-		bench->array = malloc(bench->array_size * sizeof(size_t));
-		if (!bench->array) {
-			*err = "Err: Failed to allocate work array";
-			return false;
-		}
-	} else {
-		bench->array = NULL;
-	}
 	
 	return true;
 }
