@@ -92,7 +92,6 @@ DIRS = \
 	srv/bd/ata_bd \
 	srv/bd/sata_bd \
 	srv/bd/file_bd \
-	srv/bd/gxe_bd \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \

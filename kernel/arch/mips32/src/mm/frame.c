@@ -84,13 +84,6 @@ static bool frame_available(pfn_t frame)
 		return false;
 #endif
 	
-#if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
-	/* gxemul devices */
-	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
-	    0x10000000, MiB2SIZE(256)))
-		return false;
-#endif
-	
 	return true;
 }
 
@@ -224,13 +217,6 @@ void frame_low_arch_init(void)
 					ZERO_PAGE_VALUE = 0xdeadbeef;
 					if (ZERO_PAGE_VALUE != 0xdeadbeef)
 						avail = false;
-#if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
-					else {
-						ZERO_PAGE_VALUE_KSEG1(frame) = 0xaabbccdd;
-						if (ZERO_PAGE_VALUE_KSEG1(frame) != 0xaabbccdd)
-							avail = false;
-					}
-#endif
 				}
 			}
 		}

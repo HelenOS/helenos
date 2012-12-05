@@ -30,19 +30,6 @@ BFD_ARCH = mips
 BITS = 32
 EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
-
-ifeq ($(MACHINE),lgxemul)
-	BFD_NAME = elf32-tradlittlemips
-	BFD_OUTPUT = ecoff-littlemips
-	ENDIANESS = LE
-endif
-ifeq ($(MACHINE),bgxemul)
-	BFD_NAME = elf32-tradbigmips
-	BFD_OUTPUT = ecoff-bigmips
-	ENDIANESS = BE
-endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD_OUTPUT = binary

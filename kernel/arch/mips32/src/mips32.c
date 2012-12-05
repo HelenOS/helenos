@@ -124,22 +124,6 @@ void arch_post_mm_init(void)
 {
 	interrupt_init();
 	
-#ifdef CONFIG_FB
-	/* GXemul framebuffer */
-	fb_properties_t gxemul_prop = {
-		.addr = 0x12000000,
-		.offset = 0,
-		.x = 640,
-		.y = 480,
-		.scan = 1920,
-		.visual = VISUAL_RGB_8_8_8,
-	};
-	
-	outdev_t *fbdev = fb_init(&gxemul_prop);
-	if (fbdev)
-		stdout_wire(fbdev);
-#endif
-
 #ifdef CONFIG_MIPS_PRN
 	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
 	if (dsrlndev)
@@ -163,19 +147,14 @@ void arch_post_smp_init(void)
 #ifdef MACHINE_msim
 	platform = "msim";
 #endif
-#ifdef MACHINE_bgxemul
-	platform = "gxemul";
-#endif
-#ifdef MACHINE_lgxemul
-	platform = "gxemul";
-#endif
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
 
 #ifdef CONFIG_MIPS_KBD
 	/*
-	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
-	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
+	 * Initialize the msim keyboard port. Then initialize the serial line
+	 * module and connect it to the msim keyboard. Enable keyboard
+	 * interrupts.
 	 */
 	dsrlnin_instance_t *dsrlnin_instance
 	    = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);

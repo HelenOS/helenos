@@ -35,15 +35,6 @@ BITS = 32
 ## Accepted MACHINEs
 #
 
-ifeq ($(MACHINE),lgxemul)
-	BFD_NAME = elf32-tradlittlemips
-	ENDIANESS = LE
-endif
-ifeq ($(MACHINE),bgxemul)
-	BFD_NAME = elf32-tradbigmips
-	ENDIANESS = BE
-	GCC_CFLAGS += -D__BE__
-endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
