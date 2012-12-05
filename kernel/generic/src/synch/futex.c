@@ -120,7 +120,7 @@ static bool task_fut_ht_key_equal(void *key, const cht_link_t *item);
  * 
  * Acquire task specific TASK->futex_list_lock before this mutex.
  */
-static mutex_t futex_ht_lock;
+SPINLOCK_STATIC_INITIALIZE_NAME(futex_ht_lock, "futex-ht-lock");
 
 /** Global kernel futex hash table. Lock futex_ht_lock before accessing.
  * 
@@ -147,7 +147,6 @@ static cht_ops_t task_futex_ht_ops = {
 /** Initialize futex subsystem. */
 void futex_init(void)
 {
-	mutex_initialize(&futex_ht_lock, MUTEX_PASSIVE);
 	hash_table_create(&futex_ht, FUTEX_HT_SIZE, 1, &futex_ht_ops);
 }
 
@@ -159,7 +158,7 @@ void futex_task_init(struct task *task)
 	cht_create(&task->futexes->ht, 0, 0, 0, true, &task_futex_ht_ops);
 	
 	list_initialize(&task->futexes->list);
-	mutex_initialize(&task->futexes->list_lock, MUTEX_PASSIVE);
+	spinlock_initialize(&task->futexes->list_lock, "futex-list-lock");
 }
 
 /** Destroys the futex structures for the dying task. */
@@ -205,7 +204,7 @@ void futex_task_cleanup(void)
 	struct futex_cache *futexes = TASK->futexes;
 	
 	/* All threads of this task have terminated. This is the last thread. */
-	mutex_lock(&futexes->list_lock);
+	spinlock_lock(&futexes->list_lock);
 	
 	list_foreach_safe(futexes->list, cur_link, next_link) {
 		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, all_link);
@@ -221,7 +220,7 @@ void futex_task_cleanup(void)
 		futex_release_ref_locked(fut_ptr->futex);
 	}
 	
-	mutex_unlock(&futexes->list_lock);
+	spinlock_unlock(&futexes->list_lock);
 }
 
 
@@ -241,7 +240,7 @@ static void futex_initialize(futex_t *futex, uintptr_t paddr)
 /** Increments the counter of tasks referencing the futex. */
 static void futex_add_ref(futex_t *futex)
 {
-	ASSERT(mutex_locked(&futex_ht_lock));
+	ASSERT(spinlock_locked(&futex_ht_lock));
 	ASSERT(0 < futex->refcount);
 	++futex->refcount;
 }
@@ -249,7 +248,7 @@ static void futex_add_ref(futex_t *futex)
 /** Decrements the counter of tasks referencing the futex. May free the futex.*/
 static void futex_release_ref(futex_t *futex)
 {
-	ASSERT(mutex_locked(&futex_ht_lock));
+	ASSERT(spinlock_locked(&futex_ht_lock));
 	ASSERT(0 < futex->refcount);
 	
 	--futex->refcount;
@@ -262,9 +261,9 @@ static void futex_release_ref(futex_t *futex)
 /** Decrements the counter of tasks referencing the futex. May free the futex.*/
 static void futex_release_ref_locked(futex_t *futex)
 {
-	mutex_lock(&futex_ht_lock);
+	spinlock_lock(&futex_ht_lock);
 	futex_release_ref(futex);
-	mutex_unlock(&futex_ht_lock);
+	spinlock_unlock(&futex_ht_lock);
 }
 
 /** Returns a futex for the virtual address @a uaddr (or creates one). */
@@ -277,8 +276,9 @@ static futex_t *get_futex(uintptr_t uaddr)
 
 	uintptr_t paddr;
 
-	if (!find_futex_paddr(uaddr, &paddr)) 
+	if (!find_futex_paddr(uaddr, &paddr)) {
 		return 0;
+	}
 
 	return get_and_cache_futex(paddr, uaddr);
 }
@@ -287,17 +287,19 @@ static futex_t *get_futex(uintptr_t uaddr)
 /** Finds the physical address of the futex variable. */
 static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 {
-	page_table_lock(AS, true);
+	spinlock_lock(&futex_ht_lock);
+	page_table_lock(AS, false);
 
 	bool found = false;
-	pte_t *t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), false);
+	pte_t *t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE), true);
 	
 	if (t && PTE_VALID(t) && PTE_PRESENT(t)) {
 		found = true;
 		*paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	}
 	
-	page_table_unlock(AS, true);
+	page_table_unlock(AS, false);
+	spinlock_unlock(&futex_ht_lock);
 	
 	return found;
 }
@@ -337,7 +339,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	 * Find the futex object in the global futex table (or insert it 
 	 * if it is not present).
 	 */
-	mutex_lock(&futex_ht_lock);
+	spinlock_lock(&futex_ht_lock);
 	
 	link_t *fut_link = hash_table_find(&futex_ht, &phys_addr);
 	
@@ -350,7 +352,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 		hash_table_insert(&futex_ht, &phys_addr, &futex->ht_link);
 	}
 	
-	mutex_unlock(&futex_ht_lock);
+	spinlock_unlock(&futex_ht_lock);
 	
 	/* 
 	 * Cache the link to the futex object for this task. 
@@ -365,9 +367,9 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	
 	/* Cache the mapping from the virtual address to the futex for this task. */
 	if (cht_insert_unique(&TASK->futexes->ht, &fut_ptr->cht_link, &dup_link)) {
-		mutex_lock(&TASK->futexes->list_lock);
+		spinlock_lock(&TASK->futexes->list_lock);
 		list_append(&fut_ptr->all_link, &TASK->futexes->list);
-		mutex_unlock(&TASK->futexes->list_lock);
+		spinlock_unlock(&TASK->futexes->list_lock);
 	} else {
 		/* Another thread of this task beat us to it. Use that mapping instead.*/
 		free(fut_ptr);
@@ -397,13 +399,8 @@ sysarg_t sys_futex_sleep(uintptr_t uaddr)
 	if (!futex) 
 		return (sysarg_t) ENOENT;
 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_begin();
-#endif
 	int rc = waitq_sleep_timeout(&futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE); 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_end();
-#endif
+
 	return (sysarg_t) rc;
 }
 
