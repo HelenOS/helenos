@@ -36,13 +36,26 @@
 #define STACK_OFFSET     0x00002000
 #define BOOTINFO_OFFSET  0x00003000
 #define BOOT_OFFSET      0x00100000
-#define LOADER_OFFSET    0x1fc00000
 
+#if defined(MACHINE_msim)
+#define LOADER_OFFSET    0x1fc00000
+#elif defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+#define LOADER_OFFSET    0x00004000
+#endif
+
+#if defined(MACHINE_msim)
 #define MSIM_VIDEORAM_ADDRESS  0xb0000000
 #define MSIM_DORDER_ADDRESS    0xb0000100
+#endif
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+#define MALTA_SERIAL     0xb80003f8
+#endif
 
 #ifndef __ASM__
 	#define PA2KA(addr)    (((uintptr_t) (addr)) + 0x80000000)
+	#define PA2KSEG(addr)  (((uintptr_t) (addr)) + 0xa0000000)
+	#define KA2PA(addr)    (((uintptr_t) (addr)) - 0x80000000)
 	#define KSEG2PA(addr)  (((uintptr_t) (addr)) - 0xa0000000)
 #else
 	#define PA2KA(addr)    ((addr) + 0x80000000)

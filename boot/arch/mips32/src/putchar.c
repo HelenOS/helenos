@@ -31,10 +31,23 @@
 #include <putchar.h>
 #include <str.h>
 
+#ifdef PUTCHAR_ADDRESS
+#undef PUTCHAR_ADDRESS
+#endif
+
+#if defined(MACHINE_msim)
+#define PUTCHAR_ADDRESS MSIM_VIDEORAM_ADDRESS
+#endif
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+#define PUTCHAR_ADDRESS MALTA_SERIAL
+#endif
+
 void putchar(const wchar_t ch)
 {
 	if (ascii_check(ch))
-		*((char *) MSIM_VIDEORAM_ADDRESS) = ch;
+		*((char *) PUTCHAR_ADDRESS) = ch;
 	else
-		*((char *) MSIM_VIDEORAM_ADDRESS) = U_SPECIAL;
+		*((char *) PUTCHAR_ADDRESS) = U_SPECIAL;
 }
+
