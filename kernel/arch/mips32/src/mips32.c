@@ -152,8 +152,11 @@ void arch_post_smp_init(void)
 	static const char *platform;
 
 	/* Set platform name. */
-#ifdef MACHINE_msim
+#if defined(MACHINE_msim)
 	platform = "msim";
+#endif
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	platform = "malta";
 #endif
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
