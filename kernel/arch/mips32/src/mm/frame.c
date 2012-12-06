@@ -40,6 +40,7 @@
 #include <mm/asid.h>
 #include <config.h>
 #include <arch/drivers/msim.h>
+#include <arch/arch.h>
 #include <print.h>
 
 #define ZERO_PAGE_MASK    TLB_PAGE_MASK_256K
@@ -81,6 +82,11 @@ static bool frame_available(pfn_t frame)
 	
 	/* MSIM device (dkeyboard) */
 	if (frame == (KA2PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
+		return false;
+#endif
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	if (frame >= (sdram_size >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
 	

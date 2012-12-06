@@ -43,6 +43,10 @@
 
 extern size_t cpu_count;
 
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+extern size_t sdram_size;
+#endif
+
 typedef struct {
 	void *addr;
 	size_t size;
@@ -50,6 +54,9 @@ typedef struct {
 } utask_t;
 
 typedef struct {
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	uint32_t sdram_size;
+#endif
 	uint32_t cpumap;
 	size_t cnt;
 	utask_t tasks[TASKMAP_MAX_RECORDS];

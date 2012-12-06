@@ -70,6 +70,10 @@ uintptr_t supervisor_sp __attribute__ ((section (".text")));
 
 size_t cpu_count = 0;
 
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+size_t sdram_size = 0;
+#endif
+
 /** Performs mips32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
@@ -87,6 +91,10 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 		if ((bootinfo->cpumap & (1 << i)) != 0)
 			cpu_count++;
 	}
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	sdram_size = bootinfo->sdram_size;
+#endif
 }
 
 void arch_pre_mm_init(void)
