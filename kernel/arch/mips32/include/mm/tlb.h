@@ -42,8 +42,10 @@
 
 #if defined(PROCESSOR_R4000)
 #define TLB_ENTRY_COUNT  48
+#define TLB_INDEX_BITS   6
 #elif defined(PROCESSOR_4Kc)
 #define TLB_ENTRY_COUNT  16
+#define TLB_INDEX_BITS   4
 #else
 #error Please define TLB_ENTRY_COUNT for the target processor.
 #endif
@@ -117,11 +119,11 @@ typedef union {
 	struct {
 #ifdef __BE__
 		unsigned p : 1;
-		unsigned : 27;
-		unsigned index : 4;
+		unsigned : 32 - TLB_INDEX_BITS - 1;
+		unsigned index : TLB_INDEX_BITS;
 #else
-		unsigned index : 4;
-		unsigned : 27;
+		unsigned index : TLB_INDEX_BITS;
+		unsigned : 32 - TLB_INDEX_BITS - 1;
 		unsigned p : 1;
 #endif
 	} __attribute__ ((packed));
