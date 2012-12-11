@@ -141,6 +141,18 @@ void tlb_invalid(istate_t *istate)
 	tlbp();
 	index.value = cp0_index_read();
 
+#if defined(PROCESSOR_4Kc)
+	/*
+	 * This can happen on a 4Kc when Status.EXL is 1 and there is a TLB miss.
+	 * EXL is 1 when interrupts are disabled. The combination of a TLB miss
+	 * and disabled interrupts is possible in copy_to/from_uspace().
+	 */
+	if (index.p) {
+		tlb_refill(istate);
+		return;
+	}
+#endif
+
 	ASSERT(!index.p);
 
 	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate);
