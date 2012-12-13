@@ -238,6 +238,32 @@ void frame_low_arch_init(void)
 	
 	/* Blacklist interrupt vector frame */
 	frame_mark_unavailable(0, 1);
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	/* Blacklist memory regions used by YAMON.
+	 *
+	 * The YAMON User's Manual vaguely says the following physical addresses
+	 * are taken by YAMON:
+	 *
+	 * 0x1000	YAMON functions
+	 * 0x5000	YAMON code
+	 *
+	 * These addresses overlap with the beginning of the SDRAM so we need to
+	 * make sure they cannot be allocated.
+	 *
+	 * The User's Manual unfortunately does not say where does the SDRAM
+	 * portion used by YAMON end.
+	 *
+	 * Looking into the YAMON 02.21 sources, it looks like the first free
+	 * address is computed dynamically and depends on the size of the YAMON
+	 * image. From the YAMON binary, it appears to be 0xc0d50 or roughly
+	 * 772 KiB for that particular version.
+	 *
+	 * Linux is linked to 1MiB which seems to be a safe bet and a reasonable
+	 * upper bound for memory taken by YAMON. We will use it too.
+	 */
+	frame_mark_unavailable(0, 1024 * 1024 / FRAME_SIZE);
+#endif
 	
 	/* Cleanup */
 	cp0_pagemask_write(ZERO_PAGE_MASK);

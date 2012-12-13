@@ -4,7 +4,7 @@ SECTIONS {
 #if defined(MACHINE_msim)
 	. = 0xbfc00000;
 #elif defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
-	. = 0x80004000;
+	. = 0x80103000;
 #endif
 	.text : {
 		*(BOOTSTRAP);
