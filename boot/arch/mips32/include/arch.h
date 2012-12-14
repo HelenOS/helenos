@@ -50,7 +50,8 @@
 #define BOOT_OFFSET      0x00200000
 #define LOADER_OFFSET    0x00103000
 
-#define MALTA_SERIAL     0xb80003f8
+#define YAMON_SUBR_BASE		PA2KA(0x1fc00500)
+#define YAMON_SUBR_PRINT_COUNT	(YAMON_SUBR_BASE + 0x4)
 #endif
 
 #ifndef __ASM__

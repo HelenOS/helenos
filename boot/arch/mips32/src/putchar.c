@@ -36,18 +36,32 @@
 #endif
 
 #if defined(MACHINE_msim)
-#define PUTCHAR_ADDRESS MSIM_VIDEORAM_ADDRESS
+#define _putchar(ch)	msim_putchar((ch))
+static void msim_putchar(const wchar_t ch)
+{
+	*((char *) MSIM_VIDEORAM_ADDRESS) = ch;
+}
 #endif
 
 #if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
-#define PUTCHAR_ADDRESS MALTA_SERIAL
+#define _putchar(ch)	yamon_putchar((ch))
+typedef void (**yamon_print_count_ptr_t)(uint32_t, const char *, uint32_t);
+yamon_print_count_ptr_t yamon_print_count =
+    (yamon_print_count_ptr_t) YAMON_SUBR_PRINT_COUNT;
+
+static void yamon_putchar(const wchar_t wch)
+{
+	const char ch = (char) wch;
+
+	(*yamon_print_count)(0, &ch, 1);
+}
 #endif
 
 void putchar(const wchar_t ch)
 {
 	if (ascii_check(ch))
-		*((char *) PUTCHAR_ADDRESS) = ch;
+		_putchar(ch);
 	else
-		*((char *) PUTCHAR_ADDRESS) = U_SPECIAL;
+		_putchar(U_SPECIAL);
 }
 
