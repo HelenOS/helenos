@@ -33,7 +33,6 @@
  */
 #ifndef DRV_OHCI_OHCI_H
 #define DRV_OHCI_OHCI_H
-#include <ddi.h>
 #include <ddf/driver.h>
 
 int device_setup_ohci(ddf_dev_t *device);
