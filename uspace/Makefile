@@ -219,6 +219,7 @@ LIBS = \
 	lib/bithenge \
 	lib/posix \
 	lib/mbr
+	lib/gpt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
