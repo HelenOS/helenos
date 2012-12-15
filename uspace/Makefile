@@ -217,7 +217,8 @@ LIBS = \
 	lib/usbhid \
 	lib/usbvirt \
 	lib/bithenge \
-	lib/posix
+	lib/posix \
+	lib/mbr
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
