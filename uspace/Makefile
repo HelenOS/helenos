@@ -40,6 +40,7 @@ DIRS = \
 	app/devctl \
 	app/edit \
 	app/getterm \
+	app/hdisk \
 	app/init \
 	app/inet \
 	app/kill \
@@ -218,7 +219,7 @@ LIBS = \
 	lib/usbvirt \
 	lib/bithenge \
 	lib/posix \
-	lib/mbr
+	lib/mbr \
 	lib/gpt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
