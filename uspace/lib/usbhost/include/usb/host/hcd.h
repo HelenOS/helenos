@@ -45,6 +45,10 @@
 
 typedef struct hcd hcd_t;
 
+typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
+typedef int (*ep_add_hook_t)(hcd_t *, endpoint_t *);
+typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
+
 /** Generic host controller driver structure. */
 struct hcd {
 	/** Device manager storing handles and addresses. */
@@ -55,11 +59,11 @@ struct hcd {
 	/** Device specific driver data. */
 	void *private_data;
 	/** Transfer scheduling, implement in device driver. */
-	int (*schedule)(hcd_t *, usb_transfer_batch_t *);
+	schedule_hook_t schedule;
 	/** Hook called upon registering new endpoint. */
-	int (*ep_add_hook)(hcd_t *, endpoint_t *);
+	ep_add_hook_t ep_add_hook;
 	/** Hook called upon removing of an endpoint. */
-	void (*ep_remove_hook)(hcd_t *, endpoint_t *);
+	ep_remove_hook_t ep_remove_hook;
 };
 
 /** Initialize hcd_t structure.

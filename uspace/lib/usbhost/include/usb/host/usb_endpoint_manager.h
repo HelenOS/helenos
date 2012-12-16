@@ -52,6 +52,10 @@
 /** 16 addresses per list */
 #define ENDPOINT_LIST_COUNT 8
 
+typedef size_t (*bw_count_func_t)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
+typedef void (*ep_remove_callback_t)(endpoint_t *, void *);
+typedef int (*ep_add_callback_t)(endpoint_t *, void *);
+
 /** Endpoint management structure */
 typedef struct usb_endpoint_manager {
 	/** Store endpoint_t instances */
@@ -61,15 +65,15 @@ typedef struct usb_endpoint_manager {
 	/** Size of the bandwidth pool */
 	size_t free_bw;
 	/** Use this function to count bw required by EP */
-	size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
+	bw_count_func_t bw_count;
 } usb_endpoint_manager_t;
+
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth,
-    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
+    size_t available_bandwidth, bw_count_func_t bw_count);
 
 void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
     usb_target_t target, const uint8_t data[8]);
@@ -84,14 +88,14 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
 int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
-    size_t data_size, int (*callback)(endpoint_t *, void *), void *arg);
+    size_t data_size, ep_add_callback_t callback, void *arg);
 
 int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
-    void (*callback)(endpoint_t *, void *), void *arg);
+    ep_remove_callback_t callback, void *arg);
 
 void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
-    usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg);
+    usb_address_t address, ep_remove_callback_t callback, void *arg);
 #endif
 /**
  * @}

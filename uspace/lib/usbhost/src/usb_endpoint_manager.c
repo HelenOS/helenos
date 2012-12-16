@@ -317,7 +317,7 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
 int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
-    size_t data_size, int (*callback)(endpoint_t *, void *), void *arg)
+    size_t data_size, ep_add_callback_t callback, void *arg)
 {
 	assert(instance);
 	if (instance->bw_count == NULL)
