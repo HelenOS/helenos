@@ -55,6 +55,26 @@ static inline ohci_t *dev_to_ohci(ddf_dev_t *dev)
 	return ddf_dev_data_get(dev);
 }
 
+static inline hcd_t *dev_to_hcd(ddf_dev_t *dev)
+{
+	ohci_t *ohci = dev_to_ohci(dev);
+	if (!ohci || !ohci->hc_fun) {
+		usb_log_error("Invalid OHCI device.\n");
+		return NULL;
+	}
+	return ddf_fun_data_get(ohci->hc_fun);
+}
+
+static inline hc_t * dev_to_hc(ddf_dev_t *dev)
+{
+	hcd_t *hcd = dev_to_hcd(dev);
+	if (!hcd) {
+		usb_log_error("Invalid OHCI HCD");
+		return NULL;
+	}
+	return hcd->private_data;
+}
+
 /** IRQ handling callback, identifies device
  *
  * @param[in] dev DDF instance of the device to use.
@@ -64,14 +84,11 @@ static inline ohci_t *dev_to_ohci(ddf_dev_t *dev)
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-
-	ohci_t *ohci = dev_to_ohci(dev);
-	if (!ohci) {
+	hc_t *hc = dev_to_hc(dev);
+	if (!hc) {
 		usb_log_warning("Interrupt on device that is not ready.\n");
 		return;
 	}
-	hc_t *hc = ddf_fun_data_get(ohci->hc_fun);
-	assert(hc);
 
 	const uint16_t status = IPC_GET_ARG1(*call);
 	hc_interrupt(hc, status);
@@ -88,8 +105,7 @@ static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
 	assert(fun);
 
 	if (address != NULL) {
-		hc_t *hc =
-		    ddf_fun_data_get(dev_to_ohci(ddf_fun_get_dev(fun))->hc_fun);
+		hc_t *hc = dev_to_hc(ddf_fun_get_dev(fun));
 		assert(hc);
 		*address = hc->rh.address;
 	}
@@ -175,6 +191,9 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to allocate HCD structure: %s.\n", str_error(ret));
 
+	hcd_init(&hc->generic, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
 	ret = instance->rh_fun ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
@@ -230,6 +249,9 @@ if (ret != EOK) { \
 	ret = hc_init(hc, reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
+
+	hcd_set_implementation(&hc->generic, hc, hc_schedule,
+	    ohci_endpoint_init, ohci_endpoint_fini);
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \

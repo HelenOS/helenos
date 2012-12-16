@@ -87,7 +87,6 @@ static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
-static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
 /** Get number of PIO ranges used in IRQ code.
  * @return Number of ranges.
@@ -160,13 +159,6 @@ if (ret != EOK) { \
 	    "Failed to gain access to device registers: %s.\n", str_error(ret));
 
 	list_initialize(&instance->pending_batches);
-
-	hcd_init(&instance->generic, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-	instance->generic.private_data = instance;
-	instance->generic.schedule = hc_schedule;
-	instance->generic.ep_add_hook = ohci_endpoint_init;
-	instance->generic.ep_remove_hook = ohci_endpoint_fini;
 
 	ret = hc_init_memory(instance);
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
