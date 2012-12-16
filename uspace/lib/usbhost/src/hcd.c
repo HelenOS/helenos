@@ -42,7 +42,6 @@
 
 typedef struct hc_dev {
 	ddf_fun_t *hc_fun;
-	ddf_fun_t *rh_fun;
 } hc_dev_t;
 
 static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
@@ -61,6 +60,8 @@ hcd_t *dev_to_hcd(ddf_dev_t *dev)
 }
 
 typedef struct usb_dev {
+	link_t link;
+	ddf_fun_t *fun;
 	usb_address_t address;
 	usb_speed_t speed;
 	devman_handle_t handle;
@@ -105,7 +106,7 @@ static usb_iface_t usb_iface = {
 	.get_my_address = rh_get_my_address,
 };
 /** Standard USB RH options (RH interface) */
-static ddf_dev_ops_t rh_ops = {
+static ddf_dev_ops_t usb_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 };
 
@@ -113,6 +114,52 @@ static ddf_dev_ops_t rh_ops = {
 static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
+
+int hcd_add_device(hcd_t *instance, ddf_dev_t *parent,
+    usb_address_t address, usb_speed_t speed, const char *name,
+    const match_id_list_t *mids)
+{
+	assert(instance);
+	assert(parent);
+	hc_dev_t *hc_dev = ddf_dev_data_get(parent);
+	devman_handle_t hc_handle = ddf_fun_get_handle(hc_dev->hc_fun);
+
+	//TODO more checks
+	ddf_fun_t *fun = ddf_fun_create(parent, fun_inner, name);
+	if (!fun)
+		return ENOMEM;
+	usb_dev_t *info = ddf_fun_data_alloc(fun, sizeof(usb_dev_t));
+	if (!info) {
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+	info->address = address;
+	info->speed = speed;
+	info->handle = hc_handle;
+	info->fun = fun;
+	link_initialize(&info->link);
+
+	ddf_fun_set_ops(fun, &usb_ops);
+	list_foreach(mids->ids, iter) {
+		match_id_t *mid = list_get_instance(iter, match_id_t, link);
+		ddf_fun_add_match_id(fun, mid->id, mid->score);
+	}
+
+	int ret = ddf_fun_bind(fun);
+	if (ret != EOK) {
+		ddf_fun_destroy(fun);
+		return ret;
+	}
+
+	ret = usb_device_manager_bind_address(&instance->dev_manager,
+	    address, ddf_fun_get_handle(fun));
+	if (ret != EOK)
+		usb_log_warning("Failed to bind root hub address: %s.\n",
+		    str_error(ret));
+
+	list_append(&info->link, &instance->devices);
+	return EOK;
+}
 
 /** Announce root hub to the DDF
  *
@@ -126,31 +173,13 @@ int hcd_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *device)
 	assert(address);
 	assert(device);
 
-	hc_dev_t *hc_dev = ddf_dev_data_get(device);
-	hc_dev->rh_fun = ddf_fun_create(device, fun_inner, "rh");
-	if (!hc_dev->rh_fun)
-		return ENOMEM;
-	usb_dev_t *rh = ddf_fun_data_alloc(hc_dev->rh_fun, sizeof(usb_dev_t));
-	if (!rh) {
-		ddf_fun_destroy(hc_dev->rh_fun);
-		return ENOMEM;
-	}
-
-
 	int ret = usb_device_manager_request_address(&instance->dev_manager,
 	    address, false, USB_SPEED_FULL);
 	if (ret != EOK) {
 		usb_log_error("Failed to get root hub address: %s\n",
 		    str_error(ret));
-		ddf_fun_destroy(hc_dev->rh_fun);
 		return ret;
 	}
-
-	rh->address = *address;
-	rh->speed = USB_SPEED_FULL;
-	rh->handle = ddf_fun_get_handle(hc_dev->hc_fun);
-
-	ddf_fun_set_ops(hc_dev->rh_fun, &rh_ops);
 
 #define CHECK_RET_UNREG_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -160,7 +189,6 @@ if (ret != EOK) { \
 	    USB_DIRECTION_BOTH, NULL, NULL); \
 	usb_device_manager_release_address( \
 	    &instance->dev_manager, *address); \
-	ddf_fun_destroy(hc_dev->rh_fun); \
 	return ret; \
 } else (void)0
 
@@ -169,23 +197,18 @@ if (ret != EOK) { \
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
 	    0, NULL, NULL);
 	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to register root hub control endpoint: %s.\n",
-	    str_error(ret));
+	    "Failed to add root hub control endpoint: %s.\n", str_error(ret));
 
-	ret = ddf_fun_add_match_id(hc_dev->rh_fun, "usb&class=hub", 100);
+	match_id_t mid = { .id = "usb&class=hub", .score = 100 };
+	link_initialize(&mid.link);
+	match_id_list_t mid_list;
+	init_match_ids(&mid_list);
+	add_match_id(&mid_list, &mid);
+
+	ret = hcd_add_device(
+	    instance, device, *address, USB_SPEED_FULL, "rh", &mid_list);
 	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to add root hub match-id: %s.\n", str_error(ret));
-
-	ret = ddf_fun_bind(hc_dev->rh_fun);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to bind root hub function: %s.\n", str_error(ret));
-
-	ret = usb_device_manager_bind_address(&instance->dev_manager,
-	    *address, ddf_fun_get_handle(hc_dev->rh_fun));
-	if (ret != EOK)
-		usb_log_warning("Failed to bind root hub address: %s.\n",
-		    str_error(ret));
-
+	    "Failed to add hcd device: %s.\n", str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_UNREG_RETURN

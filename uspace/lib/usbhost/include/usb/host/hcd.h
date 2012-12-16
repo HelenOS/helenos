@@ -37,6 +37,7 @@
 #define LIBUSBHOST_HOST_HCD_H
 
 #include <assert.h>
+#include <adt/list.h>
 #include <usbhc_iface.h>
 
 #include <usb/host/usb_device_manager.h>
@@ -55,6 +56,8 @@ struct hcd {
 	usb_device_manager_t dev_manager;
 	/** Endpoint manager. */
 	usb_endpoint_manager_t ep_manager;
+	/** Added devices */
+	list_t devices;
 
 	/** Device specific driver data. */
 	void *private_data;
@@ -79,6 +82,8 @@ static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	assert(hcd);
 	usb_device_manager_init(&hcd->dev_manager, max_speed);
 	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
+	list_initialize(&hcd->devices);
+
 	hcd->private_data = NULL;
 	hcd->schedule = NULL;
 	hcd->ep_add_hook = NULL;
@@ -108,6 +113,11 @@ static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
 	usb_endpoint_manager_reset_eps_if_need(
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
+
+
+int hcd_add_device(hcd_t *instance, ddf_dev_t *parent,
+    usb_address_t address, usb_speed_t speed, const char *name,
+    const match_id_list_t *mids);
 
 int hcd_setup_device(ddf_dev_t *device);
 int hcd_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *dev);
