@@ -247,7 +247,7 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
 
-	ret = hc_register_hub(hc, instance->rh_fun);
+	ret = hcd_register_hub(&hc->generic, &hc->rh.address, instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
 	return ret;

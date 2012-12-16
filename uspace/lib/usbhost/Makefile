@@ -35,6 +35,7 @@ EXTRA_CFLAGS += \
 
 SOURCES = \
 	src/endpoint.c \
+	src/hcd.c \
 	src/iface.c \
 	src/usb_device_manager.c \
 	src/usb_endpoint_manager.c \

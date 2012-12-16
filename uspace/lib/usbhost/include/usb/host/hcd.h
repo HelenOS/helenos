@@ -73,7 +73,7 @@ struct hcd {
  * @param bw_count Bandwidth compute function, passed to endpoint manager.
  */
 static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
-    size_t (*bw_count)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
+    bw_count_func_t bw_count)
 {
 	assert(hcd);
 	usb_device_manager_init(&hcd->dev_manager, max_speed);
@@ -82,6 +82,17 @@ static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd->schedule = NULL;
 	hcd->ep_add_hook = NULL;
 	hcd->ep_remove_hook = NULL;
+}
+
+static inline void hcd_set_implementation(hcd_t *hcd, void *data,
+    schedule_hook_t schedule, ep_add_hook_t add_hook, ep_remove_hook_t rem_hook)
+{
+	assert(hcd);
+	hcd->private_data = data;
+	hcd->schedule = schedule;
+	hcd->ep_add_hook = add_hook;
+	hcd->ep_remove_hook = rem_hook;
+
 }
 
 /** Check registered endpoints and reset toggle bit if necessary.
@@ -97,6 +108,9 @@ static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
 
+int hcd_register_hub(hcd_t *instance, usb_address_t *address, ddf_fun_t *hub_fun);
+
+
 /** Data retrieve wrapper.
  * @param fun ddf function, non-null.
  * @return pointer cast to hcd_t*.
@@ -105,6 +119,7 @@ static inline hcd_t *fun_to_hcd(ddf_fun_t *fun)
 {
 	return ddf_fun_data_get(fun);
 }
+
 
 extern usbhc_iface_t hcd_iface;
 
