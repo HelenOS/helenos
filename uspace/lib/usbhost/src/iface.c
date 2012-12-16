@@ -214,9 +214,9 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	hcd_t *hcd = fun_to_hcd(fun);
 	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
-	usb_device_manager_release_address(&hcd->dev_manager, address);
 	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
 	    unregister_helper_warn, hcd);
+	usb_device_manager_release_address(&hcd->dev_manager, address);
 	return EOK;
 }
 

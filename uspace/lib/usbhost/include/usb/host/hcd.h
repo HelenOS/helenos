@@ -66,6 +66,7 @@ struct hcd {
 	ep_remove_hook_t ep_remove_hook;
 };
 
+
 /** Initialize hcd_t structure.
  * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
  * @param hcd hcd_t structure to initialize, non-null.
@@ -108,8 +109,10 @@ static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
 
-int hcd_register_hub(hcd_t *instance, usb_address_t *address, ddf_fun_t *hub_fun);
+int hcd_setup_device(ddf_dev_t *device);
+int hcd_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *dev);
 
+hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
 /** Data retrieve wrapper.
  * @param fun ddf function, non-null.

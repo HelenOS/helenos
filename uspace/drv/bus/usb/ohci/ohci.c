@@ -45,35 +45,7 @@
 #include "res.h"
 #include "hc.h"
 
-typedef struct ohci {
-	ddf_fun_t *hc_fun;
-	ddf_fun_t *rh_fun;
-} ohci_t;
 
-static inline ohci_t *dev_to_ohci(ddf_dev_t *dev)
-{
-	return ddf_dev_data_get(dev);
-}
-
-static inline hcd_t *dev_to_hcd(ddf_dev_t *dev)
-{
-	ohci_t *ohci = dev_to_ohci(dev);
-	if (!ohci || !ohci->hc_fun) {
-		usb_log_error("Invalid OHCI device.\n");
-		return NULL;
-	}
-	return ddf_fun_data_get(ohci->hc_fun);
-}
-
-static inline hc_t * dev_to_hc(ddf_dev_t *dev)
-{
-	hcd_t *hcd = dev_to_hcd(dev);
-	if (!hcd) {
-		usb_log_error("Invalid OHCI HCD");
-		return NULL;
-	}
-	return hcd->private_data;
-}
 
 /** IRQ handling callback, identifies device
  *
@@ -84,68 +56,15 @@ static inline hc_t * dev_to_hc(ddf_dev_t *dev)
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	hc_t *hc = dev_to_hc(dev);
-	if (!hc) {
+	hcd_t *hcd = dev_to_hcd(dev);
+	if (!hcd || !hcd->private_data) {
 		usb_log_warning("Interrupt on device that is not ready.\n");
 		return;
 	}
 
 	const uint16_t status = IPC_GET_ARG1(*call);
-	hc_interrupt(hc, status);
+	hc_interrupt(hcd->private_data, status);
 }
-
-/** Get USB address assigned to root hub.
- *
- * @param[in] fun Root hub function.
- * @param[out] address Store the address here.
- * @return Error code.
- */
-static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
-{
-	assert(fun);
-
-	if (address != NULL) {
-		hc_t *hc = dev_to_hc(ddf_fun_get_dev(fun));
-		assert(hc);
-		*address = hc->rh.address;
-	}
-
-	return EOK;
-}
-
-/** Gets handle of the respective hc (this device, hc function).
- *
- * @param[in] root_hub_fun Root hub function seeking hc handle.
- * @param[out] handle Place to write the handle.
- * @return Error code.
- */
-static int rh_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(fun);
-
-	if (handle != NULL) {
-		ddf_fun_t *hc_fun = dev_to_ohci(ddf_fun_get_dev(fun))->hc_fun;
-		assert(hc_fun);
-		*handle = ddf_fun_get_handle(hc_fun);
-	}
-	return EOK;
-}
-
-/** Root hub USB interface */
-static usb_iface_t usb_iface = {
-	.get_hc_handle = rh_get_hc_handle,
-	.get_my_address = rh_get_my_address,
-};
-
-/** Standard USB HC options (HC interface) */
-static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
-};
-
-/** Standard USB RH options (RH interface) */
-static ddf_dev_ops_t rh_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface,
-};
 
 /** Initialize hc and rh ddf structures and their respective drivers.
  *
@@ -158,58 +77,6 @@ static ddf_dev_ops_t rh_ops = {
  *  - asks for interrupt
  *  - registers interrupt handler
  */
-static int device_setup_hcd(ddf_dev_t *device)
-{
-	if (device == NULL)
-		return EBADMEM;
-
-	ohci_t *instance = ddf_dev_data_alloc(device, sizeof(ohci_t));
-	if (instance == NULL) {
-		usb_log_error("Failed to allocate OHCI driver.\n");
-		return ENOMEM;
-	}
-
-#define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
-if (ret != EOK) { \
-	if (instance->hc_fun) { \
-		ddf_fun_destroy(instance->hc_fun); \
-	} \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
-	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci_hc");
-	int ret = instance->hc_fun ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to create OHCI HC function: %s.\n", str_error(ret));
-	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
-	hcd_t *hcd = ddf_fun_data_alloc(instance->hc_fun, sizeof(hcd_t));
-	ret = hcd ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to allocate HCD structure: %s.\n", str_error(ret));
-
-	hcd_init(hcd, USB_SPEED_FULL, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
-
-	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
-
-#define CHECK_RET_UNBIND_FREE_RETURN(ret, message...) \
-if (ret != EOK) { \
-	ddf_fun_unbind(instance->hc_fun); \
-	CHECK_RET_DEST_FREE_RETURN(ret, \
-	    "Failed to add OHCI to HC class: %s.\n", str_error(ret)); \
-} else (void)0
-	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_UNBIND_FREE_RETURN(ret,
-	    "Failed to add hc to category: %s\n", str_error(ret));
-
-	/* HC should be ok at this point (except it can't do anything) */
-
-	return EOK;
-}
-
 int device_setup_ohci(ddf_dev_t *device)
 {
 #define CHECK_RET_RETURN(ret, message...) \
@@ -263,7 +130,7 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = device_setup_hcd(device);
+	ret = hcd_setup_device(device);
 	if (ret != EOK) {
 		unregister_interrupt_handler(device, irq);
 		return ret;
@@ -284,25 +151,12 @@ if (ret != EOK) { \
 	ret = hc_init(hc_impl, reg_base, reg_size, interrupts);
 	CHECK_RET_CLEAN_RETURN(ret, "Failed to init hc: %s.\n", str_error(ret));
 
-	ohci_t *ohci = dev_to_ohci(device);
-
 	hcd_set_implementation(dev_to_hcd(device), hc_impl,
 	    hc_schedule, ohci_endpoint_init, ohci_endpoint_fini);
-
-#define CHECK_RET_FINI_RETURN(ret, message...) \
-if (ret != EOK) { \
-	hc_fini(hc_impl); \
-	CHECK_RET_CLEAN_RETURN(ret, message); \
-} else (void)0
-	ohci->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
-	ret = ohci->rh_fun ? EOK : ENOMEM;
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to create OHCI RH function: %s.\n", str_error(ret));
-	ddf_fun_set_ops(ohci->rh_fun, &rh_ops);
-
-	ret = hcd_register_hub(dev_to_hcd(device), &hc_impl->rh.address, ohci->rh_fun);
-	CHECK_RET_FINI_RETURN(ret,
+	ret = hcd_setup_hub(dev_to_hcd(device), &hc_impl->rh.address, device);
+	CHECK_RET_CLEAN_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
+
 	return ret;
 }
 /**
