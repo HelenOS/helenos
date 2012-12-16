@@ -158,7 +158,7 @@ static ddf_dev_ops_t rh_ops = {
  *  - asks for interrupt
  *  - registers interrupt handler
  */
-int device_setup_ohci(ddf_dev_t *device)
+static int device_setup_hcd(ddf_dev_t *device)
 {
 	if (device == NULL)
 		return EBADMEM;
@@ -173,9 +173,6 @@ int device_setup_ohci(ddf_dev_t *device)
 if (ret != EOK) { \
 	if (instance->hc_fun) { \
 		ddf_fun_destroy(instance->hc_fun); \
-	} \
-	if (instance->rh_fun) { \
-		ddf_fun_destroy(instance->rh_fun); \
 	} \
 	usb_log_error(message); \
 	return ret; \
@@ -198,26 +195,37 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
 
+#define CHECK_RET_UNBIND_FREE_RETURN(ret, message...) \
+if (ret != EOK) { \
+	ddf_fun_unbind(instance->hc_fun); \
+	CHECK_RET_DEST_FREE_RETURN(ret, \
+	    "Failed to add OHCI to HC class: %s.\n", str_error(ret)); \
+} else (void)0
 	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
+	CHECK_RET_UNBIND_FREE_RETURN(ret,
+	    "Failed to add hc to category: %s\n", str_error(ret));
 
 	/* HC should be ok at this point (except it can't do anything) */
 
-	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
-	ret = instance->rh_fun ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to create OHCI RH function: %s.\n", str_error(ret));
-	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
+	return EOK;
+}
+
+int device_setup_ohci(ddf_dev_t *device)
+{
+#define CHECK_RET_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+}
 
 	uintptr_t reg_base = 0;
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to get register memory addresses for %" PRIun ": %s.\n",
-	    ddf_dev_get_handle(device), str_error(ret));
+	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
+	CHECK_RET_RETURN(ret, "Failed to get register memory addresses for %"
+	    PRIun ": %s.\n", ddf_dev_get_handle(device), str_error(ret));
+
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
@@ -234,13 +242,13 @@ if (ret != EOK) { \
 
 	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
 	    sizeof(irq_cmds), reg_base, reg_size);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ code: %s.\n", str_error(ret));
+	CHECK_RET_RETURN(ret, "Failed to gen IRQ code: %s.\n", str_error(ret));
 
 	/* Register handler to avoid interrupt lockup */
 	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to register interrupt handler: %s.\n", str_error(ret));
+	CHECK_RET_RETURN(ret,
+	    "Failed to register irq handler: %s.\n", str_error(ret));
+
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
@@ -255,29 +263,47 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
+	ret = device_setup_hcd(device);
+	if (ret != EOK) {
+		unregister_interrupt_handler(device, irq);
+		return ret;
+	}
+
+
+// TODO: Undo device_setup_hcd
+#define CHECK_RET_CLEAN_RETURN(ret, message...) \
+if (ret != EOK) { \
+	unregister_interrupt_handler(device, irq); \
+	CHECK_RET_RETURN(ret, message); \
+} else (void)0
+
 	hc_t *hc_impl = malloc(sizeof(hc_t));
-	assert(hc_impl);
+	ret = hc_impl ? EOK : ENOMEM;
+	CHECK_RET_CLEAN_RETURN(ret, "Failed to aloocate driver structure.\n");
 
 	ret = hc_init(hc_impl, reg_base, reg_size, interrupts);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
+	CHECK_RET_CLEAN_RETURN(ret, "Failed to init hc: %s.\n", str_error(ret));
 
-	hcd_set_implementation(hcd, hc_impl, hc_schedule,
-	    ohci_endpoint_init, ohci_endpoint_fini);
+	ohci_t *ohci = dev_to_ohci(device);
+
+	hcd_set_implementation(dev_to_hcd(device), hc_impl,
+	    hc_schedule, ohci_endpoint_init, ohci_endpoint_fini);
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
 	hc_fini(hc_impl); \
-	unregister_interrupt_handler(device, irq); \
-	CHECK_RET_DEST_FREE_RETURN(ret, message); \
+	CHECK_RET_CLEAN_RETURN(ret, message); \
 } else (void)0
+	ohci->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
+	ret = ohci->rh_fun ? EOK : ENOMEM;
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed to create OHCI RH function: %s.\n", str_error(ret));
+	ddf_fun_set_ops(ohci->rh_fun, &rh_ops);
 
-	ret = hcd_register_hub(hcd, &hc_impl->rh.address, instance->rh_fun);
+	ret = hcd_register_hub(dev_to_hcd(device), &hc_impl->rh.address, ohci->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
 	return ret;
-
-#undef CHECK_RET_FINI_RETURN
 }
 /**
  * @}
