@@ -186,13 +186,23 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to create OHCI HC function: %s.\n", str_error(ret));
 	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
-	hc_t *hc = ddf_fun_data_alloc(instance->hc_fun, sizeof(hc_t));
-	ret = hc ? EOK : ENOMEM;
+	hcd_t *hcd = ddf_fun_data_alloc(instance->hc_fun, sizeof(hcd_t));
+	ret = hcd ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to allocate HCD structure: %s.\n", str_error(ret));
 
-	hcd_init(&hc->generic, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+	hcd_init(hcd, USB_SPEED_FULL, BANDWIDTH_AVAILABLE_USB11,
+	    bandwidth_count_usb11);
+
+	ret = ddf_fun_bind(instance->hc_fun);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
+
+	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
+
+	/* HC should be ok at this point (except it can't do anything) */
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
 	ret = instance->rh_fun ? EOK : ENOMEM;
@@ -227,7 +237,6 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to generate IRQ code: %s.\n", str_error(ret));
 
-
 	/* Register handler to avoid interrupt lockup */
 	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
 	CHECK_RET_DEST_FREE_RETURN(ret,
@@ -246,30 +255,24 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = hc_init(hc, reg_base, reg_size, interrupts);
+	hc_t *hc_impl = malloc(sizeof(hc_t));
+	assert(hc_impl);
+
+	ret = hc_init(hc_impl, reg_base, reg_size, interrupts);
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
 
-	hcd_set_implementation(&hc->generic, hc, hc_schedule,
+	hcd_set_implementation(hcd, hc_impl, hc_schedule,
 	    ohci_endpoint_init, ohci_endpoint_fini);
 
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
-	hc_fini(hc); \
+	hc_fini(hc_impl); \
 	unregister_interrupt_handler(device, irq); \
 	CHECK_RET_DEST_FREE_RETURN(ret, message); \
 } else (void)0
 
-
-	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
-
-	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
-
-	ret = hcd_register_hub(&hc->generic, &hc->rh.address, instance->rh_fun);
+	ret = hcd_register_hub(hcd, &hc_impl->rh.address, instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
 	return ret;

@@ -50,9 +50,6 @@
 
 /** Main OHCI driver structure */
 typedef struct hc {
-	/** Generic USB hc driver */
-	hcd_t generic;
-
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
 	/** Host controller communication area structure */
