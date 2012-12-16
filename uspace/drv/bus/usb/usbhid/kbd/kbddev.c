@@ -263,8 +263,8 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 
 	if (rc != EOK) {
-		usb_log_warning("Error translating LED output to output report"
-		    ".\n");
+		usb_log_warning("Could not translate LED output to output"
+		    "report.\n");
 		return;
 	}
 
