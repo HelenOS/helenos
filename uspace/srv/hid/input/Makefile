@@ -34,6 +34,7 @@ SOURCES = \
 	layout/cz.c \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
+	layout/ar.c \
 	port/adb.c \
 	port/adb_mouse.c \
 	port/chardev.c \
