@@ -35,6 +35,8 @@
 #ifndef __GPT_H__
 #define __GPT_H__
 
+#define NAME	"libgpt"
+
 #include <sys/types.h>
 
 /** Block address of GPT header. */
@@ -51,7 +53,9 @@ const uint8_t efi_signature[8] = {
 	0x45, 0x46, 0x49, 0x20, 0x50, 0x41, 0x52, 0x54
 };
 
-/** GPT header */
+/** GPT header
+ * - all in little endian.
+ */
 typedef struct {
 	uint8_t efi_signature[8];
 	uint32_t revision;
@@ -76,8 +80,6 @@ typedef struct {
 	/** Device where the data are from */
 	service_id_t device;
 	/** Linked list of partitions (initially NULL) */
-	//g_part_t * partitions;	//shall we keep this? same problem as in libmbr
-	//NOTE: if we have partition list here, do we free() it or not? 
 } gpt_t;
 
 /** GPT partition entry */
@@ -108,15 +110,14 @@ typedef struct gpt_parts {
 	unsigned int arr_size;
 	/** Resizable partition array */
 	gpt_entry_t * part_array;
-	
 } gpt_parts_t;
 
 struct partition_type {
 	const char * desc;
 	const char * guid;
-}
+};
 
-struct partition_type gpt_ptypes[] {
+struct partition_type gpt_ptypes[] = {
 	{ "Unused entry",					"00000000-0000-0000-0000-000000000000" },
 	{ "MBR partition scheme",			"024DEE41-33E7-11D3-9D69-0008C781F39F" },
 	{ "EFI System",						"C12A7328-F81F-11D2-BA4B-00A0C93EC93B" },
@@ -183,12 +184,14 @@ struct partition_type gpt_ptypes[] {
 
 
 extern gpt_t * gpt_read_gpt_header(service_id_t dev_handle);
-extern int gpt_write_gpt_header(gpt_header_t header, service_id_t dev_handle);
+extern int gpt_write_gpt_header(gpt_t * header, service_id_t dev_handle);
 
 extern gpt_parts_t * gpt_read_partitions(gpt_t * gpt);
-extern int gpt_write_partitions(gpt_parts_t * parts, gpt_t * header);
-extern gpt_parts_t * gpt_add_partition(gpt_parts_t * parts, g_part_t partition);
-extern gpt_parts_t * gpt_remove_partition(gpt_parts_t * parts, int idx);
+extern int 			 gpt_write_partitions(gpt_parts_t * parts, gpt_t * header, service_id_t dev_handle);
+extern int			 gpt_add_partition(gpt_parts_t * parts, g_part_t * partition);
+extern void			 gpt_remove_partition(gpt_parts_t * parts, int idx);
+extern void 		 gpt_set_part_type(g_part_t * p, int type);
+extern void 		 gpt_set_part_name(gpt_entry_t * p, char * name[], size_t length);
 
 extern void gpt_free_gpt(gpt_t * gpt);
 extern void gpt_free_partitions(gpt_parts_t * parts);
