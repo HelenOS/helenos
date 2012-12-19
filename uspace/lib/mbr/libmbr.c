@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Dominik Taborsky
+ * Copyright (c) 2011, 2012, 2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
