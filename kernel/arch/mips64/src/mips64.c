@@ -45,7 +45,9 @@
 #include <sysinfo/sysinfo.h>
 #include <arch/debug.h>
 #include <arch/debugger.h>
+#ifdef MACHINE_msim
 #include <arch/drivers/msim.h>
+#endif
 #include <genarch/fb/fb.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
@@ -124,7 +126,7 @@ void arch_post_mm_init(void)
 {
 	interrupt_init();
 	
-#ifdef CONFIG_MIPS_PRN
+#ifdef CONFIG_MSIM_PRN
 	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
 	if (dsrlndev)
 		stdout_wire(dsrlndev);
@@ -150,7 +152,7 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
 	
-#ifdef CONFIG_MIPS_KBD
+#ifdef CONFIG_MSIM_KBD
 	/*
 	 * Initialize the msim keyboard port. Then initialize the serial line
 	 * module and connect it to the msim keyboard. Enable keyboard
