@@ -306,7 +306,7 @@ if (ret != EOK) { \
  *  - asks for interrupt
  *  - registers interrupt handler
  */
-int hcd_setup_device(ddf_dev_t *device)
+int hcd_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun)
 {
 	if (device == NULL)
 		return EBADMEM;
@@ -354,6 +354,8 @@ if (ret != EOK) { \
 	    "Failed to add hc to category: %s\n", str_error(ret));
 
 	/* HC should be ok at this point (except it can't do anything) */
+	if (hc_fun)
+		*hc_fun = instance->hc_fun;
 
 	return EOK;
 }

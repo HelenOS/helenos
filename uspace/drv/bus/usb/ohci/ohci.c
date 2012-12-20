@@ -116,7 +116,6 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret,
 	    "Failed to register irq handler: %s.\n", str_error(ret));
 
-
 	/* Try to enable interrupts */
 	bool interrupts = false;
 	ret = enable_interrupts(device);
@@ -130,14 +129,15 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = hcd_setup_device(device);
+	/* Initialize generic HCD driver */
+	ret = hcd_setup_device(device, NULL);
 	if (ret != EOK) {
 		unregister_interrupt_handler(device, irq);
 		return ret;
 	}
 
 
-// TODO: Undo device_setup_hcd
+// TODO: Undo hcd_setup_device
 #define CHECK_RET_CLEAN_RETURN(ret, message...) \
 if (ret != EOK) { \
 	unregister_interrupt_handler(device, irq); \
@@ -146,13 +146,17 @@ if (ret != EOK) { \
 
 	hc_t *hc_impl = malloc(sizeof(hc_t));
 	ret = hc_impl ? EOK : ENOMEM;
-	CHECK_RET_CLEAN_RETURN(ret, "Failed to aloocate driver structure.\n");
+	CHECK_RET_CLEAN_RETURN(ret, "Failed to allocate driver structure.\n");
 
+	/* Initialize OHCI HC */
 	ret = hc_init(hc_impl, reg_base, reg_size, interrupts);
 	CHECK_RET_CLEAN_RETURN(ret, "Failed to init hc: %s.\n", str_error(ret));
 
+	/* Connect OHCI to generic HCD */
 	hcd_set_implementation(dev_to_hcd(device), hc_impl,
 	    hc_schedule, ohci_endpoint_init, ohci_endpoint_fini);
+
+	/* HC should be running OK. We can add root hub */
 	ret = hcd_setup_hub(dev_to_hcd(device), &hc_impl->rh.address, device);
 	CHECK_RET_CLEAN_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));

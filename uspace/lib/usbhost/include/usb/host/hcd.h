@@ -106,7 +106,7 @@ int hcd_add_device(hcd_t *instance, ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids);
 
-int hcd_setup_device(ddf_dev_t *device);
+int hcd_setup_device(ddf_dev_t *device, ddf_fun_t **fun);
 int hcd_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *dev);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
