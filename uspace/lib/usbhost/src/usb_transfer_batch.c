@@ -140,7 +140,7 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
 			reset_ep_if_need(fun_to_hcd(instance->fun), target,
 			    instance->setup_buffer);
 		}
-		instance->callback_out(instance->fun, error, instance->arg);
+		instance->callback_out(error, instance->arg);
 	}
 
         if (instance->callback_in) {
@@ -149,8 +149,7 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
 		if (data) {
 	                memcpy(instance->buffer, data, safe_size);
 		}
-		instance->callback_in(instance->fun, error,
-		    safe_size, instance->arg);
+		instance->callback_in(error, safe_size, instance->arg);
 	}
 }
 /**

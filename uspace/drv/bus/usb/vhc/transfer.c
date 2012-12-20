@@ -205,12 +205,11 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	    transfer, str_error(outcome));
 
 	if (transfer->direction == USB_DIRECTION_IN) {
-		transfer->callback_in(transfer->ddf_fun, outcome,
+		transfer->callback_in(outcome,
 		    data_transfer_size, transfer->callback_arg);
 	} else {
 		assert(transfer->direction == USB_DIRECTION_OUT);
-		transfer->callback_out(transfer->ddf_fun, outcome,
-		    transfer->callback_arg);
+		transfer->callback_out(outcome, transfer->callback_arg);
 	}
 
 	free(transfer);

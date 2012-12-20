@@ -57,11 +57,10 @@ int usbhc_write(async_exch_t *, usb_address_t, usb_endpoint_t,
     uint64_t, const void *, size_t);
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *, int, void *);
+typedef void (*usbhc_iface_transfer_out_callback_t)(int, void *);
 
 /** Callback for incoming transfer. */
-typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
-    int, size_t, void *);
+typedef void (*usbhc_iface_transfer_in_callback_t)(int, size_t, void *);
 
 /** USB host controller communication interface. */
 typedef struct {

@@ -462,8 +462,7 @@ void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,
 	async_answer_0(callid, ret);
 }
 
-static void callback_out(ddf_fun_t *fun,
-    int outcome, void *arg)
+static void callback_out(int outcome, void *arg)
 {
 	async_transaction_t *trans = arg;
 
@@ -472,8 +471,7 @@ static void callback_out(ddf_fun_t *fun,
 	async_transaction_destroy(trans);
 }
 
-static void callback_in(ddf_fun_t *fun,
-    int outcome, size_t actual_size, void *arg)
+static void callback_in(int outcome, size_t actual_size, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
