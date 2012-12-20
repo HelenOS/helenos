@@ -69,26 +69,8 @@ struct hcd {
 	ep_remove_hook_t ep_remove_hook;
 };
 
-
-/** Initialize hcd_t structure.
- * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
- * @param hcd hcd_t structure to initialize, non-null.
- * @param bandwidth Available bandwidth, passed to endpoint manager.
- * @param bw_count Bandwidth compute function, passed to endpoint manager.
- */
-static inline void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
-    bw_count_func_t bw_count)
-{
-	assert(hcd);
-	usb_device_manager_init(&hcd->dev_manager, max_speed);
-	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
-	list_initialize(&hcd->devices);
-
-	hcd->private_data = NULL;
-	hcd->schedule = NULL;
-	hcd->ep_add_hook = NULL;
-	hcd->ep_remove_hook = NULL;
-}
+void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
+    bw_count_func_t bw_count);
 
 static inline void hcd_set_implementation(hcd_t *hcd, void *data,
     schedule_hook_t schedule, ep_add_hook_t add_hook, ep_remove_hook_t rem_hook)

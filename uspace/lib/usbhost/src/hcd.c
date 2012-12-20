@@ -115,6 +115,28 @@ static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
 
+/** Initialize hcd_t structure.
+ * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
+ *
+ * @param hcd hcd_t structure to initialize, non-null.
+ * @param max_speed Maximum supported USB speed (full, high).
+ * @param bandwidth Available bandwidth, passed to endpoint manager.
+ * @param bw_count Bandwidth compute function, passed to endpoint manager.
+ */
+void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
+    bw_count_func_t bw_count)
+{
+	assert(hcd);
+	usb_device_manager_init(&hcd->dev_manager, max_speed);
+	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
+	list_initialize(&hcd->devices);
+
+	hcd->private_data = NULL;
+	hcd->schedule = NULL;
+	hcd->ep_add_hook = NULL;
+	hcd->ep_remove_hook = NULL;
+}
+
 int hcd_add_device(hcd_t *instance, ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids)
