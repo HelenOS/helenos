@@ -40,66 +40,6 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 
-/** Prepare generic usb_transfer_batch and schedule it.
- * @param fun DDF fun
- * @param target address and endpoint number.
- * @param setup_data Data to use in setup stage (Control communication type)
- * @param in Callback for device to host communication.
- * @param out Callback for host to device communication.
- * @param arg Callback parameter.
- * @param name Communication identifier (for nicer output).
- * @return Error code.
- */
-static inline int send_batch(
-    ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
-    void *data, size_t size, uint64_t setup_data,
-    usbhc_iface_transfer_in_callback_t in,
-    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name)
-{
-	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
-	assert(hcd);
-
-	endpoint_t *ep = usb_endpoint_manager_find_ep(&hcd->ep_manager,
-	    target.address, target.endpoint, direction);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
-		    target.address, target.endpoint, name);
-		return ENOENT;
-	}
-
-	usb_log_debug2("%s %d:%d %zu(%zu).\n",
-	    name, target.address, target.endpoint, size, ep->max_packet_size);
-
-	const size_t bw = bandwidth_count_usb11(
-	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
-	/* Check if we have enough bandwidth reserved */
-	if (ep->bandwidth < bw) {
-		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
-		    "but only %zu is reserved.\n",
-		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
-		return ENOSPC;
-	}
-	if (!hcd->schedule) {
-		usb_log_error("HCD does not implement scheduler.\n");
-		return ENOTSUP;
-	}
-
-	/* No private data and no private data dtor */
-	usb_transfer_batch_t *batch =
-	    usb_transfer_batch_create(ep, data, size, setup_data,
-	    in, out, arg, fun, NULL, NULL);
-	if (!batch) {
-		return ENOMEM;
-	}
-
-	const int ret = hcd->schedule(hcd, batch);
-	if (ret != EOK)
-		usb_transfer_batch_destroy(batch);
-
-	return ret;
-}
-
 /** Calls ep_add_hook upon endpoint registration.
  * @param ep Endpoint to be registered.
  * @param arg hcd_t in disguise.
@@ -290,8 +230,8 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     uint8_t *data, size_t size, usbhc_iface_transfer_in_callback_t callback,
     void *arg)
 {
-	return send_batch(fun, target, USB_DIRECTION_IN, data, size,
-	    setup_data, callback, NULL, arg, "READ");
+	return hcd_send_batch(fun_to_hcd(fun), fun, target, USB_DIRECTION_IN,
+	    data, size, setup_data, callback, NULL, arg, "READ");
 }
 
 /** Outbound communication interface function.
@@ -308,8 +248,8 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     const uint8_t *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return send_batch(fun, target, USB_DIRECTION_OUT, (uint8_t*)data, size,
-	    setup_data, NULL, callback, arg, "WRITE");
+	return hcd_send_batch(fun_to_hcd(fun), fun, target, USB_DIRECTION_OUT,
+	    (uint8_t*)data, size, setup_data, NULL, callback, arg, "WRITE");
 }
 
 /** usbhc Interface implementation using hcd_t from libusbhost library. */

@@ -183,6 +183,66 @@ int hcd_add_device(hcd_t *instance, ddf_dev_t *parent,
 	return EOK;
 }
 
+/** Prepare generic usb_transfer_batch and schedule it.
+ * @param hcd Host controller driver.
+ * @param fun DDF fun
+ * @param target address and endpoint number.
+ * @param setup_data Data to use in setup stage (Control communication type)
+ * @param in Callback for device to host communication.
+ * @param out Callback for host to device communication.
+ * @param arg Callback parameter.
+ * @param name Communication identifier (for nicer output).
+ * @return Error code.
+ */
+int hcd_send_batch(
+    hcd_t *hcd, ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
+    void *data, size_t size, uint64_t setup_data,
+    usbhc_iface_transfer_in_callback_t in,
+    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name)
+{
+	assert(hcd);
+
+	endpoint_t *ep = usb_endpoint_manager_find_ep(&hcd->ep_manager,
+	    target.address, target.endpoint, direction);
+	if (ep == NULL) {
+		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
+		    target.address, target.endpoint, name);
+		return ENOENT;
+	}
+
+	usb_log_debug2("%s %d:%d %zu(%zu).\n",
+	    name, target.address, target.endpoint, size, ep->max_packet_size);
+
+	const size_t bw = bandwidth_count_usb11(
+	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
+	/* Check if we have enough bandwidth reserved */
+	if (ep->bandwidth < bw) {
+		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
+		    "but only %zu is reserved.\n",
+		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
+		return ENOSPC;
+	}
+	if (!hcd->schedule) {
+		usb_log_error("HCD does not implement scheduler.\n");
+		return ENOTSUP;
+	}
+
+	/* No private data and no private data dtor */
+	usb_transfer_batch_t *batch =
+	    usb_transfer_batch_create(ep, data, size, setup_data,
+	    in, out, arg, fun, NULL, NULL);
+	if (!batch) {
+		return ENOMEM;
+	}
+
+	const int ret = hcd->schedule(hcd, batch);
+	if (ret != EOK)
+		usb_transfer_batch_destroy(batch);
+
+	return ret;
+}
+
+
 /** Announce root hub to the DDF
  *
  * @param[in] instance OHCI driver instance

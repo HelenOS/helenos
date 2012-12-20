@@ -96,6 +96,11 @@ static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
 	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
 }
 
+int hcd_send_batch(
+    hcd_t *hcd, ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
+    void *data, size_t size, uint64_t setup_data,
+    usbhc_iface_transfer_in_callback_t in,
+    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name);
 
 int hcd_add_device(hcd_t *instance, ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
