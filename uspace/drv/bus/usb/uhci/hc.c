@@ -84,7 +84,6 @@ static const irq_cmd_t uhci_irq_commands[] = {
 static void hc_init_hw(const hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
-static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
@@ -234,13 +233,6 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	    str_error(ret));
 
 #undef CHECK_RET_RETURN
-
-	hcd_init(&instance->generic, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-
-	instance->generic.private_data = instance;
-	instance->generic.schedule = hc_schedule;
-	instance->generic.ep_add_hook = NULL;
 
 	hc_init_hw(instance);
 	if (!interrupts) {

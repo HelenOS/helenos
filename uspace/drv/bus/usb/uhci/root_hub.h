@@ -36,18 +36,9 @@
 #define DRV_UHCI_RH_H
 
 #include <ddf/driver.h>
-#include <ops/hw_res.h>
 
-/** DDF support structure for uhci_rhd driver, provides I/O resources */
-typedef struct rh {
-	/** List of resources available to the root hub. */
-	hw_resource_list_t resource_list;
-	/** The only resource in the RH resource list */
-	hw_resource_t io_regs;
-} rh_t;
-
-int rh_init(
-    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
+int rh_init(ddf_dev_t *device, uintptr_t reg_addr, size_t reg_size,
+    devman_handle_t handle);
 
 #endif
 /**

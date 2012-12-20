@@ -42,6 +42,7 @@
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
+#include <usb/host/hcd.h>
 
 #include "uhci.h"
 
@@ -49,24 +50,6 @@
 #include "hc.h"
 #include "root_hub.h"
 
-/** Structure representing both functions of UHCI hc, USB host controller
- * and USB root hub */
-typedef struct uhci {
-	/** Pointer to DDF representation of UHCI host controller */
-	ddf_fun_t *hc_fun;
-	/** Pointer to DDF representation of UHCI root hub */
-	ddf_fun_t *rh_fun;
-
-	/** Internal driver's representation of UHCI host controller */
-	hc_t hc;
-	/** Internal driver's representation of UHCI root hub */
-	rh_t rh;
-} uhci_t;
-
-static inline uhci_t *dev_to_uhci(ddf_dev_t *dev)
-{
-	return ddf_dev_data_get(dev);
-}
 
 /** IRQ handling callback, forward status from call to diver structure.
  *
@@ -77,64 +60,14 @@ static inline uhci_t *dev_to_uhci(ddf_dev_t *dev)
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	uhci_t *uhci = dev_to_uhci(dev);
-	if (!uhci) {
+	hcd_t *hcd = dev_to_hcd(dev);
+	if (!hcd || !hcd->private_data) {
 		usb_log_error("Interrupt on not yet initialized device.\n");
 		return;
 	}
 	const uint16_t status = IPC_GET_ARG1(*call);
-	hc_interrupt(&uhci->hc, status);
+	hc_interrupt(hcd->private_data, status);
 }
-
-/** Operations supported by the HC driver */
-static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hcd_iface, /* see iface.h/c */
-};
-
-/** Gets handle of the respective hc.
- *
- * @param[in] fun DDF function of uhci device.
- * @param[out] handle Host cotnroller handle.
- * @return Error code.
- */
-static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	ddf_fun_t *hc_fun = dev_to_uhci(ddf_fun_get_dev(fun))->hc_fun;
-	assert(hc_fun);
-
-	if (handle != NULL)
-		*handle = ddf_fun_get_handle(hc_fun);
-	return EOK;
-}
-
-/** USB interface implementation used by RH */
-static usb_iface_t usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle,
-};
-
-/** Get root hub hw resources (I/O registers).
- *
- * @param[in] fun Root hub function.
- * @return Pointer to the resource list used by the root hub.
- */
-static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
-{
-	rh_t *rh = ddf_fun_data_get(fun);
-	assert(rh);
-	return &rh->resource_list;
-}
-
-/** Interface to provide the root hub driver with hw info */
-static hw_res_ops_t hw_res_iface = {
-	.get_resource_list = get_resource_list,
-	.enable_interrupt = NULL,
-};
-
-/** RH function support for uhci_rhd */
-static ddf_dev_ops_t rh_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface,
-	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
-};
 
 /** Initialize hc and rh DDF structures and their respective drivers.
  *
@@ -151,50 +84,21 @@ int device_setup_uhci(ddf_dev_t *device)
 	if (!device)
 		return EBADMEM;
 
-	uhci_t *instance = ddf_dev_data_alloc(device, sizeof(uhci_t));
-	if (instance == NULL) {
-		usb_log_error("Failed to allocate OHCI driver.\n");
-		return ENOMEM;
-	}
-
-#define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 if (ret != EOK) { \
-	if (instance->hc_fun) \
-		ddf_fun_destroy(instance->hc_fun); \
-	if (instance->rh_fun) {\
-		ddf_fun_destroy(instance->rh_fun); \
-	} \
 	usb_log_error(message); \
 	return ret; \
 } else (void)0
-
-	instance->rh_fun = NULL;
-	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci_hc");
-	int ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI HC function.\n");
-	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
-	ddf_fun_data_implant(instance->hc_fun, &instance->hc.generic);
-
-	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci_rh");
-	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI RH function.\n");
-	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
-	ddf_fun_data_implant(instance->rh_fun, &instance->rh);
 
 	uintptr_t reg_base = 0;
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to get I/O addresses for %" PRIun ": %s.\n",
+	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
+	CHECK_RET_RETURN(ret, "Failed to get I/O region for %" PRIun ": %s.\n",
 	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
-
-	ret = disable_legacy(device);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
 	const size_t ranges_count = hc_irq_pio_range_count();
 	const size_t cmds_count = hc_irq_cmd_count();
@@ -202,8 +106,8 @@ if (ret != EOK) { \
 	irq_cmd_t irq_cmds[cmds_count];
 	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
 	    sizeof(irq_cmds), reg_base, reg_size);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+	CHECK_RET_RETURN(ret, "Failed to generate IRQ commands: %s.\n",
+	    str_error(ret));
 
 	irq_code_t irq_code = {
 		.rangecount = ranges_count,
@@ -214,8 +118,12 @@ if (ret != EOK) { \
 
         /* Register handler to avoid interrupt lockup */
         ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-        CHECK_RET_DEST_FREE_RETURN(ret,
-            "Failed to register interrupt handler: %s.\n", str_error(ret));
+        CHECK_RET_RETURN(ret, "Failed to register interrupt handler: %s.\n",
+	    str_error(ret));
+	
+	ret = disable_legacy(device);
+	CHECK_RET_RETURN(ret, "Failed to disable legacy USB: %s.\n",
+	    str_error(ret));
 
 	bool interrupts = false;
 	ret = enable_interrupts(device);
@@ -227,33 +135,32 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
-	CHECK_RET_DEST_FREE_RETURN(ret,
+	ddf_fun_t *hc_fun = NULL;
+	ret = hcd_setup_device(device, &hc_fun);
+	CHECK_RET_RETURN(ret, "Failed to setup UHCI HCD.\n");
+	
+	hc_t *hc = malloc(sizeof(hc_t));
+	ret = hc ? EOK : ENOMEM;
+	CHECK_RET_RETURN(ret, "Failed to allocate UHCI HC structure.\n");
+
+	ret = hc_init(hc, (void*)reg_base, reg_size, interrupts);
+	CHECK_RET_RETURN(ret,
 	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
 
+	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);
+
+// TODO: Undo hcd_setup_device
 #define CHECK_RET_FINI_RETURN(ret, message...) \
 if (ret != EOK) { \
-	hc_fini(&instance->hc); \
-	CHECK_RET_DEST_FREE_RETURN(ret, message); \
+	hc_fini(hc); \
+	CHECK_RET_RETURN(ret, message); \
 	return ret; \
 } else (void)0
 
-	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_FINI_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
-	    str_error(ret));
-
-	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to add UHCI to HC class: %s.\n", str_error(ret));
-
-	ret = rh_init(&instance->rh, instance->rh_fun,
-	    (uintptr_t)instance->hc.registers + 0x10, 4);
+	ret = rh_init(device, (uintptr_t)hc->registers + 0x10, 4,
+	    ddf_fun_get_handle(hc_fun));
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to setup UHCI root hub: %s.\n", str_error(ret));
-
-	ret = ddf_fun_bind(instance->rh_fun);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to register UHCI root hub: %s.\n", str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_FINI_RETURN

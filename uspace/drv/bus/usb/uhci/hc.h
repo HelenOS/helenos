@@ -89,9 +89,6 @@ typedef struct uhci_regs {
 
 /** Main UHCI driver structure */
 typedef struct hc {
-	/** Generic HCD driver structure */
-	hcd_t generic;
-
 	/** Addresses of I/O registers */
 	uhci_regs_t *registers;
 
@@ -124,6 +121,7 @@ int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t, uintptr_t,
     size_t);
 void hc_interrupt(hc_t *instance, uint16_t status);
 int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
+int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
 /** Safely dispose host controller internal structures
  *
