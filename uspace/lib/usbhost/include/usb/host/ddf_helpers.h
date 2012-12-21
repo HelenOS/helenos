@@ -39,7 +39,7 @@
 #include <usb/host/hcd.h>
 #include <usbhc_iface.h>
 
-int hcd_ddf_add_device(hcd_t *instance, ddf_dev_t *parent,
+int hcd_ddf_add_usb_device(ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids);
 int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,

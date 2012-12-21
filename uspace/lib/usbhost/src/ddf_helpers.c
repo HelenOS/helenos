@@ -44,6 +44,7 @@ extern usbhc_iface_t hcd_iface;
 
 typedef struct hc_dev {
 	ddf_fun_t *hc_fun;
+	list_t devices;
 } hc_dev_t;
 
 static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
@@ -117,13 +118,12 @@ static ddf_dev_ops_t hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
 
-int hcd_ddf_add_device(hcd_t *instance, ddf_dev_t *parent,
+int hcd_ddf_add_usb_device(ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids)
 {
-	assert(instance);
 	assert(parent);
-	hc_dev_t *hc_dev = ddf_dev_data_get(parent);
+	hc_dev_t *hc_dev = dev_to_hc_dev(parent);
 	devman_handle_t hc_handle = ddf_fun_get_handle(hc_dev->hc_fun);
 
 	//TODO more checks
@@ -153,13 +153,13 @@ int hcd_ddf_add_device(hcd_t *instance, ddf_dev_t *parent,
 		return ret;
 	}
 
-	ret = usb_device_manager_bind_address(&instance->dev_manager,
+	ret = usb_device_manager_bind_address(&dev_to_hcd(parent)->dev_manager,
 	    address, ddf_fun_get_handle(fun));
 	if (ret != EOK)
-		usb_log_warning("Failed to bind root hub address: %s.\n",
+		usb_log_warning("Failed to bind address: %s.\n",
 		    str_error(ret));
 
-	list_append(&info->link, &instance->devices);
+	list_append(&info->link, &hc_dev->devices);
 	return EOK;
 }
 
@@ -209,8 +209,7 @@ if (ret != EOK) { \
 	init_match_ids(&mid_list);
 	add_match_id(&mid_list, &mid);
 
-	ret = hcd_ddf_add_device(
-	    instance, device, *address, speed, "rh", &mid_list);
+	ret = hcd_ddf_add_usb_device(device, *address, speed, "rh", &mid_list);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to add hcd device: %s.\n", str_error(ret));
 
@@ -239,6 +238,7 @@ int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
 	}
+	list_initialize(&instance->devices);
 
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \

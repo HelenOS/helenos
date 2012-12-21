@@ -56,8 +56,6 @@ struct hcd {
 	usb_device_manager_t dev_manager;
 	/** Endpoint manager. */
 	usb_endpoint_manager_t ep_manager;
-	/** Added devices */
-	list_t devices;
 
 	/** Device specific driver data. */
 	void *private_data;

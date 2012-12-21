@@ -54,7 +54,6 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	assert(hcd);
 	usb_device_manager_init(&hcd->dev_manager, max_speed);
 	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
-	list_initialize(&hcd->devices);
 
 	hcd->private_data = NULL;
 	hcd->schedule = NULL;
