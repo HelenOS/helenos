@@ -126,6 +126,13 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 	hc_dev_t *hc_dev = dev_to_hc_dev(parent);
 	devman_handle_t hc_handle = ddf_fun_get_handle(hc_dev->hc_fun);
 
+	char default_name[8]; /* usbxyzs */
+	if (!name) {
+		snprintf(default_name, sizeof(default_name) - 1,
+		    "usb%u%c", address, usb_str_speed(speed)[0]);
+		name = default_name;
+	}
+
 	//TODO more checks
 	ddf_fun_t *fun = ddf_fun_create(parent, fun_inner, name);
 	if (!fun)
