@@ -131,7 +131,8 @@ if (ret != EOK) { \
 	}
 
 	/* Initialize generic HCD driver */
-	ret = hcd_ddf_setup_device(device, NULL);
+	ret = hcd_ddf_setup_device(device, NULL, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	if (ret != EOK) {
 		unregister_interrupt_handler(device, irq);
 		return ret;

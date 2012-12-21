@@ -87,8 +87,8 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
-	/* TODO High Speed, no bandwidth */
-	ret = hcd_ddf_setup_device(device, NULL);	
+	/* High Speed, no bandwidth */
+	ret = hcd_ddf_setup_device(device, NULL, USB_SPEED_HIGH, 0, NULL);	
 	CHECK_RET_RETURN(ret,
 	    "Failed to init generci hcd driver: %s\n", str_error(ret));
 

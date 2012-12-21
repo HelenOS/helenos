@@ -136,7 +136,8 @@ if (ret != EOK) { \
 	}
 
 	ddf_fun_t *hc_fun = NULL;
-	ret = hcd_ddf_setup_device(device, &hc_fun);
+	ret = hcd_ddf_setup_device(device, &hc_fun, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	CHECK_RET_RETURN(ret, "Failed to setup UHCI HCD.\n");
 	
 	hc_t *hc = malloc(sizeof(hc_t));

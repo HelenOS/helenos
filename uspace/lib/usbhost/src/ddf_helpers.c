@@ -175,8 +175,10 @@ int hcd_ddf_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *device
 	assert(address);
 	assert(device);
 
+	const usb_speed_t speed = instance->dev_manager.max_speed;
+
 	int ret = usb_device_manager_request_address(&instance->dev_manager,
-	    address, false, USB_SPEED_FULL);
+	    address, false, speed);
 	if (ret != EOK) {
 		usb_log_error("Failed to get root hub address: %s\n",
 		    str_error(ret));
@@ -196,7 +198,7 @@ if (ret != EOK) { \
 
 	ret = usb_endpoint_manager_add_ep(
 	    &instance->ep_manager, *address, 0,
-	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
+	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, speed, 64,
 	    0, NULL, NULL);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to add root hub control endpoint: %s.\n", str_error(ret));
@@ -208,7 +210,7 @@ if (ret != EOK) { \
 	add_match_id(&mid_list, &mid);
 
 	ret = hcd_ddf_add_device(
-	    instance, device, *address, USB_SPEED_FULL, "rh", &mid_list);
+	    instance, device, *address, speed, "rh", &mid_list);
 	CHECK_RET_UNREG_RETURN(ret,
 	    "Failed to add hcd device: %s.\n", str_error(ret));
 
@@ -226,7 +228,8 @@ if (ret != EOK) { \
  *  - asks for interrupt
  *  - registers interrupt handler
  */
-int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun)
+int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
+    usb_speed_t max_speed, size_t bw, bw_count_func_t bw_count)
 {
 	if (device == NULL)
 		return EBADMEM;
@@ -256,8 +259,7 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to allocate HCD structure: %s.\n", str_error(ret));
 
-	hcd_init(hcd, USB_SPEED_FULL, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
+	hcd_init(hcd, max_speed, bw, bw_count);
 
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_DEST_FREE_RETURN(ret,
