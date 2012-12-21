@@ -39,9 +39,8 @@
 #include <str_error.h>
 
 #include <usb_iface.h>
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
-#include <usb/host/hcd.h>
+#include <usb/host/ddf_helpers.h>
 
 #include "res.h"
 
@@ -56,9 +55,6 @@ static driver_ops_t ehci_driver_ops = {
 static driver_t ehci_driver = {
 	.name = NAME,
 	.driver_ops = &ehci_driver_ops
-};
-static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
 };
 
 
@@ -91,28 +87,10 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret,
 	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
-	ddf_fun_t *hc_fun = ddf_fun_create(device, fun_exposed, "ehci_hc");
-	if (hc_fun == NULL) {
-		usb_log_error("Failed to create EHCI function.\n");
-		return ENOMEM;
-	}
-	hcd_t *ehci_hc = ddf_fun_data_alloc(hc_fun, sizeof(hcd_t));
-	if (ehci_hc == NULL) {
-		usb_log_error("Failed to alloc generic HC driver.\n");
-		return ENOMEM;
-	}
-	/* High Speed, no bandwidth */
-	hcd_init(ehci_hc, USB_SPEED_HIGH, 0, NULL);
-	ddf_fun_set_ops(hc_fun,  &hc_ops);
-
-	ret = ddf_fun_bind(hc_fun);
+	/* TODO High Speed, no bandwidth */
+	ret = hcd_ddf_setup_device(device, NULL);	
 	CHECK_RET_RETURN(ret,
-	    "Failed to bind EHCI function: %s.\n",
-	    str_error(ret));
-	ret = ddf_fun_add_to_category(hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_RETURN(ret,
-	    "Failed to add EHCI to HC class: %s.\n",
-	    str_error(ret));
+	    "Failed to init generci hcd driver: %s\n", str_error(ret));
 
 	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));

@@ -36,10 +36,11 @@
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
-#include <usb_iface.h>
 #include <usb/usb.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
+
+#include <usb/host/ddf_helpers.h>
 
 #include "ohci.h"
 #include "res.h"
@@ -130,12 +131,11 @@ if (ret != EOK) { \
 	}
 
 	/* Initialize generic HCD driver */
-	ret = hcd_setup_device(device, NULL);
+	ret = hcd_ddf_setup_device(device, NULL);
 	if (ret != EOK) {
 		unregister_interrupt_handler(device, irq);
 		return ret;
 	}
-
 
 // TODO: Undo hcd_setup_device
 #define CHECK_RET_CLEAN_RETURN(ret, message...) \
@@ -157,7 +157,7 @@ if (ret != EOK) { \
 	    hc_schedule, ohci_endpoint_init, ohci_endpoint_fini);
 
 	/* HC should be running OK. We can add root hub */
-	ret = hcd_setup_hub(dev_to_hcd(device), &hc_impl->rh.address, device);
+	ret = hcd_ddf_setup_hub(dev_to_hcd(device), &hc_impl->rh.address, device);
 	CHECK_RET_CLEAN_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
 

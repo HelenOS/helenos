@@ -31,9 +31,11 @@ LIBRARY = libusbhost
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include \
+	-Iinclude/usb/host \
 	-Iinclude
 
 SOURCES = \
+	src/ddf_helpers.c \
 	src/endpoint.c \
 	src/hcd.c \
 	src/iface.c \

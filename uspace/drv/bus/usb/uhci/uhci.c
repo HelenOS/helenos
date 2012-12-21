@@ -39,10 +39,10 @@
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
-#include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
 #include <usb/host/hcd.h>
+#include <usb/host/ddf_helpers.h>
 
 #include "uhci.h"
 
@@ -136,7 +136,7 @@ if (ret != EOK) { \
 	}
 
 	ddf_fun_t *hc_fun = NULL;
-	ret = hcd_setup_device(device, &hc_fun);
+	ret = hcd_ddf_setup_device(device, &hc_fun);
 	CHECK_RET_RETURN(ret, "Failed to setup UHCI HCD.\n");
 	
 	hc_t *hc = malloc(sizeof(hc_t));
