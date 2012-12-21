@@ -56,7 +56,7 @@ hcd_t *dev_to_hcd(ddf_dev_t *dev)
 {
 	hc_dev_t *hc_dev = dev_to_hc_dev(dev);
 	if (!hc_dev || !hc_dev->hc_fun) {
-		usb_log_error("Invalid OHCI device.\n");
+		usb_log_error("Invalid HCD device.\n");
 		return NULL;
 	}
 	return ddf_fun_data_get(hc_dev->hc_fun);
@@ -172,19 +172,20 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 
 /** Announce root hub to the DDF
  *
- * @param[in] instance OHCI driver instance
- * @param[in] hub_fun DDF function representing OHCI root hub
+ * @param[in] device Host controller ddf device
+ * @param[in/out] address USB address of the root hub
  * @return Error code
  */
-int hcd_ddf_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *device)
+int hcd_ddf_setup_hub(ddf_dev_t *device, usb_address_t *address)
 {
-	assert(instance);
 	assert(address);
 	assert(device);
 
-	const usb_speed_t speed = instance->dev_manager.max_speed;
+	hcd_t *hcd = dev_to_hcd(device);
 
-	int ret = usb_device_manager_request_address(&instance->dev_manager,
+	const usb_speed_t speed = hcd->dev_manager.max_speed;
+
+	int ret = usb_device_manager_request_address(&hcd->dev_manager,
 	    address, false, speed);
 	if (ret != EOK) {
 		usb_log_error("Failed to get root hub address: %s\n",
@@ -196,15 +197,15 @@ int hcd_ddf_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *device
 if (ret != EOK) { \
 	usb_log_error(message); \
 	usb_endpoint_manager_remove_ep( \
-	    &instance->ep_manager, *address, 0, \
+	    &hcd->ep_manager, *address, 0, \
 	    USB_DIRECTION_BOTH, NULL, NULL); \
 	usb_device_manager_release_address( \
-	    &instance->dev_manager, *address); \
+	    &hcd->dev_manager, *address); \
 	return ret; \
 } else (void)0
 
 	ret = usb_endpoint_manager_add_ep(
-	    &instance->ep_manager, *address, 0,
+	    &hcd->ep_manager, *address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, speed, 64,
 	    0, NULL, NULL);
 	CHECK_RET_UNREG_RETURN(ret,
@@ -228,11 +229,7 @@ if (ret != EOK) { \
  *
  * @param[in] device DDF instance of the device to use.
  *
- * This function does all the preparatory work for hc driver implementation.
- *  - gets device hw resources
- *  - disables OHCI legacy support
- *  - asks for interrupt
- *  - registers interrupt handler
+ * This function does all the ddf work for hc driver.
  */
 int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
     usb_speed_t max_speed, size_t bw, bw_count_func_t bw_count)
@@ -242,7 +239,7 @@ int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
 
 	hc_dev_t *instance = ddf_dev_data_alloc(device, sizeof(hc_dev_t));
 	if (instance == NULL) {
-		usb_log_error("Failed to allocate OHCI driver.\n");
+		usb_log_error("Failed to allocate HCD ddf structure.\n");
 		return ENOMEM;
 	}
 	list_initialize(&instance->devices);
@@ -259,7 +256,7 @@ if (ret != EOK) { \
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "hc");
 	int ret = instance->hc_fun ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to create OHCI HC function: %s.\n", str_error(ret));
+	    "Failed to create HCD HC function: %s.\n", str_error(ret));
 	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
 	hcd_t *hcd = ddf_fun_data_alloc(instance->hc_fun, sizeof(hcd_t));
 	ret = hcd ? EOK : ENOMEM;
@@ -270,13 +267,12 @@ if (ret != EOK) { \
 
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
+	    "Failed to bind HCD device function: %s.\n", str_error(ret));
 
 #define CHECK_RET_UNBIND_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
 	ddf_fun_unbind(instance->hc_fun); \
-	CHECK_RET_DEST_FREE_RETURN(ret, \
-	    "Failed to add OHCI to HC class: %s.\n", str_error(ret)); \
+	CHECK_RET_DEST_FREE_RETURN(ret, message); \
 } else (void)0
 	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
 	CHECK_RET_UNBIND_FREE_RETURN(ret,

@@ -44,7 +44,7 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
     const match_id_list_t *mids);
 int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
     usb_speed_t max_speed, size_t bw, bw_count_func_t bw_count);
-int hcd_ddf_setup_hub(hcd_t *instance, usb_address_t *address, ddf_dev_t *dev);
+int hcd_ddf_setup_hub(ddf_dev_t *dev, usb_address_t *address);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
