@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <str_error.h>
+#include <getopt.h>
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
@@ -50,6 +51,8 @@
 #include "virthid.h"
 #include "ifaces.h"
 #include "stdreq.h"
+
+#define DEFAULT_CONTROLLER   "/virt/usbhc/ctl"
 
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
@@ -150,9 +153,70 @@ static usbvirt_device_t hid_dev = {
 };
 
 
+static struct option long_options[] = {
+	{"help", optional_argument, NULL, 'h'},
+	{"controller", required_argument, NULL, 'c' },
+	{"list", no_argument, NULL, 'l' },
+	{0, 0, NULL, 0}
+};
+static const char *short_options = "hc:l";
+
+static void print_help(const char* name, const char* module)
+{
+	if (module == NULL) {
+		/* Default help */
+		printf("Usage: %s [options] device.\n", name);
+		printf("\t-h, --help [device]\n");
+		printf("\t\to With no argument print this help and exit.\n");
+		printf("\t\to With argument print device specific help and exit.\n");
+		printf("\t-l, --list \n\t\tPrint list of available devices.\n");
+		printf("\t-c, --controller \n\t\t"
+		    "Use provided virtual hc instead of default (%s)\n",
+		    DEFAULT_CONTROLLER);
+		return;
+	}
+	printf("HELP for module %s\n", module);
+}
+
+static void print_list(void)
+{
+	printf("Available devices:\n");
+	for (vuhid_interface_t **i = available_hid_interfaces; *i != NULL; ++i)
+	{
+		printf("\t`%s'\t%s\n", (*i)->id, (*i)->name);
+	}
+
+}
+
+static const char *controller = DEFAULT_CONTROLLER;
+
 int main(int argc, char * argv[])
 {
-	int rc;
+
+	if (argc == 1) {
+		print_help(*argv, NULL);
+		return 0;
+	}
+
+	int opt = 0;
+	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) > 0) {
+		switch (opt)
+		{
+		case 'h':
+			print_help(*argv, optarg);
+			return 0;
+		case 'c':
+			controller = optarg;
+			break;
+		case 'l':
+			print_list();
+			return 0;
+		case -1:
+		default:
+			break;
+		}
+	}
+
 
 	log_init("vuhid");
 
@@ -160,9 +224,8 @@ int main(int argc, char * argv[])
 	fibril_condvar_initialize(&vuhid_data.iface_count_cv);
 
 	/* Determine which interfaces to initialize. */
-	int i;
-	for (i = 1; i < argc; i++) {
-		rc = add_interface_by_id(available_hid_interfaces, argv[i],
+	for (int i = optind; i < argc; i++) {
+		int rc = add_interface_by_id(available_hid_interfaces, argv[i],
 		    &hid_dev);
 		if (rc != EOK) {
 			fprintf(stderr, "Failed to add device `%s': %s.\n",
@@ -172,7 +235,7 @@ int main(int argc, char * argv[])
 		}
 	}
 
-	for (i = 0; i < (int) hid_dev.descriptors->configuration->extra_count; i++) {
+	for (int i = 0; i < (int) hid_dev.descriptors->configuration->extra_count; i++) {
 		usb_log_debug("Found extra descriptor: %s.\n",
 		    usb_debug_str_buffer(
 		        hid_dev.descriptors->configuration->extra[i].data,
@@ -180,14 +243,14 @@ int main(int argc, char * argv[])
 		        0));
 	}
 
-	rc = usbvirt_device_plug(&hid_dev, "/virt/usbhc/ctl");
+	const int rc = usbvirt_device_plug(&hid_dev, controller);
 	if (rc != EOK) {
-		printf("Unable to start communication with VHCD: %s.\n",
-		    str_error(rc));
+		printf("Unable to start communication with VHCD `%s': %s.\n",
+		    controller, str_error(rc));
 		return rc;
 	}
 	
-	printf("Connected to VHCD...\n");
+	printf("Connected to VHCD `%s'...\n", controller);
 
 	wait_for_interfaces_death(&hid_dev);
 	
