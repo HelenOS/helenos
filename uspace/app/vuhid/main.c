@@ -180,7 +180,7 @@ int main(int argc, char * argv[])
 		        0));
 	}
 
-	rc = usbvirt_device_plug(&hid_dev, "/virt/usbhc/hc");
+	rc = usbvirt_device_plug(&hid_dev, "/virt/usbhc/ctl");
 	if (rc != EOK) {
 		printf("Unable to start communication with VHCD: %s.\n",
 		    str_error(rc));

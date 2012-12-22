@@ -42,6 +42,9 @@
 #include <usbhc_iface.h>
 #include <async.h>
 
+#include <usb/host/hcd.h>
+
+
 #define NAME "vhc"
 
 typedef struct {
@@ -66,6 +69,9 @@ typedef struct {
 
 typedef struct {
 	link_t link;
+
+	usb_transfer_batch_t *batch;
+
 	usb_address_t address;
 	usb_endpoint_t endpoint;
 	usb_direction_t direction;
@@ -80,16 +86,27 @@ typedef struct {
 	usbhc_iface_transfer_out_callback_t callback_out;
 } vhc_transfer_t;
 
+static inline void vhc_data_init(vhc_data_t *instance)
+{
+	assert(instance);
+	list_initialize(&instance->devices);
+	fibril_mutex_initialize(&instance->guard);
+	instance->magic = 0xDEADBEEF;
+}
+
+
 vhc_transfer_t *vhc_transfer_create(usb_address_t, usb_endpoint_t,
     usb_direction_t, usb_transfer_type_t, ddf_fun_t *, void *);
 int vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
 int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
-int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
+int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
 int vhc_virtdev_add_transfer(vhc_data_t *, vhc_transfer_t *);
 
 int vhc_transfer_queue_processor(void *arg);
 
+
+int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
 #endif
 /**

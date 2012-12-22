@@ -50,7 +50,7 @@ static vhc_virtdev_t *vhc_virtdev_create()
 
 static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
     async_sess_t *sess, usbvirt_device_t *virtdev,
-    uintptr_t *handle, bool connect)
+    uintptr_t *handle, bool connect, usb_address_t address)
 {
 	vhc_virtdev_t *dev = vhc_virtdev_create();
 	if (dev == NULL) {
@@ -59,6 +59,7 @@ static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
 
 	dev->dev_sess = sess;
 	dev->dev_local = virtdev;
+	dev->address = address;
 
 	fibril_mutex_lock(&vhc->guard);
 	list_append(&dev->link, &vhc->devices);
@@ -85,17 +86,17 @@ static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
 
 int vhc_virtdev_plug(vhc_data_t *vhc, async_sess_t *sess, uintptr_t *handle)
 {
-	return vhc_virtdev_plug_generic(vhc, sess, NULL, handle, true);
+	return vhc_virtdev_plug_generic(vhc, sess, NULL, handle, true, 0);
 }
 
 int vhc_virtdev_plug_local(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle)
 {
-	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, true);
+	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, true, 0);
 }
 
-int vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle)
+int vhc_virtdev_plug_hub(vhc_data_t *vhc, usbvirt_device_t *dev, uintptr_t *handle, usb_address_t address)
 {
-	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, false);
+	return vhc_virtdev_plug_generic(vhc, NULL, dev, handle, false, address);
 }
 
 void vhc_virtdev_unplug(vhc_data_t *vhc, uintptr_t handle)
