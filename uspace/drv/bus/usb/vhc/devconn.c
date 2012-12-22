@@ -78,7 +78,7 @@ static int vhc_virtdev_plug_generic(vhc_data_t *vhc,
 
 	if (connect) {
 		// FIXME: check status
-		(void) virthub_connect_device(vhc->hub, dev);
+		(void) virthub_connect_device(&vhc->hub, dev);
 	}
 
 	return EOK;
@@ -104,7 +104,7 @@ void vhc_virtdev_unplug(vhc_data_t *vhc, uintptr_t handle)
 	vhc_virtdev_t *dev = (vhc_virtdev_t *) handle;
 
 	// FIXME: check status
-	(void) virthub_disconnect_device(vhc->hub, dev);
+	(void) virthub_disconnect_device(&vhc->hub, dev);
 
 	fibril_mutex_lock(&vhc->guard);
 	fibril_mutex_lock(&dev->guard);

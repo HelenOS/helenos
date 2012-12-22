@@ -145,16 +145,21 @@ usbvirt_descriptors_t descriptors = {
  * @param dev Virtual USB device backend.
  * @return Error code.
  */
-int virthub_init(usbvirt_device_t *dev)
+int virthub_init(usbvirt_device_t *dev, const char* name)
 {
 	if (dev == NULL) {
 		return EBADMEM;
 	}
 	dev->ops = &hub_ops;
 	dev->descriptors = &descriptors;
+	dev->address = 0;
+	dev->name = str_dup(name);
+	if (!name)
+		return ENOMEM;
 
 	hub_t *hub = malloc(sizeof(hub_t));
 	if (hub == NULL) {
+		free(dev->name);
 		return ENOMEM;
 	}
 

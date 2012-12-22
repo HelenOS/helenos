@@ -32,43 +32,7 @@
 #include <usbvirt/device.h>
 #include <usbvirt/ipc.h>
 #include "vhcd.h"
-
-int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
-{
-	assert(hcd);
-	assert(batch);
-	vhc_data_t *vhc = hcd->private_data;
-	assert(vhc);
-
-	vhc_transfer_t *transfer = malloc(sizeof(vhc_transfer_t));
-	if (!transfer)
-		return ENOMEM;
-	link_initialize(&transfer->link);
-	transfer->batch = batch;
-
-	fibril_mutex_lock(&vhc->guard);
-
-	int targets = 0;
-
-	list_foreach(vhc->devices, pos) {
-		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
-		fibril_mutex_lock(&dev->guard);
-		if (dev->address == transfer->batch->ep->address) {
-			if (!targets) {
-				list_append(&transfer->link, &dev->transfer_queue);
-			}
-			++targets;
-		}
-		fibril_mutex_unlock(&dev->guard);
-	}
-
-	fibril_mutex_unlock(&vhc->guard);
-	
-	if (targets > 1)
-		usb_log_warning("Transfer would be accepted by more devices!\n");
-
-	return targets ? EOK : ENOENT;
-}
+#include "hub/virthub.h"
 
 static bool is_set_address_transfer(vhc_transfer_t *transfer)
 {
@@ -187,6 +151,52 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	    data_transfer_size, outcome);
 	usb_transfer_batch_destroy(transfer->batch);
 	free(transfer);
+}
+
+int vhc_init(vhc_data_t *instance)
+{
+	assert(instance);
+	list_initialize(&instance->devices);
+	fibril_mutex_initialize(&instance->guard);
+	instance->magic = 0xDEADBEEF;
+	return virthub_init(&instance->hub, "root hub");
+}
+
+int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+{
+	assert(hcd);
+	assert(batch);
+	vhc_data_t *vhc = hcd->private_data;
+	assert(vhc);
+
+	vhc_transfer_t *transfer = malloc(sizeof(vhc_transfer_t));
+	if (!transfer)
+		return ENOMEM;
+	link_initialize(&transfer->link);
+	transfer->batch = batch;
+
+	fibril_mutex_lock(&vhc->guard);
+
+	int targets = 0;
+
+	list_foreach(vhc->devices, pos) {
+		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
+		fibril_mutex_lock(&dev->guard);
+		if (dev->address == transfer->batch->ep->address) {
+			if (!targets) {
+				list_append(&transfer->link, &dev->transfer_queue);
+			}
+			++targets;
+		}
+		fibril_mutex_unlock(&dev->guard);
+	}
+
+	fibril_mutex_unlock(&vhc->guard);
+	
+	if (targets > 1)
+		usb_log_warning("Transfer would be accepted by more devices!\n");
+
+	return targets ? EOK : ENOENT;
 }
 
 int vhc_transfer_queue_processor(void *arg)

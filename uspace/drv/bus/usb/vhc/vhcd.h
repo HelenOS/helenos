@@ -58,8 +58,7 @@ typedef struct {
 	uint32_t magic;
 	list_t devices;
 	fibril_mutex_t guard;
-	usbvirt_device_t *hub;
-	ddf_fun_t *hc_fun;
+	usbvirt_device_t hub;
 } vhc_data_t;
 
 typedef struct {
@@ -67,13 +66,6 @@ typedef struct {
 	usb_transfer_batch_t *batch;
 } vhc_transfer_t;
 
-static inline void vhc_data_init(vhc_data_t *instance)
-{
-	assert(instance);
-	list_initialize(&instance->devices);
-	fibril_mutex_initialize(&instance->guard);
-	instance->magic = 0xDEADBEEF;
-}
 
 void on_client_close(ddf_fun_t *fun);
 void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
@@ -84,7 +76,7 @@ int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
 int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
 
-
+int vhc_init(vhc_data_t *instance);
 int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 int vhc_transfer_queue_processor(void *arg);
 

@@ -43,19 +43,13 @@
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
 #include "vhcd.h"
-#include "hub/hub.h"
-#include "hub/virthub.h"
 
-static usbvirt_device_t virtual_hub_device = {
-	.name = "root hub",
-	.ops = &hub_ops,
-	.address = 0
-};
 
 static ddf_dev_ops_t vhc_ops = {
 	.close = on_client_close,
 	.default_handler = default_connection_handler
 };
+
 
 static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 {
@@ -77,13 +71,9 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 		*fun = NULL;
 		return ret;
 	}
-	vhc_data_init(vhc);
-	// TODO: This limits us to single vhc instance.
-	virthub_init(&virtual_hub_device);
-	vhc->hub = &virtual_hub_device;
+	vhc_init(vhc);
 	return EOK;
 }
-
 
 static int vhc_dev_add(ddf_dev_t *dev)
 {
@@ -110,7 +100,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 
 	/* Add virtual hub device */
 	usb_address_t address = 1;
-	ret = vhc_virtdev_plug_hub(data, data->hub, NULL, address);
+	ret = vhc_virtdev_plug_hub(data, &data->hub, NULL, address);
 	if (ret != EOK) {
 		usb_log_error("Failed to plug root hub: %s.\n", str_error(ret));
 		free(data);
