@@ -33,7 +33,10 @@
  * Common USB functions.
  */
 #include <usb/usb.h>
+#include <usb/request.h>
+
 #include <errno.h>
+#include <assert.h>
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
@@ -113,6 +116,42 @@ const char *usb_str_speed(usb_speed_t s)
 		return "invalid";
 	}
 	return str_speed[s];
+}
+
+/** Check setup packet data for signs of toggle reset.
+ *
+ * @param[in] requst Setup requst data.
+ * @retval -1 No endpoints need reset.
+ * @retval 0 All endpoints need reset.
+ * @retval >0 Specified endpoint needs reset.
+ */
+int usb_request_needs_toggle_reset(
+    const usb_device_request_setup_packet_t *request)
+{
+	assert(request);
+	switch (request->request)
+	{
+	/* Clear Feature ENPOINT_STALL */
+	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
+		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
+		if ((request->request_type == 0x2) &&
+		    (request->value == USB_FEATURE_SELECTOR_ENDPOINT_HALT))
+			return uint16_usb2host(request->index);
+		break;
+	case USB_DEVREQ_SET_CONFIGURATION:
+	case USB_DEVREQ_SET_INTERFACE:
+		/* Recipient must be device, this resets all endpoints,
+		 * In fact there should be no endpoints but EP 0 registered
+		 * as different interfaces use different endpoints,
+		 * unless you're changing configuration or alternative
+		 * interface of an already setup device. */
+		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
+			return 0;
+		break;
+	default:
+		break;
+	}
+	return -1;
 }
 
 /**

@@ -36,7 +36,6 @@
 #define LIBUSB_REQUEST_H_
 
 #include <sys/types.h>
-#include <usb/usb.h>
 
 /** Standard device request. */
 typedef enum {
@@ -53,6 +52,21 @@ typedef enum {
 	USB_DEVREQ_SYNCH_FRAME = 12,
 	USB_DEVREQ_LAST_STD
 } usb_stddevreq_t;
+
+/** USB device status - device is self powered (opposed to bus powered). */
+#define USB_DEVICE_STATUS_SELF_POWERED ((uint16_t)(1 << 0))
+
+/** USB device status - remote wake-up signaling is enabled. */
+#define USB_DEVICE_STATUS_REMOTE_WAKEUP ((uint16_t)(1 << 1))
+
+/** USB endpoint status - endpoint is halted (stalled). */
+#define USB_ENDPOINT_STATUS_HALTED ((uint16_t)(1 << 0))
+
+/** USB feature selector - endpoint halt (stall). */
+#define USB_FEATURE_SELECTOR_ENDPOINT_HALT (0)
+
+/** USB feature selector - device remote wake-up. */
+#define USB_FEATURE_SELECTOR_REMOTE_WAKEUP (1)
 
 /** Device request setup packet.
  * The setup packet describes the request.
@@ -92,6 +106,8 @@ typedef struct {
 
 int assert[(sizeof(usb_device_request_setup_packet_t) == 8) ? 1: -1];
 
+int usb_request_needs_toggle_reset(
+    const usb_device_request_setup_packet_t *request);
 
 #endif
 /**

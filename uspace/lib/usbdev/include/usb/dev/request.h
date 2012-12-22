@@ -42,22 +42,6 @@
 #include <usb/descriptor.h>
 #include <usb/request.h>
 
-/** USB device status - device is self powered (opposed to bus powered). */
-#define USB_DEVICE_STATUS_SELF_POWERED ((uint16_t)(1 << 0))
-
-/** USB device status - remote wake-up signaling is enabled. */
-#define USB_DEVICE_STATUS_REMOTE_WAKEUP ((uint16_t)(1 << 1))
-
-/** USB endpoint status - endpoint is halted (stalled). */
-#define USB_ENDPOINT_STATUS_HALTED ((uint16_t)(1 << 0))
-
-/** USB feature selector - endpoint halt (stall). */
-#define USB_FEATURE_SELECTOR_ENDPOINT_HALT (0)
-
-/** USB feature selector - device remote wake-up. */
-#define USB_FEATURE_SELECTOR_REMOTE_WAKEUP (1)
-
-
 int usb_control_request_set(usb_pipe_t *,
     usb_request_type_t, usb_request_recipient_t, uint8_t,
     uint16_t, uint16_t, const void *, size_t);
