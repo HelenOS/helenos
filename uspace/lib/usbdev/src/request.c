@@ -111,7 +111,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
   * @param data Buffer where to store data accepted during the DATA stage.
   *	(they will come in USB endianness).
   * @param data_size Size of the @p data buffer
-  * 	(in native endianness).
+  *	(in native endianness).
   * @param actual_data_size Actual size of transfered data
   *        (in native endianness).
   * @return Error code.
@@ -274,6 +274,9 @@ int usb_request_get_descriptor(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
+	/* The wValue field specifies the descriptor type in the high byte
+	 * and the descriptor index in the low byte. USB 1.1 spec p. 189
+	 */
 	const uint16_t wValue = descriptor_index | (descriptor_type << 8);
 
 	return usb_control_request_get(pipe,
