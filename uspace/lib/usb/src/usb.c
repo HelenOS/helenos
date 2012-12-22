@@ -37,8 +37,7 @@
 
 #include <errno.h>
 #include <assert.h>
-
-#define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+#include <macros.h>
 
 static const char *str_speed[] = {
 	[USB_SPEED_LOW] = "low",
@@ -73,7 +72,7 @@ static const char *str_direction[] = {
  */
 const char *usb_str_transfer_type(usb_transfer_type_t t)
 {
-	if (t >= ARR_SIZE(str_transfer_type)) {
+	if (t >= ARRAY_SIZE(str_transfer_type)) {
 		return "invalid";
 	}
 	return str_transfer_type[t];
@@ -86,7 +85,7 @@ const char *usb_str_transfer_type(usb_transfer_type_t t)
  */
 const char *usb_str_transfer_type_short(usb_transfer_type_t t)
 {
-	if (t >= ARR_SIZE(str_transfer_type_short)) {
+	if (t >= ARRAY_SIZE(str_transfer_type_short)) {
 		return "invl";
 	}
 	return str_transfer_type_short[t];
@@ -99,7 +98,7 @@ const char *usb_str_transfer_type_short(usb_transfer_type_t t)
  */
 const char *usb_str_direction(usb_direction_t d)
 {
-	if (d >= ARR_SIZE(str_direction)) {
+	if (d >= ARRAY_SIZE(str_direction)) {
 		return "invalid";
 	}
 	return str_direction[d];
@@ -112,7 +111,7 @@ const char *usb_str_direction(usb_direction_t d)
  */
 const char *usb_str_speed(usb_speed_t s)
 {
-	if (s >= ARR_SIZE(str_speed)) {
+	if (s >= ARRAY_SIZE(str_speed)) {
 		return "invalid";
 	}
 	return str_speed[s];
