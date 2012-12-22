@@ -94,6 +94,9 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     ep_remove_callback_t callback, void *arg);
 
+int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
+    usb_target_t target, bool all);
+
 void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
     usb_address_t address, ep_remove_callback_t callback, void *arg);
 #endif

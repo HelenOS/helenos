@@ -394,6 +394,29 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
 	return EOK;
 }
 
+int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
+    usb_target_t target, bool all)
+{
+	assert(instance);
+	if (!usb_target_is_valid(target)) {
+		return EINVAL;
+	}
+
+	int rc = ENOENT;
+
+	fibril_mutex_lock(&instance->guard);
+	list_foreach(*get_list(instance, target.address), it) {
+		endpoint_t *ep = endpoint_get_instance(it);
+		if ((ep->address == target.address)
+		    && (all || ep->endpoint == target.endpoint)) {
+			endpoint_toggle_set(ep, 0);
+			rc = EOK;
+		}
+	}
+	fibril_mutex_unlock(&instance->guard);
+	return rc;
+}
+
 /** Unregister and destroy all endpoints using given address.
  * @param instance usb_endpoint_manager structure, non-null.
  * @param address USB address.
