@@ -65,6 +65,8 @@ const char *str_l18_win_locale(l18_win_locales_t locale)
 			return "Spanish (traditional)";
 		case L18N_WIN_LOCALE_ZULU:
 			return "Zulu";
+		default:
+			break;
 	}
 
 	snprintf(unknown_locale, UNKNOWN_LOCALE_LEN, "Unknown locale 0x%04d",

@@ -112,7 +112,7 @@ int assert[(sizeof(usb_device_request_setup_packet_t) == 8) ? 1: -1];
 
 int usb_control_request_set(usb_pipe_t *,
     usb_request_type_t, usb_request_recipient_t, uint8_t,
-    uint16_t, uint16_t, void *, size_t);
+    uint16_t, uint16_t, const void *, size_t);
 
 int usb_control_request_get(usb_pipe_t *,
     usb_request_type_t, usb_request_recipient_t, uint8_t,
@@ -138,7 +138,7 @@ int usb_request_get_full_configuration_descriptor(usb_pipe_t *, int,
 int usb_request_get_full_configuration_descriptor_alloc(usb_pipe_t *,
     int, void **, size_t *);
 int usb_request_set_descriptor(usb_pipe_t *, usb_request_type_t,
-    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t);
+    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, const void *, size_t);
 
 int usb_request_get_configuration(usb_pipe_t *, uint8_t *);
 int usb_request_set_configuration(usb_pipe_t *, uint8_t);

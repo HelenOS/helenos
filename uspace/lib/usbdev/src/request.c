@@ -48,11 +48,11 @@
  * @param recipient Request recipient (e.g. device or endpoint).
  * @param request Actual request (e.g. GET_DESCRIPTOR).
  * @param value Value of @c wValue field of setup packet
- * 	(must be in USB endianness).
+ *	(must be in USB endianness).
  * @param index Value of @c wIndex field of setup packet
- * 	(must be in USB endianness).
+ *	(must be in USB endianness).
  * @param data Data to be sent during DATA stage
- * 	(expected to be in USB endianness).
+ *	(expected to be in USB endianness).
  * @param data_size Size of the @p data buffer (in native endianness).
  * @return Error code.
  * @retval EBADMEM @p pipe is NULL.
@@ -61,9 +61,8 @@
  */
 int usb_control_request_set(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
-    uint8_t request,
-    uint16_t value, uint16_t index,
-    void *data, size_t data_size)
+    uint8_t request, uint16_t value, uint16_t index,
+    const void *data, size_t data_size)
 {
 	if (pipe == NULL) {
 		return EBADMEM;
@@ -82,18 +81,16 @@ int usb_control_request_set(usb_pipe_t *pipe,
 	 * within ranges.
 	 */
 
-	usb_device_request_setup_packet_t setup_packet;
-	setup_packet.request_type = (request_type << 5) | recipient;
-	setup_packet.request = request;
-	setup_packet.value = value;
-	setup_packet.index = index;
-	setup_packet.length = (uint16_t) data_size;
+	const usb_device_request_setup_packet_t setup_packet = {
+		.request_type = (request_type << 5) | recipient,
+		.request = request,
+		.value = value,
+		.index = index,
+		.length = (uint16_t) data_size,
+	};
 
-	int rc = usb_pipe_control_write(pipe,
-	    &setup_packet, sizeof(setup_packet),
-	    data, data_size);
-
-	return rc;
+	return usb_pipe_control_write(pipe,
+	    &setup_packet, sizeof(setup_packet), data, data_size);
 }
 
  /** Generic wrapper for GET requests using standard control request format.
@@ -105,7 +102,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
   * @param recipient Request recipient (e.g. device or endpoint).
   * @param request Actual request (e.g. GET_DESCRIPTOR).
   * @param value Value of @c wValue field of setup packet
-  * 	(must be in USB endianness).
+  *	(must be in USB endianness).
   * @param index Value of @c wIndex field of setup packet
   *	(must be in USB endianness).
   * @param data Buffer where to store data accepted during the DATA stage.
@@ -113,7 +110,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
   * @param data_size Size of the @p data buffer
   *	(in native endianness).
   * @param actual_data_size Actual size of transfered data
-  *        (in native endianness).
+  *	(in native endianness).
   * @return Error code.
   * @retval EBADMEM @p pipe is NULL.
   * @retval EBADMEM @p data is NULL and @p data_size is not zero.
@@ -121,8 +118,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
   */
 int usb_control_request_get(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
-    uint8_t request,
-    uint16_t value, uint16_t index,
+    uint8_t request, uint16_t value, uint16_t index,
     void *data, size_t data_size, size_t *actual_data_size)
 {
 	if (pipe == NULL) {
@@ -206,18 +202,15 @@ int usb_request_clear_feature(usb_pipe_t *pipe,
     uint16_t feature_selector, uint16_t index)
 {
 	if (request_type == USB_REQUEST_TYPE_STANDARD) {
-		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE)
-		    && (index != 0)) {
+		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE) && (index != 0))
+		{
 			return EINVAL;
 		}
 	}
 
-	int rc = usb_control_request_set(pipe, request_type, recipient,
-	    USB_DEVREQ_CLEAR_FEATURE,
-	    uint16_host2usb(feature_selector), uint16_host2usb(index),
-	    NULL, 0);
-
-	return rc;
+	return usb_control_request_set(pipe,
+	    request_type, recipient, USB_DEVREQ_CLEAR_FEATURE,
+	    uint16_host2usb(feature_selector), uint16_host2usb(index), NULL, 0);
 }
 
 /** Set or enable specific device feature.
@@ -234,18 +227,15 @@ int usb_request_set_feature(usb_pipe_t *pipe,
     uint16_t feature_selector, uint16_t index)
 {
 	if (request_type == USB_REQUEST_TYPE_STANDARD) {
-		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE)
-		    && (index != 0)) {
+		if ((recipient == USB_REQUEST_RECIPIENT_DEVICE) && (index != 0))
+		{
 			return EINVAL;
 		}
 	}
 
-	int rc = usb_control_request_set(pipe, request_type, recipient,
-	    USB_DEVREQ_SET_FEATURE,
-	    uint16_host2usb(feature_selector), uint16_host2usb(index),
-	    NULL, 0);
-
-	return rc;
+	return usb_control_request_set(pipe,
+	    request_type, recipient, USB_DEVREQ_SET_FEATURE,
+	    uint16_host2usb(feature_selector), uint16_host2usb(index), NULL, 0);
 }
 
 /** Retrieve USB descriptor of a USB device.
@@ -313,23 +303,21 @@ int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 	/*
 	 * Get only first byte to retrieve descriptor length.
 	 */
-	uint8_t tmp_buffer[1];
+	uint8_t tmp_buffer;
 	size_t bytes_transfered;
 	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
-	    &tmp_buffer, 1, &bytes_transfered);
+	    &tmp_buffer, sizeof(tmp_buffer), &bytes_transfered);
 	if (rc != EOK) {
 		return rc;
 	}
 	if (bytes_transfered != 1) {
-		/* FIXME: some better error code? */
-		return ESTALL;
+		return ELIMIT;
 	}
 
-	size_t size = tmp_buffer[0];
+	const size_t size = tmp_buffer;
 	if (size == 0) {
-		/* FIXME: some better error code? */
-		return ESTALL;
+		return ELIMIT;
 	}
 
 	/*
@@ -349,8 +337,7 @@ int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 	}
 	if (bytes_transfered != size) {
 		free(buffer);
-		/* FIXME: some better error code? */
-		return ESTALL;
+		return ELIMIT;
 	}
 
 	*buffer_ptr = buffer;
@@ -378,8 +365,7 @@ int usb_request_get_device_descriptor(usb_pipe_t *pipe,
 	usb_standard_device_descriptor_t descriptor_tmp;
 	int rc = usb_request_get_descriptor(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DESCTYPE_DEVICE, 0, 0,
-	    &descriptor_tmp, sizeof(descriptor_tmp),
+	    USB_DESCTYPE_DEVICE, 0, 0, &descriptor_tmp, sizeof(descriptor_tmp),
 	    &actually_transferred);
 
 	if (rc != EOK) {
@@ -421,7 +407,7 @@ int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
 
 	size_t actually_transferred = 0;
 	usb_standard_configuration_descriptor_t descriptor_tmp;
-	int rc = usb_request_get_descriptor(pipe,
+	const int rc = usb_request_get_descriptor(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_CONFIGURATION, index, 0,
 	    &descriptor_tmp, sizeof(descriptor_tmp),
@@ -546,8 +532,7 @@ int usb_request_get_full_configuration_descriptor_alloc(
 int usb_request_set_descriptor(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
-    uint16_t language,
-    void *buffer, size_t size)
+    uint16_t language, const void *buffer, size_t size)
 {
 	if (buffer == NULL) {
 		return EBADMEM;
@@ -560,10 +545,8 @@ int usb_request_set_descriptor(usb_pipe_t *pipe,
 	uint16_t wValue = descriptor_index | (descriptor_type << 8);
 
 	return usb_control_request_set(pipe,
-	    request_type, recipient,
-	    USB_DEVREQ_SET_DESCRIPTOR,
-	    wValue, language,
-	    buffer, size);
+	    request_type, recipient, USB_DEVREQ_SET_DESCRIPTOR,
+	    wValue, language, buffer, size);
 }
 
 /** Get current configuration value of USB device.
@@ -578,11 +561,9 @@ int usb_request_get_configuration(usb_pipe_t *pipe,
 	uint8_t value;
 	size_t actual_size;
 
-	int rc = usb_control_request_get(pipe,
+	const int rc = usb_control_request_get(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DEVREQ_GET_CONFIGURATION,
-	    0, 0,
-	    &value, 1, &actual_size);
+	    USB_DEVREQ_GET_CONFIGURATION, 0, 0, &value, 1, &actual_size);
 
 	if (rc != EOK) {
 		return rc;
@@ -607,7 +588,7 @@ int usb_request_get_configuration(usb_pipe_t *pipe,
 int usb_request_set_configuration(usb_pipe_t *pipe,
     uint8_t configuration_value)
 {
-	uint16_t config_value
+	const uint16_t config_value
 	    = uint16_host2usb((uint16_t) configuration_value);
 
 	return usb_control_request_set(pipe,
@@ -629,11 +610,11 @@ int usb_request_get_interface(usb_pipe_t *pipe,
 	uint8_t value;
 	size_t actual_size;
 
-	int rc = usb_control_request_get(pipe,
+	const int rc = usb_control_request_get(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_DEVREQ_GET_INTERFACE,
 	    0, uint16_host2usb((uint16_t) interface_index),
-	    &value, 1, &actual_size);
+	    &value, sizeof(value), &actual_size);
 
 	if (rc != EOK) {
 		return rc;
@@ -678,18 +659,13 @@ int usb_request_set_interface(usb_pipe_t *pipe,
 int usb_request_get_supported_languages(usb_pipe_t *pipe,
     l18_win_locales_t **languages_ptr, size_t *languages_count)
 {
-	int rc;
-
-	if (languages_ptr == NULL) {
-		return EBADMEM;
-	}
-	if (languages_count == NULL) {
+	if (languages_ptr == NULL || languages_count == NULL) {
 		return EBADMEM;
 	}
 
 	uint8_t *string_descriptor = NULL;
 	size_t string_descriptor_size = 0;
-	rc = usb_request_get_descriptor_alloc(pipe,
+	const int rc = usb_request_get_descriptor_alloc(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DESCTYPE_STRING, 0, 0,
 	    (void **) &string_descriptor, &string_descriptor_size);
@@ -710,19 +686,19 @@ int usb_request_get_supported_languages(usb_pipe_t *pipe,
 		return ESTALL;
 	}
 
-	size_t langs_count = string_descriptor_size / 2;
-	l18_win_locales_t *langs
-	    = malloc(sizeof(l18_win_locales_t) * langs_count);
+	const size_t langs_count = string_descriptor_size / 2;
+	l18_win_locales_t *langs =
+	    calloc(langs_count, sizeof(l18_win_locales_t));
 	if (langs == NULL) {
 		free(string_descriptor);
 		return ENOMEM;
 	}
 
-	size_t i;
-	for (i = 0; i < langs_count; i++) {
+	for (size_t i = 0; i < langs_count; i++) {
 		/* Language code from the descriptor is in USB endianness. */
 		/* FIXME: is this really correct? */
-		uint16_t lang_code = (string_descriptor[2 + 2 * i + 1] << 8)
+		const uint16_t lang_code =
+		    (string_descriptor[2 + 2 * i + 1] << 8)
 		    + string_descriptor[2 + 2 * i];
 		langs[i] = uint16_usb2host(lang_code);
 	}
@@ -761,7 +737,7 @@ int usb_request_get_string(usb_pipe_t *pipe,
 		return ERANGE;
 	}
 	/* Language is actually two byte value. */
-	if (lang > 0xFFFF) {
+	if (lang > L18N_WIN_LOCALE_MAX) {
 		return ERANGE;
 	}
 
@@ -795,7 +771,7 @@ int usb_request_get_string(usb_pipe_t *pipe,
 		goto leave;
 	}
 
-	size_t string_char_count = string_size / 2;
+	const size_t string_char_count = string_size / 2;
 	string_chars = malloc(sizeof(wchar_t) * (string_char_count + 1));
 	if (string_chars == NULL) {
 		rc = ENOMEM;
@@ -807,9 +783,8 @@ int usb_request_get_string(usb_pipe_t *pipe,
 	 * And do not forget to set NULL terminator (string descriptors
 	 * do not have them).
 	 */
-	size_t i;
-	for (i = 0; i < string_char_count; i++) {
-		uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
+	for (size_t i = 0; i < string_char_count; i++) {
+		const uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
 		    + string[2 + 2 * i];
 		string_chars[i] = uni_char;
 	}
@@ -827,12 +802,8 @@ int usb_request_get_string(usb_pipe_t *pipe,
 	rc = EOK;
 
 leave:
-	if (string != NULL) {
-		free(string);
-	}
-	if (string_chars != NULL) {
-		free(string_chars);
-	}
+	free(string);
+	free(string_chars);
 
 	return rc;
 }
