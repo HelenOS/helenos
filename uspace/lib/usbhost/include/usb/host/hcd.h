@@ -86,18 +86,7 @@ int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
     usbhc_iface_transfer_in_callback_t in,
     usbhc_iface_transfer_out_callback_t out, void *arg, const char* name);
 
-/** Data retrieve wrapper.
- * @param fun ddf function, non-null.
- * @return pointer cast to hcd_t*.
- */
-static inline hcd_t *fun_to_hcd(ddf_fun_t *fun)
-{
-	return ddf_fun_data_get(fun);
-}
-
-
 #endif
-
 /**
  * @}
  */

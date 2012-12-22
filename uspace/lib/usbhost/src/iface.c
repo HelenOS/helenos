@@ -39,6 +39,7 @@
 #include <usb/debug.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
+#include "ddf_helpers.h"
 
 /** Calls ep_add_hook upon endpoint registration.
  * @param ep Endpoint to be registered.
@@ -96,7 +97,7 @@ static int request_address(
     ddf_fun_t *fun, usb_address_t *address, bool strict, usb_speed_t speed)
 {
 	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	assert(address);
 
@@ -117,7 +118,7 @@ static int bind_address(
     ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
 	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 
 	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
@@ -136,7 +137,7 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
     devman_handle_t *handle)
 {
 	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	return usb_device_manager_get_info_by_address(
 	    &hcd->dev_manager, address, handle, NULL);
@@ -151,7 +152,7 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
 	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
@@ -176,7 +177,7 @@ static int register_endpoint(
     size_t max_packet_size, unsigned interval)
 {
 	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	const size_t size = max_packet_size;
 	usb_speed_t speed = USB_SPEED_MAX;
@@ -208,7 +209,7 @@ static int unregister_endpoint(
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(fun);
-	hcd_t *hcd = fun_to_hcd(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	usb_log_debug("Unregister endpoint %d:%d %s.\n",
 	    address, endpoint, usb_str_direction(direction));
@@ -230,7 +231,7 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     uint8_t *data, size_t size, usbhc_iface_transfer_in_callback_t callback,
     void *arg)
 {
-	return hcd_send_batch(fun_to_hcd(fun), target, USB_DIRECTION_IN,
+	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)), target, USB_DIRECTION_IN,
 	    data, size, setup_data, callback, NULL, arg, "READ");
 }
 
@@ -248,8 +249,9 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     const uint8_t *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return hcd_send_batch(fun_to_hcd(fun), target, USB_DIRECTION_OUT,
-	    (uint8_t*)data, size, setup_data, NULL, callback, arg, "WRITE");
+	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)),
+	    target, USB_DIRECTION_OUT, (uint8_t*)data, size, setup_data, NULL,
+	    callback, arg, "WRITE");
 }
 
 /** usbhc Interface implementation using hcd_t from libusbhost library. */
