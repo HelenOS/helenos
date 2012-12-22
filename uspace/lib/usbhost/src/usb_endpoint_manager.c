@@ -167,65 +167,6 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 	return EOK;
 }
 
-/** Check setup packet data for signs of toggle reset.
- *
- * @param[in] instance usb_endpoint_manager structure, non-null.
- * @param[in] target Device to receive setup packet.
- * @param[in] data Setup packet data.
- *
- * Really ugly one. Resets toggle bit on all endpoints that need it.
- * @TODO Use tools from libusbdev requests.h
- */
-void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
-    usb_target_t target, const uint8_t data[8])
-{
-	assert(instance);
-	if (!usb_target_is_valid(target)) {
-		usb_log_error("Invalid data when checking for toggle reset.\n");
-		return;
-	}
-
-	assert(data);
-	switch (data[1])
-	{
-	case 0x01: /* Clear Feature -- resets only cleared ep */
-		/* Recipient is endpoint, value is zero (ENDPOINT_STALL) */
-		// TODO Use macros in libusbdev requests.h
-		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
-			fibril_mutex_lock(&instance->guard);
-			/* endpoint number is < 16, thus first byte is enough */
-			list_foreach(*get_list(instance, target.address), it) {
-				endpoint_t *ep = endpoint_get_instance(it);
-				if ((ep->address == target.address)
-				    && (ep->endpoint = data[4])) {
-					endpoint_toggle_set(ep,0);
-				}
-			}
-			fibril_mutex_unlock(&instance->guard);
-		}
-	break;
-
-	case 0x9: /* Set Configuration */
-	case 0x11: /* Set Interface */
-		/* Recipient must be device, this resets all endpoints,
-		 * In fact there should be no endpoints but EP 0 registered
-		 * as different interfaces use different endpoints,
-		 * unless you're changing configuration or alternative
-		 * interface of an already setup device. */
-		if ((data[0] & 0xf) == 0) {
-			fibril_mutex_lock(&instance->guard);
-			list_foreach(*get_list(instance, target.address), it) {
-				endpoint_t *ep = endpoint_get_instance(it);
-				if (ep->address == target.address) {
-					endpoint_toggle_set(ep,0);
-				}
-			}
-			fibril_mutex_unlock(&instance->guard);
-		}
-	break;
-	}
-}
-
 /** Register endpoint structure.
  * Checks for duplicates.
  * @param instance usb_endpoint_manager, non-null.

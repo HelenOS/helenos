@@ -124,14 +124,6 @@ void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
 
 	/* NOTE: Only one of these pointers should be set. */
         if (instance->callback_out) {
-		/* Check for commands that reset toggle bit */
-		if (instance->ep->transfer_type == USB_TRANSFER_CONTROL
-		    && error == EOK) {
-			const usb_target_t target =
-			    {{ instance->ep->address, instance->ep->endpoint }};
-			reset_ep_if_need(fun_to_hcd(instance->fun), target,
-			    instance->setup_buffer);
-		}
 		instance->callback_out(error, instance->arg);
 	}
 

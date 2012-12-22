@@ -37,6 +37,7 @@
 #include <str_error.h>
 #include <usb_iface.h>
 #include <usb/debug.h>
+#include <usb/request.h>
 
 #include <usb/host/hcd.h>
 
@@ -59,6 +60,27 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd->schedule = NULL;
 	hcd->ep_add_hook = NULL;
 	hcd->ep_remove_hook = NULL;
+}
+
+typedef struct {
+	void *original_data;
+	usbhc_iface_transfer_out_callback_t original_callback;
+	usb_target_t target;
+	hcd_t *hcd;
+} toggle_t;
+
+static void toggle_reset_callback(int retval, void *arg)
+{
+	assert(arg);
+	toggle_t *toggle = arg;
+	if (retval == EOK) {
+		usb_log_debug2("Reseting toggle on %d:%d.\n",
+		    toggle->target.address, toggle->target.endpoint);
+		usb_endpoint_manager_reset_toggle(&toggle->hcd->ep_manager,
+		    toggle->target, toggle->target.endpoint == 0);
+	}
+
+	toggle->original_callback(retval, toggle->original_data);
 }
 
 /** Prepare generic usb_transfer_batch and schedule it.
@@ -105,10 +127,28 @@ int hcd_send_batch(
 		return ENOTSUP;
 	}
 
-	/* No private data and no private data dtor */
-	usb_transfer_batch_t *batch =
-	    usb_transfer_batch_create(ep, data, size, setup_data,
-	    in, out, arg, fun);
+	/* Check for commands that reset toggle bit */
+	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
+		const int reset_toggle = usb_request_needs_toggle_reset(
+		    (usb_device_request_setup_packet_t *) &setup_data);
+		if (reset_toggle >= 0) {
+			assert(out);
+			toggle_t *toggle = malloc(sizeof(toggle_t));
+			if (!toggle)
+				return ENOMEM;
+			toggle->target.address = target.address;
+			toggle->target.endpoint = reset_toggle;
+			toggle->original_callback = out;
+			toggle->original_data = arg;
+			toggle->hcd = hcd;
+
+			arg = toggle;
+			out = toggle_reset_callback;
+		}
+	}
+
+	usb_transfer_batch_t *batch = usb_transfer_batch_create(
+	    ep, data, size, setup_data, in, out, arg, fun);
 	if (!batch) {
 		return ENOMEM;
 	}

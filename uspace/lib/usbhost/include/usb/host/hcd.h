@@ -81,25 +81,11 @@ static inline void hcd_set_implementation(hcd_t *hcd, void *data,
 
 }
 
-/** Check registered endpoints and reset toggle bit if necessary.
- * @param hcd hcd_t structure, non-null.
- * @param target Control communication target.
- * @param setup_data Setup packet of the control communication.
- */
-static inline void reset_ep_if_need(hcd_t *hcd, usb_target_t target,
-    const char setup_data[8])
-{
-	assert(hcd);
-	usb_endpoint_manager_reset_eps_if_need(
-	    &hcd->ep_manager, target, (const uint8_t *)setup_data);
-}
-
 int hcd_send_batch(
     hcd_t *hcd, ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
     void *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_in_callback_t in,
     usbhc_iface_transfer_out_callback_t out, void *arg, const char* name);
-
 
 /** Data retrieve wrapper.
  * @param fun ddf function, non-null.

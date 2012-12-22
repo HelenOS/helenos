@@ -75,11 +75,9 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
     size_t available_bandwidth, bw_count_func_t bw_count);
 
-void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
-    usb_target_t target, const uint8_t data[8]);
-
 int usb_endpoint_manager_register_ep(
     usb_endpoint_manager_t *instance, endpoint_t *ep, size_t data_size);
+
 int usb_endpoint_manager_unregister_ep(
     usb_endpoint_manager_t *instance, endpoint_t *ep);
 endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
