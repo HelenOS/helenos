@@ -35,10 +35,7 @@
 #ifndef VHCD_VHCD_H_
 #define VHCD_VHCD_H_
 
-#include <usb/debug.h>
 #include <usbvirt/device.h>
-#include <usb/host/usb_endpoint_manager.h>
-#include <usb/host/usb_device_manager.h>
 #include <usbhc_iface.h>
 #include <async.h>
 
@@ -61,29 +58,13 @@ typedef struct {
 	uint32_t magic;
 	list_t devices;
 	fibril_mutex_t guard;
-	usb_endpoint_manager_t ep_manager;
-	usb_device_manager_t dev_manager;
 	usbvirt_device_t *hub;
 	ddf_fun_t *hc_fun;
 } vhc_data_t;
 
 typedef struct {
 	link_t link;
-
 	usb_transfer_batch_t *batch;
-
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	void *setup_buffer;
-	size_t setup_buffer_size;
-	void *data_buffer;
-	size_t data_buffer_size;
-	ddf_fun_t *ddf_fun;
-	void *callback_arg;
-	usbhc_iface_transfer_in_callback_t callback_in;
-	usbhc_iface_transfer_out_callback_t callback_out;
 } vhc_transfer_t;
 
 static inline void vhc_data_init(vhc_data_t *instance)
@@ -94,19 +75,18 @@ static inline void vhc_data_init(vhc_data_t *instance)
 	instance->magic = 0xDEADBEEF;
 }
 
+void on_client_close(ddf_fun_t *fun);
+void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
+    ipc_call_t *icall);
 
-vhc_transfer_t *vhc_transfer_create(usb_address_t, usb_endpoint_t,
-    usb_direction_t, usb_transfer_type_t, ddf_fun_t *, void *);
 int vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
 int vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
 int vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
-int vhc_virtdev_add_transfer(vhc_data_t *, vhc_transfer_t *);
-
-int vhc_transfer_queue_processor(void *arg);
 
 
 int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+int vhc_transfer_queue_processor(void *arg);
 
 #endif
 /**

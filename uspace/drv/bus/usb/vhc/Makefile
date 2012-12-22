@@ -48,9 +48,7 @@ SOURCES = \
 	hub/hub.c \
 	hub/virthubops.c \
 	conndev.c \
-	connhost.c \
 	devconn.c \
-	hub.c \
 	main.c \
 	transfer.c
 

@@ -28,61 +28,10 @@
 
 #include <errno.h>
 #include <str_error.h>
+#include <usb/debug.h>
 #include <usbvirt/device.h>
 #include <usbvirt/ipc.h>
 #include "vhcd.h"
-
-vhc_transfer_t *vhc_transfer_create(usb_address_t address, usb_endpoint_t ep,
-    usb_direction_t dir, usb_transfer_type_t tr_type,
-    ddf_fun_t *fun, void *callback_arg)
-{
-	vhc_transfer_t *result = malloc(sizeof(vhc_transfer_t));
-	if (result == NULL) {
-		return NULL;
-	}
-	link_initialize(&result->link);
-	result->address = address;
-	result->endpoint = ep;
-	result->direction = dir;
-	result->transfer_type = tr_type;
-	result->setup_buffer = NULL;
-	result->setup_buffer_size = 0;
-	result->data_buffer = NULL;
-	result->data_buffer_size = 0;
-	result->ddf_fun = fun;
-	result->callback_arg = callback_arg;
-	result->callback_in = NULL;
-	result->callback_out = NULL;
-
-	usb_log_debug2("Created transfer %p (%d.%d %s %s)\n", result,
-	    address, ep, usb_str_transfer_type_short(tr_type),
-	    dir == USB_DIRECTION_IN ? "in" : "out");
-
-	return result;
-}
-
-static bool is_set_address_transfer(vhc_transfer_t *transfer)
-{
-	if (transfer->batch->ep->endpoint != 0) {
-		return false;
-	}
-	if (transfer->batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
-		return false;
-	}
-	if (usb_transfer_batch_direction(transfer->batch) != USB_DIRECTION_OUT) {
-		return false;
-	}
-	const usb_device_request_setup_packet_t *setup =
-	    (void*)transfer->batch->setup_buffer;
-	if (setup->request_type != 0) {
-		return false;
-	}
-	if (setup->request != USB_DEVREQ_SET_ADDRESS) {
-		return false;
-	}
-
-	return true;
-}
 
 int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
@@ -121,33 +70,27 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	return targets ? EOK : ENOENT;
 }
 
-int vhc_virtdev_add_transfer(vhc_data_t *vhc, vhc_transfer_t *transfer)
+static bool is_set_address_transfer(vhc_transfer_t *transfer)
 {
-	fibril_mutex_lock(&vhc->guard);
-
-	bool target_found = false;
-	list_foreach(vhc->devices, pos) {
-		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
-		fibril_mutex_lock(&dev->guard);
-		if (dev->address == transfer->address) {
-			if (target_found) {
-				usb_log_warning("Transfer would be accepted by more devices!\n");
-				goto next;
-			}
-			target_found = true;
-			list_append(&transfer->link, &dev->transfer_queue);
-		}
-next:
-		fibril_mutex_unlock(&dev->guard);
+	if (transfer->batch->ep->endpoint != 0) {
+		return false;
+	}
+	if (transfer->batch->ep->transfer_type != USB_TRANSFER_CONTROL) {
+		return false;
+	}
+	if (usb_transfer_batch_direction(transfer->batch) != USB_DIRECTION_OUT) {
+		return false;
+	}
+	const usb_device_request_setup_packet_t *setup =
+	    (void*)transfer->batch->setup_buffer;
+	if (setup->request_type != 0) {
+		return false;
+	}
+	if (setup->request != USB_DEVREQ_SET_ADDRESS) {
+		return false;
 	}
 
-	fibril_mutex_unlock(&vhc->guard);
-
-	if (target_found) {
-		return EOK;
-	} else {
-		return ENOENT;
-	}
+	return true;
 }
 
 static int process_transfer_local(usb_transfer_batch_t *batch,
@@ -234,7 +177,6 @@ static vhc_transfer_t *dequeue_first_transfer(vhc_virtdev_t *dev)
 	return transfer;
 }
 
-
 static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
     size_t data_transfer_size, int outcome)
 {
@@ -245,22 +187,6 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	    data_transfer_size, outcome);
 	usb_transfer_batch_destroy(transfer->batch);
 	free(transfer);
-#if 0
-	assert(outcome != ENAK);
-
-	usb_log_debug2("Transfer %p ended: %s.\n",
-	    transfer, str_error(outcome));
-
-	if (transfer->direction == USB_DIRECTION_IN) {
-		transfer->callback_in(outcome,
-		    data_transfer_size, transfer->callback_arg);
-	} else {
-		assert(transfer->direction == USB_DIRECTION_OUT);
-		transfer->callback_out(outcome, transfer->callback_arg);
-	}
-
-	free(transfer);
-#endif
 }
 
 int vhc_transfer_queue_processor(void *arg)
@@ -331,4 +257,3 @@ int vhc_transfer_queue_processor(void *arg)
 
 	return EOK;
 }
-

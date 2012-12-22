@@ -37,8 +37,10 @@
 #include <errno.h>
 #include <ddf/driver.h>
 #include <usbvirt/ipc.h>
+#include <usb/debug.h>
 #include <async.h>
-#include "conn.h"
+
+#include "vhcd.h"
 
 static fibril_local uintptr_t plugged_device_handle = 0;
 #define PLUGGED_DEVICE_NAME_MAXLEN 256
