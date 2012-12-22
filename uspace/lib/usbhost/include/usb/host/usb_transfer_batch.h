@@ -79,11 +79,6 @@ typedef struct usb_transfer_batch {
 	 * with the exception of usb_transfer_batch_finish. For external use.
 	 */
 	int error;
-
-	/** Driver specific data */
-	void *private_data;
-	/** Callback to properly remove driver data during destruction */
-	void (*private_data_dtor)(void *p_data);
 } usb_transfer_batch_t;
 
 /** Printf formatting string for dumping usb_transfer_batch_t. */
@@ -108,9 +103,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
-    ddf_fun_t *fun,
-    void *private_data,
-    void (*private_data_dtor)(void *p_data)
+    ddf_fun_t *fun
 );
 void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 

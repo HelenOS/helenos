@@ -108,7 +108,7 @@ int hcd_send_batch(
 	/* No private data and no private data dtor */
 	usb_transfer_batch_t *batch =
 	    usb_transfer_batch_create(ep, data, size, setup_data,
-	    in, out, arg, fun, NULL, NULL);
+	    in, out, arg, fun);
 	if (!batch) {
 		return ENOMEM;
 	}

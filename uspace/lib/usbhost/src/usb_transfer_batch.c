@@ -61,9 +61,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
-    ddf_fun_t *fun,
-    void *private_data,
-    void (*private_data_dtor)(void *)
+    ddf_fun_t *fun
     )
 {
 	if (func_in == NULL && func_out == NULL)
@@ -81,8 +79,6 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 		instance->buffer_size = buffer_size;
 		instance->setup_size = 0;
 		instance->fun = fun;
-		instance->private_data = private_data;
-		instance->private_data_dtor = private_data_dtor;
 		instance->transfered_size = 0;
 		instance->error = EOK;
 		if (ep && ep->transfer_type == USB_TRANSFER_CONTROL) {
@@ -108,10 +104,6 @@ void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
 	    instance, USB_TRANSFER_BATCH_ARGS(*instance));
 	if (instance->ep) {
 		endpoint_release(instance->ep);
-	}
-	if (instance->private_data) {
-		assert(instance->private_data_dtor);
-		instance->private_data_dtor(instance->private_data);
 	}
 	free(instance);
 }
