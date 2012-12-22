@@ -60,8 +60,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
     uint64_t setup_buffer,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-    void *arg,
-    ddf_fun_t *fun
+    void *arg
     )
 {
 	if (func_in == NULL && func_out == NULL)
@@ -78,7 +77,6 @@ usb_transfer_batch_t * usb_transfer_batch_create(
 		instance->buffer = buffer;
 		instance->buffer_size = buffer_size;
 		instance->setup_size = 0;
-		instance->fun = fun;
 		instance->transfered_size = 0;
 		instance->error = EOK;
 		if (ep && ep->transfer_type == USB_TRANSFER_CONTROL) {

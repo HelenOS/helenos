@@ -81,8 +81,7 @@ static inline void hcd_set_implementation(hcd_t *hcd, void *data,
 
 }
 
-int hcd_send_batch(
-    hcd_t *hcd, ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
+int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
     void *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_in_callback_t in,
     usbhc_iface_transfer_out_callback_t out, void *arg, const char* name);

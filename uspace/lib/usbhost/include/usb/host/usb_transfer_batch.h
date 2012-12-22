@@ -66,8 +66,6 @@ typedef struct usb_transfer_batch {
 	 * unused for all other transfers. Thus, this field is either 0 or 8.
 	 */
 	size_t setup_size;
-	/** Host controller function, passed to callback function */
-	ddf_fun_t *fun;
 
 	/** Actually used portion of the buffer
 	 * This member is never accessed by functions provided in this header,
@@ -102,8 +100,7 @@ usb_transfer_batch_t * usb_transfer_batch_create(
     uint64_t setup_buffer,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-    void *arg,
-    ddf_fun_t *fun
+    void *arg
 );
 void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance);
 

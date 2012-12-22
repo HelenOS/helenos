@@ -230,7 +230,7 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     uint8_t *data, size_t size, usbhc_iface_transfer_in_callback_t callback,
     void *arg)
 {
-	return hcd_send_batch(fun_to_hcd(fun), fun, target, USB_DIRECTION_IN,
+	return hcd_send_batch(fun_to_hcd(fun), target, USB_DIRECTION_IN,
 	    data, size, setup_data, callback, NULL, arg, "READ");
 }
 
@@ -248,7 +248,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     const uint8_t *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return hcd_send_batch(fun_to_hcd(fun), fun, target, USB_DIRECTION_OUT,
+	return hcd_send_batch(fun_to_hcd(fun), target, USB_DIRECTION_OUT,
 	    (uint8_t*)data, size, setup_data, NULL, callback, arg, "WRITE");
 }
 

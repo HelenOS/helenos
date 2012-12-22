@@ -95,7 +95,7 @@ static void toggle_reset_callback(int retval, void *arg)
  * @return Error code.
  */
 int hcd_send_batch(
-    hcd_t *hcd, ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
+    hcd_t *hcd, usb_target_t target, usb_direction_t direction,
     void *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_in_callback_t in,
     usbhc_iface_transfer_out_callback_t out, void *arg, const char* name)
@@ -148,7 +148,7 @@ int hcd_send_batch(
 	}
 
 	usb_transfer_batch_t *batch = usb_transfer_batch_create(
-	    ep, data, size, setup_data, in, out, arg, fun);
+	    ep, data, size, setup_data, in, out, arg);
 	if (!batch) {
 		return ENOMEM;
 	}
