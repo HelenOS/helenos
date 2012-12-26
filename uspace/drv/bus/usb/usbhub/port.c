@@ -425,7 +425,7 @@ int add_device_phase1_worker_fibril(void *arg)
 
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
 	    &data->hub->usb_device->hc_conn, data->speed, enable_port_callback,
-	    data->port, &new_address, NULL, NULL, &child_fun);
+	    data->port, &new_address, &child_fun);
 
 	if (rc == EOK) {
 		fibril_mutex_lock(&data->port->mutex);

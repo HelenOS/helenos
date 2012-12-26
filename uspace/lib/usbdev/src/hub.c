@@ -157,7 +157,7 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address)
 int usb_hc_new_device_wrapper(ddf_dev_t *parent,
     usb_hc_connection_t *hc_conn, usb_speed_t dev_speed,
     int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
-    ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
+    ddf_fun_t **new_fun)
 {
 	if ((new_fun == NULL) || (hc_conn == NULL))
 		return EINVAL;
@@ -272,7 +272,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	/* FIXME: create device_register that will get opened ctrl pipe. */
 	ddf_fun_t *child_fun;
 	rc = usb_device_register_child_in_devman(&ctrl_pipe,
-	    parent, dev_ops, new_dev_data, &child_fun);
+	    parent, &child_fun);
 	if (rc != EOK) {
 		goto leave_release_free_address;
 	}
