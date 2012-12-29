@@ -33,7 +33,7 @@
 #ifndef LOCFS_LOCFS_OPS_H_
 #define LOCFS_LOCFS_OPS_H_
 
-#include <bool.h>
+#include <stdbool.h>
 
 extern bool locfs_init(void);
 

@@ -35,7 +35,7 @@
 #include <div.h>
 #include <comparison.h>
 #include <conversion.h>
-#include <bool.h>
+#include <stdbool.h>
 #include "../tester.h"
 
 #define OPERANDS  10

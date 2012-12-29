@@ -108,7 +108,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <libarch/barrier.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <malloc.h>
 #include <mem.h>
 #include <stdlib.h>

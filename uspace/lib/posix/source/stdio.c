@@ -35,9 +35,6 @@
 
 #define LIBPOSIX_INTERNAL
 
-/* Has to be first. */
-#include "posix/stdbool.h"
-
 #include "internal/common.h"
 #include "posix/stdio.h"
 
@@ -50,6 +47,7 @@
 
 #include "libc/stdio.h"
 #include "libc/io/printf_core.h"
+#include "libc/stdbool.h"
 #include "libc/str.h"
 #include "libc/malloc.h"
 #include "libc/adt/list.h"

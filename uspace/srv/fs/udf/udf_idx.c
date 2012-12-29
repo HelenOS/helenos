@@ -43,7 +43,7 @@
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include "udf_idx.h"
 #include "udf.h"
 

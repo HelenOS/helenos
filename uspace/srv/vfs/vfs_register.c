@@ -44,7 +44,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ctype.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <adt/list.h>
 #include <as.h>
 #include <assert.h>

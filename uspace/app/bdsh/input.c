@@ -40,7 +40,7 @@
 #include <macros.h>
 #include <errno.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <tinput.h>
 
 #include "config.h"

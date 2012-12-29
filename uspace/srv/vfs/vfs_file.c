@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <adt/list.h>

@@ -38,7 +38,7 @@
 
 #include <mem.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define U_SPECIAL  '?'
 

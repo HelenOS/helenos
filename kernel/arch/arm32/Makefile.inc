@@ -51,7 +51,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/arm32.c \
 	arch/$(KARCH)/src/machine_func.c \
 	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
@@ -68,12 +67,12 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/page_fault.c \
 	arch/$(KARCH)/src/ras.c
 
-ifeq ($(MACHINE),gta02)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
+ifeq ($(CONFIG_FPU),y)
+	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu_context.c
 endif
 
-ifeq ($(MACHINE),testarm)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
+ifeq ($(MACHINE),gta02)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
 endif
 
 ifeq ($(MACHINE),integratorcp)

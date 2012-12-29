@@ -91,7 +91,7 @@ static void before_thread_runs(void)
 		fpu_enable();
 	else
 		fpu_disable();
-#else
+#elif defined CONFIG_FPU
 	fpu_enable();
 	if (THREAD->fpu_context_exists)
 		fpu_context_restore(THREAD->saved_fpu_context);
@@ -326,7 +326,7 @@ void scheduler(void)
 		/* Update thread kernel accounting */
 		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 		
-#ifndef CONFIG_FPU_LAZY
+#if (defined CONFIG_FPU) && (!defined CONFIG_FPU_LAZY)
 		fpu_context_save(THREAD->saved_fpu_context);
 #endif
 		if (!context_save(&THREAD->saved_context)) {

@@ -47,7 +47,7 @@
 #include "prm/clock_control.h"
 #include "prm/global_reg.h"
 
-#include <bool.h>
+#include <stdbool.h>
 
 typedef struct {
 	uhh_regs_t *uhh;

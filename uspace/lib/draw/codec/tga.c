@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include <byteorder.h>
 #include <align.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <pixconv.h>
 #include "tga.h"
 

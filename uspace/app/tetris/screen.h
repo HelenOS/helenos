@@ -57,7 +57,7 @@
 #include <sys/types.h>
 #include <io/console.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef struct {
 	sysarg_t ws_row;

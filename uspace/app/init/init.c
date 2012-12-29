@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>

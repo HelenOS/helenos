@@ -37,7 +37,7 @@
  */
 
 #include "cdfs_ops.h"
-#include <bool.h>
+#include <stdbool.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <malloc.h>

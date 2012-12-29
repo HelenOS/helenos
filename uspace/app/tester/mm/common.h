@@ -36,7 +36,7 @@
 #define MM_COMMON_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <adt/list.h>
 
 #define MAX_ALLOC  (16 * 1024 * 1024)

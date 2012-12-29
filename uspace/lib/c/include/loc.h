@@ -37,7 +37,7 @@
 
 #include <ipc/loc.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef void (*loc_cat_change_cb_t)(void);
 

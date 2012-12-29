@@ -36,7 +36,7 @@
 #ifndef SOFTREND_FILTER_H_
 #define SOFTREND_FILTER_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <io/pixelmap.h>
 
 typedef pixel_t (*filter_t)(pixelmap_t *, double, double, bool);

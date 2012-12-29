@@ -45,7 +45,7 @@
 #include <align.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <str.h>
 #include <getopt.h>
 #include <macros.h>

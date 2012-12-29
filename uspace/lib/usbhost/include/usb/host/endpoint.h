@@ -35,7 +35,7 @@
 #ifndef LIBUSBHOST_HOST_ENDPOINT_H
 #define LIBUSBHOST_HOST_ENDPOINT_H
 
-#include <bool.h>
+#include <stdbool.h>
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>

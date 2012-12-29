@@ -41,6 +41,8 @@
 #define NARROW(channel, bits) \
 	((channel) >> (8 - (bits)))
 
+#define INVERT(pixel) ((pixel) ^ 0x00ffffff)
+
 #define ALPHA(pixel)  ((pixel) >> 24)
 #define RED(pixel)    (((pixel) & 0x00ff0000) >> 16)
 #define GREEN(pixel)  (((pixel) & 0x0000ff00) >> 8)

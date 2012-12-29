@@ -30,7 +30,7 @@
 #define OUTPUT_OUTPUT_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <loc.h>
 #include <io/console.h>
 #include <io/style.h>

@@ -43,7 +43,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <str.h>
 #include <as.h>
 #include <atomic.h>

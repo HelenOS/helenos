@@ -35,7 +35,7 @@
 #define FAT_FAT_DENTRY_H_
 
 #include <stdint.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define IS_D_CHAR(ch) (isalnum(ch) || ch == '_')
 #define FAT_STOP_CHARS "*?/\\\n\t|'"

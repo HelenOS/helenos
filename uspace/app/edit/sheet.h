@@ -38,7 +38,7 @@
 
 #include <adt/list.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /** Direction (in linear space) */
 enum dir_spec {

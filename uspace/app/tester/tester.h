@@ -36,7 +36,7 @@
 #define TESTER_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stacktrace.h>
 
 #define IPC_TEST_SERVICE  10240

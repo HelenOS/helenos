@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32gxemul
+/** @addtogroup arm32gta02
  * @{
  */
 /** @file

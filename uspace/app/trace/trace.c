@@ -42,7 +42,7 @@
 #include <task.h>
 #include <mem.h>
 #include <str.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>

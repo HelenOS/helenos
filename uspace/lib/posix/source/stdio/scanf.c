@@ -34,9 +34,6 @@
 
 #define LIBPOSIX_INTERNAL
 
-/* Must be first. */
-#include "posix/stdbool.h"
-
 #include "posix/assert.h"
 #include "posix/errno.h"
 
@@ -49,6 +46,7 @@
 
 #include "../internal/common.h"
 #include "libc/malloc.h"
+#include "libc/stdbool.h"
 
 /** Unified data type for possible data sources for scanf. */
 typedef union __data_source {
