@@ -47,12 +47,14 @@
  * ARMv7 introduced wait for event and wait for interrupt (wfe/wfi).
  * ARM920T has custom coprocessor action to do the same. See ARM920T Technical
  * Reference Manual ch 4.9 p. 4-23 (103 in the PDF)
+ * ARM926EJ-S uses the same coprocessor instruction as ARM920T. See ARM926EJ-S
+ * chapter 2.3.8 p.2-22 (52 in the PDF)
  */
 NO_TRACE static inline void cpu_sleep(void)
 {
 #ifdef PROCESSOR_armv7_a
 	asm volatile ( "wfe" :: );
-#elif defined(MACHINE_gta02)
+#elif defined(MACHINE_gta02) | defined(MACHINE_integratorcp)
 	asm volatile ( "mcr p15,0,R0,c7,c0,4" :: );
 #endif
 }
