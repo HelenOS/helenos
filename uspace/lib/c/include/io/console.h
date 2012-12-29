@@ -40,7 +40,7 @@
 #include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 /** Console control structure. */

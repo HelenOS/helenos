@@ -39,7 +39,7 @@
 #include <macros.h>
 #include <errno.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <tinput.h>
 
 #define LIN_TO_COL(ti, lpos) ((lpos) % ((ti)->con_cols))

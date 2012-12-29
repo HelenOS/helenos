@@ -40,7 +40,7 @@
 #define UDF_OSTA_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include "udf_types.h"
 
 #define MAXLEN    255

@@ -40,7 +40,7 @@
 #define CAS
 
 #include <atomicdflt.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 extern uintptr_t *ras_page;

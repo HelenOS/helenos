@@ -40,7 +40,6 @@
 #include <arch/machine_func.h>
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mach/integratorcp/integratorcp.h>
-#include <arch/mach/testarm/testarm.h>
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
 #include <arch/mach/beaglebone/beaglebone.h>
 
@@ -52,8 +51,6 @@ void machine_ops_init(void)
 {
 #if defined(MACHINE_gta02)
 	machine_ops = &gta02_machine_ops;
-#elif defined(MACHINE_testarm)
-	machine_ops = &gxemul_machine_ops;
 #elif defined(MACHINE_integratorcp)
 	machine_ops = &icp_machine_ops;
 #elif defined(MACHINE_beagleboardxm)

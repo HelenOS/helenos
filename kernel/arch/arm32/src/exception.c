@@ -160,6 +160,27 @@ static void irq_exception(unsigned int exc_no, istate_t *istate)
 	machine_irq_exception(exc_no, istate);
 }
 
+/** Undefined instruction exception handler.
+ *
+ * Calls scheduler_fpu_lazy_request
+ */
+static void undef_insn_exception(unsigned int exc_no, istate_t *istate)
+{
+#ifdef CONFIG_FPU
+	if (handle_if_fpu_exception()) {
+		/*
+		 * Retry the failing instruction,
+		 * ARM Architecture Reference Manual says on p.B1-1169
+		 * that offset for undef instruction exception is 4
+		 */
+		istate->pc -= 4;
+		return;
+	}
+#endif
+	fault_if_from_uspace(istate, "Undefined instruction.");
+	panic_badtrap(istate, exc_no, "Undefined instruction.");
+}
+
 /** Initializes exception handling.
  *
  * Installs low-level exception handlers and then registers
@@ -173,6 +194,8 @@ void exception_init(void)
 #endif
 	install_exception_handlers();
 	
+	exc_register(EXC_UNDEF_INSTR, "undefined instruction", true,
+	    (iroutine_t) undef_insn_exception);
 	exc_register(EXC_IRQ, "interrupt", true,
 	    (iroutine_t) irq_exception);
 	exc_register(EXC_PREFETCH_ABORT, "prefetch abort", true,

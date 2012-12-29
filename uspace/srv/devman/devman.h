@@ -35,7 +35,7 @@
 #define DEVMAN_H_
 
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <dirent.h>
 #include <str.h>
 #include <adt/list.h>

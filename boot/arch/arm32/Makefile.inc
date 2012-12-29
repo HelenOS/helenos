@@ -56,11 +56,6 @@ RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24xx_uart
 endif
 
-ifeq ($(MACHINE), gxemul)
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
-endif
-
 RD_DRVS += \
 	infrastructure/rootamdm37x \
 	bus/usb/ehci \

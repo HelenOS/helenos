@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <io/pixel.h>
 #include <task.h>
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	window_t *main_window = window_open(argv[1], true, true, "vterm");
+	window_t *main_window = window_open(argv[1], true, true, "vterm", 0, 0);
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);
 		return 2;

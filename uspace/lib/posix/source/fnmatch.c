@@ -43,7 +43,7 @@
 
 #define LIBPOSIX_INTERNAL
 
-#include "posix/stdbool.h"
+#include "libc/stdbool.h"
 #include "posix/ctype.h"
 #include "posix/string.h"
 #include "posix/stdlib.h"

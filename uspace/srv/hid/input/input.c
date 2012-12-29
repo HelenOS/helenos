@@ -37,7 +37,7 @@
  */
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
@@ -61,12 +61,13 @@
 #include "mouse_proto.h"
 #include "input.h"
 
-#define NUM_LAYOUTS  3
+#define NUM_LAYOUTS  4
 
 static layout_ops_t *layout[NUM_LAYOUTS] = {
 	&us_qwerty_ops,
 	&us_dvorak_ops,
-	&cz_ops
+	&cz_ops,
+	&ar_ops
 };
 
 static void kbd_devs_yield(void);
@@ -159,6 +160,13 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	    key == KC_F3) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[2]);
+		return;
+	}
+	
+	if (type == KEY_PRESS && (kdev->mods & KM_LCTRL) &&
+	    key == KC_F4) {
+		layout_destroy(kdev->active_layout);
+		kdev->active_layout = layout_create(layout[3]);
 		return;
 	}
 	
@@ -421,12 +429,6 @@ static void kbd_add_legacy_devs(void)
 	 */
 #if defined(UARCH_arm32) && defined(MACHINE_gta02)
 	kbd_add_dev(&chardev_port, &stty_ctl);
-#endif
-#if defined(UARCH_arm32) && defined(MACHINE_testarm) && defined(CONFIG_FB)
-	kbd_add_dev(&gxemul_port, &gxe_fb_ctl);
-#endif
-#if defined(UARCH_arm32) && defined(MACHINE_testarm) && !defined(CONFIG_FB)
-	kbd_add_dev(&gxemul_port, &stty_ctl);
 #endif
 #if defined(UARCH_arm32) && defined(MACHINE_integratorcp)
 	kbd_add_dev(&pl050_port, &pc_ctl);

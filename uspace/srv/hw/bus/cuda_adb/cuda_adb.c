@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
 #include <loc.h>

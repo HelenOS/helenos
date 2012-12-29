@@ -34,6 +34,12 @@ ATSIGN = %
 
 GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 
+ifeq ($(CONFIG_FPU),y)
+# This is necessary to allow vmsr insn and fpexc manipulation
+# Use vfp32 to allow context save/restore of d16-d31 regs.
+GCC_CFLAGS += -mfloat-abi=hard -mfpu=vfp3
+endif
+
 BITS = 32
 ENDIANESS = LE
 
@@ -61,12 +67,12 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/page_fault.c \
 	arch/$(KARCH)/src/ras.c
 
-ifeq ($(MACHINE),gta02)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
+ifeq ($(CONFIG_FPU),y)
+	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu_context.c
 endif
 
-ifeq ($(MACHINE),testarm)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
+ifeq ($(MACHINE),gta02)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
 endif
 
 ifeq ($(MACHINE),integratorcp)

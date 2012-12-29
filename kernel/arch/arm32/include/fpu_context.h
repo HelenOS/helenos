@@ -30,9 +30,7 @@
  * @{
  */
 /** @file
- *  @brief FPU context (not implemented).
- *
- *  GXemul doesn't support FPU on its ARM CPU.
+ *  @brief FPU context.
  */
 
 #ifndef KERN_arm32_FPU_CONTEXT_H_
@@ -40,10 +38,19 @@
 
 #include <typedefs.h>
 
-#define FPU_CONTEXT_ALIGN    0
+#define FPU_CONTEXT_ALIGN    8
 
+/* ARM Architecture reference manual, p B-1529.
+ */
 typedef struct {
+	uint32_t fpexc;
+	uint32_t fpscr;
+	uint32_t s[64];
 } fpu_context_t;
+
+void fpu_setup(void);
+
+bool handle_if_fpu_exception(void);
 
 #endif
 

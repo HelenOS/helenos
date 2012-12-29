@@ -38,7 +38,7 @@
 #include <async.h>
 #include <devman.h>
 #include <ddf/driver.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
 

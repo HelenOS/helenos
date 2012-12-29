@@ -35,7 +35,7 @@
 #ifndef LIBC_DDI_H_
 #define LIBC_DDI_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <abi/ddi/irq.h>

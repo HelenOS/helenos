@@ -36,7 +36,7 @@
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <adt/hash_table.h>
 
 #define TMPFS_NODE(node)	((node) ? (tmpfs_node_t *)(node)->data : NULL)

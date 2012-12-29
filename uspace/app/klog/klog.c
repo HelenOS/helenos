@@ -47,6 +47,7 @@
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
+#include <tinput.h>
 
 #define NAME       "klog"
 #define LOG_FNAME  "/log/klog"
@@ -227,14 +228,33 @@ int main(int argc, char *argv[])
 		return ENOMEM;
 	}
 	
+	tinput_t *input = tinput_new();
+	if (!input) {
+		fprintf(stderr, "%s: Could not create input\n", NAME);
+		return ENOMEM;
+	}	
+
 	fibril_add_ready(fid);
 	event_unmask(EVENT_KLOG);
 	klog_update();
 	
-	task_retval(0);
-	async_manager();
-	
-	return 0;
+	tinput_set_prompt(input, "klog> ");
+
+	char *str;
+	while ((rc = tinput_read(input, &str)) == EOK) {
+		if (str_cmp(str, "") == 0) {
+			free(str);
+			continue;
+		}
+
+		klog_command(str, str_size(str));
+		free(str);
+	}
+ 
+	if (rc == ENOENT)
+		rc = EOK;	
+
+	return EOK;
 }
 
 /** @}

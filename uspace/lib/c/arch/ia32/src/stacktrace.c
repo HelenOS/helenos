@@ -36,7 +36,7 @@
 
 #include <libarch/config.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stacktrace.h>
 
 #define FRAME_OFFSET_FP_PREV  0

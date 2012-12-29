@@ -36,7 +36,7 @@
  */
 
 #include <macros.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <malloc.h>
 #include <str.h>

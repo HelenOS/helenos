@@ -33,7 +33,7 @@
 #ifndef CDFS_CDFS_OPS_H_
 #define CDFS_CDFS_OPS_H_
 
-#include <bool.h>
+#include <stdbool.h>
 
 extern bool cdfs_init(void);
 

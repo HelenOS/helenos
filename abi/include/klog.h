@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64debug
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_amd64_DEBUGGER_H_
-#define KERN_amd64_DEBUGGER_H_
+#ifndef ABI_KLOG_H_
+#define ABI_KLOG_H_
 
-#include <typedefs.h>
-
-#define BKPOINTS_MAX  4
-
-/* Flags that are passed to breakpoint_add function */
-#define BKPOINT_INSTR       0x1U
-#define BKPOINT_WRITE       0x2U
-#define BKPOINT_READ_WRITE  0x4U
-
-#define BKPOINT_CHECK_ZERO  0x8U
-
-
-extern void debugger_init(void);
-extern int breakpoint_add(const void *, const unsigned int, int);
-extern void breakpoint_del(int);
+enum {
+	KLOG_UNKNOW,
+	KLOG_WRITE,
+	KLOG_UPDATE,
+	KLOG_COMMAND
+};
 
 #endif
 
