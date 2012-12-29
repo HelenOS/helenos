@@ -104,12 +104,12 @@ void cpu_arch_init(void)
 		: [control_reg] "=r" (control_reg)
 	);
 	
-	/* Turn off tex remap, RAZ ignores writes prior to armv7 */
+	/* Turn off tex remap, RAZ/WI prior to armv7 */
 	control_reg &= ~CP15_R1_TEX_REMAP_EN;
-	/* Turn off accessed flag, RAZ ignores writes prior to armv7 */
+	/* Turn off accessed flag, RAZ/WI prior to armv7 */
 	control_reg &= ~(CP15_R1_ACCESS_FLAG_EN | CP15_R1_HW_ACCESS_FLAG_EN);
-	/* Enable unaligned access, RAZ ignores writes prior to armv6
-	 * switchable on armv6, RAO ignores writes on armv7,
+	/* Enable unaligned access, RAZ/WI prior to armv6
+	 * switchable on armv6, RAO/WI writes on armv7,
 	 * see ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
 	 * L.3.1 (p. 2456) */
 	control_reg |= CP15_R1_UNALIGNED_EN;

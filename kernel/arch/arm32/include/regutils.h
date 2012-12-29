@@ -46,7 +46,7 @@
 #define CP15_R1_ALIGN_CHECK_EN    (1 << 1)  /* Allow alignemnt check */
 #define CP15_R1_CACHE_EN          (1 << 2)
 #define CP15_R1_CP15_BARRIER_EN   (1 << 5)
-#define CP15_R1_B_EN              (1 << 7)  /* ARMv6- only big endian switch */
+#define CP15_R1_B_EN              (1 << 7)  /* ARMv6- only, big endian switch */
 #define CP15_R1_SWAP_EN           (1 << 10)
 #define CP15_R1_BRANCH_PREDICT_EN (1 << 11)
 #define CP15_R1_INST_CACHE_EN     (1 << 12)
