@@ -66,13 +66,15 @@ void ras_init(void)
 
 void ras_check(unsigned int n, istate_t *istate)
 {
-	bool restart = false;
+	bool restart_needed = false;
+	uintptr_t restart_pc = 0;
 
 	if (istate_from_uspace(istate)) {
 		if (ras_page[RAS_START]) {
 			if ((ras_page[RAS_START] < istate->pc) &&
 			    (ras_page[RAS_END] > istate->pc)) {
-				restart = true;
+				restart_needed = true;
+				restart_pc = ras_page[RAS_START];
 			}
 			ras_page[RAS_START] = 0;
 			ras_page[RAS_END] = 0xffffffff;
@@ -80,8 +82,8 @@ void ras_check(unsigned int n, istate_t *istate)
 	}
 
 	exc_dispatch(n, istate);
-	if (restart)
-		istate->pc = ras_page[RAS_START];
+	if (restart_needed)
+		istate->pc = restart_pc;
 }
 
 /** @}
