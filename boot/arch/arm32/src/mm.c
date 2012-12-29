@@ -119,9 +119,9 @@ static void enable_paging()
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
 #ifdef PROCESSOR_armv7_a
-		/* Mask to enable paging, I-cache D-cache
+		/* Mask to enable paging, I-cache D-cache and branch predict
 		 * See kernel/arch/arm32/include/regutils.h for bit values.*/
-		"ldr r1, =0x00001005\n"
+		"ldr r1, =0x00001805\n"
 #else
 		/* Mask to enable paging */
 		"ldr r1, =0x00000001\n"

@@ -128,6 +128,8 @@ void cpu_arch_init(void)
 	 */
 	control_reg |= CP15_R1_CACHE_EN | CP15_R1_INST_CACHE_EN;
 	
+	/* Enable branch prediction */
+	control_reg |= CP15_R1_BRANCH_PREDICT_EN;
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
 		:: [control_reg] "r" (control_reg)
