@@ -97,7 +97,6 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 /** Enables unaligned access and caching for armv6+ */
 void cpu_arch_init(void)
 {
-#if defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
 	uint32_t control_reg = 0;
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"
@@ -108,6 +107,11 @@ void cpu_arch_init(void)
 	control_reg &= ~CP15_R1_TEX_REMAP_EN;
 	/* Turn off accessed flag, RAZ/WI prior to armv7 */
 	control_reg &= ~(CP15_R1_ACCESS_FLAG_EN | CP15_R1_HW_ACCESS_FLAG_EN);
+	/* Enable branch prediction RAZ/WI if not supported */
+	control_reg |= CP15_R1_BRANCH_PREDICT_EN;
+
+	/* Unaligned access is supported on armv6+ */
+#if defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
 	/* Enable unaligned access, RAZ/WI prior to armv6
 	 * switchable on armv6, RAO/WI writes on armv7,
 	 * see ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
@@ -123,18 +127,22 @@ void cpu_arch_init(void)
 	 * with the same memory attributes, is fully coherent."
 	 *    ARM Architecture Reference Manual ARMv7-A and ARMv7-R Edition
 	 *    B3.11.1 (p. 1383)
-	 * ICache coherency is elaborate on in barrier.h.
-	 * We are safe to turn these on.
+	 * We are safe to turn this on. For arm v6 see ch L.6.2 (p. 2469)
+	 * L2 Cache for armv7 was enabled in boot code.
 	 */
-	control_reg |= CP15_R1_CACHE_EN | CP15_R1_INST_CACHE_EN;
+	control_reg |= CP15_R1_CACHE_EN;
+#endif
+#ifdef PROCESSOR_cortex_a8
+	 /* ICache coherency is elaborate on in barrier.h.
+	  * Cortex-A8 implements IVIPT extension.
+	  * Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245) */
+	control_reg |= CP15_R1_INST_CACHE_EN;
+#endif
 	
-	/* Enable branch prediction */
-	control_reg |= CP15_R1_BRANCH_PREDICT_EN;
 	asm volatile (
 		"mcr p15, 0, %[control_reg], c1, c0"
 		:: [control_reg] "r" (control_reg)
 	);
-#endif
 #ifdef CONFIG_FPU
 	fpu_setup();
 #endif
