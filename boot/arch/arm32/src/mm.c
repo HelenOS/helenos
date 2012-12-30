@@ -118,13 +118,15 @@ static void enable_paging()
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
-#ifdef PROCESSOR_ARCH_armv7_a
+#ifdef PROCESSOR_cortex_a8
 		/* Mask to enable paging, I-cache D-cache and branch predict
-		 * See kernel/arch/arm32/include/regutils.h for bit values.*/
+		 * See kernel/arch/arm32/include/regutils.h for bit values.
+		 * It's safe because Cortex-A8 implements IVIPT extension
+		 * See Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245) */
 		"ldr r1, =0x00001805\n"
 #else
-		/* Mask to enable paging */
-		"ldr r1, =0x00000001\n"
+		/* Mask to enable paging and branch prediction */
+		"ldr r1, =0x00000801\n"
 #endif
 		"orr r0, r0, r1\n"
 		
