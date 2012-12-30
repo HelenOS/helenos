@@ -110,30 +110,22 @@ static int create_interfaces(const uint8_t *config_descriptor,
 			continue;
 		}
 
-		usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
-		if (iface == NULL) {
-			//TODO: Do something about that failure.
-			break;
-		}
-
-		link_initialize(&iface->link);
-		iface->fun = NULL;
-		iface->interface_no = interface->interface_number;
-		iface->interface = interface;
-
-		list_append(&iface->link, list);
 
 		usb_log_info("Creating child for interface %d (%s).\n",
 		    interface->interface_number,
 		    usb_str_class(interface->interface_class));
 
-		const int rc = usbmid_spawn_interface_child(usb_dev, iface,
+		usbmid_interface_t *iface = NULL;
+		const int rc = usbmid_spawn_interface_child(usb_dev, &iface,
 		    &usb_dev->descriptors.device, interface);
 		if (rc != EOK) {
+			//TODO: Do something about that failure.
 			usb_log_error("Failed to create interface child for "
 			    "%d (%s): %s.\n", interface->interface_number,
 			    usb_str_class(interface->interface_class),
 			    str_error(rc));
+		} else {
+			list_append(&iface->link, list);
 		}
 	}
 	return EOK;

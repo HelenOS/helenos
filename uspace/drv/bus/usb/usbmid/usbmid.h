@@ -49,8 +49,6 @@
 typedef struct {
 	/** Function container. */
 	ddf_fun_t *fun;
-	/** Interface descriptor. */
-	const usb_standard_interface_descriptor_t *interface;
 	/** Interface number. */
 	int interface_no;
 	/** List link. */
@@ -64,7 +62,7 @@ typedef struct usb_mid {
 } usb_mid_t;
 
 int usbmid_explore_device(usb_device_t *);
-int usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t *,
+int usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t **,
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *);
 void usbmid_dump_descriptors(uint8_t *, size_t);

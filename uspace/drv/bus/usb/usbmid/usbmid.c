@@ -30,9 +30,6 @@
  * @{
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 /**
  * @file
  * Helper functions.
@@ -80,11 +77,7 @@ int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
 	if (ret != EOK) {
 		return ret;
 	}
-	/* NOTE: usbmid->interface points somewhere, but we did not
-	 * allocate that space, so don't touch */
 	ddf_fun_destroy(mid_iface->fun);
-	/* NOTE: mid_iface is invalid at this point, it was assigned to
-	 * mid_iface->fun->driver_data and freed in ddf_fun_destroy */
 	return EOK;
 }
 
@@ -97,7 +90,7 @@ int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
  * @return Error code.
  */
 int usbmid_spawn_interface_child(usb_device_t *parent,
-    usbmid_interface_t *iface,
+    usbmid_interface_t **iface_ret,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
@@ -144,6 +137,13 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		}
 	}
 	clean_match_ids(&match_ids);
+	ddf_fun_set_ops(child, &child_device_ops);
+
+	usbmid_interface_t *iface = ddf_fun_data_alloc(child, sizeof(*iface));
+
+	iface->fun = child;
+	iface->interface_no = interface_descriptor->interface_number;
+	link_initialize(&iface->link);
 
 	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
@@ -151,10 +151,7 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		ddf_fun_destroy(child);
 		return rc;
 	}
-
-	iface->fun = child;
-	ddf_fun_data_implant(child, iface);
-	ddf_fun_set_ops(child, &child_device_ops);
+	*iface_ret = iface;
 
 	return EOK;
 }
