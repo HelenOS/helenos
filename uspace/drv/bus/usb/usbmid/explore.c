@@ -71,9 +71,12 @@ static bool interface_in_list(const list_t *list, int interface_no)
  * @param config_descriptor_size Size of configuration descriptor in bytes.
  * @param list List where to add the interfaces.
  */
-static void create_interfaces(const uint8_t *config_descriptor,
-    size_t config_descriptor_size, list_t *list)
+static int create_interfaces(const uint8_t *config_descriptor,
+    size_t config_descriptor_size, list_t *list, usb_device_t *usb_dev)
 {
+	assert(config_descriptor);
+	assert(usb_dev);
+
 	const usb_dp_parser_data_t data = {
 		.data = config_descriptor,
 		.size = config_descriptor_size,
@@ -106,6 +109,7 @@ static void create_interfaces(const uint8_t *config_descriptor,
 			 * for them. */
 			continue;
 		}
+
 		usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
 		if (iface == NULL) {
 			//TODO: Do something about that failure.
@@ -118,7 +122,21 @@ static void create_interfaces(const uint8_t *config_descriptor,
 		iface->interface = interface;
 
 		list_append(&iface->link, list);
+
+		usb_log_info("Creating child for interface %d (%s).\n",
+		    interface->interface_number,
+		    usb_str_class(interface->interface_class));
+
+		const int rc = usbmid_spawn_interface_child(usb_dev, iface,
+		    &usb_dev->descriptors.device, interface);
+		if (rc != EOK) {
+			usb_log_error("Failed to create interface child for "
+			    "%d (%s): %s.\n", interface->interface_number,
+			    usb_str_class(interface->interface_class),
+			    str_error(rc));
+		}
 	}
+	return EOK;
 }
 
 /** Explore MID device.
@@ -186,22 +204,7 @@ int usbmid_explore_device(usb_device_t *dev)
 	/* Create interface children. */
 	list_initialize(&usb_mid->interface_list);
 	create_interfaces(config_descriptor_raw, config_descriptor_size,
-	    &usb_mid->interface_list);
-
-	/* Start child function for every interface. */
-	list_foreach(usb_mid->interface_list, link) {
-		usbmid_interface_t *iface = usbmid_interface_from_link(link);
-
-		usb_log_info("Creating child for interface %d.\n",
-		    iface->interface_no);
-
-		rc = usbmid_spawn_interface_child(dev, iface,
-		    &dev->descriptors.device, iface->interface);
-		if (rc != EOK) {
-			usb_log_error("Failed to create interface child: %s.\n",
-			    str_error(rc));
-		}
-	}
+	    &usb_mid->interface_list, dev);
 
 	return EOK;
 }
