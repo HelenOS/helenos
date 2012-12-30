@@ -124,6 +124,10 @@ static void enable_paging()
 		 * It's safe because Cortex-A8 implements IVIPT extension
 		 * See Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245) */
 		"ldr r1, =0x00001805\n"
+#elif defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
+		/* Enable paging, data cache and branch prediction
+		 * see arch/arm32/src/cpu/cpu.c for reasoning */
+		"ldr r1, =0x00000805\n"
 #else
 		/* Mask to enable paging and branch prediction */
 		"ldr r1, =0x00000801\n"
