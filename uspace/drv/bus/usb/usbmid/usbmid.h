@@ -63,7 +63,7 @@ typedef struct usb_mid {
 	list_t interface_list;
 } usb_mid_t;
 
-bool usbmid_explore_device(usb_device_t *);
+int usbmid_explore_device(usb_device_t *);
 int usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t *,
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *);

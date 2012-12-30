@@ -52,13 +52,7 @@ static int usbmid_device_add(usb_device_t *dev)
 {
 	usb_log_info("Taking care of new MID `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 
-	const bool accept = usbmid_explore_device(dev);
-
-	if (!accept) {
-		return ENOTSUP;
-	}
-
-	return EOK;
+	return usbmid_explore_device(dev);
 }
 
 /** Callback when a MID device is about to be removed from the host.

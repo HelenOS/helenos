@@ -56,7 +56,7 @@ static ddf_dev_ops_t mid_device_ops = {
 static bool interface_in_list(const list_t *list, int interface_no)
 {
 	list_foreach(*list, l) {
-		usbmid_interface_t *iface = usbmid_interface_from_link(l);
+		const usbmid_interface_t *iface = usbmid_interface_from_link(l);
 		if (iface->interface_no == interface_no) {
 			return true;
 		}
@@ -129,18 +129,16 @@ static void create_interfaces(const uint8_t *config_descriptor,
  * @param dev Device to be explored.
  * @return Whether to accept this device from devman.
  */
-bool usbmid_explore_device(usb_device_t *dev)
+int usbmid_explore_device(usb_device_t *dev)
 {
-	int rc;
-
-	unsigned dev_class = dev->descriptors.device.device_class;
+	const unsigned dev_class = dev->descriptors.device.device_class;
 	if (dev_class != USB_CLASS_USE_INTERFACE) {
 		usb_log_warning(
 		    "Device class: %u (%s), but expected class %u.\n",
 		    dev_class, usb_str_class(dev_class),
 		    USB_CLASS_USE_INTERFACE);
-		usb_log_error("Not multi interface device, refusing.\n");
-		return false;
+		usb_log_error("Not a multi-interface device, refusing.\n");
+		return ENOTSUP;
 	}
 
 	/* Shortcuts to save on typing ;-). */
@@ -150,26 +148,28 @@ bool usbmid_explore_device(usb_device_t *dev)
 	    config_descriptor_raw;
 
 	/* Select the first configuration */
-	rc = usb_request_set_configuration(&dev->ctrl_pipe,
+	int rc = usb_request_set_configuration(&dev->ctrl_pipe,
 	    config_descriptor->configuration_number);
 	if (rc != EOK) {
 		usb_log_error("Failed to set device configuration: %s.\n",
 		    str_error(rc));
-		return false;
+		return rc;
 	}
+
+	
 
 	/* Create driver soft-state. */
 	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
 	if (!usb_mid) {
 		usb_log_error("Failed to create USB MID structure.\n");
-		return false;
+		return ENOMEM;
 	}
 
 	/* Create control function. */
 	usb_mid->ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
 	if (usb_mid->ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
-		return false;
+		return ENOMEM;
 	}
 	ddf_fun_set_ops(usb_mid->ctl_fun, &mid_device_ops);
 
@@ -179,7 +179,7 @@ bool usbmid_explore_device(usb_device_t *dev)
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
 		ddf_fun_destroy(usb_mid->ctl_fun);
-		return false;
+		return rc;
 	}
 
 
@@ -204,7 +204,7 @@ bool usbmid_explore_device(usb_device_t *dev)
 		}
 	}
 
-	return true;
+	return EOK;
 }
 
 /**
