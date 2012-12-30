@@ -106,7 +106,7 @@ static void enable_paging()
 		"ldr r0, =0x55555555\n"
 		"mcr p15, 0, r0, c3, c0, 0\n"
 		
-#ifdef PROCESSOR_armv7_a
+#ifdef PROCESSOR_ARCH_armv7_a
 		/* Read Auxiliary control register */
 		"mrc p15, 0, r0, c1, c0, 1\n"
 		/* Mask to enable L2 cache */
@@ -118,7 +118,7 @@ static void enable_paging()
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
-#ifdef PROCESSOR_armv7_a
+#ifdef PROCESSOR_ARCH_armv7_a
 		/* Mask to enable paging, I-cache D-cache and branch predict
 		 * See kernel/arch/arm32/include/regutils.h for bit values.*/
 		"ldr r1, =0x00001805\n"

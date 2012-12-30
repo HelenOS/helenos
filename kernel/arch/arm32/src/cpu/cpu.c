@@ -97,7 +97,7 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 /** Enables unaligned access and caching for armv6+ */
 void cpu_arch_init(void)
 {
-#if defined(PROCESSOR_armv7_a) | defined(PROCESSOR_armv6)
+#if defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
 	uint32_t control_reg = 0;
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"

@@ -173,7 +173,7 @@ static inline uintptr_t read_data_fault_address_register(void)
 	return ret;
 }
 
-#if defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
+#if defined(PROCESSOR_ARCH_armv4) | defined(PROCESSOR_ARCH_armv5)
 /** Decides whether read or write into memory is requested.
  *
  * @param instr_addr   Address of instruction which tries to access memory.
@@ -280,10 +280,10 @@ void data_abort(unsigned int exc_no, istate_t *istate)
 		    dfsr_source_to_str(source), badvaddr);
 	}
 
-#if defined(PROCESSOR_armv6) | defined(PROCESSOR_armv7_a)
+#if defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_ARCH_armv7_a)
 	const pf_access_t access =
 	    fsr.data.wr ? PF_ACCESS_WRITE : PF_ACCESS_READ;
-#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
+#elif defined(PROCESSOR_ARCH_armv4) | defined(PROCESSOR_ARCH_armv5)
 	const pf_access_t access = get_memory_access_type(istate->pc, badvaddr);
 #else
 #error "Unsupported architecture"

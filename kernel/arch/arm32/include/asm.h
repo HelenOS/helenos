@@ -52,7 +52,7 @@
  */
 NO_TRACE static inline void cpu_sleep(void)
 {
-#ifdef PROCESSOR_armv7_a
+#ifdef PROCESSOR_ARCH_armv7_a
 	asm volatile ( "wfe" :: );
 #elif defined(MACHINE_gta02) | defined(MACHINE_integratorcp)
 	asm volatile ( "mcr p15,0,R0,c7,c0,4" :: );

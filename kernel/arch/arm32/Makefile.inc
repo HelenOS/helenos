@@ -32,7 +32,7 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
+GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
 ifeq ($(CONFIG_FPU),y)
 # This is necessary to allow vmsr insn and fpexc manipulation
