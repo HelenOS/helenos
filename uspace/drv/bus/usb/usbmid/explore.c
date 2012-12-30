@@ -192,9 +192,8 @@ int usbmid_explore_device(usb_device_t *dev)
 	list_foreach(usb_mid->interface_list, link) {
 		usbmid_interface_t *iface = usbmid_interface_from_link(link);
 
-		usb_log_info("Creating child for interface %d (%s).\n",
-		    iface->interface_no,
-		    usb_str_class(iface->interface->interface_class));
+		usb_log_info("Creating child for interface %d.\n",
+		    iface->interface_no);
 
 		rc = usbmid_spawn_interface_child(dev, iface,
 		    &dev->descriptors.device, iface->interface);

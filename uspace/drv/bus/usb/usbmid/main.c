@@ -82,27 +82,22 @@ static int usbmid_device_remove(usb_device_t *dev)
 
 		usbmid_interface_t *iface = usbmid_interface_from_link(item);
 
-		usb_log_info("Removing child for interface %d (%s).\n",
-		    iface->interface_no,
-		    usb_str_class(iface->interface->interface_class));
+		usb_log_info("Removing child `%s'.\n",
+		    ddf_fun_get_name(iface->fun));
 
 		/* Tell the child to go off-line. */
 		int pret = ddf_fun_offline(iface->fun);
 		if (pret != EOK) {
-			usb_log_warning("Failed to turn off child for interface"
-			    " %d (%s): %s\n", iface->interface_no,
-			    usb_str_class(iface->interface->interface_class),
-			    str_error(pret));
+			usb_log_warning("Failed to turn off child `%s': %s\n",
+			    ddf_fun_get_name(iface->fun), str_error(pret));
 			ret = pret;
 		}
 
 		/* Now remove the child. */
 		pret = usbmid_interface_destroy(iface);
 		if (pret != EOK) {
-			usb_log_error("Failed to destroy child for interface "
-			    "%d (%s): %s\n", iface->interface_no,
-			    usb_str_class(iface->interface->interface_class),
-			    str_error(pret));
+			usb_log_error("Failed to destroy child `%s': %s\n",
+			    ddf_fun_get_name(iface->fun), str_error(pret));
 			ret = pret;
 		}
 	}
@@ -138,17 +133,13 @@ static int usbmid_device_gone(usb_device_t *dev)
 
 		usbmid_interface_t *iface = usbmid_interface_from_link(item);
 
-		usb_log_info("Child for interface %d (%s) gone.\n",
-		    iface->interface_no,
-		    usb_str_class(iface->interface->interface_class));
+		usb_log_info("Child `%s' is gone.\n",
+		    ddf_fun_get_name(iface->fun));
 
 		const int pret = usbmid_interface_destroy(iface);
 		if (pret != EOK) {
-			usb_log_error("Failed to remove child for interface "
-			    "%d (%s): %s\n",
-			    iface->interface_no,
-			    usb_str_class(iface->interface->interface_class),
-			    str_error(pret));
+			usb_log_error("Failed to remove child `%s': %s\n",
+			    ddf_fun_get_name(iface->fun), str_error(pret));
 			ret = pret;
 		}
 	}
