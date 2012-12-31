@@ -37,6 +37,29 @@
 #include <arch/asm.h>
 #include <arch/mm.h>
 
+/** Check if caching can be enabled for a given memory section.
+ *
+ * Memory areas used for I/O are excluded from caching.
+ * At the moment caching is enabled only on GTA02.
+ *
+ * @param section	The section number.
+ *
+ * @return	1 if the given section can be mapped as cacheable, 0 otherwise.
+*/
+static inline int section_cacheable(pfn_t section)
+{
+#ifdef MACHINE_gta02
+	unsigned long address = section << PTE_SECTION_SHIFT;
+
+	if (address >= GTA02_IOMEM_START && address < GTA02_IOMEM_END)
+		return 0;
+	else
+		return 1;
+#else
+	return 0;
+#endif
+}
+
 /** Initialize "section" page table entry.
  *
  * Will be readable/writable by kernel with no access from user mode.
@@ -54,7 +77,7 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 {
 	pte->descriptor_type = PTE_DESCRIPTOR_SECTION;
 	pte->bufferable = 1;
-	pte->cacheable = 0;
+	pte->cacheable = section_cacheable(frame);
 	pte->xn = 0;
 	pte->domain = 0;
 	pte->should_be_zero_1 = 0;
@@ -122,8 +145,14 @@ static void enable_paging()
 		/* Mask to enable paging, caching */
 		"ldr r1, =0x00000005\n"
 #else
+#ifdef MACHINE_gta02
+		/* Mask to enable paging (bit 0),
+		   D-cache (bit 2), I-cache (bit 12) */
+		"ldr r1, =0x00001005\n"
+#else
 		/* Mask to enable paging */
 		"ldr r1, =0x00000001\n"
+#endif
 #endif
 		"orr r0, r0, r1\n"
 		
