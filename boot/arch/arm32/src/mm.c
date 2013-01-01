@@ -151,15 +151,13 @@ static void enable_paging()
 		/* Enable paging, data cache and branch prediction
 		 * see arch/arm32/src/cpu/cpu.c for reasoning */
 		"ldr r1, =0x00000805\n"
-#else
-#ifdef MACHINE_gta02
+#elif defined(MACHINE_gta02)
 		/* Mask to enable paging (bit 0),
 		   D-cache (bit 2), I-cache (bit 12) */
 		"ldr r1, =0x00001005\n"
 #else
 		/* Mask to enable paging and branch prediction */
 		"ldr r1, =0x00000801\n"
-#endif
 #endif
 		"orr r0, r0, r1\n"
 		
