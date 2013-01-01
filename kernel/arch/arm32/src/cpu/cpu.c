@@ -111,8 +111,8 @@ void cpu_arch_init(void)
 	control_reg &= ~CP15_R1_TEX_REMAP_EN;
 	/* Turn off accessed flag, RAZ/WI prior to armv7 */
 	control_reg &= ~(CP15_R1_ACCESS_FLAG_EN | CP15_R1_HW_ACCESS_FLAG_EN);
-	/* Enable branch prediction RAZ/WI if not supported */
-	control_reg |= CP15_R1_BRANCH_PREDICT_EN;
+	/* Disable branch prediction RAZ/WI if not supported */
+	control_reg &= ~CP15_R1_BRANCH_PREDICT_EN;
 
 	/* Unaligned access is supported on armv6+ */
 #if defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
