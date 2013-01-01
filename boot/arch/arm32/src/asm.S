@@ -59,4 +59,41 @@ jump_to_kernel:
 	# Make sure that the I-cache, D-cache and memory are mutually coherent
 	# before passing control to the copied code.
 	#
+
+#if defined(MACHINE_gta02)
+
+#define CP15_C1_IC		12
+#define CP15_C1_DC		2
+#define CP15_C7_SEG_SHIFT	5
+#define CP15_C7_SEG_SIZE	3
+#define CP15_C7_IDX_SHIFT	26
+
+	# Disable I-cache and D-cache before the kernel is started.
+	mrc	p15, 0, r4, c1, c0, 0
+	bic	r4, r4, #(1 << CP15_C1_DC)
+	bic	r4, r4, #(1 << CP15_C1_IC)
+	mcr	p15, 0, r4, c1, c0, 0
+
+	# Now clean D-cache to guarantee coherency between I-cache and D-cache.
+
+	# D-cache clean and invalidate procedure.
+	# See ARM920T TRM pages 2-17, 4-17.
+
+	# Initialize segment
+	mov	r4, #0
+	# Initialize index
+1:	mov	r5, #0
+2:	orr	r6, r4, r5
+	# Clean and invalidate a single line
+	mcr	p15, 0, r6, c7, c10, 2
+	# Increment index
+	add	r5, r5, #(1 << CP15_C7_IDX_SHIFT)
+	cmp	r5, #0
+	bne	2b
+	# Increment segment
+	add	r4, #(1 << CP15_C7_SEG_SHIFT)
+	tst	r4, #(1 << (CP15_C7_SEG_SHIFT + CP15_C7_SEG_SIZE))
+	beq	1b
+#endif
+
 	mov pc, r0
