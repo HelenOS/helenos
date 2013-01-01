@@ -141,20 +141,18 @@ static void enable_paging()
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
-#ifdef PROCESSOR_cortex_a8
+#if defined(PROCESSOR_cortex_a8) | defined(MACHINE_gta02)
 		/* Mask to enable paging, I-cache D-cache and branch predict
 		 * See kernel/arch/arm32/include/regutils.h for bit values.
 		 * It's safe because Cortex-A8 implements IVIPT extension
-		 * See Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245) */
+		 * See Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245).
+		 * It's safe for gta02 too because we turn the caches off
+		 * before switching to kernel. */
 		"ldr r1, =0x00001805\n"
 #elif defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
 		/* Enable paging, data cache and branch prediction
 		 * see arch/arm32/src/cpu/cpu.c for reasoning */
 		"ldr r1, =0x00000805\n"
-#elif defined(MACHINE_gta02)
-		/* Mask to enable paging (bit 0),
-		   D-cache (bit 2), I-cache (bit 12) */
-		"ldr r1, =0x00001005\n"
 #else
 		/* Mask to enable paging and branch prediction */
 		"ldr r1, =0x00000801\n"
