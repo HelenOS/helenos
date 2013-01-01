@@ -133,14 +133,13 @@ static void enable_paging()
 		"mcr p15, 0, r0, c3, c0, 0\n"
 		
 #ifdef PROCESSOR_ARCH_armv7_a
-		/* Read Auxiliary control register */
-		"mrc p15, 0, r0, c1, c0, 1\n"
-		/* Mask to enable L2 cache */
-		"ldr r1, =0x00000002\n"
-		"orr r0, r0, r1\n"
-		/* Store Auxiliary control register */
-		"mrc p15, 0, r0, c1, c0, 1\n"
+		/* armv7 no longer requires cache entries to be invalid
+		 * upon reset, do this manually */
+		/* Invalidate ICache */
+		"mcr p15, 0, r0, c7, c5, 6\n"
+		//TODO: Invalidate data cache
 #endif
+
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
