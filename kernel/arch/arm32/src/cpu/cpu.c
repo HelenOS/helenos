@@ -97,6 +97,10 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 /** Enables unaligned access and caching for armv6+ */
 void cpu_arch_init(void)
 {
+	/* Get rid of any boot code hiding in ICache
+	 * This is safe without regards to ICache state. */
+	smc_coherence();
+
 	uint32_t control_reg = 0;
 	asm volatile (
 		"mrc p15, 0, %[control_reg], c1, c0"

@@ -55,9 +55,12 @@ static inline int section_cacheable(pfn_t section)
 		return 0;
 	else
 		return 1;
-#else
-	return 0;
+#elif defined MACHINE_beagleboardxm
+	const unsigned long address = section << PTE_SECTION_SHIFT;
+	if (address >= BBXM_RAM_START && address < BBXM_RAM_END)
+		return 1;
 #endif
+	return 0;
 }
 
 /** Initialize "section" page table entry.
