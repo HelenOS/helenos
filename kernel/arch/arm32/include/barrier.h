@@ -42,9 +42,35 @@
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
+#if defined PROCESSOR_ARCH_armv7_a
+/* ARMv7 uses instructions for memory barriers see ARM Architecture reference
+ * manual for details:
+ * DMB: ch. A8.8.43 page A8-376
+ * DSB: ch. A8.8.44 page A8-378
+ * See ch. A3.8.3 page A3-148 for details about memory barrier implementation
+ * and functionality on armv7 architecture.
+ */
+#define memory_barrier()  asm volatile ("dmb" ::: "memory")
+#define read_barrier()    asm volatile ("dsb" ::: "memory")
+#define write_barrier()   asm volatile ("dsb st" ::: "memory")
+#elif defined PROCESSOR_ARCH_armv6
+/* ARMv6- use system control coprocessor (CP15) for memory barrier instructions.
+ * Although at least mcr p15, 0, r0, c7, c10, 4 is mentioned in earlier archs,
+ * CP15 implementation is mandatory only for armv6+.
+ */
+#define memory_barrier()  asm volatile ("ldr r0, =0\nmcr p15, 0, r0, c7, c10, 5" ::: "r0", "memory")
+#define read_barrier()    asm volatile ("ldr r0, =0\nmcr p15, 0, r0, c7, c10, 4" ::: "r0", "memory")
+#define write_barrier()   read_barrier()
+#else
+/* Older manuals mention syscalls as a way to implement cache coherency and
+ * barriers. See for example ARM Architecture Reference Manual Version D
+ * chapter 2.7.4 Prefetching and self-modifying code (p. A2-28)
+ */
+// TODO implement on per PROCESSOR basis
 #define memory_barrier()  asm volatile ("" ::: "memory")
 #define read_barrier()    asm volatile ("" ::: "memory")
 #define write_barrier()   asm volatile ("" ::: "memory")
+#endif
 
 /*
  * There are multiple ways ICache can be implemented on ARM machines. Namely
