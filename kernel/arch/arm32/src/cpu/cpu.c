@@ -99,6 +99,7 @@ void cpu_arch_init(void)
 {
 	/* Get rid of any boot code hiding in ICache
 	 * This is safe without regards to ICache state. */
+	memory_barrier();
 	smc_coherence();
 
 	uint32_t control_reg = 0;
