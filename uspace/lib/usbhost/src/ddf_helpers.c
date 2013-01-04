@@ -392,64 +392,9 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device, usb_speed_t speed)
 	assert(hcd);
 
 	hcd_reserve_default_address(hcd, speed);
-	int ret = hcd_ddf_new_device(device);
+	const int ret = hcd_ddf_new_device(device);
 	hcd_release_default_address(hcd);
 	return ret;
-}
-
-/** Announce root hub to the DDF
- *
- * @param[in] device Host controller ddf device
- * @param[in/out] address USB address of the root hub
- * @return Error code
- */
-int hcd_ddf_setup_hub(ddf_dev_t *device, usb_address_t *address)
-{
-	assert(address);
-	assert(device);
-
-	hcd_t *hcd = dev_to_hcd(device);
-
-	const usb_speed_t speed = hcd->dev_manager.max_speed;
-
-	int ret = usb_device_manager_request_address(&hcd->dev_manager,
-	    address, false, speed);
-	if (ret != EOK) {
-		usb_log_error("Failed to get root hub address: %s\n",
-		    str_error(ret));
-		return ret;
-	}
-
-#define CHECK_RET_UNREG_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	usb_endpoint_manager_remove_ep( \
-	    &hcd->ep_manager, *address, 0, \
-	    USB_DIRECTION_BOTH, NULL, NULL); \
-	usb_device_manager_release_address( \
-	    &hcd->dev_manager, *address); \
-	return ret; \
-} else (void)0
-
-	ret = usb_endpoint_manager_add_ep(
-	    &hcd->ep_manager, *address, 0,
-	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, speed, 64,
-	    0, NULL, NULL);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to add root hub control endpoint: %s.\n", str_error(ret));
-
-	match_id_t mid = { .id = "usb&class=hub", .score = 100 };
-	link_initialize(&mid.link);
-	match_id_list_t mid_list;
-	init_match_ids(&mid_list);
-	add_match_id(&mid_list, &mid);
-
-	ret = hcd_ddf_add_usb_device(device, *address, speed, "rh", &mid_list);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to add hcd device: %s.\n", str_error(ret));
-
-	return EOK;
-#undef CHECK_RET_UNREG_RETURN
 }
 
 /** Initialize hc structures.
