@@ -252,6 +252,51 @@ int hcd_send_batch(
 	return ret;
 }
 
+typedef struct {
+	volatile unsigned done;
+	int ret;	
+	size_t size;
+} sync_data_t;
+
+static void transfer_in_cb(int ret, size_t size, void* data)
+{
+	sync_data_t *d = data;
+	assert(d);
+	d->ret = ret;
+	d->done = 1;
+	d->size = size;
+}
+
+static void transfer_out_cb(int ret, void* data)
+{
+	sync_data_t *d = data;
+	assert(data);
+	d->ret = ret;
+	d->done = 1;
+}
+
+/** this is really ugly version of sync usb communication */
+ssize_t hcd_send_batch_sync(
+    hcd_t *hcd, usb_target_t target, usb_direction_t dir,
+    void *data, size_t size, uint64_t setup_data, const char* name)
+{
+	assert(hcd);
+	sync_data_t sd = { .done = 0, .ret = EINPROGRESS, .size = size };
+
+	int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
+	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
+	    dir == USB_DIRECTION_OUT ? transfer_out_cb : NULL, &sd, name);
+	if (ret != EOK)
+		return ret;
+	do {
+		async_usleep(1000);
+	} while (!sd.done);
+	if (sd.ret == EOK)
+		return sd.size;
+	return sd.ret;
+}
+
+
 /**
  * @}
  */

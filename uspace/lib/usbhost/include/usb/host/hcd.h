@@ -87,7 +87,7 @@ int hcd_release_address(hcd_t *hcd, usb_address_t address);
 
 int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed);
 
-static inline int hcd_release_default_address(hcd_t *hcd, usb_address_t address)
+static inline int hcd_release_default_address(hcd_t *hcd)
 {
 	return hcd_release_address(hcd, USB_ADDRESS_DEFAULT);
 }
@@ -101,6 +101,10 @@ int hcd_send_batch(hcd_t *hcd, usb_target_t target, usb_direction_t direction,
     void *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_in_callback_t in,
     usbhc_iface_transfer_out_callback_t out, void *arg, const char* name);
+
+ssize_t hcd_send_batch_sync(hcd_t *hcd, usb_target_t target,
+    usb_direction_t dir, void *data, size_t size, uint64_t setup_data,
+    const char* name);
 
 #endif
 /**

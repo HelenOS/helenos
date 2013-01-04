@@ -78,6 +78,7 @@ typedef struct {
 	 */
 	uint8_t request_type;
 #define SETUP_REQUEST_TYPE_DEVICE_TO_HOST (1 << 7)
+#define SETUP_REQUEST_TYPE_HOST_TO_DEVICE (0 << 7)
 #define SETUP_REQUEST_TYPE_GET_TYPE(rt) ((rt >> 5) & 0x3)
 #define SETUP_REQUEST_TYPE_GET_RECIPIENT(rec) (rec & 0x1f)
 #define SETUP_REQUEST_TO_HOST(type, recipient) \
