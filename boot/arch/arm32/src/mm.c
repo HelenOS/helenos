@@ -156,8 +156,8 @@ static void enable_paging()
 		 * see arch/arm32/src/cpu/cpu.c for reasoning */
 		"ldr r1, =0x00000805\n"
 #else
-		/* Mask to enable paging and branch prediction */
-		"ldr r1, =0x00000801\n"
+		/* Mask to enable paging */
+		"ldr r1, =0x00000001\n"
 #endif
 		"orr r0, r0, r1\n"
 		
