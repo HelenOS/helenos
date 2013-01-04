@@ -152,6 +152,7 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	assert(instance);
 	assert(regs);
 
+	instance->address = USB_ADDRESS_DEFAULT;
 	instance->registers = regs;
 	instance->port_count = OHCI_RD(regs->rh_desc_a) & RHDA_NDS_MASK;
 	usb_log_debug2("rh_desc_a: %x.\n", OHCI_RD(regs->rh_desc_a));
@@ -166,7 +167,7 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	instance->unfinished_interrupt_transfer = NULL;
 
 #if defined OHCI_POWER_SWITCH_no
-	usb_log_debug("OHCI rh: Set power mode to no power switching.\n");
+	usb_log_info("rh: Set power mode to no power switching.\n");
 	/* Set port power mode to no power-switching. (always on) */
 	OHCI_SET(regs->rh_desc_a, RHDA_NPS_FLAG);
 
@@ -174,7 +175,7 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	OHCI_SET(regs->rh_desc_a, RHDA_NOCP_FLAG);
 
 #elif defined OHCI_POWER_SWITCH_ganged
-	usb_log_debug("OHCI rh: Set power mode to ganged power switching.\n");
+	usb_log_info("rh: Set power mode to ganged power switching.\n");
 	/* Set port power mode to ganged power-switching. */
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_PSM_FLAG);
@@ -186,7 +187,7 @@ void rh_init(rh_t *instance, ohci_regs_t *regs)
 	OHCI_CLR(regs->rh_desc_a, RHDA_NOCP_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_OCPM_FLAG);
 #else
-	usb_log_debug("OHCI rh: Set power mode to per-port power switching.\n");
+	usb_log_info("rh: Set power mode to per-port power switching.\n");
 	/* Set port power mode to per port power-switching. */
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_SET(regs->rh_desc_a, RHDA_PSM_FLAG);
