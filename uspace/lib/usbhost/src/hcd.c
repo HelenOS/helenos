@@ -62,6 +62,58 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd->ep_remove_hook = NULL;
 }
 
+/** Calls ep_add_hook upon endpoint registration.
+ * @param ep Endpoint to be registered.
+ * @param arg hcd_t in disguise.
+ * @return Error code.
+ */
+static int register_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_add_hook)
+		return hcd->ep_add_hook(hcd, ep);
+	return EOK;
+}
+
+
+/** Calls ep_remove_hook upon endpoint removal.
+ * @param ep Endpoint to be unregistered.
+ * @param arg hcd_t in disguise.
+ */
+static void unregister_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+
+int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
+    usb_transfer_type_t type, size_t max_packet_size, size_t size)
+{
+	assert(hcd);
+	usb_speed_t speed = USB_SPEED_MAX;
+	const int ret = usb_device_manager_get_info_by_address(
+	    &hcd->dev_manager, target.address, NULL, &speed);
+	if (ret != EOK) {
+		return ret;
+	}
+	return usb_endpoint_manager_add_ep(&hcd->ep_manager, target.address,
+	    target.endpoint, dir, type, speed, max_packet_size, size,
+	    register_helper, hcd);
+}
+
+int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
+{
+	assert(hcd);
+	return usb_endpoint_manager_remove_ep(&hcd->ep_manager, target.address,
+	    target.endpoint, dir, unregister_helper, hcd);
+}
+
+
 typedef struct {
 	void *original_data;
 	usbhc_iface_transfer_out_callback_t original_callback;

@@ -41,34 +41,6 @@
 #include <usb/host/hcd.h>
 #include "ddf_helpers.h"
 
-/** Calls ep_add_hook upon endpoint registration.
- * @param ep Endpoint to be registered.
- * @param arg hcd_t in disguise.
- * @return Error code.
- */
-static int register_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ep_add_hook)
-		return hcd->ep_add_hook(hcd, ep);
-	return EOK;
-}
-
-/** Calls ep_remove_hook upon endpoint removal.
- * @param ep Endpoint to be unregistered.
- * @param arg hcd_t in disguise.
- */
-static void unregister_helper(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ep_remove_hook)
-		hcd->ep_remove_hook(hcd, ep);
-}
-
 /** Calls ep_remove_hook upon endpoint removal. Prints warning.
  * @param ep Endpoint to be unregistered.
  * @param arg hcd_t in disguise.
@@ -180,21 +152,14 @@ static int register_endpoint(
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	const size_t size = max_packet_size;
-	usb_speed_t speed = USB_SPEED_MAX;
-	const int ret = usb_device_manager_get_info_by_address(
-	    &hcd->dev_manager, address, NULL, &speed);
-	if (ret != EOK) {
-		return ret;
-	}
-
-	usb_log_debug("Register endpoint %d:%d %s-%s %s %zuB %ums.\n",
+	const usb_target_t target = {{.address = address, .endpoint = endpoint}};
+	
+	usb_log_debug("Register endpoint %d:%d %s-%s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
-	    usb_str_direction(direction), usb_str_speed(speed),
-	    max_packet_size, interval);
+	    usb_str_direction(direction), max_packet_size, interval);
 
-	return usb_endpoint_manager_add_ep(&hcd->ep_manager, address, endpoint,
-	    direction, transfer_type, speed, max_packet_size, size,
-	    register_helper, hcd);
+	return hcd_add_ep(hcd, target, direction, transfer_type,
+	    max_packet_size, size);
 }
 
 /** Unregister endpoint interface function.
@@ -211,10 +176,10 @@ static int unregister_endpoint(
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
+	const usb_target_t target = {{.address = address, .endpoint = endpoint}};
 	usb_log_debug("Unregister endpoint %d:%d %s.\n",
 	    address, endpoint, usb_str_direction(direction));
-	return usb_endpoint_manager_remove_ep(&hcd->ep_manager, address,
-	    endpoint, direction, unregister_helper, hcd);
+	return hcd_remove_ep(hcd, target, direction);
 }
 
 /** Inbound communication interface function.
