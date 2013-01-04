@@ -249,16 +249,9 @@ int usb_device_create_match_ids_from_device_descriptor(
 		    (int) device_descriptor->product_id);
 	}	
 
-	/*
-	 * If the device class points to interface we skip adding
-	 * class directly but we add a multi interface device.
-	 */
-	if (device_descriptor->device_class != USB_CLASS_USE_INTERFACE) {
-		ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
-		    usb_str_class(device_descriptor->device_class));
-	} else {
-		ADD_MATCHID_OR_RETURN(matches, 50, "usb&mid");
-	}
+	/* Class match id */
+	ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
+	    usb_str_class(device_descriptor->device_class));
 	
 	/* As a last resort, try fallback driver. */
 	ADD_MATCHID_OR_RETURN(matches, 10, "usb&fallback");
