@@ -315,7 +315,7 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
  */
 int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
-    void (*callback)(endpoint_t *, void *), void *arg)
+    ep_remove_callback_t callback, void *arg)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -368,7 +368,7 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
  * @return Error code.
  */
 void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
-    usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg)
+    usb_address_t address, ep_remove_callback_t callback, void *arg)
 {
 	assert(address >= 0);
 	assert(instance);
