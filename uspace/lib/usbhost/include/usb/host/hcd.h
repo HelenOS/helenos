@@ -81,6 +81,17 @@ static inline void hcd_set_implementation(hcd_t *hcd, void *data,
 
 }
 
+usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed);
+
+int hcd_release_address(hcd_t *hcd, usb_address_t address);
+
+int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed);
+
+static inline int hcd_release_default_address(hcd_t *hcd, usb_address_t address)
+{
+	return hcd_release_address(hcd, USB_ADDRESS_DEFAULT);
+}
+
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
     usb_transfer_type_t type, size_t max_packet_size, size_t size);
 

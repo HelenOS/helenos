@@ -41,21 +41,6 @@
 #include <usb/host/hcd.h>
 #include "ddf_helpers.h"
 
-/** Calls ep_remove_hook upon endpoint removal. Prints warning.
- * @param ep Endpoint to be unregistered.
- * @param arg hcd_t in disguise.
- */
-static void unregister_helper_warn(endpoint_t *ep, void *arg)
-{
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-	    ep->address, ep->endpoint, usb_str_direction(ep->direction));
-	if (hcd->ep_remove_hook)
-		hcd->ep_remove_hook(hcd, ep);
-}
-
 /** Request address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -72,7 +57,6 @@ static int request_address(
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
 	assert(hcd);
 	assert(address);
-
 	usb_log_debug("Address request: speed: %s, address: %d, strict: %s.\n",
 	    usb_str_speed(speed), *address, strict ? "YES" : "NO");
 	return usb_device_manager_request_address(
@@ -125,12 +109,8 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	assert(hcd);
 	usb_log_debug("Address release %d.\n", address);
-	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
-	    unregister_helper_warn, hcd);
-	usb_device_manager_release_address(&hcd->dev_manager, address);
-	return EOK;
+	return hcd_release_address(hcd, address);
 }
 
 /** Register endpoint interface function.
@@ -196,8 +176,9 @@ static int usb_read(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
     uint8_t *data, size_t size, usbhc_iface_transfer_in_callback_t callback,
     void *arg)
 {
-	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)), target, USB_DIRECTION_IN,
-	    data, size, setup_data, callback, NULL, arg, "READ");
+	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)), target,
+	    USB_DIRECTION_IN, data, size, setup_data, callback, NULL, arg,
+	    "READ");
 }
 
 /** Outbound communication interface function.

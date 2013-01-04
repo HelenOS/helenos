@@ -39,7 +39,48 @@
 #include <usb/debug.h>
 #include <usb/request.h>
 
-#include <usb/host/hcd.h>
+#include "hcd.h"
+
+/** Calls ep_add_hook upon endpoint registration.
+ * @param ep Endpoint to be registered.
+ * @param arg hcd_t in disguise.
+ * @return Error code.
+ */
+static int register_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_add_hook)
+		return hcd->ep_add_hook(hcd, ep);
+	return EOK;
+}
+
+/** Calls ep_remove_hook upon endpoint removal.
+ * @param ep Endpoint to be unregistered.
+ * @param arg hcd_t in disguise.
+ */
+static void unregister_helper(endpoint_t *ep, void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(ep);
+	assert(hcd);
+	if (hcd->ep_remove_hook)
+		hcd->ep_remove_hook(hcd, ep);
+}
+
+/** Calls ep_remove_hook upon endpoint removal. Prints warning.
+ *  * @param ep Endpoint to be unregistered.
+ *   * @param arg hcd_t in disguise.
+ *    */
+static void unregister_helper_warn(endpoint_t *ep, void *arg)
+{
+        assert(ep);
+        usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
+            ep->address, ep->endpoint, usb_str_direction(ep->direction));
+	unregister_helper(ep, arg);
+}
+
 
 /** Initialize hcd_t structure.
  * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
@@ -62,33 +103,32 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd->ep_remove_hook = NULL;
 }
 
-/** Calls ep_add_hook upon endpoint registration.
- * @param ep Endpoint to be registered.
- * @param arg hcd_t in disguise.
- * @return Error code.
- */
-static int register_helper(endpoint_t *ep, void *arg)
+usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 {
-	hcd_t *hcd = arg;
-	assert(ep);
 	assert(hcd);
-	if (hcd->ep_add_hook)
-		return hcd->ep_add_hook(hcd, ep);
+	usb_address_t address = 0;
+	const int ret = usb_device_manager_request_address(
+	    &hcd->dev_manager, &address, false, speed);
+	if (ret != EOK)
+		return ret;
+	return address;
+}
+
+int hcd_release_address(hcd_t *hcd, usb_address_t address)
+{
+	assert(hcd);
+	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
+	    unregister_helper_warn, hcd);
+	usb_device_manager_release_address(&hcd->dev_manager, address);
 	return EOK;
 }
 
-
-/** Calls ep_remove_hook upon endpoint removal.
- * @param ep Endpoint to be unregistered.
- * @param arg hcd_t in disguise.
- */
-static void unregister_helper(endpoint_t *ep, void *arg)
+int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 {
-	hcd_t *hcd = arg;
-	assert(ep);
 	assert(hcd);
-	if (hcd->ep_remove_hook)
-		hcd->ep_remove_hook(hcd, ep);
+	usb_address_t address = 0;
+	return usb_device_manager_request_address(
+	    &hcd->dev_manager, &address, true, speed);
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
