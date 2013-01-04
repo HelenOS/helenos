@@ -154,7 +154,7 @@ int virthub_init(usbvirt_device_t *dev, const char* name)
 	dev->descriptors = &descriptors;
 	dev->address = 0;
 	dev->name = str_dup(name);
-	if (!name)
+	if (!dev->name)
 		return ENOMEM;
 
 	hub_t *hub = malloc(sizeof(hub_t));
