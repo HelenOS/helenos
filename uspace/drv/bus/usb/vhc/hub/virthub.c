@@ -33,6 +33,7 @@
  * @brief
  */
 #include <usb/classes/classes.h>
+#include <usb/classes/hub.h>
 #include <usbvirt/device.h>
 #include <assert.h>
 #include <errno.h>
@@ -76,7 +77,7 @@ hub_descriptor_t hub_descriptor = {
 	.length = sizeof(hub_descriptor_t),
 	.type = USB_DESCTYPE_HUB,
 	.port_count = HUB_PORT_COUNT,
-	.characteristics = 0,
+	.characteristics = HUB_CHAR_NO_POWER_SWITCH_FLAG | HUB_CHAR_NO_OC_FLAG,
 	.power_on_warm_up = 50, /* Huh? */
 	.max_current = 100, /* Huh again. */
 	.removable_device = { 0 },
