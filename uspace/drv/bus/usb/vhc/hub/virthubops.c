@@ -346,29 +346,10 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 #define REC_DEVICE USB_REQUEST_RECIPIENT_DEVICE
 
 
-/** Create a class request to get data from device
- *
- * @param rec Request recipient.
- * @param req Request code.
- */
-#define CLASS_REQ_IN(rec, req) \
-	.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_CLASS, rec), \
-	.request = req
-
-/** Create a class request to send data to device
- *
- * @param rec Request recipient.
- * @param req Request code.
- */
-#define CLASS_REQ_OUT(rec, req) \
-	.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_CLASS, rec), \
-	.request = req
-
 /** Hub operations on control endpoint zero. */
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
-		.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE),
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
 		.name = "GetDescriptor",
 		.callback = req_get_descriptor
 	},

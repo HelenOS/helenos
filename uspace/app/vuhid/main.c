@@ -56,20 +56,17 @@
 
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
-		.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD,  USB_REQUEST_RECIPIENT_INTERFACE),
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		STD_REQ_IN(USB_REQUEST_RECIPIENT_INTERFACE, USB_DEVREQ_GET_DESCRIPTOR),
 		.name = "Get_Descriptor",
 		.callback = req_get_descriptor
 	},
 	{
-		.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE),
-		.request = USB_HIDREQ_SET_PROTOCOL,
+		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_INTERFACE, USB_HIDREQ_SET_PROTOCOL),
 		.name = "Set_Protocol",
 		.callback = req_set_protocol
 	},
 	{
-		.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE),
-		.request = USB_HIDREQ_SET_REPORT,
+		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_INTERFACE, USB_HIDREQ_SET_REPORT),
 		.name = "Set_Report",
 		.callback = req_set_report
 	},

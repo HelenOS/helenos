@@ -40,6 +40,7 @@
 #include <usb/dev/request.h>
 #include <async.h>
 
+
 /** Maximum number of endpoints supported by virtual USB. */
 #define USBVIRT_ENDPOINT_MAX 16
 
@@ -86,6 +87,42 @@ typedef int (*usbvirt_on_data_from_device_t)(usbvirt_device_t *dev,
 typedef int (*usbvirt_on_control_t)(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_data_size);
+
+/** Create a class request to get data from device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define CLASS_REQ_IN(rec, req) \
+	.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_CLASS, rec), \
+	.request = req
+
+/** Create a class request to send data to device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define CLASS_REQ_OUT(rec, req) \
+	.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_CLASS, rec), \
+	.request = req
+
+/** Create a standard request to get data from device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define STD_REQ_IN(rec, req) \
+	.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, rec), \
+	.request = req
+
+/** Create a standard request to send data to device
+ *
+ * @param rec Request recipient.
+ * @param req Request code.
+ */
+#define STD_REQ_OUT(rec, req) \
+	.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_STANDARD, rec), \
+	.request = req
 
 /** Callback for control request on a virtual USB device.
  *
