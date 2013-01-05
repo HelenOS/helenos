@@ -76,7 +76,7 @@ hub_descriptor_t hub_descriptor = {
 	.length = sizeof(hub_descriptor_t),
 	.type = USB_DESCTYPE_HUB,
 	.port_count = HUB_PORT_COUNT,
-	.characteristics = 0, 
+	.characteristics = 0,
 	.power_on_warm_up = 50, /* Huh? */
 	.max_current = 100, /* Huh again. */
 	.removable_device = { 0 },
@@ -97,7 +97,7 @@ usb_standard_endpoint_descriptor_t endpoint_descriptor = {
 usb_standard_configuration_descriptor_t std_configuration_descriptor = {
 	.length = sizeof(usb_standard_configuration_descriptor_t),
 	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
-	.total_length = 
+	.total_length =
 		sizeof(usb_standard_configuration_descriptor_t)
 		+ sizeof(std_interface_descriptor)
 		+ sizeof(hub_descriptor)
