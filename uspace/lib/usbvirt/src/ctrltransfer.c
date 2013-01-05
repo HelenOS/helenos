@@ -50,7 +50,7 @@
  */
 int process_control_transfer(usbvirt_device_t *dev,
     usbvirt_control_request_handler_t *control_handlers,
-    usb_device_request_setup_packet_t *setup,
+    const usb_device_request_setup_packet_t *setup,
     uint8_t *data, size_t *data_sent_size)
 {
 	assert(dev);

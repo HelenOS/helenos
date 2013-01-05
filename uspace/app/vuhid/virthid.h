@@ -70,7 +70,7 @@ struct vuhid_interface {
 	size_t out_data_size;
 
 	int (*on_data_in)(vuhid_interface_t *, void *, size_t, size_t *);
-	int (*on_data_out)(vuhid_interface_t *, void *, size_t);
+	int (*on_data_out)(vuhid_interface_t *, const void *, size_t);
 	void (*live)(vuhid_interface_t *);
 
 	int set_protocol;

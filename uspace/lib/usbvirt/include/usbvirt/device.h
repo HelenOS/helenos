@@ -56,7 +56,7 @@ typedef struct usbvirt_device usbvirt_device_t;
  */
 typedef int (*usbvirt_on_data_to_device_t)(usbvirt_device_t *dev,
     usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    void *buffer, size_t buffer_size);
+    const void *buffer, size_t buffer_size);
 
 /** Callback for data from device (IN transaction).
  *
@@ -207,10 +207,10 @@ void usbvirt_device_unplug(usbvirt_device_t *);
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *,
     uint8_t *, size_t *, const void *, size_t);
 
-int usbvirt_control_write(usbvirt_device_t *, void *, size_t, void *, size_t);
-int usbvirt_control_read(usbvirt_device_t *, void *, size_t, void *, size_t, size_t *);
+int usbvirt_control_write(usbvirt_device_t *, const void *, size_t, void *, size_t);
+int usbvirt_control_read(usbvirt_device_t *, const void *, size_t, void *, size_t, size_t *);
 int usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
-    void *, size_t);
+    const void *, size_t);
 int usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t, usb_endpoint_t,
     void *, size_t, size_t *);
 

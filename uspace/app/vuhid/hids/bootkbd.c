@@ -101,7 +101,7 @@ static vuhid_interface_life_t boot_life = {
 };
 
 static int on_data_out(vuhid_interface_t *iface,
-    void *buffer, size_t buffer_size)
+    const void *buffer, size_t buffer_size)
 {
 	if (buffer_size == 0) {
 		return EEMPTY;

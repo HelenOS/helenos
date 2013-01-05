@@ -59,7 +59,7 @@ static int on_data_from_device(usbvirt_device_t *dev,
 
 static int on_data_to_device(usbvirt_device_t *dev,
     usb_endpoint_t ep, usb_transfer_type_t tr_type,
-    void *data, size_t data_size)
+    const void *data, size_t data_size)
 {
 	vuhid_data_t *vuhid = dev->device_data;
 	vuhid_interface_t *iface = vuhid->out_endpoints_mapping[ep];
