@@ -72,8 +72,11 @@ typedef struct {
 	uint8_t port_count;
 	/** Characteristics bitmask. */
 	uint8_t characteristics;
-#define HUB_CHAR_POWER_PER_PORT_FLAG  (1 << 0)
-#define HUB_CHAR_NO_POWER_SWITCH_FLAG (1 << 1)
+#define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
+#define HUB_CHAR_NO_POWER_SWITCH_FLAG   (1 << 1)
+#define HUB_CHAR_COMPUND_DEVICE         (1 << 2)
+#define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
+#define HUB_CHAR_NO_OC_FLAG             (1 << 4)
 	/* Unused part of characteristics field */
 	uint8_t characteristics_reserved;
 	/** Time from power-on to stabilization of current on the port. */
@@ -82,6 +85,8 @@ typedef struct {
 	uint8_t max_current;
 } __attribute__ ((packed)) usb_hub_descriptor_header_t;
 
+
+#if 0
 /**
  * @brief usb hub descriptor
  *
@@ -168,7 +173,7 @@ typedef struct usb_hub_descriptor_type {
      */
     //uint8_t * port_pwr_ctrl_mask;
 } usb_hub_descriptor_t;
-
+#endif
 
 
 /**	@brief usb hub specific request types.

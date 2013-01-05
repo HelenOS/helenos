@@ -64,6 +64,14 @@ void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *setup
 	}
 }
 
+/** NOP handler */
+int req_nop(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	return EOK;
+}
+
 /** GET_DESCRIPTOR handler. */
 static int req_get_descriptor(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)

@@ -238,6 +238,11 @@ struct usbvirt_device {
 	async_sess_t *vhc_sess;
 };
 
+
+int req_nop(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
+
 int usbvirt_device_plug(usbvirt_device_t *, const char *);
 void usbvirt_device_unplug(usbvirt_device_t *);
 
