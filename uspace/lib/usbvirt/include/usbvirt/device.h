@@ -212,6 +212,10 @@ typedef struct {
 
 /** Virtual USB device. */
 struct usbvirt_device {
+	/** Device does not require USB bus power */
+	bool self_powered;
+	/** Device is allowed to signal remote wakeup */
+	bool remote_wakeup;
 	/** Name for debugging purposes. */
 	const char *name;
 	/** Custom device data. */
