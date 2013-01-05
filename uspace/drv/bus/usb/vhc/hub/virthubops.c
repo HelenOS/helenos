@@ -339,103 +339,86 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 }
 
 
-/** IN class request. */
-#define CLASS_REQ_IN(recipient) \
-	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(USB_DIRECTION_IN, \
-	USBVIRT_REQUEST_TYPE_CLASS, recipient)
-/** OUT class request. */
-#define CLASS_REQ_OUT(recipient) \
-	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(USB_DIRECTION_OUT, \
-	USBVIRT_REQUEST_TYPE_CLASS, recipient)
 
 /** Recipient: other. */
 #define REC_OTHER USB_REQUEST_RECIPIENT_OTHER
 /** Recipient: device. */
 #define REC_DEVICE USB_REQUEST_RECIPIENT_DEVICE
-/** Direction: in. */
-#define DIR_IN USB_DIRECTION_IN
-/** Direction: out. */
-#define DIR_OUT USB_DIRECTION_OUT
 
 
-/** Create a class request.
+/** Create a class request to get data from device
  *
- * @param direction Request direction.
- * @param recipient Request recipient.
+ * @param rec Request recipient.
  * @param req Request code.
  */
-#define CLASS_REQ(direction, recipient, req) \
-	.req_direction = direction, \
-	.req_recipient = recipient, \
-	.req_type = USB_REQUEST_TYPE_CLASS, \
+#define CLASS_REQ_IN(rec, req) \
+	.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_CLASS, rec), \
 	.request = req
 
-/** Create a standard request.
+/** Create a class request to send data to device
  *
- * @param direction Request direction.
- * @param recipient Request recipient.
+ * @param rec Request recipient.
  * @param req Request code.
  */
-#define STD_REQ(direction, recipient, req) \
-	.req_direction = direction, \
-	.req_recipient = recipient, \
-	.req_type = USB_REQUEST_TYPE_STANDARD, \
+#define CLASS_REQ_OUT(rec, req) \
+	.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_CLASS, rec), \
 	.request = req
 
 /** Hub operations on control endpoint zero. */
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
-		STD_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.name = "GetDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
-		CLASS_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		CLASS_REQ_IN(REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
 		.name = "GetDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
-		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		CLASS_REQ_IN(REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
 		.name = "GetPortStatus",
 		.callback = req_get_port_status
 	},
 	{
-		CLASS_REQ(DIR_OUT, REC_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
+		CLASS_REQ_OUT(REC_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
 		.name = "ClearHubFeature",
 		.callback = req_clear_hub_feature
 	},
 	{
-		CLASS_REQ(DIR_OUT, REC_OTHER, USB_HUB_REQUEST_CLEAR_FEATURE),
+		CLASS_REQ_OUT(REC_OTHER, USB_HUB_REQUEST_CLEAR_FEATURE),
 		.name = "ClearPortFeature",
 		.callback = req_clear_port_feature
 	},
 	{
-		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATE),
+		CLASS_REQ_IN(REC_OTHER, USB_HUB_REQUEST_GET_STATE),
 		.name = "GetBusState",
 		.callback = req_get_bus_state
 	},
 	{
-		CLASS_REQ(DIR_IN, REC_DEVICE, USB_HUB_REQUEST_GET_DESCRIPTOR),
+		CLASS_REQ_IN(REC_DEVICE, USB_HUB_REQUEST_GET_DESCRIPTOR),
 		.name = "GetHubDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
-		CLASS_REQ(DIR_IN, REC_DEVICE, USB_HUB_REQUEST_GET_STATUS),
+		CLASS_REQ_IN(REC_DEVICE, USB_HUB_REQUEST_GET_STATUS),
 		.name = "GetHubStatus",
 		.callback = req_get_hub_status
 	},
 	{
-		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		CLASS_REQ_IN(REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
 		.name = "GetPortStatus",
 		.callback = req_get_port_status
 	},
 	{
-		CLASS_REQ(DIR_OUT, REC_DEVICE, USB_HUB_REQUEST_SET_FEATURE),
+		CLASS_REQ_OUT(REC_DEVICE, USB_HUB_REQUEST_SET_FEATURE),
 		.name = "SetHubFeature",
 		.callback = req_set_hub_feature
 	},
 	{
-		CLASS_REQ(DIR_OUT, REC_OTHER, USB_HUB_REQUEST_SET_FEATURE),
+		CLASS_REQ_OUT(REC_OTHER, USB_HUB_REQUEST_SET_FEATURE),
 		.name = "SetPortFeature",
 		.callback = req_set_port_feature
 	},

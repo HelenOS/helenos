@@ -191,30 +191,23 @@ static int req_set_configuration(usbvirt_device_t *device,
 /** Standard request handlers. */
 usbvirt_control_request_handler_t library_handlers[] = {
 	{
-		.req_direction = USB_DIRECTION_OUT,
-		.req_recipient = USB_REQUEST_RECIPIENT_DEVICE,
-		.req_type = USB_REQUEST_TYPE_STANDARD,
+		.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE),
 		.request = USB_DEVREQ_SET_ADDRESS,
 		.name = "SetAddress",
 		.callback = req_set_address
 	},
 	{
-		.req_direction = USB_DIRECTION_IN,
-		.req_recipient = USB_REQUEST_RECIPIENT_DEVICE,
-		.req_type = USB_REQUEST_TYPE_STANDARD,
+		.request_type = SETUP_REQUEST_TO_HOST(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE),
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.name = "GetDescriptor",
 		.callback = req_get_descriptor
 	},
 	{
-		.req_direction = USB_DIRECTION_OUT,
-		.req_recipient = USB_REQUEST_RECIPIENT_DEVICE,
-		.req_type = USB_REQUEST_TYPE_STANDARD,
+		.request_type = SETUP_REQUEST_TO_DEVICE(USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE),
 		.request = USB_DEVREQ_SET_CONFIGURATION,
 		.name = "SetConfiguration",
 		.callback = req_set_configuration
 	},
-
 	{ .callback = NULL }
 };
 

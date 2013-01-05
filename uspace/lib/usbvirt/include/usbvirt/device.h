@@ -93,12 +93,8 @@ typedef int (*usbvirt_on_control_t)(usbvirt_device_t *dev,
  * control read requests.
  */
 typedef struct {
-	/** Request direction (in or out). */
-	usb_direction_t req_direction;
-	/** Request recipient (device, interface or endpoint). */
-	usb_request_recipient_t req_recipient;
-	/** Request type (standard, class or vendor). */
-	usb_request_type_t req_type;
+	/* Request type. See usb/request.h */
+	uint8_t request_type;
 	/** Actual request code. */
 	uint8_t request;
 	/** Request handler name for debugging purposes. */
