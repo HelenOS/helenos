@@ -110,7 +110,7 @@ typedef struct {
 /** Extra configuration data for GET_CONFIGURATION request. */
 typedef struct {
 	/** Actual data. */
-	uint8_t *data;
+	const uint8_t *data;
 	/** Data length. */
 	size_t length;
 } usbvirt_device_configuration_extras_t;
@@ -120,7 +120,7 @@ typedef struct {
 	/** Standard configuration descriptor. */
 	usb_standard_configuration_descriptor_t *descriptor;
 	/** Array of extra data. */
-	usbvirt_device_configuration_extras_t *extra;
+	const usbvirt_device_configuration_extras_t *extra;
 	/** Length of @c extra array. */
 	size_t extra_count;
 } usbvirt_device_configuration_t;
@@ -130,7 +130,7 @@ typedef struct {
 	/** Standard device descriptor.
 	 * There is always only one such descriptor for the device.
 	 */
-	usb_standard_device_descriptor_t *device;
+	const usb_standard_device_descriptor_t *device;
 
 	/** Configurations. */
 	usbvirt_device_configuration_t *configuration;
@@ -205,7 +205,7 @@ int usbvirt_device_plug(usbvirt_device_t *, const char *);
 void usbvirt_device_unplug(usbvirt_device_t *);
 
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *,
-    uint8_t *, size_t *, void *, size_t);
+    uint8_t *, size_t *, const void *, size_t);
 
 int usbvirt_control_write(usbvirt_device_t *, void *, size_t, void *, size_t);
 int usbvirt_control_read(usbvirt_device_t *, void *, size_t, void *, size_t, size_t *);

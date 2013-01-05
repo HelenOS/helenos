@@ -50,7 +50,7 @@
  */
 void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size,
-    void *actual_data, size_t actual_data_size)
+    const void *actual_data, size_t actual_data_size)
 {
 	size_t expected_size = setup_packet->length;
 	if (expected_size < actual_data_size) {
@@ -97,8 +97,8 @@ static int req_get_descriptor(usbvirt_device_t *device,
 			return EFORWARD;
 		}
 		/* Copy the data. */
-		usbvirt_device_configuration_t *config = &device->descriptors
-		    ->configuration[index];
+		const usbvirt_device_configuration_t *config =
+		    &device->descriptors->configuration[index];
 		uint8_t *all_data = malloc(config->descriptor->total_length);
 		if (all_data == NULL) {
 			return ENOMEM;
@@ -109,7 +109,7 @@ static int req_get_descriptor(usbvirt_device_t *device,
 		ptr += config->descriptor->length;
 		size_t i;
 		for (i = 0; i < config->extra_count; i++) {
-			usbvirt_device_configuration_extras_t *extra
+			const usbvirt_device_configuration_extras_t *extra
 			    = &config->extra[i];
 			memcpy(ptr, extra->data, extra->length);
 			ptr += extra->length;

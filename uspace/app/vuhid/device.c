@@ -253,9 +253,8 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	}
 
 	/* Extend existing extra descriptors with these ones. */
-	usbvirt_device_configuration_extras_t *extra_descriptors
-	    = dev->descriptors->configuration->extra;
-	extra_descriptors = realloc(extra_descriptors,
+	usbvirt_device_configuration_extras_t *extra_descriptors;
+	extra_descriptors = realloc(dev->descriptors->configuration->extra,
 	    sizeof(usbvirt_device_configuration_extras_t)
 	    * (dev->descriptors->configuration->extra_count + descr_count));
 	if (extra_descriptors == NULL) {
