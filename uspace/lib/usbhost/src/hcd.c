@@ -242,6 +242,7 @@ int hcd_send_batch(
 	usb_transfer_batch_t *batch = usb_transfer_batch_create(
 	    ep, data, size, setup_data, in, out, arg);
 	if (!batch) {
+		usb_log_error("Failed to create transfer batch.\n");
 		return ENOMEM;
 	}
 
@@ -254,7 +255,7 @@ int hcd_send_batch(
 
 typedef struct {
 	volatile unsigned done;
-	int ret;	
+	int ret;
 	size_t size;
 } sync_data_t;
 
@@ -283,14 +284,16 @@ ssize_t hcd_send_batch_sync(
 	assert(hcd);
 	sync_data_t sd = { .done = 0, .ret = EINPROGRESS, .size = size };
 
-	int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
+	const int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
 	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
 	    dir == USB_DIRECTION_OUT ? transfer_out_cb : NULL, &sd, name);
 	if (ret != EOK)
 		return ret;
-	do {
+
+	while (!sd.done) {
 		async_usleep(1000);
-	} while (!sd.done);
+	}
+
 	if (sd.ret == EOK)
 		return sd.size;
 	return sd.ret;
