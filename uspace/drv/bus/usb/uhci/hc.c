@@ -242,7 +242,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	}
 	(void)hc_debug_checker;
 
-	uhci_rh_init(&instance->rh, &instance->registers->ports[0]);
+	uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
 
 	return EOK;
 }
