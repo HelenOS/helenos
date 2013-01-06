@@ -47,7 +47,6 @@ SOURCES = \
 	hc.c \
 	main.c \
 	res.c \
-	root_hub.c \
 	transfer_list.c \
 	uhci.c \
 	uhci_batch.c \
