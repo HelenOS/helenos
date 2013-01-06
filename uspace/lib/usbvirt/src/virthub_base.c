@@ -34,6 +34,7 @@
  */
 
 #include <assert.h>
+#include <macros.h>
 #include <str.h>
 
 #include "virthub_base.h"
@@ -71,7 +72,7 @@ int virthub_base_init(virthub_base_t *instance,
 
 	instance->configuration.descriptor = &instance->config_descriptor;
 	instance->configuration.extra = instance->extra;
-	instance->configuration.extra_count = VIRTHUB_EXTR_DESC;
+	instance->configuration.extra_count = ARRAY_SIZE(instance->extra);
 
 	instance->extra[0] = virthub_interface_descriptor_ex;
 	instance->extra[1].data = (void *)hub_desc;
@@ -137,8 +138,7 @@ int virthub_base_get_hub_descriptor(usbvirt_device_t *dev,
 	assert(instance);
 	if (request->value_high == USB_DESCTYPE_HUB) {
 		usbvirt_control_reply_helper(request, data, act_size,
-		    &instance->extra[2].data, instance->extra[2].length);
-
+		    instance->extra[1].data, instance->extra[1].length);
 		return EOK;
 	}
 	/* Let the framework handle all the rest. */
