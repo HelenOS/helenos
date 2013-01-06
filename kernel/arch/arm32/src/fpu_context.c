@@ -102,138 +102,22 @@ enum {
 	FPSCR_EN_ALL = FPSCR_DENORMAL_EN_FLAG | FPSCR_INEXACT_EN_FLAG | FPSCR_UNDERFLOW_EN_FLAG | FPSCR_OVERFLOW_EN_FLAG | FPSCR_ZERO_DIV_EN_FLAG | FPSCR_INVALID_OP_EN_FLAG,
 };
 
-static inline uint32_t fpscr_read()
-{
-	uint32_t reg;
-	asm volatile (
-		"vmrs %0, fpscr\n"
-		:"=r" (reg)::
-	);
-	return reg;
-}
+extern uint32_t fpsid_read(void);
+extern uint32_t mvfr0_read(void);
+extern uint32_t fpscr_read(void);
+extern void fpscr_write(uint32_t);
+extern uint32_t fpexc_read(void);
+extern void fpexc_write(uint32_t);
 
-static inline void fpscr_write(uint32_t val)
-{
-	asm volatile (
-		"vmsr fpscr, %0\n"
-		::"r" (val):
-	);
-}
-
-static inline uint32_t fpexc_read()
-{
-	uint32_t reg;
-	asm volatile (
-		"vmrs %0, fpexc\n"
-		:"=r" (reg)::
-	);
-	return reg;
-}
-
-static inline void fpexc_write(uint32_t val)
-{
-	asm volatile (
-		"vmsr fpexc, %0\n"
-		::"r" (val):
-	);
-}
+extern void fpu_context_save_s32(fpu_context_t *);
+extern void fpu_context_restore_s32(fpu_context_t *);
+extern void fpu_context_save_d16(fpu_context_t *);
+extern void fpu_context_restore_d16(fpu_context_t *);
+extern void fpu_context_save_d32(fpu_context_t *);
+extern void fpu_context_restore_d32(fpu_context_t *);
 
 static void (*save_context)(fpu_context_t *ctx);
 static void (*restore_context)(fpu_context_t *ctx);
-
-/** Saves 32 single precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv1
- */
-static void fpu_context_save_s32(fpu_context_t *ctx)
-{
-	asm volatile (
-		"vmrs r1, fpexc\n"
-		"vmrs r2, fpscr\n"
-		"stmia %0!, {r1, r2}\n"
-		"vstmia %0!, {s0-s31}\n"
-		::"r" (ctx): "r1","r2","memory"
-	);
-}
-
-/** Restores 32 single precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv1
- */
-static void fpu_context_restore_s32(fpu_context_t *ctx)
-{
-	asm volatile (
-		"ldmia %0!, {r1, r2}\n"
-		"vmsr fpexc, r1\n"
-		"vmsr fpscr, r2\n"
-		"vldmia %0!, {s0-s31}\n"
-		::"r" (ctx): "r1","r2"
-	);
-}
-
-/** Saves 16 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv2, VFPv3-d16, and VFPv4-d16.
- */
-static void fpu_context_save_d16(fpu_context_t *ctx)
-{
-	asm volatile (
-		"vmrs r1, fpexc\n"
-		"vmrs r2, fpscr\n"
-		"stmia %0!, {r1, r2}\n"
-		"vstmia %0!, {d0-d15}\n"
-		::"r" (ctx): "r1","r2","memory"
-	);
-}
-
-/** Restores 16 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv2, VFPv3-d16, and VFPv4-d16.
- */
-static void fpu_context_restore_d16(fpu_context_t *ctx)
-{
-	asm volatile (
-		"ldmia %0!, {r1, r2}\n"
-		"vmsr fpexc, r1\n"
-		"vmsr fpscr, r2\n"
-		"vldmia %0!, {d0-d15}\n"
-		::"r" (ctx): "r1","r2"
-	);
-}
-
-/** Saves 32 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv3-d32, VFPv4-d32, and advanced SIMD.
- */
-static void fpu_context_save_d32(fpu_context_t *ctx)
-{
-	asm volatile (
-		"vmrs r1, fpexc\n"
-		"stmia %0!, {r1}\n"
-		"vmrs r1, fpscr\n"
-		"stmia %0!, {r1}\n"
-		"vstmia %0!, {d0-d15}\n"
-		"vstmia %0!, {d16-d31}\n"
-		::"r" (ctx): "r1","memory"
-	);
-}
-
-/** Restores 32 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv3-d32, VFPv4-d32, and advanced SIMD.
- */
-static void fpu_context_restore_d32(fpu_context_t *ctx)
-{
-	asm volatile (
-		"ldmia %0!, {r1}\n"
-		"vmsr fpexc, r1\n"
-		"ldmia %0!, {r1}\n"
-		"vmsr fpscr, r1\n"
-		"vldmia %0!, {d0-d15}\n"
-		"vldmia %0!, {d16-d31}\n"
-		::"r" (ctx): "r1"
-	);
-}
 
 static int fpu_have_coprocessor_access()
 {
@@ -284,11 +168,7 @@ void fpu_setup(void)
 	if (!fpu_have_coprocessor_access())
 		return;
 
-	uint32_t fpsid = 0;
-	asm volatile (
-		"vmrs %0, fpsid\n"
-		:"=r"(fpsid)::
-	);
+	const uint32_t fpsid = fpsid_read();
 	if (fpsid & FPSID_SW_ONLY_FLAG) {
 		printf("No FPU avaiable\n");
 		return;
@@ -308,11 +188,7 @@ void fpu_setup(void)
 	case FPU_VFPv3_COMMONv2:
 	case FPU_VFPv3_NO_COMMON:
 	case FPU_VFPv3_COMMONv3: {
-		uint32_t mvfr0 = 0;
-		asm volatile (
-			"vmrs %0,mvfr0\n"
-			:"=r"(mvfr0)::
-		);
+		const uint32_t mvfr0 = mvfr0_read();
 		/* See page B4-1637 */
 		if ((mvfr0 & 0xf) == 0x1) {
 			printf("Detected VFPv3+ with 16 regs\n");
