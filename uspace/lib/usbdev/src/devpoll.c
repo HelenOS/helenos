@@ -193,13 +193,13 @@ static int polling_fibril(void *arg)
  * @retval EOK New fibril polling the device was already started.
  */
 int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
-    usb_polling_callback_t callback, size_t request_size,
+    usb_polling_callback_t callback, size_t request_size, int delay,
     usb_polling_terminted_callback_t terminated_callback, void *arg)
 {
 	const usb_device_auto_polling_t auto_polling = {
 		.debug = 1,
 		.auto_clear_halt = true,
-		.delay = 0,
+		.delay = delay,
 		.max_failures = MAX_FAILED_ATTEMPTS,
 		.on_data = callback,
 		.on_polling_end = terminated_callback,

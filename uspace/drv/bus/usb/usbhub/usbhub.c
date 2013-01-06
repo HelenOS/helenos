@@ -146,7 +146,8 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 
 	/* Start hub operation. */
 	opResult = usb_device_auto_poll(hub_dev->usb_device, 0,
-	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 8) / 8),
+	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 7) / 8),
+	    255000,
 	    usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
 		usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
@@ -246,7 +247,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	}
 
 	/* N + 1 bit indicates change on port N */
-	for (size_t port = 0; port < hub->port_count + 1; port++) {
+	for (size_t port = 0; port < hub->port_count; ++port) {
 		const size_t bit = port + 1;
 		const bool change = (change_bitmap[bit / 8] >> (bit % 8)) & 1;
 		if (change) {
