@@ -310,7 +310,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 		return EOK;
 	}
 
-	usb_log_info("Hub port power switching enabled.\n");
+	usb_log_info("Hub port power switching enabled (%s).\n",
+	    hub_dev->per_port_power ? "per port" : "ganged");
 
 	for (size_t port = 0; port < hub_dev->port_count; ++port) {
 		usb_log_debug("Powering port %zu.\n", port);
