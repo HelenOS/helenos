@@ -171,7 +171,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 		return EINVAL;
 
 	const uint16_t val = pio_read_16(hub->ports[port]);
-	const uint32_t status = uint16_usb2host(
+	const uint32_t status = uint32_host2usb(
 	    UHCI2USB(val, STATUS_CONNECTED, USB_HUB_FEATURE_PORT_CONNECTION) |
 	    UHCI2USB(val, STATUS_ENABLED, USB_HUB_FEATURE_PORT_ENABLE) |
 	    UHCI2USB(val, STATUS_SUSPEND, USB_HUB_FEATURE_PORT_SUSPEND) |
