@@ -65,6 +65,8 @@ enum {
 	CPACR_CP11_MASK = 0x3 << 22,
 	CPACR_CP10_USER_ACCESS = CPACR_CP10_MASK,
 	CPACR_CP11_USER_ACCESS = CPACR_CP11_MASK,
+	NSACR_CP10_FLAG = 1 << 10,
+	NSACR_CP11_FLAG = 1 << 11,
 };
 
 /** ARM Architecture Reference Manual ch. B4.1.58, p. B$-1551 */
@@ -132,8 +134,37 @@ static int fpu_have_coprocessor_access()
 	return 0;
 }
 
+/** Enable coprocessor access. Turn both non-secure mode bit and generic access.
+ * Cortex A8 Manual says:
+ * "You must execute an Instruction Memory Barrier (IMB) sequence immediately
+ * after an update of the Coprocessor Access Control Register, see Memory
+ * Barriers in the ARM Architecture Reference Manual. You must not attempt to
+ * execute any instructions that are affected by the change of access rights
+ * between the IMB sequence and the register update."
+ * Cortex a8 TRM ch. 3.2.27. c1, Coprocessor Access Control Register
+ *
+ * @note do we need to call secure monitor here?
+ */
 static void fpu_enable_coprocessor_access()
 {
+	uint32_t cpr;
+	asm volatile("MRC p15, 0, %0, c1, c1, 0" : "=r" (cpr)::);
+	if (cpr & 1)
+		printf("We are in unsecure state, we can't change access\n");
+
+	/* Allow non-secure access */
+	uint32_t nsacr;
+	asm volatile ("mrc p15, 0, %0, c1, c1, 2" :"=r" (nsacr)::);
+	/* FPU needs access to coprocessor 10 and 11.
+	 * Moreover, they need to have same access enabled */
+	nsacr |= NSACR_CP10_FLAG | NSACR_CP11_FLAG;
+	asm volatile ("mcr p15, 0, %0, c1, c1, 2" :"=r" (nsacr)::);
+
+#ifdef MACHINE_beagleboardxm
+	asm volatile ("isb" ::: "memory" );
+#endif
+
+	/* Allow coprocessor access */
 	uint32_t cpacr;
 	asm volatile ("mrc p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
 	/* FPU needs access to coprocessor 10 and 11.
@@ -141,6 +172,10 @@ static void fpu_enable_coprocessor_access()
 	cpacr |= CPACR_CP10_USER_ACCESS;
 	cpacr |= CPACR_CP11_USER_ACCESS;
 	asm volatile ("mcr p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+
+#ifdef MACHINE_beagleboardxm
+	asm volatile ("isb" ::: "memory" );
+#endif
 }
 
 
