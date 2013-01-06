@@ -50,6 +50,7 @@ extern usbhc_iface_t hcd_iface;
 typedef struct hc_dev {
 	ddf_fun_t *hc_fun;
 	list_t devices;
+	fibril_mutex_t guard;
 } hc_dev_t;
 
 static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
@@ -72,7 +73,7 @@ typedef struct usb_dev {
 	ddf_fun_t *fun;
 	usb_address_t address;
 	usb_speed_t speed;
-	devman_handle_t handle;
+	devman_handle_t hc_handle;
 } usb_dev_t;
 
 /** Get USB address assigned to root hub.
@@ -81,7 +82,7 @@ typedef struct usb_dev {
  * @param[out] address Store the address here.
  * @return Error code.
  */
-static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
+static int get_my_address(ddf_fun_t *fun, usb_address_t *address)
 {
 	assert(fun);
 	if (address != NULL) {
@@ -97,21 +98,21 @@ static int rh_get_my_address(ddf_fun_t *fun, usb_address_t *address)
  * @param[out] handle Place to write the handle.
  * @return Error code.
  */
-static int rh_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
+static int get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 
 	if (handle != NULL) {
 		usb_dev_t *usb_dev = ddf_fun_data_get(fun);
-		*handle = usb_dev->handle;
+		*handle = usb_dev->hc_handle;
 	}
 	return EOK;
 }
 
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
-	.get_hc_handle = rh_get_hc_handle,
-	.get_my_address = rh_get_my_address,
+	.get_hc_handle = get_hc_handle,
+	.get_my_address = get_my_address,
 };
 /** Standard USB RH options (RH interface) */
 static ddf_dev_ops_t usb_ops = {
@@ -145,16 +146,6 @@ static ddf_dev_ops_t hc_ops = {
 	.length = uint16_host2usb(0), \
 };
 
-static const usb_device_request_setup_packet_t set_address = {
-	.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
-	    | (USB_REQUEST_TYPE_STANDARD << 5)
-	    | USB_REQUEST_RECIPIENT_DEVICE,
-	.request = USB_DEVREQ_GET_DESCRIPTOR,
-	.value = uint16_host2usb(USB_DESCTYPE_DEVICE << 8),
-	.index = uint16_host2usb(0),
-	.length = uint16_host2usb(CTRL_PIPE_MIN_PACKET_SIZE),
-};
-
 int hcd_ddf_add_usb_device(ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids)
@@ -181,7 +172,7 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 	}
 	info->address = address;
 	info->speed = speed;
-	info->handle = hc_handle;
+	info->hc_handle = hc_handle;
 	info->fun = fun;
 	link_initialize(&info->link);
 
@@ -207,7 +198,6 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 	return EOK;
 }
 
-
 #define ADD_MATCHID_OR_RETURN(list, sc, str, ...) \
 do { \
 	match_id_t *mid = malloc(sizeof(match_id_t)); \
@@ -226,7 +216,7 @@ do { \
 	mid->id = id; \
 	add_match_id(list, mid); \
 } while (0)
-		
+
 
 /* This is a copy of lib/usbdev/src/recognise.c */
 static int create_match_ids(match_id_list_t *l,
@@ -258,13 +248,42 @@ static int create_match_ids(match_id_list_t *l,
 
 }
 
-int hcd_ddf_new_device(ddf_dev_t *device)
+int hcd_ddf_remove_device(ddf_dev_t *device, usb_address_t id)
 {
 	assert(device);
 
 	hcd_t *hcd = dev_to_hcd(device);
 	assert(hcd);
-	
+
+	hc_dev_t *hc_dev = dev_to_hc_dev(device);
+	assert(hc_dev);
+
+	fibril_mutex_lock(&hc_dev->guard);
+
+	usb_dev_t *victim = NULL;
+
+	list_foreach(hc_dev->devices, it) {
+		victim = list_get_instance(it, usb_dev_t, link);
+		if (victim->address == id)
+			break;
+	}
+	if (victim && victim->address == id) {
+		list_remove(&victim->link);
+		fibril_mutex_unlock(&hc_dev->guard);
+		ddf_fun_unbind(victim->fun);
+		ddf_fun_destroy(victim->fun);
+		return EOK;
+	}
+	return ENOENT;
+}
+
+int hcd_ddf_new_device(ddf_dev_t *device, usb_address_t *id)
+{
+	assert(device);
+
+	hcd_t *hcd = dev_to_hcd(device);
+	assert(hcd);
+
 	usb_speed_t speed = USB_SPEED_MAX;
 
 	/* This checks whether the default address is reserved and gets speed */
@@ -328,7 +347,6 @@ int hcd_ddf_new_device(ddf_dev_t *device)
 	const usb_device_request_setup_packet_t set_address =
 	    SET_ADDRESS(target.address);
 
-	// TODO CALLBACKS
 	got = hcd_send_batch_sync(hcd, default_target, USB_DIRECTION_OUT,
 	    NULL, 0, *(uint64_t *)&set_address, "set address");
 
@@ -344,7 +362,6 @@ int hcd_ddf_new_device(ddf_dev_t *device)
 	static const usb_device_request_setup_packet_t get_device_desc =
 	    GET_DEVICE_DESC(sizeof(desc));
 
-	// TODO CALLBACKS
 	got = hcd_send_batch_sync(hcd, target, USB_DIRECTION_IN,
 	    &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
@@ -353,7 +370,7 @@ int hcd_ddf_new_device(ddf_dev_t *device)
 		hcd_release_address(hcd, target.address);
 		return got < 0 ? got : EOVERFLOW;
 	}
-	
+
 	/* Create match ids from the device descriptor */
 	match_id_list_t mids;
 	init_match_ids(&mids);
@@ -364,10 +381,8 @@ int hcd_ddf_new_device(ddf_dev_t *device)
 		hcd_release_address(hcd, target.address);
 		return ret;
 	}
-	
-		
 
-	/* Register device */	
+	/* Register device */
 	ret = hcd_ddf_add_usb_device(device, address, speed, NULL, &mids);
 	clean_match_ids(&mids);
 	if (ret != EOK) {
@@ -375,6 +390,8 @@ int hcd_ddf_new_device(ddf_dev_t *device)
 		hcd_release_address(hcd, target.address);
 		return ret;
 	}
+	if (ret == EOK && id)
+		*id = target.address;
 
 	return ret;
 }
@@ -392,7 +409,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device, usb_speed_t speed)
 	assert(hcd);
 
 	hcd_reserve_default_address(hcd, speed);
-	const int ret = hcd_ddf_new_device(device);
+	const int ret = hcd_ddf_new_device(device, NULL);
 	hcd_release_default_address(hcd);
 	return ret;
 }
@@ -415,6 +432,7 @@ int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
 		return ENOMEM;
 	}
 	list_initialize(&instance->devices);
+	fibril_mutex_initialize(&instance->guard);
 
 #define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
 if (ret != EOK) { \
