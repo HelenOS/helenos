@@ -123,9 +123,10 @@ static void uhci_port_reset_enable(ioport16_t *port)
 	/* PIO delay, should not be longer than 3ms as the device might
 	 * enter suspend state. */
 	udelay(10);
-	/* Enable the port. */
+	/* Drop ConnectionChange as some UHCI hw
+	 * sets this bit after reset, that is incorrect */
 	port_status &= ~STATUS_WC_BITS;
-	pio_write_16(port, port_status | STATUS_ENABLED);
+	pio_write_16(port, port_status | STATUS_ENABLED | STATUS_CONNECTED_CHANGED);
 }
 #define TEST_SIZE_INIT(size, port, hub) \
 do { \
