@@ -81,10 +81,13 @@ int virthub_base_init(virthub_base_t *instance,
 
 	instance->device.ops = ops;
 	instance->device.descriptors = &instance->descriptors;
-	instance->device.name = str_dup(name);
 	instance->device.device_data = instance;
 	instance->device.address = 0;
 	instance->data = data;
+	instance->device.name = str_dup(name);
+
+	if (!instance->device.name)
+		return ENOMEM;
 
 	return EOK;
 }
