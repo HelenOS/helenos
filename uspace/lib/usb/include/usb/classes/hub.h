@@ -74,7 +74,7 @@ typedef struct {
 	uint8_t characteristics;
 #define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
 #define HUB_CHAR_NO_POWER_SWITCH_FLAG   (1 << 1)
-#define HUB_CHAR_COMPUND_DEVICE         (1 << 2)
+#define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
 #define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
 #define HUB_CHAR_NO_OC_FLAG             (1 << 4)
 	/* Unused part of characteristics field */
