@@ -128,7 +128,7 @@ static int fpu_have_coprocessor_access()
 	if (((cpacr & CPACR_CP10_MASK) == CPACR_CP10_USER_ACCESS) &&
 	   ((cpacr & CPACR_CP11_MASK) == CPACR_CP11_USER_ACCESS))
 		return 1;
-
+	printf("No sccess to CP10 and CP11: %" PRIx32 "\n", cpacr);
 	return 0;
 }
 
