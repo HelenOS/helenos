@@ -59,6 +59,14 @@ enum {
 	FPEXC_ENABLED_FLAG = (1 << 30),
 };
 
+/* See Architecture reference manual ch. B4.1.40 */
+enum {
+	CPACR_CP10_MASK = 0x3 << 20,
+	CPACR_CP11_MASK = 0x3 << 22,
+	CPACR_CP10_USER_ACCESS = CPACR_CP10_MASK,
+	CPACR_CP11_USER_ACCESS = CPACR_CP11_MASK,
+};
+
 /** ARM Architecture Reference Manual ch. B4.1.58, p. B$-1551 */
 enum {
 	FPSCR_N_FLAG = (1 << 31),
@@ -227,8 +235,40 @@ static void fpu_context_restore_d32(fpu_context_t *ctx)
 	);
 }
 
+static int fpu_have_coprocessor_access()
+{
+	uint32_t cpacr;
+	asm volatile ("MRC p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	/* FPU needs access to coprocessor 10 and 11.
+	 * Moreover they need to have same access enabledd */
+	if (((cpacr & CPACR_CP10_MASK) == CPACR_CP10_USER_ACCESS) &&
+	   ((cpacr & CPACR_CP11_MASK) == CPACR_CP11_USER_ACCESS))
+		return 1;
+
+	return 0;
+}
+
+static void fpu_enable_coprocessor_access()
+{
+	uint32_t cpacr;
+	asm volatile ("mrc p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	/* FPU needs access to coprocessor 10 and 11.
+	 * Moreover, they need to have same access enabled */
+	cpacr |= CPACR_CP10_USER_ACCESS;
+	cpacr |= CPACR_CP11_USER_ACCESS;
+	asm volatile ("mcr p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+}
+
+
 void fpu_init(void)
 {
+	/* Enable coprocessor access*/
+	fpu_enable_coprocessor_access();
+
+	/* Check if we succeeded */
+	if (!fpu_have_coprocessor_access())
+		return;
+
 	/* Clear all fpu flags */
 	fpexc_write(0);
 	fpu_enable();
@@ -240,6 +280,10 @@ void fpu_init(void)
 
 void fpu_setup(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
+
 	uint32_t fpsid = 0;
 	asm volatile (
 		"vmrs %0, fpsid\n"
@@ -287,6 +331,10 @@ void fpu_setup(void)
 
 bool handle_if_fpu_exception(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return false;
+
 	const uint32_t fpexc = fpexc_read();
 	if (fpexc & FPEXC_ENABLED_FLAG) {
 		const uint32_t fpscr = fpscr_read();
@@ -304,18 +352,27 @@ bool handle_if_fpu_exception(void)
 
 void fpu_enable(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
 	/* Enable FPU instructions */
 	fpexc_write(fpexc_read() | FPEXC_ENABLED_FLAG);
 }
 
 void fpu_disable(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
 	/* Disable FPU instructions */
 	fpexc_write(fpexc_read() & ~FPEXC_ENABLED_FLAG);
 }
 
 void fpu_context_save(fpu_context_t *ctx)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
 	const uint32_t fpexc = fpexc_read();
 
 	if (fpexc & FPEXC_EX_FLAG) {
@@ -328,6 +385,9 @@ void fpu_context_save(fpu_context_t *ctx)
 
 void fpu_context_restore(fpu_context_t *ctx)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
 	if (restore_context)
 		restore_context(ctx);
 }
