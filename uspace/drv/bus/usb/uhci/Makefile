@@ -30,12 +30,15 @@ USPACE_PREFIX = ../../../..
 
 LIBS = \
 	$(LIBUSBHOST_PREFIX)/libusbhost.a \
+	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
 	-I$(LIBUSBHOST_PREFIX)/include \
+	-I$(LIBUSBVIRT_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
 BINARY = uhci
@@ -48,6 +51,7 @@ SOURCES = \
 	transfer_list.c \
 	uhci.c \
 	uhci_batch.c \
+	uhci_rh.c \
 	hw_struct/transfer_descriptor.c
 
 include $(USPACE_PREFIX)/Makefile.common

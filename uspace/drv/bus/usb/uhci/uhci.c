@@ -160,6 +160,7 @@ if (ret != EOK) { \
 
 	ret = rh_init(device, (uintptr_t)hc->registers + 0x10, 4,
 	    ddf_fun_get_handle(hc_fun));
+//	ret = hcd_ddf_setup_root_hub(device, USB_SPEED_FULL);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed to setup UHCI root hub: %s.\n", str_error(ret));
 

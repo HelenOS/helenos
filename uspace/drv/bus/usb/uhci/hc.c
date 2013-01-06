@@ -129,8 +129,8 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 
 	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
 	uhci_regs_t *registers = (uhci_regs_t *) regs;
-	cmds[0].addr = &registers->usbsts;
-	cmds[3].addr = &registers->usbsts;
+	cmds[0].addr = (void*)&registers->usbsts;
+	cmds[3].addr = (void*)&registers->usbsts;
 
 	return EOK;
 }
@@ -241,6 +241,8 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 	(void)hc_debug_checker;
+
+	uhci_rh_init(&instance->rh, &instance->registers->ports[0]);
 
 	return EOK;
 }
@@ -405,6 +407,10 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	hc_t *instance = hcd->private_data;
 	assert(instance);
 	assert(batch);
+
+//	if (batch->ep->address == uhci_rh_get_address(&instance->rh))
+//		return uhci_rh_schedule(&instance->rh, batch);
+
 	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
 	if (!uhci_batch) {
 		usb_log_error("Failed to create UHCI transfer structures.\n");
