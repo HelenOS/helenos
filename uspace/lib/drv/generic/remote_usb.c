@@ -34,15 +34,36 @@
  */
 
 #include <async.h>
+#include <macros.h>
 #include <errno.h>
+#include <devman.h>
 
 #include "usb_iface.h"
 #include "ddf/driver.h"
+
+usb_dev_session_t *usb_dev_connect(ddf_dev_t *parent)
+{
+	// TODO All usb requests are atomic so this is safe,
+	// it will need to change once USING EXCHNAGE PARALLEL is safe with
+	// devman_parent_device_connect
+	return devman_parent_device_connect(EXCHANGE_ATOMIC,
+	    ddf_dev_get_handle(parent), IPC_FLAG_BLOCKING);
+}
+
+void usb_dev_session_close(usb_dev_session_t *sess)
+{
+	if (sess)
+		async_hangup(sess);
+}
 
 typedef enum {
 	IPC_M_USB_GET_MY_ADDRESS,
 	IPC_M_USB_GET_MY_INTERFACE,
 	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE,
+	IPC_M_USB_RESERVE_DEFAULT_ADDRESS,
+	IPC_M_USB_RELEASE_DEFAULT_ADDRESS,
+	IPC_M_USB_DEVICE_ENUMERATE,
+	IPC_M_USB_DEVICE_REMOVE,
 } usb_iface_funcs_t;
 
 /** Tell USB address assigned to device.
@@ -100,24 +121,86 @@ int usb_get_hc_handle(async_exch_t *exch, devman_handle_t *hc_handle)
 	return ret;
 }
 
+/** Reserve default USB address.
+ * @param[in] exch IPC communication exchange
+ * @param[in] speed Communication speed of the newly attached device
+ * @return Error code.
+ */
+int usb_reserve_default_address(async_exch_t *exch, usb_speed_t speed)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_2_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_RESERVE_DEFAULT_ADDRESS, speed);
+}
+
+/** Release default USB address.
+ * @param[in] exch IPC communication exchange
+ * @return Error code.
+ */
+int usb_release_default_address(async_exch_t *exch)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_1_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_RELEASE_DEFAULT_ADDRESS);
+}
+
+/** Trigger USB device enumeration
+ * @param[in] exch IPC communication exchange
+ * @param[out] handle Identifier of the newly added device (if successful)
+ * @return Error code.
+ */
+int usb_device_enumerate(async_exch_t *exch, usb_device_handle_t *handle)
+{
+	if (!exch || !handle)
+		return EBADMEM;
+	sysarg_t h;
+	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_DEVICE_ENUMERATE, &h);
+	if (ret == EOK)
+		*handle = (usb_device_handle_t)h;
+	return ret;
+}
+
+/** Trigger USB device enumeration
+ * @param[in] exch IPC communication exchange
+ * @param[in] handle Identifier of the device
+ * @return Error code.
+ */
+int usb_device_remove(async_exch_t *exch, usb_device_handle_t handle)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_2_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_DEVICE_REMOVE, handle);
+}
 
 static void remote_usb_get_my_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_my_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+
+static void remote_usb_reserve_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_release_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_device_enumerate(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_device_remove(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 	[IPC_M_USB_GET_MY_ADDRESS] = remote_usb_get_my_address,
 	[IPC_M_USB_GET_MY_INTERFACE] = remote_usb_get_my_interface,
 	[IPC_M_USB_GET_HOST_CONTROLLER_HANDLE] = remote_usb_get_hc_handle,
+	[IPC_M_USB_RESERVE_DEFAULT_ADDRESS] = remote_usb_reserve_default_address,
+	[IPC_M_USB_RELEASE_DEFAULT_ADDRESS] = remote_usb_release_default_address,
+	[IPC_M_USB_DEVICE_ENUMERATE] = remote_usb_device_enumerate,
+	[IPC_M_USB_DEVICE_REMOVE] = remote_usb_device_remove,
 };
 
 /** Remote USB interface structure.
  */
 remote_iface_t remote_usb_iface = {
-	.method_count = sizeof(remote_usb_iface_ops) /
-	    sizeof(remote_usb_iface_ops[0]),
-	.methods = remote_usb_iface_ops
+	.method_count = ARRAY_SIZE(remote_usb_iface_ops),
+	.methods = remote_usb_iface_ops,
 };
 
 
@@ -176,6 +259,69 @@ void remote_usb_get_hc_handle(ddf_fun_t *fun, void *iface,
 	}
 
 	async_answer_1(callid, EOK, (sysarg_t) handle);
+}
+
+void remote_usb_reserve_default_address(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->reserve_default_address == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
+	const int ret = usb_iface->reserve_default_address(fun, speed);
+	async_answer_0(callid, ret);
+}
+
+void remote_usb_release_default_address(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->release_default_address == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	const int ret = usb_iface->release_default_address(fun);
+	async_answer_0(callid, ret);
+}
+
+static void remote_usb_device_enumerate(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->device_enumerate == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_device_handle_t handle = 0;
+	const int ret = usb_iface->device_enumerate(fun, &handle);
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	}
+
+	async_answer_1(callid, EOK, (sysarg_t) handle);
+}
+
+static void remote_usb_device_remove(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->device_remove == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_device_handle_t handle = DEV_IPC_GET_ARG1(*call);
+	const int ret = usb_iface->device_remove(fun, handle);
+	async_answer_0(callid, ret);
 }
 /**
  * @}
