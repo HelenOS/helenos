@@ -58,6 +58,8 @@ typedef struct {
 	/** Whether to announce the port reset as successful. */
 	bool reset_okay;
 
+	usb_device_handle_t attached_handle;
+
 	/** Information about attached device. */
 	usb_hub_attached_device_t attached_device;
 } usb_hub_port_t;
@@ -74,6 +76,7 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
 	port->attached_device.fun = NULL;
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
+	port->attached_handle = USB_DEVICE_HANDLE_INVALID;
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }

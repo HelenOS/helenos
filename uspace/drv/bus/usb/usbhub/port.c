@@ -57,7 +57,7 @@ static int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub);
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
-static int enable_port_callback(void *arg);
+//static int enable_port_callback(void *arg);
 static int add_device_phase1_worker_fibril(void *arg);
 static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_speed_t speed);
@@ -258,6 +258,16 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
+	async_exch_t *exch = async_exchange_begin(hub->usb_device->bus_session);
+	if (!exch)
+		return ENOMEM;
+	const int rc = usb_device_remove(exch, port->attached_handle);
+	async_exchange_end(exch);
+	if (rc == EOK)
+		port->attached_handle = -1;
+	return rc;
+
+#if 0
 	if (port->attached_device.address < 0) {
 		usb_log_warning(
 		    "Device on port %zu removed before being registered.\n",
@@ -297,6 +307,7 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	fibril_mutex_unlock(&port->mutex);
 	usb_log_info("Removed device on port %zu.\n", port->port_number);
 	return EOK;
+#endif
 }
 
 /**
@@ -375,6 +386,30 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
 	return EOK;
 }
 
+static int port_enable(usb_hub_port_t *port, bool enable)
+{
+	if (enable) {
+		const int rc =
+		    usb_hub_port_set_feature(port, USB_HUB_FEATURE_PORT_RESET);
+		if (rc != EOK) {
+			usb_log_error("Port reset failed: %s.\n",
+			    str_error(rc));
+		} else {
+			/* Wait until reset completes. */
+			fibril_mutex_lock(&port->mutex);
+			while (!port->reset_completed) {
+				fibril_condvar_wait(&port->reset_cv,
+				    &port->mutex);
+			}
+			fibril_mutex_unlock(&port->mutex);
+		}
+		return port->reset_okay ? EOK : ESTALL;
+	} else {
+		return usb_hub_port_clear_feature(port,
+				USB_HUB_FEATURE_PORT_ENABLE);
+	}
+}
+
 /** Callback for enabling a specific port.
  *
  * We wait on a CV until port is reseted.
@@ -384,6 +419,7 @@ static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
  * @param arg Custom argument, points to @c usb_hub_dev_t.
  * @return Error code.
  */
+#if 0
 static int enable_port_callback(void *arg)
 {
 	usb_hub_port_t *port = arg;
@@ -406,6 +442,7 @@ static int enable_port_callback(void *arg)
 
 	return port->reset_okay ? EOK : ESTALL;
 }
+#endif
 
 /** Fibril for adding a new device.
  *
@@ -417,6 +454,62 @@ static int enable_port_callback(void *arg)
  */
 int add_device_phase1_worker_fibril(void *arg)
 {
+	struct add_device_phase1 *params = arg;
+	assert(params);
+
+	usb_hub_dev_t *hub = params->hub;
+	usb_hub_port_t *port = params->port;
+	const usb_speed_t speed = params->speed;
+	free(arg);
+
+	usb_log_fatal("Creating Exchange on session %p\n",
+	    hub->usb_device->bus_session);
+	async_exch_t *exch = async_exchange_begin(hub->usb_device->bus_session);
+	if (!exch) {
+		usb_log_error("Failed to begin bus exchange\n");
+		return ENOMEM;
+	}
+
+	usb_log_fatal("reserving default address\n");
+
+	/* Reserve default address */
+	int ret;
+	while ((ret = usb_reserve_default_address(exch, speed)) == ENOENT) {
+		usb_log_fatal("reserving default address %d\n", ret);
+		async_usleep(1000000);
+	}
+	if (ret != EOK) {
+		usb_log_error("Failed to reserve default address: %s\n",
+		    str_error(ret));
+		async_exchange_end(exch);
+		return ret;
+	}
+
+	/* Reset port */
+	port_enable(port, true);
+	if (!port->reset_completed || !port->reset_okay) {
+		usb_log_error("Failed to reset port %zu\n", port->port_number);
+		if (usb_release_default_address(exch) != EOK)
+			usb_log_warning("Failed to release default address\n");
+		async_exchange_end(exch);
+		return EIO;
+	}
+
+	ret = usb_device_enumerate(exch, &port->attached_handle);
+	if (ret != EOK) {
+		usb_log_error("Failed to reset port %zu\n", port->port_number);
+		if (port_enable(port, false) != EOK) {
+			usb_log_warning("Failed to disable port %zu, NOT "
+			    "releasing default address.\n", port->port_number);
+		} else {
+			if (usb_release_default_address(exch) != EOK)
+				usb_log_warning(
+				    "Failed to release default address\n");
+		}
+	}
+	async_exchange_end(exch);
+	return ret;
+#if 0
 	struct add_device_phase1 *data = arg;
 	assert(data);
 
@@ -453,6 +546,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	free(arg);
 
 	return rc;
+#endif
 }
 
 /** Start device adding when connection change is detected.
