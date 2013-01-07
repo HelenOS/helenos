@@ -410,6 +410,12 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
+	usb_dev->bus_session = usb_dev_connect(ddf_dev);
+	if (!usb_dev->bus_session) {
+		*errstr_ptr = "device bus session create";
+		return ENOMEM;
+	}
+
 	/* Get assigned params */
 	devman_handle_t hc_handle;
 	usb_address_t address;
@@ -496,6 +502,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 void usb_device_deinit(usb_device_t *dev)
 {
 	if (dev) {
+		usb_dev_session_close(dev->bus_session);
 		/* Destroy existing pipes. */
 		destroy_current_pipes(dev);
 		/* Ignore errors and hope for the best. */

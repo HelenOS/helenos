@@ -39,6 +39,7 @@
 #include <usb/hc.h>
 #include <usb/dev/usb_device_connection.h>
 #include <usb/dev/pipes.h>
+#include <usb_iface.h>
 
 /** Descriptors for USB device. */
 typedef struct {
@@ -108,6 +109,7 @@ typedef struct {
 	 * by the framework.
 	 */
 	void *driver_data;
+	usb_dev_session_t *bus_session;
 } usb_device_t;
 
 /** USB driver ops. */
