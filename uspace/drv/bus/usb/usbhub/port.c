@@ -65,7 +65,7 @@ static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
 int usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
-	if (port->attached_device.fun)
+	if (port->attached_handle != USB_DEVICE_HANDLE_INVALID)
 		return usb_hub_port_device_gone(port, hub);
 	return EOK;
 }
@@ -470,12 +470,9 @@ int add_device_phase1_worker_fibril(void *arg)
 		return ENOMEM;
 	}
 
-	usb_log_fatal("reserving default address\n");
-
 	/* Reserve default address */
 	int ret;
 	while ((ret = usb_reserve_default_address(exch, speed)) == ENOENT) {
-		usb_log_fatal("reserving default address %d\n", ret);
 		async_usleep(1000000);
 	}
 	if (ret != EOK) {
@@ -506,8 +503,18 @@ int add_device_phase1_worker_fibril(void *arg)
 				usb_log_warning(
 				    "Failed to release default address\n");
 		}
+	} else {
+		if (usb_release_default_address(exch) != EOK)
+			usb_log_warning("Failed to release default address\n");
 	}
 	async_exchange_end(exch);
+
+	fibril_mutex_lock(&hub->pending_ops_mutex);
+	assert(hub->pending_ops_count > 0);
+	--hub->pending_ops_count;
+	fibril_condvar_signal(&hub->pending_ops_cv);
+	fibril_mutex_unlock(&hub->pending_ops_mutex);
+
 	return ret;
 #if 0
 	struct add_device_phase1 *data = arg;

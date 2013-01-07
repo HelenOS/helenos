@@ -60,8 +60,6 @@ typedef struct {
 
 	usb_device_handle_t attached_handle;
 
-	/** Information about attached device. */
-	usb_hub_attached_device_t attached_device;
 } usb_hub_port_t;
 
 /** Initialize hub port information.
@@ -72,8 +70,6 @@ static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
     usb_pipe_t *control_pipe)
 {
 	assert(port);
-	port->attached_device.address = -1;
-	port->attached_device.fun = NULL;
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
 	port->attached_handle = USB_DEVICE_HANDLE_INVALID;

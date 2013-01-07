@@ -199,12 +199,9 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	assert(!hub->running);
 
 	for (size_t port = 0; port < hub->port_count; ++port) {
-		if (hub->ports[port].attached_device.fun) {
-			const int ret =
-			    usb_hub_port_fini(&hub->ports[port], hub);
-			if (ret != EOK)
-				return ret;
-		}
+		const int ret = usb_hub_port_fini(&hub->ports[port], hub);
+		if (ret != EOK)
+			return ret;
 	}
 	free(hub->ports);
 
