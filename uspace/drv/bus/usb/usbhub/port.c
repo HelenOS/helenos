@@ -457,6 +457,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	struct add_device_phase1 *params = arg;
 	assert(params);
 
+	int ret = EOK;
 	usb_hub_dev_t *hub = params->hub;
 	usb_hub_port_t *port = params->port;
 	const usb_speed_t speed = params->speed;
@@ -467,19 +468,18 @@ int add_device_phase1_worker_fibril(void *arg)
 	async_exch_t *exch = async_exchange_begin(hub->usb_device->bus_session);
 	if (!exch) {
 		usb_log_error("Failed to begin bus exchange\n");
-		return ENOMEM;
+		ret = ENOMEM;
+		goto out;
 	}
 
 	/* Reserve default address */
-	int ret;
 	while ((ret = usb_reserve_default_address(exch, speed)) == ENOENT) {
 		async_usleep(1000000);
 	}
 	if (ret != EOK) {
 		usb_log_error("Failed to reserve default address: %s\n",
 		    str_error(ret));
-		async_exchange_end(exch);
-		return ret;
+		goto out;
 	}
 
 	/* Reset port */
@@ -488,8 +488,8 @@ int add_device_phase1_worker_fibril(void *arg)
 		usb_log_error("Failed to reset port %zu\n", port->port_number);
 		if (usb_release_default_address(exch) != EOK)
 			usb_log_warning("Failed to release default address\n");
-		async_exchange_end(exch);
-		return EIO;
+		ret = EIO;
+		goto out;
 	}
 
 	ret = usb_device_enumerate(exch, &port->attached_handle);
@@ -507,6 +507,7 @@ int add_device_phase1_worker_fibril(void *arg)
 		if (usb_release_default_address(exch) != EOK)
 			usb_log_warning("Failed to release default address\n");
 	}
+out:
 	async_exchange_end(exch);
 
 	fibril_mutex_lock(&hub->pending_ops_mutex);
