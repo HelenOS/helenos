@@ -76,6 +76,58 @@ typedef struct usb_dev {
 	devman_handle_t hc_handle;
 } usb_dev_t;
 
+static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
+{
+	assert(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	usb_dev_t *dev = ddf_fun_data_get(fun);
+	assert(hcd);
+	assert(dev);
+
+	usb_log_debug("Device %d requested default address at %s speed\n",
+	    dev->address, usb_str_speed(speed));
+	return hcd_reserve_default_address(hcd, speed);
+}
+
+static int release_default_address(ddf_fun_t *fun)
+{
+	assert(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	usb_dev_t *dev = ddf_fun_data_get(fun);
+	assert(hcd);
+	assert(dev);
+
+	usb_log_debug("Device %d released default address\n", dev->address);
+	return hcd_release_default_address(hcd);
+}
+
+static int device_enumerate(ddf_fun_t *fun, usb_device_handle_t *handle)
+{
+	assert(fun);
+	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
+	usb_dev_t *dev = ddf_fun_data_get(fun);
+	assert(ddf_dev);
+	assert(dev);
+	usb_address_t address;
+	usb_log_debug("Device %d reported a new USB device\n", dev->address);
+	const int ret = hcd_ddf_new_device(ddf_dev, &address);
+	if (ret == EOK && handle)
+		*handle = address;
+	return ret;
+}
+
+static int device_remove(ddf_fun_t *fun, usb_device_handle_t handle)
+{
+	assert(fun);
+	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
+	usb_dev_t *dev = ddf_fun_data_get(fun);
+	assert(ddf_dev);
+	assert(dev);
+	usb_log_debug("Device %d reported removal of device %d\n",
+	    dev->address, (int)handle);
+	return hcd_ddf_remove_device(ddf_dev, (usb_address_t)handle);
+}
+
 /** Get USB address assigned to root hub.
  *
  * @param[in] fun Root hub function.
@@ -113,6 +165,11 @@ static int get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 static usb_iface_t usb_iface = {
 	.get_hc_handle = get_hc_handle,
 	.get_my_address = get_my_address,
+
+	.reserve_default_address = reserve_default_address,
+	.release_default_address = release_default_address,
+	.device_enumerate = device_enumerate,
+	.device_remove = device_remove,
 };
 /** Standard USB RH options (RH interface) */
 static ddf_dev_ops_t usb_ops = {
