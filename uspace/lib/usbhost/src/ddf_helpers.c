@@ -330,6 +330,7 @@ int hcd_ddf_remove_device(ddf_dev_t *device, usb_address_t id)
 		const int ret = ddf_fun_unbind(victim->fun);
 		if (ret == EOK) {
 			ddf_fun_destroy(victim->fun);
+			hcd_release_address(hcd, id);
 		} else {
 			usb_log_warning("Failed to unbind device %d: %s\n",
 			    id, str_error(ret));
