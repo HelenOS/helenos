@@ -36,6 +36,7 @@
 #include <fpu_context.h>
 #include <arch.h>
 #include <arch/types.h>
+#include <arch/security_ext.h>
 #include <cpu.h>
 
 #define FPSID_IMPLEMENTER(r)   ((r) >> 24)
