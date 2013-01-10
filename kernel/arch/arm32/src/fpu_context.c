@@ -55,10 +55,15 @@ enum {
 	FPU_VFPv3_COMMONv3 = 0x4,
 };
 
+extern uint32_t fpsid_read(void);
+extern uint32_t mvfr0_read(void);
+
 enum {
 	FPEXC_EX_FLAG = (1 << 31),
 	FPEXC_ENABLED_FLAG = (1 << 30),
 };
+extern uint32_t fpexc_read(void);
+extern void fpexc_write(uint32_t);
 
 /** ARM Architecture Reference Manual ch. B4.1.58, p. B$-1551 */
 enum {
@@ -94,13 +99,8 @@ enum {
 
 	FPSCR_EN_ALL = FPSCR_DENORMAL_EN_FLAG | FPSCR_INEXACT_EN_FLAG | FPSCR_UNDERFLOW_EN_FLAG | FPSCR_OVERFLOW_EN_FLAG | FPSCR_ZERO_DIV_EN_FLAG | FPSCR_INVALID_OP_EN_FLAG,
 };
-
-extern uint32_t fpsid_read(void);
-extern uint32_t mvfr0_read(void);
 extern uint32_t fpscr_read(void);
 extern void fpscr_write(uint32_t);
-extern uint32_t fpexc_read(void);
-extern void fpexc_write(uint32_t);
 
 extern void fpu_context_save_s32(fpu_context_t *);
 extern void fpu_context_restore_s32(fpu_context_t *);
