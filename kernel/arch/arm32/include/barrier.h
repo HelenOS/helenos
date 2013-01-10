@@ -38,6 +38,12 @@
 
 /*
  * TODO: implement true ARM memory barriers for macros below.
+ * ARMv6 introduced user access of the following commands:
+ * • Prefetch flush
+ * • Data synchronization barrier
+ * • Data memory barrier
+ * • Clean and prefetch range operations.
+ * ARM Architecture Reference Manual version I ch. B.3.2.1 p. B3-4
  */
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")

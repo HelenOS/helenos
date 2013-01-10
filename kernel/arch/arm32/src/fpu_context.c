@@ -124,6 +124,12 @@ static void (*restore_context)(fpu_context_t *ctx);
 
 static int fpu_have_coprocessor_access()
 {
+/* The register containing the information (CPACR) is not available on armv6-
+ * rely on user decision to use CONFIG_FPU.
+ */
+#ifndef PROCESSOR_armv7_a
+	return 1;
+#endif
 	uint32_t cpacr;
 	asm volatile ("MRC p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
 	/* FPU needs access to coprocessor 10 and 11.
@@ -148,6 +154,12 @@ static int fpu_have_coprocessor_access()
  */
 static void fpu_enable_coprocessor_access()
 {
+/* The register containing the information (CPACR) is not available on armv6-
+ * rely on user decision to use CONFIG_FPU.
+ */
+#ifndef PROCESSOR_armv7_a
+	return;
+#endif
 	uint32_t cpr;
 	asm volatile("MRC p15, 0, %0, c1, c1, 0" : "=r" (cpr)::);
 	if (cpr & 1)
@@ -168,11 +180,13 @@ static void fpu_enable_coprocessor_access()
 	/* Allow coprocessor access */
 	uint32_t cpacr;
 	asm volatile ("mrc p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	printf("CPACR before: %x\n", cpacr);
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover, they need to have same access enabled */
 	cpacr |= CPACR_CP10_USER_ACCESS;
 	cpacr |= CPACR_CP11_USER_ACCESS;
 	asm volatile ("mcr p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	printf("CPACR after: %x\n", cpacr);
 
 #ifdef MACHINE_beagleboardxm
 	asm volatile ("isb" ::: "memory" );
