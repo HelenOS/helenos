@@ -48,10 +48,22 @@
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
+#if defined PROCESSOR_ARCH_armv7_a
+/* ARMv7 uses instructions for memory barriers see ARM Architecture reference
+ * manual for details:
+ * DMB: ch. A8.8.43 page A8-376
+ * DSB: ch. A8.8.44 page A8-378
+ * See ch. A3.8.3 page A3-148 for details about memory barrier implementation
+ * and functionality on armv7 architecture.
+ */
+#define memory_barrier()  asm volatile ("dmb" ::: "memory")
+#define read_barrier()    asm volatile ("dsb" ::: "memory")
+#define write_barrier()   asm volatile ("dsb st" ::: "memory")
+#else
 #define memory_barrier()  asm volatile ("" ::: "memory")
 #define read_barrier()    asm volatile ("" ::: "memory")
 #define write_barrier()   asm volatile ("" ::: "memory")
-
+#endif
 /*
  * There are multiple ways ICache can be implemented on ARM machines. Namely
  * PIPT, VIPT, and ASID and VMID tagged VIVT (see ARM Architecture Reference
@@ -67,10 +79,16 @@
  * maintenance to other places than just smc.
  */
 
-/* Available on both all supported arms,
+#ifdef PROCESSOR_ARCH_armv7_a
+#define smc_coherence(a) asm volatile ( "isb" ::: "memory")
+#define smc_coherence_block(a, l) smc_coherence(a)
+#else
+/* Available on all supported arms,
  * invalidates entire ICache so the written value does not matter. */
+//TODO might be PL1 only on armv5 -
 #define smc_coherence(a) asm volatile ( "mcr p15, 0, r0, c7, c5, 0")
 #define smc_coherence_block(a, l) smc_coherence(a)
+#endif
 
 
 #endif
