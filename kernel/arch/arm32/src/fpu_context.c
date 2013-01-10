@@ -60,16 +60,6 @@ enum {
 	FPEXC_ENABLED_FLAG = (1 << 30),
 };
 
-/* See Architecture reference manual ch. B4.1.40 */
-enum {
-	CPACR_CP10_MASK = 0x3 << 20,
-	CPACR_CP11_MASK = 0x3 << 22,
-	CPACR_CP10_USER_ACCESS = CPACR_CP10_MASK,
-	CPACR_CP11_USER_ACCESS = CPACR_CP11_MASK,
-	NSACR_CP10_FLAG = 1 << 10,
-	NSACR_CP11_FLAG = 1 << 11,
-};
-
 /** ARM Architecture Reference Manual ch. B4.1.58, p. B$-1551 */
 enum {
 	FPSCR_N_FLAG = (1 << 31),
@@ -130,12 +120,11 @@ static int fpu_have_coprocessor_access()
 #ifndef PROCESSOR_armv7_a
 	return 1;
 #endif
-	uint32_t cpacr;
-	asm volatile ("MRC p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	const uint32_t cpacr = CPACR_read();
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover they need to have same access enabledd */
-	if (((cpacr & CPACR_CP10_MASK) == CPACR_CP10_USER_ACCESS) &&
-	   ((cpacr & CPACR_CP11_MASK) == CPACR_CP11_USER_ACCESS))
+	if (((cpacr & CPACR_CP_MASK(10)) == CPACR_CP_FULL_ACCESS(10)) &&
+	   ((cpacr & CPACR_CP_MASK(11)) == CPACR_CP_FULL_ACCESS(11)))
 		return 1;
 	printf("No sccess to CP10 and CP11: %" PRIx32 "\n", cpacr);
 	return 0;
@@ -160,6 +149,7 @@ static void fpu_enable_coprocessor_access()
 #ifndef PROCESSOR_armv7_a
 	return;
 #endif
+#if 0
 	uint32_t cpr;
 	asm volatile("MRC p15, 0, %0, c1, c1, 0" : "=r" (cpr)::);
 	if (cpr & 1)
@@ -176,21 +166,18 @@ static void fpu_enable_coprocessor_access()
 #ifdef MACHINE_beagleboardxm
 	asm volatile ("isb" ::: "memory" );
 #endif
-
+#endif
 	/* Allow coprocessor access */
-	uint32_t cpacr;
-	asm volatile ("mrc p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	uint32_t cpacr = CPACR_read();
 	printf("CPACR before: %x\n", cpacr);
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover, they need to have same access enabled */
-	cpacr |= CPACR_CP10_USER_ACCESS;
-	cpacr |= CPACR_CP11_USER_ACCESS;
-	asm volatile ("mcr p15, 0, %0, c1, c0, 2" :"=r" (cpacr)::);
+	cpacr &= ~(CPACR_CP_MASK(10) | CPACR_CP_MASK(11));
+	cpacr |= CPACR_CP_FULL_ACCESS(10) | CPACR_CP_FULL_ACCESS(11);
+	CPACR_write(cpacr);
 	printf("CPACR after: %x\n", cpacr);
 
-#ifdef MACHINE_beagleboardxm
-	asm volatile ("isb" ::: "memory" );
-#endif
+	smc_coherence(0);
 }
 
 
