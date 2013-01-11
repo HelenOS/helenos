@@ -37,6 +37,7 @@
 #include <arch.h>
 #include <arch/types.h>
 #include <arch/security_ext.h>
+#include <arch/cp15.h>
 #include <cpu.h>
 
 #define FPSID_IMPLEMENTER(r)   ((r) >> 24)
@@ -112,22 +113,33 @@ extern void fpu_context_restore_d32(fpu_context_t *);
 static void (*save_context)(fpu_context_t *ctx);
 static void (*restore_context)(fpu_context_t *ctx);
 
+int sec_ext_handle_call(sec_ext_call_t call)
+{
+	printf("Handling secure call %x in %s context (%s mode-%x)\n",
+		call, sec_ext_is_secure() ? "secure" : "unsecure",
+		sec_ext_is_monitor_mode() ? "monitor" : "other",
+		current_status_reg_read());
+	if (sec_ext_is_monitor_mode() && call == SECURITY_CALL_ENABLE_CP10_11)
+		return 1;
+	return 0;
+}
+
 static int fpu_have_coprocessor_access()
 {
 /* The register containing the information (CPACR) is not available on armv6-
  * rely on user decision to use CONFIG_FPU.
  */
-#ifndef PROCESSOR_armv7_a
-	return 1;
-#endif
+#ifdef PROCESSOR_armv7_a
 	const uint32_t cpacr = CPACR_read();
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover they need to have same access enabledd */
-	if (((cpacr & CPACR_CP_MASK(10)) == CPACR_CP_FULL_ACCESS(10)) &&
-	   ((cpacr & CPACR_CP_MASK(11)) == CPACR_CP_FULL_ACCESS(11)))
-		return 1;
-	printf("No sccess to CP10 and CP11: %" PRIx32 "\n", cpacr);
-	return 0;
+	if (((cpacr & CPACR_CP_MASK(10)) != CPACR_CP_FULL_ACCESS(10)) &&
+	   ((cpacr & CPACR_CP_MASK(11)) != CPACR_CP_FULL_ACCESS(11))) {
+		printf("No access to CP10 and CP11: %" PRIx32 "\n", cpacr);
+		return 0;
+	}
+#endif
+	return 1;
 }
 
 /** Enable coprocessor access. Turn both non-secure mode bit and generic access.
@@ -149,24 +161,21 @@ static void fpu_enable_coprocessor_access()
 #ifndef PROCESSOR_armv7_a
 	return;
 #endif
-#if 0
-	uint32_t cpr;
-	asm volatile("MRC p15, 0, %0, c1, c1, 0" : "=r" (cpr)::);
-	if (cpr & 1)
-		printf("We are in unsecure state, we can't change access\n");
+	if (sec_ext_is_implemented()) {
+		printf("Enabling FPU in %s context (%x)\n",
+			sec_ext_is_secure() ? "secure" : "unsecure",
+			SCR_read());
+		if (!sec_ext_is_secure()) {
+			sec_ext_call(SECURITY_CALL_ENABLE_CP10_11);
+		} else {
+			uint32_t nsacr = NSACR_read();
+			nsacr |= NSACR_CP_FLAG(10) | NSACR_CP_FLAG(11);
+			NSACR_write(nsacr);
+			printf("NSACR: %x => %x\n", nsacr, NSACR_read());
+			smc_coherence(0);
+		}
+	}
 
-	/* Allow non-secure access */
-	uint32_t nsacr;
-	asm volatile ("mrc p15, 0, %0, c1, c1, 2" :"=r" (nsacr)::);
-	/* FPU needs access to coprocessor 10 and 11.
-	 * Moreover, they need to have same access enabled */
-	nsacr |= NSACR_CP10_FLAG | NSACR_CP11_FLAG;
-	asm volatile ("mcr p15, 0, %0, c1, c1, 2" :"=r" (nsacr)::);
-
-#ifdef MACHINE_beagleboardxm
-	asm volatile ("isb" ::: "memory" );
-#endif
-#endif
 	/* Allow coprocessor access */
 	uint32_t cpacr = CPACR_read();
 	printf("CPACR before: %x\n", cpacr);
@@ -183,10 +192,7 @@ static void fpu_enable_coprocessor_access()
 
 void fpu_init(void)
 {
-	/* Enable coprocessor access*/
-	fpu_enable_coprocessor_access();
-
-	/* Check if we succeeded */
+	/* Check if we have access */
 	if (!fpu_have_coprocessor_access())
 		return;
 
@@ -201,7 +207,10 @@ void fpu_init(void)
 
 void fpu_setup(void)
 {
-	/* Check if we have access */
+	/* Enable coprocessor access*/
+	fpu_enable_coprocessor_access();
+
+	/* Check if we succeeded */
 	if (!fpu_have_coprocessor_access())
 		return;
 

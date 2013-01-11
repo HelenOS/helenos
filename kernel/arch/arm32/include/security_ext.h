@@ -48,12 +48,27 @@ static inline bool sec_ext_is_implemented()
 	return false;
 }
 
+static inline bool sec_ext_is_monitor_mode()
+{
+	return (current_status_reg_read() & MODE_MASK) == MONITOR_MODE;
+}
+
 static inline bool sec_ext_is_secure()
 {
 	return sec_ext_is_implemented()
-	    && ((current_status_reg_read() & MODE_MASK) == MONITOR_MODE
-	        || !(SCR_read() & SCR_NS_FLAG));
+	    && (sec_ext_is_monitor_mode() || !(SCR_read() & SCR_NS_FLAG));
 }
+
+typedef enum {
+	SECURITY_CALL_ENABLE_CP10_11 = 0xaaaa
+} sec_ext_call_t;
+
+static inline void sec_ext_call(sec_ext_call_t call)
+{
+	asm volatile ("mov r0, %0\nsmc #0" ::"r"(call));
+}
+
+int sec_ext_handle_call(sec_ext_call_t call);
 
 #endif
 
