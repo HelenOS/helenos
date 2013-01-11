@@ -169,22 +169,19 @@ static void fpu_enable_coprocessor_access()
 			sec_ext_call(SECURITY_CALL_ENABLE_CP10_11);
 		} else {
 			uint32_t nsacr = NSACR_read();
-			nsacr |= NSACR_CP_FLAG(10) | NSACR_CP_FLAG(11);
+			nsacr |= (NSACR_CP_FLAG(10) | NSACR_CP_FLAG(11));
 			NSACR_write(nsacr);
-			printf("NSACR: %x => %x\n", nsacr, NSACR_read());
 			smc_coherence(0);
 		}
 	}
 
 	/* Allow coprocessor access */
 	uint32_t cpacr = CPACR_read();
-	printf("CPACR before: %x\n", cpacr);
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover, they need to have same access enabled */
 	cpacr &= ~(CPACR_CP_MASK(10) | CPACR_CP_MASK(11));
-	cpacr |= CPACR_CP_FULL_ACCESS(10) | CPACR_CP_FULL_ACCESS(11);
+	cpacr |= (CPACR_CP_FULL_ACCESS(10) | CPACR_CP_FULL_ACCESS(11));
 	CPACR_write(cpacr);
-	printf("CPACR after: %x\n", cpacr);
 
 	smc_coherence(0);
 }
