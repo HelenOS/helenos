@@ -292,12 +292,16 @@ void fpu_context_save(fpu_context_t *ctx)
 	/* Check if we have access */
 	if (!fpu_have_coprocessor_access())
 		return;
+
+	/* This is only necessary if we enable fpu exceptions. */
+#if 0
 	const uint32_t fpexc = fpexc_read();
 
 	if (fpexc & FPEXC_EX_FLAG) {
 		printf("EX FPU flag is on, things will fail\n");
 		//TODO implement common subarch context saving
 	}
+#endif
 	if (save_context)
 		save_context(ctx);
 }
