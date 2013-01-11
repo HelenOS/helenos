@@ -289,10 +289,6 @@ void fpu_disable(void)
 
 void fpu_context_save(fpu_context_t *ctx)
 {
-	/* Check if we have access */
-	if (!fpu_have_coprocessor_access())
-		return;
-
 	/* This is only necessary if we enable fpu exceptions. */
 #if 0
 	const uint32_t fpexc = fpexc_read();
@@ -308,9 +304,6 @@ void fpu_context_save(fpu_context_t *ctx)
 
 void fpu_context_restore(fpu_context_t *ctx)
 {
-	/* Check if we have access */
-	if (!fpu_have_coprocessor_access())
-		return;
 	if (restore_context)
 		restore_context(ctx);
 }
