@@ -50,7 +50,7 @@ static inline uint32_t name##_read() \
 #define CONTROL_REG_GEN_WRITE(name, crn, opc1, crm, opc2) \
 static inline void name##_write(uint32_t val) \
 { \
-	asm volatile ( "mrc p15, "#opc1", %0, "#crn", "#crm", "#opc2"\n" :: "r" (val) ); \
+	asm volatile ( "mcr p15, "#opc1", %0, "#crn", "#crm", "#opc2"\n" :: "r" (val) ); \
 }
 
 /* Identification registers */
