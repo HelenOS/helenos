@@ -46,9 +46,16 @@
 
 /** Describe "section" page table entry (one-level paging with 1 MB sized pages). */
 #define PTE_DESCRIPTOR_SECTION  0x02
+/** Shift of memory address in section descriptor */
+#define PTE_SECTION_SHIFT  20
 
 /** Page table access rights: user - no access, kernel - read/write. */
 #define PTE_AP_USER_NO_KERNEL_RW  0x01
+
+/** Start of memory mapped I/O area for GTA02 */
+#define GTA02_IOMEM_START  0x48000000
+/** End of memory mapped I/O area for GTA02 */
+#define GTA02_IOMEM_END  0x60000000
 
 /* Page table level 0 entry - "section" format is used
  * (one-level paging, 1 MB sized pages). Used only while booting the kernel.
