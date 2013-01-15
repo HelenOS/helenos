@@ -41,47 +41,6 @@
 #include <usb/host/hcd.h>
 #include "ddf_helpers.h"
 
-/** Request address interface function.
- *
- * @param[in] fun DDF function that was called.
- * @param[in] address Pointer to preferred USB address.
- * @param[out] address Place to write a new address.
- * @param[in] strict Fail if the preferred address is not available.
- * @param[in] speed Speed to associate with the new default address.
- * @return Error code.
- */
-static int request_address(
-    ddf_fun_t *fun, usb_address_t *address, bool strict, usb_speed_t speed)
-{
-	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	assert(hcd);
-	assert(address);
-	usb_log_debug("Address request: speed: %s, address: %d, strict: %s.\n",
-	    usb_str_speed(speed), *address, strict ? "YES" : "NO");
-	return usb_device_manager_request_address(
-	    &hcd->dev_manager, address, strict, speed);
-}
-
-/** Bind address interface function.
- *
- * @param[in] fun DDF function that was called.
- * @param[in] address Address of the device
- * @param[in] handle Devman handle of the device driver.
- * @return Error code.
- */
-static int bind_address(
-    ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
-{
-	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	assert(hcd);
-
-	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
-	return usb_device_manager_bind_address(
-	    &hcd->dev_manager, address, handle);
-}
-
 /** Find device handle by address interface function.
  *
  * @param[in] fun DDF function that was called.
@@ -97,20 +56,6 @@ static int find_by_address(ddf_fun_t *fun, usb_address_t address,
 	assert(hcd);
 	return usb_device_manager_get_info_by_address(
 	    &hcd->dev_manager, address, handle, NULL);
-}
-
-/** Release address interface function.
- *
- * @param[in] fun DDF function that was called.
- * @param[in] address USB address to be released.
- * @return Error code.
- */
-static int release_address(ddf_fun_t *fun, usb_address_t address)
-{
-	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	usb_log_debug("Address release %d.\n", address);
-	return hcd_release_address(hcd, address);
 }
 
 /** Register endpoint interface function.
@@ -133,7 +78,7 @@ static int register_endpoint(
 	assert(hcd);
 	const size_t size = max_packet_size;
 	const usb_target_t target = {{.address = address, .endpoint = endpoint}};
-	
+
 	usb_log_debug("Register endpoint %d:%d %s-%s %zuB %ums.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_direction(direction), max_packet_size, interval);
@@ -202,10 +147,7 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 
 /** usbhc Interface implementation using hcd_t from libusbhost library. */
 usbhc_iface_t hcd_iface = {
-	.request_address = request_address,
-	.bind_address = bind_address,
 	.get_handle = find_by_address,
-	.release_address = release_address,
 
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,

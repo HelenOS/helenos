@@ -83,27 +83,6 @@
  *
  */
 typedef enum {
-	/** Asks for address assignment by host controller.
-	 * Answer:
-	 * - ELIMIT - host controller run out of address
-	 * - EOK - address assigned
-	 * Answer arguments:
-	 * - assigned address
-	 *
-	 * The address must be released by via IPC_M_USBHC_RELEASE_ADDRESS.
-	 */
-	IPC_M_USBHC_REQUEST_ADDRESS,
-
-	/** Bind USB address with devman handle.
-	 * Parameters:
-	 * - USB address
-	 * - devman handle
-	 * Answer:
-	 * - EOK - address binded
-	 * - ENOENT - address is not in use
-	 */
-	IPC_M_USBHC_BIND_ADDRESS,
-
 	/** Get handle binded with given USB address.
 	 * Parameters
 	 * - USB address
@@ -112,15 +91,6 @@ typedef enum {
 	 * - ENOENT - address is not in use at the moment
 	 */
 	IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
-
-	/** Release address in use.
-	 * Arguments:
-	 * - address to be released
-	 * Answer:
-	 * - ENOENT - address not in use
-	 * - EPERM - trying to release default USB address
-	 */
-	IPC_M_USBHC_RELEASE_ADDRESS,
 
 	/** Register endpoint attributes at host controller.
 	 * This is used to reserve portion of USB bandwidth.
@@ -160,27 +130,7 @@ typedef enum {
 	IPC_M_USBHC_WRITE,
 } usbhc_iface_funcs_t;
 
-int usbhc_request_address(async_exch_t *exch, usb_address_t *address,
-    bool strict, usb_speed_t speed)
-{
-	if (!exch || !address)
-		return EBADMEM;
-	sysarg_t new_address;
-	const int ret = async_req_4_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, *address, strict, speed, &new_address);
-	if (ret == EOK)
-		*address = (usb_address_t)new_address;
-	return ret;
-}
 
-int usbhc_bind_address(async_exch_t *exch, usb_address_t address,
-    devman_handle_t handle)
-{
-	if (!exch)
-		return EBADMEM;
-	return async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_BIND_ADDRESS, address, handle);
-}
 
 int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
     devman_handle_t *handle)
@@ -193,14 +143,6 @@ int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
 	if (ret == EOK && handle)
 		*handle = (devman_handle_t)h;
 	return ret;
-}
-
-int usbhc_release_address(async_exch_t *exch, usb_address_t address)
-{
-	if (!exch)
-		return EBADMEM;
-	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
 
 int usbhc_register_endpoint(async_exch_t *exch, usb_address_t address,
@@ -322,10 +264,7 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 }
 
 
-static void remote_usbhc_request_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_bind_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_get_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_release_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -334,9 +273,6 @@ static void remote_usbhc_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
-	[IPC_M_USBHC_REQUEST_ADDRESS] = remote_usbhc_request_address,
-	[IPC_M_USBHC_RELEASE_ADDRESS] = remote_usbhc_release_address,
-	[IPC_M_USBHC_BIND_ADDRESS] = remote_usbhc_bind_address,
 	[IPC_M_USBHC_GET_HANDLE_BY_ADDRESS] = remote_usbhc_get_handle,
 
 	[IPC_M_USBHC_REGISTER_ENDPOINT] = remote_usbhc_register_endpoint,
@@ -386,44 +322,6 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-void remote_usbhc_request_address(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	const usbhc_iface_t *usb_iface = iface;
-
-	if (!usb_iface->request_address) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	usb_address_t address = DEV_IPC_GET_ARG1(*call);
-	const bool strict = DEV_IPC_GET_ARG2(*call);
-	const usb_speed_t speed = DEV_IPC_GET_ARG3(*call);
-
-	const int rc = usb_iface->request_address(fun, &address, strict, speed);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-	} else {
-		async_answer_1(callid, EOK, (sysarg_t) address);
-	}
-}
-
-void remote_usbhc_bind_address(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	const usbhc_iface_t *usb_iface = iface;
-
-	if (!usb_iface->bind_address) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	const usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
-	const devman_handle_t handle = (devman_handle_t) DEV_IPC_GET_ARG2(*call);
-
-	const int ret = usb_iface->bind_address(fun, address, handle);
-	async_answer_0(callid, ret);
-}
 
 void remote_usbhc_get_handle(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
@@ -446,21 +344,6 @@ void remote_usbhc_get_handle(ddf_fun_t *fun, void *iface,
 	}
 }
 
-void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	const usbhc_iface_t *usb_iface = iface;
-
-	if (!usb_iface->release_address) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	const usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
-
-	const int ret = usb_iface->release_address(fun, address);
-	async_answer_0(callid, ret);
-}
 
 static void callback_out(int outcome, void *arg)
 {
