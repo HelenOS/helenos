@@ -43,8 +43,6 @@
 #include <getopt.h>
 #include <devman.h>
 #include <loc.h>
-#include <usb/dev/hub.h>
-#include <usb/hc.h>
 #include <usb_iface.h>
 
 #include "usbinfo.h"
@@ -59,35 +57,6 @@ static void print_found_hc(service_id_t sid, const char *path)
 static void print_found_dev(usb_address_t addr, const char *path)
 {
 	printf("  Device %02d: %s\n", addr, path);
-}
-
-static void print_hc_devices(devman_handle_t hc_handle)
-{
-	int rc;
-	usb_hc_connection_t conn;
-
-	usb_hc_connection_initialize(&conn, hc_handle);
-	rc = usb_hc_connection_open(&conn);
-	if (rc != EOK) {
-		printf(NAME ": failed to connect to HC: %s.\n",
-		    str_error(rc));
-		return;
-	}
-	usb_address_t addr;
-	for (addr = 1; addr < MAX_USB_ADDRESS; addr++) {
-		devman_handle_t dev_handle;
-		rc = usb_hc_get_handle_by_address(&conn, addr, &dev_handle);
-		if (rc != EOK) {
-			continue;
-		}
-		char path[MAX_PATH_LENGTH];
-		rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			continue;
-		}
-		print_found_dev(addr, path);
-	}
-	usb_hc_connection_close(&conn);
 }
 
 static void print_usb_devices(devman_handle_t bus_handle,
@@ -154,7 +123,7 @@ void list(void)
 
 	for (unsigned i = 0; i < count; ++i) {
 		devman_handle_t hc_handle = 0;
-		int rc = usb_ddf_get_hc_handle_by_sid(svcs[i], &hc_handle);
+		int rc = devman_fun_sid_to_handle(svcs[i], &hc_handle);
 		if (rc != EOK) {
 			printf(NAME ": Error resolving handle of HC with SID %"
 			    PRIun ", skipping.\n", svcs[i]);
@@ -168,7 +137,6 @@ void list(void)
 			continue;
 		}
 		print_found_hc(svcs[i], path);
-		(void)print_hc_devices;
 
 		// TODO replace this with something sane
 		char name[10];
