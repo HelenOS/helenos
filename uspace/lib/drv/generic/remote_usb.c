@@ -41,13 +41,22 @@
 #include "usb_iface.h"
 #include "ddf/driver.h"
 
-usb_dev_session_t *usb_dev_connect(ddf_dev_t *parent)
+
+usb_dev_session_t *usb_dev_connect(devman_handle_t handle)
 {
 	// TODO All usb requests are atomic so this is safe,
-	// it will need to change once USING EXCHNAGE PARALLEL is safe with
+	// it will need to change once USING EXCHANGE PARALLEL is safe with
+	// devman_device_connect
+	return devman_device_connect(EXCHANGE_ATOMIC, handle, IPC_FLAG_BLOCKING);
+}
+
+usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *dev)
+{
+	// TODO All usb requests are atomic so this is safe,
+	// it will need to change once USING EXCHANGE PARALLEL is safe with
 	// devman_parent_device_connect
 	return devman_parent_device_connect(EXCHANGE_ATOMIC,
-	    ddf_dev_get_handle(parent), IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
 }
 
 void usb_dev_session_close(usb_dev_session_t *sess)

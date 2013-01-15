@@ -47,7 +47,8 @@ enum {
 };
 typedef async_sess_t usb_dev_session_t;
 
-usb_dev_session_t *usb_dev_connect(ddf_dev_t *dev);
+usb_dev_session_t *usb_dev_connect(devman_handle_t);
+usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
 void usb_dev_session_close(usb_dev_session_t *);
 
 int usb_get_my_address(async_exch_t *, usb_address_t *);

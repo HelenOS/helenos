@@ -410,7 +410,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
-	usb_dev->bus_session = usb_dev_connect(ddf_dev);
+	usb_dev->bus_session = usb_dev_connect_to_self(ddf_dev);
 	if (!usb_dev->bus_session) {
 		*errstr_ptr = "device bus session create";
 		return ENOMEM;
