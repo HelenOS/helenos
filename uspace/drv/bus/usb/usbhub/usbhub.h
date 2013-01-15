@@ -38,7 +38,6 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 
-#include <usb/dev/hub.h>
 #include <usb/classes/hub.h>
 
 #include <usb/dev/pipes.h>

@@ -163,39 +163,6 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 	return usb_hc_connection_del_ref(connection);
 }
 
-/** Ask host controller for free address assignment.
- *
- * @param connection Opened connection to host controller.
- * @param preferred Preferred SUB address.
- * @param strict Fail if the preferred address is not avialable.
- * @param speed Speed of the new device (device that will be assigned
- *    the returned address).
- * @return Assigned USB address or negative error code.
- */
-usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
-    usb_address_t preferred, bool strict, usb_speed_t speed)
-{
-	async_exch_t *exch;
-	EXCH_INIT(connection, exch);
-
-	usb_address_t address = preferred;
-	const int ret = usbhc_request_address(exch, &address, strict, speed);
-
-	EXCH_FINI(connection, exch);
-	return ret == EOK ? address : ret;
-}
-
-int usb_hc_bind_address(usb_hc_connection_t * connection,
-    usb_address_t address, devman_handle_t handle)
-{
-	async_exch_t *exch;
-	EXCH_INIT(connection, exch);
-
-	const int ret = usbhc_bind_address(exch, address, handle);
-
-	EXCH_FINI(connection, exch);
-	return ret;
-}
 
 /** Get handle of USB device with given address.
  *
@@ -211,18 +178,6 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
 	EXCH_INIT(connection, exch);
 
 	const int ret = usbhc_get_handle(exch, address, handle);
-
-	EXCH_FINI(connection, exch);
-	return ret;
-}
-
-int usb_hc_release_address(usb_hc_connection_t *connection,
-    usb_address_t address)
-{
-	async_exch_t *exch;
-	EXCH_INIT(connection, exch);
-
-	const int ret = usbhc_release_address(exch, address);
 
 	EXCH_FINI(connection, exch);
 	return ret;

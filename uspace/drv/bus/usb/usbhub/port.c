@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 
 #include <usb/debug.h>
-#include <usb/dev/hub.h>
 
 #include "port.h"
 #include "usbhub.h"

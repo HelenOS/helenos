@@ -39,7 +39,6 @@
 #include <usb/ddfiface.h>
 #include <usb/hc.h>
 #include <usb/debug.h>
-#include <usb/dev/hub.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -51,13 +50,6 @@ usb_iface_t usb_iface_hub_impl = {
 	.get_my_address = usb_iface_get_my_address_forward_impl,
 };
 
-/** DDF interface for USB device, implementation for child of a typical hub. */
-usb_iface_t usb_iface_hub_child_impl = {
-	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
-	.get_my_address = usb_iface_get_my_address_from_device_data,
-};
-
-
 /** Get host controller handle, interface implementation for hub driver.
  *
  * @param[in] fun Device function the operation is running on.
@@ -68,23 +60,6 @@ int usb_iface_get_hc_handle_device_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 	return usb_get_hc_by_handle(ddf_fun_get_handle(fun), handle);
-}
-
-/** Get host controller handle, interface implementation for HC driver.
- *
- * @param[in] fun Device function the operation is running on.
- * @param[out] handle Storage for the host controller handle.
- * @return Always EOK.
- */
-int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(fun);
-
-	if (handle != NULL) {
-		*handle = ddf_fun_get_handle(fun);
-	}
-
-	return EOK;
 }
 
 /** Get USB device address, interface implementation for hub driver.
@@ -101,26 +76,6 @@ int usb_iface_get_my_address_forward_impl(ddf_fun_t *fun,
 	return usb_get_address_by_handle(ddf_fun_get_handle(fun), address);
 }
 
-/** Get USB device address, interface implementation for child of
- * a hub driver.
- *
- * This implementation eccepts 0 as valid handle and replaces it with fun's
- * handle.
- *
- * @param[in] fun Device function the operation is running on.
- * @param[in] handle Devman handle of USB device we want address of.
- * @param[out] address Storage for USB address of device with handle @p handle.
- * @return Error code.
- */
-int usb_iface_get_my_address_from_device_data(ddf_fun_t *fun,
-    usb_address_t *address)
-{
-	const usb_hub_attached_device_t *device = ddf_fun_data_get(fun);
-	assert(device->fun == fun);
-	if (address)
-		*address = device->address;
-	return EOK;
-}
 
 /**
  * @}

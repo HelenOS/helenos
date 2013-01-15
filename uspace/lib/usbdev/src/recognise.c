@@ -36,7 +36,6 @@
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <usb/debug.h>
-#include <usb/dev/hub.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
 #include <usb/ddfiface.h>
@@ -45,11 +44,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
-
-/** DDF operations of child devices. */
-static ddf_dev_ops_t child_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
-};
 
 /** Get integer part from BCD coded number. */
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
@@ -292,97 +286,6 @@ int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
 	}
 
 	return EOK;
-}
-
-/** Probe for device kind and register it in devman.
- *
- * @param[in] ctrl_pipe Control pipe to the device.
- * @param[in] parent Parent device.
- * @param[in] dev_ops Child device ops. Default child_ops will be used if NULL.
- * @param[in] dev_data Arbitrary pointer to be stored in the child
- *	as @c driver_data.
- * @param[out] child_fun Storage where pointer to allocated child function
- *	will be written.
- * @return Error code.
- *
- */
-int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
-    ddf_dev_t *parent, ddf_fun_t **child_fun)
-{
-	if (child_fun == NULL || ctrl_pipe == NULL)
-		return EINVAL;
-	
-	/** Index to append after device name for uniqueness. */
-	static atomic_t device_name_index = {0};
-	const size_t this_device_name_index =
-	    (size_t) atomic_preinc(&device_name_index);
-	
-	ddf_fun_t *child = NULL;
-	int rc;
-	
-	/*
-	 * TODO: Once the device driver framework support persistent
-	 * naming etc., something more descriptive could be created.
-	 */
-	char child_name[12];  /* The format is: "usbAB_aXYZ", length 11 */
-	rc = snprintf(child_name, sizeof(child_name),
-	    "usb%02zu_a%d", this_device_name_index, ctrl_pipe->wire->address);
-	if (rc < 0) {
-		goto failure;
-	}
-	
-	child = ddf_fun_create(parent, fun_inner, child_name);
-	if (child == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
-	
-	ddf_fun_set_ops(child, &child_ops);
-	/*
-	 * Store the attached device in fun
-	 * driver data if there is no other data
-	 */
-	usb_hub_attached_device_t *new_device = ddf_fun_data_alloc(
-	    child, sizeof(usb_hub_attached_device_t));
-	if (!new_device) {
-		rc = ENOMEM;
-		goto failure;
-	}
-	
-	new_device->address = ctrl_pipe->wire->address;
-	new_device->fun = child;
-	
-	match_id_list_t match_ids;
-	init_match_ids(&match_ids);
-	rc = usb_device_create_match_ids(ctrl_pipe, &match_ids);
-	if (rc != EOK)
-		goto failure;
-	
-	list_foreach(match_ids.ids, id_link) {
-		match_id_t *match_id = list_get_instance(id_link, match_id_t, link);
-		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
-		if (rc != EOK) {
-			clean_match_ids(&match_ids);
-			goto failure;
-		}
-	}
-	
-	clean_match_ids(&match_ids);
-	
-	rc = ddf_fun_bind(child);
-	if (rc != EOK)
-		goto failure;
-	
-	*child_fun = child;
-	return EOK;
-	
-failure:
-	if (child != NULL) {
-		/* This takes care of match_id deallocation as well. */
-		ddf_fun_destroy(child);
-	}
-	
-	return rc;
 }
 
 /**
