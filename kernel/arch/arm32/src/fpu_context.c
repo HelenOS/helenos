@@ -162,11 +162,9 @@ static void fpu_enable_coprocessor_access()
 	return;
 #endif
 	if (sec_ext_is_implemented()) {
-		printf("Enabling FPU in %s context (%x)\n",
-			sec_ext_is_secure() ? "secure" : "unsecure",
-			SCR_read());
-		if (!sec_ext_is_secure()) {
-			sec_ext_call(SECURITY_CALL_ENABLE_CP10_11);
+		if (!sec_ext_is_monitor_mode()) {
+		// TODO enable this when we implement SMC handling
+		//	sec_ext_call(SECURITY_CALL_ENABLE_CP10_11);
 		} else {
 			uint32_t nsacr = NSACR_read();
 			nsacr |= (NSACR_CP_FLAG(10) | NSACR_CP_FLAG(11));
