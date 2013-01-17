@@ -43,6 +43,9 @@
 #include <ddi/device.h>
 #include <mm/km.h>
 
+#define BBONE_MEMORY_START       0x80000000      /* physical */
+#define BBONE_MEMORY_SIZE        0x10000000      /* 256 MB */
+
 static void bbone_init(void);
 static void bbone_timer_irq_start(void);
 static void bbone_cpu_halt(void);
@@ -80,6 +83,9 @@ static void bbone_init(void)
 	    AM335x_IRC_SIZE, PAGE_NOT_CACHEABLE);
 
 	am335x_irc_init(bbone.irc_addr);
+
+	/* Initialize the DMTIMER0 */
+	am335x_timer_init(&bbone.timer, DMTIMER0, HZ);
 }
 
 static irq_ownership_t bbone_timer_irq_claim(irq_t *irq)
@@ -126,10 +132,23 @@ static void bbone_cpu_halt(void)
  */
 static void bbone_get_memory_extents(uintptr_t *start, size_t *size)
 {
+	*start = BBONE_MEMORY_START;
+	*size  = BBONE_MEMORY_SIZE;
 }
 
 static void bbone_irq_exception(unsigned int exc_no, istate_t *istate)
 {
+	const unsigned inum = am335x_irc_inum_get(bbone.irc_addr);
+	am335x_irc_irq_ack(bbone.irc_addr);
+
+	irq_t *irq = irq_dispatch_and_lock(inum);
+	if (irq) {
+		/* The IRQ handler was found. */
+		irq->handler(irq);
+		spinlock_unlock(&irq->lock);
+	} else {
+		printf("Spurious interrupt\n");
+	}
 }
 
 static void bbone_frame_init(void)
@@ -142,8 +161,10 @@ static void bbone_output_init(void)
 	    AM335x_UART0_IRQ, AM335x_UART0_BASE_ADDRESS,
 	    AM335x_UART0_SIZE);
 
-	if (ok)
+	if (ok) {
 		stdout_wire(&bbone.uart.outdev);
+		printf("UART Ok\n");
+	}
 }
 
 static void bbone_input_init(void)
