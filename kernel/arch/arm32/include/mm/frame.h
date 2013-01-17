@@ -49,6 +49,8 @@
 #define BOOT_PAGE_TABLE_ADDRESS  0x30010000
 #elif defined MACHINE_beagleboardxm
 #define BOOT_PAGE_TABLE_ADDRESS  0x80008000
+#elif defined MACHINE_beaglebone
+#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
 #else
 #define BOOT_PAGE_TABLE_ADDRESS  0x00008000
 #endif
@@ -59,6 +61,8 @@
 #ifdef MACHINE_gta02
 #define PHYSMEM_START_ADDR	0x30008000
 #elif defined MACHINE_beagleboardxm
+#define PHYSMEM_START_ADDR      0x80000000
+#elif defined MACHINE_beaglebone
 #define PHYSMEM_START_ADDR      0x80000000
 #else
 #define PHYSMEM_START_ADDR	0x00000000
