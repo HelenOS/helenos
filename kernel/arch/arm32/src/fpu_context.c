@@ -113,17 +113,6 @@ extern void fpu_context_restore_d32(fpu_context_t *);
 static void (*save_context)(fpu_context_t *ctx);
 static void (*restore_context)(fpu_context_t *ctx);
 
-int sec_ext_handle_call(sec_ext_call_t call)
-{
-	printf("Handling secure call %x in %s context (%s mode-%x)\n",
-		call, sec_ext_is_secure() ? "secure" : "unsecure",
-		sec_ext_is_monitor_mode() ? "monitor" : "other",
-		current_status_reg_read());
-	if (sec_ext_is_monitor_mode() && call == SECURITY_CALL_ENABLE_CP10_11)
-		return 1;
-	return 0;
-}
-
 static int fpu_have_coprocessor_access()
 {
 /* The register containing the information (CPACR) is not available on armv6-
@@ -161,17 +150,6 @@ static void fpu_enable_coprocessor_access()
 #ifndef PROCESSOR_armv7_a
 	return;
 #endif
-	if (sec_ext_is_implemented()) {
-		if (!sec_ext_is_monitor_mode()) {
-		// TODO enable this when we implement SMC handling
-		//	sec_ext_call(SECURITY_CALL_ENABLE_CP10_11);
-		} else {
-			uint32_t nsacr = NSACR_read();
-			nsacr |= (NSACR_CP_FLAG(10) | NSACR_CP_FLAG(11));
-			NSACR_write(nsacr);
-			smc_coherence(0);
-		}
-	}
 
 	/* Allow coprocessor access */
 	uint32_t cpacr = CPACR_read();

@@ -39,6 +39,12 @@
 #include <arch/cp15.h>
 #include <arch/regutils.h>
 
+/** Test whether the current cpu supports security extensions.
+ * return true if security extensions are supported, false otherwise.
+ * @note The Processor Feature Register 1 that provides this information
+ * is available only on armv7+. This function returns false on all\
+ * older archs.
+ */
 static inline bool sec_ext_is_implemented()
 {
 #ifdef PROCESSOR_armv7_a
@@ -48,30 +54,32 @@ static inline bool sec_ext_is_implemented()
 	return false;
 }
 
+/** Test whether we are running in monitor mode.
+ * return true, if the current mode is Monitor mode, false otherwise.
+ * @note this is safe to call even on machines that do not implement monitor
+ * mode.
+ */
 static inline bool sec_ext_is_monitor_mode()
 {
 	return (current_status_reg_read() & MODE_MASK) == MONITOR_MODE;
 }
 
+/** Test whether we are running in a secure state.
+ * return true if the current state is secure, false otherwise.
+ *
+ * @note: This functions will cause undef isntruction trap if we
+ * are not running in the secure state.
+ *
+ * @note: u-boot enables non-secure access to cp 10/11, as well as some other
+ * features and switches to non-secure state during boot.
+ * Look for 'secureworld_exit' in arch/arm/cpu/armv7/omap3/board.c.
+ */
 static inline bool sec_ext_is_secure()
 {
 	return sec_ext_is_implemented()
 	    && (sec_ext_is_monitor_mode() || !(SCR_read() & SCR_NS_FLAG));
 }
 
-typedef enum {
-	SECURITY_CALL_ENABLE_CP10_11 = 0xaaaa
-} sec_ext_call_t;
-
-static inline void sec_ext_call(sec_ext_call_t call)
-{
-	asm volatile ("mov r0, %0\nsmc #0" ::"r"(call));
-}
-
-int sec_ext_handle_call(sec_ext_call_t call);
-
 #endif
-
 /** @}
  */
-
