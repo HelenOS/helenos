@@ -53,7 +53,7 @@ EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
 ifeq ($(MACHINE), gta02)
 RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
-	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24xx_uart
+	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
 endif
 
 RD_DRVS += \
