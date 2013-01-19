@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,47 +30,21 @@
  * @{
  */
 /** @file
- *  @brief CPU identification.
+ *  @brief Security Extensions Routines
  */
 
-#ifndef KERN_arm32_CPU_H_
-#define KERN_arm32_CPU_H_
+#ifndef KERN_arm32_CACHE_H_
+#define KERN_arm32_CACHE_H_
 
-#include <typedefs.h>
-#include <arch/asm.h>
+unsigned dcache_levels(void);
 
-enum {
-	ARM_MAX_CACHE_LEVELS = 7,
-};
-
-/** Struct representing ARM CPU identification. */
-typedef struct {
-	/** Implementor (vendor) number. */
-	uint32_t imp_num;
-
-	/** Variant number. */
-	uint32_t variant_num;
-
-	/** Architecture number. */
-	uint32_t arch_num;
-
-	/** Primary part number. */
-	uint32_t prim_part_num;
-
-	/** Revision number. */
-	uint32_t rev_num;
-
-	struct {
-		unsigned ways;
-		unsigned sets;
-		unsigned line_size;
-		unsigned way_shift;
-		unsigned set_shift;
-	} dcache[ARM_MAX_CACHE_LEVELS];
-	unsigned dcache_levels;
-} cpu_arch_t;
+void dcache_flush(void);
+void dcache_flush_invalidate(void);
+void cpu_dcache_flush(void);
+void cpu_dcache_flush_invalidate(void);
+void icache_invalidate(void);
 
 #endif
-
 /** @}
  */
+
