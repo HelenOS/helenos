@@ -34,10 +34,14 @@ ATSIGN = %
 
 GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
+ifeq ($(MACHINE),beagleboardxm)
+GCC_CFLAGS += -mcpu=cortex-a8
+endif
+
 ifeq ($(CONFIG_FPU),y)
 # This is necessary to allow vmsr insn and fpexc manipulation
 # Use vfp32 to allow context save/restore of d16-d31 regs.
-GCC_CFLAGS += -mfloat-abi=hard -mfpu=vfp3
+AFLAGS += -mfloat-abi=hard -mfpu=vfp3
 endif
 
 BITS = 32
@@ -69,6 +73,7 @@ ARCH_SOURCES = \
 
 ifeq ($(CONFIG_FPU),y)
 	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu_context.c
+	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu.s
 endif
 
 ifeq ($(MACHINE),gta02)

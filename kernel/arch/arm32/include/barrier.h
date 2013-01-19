@@ -38,6 +38,12 @@
 
 /*
  * TODO: implement true ARM memory barriers for macros below.
+ * ARMv6 introduced user access of the following commands:
+ * • Prefetch flush
+ * • Data synchronization barrier
+ * • Data memory barrier
+ * • Clean and prefetch range operations.
+ * ARM Architecture Reference Manual version I ch. B.3.2.1 p. B3-4
  */
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
@@ -87,10 +93,16 @@
  * maintenance to other places than just smc.
  */
 
-/* Available on both all supported arms,
+#ifdef PROCESSOR_ARCH_armv7_a
+#define smc_coherence(a) asm volatile ( "isb" ::: "memory")
+#define smc_coherence_block(a, l) smc_coherence(a)
+#else
+/* Available on all supported arms,
  * invalidates entire ICache so the written value does not matter. */
+//TODO might be PL1 only on armv5 -
 #define smc_coherence(a) asm volatile ( "mcr p15, 0, r0, c7, c5, 0")
 #define smc_coherence_block(a, l) smc_coherence(a)
+#endif
 
 
 #endif
