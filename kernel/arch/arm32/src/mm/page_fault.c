@@ -33,6 +33,7 @@
  *  @brief Page fault related functions.
  */
 #include <panic.h>
+#include <arch/cp15.h>
 #include <arch/exception.h>
 #include <arch/mm/page_fault.h>
 #include <mm/as.h>
@@ -126,53 +127,6 @@ static inline const char * dfsr_source_to_str(dfsr_source_t source)
 	return "Unknown data abort";
 }
 
-
-/** Returns value stored in comnbined/data fault status register.
- *
- *  @return Value stored in CP15 fault status register (FSR).
- *
- *  "VMSAv6 added a fifth fault status bit (bit[10]) to both the IFSR and DFSR.
- *  It is IMPLEMENTATION DEFINED how this bit is encoded in earlier versions of
- *  the architecture. A write flag (bit[11] of the DFSR) has also been
- *  introduced."
- *  ARM Architecture Reference Manual version i ch. B4.6 (PDF p. 719)
- *
- *  See ch. B4.9.6 for location of data/instruction FSR.
- *
- */
-static inline fault_status_t read_data_fault_status_register(void)
-{
-	fault_status_t fsu;
-	
-	/* Combined/Data fault status is stored in CP15 register 5, c0. */
-	asm volatile (
-		"mrc p15, 0, %[dummy], c5, c0, 0"
-		: [dummy] "=r" (fsu.raw)
-	);
-	
-	return fsu;
-}
-
-/** Returns DFAR (fault address register) content.
- *
- * This register is equivalent to FAR on pre armv6 machines.
- *
- * @return DFAR (fault address register) content (address that caused a page
- *         fault)
- */
-static inline uintptr_t read_data_fault_address_register(void)
-{
-	uintptr_t ret;
-	
-	/* fault adress is stored in CP15 register 6 */
-	asm volatile (
-		"mrc p15, 0, %[ret], c6, c0, 0"
-		: [ret] "=r" (ret)
-	);
-	
-	return ret;
-}
-
 #if defined(PROCESSOR_ARCH_armv4) | defined(PROCESSOR_ARCH_armv5)
 /** Decides whether read or write into memory is requested.
  *
@@ -243,8 +197,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
  */
 void data_abort(unsigned int exc_no, istate_t *istate)
 {
-	const uintptr_t badvaddr = read_data_fault_address_register();
-	const fault_status_t fsr = read_data_fault_status_register();
+	const uintptr_t badvaddr = DFAR_read();
+	const fault_status_t fsr = { .raw = DFSR_read() };
 	const dfsr_source_t source = fsr.raw & DFSR_SOURCE_MASK;
 
 	switch (source)	{
