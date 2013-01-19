@@ -167,6 +167,11 @@ void cpu_arch_init(void)
 #ifdef CONFIG_FPU
 	fpu_setup();
 #endif
+
+#ifdef PROCESSOR_ARCH_armv7_a
+	PMCR_write(PMCR_read() | PMCR_E_FLAG);
+	PMCNTENSET_write(PMCNTENSET_CYCLE_COUNTER_EN_FLAG);
+#endif
 }
 
 /** Retrieves processor identification and stores it to #CPU.arch */

@@ -42,7 +42,7 @@
 #include <arch/interrupt.h>
 #include <trace.h>
 
-/** No such instruction on old ARM to sleep CPU.
+/** CPU specific way to sleep cpu.
  *
  * ARMv7 introduced wait for event and wait for interrupt (wfe/wfi).
  * ARM920T has custom coprocessor action to do the same. See ARM920T Technical
