@@ -148,6 +148,31 @@ CONTROL_REG_GEN_READ(VMPIDR, c0, 4, c0, 5);
 CONTROL_REG_GEN_WRITE(VMPIDR, c0, 4, c0, 5);
 
 /* System control registers */
+/* COntrol register bit values see ch. B4.1.130 of ARM Architecture Reference
+ * Manual ARMv7-A and ARMv7-R edition, page 1687 */
+enum {
+	SCTLR_MMU_EN_FLAG            = 1 << 0,
+	SCTLR_ALIGN_CHECK_EN_FLAG    = 1 << 1,  /* Allow alignemnt check */
+	SCTLR_CACHE_EN_FLAG          = 1 << 2,
+	SCTLR_CP15_BARRIER_EN_FLAG   = 1 << 5,
+	SCTLR_B_EN_FLAG              = 1 << 7,  /* ARMv6-, big endian switch */
+	SCTLR_SWAP_EN_FLAG           = 1 << 10,
+	SCTLR_BRANCH_PREDICT_EN_FLAG = 1 << 11,
+	SCTLR_INST_CACHE_EN_FLAG     = 1 << 12,
+	SCTLR_HIGH_VECTORS_EN_FLAG   = 1 << 13,
+	SCTLR_ROUND_ROBIN_EN_FLAG    = 1 << 14,
+	SCTLR_HW_ACCESS_FLAG_EN_FLAG = 1 << 17,
+	SCTLR_WRITE_XN_EN_FLAG       = 1 << 19, /* Only if virt. supported */
+	SCTLR_USPCE_WRITE_XN_EN_FLAG = 1 << 20, /* Only if virt. supported */
+	SCTLR_FAST_IRQ_EN_FLAG       = 1 << 21, /* Disable impl. specific feat*/
+	SCTLR_UNALIGNED_EN_FLAG      = 1 << 22, /* Must be 1 on armv7 */
+	SCTLR_IRQ_VECTORS_EN_FLAG    = 1 << 24,
+	SCTLR_BIG_ENDIAN_EXC_FLAG    = 1 << 25,
+	SCTLR_NMFI_EN_FLAG           = 1 << 27,
+	SCTLR_TEX_REMAP_EN_FLAG      = 1 << 28,
+	SCTLR_ACCESS_FLAG_EN_FLAG    = 1 << 29,
+	SCTLR_THUMB_EXC_EN_FLAG      = 1 << 30,
+};
 CONTROL_REG_GEN_READ(SCTLR, c1, 0, c0, 0);
 CONTROL_REG_GEN_WRITE(SCTLR, c1, 0, c0, 0);
 CONTROL_REG_GEN_READ(ACTLR, c1, 0, c0, 1);
