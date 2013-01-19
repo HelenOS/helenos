@@ -224,8 +224,9 @@ static unsigned dcache_sets(unsigned level)
 
 unsigned dcache_levels(void)
 {
-	const uint32_t val = CLIDR_read();
 	unsigned levels = 0;
+#ifdef PROCESSOR_ARCH_armv7_a
+	const uint32_t val = CLIDR_read();
 	for (unsigned i = 1; i <= 7; ++i) {
 		const unsigned ctype = CLIDR_CACHE(i, val);
 		switch (ctype) {
@@ -237,6 +238,7 @@ unsigned dcache_levels(void)
 			(void)0;
 		}
 	}
+#endif
 	return levels;
 }
 
