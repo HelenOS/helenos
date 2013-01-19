@@ -98,17 +98,14 @@ static const char * architecture_string(cpu_arch_t *arch)
  */
 static void arch_cpu_identify(cpu_arch_t *cpu)
 {
-	uint32_t ident;
-	asm volatile (
-		"mrc p15, 0, %[ident], c0, c0, 0\n"
-		: [ident] "=r" (ident)
-	);
-	
-	cpu->imp_num = ident >> 24;
-	cpu->variant_num = (ident << 8) >> 28;
-	cpu->arch_num = (ident << 12) >> 28;
-	cpu->prim_part_num = (ident << 16) >> 20;
-	cpu->rev_num = (ident << 28) >> 28;
+	const uint32_t ident = MIDR_read();
+
+	cpu->imp_num = (ident >> MIDR_IMPLEMENTER_SHIFT) & MIDR_IMPLEMENTER_MASK;
+	cpu->variant_num = (ident >> MIDR_VARIANT_SHIFT) & MIDR_VARIANT_MASK;
+	cpu->arch_num = (ident >> MIDR_ARCHITECTURE_SHIFT) & MIDR_ARCHITECTURE_MASK;
+	cpu->prim_part_num = (ident >> MIDR_PART_NUMBER_SHIFT) & MIDR_PART_NUMBER_MASK;
+	cpu->rev_num = (ident >> MIDR_REVISION_SHIFT) & MIDR_REVISION_MASK;
+
 	// TODO CPUs with arch_num == 0xf use CPUID scheme for identification
 	cpu->dcache_levels = dcache_levels();
 
