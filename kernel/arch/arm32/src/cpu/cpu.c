@@ -150,17 +150,22 @@ void cpu_arch_init(void)
 	 *    ARM Architecture Reference Manual ARMv7-A and ARMv7-R Edition
 	 *    B3.11.1 (p. 1383)
 	 * We are safe to turn this on. For arm v6 see ch L.6.2 (p. 2469)
-	 * L2 Cache for armv7 was enabled in boot code.
+	 * L2 Cache for armv7 is enabled by default (i.e. controlled by
+	 * this flag).
 	 */
 	control_reg |= SCTLR_CACHE_EN_FLAG;
 #endif
-#ifdef PROCESSOR_cortex_a8
+#ifdef PROCESSOR_ARCH_armv7_a
 	 /* ICache coherency is elaborate on in barrier.h.
-	  * Cortex-A8 implements IVIPT extension.
-	  * Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245) */
-	control_reg |= SCTLR_INST_CACHE_EN_FLAG;
-	/* Enable branch prediction RAZ/WI if not supported */
-	control_reg |= SCTLR_BRANCH_PREDICT_EN_FLAG;
+	  * VIPT and PIPT caches need maintenance only on code modify,
+	  * so it should be safe for general use.
+	  * Enable branch predictors too as they follow the same rules
+	  * as ICache and they can be flushed together
+	  */
+	if ((CTR_read() & CTR_L1I_POLICY_MASK) != CTR_L1I_POLICY_AIVIVT) {
+		control_reg |=
+		    SCTLR_INST_CACHE_EN_FLAG | SCTLR_BRANCH_PREDICT_EN_FLAG;
+	}
 #endif
 	SCTLR_write(control_reg);
 
