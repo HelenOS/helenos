@@ -73,7 +73,7 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 	
 	/* make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
-	smc_coherence(*vector);
+	smc_coherence(vector);
 	
 	/* store handler's address */
 	*(vector + EXC_VECTORS) = handler_addr;
