@@ -112,11 +112,15 @@ do { \
 	ICIALLU_write(0);            /* Flush ICache */\
 	inst_barrier();              /* Wait for Inst refetch */\
 } while (0)
-// TODO: Implement blocks
-#define smc_coherence_block(a, l) smc_coherence(a)
+//TODO would be better to use cacheline size here
+#define smc_coherence_block(a, l) \
+do { \
+	for (uintptr_t addr = (uintptr_t)a; addr < (uintptr_t)a + l; addr += 4)\
+		smc_coherence(addr); \
+} while (0)
 #else
 #define smc_coherence(a)
-#define smc_coherence_block(a, l) smc_coherence(a)
+#define smc_coherence_block(a, l)
 #endif
 
 
