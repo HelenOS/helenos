@@ -131,8 +131,6 @@ void cpu_arch_init(void)
 	control_reg &= ~SCTLR_TEX_REMAP_EN_FLAG;
 	/* Turn off accessed flag, RAZ/WI prior to armv7 */
 	control_reg &= ~(SCTLR_ACCESS_FLAG_EN_FLAG | SCTLR_HW_ACCESS_FLAG_EN_FLAG);
-	/* Disable branch prediction RAZ/WI if not supported */
-	control_reg &= ~SCTLR_BRANCH_PREDICT_EN_FLAG;
 
 	/* Unaligned access is supported on armv6+ */
 #if defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
@@ -161,6 +159,8 @@ void cpu_arch_init(void)
 	  * Cortex-A8 implements IVIPT extension.
 	  * Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245) */
 	control_reg |= SCTLR_INST_CACHE_EN_FLAG;
+	/* Enable branch prediction RAZ/WI if not supported */
+	control_reg |= SCTLR_BRANCH_PREDICT_EN_FLAG;
 #endif
 	SCTLR_write(control_reg);
 
