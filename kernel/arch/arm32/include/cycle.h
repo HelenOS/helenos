@@ -55,7 +55,7 @@ NO_TRACE static inline uint64_t get_cycle(void)
 	    asm volatile( "MRRC p15, 0, %[low], %[high], c14": [low]"=r"(low), [high]"=r"(high));
 	   return ((uint64_t)high << 32) | low;
 	} else {
-		return PMCCNTR_read();
+		return (uint64_t)PMCCNTR_read() * 64;
 	}
 #endif
 	return 0;

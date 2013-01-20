@@ -169,7 +169,7 @@ void cpu_arch_init(void)
 #endif
 
 #ifdef PROCESSOR_ARCH_armv7_a
-	PMCR_write(PMCR_read() | PMCR_E_FLAG);
+	PMCR_write(PMCR_read() | PMCR_E_FLAG | PMCR_D_FLAG);
 	PMCNTENSET_write(PMCNTENSET_CYCLE_COUNTER_EN_FLAG);
 #endif
 }
