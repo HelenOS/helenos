@@ -45,14 +45,8 @@
 typedef struct {
 	amdm37x_dispc_regs_t *regs;
 
-	unsigned offset;
-	visual_t visual;
-
-	pixel2visual_t pixel2visual;
-	visual2pixel_t visual2pixel;
-	visual_mask_t visual_mask;
-
 	struct {
+		pixel2visual_t pixel2visual;
 		unsigned width;
 		unsigned height;
 		unsigned pitch;

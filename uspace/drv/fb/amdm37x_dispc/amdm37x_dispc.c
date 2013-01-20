@@ -54,33 +54,28 @@ static const visualizer_ops_t amdm37x_dispc_vis_ops = {
 };
 
 
-static unsigned visual2bpp(visual_t visual)
-{
-	switch(visual) {
-	case VISUAL_INDIRECT_8:
-		return 1;
-	case VISUAL_RGB_5_5_5_LE:
-	case VISUAL_RGB_5_5_5_BE:
-	case VISUAL_RGB_5_6_5_LE:
-	case VISUAL_RGB_5_6_5_BE:
-		return 2;
-	case VISUAL_BGR_8_8_8:
-	case VISUAL_RGB_8_8_8:
-		return 3;
-	case VISUAL_BGR_0_8_8_8:
-	case VISUAL_BGR_8_8_8_0:
-	case VISUAL_ABGR_8_8_8_8:
-	case VISUAL_BGRA_8_8_8_8:
-	case VISUAL_RGB_0_8_8_8:
-	case VISUAL_RGB_8_8_8_0:
-	case VISUAL_ARGB_8_8_8_8:
-	case VISUAL_RGBA_8_8_8_8:
-		return 4;
-	case VISUAL_UNKNOWN:
-		return 0;
-	}
-	return 0;
-}
+static const struct {
+	unsigned bpp;
+	pixel2visual_t func;
+} pixel2visual_table[] = {
+	[VISUAL_INDIRECT_8] = { .bpp = 1, .func = pixel2bgr_323 },
+	[VISUAL_RGB_5_5_5_LE] = { .bpp = 2, .func = pixel2rgb_555_le },
+	[VISUAL_RGB_5_5_5_BE] = { .bpp = 2, .func = pixel2rgb_555_be },
+	[VISUAL_RGB_5_6_5_LE] = { .bpp = 2, .func = pixel2rgb_565_le },
+	[VISUAL_RGB_5_6_5_BE] = { .bpp = 2, .func = pixel2rgb_565_be },
+	[VISUAL_BGR_8_8_8] = { .bpp = 3, .func = pixel2bgr_888 },
+	[VISUAL_RGB_8_8_8] = { .bpp = 3, .func = pixel2rgb_888 },
+	[VISUAL_BGR_0_8_8_8] = { .bpp = 4, .func = pixel2rgb_0888 },
+	[VISUAL_BGR_8_8_8_0] = { .bpp = 4, .func = pixel2bgr_8880 },
+	[VISUAL_ABGR_8_8_8_8] = { .bpp = 4, .func = pixel2abgr_8888 },
+	[VISUAL_BGRA_8_8_8_8] = { .bpp = 4, .func = pixel2bgra_8888 },
+	[VISUAL_RGB_0_8_8_8] = { .bpp = 4, .func = pixel2rgb_0888 },
+	[VISUAL_RGB_8_8_8_0] = { .bpp = 4, .func = pixel2rgb_8880 },
+	[VISUAL_ARGB_8_8_8_8] = { .bpp = 4, .func = pixel2argb_8888 },
+	[VISUAL_RGBA_8_8_8_8] = { .bpp = 4, .func = pixel2rgba_8888 },
+};
+
+
 
 static void mode_init(vslmode_list_element_t *mode,
     unsigned width, unsigned height, visual_t visual)
@@ -250,7 +245,9 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 
 	amdm37x_dispc_t *dispc = vis->dev_ctx;
 	const visual_t visual = mode.cell_visual.pixel_visual;
-	const unsigned bpp = visual2bpp(visual);
+	assert(visual < sizeof(pixel2visual_table) / sizeof(pixel2visual_table[0]));
+	const unsigned bpp = pixel2visual_table[visual].bpp;
+	pixel2visual_t p2v = pixel2visual_table[visual].func;
 	const unsigned x = mode.screen_width;
 	const unsigned y = mode.screen_height;
 	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp);
@@ -268,6 +265,7 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	dispc->active_fb.height = y;
 	dispc->active_fb.pitch = 0;
 	dispc->active_fb.bpp = bpp;
+	dispc->active_fb.pixel2visual = p2v;
 	assert(mode.index < 1);
 
 	if (dispc->fb_data)
@@ -292,14 +290,14 @@ static int handle_damage(visualizer_t *vs,
 		for (sysarg_t y = y0; y < height + y0; ++y) {
 			pixel_t *pixel = pixelmap_pixel_at(map, x0, y);
 			for (sysarg_t x = x0; x < width + x0; ++x) {
-				dispc->pixel2visual(
+				dispc->active_fb.pixel2visual(
 				    dispc->fb_data + FB_POS(x, y), *pixel++);
 			}
 		}
 	} else {
 		for (sysarg_t y = y0; y < height + y0; ++y) {
 			for (sysarg_t x = x0; x < width + x0; ++x) {
-				dispc->pixel2visual(
+				dispc->active_fb.pixel2visual(
 				    dispc->fb_data + FB_POS(x, y),
 				    *pixelmap_pixel_at(map,
 				        (x + x_offset) % map->width,
