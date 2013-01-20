@@ -36,15 +36,12 @@
 #ifndef KERN_arm32_BARRIER_H_
 #define KERN_arm32_BARRIER_H_
 
-/*
- * TODO: implement true ARM memory barriers for macros below.
- * ARMv6 introduced user access of the following commands:
- * • Prefetch flush
- * • Data synchronization barrier
- * • Data memory barrier
- * • Clean and prefetch range operations.
- * ARM Architecture Reference Manual version I ch. B.3.2.1 p. B3-4
- */
+#ifdef KERNEL
+#include <arch/cp15.h>
+#else
+#include <libarch/cp15.h>
+#endif
+
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
@@ -59,23 +56,34 @@
 #define memory_barrier()  asm volatile ("dmb" ::: "memory")
 #define read_barrier()    asm volatile ("dsb" ::: "memory")
 #define write_barrier()   asm volatile ("dsb st" ::: "memory")
-#elif defined PROCESSOR_ARCH_armv6
+#define inst_barrier()    asm volatile ("isb" ::: "memory")
+#elif defined PROCESSOR_ARCH_armv6 | defined KERNEL
+/*
+ * ARMv6 introduced user access of the following commands:
+ * - Prefetch flush
+ * - Data synchronization barrier
+ * - Data memory barrier
+ * - Clean and prefetch range operations.
+ * ARM Architecture Reference Manual version I ch. B.3.2.1 p. B3-4
+ */
 /* ARMv6- use system control coprocessor (CP15) for memory barrier instructions.
  * Although at least mcr p15, 0, r0, c7, c10, 4 is mentioned in earlier archs,
  * CP15 implementation is mandatory only for armv6+.
  */
-#define memory_barrier()  asm volatile ("ldr r0, =0\nmcr p15, 0, r0, c7, c10, 5" ::: "r0", "memory")
-#define read_barrier()    asm volatile ("ldr r0, =0\nmcr p15, 0, r0, c7, c10, 4" ::: "r0", "memory")
+#define memory_barrier()  CP15DMB_write(0)
+#define read_barrier()    CP15DSB_write(0)
 #define write_barrier()   read_barrier()
+#define inst_barrier()    CP15ISB_write(0)
 #else
 /* Older manuals mention syscalls as a way to implement cache coherency and
  * barriers. See for example ARM Architecture Reference Manual Version D
  * chapter 2.7.4 Prefetching and self-modifying code (p. A2-28)
  */
-// TODO implement on per PROCESSOR basis
+// TODO implement on per PROCESSOR basis or via syscalls
 #define memory_barrier()  asm volatile ("" ::: "memory")
 #define read_barrier()    asm volatile ("" ::: "memory")
 #define write_barrier()   asm volatile ("" ::: "memory")
+#define inst_barrier()    asm volatile ("" ::: "memory")
 #endif
 
 /*
@@ -93,14 +101,21 @@
  * maintenance to other places than just smc.
  */
 
-#ifdef PROCESSOR_ARCH_armv7_a
-#define smc_coherence(a) asm volatile ( "isb" ::: "memory")
-#define smc_coherence_block(a, l) smc_coherence(a)
-#else
+#if defined PROCESSOR_ARCH_armv7_a | defined PROCESSOR_ARCH_armv6 | defined KERNEL
 /* Available on all supported arms,
  * invalidates entire ICache so the written value does not matter. */
 //TODO might be PL1 only on armv5 -
-#define smc_coherence(a) asm volatile ( "mcr p15, 0, r0, c7, c5, 0")
+#define smc_coherence(a) \
+do { \
+	DCCMVAU_write((uint32_t)(a));  /* Write changed memory */\
+	write_barrier();             /* Wait for completion */\
+	ICIALLU_write(0);            /* Flush ICache */\
+	inst_barrier();              /* Wait for Inst refetch */\
+} while (0)
+// TODO: Implement blocks
+#define smc_coherence_block(a, l) smc_coherence(a)
+#else
+#define smc_coherence(a)
 #define smc_coherence_block(a, l) smc_coherence(a)
 #endif
 
