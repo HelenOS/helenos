@@ -34,10 +34,6 @@ ATSIGN = %
 
 GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
-ifeq ($(MACHINE),beagleboardxm)
-GCC_CFLAGS += -mcpu=cortex-a8
-endif
-
 ifeq ($(CONFIG_FPU),y)
 # This is necessary to allow vmsr insn and fpexc manipulation
 # Use vfp32 to allow context save/restore of d16-d31 regs.
