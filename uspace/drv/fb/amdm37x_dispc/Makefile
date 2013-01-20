@@ -44,6 +44,7 @@ BINARY = amdm37x_dispc
 
 SOURCES = \
 	port.c \
+	amdm37x_dispc.c \
 	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

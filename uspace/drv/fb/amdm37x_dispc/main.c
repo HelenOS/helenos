@@ -61,20 +61,39 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		ddf_log_error("Failed to create visualizer function\n");
 		return ENOMEM;
 	}
+
+	/* Hw part */
 	amdm37x_dispc_t *dispc =
-	    ddf_fun_data_alloc(fun, sizeof(amdm37x_dispc_t));
+	    ddf_dev_data_alloc(dev, sizeof(amdm37x_dispc_t));
 	if (!dispc) {
 		ddf_log_error("Failed to allocate dispc structure\n");
 		ddf_fun_destroy(fun);
 		return ENOMEM;
 	}
-	ddf_fun_set_ops(fun, &graph_fun_ops);
+
 	int ret = amdm37x_dispc_init(dispc);
 	if (ret != EOK) {
 		ddf_log_error("Failed to init dispc: %s\n", str_error(ret));
 		ddf_fun_destroy(fun);
 		return ret;
 	}
+
+	/* Visualizer part */
+	visualizer_t *vis = ddf_fun_data_alloc(fun, sizeof(visualizer_t));
+	if (!vis) {
+		ddf_log_error("Failed to allocate visualizer structure\n");
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+
+	graph_init_visualizer(vis);
+	vis->def_mode_idx = 0; // TODO: What is this? Why is this not handled
+	                       // via init?
+	vis->ops = amdm37x_dispc_vis_ops;
+	vis->dev_ctx = dispc;
+	vis->reg_svc_handle = ddf_fun_get_handle(fun);
+
+	ddf_fun_set_ops(fun, &graph_fun_ops);
 	ret = ddf_fun_bind(fun);
 	if (ret != EOK) {
 		ddf_log_error("Failed to bind function: %s\n", str_error(ret));
@@ -82,6 +101,7 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		ddf_fun_destroy(fun);
 		return ret;
 	}
+	ddf_fun_add_to_category(fun, "visualizer");
 	return EOK;
 }
 

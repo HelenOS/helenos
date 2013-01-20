@@ -26,30 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kgraph
+/** @addtogroup amdm37x
  * @{
  */
 /**
  * @file
  */
 
-#ifndef AMDM37X_DISPC_H_
-#define AMDM37X_DISPC_H_
+#include <errno.h>
 
-#include <graph.h>
+#include "amdm37x_dispc.h"
 
-#include "amdm37x_dispc_regs.h"
+const visualizer_ops_t amdm37x_dispc_vis_ops = { 0 };
 
-typedef struct {
-	amdm37x_dispc_regs_t *regs;
-	void *fb_data;
-} amdm37x_dispc_t;
+int amdm37x_dispc_init(amdm37x_dispc_t *instance)
+{
+	return EOK;
+};
 
-extern const visualizer_ops_t amdm37x_dispc_vis_ops;
+int amdm37x_dispc_fini(amdm37x_dispc_t *instance)
+{
+	return EOK;
+};
 
-int amdm37x_dispc_init(amdm37x_dispc_t *instance);
-int amdm37x_dispc_fini(amdm37x_dispc_t *instance);
-
-#endif
-/** @}
- */
