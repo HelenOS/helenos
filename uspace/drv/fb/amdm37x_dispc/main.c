@@ -36,34 +36,30 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <loc.h>
-#include <async.h>
-#include <task.h>
-#include <graph.h>
 #include "port.h"
 
 #define NAME  "amdm37x_dispc"
 
-static int kgraph_dev_add(ddf_dev_t *dev)
+static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
 	port_init(dev);
 	printf("%s: Accepting connections\n", NAME);
 	return EOK;
 }
 
-static driver_ops_t kgraph_driver_ops = {
-	.dev_add = kgraph_dev_add,
+static driver_ops_t amdm37x_dispc_driver_ops = {
+	.dev_add = amdm37x_dispc_dev_add,
 };
 
-static driver_t kgraph_driver = {
+static driver_t amdm37x_dispc_driver = {
 	.name = NAME,
-	.driver_ops = &kgraph_driver_ops
+	.driver_ops = &amdm37x_dispc_driver_ops
 };
 
 int main(int argc, char *argv[])
 {
-	printf("%s: HelenOS kernel framebuffer driver\n", NAME);
-	return ddf_driver_main(&kgraph_driver);
+	printf("%s: HelenOS AM/DM37x framebuffer driver\n", NAME);
+	return ddf_driver_main(&amdm37x_dispc_driver);
 }
 
 /** @}
