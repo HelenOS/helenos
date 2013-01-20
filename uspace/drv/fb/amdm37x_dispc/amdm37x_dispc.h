@@ -45,16 +45,20 @@
 typedef struct {
 	amdm37x_dispc_regs_t *regs;
 
-	unsigned fb_width;
-	unsigned fb_height;
 	unsigned offset;
-	unsigned scanline;
 	visual_t visual;
 
 	pixel2visual_t pixel2visual;
 	visual2pixel_t visual2pixel;
 	visual_mask_t visual_mask;
-	unsigned pixel_bytes;
+
+	struct {
+		unsigned width;
+		unsigned height;
+		unsigned pitch;
+		unsigned bpp;
+		unsigned idx;
+	} active_fb;
 
 	size_t size;
 	void *fb_data;

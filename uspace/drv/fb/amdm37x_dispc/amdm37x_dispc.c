@@ -243,21 +243,14 @@ static int amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	regs->control |= AMDM37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG;
 }
 
-static int handle_damage(visualizer_t *vs,
-    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
-    sysarg_t x_offset, sysarg_t y_offset)
-{
-	ddf_log_fatal("Handling damage\n");
-	return EOK;
-}
-
 static int change_mode(visualizer_t *vis, vslmode_t mode)
 {
 	assert(vis);
 	assert(vis->dev_ctx);
 
 	amdm37x_dispc_t *dispc = vis->dev_ctx;
-	const unsigned bpp = visual2bpp(mode.cell_visual.pixel_visual);
+	const visual_t visual = mode.cell_visual.pixel_visual;
+	const unsigned bpp = visual2bpp(visual);
 	const unsigned x = mode.screen_width;
 	const unsigned y = mode.screen_height;
 	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp);
@@ -270,8 +263,52 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 		return ret;
 	}
 	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp, (uint32_t)pa);
+	dispc->active_fb.idx = mode.index;
+	dispc->active_fb.width = x;
+	dispc->active_fb.height = y;
+	dispc->active_fb.pitch = 0;
+	dispc->active_fb.bpp = bpp;
+	assert(mode.index < 1);
 
 	if (dispc->fb_data)
 		dmamem_unmap_anonymous(dispc->fb_data);
 	return EOK;
 }
+
+static int handle_damage(visualizer_t *vs,
+    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
+    sysarg_t x_offset, sysarg_t y_offset)
+{
+	assert(vs);
+	assert(vs->dev_ctx);
+	amdm37x_dispc_t *dispc = vs->dev_ctx;
+	pixelmap_t *map = &vs->cells;
+
+#define FB_POS(x, y) \
+	(((y) * (dispc->active_fb.width + dispc->active_fb.pitch) + (x)) \
+	    * dispc->active_fb.bpp)
+	if (x_offset == 0 && y_offset == 0) {
+		/* Faster damage routine ignoring offsets. */
+		for (sysarg_t y = y0; y < height + y0; ++y) {
+			pixel_t *pixel = pixelmap_pixel_at(map, x0, y);
+			for (sysarg_t x = x0; x < width + x0; ++x) {
+				dispc->pixel2visual(
+				    dispc->fb_data + FB_POS(x, y), *pixel++);
+			}
+		}
+	} else {
+		for (sysarg_t y = y0; y < height + y0; ++y) {
+			for (sysarg_t x = x0; x < width + x0; ++x) {
+				dispc->pixel2visual(
+				    dispc->fb_data + FB_POS(x, y),
+				    *pixelmap_pixel_at(map,
+				        (x + x_offset) % map->width,
+				        (y + y_offset) % map->height));
+			}
+		}
+	}
+
+	ddf_log_note("Handling damage\n");
+	return EOK;
+}
+
