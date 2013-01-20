@@ -174,8 +174,11 @@ void cpu_arch_init(void)
 #endif
 
 #ifdef PROCESSOR_ARCH_armv7_a
-	PMCR_write(PMCR_read() | PMCR_E_FLAG | PMCR_D_FLAG);
-	PMCNTENSET_write(PMCNTENSET_CYCLE_COUNTER_EN_FLAG);
+	if ((ID_PFR1_read() & ID_PFR1_GEN_TIMER_EXT_MASK) !=
+	    ID_PFR1_GEN_TIMER_EXT) {
+		PMCR_write(PMCR_read() | PMCR_E_FLAG | PMCR_D_FLAG);
+		PMCNTENSET_write(PMCNTENSET_CYCLE_COUNTER_EN_FLAG);
+	}
 #endif
 }
 
