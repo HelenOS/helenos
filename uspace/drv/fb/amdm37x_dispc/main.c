@@ -27,23 +27,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kfb
+/** @addtogroup amdm37x
  * @{
  */
 /**
  * @file
  */
 
+#include <ddf/log.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
+#include <ops/graph_dev.h>
+#include <graph.h>
 #include "port.h"
+
+#include "amdm37x_dispc.h"
 
 #define NAME  "amdm37x_dispc"
 
+static graph_dev_ops_t graph_vsl_dev_ops = {
+	.connect = (connect_func) &graph_visualizer_connection
+};
+
+static ddf_dev_ops_t graph_fun_ops = {
+	.interfaces[GRAPH_DEV_IFACE] = &graph_vsl_dev_ops
+};
+
 static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
-	port_init(dev);
-	printf("%s: Accepting connections\n", NAME);
+	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "dispc");
+	if (!fun) {
+		ddf_log_error("Failed to create visualizer function\n");
+		return ENOMEM;
+	}
+	amdm37x_dispc_t *dispc =
+	    ddf_fun_data_alloc(fun, sizeof(amdm37x_dispc_t));
+	if (!dispc) {
+		ddf_log_error("Failed to allocate dispc structure\n");
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+	ddf_fun_set_ops(fun, &graph_fun_ops);
+	int ret = amdm37x_dispc_init(dispc);
+	if (ret != EOK) {
+		ddf_log_error("Failed to init dispc: %s\n", str_error(ret));
+		ddf_fun_destroy(fun);
+		return ret;
+	}
+	ret = ddf_fun_bind(fun);
+	if (ret != EOK) {
+		ddf_log_error("Failed to bind function: %s\n", str_error(ret));
+		amdm37x_dispc_fini(dispc);
+		ddf_fun_destroy(fun);
+		return ret;
+	}
 	return EOK;
 }
 
@@ -59,6 +97,7 @@ static driver_t amdm37x_dispc_driver = {
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS AM/DM37x framebuffer driver\n", NAME);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&amdm37x_dispc_driver);
 }
 
