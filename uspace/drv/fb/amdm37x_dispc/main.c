@@ -56,12 +56,24 @@ static ddf_dev_ops_t graph_fun_ops = {
 
 static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
+	/* Visualizer part */
 	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "dispc");
 	if (!fun) {
 		ddf_log_error("Failed to create visualizer function\n");
 		return ENOMEM;
 	}
 
+	visualizer_t *vis = ddf_fun_data_alloc(fun, sizeof(visualizer_t));
+	if (!vis) {
+		ddf_log_error("Failed to allocate visualizer structure\n");
+		ddf_fun_destroy(fun);
+		return ENOMEM;
+	}
+
+	graph_init_visualizer(vis);
+	vis->reg_svc_handle = ddf_fun_get_handle(fun);
+
+	ddf_fun_set_ops(fun, &graph_fun_ops);
 	/* Hw part */
 	amdm37x_dispc_t *dispc =
 	    ddf_dev_data_alloc(dev, sizeof(amdm37x_dispc_t));
@@ -71,29 +83,14 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 
-	int ret = amdm37x_dispc_init(dispc);
+	int ret = amdm37x_dispc_init(dispc, vis);
 	if (ret != EOK) {
 		ddf_log_error("Failed to init dispc: %s\n", str_error(ret));
 		ddf_fun_destroy(fun);
 		return ret;
 	}
 
-	/* Visualizer part */
-	visualizer_t *vis = ddf_fun_data_alloc(fun, sizeof(visualizer_t));
-	if (!vis) {
-		ddf_log_error("Failed to allocate visualizer structure\n");
-		ddf_fun_destroy(fun);
-		return ENOMEM;
-	}
-
-	graph_init_visualizer(vis);
-	vis->def_mode_idx = 0; // TODO: What is this? Why is this not handled
-	                       // via init?
-	vis->ops = amdm37x_dispc_vis_ops;
-	vis->dev_ctx = dispc;
-	vis->reg_svc_handle = ddf_fun_get_handle(fun);
-
-	ddf_fun_set_ops(fun, &graph_fun_ops);
+	/* Report to devman */
 	ret = ddf_fun_bind(fun);
 	if (ret != EOK) {
 		ddf_log_error("Failed to bind function: %s\n", str_error(ret));

@@ -37,17 +37,32 @@
 #define AMDM37X_DISPC_H_
 
 #include <graph.h>
+#include <abi/fb/visuals.h>
+#include <pixconv.h>
 
 #include "amdm37x_dispc_regs.h"
 
 typedef struct {
 	amdm37x_dispc_regs_t *regs;
+
+	unsigned fb_width;
+	unsigned fb_height;
+	unsigned offset;
+	unsigned scanline;
+	visual_t visual;
+
+	pixel2visual_t pixel2visual;
+	visual2pixel_t visual2pixel;
+	visual_mask_t visual_mask;
+	unsigned pixel_bytes;
+
+	size_t size;
 	void *fb_data;
+
+	vslmode_list_element_t modes[1];
 } amdm37x_dispc_t;
 
-extern const visualizer_ops_t amdm37x_dispc_vis_ops;
-
-int amdm37x_dispc_init(amdm37x_dispc_t *instance);
+int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis);
 int amdm37x_dispc_fini(amdm37x_dispc_t *instance);
 
 #endif
