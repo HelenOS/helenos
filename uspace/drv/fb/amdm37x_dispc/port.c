@@ -54,11 +54,11 @@
 #include <io/pixelmap.h>
 #include <io/chargrid.h>
 
+#include <ops/graph_dev.h>
 #include <pixconv.h>
 
 #include <graph.h>
 
-#include "kfb.h"
 #include "port.h"
 
 #define FB_POS(x, y)  ((y) * kfb.scanline + (x) * kfb.pixel_bytes)
@@ -78,6 +78,14 @@ typedef struct {
 	size_t size;
 	uint8_t *addr;
 } kfb_t;
+
+static graph_dev_ops_t graph_vsl_dev_ops = {
+	.connect = (connect_func) &graph_visualizer_connection
+};
+
+static ddf_dev_ops_t graph_vsl_device_ops = {
+	.interfaces[GRAPH_DEV_IFACE] = &graph_vsl_dev_ops
+};
 
 static kfb_t kfb;
 
