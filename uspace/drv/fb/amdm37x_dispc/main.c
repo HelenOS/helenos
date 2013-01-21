@@ -40,7 +40,6 @@
 #include <stdio.h>
 #include <ops/graph_dev.h>
 #include <graph.h>
-#include "port.h"
 
 #include "amdm37x_dispc.h"
 
@@ -56,8 +55,9 @@ static ddf_dev_ops_t graph_fun_ops = {
 
 static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
+	assert(dev);
 	/* Visualizer part */
-	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "dispc");
+	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "viz");
 	if (!fun) {
 		ddf_log_error("Failed to create visualizer function\n");
 		return ENOMEM;
@@ -99,6 +99,8 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 	ddf_fun_add_to_category(fun, "visualizer");
+
+	ddf_log_note("Added device `%s'\n", ddf_dev_get_name(dev));
 	return EOK;
 }
 

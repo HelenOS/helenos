@@ -41,18 +41,23 @@
 
 #include "amdm37x_dispc.h"
 
-
 static int change_mode(visualizer_t *vis, vslmode_t mode);
 static int handle_damage(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
     sysarg_t x_offset, sysarg_t y_offset);
+static int dummy(visualizer_t *vs)
+{
+	return EOK;
+}
 
 static const visualizer_ops_t amdm37x_dispc_vis_ops = {
 	.change_mode = change_mode,
 	.handle_damage = handle_damage,
-	// TODO DO we need dummy implementations of stuff like claim, yield, ...
+	.claim = dummy,
+	.yield = dummy,
+	.suspend = dummy,
+	.wakeup = dummy,
 };
-
 
 static const struct {
 	unsigned bpp;
@@ -126,6 +131,7 @@ int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 	/* Handle vis stuff */
 	vis->dev_ctx = instance;
 	vis->def_mode_idx = 0;
+	vis->ops = amdm37x_dispc_vis_ops;
 	list_append(&instance->modes[0].link, &vis->modes);
 
 	return EOK;
@@ -236,6 +242,7 @@ static int amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	/* Enable output */
 	regs->control |= AMDM37X_DISPC_CONTROL_LCD_ENABLE_FLAG;
 	regs->control |= AMDM37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG;
+	return EOK;
 }
 
 static int change_mode(visualizer_t *vis, vslmode_t mode)
@@ -250,8 +257,8 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	pixel2visual_t p2v = pixel2visual_table[visual].func;
 	const unsigned x = mode.screen_width;
 	const unsigned y = mode.screen_height;
-	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp);
-	const size_t size = x * y * bpp;
+	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp*8);
+	const size_t size = ALIGN_UP(x * y * bpp, PAGE_SIZE);
 	void *buffer, *pa;
 	int ret = dmamem_map_anonymous(size, AS_AREA_READ | AS_AREA_WRITE,
 	    0, &pa, &buffer);
@@ -259,13 +266,15 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 		ddf_log_error("Failed to get new FB\n");
 		return ret;
 	}
-	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp, (uint32_t)pa);
+	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp *8, (uint32_t)pa);
 	dispc->active_fb.idx = mode.index;
 	dispc->active_fb.width = x;
 	dispc->active_fb.height = y;
 	dispc->active_fb.pitch = 0;
 	dispc->active_fb.bpp = bpp;
 	dispc->active_fb.pixel2visual = p2v;
+	dispc->fb_data = buffer;
+	dispc->size = size;
 	assert(mode.index < 1);
 
 	if (dispc->fb_data)

@@ -43,7 +43,6 @@ EXTRA_CFLAGS += \
 BINARY = amdm37x_dispc
 
 SOURCES = \
-	port.c \
 	amdm37x_dispc.c \
 	main.c
 
