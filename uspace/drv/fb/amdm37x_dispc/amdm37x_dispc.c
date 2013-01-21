@@ -315,7 +315,5 @@ static int handle_damage(visualizer_t *vs,
 		}
 	}
 
-	ddf_log_note("Handling damage\n");
 	return EOK;
 }
-

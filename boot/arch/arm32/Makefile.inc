@@ -58,6 +58,7 @@ endif
 
 RD_DRVS += \
 	infrastructure/rootamdm37x \
+	fb/amdm37x_dispc \
 	bus/usb/ehci \
 	bus/usb/ohci \
 	bus/usb/usbflbk \

@@ -193,7 +193,8 @@ endif
 
 ifeq ($(UARCH),arm32)
 	DIRS += \
-		drv/infrastructure/rootamdm37x
+		drv/infrastructure/rootamdm37x \
+		drv/fb/amdm37x_dispc
 endif
 
 ## System libraries
