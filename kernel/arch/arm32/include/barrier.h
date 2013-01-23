@@ -112,7 +112,8 @@ do { \
 	ICIALLU_write(0);            /* Flush ICache */\
 	inst_barrier();              /* Wait for Inst refetch */\
 } while (0)
-//TODO would be better to use cacheline size here
+/* @note: Cache type register is not awailable in uspace. We would need
+ * to export the cache line value, or use syscall for uspace smc_coherence */
 #define smc_coherence_block(a, l) \
 do { \
 	for (uintptr_t addr = (uintptr_t)a; addr < (uintptr_t)a + l; addr += 4)\
