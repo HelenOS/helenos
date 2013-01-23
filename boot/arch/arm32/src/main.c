@@ -68,12 +68,12 @@ static inline void invalidate_dcache(void *address, size_t size)
 	}
 }
 
-static inline void clean_dcache_pou(void *address, size_t size)
+static inline void clean_dcache_poc(void *address, size_t size)
 {
 	const uintptr_t addr = (uintptr_t)address;
-	/* DCCMVAU - clean by address to the point of unification */
+	/* DCCMVAC - clean by address to the point of coherence */
 	for (uintptr_t a = addr; a < addr + size; a += 4) {
-		asm volatile ("mcr p15, 0, %[a], c7, c11, 1\n" :: [a]"r"(a) : );
+		asm volatile ("mcr p15, 0, %[a], c7, c10, 1\n" :: [a]"r"(a) : );
 	}
 }
 
@@ -147,7 +147,7 @@ void bootstrap(void)
 			printf("\n%s: Inflating error %d\n", components[i - 1].name, err);
 			halt();
 		}
-		clean_dcache_pou(dest[i - 1], components[i - 1].inflated);
+		clean_dcache_poc(dest[i - 1], components[i - 1].inflated);
 	}
 	
 	printf(".\n");
