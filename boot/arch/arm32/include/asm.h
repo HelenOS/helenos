@@ -48,7 +48,7 @@ extern void *boot_stack;
  * @param bootinfo Structure holding information about loaded tasks.
  *
  */
-extern void jump_to_kernel(void *entry, void *bootinfo, void *kernel_end)
+extern void jump_to_kernel(void *entry, void *bootinfo)
     __attribute__((noreturn));
 
 #endif

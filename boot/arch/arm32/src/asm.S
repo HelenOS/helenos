@@ -63,7 +63,6 @@ jump_to_kernel:
 	#
 	# r0 is kernel entry point
 	# r1 is pointer to the bootinfo structure
-	# r2 is a kernel text end
 
 #define CP15_C1_IC		12
 #define CP15_C1_BP		11
