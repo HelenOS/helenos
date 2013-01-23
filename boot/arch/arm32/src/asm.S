@@ -65,28 +65,6 @@ jump_to_kernel:
 	# r1 is pointer to the bootinfo structure
 	# r2 is a kernel text end
 
-	# make sure kernel is flushed and available in memory
-	# Disable I-cache and D-cache before the kernel is started.
-	# TODO disabling DCache should not be necessary...
-#define CP15_C1_IC		12
-#define CP15_C1_DC		2
-	mrc	p15, 0, r4, c1, c0, 0
-	bic	r4, r4, #(1 << CP15_C1_DC)
-	bic	r4, r4, #(1 << CP15_C1_IC)
-	mcr	p15, 0, r4, c1, c0, 0
-
-	# use r4 as a moving pointer
-	mov r4, r0
-3:
-	# DCCMVAC (flush by virt address, to the point of coherence)
-	mcr p15, 0, r4, c7, c10, 1
-	# TODO: it would be better to use cacheline size
-	add r4, r4, #4
-	# are we there yet?
-	cmp r4, r2
-	blt 3b
-	nop
-	mov r4, #0
 	
 	#Wait for the operations to complete
 #ifdef PROCESSOR_ARCH_armv7_a
@@ -98,13 +76,16 @@ jump_to_kernel:
 	
 	# Clean ICache and BPredictors, r4 ignored (SBZ)
 	mcr p15, 0, r4, c7, c5, 0
+	nop
 
 	#Wait for the operations to complete
 #ifdef PROCESSOR_ARCH_armv7_a
 	isb
+	nop
 #else
 	# cp15 isb
 	mcr p15, 0, r4, c7, c5, 4
+	nop
 #endif
 	
 

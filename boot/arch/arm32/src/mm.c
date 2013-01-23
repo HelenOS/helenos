@@ -58,7 +58,7 @@ static inline int section_cacheable(pfn_t section)
 #elif defined MACHINE_beagleboardxm
 	const unsigned long address = section << PTE_SECTION_SHIFT;
 	if (address >= BBXM_RAM_START && address < BBXM_RAM_END)
-		return 0;
+		return 1;
 #endif
 	return 0;
 }
@@ -132,14 +132,6 @@ static void enable_paging()
 		"ldr r0, =0x55555555\n"
 		"mcr p15, 0, r0, c3, c0, 0\n"
 		
-#ifdef PROCESSOR_ARCH_armv7_a
-		/* armv7 no longer requires cache entries to be invalid
-		 * upon reset, do this manually */
-		/* Invalidate ICache */
-		"mcr p15, 0, r0, c7, c5, 6\n"
-		//TODO: Invalidate data cache
-#endif
-
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
@@ -150,7 +142,7 @@ static void enable_paging()
 		 * See Cortex-A8 TRM ch. 7.2.6 p. 7-4 (PDF 245).
 		 * It's safe for gta02 too because we turn the caches off
 		 * before switching to kernel. */
-		"ldr r1, =0x00001805\n"
+		"ldr r1, =0x00001801\n"
 #elif defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
 		/* Enable paging, data cache and branch prediction
 		 * see arch/arm32/src/cpu/cpu.c for reasoning */
