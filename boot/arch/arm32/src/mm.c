@@ -69,6 +69,10 @@ static inline int section_cacheable(pfn_t section)
 	const unsigned long address = section << PTE_SECTION_SHIFT;
 	if (address >= BBXM_RAM_START && address < BBXM_RAM_END)
 		return 1;
+#elif defined MACHINE_beaglebone
+	const unsigned long address = section << PTE_SECTION_SHIFT;
+	if (address >= AM335x_RAM_START && address < AM335x_RAM_END)
+		return 1;
 #endif
 	return 0;
 }
