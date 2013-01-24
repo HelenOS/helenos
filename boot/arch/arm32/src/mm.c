@@ -37,6 +37,16 @@
 #include <arch/asm.h>
 #include <arch/mm.h>
 
+/** Disable the MMU */
+static void disable_paging(void)
+{
+	asm volatile (
+		"mrc p15, 0, r0, c1, c0, 0\n"
+		"bic r0, r0, #1\n"
+		"mcr p15, 0, r0, c1, c0, 0\n"
+	);
+}
+
 /** Check if caching can be enabled for a given memory section.
  *
  * Memory areas used for I/O are excluded from caching.
@@ -99,20 +109,6 @@ static void init_boot_pt(void)
 	for (page = 0; page < split_page; page++)
 		init_ptl0_section(&boot_pt[page], page);
 	
-	/*
-	 * Create 1:1 virtual-physical mapping in kernel space
-	 * (upper 2 GB), physical addresses start from 0.
-	 */
-	/* BeagleBoard-xM (DM37x) memory starts at 2GB border,
-	 * thus mapping only lower 2GB is not not enough.
-	 * Map entire AS 1:1 instead and hope it works. */
-	for (page = split_page; page < PTL0_ENTRIES; page++)
-#ifndef MACHINE_beagleboardxm
-		init_ptl0_section(&boot_pt[page], page - split_page);
-#else
-		init_ptl0_section(&boot_pt[page], page);
-#endif
-	
 	asm volatile (
 		"mcr p15, 0, %[pt], c2, c0, 0\n"
 		:: [pt] "r" (boot_pt)
@@ -128,16 +124,7 @@ static void enable_paging()
 		/* Behave as a client of domains */
 		"ldr r0, =0x55555555\n"
 		"mcr p15, 0, r0, c3, c0, 0\n"
-		
-#ifdef PROCESSOR_armv7_a
-		/* Read Auxiliary control register */
-		"mrc p15, 0, r0, c1, c0, 1\n"
-		/* Mask to enable L2 cache */
-		"ldr r1, =0x00000002\n"
-		"orr r0, r0, r1\n"
-		/* Store Auxiliary control register */
-		"mrc p15, 0, r0, c1, c0, 1\n"
-#endif
+
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
@@ -155,8 +142,11 @@ static void enable_paging()
 #endif
 #endif
 		"orr r0, r0, r1\n"
+
+		/* Flush the TLB */
+		"mcr p15, 0, r0, c8, c7, 0\n"
 		
-		/* Store settings */
+		/* Store settings, enable the MMU */
 		"mcr p15, 0, r0, c1, c0, 0\n"
 		::: "r0", "r1"
 	);
@@ -164,6 +154,7 @@ static void enable_paging()
 
 /** Start the MMU - initialize page table and enable paging. */
 void mmu_start() {
+	disable_paging();
 	init_boot_pt();
 	enable_paging();
 }
