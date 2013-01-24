@@ -36,6 +36,8 @@
 #include <fpu_context.h>
 #include <arch.h>
 #include <arch/types.h>
+#include <arch/security_ext.h>
+#include <arch/cp15.h>
 #include <cpu.h>
 
 #define FPSID_IMPLEMENTER(r)   ((r) >> 24)
@@ -54,10 +56,15 @@ enum {
 	FPU_VFPv3_COMMONv3 = 0x4,
 };
 
+extern uint32_t fpsid_read(void);
+extern uint32_t mvfr0_read(void);
+
 enum {
 	FPEXC_EX_FLAG = (1 << 31),
 	FPEXC_ENABLED_FLAG = (1 << 30),
 };
+extern uint32_t fpexc_read(void);
+extern void fpexc_write(uint32_t);
 
 /** ARM Architecture Reference Manual ch. B4.1.58, p. B$-1551 */
 enum {
@@ -93,142 +100,71 @@ enum {
 
 	FPSCR_EN_ALL = FPSCR_DENORMAL_EN_FLAG | FPSCR_INEXACT_EN_FLAG | FPSCR_UNDERFLOW_EN_FLAG | FPSCR_OVERFLOW_EN_FLAG | FPSCR_ZERO_DIV_EN_FLAG | FPSCR_INVALID_OP_EN_FLAG,
 };
+extern uint32_t fpscr_read(void);
+extern void fpscr_write(uint32_t);
 
-static inline uint32_t fpscr_read()
-{
-	uint32_t reg;
-	asm volatile (
-		"vmrs %0, fpscr\n"
-		:"=r" (reg)::
-	);
-	return reg;
-}
-
-static inline void fpscr_write(uint32_t val)
-{
-	asm volatile (
-		"vmsr fpscr, %0\n"
-		::"r" (val):
-	);
-}
-
-static inline uint32_t fpexc_read()
-{
-	uint32_t reg;
-	asm volatile (
-		"vmrs %0, fpexc\n"
-		:"=r" (reg)::
-	);
-	return reg;
-}
-
-static inline void fpexc_write(uint32_t val)
-{
-	asm volatile (
-		"vmsr fpexc, %0\n"
-		::"r" (val):
-	);
-}
+extern void fpu_context_save_s32(fpu_context_t *);
+extern void fpu_context_restore_s32(fpu_context_t *);
+extern void fpu_context_save_d16(fpu_context_t *);
+extern void fpu_context_restore_d16(fpu_context_t *);
+extern void fpu_context_save_d32(fpu_context_t *);
+extern void fpu_context_restore_d32(fpu_context_t *);
 
 static void (*save_context)(fpu_context_t *ctx);
 static void (*restore_context)(fpu_context_t *ctx);
 
-/** Saves 32 single precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv1
- */
-static void fpu_context_save_s32(fpu_context_t *ctx)
+static int fpu_have_coprocessor_access()
 {
-	asm volatile (
-		"vmrs r1, fpexc\n"
-		"vmrs r2, fpscr\n"
-		"stmia %0!, {r1, r2}\n"
-		"vstmia %0!, {s0-s31}\n"
-		::"r" (ctx): "r1","r2","memory"
-	);
+/* The register containing the information (CPACR) is not available on armv6-
+ * rely on user decision to use CONFIG_FPU.
+ */
+#ifdef PROCESSOR_ARC_armv7_a
+	const uint32_t cpacr = CPACR_read();
+	/* FPU needs access to coprocessor 10 and 11.
+	 * Moreover they need to have same access enabledd */
+	if (((cpacr & CPACR_CP_MASK(10)) != CPACR_CP_FULL_ACCESS(10)) &&
+	   ((cpacr & CPACR_CP_MASK(11)) != CPACR_CP_FULL_ACCESS(11))) {
+		printf("No access to CP10 and CP11: %" PRIx32 "\n", cpacr);
+		return 0;
+	}
+#endif
+	return 1;
 }
 
-/** Restores 32 single precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv1
+/** Enable coprocessor access. Turn both non-secure mode bit and generic access.
+ * Cortex A8 Manual says:
+ * "You must execute an Instruction Memory Barrier (IMB) sequence immediately
+ * after an update of the Coprocessor Access Control Register, see Memory
+ * Barriers in the ARM Architecture Reference Manual. You must not attempt to
+ * execute any instructions that are affected by the change of access rights
+ * between the IMB sequence and the register update."
+ * Cortex a8 TRM ch. 3.2.27. c1, Coprocessor Access Control Register
+ *
+ * @note do we need to call secure monitor here?
  */
-static void fpu_context_restore_s32(fpu_context_t *ctx)
+static void fpu_enable_coprocessor_access()
 {
-	asm volatile (
-		"ldmia %0!, {r1, r2}\n"
-		"vmsr fpexc, r1\n"
-		"vmsr fpscr, r2\n"
-		"vldmia %0!, {s0-s31}\n"
-		::"r" (ctx): "r1","r2"
-	);
+/* The register containing the information (CPACR) is not available on armv6-
+ * rely on user decision to use CONFIG_FPU.
+ */
+#ifdef PROCESSOR_ARCH_armv7_a
+	/* Allow coprocessor access */
+	uint32_t cpacr = CPACR_read();
+	/* FPU needs access to coprocessor 10 and 11.
+	 * Moreover, they need to have same access enabled */
+	cpacr &= ~(CPACR_CP_MASK(10) | CPACR_CP_MASK(11));
+	cpacr |= (CPACR_CP_FULL_ACCESS(10) | CPACR_CP_FULL_ACCESS(11));
+	CPACR_write(cpacr);
+#endif
 }
 
-/** Saves 16 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv2, VFPv3-d16, and VFPv4-d16.
- */
-static void fpu_context_save_d16(fpu_context_t *ctx)
-{
-	asm volatile (
-		"vmrs r1, fpexc\n"
-		"vmrs r2, fpscr\n"
-		"stmia %0!, {r1, r2}\n"
-		"vstmia %0!, {d0-d15}\n"
-		::"r" (ctx): "r1","r2","memory"
-	);
-}
-
-/** Restores 16 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv2, VFPv3-d16, and VFPv4-d16.
- */
-static void fpu_context_restore_d16(fpu_context_t *ctx)
-{
-	asm volatile (
-		"ldmia %0!, {r1, r2}\n"
-		"vmsr fpexc, r1\n"
-		"vmsr fpscr, r2\n"
-		"vldmia %0!, {d0-d15}\n"
-		::"r" (ctx): "r1","r2"
-	);
-}
-
-/** Saves 32 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv3-d32, VFPv4-d32, and advanced SIMD.
- */
-static void fpu_context_save_d32(fpu_context_t *ctx)
-{
-	asm volatile (
-		"vmrs r1, fpexc\n"
-		"stmia %0!, {r1}\n"
-		"vmrs r1, fpscr\n"
-		"stmia %0!, {r1}\n"
-		"vstmia %0!, {d0-d15}\n"
-		"vstmia %0!, {d16-d31}\n"
-		::"r" (ctx): "r1","memory"
-	);
-}
-
-/** Restores 32 double precision fpu registers.
- * @param ctx FPU context area.
- * Used by VFPv3-d32, VFPv4-d32, and advanced SIMD.
- */
-static void fpu_context_restore_d32(fpu_context_t *ctx)
-{
-	asm volatile (
-		"ldmia %0!, {r1}\n"
-		"vmsr fpexc, r1\n"
-		"ldmia %0!, {r1}\n"
-		"vmsr fpscr, r1\n"
-		"vldmia %0!, {d0-d15}\n"
-		"vldmia %0!, {d16-d31}\n"
-		::"r" (ctx): "r1"
-	);
-}
 
 void fpu_init(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
+
 	/* Clear all fpu flags */
 	fpexc_write(0);
 	fpu_enable();
@@ -240,11 +176,14 @@ void fpu_init(void)
 
 void fpu_setup(void)
 {
-	uint32_t fpsid = 0;
-	asm volatile (
-		"vmrs %0, fpsid\n"
-		:"=r"(fpsid)::
-	);
+	/* Enable coprocessor access*/
+	fpu_enable_coprocessor_access();
+
+	/* Check if we succeeded */
+	if (!fpu_have_coprocessor_access())
+		return;
+
+	const uint32_t fpsid = fpsid_read();
 	if (fpsid & FPSID_SW_ONLY_FLAG) {
 		printf("No FPU avaiable\n");
 		return;
@@ -264,11 +203,7 @@ void fpu_setup(void)
 	case FPU_VFPv3_COMMONv2:
 	case FPU_VFPv3_NO_COMMON:
 	case FPU_VFPv3_COMMONv3: {
-		uint32_t mvfr0 = 0;
-		asm volatile (
-			"vmrs %0,mvfr0\n"
-			:"=r"(mvfr0)::
-		);
+		const uint32_t mvfr0 = mvfr0_read();
 		/* See page B4-1637 */
 		if ((mvfr0 & 0xf) == 0x1) {
 			printf("Detected VFPv3+ with 16 regs\n");
@@ -287,6 +222,10 @@ void fpu_setup(void)
 
 bool handle_if_fpu_exception(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return false;
+
 	const uint32_t fpexc = fpexc_read();
 	if (fpexc & FPEXC_ENABLED_FLAG) {
 		const uint32_t fpscr = fpscr_read();
@@ -304,24 +243,33 @@ bool handle_if_fpu_exception(void)
 
 void fpu_enable(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
 	/* Enable FPU instructions */
 	fpexc_write(fpexc_read() | FPEXC_ENABLED_FLAG);
 }
 
 void fpu_disable(void)
 {
+	/* Check if we have access */
+	if (!fpu_have_coprocessor_access())
+		return;
 	/* Disable FPU instructions */
 	fpexc_write(fpexc_read() & ~FPEXC_ENABLED_FLAG);
 }
 
 void fpu_context_save(fpu_context_t *ctx)
 {
+	/* This is only necessary if we enable fpu exceptions. */
+#if 0
 	const uint32_t fpexc = fpexc_read();
 
 	if (fpexc & FPEXC_EX_FLAG) {
 		printf("EX FPU flag is on, things will fail\n");
 		//TODO implement common subarch context saving
 	}
+#endif
 	if (save_context)
 		save_context(ctx);
 }

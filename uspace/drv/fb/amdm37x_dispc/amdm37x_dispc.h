@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm
+/** @addtogroup kgraph
  * @{
  */
-/** @file
- *  @brief Frame related declarations.
+/**
+ * @file
  */
 
-#ifndef KERN_arm32_FRAME_H_
-#define KERN_arm32_FRAME_H_
+#ifndef AMDM37X_DISPC_H_
+#define AMDM37X_DISPC_H_
 
-#define FRAME_WIDTH  12  /* 4KB frames */
-#define FRAME_SIZE   (1 << FRAME_WIDTH)
+#include <graph.h>
+#include <abi/fb/visuals.h>
+#include <pixconv.h>
 
-#ifndef __ASM__
+#include "amdm37x_dispc_regs.h"
 
-#include <typedefs.h>
+typedef struct {
+	amdm37x_dispc_regs_t *regs;
 
-#define BOOT_PAGE_TABLE_SIZE     0x4000
+	struct {
+		pixel2visual_t pixel2visual;
+		unsigned width;
+		unsigned height;
+		unsigned pitch;
+		unsigned bpp;
+		unsigned idx;
+	} active_fb;
 
-#ifdef MACHINE_gta02
+	size_t size;
+	void *fb_data;
 
-#define PHYSMEM_START_ADDR       0x30008000
-#define BOOT_PAGE_TABLE_ADDRESS  0x30010000
+	vslmode_list_element_t modes[1];
+} amdm37x_dispc_t;
 
-#elif defined MACHINE_beagleboardxm
-
-#define PHYSMEM_START_ADDR       0x80000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
-
-#elif defined MACHINE_beaglebone
-
-#define PHYSMEM_START_ADDR       0x80000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
-
-#else
-
-#define PHYSMEM_START_ADDR       0x00000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x00008000
+int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis);
+int amdm37x_dispc_fini(amdm37x_dispc_t *instance);
 
 #endif
-
-#define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
-#define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
-
-extern void frame_low_arch_init(void);
-extern void frame_high_arch_init(void);
-extern void boot_page_table_free(void);
-#define physmem_print()
-
-#endif /* __ASM__ */
-
-#endif
-
 /** @}
  */

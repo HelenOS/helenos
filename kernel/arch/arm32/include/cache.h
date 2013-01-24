@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm
+/** @addtogroup arm32
  * @{
  */
 /** @file
- *  @brief Frame related declarations.
+ *  @brief Security Extensions Routines
  */
 
-#ifndef KERN_arm32_FRAME_H_
-#define KERN_arm32_FRAME_H_
+#ifndef KERN_arm32_CACHE_H_
+#define KERN_arm32_CACHE_H_
 
-#define FRAME_WIDTH  12  /* 4KB frames */
-#define FRAME_SIZE   (1 << FRAME_WIDTH)
+unsigned dcache_levels(void);
 
-#ifndef __ASM__
-
-#include <typedefs.h>
-
-#define BOOT_PAGE_TABLE_SIZE     0x4000
-
-#ifdef MACHINE_gta02
-
-#define PHYSMEM_START_ADDR       0x30008000
-#define BOOT_PAGE_TABLE_ADDRESS  0x30010000
-
-#elif defined MACHINE_beagleboardxm
-
-#define PHYSMEM_START_ADDR       0x80000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
-
-#elif defined MACHINE_beaglebone
-
-#define PHYSMEM_START_ADDR       0x80000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
-
-#else
-
-#define PHYSMEM_START_ADDR       0x00000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x00008000
+void dcache_flush(void);
+void dcache_flush_invalidate(void);
+void cpu_dcache_flush(void);
+void cpu_dcache_flush_invalidate(void);
+void icache_invalidate(void);
 
 #endif
-
-#define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
-#define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
-
-extern void frame_low_arch_init(void);
-extern void frame_high_arch_init(void);
-extern void boot_page_table_free(void);
-#define physmem_print()
-
-#endif /* __ASM__ */
-
-#endif
-
 /** @}
  */
+

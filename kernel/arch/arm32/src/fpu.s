@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,90 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm
- * @{
- */
-/** @file
- *  @brief Frame related declarations.
- */
+.text
 
-#ifndef KERN_arm32_FRAME_H_
-#define KERN_arm32_FRAME_H_
+.global fpsid_read
+.global mvfr0_read
+.global fpscr_read
+.global fpscr_write
+.global fpexc_read
+.global fpexc_write
 
-#define FRAME_WIDTH  12  /* 4KB frames */
-#define FRAME_SIZE   (1 << FRAME_WIDTH)
+.global fpu_context_save_s32
+.global fpu_context_restore_s32
+.global fpu_context_save_d16
+.global fpu_context_restore_d16
+.global fpu_context_save_d32
+.global fpu_context_restore_d32
 
-#ifndef __ASM__
+fpsid_read:
+	vmrs r0, fpsid
+	mov pc, lr
 
-#include <typedefs.h>
+mvfr0_read:
+	vmrs r0, mvfr0
+	mov pc, lr
 
-#define BOOT_PAGE_TABLE_SIZE     0x4000
+fpscr_read:
+	vmrs r0, fpscr
+	mov pc, lr
 
-#ifdef MACHINE_gta02
+fpscr_write:
+	vmsr fpscr, r0
+	mov pc, lr
 
-#define PHYSMEM_START_ADDR       0x30008000
-#define BOOT_PAGE_TABLE_ADDRESS  0x30010000
+fpexc_read:
+	vmrs r0, fpexc
+	mov pc, lr
 
-#elif defined MACHINE_beagleboardxm
+fpexc_write:
+	vmsr fpexc, r0
+	mov pc, lr
 
-#define PHYSMEM_START_ADDR       0x80000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
+fpu_context_save_s32:
+	vmrs r1, fpexc
+	vmrs r2, fpscr
+	stmia r0!, {r1, r2}
+	vstmia r0!, {s0-s31}
+	mov pc, lr
 
-#elif defined MACHINE_beaglebone
+fpu_context_restore_s32:
+	ldmia r0!, {r1, r2}
+	vmsr fpexc, r1
+	vmsr fpscr, r2
+	vldmia r0!, {s0-s31}
+	mov pc, lr
 
-#define PHYSMEM_START_ADDR       0x80000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
+fpu_context_save_d16:
+	vmrs r1, fpexc
+	vmrs r2, fpscr
+	stmia r0!, {r1, r2}
+	vstmia r0!, {d0-d15}
+	mov pc, lr
 
-#else
+fpu_context_restore_d16:
+	ldmia r0!, {r1, r2}
+	vmsr fpexc, r1
+	vmsr fpscr, r2
+	vldmia r0!, {d0-d15}
+	mov pc, lr
 
-#define PHYSMEM_START_ADDR       0x00000000
-#define BOOT_PAGE_TABLE_ADDRESS  0x00008000
+fpu_context_save_d32:
+	vmrs r1, fpexc
+	stmia r0!, {r1}
+	vmrs r1, fpscr
+	stmia r0!, {r1}
+	vstmia r0!, {d0-d15}
+	vstmia r0!, {d16-d31}
+	mov pc, lr
 
-#endif
+fpu_context_restore_d32:
+	ldmia r0!, {r1, r2}
+	vmsr fpexc, r1
+	vmsr fpscr, r2
+	vldmia r0!, {d0-d15}
+	vldmia r0!, {d16-d31}
+	mov pc, lr
 
-#define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
-#define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
 
-extern void frame_low_arch_init(void);
-extern void frame_high_arch_init(void);
-extern void boot_page_table_free(void);
-#define physmem_print()
 
-#endif /* __ASM__ */
-
-#endif
-
-/** @}
- */

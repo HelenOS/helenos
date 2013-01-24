@@ -1,5 +1,7 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Petr Koupy
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,59 +28,22 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE), gta02)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x30008000
-	SADDR = 0x30008000
-	POSTBUILD = Makefile.uboot
-endif
+USPACE_PREFIX = ../../..
 
-ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x80000000
-	SADDR = 0x80000000
-	POSTBUILD = Makefile.uboot
-endif
+LIBS = \
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBGRAPH_PREFIX)/libgraph.a \
+	$(LIBSOFTREND_PREFIX)/libsoftrend.a
 
-BFD_NAME = elf32-littlearm
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = arm
+EXTRA_CFLAGS += \
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBGRAPH_PREFIX) \
+	-I$(LIBSOFTREND_PREFIX)
 
-BITS = 32
-ENDIANESS = LE
-EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
-
-ifeq ($(MACHINE), gta02)
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
-	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24xx_uart
-endif
-
-RD_DRVS += \
-	infrastructure/rootamdm37x \
-	fb/amdm37x_dispc \
-	bus/usb/ehci \
-	bus/usb/ohci \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbhid \
-	bus/usb/usbmast \
-	bus/usb/usbmid
+BINARY = amdm37x_dispc
 
 SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/eabi.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/mm.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/division.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+	amdm37x_dispc.c \
+	main.c
+
+include $(USPACE_PREFIX)/Makefile.common

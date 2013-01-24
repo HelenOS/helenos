@@ -49,13 +49,50 @@
 
 #define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
 
+extern void *bdata_start;
+extern void *bdata_end;
+
+
+static inline void invalidate_icache(void)
+{
+	/* ICIALLU Invalidate entire ICache */
+	asm volatile ("mov r0, #0\n" "mcr p15, 0, r0, c7, c5, 0\n" ::: "r0" );
+}
+
+static inline void invalidate_dcache(void *address, size_t size)
+{
+	const uintptr_t addr = (uintptr_t)address;
+	/* DCIMVAC - invalidate by address to the point of coherence */
+	for (uintptr_t a = addr; a < addr + size; a += 4) {
+		asm volatile ("mcr p15, 0, %[a], c7, c6, 1\n" :: [a]"r"(a) : );
+	}
+}
+
+static inline void clean_dcache_poc(void *address, size_t size)
+{
+	const uintptr_t addr = (uintptr_t)address;
+	/* DCCMVAC - clean by address to the point of coherence */
+	for (uintptr_t a = addr; a < addr + size; a += 4) {
+		asm volatile ("mcr p15, 0, %[a], c7, c10, 1\n" :: [a]"r"(a) : );
+	}
+}
+
 static bootinfo_t bootinfo;
 
 void bootstrap(void)
 {
+	/* Make sure  we run in memory code when caches are enabled,
+	 * make sure we read memory data too. This part is ARMv7 specific as
+	 * ARMv7 no longer invalidates caches on restart.
+	 * See chapter B2.2.2 of ARM Architecture Reference Manual p. B2-1263*/
+	invalidate_icache();
+	invalidate_dcache(&bdata_start, &bdata_end - &bdata_start);
+
+	/* Enable MMU and caches */
 	mmu_start();
 	version_print();
 	
+	printf("Boot data: %p -> %p\n", &bdata_start, &bdata_end);
 	printf("\nMemory statistics\n");
 	printf(" %p|%p: bootstrap stack\n", &boot_stack, &boot_stack);
 	printf(" %p|%p: bootstrap page table\n", &boot_pt, &boot_pt);
@@ -63,17 +100,18 @@ void bootstrap(void)
 	printf(" %p|%p: kernel entry point\n",
 	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
 	
-	size_t i;
-	for (i = 0; i < COMPONENTS; i++)
+	for (size_t i = 0; i < COMPONENTS; i++) {
 		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
 		    components[i].start, components[i].name, components[i].inflated,
 		    components[i].size);
+		invalidate_dcache(components[i].start, components[i].size);
+	}
 	
 	void *dest[COMPONENTS];
 	size_t top = 0;
 	size_t cnt = 0;
 	bootinfo.cnt = 0;
-	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
+	for (size_t i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		top = ALIGN_UP(top, PAGE_SIZE);
 		
 		if (i > 0) {
@@ -93,7 +131,7 @@ void bootstrap(void)
 	
 	printf("\nInflating components ... ");
 	
-	for (i = cnt; i > 0; i--) {
+	for (size_t i = cnt; i > 0; i--) {
 		void *tail = components[i - 1].start + components[i - 1].size;
 		if (tail >= dest[i - 1]) {
 			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
@@ -105,16 +143,17 @@ void bootstrap(void)
 		
 		int err = inflate(components[i - 1].start, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
-		
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d\n", components[i - 1].name, err);
 			halt();
 		}
+		clean_dcache_poc(dest[i - 1], components[i - 1].inflated);
 	}
 	
 	printf(".\n");
 	
-	printf("Booting the kernel... \n");
+	void *kernel_end = (void *) PA2KA(BOOT_OFFSET + components[0].inflated);
+	printf("Booting the kernel...\n");
 	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
 }
 

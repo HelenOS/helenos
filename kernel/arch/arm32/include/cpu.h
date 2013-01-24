@@ -39,6 +39,9 @@
 #include <typedefs.h>
 #include <arch/asm.h>
 
+enum {
+	ARM_MAX_CACHE_LEVELS = 7,
+};
 
 /** Struct representing ARM CPU identification. */
 typedef struct {
@@ -56,6 +59,15 @@ typedef struct {
 
 	/** Revision number. */
 	uint32_t rev_num;
+
+	struct {
+		unsigned ways;
+		unsigned sets;
+		unsigned line_size;
+		unsigned way_shift;
+		unsigned set_shift;
+	} dcache[ARM_MAX_CACHE_LEVELS];
+	unsigned dcache_levels;
 } cpu_arch_t;
 
 #endif
