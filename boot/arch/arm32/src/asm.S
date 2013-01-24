@@ -70,8 +70,10 @@ jump_to_kernel:
 	# Disable I-cache and D-cache before the kernel is started.
 	mrc	p15, 0, r4, c1, c0, 0
 	bic	r4, r4, #(1 << CP15_C1_DC)
+#ifndef PROCESSOR_ARCH_armv7_a
 	bic	r4, r4, #(1 << CP15_C1_IC)
 	bic	r4, r4, #(1 << CP15_C1_BP)
+#endif
 	mcr	p15, 0, r4, c1, c0, 0
 
 	
