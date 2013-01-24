@@ -55,9 +55,12 @@ static inline int section_cacheable(pfn_t section)
 		return 0;
 	else
 		return 1;
-#else
-	return 0;
+#elif defined MACHINE_beagleboardxm
+	const unsigned long address = section << PTE_SECTION_SHIFT;
+	if (address >= BBXM_RAM_START && address < BBXM_RAM_END)
+		return 1;
 #endif
+	return 0;
 }
 
 /** Initialize "section" page table entry.
@@ -129,31 +132,15 @@ static void enable_paging()
 		"ldr r0, =0x55555555\n"
 		"mcr p15, 0, r0, c3, c0, 0\n"
 		
-#ifdef PROCESSOR_armv7_a
-		/* Read Auxiliary control register */
-		"mrc p15, 0, r0, c1, c0, 1\n"
-		/* Mask to enable L2 cache */
-		"ldr r1, =0x00000002\n"
-		"orr r0, r0, r1\n"
-		/* Store Auxiliary control register */
-		"mrc p15, 0, r0, c1, c0, 1\n"
-#endif
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
-#ifdef PROCESSOR_armv7_a
-		/* Mask to enable paging, caching */
-		"ldr r1, =0x00000005\n"
-#else
-#ifdef MACHINE_gta02
-		/* Mask to enable paging (bit 0),
-		   D-cache (bit 2), I-cache (bit 12) */
-		"ldr r1, =0x00001005\n"
-#else
-		/* Mask to enable paging */
-		"ldr r1, =0x00000001\n"
-#endif
-#endif
+		/* Enable ICache, DCache, BPredictors and MMU,
+		 * we disable caches before jumping to kernel
+		 * so this is safe for all archs.
+		 */
+		"ldr r1, =0x00001805\n"
+		
 		"orr r0, r0, r1\n"
 		
 		/* Store settings */

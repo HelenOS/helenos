@@ -41,7 +41,13 @@
 
 /** Decribes CP15 "fault status register" (FSR).
  *
- * See ARM Architecture Reference Manual ch. B4.9.6 (pdf p.743).
+ * "VMSAv6 added a fifth fault status bit (bit[10]) to both the IFSR and DFSR.
+ * It is IMPLEMENTATION DEFINED how this bit is encoded in earlier versions of
+ * the architecture. A write flag (bit[11] of the DFSR) has also been
+ * introduced."
+ * ARM Architecture Reference Manual version i ch. B4.6 (PDF p. 719)
+ *
+ * See ARM Architecture Reference Manual ch. B4.9.6 (pdf p.743). for FSR info
  */
 typedef union {
 	struct {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Petr Stepan
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32
+/** @addtogroup kgraph
  * @{
  */
 /**
  * @file
- * @brief Utilities for convenient manipulation with ARM registers.
  */
 
-#ifndef KERN_arm32_REGUTILS_H_
-#define KERN_arm32_REGUTILS_H_
+#ifndef AMDM37X_DISPC_H_
+#define AMDM37X_DISPC_H_
 
-#define STATUS_REG_IRQ_DISABLED_BIT  (1 << 7)
-#define STATUS_REG_MODE_MASK         0x1f
+#include <graph.h>
+#include <abi/fb/visuals.h>
+#include <pixconv.h>
 
-/* ARM Processor Operation Modes */
-enum {
-	USER_MODE = 0x10,
-	FIQ_MODE = 0x11,
-	IRQ_MODE = 0x12,
-	SUPERVISOR_MODE = 0x13,
-	MONITOR_MODE = 0x16,
-	ABORT_MODE = 0x17,
-	HYPERVISOR_MODE = 0x1a,
-	UNDEFINED_MODE = 0x1b,
-	SYSTEM_MODE = 0x1f,
-	MODE_MASK = 0x1f,
-};
-/* [CS]PRS manipulation macros */
-#define GEN_STATUS_READ(nm, reg) \
-	static inline uint32_t nm## _status_reg_read(void) \
-	{ \
-		uint32_t retval; \
-		\
-		asm volatile ( \
-			"mrs %[retval], " #reg \
-			: [retval] "=r" (retval) \
-		); \
-		\
-		return retval; \
-	}
+#include "amdm37x_dispc_regs.h"
 
-#define GEN_STATUS_WRITE(nm, reg, fieldname, field) \
-	static inline void nm## _status_reg_ ##fieldname## _write(uint32_t value) \
-	{ \
-		asm volatile ( \
-			"msr " #reg "_" #field ", %[value]" \
-			:: [value] "r" (value) \
-		); \
-	}
+typedef struct {
+	amdm37x_dispc_regs_t *regs;
 
-/** Return the value of CPSR (Current Program Status Register). */
-GEN_STATUS_READ(current, cpsr);
+	struct {
+		pixel2visual_t pixel2visual;
+		unsigned width;
+		unsigned height;
+		unsigned pitch;
+		unsigned bpp;
+		unsigned idx;
+	} active_fb;
 
-/** Set control bits of CPSR. */
-GEN_STATUS_WRITE(current, cpsr, control, c);
+	size_t size;
+	void *fb_data;
 
-/** Return the value of SPSR (Saved Program Status Register). */
-GEN_STATUS_READ(saved, spsr);
+	vslmode_list_element_t modes[1];
+} amdm37x_dispc_t;
+
+int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis);
+int amdm37x_dispc_fini(amdm37x_dispc_t *instance);
 
 #endif
-
 /** @}
  */

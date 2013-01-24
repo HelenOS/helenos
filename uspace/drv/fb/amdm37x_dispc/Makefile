@@ -1,5 +1,7 @@
 #
-# Copyright (c) 2007 Michal Kebrt
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Petr Koupy
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,74 +28,22 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/arch.h>
+USPACE_PREFIX = ../../..
 
-.section BOOTSTRAP
+LIBS = \
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBGRAPH_PREFIX)/libgraph.a \
+	$(LIBSOFTREND_PREFIX)/libsoftrend.a
 
-.global start
-.global boot_pt
-.global boot_stack
-.global halt
-.global jump_to_kernel
+EXTRA_CFLAGS += \
+	-I$(LIBDRV_PREFIX)/include \
+	-I$(LIBGRAPH_PREFIX) \
+	-I$(LIBSOFTREND_PREFIX)
 
-start:
-	ldr sp, =boot_stack
-	b bootstrap
+BINARY = amdm37x_dispc
 
-.section BOOTPT
-boot_pt:
-	.space PTL0_ENTRIES * PTL0_ENTRY_SIZE
+SOURCES = \
+	amdm37x_dispc.c \
+	main.c
 
-.section BOOTSTACK
-	.space 4096
-boot_stack:
-
-.text
-
-halt:
-	b halt
-
-jump_to_kernel:
-	#
-	# TODO
-	# Make sure that the I-cache, D-cache and memory are mutually coherent
-	# before passing control to the copied code.
-	#
-
-	#
-	# r0 is kernel entry point
-	# r1 is pointer to the bootinfo structure
-
-#define CP15_C1_IC		12
-#define CP15_C1_BP		11
-#define CP15_C1_DC		2
-	# Disable I-cache and D-cache before the kernel is started.
-	mrc	p15, 0, r4, c1, c0, 0
-	bic	r4, r4, #(1 << CP15_C1_DC)
-	bic	r4, r4, #(1 << CP15_C1_IC)
-	bic	r4, r4, #(1 << CP15_C1_BP)
-	mcr	p15, 0, r4, c1, c0, 0
-
-	
-	#Wait for the operations to complete
-#ifdef PROCESSOR_ARCH_armv7_a
-	dsb
-#else
-	#cp15 dsb, r4 is ignored (should be zero)
-	mcr p15, 0, r4, c7, c10, 4
-#endif
-	
-	# Clean ICache and BPredictors, r4 ignored (SBZ)
-	mcr p15, 0, r4, c7, c5, 0
-	nop
-
-	#Wait for the operations to complete
-#ifdef PROCESSOR_ARCH_armv7_a
-	isb
-	nop
-#else
-	# cp15 isb
-	mcr p15, 0, r4, c7, c5, 4
-	nop
-#endif
-	mov pc, r0
+include $(USPACE_PREFIX)/Makefile.common

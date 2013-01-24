@@ -118,7 +118,7 @@ static int fpu_have_coprocessor_access()
 /* The register containing the information (CPACR) is not available on armv6-
  * rely on user decision to use CONFIG_FPU.
  */
-#ifdef PROCESSOR_armv7_a
+#ifdef PROCESSOR_ARC_armv7_a
 	const uint32_t cpacr = CPACR_read();
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover they need to have same access enabledd */
@@ -147,10 +147,7 @@ static void fpu_enable_coprocessor_access()
 /* The register containing the information (CPACR) is not available on armv6-
  * rely on user decision to use CONFIG_FPU.
  */
-#ifndef PROCESSOR_armv7_a
-	return;
-#endif
-
+#ifdef PROCESSOR_ARCH_armv7_a
 	/* Allow coprocessor access */
 	uint32_t cpacr = CPACR_read();
 	/* FPU needs access to coprocessor 10 and 11.
@@ -158,8 +155,7 @@ static void fpu_enable_coprocessor_access()
 	cpacr &= ~(CPACR_CP_MASK(10) | CPACR_CP_MASK(11));
 	cpacr |= (CPACR_CP_FULL_ACCESS(10) | CPACR_CP_FULL_ACCESS(11));
 	CPACR_write(cpacr);
-
-	smc_coherence(0);
+#endif
 }
 
 

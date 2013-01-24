@@ -57,6 +57,12 @@
 /** End of memory mapped I/O area for GTA02 */
 #define GTA02_IOMEM_END  0x60000000
 
+/** Start of ram memory on BBxM */
+#define BBXM_RAM_START   0x80000000
+/** Start of ram memory on BBxM */
+#define BBXM_RAM_END   0xc0000000
+
+
 /* Page table level 0 entry - "section" format is used
  * (one-level paging, 1 MB sized pages). Used only while booting the kernel.
  */
