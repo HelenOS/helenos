@@ -96,35 +96,4 @@ jump_to_kernel:
 	mcr p15, 0, r4, c7, c5, 4
 	nop
 #endif
-	
-#TODO:This should not be necessary
-
-#if defined(MACHINE_gta02)
-
-#define CP15_C7_SEG_SHIFT	5
-#define CP15_C7_SEG_SIZE	3
-#define CP15_C7_IDX_SHIFT	26
-
-	# Now clean D-cache to guarantee coherency between I-cache and D-cache.
-
-	# D-cache clean and invalidate procedure.
-	# See ARM920T TRM pages 2-17, 4-17.
-
-	# Initialize segment
-	mov	r4, #0
-	# Initialize index
-1:	mov	r5, #0
-2:	orr	r6, r4, r5
-	# Clean and invalidate a single line
-	mcr	p15, 0, r6, c7, c10, 2
-	# Increment index
-	add	r5, r5, #(1 << CP15_C7_IDX_SHIFT)
-	cmp	r5, #0
-	bne	2b
-	# Increment segment
-	add	r4, #(1 << CP15_C7_SEG_SHIFT)
-	tst	r4, #(1 << (CP15_C7_SEG_SHIFT + CP15_C7_SEG_SIZE))
-	beq	1b
-#endif
-
 	mov pc, r0
