@@ -44,6 +44,7 @@ static void disable_paging(void)
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		"bic r0, r0, #1\n"
 		"mcr p15, 0, r0, c1, c0, 0\n"
+		::: "r0"
 	);
 }
 
