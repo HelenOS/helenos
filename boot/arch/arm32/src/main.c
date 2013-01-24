@@ -152,7 +152,6 @@ void bootstrap(void)
 	
 	printf(".\n");
 	
-	void *kernel_end = (void *) PA2KA(BOOT_OFFSET + components[0].inflated);
 	printf("Booting the kernel...\n");
 	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
 }

@@ -41,6 +41,19 @@
 
 #include "amdm37x_dispc.h"
 
+#ifndef CONFIG_BFB_BPP
+#define CONFIG_BFB_BPP 24
+#endif
+
+#ifndef CONFIG_BFB_WIDTH
+#define CONFIG_BFB_WIDTH 1024
+#endif
+
+#ifndef CONFIG_BFB_HEIGHT
+#define CONFIG_BFB_HEIGHT 768
+#endif
+
+
 static int change_mode(visualizer_t *vis, vslmode_t mode);
 static int handle_damage(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
@@ -108,8 +121,8 @@ int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 	instance->fb_data = NULL;
 	instance->size = 0;
 
-	visual_t visual = VISUAL_UNKNOWN;
-
+	/* Default is 24bpp, use config option if available */
+	visual_t visual = VISUAL_BGR_8_8_8;
 	switch (CONFIG_BFB_BPP)	{
 	case 8: visual = VISUAL_INDIRECT_8; break;
 	case 16: visual = VISUAL_RGB_5_6_5_LE; break;
