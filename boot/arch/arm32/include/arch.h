@@ -43,6 +43,8 @@
 #define BOOT_BASE	0x30008000
 #elif defined MACHINE_beagleboardxm
 #define BOOT_BASE	0x80000000
+#elif defined MACHINE_beaglebone
+#define BOOT_BASE       0x80000000
 #else
 #define BOOT_BASE	0x00000000
 #endif
@@ -50,6 +52,8 @@
 #define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
 
 #ifdef MACHINE_beagleboardxm
+	#define PA_OFFSET 0
+#elif defined MACHINE_beaglebone
 	#define PA_OFFSET 0
 #else
 	#define PA_OFFSET 0x80000000
