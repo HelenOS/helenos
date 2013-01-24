@@ -387,6 +387,12 @@ void usb_device_destroy_pipes(usb_endpoint_mapping_t *pipes, size_t pipes_count)
 	free(pipes);
 }
 
+usb_pipe_t *usb_device_get_default_pipe(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return &usb_dev->ctrl_pipe;
+}
+
 /** Initialize new instance of USB device.
  *
  * @param[in] usb_dev Pointer to the new device.
@@ -514,6 +520,17 @@ void usb_device_deinit(usb_device_t *dev)
 	}
 }
 
+async_exch_t * usb_device_bus_exchange_begin(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return async_exchange_begin(usb_dev->bus_session);
+}
+
+void usb_device_bus_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
+}
+
 /** Allocate driver specific data.
  * @param usb_dev usb_device structure.
  * @param size requested data size.
@@ -527,6 +544,11 @@ void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
 
 }
 
+void * usb_device_data_get(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->driver_data;
+}
 /**
  * @}
  */

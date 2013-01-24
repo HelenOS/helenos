@@ -257,56 +257,15 @@ int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
-	async_exch_t *exch = async_exchange_begin(hub->usb_device->bus_session);
+	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
 	if (!exch)
 		return ENOMEM;
 	const int rc = usb_device_remove(exch, port->attached_handle);
-	async_exchange_end(exch);
+	usb_device_bus_exchange_end(exch);
 	if (rc == EOK)
 		port->attached_handle = -1;
 	return rc;
 
-#if 0
-	if (port->attached_device.address < 0) {
-		usb_log_warning(
-		    "Device on port %zu removed before being registered.\n",
-		    port->port_number);
-
-		/*
-		 * Device was removed before port reset completed.
-		 * We will announce a failed port reset to unblock the
-		 * port reset callback from new device wrapper.
-		 */
-		usb_hub_port_reset_fail(port);
-		return EOK;
-	}
-
-	fibril_mutex_lock(&port->mutex);
-	assert(port->attached_device.fun);
-	usb_log_debug("Removing device on port %zu.\n", port->port_number);
-	int ret = ddf_fun_unbind(port->attached_device.fun);
-	if (ret != EOK) {
-		usb_log_error("Failed to unbind child function on port"
-		    " %zu: %s.\n", port->port_number, str_error(ret));
-		fibril_mutex_unlock(&port->mutex);
-		return ret;
-	}
-
-	ddf_fun_destroy(port->attached_device.fun);
-	port->attached_device.fun = NULL;
-
-	ret = usb_hub_unregister_device(&hub->usb_device->hc_conn,
-	    &port->attached_device);
-	if (ret != EOK) {
-		usb_log_warning("Failed to unregister address of the "
-		    "removed device: %s.\n", str_error(ret));
-	}
-
-	port->attached_device.address = -1;
-	fibril_mutex_unlock(&port->mutex);
-	usb_log_info("Removed device on port %zu.\n", port->port_number);
-	return EOK;
-#endif
 }
 
 /**
@@ -409,40 +368,6 @@ static int port_enable(usb_hub_port_t *port, bool enable)
 	}
 }
 
-/** Callback for enabling a specific port.
- *
- * We wait on a CV until port is reseted.
- * That is announced via change on interrupt pipe.
- *
- * @param port_no Port number (starting at 1).
- * @param arg Custom argument, points to @c usb_hub_dev_t.
- * @return Error code.
- */
-#if 0
-static int enable_port_callback(void *arg)
-{
-	usb_hub_port_t *port = arg;
-	assert(port);
-	const int rc =
-	    usb_hub_port_set_feature(port, USB_HUB_FEATURE_PORT_RESET);
-	if (rc != EOK) {
-		usb_log_warning("Port reset failed: %s.\n", str_error(rc));
-		return rc;
-	}
-
-	/*
-	 * Wait until reset completes.
-	 */
-	fibril_mutex_lock(&port->mutex);
-	while (!port->reset_completed) {
-		fibril_condvar_wait(&port->reset_cv, &port->mutex);
-	}
-	fibril_mutex_unlock(&port->mutex);
-
-	return port->reset_okay ? EOK : ESTALL;
-}
-#endif
-
 /** Fibril for adding a new device.
  *
  * Separate fibril is needed because the port reset completion is announced
@@ -462,9 +387,7 @@ int add_device_phase1_worker_fibril(void *arg)
 	const usb_speed_t speed = params->speed;
 	free(arg);
 
-	usb_log_fatal("Creating Exchange on session %p\n",
-	    hub->usb_device->bus_session);
-	async_exch_t *exch = async_exchange_begin(hub->usb_device->bus_session);
+	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
 	if (!exch) {
 		usb_log_error("Failed to begin bus exchange\n");
 		ret = ENOMEM;
@@ -507,7 +430,7 @@ int add_device_phase1_worker_fibril(void *arg)
 			usb_log_warning("Failed to release default address\n");
 	}
 out:
-	async_exchange_end(exch);
+	usb_device_bus_exchange_end(exch);
 
 	fibril_mutex_lock(&hub->pending_ops_mutex);
 	assert(hub->pending_ops_count > 0);
@@ -516,44 +439,6 @@ out:
 	fibril_mutex_unlock(&hub->pending_ops_mutex);
 
 	return ret;
-#if 0
-	struct add_device_phase1 *data = arg;
-	assert(data);
-
-	usb_address_t new_address;
-	ddf_fun_t *child_fun;
-
-	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
-	    &data->hub->usb_device->hc_conn, data->speed, enable_port_callback,
-	    data->port, &new_address, &child_fun);
-
-	if (rc == EOK) {
-		fibril_mutex_lock(&data->port->mutex);
-		data->port->attached_device.fun = child_fun;
-		data->port->attached_device.address = new_address;
-		fibril_mutex_unlock(&data->port->mutex);
-
-		usb_log_info("Detected new device on `%s' (port %zu), "
-		    "address %d (handle %" PRIun ").\n",
-		    ddf_dev_get_name(data->hub->usb_device->ddf_dev),
-		    data->port->port_number, new_address,
-		    ddf_fun_get_handle(child_fun));
-	} else {
-		usb_log_error("Failed registering device on port %zu: %s.\n",
-		    data->port->port_number, str_error(rc));
-	}
-
-
-	fibril_mutex_lock(&data->hub->pending_ops_mutex);
-	assert(data->hub->pending_ops_count > 0);
-	--data->hub->pending_ops_count;
-	fibril_condvar_signal(&data->hub->pending_ops_cv);
-	fibril_mutex_unlock(&data->hub->pending_ops_mutex);
-
-	free(arg);
-
-	return rc;
-#endif
 }
 
 /** Start device adding when connection change is detected.

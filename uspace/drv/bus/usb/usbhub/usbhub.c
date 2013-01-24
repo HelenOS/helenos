@@ -98,8 +98,9 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
 	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
 
+	usb_pipe_t *control_pipe = usb_device_get_default_pipe(usb_dev);
 
-	int opResult = usb_pipe_start_long_transfer(&usb_dev->ctrl_pipe);
+	int opResult = usb_pipe_start_long_transfer(control_pipe);
 	if (opResult != EOK) {
 		usb_log_error("Failed to start long ctrl pipe transfer: %s\n",
 		    str_error(opResult));
@@ -109,7 +110,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Set hub's first configuration. (There should be only one) */
 	opResult = usb_set_first_configuration(usb_dev);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
+		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
 		return opResult;
@@ -118,7 +119,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Get port count and create attached_devices. */
 	opResult = usb_hub_process_hub_specific_info(hub_dev);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
+		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Could process hub specific info, %s\n",
 		    str_error(opResult));
 		return opResult;
@@ -129,7 +130,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	hub_dev->hub_fun = ddf_fun_create(hub_dev->usb_device->ddf_dev,
 	    fun_exposed, HUB_FNC_NAME);
 	if (hub_dev->hub_fun == NULL) {
-		usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
+		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Failed to create hub function.\n");
 		return ENOMEM;
 	}
@@ -137,7 +138,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Bind hub control function. */
 	opResult = ddf_fun_bind(hub_dev->hub_fun);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
+		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Failed to bind hub function: %s.\n",
 		   str_error(opResult));
 		ddf_fun_destroy(hub_dev->hub_fun);
@@ -150,7 +151,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	    255000,
 	    usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
+		usb_pipe_end_long_transfer(control_pipe);
 		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
@@ -162,7 +163,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	usb_log_info("Controlling hub '%s' (%zu ports).\n",
 	    ddf_dev_get_name(hub_dev->usb_device->ddf_dev), hub_dev->port_count);
 
-	usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
+	usb_pipe_end_long_transfer(control_pipe);
 	return EOK;
 }
 
@@ -185,7 +186,7 @@ int usb_hub_device_remove(usb_device_t *usb_dev)
 int usb_hub_device_gone(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	usb_hub_dev_t *hub = usb_dev->driver_data;
+	usb_hub_dev_t *hub = usb_device_data_get(usb_dev);
 	assert(hub);
 	unsigned tries = 10;
 	while (hub->running) {
@@ -270,7 +271,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 
 	/* Get hub descriptor. */
 	usb_log_debug("Retrieving descriptor\n");
-	usb_pipe_t *control_pipe = &hub_dev->usb_device->ctrl_pipe;
+	usb_pipe_t *control_pipe =
+	    usb_device_get_default_pipe(hub_dev->usb_device);
 
 	usb_hub_descriptor_header_t descriptor;
 	size_t received_size;
@@ -359,14 +361,15 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	}
 
 	// TODO: Make sure that the cast is correct
-	usb_standard_configuration_descriptor_t *config_descriptor
+	const usb_standard_configuration_descriptor_t *config_descriptor
 	    = (usb_standard_configuration_descriptor_t *)
 	    usb_device->descriptors.configuration;
 
 	/* Set configuration. Use the configuration that was in
 	 * usb_device->descriptors.configuration i.e. The first one. */
 	const int opResult = usb_request_set_configuration(
-	    &usb_device->ctrl_pipe, config_descriptor->configuration_number);
+	    usb_device_get_default_pipe(usb_device),
+	    config_descriptor->configuration_number);
 	if (opResult != EOK) {
 		usb_log_error("Failed to set hub configuration: %s.\n",
 		    str_error(opResult));
@@ -426,7 +429,8 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	assert(hub_dev);
 	assert(hub_dev->usb_device);
 	usb_log_debug("Global interrupt on a hub\n");
-	usb_pipe_t *control_pipe = &hub_dev->usb_device->ctrl_pipe;
+	usb_pipe_t *control_pipe =
+	    usb_device_get_default_pipe(hub_dev->usb_device);
 
 	usb_hub_status_t status;
 	size_t rcvd_size;
@@ -450,7 +454,7 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 		usb_hub_over_current(hub_dev, status);
 		/* Ack change in hub OC flag */
 		const int ret = usb_request_clear_feature(
-		    &hub_dev->usb_device->ctrl_pipe, USB_REQUEST_TYPE_CLASS,
+		    control_pipe, USB_REQUEST_TYPE_CLASS,
 		    USB_REQUEST_RECIPIENT_DEVICE,
 		    USB_HUB_FEATURE_C_HUB_OVER_CURRENT, 0);
 		if (ret != EOK) {

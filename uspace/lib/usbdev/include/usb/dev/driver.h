@@ -109,6 +109,7 @@ typedef struct {
 	 * by the framework.
 	 */
 	void *driver_data;
+
 	usb_dev_session_t *bus_session;
 } usb_device_t;
 
@@ -169,6 +170,9 @@ int usb_device_init(usb_device_t *, ddf_dev_t *,
     const usb_endpoint_description_t **, const char **);
 void usb_device_deinit(usb_device_t *);
 
+async_exch_t * usb_device_bus_exchange_begin(usb_device_t *);
+void usb_device_bus_exchange_end(async_exch_t *);
+
 int usb_device_select_interface(usb_device_t *, uint8_t,
     const usb_endpoint_description_t **);
 
@@ -179,8 +183,11 @@ int usb_device_create_pipes(usb_device_connection_t *,
     const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
 void usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
+usb_pipe_t *usb_device_get_default_pipe(usb_device_t *);
+usb_pipe_t *usb_device_get_pipe(usb_device_t *, usb_endpoint_t, usb_direction_t);
 
 void * usb_device_data_alloc(usb_device_t *, size_t);
+void * usb_device_data_get(usb_device_t *);
 
 size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
 int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
