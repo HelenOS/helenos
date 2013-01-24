@@ -104,15 +104,15 @@
 #if defined PROCESSOR_ARCH_armv7_a | defined PROCESSOR_ARCH_armv6 | defined KERNEL
 /* Available on all supported arms,
  * invalidates entire ICache so the written value does not matter. */
-//TODO might be PL1 only on armv5 -
+//TODO might be PL1 only on armv5-
 #define smc_coherence(a) \
 do { \
-	DCCMVAU_write((uint32_t)(a));  /* Write changed memory */\
-	write_barrier();             /* Wait for completion */\
-	ICIALLU_write(0);            /* Flush ICache */\
-	inst_barrier();              /* Wait for Inst refetch */\
+	DCCMVAU_write((uint32_t)(a));  /* Flush changed memory */\
+	write_barrier();               /* Wait for completion */\
+	ICIALLU_write(0);              /* Flush ICache */\
+	inst_barrier();                /* Wait for Inst refetch */\
 } while (0)
-/* @note: Cache type register is not awailable in uspace. We would need
+/* @note: Cache type register is not available in uspace. We would need
  * to export the cache line value, or use syscall for uspace smc_coherence */
 #define smc_coherence_block(a, l) \
 do { \
