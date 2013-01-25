@@ -232,31 +232,29 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
  * @param[out] descriptors Where to store the descriptors.
  * @return Error code.
  */
-int usb_device_retrieve_descriptors(usb_pipe_t *ctrl_pipe,
-    usb_device_descriptors_t *descriptors)
+static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 {
-	assert(descriptors != NULL);
-
-	descriptors->configuration = NULL;
-
-	int rc;
+	assert(usb_dev);
+	assert(usb_dev->descriptors.configuration == NULL);
 
 	/* It is worth to start a long transfer. */
-	usb_pipe_start_long_transfer(ctrl_pipe);
+	usb_pipe_start_long_transfer(&usb_dev->ctrl_pipe);
 
 	/* Get the device descriptor. */
-	rc = usb_request_get_device_descriptor(ctrl_pipe, &descriptors->device);
+	int rc = usb_request_get_device_descriptor(&usb_dev->ctrl_pipe,
+	    &usb_dev->descriptors.device);
 	if (rc != EOK) {
 		goto leave;
 	}
 
 	/* Get the full configuration descriptor. */
 	rc = usb_request_get_full_configuration_descriptor_alloc(
-	    ctrl_pipe, 0, (void **) &descriptors->configuration,
-	    &descriptors->configuration_size);
+	    &usb_dev->ctrl_pipe, 0,
+	    (void **) &usb_dev->descriptors.configuration,
+	    &usb_dev->descriptors.configuration_size);
 
 leave:
-	usb_pipe_end_long_transfer(ctrl_pipe);
+	usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
 
 	return rc;
 }
@@ -265,11 +263,12 @@ leave:
  *
  * @param[in] descriptors Where to store the descriptors.
  */
-void usb_device_release_descriptors(usb_device_descriptors_t *descriptors)
+static void usb_device_release_descriptors(usb_device_t *usb_dev)
 {
-	assert(descriptors);
-	free(descriptors->configuration);
-	descriptors->configuration = NULL;
+	assert(usb_dev);
+	free(usb_dev->descriptors.configuration);
+	usb_dev->descriptors.configuration = NULL;
+	usb_dev->descriptors.configuration_size = 0;
 }
 
 /** Create pipes for a device.
@@ -393,6 +392,22 @@ usb_pipe_t *usb_device_get_default_pipe(usb_device_t *usb_dev)
 	return &usb_dev->ctrl_pipe;
 }
 
+const usb_standard_device_descriptor_t *
+usb_device_get_device_descriptor(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return &usb_dev->descriptors.device;
+}
+
+const void * usb_device_get_configuration_descriptor(
+    usb_device_t *usb_dev, size_t *size)
+{
+	assert(usb_dev);
+	if (size)
+		*size = usb_dev->descriptors.configuration_size;
+	return usb_dev->descriptors.configuration;
+}
+
 /** Initialize new instance of USB device.
  *
  * @param[in] usb_dev Pointer to the new device.
@@ -461,8 +476,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	}
 
 	/* Retrieve standard descriptors. */
-	rc = usb_device_retrieve_descriptors(
-	    &usb_dev->ctrl_pipe, &usb_dev->descriptors);
+	rc = usb_device_retrieve_descriptors(usb_dev);
 	if (rc != EOK) {
 		*errstr_ptr = "descriptor retrieval";
 		usb_hc_connection_close(&usb_dev->hc_conn);
@@ -488,7 +502,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	if (rc != EOK) {
 		usb_hc_connection_close(&usb_dev->hc_conn);
 		/* Full configuration descriptor is allocated. */
-		usb_device_release_descriptors(&usb_dev->descriptors);
+		usb_device_release_descriptors(usb_dev);
 		/* Alternate interfaces may be allocated */
 		usb_alternate_interfaces_deinit(&usb_dev->alternate_interfaces);
 		*errstr_ptr = "pipes initialization";
@@ -514,7 +528,7 @@ void usb_device_deinit(usb_device_t *dev)
 		/* Ignore errors and hope for the best. */
 		usb_hc_connection_deinitialize(&dev->hc_conn);
 		usb_alternate_interfaces_deinit(&dev->alternate_interfaces);
-		usb_device_release_descriptors(&dev->descriptors);
+		usb_device_release_descriptors(dev);
 		free(dev->driver_data);
 		dev->driver_data = NULL;
 	}

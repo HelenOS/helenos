@@ -41,14 +41,6 @@
 #include <usb/dev/pipes.h>
 #include <usb_iface.h>
 
-/** Descriptors for USB device. */
-typedef struct {
-	/** Standard device descriptor. */
-	usb_standard_device_descriptor_t device;
-	/** Full configuration descriptor of current configuration. */
-	const uint8_t *configuration;
-	size_t configuration_size;
-} usb_device_descriptors_t;
 
 /** Wrapper for data related to alternate interface setting.
  * The pointers will typically point inside configuration descriptor and
@@ -83,6 +75,7 @@ typedef struct {
 	usb_device_connection_t wire;
 	/** The default control pipe. */
 	usb_pipe_t ctrl_pipe;
+
 	/** Other endpoint pipes.
 	 * This is an array of other endpoint pipes in the same order as
 	 * in usb_driver_t.
@@ -99,8 +92,14 @@ typedef struct {
 	/** Alternative interfaces. */
 	usb_alternate_interfaces_t alternate_interfaces;
 
-	/** Some useful descriptors. */
-	usb_device_descriptors_t descriptors;
+	/** Some useful descriptors for USB device. */
+	struct {
+		/** Standard device descriptor. */
+		usb_standard_device_descriptor_t device;
+		/** Full configuration descriptor of current configuration. */
+		const uint8_t *configuration;
+		size_t configuration_size;
+	} descriptors;
 
 	/** Generic DDF device backing this one. DO NOT TOUCH! */
 	ddf_dev_t *ddf_dev;
@@ -178,15 +177,17 @@ void usb_device_bus_exchange_end(async_exch_t *);
 int usb_device_select_interface(usb_device_t *, uint8_t,
     const usb_endpoint_description_t **);
 
-int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
-void usb_device_release_descriptors(usb_device_descriptors_t *);
-
 int usb_device_create_pipes(usb_device_connection_t *,
     const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
 void usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
 usb_pipe_t *usb_device_get_default_pipe(usb_device_t *);
 usb_pipe_t *usb_device_get_pipe(usb_device_t *, usb_endpoint_t, usb_direction_t);
+
+const usb_standard_device_descriptor_t *
+usb_device_get_device_descriptor(usb_device_t *);
+const void * usb_device_get_configuration_descriptor(usb_device_t *, size_t *);
+
 
 void * usb_device_data_alloc(usb_device_t *, size_t);
 void * usb_device_data_get(usb_device_t *);

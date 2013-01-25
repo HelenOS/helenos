@@ -117,7 +117,7 @@ static int create_interfaces(const uint8_t *config_descriptor,
 
 		usbmid_interface_t *iface = NULL;
 		const int rc = usbmid_spawn_interface_child(usb_dev, &iface,
-		    &usb_dev->descriptors.device, interface);
+			usb_device_get_device_descriptor(usb_dev), interface);
 		if (rc != EOK) {
 			//TODO: Do something about that failure.
 			usb_log_error("Failed to create interface child for "
@@ -141,7 +141,8 @@ static int create_interfaces(const uint8_t *config_descriptor,
  */
 int usbmid_explore_device(usb_device_t *dev)
 {
-	const unsigned dev_class = dev->descriptors.device.device_class;
+	const unsigned dev_class =
+	    usb_device_get_device_descriptor(dev)->device_class;
 	if (dev_class != USB_CLASS_USE_INTERFACE) {
 		usb_log_warning(
 		    "Device class: %u (%s), but expected class %u.\n",
@@ -151,9 +152,11 @@ int usbmid_explore_device(usb_device_t *dev)
 		return ENOTSUP;
 	}
 
-	/* Shortcuts to save on typing ;-). */
-	const void *config_descriptor_raw = dev->descriptors.configuration;
-	size_t config_descriptor_size = dev->descriptors.configuration_size;
+	/* Get coonfiguration descriptor. */
+	size_t config_descriptor_size = 0;
+	const void *config_descriptor_raw =
+	    usb_device_get_configuration_descriptor(dev,
+	    &config_descriptor_size);
 	const usb_standard_configuration_descriptor_t *config_descriptor =
 	    config_descriptor_raw;
 
