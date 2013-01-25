@@ -161,7 +161,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 	hub_dev->running = true;
 	usb_log_info("Controlling hub '%s' (%zu ports).\n",
-	    ddf_dev_get_name(hub_dev->usb_device->ddf_dev), hub_dev->port_count);
+	    usb_device_get_name(hub_dev->usb_device), hub_dev->port_count);
 
 	usb_pipe_end_long_transfer(control_pipe);
 	return EOK;

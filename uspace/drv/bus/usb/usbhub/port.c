@@ -56,7 +56,6 @@ static int usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub);
 static void usb_hub_port_reset_completed(usb_hub_port_t *port,
     usb_port_status_t status);
 static int get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
-//static int enable_port_callback(void *arg);
 static int add_device_phase1_worker_fibril(void *arg);
 static int create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
     usb_speed_t speed);

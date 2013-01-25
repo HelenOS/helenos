@@ -269,7 +269,8 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size,
 	        0));
 
-	rc = usbhid_req_set_report(&hid_dev->usb_dev->ctrl_pipe,
+	rc = usbhid_req_set_report(
+	    usb_device_get_default_pipe(hid_dev->usb_dev),
 	    hid_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_OUTPUT,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	if (rc != EOK) {
@@ -580,7 +581,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	 * Set Idle rate */
 	usb_kbd_set_led(hid_dev, kbd_dev);
 
-	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,
+	usbhid_req_set_idle(usb_device_get_default_pipe(hid_dev->usb_dev),
 	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 
 
@@ -785,7 +786,8 @@ int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 
-	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe,
+	rc = usbhid_req_set_protocol(
+	    usb_device_get_default_pipe(hid_dev->usb_dev),
 	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
 
 	if (rc != EOK) {

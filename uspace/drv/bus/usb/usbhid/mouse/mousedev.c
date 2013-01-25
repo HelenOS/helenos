@@ -314,7 +314,7 @@ static int mouse_dev_init(usb_mouse_t *mouse_dev, usb_hid_dev_t *hid_dev)
 	}
 
 	// TODO: how to know if the device supports the request???
-	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,
+	usbhid_req_set_idle(usb_device_get_default_pipe(hid_dev->usb_dev),
 	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 	return EOK;
 }
@@ -424,7 +424,8 @@ int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 		return rc;
 	}
 
-	rc = usbhid_req_set_protocol(&hid_dev->usb_dev->ctrl_pipe,
+	rc = usbhid_req_set_protocol(
+	    usb_device_get_default_pipe(hid_dev->usb_dev),
 	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
 
 	if (rc != EOK) {

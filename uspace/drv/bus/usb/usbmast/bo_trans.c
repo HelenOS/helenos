@@ -116,10 +116,12 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	if (rc == ESTALL) {
 		/* Clear stall condition and continue below to read CSW. */
 		if (ddir == USB_DIRECTION_IN) {
-			usb_pipe_clear_halt(&mfun->mdev->usb_dev->ctrl_pipe,
+			usb_pipe_clear_halt(
+			    usb_device_get_default_pipe(mfun->mdev->usb_dev),
 			    &mfun->mdev->usb_dev->pipes[BULK_IN_EP].pipe);
 		} else {
-			usb_pipe_clear_halt(&mfun->mdev->usb_dev->ctrl_pipe,
+			usb_pipe_clear_halt(
+			    usb_device_get_default_pipe(mfun->mdev->usb_dev),
 			    &mfun->mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
 		}
         } else if (rc != EOK) {
@@ -196,7 +198,8 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
  */
 int usb_massstor_reset(usbmast_dev_t *mdev)
 {
-	return usb_control_request_set(&mdev->usb_dev->ctrl_pipe,
+	return usb_control_request_set(
+	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    0xFF, 0, mdev->usb_dev->interface_no, NULL, 0);
 }
@@ -214,9 +217,9 @@ void usb_massstor_reset_recovery(usbmast_dev_t *mdev)
 	 * we are doomed anyway and any following transaction would fail.
 	 */
 	usb_massstor_reset(mdev);
-	usb_pipe_clear_halt(&mdev->usb_dev->ctrl_pipe,
+	usb_pipe_clear_halt(usb_device_get_default_pipe(mdev->usb_dev),
 	    &mdev->usb_dev->pipes[BULK_IN_EP].pipe);
-	usb_pipe_clear_halt(&mdev->usb_dev->ctrl_pipe,
+	usb_pipe_clear_halt(usb_device_get_default_pipe(mdev->usb_dev),
 	    &mdev->usb_dev->pipes[BULK_OUT_EP].pipe);
 }
 
@@ -235,7 +238,8 @@ int usb_massstor_get_max_lun(usbmast_dev_t *mdev)
 {
 	uint8_t max_lun;
 	size_t data_recv_len;
-	int rc = usb_control_request_get(&mdev->usb_dev->ctrl_pipe,
+	int rc = usb_control_request_get(
+	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    0xFE, 0, mdev->usb_dev->interface_no, &max_lun, 1, &data_recv_len);
 	if (rc != EOK) {

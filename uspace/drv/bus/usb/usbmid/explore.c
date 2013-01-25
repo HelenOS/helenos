@@ -158,7 +158,7 @@ int usbmid_explore_device(usb_device_t *dev)
 	    config_descriptor_raw;
 
 	/* Select the first configuration */
-	int rc = usb_request_set_configuration(&dev->ctrl_pipe,
+	int rc = usb_request_set_configuration(usb_device_get_default_pipe(dev),
 	    config_descriptor->configuration_number);
 	if (rc != EOK) {
 		usb_log_error("Failed to set device configuration: %s.\n",

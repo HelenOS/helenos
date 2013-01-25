@@ -63,7 +63,7 @@ static int usbmid_device_add(usb_device_t *dev)
 static int usbmid_device_remove(usb_device_t *dev)
 {
 	assert(dev);
-	usb_mid_t *usb_mid = dev->driver_data;
+	usb_mid_t *usb_mid = usb_device_data_get(dev);
 	assert(usb_mid);
 
 	/* Remove ctl function */
@@ -112,7 +112,7 @@ static int usbmid_device_remove(usb_device_t *dev)
 static int usbmid_device_gone(usb_device_t *dev)
 {
 	assert(dev);
-	usb_mid_t *usb_mid = dev->driver_data;
+	usb_mid_t *usb_mid = usb_device_data_get(dev);
 	assert(usb_mid);
 
 	usb_log_info("USB MID gone: `%s'.\n", ddf_dev_get_name(dev->ddf_dev));

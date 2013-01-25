@@ -109,7 +109,7 @@ static usbmast_fun_t *bd_srv_usbmast(bd_srv_t *bd)
  */
 static int usbmast_device_gone(usb_device_t *dev)
 {
-	usbmast_dev_t *mdev = dev->driver_data;
+	usbmast_dev_t *mdev = usb_device_data_get(dev);
 	assert(mdev);
 
 	for (size_t i = 0; i < mdev->lun_count; ++i) {
