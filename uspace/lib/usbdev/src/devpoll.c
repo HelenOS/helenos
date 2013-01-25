@@ -79,7 +79,7 @@ static int polling_fibril(void *arg)
 		    = &data->dev->pipes[data->pipe_index];
 		usb_log_debug("Poll%p: started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
-		    data, ddf_dev_get_name(data->dev->ddf_dev),
+		    data, usb_device_get_name(data->dev),
 		    (int) mapping->interface->interface_number,
 		    usb_str_class(mapping->interface->interface_class),
 		    (int) mapping->interface->interface_subclass,
@@ -158,12 +158,12 @@ static int polling_fibril(void *arg)
 	if (params->debug > 0) {
 		if (failed) {
 			usb_log_error("Polling of device `%s' terminated: "
-			    "recurring failures.\n", ddf_dev_get_name(
-			    data->dev->ddf_dev));
+			    "recurring failures.\n",
+			    usb_device_get_name(data->dev));
 		} else {
 			usb_log_debug("Polling of device `%s' terminated: "
-			    "driver request.\n", ddf_dev_get_name(
-			    data->dev->ddf_dev));
+			    "driver request.\n",
+			    usb_device_get_name(data->dev));
 		}
 	}
 

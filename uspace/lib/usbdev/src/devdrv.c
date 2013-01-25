@@ -520,6 +520,14 @@ void usb_device_deinit(usb_device_t *dev)
 	}
 }
 
+const char *usb_device_get_name(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	assert(usb_dev->ddf_dev);
+	//TODO Handle case without ddf_dev
+	return ddf_dev_get_name(usb_dev->ddf_dev);
+}
+
 async_exch_t * usb_device_bus_exchange_begin(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
