@@ -53,17 +53,6 @@ static inline size_t count_other_pipes(
 	return count;
 }
 
-/** Destroy existing pipes of a USB device.
- *
- * @param dev Device where to destroy the pipes.
- */
-static void destroy_current_pipes(usb_device_t *dev)
-{
-	usb_device_destroy_pipes(dev->pipes, dev->pipes_count);
-	dev->pipes = NULL;
-	dev->pipes_count = 0;
-}
-
 /** Change interface setting of a device.
  * This function selects new alternate setting of an interface by issuing
  * proper USB command to the device and also creates new USB pipes
@@ -94,7 +83,7 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 	}
 
 	/* Destroy existing pipes. */
-	destroy_current_pipes(dev);
+	usb_device_destroy_pipes(dev);
 
 	/* Change the interface itself. */
 	int rc = usb_request_set_interface(&dev->ctrl_pipe, dev->interface_no,
@@ -256,20 +245,22 @@ rollback_unregister_endpoints:
 
 /** Destroy pipes previously created by usb_device_create_pipes.
  *
- * @param[in] pipes Endpoint mapping to be destroyed.
- * @param[in] pipes_count Number of endpoints.
+ * @param[in] usb_dev USB device.
  */
-void usb_device_destroy_pipes(usb_endpoint_mapping_t *pipes, size_t pipes_count)
+void usb_device_destroy_pipes(usb_device_t *usb_dev)
 {
+	assert(usb_dev);
+	assert(usb_dev->pipes || usb_dev->pipes_count == 0);
 	/* Destroy the pipes. */
-	for (size_t i = 0; i < pipes_count; ++i) {
-		assert(pipes);
+	for (size_t i = 0; i < usb_dev->pipes_count; ++i) {
 		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
-		    i, pipes[i].present ? "" : "not ");
-		if (pipes[i].present)
-			usb_pipe_unregister(&pipes[i].pipe);
+		    i, usb_dev->pipes[i].present ? "" : "not ");
+		if (usb_dev->pipes[i].present)
+			usb_pipe_unregister(&usb_dev->pipes[i].pipe);
 	}
-	free(pipes);
+	free(usb_dev->pipes);
+	usb_dev->pipes = NULL;
+	usb_dev->pipes_count = 0;
 }
 
 usb_pipe_t *usb_device_get_default_pipe(usb_device_t *usb_dev)
@@ -423,7 +414,7 @@ void usb_device_deinit(usb_device_t *dev)
 	if (dev) {
 		usb_dev_session_close(dev->bus_session);
 		/* Destroy existing pipes. */
-		destroy_current_pipes(dev);
+		usb_device_destroy_pipes(dev);
 		/* Ignore errors and hope for the best. */
 		usb_hc_connection_deinitialize(&dev->hc_conn);
 		usb_alternate_interfaces_deinit(&dev->alternate_interfaces);
