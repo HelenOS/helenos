@@ -170,6 +170,7 @@ int usb_device_init(usb_device_t *, ddf_dev_t *,
 void usb_device_deinit(usb_device_t *);
 
 const char* usb_device_get_name(usb_device_t *);
+ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *, fun_type_t, const char *);
 
 async_exch_t * usb_device_bus_exchange_begin(usb_device_t *);
 void usb_device_bus_exchange_end(async_exch_t *);

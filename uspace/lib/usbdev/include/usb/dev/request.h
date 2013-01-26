@@ -74,6 +74,7 @@ int usb_request_set_descriptor(usb_pipe_t *, usb_request_type_t,
 
 int usb_request_get_configuration(usb_pipe_t *, uint8_t *);
 int usb_request_set_configuration(usb_pipe_t *, uint8_t);
+
 int usb_request_get_interface(usb_pipe_t *, uint8_t, uint8_t *);
 int usb_request_set_interface(usb_pipe_t *, uint8_t, uint8_t);
 

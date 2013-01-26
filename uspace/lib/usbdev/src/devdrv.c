@@ -542,6 +542,15 @@ const char *usb_device_get_name(usb_device_t *usb_dev)
 	return ddf_dev_get_name(usb_dev->ddf_dev);
 }
 
+ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *usb_dev, fun_type_t ftype,
+    const char* name)
+{
+	assert(usb_dev);
+	if (usb_dev->ddf_dev)
+		return ddf_fun_create(usb_dev->ddf_dev, ftype, name);
+	return NULL;
+}
+
 async_exch_t * usb_device_bus_exchange_begin(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
