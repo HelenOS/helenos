@@ -58,7 +58,7 @@ typedef struct {
 /** Alternate interface settings. */
 typedef struct {
 	/** Array of alternate interfaces descriptions. */
-	usb_alternate_interface_descriptors_t *alternatives;
+	const usb_alternate_interface_descriptors_t *alternatives;
 	/** Size of @c alternatives array. */
 	size_t alternative_count;
 	/** Index of currently selected one. */
@@ -88,7 +88,6 @@ typedef struct {
 	 * This item contains the value of the interface or -1 for any.
 	 */
 	int interface_no;
-
 	/** Alternative interfaces. */
 	usb_alternate_interfaces_t alternate_interfaces;
 
