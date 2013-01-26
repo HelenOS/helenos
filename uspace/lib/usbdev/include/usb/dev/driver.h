@@ -37,38 +37,10 @@
 #define LIBUSBDEV_DRIVER_H_
 
 #include <usb/hc.h>
+#include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/usb_device_connection.h>
 #include <usb/dev/pipes.h>
 #include <usb_iface.h>
-
-
-/** Wrapper for data related to alternate interface setting.
- * The pointers will typically point inside configuration descriptor and
- * thus you shall not deallocate them.
- */
-typedef struct {
-	/** Interface descriptor. */
-	const usb_standard_interface_descriptor_t *interface;
-	/** Pointer to start of descriptor tree bound with this interface. */
-	const uint8_t *nested_descriptors;
-	/** Size of data pointed by nested_descriptors in bytes. */
-	size_t nested_descriptors_size;
-} usb_alternate_interface_descriptors_t;
-
-/** Alternate interface settings. */
-typedef struct {
-	/** Array of alternate interfaces descriptions. */
-	const usb_alternate_interface_descriptors_t *alternatives;
-	/** Size of @c alternatives array. */
-	size_t alternative_count;
-	/** Index of currently selected one. */
-	size_t current;
-} usb_alternate_interfaces_t;
-
-size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
-    const uint8_t *, size_t, int);
-void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
 
 /** USB device structure. */
 typedef struct {
@@ -191,6 +163,7 @@ usb_pipe_t *usb_device_get_default_pipe(usb_device_t *);
 usb_pipe_t *usb_device_get_pipe(usb_device_t *, usb_endpoint_t, usb_direction_t);
 
 int usb_device_get_iface_number(usb_device_t *);
+
 const usb_standard_device_descriptor_t *
 usb_device_get_device_descriptor(usb_device_t *);
 const void * usb_device_get_configuration_descriptor(usb_device_t *, size_t *);

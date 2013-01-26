@@ -33,12 +33,10 @@
  * Handling alternate interface settings.
  */
 
-#include <usb/dev/driver.h>
-#include <usb/dev/request.h>
-#include <usb/debug.h>
+#include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/dp.h>
+#include <malloc.h>
 #include <errno.h>
-#include <str_error.h>
 #include <assert.h>
 
 /** Count number of alternate settings of a interface.
@@ -153,10 +151,8 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		const uint8_t *next = (iface_ptr == NULL) ?
 		    dp_data.data + dp_data.size : iface_ptr;
 
-		iterator->nested_descriptors_size
-		    = next - iterator->nested_descriptors;
-
-		++iterator;
+		iterator->nested_descriptors_size =
+		    next - iterator->nested_descriptors;
 	}
 
 	alternates->alternatives = alts;
