@@ -201,7 +201,7 @@ int usb_massstor_reset(usbmast_dev_t *mdev)
 	return usb_control_request_set(
 	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    0xFF, 0, mdev->usb_dev->interface_no, NULL, 0);
+	    0xFF, 0, usb_device_get_iface_number(mdev->usb_dev), NULL, 0);
 }
 
 /** Perform complete reset recovery of bulk-only mass storage.
@@ -241,7 +241,8 @@ int usb_massstor_get_max_lun(usbmast_dev_t *mdev)
 	int rc = usb_control_request_get(
 	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
-	    0xFE, 0, mdev->usb_dev->interface_no, &max_lun, 1, &data_recv_len);
+	    0xFE, 0, usb_device_get_iface_number(mdev->usb_dev), &max_lun, 1,
+	    &data_recv_len);
 	if (rc != EOK) {
 		return rc;
 	}

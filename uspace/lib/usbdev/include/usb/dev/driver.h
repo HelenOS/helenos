@@ -65,6 +65,11 @@ typedef struct {
 	size_t current;
 } usb_alternate_interfaces_t;
 
+size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
+int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
+    const uint8_t *, size_t, int);
+void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
+
 /** USB device structure. */
 typedef struct {
 	/** Connection to USB hc, used by wire and arbitrary requests. */
@@ -181,21 +186,20 @@ int usb_device_create_pipes(usb_device_connection_t *,
     const usb_endpoint_description_t **, const uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
 void usb_device_destroy_pipes(usb_endpoint_mapping_t *, size_t);
+
 usb_pipe_t *usb_device_get_default_pipe(usb_device_t *);
 usb_pipe_t *usb_device_get_pipe(usb_device_t *, usb_endpoint_t, usb_direction_t);
 
+int usb_device_get_iface_number(usb_device_t *);
 const usb_standard_device_descriptor_t *
 usb_device_get_device_descriptor(usb_device_t *);
 const void * usb_device_get_configuration_descriptor(usb_device_t *, size_t *);
-
+const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
+    usb_device_t *);
 
 void * usb_device_data_alloc(usb_device_t *, size_t);
 void * usb_device_data_get(usb_device_t *);
 
-size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
-    const uint8_t *, size_t, int);
-void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
 #endif
 /**
  * @}

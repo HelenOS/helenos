@@ -271,7 +271,8 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	rc = usbhid_req_set_report(
 	    usb_device_get_default_pipe(hid_dev->usb_dev),
-	    hid_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_OUTPUT,
+	    usb_device_get_iface_number(hid_dev->usb_dev),
+	    USB_HID_REPORT_TYPE_OUTPUT,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to set kbd indicators.\n");
@@ -582,7 +583,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	usb_kbd_set_led(hid_dev, kbd_dev);
 
 	usbhid_req_set_idle(usb_device_get_default_pipe(hid_dev->usb_dev),
-	    hid_dev->usb_dev->interface_no, IDLE_RATE);
+	    usb_device_get_iface_number(hid_dev->usb_dev), IDLE_RATE);
 
 
 	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
@@ -788,7 +789,8 @@ int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 
 	rc = usbhid_req_set_protocol(
 	    usb_device_get_default_pipe(hid_dev->usb_dev),
-	    hid_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
+	    usb_device_get_iface_number(hid_dev->usb_dev),
+	    USB_HID_PROTOCOL_BOOT);
 
 	if (rc != EOK) {
 		usb_log_warning("Failed to set boot protocol to the device: "

@@ -64,7 +64,7 @@ static int usb_hid_device_add(usb_device_t *dev)
 		return EINVAL;
 	}
 
-	if (dev->interface_no < 0) {
+	if (usb_device_get_iface_number(dev) < 0) {
 		usb_log_error("Failed to add HID device: endpoints not found."
 		    "\n");
 		return ENOTSUP;

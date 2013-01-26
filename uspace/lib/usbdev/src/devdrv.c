@@ -278,6 +278,12 @@ usb_pipe_t *usb_device_get_default_pipe(usb_device_t *usb_dev)
 	return &usb_dev->ctrl_pipe;
 }
 
+int usb_device_get_iface_number(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->interface_no;
+}
+
 const usb_standard_device_descriptor_t *
 usb_device_get_device_descriptor(usb_device_t *usb_dev)
 {
@@ -292,6 +298,13 @@ const void * usb_device_get_configuration_descriptor(
 	if (size)
 		*size = usb_dev->descriptors.configuration_size;
 	return usb_dev->descriptors.configuration;
+}
+
+const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
+    usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return &usb_dev->alternate_interfaces;
 }
 
 /** Initialize new instance of USB device.
