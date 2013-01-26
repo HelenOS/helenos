@@ -35,6 +35,7 @@ EXTRA_CFLAGS += \
 
 SOURCES = \
 	src/altiface.c \
+	src/driver.c \
 	src/devdrv.c \
 	src/devpoll.c \
 	src/dp.c \
