@@ -79,6 +79,8 @@ struct usb_hub_dev {
 	bool per_port_power;
 };
 
+extern const usb_endpoint_description_t hub_status_change_endpoint_description;
+
 int usb_hub_device_add(usb_device_t *usb_dev);
 int usb_hub_device_remove(usb_device_t *usb_dev);
 int usb_hub_device_gone(usb_device_t *usb_dev);

@@ -102,8 +102,8 @@ struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
 
-	/** Index of the polling pipe in usb_hid_endpoints array. */
-	unsigned poll_pipe_index;
+	/** Endpont mapping of the polling pipe. */
+	usb_endpoint_mapping_t *poll_pipe_mapping;
 
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;
@@ -131,18 +131,7 @@ struct usb_hid_dev {
 	volatile bool running;
 };
 
-
-
-enum {
-	USB_HID_KBD_POLL_EP_NO = 0,
-	USB_HID_MOUSE_POLL_EP_NO = 1,
-	USB_HID_GENERIC_POLL_EP_NO = 2,
-	USB_HID_POLL_EP_COUNT = 3
-};
-
 extern const usb_endpoint_description_t *usb_hid_endpoints[];
-
-
 
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 

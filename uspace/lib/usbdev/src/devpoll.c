@@ -50,8 +50,8 @@ typedef struct {
 
 	/** USB device to poll. */
 	usb_device_t *dev;
-	/** Device pipe to use for polling. */
-	size_t pipe_index;
+	/** Device enpoint mapping to use for polling. */
+	usb_endpoint_mapping_t *polling_mapping;
 	/** Size of the recieved data. */
 	size_t request_size;
 	/** Data buffer. */
@@ -71,12 +71,11 @@ static int polling_fibril(void *arg)
 	/* Helper to reduce typing. */
 	const usb_device_auto_polling_t *params = &data->auto_polling;
 
-	usb_pipe_t *pipe
-	    = &data->dev->pipes[data->pipe_index].pipe;
+	usb_pipe_t *pipe = &data->polling_mapping->pipe;
 
 	if (params->debug > 0) {
 		const usb_endpoint_mapping_t *mapping
-		    = &data->dev->pipes[data->pipe_index];
+		    = data->polling_mapping;
 		usb_log_debug("Poll%p: started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
 		    data, usb_device_get_name(data->dev),
@@ -116,7 +115,8 @@ static int polling_fibril(void *arg)
 			 * attempt anyway.
 			 */
 			usb_request_clear_endpoint_halt(
-			    &data->dev->ctrl_pipe, pipe->endpoint_no);
+			    usb_device_get_default_pipe(data->dev),
+			    pipe->endpoint_no);
 		}
 
 		if (rc != EOK) {
@@ -174,42 +174,6 @@ static int polling_fibril(void *arg)
 	return EOK;
 }
 
-/** Start automatic device polling over interrupt in pipe.
- *
- * @warning It is up to the callback to produce delays between individual
- * requests.
- *
- * @warning There is no guarantee when the request to the device
- * will be sent for the first time (it is possible that this
- * first request would be executed prior to return from this function).
- *
- * @param dev Device to be periodically polled.
- * @param pipe_index Index of the endpoint pipe used for polling.
- * @param callback Callback when data are available.
- * @param request_size How many bytes to ask for in each request.
- * @param terminated_callback Callback when polling is terminated.
- * @param arg Custom argument (passed as is to the callbacks).
- * @return Error code.
- * @retval EOK New fibril polling the device was already started.
- */
-int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
-    usb_polling_callback_t callback, size_t request_size, int delay,
-    usb_polling_terminted_callback_t terminated_callback, void *arg)
-{
-	const usb_device_auto_polling_t auto_polling = {
-		.debug = 1,
-		.auto_clear_halt = true,
-		.delay = delay,
-		.max_failures = MAX_FAILED_ATTEMPTS,
-		.on_data = callback,
-		.on_polling_end = terminated_callback,
-		.on_error = NULL,
-		.arg = arg,
-	};
-
-	return usb_device_auto_polling(dev, pipe_index, &auto_polling,
-	   request_size);
-}
 
 /** Start automatic device polling over interrupt in pipe.
  *
@@ -221,28 +185,28 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
  * first request would be executed prior to return from this function).
  *
  * @param dev Device to be periodically polled.
- * @param pipe_index Index of the endpoint pipe used for polling.
+ * @param epm Endpoint mapping to use.
  * @param polling Polling settings.
  * @param request_size How many bytes to ask for in each request.
  * @param arg Custom argument (passed as is to the callbacks).
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
-    const usb_device_auto_polling_t *polling,
+static int usb_device_auto_polling_internal(usb_device_t *dev,
+    usb_endpoint_mapping_t *epm, const usb_device_auto_polling_t *polling,
     size_t request_size)
 {
 	if ((dev == NULL) || (polling == NULL) || (polling->on_data == NULL)) {
 		return EBADMEM;
 	}
 
-	if (pipe_index >= dev->pipes_count || request_size == 0) {
+	if (request_size == 0)
 		return EINVAL;
-	}
-	if ((dev->pipes[pipe_index].pipe.transfer_type != USB_TRANSFER_INTERRUPT)
-	    || (dev->pipes[pipe_index].pipe.direction != USB_DIRECTION_IN)) {
+
+	if (!epm || (epm->pipe.transfer_type != USB_TRANSFER_INTERRUPT) ||
+	    (epm->pipe.direction != USB_DIRECTION_IN))
 		return EINVAL;
-	}
+
 
 	polling_data_t *polling_data = malloc(sizeof(polling_data_t));
 	if (polling_data == NULL) {
@@ -257,7 +221,7 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	}
 	polling_data->request_size = request_size;
 	polling_data->dev = dev;
-	polling_data->pipe_index = pipe_index;
+	polling_data->polling_mapping = epm;
 
 	/* Copy provided settings. */
 	polling_data->auto_polling = *polling;
@@ -265,7 +229,7 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	/* Negative value means use descriptor provided value. */
 	if (polling->delay < 0) {
 		polling_data->auto_polling.delay =
-		    (int) dev->pipes[pipe_index].descriptor->poll_interval;
+		    epm->descriptor->poll_interval;
 	}
 
 	fid_t fibril = fibril_create(polling_fibril, polling_data);
@@ -279,6 +243,99 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	/* Fibril launched. That fibril will free the allocated data. */
 
 	return EOK;
+}
+/** Start automatic device polling over interrupt in pipe.
+ *
+ * The polling settings is copied thus it is okay to destroy the structure
+ * after this function returns.
+ *
+ * @warning There is no guarantee when the request to the device
+ * will be sent for the first time (it is possible that this
+ * first request would be executed prior to return from this function).
+ *
+ * @param dev Device to be periodically polled.
+ * @param pipe_index Index of the endpoint pipe used for polling.
+ * @param polling Polling settings.
+ * @param req_size How many bytes to ask for in each request.
+ * @param arg Custom argument (passed as is to the callbacks).
+ * @return Error code.
+ * @retval EOK New fibril polling the device was already started.
+ */
+int usb_device_auto_polling(usb_device_t *usb_dev, usb_endpoint_t ep,
+    const usb_device_auto_polling_t *polling, size_t req_size)
+{
+	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(usb_dev, ep);
+	return usb_device_auto_polling_internal(usb_dev, epm, polling, req_size);
+}
+
+/** Start automatic device polling over interrupt in pipe.
+ *
+ * @warning It is up to the callback to produce delays between individual
+ * requests.
+ *
+ * @warning There is no guarantee when the request to the device
+ * will be sent for the first time (it is possible that this
+ * first request would be executed prior to return from this function).
+ *
+ * @param dev Device to be periodically polled.
+ * @param ep Endpoint  used for polling.
+ * @param callback Callback when data are available.
+ * @param request_size How many bytes to ask for in each request.
+ * @param delay NUmber of ms to wait between queries, -1 to use descriptor val.
+ * @param terminated_callback Callback when polling is terminated.
+ * @param arg Custom argument (passed as is to the callbacks).
+ * @return Error code.
+ * @retval EOK New fibril polling the device was already started.
+ */
+int usb_device_auto_poll(usb_device_t *dev, usb_endpoint_t ep,
+    usb_polling_callback_t callback, size_t request_size, int delay,
+    usb_polling_terminted_callback_t terminated_callback, void *arg)
+{
+	const usb_device_auto_polling_t auto_polling = {
+		.debug = 1,
+		.auto_clear_halt = true,
+		.delay = delay,
+		.max_failures = MAX_FAILED_ATTEMPTS,
+		.on_data = callback,
+		.on_polling_end = terminated_callback,
+		.on_error = NULL,
+		.arg = arg,
+	};
+
+	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(dev, ep);
+	return usb_device_auto_polling_internal(
+	    dev, epm, &auto_polling, request_size);
+}
+
+int usb_device_auto_polling_desc(usb_device_t *usb_dev,
+    const usb_endpoint_description_t *desc,
+    const usb_device_auto_polling_t *polling, size_t req_size)
+{
+	usb_endpoint_mapping_t *epm =
+	    usb_device_get_mapped_ep_desc(usb_dev, desc);
+	return usb_device_auto_polling_internal(usb_dev, epm, polling, req_size);
+}
+
+int usb_device_auto_poll_desc(usb_device_t * usb_dev,
+    const usb_endpoint_description_t *desc, usb_polling_callback_t callback,
+    size_t req_size, int delay,
+    usb_polling_terminted_callback_t terminated_callback, void *arg)
+{
+	const usb_device_auto_polling_t auto_polling = {
+		.debug = 1,
+		.auto_clear_halt = true,
+		.delay = delay,
+		.max_failures = MAX_FAILED_ATTEMPTS,
+		.on_data = callback,
+		.on_polling_end = terminated_callback,
+		.on_error = NULL,
+		.arg = arg,
+	};
+
+	usb_endpoint_mapping_t *epm =
+	    usb_device_get_mapped_ep_desc(usb_dev, desc);
+	return usb_device_auto_polling_internal(
+	    usb_dev, epm, &auto_polling, req_size);
 }
 
 /**

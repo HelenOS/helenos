@@ -56,6 +56,19 @@
 #include "status.h"
 
 #define HUB_FNC_NAME "hub"
+/** Hub status-change endpoint description.
+ *
+ * For more information see section 11.15.1 of USB 1.1 specification.
+ */
+const usb_endpoint_description_t hub_status_change_endpoint_description =
+{
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HUB,
+	.interface_subclass = 0,
+	.interface_protocol = 0,
+	.flags = 0
+};
 
 /** Standard get hub global status request */
 static const usb_device_request_setup_packet_t get_hub_status_request = {
@@ -146,10 +159,10 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	/* Start hub operation. */
-	opResult = usb_device_auto_poll(hub_dev->usb_device, 0,
+	opResult = usb_device_auto_poll_desc(hub_dev->usb_device,
+	    &hub_status_change_endpoint_description,
 	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 7) / 8),
-	    255000,
-	    usb_hub_polling_terminated_callback, hub_dev);
+	    -1, usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
 		usb_pipe_end_long_transfer(control_pipe);
 		/* Function is already bound */

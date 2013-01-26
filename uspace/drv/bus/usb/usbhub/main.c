@@ -42,19 +42,6 @@
 
 #include "usbhub.h"
 
-/** Hub status-change endpoint description.
- *
- * For more information see section 11.15.1 of USB 1.1 specification.
- */
-static const usb_endpoint_description_t hub_status_change_endpoint_description =
-{
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
 
 /** USB hub driver operations. */
 static const usb_driver_ops_t usb_hub_driver_ops = {

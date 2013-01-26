@@ -88,15 +88,15 @@ static int usb_hid_device_add(usb_device_t *dev)
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
 	 * for the data continuously. */
-       rc = usb_device_auto_poll(dev,
+	rc = usb_device_auto_poll_desc(dev,
 	   /* Index of the polling pipe. */
-	   hid_dev->poll_pipe_index,
+	   hid_dev->poll_pipe_mapping->description,
 	   /* Callback when data arrives. */
 	   usb_hid_polling_callback,
 	   /* How much data to request. */
-	   dev->pipes[hid_dev->poll_pipe_index].pipe.max_packet_size,
+	   hid_dev->poll_pipe_mapping->pipe.max_packet_size,
 	   /* Delay */
-	   0,
+	   -1,
 	   /* Callback when the polling ends. */
 	   usb_hid_polling_ended_callback,
 	   /* Custom argument. */
