@@ -75,28 +75,34 @@ static inline size_t count_other_pipes(
  * @param endpoints New endpoint descriptions.
  * @return Error code.
  */
-int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
-    const usb_endpoint_description_t **endpoints)
+int usb_device_select_interface(usb_device_t *usb_dev,
+    uint8_t alternate_setting, const usb_endpoint_description_t **endpoints)
 {
-	if (dev->interface_no < 0) {
+	assert(usb_dev);
+
+	if (usb_dev->interface_no < 0) {
 		return EINVAL;
 	}
 
-	/* Destroy existing pipes. */
-	usb_device_destroy_pipes(dev);
-
 	/* Change the interface itself. */
-	int rc = usb_request_set_interface(&dev->ctrl_pipe, dev->interface_no,
-	    alternate_setting);
+	int rc = usb_request_set_interface(&usb_dev->ctrl_pipe,
+	    usb_dev->interface_no, alternate_setting);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	/* Change current alternative */
+	usb_dev->alternate_interfaces.current = alternate_setting;
+
+	/* Destroy existing pipes. */
+	usb_device_destroy_pipes(usb_dev);
+
 	/* Create new pipes. */
-	rc = usb_device_create_pipes(&dev->wire, endpoints,
-	    dev->descriptors.configuration, dev->descriptors.configuration_size,
-	    dev->interface_no, (int)alternate_setting,
-	    &dev->pipes, &dev->pipes_count);
+	rc = usb_device_create_pipes(&usb_dev->wire, endpoints,
+	    usb_dev->descriptors.configuration,
+	    usb_dev->descriptors.configuration_size,
+	    usb_dev->interface_no, usb_dev->alternate_interfaces.current,
+	    &usb_dev->pipes, &usb_dev->pipes_count);
 
 	return rc;
 }
@@ -380,14 +386,12 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	rc = usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
 	    usb_dev->descriptors.configuration,
 	    usb_dev->descriptors.configuration_size, usb_dev->interface_no);
-	const int alternate_iface =
-	    (rc == EOK) ? usb_dev->alternate_interfaces.current : 0;
 
 	/* Create and register other pipes than default control (EP 0) */
 	rc = usb_device_create_pipes(&usb_dev->wire, endpoints,
 	    usb_dev->descriptors.configuration,
 	    usb_dev->descriptors.configuration_size,
-	    usb_dev->interface_no, (int)alternate_iface,
+	    usb_dev->interface_no, usb_dev->alternate_interfaces.current,
 	    &usb_dev->pipes, &usb_dev->pipes_count);
 	if (rc != EOK) {
 		usb_hc_connection_close(&usb_dev->hc_conn);
