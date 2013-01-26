@@ -159,7 +159,10 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 void usb_device_destroy_pipes(usb_device_t *);
 
 usb_pipe_t *usb_device_get_default_pipe(usb_device_t *);
-usb_pipe_t *usb_device_get_pipe(usb_device_t *, usb_endpoint_t, usb_direction_t);
+usb_endpoint_mapping_t * usb_device_get_mapped_ep_desc(usb_device_t *,
+    const usb_endpoint_description_t *);
+usb_endpoint_mapping_t * usb_device_get_mapped_ep(usb_device_t *,
+    usb_endpoint_t);
 
 int usb_device_get_iface_number(usb_device_t *);
 

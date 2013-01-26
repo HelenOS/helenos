@@ -261,6 +261,28 @@ usb_pipe_t *usb_device_get_default_pipe(usb_device_t *usb_dev)
 	return &usb_dev->ctrl_pipe;
 }
 
+usb_endpoint_mapping_t *usb_device_get_mapped_ep_desc(usb_device_t *usb_dev,
+    const usb_endpoint_description_t *desc)
+{
+	assert(usb_dev);
+	for (unsigned i = 0; i < usb_dev->pipes_count; ++i) {
+		if (usb_dev->pipes[i].description == desc)
+			return &usb_dev->pipes[i];
+	}
+	return NULL;
+}
+
+usb_endpoint_mapping_t * usb_device_get_mapped_ep(
+    usb_device_t *usb_dev, usb_endpoint_t ep)
+{
+	assert(usb_dev);
+	for (unsigned i = 0; i < usb_dev->pipes_count; ++i) {
+		if (usb_dev->pipes[i].pipe.endpoint_no == ep)
+			return &usb_dev->pipes[i];
+	}
+	return NULL;
+}
+
 int usb_device_get_iface_number(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
