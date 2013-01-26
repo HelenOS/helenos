@@ -179,7 +179,7 @@ int usbmid_explore_device(usb_device_t *dev)
 	}
 
 	/* Create control function. */
-	usb_mid->ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
+	usb_mid->ctl_fun = usb_device_ddf_fun_create(dev, fun_exposed, "ctl");
 	if (usb_mid->ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
 		return ENOMEM;

@@ -111,7 +111,7 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	}
 
 	/* Create the device. */
-	child = ddf_fun_create(parent->ddf_dev, fun_inner, child_name);
+	child = usb_device_ddf_fun_create(parent, fun_inner, child_name);
 	free(child_name);
 	if (child == NULL) {
 		return ENOMEM;

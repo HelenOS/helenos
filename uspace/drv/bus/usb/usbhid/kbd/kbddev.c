@@ -626,7 +626,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 
 	/* Create the exposed function. */
 	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev,
+	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
 	    fun_exposed, HID_KBD_FUN_NAME);
 	if (fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");

@@ -127,7 +127,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 
 	/* Create hub control function. */
 	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.\n");
-	hub_dev->hub_fun = ddf_fun_create(hub_dev->usb_device->ddf_dev,
+	hub_dev->hub_fun = usb_device_ddf_fun_create(hub_dev->usb_device,
 	    fun_exposed, HUB_FNC_NAME);
 	if (hub_dev->hub_fun == NULL) {
 		usb_pipe_end_long_transfer(control_pipe);
