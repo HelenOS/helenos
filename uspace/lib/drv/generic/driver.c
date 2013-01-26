@@ -820,6 +820,7 @@ int ddf_fun_bind(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
 	assert(fun->name != NULL);
+	assert(fun->dev != NULL);
 	
 	add_to_functions_list(fun);
 	int res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
