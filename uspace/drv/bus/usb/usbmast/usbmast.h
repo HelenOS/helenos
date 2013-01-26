@@ -42,8 +42,6 @@
 
 /** Mass storage device. */
 typedef struct usbmast_dev {
-	/** DDF device */
-	ddf_dev_t *ddf_dev;
 	/** USB device */
 	usb_device_t *usb_dev;
 	/** Number of LUNs */

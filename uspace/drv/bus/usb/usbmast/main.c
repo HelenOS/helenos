@@ -156,10 +156,10 @@ static int usbmast_device_add(usb_device_t *dev)
 		return ENOMEM;
 	}
 
-	mdev->ddf_dev = dev->ddf_dev;
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
+	usb_log_info("Initializing mass storage `%s'.\n",
+	    usb_device_get_name(dev));
 	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
 	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
 	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
@@ -220,7 +220,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	fun = ddf_fun_create(mdev->ddf_dev, fun_exposed, fun_name);
+	fun = usb_device_ddf_fun_create(mdev->usb_dev, fun_exposed, fun_name);
 	if (fun == NULL) {
 		usb_log_error("Failed to create DDF function %s.\n", fun_name);
 		rc = ENOMEM;
@@ -251,14 +251,14 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	rc = usbmast_inquiry(mfun, &inquiry);
 	if (rc != EOK) {
 		usb_log_warning("Failed to inquire device `%s': %s.\n",
-		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
+		    usb_device_get_name(mdev->usb_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
 
 	usb_log_info("Mass storage `%s' LUN %u: " \
 	    "%s by %s rev. %s is %s (%s).\n",
-	    ddf_dev_get_name(mdev->ddf_dev),
+	    usb_device_get_name(mdev->usb_dev),
 	    lun,
 	    inquiry.product,
 	    inquiry.vendor,
@@ -271,7 +271,7 @@ static int usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	rc = usbmast_read_capacity(mfun, &nblocks, &block_size);
 	if (rc != EOK) {
 		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
-		    ddf_dev_get_name(mdev->ddf_dev), str_error(rc));
+		    usb_device_get_name(mdev->usb_dev), str_error(rc));
 		rc = EIO;
 		goto error;
 	}
