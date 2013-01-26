@@ -149,6 +149,15 @@ static int usbmast_device_add(usb_device_t *dev)
 	usbmast_dev_t *mdev = NULL;
 	unsigned i;
 
+	usb_endpoint_mapping_t *epm_in =
+	    usb_device_get_mapped_ep_desc(dev, &bulk_in_ep);
+	usb_endpoint_mapping_t *epm_out =
+	    usb_device_get_mapped_ep_desc(dev, &bulk_out_ep);
+	if (!epm_in || !epm_out || !epm_in->present || !epm_out->present) {
+		usb_log_error("Required EPs were not mapped.\n");
+		return ENOENT;
+	}
+
 	/* Allocate softstate */
 	mdev = usb_device_data_alloc(dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
@@ -161,11 +170,9 @@ static int usbmast_device_add(usb_device_t *dev)
 	usb_log_info("Initializing mass storage `%s'.\n",
 	    usb_device_get_name(dev));
 	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_IN_EP].pipe.endpoint_no,
-	    dev->pipes[BULK_IN_EP].pipe.max_packet_size);
+	    epm_in->pipe.endpoint_no, epm_in->pipe.max_packet_size);
 	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
-	    dev->pipes[BULK_OUT_EP].pipe.endpoint_no,
-	    dev->pipes[BULK_OUT_EP].pipe.max_packet_size);
+	    epm_out->pipe.endpoint_no, epm_out->pipe.max_packet_size);
 
 	usb_log_debug("Get LUN count...\n");
 	mdev->lun_count = usb_masstor_get_lun_count(mdev);
@@ -181,6 +188,8 @@ static int usbmast_device_add(usb_device_t *dev)
 		if (rc != EOK)
 			goto error;
 	}
+	mdev->bulk_in_pipe = &epm_in->pipe;
+	mdev->bulk_out_pipe = &epm_out->pipe;
 
 	return EOK;
 error:

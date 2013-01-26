@@ -48,6 +48,10 @@ typedef struct usbmast_dev {
 	unsigned lun_count;
 	/** LUN functions */
 	ddf_fun_t **luns;
+	/** Data read pipe */
+	usb_pipe_t *bulk_in_pipe;
+	/** Data write pipe */
+	usb_pipe_t *bulk_out_pipe;
 } usbmast_dev_t;
 
 
