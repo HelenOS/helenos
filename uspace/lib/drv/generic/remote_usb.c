@@ -59,7 +59,7 @@ usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *dev)
 	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
 }
 
-void usb_dev_session_close(usb_dev_session_t *sess)
+void usb_dev_disconnect(usb_dev_session_t *sess)
 {
 	if (sess)
 		async_hangup(sess);

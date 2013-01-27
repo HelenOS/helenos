@@ -494,7 +494,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 static void usb_device_fini(usb_device_t *dev)
 {
 	if (dev) {
-		usb_dev_session_close(dev->bus_session);
+		usb_dev_disconnect(dev->bus_session);
 		/* Destroy existing pipes. */
 		usb_device_destroy_pipes(dev);
 		/* Ignore errors and hope for the best. */

@@ -84,13 +84,13 @@ static void print_usb_devices(devman_handle_t bus_handle,
 		if (!exch) {
 			printf("Failed to create exchange to dev %" PRIun
 			    "\n", fhs[i]);
-			usb_dev_session_close(sess);
+			usb_dev_disconnect(sess);
 			continue;
 		}
 		usb_address_t address;
 		rc = usb_get_my_address(exch, &address);
 		async_exchange_end(exch);
-		usb_dev_session_close(sess);
+		usb_dev_disconnect(sess);
 		if (rc != EOK) {
 			printf("Failed to get address for device %" PRIun
 			    "\n", fhs[i]);

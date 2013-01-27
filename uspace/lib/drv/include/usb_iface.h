@@ -49,7 +49,7 @@ typedef async_sess_t usb_dev_session_t;
 
 usb_dev_session_t *usb_dev_connect(devman_handle_t);
 usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
-void usb_dev_session_close(usb_dev_session_t *);
+void usb_dev_disconnect(usb_dev_session_t *);
 
 int usb_get_my_address(async_exch_t *, usb_address_t *);
 int usb_get_my_interface(async_exch_t *, int *);
