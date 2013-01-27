@@ -36,93 +36,6 @@
 
 #define MAX_DEVICE_PATH 1024
 
-/** Find host controller handle, address and iface number for the device.
- *
- * @param[in] device_handle Device devman handle.
- * @param[out] hc_handle Where to store handle of host controller
- *	controlling device with @p device_handle handle.
- * @param[out] address Place to store the device's address
- * @param[out] iface Place to stoer the assigned USB interface number.
- * @return Error code.
- */
-static int usb_get_info_by_handle(devman_handle_t device_handle,
-    devman_handle_t *hc_handle, usb_address_t *address, int *iface)
-{
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_ATOMIC, device_handle,
-	        IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	async_exch_t *exch = async_exchange_begin(parent_sess);
-	if (!exch) {
-		async_hangup(parent_sess);
-		return ENOMEM;
-	}
-
-	usb_address_t tmp_address;
-	devman_handle_t tmp_handle;
-	int tmp_iface;
-
-	if (address) {
-		const int ret = usb_get_my_address(exch, &tmp_address);
-		if (ret != EOK) {
-			async_exchange_end(exch);
-			async_hangup(parent_sess);
-			return ret;
-		}
-	}
-
-	if (hc_handle) {
-		const int ret = usb_get_hc_handle(exch, &tmp_handle);
-		if (ret != EOK) {
-			async_exchange_end(exch);
-			async_hangup(parent_sess);
-			return ret;
-		}
-	}
-
-	if (iface) {
-		const int ret = usb_get_my_interface(exch, &tmp_iface);
-		switch (ret) {
-		case ENOTSUP:
-			/* Implementing GET_MY_INTERFACE is voluntary. */
-			tmp_iface = -1;
-		case EOK:
-			break;
-		default:
-			async_exchange_end(exch);
-			async_hangup(parent_sess);
-			return ret;
-		}
-	}
-
-	if (hc_handle)
-		*hc_handle = tmp_handle;
-
-	if (address)
-		*address = tmp_address;
-
-	if (iface)
-		*iface = tmp_iface;
-
-	async_exchange_end(exch);
-	async_hangup(parent_sess);
-
-	return EOK;
-}
-
-static inline int usb_get_hc_by_handle(devman_handle_t dev, devman_handle_t *hc)
-{
-	return usb_get_info_by_handle(dev, hc, NULL, NULL);
-}
-
-static inline int usb_get_address_by_handle(
-    devman_handle_t dev, usb_address_t *address)
-{
-	return usb_get_info_by_handle(dev, NULL, address, NULL);
-}
-
 static bool try_parse_bus_and_address(const char *path,
     char **func_start,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
@@ -185,28 +98,20 @@ static int get_device_handle_by_address(devman_handle_t hc_handle, int addr,
  * @param[out] out_dev_handle Where to store device handle.
  * @return Error code.
  */
-int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_handle,
-    usb_address_t *out_dev_addr, devman_handle_t *out_dev_handle)
+int usb_resolve_device_handle(const char *dev_path, devman_handle_t *dev_handle)
 {
-	if (dev_path == NULL) {
+	if (dev_path == NULL || dev_handle == NULL) {
 		return EBADMEM;
 	}
 
-	bool found_hc = false;
-	bool found_addr = false;
-	devman_handle_t hc_handle, dev_handle;
-	usb_address_t dev_addr = -1;
+	devman_handle_t hc;
+	usb_address_t addr = -1;
 	int rc;
-	bool is_bus_addr;
 	char *func_start = NULL;
 	char *path = NULL;
 
 	/* First try the BUS.ADDR format. */
-	is_bus_addr = try_parse_bus_and_address(dev_path, &func_start,
-	    &hc_handle, &dev_addr);
-	if (is_bus_addr) {
-		found_hc = true;
-		found_addr = true;
+	if (try_parse_bus_and_address(dev_path, &func_start, &hc, &addr)) {
 		/*
 		 * Now get the handle of the device. We will need that
 		 * in both cases. If there is only BUS.ADDR, it will
@@ -218,14 +123,14 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 		 * get the device handle from the host controller.
 		 * Otherwise, we will
 		 */
-		rc = get_device_handle_by_address(hc_handle, dev_addr,
-		    &dev_handle);
+
+		rc = get_device_handle_by_address(hc, addr, dev_handle);
 		if (rc != EOK) {
 			return rc;
 		}
 		if (str_length(func_start) > 0) {
 			char tmp_path[MAX_DEVICE_PATH];
-			rc = devman_fun_get_path(dev_handle,
+			rc = devman_fun_get_path(*dev_handle,
 			    tmp_path, MAX_DEVICE_PATH);
 			if (rc != EOK) {
 				return rc;
@@ -236,7 +141,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 			}
 		} else {
 			/* Everything is resolved. Get out of here. */
-			goto copy_out;
+			return EOK;
 		}
 	} else {
 		path = str_dup(dev_path);
@@ -246,7 +151,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 	}
 
 	/* First try to get the device handle. */
-	rc = devman_fun_get_handle(path, &dev_handle, 0);
+	rc = devman_fun_get_handle(path, dev_handle, 0);
 	if (rc != EOK) {
 		free(path);
 		/* Invalid path altogether. */
@@ -263,27 +168,6 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 			return rc;
 		}
 
-		/* Try to find its host controller. */
-		if (!found_hc) {
-			rc = usb_get_hc_by_handle(tmp_handle, &hc_handle);
-			if (rc == EOK) {
-				found_hc = true;
-			}
-		}
-
-		/* Try to get its address. */
-		if (!found_addr) {
-			rc = usb_get_address_by_handle(tmp_handle, &dev_addr);
-			if (rc == 0) {
-				found_addr = true;
-			}
-		}
-
-		/* Speed-up. */
-		if (found_hc && found_addr) {
-			break;
-		}
-
 		/* Remove the last suffix. */
 		char *slash_pos = str_rchr(path, '/');
 		if (slash_pos != NULL) {
@@ -293,20 +177,6 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 
 	free(path);
 
-	if (!found_addr || !found_hc) {
-		return ENOENT;
-	}
-
-copy_out:
-	if (out_dev_addr != NULL) {
-		*out_dev_addr = dev_addr;
-	}
-	if (out_hc_handle != NULL) {
-		*out_hc_handle = hc_handle;
-	}
-	if (out_dev_handle != NULL) {
-		*out_dev_handle = dev_handle;
-	}
 
 	return EOK;
 }

@@ -37,8 +37,7 @@
 #include <devman.h>
 #include <usb/usb.h>
 
-int usb_resolve_device_handle(const char *, devman_handle_t *, usb_address_t *,
-    devman_handle_t *);
+int usb_resolve_device_handle(const char *, devman_handle_t *);
 #endif
 /**
  * @}
