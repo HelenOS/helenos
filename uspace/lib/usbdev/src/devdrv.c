@@ -40,6 +40,52 @@
 #include <str_error.h>
 #include <assert.h>
 
+/** USB device structure. */
+typedef struct usb_device {
+	/** Connection to USB hc, used by wire and arbitrary requests. */
+	usb_hc_connection_t hc_conn;
+	/** Connection backing the pipes.
+	 * Typically, you will not need to use this attribute at all.
+	 */
+	usb_device_connection_t wire;
+	/** The default control pipe. */
+	usb_pipe_t ctrl_pipe;
+
+	/** Other endpoint pipes.
+	 * This is an array of other endpoint pipes in the same order as
+	 * in usb_driver_t.
+	 */
+	usb_endpoint_mapping_t *pipes;
+	/** Number of other endpoint pipes. */
+	size_t pipes_count;
+	/** Current interface.
+	 * Usually, drivers operate on single interface only.
+	 * This item contains the value of the interface or -1 for any.
+	 */
+	int interface_no;
+	/** Alternative interfaces. */
+	usb_alternate_interfaces_t alternate_interfaces;
+
+	/** Some useful descriptors for USB device. */
+	struct {
+		/** Standard device descriptor. */
+		usb_standard_device_descriptor_t device;
+		/** Full configuration descriptor of current configuration. */
+		const uint8_t *configuration;
+		size_t configuration_size;
+	} descriptors;
+
+	/** Generic DDF device backing this one. DO NOT TOUCH! */
+	ddf_dev_t *ddf_dev;
+	/** Custom driver data.
+	 * Do not use the entry in generic device, that is already used
+	 * by the framework.
+	 */
+	void *driver_data;
+
+	usb_dev_session_t *bus_session;
+} usb_device_t;
+
 /** Count number of pipes the driver expects.
  *
  * @param drv USB driver.
@@ -349,7 +395,7 @@ static int usb_dev_get_info(usb_device_t *usb_dev, devman_handle_t *handle,
  *	(in case error occurs).
  * @return Error code.
  */
-int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
+static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
     const usb_endpoint_description_t **endpoints, const char **errstr_ptr)
 {
 	assert(usb_dev != NULL);
@@ -445,7 +491,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
  *
  * Does not free/destroy supplied pointer.
  */
-void usb_device_deinit(usb_device_t *dev)
+static void usb_device_fini(usb_device_t *dev)
 {
 	if (dev) {
 		usb_dev_session_close(dev->bus_session);
@@ -458,6 +504,28 @@ void usb_device_deinit(usb_device_t *dev)
 		free(dev->driver_data);
 		dev->driver_data = NULL;
 	}
+}
+
+int usb_device_create_ddf(ddf_dev_t *ddf_dev,
+    const usb_endpoint_description_t **desc, const char **err)
+{
+	assert(ddf_dev);
+	assert(err);
+	usb_device_t *dev = ddf_dev_data_alloc(ddf_dev, sizeof(usb_device_t));
+	if (dev == NULL) {
+		*err = "DDF data alloc";
+		return ENOMEM;
+	}
+	return usb_device_init(dev, ddf_dev, desc, err);
+}
+
+void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
+{
+	assert(ddf_dev);
+	usb_device_t *dev = ddf_dev_data_get(ddf_dev);
+	assert(dev);
+	usb_device_fini(dev);
+	return;
 }
 
 const char *usb_device_get_name(usb_device_t *usb_dev)

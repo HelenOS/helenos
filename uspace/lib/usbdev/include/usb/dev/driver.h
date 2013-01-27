@@ -42,51 +42,7 @@
 #include <usb/dev/pipes.h>
 #include <usb_iface.h>
 
-/** USB device structure. */
-typedef struct {
-	/** Connection to USB hc, used by wire and arbitrary requests. */
-	usb_hc_connection_t hc_conn;
-	/** Connection backing the pipes.
-	 * Typically, you will not need to use this attribute at all.
-	 */
-	usb_device_connection_t wire;
-	/** The default control pipe. */
-	usb_pipe_t ctrl_pipe;
-
-	/** Other endpoint pipes.
-	 * This is an array of other endpoint pipes in the same order as
-	 * in usb_driver_t.
-	 */
-	usb_endpoint_mapping_t *pipes;
-	/** Number of other endpoint pipes. */
-	size_t pipes_count;
-	/** Current interface.
-	 * Usually, drivers operate on single interface only.
-	 * This item contains the value of the interface or -1 for any.
-	 */
-	int interface_no;
-	/** Alternative interfaces. */
-	usb_alternate_interfaces_t alternate_interfaces;
-
-	/** Some useful descriptors for USB device. */
-	struct {
-		/** Standard device descriptor. */
-		usb_standard_device_descriptor_t device;
-		/** Full configuration descriptor of current configuration. */
-		const uint8_t *configuration;
-		size_t configuration_size;
-	} descriptors;
-
-	/** Generic DDF device backing this one. DO NOT TOUCH! */
-	ddf_dev_t *ddf_dev;
-	/** Custom driver data.
-	 * Do not use the entry in generic device, that is already used
-	 * by the framework.
-	 */
-	void *driver_data;
-
-	usb_dev_session_t *bus_session;
-} usb_device_t;
+typedef struct usb_device usb_device_t;
 
 /** USB driver ops. */
 typedef struct {
@@ -141,9 +97,8 @@ static usb_driver_t hub_driver = {
 
 int usb_driver_main(const usb_driver_t *);
 
-int usb_device_init(usb_device_t *, ddf_dev_t *,
-    const usb_endpoint_description_t **, const char **);
-void usb_device_deinit(usb_device_t *);
+int usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
+void usb_device_destroy_ddf(ddf_dev_t *);
 
 const char* usb_device_get_name(usb_device_t *);
 ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *, fun_type_t, const char *);

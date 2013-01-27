@@ -53,17 +53,9 @@ static int generic_device_add(ddf_dev_t *gen_dev)
 	assert(driver->ops);
 	assert(driver->ops->device_add);
 
-	/* Get place for driver data. */
-	usb_device_t *dev = ddf_dev_data_alloc(gen_dev, sizeof(usb_device_t));
-	if (dev == NULL) {
-		usb_log_error("USB device `%s' structure allocation failed.\n",
-		    ddf_dev_get_name(gen_dev));
-		return ENOMEM;
-	}
-
 	/* Initialize generic USB driver data. */
 	const char *err_msg = NULL;
-	int rc = usb_device_init(dev, gen_dev, driver->endpoints, &err_msg);
+	int rc = usb_device_create_ddf(gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("USB device `%s' init failed (%s): %s.\n",
 		    ddf_dev_get_name(gen_dev), err_msg, str_error(rc));
@@ -71,9 +63,9 @@ static int generic_device_add(ddf_dev_t *gen_dev)
 	}
 
 	/* Start USB driver specific initialization. */
-	rc = driver->ops->device_add(dev);
+	rc = driver->ops->device_add(ddf_dev_data_get(gen_dev));
 	if (rc != EOK)
-		usb_device_deinit(dev);
+		usb_device_destroy_ddf(gen_dev);
 	return rc;
 }
 
@@ -95,7 +87,7 @@ static int generic_device_remove(ddf_dev_t *gen_dev)
 	const int ret = driver->ops->device_rem(usb_dev);
 	if (ret != EOK)
 		return ret;
-	usb_device_deinit(usb_dev);
+	usb_device_destroy_ddf(gen_dev);
 	return EOK;
 }
 
@@ -115,7 +107,7 @@ static int generic_device_gone(ddf_dev_t *gen_dev)
 	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
 	const int ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
-		usb_device_deinit(usb_dev);
+		usb_device_destroy_ddf(gen_dev);
 
 	return ret;
 }
