@@ -35,6 +35,7 @@
  */
 #include <stdio.h>
 #include <str_error.h>
+#include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/request.h>
 #include <usb/hid/hidparser.h>
@@ -49,7 +50,7 @@ typedef enum {
 } hid_dump_type_t;
 
 typedef struct {
-	usbinfo_device_t *dev;
+	usb_device_t *usb_dev;
 	hid_dump_type_t dump_type;
 	usb_standard_interface_descriptor_t *last_iface;
 } descriptor_walk_context_t;
@@ -212,36 +213,40 @@ static void descriptor_walk_callback(const uint8_t *raw_descriptor,
 	}
 
 	retrieve_and_dump_hid_report(context->dump_type,
-	    &context->dev->ctrl_pipe, context->last_iface->interface_number,
-	    report_size);
+	    usb_device_get_default_pipe(context->usb_dev),
+	    context->last_iface->interface_number, report_size);
 }
 
 
-void dump_hidreport_raw(usbinfo_device_t *dev)
+void dump_hidreport_raw(usb_device_t *usb_dev)
 {
 	descriptor_walk_context_t context = {
-		.dev = dev,
+		.usb_dev = usb_dev,
 		.dump_type = HID_DUMP_RAW,
 		.last_iface = NULL
 	};
 
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
+	size_t desc_size = 0;
+	const void *desc =
+	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
+
+	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
 	    descriptor_walk_callback, &context);
 }
 
-void dump_hidreport_usages(usbinfo_device_t *dev)
+void dump_hidreport_usages(usb_device_t *usb_dev)
 {
 	descriptor_walk_context_t context = {
-		.dev = dev,
+		.usb_dev = usb_dev,
 		.dump_type = HID_DUMP_USAGES,
 		.last_iface = NULL
 	};
 
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
+	size_t desc_size = 0;
+	const void *desc =
+	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
+
+	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
 	    descriptor_walk_callback, &context);
 }
 

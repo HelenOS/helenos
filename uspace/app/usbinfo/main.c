@@ -197,10 +197,9 @@ int main(int argc, char *argv[])
 		char *devpath = argv[i];
 
 		/* The initialization is here only to make compiler happy. */
-		devman_handle_t hc_handle = 0;
-		usb_address_t dev_addr = 0;
+		devman_handle_t handle = 0;
 		int rc = usb_resolve_device_handle(devpath,
-		    &hc_handle, &dev_addr, NULL);
+		    NULL, NULL, &handle);
 		if (rc != EOK) {
 			fprintf(stderr, NAME ": device `%s' not found "
 			    "or not of USB kind, skipping.\n",
@@ -208,9 +207,9 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		usbinfo_device_t *dev = prepare_device(devpath,
-		    hc_handle, dev_addr);
-		if (dev == NULL) {
+		usb_device_t *usb_dev = usb_device_create(handle);
+
+		if (usb_dev == NULL) {
 			continue;
 		}
 
@@ -220,13 +219,12 @@ int main(int argc, char *argv[])
 		int action = 0;
 		while (actions[action].opt != 0) {
 			if (actions[action].active) {
-				actions[action].action(dev);
+				actions[action].action(usb_dev);
 			}
 			action++;
 		}
 
-		/* Destroy the control pipe (close the session etc.). */
-		destroy_device(dev);
+		usb_device_destroy(usb_dev);
 	}
 
 	return 0;

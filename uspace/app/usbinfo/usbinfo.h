@@ -37,23 +37,13 @@
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/dev/pipes.h>
-#include <usb/debug.h>
+#include <usb/dev/device.h>
 #include <usb/dev/dp.h>
 #include <ipc/devman.h>
 
 typedef struct {
-	usb_hc_connection_t hc_conn;
-	usb_device_connection_t wire;
-	usb_pipe_t ctrl_pipe;
-	usb_standard_device_descriptor_t device_descriptor;
-	uint8_t *full_configuration_descriptor;
-	size_t full_configuration_descriptor_size;
-} usbinfo_device_t;
-
-typedef struct {
 	int opt;
-	void (*action)(usbinfo_device_t *dev);
+	void (*action)(usb_device_t *usb_dev);
 	bool active;
 } usbinfo_action_t;
 
@@ -71,24 +61,20 @@ static inline void internal_error(int err)
 	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
 }
 
-usbinfo_device_t *prepare_device(const char *, devman_handle_t, usb_address_t);
-void destroy_device(usbinfo_device_t *);
-
 typedef void (*dump_descriptor_in_tree_t)(const uint8_t *, size_t, void *);
 void browse_descriptor_tree(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
     dump_descriptor_in_tree_t, size_t, void *);
 
 void list(void);
 
-void dump_short_device_identification(usbinfo_device_t *);
-void dump_device_match_ids(usbinfo_device_t *);
-void dump_descriptor_tree_brief(usbinfo_device_t *);
-void dump_descriptor_tree_full(usbinfo_device_t *);
-void dump_strings(usbinfo_device_t *);
-void dump_status(usbinfo_device_t *);
-void dump_hidreport_raw(usbinfo_device_t *);
-void dump_hidreport_usages(usbinfo_device_t *);
-
+void dump_short_device_identification(usb_device_t *);
+void dump_device_match_ids(usb_device_t *);
+void dump_descriptor_tree_brief(usb_device_t *);
+void dump_descriptor_tree_full(usb_device_t *);
+void dump_strings(usb_device_t *);
+void dump_status(usb_device_t *);
+void dump_hidreport_raw(usb_device_t *);
+void dump_hidreport_usages(usb_device_t *);
 
 #endif
 /**

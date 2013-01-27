@@ -42,7 +42,6 @@ EXTRA_CFLAGS = \
 
 SOURCES = \
 	desctree.c \
-	dev.c \
 	dump.c \
 	hid.c \
 	info.c \

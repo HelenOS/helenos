@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <errno.h>
+#include <usb/debug.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
 #include <usb/dev/request.h>
@@ -43,11 +44,11 @@
 #include <usb/classes/hub.h>
 #include "usbinfo.h"
 
-void dump_short_device_identification(usbinfo_device_t *dev)
+void dump_short_device_identification(usb_device_t *usb_dev)
 {
 	printf("%sDevice 0x%04x by vendor 0x%04x\n", get_indent(0),
-	    (int) dev->device_descriptor.product_id,
-	    (int) dev->device_descriptor.vendor_id);
+	    (int) usb_device_get_device_descriptor(usb_dev)->product_id,
+	    (int) usb_device_get_device_descriptor(usb_dev)->vendor_id);
 }
 
 static void dump_match_ids_from_interface(
@@ -65,7 +66,8 @@ static void dump_match_ids_from_interface(
 		return;
 	}
 
-	usbinfo_device_t *dev = (usbinfo_device_t *) arg;
+	usb_device_t *usb_dev = arg;
+	assert(usb_dev);
 
 	usb_standard_interface_descriptor_t *iface
 	    = (usb_standard_interface_descriptor_t *) descriptor;
@@ -79,30 +81,31 @@ static void dump_match_ids_from_interface(
 
 	match_id_list_t matches;
 	init_match_ids(&matches);
-	usb_device_create_match_ids_from_interface(&dev->device_descriptor,
-	    iface, &matches);
+	usb_device_create_match_ids_from_interface(
+	    usb_device_get_device_descriptor(usb_dev), iface, &matches);
 	dump_match_ids(&matches, get_indent(1));
 	clean_match_ids(&matches);
 }
 
-void dump_device_match_ids(usbinfo_device_t *dev)
+void dump_device_match_ids(usb_device_t *usb_dev)
 {
 	match_id_list_t matches;
 	init_match_ids(&matches);
-	usb_device_create_match_ids_from_device_descriptor(
-	    &dev->device_descriptor, &matches);
+	const usb_standard_device_descriptor_t *dev_desc =
+	    usb_device_get_device_descriptor(usb_dev);
+	usb_device_create_match_ids_from_device_descriptor(dev_desc, &matches);
 	printf("%sDevice match ids (0x%04x by 0x%04x, %s)\n", get_indent(0),
-	    (int) dev->device_descriptor.product_id,
-	    (int) dev->device_descriptor.vendor_id,
-	    usb_str_class(dev->device_descriptor.device_class));
+	    (int) dev_desc->product_id, (int) dev_desc->vendor_id,
+	    usb_str_class(dev_desc->device_class));
 	dump_match_ids(&matches, get_indent(1));
 	clean_match_ids(&matches);
 
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
-	    dump_match_ids_from_interface,
-	    dev);
+	size_t desc_size = 0;
+	const void *desc =
+	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
+
+	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	    dump_match_ids_from_interface, usb_dev);
 }
 
 static void dump_descriptor_tree_brief_device(const char *prefix,
@@ -223,26 +226,32 @@ static void dump_descriptor_tree_callback(
 	}
 }
 
-void dump_descriptor_tree_brief(usbinfo_device_t *dev)
+void dump_descriptor_tree_brief(usb_device_t *usb_dev)
 {
-	dump_descriptor_tree_callback((uint8_t *)&dev->device_descriptor,
+	dump_descriptor_tree_callback(
+	    (const uint8_t *)usb_device_get_device_descriptor(usb_dev),
 	    (size_t) -1, NULL);
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
-	    dump_descriptor_tree_callback,
-	    NULL);
+
+	size_t desc_size = 0;
+	const void *desc =
+	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
+
+	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	    dump_descriptor_tree_callback, NULL);
 }
 
-void dump_descriptor_tree_full(usbinfo_device_t *dev)
+void dump_descriptor_tree_full(usb_device_t *usb_dev)
 {
-	dump_descriptor_tree_callback((uint8_t *)&dev->device_descriptor,
-	    (size_t) -1, dev);
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
-	    dump_descriptor_tree_callback,
-	    dev);
+	dump_descriptor_tree_callback(
+	    (const uint8_t *)usb_device_get_device_descriptor(usb_dev),
+	    (size_t) -1, usb_dev);
+
+	size_t desc_size = 0;
+	const void *desc =
+	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
+
+	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	    dump_descriptor_tree_callback, usb_dev);
 }
 
 static void find_string_indexes_callback(
@@ -284,17 +293,19 @@ static void find_string_indexes_callback(
 }
 
 
-void dump_strings(usbinfo_device_t *dev)
+void dump_strings(usb_device_t *usb_dev)
 {
 	/* Find used indexes. Devices with more than 64 strings are very rare.*/
 	uint64_t str_mask = 0;
-	find_string_indexes_callback((uint8_t *)&dev->device_descriptor, 0,
+	find_string_indexes_callback(
+	    (const uint8_t *)usb_device_get_device_descriptor(usb_dev), 0,
 	    &str_mask);
-	usb_dp_walk_simple(dev->full_configuration_descriptor,
-	    dev->full_configuration_descriptor_size,
-	    usb_dp_standard_descriptor_nesting,
-	    find_string_indexes_callback,
-	    &str_mask);
+	size_t desc_size = 0;
+	const void *desc =
+	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
+
+	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	    find_string_indexes_callback, &str_mask);
 
 	if (str_mask == 0) {
 		printf("Device does not support string descriptors.\n");
@@ -304,8 +315,8 @@ void dump_strings(usbinfo_device_t *dev)
 	/* Get supported languages. */
 	l18_win_locales_t *langs;
 	size_t langs_count;
-	int rc = usb_request_get_supported_languages(&dev->ctrl_pipe,
-	    &langs, &langs_count);
+	int rc = usb_request_get_supported_languages(
+	    usb_device_get_default_pipe(usb_dev), &langs, &langs_count);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to get list of supported languages: %s.\n",
@@ -333,7 +344,8 @@ void dump_strings(usbinfo_device_t *dev)
 				continue;
 			}
 			char *string = NULL;
-			rc = usb_request_get_string(&dev->ctrl_pipe, idx, lang,
+			rc = usb_request_get_string(
+			    usb_device_get_default_pipe(usb_dev), idx, lang,
 			    &string);
 			if ((rc != EOK) && (rc != EEMPTY)) {
 				printf("%sWarn: failed to retrieve string #%zu: %s.\n",
@@ -350,13 +362,13 @@ void dump_strings(usbinfo_device_t *dev)
 }
 
 
-void dump_status(usbinfo_device_t *dev)
+void dump_status(usb_device_t *usb_dev)
 {
 	int rc;
 	uint16_t status = 0;
 
 	/* Device status first. */
-	rc = usb_request_get_status(&dev->ctrl_pipe,
+	rc = usb_request_get_status(usb_device_get_default_pipe(usb_dev),
 	    USB_REQUEST_RECIPIENT_DEVICE, 0, &status);
 	if (rc != EOK) {
 		printf("%sFailed to get device status: %s.\n",
@@ -372,7 +384,7 @@ void dump_status(usbinfo_device_t *dev)
 
 	/* Control endpoint zero. */
 	status = 0;
-	rc = usb_request_get_status(&dev->ctrl_pipe,
+	rc = usb_request_get_status(usb_device_get_default_pipe(usb_dev),
 	    USB_REQUEST_RECIPIENT_ENDPOINT, 0, &status);
 	if (rc != EOK) {
 		printf("%sFailed to get control endpoint status: %s.\n",
