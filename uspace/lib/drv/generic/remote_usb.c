@@ -73,6 +73,8 @@ typedef enum {
 	IPC_M_USB_RELEASE_DEFAULT_ADDRESS,
 	IPC_M_USB_DEVICE_ENUMERATE,
 	IPC_M_USB_DEVICE_REMOVE,
+	IPC_M_USB_REGISTER_ENDPOINT,
+	IPC_M_USB_UNREGISTER_ENDPOINT,
 } usb_iface_funcs_t;
 
 /** Tell USB address assigned to device.
@@ -185,6 +187,30 @@ int usb_device_remove(async_exch_t *exch, usb_device_handle_t handle)
 	    IPC_M_USB_DEVICE_REMOVE, handle);
 }
 
+int usb_register_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
+    usb_transfer_type_t type, usb_direction_t direction,
+    size_t mps, unsigned interval)
+{
+	if (!exch)
+		return EBADMEM;
+#define _PACK2(high, low) (((high & 0xffff) << 16) | (low & 0xffff))
+
+	return async_req_4_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_REGISTER_ENDPOINT, endpoint,
+	    _PACK2(type, direction), _PACK2(mps, interval));
+
+#undef _PACK2
+}
+
+int usb_unregister_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
+    usb_direction_t direction)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_3_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_UNREGISTER_ENDPOINT, endpoint, direction);
+}
+
 static void remote_usb_get_my_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_my_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -193,6 +219,8 @@ static void remote_usb_reserve_default_address(ddf_fun_t *, void *, ipc_callid_t
 static void remote_usb_release_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_device_enumerate(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_device_remove(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
@@ -203,6 +231,8 @@ static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 	[IPC_M_USB_RELEASE_DEFAULT_ADDRESS] = remote_usb_release_default_address,
 	[IPC_M_USB_DEVICE_ENUMERATE] = remote_usb_device_enumerate,
 	[IPC_M_USB_DEVICE_REMOVE] = remote_usb_device_remove,
+	[IPC_M_USB_REGISTER_ENDPOINT] = remote_usb_register_endpoint,
+	[IPC_M_USB_UNREGISTER_ENDPOINT] = remote_usb_unregister_endpoint,
 };
 
 /** Remote USB interface structure.
@@ -331,6 +361,56 @@ static void remote_usb_device_remove(ddf_fun_t *fun, void *iface,
 	usb_device_handle_t handle = DEV_IPC_GET_ARG1(*call);
 	const int ret = usb_iface->device_remove(fun, handle);
 	async_answer_0(callid, ret);
+}
+
+static void remote_usb_register_endpoint(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (!usb_iface->register_endpoint) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+#define _INIT_FROM_HIGH_DATA2(type, var, arg_no) \
+	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) >> 16)
+#define _INIT_FROM_LOW_DATA2(type, var, arg_no) \
+	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) & 0xffff)
+
+	const usb_endpoint_t endpoint = DEV_IPC_GET_ARG1(*call);
+
+	_INIT_FROM_HIGH_DATA2(usb_transfer_type_t, transfer_type, 2);
+	_INIT_FROM_LOW_DATA2(usb_direction_t, direction, 2);
+
+	_INIT_FROM_HIGH_DATA2(size_t, max_packet_size, 3);
+	_INIT_FROM_LOW_DATA2(unsigned int, interval, 3);
+
+#undef _INIT_FROM_HIGH_DATA2
+#undef _INIT_FROM_LOW_DATA2
+
+	const int ret = usb_iface->register_endpoint(fun, endpoint,
+	    transfer_type, direction, max_packet_size, interval);
+
+	async_answer_0(callid, ret);
+}
+
+static void remote_usb_unregister_endpoint(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (!usb_iface->unregister_endpoint) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_endpoint_t endpoint = (usb_endpoint_t) DEV_IPC_GET_ARG1(*call);
+	usb_direction_t direction = (usb_direction_t) DEV_IPC_GET_ARG2(*call);
+
+	int rc = usb_iface->unregister_endpoint(fun, endpoint, direction);
+
+	async_answer_0(callid, rc);
 }
 /**
  * @}

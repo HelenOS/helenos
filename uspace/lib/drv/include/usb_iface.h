@@ -61,6 +61,10 @@ int usb_release_default_address(async_exch_t *);
 int usb_device_enumerate(async_exch_t *, usb_device_handle_t *);
 int usb_device_remove(async_exch_t *, usb_device_handle_t);
 
+int usb_register_endpoint(async_exch_t *, usb_endpoint_t, usb_transfer_type_t,
+    usb_direction_t, size_t, unsigned);
+int usb_unregister_endpoint(async_exch_t *, usb_endpoint_t, usb_direction_t);
+
 /** USB device communication interface. */
 typedef struct {
 	int (*get_my_address)(ddf_fun_t *, usb_address_t *);
@@ -71,6 +75,10 @@ typedef struct {
 	int (*release_default_address)(ddf_fun_t *);
 	int (*device_enumerate)(ddf_fun_t *, usb_device_handle_t *);
 	int (*device_remove)(ddf_fun_t *, usb_device_handle_t);
+	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_t,
+	    usb_transfer_type_t, usb_direction_t, size_t, unsigned);
+	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_t,
+	    usb_direction_t);
 } usb_iface_t;
 
 #endif
