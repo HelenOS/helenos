@@ -72,38 +72,6 @@ static inline int usb_device_connection_initialize(
 	return EOK;
 }
 
-/** Register endpoint on the device.
- * @param instance device connection structure to use.
- * @param ep USB endpoint number.
- * @param type Communication type of the endpoint.
- * @param direction Communication direction.
- * @param packet_size Maximum packet size for the endpoint.
- * @param interval Preferrred interval between communication.
- * @return Error code.
- */
-static inline int usb_device_register_endpoint(
-    usb_device_connection_t *instance, usb_endpoint_t ep,
-    usb_transfer_type_t type, usb_direction_t direction,
-    size_t packet_size, unsigned interval)
-{
-	assert(instance);
-	return usb_hc_register_endpoint(instance->hc_connection,
-	    instance->address, ep, type, direction, packet_size, interval);
-}
-
-/** Unregister endpoint on the device.
- * @param instance device connection structure
- * @param ep Endpoint number.
- * @param dir Communication direction.
- * @return Error code.
- */
-static inline int usb_device_unregister_endpoint(
-    usb_device_connection_t *instance, usb_endpoint_t ep, usb_direction_t dir)
-{
-	assert(instance);
-	return usb_hc_unregister_endpoint(instance->hc_connection,
-	    instance->address, ep, dir);
-}
 
 /** Get data from the device.
  * @param[in] instance device connection structure to use.

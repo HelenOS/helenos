@@ -163,33 +163,6 @@ int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
 	return ret;
 }
 
-int usb_hc_register_endpoint(usb_hc_connection_t *connection,
-    usb_address_t address, usb_endpoint_t endpoint, usb_transfer_type_t type,
-    usb_direction_t direction, size_t packet_size, unsigned interval)
-{
-	async_exch_t *exch;
-	EXCH_INIT(connection, exch);
-
-	const int ret = usbhc_register_endpoint(exch, address, endpoint,
-	    type, direction, packet_size, interval);
-
-	EXCH_FINI(connection, exch);
-	return ret;
-}
-
-int usb_hc_unregister_endpoint(usb_hc_connection_t *connection,
-    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
-{
-	async_exch_t *exch;
-	EXCH_INIT(connection, exch);
-
-	const int ret =
-	    usbhc_unregister_endpoint(exch, address, endpoint, direction);
-
-	EXCH_FINI(connection, exch);
-	return ret;
-}
-
 int usb_hc_read(usb_hc_connection_t *connection, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *real_size)
