@@ -67,16 +67,8 @@ typedef struct usb_device {
 	int interface_no;
 	/** Alternative interfaces. */
 	usb_alternate_interfaces_t alternate_interfaces;
-
 	/** Some useful descriptors for USB device. */
-	struct {
-		/** Standard device descriptor. */
-		usb_standard_device_descriptor_t device;
-		/** Full configuration descriptor of current configuration. */
-		const uint8_t *configuration;
-		size_t configuration_size;
-	} descriptors;
-
+	usb_device_descriptors_t descriptors;
 	/** Generic DDF device backing this one. DO NOT TOUCH! */
 	ddf_dev_t *ddf_dev;
 	/** Custom driver data.
@@ -159,7 +151,7 @@ int usb_device_select_interface(usb_device_t *usb_dev,
 static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	assert(usb_dev->descriptors.configuration == NULL);
+	assert(usb_dev->descriptors.full_config == NULL);
 
 	/* It is worth to start a long transfer. */
 	usb_pipe_start_long_transfer(&usb_dev->ctrl_pipe);
@@ -174,8 +166,8 @@ static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 	/* Get the full configuration descriptor. */
 	rc = usb_request_get_full_configuration_descriptor_alloc(
 	    &usb_dev->ctrl_pipe, 0,
-	    (void **) &usb_dev->descriptors.configuration,
-	    &usb_dev->descriptors.configuration_size);
+	    (void**)&usb_dev->descriptors.full_config,
+	    &usb_dev->descriptors.full_config_size);
 
 leave:
 	usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
@@ -190,9 +182,9 @@ leave:
 static void usb_device_release_descriptors(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	free(usb_dev->descriptors.configuration);
-	usb_dev->descriptors.configuration = NULL;
-	usb_dev->descriptors.configuration_size = 0;
+	free(usb_dev->descriptors.full_config);
+	usb_dev->descriptors.full_config = NULL;
+	usb_dev->descriptors.full_config_size = 0;
 }
 
 /** Create pipes for a device.
@@ -218,7 +210,7 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
     const usb_endpoint_description_t **endpoints)
 {
 	assert(usb_dev);
-	assert(usb_dev->descriptors.configuration);
+	assert(usb_dev->descriptors.full_config);
 	assert(usb_dev->pipes == NULL);
 	assert(usb_dev->pipes_count == 0);
 
@@ -243,8 +235,8 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 
 	/* Find the mapping from configuration descriptor. */
 	int rc = usb_pipe_initialize_from_configuration(pipes, pipe_count,
-	    usb_dev->descriptors.configuration,
-	    usb_dev->descriptors.configuration_size, &usb_dev->wire);
+	    usb_dev->descriptors.full_config,
+	    usb_dev->descriptors.full_config_size, &usb_dev->wire);
 	if (rc != EOK) {
 		free(pipes);
 		return rc;
@@ -337,20 +329,10 @@ int usb_device_get_iface_number(usb_device_t *usb_dev)
 	return usb_dev->interface_no;
 }
 
-const usb_standard_device_descriptor_t *
-usb_device_get_device_descriptor(usb_device_t *usb_dev)
+const usb_device_descriptors_t *usb_device_descriptors(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	return &usb_dev->descriptors.device;
-}
-
-const void * usb_device_get_configuration_descriptor(
-    usb_device_t *usb_dev, size_t *size)
-{
-	assert(usb_dev);
-	if (size)
-		*size = usb_dev->descriptors.configuration_size;
-	return usb_dev->descriptors.configuration;
+	return &usb_dev->descriptors;
 }
 
 const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
@@ -429,7 +411,8 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 
 	usb_dev->ddf_dev = ddf_dev;
 	usb_dev->driver_data = NULL;
-	usb_dev->descriptors.configuration = NULL;
+	usb_dev->descriptors.full_config = NULL;
+	usb_dev->descriptors.full_config_size = 0;
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
@@ -499,8 +482,8 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	 * it makes no sense to speak about alternate interfaces when
 	 * controlling a device. */
 	rc = usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
-	    usb_dev->descriptors.configuration,
-	    usb_dev->descriptors.configuration_size, usb_dev->interface_no);
+	    usb_dev->descriptors.full_config,
+	    usb_dev->descriptors.full_config_size, usb_dev->interface_no);
 
 	if (endpoints) {
 		/* Create and register other pipes than default control (EP 0)*/

@@ -59,13 +59,9 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
 	
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(dev, &desc_size);
-
 	usb_dp_parser_data_t parser_data = {
-		.data = desc,
-		.size = desc_size,
+		.data = usb_device_descriptors(dev)->full_config,
+		.size = usb_device_descriptors(dev)->full_config_size,
 		.arg = NULL
 	};
 	
@@ -73,7 +69,8 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	 * First nested descriptor of the configuration descriptor.
 	 */
 	const uint8_t *d =
-	    usb_dp_get_nested_descriptor(&parser, &parser_data, desc);
+	    usb_dp_get_nested_descriptor(&parser, &parser_data,
+	        usb_device_descriptors(dev)->full_config);
 	
 	/*
 	 * Find the interface descriptor corresponding to our interface number.
@@ -81,7 +78,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	int i = 0;
 	while (d != NULL && i < usb_device_get_iface_number(dev)) {
 		d = usb_dp_get_sibling_descriptor(&parser, &parser_data,
-		    desc, d);
+		    usb_device_descriptors(dev)->full_config, d);
 		++i;
 	}
 	

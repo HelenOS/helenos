@@ -358,7 +358,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	assert(usb_device);
 	/* Get number of possible configurations from device descriptor */
 	const size_t configuration_count =
-	    usb_device_get_device_descriptor(usb_device)->configuration_count;
+	    usb_device_descriptors(usb_device)->device.configuration_count;
 	usb_log_debug("Hub has %zu configurations.\n", configuration_count);
 
 	if (configuration_count < 1) {
@@ -367,16 +367,16 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	}
 
 	// TODO: Make sure that the cast is correct
-	size_t config_size = 0;
+	const size_t config_size =
+	    usb_device_descriptors(usb_device)->full_config_size;
 	const usb_standard_configuration_descriptor_t *config_descriptor =
-	    usb_device_get_configuration_descriptor(usb_device, &config_size);
+	    usb_device_descriptors(usb_device)->full_config;
 
 	if (config_size < sizeof(usb_standard_configuration_descriptor_t)) {
 	    usb_log_error("Configuration descriptor is not big enough"
 	        " to fit standard configuration descriptor.\n");
 	    return EOVERFLOW;
 	}
-
 
 	/* Set configuration. Use the configuration that was in
 	 * usb_device->descriptors.configuration i.e. The first one. */

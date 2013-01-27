@@ -47,8 +47,8 @@
 void dump_short_device_identification(usb_device_t *usb_dev)
 {
 	printf("%sDevice 0x%04x by vendor 0x%04x\n", get_indent(0),
-	    (int) usb_device_get_device_descriptor(usb_dev)->product_id,
-	    (int) usb_device_get_device_descriptor(usb_dev)->vendor_id);
+	    usb_device_descriptors(usb_dev)->device.product_id,
+	    usb_device_descriptors(usb_dev)->device.vendor_id);
 }
 
 static void dump_match_ids_from_interface(
@@ -82,7 +82,7 @@ static void dump_match_ids_from_interface(
 	match_id_list_t matches;
 	init_match_ids(&matches);
 	usb_device_create_match_ids_from_interface(
-	    usb_device_get_device_descriptor(usb_dev), iface, &matches);
+	    &usb_device_descriptors(usb_dev)->device, iface, &matches);
 	dump_match_ids(&matches, get_indent(1));
 	clean_match_ids(&matches);
 }
@@ -91,20 +91,19 @@ void dump_device_match_ids(usb_device_t *usb_dev)
 {
 	match_id_list_t matches;
 	init_match_ids(&matches);
-	const usb_standard_device_descriptor_t *dev_desc =
-	    usb_device_get_device_descriptor(usb_dev);
-	usb_device_create_match_ids_from_device_descriptor(dev_desc, &matches);
+	usb_device_create_match_ids_from_device_descriptor(
+		&usb_device_descriptors(usb_dev)->device, &matches);
 	printf("%sDevice match ids (0x%04x by 0x%04x, %s)\n", get_indent(0),
-	    (int) dev_desc->product_id, (int) dev_desc->vendor_id,
-	    usb_str_class(dev_desc->device_class));
+	    usb_device_descriptors(usb_dev)->device.product_id,
+	    usb_device_descriptors(usb_dev)->device.vendor_id,
+	    usb_str_class(usb_device_descriptors(usb_dev)->device.device_class));
 	dump_match_ids(&matches, get_indent(1));
 	clean_match_ids(&matches);
 
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
-
-	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	usb_dp_walk_simple(
+	    usb_device_descriptors(usb_dev)->full_config,
+	    usb_device_descriptors(usb_dev)->full_config_size,
+	    usb_dp_standard_descriptor_nesting,
 	    dump_match_ids_from_interface, usb_dev);
 }
 
@@ -229,28 +228,26 @@ static void dump_descriptor_tree_callback(
 void dump_descriptor_tree_brief(usb_device_t *usb_dev)
 {
 	dump_descriptor_tree_callback(
-	    (const uint8_t *)usb_device_get_device_descriptor(usb_dev),
+	    (const uint8_t *)&usb_device_descriptors(usb_dev)->device,
 	    (size_t) -1, NULL);
 
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
-
-	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	usb_dp_walk_simple(
+	    usb_device_descriptors(usb_dev)->full_config,
+	    usb_device_descriptors(usb_dev)->full_config_size,
+	    usb_dp_standard_descriptor_nesting,
 	    dump_descriptor_tree_callback, NULL);
 }
 
 void dump_descriptor_tree_full(usb_device_t *usb_dev)
 {
 	dump_descriptor_tree_callback(
-	    (const uint8_t *)usb_device_get_device_descriptor(usb_dev),
+	    (const uint8_t *)&usb_device_descriptors(usb_dev)->device,
 	    (size_t) -1, usb_dev);
 
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
-
-	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	usb_dp_walk_simple(
+	    usb_device_descriptors(usb_dev)->full_config,
+	    usb_device_descriptors(usb_dev)->full_config_size,
+	    usb_dp_standard_descriptor_nesting,
 	    dump_descriptor_tree_callback, usb_dev);
 }
 
@@ -298,13 +295,13 @@ void dump_strings(usb_device_t *usb_dev)
 	/* Find used indexes. Devices with more than 64 strings are very rare.*/
 	uint64_t str_mask = 0;
 	find_string_indexes_callback(
-	    (const uint8_t *)usb_device_get_device_descriptor(usb_dev), 0,
+	    (const uint8_t *)&usb_device_descriptors(usb_dev)->device, 0,
 	    &str_mask);
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
 
-	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	usb_dp_walk_simple(
+	    usb_device_descriptors(usb_dev)->full_config,
+	    usb_device_descriptors(usb_dev)->full_config_size,
+	    usb_dp_standard_descriptor_nesting,
 	    find_string_indexes_callback, &str_mask);
 
 	if (str_mask == 0) {

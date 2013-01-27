@@ -226,11 +226,10 @@ void dump_hidreport_raw(usb_device_t *usb_dev)
 		.last_iface = NULL
 	};
 
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
-
-	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	usb_dp_walk_simple(
+	    usb_device_descriptors(usb_dev)->full_config,
+	    usb_device_descriptors(usb_dev)->full_config_size,
+	    usb_dp_standard_descriptor_nesting,
 	    descriptor_walk_callback, &context);
 }
 
@@ -242,11 +241,10 @@ void dump_hidreport_usages(usb_device_t *usb_dev)
 		.last_iface = NULL
 	};
 
-	size_t desc_size = 0;
-	const void *desc =
-	    usb_device_get_configuration_descriptor(usb_dev, &desc_size);
-
-	usb_dp_walk_simple(desc, desc_size, usb_dp_standard_descriptor_nesting,
+	usb_dp_walk_simple(
+	    usb_device_descriptors(usb_dev)->full_config,
+	    usb_device_descriptors(usb_dev)->full_config_size,
+	    usb_dp_standard_descriptor_nesting,
 	    descriptor_walk_callback, &context);
 }
 

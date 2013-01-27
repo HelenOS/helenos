@@ -40,6 +40,15 @@
 #include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/pipes.h>
 
+/** Some useful descriptors for USB device. */
+typedef struct {
+	/** Standard device descriptor. */
+	usb_standard_device_descriptor_t device;
+	/** Full configuration descriptor of current configuration. */
+	const void *full_config;
+	size_t full_config_size;
+} usb_device_descriptors_t;
+
 typedef struct usb_device usb_device_t;
 
 int usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
@@ -69,9 +78,8 @@ usb_endpoint_mapping_t * usb_device_get_mapped_ep(usb_device_t *,
 
 int usb_device_get_iface_number(usb_device_t *);
 
-const usb_standard_device_descriptor_t *
-usb_device_get_device_descriptor(usb_device_t *);
-const void * usb_device_get_configuration_descriptor(usb_device_t *, size_t *);
+const usb_device_descriptors_t * usb_device_descriptors(usb_device_t *);
+
 const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
     usb_device_t *);
 
