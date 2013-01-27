@@ -380,7 +380,6 @@ static int usb_dev_get_info(usb_device_t *usb_dev, devman_handle_t *handle,
 static void usb_device_fini(usb_device_t *usb_dev)
 {
 	if (usb_dev) {
-		usb_dev_disconnect(usb_dev->bus_session);
 		/* Destroy existing pipes. */
 		usb_device_destroy_pipes(usb_dev);
 		/* Ignore errors and hope for the best. */
@@ -389,6 +388,8 @@ static void usb_device_fini(usb_device_t *usb_dev)
 		usb_device_release_descriptors(usb_dev);
 		free(usb_dev->driver_data);
 		usb_dev->driver_data = NULL;
+		usb_dev_disconnect(usb_dev->bus_session);
+		usb_dev->bus_session = NULL;
 	}
 }
 
