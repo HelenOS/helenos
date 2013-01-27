@@ -553,7 +553,6 @@ usb_device_t * usb_device_create(devman_handle_t handle)
 		usb_dev = NULL;
 	}
 	return usb_dev;
-
 }
 
 void usb_device_destroy(usb_device_t *usb_dev)

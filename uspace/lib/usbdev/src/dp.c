@@ -303,7 +303,7 @@ static void usb_dp_browse_simple_internal(const usb_dp_parser_t *parser,
  * @param callback Callback for each found descriptor.
  * @param arg Custom (user) argument.
  */
-void usb_dp_walk_simple(uint8_t *descriptors, size_t descriptors_size,
+void usb_dp_walk_simple(const uint8_t *descriptors, size_t descriptors_size,
     const usb_dp_descriptor_nesting_t *descriptor_nesting,
     walk_callback_t callback, void *arg)
 {
