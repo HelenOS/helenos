@@ -591,6 +591,18 @@ void * usb_device_data_get(usb_device_t *usb_dev)
 	assert(usb_dev);
 	return usb_dev->driver_data;
 }
+
+usb_address_t usb_device_address(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->wire.address;
+}
+
+devman_handle_t usb_device_hc_handle(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->hc_conn.hc_handle;
+}
 /**
  * @}
  */

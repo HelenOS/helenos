@@ -37,7 +37,6 @@
 #include <str_error.h>
 #include <ddf/interrupt.h>
 #include <usb/usb.h>
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
 
 #include <usb/host/ddf_helpers.h>

@@ -38,14 +38,45 @@
 #include <str_error.h>
 #include <stdlib.h>
 #include <usb_iface.h>
-#include <usb/ddfiface.h>
 #include <usb/dev/pipes.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/recognise.h>
 #include "usbmid.h"
+/** Get host controller handle by calling the parent usb_device_t.
+ *
+ * @param[in] fun Device function the operation is running on.
+ * @param[out] handle Storage for the host controller handle.
+ * @return Error code.
+ */
+static int usb_iface_device_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
+{
+	assert(handle);
+	assert(fun);
+	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
+	assert(usb_dev);
+	*handle = usb_device_hc_handle(usb_dev);
+	return EOK;
+}
+
+/** Get USB device address by calling the parent usb_device_t.
+ *
+ * @param[in] fun Device function the operation is running on.
+ * @param[in] handle Devman handle of USB device we want address of.
+ * @param[out] address Storage for USB address of device with handle @p handle.
+ * @return Error code.
+ */
+static int usb_iface_device_address(ddf_fun_t *fun, usb_address_t *address)
+{
+	assert(address);
+	assert(fun);
+	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
+	assert(usb_dev);
+	*address = usb_device_address(usb_dev);
+	return EOK;
+}
 
 /** Callback for DDF USB interface. */
-static int usb_iface_get_interface_impl(ddf_fun_t *fun, int *iface_no)
+static int usb_iface_iface(ddf_fun_t *fun, int *iface_no)
 {
 	usbmid_interface_t *iface = ddf_fun_data_get(fun);
 	assert(iface);
@@ -59,9 +90,9 @@ static int usb_iface_get_interface_impl(ddf_fun_t *fun, int *iface_no)
 
 /** DDF interface of the child - interface function. */
 static usb_iface_t child_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle_device_impl,
-	.get_my_address = usb_iface_get_my_address_forward_impl,
-	.get_my_interface = usb_iface_get_interface_impl,
+	.get_hc_handle = usb_iface_device_hc_handle,
+	.get_my_address = usb_iface_device_address,
+	.get_my_interface = usb_iface_iface,
 };
 
 /** Operations for children - interface functions. */

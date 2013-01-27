@@ -38,7 +38,6 @@
 #include <usb/debug.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
-#include <usb/ddfiface.h>
 #include <usb/dev/request.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>

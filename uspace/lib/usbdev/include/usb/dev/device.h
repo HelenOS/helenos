@@ -51,8 +51,16 @@ typedef struct {
 
 typedef struct usb_device usb_device_t;
 
+/* DDF parts */
 int usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
 void usb_device_destroy_ddf(ddf_dev_t *);
+
+static inline usb_device_t *usb_device_get(ddf_dev_t *dev)
+{
+	assert(dev);
+	return ddf_dev_data_get(dev);
+}
+
 
 usb_device_t * usb_device_create(devman_handle_t);
 void usb_device_destroy(usb_device_t *);
@@ -85,6 +93,10 @@ const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
 
 void * usb_device_data_alloc(usb_device_t *, size_t);
 void * usb_device_data_get(usb_device_t *);
+
+/* Legacy support */
+usb_address_t usb_device_address(usb_device_t *);
+devman_handle_t usb_device_hc_handle(usb_device_t*);
 
 #endif
 /**

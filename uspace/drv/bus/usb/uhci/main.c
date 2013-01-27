@@ -35,7 +35,6 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
 
 #include "uhci.h"

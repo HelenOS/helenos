@@ -40,7 +40,6 @@
 
 #include <usb/host/ddf_helpers.h>
 
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
 #include "vhcd.h"
 

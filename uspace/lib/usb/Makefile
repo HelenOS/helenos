@@ -35,7 +35,6 @@ EXTRA_CFLAGS += \
 
 SOURCES = \
 	src/class.c \
-	src/ddfiface.c \
 	src/dev.c \
 	src/debug.c \
 	src/dump.c \

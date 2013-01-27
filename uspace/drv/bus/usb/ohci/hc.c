@@ -40,7 +40,6 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/ddfiface.h>
 
 #include "hc.h"
 #include "ohci_endpoint.h"

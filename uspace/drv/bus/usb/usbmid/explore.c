@@ -39,13 +39,7 @@
 #include <usb/classes/classes.h>
 #include <usb/dev/request.h>
 #include <usb/dev/dp.h>
-#include <usb/ddfiface.h>
 #include "usbmid.h"
-
-/** Operations of the device itself. */
-static ddf_dev_ops_t mid_device_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
-};
 
 /** Tell whether given interface is already in the list.
  *
@@ -92,7 +86,7 @@ static int create_interfaces(const uint8_t *config_descriptor,
 
 	/* Walk all descriptors nested in the current configuration decriptor;
 	 * i.e. all interface descriptors. */
-	for (;interface_ptr != NULL;
+	for (; interface_ptr != NULL;
 	    interface_ptr = usb_dp_get_sibling_descriptor(
 	        &parser, &data, config_descriptor, interface_ptr))
 	{
@@ -169,9 +163,7 @@ int usbmid_explore_device(usb_device_t *dev)
 		    str_error(rc));
 		return rc;
 	}
-
 	
-
 	/* Create driver soft-state. */
 	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
 	if (!usb_mid) {
@@ -185,7 +177,6 @@ int usbmid_explore_device(usb_device_t *dev)
 		usb_log_error("Failed to create control function.\n");
 		return ENOMEM;
 	}
-	ddf_fun_set_ops(usb_mid->ctl_fun, &mid_device_ops);
 
 	/* Bind control function. */
 	rc = ddf_fun_bind(usb_mid->ctl_fun);
@@ -195,7 +186,6 @@ int usbmid_explore_device(usb_device_t *dev)
 		ddf_fun_destroy(usb_mid->ctl_fun);
 		return rc;
 	}
-
 
 	/* Create interface children. */
 	list_initialize(&usb_mid->interface_list);
