@@ -423,7 +423,6 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
     devman_handle_t handle)
 {
 	assert(usb_dev != NULL);
-	assert(ddf_dev != NULL);
 	assert(errstr_ptr);
 
 	*errstr_ptr = NULL;
