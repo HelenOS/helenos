@@ -312,6 +312,34 @@ const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
 	return &usb_dev->alternate_interfaces;
 }
 
+static int usb_dev_get_info(usb_device_t *usb_dev, devman_handle_t *handle,
+    usb_address_t *address, int *iface_no)
+{
+	assert(usb_dev);
+
+	int ret = EOK;
+	async_exch_t *exch = async_exchange_begin(usb_dev->bus_session);
+	if (!exch)
+		ret = ENOMEM;
+
+	if (ret == EOK && address)
+		ret = usb_get_my_address(exch, address);
+
+	if (ret == EOK && handle)
+		ret = usb_get_hc_handle(exch, handle);
+
+	if (ret == EOK && iface_no) {
+		ret = usb_get_my_interface(exch, iface_no);
+		if (ret == ENOTSUP) {
+			ret = EOK;
+			*iface_no = -1;
+		}
+	}
+
+	async_exchange_end(exch);
+	return ret;
+}
+
 /** Initialize new instance of USB device.
  *
  * @param[in] usb_dev Pointer to the new device.
@@ -345,7 +373,7 @@ int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	devman_handle_t hc_handle;
 	usb_address_t address;
 
-	int rc = usb_get_info_by_handle(ddf_dev_get_handle(ddf_dev),
+	int rc = usb_dev_get_info(usb_dev,
 	    &hc_handle, &address, &usb_dev->interface_no);
 	if (rc != EOK) {
 		*errstr_ptr = "device parameters retrieval";
@@ -435,9 +463,9 @@ void usb_device_deinit(usb_device_t *dev)
 const char *usb_device_get_name(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
-	assert(usb_dev->ddf_dev);
-	//TODO Handle case without ddf_dev
-	return ddf_dev_get_name(usb_dev->ddf_dev);
+	if (usb_dev->ddf_dev)
+		return ddf_dev_get_name(usb_dev->ddf_dev);
+	return NULL;
 }
 
 ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *usb_dev, fun_type_t ftype,
