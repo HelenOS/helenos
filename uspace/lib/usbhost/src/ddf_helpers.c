@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jan Vesely
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,6 +75,60 @@ typedef struct usb_dev {
 	usb_speed_t speed;
 	devman_handle_t hc_handle;
 } usb_dev_t;
+
+/** Register endpoint interface function.
+ * @param fun DDF function.
+ * @param address USB address of the device.
+ * @param endpoint USB endpoint number to be registered.
+ * @param transfer_type Endpoint's transfer type.
+ * @param direction USB communication direction the endpoint is capable of.
+ * @param max_packet_size Maximu size of packets the endpoint accepts.
+ * @param interval Preferred timeout between communication.
+ * @return Error code.
+ */
+static int register_endpoint(
+    ddf_fun_t *fun, usb_endpoint_t endpoint,
+    usb_transfer_type_t transfer_type, usb_direction_t direction,
+    size_t max_packet_size, unsigned interval)
+{
+	assert(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	usb_dev_t *dev = ddf_fun_data_get(fun);
+	assert(hcd);
+	assert(dev);
+	const size_t size = max_packet_size;
+	const usb_target_t target =
+	    {{.address = dev->address, .endpoint = endpoint}};
+
+	usb_log_debug("Register endpoint %d:%d %s-%s %zuB %ums.\n",
+	    dev->address, endpoint, usb_str_transfer_type(transfer_type),
+	    usb_str_direction(direction), max_packet_size, interval);
+
+	return hcd_add_ep(hcd, target, direction, transfer_type,
+	    max_packet_size, size);
+}
+
+/** Unregister endpoint interface function.
+ * @param fun DDF function.
+ * @param address USB address of the endpoint.
+ * @param endpoint USB endpoint number.
+ * @param direction Communication direction of the enpdoint to unregister.
+ * @return Error code.
+ */
+static int unregister_endpoint(
+    ddf_fun_t *fun, usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	assert(fun);
+	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
+	usb_dev_t *dev = ddf_fun_data_get(fun);
+	assert(hcd);
+	assert(dev);
+	const usb_target_t target =
+	    {{.address = dev->address, .endpoint = endpoint}};
+	usb_log_debug("Unregister endpoint %d:%d %s.\n",
+	    dev->address, endpoint, usb_str_direction(direction));
+	return hcd_remove_ep(hcd, target, direction);
+}
 
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
@@ -170,6 +224,8 @@ static usb_iface_t usb_iface = {
 	.release_default_address = release_default_address,
 	.device_enumerate = device_enumerate,
 	.device_remove = device_remove,
+	.register_endpoint = register_endpoint,
+	.unregister_endpoint = unregister_endpoint,
 };
 /** Standard USB RH options (RH interface) */
 static ddf_dev_ops_t usb_ops = {
