@@ -47,7 +47,6 @@
 
 #include "usbinfo.h"
 
-#define MAX_USB_ADDRESS USB11_ADDRESS_MAX
 #define MAX_PATH_LENGTH 1024
 
 static void print_found_hc(service_id_t sid, const char *path)
@@ -63,6 +62,7 @@ static void print_usb_devices(devman_handle_t bus_handle,
     devman_handle_t *fhs, size_t count)
 {
 	for (size_t i = 0; i < count; ++i) {
+		/* Skip hc ctl function */
 		if (fhs[i] == bus_handle)
 			continue;
 		char path[MAX_PATH_LENGTH];
@@ -129,6 +129,7 @@ void list(void)
 			    PRIun ", skipping.\n", svcs[i]);
 			continue;
 		}
+
 		char path[MAX_PATH_LENGTH];
 		rc = devman_fun_get_path(hc_handle, path, MAX_PATH_LENGTH);
 		if (rc != EOK) {
@@ -138,6 +139,8 @@ void list(void)
 		}
 		print_found_hc(svcs[i], path);
 
+		/* Construct device's path.
+		 * That's "hc function path" - ( '/' + "hc function name" ) */
 		// TODO replace this with something sane
 		char name[10];
 		rc = devman_fun_get_name(hc_handle, name, 10);
