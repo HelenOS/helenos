@@ -45,7 +45,10 @@ typedef struct usb_device usb_device_t;
 int usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
 void usb_device_destroy_ddf(ddf_dev_t *);
 
-const char* usb_device_get_name(usb_device_t *);
+usb_device_t * usb_device_create(devman_handle_t);
+void usb_device_destroy(usb_device_t *);
+
+const char * usb_device_get_name(usb_device_t *);
 ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *, fun_type_t, const char *);
 
 async_exch_t * usb_device_bus_exchange_begin(usb_device_t *);

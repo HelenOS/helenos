@@ -388,6 +388,27 @@ static int usb_dev_get_info(usb_device_t *usb_dev, devman_handle_t *handle,
 	return ret;
 }
 
+/** Clean instance of a USB device.
+ *
+ * @param dev Device to be de-initialized.
+ *
+ * Does not free/destroy supplied pointer.
+ */
+static void usb_device_fini(usb_device_t *usb_dev)
+{
+	if (usb_dev) {
+		usb_dev_disconnect(usb_dev->bus_session);
+		/* Destroy existing pipes. */
+		usb_device_destroy_pipes(usb_dev);
+		/* Ignore errors and hope for the best. */
+		usb_hc_connection_deinitialize(&usb_dev->hc_conn);
+		usb_alternate_interfaces_deinit(&usb_dev->alternate_interfaces);
+		usb_device_release_descriptors(usb_dev);
+		free(usb_dev->driver_data);
+		usb_dev->driver_data = NULL;
+	}
+}
+
 /** Initialize new instance of USB device.
  *
  * @param[in] usb_dev Pointer to the new device.
@@ -398,10 +419,12 @@ static int usb_dev_get_info(usb_device_t *usb_dev, devman_handle_t *handle,
  * @return Error code.
  */
 static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
-    const usb_endpoint_description_t **endpoints, const char **errstr_ptr)
+    const usb_endpoint_description_t **endpoints, const char **errstr_ptr,
+    devman_handle_t handle)
 {
 	assert(usb_dev != NULL);
 	assert(ddf_dev != NULL);
+	assert(errstr_ptr);
 
 	*errstr_ptr = NULL;
 
@@ -411,7 +434,11 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
-	usb_dev->bus_session = usb_dev_connect_to_self(ddf_dev);
+	if (ddf_dev)
+		usb_dev->bus_session = usb_dev_connect_to_self(ddf_dev);
+	else
+		usb_dev->bus_session = usb_dev_connect(handle);
+
 	if (!usb_dev->bus_session) {
 		*errstr_ptr = "device bus session create";
 		return ENOMEM;
@@ -424,6 +451,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	int rc = usb_dev_get_info(usb_dev,
 	    &hc_handle, &address, &usb_dev->interface_no);
 	if (rc != EOK) {
+		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "device parameters retrieval";
 		return rc;
 	}
@@ -435,6 +463,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	rc = usb_device_connection_initialize(
 	    &usb_dev->wire, &usb_dev->hc_conn, address);
 	if (rc != EOK) {
+		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "device connection initialization";
 		return rc;
 	}
@@ -444,6 +473,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	rc = usb_pipe_initialize_default_control(
 	    &usb_dev->ctrl_pipe, &usb_dev->wire);
 	if (rc != EOK) {
+		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "default control pipe initialization";
 		return rc;
 	}
@@ -451,6 +481,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	/* Open hc connection for pipe registration. */
 	rc = usb_hc_connection_open(&usb_dev->hc_conn);
 	if (rc != EOK) {
+		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "hc connection open";
 		return rc;
 	}
@@ -460,6 +491,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	if (rc != EOK) {
 		*errstr_ptr = "descriptor retrieval";
 		usb_hc_connection_close(&usb_dev->hc_conn);
+		usb_dev_disconnect(usb_dev->bus_session);
 		return rc;
 	}
 
@@ -471,41 +503,19 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	    usb_dev->descriptors.configuration,
 	    usb_dev->descriptors.configuration_size, usb_dev->interface_no);
 
-	/* Create and register other pipes than default control (EP 0) */
-	rc = usb_device_create_pipes(usb_dev, endpoints);
-	if (rc != EOK) {
-		usb_hc_connection_close(&usb_dev->hc_conn);
-		/* Full configuration descriptor is allocated. */
-		usb_device_release_descriptors(usb_dev);
-		/* Alternate interfaces may be allocated */
-		usb_alternate_interfaces_deinit(&usb_dev->alternate_interfaces);
-		*errstr_ptr = "pipes initialization";
-		return rc;
+	if (endpoints) {
+		/* Create and register other pipes than default control (EP 0)*/
+		rc = usb_device_create_pipes(usb_dev, endpoints);
+		if (rc != EOK) {
+			usb_hc_connection_close(&usb_dev->hc_conn);
+			usb_device_fini(usb_dev);
+			*errstr_ptr = "pipes initialization";
+			return rc;
+		}
 	}
 
 	usb_hc_connection_close(&usb_dev->hc_conn);
 	return EOK;
-}
-
-/** Clean instance of a USB device.
- *
- * @param dev Device to be de-initialized.
- *
- * Does not free/destroy supplied pointer.
- */
-static void usb_device_fini(usb_device_t *dev)
-{
-	if (dev) {
-		usb_dev_disconnect(dev->bus_session);
-		/* Destroy existing pipes. */
-		usb_device_destroy_pipes(dev);
-		/* Ignore errors and hope for the best. */
-		usb_hc_connection_deinitialize(&dev->hc_conn);
-		usb_alternate_interfaces_deinit(&dev->alternate_interfaces);
-		usb_device_release_descriptors(dev);
-		free(dev->driver_data);
-		dev->driver_data = NULL;
-	}
 }
 
 int usb_device_create_ddf(ddf_dev_t *ddf_dev,
@@ -513,21 +523,45 @@ int usb_device_create_ddf(ddf_dev_t *ddf_dev,
 {
 	assert(ddf_dev);
 	assert(err);
-	usb_device_t *dev = ddf_dev_data_alloc(ddf_dev, sizeof(usb_device_t));
-	if (dev == NULL) {
+	usb_device_t *usb_dev =
+	    ddf_dev_data_alloc(ddf_dev, sizeof(usb_device_t));
+	if (usb_dev == NULL) {
 		*err = "DDF data alloc";
 		return ENOMEM;
 	}
-	return usb_device_init(dev, ddf_dev, desc, err);
+	return usb_device_init(usb_dev, ddf_dev, desc, err, 0);
 }
 
 void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
 {
 	assert(ddf_dev);
-	usb_device_t *dev = ddf_dev_data_get(ddf_dev);
-	assert(dev);
-	usb_device_fini(dev);
+	usb_device_t *usb_dev = ddf_dev_data_get(ddf_dev);
+	assert(usb_dev);
+	usb_device_fini(usb_dev);
 	return;
+}
+
+usb_device_t * usb_device_create(devman_handle_t handle)
+{
+	usb_device_t *usb_dev = malloc(sizeof(usb_device_t));
+	if (!usb_dev)
+		return NULL;
+	const char* dummy = NULL;
+	const int ret = usb_device_init(usb_dev, NULL, NULL, &dummy, handle);
+	if (ret != EOK) {
+		free(usb_dev);
+		usb_dev = NULL;
+	}
+	return usb_dev;
+
+}
+
+void usb_device_destroy(usb_device_t *usb_dev)
+{
+	if (usb_dev) {
+		usb_device_fini(usb_dev);
+		free(usb_dev);
+	}
 }
 
 const char *usb_device_get_name(usb_device_t *usb_dev)
