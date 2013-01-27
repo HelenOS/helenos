@@ -32,7 +32,9 @@
 /** @file
  * USB device driver framework.
  */
-#include <usb/dev/driver.h>
+
+#include <usb_iface.h>
+#include <usb/dev/device.h>
 #include <usb/dev/request.h>
 #include <usb/debug.h>
 #include <usb/dev.h>
