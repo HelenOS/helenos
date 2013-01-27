@@ -465,7 +465,7 @@ int usb_request_get_full_configuration_descriptor(usb_pipe_t *pipe,
  */
 int usb_request_get_full_configuration_descriptor_alloc(
     usb_pipe_t *pipe, int index,
-    void **descriptor_ptr, size_t *descriptor_size)
+    const void **descriptor_ptr, size_t *descriptor_size)
 {
 	int rc;
 

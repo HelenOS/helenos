@@ -166,7 +166,7 @@ static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 	/* Get the full configuration descriptor. */
 	rc = usb_request_get_full_configuration_descriptor_alloc(
 	    &usb_dev->ctrl_pipe, 0,
-	    (void**)&usb_dev->descriptors.full_config,
+	    &usb_dev->descriptors.full_config,
 	    &usb_dev->descriptors.full_config_size);
 
 leave:
