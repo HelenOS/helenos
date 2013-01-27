@@ -107,26 +107,6 @@ if (exch) { \
 	usb_hc_connection_del_ref(connection); \
 } else (void)0
 
-/** Initialize connection to USB host controller.
- *
- * @param connection Connection to be initialized.
- * @param device Device connecting to the host controller.
- * @return Error code.
- */
-int usb_hc_connection_initialize_from_device(usb_hc_connection_t *connection,
-    ddf_dev_t *device)
-{
-	if (device == NULL)
-		return EBADMEM;
-
-	devman_handle_t hc_handle;
-	const int rc = usb_get_hc_by_handle(ddf_dev_get_handle(device), &hc_handle);
-	if (rc == EOK) {
-		usb_hc_connection_initialize(connection, hc_handle);
-	}
-
-	return rc;
-}
 
 void usb_hc_connection_deinitialize(usb_hc_connection_t *connection)
 {

@@ -45,7 +45,7 @@
  * @param[out] iface Place to stoer the assigned USB interface number.
  * @return Error code.
  */
-int usb_get_info_by_handle(devman_handle_t device_handle,
+static int usb_get_info_by_handle(devman_handle_t device_handle,
     devman_handle_t *hc_handle, usb_address_t *address, int *iface)
 {
 	async_sess_t *parent_sess =
@@ -110,6 +110,17 @@ int usb_get_info_by_handle(devman_handle_t device_handle,
 	async_hangup(parent_sess);
 
 	return EOK;
+}
+
+static inline int usb_get_hc_by_handle(devman_handle_t dev, devman_handle_t *hc)
+{
+	return usb_get_info_by_handle(dev, hc, NULL, NULL);
+}
+
+static inline int usb_get_address_by_handle(
+    devman_handle_t dev, usb_address_t *address)
+{
+	return usb_get_info_by_handle(dev, NULL, address, NULL);
 }
 
 static bool try_parse_bus_and_address(const char *path,
