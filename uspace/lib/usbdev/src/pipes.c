@@ -317,11 +317,15 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 {
 	assert(pipe);
-	assert(pipe->wire);
-
-	return usb_device_register_endpoint(pipe->wire,
-	   pipe->endpoint_no, pipe->transfer_type,
-	   pipe->direction, pipe->max_packet_size, interval);
+	assert(pipe->bus_session);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usb_register_endpoint(exch, pipe->endpoint_no,
+	    pipe->transfer_type, pipe->direction, pipe->max_packet_size,
+	    interval);
+	async_exchange_end(exch);
+	return ret;
 }
 
 /** Revert endpoint registration with the host controller.
@@ -332,10 +336,14 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 int usb_pipe_unregister(usb_pipe_t *pipe)
 {
 	assert(pipe);
-	assert(pipe->wire);
-
-	return usb_device_unregister_endpoint(pipe->wire,
-	    pipe->endpoint_no, pipe->direction);
+	assert(pipe->bus_session);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usb_unregister_endpoint(exch, pipe->endpoint_no,
+	    pipe->direction);
+	async_exchange_end(exch);
+	return ret;
 }
 
 /**
