@@ -88,11 +88,39 @@ static int usb_iface_iface(ddf_fun_t *fun, int *iface_no)
 	return EOK;
 }
 
+static int usb_iface_register_endpoint(ddf_fun_t *fun, usb_endpoint_t ep,
+    usb_transfer_type_t type, usb_direction_t dir, size_t mps, unsigned inter)
+{
+	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
+	assert(usb_dev);
+	async_exch_t *exch = usb_device_bus_exchange_begin(usb_dev);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usb_register_endpoint(exch, ep, type, dir, mps, inter);
+	usb_device_bus_exchange_end(exch);
+	return ret;
+}
+
+static int usb_iface_unregister_endpoint(ddf_fun_t *fun, usb_endpoint_t ep,
+    usb_direction_t dir)
+{
+	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
+	assert(usb_dev);
+	async_exch_t *exch = usb_device_bus_exchange_begin(usb_dev);
+	if (!exch)
+		return ENOMEM;
+	const int ret = usb_unregister_endpoint(exch, ep, dir);
+	usb_device_bus_exchange_end(exch);
+	return ret;
+}
+
 /** DDF interface of the child - interface function. */
 static usb_iface_t child_usb_iface = {
 	.get_hc_handle = usb_iface_device_hc_handle,
 	.get_my_address = usb_iface_device_address,
 	.get_my_interface = usb_iface_iface,
+	.register_endpoint = usb_iface_register_endpoint,
+	.unregister_endpoint = usb_iface_unregister_endpoint,
 };
 
 /** Operations for children - interface functions. */
