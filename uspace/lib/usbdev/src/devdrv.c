@@ -236,7 +236,8 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 	/* Find the mapping from configuration descriptor. */
 	int rc = usb_pipe_initialize_from_configuration(pipes, pipe_count,
 	    usb_dev->descriptors.full_config,
-	    usb_dev->descriptors.full_config_size, &usb_dev->wire);
+	    usb_dev->descriptors.full_config_size, &usb_dev->wire,
+	    usb_dev->bus_session);
 	if (rc != EOK) {
 		free(pipes);
 		return rc;
@@ -453,7 +454,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	/* This pipe was registered by the hub driver,
 	 * during device initialization. */
 	rc = usb_pipe_initialize_default_control(
-	    &usb_dev->ctrl_pipe, &usb_dev->wire);
+	    &usb_dev->ctrl_pipe, &usb_dev->wire, usb_dev->bus_session);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "default control pipe initialization";
