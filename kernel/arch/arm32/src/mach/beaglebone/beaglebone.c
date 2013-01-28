@@ -83,9 +83,6 @@ static void bbone_init(void)
 	    AM335x_IRC_SIZE, PAGE_NOT_CACHEABLE);
 
 	am335x_irc_init(bbone.irc_addr);
-
-	/* Initialize the DMTIMER0 */
-	am335x_timer_init(&bbone.timer, DMTIMER0, HZ);
 }
 
 static irq_ownership_t bbone_timer_irq_claim(irq_t *irq)
