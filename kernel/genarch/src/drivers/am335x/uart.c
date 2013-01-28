@@ -89,10 +89,12 @@ bool am335x_uart_init(
 
 	/* Soft reset the port */
 	uart->regs->sysc = AM335x_UART_SYSC_SOFTRESET_FLAG;
-	while (!(uart->regs->syss & AM335x_UART_SYSS_RESETDONE_FLAG)) ;
+	while (!(uart->regs->syss & AM335x_UART_SYSS_RESETDONE_FLAG));
+
+	/* Disable the UART module */
+	uart->regs->mdr1 |= AM335x_UART_MDR_MS_DISABLE;
 
 	/* Enable access to EFR register */
-	const uint8_t lcr = uart->regs->lcr; /* Save old value */
 	uart->regs->lcr = 0xbf;              /* Sets config mode B */
 
 	/* Enable access to TCL_TLR register */
@@ -110,21 +112,39 @@ bool am335x_uart_init(
 
 	/* Enable fine granularity for RX FIFO and set trigger level to 1,
 	 * TX FIFO, trigger level is irrelevant*/
-	uart->regs->lcr = 0xbf;              /* Sets config mode B */
+	uart->regs->lcr = 0xBF;              /* Sets config mode B */
 	uart->regs->scr = AM335x_UART_SCR_RX_TRIG_GRANU1_FLAG;
 	uart->regs->tlr = 1 << AM335x_UART_TLR_RX_FIFO_TRIG_SHIFT;
+
+	/* Sets config mode A */
+	uart->regs->lcr = 0x80;
+	/* Restore tcl_tlr access flag */
+	if (!tcl_tlr)
+		uart->regs->mcr &= ~AM335x_UART_MCR_TCR_TLR_FLAG;
+	/* Sets config mode B */
+	uart->regs->lcr = 0xBF;
+
+	/* Set the divisor value to get a baud rate of 115200 bps */
+	uart->regs->dll = 0x1A;
+	uart->regs->dlh = 0x00;
 
 	/* Restore enhanced */
 	if (!enhanced)
 		uart->regs->efr &= ~AM335x_UART_EFR_ENH_FLAG;
 
-	uart->regs->lcr = 0x80;              /* Config mode A */
-	/* Restore tcl_lcr access flag*/
-	if (!tcl_tlr)
-		uart->regs->mcr &= ~AM335x_UART_MCR_TCR_TLR_FLAG;
+	/* Set the DIV_EN bit to 0 */
+	uart->regs->lcr &= ~AM335x_UART_LCR_DIV_EN_FLAG;
+	/* Set the BREAK_EN bit to 0 */
+	uart->regs->lcr &= ~AM335x_UART_LCR_BREAK_EN_FLAG;
+	/* No parity */
+	uart->regs->lcr &= ~AM335x_UART_LCR_PARITY_EN_FLAG;
+	/* Stop = 1 bit */
+	uart->regs->lcr &= ~AM335x_UART_LCR_NB_STOP_FLAG;
+	/* Char length = 8 bits */
+	uart->regs->lcr |= AM335x_UART_LCR_CHAR_LENGTH_8BITS;
 
-	/* Restore lcr */
-	uart->regs->lcr = lcr;
+	/* Enable the UART module */
+	uart->regs->mdr1 &= AM335x_UART_MDR_MS_UART16;
 
 	/* Disable interrupts */
 	uart->regs->ier = 0;
