@@ -52,6 +52,7 @@
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>
+#include <arch/machine_func.h>
 
 /* Size of the code jumping to the exception handler code
  * - J+NOP
@@ -151,17 +152,10 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	static const char *platform;
-
 	/* Set platform name. */
-#if defined(MACHINE_msim)
-	platform = "msim";
-#endif
-#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
-	platform = "malta";
-#endif
-	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	sysinfo_set_item_data("platform", NULL,
+	    (void *) machine_get_platform_name(),
+	    str_size(machine_get_platform_name()));
 
 #ifdef CONFIG_MSIM_KBD
 	/*
