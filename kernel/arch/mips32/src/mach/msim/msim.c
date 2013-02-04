@@ -34,6 +34,12 @@
  */
 
 #include <arch/mach/msim/msim.h>
+#include <console/console.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/drivers/msim.h>
+#include <genarch/drivers/dsrln/dsrlnin.h>
+#include <genarch/drivers/dsrln/dsrlnout.h>
+#include <genarch/srln/srln.h>
 
 static void msim_init(void);
 static void msim_cpu_halt(void);
@@ -71,10 +77,42 @@ void msim_frame_init(void)
 
 void msim_output_init(void)
 {
+#ifdef CONFIG_MSIM_PRN
+	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
+	if (dsrlndev)
+		stdout_wire(dsrlndev);
+#endif
 }
 
 void msim_input_init(void)
 {
+#ifdef CONFIG_MSIM_KBD
+	/*
+	 * Initialize the msim keyboard port. Then initialize the serial line
+	 * module and connect it to the msim keyboard. Enable keyboard
+	 * interrupts.
+	 */
+	dsrlnin_instance_t *dsrlnin_instance
+	    = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
+	if (dsrlnin_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			dsrlnin_wire(dsrlnin_instance, srln);
+			cp0_unmask_int(MSIM_KBD_IRQ);
+		}
+	}
+	
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    PA2KA(MSIM_KBD_ADDRESS));
+#endif
 }
 
 const char *msim_get_platform_name(void)
