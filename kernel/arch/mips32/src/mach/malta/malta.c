@@ -34,6 +34,9 @@
  */
 
 #include <arch/mach/malta/malta.h>
+#include <console/console.h>
+#include <console/chardev.h>
+#include <arch/mm/page.h>
 
 static void malta_init(void);
 static void malta_cpu_halt(void);
@@ -69,8 +72,32 @@ void malta_frame_init(void)
 {
 }
 
+#define YAMON_SUBR_BASE         PA2KA(0x1fc00500)
+#define YAMON_SUBR_PRINT_COUNT  (YAMON_SUBR_BASE + 0x4)
+
+typedef void (**yamon_print_count_ptr_t)(uint32_t, const char *, uint32_t);
+
+yamon_print_count_ptr_t yamon_print_count =
+    (yamon_print_count_ptr_t) YAMON_SUBR_PRINT_COUNT;
+
+static void yamon_putchar(outdev_t *dev, const wchar_t wch)
+{
+
+        const char ch = (char) wch;
+
+        (*yamon_print_count)(0, &ch, 1);
+}
+
+static outdev_t yamon_outdev;
+static outdev_operations_t yamon_outdev_ops = {
+	.write = yamon_putchar,
+	.redraw = NULL
+};
+
 void malta_output_init(void)
 {
+	outdev_initialize("yamon", &yamon_outdev, &yamon_outdev_ops);
+	stdout_wire(&yamon_outdev);
 }
 
 void malta_input_init(void)
