@@ -99,9 +99,8 @@ int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 		.endpoint = batch->ep->endpoint
 	}};
 	batch->error = virthub_base_request(&instance->base, target,
-	    usb_transfer_batch_direction(batch),
-	    (void*)batch->setup_buffer, batch->buffer,
-	    batch->buffer_size, &batch->transfered_size);
+	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
+	    batch->buffer, batch->buffer_size, &batch->transfered_size);
 	usb_transfer_batch_finish(batch, NULL);
 	usb_transfer_batch_destroy(batch);
 	return EOK;
@@ -374,6 +373,46 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	return EOK;
 }
 
+/** Status change handler.
+ * @param device Virtual hub device
+ * @param endpoint Endpoint number
+ * @param tr_type Transfer type
+ * @param buffer Response destination
+ * @param buffer_size Bytes available in buffer
+ * @param actual_size Size us the used part of the dest buffer.
+ *
+ * Produces status mask. Bit 0 indicates hub status change the other bits
+ * represent port status change. Endian does not matter as UHCI root hubs
+ * only need 1 byte.
+ */
+static int req_status_change_handler(usbvirt_device_t *device,
+    usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
+    void *buffer, size_t buffer_size, size_t *actual_size)
+{
+	uhci_rh_t *hub = virthub_get_data(device);
+	assert(hub);
+
+	if (buffer_size < 1)
+		return ESTALL;
+
+	const uint16_t status_a = pio_read_16(hub->ports[0]);
+	const uint16_t status_b = pio_read_16(hub->ports[1]);
+	const uint8_t status =
+	    ((((status_a & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[0]) ?
+	        0x2 : 0) |
+	    ((((status_b & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[1]) ?
+	        0x4 : 0);
+
+	RH_DEBUG(device, -1, "Event mask %" PRIx8
+	    " (status_a %" PRIx16 "%s),"
+	    " (status_b %" PRIx16 "%s)\n", status,
+	    status_a, hub->reset_changed[0] ? "-reset" : "",
+	    status_b, hub->reset_changed[1] ? "-reset" : "" );
+	((uint8_t *)buffer)[0] = status;
+	*actual_size = 1;
+	return EOK;
+}
+
 /** UHCI root hub request handlers */
 static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
@@ -442,51 +481,7 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	}
 };
 
-static int req_status_change_handler(usbvirt_device_t *dev,
-    usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
-    void *buffer, size_t buffer_size, size_t *actual_size);
-
 static usbvirt_device_ops_t ops = {
         .control = control_transfer_handlers,
         .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
 };
-
-/** Status change handler.
- * @param device Virtual hub device
- * @param endpoint Enpoint number
- * @param tr_type Transfer type
- * @param buffer Response destination
- * @param buffer_size BYtes available in buffer
- * @param actual_size Size us the used part of the dest buffer.
- *
- * Produces status mask. Bit 0 indicates hub status change the other bits
- * represnet port status change. Endian does not matter as UHCI root hubs
- * only need 1 byte.
- */
-static int req_status_change_handler(usbvirt_device_t *device,
-    usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
-    void *buffer, size_t buffer_size, size_t *actual_size)
-{
-	uhci_rh_t *hub = virthub_get_data(device);
-	assert(hub);
-	
-	if (buffer_size < 1)
-		return ESTALL;
-
-	const uint16_t status_a = pio_read_16(hub->ports[0]);
-	const uint16_t status_b = pio_read_16(hub->ports[1]);
-	const uint8_t status =
-	    ((((status_a & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[0]) ?
-	        0x2 : 0) |
-	    ((((status_b & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[1]) ?
-	        0x4 : 0);
-
-	RH_DEBUG(device, -1, "Event mask %" PRIx8
-	    " (status_a %" PRIx16 "%s),"
-	    " (status_b %" PRIx16 "%s)\n", status,
-	    status_a, hub->reset_changed[0] ? "-reset" : "",
-	    status_b, hub->reset_changed[1] ? "-reset" : "" );
-	((uint8_t *)buffer)[0] = status;
-	*actual_size = 1;
-	return EOK;
-}
