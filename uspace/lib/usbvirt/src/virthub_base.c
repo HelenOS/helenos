@@ -41,8 +41,8 @@
 
 extern const usb_standard_device_descriptor_t virthub_device_descriptor;
 extern const usb_standard_configuration_descriptor_t virthub_configuration_descriptor_without_hub_size;
+extern const usb_standard_endpoint_descriptor_t virthub_endpoint_descriptor;
 extern const usbvirt_device_configuration_extras_t virthub_interface_descriptor_ex;
-extern const usbvirt_device_configuration_extras_t virthub_endpoint_descriptor_ex;
 
 void *virthub_get_data(usbvirt_device_t *dev)
 {
@@ -52,18 +52,27 @@ void *virthub_get_data(usbvirt_device_t *dev)
 	return base->data;
 }
 
-int virthub_base_init(virthub_base_t *instance,
-    const char *name, usbvirt_device_ops_t *ops, void *data,
+int virthub_base_init(virthub_base_t *instance, const char *name,
+    usbvirt_device_ops_t *ops, void *data,
     const usb_standard_device_descriptor_t *device_desc,
-    const usb_hub_descriptor_header_t *hub_desc)
+    const usb_hub_descriptor_header_t *hub_desc,
+    usb_endpoint_t ep, unsigned port_count)
 {
 	assert(instance);
 	assert(hub_desc);
 	assert(name);
+	
+	if (!usb_endpoint_is_valid(ep) || (ep == USB_ENDPOINT_DEFAULT_CONTROL))
+		return EINVAL;
 
 	instance->config_descriptor =
 	    virthub_configuration_descriptor_without_hub_size;
 	instance->config_descriptor.total_length += hub_desc->length;
+
+	instance->endpoint_descriptor = virthub_endpoint_descriptor;
+	instance->endpoint_descriptor.endpoint_address = 128 | ep;
+	instance->endpoint_descriptor.max_packet_size =
+	    (1 + port_count + 7) / 8;
 
 	instance->descriptors.device =
 	    device_desc ? device_desc : &virthub_device_descriptor;
@@ -77,7 +86,8 @@ int virthub_base_init(virthub_base_t *instance,
 	instance->extra[0] = virthub_interface_descriptor_ex;
 	instance->extra[1].data = (void *)hub_desc;
 	instance->extra[1].length = hub_desc->length;
-	instance->extra[2] = virthub_endpoint_descriptor_ex;
+	instance->extra[2].data = (void*)&instance->endpoint_descriptor;
+	instance->extra[2].length = sizeof(instance->endpoint_descriptor);
 
 	instance->device.ops = ops;
 	instance->device.descriptors = &instance->descriptors;

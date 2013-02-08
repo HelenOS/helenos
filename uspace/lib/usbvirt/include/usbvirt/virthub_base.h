@@ -41,11 +41,11 @@
 
 enum {
 	VIRTHUB_EXTR_DESC = 3,
-	HUB_STATUS_CHANGE_PIPE = 1,
 };
 
 typedef struct {
 	usb_standard_configuration_descriptor_t config_descriptor;
+	usb_standard_endpoint_descriptor_t endpoint_descriptor;
 	usbvirt_device_configuration_extras_t extra[VIRTHUB_EXTR_DESC];
 	usbvirt_device_configuration_t configuration;
 	usbvirt_descriptors_t descriptors;
@@ -58,7 +58,8 @@ void *virthub_get_data(usbvirt_device_t *dev);
 int virthub_base_init(virthub_base_t *instance,
     const char *name, usbvirt_device_ops_t *ops, void *data,
     const usb_standard_device_descriptor_t *device_desc,
-    const usb_hub_descriptor_header_t *hub_desc);
+    const usb_hub_descriptor_header_t *hub_desc,
+    usb_endpoint_t ep, unsigned port_count);
 
 usb_address_t virthub_base_get_address(virthub_base_t *instance);
 

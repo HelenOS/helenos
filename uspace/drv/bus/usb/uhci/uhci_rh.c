@@ -77,7 +77,7 @@ int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
 	instance->reset_changed[0] = false;
 	instance->reset_changed[1] = false;
 	return virthub_base_init(&instance->base, name, &ops, instance,
-	    NULL, &hub_descriptor.header);
+	    NULL, &hub_descriptor.header, HUB_STATUS_CHANGE_PIPE, 2);
 }
 
 /** Schedule USB batch for the root hub.
@@ -375,7 +375,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 }
 
 /** UHCI root hub request handlers */
-static usbvirt_control_request_handler_t control_transfer_handlers[] = {
+static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
 		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
 		.name = "GetDescriptor",

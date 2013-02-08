@@ -73,7 +73,7 @@ const usb_standard_interface_descriptor_t virthub_interface_descriptor = {
 const usb_standard_endpoint_descriptor_t virthub_endpoint_descriptor = {
 	.length = sizeof(usb_standard_endpoint_descriptor_t),
 	.descriptor_type = USB_DESCTYPE_ENDPOINT,
-	.endpoint_address = HUB_STATUS_CHANGE_PIPE | 128,
+	.endpoint_address = 1 | 128,
 	.attributes = USB_TRANSFER_INTERRUPT,
 	.max_packet_size = 8,
 	.poll_interval = 0xFF,
@@ -98,11 +98,6 @@ const usb_standard_configuration_descriptor_t virthub_configuration_descriptor_w
 const usbvirt_device_configuration_extras_t virthub_interface_descriptor_ex = {
 	.data = (uint8_t *) &virthub_interface_descriptor,
 	.length = sizeof(virthub_interface_descriptor),
-};
-
-const usbvirt_device_configuration_extras_t virthub_endpoint_descriptor_ex = {
-	.data = (uint8_t *) &virthub_endpoint_descriptor,
-	.length = sizeof(virthub_endpoint_descriptor),
 };
 
 
