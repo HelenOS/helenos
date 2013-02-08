@@ -111,14 +111,36 @@ typedef int16_t usb_address_t;
 /** Maximum address number in USB 1.1. */
 #define USB11_ADDRESS_MAX 128
 
+/** Check USB address for allowed values.
+ *
+ * @param ep USB address.
+ * @return True, if value is wihtin limits, false otherwise.
+ */
+static inline bool usb_address_is_valid(usb_address_t a)
+{
+	return (a >= USB_ADDRESS_DEFAULT) && (a < USB11_ADDRESS_MAX);
+}
+
 /** USB endpoint number type.
  * Negative values could be used to indicate error.
  */
 typedef int16_t usb_endpoint_t;
 
-/** Maximum endpoint number in USB 1.1.
- */
+/** Default control endpoint */
+#define USB_ENDPOINT_DEFAULT_CONTROL 0
+/** Maximum endpoint number in USB 1.1. */
 #define USB11_ENDPOINT_MAX 16
+
+/** Check USB endpoint for allowed values.
+ *
+ * @param ep USB endpoint number.
+ * @return True, if value is wihtin limits, false otherwise.
+ */
+static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
+{
+	return (ep >= USB_ENDPOINT_DEFAULT_CONTROL) &&
+	    (ep < USB11_ENDPOINT_MAX);
+}
 
 
 /** USB complete address type. 
@@ -132,6 +154,7 @@ typedef union {
 	uint32_t packed;
 } usb_target_t;
 
+
 /** Check USB target for allowed values (address and endpoint).
  *
  * @param target.
@@ -139,8 +162,8 @@ typedef union {
  */
 static inline bool usb_target_is_valid(usb_target_t target)
 {
-	return !(target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB11_ADDRESS_MAX || target.address < 0);
+	return usb_address_is_valid(target.address) &&
+	    usb_endpoint_is_valid(target.endpoint);
 }
 
 /** Compare USB targets (addresses and endpoints).
