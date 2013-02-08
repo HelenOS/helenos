@@ -42,6 +42,10 @@ enum {
 
 static usbvirt_device_ops_t ops;
 
+/** Initialize internal USB HUB class descriptor.
+ * @param instance OHCI root hub.
+ * Use register based info to create accurate descriptor.
+ */
 static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
 {
 	assert(instance);
@@ -82,7 +86,15 @@ static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
 	instance->hub_descriptor.rempow[3] = 0xff;
 
 }
-
+/** Initialize OHCI root hub.
+ * @param instance Place to initialize.
+ * @param regs OHCI device registers.
+ * @param name Device name.
+ * return Error code, EOK on success.
+ *
+ * Selects preconfigured port powering mode, sets up descriptor, and
+ * initializes internal virtual hub.
+ */
 int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 {
 	assert(instance);
@@ -136,10 +148,18 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 #endif
 
 	ohci_rh_hub_desc_init(instance);
+	instance->unfinished_interrupt_transfer = NULL;
 	return virthub_base_init(&instance->base, name, &ops, instance,
 	    NULL, &instance->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
 
+/** Schedule USB request.
+ * @param instance OCHI root hub instance.
+ * @param batch USB requst batch to schedule.
+ * @return Always EOK.
+ * Most requests complete even before this function returns,
+ * status change requests might be postponed until there is something to report.
+ */
 int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
@@ -164,8 +184,16 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 	return EOK;
 }
 
+/** Handle OHCI RHSC interrupt.
+ * @param instance OHCI root hub isntance.
+ * @return Always EOK.
+ *
+ * Interrupt means there is a change of status to report. It may trigger
+ * processing of a postponed request.
+ */
 int ohci_rh_interrupt(ohci_rh_t *instance)
 {
+	//TODO atomic swap needed
 	usb_transfer_batch_t *batch = instance->unfinished_interrupt_transfer;
 	instance->unfinished_interrupt_transfer = NULL;
 	if (batch) {
@@ -483,6 +511,7 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	}
 };
 
+/** Virtual OHCI root hub ops */
 static usbvirt_device_ops_t ops = {
         .control = control_transfer_handlers,
         .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
