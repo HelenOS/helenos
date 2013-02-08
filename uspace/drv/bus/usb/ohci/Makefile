@@ -30,7 +30,7 @@ USPACE_PREFIX = ../../../..
 
 LIBS = \
 	$(LIBUSBHOST_PREFIX)/libusbhost.a \
-	$(LIBUSBDEV_PREFIX)/libusbdev.a \
+	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 
@@ -38,6 +38,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBUSBDEV_PREFIX)/include \
 	-I$(LIBUSBHOST_PREFIX)/include \
+	-I$(LIBUSBVIRT_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
 BINARY = ohci
@@ -49,6 +50,7 @@ SOURCES = \
 	ohci.c \
 	ohci_batch.c \
 	ohci_endpoint.c \
+	ohci_rh.c \
 	res.c \
 	root_hub.c \
 	hw_struct/endpoint_descriptor.c \
