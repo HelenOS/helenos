@@ -196,7 +196,7 @@ typedef struct {
 	/** Array of control handlers.
 	 * Last handler is expected to have the @c callback field set to NULL
 	 */
-	usbvirt_control_request_handler_t *control;
+	const usbvirt_control_request_handler_t *control;
 	/** Callback when device changes state.
 	 *
 	 * The value of @c state attribute of @p dev device is not

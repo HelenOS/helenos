@@ -49,7 +49,7 @@
  * @retval EFORWARD No suitable handler found.
  */
 int process_control_transfer(usbvirt_device_t *dev,
-    usbvirt_control_request_handler_t *control_handlers,
+    const usbvirt_control_request_handler_t *control_handlers,
     const usb_device_request_setup_packet_t *setup,
     uint8_t *data, size_t *data_sent_size)
 {
@@ -59,7 +59,7 @@ int process_control_transfer(usbvirt_device_t *dev,
 	if (control_handlers == NULL) {
 		return EFORWARD;
 	}
-	usbvirt_control_request_handler_t *handler = control_handlers;
+	const usbvirt_control_request_handler_t *handler = control_handlers;
 	for (;handler->callback != NULL; ++handler) {
 		if (handler->request != setup->request ||
 		    handler->request_type != setup->request_type) {
