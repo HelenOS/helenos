@@ -223,7 +223,7 @@ struct usbvirt_device {
 	/** Device ops. */
 	usbvirt_device_ops_t *ops;
 	/** Device descriptors. */
-	usbvirt_descriptors_t *descriptors;
+	const usbvirt_descriptors_t *descriptors;
 	/** Current device address.
 	 * You shall treat this field as read only in your code.
 	 */
