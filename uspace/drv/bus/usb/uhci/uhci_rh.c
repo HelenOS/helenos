@@ -29,14 +29,14 @@
 #include <assert.h>
 #include <macros.h>
 #include <usb/debug.h>
+#include <usb/classes/hub.h>
 #include <ddi.h>
 
 #include "uhci_rh.h"
 
 enum {
 	UHCI_RH_PORT_COUNT = 2,
-	/* 1 byte for hub status bit and 2 port status bits */
-	UHCI_PORT_BYTES = (1 + UHCI_RH_PORT_COUNT + 7) / 8,
+	UHCI_PORT_BYTES = STATUS_BYTES(UHCI_RH_PORT_COUNT),
 };
 
 /** Hub descriptor. */
@@ -77,7 +77,7 @@ int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
 	instance->reset_changed[0] = false;
 	instance->reset_changed[1] = false;
 	return virthub_base_init(&instance->base, name, &ops, instance,
-	    NULL, &hub_descriptor.header, HUB_STATUS_CHANGE_PIPE, 2);
+	    NULL, &hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
 
 /** Schedule USB batch for the root hub.

@@ -58,8 +58,7 @@ void *virthub_get_data(usbvirt_device_t *dev);
 int virthub_base_init(virthub_base_t *instance,
     const char *name, usbvirt_device_ops_t *ops, void *data,
     const usb_standard_device_descriptor_t *device_desc,
-    const usb_hub_descriptor_header_t *hub_desc,
-    usb_endpoint_t ep, unsigned port_count);
+    const usb_hub_descriptor_header_t *hub_desc, usb_endpoint_t ep);
 
 usb_address_t virthub_base_get_address(virthub_base_t *instance);
 

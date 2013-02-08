@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <macros.h>
 #include <str.h>
+#include <usb/classes/hub.h>
 
 #include "virthub_base.h"
 
@@ -55,13 +56,12 @@ void *virthub_get_data(usbvirt_device_t *dev)
 int virthub_base_init(virthub_base_t *instance, const char *name,
     usbvirt_device_ops_t *ops, void *data,
     const usb_standard_device_descriptor_t *device_desc,
-    const usb_hub_descriptor_header_t *hub_desc,
-    usb_endpoint_t ep, unsigned port_count)
+    const usb_hub_descriptor_header_t *hub_desc, usb_endpoint_t ep)
 {
 	assert(instance);
 	assert(hub_desc);
 	assert(name);
-	
+
 	if (!usb_endpoint_is_valid(ep) || (ep == USB_ENDPOINT_DEFAULT_CONTROL))
 		return EINVAL;
 
@@ -72,7 +72,7 @@ int virthub_base_init(virthub_base_t *instance, const char *name,
 	instance->endpoint_descriptor = virthub_endpoint_descriptor;
 	instance->endpoint_descriptor.endpoint_address = 128 | ep;
 	instance->endpoint_descriptor.max_packet_size =
-	    (1 + port_count + 7) / 8;
+	    STATUS_BYTES(hub_desc->port_count);
 
 	instance->descriptors.device =
 	    device_desc ? device_desc : &virthub_device_descriptor;
