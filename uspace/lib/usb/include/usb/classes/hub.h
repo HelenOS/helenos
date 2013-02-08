@@ -66,115 +66,66 @@ typedef enum {
 typedef struct {
 	/** Descriptor length. */
 	uint8_t length;
+
 	/** Descriptor type (0x29). */
 	uint8_t descriptor_type;
+
 	/** Number of downstream ports. */
 	uint8_t port_count;
-	/** Characteristics bitmask. */
+
+	/** Characteristics bitmask.
+	 *
+	 *  D1...D0: Logical Power Switching Mode
+	 *  00: Ganged power switching (all ports power at
+	 *  once)
+	 *  01: Individual port power switching
+	 *  1X: Reserved. Used only on 1.0 compliant hubs
+	 *  that implement no power switching.
+	 *  D2: Identifies a Compound Device
+	 *  0: Hub is not part of a compound device
+	 *  1: Hub is part of a compound device
+	 *  D4...D3: Over-current Protection Mode
+	 *  00: Global Over-current Protection. The hub
+	 *  reports over-current as a summation of all
+	 *  ports current draw, without a breakdown of
+	 *  individual port over-current status.
+	 *  01: Individual Port Over-current Protection. The
+	 *  hub reports over-current on a per-port basis.
+	 *  Each port has an over-current indicator.
+	 *  1X: No Over-current Protection. This option is
+	 *  allowed only for bus-powered hubs that do not
+	 *  implement over-current protection.
+	 *  D15...D5: Reserved
+	 */
 	uint8_t characteristics;
 #define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
 #define HUB_CHAR_NO_POWER_SWITCH_FLAG   (1 << 1)
 #define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
 #define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
 #define HUB_CHAR_NO_OC_FLAG             (1 << 4)
-	/* Unused part of characteristics field */
+
+	/** Unused part of characteristics field */
 	uint8_t characteristics_reserved;
-	/** Time from power-on to stabilization of current on the port. */
+
+	/** Time from power-on to stabilization of current on the port.
+	 *
+	 *  Time (in 2ms intervals) from the time the power-on
+	 *  sequence begins on a port until power is good on that
+	 *  port. The USB System Software uses this value to
+	 *  determine how long to wait before accessing a
+	 *  powered-on port.
+	 */
 	uint8_t power_good_time;
-	/** Maximum current requirements in mA. */
+	/** Maximum current requirements in mA.
+	 *
+	 *  Maximum current requirements of the Hub Controller
+	 *  electronics in mA.
+	 */
 	uint8_t max_current;
 } __attribute__ ((packed)) usb_hub_descriptor_header_t;
 
-
-#if 0
-/**
- * @brief usb hub descriptor
- *
- * For more information see Universal Serial Bus Specification Revision 1.1
- * chapter 11.16.2
- */
-typedef struct usb_hub_descriptor_type {
-    /** Number of bytes in this descriptor, including this byte */
-    //uint8_t bDescLength;
-
-    /** Descriptor Type, value: 29H for hub descriptor */
-    //uint8_t bDescriptorType;
-
-    /** Number of downstream ports that this hub supports */
-    uint8_t port_count;
-
-    /**
-            D1...D0: Logical Power Switching Mode
-            00: Ganged power switching (all ports power at
-            once)
-            01: Individual port power switching
-            1X: Reserved. Used only on 1.0 compliant hubs
-            that implement no power switching.
-            D2: Identifies a Compound Device
-            0: Hub is not part of a compound device
-            1: Hub is part of a compound device
-            D4...D3: Over-current Protection Mode
-            00: Global Over-current Protection. The hub
-            reports over-current as a summation of all
-            ports current draw, without a breakdown of
-            individual port over-current status.
-            01: Individual Port Over-current Protection. The
-            hub reports over-current on a per-port basis.
-            Each port has an over-current indicator.
-            1X: No Over-current Protection. This option is
-            allowed only for bus-powered hubs that do not
-            implement over-current protection.
-            D15...D5:
-            Reserved
-     */
-    uint16_t hub_characteristics;
-
-    /**
-            Time (in 2ms intervals) from the time the power-on
-            sequence begins on a port until power is good on that
-            port. The USB System Software uses this value to
-            determine how long to wait before accessing a
-            powered-on port.
-     */
-    uint8_t pwr_on_2_good_time;
-
-    /**
-            Maximum current requirements of the Hub Controller
-            electronics in mA.
-     */
-    uint8_t current_requirement;
-
-    /**
-            Indicates if a port has a removable device attached.
-            This field is reported on byte-granularity. Within a
-            byte, if no port exists for a given location, the field
-            representing the port characteristics returns 0.
-            Bit value definition:
-            0B - Device is removable
-            1B - Device is non-removable
-            This is a bitmap corresponding to the individual ports
-            on the hub:
-            Bit 0: Reserved for future use
-            Bit 1: Port 1
-            Bit 2: Port 2
-            ....
-            Bit n: Port n (implementation-dependent, up to a
-            maximum of 255 ports).
-     */
-    uint8_t devices_removable[32];
-
-    /**
-            This field exists for reasons of compatibility with
-            software written for 1.0 compliant devices. All bits in
-            this field should be set to 1B. This field has one bit for
-            each port on the hub with additional pad bits, if
-            necessary, to make the number of bits in the field an
-            integer multiple of 8.
-     */
-    //uint8_t * port_pwr_ctrl_mask;
-} usb_hub_descriptor_t;
-#endif
-
+/** One bit for the device and one bit for every port */
+#define STATUS_BYTES(ports) ((1 + ports + 7) / 8)
 
 /**	@brief usb hub specific request types.
  *
