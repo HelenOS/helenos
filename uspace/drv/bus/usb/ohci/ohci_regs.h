@@ -214,28 +214,28 @@ do { \
 
 	/** Root hub per port status */
 	ioport32_t rh_port_status[];
-#define RHPS_CCS_FLAG (1 << 0) /* r: current connect status,
+#define RHPS_CCS_FLAG (1 << 0)                /* r: current connect status,
                                                * w: 1-clear port enable, 0-N/S*/
 #define RHPS_CLEAR_PORT_ENABLE RHPS_CCS_FLAG
-#define RHPS_PES_FLAG (1 << 1) /* r: port enable status
+#define RHPS_PES_FLAG (1 << 1)               /* r: port enable status
                                               * w: 1-set port enable, 0-N/S */
 #define RHPS_SET_PORT_ENABLE RHPS_PES_FLAG
-#define RHPS_PSS_FLAG (1 << 2) /* r: port suspend status
+#define RHPS_PSS_FLAG (1 << 2)                /* r: port suspend status
                                                * w: 1-set port suspend, 0-N/S */
 #define RHPS_SET_PORT_SUSPEND RHPS_PSS_FLAG
-#define RHPS_POCI_FLAG (1 << 3) /* r: port over-current
+#define RHPS_POCI_FLAG (1 << 3)                /* r: port over-current
                                                 * (if reports are per-port
                                                 * w: 1-clear port suspend
 						*  (start resume if suspened)
                                                 *    0-nothing */
 #define RHPS_CLEAR_PORT_SUSPEND RHPS_POCI_FLAG
-#define RHPS_PRS_FLAG (1 << 4) /* r: port reset status
+#define RHPS_PRS_FLAG (1 << 4)                /* r: port reset status
                                                * w: 1-set port reset, 0-N/S */
 #define RHPS_SET_PORT_RESET RHPS_PRS_FLAG
-#define RHPS_PPS_FLAG (1 << 8) /* r: port power status
+#define RHPS_PPS_FLAG (1 << 8)               /* r: port power status
                                               * w: 1-set port power, 0-N/S */
 #define RHPS_SET_PORT_POWER RHPS_PPS_FLAG
-#define RHPS_LSDA_FLAG (1 << 9) /* r: low speed device attached
+#define RHPS_LSDA_FLAG (1 << 9)                /* r: low speed device attached
                                                 * w: 1-clear port power, 0-N/S*/
 #define RHPS_CLEAR_PORT_POWER RHPS_LSDA_FLAG
 #define RHPS_CSC_FLAG  (1 << 16) /* connect status change WC */
