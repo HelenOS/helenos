@@ -36,13 +36,16 @@
 enum {
 	UHCI_RH_PORT_COUNT = 2,
 	/* 1 byte for hub status bit and 2 port status bits */
-	UHCI_PORT_BYTES = 1,
+	UHCI_PORT_BYTES = (1 + UHCI_RH_PORT_COUNT + 7) / 8,
 };
 
 /** Hub descriptor. */
 static const struct {
+	/** Common hub descriptor header */
 	usb_hub_descriptor_header_t header;
+	/** Port removable status bits */
 	uint8_t removable[UHCI_PORT_BYTES];
+	/** Port powered status bits */
 	uint8_t powered[UHCI_PORT_BYTES];
 } __attribute__((packed)) hub_descriptor = {
 	.header = {
@@ -58,9 +61,14 @@ static const struct {
 	.powered = { 0xFF },
 };
 
-
 static usbvirt_device_ops_t ops;
 
+/** Initialize uhci rh structure.
+ * @param instance Memory place to initialize.
+ * @param ports Pointer to TWO UHCI RH port registers.
+ * @param name device name, passed to virthub init
+ * @return Error code, EOK on success.
+ */
 int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
 {
 	assert(instance);
@@ -72,6 +80,15 @@ int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
 	    NULL, &hub_descriptor.header);
 }
 
+/** Schedule USB batch for the root hub.
+ *
+ * @param instance UHCI rh instance
+ * @param batch USB communication batch
+ * @return EOK.
+ *
+ * The result of scheduling is always EOK. The result of communication does
+ * not have to be.
+ */
 int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
@@ -89,6 +106,8 @@ int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 	usb_transfer_batch_destroy(batch);
 	return EOK;
 }
+
+/** UHCI port register bits */
 enum {
 	STATUS_CONNECTED         = (1 << 0),
 	STATUS_CONNECTED_CHANGED = (1 << 1),
@@ -106,7 +125,9 @@ enum {
 	STATUS_CHANGE_BITS = STATUS_CONNECTED_CHANGED | STATUS_ENABLED_CHANGED,
 	STATUS_WC_BITS = STATUS_CHANGE_BITS,
 };
+
 /* HUB ROUTINES IMPLEMENTATION */
+
 static void uhci_port_reset_enable(ioport16_t *port)
 {
 	assert(port);
@@ -145,6 +166,17 @@ do { \
 	else \
 		usb_log_debug("%s: rh: " msg, d->name, ##__VA_ARGS__) \
 
+/** USB HUB port state request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ *
+ * Do not confuse with port status. Port state reports data line states,
+ * it is usefull for debuging purposes only.
+ */
 static int req_get_port_state(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
@@ -169,6 +201,17 @@ static int req_get_port_state(usbvirt_device_t *device,
 #define UHCI2USB(val, bit, feat) \
 	(BIT_VAL(val, bit) << feat)
 
+/** Port status request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ *
+ * Converts status reported via ioport to USB format.
+ * @note: reset change status needs to be handled in sw.
+ */
 static int req_get_port_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
@@ -200,6 +243,14 @@ static int req_get_port_status(usbvirt_device_t *device,
 	return EOK;
 }
 
+/** Port clear feature request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
 static int req_clear_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
@@ -212,13 +263,13 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	const uint16_t val = status & (~STATUS_WC_BITS);
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_ENABLE:
-		RH_DEBUG(device, port, "Clear port enable (status %" PRIx16 ")\n",
-		    status);
+		RH_DEBUG(device, port, "Clear port enable (status %"
+		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_ENABLED);
 		break;
 	case USB_HUB_FEATURE_PORT_SUSPEND:
-		RH_DEBUG(device, port, "Clear port suspend (status %" PRIx16 ")\n",
-		    status);
+		RH_DEBUG(device, port, "Clear port suspend (status %"
+		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_SUSPEND);
 		// TODO we should do resume magic
 		usb_log_warning("Resume is not implemented on port %u\n", port);
@@ -230,33 +281,34 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		usb_log_warning("Tried to power off port %u\n", port);
 		break;
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:
-		RH_DEBUG(device, port, "Clear port conn change (status %" PRIx16
-		    ")\n", status);
+		RH_DEBUG(device, port, "Clear port conn change (status %"
+		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], val | STATUS_CONNECTED_CHANGED);
 		break;
 	case USB_HUB_FEATURE_C_PORT_RESET:
-		RH_DEBUG(device, port, "Clear port reset change (status %" PRIx16
-		    ")\n", status);
+		RH_DEBUG(device, port, "Clear port reset change (status %"
+		    PRIx16 ")\n", status);
 		hub->reset_changed[port] = false;
 		break;
 	case USB_HUB_FEATURE_C_PORT_ENABLE:
-		RH_DEBUG(device, port, "Clear port enable change (status %" PRIx16
-		    ")\n", status);
+		RH_DEBUG(device, port, "Clear port enable change (status %"
+		    PRIx16 ")\n", status);
 		pio_write_16(hub->ports[port], status | STATUS_ENABLED_CHANGED);
 		break;
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:
-		RH_DEBUG(device, port, "Clear port suspend change (status %" PRIx16
-		    ")\n", status);
+		RH_DEBUG(device, port, "Clear port suspend change (status %"
+		    PRIx16 ")\n", status);
 		//TODO
 		return ENOTSUP;
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
-		RH_DEBUG(device, port, "Clear port OC change (status %" PRIx16
-		    ")\n", status);
+		RH_DEBUG(device, port, "Clear port OC change (status %"
+		    PRIx16 ")\n", status);
 		/* UHCI Does not report over current */
+		//TODO: newer chips do, but some have broken wiring 
 		break;
 	default:
-		RH_DEBUG(device, port, "Clear unknown feature %d (status %" PRIx16
-		    ")\n", feature, status);
+		RH_DEBUG(device, port, "Clear unknown feature %d (status %"
+		    PRIx16 ")\n", feature, status);
 		usb_log_warning("Clearing feature %d is unsupported\n",
 		    feature);
 		return ESTALL;
@@ -264,6 +316,14 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	return EOK;
 }
 
+/** Port set feature request handler.
+ * @param device Virtual hub device
+ * @param setup_packet USB setup stage data.
+ * @param[out] data destination data buffer, size must be at least
+ *             setup_packet->length bytes
+ * @param[out] act_size Sized of the valid response part of the buffer.
+ * @return Error code.
+ */
 static int req_set_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
@@ -294,6 +354,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		    ")\n", status);
 		/* We are always powered */
 		usb_log_warning("Tried to power port %u\n", port);
+		break;
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:
 	case USB_HUB_FEATURE_C_PORT_ENABLE:
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:
@@ -313,6 +374,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	return EOK;
 }
 
+/** UHCI root hub request handlers */
 static usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
 		STD_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
@@ -343,7 +405,7 @@ static usbvirt_control_request_handler_t control_transfer_handlers[] = {
 		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
 		.name = "ClearHubFeature",
 		/* Hub features are overcurrent and supply good,
-		 * this request may only set changes that we never report*/
+		 * this request may only clear changes that we never report*/
 		.callback = req_nop,
 	},
 	{
@@ -389,14 +451,27 @@ static usbvirt_device_ops_t ops = {
         .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
 };
 
+/** Status change handler.
+ * @param device Virtual hub device
+ * @param endpoint Enpoint number
+ * @param tr_type Transfer type
+ * @param buffer Response destination
+ * @param buffer_size BYtes available in buffer
+ * @param actual_size Size us the used part of the dest buffer.
+ *
+ * Produces status mask. Bit 0 indicates hub status change the other bits
+ * represnet port status change. Endian does not matter as UHCI root hubs
+ * only need 1 byte.
+ */
 static int req_status_change_handler(usbvirt_device_t *device,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {
-	if (buffer_size < 1)
-		return ESTALL;
 	uhci_rh_t *hub = virthub_get_data(device);
 	assert(hub);
+	
+	if (buffer_size < 1)
+		return ESTALL;
 
 	const uint16_t status_a = pio_read_16(hub->ports[0]);
 	const uint16_t status_b = pio_read_16(hub->ports[1]);
