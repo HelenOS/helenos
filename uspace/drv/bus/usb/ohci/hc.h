@@ -44,7 +44,7 @@
 
 #include "ohci_batch.h"
 #include "ohci_regs.h"
-#include "root_hub.h"
+#include "ohci_rh.h"
 #include "endpoint_list.h"
 #include "hw_struct/hcca.h"
 
@@ -67,7 +67,7 @@ typedef struct hc {
 	fibril_mutex_t guard;
 
 	/** USB hub emulation structure */
-	rh_t rh;
+	ohci_rh_t rh;
 } hc_t;
 
 size_t hc_irq_pio_range_count(void);

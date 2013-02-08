@@ -174,7 +174,7 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-	rh_init(&instance->rh, instance->registers);
+	ohci_rh_init(&instance->rh, instance->registers, "ohci rh");
 	hc_start(instance);
 
 	return EOK;
@@ -261,10 +261,9 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	assert(instance);
 
 	/* Check for root hub communication */
-	if (batch->ep->address == instance->rh.address) {
+	if (batch->ep->address == ohci_rh_get_address(&instance->rh)) {
 		usb_log_debug("OHCI root hub request.\n");
-		rh_request(&instance->rh, batch);
-		return EOK;
+		return ohci_rh_schedule(&instance->rh, batch);
 	}
 	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
 	if (!ohci_batch)
@@ -303,7 +302,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		return;
 	usb_log_debug2("OHCI(%p) interrupt: %x.\n", instance, status);
 	if (status & I_RHSC)
-		rh_interrupt(&instance->rh);
+		ohci_rh_interrupt(&instance->rh);
 
 	if (status & I_WDH) {
 		fibril_mutex_lock(&instance->guard);
