@@ -29,6 +29,10 @@
 /** @addtogroup drvusbmid
  * @{
  */
+
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 /**
  * @file
  * Helper functions.
@@ -46,9 +50,7 @@
 /** Callback for DDF USB interface. */
 static int usb_iface_get_interface_impl(ddf_fun_t *fun, int *iface_no)
 {
-	assert(fun);
-
-	usbmid_interface_t *iface = fun->driver_data;
+	usbmid_interface_t *iface = ddf_fun_data_get(fun);
 	assert(iface);
 
 	if (iface_no != NULL) {
@@ -122,12 +124,26 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		return ENOMEM;
 	}
 
+	match_id_list_t match_ids;
+	init_match_ids(&match_ids);
+
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
-	    interface_descriptor, &child->match_ids);
+	    interface_descriptor, &match_ids);
 	if (rc != EOK) {
 		ddf_fun_destroy(child);
 		return rc;
 	}
+
+	list_foreach(match_ids.ids, link) {
+		match_id_t *match_id = list_get_instance(link, match_id_t, link);
+		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
+		if (rc != EOK) {
+			clean_match_ids(&match_ids);
+			ddf_fun_destroy(child);
+			return rc;
+		}
+	}
+	clean_match_ids(&match_ids);
 
 	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
@@ -137,8 +153,8 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	}
 
 	iface->fun = child;
-	child->driver_data = iface;
-	child->ops = &child_device_ops;
+	ddf_fun_data_implant(child, iface);
+	ddf_fun_set_ops(child, &child_device_ops);
 
 	return EOK;
 }

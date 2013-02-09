@@ -36,21 +36,21 @@
  */
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <gsp.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <ipc/kbdev.h>
-#include <input.h>
-#include <kbd.h>
-#include <kbd_ctl.h>
-#include <kbd_port.h>
 #include <loc.h>
 #include <stdlib.h>
 #include <vfs/vfs_sess.h>
 #include <sys/typefmt.h>
+#include "../gsp.h"
+#include "../input.h"
+#include "../kbd.h"
+#include "../kbd_ctl.h"
+#include "../kbd_port.h"
 
 static int kbdev_ctl_init(kbd_dev_t *);
 static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned int);

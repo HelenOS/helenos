@@ -38,17 +38,8 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <str.h>
-
-#ifndef NVERIFY_PRINTF
-
-#define PRINTF_ATTRIBUTE(start, end) \
-	__attribute__((format(gnu_printf, start, end)))
-
-#else /* NVERIFY_PRINTF */
-
-#define PRINTF_ATTRIBUTE(start, end)
-
-#endif /* NVERIFY_PRINTF */
+#include <io/verify.h>
+#include <abi/klog.h>
 
 #define EOF  (-1)
 
@@ -60,7 +51,7 @@
 		char _buf[256]; \
 		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
 		if (_n > 0) \
-			(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) _buf, str_size(_buf)); \
+			(void) __SYSCALL3(SYS_KLOG, KLOG_WRITE, (sysarg_t) _buf, str_size(_buf)); \
 	}
 
 #ifndef SEEK_SET

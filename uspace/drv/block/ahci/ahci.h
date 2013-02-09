@@ -33,6 +33,7 @@
 #ifndef __AHCI_H__
 #define __AHCI_H__
 
+#include <async.h>
 #include <sys/types.h>
 #include <devman.h>
 #include <ddf/interrupt.h>
@@ -45,13 +46,13 @@ typedef struct {
 	ddf_dev_t *dev;
 	
 	/** Pointer to AHCI memory registers. */
-	ahci_memregs_t *memregs;
-	
-	/** AHCI device global timer. */
-	fibril_timer_t *timer;
+	volatile ahci_memregs_t *memregs;
 	
 	/** Pointers to sata devices. */
-	void *sata_devs[32];
+	void *sata_devs[AHCI_MAX_PORTS];
+
+	/** Parent session */
+	async_sess_t *parent_sess;
 } ahci_dev_t;
 
 /** SATA Device. */
@@ -59,19 +60,21 @@ typedef struct {
 	/** Pointer to AHCI device. */
 	ahci_dev_t *ahci;
 	
-	/** SATA port number(0-31). */
+	/** Pointer to ddf function. */
+	ddf_fun_t *fun;
+	
+	/** SATA port number (0-31). */
 	uint8_t port_num;
 	
-	/** Port interrupt states shadow registers. */
-	volatile ahci_port_is_t shadow_pxis;
-	
 	/** Device in invalid state (disconnected and so on). */
-	volatile bool invalid_device;
+	bool is_invalid_device;
 	
 	/** Pointer to SATA port. */
 	volatile ahci_port_t *port;
+	
 	/** Pointer to command header. */
 	volatile ahci_cmdhdr_t *cmd_header;
+	
 	/** Pointer to command table. */
 	volatile uint32_t *cmd_table;
 	
@@ -80,14 +83,19 @@ typedef struct {
 	
 	/** Mutex for event signaling condition variable. */
 	fibril_mutex_t event_lock;
+	
 	/** Event signaling condition variable. */
 	fibril_condvar_t event_condvar;
 	
+	/** Event interrupt state. */
+	ahci_port_is_t event_pxis;
+	
 	/** Block device service id. */
-	service_id_t service_id; 
+	service_id_t service_id;
 	
 	/** Number of device data blocks. */
 	uint64_t blocks;
+	
 	/** Size of device data blocks. */
 	size_t block_size;
 	
@@ -95,7 +103,7 @@ typedef struct {
 	char model[STR_BOUNDS(40) + 1];
 	
 	/** Device in invalid state (disconnected and so on). */
-	bool packet_device;
+	bool is_packet_device;
 	
 	/** Highest UDMA mode supported. */
 	uint8_t highest_udma_mode;

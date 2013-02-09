@@ -40,8 +40,8 @@
 static int sb_get_info(ddf_fun_t *fun, const char** name, unsigned *items)
 {
 	assert(fun);
-	assert(fun->driver_data);
-	const sb_mixer_t *mixer = fun->driver_data;
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
 	if (name)
 		*name = sb_mixer_type_str(mixer->type);
 	if (items)
@@ -54,8 +54,8 @@ static int sb_get_item_info(ddf_fun_t *fun, unsigned item, const char** name,
     unsigned *channels)
 {
 	assert(fun);
-	assert(fun->driver_data);
-	const sb_mixer_t *mixer = fun->driver_data;
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
 	return
 	    sb_mixer_get_control_item_info(mixer, item, name, channels);
 }
@@ -64,8 +64,8 @@ static int sb_get_channel_info(ddf_fun_t *fun, unsigned item, unsigned channel,
     const char** name, unsigned *levels)
 {
 	assert(fun);
-	assert(fun->driver_data);
-	const sb_mixer_t *mixer = fun->driver_data;
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
 	return sb_mixer_get_channel_info(mixer, item, channel, name, levels);
 }
 /*----------------------------------------------------------------------------*/
@@ -86,8 +86,8 @@ static int sb_channel_volume_set(ddf_fun_t *fun, unsigned item, unsigned channel
     unsigned volume)
 {
 	assert(fun);
-	assert(fun->driver_data);
-	const sb_mixer_t *mixer = fun->driver_data;
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
 	return sb_mixer_set_volume_level(mixer, item, channel, volume);
 }
 /*----------------------------------------------------------------------------*/
@@ -95,8 +95,8 @@ static int sb_channel_volume_get(ddf_fun_t *fun, unsigned item, unsigned channel
     unsigned *level, unsigned *max)
 {
 	assert(fun);
-	assert(fun->driver_data);
-	const sb_mixer_t *mixer = fun->driver_data;
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
 	unsigned levels;
 	const int ret =
 	    sb_mixer_get_channel_info(mixer, item, channel, NULL, &levels);

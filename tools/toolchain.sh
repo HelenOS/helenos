@@ -42,8 +42,8 @@ EOF
 
 MPFR_MAIN=<<EOF
 #if MPFR_VERSION < MPFR_VERSION_NUM(2, 4, 2)
-choke me
-	#endif
+	choke me
+#endif
 EOF
 
 MPC_MAIN=<<EOF
@@ -52,10 +52,10 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.22"
+BINUTILS_VERSION="2.23.1"
 BINUTILS_RELEASE=""
-GCC_VERSION="4.7.1"
-GDB_VERSION="7.4"
+GCC_VERSION="4.7.2"
+GDB_VERSION="7.5"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
@@ -191,6 +191,7 @@ show_dependencies() {
 	echo
 	echo " - SED, AWK, Flex, Bison, gzip, bzip2, Bourne Shell"
 	echo " - gettext, zlib, Texinfo, libelf, libgomp"
+	echo " - terminfo"
 	echo " - GNU Multiple Precision Library (GMP)"
 	echo " - GNU Make"
 	echo " - GNU tar"
@@ -272,9 +273,9 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "933e6f15f51c031060af64a9e14149ff"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "95a9a8305fed4d30a30a6dc28ff9d060"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "cc308a0891e778cfda7a151ab8a6e762"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "24a6779a9fe0260667710de1b082ef61"
 }
 
 build_target() {

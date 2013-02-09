@@ -28,7 +28,7 @@
 
 BFD_ARCH = mips
 BITS = 32
-EXTRA_CFLAGS = -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
+EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
 
 RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
@@ -47,7 +47,6 @@ ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD_OUTPUT = binary
 	ENDIANESS = LE
-	EXTRA_GCC_CFLAGS = -mhard-float
 endif
 
 SOURCES = \

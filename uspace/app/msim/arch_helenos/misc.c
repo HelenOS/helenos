@@ -43,6 +43,7 @@
 #include <malloc.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* Define when the dprinter device shall try to filter
  * out ANSI escape sequences.

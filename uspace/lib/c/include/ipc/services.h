@@ -44,6 +44,7 @@ typedef enum {
 	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
+	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),

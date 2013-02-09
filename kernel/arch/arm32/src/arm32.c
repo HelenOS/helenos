@@ -48,6 +48,7 @@
 #include <macros.h>
 #include <str.h>
 #include <arch/ras.h>
+#include <sysinfo/sysinfo.h>
 
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
@@ -115,6 +116,10 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 	machine_input_init();
+	const char *platform = machine_get_platform_name();
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
 }
 
 

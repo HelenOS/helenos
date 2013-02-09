@@ -41,18 +41,17 @@
 /**
  * ELF error return codes
  */
-#define EE_OK			0	/* No error */
-#define EE_INVALID		1	/* Invalid ELF image */
-#define	EE_MEMORY		2	/* Cannot allocate address space */
-#define EE_INCOMPATIBLE		3	/* ELF image is not compatible with current architecture */
-#define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
-#define EE_LOADER		5	/* The image is actually a program loader. */
-#define EE_IRRECOVERABLE	6
+#define EE_OK             0  /* No error */
+#define EE_INVALID        1  /* Invalid ELF image */
+#define EE_MEMORY         2  /* Cannot allocate address space */
+#define EE_INCOMPATIBLE   3  /* ELF image is not compatible with current architecture */
+#define EE_UNSUPPORTED    4  /* Non-supported ELF (e.g. dynamic ELFs) */
+#define EE_LOADER         5  /* The image is actually a program loader. */
+#define EE_IRRECOVERABLE  6  /* Irrecoverable error. */
 
 /**
  * This flags is passed when running the loader, otherwise elf_load()
  * would return with a EE_LOADER error code.
- *
  */
 #define ELD_F_NONE    0
 #define ELD_F_LOADER  1

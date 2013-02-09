@@ -36,7 +36,6 @@
 
 #include <libarch/inttypes.h>
 #include <ddf/driver.h>
-#include <devman.h>
 #include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <str_error.h>
@@ -63,21 +62,19 @@
  * @return Error code.
  *
  */
-static int get_my_registers(const ddf_dev_t *dev, uintptr_t *io_reg_address,
+static int get_my_registers(ddf_dev_t *dev, uintptr_t *io_reg_address,
     size_t *io_reg_size, int *kbd_irq, int *mouse_irq)
 {
 	assert(dev);
 	
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
-	    IPC_FLAG_BLOCKING);
-	if (!parent_sess)
+	async_sess_t *parent_sess = ddf_dev_parent_sess_create(
+	    dev, EXCHANGE_SERIALIZE);
+	if (parent_sess == NULL)
 		return ENOMEM;
 	
 	hw_res_list_parsed_t hw_resources;
 	hw_res_list_parsed_init(&hw_resources);
 	const int ret = hw_res_get_list_parsed(parent_sess, &hw_resources, 0);
-	async_hangup(parent_sess);
 	if (ret != EOK)
 		return ret;
 	
@@ -135,7 +132,7 @@ static int i8042_dev_add(ddf_dev_t *device)
 	    str_error(ret));
 	
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 	return EOK;
 }
 
@@ -153,7 +150,7 @@ static driver_t i8042_driver = {
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS PS/2 driver.\n", NAME);
-	ddf_log_init(NAME, LVL_NOTE);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&i8042_driver);
 }
 

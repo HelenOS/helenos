@@ -37,7 +37,7 @@
 #define LIBDRV_AUDIO_PCM_IFACE_H_
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <loc.h>
 #include <pcm/sample_format.h>
 

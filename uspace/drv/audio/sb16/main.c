@@ -48,7 +48,7 @@
 #define NAME "sb16"
 
 static int sb_add_device(ddf_dev_t *device);
-static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
+static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
     size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
     int *irq, int *dma8, int *dma16);
 static int sb_enable_interrupts(ddf_dev_t *device);
@@ -74,15 +74,16 @@ static driver_t sb_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME": HelenOS SB16 audio driver.\n");
-	ddf_log_init(NAME, LVL_DEBUG2);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&sb_driver);
 }
 
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	assert(dev->driver_data);
-	sb16_interrupt(dev->driver_data);
+	sb16_t *sb16_dev = ddf_dev_data_get(dev);
+	assert(sb16_dev);
+	sb16_interrupt(sb16_dev);
 }
 
 /** Initializes a new ddf driver instance of SB16.
@@ -165,15 +166,14 @@ if (ret != EOK) { \
 	return EOK;
 }
 
-static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
+static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
     size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
     int *irq, int *dma8, int *dma16)
 {
 	assert(device);
 
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
-            IPC_FLAG_BLOCKING);
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 
@@ -244,9 +244,8 @@ static int sb_get_res(const ddf_dev_t *device, uintptr_t *sb_regs,
 
 int sb_enable_interrupts(ddf_dev_t *device)
 {
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, device->handle,
-	    IPC_FLAG_BLOCKING);
+	async_sess_t *parent_sess = devman_parent_device_connect(
+	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 

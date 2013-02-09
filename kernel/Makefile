@@ -256,6 +256,17 @@ GENERIC_SOURCES = \
 	generic/src/smp/smp.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
+	generic/src/ipc/sysipc_ops.c \
+	generic/src/ipc/ops/clnestab.c \
+	generic/src/ipc/ops/conctmeto.c \
+	generic/src/ipc/ops/concttome.c \
+	generic/src/ipc/ops/connclone.c \
+	generic/src/ipc/ops/dataread.c \
+	generic/src/ipc/ops/datawrite.c \
+	generic/src/ipc/ops/debug.c \
+	generic/src/ipc/ops/sharein.c \
+	generic/src/ipc/ops/shareout.c \
+	generic/src/ipc/ops/stchngath.c \
 	generic/src/ipc/ipcrsc.c \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \

@@ -65,52 +65,80 @@ static fun_node_t *find_node_child(dev_tree_t *, fun_node_t *, const char *);
 
 /* hash table operations */
 
-static hash_index_t devices_hash(unsigned long key[])
+static inline size_t handle_key_hash(void *key)
 {
-	return key[0] % DEVICE_BUCKETS;
+	devman_handle_t handle = *(devman_handle_t*)key;
+	return handle;
 }
 
-static int devman_devices_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t devman_devices_hash(const ht_link_t *item)
 {
-	dev_node_t *dev = hash_table_get_instance(item, dev_node_t, devman_dev);
-	return (dev->handle == (devman_handle_t) key[0]);
+	dev_node_t *dev = hash_table_get_inst(item, dev_node_t, devman_dev);
+	return handle_key_hash(&dev->handle);
 }
 
-static int devman_functions_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static size_t devman_functions_hash(const ht_link_t *item)
 {
-	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, devman_fun);
-	return (fun->handle == (devman_handle_t) key[0]);
+	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, devman_fun);
+	return handle_key_hash(&fun->handle);
 }
 
-static int loc_functions_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static bool devman_devices_key_equal(void *key, const ht_link_t *item)
 {
-	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, loc_fun);
-	return (fun->service_id == (service_id_t) key[0]);
+	devman_handle_t handle = *(devman_handle_t*)key;
+	dev_node_t *dev = hash_table_get_inst(item, dev_node_t, devman_dev);
+	return dev->handle == handle;
 }
 
-static void devices_remove_callback(link_t *item)
+static bool devman_functions_key_equal(void *key, const ht_link_t *item)
 {
+	devman_handle_t handle = *(devman_handle_t*)key;
+	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, devman_fun);
+	return fun->handle == handle;
 }
 
-static hash_table_operations_t devman_devices_ops = {
-	.hash = devices_hash,
-	.compare = devman_devices_compare,
-	.remove_callback = devices_remove_callback
+static inline size_t service_id_key_hash(void *key)
+{
+	service_id_t service_id = *(service_id_t*)key;
+	return service_id;
+}
+
+static size_t loc_functions_hash(const ht_link_t *item)
+{
+	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, loc_fun);
+	return service_id_key_hash(&fun->service_id);
+}
+
+static bool loc_functions_key_equal(void *key, const ht_link_t *item)
+{
+	service_id_t service_id = *(service_id_t*)key;
+	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, loc_fun);
+	return fun->service_id == service_id;
+}
+
+
+static hash_table_ops_t devman_devices_ops = {
+	.hash = devman_devices_hash,
+	.key_hash = handle_key_hash,
+	.key_equal = devman_devices_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
-static hash_table_operations_t devman_functions_ops = {
-	.hash = devices_hash,
-	.compare = devman_functions_compare,
-	.remove_callback = devices_remove_callback
+static hash_table_ops_t devman_functions_ops = {
+	.hash = devman_functions_hash,
+	.key_hash = handle_key_hash,
+	.key_equal = devman_functions_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
-static hash_table_operations_t loc_devices_ops = {
-	.hash = devices_hash,
-	.compare = loc_functions_compare,
-	.remove_callback = devices_remove_callback
+static hash_table_ops_t loc_devices_ops = {
+	.hash = loc_functions_hash,
+	.key_hash = service_id_key_hash,
+	.key_equal = loc_functions_key_equal,
+	.equal = NULL,
+	.remove_callback = NULL
 };
 
 /**
@@ -150,7 +178,7 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
 	list_prepend(&drv->drivers, &drivers_list->drivers);
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 
-	log_msg(LVL_NOTE, "Driver `%s' was added to the list of available "
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Driver `%s' was added to the list of available "
 	    "drivers.", drv->name);
 }
 
@@ -241,7 +269,7 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
  */
 bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 {
-	log_msg(LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
 	
 	bool suc = false;
 	char *buf = NULL;
@@ -251,7 +279,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
-		log_msg(LVL_ERROR, "Unable to open `%s' for reading: %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
 		    conf_path, str_error(fd));
 		goto cleanup;
 	}
@@ -260,21 +288,21 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	len = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
 	if (len == 0) {
-		log_msg(LVL_ERROR, "Configuration file '%s' is empty.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Configuration file '%s' is empty.",
 		    conf_path);
 		goto cleanup;
 	}
 	
 	buf = malloc(len + 1);
 	if (buf == NULL) {
-		log_msg(LVL_ERROR, "Memory allocation failed when parsing file "
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed when parsing file "
 		    "'%s'.", conf_path);
 		goto cleanup;
 	}
 	
 	ssize_t read_bytes = read_all(fd, buf, len);
 	if (read_bytes <= 0) {
-		log_msg(LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
 		    read_bytes);
 		goto cleanup;
 	}
@@ -313,7 +341,7 @@ cleanup:
  */
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
-	log_msg(LVL_DEBUG, "get_driver_info(base_path=\"%s\", name=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "get_driver_info(base_path=\"%s\", name=\"%s\")",
 	    base_path, name);
 	
 	assert(base_path != NULL && name != NULL && drv != NULL);
@@ -345,7 +373,7 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 	/* Check whether the driver's binary exists. */
 	struct stat s;
 	if (stat(drv->binary_path, &s) == ENOENT) { /* FIXME!! */
-		log_msg(LVL_ERROR, "Driver not found at path `%s'.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver not found at path `%s'.",
 		    drv->binary_path);
 		goto cleanup;
 	}
@@ -373,7 +401,7 @@ cleanup:
  */
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 {
-	log_msg(LVL_DEBUG, "lookup_available_drivers(dir=\"%s\")", dir_path);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "lookup_available_drivers(dir=\"%s\")", dir_path);
 	
 	int drv_cnt = 0;
 	DIR *dir = NULL;
@@ -407,7 +435,7 @@ bool create_root_nodes(dev_tree_t *tree)
 	fun_node_t *fun;
 	dev_node_t *dev;
 	
-	log_msg(LVL_DEBUG, "create_root_nodes()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "create_root_nodes()");
 	
 	fibril_rwlock_write_lock(&tree->rwlock);
 	
@@ -494,7 +522,7 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
  */
 void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
 {
-	log_msg(LVL_DEBUG, "attach_driver(dev=\"%s\",drv=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "attach_driver(dev=\"%s\",drv=\"%s\")",
 	    dev->pfun->pathname, drv->name);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
@@ -519,7 +547,7 @@ void detach_driver(dev_tree_t *tree, dev_node_t *dev)
 	
 	assert(drv != NULL);
 	
-	log_msg(LVL_DEBUG, "detach_driver(dev=\"%s\",drv=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "detach_driver(dev=\"%s\",drv=\"%s\")",
 	    dev->pfun->pathname, drv->name);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
@@ -544,11 +572,11 @@ bool start_driver(driver_t *drv)
 
 	assert(fibril_mutex_is_locked(&drv->driver_mutex));
 	
-	log_msg(LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
 	
 	rc = task_spawnl(NULL, drv->binary_path, drv->binary_path, NULL);
 	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
 		    drv->name, drv->binary_path, str_error(rc));
 		return false;
 	}
@@ -593,7 +621,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	dev_node_t *dev;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
 	    driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
@@ -613,7 +641,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 			continue;
 		}
 
-		log_msg(LVL_DEBUG, "pass_devices_to_driver: dev->refcnt=%d\n",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "pass_devices_to_driver: dev->refcnt=%d\n",
 		    (int)atomic_get(&dev->refcnt));
 		dev_add_ref(dev);
 
@@ -649,7 +677,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * the driver would be added to the device list and started
 	 * immediately and possibly started here as well.
 	 */
-	log_msg(LVL_DEBUG, "Driver `%s' enters running state.", driver->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Driver `%s' enters running state.", driver->name);
 	driver->state = DRIVER_RUNNING;
 
 	fibril_mutex_unlock(&driver->driver_mutex);
@@ -666,7 +694,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
  */
 void initialize_running_driver(driver_t *driver, dev_tree_t *tree)
 {
-	log_msg(LVL_DEBUG, "initialize_running_driver(driver=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "initialize_running_driver(driver=\"%s\")",
 	    driver->name);
 	
 	/*
@@ -760,7 +788,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
 	 */
-	log_msg(LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
 	    drv->name, dev->pfun->name);
 	
 	/* Send the device to the driver. */
@@ -826,7 +854,7 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	 */
 	driver_t *drv = find_best_match_driver(drivers_list, dev);
 	if (drv == NULL) {
-		log_msg(LVL_ERROR, "No driver found for device `%s'.",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "No driver found for device `%s'.",
 		    dev->pfun->pathname);
 		return false;
 	}
@@ -866,7 +894,7 @@ int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 	
 	assert(dev != NULL);
 	
-	log_msg(LVL_DEBUG, "driver_dev_remove(%p)", dev);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_remove(%p)", dev);
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
 	drv = dev->drv;
@@ -889,7 +917,7 @@ int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 	
 	assert(dev != NULL);
 	
-	log_msg(LVL_DEBUG, "driver_dev_gone(%p)", dev);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_gone(%p)", dev);
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
 	drv = dev->drv;
@@ -910,7 +938,7 @@ int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 	driver_t *drv;
 	devman_handle_t handle;
 	
-	log_msg(LVL_DEBUG, "driver_fun_online(%p)", fun);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_fun_online(%p)", fun);
 
 	fibril_rwlock_read_lock(&tree->rwlock);
 	
@@ -938,7 +966,7 @@ int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 	driver_t *drv;
 	devman_handle_t handle;
 	
-	log_msg(LVL_DEBUG, "driver_fun_offline(%p)", fun);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_fun_offline(%p)", fun);
 
 	fibril_rwlock_read_lock(&tree->rwlock);
 	if (fun->dev == NULL) {
@@ -969,16 +997,13 @@ int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
  */
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
-	log_msg(LVL_DEBUG, "init_device_tree()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "init_device_tree()");
 	
 	tree->current_handle = 0;
 	
-	hash_table_create(&tree->devman_devices, DEVICE_BUCKETS, 1,
-	    &devman_devices_ops);
-	hash_table_create(&tree->devman_functions, DEVICE_BUCKETS, 1,
-	    &devman_functions_ops);
-	hash_table_create(&tree->loc_functions, DEVICE_BUCKETS, 1,
-	    &loc_devices_ops);
+	hash_table_create(&tree->devman_devices, 0, 0, &devman_devices_ops);
+	hash_table_create(&tree->devman_functions, 0, 0, &devman_functions_ops);
+	hash_table_create(&tree->loc_functions, 0, 0, &loc_devices_ops);
 	
 	fibril_rwlock_initialize(&tree->rwlock);
 	
@@ -1012,7 +1037,6 @@ dev_node_t *create_dev_node(void)
 	atomic_set(&dev->refcnt, 0);
 	list_initialize(&dev->functions);
 	link_initialize(&dev->driver_devices);
-	link_initialize(&dev->devman_dev);
 	
 	return dev;
 }
@@ -1051,7 +1075,6 @@ void dev_del_ref(dev_node_t *dev)
 		delete_dev_node(dev);
 }
 
-
 /** Find the device node structure of the device witch has the specified handle.
  *
  * @param tree		The device tree where we look for the device node.
@@ -1060,16 +1083,13 @@ void dev_del_ref(dev_node_t *dev)
  */
 dev_node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
-	unsigned long key = handle;
-	link_t *link;
-	
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
 	
-	link = hash_table_find(&tree->devman_devices, &key);
+	ht_link_t *link = hash_table_find(&tree->devman_devices, &handle);
 	if (link == NULL)
 		return NULL;
 	
-	return hash_table_get_instance(link, dev_node_t, devman_dev);
+	return hash_table_get_inst(link, dev_node_t, devman_dev);
 }
 
 /** Find the device node structure of the device witch has the specified handle.
@@ -1141,10 +1161,9 @@ fun_node_t *create_fun_node(void)
 	
 	fun->state = FUN_INIT;
 	atomic_set(&fun->refcnt, 0);
+	fibril_mutex_initialize(&fun->busy_lock);
 	link_initialize(&fun->dev_functions);
 	list_initialize(&fun->match_ids.ids);
-	link_initialize(&fun->devman_fun);
-	link_initialize(&fun->loc_fun);
 	
 	return fun;
 }
@@ -1185,6 +1204,18 @@ void fun_del_ref(fun_node_t *fun)
 		delete_fun_node(fun);
 }
 
+/** Make function busy for reconfiguration operations. */
+void fun_busy_lock(fun_node_t *fun)
+{
+	fibril_mutex_lock(&fun->busy_lock);
+}
+
+/** Mark end of reconfiguration operation. */
+void fun_busy_unlock(fun_node_t *fun)
+{
+	fibril_mutex_unlock(&fun->busy_lock);
+}
+
 /** Find the function node with the specified handle.
  *
  * @param tree		The device tree where we look for the device node.
@@ -1193,17 +1224,15 @@ void fun_del_ref(fun_node_t *fun)
  */
 fun_node_t *find_fun_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
-	unsigned long key = handle;
-	link_t *link;
 	fun_node_t *fun;
 	
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
 	
-	link = hash_table_find(&tree->devman_functions, &key);
+	ht_link_t *link = hash_table_find(&tree->devman_functions, &handle);
 	if (link == NULL)
 		return NULL;
 	
-	fun = hash_table_get_instance(link, fun_node_t, devman_fun);
+	fun = hash_table_get_inst(link, fun_node_t, devman_fun);
 	
 	return fun;
 }
@@ -1248,7 +1277,7 @@ static bool set_fun_path(dev_tree_t *tree, fun_node_t *fun, fun_node_t *parent)
 	
 	fun->pathname = (char *) malloc(pathsize);
 	if (fun->pathname == NULL) {
-		log_msg(LVL_ERROR, "Failed to allocate device path.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to allocate device path.");
 		return false;
 	}
 	
@@ -1276,13 +1305,12 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	log_msg(LVL_DEBUG, "insert_dev_node(dev=%p, pfun=%p [\"%s\"])",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "insert_dev_node(dev=%p, pfun=%p [\"%s\"])",
 	    dev, pfun, pfun->pathname);
 
 	/* Add the node to the handle-to-node map. */
 	dev->handle = ++tree->current_handle;
-	unsigned long key = dev->handle;
-	hash_table_insert(&tree->devman_devices, &key, &dev->devman_dev);
+	hash_table_insert(&tree->devman_devices, &dev->devman_dev);
 
 	/* Add the node to the list of its parent's children. */
 	dev->pfun = pfun;
@@ -1300,11 +1328,10 @@ void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	log_msg(LVL_DEBUG, "remove_dev_node(dev=%p)", dev);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "remove_dev_node(dev=%p)", dev);
 	
 	/* Remove node from the handle-to-node map. */
-	unsigned long key = dev->handle;
-	hash_table_remove(&tree->devman_devices, &key, 1);
+	hash_table_remove(&tree->devman_devices, &dev->handle);
 	
 	/* Unlink from parent function. */
 	dev->pfun->child = NULL;
@@ -1345,8 +1372,7 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
 	
 	/* Add the node to the handle-to-node map. */
 	fun->handle = ++tree->current_handle;
-	unsigned long key = fun->handle;
-	hash_table_insert(&tree->devman_functions, &key, &fun->devman_fun);
+	hash_table_insert(&tree->devman_functions, &fun->devman_fun);
 
 	/* Add the node to the list of its parent's children. */
 	fun->dev = dev;
@@ -1366,8 +1392,7 @@ void remove_fun_node(dev_tree_t *tree, fun_node_t *fun)
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
 	/* Remove the node from the handle-to-node map. */
-	unsigned long key = fun->handle;
-	hash_table_remove(&tree->devman_functions, &key, 1);
+	hash_table_remove(&tree->devman_functions, &fun->handle);
 	
 	/* Remove the node from the list of its parent's children. */
 	if (fun->dev != NULL)
@@ -1480,13 +1505,11 @@ static fun_node_t *find_node_child(dev_tree_t *tree, fun_node_t *pfun,
 fun_node_t *find_loc_tree_function(dev_tree_t *tree, service_id_t service_id)
 {
 	fun_node_t *fun = NULL;
-	link_t *link;
-	unsigned long key = (unsigned long) service_id;
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
-	link = hash_table_find(&tree->loc_functions, &key);
+	ht_link_t *link = hash_table_find(&tree->loc_functions, &service_id);
 	if (link != NULL) {
-		fun = hash_table_get_instance(link, fun_node_t, loc_fun);
+		fun = hash_table_get_inst(link, fun_node_t, loc_fun);
 		fun_add_ref(fun);
 	}
 	fibril_rwlock_read_unlock(&tree->rwlock);
@@ -1498,8 +1521,7 @@ void tree_add_loc_function(dev_tree_t *tree, fun_node_t *fun)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	unsigned long key = (unsigned long) fun->service_id;
-	hash_table_insert(&tree->loc_functions, &key, &fun->loc_fun);
+	hash_table_insert(&tree->loc_functions, &fun->loc_fun);
 }
 
 /** @}

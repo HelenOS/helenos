@@ -35,7 +35,7 @@
 #ifndef CONN_H
 #define CONN_H
 
-#include <bool.h>
+#include <stdbool.h>
 #include "tcp_type.h"
 
 extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);

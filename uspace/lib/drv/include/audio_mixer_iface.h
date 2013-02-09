@@ -38,7 +38,7 @@
 #define LIBDRV_AUDIO_MIXER_IFACE_H_
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #include "ddf/driver.h"
 

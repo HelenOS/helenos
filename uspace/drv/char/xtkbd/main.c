@@ -68,7 +68,7 @@ static driver_t kbd_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS XT keyboard driver.\n");
-	ddf_log_init(NAME, LVL_NOTE);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&kbd_driver);
 }
 
@@ -97,7 +97,7 @@ if (ret != EOK) { \
 	    "Failed to initialize XT_KBD driver: %s.", str_error(ret));
 
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 	return EOK;
 }
 /**

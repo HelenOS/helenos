@@ -36,8 +36,6 @@
 #define DRV_UHCI_HC_H
 
 #include <fibril.h>
-#include <ddi.h>
-
 #include <usb/host/hcd.h>
 
 #include "transfer_list.h"

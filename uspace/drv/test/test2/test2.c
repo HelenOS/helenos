@@ -195,9 +195,10 @@ static int fun_unbind(ddf_fun_t *fun, const char *name)
 static int test2_dev_add(ddf_dev_t *dev)
 {
 	test2_t *test2;
+	const char *dev_name = ddf_dev_get_name(dev);
 
 	ddf_msg(LVL_DEBUG, "test2_dev_add(name=\"%s\", handle=%d)",
-	    dev->name, (int) dev->handle);
+	    dev_name, (int) ddf_dev_get_handle(dev));
 
 	test2 = ddf_dev_data_alloc(dev, sizeof(test2_t));
 	if (test2 == NULL) {
@@ -207,7 +208,7 @@ static int test2_dev_add(ddf_dev_t *dev)
 
 	test2->dev = dev;
 
-	if (str_cmp(dev->name, "child") != 0) {
+	if (str_cmp(dev_name, "child") != 0) {
 		fid_t postpone = fibril_create(plug_unplug, test2);
 		if (postpone == 0) {
 			ddf_msg(LVL_ERROR, "fibril_create() failed.");
@@ -224,7 +225,7 @@ static int test2_dev_add(ddf_dev_t *dev)
 
 static int test2_dev_remove(ddf_dev_t *dev)
 {
-	test2_t *test2 = (test2_t *)dev->driver_data;
+	test2_t *test2 = (test2_t *)ddf_dev_data_get(dev);
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "test2_dev_remove(%p)", dev);
@@ -258,7 +259,7 @@ static int test2_dev_remove(ddf_dev_t *dev)
 
 static int test2_dev_gone(ddf_dev_t *dev)
 {
-	test2_t *test2 = (test2_t *)dev->driver_data;
+	test2_t *test2 = (test2_t *)ddf_dev_data_get(dev);
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "test2_dev_gone(%p)", dev);
@@ -306,7 +307,7 @@ static int test2_fun_offline(ddf_fun_t *fun)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
-	ddf_log_init(NAME, LVL_NOTE);
+	ddf_log_init(NAME);
 	return ddf_driver_main(&test2_driver);
 }
 

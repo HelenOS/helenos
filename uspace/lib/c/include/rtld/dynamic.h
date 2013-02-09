@@ -35,7 +35,7 @@
 #ifndef LIBC_RTLD_DYNAMIC_H_
 #define LIBC_RTLD_DYNAMIC_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <rtld/elf_dyn.h>
 #include <libarch/rtld/dynamic.h>
 

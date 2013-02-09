@@ -36,7 +36,7 @@
 #ifndef PCM_SAMPLE_FORMAT_H_
 #define PCM_SAMPLE_FORMAT_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <time.h>
 
 typedef enum {

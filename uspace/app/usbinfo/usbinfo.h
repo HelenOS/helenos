@@ -78,6 +78,7 @@ typedef void (*dump_descriptor_in_tree_t)(const uint8_t *, size_t, void *);
 void browse_descriptor_tree(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
     dump_descriptor_in_tree_t, size_t, void *);
 
+void list(void);
 
 void dump_short_device_identification(usbinfo_device_t *);
 void dump_device_match_ids(usbinfo_device_t *);

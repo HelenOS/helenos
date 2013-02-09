@@ -35,7 +35,7 @@
  */
 
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include "seq_no.h"
 #include "tcp_type.h"

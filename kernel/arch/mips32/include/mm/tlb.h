@@ -111,11 +111,11 @@ typedef union {
 	struct {
 #ifdef __BE__
 		unsigned p : 1;
-		unsigned : 27;
-		unsigned index : 4;
+		unsigned : 25;
+		unsigned index : 6;
 #else
-		unsigned index : 4;
-		unsigned : 27;
+		unsigned index : 6;
+		unsigned : 25;
 		unsigned p : 1;
 #endif
 	} __attribute__ ((packed));

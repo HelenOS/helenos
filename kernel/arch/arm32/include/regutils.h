@@ -40,17 +40,19 @@
 #define STATUS_REG_IRQ_DISABLED_BIT  (1 << 7)
 #define STATUS_REG_MODE_MASK         0x1f
 
-#define CP15_R1_HIGH_VECTORS_BIT     (1 << 13)
-
 /* ARM Processor Operation Modes */
-#define USER_MODE        0x10
-#define FIQ_MODE         0x11
-#define IRQ_MODE         0x12
-#define SUPERVISOR_MODE  0x13
-#define ABORT_MODE       0x17
-#define UNDEFINED_MODE   0x1b
-#define SYSTEM_MODE      0x1f
-
+enum {
+	USER_MODE = 0x10,
+	FIQ_MODE = 0x11,
+	IRQ_MODE = 0x12,
+	SUPERVISOR_MODE = 0x13,
+	MONITOR_MODE = 0x16,
+	ABORT_MODE = 0x17,
+	HYPERVISOR_MODE = 0x1a,
+	UNDEFINED_MODE = 0x1b,
+	SYSTEM_MODE = 0x1f,
+	MODE_MASK = 0x1f,
+};
 /* [CS]PRS manipulation macros */
 #define GEN_STATUS_READ(nm, reg) \
 	static inline uint32_t nm## _status_reg_read(void) \

@@ -42,8 +42,9 @@
 static inline sb_dsp_t * fun_to_dsp(ddf_fun_t *fun)
 {
 	assert(fun);
-	assert(fun->driver_data);
-	return fun->driver_data;
+	sb_dsp_t *dsp = ddf_fun_data_get(fun);
+	assert(dsp);
+	return dsp;
 }
 
 static int sb_get_info_str(ddf_fun_t *fun, const char** name)

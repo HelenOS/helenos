@@ -1,0 +1,6 @@
+{
+	"logger1",
+	"Logger printing test",
+	&test_logger1,
+	true
+},

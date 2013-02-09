@@ -66,11 +66,11 @@ void tcp_iqueue_insert_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 	tcp_iqueue_entry_t *iqe;
 	tcp_iqueue_entry_t *qe;
 	link_t *link;
-	log_msg(LVL_DEBUG, "tcp_iqueue_insert_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_iqueue_insert_seg()");
 
 	iqe = calloc(1, sizeof(tcp_iqueue_entry_t));
 	if (iqe == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating IQE.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating IQE.");
 		return;
 	}
 
@@ -107,18 +107,18 @@ int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 	tcp_iqueue_entry_t *iqe;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "tcp_get_ready_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_get_ready_seg()");
 
 	link = list_first(&iqueue->list);
 	if (link == NULL) {
-		log_msg(LVL_DEBUG, "iqueue is empty");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "iqueue is empty");
 		return ENOENT;
 	}
 
 	iqe = list_get_instance(link, tcp_iqueue_entry_t, link);
 
 	while (!seq_no_segment_acceptable(iqueue->conn, iqe->seg)) {
-		log_msg(LVL_DEBUG, "Skipping unacceptable segment (RCV.NXT=%"
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Skipping unacceptable segment (RCV.NXT=%"
 		    PRIu32 ", RCV.NXT+RCV.WND=%" PRIu32 ", SEG.SEQ=%" PRIu32
 		    ", SEG.LEN=%" PRIu32 ")", iqueue->conn->rcv_nxt,
 		    iqueue->conn->rcv_nxt + iqueue->conn->rcv_wnd,
@@ -129,7 +129,7 @@ int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 
          	link = list_first(&iqueue->list);
 		if (link == NULL) {
-			log_msg(LVL_DEBUG, "iqueue is empty");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "iqueue is empty");
 			return ENOENT;
 		}
 
@@ -138,13 +138,13 @@ int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 
 	/* Do not return segments that are not ready for processing */
 	if (!seq_no_segment_ready(iqueue->conn, iqe->seg)) {
-		log_msg(LVL_DEBUG, "Next segment not ready: SEG.SEQ=%u, "
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Next segment not ready: SEG.SEQ=%u, "
 		    "RCV.NXT=%u, SEG.LEN=%u", iqe->seg->seq,
 		    iqueue->conn->rcv_nxt, iqe->seg->len);
 		return ENOENT;
 	}
 
-	log_msg(LVL_DEBUG, "Returning ready segment %p", iqe->seg);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Returning ready segment %p", iqe->seg);
 	list_remove(&iqe->link);
 	*seg = iqe->seg;
 

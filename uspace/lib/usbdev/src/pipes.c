@@ -53,7 +53,7 @@ int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
 	assert(pipe->wire->hc_connection);
 	return usb_hc_connection_open(pipe->wire->hc_connection);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Terminate a long transfer on a pipe.
  * @param pipe Pipe where to end the long transfer.
  * @return Error code.
@@ -66,7 +66,7 @@ int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
 	assert(pipe->wire->hc_connection);
 	return usb_hc_connection_close(pipe->wire->hc_connection);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Try to clear endpoint halt of default control pipe.
  *
  * @param pipe Pipe for control endpoint zero.
@@ -84,7 +84,7 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 	usb_request_clear_endpoint_halt(pipe, 0);
 	pipe->auto_reset_halt = true;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Request a control read transfer on an endpoint pipe.
  *
  * This function encapsulates all three stages of a control transfer.
@@ -134,7 +134,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Request a control write transfer on an endpoint pipe.
  *
  * This function encapsulates all three stages of a control transfer.
@@ -181,7 +181,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Request a read (in) transfer on an endpoint pipe.
  *
  * @param[in] pipe Pipe used for the transfer.
@@ -226,7 +226,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Request a write (out) transfer on an endpoint pipe.
  *
  * @param[in] pipe Pipe used for the transfer.
@@ -258,7 +258,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 	return usb_device_write(pipe->wire,
 	    pipe->endpoint_no, buffer, size);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize USB endpoint pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
@@ -286,7 +286,7 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize USB endpoint pipe as the default zero control pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
@@ -306,7 +306,7 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 
 	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Register endpoint with the host controller.
  *
  * @param pipe Pipe to be registered.
@@ -322,7 +322,7 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 	   pipe->endpoint_no, pipe->transfer_type,
 	   pipe->direction, pipe->max_packet_size, interval);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Revert endpoint registration with the host controller.
  *
  * @param pipe Pipe to be unregistered.

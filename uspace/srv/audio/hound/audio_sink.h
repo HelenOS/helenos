@@ -38,7 +38,7 @@
 
 #include <adt/list.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril.h>
 #include <pcm/format.h>
 

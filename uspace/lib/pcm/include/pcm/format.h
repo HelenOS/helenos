@@ -37,7 +37,7 @@
 #define PCM_FORMAT_H_
 
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <pcm/sample_format.h>
 
 typedef struct {

@@ -34,12 +34,12 @@
 
 DIRS = \
 	app/bdsh \
+	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
 	app/drec \
 	app/edit \
-	app/ext2info \
 	app/getterm \
 	app/init \
 	app/inet \
@@ -47,8 +47,8 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/lsusb \
 	app/mixerctl \
+	app/logset \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -60,6 +60,7 @@ DIRS = \
 	app/taskdump \
 	app/tester \
 	app/testread \
+	app/testwrit \
 	app/tetris \
 	app/trace \
 	app/top \
@@ -73,10 +74,15 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	app/wavplay \
+	app/date \
 	app/websrv \
 	srv/audio/hound \
+	app/vdemo \
+	app/vlaunch \
+	app/vterm \
 	srv/clipboard \
 	srv/locsrv \
+	srv/logger \
 	srv/devman \
 	srv/loader \
 	srv/net/ethip \
@@ -95,16 +101,19 @@ DIRS = \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
 	srv/fs/exfat \
+	srv/fs/udf \
 	srv/fs/fat \
 	srv/fs/cdfs \
 	srv/fs/tmpfs \
 	srv/fs/mfs \
 	srv/fs/locfs \
-	srv/fs/ext2fs \
+	srv/fs/ext4fs \
+	srv/hid/compositor \
 	srv/hid/console \
 	srv/hid/s3c24xx_ts \
-	srv/hid/fb \
+	srv/hid/isdv4_tablet \
 	srv/hid/input \
+	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	drv/audio/sb16 \
@@ -117,6 +126,7 @@ DIRS = \
 	drv/test/test1 \
 	drv/test/test2 \
 	drv/test/test3 \
+	drv/fb/kfb \
 	drv/bus/usb/ehci \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
@@ -129,7 +139,7 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139
+	drv/nic/rtl8139 \
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -158,6 +168,7 @@ ifeq ($(UARCH),amd64)
 		drv/bus/pci/pciintel \
 		drv/bus/isa \
 		drv/char/ns8250 \
+		drv/time/cmos-rtc \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
@@ -168,6 +179,7 @@ ifeq ($(UARCH),ia32)
 		drv/bus/pci/pciintel \
 		drv/bus/isa \
 		drv/char/ns8250 \
+		drv/time/cmos-rtc \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259
 endif
@@ -175,12 +187,19 @@ endif
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
+		drv/bus/pci/pciintel \
 		srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
 		srv/hw/irc/obio
+endif
+
+ifeq ($(UARCH),arm32)
+	DIRS += \
+		drv/infrastructure/rootamdm37x \
+		drv/fb/amdm37x_dispc
 endif
 
 ## System libraries
@@ -196,17 +215,21 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/fb \
 	lib/hound \
+	lib/graph \
+	lib/gui \
+	lib/softrend \
+	lib/draw \
 	lib/net \
 	lib/nic \
-	lib/ext2 \
+	lib/ext4 \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
 	lib/usbvirt \
 	lib/pcm \
+	lib/bithenge \
 	lib/posix
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))

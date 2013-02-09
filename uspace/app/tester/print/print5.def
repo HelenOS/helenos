@@ -1,6 +1,6 @@
 {
-	"print1",
-	"String printf test",
-	&test_print1,
+	"print5",
+	"Char printf test",
+	&test_print5,
 	true
 },

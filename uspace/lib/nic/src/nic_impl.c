@@ -53,7 +53,7 @@
  */
 int nic_get_state_impl(ddf_fun_t *fun, nic_device_state_t *state)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	*state = nic_data->state;
 	fibril_rwlock_read_unlock(&nic_data->main_lock);
@@ -77,7 +77,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		return EINVAL;
 	}
 
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 
 	fibril_rwlock_write_lock(&nic_data->main_lock);
 	if (nic_data->state == state) {
@@ -169,7 +169,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
  */
 int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	if (nic_data->state != NIC_STATE_ACTIVE || nic_data->tx_busy) {
@@ -191,7 +191,7 @@ int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
  */
 int nic_callback_create_impl(ddf_fun_t *fun)
 {
-	nic_t *nic = (nic_t *) fun->driver_data;
+	nic_t *nic = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic->main_lock);
 	
 	nic->client_session = async_callback_receive(EXCHANGE_SERIALIZE);
@@ -217,7 +217,7 @@ int nic_callback_create_impl(ddf_fun_t *fun)
 int nic_get_address_impl(ddf_fun_t *fun, nic_address_t *address)
 {
 	assert(address);
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	memcpy(address, &nic_data->mac, sizeof (nic_address_t));
 	fibril_rwlock_read_unlock(&nic_data->main_lock);
@@ -235,7 +235,7 @@ int nic_get_address_impl(ddf_fun_t *fun, nic_address_t *address)
  */
 int nic_get_stats_impl(ddf_fun_t *fun, nic_device_stats_t *stats)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	assert (stats != NULL);
 	fibril_rwlock_read_lock(&nic_data->stats_lock);
 	memcpy(stats, &nic_data->stats, sizeof (nic_device_stats_t));
@@ -258,7 +258,7 @@ int nic_get_stats_impl(ddf_fun_t *fun, nic_device_stats_t *stats)
 int nic_unicast_get_mode_impl(ddf_fun_t *fun, nic_unicast_mode_t *mode,
 	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_unicast_get_mode(&nic_data->rx_control, mode, max_count,
 		addr_list, addr_count);
@@ -290,7 +290,7 @@ int nic_unicast_set_mode_impl(ddf_fun_t *fun,
 			return EINVAL;
 	}
 
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
 	int rc = ENOTSUP;
 	if (nic_data->on_unicast_mode_change) {
@@ -325,7 +325,7 @@ int nic_unicast_set_mode_impl(ddf_fun_t *fun,
 int nic_multicast_get_mode_impl(ddf_fun_t *fun, nic_multicast_mode_t *mode,
 	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_multicast_get_mode(&nic_data->rx_control, mode, max_count,
 		addr_list, addr_count);
@@ -357,7 +357,7 @@ int nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
 			return EINVAL;
 	}
 
-	nic_t *nic_data = (nic_t *) fun->dev->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
 	int rc = ENOTSUP;
 	if (nic_data->on_multicast_mode_change) {
@@ -381,7 +381,7 @@ int nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
  */
 int nic_broadcast_get_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t *mode)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_broadcast_get_mode(&nic_data->rx_control, mode);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
@@ -401,7 +401,7 @@ int nic_broadcast_get_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t *mode)
  */
 int nic_broadcast_set_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t mode)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
 	int rc = ENOTSUP;
 	if (nic_data->on_broadcast_mode_change) {
@@ -428,7 +428,7 @@ int nic_broadcast_set_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t mode)
 int nic_blocked_sources_get_impl(ddf_fun_t *fun,
 	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_blocked_sources_get(&nic_data->rx_control,
 		max_count, addr_list, addr_count);
@@ -451,7 +451,7 @@ int nic_blocked_sources_get_impl(ddf_fun_t *fun,
 int nic_blocked_sources_set_impl(ddf_fun_t *fun,
 	const nic_address_t *addr_list, size_t addr_count)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
 	if (nic_data->on_blocked_sources_change) {
 		nic_data->on_blocked_sources_change(nic_data, addr_list, addr_count);
@@ -473,7 +473,7 @@ int nic_blocked_sources_set_impl(ddf_fun_t *fun,
  */
 int nic_vlan_get_mask_impl(ddf_fun_t *fun, nic_vlan_mask_t *mask)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	int rc = nic_rxc_vlan_get_mask(&nic_data->rx_control, mask);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
@@ -491,7 +491,7 @@ int nic_vlan_get_mask_impl(ddf_fun_t *fun, nic_vlan_mask_t *mask)
  */
 int nic_vlan_set_mask_impl(ddf_fun_t *fun, const nic_vlan_mask_t *mask)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
 	int rc = nic_rxc_vlan_set_mask(&nic_data->rx_control, mask);
 	if (rc == EOK && nic_data->on_vlan_mask_change) {
@@ -519,7 +519,7 @@ int nic_vlan_set_mask_impl(ddf_fun_t *fun, const nic_vlan_mask_t *mask)
 int nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 	const void *data, size_t length, nic_wv_id_t *new_id)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	if (nic_data->on_wol_virtue_add == NULL
 		|| nic_data->on_wol_virtue_remove == NULL) {
 		return ENOTSUP;
@@ -593,7 +593,7 @@ int nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
  */
 int nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	if (nic_data->on_wol_virtue_add == NULL
 		|| nic_data->on_wol_virtue_remove == NULL) {
 		return ENOTSUP;
@@ -630,7 +630,7 @@ int nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
 int nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
 	nic_wv_type_t *type, size_t max_length, void *data, size_t *length)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
 	const nic_wol_virtue_t *virtue =
 			nic_wol_virtues_find(&nic_data->wol_virtues, id);
@@ -668,7 +668,7 @@ int nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
 int nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
 	size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
 	int rc = nic_wol_virtues_list(&nic_data->wol_virtues, type,
 		max_count, id_list, id_count);
@@ -688,7 +688,7 @@ int nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
   */
 int nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *count)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
 	*count = nic_data->wol_virtues.caps_max[type]
 	    - (int) nic_data->wol_virtues.lists_sizes[type];
@@ -711,7 +711,7 @@ int nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *count)
 int nic_poll_get_mode_impl(ddf_fun_t *fun,
 	nic_poll_mode_t *mode, struct timeval *period)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	*mode = nic_data->poll_mode;
 	memcpy(period, &nic_data->poll_period, sizeof (struct timeval));
@@ -734,7 +734,7 @@ int nic_poll_get_mode_impl(ddf_fun_t *fun,
 int nic_poll_set_mode_impl(ddf_fun_t *fun,
 	nic_poll_mode_t mode, const struct timeval *period)
 {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	/* If the driver does not implement the poll mode change handler it cannot
 	 * switch off interrupts and this is not supported. */
 	if (nic_data->on_poll_mode_change == NULL)
@@ -782,7 +782,7 @@ int nic_poll_set_mode_impl(ddf_fun_t *fun,
  * @return EINVAL	If the NIC is not in state where it allows on demand polling
  */
 int nic_poll_now_impl(ddf_fun_t *fun) {
-	nic_t *nic_data = (nic_t *) fun->driver_data;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	if (nic_data->poll_mode != NIC_POLL_ON_DEMAND) {
 		fibril_rwlock_read_unlock(&nic_data->main_lock);

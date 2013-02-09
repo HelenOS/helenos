@@ -10,6 +10,7 @@ SECTIONS {
 	}
 	. = BOOT_BASE + 0x8000;
 	.data : {
+		bdata_start = .;
 		*(BOOTPT);      /* bootstrap page table */
 		*(BOOTSTACK);   /* bootstrap stack */
 		*(.data);       /* initialized data */
@@ -23,7 +24,8 @@ SECTIONS {
 		*(COMMON);      /* global variables */
 [[COMPONENTS]]
 	}
-	
+	bdata_end = .;
+
 	/DISCARD/ : {
 		*(.gnu.*);
 		*(.ARM.*);

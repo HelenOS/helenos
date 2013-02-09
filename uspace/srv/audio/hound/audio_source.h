@@ -37,7 +37,6 @@
 #define AUDIO_SOURCE_H_
 
 #include <adt/list.h>
-#include <bool.h>
 #include <pcm/format.h>
 
 struct audio_sink;

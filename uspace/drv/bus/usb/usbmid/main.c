@@ -50,7 +50,7 @@
  */
 static int usbmid_device_add(usb_device_t *dev)
 {
-	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
+	usb_log_info("Taking care of new MID `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 
 	const bool accept = usbmid_explore_device(dev);
 
@@ -60,7 +60,7 @@ static int usbmid_device_add(usb_device_t *dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a MID device is about to be removed from the host.
  *
  * @param dev USB device representing the removed device.
@@ -114,7 +114,7 @@ static int usbmid_device_remove(usb_device_t *dev)
 	}
 	return ret;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback when a MID device was removed from the host.
  *
  * @param dev USB device representing the removed device.
@@ -126,7 +126,7 @@ static int usbmid_device_gone(usb_device_t *dev)
 	usb_mid_t *usb_mid = dev->driver_data;
 	assert(usb_mid);
 
-	usb_log_info("USB MID gone: `%s'.\n", dev->ddf_dev->name);
+	usb_log_info("USB MID gone: `%s'.\n", ddf_dev_get_name(dev->ddf_dev));
 
 	/* Remove ctl function */
 	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": USB multi interface device driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return usb_driver_main(&mid_driver);
 }

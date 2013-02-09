@@ -135,6 +135,51 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 	return ch;
 }
 
+/** Decode a single character from a string to the left.
+ *
+ * Decode a single character from a string of size @a size. Decoding starts
+ * at @a offset and this offset is moved to the beginning of the previous
+ * character. In case of decoding error, offset generally decreases at least
+ * by one. However, offset is never moved before 0.
+ *
+ * @param str    String (not necessarily NULL-terminated).
+ * @param offset Byte offset in string where to start decoding.
+ * @param size   Size of the string (in bytes).
+ *
+ * @return Value of decoded character, U_SPECIAL on decoding error or
+ *         NULL if attempt to decode beyond @a start of str.
+ *
+ */
+wchar_t str_decode_reverse(const char *str, size_t *offset, size_t size)
+{
+	if (*offset == 0)
+		return 0;
+	
+	size_t processed = 0;
+	/* Continue while continuation bytes found */
+	while (*offset > 0 && processed < 4) {
+		uint8_t b = (uint8_t) str[--(*offset)];
+		
+		if (processed == 0 && (b & 0x80) == 0) {
+			/* 0xxxxxxx (Plain ASCII) */
+			return b & 0x7f;
+		}
+		else if ((b & 0xe0) == 0xc0 || (b & 0xf0) == 0xe0 ||
+		    (b & 0xf8) == 0xf0) {
+			/* Start byte */
+			size_t start_offset = *offset;
+			return str_decode(str, &start_offset, size);
+		}
+		else if ((b & 0xc0) != 0x80) {
+			/* Not a continuation byte */
+			return U_SPECIAL;
+		}
+		processed++;
+	}
+	/* Too many continuation bytes */
+	return U_SPECIAL;
+}
+
 /** Encode a single character to string representation.
  *
  * Encode a single character to string representation (i.e. UTF-8) and store
@@ -398,6 +443,33 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
 	return len;
 }
 
+/** Get character display width on a character cell display.
+ *
+ * @param ch	Character
+ * @return	Width of character in cells.
+ */
+size_t chr_width(wchar_t ch)
+{
+	return 1;
+}
+
+/** Get string display width on a character cell display.
+ *
+ * @param str	String
+ * @return	Width of string in cells.
+ */
+size_t str_width(const char *str)
+{
+	size_t width = 0;
+	size_t offset = 0;
+	wchar_t ch;
+	
+	while ((ch = str_decode(str, &offset, STR_NO_LIMIT)) != 0)
+		width += chr_width(ch);
+	
+	return width;
+}
+
 /** Check whether character is plain ASCII.
  *
  * @return True if character is plain ASCII.
@@ -427,14 +499,19 @@ bool chr_check(wchar_t ch)
 /** Compare two NULL terminated strings.
  *
  * Do a char-by-char comparison of two NULL-terminated strings.
- * The strings are considered equal iff they consist of the same
- * characters on the minimum of their lengths.
+ * The strings are considered equal iff their length is equal
+ * and both strings consist of the same sequence of characters.
+ *
+ * A string S1 is less than another string S2 if it has a character with
+ * lower value at the first character position where the strings differ.
+ * If the strings differ in length, the shorter one is treated as if
+ * padded by characters with a value of zero.
  *
  * @param s1 First string to compare.
  * @param s2 Second string to compare.
  *
- * @return 0 if the strings are equal, -1 if first is smaller,
- *         1 if second smaller.
+ * @return 0 if the strings are equal, -1 if the first is less than the second,
+ *         1 if the second is less than the first.
  *
  */
 int str_cmp(const char *s1, const char *s2)
@@ -465,15 +542,23 @@ int str_cmp(const char *s1, const char *s2)
 /** Compare two NULL terminated strings with length limit.
  *
  * Do a char-by-char comparison of two NULL-terminated strings.
- * The strings are considered equal iff they consist of the same
- * characters on the minimum of their lengths and the length limit.
+ * The strings are considered equal iff
+ * min(str_length(s1), max_len) == min(str_length(s2), max_len)
+ * and both strings consist of the same sequence of characters,
+ * up to max_len characters.
+ *
+ * A string S1 is less than another string S2 if it has a character with
+ * lower value at the first character position where the strings differ.
+ * If the strings differ in length, the shorter one is treated as if
+ * padded by characters with a value of zero. Only the first max_len
+ * characters are considered.
  *
  * @param s1      First string to compare.
  * @param s2      Second string to compare.
  * @param max_len Maximum number of characters to consider.
  *
- * @return 0 if the strings are equal, -1 if first is smaller,
- *         1 if second smaller.
+ * @return 0 if the strings are equal, -1 if the first is less than the second,
+ *         1 if the second is less than the first.
  *
  */
 int str_lcmp(const char *s1, const char *s2, size_t max_len)
@@ -507,6 +592,42 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 
 	return 0;
 
+}
+
+/** Test whether p is a prefix of s.
+ *
+ * Do a char-by-char comparison of two NULL-terminated strings
+ * and determine if p is a prefix of s.
+ *
+ * @param s The string in which to look
+ * @param p The string to check if it is a prefix of s
+ *
+ * @return true iff p is prefix of s else false
+ *
+ */
+bool str_test_prefix(const char *s, const char *p)
+{
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
+	
+	size_t off1 = 0;
+	size_t off2 = 0;
+
+	while (true) {
+		c1 = str_decode(s, &off1, STR_NO_LIMIT);
+		c2 = str_decode(p, &off2, STR_NO_LIMIT);
+		
+		if (c2 == 0)
+			return true;
+
+		if (c1 != c2)
+			return false;
+		
+		if (c1 == 0)
+			break;
+	}
+
+	return false;
 }
 
 /** Copy string.
@@ -1084,7 +1205,7 @@ _strtoul(const char *nptr, char **endptr, int base, char *sgn)
 		c = *str;
 		c = (c >= 'a' ? c - 'a' + 10 : (c >= 'A' ? c - 'A' + 10 :
 		    (c <= '9' ? c - '0' : 0xff)));
-		if (c > base) {
+		if (c >= base) {
 			break;
 		}
 		

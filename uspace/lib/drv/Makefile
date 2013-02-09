@@ -41,11 +41,14 @@ SOURCES = \
 	generic/remote_audio_pcm.c \
 	generic/remote_hw_res.c \
 	generic/remote_char_dev.c \
+	generic/remote_graph_dev.c \
 	generic/remote_nic.c \
 	generic/remote_usb.c \
 	generic/remote_pci.c \
 	generic/remote_usbhc.c \
 	generic/remote_usbhid.c \
+	generic/remote_clock_dev.c \
+	generic/remote_battery_dev.c \
 	generic/remote_ahci.c
 
 include $(USPACE_PREFIX)/Makefile.common

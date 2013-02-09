@@ -64,6 +64,7 @@ typedef enum {
 typedef struct {
 	mutex_t lock;
 	link_t link;
+	struct task *caller;
 	struct answerbox *callee;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
@@ -71,13 +72,13 @@ typedef struct {
 
 typedef struct answerbox {
 	IRQ_SPINLOCK_DECLARE(lock);
+
+	/** Answerbox is active until it enters cleanup. */
+	bool active;
 	
 	struct task *task;
 	
 	waitq_t wq;
-	
-	/** Linkage for the list of task's synchronous answerboxes. */
-	link_t sync_box_link;
 	
 	/** Phones connected to this answerbox. */
 	list_t connected_phones;
@@ -108,34 +109,57 @@ typedef struct {
 } ipc_data_t;
 
 typedef struct {
-	link_t link;
+	/**
+	 * Task link.
+	 * Valid only when the call is not forgotten.
+	 * Protected by the task's active_calls_lock.
+	 */
+	link_t ta_link;
+
+	atomic_t refcnt;
+
+	/** Answerbox link. */
+	link_t ab_link;
 	
 	unsigned int flags;
+
+	/** Protects the forget member. */
+	SPINLOCK_DECLARE(forget_lock);
+
+	/**
+	 * True if the caller 'forgot' this call and donated it to the callee.
+	 * Forgotten calls are discarded upon answering (the answer is not
+	 * delivered) and answered calls cannot be forgotten. Forgotten calls
+	 * also do not figure on the task's active call list.
+	 *
+	 * We keep this separate from the flags so that it is not necessary
+	 * to take a lock when accessing them.
+	 */
+	bool forget;
+
+	/** True if the call is in the active list. */
+	bool active;
 	
-	/** Identification of the caller. */
+	/**
+	 * Identification of the caller.
+	 * Valid only when the call is not forgotten.
+	 */
 	struct task *sender;
 	
-	/*
-	 * The caller box is different from sender->answerbox
-	 * for synchronous calls.
-	 */
-	answerbox_t *callerbox;
+	/** Phone which was used to send the call. */
+	phone_t *caller_phone;
 	
 	/** Private data to internal IPC. */
 	sysarg_t priv;
 	
 	/** Data passed from/to userspace. */
 	ipc_data_t data;
-	
+
+	/** Method as it was sent in the request. */
+	sysarg_t request_method;
+
 	/** Buffer for IPC_M_DATA_WRITE and IPC_M_DATA_READ. */
 	uint8_t *buffer;
-	
-	/*
-	 * The forward operation can masquerade the caller phone. For those
-	 * cases, we must keep it aside so that the answer is processed
-	 * correctly.
-	 */
-	phone_t *caller_phone;
 } call_t;
 
 extern answerbox_t *ipc_phone_0;
@@ -144,15 +168,17 @@ extern void ipc_init(void);
 
 extern call_t *ipc_call_alloc(unsigned int);
 extern void ipc_call_free(call_t *);
+extern void ipc_call_hold(call_t *);
+extern void ipc_call_release(call_t *);
 
 extern int ipc_call(phone_t *, call_t *);
-extern int ipc_call_sync(phone_t *, call_t *);
 extern call_t *ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int);
 extern int ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);
 extern void ipc_answer(answerbox_t *, call_t *);
+extern void _ipc_answer_free_call(call_t *, bool);
 
-extern void ipc_phone_init(phone_t *);
-extern void ipc_phone_connect(phone_t *, answerbox_t *);
+extern void ipc_phone_init(phone_t *, struct task *);
+extern bool ipc_phone_connect(phone_t *, answerbox_t *);
 extern int ipc_phone_hangup(phone_t *);
 
 extern void ipc_answerbox_init(answerbox_t *, struct task *);
@@ -160,7 +186,7 @@ extern void ipc_answerbox_init(answerbox_t *, struct task *);
 extern void ipc_cleanup(void);
 extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
-extern void ipc_cleanup_call_list(list_t *);
+extern void ipc_cleanup_call_list(answerbox_t *, list_t *);
 
 extern void ipc_print_task(task_id_t);
 

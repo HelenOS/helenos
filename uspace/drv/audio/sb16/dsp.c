@@ -33,7 +33,7 @@
  */
 
 #include <as.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <ddi.h>
 #include <devman.h>
 #include <device/hw_res.h>
@@ -158,7 +158,7 @@ static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
 static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
 	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
-	    dsp->sb_dev->handle, IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
 
 	const int ret = hw_res_dma_channel_setup(sess,
 	    dsp->dma16_channel, pa, size,
@@ -181,7 +181,7 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 		return ENOMEM;
 	}
 
-	ddf_log_verbose("Setup dma buffer at %p(%p).", buffer, pa, size);
+	ddf_log_verbose("Setup dma buffer at %p(%p) %zu.", buffer, pa, size);
 	assert((uintptr_t)pa < (1 << 25));
 
 	/* Setup 16 bit channel */
@@ -300,7 +300,7 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 
 	assert(dsp->buffer.data);
 	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
-	    dsp->sb_dev->handle, IPC_FLAG_BLOCKING);
+	    ddf_dev_get_handle(dsp->sb_dev), IPC_FLAG_BLOCKING);
 
 	// TODO: Assumes DMA 16
 	const int remain = hw_res_dma_channel_remain(sess, dsp->dma16_channel);

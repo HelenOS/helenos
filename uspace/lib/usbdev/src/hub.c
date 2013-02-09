@@ -62,7 +62,7 @@ int usb_hub_register_device(usb_hc_connection_t *connection,
 	if (attached_device == NULL || attached_device->fun == NULL)
 		return EBADMEM;
 	return usb_hc_bind_address(connection,
-	    attached_device->address, attached_device->fun->handle);
+	    attached_device->address, ddf_fun_get_handle(attached_device->fun));
 }
 
 /** Change address of connected device.
@@ -286,9 +286,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	/* Inform the host controller about the handle. */
 	rc = usb_hub_register_device(hc_conn, &new_device);
 	if (rc != EOK) {
-		/* We know nothing about that data. */
-		if (new_dev_data)
-			child_fun->driver_data = NULL;
 		/* The child function is already created. */
 		ddf_fun_destroy(child_fun);
 		rc = EDESTADDRREQ;

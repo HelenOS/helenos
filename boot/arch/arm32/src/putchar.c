@@ -40,6 +40,28 @@
 #include <putchar.h>
 #include <str.h>
 
+#ifdef MACHINE_beagleboardxm
+
+/** Send a byte to the amdm37x serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb_bbxm(uint8_t byte)
+{
+	volatile uint32_t *thr =
+	    (volatile uint32_t *)BBXM_SCONS_THR;
+	volatile uint32_t *ssr =
+	    (volatile uint32_t *)BBXM_SCONS_SSR;
+
+	/* Wait until transmitter is empty. */
+	while ((*ssr & BBXM_THR_FULL) == 1) ;
+
+	/* Transmit byte. */
+	*thr = (uint32_t) byte;
+}
+
+#endif
+
 #ifdef MACHINE_gta02
 
 /** Send a byte to the gta02 serial console.
@@ -64,19 +86,6 @@ static void scons_sendb_gta02(uint8_t byte)
 
 #endif
 
-#ifdef MACHINE_testarm
-
-/** Send a byte to the GXemul testarm serial console.
- *
- * @param byte		Byte to send.
- */
-static void scons_sendb_testarm(uint8_t byte)
-{
-	*((volatile uint8_t *) TESTARM_SCONS_ADDR) = byte;
-}
-
-#endif
-
 #ifdef MACHINE_integratorcp
 
 /** Send a byte to the IntegratorCP serial console.
@@ -96,11 +105,11 @@ static void scons_sendb_icp(uint8_t byte)
  */
 static void scons_sendb(uint8_t byte)
 {
+#ifdef MACHINE_beagleboardxm
+	scons_sendb_bbxm(byte);
+#endif
 #ifdef MACHINE_gta02
 	scons_sendb_gta02(byte);
-#endif
-#ifdef MACHINE_testarm
-	scons_sendb_testarm(byte);
 #endif
 #ifdef MACHINE_integratorcp
 	scons_sendb_icp(byte);

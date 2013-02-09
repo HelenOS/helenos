@@ -68,6 +68,7 @@
 #include <debug.h>
 #include <str.h>
 #include <sysinfo/stats.h>
+#include <sysinfo/sysinfo.h>
 #include <align.h>
 
 #ifdef CONFIG_SMP
@@ -170,6 +171,12 @@ void kinit(void *arg)
 	}
 #endif /* CONFIG_KCONSOLE */
 	
+	/*
+	 * Store the default stack size in sysinfo so that uspace can create
+	 * stack with this default size.
+	 */
+	sysinfo_set_item_val("default.stack_size", NULL, STACK_SIZE_USER);
+	
 	interrupts_enable();
 	
 	/*
@@ -178,6 +185,28 @@ void kinit(void *arg)
 	size_t i;
 	program_t programs[CONFIG_INIT_TASKS];
 	
+	// FIXME: do not propagate arguments through sysinfo
+	// but pass them directly to the tasks
+	for (i = 0; i < init.cnt; i++) {
+		const char *arguments = init.tasks[i].arguments;
+		if (str_length(arguments) == 0)
+			continue;
+		if (str_length(init.tasks[i].name) == 0)
+			continue;
+		size_t arguments_size = str_size(arguments);
+
+		void *arguments_copy = malloc(arguments_size, 0);
+		if (arguments_copy == NULL)
+			continue;
+		memcpy(arguments_copy, arguments, arguments_size);
+
+		char item_name[CONFIG_TASK_NAME_BUFLEN + 15];
+		snprintf(item_name, CONFIG_TASK_NAME_BUFLEN + 15,
+		    "init_args.%s", init.tasks[i].name);
+
+		sysinfo_set_item_data(item_name, NULL, arguments_copy, arguments_size);
+	}
+
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].paddr % FRAME_SIZE) {
 			printf("init[%zu]: Address is not frame aligned\n", i);

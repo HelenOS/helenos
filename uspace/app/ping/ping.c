@@ -33,7 +33,7 @@
  */
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/inetping.h>

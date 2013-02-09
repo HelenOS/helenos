@@ -70,6 +70,35 @@ void multiboot_extract_command(char *buf, size_t size, const char *cmd_line)
 	str_ncpy(buf, size, start, (size_t) (end - start));
 }
 
+/** Extract arguments from the multiboot module command line.
+ *
+ * @param buf      Destination buffer (will be always NULL-terminated).
+ * @param size     Size of destination buffer (in bytes).
+ * @param cmd_line Input string (the command line).
+ *
+ */
+void multiboot_extract_argument(char *buf, size_t size, const char *cmd_line)
+{
+	/* Start after first space. */
+	const char *start = str_chr(cmd_line, ' ');
+	if (start == NULL) {
+		str_cpy(buf, size, "");
+		return;
+	}
+
+	const char *end = cmd_line + str_size(cmd_line);
+
+	/* Skip the space(s). */
+	while (start != end) {
+		if (start[0] == ' ')
+			start++;
+		else
+			break;
+	}
+
+	str_ncpy(buf, size, start, (size_t) (end - start));
+}
+
 static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 {
 	for (uint32_t i = 0; i < count; i++) {
@@ -83,8 +112,12 @@ static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 		if (mods[i].string) {
 			multiboot_extract_command(init.tasks[init.cnt].name,
 			    CONFIG_TASK_NAME_BUFLEN, MULTIBOOT_PTR(mods[i].string));
-		} else
+			multiboot_extract_argument(init.tasks[init.cnt].arguments,
+			    CONFIG_TASK_ARGUMENTS_BUFLEN, MULTIBOOT_PTR(mods[i].string));
+		} else {
 			init.tasks[init.cnt].name[0] = 0;
+			init.tasks[init.cnt].arguments[0] = 0;
+		}
 		
 		init.cnt++;
 	}

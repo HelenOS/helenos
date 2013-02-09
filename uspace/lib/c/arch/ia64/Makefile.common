@@ -26,7 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -fno-unwind-tables
+#
+# FIXME:
+#
+# The -fno-selective-scheduling and -fno-selective-scheduling2 options
+# should be removed as soon as a bug in GCC concerning unchecked
+# speculative loads is fixed.
+#
+# See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53975 for reference.
+#
+
+GCC_CFLAGS += -fno-unwind-tables -fno-selective-scheduling -fno-selective-scheduling2
 
 ENDIANESS = LE
 

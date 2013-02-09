@@ -37,7 +37,6 @@
 #define AUDIO_DEVICE_H_
 
 #include <adt/list.h>
-#include <bool.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <errno.h>

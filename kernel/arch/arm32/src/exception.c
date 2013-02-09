@@ -38,6 +38,7 @@
 #include <arch/machine_func.h>
 #include <interrupt.h>
 #include <arch/mm/page_fault.h>
+#include <arch/cp15.h>
 #include <arch/barrier.h>
 #include <print.h>
 #include <syscall/syscall.h>
@@ -72,7 +73,7 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 	
 	/* make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
-	smc_coherence(*vector);
+	smc_coherence(vector);
 	
 	/* store handler's address */
 	*(vector + EXC_VECTORS) = handler_addr;
@@ -116,23 +117,31 @@ void install_exception_handlers(void)
 }
 
 #ifdef HIGH_EXCEPTION_VECTORS
-/** Activates use of high exception vectors addresses. */
+/** Activates use of high exception vectors addresses.
+ *
+ * "High vectors were introduced into some implementations of ARMv4 and are
+ * required in ARMv6 implementations. High vectors allow the exception vector
+ * locations to be moved from their normal address range 0x00000000-0x0000001C
+ * at the bottom of the 32-bit address space, to an alternative address range
+ * 0xFFFF0000-0xFFFF001C near the top of the address space. These alternative
+ * locations are known as the high vectors.
+ *
+ * Prior to ARMv6, it is IMPLEMENTATION DEFINED whether the high vectors are
+ * supported. When they are, a hardware configuration input selects whether
+ * the normal vectors or the high vectors are to be used from
+ * reset." ARM Architecture Reference Manual A2.6.11 (p. 64 in the PDF).
+ *
+ * ARM920T (gta02) TRM A2.3.5 (PDF p. 36) and ARM926EJ-S (icp) 2.3.2 (PDF p. 42)
+ * say that armv4 an armv5 chips that we support implement this.
+ */
 static void high_vectors(void)
 {
-	uint32_t control_reg;
-	
-	asm volatile (
-		"mrc p15, 0, %[control_reg], c1, c1"
-		: [control_reg] "=r" (control_reg)
-	);
+	uint32_t control_reg = SCTLR_read();
 	
 	/* switch on the high vectors bit */
-	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
+	control_reg |= SCTLR_HIGH_VECTORS_EN_FLAG;
 	
-	asm volatile (
-		"mcr p15, 0, %[control_reg], c1, c1"
-		:: [control_reg] "r" (control_reg)
-	);
+	SCTLR_write(control_reg);
 }
 #endif
 
@@ -145,6 +154,27 @@ static void irq_exception(unsigned int exc_no, istate_t *istate)
 	machine_irq_exception(exc_no, istate);
 }
 
+/** Undefined instruction exception handler.
+ *
+ * Calls scheduler_fpu_lazy_request
+ */
+static void undef_insn_exception(unsigned int exc_no, istate_t *istate)
+{
+#ifdef CONFIG_FPU
+	if (handle_if_fpu_exception()) {
+		/*
+		 * Retry the failing instruction,
+		 * ARM Architecture Reference Manual says on p.B1-1169
+		 * that offset for undef instruction exception is 4
+		 */
+		istate->pc -= 4;
+		return;
+	}
+#endif
+	fault_if_from_uspace(istate, "Undefined instruction.");
+	panic_badtrap(istate, exc_no, "Undefined instruction.");
+}
+
 /** Initializes exception handling.
  *
  * Installs low-level exception handlers and then registers
@@ -152,11 +182,14 @@ static void irq_exception(unsigned int exc_no, istate_t *istate)
  */
 void exception_init(void)
 {
+	// TODO check for availability of high vectors for <= armv5
 #ifdef HIGH_EXCEPTION_VECTORS
 	high_vectors();
 #endif
 	install_exception_handlers();
 	
+	exc_register(EXC_UNDEF_INSTR, "undefined instruction", true,
+	    (iroutine_t) undef_insn_exception);
 	exc_register(EXC_IRQ, "interrupt", true,
 	    (iroutine_t) irq_exception);
 	exc_register(EXC_PREFETCH_ABORT, "prefetch abort", true,

@@ -78,25 +78,17 @@ void tlb_arch_init(void)
  * @param badvaddr Faulting virtual address.
  * @param access   Access mode that caused the fault.
  * @param istate   Pointer to interrupted state.
- * @param pfrc     Pointer to variable where as_page_fault()
- *                 return code will be stored.
  *
  * @return PTE on success, NULL otherwise.
  *
  */
 static pte_t *find_mapping_and_check(uintptr_t badvaddr, int access,
-    istate_t *istate, int *pfrc)
+    istate_t *istate)
 {
 	entry_hi_t hi;
 	hi.value = cp0_entry_hi_read();
 	
-	/*
-	 * Handler cannot succeed if the ASIDs don't match.
-	 */
-	if (hi.asid != AS->asid) {
-		printf("EntryHi.asid=%d, AS->asid=%d\n", hi.asid, AS->asid);
-		return NULL;
-	}
+	ASSERT(hi.asid == AS->asid);
 	
 	/*
 	 * Check if the mapping exists in page tables.
@@ -108,34 +100,25 @@ static pte_t *find_mapping_and_check(uintptr_t badvaddr, int access,
 		 * Immediately succeed.
 		 */
 		return pte;
-	} else {
-		int rc;
-		
-		/*
-		 * Mapping not found in page tables.
-		 * Resort to higher-level page fault handler.
-		 */
-		switch (rc = as_page_fault(badvaddr, access, istate)) {
-		case AS_PF_OK:
-			/*
-			 * The higher-level page fault handler succeeded,
-			 * The mapping ought to be in place.
-			 */
-			pte = page_mapping_find(AS, badvaddr, true);
-			ASSERT(pte);
-			ASSERT(pte->p);
-			ASSERT((pte->w) || (access != PF_ACCESS_WRITE));
-			return pte;
-		case AS_PF_DEFER:
-			*pfrc = AS_PF_DEFER;
-			return NULL;
-		case AS_PF_FAULT:
-			*pfrc = AS_PF_FAULT;
-			return NULL;
-		default:
-			panic("Unexpected return code (%d).", rc);
-		}
 	}
+
+	/*
+	 * Mapping not found in page tables.
+	 * Resort to higher-level page fault handler.
+	 */
+	if (as_page_fault(badvaddr, access, istate) == AS_PF_OK) {
+		/*
+		 * The higher-level page fault handler succeeded,
+		 * The mapping ought to be in place.
+		 */
+		pte = page_mapping_find(AS, badvaddr, true);
+		ASSERT(pte);
+		ASSERT(pte->p);
+		ASSERT((pte->w) || (access != PF_ACCESS_WRITE));
+		return pte;
+	}
+
+	return NULL;
 }
 
 void tlb_prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d,
@@ -155,33 +138,6 @@ void tlb_prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr)
 	hi->asid = asid;
 }
 
-static void tlb_refill_fail(istate_t *istate)
-{
-	uintptr_t va = cp0_badvaddr_read();
-	
-	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
-	    (void *) va);
-	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, "TLB Refill Exception.");
-}
-
-static void tlb_invalid_fail(istate_t *istate)
-{
-	uintptr_t va = cp0_badvaddr_read();
-	
-	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
-	    (void *) va);
-	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, "TLB Invalid Exception.");
-}
-
-static void tlb_modified_fail(istate_t *istate)
-{
-	uintptr_t va = cp0_badvaddr_read();
-	
-	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
-	    (void *) va);
-	panic_memtrap(istate, PF_ACCESS_WRITE, va, "TLB Modified Exception.");
-}
-
 /** Process TLB Refill Exception.
  *
  * @param istate Interrupted register context.
@@ -195,57 +151,36 @@ void tlb_refill(istate_t *istate)
 	asid_t asid = AS->asid;
 	mutex_unlock(&AS->lock);
 	
-	int pfrc;
-	pte_t *pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ,
-	    istate, &pfrc);
-	if (!pte) {
-		switch (pfrc) {
-		case AS_PF_FAULT:
-			goto fail;
-			break;
-		case AS_PF_DEFER:
-			/*
-			 * The page fault came during copy_from_uspace()
-			 * or copy_to_uspace().
-			 */
-			return;
-		default:
-			panic("Unexpected pfrc (%d).", pfrc);
+	pte_t *pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate);
+	if (pte) {
+		/*
+		 * Record access to PTE.
+		 */
+		pte->a = 1;
+	
+		entry_lo_t lo;
+		entry_hi_t hi;
+	
+		tlb_prepare_entry_hi(&hi, asid, badvaddr);
+		tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->c,
+		    pte->frame);
+	
+		/*
+		 * New entry is to be inserted into TLB
+		 */
+		cp0_entry_hi_write(hi.value);
+	
+		if ((badvaddr / PAGE_SIZE) % 2 == 0) {
+			cp0_entry_lo0_write(lo.value);
+			cp0_entry_lo1_write(0);
+		} else {
+			cp0_entry_lo0_write(0);
+			cp0_entry_lo1_write(lo.value);
 		}
+	
+		cp0_pagemask_write(TLB_PAGE_MASK_16K);
+		tlbwr();
 	}
-	
-	/*
-	 * Record access to PTE.
-	 */
-	pte->a = 1;
-	
-	entry_lo_t lo;
-	entry_hi_t hi;
-	
-	tlb_prepare_entry_hi(&hi, asid, badvaddr);
-	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->c,
-	    pte->frame);
-	
-	/*
-	 * New entry is to be inserted into TLB
-	 */
-	cp0_entry_hi_write(hi.value);
-	
-	if ((badvaddr / PAGE_SIZE) % 2 == 0) {
-		cp0_entry_lo0_write(lo.value);
-		cp0_entry_lo1_write(0);
-	} else {
-		cp0_entry_lo0_write(0);
-		cp0_entry_lo1_write(lo.value);
-	}
-	
-	cp0_pagemask_write(TLB_PAGE_MASK_16K);
-	tlbwr();
-	
-	return;
-	
-fail:
-	tlb_refill_fail(istate);
 }
 
 /** Process TLB Invalid Exception.
@@ -270,62 +205,36 @@ void tlb_invalid(istate_t *istate)
 	tlb_index_t index;
 	index.value = cp0_index_read();
 	
-	/*
-	 * Fail if the entry is not in TLB.
-	 */
-	if (index.p) {
-		printf("TLB entry not found.\n");
-		goto fail;
+	ASSERT(!index.p);
+	
+	pte_t *pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate);
+	if (pte) {
+		/*
+		 * Read the faulting TLB entry.
+		 */
+		tlbr();
+	
+		/*
+		 * Record access to PTE.
+		 */
+		pte->a = 1;
+
+		entry_lo_t lo;
+		tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->c,
+		    pte->frame);
+	
+		/*
+		 * The entry is to be updated in TLB.
+		 */
+		if ((badvaddr / PAGE_SIZE) % 2 == 0)
+			cp0_entry_lo0_write(lo.value);
+		else
+			cp0_entry_lo1_write(lo.value);
+	
+		cp0_pagemask_write(TLB_PAGE_MASK_16K);
+		tlbwi();
 	}
 	
-	int pfrc;
-	pte_t *pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ,
-	    istate, &pfrc);
-	if (!pte) {
-		switch (pfrc) {
-		case AS_PF_FAULT:
-			goto fail;
-			break;
-		case AS_PF_DEFER:
-			/*
-			 * The page fault came during copy_from_uspace()
-			 * or copy_to_uspace().
-			 */
-			return;
-		default:
-			panic("Unexpected pfrc (%d).", pfrc);
-		}
-	}
-	
-	/*
-	 * Read the faulting TLB entry.
-	 */
-	tlbr();
-	
-	/*
-	 * Record access to PTE.
-	 */
-	pte->a = 1;
-	
-	entry_lo_t lo;
-	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->c,
-	    pte->frame);
-	
-	/*
-	 * The entry is to be updated in TLB.
-	 */
-	if ((badvaddr / PAGE_SIZE) % 2 == 0)
-		cp0_entry_lo0_write(lo.value);
-	else
-		cp0_entry_lo1_write(lo.value);
-	
-	cp0_pagemask_write(TLB_PAGE_MASK_16K);
-	tlbwi();
-	
-	return;
-	
-fail:
-	tlb_invalid_fail(istate);
 }
 
 /** Process TLB Modified Exception.
@@ -350,63 +259,36 @@ void tlb_modified(istate_t *istate)
 	tlb_index_t index;
 	index.value = cp0_index_read();
 	
-	/*
-	 * Fail if the entry is not in TLB.
-	 */
-	if (index.p) {
-		printf("TLB entry not found.\n");
-		goto fail;
+	ASSERT(!index.p);
+	
+	pte_t *pte = find_mapping_and_check(badvaddr, PF_ACCESS_WRITE, istate);
+	if (pte) {
+		/*
+		 * Read the faulting TLB entry.
+		 */
+		tlbr();
+	
+		/*
+		 * Record access and write to PTE.
+		 */
+		pte->a = 1;
+		pte->d = 1;
+	
+		entry_lo_t lo;
+		tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->c,
+		    pte->frame);
+	
+		/*
+		 * The entry is to be updated in TLB.
+		 */
+		if ((badvaddr / PAGE_SIZE) % 2 == 0)
+			cp0_entry_lo0_write(lo.value);
+		else
+			cp0_entry_lo1_write(lo.value);
+	
+		cp0_pagemask_write(TLB_PAGE_MASK_16K);
+		tlbwi();
 	}
-	
-	int pfrc;
-	pte_t *pte = find_mapping_and_check(badvaddr, PF_ACCESS_WRITE,
-	    istate, &pfrc);
-	if (!pte) {
-		switch (pfrc) {
-		case AS_PF_FAULT:
-			goto fail;
-			break;
-		case AS_PF_DEFER:
-			/*
-			 * The page fault came during copy_from_uspace()
-			 * or copy_to_uspace().
-			 */
-			return;
-		default:
-			panic("Unexpected pfrc (%d).", pfrc);
-		}
-	}
-	
-	/*
-	 * Read the faulting TLB entry.
-	 */
-	tlbr();
-	
-	/*
-	 * Record access and write to PTE.
-	 */
-	pte->a = 1;
-	pte->d = 1;
-	
-	entry_lo_t lo;
-	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->c,
-	    pte->frame);
-	
-	/*
-	 * The entry is to be updated in TLB.
-	 */
-	if ((badvaddr / PAGE_SIZE) % 2 == 0)
-		cp0_entry_lo0_write(lo.value);
-	else
-		cp0_entry_lo1_write(lo.value);
-	
-	cp0_pagemask_write(TLB_PAGE_MASK_16K);
-	tlbwi();
-	
-	return;
-	
-fail:
-	tlb_modified_fail(istate);
 }
 
 /** Print contents of TLB. */

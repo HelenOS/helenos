@@ -37,7 +37,7 @@
 #define LIBHOUND_CLIENT_H_
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <pcm/sample_format.h>
 
 #define DEFAULT_SINK "default"
