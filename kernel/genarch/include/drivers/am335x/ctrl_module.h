@@ -45,7 +45,7 @@ static unsigned am335x_ctrl_module_clock_freq_get(void *base)
 {
 	unsigned const control_status = AM335x_CTRL_MODULE_REG_ADDR(base,
 	    CONTROL_SYSCONFIG);
-	unsigned const sysboot = (control_status >> 22) & 0x03;
+	unsigned const sysboot1 = (control_status >> 22) & 0x03;
 
 	switch (sysboot) {
 	default:
