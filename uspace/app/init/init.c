@@ -381,7 +381,6 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 	
-	srv_start("/srv/hound");
 	srv_start("/srv/input", HID_INPUT);
 	srv_start("/srv/output", HID_OUTPUT);
 	
@@ -406,6 +405,7 @@ int main(int argc, char *argv[])
 #endif
 		}
 	}
+	srv_start("/srv/hound");
 	
 	return 0;
 }
