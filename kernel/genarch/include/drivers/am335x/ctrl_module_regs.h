@@ -36,9 +36,9 @@
 #ifndef _KERN_AM335X_CTRL_MODULE_REGS_H_
 #define _KERN_AM335X_CTRL_MODULE_REGS_H_
 
-#define AM335x_CTRL_MODULE_REG_ADDR(name) \
+#define AM335x_CTRL_MODULE_REG_ADDR(base, name) \
 	    ((ioport32_t *)(AM335x_CTRL_MODULE_##name##_OFFSET + \
-	    AM335x_CTRL_MODULE_BASE_ADDRESS))
+	    ((ioport8_t *) base)))
 
 #define AM335x_CTRL_MODULE_CONTROL_REVISION_OFFSET          0x00
 #define AM335x_CTRL_MODULE_CONTROL_HWINFO_OFFSET            0x04
