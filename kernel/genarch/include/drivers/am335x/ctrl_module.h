@@ -41,6 +41,25 @@
 #define AM335x_CTRL_MODULE_BASE_ADDRESS  0x44E10000
 #define AM335x_CTRL_MODULE_SIZE          131072 /* 128 Kb */
 
+static unsigned am335x_ctrl_module_clock_freq_get(void *base)
+{
+	unsigned const control_status = AM335x_CTRL_MODULE_REG_ADDR(base,
+	    CONTROL_SYSCONFIG);
+	unsigned const sysboot = (control_status >> 22) & 0x03;
+
+	switch (sysboot) {
+	default:
+	case 0:
+		return 19200000; /* 19.2 Mhz */
+	case 1:
+		return 24000000; /* 24 Mhz */
+	case 2:
+		return 25000000; /* 25 Mhz */
+	case 3:
+		return 26000000; /* 26 Mhz */
+	}
+}
+
 #endif
 
 /**
