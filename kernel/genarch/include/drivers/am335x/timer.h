@@ -36,7 +36,7 @@
 #ifndef _KERN_AM335X_TIMER_H_
 #define _KERN_AM335X_TIMER_H_
 
-#include "timer_regs.h"
+#include <genarch/drivers/am335x/timer_regs.h>
 
 #define AM335x_DMTIMER0_BASE_ADDRESS    0x44E05000
 #define AM335x_DMTIMER0_SIZE            4096
@@ -85,7 +85,7 @@ typedef struct am335x_timer {
 } am335x_timer_t;
 
 extern void am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id,
-    unsigned hz);
+    unsigned hz, unsigned srcclk_hz);
 extern void am335x_timer_intr_ack(am335x_timer_t *timer);
 extern void am335x_timer_reset(am335x_timer_t *timer);
 extern void am335x_timer_start(am335x_timer_t *timer);

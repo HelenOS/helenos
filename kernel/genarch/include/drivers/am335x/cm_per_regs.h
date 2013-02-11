@@ -36,6 +36,8 @@
 #ifndef _KERN_AM335X_CM_PER_REGS_H_
 #define _KERN_AM335X_CM_PER_REGS_H_
 
+#include <typedefs.h>
+
 typedef struct am335x_cm_per_regs {
 
 	ioport32_t l4ls_clkstctrl;
@@ -144,7 +146,7 @@ typedef struct am335x_cm_per_regs {
 #define AM335x_CM_PER_MMC0_CLKCTRL_IDLEST_MASK      (0x3 << 16)
 #define AM335x_CM_PER_MMC0_CLKCTRL_IDLEST_SHIFT     16
 
-	ioport32_ elm_clkctrl;
+	ioport32_t elm_clkctrl;
 #define AM335x_CM_PER_ELM_CLKCTRL_MODULEMODE_MASK  0x3
 #define AM335x_CM_PER_ELM_CLKCTRL_MODULEMODE_SHIFT 0
 #define AM335x_CM_PER_ELM_CLKCTRL_IDLEST_MASK      (0x3 << 16)
@@ -405,11 +407,11 @@ typedef struct am335x_cm_per_regs {
 
 	ioport32_t const pad7[2];
 
-	ioport32_t l3_clkstctrl;
-#define AM335x_CM_PER_L3_CLKSTCTRL_CLKTRCTRL_MASK     0x3
-#define AM335x_CM_PER_L3_CLKSTCTRL_CLKTRCTRL_SHIFT    0
-#define AM335x_CM_PER_L3_CLKSTCTRL_CLKACTIVITY_OCPWP_L3_FLAG (1 << 4)
-#define AM335x_CM_PER_L3_CLKSTCTRL_CLKACTIVITY_OCPWP_L4_FLAG (1 << 5)
+	ioport32_t ocpwp_l3_clkstctrl;
+#define AM335x_CM_PER_OCPWP_L3_CLKSTCTRL_CLKTRCTRL_MASK     0x3
+#define AM335x_CM_PER_OCPWP_L3_CLKSTCTRL_CLKTRCTRL_SHIFT    0
+#define AM335x_CM_PER_OCPWP_L3_CLKSTCTRL_CLKACTIVITY_OCPWP_L3_FLAG (1 << 4)
+#define AM335x_CM_PER_OCPWP_L3_CLKSTCTRL_CLKACTIVITY_OCPWP_L4_FLAG (1 << 5)
 
 	ioport32_t ocpwp_clkctrl;
 #define AM335x_CM_PER_OCPWP_CLKCTRL_MODULEMODE_MASK  0x3

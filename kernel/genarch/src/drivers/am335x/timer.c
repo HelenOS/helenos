@@ -55,7 +55,8 @@ static const timer_regs_mmap_t regs_map[TIMERS_MAX] = {
 };
 
 void
-am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz)
+am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
+    unsigned srcclk_hz)
 {
 	uintptr_t base_addr;
 	size_t size;
@@ -85,12 +86,10 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz)
 	/* Enable auto-reload mode */
 	regs->tclr |= AM335x_TIMER_TCLR_AR_FLAG;
 
-	/* XXX Here we assume that the timer clock source
-	 * is running at 32 Khz but this is not always the
-	 * case; DMTIMER[2 - 7] can use the internal system 24 Mhz
-	 * clock source or an external clock also.
-	 */
-	unsigned const count = 0xFFFFFFFE - 32768 / hz;
+	/* Disable the emulation mode */
+	regs->tiocp_cfg |= AM335x_TIMER_TIOCPCFG_EMUFREE_FLAG;
+
+	unsigned const count = 0xFFFFFFFE - (srcclk_hz / hz);
 	regs->tcrr = count;
 	regs->tldr = count;
 }

@@ -36,9 +36,11 @@
 #ifndef _KERN_AM335X_CM_DPLL_REGS_H_
 #define _KERN_AM335X_CM_DPLL_REGS_H_
 
-#define AM335x_CM_CLKSEL_TIMERS_CLK32KHZ    0x02
-#define AM335x_CM_CLKSEL_TIMERS_CLKMOSC     0x01
-#define AM335x_CM_CLKSEL_TIMERS_TCLKIN      0x00
+typedef enum {
+	CLK_SRC_TCLKIN = 0x00,
+	CLK_SRC_M_OSC,
+	CLK_SRC_32_KHZ
+} am335x_clk_src_t;
 
 typedef struct am335x_cm_dpll_regs {
 
@@ -74,7 +76,6 @@ typedef struct am335x_cm_dpll_regs {
 	ioport32_t clksel_lcdc_pixel;
 	ioport32_t clksel_wdt1;
 	ioport32_t clksel_gpio0_db;
-
 
 } am335x_cm_dpll_regs_t;
 

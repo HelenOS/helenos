@@ -30,37 +30,53 @@
  */
 /**
  * @file
- * @brief Texas Instruments AM335x control module.
+ * @brief Texas Instruments AM335x clock module.
  */
 
-#ifndef _KERN_AM335X_CTRL_MODULE_H_
-#define _KERN_AM335X_CTRL_MODULE_H_
+#ifndef _KERN_AM335X_CM_PER_H_
+#define _KERN_AM335X_CM_PER_H_
 
 #include <typedefs.h>
-#include "ctrl_module_regs.h"
+#include "cm_per_regs.h"
+#include "timer.h"
 
-#define AM335x_CTRL_MODULE_BASE_ADDRESS  0x44E10000
-#define AM335x_CTRL_MODULE_SIZE          131072 /* 128 Kb */
+#define AM335x_CM_PER_BASE_ADDRESS   0x44E00000
+#define AM335x_CM_PER_SIZE           1024
 
-typedef ioport32_t am335x_ctrl_module_t;
-
-static unsigned am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base)
+static ioport32_t *am335x_clock_clkctrl_reg_get(am335x_cm_per_regs_t *cm,
+    am335x_timer_id_t id)
 {
-	unsigned const control_status = *AM335x_CTRL_MODULE_REG_ADDR(base,
-	    CONTROL_SYSCONFIG);
-	unsigned const sysboot1 = (control_status >> 22) & 0x03;
-
-	switch (sysboot1) {
+	switch (id) {
 	default:
-	case 0:
-		return 19200000; /* 19.2 Mhz */
-	case 1:
-		return 24000000; /* 24 Mhz */
-	case 2:
-		return 25000000; /* 25 Mhz */
-	case 3:
-		return 26000000; /* 26 Mhz */
+		return NULL;
+	case DMTIMER2:
+		return &cm->timer2_clkctrl;
+	case DMTIMER3:
+		return &cm->timer3_clkctrl;
+	case DMTIMER4:
+		return &cm->timer4_clkctrl;
+	case DMTIMER5:
+		return &cm->timer5_clkctrl;
+	case DMTIMER6:
+		return &cm->timer6_clkctrl;
+	case DMTIMER7:
+		return &cm->timer7_clkctrl;
 	}
+
+}
+
+static void am335x_clock_module_enable(am335x_cm_per_regs_t *cm,
+    am335x_timer_id_t timer_id)
+{
+	ioport32_t *tmr_reg = am335x_clock_clkctrl_reg_get(cm, timer_id);
+	if (tmr_reg == NULL)
+		return;
+
+	/* Enable the clock module */
+	*tmr_reg = (*tmr_reg & ~0x03) | 0x02;
+
+	/* Wait for completion */
+	while ((*tmr_reg & 0x03) != 0x02);
 }
 
 #endif
@@ -68,3 +84,4 @@ static unsigned am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base)
 /**
  * @}
  */
+

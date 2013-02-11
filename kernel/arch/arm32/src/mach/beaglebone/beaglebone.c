@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Matteo Facchinetti
+ * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,9 @@
 #include <genarch/drivers/am335x/irc.h>
 #include <genarch/drivers/am335x/uart.h>
 #include <genarch/drivers/am335x/timer.h>
+#include <genarch/drivers/am335x/cm_per.h>
+#include <genarch/drivers/am335x/cm_dpll.h>
+#include <genarch/drivers/am335x/ctrl_module.h>
 #include <genarch/srln/srln.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
@@ -59,6 +63,9 @@ static const char *bbone_get_platform_name(void);
 
 static struct beaglebone {
 	am335x_irc_regs_t *irc_addr;
+	am335x_cm_per_regs_t *cm_per_addr;
+	am335x_cm_dpll_regs_t *cm_dpll_addr;
+	am335x_ctrl_module_t  *ctrl_module;
 	am335x_timer_t timer;
 	am335x_uart_t uart;
 } bbone;
@@ -78,10 +85,19 @@ struct arm_machine_ops bbone_machine_ops = {
 
 static void bbone_init(void)
 {
-	/* Initialize the interrupt controller */
 	bbone.irc_addr = (void *) km_map(AM335x_IRC_BASE_ADDRESS,
 	    AM335x_IRC_SIZE, PAGE_NOT_CACHEABLE);
 
+	bbone.cm_per_addr = (void *) km_map(AM335x_CM_PER_BASE_ADDRESS,
+	    AM335x_CM_PER_SIZE, PAGE_NOT_CACHEABLE);
+
+	bbone.cm_dpll_addr = (void *) km_map(AM335x_CM_DPLL_BASE_ADDRESS,
+	    AM335x_CM_DPLL_SIZE, PAGE_NOT_CACHEABLE);
+
+	bbone.ctrl_module = (void *) km_map(AM335x_CTRL_MODULE_BASE_ADDRESS,
+	    AM335x_CTRL_MODULE_SIZE, PAGE_NOT_CACHEABLE);
+
+	/* Initialize the interrupt controller */
 	am335x_irc_init(bbone.irc_addr);
 }
 
@@ -104,15 +120,21 @@ static void bbone_timer_irq_start(void)
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
 	timer_irq.devno = device_assign_devno();
-	timer_irq.inr = AM335x_DMTIMER0_IRQ;
+	timer_irq.inr = AM335x_DMTIMER2_IRQ;
 	timer_irq.claim = bbone_timer_irq_claim;
 	timer_irq.handler = bbone_timer_irq_handler;
 	irq_register(&timer_irq);
 
-	/* Initialize the DMTIMER0 */
-	am335x_timer_init(&bbone.timer, DMTIMER0, HZ);
+	/* Enable the DMTIMER2 clock module */
+	am335x_clock_module_enable(bbone.cm_per_addr, DMTIMER2);
+	/* Select the SYSCLK as the clock source for the dmtimer2 module */
+	am335x_clock_source_select(bbone.cm_dpll_addr, DMTIMER2,
+	   CLK_SRC_M_OSC);
+	/* Initialize the DMTIMER2 */
+	am335x_timer_init(&bbone.timer, DMTIMER2, HZ,
+	    am335x_ctrl_module_clock_freq_get(bbone.ctrl_module));
 	/* Enable the interrupt */
-	am335x_irc_enable(bbone.irc_addr, AM335x_DMTIMER0_IRQ);
+	am335x_irc_enable(bbone.irc_addr, AM335x_DMTIMER2_IRQ);
 	/* Start the timer */
 	am335x_timer_start(&bbone.timer);
 }
