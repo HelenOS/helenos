@@ -116,6 +116,8 @@ static void bbone_timer_irq_handler(irq_t *irq)
 
 static void bbone_timer_irq_start(void)
 {
+	unsigned sysclk_freq;
+
 	/* Initialize the IRQ */
 	static irq_t timer_irq;
 	irq_initialize(&timer_irq);
@@ -131,8 +133,13 @@ static void bbone_timer_irq_start(void)
 	am335x_clock_source_select(bbone.cm_dpll_addr, DMTIMER2,
 	   CLK_SRC_M_OSC);
 	/* Initialize the DMTIMER2 */
-	am335x_timer_init(&bbone.timer, DMTIMER2, HZ,
-	    am335x_ctrl_module_clock_freq_get(bbone.ctrl_module));
+	if (am335x_ctrl_module_clock_freq_get(bbone.ctrl_module,
+	    &sysclk_freq) != EOK) {
+		printf("Cannot get the system clock frequency!\n");
+		return;
+	}
+
+	am335x_timer_init(&bbone.timer, DMTIMER2, HZ, sysclk_freq);
 	/* Enable the interrupt */
 	am335x_irc_enable(bbone.irc_addr, AM335x_DMTIMER2_IRQ);
 	/* Start the timer */

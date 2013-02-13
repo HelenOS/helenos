@@ -36,6 +36,7 @@
 #ifndef _KERN_AM335X_CTRL_MODULE_H_
 #define _KERN_AM335X_CTRL_MODULE_H_
 
+#include <errno.h>
 #include <typedefs.h>
 #include "ctrl_module_regs.h"
 
@@ -44,23 +45,27 @@
 
 typedef ioport32_t am335x_ctrl_module_t;
 
-static unsigned am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base)
+static int
+am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base, unsigned *freq)
 {
 	unsigned const control_status = *AM335x_CTRL_MODULE_REG_ADDR(base,
-	    CONTROL_SYSCONFIG);
+	    CONTROL_STATUS);
 	unsigned const sysboot1 = (control_status >> 22) & 0x03;
 
 	switch (sysboot1) {
 	default:
+		return EOK;
 	case 0:
-		return 19200000; /* 19.2 Mhz */
+		*freq = 19200000; /* 19.2 Mhz */
 	case 1:
-		return 24000000; /* 24 Mhz */
+		*freq = 24000000; /* 24 Mhz */
 	case 2:
-		return 25000000; /* 25 Mhz */
+		*freq = 25000000; /* 25 Mhz */
 	case 3:
-		return 26000000; /* 26 Mhz */
+		*freq = 26000000; /* 26 Mhz */
 	}
+
+	return EINVAL;
 }
 
 #endif
