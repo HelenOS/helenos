@@ -187,10 +187,8 @@ static void bbone_output_init(void)
 	    AM335x_UART0_IRQ, AM335x_UART0_BASE_ADDRESS,
 	    AM335x_UART0_SIZE);
 
-	if (ok) {
+	if (ok)
 		stdout_wire(&bbone.uart.outdev);
-		printf("UART Ok\n");
-	}
 }
 
 static void bbone_input_init(void)
