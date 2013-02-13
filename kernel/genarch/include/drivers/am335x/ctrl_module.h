@@ -54,18 +54,22 @@ am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base, unsigned *freq)
 
 	switch (sysboot1) {
 	default:
-		return EOK;
+		return EINVAL;
 	case 0:
 		*freq = 19200000; /* 19.2 Mhz */
+		break;
 	case 1:
 		*freq = 24000000; /* 24 Mhz */
+		break;
 	case 2:
 		*freq = 25000000; /* 25 Mhz */
+		break;
 	case 3:
 		*freq = 26000000; /* 26 Mhz */
+		break;
 	}
 
-	return EINVAL;
+	return EOK;
 }
 
 #endif
