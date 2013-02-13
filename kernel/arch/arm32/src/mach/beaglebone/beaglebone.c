@@ -137,7 +137,8 @@ static void bbone_timer_irq_start(void)
 	    &sysclk_freq) != EOK) {
 		printf("Cannot get the system clock frequency!\n");
 		return;
-	}
+	} else
+		printf("system clock running at %u hz\n", sysclk_freq);
 
 	am335x_timer_init(&bbone.timer, DMTIMER2, HZ, sysclk_freq);
 	/* Enable the interrupt */
