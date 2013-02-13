@@ -115,8 +115,9 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
 
 	/* Disable compare mode */
 	tclr &= ~AM335x_TIMER_TCLR_CE_FLAG;
-	/* Disable the prescaler */
-	tclr &= ~AM335x_TIMER_TCLR_PRE_FLAG;
+	/* Enable the prescaler, divisor = 2 */
+	tclr |= AM335x_TIMER_TCLR_PRE_FLAG;
+	tclr &= ~(AM335x_TIMER_TCLR_PTV_MASK << AM335x_TIMER_TCLR_PTV_SHIFT);
 	/* Enable auto-reload mode */
 	tclr |= AM335x_TIMER_TCLR_AR_FLAG;
 
