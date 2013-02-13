@@ -98,7 +98,7 @@ typedef struct am335x_timer_regs {
 	/* Timer IRQ wakeup enable register */
 	ioport32_t irqwakeen;
 #define AM335x_TIMER_IRQWAKEEN_MAT_FLAG     (1 << 0)
-#define AM335x_TIMER_IRQWAKEEN_PVF_FLAG     (1 << 1)
+#define AM335x_TIMER_IRQWAKEEN_OVF_FLAG     (1 << 1)
 #define AM335x_TIMER_IRQWAKEEN_TCAR_FLAG    (1 << 2)
 
 	/* Timer control register */
