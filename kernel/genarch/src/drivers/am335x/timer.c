@@ -51,7 +51,7 @@ typedef struct timer_regs_mmap {
 
 static const timer_regs_mmap_t regs_map[TIMERS_MAX] = {
 	{ .base = AM335x_DMTIMER0_BASE_ADDRESS, .size = AM335x_DMTIMER0_SIZE },
-	{0, 0},
+	{0, 0}, /* DMTIMER1 is not supported by this driver */
 	{ .base = AM335x_DMTIMER2_BASE_ADDRESS, .size = AM335x_DMTIMER2_SIZE },
 	{ .base = AM335x_DMTIMER3_BASE_ADDRESS, .size = AM335x_DMTIMER3_SIZE },
 	{ .base = AM335x_DMTIMER4_BASE_ADDRESS, .size = AM335x_DMTIMER4_SIZE },
@@ -82,7 +82,7 @@ write_register_posted(am335x_timer_t *timer, timer_reg_t reg, uint32_t value)
 	}
 }
 
-void
+int
 am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
     unsigned srcclk_hz)
 {
@@ -90,14 +90,17 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
 	size_t size;
 
 	ASSERT(id < TIMERS_MAX);
+	ASSERT(timer != NULL);
 
 	if (id == DMTIMER1_1MS)
-		return; /* Not supported yet */
+		return ENOTSUP; /* Not supported yet */
 
 	base_addr = regs_map[id].base;
 	size = regs_map[id].size;
 
 	timer->regs = (void *) km_map(base_addr, size, PAGE_NOT_CACHEABLE);
+	ASSERT(timer->regs != NULL);
+
 	timer->id = id;
 
 	am335x_timer_regs_t *regs = timer->regs;
@@ -129,6 +132,8 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
 	unsigned const count = 0xFFFFFFFF - (srcclk_hz / hz + 1);
 	write_register_posted(timer, REG_TCRR, count);
 	write_register_posted(timer, REG_TLDR, count);
+
+	return EOK;
 }
 
 void

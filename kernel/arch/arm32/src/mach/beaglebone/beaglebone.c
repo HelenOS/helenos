@@ -97,6 +97,11 @@ static void bbone_init(void)
 	bbone.ctrl_module = (void *) km_map(AM335x_CTRL_MODULE_BASE_ADDRESS,
 	    AM335x_CTRL_MODULE_SIZE, PAGE_NOT_CACHEABLE);
 
+	ASSERT(bbone.irc_addr != NULL);
+	ASSERT(bbone.cm_per_addr != NULL);
+	ASSERT(bbone.cm_dpll_addr != NULL);
+	ASSERT(bbone.ctrl_module != NULL);
+
 	/* Initialize the interrupt controller */
 	am335x_irc_init(bbone.irc_addr);
 }
@@ -117,6 +122,7 @@ static void bbone_timer_irq_handler(irq_t *irq)
 static void bbone_timer_irq_start(void)
 {
 	unsigned sysclk_freq;
+	int rc;
 
 	/* Initialize the IRQ */
 	static irq_t timer_irq;
@@ -140,7 +146,11 @@ static void bbone_timer_irq_start(void)
 	} else
 		printf("system clock running at %u hz\n", sysclk_freq);
 
-	am335x_timer_init(&bbone.timer, DMTIMER2, HZ, sysclk_freq);
+	rc = am335x_timer_init(&bbone.timer, DMTIMER2, HZ, sysclk_freq);
+	if (rc != EOK) {
+		printf("Timer initialization failed\n");
+		return;
+	}
 	/* Enable the interrupt */
 	am335x_irc_enable(bbone.irc_addr, AM335x_DMTIMER2_IRQ);
 	/* Start the timer */
