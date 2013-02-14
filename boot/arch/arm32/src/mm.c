@@ -144,7 +144,9 @@ static void enable_paging()
 		
 		"orr r0, r0, r1\n"
 
-		/* Flush the TLB */
+		/* Invalidate the TLB content before turning on the MMU.
+		 * ARMv7-A Reference manual, B3.10.3
+		 */
 		"mcr p15, 0, r0, c8, c7, 0\n"
 		
 		/* Store settings, enable the MMU */
