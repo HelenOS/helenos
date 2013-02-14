@@ -145,7 +145,8 @@ bool am335x_uart_init(
 	uart->regs->lcr |= AM335x_UART_LCR_CHAR_LENGTH_8BITS;
 
 	/* Enable the UART module */
-	uart->regs->mdr1 &= AM335x_UART_MDR_MS_UART16;
+	uart->regs->mdr1 &= (AM335x_UART_MDR_MS_UART16 &
+	    ~AM335x_UART_MDR_MS_MASK);
 
 	/* Disable interrupts */
 	uart->regs->ier = 0;
