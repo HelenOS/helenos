@@ -80,7 +80,8 @@ typedef struct {
 	unsigned int should_be_zero_1 : 1;
 	unsigned int access_permission_0 : 2;
 	unsigned int tex : 3;
-	unsigned int access_permission_1 : 2;
+	unsigned int access_permission_1 : 1;
+	unsigned int shareable : 1;
 	unsigned int non_global : 1;
 	unsigned int should_be_zero_2 : 1;
 	unsigned int non_secure : 1;

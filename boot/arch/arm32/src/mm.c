@@ -102,6 +102,7 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 	pte->access_permission_0 = PTE_AP_USER_NO_KERNEL_RW;
 	pte->tex = 0;
 	pte->access_permission_1 = 0;
+	pte->shareable = 0;
 	pte->non_global = 0;
 	pte->should_be_zero_2 = 0;
 	pte->non_secure = 0;
