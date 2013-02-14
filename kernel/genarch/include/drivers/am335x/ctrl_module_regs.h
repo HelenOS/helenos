@@ -38,9 +38,9 @@
 
 #include <typedefs.h>
 
-#define AM335x_CTRL_MODULE_REG_ADDR(base, name) \
-	    ((ioport32_t *)(AM335x_CTRL_MODULE_##name##_OFFSET + \
-	    ((ioport8_t *) base)))
+#define AM335x_CTRL_MODULE_REG_VALUE(base, name) \
+	    (*((ioport32_t *)(AM335x_CTRL_MODULE_##name##_OFFSET + \
+	    ((ioport8_t *) base))))
 
 #define AM335x_CTRL_MODULE_CONTROL_REVISION_OFFSET          0x00
 #define AM335x_CTRL_MODULE_CONTROL_HWINFO_OFFSET            0x04

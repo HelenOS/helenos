@@ -48,7 +48,7 @@ typedef ioport32_t am335x_ctrl_module_t;
 static int
 am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base, unsigned *freq)
 {
-	unsigned const control_status = *AM335x_CTRL_MODULE_REG_ADDR(base,
+	unsigned const control_status = AM335x_CTRL_MODULE_REG_VALUE(base,
 	    CONTROL_STATUS);
 	unsigned const sysboot1 = (control_status >> 22) & 0x03;
 
