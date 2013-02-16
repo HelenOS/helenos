@@ -69,9 +69,18 @@ typedef struct {
 	irq_t irq;
 } am335x_uart_t;
 
+#ifdef CONFIG_AM335X_UART
+extern bool am335x_uart_init(am335x_uart_t *uart, inr_t interrupt,
+    uintptr_t addr, size_t size);
 
-bool am335x_uart_init(am335x_uart_t *, inr_t, uintptr_t, size_t);
-void am335x_uart_input_wire(am335x_uart_t *, indev_t *);
+extern void am335x_uart_input_wire(am335x_uart_t *uart, indev_t *indev);
+#else
+static bool am335x_uart_init(am335x_uart_t *uart, inr_t interrupt,
+    uintptr_t addr, size_t size)
+{ return true; }
+
+static void am335x_uart_input_wire(am335x_uart_t *uart, indev_t *indev) {}
+#endif
 
 #endif
 
