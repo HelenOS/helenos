@@ -50,6 +50,8 @@ am335x_ctrl_module_clock_freq_get(am335x_ctrl_module_t *base, unsigned *freq)
 {
 	unsigned const control_status = AM335x_CTRL_MODULE_REG_VALUE(base,
 	    CONTROL_STATUS);
+
+	/* Get the sysboot1 field at control_status[22,23] */
 	unsigned const sysboot1 = (control_status >> 22) & 0x03;
 
 	switch (sysboot1) {
