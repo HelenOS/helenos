@@ -56,8 +56,6 @@
 #define BANK_SELECT_BIT(a)	(((a) >> PAGE_WIDTH) & 1) 
 	
 
-static pte_t *find_mapping_and_check(uintptr_t, int, istate_t *);
-
 /** Initialize TLB.
  *
  * Invalidate all entries and mark wired entries.
@@ -85,52 +83,20 @@ void tlb_arch_init(void)
 	cp0_wired_write(TLB_WIRED);
 }
 
-/** Verify the TLB still contains / does not contain a given entry after the
- * current thread possibly blocked.
- *
- * @param hi           Remembered contents of the EntryHi register.
- * @param should_exist Flag saying whether the caller expect the entry to exist
- *                     or not to exist.
- * @returns            True if the TLB contains or does not contain the mapping
- *                     according to the caller's expectation.
- * @returns            False otherwise.
- */
-static bool tlb_recheck_entry(entry_hi_t hi, bool should_exist)
-{
-	tlb_index_t index;
-
-	cp0_entry_hi_write(hi.value);
-	tlbp();
-	index.value = cp0_index_read();
-
-	if (!(should_exist ^ index.p)) {
-		/* The old entry disappeared or the new entry already exists. */
-		return false;
-	}
-
-	return true;
-}
-
 /** Process TLB Refill Exception.
  *
  * @param istate	Interrupted register context.
  */
 void tlb_refill(istate_t *istate)
 {
-	entry_hi_t hi;
 	entry_lo_t lo;
 	uintptr_t badvaddr;
 	pte_t *pte;
 	
 	badvaddr = cp0_badvaddr_read();
-	hi.value = cp0_entry_hi_read();	
 
-	/* We may block in find_mapping_and_check(). */
-	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate);
-	if (pte) {
-		if (!tlb_recheck_entry(hi, false))
-			return;
-
+	pte = page_mapping_find(AS, badvaddr, true);
+	if (pte && pte->p) {
 		/*
 		 * Record access to PTE.
 		 */
@@ -151,7 +117,10 @@ void tlb_refill(istate_t *istate)
 		}
 		cp0_pagemask_write(TLB_PAGE_MASK_16K);
 		tlbwr();
+		return;
 	}
+
+	(void) as_page_fault(badvaddr, PF_ACCESS_READ, istate);
 }
 
 /** Process TLB Invalid Exception.
@@ -160,7 +129,6 @@ void tlb_refill(istate_t *istate)
  */
 void tlb_invalid(istate_t *istate)
 {
-	entry_hi_t hi;
 	entry_lo_t lo;
 	tlb_index_t index;
 	uintptr_t badvaddr;
@@ -187,14 +155,9 @@ void tlb_invalid(istate_t *istate)
 	ASSERT(!index.p);
 
 	badvaddr = cp0_badvaddr_read();
-	hi.value = cp0_entry_hi_read();
 
-	/* We may block in find_mapping_and_check(). */
-	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate);
-	if (pte) {
-		if (!tlb_recheck_entry(hi, true))
-			return;
-
+	pte = page_mapping_find(AS, badvaddr, true);
+	if (pte && pte->p) {
 		/*
 		 * Read the faulting TLB entry.
 		 */
@@ -216,7 +179,10 @@ void tlb_invalid(istate_t *istate)
 		else
 			cp0_entry_lo1_write(lo.value);
 		tlbwi();
+		return;
 	}
+
+	(void) as_page_fault(badvaddr, PF_ACCESS_READ, istate);
 }
 
 /** Process TLB Modified Exception.
@@ -225,7 +191,6 @@ void tlb_invalid(istate_t *istate)
  */
 void tlb_modified(istate_t *istate)
 {
-	entry_hi_t hi;
 	entry_lo_t lo;
 	tlb_index_t index;
 	uintptr_t badvaddr;
@@ -243,14 +208,9 @@ void tlb_modified(istate_t *istate)
 	ASSERT(!index.p);
 
 	badvaddr = cp0_badvaddr_read();
-	hi.value = cp0_entry_hi_read();
 
-	/* We may block in find_mapping_and_check(). */
-	pte = find_mapping_and_check(badvaddr, PF_ACCESS_WRITE, istate);
-	if (pte) {
-		if (!tlb_recheck_entry(hi, true))
-			return;
-
+	pte = page_mapping_find(AS, badvaddr, true);
+	if (pte && pte->p && pte->w) {
 		/*
 		 * Read the faulting TLB entry.
 		 */
@@ -273,50 +233,10 @@ void tlb_modified(istate_t *istate)
 		else
 			cp0_entry_lo1_write(lo.value);
 		tlbwi();
-	}
-}
-
-/** Try to find PTE for faulting address.
- *
- * @param badvaddr	Faulting virtual address.
- * @param access	Access mode that caused the fault.
- * @param istate	Pointer to interrupted state.
- *
- * @return		PTE on success, NULL otherwise.
- */
-pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate)
-{
-	entry_hi_t hi;
-	pte_t *pte;
-
-	hi.value = cp0_entry_hi_read();
-
-	ASSERT(hi.asid == AS->asid);
-
-	/*
-	 * Check if the mapping exists in page tables.
-	 */	
-	pte = page_mapping_find(AS, badvaddr, true);
-	if (pte && pte->p && (pte->w || access != PF_ACCESS_WRITE)) {
-		/*
-		 * Mapping found in page tables.
-		 * Immediately succeed.
-		 */
-		return pte;
+		return;
 	}
 
-	/*
-	 * Mapping not found in page tables.
-	 * Resort to higher-level page fault handler.
-	 */
-	if (as_page_fault(badvaddr, access, istate) == AS_PF_OK) {
-		pte = page_mapping_find(AS, badvaddr, true);
-		ASSERT(pte && pte->p);
-		ASSERT(pte->w || access != PF_ACCESS_WRITE);
-		return pte;
-	}
-
-	return NULL;
+	(void) as_page_fault(badvaddr, PF_ACCESS_WRITE, istate);
 }
 
 void
