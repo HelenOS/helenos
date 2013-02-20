@@ -124,6 +124,16 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 void task_done(void)
 {
 	size_t tasks_left;
+
+	if (ipc_phone_0) {
+		task_t *task_0 = ipc_phone_0->task;
+		ipc_phone_0 = NULL;
+		/*
+		 * The first task is held by kinit(), we need to release it or
+		 * it will never finish cleanup.
+		 */
+		task_release(task_0);
+	}
 	
 	/* Repeat until there are any tasks except TASK */
 	do {
