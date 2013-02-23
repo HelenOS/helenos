@@ -65,10 +65,12 @@ typedef struct istate {
 	uint64_t ss;          /* only if istate_t is from uspace */
 } istate_t;
 
+#define RPL_USER	3
+
 /** Return true if exception happened while in userspace */
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
-	return !(istate->rip & UINT64_C(0x8000000000000000));
+	return (istate->cs & RPL_USER) == RPL_USER;
 }
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
