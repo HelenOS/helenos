@@ -55,6 +55,11 @@
 #define PHYSMEM_START_ADDR       0x80000000
 #define BOOT_PAGE_TABLE_ADDRESS  0x80008000
 
+#elif defined MACHINE_beaglebone
+
+#define PHYSMEM_START_ADDR       0x80000000
+#define BOOT_PAGE_TABLE_ADDRESS  0x80008000
+
 #else
 
 #define PHYSMEM_START_ADDR       0x00000000
@@ -64,7 +69,6 @@
 
 #define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
 #define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
-
 
 extern void frame_low_arch_init(void);
 extern void frame_high_arch_init(void);

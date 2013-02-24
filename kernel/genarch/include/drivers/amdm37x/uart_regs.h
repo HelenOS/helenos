@@ -30,7 +30,7 @@
  */
 /**
  * @file
- * @brief Texas Instruments AMDM37x on-chip interrupt controller driver.
+ * @brief Texas Instruments AMDM37x UART memory mapped registers.
  */
 
 #ifndef KERN_AMDM37x_UART_H_
@@ -39,23 +39,6 @@
 #include <typedefs.h>
 #include <console/chardev.h>
 #include <ddi/irq.h>
-
-/* AMDM37x TRM p. 2950 */
-#define AMDM37x_UART1_BASE_ADDRESS   0x4806a000
-#define AMDM37x_UART1_SIZE   1024
-#define AMDM37x_UART1_IRQ   72 /* AMDM37x TRM p. 2418 */
-
-#define AMDM37x_UART2_BASE_ADDRESS   0x4806b000
-#define AMDM37x_UART2_SIZE   1024
-#define AMDM37x_UART2_IRQ   73 /* AMDM37x TRM p. 2418 */
-
-#define AMDM37x_UART3_BASE_ADDRESS   0x49020000
-#define AMDM37x_UART3_SIZE   1024
-#define AMDM37x_UART3_IRQ   74 /* AMDM37x TRM p. 2418 */
-
-#define AMDM37x_UART4_BASE_ADDRESS   0x49042000
-#define AMDM37x_UART4_SIZE   1024
-#define AMDM37x_UART4_IRQ   80 /* AMDM37x TRM p. 2418 */
 
 typedef struct {
 	union {
@@ -342,7 +325,7 @@ typedef struct {
 #define AMDM37x_UART_UASR_PARITY_SHIFT   (6)
 
 		/** BOF control register (IrDA only) */
-		ioport32_t blr; /* UART3 sepcific */
+		ioport32_t blr; /* UART3 specific */
 #define AMDM37x_IRDA_BLR_XBOF_TYPE_FLAG   (1 << 6)
 #define AMDM37x_IRDA_BLR_STS_FIFO_RESET   (1 << 7)
 	};
@@ -440,17 +423,6 @@ typedef struct {
 	ioport32_t mdr3;
 #define AMDM37x_UART_MDR3_DIS_CIR_RX_DEMOD_FLAG   (1 << 0)
 } amdm37x_uart_regs_t;
-
-typedef struct {
-	amdm37x_uart_regs_t *regs;
-	indev_t *indev;
-	outdev_t outdev;
-	irq_t irq;
-} amdm37x_uart_t;
-
-
-bool amdm37x_uart_init(amdm37x_uart_t *, inr_t, uintptr_t, size_t);
-void amdm37x_uart_input_wire(amdm37x_uart_t *, indev_t *);
 
 #endif
 

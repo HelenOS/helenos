@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,48 +25,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef BOOT_arm32_ARCH_H
-#define BOOT_arm32_ARCH_H
-
-#define PAGE_WIDTH  12
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
-
-#define PTL0_ENTRIES     4096
-#define PTL0_ENTRY_SIZE  4
-
-/*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+/** @addtogroup genarch
+ * @{
  */
-#ifdef MACHINE_gta02
-#define BOOT_BASE	0x30008000
-#elif defined MACHINE_beagleboardxm
-#define BOOT_BASE	0x80000000
-#elif defined MACHINE_beaglebone
-#define BOOT_BASE       0x80000000
-#else
-#define BOOT_BASE	0x00000000
-#endif
-
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
-
-#ifdef MACHINE_beagleboardxm
-	#define PA_OFFSET 0
-#elif defined MACHINE_beaglebone
-	#define PA_OFFSET 0
-#else
-	#define PA_OFFSET 0x80000000
-#endif
-
-#ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
-#else
-	#define PA2KA(addr)  ((addr) + PA_OFFSET)
-#endif
-
-
-#endif
-
-/** @}
+/**
+ * @file
+ * @brief Texas Instruments AM335x DPLL.
  */
+
+#ifndef _KERN_AM335X_CM_DPLL_H_
+#define _KERN_AM335X_CM_DPLL_H_
+
+#include "cm_dpll_regs.h"
+#include "timer.h"
+
+#define AM335x_CM_DPLL_BASE_ADDRESS   0x44E00500
+#define AM335x_CM_DPLL_SIZE           256
+
+static ioport32_t *am335x_cm_dpll_timer_reg_get(am335x_cm_dpll_regs_t *cm,
+    am335x_timer_id_t id)
+{
+	switch (id) {
+	default:
+		return NULL;
+	case DMTIMER2:
+		return &cm->clksel_timer2;
+	case DMTIMER3:
+		return &cm->clksel_timer3;
+	case DMTIMER4:
+		return &cm->clksel_timer4;
+	case DMTIMER5:
+		return &cm->clksel_timer5;
+	case DMTIMER6:
+		return &cm->clksel_timer6;
+	case DMTIMER7:
+		return &cm->clksel_timer7;
+	}
+}
+
+static void am335x_clock_source_select(am335x_cm_dpll_regs_t *cm,
+    am335x_timer_id_t id, am335x_clk_src_t src)
+{
+	ioport32_t *reg = am335x_cm_dpll_timer_reg_get(cm, id);
+	if (!reg)
+		return;
+
+	*reg = (*reg & ~0x03) | src;
+}
+
+#endif
+
+/**
+ * @}
+ */
+

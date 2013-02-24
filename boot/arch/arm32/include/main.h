@@ -50,6 +50,15 @@
 /* Check this bit before writing (tx fifo full) */
 #define BBXM_THR_FULL           0x00000001
 
+/** Beaglebone UART register addresses
+ *
+ * This is UART0 of AM335x CPU
+ */
+#define BBONE_SCONS_THR         0x44E09000
+#define BBONE_SCONS_SSR         0x44E09044
+
+/** Check this bit before writing (tx fifo full) */
+#define BBONE_TXFIFO_FULL       0x00000001
 
 /** GTA02 serial console UART register addresses.
  *

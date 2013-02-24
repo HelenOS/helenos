@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,48 +25,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef BOOT_arm32_ARCH_H
-#define BOOT_arm32_ARCH_H
-
-#define PAGE_WIDTH  12
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
-
-#define PTL0_ENTRIES     4096
-#define PTL0_ENTRY_SIZE  4
-
-/*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+/** @addtogroup genarch
+ * @{
  */
-#ifdef MACHINE_gta02
-#define BOOT_BASE	0x30008000
-#elif defined MACHINE_beagleboardxm
-#define BOOT_BASE	0x80000000
-#elif defined MACHINE_beaglebone
-#define BOOT_BASE       0x80000000
-#else
-#define BOOT_BASE	0x00000000
+/**
+ * @file
+ * @brief Texas Instruments AMDM37x UART driver
+ */
+
+#ifndef _AMDM37x_UART_H_
+#define _AMDM37x_UART_H_
+
+#include "uart_regs.h"
+
+/* AMDM37x TRM p. 2950 */
+#define AMDM37x_UART1_BASE_ADDRESS   0x4806a000
+#define AMDM37x_UART1_SIZE   1024
+#define AMDM37x_UART1_IRQ   72 /* AMDM37x TRM p. 2418 */
+
+#define AMDM37x_UART2_BASE_ADDRESS   0x4806b000
+#define AMDM37x_UART2_SIZE   1024
+#define AMDM37x_UART2_IRQ   73 /* AMDM37x TRM p. 2418 */
+
+#define AMDM37x_UART3_BASE_ADDRESS   0x49020000
+#define AMDM37x_UART3_SIZE   1024
+#define AMDM37x_UART3_IRQ   74 /* AMDM37x TRM p. 2418 */
+
+#define AMDM37x_UART4_BASE_ADDRESS   0x49042000
+#define AMDM37x_UART4_SIZE   1024
+#define AMDM37x_UART4_IRQ   80 /* AMDM37x TRM p. 2418 */
+
+typedef struct {
+	amdm37x_uart_regs_t *regs;
+	indev_t *indev;
+	outdev_t outdev;
+	irq_t irq;
+} amdm37x_uart_t;
+
+
+bool amdm37x_uart_init(amdm37x_uart_t *, inr_t, uintptr_t, size_t);
+void amdm37x_uart_input_wire(amdm37x_uart_t *, indev_t *);
+
 #endif
 
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
-
-#ifdef MACHINE_beagleboardxm
-	#define PA_OFFSET 0
-#elif defined MACHINE_beaglebone
-	#define PA_OFFSET 0
-#else
-	#define PA_OFFSET 0x80000000
-#endif
-
-#ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
-#else
-	#define PA2KA(addr)  ((addr) + PA_OFFSET)
-#endif
-
-
-#endif
-
-/** @}
+/**
+ * @}
  */
