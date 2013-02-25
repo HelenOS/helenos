@@ -40,6 +40,9 @@
 #define __POSIX_DEF__(x) x
 #endif
 
+
+#include <libarch/types.h>
+
 /* Search Functions */
 #ifndef POSIX_STRING_H_
 extern int __POSIX_DEF__(ffs)(int i);
