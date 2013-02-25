@@ -32,6 +32,7 @@
 /** @file Command line argument parsing.
  */
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "libc/getopt.h"

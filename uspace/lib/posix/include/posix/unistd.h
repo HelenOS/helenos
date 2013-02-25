@@ -36,48 +36,52 @@
 #ifndef POSIX_UNISTD_H_
 #define POSIX_UNISTD_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "sys/types.h"
 #include "stddef.h"
 
 /* Process Termination */
 #define _exit exit
 
-extern char *posix_optarg;
+extern char *__POSIX_DEF__(optarg);
 extern int optind, opterr, optopt;
-extern int posix_getopt(int, char * const [], const char *);
+extern int __POSIX_DEF__(getopt)(int, char * const [], const char *);
 
 /* Environment */
-extern char **posix_environ;
+extern char **__POSIX_DEF__(environ);
 
 /* Login Information */
-extern char *posix_getlogin(void);
-extern int posix_getlogin_r(char *name, size_t namesize);
+extern char *__POSIX_DEF__(getlogin)(void);
+extern int __POSIX_DEF__(getlogin_r)(char *name, size_t namesize);
 
 /* Identifying Terminals */
-extern int posix_isatty(int fd);
+extern int __POSIX_DEF__(isatty)(int fd);
 
 /* Working Directory */
-extern char *posix_getcwd(char *buf, size_t size);
-extern int posix_chdir(const char *path);
+extern char *__POSIX_DEF__(getcwd)(char *buf, size_t size);
+extern int __POSIX_DEF__(chdir)(const char *path);
 
 /* Query Memory Parameters */
-extern int posix_getpagesize(void);
+extern int __POSIX_DEF__(getpagesize)(void);
 
 /* Process Identification */
-extern posix_pid_t posix_getpid(void);
-extern posix_uid_t posix_getuid(void);
-extern posix_gid_t posix_getgid(void);
+extern __POSIX_DEF__(pid_t) __POSIX_DEF__(getpid)(void);
+extern __POSIX_DEF__(uid_t) __POSIX_DEF__(getuid)(void);
+extern __POSIX_DEF__(gid_t) __POSIX_DEF__(getgid)(void);
 
 /* File Manipulation */
-extern int posix_close(int fildes);
-extern ssize_t posix_read(int fildes, void *buf, size_t nbyte);
-extern ssize_t posix_write(int fildes, const void *buf, size_t nbyte);
-extern int posix_fsync(int fildes);
-extern int posix_ftruncate(int fildes, posix_off_t length);
-extern int posix_rmdir(const char *path);
-extern int posix_unlink(const char *path);
-extern int posix_dup(int fildes);
-extern int posix_dup2(int fildes, int fildes2);
+extern int __POSIX_DEF__(close)(int fildes);
+extern ssize_t __POSIX_DEF__(read)(int fildes, void *buf, size_t nbyte);
+extern ssize_t __POSIX_DEF__(write)(int fildes, const void *buf, size_t nbyte);
+extern int __POSIX_DEF__(fsync)(int fildes);
+extern int __POSIX_DEF__(ftruncate)(int fildes, __POSIX_DEF__(off_t) length);
+extern int __POSIX_DEF__(rmdir)(const char *path);
+extern int __POSIX_DEF__(unlink)(const char *path);
+extern int __POSIX_DEF__(dup)(int fildes);
+extern int __POSIX_DEF__(dup2)(int fildes, int fildes2);
 
 /* Standard Streams */
 #undef STDIN_FILENO
@@ -96,7 +100,7 @@ extern int posix_dup2(int fildes, int fildes2);
 #define	X_OK 1 /* Test for execute permission. */
 #define	W_OK 2 /* Test for write permission. */
 #define	R_OK 4 /* Test for read permission. */
-extern int posix_access(const char *path, int amode);
+extern int __POSIX_DEF__(access)(const char *path, int amode);
 
 /* System Parameters */
 enum {
@@ -105,7 +109,7 @@ enum {
 	_SC_PAGESIZE,
 	_SC_CLK_TCK
 };
-extern long posix_sysconf(int name);
+extern long __POSIX_DEF__(sysconf)(int name);
 
 /* Path Configuration Parameters */
 enum {
@@ -129,62 +133,18 @@ enum {
 	_PC_SYNC_IO,
 	_PC_VDISABLE
 };
-extern long posix_pathconf(const char *path, int name);
+extern long __POSIX_DEF__(pathconf)(const char *path, int name);
 
 /* Creating a Process */
-extern posix_pid_t posix_fork(void);
+extern __POSIX_DEF__(pid_t) __POSIX_DEF__(fork)(void);
 
 /* Executing a File */
-extern int posix_execv(const char *path, char *const argv[]);
-extern int posix_execvp(const char *file, char *const argv[]);
+extern int __POSIX_DEF__(execv)(const char *path, char *const argv[]);
+extern int __POSIX_DEF__(execvp)(const char *file, char *const argv[]);
 
 /* Creating a Pipe */
-extern int posix_pipe(int fildes[2]);
+extern int __POSIX_DEF__(pipe)(int fildes[2]);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define getopt posix_getopt
-	#define optarg posix_optarg
-
-	#define environ posix_environ
-
-	#define getlogin posix_getlogin
-	#define getlogin_r posix_getlogin_r
-
-	#define getcwd posix_getcwd
-	#define chdir posix_chdir
-
-	#define isatty posix_isatty
-
-	#undef getpagesize
-	#define getpagesize posix_getpagesize
-
-	#define getpid posix_getpid
-	#define getuid posix_getuid
-	#define getgid posix_getgid
-
-	#define close posix_close
-	#define read posix_read
-	#define write posix_write
-	#define fsync posix_fsync
-	#define ftruncate posix_ftruncate
-	#define rmdir posix_rmdir
-	#define unlink posix_unlink
-	#define dup posix_dup
-	#define dup2 posix_dup2
-
-	#define access posix_access
-
-	#define sysconf posix_sysconf
-
-	#define pathconf posix_pathconf
-
-	#define fork posix_fork
-
-	#define execv posix_execv
-	#define execvp posix_execvp
-
-	#define pipe posix_pipe
-#endif
 
 #endif /* POSIX_UNISTD_H_ */
 

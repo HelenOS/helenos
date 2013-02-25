@@ -226,7 +226,7 @@ JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
 ifeq ($(POSIX_COMPAT),y)
 	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
-	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
+	BASE_LIBS = $(LIBPOSIX_PREFIX)/libposixaslibc.a $(LIBPOSIX_PREFIX)/libc4posix.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 endif
 
 ifeq ($(COMPILER),gcc_cross)

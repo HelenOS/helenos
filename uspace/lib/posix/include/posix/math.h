@@ -35,14 +35,14 @@
 #ifndef POSIX_MATH_H_
 #define POSIX_MATH_H_
 
-/* Normalization Functions */
-extern double posix_ldexp(double x, int exp);
-extern double posix_frexp(double num, int *exp);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define ldexp posix_ldexp
-	#define frexp posix_frexp
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
 #endif
+
+/* Normalization Functions */
+extern double __POSIX_DEF__(ldexp)(double x, int exp);
+extern double __POSIX_DEF__(frexp)(double num, int *exp);
+
 
 #endif /* POSIX_MATH_H_ */
 
