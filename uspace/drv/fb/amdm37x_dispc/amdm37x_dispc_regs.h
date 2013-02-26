@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jan Vesely
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,24 +33,20 @@
  * @brief Texas Instruments AM/DM37x SDRAM Memory Scheduler.
  */
 
-#ifndef KERN_AMDM37x_DISPC_H_
-#define KERN_AMDM37x_DISPC_H_
+#ifndef AMDM37x_DISPC_REGS_H_
+#define AMDM37x_DISPC_REGS_H_
 
 /* AMDM37x TRM p. 1813 */
 #define AMDM37x_DISPC_BASE_ADDRESS 0x48050400
 #define AMDM37x_DISPC_SIZE 1024
 
-#define __paddname(line) PADD32_ ## line
-#define _paddname(line) __paddname(line)
-#define PADD32(count) uint32_t _paddname(__LINE__)[count]
-
-#include <typedefs.h>
+#include <macros.h>
 
 typedef struct {
 	const ioport32_t revision;
 #define AMDM37X_DISPC_REVISION_MASK  0xff
 
-	PADD32(3);
+	PADD32[3];
 	ioport32_t sysconfig;
 #define AMDM37X_DISPC_SYSCONFIG_AUTOIDLE_FLAG  (1 << 0)
 #define AMDM37X_DISPC_SYSCONFIG_SOFTRESET_FLAG  (1 << 1)
@@ -85,7 +81,7 @@ typedef struct {
 #define AMDM37X_DISPC_IRQ_SYNCLOSTDIGITAL_FLAG  (1 << 15)
 #define AMDM37X_DISPC_IRQ_WAKEUP_FLAG  (1 << 16)
 
-	PADD32(8);
+	PADD32[8];
 	ioport32_t control;
 #define AMDM37X_DISPC_CONTROL_LCD_ENABLE_FLAG  (1 << 0)
 #define AMDM37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG  (1 << 1)
@@ -148,7 +144,7 @@ typedef struct {
 #define AMDM37X_DISPC_CONFIG_LCDPALPHABLENDERENABLDE_FLAG  (1 << 18)
 #define AMDM37X_DISPC_CONFIG_TVALPHABLENDERENABLE_FLAG  (1 << 19)
 
-	PADD32(1);
+	PADD32[1];
 	ioport32_t default_color[2];
 	ioport32_t trans_color[2];
 #define AMDM37X_DISPC_COLOR_MASK 0xffffff
@@ -214,7 +210,7 @@ typedef struct {
 #define AMDM37X_DISPC_SIZE_HEIGHT_MASK  0x7ff
 #define AMDM37X_DISPC_SIZE_HEIGHT_SHIFT  16
 
-		PADD32(4);
+		PADD32[4];
 		ioport32_t attributes;
 #define AMDM37X_DISPC_GFX_ATTRIBUTES_ENABLE_FLAG  (1 << 0)
 #define AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_MASK  0xf
@@ -265,14 +261,14 @@ typedef struct {
 			ioport32_t hvi;
 		} fir_coef[8];
 		ioport32_t conv_coef[5];
-		PADD32(2);
+		PADD32[2];
 	} vid[2];
 	/* 0x1d4 */
 	ioport32_t data_cycle[3];
 	/* 0x1e0 */
 	ioport32_t vid_fir_coef_v[8];
 	/* 0x200 */
-	PADD32(8);
+	PADD32[8];
 	/* 0x220 */
 	ioport32_t cpr_coef_r;
 	ioport32_t cpr_coef_g;
@@ -282,110 +278,7 @@ typedef struct {
 	/* 0x230 */
 	ioport32_t vid_preload[2];
 
-} __attribute__((packed)) amdm37x_dispc_regs_t;
-
-
-static inline void amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
-    unsigned x, unsigned y, unsigned bpp, uintptr_t pa)
-{
-	ASSERT(regs);
-	/* Init sequence for dispc is in chapter 7.6.5.1.4 p. 1810,
-	 * no idea what parts of that work. */
-
-	/* Disable all interrupts */
-	regs->irqenable = 0;
-
-	/* Pixel format specifics*/
-	uint32_t attrib_pixel_format = 0;
-	uint32_t control_data_lanes = 0;
-	switch (bpp)
-	{
-	case 32:
-		attrib_pixel_format = AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGBX;
-		control_data_lanes = AMDM37X_DISPC_CONTROL_TFTDATALINES_24B;
-		break;
-	case 24:
-		attrib_pixel_format = AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGB24;
-		control_data_lanes = AMDM37X_DISPC_CONTROL_TFTDATALINES_24B;
-		break;
-	case 16:
-		attrib_pixel_format = AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGB16;
-		control_data_lanes = AMDM37X_DISPC_CONTROL_TFTDATALINES_16B;
-		break;
-	default:
-		ASSERT(false);
-	}
-
-	/* Prepare sizes */
-	const uint32_t size_reg =
-	    (((x - 1) & AMDM37X_DISPC_SIZE_WIDTH_MASK)
-	        << AMDM37X_DISPC_SIZE_WIDTH_SHIFT) |
-	    (((y - 1) & AMDM37X_DISPC_SIZE_HEIGHT_MASK)
-	        << AMDM37X_DISPC_SIZE_HEIGHT_SHIFT);
-
-	/* modes taken from u-boot, for 1024x768 */
-	// TODO replace magic values with actual correct values
-//	regs->timing_h = 0x1a4024c9;
-//	regs->timing_v = 0x02c00509;
-//	regs->pol_freq = 0x00007028;
-//	regs->divisor  = 0x00010001;
-
-	/* setup output */
-	regs->size_lcd = size_reg;
-	regs->size_dig = size_reg;
-
-	/* Nice blue default color */
-	regs->default_color[0] = 0x0000ff;
-	regs->default_color[1] = 0x0000ff;
-
-	/* Setup control register */
-	uint32_t control = 0 |
-		AMDM37X_DISPC_CONTROL_PCKFREEENABLE_FLAG |
-		(control_data_lanes << AMDM37X_DISPC_CONTROL_TFTDATALINES_SHIFT) |
-		AMDM37X_DISPC_CONTROL_GPOUT0_FLAG |
-		AMDM37X_DISPC_CONTROL_GPOUT1_FLAG;
-	regs->control = control;
-
-	/* No gamma stuff only data */
-	uint32_t config = (AMDM37X_DISPC_CONFIG_LOADMODE_DATAEVERYFRAME
-	            << AMDM37X_DISPC_CONFIG_LOADMODE_SHIFT);
-	regs->config = config;
-
-
-	/* Set framebuffer base address */
-	regs->gfx.ba[0] = pa;
-	regs->gfx.ba[1] = pa;
-	regs->gfx.position = 0;
-
-	/* Setup fb size */
-	regs->gfx.size = size_reg;
-
-	/* Set pixel format */
-	uint32_t attribs = 0 |
-	    (attrib_pixel_format << AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_SHIFT);
-	regs->gfx.attributes = attribs;
-
-	/* 0x03ff03c0 is the default */
-	regs->gfx.fifo_threshold = 0x03ff03c0;
-	/* This value should be stride - width, 1 means next pixel i.e.
-	 * stride == width */
-	regs->gfx.row_inc = 1;
-	/* number of bytes to next pixel in BPP multiples */
-	regs->gfx.pixel_inc = 1;
-	/* only used if video is played over fb */
-	regs->gfx.window_skip = 0;
-	/* Gamma and palette table */
-	regs->gfx.table_ba = 0;
-
-	/* enable frame buffer graphics */
-	regs->gfx.attributes |= AMDM37X_DISPC_GFX_ATTRIBUTES_ENABLE_FLAG;
-	/* Update register values */
-	regs->control |= AMDM37X_DISPC_CONTROL_GOLCD_FLAG;
-	regs->control |= AMDM37X_DISPC_CONTROL_GODIGITAL_FLAG;
-	/* Enable output */
-	regs->control |= AMDM37X_DISPC_CONTROL_LCD_ENABLE_FLAG;
-	regs->control |= AMDM37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG;
-}
+} amdm37x_dispc_regs_t;
 
 
 #endif

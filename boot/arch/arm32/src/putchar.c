@@ -40,6 +40,28 @@
 #include <putchar.h>
 #include <str.h>
 
+#ifdef MACHINE_beaglebone
+
+/** Send a byte to the am335x serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb_bbone(uint8_t byte)
+{
+	volatile uint32_t *thr =
+		(volatile uint32_t *) BBONE_SCONS_THR;
+	volatile uint32_t *ssr =
+		(volatile uint32_t *) BBONE_SCONS_SSR;
+
+	/* Wait until transmitter is empty */
+	while (*ssr & BBONE_TXFIFO_FULL);
+
+	/* Transmit byte */
+	*thr = (uint32_t) byte;
+}
+
+#endif
+
 #ifdef MACHINE_beagleboardxm
 
 /** Send a byte to the amdm37x serial console.
@@ -105,6 +127,9 @@ static void scons_sendb_icp(uint8_t byte)
  */
 static void scons_sendb(uint8_t byte)
 {
+#ifdef MACHINE_beaglebone
+	scons_sendb_bbone(byte);
+#endif
 #ifdef MACHINE_beagleboardxm
 	scons_sendb_bbxm(byte);
 #endif

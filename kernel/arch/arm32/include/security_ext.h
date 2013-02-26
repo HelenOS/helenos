@@ -47,7 +47,7 @@
  */
 static inline bool sec_ext_is_implemented()
 {
-#ifdef PROCESSOR_armv7_a
+#ifdef PROCESSOR_ARCH_armv7_a
 	const uint32_t idpfr = ID_PFR1_read() & ID_PFR1_SEC_EXT_MASK;
 	return idpfr == ID_PFR1_SEC_EXT || idpfr == ID_PFR1_SEC_EXT_RFR;
 #endif

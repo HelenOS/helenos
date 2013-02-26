@@ -45,7 +45,7 @@
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
-#ifdef MACHINE_beagleboardxm
+#if (defined MACHINE_beagleboardxm) || (defined MACHINE_beaglebone)
 #ifndef __ASM__
 #	define KA2PA(x)	((uintptr_t) (x))
 #	define PA2KA(x)	((uintptr_t) (x))
@@ -128,9 +128,9 @@
 #define SET_FRAME_PRESENT_ARCH(ptl3, i) \
 	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
-#if defined(PROCESSOR_armv6) | defined(PROCESSOR_armv7_a)
+#if defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_ARCH_armv7_a)
 #include "page_armv6.h"
-#elif defined(PROCESSOR_armv4) | defined(PROCESSOR_armv5)
+#elif defined(PROCESSOR_ARCH_armv4) | defined(PROCESSOR_ARCH_armv5)
 #include "page_armv4.h"
 #else
 #error "Unsupported architecture"
