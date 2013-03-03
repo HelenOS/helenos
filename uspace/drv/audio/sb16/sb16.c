@@ -30,6 +30,7 @@
 
 #include <errno.h>
 #include <str_error.h>
+#include <macros.h>
 #include <audio_mixer_iface.h>
 #include <audio_pcm_iface.h>
 
@@ -72,7 +73,7 @@ static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
 
 size_t sb16_irq_code_size(void)
 {
-	return sizeof(irq_cmds) / sizeof(irq_cmds[0]);
+	return ARRAY_SIZE(irq_cmds);
 }
 
 void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[], irq_pio_range_t ranges[])

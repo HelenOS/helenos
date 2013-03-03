@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <libarch/ddi.h>
+#include <macros.h>
 #include <unistd.h>
 
 #include "ddf_log.h"
@@ -127,22 +128,20 @@ static const volume_item_t volume_ct1745[] = {
 };
 
 static const struct {
-	size_t count;
 	const volume_item_t *table;
+	size_t count;
 } volume_table[] = {
-	[SB_MIXER_NONE] = { 0, NULL },
-	[SB_MIXER_UNKNOWN] = { 0, NULL },
-	[SB_MIXER_CT1335] = {
-	    sizeof(volume_ct1335) / sizeof(volume_item_t), volume_ct1335 },
-	[SB_MIXER_CT1345] = {
-	    sizeof(volume_ct1345) / sizeof(volume_item_t), volume_ct1345 },
-	[SB_MIXER_CT1745] = {
-	    sizeof(volume_ct1745) / sizeof(volume_item_t), volume_ct1745 },
+	[SB_MIXER_NONE] = { NULL, 0 },
+	[SB_MIXER_UNKNOWN] = { NULL, 0 },
+	[SB_MIXER_CT1335] = { volume_ct1335, ARRAY_SIZE(volume_ct1335) },
+	[SB_MIXER_CT1345] = { volume_ct1345, ARRAY_SIZE(volume_ct1345) },
+	[SB_MIXER_CT1745] = { volume_ct1745, ARRAY_SIZE(volume_ct1745) },
 };
 
 const char * sb_mixer_type_str(sb_mixer_type_t type)
 {
-	static const char * names[] = {
+	static const char *names[] = {
+		[SB_MIXER_NONE] = "No mixer",
 		[SB_MIXER_CT1335] = "CT 1335",
 		[SB_MIXER_CT1345] = "CT 1345",
 		[SB_MIXER_CT1745] = "CT 1745",

@@ -39,6 +39,7 @@
 #include <device/hw_res.h>
 #include <libarch/ddi.h>
 #include <libarch/barrier.h>
+#include <macros.h>
 #include <str_error.h>
 #include <audio_pcm_iface.h>
 
@@ -73,7 +74,7 @@ static inline const char * dsp_state_to_str(dsp_state_t state)
 		[DSP_READY] = "READY",
 		[DSP_NO_BUFFER] = "NO BUFFER",
 	};
-	if (state < (sizeof(state_names) / sizeof(state_names[0])))
+	if (state < ARRAY_SIZE(state_names))
 		return state_names[state];
 	return "UNKNOWN";
 }
