@@ -54,7 +54,7 @@ void before_thread_runs_arch(void)
 	
 	asm volatile (
 		"mtsprg0 %[ksp]\n"
-		:: [ksp] "r" (KA2PA(&THREAD->kstack[STACK_SIZE - SP_DELTA]))
+		:: [ksp] "r" (KA2PA(&THREAD->kstack[STACK_SIZE]))
 	);
 }
 

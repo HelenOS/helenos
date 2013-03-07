@@ -105,6 +105,8 @@ typedef struct istate {
 	uint64_t in4;
 	uint64_t in5;
 	uint64_t in6;
+
+	uint64_t alignment;
 } istate_t;
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
