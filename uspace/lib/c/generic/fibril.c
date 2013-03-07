@@ -94,13 +94,13 @@ static void fibril_main(void)
  */
 fibril_t *fibril_setup(void)
 {
-	tcb_t *tcb = __make_tls();
+	tcb_t *tcb = tls_make();
 	if (!tcb)
 		return NULL;
 	
 	fibril_t *fibril = malloc(sizeof(fibril_t));
 	if (!fibril) {
-		__free_tls(tcb);
+		tls_free(tcb);
 		return NULL;
 	}
 	
@@ -121,7 +121,7 @@ fibril_t *fibril_setup(void)
 
 void fibril_teardown(fibril_t *fibril)
 {
-	__free_tls(fibril->tcb);
+	tls_free(fibril->tcb);
 	free(fibril);
 }
 
