@@ -421,5 +421,11 @@ int posix_pipe(int fildes[2])
 	not_implemented();
 }
 
+unsigned int posix_alarm(unsigned int seconds)
+{
+	not_implemented();
+	return 0;
+}
+
 /** @}
  */

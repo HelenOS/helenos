@@ -145,6 +145,8 @@ extern int __POSIX_DEF__(execvp)(const char *file, char *const argv[]);
 /* Creating a Pipe */
 extern int __POSIX_DEF__(pipe)(int fildes[2]);
 
+/* Issue alarm signal. */
+extern unsigned int __POSIX_DEF__(alarm)(unsigned int);
 
 #endif /* POSIX_UNISTD_H_ */
 
