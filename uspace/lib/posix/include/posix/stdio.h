@@ -190,7 +190,7 @@ extern int __POSIX_DEF__(putchar_unlocked)(int c);
 extern int __POSIX_DEF__(remove)(const char *path);
 
 /* Renaming Files */
-extern int __POSIX_DEF__(rename)(const char *old, const char *new);
+extern int __POSIX_DEF__(rename)(const char *oldname, const char *newname);
 
 /* Temporary Files */
 #undef L_tmpnam
