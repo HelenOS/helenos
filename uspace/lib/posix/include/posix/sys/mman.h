@@ -48,6 +48,7 @@
 #define MAP_PRIVATE    (1 << 1)
 #define MAP_FIXED      (1 << 2)
 #define MAP_ANONYMOUS  (1 << 3)
+#define MAP_ANON MAP_ANONYMOUS
 
 #undef PROT_NONE
 #undef PROT_READ
