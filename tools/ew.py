@@ -38,7 +38,7 @@ import autotool
 
 def run_in_console(cmd, title):
 	cmdline = 'xterm -T ' + '"' + title + '"' + ' -e ' + cmd
-	print cmdline
+	print(cmdline)
 	subprocess.call(cmdline, shell = True);
 
 def pc_options():
@@ -80,7 +80,7 @@ def qemu_nic_rtl8139_options():
 
 def qemu_net_options():
 	nic_options = qemu_nic_e1k_options()
-	return nic_options + ' -net user -redir udp:8080::8080 -redir udp:8081::8081 -redir tcp:8080::8080 -redir tcp:8081::8081'
+	return nic_options + ' -net user -redir udp:8080::8080 -redir udp:8081::8081 -redir tcp:8080::8080 -redir tcp:8081::8081 -redir tcp:2223::2223'
 
 def qemu_usb_options():
 	return ''
@@ -113,7 +113,7 @@ def qemu_run(platform, machine, console, image, networking, storage, usb):
 			title += ' on ' + machine
 		run_in_console(cmdline, title)
 	else:
-		print cmdline
+		print(cmdline)
 		subprocess.call(cmdline, shell = True)
 		
 def ski_run(platform, machine, console, image, networking, storage, usb):
@@ -158,7 +158,7 @@ def run():
 	try:
 		emu_run, console, image, networking, storage, usb = emulators[platform][mach]
 	except:
-		print "Cannot start emulation for the chosen configuration."
+		print("Cannot start emulation for the chosen configuration.")
 		return
 
 	emu_run(platform, mach, console, image, networking, storage, usb)
