@@ -32,7 +32,7 @@
 /** @file Network serial terminal emulator.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <io/console.h>
 #include <stdio.h>

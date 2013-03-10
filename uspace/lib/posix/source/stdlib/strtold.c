@@ -34,10 +34,8 @@
 
 #define LIBPOSIX_INTERNAL
 
-/* Must be first. */
-#include "posix/stdbool.h"
-
 #include "../internal/common.h"
+#include "libc/stdbool.h"
 #include "posix/stdlib.h"
 
 #include "posix/assert.h"

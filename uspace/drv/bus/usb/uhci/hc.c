@@ -34,7 +34,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <adt/list.h>
-#include <libarch/ddi.h>
+#include <ddi.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>

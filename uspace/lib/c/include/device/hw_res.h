@@ -37,7 +37,7 @@
 
 #include <ipc/dev_iface.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define DMA_MODE_ON_DEMAND  0
 #define DMA_MODE_WRITE      (1 << 2)

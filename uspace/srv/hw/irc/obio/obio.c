@@ -48,7 +48,7 @@
 #include <as.h>
 #include <ddi.h>
 #include <align.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <async.h>
 #include <align.h>

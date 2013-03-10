@@ -39,7 +39,7 @@
 #include <fibril_synch.h>
 #include <sys/types.h>
 #include <loc.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <ipc/vfs.h>
 #include <task.h>
 

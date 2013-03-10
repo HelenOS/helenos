@@ -39,7 +39,7 @@
 #include <macros.h>
 #include <errno.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <tinput.h>
 
 #define LIN_TO_COL(ti, lpos) ((lpos) % ((ti)->con_cols))
@@ -103,7 +103,9 @@ static void tinput_display_prompt(tinput_t *ti)
 
 static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 {
-	wchar_t dbuf[INPUT_MAX_SIZE + 1];
+	wchar_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(wchar_t));
+	if (!dbuf)
+		return;	
 	
 	size_t sa;
 	size_t sb;
@@ -145,6 +147,8 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 		putchar(' ');
 	
 	console_flush(ti->console);
+
+	free(dbuf);
 }
 
 static char *tinput_get_str(tinput_t *ti)

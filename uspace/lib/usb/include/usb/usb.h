@@ -34,7 +34,7 @@
 #ifndef LIBUSB_USB_H_
 #define LIBUSB_USB_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <byteorder.h>
 

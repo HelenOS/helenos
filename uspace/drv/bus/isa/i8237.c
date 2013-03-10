@@ -35,11 +35,10 @@
  */
 
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <ddf/log.h>
 #include "i8237.h"
 

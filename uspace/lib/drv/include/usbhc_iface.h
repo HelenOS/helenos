@@ -41,7 +41,7 @@
 
 #include "ddf/driver.h"
 #include <usb/usb.h>
-#include <bool.h>
+#include <stdbool.h>
 
 int usbhc_request_address(async_exch_t *, usb_address_t *, bool, usb_speed_t);
 int usbhc_bind_address(async_exch_t *, usb_address_t, devman_handle_t);

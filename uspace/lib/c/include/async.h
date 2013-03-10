@@ -43,7 +43,7 @@
 #include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <task.h>
 
 typedef ipc_callid_t aid_t;

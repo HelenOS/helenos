@@ -45,7 +45,7 @@
 #include <align.h>
 #include <macros.h>
 #include <clipboard.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #include "sheet.h"
 

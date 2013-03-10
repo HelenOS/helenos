@@ -61,12 +61,6 @@
 
 static void itlb_pte_copy(pte_t *);
 static void dtlb_pte_copy(pte_t *, bool);
-static void do_fast_instruction_access_mmu_miss_fault(istate_t *, uintptr_t,
-    const char *);
-static void do_fast_data_access_mmu_miss_fault(istate_t *, uint64_t,
-    const char *);
-static void do_fast_data_access_protection_fault(istate_t *,
-    uint64_t, const char *);
 
 /*
  * The assembly language routine passes a 64-bit parameter to the Data Access
@@ -234,10 +228,7 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			do_fast_instruction_access_mmu_miss_fault(istate,
-			    istate->tpc, __func__);
-		}
+		as_page_fault(va, PF_ACCESS_EXEC, istate);
 	}
 }
 
@@ -263,11 +254,9 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 	if (ctx == ASID_KERNEL) {
 		if (va == 0) {
 			/* NULL access in kernel */
-			do_fast_data_access_mmu_miss_fault(istate, page_and_ctx,
-			    __func__);
+			panic("NULL pointer dereference.");
 		}
-		do_fast_data_access_mmu_miss_fault(istate, page_and_ctx, "Unexpected "
-		    "kernel page fault.");
+		panic("Unexpected kernel page fault.");
 	}
 
 	t = page_mapping_find(AS, va, true);
@@ -286,10 +275,7 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			do_fast_data_access_mmu_miss_fault(istate, page_and_ctx,
-			    __func__);
-		}
+		as_page_fault(va, PF_ACCESS_READ, istate);
 	}
 }
 
@@ -328,10 +314,7 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
-			do_fast_data_access_protection_fault(istate, page_and_ctx,
-			    __func__);
-		}
+		as_page_fault(va, PF_ACCESS_WRITE, istate);
 	}
 }
 
@@ -343,32 +326,6 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 void tlb_print(void)
 {
 	printf("Operation not possible on Niagara.\n");
-}
-
-void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, uintptr_t va,
-    const char *str)
-{
-	fault_if_from_uspace(istate, "%s, address=%p.", str,
-	    (void *) va);
-	panic_memtrap(istate, PF_ACCESS_EXEC, va, str);
-}
-
-void do_fast_data_access_mmu_miss_fault(istate_t *istate,
-    uint64_t page_and_ctx, const char *str)
-{
-	fault_if_from_uspace(istate, "%s, page=%p (asid=%" PRId64 ").", str,
-	    (void *) DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
-	panic_memtrap(istate, PF_ACCESS_UNKNOWN, DMISS_ADDRESS(page_and_ctx),
-	    str);
-}
-
-void do_fast_data_access_protection_fault(istate_t *istate,
-    uint64_t page_and_ctx, const char *str)
-{
-	fault_if_from_uspace(istate, "%s, page=%p (asid=%" PRId64 ").", str,
-	    (void *) DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
-	panic_memtrap(istate, PF_ACCESS_WRITE, DMISS_ADDRESS(page_and_ctx),
-	    str);
 }
 
 /**

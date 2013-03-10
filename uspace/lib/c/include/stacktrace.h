@@ -37,7 +37,7 @@
 #define LIBC_STACKTRACE_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef struct {
 	void *op_arg;

@@ -52,7 +52,7 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.22"
+BINUTILS_VERSION="2.23.1"
 BINUTILS_RELEASE=""
 GCC_VERSION="4.7.2"
 GDB_VERSION="7.5"
@@ -273,7 +273,7 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
 	download_fetch "${GCC_SOURCE}" "${GCC}" "cc308a0891e778cfda7a151ab8a6e762"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "24a6779a9fe0260667710de1b082ef61"
 }

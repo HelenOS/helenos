@@ -36,7 +36,7 @@
 #define TESTER_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stacktrace.h>
 
 #define IPC_TEST_SERVICE  10240
@@ -84,6 +84,7 @@ extern const char *test_print2(void);
 extern const char *test_print3(void);
 extern const char *test_print4(void);
 extern const char *test_print5(void);
+extern const char *test_print6(void);
 extern const char *test_console1(void);
 extern const char *test_stdio1(void);
 extern const char *test_stdio2(void);
@@ -104,7 +105,6 @@ extern const char *test_malloc3(void);
 extern const char *test_mapping1(void);
 extern const char *test_serial1(void);
 extern const char *test_virtchar1(void);
-extern const char *test_ext2_1(void);
 extern const char *test_devman1(void);
 extern const char *test_devman2(void);
 

@@ -32,7 +32,13 @@ BFD = binary
 
 ATSIGN = %
 
-GCC_CFLAGS += -march=armv4 -fno-omit-frame-pointer -mapcs-frame
+GCC_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
+
+ifeq ($(CONFIG_FPU),y)
+# This is necessary to allow vmsr insn and fpexc manipulation
+# Use vfp32 to allow context save/restore of d16-d31 regs.
+AFLAGS += -mfloat-abi=hard -mfpu=vfp3
+endif
 
 BITS = 32
 ENDIANESS = LE
@@ -61,16 +67,25 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/page_fault.c \
 	arch/$(KARCH)/src/ras.c
 
+ifeq ($(CONFIG_FPU),y)
+	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu_context.c
+	ARCH_SOURCES +=	arch/$(KARCH)/src/fpu.s
+endif
+
 ifeq ($(MACHINE),gta02)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
 endif
 
-ifeq ($(MACHINE),testarm)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
-endif
-
 ifeq ($(MACHINE),integratorcp)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
+endif
+
+ifeq ($(MACHINE),beagleboardxm)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/beagleboardxm/beagleboardxm.c
+endif
+
+ifeq ($(MACHINE),beaglebone)
+        ARCH_SOURCES += arch/$(KARCH)/src/mach/beaglebone/beaglebone.c
 endif
 
 ifeq ($(CONFIG_PL050),y)

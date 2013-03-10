@@ -39,7 +39,7 @@
 #define LIBC_NIC_H_
 
 #include <nic/eth_phys.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /** Ethernet address length. */
 #define ETH_ADDR  6

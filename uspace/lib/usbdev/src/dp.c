@@ -44,7 +44,7 @@
 #include <str_error.h>
 #include <errno.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <usb/dev/dp.h>
 #include <usb/descriptor.h>
 

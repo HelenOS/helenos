@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <str_error.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>

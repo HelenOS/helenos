@@ -52,6 +52,7 @@ test_t tests[] = {
 #include "print/print3.def"
 #include "print/print4.def"
 #include "print/print5.def"
+#include "print/print6.def"
 #include "console/console1.def"
 #include "stdio/stdio1.def"
 #include "stdio/stdio2.def"
@@ -72,7 +73,6 @@ test_t tests[] = {
 #include "mm/mapping1.def"
 #include "hw/serial/serial1.def"
 #include "hw/misc/virtchar1.def"
-#include "ext2/ext2_1.def"
 	{NULL, NULL, NULL, false}
 };
 

@@ -60,12 +60,6 @@
 #define USER_ADDRESS_SPACE_START    USER_ADDRESS_SPACE_START_ARCH
 #define USER_ADDRESS_SPACE_END      USER_ADDRESS_SPACE_END_ARCH
 
-#ifdef USTACK_ADDRESS_ARCH
-	#define USTACK_ADDRESS  USTACK_ADDRESS_ARCH
-#else
-	#define USTACK_ADDRESS  (USER_ADDRESS_SPACE_END - (STACK_SIZE - 1))
-#endif
-
 /** Kernel address space. */
 #define FLAG_AS_KERNEL  (1 << 0)
 
@@ -73,14 +67,17 @@
 #define AS_AREA_ATTR_NONE     0
 #define AS_AREA_ATTR_PARTIAL  1  /**< Not fully initialized area. */
 
-/** The page fault was not resolved by as_page_fault(). */
-#define AS_PF_FAULT  0
-
 /** The page fault was resolved by as_page_fault(). */
-#define AS_PF_OK  1
+#define AS_PF_OK     0 
 
 /** The page fault was caused by memcpy_from_uspace() or memcpy_to_uspace(). */
-#define AS_PF_DEFER  2
+#define AS_PF_DEFER  1
+
+/** The page fault was not resolved by as_page_fault(). */
+#define AS_PF_FAULT  2
+
+/** The page fault was not resolved by as_page_fault(). Non-verbose version. */
+#define AS_PF_SILENT 3
 
 /** Address space structure.
  *
@@ -222,6 +219,9 @@ typedef struct mem_backend {
 	bool (* resize)(as_area_t *, size_t);
 	void (* share)(as_area_t *);
 	void (* destroy)(as_area_t *);
+
+	bool (* is_resizable)(as_area_t *);
+	bool (* is_shareable)(as_area_t *);
 
 	int (* page_fault)(as_area_t *, uintptr_t, pf_access_t);
 	void (* frame_free)(as_area_t *, uintptr_t, uintptr_t);

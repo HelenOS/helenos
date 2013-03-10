@@ -59,4 +59,41 @@ jump_to_kernel:
 	# Make sure that the I-cache, D-cache and memory are mutually coherent
 	# before passing control to the copied code.
 	#
+
+	#
+	# r0 is kernel entry point
+	# r1 is pointer to the bootinfo structure
+
+#define CP15_C1_IC		12
+#define CP15_C1_BP		11
+#define CP15_C1_DC		2
+	# Disable I-cache and D-cache before the kernel is started.
+	mrc	p15, 0, r4, c1, c0, 0
+	bic	r4, r4, #(1 << CP15_C1_DC)
+	bic	r4, r4, #(1 << CP15_C1_IC)
+	bic	r4, r4, #(1 << CP15_C1_BP)
+	mcr	p15, 0, r4, c1, c0, 0
+
+	
+	#Wait for the operations to complete
+#ifdef PROCESSOR_ARCH_armv7_a
+	dsb
+#else
+	#cp15 dsb, r4 is ignored (should be zero)
+	mcr p15, 0, r4, c7, c10, 4
+#endif
+	
+	# Clean ICache and BPredictors, r4 ignored (SBZ)
+	mcr p15, 0, r4, c7, c5, 0
+	nop
+
+	#Wait for the operations to complete
+#ifdef PROCESSOR_ARCH_armv7_a
+	isb
+	nop
+#else
+	# cp15 isb
+	mcr p15, 0, r4, c7, c5, 4
+	nop
+#endif
 	mov pc, r0

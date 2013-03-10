@@ -128,28 +128,50 @@ void drawctx_transfer(drawctx_t *context,
 		return;
 	}
 
-	bool clipped = false;
-	bool masked = false;
+	bool transfer_fast = source_is_fast(context->source)
+	    && (context->shall_clip == false)
+	    && (context->mask == NULL)
+	    && (context->compose == compose_src || context->compose == compose_over);
 
-	for (sysarg_t _y = y; _y < y + height; ++_y) {
-		for (sysarg_t _x = x; _x < x + width; ++_x) {
-			if (context->shall_clip) {
-				clipped = _x < context->clip_x && _x >= context->clip_width
-				    && _y < context->clip_y && _y >= context->clip_height;
-			}
-			
-			if (context->mask) {
-				pixel_t p = surface_get_pixel(context->mask, _x, _y);
-				masked = p > 0 ? false : true;
-			}
+	if (transfer_fast) {
 
-			if (!clipped && !masked) {
-				pixel_t p_src = source_determine_pixel(context->source, _x, _y);
-				pixel_t p_dst = surface_get_pixel(context->surface, _x, _y);
-				pixel_t p_res = context->compose(p_src, p_dst);
-				surface_put_pixel(context->surface, _x, _y, p_res);
+		for (sysarg_t _y = y; _y < y + height; ++_y) {
+			pixel_t *src = source_direct_access(context->source, x, _y);
+			pixel_t *dst = pixelmap_pixel_at(surface_pixmap_access(context->surface), x, _y);
+			if (src && dst) {
+				sysarg_t count = width;
+				while (count-- != 0) {
+					*dst++ = *src++;
+				}
 			}
 		}
+		surface_add_damaged_region(context->surface, x, y, width, height);
+
+	} else {
+
+		bool clipped = false;
+		bool masked = false;
+		for (sysarg_t _y = y; _y < y + height; ++_y) {
+			for (sysarg_t _x = x; _x < x + width; ++_x) {
+				if (context->shall_clip) {
+					clipped = _x < context->clip_x && _x >= context->clip_width
+					    && _y < context->clip_y && _y >= context->clip_height;
+				}
+
+				if (context->mask) {
+					pixel_t p = surface_get_pixel(context->mask, _x, _y);
+					masked = p > 0 ? false : true;
+				}
+
+				if (!clipped && !masked) {
+					pixel_t p_src = source_determine_pixel(context->source, _x, _y);
+					pixel_t p_dst = surface_get_pixel(context->surface, _x, _y);
+					pixel_t p_res = context->compose(p_src, p_dst);
+					surface_put_pixel(context->surface, _x, _y, p_res);
+				}
+			}
+		}
+
 	}
 }
 

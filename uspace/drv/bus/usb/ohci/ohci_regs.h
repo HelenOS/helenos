@@ -244,7 +244,7 @@ do { \
 #define RHPS_OCIC_FLAG (1 << 19) /* port over-current change WC */
 #define RHPS_PRSC_FLAG (1 << 20) /* port reset status change WC */
 #define RHPS_CHANGE_WC_MASK (0x1f0000)
-} __attribute__((packed)) ohci_regs_t;
+} ohci_regs_t;
 #endif
 /**
  * @}

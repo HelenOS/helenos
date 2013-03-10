@@ -37,7 +37,7 @@
 #define LIBC_IO_CHARFIELD_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <io/color.h>
 #include <io/style.h>
 #include <io/pixel.h>

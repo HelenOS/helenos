@@ -48,7 +48,6 @@
  */
 
 #include <stdio.h>
-#include <libarch/ddi.h>
 #include <ddi.h>
 #include <async.h>
 #include <as.h>
@@ -60,7 +59,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <byteorder.h>
 #include <task.h>
 #include <macros.h>

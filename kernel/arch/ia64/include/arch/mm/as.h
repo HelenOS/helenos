@@ -42,8 +42,6 @@
 #define USER_ADDRESS_SPACE_START_ARCH    UINT64_C(0x0000000000000000)
 #define USER_ADDRESS_SPACE_END_ARCH      UINT64_C(0xdfffffffffffffff)
 
-#define USTACK_ADDRESS_ARCH  UINT64_C(0x0000000ff0000000)
-
 typedef struct {
 } as_arch_t;
 

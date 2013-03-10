@@ -32,7 +32,7 @@
  * HC Endpoint management.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
 
