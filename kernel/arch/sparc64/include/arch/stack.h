@@ -35,6 +35,10 @@
 #ifndef KERN_sparc64_STACK_H_
 #define KERN_sparc64_STACK_H_
 
+#include <config.h>
+
+#define MEM_STACK_SIZE	STACK_SIZE
+
 #define STACK_ITEM_SIZE			8
 
 /** According to SPARC Compliance Definition, every stack frame is 16-byte aligned. */
