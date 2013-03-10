@@ -1,0 +1,1 @@
+../../../mips32/include/libarch/cp0.h
