@@ -30,11 +30,13 @@ BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
 CLANG_ARCH = x86_64
+CLANG_TARGET = x86_64-unknown-linux
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
+CLANG_CFLAGS += $(CMN1)
 
 BITS = 64
 ENDIANESS = LE
