@@ -34,7 +34,7 @@ ifeq ($(MACHINE), gta02)
 	POSTBUILD = Makefile.uboot
 endif
 
-ifeq ($(MACHINE), beagleboardxm)
+ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))
 	BOOT_OUTPUT = image.boot
 	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
 	LADDR = 0x80000000
@@ -48,16 +48,17 @@ BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE
-EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR)) -mno-unaligned-access
+EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
 ifeq ($(MACHINE), gta02)
 RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
-	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24xx_uart
+	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
 endif
 
 RD_DRVS += \
 	infrastructure/rootamdm37x \
+	fb/amdm37x_dispc \
 	bus/usb/ehci \
 	bus/usb/ohci \
 	bus/usb/usbflbk \

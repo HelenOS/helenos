@@ -47,10 +47,10 @@ extern char _tdata_end;
 extern char _tbss_start;
 extern char _tbss_end;
 
-extern tcb_t *__make_tls(void);
-extern tcb_t *__alloc_tls(void **, size_t);
-extern void __free_tls(tcb_t *);
-extern void __free_tls_arch(tcb_t *, size_t);
+extern tcb_t *tls_make(void);
+extern tcb_t *tls_alloc_arch(void **, size_t);
+extern void tls_free(tcb_t *);
+extern void tls_free_arch(tcb_t *, size_t);
 
 #ifdef CONFIG_TLS_VARIANT_1
 extern tcb_t *tls_alloc_variant_1(void **, size_t);
