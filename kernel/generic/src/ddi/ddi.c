@@ -335,7 +335,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, unsigned int map_flags,
 	else
 		order = fnzb(pages - 1) + 1;
 	
-	*phys = frame_alloc_noreserve(order, 0);
+	*phys = frame_alloc_noreserve(order, FRAME_DMA);
 	if (*phys == NULL)
 		return ENOMEM;
 	
