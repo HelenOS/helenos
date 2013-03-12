@@ -2091,13 +2091,16 @@ static int compositor_srv_init(char *input_svc, char *name)
 
 	/* Establish input bidirectional connection. */
 	rc = input_connect(input_svc);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Failed to connect to input service.\n", NAME);
 		return rc;
+	}
 
 	/* Create viewports and connect them to visualizers. */
 	category_id_t cat_id;
 	rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
+		printf("%s: Failed to get visualizer category.\n", NAME);
 		input_disconnect();
 		return -1;
 	}
@@ -2106,6 +2109,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	size_t svcs_cnt = 0;
 	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
 	if (rc != EOK || svcs_cnt == 0) {
+		printf("%s: Failed to get visualizer category services.\n", NAME);
 		input_disconnect();
 		return -1;
 	}
@@ -2122,6 +2126,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	}
 	
 	if (list_empty(&viewport_list)) {
+		printf("%s: Failed to get view ports.\n", NAME);
 		input_disconnect();
 		return -1;
 	}
