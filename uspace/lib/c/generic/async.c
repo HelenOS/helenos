@@ -349,7 +349,7 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 static async_client_conn_t client_connection = default_client_connection;
 static async_interrupt_handler_t interrupt_received = default_interrupt_received;
-static size_t interrupt_handler_stksz = (size_t) -1;
+static size_t interrupt_handler_stksz = FIBRIL_DFLT_STK_SIZE;
 
 /** Setter for client_connection function pointer.
  *
@@ -374,7 +374,7 @@ void async_set_interrupt_received(async_interrupt_handler_t intr)
 
 /** Set the stack size for the interrupt handler notification fibrils.
  *
- * @param size Stack size. Use -1 to use the system default stack size.
+ * @param size Stack size in bytes.
  */
 void async_set_interrupt_handler_stack_size(size_t size)
 {

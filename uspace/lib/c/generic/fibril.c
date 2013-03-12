@@ -255,7 +255,7 @@ ret_0:
  *
  * @param func Implementing function of the new fibril.
  * @param arg Argument to pass to func.
- * @param stksz Stack size, -1 for the system default stack size.
+ * @param stksz Stack size in bytes.
  *
  * @return 0 on failure or TLS of the new fibril.
  *
@@ -268,7 +268,8 @@ fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t stksz)
 	if (fibril == NULL)
 		return 0;
 	
-	size_t stack_size = (stksz == (size_t) -1) ? stack_size_get() : stksz;
+	size_t stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
+	    stack_size_get() : stksz;
 	fibril->stack = as_area_create((void *) -1, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE);
