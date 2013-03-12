@@ -85,7 +85,9 @@ typedef struct fibril {
 extern int context_save(context_t *ctx) __attribute__((returns_twice));
 extern void context_restore(context_t *ctx) __attribute__((noreturn));
 
-extern fid_t fibril_create(int (*func)(void *), void *arg);
+#define fibril_create(func, arg) \
+	fibril_create_generic((func), (arg), (size_t) -1)
+extern fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t);
 extern void fibril_destroy(fid_t fid);
 extern fibril_t *fibril_setup(void);
 extern void fibril_teardown(fibril_t *f);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2013 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips64
+/** @addtogroup amd64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_mips64_STACK_H_
-#define LIBC_mips64_STACK_H_
+#ifndef KERN_amd64_STACK_H_
+#define KERN_amd64_STACK_H_
 
-#define STACK_ITEM_SIZE  8
-#define STACK_ALIGNMENT  8
-#define ABI_STACK_FRAME  64
+#include <config.h>
+
+#define MEM_STACK_SIZE	STACK_SIZE
 
 #endif
 

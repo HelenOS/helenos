@@ -349,6 +349,7 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 static async_client_conn_t client_connection = default_client_connection;
 static async_interrupt_handler_t interrupt_received = default_interrupt_received;
+static size_t interrupt_handler_stksz = (size_t) -1;
 
 /** Setter for client_connection function pointer.
  *
@@ -369,6 +370,15 @@ void async_set_client_connection(async_client_conn_t conn)
 void async_set_interrupt_received(async_interrupt_handler_t intr)
 {
 	interrupt_received = intr;
+}
+
+/** Set the stack size for the interrupt handler notification fibrils.
+ *
+ * @param size Stack size. Use -1 to use the system default stack size.
+ */
+void async_set_interrupt_handler_stack_size(size_t size)
+{
+	interrupt_handler_stksz = size;
 }
 
 /** Mutex protecting inactive_exch_list and avail_phone_cv.
@@ -586,7 +596,8 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 	msg->callid = callid;
 	msg->call = *call;
 	
-	fid_t fid = fibril_create(notification_fibril, msg);
+	fid_t fid = fibril_create_generic(notification_fibril, msg,
+	    interrupt_handler_stksz);
 	if (fid == 0) {
 		free(msg);
 		futex_up(&async_futex);
