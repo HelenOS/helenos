@@ -185,6 +185,7 @@ def get_target(config, needs_clang = False):
 	target = None
 	gnu_target = None
 	clang_target = None
+	cc_args = []
 	
 	if (config['PLATFORM'] == "abs32le"):
 		check_config(config, "CROSS_TARGET")
@@ -220,7 +221,7 @@ def get_target(config, needs_clang = False):
 	
 	if (config['PLATFORM'] == "mips32"):
 		check_config(config, "MACHINE")
-		common['CC_ARGS'].append("-mabi=32")
+		cc_args.append("-mabi=32")
 		
 		if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim")):
 			target = config['PLATFORM']
@@ -232,7 +233,7 @@ def get_target(config, needs_clang = False):
 	
 	if (config['PLATFORM'] == "mips64"):
 		check_config(config, "MACHINE")
-		common['CC_ARGS'].append("-mabi=64")
+		cc_args.append("-mabi=64")
 		
 		if (config['MACHINE'] == "msim"):
 			target = config['PLATFORM']
@@ -250,7 +251,7 @@ def get_target(config, needs_clang = False):
 		print_error(["Failed to determine target for compiler.",
 		             "Please contact the developers of HelenOS."])
 	
-	return (target, gnu_target, clang_target)
+	return (target, cc_args, gnu_target, clang_target)
 
 def check_app(args, name, details):
 	"Check whether an application can be executed"
@@ -712,7 +713,7 @@ def main():
 		# Compiler
 		common['CC_ARGS'] = []
 		if (config['COMPILER'] == "gcc_cross"):
-			target, gnu_target, clang_target_unused = get_target(config)
+			target, cc_args, gnu_target, clang_target_unused = get_target(config)
 				
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
@@ -722,6 +723,7 @@ def main():
 			
 			check_common(common, "GCC")
 			common['CC'] = common['GCC']
+			common['CC_ARGS'].extend(cc_args)
 		
 		if (config['COMPILER'] == "gcc_native"):
 			check_gcc(None, "", common, PACKAGE_GCC)
@@ -737,11 +739,12 @@ def main():
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
 		if (config['COMPILER'] == "clang"):
-			target, gnu_target, clang_target = get_target(config, True)
+			target, cc_args, gnu_target, clang_target = get_target(config, True)
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
 			
 			common['CC'] = "clang"
+			common['CC_ARGS'].extend(cc_args)
 			common['CC_ARGS'].append("-target")
 			common['CC_ARGS'].append(clang_target)
 			check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")
