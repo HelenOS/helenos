@@ -391,6 +391,9 @@ int main(int argc, char *argv[])
 	} else {
 		rc = console(HID_INPUT, HID_OUTPUT);
 		if (rc == EOK) {
+#ifndef CONFIG_VC_COUNT
+#define CONFIG_VC_COUNT 6
+#endif
 			switch((unsigned)CONFIG_VC_COUNT) {
 			default:
 			case 6:	getterm("term/vc5", "/app/bdsh", false);
