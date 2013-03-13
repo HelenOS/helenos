@@ -176,7 +176,12 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		async_answer_0(callid, rc);
 		goto out;
 	}
-
+	
+	if (addr_size != sizeof(struct sockaddr_in)) {
+		async_answer_0(callid, EINVAL);
+		goto out;
+	}
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_bind");
 	rc = socket_bind(&client->sockets, &gsock, SOCKET_GET_SOCKET_ID(call),
 	    addr, addr_size, UDP_FREE_PORTS_START, UDP_FREE_PORTS_END,
@@ -185,12 +190,7 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		async_answer_0(callid, rc);
 		goto out;
 	}
-
-	if (addr_size != sizeof(struct sockaddr_in)) {
-		async_answer_0(callid, EINVAL);
-		goto out;
-	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_cores_find");
 	sock_core = socket_cores_find(&client->sockets, SOCKET_GET_SOCKET_ID(call));
 	if (sock_core == NULL) {
