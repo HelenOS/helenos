@@ -405,7 +405,6 @@ static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
 	return NULL;
 }
 
-
 /**
  * @}
  */
