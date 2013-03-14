@@ -2067,6 +2067,7 @@ void async_exchange_end(async_exch_t *exch)
 		return;
 	
 	async_sess_t *sess = exch->sess;
+	assert(sess != NULL);
 	
 	atomic_dec(&sess->refcnt);
 	
