@@ -248,77 +248,76 @@ static void udp_sock_accept(udp_client_t *client, ipc_callid_t callid, ipc_call_
 
 static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	int socket_id;
-	int fragments;
-	int index;
-	struct sockaddr_in *addr;
-	size_t addr_size;
-	socket_core_t *sock_core;
-	udp_sockdata_t *socket;
-	udp_sock_t fsock, *fsockp;
-	ipc_call_t answer;
-	ipc_callid_t wcallid;
-	size_t length;
-	uint8_t buffer[UDP_FRAGMENT_SIZE];
-	udp_error_t urc;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_send()");
-
-	addr = NULL;
-
+	
+	struct sockaddr_in *addr = NULL;
+	udp_sock_t fsock;
+	udp_sock_t *fsock_ptr;
+	
 	if (IPC_GET_IMETHOD(call) == NET_SOCKET_SENDTO) {
-		rc = async_data_write_accept((void **) &addr, false,
+		size_t addr_size;
+		int rc = async_data_write_accept((void **) &addr, false,
 		    0, 0, 0, &addr_size);
 		if (rc != EOK) {
 			async_answer_0(callid, rc);
 			goto out;
 		}
-
+		
 		if (addr_size != sizeof(struct sockaddr_in)) {
 			async_answer_0(callid, EINVAL);
 			goto out;
 		}
-
+		
 		fsock.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
 		fsock.port = uint16_t_be2host(addr->sin_port);
-		fsockp = &fsock;
-	} else {
-		fsockp = NULL;
-	}
-
-	socket_id = SOCKET_GET_SOCKET_ID(call);
-	fragments = SOCKET_GET_DATA_FRAGMENTS(call);
+		fsock_ptr = &fsock;
+	} else
+		fsock_ptr = NULL;
+	
+	int socket_id = SOCKET_GET_SOCKET_ID(call);
+	
 	SOCKET_GET_FLAGS(call);
-
-	sock_core = socket_cores_find(&client->sockets, socket_id);
+	
+	socket_core_t *sock_core =
+	    socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
 		goto out;
 	}
-
-	if (sock_core->port == 0) {
+	
+	udp_sockdata_t *socket =
+	    (udp_sockdata_t *) sock_core->specific_data;
+	
+	if ((sock_core->port == 0) || (sock_core->port == -1)) {
 		/* Implicitly bind socket to port */
-		rc = socket_bind(&client->sockets, &gsock, SOCKET_GET_SOCKET_ID(call),
-		    addr, addr_size, UDP_FREE_PORTS_START, UDP_FREE_PORTS_END,
-		    last_used_port);
+		int rc = socket_bind_free_port(&gsock, sock_core,
+		    UDP_FREE_PORTS_START, UDP_FREE_PORTS_END, last_used_port);
 		if (rc != EOK) {
 			async_answer_0(callid, rc);
 			goto out;
 		}
+		
+		assert(sock_core->port > 0);
+		udp_error_t urc = udp_uc_set_local_port(socket->assoc,
+		    sock_core->port);
+		
+		if (urc != UDP_EOK) {
+			// TODO: better error handling
+			async_answer_0(callid, EINTR);
+			goto out;
+		}
 	}
-
-	socket = (udp_sockdata_t *)sock_core->specific_data;
+	
 	fibril_mutex_lock(&socket->lock);
-
+	
 	if (socket->assoc->ident.local.addr.ipv4 == UDP_IPV4_ANY) {
 		/* Determine local IP address */
 		inet_addr_t loc_addr, rem_addr;
-
-		rem_addr.ipv4 = fsockp ? fsock.addr.ipv4 :
+		
+		rem_addr.ipv4 = fsock_ptr ? fsock.addr.ipv4 :
 		    socket->assoc->ident.foreign.addr.ipv4;
-
-		rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
+		
+		int rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
@@ -326,34 +325,39 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			    "determine local address.");
 			return;
 		}
-
+		
 		socket->assoc->ident.local.addr.ipv4 = loc_addr.ipv4;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Local IP address is %x",
 		    socket->assoc->ident.local.addr.ipv4);
 	}
-
-
+	
 	assert(socket->assoc != NULL);
-
-	for (index = 0; index < fragments; index++) {
+	
+	int fragments = SOCKET_GET_DATA_FRAGMENTS(call);
+	for (int index = 0; index < fragments; index++) {
+		ipc_callid_t wcallid;
+		size_t length;
+		
 		if (!async_data_write_receive(&wcallid, &length)) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
 			goto out;
 		}
-
+		
 		if (length > UDP_FRAGMENT_SIZE)
 			length = UDP_FRAGMENT_SIZE;
-
-		rc = async_data_write_finalize(wcallid, buffer, length);
+		
+		uint8_t buffer[UDP_FRAGMENT_SIZE];
+		int rc = async_data_write_finalize(wcallid, buffer, length);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
 			goto out;
 		}
-
-		urc = udp_uc_send(socket->assoc, fsockp, buffer, length, 0);
-
+		
+		udp_error_t urc =
+		    udp_uc_send(socket->assoc, fsock_ptr, buffer, length, 0);
+		
 		switch (urc) {
 		case UDP_EOK:
 			rc = EOK;
@@ -370,13 +374,15 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 		default:
 			assert(false);
 		}
-
+		
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
 			goto out;
 		}
 	}
+	
+	ipc_call_t answer;
 	
 	IPC_SET_ARG1(answer, 0);
 	SOCKET_SET_DATA_FRAGMENT_SIZE(answer, UDP_FRAGMENT_SIZE);
