@@ -288,7 +288,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	udp_sockdata_t *socket =
 	    (udp_sockdata_t *) sock_core->specific_data;
 	
-	if ((sock_core->port == 0) || (sock_core->port == -1)) {
+	if (sock_core->port <= 0) {
 		/* Implicitly bind socket to port */
 		int rc = socket_bind_free_port(&gsock, sock_core,
 		    UDP_FREE_PORTS_START, UDP_FREE_PORTS_END, last_used_port);
@@ -298,6 +298,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 		}
 		
 		assert(sock_core->port > 0);
+		
 		udp_error_t urc = udp_uc_set_local_port(socket->assoc,
 		    sock_core->port);
 		
@@ -306,6 +307,8 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			async_answer_0(callid, EINTR);
 			goto out;
 		}
+		
+		last_used_port = sock_core->port;
 	}
 	
 	fibril_mutex_lock(&socket->lock);
