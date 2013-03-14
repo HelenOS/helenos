@@ -393,7 +393,14 @@ int main(int argc, char *argv[])
 		socket_print_error(stderr, listening_id, "Socket create: ", "\n");
 		return listening_id;
 	}
-
+	
+	/* Bind the listening socket */
+	rc = bind(listening_id, address, addrlen);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Socket bind: ", "\n");
+		return rc;
+	}
+	
 	/* if the stream socket is used */
 	if (type == SOCK_STREAM) {
 		/* Check backlog size */
@@ -401,20 +408,13 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Accepted sockets queue size too small (%zu). Using 3 instead.\n", size);
 			backlog = 3;
 		}
-
+		
 		/* Set the backlog */
 		rc = listen(listening_id, backlog);
 		if (rc != EOK) {
 			socket_print_error(stderr, rc, "Socket listen: ", "\n");
 			return rc;
 		}
-	}
-
-	/* Bind the listening socket */
-	rc = bind(listening_id, address, addrlen);
-	if (rc != EOK) {
-		socket_print_error(stderr, rc, "Socket bind: ", "\n");
-		return rc;
 	}
 
 	if (verbose)
