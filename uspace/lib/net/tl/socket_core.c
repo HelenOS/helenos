@@ -82,10 +82,16 @@ static void socket_destroy_core(async_sess_t *sess, socket_core_t *socket,
     void (* socket_release)(socket_core_t *socket))
 {
 	/* If bound */
+	
+	// FIXME:
+	// Temporary workaround for ticket #521
+	// (causes port leak)
+#if 0
 	if (socket->port) {
 		/* Release the port */
 		socket_port_release(global_sockets, socket);
 	}
+#endif
 	
 	dyn_fifo_destroy(&socket->accepted);
 	
