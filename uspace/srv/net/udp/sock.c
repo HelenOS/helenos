@@ -89,7 +89,7 @@ static void udp_sock_notify_data(socket_core_t *sock_core)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_notify_data(%d)", sock_core->socket_id);
 	async_exch_t *exch = async_exchange_begin(sock_core->sess);
-	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t)sock_core->socket_id,
+	async_msg_5(exch, NET_SOCKET_RECEIVED, (sysarg_t) sock_core->socket_id,
 	    UDP_FRAGMENT_SIZE, 0, 0, 1);
 	async_exchange_end(exch);
 }
@@ -531,31 +531,28 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 static void udp_sock_close(udp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	int socket_id;
-	socket_core_t *sock_core;
-	udp_sockdata_t *socket;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close()");
-	socket_id = SOCKET_GET_SOCKET_ID(call);
-
-	sock_core = socket_cores_find(&client->sockets, socket_id);
+	int socket_id = SOCKET_GET_SOCKET_ID(call);
+	
+	socket_core_t *sock_core =
+	    socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
 		return;
 	}
-
-	socket = (udp_sockdata_t *)sock_core->specific_data;
+	
+	udp_sockdata_t *socket =
+	    (udp_sockdata_t *) sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
-
-	rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
+	
+	int rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
 	    udp_free_sock_data);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, rc);
 		return;
 	}
-
+	
 	fibril_mutex_unlock(&socket->lock);
 	async_answer_0(callid, EOK);
 }
@@ -588,22 +585,22 @@ static int udp_sock_recv_fibril(void *arg)
 			fibril_condvar_wait(&sock->recv_buffer_cv,
 			    &sock->recv_buffer_lock);
 		}
-
+		
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] call udp_uc_receive()");
 		urc = udp_uc_receive(sock->assoc, sock->recv_buffer,
 		    UDP_FRAGMENT_SIZE, &rcvd, &xflags, &sock->recv_fsock);
 		sock->recv_error = urc;
-
+		
 		udp_sock_notify_data(sock->sock_core);
-
+		
 		if (urc != UDP_EOK) {
 			fibril_condvar_broadcast(&sock->recv_buffer_cv);
 			fibril_mutex_unlock(&sock->recv_buffer_lock);
 			break;
 		}
-
+		
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] got data - broadcast recv_buffer_cv");
-
+		
 		sock->recv_buffer_used = rcvd;
 		fibril_mutex_unlock(&sock->recv_buffer_lock);
 		fibril_condvar_broadcast(&sock->recv_buffer_cv);
