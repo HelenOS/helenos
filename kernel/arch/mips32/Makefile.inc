@@ -76,10 +76,7 @@ ifeq ($(MACHINE),msim)
 		arch/$(KARCH)/src/smp/dorder.c
 endif
 
-ifeq ($(MACHINE),lmalta)
-        ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
-endif
-ifeq ($(MACHINE),bmalta)
+ifeq ($(MACHINE),$(filter lmalta bmalta,$(MACHINE)))
         ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
 endif
 ifeq ($(MACHINE),msim)
