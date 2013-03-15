@@ -28,7 +28,7 @@
 
 BFD_ARCH = mips
 BFD = binary
-GCC_CFLAGS += -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
+GCC_CFLAGS += -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
 
 BITS = 32
 
@@ -38,15 +38,17 @@ BITS = 32
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
+	GCC_CFLAGS += -march=r4000
 endif
 ifeq ($(MACHINE),bmalta)
 	BFD_NAME = elf32-tradbigmips
 	ENDIANESS = BE
-	GCC_CFLAGS += -D__BE__
+	GCC_CFLAGS += -D__BE__ -march=4kc
 endif
 ifeq ($(MACHINE),lmalta)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
+	GCC_CFLAGS += -march=4kc
 endif
 
 ARCH_SOURCES = \

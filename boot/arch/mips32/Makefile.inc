@@ -28,22 +28,25 @@
 
 BFD_ARCH = mips
 BITS = 32
-EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
+EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
 
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD_OUTPUT = binary
 	ENDIANESS = LE
+	EXTRA_CFLAGS += -march=r4000
 endif
 ifeq ($(MACHINE),lmalta)
 	BFD_NAME = elf32-tradlittlemips
 	BFD_OUTPUT = elf32-tradlittlemips 
 	ENDIANESS = LE
+	EXTRA_CFLAGS += -march=4kc
 endif
 ifeq ($(MACHINE),bmalta)
 	BFD_NAME = elf32-tradbigmips
 	BFD_OUTPUT = elf32-tradbigmips 
 	ENDIANESS = BE
+	EXTRA_CFLAGS += -march=4kc
 endif
 
 
