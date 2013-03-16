@@ -213,7 +213,7 @@ int audio_pcm_get_buffer_pos(audio_pcm_sess_t *sess, size_t *pos)
 	if (!pos)
 		return EINVAL;
 	async_exch_t *exch = async_exchange_begin(sess);
-	sysarg_t value = 0;;
+	sysarg_t value = 0;
 	const int ret = async_req_1_1(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_GET_BUFFER_POS, &value);
