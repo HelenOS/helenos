@@ -200,6 +200,9 @@ static void buffer_advance(playback_t *pb, size_t bytes)
 		pb->buffer.write_ptr -= pb->buffer.size;
 }
 
+#define DPRINTF(f, ...) \
+	printf("%.2lu:%.6lu   "f, time.tv_sec % 100, time.tv_usec, __VA_ARGS__)
+
 
 static void play(playback_t *pb)
 {
@@ -208,16 +211,18 @@ static void play(playback_t *pb)
 	pb->buffer.write_ptr = pb->buffer.base;
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
 	    pcm_sample_format_str(pb->f.sample_format), pb->f.channels);
-	useconds_t work_time = 50000; /* 10 ms */
+	useconds_t work_time = 70000; /* 10 ms */
 	bool started = false;
 	size_t pos = 0;
+	struct timeval time = { 0 };
+	getuptime(&time);
 	do {
 		size_t available = buffer_avail(pb, pos);
 		/* Writing might need wrap around the end */
 		size_t bytes = fread(pb->buffer.write_ptr, sizeof(uint8_t),
 		    min(available, buffer_remain(pb)), pb->source);
 		buffer_advance(pb, bytes);
-		printf("POS %zu: %zu bytes free in buffer, read %zu, wp %zu\n",
+		DPRINTF("POS %zu: %zu bytes free in buffer, read %zu, wp %zu\n",
 		    pos, available, bytes, pb->buffer.write_ptr - pb->buffer.base);
 		available -= bytes;
 		if (available) {
@@ -225,7 +230,7 @@ static void play(playback_t *pb)
 			    sizeof(uint8_t), min(available, buffer_remain(pb)),
 			    pb->source);
 			buffer_advance(pb, bytes);
-			printf("POS %zu: %zu bytes still free in buffer, read %zu, wp %zu\n",
+			DPRINTF("POS %zu: %zu bytes still free in buffer, read %zu, wp %zu\n",
 			    pos, available, bytes, pb->buffer.write_ptr - pb->buffer.base);
 			available -= bytes;
 		}
@@ -246,7 +251,7 @@ static void play(playback_t *pb)
 
 		const useconds_t real_delay = (usecs > work_time)
 		    ? usecs - work_time : 0;
-		printf("POS %zu: %u usecs (%u) to play %zu bytes.\n",
+		DPRINTF("POS %zu: %u usecs (%u) to play %zu bytes.\n",
 		    pos, usecs, real_delay, to_play);
 		if (real_delay)
 			async_usleep(real_delay);
@@ -254,6 +259,7 @@ static void play(playback_t *pb)
 		if (ret != EOK) {
 			printf("Failed to update position indicator\n");
 		}
+		getuptime(&time);
 		if (available)
 			break;
 
@@ -296,12 +302,6 @@ int dplay(const char *device, const char *file)
 		goto close_session;
 	}
 	printf("Buffer: %p %zu.\n", pb.buffer.base, pb.buffer.size);
-
-	{
-		uintptr_t ptr = 0;
-		as_get_physical_mapping(pb.buffer.base, &ptr);
-		printf("buffer mapped at %x.\n", ptr);
-	}
 
 	pb.source = fopen(file, "rb");
 	if (pb.source == NULL) {
