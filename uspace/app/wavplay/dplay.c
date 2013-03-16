@@ -211,7 +211,7 @@ static void play(playback_t *pb)
 	pb->buffer.write_ptr = pb->buffer.base;
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
 	    pcm_sample_format_str(pb->f.sample_format), pb->f.channels);
-	useconds_t work_time = 70000; /* 10 ms */
+	useconds_t work_time = 20000; /* 20 ms */
 	bool started = false;
 	size_t pos = 0;
 	struct timeval time = { 0 };
@@ -238,7 +238,7 @@ static void play(playback_t *pb)
 		}
 
 		if (!started) {
-			const int ret = audio_pcm_start_playback(pb->device,
+			int ret = audio_pcm_start_playback(pb->device,
 			    pb->f.channels, pb->f.sampling_rate,
 			    pb->f.sample_format);
 			if (ret != EOK) {
@@ -246,6 +246,10 @@ static void play(playback_t *pb)
 				return;
 			}
 			started = true;
+			ret = audio_pcm_get_buffer_pos(pb->device, &pos);
+			if (ret != EOK) {
+				printf("Failed to update position indicator\n");
+			}
 		}
 		const size_t to_play = buffer_occupied(pb, pos);
 		const useconds_t usecs =
