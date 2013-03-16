@@ -57,7 +57,7 @@ typedef struct {
 	struct {
 		void *base;
 		size_t size;
-		void* position;
+		void* write_ptr;
 	} buffer;
 	pcm_format_t f;
 	FILE* source;
@@ -73,7 +73,7 @@ static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
 	assert(pb);
 	pb->buffer.base = NULL;
 	pb->buffer.size = 0;
-	pb->buffer.position = NULL;
+	pb->buffer.write_ptr = NULL;
 	pb->playing = false;
 	pb->source = NULL;
 	pb->device = sess;
@@ -110,18 +110,19 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 			continue;
 
 		}
-		const size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
-		   fragment_size, pb->source);
+		const size_t bytes = fread(pb->buffer.write_ptr,
+		   sizeof(uint8_t), fragment_size, pb->source);
 		printf("Copied from position %p size %zu/%zu\n",
-		    pb->buffer.position, bytes, fragment_size);
+		    pb->buffer.write_ptr, bytes, fragment_size);
 		if (bytes == 0) {
 			audio_pcm_last_playback_fragment(pb->device);
 		}
-		bzero(pb->buffer.position + bytes, fragment_size - bytes);
-		pb->buffer.position += fragment_size;
+		/* any constant is silence */
+		bzero(pb->buffer.write_ptr + bytes, fragment_size - bytes);
+		pb->buffer.write_ptr += fragment_size;
 
-		if (pb->buffer.position >= (pb->buffer.base + pb->buffer.size))
-			pb->buffer.position -= pb->buffer.size;
+		if (pb->buffer.write_ptr >= (pb->buffer.base + pb->buffer.size))
+			pb->buffer.write_ptr -= pb->buffer.size;
 	}
 }
 
@@ -145,9 +146,10 @@ static void play_fragment(playback_t *pb)
 		bzero(pb->buffer.base + bytes, fragment_size - bytes);
 	printf("Initial: Copied from position %p size %zu/%zu\n",
 	    pb->buffer.base, bytes, fragment_size);
-	pb->buffer.position = pb->buffer.base + fragment_size;
+	pb->buffer.write_ptr = pb->buffer.base + fragment_size;
 	fibril_mutex_lock(&pb->mutex);
-	const unsigned frames = pcm_format_size_to_frames(fragment_size, &pb->f);
+	const unsigned frames =
+	    pcm_format_size_to_frames(fragment_size, &pb->f);
 	ret = audio_pcm_start_playback_fragment(pb->device, frames,
 	    pb->f.channels, pb->f.sampling_rate, pb->f.sample_format);
 	if (ret != EOK) {
@@ -165,78 +167,96 @@ static void play_fragment(playback_t *pb)
 	audio_pcm_unregister_event_callback(pb->device);
 }
 
+static size_t buffer_occupied(const playback_t *pb, size_t pos)
+{
+	assert(pb);
+	void *read_ptr = pb->buffer.base + pos;
+	if (read_ptr > pb->buffer.write_ptr)
+		return pb->buffer.write_ptr + pb->buffer.size - read_ptr;
+	return pb->buffer.write_ptr - read_ptr;
+
+}
+
+static size_t buffer_avail(const playback_t *pb, size_t pos)
+{
+	assert(pb);
+	void *read_ptr = pb->buffer.base + pos;
+	if (read_ptr <= pb->buffer.write_ptr)
+		return read_ptr + pb->buffer.size - pb->buffer.write_ptr - 1;
+	return (read_ptr - pb->buffer.write_ptr) - 1;
+}
+
+static size_t buffer_remain(const playback_t *pb)
+{
+	assert(pb);
+	return (pb->buffer.base + pb->buffer.size) - pb->buffer.write_ptr;
+}
+
+static void buffer_advance(playback_t *pb, size_t bytes)
+{
+	assert(pb);
+	pb->buffer.write_ptr += bytes;
+	while (pb->buffer.write_ptr >= (pb->buffer.base + pb->buffer.size))
+		pb->buffer.write_ptr -= pb->buffer.size;
+}
+
+
 static void play(playback_t *pb)
 {
 	assert(pb);
 	assert(pb->device);
-	pb->buffer.position = pb->buffer.base;
+	pb->buffer.write_ptr = pb->buffer.base;
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
 	    pcm_sample_format_str(pb->f.sample_format), pb->f.channels);
-	static useconds_t work_time = 8000; /* 8 ms */
-	size_t bytes = fread(pb->buffer.position, sizeof(uint8_t),
-		    pb->buffer.size, pb->source);
-	if (bytes == 0)
-		return;
-	audio_pcm_start_playback(pb->device,
-	    pb->f.channels, pb->f.sampling_rate, pb->f.sample_format);
+	useconds_t work_time = 50000; /* 10 ms */
+	bool started = false;
+	size_t pos = 0;
 	do {
-		size_t pos = 0;
-		audio_pcm_get_buffer_pos(pb->device, &pos);
-		size_t to_play = bytes - pos;
-		useconds_t usecs = (bytes > pos) ?
-		    pcm_format_size_to_usec(to_play, &pb->f) : 0;
-
-		pb->buffer.position += bytes;
-
-		printf("%u usecs to play %zu bytes from pos %zu.\n",
-		    usecs, to_play, pos);
-		if (usecs > work_time) {
-			async_usleep(usecs - work_time);
-			audio_pcm_get_buffer_pos(pb->device, &pos);
-//			printf("Woke up at position %zu/%zu.\n",
-//			    pos, pb->buffer.size);
+		size_t available = buffer_avail(pb, pos);
+		/* Writing might need wrap around the end */
+		size_t bytes = fread(pb->buffer.write_ptr, sizeof(uint8_t),
+		    min(available, buffer_remain(pb)), pb->source);
+		buffer_advance(pb, bytes);
+		printf("POS %zu: %zu bytes free in buffer, read %zu, wp %zu\n",
+		    pos, available, bytes, pb->buffer.write_ptr - pb->buffer.base);
+		available -= bytes;
+		if (available) {
+			bytes = fread(pb->buffer.write_ptr,
+			    sizeof(uint8_t), min(available, buffer_remain(pb)),
+			    pb->source);
+			buffer_advance(pb, bytes);
+			printf("POS %zu: %zu bytes still free in buffer, read %zu, wp %zu\n",
+			    pos, available, bytes, pb->buffer.write_ptr - pb->buffer.base);
+			available -= bytes;
 		}
 
-		/* Remove any overflow */
-		while (pb->buffer.position >= pb->buffer.base + pb->buffer.size)
-			pb->buffer.position -= pb->buffer.size;
-
-		if (bytes < pb->buffer.size) {
-			const size_t remain = pb->buffer.size -
-			    (pb->buffer.position - pb->buffer.base);
-			/* This was the last part,
-			 * zero 200 bytes or until the end of buffer. */
-			bzero(pb->buffer.position, min(1024, remain));
-			if ((pb->buffer.base + pos) > pb->buffer.position) {
-				printf("Overflow: %zu vs. %zu!\n",
-				    pos, pb->buffer.position - pb->buffer.base);
-			} else {
-				udelay(pcm_format_size_to_usec(
-				    pb->buffer.position - pb->buffer.base - pos,
-				    &pb->f));
-				audio_pcm_get_buffer_pos(pb->device, &pos);
+		if (!started) {
+			const int ret = audio_pcm_start_playback(pb->device,
+			    pb->f.channels, pb->f.sampling_rate,
+			    pb->f.sample_format);
+			if (ret != EOK) {
+				printf("Failed to start playback\n");
+				return;
 			}
-			printf("Stopped at %zu(%zu)/%zu\n",
-			    pos, pb->buffer.position - pb->buffer.base,
-			    pb->buffer.size);
-			break;
+			started = true;
 		}
-		/* copy first half */
-		bytes = fread(pb->buffer.position, sizeof(uint8_t),
-		    pb->buffer.size / 2, pb->source);
-		if (bytes == 0)
-			break;
-		audio_pcm_get_buffer_pos(pb->device, &pos);
-		printf("Half buffer copied at pos %zu ", pos);
-		/* Wait until the rest of the buffer is ready */
-		udelay(pcm_format_size_to_usec(pb->buffer.size - pos, &pb->f));
-		/* copy the other part of the buffer */
-		if (bytes ==  (pb->buffer.size / 2)) {
-			bytes += fread(pb->buffer.position + bytes,
-			    sizeof(uint8_t), pb->buffer.size / 2, pb->source);
-			audio_pcm_get_buffer_pos(pb->device, &pos);
-			printf("the other half copied at pos %zu\n", pos);
+		const size_t to_play = buffer_occupied(pb, pos);
+		const useconds_t usecs =
+		    pcm_format_size_to_usec(to_play, &pb->f);
+
+		const useconds_t real_delay = (usecs > work_time)
+		    ? usecs - work_time : 0;
+		printf("POS %zu: %u usecs (%u) to play %zu bytes.\n",
+		    pos, usecs, real_delay, to_play);
+		if (real_delay)
+			async_usleep(real_delay);
+		const int ret = audio_pcm_get_buffer_pos(pb->device, &pos);
+		if (ret != EOK) {
+			printf("Failed to update position indicator\n");
 		}
+		if (available)
+			break;
+
 	} while (1);
 	audio_pcm_stop_playback(pb->device);
 }
@@ -276,16 +296,20 @@ int dplay(const char *device, const char *file)
 		goto close_session;
 	}
 	printf("Buffer: %p %zu.\n", pb.buffer.base, pb.buffer.size);
-	uintptr_t ptr = 0;
-	as_get_physical_mapping(pb.buffer.base, &ptr);
-	printf("buffer mapped at %x.\n", ptr);
+
+	{
+		uintptr_t ptr = 0;
+		as_get_physical_mapping(pb.buffer.base, &ptr);
+		printf("buffer mapped at %x.\n", ptr);
+	}
 
 	pb.source = fopen(file, "rb");
 	if (pb.source == NULL) {
 		ret = ENOENT;
-		printf("Failed to open %s.\n", file);
+		printf("Failed to open file: %s.\n", file);
 		goto cleanup;
 	}
+
 	wave_header_t header;
 	fread(&header, sizeof(header), 1, pb.source);
 	const char *error;
@@ -293,7 +317,6 @@ int dplay(const char *device, const char *file)
 	    &pb.f.channels, &pb.f.sampling_rate, &pb.f.sample_format, &error);
 	if (ret != EOK) {
 		printf("Error parsing wav header: %s.\n", error);
-		fclose(pb.source);
 		goto cleanup;
 	}
 	if (audio_pcm_query_cap(pb.device, AUDIO_CAP_BUFFER_POS) > 0) {
