@@ -50,7 +50,6 @@
 #include "wave.h"
 #include "dplay.h"
 
-#define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/pcm"
 #define BUFFER_PARTS 2
 
 typedef struct {
@@ -276,9 +275,12 @@ static void play(playback_t *pb)
 int dplay(const char *device, const char *file)
 {
 	int ret = EOK;
-	if (str_cmp(device, "default") == 0)
-		device = DEFAULT_DEVICE;
-	audio_pcm_sess_t *session = audio_pcm_open(device);
+	audio_pcm_sess_t *session = NULL;
+	if (str_cmp(device, "default") == 0) {
+		session = audio_pcm_open_default();
+	} else {
+		session = audio_pcm_open(device);
+	}
 	if (!session) {
 		printf("Failed to connect to device %s.\n", device);
 		return 1;
