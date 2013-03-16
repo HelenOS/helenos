@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <str.h>
-#include <devman.h>
 #include <audio_pcm_iface.h>
 #include <fibril_synch.h>
 #include <pcm/format.h>
@@ -50,7 +49,7 @@
 #include "wave.h"
 #include "dplay.h"
 
-#define BUFFER_PARTS 2
+#define DEFAULT_FRAGMENTS 2
 
 typedef struct {
 	struct {
@@ -85,7 +84,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 {
 	async_answer_0(iid, EOK);
 	playback_t *pb = arg;
-	const size_t fragment_size = pb->buffer.size / BUFFER_PARTS;
+	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
@@ -129,7 +128,7 @@ static void play_fragment(playback_t *pb)
 {
 	assert(pb);
 	assert(pb->device);
-	const size_t fragment_size = pb->buffer.size / BUFFER_PARTS;
+	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
 	printf("Registering event callback\n");
 	int ret = audio_pcm_register_event_callback(pb->device,
 	    device_event_callback, pb);
