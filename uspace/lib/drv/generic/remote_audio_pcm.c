@@ -94,6 +94,35 @@ const char *audio_pcm_event_str(pcm_event_t event)
  */
 
 /**
+ * Open audio session with the first registered device.
+ *
+ * @return Pointer to a new audio device session, NULL on failure.
+ */
+audio_pcm_sess_t *audio_pcm_open_default(void)
+{
+	static bool resolved = false;
+	static category_id_t pcm_id = 0;
+	if (!resolved) {
+		const int ret = loc_category_get_id("audio-pcm", &pcm_id,
+		    IPC_FLAG_BLOCKING);
+		if (ret != EOK)
+			return NULL;
+		resolved = true;
+	}
+
+	service_id_t *svcs = NULL;
+	size_t count = 0;
+	const int ret = loc_category_get_svcs(pcm_id, &svcs, &count);
+	if (ret != EOK)
+		return NULL;
+
+	audio_pcm_sess_t *session = NULL;
+	if (count)
+		session = audio_pcm_open_service(svcs[0]);
+	free(svcs);
+	return session;
+}
+/**
  * Open audio session with device identified by location service string.
  *
  * @param name Location service string.

@@ -68,6 +68,7 @@ const char *audio_pcm_event_str(pcm_event_t);
 typedef async_sess_t audio_pcm_sess_t;
 
 audio_pcm_sess_t *audio_pcm_open(const char *);
+audio_pcm_sess_t *audio_pcm_open_default(void);
 audio_pcm_sess_t *audio_pcm_open_service(service_id_t service);
 void audio_pcm_close(audio_pcm_sess_t *);
 
