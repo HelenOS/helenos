@@ -196,6 +196,8 @@ void tlb_modified(istate_t *istate)
 	uintptr_t badvaddr;
 	pte_t *pte;
 
+	badvaddr = cp0_badvaddr_read();
+
 	/*
 	 * Locate the faulting entry in TLB.
 	 */
@@ -203,11 +205,18 @@ void tlb_modified(istate_t *istate)
 	index.value = cp0_index_read();
 
 	/*
-	 * Fail if the entry is not in TLB.
+	 * Emit warning if the entry is not in TLB.
+	 *
+	 * We do not assert on this because this could be a manifestation of
+	 * an emulator bug, such as QEMU Bug #1128935:
+	 * https://bugs.launchpad.net/qemu/+bug/1128935  
 	 */
-	ASSERT(!index.p);
-
-	badvaddr = cp0_badvaddr_read();
+	if (index.p) {
+		printf("%s: TLBP failed in exception handler (badvaddr=%#"
+		    PRIxn ", ASID=%d).\n", __func__, badvaddr,
+		    AS ? AS->asid : -1);
+		return;
+	}
 
 	pte = page_mapping_find(AS, badvaddr, true);
 	if (pte && pte->p && pte->w) {
