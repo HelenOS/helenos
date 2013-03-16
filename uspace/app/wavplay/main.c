@@ -45,8 +45,61 @@
 #include "dplay.h"
 #include "wave.h"
 
+#define BUFFER_SIZE (4 * 1024)
+
+
+static int hplay(const char *filename)
+{
+	FILE *source = fopen(filename, "rb");
+	if (!source)
+		return EINVAL;
+	wave_header_t header;
+	size_t read = fread(&header, sizeof(header), 1, source);
+	if (read != sizeof(header)) {
+		fclose(source);
+		return EIO;
+	}
+	unsigned rate, channels;
+	pcm_sample_format_t format;
+	const char *error;
+	int ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
+	    &format, &error);
+	if (ret != EOK) {
+		printf("Error parsing wav header: %s.\n", error);
+		fclose(source);
+		return EINVAL;
+	}
+	hound_context_t *hound = hound_context_create_playback(filename,
+	    channels, rate, format, 0);
+	if (!hound) {
+		printf("Failed to create HOUND context\n");
+		fclose(source);
+		return ENOMEM;
+	}
+
+	ret = hound_context_connect_target(hound, "default");
+	if (ret != EOK) {
+		printf("Failed to connect to default target: %s\n",
+		    str_error(ret));
+		fclose(source);
+		return ENOMEM;
+	}
+	static char buffer[BUFFER_SIZE];
+	size_t size = 0;
+	while ((size = fread(buffer, sizeof(buffer), 1, source)) > 0) {
+		ret = hound_write_main_stream(hound, buffer, size);
+		if (ret != EOK) {
+			printf("Failed to write to context main stream: %s\n",
+			    str_error(ret));
+			break;
+		}
+	}
+	fclose(source);
+	return ret;
+}
+
 typedef struct {
-	FILE* source;
+	FILE *source;
 	volatile bool playing;
 	fibril_mutex_t mutex;
 	fibril_condvar_t cv;
@@ -204,6 +257,7 @@ int main(int argc, char *argv[])
 		return dplay(device, file);
 	else
 		return play_hound(file);
+	(void)hplay;
 }
 /**
  * @}
