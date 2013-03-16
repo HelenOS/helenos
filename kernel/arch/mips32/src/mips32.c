@@ -227,7 +227,7 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	supervisor_sp =
-	    (uintptr_t) &THREAD->kstack[STACK_SIZE - SP_DELTA];
+	    (uintptr_t) &THREAD->kstack[STACK_SIZE];
 }
 
 void after_thread_ran_arch(void)

@@ -54,8 +54,9 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	if (THREAD->uspace) {
-		uint64_t sp = (uintptr_t) THREAD->kstack + STACK_SIZE -
-		    (STACK_BIAS + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT));
+		uint64_t sp;
+
+		sp = (uintptr_t) THREAD->kstack + STACK_SIZE - STACK_BIAS;
 		asi_u64_write(ASI_SCRATCHPAD, SCRATCHPAD_KSTACK, sp);
 		asi_u64_write(ASI_SCRATCHPAD, SCRATCHPAD_WBUF,
 		    (uintptr_t) THREAD->arch.uspace_window_buffer);

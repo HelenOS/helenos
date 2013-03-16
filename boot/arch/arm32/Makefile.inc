@@ -34,7 +34,7 @@ ifeq ($(MACHINE), gta02)
 	POSTBUILD = Makefile.uboot
 endif
 
-ifeq ($(MACHINE), beagleboardxm)
+ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))
 	BOOT_OUTPUT = image.boot
 	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
 	LADDR = 0x80000000

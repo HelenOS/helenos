@@ -35,12 +35,14 @@
  */
 
 #include <libarch/inttypes.h>
+#include <libarch/config.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/log.h>
 #include <stdio.h>
+#include <async.h>
 #include "i8042.h"
 
 #define CHECK_RET_RETURN(ret, message...) \
@@ -151,6 +153,13 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS PS/2 driver.\n", NAME);
 	ddf_log_init(NAME);
+	
+	/*
+	 * Alleviate the virtual memory / page table pressure caused by 
+	 * interrupt storms when the default large stacks are used.
+	 */
+	async_set_interrupt_handler_stack_size(PAGE_SIZE);
+
 	return ddf_driver_main(&i8042_driver);
 }
 

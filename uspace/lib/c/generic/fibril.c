@@ -94,13 +94,13 @@ static void fibril_main(void)
  */
 fibril_t *fibril_setup(void)
 {
-	tcb_t *tcb = __make_tls();
+	tcb_t *tcb = tls_make();
 	if (!tcb)
 		return NULL;
 	
 	fibril_t *fibril = malloc(sizeof(fibril_t));
 	if (!fibril) {
-		__free_tls(tcb);
+		tls_free(tcb);
 		return NULL;
 	}
 	
@@ -121,7 +121,7 @@ fibril_t *fibril_setup(void)
 
 void fibril_teardown(fibril_t *fibril)
 {
-	__free_tls(fibril->tcb);
+	tls_free(fibril->tcb);
 	free(fibril);
 }
 
@@ -255,11 +255,12 @@ ret_0:
  *
  * @param func Implementing function of the new fibril.
  * @param arg Argument to pass to func.
+ * @param stksz Stack size in bytes.
  *
  * @return 0 on failure or TLS of the new fibril.
  *
  */
-fid_t fibril_create(int (*func)(void *), void *arg)
+fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t stksz)
 {
 	fibril_t *fibril;
 	
@@ -267,7 +268,8 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	if (fibril == NULL)
 		return 0;
 	
-	size_t stack_size = stack_size_get();
+	size_t stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
+	    stack_size_get() : stksz;
 	fibril->stack = as_area_create((void *) -1, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE);

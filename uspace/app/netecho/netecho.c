@@ -242,7 +242,7 @@ static int netecho_socket_process_message(int listening_id)
 		addrlen = sizeof(address_buf);
 		if (verbose)
 			printf("accept()\n");
-            	socket_id = accept(listening_id, (void *) address_buf, &addrlen);
+		socket_id = accept(listening_id, (void *) address_buf, &addrlen);
 		if (socket_id <= 0) {
 			socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
 		} else {
@@ -311,7 +311,7 @@ static int netecho_socket_process_message(int listening_id)
 					printf("sendto()\n");
 				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
 				if (rc != EOK)
-					socket_print_error(stderr, rc, "Socket send: ", "\n");
+					socket_print_error(stderr, rc, "Socket sendto: ", "\n");
 			}
 		}
 
@@ -393,7 +393,14 @@ int main(int argc, char *argv[])
 		socket_print_error(stderr, listening_id, "Socket create: ", "\n");
 		return listening_id;
 	}
-
+	
+	/* Bind the listening socket */
+	rc = bind(listening_id, address, addrlen);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Socket bind: ", "\n");
+		return rc;
+	}
+	
 	/* if the stream socket is used */
 	if (type == SOCK_STREAM) {
 		/* Check backlog size */
@@ -401,20 +408,13 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Accepted sockets queue size too small (%zu). Using 3 instead.\n", size);
 			backlog = 3;
 		}
-
+		
 		/* Set the backlog */
 		rc = listen(listening_id, backlog);
 		if (rc != EOK) {
 			socket_print_error(stderr, rc, "Socket listen: ", "\n");
 			return rc;
 		}
-	}
-
-	/* Bind the listening socket */
-	rc = bind(listening_id, address, addrlen);
-	if (rc != EOK) {
-		socket_print_error(stderr, rc, "Socket bind: ", "\n");
-		return rc;
 	}
 
 	if (verbose)
