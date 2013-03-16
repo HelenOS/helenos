@@ -45,9 +45,6 @@
 #include "dplay.h"
 #include "wave.h"
 
-#define NAME_MAX 32
-char name[NAME_MAX + 1];
-
 typedef struct {
 	FILE* source;
 	volatile bool playing;
@@ -92,31 +89,63 @@ static void data_callback(void* arg, void *buffer, ssize_t size)
 	}
 }
 
-static void play(playback_t *pb, unsigned channels, unsigned rate, pcm_sample_format_t format)
+static int play_hound(const char *filename)
 {
-	assert(pb);
+	hound_sess_t *sess = hound_get_session();
+	if (!sess) {
+		printf("Failed to connect to hound service\n");
+		return 1;
+	}
+	playback_t pb;
+	playback_initialize(&pb, sess);
+	pb.source = fopen(filename, "rb");
+	if (pb.source == NULL) {
+		printf("Failed to open %s.\n", filename);
+		hound_release_session(sess);
+		return 1;
+	}
+	wave_header_t header;
+	fread(&header, sizeof(header), 1, pb.source);
+	unsigned rate, channels;
+	pcm_sample_format_t format;
+	const char *error;
+	int ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
+	    &format, &error);
+	if (ret != EOK) {
+		printf("Error parsing wav header: %s.\n", error);
+		fclose(pb.source);
+		hound_release_session(sess);
+		return 1;
+	}
+
 	/* Create playback client */
-	int ret = hound_register_playback(pb->server, name, channels, rate,
-	    format, data_callback, pb);
+	ret = hound_register_playback(pb.server, filename, channels, rate,
+	    format, data_callback, &pb);
 	if (ret != EOK) {
 		printf("Failed to register playback: %s\n", str_error(ret));
-		return;
+		fclose(pb.source);
+		hound_release_session(sess);
+		return 1;
 	}
 
 	/* Connect */
-	ret = hound_create_connection(pb->server, name, DEFAULT_SINK);
+	ret = hound_create_connection(pb.server, filename, DEFAULT_SINK);
 	if (ret == EOK) {
-		fibril_mutex_lock(&pb->mutex);
-		for (pb->playing = true; pb->playing;
-		    fibril_condvar_wait(&pb->cv, &pb->mutex));
-		fibril_mutex_unlock(&pb->mutex);
+		fibril_mutex_lock(&pb.mutex);
+		for (pb.playing = true; pb.playing;
+		    fibril_condvar_wait(&pb.cv, &pb.mutex));
+		fibril_mutex_unlock(&pb.mutex);
 
-		hound_destroy_connection(pb->server, name, DEFAULT_SINK);
+		hound_destroy_connection(pb.server, filename, DEFAULT_SINK);
 	} else
 		printf("Failed to connect: %s\n", str_error(ret));
 
 	printf("Unregistering playback\n");
-	hound_unregister_playback(pb->server, name);
+	hound_unregister_playback(pb.server, filename);
+	printf("Releasing session\n");
+	hound_release_session(sess);
+	fclose(pb.source);
+	return 0;
 }
 
 static const struct option opts[] = {
@@ -173,45 +202,8 @@ int main(int argc, char *argv[])
 	}
 	if (direct)
 		return dplay(device, file);
-
-	task_id_t tid = task_get_id();
-	snprintf(name, NAME_MAX, "%s%" PRIu64 ":%s", argv[0], tid, file);
-
-	printf("Client name: %s\n", name);
-
-	hound_sess_t *sess = hound_get_session();
-	if (!sess) {
-		printf("Failed to connect to hound service\n");
-		return 1;
-	}
-
-	playback_t pb;
-	playback_initialize(&pb, sess);
-	pb.source = fopen(file, "rb");
-	if (pb.source == NULL) {
-		printf("Failed to open %s.\n", file);
-		hound_release_session(sess);
-		return 1;
-	}
-	wave_header_t header;
-	fread(&header, sizeof(header), 1, pb.source);
-	unsigned rate, channels;
-	pcm_sample_format_t format;
-	const char *error;
-	ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
-	    &format, &error);
-	if (ret != EOK) {
-		printf("Error parsing wav header: %s.\n", error);
-		fclose(pb.source);
-		hound_release_session(sess);
-		return 1;
-	}
-
-	play(&pb, channels, rate, format);
-
-	printf("Releasing session\n");
-	hound_release_session(sess);
-	return 0;
+	else
+		return play_hound(file);
 }
 /**
  * @}
