@@ -223,15 +223,17 @@ static void play(playback_t *pb)
 		    min(available, buffer_remain(pb)), pb->source);
 		buffer_advance(pb, bytes);
 		DPRINTF("POS %zu: %zu bytes free in buffer, read %zu, wp %zu\n",
-		    pos, available, bytes, pb->buffer.write_ptr - pb->buffer.base);
+		    pos, available, bytes,
+		    pb->buffer.write_ptr - pb->buffer.base);
 		available -= bytes;
 		if (available) {
 			bytes = fread(pb->buffer.write_ptr,
 			    sizeof(uint8_t), min(available, buffer_remain(pb)),
 			    pb->source);
 			buffer_advance(pb, bytes);
-			DPRINTF("POS %zu: %zu bytes still free in buffer, read %zu, wp %zu\n",
-			    pos, available, bytes, pb->buffer.write_ptr - pb->buffer.base);
+			DPRINTF("POS %zu: %zu bytes still free in buffer, "
+			    "read %zu, wp %zu\n", pos, available, bytes,
+			    pb->buffer.write_ptr - pb->buffer.base);
 			available -= bytes;
 		}
 
