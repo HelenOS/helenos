@@ -50,12 +50,16 @@
 
 static int hplay(const char *filename)
 {
+	printf("HPLAY: %s\n", filename);
 	FILE *source = fopen(filename, "rb");
-	if (!source)
+	if (!source) {
+		printf("Failed to open file %s\n", filename);
 		return EINVAL;
+	}
 	wave_header_t header;
 	size_t read = fread(&header, sizeof(header), 1, source);
-	if (read != sizeof(header)) {
+	if (read != 1) {
+		printf("Failed to read WAV header: %zu\n", read);
 		fclose(source);
 		return EIO;
 	}
@@ -84,11 +88,10 @@ static int hplay(const char *filename)
 		return ENOMEM;
 	}
 	static char buffer[BUFFER_SIZE];
-	size_t size = 0;
-	while ((size = fread(buffer, sizeof(buffer), 1, source)) > 0) {
-		ret = hound_write_main_stream(hound, buffer, size);
+	while ((read = fread(buffer, sizeof(char), BUFFER_SIZE, source)) > 0) {
+		ret = hound_write_main_stream(hound, buffer, read);
 		if (ret != EOK) {
-			printf("Failed to write to context main stream: %s\n",
+			printf("Failed to write to main context stream: %s\n",
 			    str_error(ret));
 			break;
 		}
@@ -256,7 +259,7 @@ int main(int argc, char *argv[])
 		return dplay(device, file);
 	else
 		return play_hound(file);
-	(void)hplay;
+	hplay(file);
 }
 /**
  * @}
