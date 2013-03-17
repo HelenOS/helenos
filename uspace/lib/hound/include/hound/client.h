@@ -38,7 +38,7 @@
 
 #include <async.h>
 #include <stdbool.h>
-#include <pcm/sample_format.h>
+#include <pcm/format.h>
 
 #define DEFAULT_SINK "default"
 #define DEFAULT_SOURCE "default"
@@ -47,9 +47,9 @@ typedef struct hound_context hound_context_t;
 typedef struct hound_stream hound_stream_t;
 
 hound_context_t * hound_context_create_playback(const char *name,
-    unsigned channels, unsigned rate, pcm_sample_format_t format, size_t bsize);
+    pcm_format_t format, size_t bsize);
 hound_context_t * hound_context_create_capture(const char *name,
-    unsigned channels, unsigned rate, pcm_sample_format_t format, size_t bsize);
+    pcm_format_t format, size_t bsize);
 void hound_context_destroy(hound_context_t *hound);
 
 int hound_context_enable(hound_context_t *hound);
@@ -63,20 +63,20 @@ int hound_get_input_targets(const char **names, size_t *count);
 int hound_context_connect_target(hound_context_t *hound, const char* target);
 int hound_context_disconnect_target(hound_context_t *hound, const char* target);
 
+hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
+    pcm_format_t format, size_t bsize);
+void hound_stream_destroy(hound_stream_t *stream);
+
+int hound_stream_write(hound_stream_t *stream, const void *data, size_t size);
+int hound_stream_read(hound_stream_t *stream, void *data, size_t size);
+
 int hound_write_main_stream(hound_context_t *hound,
     const void *data, size_t size);
 int hound_read_main_stream(hound_context_t *hound, void *data, size_t size);
 int hound_write_replace_main_stream(hound_context_t *hound,
     const void *data, size_t size);
-int hound_write_immediate_stream(hound_context_t *hound,
-    const void *data, size_t size);
-
-hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
-    unsigned channels, unsigned rate, pcm_sample_format_t format);
-void hound_stream_destroy(hound_stream_t *stream);
-
-int hound_stream_write(hound_stream_t *stream, const void *data, size_t size);
-int hound_stream_read(hound_stream_t *stream, void *data, size_t size);
+int hound_write_immediate(hound_context_t *hound,
+    pcm_format_t format, const void *data, size_t size);
 
 
 

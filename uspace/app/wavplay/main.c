@@ -59,18 +59,17 @@ static int hplay(const char *filename)
 		fclose(source);
 		return EIO;
 	}
-	unsigned rate, channels;
-	pcm_sample_format_t format;
+	pcm_format_t format;
 	const char *error;
-	int ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
-	    &format, &error);
+	int ret = wav_parse_header(&header, NULL, NULL, &format.channels,
+	    &format.sampling_rate, &format.sample_format, &error);
 	if (ret != EOK) {
 		printf("Error parsing wav header: %s.\n", error);
 		fclose(source);
 		return EINVAL;
 	}
 	hound_context_t *hound = hound_context_create_playback(filename,
-	    channels, rate, format, 0);
+	    format, 0);
 	if (!hound) {
 		printf("Failed to create HOUND context\n");
 		fclose(source);
