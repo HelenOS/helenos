@@ -48,7 +48,7 @@ hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);
 
 hound_context_id_t hound_service_register_context(hound_sess_t *sess,
-    const char *name);
+    const char *name, bool record);
 int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
 
 int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
@@ -59,6 +59,21 @@ int hound_service_stream_exit(async_exch_t *exch);
 int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size);
 int hound_service_stream_read(async_exch_t *exch, void *data, size_t size);
 
+/* Server */
+typedef struct hound_server_iface {
+	int (*add_context)(void *, hound_context_id_t *, const char *, bool);
+	int (*rem_context)(void *, hound_context_id_t);
+	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
+	    void **);
+	int (*rem_stream)(void *, void *);
+	int (*stream_data_write)(void *, const void *, size_t);
+	int (*stream_data_read)(void *, void *, size_t);
+	void *server;
+} hound_server_iface_t;
+
+void hound_service_set_server_iface(hound_server_iface_t *iface);
+
+void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 #endif
 /** @}

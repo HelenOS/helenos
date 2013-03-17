@@ -48,12 +48,14 @@
 enum ipc_methods {
 	IPC_M_HOUND_CONTEXT_REGISTER = IPC_FIRST_USER_METHOD,
 	IPC_M_HOUND_CONTEXT_UNREGISTER,
-	IPC_M_HOUND_STREAM_START,
-	IPC_M_HOUND_STREAM_STOP,
+	IPC_M_HOUND_STREAM_ENTER,
+	IPC_M_HOUND_STREAM_EXIT,
 	IPC_M_HOUND_STREAM_DRAIN,
-	IPC_M_HOUND_STREAM_WRITE,
-	IPC_M_HOUND_STREAM_READ,
 };
+
+/****
+ * CLIENT
+ ****/
 
 const char *HOUND_SERVICE = "audio/hound";
 
@@ -74,16 +76,18 @@ void hound_service_disconnect(hound_sess_t *sess)
 }
 
 hound_context_id_t hound_service_register_context(hound_sess_t *sess,
-    const char *name)
+    const char *name, bool record)
 {
 	assert(sess);
 	assert(name);
 	async_exch_t *exch = async_exchange_begin(sess);
-	const int ret =
-	    async_req_1_0(exch, IPC_M_HOUND_CONTEXT_REGISTER, str_size(name));
-	//TODO send the string
+	sysarg_t id;
+	int ret =
+	    async_req_1_1(exch, IPC_M_HOUND_CONTEXT_REGISTER, record, &id);
+	if (ret == EOK)
+		ret = async_data_write_start(exch, name, str_size(name));
 	async_exchange_end(exch);
-	return ret;
+	return ret == EOK ? (hound_context_id_t)id : ret;
 }
 
 int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
@@ -99,32 +103,146 @@ int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
 int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize)
 {
-	return ENOTSUP;
+	union {
+		sysarg_t arg;
+		pcm_format_t format;
+	} convert = { .format = format };
+	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, id, flags,
+	    convert.arg, bsize);
 }
 
 int hound_service_stream_exit(async_exch_t *exch)
 {
-	return ENOTSUP;
+	return async_req_0_0(exch, IPC_M_HOUND_STREAM_EXIT);
 }
 
 int hound_service_stream_drain(async_exch_t *exch)
 {
+	//TODO implement
 	return ENOTSUP;
 }
 
 int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size)
 {
-	return ENOTSUP;
+	return async_data_write_start(exch, data, size);
 }
 
 int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
 {
+	//TODO implement
 	return ENOTSUP;
 }
 
+/****
+ * SERVER
+ ****/
+
+static int hound_server_read_data(void *stream);
+static hound_server_iface_t *server_iface;
+
+void hound_service_set_server_iface(hound_server_iface_t *iface)
+{
+	server_iface = iface;
+}
+
+void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	/* Accept connection if there is a valid iface*/
+	if (server_iface) {
+		async_answer_0(iid, EOK);
+	} else {
+		async_answer_0(iid, ENOTSUP);
+		return;
+	}
+
+	while (1) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		switch(IPC_GET_IMETHOD(call)) {
+		case IPC_M_HOUND_CONTEXT_REGISTER: {
+			if (!server_iface || !server_iface->add_context) {
+				async_answer_0(callid, ENOTSUP);
+				break;
+			}
+			bool record = IPC_GET_ARG1(call);
+			void *name;
+			int ret =
+			    async_data_write_accept(&name, true, 0, 0, 0, 0);
+			if (ret != EOK) {
+				async_answer_0(callid, ret);
+				break;
+			}
+			hound_context_id_t id = 0;
+			ret = server_iface->add_context(server_iface->server,
+			    &id, name, record);
+			if (ret != EOK) {
+				free(name);
+				async_answer_0(callid, ret);
+				break;
+			}
+			async_answer_1(callid, EOK, id);
+		}
+		case IPC_M_HOUND_STREAM_ENTER: {
+			if (!server_iface || !server_iface->add_stream) {
+				async_answer_0(callid, ENOTSUP);
+				break;
+			}
+
+			hound_context_id_t id = IPC_GET_ARG1(call);
+			int flags = IPC_GET_ARG2(call);
+			union {
+				sysarg_t arg;
+				pcm_format_t format;
+			} convert = { .arg = IPC_GET_ARG3(call) };
+			size_t bsize = IPC_GET_ARG4(call);
+			void *stream;
+			int ret = server_iface->add_stream(server_iface->server,
+			    id, flags, convert.format, bsize, &stream);
+			if (ret != EOK) {
+				async_answer_0(callid, ret);
+				break;
+			}
+			hound_server_read_data(stream);
+			break;
+		}
+		case IPC_M_HOUND_CONTEXT_UNREGISTER:
+		case IPC_M_HOUND_STREAM_EXIT:
+		case IPC_M_HOUND_STREAM_DRAIN:
+		default:
+			async_answer_0(callid, ENOTSUP);
+			return;
+		}
+	}
+}
+
+static int hound_server_read_data(void *stream)
+{
+	if (!server_iface || !server_iface->stream_data_write)
+		return ENOTSUP;
+
+	ipc_callid_t callid;
+	size_t size = 0;
+	while (async_data_write_receive(&callid, &size)) {
+		char *buffer = malloc(size);
+		if (!buffer) {
+			async_answer_0(callid, ENOMEM);
+			continue;
+		}
+		int ret = async_data_write_finalize(callid, buffer, size);
+		if (ret == EOK) {
+			server_iface->stream_data_write(stream, buffer, size);
+		} else {
+			// TODO did answering fail?
+			async_answer_0(callid, ret);
+		}
+	}
+	//TODO we assume that the fail was caused by IPC_M_HOUND_STREAM_EXIT
+	async_answer_0(callid, EOK);
+	return EOK;
+}
 
 /***
- * CLIENT SIDE
+ * CLIENT SIDE -DEPRECATED
  ***/
 
 typedef struct {
@@ -347,8 +465,9 @@ static void callback_rec(ipc_callid_t iid, ipc_call_t *call, void *arg)
 }
 
 /***
- * SERVER SIDE
+ * SERVER SIDE - DEPRECATED
  ***/
+
 static const char * get_name(void);
 
 int hound_server_register(const char *name, service_id_t *id)
