@@ -41,10 +41,27 @@
 #include <stdio.h>
 #include <libarch/types.h>
 
+#include "protocol.h"
 #include "client.h"
 #include "server.h"
 
-static const char *HOUND_SERVICE = "audio/hound";
+const char *HOUND_SERVICE = "audio/hound";
+
+hound_sess_t *hound_service_connect(const char *service)
+{
+	service_id_t id = 0;
+	const int ret =
+	    loc_service_get_id(service, &id, IPC_FLAG_BLOCKING);
+	if (ret != EOK)
+		return NULL;
+	return loc_service_connect(EXCHANGE_PARALLEL, id, IPC_FLAG_BLOCKING);
+}
+
+void hound_service_disconnect(hound_sess_t *sess)
+{
+	if (sess)
+		async_hangup(sess);
+}
 
 /***
  * CLIENT SIDE
@@ -54,6 +71,16 @@ typedef struct {
 	data_callback_t cb;
 	void *arg;
 } callback_t;
+
+hound_sess_t *hound_get_session(void)
+{
+	return hound_service_connect(HOUND_SERVICE);
+}
+
+void hound_release_session(hound_sess_t *sess)
+{
+	hound_service_disconnect(sess);
+}
 
 
 static int hound_register(hound_sess_t *sess, unsigned cmd, const char *name,

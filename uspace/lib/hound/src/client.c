@@ -42,9 +42,7 @@
 #include <libarch/types.h>
 
 #include "client.h"
-#include "server.h"
-
-static const char *HOUND_SERVICE = "audio/hound";
+#include "protocol.h"
 
 /***
  * CLIENT SIDE
@@ -56,7 +54,7 @@ typedef struct hound_stream {
 } hound_stream_t;
 
 typedef struct hound_context {
-	async_sess_t *session;
+	hound_sess_t *session;
 	const char *name;
 	bool record;
 	list_t stream_list;
@@ -70,21 +68,6 @@ typedef struct hound_context {
 	unsigned id;
 } hound_context_t;
 
-async_sess_t *hound_get_session(void)
-{
-	service_id_t id = 0;
-	const int ret =
-	    loc_service_get_id(HOUND_SERVICE, &id, IPC_FLAG_BLOCKING);
-	if (ret != EOK)
-		return NULL;
-	return loc_service_connect(EXCHANGE_SERIALIZE, id, IPC_FLAG_BLOCKING);
-}
-
-void hound_release_session(async_sess_t *sess)
-{
-	if (sess)
-		async_hangup(sess);
-}
 
 static hound_context_t *hound_context_create(const char *name, bool record,
     unsigned channels, unsigned rate, pcm_sample_format_t format, size_t bsize)
@@ -100,7 +83,7 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 		list_initialize(&new_context->stream_list);
 		new_context->name = cont_name;
 		new_context->record = record;
-		new_context->session = hound_get_session();
+		new_context->session = hound_service_connect(HOUND_SERVICE);
 		new_context->main_stream = NULL;
 		new_context->main_format.sample = format;
 		new_context->main_format.rate = rate;
