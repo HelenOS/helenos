@@ -31,6 +31,7 @@ EXTRA_CFLAGS = -Iinclude/hound -I$(LIBPCM_PREFIX)/include
 LIBRARY = libhound
 
 SOURCES = \
-	src/protocol.c
+	src/protocol.c \
+	src/client.c
 include $(USPACE_PREFIX)/Makefile.common
 
