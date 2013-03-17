@@ -45,6 +45,16 @@
 #include "client.h"
 #include "server.h"
 
+enum ipc_methods {
+	IPC_M_HOUND_CONTEXT_REGISTER = IPC_FIRST_USER_METHOD,
+	IPC_M_HOUND_CONTEXT_UNREGISTER,
+	IPC_M_HOUND_STREAM_START,
+	IPC_M_HOUND_STREAM_STOP,
+	IPC_M_HOUND_STREAM_DRAIN,
+	IPC_M_HOUND_STREAM_WRITE,
+	IPC_M_HOUND_STREAM_READ,
+};
+
 const char *HOUND_SERVICE = "audio/hound";
 
 hound_sess_t *hound_service_connect(const char *service)
@@ -62,6 +72,56 @@ void hound_service_disconnect(hound_sess_t *sess)
 	if (sess)
 		async_hangup(sess);
 }
+
+hound_context_id_t hound_service_register_context(hound_sess_t *sess,
+    const char *name)
+{
+	assert(sess);
+	assert(name);
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret =
+	    async_req_1_0(exch, IPC_M_HOUND_CONTEXT_REGISTER, str_size(name));
+	//TODO send the string
+	async_exchange_end(exch);
+	return ret;
+}
+
+int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
+{
+	assert(sess);
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret =
+	    async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER, id);
+	async_exchange_end(exch);
+	return ret;
+}
+
+int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
+    int flags, pcm_format_t format, size_t bsize)
+{
+	return ENOTSUP;
+}
+
+int hound_service_stream_exit(async_exch_t *exch)
+{
+	return ENOTSUP;
+}
+
+int hound_service_stream_drain(async_exch_t *exch)
+{
+	return ENOTSUP;
+}
+
+int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size)
+{
+	return ENOTSUP;
+}
+
+int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
+{
+	return ENOTSUP;
+}
+
 
 /***
  * CLIENT SIDE

@@ -43,24 +43,21 @@ const char *HOUND_SERVICE;
 
 typedef async_sess_t hound_sess_t;
 typedef int hound_context_id_t;
-typedef int hound_stream_id_t;
 
 hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);
 
 hound_context_id_t hound_service_register_context(hound_sess_t *sess,
     const char *name);
-int hound_service_unregister_context(hound_sess_t *sess);
+int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
 
-hound_stream_id_t hound_service_stream_add(hound_sess_t *sess, int flags,
-    pcm_format_t format, size_t bsize);
-int hound_service_stream_remove(hound_sess_t *sess, hound_stream_id_t);
-int hound_service_stream_drain(hound_sess_t *sess, hound_stream_id_t);
+int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
+    int flags, pcm_format_t format, size_t bsize);
+int hound_service_stream_drain(async_exch_t *exch);
+int hound_service_stream_exit(async_exch_t *exch);
 
-int hound_service_stream_write(async_exch_t *exch, hound_stream_id_t,
-    const void *data, size_t size);
-int hound_service_stream_read(async_exch_t *exch, hound_stream_id_t,
-    void *data, size_t size);
+int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size);
+int hound_service_stream_read(async_exch_t *exch, void *data, size_t size);
 
 
 #endif
