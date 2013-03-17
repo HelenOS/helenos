@@ -74,6 +74,18 @@
 #define from(x, type, endian) (float)(type ## _ ## endian ## 2host(x))
 #define to(x, type, endian) (float)(host2 ## type ## _ ## endian(x))
 
+const pcm_format_t AUDIO_FORMAT_DEFAULT = {
+	.channels = 2,
+	.sampling_rate = 44100,
+	.sample_format = PCM_SAMPLE_SINT16_LE,
+	};
+
+const pcm_format_t AUDIO_FORMAT_ANY = {
+	.channels = 0,
+	.sampling_rate = 0,
+	.sample_format = 0,
+	};
+
 static float get_normalized_sample(const void *buffer, size_t size,
     unsigned frame, unsigned channel, const pcm_format_t *f);
 

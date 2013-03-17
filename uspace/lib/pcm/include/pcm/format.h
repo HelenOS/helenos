@@ -46,17 +46,8 @@ typedef struct {
 	pcm_sample_format_t sample_format;
 } pcm_format_t;
 
-static const pcm_format_t AUDIO_FORMAT_DEFAULT = {
-	.channels = 2,
-	.sampling_rate = 44100,
-	.sample_format = PCM_SAMPLE_SINT16_LE,
-	};
-
-static const pcm_format_t AUDIO_FORMAT_ANY = {
-	.channels = 0,
-	.sampling_rate = 0,
-	.sample_format = 0,
-	};
+extern const pcm_format_t AUDIO_FORMAT_DEFAULT;
+extern const pcm_format_t AUDIO_FORMAT_ANY;
 
 static inline size_t pcm_format_frame_size(const pcm_format_t *a)
 {
