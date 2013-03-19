@@ -126,7 +126,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		log_verbose("No connections on device sink '%s'", sink->name);
 		int ret = audio_pcm_stop_playback(dev->sess);
 		if (ret != EOK) {
-			log_error("Failed to start playback: %s",
+			log_error("Failed to stop playback: %s",
 			    str_error(ret));
 			return ret;
 		}
