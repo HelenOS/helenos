@@ -644,14 +644,12 @@ static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, ipc_ca
 	    async_callback_receive_start(EXCHANGE_ATOMIC, &callback_call);
 	if (sess == NULL) {
 		ddf_msg(LVL_DEBUG, "Failed to create event callback");
-		pcm_iface->release_buffer(fun);
 		async_answer_0(callback_id, EAGAIN);
 		return;
 	}
 	const int ret = pcm_iface->set_event_session(fun, sess);
 	if (ret != EOK) {
 		ddf_msg(LVL_DEBUG, "Failed to set event callback.");
-		pcm_iface->release_buffer(fun);
 		async_hangup(sess);
 		async_answer_0(callback_id, ret);
 		return;
