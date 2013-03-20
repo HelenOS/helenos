@@ -195,6 +195,8 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		async_answer_0(callid, EOK);
 		switch(IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_FRAMES_PLAYED: {
+			struct timeval time1;
+			getuptime(&time1);
 			//TODO add underrun protection.
 			if (dev->buffer.position) {
 				dev->buffer.position +=
@@ -208,6 +210,10 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			}
 			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
 			    dev->buffer.size / BUFFER_PARTS);
+			struct timeval time2;
+			getuptime(&time2);
+			log_verbose("Time to mix sources: %li\n",
+			    tv_sub(&time2, &time1));
 			break;
 		}
 		case PCM_EVENT_PLAYBACK_TERMINATED:
