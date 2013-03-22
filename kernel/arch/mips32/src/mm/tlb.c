@@ -47,11 +47,13 @@
 #include <interrupt.h>
 #include <symtab.h>
 
-#define VPN_SHIFT	12	
+#define PFN_SHIFT	12
+#define VPN_SHIFT	12
 #define ADDR2VPN(a)	((a) >> VPN_SHIFT)
 #define ADDR2VPN2(a)	(ADDR2VPN((a)) >> 1)
 #define VPN2ADDR(vpn)	((vpn) << VPN_SHIFT)
 #define VPN22ADDR(vpn2)	(VPN2ADDR(vpn2) << 1)
+#define PFN2ADDR(pfn)	((pfn) << PFN_SHIFT)
 
 #define BANK_SELECT_BIT(a)	(((a) >> PAGE_WIDTH) & 1) 
 	
@@ -293,9 +295,9 @@ void tlb_print(void)
 		
 		printf("%-4u %-6u %0#10x %-#6x  %1u%1u%1u%1u  %0#10x\n",
 		    i, hi.asid, VPN22ADDR(hi.vpn2), mask.mask,
-		    lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn << FRAME_WIDTH);
+		    lo0.g, lo0.v, lo0.d, lo0.c, PFN2ADDR(lo0.pfn));
 		printf("                               %1u%1u%1u%1u  %0#10x\n",
-		    lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn << FRAME_WIDTH);
+		    lo1.g, lo1.v, lo1.d, lo1.c, PFN2ADDR(lo1.pfn));
 	}
 	
 	cp0_entry_hi_write(hi_save.value);
