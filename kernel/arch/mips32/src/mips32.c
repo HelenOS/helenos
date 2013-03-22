@@ -40,16 +40,11 @@
 #include <str.h>
 #include <memstr.h>
 #include <userspace.h>
-#include <console/console.h>
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/debug.h>
 #include <arch/debugger.h>
-#include <arch/drivers/msim.h>
-#include <genarch/fb/fb.h>
-#include <genarch/drivers/dsrln/dsrlnin.h>
-#include <genarch/drivers/dsrln/dsrlnout.h>
-#include <genarch/srln/srln.h>
+#include <arch/machine_func.h>
 
 /* Size of the code jumping to the exception handler code
  * - J+NOP
@@ -70,6 +65,10 @@ uintptr_t supervisor_sp __attribute__ ((section (".text")));
 
 size_t cpu_count = 0;
 
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+size_t sdram_size = 0;
+#endif
+
 /** Performs mips32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
@@ -87,6 +86,13 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 		if ((bootinfo->cpumap & (1 << i)) != 0)
 			cpu_count++;
 	}
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	sdram_size = bootinfo->sdram_size;
+#endif
+
+	/* Initialize machine_ops pointer. */
+	machine_ops_init();
 }
 
 void arch_pre_mm_init(void)
@@ -123,28 +129,9 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	interrupt_init();
-	
-#ifdef CONFIG_FB
-	/* GXemul framebuffer */
-	fb_properties_t gxemul_prop = {
-		.addr = 0x12000000,
-		.offset = 0,
-		.x = 640,
-		.y = 480,
-		.scan = 1920,
-		.visual = VISUAL_RGB_8_8_8,
-	};
-	
-	outdev_t *fbdev = fb_init(&gxemul_prop);
-	if (fbdev)
-		stdout_wire(fbdev);
-#endif
 
-#ifdef CONFIG_MIPS_PRN
-	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
-	if (dsrlndev)
-		stdout_wire(dsrlndev);
-#endif
+	machine_init();
+	machine_output_init();
 }
 
 void arch_post_cpu_init(void)
@@ -157,47 +144,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	static const char *platform;
-
 	/* Set platform name. */
-#ifdef MACHINE_msim
-	platform = "msim";
-#endif
-#ifdef MACHINE_bgxemul
-	platform = "gxemul";
-#endif
-#ifdef MACHINE_lgxemul
-	platform = "gxemul";
-#endif
-	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	sysinfo_set_item_data("platform", NULL,
+	    (void *) machine_get_platform_name(),
+	    str_size(machine_get_platform_name()));
 
-#ifdef CONFIG_MIPS_KBD
-	/*
-	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
-	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
-	 */
-	dsrlnin_instance_t *dsrlnin_instance
-	    = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
-	if (dsrlnin_instance) {
-		srln_instance_t *srln_instance = srln_init();
-		if (srln_instance) {
-			indev_t *sink = stdin_wire();
-			indev_t *srln = srln_wire(srln_instance, sink);
-			dsrlnin_wire(dsrlnin_instance, srln);
-			cp0_unmask_int(MSIM_KBD_IRQ);
-		}
-	}
-	
-	/*
-	 * This is the necessary evil until the userspace driver is entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
-	    PA2KA(MSIM_KBD_ADDRESS));
-#endif
+	machine_input_init();
 }
 
 void calibrate_delay_loop(void)
