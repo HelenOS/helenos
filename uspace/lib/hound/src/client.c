@@ -93,7 +93,7 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 			return NULL;
 		}
 		new_context->id = hound_service_register_context(
-		    new_context->session, new_context->name);
+		    new_context->session, new_context->name, record);
 		if (new_context->id <= 0) {
 			free(new_context->name);
 			free(new_context);
