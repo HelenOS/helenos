@@ -2382,16 +2382,38 @@ int async_data_write_start(async_exch_t *exch, const void *src, size_t size)
  */
 bool async_data_write_receive(ipc_callid_t *callid, size_t *size)
 {
-	assert(callid);
-	
 	ipc_call_t data;
-	*callid = async_get_call(&data);
+	return async_data_write_receive_call(callid, &data, size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid Storage for the hash of the IPC_M_DATA_WRITE.
+ * @param data   Storage for the ipc call data.
+ * @param size   Storage for the suggested size. May be NULL.
+ *
+ * @return True on success, false on failure.
+ *
+ */
+bool async_data_write_receive_call(ipc_callid_t *callid, ipc_call_t *data,
+    size_t *size)
+{
+	assert(callid);
+	assert(data);
 	
-	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_WRITE)
+	*callid = async_get_call(data);
+	
+	if (IPC_GET_IMETHOD(*data) != IPC_M_DATA_WRITE)
 		return false;
 	
 	if (size)
-		*size = (size_t) IPC_GET_ARG2(data);
+		*size = (size_t) IPC_GET_ARG2(*data);
 	
 	return true;
 }

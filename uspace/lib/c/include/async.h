@@ -436,6 +436,7 @@ extern int async_data_read_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
 
 extern int async_data_write_start(async_exch_t *, const void *, size_t);
 extern bool async_data_write_receive(ipc_callid_t *, size_t *);
+extern bool async_data_write_receive_call(ipc_callid_t *, ipc_call_t *, size_t *);
 extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
 
 extern int async_data_write_accept(void **, const bool, const size_t,
