@@ -224,8 +224,9 @@ static int hound_server_read_data(void *stream)
 		return ENOTSUP;
 
 	ipc_callid_t callid;
+	ipc_call_t call;
 	size_t size = 0;
-	while (async_data_write_receive(&callid, &size)) {
+	while (async_data_write_receive_call(&callid, &call, &size)) {
 		char *buffer = malloc(size);
 		if (!buffer) {
 			async_answer_0(callid, ENOMEM);
@@ -235,13 +236,15 @@ static int hound_server_read_data(void *stream)
 		if (ret == EOK) {
 			server_iface->stream_data_write(stream, buffer, size);
 		} else {
-			// TODO did answering fail?
 			async_answer_0(callid, ret);
 		}
 	}
-	//TODO we assume that the fail was caused by IPC_M_HOUND_STREAM_EXIT
-	async_answer_0(callid, EOK);
-	return EOK;
+	//TODO drain?
+	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
+	    ? EOK : EINVAL;
+
+	async_answer_0(callid, ret);
+	return ret;
 }
 
 /***
