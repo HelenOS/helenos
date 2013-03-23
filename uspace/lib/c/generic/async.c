@@ -2278,16 +2278,37 @@ int async_data_read_start(async_exch_t *exch, void *dst, size_t size)
  */
 bool async_data_read_receive(ipc_callid_t *callid, size_t *size)
 {
-	assert(callid);
-	
 	ipc_call_t data;
-	*callid = async_get_call(&data);
+	return async_data_read_receive_call(callid, &data, size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid Storage for the hash of the IPC_M_DATA_READ.
+ * @param size   Storage for the maximum size. Can be NULL.
+ *
+ * @return True on success, false on failure.
+ *
+ */
+bool async_data_read_receive_call(ipc_callid_t *callid, ipc_call_t *data,
+    size_t *size)
+{
+	assert(callid);
+	assert(data);
 	
-	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_READ)
+	*callid = async_get_call(data);
+	
+	if (IPC_GET_IMETHOD(*data) != IPC_M_DATA_READ)
 		return false;
 	
 	if (size)
-		*size = (size_t) IPC_GET_ARG2(data);
+		*size = (size_t) IPC_GET_ARG2(*data);
 	
 	return true;
 }

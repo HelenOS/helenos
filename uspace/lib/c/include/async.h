@@ -398,6 +398,7 @@ extern int async_share_out_finalize(ipc_callid_t, void **);
 extern aid_t async_data_read(async_exch_t *, void *, size_t, ipc_call_t *);
 extern int async_data_read_start(async_exch_t *, void *, size_t);
 extern bool async_data_read_receive(ipc_callid_t *, size_t *);
+extern bool async_data_read_receive_call(ipc_callid_t *, ipc_call_t *, size_t *);
 extern int async_data_read_finalize(ipc_callid_t, const void *, size_t);
 
 extern int async_data_read_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
