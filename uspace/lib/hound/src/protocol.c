@@ -138,7 +138,7 @@ int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
  ****/
 
 static int hound_server_read_data(void *stream);
-static hound_server_iface_t *server_iface;
+static const hound_server_iface_t *server_iface;
 
 void hound_service_set_server_iface(hound_server_iface_t *iface)
 {
@@ -205,8 +205,11 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			hound_server_read_data(stream);
 			break;
 		}
-		case IPC_M_HOUND_CONTEXT_UNREGISTER:
 		case IPC_M_HOUND_STREAM_EXIT:
+			/* Stream exit is only allowed in stream context */
+			async_answer_0(callid, EINVAL);
+			break;
+		case IPC_M_HOUND_CONTEXT_UNREGISTER:
 		case IPC_M_HOUND_STREAM_DRAIN:
 		default:
 			async_answer_0(callid, ENOTSUP);
