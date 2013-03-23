@@ -158,7 +158,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (1) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		switch(IPC_GET_IMETHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_HOUND_CONTEXT_REGISTER: {
 			if (!server_iface || !server_iface->add_context) {
 				async_answer_0(callid, ENOTSUP);
@@ -182,6 +182,16 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 			async_answer_1(callid, EOK, id);
 		}
+		case IPC_M_HOUND_CONTEXT_UNREGISTER: {
+			if (!server_iface || !server_iface->rem_context) {
+				async_answer_0(callid, ENOTSUP);
+				break;
+			}
+			hound_context_id_t id = IPC_GET_ARG1(call);
+			const int ret =
+			    server_iface->rem_context(server_iface->server, id);
+			async_answer_0(callid, ret);
+		}
 		case IPC_M_HOUND_STREAM_ENTER: {
 			if (!server_iface || !server_iface->add_stream) {
 				async_answer_0(callid, ENOTSUP);
@@ -202,15 +212,15 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				async_answer_0(callid, ret);
 				break;
 			}
+			//TODO consider record context
 			hound_server_read_data(stream);
 			break;
 		}
 		case IPC_M_HOUND_STREAM_EXIT:
-			/* Stream exit is only allowed in stream context */
+		case IPC_M_HOUND_STREAM_DRAIN:
+			/* Stream exit/drain is only allowed in stream context*/
 			async_answer_0(callid, EINVAL);
 			break;
-		case IPC_M_HOUND_CONTEXT_UNREGISTER:
-		case IPC_M_HOUND_STREAM_DRAIN:
 		default:
 			async_answer_0(callid, ENOTSUP);
 			return;
