@@ -63,6 +63,7 @@ int hound_service_stream_read(async_exch_t *exch, void *data, size_t size);
 typedef struct hound_server_iface {
 	int (*add_context)(void *, hound_context_id_t *, const char *, bool);
 	int (*rem_context)(void *, hound_context_id_t);
+	bool (*is_record_context)(void *, hound_context_id_t);
 	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
 	    void **);
 	int (*rem_stream)(void *, void *);

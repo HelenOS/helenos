@@ -138,6 +138,7 @@ int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
  ****/
 
 static int hound_server_read_data(void *stream);
+static int hound_server_write_data(void *stream);
 static const hound_server_iface_t *server_iface;
 
 void hound_service_set_server_iface(hound_server_iface_t *iface)
@@ -193,7 +194,8 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, ret);
 		}
 		case IPC_M_HOUND_STREAM_ENTER: {
-			if (!server_iface || !server_iface->add_stream) {
+			if (!server_iface || !server_iface->add_stream
+			    || !server_iface->is_record_context) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
@@ -212,8 +214,13 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				async_answer_0(callid, ret);
 				break;
 			}
-			//TODO consider record context
-			hound_server_read_data(stream);
+			const bool rec = server_iface->is_record_context(
+			    server_iface->server, id);
+			if (rec) {
+				hound_server_write_data(stream);
+			} else {
+				hound_server_read_data(stream);
+			}
 			break;
 		}
 		case IPC_M_HOUND_STREAM_EXIT:
@@ -244,12 +251,38 @@ static int hound_server_read_data(void *stream)
 		}
 		int ret = async_data_write_finalize(callid, buffer, size);
 		if (ret == EOK) {
-			server_iface->stream_data_write(stream, buffer, size);
-		} else {
-			async_answer_0(callid, ret);
+			ret = server_iface->stream_data_write(stream, buffer, size);
 		}
+		async_answer_0(callid, ret);
 	}
 	//TODO drain?
+	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
+	    ? EOK : EINVAL;
+
+	async_answer_0(callid, ret);
+	return ret;
+}
+
+static int hound_server_write_data(void *stream)
+{
+	if (!server_iface || !server_iface->stream_data_read)
+		return ENOTSUP;
+
+	ipc_callid_t callid;
+	ipc_call_t call;
+	size_t size = 0;
+	while (async_data_read_receive_call(&callid, &call, &size)) {
+		char *buffer = malloc(size);
+		if (!buffer) {
+			async_answer_0(callid, ENOMEM);
+			continue;
+		}
+		int ret = server_iface->stream_data_read(stream, buffer, size);
+		if (ret == EOK) {
+			ret = async_data_read_finalize(callid, buffer, size);
+		}
+		async_answer_0(callid, ret);
+	}
 	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
 	    ? EOK : EINVAL;
 
