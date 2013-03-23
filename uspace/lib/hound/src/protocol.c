@@ -118,8 +118,7 @@ int hound_service_stream_exit(async_exch_t *exch)
 
 int hound_service_stream_drain(async_exch_t *exch)
 {
-	//TODO implement
-	return ENOTSUP;
+	return async_req_0_0(exch, IPC_M_HOUND_STREAM_DRAIN);
 }
 
 int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size)
@@ -129,8 +128,7 @@ int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size
 
 int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
 {
-	//TODO implement
-	return ENOTSUP;
+	return async_data_read_start(exch, data, size);
 }
 
 /****
