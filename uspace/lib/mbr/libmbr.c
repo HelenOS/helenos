@@ -11,7 +11,7 @@
  * - Redistributions in binary form must reproduce the above copyright
  *   notice, this list of conditions and the following disclaimer in the
  *   documentation and/or other materials provided with the distribution.
- * - The name of the author may not be used to endorse or promote products
+ * - The LIBMBR_NAME of the author may not be used to endorse or promote products
  *   derived from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
@@ -44,9 +44,9 @@
 #include "libmbr.h"
 
 static br_block_t * alloc_br(void);
-static int decode_part(pt_entry_t * src, part_t * trgt, uint32_t base);
-static int decode_logical(mbr_t * mbr, mbr_parts_t * p, part_t * ext);
-static void encode_part(part_t * src, pt_entry_t * trgt, uint32_t base);
+static int decode_part(pt_entry_t * src, mbr_part_t * trgt, uint32_t base);
+static int decode_logical(mbr_t * mbr, mbr_partitions_t * p, mbr_part_t * ext);
+static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base);
 
 /** Read MBR from specific device
  * @param	dev_handle	device to read MBR from
@@ -122,12 +122,12 @@ int mbr_is_mbr(mbr_t * mbr)
  *
  * @return 		linked list of partitions or NULL on error
  */
-mbr_parts_t * mbr_read_partitions(mbr_t * mbr)
+mbr_partitions_t * mbr_read_partitions(mbr_t * mbr)
 {
 	int rc, i;
-	part_t * p;
-	part_t * ext = NULL;
-	mbr_parts_t * parts;
+	mbr_part_t * p;
+	mbr_part_t * ext = NULL;
+	mbr_partitions_t * parts;
 
 	if (mbr == NULL)
 		return NULL;
@@ -142,9 +142,9 @@ mbr_parts_t * mbr_read_partitions(mbr_t * mbr)
 		if (mbr->raw_data.pte[i].ptype == PT_UNUSED)
 			continue;
 		
-		p = malloc(sizeof(part_t));
+		p = malloc(sizeof(mbr_part_t));
 		if (p == NULL) {
-			printf(NAME ": Error on memory allocation.\n");
+			printf(LIBMBR_NAME ": Error on memory allocation.\n");
 			free(p);
 			mbr_free_partitions(parts);
 			return NULL;
@@ -158,8 +158,8 @@ mbr_parts_t * mbr_read_partitions(mbr_t * mbr)
 	// Fill in the primary partitions and generate logical ones, if any
 	rc = decode_logical(mbr, parts, ext);
 	if (rc != EOK) {
-		printf(NAME ": Error occured during decoding the MBR.\n" \
-			   NAME ": Partition list may be incomplete.\n");
+		printf(LIBMBR_NAME ": Error occured during decoding the MBR.\n" \
+			   LIBMBR_NAME ": Partition list may be incomplete.\n");
 	}
 
 	return parts;
@@ -172,14 +172,14 @@ mbr_parts_t * mbr_read_partitions(mbr_t * mbr)
  *
  * @return				returns EOK on succes, specific error code otherwise
  */
-int mbr_write_partitions(mbr_parts_t * parts, mbr_t * mbr, service_id_t dev_handle)
+int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev_handle)
 {
 	bool logical = false;
 	int i = 0;
 	int rc;
-	part_t * p;
-	part_t * ext = (parts->l_extended == NULL) ? NULL
-					: list_get_instance(parts->l_extended, part_t, link);
+	mbr_part_t * p;
+	mbr_part_t * ext = (parts->l_extended == NULL) ? NULL
+					: list_get_instance(parts->l_extended, mbr_part_t, link);
 	
 	br_block_t * last_ebr = NULL;
 
@@ -193,10 +193,10 @@ int mbr_write_partitions(mbr_parts_t * parts, mbr_t * mbr, service_id_t dev_hand
 		goto no_extended;
 
 	aoff64_t addr = ext->start_addr;
-	part_t * prev_part = NULL;
+	mbr_part_t * prev_part = NULL;
 
 	list_foreach(parts->list, it) {
-		p = list_get_instance(it, part_t, link);
+		p = list_get_instance(it, mbr_part_t, link);
 		if (mbr_get_flag(p, ST_LOGIC)) {
 			// writing logical partition
 
@@ -268,7 +268,7 @@ int mbr_write_partitions(mbr_parts_t * parts, mbr_t * mbr, service_id_t dev_hand
 no_extended:
 
 	list_foreach(parts->list, it) {
-		p = list_get_instance(it, part_t, link);
+		p = list_get_instance(it, mbr_part_t, link);
 		if (mbr_get_flag(p, ST_LOGIC)) {
 			// extended does not exist, fail
 			return EINVAL;
@@ -294,7 +294,7 @@ skip:
 		if (p->type == PT_EXTENDED)
 			ext = p;
 
-		//p = list_get_instance(p->link.next, mbr_parts_t, link);
+		//p = list_get_instance(p->link.next, mbr_partitions_t, link);
 		p = p->next;
 	}
 
@@ -356,10 +356,10 @@ end:
 	return rc;
 }
 
-/** part_t constructor */
-part_t * mbr_alloc_partition(void)
+/** mbr_part_t constructor */
+mbr_part_t * mbr_alloc_partition(void)
 {
-	part_t * p = malloc(sizeof(part_t));
+	mbr_part_t * p = malloc(sizeof(mbr_part_t));
 	if (p == NULL) {
 		return NULL;
 	}
@@ -373,9 +373,9 @@ part_t * mbr_alloc_partition(void)
 	return p;
 }
 
-mbr_parts_t * mbr_alloc_partitions(void)
+mbr_partitions_t * mbr_alloc_partitions(void)
 {
-	mbr_parts_t * parts = malloc(sizeof(mbr_parts_t));
+	mbr_partitions_t * parts = malloc(sizeof(mbr_partitions_t));
 	if (parts == NULL) {
 		return NULL;
 	}
@@ -386,22 +386,25 @@ mbr_parts_t * mbr_alloc_partitions(void)
 }
 
 /** Add partition */
-void mbr_add_partition(mbr_parts_t * parts, part_t * partition)
+int mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * partition)
 {
 	list_append(&(partition->link), &(parts->list));
+	return EOK;
 }
 
 /** Remove partition */
-void mbr_remove_partition(mbr_parts_t * parts, int idx)
+int mbr_remove_partition(mbr_partitions_t * parts, size_t idx)
 {
 	link_t * l = list_nth(&(parts->list), idx);
 	list_remove(l);
-	part_t * p = list_get_instance(l, part_t, link);
+	mbr_part_t * p = list_get_instance(l, mbr_part_t, link);
 	mbr_free_partition(p);
+	
+	return EOK;
 }
 
-/** part_t destructor */
-void mbr_free_partition(part_t * p)
+/** mbr_part_t destructor */
+void mbr_free_partition(mbr_part_t * p)
 {
 	if (p->ebr != NULL)
 		free(p->ebr);
@@ -409,13 +412,13 @@ void mbr_free_partition(part_t * p)
 }
 
 /** Get flag bool value */
-int mbr_get_flag(part_t * p, MBR_FLAGS flag)
+int mbr_get_flag(mbr_part_t * p, MBR_FLAGS flag)
 {
 	return (p->status & (1 << flag)) ? 1 : 0;
 }
 
 /** Set a specifig status flag to a value */
-void mbr_set_flag(part_t * p, MBR_FLAGS flag, bool value)
+void mbr_set_flag(mbr_part_t * p, MBR_FLAGS flag, bool value)
 {
 	uint8_t status = p->status;
 
@@ -437,10 +440,10 @@ void mbr_free_mbr(mbr_t * mbr)
  *
  * @param parts		partition list to be freed
  */
-void mbr_free_partitions(mbr_parts_t * parts)
+void mbr_free_partitions(mbr_partitions_t * parts)
 {
 	list_foreach_safe(parts->list, cur_link, next) {
-		part_t * p = list_get_instance(cur_link, part_t, link);
+		mbr_part_t * p = list_get_instance(cur_link, mbr_part_t, link);
 		list_remove(cur_link);
 		mbr_free_partition(p);
 	}
@@ -461,8 +464,8 @@ static br_block_t * alloc_br()
 	return br;
 }
 
-/** Parse partition entry to part_t */
-static int decode_part(pt_entry_t * src, part_t * trgt, uint32_t base)
+/** Parse partition entry to mbr_part_t */
+static int decode_part(pt_entry_t * src, mbr_part_t * trgt, uint32_t base)
 {
 	trgt->type = src->ptype;
 
@@ -476,13 +479,13 @@ static int decode_part(pt_entry_t * src, part_t * trgt, uint32_t base)
 	return (src->ptype == PT_EXTENDED) ? 1 : 0;
 }
 
-/** Parse MBR contents to part_t list
+/** Parse MBR contents to mbr_part_t list
  * parameter 'p' is allocated for only used primary partitions
  */
-static int decode_logical(mbr_t * mbr, mbr_parts_t * parts, part_t * ext)
+static int decode_logical(mbr_t * mbr, mbr_partitions_t * parts, mbr_part_t * ext)
 {
 	int rc;
-	part_t * p;
+	mbr_part_t * p;
 
 	if (mbr == NULL || parts == NULL)
 		return EINVAL;
@@ -533,8 +536,8 @@ static int decode_logical(mbr_t * mbr, mbr_parts_t * parts, part_t * ext)
 	return EOK;
 }
 
-/** Convert part_t to pt_entry_t */
-static void encode_part(part_t * src, pt_entry_t * trgt, uint32_t base)
+/** Convert mbr_part_t to pt_entry_t */
+static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base)
 {
 	if (src != NULL) {
 		trgt->status = mbr_get_flag(src, ST_BOOT) ? B_ACTIVE : B_INACTIVE;

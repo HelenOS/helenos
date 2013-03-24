@@ -31,6 +31,7 @@ EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
 LIBRARY = libgpt
 
 SOURCES = \
-	libgpt.c
+	libgpt.c \
+	global.c
 
 include $(USPACE_PREFIX)/Makefile.common

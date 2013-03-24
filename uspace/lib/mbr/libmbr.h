@@ -35,7 +35,9 @@
 #ifndef LIBMBR_LIBMBR_H_
 #define LIBMBR_LIBMBR_H_
 
-#define NAME	"libmbr"
+#include <sys/types.h>
+
+#define LIBMBR_NAME	"libmbr"
 
 /** Number of primary partition records */
 #define N_PRIMARY		4
@@ -107,9 +109,9 @@ typedef struct {
 } mbr_t;
 
 
-//FIXME: make mbr_parts_t as the linked list for keeping the same interface as with GPT
+//FIXME: make mbr_partitions_t as the linked list for keeping the same interface as with GPT
 /** Partition */
-typedef struct part {
+typedef struct mbr_part {
 	/** The link in the doubly-linked list */
 	link_t link;
 	/** Partition type */
@@ -117,12 +119,12 @@ typedef struct part {
 	/** Flags */
 	uint8_t status;
 	/** Address of first block */
-	aoff64_t start_addr;
+	uint32_t start_addr;
 	/** Number of blocks */
-	aoff64_t length;
+	uint32_t length;
 	/** Points to Extended Boot Record of logical partition */
 	br_block_t * ebr;
-} part_t;
+} mbr_part_t;
 
 typedef struct mbr_parts {
 	/** Number of primary partitions */
@@ -133,8 +135,12 @@ typedef struct mbr_parts {
 	unsigned int n_logical;
 	/** Partition linked list */
 	list_t list;
-} mbr_parts_t;
+} mbr_partitions_t;
 
+typedef struct mbr_table {
+	mbr_t * mbr;
+	mbr_partitions_t * parts;
+} mbr_table_t;
 
 /** Read/Write MBR header.
  * WARNING: when changing both header and partitions, write first header,
@@ -145,22 +151,25 @@ extern int mbr_write_mbr(mbr_t * mbr, service_id_t dev_handle);
 extern int mbr_is_mbr(mbr_t * mbr);
 
 /** Read/Write/Set MBR partitions. */
-extern mbr_parts_t * mbr_read_partitions(mbr_t * mbr);
-extern int 			 mbr_write_partitions(mbr_parts_t * parts, mbr_t * mbr, service_id_t dev_handle);
-extern part_t *		 mbr_alloc_partition(void);
-extern mbr_parts_t * mbr_alloc_partitions(void);
-extern void			 mbr_add_partition(mbr_parts_t * parts, part_t * partition);
-extern void			 mbr_remove_partition(mbr_parts_t * parts, int idx);
-extern int			 mbr_get_flag(part_t * p, MBR_FLAGS flag);
-extern void			 mbr_set_flag(part_t * p, MBR_FLAGS flag, bool value);
+extern mbr_partitions_t * mbr_read_partitions(mbr_t * mbr);
+extern int 			mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev_handle);
+extern mbr_part_t *	mbr_alloc_partition(void);
+extern mbr_partitions_t * mbr_alloc_partitions(void);
+extern int			mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * partition);
+extern int			mbr_remove_partition(mbr_partitions_t * parts, size_t idx);
+extern int			mbr_get_flag(mbr_part_t * p, MBR_FLAGS flag);
+extern void			mbr_set_flag(mbr_part_t * p, MBR_FLAGS flag, bool value);
 
 #define mbr_part_foreach(parts, iterator)	\
-			list_foreach(parts->list, iterator)
+			for (mbr_part_t * iterator = list_get_instance((parts)->list.head.next, mbr_part_t, link); \
+				iterator != list_get_instance(&(parts)->list.head, mbr_part_t, link); \
+				iterator = list_get_instance(iterator->link.next, mbr_part_t, link))
+
 
 /** free() wrapper functions. */
 extern void mbr_free_mbr(mbr_t * mbr);
-extern void mbr_free_partition(part_t * p);
-extern void mbr_free_partitions(mbr_parts_t * parts);
+extern void mbr_free_partition(mbr_part_t * p);
+extern void mbr_free_partitions(mbr_partitions_t * parts);
 
 #endif
 

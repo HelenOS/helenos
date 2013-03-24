@@ -51,9 +51,9 @@
 #include "libgpt.h"
 
 static int load_and_check_header(service_id_t handle, aoff64_t addr, size_t b_size, gpt_header_t * header);
-static gpt_parts_t * alloc_part_array(uint32_t num);
-static int extend_part_array(gpt_parts_t * p);
-static int reduce_part_array(gpt_parts_t * p);
+static gpt_partitions_t * alloc_part_array(uint32_t num);
+static int extend_part_array(gpt_partitions_t * p);
+static int reduce_part_array(gpt_partitions_t * p);
 static long long nearest_larger_int(double a);
 
 /** Read GPT from specific device
@@ -161,11 +161,11 @@ int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
  * @return 		partition linked list pointer or NULL on error
  * 				error code is stored in errno
  */
-gpt_parts_t * gpt_read_partitions(gpt_t * gpt)
+gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
 {
 	int rc;
 	unsigned int i;
-	gpt_parts_t * res;
+	gpt_partitions_t * res;
 	uint32_t num_ent = uint32_t_le2host(gpt->raw_data->num_entries);
 	uint32_t ent_size = uint32_t_le2host(gpt->raw_data->entry_size);
 	uint64_t ent_lba = uint64_t_le2host(gpt->raw_data->entry_lba);
@@ -241,7 +241,7 @@ gpt_parts_t * gpt_read_partitions(gpt_t * gpt)
  * 
  * @return				returns EOK on succes, specific error code otherwise
  */
-int gpt_write_partitions(gpt_parts_t * parts, gpt_t * gpt, service_id_t dev_handle)
+int gpt_write_partitions(gpt_partitions_t * parts, gpt_t * gpt, service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
@@ -282,14 +282,17 @@ int gpt_write_partitions(gpt_parts_t * parts, gpt_t * gpt, service_id_t dev_hand
 	
 }
 
-gpt_parts_t * gpt_add_partition(gpt_parts_t * parts, g_part_t * partition)
+gpt_partitions_t * gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition)
 {
 	
+	extend_part_array(parts);
+	return parts;
 }
 
-gpt_parts_t * gpt_remove_partition(gpt_parts_t * parts, int idx)
+gpt_partitions_t * gpt_remove_partition(gpt_partitions_t * parts, size_t idx)
 {
-	
+	reduce_part_array(parts);
+	return parts;
 }
 
 /** free() GPT header including gpt->header_lba */
@@ -303,7 +306,7 @@ void gpt_free_gpt(gpt_t * gpt)
  * 
  * @param parts		partition list to be freed
  */
-void gpt_free_partitions(gpt_parts_t * parts)
+void gpt_free_partitions(gpt_partitions_t * parts)
 {
 	free(parts->part_array);
 	free(parts);
@@ -315,7 +318,7 @@ void gpt_free_partitions(gpt_parts_t * parts)
  * 					- see gpt_ptypes to choose from
  * 
  */
-void gpt_set_part_type(g_part_t * p, int type)
+void gpt_set_part_type(gpt_part_t * p, int type)
 {
 	/* Beware: first 3 blocks are byteswapped! */
 	p->raw_data.part_type[3] = gpt_ptypes[type].guid[0];
@@ -385,9 +388,9 @@ static int load_and_check_header(service_id_t dev_handle, aoff64_t addr, size_t 
 	return EOK;
 }
 
-static gpt_parts_t * alloc_part_array(uint32_t num)
+static gpt_partitions_t * alloc_part_array(uint32_t num)
 {
-	gpt_parts_t * res = malloc(sizeof(gpt_parts_t));
+	gpt_partitions_t * res = malloc(sizeof(gpt_partitions_t));
 	if (res == NULL) {
 		errno = ENOMEM;
 		return NULL;
@@ -407,7 +410,7 @@ static gpt_parts_t * alloc_part_array(uint32_t num)
 	return res;
 }
 
-static int extend_part_array(gpt_parts_t * p)
+static int extend_part_array(gpt_partitions_t * p)
 {
 	unsigned int nsize = p->arr_size * 2;
 	gpt_entry_t * tmp = malloc(nsize * sizeof(gpt_entry_t));
@@ -424,7 +427,7 @@ static int extend_part_array(gpt_parts_t * p)
 	return 0;
 }
 
-static int reduce_part_array(gpt_parts_t * p)
+static int reduce_part_array(gpt_partitions_t * p)
 {
 	if(p->arr_size > GPT_MIN_PART_NUM) {
 		unsigned int nsize = p->arr_size / 2;

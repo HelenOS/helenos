@@ -32,4 +32,37 @@
 /** @file
  */
 
+#include <stdio.h>
+#include <errno.h>
+#include <sys/types.h>
+
 #include "func_gpt.h"
+
+int add_gpt_part(tinput_t * in, union table_data * data)
+{
+	int rc = EOK;
+	
+	return rc;
+}
+
+int delete_gpt_part(tinput_t * in, union table_data * data)
+{
+	int rc = EOK;
+	
+	return rc;
+}
+
+int print_gpt_parts(union table_data * data)
+{
+	int rc = EOK;
+	
+	return rc;
+}
+
+int write_gpt_parts(service_id_t dev_handle, union table_data * data)
+{
+	int rc = EOK;
+	
+	return rc;
+}
+

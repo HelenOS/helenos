@@ -33,11 +33,17 @@
  */
 
 #ifndef __FUNC_GPT_H__
-#def	__FUNC_GPT_H__
+#define	__FUNC_GPT_H__
 
-int add_gpt_part(tinput_t * in, gpt_parts_t * parts);
-int delete_gpt_part(tinput_t * in, gpt_parts_t * parts);
-extern void print_gpt_partitions(gpt_parts_t * parts);
-extern void write_gpt_parts(gpt_parts_t * parts, gpt_t * mbr, service_id_t dev_handle);
+#include <loc.h>
+#include <tinput.h>
+#include <libgpt.h>
+
+#include "common.h"
+
+extern int add_gpt_part(tinput_t * in, union table_data * data);
+extern int delete_gpt_part(tinput_t * in, union table_data * data);
+extern int print_gpt_parts(union table_data * data);
+extern int write_gpt_parts(service_id_t dev_handle, union table_data * data);
 
 #endif

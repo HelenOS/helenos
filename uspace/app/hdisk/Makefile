@@ -31,12 +31,13 @@ USPACE_PREFIX = ../..
 LIBS = $(LIBMBR_PREFIX)/libmbr.a $(LIBGPT_PREFIX)/libgpt.a \
 	$(LIBBLOCK_PREFIX)/libblock.a $(LIBCLUI_PREFIX)/libclui.a \
 	$(LIBC_PREFIX)/libc.a
-EXTRA_CFLAGS = -I$(LIBMBR_PREFIX) -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX)
+EXTRA_CFLAGS = -I$(LIBMBR_PREFIX) -I$(LIBGPT_PREFIX) -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX)
 BINARY = hdisk
 
 SOURCES = \
 	hdisk.c \
 	func_mbr.c \
-	func_gpt.c 
+	func_gpt.c \
+	input.c
 
 include $(USPACE_PREFIX)/Makefile.common

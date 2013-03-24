@@ -33,11 +33,17 @@
  */
 
 #ifndef __FUNC_MBR_H__
-#def	__FUNC_MBR_H__
+#define	__FUNC_MBR_H__
 
-int add_mbr_part(tinput_t * in, mbr_parts_t * parts);
-int delete_mbr_part(tinput_t * in, mbr_parts_t * parts);
-extern void print_mbr_partitions(mbr_parts_t * parts);
-extern void write_mbr_parts(mbr_parts_t * parts, mbr_t * mbr, service_id_t dev_handle);
+#include <loc.h>
+#include <tinput.h>
+#include <libmbr.h>
+
+#include "common.h"
+
+extern int add_mbr_part(tinput_t * in, union table_data * data);
+extern int delete_mbr_part(tinput_t * in, union table_data * data);
+extern int print_mbr_parts(union table_data * data);
+extern int write_mbr_parts(service_id_t dev_handle, union table_data * data);
 
 #endif

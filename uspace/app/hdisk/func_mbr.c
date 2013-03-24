@@ -32,53 +32,42 @@
 /** @file
  */
 
+#include <stdio.h>
+#include <errno.h>
+#include <sys/types.h>
+
 #include "func_mbr.h"
+#include "input.h"
 
-int add_mbr_part(tinput_t * in, mbr_parts_t * parts)
+static int set_mbr_partition(tinput_t * in, mbr_part_t * p);
+
+
+int add_mbr_part(tinput_t * in, union table_data * data)
 {
-	part_t * part = mbr_alloc_partition();
-
-	printf("Primary (p) or logical (l): ");
-	int input = getchar();
-
-	switch(input) {
-		case 'p':
-			mbr_set_flag(parts, ST_LOGIC, false);
-		case 'l':
-			mbr_set_flag(parts, ST_LOGIC, false);
-		default:
-			printf("Invalid type. Cancelled.");
-			return EINVAL;
-	}
+	int rc;
+	
+	mbr_part_t * part = mbr_alloc_partition();
 
 	set_mbr_partition(in, part);
 
-	mbr_add_partition(parts, part);
+	rc = mbr_add_partition(data->mbr.parts, part);
+	if (rc != EOK) {
+		printf("Error adding partition.\n");
+	}
+	
+	
+	return rc;
 }
 
-int delete_mbr_part(tinput_t * in, part_t * parts)
+int delete_mbr_part(tinput_t * in, union table_data * data)
 {
-	char * str;
 	int rc;
-	part_t * temp = NULL;
-	part_t * p = parts;
-	uint32_t i, input = 0;
-	char * endptr;
+	size_t idx;
 
 	printf("Number of the partition to delete (counted from 0): ");
+	idx = get_input_size_t(in);
 
-	if((rc = get_input(in, &str)) != EOK)
-		return rc;
-
-	//convert from string to base 10 number
-	if(str_uint32_t(str, &endptr, 10, true, &input) != EOK) {
-		printf("Invalid value. Canceled.\n");
-		return EINVAL;
-	}
-
-	free(str);
-
-	rc = mbr_remove_partition(parts, input);
+	rc = mbr_remove_partition(data->mbr.parts, idx);
 	if(rc != EOK) {
 		printf("Error: something.\n");
 	}
@@ -87,35 +76,99 @@ int delete_mbr_part(tinput_t * in, part_t * parts)
 }
 
 /** Print current partition scheme */
-void print_mbr_partitions(mbr_parts_t * parts)
+int print_mbr_parts(union table_data * data)
 {
 	int num = 0;
 
 	printf("Current partition scheme:\n");
 	printf("\t\tBootable:\tStart:\tEnd:\tLength:\tType:\n");
 
-	mbr_part_foreach(parts, it) {
+	mbr_part_foreach(data->mbr.parts, it) {
 		if (it->type == PT_UNUSED)
 			continue;
 
-		printf("\t P%d:\t", i);
-		if (p->bootable)
+		printf("\t P%d:\t", num);
+		if (mbr_get_flag(it, ST_BOOT))
 			printf("*");
 		else
 			printf(" ");
 
-		printf("\t\t%llu\t%llu\t%llu\t%d\n", p->start_addr, p->start_addr + p->length, p->length, p->type);
+		printf("\t\t%u\t%u\t%u\t%d\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
 
 		++num;
-	}*/
+	}
 
 	printf("%d partitions found.\n", num);
+	
+	return EOK;
 }
 
-void write_mbr_parts(mbr_parts_t * parts, mbr_t * mbr, service_id_t dev_handle)
+int write_mbr_parts(service_id_t dev_handle, union table_data * data)
 {
-	int rc = mbr_write_partitions(parts, mbr, dev_handle);
+	int rc = mbr_write_partitions(data->mbr.parts, data->mbr.mbr, dev_handle);
 	if (rc != EOK) {
 		printf("Error occured during writing. (ERR: %d)\n", rc);
 	}
+	
+	return rc;
 }
+
+
+
+static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
+{
+	int c;
+	uint8_t type;
+	
+	printf("Primary (p) or logical (l): ");
+	c = getchar();
+
+	switch(c) {
+		case 'p':
+			mbr_set_flag(p, ST_LOGIC, false);
+		case 'l':
+			mbr_set_flag(p, ST_LOGIC, true);
+		default:
+			printf("Invalid type. Cancelled.");
+			return EINVAL;
+	}
+	
+	printf("Set type (0-255): ");
+	type = get_input_uint8(in);
+
+	///TODO: there can only be one bootable partition; let's do it just like fdisk
+	printf("Bootable? (y/n): ");
+	c = getchar();
+	if (c != 'y' && c != 'Y' && c != 'n' && c != 'N') {
+		printf("Invalid value. Cancelled.");
+		return EINVAL;
+	}
+	
+	mbr_set_flag(p, ST_BOOT, (c == 'y' || c == 'Y') ? true : false);
+
+
+	uint32_t sa, ea;
+
+	printf("Set starting address (number): ");
+	sa = get_input_uint32(in);
+
+	printf("Set end addres (number): ");
+	ea = get_input_uint32(in);
+	
+	if(ea < sa) {
+		printf("Invalid value. Canceled.\n");
+		return EINVAL;
+	}
+
+	p->type = type;
+	p->start_addr = sa;
+	p->length = ea - sa;
+
+	return EOK;
+}
+
+
+
+
+
+

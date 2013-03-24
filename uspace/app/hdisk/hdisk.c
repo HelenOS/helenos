@@ -37,32 +37,25 @@
 #include <async.h>
 #include <stdio.h>
 #include <ipc/services.h>
-#include <libblock.h>
+#include <block.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <str.h>
 #include <libmbr.h>
+#include <libgpt.h>
 #include <tinput.h>
 
+#include "hdisk.h"
 #include "func_mbr.h"
 #include "func_gpt.h"
 
-enum TABLES {
-	TBL_MBR,
-	TBL_GPT;
-};
-
-static TABLES table;
-
-int get_input(tinput_t * in, char ** str);
-void interact(mbr_parts_t * partitions, mbr_t * mbr, service_id_t dev_handle);
+int interact(service_id_t dev_handle);
 void print_help(void);
+void fill_table_funcs(void);
+void free_table(void);
 
-
-int set_primary(tinput_t * in, mbr_parts_t * parts);
-int add_logical(tinput_t * in, mbr_parts_t * parts);
-int set_mbr_partition(tinput_t * in, mbr_parts_t * p);
+static table_t table;
 
 int main(int argc, char ** argv)
 {
@@ -79,45 +72,54 @@ int main(int argc, char ** argv)
 		printf("Unknown device. Exiting.\n");
 		return -1;
 	}
-
-	mbr_parts_t * parts = NULL;
-	gpt_header_t * g_hdr = NULL;
-	gpt_parts_t * g_parts = NULL;
-
+	
+	init_table();
+	
 	mbr_t * mbr = mbr_read_mbr(dev_handle);
 	if(mbr == NULL) {
 		printf("Failed to read the Master Boot Record.\n"	\
-			   "Either memory allocation or disk access failed.\n");
+			   "Either memory allocation or disk access failed. Exiting.\n");
 		return -1;
 	}
 
 	if(mbr_is_mbr(mbr)) {
-		table = TBL_MBR;
-		parts = mbr_read_partitions(mbr);
+		table.layout = LYT_MBR;
+		set_table_mbr(mbr);
+		mbr_partitions_t * parts = mbr_read_partitions(mbr);
 		if(parts == NULL) {
 			printf("Failed to read and parse partitions.\n"	\
-				   "Creating new partition table.")
+				   "Creating new partition table.");
+			parts = mbr_alloc_partitions();
 		}
+		set_table_mbr_parts(parts);
+		fill_table_funcs();
 	} else {
-		table = TBL_GPT;
-		//g_hdr = gpt_read_header();
-		//g_parts = gpt_read_partitions();
-	}
-
-
-	rc = interact(partitions, mbr, dev_handle);
-
-	if(gpt) {
-		gpt_free_partitions();
-		gpt_free_header();
-	} else {
-		mbr_free_partitions(partitions);
+		table.layout = LYT_GPT;
 		mbr_free_mbr(mbr);
+		gpt_t * gpt = gpt_read_gpt_header(dev_handle);
+		if(gpt == NULL) {
+			printf("Failed to read and parse GPT header. Exiting.\n");
+			return -1;
+		}
+		set_table_gpt(gpt);
+		gpt_partitions_t * parts = gpt_read_partitions(gpt);
+		if(parts == NULL) {
+			printf("Failed to read and parse partitions.\n"	\
+				   "Creating new partition table.");
+			//parts = gpt_alloc_partitions();
+		}
+		set_table_gpt_parts(parts);
+		fill_table_funcs();
 	}
+
+	rc = interact(dev_handle);
+
+	free_table();
 
 	return rc;
 }
 
+/*
 int get_input(tinput_t * in, char ** str)
 {
 	int c;
@@ -157,95 +159,67 @@ int get_input(tinput_t * in, char ** str)
 
 	return EOK;
 }
+*/
 
-//int get_input(tinput_t * in, char ** str)
-//{
-//	int rc;
-//	printf("help1\n");
-//	rc = tinput_read(in, str);
-//	if (rc == ENOENT) {
-//		/* User requested exit */
-//		return EINTR;
-//	}
-//	printf("help2\n");
-//	fflush(stdout);
-//	if (rc != EOK) {
-//		printf("Failed reading input. Cancelling...\n");
-//		return rc;
-//	}
-//	printf("help3\n");
-//	fflush(stdout);
-//	/* Check for empty input. */
-//	if (str_cmp(*str, "") == 0) {
-//		printf("Canceled.\n");
-//		return EINVAL;
-//	}
-//	printf("help4\n");
-//	fflush(stdout);
-//
-//	return EOK;
-//}
 
 /** Interact with user */
-int interact_mbr(mbr_parts_t * partitions, mbr_t * mbr, service_id_t dev_handle)
+int interact(service_id_t dev_handle)
 {
-	char * str;
 	//int rc;
+	int input;
 	tinput_t * in;
 
 	in = tinput_new();
 	if (in == NULL) {
 		printf("Failed initing input. Free some memory.\n");
-		return;
+		return ENOMEM;
 	}
-
-	tinput_set_prompt(in, " ");
 
 	printf("Welcome to hdisk.\nType 'h' for help.\n");
 
 	//printf("# ");
-	//int input = getchar();
+	//input = getchar();
 	//printf("%c\n", input);
 
 	while (1) {
 
-		/*printf("# ");
-		int input = getchar();
-		printf("%c\n", input);
-		*/
+		//printf("# ");
+		input = getchar();
+		//printf("%c\n", input);
+		
 
-		rc = tinput_read(in, &str);
-		if (rc == ENOENT) {
-			// User requested exit
-			putchar('\n');
-			return rc;
-		}
-		if (rc != EOK) {
-			printf("Failed reading input. Exiting...\n");
-			return rc;
-		}
-		// Check for empty input.
-		if (str_cmp(str, "") == 0)
-			continue;
+		//rc = tinput_read(in, &str);
+		//if (rc == ENOENT) {
+			//// User requested exit
+			//putchar('\n');
+			//return rc;
+		//}
+		//if (rc != EOK) {
+			//printf("Failed reading input. Exiting...\n");
+			//return rc;
+		//}
+		//// Check for empty input.
+		//if (str_cmp(str, "") == 0)
+			//continue;
 
-		switch(*str) {
+		switch(input) {
 			case 'a':
-				add_part(in, partitions);
+				table.add_part(in, &table.data);
 				break;
 			case 'd':
-				delete_part(in, partitions);
+				table.delete_part(in, &table.data);
 				break;
 			case 'h':
 				print_help();
 				break;
 			case 'p':
-				print_MBR(partitions);
+				table.print_parts(&table.data);
 				break;
 			case 'q':
 				putchar('\n');
-				return;
+				goto end;
 			case 'w':
-				write_parts(partitions, mbr, dev_handle);
+				table.write_parts(dev_handle, &table.data);
 				break;
 			default:
 				printf("Unknown command. Try 'h' for help.\n");
@@ -257,9 +231,10 @@ int interact_mbr(mbr_parts_t * partitions, mbr_t * mbr, service_id_t dev_handle)
 
 	}
 
+end:
 	tinput_destroy(in);
 
-	return;
+	return EOK;
 }
 
 void print_help(void)
@@ -268,154 +243,46 @@ void print_help(void)
 		"\t 'a' \t\t Add partition.\n"
 		"\t 'd' \t\t Delete partition.\n"
 		"\t 'h' \t\t Prints help. See help for more.\n" \
-		"\t 'p' \t\t Prints the MBR contents.\n" \
+		"\t 'p' \t\t Prints the table contents.\n" \
+		"\t 'w' \t\t Write table to disk.\n" \
 		"\t 'q' \t\t Quit.\n" \
 		);
 
 }
 
-//other functions
-//FIXME: need error checking after input
-int set_primary(tinput_t * in, part_t * parts)
+void fill_table_funcs(void)
 {
-	char * str;
-	int rc;
-	uint32_t input = 5;
-	part_t * p = parts;
-	//char c_input[2];
-	char * endptr;
-
-//	while (input > 3) {
-//		printf("Number of the primary partition to set (0-3): ");
-//		str_uint64(fgets(c_input, 1, stdin), &endptr, 10, true, &input);
-//		printf("%llu\n", input);
-//	}
-
-	if ((rc = get_input(in, &str)) != EOK)
-		return rc;
-
-	if (str_uint32_t(str, &endptr, 10, true, &input) != EOK || input > 3) {
-		printf("Invalid value. Canceled.\n");
-		return EINVAL;
-	}
-
-	free(str);
-
-	for (; input > 0; --input) {
-		p = p->next;
-	}
-
-	set_partition(in, p);
-
-	return EOK;
-}
-
-int add_logical(tinput_t * in, part_t * parts)
-{
-	int i;
-	part_t * p = parts;
-	part_t * ext = NULL;
-
-	//checking primary partitions for extended partition
-	for (i = 0; i < N_PRIMARY; ++i) {
-		if (p->type == PT_EXTENDED) {
-			ext = p;
+	switch(table.layout) {
+		case LYT_MBR:
+			table.add_part = add_mbr_part;
+			table.delete_part = delete_mbr_part;
+			table.print_parts = print_mbr_parts;
+			table.write_parts = write_mbr_parts;
 			break;
-		}
-		p = p->next;
+		case LYT_GPT:
+			table.add_part = add_gpt_part;
+			table.delete_part = delete_gpt_part;
+			table.print_parts = print_gpt_parts;
+			table.write_parts = write_gpt_parts;
+			break;
+		default:
+			break;
 	}
-
-	if (ext == NULL) {
-		printf("Error: no extended partition.\n");
-		return EINVAL;
-	}
-
-	while (p->next != NULL) {
-		p = p->next;
-	}
-
-	p->next = malloc(sizeof(part_t));
-	if (p->next == NULL) {
-		printf("Error: not enough memory.\n");
-		return ENOMEM;
-	}
-
-	p->next->ebr = malloc(sizeof(br_block_t));
-	if (p->next->ebr == NULL) {
-		printf("Error: not enough memory.\n");
-		return ENOMEM;
-	}
-
-	set_partition(in, p->next);
-
-	return EOK;
 }
 
-int set_mbr_partition(tinput_t * in, part_t * p)
+void free_table(void)
 {
-	char * str;
-	int rc;
-	uint8_t type;
-	char * endptr;
-
-//	while (type > 255) {
-//		printf("Set type (0-255): ");
-//		str_uint64(fgets(c_type, 3, stdin), &endptr, 10, true, &type);
-//	}
-
-	if ((rc = get_input(in, &str)) != EOK)
-		return rc;
-
-	if (str_uint8_t(str, &endptr, 10, true, &type) != EOK) {
-		printf("Invalid value. Canceled.\n");
-		return EINVAL;
+	switch(table.layout) {
+		case LYT_MBR:
+			mbr_free_partitions(table.data.mbr.parts);
+			mbr_free_mbr(table.data.mbr.mbr);
+			break;
+		case LYT_GPT:
+			gpt_free_partitions(table.data.gpt.parts);
+			gpt_free_gpt(table.data.gpt.gpt);
+			break;
+		default:
+			break;
 	}
-
-	free(str);
-
-	///TODO: there can only be one bootable partition; let's do it just like fdisk
-	printf("Bootable? (y/n): ");
-	int c = getchar();
-	printf("%c\n", c);
-	if (c != 'y' && c != 'Y' && c != 'n' && c != 'N') {
-		printf("Invalid value. Cancelled.");
-		return EINVAL;
-	}
-
-	uint32_t sa, ea;
-
-	printf("Set starting address (number): ");
-	//str_uint64(fgets(c_sa, 21, stdin), &endptr, 10, true, &sa);
-
-	if ((rc = get_input(in, &str)) != EOK)
-		return rc;
-
-	if(str_uint32_t(str, &endptr, 10, true, &sa) != EOK) {
-		printf("Invalid value. Canceled.\n");
-		return EINVAL;
-	}
-
-	free(str);
-
-	printf("Set end addres (number): ");
-	//str_uint64(fgets(c_len, 21, stdin), &endptr, 10, true, &len);
-
-	if ((rc = get_input(in, &str)) != EOK)
-		return rc;
-
-	if(str_uint32_t(str, &endptr, 10, true, &ea) != EOK || ea < sa) {
-		printf("Invalid value. Canceled.\n");
-		return EINVAL;
-	}
-
-	free(str);
-
-	p->type = type;
-	p->bootable = (c == 'y' || c == 'Y') ? true : false;
-	p->start_addr = sa;
-	p->length = ea - sa;
-
-	return EOK;
 }
-
 
