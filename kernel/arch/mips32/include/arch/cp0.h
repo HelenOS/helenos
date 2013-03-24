@@ -45,6 +45,9 @@
 #define cp0_status_im_shift  8
 #define cp0_status_im_mask   0xff00
 
+#define cp0_cause_ip_shift  8
+#define cp0_cause_ip_mask   0xff00
+
 #define cp0_cause_excno(cause)   ((cause >> 2) & 0x1f)
 #define cp0_cause_coperr(cause)  ((cause >> 28) & 0x3)
 

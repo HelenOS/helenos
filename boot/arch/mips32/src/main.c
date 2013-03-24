@@ -64,8 +64,11 @@ void bootstrap(void)
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
-		    (void *) KSEG2PA(components[i].start), components[i].name,
-		    components[i].inflated, components[i].size);
+		    (uintptr_t) components[i].start >= PA2KSEG(0) ?
+		    (void *) KSEG2PA(components[i].start) :
+		    (void *) KA2PA(components[i].start),
+		    components[i].name, components[i].inflated,
+		    components[i].size);
 	
 	void *dest[COMPONENTS];
 	size_t top = 0;
@@ -92,12 +95,14 @@ void bootstrap(void)
 	printf("\nInflating components ... ");
 	
 	for (i = cnt; i > 0; i--) {
+#ifdef MACHINE_msim
 		void *tail = dest[i - 1] + components[i].inflated;
 		if (tail >= ((void *) PA2KA(LOADER_OFFSET))) {
 			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
 			    components[i].name, tail, (void *) PA2KA(LOADER_OFFSET));
 			halt();
 		}
+#endif
 		
 		printf("%s ", components[i - 1].name);
 		

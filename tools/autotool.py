@@ -223,11 +223,11 @@ def get_target(config, needs_clang = False):
 		check_config(config, "MACHINE")
 		cc_args.append("-mabi=32")
 		
-		if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim")):
+		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 			target = config['PLATFORM']
 			gnu_target = "mipsel-linux-gnu"
 		
-		if (config['MACHINE'] == "bgxemul"):
+		if ((config['MACHINE'] == "bmalta")):
 			target = "mips32eb"
 			gnu_target = "mips-linux-gnu"
 	
@@ -714,7 +714,6 @@ def main():
 		common['CC_ARGS'] = []
 		if (config['COMPILER'] == "gcc_cross"):
 			target, cc_args, gnu_target, clang_target_unused = get_target(config)
-				
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
 			

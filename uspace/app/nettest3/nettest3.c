@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
 	port = 7;
 
-	data = (char *)"Hello World!";
+	data = (char *) "Hello World!";
 	size = str_size(data);
 
 	/* Connect to local IP address by default */
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 		return 1;
 
 	printf("connect()\n");
-	rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+	rc = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
 	printf(" -> %d\n", rc);
 	if (rc != 0)
 		return 1;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 		printf(" -> %d\n", rc);
 	} while (rc > 0);
 
-	async_usleep(1000*1000);
+	async_usleep(1000 * 1000);
 
 	printf("closesocket()\n");
 	rc = closesocket(fd);
@@ -122,7 +122,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
 
 /** @}
  */

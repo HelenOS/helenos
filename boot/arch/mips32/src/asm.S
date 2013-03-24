@@ -50,6 +50,14 @@ start:
 	la $a1, 0xffffff1f
 	and $a0, $a1, $a0
 	mtc0 $a0, $status
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	/*
+	 * Remember the size of the SDRAM in bootinfo.
+	 */
+	la $a0, PA2KA(BOOTINFO_OFFSET)
+	sw $a3, 0($a0)
+#endif
 	
 	/*
 	 * Setup CPU map (on msim this code

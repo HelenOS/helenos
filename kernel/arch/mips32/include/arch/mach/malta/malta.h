@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2013 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <typedefs.h>
-#include <arch/arch.h>
-#include <putchar.h>
-#include <str.h>
+/** @addtogroup mips32 
+ * @{
+ */
+/** @file
+ *  @brief MIPS Malta platform driver.
+ */
 
-#ifdef PUTCHAR_ADDRESS
-#undef PUTCHAR_ADDRESS
+#ifndef KERN_mips32_malta_H_
+#define KERN_mips32_malta_H_
+
+#include <arch/machine_func.h>
+
+extern struct mips32_machine_ops malta_machine_ops;
+
 #endif
 
-#if defined(MACHINE_msim)
-#define _putchar(ch)	msim_putchar((ch))
-static void msim_putchar(const wchar_t ch)
-{
-	*((char *) MSIM_VIDEORAM_ADDRESS) = ch;
-}
-#endif
-
-#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
-#define _putchar(ch)	yamon_putchar((ch))
-typedef void (**yamon_print_count_ptr_t)(uint32_t, const char *, uint32_t);
-yamon_print_count_ptr_t yamon_print_count =
-    (yamon_print_count_ptr_t) YAMON_SUBR_PRINT_COUNT;
-
-static void yamon_putchar(const wchar_t wch)
-{
-	const char ch = (char) wch;
-
-	(*yamon_print_count)(0, &ch, 1);
-}
-#endif
-
-void putchar(const wchar_t ch)
-{
-	if (ascii_check(ch))
-		_putchar(ch);
-	else
-		_putchar(U_SPECIAL);
-}
-
+/** @}
+ */
