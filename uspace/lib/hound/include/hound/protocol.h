@@ -94,6 +94,7 @@ typedef struct hound_server_iface {
 	int (*add_context)(void *, hound_context_id_t *, const char *, bool);
 	int (*rem_context)(void *, hound_context_id_t);
 	bool (*is_record_context)(void *, hound_context_id_t);
+	int (*get_list)(void *, const char ***, size_t *, const char *, int);
 	int (*connect)(void *, const char *, const char *);
 	int (*disconnect)(void *, const char *, const char *);
 	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,

@@ -36,6 +36,7 @@
 #include <adt/list.h>
 #include <errno.h>
 #include <loc.h>
+#include <macros.h>
 #include <str.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -142,28 +143,29 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 		return ret;
 	}
 	unsigned name_count = IPC_GET_ARG1(res_call);
-	size_t max_length = IPC_GET_ARG2(res_call);
 
 	/* Start receiving names */
-	const char ** names = NULL;
+	const char **names = NULL;
 	if (name_count) {
+		size_t *sizes = calloc(name_count, sizeof(size_t));
 		names = calloc(name_count, sizeof(char *));
-		char *tmp_name = malloc(max_length + 1);
-		if (!names || !tmp_name) {
-			async_exchange_end(exch);
-			return ENOMEM;
-		}
-		for (unsigned i = 0; i < name_count; ++i) {
-			bzero(tmp_name, max_length + 1);
-			ret = async_data_read_start(exch, tmp_name, max_length);
-			if (ret == EOK) {
-				names[i] = str_dup(tmp_name);
-				ret = names[i] ? EOK : ENOMEM;
+		if (!names || !sizes)
+			ret = ENOMEM;
+
+		if (ret == EOK)
+			ret = async_data_read_start(exch, sizes,
+			    name_count * sizeof(size_t));
+		for (unsigned i = 0; i < name_count && ret == EOK; ++i) {
+			char *name = malloc(sizes[i] + 1);
+			if (name) {
+				bzero(name, sizes[i]);
+				ret = async_data_read_start(exch, name, sizes[i]);
+				names[i] = name;
+			} else {
+				ret = ENOMEM;
 			}
-			if (ret != EOK)
-				break;
 		}
-		free(tmp_name);
+		free(sizes);
 	}
 	async_exchange_end(exch);
 	if (ret != EOK) {
@@ -187,11 +189,14 @@ int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return ENOMEM;
-	int ret = async_req_0_0(exch, IPC_M_HOUND_CONNECT);
+	ipc_call_t call;
+	aid_t id = async_send_0(exch, IPC_M_HOUND_CONNECT, &call);
+	int ret = id ? EOK : EPARTY;
 	if (ret == EOK)
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
 		ret = async_data_write_start(exch, sink, str_size(sink));
+	async_wait_for(id, (sysarg_t*)&ret);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -203,11 +208,14 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return ENOMEM;
-	int ret = async_req_0_0(exch, IPC_M_HOUND_DISCONNECT);
+	ipc_call_t call;
+	aid_t id = async_send_0(exch, IPC_M_HOUND_DISCONNECT, &call);
+	int ret = id ? EOK : EPARTY;
 	if (ret == EOK)
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
 		ret = async_data_write_start(exch, sink, str_size(sink));
+	async_wait_for(id, (sysarg_t*)&ret);
 	async_exchange_end(exch);
 	return ENOTSUP;
 }
@@ -303,6 +311,104 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			const int ret =
 			    server_iface->rem_context(server_iface->server, id);
 			async_answer_0(callid, ret);
+			break;
+		}
+		case IPC_M_HOUND_GET_LIST: {
+			if (!server_iface || !server_iface->get_list) {
+				async_answer_0(callid, ENOTSUP);
+				break;
+			}
+			const char **list = NULL;
+			const int flags = IPC_GET_ARG1(call);
+			size_t count = IPC_GET_ARG2(call);
+			const bool conn = IPC_GET_ARG3(call);
+			char *conn_name = NULL;
+			int ret = EOK;
+			if (conn)
+				ret = async_data_write_accept(
+				    (void**)&conn_name, true, 0, 0, 0, 0);
+
+			if (ret == EOK)
+				ret = server_iface->get_list(
+				    server_iface->server, &list, &count,
+				    conn_name, flags);
+			free(conn_name);
+			size_t *sizes = NULL;
+			if (count)
+				sizes = calloc(count, sizeof(size_t));
+			if (count && !sizes)
+				ret = ENOMEM;
+			async_answer_1(callid, ret, count);
+
+			/* We are done */
+			if (count == 0 || ret != EOK)
+				break;
+
+			/* Prepare sizes table */
+			for (unsigned i = 0; i < count; ++i)
+				sizes[i] = str_size(list[i]);
+
+			/* Send sizes table */
+			ipc_callid_t id;
+			if (async_data_read_receive(&id, NULL)) {
+				ret = async_data_read_finalize(id, sizes,
+				    count * sizeof(size_t));
+			}
+			free(sizes);
+
+			/* Proceed to send names */
+			for (unsigned i = 0; i < count; ++i) {
+				size_t size = str_size(list[i]);
+				ipc_callid_t id;
+				if (ret == EOK &&
+				    async_data_read_receive(&id, NULL)) {
+					ret = async_data_read_finalize(id,
+					    list[i], size);
+				}
+				free(list[i]);
+			}
+			free(list);
+			break;
+		}
+		case IPC_M_HOUND_CONNECT: {
+			if (!server_iface || !server_iface->connect) {
+				async_answer_0(callid, ENOTSUP);
+				break;
+			}
+			void *source = NULL;
+			void *sink = NULL;
+			int ret =
+			    async_data_write_accept(&source, true, 0, 0, 0, 0);
+			if (ret == EOK)
+				ret = async_data_write_accept(&sink,
+				    true, 0, 0, 0, 0);
+			if (ret == EOK)
+				ret = server_iface->connect(
+				    server_iface->server, source, sink);
+			free(source);
+			free(sink);
+			async_answer_0(callid, ret);
+			break;
+		}
+		case IPC_M_HOUND_DISCONNECT: {
+			if (!server_iface || !server_iface->disconnect) {
+				async_answer_0(callid, ENOTSUP);
+				break;
+			}
+			void *source = NULL;
+			void *sink = NULL;
+			int ret =
+			    async_data_write_accept(&source, true, 0, 0, 0, 0);
+			if (ret == EOK)
+				ret = async_data_write_accept(&sink,
+				    true, 0, 0, 0, 0);
+			if (ret == EOK)
+				ret = server_iface->connect(
+				    server_iface->server, source, sink);
+			free(source);
+			free(sink);
+			async_answer_0(callid, ret);
+			break;
 		}
 		case IPC_M_HOUND_STREAM_ENTER: {
 			if (!server_iface || !server_iface->add_stream
