@@ -48,6 +48,9 @@
 enum ipc_methods {
 	IPC_M_HOUND_CONTEXT_REGISTER = IPC_FIRST_USER_METHOD,
 	IPC_M_HOUND_CONTEXT_UNREGISTER,
+	IPC_M_HOUND_GET_LIST,
+	IPC_M_HOUND_CONNECT,
+	IPC_M_HOUND_DISCONNECT,
 	IPC_M_HOUND_STREAM_ENTER,
 	IPC_M_HOUND_STREAM_EXIT,
 	IPC_M_HOUND_STREAM_DRAIN,
@@ -98,6 +101,107 @@ int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
 	    async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER, id);
 	async_exchange_end(exch);
 	return ret;
+}
+
+int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
+    int flags, const char *connection)
+{
+	assert(sess);
+	assert(ids);
+	assert(count);
+
+	if (connection && !(flags & HOUND_CONNECTED))
+		return EINVAL;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (!exch)
+		return ENOMEM;
+
+	ipc_call_t res_call;
+	aid_t mid = async_send_3(exch, IPC_M_HOUND_GET_LIST, flags, *count,
+	    (bool)connection, &res_call);
+
+	int ret = EOK;
+	if (mid && connection)
+		ret = async_data_write_start(exch, connection,
+		    str_size(connection));
+
+	if (ret == EOK)
+		async_wait_for(mid, (sysarg_t*)&ret);
+
+	if (ret != EOK) {
+		async_exchange_end(exch);
+		return ret;
+	}
+	unsigned name_count = IPC_GET_ARG1(res_call);
+	size_t max_length = IPC_GET_ARG2(res_call);
+
+	/* Start receiving names */
+	const char ** names = NULL;
+	if (name_count) {
+		names = calloc(name_count, sizeof(char *));
+		char *tmp_name = malloc(max_length + 1);
+		if (!names || !tmp_name) {
+			async_exchange_end(exch);
+			return ENOMEM;
+		}
+		for (unsigned i = 0; i < name_count; ++i) {
+			bzero(tmp_name, max_length + 1);
+			ret = async_data_read_start(exch, tmp_name, max_length);
+			if (ret == EOK) {
+				names[i] = str_dup(tmp_name);
+				ret = names[i] ? EOK : ENOMEM;
+			}
+			if (ret != EOK)
+				break;
+		}
+		free(tmp_name);
+	}
+	async_exchange_end(exch);
+	if (ret != EOK) {
+		for (unsigned i = 0; i < name_count; ++i)
+			free(names[i]);
+		free(names);
+	} else {
+		*ids = names;
+		*count = name_count;
+	}
+	return ret;
+}
+
+int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
+    const char *sink)
+{
+	assert(sess);
+	assert(source);
+	assert(sink);
+
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (!exch)
+		return ENOMEM;
+	int ret = async_req_0_0(exch, IPC_M_HOUND_CONNECT);
+	if (ret == EOK)
+		ret = async_data_write_start(exch, source, str_size(source));
+	if (ret == EOK)
+		ret = async_data_write_start(exch, sink, str_size(sink));
+	async_exchange_end(exch);
+	return ret;
+}
+
+int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
+    const char *sink)
+{
+	assert(sess);
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (!exch)
+		return ENOMEM;
+	int ret = async_req_0_0(exch, IPC_M_HOUND_DISCONNECT);
+	if (ret == EOK)
+		ret = async_data_write_start(exch, source, str_size(source));
+	if (ret == EOK)
+		ret = async_data_write_start(exch, sink, str_size(sink));
+	async_exchange_end(exch);
+	return ENOTSUP;
 }
 
 int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,

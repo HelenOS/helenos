@@ -41,8 +41,25 @@
 
 const char *HOUND_SERVICE;
 
+enum {
+	HOUND_SINK_APPS = 0x1,
+	HOUND_SINK_DEVS = 0x2,
+	HOUND_SOURCE_APPS = 0x4,
+	HOUND_SOURCE_DEVS = 0x8,
+	HOUND_CONNECTED = 0x10,
+
+	HOUND_STREAM_DRAIN_ON_EXIT = 0x1,
+	HOUND_STREAM_IGNORE_UNDERFLOW = 0x2,
+	HOUND_STREAM_IGNORE_OVERFLOW = 0x4,
+};
+
 typedef async_sess_t hound_sess_t;
 typedef int hound_context_id_t;
+
+static inline int hound_context_id_err(hound_context_id_t id)
+{
+	return id > 0 ? EOK : (id == 0 ? ENOENT : id);
+}
 
 hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);
@@ -50,6 +67,19 @@ void hound_service_disconnect(hound_sess_t *sess);
 hound_context_id_t hound_service_register_context(hound_sess_t *sess,
     const char *name, bool record);
 int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
+
+int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
+    int flags, const char *connection);
+static inline int hound_service_get_list_all(hound_sess_t *sess,
+    const char ***ids, size_t *count, int flags)
+{
+	return hound_service_get_list(sess, ids, count, flags, NULL);
+}
+
+int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
+    const char *sink);
+int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
+    const char *sink);
 
 int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize);
@@ -64,6 +94,8 @@ typedef struct hound_server_iface {
 	int (*add_context)(void *, hound_context_id_t *, const char *, bool);
 	int (*rem_context)(void *, hound_context_id_t);
 	bool (*is_record_context)(void *, hound_context_id_t);
+	int (*connect)(void *, const char *, const char *);
+	int (*disconnect)(void *, const char *, const char *);
 	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
 	    void **);
 	int (*rem_stream)(void *, void *);
