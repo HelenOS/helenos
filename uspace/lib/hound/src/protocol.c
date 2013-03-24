@@ -255,8 +255,8 @@ int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
  * SERVER
  ****/
 
-static int hound_server_read_data(void *stream);
-static int hound_server_write_data(void *stream);
+static void hound_server_read_data(void *stream);
+static void hound_server_write_data(void *stream);
 static const hound_server_iface_t *server_iface;
 
 void hound_service_set_server_iface(const hound_server_iface_t *iface)
@@ -434,9 +434,19 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			const bool rec = server_iface->is_record_context(
 			    server_iface->server, id);
 			if (rec) {
-				hound_server_write_data(stream);
+				if(server_iface->stream_data_read) {
+					async_answer_0(callid, EOK);
+					hound_server_write_data(stream);
+				} else {
+					async_answer_0(callid, ENOTSUP);
+				}
 			} else {
-				hound_server_read_data(stream);
+				if (server_iface->stream_data_write) {
+					async_answer_0(callid, EOK);
+					hound_server_read_data(stream);
+				} else {
+					async_answer_0(callid, ENOTSUP);
+				}
 			}
 			break;
 		}
@@ -452,11 +462,8 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static int hound_server_read_data(void *stream)
+static void hound_server_read_data(void *stream)
 {
-	if (!server_iface || !server_iface->stream_data_write)
-		return ENOTSUP;
-
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
@@ -477,13 +484,10 @@ static int hound_server_read_data(void *stream)
 	    ? EOK : EINVAL;
 
 	async_answer_0(callid, ret);
-	return ret;
 }
 
-static int hound_server_write_data(void *stream)
+static void hound_server_write_data(void *stream)
 {
-	if (!server_iface || !server_iface->stream_data_read)
-		return ENOTSUP;
 
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -504,7 +508,6 @@ static int hound_server_write_data(void *stream)
 	    ? EOK : EINVAL;
 
 	async_answer_0(callid, ret);
-	return ret;
 }
 
 /***

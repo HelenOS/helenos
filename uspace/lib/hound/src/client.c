@@ -213,7 +213,7 @@ hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
 		new_stream->exch = stream_exch;
 		new_stream->format = format;
 		new_stream->context = hound;
-		int ret = hound_service_stream_enter(new_stream->exch,
+		const int ret = hound_service_stream_enter(new_stream->exch,
 		    hound->id, flags, format, bsize);
 		if (ret != EOK) {
 			async_exchange_end(new_stream->exch);
