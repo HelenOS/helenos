@@ -95,6 +95,7 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 		new_context->id = hound_service_register_context(
 		    new_context->session, new_context->name, record);
 		if (hound_context_id_err(new_context->id) != EOK) {
+			hound_service_disconnect(new_context->session);
 			free(new_context->name);
 			free(new_context);
 			return NULL;
@@ -189,6 +190,7 @@ int hound_context_disconnect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
 	assert(target);
+	//TODO handle all-targets
 	if (hound->record) {
 		return hound_service_disconnect_source_sink(
 		    hound->session, target, hound->name);
