@@ -96,6 +96,7 @@ static int hplay(const char *filename)
 			break;
 		}
 	}
+	hound_context_destroy(hound);
 	fclose(source);
 	return ret;
 }
