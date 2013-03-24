@@ -411,8 +411,9 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case IPC_M_HOUND_STREAM_ENTER: {
-			if (!server_iface || !server_iface->add_stream
-			    || !server_iface->is_record_context) {
+			if (!server_iface || !server_iface->is_record_context
+			    || !server_iface->add_stream
+			    || !server_iface->rem_stream) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
@@ -437,6 +438,8 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				if(server_iface->stream_data_read) {
 					async_answer_0(callid, EOK);
 					hound_server_write_data(stream);
+					server_iface->rem_stream(
+					    server_iface->server, stream);
 				} else {
 					async_answer_0(callid, ENOTSUP);
 				}
@@ -444,6 +447,8 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				if (server_iface->stream_data_write) {
 					async_answer_0(callid, EOK);
 					hound_server_read_data(stream);
+					server_iface->rem_stream(
+					    server_iface->server, stream);
 				} else {
 					async_answer_0(callid, ENOTSUP);
 				}

@@ -55,6 +55,11 @@ typedef struct hound_stream {
 	hound_context_t *context;
 } hound_stream_t;
 
+static inline hound_stream_t * hound_stream_from_link(link_t *l)
+{
+	return l ? list_get_instance(l, hound_stream_t, link) : NULL;
+}
+
 typedef struct hound_context {
 	hound_sess_t *session;
 	const char *name;
@@ -119,21 +124,17 @@ hound_context_t * hound_context_create_capture(const char *name,
 void hound_context_destroy(hound_context_t *hound)
 {
 	assert(hound);
+
+	while (!list_empty(&hound->stream_list)) {
+		link_t *first = list_first(&hound->stream_list);
+		hound_stream_t *stream = hound_stream_from_link(first);
+		hound_stream_destroy(stream);
+	}
+
 	hound_service_unregister_context(hound->session, hound->id);
 	hound_service_disconnect(hound->session);
 	free(hound->name);
 	free(hound);
-}
-
-int hound_context_enable(hound_context_t *hound)
-{
-	assert(hound);
-	return ENOTSUP;
-}
-int hound_context_disable(hound_context_t *hound)
-{
-	assert(hound);
-	return ENOTSUP;
 }
 
 int hound_context_get_available_targets(hound_context_t *hound,

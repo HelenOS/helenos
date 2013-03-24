@@ -53,9 +53,6 @@ hound_context_t * hound_context_create_capture(const char *name,
     pcm_format_t format, size_t bsize);
 void hound_context_destroy(hound_context_t *hound);
 
-int hound_context_enable(hound_context_t *hound);
-int hound_context_disable(hound_context_t *hound);
-
 int hound_context_set_main_stream_format(hound_context_t *hound,
     unsigned channels, unsigned rate, pcm_sample_format_t format);
 
