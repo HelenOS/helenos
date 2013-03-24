@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Beniamino Galvani
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_arm32_ARCH_H
-#define BOOT_arm32_ARCH_H
-
-#define PAGE_WIDTH  12
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
-
-#define PTL0_ENTRIES     4096
-#define PTL0_ENTRY_SIZE  4
-
-/*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+/** @addtogroup arm32raspberrypi raspberrypi
+ *  @brief Raspberry Pi platform.
+ *  @ingroup arm32
+ * @{
  */
-#ifdef MACHINE_gta02
-#define BOOT_BASE	0x30008000
-#elif defined MACHINE_beagleboardxm
-#define BOOT_BASE	0x80000000
-#elif defined MACHINE_beaglebone
-#define BOOT_BASE       0x80000000
-#elif defined MACHINE_raspberrypi
-#define BOOT_BASE	0x00008000
-#else
-#define BOOT_BASE	0x00000000
-#endif
+/** @file
+ *  @brief Raspberry Pi platform driver.
+ */
 
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
+#ifndef KERN_arm32_raspberrypi_H_
+#define KERN_arm32_raspberrypi_H_
 
-#ifdef MACHINE_beagleboardxm
-	#define PA_OFFSET 0
-#elif defined MACHINE_beaglebone
-	#define PA_OFFSET 0
-#else
-	#define PA_OFFSET 0x80000000
-#endif
+#include <arch/machine_func.h>
 
-#ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
-#else
-	#define PA2KA(addr)  ((addr) + PA_OFFSET)
-#endif
-
+extern struct arm_machine_ops raspberrypi_machine_ops;
 
 #endif
 

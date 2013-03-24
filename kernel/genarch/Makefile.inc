@@ -95,6 +95,11 @@ ifeq ($(CONFIG_ARM926_UART),y)
 		genarch/src/drivers/arm926_uart/arm926_uart.c
 endif
 
+ifeq ($(CONFIG_BCM2835_UART),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/bcm2835/pl011_uart.c
+endif
+
 ifeq ($(CONFIG_S3C24XX_IRQC),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/s3c24xx_irqc/s3c24xx_irqc.c

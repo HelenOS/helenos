@@ -67,6 +67,10 @@
 /** End of ram memory on AM335x */
 #define AM335x_RAM_END     0xC0000000
 
+/** Start of ram memory on BCM2835 */
+#define BCM2835_RAM_START   0
+/** End of ram memory on BCM2835 */
+#define BCM2835_RAM_END     0x20000000
 
 /* Page table level 0 entry - "section" format is used
  * (one-level paging, 1 MB sized pages). Used only while booting the kernel.

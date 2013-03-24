@@ -74,6 +74,10 @@ static inline int section_cacheable(pfn_t section)
 	const unsigned long address = section << PTE_SECTION_SHIFT;
 	if (address >= AM335x_RAM_START && address < AM335x_RAM_END)
 		return 1;
+#elif defined MACHINE_raspberrypi
+	const unsigned long address = section << PTE_SECTION_SHIFT;
+	if (address < BCM2835_RAM_END)
+		return 1;
 #endif
 	return 0;
 }
@@ -112,12 +116,21 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 /** Initialize page table used while booting the kernel. */
 static void init_boot_pt(void)
 {
+#if defined MACHINE_raspberrypi
+	const pfn_t split_page = 2048;
+#else
 	const pfn_t split_page = PTL0_ENTRIES;
+#endif
+
 	/* Create 1:1 virtual-physical mapping (in lower 2 GB). */
 	pfn_t page;
 	for (page = 0; page < split_page; page++)
 		init_ptl0_section(&boot_pt[page], page);
-	
+
+#if defined MACHINE_raspberrypi
+	for (; page < PTL0_ENTRIES; page++)
+		init_ptl0_section(&boot_pt[page], page - split_page);
+#endif	
 	asm volatile (
 		"mcr p15, 0, %[pt], c2, c0, 0\n"
 		:: [pt] "r" (boot_pt)

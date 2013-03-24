@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Beniamino Galvani
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,50 +25,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef BOOT_arm32_ARCH_H
-#define BOOT_arm32_ARCH_H
-
-#define PAGE_WIDTH  12
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
-
-#define PTL0_ENTRIES     4096
-#define PTL0_ENTRY_SIZE  4
-
-/*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+/** @addtogroup genarch
+ * @{
  */
-#ifdef MACHINE_gta02
-#define BOOT_BASE	0x30008000
-#elif defined MACHINE_beagleboardxm
-#define BOOT_BASE	0x80000000
-#elif defined MACHINE_beaglebone
-#define BOOT_BASE       0x80000000
-#elif defined MACHINE_raspberrypi
-#define BOOT_BASE	0x00008000
-#else
-#define BOOT_BASE	0x00000000
-#endif
-
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
-
-#ifdef MACHINE_beagleboardxm
-	#define PA_OFFSET 0
-#elif defined MACHINE_beaglebone
-	#define PA_OFFSET 0
-#else
-	#define PA_OFFSET 0x80000000
-#endif
-
-#ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
-#else
-	#define PA2KA(addr)  ((addr) + PA_OFFSET)
-#endif
-
-
-#endif
-
-/** @}
+/**
+ * @file
+ * @brief Broadcom BCM2835 system timer driver.
  */
+
+#ifndef KERN_BCM2835_TIMER_H_
+
+#include <typedefs.h>
+#include <mm/km.h>
+
+#define BCM2835_TIMER_ADDR 0x20003000
+#define BCM2835_CLOCK_FREQ 1000000
+
+typedef struct {
+	/** System Timer Control/Status */
+	ioport32_t cs;
+#define BCM2835_TIMER_CS_M0 (1 << 0)
+#define BCM2835_TIMER_CS_M1 (1 << 1)
+#define BCM2835_TIMER_CS_M2 (1 << 2)
+#define BCM2835_TIMER_CS_M3 (1 << 3)
+	/** System Timer Counter Lower 32 bits */
+	ioport32_t clo;
+	/** System Timer Counter Higher 32 bits */
+	ioport32_t chi;
+	/** System Timer Compare 0 */
+	ioport32_t c0;
+	/** System Timer Compare 1 */
+	ioport32_t c1;
+	/** System Timer Compare 2 */
+	ioport32_t c2;
+	/** System Timer Compare 3 */
+	ioport32_t c3;
+} bcm2835_timer_t;
+
+
+static inline void bcm2835_timer_start(bcm2835_timer_t* timer)
+{
+	ASSERT(timer);
+	/* Clear pending interrupt on channel 1 */
+	timer->cs |= BCM2835_TIMER_CS_M1;
+	/* Initialize compare value for match channel 1 */
+	timer->c1 = timer->clo + (BCM2835_CLOCK_FREQ / HZ);
+}
+
+static inline void bcm2835_timer_irq_ack(bcm2835_timer_t* timer)
+{
+	ASSERT(timer);
+	/* Clear pending interrupt on channel 1 */
+	timer->cs |= BCM2835_TIMER_CS_M1;
+	/* Reprogram compare value for match channel 1 */
+	timer->c1 = timer->clo + (BCM2835_CLOCK_FREQ / HZ);
+}
+
+#endif /* KERN_BCM2835_TIMER_H_ */

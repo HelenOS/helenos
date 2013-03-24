@@ -222,6 +222,7 @@ enum {
 	SCTLR_USPCE_WRITE_XN_EN_FLAG = 1 << 20, /* Only if virt. supported */
 	SCTLR_FAST_IRQ_EN_FLAG       = 1 << 21, /* Disable impl. specific feat*/
 	SCTLR_UNALIGNED_EN_FLAG      = 1 << 22, /* Must be 1 on armv7 */
+	SCTLR_EXTENDED_PT_EN_FLAG    = 1 << 23,
 	SCTLR_IRQ_VECTORS_EN_FLAG    = 1 << 24,
 	SCTLR_BIG_ENDIAN_EXC_FLAG    = 1 << 25,
 	SCTLR_NMFI_EN_FLAG           = 1 << 27,

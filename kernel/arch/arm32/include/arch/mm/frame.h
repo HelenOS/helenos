@@ -60,6 +60,11 @@
 #define PHYSMEM_START_ADDR       0x80000000
 #define BOOT_PAGE_TABLE_ADDRESS  0x80008000
 
+#elif defined MACHINE_raspberrypi
+
+#define PHYSMEM_START_ADDR       0x00000000
+#define BOOT_PAGE_TABLE_ADDRESS  0x00010000
+
 #else
 
 #define PHYSMEM_START_ADDR       0x00000000
