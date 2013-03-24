@@ -106,6 +106,7 @@ CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
+	-integrated-as \
 	-pipe -target $(CLANG_TARGET)
 
 ifeq ($(CONFIG_DEBUG),y)

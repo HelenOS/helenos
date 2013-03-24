@@ -204,6 +204,7 @@ CLANG_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
+	-integrated-as \
 	-pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
 
 LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
