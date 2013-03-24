@@ -104,7 +104,7 @@ typedef struct hound_server_iface {
 	void *server;
 } hound_server_iface_t;
 
-void hound_service_set_server_iface(hound_server_iface_t *iface);
+void hound_service_set_server_iface(const hound_server_iface_t *iface);
 
 void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 

@@ -83,14 +83,22 @@ hound_context_id_t hound_service_register_context(hound_sess_t *sess,
 {
 	assert(sess);
 	assert(name);
+	ipc_call_t call;
 	async_exch_t *exch = async_exchange_begin(sess);
-	sysarg_t id;
-	int ret =
-	    async_req_1_1(exch, IPC_M_HOUND_CONTEXT_REGISTER, record, &id);
+	aid_t mid =
+	    async_send_1(exch, IPC_M_HOUND_CONTEXT_REGISTER, record, &call);
+	int ret = mid ? EOK : EPARTY;
+
 	if (ret == EOK)
 		ret = async_data_write_start(exch, name, str_size(name));
+	else
+		async_forget(mid);
+
+	if (ret == EOK)
+		async_wait_for(mid, (sysarg_t *)&ret);
+
 	async_exchange_end(exch);
-	return ret == EOK ? (hound_context_id_t)id : ret;
+	return ret == EOK ? (hound_context_id_t)IPC_GET_ARG1(call) : ret;
 }
 
 int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
@@ -243,7 +251,7 @@ static int hound_server_read_data(void *stream);
 static int hound_server_write_data(void *stream);
 static const hound_server_iface_t *server_iface;
 
-void hound_service_set_server_iface(hound_server_iface_t *iface)
+void hound_service_set_server_iface(const hound_server_iface_t *iface)
 {
 	server_iface = iface;
 }
@@ -281,9 +289,10 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			if (ret != EOK) {
 				free(name);
 				async_answer_0(callid, ret);
-				break;
+			} else {
+				async_answer_1(callid, EOK, id);
 			}
-			async_answer_1(callid, EOK, id);
+			break;
 		}
 		case IPC_M_HOUND_CONTEXT_UNREGISTER: {
 			if (!server_iface || !server_iface->rem_context) {
