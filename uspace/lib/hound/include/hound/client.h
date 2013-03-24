@@ -40,8 +40,9 @@
 #include <stdbool.h>
 #include <pcm/format.h>
 
-#define DEFAULT_SINK "default"
-#define DEFAULT_SOURCE "default"
+#define HOUND_DEFAULT_TARGET "default"
+#define HOUND_ALL_TARGETS "all"
+#define DEFAULT_SINK "default" //DEPRECATED
 
 typedef struct hound_context hound_context_t;
 typedef struct hound_stream hound_stream_t;

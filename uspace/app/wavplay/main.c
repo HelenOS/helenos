@@ -80,7 +80,7 @@ static int hplay(const char *filename)
 		return ENOMEM;
 	}
 
-	ret = hound_context_connect_target(hound, "default");
+	ret = hound_context_connect_target(hound, HOUND_DEFAULT_TARGET);
 	if (ret != EOK) {
 		printf("Failed to connect to default target: %s\n",
 		    str_error(ret));

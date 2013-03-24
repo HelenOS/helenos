@@ -159,23 +159,43 @@ int hound_context_get_connected_targets(hound_context_t *hound,
 int hound_context_connect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
-	if (hound->record)
-		return hound_service_connect_source_sink(
+	assert(target);
+
+	const char **tgt = NULL;
+	size_t count = 1;
+	int ret = EOK;
+	if (str_cmp(target, HOUND_DEFAULT_TARGET) == 0) {
+		ret = hound_context_get_available_targets(hound, &tgt, &count);
+		if (ret != EOK)
+			return ret;
+		target = tgt[0];
+	}
+	//TODO handle all-targets
+
+	if (hound->record) {
+		ret = hound_service_connect_source_sink(
 		    hound->session, target, hound->name);
-	else
-		return hound_service_connect_source_sink(
+	} else {
+		ret = hound_service_connect_source_sink(
 		    hound->session, hound->name, target);
+	}
+	if (tgt)
+		free(tgt[0]);
+	free(tgt);
+	return ret;
 }
 
 int hound_context_disconnect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
-	if (hound->record)
+	assert(target);
+	if (hound->record) {
 		return hound_service_disconnect_source_sink(
 		    hound->session, target, hound->name);
-	else
+	} else {
 		return hound_service_disconnect_source_sink(
 		    hound->session, hound->name, target);
+	}
 }
 
 hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
