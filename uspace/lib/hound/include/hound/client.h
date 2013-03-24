@@ -57,8 +57,11 @@ int hound_context_disable(hound_context_t *hound);
 
 int hound_context_set_main_stream_format(hound_context_t *hound,
     unsigned channels, unsigned rate, pcm_sample_format_t format);
-int hound_get_output_targets(const char **names, size_t *count);
-int hound_get_input_targets(const char **names, size_t *count);
+
+int hound_context_get_available_targets(hound_context_t *hound,
+    const char ***names, size_t *count);
+int hound_context_get_connected_targets(hound_context_t *hound,
+    const char ***names, size_t *count);
 
 int hound_context_connect_target(hound_context_t *hound, const char* target);
 int hound_context_disconnect_target(hound_context_t *hound, const char* target);

@@ -94,7 +94,7 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 		}
 		new_context->id = hound_service_register_context(
 		    new_context->session, new_context->name, record);
-		if (new_context->id <= 0) {
+		if (hound_context_id_err(new_context->id) != EOK) {
 			free(new_context->name);
 			free(new_context);
 			return NULL;
@@ -135,30 +135,47 @@ int hound_context_disable(hound_context_t *hound)
 	return ENOTSUP;
 }
 
-int hound_get_output_targets(const char **names, size_t *count)
+int hound_context_get_available_targets(hound_context_t *hound,
+    const char ***names, size_t *count)
 {
+	assert(hound);
 	assert(names);
 	assert(count);
-	return ENOTSUP;
+	return hound_service_get_list_all(hound->session, names, count,
+	    hound->record ? HOUND_SOURCE_DEVS : HOUND_SINK_DEVS);
 }
 
-int hound_get_input_targets(const char **names, size_t *count)
+int hound_context_get_connected_targets(hound_context_t *hound,
+    const char ***names, size_t *count)
 {
+	assert(hound);
 	assert(names);
 	assert(count);
-	return ENOTSUP;
+	return hound_service_get_list(hound->session, names, count,
+	    HOUND_CONNECTED | (hound->record ?
+	        HOUND_SOURCE_DEVS : HOUND_SINK_DEVS), hound->name);
 }
 
 int hound_context_connect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
-	return ENOTSUP;
+	if (hound->record)
+		return hound_service_connect_source_sink(
+		    hound->session, target, hound->name);
+	else
+		return hound_service_connect_source_sink(
+		    hound->session, hound->name, target);
 }
 
 int hound_context_disconnect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
-	return ENOTSUP;
+	if (hound->record)
+		return hound_service_disconnect_source_sink(
+		    hound->session, target, hound->name);
+	else
+		return hound_service_disconnect_source_sink(
+		    hound->session, hound->name, target);
 }
 
 hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
