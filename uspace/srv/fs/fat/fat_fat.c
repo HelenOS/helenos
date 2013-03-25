@@ -784,7 +784,7 @@ int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
     fat_cluster_t lcl)
 {
 	service_id_t service_id = nodep->idx->service_id;
-	fat_cluster_t lastc;
+	fat_cluster_t lastc = 0;
 	uint8_t fatno;
 	int rc;
 
