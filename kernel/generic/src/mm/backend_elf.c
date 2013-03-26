@@ -234,14 +234,14 @@ bool elf_is_shareable(as_area_t *area)
  * The address space area and page tables must be already locked.
  *
  * @param area		Pointer to the address space area.
- * @param addr		Faulting virtual address.
+ * @param upage		Faulting virtual page.
  * @param access	Access mode that caused the fault (i.e.
  * 			read/write/exec).
  *
  * @return		AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK
  * 			on success (i.e. serviced).
  */
-int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
 	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
@@ -249,29 +249,26 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	uintptr_t base;
 	uintptr_t frame;
 	uintptr_t kpage;
-	uintptr_t upage;
 	uintptr_t start_anon;
 	size_t i;
 	bool dirty = false;
 
 	ASSERT(page_table_locked(AS));
 	ASSERT(mutex_locked(&area->lock));
+	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 	
-	if (addr < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
+	if (upage < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
 		return AS_PF_FAULT;
 	
-	if (addr >= entry->p_vaddr + entry->p_memsz)
+	if (upage >= entry->p_vaddr + entry->p_memsz)
 		return AS_PF_FAULT;
 	
-	i = (addr - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
+	i = (upage - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
 	base = (uintptr_t)
 	    (((void *) elf) + ALIGN_DOWN(entry->p_offset, PAGE_SIZE));
-
-	/* Virtual address of faulting page */
-	upage = ALIGN_DOWN(addr, PAGE_SIZE);
 
 	/* Virtual address of the end of initialized part of segment */
 	start_anon = entry->p_vaddr + entry->p_filesz;
