@@ -36,8 +36,8 @@
 #include <interrupt.h>
 #include <ipc/irq.h>
 #include <console/chardev.h>
+#include <genarch/drivers/pl011/pl011.h>
 #include <genarch/drivers/pl050/pl050.h>
-#include <genarch/drivers/arm926_uart/arm926_uart.h>
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
 #include <console/console.h>
@@ -60,7 +60,7 @@
 static struct {
 	icp_hw_map_t hw_map;
 	irq_t timer_irq;
-	arm926_uart_t uart;
+	pl011_uart_t uart;
 } icp;
 
 
@@ -313,9 +313,8 @@ void icp_output_init(void)
 	if (fbdev)
 		stdout_wire(fbdev);
 #endif
-#ifdef CONFIG_ARM926_UART
-	if (arm926_uart_init(&icp.uart, ARM926_UART0_IRQ,
-	    ARM926_UART0_BASE_ADDRESS, sizeof(arm926_uart_regs_t)))
+#ifdef CONFIG_PL011_UART
+	if (pl011_uart_init(&icp.uart, ICP_UART0_IRQ, ICP_UART))
 		stdout_wire(&icp.uart.outdev);
 #endif
 }
@@ -349,13 +348,13 @@ void icp_input_init(void)
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    ICP_KBD);
 
-#ifdef CONFIG_ARM926_UART
+#ifdef CONFIG_PL011_UART
         srln_instance_t *srln_instance = srln_init();
         if (srln_instance) {
                 indev_t *sink = stdin_wire();
                 indev_t *srln = srln_wire(srln_instance, sink);
-                arm926_uart_input_wire(&icp.uart, srln);
-		icp_irqc_unmask(ARM926_UART0_IRQ);
+                pl011_uart_input_wire(&icp.uart, srln);
+                icp_irqc_unmask(ICP_UART0_IRQ);
         }
 #endif
 }

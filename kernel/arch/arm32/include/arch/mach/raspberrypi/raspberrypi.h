@@ -42,6 +42,8 @@
 
 extern struct arm_machine_ops raspberrypi_machine_ops;
 
+#define BCM2835_UART0_BASE_ADDRESS   0x20201000
+
 #endif
 
 /** @}

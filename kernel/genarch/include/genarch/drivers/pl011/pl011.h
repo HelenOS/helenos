@@ -31,17 +31,15 @@
  */
 /**
  * @file
- * @brief PL011 on-chip UART (PrimeCell UART, PL011) driver.
+ * @brief ARM PrimeCell PL011 UART driver.
  */
 
-#ifndef KERN_PL011_UART_H_
-#define KERN_PL011_UART_H_
+#ifndef KERN_PL011_H_
+#define KERN_PL011_H_
 
 #include <ddi/irq.h>
 #include <console/chardev.h>
 #include <typedefs.h>
-
-#define PL011_UART0_BASE_ADDRESS   0x20201000
 
 /** PrimeCell UART TRM ch. 3.3 (p. 49 in the pdf) */
 typedef struct {
@@ -153,7 +151,7 @@ typedef struct {
 	irq_t irq;
 } pl011_uart_t;
 
-bool pl011_uart_init(pl011_uart_t *, inr_t, uintptr_t, size_t);
+bool pl011_uart_init(pl011_uart_t *, inr_t, uintptr_t);
 void pl011_uart_input_wire(pl011_uart_t *, indev_t *);
 
 #endif

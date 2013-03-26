@@ -35,7 +35,7 @@
 
 #include <arch/exception.h>
 #include <arch/mach/raspberrypi/raspberrypi.h>
-#include <genarch/drivers/bcm2835/pl011_uart.h>
+#include <genarch/drivers/pl011/pl011.h>
 #include <genarch/drivers/bcm2835/irc.h>
 #include <genarch/drivers/bcm2835/timer.h>
 #include <arch/mm/page.h>
@@ -168,10 +168,9 @@ static void raspberrypi_frame_init(void)
 
 static void raspberrypi_output_init(void)
 {
-#ifdef CONFIG_BCM2835_UART
+#ifdef CONFIG_PL011_UART
 	if (pl011_uart_init(&raspi.uart, BCM2835_UART_IRQ,
-			    PL011_UART0_BASE_ADDRESS,
-			    sizeof(pl011_uart_regs_t)))
+			    BCM2835_UART0_BASE_ADDRESS))
 		stdout_wire(&raspi.uart.outdev);
 #endif
 }
