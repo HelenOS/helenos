@@ -368,7 +368,6 @@ int main(int argc, char *argv[])
 	 */
 #ifdef CONFIG_START_BD
 	srv_start("/srv/ata_bd");
-	srv_start("/srv/gxe_bd");
 #endif
 	
 #ifdef CONFIG_MOUNT_DATA

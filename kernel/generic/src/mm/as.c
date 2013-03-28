@@ -543,7 +543,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
     unsigned int attrs, mem_backend_t *backend,
     mem_backend_data_t *backend_data, uintptr_t *base, uintptr_t bound)
 {
-	if ((*base != (uintptr_t) -1) && ((*base % PAGE_SIZE) != 0))
+	if ((*base != (uintptr_t) -1) && !IS_ALIGNED(*base, PAGE_SIZE))
 		return NULL;
 	
 	if (size == 0)
@@ -687,6 +687,9 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
  */
 int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 {
+	if (!IS_ALIGNED(address, PAGE_SIZE))
+		return EINVAL;
+
 	mutex_lock(&as->lock);
 	
 	/*
@@ -1349,10 +1352,10 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
  *
  * Interrupts are assumed disabled.
  *
- * @param page   Faulting page.
- * @param access Access mode that caused the page fault (i.e.
- *               read/write/exec).
- * @param istate Pointer to the interrupted state.
+ * @param address Faulting address.
+ * @param access  Access mode that caused the page fault (i.e.
+ *                read/write/exec).
+ * @param istate  Pointer to the interrupted state.
  *
  * @return AS_PF_FAULT on page fault.
  * @return AS_PF_OK on success.
@@ -1360,8 +1363,9 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
  *         or copy_from_uspace().
  *
  */
-int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
+int as_page_fault(uintptr_t address, pf_access_t access, istate_t *istate)
 {
+	uintptr_t page = ALIGN_DOWN(address, PAGE_SIZE);
 	int rc = AS_PF_FAULT;
 
 	if (!THREAD)
@@ -1451,8 +1455,8 @@ page_fault:
 		    "failed late reservation request.\n", TASK->taskid);
 		task_kill_self(true);
 	} else {
-		fault_if_from_uspace(istate, "Page fault: %p.", (void *) page);
-		panic_memtrap(istate, access, page, NULL);
+		fault_if_from_uspace(istate, "Page fault: %p.", (void *) address);
+		panic_memtrap(istate, access, address, NULL);
 	}
 	
 	return AS_PF_DEFER;
@@ -1678,7 +1682,7 @@ size_t as_area_get_size(uintptr_t base)
 bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 {
 	ASSERT(mutex_locked(&area->lock));
-	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
+	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
 	ASSERT(count);
 	
 	btree_node_t *leaf;
@@ -1962,7 +1966,7 @@ success:
 bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 {
 	ASSERT(mutex_locked(&area->lock));
-	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
+	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
 	ASSERT(count);
 	
 	btree_node_t *leaf;

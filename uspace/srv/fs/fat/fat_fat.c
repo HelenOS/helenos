@@ -127,7 +127,7 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
     aoff64_t bn, int flags)
 {
 	fat_cluster_t firstc = nodep->firstc;
-	fat_cluster_t currc;
+	fat_cluster_t currc = 0;
 	aoff64_t relbn = bn;
 	int rc;
 
@@ -193,7 +193,7 @@ _fat_block_get(block_t **block, fat_bs_t *bs, service_id_t service_id,
 {
 	uint32_t clusters;
 	uint32_t max_clusters;
-	fat_cluster_t c;
+	fat_cluster_t c = 0;
 	int rc;
 
 	/*
@@ -678,7 +678,9 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 {
 	fat_cluster_t *lifo;    /* stack for storing free cluster numbers */
 	unsigned found = 0;     /* top of the free cluster number stack */
-	fat_cluster_t clst, value, clst_last1 = FAT_CLST_LAST1(bs);
+	fat_cluster_t clst;
+	fat_cluster_t value = 0;
+	fat_cluster_t clst_last1 = FAT_CLST_LAST1(bs);
 	int rc = EOK;
 
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
@@ -782,7 +784,7 @@ int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
     fat_cluster_t lcl)
 {
 	service_id_t service_id = nodep->idx->service_id;
-	fat_cluster_t lastc;
+	fat_cluster_t lastc = 0;
 	uint8_t fatno;
 	int rc;
 
@@ -906,7 +908,8 @@ fat_zero_cluster(struct fat_bs *bs, service_id_t service_id, fat_cluster_t c)
  */
 int fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 {
-	fat_cluster_t e0, e1;
+	fat_cluster_t e0 = 0;
+	fat_cluster_t e1 = 0;
 	unsigned fat_no;
 	int rc;
 

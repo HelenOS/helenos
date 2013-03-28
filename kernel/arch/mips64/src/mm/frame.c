@@ -39,7 +39,9 @@
 #include <mm/frame.h>
 #include <mm/asid.h>
 #include <config.h>
+#ifdef MACHINE_msim
 #include <arch/drivers/msim.h>
+#endif
 #include <print.h>
 
 #define ZERO_PAGE_MASK    TLB_PAGE_MASK_256K

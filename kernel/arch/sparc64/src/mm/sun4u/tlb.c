@@ -195,11 +195,10 @@ void itlb_pte_copy(pte_t *t, size_t index)
 /** ITLB miss handler. */
 void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 {
-	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
 
-	t = page_mapping_find(AS, page_16k, true);
+	t = page_mapping_find(AS, istate->tpc, true);
 	if (t && PTE_EXECUTABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -215,7 +214,7 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		as_page_fault(page_16k, PF_ACCESS_EXEC, istate);
+		as_page_fault(istate->tpc, PF_ACCESS_EXEC, istate);
 	}
 }
 

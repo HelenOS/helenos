@@ -50,7 +50,6 @@ typedef struct kbd_port_ops {
 
 extern kbd_port_ops_t adb_port;
 extern kbd_port_ops_t chardev_port;
-extern kbd_port_ops_t gxemul_port;
 extern kbd_port_ops_t msim_port;
 extern kbd_port_ops_t niagara_port;
 extern kbd_port_ops_t ns16550_port;
