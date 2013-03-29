@@ -36,18 +36,57 @@
 .global has_cpuid
 .global read_efer_flag
 .global set_efer_flag
+.global memset
+.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
 .global early_putchar
 
+#define MEMSET_DST   %rdi
+#define MEMSET_VAL   %rsi
+#define MEMSET_SIZE  %rdx
+
 #define MEMCPY_DST   %rdi
 #define MEMCPY_SRC   %rsi
 #define MEMCPY_SIZE  %rdx
 
-/**
- * Copy memory from/to userspace.
+/* Fill memory with byte pattern
+ *
+ * This is a conventional memset().
+ *
+ * @param MEMSET_DST  Destination address.
+ * @param MEMSET_VAL  Value to fill.
+ * @param MEMSET_SIZE Size.
+ *
+ * @return MEMSET_DST.
+ *
+ */
+memset:
+	movq MEMSET_DST, %r8    /* save %rdi */
+	
+	/* Create byte pattern */
+	movzbl %sil, %esi       /* MEMSET_VAL */
+	movabs $0x0101010101010101, %rax
+	imulq %rsi, %rax
+	
+	movq MEMSET_SIZE, %rcx
+	shrq $3, %rcx           /* size / 8 */
+	
+	rep stosq               /* store as much as possible word by word */
+	
+	movq MEMSET_SIZE, %rcx
+	andq $7, %rcx           /* size % 8 */
+	jz 0f
+	
+	rep stosb               /* store the rest byte by byte */
+	
+	0:
+		movq %r8, %rax
+		ret                 /* return MEMCPY_SRC, success */
+
+/** Copy memory from/to userspace.
  *
  * This is almost conventional memcpy().
  * The difference is that there is a failover part
@@ -62,6 +101,7 @@
  * @retrun MEMCPY_DST on success, 0 on failure.
  *
  */
+memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	movq MEMCPY_DST, %rax
