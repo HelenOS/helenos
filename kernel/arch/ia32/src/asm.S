@@ -37,15 +37,65 @@
 .text
 .global paging_on
 .global enable_l_apic_in_msr
+.global memset
+.global memcpy
 .global memcpy_from_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace
 .global memcpy_to_uspace_failover_address
 .global early_putchar
 
+#define MEMSET_DST   4
+#define MEMSET_VAL   8
+#define MEMSET_SIZE  12
+
 #define MEMCPY_DST   4
 #define MEMCPY_SRC   8
 #define MEMCPY_SIZE  12
+
+/* Fill memory with byte pattern
+ *
+ * This is a conventional memset().
+ *
+ * @param MEMSET_DST(%esp)  Destination address.
+ * @param MEMSET_VAL(%esp)  Value to fill.
+ * @param MEMSET_SIZE(%esp) Size.
+ *
+ * @return MEMSET_DST(%esp).
+ *
+ */
+memset:
+	movl %edi, %edx  /* save %edi */
+	
+	movl MEMSET_DST(%esp), %edi
+	movl MEMSET_VAL(%esp), %ecx
+	
+	/* Create byte pattern */
+	movb %cl, %ch
+	movw %cx, %ax
+	shll $16, %eax
+	orw %cx, %ax
+	
+	movl MEMSET_SIZE(%esp), %ecx
+	shrl $2, %ecx  /* size / 4 */
+	
+	/* Write whole words */
+	rep stosl
+	
+	movl MEMSET_SIZE(%esp), %ecx
+	andl $3, %ecx  /* size % 4 */
+	jz 0f
+	
+	/* Copy the rest byte by byte */
+	rep stosb
+	
+	0:
+	
+		movl %edx, %edi
+		
+		/* MEMSET_DST(%esp), success */
+		movl MEMSET_DST(%esp), %eax
+		ret
 
 /** Copy memory to/from userspace.
  *
@@ -62,6 +112,7 @@
  * @return MEMCPY_DST(%esp) on success and 0 on failure.
  *
  */
+memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	movl %edi, %edx  /* save %edi */
