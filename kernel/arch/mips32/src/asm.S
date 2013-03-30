@@ -56,10 +56,93 @@ cpu_halt:
 	j cpu_halt
 	nop
 
+.global memset
+.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
+
+memset:
+	move $v0, $a0
+	beqz $a2, 0f
+	addiu $t1, $a2, -1
+	
+	negu $t0, $a0
+	andi $t0, $t0, 0x3
+	sltu $v1, $a2, $t0
+	bnez $v1, 1f
+	andi $a1, $a1, 0xff
+	
+	7:
+		sltiu $v1, $a2, 4
+		beqz $v1, 2f
+		move $v1, $v0
+		
+		move $t0, $a2
+	
+	3:
+		sb $a1, 0($v1)
+		addiu $v1, $v1, 1
+		subu $a3, $v1, $v0
+		sltu $a3, $a3, $t0
+		bnez $a3, 3b
+		addiu $t1, $t1, -1
+		
+		beq $a2, $t0, 0f
+		subu $a2, $a2, $t0
+	
+	8:
+		srl $a0, $a2, 0x2
+		sll $t4, $a0, 0x2
+		beqz $t4, 4f
+		sll $t2, $a1, 0x10
+		
+		sll $t3, $a1, 0x8
+		or $t3, $a1, $t3
+		sll $a3, $a1, 0x18
+		or $t3, $t3, $t2
+		or $t3, $t3, $a3
+		addu $t0, $v0, $t0
+		move $a3, $zero
+	
+	5:
+		addiu $a3, $a3, 1
+		sltu $t2, $a3, $a0
+		sw $t3, 0($t0)
+		bnez $t2, 5b
+		addiu $t0, $t0, 4
+		
+		addu $v1, $v1, $t4
+		beq $a2, $t4, 0f
+		subu $t1, $t1, $t4
+	
+	4:
+		addiu $t1, $t1, 1
+		addu $t1, $v1, $t1
+		sb $a1, 0($v1)
+	
+	6:
+		addiu $v1, $v1, 1
+		bnel $v1, $t1, 6b
+		sb $a1, 0($v1)
+	
+	0:
+		jr $ra
+		nop
+	
+	1:
+		j 7b
+		move $t0, $a2
+	
+	2:
+		bnez $t0, 3b
+		nop
+		
+		j 8b
+		subu $a2, $a2, $t0
+
+memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	move $t2, $a0  /* save dst */
