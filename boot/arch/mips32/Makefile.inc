@@ -49,6 +49,7 @@ ifeq ($(MACHINE),bmalta)
 	EXTRA_CFLAGS += -march=4kc
 endif
 
+
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \

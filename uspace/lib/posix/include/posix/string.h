@@ -59,21 +59,16 @@
  * Because libposix is always linked with libc, providing only these
  * forward declarations ought to be enough.
  */
-
 /* From str.h. */
-
-extern char *strtok_r(char *, const char *, char **);
-extern char *strtok(char *, const char *);
+extern char * strtok_r(char *, const char *, char **);
+extern char * strtok(char *, const char *);
 
 /* From mem.h */
-
-#define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-
 #define bzero(ptr, len)  memset((ptr), 0, (len))
-
+extern void *memset(void *, int, size_t);
+extern void *memcpy(void *, const void *, size_t);
 extern void *memmove(void *, const void *, size_t);
-extern int bcmp(const void *, const void *, size_t);
+
 
 /* Copying and Concatenation */
 extern char *posix_strcpy(char *restrict dest, const char *restrict src);

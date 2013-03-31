@@ -227,6 +227,7 @@ GENERIC_SOURCES = \
 	generic/src/mm/slab.c \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
+	generic/src/lib/memfnc.c \
 	generic/src/lib/sort.c \
 	generic/src/lib/str.c \
 	generic/src/lib/elf.c \

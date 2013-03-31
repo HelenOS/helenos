@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2005 Martin Decky
+	/*
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Memory string functions.
+ *
+ * This file provides architecture independent functions to manipulate blocks
+ * of memory. These functions are optimized as much as generic functions of
+ * this type can be.
  */
 
-#ifndef LIBC_MEM_H_
-#define LIBC_MEM_H_
+#include <lib/memfnc.h>
+#include <typedefs.h>
 
-#include <sys/types.h>
+/** Fill block of memory.
+ *
+ * Fill cnt bytes at dst address with the value val.
+ *
+ * @param dst Destination address to fill.
+ * @param val Value to fill.
+ * @param cnt Number of bytes to fill.
+ *
+ * @return Destination address.
+ *
+ */
+void *memset(void *dst, int val, size_t cnt)
+{
+	uint8_t *dp = (uint8_t *) dst;
+	
+	while (cnt-- != 0)
+		*dp++ = val;
+	
+	return dst;
+}
 
-#define bzero(ptr, len)  memset((ptr), 0, (len))
-
-extern void *memset(void *, int, size_t);
-extern void *memcpy(void *, const void *, size_t);
-extern void *memmove(void *, const void *, size_t);
-
-extern int bcmp(const void *, const void *, size_t);
-
-#endif
+/** Move memory block without overlapping.
+ *
+ * Copy cnt bytes from src address to dst address. The source
+ * and destination memory areas cannot overlap.
+ *
+ * @param dst Destination address to copy to.
+ * @param src Source address to copy from.
+ * @param cnt Number of bytes to copy.
+ *
+ * @return Destination address.
+ *
+ */
+void *memcpy(void *dst, const void *src, size_t cnt)
+{
+	uint8_t *dp = (uint8_t *) dst;
+	const uint8_t *sp = (uint8_t *) src;
+	
+	while (cnt-- != 0)
+		*dp++ = *sp++;
+	
+	return dst;
+}
 
 /** @}
  */

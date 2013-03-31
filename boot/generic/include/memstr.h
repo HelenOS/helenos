@@ -34,9 +34,8 @@
 
 #include <typedefs.h>
 
-#define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-
+extern void *memcpy(void *, const void *, size_t);
+extern void *memset(void *, int, size_t);
 extern void *memmove(void *, const void *, size_t);
 
 #endif
