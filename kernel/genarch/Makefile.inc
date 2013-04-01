@@ -120,6 +120,11 @@ ifeq ($(CONFIG_AMDM37X_UART),y)
 		genarch/src/drivers/amdm37x/uart.c
 endif
 
+ifeq ($(CONFIG_BCM2835_MAILBOX),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/bcm2835/mbox.c
+endif
+
 ifeq ($(CONFIG_VIA_CUDA),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/via-cuda/cuda.c

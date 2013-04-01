@@ -38,6 +38,7 @@
 #include <genarch/drivers/pl011/pl011.h>
 #include <genarch/drivers/bcm2835/irc.h>
 #include <genarch/drivers/bcm2835/timer.h>
+#include <genarch/drivers/bcm2835/mbox.h>
 #include <arch/mm/page.h>
 #include <mm/page.h>
 #include <mm/km.h>
@@ -49,14 +50,9 @@
 #include <ddi/ddi.h>
 #include <ddi/device.h>
 
-#define RPI_MEMORY_START 0
-/*
- * TODO: size of available memory depends on hw model and
- * bootloader configuration, we should detect it somehow.
- * 128MB should be a safe value for now.
- * */
-#define RPI_MEMORY_SIZE  0x08000000
-#define RPI_MEMORY_SKIP  0x8000
+#define RPI_DEFAULT_MEMORY_START	0
+#define RPI_DEFAULT_MEMORY_SIZE		0x08000000
+#define RPI_MEMORY_SKIP			0x8000
 
 static void raspberrypi_init(void);
 static void raspberrypi_timer_irq_start(void);
@@ -142,8 +138,16 @@ static void raspberrypi_cpu_halt(void)
  */
 static void raspberrypi_get_memory_extents(uintptr_t *start, size_t *size)
 {
-	*start = RPI_MEMORY_START + RPI_MEMORY_SKIP;
-	*size  = RPI_MEMORY_SIZE - RPI_MEMORY_SKIP;
+	uint32_t mbase, msize;
+
+	if (bcm2835_prop_get_memory(&mbase, &msize)) {
+		*start = mbase + RPI_MEMORY_SKIP;
+		*size  = msize - RPI_MEMORY_SKIP;
+	} else {
+		/* Stick to safe default values */
+		*start = RPI_DEFAULT_MEMORY_START + RPI_MEMORY_SKIP;
+		*size  = RPI_DEFAULT_MEMORY_SIZE - RPI_MEMORY_SKIP;
+	}
 }
 
 static void raspberrypi_irq_exception(unsigned int exc_no, istate_t *istate)
