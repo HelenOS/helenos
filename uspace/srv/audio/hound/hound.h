@@ -55,6 +55,7 @@ typedef struct {
 	list_t contexts;
 	list_t sources;
 	list_t sinks;
+	list_t connections;
 } hound_t;
 
 int hound_init(hound_t *hound);

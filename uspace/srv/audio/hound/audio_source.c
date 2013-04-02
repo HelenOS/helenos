@@ -46,7 +46,7 @@
 
 
 int audio_source_init(audio_source_t *source, const char *name, void *data,
-    int (*connection_change)(audio_source_t *),
+    int (*connection_change)(audio_source_t *, bool new),
     int (*update_available_data)(audio_source_t *, size_t),
     const pcm_format_t *f)
 {
@@ -56,11 +56,11 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 		return EINVAL;
 	}
 	link_initialize(&source->link);
+	list_initialize(&source->connections);
 	source->name = str_dup(name);
 	source->private_data = data;
 	source->connection_change = connection_change;
 	source->update_available_data = update_available_data;
-	source->connected_sink = NULL;
 	source->format = *f;
 	source->available_data.base = NULL;
 	source->available_data.position = NULL;
@@ -72,32 +72,8 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 void audio_source_fini(audio_source_t *source)
 {
 	assert(source);
-	assert(source->connected_sink == NULL);
 	free(source->name);
 	source->name = NULL;
-}
-
-int audio_source_connected(audio_source_t *source, struct audio_sink *sink)
-{
-	assert(source);
-	audio_sink_t *old_sink = source->connected_sink;
-	const pcm_format_t old_format = source->format;
-
-	source->connected_sink = sink;
-	if (pcm_format_is_any(&source->format)) {
-		assert(sink);
-		assert(!pcm_format_is_any(&sink->format));
-		source->format = sink->format;
-	}
-	if (source->connection_change) {
-		const int ret = source->connection_change(source);
-		if (ret != EOK) {
-			source->format = old_format;
-			source->connected_sink = old_sink;
-			return ret;
-		}
-	}
-	return EOK;
 }
 
 int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,

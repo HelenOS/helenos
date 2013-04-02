@@ -40,6 +40,7 @@
 #include <str_error.h>
 
 #include "audio_sink.h"
+#include "connection.h"
 #include "log.h"
 
 
@@ -53,7 +54,7 @@ int audio_sink_init(audio_sink_t *sink, const char *name,
 		return EINVAL;
 	}
 	link_initialize(&sink->link);
-	list_initialize(&sink->sources);
+	list_initialize(&sink->connections);
 	sink->name = str_dup(name);
 	sink->private_data = private_data;
 	sink->format = *f;
@@ -66,11 +67,13 @@ int audio_sink_init(audio_sink_t *sink, const char *name,
 void audio_sink_fini(audio_sink_t *sink)
 {
 	assert(sink);
+	assert(list_empty(&sink->connections));
 	assert(!sink->private_data);
 	free(sink->name);
 	sink->name = NULL;
 }
 
+#if 0
 int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 {
 	assert(sink);
@@ -91,15 +94,14 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 	}
 
 	audio_source_connected(source, sink);
-
 	if (sink->connection_change) {
 		log_verbose("Calling connection change");
 		const int ret = sink->connection_change(sink, true);
 		if (ret != EOK) {
 			log_debug("Connection hook failed.");
-			audio_source_connected(source, NULL);
-			list_remove(&source->link);
-			sink->format = old_format;
+	//		audio_source_connected(source, NULL);
+	//		list_remove(&source->link);
+//			sink->format = old_format;
 			return ret;
 		}
 	}
@@ -108,6 +110,7 @@ int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
 
 	return EOK;
 }
+#endif
 
 int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 {
@@ -117,7 +120,7 @@ int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 		log_debug("Sink %s already has a format", sink->name);
 		return EEXISTS;
 	}
-	const pcm_format_t old_format;
+	const pcm_format_t old_format = sink->format;
 
 	if (pcm_format_is_any(format)) {
 		log_verbose("Setting DEFAULT format for sink %s", sink->name);
@@ -139,6 +142,7 @@ int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 	return EOK;
 }
 
+#if 0
 int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source)
 {
 	assert(sink);
@@ -156,6 +160,7 @@ int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source)
 	audio_source_connected(source, NULL);
 	return EOK;
 }
+#endif
 
 
 void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
@@ -164,13 +169,13 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 	assert(dest);
 
 	pcm_format_silence(dest, size, &sink->format);
-	list_foreach(sink->sources, it) {
-		audio_source_t *source = audio_source_list_instance(it);
-		const int ret =
-		    audio_source_add_self(source, dest, size, &sink->format);
+	list_foreach(sink->connections, it) {
+		connection_t * conn = connection_from_sink_list(it);
+		const int ret = connection_add_source_data(
+		    conn, dest, size, sink->format);
 		if (ret != EOK) {
-			log_warning("Failed to mix source %s: %s",
-			    source->name, str_error(ret));
+			log_warning("Failed to add source %s: %s",
+			    connection_source_name(conn), str_error(ret));
 		}
 	}
 }

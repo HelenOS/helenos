@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jan Vesely
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,48 +33,65 @@
 /** @file
  */
 
-#ifndef AUDIO_SINK_H_
-#define AUDIO_SINK_H_
+#ifndef CONNECTION_H_
+#define CONNECTION_H_
 
+#include <assert.h>
 #include <adt/list.h>
-#include <async.h>
-#include <stdbool.h>
-#include <fibril.h>
 #include <pcm/format.h>
 
 #include "audio_source.h"
+#include "audio_sink.h"
 
-typedef struct audio_sink audio_sink_t;
+typedef struct {
+	link_t source_link;
+	link_t sink_link;
+	link_t hound_link;
+	audio_sink_t *sink;
+	audio_source_t *source;
+} connection_t;
 
-struct audio_sink {
-	link_t link;
-	list_t connections;
-	const char *name;
-	pcm_format_t format;
-	void *private_data;
-	int (*connection_change)(audio_sink_t *, bool);
-	int (*check_format)(audio_sink_t *);
-};
-
-static inline audio_sink_t * audio_sink_list_instance(link_t *l)
+static inline connection_t * connection_from_source_list(link_t *l)
 {
-	return list_get_instance(l, audio_sink_t, link);
+	return list_get_instance(l, connection_t, source_link);
 }
 
-int audio_sink_init(audio_sink_t *sink, const char *name,
-    void *private_data, int (*connection_change)(audio_sink_t *, bool),
-    int (*check_format)(audio_sink_t *), const pcm_format_t *f);
-void audio_sink_fini(audio_sink_t *sink);
+static inline connection_t * connection_from_sink_list(link_t *l)
+{
+	return list_get_instance(l, connection_t, sink_link);
+}
 
-int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format);
-//int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source);
-//int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source);
-void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);
+static inline connection_t * connection_from_hound_list(link_t *l)
+{
+	return list_get_instance(l, connection_t, hound_link);
+}
+
+connection_t *connection_create(audio_source_t *source, audio_sink_t *sink);
+void connection_destroy(connection_t *connection);
+
+ssize_t connection_add_source_data(connection_t *connection, void *data,
+    size_t size, pcm_format_t format);
+
+int connection_new_data(connection_t *connection, const void *data, size_t size);
+
+static inline const char *connection_source_name(connection_t *connection)
+{
+	assert(connection);
+	if (connection->source && connection->source->name)
+		return connection->source->name;
+	return connection->source ? "unnamed source" : "no source";
+}
+
+static inline const char *connection_sink_name(connection_t *connection)
+{
+	assert(connection);
+	if (connection->sink && connection->sink->name)
+		return connection->sink->name;
+	return connection->source ? "unnamed source" : "no source";
+}
 
 
 #endif
-
 /**
  * @}
  */
-

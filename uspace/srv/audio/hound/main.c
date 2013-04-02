@@ -131,9 +131,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			const char *name = NULL;
 			hound_server_get_unregister_params(&name);
 			int ret = ENOENT;
-			list_foreach(local_playback, it) {
+			list_foreach_safe(local_playback, it, next) {
 				audio_client_t *client =
 				    audio_client_list_instance(it);
+				log_fatal("UNREGISTER_PLAYBACK %p", client);
 				if (str_cmp(client->name, name) == 0) {
 					ret = hound_remove_source(&hound,
 					    &client->source);
@@ -212,6 +213,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				    audio_client_list_instance(
 				        list_first(&local_playback));
 				list_remove(&client->link);
+				log_fatal("CASE 0 %p", client);
 				hound_remove_source(&hound, &client->source);
 				audio_client_destroy(client);
 			}

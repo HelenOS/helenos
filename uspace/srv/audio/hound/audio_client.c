@@ -54,7 +54,7 @@ static void init_common(audio_client_t *client, const char *name,
 }
 
 static int client_sink_connection_change(audio_sink_t *sink, bool new);
-static int client_source_connection_change(audio_source_t *source);
+static int client_source_connection_change(audio_source_t *source, bool new);
 static int client_source_update_data(audio_source_t *source, size_t size);
 
 
@@ -110,16 +110,20 @@ static int client_sink_connection_change(audio_sink_t *sink, bool new)
 	return ENOTSUP;
 }
 
-static int client_source_connection_change(audio_source_t *source)
+static int client_source_connection_change(audio_source_t *source, bool new)
 {
 	assert(source);
 	audio_client_t *client = source->private_data;
-	if (source->connected_sink) {
+	if (new && list_count(&source->connections) == 1) {
+		assert(!client->exch);
 		client->exch = async_exchange_begin(client->sess);
 		return client->exch ? EOK : ENOMEM;
 	}
-	async_exchange_end(client->exch);
-	client->exch = NULL;
+	if (list_count(&source->connections) == 0) {
+		assert(!new);
+		async_exchange_end(client->exch);
+		client->exch = NULL;
+	}
 	return EOK;
 }
 

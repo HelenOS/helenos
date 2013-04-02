@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jan Vesely
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,48 +33,59 @@
 /** @file
  */
 
-#ifndef AUDIO_SINK_H_
-#define AUDIO_SINK_H_
+#include <malloc.h>
+#include <errno.h>
 
-#include <adt/list.h>
-#include <async.h>
-#include <stdbool.h>
-#include <fibril.h>
-#include <pcm/format.h>
+#include "log.h"
+#include "connection.h"
 
-#include "audio_source.h"
-
-typedef struct audio_sink audio_sink_t;
-
-struct audio_sink {
-	link_t link;
-	list_t connections;
-	const char *name;
-	pcm_format_t format;
-	void *private_data;
-	int (*connection_change)(audio_sink_t *, bool);
-	int (*check_format)(audio_sink_t *);
-};
-
-static inline audio_sink_t * audio_sink_list_instance(link_t *l)
+connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 {
-	return list_get_instance(l, audio_sink_t, link);
+	assert(source);
+	assert(sink);
+	connection_t *conn = malloc(sizeof(connection_t));
+	if (conn) {
+		link_initialize(&conn->source_link);
+		link_initialize(&conn->sink_link);
+		link_initialize(&conn->hound_link);
+		conn->sink = sink;
+		conn->source = source;
+		list_append(&conn->source_link, &source->connections);
+		list_append(&conn->sink_link, &sink->connections);
+		audio_sink_set_format(sink, audio_source_format(source));
+		source->connection_change(source, true);
+		sink->connection_change(sink, true);
+	}
+	return conn;
 }
 
-int audio_sink_init(audio_sink_t *sink, const char *name,
-    void *private_data, int (*connection_change)(audio_sink_t *, bool),
-    int (*check_format)(audio_sink_t *), const pcm_format_t *f);
-void audio_sink_fini(audio_sink_t *sink);
+void connection_destroy(connection_t *connection)
+{
+	assert(connection);
+	assert(!link_in_use(&connection->hound_link));
+	list_remove(&connection->source_link);
+	list_remove(&connection->sink_link);
+	connection->sink->connection_change(connection->sink, false);
+	connection->source->connection_change(connection->source, false);
+	free(connection);
+}
 
-int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format);
-//int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source);
-//int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source);
-void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);
+ssize_t connection_add_source_data(connection_t *connection, void *data,
+    size_t size, pcm_format_t format)
+{
+	assert(connection);
+	if (!data)
+		return EBADMEM;
+	return audio_source_add_self(connection->source, data, size, &format);
+}
 
+int connection_new_data(connection_t *connection, const void *data, size_t size)
+{
+	assert(connection);
+	return ENOTSUP;
+}
 
-#endif
 
 /**
  * @}
  */
-

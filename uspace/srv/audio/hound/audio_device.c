@@ -48,7 +48,7 @@
 #define BUFFER_PARTS 2
 
 static int device_sink_connection_callback(audio_sink_t *sink, bool new);
-static int device_source_connection_callback(audio_source_t *source);
+static int device_source_connection_callback(audio_source_t *source, bool new);
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 static int device_check_format(audio_sink_t* sink);
 static int get_buffer(audio_device_t *dev);
@@ -93,7 +93,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 {
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
-	if (new && list_count(&sink->sources) == 1) {
+	if (new && list_count(&sink->connections) == 1) {
 		log_verbose("First connection on device sink '%s'", sink->name);
 
 		int ret = get_buffer(dev);
@@ -103,14 +103,18 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 			return ret;
 		}
 		audio_pcm_register_event_callback(dev->sess,
-		    device_event_callback, dev);
+		    device_event_callback, dev);\
+		// TODO set formats
 
 		/* Fill the buffer first */
 		audio_sink_mix_inputs(&dev->sink,
 		    dev->buffer.base, dev->buffer.size);
 
+		log_verbose("Mixed inputs: %zu/(%u * %u)",
+		    dev->buffer.size, BUFFER_PARTS, pcm_format_frame_size(&dev->sink.format));
 		const unsigned frames = dev->buffer.size /
 		    (BUFFER_PARTS * pcm_format_frame_size(&dev->sink.format));
+		log_verbose("FRAME COUNT %u", frames);
 		ret = audio_pcm_start_playback_fragment(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
@@ -121,7 +125,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 			return ret;
 		}
 	}
-	if (list_count(&sink->sources) == 0) {
+	if (list_count(&sink->connections) == 0) {
 		assert(!new);
 		log_verbose("No connections on device sink '%s'", sink->name);
 		int ret = audio_pcm_stop_playback(dev->sess);
@@ -141,11 +145,11 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 	return EOK;
 }
 
-static int device_source_connection_callback(audio_source_t *source)
+static int device_source_connection_callback(audio_source_t *source, bool new)
 {
 	assert(source);
 	audio_device_t *dev = source->private_data;
-	if (source->connected_sink) {
+	if (new && list_count(&source->connections)) {
 		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
@@ -163,7 +167,9 @@ static int device_source_connection_callback(audio_source_t *source)
 			release_buffer(dev);
 			return ret;
 		}
-	} else { /* Disconnected */
+	}
+	if (list_count(&source->connections) == 0) { /* Disconnected */
+		assert(!new);
 		int ret = audio_pcm_stop_capture(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
