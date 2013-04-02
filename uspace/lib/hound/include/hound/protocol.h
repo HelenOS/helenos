@@ -37,6 +37,7 @@
 #define LIBHOUND_PROTOCOL_H_
 
 #include <async.h>
+#include <errno.h>
 #include <pcm/format.h>
 
 const char *HOUND_SERVICE;
@@ -54,7 +55,7 @@ enum {
 };
 
 typedef async_sess_t hound_sess_t;
-typedef int hound_context_id_t;
+typedef intptr_t hound_context_id_t;
 
 static inline int hound_context_id_err(hound_context_id_t id)
 {
