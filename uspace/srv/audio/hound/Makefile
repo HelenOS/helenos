@@ -46,6 +46,7 @@ SOURCES = \
 	audio_sink.c \
 	audio_source.c \
 	hound.c \
+	hound_ctx.c \
 	iface.c \
 	main.c
 

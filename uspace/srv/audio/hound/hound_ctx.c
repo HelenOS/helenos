@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jan Vesely
+ * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup audio
- * @brief HelenOS sound server
+/**
+ * @addtogroup audio
+ * @brief HelenOS sound server.
  * @{
  */
 /** @file
  */
 
-#ifndef HOUND_H_
-#define HOUND_H_
-
-#include <async.h>
-#include <adt/list.h>
-#include <ipc/loc.h>
-#include <errno.h>
-#include <fibril_synch.h>
-#include <pcm/format.h>
-#include <hound/protocol.h>
+#include <malloc.h>
 
 #include "hound_ctx.h"
-#include "audio_source.h"
-#include "audio_sink.h"
 
+static void hound_ctx_init_common(hound_ctx_t *ctx)
+{
+	if (!ctx)
+		return;
+	link_initialize(&ctx->link);
+}
 
-typedef struct {
-	fibril_mutex_t list_guard;
-	list_t devices;
-	list_t contexts;
-	list_t sources;
-	list_t sinks;
-} hound_t;
+hound_ctx_t *hound_record_ctx_get(const char *name)
+{
+	return NULL;
+}
 
-int hound_init(hound_t *hound);
-int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx);
-int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx);
-hound_ctx_t *hound_get_ctx_by_id(hound_t *hound, hound_context_id_t id);
+hound_ctx_t *hound_playback_ctx_get(const char *name)
+{
+	hound_ctx_t *ctx = malloc(sizeof(hound_ctx_t));
+	hound_ctx_init_common(ctx);
+	return ctx;
+}
 
-int hound_add_device(hound_t *hound, service_id_t id, const char* name);
-int hound_add_source(hound_t *hound, audio_source_t *source);
-int hound_add_sink(hound_t *hound, audio_sink_t *sink);
-int hound_remove_source(hound_t *hound, audio_source_t *source);
-int hound_remove_sink(hound_t *hound, audio_sink_t *sink);
-int hound_connect(hound_t *hound, const char* source_name, const char* sink_name);
-int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name);
+void hound_ctx_destroy(hound_ctx_t *ctx)
+{
+	assert(ctx);
+	assert(!link_in_use(&ctx->link));
+	free(ctx);
+}
 
-#endif
+hound_context_id_t hound_ctx_get_id(hound_ctx_t *ctx)
+{
+	assert(ctx);
+	return (hound_context_id_t)ctx;
+}
+
+bool hound_ctx_is_record(hound_ctx_t *ctx)
+{
+	assert(ctx);
+	//TODO fix this
+	return false;
+}
 
 /**
  * @}

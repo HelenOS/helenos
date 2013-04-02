@@ -37,26 +37,51 @@
 #include <errno.h>
 #include <hound/protocol.h>
 #include <malloc.h>
+
+#include "hound.h"
+#include "hound_ctx.h"
 #include "log.h"
 
 static int iface_add_context(void *server, hound_context_id_t *id,
     const char *name, bool record)
 {
-	log_info("%s: %p, %s, %s", __FUNCTION__, server, name, record ? "REC" : "PLAY");
-	*id = 1;
-	return EOK;
+	assert(server);
+	assert(id);
+	assert(name);
+
+	hound_ctx_t *ctx = record ? hound_record_ctx_get(name) :
+	    hound_playback_ctx_get(name);
+	if (!ctx)
+		return ENOMEM;
+
+	const int ret = hound_add_ctx(server, ctx);
+	if (ret != EOK)
+		hound_ctx_destroy(ctx);
+	else
+		*id = hound_ctx_get_id(ctx);
+	return ret;
 }
 
 static int iface_rem_context(void *server, hound_context_id_t id)
 {
+	assert(server);
+	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
+	if (!ctx)
+		return EINVAL;
+	hound_remove_ctx(server, ctx);
+	hound_ctx_destroy(ctx);
 	log_info("%s: %p, %d", __FUNCTION__, server, id);
-	return ENOTSUP;
+	return EOK;
 }
 
 static bool iface_is_record_context(void *server, hound_context_id_t id)
 {
+	assert(server);
+	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
+	if (!ctx)
+		return false;
 	log_info("%s: %p, %d", __FUNCTION__, server, id);
-	return false;
+	return hound_ctx_is_record(ctx);
 }
 
 static int iface_get_list(void *server, const char ***list, size_t *size,
@@ -72,7 +97,7 @@ static int iface_get_list(void *server, const char ***list, size_t *size,
 static int iface_connect(void *server, const char *source, const char *sink)
 {
 	log_info("%s: %p, %s -> %s", __FUNCTION__, server, source, sink);
-	return EOK;
+	return ENOTSUP;
 }
 
 static int iface_disconnect(void *server, const char *source, const char *sink)
@@ -88,7 +113,7 @@ static int iface_add_stream(void *server, hound_context_id_t id, int flags,
 	    flags, format.channels, format.sampling_rate,
 	    pcm_sample_format_str(format.sample_format));
 	*data = (void*)"TEST_STREAM";
-	return EOK;
+	return ENOTSUP;
 }
 
 static int iface_rem_stream(void *server, void *stream)
