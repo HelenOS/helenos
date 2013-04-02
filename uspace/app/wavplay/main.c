@@ -84,8 +84,9 @@ static int hplay(const char *filename)
 	if (ret != EOK) {
 		printf("Failed to connect to default target: %s\n",
 		    str_error(ret));
+		hound_context_destroy(hound);
 		fclose(source);
-		return ENOMEM;
+		return ret;
 	}
 	static char buffer[BUFFER_SIZE];
 	while ((read = fread(buffer, sizeof(char), BUFFER_SIZE, source)) > 0) {
