@@ -353,18 +353,6 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 	log_verbose("Connecting '%s' to '%s'.", source_name, sink_name);
 	fibril_mutex_lock(&hound->list_guard);
 
-	if (list_empty(&hound->sinks)) {
-		fibril_mutex_unlock(&hound->list_guard);
-		log_debug("No sinks available");
-		return EINVAL;
-	}
-
-	if (list_empty(&hound->sources)) {
-		fibril_mutex_unlock(&hound->list_guard);
-		log_debug("No sinks available");
-		return EINVAL;
-	}
-
 	audio_source_t *source =
 	    audio_source_list_instance(list_first(&hound->sources));
 	if (str_cmp(source_name, "default") != 0)
