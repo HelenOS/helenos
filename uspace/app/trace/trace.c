@@ -135,7 +135,6 @@ static int program_run_fibril(void *arg)
 		exit(1);
 	}
 
-	free(task_ldr);
 	task_ldr = NULL;
 
 	printf("program_run_fibril exiting\n");
@@ -347,8 +346,14 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 
 	if ((display_mask & DM_SYSCALL) != 0) {
 		/* Print syscall name and arguments */
-		printf("%s", syscall_desc[sc_id].name);
-		print_sc_args(sc_args, syscall_desc[sc_id].n_args);
+		if (syscall_desc_defined(sc_id)) {
+			printf("%s", syscall_desc[sc_id].name);
+			print_sc_args(sc_args, syscall_desc[sc_id].n_args);
+		}
+		else {
+			printf("unknown_syscall<%d>", sc_id);
+			print_sc_args(sc_args, 6);
+		}
 	}
 }
 
@@ -371,7 +376,10 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 
 	if ((display_mask & DM_SYSCALL) != 0) {
 		/* Print syscall return value */
-		rv_type = syscall_desc[sc_id].rv_type;
+		if (syscall_desc_defined(sc_id))
+			rv_type = syscall_desc[sc_id].rv_type;
+		else
+			rv_type = V_PTR;
 		print_sc_retval(sc_rc, rv_type);
 	}
 
@@ -496,7 +504,7 @@ static loader_t *preload_task(const char *path, char **argv,
 	/* Spawn a program loader */
 	ldr = loader_connect();
 	if (ldr == NULL)
-		return 0;
+		return NULL;
 
 	/* Get task ID. */
 	rc = loader_get_task_id(ldr, task_id);
