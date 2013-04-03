@@ -174,7 +174,7 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 		const int ret = connection_add_source_data(
 		    conn, dest, size, sink->format);
 		if (ret != EOK) {
-			log_warning("Failed to add source %s: %s",
+			log_warning("Failed to mix source %s: %s",
 			    connection_source_name(conn), str_error(ret));
 		}
 	}
