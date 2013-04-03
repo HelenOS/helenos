@@ -51,6 +51,14 @@
 #define BCM2835_UART_IRQ	MAKE_IRQ(BANK_GPU1, 25)
 #define BCM2835_TIMER1_IRQ	MAKE_IRQ(BANK_GPU0,  1)
 
+#define IRQ_PEND_ARM_M		0xFF
+#define IRQ_PEND_GPU0_M		(1 << 8)
+#define IRQ_PEND_GPU1_M		(1 << 9)
+#define IRQ_PEND_SHORT_M	0x1FFC00
+#define IRQ_PEND_SHORT_S	10
+
+unsigned shortcut_inums[] = {7, 9, 10, 18, 19, 53, 54, 55, 56, 57, 62};
+
 typedef struct {
 	ioport32_t	irq_basic_pending;
 	ioport32_t	irq_pending1;
@@ -110,24 +118,41 @@ static inline int ffs(unsigned int x)
 static inline unsigned bcm2835_irc_inum_get(bcm2835_irc_t *regs)
 {
 	uint32_t pending;
-
-	/* TODO: use 'shortcut' bits in basic pending register */
+	int inum = -1;
 
 	pending = regs->irq_basic_pending;
-	if (pending & 0xff)
-		return MAKE_IRQ(BANK_ARM, ffs(pending & 0xFF) - 1);
 
-	pending = regs->irq_pending1;
-	if (pending)
-		return MAKE_IRQ(BANK_GPU0, ffs(pending) - 1);
+	/*
+	 * The basic pending register shows interrupts pending from ARM
+	 * peripherals and it also contains, in order to speed up processing,
+	 * additional information about pending GPU interrupts:
+	 *
+	 *  - bits 0-7 are associated to ARM peripherals
+	 *  - bit 8 is 1 when at least one bit is set in pending register 1
+	 *  - bit 9 is 1 when at least one bit is set in pending register 2
+	 *  - bits 10-20 indicate pending status of selected GPU peripherals
+	 *
+	 *  Reference: BCM2835 ARM Peripherals, p.113
+	 */
 
-	pending = regs->irq_pending2;
-	if (pending)
-		return MAKE_IRQ(BANK_GPU1, ffs(pending) - 1);
+	if (pending & IRQ_PEND_ARM_M) {
+		inum = MAKE_IRQ(BANK_ARM, ffs(pending & IRQ_PEND_ARM_M) - 1);
+	} else if (pending & IRQ_PEND_SHORT_M) {
+		int pos = (pending & IRQ_PEND_SHORT_M) >> IRQ_PEND_SHORT_S;
+		inum = shortcut_inums[ffs(pos) - 1];
+	} else if (pending & IRQ_PEND_GPU0_M) {
+		inum = MAKE_IRQ(BANK_GPU0, ffs(regs->irq_pending1) - 1);
+	} else if (pending & IRQ_PEND_GPU1_M) {
+		inum = MAKE_IRQ(BANK_GPU1, ffs(regs->irq_pending2) - 1);
+	}
 
-	printf("Spurious interrupt!\n");
-	bcm2835_irc_dump(regs);
-	return 0;
+	if (inum < 0) {
+		printf("Spurious interrupt!\n");
+		bcm2835_irc_dump(regs);
+		inum = 0;
+	}
+
+	return inum;
 }
 
 static inline void bcm2835_irc_enable(bcm2835_irc_t *regs, unsigned inum)
