@@ -96,8 +96,10 @@ int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
 	assert(hound);
 	if (!ctx)
 		return EINVAL;
+	fibril_mutex_lock(&hound->list_guard);
 	list_append(&ctx->link, &hound->contexts);
 	//TODO register sinks/sources
+	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
 }
 
@@ -106,7 +108,9 @@ int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
 	assert(hound);
 	if (!ctx)
 		return EINVAL;
+	fibril_mutex_lock(&hound->list_guard);
 	list_remove(&ctx->link);
+	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
 }
 
@@ -114,14 +118,17 @@ hound_ctx_t *hound_get_ctx_by_id(hound_t *hound, hound_context_id_t id)
 {
 	assert(hound);
 
-	//TODO locking
-
+	fibril_mutex_lock(&hound->list_guard);
+	hound_ctx_t *res = NULL;
 	list_foreach(hound->contexts, it) {
 		hound_ctx_t *ctx = hound_ctx_from_link(it);
-		if (hound_ctx_get_id(ctx) == id)
-			return ctx;
+		if (hound_ctx_get_id(ctx) == id) {
+			res = ctx;
+			break;
+		}
 	}
-	return NULL;
+	fibril_mutex_unlock(&hound->list_guard);
+	return res;
 }
 
 int hound_add_device(hound_t *hound, service_id_t id, const char *name)
@@ -260,6 +267,87 @@ int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
 	list_remove(&sink->link);
 	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
+}
+
+int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
+{
+	assert(hound);
+	if (!list || !size)
+		return EINVAL;
+
+	fibril_mutex_lock(&hound->list_guard);
+	const size_t count = list_count(&hound->sources);
+	if (count == 0) {
+		*list = NULL;
+		*size = 0;
+		fibril_mutex_unlock(&hound->list_guard);
+		return EOK;
+	}
+	const char **names = calloc(count, sizeof(char *));
+	int ret = names ? EOK : ENOMEM;
+	for (size_t i = 0; i < count && ret == EOK; ++i) {
+		link_t *slink = list_nth(&hound->sources, i);
+		audio_source_t *source = audio_source_list_instance(slink);
+		names[i] = str_dup(source->name);
+		if (names[i])
+			ret = ENOMEM;
+	}
+	if (ret == EOK) {
+		*size = count;
+		*list = names;
+	} else {
+		for (size_t i = 0; i < count; ++i)
+			free(names[i]);
+		free(names);
+	}
+	fibril_mutex_unlock(&hound->list_guard);
+	return ret;
+}
+
+int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
+{
+	assert(hound);
+	log_verbose("Hound list sinks: %p %p %p", hound, list, size);
+	if (!list || !size)
+		return EINVAL;
+
+	fibril_mutex_lock(&hound->list_guard);
+	const size_t count = list_count(&hound->sinks);
+	if (count == 0) {
+		printf("ZERO SINKS!\n");
+		*list = NULL;
+		*size = 0;
+		fibril_mutex_unlock(&hound->list_guard);
+		return EOK;
+	}
+	const char **names = calloc(count, sizeof(char *));
+	int ret = names ? EOK : ENOMEM;
+	for (size_t i = 0; i < count && ret == EOK; ++i) {
+		link_t *slink = list_nth(&hound->sinks, i);
+		audio_sink_t *sink = audio_sink_list_instance(slink);
+		names[i] = str_dup(sink->name);
+		if (!names[i])
+			ret = ENOMEM;
+	}
+	if (ret == EOK) {
+		*size = count;
+		*list = names;
+		printf("%zu SINKS %s!\n", count, names[0]);
+	} else {
+		for (size_t i = 0; i < count; ++i)
+			free(names[i]);
+		free(names);
+	}
+	fibril_mutex_unlock(&hound->list_guard);
+	return ret;
+}
+
+int hound_list_connections(hound_t *hound, const char ***sources,
+    const char ***sinks, size_t *size)
+{
+	fibril_mutex_lock(&hound->list_guard);
+	fibril_mutex_unlock(&hound->list_guard);
+	return ENOTSUP;
 }
 
 int hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
