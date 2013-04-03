@@ -78,6 +78,39 @@ static audio_sink_t * find_sink_by_name(list_t *list, const char *name)
 
 static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
 
+static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
+{
+	assert(hound);
+	assert(sink);
+	log_verbose("Removing sink '%s'.", sink->name);
+	if (!list_empty(&sink->connections))
+		log_warning("Removing sink '%s' while still connected.", sink->name);
+	while (!list_empty(&sink->connections)) {
+		connection_t *conn =
+		    connection_from_sink_list(list_first(&sink->connections));
+		list_remove(&conn->hound_link);
+		connection_destroy(conn);
+	}
+	list_remove(&sink->link);
+}
+
+static void hound_remove_source_internal(hound_t *hound, audio_source_t *source)
+{
+	assert(hound);
+	assert(source);
+	log_verbose("Removing source '%s'.", source->name);
+	if (!list_empty(&source->connections))
+		log_warning("Removing source '%s' while still connected.", source->name);
+	while (!list_empty(&source->connections)) {
+		connection_t *conn =
+		    connection_from_source_list(list_first(&source->connections));
+		assert(conn);
+		list_remove(&conn->hound_link);
+		connection_destroy(conn);
+	}
+	list_remove(&source->link);
+}
+
 int hound_init(hound_t *hound)
 {
 	assert(hound);
@@ -116,6 +149,10 @@ int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
 		return EINVAL;
 	fibril_mutex_lock(&hound->list_guard);
 	list_remove(&ctx->link);
+	if (ctx->source)
+		hound_remove_source_internal(hound, ctx->source);
+	if (ctx->sink)
+		hound_remove_sink_internal(hound, ctx->sink);
 	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
 }
@@ -249,28 +286,20 @@ int hound_remove_source(hound_t *hound, audio_source_t *source)
 	assert(hound);
 	if (!source)
 		return EINVAL;
-	log_verbose("Removing source '%s'.", source->name);
 	fibril_mutex_lock(&hound->list_guard);
-
-	list_remove(&source->link);
+	hound_remove_source_internal(hound, source);
 	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
 }
+
 
 int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
 	if (!sink)
 		return EINVAL;
-	log_verbose("Removing sink '%s'.", sink->name);
 	fibril_mutex_lock(&hound->list_guard);
-
-	if (!list_empty(&sink->connections)) {
-		// TODO disconnect instead
-		fibril_mutex_unlock(&hound->list_guard);
-		return EBUSY;
-	}
-	list_remove(&sink->link);
+	hound_remove_sink_internal(hound, sink);
 	fibril_mutex_unlock(&hound->list_guard);
 	return EOK;
 }
@@ -382,7 +411,6 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 	}
 	list_append(&conn->hound_link, &hound->connections);
 	fibril_mutex_unlock(&hound->list_guard);
-	log_debug("CONNECTED: %s -> %s", source_name, sink_name);
 	return EOK;
 }
 
@@ -395,7 +423,8 @@ int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_n
 	return ret;
 }
 
-static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name)
+static int hound_disconnect_internal(hound_t *hound, const char* source_name,
+    const char* sink_name)
 {
 	assert(hound);
 	assert(fibril_mutex_is_locked(&hound->list_guard));

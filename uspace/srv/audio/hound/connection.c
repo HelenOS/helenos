@@ -57,6 +57,7 @@ connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 			source->connection_change(source, true);
 		if (sink->connection_change)
 			sink->connection_change(sink, true);
+		log_debug("CONNECTED: %s -> %s", source->name, sink->name);
 	}
 	return conn;
 }
@@ -67,8 +68,12 @@ void connection_destroy(connection_t *connection)
 	assert(!link_in_use(&connection->hound_link));
 	list_remove(&connection->source_link);
 	list_remove(&connection->sink_link);
-	connection->sink->connection_change(connection->sink, false);
-	connection->source->connection_change(connection->source, false);
+	if (connection->sink && connection->sink->connection_change)
+		connection->sink->connection_change(connection->sink, false);
+	if (connection->source && connection->source->connection_change)
+		connection->source->connection_change(connection->source, false);
+	log_debug("DISCONNECTED: %s -> %s",
+	    connection->source->name, connection->sink->name);
 	free(connection);
 }
 
