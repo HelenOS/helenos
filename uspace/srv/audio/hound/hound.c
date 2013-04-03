@@ -98,9 +98,15 @@ int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
 		return EINVAL;
 	fibril_mutex_lock(&hound->list_guard);
 	list_append(&ctx->link, &hound->contexts);
-	//TODO register sinks/sources
 	fibril_mutex_unlock(&hound->list_guard);
-	return EOK;
+	int ret = EOK;
+	if (ret == EOK && ctx->source)
+		ret = hound_add_source(hound, ctx->source);
+	if (ret == EOK && ctx->sink)
+		ret = hound_add_sink(hound, ctx->sink);
+	if (ret != EOK)
+		hound_ctx_destroy(ctx);
+	return ret;
 }
 
 int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
