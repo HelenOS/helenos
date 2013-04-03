@@ -61,5 +61,130 @@ double posix_frexp(double num, int *exp)
 	not_implemented();
 }
 
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_cos(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param y
+ * @return
+ */
+double posix_pow(double x, double y)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_floor(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_fabs(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param iptr
+ * @return
+ */
+double posix_modf(double x, double *iptr)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param y
+ * @return
+ */
+double posix_fmod(double x, double y)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_log(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param y
+ * @return
+ */
+double posix_atan2(double y, double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_sin(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_exp(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_sqrt(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
 /** @}
  */
