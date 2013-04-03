@@ -307,14 +307,12 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 {
 	assert(hound);
-	log_verbose("Hound list sinks: %p %p %p", hound, list, size);
 	if (!list || !size)
 		return EINVAL;
 
 	fibril_mutex_lock(&hound->list_guard);
 	const size_t count = list_count(&hound->sinks);
 	if (count == 0) {
-		printf("ZERO SINKS!\n");
 		*list = NULL;
 		*size = 0;
 		fibril_mutex_unlock(&hound->list_guard);
@@ -332,7 +330,6 @@ int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 	if (ret == EOK) {
 		*size = count;
 		*list = names;
-		printf("%zu SINKS %s!\n", count, names[0]);
 	} else {
 		for (size_t i = 0; i < count; ++i)
 			free(names[i]);
