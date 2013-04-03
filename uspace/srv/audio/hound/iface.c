@@ -70,7 +70,7 @@ static int iface_rem_context(void *server, hound_context_id_t id)
 		return EINVAL;
 	hound_remove_ctx(server, ctx);
 	hound_ctx_destroy(ctx);
-	log_info("%s: %p, %d", __FUNCTION__, server, id);
+	log_info("%s: %p, %#x", __FUNCTION__, server, id);
 	return EOK;
 }
 
@@ -87,23 +87,25 @@ static bool iface_is_record_context(void *server, hound_context_id_t id)
 static int iface_get_list(void *server, const char ***list, size_t *size,
     const char *connection, int flags)
 {
-	log_info("%s: %p, %zu, %s, %u", __FUNCTION__, server, *size, connection, flags);
-	*list = malloc(sizeof(char *));
-	**list = str_dup("FOO SINK");
-	*size = 1;
-	return EOK;
+	log_info("%s: %p, %zu, %s, %#x\n", __FUNCTION__, server, *size,
+	    connection, flags);
+	if ((flags & (HOUND_SINK_DEVS | HOUND_SINK_APPS)) != 0)
+		return hound_list_sinks(server, list, size);
+	if ((flags & (HOUND_SOURCE_DEVS | HOUND_SOURCE_APPS)) != 0)
+		return hound_list_sources(server, list, size);
+	return ENOTSUP;
 }
 
 static int iface_connect(void *server, const char *source, const char *sink)
 {
 	log_info("%s: %p, %s -> %s", __FUNCTION__, server, source, sink);
-	return ENOTSUP;
+	return hound_connect(server, source, sink);
 }
 
 static int iface_disconnect(void *server, const char *source, const char *sink)
 {
 	log_info("%s: %p, %s -> %s", __FUNCTION__, server, source, sink);
-	return ENOTSUP;
+	return hound_disconnect(server, source, sink);
 }
 
 static int iface_add_stream(void *server, hound_context_id_t id, int flags,
