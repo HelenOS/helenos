@@ -58,7 +58,7 @@ struct audio_sink {
 
 static inline audio_sink_t * audio_sink_list_instance(link_t *l)
 {
-	return list_get_instance(l, audio_sink_t, link);
+	return l ? list_get_instance(l, audio_sink_t, link) : NULL;
 }
 
 int audio_sink_init(audio_sink_t *sink, const char *name,

@@ -53,8 +53,10 @@ connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 		list_append(&conn->source_link, &source->connections);
 		list_append(&conn->sink_link, &sink->connections);
 		audio_sink_set_format(sink, audio_source_format(source));
-		source->connection_change(source, true);
-		sink->connection_change(sink, true);
+		if (source->connection_change)
+			source->connection_change(source, true);
+		if (sink->connection_change)
+			sink->connection_change(sink, true);
 	}
 	return conn;
 }

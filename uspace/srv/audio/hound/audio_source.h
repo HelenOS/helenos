@@ -59,7 +59,7 @@ struct audio_source {
 
 static inline audio_source_t * audio_source_list_instance(link_t *l)
 {
-	return list_get_instance(l, audio_source_t, link);
+	return l ? list_get_instance(l, audio_source_t, link) : NULL;
 }
 
 int audio_source_init(audio_source_t *source, const char *name, void *data,

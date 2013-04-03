@@ -58,6 +58,8 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 	link_initialize(&source->link);
 	list_initialize(&source->connections);
 	source->name = str_dup(name);
+	if (!source->name)
+		return ENOMEM;
 	source->private_data = data;
 	source->connection_change = connection_change;
 	source->update_available_data = update_available_data;
