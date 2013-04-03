@@ -38,14 +38,19 @@
 
 #include <adt/list.h>
 #include <hound/protocol.h>
+#include "audio_source.h"
+#include "audio_sink.h"
 
 typedef struct {
 	link_t link;
+	list_t streams;
+	audio_source_t *source;
+	audio_sink_t *sink;
 } hound_ctx_t;
 
 static inline hound_ctx_t *hound_ctx_from_link(link_t *l)
 {
-	return list_get_instance(l, hound_ctx_t, link);
+	return l ? list_get_instance(l, hound_ctx_t, link) : NULL;
 }
 
 hound_ctx_t *hound_record_ctx_get(const char *name);

@@ -38,13 +38,6 @@
 
 #include "hound_ctx.h"
 
-static void hound_ctx_init_common(hound_ctx_t *ctx)
-{
-	if (!ctx)
-		return;
-	link_initialize(&ctx->link);
-}
-
 hound_ctx_t *hound_record_ctx_get(const char *name)
 {
 	return NULL;
@@ -53,7 +46,22 @@ hound_ctx_t *hound_record_ctx_get(const char *name)
 hound_ctx_t *hound_playback_ctx_get(const char *name)
 {
 	hound_ctx_t *ctx = malloc(sizeof(hound_ctx_t));
-	hound_ctx_init_common(ctx);
+	if (ctx) {
+		link_initialize(&ctx->link);
+		ctx->sink = NULL;
+		ctx->source = malloc(sizeof(audio_source_t));
+		if (!ctx->source) {
+			free(ctx);
+			return NULL;
+		}
+		const int ret = audio_source_init(ctx->source, name, ctx, NULL,
+		    NULL, &AUDIO_FORMAT_ANY);
+		if (ret != EOK) {
+			free(ctx->source);
+			free(ctx);
+			return NULL;
+		}
+	}
 	return ctx;
 }
 
@@ -61,6 +69,12 @@ void hound_ctx_destroy(hound_ctx_t *ctx)
 {
 	assert(ctx);
 	assert(!link_in_use(&ctx->link));
+	if (ctx->source)
+		audio_source_fini(ctx->source);
+	if (ctx->sink)
+		audio_sink_fini(ctx->sink);
+	free(ctx->source);
+	free(ctx->sink);
 	free(ctx);
 }
 
