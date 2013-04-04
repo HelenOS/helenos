@@ -33,14 +33,13 @@
  * @brief BCM2835 mailbox communication routines
  */
 
+#include <mm/km.h>
+#include <mm/slab.h>
 #include <typedefs.h>
 #include <genarch/drivers/bcm2835/mbox.h>
 
 static void mbox_write(bcm2835_mbox_t *mbox, uint8_t chan, uint32_t value)
 {
-	if (!mbox)
-		mbox = (bcm2835_mbox_t *)BCM2835_MBOX0_ADDR;
-
 	while (mbox->status & MBOX_STATUS_FULL) ;
 	mbox->write = MBOX_COMPOSE(chan, value);
 }
@@ -48,9 +47,6 @@ static void mbox_write(bcm2835_mbox_t *mbox, uint8_t chan, uint32_t value)
 static uint32_t mbox_read(bcm2835_mbox_t *mbox, uint8_t chan)
 {
 	uint32_t msg;
-
-	if (!mbox)
-		mbox = (bcm2835_mbox_t *)BCM2835_MBOX0_ADDR;
 
 	do {
 		while (mbox->status & MBOX_STATUS_EMPTY) ;
@@ -72,8 +68,10 @@ bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size)
 	req->tag_hdr.val_len = 0;
 	req->zero = 0;
 
-	mbox_write(NULL, MBOX_CHAN_PROP_A2V, KA2VC((uint32_t)req));
-	mbox_read(NULL, MBOX_CHAN_PROP_A2V);
+	mbox_write((bcm2835_mbox_t *)BCM2835_MBOX0_ADDR,
+		   MBOX_CHAN_PROP_A2V, KA2VCA((uint32_t)req));
+	mbox_read((bcm2835_mbox_t *)BCM2835_MBOX0_ADDR,
+		  MBOX_CHAN_PROP_A2V);
 
 	if (req->buf_hdr.code == MBOX_PROP_CODE_RESP_OK) {
 		*base = req->data.base;
@@ -83,6 +81,56 @@ bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size)
 		ret = false;
 	}
 
+	return ret;
+}
+
+bool bcm2835_fb_init(fb_properties_t *prop)
+{
+	bcm2835_mbox_t *fb_mbox;
+	bcm2835_fb_desc_t *fb_desc;
+	void *fb_desc_buf;
+	bool ret = false;
+
+	fb_desc_buf = malloc(sizeof(bcm2835_fb_desc_t) + MBOX_ADDR_ALIGN, 0);
+	if (!fb_desc_buf)
+		return false;
+
+	fb_mbox = (void *) km_map(BCM2835_MBOX0_ADDR, sizeof(bcm2835_mbox_t),
+				  PAGE_NOT_CACHEABLE);
+	fb_desc = (bcm2835_fb_desc_t *) ALIGN_UP((uintptr_t)fb_desc_buf,
+						 MBOX_ADDR_ALIGN);
+
+	fb_desc->width = 640;
+	fb_desc->height = 480;
+	fb_desc->virt_width = fb_desc->width;
+	fb_desc->virt_height = fb_desc->height;
+	fb_desc->pitch = 0;			/* Set by VC */
+	fb_desc->bpp = 16;
+	fb_desc->x_offset = 0;
+	fb_desc->y_offset = 0;
+	fb_desc->addr = 0;			/* Set by VC */
+	fb_desc->size = 0;			/* Set by VC */
+
+	mbox_write(fb_mbox, MBOX_CHAN_FB, KA2VCA(fb_desc));
+
+	if (mbox_read(fb_mbox, MBOX_CHAN_FB)) {
+		printf("BCM2835 framebuffer initialization failed\n");
+		goto out;
+	}
+
+	prop->addr = fb_desc->addr;
+	prop->offset = 0;
+	prop->x = fb_desc->width;
+	prop->y = fb_desc->height;
+	prop->scan = fb_desc->pitch;
+	prop->visual = VISUAL_RGB_5_6_5_LE;
+
+	printf("BCM2835 framebuffer at 0x%08x (%dx%d)\n", prop->addr,
+	       prop->x, prop->y);
+	ret = true;
+out:
+	km_unmap((uintptr_t)fb_mbox, sizeof(bcm2835_mbox_t));
+	free(fb_desc_buf);
 	return ret;
 }
 

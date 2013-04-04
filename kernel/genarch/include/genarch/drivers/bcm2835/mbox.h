@@ -36,6 +36,7 @@
 #ifndef _BCM2835_MBOX_H_
 #define _BCM2835_MBOX_H_
 
+#include <genarch/fb/fb.h>
 #include <arch/mm/page.h>
 #include <align.h>
 
@@ -78,7 +79,7 @@ enum {
 #define MBOX_MSG_CHAN(msg)	((msg) & 0xf)
 #define MBOX_MSG_VALUE(msg)	((msg) & ~0xf)
 
-#define KA2VC(addr)		(KA2PA(addr) + 0x40000000)
+#define KA2VCA(addr)		(KA2PA(addr) + 0x40000000)
 
 #define MBOX_ADDR_ALIGN		16
 
@@ -119,7 +120,21 @@ typedef struct {
 	uint32_t		zero;
 } mbox_getmem_buf_t;
 
+typedef struct {
+	ioport32_t width;
+	ioport32_t height;
+	ioport32_t virt_width;
+	ioport32_t virt_height;
+	ioport32_t pitch;
+	ioport32_t bpp;
+	ioport32_t x_offset;
+	ioport32_t y_offset;
+	ioport32_t addr;
+	ioport32_t size;
+} bcm2835_fb_desc_t;
+
 bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size);
+bool bcm2835_fb_init(fb_properties_t *prop);
 
 #endif
 /**

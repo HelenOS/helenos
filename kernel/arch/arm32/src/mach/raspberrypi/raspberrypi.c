@@ -172,6 +172,15 @@ static void raspberrypi_frame_init(void)
 
 static void raspberrypi_output_init(void)
 {
+#ifdef CONFIG_FB
+	fb_properties_t prop;
+	if (bcm2835_fb_init(&prop)) {
+		outdev_t *fb_dev = fb_init(&prop);
+		if (fb_dev)
+			stdout_wire(fb_dev);
+	}
+#endif
+
 #ifdef CONFIG_PL011_UART
 	if (pl011_uart_init(&raspi.uart, BCM2835_UART_IRQ,
 			    BCM2835_UART0_BASE_ADDRESS))
