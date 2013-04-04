@@ -134,6 +134,12 @@ static int iface_rem_stream(void *server, void *stream)
 	return EOK;
 }
 
+static int iface_drain_stream(void *stream)
+{
+	hound_ctx_stream_drain(stream);
+	return EOK;
+}
+
 static int iface_stream_data_read(void *stream, void *buffer, size_t size)
 {
 	return hound_ctx_stream_read(stream, buffer, size);
@@ -153,6 +159,7 @@ hound_server_iface_t hound_iface = {
 	.disconnect = iface_disconnect,
 	.add_stream = iface_add_stream,
 	.rem_stream = iface_rem_stream,
+	.drain_stream = iface_drain_stream,
 	.stream_data_write = iface_stream_data_write,
 	.stream_data_read = iface_stream_data_read,
 	.server = NULL,
