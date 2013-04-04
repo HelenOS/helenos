@@ -510,7 +510,15 @@ static void hound_server_write_data(void *stream)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
-	while (async_data_read_receive_call(&callid, &call, &size)) {
+	while (async_data_read_receive_call(&callid, &call, &size)
+	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
+			int ret = ENOTSUP;
+			if (server_iface->drain_stream)
+				ret = server_iface->drain_stream(stream);
+			async_answer_0(callid, ret);
+			continue;
+		}
 		char *buffer = malloc(size);
 		if (!buffer) {
 			async_answer_0(callid, ENOMEM);

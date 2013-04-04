@@ -101,6 +101,7 @@ typedef struct hound_server_iface {
 	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
 	    void **);
 	int (*rem_stream)(void *, void *);
+	int (*drain_stream)(void *);
 	int (*stream_data_write)(void *, const void *, size_t);
 	int (*stream_data_read)(void *, void *, size_t);
 	void *server;
