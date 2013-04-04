@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <pcm/format.h>
 
+#include "audio_data.h"
 #include "audio_source.h"
 #include "audio_sink.h"
 
@@ -47,6 +48,7 @@ typedef struct {
 	link_t source_link;
 	link_t sink_link;
 	link_t hound_link;
+	list_t fifo;
 	audio_sink_t *sink;
 	audio_source_t *source;
 } connection_t;
@@ -72,7 +74,7 @@ void connection_destroy(connection_t *connection);
 ssize_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format);
 
-int connection_new_data(connection_t *connection, const void *data, size_t size);
+int connection_push_data(connection_t *connection, audio_data_t *adata);
 
 static inline const char *connection_source_name(connection_t *connection)
 {

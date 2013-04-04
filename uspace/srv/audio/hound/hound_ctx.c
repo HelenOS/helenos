@@ -35,6 +35,7 @@
  */
 
 #include <malloc.h>
+#include <macros.h>
 
 #include "hound_ctx.h"
 #include "audio_data.h"
@@ -171,7 +172,8 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 	    (stream->current_size + size > stream->allowed_size))
 		return EBUSY;
 
-	audio_data_link_t *adatalink = audio_data_link_create(data, size);
+	audio_data_link_t *adatalink =
+	    audio_data_link_create_data(data, size, stream->format);
 	if (adatalink) {
 		list_append(&adatalink->link, &stream->fifo);
 		stream->current_size += size;
@@ -184,6 +186,43 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
 {
         log_verbose("%p:, %zu", stream, size);
+	return ENOTSUP;
+}
+
+int hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
+    size_t size, const pcm_format_t *f)
+{
+	assert(stream);
+	const size_t src_frame_size = pcm_format_frame_size(&stream->format);
+	const size_t dst_frame_size = pcm_format_frame_size(f);
+	//TODO consider sample rate
+	size_t needed_frames = size / dst_frame_size;
+	while (needed_frames > 0 && !list_empty(&stream->fifo)) {
+		link_t *l = list_first(&stream->fifo);
+		audio_data_link_t *alink = audio_data_link_list_instance(l);
+		/* Get actual audio data chunk */
+		const size_t available_frames =
+		    audio_data_link_available_frames(alink);
+		const size_t copy_frames = min(available_frames, needed_frames);
+		const size_t copy_size = copy_frames * dst_frame_size;
+
+		/* Copy audio data */
+		pcm_format_convert_and_mix(data, copy_size,
+		    audio_data_link_start(alink),
+		    audio_data_link_remain_size(alink),
+		    &alink->adata->format, f);
+
+		/* Update values */
+		needed_frames -= copy_frames;
+		data += copy_size;
+		alink->position += (copy_frames * src_frame_size);
+		if (audio_data_link_remain_size(alink) == 0) {
+			list_remove(&alink->link);
+			audio_data_link_destroy(alink);
+		} else {
+			assert(needed_frames == 0);
+		}
+	}
 	return ENOTSUP;
 }
 

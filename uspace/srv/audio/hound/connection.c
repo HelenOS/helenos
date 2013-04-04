@@ -45,6 +45,7 @@ connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 	assert(sink);
 	connection_t *conn = malloc(sizeof(connection_t));
 	if (conn) {
+		list_initialize(&conn->fifo);
 		link_initialize(&conn->source_link);
 		link_initialize(&conn->sink_link);
 		link_initialize(&conn->hound_link);
@@ -72,6 +73,12 @@ void connection_destroy(connection_t *connection)
 		connection->sink->connection_change(connection->sink, false);
 	if (connection->source && connection->source->connection_change)
 		connection->source->connection_change(connection->source, false);
+	while (!list_empty(&connection->fifo)) {
+		link_t *l = list_first(&connection->fifo);
+		audio_data_link_t *data = audio_data_link_list_instance(l);
+		list_remove(&data->link);
+		audio_data_link_destroy(data);
+	}
 	log_debug("DISCONNECTED: %s -> %s",
 	    connection->source->name, connection->sink->name);
 	free(connection);
@@ -86,10 +93,18 @@ ssize_t connection_add_source_data(connection_t *connection, void *data,
 	return audio_source_add_self(connection->source, data, size, &format);
 }
 
-int connection_new_data(connection_t *connection, const void *data, size_t size)
+int connection_push_data(connection_t *connection, audio_data_t *adata)
 {
 	assert(connection);
-	return ENOTSUP;
+	assert(adata);
+	audio_data_link_t *alink = audio_data_link_create(adata);
+	if (!alink) {
+		log_warning("Failed to buffer %zu bytes of data.", adata->size);
+		return ENOMEM;
+	}
+	log_fatal("Pushed new data to connection fifo");
+	list_append(&alink->link, &connection->fifo);
+	return EOK;
 }
 
 

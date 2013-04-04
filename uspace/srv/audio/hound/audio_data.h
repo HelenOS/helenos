@@ -36,12 +36,14 @@
 #ifndef AUDIO_DATA_H_
 #define AUDIO_DATA_H_
 
+#include <pcm/format.h>
 #include <adt/list.h>
 #include <atomic.h>
 
 typedef struct {
 	const void *data;
 	size_t size;
+	pcm_format_t format;
 	atomic_t refcount;
 } audio_data_t;
 
@@ -56,10 +58,30 @@ static inline audio_data_link_t * audio_data_link_list_instance(link_t *l)
 	return l ? list_get_instance(l, audio_data_link_t, link) : NULL;
 }
 
-audio_data_link_t * audio_data_link_create(const void *data, size_t size);
-audio_data_link_t *audio_data_link_clone(audio_data_t *adata);
+audio_data_t * audio_data_create(const void *data, size_t size,
+    pcm_format_t format);
+void audio_data_unref(audio_data_t *adata);
+
+audio_data_link_t * audio_data_link_create_data(const void *data, size_t size,
+    pcm_format_t format);
+audio_data_link_t *audio_data_link_create(audio_data_t *adata);
 void audio_data_link_destroy(audio_data_link_t *link);
 
+size_t audio_data_link_available_frames(audio_data_link_t *alink);
+static inline const void * audio_data_link_start(audio_data_link_t *alink)
+{
+	assert(alink);
+	assert(alink->adata);
+	return alink->adata->data + alink->position;
+}
+
+static inline size_t audio_data_link_remain_size(audio_data_link_t *alink)
+{
+	assert(alink);
+	assert(alink->adata);
+	assert(alink->position <= alink->adata->size);
+	return alink->adata->size - alink->position;
+}
 #endif
 
 /**
