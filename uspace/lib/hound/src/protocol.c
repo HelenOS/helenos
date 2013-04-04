@@ -57,6 +57,16 @@ enum ipc_methods {
 	IPC_M_HOUND_STREAM_DRAIN,
 };
 
+typedef union {
+	struct {
+		uint16_t rate;
+		uint8_t channels;
+		uint8_t format;
+	} f __attribute__((packed));
+	sysarg_t arg;
+} format_convert_t;
+
+
 /****
  * CLIENT
  ****/
@@ -223,12 +233,13 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
 int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize)
 {
-	union {
-		sysarg_t arg;
-		pcm_format_t format;
-	} convert = { .format = format };
+	const format_convert_t c = { .f = {
+		.channels = format.channels,
+		.rate = format.sampling_rate / 100,
+		.format = format.sample_format,
+	}};
 	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, id, flags,
-	    convert.arg, bsize);
+	    c.arg, bsize);
 }
 
 int hound_service_stream_exit(async_exch_t *exch)
@@ -419,15 +430,17 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 
 			hound_context_id_t id = IPC_GET_ARG1(call);
-			int flags = IPC_GET_ARG2(call);
-			union {
-				sysarg_t arg;
-				pcm_format_t format;
-			} convert = { .arg = IPC_GET_ARG3(call) };
+			const int flags = IPC_GET_ARG2(call);
+			const format_convert_t c = {.arg = IPC_GET_ARG3(call)};
+			const pcm_format_t f = {
+			    .sampling_rate = c.f.rate * 100,
+			    .channels = c.f.channels,
+			    .sample_format = c.f.format,
+			};
 			size_t bsize = IPC_GET_ARG4(call);
 			void *stream;
 			int ret = server_iface->add_stream(server_iface->server,
-			    id, flags, convert.format, bsize, &stream);
+			    id, flags, f, bsize, &stream);
 			if (ret != EOK) {
 				async_answer_0(callid, ret);
 				break;
