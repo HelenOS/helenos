@@ -33,34 +33,62 @@
 /** @file
  */
 
-#ifndef AUDIO_DATA_H_
-#define AUDIO_DATA_H_
+#include <malloc.h>
+#include "audio_data.h"
 
-#include <adt/list.h>
-#include <atomic.h>
-
-typedef struct {
-	const void *data;
-	size_t size;
-	atomic_t refcount;
-} audio_data_t;
-
-typedef struct {
-	link_t link;
-	audio_data_t *adata;
-	size_t position;
-} audio_data_link_t;
-
-static inline audio_data_link_t * audio_data_link_list_instance(link_t *l)
+static void ref_inc(audio_data_t *adata)
 {
-	return l ? list_get_instance(l, audio_data_link_t, link) : NULL;
+	assert(adata);
+	assert(atomic_get(&adata->refcount) > 0);
+	atomic_inc(&adata->refcount);
 }
 
-audio_data_link_t * audio_data_link_create(const void *data, size_t size);
-audio_data_link_t *audio_data_link_clone(audio_data_t *adata);
-void audio_data_link_destroy(audio_data_link_t *link);
+static void ref_dec(audio_data_t *adata)
+{
+	assert(adata);
+	assert(atomic_get(&adata->refcount) > 0);
+	atomic_count_t refc = atomic_predec(&adata->refcount);
+	if (refc == 0) {
+		free(adata->data);
+		free(adata);
+	}
+}
 
-#endif
+audio_data_link_t *audio_data_link_clone(audio_data_t *adata)
+{
+	assert(adata);
+	audio_data_link_t *link = malloc(sizeof(audio_data_link_t));
+	if (link) {
+		ref_inc(adata);
+		link->adata = adata;
+		link->position = 0;
+	}
+	return link;
+}
+
+audio_data_link_t * audio_data_link_create(const void *data, size_t size)
+{
+	audio_data_link_t *link = NULL;
+	audio_data_t *adata = malloc(sizeof(audio_data_t));
+	if (adata) {
+		adata->data = data;
+		adata->size = size;
+		atomic_set(&adata->refcount, 1);
+		link = audio_data_link_clone(adata);
+		/* This will either return refcount to 1 or clean adata if
+		 * cloning failed */
+		ref_dec(adata);
+	}
+	return link;
+}
+
+void audio_data_link_destroy(audio_data_link_t *link)
+{
+	assert(link);
+	assert(!link_in_use(&link->link));
+	ref_dec(link->adata);
+	free(link);
+}
 
 /**
  * @}

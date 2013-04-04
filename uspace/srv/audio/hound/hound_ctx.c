@@ -142,10 +142,10 @@ void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
 			log_warning("Destroying stream with non empty buffer");
 		while (!list_empty(&stream->fifo)) {
 			link_t *l = list_first(&stream->fifo);
-			audio_data_t *data = audio_data_list_instance(l);
+			audio_data_link_t *data =
+			    audio_data_link_list_instance(l);
 			list_remove(l);
-			free(data->data);
-			free(data);
+			audio_data_link_destroy(data);
 		}
 		log_verbose("CTX: %p remove stream (%zu/%zu); "
 		    "flags:%#x ch: %u r:%u f:%s",
@@ -171,12 +171,9 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 	    (stream->current_size + size > stream->allowed_size))
 		return EBUSY;
 
-	audio_data_t *adata = malloc(sizeof(audio_data_t));
-	if (adata) {
-		adata->data = data;
-		adata->size = size;
-		link_initialize(&adata->link);
-		list_append(&adata->link, &stream->fifo);
+	audio_data_link_t *adatalink = audio_data_link_create(data, size);
+	if (adatalink) {
+		list_append(&adatalink->link, &stream->fifo);
 		stream->current_size += size;
 		return EOK;
 	}
@@ -187,6 +184,19 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
 {
         log_verbose("%p:, %zu", stream, size);
+	return ENOTSUP;
+}
+
+void hound_ctx_stream_drain(hound_ctx_stream_t *stream)
+{
+	assert(stream);
+	while (!list_empty(&stream->fifo))
+		async_usleep(10000);
+}
+
+int hound_ctx_stream_add(hound_ctx_stream_t *stream, void *buffer, size_t size,
+    pcm_format_t format)
+{
 	return ENOTSUP;
 }
 

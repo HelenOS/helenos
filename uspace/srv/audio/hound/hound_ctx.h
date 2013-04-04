@@ -70,6 +70,9 @@ void hound_ctx_destroy_stream(hound_ctx_stream_t *stream);
 int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *buffer,
     size_t size);
 int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *buffer, size_t size);
+void hound_ctx_stream_drain(hound_ctx_stream_t *stream);
+int hound_ctx_stream_add(hound_ctx_stream_t *stream, void *buffer, size_t size,
+    pcm_format_t format);
 
 #endif
 

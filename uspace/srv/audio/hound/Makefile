@@ -42,6 +42,7 @@ LIBS = \
 
 SOURCES = \
 	audio_client.c \
+	audio_data.c \
 	audio_device.c \
 	audio_sink.c \
 	audio_source.c \
