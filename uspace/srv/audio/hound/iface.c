@@ -130,21 +130,18 @@ static int iface_add_stream(void *server, hound_context_id_t id, int flags,
 
 static int iface_rem_stream(void *server, void *stream)
 {
-	log_verbose("%s: %p, %s", __FUNCTION__, server, (char *)stream);
 	hound_ctx_destroy_stream(stream);
 	return EOK;
 }
 
 static int iface_stream_data_read(void *stream, void *buffer, size_t size)
 {
-	log_verbose("%p:, %zu", stream, size);
-	return ENOTSUP;
+	return hound_ctx_stream_read(stream, buffer, size);
 }
 
 static int iface_stream_data_write(void *stream, const void *buffer, size_t size)
 {
-	log_verbose("%p: %zu", stream, size);
-	return ENOTSUP;
+	return hound_ctx_stream_write(stream, buffer, size);
 }
 
 hound_server_iface_t hound_iface = {

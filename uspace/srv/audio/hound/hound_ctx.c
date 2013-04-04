@@ -93,17 +93,34 @@ bool hound_ctx_is_record(hound_ctx_t *ctx)
 	return ctx->source == NULL;
 }
 
+/*
+ * STREAMS
+ */
+
+typedef struct {
+	const void *data;
+	size_t size;
+	link_t link;
+} audio_data_t;
+
+static inline audio_data_t * audio_data_list_instance(link_t *l)
+{
+	return l ? list_get_instance(l, audio_data_t, link) : NULL;
+}
+
 hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
 	pcm_format_t format, size_t buffer_size)
 {
 	assert(ctx);
 	hound_ctx_stream_t *stream = malloc(sizeof(hound_ctx_stream_t));
 	if (stream) {
+		list_initialize(&stream->fifo);
 		link_initialize(&stream->link);
 		stream->ctx = ctx;
 		stream->flags = flags;
 		stream->format = format;
 		stream->allowed_size = buffer_size;
+		stream->current_size = 0;
 		list_append(&stream->link, &ctx->streams);
 		log_verbose("CTX: %p added stream; flags:%#x ch: %u r:%u f:%s",
 		    ctx, flags, format.channels, format.sampling_rate,
@@ -115,14 +132,58 @@ hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
 void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
 {
 	if (stream) {
+		//TODO consider DRAIN FLAG
 		list_remove(&stream->link);
-		//TODO free used buffer space
-		log_verbose("CTX: %p remove stream; flags:%#x ch: %u r:%u f:%s",
-		    stream->ctx, stream->flags, stream->format.channels,
+		if (!list_empty(&stream->fifo))
+			log_warning("Destroying stream with non empty buffer");
+		while (!list_empty(&stream->fifo)) {
+			link_t *l = list_first(&stream->fifo);
+			audio_data_t *data = audio_data_list_instance(l);
+			list_remove(l);
+			free(data->data);
+			free(data);
+		}
+		log_verbose("CTX: %p remove stream (%zu/%zu); "
+		    "flags:%#x ch: %u r:%u f:%s",
+		    stream->ctx, stream->current_size, stream->allowed_size,
+		    stream->flags, stream->format.channels,
 		    stream->format.sampling_rate,
 		    pcm_sample_format_str(stream->format.sample_format));
 		free(stream);
 	}
+}
+
+
+int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
+    size_t size)
+{
+	assert(stream);
+        log_verbose("%p:, %zu", stream, size);
+
+	if (stream->allowed_size && size > stream->allowed_size)
+		return EINVAL;
+
+	if (stream->allowed_size &&
+	    (stream->current_size + size > stream->allowed_size))
+		return EBUSY;
+
+	audio_data_t *adata = malloc(sizeof(audio_data_t));
+	if (adata) {
+		adata->data = data;
+		adata->size = size;
+		link_initialize(&adata->link);
+		list_append(&adata->link, &stream->fifo);
+		stream->current_size += size;
+		return EOK;
+	}
+	log_warning("Failed to enqueue %zu bytes of data.", size);
+	return ENOMEM;
+}
+
+int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
+{
+        log_verbose("%p:, %zu", stream, size);
+	return ENOTSUP;
 }
 
 /**

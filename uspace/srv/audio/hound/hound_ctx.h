@@ -55,10 +55,12 @@ static inline hound_ctx_t *hound_ctx_from_link(link_t *l)
 
 typedef struct {
 	link_t link;
+	list_t fifo;
 	hound_ctx_t *ctx;
 	pcm_format_t format;
 	int flags;
 	size_t allowed_size;
+	size_t current_size;
 } hound_ctx_stream_t;
 
 static inline hound_ctx_stream_t *hound_ctx_stream_from_link(link_t *l)
@@ -77,6 +79,10 @@ bool hound_ctx_is_record(hound_ctx_t *ctx);
 hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
 	pcm_format_t format, size_t buffer_size);
 void hound_ctx_destroy_stream(hound_ctx_stream_t *stream);
+
+int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *buffer,
+    size_t size);
+int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *buffer, size_t size);
 
 #endif
 
