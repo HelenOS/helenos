@@ -89,6 +89,12 @@ const pcm_format_t AUDIO_FORMAT_ANY = {
 static float get_normalized_sample(const void *buffer, size_t size,
     unsigned frame, unsigned channel, const pcm_format_t *f);
 
+/**
+ * Compare PCM format attribtues.
+ * @param a Format description.
+ * @param b Format description.
+ * @return True if a and b describe the same format, false otherwise.
+ */
 bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b)
 {
 	assert(a);
@@ -99,6 +105,12 @@ bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b)
 	    a->sample_format == b->sample_format;
 }
 
+/**
+ * Fill audio buffer with silence in the specified format.
+ * @param dst Destination audio buffer.
+ * @param size Size of the destination audio buffer.
+ * @param f Pointer to the format description.
+ */
 void pcm_format_silence(void *dst, size_t size, const pcm_format_t *f)
 {
 #define SET_NULL(type, endian, nullv) \
@@ -145,10 +157,32 @@ do { \
 #undef SET_NULL
 }
 
+/**
+ * Mix audio data of the same format and size.
+ * @param dst Destination buffer
+ * @param src Source buffer
+ * @param size Size of both the destination and the source buffer
+ * @param f Pointer to the format descriptor.
+ * @return Error code.
+ */
 int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f)
 {
 	return pcm_format_convert_and_mix(dst, size, src, size, f, f);
 }
+
+/**
+ * Add and mix audio data.
+ * @param dst Destination audio buffer
+ * @param dst_size Size of the destination buffer
+ * @param src Source audio buffer
+ * @param src_size Size of the source buffer.
+ * @param sf Pointer to the source format descriptor.
+ * @param df Pointer to the destination format descriptor.
+ * @return Error code.
+ *
+ * Buffers must contain entire frames. Destination buffer is always filled.
+ * If there are not enough data in the source buffer silent data is assumed.
+ */
 int pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
     size_t src_size, const pcm_format_t *sf, const pcm_format_t *df)
 {
@@ -159,7 +193,7 @@ int pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
 		return EINVAL;
 
 	const size_t dst_frame_size = pcm_format_frame_size(df);
-	if ((src_size % dst_frame_size) != 0)
+	if ((dst_size % dst_frame_size) != 0)
 		return EINVAL;
 
 	/* This is so ugly it eats kittens, and puppies, and ducklings,
@@ -225,7 +259,15 @@ do { \
 #undef LOOP_ADD
 }
 
-/** Converts all sample formats to float <-1,1> */
+/**
+ * Converts all sample formats to float <-1,1>
+ * @param buffer Audio data
+ * @param size Size of the buffer
+ * @param frame Index of the frame to read
+ * @param channel Channel within the frame
+ * @param f Pointer to a format descriptor
+ * @return Normalized sample <-1,1>, 0.0 if the data could not be read
+ */
 static float get_normalized_sample(const void *buffer, size_t size,
     unsigned frame, unsigned channel, const pcm_format_t *f)
 {
