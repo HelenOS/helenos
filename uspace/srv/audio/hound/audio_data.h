@@ -33,43 +33,22 @@
 /** @file
  */
 
-#ifndef HOUND_CTX_H_
-#define HOUND_CTX_H_
+#ifndef AUDIO_DATA_H_
+#define AUDIO_DATA_H_
 
 #include <adt/list.h>
-#include <hound/protocol.h>
-#include "audio_source.h"
-#include "audio_sink.h"
 
 typedef struct {
+	const void *data;
+	size_t size;
 	link_t link;
-	list_t streams;
-	audio_source_t *source;
-	audio_sink_t *sink;
-} hound_ctx_t;
+} audio_data_t;
 
-static inline hound_ctx_t *hound_ctx_from_link(link_t *l)
+static inline audio_data_t * audio_data_list_instance(link_t *l)
 {
-	return l ? list_get_instance(l, hound_ctx_t, link) : NULL;
+	return l ? list_get_instance(l, audio_data_t, link) : NULL;
 }
 
-typedef struct hound_ctx_stream hound_ctx_stream_t;
-
-
-hound_ctx_t *hound_record_ctx_get(const char *name);
-hound_ctx_t *hound_playback_ctx_get(const char *name);
-void hound_ctx_destroy(hound_ctx_t *context);
-
-hound_context_id_t hound_ctx_get_id(hound_ctx_t *ctx);
-bool hound_ctx_is_record(hound_ctx_t *ctx);
-
-hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
-	pcm_format_t format, size_t buffer_size);
-void hound_ctx_destroy_stream(hound_ctx_stream_t *stream);
-
-int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *buffer,
-    size_t size);
-int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *buffer, size_t size);
 
 #endif
 
