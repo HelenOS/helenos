@@ -37,6 +37,7 @@
 #include <malloc.h>
 
 #include "hound_ctx.h"
+#include "log.h"
 
 hound_ctx_t *hound_record_ctx_get(const char *name)
 {
@@ -48,6 +49,7 @@ hound_ctx_t *hound_playback_ctx_get(const char *name)
 	hound_ctx_t *ctx = malloc(sizeof(hound_ctx_t));
 	if (ctx) {
 		link_initialize(&ctx->link);
+		list_initialize(&ctx->streams);
 		ctx->sink = NULL;
 		ctx->source = malloc(sizeof(audio_source_t));
 		if (!ctx->source) {
@@ -73,6 +75,7 @@ void hound_ctx_destroy(hound_ctx_t *ctx)
 		audio_source_fini(ctx->source);
 	if (ctx->sink)
 		audio_sink_fini(ctx->sink);
+	//TODO remove streams
 	free(ctx->source);
 	free(ctx->sink);
 	free(ctx);
@@ -87,8 +90,39 @@ hound_context_id_t hound_ctx_get_id(hound_ctx_t *ctx)
 bool hound_ctx_is_record(hound_ctx_t *ctx)
 {
 	assert(ctx);
-	//TODO fix this
-	return false;
+	return ctx->source == NULL;
+}
+
+hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
+	pcm_format_t format, size_t buffer_size)
+{
+	assert(ctx);
+	hound_ctx_stream_t *stream = malloc(sizeof(hound_ctx_stream_t));
+	if (stream) {
+		link_initialize(&stream->link);
+		stream->ctx = ctx;
+		stream->flags = flags;
+		stream->format = format;
+		stream->allowed_size = buffer_size;
+		list_append(&stream->link, &ctx->streams);
+		log_verbose("CTX: %p added stream; flags:%#x ch: %u r:%u f:%s",
+		    ctx, flags, format.channels, format.sampling_rate,
+		    pcm_sample_format_str(format.sample_format));
+	}
+	return stream;
+}
+
+void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
+{
+	if (stream) {
+		list_remove(&stream->link);
+		//TODO free used buffer space
+		log_verbose("CTX: %p remove stream; flags:%#x ch: %u r:%u f:%s",
+		    stream->ctx, stream->flags, stream->format.channels,
+		    stream->format.sampling_rate,
+		    pcm_sample_format_str(stream->format.sample_format));
+		free(stream);
+	}
 }
 
 /**

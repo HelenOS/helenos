@@ -53,12 +53,30 @@ static inline hound_ctx_t *hound_ctx_from_link(link_t *l)
 	return l ? list_get_instance(l, hound_ctx_t, link) : NULL;
 }
 
+typedef struct {
+	link_t link;
+	hound_ctx_t *ctx;
+	pcm_format_t format;
+	int flags;
+	size_t allowed_size;
+} hound_ctx_stream_t;
+
+static inline hound_ctx_stream_t *hound_ctx_stream_from_link(link_t *l)
+{
+	return l ? list_get_instance(l, hound_ctx_stream_t, link) : NULL;
+}
+
+
 hound_ctx_t *hound_record_ctx_get(const char *name);
 hound_ctx_t *hound_playback_ctx_get(const char *name);
 void hound_ctx_destroy(hound_ctx_t *context);
 
 hound_context_id_t hound_ctx_get_id(hound_ctx_t *ctx);
 bool hound_ctx_is_record(hound_ctx_t *ctx);
+
+hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
+	pcm_format_t format, size_t buffer_size);
+void hound_ctx_destroy_stream(hound_ctx_stream_t *stream);
 
 #endif
 

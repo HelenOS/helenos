@@ -111,28 +111,39 @@ static int iface_disconnect(void *server, const char *source, const char *sink)
 static int iface_add_stream(void *server, hound_context_id_t id, int flags,
     pcm_format_t format, size_t size, void **data)
 {
-	log_info("%s: %p, %d %x ch:%u r:%u f:%s", __FUNCTION__, server, id,
+	assert(data);
+	assert(server);
+
+	log_verbose("%s: %p, %d %x ch:%u r:%u f:%s", __FUNCTION__, server, id,
 	    flags, format.channels, format.sampling_rate,
 	    pcm_sample_format_str(format.sample_format));
-	*data = (void*)"TEST_STREAM";
-	return ENOTSUP;
+	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
+	if (!ctx)
+		return ENOENT;
+	hound_ctx_stream_t *stream =
+	    hound_ctx_create_stream(ctx, flags, format, size);
+	if (!stream)
+		return ENOMEM;
+	*data = stream;
+	return EOK;
 }
 
 static int iface_rem_stream(void *server, void *stream)
 {
-	log_info("%s: %p, %s", __FUNCTION__, server, (char *)stream);
-	return ENOTSUP;
+	log_verbose("%s: %p, %s", __FUNCTION__, server, (char *)stream);
+	hound_ctx_destroy_stream(stream);
+	return EOK;
 }
 
 static int iface_stream_data_read(void *stream, void *buffer, size_t size)
 {
-	log_info("%s: %s, %zu", __FUNCTION__, (char *)stream, size);
+	log_verbose("%p:, %zu", stream, size);
 	return ENOTSUP;
 }
 
 static int iface_stream_data_write(void *stream, const void *buffer, size_t size)
 {
-	log_info("%s: %s, %zu", __FUNCTION__, (char *)stream, size);
+	log_verbose("%p: %zu", stream, size);
 	return ENOTSUP;
 }
 
