@@ -39,6 +39,7 @@
 #include <async.h>
 #include <stdbool.h>
 #include <pcm/format.h>
+#include <hound/protocol.h>
 
 #define HOUND_DEFAULT_TARGET "default"
 #define HOUND_ALL_TARGETS "all"
