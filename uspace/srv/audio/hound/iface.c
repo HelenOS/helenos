@@ -147,7 +147,11 @@ static int iface_stream_data_read(void *stream, void *buffer, size_t size)
 
 static int iface_stream_data_write(void *stream, const void *buffer, size_t size)
 {
-	return hound_ctx_stream_write(stream, buffer, size);
+	int ret = EOK;
+	do {
+		ret = hound_ctx_stream_write(stream, buffer, size);
+	} while (ret == EBUSY && (async_usleep(100), 1));
+	return ret;
 }
 
 hound_server_iface_t hound_iface = {

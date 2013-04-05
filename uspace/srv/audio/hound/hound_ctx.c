@@ -159,7 +159,6 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
     size_t size)
 {
 	assert(stream);
-        log_verbose("%p: %zu", stream, size);
 
 	if (stream->allowed_size && size > stream->allowed_size)
 		return EINVAL;
