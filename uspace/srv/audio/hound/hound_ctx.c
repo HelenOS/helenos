@@ -39,7 +39,10 @@
 
 #include "hound_ctx.h"
 #include "audio_data.h"
+#include "connection.h"
 #include "log.h"
+
+static int update_data(audio_source_t *source, size_t size);
 
 hound_ctx_t *hound_record_ctx_get(const char *name)
 {
@@ -59,7 +62,7 @@ hound_ctx_t *hound_playback_ctx_get(const char *name)
 			return NULL;
 		}
 		const int ret = audio_source_init(ctx->source, name, ctx, NULL,
-		    NULL, &AUDIO_FORMAT_ANY);
+		    update_data, &AUDIO_FORMAT_DEFAULT);
 		if (ret != EOK) {
 			free(ctx->source);
 			free(ctx);
@@ -94,6 +97,7 @@ bool hound_ctx_is_record(hound_ctx_t *ctx)
 	assert(ctx);
 	return ctx->source == NULL;
 }
+
 
 /*
  * STREAMS
@@ -139,13 +143,13 @@ void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
 		list_remove(&stream->link);
 		if (audio_pipe_bytes(&stream->fifo))
 			log_warning("Destroying stream with non empty buffer");
-		audio_pipe_fini(&stream->fifo);
 		log_verbose("CTX: %p remove stream (%zu/%zu); "
 		    "flags:%#x ch: %u r:%u f:%s",
 		    stream->ctx, audio_pipe_bytes(&stream->fifo),
 		    stream->allowed_size, stream->flags,
 		    stream->format.channels, stream->format.sampling_rate,
 		    pcm_sample_format_str(stream->format.sample_format));
+		audio_pipe_fini(&stream->fifo);
 		free(stream);
 	}
 }
@@ -155,7 +159,7 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
     size_t size)
 {
 	assert(stream);
-        log_verbose("%p:, %zu", stream, size);
+        log_verbose("%p: %zu", stream, size);
 
 	if (stream->allowed_size && size > stream->allowed_size)
 		return EINVAL;
@@ -187,6 +191,7 @@ int hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
 void hound_ctx_stream_drain(hound_ctx_stream_t *stream)
 {
 	assert(stream);
+	log_debug("Draining stream");
 	while (audio_pipe_bytes(&stream->fifo))
 		async_usleep(10000);
 }
@@ -195,6 +200,36 @@ int hound_ctx_stream_add(hound_ctx_stream_t *stream, void *buffer, size_t size,
     pcm_format_t format)
 {
 	return ENOTSUP;
+}
+
+
+int update_data(audio_source_t *source, size_t size)
+{
+	assert(source);
+	assert(source->private_data);
+	hound_ctx_t *ctx = source->private_data;
+	void *buffer = malloc(size);
+	if (!buffer)
+		return ENOMEM;
+	audio_data_t *adata = audio_data_create(buffer, size, source->format);
+	if (!adata) {
+		free(buffer);
+		return ENOMEM;
+	}
+	log_verbose("CTX: %p. Mixing %zu streams", ctx,
+	    list_count(&ctx->streams));
+	pcm_format_silence(buffer, size, &source->format);
+	list_foreach(ctx->streams, it) {
+		hound_ctx_stream_t *stream = hound_ctx_stream_from_link(it);
+		hound_ctx_stream_add_self(stream, buffer, size, &source->format);
+	}
+	log_verbose("CTX: %p. Pushing audio to %zu connections", ctx,
+	    list_count(&source->connections));
+	list_foreach(source->connections, it) {
+		connection_t *conn = connection_from_source_list(it);
+		connection_push_data(conn, adata);
+	}
+	return EOK;
 }
 
 /**
