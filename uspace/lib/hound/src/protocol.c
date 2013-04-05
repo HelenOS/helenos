@@ -485,6 +485,7 @@ static void hound_server_read_data(void *stream)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
+	int ret_answer = EOK;
 	while (async_data_write_receive_call(&callid, &call, &size)
 	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
@@ -494,17 +495,20 @@ static void hound_server_read_data(void *stream)
 			async_answer_0(callid, ret);
 			continue;
 		}
+		if (ret_answer != EOK) {
+			async_answer_0(callid, ret_answer);
+			continue;
+		}
 		char *buffer = malloc(size);
 		if (!buffer) {
 			async_answer_0(callid, ENOMEM);
 			continue;
 		}
-		int ret = async_data_write_finalize(callid, buffer, size);
+		const int ret = async_data_write_finalize(callid, buffer, size);
 		if (ret == EOK) {
-			ret = server_iface->stream_data_write(
+			ret_answer = server_iface->stream_data_write(
 			    stream, buffer, size);
 		}
-		async_answer_0(callid, ret);
 	}
 	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
 	    ? EOK : EINVAL;
@@ -518,6 +522,7 @@ static void hound_server_write_data(void *stream)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
+	int ret_answer = EOK;
 	while (async_data_read_receive_call(&callid, &call, &size)
 	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
@@ -527,6 +532,10 @@ static void hound_server_write_data(void *stream)
 			async_answer_0(callid, ret);
 			continue;
 		}
+		if (ret_answer != EOK) {
+			async_answer_0(callid, ret_answer);
+			continue;
+		}
 		char *buffer = malloc(size);
 		if (!buffer) {
 			async_answer_0(callid, ENOMEM);
@@ -534,9 +543,9 @@ static void hound_server_write_data(void *stream)
 		}
 		int ret = server_iface->stream_data_read(stream, buffer, size);
 		if (ret == EOK) {
-			ret = async_data_read_finalize(callid, buffer, size);
+			ret_answer =
+			    async_data_read_finalize(callid, buffer, size);
 		}
-		async_answer_0(callid, ret);
 	}
 	const int ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
 	    ? EOK : EINVAL;
