@@ -45,7 +45,7 @@
 #include "dplay.h"
 #include "wave.h"
 
-#define BUFFER_SIZE (4 * 1024)
+#define BUFFER_SIZE (32 * 1024)
 
 
 static int hplay(const char *filename)
@@ -73,7 +73,7 @@ static int hplay(const char *filename)
 		return EINVAL;
 	}
 	hound_context_t *hound = hound_context_create_playback(filename,
-	    format, 0);
+	    format, BUFFER_SIZE * 2);
 	if (!hound) {
 		printf("Failed to create HOUND context\n");
 		fclose(source);
@@ -257,11 +257,12 @@ int main(int argc, char *argv[])
 		printf("Recording is not supported yet.\n");
 		return 1;
 	}
-	if (direct)
+	if (direct) {
 		return dplay(device, file);
-	else
+	} else {
+		return hplay(file);
 		return play_hound(file);
-	hplay(file);
+	}
 }
 /**
  * @}

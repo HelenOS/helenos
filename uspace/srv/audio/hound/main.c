@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include <str_error.h>
 #include <hound/server.h>
-
+#include <hound/protocol.h>
 
 #include "hound.h"
 
@@ -50,6 +50,8 @@
 
 #include "audio_client.h"
 #include "log.h"
+
+extern hound_server_iface_t hound_iface;
 
 static hound_t hound;
 
@@ -63,165 +65,6 @@ static void scan_for_devices(void)
 	hound_server_devices_iterate(device_callback);
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
-{
-	async_answer_0(iid, EOK);
-
-	LIST_INITIALIZE(local_playback);
-	LIST_INITIALIZE(local_recording);
-	pcm_format_t format = {0};
-	const char *name = NULL;
-	async_sess_t *sess = NULL;
-
-	while (1) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		switch (IPC_GET_IMETHOD(call)) {
-		case HOUND_REGISTER_PLAYBACK: {
-			hound_server_get_register_params(&name, &sess,
-			    &format.channels, &format.sampling_rate,
-			    &format.sample_format);
-			audio_client_t *client =
-			    audio_client_get_playback(name, &format, sess);
-			free(name);
-			if (!client) {
-				log_error("Failed to create playback client");
-				async_answer_0(callid, ENOMEM);
-				break;
-			}
-			int ret = hound_add_source(&hound, &client->source);
-			if (ret != EOK){
-				audio_client_destroy(client);
-				log_error("Failed to add audio source: %s",
-				    str_error(ret));
-				async_answer_0(callid, ret);
-				break;
-			}
-			log_info("Added audio client %p '%s'",
-			    client, client->name);
-			async_answer_0(callid, EOK);
-			list_append(&client->link, &local_playback);
-			break;
-		}
-		case HOUND_REGISTER_RECORDING: {
-			hound_server_get_register_params(&name, &sess,
-			    &format.channels, &format.sampling_rate,
-			    &format.sample_format);
-			audio_client_t *client =
-			    audio_client_get_recording(name, &format, sess);
-			free(name);
-			if (!client) {
-				log_error("Failed to create recording client");
-				async_answer_0(callid, ENOMEM);
-				break;
-			}
-			int ret = hound_add_sink(&hound, &client->sink);
-			if (ret != EOK){
-				audio_client_destroy(client);
-				log_error("Failed to add audio sink: %s",
-				    str_error(ret));
-				async_answer_0(callid, ret);
-				break;
-			}
-			async_answer_0(callid, EOK);
-			list_append(&client->link, &local_recording);
-			break;
-		}
-		case HOUND_UNREGISTER_PLAYBACK: {
-			const char *name = NULL;
-			hound_server_get_unregister_params(&name);
-			int ret = ENOENT;
-			list_foreach_safe(local_playback, it, next) {
-				audio_client_t *client =
-				    audio_client_list_instance(it);
-				log_fatal("UNREGISTER_PLAYBACK %p", client);
-				if (str_cmp(client->name, name) == 0) {
-					ret = hound_remove_source(&hound,
-					    &client->source);
-					if (ret == EOK) {
-						list_remove(&client->link);
-						audio_client_destroy(client);
-					}
-					break;
-				}
-			}
-			free(name);
-			async_answer_0(callid, ret);
-			break;
-		}
-		case HOUND_UNREGISTER_RECORDING: {
-			const char *name = NULL;
-			hound_server_get_unregister_params(&name);
-			int ret = ENOENT;
-			list_foreach(local_recording, it) {
-				audio_client_t *client =
-				    audio_client_list_instance(it);
-				if (str_cmp(client->name, name) == 0) {
-					ret = hound_remove_sink(&hound,
-					    &client->sink);
-					if (ret == EOK) {
-						list_remove(&client->link);
-						audio_client_destroy(client);
-					}
-					break;
-				}
-			}
-			free(name);
-			async_answer_0(callid, ret);
-			break;
-		}
-		case HOUND_CONNECT: {
-			const char *source = NULL, *sink = NULL;
-			hound_server_get_connection_params(&source, &sink);
-			const int ret = hound_connect(&hound, source, sink);
-			if (ret != EOK)
-				log_error("Failed to connect '%s' to '%s': %s",
-				    source, sink, str_error(ret));
-			free(source);
-			free(sink);
-			async_answer_0(callid, ret);
-			break;
-		}
-		case HOUND_DISCONNECT: {
-			const char *source = NULL, *sink = NULL;
-			hound_server_get_connection_params(&source, &sink);
-			const int ret = hound_disconnect(&hound, source, sink);
-			if (ret != EOK)
-				log_error("Failed to disconnect '%s' from '%s'"
-				    ": %s", source, sink, str_error(ret));
-			free(source);
-			free(sink);
-			async_answer_0(callid, ret);
-			break;
-		}
-		default:
-			log_debug("Got unknown method %u",
-			    IPC_GET_IMETHOD(call));
-			async_answer_0(callid, ENOTSUP);
-			break;
-		case 0:
-			while(!list_empty(&local_recording)) {
-				audio_client_t *client =
-				    audio_client_list_instance(
-				        list_first(&local_recording));
-				list_remove(&client->link);
-				hound_remove_sink(&hound, &client->sink);
-				audio_client_destroy(client);
-			}
-			while(!list_empty(&local_playback)) {
-				audio_client_t *client =
-				    audio_client_list_instance(
-				        list_first(&local_playback));
-				list_remove(&client->link);
-				log_fatal("CASE 0 %p", client);
-				hound_remove_source(&hound, &client->source);
-				audio_client_destroy(client);
-			}
-			return;
-		}
-	}
-}
-
 int main(int argc, char **argv)
 {
 	printf("%s: HelenOS sound service\n", NAME);
@@ -233,7 +76,9 @@ int main(int argc, char **argv)
 		return -ret;
 	}
 
-	async_set_client_connection(client_connection);
+	hound_iface.server = &hound;
+	hound_service_set_server_iface(&hound_iface);
+	async_set_client_connection(hound_connection_handler);
 
 	service_id_t id = 0;
 	ret = hound_server_register(NAME, &id);
