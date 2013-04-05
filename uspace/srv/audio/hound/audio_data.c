@@ -173,6 +173,8 @@ audio_data_t *audio_pipe_pop(audio_pipe_t *pipe)
 	if (l) {
 		audio_data_link_t *alink = audio_data_link_list_instance(l);
 		list_remove(&alink->link);
+		pipe->bytes -= audio_data_link_remain_size(alink);
+		pipe->frames -= audio_data_link_available_frames(alink);
 		adata = alink->adata;
 		audio_data_addref(adata);
 		audio_data_link_destroy(alink);
@@ -213,6 +215,8 @@ ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *data,
 		needed_frames -= copy_frames;
 		data += copy_size;
 		alink->position += (copy_frames * src_frame_size);
+		pipe->bytes -= (copy_frames * src_frame_size);
+		pipe->frames -= copy_frames;
 		if (audio_data_link_remain_size(alink) == 0) {
 			list_remove(&alink->link);
 			audio_data_link_destroy(alink);
