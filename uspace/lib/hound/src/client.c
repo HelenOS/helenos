@@ -53,6 +53,7 @@ typedef struct hound_stream {
 	pcm_format_t format;
 	async_exch_t *exch;
 	hound_context_t *context;
+	int flags;
 } hound_stream_t;
 
 static inline hound_stream_t * hound_stream_from_link(link_t *l)
@@ -214,6 +215,7 @@ hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
 		new_stream->exch = stream_exch;
 		new_stream->format = format;
 		new_stream->context = hound;
+		new_stream->flags = flags;
 		const int ret = hound_service_stream_enter(new_stream->exch,
 		    hound->id, flags, format, bsize);
 		if (ret != EOK) {
@@ -229,7 +231,8 @@ hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
 void hound_stream_destroy(hound_stream_t *stream)
 {
 	if (stream) {
-		// TODO drain?
+		if (stream->flags & HOUND_STREAM_DRAIN_ON_EXIT)
+			hound_service_stream_drain(stream->exch);
 		hound_service_stream_exit(stream->exch);
 		async_exchange_end(stream->exch);
 		list_remove(&stream->link);
@@ -257,8 +260,9 @@ static hound_stream_t * hound_get_main_stream(hound_context_t *hound)
 {
 	assert(hound);
 	if (!hound->main.stream)
-		hound->main.stream = hound_stream_create(hound, 0,
-		    hound->main.format, hound->main.bsize);
+		hound->main.stream = hound_stream_create(hound,
+		    HOUND_STREAM_DRAIN_ON_EXIT,hound->main.format,
+		    hound->main.bsize);
 	return hound->main.stream;
 }
 
