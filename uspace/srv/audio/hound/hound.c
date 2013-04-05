@@ -147,6 +147,8 @@ int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
 	assert(hound);
 	if (!ctx)
 		return EINVAL;
+	if (!list_empty(&ctx->streams))
+		return EBUSY;
 	fibril_mutex_lock(&hound->list_guard);
 	list_remove(&ctx->link);
 	if (ctx->source)

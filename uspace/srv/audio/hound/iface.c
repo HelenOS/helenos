@@ -68,7 +68,9 @@ static int iface_rem_context(void *server, hound_context_id_t id)
 	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
 	if (!ctx)
 		return EINVAL;
-	hound_remove_ctx(server, ctx);
+	int ret = hound_remove_ctx(server, ctx);
+	if (ret != EOK)
+		return ret;
 	hound_ctx_destroy(ctx);
 	log_info("%s: %p, %#x", __FUNCTION__, server, id);
 	return EOK;

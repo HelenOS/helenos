@@ -76,11 +76,11 @@ void hound_ctx_destroy(hound_ctx_t *ctx)
 {
 	assert(ctx);
 	assert(!link_in_use(&ctx->link));
+	assert(list_empty(&ctx->streams));
 	if (ctx->source)
 		audio_source_fini(ctx->source);
 	if (ctx->sink)
 		audio_sink_fini(ctx->sink);
-	//TODO remove streams
 	free(ctx->source);
 	free(ctx->sink);
 	free(ctx);
