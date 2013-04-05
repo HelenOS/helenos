@@ -35,15 +35,22 @@
 
 #include <macros.h>
 #include <malloc.h>
+
 #include "audio_data.h"
+#include "log.h"
 
 audio_data_t *audio_data_create(const void *data, size_t size,
     pcm_format_t format)
 {
 	audio_data_t *adata = malloc(sizeof(audio_data_t));
 	if (adata) {
+		unsigned overflow = size % pcm_format_frame_size(&format);
+		if (overflow)
+			log_warning("Data not a multiple of frame size, "
+			    "clipping.");
+
 		adata->data = data;
-		adata->size = size;
+		adata->size = size - overflow;
 		adata->format = format;
 		atomic_set(&adata->refcount, 1);
 	}
