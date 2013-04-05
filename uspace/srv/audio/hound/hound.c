@@ -38,7 +38,6 @@
 #include <stdlib.h>
 
 #include "hound.h"
-#include "audio_client.h"
 #include "audio_device.h"
 #include "audio_sink.h"
 #include "audio_source.h"

@@ -48,7 +48,6 @@
 #define NAME "hound"
 #define CATEGORY "audio-pcm"
 
-#include "audio_client.h"
 #include "log.h"
 
 extern hound_server_iface_t hound_iface;
