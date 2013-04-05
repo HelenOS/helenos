@@ -50,7 +50,7 @@
 
 static int hplay(const char *filename)
 {
-	printf("HPLAY: %s\n", filename);
+	printf("Hound playback: %s\n", filename);
 	FILE *source = fopen(filename, "rb");
 	if (!source) {
 		printf("Failed to open file %s\n", filename);
@@ -102,109 +102,6 @@ static int hplay(const char *filename)
 	return ret;
 }
 
-typedef struct {
-	FILE *source;
-	volatile bool playing;
-	fibril_mutex_t mutex;
-	fibril_condvar_t cv;
-	hound_sess_t *server;
-} playback_t;
-
-static void playback_initialize(playback_t *pb, hound_sess_t *sess)
-{
-	assert(pb);
-	pb->playing = false;
-	pb->source = NULL;
-	pb->server = sess;
-	fibril_mutex_initialize(&pb->mutex);
-	fibril_condvar_initialize(&pb->cv);
-}
-
-static void data_callback(void* arg, void *buffer, ssize_t size)
-{
-	playback_t *pb = arg;
-	assert(pb);
-
-	if (size > 0) {
-		const ssize_t bytes =
-		    fread(buffer, sizeof(uint8_t), size, pb->source);
-		printf("%zu bytes ready\n", bytes);
-		if (bytes < size) {
-			printf(" requested: %zd ready: %zd zero: %zd\n",
-				size, bytes, size - bytes);
-			bzero(buffer + bytes, size - bytes);
-		}
-		if (bytes == 0) {
-			pb->playing = false;
-			printf("The end, nothing more to play.\n");
-			fibril_condvar_signal(&pb->cv);
-		}
-	} else {
-		printf("Got error %s.\n", str_error(size));
-		pb->playing = false;
-		fibril_condvar_signal(&pb->cv);
-	}
-}
-
-static int play_hound(const char *filename)
-{
-	hound_sess_t *sess = hound_get_session();
-	if (!sess) {
-		printf("Failed to connect to hound service\n");
-		return 1;
-	}
-	playback_t pb;
-	playback_initialize(&pb, sess);
-	pb.source = fopen(filename, "rb");
-	if (pb.source == NULL) {
-		printf("Failed to open %s.\n", filename);
-		hound_release_session(sess);
-		return 1;
-	}
-	wave_header_t header;
-	fread(&header, sizeof(header), 1, pb.source);
-	unsigned rate, channels;
-	pcm_sample_format_t format;
-	const char *error;
-	int ret = wav_parse_header(&header, NULL, NULL, &channels, &rate,
-	    &format, &error);
-	if (ret != EOK) {
-		printf("Error parsing wav header: %s.\n", error);
-		fclose(pb.source);
-		hound_release_session(sess);
-		return 1;
-	}
-
-	/* Create playback client */
-	ret = hound_register_playback(pb.server, filename, channels, rate,
-	    format, data_callback, &pb);
-	if (ret != EOK) {
-		printf("Failed to register playback: %s\n", str_error(ret));
-		fclose(pb.source);
-		hound_release_session(sess);
-		return 1;
-	}
-
-	/* Connect */
-	ret = hound_create_connection(pb.server, filename, DEFAULT_SINK);
-	if (ret == EOK) {
-		fibril_mutex_lock(&pb.mutex);
-		for (pb.playing = true; pb.playing;
-		    fibril_condvar_wait(&pb.cv, &pb.mutex));
-		fibril_mutex_unlock(&pb.mutex);
-
-		hound_destroy_connection(pb.server, filename, DEFAULT_SINK);
-	} else
-		printf("Failed to connect: %s\n", str_error(ret));
-
-	printf("Unregistering playback\n");
-	hound_unregister_playback(pb.server, filename);
-	printf("Releasing session\n");
-	hound_release_session(sess);
-	fclose(pb.source);
-	return 0;
-}
-
 static const struct option opts[] = {
 	{"device", required_argument, 0, 'd'},
 	{"record", no_argument, 0, 'r'},
@@ -217,9 +114,10 @@ static void print_help(const char* name)
 	printf("Usage: %s [options] file\n", name);
 	printf("supported options:\n");
 	printf("\t -h, --help\t Print this help.\n");
-	printf("\t -r, --record\t Start recording instead of playback.\n");
-	printf("\t -d, --device\t Use specified device instead of sound "
-	    "service. Use location path or special device `default'\n");
+	printf("\t -r, --record\t Start recording instead of playback. "
+	    "(Not implemented)\n");
+	printf("\t -d, --device\t Use specified device instead of the sound "
+	    "service. Use location path or a special device `default'\n");
 }
 
 int main(int argc, char *argv[])
@@ -261,7 +159,6 @@ int main(int argc, char *argv[])
 		return dplay(device, file);
 	} else {
 		return hplay(file);
-		return play_hound(file);
 	}
 }
 /**
