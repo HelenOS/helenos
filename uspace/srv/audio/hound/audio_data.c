@@ -68,7 +68,20 @@ void audio_data_unref(audio_data_t *adata)
 	}
 }
 
-audio_data_link_t *audio_data_link_create(audio_data_t *adata)
+/* Data link helpers */
+
+typedef struct {
+	link_t link;
+	audio_data_t *adata;
+	size_t position;
+} audio_data_link_t;
+
+static inline audio_data_link_t * audio_data_link_list_instance(link_t *l)
+{
+	return l ? list_get_instance(l, audio_data_link_t, link) : NULL;
+}
+
+static audio_data_link_t *audio_data_link_create(audio_data_t *adata)
 {
 	assert(adata);
 	audio_data_link_t *link = malloc(sizeof(audio_data_link_t));
@@ -80,21 +93,7 @@ audio_data_link_t *audio_data_link_create(audio_data_t *adata)
 	return link;
 }
 
-audio_data_link_t * audio_data_link_create_data(const void *data, size_t size,
-    pcm_format_t format)
-{
-	audio_data_link_t *link = NULL;
-	audio_data_t *adata = audio_data_create(data, size, format);
-	if (adata) {
-		link = audio_data_link_create(adata);
-		/* This will either return refcount to 1 or clean adata if
-		 * cloning failed */
-		audio_data_unref(adata);
-	}
-	return link;
-}
-
-void audio_data_link_destroy(audio_data_link_t *link)
+static void audio_data_link_destroy(audio_data_link_t *link)
 {
 	assert(link);
 	assert(!link_in_use(&link->link));
@@ -102,7 +101,23 @@ void audio_data_link_destroy(audio_data_link_t *link)
 	free(link);
 }
 
-size_t audio_data_link_available_frames(audio_data_link_t *alink)
+static inline const void * audio_data_link_start(audio_data_link_t *alink)
+{
+	assert(alink);
+	assert(alink->adata);
+	return alink->adata->data + alink->position;
+}
+
+static inline size_t audio_data_link_remain_size(audio_data_link_t *alink)
+{
+	assert(alink);
+	assert(alink->adata);
+	assert(alink->position <= alink->adata->size);
+	return alink->adata->size - alink->position;
+}
+
+
+static inline size_t audio_data_link_available_frames(audio_data_link_t *alink)
 {
 	assert(alink);
 	assert(alink->adata);
