@@ -48,7 +48,7 @@ typedef struct {
 	link_t source_link;
 	link_t sink_link;
 	link_t hound_link;
-	list_t fifo;
+	audio_pipe_t fifo;
 	audio_sink_t *sink;
 	audio_source_t *source;
 } connection_t;
@@ -74,7 +74,13 @@ void connection_destroy(connection_t *connection);
 ssize_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format);
 
-int connection_push_data(connection_t *connection, audio_data_t *adata);
+static inline int connection_push_data(connection_t *connection,
+    audio_data_t *adata)
+{
+	assert(connection);
+	assert(adata);
+	return audio_pipe_push(&connection->fifo, adata);
+}
 
 static inline const char *connection_source_name(connection_t *connection)
 {
