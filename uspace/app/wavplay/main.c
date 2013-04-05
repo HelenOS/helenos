@@ -111,7 +111,7 @@ static const struct option opts[] = {
 
 static void print_help(const char* name)
 {
-	printf("Usage: %s [options] file\n", name);
+	printf("Usage: %s [options] file [files...]\n", name);
 	printf("supported options:\n");
 	printf("\t -h, --help\t Print this help.\n");
 	printf("\t -r, --record\t Start recording instead of playback. "
@@ -148,18 +148,23 @@ int main(int argc, char *argv[])
 		print_help(*argv);
 		return 1;
 	}
-	const char *file = argv[optind];
 
-	printf("%s %s\n", record ? "Recording" : "Playing", file);
-	if (record) {
-		printf("Recording is not supported yet.\n");
-		return 1;
+	for (int i = optind; i < argc; ++i) {
+		const char *file = argv[i];
+
+		printf("%s (%d/%d) %s\n", record ? "Recording" : "Playing",
+		    i - optind + 1, argc - optind, file);
+		if (record) {
+			printf("Recording is not supported yet.\n");
+			return 1;
+		}
+		if (direct) {
+			dplay(device, file);
+		} else {
+			hplay(file);
+		}
 	}
-	if (direct) {
-		return dplay(device, file);
-	} else {
-		return hplay(file);
-	}
+	return 0;
 }
 /**
  * @}
