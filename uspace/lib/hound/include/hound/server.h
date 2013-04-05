@@ -37,32 +37,14 @@
 #define LIBHOUND_SERVER_H_
 
 #include <async.h>
-#include <stdbool.h>
 #include <loc.h>
-#include <pcm/format.h>
-
-
-
-enum {
-        HOUND_REGISTER_PLAYBACK = IPC_FIRST_USER_METHOD,
-        HOUND_REGISTER_RECORDING,
-        HOUND_UNREGISTER_PLAYBACK,
-        HOUND_UNREGISTER_RECORDING,
-        HOUND_CONNECT,
-        HOUND_DISCONNECT,
-};
 
 typedef void (*dev_change_callback_t)(void);
 typedef int (*device_callback_t)(service_id_t, const char *);
-
 
 int hound_server_register(const char *name, service_id_t *id);
 void hound_server_unregister(service_id_t id);
 int hound_server_set_device_change_callback(dev_change_callback_t cb);
 int hound_server_devices_iterate(device_callback_t callback);
-int hound_server_get_register_params(const char **name, async_sess_t **sess,
-    unsigned *channels, unsigned *rate, pcm_sample_format_t *format);
-int hound_server_get_unregister_params(const char **name);
-int hound_server_get_connection_params(const char **source, const char **sink);
 
 #endif

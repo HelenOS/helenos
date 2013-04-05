@@ -553,11 +553,10 @@ static void hound_server_write_data(void *stream)
 	async_answer_0(callid, ret);
 }
 
-/***
- * SERVER SIDE - DEPRECATED
- ***/
 
-static const char * get_name(void);
+/***
+ * SERVER SIDE
+ ***/
 
 int hound_server_register(const char *name, service_id_t *id)
 {
@@ -580,6 +579,7 @@ int hound_server_set_device_change_callback(dev_change_callback_t cb)
 {
 	return loc_register_cat_change_cb(cb);
 }
+
 
 int hound_server_devices_iterate(device_callback_t callback)
 {
@@ -611,77 +611,6 @@ int hound_server_devices_iterate(device_callback_t callback)
 	free(svcs);
 	return EOK;
 }
-
-int hound_server_get_register_params(const char **name, async_sess_t **sess,
-    unsigned *channels, unsigned *rate, pcm_sample_format_t *format)
-{
-	if (!name || !sess || !channels || !rate || !format)
-		return EINVAL;
-
-	const char *n = get_name();
-	if (!n)
-		return ENOMEM;
-
-	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);
-
-	unsigned ch = IPC_GET_ARG1(call);
-	unsigned r = IPC_GET_ARG2(call);
-	pcm_sample_format_t f = IPC_GET_ARG3(call);
-
-	async_sess_t *s = async_callback_receive_start(EXCHANGE_ATOMIC, &call);
-	async_answer_0(callid, s ? EOK : ENOMEM);
-
-	*name = n;
-	*sess = s;
-	*channels = ch;
-	*rate = r;
-	*format = f;
-
-	return ENOTSUP;
-}
-
-int hound_server_get_unregister_params(const char **name)
-{
-	if (!name)
-		return EINVAL;
-	*name = get_name();
-	if (!*name)
-		return ENOMEM;
-	return EOK;
-}
-
-int hound_server_get_connection_params(const char **source, const char **sink)
-{
-	if (!source || !sink)
-		return EINVAL;
-
-	const char *source_name = get_name();
-	if (!source_name)
-		return ENOMEM;
-
-	const char *sink_name = get_name();
-	if (!sink_name)
-		return ENOMEM;
-
-	*source = source_name;
-	*sink = sink_name;
-	return EOK;
-}
-
-static const char * get_name(void)
-{
-	size_t size = 0;
-	ipc_callid_t callid;
-	async_data_write_receive(&callid, &size);
-	char *buffer = malloc(size + 1);
-	if (buffer) {
-		async_data_write_finalize(callid, buffer, size);
-		buffer[size] = 0;
-	}
-	return buffer;
-}
-
 /**
  * @}
  */
