@@ -42,7 +42,6 @@
 
 #define HOUND_DEFAULT_TARGET "default"
 #define HOUND_ALL_TARGETS "all"
-#define DEFAULT_SINK "default" //DEPRECATED
 
 typedef struct hound_context hound_context_t;
 typedef struct hound_stream hound_stream_t;
@@ -78,26 +77,5 @@ int hound_write_replace_main_stream(hound_context_t *hound,
     const void *data, size_t size);
 int hound_write_immediate(hound_context_t *hound,
     pcm_format_t format, const void *data, size_t size);
-
-
-
-
-
-typedef async_sess_t hound_sess_t;
-
-typedef void (*data_callback_t)(void *, void *, ssize_t);
-
-hound_sess_t *hound_get_session(void);
-void hound_release_session(hound_sess_t *sess);
-int hound_register_playback(hound_sess_t *sess, const char *name,
-    unsigned channels, unsigned rate, pcm_sample_format_t format,
-    data_callback_t data_callback, void *arg);
-int hound_register_recording(hound_sess_t *sess, const char *name,
-    unsigned channels, unsigned rate, pcm_sample_format_t format,
-    data_callback_t data_callback, void *arg);
-int hound_unregister_playback(hound_sess_t *sess, const char *name);
-int hound_unregister_recording(hound_sess_t *sess, const char *name);
-int hound_create_connection(hound_sess_t *sess, const char *source, const char *sink);
-int hound_destroy_connection(hound_sess_t *sess, const char *source, const char *sink);
 
 #endif
