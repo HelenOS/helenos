@@ -78,6 +78,7 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	dev->buffer.base = NULL;
 	dev->buffer.position = NULL;
 	dev->buffer.size = 0;
+	dev->buffer.fragment_size = 0;
 
 	log_verbose("Initialized device (%p) '%s' with id %u.",
 	    dev, dev->name, dev->id);
@@ -110,11 +111,9 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		audio_sink_mix_inputs(&dev->sink,
 		    dev->buffer.base, dev->buffer.size);
 
-		log_verbose("Mixed inputs: %zu/(%u * %u)",
-		    dev->buffer.size, BUFFER_PARTS, pcm_format_frame_size(&dev->sink.format));
-		const unsigned frames = dev->buffer.size /
-		    (BUFFER_PARTS * pcm_format_frame_size(&dev->sink.format));
-		log_verbose("FRAME COUNT %u", frames);
+		const unsigned frames = dev->buffer.fragment_size /
+		    pcm_format_frame_size(&dev->sink.format);
+		log_verbose("Fragment frame count %u", frames);
 		ret = audio_pcm_start_playback_fragment(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
@@ -150,15 +149,15 @@ static int device_source_connection_callback(audio_source_t *source, bool new)
 {
 	assert(source);
 	audio_device_t *dev = source->private_data;
-	if (new && list_count(&source->connections)) {
+	if (new && list_count(&source->connections) == 1) {
 		int ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
 			    str_error(ret));
 			return ret;
 		}
-		const unsigned frames = dev->buffer.size /
-		    (BUFFER_PARTS * pcm_format_frame_size(&dev->sink.format));
+		const unsigned frames = dev->buffer.fragment_size /
+		    pcm_format_frame_size(&dev->sink.format);
 		ret = audio_pcm_start_capture_fragment(dev->sess, frames,
 		    dev->sink.format.channels, dev->sink.format.sampling_rate,
 		    dev->sink.format.sample_format);
@@ -207,7 +206,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			//TODO add underrun protection.
 			if (dev->buffer.position) {
 				dev->buffer.position +=
-				    (dev->buffer.size / BUFFER_PARTS);
+				    dev->buffer.fragment_size;
 			}
 			if ((!dev->buffer.position) ||
 			    (dev->buffer.position >=
@@ -216,7 +215,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 				dev->buffer.position = dev->buffer.base;
 			}
 			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
-			    dev->buffer.size / BUFFER_PARTS);
+			    dev->buffer.fragment_size);
 			struct timeval time2;
 			getuptime(&time2);
 			log_verbose("Time to mix sources: %li\n",
@@ -260,8 +259,12 @@ static int get_buffer(audio_device_t *dev)
 
 	dev->buffer.size = 0;
 
-	return audio_pcm_get_buffer(dev->sess, &dev->buffer.base,
+	const int ret = audio_pcm_get_buffer(dev->sess, &dev->buffer.base,
 	    &dev->buffer.size);
+	if (ret == EOK)
+		dev->buffer.fragment_size = dev->buffer.size / BUFFER_PARTS;
+	return ret;
+
 }
 
 static int release_buffer(audio_device_t *dev)

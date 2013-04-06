@@ -57,6 +57,7 @@ typedef struct {
 		void *base;
 		size_t size;
 		void *position;
+		size_t fragment_size;
 	} buffer;
 	audio_source_t source;
 	audio_sink_t sink;
