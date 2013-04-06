@@ -85,7 +85,7 @@ ssize_t connection_add_source_data(connection_t *connection, void *data,
 	assert(connection);
 	if (!data)
 		return EBADMEM;
-	size_t needed_frames = pcm_format_size_to_frames(size, &format);
+	const size_t needed_frames = pcm_format_size_to_frames(size, &format);
 	if (needed_frames > audio_pipe_frames(&connection->fifo) &&
 	    connection->source->update_available_data) {
 		log_debug("Asking source to provide more data");

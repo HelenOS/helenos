@@ -194,9 +194,11 @@ ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *data,
     size_t size, const pcm_format_t *f)
 {
 	assert(pipe);
+
 	const size_t dst_frame_size = pcm_format_frame_size(f);
-	size_t needed_frames = size / dst_frame_size;
+	size_t needed_frames = pcm_format_size_to_frames(size, f);
 	size_t copied_size = 0;
+
 	fibril_mutex_lock(&pipe->guard);
 	while (needed_frames > 0 && !list_empty(&pipe->list)) {
 		/* Get first audio chunk */
