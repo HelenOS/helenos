@@ -34,7 +34,6 @@
  */
 
 #include <mm/km.h>
-#include <mm/slab.h>
 #include <typedefs.h>
 #include <genarch/drivers/bcm2835/mbox.h>
 
@@ -59,7 +58,7 @@ static uint32_t mbox_read(bcm2835_mbox_t *mbox, uint8_t chan)
 bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size)
 {
 	bool ret;
-	ALLOC_PROP_BUFFER(req, mbox_getmem_buf_t);
+	MBOX_BUFF_ALLOC(req, mbox_getmem_buf_t);
 
 	req->buf_hdr.size = sizeof(mbox_getmem_buf_t);
 	req->buf_hdr.code = MBOX_PROP_CODE_REQ;
@@ -87,18 +86,11 @@ bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size)
 bool bcm2835_fb_init(fb_properties_t *prop)
 {
 	bcm2835_mbox_t *fb_mbox;
-	bcm2835_fb_desc_t *fb_desc;
-	void *fb_desc_buf;
 	bool ret = false;
-
-	fb_desc_buf = malloc(sizeof(bcm2835_fb_desc_t) + MBOX_ADDR_ALIGN, 0);
-	if (!fb_desc_buf)
-		return false;
+        MBOX_BUFF_ALLOC(fb_desc, bcm2835_fb_desc_t);
 
 	fb_mbox = (void *) km_map(BCM2835_MBOX0_ADDR, sizeof(bcm2835_mbox_t),
 				  PAGE_NOT_CACHEABLE);
-	fb_desc = (bcm2835_fb_desc_t *) ALIGN_UP((uintptr_t)fb_desc_buf,
-						 MBOX_ADDR_ALIGN);
 
 	fb_desc->width = 640;
 	fb_desc->height = 480;
@@ -130,7 +122,6 @@ bool bcm2835_fb_init(fb_properties_t *prop)
 	ret = true;
 out:
 	km_unmap((uintptr_t)fb_mbox, sizeof(bcm2835_mbox_t));
-	free(fb_desc_buf);
 	return ret;
 }
 

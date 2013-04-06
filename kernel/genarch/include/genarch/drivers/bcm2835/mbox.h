@@ -83,9 +83,9 @@ enum {
 
 #define MBOX_ADDR_ALIGN		16
 
-#define ALLOC_PROP_BUFFER(name,type)					\
-	char _tmp[sizeof(type) + MBOX_ADDR_ALIGN] = { 0 };		\
-	type *name = (type *)ALIGN_UP((uint32_t)_tmp, MBOX_ADDR_ALIGN);
+#define MBOX_BUFF_ALLOC(name, type)					\
+	char tmp_ ## name[sizeof(type) + MBOX_ADDR_ALIGN] = { 0 };      \
+	type *name = (type *)ALIGN_UP((uintptr_t)tmp_ ## name, MBOX_ADDR_ALIGN);
 
 typedef struct {
 	ioport32_t read;
