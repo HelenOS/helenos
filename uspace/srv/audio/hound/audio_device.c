@@ -108,6 +108,8 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 
 		/* Fill the buffer first. Fill the first two fragments,
 		 * so that we stay one fragment ahead */
+		pcm_format_silence(dev->buffer.base, dev->buffer.size,
+		    &dev->sink.format);
 		fill_buffer(dev, dev->buffer.fragment_size * 2);
 
 		const unsigned frames = dev->buffer.fragment_size /
