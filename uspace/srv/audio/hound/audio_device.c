@@ -53,6 +53,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 static int device_check_format(audio_sink_t* sink);
 static int get_buffer(audio_device_t *dev);
 static int release_buffer(audio_device_t *dev);
+static void fill_buffer(audio_device_t *dev, size_t size);
 
 
 int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
@@ -73,8 +74,6 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	    device_source_connection_callback, NULL, &AUDIO_FORMAT_ANY);
 
 	/* Init buffer members */
-	fibril_mutex_initialize(&dev->buffer.guard);
-	fibril_condvar_initialize(&dev->buffer.wc);
 	dev->buffer.base = NULL;
 	dev->buffer.position = NULL;
 	dev->buffer.size = 0;
@@ -107,9 +106,9 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		    device_event_callback, dev);\
 		// TODO set formats
 
-		/* Fill the buffer first */
-		audio_sink_mix_inputs(&dev->sink,
-		    dev->buffer.base, dev->buffer.size);
+		/* Fill the buffer first. Fill the first two fragments,
+		 * so that we stay one fragment ahead */
+		fill_buffer(dev, dev->buffer.fragment_size * 2);
 
 		const unsigned frames = dev->buffer.fragment_size /
 		    pcm_format_frame_size(&dev->sink.format);
@@ -203,19 +202,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_FRAMES_PLAYED: {
 			struct timeval time1;
 			getuptime(&time1);
-			//TODO add underrun protection.
-			if (dev->buffer.position) {
-				dev->buffer.position +=
-				    dev->buffer.fragment_size;
-			}
-			if ((!dev->buffer.position) ||
-			    (dev->buffer.position >=
-			        (dev->buffer.base + dev->buffer.size)))
-			{
-				dev->buffer.position = dev->buffer.base;
-			}
-			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
-			    dev->buffer.fragment_size);
+			fill_buffer(dev, dev->buffer.fragment_size);
 			struct timeval time2;
 			getuptime(&time2);
 			log_verbose("Time to mix sources: %li\n",
@@ -235,6 +222,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 
 	}
 }
+
 static int device_check_format(audio_sink_t* sink)
 {
 	assert(sink);
@@ -257,12 +245,16 @@ static int get_buffer(audio_device_t *dev)
 		return EBUSY;
 	}
 
-	dev->buffer.size = 0;
+	/* Ask for largest buffer possible */
+	size_t preferred_size = 0;
 
 	const int ret = audio_pcm_get_buffer(dev->sess, &dev->buffer.base,
-	    &dev->buffer.size);
-	if (ret == EOK)
+	    &preferred_size);
+	if (ret == EOK) {
+		dev->buffer.size = preferred_size;
 		dev->buffer.fragment_size = dev->buffer.size / BUFFER_PARTS;
+		dev->buffer.position = dev->buffer.base;
+	}
 	return ret;
 
 }
@@ -281,6 +273,19 @@ static int release_buffer(audio_device_t *dev)
 		log_debug("Failed to release buffer: %s", str_error(ret));
 	}
 	return ret;
+}
+
+static void fill_buffer(audio_device_t *dev, size_t size)
+{
+	assert(dev);
+	assert(dev->buffer.position >= dev->buffer.base);
+	assert(dev->buffer.position < (dev->buffer.base + dev->buffer.size));
+
+	//TODO add underrun detection.
+	audio_sink_mix_inputs(&dev->sink, dev->buffer.position, size);
+	dev->buffer.position += size;
+	if (dev->buffer.position == (dev->buffer.base + dev->buffer.size))
+		dev->buffer.position = dev->buffer.base;
 }
 /**
  * @}

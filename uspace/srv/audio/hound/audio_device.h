@@ -52,8 +52,6 @@ typedef struct {
 	audio_pcm_sess_t *sess;
 	char *name;
 	struct {
-		fibril_mutex_t guard;
-		fibril_condvar_t wc;
 		void *base;
 		size_t size;
 		void *position;
