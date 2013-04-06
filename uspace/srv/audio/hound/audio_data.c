@@ -209,20 +209,22 @@ ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *data,
 		const size_t available_frames =
 		    audio_data_link_available_frames(alink);
 		const size_t copy_frames = min(available_frames, needed_frames);
-		const size_t copy_size = copy_frames * dst_frame_size;
+		const size_t dst_copy_size = copy_frames * dst_frame_size;
+		const size_t src_copy_size = copy_frames * src_frame_size;
+
+		assert(src_copy_size <= audio_data_link_remain_size(alink));
 
 		/* Copy audio data */
-		pcm_format_convert_and_mix(data, copy_size,
-		    audio_data_link_start(alink),
-		    audio_data_link_remain_size(alink),
+		pcm_format_convert_and_mix(data, dst_copy_size,
+		    audio_data_link_start(alink), src_copy_size,
 		    &alink->adata->format, f);
 
 		/* Update values */
-		copied_size += copy_size;
 		needed_frames -= copy_frames;
-		data += copy_size;
-		alink->position += (copy_frames * src_frame_size);
-		pipe->bytes -= (copy_frames * src_frame_size);
+		copied_size += dst_copy_size;
+		data += dst_copy_size;
+		alink->position += src_copy_size;
+		pipe->bytes -= src_copy_size;
 		pipe->frames -= copy_frames;
 		if (audio_data_link_remain_size(alink) == 0) {
 			list_remove(&alink->link);
