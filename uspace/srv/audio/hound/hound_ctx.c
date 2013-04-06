@@ -110,6 +110,8 @@ typedef struct hound_ctx_stream {
 	pcm_format_t format;
 	int flags;
 	size_t allowed_size;
+	fibril_mutex_t guard;
+	fibril_condvar_t change;
 } hound_ctx_stream_t;
 
 static inline hound_ctx_stream_t *hound_ctx_stream_from_link(link_t *l)
@@ -143,6 +145,8 @@ hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
 	if (stream) {
 		audio_pipe_init(&stream->fifo);
 		link_initialize(&stream->link);
+		fibril_mutex_initialize(&stream->guard);
+		fibril_condvar_initialize(&stream->change);
 		stream->ctx = ctx;
 		stream->flags = flags;
 		stream->format = format;
@@ -181,11 +185,17 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 	if (stream->allowed_size && size > stream->allowed_size)
 		return EINVAL;
 
-	if (stream->allowed_size &&
-	    (audio_pipe_bytes(&stream->fifo) + size > stream->allowed_size))
-		return EBUSY;
+	fibril_mutex_lock(&stream->guard);
+	while (stream->allowed_size &&
+	    (audio_pipe_bytes(&stream->fifo) + size > stream->allowed_size)) {
+	    fibril_condvar_wait(&stream->change, &stream->guard);
 
-	return audio_pipe_push_data(&stream->fifo, data, size, stream->format);
+	}
+
+	const int ret =
+	    audio_pipe_push_data(&stream->fifo, data, size, stream->format);
+	fibril_mutex_unlock(&stream->guard);
+	return ret;
 }
 
 int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
@@ -198,19 +208,21 @@ ssize_t hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
     size_t size, const pcm_format_t *f)
 {
 	assert(stream);
-	const ssize_t copied_size =
-	    audio_pipe_mix_data(&stream->fifo, data, size, f);
-	if (copied_size != (ssize_t)size)
-		log_warning("Not enough data in stream buffer");
-	return copied_size;
+	fibril_mutex_lock(&stream->guard);
+	const int ret = audio_pipe_mix_data(&stream->fifo, data, size, f);
+	fibril_condvar_signal(&stream->change);
+	fibril_mutex_unlock(&stream->guard);
+	return ret;
 }
 
 void hound_ctx_stream_drain(hound_ctx_stream_t *stream)
 {
 	assert(stream);
 	log_debug("Draining stream");
+	fibril_mutex_lock(&stream->guard);
 	while (audio_pipe_bytes(&stream->fifo))
-		async_usleep(10000);
+		fibril_condvar_wait(&stream->change, &stream->guard);
+	fibril_mutex_unlock(&stream->guard);
 }
 
 int update_data(audio_source_t *source, size_t size)
@@ -232,7 +244,10 @@ int update_data(audio_source_t *source, size_t size)
 	fibril_mutex_lock(&ctx->guard);
 	list_foreach(ctx->streams, it) {
 		hound_ctx_stream_t *stream = hound_ctx_stream_from_link(it);
-		hound_ctx_stream_add_self(stream, buffer, size, &source->format);
+		ssize_t copied = hound_ctx_stream_add_self(
+		    stream, buffer, size, &source->format);
+		if (copied != (ssize_t)size)
+			log_warning("Not enough data in stream buffer");
 	}
 	log_verbose("CTX: %p. Pushing audio to %zu connections", ctx,
 	    list_count(&source->connections));

@@ -82,7 +82,6 @@ static bool iface_is_record_context(void *server, hound_context_id_t id)
 	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
 	if (!ctx)
 		return false;
-	log_info("%s: %p, %d", __FUNCTION__, server, id);
 	return hound_ctx_is_record(ctx);
 }
 
@@ -149,11 +148,7 @@ static int iface_stream_data_read(void *stream, void *buffer, size_t size)
 
 static int iface_stream_data_write(void *stream, const void *buffer, size_t size)
 {
-	int ret = EOK;
-	do {
-		ret = hound_ctx_stream_write(stream, buffer, size);
-	} while (ret == EBUSY && (async_usleep(100), 1));
-	return ret;
+	return hound_ctx_stream_write(stream, buffer, size);
 }
 
 hound_server_iface_t hound_iface = {
