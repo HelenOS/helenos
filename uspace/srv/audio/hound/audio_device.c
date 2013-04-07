@@ -45,7 +45,7 @@
 #include "audio_device.h"
 #include "log.h"
 
-#define BUFFER_PARTS 2
+#define BUFFER_PARTS   16
 
 static int device_sink_connection_callback(audio_sink_t *sink, bool new);
 static int device_source_connection_callback(audio_source_t *source, bool new);
