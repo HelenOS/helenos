@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <malloc.h>
 #include <str_error.h>
 #include <stdio.h>
 #include <hound/client.h>
@@ -45,8 +46,54 @@
 #include "dplay.h"
 #include "wave.h"
 
-#define BUFFER_SIZE (32 * 1024)
+#define READ_SIZE   (32 * 1024)
+#define STREAM_BUFFER_SIZE   (64 * 1024)
 
+static int hplay_ctx(hound_context_t *ctx, const char *filename)
+{
+	printf("Hound context playback: %s\n", filename);
+	FILE *source = fopen(filename, "rb");
+	if (!source) {
+		printf("Failed to open file %s\n", filename);
+		return EINVAL;
+	}
+	wave_header_t header;
+	size_t read = fread(&header, sizeof(header), 1, source);
+	if (read != 1) {
+		printf("Failed to read WAV header: %zu\n", read);
+		fclose(source);
+		return EIO;
+	}
+	pcm_format_t format;
+	const char *error;
+	int ret = wav_parse_header(&header, NULL, NULL, &format.channels,
+	    &format.sampling_rate, &format.sample_format, &error);
+	if (ret != EOK) {
+		printf("Error parsing wav header: %s.\n", error);
+		fclose(source);
+		return EINVAL;
+	}
+
+	hound_stream_t *stream = hound_stream_create(ctx,
+	    HOUND_STREAM_DRAIN_ON_EXIT, format, STREAM_BUFFER_SIZE);
+
+	char * buffer = malloc(READ_SIZE);
+	if (!buffer) {
+		fclose(source);
+		return ENOMEM;
+	}
+	while ((read = fread(buffer, sizeof(char), READ_SIZE, source)) > 0) {
+		ret = hound_stream_write(stream, buffer, read);
+		if (ret != EOK) {
+			printf("Failed to write to hound stream: %s\n",
+			    str_error(ret));
+			break;
+		}
+	}
+	free(buffer);
+	fclose(source);
+	return ret;
+}
 
 static int hplay(const char *filename)
 {
@@ -73,7 +120,7 @@ static int hplay(const char *filename)
 		return EINVAL;
 	}
 	hound_context_t *hound = hound_context_create_playback(filename,
-	    format, BUFFER_SIZE * 2);
+	    format, STREAM_BUFFER_SIZE);
 	if (!hound) {
 		printf("Failed to create HOUND context\n");
 		fclose(source);
@@ -88,8 +135,8 @@ static int hplay(const char *filename)
 		fclose(source);
 		return ret;
 	}
-	static char buffer[BUFFER_SIZE];
-	while ((read = fread(buffer, sizeof(char), BUFFER_SIZE, source)) > 0) {
+	static char buffer[READ_SIZE];
+	while ((read = fread(buffer, sizeof(char), READ_SIZE, source)) > 0) {
 		ret = hound_write_main_stream(hound, buffer, read);
 		if (ret != EOK) {
 			printf("Failed to write to main context stream: %s\n",
@@ -102,8 +149,25 @@ static int hplay(const char *filename)
 	return ret;
 }
 
+typedef struct {
+	hound_context_t *ctx;
+	atomic_t *count;
+	const char *file;
+} fib_play_t;
+
+static int play_wrapper(void *arg)
+{
+	assert(arg);
+	fib_play_t *p = arg;
+	const int ret = hplay_ctx(p->ctx, p->file);
+	atomic_dec(p->count);
+	free(arg);
+	return ret;
+}
+
 static const struct option opts[] = {
 	{"device", required_argument, 0, 'd'},
+	{"parallel", no_argument, 0, 'p'},
 	{"record", no_argument, 0, 'r'},
 	{"help", no_argument, 0, 'h'},
 	{0, 0, 0, 0}
@@ -118,17 +182,19 @@ static void print_help(const char* name)
 	    "(Not implemented)\n");
 	printf("\t -d, --device\t Use specified device instead of the sound "
 	    "service. Use location path or a special device `default'\n");
+	printf("\t -p, --parallel\t Play given files in parallel instead of "
+	    "sequentially (does not work with -d).\n");
 }
 
 int main(int argc, char *argv[])
 {
 	const char *device = "default";
 	int idx = 0;
-	bool direct = false, record = false;
+	bool direct = false, record = false, parallel = false;
 	optind = 0;
 	int ret = 0;
 	while (ret != -1) {
-		ret = getopt_long(argc, argv, "d:rh", opts, &idx);
+		ret = getopt_long(argc, argv, "d:prh", opts, &idx);
 		switch (ret) {
 		case 'd':
 			direct = true;
@@ -137,16 +203,46 @@ int main(int argc, char *argv[])
 		case 'r':
 			record = true;
 			break;
+		case 'p':
+			parallel = true;
+			break;
 		case 'h':
 			print_help(*argv);
 			return 0;
 		};
 	}
 
+	if (parallel && direct) {
+		printf("Parallel playback is available only if using sound "
+		    "server (no -d)\n");
+		print_help(*argv);
+		return 1;
+	}
+
 	if (optind == argc) {
 		printf("Not enough arguments.\n");
 		print_help(*argv);
 		return 1;
+	}
+
+	hound_context_t *hound_ctx = NULL;
+	atomic_t playcount;
+	atomic_set(&playcount, 0);
+	if (parallel) {
+		hound_ctx = hound_context_create_playback("wavplay",
+		    AUDIO_FORMAT_DEFAULT, STREAM_BUFFER_SIZE);
+		if (!hound_ctx) {
+			printf("Failed to create global hound context\n");
+			return 1;
+		}
+		const int ret = hound_context_connect_target(hound_ctx,
+		    HOUND_DEFAULT_TARGET);
+		if (ret != EOK) {
+			printf("Failed to connect hound context to default "
+			   "target.\n");
+			hound_context_destroy(hound_ctx);
+			return 1;
+		}
 	}
 
 	for (int i = optind; i < argc; ++i) {
@@ -161,9 +257,30 @@ int main(int argc, char *argv[])
 		if (direct) {
 			dplay(device, file);
 		} else {
-			hplay(file);
+			if (parallel) {
+				fib_play_t *data = malloc(sizeof(fib_play_t));
+				if (!data) {
+					printf("Playback of %s failed.\n",
+						file);
+					continue;
+				}
+				data->file = file;
+				data->count = &playcount;
+				data->ctx = hound_ctx;
+				fid_t fid = fibril_create(play_wrapper, data);
+				atomic_inc(&playcount);
+				fibril_add_ready(fid);
+			} else {
+				hplay(file);
+			}
 		}
 	}
+
+	while (atomic_get(&playcount) > 0)
+		async_usleep(1000000);
+
+	if (hound_ctx)
+		hound_context_destroy(hound_ctx);
 	return 0;
 }
 /**

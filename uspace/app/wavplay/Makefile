@@ -31,7 +31,8 @@ BINARY = wavplay
 
 LIBS = \
 	$(LIBHOUND_PREFIX)/libhound.a \
-	$(LIBDRV_PREFIX)/libdrv.a
+	$(LIBDRV_PREFIX)/libdrv.a \
+	$(LIBPCM_PREFIX)/libpcm.a
 
 EXTRA_CFLAGS = \
 	-I$(LIBDRV_PREFIX)/include \
