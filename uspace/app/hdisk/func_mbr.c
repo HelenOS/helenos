@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <str_error.h>
 #include <sys/types.h>
 
 #include "func_mbr.h"
@@ -93,7 +94,7 @@ int print_mbr_parts(union table_data * data)
 		else
 			printf(" ");
 
-		printf("\t\t%u\t%u\t%u\t%d\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
+		printf("\t%10u %10u %10u %3d\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
 
 		++num;
 	}
@@ -107,13 +108,16 @@ int write_mbr_parts(service_id_t dev_handle, union table_data * data)
 {
 	int rc = mbr_write_partitions(data->mbr.parts, data->mbr.mbr, dev_handle);
 	if (rc != EOK) {
-		printf("Error occured during writing. (ERR: %d)\n", rc);
+		printf("Error occured during writing: ERR: %d: %s\n", rc, str_error(rc));
 	}
 	
 	return rc;
 }
 
-
+int extra_mbr_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
+{
+	return EOK;
+}
 
 static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
 {
@@ -122,12 +126,15 @@ static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
 	
 	printf("Primary (p) or logical (l): ");
 	c = getchar();
+	printf("%c\n", c);
 
 	switch(c) {
 		case 'p':
 			mbr_set_flag(p, ST_LOGIC, false);
+			break;
 		case 'l':
 			mbr_set_flag(p, ST_LOGIC, true);
+			break;
 		default:
 			printf("Invalid type. Cancelled.");
 			return EINVAL;
@@ -143,7 +150,7 @@ static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
 		printf("Invalid value. Cancelled.");
 		return EINVAL;
 	}
-	
+	printf("%c\n", c);
 	mbr_set_flag(p, ST_BOOT, (c == 'y' || c == 'Y') ? true : false);
 
 

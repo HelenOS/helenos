@@ -34,35 +34,96 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <str_error.h>
 #include <sys/types.h>
 
 #include "func_gpt.h"
+#include "input.h"
+
+static int set_gpt_partition(tinput_t *, gpt_part_t *);
 
 int add_gpt_part(tinput_t * in, union table_data * data)
 {
-	int rc = EOK;
+	gpt_part_t * p = gpt_alloc_partition(data->gpt.parts);
+	if (p == NULL) {
+		return ENOMEM;
+	}
 	
-	return rc;
+	return set_gpt_partition(in, p);
 }
 
 int delete_gpt_part(tinput_t * in, union table_data * data)
 {
-	int rc = EOK;
+	size_t idx;
+
+	printf("Number of the partition to delete (counted from 0): ");
+	idx = get_input_size_t(in);
 	
-	return rc;
+	if (gpt_remove_partition(data->gpt.parts, idx) == -1) {
+		printf("Warning: running low on memory, not resizing...\n");
+	}
+	
+	return EOK;
 }
 
 int print_gpt_parts(union table_data * data)
 {
-	int rc = EOK;
+	printf("Current partition scheme (GPT):\n");
+	printf("\t\tStart:\tEnd:\tLength:\tType:\tName:\n");
+	
+	gpt_foreach(data->gpt.parts, i, iter) {
+		printf("\t%10u %10u %10u %3d\n", iter->start_addr, iter->start_addr + iter->length,
+				iter->length, gpt_get_part_type(iter), gpt_get_part_name(iter));
+	}
 	
 	return rc;
 }
 
 int write_gpt_parts(service_id_t dev_handle, union table_data * data)
 {
-	int rc = EOK;
+	int rc;
 	
-	return rc;
+	rc = gpt_write_partitions(data->gpt.parts, data->gpt.gpt, dev_handle);
+	if (rc != EOK) {
+		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
+		return rc;
+	}
+	
+	rc = gpt_write_gpt_header(data->gpt.gpt, dev_handle);
+	if (rc != EOK) {
+		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
+		return rc;
+	}
+	
+	return EOK;
+}
+
+int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
+{
+	return EOK;
+}
+
+static int set_gpt_partition(tinput_t * in, gpt_part_t * p)
+{
+	int rc;
+	
+	uint64_t sa, ea;
+	
+	printf("Set starting address (number): ");
+	sa = get_input_uint64(in);
+
+	printf("Set end addres (number): ");
+	ea = get_input_uint64(in);
+	
+	if (ea <= sa) {
+		printf("Invalid value.\n");
+		return EINVAL;
+	}
+	
+	
+	p->start_addr = sa;
+	p->length = ea - sa;
+	
+	return EOK;
 }
 

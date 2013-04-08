@@ -116,6 +116,8 @@ fail:
  * @param dev_handle	device handle to write the data to
  * 
  * @return				0 on success, libblock error code otherwise
+ * 
+ * Note: Firstly write partitions (if changed), then gpt header.
  */
 int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
 {
@@ -166,11 +168,11 @@ gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
 	int rc;
 	unsigned int i;
 	gpt_partitions_t * res;
-	uint32_t num_ent = uint32_t_le2host(gpt->raw_data->num_entries);
+	uint32_t fill = uint32_t_le2host(gpt->raw_data->fillries);
 	uint32_t ent_size = uint32_t_le2host(gpt->raw_data->entry_size);
 	uint64_t ent_lba = uint64_t_le2host(gpt->raw_data->entry_lba);
 	
-	res = alloc_part_array(num_ent);
+	res = alloc_part_array(fill);
 	if (res == NULL) {
 		//errno = ENOMEM; // already set in alloc_part_array()
 		return NULL;
@@ -203,7 +205,7 @@ gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
 	 * and also allows us to have variable partition entry size (but we
 	 * will always read just sizeof(gpt_entry_t) bytes - hopefully they
 	 * don't break backward compatibility) */
-	for (i = 0; i < num_ent; ++i) {
+	for (i = 0; i < fill; ++i) {
 		//FIXME: this does bypass cache...
 		rc = block_read_bytes_direct(gpt->device, pos, sizeof(gpt_entry_t), res->part_array + i);
 		//FIXME: but seqread() is just too complex...
@@ -222,7 +224,7 @@ gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
 	 * This can't be fixed easily - we'd have to run the checksum
 	 * on all of the partition entry array.
 	 */
-	uint32_t crc = compute_crc32((uint8_t *) res->part_array, res->num_ent * sizeof(gpt_entry_t));
+	uint32_t crc = compute_crc32((uint8_t *) res->part_array, res->fill * sizeof(gpt_entry_t));
 	
 	if(uint32_t_le2host(gpt->raw_data->pe_array_crc32) != crc)
 	{
@@ -246,7 +248,7 @@ int gpt_write_partitions(gpt_partitions_t * parts, gpt_t * gpt, service_id_t dev
 	int rc;
 	size_t b_size;
 	
-	gpt->raw_data->pe_array_crc32 = compute_crc32((uint8_t *) parts->part_array, parts->num_ent * gpt->raw_data->entry_size);
+	gpt->raw_data->pe_array_crc32 = compute_crc32((uint8_t *) parts->part_array, parts->fill * gpt->raw_data->entry_size);
 	
 	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
@@ -258,7 +260,7 @@ int gpt_write_partitions(gpt_partitions_t * parts, gpt_t * gpt, service_id_t dev
 	
 	/* Write to main GPT partition array location */
 	rc = block_write_direct(dev_handle, uint64_t_le2host(gpt->raw_data->entry_lba), 
-			nearest_larger_int((uint64_t_le2host(gpt->raw_data->entry_size) * parts->num_ent) / b_size), 
+			nearest_larger_int((uint64_t_le2host(gpt->raw_data->entry_size) * parts->fill) / b_size), 
 			parts->part_array);
 	if (rc != EOK)
 		block_fini(dev_handle);
@@ -276,23 +278,72 @@ int gpt_write_partitions(gpt_partitions_t * parts, gpt_t * gpt, service_id_t dev
 		return rc;
 	
 	
-	gpt_write_gpt_header(gpt, dev_handle);
-	
-	return 0;
-	
+	return gpt_write_gpt_header(gpt, dev_handle);
 }
 
-gpt_partitions_t * gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition)
+/** Alloc new partition
+ * 
+ * @param parts		partition table to carry new partition
+ * 
+ * @return			returns pointer to the new partition or NULL on ENOMEM
+ * 
+ * Note: use either gpt_alloc_partition or gpt_add_partition. The first
+ * returns a pointer to write your data to, the second copies the data 
+ * (and does not free the memory).
+ */
+gpt_part_t * gpt_alloc_partition(gpt_partitions_t * parts)
 {
+	if (parts->fill == parts->arr_size) {
+		if (extend_part_array(parts) == -1)
+			return NULL;
+	}
 	
+	return parts->part_array + parts->fill++;
+}
+
+/** Copy partition into partition array
+ * 
+ * @param parts			target partition array
+ * @param partition		source partition to copy
+ * 
+ * @return 				-1 on error, 0 otherwise
+ * 
+ * Note: use either gpt_alloc_partition or gpt_add_partition. The first
+ * returns a pointer to write your data to, the second copies the data 
+ * (and does not free the memory).
+ */
+int gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition)
+{
+	if (parts->fill == parts->arr_size) {
+		if (extend_part_array(parts) == -1)
+			return -1;
+	}
 	extend_part_array(parts);
 	return parts;
 }
 
-gpt_partitions_t * gpt_remove_partition(gpt_partitions_t * parts, size_t idx)
+/** Remove partition from array
+ * 
+ * @param idx		index of the partition to remove
+ * 
+ * @return			-1 on error, 0 otherwise
+ * 
+ * Note: even if it fails, the partition still gets removed. Only
+ * reducing the array failed.
+ */
+int gpt_remove_partition(gpt_partitions_t * parts, size_t idx)
 {
-	reduce_part_array(parts);
-	return parts;
+	if (idx != parts->fill - 1) {
+		memcpy(parts->part_array + idx, parts->part_array + fill - 1, sizeof(gpt_entry_t));
+		parts->fill -= 1;
+	}
+	
+	if (parts->fill < (parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
+		if (reduce_part_array(parts) == -1)
+			return -1;
+	}
+	
+	return 0;
 }
 
 /** free() GPT header including gpt->header_lba */
@@ -310,6 +361,20 @@ void gpt_free_partitions(gpt_partitions_t * parts)
 {
 	free(parts->part_array);
 	free(parts);
+}
+
+/** Get partition type by linear search
+ * (hopefully this doesn't get slow)
+ */
+size_t gpt_get_part_type(gpt_part_t * p)
+{
+	size_t i;
+	for (i = 0; gpt_ptypes[i].guid != NULL; i++) {
+		if (memcmp(p->raw_data.part_type, gpt_ptypes[i].guid, 16) == 0) {
+			break;
+		}
+	}
+	return i;
 }
 
 /** Set partition type
@@ -342,10 +407,38 @@ void gpt_set_part_type(gpt_part_t * p, int type)
 	p->raw_data.part_type[15] = gpt_ptypes[type].guid[15];
 }
 
+char * gpt_get_part_name(gpt_entry_t * p)
+{
+	return p->raw_data.part_name;
+}
+
 /** Copy partition name */
 void gpt_set_part_name(gpt_entry_t * p, char * name[], size_t length)
 {
+	if (length >= 72)
+		length = 71;
+	
 	memcpy(p->part_name, name, length);
+	p->part_name[length] = '\0';
+}
+
+/** Get partition attribute */
+extern bool gpt_get_flag(gpt_part_t * p, GPT_ATTR flag)
+{
+	return (p->raw_data.attributes & (((uint64_t) 1) << flag)) ? 1 : 0;
+}
+
+/** Set partition attribute */
+extern void gpt_set_flag(gpt_part_t * p, GPT_ATTR flag, bool value)
+{
+	uint64_t attr = p->raw_data.attributes;
+
+	if (value)
+		attr = attr | (((uint64_t) 1) << flag);
+	else
+		attr = attr ^ (attr & (((uint64_t) 1) << flag));
+
+	p->raw_data.attributes = attr;
 }
 
 // Internal functions follow //
@@ -404,7 +497,7 @@ static gpt_partitions_t * alloc_part_array(uint32_t num)
 		return NULL;
 	}
 	
-	res->num_ent = num;
+	res->fill = num;
 	res->arr_size = size;
 	
 	return res;
@@ -419,7 +512,7 @@ static int extend_part_array(gpt_partitions_t * p)
 		return -1;
 	}
 	
-	memcpy(tmp, p->part_array, p->num_ent);
+	memcpy(tmp, p->part_array, p->fill);
 	free(p->part_array);
 	p->part_array = tmp;
 	p->arr_size = nsize;
@@ -437,7 +530,7 @@ static int reduce_part_array(gpt_partitions_t * p)
 			return -1;
 		}
 		
-		memcpy(tmp, p->part_array, p->num_ent < nsize ? p->num_ent : nsize);
+		memcpy(tmp, p->part_array, p->fill < nsize ? p->fill  : nsize);
 		free(p->part_array);
 		p->part_array = tmp;
 		p->arr_size = nsize;

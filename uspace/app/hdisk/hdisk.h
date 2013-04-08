@@ -32,19 +32,35 @@
 /** @file
  */
 
-#ifndef __FUNC_GPT_H__
-#define	__FUNC_GPT_H__
-
-#include <loc.h>
-#include <tinput.h>
-#include <libgpt.h>
-
 #include "common.h"
 
-extern int add_gpt_part(tinput_t * in, union table_data * data);
-extern int delete_gpt_part(tinput_t * in, union table_data * data);
-extern int print_gpt_parts(union table_data * data);
-extern int write_gpt_parts(service_id_t dev_handle, union table_data * data);
-extern int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data);
+typedef enum {
+	LYT_NONE,
+	LYT_MBR,
+	LYT_GPT,
+} LAYOUTS;
 
-#endif
+typedef struct table {
+	LAYOUTS layout;
+	union table_data data;
+	int (* add_part)(tinput_t *, union table_data *);
+	int (* delete_part)(tinput_t *, union table_data *);
+	int (* print_parts)();
+	int (* write_parts)(service_id_t, union table_data *);
+	int (* extra_funcs)(tinput_t *, service_id_t, union table_data *);
+} table_t;
+
+#define init_table() \
+	table.layout = LYT_NONE
+
+#define set_table_mbr(m) \
+	table.data.mbr.mbr = (m)
+
+#define set_table_mbr_parts(p) \
+	table.data.mbr.parts = (p)
+
+#define set_table_gpt(g) \
+	table.data.gpt.gpt = (g)
+
+#define set_table_gpt_parts(p) \
+	table.data.gpt.parts = (p)

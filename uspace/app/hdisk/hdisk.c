@@ -174,6 +174,7 @@ int interact(service_id_t dev_handle)
 		printf("Failed initing input. Free some memory.\n");
 		return ENOMEM;
 	}
+	tinput_set_prompt(in, "");
 
 	printf("Welcome to hdisk.\nType 'h' for help.\n");
 
@@ -183,9 +184,9 @@ int interact(service_id_t dev_handle)
 
 	while (1) {
 
-		//printf("# ");
+		printf("# ");
 		input = getchar();
-		//printf("%c\n", input);
+		printf("%c\n", input);
 		
 
 		//rc = tinput_read(in, &str);
@@ -208,6 +209,9 @@ int interact(service_id_t dev_handle)
 				break;
 			case 'd':
 				table.delete_part(in, &table.data);
+				break;
+			case 'e':
+				table.extra_funcs(in, dev_handle, &table.data);
 				break;
 			case 'h':
 				print_help();
@@ -258,12 +262,14 @@ void fill_table_funcs(void)
 			table.delete_part = delete_mbr_part;
 			table.print_parts = print_mbr_parts;
 			table.write_parts = write_mbr_parts;
+			table.extra_funcs = extra_mbr_funcs;
 			break;
 		case LYT_GPT:
 			table.add_part = add_gpt_part;
 			table.delete_part = delete_gpt_part;
 			table.print_parts = print_gpt_parts;
 			table.write_parts = write_gpt_parts;
+			table.extra_funcs = extra_gpt_funcs;
 			break;
 		default:
 			break;

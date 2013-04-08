@@ -48,9 +48,19 @@
 #define GPT_MIN_PART_NUM 128
 /** Basic number of GPT partition entries */
 #define GPT_BASE_PART_NUM (GPT_MIN_PART_NUM)
+/** How much fill we ignore before resizing partition array */
+#define GPT_IGNORE_FILL_NUM 10
 
 /** GPT header signature ("EFI PART" in ASCII) */
 extern const uint8_t efi_signature[8];
+
+typedef enum {
+	AT_REQ_PART = 0,
+	AT_NO_BLOCK_IO,
+	AT_LEGACY_BOOT,
+	AT_UNDEFINED,
+	AT_SPECIFIC = 48
+} GPT_ATTR;
 
 /** GPT header
  * - all in little endian.
@@ -67,7 +77,7 @@ typedef struct {
 	uint64_t last_usable_lba;
 	uint8_t disk_guid[16];
 	uint64_t entry_lba;
-	uint32_t num_entries;
+	uint32_t fillries;
 	uint32_t entry_size;
 	uint32_t pe_array_crc32;
 } __attribute__((packed)) gpt_header_t;
@@ -104,9 +114,9 @@ typedef struct g_part {
 
 typedef struct gpt_parts {
 	/** Number of entries */
-	unsigned int num_ent;
+	size_t fill;
 	/** Size of the array */
-	unsigned int arr_size;
+	size_t arr_size;
 	/** Resizable partition array */
 	gpt_entry_t * part_array;
 } gpt_partitions_t;
@@ -131,10 +141,19 @@ extern int gpt_write_gpt_header(gpt_t * header, service_id_t dev_handle);
 
 extern gpt_partitions_t * gpt_read_partitions(gpt_t * gpt);
 extern int 				  gpt_write_partitions(gpt_partitions_t * parts, gpt_t * header, service_id_t dev_handle);
-extern gpt_partitions_t * gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition);
-extern gpt_partitions_t * gpt_remove_partition(gpt_partitions_t * parts, size_t idx);
-extern void 			  gpt_set_part_type(gpt_part_t * p, int type);
+extern gpt_part_t *		  gpt_alloc_partition(gpt_partitions_t * parts);
+extern int				  gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition);
+extern int				  gpt_remove_partition(gpt_partitions_t * parts, size_t idx);
+extern size_t			  gpt_get_part_type(gpt_part_t * p);
+extern void 			  gpt_set_part_type(gpt_part_t * p, size_t type);
+extern char * 			  gpt_get_part_name(gpt_entry_t * p);
 extern void 			  gpt_set_part_name(gpt_entry_t * p, char * name[], size_t length);
+extern bool				  gpt_get_flag(gpt_part_t * p, GPT_ATTR flag);
+extern void				  gpt_set_flag(gpt_part_t * p, GPT_ATTR flag, bool value);
+
+#define gpt_foreach(parts, i, iterator) \
+		for(size_t i = 0, gpt_part_t * iterator = parts->part_array;
+		    i < parts->fill; i++, iterator++)
 
 extern void gpt_free_gpt(gpt_t * gpt);
 extern void gpt_free_partitions(gpt_partitions_t * parts);

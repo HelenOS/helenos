@@ -45,5 +45,6 @@ extern int add_mbr_part(tinput_t * in, union table_data * data);
 extern int delete_mbr_part(tinput_t * in, union table_data * data);
 extern int print_mbr_parts(union table_data * data);
 extern int write_mbr_parts(service_id_t dev_handle, union table_data * data);
+extern int extra_mbr_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data);
 
 #endif

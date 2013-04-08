@@ -39,6 +39,24 @@
 
 #define LIBMBR_NAME	"libmbr"
 
+#ifdef DEBUG_CONFIG
+#include <stdio.h>
+#include <str_error.h>
+#define DEBUG_PRINT_0(str) \
+	printf("%s:%d: " str, __FILE__, __LINE__)
+#define DEBUG_PRINT_1(str, arg1) \
+	printf("%s:%d: " str, __FILE__, __LINE__, arg1)
+#define DEBUG_PRINT_2(str, arg1, arg2) \
+	printf("%s:%d: " str, __FILE__, __LINE__, arg1, arg2)
+#define DEBUG_PRINT_3(str, arg1, arg2, arg3) \
+	printf("%s:%d: " str, __FILE__, __LINE__, arg1, arg2, arg3)
+#else
+#define DEBUG_PRINT_0(str) 
+#define DEBUG_PRINT_1(str, arg1)
+#define DEBUG_PRINT_2(str, arg1, arg2)
+#define DEBUG_PRINT_3(str, arg1, arg2, arg3)
+#endif
+
 /** Number of primary partition records */
 #define N_PRIMARY		4
 
@@ -104,12 +122,9 @@ typedef struct {
 	br_block_t raw_data;
 	/** Device where the data are from */
 	service_id_t device;
-	/** Pointer to partition list */
-	//list of partitions;	//if we keep this in here, we should free() it in mbr_free_mbr()
 } mbr_t;
 
 
-//FIXME: make mbr_partitions_t as the linked list for keeping the same interface as with GPT
 /** Partition */
 typedef struct mbr_part {
 	/** The link in the doubly-linked list */
@@ -126,6 +141,7 @@ typedef struct mbr_part {
 	br_block_t * ebr;
 } mbr_part_t;
 
+/** Partition list structure */
 typedef struct mbr_parts {
 	/** Number of primary partitions */
 	unsigned char n_primary;
@@ -137,6 +153,7 @@ typedef struct mbr_parts {
 	list_t list;
 } mbr_partitions_t;
 
+/** Both header and partition list */
 typedef struct mbr_table {
 	mbr_t * mbr;
 	mbr_partitions_t * parts;
@@ -150,7 +167,8 @@ extern mbr_t * mbr_read_mbr(service_id_t dev_handle);
 extern int mbr_write_mbr(mbr_t * mbr, service_id_t dev_handle);
 extern int mbr_is_mbr(mbr_t * mbr);
 
-/** Read/Write/Set MBR partitions. */
+/** Read/Write/Set MBR partitions.
+ * NOTE: Writing partitions writes the complete header as well. */
 extern mbr_partitions_t * mbr_read_partitions(mbr_t * mbr);
 extern int 			mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev_handle);
 extern mbr_part_t *	mbr_alloc_partition(void);
