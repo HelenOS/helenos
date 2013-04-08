@@ -52,8 +52,8 @@
 #include <typedefs.h>
 #include <byteorder.h>
 
-#define BG_COLOR     0x000080
-#define FG_COLOR     0xffff00
+#define BG_COLOR     0x001620
+#define FG_COLOR     0xf3cf65
 #define INV_COLOR    0xaaaaaa
 
 #define RED(x, bits)    (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
