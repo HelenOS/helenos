@@ -56,8 +56,8 @@
 
 #define NAME  "vlaunch"
 
-#define LOGO_WIDTH   64
-#define LOGO_HEIGHT  60
+#define LOGO_WIDTH   196
+#define LOGO_HEIGHT  66
 
 static char *winreg = NULL;
 
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 	grid->add(grid, &btn_vdemo->widget, 3, 0, 1, 1);
 	grid->add(grid, &btn_vlaunch->widget, 4, 0, 1, 1);
 	
-	window_resize(main_window, 180, 280 + LOGO_HEIGHT);
+	window_resize(main_window, 210, 280 + LOGO_HEIGHT);
 	window_exec(main_window);
 	
 	task_retval(0);
