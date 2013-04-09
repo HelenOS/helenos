@@ -54,7 +54,8 @@ EOF
 
 BINUTILS_VERSION="2.22"
 BINUTILS_RELEASE=""
-GCC_VERSION="4.7.2"
+#GCC_VERSION="4.7.2"
+GCC_VERSION="4.8.0"
 GDB_VERSION="7.5"
 
 BASEDIR="`pwd`"
@@ -295,13 +296,13 @@ build_target() {
 	PREFIX="${CROSS_PREFIX}/${PLATFORM}"
 	
 	echo ">>> Downloading tarballs"
-	source_check "${BASEDIR}/${BINUTILS}"
+	#source_check "${BASEDIR}/${BINUTILS}"
 	source_check "${BASEDIR}/${GCC}"
-	source_check "${BASEDIR}/${GDB}"
+	#source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
-	cleanup_dir "${PREFIX}"
-	cleanup_dir "${WORKDIR}"
+	#cleanup_dir "${PREFIX}"
+	#cleanup_dir "${WORKDIR}"
 	
 	create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
@@ -311,7 +312,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
-	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
+	#unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
 	echo ">>> Processing binutils (${PLATFORM})"
@@ -327,16 +328,16 @@ build_target() {
 	check_error $? "Error compiling/installing binutils."
 	
 	echo ">>> Processing GCC (${PLATFORM})"
-	cd "${OBJDIR}"
-	check_error $? "Change directory failed."
+	#cd "${OBJDIR}"
+	#check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
-	check_error $? "Error configuring GCC."
+	#"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
+	#check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
-	check_error $? "Error compiling/installing GCC."
+	#PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
+	#check_error $? "Error compiling/installing GCC."
 	
 	echo ">>> Processing GDB (${PLATFORM})"
 	cd "${GDBDIR}"
@@ -366,7 +367,7 @@ fi
 
 case "$1" in
 	"amd64")
-		prepare
+		#prepare
 		build_target "amd64" "amd64-linux-gnu"
 		;;
 	"arm32")
@@ -374,7 +375,7 @@ case "$1" in
 		build_target "arm32" "arm-linux-gnueabi"
 		;;
 	"ia32")
-		prepare
+		#prepare
 		build_target "ia32" "i686-pc-linux-gnu"
 		;;
 	"ia64")
