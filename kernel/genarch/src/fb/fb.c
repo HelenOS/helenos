@@ -34,7 +34,6 @@
  */
 
 #include <genarch/fb/font-8x16.h>
-#include <genarch/fb/logo-196x66.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -92,8 +91,6 @@ typedef struct {
 	unsigned int xres;
 	unsigned int yres;
 	
-	unsigned int ylogo;
-	unsigned int ytrim;
 	unsigned int rowtrim;
 	
 	unsigned int scanline;
@@ -212,19 +209,6 @@ static void bgr_323(void *dst, uint32_t rgb)
 	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
 }
 
-/** Hide logo and refresh screen
- *
- */
-static void logo_hide(fb_instance_t *instance)
-{
-	instance->ylogo = 0;
-	instance->ytrim = instance->yres;
-	instance->rowtrim = instance->rows;
-	
-	if ((!instance->parea.mapped) || (console_override))
-		fb_redraw_internal(instance);
-}
-
 /** Draw character at given position
  *
  */
@@ -235,15 +219,12 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
 	unsigned int y = ROW2Y(row);
 	unsigned int yd;
 	
-	if (y >= instance->ytrim)
-		logo_hide(instance);
-	
 	if (!overlay)
 		instance->backbuf[BB_POS(instance, col, row)] = glyph;
 	
 	if ((!instance->parea.mapped) || (console_override)) {
 		for (yd = 0; yd < FONT_SCANLINES; yd++)
-			memcpy(&instance->addr[FB_POS(instance, x, y + yd + instance->ylogo)],
+			memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
 			    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
 			    instance->glyphscanline);
 	}
@@ -255,11 +236,6 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
  */
 static void screen_scroll(fb_instance_t *instance)
 {
-	if (instance->ylogo > 0) {
-		logo_hide(instance);
-		return;
-	}
-	
 	if ((!instance->parea.mapped) || (console_override)) {
 		unsigned int row;
 		
@@ -411,24 +387,10 @@ static void fb_putchar(outdev_t *dev, wchar_t ch)
 
 static void fb_redraw_internal(fb_instance_t *instance)
 {
-	if (instance->ylogo > 0) {
-		unsigned int y;
-		
-		for (y = 0; y < LOGO_HEIGHT; y++) {
-			unsigned int x;
-			
-			for (x = 0; x < instance->xres; x++)
-				instance->rgb_conv(&instance->addr[FB_POS(instance, x, y)],
-				    (x < LOGO_WIDTH) ?
-				    fb_logo[y * LOGO_WIDTH + x] :
-				    LOGO_COLOR);
-		}
-	}
-	
 	unsigned int row;
 	
 	for (row = 0; row < instance->rowtrim; row++) {
-		unsigned int y = instance->ylogo + ROW2Y(row);
+		unsigned int y = ROW2Y(row);
 		unsigned int yd;
 		
 		for (yd = 0; yd < FONT_SCANLINES; yd++) {
@@ -451,16 +413,15 @@ static void fb_redraw_internal(fb_instance_t *instance)
 		unsigned int size =
 		    (instance->xres - COL2X(instance->cols)) * instance->pixelbytes;
 		
-		for (y = instance->ylogo; y < instance->yres; y++)
+		for (y = 0; y < instance->yres; y++)
 			memcpy(&instance->addr[FB_POS(instance, COL2X(instance->cols), y)],
 			    instance->bgscan, size);
 	}
 	
-	if (ROW2Y(instance->rowtrim) + instance->ylogo < instance->yres) {
+	if (ROW2Y(instance->rowtrim) < instance->yres) {
 		unsigned int y;
 		
-		for (y = ROW2Y(instance->rowtrim) + instance->ylogo;
-		    y < instance->yres; y++)
+		for (y = ROW2Y(instance->rowtrim); y < instance->yres; y++)
 			memcpy(&instance->addr[FB_POS(instance, 0, y)],
 			    instance->bgscan, instance->bgscanbytes);
 	}
@@ -566,17 +527,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	instance->cols = X2COL(instance->xres);
 	instance->rows = Y2ROW(instance->yres);
 	
-	if (instance->yres > LOGO_HEIGHT) {
-		instance->ylogo = LOGO_HEIGHT;
-		instance->rowtrim = instance->rows - Y2ROW(instance->ylogo);
-		if (instance->ylogo % FONT_SCANLINES > 0)
-			instance->rowtrim--;
-		instance->ytrim = ROW2Y(instance->rowtrim);
-	} else {
-		instance->ylogo = 0;
-		instance->ytrim = instance->yres;
-		instance->rowtrim = instance->rows;
-	}
+	instance->rowtrim = instance->rows;
 	
 	instance->glyphscanline = FONT_WIDTH * instance->pixelbytes;
 	instance->glyphbytes = ROW2Y(instance->glyphscanline);
