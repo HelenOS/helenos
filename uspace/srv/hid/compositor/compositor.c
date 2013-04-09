@@ -1961,11 +1961,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			}
 		}
 		list_prepend(&blue_win->link, &window_list);
-
-		window_t *helenos_win = window_create(0, 0);
-		helenos_win->surface = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
-		list_prepend(&helenos_win->link, &window_list);
-
+		
 		window_t *nameic_win = window_create(0, 0);
 		nameic_win->surface = decode_tga((void *) nameic_tga, nameic_tga_size, 0);
 		list_prepend(&nameic_win->link, &window_list);
