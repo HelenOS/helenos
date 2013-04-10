@@ -74,12 +74,16 @@
 #define from(x, type, endian) (float)(type ## _ ## endian ## 2host(x))
 #define to(x, type, endian) (float)(host2 ## type ## _ ## endian(x))
 
+/** Default linear PCM format */
 const pcm_format_t AUDIO_FORMAT_DEFAULT = {
 	.channels = 2,
 	.sampling_rate = 44100,
 	.sample_format = PCM_SAMPLE_SINT16_LE,
 	};
 
+/** Special ANY PCM format.
+ * This format is used if the real format is no know or important.
+ */
 const pcm_format_t AUDIO_FORMAT_ANY = {
 	.channels = 0,
 	.sampling_rate = 0,

@@ -39,6 +39,7 @@
 #include <stdbool.h>
 #include <time.h>
 
+/** Known and supported PCM sample formats */
 typedef enum {
 	PCM_SAMPLE_UINT8,
 	PCM_SAMPLE_SINT8,
@@ -62,6 +63,11 @@ typedef enum {
 	PCM_SAMPLE_FORMAT_LAST = PCM_SAMPLE_FLOAT32,
 } pcm_sample_format_t;
 
+/**
+ * Query if the format uses signed values.
+ * @param format PCM sample format.
+ * @return True if the format uses signed values, false otherwise.
+ */
 static inline bool pcm_sample_format_is_signed(pcm_sample_format_t format)
 {
 	switch(format) {
@@ -90,6 +96,11 @@ static inline bool pcm_sample_format_is_signed(pcm_sample_format_t format)
 	}
 }
 
+/**
+ * Query byte-size of samples.
+ * @param format PCM sample format.
+ * @return Size in bytes of a single sample.
+ */
 static inline size_t pcm_sample_format_size(pcm_sample_format_t format)
 {
 	switch(format) {
@@ -121,12 +132,25 @@ static inline size_t pcm_sample_format_size(pcm_sample_format_t format)
 	}
 }
 
+/**
+ * Query sie of the entire frame.
+ * @param channels Number of samples in every frame.
+ * @param format PCM sample format.
+ * @return Size in bytes.
+ */
 static inline size_t pcm_sample_format_frame_size(unsigned channels,
     pcm_sample_format_t format)
 {
 	return pcm_sample_format_size(format) * channels;
 }
 
+/**
+ * Count number of frames that fit into a buffer (even incomplete frames).
+ * @param size Size of the buffer.
+ * @param channels Number of samples in every frame.
+ * @param format PCM sample format.
+ * @return Number of frames (even incomplete).
+ */
 static inline size_t pcm_sample_format_size_to_frames(size_t size,
     unsigned channels, pcm_sample_format_t format)
 {
@@ -134,14 +158,27 @@ static inline size_t pcm_sample_format_size_to_frames(size_t size,
 	return (size + frame_size - 1) / frame_size;
 }
 
+/**
+ * Convert byte size to time.
+ * @param size Size of the buffer.
+ * @param sample_rate Samples per second.
+ * @param channels Number of samples in every frame.
+ * @param format PCM sample format.
+ * @return Number of useconds of audio data.
+ */
 static inline useconds_t pcm_sample_format_size_to_usec(size_t size,
     unsigned sample_rate, unsigned channels, pcm_sample_format_t format)
 {
-	const long long frames =
+	const unsigned long long frames =
 	    pcm_sample_format_size_to_frames(size, channels, format);
 	return (frames * 1000000ULL) / sample_rate;
 }
 
+/**
+ * Get readable name of a sample format.
+ * @param format PCM sample format.
+ * @return Valid string representation.
+ */
 static inline const char * pcm_sample_format_str(pcm_sample_format_t format)
 {
 	switch(format) {
