@@ -93,13 +93,11 @@ void tlb_refill(istate_t *istate)
 {
 	entry_lo_t lo;
 	uintptr_t badvaddr;
-	uintptr_t page;
 	pte_t *pte;
 	
 	badvaddr = cp0_badvaddr_read();
-	page = ALIGN_DOWN(badvaddr, PAGE_SIZE);
 
-	pte = page_mapping_find(AS, page, true);
+	pte = page_mapping_find(AS, badvaddr, true);
 	if (pte && pte->p) {
 		/*
 		 * Record access to PTE.
@@ -124,7 +122,7 @@ void tlb_refill(istate_t *istate)
 		return;
 	}
 
-	(void) as_page_fault(page, PF_ACCESS_READ, istate);
+	(void) as_page_fault(badvaddr, PF_ACCESS_READ, istate);
 }
 
 /** Process TLB Invalid Exception.
@@ -136,7 +134,6 @@ void tlb_invalid(istate_t *istate)
 	entry_lo_t lo;
 	tlb_index_t index;
 	uintptr_t badvaddr;
-	uintptr_t page;
 	pte_t *pte;
 
 	/*
@@ -160,9 +157,8 @@ void tlb_invalid(istate_t *istate)
 	ASSERT(!index.p);
 
 	badvaddr = cp0_badvaddr_read();
-	page = ALIGN_DOWN(badvaddr, PAGE_SIZE);
 
-	pte = page_mapping_find(AS, page, true);
+	pte = page_mapping_find(AS, badvaddr, true);
 	if (pte && pte->p) {
 		/*
 		 * Read the faulting TLB entry.
@@ -188,7 +184,7 @@ void tlb_invalid(istate_t *istate)
 		return;
 	}
 
-	(void) as_page_fault(page, PF_ACCESS_READ, istate);
+	(void) as_page_fault(badvaddr, PF_ACCESS_READ, istate);
 }
 
 /** Process TLB Modified Exception.
@@ -200,11 +196,9 @@ void tlb_modified(istate_t *istate)
 	entry_lo_t lo;
 	tlb_index_t index;
 	uintptr_t badvaddr;
-	uintptr_t page;
 	pte_t *pte;
 
 	badvaddr = cp0_badvaddr_read();
-	page = ALIGN_DOWN(badvaddr, PAGE_SIZE);
 
 	/*
 	 * Locate the faulting entry in TLB.
@@ -226,7 +220,7 @@ void tlb_modified(istate_t *istate)
 		return;
 	}
 
-	pte = page_mapping_find(AS, page, true);
+	pte = page_mapping_find(AS, badvaddr, true);
 	if (pte && pte->p && pte->w) {
 		/*
 		 * Read the faulting TLB entry.
@@ -253,7 +247,7 @@ void tlb_modified(istate_t *istate)
 		return;
 	}
 
-	(void) as_page_fault(page, PF_ACCESS_WRITE, istate);
+	(void) as_page_fault(badvaddr, PF_ACCESS_WRITE, istate);
 }
 
 void

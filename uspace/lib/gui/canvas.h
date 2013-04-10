@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup gui
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef KERN_LOGO_196X66_H_
-#define KERN_LOGO_196X66_H_
+#ifndef GUI_CANVAS_H_
+#define GUI_CANVAS_H_
 
-#define LOGO_WIDTH   196
-#define LOGO_HEIGHT  66
-#define LOGO_COLOR   0xffffff
+#include <stdbool.h>
+#include <sys/types.h>
+#include <io/pixel.h>
+#include <surface.h>
+#include "widget.h"
 
-#include <typedefs.h>
+typedef struct {
+	widget_t widget;
+	sysarg_t width;
+	sysarg_t height;
+	surface_t *surface;
+} canvas_t;
 
-extern uint32_t fb_logo[LOGO_WIDTH * LOGO_HEIGHT];
+extern bool init_canvas(canvas_t *, widget_t *, sysarg_t, sysarg_t,
+    surface_t *);
+extern canvas_t *create_canvas(widget_t *, sysarg_t, sysarg_t, surface_t *);
+extern void deinit_canvas(canvas_t *);
 
 #endif
 

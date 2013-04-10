@@ -37,7 +37,7 @@
 
 #include <libarch/fibril.h>
 
-typedef context_t jmp_buf;
+typedef context_t jmp_buf[1];
 
 extern int setjmp(jmp_buf env);
 extern void longjmp(jmp_buf env, int val) __attribute__((noreturn));
@@ -46,4 +46,3 @@ extern void longjmp(jmp_buf env, int val) __attribute__((noreturn));
 
 /** @}
  */
-

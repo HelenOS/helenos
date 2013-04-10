@@ -35,7 +35,32 @@
 #ifndef POSIX_FLOAT_H_
 #define POSIX_FLOAT_H_
 
-/* Empty. Just to satisfy preprocessor. */
+/* Rouding direction -1 - unknown */
+#define FLT_ROUNDS (-1)
+
+/* define some standard C constants in terms of GCC built-ins */
+#ifdef __GNUC__
+	#undef DBL_MANT_DIG
+	#define DBL_MANT_DIG __DBL_MANT_DIG__
+	#undef DBL_MIN_EXP
+	#define DBL_MIN_EXP __DBL_MIN_EXP__
+	#undef DBL_MAX_EXP
+	#define DBL_MAX_EXP __DBL_MAX_EXP__
+	#undef DBL_MAX
+	#define DBL_MAX __DBL_MAX__
+	#undef DBL_MAX_10_EXP
+	#define DBL_MAX_10_EXP __DBL_MAX_10_EXP__
+	#undef DBL_MIN_10_EXP
+	#define DBL_MIN_10_EXP __DBL_MIN_10_EXP__
+	#undef DBL_MIN
+	#define DBL_MIN __DBL_MIN__
+	#undef DBL_DIG
+	#define DBL_DIG __DBL_DIG__
+	#undef DBL_EPSILON
+	#define DBL_EPSILON __DBL_EPSILON__
+	#undef FLT_RADIX
+	#define FLT_RADIX __FLT_RADIX__
+#endif
 
 #endif /* POSIX_FLOAT_H_ */
 
