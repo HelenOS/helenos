@@ -49,76 +49,39 @@ static int sb_get_info(ddf_fun_t *fun, const char** name, unsigned *items)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 static int sb_get_item_info(ddf_fun_t *fun, unsigned item, const char** name,
-    unsigned *channels)
+    unsigned *max_level)
 {
 	assert(fun);
 	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
 	assert(mixer);
 	return
-	    sb_mixer_get_control_item_info(mixer, item, name, channels);
+	    sb_mixer_get_control_item_info(mixer, item, name, max_level);
 }
-/*----------------------------------------------------------------------------*/
-static int sb_get_channel_info(ddf_fun_t *fun, unsigned item, unsigned channel,
-    const char** name, unsigned *levels)
-{
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
-	return sb_mixer_get_channel_info(mixer, item, channel, name, levels);
-}
-/*----------------------------------------------------------------------------*/
-static int sb_channel_mute_set(ddf_fun_t *fun, unsigned item, unsigned channel,
-    bool mute)
-{
-	return ENOTSUP;
-}
-/*----------------------------------------------------------------------------*/
-static int sb_channel_mute_get(ddf_fun_t *fun, unsigned item, unsigned channel,
-    bool *mute)
-{
-	*mute = false;
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int sb_channel_volume_set(ddf_fun_t *fun, unsigned item, unsigned channel,
-    unsigned volume)
-{
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
-	return sb_mixer_set_volume_level(mixer, item, channel, volume);
-}
-/*----------------------------------------------------------------------------*/
-static int sb_channel_volume_get(ddf_fun_t *fun, unsigned item, unsigned channel,
-    unsigned *level, unsigned *max)
-{
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
-	unsigned levels;
-	const int ret =
-	    sb_mixer_get_channel_info(mixer, item, channel, NULL, &levels);
-	if (ret == EOK && max)
-		*max = --levels;
-	if (ret == EOK && level)
-		*level = sb_mixer_get_volume_level(mixer, item, channel);
 
-	return ret;
+static int sb_set_item_level(ddf_fun_t *fun, unsigned item, unsigned value)
+{
+	assert(fun);
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
+	return sb_mixer_set_control_item_value(mixer, item, value);
+}
+
+static int sb_get_item_level(ddf_fun_t *fun, unsigned item, unsigned *value)
+{
+	assert(fun);
+	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
+	assert(mixer);
+	return sb_mixer_get_control_item_value(mixer, item, value);
 }
 
 audio_mixer_iface_t sb_mixer_iface = {
 	.get_info = sb_get_info,
 	.get_item_info = sb_get_item_info,
-	.get_channel_info = sb_get_channel_info,
 
-	.channel_mute_set = sb_channel_mute_set,
-	.channel_mute_get = sb_channel_mute_get,
-
-	.channel_volume_set = sb_channel_volume_set,
-	.channel_volume_get = sb_channel_volume_get,
-
+	.get_item_level = sb_get_item_level,
+	.set_item_level = sb_set_item_level,
 };
 /**
  * @}

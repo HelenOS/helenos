@@ -64,53 +64,21 @@ typedef enum {
 	 */
 	IPC_M_AUDIO_MIXER_GET_ITEM_INFO,
 
-	/** Asks for channel name and number of volume levels.
+	/** Set new control item setting
 	 * Answer:
 	 * - ENOTSUP - call not supported
-	 * - ENOENT - no such channel
+	 * - ENOENT - no such control item
 	 * - EOK - call successful, info is valid
-	 * Answer arguments:
-	 * - Channel name
-	 * - Volume levels
 	 */
-	IPC_M_AUDIO_MIXER_GET_CHANNEL_INFO,
+	IPC_M_AUDIO_MIXER_SET_ITEM_LEVEL,
 
-	/** Set channel mute status
+	/** Get control item setting
 	 * Answer:
 	 * - ENOTSUP - call not supported
-	 * - ENOENT - no such channel
+	 * - ENOENT - no such control item
 	 * - EOK - call successful, info is valid
 	 */
-	IPC_M_AUDIO_MIXER_CHANNEL_MUTE_SET,
-
-	/** Get channel mute status
-	 * Answer:
-	 * - ENOTSUP - call not supported
-	 * - ENOENT - no such channel
-	 * - EOK - call successful, info is valid
-	 * Answer arguments:
-	 * - Channel mute status
-	 */
-	IPC_M_AUDIO_MIXER_CHANNEL_MUTE_GET,
-
-	/** Set channel volume level
-	 * Answer:
-	 * - ENOTSUP - call not supported
-	 * - ENOENT - no such channel
-	 * - EOK - call successful, info is valid
-	 */
-	IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_SET,
-
-	/** Get channel volume level
-	 * Answer:
-	 * - ENOTSUP - call not supported
-	 * - ENOENT - no such channel
-	 * - EOK - call successful, info is valid
-	 * Answer arguments:
-	 * - Channel volume level
-	 * - Channel maximum volume level
-	 */
-	IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_GET,
+	IPC_M_AUDIO_MIXER_GET_ITEM_LEVEL,
 } audio_mixer_iface_funcs_t;
 
 /*
@@ -161,13 +129,13 @@ int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
  * @return Error code.
  */
 int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
-    const char **name, unsigned *channels)
+    const char **name, unsigned *levels)
 {
 	if (!exch)
 		return EINVAL;
-	sysarg_t name_size, chans;
+	sysarg_t name_size, lvls;
 	const int ret = async_req_2_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
-	    IPC_M_AUDIO_MIXER_GET_ITEM_INFO, item, &name_size, &chans);
+	    IPC_M_AUDIO_MIXER_GET_ITEM_INFO, item, &name_size, &lvls);
 	if (ret == EOK && name) {
 		char *name_place = calloc(1, name_size);
 		if (!name_place) {
@@ -184,127 +152,45 @@ int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
 		}
 		*name = name_place;
 	}
-	if (ret == EOK && chans)
-		*channels = chans;
+	if (ret == EOK && levels)
+		*levels = lvls;
 	return ret;
 }
 
 /**
- * Query audio mixer for channel specific info (name and volume levels).
+ * Set control item to a new level.
  * @param[in] exch IPC exchange connected to the device.
- * @param[in] item TH control item controlling the channel.
- * @param[in] channel The channel.
- * @param[out] name Audio channel string identifier.
- * @param[out] volume_levels Number of volume levels.
+ * @param[in] item The control item controlling the channel.
+ * @param[in] level The new value.
  * @return Error code.
  */
-int audio_mixer_get_channel_info(async_exch_t *exch, unsigned item,
-    unsigned channel, const char **name, unsigned *volume_levels)
+int audio_mixer_set_item_level(async_exch_t *exch, unsigned item,
+    unsigned level)
 {
 	if (!exch)
 		return EINVAL;
-	sysarg_t name_size, levels;
-	const int ret = async_req_3_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
-	    IPC_M_AUDIO_MIXER_GET_CHANNEL_INFO, item, channel,
-	    &name_size, &levels);
-	if (ret == EOK && name) {
-		char *name_place = calloc(1, name_size);
-		if (!name_place) {
-			/* Make the other side fail
-			 * as it waits for read request */
-			async_data_read_start(exch, (void*)-1, 0);
-			return ENOMEM;
-		}
-		const int ret =
-		    async_data_read_start(exch, name_place, name_size);
-		if (ret != EOK) {
-			free(name_place);
-			return ret;
-		}
-		*name = name_place;
-	}
-	if (ret == EOK && volume_levels)
-		*volume_levels = levels;
-	return ret;
+	return async_req_3_0(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
+	    IPC_M_AUDIO_MIXER_SET_ITEM_LEVEL, item, level);
 }
 
 /**
- * Set MUTE status on an audio channel.
+ * Get current level of a control item.
  * @param[in] exch IPC exchange connected to the device.
  * @param[in] item The control item controlling the channel.
  * @param[in] channel The channel index.
- * @param[in] mute_status A new MUTE status.
+ * @param[out] level Currently set value.
  * @return Error code.
  */
-int audio_mixer_channel_mute_set(async_exch_t *exch, unsigned item,
-    unsigned channel, bool mute_status)
+int audio_mixer_get_item_level(async_exch_t *exch, unsigned item,
+    unsigned *level)
 {
 	if (!exch)
 		return EINVAL;
-	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
-	    IPC_M_AUDIO_MIXER_CHANNEL_MUTE_SET, item, channel, mute_status);
-}
-
-/**
- * Get MUTE status on an audio channel.
- * @param[in] exch IPC exchange connected to the device.
- * @param[in] item The control item controlling the channel.
- * @param[in] channel The channel index.
- * @param[out] mute_status Currently set MUTE status.
- * @return Error code.
- */
-int audio_mixer_channel_mute_get(async_exch_t *exch, unsigned item,
-    unsigned channel, bool *mute_status)
-{
-	if (!exch)
-		return EINVAL;
-	sysarg_t mute;
-	const int ret = async_req_3_1(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
-	    IPC_M_AUDIO_MIXER_CHANNEL_MUTE_GET, item, channel, &mute);
-	if (ret == EOK && mute_status)
-		*mute_status = (bool)mute;
-	return ret;
-}
-
-/**
- * Set VOLUME LEVEL on an audio channel.
- * @param[in] exch IPC exchange connected to the device.
- * @param[in] item The control item controlling the channel.
- * @param[in] channel The channel index.
- * @param[in] volume A new VOLUME LEVEL.
- * @return Error code.
- */
-int audio_mixer_channel_volume_set(async_exch_t *exch, unsigned item,
-    unsigned channel, unsigned volume)
-{
-	if (!exch)
-		return EINVAL;
-	return async_req_4_0(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
-	    IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_SET, item, channel, volume);
-}
-
-/**
- * Get VOLUME LEVEL on an audio channel.
- * @param[in] exch IPC exchange connected to the device.
- * @param[in] item The control item controlling the channel.
- * @param[in] channel The channel index.
- * @param[out] volume_current Currently set VOLUME LEVEL.
- * @param[out] volume_max Maximum VOLUME LEVEL.
- * @return Error code.
- */
-int audio_mixer_channel_volume_get(async_exch_t *exch, unsigned item,
-    unsigned channel, unsigned *volume_current, unsigned *volume_max)
-{
-	if (!exch)
-		return EINVAL;
-	sysarg_t current, max;
-	const int ret = async_req_3_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
-	    IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_GET, item, channel,
-	    &current, &max);
-	if (ret == EOK && volume_current)
-		*volume_current = current;
-	if (ret == EOK && volume_max)
-		*volume_max = max;
+	sysarg_t current;
+	const int ret = async_req_2_1(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
+	    IPC_M_AUDIO_MIXER_GET_ITEM_LEVEL, item, &current);
+	if (ret == EOK && level)
+		*level = current;
 	return ret;
 }
 
@@ -313,21 +199,15 @@ int audio_mixer_channel_volume_get(async_exch_t *exch, unsigned item,
  */
 static void remote_audio_mixer_get_info(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_audio_mixer_get_item_info(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_get_channel_info(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_channel_mute_set(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_channel_mute_get(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_channel_volume_set(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_channel_volume_get(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_mixer_get_item_level(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_mixer_set_item_level(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote audio mixer interface operations. */
 static remote_iface_func_ptr_t remote_audio_mixer_iface_ops[] = {
 	[IPC_M_AUDIO_MIXER_GET_INFO] = remote_audio_mixer_get_info,
 	[IPC_M_AUDIO_MIXER_GET_ITEM_INFO] = remote_audio_mixer_get_item_info,
-	[IPC_M_AUDIO_MIXER_GET_CHANNEL_INFO] = remote_audio_mixer_get_channel_info,
-	[IPC_M_AUDIO_MIXER_CHANNEL_MUTE_SET] = remote_audio_mixer_channel_mute_set,
-	[IPC_M_AUDIO_MIXER_CHANNEL_MUTE_GET] = remote_audio_mixer_channel_mute_get,
-	[IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_SET] = remote_audio_mixer_channel_volume_set,
-	[IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_GET] = remote_audio_mixer_channel_volume_get,
+	[IPC_M_AUDIO_MIXER_GET_ITEM_LEVEL] = remote_audio_mixer_get_item_level,
+	[IPC_M_AUDIO_MIXER_SET_ITEM_LEVEL] = remote_audio_mixer_set_item_level,
 };
 
 /** Remote audio mixer interface structure. */
@@ -379,10 +259,10 @@ void remote_audio_mixer_get_item_info(
 
 	const unsigned item = DEV_IPC_GET_ARG1(*call);
 	const char *name = NULL;
-	unsigned channels = 0;
-	const int ret = mixer_iface->get_item_info(fun, item, &name, &channels);
+	unsigned values = 0;
+	const int ret = mixer_iface->get_item_info(fun, item, &name, &values);
 	const size_t name_size = name ? str_size(name) + 1 : 0;
-	async_answer_2(callid, ret, name_size, channels);
+	async_answer_2(callid, ret, name_size, values);
 	/* Send the name. */
 	if (ret == EOK && name_size > 0) {
 		size_t size;
@@ -399,105 +279,35 @@ void remote_audio_mixer_get_item_info(
 	}
 }
 
-void remote_audio_mixer_get_channel_info(
+void remote_audio_mixer_set_item_level(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
-	if (!mixer_iface->get_channel_info) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	const unsigned item = DEV_IPC_GET_ARG1(*call);
-	const unsigned channel = DEV_IPC_GET_ARG2(*call);
-	const char *name = NULL;
-	unsigned levels = 0;
-	const int ret =
-	    mixer_iface->get_channel_info(fun, item, channel, &name, &levels);
-	const size_t name_size = name ? str_size(name) + 1 : 0;
-	async_answer_2(callid, ret, name_size, levels);
-	/* Send the name. */
-	if (ret == EOK && name_size > 0) {
-		size_t size;
-		ipc_callid_t name_id;
-		if (!async_data_read_receive(&name_id, &size)) {
-			async_answer_0(name_id, EPARTY);
-			return;
-		}
-		if (size != name_size) {
-			async_answer_0(name_id, ELIMIT);
-			return;
-		}
-		async_data_read_finalize(name_id, name, name_size);
-	}
-}
-
-void remote_audio_mixer_channel_mute_set(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
-{
-	audio_mixer_iface_t *mixer_iface = iface;
-
-	if (!mixer_iface->channel_mute_set) {
+	if (!mixer_iface->set_item_level) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	const unsigned item = DEV_IPC_GET_ARG1(*call);
-	const unsigned channel = DEV_IPC_GET_ARG2(*call);
-	const bool mute = DEV_IPC_GET_ARG3(*call);
-	const int ret = mixer_iface->channel_mute_set(fun, item, channel, mute);
+	const unsigned value = DEV_IPC_GET_ARG2(*call);
+	const int ret = mixer_iface->set_item_level(fun, item, value);
 	async_answer_0(callid, ret);
 }
 
-void remote_audio_mixer_channel_mute_get(
+void remote_audio_mixer_get_item_level(
     ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
-	if (!mixer_iface->channel_mute_get) {
+	if (!mixer_iface->get_item_level) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	const unsigned item = DEV_IPC_GET_ARG1(*call);
-	const unsigned channel = DEV_IPC_GET_ARG2(*call);
-	bool mute = false;
+	unsigned current = 0;
 	const int ret =
-	    mixer_iface->channel_mute_get(fun, item, channel, &mute);
-	async_answer_1(callid, ret, mute);
-}
-
-void remote_audio_mixer_channel_volume_set(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
-{
-	audio_mixer_iface_t *mixer_iface = iface;
-
-	if (!mixer_iface->channel_volume_set) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-	const unsigned item = DEV_IPC_GET_ARG1(*call);
-	const unsigned channel = DEV_IPC_GET_ARG2(*call);
-	const unsigned level = DEV_IPC_GET_ARG3(*call);
-	const int ret =
-	    mixer_iface->channel_volume_set(fun, item, channel, level);
-	async_answer_0(callid, ret);
-}
-
-void remote_audio_mixer_channel_volume_get(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
-{
-	audio_mixer_iface_t *mixer_iface = iface;
-
-	if (!mixer_iface->channel_volume_get) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-	const unsigned item = DEV_IPC_GET_ARG1(*call);
-	const unsigned channel = DEV_IPC_GET_ARG2(*call);
-	unsigned current = 0, max = 0;
-	const int ret =
-	    mixer_iface->channel_volume_get(fun, item, channel, &current, &max);
-	async_answer_2(callid, ret, current, max);
+	    mixer_iface->get_item_level(fun, item, &current);
+	async_answer_1(callid, ret, current);
 }
 
 /**

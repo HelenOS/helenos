@@ -45,27 +45,16 @@
 int audio_mixer_get_info(async_exch_t *, const char **, unsigned *);
 int audio_mixer_get_item_info(async_exch_t *, unsigned,
     const char **, unsigned *);
-int audio_mixer_get_channel_info(async_exch_t *, unsigned, unsigned,
-    const char **, unsigned *);
-int audio_mixer_channel_mute_set(async_exch_t *, unsigned, unsigned, bool);
-int audio_mixer_channel_mute_get(async_exch_t *, unsigned, unsigned, bool *);
-int audio_mixer_channel_volume_set(async_exch_t *, unsigned, unsigned,
-    unsigned);
-int audio_mixer_channel_volume_get(async_exch_t *, unsigned, unsigned,
-    unsigned *, unsigned *);
+int audio_mixer_get_item_level(async_exch_t *, unsigned, unsigned *);
+int audio_mixer_set_item_level(async_exch_t *, unsigned, unsigned);
 
 
 /** Audio mixer communication interface. */
 typedef struct {
 	int (*get_info)(ddf_fun_t *, const char **, unsigned *);
 	int (*get_item_info)(ddf_fun_t *, unsigned, const char **, unsigned *);
-	int (*get_channel_info)(ddf_fun_t *, unsigned, unsigned,
-	    const char **, unsigned *);
-	int (*channel_mute_set)(ddf_fun_t *, unsigned, unsigned, bool);
-	int (*channel_mute_get)(ddf_fun_t *, unsigned, unsigned, bool *);
-	int (*channel_volume_set)(ddf_fun_t *, unsigned, unsigned, unsigned);
-	int (*channel_volume_get)(ddf_fun_t *, unsigned, unsigned,
-	    unsigned *, unsigned *);
+	int (*get_item_level)(ddf_fun_t *, unsigned, unsigned *);
+	int (*set_item_level)(ddf_fun_t *, unsigned, unsigned);
 } audio_mixer_iface_t;
 
 #endif

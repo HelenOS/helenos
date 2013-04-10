@@ -42,6 +42,10 @@
 
 #define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/control"
 
+/**
+ * Print volume levels on all channels on all control items.
+ * @param exch IPC exchange
+ */
 static void print_levels(async_exch_t *exch)
 {
 	const char* name = NULL;
@@ -51,110 +55,90 @@ static void print_levels(async_exch_t *exch)
 		printf("Failed to get mixer info: %s.\n", str_error(ret));
 		return;
 	}
-	printf("MIXER %s:\n", name);
+	printf("MIXER %s:\n\n", name);
 
 	for (unsigned i = 0; i < count; ++i) {
 		const char *name = NULL;
-		unsigned channels = 0;
-		const int ret =
-		    audio_mixer_get_item_info(exch, i, &name, &channels);
+		unsigned levels = 0, current = 0;
+		int ret =
+		    audio_mixer_get_item_info(exch, i, &name, &levels);
 		if (ret != EOK) {
 			printf("Failed to get item %u info: %s.\n",
 			    i, str_error(ret));
 			continue;
 		}
-		for (unsigned j = 0; j < channels; ++j) {
-			const char *chan = NULL;
-			int ret = audio_mixer_get_channel_info(
-			    exch, i, j, &chan, NULL);
-			if (ret != EOK) {
-				printf(
-				    "Failed to get channel %u-%u info: %s.\n",
-				    i, j, str_error(ret));
-			}
-			unsigned level = 0, max = 0;
-			ret = audio_mixer_channel_volume_get(
-			    exch, i, j, &level, &max);
-			if (ret != EOK) {
-				printf("Failed to get channel %u-%u volume:"
-				    " %s.\n", i, j, str_error(ret));
-			}
-			bool mute = false;
-			ret = audio_mixer_channel_mute_get(
-			    exch, i, j, &mute);
-			if (ret != EOK) {
-				printf("Failed to get channel %u-%u mute"
-				    " status: %s.\n", i, j, str_error(ret));
-			}
-
-			printf("\tChannel(%u/%u) %s %s volume: %u/%u%s.\n",
-			    i, j, name, chan, level, max, mute ? " (M)":"");
-			free(chan);
+		ret = audio_mixer_get_item_level(exch, i, &current);
+		if (ret != EOK) {
+			printf("Failed to get item %u info: %s.\n",
+			    i, str_error(ret));
+			continue;
 		}
+
+		printf("Control item %u `%s' : %u/%u.\n",
+		    i, name, current, levels - 1);
 		free(name);
 
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 static unsigned get_number(const char* str)
 {
 	uint16_t num;
 	str_uint16_t(str, NULL, 10, false, &num);
 	return num;
 }
-/*----------------------------------------------------------------------------*/
-static void set_volume(async_exch_t *exch, int argc, char *argv[])
-{
-	assert(exch);
-	if (argc != 5 && argc != 6) {
-		printf("%s [device] setvolume item channel value\n", argv[0]);
-	}
-	unsigned params = argc == 6 ? 3 : 2;
-	const unsigned item = get_number(argv[params++]);
-	const unsigned channel = get_number(argv[params++]);
-	const unsigned value = get_number(argv[params]);
-	int ret = audio_mixer_channel_volume_set(exch, item, channel, value);
-	if (ret != EOK) {
-		printf("Failed to set mixer volume: %s.\n", str_error(ret));
-		return;
-	}
-	printf("Channel %u-%u volume set to %u.\n", item, channel, value);
-}
-/*----------------------------------------------------------------------------*/
-static void get_volume(async_exch_t *exch, int argc, char *argv[])
+
+static void set_level(async_exch_t *exch, int argc, char *argv[])
 {
 	assert(exch);
 	if (argc != 4 && argc != 5) {
-		printf("%s [device] getvolume item channel\n", argv[0]);
+		printf("%s [device] setlevel item value\n", argv[0]);
+		return;
 	}
 	unsigned params = argc == 5 ? 3 : 2;
 	const unsigned item = get_number(argv[params++]);
-	const unsigned channel = get_number(argv[params++]);
-	unsigned value = 0, max = 0;
-
-	int ret = audio_mixer_channel_volume_get(
-	    exch, item, channel, &value, &max);
+	const unsigned value = get_number(argv[params]);
+	int ret = audio_mixer_set_item_level(exch, item, value);
 	if (ret != EOK) {
-		printf("Failed to get mixer volume: %s.\n", str_error(ret));
+		printf("Failed to set item level: %s.\n", str_error(ret));
 		return;
 	}
-	printf("Channel %u-%u volume: %u/%u.\n", item, channel, value, max);
+	printf("Control item %u new level is %u.\n", item, value);
 }
-/*----------------------------------------------------------------------------*/
+
+static void get_level(async_exch_t *exch, int argc, char *argv[])
+{
+	assert(exch);
+	if (argc != 3 && argc != 4) {
+		printf("%s [device] getlevel item \n", argv[0]);
+		return;
+	}
+	unsigned params = argc == 4 ? 3 : 2;
+	const unsigned item = get_number(argv[params++]);
+	unsigned value = 0;
+
+	int ret = audio_mixer_get_item_level(exch, item, &value);
+	if (ret != EOK) {
+		printf("Failed to get item level: %s.\n", str_error(ret));
+		return;
+	}
+	printf("Control item %u level: %u.\n", item, value);
+}
+
 int main(int argc, char *argv[])
 {
 	const char *device = DEFAULT_DEVICE;
 	void (*command)(async_exch_t *, int, char*[]) = NULL;
 
-	if (argc >= 2 && str_cmp(argv[1], "setvolume") == 0) {
-		command = set_volume;
-		if (argc == 6)
+	if (argc >= 2 && str_cmp(argv[1], "setlevel") == 0) {
+		command = set_level;
+		if (argc == 5)
 			device = argv[1];
 	}
 
-	if (argc >= 2 && str_cmp(argv[1], "getvolume") == 0) {
-		command = get_volume;
-		if (argc == 5)
+	if (argc >= 2 && str_cmp(argv[1], "getlevel") == 0) {
+		command = get_level;
+		if (argc == 4)
 			device = argv[1];
 	}
 
