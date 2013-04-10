@@ -116,6 +116,14 @@ typedef enum {
 /*
  * CLIENT SIDE
  */
+
+/**
+ * Query audio mixer for basic info (name and items count).
+ * @param[in] exch IPC exchange connected to the device
+ * @param[out] name Audio mixer string identifier
+ * @param[out] items Number of items controlled by the mixer.
+ * @return Error code.
+ */
 int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
 {
 	if (!exch)
@@ -144,8 +152,16 @@ int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
 	return ret;
 }
 
+/**
+ * Query audio mixer for item specific info (name and channels count).
+ * @param[in] exch IPC exchange connected to the device
+ * @param[in] item The control item
+ * @param[out] name Control item string identifier.
+ * @param[out] channles Number of channels associated with this control item.
+ * @return Error code.
+ */
 int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
-    const char ** name, unsigned *channels)
+    const char **name, unsigned *channels)
 {
 	if (!exch)
 		return EINVAL;
@@ -173,6 +189,15 @@ int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
 	return ret;
 }
 
+/**
+ * Query audio mixer for channel specific info (name and volume levels).
+ * @param[in] exch IPC exchange connected to the device.
+ * @param[in] item TH control item controlling the channel.
+ * @param[in] channel The channel.
+ * @param[out] name Audio channel string identifier.
+ * @param[out] volume_levels Number of volume levels.
+ * @return Error code.
+ */
 int audio_mixer_get_channel_info(async_exch_t *exch, unsigned item,
     unsigned channel, const char **name, unsigned *volume_levels)
 {
@@ -203,6 +228,14 @@ int audio_mixer_get_channel_info(async_exch_t *exch, unsigned item,
 	return ret;
 }
 
+/**
+ * Set MUTE status on an audio channel.
+ * @param[in] exch IPC exchange connected to the device.
+ * @param[in] item The control item controlling the channel.
+ * @param[in] channel The channel index.
+ * @param[in] mute_status A new MUTE status.
+ * @return Error code.
+ */
 int audio_mixer_channel_mute_set(async_exch_t *exch, unsigned item,
     unsigned channel, bool mute_status)
 {
@@ -212,6 +245,14 @@ int audio_mixer_channel_mute_set(async_exch_t *exch, unsigned item,
 	    IPC_M_AUDIO_MIXER_CHANNEL_MUTE_SET, item, channel, mute_status);
 }
 
+/**
+ * Get MUTE status on an audio channel.
+ * @param[in] exch IPC exchange connected to the device.
+ * @param[in] item The control item controlling the channel.
+ * @param[in] channel The channel index.
+ * @param[out] mute_status Currently set MUTE status.
+ * @return Error code.
+ */
 int audio_mixer_channel_mute_get(async_exch_t *exch, unsigned item,
     unsigned channel, bool *mute_status)
 {
@@ -225,6 +266,14 @@ int audio_mixer_channel_mute_get(async_exch_t *exch, unsigned item,
 	return ret;
 }
 
+/**
+ * Set VOLUME LEVEL on an audio channel.
+ * @param[in] exch IPC exchange connected to the device.
+ * @param[in] item The control item controlling the channel.
+ * @param[in] channel The channel index.
+ * @param[in] volume A new VOLUME LEVEL.
+ * @return Error code.
+ */
 int audio_mixer_channel_volume_set(async_exch_t *exch, unsigned item,
     unsigned channel, unsigned volume)
 {
@@ -234,6 +283,15 @@ int audio_mixer_channel_volume_set(async_exch_t *exch, unsigned item,
 	    IPC_M_AUDIO_MIXER_CHANNEL_VOLUME_SET, item, channel, volume);
 }
 
+/**
+ * Get VOLUME LEVEL on an audio channel.
+ * @param[in] exch IPC exchange connected to the device.
+ * @param[in] item The control item controlling the channel.
+ * @param[in] channel The channel index.
+ * @param[out] volume_current Currently set VOLUME LEVEL.
+ * @param[out] volume_max Maximum VOLUME LEVEL.
+ * @return Error code.
+ */
 int audio_mixer_channel_volume_get(async_exch_t *exch, unsigned item,
     unsigned channel, unsigned *volume_current, unsigned *volume_max)
 {
