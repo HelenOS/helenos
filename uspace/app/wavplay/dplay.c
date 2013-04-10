@@ -51,6 +51,7 @@
 
 #define DEFAULT_FRAGMENTS 2
 
+/** Playback helper structure */
 typedef struct {
 	struct {
 		void *base;
@@ -65,6 +66,12 @@ typedef struct {
 	audio_pcm_sess_t *device;
 } playback_t;
 
+/**
+ * Initialize playback helper structure.
+ * @param pb Pointer to helper structure to initialize
+ * @param sess Pointer to audio device IPC session
+ * @return
+ */
 static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
 {
 	assert(sess);
@@ -79,7 +86,12 @@ static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
 	fibril_condvar_initialize(&pb->cv);
 }
 
-
+/**
+ * Fragment playback callback function.
+ * @param iid IPC call id.
+ * @param icall Pointer to the call structure
+ * @param arg Argument, pointer to the playback helper function
+ */
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg)
 {
 	async_answer_0(iid, EOK);
@@ -124,6 +136,10 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 	}
 }
 
+/**
+ * Start event based playback.
+ * @param pb Playback helper structure.
+ */
 static void play_fragment(playback_t *pb)
 {
 	assert(pb);
@@ -165,6 +181,12 @@ static void play_fragment(playback_t *pb)
 	audio_pcm_unregister_event_callback(pb->device);
 }
 
+/**
+ * Count occupied space in a cyclic buffer.
+ * @param pb Playback helper structure.
+ * @param pos read pointer position.
+ * @return Occupied space size.
+ */
 static size_t buffer_occupied(const playback_t *pb, size_t pos)
 {
 	assert(pb);
@@ -175,6 +197,12 @@ static size_t buffer_occupied(const playback_t *pb, size_t pos)
 
 }
 
+/**
+ * Count available space in a cyclic buffer.
+ * @param pb Playback helper structure.
+ * @param pos read pointer position.
+ * @return Free space size.
+ */
 static size_t buffer_avail(const playback_t *pb, size_t pos)
 {
 	assert(pb);
@@ -184,12 +212,21 @@ static size_t buffer_avail(const playback_t *pb, size_t pos)
 	return (read_ptr - pb->buffer.write_ptr) - 1;
 }
 
+/**
+ * Size of the space between write pointer and the end of a cyclic buffer
+ * @param pb Playback helper structure.
+ */
 static size_t buffer_remain(const playback_t *pb)
 {
 	assert(pb);
 	return (pb->buffer.base + pb->buffer.size) - pb->buffer.write_ptr;
 }
 
+/**
+ * Move write pointer forward. Wrap around the end.
+ * @param pb Playback helper structure.
+ * @param bytes NUmber of bytes to advance.
+ */
 static void buffer_advance(playback_t *pb, size_t bytes)
 {
 	assert(pb);
@@ -201,7 +238,10 @@ static void buffer_advance(playback_t *pb, size_t bytes)
 #define DPRINTF(f, ...) \
 	printf("%.2lu:%.6lu   "f, time.tv_sec % 100, time.tv_usec, __VA_ARGS__)
 
-
+/**
+ * Start playback using buffer position api.
+ * @param pb Playback helper function.
+ */
 static void play(playback_t *pb)
 {
 	assert(pb);
@@ -216,7 +256,8 @@ static void play(playback_t *pb)
 	getuptime(&time);
 	do {
 		size_t available = buffer_avail(pb, pos);
-		/* Writing might need wrap around the end */
+		/* Writing might need wrap around the end,
+		 * read directly to device buffer */
 		size_t bytes = fread(pb->buffer.write_ptr, sizeof(uint8_t),
 		    min(available, buffer_remain(pb)), pb->source);
 		buffer_advance(pb, bytes);
@@ -224,6 +265,8 @@ static void play(playback_t *pb)
 		    pos, available, bytes,
 		    pb->buffer.write_ptr - pb->buffer.base);
 		available -= bytes;
+
+		/* continue if we wrapped around the end */
 		if (available) {
 			bytes = fread(pb->buffer.write_ptr,
 			    sizeof(uint8_t), min(available, buffer_remain(pb)),
@@ -253,17 +296,22 @@ static void play(playback_t *pb)
 		const useconds_t usecs =
 		    pcm_format_size_to_usec(to_play, &pb->f);
 
+		/* Compute delay time */
 		const useconds_t real_delay = (usecs > work_time)
 		    ? usecs - work_time : 0;
 		DPRINTF("POS %zu: %u usecs (%u) to play %zu bytes.\n",
 		    pos, usecs, real_delay, to_play);
 		if (real_delay)
 			async_usleep(real_delay);
+		/* update buffer position */
 		const int ret = audio_pcm_get_buffer_pos(pb->device, &pos);
 		if (ret != EOK) {
 			printf("Failed to update position indicator\n");
 		}
 		getuptime(&time);
+
+		/* we did not use all the space we had,
+		 * that is the end */
 		if (available)
 			break;
 
@@ -271,6 +319,12 @@ static void play(playback_t *pb)
 	audio_pcm_stop_playback(pb->device);
 }
 
+/**
+ * Play audio file usign direct device access.
+ * @param device The device.
+ * @param file The file.
+ * @return Error code.
+ */
 int dplay(const char *device, const char *file)
 {
 	int ret = EOK;

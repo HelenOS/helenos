@@ -50,6 +50,12 @@
 #define READ_SIZE   (32 * 1024)
 #define STREAM_BUFFER_SIZE   (64 * 1024)
 
+/**
+ * Play audio file using a new stream on provided context.
+ * @param ctx Provided context.
+ * @param filename File to play.
+ * @return Error code.
+ */
 static int hplay_ctx(hound_context_t *ctx, const char *filename)
 {
 	printf("Hound context playback: %s\n", filename);
@@ -58,6 +64,8 @@ static int hplay_ctx(hound_context_t *ctx, const char *filename)
 		printf("Failed to open file %s\n", filename);
 		return EINVAL;
 	}
+
+	/* Read and parse WAV header */
 	wave_header_t header;
 	size_t read = fread(&header, sizeof(header), 1, source);
 	if (read != 1) {
@@ -75,14 +83,16 @@ static int hplay_ctx(hound_context_t *ctx, const char *filename)
 		return EINVAL;
 	}
 
-	hound_stream_t *stream = hound_stream_create(ctx,
-	    HOUND_STREAM_DRAIN_ON_EXIT, format, STREAM_BUFFER_SIZE);
-
+	/* Allocate buffer and create new context */
 	char * buffer = malloc(READ_SIZE);
 	if (!buffer) {
 		fclose(source);
 		return ENOMEM;
 	}
+	hound_stream_t *stream = hound_stream_create(ctx,
+	    HOUND_STREAM_DRAIN_ON_EXIT, format, STREAM_BUFFER_SIZE);
+
+	/* Read and play */
 	while ((read = fread(buffer, sizeof(char), READ_SIZE, source)) > 0) {
 		ret = hound_stream_write(stream, buffer, read);
 		if (ret != EOK) {
@@ -91,11 +101,18 @@ static int hplay_ctx(hound_context_t *ctx, const char *filename)
 			break;
 		}
 	}
+
+	/* Cleanup */
 	free(buffer);
 	fclose(source);
 	return ret;
 }
 
+/**
+ * Play audio file via hound server.
+ * @param filename File to play.
+ * @return Error code
+ */
 static int hplay(const char *filename)
 {
 	printf("Hound playback: %s\n", filename);
@@ -104,6 +121,8 @@ static int hplay(const char *filename)
 		printf("Failed to open file %s\n", filename);
 		return EINVAL;
 	}
+
+	/* Read and parse WAV header */
 	wave_header_t header;
 	size_t read = fread(&header, sizeof(header), 1, source);
 	if (read != 1) {
@@ -120,6 +139,8 @@ static int hplay(const char *filename)
 		fclose(source);
 		return EINVAL;
 	}
+
+	/* Connect new playback context */
 	hound_context_t *hound = hound_context_create_playback(filename,
 	    format, STREAM_BUFFER_SIZE);
 	if (!hound) {
@@ -136,6 +157,8 @@ static int hplay(const char *filename)
 		fclose(source);
 		return ret;
 	}
+
+	/* Read and play */
 	static char buffer[READ_SIZE];
 	while ((read = fread(buffer, sizeof(char), READ_SIZE, source)) > 0) {
 		ret = hound_write_main_stream(hound, buffer, read);
@@ -145,17 +168,27 @@ static int hplay(const char *filename)
 			break;
 		}
 	}
+
+	/* Cleanup */
 	hound_context_destroy(hound);
 	fclose(source);
 	return ret;
 }
 
+/**
+ * Helper structure for playback in separate fibrils
+ */
 typedef struct {
 	hound_context_t *ctx;
 	atomic_t *count;
 	const char *file;
 } fib_play_t;
 
+/**
+ * Fibril playback wrapper.
+ * @param arg Argument, pointer to playback helper structure.
+ * @return Error code.
+ */
 static int play_wrapper(void *arg)
 {
 	assert(arg);
@@ -166,6 +199,9 @@ static int play_wrapper(void *arg)
 	return ret;
 }
 
+/**
+ * Array of supported commandline options
+ */
 static const struct option opts[] = {
 	{"device", required_argument, 0, 'd'},
 	{"parallel", no_argument, 0, 'p'},
@@ -174,6 +210,10 @@ static const struct option opts[] = {
 	{0, 0, 0, 0}
 };
 
+/**
+ * Print usage help.
+ * @param name Name of the program.
+ */
 static void print_help(const char* name)
 {
 	printf("Usage: %s [options] file [files...]\n", name);
@@ -194,6 +234,8 @@ int main(int argc, char *argv[])
 	bool direct = false, record = false, parallel = false;
 	optind = 0;
 	int ret = 0;
+
+	/* Parse command line options */
 	while (ret != -1) {
 		ret = getopt_long(argc, argv, "d:prh", opts, &idx);
 		switch (ret) {
@@ -226,9 +268,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/* Init parallel playback variables */
 	hound_context_t *hound_ctx = NULL;
 	atomic_t playcount;
 	atomic_set(&playcount, 0);
+
+	/* Init parallel playback context if necessary */
 	if (parallel) {
 		hound_ctx = hound_context_create_playback("wavplay",
 		    AUDIO_FORMAT_DEFAULT, STREAM_BUFFER_SIZE);
@@ -246,6 +291,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* play or record all files */
 	for (int i = optind; i < argc; ++i) {
 		const char *file = argv[i];
 
@@ -260,10 +306,12 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
+
 		if (direct) {
 			dplay(device, file);
 		} else {
 			if (parallel) {
+				/* Start new fibril for parallel playback */
 				fib_play_t *data = malloc(sizeof(fib_play_t));
 				if (!data) {
 					printf("Playback of %s failed.\n",
@@ -282,9 +330,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* Wait for all fibrils to finish */
 	while (atomic_get(&playcount) > 0)
 		async_usleep(1000000);
 
+	/* Destroy parallel playback context, if initialized */
 	if (hound_ctx)
 		hound_context_destroy(hound_ctx);
 	return 0;
