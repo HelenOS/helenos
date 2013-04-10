@@ -35,6 +35,7 @@
 #include <devman.h>
 #include <ddf/log.h>
 #include <errno.h>
+#include <macros.h>
 #include <str.h>
 #include <as.h>
 #include <sys/mman.h>
@@ -57,6 +58,11 @@ typedef enum {
 	IPC_M_AUDIO_PCM_STOP_CAPTURE,
 } audio_pcm_iface_funcs_t;
 
+/**
+ * Get human readable capability name.
+ * @param cap audio capability.
+ * @return Valid string
+ */
 const char *audio_pcm_cap_str(audio_cap_t cap)
 {
 	static const char *caps[] = {
@@ -68,12 +74,17 @@ const char *audio_pcm_cap_str(audio_cap_t cap)
 		[AUDIO_CAP_INTERRUPT_MIN_FRAMES] = "MINIMUM FRAGMENT SIZE",
 		[AUDIO_CAP_INTERRUPT_MAX_FRAMES] = "MAXIMUM FRAGMENT SIZE",
 	};
-	if (cap > (sizeof(caps) / sizeof(*caps)))
+	if (cap >= ARRAY_SIZE(caps))
 		return "UNKNOWN CAP";
 	return caps[cap];
 
 }
 
+/**
+ * Get human readable event name.
+ * @param event Audio device event
+ * @return Valid string
+ */
 const char *audio_pcm_event_str(pcm_event_t event)
 {
 	static const char *events[] = {
@@ -84,7 +95,7 @@ const char *audio_pcm_event_str(pcm_event_t event)
 		[PCM_EVENT_PLAYBACK_TERMINATED] = "PLAYBACK TERMINATED",
 		[PCM_EVENT_CAPTURE_TERMINATED] = "CAPTURE TERMINATED",
 	};
-	if (event > (sizeof(events) / sizeof(*events)))
+	if (event >= ARRAY_SIZE(events))
 		return "UNKNOWN EVENT";
 	return events[event];
 }
@@ -122,6 +133,7 @@ audio_pcm_sess_t *audio_pcm_open_default(void)
 	free(svcs);
 	return session;
 }
+
 /**
  * Open audio session with device identified by location service string.
  *

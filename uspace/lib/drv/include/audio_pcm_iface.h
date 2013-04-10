@@ -44,12 +44,19 @@
 #include "ddf/driver.h"
 
 typedef enum {
+	/** Device is capable of audio capture */
 	AUDIO_CAP_CAPTURE,
+	/** Device is capable of audio playback */
 	AUDIO_CAP_PLAYBACK,
+	/** Maximum size of device buffer */
 	AUDIO_CAP_MAX_BUFFER,
+	/** Device is capable of providing accurate buffer position info */
 	AUDIO_CAP_BUFFER_POS,
+	/** Device is capable of event based playback or capture */
 	AUDIO_CAP_INTERRUPT,
+	/** Minimal size of playback/record fragment */
 	AUDIO_CAP_INTERRUPT_MIN_FRAMES,
+	/** Maximum size of playback/record fragment */
 	AUDIO_CAP_INTERRUPT_MAX_FRAMES,
 } audio_cap_t;
 
