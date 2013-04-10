@@ -47,16 +47,26 @@
 #include "server.h"
 
 enum ipc_methods {
+	/** Create new context representation on the server side */
 	IPC_M_HOUND_CONTEXT_REGISTER = IPC_FIRST_USER_METHOD,
+	/** Release existing context representation on the server side */
 	IPC_M_HOUND_CONTEXT_UNREGISTER,
+	/** Request list of objects */
 	IPC_M_HOUND_GET_LIST,
+	/** Create new connection */
 	IPC_M_HOUND_CONNECT,
+	/** Destroy connection */
 	IPC_M_HOUND_DISCONNECT,
+	/** Switch IPC pipe to stream mode */
 	IPC_M_HOUND_STREAM_ENTER,
+	/** Switch IPC pipe back to general mode */
 	IPC_M_HOUND_STREAM_EXIT,
+	/** Wait until there is no data in the stream */
 	IPC_M_HOUND_STREAM_DRAIN,
 };
 
+
+/** PCM format conversion helper structure */
 typedef union {
 	struct {
 		uint16_t rate;
@@ -71,8 +81,14 @@ typedef union {
  * CLIENT
  ****/
 
+/** Well defined service name */
 const char *HOUND_SERVICE = "audio/hound";
 
+/**
+ * Start a new audio session.
+ * @param service Named service typically 'HOUND_SERVICE' constant.
+ * @return Valid session on success, NULL on failure.
+ */
 hound_sess_t *hound_service_connect(const char *service)
 {
 	service_id_t id = 0;
@@ -83,12 +99,23 @@ hound_sess_t *hound_service_connect(const char *service)
 	return loc_service_connect(EXCHANGE_PARALLEL, id, IPC_FLAG_BLOCKING);
 }
 
+/**
+ * End an existing audio session.
+ * @param sess The session.
+ */
 void hound_service_disconnect(hound_sess_t *sess)
 {
 	if (sess)
 		async_hangup(sess);
 }
 
+/**
+ * Register a named application context to the audio server.
+ * @param sess Valid audio session.
+ * @param name Valid string identifier
+ * @param record True if the application context wishes to receive data.
+ * @return Valid ID on success, Error code on failure.
+ */
 hound_context_id_t hound_service_register_context(hound_sess_t *sess,
     const char *name, bool record)
 {
@@ -112,6 +139,12 @@ hound_context_id_t hound_service_register_context(hound_sess_t *sess,
 	return ret == EOK ? (hound_context_id_t)IPC_GET_ARG1(call) : ret;
 }
 
+/**
+ * Remove application context from the server's list.
+ * @param sess Valid audio session.
+ * @param id Valid context id.
+ * @return Error code.
+ */
 int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
 {
 	assert(sess);
@@ -122,6 +155,16 @@ int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
 	return ret;
 }
 
+/**
+ * Retrieve a list of server side actors.
+ * @param[in] sess Valid audio session.
+ * @param[out] ids list of string identifiers.
+ * @param[out] count Number of elements int the @p ids list.
+ * @param[in] flags list requirements.
+ * @param[in] connection name of target actor. Used only if the list should
+ *            contain connected actors.
+ * @retval Error code.
+ */
 int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
     int flags, const char *connection)
 {
@@ -189,6 +232,13 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 	return ret;
 }
 
+/**
+ * Create a new connection between a source and a sink.
+ * @param sess Valid audio session.
+ * @param source Source name, valid string.
+ * @param sink Sink name, valid string.
+ * @return Error code.
+ */
 int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
     const char *sink)
 {
@@ -211,6 +261,13 @@ int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
 	return ret;
 }
 
+/**
+ * Destroy an existing connection between a source and a sink.
+ * @param sess Valid audio session.
+ * @param source Source name, valid string.
+ * @param sink Sink name, valid string.
+ * @return Error code.
+ */
 int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
     const char *sink)
 {
@@ -230,6 +287,15 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
 	return ENOTSUP;
 }
 
+/**
+ * Switch IPC exchange to a STREAM mode.
+ * @param exch IPC exchange.
+ * @param id context id this stream should be associated with
+ * @param flags set stream properties
+ * @param format format of the new stream.
+ * @param bsize size of the server side buffer.
+ * @return Error code.
+ */
 int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize)
 {
@@ -242,21 +308,45 @@ int hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
 	    c.arg, bsize);
 }
 
+/**
+ * Destroy existing stream and return IPC exchange to general mode.
+ * @param exch IPC exchange.
+ * @return Error code.
+ */
 int hound_service_stream_exit(async_exch_t *exch)
 {
 	return async_req_0_0(exch, IPC_M_HOUND_STREAM_EXIT);
 }
 
+/**
+ * Wait until the server side buffer is empty.
+ * @param exch IPC exchange.
+ * @return Error code.
+ */
 int hound_service_stream_drain(async_exch_t *exch)
 {
 	return async_req_0_0(exch, IPC_M_HOUND_STREAM_DRAIN);
 }
 
+/**
+ * Write audio data to a stream.
+ * @param exch IPC exchange in STREAM MODE.
+ * @param data Audio data buffer.
+ * @size size of the buffer
+ * @return Error code.
+ */
 int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size)
 {
 	return async_data_write_start(exch, data, size);
 }
 
+/**
+ * Read data from a stream.
+ * @param exch IPC exchange in STREAM MODE.
+ * @param data Audio data buffer.
+ * @size size of the buffer
+ * @return Error code.
+ */
 int hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
 {
 	return async_data_read_start(exch, data, size);
@@ -270,11 +360,21 @@ static void hound_server_read_data(void *stream);
 static void hound_server_write_data(void *stream);
 static const hound_server_iface_t *server_iface;
 
+/**
+ * Set hound server interface implementation.
+ * @param iface Initialized Hound server interface.
+ */
 void hound_service_set_server_iface(const hound_server_iface_t *iface)
 {
 	server_iface = iface;
 }
 
+/**
+ * Server side implementation of the hound protocol. IPC connection handler.
+ * @param iid initial call id
+ * @param icall pointer to initial call structure.
+ * @param arg (unused)
+ */
 void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection if there is a valid iface*/
@@ -290,12 +390,15 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_callid_t callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_HOUND_CONTEXT_REGISTER: {
+			/* check interface functions */
 			if (!server_iface || !server_iface->add_context) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			bool record = IPC_GET_ARG1(call);
 			void *name;
+
+			/* Get context name */
 			int ret =
 			    async_data_write_accept(&name, true, 0, 0, 0, 0);
 			if (ret != EOK) {
@@ -305,8 +408,9 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			hound_context_id_t id = 0;
 			ret = server_iface->add_context(server_iface->server,
 			    &id, name, record);
+			/** new context should create a copy */
+			free(name);
 			if (ret != EOK) {
-				free(name);
 				async_answer_0(callid, ret);
 			} else {
 				async_answer_1(callid, EOK, id);
@@ -314,10 +418,13 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case IPC_M_HOUND_CONTEXT_UNREGISTER: {
+			/* check interface functions */
 			if (!server_iface || !server_iface->rem_context) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
+
+			/* get id, 1st param */
 			hound_context_id_t id = IPC_GET_ARG1(call);
 			const int ret =
 			    server_iface->rem_context(server_iface->server, id);
@@ -325,16 +432,20 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case IPC_M_HOUND_GET_LIST: {
+			/* check interface functions */
 			if (!server_iface || !server_iface->get_list) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
+
 			const char **list = NULL;
 			const int flags = IPC_GET_ARG1(call);
 			size_t count = IPC_GET_ARG2(call);
 			const bool conn = IPC_GET_ARG3(call);
 			char *conn_name = NULL;
 			int ret = EOK;
+
+			/* get connected actor name if provided */
 			if (conn)
 				ret = async_data_write_accept(
 				    (void**)&conn_name, true, 0, 0, 0, 0);
@@ -344,6 +455,8 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				    server_iface->server, &list, &count,
 				    conn_name, flags);
 			free(conn_name);
+
+			/* Alloc string sizes array */
 			size_t *sizes = NULL;
 			if (count)
 				sizes = calloc(count, sizeof(size_t));
@@ -382,17 +495,23 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case IPC_M_HOUND_CONNECT: {
+			/* check interface functions */
 			if (!server_iface || !server_iface->connect) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
+
 			void *source = NULL;
 			void *sink = NULL;
+
+			/* read source name */
 			int ret =
 			    async_data_write_accept(&source, true, 0, 0, 0, 0);
+			/* read sink name */
 			if (ret == EOK)
 				ret = async_data_write_accept(&sink,
 				    true, 0, 0, 0, 0);
+
 			if (ret == EOK)
 				ret = server_iface->connect(
 				    server_iface->server, source, sink);
@@ -402,14 +521,19 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case IPC_M_HOUND_DISCONNECT: {
+			/* check interface functions */
 			if (!server_iface || !server_iface->disconnect) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
+
 			void *source = NULL;
 			void *sink = NULL;
+
+			/* read source name */
 			int ret =
 			    async_data_write_accept(&source, true, 0, 0, 0, 0);
+			/*read sink name */
 			if (ret == EOK)
 				ret = async_data_write_accept(&sink,
 				    true, 0, 0, 0, 0);
@@ -422,6 +546,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 		case IPC_M_HOUND_STREAM_ENTER: {
+			/* check interface functions */
 			if (!server_iface || !server_iface->is_record_context
 			    || !server_iface->add_stream
 			    || !server_iface->rem_stream) {
@@ -429,6 +554,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				break;
 			}
 
+			/* get parameters */
 			hound_context_id_t id = IPC_GET_ARG1(call);
 			const int flags = IPC_GET_ARG2(call);
 			const format_convert_t c = {.arg = IPC_GET_ARG3(call)};
@@ -438,6 +564,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			    .sample_format = c.f.format,
 			};
 			size_t bsize = IPC_GET_ARG4(call);
+
 			void *stream;
 			int ret = server_iface->add_stream(server_iface->server,
 			    id, flags, f, bsize, &stream);
@@ -450,6 +577,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			if (rec) {
 				if(server_iface->stream_data_read) {
 					async_answer_0(callid, EOK);
+					/* start answering read calls */
 					hound_server_write_data(stream);
 					server_iface->rem_stream(
 					    server_iface->server, stream);
@@ -459,6 +587,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			} else {
 				if (server_iface->stream_data_write) {
 					async_answer_0(callid, EOK);
+					/* accept write calls */
 					hound_server_read_data(stream);
 					server_iface->rem_stream(
 					    server_iface->server, stream);
@@ -480,14 +609,20 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
+/**
+ * Read data and push it to the stream.
+ * @param stream target stream, will push data there.
+ */
 static void hound_server_read_data(void *stream)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
 	size_t size = 0;
 	int ret_answer = EOK;
+	/* accept data write or drain */
 	while (async_data_write_receive_call(&callid, &call, &size)
 	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+		/* check drain first */
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
 			int ret = ENOTSUP;
 			if (server_iface->drain_stream)
@@ -495,10 +630,13 @@ static void hound_server_read_data(void *stream)
 			async_answer_0(callid, ret);
 			continue;
 		}
+
+		/* there was an error last time */
 		if (ret_answer != EOK) {
 			async_answer_0(callid, ret_answer);
 			continue;
 		}
+
 		char *buffer = malloc(size);
 		if (!buffer) {
 			async_answer_0(callid, ENOMEM);
@@ -506,6 +644,7 @@ static void hound_server_read_data(void *stream)
 		}
 		const int ret = async_data_write_finalize(callid, buffer, size);
 		if (ret == EOK) {
+			/* push data to stream */
 			ret_answer = server_iface->stream_data_write(
 			    stream, buffer, size);
 		}
@@ -516,6 +655,10 @@ static void hound_server_read_data(void *stream)
 	async_answer_0(callid, ret);
 }
 
+/**
+ * Accept reads and pull data from the stream.
+ * @param stream target stream, will pull data from there.
+ */
 static void hound_server_write_data(void *stream)
 {
 
@@ -523,8 +666,10 @@ static void hound_server_write_data(void *stream)
 	ipc_call_t call;
 	size_t size = 0;
 	int ret_answer = EOK;
+	/* accept data read and drain */
 	while (async_data_read_receive_call(&callid, &call, &size)
 	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+		/* drain does not make much sense but it is allowed */
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
 			int ret = ENOTSUP;
 			if (server_iface->drain_stream)
@@ -532,6 +677,7 @@ static void hound_server_write_data(void *stream)
 			async_answer_0(callid, ret);
 			continue;
 		}
+		/* there was an error last time */
 		if (ret_answer != EOK) {
 			async_answer_0(callid, ret_answer);
 			continue;
@@ -558,6 +704,12 @@ static void hound_server_write_data(void *stream)
  * SERVER SIDE
  ***/
 
+/**
+ * Register new hound service to the location service.
+ * @param[in] name server name
+ * @param[out] id assigned service id.
+ * @return Error code.
+ */
 int hound_server_register(const char *name, service_id_t *id)
 {
 	if (!name || !id)
@@ -570,17 +722,30 @@ int hound_server_register(const char *name, service_id_t *id)
 	return loc_service_register(HOUND_SERVICE, id);
 }
 
+/**
+ * Unregister server from the location service.
+ * @param id previously assigned service id.
+ */
 void hound_server_unregister(service_id_t id)
 {
 	loc_service_unregister(id);
 }
 
+/**
+ * Set callback on device category change event.
+ * @param cb Callback function.
+ * @return Error code.
+ */
 int hound_server_set_device_change_callback(dev_change_callback_t cb)
 {
 	return loc_register_cat_change_cb(cb);
 }
 
-
+/**
+ * Walk through all device in the audio-pcm category.
+ * @param callback Function to call on every device.
+ * @return Error code.
+ */
 int hound_server_devices_iterate(device_callback_t callback)
 {
 	if (!callback)

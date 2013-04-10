@@ -44,37 +44,58 @@
 #include "protocol.h"
 #include "client.h"
 
-/***
- * CLIENT SIDE
- ***/
-
+/** Stream structure */
 typedef struct hound_stream {
+	/** link in context's list */
 	link_t link;
+	/** audio data format fo the stream */
 	pcm_format_t format;
+	/** IPC exchange representing the stream (in STREAM MODE) */
 	async_exch_t *exch;
+	/** parent context */
 	hound_context_t *context;
+	/** Stream flags */
 	int flags;
 } hound_stream_t;
 
+/**
+ * Linked list isntacen helper function.
+ * @param l link
+ * @return hound stream isntance.
+ */
 static inline hound_stream_t * hound_stream_from_link(link_t *l)
 {
 	return l ? list_get_instance(l, hound_stream_t, link) : NULL;
 }
 
+/** Hound client context structure */
 typedef struct hound_context {
+	/** Audio session */
 	hound_sess_t *session;
+	/** context name, reported to the daemon */
 	const char *name;
+	/** True if the instance is record context */
 	bool record;
+	/** List of associated streams */
 	list_t stream_list;
+	/** Main stream helper structure */
 	struct {
 		hound_stream_t *stream;
 		pcm_format_t format;
 		size_t bsize;
 	} main;
+	/** Assigned context id */
 	hound_context_id_t id;
 } hound_context_t;
 
-
+/**
+ * Alloc and initialize context structure.
+ * @param name Base for the real context name, will add task id.
+ * @param record True if the new context should capture audio data.
+ * @param format PCM format of the main pipe.
+ * @param bsize Server size buffer size of the main stream.
+ * @return valid pointer to initialized structure on success, NULL on failure
+ */
 static hound_context_t *hound_context_create(const char *name, bool record,
     pcm_format_t format, size_t bsize)
 {
@@ -110,18 +131,40 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 	return new_context;
 }
 
+/**
+ * Playback context helper function.
+ * @param name Base for the real context name, will add task id.
+ * @param format PCM format of the main pipe.
+ * @param bsize Server size buffer size of the main stream.
+ * @return valid pointer to initialized structure on success, NULL on failure
+ */
 hound_context_t * hound_context_create_playback(const char *name,
     pcm_format_t format, size_t bsize)
 {
 	return hound_context_create(name, false, format, bsize);
 }
 
+/**
+ * Record context helper function.
+ * @param name Base for the real context name, will add task id.
+ * @param format PCM format of the main pipe.
+ * @param bsize Server size buffer size of the main stream.
+ * @return valid pointer to initialized structure on success, NULL on failure
+ */
 hound_context_t * hound_context_create_capture(const char *name,
     pcm_format_t format, size_t bsize)
 {
 	return hound_context_create(name, true, format, bsize);
 }
 
+/**
+ * Correctly dispose of the hound context structure.
+ * @param hound context to remove.
+ *
+ * The function will destroy all associated streams first. Pointers
+ * to these structures will become invalid and the function will block
+ * if any of these stream needs to be drained first.
+ */
 void hound_context_destroy(hound_context_t *hound)
 {
 	assert(hound);
@@ -138,6 +181,15 @@ void hound_context_destroy(hound_context_t *hound)
 	free(hound);
 }
 
+/**
+ * Get a list of possible connection targets.
+ * @param[in] hound Hound context.
+ * @param[out] names list of target string ids.
+ * @param[out] count Number of elements in @p names list
+ * @return Error code.
+ *
+ * The function will return deice sinks or source based on the context type.
+ */
 int hound_context_get_available_targets(hound_context_t *hound,
     const char ***names, size_t *count)
 {
@@ -148,6 +200,13 @@ int hound_context_get_available_targets(hound_context_t *hound,
 	    hound->record ? HOUND_SOURCE_DEVS : HOUND_SINK_DEVS);
 }
 
+/**
+ * Get a list of targets connected to the context.
+ * @param[in] hound Hound context.
+ * @param[out] names list of target string ids.
+ * @param[out] count Number of elements in @p names list
+ * @return Error code.
+ */
 int hound_context_get_connected_targets(hound_context_t *hound,
     const char ***names, size_t *count)
 {
@@ -159,6 +218,15 @@ int hound_context_get_connected_targets(hound_context_t *hound,
 	        HOUND_SOURCE_DEVS : HOUND_SINK_DEVS), hound->name);
 }
 
+/**
+ * Create a new connection to the target.
+ * @param hound Hound context.
+ * @param target String identifier of the desired target.
+ * @return Error code.
+ *
+ * The function recognizes special 'HOUND_DEFAULT_TARGET' and will
+ * connect to the first possible target if it is passed this value.
+ */
 int hound_context_connect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
@@ -188,6 +256,12 @@ int hound_context_connect_target(hound_context_t *hound, const char* target)
 	return ret;
 }
 
+/**
+ * Destroy a connection to the target.
+ * @param hound Hound context.
+ * @param target String identifier of the desired target.
+ * @return Error code.
+ */
 int hound_context_disconnect_target(hound_context_t *hound, const char* target)
 {
 	assert(hound);
@@ -202,6 +276,14 @@ int hound_context_disconnect_target(hound_context_t *hound, const char* target)
 	}
 }
 
+/**
+ * Create a new stream associated with the context.
+ * @param hound Hound context.
+ * @param flags new stream flags.
+ * @param format new stream PCM format.
+ * @param bzise new stream server side buffer size (in bytes)
+ * @return Valid pointer to a stream instance, NULL on failure.
+ */
 hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
     pcm_format_t format, size_t bsize)
 {
@@ -228,6 +310,13 @@ hound_stream_t *hound_stream_create(hound_context_t *hound, unsigned flags,
 	return new_stream;
 }
 
+/**
+ * Destroy existing stream
+ * @param stream The stream to destroy.
+ *
+ * Function will wait until the server side buffer is empty if the
+ * HOUND_STREAM_DRAIN_ON_EXIT flag was set on creation.
+ */
 void hound_stream_destroy(hound_stream_t *stream)
 {
 	if (stream) {
@@ -240,6 +329,13 @@ void hound_stream_destroy(hound_stream_t *stream)
 	}
 }
 
+/**
+ * Send new data to a stream.
+ * @param stream The target stream
+ * @param data data buffer
+ * @param size size of the @p data buffer.
+ * @return error code.
+ */
 int hound_stream_write(hound_stream_t *stream, const void *data, size_t size)
 {
 	assert(stream);
@@ -248,6 +344,13 @@ int hound_stream_write(hound_stream_t *stream, const void *data, size_t size)
 	return hound_service_stream_write(stream->exch, data, size);
 }
 
+/**
+ * Get data from a stream.
+ * @param stream The target stream.
+ * @param data data buffer.
+ * @param size size of the @p data buffer.
+ * @return error code.
+ */
 int hound_stream_read(hound_stream_t *stream, void *data, size_t size)
 {
 	assert(stream);
@@ -256,6 +359,14 @@ int hound_stream_read(hound_stream_t *stream, void *data, size_t size)
 	return hound_service_stream_read(stream->exch, data, size);
 }
 
+/**
+ * Main stream getter function.
+ * @param hound Houndcontext.
+ * @return Valid stream pointer, NULL on failure.
+ *
+ * The function will create new stream, or return a pointer to the exiting one
+ * if it exists.
+ */
 static hound_stream_t * hound_get_main_stream(hound_context_t *hound)
 {
 	assert(hound);
@@ -266,25 +377,53 @@ static hound_stream_t * hound_get_main_stream(hound_context_t *hound)
 	return hound->main.stream;
 }
 
+/**
+ * Send new data to the main stream.
+ * @param stream The target stream
+ * @param data data buffer
+ * @param size size of the @p data buffer.
+ * @return error code.
+ */
 int hound_write_main_stream(hound_context_t *hound,
     const void *data, size_t size)
 {
 	assert(hound);
+	if (hound->record)
+		return EINVAL;
+
 	hound_stream_t *mstream = hound_get_main_stream(hound);
 	if (!mstream)
 		return ENOMEM;
 	return hound_stream_write(mstream, data, size);
 }
 
+/**
+ * Get data from the main stream.
+ * @param stream The target stream
+ * @param data data buffer
+ * @param size size of the @p data buffer.
+ * @return error code.
+ */
 int hound_read_main_stream(hound_context_t *hound, void *data, size_t size)
 {
 	assert(hound);
+	if (!hound->record)
+		return EINVAL;
 	hound_stream_t *mstream = hound_get_main_stream(hound);
 	if (!mstream)
 		return ENOMEM;
 	return hound_stream_read(mstream, data, size);
 }
 
+/**
+ * Destroy the old main stream and replace it with a new one with fresh data.
+ * @param hound Hound context.
+ * @param data data buffer.
+ * @param size size of the @p data buffer.
+ * @return error code.
+ *
+ * NOT IMPLEMENTED
+ */
 int hound_write_replace_main_stream(hound_context_t *hound,
     const void *data, size_t size)
 {
@@ -295,18 +434,39 @@ int hound_write_replace_main_stream(hound_context_t *hound,
 	return ENOTSUP;
 }
 
-int hound_context_set_main_stream_format(hound_context_t *hound,
-    unsigned channels, unsigned rate, pcm_sample_format_t format)
+/**
+ * Destroy the old main stream and replace it with a new one using new params.
+ * @param hound Hound context.
+ * @param channels
+ * @return error code.
+ *
+ * NOT IMPLEMENTED
+ */
+int hound_context_set_main_stream_params(hound_context_t *hound,
+    pcm_format_t format, size_t bsize)
 {
 	assert(hound);
 	// TODO implement
 	return ENOTSUP;
 }
 
+/**
+ * Write data immediately to a new stream, and wait for it to drain.
+ * @param hound Hound context.
+ * @param format pcm data format.
+ * @param data data buffer
+ * @param size @p data buffer size
+ * @return Error code.
+ *
+ * This functnion creates a new stream writes the data, ti waits for the stream
+ * to drain and destroys it before returning.
+ */
 int hound_write_immediate(hound_context_t *hound, pcm_format_t format,
     const void *data, size_t size)
 {
 	assert(hound);
+	if (hound->record)
+		return EINVAL;
 	hound_stream_t *tmpstream = hound_stream_create(hound, 0, format, size);
 	if (!tmpstream)
 		return ENOMEM;
@@ -318,8 +478,6 @@ int hound_write_immediate(hound_context_t *hound, pcm_format_t format,
 	hound_stream_destroy(tmpstream);
 	return ret;
 }
-
-
 /**
  * @}
  */

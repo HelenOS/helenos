@@ -40,9 +40,9 @@
 #include <errno.h>
 #include <pcm/format.h>
 
-const char *HOUND_SERVICE;
+extern const char *HOUND_SERVICE;
 
-enum {
+typedef enum {
 	HOUND_SINK_APPS = 0x1,
 	HOUND_SINK_DEVS = 0x2,
 	HOUND_SOURCE_APPS = 0x4,
@@ -52,11 +52,16 @@ enum {
 	HOUND_STREAM_DRAIN_ON_EXIT = 0x1,
 	HOUND_STREAM_IGNORE_UNDERFLOW = 0x2,
 	HOUND_STREAM_IGNORE_OVERFLOW = 0x4,
-};
+} hound_flags_t;
 
 typedef async_sess_t hound_sess_t;
 typedef intptr_t hound_context_id_t;
 
+/**
+ * Check context id for errors.
+ * @param id Context id
+ * @return Error code.
+ */
 static inline int hound_context_id_err(hound_context_id_t id)
 {
 	return id > 0 ? EOK : (id == 0 ? ENOENT : id);
@@ -71,6 +76,15 @@ int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
 
 int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
     int flags, const char *connection);
+
+/**
+ * Wrapper for list queries with no connection parameter.
+ * @param[in] sess hound daemon session.
+ * @param[out] ids list of string identifiers
+ * @param[out] count Number of elements in @p ids
+ * @param[in] flags Flags limiting the query.
+ * @return Error code.
+ */
 static inline int hound_service_get_list_all(hound_sess_t *sess,
     const char ***ids, size_t *count, int flags)
 {
@@ -91,18 +105,31 @@ int hound_service_stream_write(async_exch_t *exch, const void *data, size_t size
 int hound_service_stream_read(async_exch_t *exch, void *data, size_t size);
 
 /* Server */
+
+/** Hound server interace structure */
 typedef struct hound_server_iface {
+	/** Create new context */
 	int (*add_context)(void *, hound_context_id_t *, const char *, bool);
+	/** Destroy existing context */
 	int (*rem_context)(void *, hound_context_id_t);
+	/** Query context direction */
 	bool (*is_record_context)(void *, hound_context_id_t);
+	/** Get string identifiers of specified objects */
 	int (*get_list)(void *, const char ***, size_t *, const char *, int);
+	/** Create connection between source and sink */
 	int (*connect)(void *, const char *, const char *);
+	/** Destroy connection between source and sink */
 	int (*disconnect)(void *, const char *, const char *);
+	/** Create new stream tied to the context */
 	int (*add_stream)(void *, hound_context_id_t, int, pcm_format_t, size_t,
 	    void **);
+	/** Destroy existing stream */
 	int (*rem_stream)(void *, void *);
+	/** Block until the stream buffer is empty */
 	int (*drain_stream)(void *);
+	/** Write new data to the stream */
 	int (*stream_data_write)(void *, const void *, size_t);
+	/** Read data from the stream */
 	int (*stream_data_read)(void *, void *, size_t);
 	void *server;
 } hound_server_iface_t;
