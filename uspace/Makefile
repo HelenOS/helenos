@@ -38,7 +38,6 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
-	app/drec \
 	app/edit \
 	app/getterm \
 	app/init \
