@@ -44,6 +44,7 @@
 #include <getopt.h>
 
 #include "dplay.h"
+#include "drec.h"
 #include "wave.h"
 
 #define READ_SIZE   (32 * 1024)
@@ -251,8 +252,13 @@ int main(int argc, char *argv[])
 		printf("%s (%d/%d) %s\n", record ? "Recording" : "Playing",
 		    i - optind + 1, argc - optind, file);
 		if (record) {
-			printf("Recording is not supported yet.\n");
-			return 1;
+			if (direct) {
+				drecord(device, file);
+			} else {
+				printf("Indirect recording is not supported "
+				    "yet.\n");
+				break;
+			}
 		}
 		if (direct) {
 			dplay(device, file);

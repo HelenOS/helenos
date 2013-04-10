@@ -38,17 +38,30 @@
 
 #include "wave.h"
 
-int wav_parse_header(void *file, const void **data, size_t *data_size,
+/**
+ * Parse wav header data.
+ * @param[in] hdata Header data to parse.
+ * @param[out] data Pointer to audio data.
+ * @param[out] data_size Size of the data after the header.
+ * @param[out] channels Number of channels in stored audio format.
+ * @param[out] sampling_rate Sampling rate of the store data.
+ * @param[out] format Sample format.
+ * @param[out] error String representatoin of error, if any.
+ * @return Error code.
+ *
+ * Does sanity checks and endian conversion.
+ */
+int wav_parse_header(const void *hdata, const void **data, size_t *data_size,
     unsigned *channels, unsigned *sampling_rate, pcm_sample_format_t *format,
     const char **error)
 {
-	if (!file) {
+	if (!hdata) {
 		if (error)
-			*error = "file not present";
+			*error = "no header";
 		return EINVAL;
 	}
 
-	const wave_header_t *header = file;
+	const wave_header_t *header = hdata;
 	if (str_lcmp(header->chunk_id, CHUNK_ID, 4) != 0) {
 		if (error)
 			*error = "invalid chunk id";
@@ -111,6 +124,33 @@ int wav_parse_header(void *file, const void **data, size_t *data_size,
 		*error = "no error";
 
 	return EOK;
+}
+
+/**
+ * Initialize wave fromat ehader structure.
+ * @param header Structure to initialize.
+ * @param format Desired PCM format
+ * @param size Size of the stored data.
+ *
+ * Initializes format specific elements and covnerts endian
+ */
+void wav_init_header(wave_header_t *header, pcm_format_t format, size_t size)
+{
+	assert(header);
+#define COPY_STR(dst, src)   memcpy(dst, src, str_size(src))
+
+	COPY_STR(&header->chunk_id, CHUNK_ID);
+	COPY_STR(&header->format, FORMAT_STR);
+	COPY_STR(&header->subchunk1_id, SUBCHUNK1_ID);
+	header->subchunk1_size = host2uint16_t_le(PCM_SUBCHUNK1_SIZE);
+	header->audio_format = host2uint16_t_le(FORMAT_LINEAR_PCM);
+
+	COPY_STR(&header->subchunk2_id, SUBCHUNK2_ID);
+	header->subchunk2_size = host2uint32_t_le(size);
+	header->sampling_rate = host2uint32_t_le(format.sampling_rate);
+	header->channels = host2uint32_t_le(format.channels);
+	header->sample_size =
+	    host2uint32_t_le(pcm_sample_format_size(format.sample_format));
 }
 /**
  * @}

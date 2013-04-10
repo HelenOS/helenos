@@ -35,6 +35,7 @@
 #define WAVE_H
 
 #include <stdint.h>
+#include <pcm/format.h>
 #include <pcm/sample_format.h>
 
 /** Wave file header format.
@@ -88,9 +89,10 @@ typedef struct wave_header {
 
 } wave_header_t;
 
-int wav_parse_header(void *, const void**, size_t *, unsigned *, unsigned *,
-    pcm_sample_format_t *, const char **);
+int wav_parse_header(const void *, const void**, size_t *, unsigned *,
+    unsigned *, pcm_sample_format_t *, const char **);
 
+void wav_init_header(wave_header_t *, pcm_format_t , size_t);
 #endif
 /**
  * @}

@@ -41,6 +41,7 @@ EXTRA_CFLAGS = \
 
 SOURCES = \
 	dplay.c \
+	drec.c \
 	main.c \
 	wave.c
 
