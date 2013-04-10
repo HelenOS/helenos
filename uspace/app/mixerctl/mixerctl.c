@@ -172,6 +172,11 @@ int main(int argc, char *argv[])
 		command(exch, argc, argv);
 	} else {
 		print_levels(exch);
+		printf("\n%s:\n", argv[0]);
+		printf("Use '%s getlevel idx' command to read individual "
+		    "settings\n", argv[0]);
+		printf("Use '%s setlevel idx' command to change "
+		    "settings\n", argv[0]);
 	}
 
 	async_exchange_end(exch);
