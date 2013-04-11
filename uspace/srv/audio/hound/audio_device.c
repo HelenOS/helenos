@@ -54,7 +54,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 static int device_check_format(audio_sink_t* sink);
 static int get_buffer(audio_device_t *dev);
 static int release_buffer(audio_device_t *dev);
-static void fill_buffer(audio_device_t *dev, size_t size);
+static void advance_buffer(audio_device_t *dev, size_t size);
 static inline bool is_running(audio_device_t *dev)
 {
 	assert(dev);
@@ -166,7 +166,11 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		 * so that we stay one fragment ahead */
 		pcm_format_silence(dev->buffer.base, dev->buffer.size,
 		    &dev->sink.format);
-		fill_buffer(dev, dev->buffer.fragment_size * 2);
+		//TODO add underrun detection.
+		const size_t size = dev->buffer.fragment_size * 2;
+		/* We never cross the end of the buffer here */
+		audio_sink_mix_inputs(&dev->sink, dev->buffer.position, size);
+		advance_buffer(dev, size);
 
 		const unsigned frames = dev->buffer.fragment_size /
 		    pcm_format_frame_size(&dev->sink.format);
@@ -279,7 +283,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_FRAMES_PLAYED: {
 			struct timeval time1;
 			getuptime(&time1);
-			fill_buffer(dev, dev->buffer.fragment_size);
+			//TODO add underrun detection.
+			/* We never cross the end of the buffer here */
+			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
+			    dev->buffer.fragment_size);
+			advance_buffer(dev, dev->buffer.fragment_size);
 			struct timeval time2;
 			getuptime(&time2);
 			log_verbose("Time to mix sources: %li\n",
@@ -289,9 +297,14 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_PLAYBACK_TERMINATED:
 			log_verbose("Playback terminated!");
 			return;
-		case PCM_EVENT_FRAMES_CAPTURED:
-			//TODO implement
+		case PCM_EVENT_FRAMES_CAPTURED: {
+			const int ret = audio_source_push_data(&dev->source,
+			    dev->buffer.position, dev->buffer.fragment_size);
+			advance_buffer(dev, dev->buffer.fragment_size);
+			if (ret != EOK)
+				log_warning("Failed to push recorded data");
 			break;
+		}
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			log_verbose("Recording terminated!");
 			return;
@@ -371,18 +384,15 @@ static int release_buffer(audio_device_t *dev)
 }
 
 /**
- * Mix data from all connections and add it to the device buffer.
+ * Move buffer position pointer.
  * @param dev Audio device.
- * @param size portion of the device buffer to fill.
+ * @param size number of bytes to move forward
  */
-static void fill_buffer(audio_device_t *dev, size_t size)
+static void advance_buffer(audio_device_t *dev, size_t size)
 {
 	assert(dev);
 	assert(dev->buffer.position >= dev->buffer.base);
 	assert(dev->buffer.position < (dev->buffer.base + dev->buffer.size));
-
-	//TODO add underrun detection.
-	audio_sink_mix_inputs(&dev->sink, dev->buffer.position, size);
 	dev->buffer.position += size;
 	if (dev->buffer.position == (dev->buffer.base + dev->buffer.size))
 		dev->buffer.position = dev->buffer.base;

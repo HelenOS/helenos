@@ -40,8 +40,10 @@
 #include <str.h>
 #include <str_error.h>
 
+#include "audio_data.h"
 #include "audio_source.h"
 #include "audio_sink.h"
+#include "connection.h"
 #include "log.h"
 
 /**
@@ -85,6 +87,34 @@ void audio_source_fini(audio_source_t *source)
 	assert(source);
 	free(source->name);
 	source->name = NULL;
+}
+/**
+ * Push data to all connections.
+ * @param source The source of the data.
+ * @param dest Destination buffer.
+ * @param size size of the @p dest buffer.
+ * @return Error code.
+ */
+int audio_source_push_data(audio_source_t *source, const void *data,
+    size_t size)
+{
+	assert(source);
+	assert(data);
+
+	audio_data_t *adata = audio_data_create(data, size, source->format);
+	if (!adata)
+		return ENOMEM;
+
+	list_foreach(source->connections, it) {
+		connection_t *conn = connection_from_source_list(it);
+		const int ret = connection_push_data(conn, adata);
+		if (ret != EOK) {
+			log_warning("Failed push data to %s: %s",
+			    connection_sink_name(conn), str_error(ret));
+		}
+	}
+	audio_data_unref(adata);
+	return EOK;
 }
 
 /**

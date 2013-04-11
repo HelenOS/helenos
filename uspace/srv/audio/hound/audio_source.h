@@ -74,6 +74,8 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
     int (*update_available_data)(audio_source_t *, size_t),
     const pcm_format_t *f);
 void audio_source_fini(audio_source_t *source);
+int audio_source_push_data(audio_source_t *source, const void *data,
+    size_t size);
 static inline const pcm_format_t *audio_source_format(const audio_source_t *s)
 {
 	assert(s);
