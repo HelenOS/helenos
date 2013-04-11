@@ -64,9 +64,6 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 	source->connection_change = connection_change;
 	source->update_available_data = update_available_data;
 	source->format = *f;
-	source->available_data.base = NULL;
-	source->available_data.position = NULL;
-	source->available_data.size = 0;
 	log_verbose("Initialized source (%p) '%s'", source, source->name);
 	return EOK;
 }
@@ -76,54 +73,6 @@ void audio_source_fini(audio_source_t *source)
 	assert(source);
 	free(source->name);
 	source->name = NULL;
-}
-
-int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
-    const pcm_format_t *f)
-{
-	assert(source);
-	if (!buffer) {
-		log_debug("Non-existent buffer");
-		return EBADMEM;
-	}
-	if (!f || size == 0) {
-		log_debug("No format or zero size");
-	}
-	if (size % (pcm_sample_format_size(f->sample_format) * f->channels)) {
-		log_debug("Buffer does not fit integer number of frames");
-		return EINVAL;
-	}
-	if (source->format.sampling_rate != f->sampling_rate) {
-		log_debug("Resampling is not supported, yet");
-		return ENOTSUP;
-	}
-	const size_t src_frame_size = pcm_format_frame_size(&source->format);
-	const size_t dst_frames = size / pcm_format_frame_size(f);
-
-	if (source->available_data.position == NULL ||
-	    source->available_data.size == 0) {
-		int ret = EOVERFLOW; /* In fact this is underflow... */
-		if (source->update_available_data)
-			ret = source->update_available_data(source,
-			    dst_frames * src_frame_size);
-		if (ret != EOK) {
-			log_debug("No data to add to %p(%zu)", buffer, size);
-			return ret;
-		}
-	}
-
-	const int ret = pcm_format_convert_and_mix(buffer, size,
-	       source->available_data.position, source->available_data.size,
-	       &source->format, f);
-	if (ret != EOK) {
-		log_debug("Mixing failed %p <= %p, frames: %zu",
-		    buffer, source->available_data.position, dst_frames);
-		return ret;
-	}
-
-	source->available_data.position += (dst_frames * src_frame_size);
-	source->available_data.size -= (dst_frames * src_frame_size);
-	return EOK;
 }
 
 /**

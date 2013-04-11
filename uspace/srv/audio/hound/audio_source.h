@@ -39,7 +39,6 @@
 #include <adt/list.h>
 #include <pcm/format.h>
 
-struct audio_sink;
 typedef struct audio_source audio_source_t;
 
 struct audio_source {
@@ -50,11 +49,6 @@ struct audio_source {
 	void *private_data;
 	int (*connection_change)(audio_source_t *source, bool added);
 	int (*update_available_data)(audio_source_t *source, size_t size);
-	struct {
-		void *position;
-		void *base;
-		size_t size;
-	} available_data;
 };
 
 static inline audio_source_t * audio_source_list_instance(link_t *l)
@@ -67,9 +61,6 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
     int (*update_available_data)(audio_source_t *, size_t),
     const pcm_format_t *f);
 void audio_source_fini(audio_source_t *source);
-//int audio_source_connected(audio_source_t *source, struct audio_sink *sink);
-int audio_source_add_self(audio_source_t *source, void *buffer, size_t size,
-    const pcm_format_t *f);
 static inline const pcm_format_t *audio_source_format(const audio_source_t *s)
 {
 	assert(s);
