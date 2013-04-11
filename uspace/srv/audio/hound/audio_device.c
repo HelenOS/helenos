@@ -55,6 +55,12 @@ static int device_check_format(audio_sink_t* sink);
 static int get_buffer(audio_device_t *dev);
 static int release_buffer(audio_device_t *dev);
 static void fill_buffer(audio_device_t *dev, size_t size);
+static inline bool is_running(audio_device_t *dev)
+{
+	assert(dev);
+	/* we release buffer on stop so this should be enough */
+	return (bool)dev->buffer.base;
+}
 
 /**
  * Initialize audio device structure.
@@ -304,6 +310,9 @@ static int device_check_format(audio_sink_t* sink)
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
 	assert(dev);
+	/* Check whether we are running */
+	if (is_running(dev))
+		return EBUSY;
 	log_verbose("Checking format on sink %s", sink->name);
 	return audio_pcm_test_format(dev->sess, &sink->format.channels,
 	    &sink->format.sampling_rate, &sink->format.sample_format);
