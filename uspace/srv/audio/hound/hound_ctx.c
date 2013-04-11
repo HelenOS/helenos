@@ -36,6 +36,8 @@
 
 #include <malloc.h>
 #include <macros.h>
+#include <errno.h>
+#include <str_error.h>
 
 #include "hound_ctx.h"
 #include "audio_data.h"
@@ -43,6 +45,7 @@
 #include "log.h"
 
 static int update_data(audio_source_t *source, size_t size);
+static int new_data(audio_sink_t *sink);
 
 /**
  * Allocate and initialize hound context structure.
@@ -64,9 +67,8 @@ hound_ctx_t *hound_record_ctx_get(const char *name)
 			free(ctx);
 			return NULL;
 		}
-		// TODO provide sink functions
 		const int ret = audio_sink_init(ctx->sink, name, ctx, NULL,
-		    NULL, NULL, &AUDIO_FORMAT_DEFAULT);
+		    NULL, new_data, &AUDIO_FORMAT_DEFAULT);
 		if (ret != EOK) {
 			free(ctx->sink);
 			free(ctx);
@@ -201,6 +203,36 @@ static inline void stream_append(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
 }
 
 /**
+ * Push new data to stream, do not block.
+ * @param stream The target stream.
+ * @param adata The new data.
+ * @return Error code.
+ */
+static int stream_push_data(hound_ctx_stream_t *stream, audio_data_t *adata)
+{
+	assert(stream);
+	assert(adata);
+
+	if (stream->allowed_size && adata->size > stream->allowed_size)
+		return EINVAL;
+
+	fibril_mutex_lock(&stream->guard);
+	if (stream->allowed_size &&
+	    (audio_pipe_bytes(&stream->fifo) + adata->size
+	        > stream->allowed_size)) {
+		fibril_mutex_unlock(&stream->guard);
+		return EOVERFLOW;
+
+	}
+
+	const int ret = audio_pipe_push(&stream->fifo, adata);
+	fibril_mutex_unlock(&stream->guard);
+	if (ret == EOK)
+		fibril_condvar_signal(&stream->change);
+	return ret;
+}
+
+/**
  * Old stream remove helper.
  * @param ctx hound context.
  * @param stream An old stream.
@@ -292,6 +324,8 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 	const int ret =
 	    audio_pipe_push_data(&stream->fifo, data, size, stream->format);
 	fibril_mutex_unlock(&stream->guard);
+	if (ret == EOK)
+		fibril_condvar_signal(&stream->change);
 	return ret;
 }
 
@@ -304,8 +338,23 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
  */
 int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
 {
-        log_verbose("%p:, %zu", stream, size);
-	return ENOTSUP;
+	assert(stream);
+
+	if (stream->allowed_size && size > stream->allowed_size)
+		return EINVAL;
+
+	fibril_mutex_lock(&stream->guard);
+	while (audio_pipe_bytes(&stream->fifo) < size) {
+	    fibril_condvar_wait(&stream->change, &stream->guard);
+	}
+
+	pcm_format_silence(data, size, &stream->format);
+	const int ret =
+	    audio_pipe_mix_data(&stream->fifo, data, size, &stream->format);
+	fibril_mutex_unlock(&stream->guard);
+	if (ret == EOK)
+		fibril_condvar_signal(&stream->change);
+	return ret;
 }
 
 /**
@@ -382,6 +431,60 @@ int update_data(audio_source_t *source, size_t size)
 	}
 	fibril_mutex_unlock(&ctx->guard);
 	return EOK;
+}
+
+int new_data(audio_sink_t *sink)
+{
+	assert(sink);
+	assert(sink->private_data);
+	hound_ctx_t *ctx = sink->private_data;
+
+	fibril_mutex_lock(&ctx->guard);
+
+	/* count available data */
+	size_t available_frames = -1;  /* this is ugly.... */
+	list_foreach(sink->connections, it) {
+		connection_t *conn = connection_from_source_list(it);
+		available_frames = min(available_frames,
+		    audio_pipe_frames(&conn->fifo));
+	}
+
+	const size_t bsize =
+	    available_frames * pcm_format_frame_size(&sink->format);
+	void *buffer = malloc(bsize);
+	if (!buffer) {
+		fibril_mutex_unlock(&ctx->guard);
+		return ENOMEM;
+	}
+	audio_data_t *adata = audio_data_create(buffer, bsize, sink->format);
+	if (!adata) {
+		fibril_mutex_unlock(&ctx->guard);
+		free(buffer);
+		return ENOMEM;
+	}
+
+	/* mix data */
+	pcm_format_silence(buffer, bsize, &sink->format);
+	list_foreach(sink->connections, it) {
+		connection_t *conn = connection_from_source_list(it);
+		/* This should not trigger data update on the source */
+		const size_t copied = connection_add_source_data(
+		    conn, buffer, bsize, sink->format);
+		if (copied != bsize)
+			log_error("Copied less than advertised data, "
+			    "something is wrong");
+	}
+	/* push to all streams */
+	list_foreach(ctx->streams, it) {
+		hound_ctx_stream_t *stream = hound_ctx_stream_from_link(it);
+		const int ret = stream_push_data(stream, adata);
+		if (ret != EOK)
+			log_error("Failed to push data to stream: %s",
+				str_error(ret));
+	}
+	audio_data_unref(adata);
+	fibril_mutex_unlock(&ctx->guard);
+	return ENOTSUP;
 }
 
 /**
