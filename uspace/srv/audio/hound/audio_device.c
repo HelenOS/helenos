@@ -45,6 +45,7 @@
 #include "audio_device.h"
 #include "log.h"
 
+/* hardwired to provide ~21ms per fragment */
 #define BUFFER_PARTS   16
 
 static int device_sink_connection_callback(audio_sink_t *sink, bool new);
@@ -55,7 +56,13 @@ static int get_buffer(audio_device_t *dev);
 static int release_buffer(audio_device_t *dev);
 static void fill_buffer(audio_device_t *dev, size_t size);
 
-
+/**
+ * Initialize audio device structure.
+ * @param dev The structure to initialize.
+ * @param id Location service id of the device driver.
+ * @param name Name of the device.
+ * @return Error code.
+ */
 int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 {
 	assert(dev);
@@ -84,11 +91,55 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 
 	return EOK;
 }
+
+/**
+ * Restore resource cplaimed during initialization.
+ * @param dev The device to release.
+ *
+ * NOT IMPLEMENTED
+ */
 void audio_device_fini(audio_device_t *dev)
 {
 	//TODO implement;
 }
 
+/**
+ * Get device provided audio source.
+ * @param dev Th device.
+ * @return pointer to aa audio source structure, NULL if the device is not
+ *         capable of capturing audio.
+ */
+audio_source_t * audio_device_get_source(audio_device_t *dev)
+{
+	assert(dev);
+	if (audio_pcm_query_cap(dev->sess, AUDIO_CAP_CAPTURE))
+		return &dev->source;
+	return NULL;
+}
+
+/**
+ * Get device provided audio sink.
+ * @param dev Th device.
+ * @return pointer to aa audio source structure, NULL if the device is not
+ *         capable of audio playback.
+ */
+audio_sink_t * audio_device_get_sink(audio_device_t *dev)
+{
+	assert(dev);
+	if (audio_pcm_query_cap(dev->sess, AUDIO_CAP_PLAYBACK))
+		return &dev->sink;
+	return NULL;
+}
+
+/**
+ * Handle connection addition and removal.
+ * @param sink audio sink that is connected or disconnected.
+ * @param new True of a connection was added, false otherwise.
+ * @return Error code.
+ *
+ * Starts playback on first connection. Stops playback when there are no
+ * connections.
+ */
 static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 {
 	assert(sink);
@@ -146,6 +197,15 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 	return EOK;
 }
 
+/**
+ * Handle connection addition and removal.
+ * @param source audio source that is connected or disconnected.
+ * @param new True of a connection was added, false otherwise.
+ * @return Error code.
+ *
+ * Starts capture on first connection. Stops capture when there are no
+ * connections.
+ */
 static int device_source_connection_callback(audio_source_t *source, bool new)
 {
 	assert(source);
@@ -157,11 +217,15 @@ static int device_source_connection_callback(audio_source_t *source, bool new)
 			    str_error(ret));
 			return ret;
 		}
+
+		//TODO set and test format
+
 		const unsigned frames = dev->buffer.fragment_size /
 		    pcm_format_frame_size(&dev->sink.format);
 		ret = audio_pcm_start_capture_fragment(dev->sess, frames,
-		    dev->sink.format.channels, dev->sink.format.sampling_rate,
-		    dev->sink.format.sample_format);
+		    dev->source.format.channels,
+		    dev->source.format.sampling_rate,
+		    dev->source.format.sample_format);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));
@@ -190,6 +254,12 @@ static int device_source_connection_callback(audio_source_t *source, bool new)
 	return EOK;
 }
 
+/**
+ * Audio device event handler.
+ * @param iid initial call id.
+ * @param icall initial call structure.
+ * @param arg (unused)
+ */
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Answer initial request */
@@ -225,6 +295,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 	}
 }
 
+/**
+ * Test format against hardware limits.
+ * @param sink audio playback device.
+ * @return Error code.
+ */
 static int device_check_format(audio_sink_t* sink)
 {
 	assert(sink);
@@ -235,6 +310,11 @@ static int device_check_format(audio_sink_t* sink)
 	    &sink->format.sampling_rate, &sink->format.sample_format);
 }
 
+/**
+ * Get access to device buffer.
+ * @param dev Audio device.
+ * @return Error code.
+ */
 static int get_buffer(audio_device_t *dev)
 {
 	assert(dev);
@@ -261,6 +341,11 @@ static int get_buffer(audio_device_t *dev)
 
 }
 
+/**
+ * Surrender access to device buffer.
+ * @param dev Audio device.
+ * @return Error code.
+ */
 static int release_buffer(audio_device_t *dev)
 {
 	assert(dev);
@@ -277,6 +362,11 @@ static int release_buffer(audio_device_t *dev)
 	return ret;
 }
 
+/**
+ * Mix data from all connections and add it to the device buffer.
+ * @param dev Audio device.
+ * @param size portion of the device buffer to fill.
+ */
 static void fill_buffer(audio_device_t *dev, size_t size)
 {
 	assert(dev);

@@ -48,13 +48,19 @@
 #include "audio_source.h"
 #include "audio_sink.h"
 
-
+/** The main Hound structure */
 typedef struct {
+	/** List access guard */
 	fibril_mutex_t list_guard;
+	/** enumerated devices */
 	list_t devices;
+	/** registered contexts */
 	list_t contexts;
+	/** Provided sources */
 	list_t sources;
+	/** Provided sinks */
 	list_t sinks;
+	/** Existing connections. */
 	list_t connections;
 } hound_t;
 

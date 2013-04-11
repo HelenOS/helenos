@@ -44,18 +44,24 @@
 #include "log.h"
 
 
+/**
+ * Initialize audio sink structure.
+ * @param sink The structure to initialize.
+ * @param name string identifier
+ * @param private_data backa
+ */
 int audio_sink_init(audio_sink_t *sink, const char *name,
     void *private_data, int (*connection_change)(audio_sink_t *, bool),
     int (*check_format)(audio_sink_t *sink), const pcm_format_t *f)
 {
 	assert(sink);
-	if (!name) {
-		log_debug("Incorrect parameters.");
+	if (!name)
 		return EINVAL;
-	}
 	link_initialize(&sink->link);
 	list_initialize(&sink->connections);
 	sink->name = str_dup(name);
+	if (!sink->name)
+		return ENOMEM;
 	sink->private_data = private_data;
 	sink->format = *f;
 	sink->connection_change = connection_change;
@@ -64,6 +70,10 @@ int audio_sink_init(audio_sink_t *sink, const char *name,
 	return EOK;
 }
 
+/**
+ * Release resources claimed by initialization.
+ * @param sink the structure to release.
+ */
 void audio_sink_fini(audio_sink_t *sink)
 {
 	assert(sink);
@@ -73,45 +83,12 @@ void audio_sink_fini(audio_sink_t *sink)
 	sink->name = NULL;
 }
 
-#if 0
-int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source)
-{
-	assert(sink);
-	assert(source);
-	assert_link_not_used(&source->link);
-	list_append(&source->link, &sink->sources);
-
-	const pcm_format_t old_format = sink->format;
-
-	/* The first source for me */
-	if (list_count(&sink->sources) == 1) {
-		/* Set audio format according to the first source */
-		if (pcm_format_is_any(&sink->format)) {
-			int ret = audio_sink_set_format(sink, &source->format);
-			if (ret != EOK)
-				return ret;
-		}
-	}
-
-	audio_source_connected(source, sink);
-	if (sink->connection_change) {
-		log_verbose("Calling connection change");
-		const int ret = sink->connection_change(sink, true);
-		if (ret != EOK) {
-			log_debug("Connection hook failed.");
-	//		audio_source_connected(source, NULL);
-	//		list_remove(&source->link);
-//			sink->format = old_format;
-			return ret;
-		}
-	}
-	log_verbose("Connected source '%s' to sink '%s'",
-	    source->name, sink->name);
-
-	return EOK;
-}
-#endif
-
+/**
+ * Set audio sink format and check with backend,
+ * @param sink The target sink isntance.
+ * @param format Th new format.
+ * @return Error code.
+ */
 int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 {
 	assert(sink);
@@ -142,27 +119,13 @@ int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 	return EOK;
 }
 
-#if 0
-int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source)
-{
-	assert(sink);
-	assert(source);
-	assert(list_member(&source->link, &sink->sources));
-	list_remove(&source->link);
-	if (sink->connection_change) {
-		const int ret = sink->connection_change(sink, false);
-		if (ret != EOK) {
-			log_debug("Connected hook failed.");
-			list_append(&source->link, &sink->sources);
-			return ret;
-		}
-	}
-	audio_source_connected(source, NULL);
-	return EOK;
-}
-#endif
-
-
+/**
+ * Pull data from all connections and add the mix to the destination.
+ * @param sink The sink to mix data.
+ * @param dest Destination buffer.
+ * @param size size of the @p dest buffer.
+ * @return Error code.
+ */
 void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 {
 	assert(sink);

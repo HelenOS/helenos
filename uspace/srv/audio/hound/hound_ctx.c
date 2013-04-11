@@ -44,11 +44,45 @@
 
 static int update_data(audio_source_t *source, size_t size);
 
+/**
+ * Allocate and initialize hound context structure.
+ * @param name String identifier.
+ * @return Pointer to a new context structure, NULL on failure
+ *
+ * Creates record context structure.
+ */
 hound_ctx_t *hound_record_ctx_get(const char *name)
 {
-	return NULL;
+	hound_ctx_t *ctx = malloc(sizeof(hound_ctx_t));
+	if (ctx) {
+		link_initialize(&ctx->link);
+		list_initialize(&ctx->streams);
+		fibril_mutex_initialize(&ctx->guard);
+		ctx->source = NULL;
+		ctx->sink = malloc(sizeof(audio_sink_t));
+		if (!ctx->sink) {
+			free(ctx);
+			return NULL;
+		}
+		// TODO provide sink functions
+		const int ret = audio_sink_init(ctx->sink, name, ctx, NULL,
+		    NULL, &AUDIO_FORMAT_DEFAULT);
+		if (ret != EOK) {
+			free(ctx->sink);
+			free(ctx);
+			return NULL;
+		}
+	}
+	return ctx;
 }
 
+/**
+ * Allocate and initialize hound context structure.
+ * @param name String identifier.
+ * @return Pointer to a new context structure, NULL on failure
+ *
+ * Creates record context structure.
+ */
 hound_ctx_t *hound_playback_ctx_get(const char *name)
 {
 	hound_ctx_t *ctx = malloc(sizeof(hound_ctx_t));
@@ -73,6 +107,10 @@ hound_ctx_t *hound_playback_ctx_get(const char *name)
 	return ctx;
 }
 
+/**
+ * Destroy existing context structure.
+ * @param ctx hound cotnext to destroy.
+ */
 void hound_ctx_destroy(hound_ctx_t *ctx)
 {
 	assert(ctx);
@@ -87,12 +125,22 @@ void hound_ctx_destroy(hound_ctx_t *ctx)
 	free(ctx);
 }
 
+/**
+ * Retrieve associated context id.
+ * @param ctx hound context.
+ * @return context id of the context.
+ */
 hound_context_id_t hound_ctx_get_id(hound_ctx_t *ctx)
 {
 	assert(ctx);
 	return (hound_context_id_t)ctx;
 }
 
+/**
+ * Query playback/record status of a hound context.
+ * @param ctx Hound context.
+ * @return True if ctx  is a recording context.
+ */
 bool hound_ctx_is_record(hound_ctx_t *ctx)
 {
 	assert(ctx);
@@ -103,22 +151,42 @@ bool hound_ctx_is_record(hound_ctx_t *ctx)
 /*
  * STREAMS
  */
+
+/** Hound stream structure. */
 typedef struct hound_ctx_stream {
+	/** Hound context streams link */
 	link_t link;
+	/** Audio data pipe */
 	audio_pipe_t fifo;
+	/** Parent context */
 	hound_ctx_t *ctx;
+	/** Stream data format */
 	pcm_format_t format;
+	/** Stream modifiers */
 	int flags;
+	/** Maximum allowed buffer size */
 	size_t allowed_size;
+	/** Fifo access synchronization */
 	fibril_mutex_t guard;
+	/** buffer status change condition */
 	fibril_condvar_t change;
 } hound_ctx_stream_t;
 
+/**
+ * List instance helper.
+ * @param l link
+ * @return pointer to a hound context structure, NULL on failure.
+ */
 static inline hound_ctx_stream_t *hound_ctx_stream_from_link(link_t *l)
 {
 	return l ? list_get_instance(l, hound_ctx_stream_t, link) : NULL;
 }
 
+/**
+ * New stream append helper.
+ * @param ctx hound context.
+ * @param stream A new stream.
+ */
 static inline void stream_append(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
 {
 	assert(ctx);
@@ -128,6 +196,11 @@ static inline void stream_append(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
 	fibril_mutex_unlock(&ctx->guard);
 }
 
+/**
+ * Old stream remove helper.
+ * @param ctx hound context.
+ * @param stream An old stream.
+ */
 static inline void stream_remove(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
 {
 	assert(ctx);
@@ -137,6 +210,14 @@ static inline void stream_remove(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
 	fibril_mutex_unlock(&ctx->guard);
 }
 
+/**
+ * Create new stream.
+ * @param ctx Assocaited hound context.
+ * @param flags Stream modidfiers.
+ * @param format PCM data format.
+ * @param buffer_size Maximum allowed buffer size.
+ * @return Pointer to a new stream structure, NULL on failure.
+ */
 hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
 	pcm_format_t format, size_t buffer_size)
 {
@@ -159,6 +240,12 @@ hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
 	return stream;
 }
 
+/**
+ * Destroy existing stream structure.
+ * @param stream The stream to destroy.
+ *
+ * The function will print warning if there are data in the buffer.
+ */
 void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
 {
 	if (stream) {
@@ -176,7 +263,13 @@ void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
 	}
 }
 
-
+/**
+ * Write new data to a stream.
+ * @param stream The destination stream.
+ * @param data audio data buffer.
+ * @param size size of the @p data buffer.
+ * @return Error code.
+ */
 int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
     size_t size)
 {
@@ -198,12 +291,28 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 	return ret;
 }
 
+/**
+ * Read data from a buffer.
+ * @param stream The source buffer.
+ * @param data Destination data buffer.
+ * @param size Size of the @p data buffer.
+ * @return Error code.
+ */
 int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
 {
         log_verbose("%p:, %zu", stream, size);
 	return ENOTSUP;
 }
 
+/**
+ * Add (mix) stream data to the destination buffer.
+ * @param stream The source stream.
+ * @param data Destination audio buffer.
+ * @param size Size of the @p data buffer.
+ * @param format Destination data format.
+ * @return Size of the destination buffer touch with stream's data,
+ *         error code on failure.
+ */
 ssize_t hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
     size_t size, const pcm_format_t *f)
 {
@@ -215,6 +324,10 @@ ssize_t hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,
 	return ret;
 }
 
+/**
+ * Block until the stream's buffer is empty.
+ * @param stream Target stream.
+ */
 void hound_ctx_stream_drain(hound_ctx_stream_t *stream)
 {
 	assert(stream);
@@ -225,6 +338,14 @@ void hound_ctx_stream_drain(hound_ctx_stream_t *stream)
 	fibril_mutex_unlock(&stream->guard);
 }
 
+/**
+ * Update context data.
+ * @param source Source abstraction.
+ * @param size Required size in source's format.
+ * @return error code.
+ *
+ * Mixes data from all streams and pushes it to all connections.
+ */
 int update_data(audio_source_t *source, size_t size)
 {
 	assert(source);

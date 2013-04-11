@@ -62,14 +62,31 @@ do { \
 	return NULL; \
 } while (0)
 
+/**
+ * Search devices by name.
+ * @param name String identifier.
+ * @return Pointer to the found device, NULL on failure.
+ */
 static audio_device_t * find_device_by_name(list_t *list, const char *name)
 {
 	FIND_BY_NAME(device);
 }
+
+/**
+ * Search sources by name.
+ * @param name String identifier.
+ * @return Pointer to the found source, NULL on failure.
+ */
 static audio_source_t * find_source_by_name(list_t *list, const char *name)
 {
 	FIND_BY_NAME(source);
 }
+
+/**
+ * Search sinks by name.
+ * @param name String identifier.
+ * @return Pointer to the found sink, NULL on failure.
+ */
 static audio_sink_t * find_sink_by_name(list_t *list, const char *name)
 {
 	FIND_BY_NAME(sink);
@@ -77,10 +94,18 @@ static audio_sink_t * find_sink_by_name(list_t *list, const char *name)
 
 static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
 
+/**
+ * Remove provided sink.
+ * @param hound The hound structure.
+ * @param sink Target sink to remove.
+ *
+ * This function has to be called with the list_guard lock held.
+ */
 static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
 	assert(sink);
+	assert(fibril_mutex_is_locked(&hound->list_guard));
 	log_verbose("Removing sink '%s'.", sink->name);
 	if (!list_empty(&sink->connections))
 		log_warning("Removing sink '%s' while still connected.", sink->name);
@@ -93,6 +118,13 @@ static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
 	list_remove(&sink->link);
 }
 
+/**
+ * Remove provided source.
+ * @param hound The hound structure.
+ * @param sink Target source to remove.
+ *
+ * This function has to be called with the guard lock held.
+ */
 static void hound_remove_source_internal(hound_t *hound, audio_source_t *source)
 {
 	assert(hound);
@@ -110,6 +142,11 @@ static void hound_remove_source_internal(hound_t *hound, audio_source_t *source)
 	list_remove(&source->link);
 }
 
+/**
+ * Initialize hound structure.
+ * @param hound The structure to initialize.
+ * @return Error code.
+ */
 int hound_init(hound_t *hound)
 {
 	assert(hound);
@@ -122,6 +159,12 @@ int hound_init(hound_t *hound)
 	return EOK;
 }
 
+/**
+ * Add a new application context.
+ * @param hound Hound structure.
+ * @param ctx Context to add.
+ * @return Error code.
+ */
 int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
 {
 	log_info("Trying to add context %p", ctx);
@@ -136,11 +179,20 @@ int hound_add_ctx(hound_t *hound, hound_ctx_t *ctx)
 		ret = hound_add_source(hound, ctx->source);
 	if (ret == EOK && ctx->sink)
 		ret = hound_add_sink(hound, ctx->sink);
-	if (ret != EOK)
-		hound_ctx_destroy(ctx);
+	if (ret != EOK) {
+		fibril_mutex_lock(&hound->list_guard);
+		list_remove(&ctx->link);
+		fibril_mutex_unlock(&hound->list_guard);
+	}
 	return ret;
 }
 
+/**
+ * Remove existing application context.
+ * @param hound Hound structure.
+ * @param ctx Context to remove.
+ * @return Error code.
+ */
 int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
 {
 	assert(hound);
@@ -158,6 +210,12 @@ int hound_remove_ctx(hound_t *hound, hound_ctx_t *ctx)
 	return EOK;
 }
 
+/**
+ * Search registered contexts for the matching id.
+ * @param hound The hound structure.
+ * @param id Requested id.
+ * @return Pointer to the found structure, NULL on failure.
+ */
 hound_ctx_t *hound_get_ctx_by_id(hound_t *hound, hound_context_id_t id)
 {
 	assert(hound);
@@ -175,6 +233,13 @@ hound_ctx_t *hound_get_ctx_by_id(hound_t *hound, hound_context_id_t id)
 	return res;
 }
 
+/**
+ * Add a new device.
+ * @param hound The hound structure.
+ * @param id Locations service id representing the device driver.
+ * @param name String identifier.
+ * @return Error code.
+ */
 int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 {
 	log_verbose("Adding device \"%s\", service: %zu", name, id);
@@ -246,6 +311,12 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 	return ret;
 }
 
+/**
+ * Register a new source.
+ * @param hound The hound structure.
+ * @param source A new source to add.
+ * @return Error code.
+ */
 int hound_add_source(hound_t *hound, audio_source_t *source)
 {
 	assert(hound);
@@ -264,6 +335,12 @@ int hound_add_source(hound_t *hound, audio_source_t *source)
 	return EOK;
 }
 
+/**
+ * Register a new sink.
+ * @param hound The hound structure.
+ * @param sink A new sink to add.
+ * @return Error code.
+ */
 int hound_add_sink(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
@@ -282,6 +359,12 @@ int hound_add_sink(hound_t *hound, audio_sink_t *sink)
 	return EOK;
 }
 
+/**
+ * Remove a registered source.
+ * @param hound The hound structure.
+ * @param source A registered source to remove.
+ * @return Error code.
+ */
 int hound_remove_source(hound_t *hound, audio_source_t *source)
 {
 	assert(hound);
@@ -293,7 +376,12 @@ int hound_remove_source(hound_t *hound, audio_source_t *source)
 	return EOK;
 }
 
-
+/**
+ * Remove a registered sink.
+ * @param hound The hound structure.
+ * @param sink A registered sink to remove.
+ * @return Error code.
+ */
 int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
 {
 	assert(hound);
@@ -305,6 +393,13 @@ int hound_remove_sink(hound_t *hound, audio_sink_t *sink)
 	return EOK;
 }
 
+/**
+ * List all registered sources.
+ * @param[in] hound The hound structure.
+ * @param[out] list List of the string identifiers.
+ * @param[out] size Number of identifiers int he @p list.
+ * @return Error code.
+ */
 int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 {
 	assert(hound);
@@ -340,6 +435,13 @@ int hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 	return ret;
 }
 
+/**
+ * List all registered sinks.
+ * @param[in] hound The hound structure.
+ * @param[out] list List of the string identifiers.
+ * @param[out] size Number of identifiers int he @p list.
+ * @return Error code.
+ */
 int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 {
 	assert(hound);
@@ -375,6 +477,17 @@ int hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 	return ret;
 }
 
+/**
+ * List all connections
+ * @param[in] hound The hound structure.
+ * @param[out] sources List of the source string identifiers.
+ * @param[out] sinks List of the sinks string identifiers.
+ * @param[out] size Number of identifiers int he @p list.
+ * @return Error code.
+ *
+ * Lists include duplicit name entries. The order of entries is important,
+ * identifiers with the same index are connected.
+ */
 int hound_list_connections(hound_t *hound, const char ***sources,
     const char ***sinks, size_t *size)
 {
@@ -383,6 +496,13 @@ int hound_list_connections(hound_t *hound, const char ***sources,
 	return ENOTSUP;
 }
 
+/**
+ * Create and register a new connection.
+ * @param hound The hound structure.
+ * @param source_name Source's string id.
+ * @param sink_name Sink's string id.
+ * @return Error code.
+ */
 int hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
 {
 	assert(hound);
@@ -415,6 +535,13 @@ int hound_connect(hound_t *hound, const char* source_name, const char* sink_name
 	return EOK;
 }
 
+/**
+ * Find and destroy connection between source and sink.
+ * @param hound The hound structure.
+ * @param source_name Source's string id.
+ * @param sink_name Sink's string id.
+ * @return Error code.
+ */
 int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
 {
 	assert(hound);
@@ -424,6 +551,15 @@ int hound_disconnect(hound_t *hound, const char* source_name, const char* sink_n
 	return ret;
 }
 
+/**
+ * Internal disconnect helper.
+ * @param hound The hound structure.
+ * @param source_name Source's string id.
+ * @param sink_name Sink's string id.
+ * @return Error code.
+ *
+ * This function has to be called with the list_guard lock held.
+ */
 static int hound_disconnect_internal(hound_t *hound, const char* source_name,
     const char* sink_name)
 {

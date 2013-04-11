@@ -42,17 +42,27 @@
 #include <fibril_synch.h>
 #include <pcm/format.h>
 
+/** Reference counted audio buffer */
 typedef struct {
+	/** Audio data */
 	const void *data;
+	/** Size of the buffer pointer to by data */
 	size_t size;
+	/** Format of the audio data */
 	pcm_format_t format;
+	/** Reference counter */
 	atomic_t refcount;
 } audio_data_t;
 
+/** Audio data pipe structure */
 typedef struct {
+	/** List of audio data buffers */
 	list_t list;
+	/** Total size of all buffers */
 	size_t bytes;
+	/** Total frames stored in all buffers */
 	size_t frames;
+	/** List access synchronization */
 	fibril_mutex_t guard;
 } audio_pipe_t;
 
@@ -70,18 +80,38 @@ audio_data_t *audio_pipe_pop(audio_pipe_t *pipe);
 ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *buffer, size_t size,
     const pcm_format_t *f);
 
+/**
+ * Total bytes getter.
+ * @param pipe The audio pipe.
+ * @return Total size of buffer stored in the pipe.
+ */
 static inline size_t audio_pipe_bytes(audio_pipe_t *pipe)
 {
 	assert(pipe);
 	return pipe->bytes;
 }
 
+/**
+ * Total bytes getter.
+ * @param pipe The audio pipe.
+ * @return Total number of frames stored in the pipe.
+ */
 static inline size_t audio_pipe_frames(audio_pipe_t *pipe)
 {
 	assert(pipe);
 	return pipe->frames;
 }
 
+/**
+ * Push data form buffer directly to pipe.
+ * @param pipe The target pipe.
+ * @param data audio buffer.
+ * @param size size of the @p data buffer
+ * @param f format of the audio data.
+ * @return Error code.
+ *
+ * Reference counted buffer is created automatically.
+ */
 static inline int audio_pipe_push_data(audio_pipe_t *pipe,
     const void *data, size_t size, pcm_format_t f)
 {

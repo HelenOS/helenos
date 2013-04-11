@@ -39,6 +39,13 @@
 #include "audio_data.h"
 #include "log.h"
 
+/**
+ * Create reference counted buffer out of ordinary data buffer.
+ * @param data audio buffer
+ * @param size Size of the @p data buffer.
+ * @param fomart audio data format.
+ * @return pointer to valid audio data structre, NULL on failure.
+ */
 audio_data_t *audio_data_create(const void *data, size_t size,
     pcm_format_t format)
 {
@@ -57,6 +64,10 @@ audio_data_t *audio_data_create(const void *data, size_t size,
 	return adata;
 }
 
+/**
+ * Get a new reference to the audio data buffer.
+ * @param adata The audio data buffer.
+ */
 void audio_data_addref(audio_data_t *adata)
 {
 	assert(adata);
@@ -64,6 +75,10 @@ void audio_data_addref(audio_data_t *adata)
 	atomic_inc(&adata->refcount);
 }
 
+/**
+ * Release a reference to the audio data buffer.
+ * @param adata The audio data buffer.
+ */
 void audio_data_unref(audio_data_t *adata)
 {
 	assert(adata);
@@ -77,17 +92,27 @@ void audio_data_unref(audio_data_t *adata)
 
 /* Data link helpers */
 
+/** Audio data buffer list helper structure. */
 typedef struct {
 	link_t link;
 	audio_data_t *adata;
 	size_t position;
 } audio_data_link_t;
 
+/** List instance helper function.
+ * @param l link
+ * @return valid pointer to data link structure, NULL on failure.
+ */
 static inline audio_data_link_t * audio_data_link_list_instance(link_t *l)
 {
 	return l ? list_get_instance(l, audio_data_link_t, link) : NULL;
 }
 
+/**
+ * Create a new audio data link.
+ * @param adata Audio data to store.
+ * @return Valid pointer to a new audio data link structure, NULL on failure.
+ */
 static audio_data_link_t *audio_data_link_create(audio_data_t *adata)
 {
 	assert(adata);
@@ -100,6 +125,12 @@ static audio_data_link_t *audio_data_link_create(audio_data_t *adata)
 	return link;
 }
 
+/**
+ * Destroy audio data link.
+ * @param link The link to destroy.
+ *
+ * Releases data reference.
+ */
 static void audio_data_link_destroy(audio_data_link_t *link)
 {
 	assert(link);
@@ -108,6 +139,11 @@ static void audio_data_link_destroy(audio_data_link_t *link)
 	free(link);
 }
 
+/**
+ * Data link buffer start helper function.
+ * @param alink audio data link
+ * @return pointer to the beginning of data buffer.
+ */
 static inline const void * audio_data_link_start(audio_data_link_t *alink)
 {
 	assert(alink);
@@ -115,6 +151,11 @@ static inline const void * audio_data_link_start(audio_data_link_t *alink)
 	return alink->adata->data + alink->position;
 }
 
+/**
+ * Data link remaining size getter.
+ * @param alink audio data link
+ * @return Remaining size of valid data in the buffer.
+ */
 static inline size_t audio_data_link_remain_size(audio_data_link_t *alink)
 {
 	assert(alink);
@@ -124,6 +165,11 @@ static inline size_t audio_data_link_remain_size(audio_data_link_t *alink)
 }
 
 
+/**
+ * Data link remaining frames getter.
+ * @param alink audio data link
+ * @return Number of remaining frames in the buffer.
+ */
 static inline size_t audio_data_link_available_frames(audio_data_link_t *alink)
 {
 	assert(alink);
@@ -134,7 +180,10 @@ static inline size_t audio_data_link_available_frames(audio_data_link_t *alink)
 
 /* Audio Pipe */
 
-
+/**
+ * Initialize audio pipe structure.
+ * @param pipe The pipe structure to initialize.
+ */
 void audio_pipe_init(audio_pipe_t *pipe)
 {
 	assert(pipe);
@@ -144,8 +193,10 @@ void audio_pipe_init(audio_pipe_t *pipe)
 	pipe->bytes = 0;
 }
 
-
-
+/**
+ * Destroy all data in a pipe.
+ * @param pipe The audio pipe to clean.
+ */
 void audio_pipe_fini(audio_pipe_t *pipe)
 {
 	assert(pipe);
@@ -155,6 +206,12 @@ void audio_pipe_fini(audio_pipe_t *pipe)
 	}
 }
 
+/**
+ * Add new audio data to a pipe.
+ * @param pipe The target pipe.
+ * @param data The data.
+ * @return Error code.
+ */
 int audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data)
 {
 	assert(pipe);
@@ -171,6 +228,11 @@ int audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data)
 	return EOK;
 }
 
+/**
+ * Retrieve data form a audio pipe.
+ * @param pipe THe target pipe.
+ * @return Valid pointer to audio data, NULL if the pipe was empty.
+ */
 audio_data_t *audio_pipe_pop(audio_pipe_t *pipe)
 {
 	assert(pipe);
@@ -190,6 +252,15 @@ audio_data_t *audio_pipe_pop(audio_pipe_t *pipe)
 	return adata;
 }
 
+
+/**
+ * Use data store in a pipe and mix it into the provided buffer.
+ * @param pipe The piep that should provide data.
+ * @param data Target buffer.
+ * @param size Target buffer size.
+ * @param format Target data format.
+ * @return Size of the target buffer used, Error code on failure.
+ */
 ssize_t audio_pipe_mix_data(audio_pipe_t *pipe, void *data,
     size_t size, const pcm_format_t *f)
 {

@@ -43,14 +43,25 @@
 #include "audio_source.h"
 #include "audio_sink.h"
 
+/** Application context structure */
 typedef struct {
+	/** Hound's contexts link */
 	link_t link;
+	/** List of streams */
 	list_t streams;
+	/** Provided audio source abstraction */
 	audio_source_t *source;
+	/** Provided audio sink abstraction */
 	audio_sink_t *sink;
+	/** List access synchronization */
 	fibril_mutex_t guard;
 } hound_ctx_t;
 
+/**
+ * List instance helper.
+ * @param l link
+ * @return pointer to a hound context structure, NULL on failure.
+ */
 static inline hound_ctx_t *hound_ctx_from_link(link_t *l)
 {
 	return l ? list_get_instance(l, hound_ctx_t, link) : NULL;

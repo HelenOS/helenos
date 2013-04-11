@@ -39,6 +39,14 @@
 #include "log.h"
 #include "connection.h"
 
+/**
+ * Create connection between source and sink.
+ * @param source Valid source structure.
+ * @param sink Valid sink structure.
+ * @return pointer to a valid connection structure, NULL on failure.
+ *
+ * Reports new connection to both the source and sink.
+ */
 connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 {
 	assert(source);
@@ -63,6 +71,12 @@ connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 	return conn;
 }
 
+/**
+ * Destroy existing connection
+ * @param connection The connection to destroy.
+ *
+ * Disconnects from both the source and the sink.
+ */
 void connection_destroy(connection_t *connection)
 {
 	assert(connection);
@@ -79,6 +93,13 @@ void connection_destroy(connection_t *connection)
 	free(connection);
 }
 
+/**
+ * Update and mix data provided by the source.
+ * @param connection the connection to add.
+ * @param data Destination audio buffer.
+ * @param size size of the destination audio buffer.
+ * @param format format of the destination audio buffer.
+ */
 ssize_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format)
 {

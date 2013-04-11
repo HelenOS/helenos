@@ -44,25 +44,47 @@
 #include "audio_source.h"
 #include "audio_sink.h"
 
+/** Source->sink connection structure */
 typedef struct {
+	/** Source's connections link */
 	link_t source_link;
+	/** Sink's connections link */
 	link_t sink_link;
+	/** Hound's connections link */
 	link_t hound_link;
+	/** audio data pipe */
 	audio_pipe_t fifo;
+	/** Target sink */
 	audio_sink_t *sink;
+	/** Target source */
 	audio_source_t *source;
 } connection_t;
 
+/**
+ * List instance helper.
+ * @param l link
+ * @return pointer to a connection structure, NULL on failure.
+ */
 static inline connection_t * connection_from_source_list(link_t *l)
 {
 	return l ? list_get_instance(l, connection_t, source_link) : NULL;
 }
 
+/**
+ * List instance helper.
+ * @param l link
+ * @return pointer to a connection structure, NULL on failure.
+ */
 static inline connection_t * connection_from_sink_list(link_t *l)
 {
 	return l ? list_get_instance(l, connection_t, sink_link) : NULL;
 }
 
+/**
+ * List instance helper.
+ * @param l link
+ * @return pointer to a connection structure, NULL on failure.
+ */
 static inline connection_t * connection_from_hound_list(link_t *l)
 {
 	return l ? list_get_instance(l, connection_t, hound_link) : NULL;
@@ -74,6 +96,12 @@ void connection_destroy(connection_t *connection);
 ssize_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format);
 
+/**
+ * Add new data to the connection buffer.
+ * @param connection Target conneciton.
+ * @aparam adata Reference counted audio data buffer.
+ * @return Error code.
+ */
 static inline int connection_push_data(connection_t *connection,
     audio_data_t *adata)
 {
@@ -82,20 +110,32 @@ static inline int connection_push_data(connection_t *connection,
 	return audio_pipe_push(&connection->fifo, adata);
 }
 
+/**
+ * Source name getter.
+ * @param connection Connection to the source.
+ * @param valid string identifier, "no source" or "unnamed source" on failure.
+ */
 static inline const char *connection_source_name(connection_t *connection)
 {
 	assert(connection);
 	if (connection->source && connection->source->name)
 		return connection->source->name;
+	// TODO assert?
 	return connection->source ? "unnamed source" : "no source";
 }
 
+/**
+ * Sink name getter.
+ * @param connection Connection to the sink.
+ * @param valid string identifier, "no source" or "unnamed source" on failure.
+ */
 static inline const char *connection_sink_name(connection_t *connection)
 {
 	assert(connection);
 	if (connection->sink && connection->sink->name)
 		return connection->sink->name;
-	return connection->source ? "unnamed source" : "no source";
+	// TODO assert?
+	return connection->source ? "unnamed sink" : "no sink";
 }
 
 

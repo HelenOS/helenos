@@ -46,16 +46,29 @@
 
 typedef struct audio_sink audio_sink_t;
 
+/** Audio sink abstraction structure */
 struct audio_sink {
+	/** Link in hound's sink list */
 	link_t link;
+	/** List of all related connections */
 	list_t connections;
+	/** Sink's name */
 	const char *name;
+	/** Consumes data in this format */
 	pcm_format_t format;
+	/** Backend data */
 	void *private_data;
+	/** Connect/disconnect callback */
 	int (*connection_change)(audio_sink_t *, bool);
+	/** Backend callback to check data */
 	int (*check_format)(audio_sink_t *);
 };
 
+/**
+ * List instance helper.
+ * @param l link
+ * @return pointer to a sink structure, NULL on failure.
+ */
 static inline audio_sink_t * audio_sink_list_instance(link_t *l)
 {
 	return l ? list_get_instance(l, audio_sink_t, link) : NULL;
@@ -64,17 +77,12 @@ static inline audio_sink_t * audio_sink_list_instance(link_t *l)
 int audio_sink_init(audio_sink_t *sink, const char *name,
     void *private_data, int (*connection_change)(audio_sink_t *, bool),
     int (*check_format)(audio_sink_t *), const pcm_format_t *f);
-void audio_sink_fini(audio_sink_t *sink);
 
+void audio_sink_fini(audio_sink_t *sink);
 int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format);
-//int audio_sink_add_source(audio_sink_t *sink, audio_source_t *source);
-//int audio_sink_remove_source(audio_sink_t *sink, audio_source_t *source);
 void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);
 
-
 #endif
-
 /**
  * @}
  */
-

@@ -44,7 +44,15 @@
 #include "audio_sink.h"
 #include "log.h"
 
-
+/**
+ * Initialize audio source strcture.
+ * @param source The structure to initialize.
+ * @param name String identifier of the audio source.
+ * @param data Backend data.
+ * @param connection_change Connect/disconnect callback.
+ * @param update_available_data Data request callback.
+ * @return Error code.
+ */
 int audio_source_init(audio_source_t *source, const char *name, void *data,
     int (*connection_change)(audio_source_t *, bool new),
     int (*update_available_data)(audio_source_t *, size_t),
@@ -68,6 +76,10 @@ int audio_source_init(audio_source_t *source, const char *name, void *data,
 	return EOK;
 }
 
+/**
+ * Release resources claimed by initialization.
+ * @param source The structure to cleanup.
+ */
 void audio_source_fini(audio_source_t *source)
 {
 	assert(source);
