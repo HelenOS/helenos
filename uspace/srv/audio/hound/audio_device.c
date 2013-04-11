@@ -82,7 +82,7 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	}
 
 	audio_sink_init(&dev->sink, name, dev, device_sink_connection_callback,
-	    device_check_format, &AUDIO_FORMAT_ANY);
+	    device_check_format, NULL, &AUDIO_FORMAT_ANY);
 	audio_source_init(&dev->source, name, dev,
 	    device_source_connection_callback, NULL, &AUDIO_FORMAT_ANY);
 

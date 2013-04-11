@@ -122,6 +122,22 @@ ssize_t connection_add_source_data(connection_t *connection, void *data,
 		    ret, size);
 	return ret > 0 ? EOK : ret;
 }
+/**
+ * Add new data to the connection buffer.
+ * @param connection Target conneciton.
+ * @aparam adata Reference counted audio data buffer.
+ * @return Error code.
+ */
+int connection_push_data(connection_t *connection,
+    audio_data_t *adata)
+{
+	assert(connection);
+	assert(adata);
+	const int ret = audio_pipe_push(&connection->fifo, adata);
+	if (ret == EOK && connection->sink->data_available)
+		connection->sink->data_available(connection->sink);
+	return ret;
+}
 
 /**
  * @}

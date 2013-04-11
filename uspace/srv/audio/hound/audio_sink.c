@@ -48,11 +48,17 @@
  * Initialize audio sink structure.
  * @param sink The structure to initialize.
  * @param name string identifier
- * @param private_data backa
+ * @param private_data backend data
+ * @param connection_change connect/disconnect callback
+ * @param check_format format testing callback
+ * @param data_available trigger data prcoessing
+ * @param f sink format
+ * @return Error code.
  */
-int audio_sink_init(audio_sink_t *sink, const char *name,
-    void *private_data, int (*connection_change)(audio_sink_t *, bool),
-    int (*check_format)(audio_sink_t *sink), const pcm_format_t *f)
+int audio_sink_init(audio_sink_t *sink, const char *name, void *private_data,
+    int (*connection_change)(audio_sink_t *, bool),
+    int (*check_format)(audio_sink_t *), int (*data_available)(audio_sink_t *),
+    const pcm_format_t *f)
 {
 	assert(sink);
 	if (!name)
@@ -66,6 +72,7 @@ int audio_sink_init(audio_sink_t *sink, const char *name,
 	sink->format = *f;
 	sink->connection_change = connection_change;
 	sink->check_format = check_format;
+	sink->data_available = data_available;
 	log_verbose("Initialized sink (%p) '%s'", sink, sink->name);
 	return EOK;
 }

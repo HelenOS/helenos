@@ -66,7 +66,7 @@ hound_ctx_t *hound_record_ctx_get(const char *name)
 		}
 		// TODO provide sink functions
 		const int ret = audio_sink_init(ctx->sink, name, ctx, NULL,
-		    NULL, &AUDIO_FORMAT_DEFAULT);
+		    NULL, NULL, &AUDIO_FORMAT_DEFAULT);
 		if (ret != EOK) {
 			free(ctx->sink);
 			free(ctx);

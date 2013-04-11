@@ -96,19 +96,7 @@ void connection_destroy(connection_t *connection);
 ssize_t connection_add_source_data(connection_t *connection, void *data,
     size_t size, pcm_format_t format);
 
-/**
- * Add new data to the connection buffer.
- * @param connection Target conneciton.
- * @aparam adata Reference counted audio data buffer.
- * @return Error code.
- */
-static inline int connection_push_data(connection_t *connection,
-    audio_data_t *adata)
-{
-	assert(connection);
-	assert(adata);
-	return audio_pipe_push(&connection->fifo, adata);
-}
+int connection_push_data(connection_t *connection, audio_data_t *adata);
 
 /**
  * Source name getter.
