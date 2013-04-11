@@ -193,6 +193,10 @@ static inline void stream_append(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
 	assert(stream);
 	fibril_mutex_lock(&ctx->guard);
 	list_append(&stream->link, &ctx->streams);
+	if (list_count(&ctx->streams) == 1) {
+		if (ctx->source && list_count(&ctx->source->connections) == 0)
+			ctx->source->format = stream->format;
+	}
 	fibril_mutex_unlock(&ctx->guard);
 }
 

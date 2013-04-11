@@ -155,7 +155,6 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		}
 		audio_pcm_register_event_callback(dev->sess,
 		    device_event_callback, dev);\
-		// TODO set formats
 
 		/* Fill the buffer first. Fill the first two fragments,
 		 * so that we stay one fragment ahead */
