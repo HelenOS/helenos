@@ -815,32 +815,34 @@ int tinput_read(tinput_t *ti, char **dstr)
 	while (!ti->done) {
 		console_flush(ti->console);
 		
-		kbd_event_t ev;
-		if (!console_get_kbd_event(ti->console, &ev))
+		cons_event_t ev;
+		if (!console_get_event(ti->console, &ev))
 			return EIO;
 		
-		if (ev.type != KEY_PRESS)
+		if (ev.type != CEV_KEY || ev.ev.key.type != KEY_PRESS)
 			continue;
 		
-		if (((ev.mods & KM_CTRL) != 0) &&
-		    ((ev.mods & (KM_ALT | KM_SHIFT)) == 0))
-			tinput_key_ctrl(ti, &ev);
+		kbd_event_t *kev = &ev.ev.key;
 		
-		if (((ev.mods & KM_SHIFT) != 0) &&
-		    ((ev.mods & (KM_CTRL | KM_ALT)) == 0))
-			tinput_key_shift(ti, &ev);
+		if (((kev->mods & KM_CTRL) != 0) &&
+		    ((kev->mods & (KM_ALT | KM_SHIFT)) == 0))
+			tinput_key_ctrl(ti, kev);
 		
-		if (((ev.mods & KM_CTRL) != 0) &&
-		    ((ev.mods & KM_SHIFT) != 0) &&
-		    ((ev.mods & KM_ALT) == 0))
-			tinput_key_ctrl_shift(ti, &ev);
+		if (((kev->mods & KM_SHIFT) != 0) &&
+		    ((kev->mods & (KM_CTRL | KM_ALT)) == 0))
+			tinput_key_shift(ti, kev);
 		
-		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
-			tinput_key_unmod(ti, &ev);
+		if (((kev->mods & KM_CTRL) != 0) &&
+		    ((kev->mods & KM_SHIFT) != 0) &&
+		    ((kev->mods & KM_ALT) == 0))
+			tinput_key_ctrl_shift(ti, kev);
 		
-		if (ev.c >= ' ') {
+		if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
+			tinput_key_unmod(ti, kev);
+		
+		if (kev->c >= ' ') {
 			tinput_sel_delete(ti);
-			tinput_insert_char(ti, ev.c);
+			tinput_insert_char(ti, kev->c);
 		}
 	}
 	

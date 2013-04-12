@@ -153,7 +153,7 @@ void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
 	async_exchange_end(exch);
 }
 
-bool console_get_kbd_event(console_ctrl_t *ctrl, kbd_event_t *event)
+bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 {
 	if (ctrl->input_aid == 0) {
 		sysarg_t type;
@@ -170,10 +170,11 @@ bool console_get_kbd_event(console_ctrl_t *ctrl, kbd_event_t *event)
 			return false;
 		}
 		
-		event->type = type;
-		event->key = key;
-		event->mods = mods;
-		event->c = c;
+		event->type = CEV_KEY;
+		event->ev.key.type = type;
+		event->ev.key.key = key;
+		event->ev.key.mods = mods;
+		event->ev.key.c = c;
 	} else {
 		sysarg_t retval;
 		async_wait_for(ctrl->input_aid, &retval);
@@ -185,16 +186,17 @@ bool console_get_kbd_event(console_ctrl_t *ctrl, kbd_event_t *event)
 			return false;
 		}
 		
-		event->type = IPC_GET_ARG1(ctrl->input_call);
-		event->key = IPC_GET_ARG2(ctrl->input_call);
-		event->mods = IPC_GET_ARG3(ctrl->input_call);
-		event->c = IPC_GET_ARG4(ctrl->input_call);
+		event->type = CEV_KEY;
+		event->ev.key.type = IPC_GET_ARG1(ctrl->input_call);
+		event->ev.key.key = IPC_GET_ARG2(ctrl->input_call);
+		event->ev.key.mods = IPC_GET_ARG3(ctrl->input_call);
+		event->ev.key.c = IPC_GET_ARG4(ctrl->input_call);
 	}
 	
 	return true;
 }
 
-bool console_get_kbd_event_timeout(console_ctrl_t *ctrl, kbd_event_t *event,
+bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
     suseconds_t *timeout)
 {
 	struct timeval t0;
@@ -222,10 +224,11 @@ bool console_get_kbd_event_timeout(console_ctrl_t *ctrl, kbd_event_t *event,
 		return false;
 	}
 	
-	event->type = IPC_GET_ARG1(ctrl->input_call);
-	event->key = IPC_GET_ARG2(ctrl->input_call);
-	event->mods = IPC_GET_ARG3(ctrl->input_call);
-	event->c = IPC_GET_ARG4(ctrl->input_call);
+	event->type = CEV_KEY;
+	event->ev.key.type = IPC_GET_ARG1(ctrl->input_call);
+	event->ev.key.key = IPC_GET_ARG2(ctrl->input_call);
+	event->ev.key.mods = IPC_GET_ARG3(ctrl->input_call);
+	event->ev.key.c = IPC_GET_ARG4(ctrl->input_call);
 	
 	/* Update timeout */
 	struct timeval t1;

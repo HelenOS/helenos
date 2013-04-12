@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Vojtech Horky
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <io/console.h>
-#include <async.h>
-#include "../tester.h"
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-#define DURATION_SECS      30
+#ifndef LIBC_IO_CONS_EVENT_H_
+#define LIBC_IO_CONS_EVENT_H_
 
-const char *test_starve_ipc(void)
-{
-	const char *err = NULL;
-	console_ctrl_t *console = console_init(stdin, stdout);
-	if (console == NULL) {
-		return "Failed to init connection with console.";
-	}
-	
-	struct timeval start;
-	if (gettimeofday(&start, NULL) != 0) {
-		err = "Failed getting the time";
-		goto leave;
-	}
-	
-	TPRINTF("Intensive computation shall be imagined (for %ds)...\n", DURATION_SECS);
-	TPRINTF("Press a key to terminate prematurely...\n");
-	while (true) {
-		struct timeval now;
-		if (gettimeofday(&now, NULL) != 0) {
-			err = "Failed getting the time";
-			goto leave;
-		}
-		
-		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
-			break;
-		
-		cons_event_t ev;
-		suseconds_t timeout = 0;
-		bool has_event = console_get_event_timeout(console, &ev, &timeout);
-		if (has_event && ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
-			TPRINTF("Key %d pressed, terminating.\n", ev.ev.key.key);
-			break;
-		}
-	}
+#include <adt/list.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 
-	// FIXME - unless a key was pressed, the answer leaked as no one
-	// will wait for it.
-	// We cannot use async_forget() directly, though. Something like
-	// console_forget_pending_kbd_event() shall come here.
+typedef enum {
+	/** Key event */
+	CEV_KEY,
+	/** Position event */
+	CEV_POS
+} cons_event_type_t;
 
-	TPRINTF("Terminating...\n");
+/** Console event structure. */
+typedef struct {
+	/** List handle */
+	link_t link;
 
-leave:
-	console_done(console);
+	/** Event type */
+	cons_event_type_t type;
 
-	return err;
-}
+	union {
+		kbd_event_t key;
+		pos_event_t pos;
+	} ev;
+} cons_event_t;
+
+#endif
+
+/** @}
+ */

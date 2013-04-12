@@ -90,19 +90,19 @@ char *helenos_input_get_next_command(void)
 
 bool stdin_poll(char *key)
 {
-	kbd_event_t ev;
+	cons_event_t ev;
 	suseconds_t timeout = 0;
 	errno = EOK;
 	console_flush(input_prompt->console);
-	bool has_input = console_get_kbd_event_timeout(input_prompt->console, &ev, &timeout);
+	bool has_input = console_get_event_timeout(input_prompt->console, &ev, &timeout);
 	if (!has_input) {
 		return false;
 	}
 
-	if (ev.type != KEY_PRESS)
+	if (ev.type != CEV_KEY || ev.ev.key.type != KEY_PRESS)
 		return false;
 
-	*key = ev.c;
+	*key = ev.ev.key.c;
 
 	return true;
 }

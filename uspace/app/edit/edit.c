@@ -181,7 +181,8 @@ static void status_display(char const *str);
 
 int main(int argc, char *argv[])
 {
-	kbd_event_t ev;
+	cons_event_t ev;
+	kbd_event_t *kev;
 	bool new_file;
 	int rc;
 
@@ -244,25 +245,27 @@ int main(int argc, char *argv[])
 	done = false;
 
 	while (!done) {
-		console_get_kbd_event(con, &ev);
+		console_get_event(con, &ev);
 		pane.rflags = 0;
 
-		if (ev.type == KEY_PRESS) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+			kev = &ev.ev.key;
+
 			/* Handle key press. */
-			if (((ev.mods & KM_ALT) == 0) &&
-			    ((ev.mods & KM_SHIFT) == 0) &&
-			     (ev.mods & KM_CTRL) != 0) {
-				key_handle_ctrl(&ev);
-			} else if (((ev.mods & KM_ALT) == 0) &&
-			    ((ev.mods & KM_CTRL) == 0) &&
-			     (ev.mods & KM_SHIFT) != 0) {
-				key_handle_shift(&ev);
-			} else if (((ev.mods & KM_ALT) == 0) &&
-			    ((ev.mods & KM_CTRL) != 0) &&
-			     (ev.mods & KM_SHIFT) != 0) {
-				key_handle_shift_ctrl(&ev);
-			} else if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
-				key_handle_unmod(&ev);
+			if (((kev->mods & KM_ALT) == 0) &&
+			    ((kev->mods & KM_SHIFT) == 0) &&
+			     (kev->mods & KM_CTRL) != 0) {
+				key_handle_ctrl(kev);
+			} else if (((kev->mods & KM_ALT) == 0) &&
+			    ((kev->mods & KM_CTRL) == 0) &&
+			     (kev->mods & KM_SHIFT) != 0) {
+				key_handle_shift(kev);
+			} else if (((kev->mods & KM_ALT) == 0) &&
+			    ((kev->mods & KM_CTRL) != 0) &&
+			     (kev->mods & KM_SHIFT) != 0) {
+				key_handle_shift_ctrl(kev);
+			} else if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+				key_handle_unmod(kev);
 			}
 		}
 
@@ -591,7 +594,8 @@ static void file_save_as(void)
 /** Ask for a string. */
 static char *prompt(char const *prompt, char const *init_value)
 {
-	kbd_event_t ev;
+	cons_event_t ev;
+	kbd_event_t *kev;
 	char *str;
 	wchar_t buffer[INFNAME_MAX_LEN + 1];
 	int max_len;
@@ -611,15 +615,17 @@ static char *prompt(char const *prompt, char const *init_value)
 	done = false;
 
 	while (!done) {
-		console_get_kbd_event(con, &ev);
+		console_get_event(con, &ev);
 
-		if (ev.type == KEY_PRESS) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+			kev = &ev.ev.key;
+
 			/* Handle key press. */
-			if (((ev.mods & KM_ALT) == 0) &&
-			     (ev.mods & KM_CTRL) != 0) {
+			if (((kev->mods & KM_ALT) == 0) &&
+			     (kev->mods & KM_CTRL) != 0) {
 				;
-			} else if ((ev.mods & (KM_CTRL | KM_ALT)) == 0) {
-				switch (ev.key) {
+			} else if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
+				switch (kev->key) {
 				case KC_ESCAPE:
 					return NULL;
 				case KC_BACKSPACE:
@@ -633,10 +639,10 @@ static char *prompt(char const *prompt, char const *init_value)
 					done = true;
 					break;
 				default:
-					if (ev.c >= 32 && nc < max_len) {
-						putchar(ev.c);
+					if (kev->c >= 32 && nc < max_len) {
+						putchar(kev->c);
 						console_flush(con);
-						buffer[nc++] = ev.c;
+						buffer[nc++] = kev->c;
 					}
 					break;
 				}
