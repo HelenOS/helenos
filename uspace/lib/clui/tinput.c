@@ -807,6 +807,11 @@ void tinput_set_compl_ops(tinput_t *ti, tinput_compl_ops_t *compl_ops)
 /** Handle key press event. */
 static void tinput_key_press(tinput_t *ti, kbd_event_t *kev)
 {
+	if (kev->key == KC_LSHIFT)
+		ti->lshift_held = true;
+	if (kev->key == KC_RSHIFT)
+		ti->rshift_held = true;
+
 	if (((kev->mods & KM_CTRL) != 0) &&
 	    ((kev->mods & (KM_ALT | KM_SHIFT)) == 0))
 		tinput_key_ctrl(ti, kev);
@@ -829,11 +834,21 @@ static void tinput_key_press(tinput_t *ti, kbd_event_t *kev)
 	}
 }
 
+/** Handle key release event. */
+static void tinput_key_release(tinput_t *ti, kbd_event_t *kev)
+{
+	if (kev->key == KC_LSHIFT)
+		ti->lshift_held = false;
+	if (kev->key == KC_RSHIFT)
+		ti->rshift_held = false;
+}
+
 /** Position event */
 static void tinput_pos(tinput_t *ti, pos_event_t *ev)
 {
 	if (ev->type == POS_PRESS) {
-		tinput_seek_scrpos(ti, ev->hpos, ev->vpos, false);
+		tinput_seek_scrpos(ti, ev->hpos, ev->vpos,
+		    ti->lshift_held || ti->rshift_held);
 	}
 }
 
@@ -874,6 +889,8 @@ int tinput_read(tinput_t *ti, char **dstr)
 		case CEV_KEY:
 			if (ev.ev.key.type == KEY_PRESS)
 				tinput_key_press(ti, &ev.ev.key);
+			else
+				tinput_key_release(ti, &ev.ev.key);
 			break;
 		case CEV_POS:
 			tinput_pos(ti, &ev.ev.pos);
