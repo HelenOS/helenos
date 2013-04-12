@@ -118,11 +118,14 @@ static void cursor_show(void);
 static void cursor_hide(void);
 static void cursor_setvis(bool visible);
 
+static void key_handle_press(kbd_event_t *ev);
 static void key_handle_unmod(kbd_event_t const *ev);
 static void key_handle_ctrl(kbd_event_t const *ev);
 static void key_handle_shift(kbd_event_t const *ev);
 static void key_handle_shift_ctrl(kbd_event_t const *ev);
 static void key_handle_movement(unsigned int key, bool shift);
+
+static void pos_handle(pos_event_t *ev);
 
 static int file_save(char const *fname);
 static void file_save_as(void);
@@ -182,7 +185,6 @@ static void status_display(char const *str);
 int main(int argc, char *argv[])
 {
 	cons_event_t ev;
-	kbd_event_t *kev;
 	bool new_file;
 	int rc;
 
@@ -248,25 +250,14 @@ int main(int argc, char *argv[])
 		console_get_event(con, &ev);
 		pane.rflags = 0;
 
-		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
-			kev = &ev.ev.key;
-
-			/* Handle key press. */
-			if (((kev->mods & KM_ALT) == 0) &&
-			    ((kev->mods & KM_SHIFT) == 0) &&
-			     (kev->mods & KM_CTRL) != 0) {
-				key_handle_ctrl(kev);
-			} else if (((kev->mods & KM_ALT) == 0) &&
-			    ((kev->mods & KM_CTRL) == 0) &&
-			     (kev->mods & KM_SHIFT) != 0) {
-				key_handle_shift(kev);
-			} else if (((kev->mods & KM_ALT) == 0) &&
-			    ((kev->mods & KM_CTRL) != 0) &&
-			     (kev->mods & KM_SHIFT) != 0) {
-				key_handle_shift_ctrl(kev);
-			} else if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
-				key_handle_unmod(kev);
-			}
+		switch (ev.type) {
+		case CEV_KEY:
+			if (ev.ev.key.type == KEY_PRESS)
+				key_handle_press(&ev.ev.key);
+			break;
+		case CEV_POS:
+			pos_handle(&ev.ev.pos);
+			break;
 		}
 
 		/* Redraw as necessary. */
@@ -288,6 +279,26 @@ int main(int argc, char *argv[])
 	console_clear(con);
 
 	return 0;
+}
+
+/* Handle key press. */
+static void key_handle_press(kbd_event_t *ev)
+{
+	if (((ev->mods & KM_ALT) == 0) &&
+	    ((ev->mods & KM_SHIFT) == 0) &&
+	     (ev->mods & KM_CTRL) != 0) {
+		key_handle_ctrl(ev);
+	} else if (((ev->mods & KM_ALT) == 0) &&
+	    ((ev->mods & KM_CTRL) == 0) &&
+	     (ev->mods & KM_SHIFT) != 0) {
+		key_handle_shift(ev);
+	} else if (((ev->mods & KM_ALT) == 0) &&
+	    ((ev->mods & KM_CTRL) != 0) &&
+	     (ev->mods & KM_SHIFT) != 0) {
+		key_handle_shift_ctrl(ev);
+	} else if ((ev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+		key_handle_unmod(ev);
+	}
 }
 
 static void cursor_show(void)
@@ -461,6 +472,20 @@ static void key_handle_shift_ctrl(kbd_event_t const *ev)
 		break;
 	default:
 		break;
+	}
+}
+
+static void pos_handle(pos_event_t *ev)
+{
+	coord_t bc;
+	spt_t pt;
+
+	if (ev->type == POS_PRESS && ev->vpos < (unsigned)pane.rows) {
+		bc.row = pane.sh_row + ev->vpos;
+		bc.column = pane.sh_column + ev->hpos;
+		sheet_get_cell_pt(doc.sh, &bc, dir_before, &pt);
+
+		caret_move(pt, false, true);
 	}
 }
 
