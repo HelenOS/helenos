@@ -70,6 +70,7 @@ void hound_stream_destroy(hound_stream_t *stream);
 
 int hound_stream_write(hound_stream_t *stream, const void *data, size_t size);
 int hound_stream_read(hound_stream_t *stream, void *data, size_t size);
+int hound_stream_drain(hound_stream_t *stream);
 
 int hound_write_main_stream(hound_context_t *hound,
     const void *data, size_t size);

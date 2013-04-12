@@ -360,6 +360,17 @@ int hound_stream_read(hound_stream_t *stream, void *data, size_t size)
 }
 
 /**
+ * Wait until the server side buffer is empty.
+ * @param stream The stream that shoulod be drained.
+ * @return Error code.
+ */
+int hound_stream_drain(hound_stream_t *stream)
+{
+	assert(stream);
+	return hound_service_stream_drain(stream->exch);
+}
+
+/**
  * Main stream getter function.
  * @param hound Houndcontext.
  * @return Valid stream pointer, NULL on failure.
