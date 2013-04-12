@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,71 +33,25 @@
 /** @file
  */
 
-#ifndef LIBC_IO_WINDOW_H_
-#define LIBC_IO_WINDOW_H_
+#ifndef LIBC_IO_POS_EVENT_H_
+#define LIBC_IO_POS_EVENT_H_
 
-#include <stdbool.h>
 #include <sys/types.h>
-#include <async.h>
-#include <loc.h>
-#include <io/kbd_event.h>
-#include <io/pos_event.h>
-
-typedef struct {
-	sysarg_t object;
-	sysarg_t slot;
-	sysarg_t argument;
-} sig_event_t;
-
-typedef struct {
-	sysarg_t width;
-	sysarg_t height;
-} rsz_event_t;
 
 typedef enum {
-	ET_KEYBOARD_EVENT,
-	ET_POSITION_EVENT,
-	ET_SIGNAL_EVENT,
-	ET_WINDOW_FOCUS,
-	ET_WINDOW_UNFOCUS,
-	ET_WINDOW_RESIZE,
-	ET_WINDOW_REFRESH,
-	ET_WINDOW_DAMAGE,
-	ET_WINDOW_CLOSE
-} window_event_type_t;
+	POS_UPDATE,
+	POS_PRESS,
+	POS_RELEASE
+} pos_event_type_t;
 
-typedef union {
-	kbd_event_t kbd;
-	pos_event_t pos;
-	sig_event_t sig;
-	rsz_event_t rsz;
-} window_event_data_t;
-
+/** Positioning device event */
 typedef struct {
-	link_t link;
-	window_event_type_t type;
-	window_event_data_t data;
-} window_event_t;
-
-typedef enum {
-	GF_EMPTY = 0,
-	GF_MOVE_X = 1,
-	GF_MOVE_Y = 2,
-	GF_RESIZE_X = 4,
-	GF_RESIZE_Y = 8,
-	GF_SCALE_X = 16,
-	GF_SCALE_Y = 32
-} window_grab_flags_t;
-
-extern int win_register(async_sess_t *, service_id_t *, service_id_t *, sysarg_t, sysarg_t);
-
-extern int win_get_event(async_sess_t *, window_event_t *);
-
-extern int win_damage(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
-extern int win_grab(async_sess_t *, sysarg_t, sysarg_t);
-extern int win_resize(async_sess_t *, sysarg_t, sysarg_t, void *);
-extern int win_close(async_sess_t *);
-extern int win_close_request(async_sess_t *);
+	sysarg_t pos_id;
+	pos_event_type_t type;
+	sysarg_t btn_num;
+	sysarg_t hpos;
+	sysarg_t vpos;
+} pos_event_t;
 
 #endif
 
