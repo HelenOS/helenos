@@ -76,7 +76,7 @@ static void term_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void term_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void term_set_cursor_visibility(con_srv_t *, bool);
-static int term_get_event(con_srv_t *, kbd_event_t *);
+static int term_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = term_open,
@@ -578,13 +578,14 @@ static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 	term_update(term);
 }
 
-static int term_get_event(con_srv_t *srv, kbd_event_t *event)
+static int term_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	link_t *link = prodcons_consume(&term->input_pc);
 	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
 	
-	*event = *kevent;
+	event->type = CEV_KEY;
+	event->ev.key = *kevent;
 	free(kevent);
 	return EOK;
 }
