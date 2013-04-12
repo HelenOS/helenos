@@ -79,6 +79,9 @@ typedef struct {
 	/** Start of selection */
 	tag_t sel_start;
 
+	/** Active keyboard modifiers */
+	keymod_t keymod;
+
 	/** 
 	 * Ideal column where the caret should try to get. This is used
 	 * for maintaining the same column during vertical movement.
@@ -252,6 +255,7 @@ int main(int argc, char *argv[])
 
 		switch (ev.type) {
 		case CEV_KEY:
+			pane.keymod = ev.ev.key.mods;
 			if (ev.ev.key.type == KEY_PRESS)
 				key_handle_press(&ev.ev.key);
 			break;
@@ -479,13 +483,16 @@ static void pos_handle(pos_event_t *ev)
 {
 	coord_t bc;
 	spt_t pt;
+	bool select;
 
 	if (ev->type == POS_PRESS && ev->vpos < (unsigned)pane.rows) {
 		bc.row = pane.sh_row + ev->vpos;
 		bc.column = pane.sh_column + ev->hpos;
 		sheet_get_cell_pt(doc.sh, &bc, dir_before, &pt);
 
-		caret_move(pt, false, true);
+		select = (pane.keymod & KM_SHIFT) != 0;
+
+		caret_move(pt, select, true);
 	}
 }
 
