@@ -145,6 +145,12 @@ typedef struct {
 	
 	/** @c true if user requested to abort interactive loop */
 	bool exit_clui;
+
+	/** @c true if left shift key is currently held */
+	bool lshift_held;
+
+	/** @c true if right shift key is currently held */
+	bool rshift_held;
 } tinput_t;
 
 extern tinput_t *tinput_new(void);

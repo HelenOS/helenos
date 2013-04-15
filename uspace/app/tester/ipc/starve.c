@@ -61,11 +61,11 @@ const char *test_starve_ipc(void)
 		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
 			break;
 		
-		kbd_event_t ev;
+		cons_event_t ev;
 		suseconds_t timeout = 0;
-		bool has_event = console_get_kbd_event_timeout(console, &ev, &timeout);
-		if (has_event && (ev.type == KEY_PRESS)) {
-			TPRINTF("Key %d pressed, terminating.\n", ev.key);
+		bool has_event = console_get_event_timeout(console, &ev, &timeout);
+		if (has_event && ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+			TPRINTF("Key %d pressed, terminating.\n", ev.ev.key.key);
 			break;
 		}
 	}
