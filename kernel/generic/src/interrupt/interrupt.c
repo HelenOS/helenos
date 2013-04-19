@@ -53,6 +53,7 @@
 #include <symtab.h>
 #include <proc/thread.h>
 #include <arch/cycle.h>
+#include <arch/stack.h>
 #include <str.h>
 #include <trace.h>
 
@@ -165,7 +166,8 @@ NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 	panic_badtrap(istate, n, "Unhandled exception %u.", n);
 }
 
-static NO_TRACE void fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
+static NO_TRACE
+void fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
 {
 	printf("Task %s (%" PRIu64 ") killed due to an exception at "
 	    "program counter %p.\n", TASK->name, TASK->taskid,
@@ -220,10 +222,9 @@ istate_t *istate_get(thread_t *thread)
 {
 	/*
 	 * The istate structure should be right at the bottom of the kernel
-	 * stack.
+	 * memory stack.
 	 */
-	return (istate_t *) ((uint8_t *)
-	    thread->kstack + STACK_SIZE - sizeof(istate_t));
+	return (istate_t *) &thread->kstack[MEM_STACK_SIZE - sizeof(istate_t)];
 }
 
 #ifdef CONFIG_KCONSOLE

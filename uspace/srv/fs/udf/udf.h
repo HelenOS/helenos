@@ -38,7 +38,7 @@
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include "../../vfs/vfs.h"
 #include "udf_types.h"
 #include <adt/hash_table.h>

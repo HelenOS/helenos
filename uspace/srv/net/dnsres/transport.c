@@ -56,7 +56,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(53);
-	addr.sin_addr.s_addr = htonl((10 << 24) | (0 << 16) | (0 << 8) | 1);
+	addr.sin_addr.s_addr = htonl((10 << 24) | (0 << 16) | (0 << 8) | 138);
 
 	laddr.sin_family = AF_INET;
 	laddr.sin_port = htons(12345);

@@ -38,7 +38,7 @@
 #define UDF_UDF_TYPES_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <byteorder.h>
 
 #define GET_LE16(x)  x = uint16_t_le2host(x)

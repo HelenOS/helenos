@@ -40,7 +40,6 @@
 
 #include <device/hw_res.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>

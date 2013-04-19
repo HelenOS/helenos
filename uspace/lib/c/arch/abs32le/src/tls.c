@@ -33,12 +33,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-tcb_t * __alloc_tls(void **data, size_t size)
+tcb_t * tls_alloc_arch(void **data, size_t size)
 {
 	return tls_alloc_variant_2(data, size);
 }
 
-void __free_tls_arch(tcb_t *tcb, size_t size)
+void tls_free_arch(tcb_t *tcb, size_t size)
 {
 	tls_free_variant_2(tcb, size);
 }

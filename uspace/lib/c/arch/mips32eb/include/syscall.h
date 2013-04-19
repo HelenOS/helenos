@@ -1,1 +1,0 @@
-../../mips32/include/syscall.h

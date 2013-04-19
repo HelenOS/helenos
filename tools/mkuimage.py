@@ -59,6 +59,7 @@ def main():
 	image_name = 'Noname'
 	load_addr = 0
 	start_addr = 0
+	os_type = 5 #Linux is the default
 
 	while len(args) >= 2 and args[0][0] == '-':
 		opt = args.popleft()[1:]
@@ -70,6 +71,8 @@ def main():
 			load_addr = (int)(optarg, 0)
 		elif opt == 'saddr':
 			start_addr = (int)(optarg, 0)
+		elif opt == 'ostype':
+			os_type = (int)(optarg, 0)
 		else:
 			print(base_name + ": Unrecognized option.")
 			print_syntax(cmd_name)
@@ -84,12 +87,12 @@ def main():
 	outf_name = args[1]
 
 	try:
-		mkuimage(inf_name, outf_name, image_name, load_addr, start_addr)
+		mkuimage(inf_name, outf_name, image_name, load_addr, start_addr, os_type)
 	except:
 		os.remove(outf_name)
 		raise
 
-def mkuimage(inf_name, outf_name, image_name, load_addr, start_addr):
+def mkuimage(inf_name, outf_name, image_name, load_addr, start_addr, os_type):
 	inf = open(inf_name, 'rb')
 	outf = open(outf_name, 'wb')
 
@@ -119,7 +122,7 @@ def mkuimage(inf_name, outf_name, image_name, load_addr, start_addr):
 	header.load_addr = load_addr	# Address where to load image
 	header.start_addr = start_addr	# Address of entry point
 	header.data_crc = data_crc
-	header.os = 5			# Linux
+	header.os = os_type
 	header.arch = 2			# ARM
 	header.img_type = 2		# Kernel
 	header.compression = 0		# None

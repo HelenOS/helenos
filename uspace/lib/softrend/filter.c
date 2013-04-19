@@ -43,8 +43,6 @@ pixel_t filter_nearest(pixelmap_t *pixmap, double x, double y, bool tile)
 	if (tile) {
 		_x %= pixmap->width;
 		_y %= pixmap->height;
-	} else if (_x < 0 || _x >= (long) pixmap->width || _y < 0 || _y >= (long) pixmap->height) {
-		return 0;
 	}
 
 	return pixelmap_get_pixel(pixmap, (sysarg_t) _x, (sysarg_t) _y);

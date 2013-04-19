@@ -104,5 +104,4 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/boot/multiboot2.S \
 	arch/$(KARCH)/src/boot/memmap.c \
 	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/debugger.c \
 	arch/$(KARCH)/src/syscall.c

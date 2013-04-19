@@ -88,6 +88,11 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
 		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		/*
+		 * Make sure that a concurrent hardware page table walk or
+		 * pt_mapping_find() will see the new PTL1 only after it is
+		 * fully initialized.
+		 */
 		write_barrier();
 		SET_PTL1_PRESENT(ptl0, PTL0_INDEX(page));
 	}
@@ -102,6 +107,9 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
 		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		/*
+		 * Make the new PTL2 visible only after it is fully initialized.
+		 */
 		write_barrier();
 		SET_PTL2_PRESENT(ptl1, PTL1_INDEX(page));	
 	}
@@ -116,6 +124,9 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
 		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
 		    PAGE_WRITE);
+		/*
+		 * Make the new PTL3 visible only after it is fully initialized.
+		 */
 		write_barrier();
 		SET_PTL3_PRESENT(ptl2, PTL2_INDEX(page));
 	}
@@ -124,6 +135,9 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags | PAGE_NOT_PRESENT);
+	/*
+	 * Make the new mapping visible only after it is fully initialized.
+	 */
 	write_barrier();
 	SET_FRAME_PRESENT(ptl3, PTL3_INDEX(page));
 }
@@ -295,6 +309,9 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 		return NULL;
 
 #if (PTL1_ENTRIES != 0)
+	/*
+	 * Always read ptl2 only after we are sure it is present.
+	 */
 	read_barrier();
 #endif
 	
@@ -303,6 +320,9 @@ pte_t *pt_mapping_find(as_t *as, uintptr_t page, bool nolock)
 		return NULL;
 
 #if (PTL2_ENTRIES != 0)
+	/*
+	 * Always read ptl3 only after we are sure it is present.
+	 */
 	read_barrier();
 #endif
 	

@@ -9,7 +9,13 @@
 #undef mips
 #define mips mips
 
+#if defined(MACHINE_msim)
 #define KERNEL_LOAD_ADDRESS 0x80100000
+#endif
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+#define KERNEL_LOAD_ADDRESS 0x80200000
+#endif
 
 OUTPUT_ARCH(mips)
 ENTRY(kernel_image_start)

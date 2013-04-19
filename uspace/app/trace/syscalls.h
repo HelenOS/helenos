@@ -35,6 +35,9 @@
 #ifndef SYSCALLS_H_
 #define SYSCALLS_H_
 
+#include <stdbool.h>
+#include <unistd.h>
+
 #include "trace.h"
 
 typedef struct {
@@ -44,6 +47,12 @@ typedef struct {
 } sc_desc_t;
 
 extern const sc_desc_t syscall_desc[];
+extern const size_t syscall_desc_len;
+
+static inline bool syscall_desc_defined(unsigned sc_id)
+{
+	return (sc_id < syscall_desc_len && syscall_desc[sc_id].name != NULL);
+}
 
 #endif
 

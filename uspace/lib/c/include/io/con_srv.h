@@ -40,10 +40,10 @@
 #include <fibril_synch.h>
 #include <io/color.h>
 #include <io/concaps.h>
-#include <io/kbd_event.h>
+#include <io/cons_event.h>
 #include <io/pixel.h>
 #include <io/style.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
@@ -81,7 +81,7 @@ typedef struct con_ops {
 	    console_color_attr_t);
 	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
 	void (*set_cursor_visibility)(con_srv_t *, bool);
-	int (*get_event)(con_srv_t *, kbd_event_t *);
+	int (*get_event)(con_srv_t *, cons_event_t *);
 } con_ops_t;
 
 extern void con_srvs_init(con_srvs_t *);

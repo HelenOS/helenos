@@ -171,6 +171,12 @@ void kinit(void *arg)
 	}
 #endif /* CONFIG_KCONSOLE */
 	
+	/*
+	 * Store the default stack size in sysinfo so that uspace can create
+	 * stack with this default size.
+	 */
+	sysinfo_set_item_val("default.stack_size", NULL, STACK_SIZE_USER);
+	
 	interrupts_enable();
 	
 	/*
@@ -243,8 +249,16 @@ void kinit(void *arg)
 				cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
 				    CAP_IO_MANAGER | CAP_IRQ_REG);
 				
-				if (!ipc_phone_0)
+				if (!ipc_phone_0) {
 					ipc_phone_0 = &programs[i].task->answerbox;
+					/*
+					 * Hold the first task so that the
+					 * ipc_phone_0 remains a valid pointer
+					 * even if the first task exits for
+					 * whatever reason.
+					 */
+					task_hold(programs[i].task);
+				}
 			}
 			
 			/*

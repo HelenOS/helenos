@@ -41,7 +41,7 @@
 #include <sysinfo.h>
 #include <stdio.h>
 #include <thread.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include "../kbd_port.h"
 #include "../kbd.h"

@@ -34,7 +34,7 @@
  * @brief
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/iplink.h>
@@ -201,7 +201,7 @@ static int inet_link_open(service_id_t sid)
 		addr->naddr.ipv4 = (127 << 24) + (0 << 16) + (0 << 8) + 1;
 		first = 0;
 	} else {
-		addr->naddr.ipv4 = (10 << 24) + (0 << 16) + (0 << 8) + 2;
+		addr->naddr.ipv4 = (192 << 24) + (168 << 16) + (0 << 8) + 4;
 	}
 	addr->naddr.bits = 24;
 	addr->ilink = ilink;

@@ -151,15 +151,15 @@ static bool get_user_decision(bool bdefault, const char *message, ...)
 	va_end(args);
 
 	while (true) {
-		kbd_event_t ev;
+		cons_event_t ev;
 		console_flush(con);
-		console_get_kbd_event(con, &ev);
-		if ((ev.type != KEY_PRESS)
-		    || (ev.mods & (KM_CTRL | KM_ALT)) != 0) {
+		console_get_event(con, &ev);
+		if (ev.type != CEV_KEY || ev.ev.key.type != KEY_PRESS ||
+		    (ev.ev.key.mods & (KM_CTRL | KM_ALT)) != 0) {
 			continue;
 		}
 
-		switch(ev.key) {
+		switch(ev.ev.key.key) {
 		case KC_Y:
 			printf("y\n");
 			return true;

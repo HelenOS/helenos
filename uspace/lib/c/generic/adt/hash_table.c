@@ -80,7 +80,8 @@ static void nop_remove_callback(ht_link_t *item)
  * @param h        Hash table structure. Will be initialized by this call.
  * @param init_size Initial desired number of hash table buckets. Pass zero
  *                 if you want the default initial size. 
- * @param max_keys Maximal number of keys needed to identify an item.
+ * @param max_load The table is resized when the average load per bucket
+ *                 exceeds this number. Pass zero if you want the default.
  * @param op       Hash table operations structure. remove_callback()
  *                 is optional and can be NULL if no action is to be taken
  *                 upon removal. equal() is optional if and only if

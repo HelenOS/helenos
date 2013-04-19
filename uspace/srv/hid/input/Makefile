@@ -34,10 +34,10 @@ SOURCES = \
 	layout/cz.c \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
+	layout/ar.c \
 	port/adb.c \
 	port/adb_mouse.c \
 	port/chardev.c \
-	port/gxemul.c \
 	port/msim.c \
 	port/niagara.c \
 	port/ns16550.c \
@@ -46,7 +46,6 @@ SOURCES = \
 	proto/adb.c \
 	proto/mousedev.c \
 	ctl/apple.c \
-	ctl/gxe_fb.c \
 	ctl/kbdev.c \
 	ctl/pc.c \
 	ctl/stty.c \

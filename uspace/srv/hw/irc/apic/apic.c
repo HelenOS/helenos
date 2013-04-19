@@ -41,7 +41,7 @@
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <async.h>
 #include <stdio.h>

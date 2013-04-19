@@ -67,7 +67,7 @@ enum netaddr {
 	UDP_IPV4_ANY = 0
 };
 
-enum tcp_port {
+enum udp_port {
 	UDP_PORT_ANY = 0
 };
 

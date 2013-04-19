@@ -37,7 +37,7 @@
 
 #include <async.h>
 #include <fibril_synch.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 struct iplink_ops;

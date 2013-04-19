@@ -33,7 +33,7 @@
  * Hub ports functions.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
@@ -142,7 +142,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	assert(hub);
 	usb_log_debug("Interrupt at port %zu\n", port->port_number);
 
-	usb_port_status_t status;
+	usb_port_status_t status = 0;
 	const int opResult = get_port_status(port, &status);
 	if (opResult != EOK) {
 		usb_log_error("Failed to get port %zu status: %s.\n",

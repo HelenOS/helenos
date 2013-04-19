@@ -46,6 +46,7 @@ extern void udp_assoc_addref(udp_assoc_t *);
 extern void udp_assoc_delref(udp_assoc_t *);
 extern void udp_assoc_set_foreign(udp_assoc_t *, udp_sock_t *);
 extern void udp_assoc_set_local(udp_assoc_t *, udp_sock_t *);
+extern void udp_assoc_set_local_port(udp_assoc_t *, uint16_t);
 extern int udp_assoc_send(udp_assoc_t *, udp_sock_t *, udp_msg_t *);
 extern int udp_assoc_recv(udp_assoc_t *, udp_msg_t **, udp_sock_t *);
 extern void udp_assoc_received(udp_sockpair_t *, udp_msg_t *);

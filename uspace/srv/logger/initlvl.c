@@ -37,6 +37,7 @@
 #include <str_error.h>
 #include <sysinfo.h>
 #include <str.h>
+#include <stdlib.h>
 #include "logger.h"
 
 static void parse_single_level_setting(char *setting)
@@ -90,6 +91,7 @@ void parse_initial_settings(void)
 
 	char level_str[200];
 	str_cpy(level_str, 200, (const char *) argument);
+	free(argument);
 
 	parse_level_settings(level_str);
 }

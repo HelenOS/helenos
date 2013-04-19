@@ -40,7 +40,7 @@
 #include <byteorder.h>
 #include <stdio.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <str.h>
 #include <ctype.h>
@@ -57,7 +57,6 @@
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <pci_dev_iface.h>
 
 #include "pci.h"

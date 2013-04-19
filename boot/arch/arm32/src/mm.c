@@ -37,6 +37,47 @@
 #include <arch/asm.h>
 #include <arch/mm.h>
 
+/** Disable the MMU */
+static void disable_paging(void)
+{
+	asm volatile (
+		"mrc p15, 0, r0, c1, c0, 0\n"
+		"bic r0, r0, #1\n"
+		"mcr p15, 0, r0, c1, c0, 0\n"
+		::: "r0"
+	);
+}
+
+/** Check if caching can be enabled for a given memory section.
+ *
+ * Memory areas used for I/O are excluded from caching.
+ * At the moment caching is enabled only on GTA02.
+ *
+ * @param section	The section number.
+ *
+ * @return	1 if the given section can be mapped as cacheable, 0 otherwise.
+*/
+static inline int section_cacheable(pfn_t section)
+{
+#ifdef MACHINE_gta02
+	unsigned long address = section << PTE_SECTION_SHIFT;
+
+	if (address >= GTA02_IOMEM_START && address < GTA02_IOMEM_END)
+		return 0;
+	else
+		return 1;
+#elif defined MACHINE_beagleboardxm
+	const unsigned long address = section << PTE_SECTION_SHIFT;
+	if (address >= BBXM_RAM_START && address < BBXM_RAM_END)
+		return 1;
+#elif defined MACHINE_beaglebone
+	const unsigned long address = section << PTE_SECTION_SHIFT;
+	if (address >= AM335x_RAM_START && address < AM335x_RAM_END)
+		return 1;
+#endif
+	return 0;
+}
+
 /** Initialize "section" page table entry.
  *
  * Will be readable/writable by kernel with no access from user mode.
@@ -53,32 +94,29 @@ static void init_ptl0_section(pte_level0_section_t* pte,
     pfn_t frame)
 {
 	pte->descriptor_type = PTE_DESCRIPTOR_SECTION;
-	pte->bufferable = 0;
-	pte->cacheable = 0;
-	pte->impl_specific = 0;
+	pte->bufferable = 1;
+	pte->cacheable = section_cacheable(frame);
+	pte->xn = 0;
 	pte->domain = 0;
 	pte->should_be_zero_1 = 0;
-	pte->access_permission = PTE_AP_USER_NO_KERNEL_RW;
+	pte->access_permission_0 = PTE_AP_USER_NO_KERNEL_RW;
+	pte->tex = 0;
+	pte->access_permission_1 = 0;
+	pte->shareable = 0;
+	pte->non_global = 0;
 	pte->should_be_zero_2 = 0;
+	pte->non_secure = 0;
 	pte->section_base_addr = frame;
 }
 
 /** Initialize page table used while booting the kernel. */
 static void init_boot_pt(void)
 {
-	pfn_t split_page = 0x800;
-	
+	const pfn_t split_page = PTL0_ENTRIES;
 	/* Create 1:1 virtual-physical mapping (in lower 2 GB). */
 	pfn_t page;
 	for (page = 0; page < split_page; page++)
 		init_ptl0_section(&boot_pt[page], page);
-	
-	/*
-	 * Create 1:1 virtual-physical mapping in kernel space
-	 * (upper 2 GB), physical addresses start from 0.
-	 */
-	for (page = split_page; page < PTL0_ENTRIES; page++)
-		init_ptl0_section(&boot_pt[page], page - split_page);
 	
 	asm volatile (
 		"mcr p15, 0, %[pt], c2, c0, 0\n"
@@ -94,16 +132,25 @@ static void enable_paging()
 	asm volatile (
 		/* Behave as a client of domains */
 		"ldr r0, =0x55555555\n"
-		"mcr p15, 0, r0, c3, c0, 0\n" 
-		
+		"mcr p15, 0, r0, c3, c0, 0\n"
+
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
 		
-		/* Mask to enable paging */
-		"ldr r1, =0x00000001\n"
-		"orr r0, r0, r1\n"
+		/* Enable ICache, DCache, BPredictors and MMU,
+		 * we disable caches before jumping to kernel
+		 * so this is safe for all archs.
+		 */
+		"ldr r1, =0x00001805\n"
 		
-		/* Store settings */
+		"orr r0, r0, r1\n"
+
+		/* Invalidate the TLB content before turning on the MMU.
+		 * ARMv7-A Reference manual, B3.10.3
+		 */
+		"mcr p15, 0, r0, c8, c7, 0\n"
+		
+		/* Store settings, enable the MMU */
 		"mcr p15, 0, r0, c1, c0, 0\n"
 		::: "r0", "r1"
 	);
@@ -111,6 +158,7 @@ static void enable_paging()
 
 /** Start the MMU - initialize page table and enable paging. */
 void mmu_start() {
+	disable_paging();
 	init_boot_pt();
 	enable_paging();
 }

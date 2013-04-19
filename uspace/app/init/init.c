@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -368,7 +368,6 @@ int main(int argc, char *argv[])
 	 */
 #ifdef CONFIG_START_BD
 	srv_start("/srv/ata_bd");
-	srv_start("/srv/gxe_bd");
 #endif
 	
 #ifdef CONFIG_MOUNT_DATA

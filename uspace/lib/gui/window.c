@@ -33,7 +33,7 @@
  * @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -65,8 +65,10 @@ static sysarg_t header_min_width = 40;
 static sysarg_t close_width = 20;
 
 static pixel_t border_color = PIXEL(255, 0, 0, 0);
-static pixel_t header_bgcolor = PIXEL(255, 25, 25, 112);
-static pixel_t header_fgcolor = PIXEL(255, 255, 255, 255);
+static pixel_t header_bg_focus_color = PIXEL(255, 25, 25, 112);
+static pixel_t header_fg_focus_color = PIXEL(255, 255, 255, 255);
+static pixel_t header_bg_unfocus_color = PIXEL(255, 70, 130, 180);
+static pixel_t header_fg_unfocus_color = PIXEL(255, 255, 255, 255);
 
 static void paint_internal(widget_t *w)
 {
@@ -93,7 +95,8 @@ static void paint_internal(widget_t *w)
 	drawctx_transfer(&drawctx, w->hpos,
 	    w->vpos + w->height - border_thickness, w->width, border_thickness);
 
-	source_set_color(&source, header_bgcolor);
+	source_set_color(&source, 
+	    w->window->is_focused ? header_bg_focus_color : header_bg_unfocus_color);
 	drawctx_transfer(&drawctx,
 	    w->hpos + border_thickness, w->vpos + border_thickness,
 		w->width - 2 * border_thickness, header_height);
@@ -105,7 +108,8 @@ static void paint_internal(widget_t *w)
 	sysarg_t cls_height;
 	char cls_pict[] = "x";
 	font_get_box(&font, cls_pict, &cls_width, &cls_height);
-	source_set_color(&source, header_fgcolor);
+	source_set_color(&source, 
+	    w->window->is_focused ? header_fg_focus_color : header_fg_unfocus_color);
 	sysarg_t cls_x = ((close_width - cls_width) / 2) + w->hpos + w->width -
 	    border_thickness - close_width;
 	sysarg_t cls_y = ((header_height - cls_height) / 2) + w->vpos + border_thickness;
@@ -446,6 +450,10 @@ static int event_loop(void *arg)
 			deliver_keyboard_event(win, event->data.kbd);
 			break;
 		case ET_POSITION_EVENT:
+			if (!win->is_focused) {
+				win->is_focused = true;
+				handle_refresh(win);
+			}
 			deliver_position_event(win, event->data.pos);
 			break;
 		case ET_SIGNAL_EVENT:
@@ -453,6 +461,18 @@ static int event_loop(void *arg)
 			break;
 		case ET_WINDOW_RESIZE:
 			handle_resize(win, event->data.rsz.width, event->data.rsz.height);
+			break;
+		case ET_WINDOW_FOCUS:
+			if (!win->is_focused) {
+				win->is_focused = true;
+				handle_refresh(win);
+			}
+			break;
+		case ET_WINDOW_UNFOCUS:
+			if (win->is_focused) {
+				win->is_focused = false;
+				handle_refresh(win);
+			}
 			break;
 		case ET_WINDOW_REFRESH:
 			handle_refresh(win);
@@ -513,7 +533,8 @@ static int fetch_input(void *arg)
 	return 0;
 }
 
-window_t *window_open(char *winreg, bool is_main, bool is_decorated, const char *caption)
+window_t *window_open(char *winreg, bool is_main, bool is_decorated, 
+    const char *caption, sysarg_t x_offset, sysarg_t y_offset)
 {
 	int rc;
 
@@ -524,6 +545,7 @@ window_t *window_open(char *winreg, bool is_main, bool is_decorated, const char 
 
 	win->is_main = is_main;
 	win->is_decorated = is_decorated;
+	win->is_focused = true;
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
 	widget_init(&win->root, NULL);
@@ -556,7 +578,7 @@ window_t *window_open(char *winreg, bool is_main, bool is_decorated, const char 
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	
-	rc = win_register(reg_sess, &in_dsid, &out_dsid);
+	rc = win_register(reg_sess, &in_dsid, &out_dsid, x_offset, y_offset);
 	async_hangup(reg_sess);
 	if (rc != EOK) {
 		free(win);

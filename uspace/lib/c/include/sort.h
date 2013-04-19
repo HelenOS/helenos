@@ -36,7 +36,7 @@
 #define LIBC_SORT_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef int (* sort_cmp_t)(void *, void *, void *);
 

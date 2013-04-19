@@ -30,7 +30,7 @@
 #define BITHENGE_HELENOS_COMMON_H_
 
 #include <bithenge/os.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <inttypes.h>

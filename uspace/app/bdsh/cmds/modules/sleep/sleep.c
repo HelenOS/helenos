@@ -113,7 +113,7 @@ int cmd_sleep(char **argv)
 {
 	int ret;
 	unsigned int argc;
-	useconds_t duration;
+	useconds_t duration = 0;
 
 	/* Count the arguments */
 	argc = cli_count_args(argv);

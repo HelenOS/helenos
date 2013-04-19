@@ -37,7 +37,7 @@
 #define DNS_MSG_H
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include "dns_std.h"
 #include "dns_type.h"

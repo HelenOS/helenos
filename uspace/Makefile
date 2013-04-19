@@ -39,7 +39,6 @@ DIRS = \
 	app/bnchmark \
 	app/devctl \
 	app/edit \
-	app/ext2info \
 	app/getterm \
 	app/init \
 	app/inet \
@@ -94,7 +93,6 @@ DIRS = \
 	srv/bd/ata_bd \
 	srv/bd/sata_bd \
 	srv/bd/file_bd \
-	srv/bd/gxe_bd \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
@@ -105,7 +103,6 @@ DIRS = \
 	srv/fs/tmpfs \
 	srv/fs/mfs \
 	srv/fs/locfs \
-	srv/fs/ext2fs \
 	srv/fs/ext4fs \
 	srv/hid/compositor \
 	srv/hid/console \
@@ -194,6 +191,12 @@ ifeq ($(UARCH),sparc64)
 		srv/hw/irc/obio
 endif
 
+ifeq ($(UARCH),arm32)
+	DIRS += \
+		drv/infrastructure/rootamdm37x \
+		drv/fb/amdm37x_dispc
+endif
+
 ## System libraries
 #
 
@@ -213,7 +216,6 @@ LIBS = \
 	lib/draw \
 	lib/net \
 	lib/nic \
-	lib/ext2 \
 	lib/ext4 \
 	lib/usb \
 	lib/usbhost \

@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <io/pixel.h>
@@ -109,7 +109,7 @@ static my_label_t *create_my_label(widget_t *parent,
 int main(int argc, char *argv[])
 {
 	if (argc >= 2) {
-		window_t *main_window = window_open(argv[1], true, true, "vdemo");
+		window_t *main_window = window_open(argv[1], true, true, "vdemo", 0, 0);
 		if (!main_window) {
 			printf("Cannot open main window.\n");
 			return 1;
@@ -140,10 +140,10 @@ int main(int argc, char *argv[])
 		    &lbl_action->label.widget,
 		    lbl_action->cancel);
 
-		grid->add(grid, &lbl_action->label.widget, 0, 0, 1, 2);
-		grid->add(grid, &btn_confirm->widget, 1, 0, 1, 1);
+		grid->add(grid, &lbl_action->label.widget, 0, 0, 2, 1);
+		grid->add(grid, &btn_confirm->widget, 0, 1, 1, 1);
 		grid->add(grid, &btn_cancel->widget, 1, 1, 1, 1);
-		window_resize(main_window, 200, 70);
+		window_resize(main_window, 200, 76);
 
 		window_exec(main_window);
 		task_retval(0);

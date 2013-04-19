@@ -39,7 +39,7 @@
  */
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /** Check for membership
  *

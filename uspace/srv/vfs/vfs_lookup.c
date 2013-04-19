@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <str.h>
 #include <stdarg.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <vfs/canonify.h>

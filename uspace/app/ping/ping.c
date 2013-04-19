@@ -33,7 +33,7 @@
  */
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <inet/inetping.h>
@@ -187,19 +187,20 @@ static int transmit_fibril(void *arg)
 static int input_fibril(void *arg)
 {
 	console_ctrl_t *con;
-	kbd_event_t ev;
+	cons_event_t ev;
 
 	con = console_init(stdin, stdout);
 	printf("[Press Ctrl-Q to quit]\n");
 
 	while (true) {
-		if (!console_get_kbd_event(con, &ev))
+		if (!console_get_event(con, &ev))
 			break;
 
-		if (ev.type == KEY_PRESS && (ev.mods & (KM_ALT | KM_SHIFT)) ==
-		    0 && (ev.mods & KM_CTRL) != 0) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS &&
+		    (ev.ev.key.mods & (KM_ALT | KM_SHIFT)) ==
+		    0 && (ev.ev.key.mods & KM_CTRL) != 0) {
 			/* Ctrl+key */
-			if (ev.key == KC_Q) {
+			if (ev.ev.key.key == KC_Q) {
 				ping_signal_done();
 				return 0;
 			}

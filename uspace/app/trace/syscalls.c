@@ -45,6 +45,7 @@ const sc_desc_t syscall_desc[] = {
     [SYS_THREAD_GET_ID] = { "thread_get_id",		1,	V_ERRNO },
 
     [SYS_TASK_GET_ID] = { "task_get_id",		1,	V_ERRNO },
+    [SYS_TASK_SET_NAME] = { "task_set_name", 		2,	V_ERRNO },
     [SYS_FUTEX_SLEEP] = { "futex_sleep_timeout",	3,	V_ERRNO },
     [SYS_FUTEX_WAKEUP] = { "futex_wakeup",		1,	V_ERRNO },
 
@@ -80,6 +81,8 @@ const sc_desc_t syscall_desc[] = {
     [SYS_DEBUG_ACTIVATE_CONSOLE] = { "debug_activate_console", 0,	V_ERRNO },
     [SYS_IPC_CONNECT_KBOX] = { "ipc_connect_kbox",	1,	V_ERRNO }
 };
+
+const size_t syscall_desc_len = (sizeof(syscall_desc) / sizeof(sc_desc_t));
 
 /** @}
  */

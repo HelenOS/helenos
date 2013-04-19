@@ -552,15 +552,15 @@ int tgetchar(unsigned int sec)
 	wchar_t c = 0;
 	
 	while (c == 0) {
-		kbd_event_t event;
+		cons_event_t event;
 		
-		if (!console_get_kbd_event_timeout(console, &event, &timeleft)) {
+		if (!console_get_event_timeout(console, &event, &timeleft)) {
 			timeleft = 0;
 			return -1;
 		}
 		
-		if (event.type == KEY_PRESS)
-			c = event.c;
+		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
+			c = event.ev.key.c;
 	}
 	
 	return (int) c;

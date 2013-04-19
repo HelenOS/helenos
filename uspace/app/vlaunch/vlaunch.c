@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <stdio.h>
 #include <malloc.h>
@@ -45,8 +45,19 @@
 #include <grid.h>
 #include <button.h>
 #include <label.h>
+#include <canvas.h>
 
-#define NAME "vlaunch"
+#include <surface.h>
+#include <source.h>
+#include <drawctx.h>
+#include <codec/tga.h>
+
+#include "images.h"
+
+#define NAME  "vlaunch"
+
+#define LOGO_WIDTH   196
+#define LOGO_HEIGHT  66
 
 static char *winreg = NULL;
 
@@ -96,8 +107,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
+	surface_t *logo = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
+	if (!logo) {
+		printf("Unable to decode logo.\n");
+		return 1;
+	}
+	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], true, true, "vlaunch");
+	window_t *main_window = window_open(argv[1], true, true, "vlaunch", 0, 0);
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 1;
@@ -109,6 +126,8 @@ int main(int argc, char *argv[])
 	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
 	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
 	
+	canvas_t *logo_canvas = create_canvas(NULL, LOGO_WIDTH, LOGO_HEIGHT,
+	    logo);
 	label_t *lbl_caption = create_label(NULL, "Launch application:", 16,
 	    lbl_bg, lbl_fg);
 	button_t *btn_vterm = create_button(NULL, "vterm", 16, btn_bg,
@@ -117,10 +136,10 @@ int main(int argc, char *argv[])
 	    btn_fg);
 	button_t *btn_vlaunch = create_button(NULL, "vlaunch", 16, btn_bg,
 	    btn_fg);
-	grid_t *grid = create_grid(window_root(main_window), 4, 1, grd_bg);
+	grid_t *grid = create_grid(window_root(main_window), 1, 5, grd_bg);
 	
-	if ((!lbl_caption) || (!btn_vterm) || (!btn_vdemo) ||
-	    (!btn_vlaunch) || (!grid)) {
+	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
+	    (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
 		window_close(main_window);
 		printf("Cannot create widgets.\n");
 		return 1;
@@ -130,13 +149,15 @@ int main(int argc, char *argv[])
 	sig_connect(&btn_vdemo->clicked, NULL, on_vdemo);
 	sig_connect(&btn_vlaunch->clicked, NULL, on_vlaunch);
 	
-	grid->add(grid, &lbl_caption->widget, 0, 0, 1, 1);
-	grid->add(grid, &btn_vterm->widget, 1, 0, 1, 1);
-	grid->add(grid, &btn_vdemo->widget, 2, 0, 1, 1);
-	grid->add(grid, &btn_vlaunch->widget, 3, 0, 1, 1);
+	grid->add(grid, &logo_canvas->widget, 0, 0, 1, 1);
+	grid->add(grid, &lbl_caption->widget, 0, 1, 1, 1);
+	grid->add(grid, &btn_vterm->widget, 0, 2, 1, 1);
+	grid->add(grid, &btn_vdemo->widget, 0, 3, 1, 1);
+	grid->add(grid, &btn_vlaunch->widget, 0, 4, 1, 1);
 	
-	window_resize(main_window, 180, 130);
+	window_resize(main_window, 210, 130 + LOGO_HEIGHT);
 	window_exec(main_window);
+	
 	task_retval(0);
 	async_manager();
 	

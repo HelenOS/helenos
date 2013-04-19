@@ -38,7 +38,7 @@
 #define INETSRV_H_
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
 #include <sys/types.h>

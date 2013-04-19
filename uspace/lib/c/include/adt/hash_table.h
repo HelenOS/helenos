@@ -39,7 +39,7 @@
 
 #include <adt/list.h>
 #include <unistd.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <macros.h>
 
 /** Opaque hash table link type. */

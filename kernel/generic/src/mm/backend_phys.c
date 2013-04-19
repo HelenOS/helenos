@@ -51,6 +51,10 @@ static bool phys_create(as_area_t *);
 static void phys_share(as_area_t *);
 static void phys_destroy(as_area_t *);
 
+static bool phys_is_resizable(as_area_t *);
+static bool phys_is_shareable(as_area_t *);
+
+
 static int phys_page_fault(as_area_t *, uintptr_t, pf_access_t);
 
 mem_backend_t phys_backend = {
@@ -58,6 +62,9 @@ mem_backend_t phys_backend = {
 	.resize = NULL,
 	.share = phys_share,
 	.destroy = phys_destroy,
+
+	.is_resizable = phys_is_resizable,
+	.is_shareable = phys_is_shareable,
 
 	.page_fault = phys_page_fault,
 	.frame_free = NULL,
@@ -87,32 +94,44 @@ void phys_destroy(as_area_t *area)
 	/* Nothing to do. */
 }
 
+bool phys_is_resizable(as_area_t *area)
+{
+	return false;
+}
+
+bool phys_is_shareable(as_area_t *area)
+{
+	return true;
+}
+
+
 /** Service a page fault in the address space area backed by physical memory.
  *
  * The address space area and page tables must be already locked.
  *
  * @param area Pointer to the address space area.
- * @param addr Faulting virtual address.
+ * @param upage Faulting virtual page.
  * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
  * serviced).
  */
-int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+int phys_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
 	uintptr_t base = area->backend_data.base;
 
 	ASSERT(page_table_locked(AS));
 	ASSERT(mutex_locked(&area->lock));
+	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
-	ASSERT(addr - area->base < area->backend_data.frames * FRAME_SIZE);
-	page_mapping_insert(AS, addr, base + (addr - area->base),
+	ASSERT(upage - area->base < area->backend_data.frames * FRAME_SIZE);
+	page_mapping_insert(AS, upage, base + (upage - area->base),
 	    as_area_get_flags(area));
 	
-	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
+	if (!used_space_insert(area, upage, 1))
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;

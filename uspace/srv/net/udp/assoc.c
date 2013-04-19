@@ -35,7 +35,7 @@
  */
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <stdlib.h>
@@ -199,14 +199,29 @@ void udp_assoc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 
 /** Set local socket in association.
  *
- * @param assoc		Association
- * @param fsock		Foreign socket (deeply copied)
+ * @param assoc Association
+ * @param lsock Local socket (deeply copied)
+ *
  */
 void udp_assoc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_local(%p, %p)", assoc, lsock);
 	fibril_mutex_lock(&assoc->lock);
 	assoc->ident.local = *lsock;
+	fibril_mutex_unlock(&assoc->lock);
+}
+
+/** Set local port in association.
+ *
+ * @param assoc Association
+ * @param lport Local port
+ *
+ */
+void udp_assoc_set_local_port(udp_assoc_t *assoc, uint16_t lport)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_set_local(%p, %" PRIu16 ")", assoc, lport);
+	fibril_mutex_lock(&assoc->lock);
+	assoc->ident.local.port = lport;
 	fibril_mutex_unlock(&assoc->lock);
 }
 
@@ -423,7 +438,6 @@ static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
 	fibril_mutex_unlock(&assoc_list_lock);
 	return NULL;
 }
-
 
 /**
  * @}

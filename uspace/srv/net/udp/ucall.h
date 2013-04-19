@@ -41,6 +41,7 @@
 extern udp_error_t udp_uc_create(udp_assoc_t **);
 extern udp_error_t udp_uc_set_foreign(udp_assoc_t *, udp_sock_t *);
 extern udp_error_t udp_uc_set_local(udp_assoc_t *, udp_sock_t *);
+extern udp_error_t udp_uc_set_local_port(udp_assoc_t *, uint16_t);
 extern udp_error_t udp_uc_send(udp_assoc_t *, udp_sock_t *, void *, size_t,
     xflags_t);
 extern udp_error_t udp_uc_receive(udp_assoc_t *, void *, size_t, size_t *,

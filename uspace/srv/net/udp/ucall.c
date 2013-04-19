@@ -67,8 +67,16 @@ udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 udp_error_t udp_uc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, lsock);
-
+	
 	udp_assoc_set_local(assoc, lsock);
+	return UDP_EOK;
+}
+
+udp_error_t udp_uc_set_local_port(udp_assoc_t *assoc, uint16_t lport)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %" PRIu16 ")", assoc, lport);
+	
+	udp_assoc_set_local_port(assoc, lport);
 	return UDP_EOK;
 }
 

@@ -39,7 +39,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
@@ -50,7 +50,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
@@ -160,7 +159,7 @@ typedef struct ns8250 {
 	ddf_fun_t *fun;
 	/** I/O registers **/
 	ns8250_regs_t *regs;
-	/** Is there any client conntected to the device? */
+	/** Is there any client connected to the device? */
 	bool client_connected;
 	/** The irq assigned to this device. */
 	int irq;
@@ -168,7 +167,7 @@ typedef struct ns8250 {
 	uint32_t io_addr;
 	/** The i/o port used to access the serial ports registers. */
 	ioport8_t *port;
-	/** The buffer for incomming data. */
+	/** The buffer for incoming data. */
 	cyclic_buffer_t input_buffer;
 	/** The fibril mutex for synchronizing the access to the device. */
 	fibril_mutex_t mutex;
@@ -190,7 +189,7 @@ static ns8250_t *fun_ns8250(ddf_fun_t *fun)
 	return dev_ns8250(ddf_fun_get_dev(fun));
 }
 
-/** Find out if there is some incomming data available on the serial port.
+/** Find out if there is some incoming data available on the serial port.
  *
  * @param port		The base address of the serial port device's ports.
  * @return		True if there are data waiting to be read, false

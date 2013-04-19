@@ -35,25 +35,12 @@
 #ifndef LIBC_IO_WINDOW_H_
 #define LIBC_IO_WINDOW_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <async.h>
 #include <loc.h>
-#include <io/console.h>
-
-typedef enum {
-	POS_UPDATE,
-	POS_PRESS,
-	POS_RELEASE
-} pos_event_type_t;
-
-typedef struct {
-	sysarg_t pos_id;
-	pos_event_type_t type;
-	sysarg_t btn_num;
-	sysarg_t hpos;
-	sysarg_t vpos;
-} pos_event_t;
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 
 typedef struct {
 	sysarg_t object;
@@ -70,6 +57,8 @@ typedef enum {
 	ET_KEYBOARD_EVENT,
 	ET_POSITION_EVENT,
 	ET_SIGNAL_EVENT,
+	ET_WINDOW_FOCUS,
+	ET_WINDOW_UNFOCUS,
 	ET_WINDOW_RESIZE,
 	ET_WINDOW_REFRESH,
 	ET_WINDOW_DAMAGE,
@@ -99,7 +88,7 @@ typedef enum {
 	GF_SCALE_Y = 32
 } window_grab_flags_t;
 
-extern int win_register(async_sess_t *, service_id_t *, service_id_t *);
+extern int win_register(async_sess_t *, service_id_t *, service_id_t *, sysarg_t, sysarg_t);
 
 extern int win_get_event(async_sess_t *, window_event_t *);
 

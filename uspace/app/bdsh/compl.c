@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <dirent.h>
 #include <errno.h>
 #include <macros.h>

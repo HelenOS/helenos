@@ -43,6 +43,7 @@
 #include <byteorder.h>
 #include <assert.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 /** Compare path component with the name read from the dentry.
  *
@@ -231,13 +232,14 @@ uint8_t fat_dentry_chksum(uint8_t *name)
 
 /** Get number of bytes in a string with size limit.
  *
- * @param str  NULL-terminated (or not) string.
+ * @param str  NULL-terminated (or not) string. The pointer comes from a packed
+ *             structure and as such is expected to be unaligned. 
  * @param size Maximum number of bytes to consider.
  *
  * @return Number of bytes in string (without 0 and ff).
  *
  */
-size_t fat_lfn_str_nlength(const uint16_t *str, size_t size)
+size_t fat_lfn_str_nlength(const unaligned_uint16_t *str, size_t size)
 {
 	size_t offset = 0;
 

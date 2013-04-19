@@ -36,7 +36,7 @@
  */
 
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <io/console.h>

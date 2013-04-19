@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /*
  * Floating point numbers are converted from their binary representation
