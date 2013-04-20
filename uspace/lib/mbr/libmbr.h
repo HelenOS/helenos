@@ -51,7 +51,7 @@
 #define DEBUG_PRINT_3(str, arg1, arg2, arg3) \
 	printf("%s:%d: " str, __FILE__, __LINE__, arg1, arg2, arg3)
 #else
-#define DEBUG_PRINT_0(str) 
+#define DEBUG_PRINT_0(str)
 #define DEBUG_PRINT_1(str, arg1)
 #define DEBUG_PRINT_2(str, arg1, arg2)
 #define DEBUG_PRINT_3(str, arg1, arg2, arg3)
@@ -86,6 +86,22 @@ enum {
 	/** GPT Protective partition */
 	PT_GPT	= 0xEE,
 };
+
+typedef enum {
+	/** No error */
+	ERR_OK = 0,
+	/** All primary partitions already present */
+	ERR_PRIMARY_FULL,
+	/** Extended partition already present */
+	ERR_EXTENDED_PRESENT,
+	/** No extended partition present */
+	ERR_NO_EXTENDED,
+	/** Partition overlapping */
+	ERR_OVERLAP,
+	/** Logical partition out of bounds */
+	ERR_OUT_BOUNDS,
+} MBR_ERR_VAL;
+
 
 /** Structure of a partition table entry */
 typedef struct {
@@ -145,11 +161,11 @@ typedef struct mbr_part {
 typedef struct mbr_parts {
 	/** Number of primary partitions */
 	unsigned char n_primary;
-	/** Link to the extended partition in the list */
+	/** Index to the extended partition in the array */
 	link_t * l_extended;
 	/** Number of logical partitions */
 	unsigned int n_logical;
-	/** Partition linked list */
+	/** Logical partition linked list */
 	list_t list;
 } mbr_partitions_t;
 

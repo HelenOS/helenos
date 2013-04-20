@@ -47,6 +47,9 @@ static br_block_t * alloc_br(void);
 static int decode_part(pt_entry_t * src, mbr_part_t * trgt, uint32_t base);
 static int decode_logical(mbr_t * mbr, mbr_partitions_t * p, mbr_part_t * ext);
 static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base);
+static int check_overlap(mbr_part_t * p1, mbr_part_t * p2);
+static int check_encaps(mbr_part_t * inner, mbr_part_t * outer);
+static int check_preceeds(mbr_part_t * preceeder, mbr_part_t * precedee);
 
 /** Read MBR from specific device
  * @param	dev_handle	device to read MBR from
@@ -141,7 +144,7 @@ mbr_partitions_t * mbr_read_partitions(mbr_t * mbr)
 	for (i = 0; i < N_PRIMARY; ++i) {
 		if (mbr->raw_data.pte[i].ptype == PT_UNUSED)
 			continue;
-		
+
 		p = malloc(sizeof(mbr_part_t));
 		if (p == NULL) {
 			printf(LIBMBR_NAME ": Error on memory allocation.\n");
@@ -178,29 +181,142 @@ mbr_partitions_t * mbr_read_partitions(mbr_t * mbr)
  */
 int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev_handle)
 {
-	bool logical = false;
+	//bool logical = false;
 	int i = 0;
 	int rc;
 	mbr_part_t * p;
 	mbr_part_t * ext = (parts->l_extended == NULL) ? NULL
 					: list_get_instance(parts->l_extended, mbr_part_t, link);
-	
-	br_block_t * last_ebr = NULL;
-	link_t * it;
-	
+
+	//br_block_t * last_ebr = NULL;
+	//link_t * it;
+
 	DEBUG_PRINT_3(LIBMBR_NAME "Writing partitions: n_primary: %u, n_logical:%u, l_extended:%p", parts->n_primary, parts->n_logical, parts->l_extended);
-	
+
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
 	if (rc != EOK) {
 		DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
 		return rc;
 	}
+	/*
+	// Encoding primary partitions
+	for (i = 0; i < parts->n_primary; i++) {
+		encode_part(p, &(mbr->raw_data.pte[i]), 0);
+	}
+
+	// Writing MBR
+	rc = block_write_direct(dev_handle, 0, 1, &(mbr->raw_data));
+	if (rc != EOK) {
+		DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
+		goto end;
+	}
+
+	uint32_t base = ext->start_addr;
+	uint32_t addr = base;
+
+	// Encoding and writing logical partitions
+	mbr_part_foreach(parts, p) {
+		if (p->ebr == NULL) {
+			p->ebr = alloc_br();
+			if (p->ebr == NULL)
+			{
+				rc = ENOMEM;
+				goto end;
+			}
+		}
+
+
+	}*/
+
+	link_t * l = parts->list.head.next;
+
+	// Encoding primary partitions
+	for (i = 0; i < parts->n_primary; i++) {
+		p = list_get_instance(l, mbr_part_t, link);
+		encode_part(p, &(mbr->raw_data.pte[i]), 0);
+		l = l->next;
+	}
+
+	// Writing MBR
+	rc = block_write_direct(dev_handle, 0, 1, &(mbr->raw_data));
+	if (rc != EOK) {
+		DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
+		goto end;
+	}
 
 	if (ext == NULL)
 		goto no_extended;
 
+
 	uint32_t base = ext->start_addr;
 	uint32_t addr = base;
+
+	// Encoding and writing first logical partition
+	if (l != &(parts->list.head)) {
+		p = list_get_instance(l, mbr_part_t, link);
+		if (p->ebr == NULL) {
+			p->ebr = alloc_br();
+			if (p->ebr == NULL) {
+				rc = ENOMEM;
+				goto end;
+			}
+		}
+
+		encode_part(p, &(p->ebr->pte[0]), base);
+
+		if (l->next == &(parts->list.head))
+			encode_part(NULL, &(p->ebr->pte[1]), base);
+		else
+			encode_part(list_get_instance(l->next, mbr_part_t, link), &(p->ebr->pte[1]), base);
+
+
+		rc = block_write_direct(dev_handle, base, 1, p->ebr);
+		if (rc != EOK) {
+			DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
+			goto end;
+		}
+
+		l = l->next;
+	}
+
+
+
+	// Encoding and writing logical partitions
+	while (l != &(parts->list.head)) {
+		p = list_get_instance(l, mbr_part_t, link);
+		if (p->ebr == NULL) {
+			p->ebr = alloc_br();
+			if (p->ebr == NULL) {
+				rc = ENOMEM;
+				goto end;
+			}
+		}
+
+		addr = p->start_addr - base;
+		encode_part(p, &(p->ebr->pte[0]), addr);
+
+		if (l->next == &(parts->list.head))
+			encode_part(NULL, &(p->ebr->pte[1]), base);
+		else
+			encode_part(list_get_instance(l->next, mbr_part_t, link), &(p->ebr->pte[1]), base);
+
+
+		rc = block_write_direct(dev_handle, addr, 1, p->ebr);
+		if (rc != EOK) {
+			DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
+			goto end;
+		}
+
+		l = l->next;
+	}
+
+no_extended:
+
+	/*if (ext == NULL)
+		goto no_extended;
+
+	uint32_t base = ext->start_addr;
+	uint32_t addr;// = base;
 	uint32_t prev_addr;
 	mbr_part_t * prev_part = NULL;
 
@@ -208,13 +324,8 @@ int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev
 		p = list_get_instance(iter, mbr_part_t, link);
 		if (mbr_get_flag(p, ST_LOGIC)) {
 			// writing logical partition
-			
-			if (p->start_addr < base || p->start_addr + p->length > base + ext->length) {
-				// out of bounds
-				return EINVAL;
-			}
-			
-			
+			logical = true;
+
 			if (p->ebr == NULL) {
 				p->ebr = alloc_br();
 				if (p->ebr == NULL)
@@ -224,9 +335,6 @@ int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev
 				}
 			}
 
-			
-			
-			
 			if (prev_part != NULL) {
 				// addr is the address of EBR
 				addr = p->start_addr - base;
@@ -242,9 +350,10 @@ int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev
 				// addr is the address of EBR
 				addr = base;
 				// base-1 means start_lba+1
-				encode_part(p, &(p->ebr->pte[0]), base - 1);
+				// Fixed: mbr_add_partition now performs checks!nevim
+				encode_part(p, &(p->ebr->pte[0]), base);
 			}
-			
+
 			//addr = p->start_addr;
 			prev_addr = addr;
 			prev_part = p;
@@ -259,15 +368,15 @@ int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev
 
 			++i;
 		}
-	}
+	} //*/
 
 	/* If there was an extended but no logical, we should overwrite
 	 * the space where the first logical's EBR would have been. There
 	 * might be some garbage from the past.
 	 */
-	
+	/*
 	last_ebr = prev_part->ebr;
-	
+
 	if (!logical)
 	{
 		last_ebr = alloc_br();
@@ -275,19 +384,20 @@ int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev
 			rc = ENOMEM;
 			goto end;
 		}
-		
+
 		last_ebr->pte[0].ptype = PT_UNUSED;
 	}
-	
-	
+
+
 	encode_part(NULL, &(last_ebr->pte[1]), 0);
 	rc = block_write_direct(dev_handle, addr, 1, last_ebr);
-	
+
 	if (!logical)
 	{
 		free(last_ebr);
 	}
-	
+	*/
+	/*
 	if (rc != EOK) {
 		DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
 		goto end;
@@ -296,7 +406,7 @@ int mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev
 	goto skip;
 
 no_extended:
-
+	*/
 	/*list_foreach(parts->list, it) {
 		p = list_get_instance(it, mbr_part_t, link);
 		if (mbr_get_flag(p, ST_LOGIC)) {
@@ -312,7 +422,7 @@ no_extended:
 			++i;
 		}
 	}*/
-	
+	/*
 	it = parts->list.head.next;
 	for (i = 0; i < N_PRIMARY; i++) {
 		if (it != &parts->list.head) {
@@ -328,13 +438,13 @@ no_extended:
 				encode_part(p, &(mbr->raw_data.pte[i]), 0);
 
 			}
-			
+
 			it = it->next;
 		} else {
 			encode_part(NULL, &(mbr->raw_data.pte[i]), 0);
 		}
 	}
-	
+
 
 skip:
 	rc = block_write_direct(dev_handle, 0, 1, &(mbr->raw_data));
@@ -342,6 +452,7 @@ skip:
 		DEBUG_PRINT_2(LIBMBR_NAME ": Error (%d): %s.\n", rc, str_error(rc));
 		goto end;
 	}
+	*/
 
 	/*
 	for (i = 0; i < N_PRIMARY; ++i) {
@@ -404,7 +515,7 @@ skip:
 	}*/
 
 	rc = EOK;
-	
+
 end:
 	block_fini(dev_handle);
 
@@ -436,7 +547,7 @@ mbr_partitions_t * mbr_alloc_partitions(void)
 	}
 
 	list_initialize(&(parts->list));
-	
+
 	parts->n_primary = 0;
 	parts->n_logical = 0;
 	parts->l_extended = NULL;
@@ -444,31 +555,67 @@ mbr_partitions_t * mbr_alloc_partitions(void)
 	return parts;
 }
 
-/** Add partition */
+/** Add partition
+ * 	Performs checks, sorts the list.
+ */
 int mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * p)
 {
-	list_append(&(p->link), &(parts->list));
 	if (mbr_get_flag(p, ST_LOGIC)) {
+		// adding logical part
+		if (parts->l_extended == NULL) {
+			return ERR_NO_EXTENDED;
+		}
+		if (!check_encaps(p, list_get_instance(parts->l_extended, mbr_part_t, link))) {
+			return ERR_OUT_BOUNDS;
+		}
+
+		mbr_part_t * last = list_get_instance(list_last(&(parts->list)), mbr_part_t, link);
+		mbr_part_foreach(parts, iter) {
+			if (mbr_get_flag(iter, ST_LOGIC)) {
+				if (check_overlap(p, iter)) {
+					return ERR_OVERLAP;
+				}
+				if (check_preceeds(p, iter)) {
+					last = iter;
+					break;
+				}
+			}
+		}
+
+		//list_prepend(&(p->link), &(parts->list));
+		list_insert_before(&(p->link), &(last->link));
 		parts->n_logical += 1;
 	} else {
-		parts->n_primary += 1;
+		// adding primary
+		if (parts->n_primary == 4) {
+			return ERR_PRIMARY_FULL;
+		}
+		if (p->type == PT_EXTENDED && parts->l_extended != NULL) {
+			return ERR_EXTENDED_PRESENT;
+		}
+
+		if (list_empty(&(parts->list))) {
+			list_append(&(p->link), &(parts->list));
+		} else {
+			mbr_part_foreach(parts, iter) {
+				if (mbr_get_flag(iter, ST_LOGIC)) {
+					list_insert_before(&(p->link), &(iter->link));
+					parts->n_primary += 1;
+					break;
+				} else if (check_overlap(p, iter)) {
+					return ERR_OVERLAP;
+				}
+			}
+		}
 	}
-	/* if we're adding new logical partition, we need 1 sector for the EBR 
-	 * for that partition (including the next one); we'd better make sure here
-	 * before writing */
-	if (mbr_get_flag(p, ST_LOGIC) && p->ebr == NULL) {
-		p->start_addr += 1;
-		p->length -= 1;
-	}
-	//FIXME: we can have multiple extended partitions! :-(
-	
-	return EOK;
+
+	return ERR_OK;
 }
 
 /** Remove partition */
 int mbr_remove_partition(mbr_partitions_t * parts, size_t idx)
 {
-	DEBUG_PRINT_1(LIBMBR_NAME "Removing partition: %d\n", idx);
+	DEBUG_PRINT_1(LIBMBR_NAME "Removing partition: %zu\n", idx);
 	link_t * l = list_nth(&(parts->list), idx);
 	if (l == parts->l_extended) {
 		DEBUG_PRINT_0(LIBMBR_NAME "Removing extended partition.\n");
@@ -481,10 +628,10 @@ int mbr_remove_partition(mbr_partitions_t * parts, size_t idx)
 	} else {
 		parts->n_primary -= 1;
 	}
-	
-	
+
+
 	mbr_free_partition(p);
-	
+
 	return EOK;
 }
 
@@ -532,7 +679,7 @@ void mbr_free_partitions(mbr_partitions_t * parts)
 		list_remove(cur_link);
 		mbr_free_partition(p);
 	}
-	
+
 	free(parts);
 }
 
@@ -589,7 +736,7 @@ static int decode_logical(mbr_t * mbr, mbr_partitions_t * parts, mbr_part_t * ex
 	rc = block_init(EXCHANGE_ATOMIC, mbr->device, 512);
 	if (rc != EOK)
 		return rc;
-	
+
 	ebr = alloc_br();
 	if (ebr == NULL) {
 		rc = ENOMEM;
@@ -605,18 +752,18 @@ static int decode_logical(mbr_t * mbr, mbr_partitions_t * parts, mbr_part_t * ex
 		rc = EINVAL;
 		goto free_ebr_end;
 	}
-	
+
 	if (ebr->pte[0].ptype == PT_UNUSED) {
 		rc = EOK;
 		goto free_ebr_end;
 	}
-	
+
 	p = mbr_alloc_partition();
 	if (p == NULL) {
 		rc = ENOMEM;
 		goto free_ebr_end;
 	}
-	
+
 
 	decode_part(&(ebr->pte[0]), p, base);
 	mbr_set_flag(p, ST_LOGIC, true);
@@ -624,7 +771,7 @@ static int decode_logical(mbr_t * mbr, mbr_partitions_t * parts, mbr_part_t * ex
 	mbr_add_partition(parts, p);
 
 	addr = uint32_t_le2host(ebr->pte[1].first_lba) + base;
-	
+
 	while (ebr->pte[1].ptype != PT_UNUSED) {
 		ebr = alloc_br();
 		if (ebr == NULL) {
@@ -655,12 +802,12 @@ static int decode_logical(mbr_t * mbr, mbr_partitions_t * parts, mbr_part_t * ex
 
 		addr = uint32_t_le2host(ebr->pte[1].first_lba) + base;
 	}
-	
+
 	rc = EOK;
-	
+
 free_ebr_end:
 	free(ebr);
-	
+
 end:
 	block_fini(mbr->device);
 
@@ -688,4 +835,33 @@ static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base)
 		trgt->length = 0;
 	}
 }
+
+static int check_overlap(mbr_part_t * p1, mbr_part_t * p2)
+{
+	if (p1->start_addr < p2->start_addr && p1->start_addr + p1->length <= p2->start_addr) {
+		return 0;
+	} else if (p1->start_addr > p2->start_addr && p2->start_addr + p2->length <= p1->start_addr) {
+		return 0;
+	}
+
+	return 1;
+}
+
+static int check_encaps(mbr_part_t * inner, mbr_part_t * outer)
+{
+	if (inner->start_addr <= outer->start_addr || outer->start_addr + outer->length <= inner->start_addr) {
+		return 0;
+	} else if (outer->start_addr + outer->length < inner->start_addr + inner->length) {
+		return 0;
+	}
+
+	return 1;
+}
+
+static int check_preceeds(mbr_part_t * preceeder, mbr_part_t * precedee)
+{
+	return preceeder->start_addr < precedee->start_addr;
+}
+
+
 

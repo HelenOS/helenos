@@ -101,16 +101,19 @@ typedef struct {
 	uint8_t part_name[72];
 } __attribute__((packed)) gpt_entry_t;
 
-typedef struct g_part {
-	/** Partition entry is in use */
-	bool present;
-	/** Address of first block */
-	aoff64_t start_addr;
-	/** Number of blocks */
-	aoff64_t length;
-	/** Raw data access */
-	gpt_entry_t raw_data;	//TODO: a pointer or just a member?
-}gpt_part_t;
+
+//typedef struct g_part {
+	///** Partition entry is in use **/
+	//bool present;
+	///** Address of first block */
+	//aoff64_t start_addr;
+	///** Number of blocks */
+	//aoff64_t length;
+	///** Raw data access */
+	//gpt_entry_t raw_data;	//TODO: a pointer or just a member?
+//}gpt_part_t;
+typedef gpt_entry_t gpt_part_t;
+
 
 typedef struct gpt_parts {
 	/** Number of entries */
@@ -139,20 +142,27 @@ extern const struct partition_type gpt_ptypes[];
 extern gpt_t * gpt_read_gpt_header(service_id_t dev_handle);
 extern int gpt_write_gpt_header(gpt_t * header, service_id_t dev_handle);
 
-extern gpt_partitions_t * gpt_read_partitions(gpt_t * gpt);
-extern int 				  gpt_write_partitions(gpt_partitions_t * parts, gpt_t * header, service_id_t dev_handle);
-extern gpt_part_t *		  gpt_alloc_partition(gpt_partitions_t * parts);
-extern int				  gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition);
-extern int				  gpt_remove_partition(gpt_partitions_t * parts, size_t idx);
-extern size_t			  gpt_get_part_type(gpt_part_t * p);
-extern void 			  gpt_set_part_type(gpt_part_t * p, size_t type);
-extern char * 			  gpt_get_part_name(gpt_entry_t * p);
-extern void 			  gpt_set_part_name(gpt_entry_t * p, char * name[], size_t length);
-extern bool				  gpt_get_flag(gpt_part_t * p, GPT_ATTR flag);
-extern void				  gpt_set_flag(gpt_part_t * p, GPT_ATTR flag, bool value);
+extern gpt_partitions_t *	gpt_read_partitions	(gpt_t * gpt);
+extern int 					gpt_write_partitions	(gpt_partitions_t * parts, gpt_t * header, service_id_t dev_handle);
+extern gpt_part_t *			gpt_alloc_partition		(gpt_partitions_t * parts);
+extern int					gpt_add_partition	(gpt_partitions_t * parts, gpt_part_t * partition);
+extern int					gpt_remove_partition(gpt_partitions_t * parts, size_t idx);
+
+extern size_t				gpt_get_part_type	(gpt_part_t * p);
+extern void 				gpt_set_part_type	(gpt_part_t * p, size_t type);
+extern void					gpt_set_start_lba	(gpt_part_t * p, uint64_t start);
+extern uint64_t				gpt_get_start_lba	(gpt_part_t * p);
+extern void					gpt_set_end_lba		(gpt_part_t * p, uint64_t start);
+extern uint64_t				gpt_get_end_lba		(gpt_part_t * p);
+extern unsigned char * 		gpt_get_part_name	(gpt_part_t * p);
+extern void 				gpt_set_part_name	(gpt_part_t * p, char * name[], size_t length);
+extern bool					gpt_get_flag		(gpt_part_t * p, GPT_ATTR flag);
+extern void					gpt_set_flag		(gpt_part_t * p, GPT_ATTR flag, bool value);
+
+
 
 #define gpt_foreach(parts, i, iterator) \
-		for(size_t i = 0, gpt_part_t * iterator = parts->part_array;
+		for(size_t i = 0, gpt_part_t * iterator = parts->part_array; \
 		    i < parts->fill; i++, iterator++)
 
 extern void gpt_free_gpt(gpt_t * gpt);
