@@ -44,6 +44,11 @@
 #include "transport.h"
 
 #include <stdio.h>
+
+#define RECV_BUF_SIZE 4096
+
+static uint8_t recv_buf[RECV_BUF_SIZE];
+
 int dns_request(dns_message_t *req, dns_message_t **rresp)
 {
 	dns_message_t *resp;
@@ -52,6 +57,8 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	size_t req_size;
 	struct sockaddr_in addr;
 	struct sockaddr_in laddr;
+	struct sockaddr_in src_addr;
+	socklen_t src_addr_size;
 	int fd;
 
 	addr.sin_family = AF_INET;
@@ -85,7 +92,19 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	if (rc != EOK)
 		goto error;
 
+	src_addr_size = sizeof(src_addr);
+	rc = recvfrom(fd, recv_buf, RECV_BUF_SIZE, 0,
+	    (struct sockaddr *)&src_addr, &src_addr_size);
+	if (rc < 0) {
+		printf("recvfrom returns error - %d\n", rc);
+		goto error;
+	}
+
+	printf("received %d bytes\n", (int)rc);
+
+	printf("close socket\n");
 	closesocket(fd);
+	printf("free req_data\n");
 	free(req_data);
 
 	resp = NULL;

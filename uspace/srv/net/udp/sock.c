@@ -537,17 +537,22 @@ static void udp_sock_close(udp_client_t *client, ipc_callid_t callid, ipc_call_t
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close()");
 	int socket_id = SOCKET_GET_SOCKET_ID(call);
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - find core");
 	socket_core_t *sock_core =
 	    socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - core not found");
 		async_answer_0(callid, ENOTSOCK);
 		return;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - spec data");
 	udp_sockdata_t *socket =
 	    (udp_sockdata_t *) sock_core->specific_data;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - lock socket");
 	fibril_mutex_lock(&socket->lock);
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - lock socket buffer");
 	fibril_mutex_lock(&socket->recv_buffer_lock);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_close - set socket->sock_core = NULL");
 	socket->sock_core = NULL;
@@ -600,25 +605,28 @@ static int udp_sock_recv_fibril(void *arg)
 			fibril_condvar_wait(&sock->recv_buffer_cv,
 			    &sock->recv_buffer_lock);
 		}
-		
+
+		fibril_mutex_unlock(&sock->recv_buffer_lock);
+
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] call udp_uc_receive()");
 		urc = udp_uc_receive(sock->assoc, sock->recv_buffer,
 		    UDP_FRAGMENT_SIZE, &rcvd, &xflags, &sock->recv_fsock);
+		fibril_mutex_lock(&sock->recv_buffer_lock);
 		sock->recv_error = urc;
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] udp_uc_receive -> %d", urc);
 
 		if (sock->sock_core != NULL)
 			udp_sock_notify_data(sock->sock_core);
-		
+
 		if (urc != UDP_EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "[] urc != UDP_EOK, break");
 			fibril_condvar_broadcast(&sock->recv_buffer_cv);
 			break;
 		}
-		
+
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] got data - broadcast recv_buffer_cv");
-		
+
 		sock->recv_buffer_used = rcvd;
 		fibril_condvar_broadcast(&sock->recv_buffer_cv);
 	}
