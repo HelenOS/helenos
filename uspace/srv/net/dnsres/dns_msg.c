@@ -46,6 +46,8 @@
 
 #define NAME  "dnsres"
 
+static uint16_t dns_uint16_t_decode(uint8_t *, size_t);
+
 #include <stdio.h>
 static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
@@ -116,6 +118,8 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 	size_t bsize;
 	size_t lsize;
 	size_t i;
+	size_t ptr;
+	size_t eptr;
 
 	if (boff > size)
 		return EINVAL;
@@ -128,7 +132,6 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 			return EINVAL;
 		}
 
-
 		lsize = *bp;
 		++bp;
 		--bsize;
@@ -136,13 +139,35 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 		if (lsize == 0)
 			break;
 
-		if (bp != buf + 1)
+		if (bp != buf + boff + 1)
 			printf(".");
 
 		if ((lsize & 0xc0) == 0xc0) {
+			printf("Pointer\n");
 			/* Pointer */
-			printf("compression not supported!\n");
-			return EINVAL;
+			if (bsize < 1) {
+				printf("Pointer- bsize < 1\n");
+				return EINVAL;
+			}
+
+			ptr = dns_uint16_t_decode(bp - 1, bsize) & 0x3fff;
+			if (ptr >= (size_t)(bp - buf)) {
+				printf("Pointer- forward ref %u, pos=%u\n",
+				    ptr, bp - buf);
+				/* Forward reference */
+				return EINVAL;
+			}
+
+			/*
+			 * Make sure we will not decode any byte twice.
+			 * XXX Is assumption correct?
+			 */
+			eptr = buf - bp;
+
+			printf("ptr=%u, eptr=%u\n", ptr, eptr);
+			bp = buf + ptr;
+			bsize = eptr - ptr;
+			continue;
 		}
 
 		if (lsize > bsize) {
