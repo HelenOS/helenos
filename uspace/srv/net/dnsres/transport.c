@@ -59,7 +59,9 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	struct sockaddr_in laddr;
 	struct sockaddr_in src_addr;
 	socklen_t src_addr_size;
+	size_t recv_size;
 	int fd;
+	int i;
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(53);
@@ -100,14 +102,26 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 		goto error;
 	}
 
-	printf("received %d bytes\n", (int)rc);
+	recv_size = (size_t)rc;
+
+	printf("received %d bytes\n", (int)recv_size);
+	for (i = 0; i < (int)recv_size; i++) {
+		if (recv_buf[i] >= 32 && recv_buf[i] < 127)
+			printf("%c", recv_buf[i]);
+		else
+			printf("?");
+	}
+	printf("\n");
 
 	printf("close socket\n");
 	closesocket(fd);
 	printf("free req_data\n");
 	free(req_data);
 
-	resp = NULL;
+	rc = dns_message_decode(recv_buf, recv_size, &resp);
+	if (rc != EOK)
+		return EIO;
+
 	*rresp = resp;
 	return EOK;
 

@@ -43,6 +43,7 @@
 #include "dns_type.h"
 
 extern int dns_message_encode(dns_message_t *, void **, size_t *);
+extern int dns_message_decode(void *, size_t, dns_message_t **);
 
 #endif
 
