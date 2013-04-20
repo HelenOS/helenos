@@ -610,9 +610,6 @@ static int udp_sock_recv_fibril(void *arg)
 
 		if (sock->sock_core != NULL)
 			udp_sock_notify_data(sock->sock_core);
-
-		
-		udp_sock_notify_data(sock->sock_core);
 		
 		if (urc != UDP_EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "[] urc != UDP_EOK, break");
