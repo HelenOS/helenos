@@ -37,6 +37,7 @@
 #define DNS_TYPE_H
 
 #include <adt/list.h>
+#include <inet/inet.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "dns_std.h"
@@ -79,6 +80,7 @@ typedef struct {
 
 /** Unencoded DNS resource record */
 typedef struct {
+	link_t msg;
 	/** Domain name */
 	char *name;
 	/** RR type */
@@ -96,6 +98,10 @@ typedef struct {
 
 /** Host information */
 typedef struct {
+	/** Host name */
+	char *name;
+	/** Host address */
+	inet_addr_t addr;
 } dns_host_info_t;
 
 #endif

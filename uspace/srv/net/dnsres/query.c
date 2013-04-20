@@ -35,7 +35,9 @@
 
 #include <errno.h>
 #include <mem.h>
+#include <str.h>
 
+#include "dns_msg.h"
 #include "dns_std.h"
 #include "dns_type.h"
 #include "query.h"
@@ -43,6 +45,7 @@
 
 static uint16_t msg_id;
 
+#include <stdio.h>
 int dns_name2host(const char *name, dns_host_info_t *info)
 {
 	dns_message_t msg;
@@ -71,7 +74,28 @@ int dns_name2host(const char *name, dns_host_info_t *info)
 	if (rc != EOK)
 		return rc;
 
-	return EOK;
+	list_foreach(amsg->answer, link) {
+		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
+
+		printf(" - '%s' %u/%u, dsize %u\n",
+			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
+
+		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN) {
+			if (rr->rdata_size != sizeof(uint32_t)) {
+				printf("rdata_size = %u - fail\n", rr->rdata_size);
+				return EIO;
+			}
+
+			info->name = str_dup(rr->name);
+			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
+			printf("info->addr = %x\n", info->addr.ipv4);
+			return EOK;
+		}
+	}
+
+	printf("no A/IN found, fail\n");
+
+	return EIO;
 }
 
 /** @}

@@ -34,6 +34,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #include "dns_msg.h"
@@ -42,14 +43,41 @@
 
 #define NAME  "dnsres"
 
+static int addr_format(inet_addr_t *addr, char **bufp)
+{
+	int rc;
+
+	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
+	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
+	    addr->ipv4 & 0xff);
+
+	if (rc < 0)
+		return ENOMEM;
+
+	return EOK;
+}
+
 int main(int argc, char *argv[])
 {
 	dns_host_info_t hinfo;
+	char *astr;
 	int rc;
 
 	printf("%s: DNS Resolution Service\n", NAME);
-	rc = dns_name2host("helenos.org", &hinfo);
+	rc = dns_name2host(argc < 2 ? "helenos.org" : argv[1], &hinfo);
 	printf("dns_name2host() -> rc = %d\n", rc);
+
+	if (rc == EOK) {
+		rc = addr_format(&hinfo.addr, &astr);
+		if (rc != EOK) {
+			printf("Out of memory\n");
+			return ENOMEM;
+		}
+
+		printf("hostname: %s\n", hinfo.name);
+		printf("IPv4 address: %s\n", astr);
+		free(astr);
+	}
 
 	return 0;
 }

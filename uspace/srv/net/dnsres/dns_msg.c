@@ -48,6 +48,33 @@
 
 static uint16_t dns_uint16_t_decode(uint8_t *, size_t);
 
+static int dns_dstr_ext(char **dstr, const char *suff)
+{
+	size_t s1, s2;
+	size_t nsize;
+	char *nstr;
+
+	if (*dstr == NULL) {
+		*dstr = str_dup(suff);
+		if (*dstr == NULL)
+			return ENOMEM;
+		return EOK;
+	}
+
+	s1 = str_size(*dstr);
+	s2 = str_size(suff);
+	nsize = s1 + s2 + 1;
+
+	nstr = realloc(*dstr, nsize);
+	if (nstr == NULL)
+		return ENOMEM;
+
+	str_cpy((*dstr) + s1, nsize - s1, suff);
+
+	*dstr = nstr;
+	return EOK;
+}
+
 #include <stdio.h>
 static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
@@ -68,7 +95,7 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 		printf("off=%zu\n", off);
 		c = str_decode(name, &off, STR_NO_LIMIT);
 		printf("c=%d\n", (int)c);
-		if (c > 127) {
+		if (c >= 127) {
 			/* Non-ASCII character */
 			printf("non-ascii character\n");
 			return EINVAL;
@@ -120,16 +147,25 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 	size_t i;
 	size_t ptr;
 	size_t eptr;
+	char *name;
+	char dbuf[2];
+	int rc;
+	bool first;
+
+	name = NULL;
 
 	if (boff > size)
 		return EINVAL;
 
 	bp = buf + boff;
 	bsize = min(size - boff, DNS_NAME_MAX_SIZE);
+	first = true;
+	*eoff = 0;
 
 	while (true) {
 		if (bsize == 0) {
-			return EINVAL;
+			rc = EINVAL;
+			goto error;
 		}
 
 		lsize = *bp;
@@ -139,30 +175,46 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 		if (lsize == 0)
 			break;
 
-		if (bp != buf + boff + 1)
+		if (!first) {
 			printf(".");
+			rc = dns_dstr_ext(&name, ".");
+			if (rc != EOK) {
+				rc = ENOMEM;
+				goto error;
+			}
+		}
 
 		if ((lsize & 0xc0) == 0xc0) {
 			printf("Pointer\n");
 			/* Pointer */
 			if (bsize < 1) {
 				printf("Pointer- bsize < 1\n");
-				return EINVAL;
+				rc = EINVAL;
+				goto error;
 			}
 
 			ptr = dns_uint16_t_decode(bp - 1, bsize) & 0x3fff;
+			++bp;
+			--bsize;
+
 			if (ptr >= (size_t)(bp - buf)) {
 				printf("Pointer- forward ref %u, pos=%u\n",
 				    ptr, bp - buf);
 				/* Forward reference */
-				return EINVAL;
+				rc = EINVAL;
+				goto error;
 			}
 
 			/*
 			 * Make sure we will not decode any byte twice.
 			 * XXX Is assumption correct?
 			 */
-			eptr = buf - bp;
+			eptr = bp - buf;
+			/*
+			 * This is where encoded name ends in terms where
+			 * the message continues
+			 */
+			*eoff = eptr;
 
 			printf("ptr=%u, eptr=%u\n", ptr, eptr);
 			bp = buf + ptr;
@@ -171,20 +223,42 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 		}
 
 		if (lsize > bsize) {
-			return EINVAL;
+			rc = EINVAL;
+			goto error;
 		}
 
 		for (i = 0; i < lsize; i++) {
 			printf("%c", *bp);
+
+			if (*bp < 32 || *bp >= 127) {
+				rc = EINVAL;
+				goto error;
+			}
+
+			dbuf[0] = *bp;
+			dbuf[1] = '\0';
+
+			rc = dns_dstr_ext(&name, dbuf);
+			if (rc != EOK) {
+				rc = ENOMEM;
+				goto error;
+			}
 			++bp;
 			--bsize;
 		}
+
+		first = false;
 	}
 
 	printf("\n");
 
-	*eoff = bp - buf;
+	*rname = name;
+	if (*eoff == 0)
+		*eoff = bp - buf;
 	return EOK;
+error:
+	free(name);
+	return rc;
 }
 
 /** Decode unaligned big-endian 16-bit integer */
@@ -206,14 +280,19 @@ static void dns_uint16_t_encode(uint16_t w, uint8_t *buf, size_t buf_size)
 }
 
 /** Decode unaligned big-endian 32-bit integer */
-static uint16_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
+uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 {
+	uint32_t w;
 	assert(buf_size >= 4);
 
-	return ((uint32_t)buf[0] << 24) +
+	w = ((uint32_t)buf[0] << 24) +
 	    ((uint32_t)buf[1] << 16) +
 	    ((uint32_t)buf[2] << 8) +
-	    buf[0];
+	    buf[3];
+
+	printf("dns_uint32_t_decode: %x, %x, %x, %x -> %x\n",
+	    buf[0], buf[1], buf[2], buf[3], w);
+	return w;
 }
 
 static int dns_question_encode(dns_question_t *question, uint8_t *buf,
@@ -303,7 +382,7 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 		return ENOMEM;
 	}
 
-	printf("ok decoding name..\n");
+	printf("ok decoding name.. '%s'\n", rr->name);
 	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
 		printf("name_eoff + 2 * 2 = %d >  buf_size = %d\n",
 		    name_eoff + 2 * sizeof(uint16_t), buf_size);
@@ -323,15 +402,19 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 
 	rr->rtype = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
+	printf("rtype=%u\n", rr->rtype);
 
 	rr->rclass = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
+	printf("rclass=%u\n", rr->rclass);
 
 	rr->ttl = dns_uint32_t_decode(bp, bsz);
 	bp += sizeof(uint32_t); bsz -= sizeof(uint32_t);
+	printf("ttl=%u\n", rr->ttl);
 
 	rdlength = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
+	printf("rdlength=%u\n", rdlength);
 
 	if (rdlength > bsz) {
 		free(rr->name);
@@ -468,6 +551,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 		}
 		printf("ok decoding question\n");
 
+		list_append(&question->msg, &msg->question);
 		doff = field_eoff;
 	}
 
@@ -483,6 +567,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 		}
 		printf("ok decoding answer\n");
 
+		list_append(&rr->msg, &msg->answer);
 		doff = field_eoff;
 	}
 

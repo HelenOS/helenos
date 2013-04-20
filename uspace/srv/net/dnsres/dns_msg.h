@@ -44,6 +44,7 @@
 
 extern int dns_message_encode(dns_message_t *, void **, size_t *);
 extern int dns_message_decode(void *, size_t, dns_message_t **);
+extern uint32_t dns_uint32_t_decode(uint8_t *, size_t);
 
 #endif
 
