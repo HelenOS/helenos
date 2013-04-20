@@ -109,16 +109,19 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 	return EOK;
 }
 
-static int dns_name_decode(uint8_t *buf, size_t size, char **rname,
-    size_t *act_size)
+static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
+    size_t *eoff)
 {
 	uint8_t *bp;
 	size_t bsize;
 	size_t lsize;
 	size_t i;
 
-	bp = buf;
-	bsize = min(size, DNS_NAME_MAX_SIZE);
+	if (boff > size)
+		return EINVAL;
+
+	bp = buf + boff;
+	bsize = min(size - boff, DNS_NAME_MAX_SIZE);
 
 	while (true) {
 		if (bsize == 0) {
@@ -155,7 +158,7 @@ static int dns_name_decode(uint8_t *buf, size_t size, char **rname,
 
 	printf("\n");
 
-	*act_size = bp - buf;
+	*eoff = bp - buf;
 	return EOK;
 }
 
@@ -217,11 +220,11 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
 	return EOK;
 }
 
-static int dns_question_decode(uint8_t *buf, size_t buf_size,
-    dns_question_t **rquestion, size_t *act_size)
+static int dns_question_decode(uint8_t *buf, size_t buf_size, size_t boff,
+    dns_question_t **rquestion, size_t *eoff)
 {
 	dns_question_t *question;
-	size_t name_size;
+	size_t name_eoff;
 	int rc;
 
 	question = calloc(1, sizeof (dns_question_t));
@@ -229,7 +232,7 @@ static int dns_question_decode(uint8_t *buf, size_t buf_size,
 		return ENOMEM;
 
 	printf("decode name..\n");
-	rc = dns_name_decode(buf, buf_size, &question->qname, &name_size);
+	rc = dns_name_decode(buf, buf_size, boff, &question->qname, &name_eoff);
 	if (rc != EOK) {
 		printf("error decoding name..\n");
 		free(question);
@@ -237,27 +240,27 @@ static int dns_question_decode(uint8_t *buf, size_t buf_size,
 	}
 
 	printf("ok decoding name..\n");
-	if (name_size + 2 * sizeof(uint16_t) > buf_size) {
-		printf("name_size + 2 * 2 = %d >  buf_size = %d\n",
-		    name_size + 2 * sizeof(uint16_t), buf_size);
+	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
+		printf("name_eoff + 2 * 2 = %d >  buf_size = %d\n",
+		    name_eoff + 2 * sizeof(uint16_t), buf_size);
 		free(question);
 		return EINVAL;
 	}
 
-	question->qtype = dns_uint16_t_decode(buf + name_size, buf_size - name_size);
-	question->qclass = dns_uint16_t_decode(buf + sizeof(uint16_t) + name_size,
-	    buf_size - sizeof(uint16_t) - name_size);
-	*act_size = name_size + 2 * sizeof(uint16_t);
+	question->qtype = dns_uint16_t_decode(buf + name_eoff, buf_size - name_eoff);
+	question->qclass = dns_uint16_t_decode(buf + sizeof(uint16_t) + name_eoff,
+	    buf_size - sizeof(uint16_t) - name_eoff);
+	*eoff = name_eoff + 2 * sizeof(uint16_t);
 
 	*rquestion = question;
 	return EOK;
 }
 
-static int dns_rr_decode(uint8_t *buf, size_t buf_size,
-    dns_rr_t **retrr, size_t *act_size)
+static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
+    dns_rr_t **retrr, size_t *eoff)
 {
 	dns_rr_t *rr;
-	size_t name_size;
+	size_t name_eoff;
 	uint8_t *bp;
 	size_t bsz;
 	size_t rdlength;
@@ -268,7 +271,7 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size,
 		return ENOMEM;
 
 	printf("decode name..\n");
-	rc = dns_name_decode(buf, buf_size, &rr->name, &name_size);
+	rc = dns_name_decode(buf, buf_size, boff, &rr->name, &name_eoff);
 	if (rc != EOK) {
 		printf("error decoding name..\n");
 		free(rr);
@@ -276,16 +279,16 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size,
 	}
 
 	printf("ok decoding name..\n");
-	if (name_size + 2 * sizeof(uint16_t) > buf_size) {
-		printf("name_size + 2 * 2 = %d >  buf_size = %d\n",
-		    name_size + 2 * sizeof(uint16_t), buf_size);
+	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
+		printf("name_eoff + 2 * 2 = %d >  buf_size = %d\n",
+		    name_eoff + 2 * sizeof(uint16_t), buf_size);
 		free(rr->name);
 		free(rr);
 		return EINVAL;
 	}
 
-	bp = buf + name_size;
-	bsz = buf_size - name_size;
+	bp = buf + name_eoff;
+	bsz = buf_size - name_eoff;
 
 	if (bsz < 3 * sizeof(uint16_t) + sizeof(uint32_t)) {
 		free(rr->name);
@@ -323,7 +326,7 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size,
 	bp += rdlength;
 	bsz -= rdlength;
 
-	*act_size = bp - buf;
+	*eoff = bp - buf;
 	*retrr = rr;
 	return EOK;
 }
@@ -392,9 +395,8 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 {
 	dns_message_t *msg;
 	dns_header_t *hdr;
-	uint8_t *dp;
-	size_t dsize;
-	size_t field_size;
+	size_t doff;
+	size_t field_eoff;
 	dns_question_t *question;
 	dns_rr_t *rr;
 	size_t qd_count;
@@ -427,23 +429,21 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	list_initialize(&msg->authority);
 	list_initialize(&msg->additional);
 
-	dp = (uint8_t *)data + sizeof(dns_header_t);
-	dsize = size - sizeof(dns_header_t);
+	doff = sizeof(dns_header_t);
 
 	qd_count = uint16_t_be2host(hdr->qd_count);
 	printf("qd_count = %d\n", (int)qd_count);
 
 	for (i = 0; i < qd_count; i++) {
 		printf("decode question..\n");
-		rc = dns_question_decode(dp, dsize, &question, &field_size);
+		rc = dns_question_decode(data, size, doff, &question, &field_eoff);
 		if (rc != EOK) {
 			printf("error decoding question\n");
 			goto error;
 		}
 		printf("ok decoding question\n");
 
-		dp += field_size;
-		dsize -= field_size;
+		doff = field_eoff;
 	}
 
 	an_count = uint16_t_be2host(hdr->an_count);
@@ -451,15 +451,14 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 
 	for (i = 0; i < an_count; i++) {
 		printf("decode answer..\n");
-		rc = dns_rr_decode(dp, dsize, &rr, &field_size);
+		rc = dns_rr_decode(data, size, doff, &rr, &field_eoff);
 		if (rc != EOK) {
 			printf("error decoding answer\n");
 			goto error;
 		}
 		printf("ok decoding answer\n");
 
-		dp += field_size;
-		dsize -= field_size;
+		doff = field_eoff;
 	}
 
 	printf("ns_count = %d\n", uint16_t_be2host(hdr->ns_count));
