@@ -138,6 +138,7 @@ typedef struct {
 	surface_t *surface;
 } viewport_t;
 
+static desktop_rect_t viewport_bound_rect;
 static FIBRIL_MUTEX_INITIALIZE(viewport_list_mtx);
 static LIST_INITIALIZE(viewport_list);
 
@@ -315,6 +316,54 @@ static void comp_coord_bounding_rect(double x_in, double y_in,
 		(*w_out) = 0;
 		(*h_out) = 0;
 	}
+}
+
+static void comp_restrict_pointers(void)
+{
+	fibril_mutex_lock(&viewport_list_mtx);
+
+	sysarg_t x_res = coord_origin;
+	sysarg_t y_res = coord_origin;
+	sysarg_t w_res = 0;
+	sysarg_t h_res = 0;
+
+	if (!list_empty(&viewport_list)) {
+		viewport_t *vp = (viewport_t *) list_first(&viewport_list);
+		x_res = vp->pos.x;
+		y_res = vp->pos.y;
+		surface_get_resolution(vp->surface, &w_res, &h_res);
+	}
+
+	list_foreach(viewport_list, link) {
+		viewport_t *vp = list_get_instance(link, viewport_t, link);
+		sysarg_t w_vp, h_vp;
+		surface_get_resolution(vp->surface, &w_vp, &h_vp);
+		rectangle_union(
+		    x_res, y_res, w_res, h_res,
+		    vp->pos.x, vp->pos.y, w_vp, h_vp,
+		    &x_res, &y_res, &w_res, &h_res);
+	}
+
+	viewport_bound_rect.x = x_res;
+	viewport_bound_rect.y = y_res;
+	viewport_bound_rect.w = w_res;
+	viewport_bound_rect.h = h_res;
+
+	fibril_mutex_unlock(&viewport_list_mtx);
+
+	fibril_mutex_lock(&pointer_list_mtx);
+
+	list_foreach(pointer_list, link) {
+		pointer_t *ptr = list_get_instance(link, pointer_t, link);
+		ptr->pos.x = ptr->pos.x > viewport_bound_rect.x ? ptr->pos.x : viewport_bound_rect.x;
+		ptr->pos.y = ptr->pos.y > viewport_bound_rect.y ? ptr->pos.y : viewport_bound_rect.y;
+		ptr->pos.x = ptr->pos.x < viewport_bound_rect.x + viewport_bound_rect.w ?
+		    ptr->pos.x : viewport_bound_rect.x + viewport_bound_rect.w;
+		ptr->pos.y = ptr->pos.y < viewport_bound_rect.y + viewport_bound_rect.h ?
+		    ptr->pos.y : viewport_bound_rect.y + viewport_bound_rect.h;
+	}
+
+	fibril_mutex_unlock(&pointer_list_mtx);
 }
 
 static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
@@ -928,6 +977,7 @@ static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall
 	fibril_mutex_unlock(&viewport_list_mtx);
 	async_answer_0(iid, EOK);
 
+	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
@@ -973,6 +1023,9 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 	} else {
 		fibril_mutex_unlock(&viewport_list_mtx);
 		async_answer_0(iid, EOK);
+
+		comp_restrict_pointers();
+		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	}
 }
 
@@ -1408,6 +1461,18 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 	sysarg_t cursor_height;
 	surface_get_resolution(pointer->cursor.states[pointer->state], 
 	     &cursor_width, &cursor_height);
+	if (pointer->pos.x + dx < viewport_bound_rect.x) {
+		dx = -1 * (pointer->pos.x - viewport_bound_rect.x);
+	}
+	if (pointer->pos.y + dy < viewport_bound_rect.y) {
+		dy = -1 * (pointer->pos.y - viewport_bound_rect.y);
+	}
+	if (pointer->pos.x + dx > viewport_bound_rect.x + viewport_bound_rect.w) {
+		dx = (viewport_bound_rect.x + viewport_bound_rect.w - pointer->pos.x);
+	}
+	if (pointer->pos.y + dy > viewport_bound_rect.y + viewport_bound_rect.h) {
+		dy = (viewport_bound_rect.y + viewport_bound_rect.h - pointer->pos.y);
+	}
 	pointer->pos.x += dx;
 	pointer->pos.y += dy;
 	fibril_mutex_unlock(&pointer_list_mtx);
@@ -1927,6 +1992,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			surface_get_resolution(vp->surface, &width, &height);
 			fibril_mutex_unlock(&viewport_list_mtx);
 
+			comp_restrict_pointers();
 			comp_damage(x, y, width, height);
 		} else {
 			fibril_mutex_unlock(&viewport_list_mtx);
@@ -2139,7 +2205,8 @@ static int compositor_srv_init(char *input_svc, char *name)
 		input_disconnect();
 		return -1;
 	}
-	
+
+	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	
 	return EOK;
