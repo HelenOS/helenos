@@ -89,6 +89,7 @@ static pixel_t bg_color;
 
 typedef struct {
 	link_t link;
+	atomic_t ref_cnt;
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	prodcons_t queue;
@@ -214,6 +215,7 @@ static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 	}
 
 	link_initialize(&win->link);
+	atomic_set(&win->ref_cnt, 0);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
 	transform_translate(&win->transform, 
@@ -231,7 +233,13 @@ static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 
 static void window_destroy(window_t *win)
 {
-	if (win) {
+	if (win && atomic_get(&win->ref_cnt) == 0) {
+		while (!list_empty(&win->queue.list)) {
+			window_event_t *event = (window_event_t *) list_first(&win->queue.list);
+			list_remove(&event->link);
+			free(event);
+		}
+
 		if (win->surface) {
 			surface_destroy(win->surface);
 		}
@@ -694,6 +702,17 @@ static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall
 		comp_post_event_win(event_focus, win_focus);
 	}
 
+	loc_service_unregister(win->in_dsid);
+	loc_service_unregister(win->out_dsid);
+
+	/* In case the client was killed, input fibril of the window might be
+	 * still blocked on the condition within comp_window_get_event. */
+	window_event_t *event_dummy = (window_event_t *) malloc(sizeof(window_event_t));
+	if (event_dummy) {
+		link_initialize(&event_dummy->link);
+		prodcons_produce(&win->queue, &event_dummy->link);
+	}
+
 	/* Calculate damage. */
 	sysarg_t x = 0;
 	sysarg_t y = 0;
@@ -704,14 +723,6 @@ static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall
 		comp_coord_bounding_rect(
 		    0, 0, width, height, win->transform, &x, &y, &width, &height);
 	}
-
-	/* Release window resources. */
-	loc_service_unregister(win->in_dsid);
-	loc_service_unregister(win->out_dsid);
-	while (!list_empty(&win->queue.list)) {
-		list_remove(list_first(&win->queue.list));
-	}
-	window_destroy(win);
 
 	comp_damage(x, y, width, height);
 
@@ -812,6 +823,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	fibril_mutex_unlock(&window_list_mtx);
 
 	if (win) {
+		atomic_inc(&win->ref_cnt);
 		async_answer_0(iid, EOK);
 	} else {
 		async_answer_0(iid, EINVAL);
@@ -824,7 +836,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			callid = async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(callid, EINVAL);
+				async_answer_0(callid, EOK);
+				atomic_dec(&win->ref_cnt);
+				window_destroy(win);
 				return;
 			}
 
@@ -841,7 +855,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			callid = async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(callid, EINVAL);
+				comp_window_close(win, callid, &call);
+				atomic_dec(&win->ref_cnt);
+				window_destroy(win);
 				return;
 			}
 
@@ -856,7 +872,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				comp_window_resize(win, callid, &call);
 				break;
 			case WINDOW_CLOSE:
-				comp_window_close(win, callid, &call);
+				/* Postpone the closing until the phone is hung up to cover
+				 * the case when the client is killed abruptly. */
+				async_answer_0(callid, EOK);
 				break;
 			case WINDOW_CLOSE_REQUEST:
 				comp_window_close_request(win, callid, &call);
