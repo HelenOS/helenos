@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 
 #include <errno.h>
 #include <mem.h>
+#include <stdlib.h>
 #include <str.h>
 
 #include "dns_msg.h"
@@ -46,11 +47,12 @@
 static uint16_t msg_id;
 
 #include <stdio.h>
-int dns_name2host(const char *name, dns_host_info_t *info)
+int dns_name2host(const char *name, dns_host_info_t **rinfo)
 {
 	dns_message_t msg;
 	dns_message_t *amsg;
 	dns_question_t question;
+	dns_host_info_t *info;
 	int rc;
 
 	question.qname = (char *)name;
@@ -80,22 +82,35 @@ int dns_name2host(const char *name, dns_host_info_t *info)
 		printf(" - '%s' %u/%u, dsize %u\n",
 			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
 
-		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN) {
-			if (rr->rdata_size != sizeof(uint32_t)) {
-				printf("rdata_size = %u - fail\n", rr->rdata_size);
-				return EIO;
+		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN &&
+			rr->rdata_size == sizeof(uint32_t)) {
+
+			info = calloc(1, sizeof(dns_host_info_t));
+			if (info == NULL) {
+				dns_message_destroy(amsg);
+				return ENOMEM;
 			}
 
 			info->name = str_dup(rr->name);
 			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
 			printf("info->addr = %x\n", info->addr.ipv4);
+
+			dns_message_destroy(amsg);
+			*rinfo = info;
 			return EOK;
 		}
 	}
 
+	dns_message_destroy(amsg);
 	printf("no A/IN found, fail\n");
 
 	return EIO;
+}
+
+void dns_hostinfo_destroy(dns_host_info_t *info)
+{
+	free(info->name);
+	free(info);
 }
 
 /** @}

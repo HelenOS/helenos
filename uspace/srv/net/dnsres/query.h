@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,8 @@
 
 #include "dns_type.h"
 
-extern int dns_name2host(const char *, dns_host_info_t *);
+extern int dns_name2host(const char *, dns_host_info_t **);
+extern void dns_hostinfo_destroy(dns_host_info_t *);
 
 #endif
 

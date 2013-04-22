@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -119,8 +119,10 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	free(req_data);
 
 	rc = dns_message_decode(recv_buf, recv_size, &resp);
-	if (rc != EOK)
-		return EIO;
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
 
 	*rresp = resp;
 	return EOK;

@@ -59,7 +59,7 @@ static int addr_format(inet_addr_t *addr, char **bufp)
 
 int main(int argc, char *argv[])
 {
-	dns_host_info_t hinfo;
+	dns_host_info_t *hinfo;
 	char *astr;
 	int rc;
 
@@ -68,15 +68,17 @@ int main(int argc, char *argv[])
 	printf("dns_name2host() -> rc = %d\n", rc);
 
 	if (rc == EOK) {
-		rc = addr_format(&hinfo.addr, &astr);
+		rc = addr_format(&hinfo->addr, &astr);
 		if (rc != EOK) {
+			dns_hostinfo_destroy(hinfo);
 			printf("Out of memory\n");
 			return ENOMEM;
 		}
 
-		printf("hostname: %s\n", hinfo.name);
+		printf("hostname: %s\n", hinfo->name);
 		printf("IPv4 address: %s\n", astr);
 		free(astr);
+		dns_hostinfo_destroy(hinfo);
 	}
 
 	return 0;

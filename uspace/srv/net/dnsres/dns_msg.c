@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -488,7 +488,11 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	list_foreach(msg->question, link) {
 		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
 		rc = dns_question_encode(q, data + di, size - di, &q_size);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			assert(rc == ENOMEM || rc == EINVAL);
+			free(data);
+			return rc;
+		}
 
 		di += q_size;
 	}
@@ -577,8 +581,58 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	*rmsg = msg;
 	return EOK;
 error:
-	/* XXX Destroy message */
+	dns_message_destroy(msg);
 	return rc;
+}
+
+static void dns_question_destroy(dns_question_t *question)
+{
+	free(question->qname);
+	free(question);
+}
+
+static void dns_rr_destroy(dns_rr_t *rr)
+{
+	free(rr->name);
+	free(rr->rdata);
+	free(rr);
+}
+
+void dns_message_destroy(dns_message_t *msg)
+{
+	link_t *link;
+	dns_question_t *question;
+	dns_rr_t *rr;
+
+	while (!list_empty(&msg->question)) {
+		link = list_first(&msg->question);
+		question = list_get_instance(link, dns_question_t, msg);
+		list_remove(&question->msg);
+		dns_question_destroy(question);
+	}
+
+	while (!list_empty(&msg->answer)) {
+		link = list_first(&msg->answer);
+		rr = list_get_instance(link, dns_rr_t, msg);
+		list_remove(&rr->msg);
+		dns_rr_destroy(rr);
+	}
+
+	while (!list_empty(&msg->authority)) {
+		link = list_first(&msg->authority);
+		rr = list_get_instance(link, dns_rr_t, msg);
+		list_remove(&rr->msg);
+		dns_rr_destroy(rr);
+	}
+
+	while (!list_empty(&msg->additional)) {
+		link = list_first(&msg->additional);
+		rr = list_get_instance(link, dns_rr_t, msg);
+		list_remove(&rr->msg);
+		dns_rr_destroy(rr);
+	}
+
+	free(msg);
 }
 
 /** @}
