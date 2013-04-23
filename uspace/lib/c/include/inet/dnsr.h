@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup dnsres
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
+#ifndef LIBC_INET_DNSRES_H_
+#define LIBC_INET_DNSRES_H_
 
-#include "dns_msg.h"
-#include "dns_std.h"
-#include "query.h"
+#include <inet/inet.h>
 
-#define NAME  "dnsres"
+typedef struct {
+	/** Host name */
+	char *name;
+	/** Host address */
+	inet_addr_t addr;
+} dnsr_hostinfo_t;
 
-static int addr_format(inet_addr_t *addr, char **bufp)
-{
-	int rc;
+extern int dnsr_init(void);
+extern int dnsr_name2host(char *, dnsr_hostinfo_t **);
+extern void dnsr_hostinfo_destroy(dnsr_hostinfo_t *);
+extern int dnsr_get_srvaddr(inet_addr_t *);
+extern int dnsr_set_srvaddr(inet_addr_t *);
 
-	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
-	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
-	    addr->ipv4 & 0xff);
-
-	if (rc < 0)
-		return ENOMEM;
-
-	return EOK;
-}
-
-int main(int argc, char *argv[])
-{
-	dns_host_info_t *hinfo;
-	char *astr;
-	int rc;
-
-	printf("%s: DNS Resolution Service\n", NAME);
-	rc = dns_name2host(argc < 2 ? "helenos.org" : argv[1], &hinfo);
-	printf("dns_name2host() -> rc = %d\n", rc);
-
-	if (rc == EOK) {
-		rc = addr_format(&hinfo->addr, &astr);
-		if (rc != EOK) {
-			dns_hostinfo_destroy(hinfo);
-			printf("Out of memory\n");
-			return ENOMEM;
-		}
-
-		printf("hostname: %s\n", hinfo->name);
-		printf("IPv4 address: %s\n", astr);
-		free(astr);
-		dns_hostinfo_destroy(hinfo);
-	}
-
-	return 0;
-}
+#endif
 
 /** @}
  */

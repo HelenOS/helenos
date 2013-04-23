@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Jiri Svoboda
+# Copyright (c) 2013 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
+USPACE_PREFIX = ../..
 BINARY = dnsres
 
 SOURCES = \
-	dns_msg.c \
-	dnsres.c \
-	query.c \
-	transport.c
+	dnsres.c
 
 include $(USPACE_PREFIX)/Makefile.common

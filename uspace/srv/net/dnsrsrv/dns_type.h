@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2012 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,86 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup dnsres
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file
  */
 
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
+#ifndef DNS_TYPE_H
+#define DNS_TYPE_H
 
-#include <fourcc.h>
+#include <adt/list.h>
+#include <inet/inet.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "dns_std.h"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
-	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
-} services_t;
+/** Unencoded DNS message */
+typedef struct {
+	/** Identifier */
+	uint16_t id;
+	/** Query or Response */
+	dns_query_response_t qr;
+	/** Opcode */
+	dns_opcode_t opcode;
+	/** Authoritative Answer */
+	bool aa;
+	/** TrunCation */
+	bool tc;
+	/** Recursion Desired */
+	bool rd;
+	/** Recursion Available */
+	bool ra;
+	/** Response Code */
+	dns_rcode_t rcode;
 
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_INETCFG  "net/inetcfg"
-#define SERVICE_NAME_INETPING "net/inetping"
+	list_t question; /* of dns_question_t */
+	list_t answer; /* of dns_rr_t */
+	list_t authority; /* of dns_rr_t */
+	list_t additional; /* of dns_rr_t */
+} dns_message_t;
+
+/** Unencoded DNS message question section */
+typedef struct {
+	link_t msg;
+	/** Domain name in text format (dot notation) */
+	char *qname;
+	/** Query type */
+	dns_qtype_t qtype;
+	/** Query class */
+	dns_qclass_t qclass;
+} dns_question_t;
+
+/** Unencoded DNS resource record */
+typedef struct {
+	link_t msg;
+	/** Domain name */
+	char *name;
+	/** RR type */
+	dns_type_t rtype;
+	/** Class of data */
+	dns_class_t rclass;
+	/** Time to live */
+	uint32_t ttl;
+
+	/** Resource data */
+	void *rdata;
+	/** Number of bytes in @c *rdata */
+	size_t rdata_size;
+} dns_rr_t;
+
+/** Host information */
+typedef struct {
+	/** Host name */
+	char *name;
+	/** Host address */
+	inet_addr_t addr;
+} dns_host_info_t;
+
+typedef struct {
+} dnsr_client_t;
 
 #endif
 

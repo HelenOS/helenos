@@ -38,6 +38,7 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
+	app/dnsres \
 	app/edit \
 	app/getterm \
 	app/init \
@@ -81,7 +82,7 @@ DIRS = \
 	srv/logger \
 	srv/devman \
 	srv/loader \
-	srv/net/dnsres \
+	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \

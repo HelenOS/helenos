@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,82 +29,72 @@
 /** @addtogroup dnsres
  * @{
  */
-/**
- * @file
+/** @file DNS query utility.
  */
 
-#ifndef DNS_TYPE_H
-#define DNS_TYPE_H
+#include <errno.h>
+#include <inet/dnsr.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <adt/list.h>
-#include <inet/inet.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include "dns_std.h"
+#define NAME "dnsres"
 
-/** Unencoded DNS message */
-typedef struct {
-	/** Identifier */
-	uint16_t id;
-	/** Query or Response */
-	dns_query_response_t qr;
-	/** Opcode */
-	dns_opcode_t opcode;
-	/** Authoritative Answer */
-	bool aa;
-	/** TrunCation */
-	bool tc;
-	/** Recursion Desired */
-	bool rd;
-	/** Recursion Available */
-	bool ra;
-	/** Response Code */
-	dns_rcode_t rcode;
+static void print_syntax(void)
+{
+	printf("syntax: " NAME " <host-name>\n");
+}
 
-	list_t question; /* of dns_question_t */
-	list_t answer; /* of dns_rr_t */
-	list_t authority; /* of dns_rr_t */
-	list_t additional; /* of dns_rr_t */
-} dns_message_t;
+static int addr_format(inet_addr_t *addr, char **bufp)
+{
+	int rc;
 
-/** Unencoded DNS message question section */
-typedef struct {
-	link_t msg;
-	/** Domain name in text format (dot notation) */
-	char *qname;
-	/** Query type */
-	dns_qtype_t qtype;
-	/** Query class */
-	dns_qclass_t qclass;
-} dns_question_t;
+	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
+	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
+	    addr->ipv4 & 0xff);
 
-/** Unencoded DNS resource record */
-typedef struct {
-	link_t msg;
-	/** Domain name */
-	char *name;
-	/** RR type */
-	dns_type_t rtype;
-	/** Class of data */
-	dns_class_t rclass;
-	/** Time to live */
-	uint32_t ttl;
+	if (rc < 0)
+		return ENOMEM;
 
-	/** Resource data */
-	void *rdata;
-	/** Number of bytes in @c *rdata */
-	size_t rdata_size;
-} dns_rr_t;
+	return EOK;
+}
 
-/** Host information */
-typedef struct {
-	/** Host name */
-	char *name;
-	/** Host address */
-	inet_addr_t addr;
-} dns_host_info_t;
+int main(int argc, char *argv[])
+{
+	int rc;
+	dnsr_hostinfo_t *hinfo;
+	char *saddr;
 
-#endif
+	rc = dnsr_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to DNS resolution service "
+		    "(%d).\n", rc);
+		return 1;
+	}
+
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
+
+	rc = dnsr_name2host(argv[1], &hinfo);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving '%s'.\n", argv[1]);
+		return 1;
+	}
+
+	rc = addr_format(&hinfo->addr, &saddr);
+	if (rc != EOK) {
+		dnsr_hostinfo_destroy(hinfo);
+		printf(NAME ": Out of memory.\n");
+		return 1;
+	}
+
+	printf("Host name: %s address: %s\n", hinfo->name, saddr);
+	dnsr_hostinfo_destroy(hinfo);
+	free(saddr);
+
+	return 0;
+}
 
 /** @}
  */

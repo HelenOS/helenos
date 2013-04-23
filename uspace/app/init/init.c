@@ -358,6 +358,7 @@ int main(int argc, char *argv[])
 	srv_start("/srv/inetsrv");
 	srv_start("/srv/tcp");
 	srv_start("/srv/udp");
+	srv_start("/srv/dnsrsrv");
 	
 	srv_start("/srv/clipboard");
 	srv_start("/srv/remcons");
