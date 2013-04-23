@@ -120,10 +120,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	pixel_t grd_bg = PIXEL(255, 240, 240, 240);
+	pixel_t grd_bg = PIXEL(255, 255, 255, 255);
 	pixel_t btn_bg = PIXEL(255, 0, 0, 0);
 	pixel_t btn_fg = PIXEL(255, 240, 240, 240);
-	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
+	pixel_t lbl_bg = PIXEL(255, 255, 255, 255);
 	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
 	
 	canvas_t *logo_canvas = create_canvas(NULL, LOGO_WIDTH, LOGO_HEIGHT,
