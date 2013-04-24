@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/dnsr.h>
 #include <inet/inetping.h>
 #include <io/console.h>
 #include <stdio.h>
@@ -212,6 +213,10 @@ static int input_fibril(void *arg)
 
 int main(int argc, char *argv[])
 {
+	dnsr_hostinfo_t *hinfo = NULL;
+	char *asrc = NULL;
+	char *adest = NULL;
+	char *sdest = NULL;
 	int rc;
 	int argi;
 
@@ -219,7 +224,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf(NAME ": Failed connecting to internet ping service "
 		    "(%d).\n", rc);
-		return 1;
+		goto error;
 	}
 
 	argi = 1;
@@ -232,23 +237,61 @@ int main(int argc, char *argv[])
 
 	if (argc - argi != 1) {
 		print_syntax();
-		return 1;
+		goto error;
 	}
 
 	/* Parse destination address */
 	rc = addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
-		printf(NAME ": Invalid address format.\n");
-		print_syntax();
-		return 1;
+		/* Try interpreting as a host name */
+		rc = dnsr_init();
+		if (rc != EOK) {
+			printf(NAME ": Failed connecting DNS resolution "
+			    "service (%d).\n", rc);
+			goto error;
+		}
+
+		rc = dnsr_name2host(argv[argi], &hinfo);
+		if (rc != EOK) {
+			printf(NAME ": Error resolving host '%s'.\n", argv[argi]);
+			goto error;
+		}
+
+		dest_addr = hinfo->addr;
 	}
 
 	/* Determine source address */
 	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
 	if (rc != EOK) {
 		printf(NAME ": Failed determining source address.\n");
-		return 1;
+		goto error;
 	}
+
+	rc = addr_format(&src_addr, &asrc);
+	if (rc != EOK) {
+		printf(NAME ": Out of memory.\n");
+		goto error;
+	}
+
+	rc = addr_format(&dest_addr, &adest);
+	if (rc != EOK) {
+		printf(NAME ": Out of memory.\n");
+		goto error;
+	}
+
+	if (hinfo != NULL) {
+		rc = asprintf(&sdest, "%s (%s)", hinfo->name, adest);
+		if (rc < 0) {
+			printf(NAME ": Out of memory.\n");
+			goto error;
+		}
+	} else {
+		sdest = adest;
+		adest = NULL;
+	}
+
+	printf("Sending ICMP echo request from %s to %s.\n",
+	    asrc, sdest);
 
 	fid_t fid;
 
@@ -256,7 +299,7 @@ int main(int argc, char *argv[])
 		fid = fibril_create(transmit_fibril, NULL);
 		if (fid == 0) {
 			printf(NAME ": Failed creating transmit fibril.\n");
-			return 1;
+			goto error;
 		}
 
 		fibril_add_ready(fid);
@@ -264,7 +307,7 @@ int main(int argc, char *argv[])
 		fid = fibril_create(input_fibril, NULL);
 		if (fid == 0) {
 			printf(NAME ": Failed creating input fibril.\n");
-			return 1;
+			goto error;
 		}
 
 		fibril_add_ready(fid);
@@ -282,10 +325,20 @@ int main(int argc, char *argv[])
 
 	if (rc == ETIMEOUT) {
 		printf(NAME ": Echo request timed out.\n");
-		return 1;
+		goto error;
 	}
 
+	free(asrc);
+	free(adest);
+	free(sdest);
+	dnsr_hostinfo_destroy(hinfo);
 	return 0;
+error:
+	free(asrc);
+	free(adest);
+	free(sdest);
+	dnsr_hostinfo_destroy(hinfo);
+	return 1;
 }
 
 /** @}

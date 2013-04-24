@@ -91,6 +91,9 @@ int dnsr_name2host(char *name, dnsr_hostinfo_t **rinfo)
 
 void dnsr_hostinfo_destroy(dnsr_hostinfo_t *info)
 {
+	if (info == NULL)
+		return;
+
 	free(info->name);
 	free(info);
 }
