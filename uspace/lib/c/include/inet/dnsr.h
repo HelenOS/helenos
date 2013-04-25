@@ -45,7 +45,7 @@ typedef struct {
 } dnsr_hostinfo_t;
 
 extern int dnsr_init(void);
-extern int dnsr_name2host(char *, dnsr_hostinfo_t **);
+extern int dnsr_name2host(const char *, dnsr_hostinfo_t **);
 extern void dnsr_hostinfo_destroy(dnsr_hostinfo_t *);
 extern int dnsr_get_srvaddr(inet_addr_t *);
 extern int dnsr_set_srvaddr(inet_addr_t *);

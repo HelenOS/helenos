@@ -68,7 +68,7 @@ static bool ping_repeat = false;
 
 static void print_syntax(void)
 {
-	printf("syntax: " NAME " [-r] <addr>\n");
+	printf("syntax: " NAME " [-r] <host>\n");
 }
 
 static int addr_parse(const char *text, inet_addr_t *addr)

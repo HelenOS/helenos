@@ -58,7 +58,7 @@ int dnsr_init(void)
 	return EOK;
 }
 
-int dnsr_name2host(char *name, dnsr_hostinfo_t **rinfo)
+int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
 {
 	async_exch_t *exch = async_exchange_begin(dnsr_sess);
 	dnsr_hostinfo_t *info;
