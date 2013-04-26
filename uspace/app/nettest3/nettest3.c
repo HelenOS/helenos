@@ -77,13 +77,6 @@ int main(int argc, char *argv[])
 		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
 		if (rc != EOK) {
 			/* Try interpreting as a host name */
-			rc = dnsr_init();
-			if (rc != EOK) {
-				printf("Failed connecting DNS resolution "
-				    "service (%d).\n", rc);
-				return rc;
-			}
-
 			rc = dnsr_name2host(argv[1], &hinfo);
 			if (rc != EOK) {
 				printf("Error resolving host '%s'.\n", argv[1]);

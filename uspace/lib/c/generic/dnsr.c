@@ -29,6 +29,7 @@
 #include <async.h>
 #include <assert.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <inet/dnsr.h>
 #include <ipc/dnsr.h>
 #include <ipc/services.h>
@@ -36,38 +37,46 @@
 #include <stdlib.h>
 #include <str.h>
 
+static FIBRIL_MUTEX_INITIALIZE(dnsr_sess_mutex);
+
 static async_sess_t *dnsr_sess = NULL;
 
-int dnsr_init(void)
+static async_exch_t *dnsr_exchange_begin(void)
 {
+	async_sess_t *sess;
 	service_id_t dnsr_svc;
-	int rc;
 
-	assert(dnsr_sess == NULL);
+	fibril_mutex_lock(&dnsr_sess_mutex);
 
-	rc = loc_service_get_id(SERVICE_NAME_DNSR, &dnsr_svc,
-	    IPC_FLAG_BLOCKING);
-	if (rc != EOK)
-		return ENOENT;
+	if (dnsr_sess == NULL) {
+		(void) loc_service_get_id(SERVICE_NAME_DNSR, &dnsr_svc,
+		    IPC_FLAG_BLOCKING);
 
-	dnsr_sess = loc_service_connect(EXCHANGE_SERIALIZE, dnsr_svc,
-	    IPC_FLAG_BLOCKING);
-	if (dnsr_sess == NULL)
-		return ENOENT;
+		dnsr_sess = loc_service_connect(EXCHANGE_SERIALIZE, dnsr_svc,
+		    IPC_FLAG_BLOCKING);
+	}
 
-	return EOK;
+	sess = dnsr_sess;
+	fibril_mutex_unlock(&dnsr_sess_mutex);
+
+	return async_exchange_begin(sess);
+}
+
+static void dnsr_exchange_end(async_exch_t *exch)
+{
+	async_exchange_end(exch);
 }
 
 int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
 {
-	async_exch_t *exch = async_exchange_begin(dnsr_sess);
+	async_exch_t *exch = dnsr_exchange_begin();
 	dnsr_hostinfo_t *info;
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DNSR_NAME2HOST, &answer);
 	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
 
-	async_exchange_end(exch);
+	dnsr_exchange_end(exch);
 
 	if (retval != EOK) {
 		async_forget(req);
@@ -101,10 +110,10 @@ void dnsr_hostinfo_destroy(dnsr_hostinfo_t *info)
 int dnsr_get_srvaddr(inet_addr_t *srvaddr)
 {
 	sysarg_t addr;
-	async_exch_t *exch = async_exchange_begin(dnsr_sess);
+	async_exch_t *exch = dnsr_exchange_begin();
 
 	int rc = async_req_0_1(exch, DNSR_GET_SRVADDR, &addr);
-	async_exchange_end(exch);
+	dnsr_exchange_end(exch);
 
 	if (rc != EOK)
 		return rc;
@@ -115,10 +124,10 @@ int dnsr_get_srvaddr(inet_addr_t *srvaddr)
 
 int dnsr_set_srvaddr(inet_addr_t *srvaddr)
 {
-	async_exch_t *exch = async_exchange_begin(dnsr_sess);
+	async_exch_t *exch = dnsr_exchange_begin();
 
 	int rc = async_req_1_0(exch, DNSR_SET_SRVADDR, srvaddr->ipv4);
-	async_exchange_end(exch);
+	dnsr_exchange_end(exch);
 
 	if (rc != EOK)
 		return rc;

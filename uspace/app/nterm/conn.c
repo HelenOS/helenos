@@ -84,13 +84,6 @@ int conn_open(const char *addr_s, const char *port_s)
 	rc = inet_pton(addr.sin_family, addr_s, (uint8_t *)&addr.sin_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
-		rc = dnsr_init();
-		if (rc != EOK) {
-			printf("Failed connecting DNS resolution "
-			    "service (%d).\n", rc);
-			goto error;
-		}
-
 		rc = dnsr_name2host(addr_s, &hinfo);
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);

@@ -64,13 +64,6 @@ int main(int argc, char *argv[])
 	dnsr_hostinfo_t *hinfo;
 	char *saddr;
 
-	rc = dnsr_init();
-	if (rc != EOK) {
-		printf(NAME ": Failed connecting to DNS resolution service "
-		    "(%d).\n", rc);
-		return 1;
-	}
-
 	if (argc != 2) {
 		print_syntax();
 		return 1;

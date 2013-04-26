@@ -244,13 +244,6 @@ int main(int argc, char *argv[])
 	rc = addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
-		rc = dnsr_init();
-		if (rc != EOK) {
-			printf(NAME ": Failed connecting DNS resolution "
-			    "service (%d).\n", rc);
-			goto error;
-		}
-
 		rc = dnsr_name2host(argv[argi], &hinfo);
 		if (rc != EOK) {
 			printf(NAME ": Error resolving host '%s'.\n", argv[argi]);

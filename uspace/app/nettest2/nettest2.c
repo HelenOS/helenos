@@ -299,13 +299,6 @@ int main(int argc, char *argv[])
 	rc = inet_pton(family, argv[argc - 1], address_start);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
-		rc = dnsr_init();
-		if (rc != EOK) {
-			printf("Failed connecting DNS resolution "
-			    "service (%d).\n", rc);
-			return rc;
-		}
-
 		rc = dnsr_name2host(argv[argc - 1], &hinfo);
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", argv[argc - 1]);
