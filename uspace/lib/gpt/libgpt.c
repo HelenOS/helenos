@@ -66,27 +66,31 @@ gpt_t * gpt_read_gpt_header(service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
-
+	
+	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	if (rc != EOK)
+		return NULL;
+	
 	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK) {
 		errno = rc;
 		return NULL;
 	}
-
+	
 	gpt_t * gpt = malloc(sizeof(gpt_t));
 	if (gpt == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
 
-	gpt->raw_data = malloc(b_size);// We might need only sizeof(gpt_header_t),
+	gpt->raw_data = malloc(b_size);	// We might need only sizeof(gpt_header_t),
 	if (gpt == NULL) {				// but we should follow specs and have
 		free(gpt);					// zeroes through all the rest of the block
 		errno = ENOMEM;
 		return NULL;
 	}
-
-
+	
+	
 	rc = load_and_check_header(dev_handle, GPT_HDR_BA, b_size, gpt->raw_data);
 	if (rc == EBADCHECKSUM || rc == EINVAL) {
 		aoff64_t n_blocks;
@@ -102,12 +106,13 @@ gpt_t * gpt_read_gpt_header(service_id_t dev_handle)
 			goto fail;
 		}
 	}
-
+	
 	gpt->device = dev_handle;
-
+	block_fini(dev_handle);
 	return gpt;
-
+	
 fail:
+	block_fini(dev_handle);
 	gpt_free_gpt(gpt);
 	return NULL;
 }
@@ -129,11 +134,11 @@ int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
 	gpt->raw_data->header_crc32 = compute_crc32((uint8_t *) gpt->raw_data,
 					uint32_t_le2host(gpt->raw_data->header_size));
 
-	rc = block_get_bsize(dev_handle, &b_size);
+	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
 	if (rc != EOK)
 		return rc;
 
-	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
+	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
 		return rc;
 
@@ -251,11 +256,11 @@ int gpt_write_partitions(gpt_partitions_t * parts, gpt_t * gpt, service_id_t dev
 
 	gpt->raw_data->pe_array_crc32 = compute_crc32((uint8_t *) parts->part_array, parts->fill * gpt->raw_data->entry_size);
 
-	rc = block_get_bsize(dev_handle, &b_size);
+	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
 	if (rc != EOK)
 		return rc;
 
-	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
+	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
 		return rc;
 
@@ -472,15 +477,9 @@ static int load_and_check_header(service_id_t dev_handle, aoff64_t addr, size_t 
 {
 	int rc;
 
-	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
-	if (rc != EOK)
-		return rc;
-
 	rc = block_read_direct(dev_handle, addr, GPT_HDR_BS, header);
-	block_fini(dev_handle);
 	if (rc != EOK)
 		return rc;
-
 
 	unsigned int i;
 	/* Check the EFI signature */

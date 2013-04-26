@@ -152,7 +152,7 @@ extern size_t				gpt_get_part_type	(gpt_part_t * p);
 extern void 				gpt_set_part_type	(gpt_part_t * p, size_t type);
 extern void					gpt_set_start_lba	(gpt_part_t * p, uint64_t start);
 extern uint64_t				gpt_get_start_lba	(gpt_part_t * p);
-extern void					gpt_set_end_lba		(gpt_part_t * p, uint64_t start);
+extern void					gpt_set_end_lba		(gpt_part_t * p, uint64_t end);
 extern uint64_t				gpt_get_end_lba		(gpt_part_t * p);
 extern unsigned char * 		gpt_get_part_name	(gpt_part_t * p);
 extern void 				gpt_set_part_name	(gpt_part_t * p, char * name[], size_t length);
@@ -161,9 +161,9 @@ extern void					gpt_set_flag		(gpt_part_t * p, GPT_ATTR flag, bool value);
 
 
 
-#define gpt_foreach(parts, i, iterator) \
-		for(size_t i = 0, gpt_part_t * iterator = parts->part_array; \
-		    i < parts->fill; i++, iterator++)
+#define gpt_part_foreach(parts, iterator) \
+		for(gpt_part_t * iterator = (parts)->part_array; \
+		    iterator < (parts)->part_array + (parts)->fill; ++iterator)
 
 extern void gpt_free_gpt(gpt_t * gpt);
 extern void gpt_free_partitions(gpt_partitions_t * parts);

@@ -48,7 +48,7 @@ int add_gpt_part(tinput_t * in, union table_data * data)
 	if (p == NULL) {
 		return ENOMEM;
 	}
-	
+
 	return set_gpt_partition(in, p);
 }
 
@@ -58,43 +58,51 @@ int delete_gpt_part(tinput_t * in, union table_data * data)
 
 	printf("Number of the partition to delete (counted from 0): ");
 	idx = get_input_size_t(in);
-	
+
 	if (gpt_remove_partition(data->gpt.parts, idx) == -1) {
 		printf("Warning: running low on memory, not resizing...\n");
 	}
-	
+
 	return EOK;
 }
 
 int print_gpt_parts(union table_data * data)
 {
+	//int rc;
 	printf("Current partition scheme (GPT):\n");
 	printf("\t\tStart:\tEnd:\tLength:\tType:\tName:\n");
 	
-	gpt_foreach(data->gpt.parts, i, iter) {
-		printf("\t%10u %10u %10u %3d\n", iter->start_addr, iter->start_addr + iter->length,
-				iter->length, gpt_get_part_type(iter), gpt_get_part_name(iter));
-	}
+	size_t i = 0;
 	
-	return rc;
+	gpt_part_foreach(data->gpt.parts, iter) {
+		//printf("\t%10u %10u %10u %3d\n", iter->start_addr, iter->start_addr + iter->length,
+		//		iter->length, gpt_get_part_type(iter), gpt_get_part_name(iter));
+		printf("%3u\t%10llu %10llu %10llu %3d %s\n", i, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
+				gpt_get_end_lba(iter) - gpt_get_start_lba(iter), gpt_get_part_type(iter),
+				gpt_get_part_name(iter));
+		i++;
+	}
+
+	//return rc;
+	return EOK;
 }
 
 int write_gpt_parts(service_id_t dev_handle, union table_data * data)
 {
 	int rc;
-	
+
 	rc = gpt_write_partitions(data->gpt.parts, data->gpt.gpt, dev_handle);
 	if (rc != EOK) {
 		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = gpt_write_gpt_header(data->gpt.gpt, dev_handle);
 	if (rc != EOK) {
 		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -105,25 +113,27 @@ int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union table_data * d
 
 static int set_gpt_partition(tinput_t * in, gpt_part_t * p)
 {
-	int rc;
-	
+	//int rc;
+
 	uint64_t sa, ea;
-	
+
 	printf("Set starting address (number): ");
 	sa = get_input_uint64(in);
 
 	printf("Set end addres (number): ");
 	ea = get_input_uint64(in);
-	
+
 	if (ea <= sa) {
 		printf("Invalid value.\n");
 		return EINVAL;
 	}
-	
-	
-	p->start_addr = sa;
-	p->length = ea - sa;
-	
+
+
+	//p->start_addr = sa;
+	gpt_set_start_lba(p, sa);
+	//p->length = ea - sa;
+	gpt_set_end_lba(p, ea);
+
 	return EOK;
 }
 

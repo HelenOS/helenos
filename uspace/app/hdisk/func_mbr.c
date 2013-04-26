@@ -82,24 +82,27 @@ int print_mbr_parts(union table_data * data)
 	int num = 0;
 
 	printf("Current partition scheme:\n");
-	printf("\t\tBootable:\tStart:\tEnd:\tLength:\tType:\n");
-
+	//printf("\t\tBootable:\tStart:\tEnd:\tLength:\tType:\n");
+	printf("\t\t%10s  %10s %10s %10s %7s\n", "Bootable:", "Start:", "End:", "Length:", "Type:");
+	
+	mbr_part_t * it;
 	mbr_part_foreach(data->mbr.parts, it) {
 		if (it->type == PT_UNUSED)
 			continue;
 
-		printf("\t P%d:\t", num);
+		printf("\tP%d:\t", num);
 		if (mbr_get_flag(it, ST_BOOT))
 			printf("*");
 		else
 			printf(" ");
 
-		printf("\t%10u %10u %10u %3d\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
+		printf("\t%10u %10u %10u %7x\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
 
 		++num;
 	}
 
 	printf("%d partitions found.\n", num);
+	printf("DEBUG: primary: %hhu, logical: %u\n", data->mbr.parts->n_primary, data->mbr.parts->n_logical);
 	
 	return EOK;
 }

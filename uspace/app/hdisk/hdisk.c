@@ -72,9 +72,9 @@ int main(int argc, char ** argv)
 		printf("Unknown device. Exiting.\n");
 		return -1;
 	}
-	
+
 	init_table();
-	
+
 	mbr_t * mbr = mbr_read_mbr(dev_handle);
 	if(mbr == NULL) {
 		printf("Failed to read the Master Boot Record.\n"	\
@@ -97,12 +97,15 @@ int main(int argc, char ** argv)
 		table.layout = LYT_GPT;
 		mbr_free_mbr(mbr);
 		gpt_t * gpt = gpt_read_gpt_header(dev_handle);
+		printf("here3\n");
 		if(gpt == NULL) {
 			printf("Failed to read and parse GPT header. Exiting.\n");
 			return -1;
 		}
 		set_table_gpt(gpt);
+		printf("here4\n");
 		gpt_partitions_t * parts = gpt_read_partitions(gpt);
+		printf("here5\n");
 		if(parts == NULL) {
 			printf("Failed to read and parse partitions.\n"	\
 				   "Creating new partition table.");
@@ -113,9 +116,9 @@ int main(int argc, char ** argv)
 	}
 
 	rc = interact(dev_handle);
-
+	
 	free_table();
-
+	
 	return rc;
 }
 
@@ -187,7 +190,7 @@ int interact(service_id_t dev_handle)
 		printf("# ");
 		input = getchar();
 		printf("%c\n", input);
-		
+
 
 		//rc = tinput_read(in, &str);
 		//if (rc == ENOENT) {

@@ -83,6 +83,8 @@ enum {
 	PT_UNUSED	= 0x00,
 	/** Extended partition */
 	PT_EXTENDED	= 0x05,
+	/** Extended partition with LBA */
+	PT_EXTENDED_LBA	= 0x0F,
 	/** GPT Protective partition */
 	PT_GPT	= 0xEE,
 };
@@ -100,6 +102,10 @@ typedef enum {
 	ERR_OVERLAP,
 	/** Logical partition out of bounds */
 	ERR_OUT_BOUNDS,
+	/** No space left for EBR */
+	ERR_NO_EBR,
+	/** Out of memory */
+	ERR_NOMEM,
 } MBR_ERR_VAL;
 
 
@@ -155,6 +161,8 @@ typedef struct mbr_part {
 	uint32_t length;
 	/** Points to Extended Boot Record of logical partition */
 	br_block_t * ebr;
+	/** EBR address */
+	uint32_t ebr_addr;
 } mbr_part_t;
 
 /** Partition list structure */
@@ -193,11 +201,12 @@ extern int			mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * partition)
 extern int			mbr_remove_partition(mbr_partitions_t * parts, size_t idx);
 extern int			mbr_get_flag(mbr_part_t * p, MBR_FLAGS flag);
 extern void			mbr_set_flag(mbr_part_t * p, MBR_FLAGS flag, bool value);
+extern uint32_t		mbr_get_next_aligned(uint32_t addr, unsigned int alignment);
 
 #define mbr_part_foreach(parts, iterator)	\
-			for (mbr_part_t * iterator = list_get_instance((parts)->list.head.next, mbr_part_t, link); \
-				iterator != list_get_instance(&(parts)->list.head, mbr_part_t, link); \
-				iterator = list_get_instance(iterator->link.next, mbr_part_t, link))
+			for (iterator  = list_get_instance((parts)->list.head.next, mbr_part_t, link); \
+				 iterator != list_get_instance(&((parts)->list.head), mbr_part_t, link); \
+				 iterator  = list_get_instance(iterator->link.next, mbr_part_t, link))
 
 
 /** free() wrapper functions. */
