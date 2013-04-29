@@ -172,20 +172,20 @@ bool anon_is_shareable(as_area_t *area)
  * The address space area and page tables must be already locked.
  *
  * @param area Pointer to the address space area.
- * @param addr Faulting virtual address.
+ * @param upage Faulting virtual page.
  * @param access Access mode that caused the fault (i.e. read/write/exec).
  *
  * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
  *     serviced).
  */
-int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
-	uintptr_t upage = ALIGN_DOWN(addr, PAGE_SIZE);
 	uintptr_t kpage;
 	uintptr_t frame;
 
 	ASSERT(page_table_locked(AS));
 	ASSERT(mutex_locked(&area->lock));
+	ASSERT(IS_ALIGNED(upage, PAGE_SIZE));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;

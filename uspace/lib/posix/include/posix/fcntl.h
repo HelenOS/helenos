@@ -47,6 +47,10 @@
 #undef O_ACCMODE
 #define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR)
 
+/* Dummy compatibility flag */
+#undef O_NOCTTY
+#define O_NOCTTY 0
+
 /* fcntl commands */
 #undef F_DUPFD
 #undef F_DUPFD_CLOEXEC

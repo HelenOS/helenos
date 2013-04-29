@@ -772,7 +772,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	int rc;
-	fs_node_t *fn;
+	fs_node_t *fn = NULL;
 
 	rc = mfs_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1107,7 +1107,7 @@ mfs_close(service_id_t service_id, fs_index_t index)
 static int
 mfs_sync(service_id_t service_id, fs_index_t index)
 {
-	fs_node_t *fn;
+	fs_node_t *fn = NULL;
 	int rc = mfs_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;

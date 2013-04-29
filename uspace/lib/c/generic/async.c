@@ -349,6 +349,7 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 static async_client_conn_t client_connection = default_client_connection;
 static async_interrupt_handler_t interrupt_received = default_interrupt_received;
+static size_t interrupt_handler_stksz = FIBRIL_DFLT_STK_SIZE;
 
 /** Setter for client_connection function pointer.
  *
@@ -369,6 +370,15 @@ void async_set_client_connection(async_client_conn_t conn)
 void async_set_interrupt_received(async_interrupt_handler_t intr)
 {
 	interrupt_received = intr;
+}
+
+/** Set the stack size for the interrupt handler notification fibrils.
+ *
+ * @param size Stack size in bytes.
+ */
+void async_set_interrupt_handler_stack_size(size_t size)
+{
+	interrupt_handler_stksz = size;
 }
 
 /** Mutex protecting inactive_exch_list and avail_phone_cv.
@@ -586,7 +596,8 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 	msg->callid = callid;
 	msg->call = *call;
 	
-	fid_t fid = fibril_create(notification_fibril, msg);
+	fid_t fid = fibril_create_generic(notification_fibril, msg,
+	    interrupt_handler_stksz);
 	if (fid == 0) {
 		free(msg);
 		futex_up(&async_futex);
@@ -2056,6 +2067,7 @@ void async_exchange_end(async_exch_t *exch)
 		return;
 	
 	async_sess_t *sess = exch->sess;
+	assert(sess != NULL);
 	
 	atomic_dec(&sess->refcnt);
 	
@@ -2077,7 +2089,8 @@ void async_exchange_end(async_exch_t *exch)
  * @param size  Size of the destination address space area.
  * @param arg   User defined argument.
  * @param flags Storage for the received flags. Can be NULL.
- * @param dst   Destination address space area base. Cannot be NULL.
+ * @param dst   Address of the storage for the destination address space area
+ *              base address. Cannot be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
@@ -2205,7 +2218,8 @@ bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *f
  * argument.
  *
  * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
- * @param dst    Destination address space area base address.
+ * @param dst    Address of the storage for the destination address space area
+ *               base address.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *

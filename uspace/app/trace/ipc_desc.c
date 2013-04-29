@@ -48,10 +48,9 @@ ipc_m_desc_t ipc_methods[] = {
 	{ IPC_M_DATA_WRITE,       "DATA_WRITE" },
 	{ IPC_M_DATA_READ,        "DATA_READ" },
 	{ IPC_M_DEBUG,            "DEBUG" },
-	
-	/* Terminating entry */
-	{ 0, NULL }
 };
+
+size_t ipc_methods_len = sizeof(ipc_methods) / sizeof(ipc_m_desc_t);
 
 /** @}
  */

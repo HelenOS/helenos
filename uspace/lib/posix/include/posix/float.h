@@ -35,11 +35,33 @@
 #ifndef POSIX_FLOAT_H_
 #define POSIX_FLOAT_H_
 
-/*
- * The macros defined below are needed for compilation of MPFR
- * (http://www.mpfr.org/). Probably, they should be provided by GCC
- * itself but that does not work for cross-compilation.
- *
+/* Rouding direction -1 - unknown */
+#define FLT_ROUNDS (-1)
+
+/* define some standard C constants in terms of GCC built-ins */
+#ifdef __GNUC__
+	#undef DBL_MANT_DIG
+	#define DBL_MANT_DIG __DBL_MANT_DIG__
+	#undef DBL_MIN_EXP
+	#define DBL_MIN_EXP __DBL_MIN_EXP__
+	#undef DBL_MAX_EXP
+	#define DBL_MAX_EXP __DBL_MAX_EXP__
+	#undef DBL_MAX
+	#define DBL_MAX __DBL_MAX__
+	#undef DBL_MAX_10_EXP
+	#define DBL_MAX_10_EXP __DBL_MAX_10_EXP__
+	#undef DBL_MIN_10_EXP
+	#define DBL_MIN_10_EXP __DBL_MIN_10_EXP__
+	#undef DBL_MIN
+	#define DBL_MIN __DBL_MIN__
+	#undef DBL_DIG
+	#define DBL_DIG __DBL_DIG__
+	#undef DBL_EPSILON
+	#define DBL_EPSILON __DBL_EPSILON__
+	#undef FLT_RADIX
+	#define FLT_RADIX __FLT_RADIX__
+#else
+/* For something else than GCC, following definitions are provided.
  * They are intentionally guarded by the given macro to ensure that anyone
  * who wants them states this explicitly.
  *
@@ -49,7 +71,6 @@
  *
  */
 #ifdef FLOAT_H_YES_I_REALLY_WANT_LIMITS
-
 /* float limits */
 #define FLT_MIN 1.1754943508222875079687365372222456778186655567720875215087517062784172594547271728515625e-38
 #define FLT_MAX 340282346638528859811704183484516925440
@@ -80,6 +101,8 @@
 #define DBL_MAX_EXP 1024
 
 #endif
+
+#endif /* __GNUC__ */
 
 #endif /* POSIX_FLOAT_H_ */
 

@@ -51,6 +51,8 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	if (THREAD->uspace) {
+		uint64_t sp;
+
 		/*
 		 * Write kernel stack address to %g6 of the alternate and
 		 * interrupt global sets.
@@ -62,8 +64,7 @@ void before_thread_runs_arch(void)
 		 * - preemptible trap handler switches to alternate globals
 		 *   before it explicitly uses %g7.
 		 */
-		uint64_t sp = (uintptr_t) THREAD->kstack + STACK_SIZE -
-		    (STACK_BIAS + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT));
+		sp = (uintptr_t) THREAD->kstack + STACK_SIZE - STACK_BIAS;
 		write_to_ig_g6(sp);
 		write_to_ag_g6(sp);
 		write_to_ag_g7((uintptr_t) THREAD->arch.uspace_window_buffer);
@@ -75,7 +76,8 @@ void after_thread_ran_arch(void)
 {
 	if (THREAD->uspace) {
 		/* sample the state of the userspace window buffer */
-		THREAD->arch.uspace_window_buffer = (uint8_t *) read_from_ag_g7();
+		THREAD->arch.uspace_window_buffer =
+		    (uint8_t *) read_from_ag_g7();
 	}
 }
 

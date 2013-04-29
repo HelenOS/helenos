@@ -734,7 +734,7 @@ static int init_running_drv(void *drv)
 static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {
 	client_t *client;
-	driver_t *driver;
+	driver_t *driver = NULL;
 	
 	/* Accept the connection. */
 	async_answer_0(iid, EOK);

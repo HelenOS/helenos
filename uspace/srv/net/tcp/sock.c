@@ -202,38 +202,53 @@ static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 static void tcp_sock_bind(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
 	int rc;
-	struct sockaddr *addr;
-	size_t addr_len;
+	struct sockaddr_in *addr;
+	size_t addr_size;
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_bind()");
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - async_data_write_accept");
-	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &addr_len);
+	
+	addr = NULL;
+	
+	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &addr_size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		return;
+		goto out;
 	}
-
+	
+	if (addr_size != sizeof(struct sockaddr_in)) {
+		async_answer_0(callid, EINVAL);
+		goto out;
+	}
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_bind");
 	rc = socket_bind(&client->sockets, &gsock, SOCKET_GET_SOCKET_ID(call),
-	    addr, addr_len, TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
+	    addr, addr_size, TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
 	    last_used_port);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
-		return;
+		goto out;
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_cores_find");
 	sock_core = socket_cores_find(&client->sockets, SOCKET_GET_SOCKET_ID(call));
-	if (sock_core != NULL) {
-		socket = (tcp_sockdata_t *)sock_core->specific_data;
-		/* XXX Anything to do? */
-		(void) socket;
+	if (sock_core == NULL) {
+		async_answer_0(callid, ENOENT);
+		goto out;
 	}
-
+	
+	socket = (tcp_sockdata_t *)sock_core->specific_data;
+	/* XXX Anything to do? */
+	(void) socket;
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - success");
 	async_answer_0(callid, EOK);
+	
+out:
+	if (addr != NULL)
+		free(addr);
 }
 
 static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -248,6 +263,7 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	tcp_conn_t *conn;
 	tcp_sock_lconn_t *lconn;
 	int i;
+	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_listen()");
 
@@ -267,14 +283,26 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 		async_answer_0(callid, ENOTSOCK);
 		return;
 	}
-
-	socket = (tcp_sockdata_t *)sock_core->specific_data;
-
+	
+	if (sock_core->port <= 0) {
+		rc = socket_bind_free_port(&gsock, sock_core,
+		    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
+		    last_used_port);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			return;
+		}
+		
+		last_used_port = sock_core->port;
+	}
+	
+	socket = (tcp_sockdata_t *) sock_core->specific_data;
+	
 	/*
 	 * Prepare @c backlog listening connections.
 	 */
 	fibril_mutex_lock(&socket->lock);
-
+	
 	socket->backlog = backlog;
 	socket->lconn = calloc(backlog, sizeof(tcp_conn_t *));
 	if (socket->lconn == NULL) {
@@ -282,14 +310,14 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - open connections");
-
+	
 	lsocket.addr.ipv4 = TCP_IPV4_ANY;
 	lsocket.port = sock_core->port;
 	fsocket.addr.ipv4 = TCP_IPV4_ANY;
 	fsocket.port = TCP_PORT_ANY;
-
+	
 	for (i = 0; i < backlog; i++) {
 
 		lconn = calloc(1, sizeof(tcp_sock_lconn_t));
@@ -361,7 +389,7 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 			async_answer_0(callid, rc);
 			return;
 		}
-
+		
 		last_used_port = sock_core->port;
 	}
 
@@ -439,6 +467,18 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
 		return;
+	}
+	
+	if (sock_core->port <= 0) {
+		rc = socket_bind_free_port(&gsock, sock_core,
+		    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
+		    last_used_port);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			return;
+		}
+		
+		last_used_port = sock_core->port;
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;

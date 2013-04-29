@@ -39,10 +39,25 @@
 #define __POSIX_DEF__(x) x
 #endif
 
+#ifdef __GNUC__
+	#define HUGE_VAL (__builtin_huge_val())
+#endif
+
 /* Normalization Functions */
 extern double __POSIX_DEF__(ldexp)(double x, int exp);
 extern double __POSIX_DEF__(frexp)(double num, int *exp);
 
+double __POSIX_DEF__(fabs)(double x);
+double __POSIX_DEF__(floor)(double x);
+double __POSIX_DEF__(modf)(double x, double *iptr);
+double __POSIX_DEF__(fmod)(double x, double y);
+double __POSIX_DEF__(pow)(double x, double y);
+double __POSIX_DEF__(exp)(double x);
+double __POSIX_DEF__(sqrt)(double x);
+double __POSIX_DEF__(log)(double x);
+double __POSIX_DEF__(sin)(double x);
+double __POSIX_DEF__(cos)(double x);
+double __POSIX_DEF__(atan2)(double y, double x);
 
 #endif /* POSIX_MATH_H_ */
 

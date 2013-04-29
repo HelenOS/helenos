@@ -353,22 +353,28 @@ static bool tcp_sockpair_match(tcp_sockpair_t *sp, tcp_sockpair_t *pattern)
 tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
-
+	
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare conn (f:(%x,%u), l:(%x,%u))",
+	    sp->foreign.addr.ipv4, sp->foreign.port,
+	    sp->local.addr.ipv4, sp->local.port);
+	
 	fibril_mutex_lock(&conn_list_lock);
-
+	
 	list_foreach(conn_list, link) {
 		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
 		tcp_sockpair_t *csp = &conn->ident;
-		log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare with conn (f:(%x,%u), l:(%x,%u))",
+		
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - with (f:(%x,%u), l:(%x,%u))",
 		    csp->foreign.addr.ipv4, csp->foreign.port,
 		    csp->local.addr.ipv4, csp->local.port);
+		
 		if (tcp_sockpair_match(sp, csp)) {
 			tcp_conn_addref(conn);
 			fibril_mutex_unlock(&conn_list_lock);
 			return conn;
 		}
 	}
-
+	
 	fibril_mutex_unlock(&conn_list_lock);
 	return NULL;
 }
