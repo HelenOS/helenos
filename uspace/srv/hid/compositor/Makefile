@@ -37,7 +37,6 @@ SOURCES = \
 	images.c
 
 IMAGES = \
-	gfx/helenos.tga \
 	gfx/nameic.tga
 
 PRE_DEPEND = images.c images.h

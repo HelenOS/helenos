@@ -116,23 +116,26 @@ static void waitprompt()
 
 static void waitkey()
 {
-	kbd_event_t ev;
+	cons_event_t ev;
+	kbd_event_t *kev;
 	
 	while (true) {
-		if (!console_get_kbd_event(console, &ev)) {
+		if (!console_get_event(console, &ev)) {
 			return;
 		}
-		if (ev.type == KEY_PRESS) {
-			if (ev.key == KC_ESCAPE || ev.key == KC_Q) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+			kev = &ev.ev.key;
+			
+			if (kev->key == KC_ESCAPE || kev->key == KC_Q) {
 				should_quit = true;
 				return;
 			}
-			if (ev.key == KC_C) {
+			if (kev->key == KC_C) {
 				paging_enabled = false;
 				return;
 			}
-			if (ev.key == KC_ENTER || ev.key == KC_SPACE ||
-			    ev.key == KC_PAGE_DOWN) {
+			if (kev->key == KC_ENTER || kev->key == KC_SPACE ||
+			    kev->key == KC_PAGE_DOWN) {
 				return;
 			}
 		}

@@ -34,6 +34,7 @@ EXTRA_CFLAGS += -I$(LIBDRAW_PREFIX) -I$(LIBSOFTREND_PREFIX) -I$(LIBGRAPH_PREFIX)
 
 SOURCES = \
 	button.c \
+	canvas.c \
 	connection.c \
 	grid.c \
 	label.c \

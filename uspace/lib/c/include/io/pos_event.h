@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,61 +33,25 @@
 /** @file
  */
 
-#ifndef LIBC_CON_SRV_H_
-#define LIBC_CON_SRV_H_
+#ifndef LIBC_IO_POS_EVENT_H_
+#define LIBC_IO_POS_EVENT_H_
 
-#include <adt/list.h>
-#include <async.h>
-#include <fibril_synch.h>
-#include <io/color.h>
-#include <io/concaps.h>
-#include <io/cons_event.h>
-#include <io/pixel.h>
-#include <io/style.h>
-#include <stdbool.h>
-#include <sys/time.h>
 #include <sys/types.h>
 
-typedef struct con_ops con_ops_t;
+typedef enum {
+	POS_UPDATE,
+	POS_PRESS,
+	POS_RELEASE
+} pos_event_type_t;
 
-/** Service setup (per sevice) */
+/** Positioning device event */
 typedef struct {
-	con_ops_t *ops;
-	void *sarg;
-	/** Period to check for abort */
-	suseconds_t abort_timeout;
-	bool aborted;
-} con_srvs_t;
-
-/** Server structure (per client session) */
-typedef struct {
-	con_srvs_t *srvs;
-	async_sess_t *client_sess;
-	void *carg;
-} con_srv_t;
-
-typedef struct con_ops {
-	int (*open)(con_srvs_t *, con_srv_t *);
-	int (*close)(con_srv_t *);
-	int (*read)(con_srv_t *, void *, size_t);
-	int (*write)(con_srv_t *, void *, size_t);
-	void (*sync)(con_srv_t *);
-	void (*clear)(con_srv_t *);
-	void (*set_pos)(con_srv_t *, sysarg_t col, sysarg_t row);
-	int (*get_pos)(con_srv_t *, sysarg_t *, sysarg_t *);
-	int (*get_size)(con_srv_t *, sysarg_t *, sysarg_t *);
-	int (*get_color_cap)(con_srv_t *, console_caps_t *);
-	void (*set_style)(con_srv_t *, console_style_t);
-	void (*set_color)(con_srv_t *, console_color_t, console_color_t,
-	    console_color_attr_t);
-	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
-	void (*set_cursor_visibility)(con_srv_t *, bool);
-	int (*get_event)(con_srv_t *, cons_event_t *);
-} con_ops_t;
-
-extern void con_srvs_init(con_srvs_t *);
-
-extern int con_conn(ipc_callid_t, ipc_call_t *, con_srvs_t *);
+	sysarg_t pos_id;
+	pos_event_type_t type;
+	sysarg_t btn_num;
+	sysarg_t hpos;
+	sysarg_t vpos;
+} pos_event_t;
 
 #endif
 

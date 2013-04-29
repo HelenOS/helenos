@@ -506,6 +506,11 @@ class Inode:
 		
 		self.pos = align_up(self.pos, bytes)
 	
+	def set_pos(self, pos):
+		"Set the current position"
+		
+		self.pos = pos
+	
 	def pack(self):
 		"Pack the inode structure and return the result"
 		
@@ -580,6 +585,7 @@ class DirWriter:
 			self.prev_entry.skip = self.pos - self.prev_pos
 			if self.inode:
 				self.prev_entry.write(self.inode)
+				self.inode.set_pos(self.pos)
 	
 	def add(self, entry):
 		"Add a directory entry to the directory"
