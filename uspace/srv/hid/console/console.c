@@ -128,7 +128,7 @@ static void cons_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void cons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void cons_set_cursor_visibility(con_srv_t *, bool);
-static int cons_get_event(con_srv_t *, kbd_event_t *);
+static int cons_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = cons_open,
@@ -489,13 +489,14 @@ static void cons_set_cursor_visibility(con_srv_t *srv, bool visible)
 	cons_set_cursor_vis(cons, visible);
 }
 
-static int cons_get_event(con_srv_t *srv, kbd_event_t *event)
+static int cons_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	console_t *cons = srv_to_console(srv);
 	link_t *link = prodcons_consume(&cons->input_pc);
 	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
 	
-	*event = *kevent;
+	event->type = CEV_KEY;
+	event->ev.key = *kevent;
 	free(kevent);
 	return EOK;
 }

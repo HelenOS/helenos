@@ -564,6 +564,8 @@ error:
 
 static int cev_fibril(void *arg)
 {
+	cons_event_t event;
+
 	(void) arg;
 	
 	console_ctrl_t *console = console_init(stdin, stdout);
@@ -574,13 +576,16 @@ static int cev_fibril(void *arg)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
 		
-		if (!console_get_kbd_event(console, &cev))
+		if (!console_get_event(console, &event))
 			return -1;
 		
-		fibril_mutex_lock(&state_lock);
-		cev_valid = true;
-		fibril_condvar_broadcast(&state_cv);
-		fibril_mutex_unlock(&state_lock);
+		if (event.type == CEV_KEY) {
+			fibril_mutex_lock(&state_lock);
+			cev = event.ev.key;
+			cev_valid = true;
+			fibril_condvar_broadcast(&state_cv);
+			fibril_mutex_unlock(&state_lock);
+		}
 	}
 }
 

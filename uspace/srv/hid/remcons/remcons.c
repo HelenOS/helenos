@@ -79,7 +79,7 @@ static void remcons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
 static int remcons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
 static int remcons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
 static int remcons_get_color_cap(con_srv_t *, console_caps_t *);
-static int remcons_get_event(con_srv_t *, kbd_event_t *);
+static int remcons_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = remcons_open,
@@ -184,17 +184,21 @@ static int remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 	return EOK;
 }
 
-static int remcons_get_event(con_srv_t *srv, kbd_event_t *event)
+static int remcons_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	telnet_user_t *user = srv_to_user(srv);
+	kbd_event_t kevent;
 	int rc;
 
-	rc = telnet_user_get_next_keyboard_event(user, event);
+	rc = telnet_user_get_next_keyboard_event(user, &kevent);
 	if (rc != EOK) {
 		/* XXX What? */
 		memset(event, 0, sizeof(*event));
 		return EOK;
 	}
+
+	event->type = CEV_KEY;
+	event->ev.key = kevent;
 
 	return EOK;
 }

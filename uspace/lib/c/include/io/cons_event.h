@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_LOGO_196X66_H_
-#define KERN_LOGO_196X66_H_
+#ifndef LIBC_IO_CONS_EVENT_H_
+#define LIBC_IO_CONS_EVENT_H_
 
-#define LOGO_WIDTH   196
-#define LOGO_HEIGHT  66
-#define LOGO_COLOR   0xffffff
+#include <adt/list.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 
-#include <typedefs.h>
+typedef enum {
+	/** Key event */
+	CEV_KEY,
+	/** Position event */
+	CEV_POS
+} cons_event_type_t;
 
-extern uint32_t fb_logo[LOGO_WIDTH * LOGO_HEIGHT];
+/** Console event structure. */
+typedef struct {
+	/** List handle */
+	link_t link;
+
+	/** Event type */
+	cons_event_type_t type;
+
+	union {
+		kbd_event_t key;
+		pos_event_t pos;
+	} ev;
+} cons_event_t;
 
 #endif
 
