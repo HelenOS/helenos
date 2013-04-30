@@ -35,7 +35,20 @@
 #ifndef LIBC_INET_ADDR_H_
 #define LIBC_INET_ADDR_H_
 
-#include <inet/inet.h>
+#include <stdint.h>
+
+/** Node address */
+typedef struct {
+	uint32_t ipv4;
+} inet_addr_t;
+
+/** Network address */
+typedef struct {
+	/** Address */
+	uint32_t ipv4;
+	/** Number of valid bits in @c ipv4 */
+	int bits;
+} inet_naddr_t;
 
 extern int inet_naddr_parse(const char *, inet_naddr_t *);
 extern int inet_addr_parse(const char *, inet_addr_t *);
