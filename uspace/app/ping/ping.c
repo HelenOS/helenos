@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/addr.h>
 #include <inet/inetping.h>
 #include <io/console.h>
 #include <stdio.h>
@@ -70,47 +71,6 @@ static void print_syntax(void)
 	printf("syntax: " NAME " [-r] <addr>\n");
 }
 
-static int addr_parse(const char *text, inet_addr_t *addr)
-{
-	unsigned long a[4];
-	char *cp = (char *)text;
-	int i;
-
-	for (i = 0; i < 3; i++) {
-		a[i] = strtoul(cp, &cp, 10);
-		if (*cp != '.')
-			return EINVAL;
-		++cp;
-	}
-
-	a[3] = strtoul(cp, &cp, 10);
-	if (*cp != '\0')
-		return EINVAL;
-
-	addr->ipv4 = 0;
-	for (i = 0; i < 4; i++) {
-		if (a[i] > 255)
-			return EINVAL;
-		addr->ipv4 = (addr->ipv4 << 8) | a[i];
-	}
-
-	return EOK;
-}
-
-static int addr_format(inet_addr_t *addr, char **bufp)
-{
-	int rc;
-
-	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
-	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
-	    addr->ipv4 & 0xff);
-
-	if (rc < 0)
-		return ENOMEM;
-
-	return EOK;
-}
-
 static void ping_signal_done(void)
 {
 	fibril_mutex_lock(&done_lock);
@@ -124,11 +84,11 @@ static int ping_ev_recv(inetping_sdu_t *sdu)
 	char *asrc, *adest;
 	int rc;
 
-	rc = addr_format(&sdu->src, &asrc);
+	rc = inet_addr_format(&sdu->src, &asrc);
 	if (rc != EOK)
 		return ENOMEM;
 
-	rc = addr_format(&sdu->dest, &adest);
+	rc = inet_addr_format(&sdu->dest, &adest);
 	if (rc != EOK) {
 		free(asrc);
 		return ENOMEM;
@@ -236,7 +196,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Parse destination address */
-	rc = addr_parse(argv[argi], &dest_addr);
+	rc = inet_addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
 		printf(NAME ": Invalid address format.\n");
 		print_syntax();

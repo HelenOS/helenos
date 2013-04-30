@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,45 +32,15 @@
 /** @file
  */
 
-#ifndef LIBC_INET_INET_H_
-#define LIBC_INET_INET_H_
+#ifndef LIBC_INET_ADDR_H_
+#define LIBC_INET_ADDR_H_
 
-#include <sys/types.h>
+#include <inet/inet.h>
 
-#define INET_TTL_MAX 255
-
-/** Node address */
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
-
-/** Network address */
-typedef struct {
-	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
-} inet_naddr_t;
-
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	void *data;
-	size_t size;
-} inet_dgram_t;
-
-typedef struct {
-	int (*recv)(inet_dgram_t *);
-} inet_ev_ops_t;
-
-typedef enum {
-	INET_DF = 1
-} inet_df_t;
-
-extern int inet_init(uint8_t, inet_ev_ops_t *);
-extern int inet_send(inet_dgram_t *, uint8_t, inet_df_t);
-extern int inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
+extern int inet_naddr_parse(const char *, inet_naddr_t *);
+extern int inet_addr_parse(const char *, inet_addr_t *);
+extern int inet_naddr_format(inet_naddr_t *, char **);
+extern int inet_addr_format(inet_addr_t *, char **);
 
 #endif
 
