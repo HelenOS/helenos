@@ -114,11 +114,6 @@ ifeq ($(CONFIG_AM335X_TIMERS),y)
 		genarch/src/drivers/am335x/timer.c
 endif
 
-ifeq ($(CONFIG_AMDM37X_UART),y)
-	GENARCH_SOURCES += \
-		genarch/src/drivers/amdm37x/uart.c
-endif
-
 ifeq ($(CONFIG_VIA_CUDA),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/via-cuda/cuda.c

@@ -36,7 +36,7 @@
 #ifndef _AMDM37x_UART_H_
 #define _AMDM37x_UART_H_
 
-#include "uart_regs.h"
+#include <genarch/drivers/omap/uart.h>
 
 /* AMDM37x TRM p. 2950 */
 #define AMDM37x_UART1_BASE_ADDRESS   0x4806a000
@@ -54,17 +54,6 @@
 #define AMDM37x_UART4_BASE_ADDRESS   0x49042000
 #define AMDM37x_UART4_SIZE   1024
 #define AMDM37x_UART4_IRQ   80 /* AMDM37x TRM p. 2418 */
-
-typedef struct {
-	amdm37x_uart_regs_t *regs;
-	indev_t *indev;
-	outdev_t outdev;
-	irq_t irq;
-} amdm37x_uart_t;
-
-
-bool amdm37x_uart_init(amdm37x_uart_t *, inr_t, uintptr_t, size_t);
-void amdm37x_uart_input_wire(amdm37x_uart_t *, indev_t *);
 
 #endif
 
