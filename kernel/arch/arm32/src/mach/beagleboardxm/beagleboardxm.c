@@ -166,16 +166,19 @@ static void bbxm_frame_init(void)
 
 static void bbxm_output_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	/* UART3 is wired to external RS232 connector */
 	const bool ok = omap_uart_init(&beagleboard.uart,
 	    AMDM37x_UART3_IRQ, AMDM37x_UART3_BASE_ADDRESS, AMDM37x_UART3_SIZE);
 	if (ok) {
 		stdout_wire(&beagleboard.uart.outdev);
 	}
+#endif
 }
 
 static void bbxm_input_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	srln_instance_t *srln_instance = srln_init();
 	if (srln_instance) {
 		indev_t *sink = stdin_wire();
@@ -183,6 +186,7 @@ static void bbxm_input_init(void)
 		omap_uart_input_wire(&beagleboard.uart, srln);
 		amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
 	}
+#endif
 }
 
 size_t bbxm_get_irq_count(void)

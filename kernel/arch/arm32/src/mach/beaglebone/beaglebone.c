@@ -194,16 +194,19 @@ static void bbone_frame_init(void)
 
 static void bbone_output_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	const bool ok = omap_uart_init(&bbone.uart,
 	    AM335x_UART0_IRQ, AM335x_UART0_BASE_ADDRESS,
 	    AM335x_UART0_SIZE);
 
 	if (ok)
 		stdout_wire(&bbone.uart.outdev);
+#endif
 }
 
 static void bbone_input_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	srln_instance_t *srln_instance = srln_init();
 	if (srln_instance) {
 		indev_t *sink = stdin_wire();
@@ -211,6 +214,7 @@ static void bbone_input_init(void)
 		omap_uart_input_wire(&bbone.uart, srln);
 		am335x_irc_enable(bbone.irc_addr, AM335x_UART0_IRQ);
 	}
+#endif
 }
 
 size_t bbone_get_irq_count(void)

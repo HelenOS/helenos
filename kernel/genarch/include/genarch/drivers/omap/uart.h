@@ -45,18 +45,10 @@ typedef struct {
 	irq_t irq;
 } omap_uart_t;
 
-#ifdef CONFIG_OMAP_UART
 extern bool omap_uart_init(omap_uart_t *uart, inr_t interrupt,
     uintptr_t addr, size_t size);
 
 extern void omap_uart_input_wire(omap_uart_t *uart, indev_t *indev);
-#else
-static bool omap_uart_init(omap_uart_t *uart, inr_t interrupt,
-    uintptr_t addr, size_t size)
-{ return true; }
-
-static void omap_uart_input_wire(omap_uart_t *uart, indev_t *indev) {}
-#endif
 
 #endif
 
