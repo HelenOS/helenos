@@ -104,9 +104,9 @@ ifeq ($(CONFIG_S3C24XX_UART),y)
 		genarch/src/drivers/s3c24xx_uart/s3c24xx_uart.c
 endif
 
-ifeq ($(CONFIG_AM335X_UART),y)
+ifeq ($(CONFIG_OMAP_UART),y)
 	GENARCH_SOURCES += \
-		genarch/src/drivers/am335x/uart.c
+		genarch/src/drivers/omap/uart.c
 endif
 
 ifeq ($(CONFIG_AM335X_TIMERS),y)

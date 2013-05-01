@@ -30,37 +30,33 @@
  */
 /**
  * @file
- * @brief Texas Instruments AM335x UART driver.
+ * @brief Texas Instruments OMAP UART driver.
  */
 
-#ifndef _KERN_AM335X_UART_H_
-#define _KERN_AM335X_UART_H_
+#ifndef _KERN_OMAP_UART_H_
+#define _KERN_OMAP_UART_H_
 
-#include <genarch/drivers/omap/uart.h>
+#include "uart_regs.h"
 
-#define AM335x_UART0_BASE_ADDRESS    0x44E09000
-#define AM335x_UART0_SIZE            4096
-#define AM335x_UART0_IRQ             72
+typedef struct {
+	omap_uart_regs_t *regs;
+	indev_t *indev;
+	outdev_t outdev;
+	irq_t irq;
+} omap_uart_t;
 
-#define AM335x_UART1_BASE_ADDRESS    0x48022000
-#define AM335x_UART1_SIZE            4096
-#define AM335x_UART1_IRQ             73
+#ifdef CONFIG_OMAP_UART
+extern bool omap_uart_init(omap_uart_t *uart, inr_t interrupt,
+    uintptr_t addr, size_t size);
 
-#define AM335x_UART2_BASE_ADDRESS    0x48024000
-#define AM335x_UART2_SIZE            4096
-#define AM335x_UART2_IRQ             74
+extern void omap_uart_input_wire(omap_uart_t *uart, indev_t *indev);
+#else
+static bool omap_uart_init(omap_uart_t *uart, inr_t interrupt,
+    uintptr_t addr, size_t size)
+{ return true; }
 
-#define AM335x_UART3_BASE_ADDRESS    0x481A6000
-#define AM335x_UART3_SIZE            4096
-#define AM335x_UART3_IRQ             44
-
-#define AM335x_UART4_BASE_ADDRESS    0x481A8000
-#define AM335x_UART4_SIZE            4096
-#define AM335x_UART4_IRQ             45
-
-#define AM335x_UART5_BASE_ADDRESS    0x481AA000
-#define AM335x_UART5_SIZE            4096
-#define AM335x_UART5_IRQ             46
+static void omap_uart_input_wire(omap_uart_t *uart, indev_t *indev) {}
+#endif
 
 #endif
 

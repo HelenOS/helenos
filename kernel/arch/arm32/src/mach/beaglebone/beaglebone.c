@@ -67,7 +67,7 @@ static struct beaglebone {
 	am335x_cm_dpll_regs_t *cm_dpll_addr;
 	am335x_ctrl_module_t  *ctrl_module;
 	am335x_timer_t timer;
-	am335x_uart_t uart;
+	omap_uart_t uart;
 } bbone;
 
 struct arm_machine_ops bbone_machine_ops = {
@@ -194,7 +194,7 @@ static void bbone_frame_init(void)
 
 static void bbone_output_init(void)
 {
-	const bool ok = am335x_uart_init(&bbone.uart,
+	const bool ok = omap_uart_init(&bbone.uart,
 	    AM335x_UART0_IRQ, AM335x_UART0_BASE_ADDRESS,
 	    AM335x_UART0_SIZE);
 
@@ -208,7 +208,7 @@ static void bbone_input_init(void)
 	if (srln_instance) {
 		indev_t *sink = stdin_wire();
 		indev_t *srln = srln_wire(srln_instance, sink);
-		am335x_uart_input_wire(&bbone.uart, srln);
+		omap_uart_input_wire(&bbone.uart, srln);
 		am335x_irc_enable(bbone.irc_addr, AM335x_UART0_IRQ);
 	}
 }
