@@ -187,6 +187,7 @@ typedef struct mbr_table {
  * WARNING: when changing both header and partitions, write first header,
  * then partitions. The MBR headers' raw_data is NOT updated to follow
  * partition changes. */
+extern mbr_t * mbr_alloc_mbr();
 extern mbr_t * mbr_read_mbr(service_id_t dev_handle);
 extern int mbr_write_mbr(mbr_t * mbr, service_id_t dev_handle);
 extern int mbr_is_mbr(mbr_t * mbr);
@@ -197,7 +198,7 @@ extern mbr_partitions_t * mbr_read_partitions(mbr_t * mbr);
 extern int 			mbr_write_partitions(mbr_partitions_t * parts, mbr_t * mbr, service_id_t dev_handle);
 extern mbr_part_t *	mbr_alloc_partition(void);
 extern mbr_partitions_t * mbr_alloc_partitions(void);
-extern int			mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * partition);
+extern MBR_ERR_VAL	mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * partition);
 extern int			mbr_remove_partition(mbr_partitions_t * parts, size_t idx);
 extern int			mbr_get_flag(mbr_part_t * p, MBR_FLAGS flag);
 extern void			mbr_set_flag(mbr_part_t * p, MBR_FLAGS flag, bool value);

@@ -45,6 +45,7 @@ typedef struct table {
 	union table_data data;
 	int (* add_part)(tinput_t *, union table_data *);
 	int (* delete_part)(tinput_t *, union table_data *);
+	int (* new_table)(tinput_t *, union table_data *);
 	int (* print_parts)();
 	int (* write_parts)(service_id_t, union table_data *);
 	int (* extra_funcs)(tinput_t *, service_id_t, union table_data *);

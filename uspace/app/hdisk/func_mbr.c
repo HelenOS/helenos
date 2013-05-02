@@ -76,6 +76,12 @@ int delete_mbr_part(tinput_t * in, union table_data * data)
 	return EOK;
 }
 
+int new_mbr_table(tinput_t * in, union table_data * data)
+{
+	data->mbr.mbr = mbr_alloc_mbr();
+	data->mbr.parts = mbr_alloc_partitions();
+}
+
 /** Print current partition scheme */
 int print_mbr_parts(union table_data * data)
 {

@@ -138,10 +138,11 @@ struct partition_type {
 extern const struct partition_type gpt_ptypes[];
 
 
-
+extern gpt_t * gpt_alloc_gpt_header();
 extern gpt_t * gpt_read_gpt_header(service_id_t dev_handle);
 extern int gpt_write_gpt_header(gpt_t * header, service_id_t dev_handle);
 
+extern gpt_partitions_t *	gpt_alloc_partitions();
 extern gpt_partitions_t *	gpt_read_partitions	(gpt_t * gpt);
 extern int 					gpt_write_partitions	(gpt_partitions_t * parts, gpt_t * header, service_id_t dev_handle);
 extern gpt_part_t *			gpt_alloc_partition		(gpt_partitions_t * parts);

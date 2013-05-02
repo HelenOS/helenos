@@ -66,6 +66,12 @@ int delete_gpt_part(tinput_t * in, union table_data * data)
 	return EOK;
 }
 
+int new_gpt_table(tinput_t * in, union table_data * data)
+{
+	data->gpt.gpt = gpt_alloc_gpt_header();
+	data->gpt.parts = gpt_alloc_partitions();
+}
+
 int print_gpt_parts(union table_data * data)
 {
 	//int rc;

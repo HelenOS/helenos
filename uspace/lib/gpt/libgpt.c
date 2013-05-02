@@ -57,6 +57,12 @@ static int reduce_part_array(gpt_partitions_t * p);
 static long long nearest_larger_int(double a);
 static int gpt_memcmp(const void * a, const void * b, size_t len);
 
+/** Allocate memory for gpt header */
+gpt_t * gpt_alloc_gpt_header()
+{
+	return malloc(sizeof(gpt_t));
+}
+
 /** Read GPT from specific device
  * @param	dev_handle	device to read GPT from
  *
@@ -161,6 +167,12 @@ int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
 		return rc;
 
 	return 0;
+}
+
+/** Alloc partition array */
+gpt_partitions_t *	gpt_alloc_partitions()
+{
+	return alloc_part_array(128);
 }
 
 /** Parse partitions from GPT

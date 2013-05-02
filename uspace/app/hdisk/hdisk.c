@@ -52,6 +52,7 @@
 
 int interact(service_id_t dev_handle);
 void print_help(void);
+void select_table_format(void);
 void fill_table_funcs(void);
 void free_table(void);
 
@@ -93,28 +94,32 @@ int main(int argc, char ** argv)
 		}
 		set_table_mbr_parts(parts);
 		fill_table_funcs();
-	} else {
+		goto interact;
+	}
+	
+	
+	mbr_free_mbr(mbr);
+	gpt_t * gpt = gpt_read_gpt_header(dev_handle);
+	
+	if(gpt != NULL) {
 		table.layout = LYT_GPT;
-		mbr_free_mbr(mbr);
-		gpt_t * gpt = gpt_read_gpt_header(dev_handle);
-		printf("here3\n");
-		if(gpt == NULL) {
-			printf("Failed to read and parse GPT header. Exiting.\n");
-			return -1;
-		}
 		set_table_gpt(gpt);
-		printf("here4\n");
+		
 		gpt_partitions_t * parts = gpt_read_partitions(gpt);
-		printf("here5\n");
+		
 		if(parts == NULL) {
 			printf("Failed to read and parse partitions.\n"	\
 				   "Creating new partition table.");
-			//parts = gpt_alloc_partitions();
+			parts = gpt_alloc_partitions();
 		}
 		set_table_gpt_parts(parts);
 		fill_table_funcs();
+		goto interact;
 	}
-
+	printf("No partition table recognized. Create a new one.\n");
+	table.layout = LYT_NONE;
+	
+interact:
 	rc = interact(dev_handle);
 	
 	free_table();
@@ -122,90 +127,26 @@ int main(int argc, char ** argv)
 	return rc;
 }
 
-/*
-int get_input(tinput_t * in, char ** str)
-{
-	int c;
-	size_tat
-
-	 pos = 0;
-	size_t size = 256;
-
-	*str = malloc(size * sizeof(char));
-	if (*str == NULL)
-		return ENOMEM;
-
-	while ((c = getchar()) != '\n') {
-		if (c >= 32 && c <= 126) {	//a printable character
-
-			(*str)[pos] = c;
-			++pos;
-			putchar(c);
-
-			if (pos == size) {
-				char * temp = malloc(2 * size * sizeof(char));
-				memcpy(temp, *str, size);
-				free(*str);
-				*str = temp;
-				size *= 2;
-			}
-		} else if (c == 8) {		//backspace
-			(*str)[pos] = 0;
-			--pos;
-			putchar(c);
-		}
-	}
-
-	putchar('\n');
-
-	(*str)[pos] = 0;
-
-	return EOK;
-}
-*/
-
-
 /** Interact with user */
 int interact(service_id_t dev_handle)
 {
-	//int rc;
 	int input;
 	tinput_t * in;
-
+	
 	in = tinput_new();
 	if (in == NULL) {
 		printf("Failed initing input. Free some memory.\n");
 		return ENOMEM;
 	}
 	tinput_set_prompt(in, "");
-
+	
 	printf("Welcome to hdisk.\nType 'h' for help.\n");
-
-	//printf("# ");
-	//input = getchar();
-	//printf("%c\n", input);
-
+	
 	while (1) {
-
 		printf("# ");
 		input = getchar();
 		printf("%c\n", input);
-
-
-		//rc = tinput_read(in, &str);
-		//if (rc == ENOENT) {
-			//// User requested exit
-			//putchar('\n');
-			//return rc;
-		//}
-		//if (rc != EOK) {
-			//printf("Failed reading input. Exiting...\n");
-			//return rc;
-		//}
-		//// Check for empty input.
-		//if (str_cmp(str, "") == 0)
-			//continue;
-
+		
 		switch(input) {
 			case 'a':
 				table.add_part(in, &table.data);
@@ -216,8 +157,16 @@ int interact(service_id_t dev_handle)
 			case 'e':
 				table.extra_funcs(in, dev_handle, &table.data);
 				break;
+			case 'f':
+				free_table();
+				select_table_format(in);
+				break;
 			case 'h':
 				print_help();
+				break;
+			case 'n':
+				free_table();
+				table.new_table(in);
 				break;
 			case 'p':
 				table.print_parts(&table.data);
@@ -232,15 +181,11 @@ int interact(service_id_t dev_handle)
 				printf("Unknown command. Try 'h' for help.\n");
 				break;
 		}
-		//printf("# ");
-		//input = getchar();
-		//printf("%c\n", input);
-
 	}
-
+	
 end:
 	tinput_destroy(in);
-
+	
 	return EOK;
 }
 
@@ -249,12 +194,39 @@ void print_help(void)
 	printf(
 		"\t 'a' \t\t Add partition.\n"
 		"\t 'd' \t\t Delete partition.\n"
-		"\t 'h' \t\t Prints help. See help for more.\n" \
-		"\t 'p' \t\t Prints the table contents.\n" \
-		"\t 'w' \t\t Write table to disk.\n" \
-		"\t 'q' \t\t Quit.\n" \
+		"\t 'e' \t\t Extra functions (per table format).\n"
+		"\t 'f' \t\t Switch the format of the partition table."
+		"\t 'h' \t\t Prints help. See help for more.\n"
+		"\t 'n' \t\t Create new partition table (discarding the old one).\n"
+		"\t 'p' \t\t Prints the table contents.\n"
+		"\t 'w' \t\t Write table to disk.\n"
+		"\t 'q' \t\t Quit.\n"
 		);
 
+}
+
+void select_table_format(tinput_t * in)
+{
+	printf("Available formats are: \n"
+			"1) MBR\n"
+			"2) GPT\n"
+		);
+	
+	uint8_t val = get_input_uint8(in);
+	switch(val) {
+		case 0:
+			table.layout = LYT_NONE;
+			fill_table_funcs();
+			break;
+		case 1:
+			table.layout = LYT_MBR;
+			fill_table_funcs();
+			break;
+		case 2:
+			table.layout = LYT_GPT;
+			fill_table_funcs();
+			break;
+	}
 }
 
 void fill_table_funcs(void)
@@ -263,6 +235,7 @@ void fill_table_funcs(void)
 		case LYT_MBR:
 			table.add_part = add_mbr_part;
 			table.delete_part = delete_mbr_part;
+			table.new_table = new_mbr_table;
 			table.print_parts = print_mbr_parts;
 			table.write_parts = write_mbr_parts;
 			table.extra_funcs = extra_mbr_funcs;
@@ -270,11 +243,18 @@ void fill_table_funcs(void)
 		case LYT_GPT:
 			table.add_part = add_gpt_part;
 			table.delete_part = delete_gpt_part;
+			table.new_table	= new_gpt_table;
 			table.print_parts = print_gpt_parts;
 			table.write_parts = write_gpt_parts;
 			table.extra_funcs = extra_gpt_funcs;
 			break;
 		default:
+			table.add_part = add_none_part;
+			table.delete_part = delete_none_part;
+			table.new_table = new_none_table;
+			table.print_parts = print_none_parts;
+			table.write_parts = write_none_parts;
+			table.extra_funcs = extra_none_funcs;
 			break;
 	}
 }
@@ -283,15 +263,29 @@ void free_table(void)
 {
 	switch(table.layout) {
 		case LYT_MBR:
-			mbr_free_partitions(table.data.mbr.parts);
-			mbr_free_mbr(table.data.mbr.mbr);
+			if (table.data.mbr.parts != NULL) {
+				mbr_free_partitions(table.data.mbr.parts);
+				table.data.mbr.parts = NULL;
+			}
+			if (table.data.mbr.mbr != NULL) {
+				mbr_free_mbr(table.data.mbr.mbr);
+				table.data.mbr.mbr = NULL;
+			}
 			break;
 		case LYT_GPT:
-			gpt_free_partitions(table.data.gpt.parts);
-			gpt_free_gpt(table.data.gpt.gpt);
+			if (table.data.gpt.parts != NULL) {
+				gpt_free_partitions(table.data.gpt.parts);
+				table.data.gpt.parts = NULL;
+			}
+			if (table.data.gpt.gpt != NULL) {
+				gpt_free_gpt(table.data.gpt.gpt);
+				table.data.gpt.gpt = NULL;
+			}
 			break;
 		default:
 			break;
 	}
 }
+
+
 
