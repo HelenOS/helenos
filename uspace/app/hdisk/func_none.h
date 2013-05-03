@@ -32,12 +32,11 @@
 /** @file
  */
 
-#ifndef __FUNC_MBR_H__
-#define	__FUNC_MBR_H__
+#ifndef __FUNC_NONE_H__
+#define	__FUNC_NONE_H__
 
 #include <loc.h>
 #include <tinput.h>
-#include <libmbr.h>
 
 #include "common.h"
 

@@ -70,6 +70,7 @@ int new_gpt_table(tinput_t * in, union table_data * data)
 {
 	data->gpt.gpt = gpt_alloc_gpt_header();
 	data->gpt.parts = gpt_alloc_partitions();
+	return EOK;
 }
 
 int print_gpt_parts(union table_data * data)
@@ -114,6 +115,7 @@ int write_gpt_parts(service_id_t dev_handle, union table_data * data)
 
 int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
 {
+	printf("Not implemented.\n");
 	return EOK;
 }
 

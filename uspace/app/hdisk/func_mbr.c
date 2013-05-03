@@ -67,7 +67,10 @@ int delete_mbr_part(tinput_t * in, union table_data * data)
 
 	printf("Number of the partition to delete (counted from 0): ");
 	idx = get_input_size_t(in);
-
+	
+	if (idx == 0 && errno != EOK)
+		return errno;
+	
 	rc = mbr_remove_partition(data->mbr.parts, idx);
 	if(rc != EOK) {
 		printf("Error: something.\n");
@@ -80,6 +83,7 @@ int new_mbr_table(tinput_t * in, union table_data * data)
 {
 	data->mbr.mbr = mbr_alloc_mbr();
 	data->mbr.parts = mbr_alloc_partitions();
+	return EOK;
 }
 
 /** Print current partition scheme */
@@ -102,13 +106,12 @@ int print_mbr_parts(union table_data * data)
 		else
 			printf(" ");
 
-		printf("\t%10u %10u %10u %7x\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
+		printf("\t%10u %10u %10u %7u\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
 
 		++num;
 	}
 
 	printf("%d partitions found.\n", num);
-	printf("DEBUG: primary: %hhu, logical: %u\n", data->mbr.parts->n_primary, data->mbr.parts->n_logical);
 	
 	return EOK;
 }
@@ -125,6 +128,7 @@ int write_mbr_parts(service_id_t dev_handle, union table_data * data)
 
 int extra_mbr_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
 {
+	printf("Not implemented.\n");
 	return EOK;
 }
 
@@ -151,6 +155,8 @@ static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
 	
 	printf("Set type (0-255): ");
 	type = get_input_uint8(in);
+	if (type == 0 && errno != EOK)
+		return errno;
 
 	///TODO: there can only be one bootable partition; let's do it just like fdisk
 	printf("Bootable? (y/n): ");
@@ -167,9 +173,13 @@ static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
 
 	printf("Set starting address (number): ");
 	sa = get_input_uint32(in);
+	if (sa == 0 && errno != EOK)
+		return errno;
 
 	printf("Set end addres (number): ");
 	ea = get_input_uint32(in);
+	if (ea == 0 && errno != EOK)
+		return errno;
 	
 	if(ea < sa) {
 		printf("Invalid value. Canceled.\n");

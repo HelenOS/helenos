@@ -33,14 +33,11 @@
  */
 
 
-#include <loc.h>
-#include <tinput.h>
-#include <libmbr.h>
+#include <errno.h>
 
-#include "common.h"
 #include "func_none.h"
 
-static void not_implemented();
+static void not_implemented(void);
 
 int add_none_part(tinput_t * in, union table_data * data)
 {

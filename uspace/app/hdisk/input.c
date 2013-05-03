@@ -65,6 +65,7 @@ int get_input_line(tinput_t * in, char ** str)
 
 uint8_t get_input_uint8(tinput_t * in)
 {
+	int rc;
 	uint32_t val;
 	/*char * str;
 	
@@ -82,13 +83,18 @@ uint8_t get_input_uint8(tinput_t * in)
 	
 	free(str);*/
 	
-	convert(in, (conv_f) str_uint8_t, &val);
+	rc = convert(in, (conv_f) str_uint8_t, &val);
+	if (rc != EOK) {
+		errno = rc;
+		return 0;
+	}
 	
 	return val;
 }
 
 uint32_t get_input_uint32(tinput_t * in)
 {
+	int rc;
 	uint32_t val;
 	/*char * str;
 	
@@ -106,13 +112,18 @@ uint32_t get_input_uint32(tinput_t * in)
 	
 	free(str);*/
 	
-	convert(in, (conv_f) str_uint32_t, &val);
+	rc = convert(in, (conv_f) str_uint32_t, &val);
+	if (rc != EOK) {
+		errno = rc;
+		return 0;
+	}
 	
 	return val;
 }
 
 uint64_t get_input_uint64(tinput_t * in)
 {
+	int rc;
 	uint64_t val;
 	/*char * str;
 	
@@ -130,7 +141,11 @@ uint64_t get_input_uint64(tinput_t * in)
 	
 	free(str);*/
 	
-	convert(in, (conv_f) str_uint64_t, &val);
+	rc = convert(in, (conv_f) str_uint64_t, &val);
+	if (rc != EOK) {
+		errno = rc;
+		return 0;
+	}
 	
 	return val;
 }
@@ -140,7 +155,7 @@ size_t get_input_size_t(tinput_t * in)
 	int rc;
 	size_t val;
 	
-	char * str;
+	/*char * str;
 	rc = get_input_line(in, &str);
 	if (rc != EOK) {
 		printf("Error reading input.\n");
@@ -152,13 +167,14 @@ size_t get_input_size_t(tinput_t * in)
 		printf("Invalid value.\n");
 		return 0;
 	}
-	free(str);
-	/*
+	free(str);*/
+	
 	rc = convert(in, (conv_f) str_size_t, &val);
 	if (rc != EOK) {
-		return -1;
+		errno = rc;
+		return 0;
 	}
-	*/
+	
 	errno = EOK;
 	return val;
 }

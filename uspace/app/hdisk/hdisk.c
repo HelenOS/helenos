@@ -47,12 +47,14 @@
 #include <tinput.h>
 
 #include "hdisk.h"
-#include "func_mbr.h"
+#include "input.h"
 #include "func_gpt.h"
+#include "func_mbr.h"
+#include "func_none.h"
 
 int interact(service_id_t dev_handle);
 void print_help(void);
-void select_table_format(void);
+void select_table_format(tinput_t * in);
 void fill_table_funcs(void);
 void free_table(void);
 
@@ -166,7 +168,7 @@ int interact(service_id_t dev_handle)
 				break;
 			case 'n':
 				free_table();
-				table.new_table(in);
+				table.new_table(in, &table.data);
 				break;
 			case 'p':
 				table.print_parts(&table.data);

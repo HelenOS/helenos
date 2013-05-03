@@ -58,7 +58,7 @@ static long long nearest_larger_int(double a);
 static int gpt_memcmp(const void * a, const void * b, size_t len);
 
 /** Allocate memory for gpt header */
-gpt_t * gpt_alloc_gpt_header()
+gpt_t * gpt_alloc_gpt_header(void)
 {
 	return malloc(sizeof(gpt_t));
 }

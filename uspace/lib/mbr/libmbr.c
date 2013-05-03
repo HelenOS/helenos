@@ -53,9 +53,9 @@ static int check_encaps(mbr_part_t * inner, mbr_part_t * outer);
 static int check_preceeds(mbr_part_t * preceeder, mbr_part_t * precedee);
 
 /** Allocate memory for mbr_t */
-mbr_t * mbr_alloc_mbr()
+mbr_t * mbr_alloc_mbr(void)
 {
-	return alloc_br();
+	return malloc(sizeof(mbr_t));
 }
 
 /** Read MBR from specific device
@@ -404,7 +404,7 @@ MBR_ERR_VAL mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * p)
 		}
 		
 		// if it's extended, is there any other one?
-		if (p->type == PT_EXTENDED && parts->l_extended != NULL) {
+		if ((p->type == PT_EXTENDED || p->type == PT_EXTENDED_LBA) && parts->l_extended != NULL) {
 			return ERR_EXTENDED_PRESENT;
 		}
 		
@@ -424,6 +424,9 @@ MBR_ERR_VAL mbr_add_partition(mbr_partitions_t * parts, mbr_part_t * p)
 				list_append(&(p->link), &(parts->list));
 		}
 		parts->n_primary += 1;
+		
+		if (p->type == PT_EXTENDED || p->type == PT_EXTENDED_LBA)
+			parts->l_extended = &(p->link);
 	}
 
 	return ERR_OK;

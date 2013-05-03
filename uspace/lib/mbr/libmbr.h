@@ -187,7 +187,7 @@ typedef struct mbr_table {
  * WARNING: when changing both header and partitions, write first header,
  * then partitions. The MBR headers' raw_data is NOT updated to follow
  * partition changes. */
-extern mbr_t * mbr_alloc_mbr();
+extern mbr_t * mbr_alloc_mbr(void);
 extern mbr_t * mbr_read_mbr(service_id_t dev_handle);
 extern int mbr_write_mbr(mbr_t * mbr, service_id_t dev_handle);
 extern int mbr_is_mbr(mbr_t * mbr);

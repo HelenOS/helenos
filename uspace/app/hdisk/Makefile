@@ -36,8 +36,9 @@ BINARY = hdisk
 
 SOURCES = \
 	hdisk.c \
+	input.c \
+	func_none.c \
 	func_mbr.c \
-	func_gpt.c \
-	input.c
+	func_gpt.c
 
 include $(USPACE_PREFIX)/Makefile.common
