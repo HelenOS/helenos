@@ -85,7 +85,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 	list_foreach(amsg->answer, link) {
 		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
 
-		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %u\n",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %u",
 			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
 
 		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN &&
@@ -99,7 +99,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 
 			info->name = str_dup(rr->name);
 			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->addr = %x\n",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->addr = %x",
 			    info->addr.ipv4);
 
 			dns_message_destroy(msg);
@@ -111,7 +111,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 
 	dns_message_destroy(msg);
 	dns_message_destroy(amsg);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "No A/IN found, fail\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "No A/IN found, fail");
 
 	return EIO;
 }

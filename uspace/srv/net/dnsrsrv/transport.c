@@ -107,7 +107,7 @@ int transport_init(void)
 	recv_fid = fid;
 	return EOK;
 error:
-	log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing network socket.\n");
+	log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing network socket.");
 	if (fd >= 0)
 		closesocket(fd);
 	return rc;
@@ -245,7 +245,7 @@ static int transport_recv_msg(dns_message_t **rresp)
 	rc = recvfrom(transport_fd, recv_buf, RECV_BUF_SIZE, 0,
 	    (struct sockaddr *)&src_addr, &src_addr_size);
 	if (rc < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom returns error - %d\n", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom returns error - %d", rc);
 		goto error;
 	}
 

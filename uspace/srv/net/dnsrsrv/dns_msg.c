@@ -36,6 +36,7 @@
 #include <bitops.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <io/log.h>
 #include <macros.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -75,7 +76,6 @@ static int dns_dstr_ext(char **dstr, const char *suff)
 	return EOK;
 }
 
-#include <stdio.h>
 static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
 {
@@ -88,29 +88,25 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 	di = 1;
 	off = 0;
 
-	printf("dns_name_encode(name='%s', buf=%p, buf_size=%zu, act_size=%p\n",
-	    name, buf, buf_size, act_size);
 	lsize = 0;
 	while (true) {
-		printf("off=%zu\n", off);
 		c = str_decode(name, &off, STR_NO_LIMIT);
-		printf("c=%d\n", (int)c);
 		if (c >= 127) {
 			/* Non-ASCII character */
-			printf("non-ascii character\n");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Non-ascii character");
 			return EINVAL;
 		}
 
 		if (c == '.' || c == '\0') {
 			/* Empty string, starting with period or two consecutive periods. */
 			if (lsize == 0) {
-				printf("empty token\n");
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "Empty token");
 				return EINVAL;
 			}
 
 			if (lsize > DNS_LABEL_MAX_SIZE) {
 				/* Label too long */
-				printf("label too long\n");
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "Label too long");
 				return EINVAL;
 			}
 
@@ -176,7 +172,6 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 			break;
 
 		if (!first) {
-			printf(".");
 			rc = dns_dstr_ext(&name, ".");
 			if (rc != EOK) {
 				rc = ENOMEM;
@@ -185,10 +180,9 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 		}
 
 		if ((lsize & 0xc0) == 0xc0) {
-			printf("Pointer\n");
 			/* Pointer */
 			if (bsize < 1) {
-				printf("Pointer- bsize < 1\n");
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "Pointer- bsize < 1");
 				rc = EINVAL;
 				goto error;
 			}
@@ -198,7 +192,8 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 			--bsize;
 
 			if (ptr >= (size_t)(bp - buf)) {
-				printf("Pointer- forward ref %u, pos=%u\n",
+				log_msg(LOG_DEFAULT, LVL_DEBUG,
+				    "Pointer- forward ref %u, pos=%u",
 				    ptr, bp - buf);
 				/* Forward reference */
 				rc = EINVAL;
@@ -216,7 +211,6 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 			 */
 			*eoff = eptr;
 
-			printf("ptr=%u, eptr=%u\n", ptr, eptr);
 			bp = buf + ptr;
 			bsize = eptr - ptr;
 			continue;
@@ -228,8 +222,6 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 		}
 
 		for (i = 0; i < lsize; i++) {
-			printf("%c", *bp);
-
 			if (*bp < 32 || *bp >= 127) {
 				rc = EINVAL;
 				goto error;
@@ -249,8 +241,6 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 
 		first = false;
 	}
-
-	printf("\n");
 
 	*rname = name;
 	if (*eoff == 0)
@@ -290,8 +280,6 @@ uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 	    ((uint32_t)buf[2] << 8) +
 	    buf[3];
 
-	printf("dns_uint32_t_decode: %x, %x, %x, %x -> %x\n",
-	    buf[0], buf[1], buf[2], buf[3], w);
 	return w;
 }
 
@@ -306,10 +294,7 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
 	if (rc != EOK)
 		return rc;
 
-	printf("name_size=%zu\n", name_size);
-
 	*act_size = name_size + sizeof(uint16_t) + sizeof(uint16_t);
-	printf("act_size=%zu\n", *act_size);
 	if (buf == NULL)
 		return EOK;
 
@@ -335,18 +320,14 @@ static int dns_question_decode(uint8_t *buf, size_t buf_size, size_t boff,
 	if (question == NULL)
 		return ENOMEM;
 
-	printf("decode name..\n");
 	rc = dns_name_decode(buf, buf_size, boff, &question->qname, &name_eoff);
 	if (rc != EOK) {
-		printf("error decoding name..\n");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding name");
 		free(question);
 		return ENOMEM;
 	}
 
-	printf("ok decoding name..\n");
 	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
-		printf("name_eoff + 2 * 2 = %d >  buf_size = %d\n",
-		    name_eoff + 2 * sizeof(uint16_t), buf_size);
 		free(question);
 		return EINVAL;
 	}
@@ -374,18 +355,14 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 	if (rr == NULL)
 		return ENOMEM;
 
-	printf("decode name..\n");
 	rc = dns_name_decode(buf, buf_size, boff, &rr->name, &name_eoff);
 	if (rc != EOK) {
-		printf("error decoding name..\n");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding name");
 		free(rr);
 		return ENOMEM;
 	}
 
-	printf("ok decoding name.. '%s'\n", rr->name);
 	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
-		printf("name_eoff + 2 * 2 = %d >  buf_size = %d\n",
-		    name_eoff + 2 * sizeof(uint16_t), buf_size);
 		free(rr->name);
 		free(rr);
 		return EINVAL;
@@ -402,19 +379,15 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 
 	rr->rtype = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
-	printf("rtype=%u\n", rr->rtype);
 
 	rr->rclass = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
-	printf("rclass=%u\n", rr->rclass);
 
 	rr->ttl = dns_uint32_t_decode(bp, bsz);
 	bp += sizeof(uint32_t); bsz -= sizeof(uint32_t);
-	printf("ttl=%u\n", rr->ttl);
 
 	rdlength = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
-	printf("rdlength=%u\n", rdlength);
 
 	if (rdlength > bsz) {
 		free(rr->name);
@@ -466,7 +439,6 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	hdr.ar_count = 0;
 
 	size = sizeof(dns_header_t);
-	printf("dns header size=%zu\n", size);
 
 	list_foreach(msg->question, link) {
 		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
@@ -474,7 +446,6 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 		if (rc != EOK)
 			return rc;
 
-		printf("q_size=%zu\n", q_size);
 		size += q_size;
 	}
 
@@ -497,7 +468,6 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 		di += q_size;
 	}
 
-	printf("-> size=%zu, di=%zu\n", size, di);
 	*rdata = data;
 	*rsize = size;
 	return EOK;
@@ -539,39 +509,30 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	doff = sizeof(dns_header_t);
 
 	qd_count = uint16_t_be2host(hdr->qd_count);
-	printf("qd_count = %d\n", (int)qd_count);
 
 	for (i = 0; i < qd_count; i++) {
-		printf("decode question..\n");
 		rc = dns_question_decode(data, size, doff, &question, &field_eoff);
 		if (rc != EOK) {
-			printf("error decoding question\n");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "error decoding question");
 			goto error;
 		}
-		printf("ok decoding question\n");
 
 		list_append(&question->msg, &msg->question);
 		doff = field_eoff;
 	}
 
 	an_count = uint16_t_be2host(hdr->an_count);
-	printf("an_count = %d\n", an_count);
 
 	for (i = 0; i < an_count; i++) {
-		printf("decode answer..\n");
 		rc = dns_rr_decode(data, size, doff, &rr, &field_eoff);
 		if (rc != EOK) {
-			printf("error decoding answer\n");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding answer");
 			goto error;
 		}
-		printf("ok decoding answer\n");
 
 		list_append(&rr->msg, &msg->answer);
 		doff = field_eoff;
 	}
-
-	printf("ns_count = %d\n", uint16_t_be2host(hdr->ns_count));
-	printf("ar_count = %d\n", uint16_t_be2host(hdr->ar_count));
 
 	*rmsg = msg;
 	return EOK;
