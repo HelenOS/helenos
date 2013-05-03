@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <str.h>
@@ -46,10 +47,9 @@
 
 static uint16_t msg_id;
 
-#include <stdio.h>
 int dns_name2host(const char *name, dns_host_info_t **rinfo)
 {
-	dns_message_t msg;
+	dns_message_t *msg;
 	dns_message_t *amsg;
 	dns_question_t question;
 	dns_host_info_t *info;
@@ -59,27 +59,30 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 	question.qtype = DTYPE_A;
 	question.qclass = DC_IN;
 
-	memset(&msg, 0, sizeof(msg));
+	msg = calloc(1, sizeof(dns_message_t));
+	if (msg == NULL)
+		return ENOMEM;
 
-	list_initialize(&msg.question);
-	list_append(&question.msg, &msg.question);
+	list_initialize(&msg->question);
+	list_append(&question.msg, &msg->question);
 
-	msg.id = msg_id++;
-	msg.qr = QR_QUERY;
-	msg.opcode = OPC_QUERY;
-	msg.aa = false;
-	msg.tc = false;
-	msg.rd = true;
-	msg.ra = false;
+	msg->id = msg_id++;
+	msg->qr = QR_QUERY;
+	msg->opcode = OPC_QUERY;
+	msg->aa = false;
+	msg->tc = false;
+	msg->rd = true;
+	msg->ra = false;
 
-	rc = dns_request(&msg, &amsg);
-	if (rc != EOK)
+	rc = dns_request(msg, &amsg);
+	if (rc != EOK) {
 		return rc;
+	}
 
 	list_foreach(amsg->answer, link) {
 		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
 
-		printf(" - '%s' %u/%u, dsize %u\n",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %u\n",
 			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
 
 		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN &&
@@ -93,7 +96,8 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 
 			info->name = str_dup(rr->name);
 			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
-			printf("info->addr = %x\n", info->addr.ipv4);
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->addr = %x\n",
+			    info->addr.ipv4);
 
 			dns_message_destroy(amsg);
 			*rinfo = info;
@@ -101,8 +105,9 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 		}
 	}
 
+	dns_message_destroy(msg);
 	dns_message_destroy(amsg);
-	printf("no A/IN found, fail\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "No A/IN found, fail\n");
 
 	return EIO;
 }

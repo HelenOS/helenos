@@ -33,50 +33,59 @@
  * @file
  */
 
+#include <adt/list.h>
 #include <errno.h>
+#include <fibril_synch.h>
+#include <io/log.h>
 #include <net/in.h>
 #include <net/inet.h>
 #include <net/socket.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "dns_msg.h"
 #include "dns_type.h"
 #include "transport.h"
 
-#include <stdio.h>
-
 #define RECV_BUF_SIZE 4096
 
-static uint8_t recv_buf[RECV_BUF_SIZE];
+/** Request timeout (microseconds) */
+#define REQ_TIMEOUT (5*1000*1000)
 
-int dns_request(dns_message_t *req, dns_message_t **rresp)
-{
+typedef struct {
+	link_t lreq;
+	dns_message_t *req;
 	dns_message_t *resp;
-	int rc;
-	void *req_data;
-	size_t req_size;
-	struct sockaddr_in addr;
-	struct sockaddr_in laddr;
-	struct sockaddr_in src_addr;
-	socklen_t src_addr_size;
-	size_t recv_size;
-	int fd;
-	int i;
 
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(53);
-	addr.sin_addr.s_addr = htonl((10 << 24) | (0 << 16) | (0 << 8) | 138);
+	bool done;
+	fibril_condvar_t done_cv;
+	fibril_mutex_t done_lock;
+
+	int status;
+} trans_req_t;
+
+static uint8_t recv_buf[RECV_BUF_SIZE];
+static fid_t recv_fid;
+static int transport_fd = -1;
+
+/** Outstanding requests */
+static LIST_INITIALIZE(treq_list);
+static FIBRIL_MUTEX_INITIALIZE(treq_lock);
+
+static int transport_recv_fibril(void *arg);
+
+int transport_init(void)
+{
+	struct sockaddr_in laddr;
+	int fd;
+	fid_t fid;
+	int rc;
 
 	laddr.sin_family = AF_INET;
 	laddr.sin_port = htons(12345);
 	laddr.sin_addr.s_addr = INADDR_ANY;
 
-	req_data = NULL;
 	fd = -1;
-
-	rc = dns_message_encode(req, &req_data, &req_size);
-	if (rc != EOK)
-		goto error;
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd < 0) {
@@ -88,35 +97,159 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	if (rc != EOK)
 		goto error;
 
-	printf("fd=%d req_data=%p, req_size=%zu\n", fd, req_data, req_size);
-	rc = sendto(fd, req_data, req_size, 0, (struct sockaddr *)&addr,
-	    sizeof(addr));
+	transport_fd = fd;
+
+	fid = fibril_create(transport_recv_fibril, NULL);
+	if (fid == 0)
+		goto error;
+
+	fibril_add_ready(fid);
+	recv_fid = fid;
+	return EOK;
+error:
+	log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing network socket.\n");
+	if (fd >= 0)
+		closesocket(fd);
+	return rc;
+}
+
+void transport_fini(void)
+{
+	if (transport_fd >= 0)
+		closesocket(transport_fd);
+}
+
+static trans_req_t *treq_create(dns_message_t *req)
+{
+	trans_req_t *treq;
+
+	treq = calloc(1, sizeof(trans_req_t));
+	if (treq == NULL)
+		return NULL;
+
+	treq->req = req;
+	treq->resp = NULL;
+	treq->done = false;
+	fibril_condvar_initialize(&treq->done_cv);
+	fibril_mutex_initialize(&treq->done_lock);
+
+	fibril_mutex_lock(&treq_lock);
+	list_append(&treq->lreq, &treq_list);
+	fibril_mutex_unlock(&treq_lock);
+
+	return treq;
+}
+
+static void treq_destroy(trans_req_t *treq)
+{
+	if (link_in_use(&treq->lreq))
+		list_remove(&treq->lreq);
+	free(treq);
+}
+
+static trans_req_t *treq_match_resp(dns_message_t *resp)
+{
+	assert(fibril_mutex_is_locked(&treq_lock));
+
+	list_foreach(treq_list, link) {
+		trans_req_t *treq = list_get_instance(link, trans_req_t, lreq);
+
+		if (treq->req->id == resp->id) {
+			/* Match */
+			return treq;
+		}
+	}
+
+	return NULL;
+}
+
+static void treq_complete(trans_req_t *treq, dns_message_t *resp)
+{
+	fibril_mutex_lock(&treq->done_lock);
+	treq->done = true;
+	treq->status = EOK;
+	treq->resp = resp;
+	fibril_mutex_unlock(&treq->done_lock);
+
+	fibril_condvar_broadcast(&treq->done_cv);
+}
+
+int dns_request(dns_message_t *req, dns_message_t **rresp)
+{
+	int rc;
+	void *req_data;
+	size_t req_size;
+	struct sockaddr_in addr;
+	trans_req_t *treq;
+
+	req_data = NULL;
+	treq = NULL;
+
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(53);
+	addr.sin_addr.s_addr = htonl((10 << 24) | (0 << 16) | (0 << 8) | 138);
+
+	rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
 		goto error;
 
+	rc = sendto(transport_fd, req_data, req_size, 0,
+	    (struct sockaddr *)&addr, sizeof(addr));
+	if (rc != EOK)
+		goto error;
+
+	treq = treq_create(req);
+	if (treq == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	fibril_mutex_lock(&treq->done_lock);
+	while (treq->done != true) {
+		rc = fibril_condvar_wait_timeout(&treq->done_cv, &treq->done_lock,
+		    REQ_TIMEOUT);
+		if (rc == ETIMEOUT) {
+			fibril_mutex_unlock(&treq->done_lock);
+			rc = EIO;
+			goto error;
+		}
+	}
+
+	fibril_mutex_unlock(&treq->done_lock);
+
+	if (treq->status != EOK) {
+		rc = treq->status;
+		goto error;
+	}
+
+	*rresp = treq->resp;
+	treq_destroy(treq);
+	free(req_data);
+	return EOK;
+error:
+	if (treq != NULL)
+		treq_destroy(treq);
+	free(req_data);
+	return rc;
+}
+
+static int transport_recv_msg(dns_message_t **rresp)
+{
+	struct sockaddr_in src_addr;
+	socklen_t src_addr_size;
+	size_t recv_size;
+	dns_message_t *resp;
+	int rc;
+
 	src_addr_size = sizeof(src_addr);
-	rc = recvfrom(fd, recv_buf, RECV_BUF_SIZE, 0,
+	rc = recvfrom(transport_fd, recv_buf, RECV_BUF_SIZE, 0,
 	    (struct sockaddr *)&src_addr, &src_addr_size);
 	if (rc < 0) {
-		printf("recvfrom returns error - %d\n", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom returns error - %d\n", rc);
 		goto error;
 	}
 
 	recv_size = (size_t)rc;
-
-	printf("received %d bytes\n", (int)recv_size);
-	for (i = 0; i < (int)recv_size; i++) {
-		if (recv_buf[i] >= 32 && recv_buf[i] < 127)
-			printf("%c", recv_buf[i]);
-		else
-			printf("?");
-	}
-	printf("\n");
-
-	printf("close socket\n");
-	closesocket(fd);
-	printf("free req_data\n");
-	free(req_data);
 
 	rc = dns_message_decode(recv_buf, recv_size, &resp);
 	if (rc != EOK) {
@@ -128,11 +261,34 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	return EOK;
 
 error:
-	if (req_data != NULL)
-		free(req_data);
-	if (fd >= 0)
-		closesocket(fd);
 	return rc;
+}
+
+static int transport_recv_fibril(void *arg)
+{
+	dns_message_t *resp;
+	trans_req_t *treq;
+	int rc;
+
+	while (true) {
+		rc = transport_recv_msg(&resp);
+		if (rc != EOK)
+			continue;
+
+		fibril_mutex_lock(&treq_lock);
+		treq = treq_match_resp(resp);
+		if (treq == NULL) {
+			fibril_mutex_unlock(&treq_lock);
+			continue;
+		}
+
+		list_remove(&treq->lreq);
+		fibril_mutex_unlock(&treq_lock);
+
+		treq_complete(treq, resp);
+	}
+
+	return 0;
 }
 
 /** @}

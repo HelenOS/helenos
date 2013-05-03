@@ -38,6 +38,8 @@
 
 #include "dns_type.h"
 
+extern int transport_init(void);
+extern void transport_fini(void);
 extern int dns_request(dns_message_t *, dns_message_t **);
 
 #endif

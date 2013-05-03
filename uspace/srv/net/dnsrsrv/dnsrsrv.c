@@ -46,6 +46,7 @@
 #include "dns_msg.h"
 #include "dns_std.h"
 #include "query.h"
+#include "transport.h"
 
 #define NAME  "dnsres"
 
@@ -53,13 +54,21 @@ static void dnsr_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
 static int dnsr_init(void)
 {
+	int rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_init()");
+
+	rc = transport_init();
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing tarnsport.");
+		return EIO;
+	}
 
 	async_set_client_connection(dnsr_client_conn);
 
-	int rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
+		transport_fini();
 		return EEXIST;
 	}
 
@@ -67,6 +76,7 @@ static int dnsr_init(void)
 	rc = loc_service_register(SERVICE_NAME_DNSR, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		transport_fini();
 		return EEXIST;
 	}
 
