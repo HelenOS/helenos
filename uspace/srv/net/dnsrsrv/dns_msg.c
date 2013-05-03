@@ -516,7 +516,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	size_t i;
 	int rc;
 
-	msg = calloc(1, sizeof(dns_message_t));
+	msg = dns_message_new();
 	if (msg == NULL)
 		return ENOMEM;
 
@@ -535,11 +535,6 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	msg->ra = BIT_RANGE_EXTRACT(uint16_t, OPB_RA, OPB_RA, hdr->opbits);
 	msg->rcode = BIT_RANGE_EXTRACT(uint16_t, OPB_RCODE_h, OPB_RCODE_l,
 	    hdr->opbits);
-
-	list_initialize(&msg->question);
-	list_initialize(&msg->answer);
-	list_initialize(&msg->authority);
-	list_initialize(&msg->additional);
 
 	doff = sizeof(dns_header_t);
 
@@ -596,6 +591,22 @@ static void dns_rr_destroy(dns_rr_t *rr)
 	free(rr->name);
 	free(rr->rdata);
 	free(rr);
+}
+
+dns_message_t *dns_message_new(void)
+{
+	dns_message_t *msg;
+
+	msg = calloc(1, sizeof(dns_message_t));
+	if (msg == NULL)
+		return NULL;
+
+	list_initialize(&msg->question);
+	list_initialize(&msg->answer);
+	list_initialize(&msg->authority);
+	list_initialize(&msg->additional);
+
+	return msg;
 }
 
 void dns_message_destroy(dns_message_t *msg)

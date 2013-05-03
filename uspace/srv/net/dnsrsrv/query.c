@@ -51,20 +51,23 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 {
 	dns_message_t *msg;
 	dns_message_t *amsg;
-	dns_question_t question;
+	dns_question_t *question;
 	dns_host_info_t *info;
 	int rc;
 
-	question.qname = (char *)name;
-	question.qtype = DTYPE_A;
-	question.qclass = DC_IN;
+	question = calloc(1, sizeof(dns_question_t));
+	if (question == NULL)
+		return ENOMEM;
 
-	msg = calloc(1, sizeof(dns_message_t));
+	question->qname = (char *)name;
+	question->qtype = DTYPE_A;
+	question->qclass = DC_IN;
+
+	msg = dns_message_new();
 	if (msg == NULL)
 		return ENOMEM;
 
-	list_initialize(&msg->question);
-	list_append(&question.msg, &msg->question);
+	list_append(&question->msg, &msg->question);
 
 	msg->id = msg_id++;
 	msg->qr = QR_QUERY;
@@ -99,6 +102,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->addr = %x\n",
 			    info->addr.ipv4);
 
+			dns_message_destroy(msg);
 			dns_message_destroy(amsg);
 			*rinfo = info;
 			return EOK;
