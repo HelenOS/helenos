@@ -26,55 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup dnsres
+/** @addtogroup libc
  * @{
  */
-/** @file DNS query utility.
+/** @file
  */
 
-#include <errno.h>
-#include <inet/addr.h>
-#include <inet/dnsr.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef LIBC_INET_ADDR_H_
+#define LIBC_INET_ADDR_H_
 
-#define NAME "dnsres"
+#include <stdint.h>
 
-static void print_syntax(void)
-{
-	printf("syntax: " NAME " <host-name>\n");
-}
+/** Node address */
+typedef struct {
+	uint32_t ipv4;
+} inet_addr_t;
 
-int main(int argc, char *argv[])
-{
-	int rc;
-	dnsr_hostinfo_t *hinfo;
-	char *saddr;
+/** Network address */
+typedef struct {
+	/** Address */
+	uint32_t ipv4;
+	/** Number of valid bits in @c ipv4 */
+	int bits;
+} inet_naddr_t;
 
-	if (argc != 2) {
-		print_syntax();
-		return 1;
-	}
+extern int inet_naddr_parse(const char *, inet_naddr_t *);
+extern int inet_addr_parse(const char *, inet_addr_t *);
+extern int inet_naddr_format(inet_naddr_t *, char **);
+extern int inet_addr_format(inet_addr_t *, char **);
 
-	rc = dnsr_name2host(argv[1], &hinfo);
-	if (rc != EOK) {
-		printf(NAME ": Error resolving '%s'.\n", argv[1]);
-		return 1;
-	}
-
-	rc = inet_addr_format(&hinfo->addr, &saddr);
-	if (rc != EOK) {
-		dnsr_hostinfo_destroy(hinfo);
-		printf(NAME ": Out of memory.\n");
-		return 1;
-	}
-
-	printf("Host name: %s address: %s\n", hinfo->name, saddr);
-	dnsr_hostinfo_destroy(hinfo);
-	free(saddr);
-
-	return 0;
-}
+#endif
 
 /** @}
  */

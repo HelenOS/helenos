@@ -35,13 +35,10 @@
 #ifndef LIBC_INET_INET_H_
 #define LIBC_INET_INET_H_
 
+#include <inet/addr.h>
 #include <sys/types.h>
 
 #define INET_TTL_MAX 255
-
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
 
 typedef struct {
 	inet_addr_t src;
