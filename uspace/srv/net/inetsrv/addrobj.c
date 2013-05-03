@@ -220,7 +220,7 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 	inet_addr_t *ldest_addr;
 
 	lsrc_addr.ipv4 = addr->naddr.ipv4;
-	ldest_addr = &dgram->dest;
+	ldest_addr = ldest;
 
 	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest_addr, dgram,
 	    proto, ttl, df);

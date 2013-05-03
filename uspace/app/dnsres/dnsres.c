@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup dnsres
  * @{
  */
-/** @file UDP user calls
+/** @file DNS query utility.
  */
 
-#ifndef UCALL_H
-#define UCALL_H
+#include <errno.h>
+#include <inet/addr.h>
+#include <inet/dnsr.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <sys/types.h>
-#include "udp_type.h"
+#define NAME "dnsres"
 
-extern udp_error_t udp_uc_create(udp_assoc_t **);
-extern udp_error_t udp_uc_set_foreign(udp_assoc_t *, udp_sock_t *);
-extern udp_error_t udp_uc_set_local(udp_assoc_t *, udp_sock_t *);
-extern udp_error_t udp_uc_set_local_port(udp_assoc_t *, uint16_t);
-extern udp_error_t udp_uc_send(udp_assoc_t *, udp_sock_t *, void *, size_t,
-    xflags_t);
-extern udp_error_t udp_uc_receive(udp_assoc_t *, void *, size_t, size_t *,
-    xflags_t *, udp_sock_t *);
-extern void udp_uc_status(udp_assoc_t *, udp_assoc_status_t *);
-extern void udp_uc_destroy(udp_assoc_t *);
-extern void udp_uc_reset(udp_assoc_t *);
+static void print_syntax(void)
+{
+	printf("syntax: " NAME " <host-name>\n");
+}
 
-#endif
+int main(int argc, char *argv[])
+{
+	int rc;
+	dnsr_hostinfo_t *hinfo;
+	char *saddr;
+
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
+
+	rc = dnsr_name2host(argv[1], &hinfo);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving '%s'.\n", argv[1]);
+		return 1;
+	}
+
+	rc = inet_addr_format(&hinfo->addr, &saddr);
+	if (rc != EOK) {
+		dnsr_hostinfo_destroy(hinfo);
+		printf(NAME ": Out of memory.\n");
+		return 1;
+	}
+
+	printf("Host name: %s address: %s\n", hinfo->name, saddr);
+	dnsr_hostinfo_destroy(hinfo);
+	free(saddr);
+
+	return 0;
+}
 
 /** @}
  */

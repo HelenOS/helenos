@@ -26,29 +26,86 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup dnsres
  * @{
  */
-/** @file UDP user calls
+/**
+ * @file
  */
 
-#ifndef UCALL_H
-#define UCALL_H
+#ifndef DNS_TYPE_H
+#define DNS_TYPE_H
 
-#include <sys/types.h>
-#include "udp_type.h"
+#include <adt/list.h>
+#include <inet/inet.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "dns_std.h"
 
-extern udp_error_t udp_uc_create(udp_assoc_t **);
-extern udp_error_t udp_uc_set_foreign(udp_assoc_t *, udp_sock_t *);
-extern udp_error_t udp_uc_set_local(udp_assoc_t *, udp_sock_t *);
-extern udp_error_t udp_uc_set_local_port(udp_assoc_t *, uint16_t);
-extern udp_error_t udp_uc_send(udp_assoc_t *, udp_sock_t *, void *, size_t,
-    xflags_t);
-extern udp_error_t udp_uc_receive(udp_assoc_t *, void *, size_t, size_t *,
-    xflags_t *, udp_sock_t *);
-extern void udp_uc_status(udp_assoc_t *, udp_assoc_status_t *);
-extern void udp_uc_destroy(udp_assoc_t *);
-extern void udp_uc_reset(udp_assoc_t *);
+/** Unencoded DNS message */
+typedef struct {
+	/** Identifier */
+	uint16_t id;
+	/** Query or Response */
+	dns_query_response_t qr;
+	/** Opcode */
+	dns_opcode_t opcode;
+	/** Authoritative Answer */
+	bool aa;
+	/** TrunCation */
+	bool tc;
+	/** Recursion Desired */
+	bool rd;
+	/** Recursion Available */
+	bool ra;
+	/** Response Code */
+	dns_rcode_t rcode;
+
+	list_t question; /* of dns_question_t */
+	list_t answer; /* of dns_rr_t */
+	list_t authority; /* of dns_rr_t */
+	list_t additional; /* of dns_rr_t */
+} dns_message_t;
+
+/** Unencoded DNS message question section */
+typedef struct {
+	link_t msg;
+	/** Domain name in text format (dot notation) */
+	char *qname;
+	/** Query type */
+	dns_qtype_t qtype;
+	/** Query class */
+	dns_qclass_t qclass;
+} dns_question_t;
+
+/** Unencoded DNS resource record */
+typedef struct {
+	link_t msg;
+	/** Domain name */
+	char *name;
+	/** RR type */
+	dns_type_t rtype;
+	/** Class of data */
+	dns_class_t rclass;
+	/** Time to live */
+	uint32_t ttl;
+
+	/** Resource data */
+	void *rdata;
+	/** Number of bytes in @c *rdata */
+	size_t rdata_size;
+} dns_rr_t;
+
+/** Host information */
+typedef struct {
+	/** Host name */
+	char *name;
+	/** Host address */
+	inet_addr_t addr;
+} dns_host_info_t;
+
+typedef struct {
+} dnsr_client_t;
 
 #endif
 

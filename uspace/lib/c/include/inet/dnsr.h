@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libc
  * @{
  */
-/** @file UDP user calls
+/** @file
  */
 
-#ifndef UCALL_H
-#define UCALL_H
+#ifndef LIBC_INET_DNSRES_H_
+#define LIBC_INET_DNSRES_H_
 
-#include <sys/types.h>
-#include "udp_type.h"
+#include <inet/inet.h>
 
-extern udp_error_t udp_uc_create(udp_assoc_t **);
-extern udp_error_t udp_uc_set_foreign(udp_assoc_t *, udp_sock_t *);
-extern udp_error_t udp_uc_set_local(udp_assoc_t *, udp_sock_t *);
-extern udp_error_t udp_uc_set_local_port(udp_assoc_t *, uint16_t);
-extern udp_error_t udp_uc_send(udp_assoc_t *, udp_sock_t *, void *, size_t,
-    xflags_t);
-extern udp_error_t udp_uc_receive(udp_assoc_t *, void *, size_t, size_t *,
-    xflags_t *, udp_sock_t *);
-extern void udp_uc_status(udp_assoc_t *, udp_assoc_status_t *);
-extern void udp_uc_destroy(udp_assoc_t *);
-extern void udp_uc_reset(udp_assoc_t *);
+typedef struct {
+	/** Host name */
+	char *name;
+	/** Host address */
+	inet_addr_t addr;
+} dnsr_hostinfo_t;
+
+extern int dnsr_init(void);
+extern int dnsr_name2host(const char *, dnsr_hostinfo_t **);
+extern void dnsr_hostinfo_destroy(dnsr_hostinfo_t *);
+extern int dnsr_get_srvaddr(inet_addr_t *);
+extern int dnsr_set_srvaddr(inet_addr_t *);
 
 #endif
 
