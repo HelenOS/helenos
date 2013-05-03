@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda, 2011, 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2011, 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2009 Jiri Svoboda (for some definitions from uspace/srv/bd/part/guid_part)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

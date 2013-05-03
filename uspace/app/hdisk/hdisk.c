@@ -199,7 +199,7 @@ void print_help(void)
 		"\t 'e' \t\t Extra functions (per table format).\n"
 		"\t 'f' \t\t Switch the format of the partition table."
 		"\t 'h' \t\t Prints help. See help for more.\n"
-		"\t 'n' \t\t Create new partition table (discarding the old one).\n"
+		"\t 'n' \t\t Create new table (discarding the old one).\n"
 		"\t 'p' \t\t Prints the table contents.\n"
 		"\t 'w' \t\t Write table to disk.\n"
 		"\t 'q' \t\t Quit.\n"
