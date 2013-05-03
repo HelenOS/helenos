@@ -48,6 +48,7 @@
 #include "transport.h"
 
 #define RECV_BUF_SIZE 4096
+#define DNS_SERVER_PORT 53
 
 /** Request timeout (microseconds) */
 #define REQ_TIMEOUT (5*1000*1000)
@@ -67,6 +68,7 @@ typedef struct {
 static uint8_t recv_buf[RECV_BUF_SIZE];
 static fid_t recv_fid;
 static int transport_fd = -1;
+inet_addr_t dns_server_addr;
 
 /** Outstanding requests */
 static LIST_INITIALIZE(treq_list);
@@ -186,8 +188,8 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	treq = NULL;
 
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(53);
-	addr.sin_addr.s_addr = htonl((10 << 24) | (0 << 16) | (0 << 8) | 138);
+	addr.sin_port = htons(DNS_SERVER_PORT);
+	addr.sin_addr.s_addr = host2uint32_t_be(dns_server_addr.ipv4);
 
 	rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)

@@ -38,6 +38,7 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
+	app/dnscfg \
 	app/dnsres \
 	app/edit \
 	app/getterm \

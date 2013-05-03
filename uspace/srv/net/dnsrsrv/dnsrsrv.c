@@ -113,32 +113,17 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t callid,
 static void dnsr_get_srvaddr_srv(dnsr_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-//	inet_addr_t remote;
-//	uint8_t tos;
-//	inet_addr_t local;
-//	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
-
-/*	remote.ipv4 = IPC_GET_ARG1(*call);
-	tos = IPC_GET_ARG2(*call);
-	local.ipv4 = 0;
-
-	rc = inet_get_srcaddr(&remote, tos, &local);*/
-	async_answer_1(callid, EOK, 0x01020304);
+	async_answer_1(callid, EOK, dns_server_addr.ipv4);
 }
 
 static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-//	inet_addr_t naddr;
-//	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_set_srvaddr_srv()");
 
-//	naddr.ipv4 = IPC_GET_ARG1(*call);
+	dns_server_addr.ipv4 = IPC_GET_ARG1(*call);
 
-	/*rc = inet_get_srcaddr(&remote, tos, &local);*/
 	async_answer_0(callid, EOK);
 }
 
@@ -150,8 +135,6 @@ static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
-
-//	inet_client_init(&client);
 
 	while (true) {
 		ipc_call_t call;
@@ -178,8 +161,6 @@ static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, EINVAL);
 		}
 	}
-
-//	inet_client_fini(&client);
 }
 
 int main(int argc, char *argv[])
