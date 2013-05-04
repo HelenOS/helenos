@@ -85,7 +85,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 	list_foreach(amsg->answer, link) {
 		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
 
-		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %u",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %zu",
 			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
 
 		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN &&

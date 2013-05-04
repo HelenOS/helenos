@@ -193,8 +193,8 @@ static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 
 			if (ptr >= (size_t)(bp - buf)) {
 				log_msg(LOG_DEFAULT, LVL_DEBUG,
-				    "Pointer- forward ref %u, pos=%u",
-				    ptr, bp - buf);
+				    "Pointer- forward ref %zu, pos=%zu",
+				    ptr, (size_t)(bp - buf));
 				/* Forward reference */
 				rc = EINVAL;
 				goto error;
