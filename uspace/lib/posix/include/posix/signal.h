@@ -40,6 +40,7 @@
 #endif
 
 #include "sys/types.h"
+#include <posix/ucontext.h>
 
 extern void __posix_default_signal_handler(int signo);
 extern void __posix_hold_signal_handler(int signo);
@@ -54,25 +55,6 @@ extern void __posix_ignore_signal_handler(int signo);
 #undef SIG_IGN
 #define SIG_IGN ((void (*)(int)) __posix_ignore_signal_handler)
 
-typedef int __POSIX_DEF__(sig_atomic_t);
-typedef uint32_t __POSIX_DEF__(sigset_t);
-typedef struct __POSIX_DEF__(mcontext) {
-	/* must not be empty to avoid compiler warnings (-pedantic) */
-	int dummy;
-} __POSIX_DEF__(mcontext_t);
-
-union __POSIX_DEF__(sigval) {
-	int sival_int;
-	void *sival_ptr;
-};
-
-struct __POSIX_DEF__(sigevent) {
-	int sigev_notify; /* Notification type. */
-	int sigev_signo; /* Signal number. */
-	union __POSIX_DEF__(sigval) sigev_value; /* Signal value. */
-	void (*sigev_notify_function)(union __POSIX_DEF__(sigval)); /* Notification function. */
-	__POSIX_DEF__(thread_attr_t) *sigev_notify_attributes; /* Notification attributes. */
-};
 
 typedef struct {
 	int si_signo;
@@ -97,18 +79,6 @@ struct __POSIX_DEF__(sigaction) {
 	void (*sa_sigaction)(int, __POSIX_DEF__(siginfo_t) *, void *);
 };
 
-typedef struct {
-	void *ss_sp;
-	size_t ss_size;
-	int ss_flags;
-} __POSIX_DEF__(stack_t);
-
-typedef struct __POSIX_DEF__(ucontext) {
-	struct __POSIX_DEF__(ucontext) *uc_link;
-	__POSIX_DEF__(sigset_t) uc_sigmask;
-	__POSIX_DEF__(stack_t) uc_stack;
-	__POSIX_DEF__(mcontext_t) uc_mcontext;
-} __POSIX_DEF__(ucontext_t);
 
 /* Values of __POSIX_DEF__(sigevent)::sigev_notify */
 #undef SIGEV_NONE
