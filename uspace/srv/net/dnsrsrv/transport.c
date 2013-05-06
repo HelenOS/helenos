@@ -53,6 +53,9 @@
 /** Request timeout (microseconds) */
 #define REQ_TIMEOUT (5*1000*1000)
 
+/** Maximum number of retries */
+#define REQ_RETRY_MAX 3
+
 typedef struct {
 	link_t lreq;
 	dns_message_t *req;
@@ -183,6 +186,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	size_t req_size;
 	struct sockaddr_in addr;
 	trans_req_t *treq;
+	int ntry;
 
 	req_data = NULL;
 	treq = NULL;
@@ -195,29 +199,41 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	if (rc != EOK)
 		goto error;
 
-	rc = sendto(transport_fd, req_data, req_size, 0,
-	    (struct sockaddr *)&addr, sizeof(addr));
-	if (rc != EOK)
-		goto error;
+	ntry = 0;
 
-	treq = treq_create(req);
-	if (treq == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
+	while (ntry < REQ_RETRY_MAX) {
+		rc = sendto(transport_fd, req_data, req_size, 0,
+		    (struct sockaddr *)&addr, sizeof(addr));
+		if (rc != EOK)
+			goto error;
 
-	fibril_mutex_lock(&treq->done_lock);
-	while (treq->done != true) {
-		rc = fibril_condvar_wait_timeout(&treq->done_cv, &treq->done_lock,
-		    REQ_TIMEOUT);
-		if (rc == ETIMEOUT) {
-			fibril_mutex_unlock(&treq->done_lock);
-			rc = EIO;
+		treq = treq_create(req);
+		if (treq == NULL) {
+			rc = ENOMEM;
 			goto error;
 		}
+
+
+		fibril_mutex_lock(&treq->done_lock);
+		while (treq->done != true) {
+			rc = fibril_condvar_wait_timeout(&treq->done_cv, &treq->done_lock,
+			    REQ_TIMEOUT);
+			if (rc == ETIMEOUT) {
+				++ntry;
+				break;
+			}
+		}
+
+		fibril_mutex_unlock(&treq->done_lock);
+
+		if (rc != ETIMEOUT)
+			break;
 	}
 
-	fibril_mutex_unlock(&treq->done_lock);
+	if (ntry >= REQ_RETRY_MAX) {
+		rc = EIO;
+		goto error;
+	}
 
 	if (treq->status != EOK) {
 		rc = treq->status;
