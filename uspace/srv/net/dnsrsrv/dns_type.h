@@ -42,8 +42,13 @@
 #include <stdint.h>
 #include "dns_std.h"
 
-/** Unencoded DNS message */
+/** DNS message */
 typedef struct {
+	/** Raw message data */
+	void *raw;
+	/** Raw message size */
+	size_t raw_size;
+
 	/** Identifier */
 	uint16_t id;
 	/** Query or Response */
@@ -94,6 +99,8 @@ typedef struct {
 	void *rdata;
 	/** Number of bytes in @c *rdata */
 	size_t rdata_size;
+	/** Offset in the raw message */
+	size_t roff;
 } dns_rr_t;
 
 /** Host information */

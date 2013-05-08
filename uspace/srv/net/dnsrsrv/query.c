@@ -53,6 +53,8 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 	dns_message_t *amsg;
 	dns_question_t *question;
 	dns_host_info_t *info;
+	char *sname, *cname;
+	size_t eoff;
 	int rc;
 
 	question = calloc(1, sizeof(dns_question_t));
@@ -82,25 +84,53 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 		return rc;
 	}
 
+	/* Start with the caller-provided name */
+	sname = str_dup(name);
+
 	list_foreach(amsg->answer, link) {
 		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %zu",
 			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
 
+		if (rr->rtype == DTYPE_CNAME && rr->rclass == DC_IN &&
+		    str_cmp(rr->name, sname) == 0) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "decode cname (%p, %zu, %zu)",
+			    amsg->raw, amsg->raw_size, rr->roff);
+			rc = dns_name_decode(amsg->raw, amsg->raw_size, rr->roff,
+			    &cname, &eoff);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_DEBUG,
+				    "error decoding cname");
+				assert(rc == EINVAL || rc == ENOMEM);
+				dns_message_destroy(msg);
+				dns_message_destroy(amsg);
+				return rc;
+			}
+
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "name = '%s' "
+			    "cname = '%s'", sname, cname);
+
+			free(sname);
+			/* Continue looking for the more canonical name */
+			sname = cname;
+		}
+
 		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN &&
-			rr->rdata_size == sizeof(uint32_t)) {
+			rr->rdata_size == sizeof(uint32_t) &&
+			    str_cmp(rr->name, sname) == 0) {
 
 			info = calloc(1, sizeof(dns_host_info_t));
 			if (info == NULL) {
+				dns_message_destroy(msg);
 				dns_message_destroy(amsg);
 				return ENOMEM;
 			}
 
 			info->name = str_dup(rr->name);
 			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->addr = %x",
-			    info->addr.ipv4);
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->name = '%s' "
+			    "info->addr = %x", info->name, info->addr.ipv4);
 
 			dns_message_destroy(msg);
 			dns_message_destroy(amsg);
@@ -111,7 +141,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 
 	dns_message_destroy(msg);
 	dns_message_destroy(amsg);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "No A/IN found, fail");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "'%s' not resolved, fail", sname);
 
 	return EIO;
 }

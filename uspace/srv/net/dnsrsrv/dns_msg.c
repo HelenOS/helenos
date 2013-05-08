@@ -134,7 +134,7 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 	return EOK;
 }
 
-static int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
+int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
     size_t *eoff)
 {
 	uint8_t *bp;
@@ -404,6 +404,7 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 	}
 
 	memcpy(rr->rdata, bp, rdlength);
+	rr->roff = bp - buf;
 	bp += rdlength;
 	bsz -= rdlength;
 
@@ -490,8 +491,23 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	if (msg == NULL)
 		return ENOMEM;
 
-	if (size < sizeof(dns_header_t))
-		return EINVAL;
+	if (size < sizeof(dns_header_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	/* Store a copy of raw message data for string decompression */
+
+	msg->raw = malloc(size);
+	if (msg->raw == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	memcpy(msg->raw, data, size);
+	msg->raw_size = size;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "dns_message_decode: msg->raw = %p, msg->raw_size=%zu",
+	    msg->raw, msg->raw_size);
 
 	hdr = data;
 
@@ -604,6 +620,7 @@ void dns_message_destroy(dns_message_t *msg)
 		dns_rr_destroy(rr);
 	}
 
+	free(msg->raw);
 	free(msg);
 }
 
