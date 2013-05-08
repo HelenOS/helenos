@@ -88,6 +88,10 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t callid,
 {
 	char *name;
 	dns_host_info_t *hinfo;
+	ipc_callid_t rcallid;
+	size_t size;
+	sysarg_t retval;
+	size_t act_size;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
@@ -99,13 +103,28 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t callid,
 		return;
 	}
 
+	if (!async_data_read_receive(&rcallid, &size)) {
+		async_answer_0(rcallid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
+		return;
+	}
+
 	rc = dns_name2host(name, &hinfo);
 	if (rc != EOK) {
+		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
 		return;
 	}
 
-	async_answer_1(callid, EOK, hinfo->addr.ipv4);
+	act_size = str_size(hinfo->cname);
+	if (act_size > size) {
+		async_answer_0(rcallid, EOVERFLOW);
+		async_answer_0(callid, EOVERFLOW);
+		return;
+	}
+
+	retval = async_data_read_finalize(rcallid, hinfo->cname, act_size);
+	async_answer_1(callid, retval, hinfo->addr.ipv4);
 
 	dns_hostinfo_destroy(hinfo);
 }

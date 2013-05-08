@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (hinfo != NULL) {
-		rc = asprintf(&sdest, "%s (%s)", hinfo->name, adest);
+		rc = asprintf(&sdest, "%s (%s)", hinfo->cname, adest);
 		if (rc < 0) {
 			printf(NAME ": Out of memory.\n");
 			goto error;

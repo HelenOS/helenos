@@ -126,10 +126,10 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 				return ENOMEM;
 			}
 
-			info->name = str_dup(rr->name);
+			info->cname = str_dup(rr->name);
 			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->name = '%s' "
-			    "info->addr = %x", info->name, info->addr.ipv4);
+			    "info->addr = %x", info->cname, info->addr.ipv4);
 
 			dns_message_destroy(msg);
 			dns_message_destroy(amsg);
@@ -147,7 +147,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 
 void dns_hostinfo_destroy(dns_host_info_t *info)
 {
-	free(info->name);
+	free(info->cname);
 	free(info);
 }
 

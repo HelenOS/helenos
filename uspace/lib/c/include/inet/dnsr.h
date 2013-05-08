@@ -37,9 +37,13 @@
 
 #include <inet/inet.h>
 
+enum {
+	DNSR_NAME_MAX_SIZE = 255
+};
+
 typedef struct {
-	/** Host name */
-	char *name;
+	/** Host canonical name */
+	char *cname;
 	/** Host address */
 	inet_addr_t addr;
 } dnsr_hostinfo_t;

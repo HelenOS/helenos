@@ -112,7 +112,7 @@ typedef struct {
 /** Host information */
 typedef struct {
 	/** Host name */
-	char *name;
+	char *cname;
 	/** Host address */
 	inet_addr_t addr;
 } dns_host_info_t;

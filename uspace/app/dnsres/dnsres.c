@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	dnsr_hostinfo_t *hinfo;
+	char *hname;
 	char *saddr;
 
 	if (argc != 2) {
@@ -56,7 +57,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = dnsr_name2host(argv[1], &hinfo);
+	hname = argv[1];
+
+	rc = dnsr_name2host(hname, &hinfo);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving '%s'.\n", argv[1]);
 		return 1;
@@ -69,7 +72,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("Host name: %s address: %s\n", hinfo->name, saddr);
+	printf("Host name: %s\n", hname);
+	if (str_cmp(hname, hinfo->cname) != 0)
+		printf("Canonical name: %s\n", hinfo->cname);
+	printf("Address: %s\n", saddr);
+
 	dnsr_hostinfo_destroy(hinfo);
 	free(saddr);
 
