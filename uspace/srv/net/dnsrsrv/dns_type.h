@@ -42,12 +42,18 @@
 #include <stdint.h>
 #include "dns_std.h"
 
+/** Encoded DNS PDU */
+typedef struct {
+	/** Encoded PDU data */
+	uint8_t *data;
+	/** Encoded PDU size */
+	size_t size;
+} dns_pdu_t;
+
 /** DNS message */
 typedef struct {
-	/** Raw message data */
-	void *raw;
-	/** Raw message size */
-	size_t raw_size;
+	/* Encoded PDU */
+	dns_pdu_t pdu;
 
 	/** Identifier */
 	uint16_t id;

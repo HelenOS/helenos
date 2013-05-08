@@ -96,9 +96,8 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 		if (rr->rtype == DTYPE_CNAME && rr->rclass == DC_IN &&
 		    str_cmp(rr->name, sname) == 0) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "decode cname (%p, %zu, %zu)",
-			    amsg->raw, amsg->raw_size, rr->roff);
-			rc = dns_name_decode(amsg->raw, amsg->raw_size, rr->roff,
-			    &cname, &eoff);
+			    amsg->pdu.data, amsg->pdu.size, rr->roff);
+			rc = dns_name_decode(&amsg->pdu, rr->roff, &cname, &eoff);
 			if (rc != EOK) {
 				log_msg(LOG_DEFAULT, LVL_DEBUG,
 				    "error decoding cname");

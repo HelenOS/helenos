@@ -49,6 +49,12 @@
 
 static uint16_t dns_uint16_t_decode(uint8_t *, size_t);
 
+/** Extend dynamically allocated string with suffix.
+ *
+ * @a *dstr points to a dynamically alocated buffer containing a string.
+ * Reallocate this buffer so that concatenation of @a *dstr and @a suff can
+ * fit in and append @a suff.
+ */
 static int dns_dstr_ext(char **dstr, const char *suff)
 {
 	size_t s1, s2;
@@ -76,6 +82,16 @@ static int dns_dstr_ext(char **dstr, const char *suff)
 	return EOK;
 }
 
+/** Encode DNS name.
+ *
+ * Encode DNS name or measure the size of encoded name (with @a buf NULL,
+ * and @a buf_size 0).
+ *
+ * @param name		String to encode
+ * @param buf		Buffer or NULL
+ * @param buf_size      Buffer size or 0 if @a buf is NULL
+ * @param act_size	Place to store actual encoded size
+ */
 static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
 {
@@ -134,7 +150,14 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
 	return EOK;
 }
 
-int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
+/** Decode DNS name.
+ *
+ * @param pdu	PDU from which we are decoding
+ * @param boff	Starting offset within PDU
+ * @param rname	Place to return dynamically allocated string
+ * @param eoff	Place to store end offset (offset after last decoded byte)
+ */
+int dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
     size_t *eoff)
 {
 	uint8_t *bp;
@@ -150,11 +173,11 @@ int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 
 	name = NULL;
 
-	if (boff > size)
+	if (boff > pdu->size)
 		return EINVAL;
 
-	bp = buf + boff;
-	bsize = min(size - boff, DNS_NAME_MAX_SIZE);
+	bp = pdu->data + boff;
+	bsize = min(pdu->size - boff, DNS_NAME_MAX_SIZE);
 	first = true;
 	*eoff = 0;
 
@@ -191,10 +214,10 @@ int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 			++bp;
 			--bsize;
 
-			if (ptr >= (size_t)(bp - buf)) {
+			if (ptr >= (size_t)(bp - pdu->data)) {
 				log_msg(LOG_DEFAULT, LVL_DEBUG,
 				    "Pointer- forward ref %zu, pos=%zu",
-				    ptr, (size_t)(bp - buf));
+				    ptr, (size_t)(bp - pdu->data));
 				/* Forward reference */
 				rc = EINVAL;
 				goto error;
@@ -204,14 +227,14 @@ int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 			 * Make sure we will not decode any byte twice.
 			 * XXX Is assumption correct?
 			 */
-			eptr = bp - buf;
+			eptr = bp - pdu->data;
 			/*
 			 * This is where encoded name ends in terms where
 			 * the message continues
 			 */
 			*eoff = eptr;
 
-			bp = buf + ptr;
+			bp = pdu->data + ptr;
 			bsize = eptr - ptr;
 			continue;
 		}
@@ -244,7 +267,7 @@ int dns_name_decode(uint8_t *buf, size_t size, size_t boff, char **rname,
 
 	*rname = name;
 	if (*eoff == 0)
-		*eoff = bp - buf;
+		*eoff = bp - pdu->data;
 	return EOK;
 error:
 	free(name);
@@ -283,6 +306,16 @@ uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 	return w;
 }
 
+/** Encode DNS question.
+ *
+ * Encode DNS question or measure the size of encoded question (with @a buf NULL,
+ * and @a buf_size 0).
+ *
+ * @param question	Question to encode
+ * @param buf		Buffer or NULL
+ * @param buf_size      Buffer size or 0 if @a buf is NULL
+ * @param act_size	Place to store actual encoded size
+ */
 static int dns_question_encode(dns_question_t *question, uint8_t *buf,
     size_t buf_size, size_t *act_size)
 {
@@ -309,7 +342,14 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
 	return EOK;
 }
 
-static int dns_question_decode(uint8_t *buf, size_t buf_size, size_t boff,
+/** Decode DNS question.
+ *
+ * @param pdu		PDU from which we are decoding
+ * @param boff		Starting offset within PDU
+ * @param rquestion	Place to return dynamically allocated question
+ * @param eoff		Place to store end offset (offset after last decoded byte)
+ */
+static int dns_question_decode(dns_pdu_t *pdu, size_t boff,
     dns_question_t **rquestion, size_t *eoff)
 {
 	dns_question_t *question;
@@ -320,29 +360,37 @@ static int dns_question_decode(uint8_t *buf, size_t buf_size, size_t boff,
 	if (question == NULL)
 		return ENOMEM;
 
-	rc = dns_name_decode(buf, buf_size, boff, &question->qname, &name_eoff);
+	rc = dns_name_decode(pdu, boff, &question->qname, &name_eoff);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding name");
 		free(question);
 		return ENOMEM;
 	}
 
-	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
+	if (name_eoff + 2 * sizeof(uint16_t) > pdu->size) {
 		free(question);
 		return EINVAL;
 	}
 
-	question->qtype = dns_uint16_t_decode(buf + name_eoff, buf_size - name_eoff);
-	question->qclass = dns_uint16_t_decode(buf + sizeof(uint16_t) + name_eoff,
-	    buf_size - sizeof(uint16_t) - name_eoff);
+	question->qtype = dns_uint16_t_decode(pdu->data + name_eoff,
+	    pdu->size - name_eoff);
+	question->qclass = dns_uint16_t_decode(pdu->data + sizeof(uint16_t)
+	    + name_eoff, pdu->size - sizeof(uint16_t) - name_eoff);
 	*eoff = name_eoff + 2 * sizeof(uint16_t);
 
 	*rquestion = question;
 	return EOK;
 }
 
-static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
-    dns_rr_t **retrr, size_t *eoff)
+/** Decode DNS resource record.
+ *
+ * @param pdu		PDU from which we are decoding
+ * @param boff		Starting offset within PDU
+ * @param retrr		Place to return dynamically allocated resource record
+ * @param eoff		Place to store end offset (offset after last decoded byte)
+ */
+static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
+    size_t *eoff)
 {
 	dns_rr_t *rr;
 	size_t name_eoff;
@@ -355,21 +403,21 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 	if (rr == NULL)
 		return ENOMEM;
 
-	rc = dns_name_decode(buf, buf_size, boff, &rr->name, &name_eoff);
+	rc = dns_name_decode(pdu, boff, &rr->name, &name_eoff);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding name");
 		free(rr);
 		return ENOMEM;
 	}
 
-	if (name_eoff + 2 * sizeof(uint16_t) > buf_size) {
+	if (name_eoff + 2 * sizeof(uint16_t) > pdu->size) {
 		free(rr->name);
 		free(rr);
 		return EINVAL;
 	}
 
-	bp = buf + name_eoff;
-	bsz = buf_size - name_eoff;
+	bp = pdu->data + name_eoff;
+	bsz = pdu->size - name_eoff;
 
 	if (bsz < 3 * sizeof(uint16_t) + sizeof(uint32_t)) {
 		free(rr->name);
@@ -404,15 +452,24 @@ static int dns_rr_decode(uint8_t *buf, size_t buf_size, size_t boff,
 	}
 
 	memcpy(rr->rdata, bp, rdlength);
-	rr->roff = bp - buf;
+	rr->roff = bp - pdu->data;
 	bp += rdlength;
 	bsz -= rdlength;
 
-	*eoff = bp - buf;
+	*eoff = bp - pdu->data;
 	*retrr = rr;
 	return EOK;
 }
 
+/** Encode DNS message.
+ *
+ * @param msg	Message
+ * @param rdata	Place to store encoded data pointer
+ * @param rsize	Place to store encoded data size
+ *
+ * @return 	EOK on success, EINVAL if message contains invalid data,
+ *		ENOMEM if out of memory
+ */
 int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 {
 	uint8_t *data;
@@ -474,6 +531,15 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	return EOK;
 }
 
+/** Decode DNS message.
+ *
+ * @param data	Encoded PDU data
+ * @param size	Encoded PDU size
+ * @param rmsg	Place to store pointer to decoded message
+ *
+ * @return	EOK on success, EINVAL if message contains invalid data,
+ * 		ENOMEM if out of memory
+ */
 int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 {
 	dns_message_t *msg;
@@ -498,16 +564,16 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 
 	/* Store a copy of raw message data for string decompression */
 
-	msg->raw = malloc(size);
-	if (msg->raw == NULL) {
-		rc = EINVAL;
+	msg->pdu.data = malloc(size);
+	if (msg->pdu.data == NULL) {
+		rc = ENOMEM;
 		goto error;
 	}
 
-	memcpy(msg->raw, data, size);
-	msg->raw_size = size;
-	log_msg(LOG_DEFAULT, LVL_NOTE, "dns_message_decode: msg->raw = %p, msg->raw_size=%zu",
-	    msg->raw, msg->raw_size);
+	memcpy(msg->pdu.data, data, size);
+	msg->pdu.size = size;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "dns_message_decode: pdu->data = %p, "
+	    "pdu->size=%zu", msg->pdu.data, msg->pdu.size);
 
 	hdr = data;
 
@@ -527,7 +593,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	qd_count = uint16_t_be2host(hdr->qd_count);
 
 	for (i = 0; i < qd_count; i++) {
-		rc = dns_question_decode(data, size, doff, &question, &field_eoff);
+		rc = dns_question_decode(&msg->pdu, doff, &question, &field_eoff);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "error decoding question");
 			goto error;
@@ -540,7 +606,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	an_count = uint16_t_be2host(hdr->an_count);
 
 	for (i = 0; i < an_count; i++) {
-		rc = dns_rr_decode(data, size, doff, &rr, &field_eoff);
+		rc = dns_rr_decode(&msg->pdu, doff, &rr, &field_eoff);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error decoding answer");
 			goto error;
@@ -557,12 +623,14 @@ error:
 	return rc;
 }
 
+/** Destroy question. */
 static void dns_question_destroy(dns_question_t *question)
 {
 	free(question->qname);
 	free(question);
 }
 
+/** Destroy resource record. */
 static void dns_rr_destroy(dns_rr_t *rr)
 {
 	free(rr->name);
@@ -570,6 +638,7 @@ static void dns_rr_destroy(dns_rr_t *rr)
 	free(rr);
 }
 
+/** Create new empty message. */
 dns_message_t *dns_message_new(void)
 {
 	dns_message_t *msg;
@@ -586,6 +655,7 @@ dns_message_t *dns_message_new(void)
 	return msg;
 }
 
+/** Destroy message. */
 void dns_message_destroy(dns_message_t *msg)
 {
 	link_t *link;
@@ -620,7 +690,7 @@ void dns_message_destroy(dns_message_t *msg)
 		dns_rr_destroy(rr);
 	}
 
-	free(msg->raw);
+	free(msg->pdu.data);
 	free(msg);
 }
 
