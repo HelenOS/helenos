@@ -35,8 +35,10 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <loc.h>
 #include <inet/iplink_srv.h>
+#include <device/char_dev.h>
 #include <io/log.h>
 #include <errno.h>
 
@@ -44,6 +46,11 @@
 #define CAT_IPLINK	"iplink"
 
 #define SLIP_MTU	1006	/* as per RFC 1055 */
+
+#define SLIP_END	0300
+#define SLIP_ESC	0333
+#define	SLIP_ESC_END	0334
+#define SLIP_ESC_ESC	0335
 
 static int slip_open(iplink_srv_t *);
 static int slip_close(iplink_srv_t *);
@@ -63,6 +70,13 @@ static iplink_ops_t slip_iplink_ops = {
 	.addr_remove = slip_addr_remove
 };
 
+static uint8_t slip_send_buf[SLIP_MTU + 2];
+static size_t slip_send_pending;
+
+static uint8_t slip_recv_buf[SLIP_MTU + 2];
+static size_t slip_recv_pending;
+static size_t slip_recv_read;
+
 int slip_open(iplink_srv_t *srv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_open()");
@@ -75,10 +89,68 @@ int slip_close(iplink_srv_t *srv)
 	return EOK;
 }
 
+static void write_flush(async_sess_t *sess)
+{
+	size_t written = 0;
+
+	while (slip_send_pending > 0) {
+		ssize_t size;
+
+		size = char_dev_write(sess, &slip_send_buf[written],
+		    slip_send_pending);
+		if (size < 0) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "char_dev_write() returned %d",
+			    (int) size);
+			slip_send_pending = 0;
+			break;
+		}
+		written += size;
+		slip_send_pending -= size;
+	}
+}
+
+static void write_buffered(async_sess_t *sess, uint8_t ch)
+{
+	if (slip_send_pending == sizeof(slip_send_buf))
+		write_flush(sess);
+	slip_send_buf[slip_send_pending++] = ch;
+}
+
 int slip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 {
+	async_sess_t *sess = (async_sess_t *) srv->arg;
+	uint8_t *data = sdu->data;
+	unsigned i;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send()");
-	return ENOTSUP;
+
+	/*
+ 	 * Strictly speaking, this is not prescribed by the RFC, but the RFC
+ 	 * suggests to start with sending a SLIP_END byte as a synchronization
+ 	 * measure for dealing with previous possible noise on the line.
+ 	 */
+	write_buffered(sess, SLIP_END);
+
+	for (i = 0; i < sdu->size; i++) {
+		switch (data[i]) {
+		case SLIP_END:
+			write_buffered(sess, SLIP_ESC);
+			write_buffered(sess, SLIP_ESC_END);	
+			break;
+		case SLIP_ESC:
+			write_buffered(sess, SLIP_ESC);
+			write_buffered(sess, SLIP_ESC_ESC);
+			break;
+		default:
+			write_buffered(sess, data[i]);
+			break;
+		}
+	}
+	write_buffered(sess, SLIP_END);
+	write_flush(sess);
+
+	return EOK;
 }
 
 int slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
@@ -111,12 +183,99 @@ static void slip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	iplink_conn(iid, icall, &slip_iplink);
 }
 
+static uint8_t read_buffered(async_sess_t *sess)
+{
+	while (slip_recv_pending == 0) {
+		ssize_t size;
+
+		size = char_dev_read(sess, slip_recv_buf,
+		    sizeof(slip_recv_buf));
+		if (size < 0) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "char_dev_read() returned %d", (int) size);
+			return SLIP_END;
+		}
+		slip_recv_pending = size;
+		slip_recv_read = 0;
+	}
+	slip_recv_pending--;
+	return slip_recv_buf[slip_recv_read++];
+}
+
+static int slip_recv_fibril(void *arg)
+{
+	async_sess_t *sess = (async_sess_t *) arg;
+	static uint8_t recv_final[SLIP_MTU];
+	iplink_srv_sdu_t sdu;
+	uint8_t ch;
+	int rc;
+
+	sdu.lsrc.ipv4 = 0;
+	sdu.ldest.ipv4 = 0;
+	sdu.data = recv_final;
+
+	while (true) {
+		for (sdu.size = 0; sdu.size < sizeof(recv_final); /**/) {
+			ch = read_buffered(sess);
+			switch (ch) {
+			case SLIP_END:
+				if (sdu.size == 0) {
+					/*
+ 					 * Discard the empty SLIP datagram.
+ 					 */
+					break;
+				}
+				goto pass;
+
+			case SLIP_ESC:
+				ch = read_buffered(sess);
+				if (ch == SLIP_ESC_END) {
+					recv_final[sdu.size++] = SLIP_END;
+					break;
+				} else if (ch ==  SLIP_ESC_ESC) {
+					recv_final[sdu.size++] = SLIP_ESC;
+					break;
+				}
+
+				/*
+ 				 * The RFC suggests to simply insert the wrongly
+ 				 * escaped character into the packet so we fall
+ 				 * through.
+ 				 */
+ 
+			default:
+				recv_final[sdu.size++] = ch;
+				break;
+			}
+			
+		}
+
+		/*
+ 		 * We have reached the limit of our MTU. Regardless of whether
+ 		 * the datagram is properly ended with SLIP_END, pass it along.
+ 		 * If the next character is really SLIP_END, nothing
+ 		 * catastrophic happens. The algorithm will just see an
+ 		 * artificially empty SLIP datagram and life will go on.
+ 		 */
+
+pass:
+		rc = iplink_ev_recv(&slip_iplink, &sdu);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "iplink_ev_recv() returned %d", rc);
+		}
+	}
+
+	return 0;
+}
+
 static int slip_init(const char *svcstr, const char *linkstr)
 {
 	service_id_t svcid;
 	service_id_t linksid;
 	category_id_t iplinkcid;
 	async_sess_t *sess = NULL;
+	fid_t fid;
 	int rc;
 
 	iplink_srv_init(&slip_iplink);
@@ -146,13 +305,18 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		return rc;
 	}
 
-	sess = loc_service_connect(EXCHANGE_SERIALIZE, svcid, 0);
+	/*
+	 * Create a parallel session because we will need to be able to both
+	 * read and write from the char_dev.
+	 */
+	sess = loc_service_connect(EXCHANGE_PARALLEL, svcid, 0);
 	if (!sess) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",
 		    svcstr, (int) svcid);
 		return rc;
 	}
+	slip_iplink.arg = sess;
 
 	rc = loc_service_register(linkstr, &linksid);
 	if (rc != EOK) {
@@ -165,10 +329,18 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	rc = loc_service_add_to_cat(linksid, iplinkcid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Filed to add service %d (%s) to category %d (%s).",
+		    "Failed to add service %d (%s) to category %d (%s).",
 		    (int) linksid, linkstr, (int) iplinkcid, CAT_IPLINK);
 		goto fail;
 	}
+
+	fid = fibril_create(slip_recv_fibril, sess);
+	if (!fid) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed to create receive fibril.");
+		goto fail;
+	}
+	fibril_add_ready(fid);
 
 	return EOK;
 
