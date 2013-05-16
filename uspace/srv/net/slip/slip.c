@@ -274,7 +274,8 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	service_id_t svcid;
 	service_id_t linksid;
 	category_id_t iplinkcid;
-	async_sess_t *sess = NULL;
+	async_sess_t *sess_in = NULL;
+	async_sess_t *sess_out = NULL;
 	fid_t fid;
 	int rc;
 
@@ -306,17 +307,25 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	}
 
 	/*
-	 * Create a parallel session because we will need to be able to both
-	 * read and write from the char_dev.
+	 * Create two sessions to allow to both read and write from the
+	 * char_dev at the same time.
 	 */
-	sess = loc_service_connect(EXCHANGE_PARALLEL, svcid, 0);
-	if (!sess) {
+	sess_out = loc_service_connect(EXCHANGE_SERIALIZE, svcid, 0);
+	if (!sess_out) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",
 		    svcstr, (int) svcid);
 		return rc;
 	}
-	slip_iplink.arg = sess;
+	slip_iplink.arg = sess_out;
+
+	sess_in = loc_service_connect(EXCHANGE_SERIALIZE, svcid, 0);
+	if (!sess_in) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed to connect to service %s (ID=%d)",
+		    svcstr, (int) svcid);
+		goto fail;
+	}
 
 	rc = loc_service_register(linkstr, &linksid);
 	if (rc != EOK) {
@@ -334,7 +343,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		goto fail;
 	}
 
-	fid = fibril_create(slip_recv_fibril, sess);
+	fid = fibril_create(slip_recv_fibril, sess_in);
 	if (!fid) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to create receive fibril.");
@@ -345,8 +354,10 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	return EOK;
 
 fail:
-	if (sess)
-		async_hangup(sess);
+	if (sess_out)
+		async_hangup(sess_out);
+	if (sess_in)
+		async_hangup(sess_in);
 
 	/*
  	 * We assume that our registration at the location service will be
