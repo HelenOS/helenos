@@ -159,8 +159,8 @@ typedef struct ns8250 {
 	ddf_fun_t *fun;
 	/** I/O registers **/
 	ns8250_regs_t *regs;
-	/** Is there any client connected to the device? */
-	bool client_connected;
+	/** Are there any clients connected to the device? */
+	unsigned client_connections;
 	/** The irq assigned to this device. */
 	int irq;
 	/** The base i/o address of the devices registers. */
@@ -752,7 +752,7 @@ static void ns8250_read_from_device(ns8250_t *ns)
 		if (cont) {
 			uint8_t val = ns8250_read_8(regs);
 			
-			if (ns->client_connected) {
+			if (ns->client_connections > 0) {
 				bool buf_was_empty = buf_is_empty(&ns->input_buffer);
 				if (!buf_push_back(&ns->input_buffer, val)) {
 					ddf_msg(LVL_WARN, "Buffer overflow on "
@@ -913,7 +913,7 @@ static int ns8250_dev_remove(ddf_dev_t *dev)
 	int rc;
 	
 	fibril_mutex_lock(&ns->mutex);
-	if (ns->client_connected) {
+		if (ns->client_connections > 0) {
 		fibril_mutex_unlock(&ns->mutex);
 		return EBUSY;
 	}
@@ -947,13 +947,11 @@ static int ns8250_open(ddf_fun_t *fun)
 	int res;
 	
 	fibril_mutex_lock(&ns->mutex);
-	if (ns->client_connected) {
-		res = ELIMIT;
-	} else if (ns->removed) {
+	if (ns->removed) {
 		res = ENXIO;
 	} else {
 		res = EOK;
-		ns->client_connected = true;
+		ns->client_connections++;
 	}
 	fibril_mutex_unlock(&ns->mutex);
 	
@@ -973,10 +971,10 @@ static void ns8250_close(ddf_fun_t *fun)
 	
 	fibril_mutex_lock(&data->mutex);
 	
-	assert(data->client_connected);
+	assert(data->client_connections > 0);
 	
-	data->client_connected = false;
-	buf_clear(&data->input_buffer);
+	if (!(--data->client_connections))
+		buf_clear(&data->input_buffer);
 	
 	fibril_mutex_unlock(&data->mutex);
 }
