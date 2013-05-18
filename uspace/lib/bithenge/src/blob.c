@@ -476,7 +476,7 @@ int bithenge_blob_equal(bool *out, bithenge_blob_t *a, bithenge_blob_t *b)
 		rc = bithenge_blob_read(b, offset, buffer_b, &size_b);
 		if (rc != EOK)
 			return rc;
-		if (size_a != size_b || bcmp(buffer_a, buffer_b, size_a)) {
+		if (size_a != size_b || memcmp(buffer_a, buffer_b, size_a) != 0) {
 			*out = false;
 			return EOK;
 		}
