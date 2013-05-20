@@ -106,7 +106,7 @@ static int cmp_files(const char *fn0, const char *fn1)
 		}
 
 		if (offset[0] != offset[1] ||
-		    bcmp(buffer[0], buffer[1], offset[0])) {
+		    memcmp(buffer[0], buffer[1], offset[0]) != 0) {
 			rc = 1;
 			goto end;
 		}

@@ -57,7 +57,7 @@ void td_init(td_t *instance, const td_t *next,
     usb_direction_t direction, const void *buffer, size_t size, int toggle)
 {
 	assert(instance);
-	bzero(instance, sizeof(td_t));
+	memset(instance, 0, sizeof(td_t));
 	/* Set PID and Error code */
 	OHCI_MEM32_WR(instance->status,
 	    ((dir[direction] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
