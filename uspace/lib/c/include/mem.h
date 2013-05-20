@@ -37,8 +37,6 @@
 
 #include <sys/types.h>
 
-#define bzero(ptr, len)  memset((ptr), 0, (len))
-
 extern void *memset(void *, int, size_t)
     __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
 extern void *memcpy(void *, const void *, size_t)

@@ -72,7 +72,7 @@ static bool nic_wv_key_equal(void *key, const ht_link_t *item)
  */
 int nic_wol_virtues_init(nic_wol_virtues_t *wvs)
 {
-	bzero(wvs, sizeof(nic_wol_virtues_t));
+	memset(wvs, 0, sizeof(nic_wol_virtues_t));
 	wvs->table_operations.hash = nic_wv_hash;
 	wvs->table_operations.key_hash = nic_wv_key_hash;
 	wvs->table_operations.key_equal = nic_wv_key_equal;

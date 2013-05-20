@@ -166,7 +166,7 @@ int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 	 * Parse inquiry data and fill in the result structure.
 	 */
 
-	bzero(inq_res, sizeof(*inq_res));
+	memset(inq_res, 0, sizeof(*inq_res));
 
 	inq_res->device_type = BIT_RANGE_EXTRACT(uint8_t,
 	    inq_data.pqual_devtype, SCSI_PQDT_DEV_TYPE_h, SCSI_PQDT_DEV_TYPE_l);

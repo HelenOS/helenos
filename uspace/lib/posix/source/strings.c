@@ -154,7 +154,7 @@ void posix_bcopy(const void *src, void *dest, size_t n)
  */
 void posix_bzero(void *mem, size_t n)
 {
-	bzero(mem, n);
+	memset(mem, 0, n);
 }
 
 /**
