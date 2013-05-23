@@ -58,8 +58,9 @@ typedef struct pci_fun_data {
 	int bus;
 	int dev;
 	int fn;
-	int vendor_id;
-	int device_id;
+	uint16_t vendor_id;
+	uint16_t device_id;
+	uint16_t command;
 	uint8_t class_code;
 	uint8_t subclass_code;
 	uint8_t prog_if;
