@@ -105,7 +105,7 @@ static int inet_init(void)
 
 	sroute->dest.ipv4 = 0;
 	sroute->dest.bits = 0;
-	sroute->router.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 1;
+	sroute->router.ipv4 = (10 << 24) | (0 << 16) | (2 << 8) | 2;
 	sroute->name = str_dup("default");
 	inet_sroute_add(sroute);
 
