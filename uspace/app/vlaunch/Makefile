@@ -34,6 +34,16 @@ EXTRA_CFLAGS += -I$(LIBGUI_PREFIX) -I$(LIBDRAW_PREFIX) \
 BINARY = vlaunch
 
 SOURCES = \
-	vlaunch.c
+	vlaunch.c \
+	images.c
+
+IMAGES = \
+	gfx/helenos.tga
+
+PRE_DEPEND = images.c images.h
+EXTRA_CLEAN = images.c images.h
 
 include $(USPACE_PREFIX)/Makefile.common
+
+images.c images.h: $(IMAGES)
+	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $^

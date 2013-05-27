@@ -103,12 +103,12 @@ void nterm_received(void *data, size_t size)
 
 static void print_syntax(void)
 {
-	printf("syntax: nterm <ip-address> <port>\n");
+	printf("syntax: nterm <host> <port>\n");
 }
 
 int main(int argc, char *argv[])
 {
-	kbd_event_t ev;
+	cons_event_t ev;
 	int rc;
 
 	if (argc != 3) {
@@ -128,9 +128,9 @@ int main(int argc, char *argv[])
 
 	done = false;
 	while (!done) {
-		console_get_kbd_event(con, &ev);
-		if (ev.type == KEY_PRESS)
-			key_handle(&ev);
+		console_get_event(con, &ev);
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS)
+			key_handle(&ev.ev.key);
 	}
 
 	return 0;

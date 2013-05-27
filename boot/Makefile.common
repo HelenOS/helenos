@@ -111,6 +111,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/hid/isdv4_tablet/isdv4_tablet \
+	$(USPACE_PATH)/srv/net/dnsrsrv/dnsrsrv \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
@@ -166,6 +167,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
 	$(USPACE_PATH)/app/dload/dload \
+	$(USPACE_PATH)/app/dnscfg/dnscfg \
+	$(USPACE_PATH)/app/dnsres/dnsres \
 	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \

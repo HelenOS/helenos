@@ -56,11 +56,12 @@
 
 #ifdef CONFIG_FB
 
-#define VESA_INIT_DES      8
 #define VESA_INIT_SEGMENT  0x8000
+#define VESA_INIT_CODE_DES      8
+#define VESA_INIT_DATA_DES      9
 
 #undef GDT_ITEMS
-#define GDT_ITEMS  9
+#define GDT_ITEMS  10
 
 #endif /* CONFIG_FB */
 

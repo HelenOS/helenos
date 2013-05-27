@@ -292,7 +292,7 @@ static int e1000_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
 	assert(dev);
 	assert(info);
 	
-	bzero(info, sizeof(nic_device_info_t));
+	memset(info, 0, sizeof(nic_device_info_t));
 	
 	info->vendor_id = 0x8086;
 	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH,
@@ -1580,7 +1580,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	if (rc != EOK)
 		goto error;
 	
-	bzero(e1000->tx_ring_virt,
+	memset(e1000->tx_ring_virt, 0,
 	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t));
 	
 	e1000->tx_frame_phys = calloc(E1000_TX_FRAME_COUNT, sizeof(void *));
@@ -1871,7 +1871,7 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 		return NULL;
 	}
 	
-	bzero(e1000, sizeof(e1000_t));
+	memset(e1000, 0, sizeof(e1000_t));
 	
 	nic_set_specific(nic, e1000);
 	nic_set_send_frame_handler(nic, e1000_send_frame);

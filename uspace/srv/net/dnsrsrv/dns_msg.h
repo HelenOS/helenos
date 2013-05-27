@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup dnsres
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef KERN_LOGO_196X66_H_
-#define KERN_LOGO_196X66_H_
+#ifndef DNS_MSG_H
+#define DNS_MSG_H
 
-#define LOGO_WIDTH   196
-#define LOGO_HEIGHT  66
-#define LOGO_COLOR   0xffffff
+#include <adt/list.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "dns_std.h"
+#include "dns_type.h"
 
-#include <typedefs.h>
-
-extern uint32_t fb_logo[LOGO_WIDTH * LOGO_HEIGHT];
+extern int dns_message_encode(dns_message_t *, void **, size_t *);
+extern int dns_message_decode(void *, size_t, dns_message_t **);
+extern dns_message_t *dns_message_new(void);
+extern void dns_message_destroy(dns_message_t *);
+extern int dns_name_decode(dns_pdu_t *, size_t, char **, size_t *);
+extern uint32_t dns_uint32_t_decode(uint8_t *, size_t);
 
 #endif
 

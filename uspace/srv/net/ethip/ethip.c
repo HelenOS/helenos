@@ -220,8 +220,8 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		break;
 	case ETYPE_IP:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - construct SDU");
-		sdu.lsrc.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 1;
-		sdu.ldest.ipv4 = (192 << 24) | (168 << 16) | (0 << 8) | 4;
+		sdu.lsrc.ipv4 = 0;
+		sdu.ldest.ipv4 = 0;
 		sdu.data = frame.data;
 		sdu.size = frame.size;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");

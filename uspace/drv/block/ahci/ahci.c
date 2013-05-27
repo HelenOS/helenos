@@ -241,7 +241,7 @@ static int ahci_read_blocks(ddf_fun_t *fun, uint64_t blocknum,
 		return rc;
 	}
 	
-	bzero(buf, sata->block_size);
+	memset(buf, 0, sata->block_size);
 	
 	fibril_mutex_lock(&sata->lock);
 	
@@ -443,7 +443,7 @@ static int ahci_identify_device(sata_dev_t *sata)
 		return rc;
 	}
 	
-	bzero(idata, SATA_IDENTIFY_DEVICE_BUFFER_LENGTH);
+	memset(idata, 0, SATA_IDENTIFY_DEVICE_BUFFER_LENGTH);
 	
 	fibril_mutex_lock(&sata->lock);
 	
@@ -636,7 +636,7 @@ static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 		return rc;
 	}
 	
-	bzero(idata, SATA_SET_FEATURE_BUFFER_LENGTH);
+	memset(idata, 0, SATA_SET_FEATURE_BUFFER_LENGTH);
 	
 	fibril_mutex_lock(&sata->lock);
 	
@@ -953,7 +953,7 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	if (rc != EOK)
 		goto error_retfis;
 	
-	bzero(virt_fb, size);
+	memset(virt_fb, 0, size);
 	sata->port->pxfbu = HI(phys);
 	sata->port->pxfb = LO(phys);
 	
@@ -963,7 +963,7 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	if (rc != EOK)
 		goto error_cmd;
 	
-	bzero(virt_cmd, size);
+	memset(virt_cmd, 0, size);
 	sata->port->pxclbu = HI(phys);
 	sata->port->pxclb = LO(phys);
 	sata->cmd_header = (ahci_cmdhdr_t *) virt_cmd;
@@ -974,7 +974,7 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	if (rc != EOK)
 		goto error_table;
 	
-	bzero(virt_table, size);
+	memset(virt_table, 0, size);
 	sata->cmd_header->cmdtableu = HI(phys);
 	sata->cmd_header->cmdtable = LO(phys);
 	sata->cmd_table = (uint32_t*) virt_table;
@@ -1286,7 +1286,7 @@ error:
 static void ahci_get_model_name(uint16_t *src, char *dst)
 {
 	uint8_t model[40];
-	bzero(model, 40);
+	memset(model, 0, 40);
 	
 	for (unsigned int i = 0; i < 20; i++) {
 		uint16_t w = src[i];

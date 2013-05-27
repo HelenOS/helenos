@@ -49,6 +49,14 @@ typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
 
+typedef int16_t unaligned_int16_t __attribute__ ((aligned(1)));
+typedef int32_t unaligned_int32_t __attribute__ ((aligned(1)));
+typedef int64_t unaligned_int64_t __attribute__ ((aligned(1)));
+
+typedef uint16_t unaligned_uint16_t __attribute__ ((aligned(1)));
+typedef uint32_t unaligned_uint32_t __attribute__ ((aligned(1)));
+typedef uint64_t unaligned_uint64_t __attribute__ ((aligned(1)));
+
 #endif
 
 /** @}

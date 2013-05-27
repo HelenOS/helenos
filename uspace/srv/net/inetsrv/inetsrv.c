@@ -97,7 +97,19 @@ static int inet_init(void)
 		return EEXIST;
 	}
 	
-	rc = inet_link_discovery_start();
+	inet_sroute_t *sroute = inet_sroute_new();
+	if (sroute == NULL) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating default route (%d).", rc);
+		return ENOMEM;
+	}
+
+	sroute->dest.ipv4 = 0;
+	sroute->dest.bits = 0;
+	sroute->router.ipv4 = (10 << 24) | (0 << 16) | (2 << 8) | 2;
+	sroute->name = str_dup("default");
+	inet_sroute_add(sroute);
+
+       	rc = inet_link_discovery_start();
 	if (rc != EOK)
 		return EEXIST;
 	

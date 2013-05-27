@@ -2089,7 +2089,8 @@ void async_exchange_end(async_exch_t *exch)
  * @param size  Size of the destination address space area.
  * @param arg   User defined argument.
  * @param flags Storage for the received flags. Can be NULL.
- * @param dst   Destination address space area base. Cannot be NULL.
+ * @param dst   Address of the storage for the destination address space area
+ *              base address. Cannot be NULL.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
@@ -2217,7 +2218,8 @@ bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *f
  * argument.
  *
  * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
- * @param dst    Destination address space area base address.
+ * @param dst    Address of the storage for the destination address space area
+ *               base address.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *

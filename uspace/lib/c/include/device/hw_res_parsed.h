@@ -126,7 +126,7 @@ static inline void hw_res_list_parsed_clean(hw_res_list_parsed_t *list)
 	free(list->mem_ranges.ranges);
 	free(list->dma_channels.channels);
 	
-	bzero(list, sizeof(hw_res_list_parsed_t));
+	memset(list, 0, sizeof(hw_res_list_parsed_t));
 }
 
 /** Initialize the hw_resource_list_parsed_t structure
@@ -135,7 +135,7 @@ static inline void hw_res_list_parsed_clean(hw_res_list_parsed_t *list)
  */
 static inline void hw_res_list_parsed_init(hw_res_list_parsed_t *list)
 {
-	bzero(list, sizeof(hw_res_list_parsed_t));
+	memset(list, 0, sizeof(hw_res_list_parsed_t));
 }
 
 extern int hw_res_list_parse(
