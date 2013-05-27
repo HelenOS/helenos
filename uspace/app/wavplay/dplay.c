@@ -128,7 +128,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 			audio_pcm_last_playback_fragment(pb->device);
 		}
 		/* any constant is silence */
-		bzero(pb->buffer.write_ptr + bytes, fragment_size - bytes);
+		memset(pb->buffer.write_ptr + bytes, 0, fragment_size - bytes);
 		pb->buffer.write_ptr += fragment_size;
 
 		if (pb->buffer.write_ptr >= (pb->buffer.base + pb->buffer.size))
@@ -157,7 +157,7 @@ static void play_fragment(playback_t *pb)
 	const size_t bytes = fread(pb->buffer.base, sizeof(uint8_t),
 	    fragment_size, pb->source);
 	if (bytes != fragment_size)
-		bzero(pb->buffer.base + bytes, fragment_size - bytes);
+		memset(pb->buffer.base + bytes, 0, fragment_size - bytes);
 	printf("Initial: Copied from position %p size %zu/%zu\n",
 	    pb->buffer.base, bytes, fragment_size);
 	pb->buffer.write_ptr = pb->buffer.base + fragment_size;

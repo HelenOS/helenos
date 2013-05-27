@@ -211,7 +211,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 		for (unsigned i = 0; i < name_count && ret == EOK; ++i) {
 			char *name = malloc(sizes[i] + 1);
 			if (name) {
-				bzero(name, sizes[i] + 1);
+				memset(name, 0, sizes[i] + 1);
 				ret = async_data_read_start(exch, name, sizes[i]);
 				names[i] = name;
 			} else {
