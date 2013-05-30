@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
  */
 
 #include <errno.h>
+#include <inet/addr.h>
 #include <inet/inetcfg.h>
 #include <loc.h>
 #include <stdio.h>
@@ -51,97 +52,6 @@ static void print_syntax(void)
 	printf("\t" NAME " delete <link-name> <addr-name>\n");
 	printf("\t" NAME " add-sr <dest-addr>/<width> <router-addr> <route-name>\n");
 	printf("\t" NAME " del-sr <route-name>\n");
-}
-
-static int naddr_parse(const char *text, inet_naddr_t *naddr)
-{
-	unsigned long a[4], bits;
-	char *cp = (char *)text;
-	int i;
-
-	for (i = 0; i < 3; i++) {
-		a[i] = strtoul(cp, &cp, 10);
-		if (*cp != '.')
-			return EINVAL;
-		++cp;
-	}
-
-	a[3] = strtoul(cp, &cp, 10);
-	if (*cp != '/')
-		return EINVAL;
-	++cp;
-
-	bits = strtoul(cp, &cp, 10);
-	if (*cp != '\0')
-		return EINVAL;
-
-	naddr->ipv4 = 0;
-	for (i = 0; i < 4; i++) {
-		if (a[i] > 255)
-			return EINVAL;
-		naddr->ipv4 = (naddr->ipv4 << 8) | a[i];
-	}
-
-	if (bits > 31)
-		return EINVAL;
-
-	naddr->bits = bits;
-	return EOK;
-}
-
-static int addr_parse(const char *text, inet_addr_t *addr)
-{
-	unsigned long a[4];
-	char *cp = (char *)text;
-	int i;
-
-	for (i = 0; i < 3; i++) {
-		a[i] = strtoul(cp, &cp, 10);
-		if (*cp != '.')
-			return EINVAL;
-		++cp;
-	}
-
-	a[3] = strtoul(cp, &cp, 10);
-	if (*cp != '\0')
-		return EINVAL;
-
-	addr->ipv4 = 0;
-	for (i = 0; i < 4; i++) {
-		if (a[i] > 255)
-			return EINVAL;
-		addr->ipv4 = (addr->ipv4 << 8) | a[i];
-	}
-
-	return EOK;
-}
-
-static int naddr_format(inet_naddr_t *naddr, char **bufp)
-{
-	int rc;
-
-	rc = asprintf(bufp, "%d.%d.%d.%d/%d", naddr->ipv4 >> 24,
-	    (naddr->ipv4 >> 16) & 0xff, (naddr->ipv4 >> 8) & 0xff,
-	    naddr->ipv4 & 0xff, naddr->bits);
-
-	if (rc < 0)
-		return ENOMEM;
-
-	return EOK;
-}
-
-static int addr_format(inet_addr_t *addr, char **bufp)
-{
-	int rc;
-
-	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
-	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
-	    addr->ipv4 & 0xff);
-
-	if (rc < 0)
-		return ENOMEM;
-
-	return EOK;
 }
 
 static int addr_create_static(int argc, char *argv[])
@@ -177,7 +87,7 @@ static int addr_create_static(int argc, char *argv[])
 		return ENOENT;
 	}
 
-	rc = naddr_parse(addr_spec, &naddr);
+	rc = inet_naddr_parse(addr_spec, &naddr);
 	if (rc != EOK) {
 		printf(NAME ": Invalid network address format '%s'.\n",
 		    addr_spec);
@@ -266,14 +176,14 @@ static int sroute_create(int argc, char *argv[])
 	router_str = argv[1];
 	route_name = argv[2];
 
-	rc = naddr_parse(dest_str, &dest);
+	rc = inet_naddr_parse(dest_str, &dest);
 	if (rc != EOK) {
 		printf(NAME ": Invalid network address format '%s'.\n",
 		    dest_str);
 		return EINVAL;
 	}
 
-	rc = addr_parse(router_str, &router);
+	rc = inet_addr_parse(router_str, &router);
 	if (rc != EOK) {
 		printf(NAME ": Invalid address format '%s'.\n", router_str);
 		return EINVAL;
@@ -365,7 +275,7 @@ static int addr_list(void)
 			continue;
 		}
 
-		rc = naddr_format(&ainfo.naddr, &astr);
+		rc = inet_naddr_format(&ainfo.naddr, &astr);
 		if (rc != EOK) {
 			printf("Memory allocation failed.\n");
 			astr = NULL;
@@ -429,14 +339,14 @@ static int sroute_list(void)
 			continue;
 		}
 
-		rc = naddr_format(&srinfo.dest, &dest_str);
+		rc = inet_naddr_format(&srinfo.dest, &dest_str);
 		if (rc != EOK) {
 			printf("Memory allocation failed.\n");
 			dest_str = NULL;
 			goto out;
 		}
 
-		rc = addr_format(&srinfo.router, &router_str);
+		rc = inet_addr_format(&srinfo.router, &router_str);
 		if (rc != EOK) {
 			printf("Memory allocation failed.\n");
 			router_str = NULL;

@@ -1019,7 +1019,7 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 		return NULL;
 	}
 
-	bzero(rtl8139, sizeof(rtl8139_t));
+	memset(rtl8139, 0, sizeof(rtl8139_t));
 
 	rtl8139->nic_data = nic_data;
 	nic_set_specific(nic_data, rtl8139);

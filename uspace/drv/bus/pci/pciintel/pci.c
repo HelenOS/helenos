@@ -326,8 +326,8 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	char match_id_str[ID_MAX_STR_LEN];
 
 	/* Vendor ID & Device ID, length(incl \0) 22 */
-	rc = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/ven=%04x&dev=%04x",
-	    fun->vendor_id, fun->device_id);
+	rc = snprintf(match_id_str, ID_MAX_STR_LEN, "pci/ven=%04"
+	    PRIx16 "&dev=%04" PRIx16, fun->vendor_id, fun->device_id);
 	if (rc < 0) {
 		ddf_msg(LVL_ERROR, "Failed creating match ID str: %s",
 		    str_error(rc));
@@ -757,6 +757,12 @@ void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
 	fun->fn = fn;
 	fun->vendor_id = pci_conf_read_16(fun, PCI_VENDOR_ID);
 	fun->device_id = pci_conf_read_16(fun, PCI_DEVICE_ID);
+	
+	/* Explicitly enable PCI bus mastering */
+	fun->command = pci_conf_read_16(fun, PCI_COMMAND) |
+	    PCI_COMMAND_MASTER;
+	pci_conf_write_16(fun, PCI_COMMAND, fun->command);
+	
 	fun->class_code = pci_conf_read_8(fun, PCI_BASE_CLASS);
 	fun->subclass_code = pci_conf_read_8(fun, PCI_SUB_CLASS);
 	fun->prog_if = pci_conf_read_8(fun, PCI_PROG_IF);

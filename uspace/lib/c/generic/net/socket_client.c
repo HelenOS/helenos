@@ -445,7 +445,7 @@ int socket(int domain, int type, int protocol)
 	if (!socket)
 		return ENOMEM;
 
-	bzero(socket, sizeof(*socket));
+	memset(socket, 0, sizeof(*socket));
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
 	/* Request a new socket */
@@ -656,7 +656,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		return ENOMEM;
 	}
-	bzero(new_socket, sizeof(*new_socket));
+	memset(new_socket, 0, sizeof(*new_socket));
 	socket_id = socket_generate_new_id();
 	if (socket_id <= 0) {
 		fibril_mutex_unlock(&socket->accept_lock);

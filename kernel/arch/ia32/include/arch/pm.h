@@ -49,11 +49,12 @@
 #ifdef CONFIG_FB
 
 #define VESA_INIT_SEGMENT  0x8000
-#define VESA_INIT_DES      7
+#define VESA_INIT_CODE_DES      7
+#define VESA_INIT_DATA_DES      8
 #define KTEXT32_DES        KTEXT_DES
 
 #undef GDT_ITEMS
-#define GDT_ITEMS  8
+#define GDT_ITEMS  9
 
 #endif /* CONFIG_FB */
 
@@ -66,6 +67,7 @@
 #define AR_DATA       (2 << 3)
 #define AR_CODE       (3 << 3)
 #define AR_WRITABLE   (1 << 1)
+#define AR_READABLE   (1 << 1)
 #define AR_INTERRUPT  (0xe)
 #define AR_TRAP       (0xf)
 #define AR_TSS        (0x9)
