@@ -52,32 +52,44 @@
 #include "func_mbr.h"
 #include "func_none.h"
 
-int interact(service_id_t dev_handle);
+int interact(service_id_t);
 void print_help(void);
-void select_table_format(tinput_t * in);
-void fill_table_funcs(void);
-void free_table(void);
+void select_label_format(tinput_t *);
+void fill_label_funcs(void);
+void free_label(void);
+int try_read(service_id_t);
 
-static table_t table;
+int construct_none_label(void);
+
+int construct_mbr_label(void);
+int try_read_mbr(service_id_t);
+
+int construct_gpt_label(void);
+int try_read_gpt(service_id_t);
+
+
+static label_t label;
 
 int main(int argc, char ** argv)
 {
 	if (argc == 1) {
-		printf("I'd like to have an argument, please.\n");
-		return 1;
+		printf("Missing argument. Please specify a device to operate on.\n");
+		return -1;
 	}
-
+	
 	int rc;
 	service_id_t dev_handle;
-
+	
 	rc = loc_service_get_id(argv[1], &dev_handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("Unknown device. Exiting.\n");
 		return -1;
 	}
-
-	init_table();
-
+	
+	printf("Init.\n");
+	init_label();
+	
+	/*
 	mbr_t * mbr = mbr_read_mbr(dev_handle);
 	if(mbr == NULL) {
 		printf("Failed to read the Master Boot Record.\n"	\
@@ -86,26 +98,33 @@ int main(int argc, char ** argv)
 	}
 
 	if(mbr_is_mbr(mbr)) {
-		table.layout = LYT_MBR;
-		set_table_mbr(mbr);
+		label.layout = LYT_MBR;
+		set_label_mbr(mbr);
 		mbr_partitions_t * parts = mbr_read_partitions(mbr);
 		if(parts == NULL) {
 			printf("Failed to read and parse partitions.\n"	\
 				   "Creating new partition table.");
 			parts = mbr_alloc_partitions();
 		}
-		set_table_mbr_parts(parts);
-		fill_table_funcs();
+		set_label_mbr_parts(parts);
+		fill_label_funcs();
 		goto interact;
 	}
 	
 	
-	mbr_free_mbr(mbr);
+	mbr_free_mbr(mbr);*/
+	
+	printf("Try MBR.\n");
+	rc = try_read_mbr(dev_handle);
+	if (rc == EOK)
+		goto interact;
+	
+	/*
 	gpt_t * gpt = gpt_read_gpt_header(dev_handle);
 	
 	if(gpt != NULL) {
-		table.layout = LYT_GPT;
-		set_table_gpt(gpt);
+		label.layout = LYT_GPT;
+		set_label_gpt(gpt);
 		
 		gpt_partitions_t * parts = gpt_read_partitions(gpt);
 		
@@ -114,17 +133,25 @@ int main(int argc, char ** argv)
 				   "Creating new partition table.");
 			parts = gpt_alloc_partitions();
 		}
-		set_table_gpt_parts(parts);
-		fill_table_funcs();
+		set_label_gpt_parts(parts);
+		fill_label_funcs();
 		goto interact;
 	}
-	printf("No partition table recognized. Create a new one.\n");
-	table.layout = LYT_NONE;
+	*/
+	
+	printf("Try GPT.\n");
+	rc = try_read_gpt(dev_handle);
+	if (rc == EOK)
+		goto interact;
+	
+	printf("No label recognized. Create a new one.\n");
+	label.layout = LYT_NONE;
 	
 interact:
+	printf("interact.\n");
 	rc = interact(dev_handle);
 	
-	free_table();
+	free_label();
 	
 	return rc;
 }
@@ -151,33 +178,36 @@ int interact(service_id_t dev_handle)
 		
 		switch(input) {
 			case 'a':
-				table.add_part(in, &table.data);
+				label.add_part(in, &label.data);
+				break;
+			case 'b':
+				label.add_part(in, &label.data);
 				break;
 			case 'd':
-				table.delete_part(in, &table.data);
+				label.delete_part(in, &label.data);
 				break;
 			case 'e':
-				table.extra_funcs(in, dev_handle, &table.data);
+				label.extra_funcs(in, dev_handle, &label.data);
 				break;
 			case 'f':
-				free_table();
-				select_table_format(in);
+				free_label();
+				select_label_format(in);
 				break;
 			case 'h':
 				print_help();
 				break;
 			case 'n':
-				free_table();
-				table.new_table(in, &table.data);
+				free_label();
+				label.new_label(&label.data);
 				break;
 			case 'p':
-				table.print_parts(&table.data);
+				label.print_parts(&label.data);
 				break;
 			case 'q':
 				putchar('\n');
 				goto end;
 			case 'w':
-				table.write_parts(dev_handle, &table.data);
+				label.write_parts(dev_handle, &label.data);
 				break;
 			default:
 				printf("Unknown command. Try 'h' for help.\n");
@@ -196,18 +226,19 @@ void print_help(void)
 	printf(
 		"\t 'a' \t\t Add partition.\n"
 		"\t 'd' \t\t Delete partition.\n"
-		"\t 'e' \t\t Extra functions (per table format).\n"
-		"\t 'f' \t\t Switch the format of the partition table."
+		"\t 'e' \t\t Extra functions (per label format).\n"
+		"\t 'f' \t\t Switch the format of the partition label."
 		"\t 'h' \t\t Prints help. See help for more.\n"
-		"\t 'n' \t\t Create new partition table (discarding the old one).\n"
-		"\t 'p' \t\t Prints the table contents.\n"
-		"\t 'w' \t\t Write table to disk.\n"
+		"\t 'l' \t\t Set alignment.\n"
+		"\t 'n' \t\t Create new label (discarding the old one).\n"
+		"\t 'p' \t\t Prints label contents.\n"
+		"\t 'w' \t\t Write label to disk.\n"
 		"\t 'q' \t\t Quit.\n"
 		);
 
 }
 
-void select_table_format(tinput_t * in)
+void select_label_format(tinput_t * in)
 {
 	printf("Available formats are: \n"
 			"1) MBR\n"
@@ -217,77 +248,138 @@ void select_table_format(tinput_t * in)
 	uint8_t val = get_input_uint8(in);
 	switch(val) {
 		case 0:
-			table.layout = LYT_NONE;
-			fill_table_funcs();
+			free_label();
+			label.layout = LYT_NONE;
+			fill_label_funcs();
 			break;
 		case 1:
-			table.layout = LYT_MBR;
-			fill_table_funcs();
+			free_label();
+			label.layout = LYT_MBR;
+			fill_label_funcs();
 			break;
 		case 2:
-			table.layout = LYT_GPT;
-			fill_table_funcs();
+			free_label();
+			label.layout = LYT_GPT;
+			fill_label_funcs();
 			break;
 	}
 }
 
-void fill_table_funcs(void)
+void fill_label_funcs(void)
 {
-	switch(table.layout) {
+	switch(label.layout) {
 		case LYT_MBR:
-			table.add_part = add_mbr_part;
-			table.delete_part = delete_mbr_part;
-			table.new_table = new_mbr_table;
-			table.print_parts = print_mbr_parts;
-			table.write_parts = write_mbr_parts;
-			table.extra_funcs = extra_mbr_funcs;
+			construct_mbr_label();
 			break;
 		case LYT_GPT:
-			table.add_part = add_gpt_part;
-			table.delete_part = delete_gpt_part;
-			table.new_table	= new_gpt_table;
-			table.print_parts = print_gpt_parts;
-			table.write_parts = write_gpt_parts;
-			table.extra_funcs = extra_gpt_funcs;
+			construct_gpt_label();
 			break;
 		default:
-			table.add_part = add_none_part;
-			table.delete_part = delete_none_part;
-			table.new_table = new_none_table;
-			table.print_parts = print_none_parts;
-			table.write_parts = write_none_parts;
-			table.extra_funcs = extra_none_funcs;
+			construct_none_label();
 			break;
 	}
 }
 
-void free_table(void)
+void free_label(void)
 {
-	switch(table.layout) {
+	/*
+	switch(label.layout) {
 		case LYT_MBR:
-			if (table.data.mbr.parts != NULL) {
-				mbr_free_partitions(table.data.mbr.parts);
-				table.data.mbr.parts = NULL;
-			}
-			if (table.data.mbr.mbr != NULL) {
-				mbr_free_mbr(table.data.mbr.mbr);
-				table.data.mbr.mbr = NULL;
-			}
+			destroy_mbr_label(&label);
 			break;
 		case LYT_GPT:
-			if (table.data.gpt.parts != NULL) {
-				gpt_free_partitions(table.data.gpt.parts);
-				table.data.gpt.parts = NULL;
-			}
-			if (table.data.gpt.gpt != NULL) {
-				gpt_free_gpt(table.data.gpt.gpt);
-				table.data.gpt.gpt = NULL;
-			}
+			destroy_gpt_label(&label);
 			break;
 		default:
 			break;
 	}
+	*/
+	
+	label.destroy_label(&label.data);
 }
+
+int try_read(service_id_t dev_handle)
+{
+	fill_label_funcs();
+	printf("read_parts\n");
+	return label.read_parts(dev_handle, &label.data);
+}
+
+int construct_none_label()
+{
+	label.add_part      = add_none_part;
+	label.delete_part   = delete_none_part;
+	label.destroy_label = destroy_none_label;
+	label.new_label     = new_none_label;
+	label.print_parts   = print_none_parts;
+	label.read_parts    = read_none_parts;
+	label.write_parts   = write_none_parts;
+	label.extra_funcs   = extra_none_funcs;
+	
+	return EOK;
+}
+
+int construct_mbr_label()
+{
+	label.add_part      = add_mbr_part;
+	label.delete_part   = delete_mbr_part;
+	label.destroy_label = destroy_mbr_label;
+	label.new_label     = new_mbr_label;
+	label.print_parts   = print_mbr_parts;
+	label.read_parts    = read_mbr_parts;
+	label.write_parts   = write_mbr_parts;
+	label.extra_funcs   = extra_mbr_funcs;
+	
+	return label.new_label(&label.data);
+}
+
+int try_read_mbr(service_id_t dev_handle)
+{
+	label.layout = LYT_MBR;
+	return try_read(dev_handle);
+}
+
+int construct_gpt_label()
+{
+	label.add_part    = add_gpt_part;
+	label.delete_part = delete_gpt_part;
+	label.new_label   = new_gpt_label;
+	label.print_parts = print_gpt_parts;
+	label.read_parts  = read_gpt_parts;
+	label.write_parts = write_gpt_parts;
+	label.extra_funcs = extra_gpt_funcs;
+	
+	return label.new_label(&label.data);
+}
+
+int try_read_gpt(service_id_t dev_handle)
+{
+	label.layout = LYT_GPT;
+	return try_read(dev_handle);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

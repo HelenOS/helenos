@@ -40,11 +40,13 @@
 
 #include "common.h"
 
-extern int add_none_part(tinput_t * in, union table_data * data);
-extern int delete_none_part(tinput_t * in, union table_data * data);
-extern int new_none_table(tinput_t *, union table_data *);
-extern int print_none_parts(union table_data * data);
-extern int write_none_parts(service_id_t dev_handle, union table_data * data);
-extern int extra_none_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data);
+extern int add_none_part(tinput_t *, union label_data *);
+extern int delete_none_part(tinput_t *, union label_data *);
+extern int destroy_none_label(union label_data *);
+extern int new_none_label(union label_data *);
+extern int print_none_parts(union label_data *);
+extern int read_none_parts(service_id_t, union label_data *);
+extern int write_none_parts(service_id_t, union label_data *);
+extern int extra_none_funcs(tinput_t *, service_id_t, union label_data *);
 
 #endif
