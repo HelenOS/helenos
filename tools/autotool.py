@@ -193,12 +193,15 @@ def get_target(config):
 		
 		if (config['CROSS_TARGET'] == "arm32"):
 			gnu_target = "arm-linux-gnueabi"
+			clang_target = "arm-unknown-linux"
 		
 		if (config['CROSS_TARGET'] == "ia32"):
 			gnu_target = "i686-pc-linux-gnu"
+			clang_target = "i386-unknown-linux"
 		
 		if (config['CROSS_TARGET'] == "mips32"):
 			gnu_target = "mipsel-linux-gnu"
+			clang_target = "mipsel-unknown-linux"
 			common['CC_ARGS'].append("-mabi=32")
 	
 	if (config['PLATFORM'] == "amd64"):
@@ -209,6 +212,7 @@ def get_target(config):
 	if (config['PLATFORM'] == "arm32"):
 		target = config['PLATFORM']
 		gnu_target = "arm-linux-gnueabi"
+		clang_target = "arm-unknown-linux"
 	
 	if (config['PLATFORM'] == "ia32"):
 		target = config['PLATFORM']
@@ -226,10 +230,12 @@ def get_target(config):
 		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 			target = config['PLATFORM']
 			gnu_target = "mipsel-linux-gnu"
+			clang_target = "mipsel-unknown-linux"
 		
 		if ((config['MACHINE'] == "bmalta")):
 			target = "mips32eb"
 			gnu_target = "mips-linux-gnu"
+			clang_target = "mips-unknown-linux"
 	
 	if (config['PLATFORM'] == "mips64"):
 		check_config(config, "MACHINE")
@@ -238,14 +244,17 @@ def get_target(config):
 		if (config['MACHINE'] == "msim"):
 			target = config['PLATFORM']
 			gnu_target = "mips64el-linux-gnu"
+			clang_target = "mips64el-unknown-linux"
 	
 	if (config['PLATFORM'] == "ppc32"):
 		target = config['PLATFORM']
 		gnu_target = "ppc-linux-gnu"
+		clang_target = "powerpc-unknown-linux"
 	
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
+		clang_target = "sparc-unknown-linux"
 	
 	return (target, cc_args, gnu_target, clang_target)
 
