@@ -39,13 +39,13 @@ __thread_entry:
 	mov %dx, %es
 	mov %dx, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
-
+	
 	#
 	# Create the first stack frame.
 	#
 	pushl $0
 	mov %esp, %ebp
-
+	
 	#
 	# EAX contains address of uarg.
 	#

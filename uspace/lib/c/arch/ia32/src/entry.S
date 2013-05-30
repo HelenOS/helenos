@@ -46,7 +46,7 @@ __entry:
 	mov %ax, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
 	
-#ifndef PROCESSOR_i486	
+#ifndef PROCESSOR_i486
 	# Detect the mechanism used for making syscalls
 	movl $(INTEL_CPUID_STANDARD), %eax
 	cpuid
