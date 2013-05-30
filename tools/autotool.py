@@ -181,6 +181,78 @@ def check_common(common, key):
 		print_error(["Failed to determine the value %s." % key,
 		             "Please contact the developers of HelenOS."])
 
+def get_target(config, needs_clang = False):
+	target = None
+	gnu_target = None
+	clang_target = None
+	cc_args = []
+	
+	if (config['PLATFORM'] == "abs32le"):
+		check_config(config, "CROSS_TARGET")
+		target = config['CROSS_TARGET']
+		
+		if (config['CROSS_TARGET'] == "arm32"):
+			gnu_target = "arm-linux-gnueabi"
+		
+		if (config['CROSS_TARGET'] == "ia32"):
+			gnu_target = "i686-pc-linux-gnu"
+		
+		if (config['CROSS_TARGET'] == "mips32"):
+			gnu_target = "mipsel-linux-gnu"
+			common['CC_ARGS'].append("-mabi=32")
+	
+	if (config['PLATFORM'] == "amd64"):
+		target = config['PLATFORM']
+		gnu_target = "amd64-linux-gnu"
+		clang_target = "x86_64-uknown-linux"
+	
+	if (config['PLATFORM'] == "arm32"):
+		target = config['PLATFORM']
+		gnu_target = "arm-linux-gnueabi"
+	
+	if (config['PLATFORM'] == "ia32"):
+		target = config['PLATFORM']
+		gnu_target = "i686-pc-linux-gnu"
+		clang_target = "i386-uknown-linux"
+	
+	if (config['PLATFORM'] == "ia64"):
+		target = config['PLATFORM']
+		gnu_target = "ia64-pc-linux-gnu"
+	
+	if (config['PLATFORM'] == "mips32"):
+		check_config(config, "MACHINE")
+		cc_args.append("-mabi=32")
+		
+		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
+			target = config['PLATFORM']
+			gnu_target = "mipsel-linux-gnu"
+		
+		if ((config['MACHINE'] == "bmalta")):
+			target = "mips32eb"
+			gnu_target = "mips-linux-gnu"
+	
+	if (config['PLATFORM'] == "mips64"):
+		check_config(config, "MACHINE")
+		cc_args.append("-mabi=64")
+		
+		if (config['MACHINE'] == "msim"):
+			target = config['PLATFORM']
+			gnu_target = "mips64el-linux-gnu"
+	
+	if (config['PLATFORM'] == "ppc32"):
+		target = config['PLATFORM']
+		gnu_target = "ppc-linux-gnu"
+	
+	if (config['PLATFORM'] == "sparc64"):
+		target = config['PLATFORM']
+		gnu_target = "sparc64-linux-gnu"
+	
+	if (target is None) or (gnu_target is None) or (clang_target is None and needs_clang):
+		print_error(["Failed to determine target for compiler.",
+		             "Please contact the developers of HelenOS."])
+	
+	return (target, cc_args, gnu_target, clang_target)
+
 def check_app(args, name, details):
 	"Check whether an application can be executed"
 	
@@ -641,64 +713,7 @@ def main():
 		# Compiler
 		common['CC_ARGS'] = []
 		if (config['COMPILER'] == "gcc_cross"):
-			if (config['PLATFORM'] == "abs32le"):
-				check_config(config, "CROSS_TARGET")
-				target = config['CROSS_TARGET']
-				
-				if (config['CROSS_TARGET'] == "arm32"):
-					gnu_target = "arm-linux-gnueabi"
-				
-				if (config['CROSS_TARGET'] == "ia32"):
-					gnu_target = "i686-pc-linux-gnu"
-				
-				if (config['CROSS_TARGET'] == "mips32"):
-					gnu_target = "mipsel-linux-gnu"
-					common['CC_ARGS'].append("-mabi=32")
-			
-			if (config['PLATFORM'] == "amd64"):
-				target = config['PLATFORM']
-				gnu_target = "amd64-linux-gnu"
-			
-			if (config['PLATFORM'] == "arm32"):
-				target = config['PLATFORM']
-				gnu_target = "arm-linux-gnueabi"
-			
-			if (config['PLATFORM'] == "ia32"):
-				target = config['PLATFORM']
-				gnu_target = "i686-pc-linux-gnu"
-			
-			if (config['PLATFORM'] == "ia64"):
-				target = config['PLATFORM']
-				gnu_target = "ia64-pc-linux-gnu"
-			
-			if (config['PLATFORM'] == "mips32"):
-				check_config(config, "MACHINE")
-				common['CC_ARGS'].append("-mabi=32")
-				
-				if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
-					target = config['PLATFORM']
-					gnu_target = "mipsel-linux-gnu"
-				
-				if ((config['MACHINE'] == "bmalta")):
-					target = "mips32eb"
-					gnu_target = "mips-linux-gnu"
-			
-			if (config['PLATFORM'] == "mips64"):
-				check_config(config, "MACHINE")
-				common['CC_ARGS'].append("-mabi=64")
-				
-				if (config['MACHINE'] == "msim"):
-					target = config['PLATFORM']
-					gnu_target = "mips64el-linux-gnu"
-			
-			if (config['PLATFORM'] == "ppc32"):
-				target = config['PLATFORM']
-				gnu_target = "ppc-linux-gnu"
-			
-			if (config['PLATFORM'] == "sparc64"):
-				target = config['PLATFORM']
-				gnu_target = "sparc64-linux-gnu"
-			
+			target, cc_args, gnu_target, clang_target_unused = get_target(config)
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
 			
@@ -707,6 +722,7 @@ def main():
 			
 			check_common(common, "GCC")
 			common['CC'] = common['GCC']
+			common['CC_ARGS'].extend(cc_args)
 		
 		if (config['COMPILER'] == "gcc_native"):
 			check_gcc(None, "", common, PACKAGE_GCC)
@@ -722,10 +738,17 @@ def main():
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
 		if (config['COMPILER'] == "clang"):
+			target, cc_args, gnu_target, clang_target = get_target(config, True)
+			path = "%s/%s/bin" % (cross_prefix, target)
+			prefix = "%s-" % gnu_target
+			
 			common['CC'] = "clang"
+			common['CC_ARGS'].extend(cc_args)
+			common['CC_ARGS'].append("-target")
+			common['CC_ARGS'].append(clang_target)
 			check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")
-			check_gcc(None, "", common, PACKAGE_GCC)
-			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
+			check_gcc(path, prefix, common, PACKAGE_GCC)
+			check_binutils(path, prefix, common, PACKAGE_BINUTILS)
 		
 		# Platform-specific utilities
 		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):

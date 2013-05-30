@@ -27,12 +27,14 @@
 #
 
 CLANG_ARCH = i386
+CLANG_TARGET = i386-unknown-linux
 
 ifeq ($(PROCESSOR),i486)
 	GCC_CFLAGS += -march=i486 -fno-omit-frame-pointer
 else
 	GCC_CFLAGS += -march=pentium -fno-omit-frame-pointer
 endif
+CLANG_CFLAGS += -fno-omit-frame-pointer
 
 ENDIANESS = LE
 

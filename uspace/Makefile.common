@@ -197,12 +197,15 @@ ICC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) 
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -D__$(ENDIANESS)__
 
+# clang does not support following options but I am not sure whether
+# something won't break because of that:
+# -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
 CLANG_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -g -arch $(CLANG_ARCH) -D__$(ENDIANESS)__
+	-integrated-as \
+	-pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
 
 LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
@@ -250,6 +253,7 @@ endif
 
 ifeq ($(COMPILER),clang)
 	CFLAGS += $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
+	GCC_CFLAGS += $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
@@ -302,7 +306,7 @@ ifneq ($(SLIBRARY),)
 endif
 
 %.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
 endif
