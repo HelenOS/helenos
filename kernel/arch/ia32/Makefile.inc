@@ -29,7 +29,6 @@
 BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = binary
-CLANG_ARCH = i386
 CLANG_TARGET = i386-unknown-linux
 
 BITS = 32

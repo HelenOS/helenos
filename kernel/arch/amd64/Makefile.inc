@@ -29,7 +29,6 @@
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
-CLANG_ARCH = x86_64
 CLANG_TARGET = x86_64-unknown-linux
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
