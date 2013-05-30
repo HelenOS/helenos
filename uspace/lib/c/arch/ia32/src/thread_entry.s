@@ -44,6 +44,7 @@ __thread_entry:
 	# Create the first stack frame.
 	#
 	pushl $0
+	pushl $0
 	mov %esp, %ebp
 	
 	#

@@ -61,6 +61,7 @@ __entry:
 	# Create the first stack frame.
 	#
 	pushl $0
+	pushl $0
 	movl %esp, %ebp
 	
 	# Pass the PCB pointer to __main as the first argument
