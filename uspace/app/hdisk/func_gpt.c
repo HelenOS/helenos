@@ -42,9 +42,9 @@
 
 static int set_gpt_partition(tinput_t *, gpt_part_t *);
 
-int add_gpt_part(tinput_t * in, union table_data * data)
+int add_gpt_part(tinput_t * in, union label_data * data)
 {
-	gpt_part_t * p = gpt_alloc_partition(data->gpt.parts);
+	gpt_part_t * p = gpt_alloc_partition(data->gpt->parts);
 	if (p == NULL) {
 		return ENOMEM;
 	}
@@ -52,28 +52,33 @@ int add_gpt_part(tinput_t * in, union table_data * data)
 	return set_gpt_partition(in, p);
 }
 
-int delete_gpt_part(tinput_t * in, union table_data * data)
+int delete_gpt_part(tinput_t * in, union label_data * data)
 {
 	size_t idx;
 
 	printf("Number of the partition to delete (counted from 0): ");
 	idx = get_input_size_t(in);
 
-	if (gpt_remove_partition(data->gpt.parts, idx) == -1) {
+	if (gpt_remove_partition(data->gpt->parts, idx) == -1) {
 		printf("Warning: running low on memory, not resizing...\n");
 	}
 
 	return EOK;
 }
 
-int new_gpt_table(tinput_t * in, union table_data * data)
+int destroy_gpt_label(union label_data *data)
 {
-	data->gpt.gpt = gpt_alloc_gpt_header();
-	data->gpt.parts = gpt_alloc_partitions();
 	return EOK;
 }
 
-int print_gpt_parts(union table_data * data)
+int new_gpt_label(union label_data *data)
+{
+	data->gpt->gpt = gpt_alloc_gpt_header();
+	data->gpt->parts = gpt_alloc_partitions();
+	return EOK;
+}
+
+int print_gpt_parts(union label_data *data)
 {
 	//int rc;
 	printf("Current partition scheme (GPT):\n");
@@ -81,7 +86,7 @@ int print_gpt_parts(union table_data * data)
 	
 	size_t i = 0;
 	
-	gpt_part_foreach(data->gpt.parts, iter) {
+	gpt_part_foreach(data->gpt->parts, iter) {
 		//printf("\t%10u %10u %10u %3d\n", iter->start_addr, iter->start_addr + iter->length,
 		//		iter->length, gpt_get_part_type(iter), gpt_get_part_name(iter));
 		printf("%3u\t%10llu %10llu %10llu %3d %s\n", i, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
@@ -94,17 +99,22 @@ int print_gpt_parts(union table_data * data)
 	return EOK;
 }
 
-int write_gpt_parts(service_id_t dev_handle, union table_data * data)
+int read_gpt_parts(service_id_t dev_handle, union label_data *data)
+{
+	return EOK;
+}
+
+int write_gpt_parts(service_id_t dev_handle, union label_data * data)
 {
 	int rc;
 
-	rc = gpt_write_partitions(data->gpt.parts, data->gpt.gpt, dev_handle);
+	rc = gpt_write_partitions(data->gpt->parts, data->gpt->gpt, dev_handle);
 	if (rc != EOK) {
 		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
 
-	rc = gpt_write_gpt_header(data->gpt.gpt, dev_handle);
+	rc = gpt_write_gpt_header(data->gpt->gpt, dev_handle);
 	if (rc != EOK) {
 		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
@@ -113,7 +123,7 @@ int write_gpt_parts(service_id_t dev_handle, union table_data * data)
 	return EOK;
 }
 
-int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
+int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union label_data * data)
 {
 	printf("Not implemented.\n");
 	return EOK;

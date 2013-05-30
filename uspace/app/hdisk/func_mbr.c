@@ -40,27 +40,25 @@
 #include "func_mbr.h"
 #include "input.h"
 
-static int set_mbr_partition(tinput_t * in, mbr_part_t * p);
+static int set_mbr_partition(tinput_t *in, mbr_part_t *p);
 
-
-int add_mbr_part(tinput_t * in, union table_data * data)
+int add_mbr_part(tinput_t *in, union label_data *data)
 {
 	int rc;
 	
-	mbr_part_t * part = mbr_alloc_partition();
+	mbr_part_t *part = mbr_alloc_partition();
 
 	set_mbr_partition(in, part);
 
-	rc = mbr_add_partition(data->mbr.parts, part);
+	rc = mbr_add_partition(data->mbr, part);
 	if (rc != EOK) {
 		printf("Error adding partition.\n");
 	}
 	
-	
-	return rc;
+	return EOK;
 }
 
-int delete_mbr_part(tinput_t * in, union table_data * data)
+int delete_mbr_part(tinput_t *in, union label_data *data)
 {
 	int rc;
 	size_t idx;
@@ -71,7 +69,7 @@ int delete_mbr_part(tinput_t * in, union table_data * data)
 	if (idx == 0 && errno != EOK)
 		return errno;
 	
-	rc = mbr_remove_partition(data->mbr.parts, idx);
+	rc = mbr_remove_partition(data->mbr, idx);
 	if(rc != EOK) {
 		printf("Error: something.\n");
 	}
@@ -79,15 +77,23 @@ int delete_mbr_part(tinput_t * in, union table_data * data)
 	return EOK;
 }
 
-int new_mbr_table(tinput_t * in, union table_data * data)
+int destroy_mbr_label(union label_data *data)
 {
-	data->mbr.mbr = mbr_alloc_mbr();
-	data->mbr.parts = mbr_alloc_partitions();
+	mbr_free_label(data->mbr);
 	return EOK;
 }
 
+int new_mbr_label(union label_data *data)
+{
+	data->mbr = mbr_alloc_label();
+	if (data->mbr == NULL)
+		return ENOMEM;
+	else
+		return EOK;
+}
+
 /** Print current partition scheme */
-int print_mbr_parts(union table_data * data)
+int print_mbr_parts(union label_data *data)
 {
 	int num = 0;
 
@@ -95,8 +101,8 @@ int print_mbr_parts(union table_data * data)
 	//printf("\t\tBootable:\tStart:\tEnd:\tLength:\tType:\n");
 	printf("\t\t%10s  %10s %10s %10s %7s\n", "Bootable:", "Start:", "End:", "Length:", "Type:");
 	
-	mbr_part_t * it;
-	mbr_part_foreach(data->mbr.parts, it) {
+	mbr_part_t *it;
+	mbr_part_foreach(data->mbr->parts, it) {
 		if (it->type == PT_UNUSED)
 			continue;
 
@@ -116,9 +122,27 @@ int print_mbr_parts(union table_data * data)
 	return EOK;
 }
 
-int write_mbr_parts(service_id_t dev_handle, union table_data * data)
+int read_mbr_parts(service_id_t dev_handle, union label_data *data)
 {
-	int rc = mbr_write_partitions(data->mbr.parts, data->mbr.mbr, dev_handle);
+	int rc;
+	printf("mbr\n");
+	rc = mbr_read_mbr(data->mbr, dev_handle);
+	if (rc != EOK)
+		return rc;
+	printf("ismbr\n");
+	if (!mbr_is_mbr(data->mbr))
+		return EINVAL;
+	printf("parts\n");
+	rc = mbr_read_partitions(data->mbr);
+	if (rc != EOK)
+		return rc;
+	printf("end\n");
+	return EOK;
+}
+
+int write_mbr_parts(service_id_t dev_handle, union label_data *data)
+{
+	int rc = mbr_write_partitions(data->mbr, dev_handle);
 	if (rc != EOK) {
 		printf("Error occured during writing: ERR: %d: %s\n", rc, str_error(rc));
 	}
@@ -126,13 +150,13 @@ int write_mbr_parts(service_id_t dev_handle, union table_data * data)
 	return rc;
 }
 
-int extra_mbr_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
+int extra_mbr_funcs(tinput_t *in, service_id_t dev_handle, union label_data *data)
 {
 	printf("Not implemented.\n");
 	return EOK;
 }
 
-static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
+static int set_mbr_partition(tinput_t *in, mbr_part_t *p)
 {
 	int c;
 	uint8_t type;
@@ -158,7 +182,7 @@ static int set_mbr_partition(tinput_t * in, mbr_part_t * p)
 	if (type == 0 && errno != EOK)
 		return errno;
 
-	///TODO: there can only be one bootable partition; let's do it just like fdisk
+	///TODO: there can only be one boolabel partition; let's do it just like fdisk
 	printf("Bootable? (y/n): ");
 	c = getchar();
 	if (c != 'y' && c != 'Y' && c != 'n' && c != 'N') {
