@@ -41,11 +41,13 @@
 
 #include "common.h"
 
-extern int add_gpt_part(tinput_t * in, union table_data * data);
-extern int delete_gpt_part(tinput_t * in, union table_data * data);
-extern int new_gpt_table(tinput_t *, union table_data *);
-extern int print_gpt_parts(union table_data * data);
-extern int write_gpt_parts(service_id_t dev_handle, union table_data * data);
-extern int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data);
+extern int add_gpt_part(tinput_t *, union label_data *);
+extern int delete_gpt_part(tinput_t *, union label_data *);
+extern int destroy_gpt_label(union label_data *);
+extern int new_gpt_label(union label_data *);
+extern int print_gpt_parts(union label_data *);
+extern int read_gpt_parts(service_id_t, union label_data *);
+extern int write_gpt_parts(service_id_t, union label_data *);
+extern int extra_gpt_funcs(tinput_t *, service_id_t, union label_data *);
 
 #endif

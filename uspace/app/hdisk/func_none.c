@@ -39,37 +39,50 @@
 
 static void not_implemented(void);
 
-int add_none_part(tinput_t * in, union table_data * data)
+
+int add_none_part(tinput_t *in, union label_data *data)
 {
 	not_implemented();
 	return EOK;
 }
 
-int delete_none_part(tinput_t * in, union table_data * data)
+int delete_none_part(tinput_t *in, union label_data *data)
 {
 	not_implemented();
 	return EOK;
 }
 
-int new_none_table(tinput_t * in, union table_data * data)
+int destroy_none_label(union label_data *data)
 {
 	not_implemented();
 	return EOK;
 }
 
-int print_none_parts(union table_data * data)
+int new_none_label(union label_data *data)
 {
 	not_implemented();
 	return EOK;
 }
 
-int write_none_parts(service_id_t dev_handle, union table_data * data)
+int print_none_parts(union label_data *data)
 {
 	not_implemented();
 	return EOK;
 }
 
-int extra_none_funcs(tinput_t * in, service_id_t dev_handle, union table_data * data)
+int read_none_parts(service_id_t dev_handle, union label_data *data)
+{
+	not_implemented();
+	return EOK;
+}
+
+int write_none_parts(service_id_t dev_handle, union label_data *data)
+{
+	not_implemented();
+	return EOK;
+}
+
+int extra_none_funcs(tinput_t *in, service_id_t dev_handle, union label_data *data)
 {
 	not_implemented();
 	return EOK;

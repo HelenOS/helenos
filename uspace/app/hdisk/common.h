@@ -38,9 +38,9 @@
 #include <libmbr.h>
 #include <libgpt.h>
 
-union table_data {
-	mbr_table_t	mbr;
-	gpt_table_t	gpt;
+union label_data {
+	mbr_label_t	*mbr;
+	gpt_label_t	*gpt;
 };
 
 #endif

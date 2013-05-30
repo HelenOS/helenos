@@ -52,12 +52,10 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.22"
+BINUTILS_VERSION="2.23.1"
 BINUTILS_RELEASE=""
-#GCC_VERSION="4.7.2"
-GCC_VERSION="4.7.3"
-#GCC_VERSION="4.8.0"
-GDB_VERSION="7.5"
+GCC_VERSION="4.8.0"
+GDB_VERSION="7.5.1"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
@@ -72,9 +70,9 @@ check_dependency() {
 	DEPENDENCY="$1"
 	HEADER="$2"
 	BODY="$3"
-
+	
 	FNAME="/tmp/conftest-$$"
-
+	
 	echo "#include ${HEADER}" > "${FNAME}.c"
 	echo >> "${FNAME}.c"
 	echo "int main()" >> "${FNAME}.c"
@@ -82,10 +80,10 @@ check_dependency() {
 	echo "${BODY}" >> "${FNAME}.c"
 	echo "	return 0;" >> "${FNAME}.c"
 	echo "}" >> "${FNAME}.c"
-
+	
 	cc -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
 	RC="$?"
-
+	
 	if [ "$RC" -ne "0" ] ; then
 		echo " ${DEPENDENCY} not found, too old or compiler error."
 		echo " Please recheck manually the source file \"${FNAME}.c\"."
@@ -114,7 +112,7 @@ check_error() {
 	if [ "$1" -ne "0" ]; then
 		echo
 		echo "Script failed: $2"
-
+		
 		exit 1
 	fi
 }
@@ -122,12 +120,12 @@ check_error() {
 check_md5() {
 	FILE="$1"
 	SUM="$2"
-
+	
 	COMPUTED="`md5sum "${FILE}" | cut -d' ' -f1`"
 	if [ "${SUM}" != "${COMPUTED}" ] ; then
 		echo
 		echo "Checksum of ${FILE} does not match."
-
+		
 		exit 2
 	fi
 }
@@ -157,7 +155,7 @@ show_usage() {
 	echo "the CROSS_PREFIX environment variable. If the variable is not"
 	echo "defined, /usr/local/cross will be used by default."
 	echo
-
+	
 	exit 3
 }
 
@@ -167,16 +165,16 @@ change_title() {
 
 show_countdown() {
 	TM="$1"
-
+	
 	if [ "${TM}" -eq 0 ] ; then
 		echo
 		return 0
 	fi
-
+	
 	echo -n "${TM} "
 	change_title "${TM}"
 	sleep 1
-
+	
 	TM="`expr "${TM}" - 1`"
 	show_countdown "${TM}"
 }
@@ -212,30 +210,30 @@ download_fetch() {
 	SOURCE="$1"
 	FILE="$2"
 	CHECKSUM="$3"
-
+	
 	if [ ! -f "${FILE}" ]; then
 		change_title "Downloading ${FILE}"
 		wget -c "${SOURCE}${FILE}"
 		check_error $? "Error downloading ${FILE}."
 	fi
-
+	
 	check_md5 "${FILE}" "${CHECKSUM}"
 }
 
 source_check() {
 	FILE="$1"
-
+	
 	if [ ! -f "${FILE}" ]; then
 		echo
 		echo "File ${FILE} not found."
-
+		
 		exit 4
 	fi
 }
 
 cleanup_dir() {
 	DIR="$1"
-
+	
 	if [ -d "${DIR}" ]; then
 		change_title "Removing ${DIR}"
 		echo " >>> Removing ${DIR}"
@@ -246,10 +244,10 @@ cleanup_dir() {
 create_dir() {
 	DIR="$1"
 	DESC="$2"
-
+	
 	change_title "Creating ${DESC}"
 	echo ">>> Creating ${DESC}"
-
+	
 	mkdir -p "${DIR}"
 	test -d "${DIR}"
 	check_error $? "Unable to create ${DIR}."
@@ -258,10 +256,10 @@ create_dir() {
 unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
-
+	
 	change_title "Unpacking ${DESC}"
 	echo " >>> Unpacking ${DESC}"
-
+	
 	tar -xjf "${FILE}"
 	check_error $? "Error unpacking ${DESC}."
 }
@@ -270,94 +268,94 @@ prepare() {
 	show_dependencies
 	check_dependecies
 	show_countdown 10
-
+	
 	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
-
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "cc308a0891e778cfda7a151ab8a6e762"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "24a6779a9fe0260667710de1b082ef61"
+	
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "e6040024eb9e761c3bea348d1fa5abb0"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "3f48f468b24447cf24820054ff6e85b1"
 }
 
 build_target() {
 	PLATFORM="$1"
 	TARGET="$2"
-
+	
 	WORKDIR="${BASEDIR}/${PLATFORM}"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 	OBJDIR="${WORKDIR}/gcc-obj"
 	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
-
+	
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
 	fi
-
+	
 	PREFIX="${CROSS_PREFIX}/${PLATFORM}"
-
+	
 	echo ">>> Downloading tarballs"
-	#source_check "${BASEDIR}/${BINUTILS}"
+	source_check "${BASEDIR}/${BINUTILS}"
 	source_check "${BASEDIR}/${GCC}"
-	#source_check "${BASEDIR}/${GDB}"
-
+	source_check "${BASEDIR}/${GDB}"
+	
 	echo ">>> Removing previous content"
-	#cleanup_dir "${PREFIX}"
-	#cleanup_dir "${WORKDIR}"
-
+	cleanup_dir "${PREFIX}"
+	cleanup_dir "${WORKDIR}"
+	
 	create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
-
+	
 	echo ">>> Unpacking tarballs"
 	cd "${WORKDIR}"
 	check_error $? "Change directory failed."
-
-	#unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
+	
+	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
 	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
-	#unpack_tarball "${BASEDIR}/${GDB}" "GDB"
-
-	#echo ">>> Processing binutils (${PLATFORM})"
-	#cd "${BINUTILSDIR}"
-	#check_error $? "Change directory failed."
-
-	#change_title "binutils: configure (${PLATFORM})"
-	#CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
-	#check_error $? "Error configuring binutils."
-
-	#change_title "binutils: make (${PLATFORM})"
-	#make all install
-	#check_error $? "Error compiling/installing binutils."
-
+	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
+	
+	echo ">>> Processing binutils (${PLATFORM})"
+	cd "${BINUTILSDIR}"
+	check_error $? "Change directory failed."
+	
+	change_title "binutils: configure (${PLATFORM})"
+	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
+	check_error $? "Error configuring binutils."
+	
+	change_title "binutils: make (${PLATFORM})"
+	make all install
+	check_error $? "Error compiling/installing binutils."
+	
 	echo ">>> Processing GCC (${PLATFORM})"
 	cd "${OBJDIR}"
 	check_error $? "Change directory failed."
-
+	
 	change_title "GCC: configure (${PLATFORM})"
 	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
-
+	
 	change_title "GCC: make (${PLATFORM})"
 	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 	check_error $? "Error compiling/installing GCC."
-
-	#echo ">>> Processing GDB (${PLATFORM})"
-	#cd "${GDBDIR}"
-	#check_error $? "Change directory failed."
-
-	#change_title "GDB: configure (${PLATFORM})"
-	#./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
-	#check_error $? "Error configuring GDB."
-
-	#change_title "GDB: make (${PLATFORM})"
-	#make all install
-	#check_error $? "Error compiling/installing GDB."
-
+	
+	echo ">>> Processing GDB (${PLATFORM})"
+	cd "${GDBDIR}"
+	check_error $? "Change directory failed."
+	
+	change_title "GDB: configure (${PLATFORM})"
+	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
+	check_error $? "Error configuring GDB."
+	
+	change_title "GDB: make (${PLATFORM})"
+	make all install
+	check_error $? "Error compiling/installing GDB."
+	
 	cd "${BASEDIR}"
 	check_error $? "Change directory failed."
-
+	
 	echo ">>> Cleaning up"
 	cleanup_dir "${WORKDIR}"
-
+	
 	echo
 	echo ">>> Cross-compiler for ${TARGET} installed."
 }
@@ -368,7 +366,7 @@ fi
 
 case "$1" in
 	"amd64")
-		#prepare
+		prepare
 		build_target "amd64" "amd64-linux-gnu"
 		;;
 	"arm32")
@@ -376,7 +374,7 @@ case "$1" in
 		build_target "arm32" "arm-linux-gnueabi"
 		;;
 	"ia32")
-		#prepare
+		prepare
 		build_target "ia32" "i686-pc-linux-gnu"
 		;;
 	"ia64")
@@ -439,19 +437,19 @@ case "$1" in
 		build_target "amd64" "amd64-linux-gnu" &
 		build_target "arm32" "arm-linux-gnueabi" &
 		wait
-
+		
 		build_target "ia32" "i686-pc-linux-gnu" &
 		build_target "ia64" "ia64-pc-linux-gnu" &
 		wait
-
+		
 		build_target "mips32" "mipsel-linux-gnu" &
 		build_target "mips32eb" "mips-linux-gnu" &
 		wait
-
+		
 		build_target "mips64" "mips64el-linux-gnu" &
 		build_target "ppc32" "ppc-linux-gnu" &
 		wait
-
+		
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
 		wait
