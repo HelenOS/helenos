@@ -181,7 +181,7 @@ def check_common(common, key):
 		print_error(["Failed to determine the value %s." % key,
 		             "Please contact the developers of HelenOS."])
 
-def get_target(config, needs_clang = False):
+def get_target(config):
 	target = None
 	gnu_target = None
 	clang_target = None
@@ -204,7 +204,7 @@ def get_target(config, needs_clang = False):
 	if (config['PLATFORM'] == "amd64"):
 		target = config['PLATFORM']
 		gnu_target = "amd64-linux-gnu"
-		clang_target = "x86_64-uknown-linux"
+		clang_target = "x86_64-unknown-linux"
 	
 	if (config['PLATFORM'] == "arm32"):
 		target = config['PLATFORM']
@@ -213,7 +213,7 @@ def get_target(config, needs_clang = False):
 	if (config['PLATFORM'] == "ia32"):
 		target = config['PLATFORM']
 		gnu_target = "i686-pc-linux-gnu"
-		clang_target = "i386-uknown-linux"
+		clang_target = "i386-unknown-linux"
 	
 	if (config['PLATFORM'] == "ia64"):
 		target = config['PLATFORM']
@@ -246,10 +246,6 @@ def get_target(config, needs_clang = False):
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
-	
-	if (target is None) or (gnu_target is None) or (clang_target is None and needs_clang):
-		print_error(["Failed to determine target for compiler.",
-		             "Please contact the developers of HelenOS."])
 	
 	return (target, cc_args, gnu_target, clang_target)
 
@@ -713,7 +709,12 @@ def main():
 		# Compiler
 		common['CC_ARGS'] = []
 		if (config['COMPILER'] == "gcc_cross"):
-			target, cc_args, gnu_target, clang_target_unused = get_target(config)
+			target, cc_args, gnu_target, clang_target = get_target(config)
+			
+			if (target is None) or (gnu_target is None):
+				print_error(["Unsupported compiler target for GNU GCC.",
+				             "Please contact the developers of HelenOS."])
+			
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
 			
@@ -738,17 +739,25 @@ def main():
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
 		if (config['COMPILER'] == "clang"):
-			target, cc_args, gnu_target, clang_target = get_target(config, True)
+			target, cc_args, gnu_target, clang_target = get_target(config)
+			
+			if (target is None) or (gnu_target is None) or (clang_target is None):
+				print_error(["Unsupported compiler target for clang.",
+				             "Please contact the developers of HelenOS."])
+			
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
 			
+			check_app(["clang", "--version"], "clang compiler", "preferably version 1.0 or newer")
+			check_gcc(path, prefix, common, PACKAGE_GCC)
+			check_binutils(path, prefix, common, PACKAGE_BINUTILS)
+			
+			check_common(common, "GCC")
 			common['CC'] = "clang"
 			common['CC_ARGS'].extend(cc_args)
 			common['CC_ARGS'].append("-target")
 			common['CC_ARGS'].append(clang_target)
-			check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")
-			check_gcc(path, prefix, common, PACKAGE_GCC)
-			check_binutils(path, prefix, common, PACKAGE_BINUTILS)
+			common['CLANG_TARGET'] = clang_target
 		
 		# Platform-specific utilities
 		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):

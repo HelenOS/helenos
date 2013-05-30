@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CLANG_TARGET = i386-unknown-linux
-
 ifeq ($(PROCESSOR),i486)
 	GCC_CFLAGS += -march=i486 -fno-omit-frame-pointer
 else
