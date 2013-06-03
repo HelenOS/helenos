@@ -96,16 +96,15 @@
 #define CHECK_INT_TYPE_(signness, size) \
 	STATIC_ASSERT_VERBOSE(sizeof(signness##size##_t) * 8 == size, \
 	    #signness #size "_t does not have " #size " bits");
+
 #define CHECK_INT_TYPE(size) \
-	CHECK_INT_TYPE_(int, size); CHECK_INT_TYPE_(uint, size)
+	CHECK_INT_TYPE_(int, size); \
+	CHECK_INT_TYPE_(uint, size)
 
 CHECK_INT_TYPE(8);
 CHECK_INT_TYPE(16);
 CHECK_INT_TYPE(32);
 CHECK_INT_TYPE(64);
-
-
-
 
 /** Global configuration structure. */
 config_t config = {

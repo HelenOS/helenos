@@ -73,6 +73,7 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
@@ -90,6 +91,7 @@ GENERIC_SOURCES = \
 	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
+	generic/inet/addr.c \
 	generic/inet.c \
 	generic/inetcfg.c \
 	generic/inetping.c \

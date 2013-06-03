@@ -724,7 +724,7 @@ int ext4_directory_find_in_block(block_t *block, ext4_superblock_t *sb,
 			if (ext4_directory_entry_ll_get_name_length(sb, dentry) ==
 			    name_len) {
 				/* Compare names */
-				if (bcmp((uint8_t *) name, dentry->name, name_len) == 0) {
+				if (memcmp((uint8_t *) name, dentry->name, name_len) == 0) {
 					*res_entry = dentry;
 					return EOK;
 				}

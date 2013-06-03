@@ -38,14 +38,6 @@
 #include <inet/inet.h>
 #include <sys/types.h>
 
-/** Network address */
-typedef struct {
-	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
-} inet_naddr_t;
-
 /** Address object info */
 typedef struct {
 	/** Network address */

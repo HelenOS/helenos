@@ -659,7 +659,7 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 	 * and standard compliance.
 	 */
 	if ((vol_desc->type != VOL_DESC_PRIMARY) ||
-	    (bcmp(vol_desc->standard_ident, CDFS_STANDARD_IDENT, 5) != 0) ||
+	    (memcmp(vol_desc->standard_ident, CDFS_STANDARD_IDENT, 5) != 0) ||
 	    (vol_desc->version != 1)) {
 		block_put(block);
 		return false;

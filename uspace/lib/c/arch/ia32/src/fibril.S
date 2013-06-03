@@ -33,27 +33,25 @@
 .global context_save
 .global context_restore
 
-
 ## Save current CPU context
 #
 # Save CPU context to the context_t variable
 # pointed by the 1st argument. Returns 1 in EAX.
 #
 context_save:
-	movl 0(%esp),%eax	# the caller's return %eip
-	movl 4(%esp),%edx	# address of the context variable to save context to
-
-		# save registers to the context structure
+	movl 0(%esp), %eax  # the caller's return %eip
+	movl 4(%esp), %edx  # address of the context variable to save context to
+	
+	# save registers to the context structure
 	CONTEXT_SAVE_ARCH_CORE %edx %eax
-
-	# Save TLS
+	
+	# save TLS
 	movl %gs:0, %eax
 	movl %eax, OFFSET_TLS(%edx)     # tls -> ctx->tls
 	
-	xorl %eax,%eax		# context_save returns 1
+	xorl %eax, %eax     # context_save returns 1
 	incl %eax
 	ret
-
 
 ## Restore saved CPU context
 #
@@ -61,19 +59,19 @@ context_save:
 # pointed by the 1st argument. Returns 0 in EAX.
 #
 context_restore:
-	movl 4(%esp),%eax	# address of the context variable to restore context from
-
-		# restore registers from the context structure
+	movl 4(%esp), %eax  # address of the context variable to restore context from
+	
+	# restore registers from the context structure
 	CONTEXT_RESTORE_ARCH_CORE %eax %edx
-
-	movl %edx,0(%esp)	# ctx->pc -> saver's return %eip
-
-	# Set thread local storage
+	
+	movl %edx, 0(%esp)  # ctx->pc -> saver's return %eip
+	
+	# set thread local storage
 	pushl %edx
-	movl OFFSET_TLS(%eax), %edx   # Set arg1 to TLS addr
-	movl $1, %eax         # Syscall SYS_TLS_SET
+	movl OFFSET_TLS(%eax), %edx  # Set arg1 to TLS addr
+	movl $1, %eax                # Syscall SYS_TLS_SET
 	int $0x30
 	popl %edx
 	
-	xorl %eax,%eax		# context_restore returns 0
+	xorl %eax, %eax     # context_restore returns 0
 	ret

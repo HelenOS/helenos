@@ -75,7 +75,7 @@ static inline void buffer_init(buffer_t *buffer, uint8_t *data, size_t size)
 	buffer->buffer_end = data + size;
 	buffer->read_head = buffer->buffer;
 	buffer->write_head = buffer->buffer;
-	bzero(buffer->buffer, size);
+	memset(buffer->buffer, 0, size);
 }
 
 /** Write byte to cyclic buffer.

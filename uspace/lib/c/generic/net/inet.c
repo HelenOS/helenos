@@ -143,7 +143,7 @@ int inet_pton(uint16_t family, const char *address, uint8_t *data)
 
 	/* Erase if no address */
 	if (!address) {
-		bzero(data, count);
+		memset(data, 0, count);
 		return ENOENT;
 	}
 
@@ -180,7 +180,7 @@ int inet_pton(uint16_t family, const char *address, uint8_t *data)
 			index += bytes;
 		} else {
 			/* Erase the rest of the address */
-			bzero(data + index, count - index);
+			memset(data + index, 0, count - index);
 			return EOK;
 		}
 	} while (index < count);

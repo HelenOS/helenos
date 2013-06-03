@@ -60,7 +60,7 @@ static const char *bbxm_get_platform_name(void);
 
 static struct beagleboard {
 	amdm37x_irc_regs_t *irc_addr;
-	amdm37x_uart_t uart;
+	omap_uart_t uart;
 	amdm37x_gpt_t timer;
 } beagleboard;
 
@@ -166,23 +166,27 @@ static void bbxm_frame_init(void)
 
 static void bbxm_output_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	/* UART3 is wired to external RS232 connector */
-	const bool ok = amdm37x_uart_init(&beagleboard.uart,
+	const bool ok = omap_uart_init(&beagleboard.uart,
 	    AMDM37x_UART3_IRQ, AMDM37x_UART3_BASE_ADDRESS, AMDM37x_UART3_SIZE);
 	if (ok) {
 		stdout_wire(&beagleboard.uart.outdev);
 	}
+#endif
 }
 
 static void bbxm_input_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	srln_instance_t *srln_instance = srln_init();
 	if (srln_instance) {
 		indev_t *sink = stdin_wire();
 		indev_t *srln = srln_wire(srln_instance, sink);
-		amdm37x_uart_input_wire(&beagleboard.uart, srln);
+		omap_uart_input_wire(&beagleboard.uart, srln);
 		amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
 	}
+#endif
 }
 
 size_t bbxm_get_irq_count(void)

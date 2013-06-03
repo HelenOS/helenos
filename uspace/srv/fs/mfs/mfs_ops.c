@@ -451,7 +451,7 @@ mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		const size_t dentry_name_size = str_size(d_info.d_name);
 
 		if (comp_size == dentry_name_size &&
-		    !bcmp(component, d_info.d_name, dentry_name_size)) {
+		    memcmp(component, d_info.d_name, dentry_name_size) == 0) {
 			/* Hit! */
 			mfs_node_core_get(rfn, mnode->instance,
 			    d_info.d_inum);
