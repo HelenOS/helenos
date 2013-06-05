@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <str.h>
 
+#include <inet/dnsr.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
@@ -59,10 +60,11 @@ int main(int argc, char *argv[])
 	int rc;
 	int fd;
 	char *endptr;
+	dnsr_hostinfo_t *hinfo;
 
 	port = 7;
 
-	data = (char *)"Hello World!";
+	data = (char *) "Hello World!";
 	size = str_size(data);
 
 	/* Connect to local IP address by default */
@@ -74,8 +76,15 @@ int main(int argc, char *argv[])
 		printf("parsing address '%s'\n", argv[1]);
 		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
 		if (rc != EOK) {
-			fprintf(stderr, "Error parsing address\n");
-			return 1;
+			/* Try interpreting as a host name */
+			rc = dnsr_name2host(argv[1], &hinfo);
+			if (rc != EOK) {
+				printf("Error resolving host '%s'.\n", argv[1]);
+				return rc;
+			}
+
+			addr.sin_addr.s_addr = host2uint32_t_be(hinfo->addr.ipv4);
+			addr.sin_family = AF_INET;
 		}
 		printf("result: rc=%d, family=%d, addr=%x\n", rc,
 		    addr.sin_family, addr.sin_addr.s_addr);
@@ -97,7 +106,7 @@ int main(int argc, char *argv[])
 		return 1;
 
 	printf("connect()\n");
-	rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+	rc = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
 	printf(" -> %d\n", rc);
 	if (rc != 0)
 		return 1;
@@ -114,7 +123,7 @@ int main(int argc, char *argv[])
 		printf(" -> %d\n", rc);
 	} while (rc > 0);
 
-	async_usleep(1000*1000);
+	async_usleep(1000 * 1000);
 
 	printf("closesocket()\n");
 	rc = closesocket(fd);
@@ -122,7 +131,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
 
 /** @}
  */

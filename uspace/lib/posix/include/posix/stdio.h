@@ -61,6 +61,17 @@
 
 typedef struct _IO_FILE FILE;
 
+#ifndef LIBPOSIX_INTERNAL
+	enum _buffer_type {
+		/** No buffering */
+		_IONBF,
+		/** Line buffering */
+		_IOLBF,
+		/** Full buffering */
+		_IOFBF
+	};
+#endif
+
 extern FILE *stdin;
 extern FILE *stdout;
 extern FILE *stderr;

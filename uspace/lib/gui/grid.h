@@ -38,19 +38,21 @@
 
 #include <sys/types.h>
 #include <io/pixel.h>
-
 #include "widget.h"
 
-struct grid;
-typedef struct grid grid_t;
+typedef struct {
+	widget_t *widget;
+	size_t cols;
+	size_t rows;
+} grid_cell_t;
 
 typedef struct grid {
 	widget_t widget;
 	pixel_t background;
-	size_t rows;
 	size_t cols;
-	widget_t **layout;
-	void (*add)(grid_t *, widget_t *, size_t, size_t, size_t, size_t);
+	size_t rows;
+	grid_cell_t *layout;
+	bool (*add)(struct grid *, widget_t *, size_t, size_t, size_t, size_t);
 } grid_t;
 
 extern bool init_grid(grid_t *, widget_t *, size_t, size_t, pixel_t);

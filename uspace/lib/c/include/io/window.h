@@ -39,21 +39,8 @@
 #include <sys/types.h>
 #include <async.h>
 #include <loc.h>
-#include <io/console.h>
-
-typedef enum {
-	POS_UPDATE,
-	POS_PRESS,
-	POS_RELEASE
-} pos_event_type_t;
-
-typedef struct {
-	sysarg_t pos_id;
-	pos_event_type_t type;
-	sysarg_t btn_num;
-	sysarg_t hpos;
-	sysarg_t vpos;
-} pos_event_t;
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 
 typedef struct {
 	sysarg_t object;

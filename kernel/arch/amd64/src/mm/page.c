@@ -77,7 +77,7 @@ void page_arch_init(void)
 
 void page_fault(unsigned int n, istate_t *istate)
 {
-	uintptr_t page = read_cr2();
+	uintptr_t badvaddr = read_cr2();
 	
 	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page table entry.");
@@ -91,7 +91,7 @@ void page_fault(unsigned int n, istate_t *istate)
 	else
 		access = PF_ACCESS_READ;
 	
-	as_page_fault(page, access, istate);
+	(void) as_page_fault(badvaddr, access, istate);
 }
 
 /** @}

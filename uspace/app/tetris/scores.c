@@ -124,7 +124,8 @@ void insertscore(int score, int level)
 	int i;
 	int j;
 	size_t off;
-	kbd_event_t ev;
+	cons_event_t ev;
+	kbd_event_t *kev;
 	
 	clear_screen();
 	moveto(10, 10);
@@ -140,16 +141,18 @@ void insertscore(int score, int level)
 	
 	while (1) {
 		console_flush(console);
-		if (!console_get_kbd_event(console, &ev))
+		if (!console_get_event(console, &ev))
 			exit(1);
 		
-		if (ev.type == KEY_RELEASE)
+		if (ev.type != CEV_KEY || ev.ev.key.type == KEY_RELEASE)
 			continue;
 		
-		if (ev.key == KC_ENTER || ev.key == KC_NENTER)
+		kev = &ev.ev.key;
+		
+		if (kev->key == KC_ENTER || kev->key == KC_NENTER)
 			break;
 		
-		if (ev.key == KC_BACKSPACE) {
+		if (kev->key == KC_BACKSPACE) {
 			if (i > 0) {
 				wchar_t uc;
 				
@@ -165,9 +168,9 @@ void insertscore(int score, int level)
 				
 				scores[NUMSPOTS - 1].hs_name[off] = '\0';
 			}
-		} else if (ev.c != '\0') {
+		} else if (kev->c != '\0') {
 			if (i < (MAXLOGNAME - 1)) {
-				if (chr_encode(ev.c, scores[NUMSPOTS - 1].hs_name,
+				if (chr_encode(kev->c, scores[NUMSPOTS - 1].hs_name,
 				    &off, STR_BOUNDS(MAXLOGNAME) + 1) == EOK) {
 					++i;
 				}

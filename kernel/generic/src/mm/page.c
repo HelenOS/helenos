@@ -103,7 +103,8 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_insert);
 
-	page_mapping_operations->mapping_insert(as, page, frame, flags);
+	page_mapping_operations->mapping_insert(as, ALIGN_DOWN(page, PAGE_SIZE),
+	    ALIGN_DOWN(frame, FRAME_SIZE), flags);
 	
 	/* Repel prefetched accesses to the old mapping. */
 	memory_barrier();
@@ -126,7 +127,8 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_remove);
 	
-	page_mapping_operations->mapping_remove(as, page);
+	page_mapping_operations->mapping_remove(as,
+	    ALIGN_DOWN(page, PAGE_SIZE));
 	
 	/* Repel prefetched accesses to the old mapping. */
 	memory_barrier();
@@ -149,7 +151,8 @@ NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page, bool nolock)
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_find);
 	
-	return page_mapping_operations->mapping_find(as, page, nolock);
+	return page_mapping_operations->mapping_find(as,
+	    ALIGN_DOWN(page, PAGE_SIZE), nolock);
 }
 
 /** Make the mapping shared by all page tables (not address spaces).

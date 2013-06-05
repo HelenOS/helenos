@@ -37,8 +37,13 @@
 
 #ifndef NVERIFY_PRINTF
 
+#ifdef __clang__
+#define PRINTF_ATTRIBUTE(start, end) \
+	__attribute__((format(__printf__, start, end)))
+#else
 #define PRINTF_ATTRIBUTE(start, end) \
 	__attribute__((format(gnu_printf, start, end)))
+#endif
 
 #else /* NVERIFY_PRINTF */
 

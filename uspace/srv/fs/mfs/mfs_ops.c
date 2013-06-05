@@ -451,7 +451,7 @@ mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		const size_t dentry_name_size = str_size(d_info.d_name);
 
 		if (comp_size == dentry_name_size &&
-		    !bcmp(component, d_info.d_name, dentry_name_size)) {
+		    memcmp(component, d_info.d_name, dentry_name_size) == 0) {
 			/* Hit! */
 			mfs_node_core_get(rfn, mnode->instance,
 			    d_info.d_inum);
@@ -772,7 +772,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	int rc;
-	fs_node_t *fn;
+	fs_node_t *fn = NULL;
 
 	rc = mfs_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1107,7 +1107,7 @@ mfs_close(service_id_t service_id, fs_index_t index)
 static int
 mfs_sync(service_id_t service_id, fs_index_t index)
 {
-	fs_node_t *fn;
+	fs_node_t *fn = NULL;
 	int rc = mfs_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;

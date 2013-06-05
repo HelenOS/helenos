@@ -141,7 +141,7 @@ static int sequential_read_dir(void *data)
 int main(int argc, char **argv)
 {
 	int rc;
-	umseconds_t milliseconds_taken;
+	umseconds_t milliseconds_taken = 0;
 	char *path = NULL;
 	measure_func_t fn = NULL;
 	int iteration;

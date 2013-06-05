@@ -37,8 +37,10 @@
 
 #include <typedefs.h>
 
-extern void *memset(void *, int, size_t);
-extern void *memcpy(void *, const void *, size_t);
+extern void *memset(void *, int, size_t)
+    __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
+extern void *memcpy(void *, const void *, size_t)
+    __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
 
 #endif
 

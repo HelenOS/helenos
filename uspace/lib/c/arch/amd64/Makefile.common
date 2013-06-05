@@ -26,8 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CLANG_ARCH = x86_64
 GCC_CFLAGS += -fno-omit-frame-pointer
+CLANG_CFLAGS += -fno-omit-frame-pointer
 
 ENDIANESS = LE
 

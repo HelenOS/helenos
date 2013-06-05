@@ -69,7 +69,7 @@ static bool nic_addr_key_equal(void *key_arg, const ht_link_t *item)
 	addr_key_t *key = (addr_key_t*)key_arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
 	
-	return 0 == bcmp(entry->addr, key->addr, entry->len);
+	return memcmp(entry->addr, key->addr, entry->len) == 0;
 }
 
 static size_t addr_hash(size_t len, const uint8_t *addr)

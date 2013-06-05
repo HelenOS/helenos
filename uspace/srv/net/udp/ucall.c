@@ -67,8 +67,16 @@ udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 udp_error_t udp_uc_set_local(udp_assoc_t *assoc, udp_sock_t *lsock)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %p)", assoc, lsock);
-
+	
 	udp_assoc_set_local(assoc, lsock);
+	return UDP_EOK;
+}
+
+udp_error_t udp_uc_set_local_port(udp_assoc_t *assoc, uint16_t lport)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_local(%p, %" PRIu16 ")", assoc, lport);
+	
+	udp_assoc_set_local_port(assoc, lport);
 	return UDP_EOK;
 }
 
@@ -104,7 +112,14 @@ udp_error_t udp_uc_receive(udp_assoc_t *assoc, void *buf, size_t size,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_uc_receive()", assoc->name);
 	rc = udp_assoc_recv(assoc, &msg, fsock);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_recv -> %d", rc);
 	switch (rc) {
+	case EOK:
+		break;
+	case ECONNABORTED:
+		return UDP_ERESET;
+	default:
+		assert(false);
 	}
 
 	xfer_size = min(size, msg->data_size);
@@ -124,8 +139,14 @@ void udp_uc_status(udp_assoc_t *assoc, udp_assoc_status_t *astatus)
 void udp_uc_destroy(udp_assoc_t *assoc)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_destroy()");
+	udp_assoc_reset(assoc);
 	udp_assoc_remove(assoc);
 	udp_assoc_delete(assoc);
+}
+
+void udp_uc_reset(udp_assoc_t *assoc)
+{
+	udp_assoc_reset(assoc);
 }
 
 /**

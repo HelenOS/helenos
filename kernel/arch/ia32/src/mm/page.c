@@ -83,10 +83,10 @@ void page_arch_init(void)
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
-	uintptr_t page;
+	uintptr_t badvaddr;
 	pf_access_t access;
 	
-	page = read_cr2();
+	badvaddr = read_cr2();
 		
 	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page directory.");
@@ -96,10 +96,7 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 	else
 		access = PF_ACCESS_READ;
 	
-	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %#x.", page);
-		panic_memtrap(istate, access, page, NULL);
-	}
+	(void) as_page_fault(badvaddr, access, istate);
 }
 
 /** @}

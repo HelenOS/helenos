@@ -139,9 +139,6 @@ static void ipc_m_print(proto_t *proto, sysarg_t method)
 
 void ipcp_init(void)
 {
-	ipc_m_desc_t *desc;
-	oper_t *oper;
-
 	val_type_t arg_def[OPER_MAX_ARGS] = {
 		V_INTEGER,
 		V_INTEGER,
@@ -161,13 +158,10 @@ void ipcp_init(void)
 	 */
 	proto_system = proto_new("system");
 
-	desc = ipc_methods;
-	while (desc->number != 0) {
-		oper = oper_new(desc->name, OPER_MAX_ARGS, arg_def, V_INTEGER,
-			OPER_MAX_ARGS, arg_def);
-		proto_add_oper(proto_system, desc->number, oper);
-
-		++desc;
+	for (size_t i = 0; i < ipc_methods_len; i++) {
+		oper_t *oper = oper_new(ipc_methods[i].name, OPER_MAX_ARGS,
+		    arg_def, V_INTEGER, OPER_MAX_ARGS, arg_def);
+		proto_add_oper(proto_system, ipc_methods[i].number, oper);
 	}
 
 	bool ok = hash_table_create(&pending_calls, 0, 0, &pending_call_ops);

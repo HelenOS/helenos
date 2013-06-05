@@ -94,6 +94,19 @@
 #define PCI_BRIDGE_INT_PIN		0x3D
 #define PCI_BRIDGE_CTL			0x3E
 
+/* PCI command flags */
+#define PCI_COMMAND_IO            0x001
+#define PCI_COMMAND_MEMORY        0x002
+#define PCI_COMMAND_MASTER        0x004
+#define PCI_COMMAND_SPECIAL       0x008
+#define PCI_COMMAND_INVALIDATE    0x010
+#define PCI_COMMAND_VGA_PALETTE   0x020
+#define PCI_COMMAND_PARITY        0x040
+#define PCI_COMMAND_WAIT          0x080
+#define PCI_COMMAND_SERR          0x100
+#define PCI_COMMAND_FAST_BACK     0x200
+#define PCI_COMMAND_INTX_DISABLE  0x400
+
 #endif
 
 /**

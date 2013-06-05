@@ -46,6 +46,7 @@
 #include <arg_parse.h>
 #include <stdbool.h>
 
+#include <inet/dnsr.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
@@ -70,7 +71,7 @@ static void nettest2_print_help(void)
 {
 	printf(
 	    "Network Networking test 2 aplication - UDP transfer\n"
-	    "Usage: echo [options] address\n"
+	    "Usage: nettest2 [options] host\n"
 	    "Where options are:\n"
 	    "-f protocol_family | --family=protocol_family\n"
 	    "\tThe listenning socket protocol family. Only the PF_INET and "
@@ -226,6 +227,7 @@ int main(int argc, char *argv[])
 	struct sockaddr *address;
 	struct sockaddr_in address_in;
 	struct sockaddr_in6 address_in6;
+	dnsr_hostinfo_t *hinfo;
 	socklen_t addrlen;
 	uint8_t *address_start;
 
@@ -264,9 +266,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* If not before the last argument containing the address */
+	/* If not before the last argument containing the host */
 	if (index >= argc) {
-		printf("Command line error: missing address\n");
+		printf("Command line error: missing host name\n");
 		nettest2_print_help();
 		return EINVAL;
 	}
@@ -293,11 +295,17 @@ int main(int argc, char *argv[])
 		return EAFNOSUPPORT;
 	}
 
-	/* Parse the last argument which should contain the address. */
+	/* Parse the last argument which should contain the host/address */
 	rc = inet_pton(family, argv[argc - 1], address_start);
 	if (rc != EOK) {
-		fprintf(stderr, "Address parse error %d\n", rc);
-		return rc;
+		/* Try interpreting as a host name */
+		rc = dnsr_name2host(argv[argc - 1], &hinfo);
+		if (rc != EOK) {
+			printf("Error resolving host '%s'.\n", argv[argc - 1]);
+			return rc;
+		}
+
+		address_in.sin_addr.s_addr = host2uint32_t_be(hinfo->addr.ipv4);
 	}
 
 	/* Check data buffer size. */
