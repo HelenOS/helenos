@@ -41,6 +41,8 @@
 #error "Do not include arch specific page.h directly use generic page.h instead"
 #endif
 
+#include <arch/cp15.h>
+
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
 	(*((uint32_t *) (pte)) != 0)
@@ -127,10 +129,7 @@ typedef union {
  */
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
-	asm volatile (
-		"mcr p15, 0, %[pt], c2, c0, 0\n"
-		:: [pt] "r" (pt)
-	);
+	TTBR0_write((uint32_t)pt);
 }
 
 
