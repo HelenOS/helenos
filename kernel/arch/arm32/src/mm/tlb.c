@@ -36,6 +36,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/asid.h>
 #include <arch/asm.h>
+#include <arch/cp15.h>
 #include <typedefs.h>
 #include <arch/mm/page.h>
 
@@ -45,11 +46,7 @@
  */
 void tlb_invalidate_all(void)
 {
-	asm volatile (
-		"eor r1, r1\n"
-		"mcr p15, 0, r1, c8, c7, 0\n"
-		::: "r1"
-	);
+	TLBIALL_write(0);
 }
 
 /** Invalidate all entries in TLB that belong to specified address space.
@@ -59,18 +56,17 @@ void tlb_invalidate_all(void)
 void tlb_invalidate_asid(asid_t asid)
 {
 	tlb_invalidate_all();
+	// TODO: why not TLBIASID_write(asid) ?
 }
 
 /** Invalidate single entry in TLB
  *
  * @param page Virtual adress of the page
- */ 
+ */
 static inline void invalidate_page(uintptr_t page)
 {
-	asm volatile (
-		"mcr p15, 0, %[page], c8, c7, 1\n"
-		:: [page] "r" (page)
-	);
+	TLBIMVA_write(page);
+	//TODO: What about TLBIMVAA?
 }
 
 /** Invalidate TLB entries for specified page range belonging to specified
