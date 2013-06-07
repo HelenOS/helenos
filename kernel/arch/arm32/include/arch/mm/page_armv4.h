@@ -221,20 +221,20 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	p->cacheable = p->bufferable = (flags & PAGE_CACHEABLE) != 0;
 	
 	/* default access permission */
-	p->access_permission_0 = p->access_permission_1 = 
+	p->access_permission_0 = p->access_permission_1 =
 	    p->access_permission_2 = p->access_permission_3 =
 	    PTE_AP_USER_NO_KERNEL_RW;
 	
 	if (flags & PAGE_USER)  {
 		if (flags & PAGE_READ) {
-			p->access_permission_0 = p->access_permission_1 = 
-			    p->access_permission_2 = p->access_permission_3 = 
+			p->access_permission_0 = p->access_permission_1 =
+			    p->access_permission_2 = p->access_permission_3 =
 			    PTE_AP_USER_RO_KERNEL_RW;
 		}
 		if (flags & PAGE_WRITE) {
-			p->access_permission_0 = p->access_permission_1 = 
-			    p->access_permission_2 = p->access_permission_3 = 
-			    PTE_AP_USER_RW_KERNEL_RW; 
+			p->access_permission_0 = p->access_permission_1 =
+			    p->access_permission_2 = p->access_permission_3 =
+			    PTE_AP_USER_RW_KERNEL_RW;
 		}
 	}
 }
