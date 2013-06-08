@@ -84,11 +84,14 @@ static irq_ownership_t bb_timer_irq_claim(irq_t *irq)
 
 static void bb_timer_irq_handler(irq_t *irq)
 {
+	// FIXME Ignore the weird ghost interrupt
+	if (!amdm37x_gpt_irq_ack(&beagleboard.timer))
+		return;
+
         /*
          * We are holding a lock which prevents preemption.
          * Release the lock, call clock() and reacquire the lock again.
          */
-	amdm37x_gpt_irq_ack(&beagleboard.timer);
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);
