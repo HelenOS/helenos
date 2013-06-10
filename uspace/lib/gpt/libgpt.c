@@ -55,90 +55,127 @@ static gpt_partitions_t * alloc_part_array(uint32_t num);
 static int extend_part_array(gpt_partitions_t * p);
 static int reduce_part_array(gpt_partitions_t * p);
 static long long nearest_larger_int(double a);
-static int gpt_memcmp(const void * a, const void * b, size_t len);
+
+
+/** Allocate memory for gpt label */
+gpt_label_t * gpt_alloc_label(void)
+{
+	gpt_label_t *label = malloc(sizeof(gpt_label_t));
+	if (label == NULL)
+		return NULL;
+	
+	label->gpt = NULL;
+	label->parts = NULL;
+	label->device = 0;
+	
+	return label;
+}
+
+/** Free gpt_label_t structure */
+void gpt_free_label(gpt_label_t *label)
+{
+	if (label->gpt != NULL)
+		gpt_free_gpt(label->gpt);
+	
+	if (label->parts != NULL)
+		gpt_free_partitions(label->parts);
+	
+	free(label);
+}
 
 /** Allocate memory for gpt header */
-gpt_t * gpt_alloc_gpt_header(void)
+gpt_t * gpt_alloc_header(size_t size)
 {
-	return malloc(sizeof(gpt_t));
+	gpt_t *gpt = malloc(sizeof(gpt_t));
+	if (gpt == NULL)
+		return NULL;
+	
+	// We might need only sizeof(gpt_header_t),
+	// but we should follow specs and have
+	// zeroes through all the rest of the block
+	size_t final_size = size > sizeof(gpt_header_t) ? size : sizeof(gpt_header_t);
+	gpt->header = malloc(final_size);
+	if (gpt->header == NULL) {
+		free(gpt);
+		return NULL;
+	}
+	
+	memset(gpt->header, 0, final_size);
+	
+	return gpt;
+}
+
+/** free() GPT header including gpt->header_lba */
+void gpt_free_gpt(gpt_t *gpt)
+{
+	free(gpt->header);
+	free(gpt);
 }
 
 /** Read GPT from specific device
- * @param	dev_handle	device to read GPT from
+ * @param label        label structure to fill
+ * @param dev_handle   device to read GPT from
  *
- * @return				GPT record on success, NULL on error
+ * @return             EOK on success, errorcode on error
  */
-gpt_t * gpt_read_gpt_header(service_id_t dev_handle)
+int gpt_read_header(gpt_label_t *label, service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
 	
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
 	if (rc != EOK)
-		return NULL;
+		return rc;
 	
 	rc = block_get_bsize(dev_handle, &b_size);
-	if (rc != EOK) {
-		errno = rc;
-		return NULL;
+	if (rc != EOK)
+		return rc;
+	
+	if (label->gpt == NULL) {
+		label->gpt = gpt_alloc_header(b_size);
+		if (label->gpt == NULL)
+			return ENOMEM;
 	}
 	
-	gpt_t * gpt = malloc(sizeof(gpt_t));
-	if (gpt == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-
-	gpt->raw_data = malloc(b_size);	// We might need only sizeof(gpt_header_t),
-	if (gpt == NULL) {				// but we should follow specs and have
-		free(gpt);					// zeroes through all the rest of the block
-		errno = ENOMEM;
-		return NULL;
-	}
-	
-	
-	rc = load_and_check_header(dev_handle, GPT_HDR_BA, b_size, gpt->raw_data);
+	rc = load_and_check_header(dev_handle, GPT_HDR_BA, b_size, label->gpt->header);
 	if (rc == EBADCHECKSUM || rc == EINVAL) {
 		aoff64_t n_blocks;
 		rc = block_get_nblocks(dev_handle, &n_blocks);
-		if (rc != EOK) {
-			errno = rc;
+		if (rc != EOK)
 			goto fail;
-		}
 
-		rc = load_and_check_header(dev_handle, n_blocks - 1, b_size, gpt->raw_data);
-		if (rc == EBADCHECKSUM || rc == EINVAL) {
-			errno = rc;
+		rc = load_and_check_header(dev_handle, n_blocks - 1, b_size, label->gpt->header);
+		if (rc == EBADCHECKSUM || rc == EINVAL)
 			goto fail;
-		}
 	}
 	
-	gpt->device = dev_handle;
+	label->device = dev_handle;
 	block_fini(dev_handle);
-	return gpt;
+	return EOK;
 	
 fail:
 	block_fini(dev_handle);
-	gpt_free_gpt(gpt);
-	return NULL;
+	gpt_free_gpt(label->gpt);
+	label->gpt = NULL;
+	return rc;
 }
 
 /** Write GPT header to device
- * @param header		GPT header to be written
- * @param dev_handle	device handle to write the data to
+ * @param label        GPT label header to be written
+ * @param dev_handle   device handle to write the data to
  *
- * @return				0 on success, libblock error code otherwise
+ * @return             EOK on success, libblock error code otherwise
  *
- * Note: Firstly write partitions (if changed), then gpt header.
+ * Note: Firstly write partitions (if modified), then gpt header.
  */
-int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
+int gpt_write_header(gpt_label_t *label, service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
 
-	gpt->raw_data->header_crc32 = 0;
-	gpt->raw_data->header_crc32 = compute_crc32((uint8_t *) gpt->raw_data,
-					uint32_t_le2host(gpt->raw_data->header_size));
+	label->gpt->header->header_crc32 = 0;
+	label->gpt->header->header_crc32 = compute_crc32((uint8_t *) label->gpt->header,
+					uint32_t_le2host(label->gpt->header->header_size));
 
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
 	if (rc != EOK)
@@ -149,19 +186,22 @@ int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
 		return rc;
 
 	/* Write to main GPT header location */
-	rc = block_write_direct(dev_handle, GPT_HDR_BA, GPT_HDR_BS, gpt->raw_data);
-	if (rc != EOK)
+	rc = block_write_direct(dev_handle, GPT_HDR_BA, GPT_HDR_BS, label->gpt->header);
+	if (rc != EOK) {
 		block_fini(dev_handle);
 		return rc;
+	}
 
 	aoff64_t n_blocks;
 	rc = block_get_nblocks(dev_handle, &n_blocks);
-	if (rc != EOK)
+	if (rc != EOK) {
+		block_fini(dev_handle);
 		return rc;
+	}
 
 	/* Write to backup GPT header location */
 	//FIXME: those idiots thought it would be cool to have these fields in reverse order...
-	rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, gpt->raw_data);
+	rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, label->gpt->header);
 	block_fini(dev_handle);
 	if (rc != EOK)
 		return rc;
@@ -170,49 +210,42 @@ int gpt_write_gpt_header(gpt_t * gpt, service_id_t dev_handle)
 }
 
 /** Alloc partition array */
-gpt_partitions_t *	gpt_alloc_partitions()
+gpt_partitions_t * gpt_alloc_partitions()
 {
 	return alloc_part_array(128);
 }
 
 /** Parse partitions from GPT
- * @param gpt	GPT to be parsed
+ * @param label   GPT label to be parsed
  *
- * @return 		partition linked list pointer or NULL on error
- * 				error code is stored in errno
+ * @return        EOK on success, errorcode otherwise
  */
-gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
+int gpt_read_partitions(gpt_label_t *label)
 {
 	int rc;
 	unsigned int i;
-	gpt_partitions_t * res;
-	uint32_t fill = uint32_t_le2host(gpt->raw_data->fillries);
-	uint32_t ent_size = uint32_t_le2host(gpt->raw_data->entry_size);
-	uint64_t ent_lba = uint64_t_le2host(gpt->raw_data->entry_lba);
-
-	res = alloc_part_array(fill);
-	if (res == NULL) {
-		//errno = ENOMEM; // already set in alloc_part_array()
-		return NULL;
+	uint32_t fill = uint32_t_le2host(label->gpt->header->fillries);
+	uint32_t ent_size = uint32_t_le2host(label->gpt->header->entry_size);
+	uint64_t ent_lba = uint64_t_le2host(label->gpt->header->entry_lba);
+	
+	if (label->parts == NULL) {
+		label->parts = alloc_part_array(fill);
+		if (label->parts == NULL) {
+			return ENOMEM;
+		}
 	}
 
 	/* We can limit comm_size like this:
 	 *  - we don't need more bytes
 	 *  - the size of GPT partition entry can be different to 128 bytes */
-	rc = block_init(EXCHANGE_SERIALIZE, gpt->device, sizeof(gpt_entry_t));
-	if (rc != EOK) {
-		gpt_free_partitions(res);
-		errno = rc;
-		return NULL;
-	}
+	rc = block_init(EXCHANGE_SERIALIZE, label->device, sizeof(gpt_entry_t));
+	if (rc != EOK)
+		goto fail;
 
 	size_t block_size;
-	rc = block_get_bsize(gpt->device, &block_size);
-	if (rc != EOK) {
-		gpt_free_partitions(res);
-		errno = rc;
-		return NULL;
-	}
+	rc = block_get_bsize(label->device, &block_size);
+	if (rc != EOK)
+		goto fail;
 
 	//size_t bufpos = 0;
 	//size_t buflen = 0;
@@ -225,16 +258,13 @@ gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
 	 * don't break backward compatibility) */
 	for (i = 0; i < fill; ++i) {
 		//FIXME: this does bypass cache...
-		rc = block_read_bytes_direct(gpt->device, pos, sizeof(gpt_entry_t), res->part_array + i);
+		rc = block_read_bytes_direct(label->device, pos, sizeof(gpt_entry_t), label->parts->part_array + i);
 		//FIXME: but seqread() is just too complex...
 		//rc = block_seqread(gpt->device, &bufpos, &buflen, &pos, res->part_array[i], sizeof(gpt_entry_t));
 		pos += ent_size;
 
-		if (rc != EOK) {
-			gpt_free_partitions(res);
-			errno = rc;
-			return NULL;
-		}
+		if (rc != EOK)
+			goto fail;
 	}
 
 	/* FIXME: so far my boasting about variable partition entry size
@@ -242,133 +272,163 @@ gpt_partitions_t * gpt_read_partitions(gpt_t * gpt)
 	 * This can't be fixed easily - we'd have to run the checksum
 	 * on all of the partition entry array.
 	 */
-	uint32_t crc = compute_crc32((uint8_t *) res->part_array, res->fill * sizeof(gpt_entry_t));
+	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, label->parts->fill * sizeof(gpt_entry_t));
 
-	if(uint32_t_le2host(gpt->raw_data->pe_array_crc32) != crc)
+	if(uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
 	{
-		gpt_free_partitions(res);
-		errno = EBADCHECKSUM;
-		return NULL;
+		rc = EBADCHECKSUM;
+		goto fail;
 	}
 
-	return res;
+	return EOK;
+	
+fail:
+	gpt_free_partitions(label->parts);
+	label->parts = NULL;
+	return rc;
 }
 
 /** Write GPT and partitions to device
- * @param parts			partition list to be written
- * @param header		GPT header belonging to the 'parts' partitions
- * @param dev_handle	device to write the data to
+ * @param label        label to write
+ * @param dev_handle   device to write the data to
  *
- * @return				returns EOK on succes, specific error code otherwise
+ * @return             returns EOK on succes, errorcode otherwise
  */
-int gpt_write_partitions(gpt_partitions_t * parts, gpt_t * gpt, service_id_t dev_handle)
+int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
+	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
 
-	gpt->raw_data->pe_array_crc32 = compute_crc32((uint8_t *) parts->part_array, parts->fill * gpt->raw_data->entry_size);
-
-	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
+	label->gpt->header->pe_array_crc32 = compute_crc32(
+	                               (uint8_t *) label->parts->part_array,
+	                               label->parts->fill * e_size);
+	
+	/* comm_size of 4096 is ignored */
+	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
 	if (rc != EOK)
 		return rc;
 
 	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
-		return rc;
+		goto fail;
 
 	/* Write to main GPT partition array location */
-	rc = block_write_direct(dev_handle, uint64_t_le2host(gpt->raw_data->entry_lba),
-			nearest_larger_int((uint64_t_le2host(gpt->raw_data->entry_size) * parts->fill) / b_size),
-			parts->part_array);
+	rc = block_write_direct(dev_handle, uint64_t_le2host(label->gpt->header->entry_lba),
+			nearest_larger_int((uint64_t_le2host(label->gpt->header->entry_size) * label->parts->fill) / b_size),
+			label->parts->part_array);
 	if (rc != EOK)
-		block_fini(dev_handle);
-		return rc;
+		goto fail;
 
 	aoff64_t n_blocks;
 	rc = block_get_nblocks(dev_handle, &n_blocks);
 	if (rc != EOK)
-		return rc;
+		goto fail;
 
 	/* Write to backup GPT partition array location */
 	//rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, header->raw_data);
 	block_fini(dev_handle);
 	if (rc != EOK)
-		return rc;
+		goto fail;
 
 
-	return gpt_write_gpt_header(gpt, dev_handle);
+	return gpt_write_header(label, dev_handle);
+	
+fail:
+	block_fini(dev_handle);
+	return rc;
 }
 
 /** Alloc new partition
  *
- * @param parts		partition table to carry new partition
+ * @return        returns pointer to the new partition or NULL
  *
- * @return			returns pointer to the new partition or NULL on ENOMEM
- *
- * Note: use either gpt_alloc_partition or gpt_add_partition. The first
- * returns a pointer to write your data to, the second copies the data
- * (and does not free the memory).
+ * Note: use either gpt_alloc_partition or gpt_get_partition.
+ * This returns a memory block (zero-filled) and needs gpt_add_partition()
+ * to be called to insert it into a partition array.
+ * Requires you to call gpt_free_partition after use.
  */
-gpt_part_t * gpt_alloc_partition(gpt_partitions_t * parts)
+gpt_part_t * gpt_alloc_partition(void)
 {
-	if (parts->fill == parts->arr_size) {
-		if (extend_part_array(parts) == -1)
+	gpt_part_t *p = malloc(sizeof(gpt_part_t));
+	if (p == NULL)
+		return NULL;
+	
+	memset(p, 0, sizeof(gpt_part_t));
+	
+	return p;
+}
+
+/** Alloc new partition already inside the label
+ *
+ * @param label   label to carry new partition
+ *
+ * @return        returns pointer to the new partition or NULL on ENOMEM
+ *
+ * Note: use either gpt_alloc_partition or gpt_get_partition.
+ * This one return a pointer to a structure already inside the array, so
+ * there's no need to call gpt_add_partition(). 
+ * This is the one you will usually want.
+ */
+gpt_part_t * gpt_get_partition(gpt_label_t *label)
+{
+	if (label->parts->fill == label->parts->arr_size) {
+		if (extend_part_array(label->parts) == -1)
 			return NULL;
 	}
 
-	return parts->part_array + parts->fill++;
+	return label->parts->part_array + label->parts->fill++;
 }
 
 /** Copy partition into partition array
  *
- * @param parts			target partition array
+ * @param parts			target label
  * @param partition		source partition to copy
  *
  * @return 				-1 on error, 0 otherwise
  *
- * Note: use either gpt_alloc_partition or gpt_add_partition. The first
- * returns a pointer to write your data to, the second copies the data
- * (and does not free the memory).
+ * Note: for use with gpt_alloc_partition() only. You will get
+ * duplicates with gpt_get_partition().
  */
-int gpt_add_partition(gpt_partitions_t * parts, gpt_part_t * partition)
+int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
 {
-	if (parts->fill == parts->arr_size) {
-		if (extend_part_array(parts) == -1)
+	if (label->parts->fill == label->parts->arr_size) {
+		if (extend_part_array(label->parts) == -1)
 			return ENOMEM;
 	}
-	extend_part_array(parts);
-	return EOK;;
+	
+	memcpy(label->parts->part_array + label->parts->fill++,
+	       partition, sizeof(gpt_part_t));
+	
+	return EOK;
 }
 
 /** Remove partition from array
+ * @param label   label to remove from
+ * @param idx     index of the partition to remove
  *
- * @param idx		index of the partition to remove
- *
- * @return			-1 on error, 0 otherwise
+ * @return        EOK on success, ENOMEM on array reduction failure
  *
  * Note: even if it fails, the partition still gets removed. Only
  * reducing the array failed.
  */
-int gpt_remove_partition(gpt_partitions_t * parts, size_t idx)
+int gpt_remove_partition(gpt_label_t *label, size_t idx)
 {
-	if (idx != parts->fill - 1) {
-		memcpy(parts->part_array + idx, parts->part_array + parts->fill - 1, sizeof(gpt_entry_t));
-		parts->fill -= 1;
+	if (idx != label->parts->fill - 1) {
+		memmove(label->parts->part_array + idx,
+		        label->parts->part_array + idx + 1,
+		        (label->parts->fill - 1) * sizeof(gpt_entry_t));
+		label->parts->fill -= 1;
+	}
+	
+	/* FIXME: This probably shouldn't be here, but instead
+	 * in reduce_part_array() or similar */
+	if (label->parts->fill < (label->parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
+		if (reduce_part_array(label->parts) == ENOMEM)
+			return ENOMEM;
 	}
 
-	if (parts->fill < (parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
-		if (reduce_part_array(parts) == -1)
-			return -1;
-	}
-
-	return 0;
-}
-
-/** free() GPT header including gpt->header_lba */
-void gpt_free_gpt(gpt_t * gpt)
-{
-	free(gpt->raw_data);
-	free(gpt);
+	return EOK;
 }
 
 /** Free partition list
@@ -388,7 +448,7 @@ size_t gpt_get_part_type(gpt_part_t * p)
 {
 	size_t i;
 	for (i = 0; gpt_ptypes[i].guid != NULL; i++) {
-		if (gpt_memcmp(p->part_type, gpt_ptypes[i].guid, 16) == 0) {
+		if (bcmp(p->part_type, gpt_ptypes[i].guid, 16) == 0) {
 			break;
 		}
 	}
@@ -448,7 +508,7 @@ void gpt_set_end_lba(gpt_part_t * p, uint64_t end)
 	p->end_lba = host2uint64_t_le(end);
 }
 
-
+/** Get partition name */
 unsigned char * gpt_get_part_name(gpt_part_t * p)
 {
 	return p->part_name;
@@ -560,11 +620,10 @@ static int reduce_part_array(gpt_partitions_t * p)
 {
 	if(p->arr_size > GPT_MIN_PART_NUM) {
 		unsigned int nsize = p->arr_size / 2;
+		nsize = nsize > GPT_MIN_PART_NUM ? nsize : GPT_MIN_PART_NUM;
 		gpt_entry_t * tmp = malloc(nsize * sizeof(gpt_entry_t));
-		if(tmp == NULL) {
-			errno = ENOMEM;
-			return -1;
-		}
+		if(tmp == NULL)
+			return ENOMEM;
 
 		memcpy(tmp, p->part_array, p->fill < nsize ? p->fill  : nsize);
 		free(p->part_array);
@@ -585,21 +644,7 @@ static long long nearest_larger_int(double a)
 	return ((long long) a) + 1;
 }
 
-static int gpt_memcmp(const void * a, const void * b, size_t len)
-{
-	size_t i;
-	int diff;
-	const unsigned char * x = a;
-	const unsigned char * y = b;
 
-	for (i = 0; i < len; i++) {
-		diff = (int)*(x++) - (int)*(y++);
-		if (diff != 0) {
-			return diff;
-		}
-	}
-	return 0;
-}
 
 
 
