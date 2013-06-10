@@ -91,10 +91,7 @@ mbr_t * mbr_alloc_mbr(void)
  * @return				EOK on success, error code on error
  */
 int mbr_read_mbr(mbr_label_t *label, service_id_t dev_handle)
-{
-	if (label == NULL)
-		return EINVAL;
-	
+{	
 	int rc;
 	
 	if (label->mbr == NULL) {
