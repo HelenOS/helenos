@@ -39,7 +39,7 @@
 #include "sheet.h"
 
 /** Sheet */
-typedef struct sheet {
+struct sheet {
 	/* Note: This structure is opaque for the user. */
 
 	size_t text_size;
@@ -47,7 +47,7 @@ typedef struct sheet {
 	char *data;
 
 	list_t tags;
-} sheet_t;
+};
 
 #endif
 
