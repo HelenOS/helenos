@@ -38,9 +38,31 @@
 #include <libmbr.h>
 #include <libgpt.h>
 
+typedef enum {
+	LYT_NONE,
+	LYT_MBR,
+	LYT_GPT,
+} layouts_t;
+
 union label_data {
 	mbr_label_t	*mbr;
 	gpt_label_t	*gpt;
+};
+
+typedef struct label label_t;
+
+struct label {
+	layouts_t layout;
+	union label_data data;
+	unsigned int alignment;
+	int (* destroy_label)(label_t *);
+	int (* add_part)     (label_t *, tinput_t *);
+	int (* delete_part)  (label_t *, tinput_t *);
+	int (* new_label)    (label_t *);
+	int (* print_parts)  (label_t *);
+	int (* read_parts)   (label_t *, service_id_t);
+	int (* write_parts)  (label_t *, service_id_t);
+	int (* extra_funcs)  (label_t *, tinput_t *, service_id_t);
 };
 
 #endif

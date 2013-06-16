@@ -34,25 +34,6 @@
 
 #include "common.h"
 
-typedef enum {
-	LYT_NONE,
-	LYT_MBR,
-	LYT_GPT,
-} layouts_t;
-
-typedef struct label {
-	layouts_t layout;
-	union label_data data;
-	int (* add_part)     (tinput_t *,   union label_data *);
-	int (* delete_part)  (tinput_t *,   union label_data *);
-	int (* destroy_label)(              union label_data *);
-	int (* new_label)    (              union label_data *);
-	int (* print_parts)  (              union label_data *);
-	int (* read_parts)   (service_id_t, union label_data *);
-	int (* write_parts)  (service_id_t, union label_data *);
-	int (* extra_funcs)  (tinput_t *, service_id_t, union label_data *);
-} label_t;
-
 #define init_label() \
 	label.layout = LYT_NONE
 

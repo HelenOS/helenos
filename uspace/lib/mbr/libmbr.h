@@ -212,10 +212,13 @@ extern int          mbr_remove_partition(mbr_label_t *, size_t);
 extern int          mbr_get_flag(mbr_part_t *, MBR_FLAGS);
 extern void         mbr_set_flag(mbr_part_t *, MBR_FLAGS, bool);
 extern uint32_t     mbr_get_next_aligned(uint32_t, unsigned int);
+extern list_t *     mbr_get_list(mbr_label_t *);
+extern mbr_part_t * mbr_get_first_partition(mbr_label_t *);
+extern mbr_part_t * mbr_get_next_partition(mbr_label_t *, mbr_part_t *);
 
-#define mbr_part_foreach(parts, iterator)	\
-        for (iterator  = list_get_instance((parts)->list.head.next, mbr_part_t, link); \
-             iterator != list_get_instance(&((parts)->list.head), mbr_part_t, link); \
+#define mbr_part_foreach(label, iterator) \
+        for (iterator  = list_get_instance((label)->parts->list.head.next, mbr_part_t, link); \
+             iterator != list_get_instance(&((label)->parts->list.head), mbr_part_t, link); \
              iterator  = list_get_instance(iterator->link.next, mbr_part_t, link))
 
 
