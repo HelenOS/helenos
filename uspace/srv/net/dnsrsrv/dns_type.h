@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <inet/inet.h>
+#include <inet/addr2.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "dns_std.h"
@@ -114,7 +115,7 @@ typedef struct {
 	/** Host name */
 	char *cname;
 	/** Host address */
-	inet_addr_t addr;
+	inet2_addr_t addr;
 } dns_host_info_t;
 
 typedef struct {

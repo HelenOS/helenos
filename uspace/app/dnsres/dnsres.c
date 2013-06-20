@@ -33,7 +33,7 @@
  */
 
 #include <errno.h>
-#include <inet/addr.h>
+#include <inet/addr2.h>
 #include <inet/dnsr.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = inet_addr_format(&hinfo->addr, &saddr);
+	rc = inet2_addr_format(&hinfo->addr, &saddr);
 	if (rc != EOK) {
 		dnsr_hostinfo_destroy(hinfo);
 		printf(NAME ": Out of memory.\n");

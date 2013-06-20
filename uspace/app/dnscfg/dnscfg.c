@@ -35,7 +35,7 @@
  */
 
 #include <errno.h>
-#include <inet/addr.h>
+#include <inet/addr2.h>
 #include <inet/dnsr.h>
 #include <ipc/services.h>
 #include <loc.h>
@@ -48,118 +48,96 @@
 
 static void print_syntax(void)
 {
-	printf("syntax:\n");
-	printf("\t" NAME " set-ns <server-addr>\n");
-	printf("\t" NAME " unset-ns\n");
+	printf("Syntax:\n");
+	printf("\t%s get-ns\n", NAME);
+	printf("\t%s set-ns <server-addr>\n", NAME);
+	printf("\t%s unset-ns\n", NAME);
 }
 
 static int dnscfg_set_ns(int argc, char *argv[])
 {
-	char *srv_addr;
-	inet_addr_t addr;
-	int rc;
-
 	if (argc < 1) {
-		printf(NAME ": Missing arguments.\n");
+		printf("%s: Missing arguments.\n", NAME);
 		print_syntax();
 		return EINVAL;
 	}
-
+	
 	if (argc > 1) {
-		printf(NAME ": Too many arguments.\n");
+		printf("%s: Too many arguments.\n", NAME);
 		print_syntax();
 		return EINVAL;
 	}
-
-	srv_addr = argv[0];
-
-	rc = inet_addr_parse(srv_addr, &addr);
+	
+	char *srv_addr  = argv[0];
+	
+	inet2_addr_t addr;
+	int rc = inet2_addr_parse(srv_addr, &addr);
+	
 	if (rc != EOK) {
-		printf(NAME ": Invalid address format '%s'.\n", srv_addr);
-		return EINVAL;
+		printf("%s: Invalid address format '%s'.\n", NAME, srv_addr);
+		return rc;
 	}
-
+	
 	rc = dnsr_set_srvaddr(&addr);
 	if (rc != EOK) {
-		printf(NAME ": Failed setting server address '%s' (%s)\n",
-		    srv_addr, str_error(rc));
-		return EIO;
+		printf("%s: Failed setting nameserver address '%s' (%s)\n",
+		    NAME, srv_addr, str_error(rc));
+		return rc;
 	}
-
+	
 	return EOK;
 }
 
-static int dnscfg_unset_ns(int argc, char *argv[])
+static int dnscfg_unset_ns(void)
 {
-	inet_addr_t addr;
-	int rc;
-
-	if (argc > 0) {
-		printf(NAME ": Too many arguments.\n");
-		print_syntax();
-		return EINVAL;
-	}
-
-	addr.ipv4 = 0;
-	rc = dnsr_set_srvaddr(&addr);
+	inet2_addr_t addr;
+	inet2_addr_empty(&addr);
+	
+	int rc = dnsr_set_srvaddr(&addr);
 	if (rc != EOK) {
-		printf(NAME ": Failed unsetting server address (%s)\n",
-		    str_error(rc));
-		return EIO;
+		printf("%s: Failed unsetting server address (%s)\n",
+		    NAME, str_error(rc));
+		return rc;
 	}
-
+	
 	return EOK;
 }
 
 static int dnscfg_print(void)
 {
-	inet_addr_t addr;
+	inet2_addr_t addr;
+	int rc = dnsr_get_srvaddr(&addr);
+	if (rc != EOK) {
+		printf("%s: Failed getting DNS server address.\n", NAME);
+		return rc;
+	}
+	
 	char *addr_str;
-	int rc;
-
-	rc = dnsr_get_srvaddr(&addr);
+	rc = inet2_addr_format(&addr, &addr_str);
 	if (rc != EOK) {
-		printf(NAME ": Failed getting DNS server address.\n");
+		printf("%s: Out of memory.\n", NAME);
 		return rc;
 	}
-
-	rc = inet_addr_format(&addr, &addr_str);
-	if (rc != EOK) {
-		printf(NAME ": Out of memory.\n");
-		return rc;
-	}
-
-	printf("Server: %s\n", addr_str);
+	
+	printf("Nameserver: %s\n", addr_str);
 	free(addr_str);
 	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
-	int rc;
-
-	if (argc < 2) {
-		rc = dnscfg_print();
-		if (rc != EOK)
-			return 1;
-		return 0;
-	}
-
-	if (str_cmp(argv[1], "set-ns") == 0) {
-		rc = dnscfg_set_ns(argc - 2, argv + 2);
-		if (rc != EOK)
-			return 1;
-	} else if (str_cmp(argv[1], "unset-ns") == 0) {
-		rc = dnscfg_unset_ns(argc - 2, argv + 2);
-		if (rc != EOK)
-			return 1;
-	} else {
-		printf(NAME ": Unknown command '%s'.\n", argv[1]);
+	if ((argc < 2) || (str_cmp(argv[1], "get-ns") == 0))
+		return dnscfg_print();
+	else if (str_cmp(argv[1], "set-ns") == 0)
+		return dnscfg_set_ns(argc - 2, argv + 2);
+	else if (str_cmp(argv[1], "unset-ns") == 0)
+		return dnscfg_unset_ns();
+	else {
+		printf("%s: Unknown command '%s'.\n", NAME, argv[1]);
 		print_syntax();
 		return 1;
 	}
-
-
+	
 	return 0;
 }
 

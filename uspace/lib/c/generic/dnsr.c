@@ -43,22 +43,21 @@ static async_sess_t *dnsr_sess = NULL;
 
 static async_exch_t *dnsr_exchange_begin(void)
 {
-	async_sess_t *sess;
-	service_id_t dnsr_svc;
-
 	fibril_mutex_lock(&dnsr_sess_mutex);
-
+	
 	if (dnsr_sess == NULL) {
+		service_id_t dnsr_svc;
+		
 		(void) loc_service_get_id(SERVICE_NAME_DNSR, &dnsr_svc,
 		    IPC_FLAG_BLOCKING);
-
+		
 		dnsr_sess = loc_service_connect(EXCHANGE_SERIALIZE, dnsr_svc,
 		    IPC_FLAG_BLOCKING);
 	}
-
-	sess = dnsr_sess;
+	
+	async_sess_t *sess = dnsr_sess;
 	fibril_mutex_unlock(&dnsr_sess_mutex);
-
+	
 	return async_exchange_begin(sess);
 }
 
@@ -108,7 +107,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
 	cname_buf[act_size] = '\0';
 
 	info->cname = str_dup(cname_buf);
-	info->addr.ipv4 = IPC_GET_ARG1(answer);
+	inet2_addr_unpack(IPC_GET_ARG1(answer), &info->addr);
 
 	*rinfo = info;
 	return EOK;
@@ -118,37 +117,51 @@ void dnsr_hostinfo_destroy(dnsr_hostinfo_t *info)
 {
 	if (info == NULL)
 		return;
-
+	
 	free(info->cname);
 	free(info);
 }
 
-int dnsr_get_srvaddr(inet_addr_t *srvaddr)
+int dnsr_get_srvaddr(inet2_addr_t *srvaddr)
 {
-	sysarg_t addr;
 	async_exch_t *exch = dnsr_exchange_begin();
-
-	int rc = async_req_0_1(exch, DNSR_GET_SRVADDR, &addr);
-	dnsr_exchange_end(exch);
-
-	if (rc != EOK)
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, DNSR_GET_SRVADDR, &answer);
+	int rc = async_data_read_start(exch, srvaddr, sizeof(inet2_addr_t));
+	
+	loc_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
 		return rc;
-
-	srvaddr->ipv4 = addr;
-	return EOK;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	return (int) retval;
 }
 
-int dnsr_set_srvaddr(inet_addr_t *srvaddr)
+int dnsr_set_srvaddr(inet2_addr_t *srvaddr)
 {
 	async_exch_t *exch = dnsr_exchange_begin();
-
-	int rc = async_req_1_0(exch, DNSR_SET_SRVADDR, srvaddr->ipv4);
-	dnsr_exchange_end(exch);
-
-	if (rc != EOK)
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, DNSR_SET_SRVADDR, &answer);
+	int rc = async_data_write_start(exch, srvaddr, sizeof(inet2_addr_t));
+	
+	loc_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
 		return rc;
-
-	return EOK;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	return (int) retval;
 }
 
 /** @}

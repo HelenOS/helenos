@@ -358,8 +358,12 @@ int main(int argc, char *argv[])
 			printf("Error resolving host '%s'.\n", argv[argc - 1]);
 			return rc;
 		}
-
-		address_in.sin_addr.s_addr = host2uint32_t_be(hinfo->addr.ipv4);
+		
+		rc = inet2_addr_sockaddr_in(&hinfo->addr, &address_in);
+		if (rc != EOK) {
+			printf("Host '%s' not resolved as IPv4 address.\n", argv[argc - 1]);
+			return rc;
+		}
 	}
 
 	/* Check data buffer size */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,27 +32,58 @@
 /** @file
  */
 
-#ifndef LIBC_INET_INETPING_H_
-#define LIBC_INET_INETPING_H_
+#ifndef LIBC_INET2_ADDR_H_
+#define LIBC_INET2_ADDR_H_
 
-#include <inet/inet.h>
-#include <sys/types.h>
+#include <stdint.h>
+#include <net/in.h>
 
+#define INET2_ADDR_SIZE  16
+
+/** Node address */
 typedef struct {
-	uint32_t src;
-	uint32_t dest;
-	uint16_t seq_no;
-	void *data;
-	size_t size;
-} inetping_sdu_t;
+	uint16_t family;
+	uint8_t addr[INET2_ADDR_SIZE];
+} inet2_addr_t;
 
-typedef struct inetping_ev_ops {
-	int (*recv)(inetping_sdu_t *);
-} inetping_ev_ops_t;
+/** Network address */
+typedef struct {
+	/** Address family */
+	uint16_t family;
+	
+	/** Address */
+	uint8_t addr[INET2_ADDR_SIZE];
+	
+	/** Number of valid bits */
+	uint8_t prefix;
+} inet2_naddr_t;
 
-extern int inetping_init(inetping_ev_ops_t *);
-extern int inetping_send(inetping_sdu_t *);
-extern int inetping_get_srcaddr(uint32_t, uint32_t *);
+extern int inet2_addr_family(const char *, uint16_t *);
+
+extern int inet2_addr_parse(const char *, inet2_addr_t *);
+extern int inet2_naddr_parse(const char *, inet2_naddr_t *);
+
+extern int inet2_addr_format(inet2_addr_t *, char **);
+extern int inet2_naddr_format(inet2_naddr_t *, char **);
+
+extern int inet2_addr_pack(inet2_addr_t *, uint32_t *);
+extern int inet2_naddr_pack(inet2_naddr_t *, uint32_t *, uint8_t *);
+
+extern void inet2_addr_unpack(uint32_t, inet2_addr_t *);
+extern void inet2_naddr_unpack(uint32_t, uint8_t, inet2_naddr_t *);
+
+extern int inet2_addr_sockaddr_in(inet2_addr_t *, sockaddr_in_t *);
+extern void inet2_naddr_addr(inet2_naddr_t *, inet2_addr_t *);
+
+extern void inet2_addr(inet2_addr_t *, uint8_t, uint8_t, uint8_t, uint8_t);
+extern void inet2_naddr(inet2_naddr_t *, uint8_t, uint8_t, uint8_t, uint8_t,
+    uint8_t);
+
+extern void inet2_addr_empty(inet2_addr_t *);
+extern void inet2_naddr_empty(inet2_naddr_t *);
+
+extern int inet2_addr_compare(inet2_addr_t *, inet2_addr_t *);
+extern int inet2_addr_is_empty(inet2_addr_t *);
 
 #endif
 

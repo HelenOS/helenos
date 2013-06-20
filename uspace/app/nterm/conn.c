@@ -89,8 +89,12 @@ int conn_open(const char *addr_s, const char *port_s)
 			printf("Error resolving host '%s'.\n", addr_s);
 			goto error;
 		}
-
-		addr.sin_addr.s_addr = host2uint32_t_be(hinfo->addr.ipv4);
+		
+		rc = inet2_addr_sockaddr_in(&hinfo->addr, &addr);
+		if (rc != EOK) {
+			printf("Host '%s' not resolved as IPv4 address.\n", addr_s);
+			return rc;
+		}
 	}
 
 	addr.sin_port = htons(strtol(port_s, &endptr, 10));

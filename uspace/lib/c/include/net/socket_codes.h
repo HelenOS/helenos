@@ -44,7 +44,7 @@
 /*@{*/
 
 enum {
-	AF_UNKNOWN = 0,
+	AF_NONE = 0,
 	AF_INET,	/* IPv4 address */
 	AF_INET6	/* IPv6 address */
 };

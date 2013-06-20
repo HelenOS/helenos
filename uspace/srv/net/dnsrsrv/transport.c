@@ -51,10 +51,12 @@
 #define DNS_SERVER_PORT 53
 
 /** Request timeout (microseconds) */
-#define REQ_TIMEOUT (5*1000*1000)
+#define REQ_TIMEOUT (5 * 1000 * 1000)
 
 /** Maximum number of retries */
 #define REQ_RETRY_MAX 3
+
+inet2_addr_t dns_server_addr;
 
 typedef struct {
 	link_t lreq;
@@ -71,7 +73,6 @@ typedef struct {
 static uint8_t recv_buf[RECV_BUF_SIZE];
 static fid_t recv_fid;
 static int transport_fd = -1;
-inet_addr_t dns_server_addr;
 
 /** Outstanding requests */
 static LIST_INITIALIZE(treq_list);
@@ -193,7 +194,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(DNS_SERVER_PORT);
-	addr.sin_addr.s_addr = host2uint32_t_be(dns_server_addr.ipv4);
+	inet2_addr_sockaddr_in(&dns_server_addr, &addr);
 
 	rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
@@ -203,7 +204,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 
 	while (ntry < REQ_RETRY_MAX) {
 		rc = sendto(transport_fd, req_data, req_size, 0,
-		    (struct sockaddr *)&addr, sizeof(addr));
+		    (struct sockaddr *) &addr, sizeof(addr));
 		if (rc != EOK)
 			goto error;
 

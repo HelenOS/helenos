@@ -36,6 +36,7 @@
 #define LIBC_INET_DNSRES_H_
 
 #include <inet/inet.h>
+#include <inet/addr2.h>
 
 enum {
 	DNSR_NAME_MAX_SIZE = 255
@@ -45,14 +46,14 @@ typedef struct {
 	/** Host canonical name */
 	char *cname;
 	/** Host address */
-	inet_addr_t addr;
+	inet2_addr_t addr;
 } dnsr_hostinfo_t;
 
 extern int dnsr_init(void);
 extern int dnsr_name2host(const char *, dnsr_hostinfo_t **);
 extern void dnsr_hostinfo_destroy(dnsr_hostinfo_t *);
-extern int dnsr_get_srvaddr(inet_addr_t *);
-extern int dnsr_set_srvaddr(inet_addr_t *);
+extern int dnsr_get_srvaddr(inet2_addr_t *);
+extern int dnsr_set_srvaddr(inet2_addr_t *);
 
 #endif
 
