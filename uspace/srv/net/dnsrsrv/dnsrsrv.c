@@ -117,7 +117,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t callid,
 	}
 	
 	uint32_t addr;
-	rc = inet2_addr_pack(&hinfo->addr, &addr);
+	rc = inet_addr_pack(&hinfo->addr, &addr);
 	if (rc != EOK) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
@@ -150,7 +150,7 @@ static void dnsr_get_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 		return;
 	}
 	
-	if (size != sizeof(inet2_addr_t)) {
+	if (size != sizeof(inet_addr_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
@@ -176,7 +176,7 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 		return;
 	}
 	
-	if (size != sizeof(inet2_addr_t)) {
+	if (size != sizeof(inet_addr_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;

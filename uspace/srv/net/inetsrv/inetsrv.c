@@ -103,13 +103,12 @@ static int inet_init(void)
 		return ENOMEM;
 	}
 
-	sroute->dest.ipv4 = 0;
-	sroute->dest.bits = 0;
-	sroute->router.ipv4 = (10 << 24) | (0 << 16) | (2 << 8) | 2;
+	inet_naddr(&sroute->dest, 0, 0, 0, 0, 0);
+	inet_addr(&sroute->router, 10, 0, 2, 2);
 	sroute->name = str_dup("default");
 	inet_sroute_add(sroute);
 
-       	rc = inet_link_discovery_start();
+	rc = inet_link_discovery_start();
 	if (rc != EOK)
 		return EEXIST;
 	
@@ -193,52 +192,59 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	/* XXX dt_local? */
 
 	/* Take source address from the address object */
-	local->ipv4 = dir.aobj->naddr.ipv4;
+	inet_naddr_addr(&dir.aobj->naddr, local);
 	return EOK;
 }
 
 static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	inet_addr_t remote;
-	uint8_t tos;
-	inet_addr_t local;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
-
-	remote.ipv4 = IPC_GET_ARG1(*call);
-	tos = IPC_GET_ARG2(*call);
-	local.ipv4 = 0;
-
-	rc = inet_get_srcaddr(&remote, tos, &local);
-	async_answer_1(callid, rc, local.ipv4);
+	
+	inet_addr_t remote;
+	inet_addr_unpack(IPC_GET_ARG1(*call), &remote);
+	uint8_t tos = IPC_GET_ARG2(*call);
+	
+	inet_addr_t local;
+	int rc = inet_get_srcaddr(&remote, tos, &local);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+	
+	uint32_t local_addr;
+	rc = inet_addr_pack(&local, &local_addr);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+	
+	async_answer_1(callid, rc, (sysarg_t) local_addr);
 }
 
 static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	inet_dgram_t dgram;
-	uint8_t ttl;
-	int df;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
-
-	dgram.src.ipv4 = IPC_GET_ARG1(*call);
-	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
+	
+	inet_dgram_t dgram;
+	
+	inet_addr_unpack(IPC_GET_ARG1(*call), &dgram.src);
+	inet_addr_unpack(IPC_GET_ARG2(*call), &dgram.dest);
 	dgram.tos = IPC_GET_ARG3(*call);
-	ttl = IPC_GET_ARG4(*call);
-	df = IPC_GET_ARG5(*call);
-
-	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
+	
+	uint8_t ttl = IPC_GET_ARG4(*call);
+	int df = IPC_GET_ARG5(*call);
+	
+	int rc = async_data_write_accept(&dgram.data, false, 0, 0, 0,
+	    &dgram.size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
-
+	
 	rc = inet_send(client, &dgram, client->protocol, ttl, df);
-
+	
 	free(dgram.data);
 	async_answer_0(callid, rc);
 }
@@ -364,24 +370,34 @@ static inet_client_t *inet_client_find(uint8_t proto)
 
 int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 {
+	uint32_t src;
+	int rc = inet_addr_pack(&dgram->src, &src);
+	if (rc != EOK)
+		return rc;
+	
+	uint32_t dest;
+	rc = inet_addr_pack(&dgram->dest, &dest);
+	if (rc != EOK)
+		return rc;
+	
 	async_exch_t *exch = async_exchange_begin(client->sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INET_EV_RECV, dgram->src.ipv4,
-	    dgram->dest.ipv4, dgram->tos, &answer);
-	int rc = async_data_write_start(exch, dgram->data, dgram->size);
+	aid_t req = async_send_3(exch, INET_EV_RECV, (sysarg_t) src,
+	    (sysarg_t) dest, dgram->tos, &answer);
+	rc = async_data_write_start(exch, dgram->data, dgram->size);
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
-
+	
 	return EOK;
 }
 

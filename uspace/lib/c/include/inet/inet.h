@@ -36,7 +36,6 @@
 #define LIBC_INET_INET_H_
 
 #include <inet/addr.h>
-#include <inet/addr2.h>
 #include <sys/types.h>
 
 #define INET_TTL_MAX 255
@@ -60,7 +59,6 @@ typedef enum {
 extern int inet_init(uint8_t, inet_ev_ops_t *);
 extern int inet_send(inet_dgram_t *, uint8_t, inet_df_t);
 extern int inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
-extern int inet2_get_srcaddr(inet2_addr_t *, uint8_t, inet2_addr_t *);
 
 #endif
 

@@ -88,10 +88,10 @@ static void udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr)
 	// FIXME: Check for correctness
 	
 	uint32_t src;
-	inet2_addr_pack(&pdu->src, &src);
+	inet_addr_pack(&pdu->src, &src);
 	
 	uint32_t dest;
-	inet2_addr_pack(&pdu->dest, &dest);
+	inet_addr_pack(&pdu->dest, &dest);
 	
 	phdr->src_addr = host2uint32_t_be(src);
 	phdr->dest_addr = host2uint32_t_be(dest);

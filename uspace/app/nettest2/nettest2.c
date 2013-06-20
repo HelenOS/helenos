@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 			return rc;
 		}
 		
-		rc = inet2_addr_sockaddr_in(&hinfo->addr, &address_in);
+		rc = inet_addr_sockaddr_in(&hinfo->addr, &address_in);
 		if (rc != EOK) {
 			printf("Host '%s' not resolved as IPv4 address.\n", argv[argc - 1]);
 			return rc;

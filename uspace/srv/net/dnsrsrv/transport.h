@@ -36,10 +36,10 @@
 #ifndef TRANSPORT_H
 #define TRANSPORT_H
 
-#include <inet/addr2.h>
+#include <inet/addr.h>
 #include "dns_type.h"
 
-extern inet2_addr_t dns_server_addr;
+extern inet_addr_t dns_server_addr;
 
 extern int transport_init(void);
 extern void transport_fini(void);

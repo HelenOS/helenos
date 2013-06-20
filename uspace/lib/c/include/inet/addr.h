@@ -36,24 +36,54 @@
 #define LIBC_INET_ADDR_H_
 
 #include <stdint.h>
+#include <net/in.h>
+
+#define INET_ADDR_SIZE  16
 
 /** Node address */
 typedef struct {
-	uint32_t ipv4;
+	uint16_t family;
+	uint8_t addr[INET_ADDR_SIZE];
 } inet_addr_t;
 
 /** Network address */
 typedef struct {
+	/** Address family */
+	uint16_t family;
+	
 	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
+	uint8_t addr[INET_ADDR_SIZE];
+	
+	/** Number of valid bits */
+	uint8_t prefix;
 } inet_naddr_t;
 
-extern int inet_naddr_parse(const char *, inet_naddr_t *);
+extern int inet_addr_family(const char *, uint16_t *);
+
 extern int inet_addr_parse(const char *, inet_addr_t *);
-extern int inet_naddr_format(inet_naddr_t *, char **);
+extern int inet_naddr_parse(const char *, inet_naddr_t *);
+
 extern int inet_addr_format(inet_addr_t *, char **);
+extern int inet_naddr_format(inet_naddr_t *, char **);
+
+extern int inet_addr_pack(inet_addr_t *, uint32_t *);
+extern int inet_naddr_pack(inet_naddr_t *, uint32_t *, uint8_t *);
+
+extern void inet_addr_unpack(uint32_t, inet_addr_t *);
+extern void inet_naddr_unpack(uint32_t, uint8_t, inet_naddr_t *);
+
+extern int inet_addr_sockaddr_in(inet_addr_t *, sockaddr_in_t *);
+extern void inet_naddr_addr(inet_naddr_t *, inet_addr_t *);
+
+extern void inet_addr(inet_addr_t *, uint8_t, uint8_t, uint8_t, uint8_t);
+extern void inet_naddr(inet_naddr_t *, uint8_t, uint8_t, uint8_t, uint8_t,
+    uint8_t);
+
+extern void inet_addr_any(inet_addr_t *);
+extern void inet_naddr_any(inet_naddr_t *);
+
+extern int inet_addr_compare(inet_addr_t *, inet_addr_t *);
+extern int inet_addr_is_any(inet_addr_t *);
 
 #endif
 

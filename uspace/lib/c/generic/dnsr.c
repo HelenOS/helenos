@@ -107,7 +107,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
 	cname_buf[act_size] = '\0';
 
 	info->cname = str_dup(cname_buf);
-	inet2_addr_unpack(IPC_GET_ARG1(answer), &info->addr);
+	inet_addr_unpack(IPC_GET_ARG1(answer), &info->addr);
 
 	*rinfo = info;
 	return EOK;
@@ -122,13 +122,13 @@ void dnsr_hostinfo_destroy(dnsr_hostinfo_t *info)
 	free(info);
 }
 
-int dnsr_get_srvaddr(inet2_addr_t *srvaddr)
+int dnsr_get_srvaddr(inet_addr_t *srvaddr)
 {
 	async_exch_t *exch = dnsr_exchange_begin();
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DNSR_GET_SRVADDR, &answer);
-	int rc = async_data_read_start(exch, srvaddr, sizeof(inet2_addr_t));
+	int rc = async_data_read_start(exch, srvaddr, sizeof(inet_addr_t));
 	
 	loc_exchange_end(exch);
 	
@@ -143,13 +143,13 @@ int dnsr_get_srvaddr(inet2_addr_t *srvaddr)
 	return (int) retval;
 }
 
-int dnsr_set_srvaddr(inet2_addr_t *srvaddr)
+int dnsr_set_srvaddr(inet_addr_t *srvaddr)
 {
 	async_exch_t *exch = dnsr_exchange_begin();
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DNSR_SET_SRVADDR, &answer);
-	int rc = async_data_write_start(exch, srvaddr, sizeof(inet2_addr_t));
+	int rc = async_data_write_start(exch, srvaddr, sizeof(inet_addr_t));
 	
 	loc_exchange_end(exch);
 	

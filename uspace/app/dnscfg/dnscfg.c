@@ -35,7 +35,7 @@
  */
 
 #include <errno.h>
-#include <inet/addr2.h>
+#include <inet/addr.h>
 #include <inet/dnsr.h>
 #include <ipc/services.h>
 #include <loc.h>
@@ -70,8 +70,8 @@ static int dnscfg_set_ns(int argc, char *argv[])
 	
 	char *srv_addr  = argv[0];
 	
-	inet2_addr_t addr;
-	int rc = inet2_addr_parse(srv_addr, &addr);
+	inet_addr_t addr;
+	int rc = inet_addr_parse(srv_addr, &addr);
 	
 	if (rc != EOK) {
 		printf("%s: Invalid address format '%s'.\n", NAME, srv_addr);
@@ -90,8 +90,8 @@ static int dnscfg_set_ns(int argc, char *argv[])
 
 static int dnscfg_unset_ns(void)
 {
-	inet2_addr_t addr;
-	inet2_addr_empty(&addr);
+	inet_addr_t addr;
+	inet_addr_any(&addr);
 	
 	int rc = dnsr_set_srvaddr(&addr);
 	if (rc != EOK) {
@@ -105,7 +105,7 @@ static int dnscfg_unset_ns(void)
 
 static int dnscfg_print(void)
 {
-	inet2_addr_t addr;
+	inet_addr_t addr;
 	int rc = dnsr_get_srvaddr(&addr);
 	if (rc != EOK) {
 		printf("%s: Failed getting DNS server address.\n", NAME);
@@ -113,7 +113,7 @@ static int dnscfg_print(void)
 	}
 	
 	char *addr_str;
-	rc = inet2_addr_format(&addr, &addr_str);
+	rc = inet_addr_format(&addr, &addr_str);
 	if (rc != EOK) {
 		printf("%s: Out of memory.\n", NAME);
 		return rc;

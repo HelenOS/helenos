@@ -38,7 +38,7 @@
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
-
+#include <inet/addr.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdio.h>

@@ -50,16 +50,12 @@ typedef struct {
 	async_sess_t *client_sess;
 } iplink_srv_t;
 
-typedef struct {
-	uint32_t ipv4;
-} iplink_srv_addr_t;
-
 /** IP link Service Data Unit */
 typedef struct {
 	/** Local source address */
-	iplink_srv_addr_t lsrc;
+	uint32_t lsrc;
 	/** Local destination address */
-	iplink_srv_addr_t ldest;
+	uint32_t ldest;
 	/** Serialized IP packet */
 	void *data;
 	/** Size of @c data in bytes */
@@ -71,8 +67,8 @@ typedef struct iplink_ops {
 	int (*close)(iplink_srv_t *);
 	int (*send)(iplink_srv_t *, iplink_srv_sdu_t *);
 	int (*get_mtu)(iplink_srv_t *, size_t *);
-	int (*addr_add)(iplink_srv_t *, iplink_srv_addr_t *);
-	int (*addr_remove)(iplink_srv_t *, iplink_srv_addr_t *);
+	int (*addr_add)(iplink_srv_t *, uint32_t);
+	int (*addr_remove)(iplink_srv_t *, uint32_t);
 } iplink_ops_t;
 
 extern void iplink_srv_init(iplink_srv_t *);

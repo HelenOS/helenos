@@ -39,7 +39,7 @@
 #include <fibril_synch.h>
 #include <socket_core.h>
 #include <sys/types.h>
-#include <inet/addr2.h>
+#include <inet/addr.h>
 
 #define UDP_FRAGMENT_SIZE 4096
 
@@ -65,7 +65,7 @@ enum udp_port {
 };
 
 typedef struct {
-	inet2_addr_t addr;
+	inet_addr_t addr;
 	uint16_t port;
 } udp_sock_t;
 
@@ -85,9 +85,9 @@ typedef struct {
 /** Encoded PDU */
 typedef struct {
 	/** Source address */
-	inet2_addr_t src;
+	inet_addr_t src;
 	/** Destination address */
-	inet2_addr_t dest;
+	inet_addr_t dest;
 	
 	/** Encoded PDU data including header */
 	void *data;

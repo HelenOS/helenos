@@ -48,20 +48,20 @@ static FIBRIL_MUTEX_INITIALIZE(atrans_list_lock);
 static LIST_INITIALIZE(atrans_list);
 static FIBRIL_CONDVAR_INITIALIZE(atrans_cv);
 
-static ethip_atrans_t *atrans_find(iplink_srv_addr_t *ip_addr)
+static ethip_atrans_t *atrans_find(uint32_t ip_addr)
 {
 	list_foreach(atrans_list, link) {
 		ethip_atrans_t *atrans = list_get_instance(link,
 		    ethip_atrans_t, atrans_list);
 
-		if (atrans->ip_addr.ipv4 == ip_addr->ipv4)
+		if (atrans->ip_addr == ip_addr)
 			return atrans;
 	}
 
 	return NULL;
 }
 
-int atrans_add(iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
+int atrans_add(uint32_t ip_addr, mac48_addr_t *mac_addr)
 {
 	ethip_atrans_t *atrans;
 	ethip_atrans_t *prev;
@@ -70,7 +70,7 @@ int atrans_add(iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
 	if (atrans == NULL)
 		return ENOMEM;
 
-	atrans->ip_addr = *ip_addr;
+	atrans->ip_addr = ip_addr;
 	atrans->mac_addr = *mac_addr;
 
 	fibril_mutex_lock(&atrans_list_lock);
@@ -87,7 +87,7 @@ int atrans_add(iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
 	return EOK;
 }
 
-int atrans_remove(iplink_srv_addr_t *ip_addr)
+int atrans_remove(uint32_t ip_addr)
 {
 	ethip_atrans_t *atrans;
 
@@ -105,7 +105,7 @@ int atrans_remove(iplink_srv_addr_t *ip_addr)
 	return EOK;
 }
 
-int atrans_lookup(iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
+int atrans_lookup(uint32_t ip_addr, mac48_addr_t *mac_addr)
 {
 	ethip_atrans_t *atrans;
 

@@ -200,7 +200,7 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 
 	socket = (udp_sockdata_t *) sock_core->specific_data;
 	
-	inet2_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+	inet_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
 	    &fsock.addr);
 	fsock.port = sock_core->port;
 	urc = udp_uc_set_local(socket->assoc, &fsock);
@@ -269,7 +269,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			goto out;
 		}
 		
-		inet2_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+		inet_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
 		    &fsock.addr);
 		fsock.port = uint16_t_be2host(addr->sin_port);
 		fsock_ptr = &fsock;
@@ -315,15 +315,15 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	fibril_mutex_lock(&socket->lock);
 	
-	if (inet2_addr_is_any(&socket->assoc->ident.local.addr)) {
+	if (inet_addr_is_any(&socket->assoc->ident.local.addr)) {
 		/* Determine local IP address */
-		inet2_addr_t loc_addr;
-		inet2_addr_t rem_addr;
+		inet_addr_t loc_addr;
+		inet_addr_t rem_addr;
 		
 		rem_addr = fsock_ptr ? fsock.addr :
 		    socket->assoc->ident.foreign.addr;
 		
-		int rc = inet2_get_srcaddr(&rem_addr, 0, &loc_addr);
+		int rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
@@ -478,7 +478,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	if (IPC_GET_IMETHOD(call) == NET_SOCKET_RECVFROM) {
 		/* Fill address */
 		uint32_t rsock_addr;
-		int rc = inet2_addr_pack(&rsock->addr, &rsock_addr);
+		int rc = inet_addr_pack(&rsock->addr, &rsock_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);

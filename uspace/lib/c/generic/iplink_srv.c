@@ -53,24 +53,14 @@ static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
 static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
-	iplink_srv_addr_t addr;
-
-	addr.ipv4 = IPC_GET_ARG1(*call);
-
-	rc = srv->ops->addr_add(srv, &addr);
+	int rc = srv->ops->addr_add(srv, IPC_GET_ARG1(*call));
 	async_answer_0(callid, rc);
 }
 
 static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
-	iplink_srv_addr_t addr;
-
-	addr.ipv4 = IPC_GET_ARG1(*call);
-
-	rc = srv->ops->addr_remove(srv, &addr);
+	int rc = srv->ops->addr_remove(srv, IPC_GET_ARG1(*call));
 	async_answer_0(callid, rc);
 }
 
@@ -80,8 +70,8 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t callid,
 	iplink_srv_sdu_t sdu;
 	int rc;
 
-	sdu.lsrc.ipv4 = IPC_GET_ARG1(*call);
-	sdu.ldest.ipv4 = IPC_GET_ARG2(*call);
+	sdu.lsrc = IPC_GET_ARG1(*call);
+	sdu.ldest = IPC_GET_ARG2(*call);
 
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
@@ -138,9 +128,9 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 		if (!method) {
 			/* The other side has hung up */
-		    	fibril_mutex_lock(&srv->lock);
+			fibril_mutex_lock(&srv->lock);
 			srv->connected = false;
-		    	fibril_mutex_unlock(&srv->lock);
+			fibril_mutex_unlock(&srv->lock);
 			async_answer_0(callid, EOK);
 			break;
 		}
@@ -174,8 +164,8 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	async_exch_t *exch = async_exchange_begin(srv->client_sess);
 
 	ipc_call_t answer;
-	aid_t req = async_send_2(exch, IPLINK_EV_RECV, sdu->lsrc.ipv4,
-	    sdu->ldest.ipv4, &answer);
+	aid_t req = async_send_2(exch, IPLINK_EV_RECV, (sysarg_t) sdu->lsrc,
+	    (sysarg_t) sdu->ldest, &answer);
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
 	async_exchange_end(exch);
 

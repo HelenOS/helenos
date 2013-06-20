@@ -90,7 +90,7 @@ int conn_open(const char *addr_s, const char *port_s)
 			goto error;
 		}
 		
-		rc = inet2_addr_sockaddr_in(&hinfo->addr, &addr);
+		rc = inet_addr_sockaddr_in(&hinfo->addr, &addr);
 		if (rc != EOK) {
 			printf("Host '%s' not resolved as IPv4 address.\n", addr_s);
 			return rc;

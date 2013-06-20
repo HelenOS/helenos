@@ -82,19 +82,19 @@ static void ping_signal_done(void)
 
 static int ping_ev_recv(inetping_sdu_t *sdu)
 {
-	inet2_addr_t src_addr;
-	inet2_addr_unpack(sdu->src, &src_addr);
+	inet_addr_t src_addr;
+	inet_addr_unpack(sdu->src, &src_addr);
 	
-	inet2_addr_t dest_addr;
-	inet2_addr_unpack(sdu->dest, &dest_addr);
+	inet_addr_t dest_addr;
+	inet_addr_unpack(sdu->dest, &dest_addr);
 	
 	char *asrc;
-	int rc = inet2_addr_format(&src_addr, &asrc);
+	int rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK)
 		return ENOMEM;
 	
 	char *adest;
-	rc = inet2_addr_format(&dest_addr, &adest);
+	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		free(asrc);
 		return ENOMEM;
@@ -206,8 +206,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Parse destination address */
-	inet2_addr_t dest_addr;
-	rc = inet2_addr_parse(argv[argi], &dest_addr);
+	inet_addr_t dest_addr;
+	rc = inet_addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
 		rc = dnsr_name2host(argv[argi], &hinfo);
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
 		dest_addr = hinfo->addr;
 	}
 	
-	rc = inet2_addr_pack(&dest_addr, &dest);
+	rc = inet_addr_pack(&dest_addr, &dest);
 	if (rc != EOK) {
 		printf(NAME ": Destination '%s' is not an IPv4 address.\n",
 		    argv[argi]);
@@ -233,16 +233,16 @@ int main(int argc, char *argv[])
 		goto error;
 	}
 	
-	inet2_addr_t src_addr;
-	inet2_addr_unpack(src, &src_addr);
+	inet_addr_t src_addr;
+	inet_addr_unpack(src, &src_addr);
 	
-	rc = inet2_addr_format(&src_addr, &asrc);
+	rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK) {
 		printf(NAME ": Out of memory.\n");
 		goto error;
 	}
 	
-	rc = inet2_addr_format(&dest_addr, &adest);
+	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		printf(NAME ": Out of memory.\n");
 		goto error;

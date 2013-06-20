@@ -56,7 +56,7 @@
 /** Maximum number of retries */
 #define REQ_RETRY_MAX 3
 
-inet2_addr_t dns_server_addr;
+inet_addr_t dns_server_addr;
 
 typedef struct {
 	link_t lreq;
@@ -194,7 +194,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(DNS_SERVER_PORT);
-	inet2_addr_sockaddr_in(&dns_server_addr, &addr);
+	inet_addr_sockaddr_in(&dns_server_addr, &addr);
 
 	rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)

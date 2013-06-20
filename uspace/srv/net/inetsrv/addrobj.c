@@ -111,18 +111,25 @@ void inet_addrobj_remove(inet_addrobj_t *addr)
  */
 inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
-	uint32_t mask;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find(%x)", (unsigned)addr->ipv4);
-
+	uint32_t addr_addr;
+	int rc = inet_addr_pack(addr, &addr_addr);
+	if (rc != EOK)
+		return NULL;
+	
 	fibril_mutex_lock(&addr_list_lock);
-
+	
 	list_foreach(addr_list, link) {
 		inet_addrobj_t *naddr = list_get_instance(link,
 		    inet_addrobj_t, addr_list);
-
-		mask = inet_netmask(naddr->naddr.bits);
-		if ((naddr->naddr.ipv4 & mask) == (addr->ipv4 & mask)) {
+		
+		uint32_t naddr_addr;
+		uint8_t naddr_bits;
+		rc = inet_naddr_pack(&naddr->naddr, &naddr_addr, &naddr_bits);
+		if (rc != EOK)
+			continue;
+		
+		uint32_t mask = inet_netmask(naddr_bits);
+		if ((naddr_addr & mask) == (addr_addr & mask)) {
 			fibril_mutex_unlock(&addr_list_lock);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
 			    naddr);
@@ -217,11 +224,10 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	inet_addr_t lsrc_addr;
-	inet_addr_t *ldest_addr;
-
-	lsrc_addr.ipv4 = addr->naddr.ipv4;
-	ldest_addr = ldest;
-
+	inet_naddr_addr(&addr->naddr, &lsrc_addr);
+	
+	inet_addr_t *ldest_addr = ldest;
+	
 	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest_addr, dgram,
 	    proto, ttl, df);
 }

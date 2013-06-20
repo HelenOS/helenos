@@ -251,7 +251,7 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
 	if (fsock != NULL)
 		sp.foreign = *fsock;
 
-	if ((inet2_addr_is_any(&sp.foreign.addr)) ||
+	if ((inet_addr_is_any(&sp.foreign.addr)) ||
 	    (sp.foreign.port == UDP_PORT_ANY))
 		return EINVAL;
 
@@ -371,8 +371,8 @@ static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,
 /** Match socket with pattern. */
 static bool udp_socket_match(udp_sock_t *sock, udp_sock_t *patt)
 {
-	if ((!inet2_addr_is_any(&patt->addr)) &&
-	    (!inet2_addr_compare(&patt->addr, &sock->addr)))
+	if ((!inet_addr_is_any(&patt->addr)) &&
+	    (!inet_addr_compare(&patt->addr, &sock->addr)))
 		return false;
 	
 	if ((patt->port != UDP_PORT_ANY) &&

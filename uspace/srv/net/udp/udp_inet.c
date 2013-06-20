@@ -65,9 +65,9 @@ static int udp_inet_ev_recv(inet_dgram_t *dgram)
 	pdu = udp_pdu_new();
 	pdu->data = dgram->data;
 	pdu->data_size = dgram->size;
-	
-	inet_inet2(&dgram->src, &pdu->src);
-	inet_inet2(&dgram->dest, &pdu->dest);
+
+	pdu->src = dgram->src;
+	pdu->dest = dgram->dest;
 
 	udp_received_pdu(pdu);
 	udp_pdu_delete(pdu);
@@ -83,8 +83,8 @@ int udp_transmit_pdu(udp_pdu_t *pdu)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_transmit_pdu()");
 
-	inet2_inet(&pdu->src, &dgram.src);
-	inet2_inet(&pdu->dest, &dgram.dest);
+	dgram.src = pdu->src;
+	dgram.dest = pdu->dest;
 	dgram.tos = 0;
 	dgram.data = pdu->data;
 	dgram.size = pdu->data_size;

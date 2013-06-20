@@ -171,8 +171,8 @@ typedef struct {
 } inet_dir_t;
 
 typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
+	uint32_t src;
+	uint32_t dest;
 	uint16_t seq_no;
 	void *data;
 	size_t size;
