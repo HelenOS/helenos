@@ -39,6 +39,19 @@
 #include <net/inet.h>
 #include <stdio.h>
 
+// TODO temporarily
+#include <assert.h>
+
+static inet2_addr_t inet2_addr_any = {
+	.family = AF_INET,
+	.addr = {0, 0, 0, 0}
+};
+
+static inet2_addr_t inet2_addr6_any = {
+	.family = AF_INET6,
+	.addr = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+};
+
 /** Parse network address family.
  *
  * @param text Network address in common notation.
@@ -335,9 +348,24 @@ int inet2_addr_compare(inet2_addr_t *a, inet2_addr_t *b)
 	}
 }
 
-int inet2_addr_is_empty(inet2_addr_t *addr)
+int inet2_addr_is_any(inet2_addr_t *addr)
 {
-	return (addr->family == 0);
+	return ((addr->family == 0) ||
+	    (inet2_addr_compare(addr, &inet2_addr_any)) ||
+	    (inet2_addr_compare(addr, &inet2_addr6_any)));
+}
+
+void inet_inet2(inet_addr_t *addr, inet2_addr_t *addr2)
+{
+	// TODO temporarily
+	inet2_addr_unpack(addr->ipv4, addr2);
+}
+
+void inet2_inet(inet2_addr_t *addr2, inet_addr_t *addr)
+{
+	// TODO temporarily
+	assert(addr2->family == AF_INET);
+	inet2_addr_pack(addr2, &addr->ipv4);
 }
 
 /** @}

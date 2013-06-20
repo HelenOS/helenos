@@ -143,6 +143,28 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	return EOK;
 }
 
+int inet2_get_srcaddr(inet2_addr_t *remote, uint8_t tos, inet2_addr_t *local)
+{
+	uint32_t remote_addr;
+	int rc = inet2_addr_pack(remote, &remote_addr);
+	if (rc != EOK)
+		return rc;
+	
+	async_exch_t *exch = async_exchange_begin(inet_sess);
+	
+	sysarg_t local_addr;
+	rc = async_req_2_1(exch, INET_GET_SRCADDR, (sysarg_t) remote_addr,
+	    tos, &local_addr);
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK)
+		return rc;
+	
+	inet2_addr_unpack(local_addr, local);
+	return EOK;
+}
+
 static void inet_ev_recv(ipc_callid_t callid, ipc_call_t *call)
 {
 	int rc;

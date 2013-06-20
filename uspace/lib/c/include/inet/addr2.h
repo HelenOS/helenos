@@ -37,6 +37,7 @@
 
 #include <stdint.h>
 #include <net/in.h>
+#include <inet/addr.h>
 
 #define INET2_ADDR_SIZE  16
 
@@ -83,7 +84,10 @@ extern void inet2_addr_empty(inet2_addr_t *);
 extern void inet2_naddr_empty(inet2_naddr_t *);
 
 extern int inet2_addr_compare(inet2_addr_t *, inet2_addr_t *);
-extern int inet2_addr_is_empty(inet2_addr_t *);
+extern int inet2_addr_is_any(inet2_addr_t *);
+
+extern void inet_inet2(inet_addr_t *, inet2_addr_t *);
+extern void inet2_inet(inet2_addr_t *, inet_addr_t *);
 
 #endif
 

@@ -198,9 +198,10 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		goto out;
 	}
 
-	socket = (udp_sockdata_t *)sock_core->specific_data;
-
-	fsock.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+	socket = (udp_sockdata_t *) sock_core->specific_data;
+	
+	inet2_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+	    &fsock.addr);
 	fsock.port = sock_core->port;
 	urc = udp_uc_set_local(socket->assoc, &fsock);
 
@@ -268,7 +269,8 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			goto out;
 		}
 		
-		fsock.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+		inet2_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+		    &fsock.addr);
 		fsock.port = uint16_t_be2host(addr->sin_port);
 		fsock_ptr = &fsock;
 	} else
@@ -313,14 +315,15 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	fibril_mutex_lock(&socket->lock);
 	
-	if (socket->assoc->ident.local.addr.ipv4 == UDP_IPV4_ANY) {
+	if (inet2_addr_is_any(&socket->assoc->ident.local.addr)) {
 		/* Determine local IP address */
-		inet_addr_t loc_addr, rem_addr;
+		inet2_addr_t loc_addr;
+		inet2_addr_t rem_addr;
 		
-		rem_addr.ipv4 = fsock_ptr ? fsock.addr.ipv4 :
-		    socket->assoc->ident.foreign.addr.ipv4;
+		rem_addr = fsock_ptr ? fsock.addr :
+		    socket->assoc->ident.foreign.addr;
 		
-		int rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
+		int rc = inet2_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
@@ -329,9 +332,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			return;
 		}
 		
-		socket->assoc->ident.local.addr.ipv4 = loc_addr.ipv4;
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Local IP address is %x",
-		    socket->assoc->ident.local.addr.ipv4);
+		socket->assoc->ident.local.addr = loc_addr;
 	}
 	
 	assert(socket->assoc != NULL);
@@ -409,7 +410,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	ipc_callid_t rcallid;
 	size_t data_len;
 	udp_error_t urc;
-	udp_sock_t rsock;
+	udp_sock_t *rsock;
 	struct sockaddr_in addr;
 	int rc;
 
@@ -445,7 +446,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got data in sock recv_buffer");
 
-	rsock = socket->recv_fsock;
+	rsock = &socket->recv_fsock;
 	data_len = socket->recv_buffer_used;
 	urc = socket->recv_error;
 
@@ -475,10 +476,19 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	}
 
 	if (IPC_GET_IMETHOD(call) == NET_SOCKET_RECVFROM) {
-		/* Fill addr */
+		/* Fill address */
+		uint32_t rsock_addr;
+		int rc = inet2_addr_pack(&rsock->addr, &rsock_addr);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
+			fibril_mutex_unlock(&socket->lock);
+			async_answer_0(callid, rc);
+			return;
+		}
+		
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = host2uint32_t_be(rsock.addr.ipv4);
-		addr.sin_port = host2uint16_t_be(rsock.port);
+		addr.sin_addr.s_addr = host2uint32_t_be(rsock_addr);
+		addr.sin_port = host2uint16_t_be(rsock->port);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read receive");
 		if (!async_data_read_receive(&rcallid, &addr_length)) {
