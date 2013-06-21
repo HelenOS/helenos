@@ -39,6 +39,9 @@ import time
 import uuid
 from imgutil import *
 
+if sys.version >= '3':
+	xrange = range
+
 GDE_SIZE = 32
 
 STRUCT_DIR_ENTRY_HEAD = """little:
@@ -529,8 +532,8 @@ class Inode:
 		data.reserved_512_blocks = self.blocks * (self.fs.block_size // 512)
 		data.flags = 0
 		blockconv = lambda x: 0 if x == None else x
-		data.direct_blocks = map(blockconv, self.direct)
-		data.indirect_blocks = map(blockconv, self.indirect)
+		data.direct_blocks = list(map(blockconv, self.direct))
+		data.indirect_blocks = list(map(blockconv, self.indirect))
 		data.version = 0
 		data.file_acl = 0
 		if self.type == Inode.TYPE_FILE:
@@ -566,7 +569,7 @@ class DirEntry:
 		head.name_length = len(self.name)
 		head.inode_type = self.type
 		inode.write(head.pack())
-		inode.write(self.name+'\0')
+		inode.write(self.name+'\0'.encode())
 		inode.align_pos(4)
 
 class DirWriter:
