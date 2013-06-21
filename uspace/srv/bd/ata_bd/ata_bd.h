@@ -94,6 +94,7 @@ typedef struct {
 /** ATA device state structure. */
 typedef struct {
 	bool present;
+	struct ata_ctrl *ctrl;
 
 	/** Device type */
 	enum ata_dev_type dev_type;
@@ -120,6 +121,22 @@ typedef struct {
 	int disk_id;
 	bd_srvs_t bds;
 } disk_t;
+
+/** ATA controller */
+typedef struct ata_ctrl {
+	/** I/O base address of the command registers */
+	uintptr_t cmd_physical;
+	/** I/O base address of the control registers */
+	uintptr_t ctl_physical;
+
+	/** Command registers */
+	ata_cmd_t *cmd;
+	/** Control registers */
+	ata_ctl_t *ctl;
+
+	/** Per-disk state. */
+	disk_t disk[MAX_DISKS];
+} ata_ctrl_t;
 
 #endif
 

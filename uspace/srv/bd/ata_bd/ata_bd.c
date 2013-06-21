@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,9 @@
  * @file
  * @brief ATA disk driver
  *
- * This driver supports CHS, 28-bit and 48-bit LBA addressing. It only uses
- * PIO transfers. There is no support DMA, the PACKET feature set or any other
- * fancy features such as S.M.A.R.T, removable devices, etc.
+ * This driver supports CHS, 28-bit and 48-bit LBA addressing, as well as
+ * PACKET devices. It only uses PIO transfers. There is no support DMA
+ * or any other fancy features such as S.M.A.R.T, removable devices, etc.
  *
  * This driver is based on the ATA-1, ATA-2, ATA-3 and ATA/ATAPI-4 through 7
  * standards, as published by the ANSI, NCITS and INCITS standards bodies,
@@ -79,11 +79,6 @@
  */
 static const size_t identify_data_size = 512;
 
-/** I/O base address of the command registers. */
-static uintptr_t cmd_physical;
-/** I/O base address of the control registers. */
-static uintptr_t ctl_physical;
-
 /** I/O base addresses for legacy (ISA-compatible) controllers. */
 static ata_base_t legacy_base[LEGACY_CTLS] = {
 	{ 0x1f0, 0x3f0 },
@@ -92,14 +87,11 @@ static ata_base_t legacy_base[LEGACY_CTLS] = {
 	{ 0x168, 0x368 }
 };
 
-static ata_cmd_t *cmd;
-static ata_ctl_t *ctl;
-
-/** Per-disk state. */
-static disk_t ata_disk[MAX_DISKS];
+/** Controller */
+static ata_ctrl_t ata_ctrl;
 
 static void print_syntax(void);
-static int ata_bd_init(void);
+static int ata_bd_init(ata_ctrl_t *ctrl);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 
 static int ata_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -116,7 +108,7 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
     const void *buf);
-static int disk_init(disk_t *d, int disk_id);
+static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id);
 static int drive_identify(disk_t *disk, void *buf);
 static int identify_pkt_dev(disk_t *disk, void *buf);
 static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
@@ -128,9 +120,10 @@ static int ata_pcmd_read_toc(disk_t *disk, uint8_t ses,
     void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
 static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
-static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
-static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
-    unsigned timeout);
+static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
+    uint16_t scnt);
+static int wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
+    uint8_t *pstatus, unsigned timeout);
 
 static bd_ops_t ata_bd_ops = {
 	.open = ata_bd_open,
@@ -159,6 +152,7 @@ int main(int argc, char **argv)
 	int n_disks;
 	unsigned ctl_num;
 	char *eptr;
+	ata_ctrl_t *ctrl = &ata_ctrl;
 
 	printf(NAME ": ATA disk driver\n");
 
@@ -173,23 +167,23 @@ int main(int argc, char **argv)
 		ctl_num = 1;
 	}
 
-	cmd_physical = legacy_base[ctl_num - 1].cmd;
-	ctl_physical = legacy_base[ctl_num - 1].ctl;
+	ctrl->cmd_physical = legacy_base[ctl_num - 1].cmd;
+	ctrl->ctl_physical = legacy_base[ctl_num - 1].ctl;
 
-	printf("I/O address %p/%p\n", (void *) cmd_physical,
-	    (void *) ctl_physical);
+	printf("I/O address %p/%p\n", (void *) ctrl->cmd_physical,
+	    (void *) ctrl->ctl_physical);
 
-	if (ata_bd_init() != EOK)
+	if (ata_bd_init(ctrl) != EOK)
 		return -1;
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		printf("Identify drive %d... ", i);
 		fflush(stdout);
 
-		rc = disk_init(&ata_disk[i], i);
+		rc = disk_init(ctrl, &ctrl->disk[i], i);
 
 		if (rc == EOK) {
-			disk_print_summary(&ata_disk[i]);
+			disk_print_summary(&ctrl->disk[i]);
 		} else {
 			printf("Not found.\n");
 		}
@@ -199,11 +193,11 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		/* Skip unattached drives. */
-		if (ata_disk[i].present == false)
+		if (ctrl->disk[i].present == false)
 			continue;
 		
 		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
-		rc = loc_service_register(name, &ata_disk[i].service_id);
+		rc = loc_service_register(name, &ctrl->disk[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
@@ -266,7 +260,7 @@ static void disk_print_summary(disk_t *d)
 }
 
 /** Register driver and enable device I/O. */
-static int ata_bd_init(void)
+static int ata_bd_init(ata_ctrl_t *ctrl)
 {
 	async_set_client_connection(ata_bd_connection);
 	int rc = loc_server_register(NAME);
@@ -276,21 +270,21 @@ static int ata_bd_init(void)
 	}
 	
 	void *vaddr;
-	rc = pio_enable((void *) cmd_physical, sizeof(ata_cmd_t), &vaddr);
+	rc = pio_enable((void *) ctrl->cmd_physical, sizeof(ata_cmd_t), &vaddr);
 	if (rc != EOK) {
 		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
 	
-	cmd = vaddr;
+	ctrl->cmd = vaddr;
 	
-	rc = pio_enable((void *) ctl_physical, sizeof(ata_ctl_t), &vaddr);
+	rc = pio_enable((void *) ctrl->ctl_physical, sizeof(ata_ctl_t), &vaddr);
 	if (rc != EOK) {
 		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
 	
-	ctl = vaddr;
+	ctrl->ctl = vaddr;
 	
 	return EOK;
 }
@@ -308,8 +302,8 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Determine which disk device is the client connecting to. */
 	disk = NULL;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (ata_disk[i].service_id == dsid)
-			disk = &ata_disk[i];
+		if (ata_ctrl.disk[i].service_id == dsid)
+			disk = &ata_ctrl.disk[i];
 
 	if (disk == NULL || disk->present == false) {
 		async_answer_0(iid, EINVAL);
@@ -324,7 +318,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  * Probes for a disk, determines its parameters and initializes
  * the disk structure.
  */
-static int disk_init(disk_t *d, int disk_id)
+static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 {
 	identify_data_t idata;
 	uint8_t model[40];
@@ -336,6 +330,7 @@ static int disk_init(disk_t *d, int disk_id)
 	int rc;
 	unsigned i;
 
+	d->ctrl = ctrl;
 	d->disk_id = disk_id;
 	d->present = false;
 	fibril_mutex_initialize(&d->lock);
@@ -361,8 +356,8 @@ static int disk_init(disk_t *d, int disk_id)
 		 * there are many devices that do not follow this and only set
 		 * the byte count registers. So, only check these.
 		 */
-		bc = ((uint16_t)pio_read_8(&cmd->cylinder_high) << 8) |
-		    pio_read_8(&cmd->cylinder_low);
+		bc = ((uint16_t)pio_read_8(&ctrl->cmd->cylinder_high) << 8) |
+		    pio_read_8(&ctrl->cmd->cylinder_low);
 
 		if (bc == PDEV_SIGNATURE_BC) {
 			rc = identify_pkt_dev(d, &idata);
@@ -575,6 +570,7 @@ static int ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
  */
 static int drive_identify(disk_t *disk, void *buf)
 {
+	ata_ctrl_t *ctrl = disk->ctrl;
 	uint16_t data;
 	uint8_t status;
 	uint8_t drv_head;
@@ -582,22 +578,22 @@ static int drive_identify(disk_t *disk, void *buf)
 
 	drv_head = ((disk_dev_idx(disk) != 0) ? DHR_DRV : 0);
 
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return ETIMEOUT;
 
-	pio_write_8(&cmd->drive_head, drv_head);
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
 	/*
 	 * Do not wait for DRDY to be set in case this is a packet device.
 	 * We determine whether the device is present by waiting for DRQ to be
 	 * set after issuing the command.
 	 */
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return ETIMEOUT;
 
-	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
+	pio_write_8(&ctrl->cmd->command, CMD_IDENTIFY_DRIVE);
 
-	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
 		return ETIMEOUT;
 
 	/*
@@ -608,13 +604,13 @@ static int drive_identify(disk_t *disk, void *buf)
 		return EIO;
 	}
 
-	if (wait_status(SR_DRQ, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
+	if (wait_status(ctrl, SR_DRQ, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
 		return ETIMEOUT;
 
 	/* Read data from the disk buffer. */
 
 	for (i = 0; i < identify_data_size / 2; i++) {
-		data = pio_read_16(&cmd->data_port);
+		data = pio_read_16(&ctrl->cmd->data_port);
 		((uint16_t *) buf)[i] = data;
 	}
 
@@ -631,6 +627,7 @@ static int drive_identify(disk_t *disk, void *buf)
  */
 static int identify_pkt_dev(disk_t *disk, void *buf)
 {
+	ata_ctrl_t *ctrl = disk->ctrl;
 	uint16_t data;
 	uint8_t status;
 	uint8_t drv_head;
@@ -638,25 +635,25 @@ static int identify_pkt_dev(disk_t *disk, void *buf)
 
 	drv_head = ((disk_dev_idx(disk) != 0) ? DHR_DRV : 0);
 
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return EIO;
 
-	pio_write_8(&cmd->drive_head, drv_head);
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
 	/* For ATAPI commands we do not need to wait for DRDY. */
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return EIO;
 
-	pio_write_8(&cmd->command, CMD_IDENTIFY_PKT_DEV);
+	pio_write_8(&ctrl->cmd->command, CMD_IDENTIFY_PKT_DEV);
 
-	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
 		return EIO;
 
 	/* Read data from the device buffer. */
 
 	if ((status & SR_DRQ) != 0) {
 		for (i = 0; i < identify_data_size / 2; i++) {
-			data = pio_read_16(&cmd->data_port);
+			data = pio_read_16(&ctrl->cmd->data_port);
 			((uint16_t *) buf)[i] = data;
 		}
 	}
@@ -680,6 +677,7 @@ static int identify_pkt_dev(disk_t *disk, void *buf)
 static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
     void *obuf, size_t obuf_size)
 {
+	ata_ctrl_t *ctrl = disk->ctrl;
 	size_t i;
 	uint8_t status;
 	uint8_t drv_head;
@@ -692,34 +690,34 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	drv_head =
 	    ((disk_dev_idx(disk) != 0) ? DHR_DRV : 0);
 
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
-	pio_write_8(&cmd->drive_head, drv_head);
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
-	if (wait_status(0, ~(SR_BSY|SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~(SR_BSY|SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
 	/* Byte count <- max. number of bytes we can read in one transfer. */
-	pio_write_8(&cmd->cylinder_low, 0xfe);
-	pio_write_8(&cmd->cylinder_high, 0xff);
+	pio_write_8(&ctrl->cmd->cylinder_low, 0xfe);
+	pio_write_8(&ctrl->cmd->cylinder_high, 0xff);
 
-	pio_write_8(&cmd->command, CMD_PACKET);
+	pio_write_8(&ctrl->cmd->command, CMD_PACKET);
 
-	if (wait_status(SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
 	/* Write command packet. */
 	for (i = 0; i < (cpkt_size + 1) / 2; i++)
-		pio_write_16(&cmd->data_port, ((uint16_t *) cpkt)[i]);
+		pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) cpkt)[i]);
 
-	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
@@ -730,8 +728,8 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	}
 
 	/* Read byte count. */
-	data_size = (uint16_t) pio_read_8(&cmd->cylinder_low) +
-	    ((uint16_t) pio_read_8(&cmd->cylinder_high) << 8);
+	data_size = (uint16_t) pio_read_8(&ctrl->cmd->cylinder_low) +
+	    ((uint16_t) pio_read_8(&ctrl->cmd->cylinder_high) << 8);
 
 	/* Check whether data fits into output buffer. */
 	if (data_size > obuf_size) {
@@ -742,7 +740,7 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 
 	/* Read data from the device buffer. */
 	for (i = 0; i < (data_size + 1) / 2; i++) {
-		val = pio_read_16(&cmd->data_port);
+		val = pio_read_16(&ctrl->cmd->data_port);
 		((uint16_t *) obuf)[i] = val;
 	}
 
@@ -867,6 +865,7 @@ static int ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
 static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
     void *buf)
 {
+	ata_ctrl_t *ctrl = disk->ctrl;
 	size_t i;
 	uint16_t data;
 	uint8_t status;
@@ -890,25 +889,25 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 
 	/* Program a Read Sectors operation. */
 
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
-	pio_write_8(&cmd->drive_head, drv_head);
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
-	if (wait_status(SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
+	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
 	/* Program block coordinates into the device. */
-	coord_sc_program(&bc, 1);
+	coord_sc_program(ctrl, &bc, 1);
 
-	pio_write_8(&cmd->command, disk->amode == am_lba48 ?
+	pio_write_8(&ctrl->cmd->command, disk->amode == am_lba48 ?
 	    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
 
-	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
@@ -917,7 +916,7 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 		/* Read data from the device buffer. */
 
 		for (i = 0; i < disk->block_size / 2; i++) {
-			data = pio_read_16(&cmd->data_port);
+			data = pio_read_16(&ctrl->cmd->data_port);
 			((uint16_t *) buf)[i] = data;
 		}
 	}
@@ -941,6 +940,7 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
     const void *buf)
 {
+	ata_ctrl_t *ctrl = disk->ctrl;
 	size_t i;
 	uint8_t status;
 	uint8_t drv_head;
@@ -963,25 +963,25 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 
 	/* Program a Write Sectors operation. */
 
-	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
-	pio_write_8(&cmd->drive_head, drv_head);
+	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
-	if (wait_status(SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
+	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
 
 	/* Program block coordinates into the device. */
-	coord_sc_program(&bc, 1);
+	coord_sc_program(ctrl, &bc, 1);
 
-	pio_write_8(&cmd->command, disk->amode == am_lba48 ?
+	pio_write_8(&ctrl->cmd->command, disk->amode == am_lba48 ?
 	    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
 
-	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&disk->lock);
 		return EIO;
 	}
@@ -990,7 +990,7 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 		/* Write data to the device buffer. */
 
 		for (i = 0; i < disk->block_size / 2; i++) {
-			pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
+			pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) buf)[i]);
 		}
 	}
 
@@ -1059,9 +1059,16 @@ static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc)
 /** Program block coordinates and sector count into ATA registers.
  *
  * Note that bc->h must be programmed separately into the device/head register.
+ *
+ * @param ctrl		Controller
+ * @param bc		Block coordinates
+ * @param scnt		Sector count
  */
-static void coord_sc_program(const block_coord_t *bc, uint16_t scnt)
+static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
+    uint16_t scnt)
 {
+	ata_cmd_t *cmd = ctrl->cmd;
+
 	if (bc->amode == am_lba48) {
 		/* Write high-order bits. */
 		pio_write_8(&cmd->sector_count, scnt >> 8);
@@ -1079,9 +1086,10 @@ static void coord_sc_program(const block_coord_t *bc, uint16_t scnt)
 
 /** Wait until some status bits are set and some are reset.
  *
- * Example: wait_status(SR_DRDY, ~SR_BSY) waits for SR_DRDY to become
+ * Example: wait_status(ctrl, SR_DRDY, ~SR_BSY, ...) waits for SR_DRDY to become
  * set and SR_BSY to become reset.
  *
+ * @param ctrl		Controller
  * @param set		Combination if bits which must be all set.
  * @param n_reset	Negated combination of bits which must be all reset.
  * @param pstatus	Pointer where to store last read status or NULL.
@@ -1089,13 +1097,13 @@ static void coord_sc_program(const block_coord_t *bc, uint16_t scnt)
  *
  * @return		EOK on success, EIO on timeout.
  */
-static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
-    unsigned timeout)
+static int wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
+    uint8_t *pstatus, unsigned timeout)
 {
 	uint8_t status;
 	int cnt;
 
-	status = pio_read_8(&cmd->status);
+	status = pio_read_8(&ctrl->cmd->status);
 
 	/*
 	 * This is crude, yet simple. First try with 1us delays
@@ -1109,7 +1117,7 @@ static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
 		--cnt;
 		if (cnt <= 0) break;
 
-		status = pio_read_8(&cmd->status);
+		status = pio_read_8(&ctrl->cmd->status);
 	}
 
 	cnt = timeout;
@@ -1118,7 +1126,7 @@ static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
 		--cnt;
 		if (cnt <= 0) break;
 
-		status = pio_read_8(&cmd->status);
+		status = pio_read_8(&ctrl->cmd->status);
 	}
 
 	if (pstatus)
