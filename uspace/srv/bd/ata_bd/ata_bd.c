@@ -848,7 +848,7 @@ static int ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
 	cp.size = host2uint16_t_be(obuf_size);
 	cp.oldformat = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
 	
-	rc = ata_cmd_packet(0, &cp, sizeof(cp), obuf, obuf_size);
+	rc = ata_cmd_packet(disk, &cp, sizeof(cp), obuf, obuf_size);
 	if (rc != EOK)
 		return rc;
 	
