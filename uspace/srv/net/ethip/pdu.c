@@ -169,10 +169,10 @@ int arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 	pfmt->opcode = host2uint16_t_be(fopcode);
 	mac48_encode(&packet->sender_hw_addr, pfmt->sender_hw_addr);
 	pfmt->sender_proto_addr =
-	    host2uint32_t_be(packet->sender_proto_addr.ipv4);
+	    host2uint32_t_be(packet->sender_proto_addr);
 	mac48_encode(&packet->target_hw_addr, pfmt->target_hw_addr);
 	pfmt->target_proto_addr =
-	    host2uint32_t_be(packet->target_proto_addr.ipv4);
+	    host2uint32_t_be(packet->target_proto_addr);
 
 	*rdata = data;
 	*rsize = size;
@@ -227,16 +227,15 @@ int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 	}
 
 	mac48_decode(pfmt->sender_hw_addr, &packet->sender_hw_addr);
-	packet->sender_proto_addr.ipv4 =
+	packet->sender_proto_addr =
 	    uint32_t_be2host(pfmt->sender_proto_addr);
 	mac48_decode(pfmt->target_hw_addr, &packet->target_hw_addr);
-	packet->target_proto_addr.ipv4 =
+	packet->target_proto_addr =
 	    uint32_t_be2host(pfmt->target_proto_addr);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "packet->tpa = %x\n", pfmt->target_proto_addr);
 
 	return EOK;
 }
-
 
 /** @}
  */

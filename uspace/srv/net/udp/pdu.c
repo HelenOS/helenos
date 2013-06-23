@@ -85,8 +85,16 @@ static uint16_t udp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 
 static void udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr)
 {
-	phdr->src_addr = host2uint32_t_be(pdu->src.ipv4);
-	phdr->dest_addr = host2uint32_t_be(pdu->dest.ipv4);
+	// FIXME: Check for correctness
+	
+	uint32_t src;
+	inet_addr_pack(&pdu->src, &src);
+	
+	uint32_t dest;
+	inet_addr_pack(&pdu->dest, &dest);
+	
+	phdr->src_addr = host2uint32_t_be(src);
+	phdr->dest_addr = host2uint32_t_be(dest);
 	phdr->zero = 0;
 	phdr->protocol = IP_PROTO_UDP;
 	phdr->udp_length = host2uint16_t_be(pdu->data_size);

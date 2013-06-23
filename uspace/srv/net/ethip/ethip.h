@@ -47,7 +47,7 @@
 
 typedef struct {
 	link_t addr_list;
-	iplink_srv_addr_t addr;
+	uint32_t addr;
 } ethip_link_addr_t;
 
 /** IEEE MAC-48 identifier */
@@ -103,17 +103,17 @@ typedef struct {
 	/** Sender hardware address */
 	mac48_addr_t sender_hw_addr;
 	/** Sender protocol address */
-	iplink_srv_addr_t sender_proto_addr;
+	uint32_t sender_proto_addr;
 	/** Target hardware address */
 	mac48_addr_t target_hw_addr;
 	/** Target protocol address */
-	iplink_srv_addr_t target_proto_addr;
+	uint32_t target_proto_addr;
 } arp_eth_packet_t;
 
 /** Address translation table element */
 typedef struct {
 	link_t atrans_list;
-	iplink_srv_addr_t ip_addr;
+	uint32_t ip_addr;
 	mac48_addr_t mac_addr;
 } ethip_atrans_t;
 

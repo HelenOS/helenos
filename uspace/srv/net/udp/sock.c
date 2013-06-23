@@ -198,9 +198,10 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		goto out;
 	}
 
-	socket = (udp_sockdata_t *)sock_core->specific_data;
-
-	fsock.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+	socket = (udp_sockdata_t *) sock_core->specific_data;
+	
+	inet_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+	    &fsock.addr);
 	fsock.port = sock_core->port;
 	urc = udp_uc_set_local(socket->assoc, &fsock);
 
@@ -268,7 +269,8 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			goto out;
 		}
 		
-		fsock.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+		inet_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+		    &fsock.addr);
 		fsock.port = uint16_t_be2host(addr->sin_port);
 		fsock_ptr = &fsock;
 	} else
@@ -313,12 +315,13 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	fibril_mutex_lock(&socket->lock);
 	
-	if (socket->assoc->ident.local.addr.ipv4 == UDP_IPV4_ANY) {
+	if (inet_addr_is_any(&socket->assoc->ident.local.addr)) {
 		/* Determine local IP address */
-		inet_addr_t loc_addr, rem_addr;
+		inet_addr_t loc_addr;
+		inet_addr_t rem_addr;
 		
-		rem_addr.ipv4 = fsock_ptr ? fsock.addr.ipv4 :
-		    socket->assoc->ident.foreign.addr.ipv4;
+		rem_addr = fsock_ptr ? fsock.addr :
+		    socket->assoc->ident.foreign.addr;
 		
 		int rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
@@ -329,9 +332,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			return;
 		}
 		
-		socket->assoc->ident.local.addr.ipv4 = loc_addr.ipv4;
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Local IP address is %x",
-		    socket->assoc->ident.local.addr.ipv4);
+		socket->assoc->ident.local.addr = loc_addr;
 	}
 	
 	assert(socket->assoc != NULL);
@@ -409,7 +410,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	ipc_callid_t rcallid;
 	size_t data_len;
 	udp_error_t urc;
-	udp_sock_t rsock;
+	udp_sock_t *rsock;
 	struct sockaddr_in addr;
 	int rc;
 
@@ -445,7 +446,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got data in sock recv_buffer");
 
-	rsock = socket->recv_fsock;
+	rsock = &socket->recv_fsock;
 	data_len = socket->recv_buffer_used;
 	urc = socket->recv_error;
 
@@ -475,10 +476,19 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	}
 
 	if (IPC_GET_IMETHOD(call) == NET_SOCKET_RECVFROM) {
-		/* Fill addr */
+		/* Fill address */
+		uint32_t rsock_addr;
+		int rc = inet_addr_pack(&rsock->addr, &rsock_addr);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
+			fibril_mutex_unlock(&socket->lock);
+			async_answer_0(callid, rc);
+			return;
+		}
+		
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = host2uint32_t_be(rsock.addr.ipv4);
-		addr.sin_port = host2uint16_t_be(rsock.port);
+		addr.sin_addr.s_addr = host2uint32_t_be(rsock_addr);
+		addr.sin_port = host2uint16_t_be(rsock->port);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read receive");
 		if (!async_data_read_receive(&rcallid, &addr_length)) {
@@ -536,26 +546,42 @@ static void udp_sock_close(udp_client_t *client, ipc_callid_t callid, ipc_call_t
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close()");
 	int socket_id = SOCKET_GET_SOCKET_ID(call);
-	
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - find core");
 	socket_core_t *sock_core =
 	    socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - core not found");
 		async_answer_0(callid, ENOTSOCK);
 		return;
 	}
-	
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - spec data");
 	udp_sockdata_t *socket =
 	    (udp_sockdata_t *) sock_core->specific_data;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - lock socket");
 	fibril_mutex_lock(&socket->lock);
-	
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close() - lock socket buffer");
+	fibril_mutex_lock(&socket->recv_buffer_lock);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_close - set socket->sock_core = NULL");
+	socket->sock_core = NULL;
+	fibril_mutex_unlock(&socket->recv_buffer_lock);
+
+	udp_uc_reset(socket->assoc);
+
 	int rc = socket_destroy(NULL, socket_id, &client->sockets, &gsock,
 	    udp_free_sock_data);
 	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_close - socket_destroy failed");
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, rc);
 		return;
 	}
-	
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_close - broadcast recv_buffer_cv");
+	fibril_condvar_broadcast(&socket->recv_buffer_cv);
+
 	fibril_mutex_unlock(&socket->lock);
 	async_answer_0(callid, EOK);
 }
@@ -581,35 +607,45 @@ static int udp_sock_recv_fibril(void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_recv_fibril()");
 
+	fibril_mutex_lock(&sock->recv_buffer_lock);
+
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] wait for rcv buffer empty()");
-		fibril_mutex_lock(&sock->recv_buffer_lock);
-		while (sock->recv_buffer_used != 0) {
+		while (sock->recv_buffer_used != 0 && sock->sock_core != NULL) {
 			fibril_condvar_wait(&sock->recv_buffer_cv,
 			    &sock->recv_buffer_lock);
 		}
-		
+
+		fibril_mutex_unlock(&sock->recv_buffer_lock);
+
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] call udp_uc_receive()");
 		urc = udp_uc_receive(sock->assoc, sock->recv_buffer,
 		    UDP_FRAGMENT_SIZE, &rcvd, &xflags, &sock->recv_fsock);
+		fibril_mutex_lock(&sock->recv_buffer_lock);
 		sock->recv_error = urc;
-		
-		udp_sock_notify_data(sock->sock_core);
-		
+
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] udp_uc_receive -> %d", urc);
+
+		if (sock->sock_core != NULL)
+			udp_sock_notify_data(sock->sock_core);
+
 		if (urc != UDP_EOK) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "[] urc != UDP_EOK, break");
 			fibril_condvar_broadcast(&sock->recv_buffer_cv);
-			fibril_mutex_unlock(&sock->recv_buffer_lock);
 			break;
 		}
-		
+
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] got data - broadcast recv_buffer_cv");
-		
+
 		sock->recv_buffer_used = rcvd;
-		fibril_mutex_unlock(&sock->recv_buffer_lock);
 		fibril_condvar_broadcast(&sock->recv_buffer_cv);
 	}
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_recv_fibril() exited loop");
+	fibril_mutex_unlock(&sock->recv_buffer_lock);
 	udp_uc_destroy(sock->assoc);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_recv_fibril() terminated");
 
 	return 0;
 }

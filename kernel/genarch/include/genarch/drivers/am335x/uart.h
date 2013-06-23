@@ -36,7 +36,7 @@
 #ifndef _KERN_AM335X_UART_H_
 #define _KERN_AM335X_UART_H_
 
-#include "uart_regs.h"
+#include <genarch/drivers/omap/uart.h>
 
 #define AM335x_UART0_BASE_ADDRESS    0x44E09000
 #define AM335x_UART0_SIZE            4096
@@ -61,26 +61,6 @@
 #define AM335x_UART5_BASE_ADDRESS    0x481AA000
 #define AM335x_UART5_SIZE            4096
 #define AM335x_UART5_IRQ             46
-
-typedef struct {
-	am335x_uart_regs_t *regs;
-	indev_t *indev;
-	outdev_t outdev;
-	irq_t irq;
-} am335x_uart_t;
-
-#ifdef CONFIG_AM335X_UART
-extern bool am335x_uart_init(am335x_uart_t *uart, inr_t interrupt,
-    uintptr_t addr, size_t size);
-
-extern void am335x_uart_input_wire(am335x_uart_t *uart, indev_t *indev);
-#else
-static bool am335x_uart_init(am335x_uart_t *uart, inr_t interrupt,
-    uintptr_t addr, size_t size)
-{ return true; }
-
-static void am335x_uart_input_wire(am335x_uart_t *uart, indev_t *indev) {}
-#endif
 
 #endif
 

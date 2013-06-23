@@ -145,8 +145,16 @@ static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_
 
 static void tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
 {
-	phdr->src_addr = host2uint32_t_be(pdu->src_addr.ipv4);
-	phdr->dest_addr = host2uint32_t_be(pdu->dest_addr.ipv4);
+	// FIXME: Check for correctness
+	
+	uint32_t src_addr;
+	inet_addr_pack(&pdu->src_addr, &src_addr);
+	
+	uint32_t dest_addr;
+	inet_addr_pack(&pdu->dest_addr, &dest_addr);
+	
+	phdr->src_addr = host2uint32_t_be(src_addr);
+	phdr->dest_addr = host2uint32_t_be(dest_addr);
 	phdr->zero = 0;
 	phdr->protocol = 6; /* XXX Magic number */
 	phdr->tcp_length = host2uint16_t_be(pdu->header_size + pdu->text_size);

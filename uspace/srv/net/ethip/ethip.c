@@ -56,8 +56,8 @@ static int ethip_open(iplink_srv_t *srv);
 static int ethip_close(iplink_srv_t *srv);
 static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
 static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static int ethip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr);
-static int ethip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr);
+static int ethip_addr_add(iplink_srv_t *srv, uint32_t addr);
+static int ethip_addr_remove(iplink_srv_t *srv, uint32_t addr);
 
 static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -174,10 +174,10 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send()");
 
-	rc = arp_translate(nic, &sdu->lsrc, &sdu->ldest, &dest_mac_addr);
+	rc = arp_translate(nic, sdu->lsrc, sdu->ldest, &dest_mac_addr);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IP address 0x%" PRIx32,
-		    sdu->ldest.ipv4);
+		    sdu->ldest);
 		return rc;
 	}
 
@@ -220,8 +220,8 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		break;
 	case ETYPE_IP:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - construct SDU");
-		sdu.lsrc.ipv4 = 0;
-		sdu.ldest.ipv4 = 0;
+		sdu.lsrc = 0;
+		sdu.ldest = 0;
 		sdu.data = frame.data;
 		sdu.size = frame.size;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
@@ -243,19 +243,21 @@ static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static int ethip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+static int ethip_addr_add(iplink_srv_t *srv, uint32_t addr)
 {
-	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_add(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_add(0x%" PRIx32 ")", addr);
+	
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
+	
 	return ethip_nic_addr_add(nic, addr);
 }
 
-static int ethip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+static int ethip_addr_remove(iplink_srv_t *srv, uint32_t addr)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_remove(0x%" PRIx32 ")", addr);
+	
 	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
+	
 	return ethip_nic_addr_add(nic, addr);
 }
 

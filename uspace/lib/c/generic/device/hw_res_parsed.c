@@ -187,7 +187,7 @@ int hw_res_get_list_parsed(async_sess_t *sess,
 	
 	hw_resource_list_t hw_resources;
 	hw_res_list_parsed_clean(hw_res_parsed);
-	bzero(&hw_resources, sizeof(hw_resource_list_t));
+	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 	
 	int rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK)

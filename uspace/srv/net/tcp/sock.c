@@ -178,7 +178,7 @@ static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 		return;
 	}
 
-	sock->laddr.ipv4 = TCP_IPV4_ANY;
+	inet_addr_any(&sock->laddr);
 	sock->lconn = NULL;
 	sock->backlog = 0;
 
@@ -313,9 +313,10 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - open connections");
 	
-	lsocket.addr.ipv4 = TCP_IPV4_ANY;
+	inet_addr_any(&lsocket.addr);
 	lsocket.port = sock_core->port;
-	fsocket.addr.ipv4 = TCP_IPV4_ANY;
+	
+	inet_addr_any(&fsocket.addr);
 	fsocket.port = TCP_PORT_ANY;
 	
 	for (i = 0; i < backlog; i++) {
@@ -395,11 +396,13 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 
 	fibril_mutex_lock(&socket->lock);
 
-	if (socket->laddr.ipv4 == TCP_IPV4_ANY) {
+	if (inet_addr_is_any(&socket->laddr)) {
 		/* Determine local IP address */
-		inet_addr_t loc_addr, rem_addr;
-
-		rem_addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+		inet_addr_t loc_addr;
+		inet_addr_t rem_addr;
+		
+		inet_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+		    &rem_addr);
 		rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
@@ -408,14 +411,15 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 			    "determine local address.");
 			return;
 		}
-
-		socket->laddr.ipv4 = loc_addr.ipv4;
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Local IP address is %x", socket->laddr.ipv4);
+		
+		socket->laddr = loc_addr;
 	}
-
-	lsocket.addr.ipv4 = socket->laddr.ipv4;
+	
+	lsocket.addr = socket->laddr;
 	lsocket.port = sock_core->port;
-	fsocket.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+	
+	inet_addr_unpack(uint32_t_be2host(addr->sin_addr.s_addr),
+	    &fsocket.addr);
 	fsocket.port = uint16_t_be2host(addr->sin_port);
 
 	trc = tcp_uc_open(&lsocket, &fsocket, ap_active, 0, &socket->conn);
@@ -506,9 +510,10 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	/* Replenish listening connection */
 
-	lsocket.addr.ipv4 = TCP_IPV4_ANY;
+	inet_addr_any(&lsocket.addr);
 	lsocket.port = sock_core->port;
-	fsocket.addr.ipv4 = TCP_IPV4_ANY;
+	
+	inet_addr_any(&fsocket.addr);
 	fsocket.port = TCP_PORT_ANY;
 
 	trc = tcp_uc_open(&lsocket, &fsocket, ap_passive, tcp_open_nonblock,
@@ -727,10 +732,20 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	}
 
 	if (IPC_GET_IMETHOD(call) == NET_SOCKET_RECVFROM) {
-		/* Fill addr */
+		/* Fill address */
 		rsock = &socket->conn->ident.foreign;
+		
+		uint32_t rsock_addr;
+		int rc = inet_addr_pack(&rsock->addr, &rsock_addr);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&socket->recv_buffer_lock);
+			fibril_mutex_unlock(&socket->lock);
+			async_answer_0(callid, rc);
+			return;
+		}
+		
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = host2uint32_t_be(rsock->addr.ipv4);
+		addr.sin_addr.s_addr = host2uint32_t_be(rsock_addr);
 		addr.sin_port = host2uint16_t_be(rsock->port);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read receive");

@@ -96,36 +96,46 @@ void inet_sroute_remove(inet_sroute_t *sroute)
  */
 inet_sroute_t *inet_sroute_find(inet_addr_t *addr)
 {
-	uint32_t mask;
-	inet_sroute_t *best;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find(%x)", (unsigned)addr->ipv4);
-
+	uint32_t addr_addr;
+	int rc = inet_addr_pack(addr, &addr_addr);
+	if (rc != EOK)
+		return NULL;
+	
+	inet_sroute_t *best = NULL;
+	uint8_t best_bits = 0;
+	
 	fibril_mutex_lock(&sroute_list_lock);
-
-	best = NULL;
-
+	
 	list_foreach(sroute_list, link) {
 		inet_sroute_t *sroute = list_get_instance(link,
 		    inet_sroute_t, sroute_list);
-
-		/* Look for the most specific route */
-		if (best != NULL && best->dest.bits >= sroute->dest.bits)
+		
+		uint32_t dest_addr;
+		uint8_t dest_bits;
+		rc = inet_naddr_pack(&sroute->dest, &dest_addr, &dest_bits);
+		if (rc != EOK)
 			continue;
-
-		mask = inet_netmask(sroute->dest.bits);
-		if ((sroute->dest.ipv4 & mask) == (addr->ipv4 & mask)) {
-			fibril_mutex_unlock(&sroute_list_lock);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: found %p",
+		
+		/* Look for the most specific route */
+		if ((best != NULL) && (best_bits >= dest_bits))
+			continue;
+		
+		uint32_t mask = inet_netmask(dest_bits);
+		if ((dest_addr & mask) == (addr_addr & mask)) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: found candidate %p",
 			    sroute);
-			return sroute;
+			
+			best = sroute;
+			best_bits = dest_bits;
 		}
 	}
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: Not found");
+	
+	if (best == NULL)
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: Not found");
+	
 	fibril_mutex_unlock(&sroute_list_lock);
-
-	return NULL;
+	
+	return best;
 }
 
 /** Find static route with a specific name.

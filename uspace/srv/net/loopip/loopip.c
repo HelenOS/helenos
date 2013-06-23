@@ -49,8 +49,8 @@ static int loopip_open(iplink_srv_t *srv);
 static int loopip_close(iplink_srv_t *srv);
 static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
 static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static int loopip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr);
-static int loopip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr);
+static int loopip_addr_add(iplink_srv_t *srv, uint32_t addr);
+static int loopip_addr_remove(iplink_srv_t *srv, uint32_t addr);
 
 static void loopip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -188,15 +188,15 @@ static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static int loopip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+static int loopip_addr_add(iplink_srv_t *srv, uint32_t addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_add(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_add(0x%" PRIx32 ")", addr);
 	return EOK;
 }
 
-static int loopip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+static int loopip_addr_remove(iplink_srv_t *srv, uint32_t addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_remove(0x%" PRIx32 ")", addr);
 	return EOK;
 }
 

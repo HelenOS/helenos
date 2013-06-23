@@ -99,12 +99,15 @@ ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
+# clang does not support following options but I am not sure whether
+# something won't break because of that:
+# -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
 CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -arch $(CLANG_ARCH)
+	-integrated-as \
+	-pipe -target $(CLANG_TARGET)
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror
@@ -386,7 +389,7 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 
 $(LINK): $(LINK).in $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c -o $@ $<

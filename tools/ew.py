@@ -35,25 +35,38 @@ Emulator wrapper for running HelenOS
 import os 
 import subprocess 
 import autotool
+import platform
 
 def run_in_console(cmd, title):
 	cmdline = 'xterm -T ' + '"' + title + '"' + ' -e ' + cmd
 	print(cmdline)
 	subprocess.call(cmdline, shell = True);
 
-def pc_options():
-	return '-enable-kvm'
+def get_host_native_width():
+	return int(platform.architecture()[0].strip('bit'))
+
+def pc_options(guest_width):
+	opts = ''
+	
+	# Do not enable KVM if running 64 bits HelenOS
+	# on 32 bits host
+	host_width = get_host_native_width()
+	if guest_width <= host_width:
+		opts = opts + ' -enable-kvm'
+	
+	# Remove the leading space
+	return opts[1:]
 
 def malta_options():
 	return '-cpu 4Kc'
 
 def platform_to_qemu_options(platform, machine):
 	if platform == 'amd64':
-		return 'system-x86_64', pc_options()
+		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
 		return 'system-arm', ''
 	elif platform == 'ia32':
-		return 'system-i386', pc_options()
+		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':
 		if machine == 'lmalta':
 			return 'system-mipsel', malta_options()

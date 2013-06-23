@@ -46,35 +46,25 @@
 
 #define INADDR_ANY 0
 
-/** Type definition of the INET address.
- * @see in_addr
- */
-typedef struct in_addr in_addr_t;
-
-/** Type definition of the INET socket address.
- * @see sockaddr_in
- */
-typedef struct sockaddr_in	sockaddr_in_t;
-
 /** INET address. */
-struct in_addr {
+typedef struct in_addr {
 	/** 4 byte IP address. */
 	uint32_t s_addr;
-};
+} in_addr_t;
 
 /** INET socket address.
  * @see sockaddr
  */
-struct sockaddr_in {
+typedef struct sockaddr_in {
 	/** Address family. Should be AF_INET. */
 	uint16_t sin_family;
 	/** Port number. */
 	uint16_t sin_port;
 	/** Internet address. */
-	struct in_addr sin_addr;
+	in_addr_t sin_addr;
 	/** Padding to meet the sockaddr size. */
 	uint8_t sin_zero[8];
-};
+} sockaddr_in_t;
 
 #endif
 

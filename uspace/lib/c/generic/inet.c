@@ -106,40 +106,57 @@ int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 
 int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 {
+	uint32_t src;
+	int rc = inet_addr_pack(&dgram->src, &src);
+	if (rc != EOK)
+		return rc;
+	
+	uint32_t dest;
+	rc = inet_addr_pack(&dgram->dest, &dest);
+	if (rc != EOK)
+		return EOK;
+	
 	async_exch_t *exch = async_exchange_begin(inet_sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_5(exch, INET_SEND, dgram->src.ipv4,
-	    dgram->dest.ipv4, dgram->tos, ttl, df, &answer);
-	int rc = async_data_write_start(exch, dgram->data, dgram->size);
+	aid_t req = async_send_5(exch, INET_SEND, (sysarg_t) src,
+	    (sysarg_t) dest, dgram->tos, ttl, df, &answer);
+	rc = async_data_write_start(exch, dgram->data, dgram->size);
+	
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
-
+	
 	return EOK;
 }
 
 int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
-	sysarg_t local_addr;
-	async_exch_t *exch = async_exchange_begin(inet_sess);
-
-	int rc = async_req_2_1(exch, INET_GET_SRCADDR, remote->ipv4,
-	    tos, &local_addr);
-	async_exchange_end(exch);
-
+	uint32_t remote_addr;
+	int rc = inet_addr_pack(remote, &remote_addr);
 	if (rc != EOK)
 		return rc;
-
-	local->ipv4 = local_addr;
+	
+	async_exch_t *exch = async_exchange_begin(inet_sess);
+	
+	sysarg_t local_addr;
+	rc = async_req_2_1(exch, INET_GET_SRCADDR, (sysarg_t) remote_addr,
+	    tos, &local_addr);
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK)
+		return rc;
+	
+	inet_addr_unpack(local_addr, local);
 	return EOK;
 }
 
@@ -147,9 +164,9 @@ static void inet_ev_recv(ipc_callid_t callid, ipc_call_t *call)
 {
 	int rc;
 	inet_dgram_t dgram;
-
-	dgram.src.ipv4 = IPC_GET_ARG1(*call);
-	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
+	
+	inet_addr_unpack(IPC_GET_ARG1(*call), &dgram.src);
+	inet_addr_unpack(IPC_GET_ARG2(*call), &dgram.dest);
 	dgram.tos = IPC_GET_ARG3(*call);
 
 	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);

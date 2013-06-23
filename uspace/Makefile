@@ -38,6 +38,8 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
+	app/dnscfg \
+	app/dnsres \
 	app/edit \
 	app/getterm \
 	app/init \
@@ -81,6 +83,7 @@ DIRS = \
 	srv/logger \
 	srv/devman \
 	srv/loader \
+	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
@@ -134,7 +137,7 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139 \
+	drv/nic/rtl8139
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \

@@ -65,13 +65,13 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 		return;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ARP PDU decoded, opcode=%d, tpa=%x",
-	    packet.opcode, packet.target_proto_addr.ipv4);
+	    packet.opcode, packet.target_proto_addr);
 
-	laddr = ethip_nic_addr_find(nic, &packet.target_proto_addr);
+	laddr = ethip_nic_addr_find(nic, packet.target_proto_addr);
 	if (laddr != NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Request/reply to my address");
 
-		(void) atrans_add(&packet.sender_proto_addr,
+		(void) atrans_add(packet.sender_proto_addr,
 		    &packet.sender_hw_addr);
 
 		if (packet.opcode == aop_request) {
@@ -86,8 +86,8 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 	}
 }
 
-int arp_translate(ethip_nic_t *nic, iplink_srv_addr_t *src_addr,
-    iplink_srv_addr_t *ip_addr, mac48_addr_t *mac_addr)
+int arp_translate(ethip_nic_t *nic, uint32_t src_addr, uint32_t ip_addr,
+    mac48_addr_t *mac_addr)
 {
 	int rc;
 	arp_eth_packet_t packet;
@@ -98,9 +98,9 @@ int arp_translate(ethip_nic_t *nic, iplink_srv_addr_t *src_addr,
 
 	packet.opcode = aop_request;
 	packet.sender_hw_addr = nic->mac_addr;
-	packet.sender_proto_addr = *src_addr;
+	packet.sender_proto_addr = src_addr;
 	packet.target_hw_addr.addr = MAC48_BROADCAST;
-	packet.target_proto_addr = *ip_addr;
+	packet.target_proto_addr = ip_addr;
 
 	rc = arp_send_packet(nic, &packet);
 	if (rc != EOK)

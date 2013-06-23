@@ -52,6 +52,7 @@ typedef enum {
 	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
 } services_t;
 
+#define SERVICE_NAME_DNSR     "net/dnsr"
 #define SERVICE_NAME_INET     "net/inet"
 #define SERVICE_NAME_INETCFG  "net/inetcfg"
 #define SERVICE_NAME_INETPING "net/inetping"

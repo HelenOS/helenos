@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inet/iplink.h>
+#include <inet/addr.h>
 #include <ipc/iplink.h>
 #include <ipc/services.h>
 #include <loc.h>
@@ -82,23 +83,24 @@ void iplink_close(iplink_t *iplink)
 int iplink_send(iplink_t *iplink, iplink_sdu_t *sdu)
 {
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_2(exch, IPLINK_SEND, sdu->lsrc.ipv4,
-	    sdu->ldest.ipv4, &answer);
+	aid_t req = async_send_2(exch, IPLINK_SEND, (sysarg_t) sdu->lsrc,
+	    (sysarg_t) sdu->ldest, &answer);
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
+	
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
-
+	
 	return EOK;
 }
 
@@ -117,41 +119,48 @@ int iplink_get_mtu(iplink_t *iplink, size_t *rmtu)
 	return EOK;
 }
 
-int iplink_addr_add(iplink_t *iplink, iplink_addr_t *addr)
+int iplink_addr_add(iplink_t *iplink, inet_addr_t *addr)
 {
+	uint32_t addr_addr;
+	int rc = inet_addr_pack(addr, &addr_addr);
+	if (rc != EOK)
+		return rc;
+	
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
-
-	int rc = async_req_1_0(exch, IPLINK_ADDR_ADD, (sysarg_t)addr->ipv4);
+	rc = async_req_1_0(exch, IPLINK_ADDR_ADD, (sysarg_t) addr_addr);
 	async_exchange_end(exch);
-
+	
 	return rc;
 }
 
-int iplink_addr_remove(iplink_t *iplink, iplink_addr_t *addr)
+int iplink_addr_remove(iplink_t *iplink, inet_addr_t *addr)
 {
+	uint32_t addr_addr;
+	int rc = inet_addr_pack(addr, &addr_addr);
+	if (rc != EOK)
+		return rc;
+	
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
-
-	int rc = async_req_1_0(exch, IPLINK_ADDR_REMOVE, (sysarg_t)addr->ipv4);
+	rc = async_req_1_0(exch, IPLINK_ADDR_REMOVE, (sysarg_t) addr_addr);
 	async_exchange_end(exch);
-
+	
 	return rc;
 }
 
 static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
 	iplink_sdu_t sdu;
-
-	sdu.lsrc.ipv4 = IPC_GET_ARG1(*call);
-	sdu.ldest.ipv4 = IPC_GET_ARG2(*call);
-
-	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
+	
+	sdu.lsrc = IPC_GET_ARG1(*call);
+	sdu.ldest = IPC_GET_ARG2(*call);
+	
+	int rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
-
+	
 	rc = iplink->ev_ops->recv(iplink, &sdu);
 	free(sdu.data);
 	async_answer_0(callid, rc);

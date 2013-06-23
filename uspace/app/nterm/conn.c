@@ -32,9 +32,11 @@
 /** @file
  */
 
+#include <byteorder.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril.h>
+#include <inet/dnsr.h>
 #include <net/socket.h>
 #include <stdio.h>
 #include <str_error.h>
@@ -73,6 +75,7 @@ static int rcv_fibril(void *arg)
 int conn_open(const char *addr_s, const char *port_s)
 {
 	struct sockaddr_in addr;
+	dnsr_hostinfo_t *hinfo = NULL;
 	int rc;
 	char *endptr;
 
@@ -80,21 +83,31 @@ int conn_open(const char *addr_s, const char *port_s)
 
 	rc = inet_pton(addr.sin_family, addr_s, (uint8_t *)&addr.sin_addr);
 	if (rc != EOK) {
-		printf("Invalid addres %s\n", addr_s);
-		return EINVAL;
+		/* Try interpreting as a host name */
+		rc = dnsr_name2host(addr_s, &hinfo);
+		if (rc != EOK) {
+			printf("Error resolving host '%s'.\n", addr_s);
+			goto error;
+		}
+		
+		rc = inet_addr_sockaddr_in(&hinfo->addr, &addr);
+		if (rc != EOK) {
+			printf("Host '%s' not resolved as IPv4 address.\n", addr_s);
+			return rc;
+		}
 	}
 
 	addr.sin_port = htons(strtol(port_s, &endptr, 10));
 	if (*endptr != '\0') {
 		printf("Invalid port number %s\n", port_s);
-		return EINVAL;
+		goto error;
 	}
 
 	conn_fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (conn_fd < 0)
 		goto error;
 
-	printf("Connecting to address %s port %u\n", addr_s, ntohs(addr.sin_port));
+	printf("Connecting to host %s port %u\n", addr_s, ntohs(addr.sin_port));
 
 	rc = connect(conn_fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc != EOK)

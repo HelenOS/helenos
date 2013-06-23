@@ -103,7 +103,7 @@ void nterm_received(void *data, size_t size)
 
 static void print_syntax(void)
 {
-	printf("syntax: nterm <ip-address> <port>\n");
+	printf("syntax: nterm <host> <port>\n");
 }
 
 int main(int argc, char *argv[])

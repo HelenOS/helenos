@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/dnsr.h>
+#include <inet/addr.h>
 #include <inet/inetping.h>
 #include <io/console.h>
 #include <stdio.h>
@@ -60,55 +62,14 @@ static inetping_ev_ops_t ev_ops = {
 	.recv = ping_ev_recv
 };
 
-static inet_addr_t src_addr;
-static inet_addr_t dest_addr;
+static uint32_t src;
+static uint32_t dest;
 
 static bool ping_repeat = false;
 
 static void print_syntax(void)
 {
-	printf("syntax: " NAME " [-r] <addr>\n");
-}
-
-static int addr_parse(const char *text, inet_addr_t *addr)
-{
-	unsigned long a[4];
-	char *cp = (char *)text;
-	int i;
-
-	for (i = 0; i < 3; i++) {
-		a[i] = strtoul(cp, &cp, 10);
-		if (*cp != '.')
-			return EINVAL;
-		++cp;
-	}
-
-	a[3] = strtoul(cp, &cp, 10);
-	if (*cp != '\0')
-		return EINVAL;
-
-	addr->ipv4 = 0;
-	for (i = 0; i < 4; i++) {
-		if (a[i] > 255)
-			return EINVAL;
-		addr->ipv4 = (addr->ipv4 << 8) | a[i];
-	}
-
-	return EOK;
-}
-
-static int addr_format(inet_addr_t *addr, char **bufp)
-{
-	int rc;
-
-	rc = asprintf(bufp, "%d.%d.%d.%d", addr->ipv4 >> 24,
-	    (addr->ipv4 >> 16) & 0xff, (addr->ipv4 >> 8) & 0xff,
-	    addr->ipv4 & 0xff);
-
-	if (rc < 0)
-		return ENOMEM;
-
-	return EOK;
+	printf("syntax: " NAME " [-r] <host>\n");
 }
 
 static void ping_signal_done(void)
@@ -121,25 +82,30 @@ static void ping_signal_done(void)
 
 static int ping_ev_recv(inetping_sdu_t *sdu)
 {
-	char *asrc, *adest;
-	int rc;
-
-	rc = addr_format(&sdu->src, &asrc);
+	inet_addr_t src_addr;
+	inet_addr_unpack(sdu->src, &src_addr);
+	
+	inet_addr_t dest_addr;
+	inet_addr_unpack(sdu->dest, &dest_addr);
+	
+	char *asrc;
+	int rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK)
 		return ENOMEM;
-
-	rc = addr_format(&sdu->dest, &adest);
+	
+	char *adest;
+	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		free(asrc);
 		return ENOMEM;
 	}
+	
 	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
 	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
-
-	if (!ping_repeat) {
+	
+	if (!ping_repeat)
 		ping_signal_done();
-	}
-
+	
 	free(asrc);
 	free(adest);
 	return EOK;
@@ -150,8 +116,8 @@ static int ping_send(uint16_t seq_no)
 	inetping_sdu_t sdu;
 	int rc;
 
-	sdu.src = src_addr;
-	sdu.dest = dest_addr;
+	sdu.src = src;
+	sdu.dest = dest;
 	sdu.seq_no = seq_no;
 	sdu.data = (void *) "foo";
 	sdu.size = 3;
@@ -212,6 +178,10 @@ static int input_fibril(void *arg)
 
 int main(int argc, char *argv[])
 {
+	dnsr_hostinfo_t *hinfo = NULL;
+	char *asrc = NULL;
+	char *adest = NULL;
+	char *sdest = NULL;
 	int rc;
 	int argi;
 
@@ -219,7 +189,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		printf(NAME ": Failed connecting to internet ping service "
 		    "(%d).\n", rc);
-		return 1;
+		goto error;
 	}
 
 	argi = 1;
@@ -232,23 +202,65 @@ int main(int argc, char *argv[])
 
 	if (argc - argi != 1) {
 		print_syntax();
-		return 1;
+		goto error;
 	}
 
 	/* Parse destination address */
-	rc = addr_parse(argv[argi], &dest_addr);
+	inet_addr_t dest_addr;
+	rc = inet_addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
-		printf(NAME ": Invalid address format.\n");
-		print_syntax();
-		return 1;
+		/* Try interpreting as a host name */
+		rc = dnsr_name2host(argv[argi], &hinfo);
+		if (rc != EOK) {
+			printf(NAME ": Error resolving host '%s'.\n", argv[argi]);
+			goto error;
+		}
+		
+		dest_addr = hinfo->addr;
 	}
-
+	
+	rc = inet_addr_pack(&dest_addr, &dest);
+	if (rc != EOK) {
+		printf(NAME ": Destination '%s' is not an IPv4 address.\n",
+		    argv[argi]);
+		goto error;
+	}
+	
 	/* Determine source address */
-	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
+	rc = inetping_get_srcaddr(dest, &src);
 	if (rc != EOK) {
 		printf(NAME ": Failed determining source address.\n");
-		return 1;
+		goto error;
 	}
+	
+	inet_addr_t src_addr;
+	inet_addr_unpack(src, &src_addr);
+	
+	rc = inet_addr_format(&src_addr, &asrc);
+	if (rc != EOK) {
+		printf(NAME ": Out of memory.\n");
+		goto error;
+	}
+	
+	rc = inet_addr_format(&dest_addr, &adest);
+	if (rc != EOK) {
+		printf(NAME ": Out of memory.\n");
+		goto error;
+	}
+	
+	if (hinfo != NULL) {
+		rc = asprintf(&sdest, "%s (%s)", hinfo->cname, adest);
+		if (rc < 0) {
+			printf(NAME ": Out of memory.\n");
+			goto error;
+		}
+	} else {
+		sdest = adest;
+		adest = NULL;
+	}
+
+	printf("Sending ICMP echo request from %s to %s.\n",
+	    asrc, sdest);
 
 	fid_t fid;
 
@@ -256,7 +268,7 @@ int main(int argc, char *argv[])
 		fid = fibril_create(transmit_fibril, NULL);
 		if (fid == 0) {
 			printf(NAME ": Failed creating transmit fibril.\n");
-			return 1;
+			goto error;
 		}
 
 		fibril_add_ready(fid);
@@ -264,7 +276,7 @@ int main(int argc, char *argv[])
 		fid = fibril_create(input_fibril, NULL);
 		if (fid == 0) {
 			printf(NAME ": Failed creating input fibril.\n");
-			return 1;
+			goto error;
 		}
 
 		fibril_add_ready(fid);
@@ -282,10 +294,21 @@ int main(int argc, char *argv[])
 
 	if (rc == ETIMEOUT) {
 		printf(NAME ": Echo request timed out.\n");
-		return 1;
+		goto error;
 	}
 
+	free(asrc);
+	free(adest);
+	free(sdest);
+	dnsr_hostinfo_destroy(hinfo);
 	return 0;
+	
+error:
+	free(asrc);
+	free(adest);
+	free(sdest);
+	dnsr_hostinfo_destroy(hinfo);
+	return 1;
 }
 
 /** @}

@@ -138,10 +138,10 @@ static reass_dgram_t *reass_dgram_get(inet_packet_t *packet)
 		reass_frag_t *f1 = list_get_instance(f1_link, reass_frag_t,
 		    dgram_link);
 
-		if (f1->packet.src.ipv4 == packet->src.ipv4 &&
-		    f1->packet.dest.ipv4 == packet->dest.ipv4 &&
-		    f1->packet.proto == packet->proto &&
-		    f1->packet.ident == packet->ident) {
+		if ((inet_addr_compare(&f1->packet.src, &packet->src)) &&
+		    (inet_addr_compare(&f1->packet.dest, &packet->dest)) &&
+		    (f1->packet.proto == packet->proto) &&
+		    (f1->packet.ident == packet->ident)) {
 			/* Match */
 			return rdg;
 		}

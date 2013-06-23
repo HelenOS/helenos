@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -36,7 +36,6 @@
 #include <fpu_context.h>
 #include <arch.h>
 #include <cpu.h>
-
 
 /** x87 FPU scr values (P3+ MMX2) */
 enum {
@@ -59,14 +58,14 @@ enum {
 	X87_ZERO_DIV_EXC_FLAG = (1 << 2),
 	X87_DENORMAL_EXC_FLAG = (1 << 1),
 	X87_INVALID_OP_EXC_FLAG = (1 << 0),
-
+	
 	X87_ALL_MASK = X87_PRECISION_MASK | X87_UNDERFLOW_MASK | X87_OVERFLOW_MASK | X87_ZERO_DIV_MASK | X87_DENORMAL_OP_MASK | X87_INVALID_OP_MASK,
 };
 
-
 typedef void (*fpu_context_function)(fpu_context_t *fctx);
 
-static fpu_context_function fpu_save, fpu_restore;
+static fpu_context_function fpu_save;
+static fpu_context_function fpu_restore;
 
 static void fpu_context_f_save(fpu_context_t *fctx)
 {
@@ -103,8 +102,8 @@ static void fpu_context_fx_restore(fpu_context_t *fctx)
 /* Setup using fxsr instruction */
 void fpu_fxsr(void)
 {
-	fpu_save=fpu_context_fx_save;
-	fpu_restore=fpu_context_fx_restore;
+	fpu_save = fpu_context_fx_save;
+	fpu_restore = fpu_context_fx_restore;
 }
 
 /* Setup using not fxsr instruction */

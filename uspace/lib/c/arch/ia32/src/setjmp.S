@@ -34,13 +34,13 @@
 
 .type setjmp,@function
 setjmp:
-	movl 0(%esp),%eax  # save pc value into eax
-	movl 4(%esp),%edx  # address of the jmp_buf structure to save context to
+	movl 0(%esp), %eax  # save pc value into eax
+	movl 4(%esp), %edx  # address of the jmp_buf structure to save context to
 	
 	# save registers to the jmp_buf structure
 	CONTEXT_SAVE_ARCH_CORE %edx %eax
 	
-	xorl %eax,%eax  # set_jmp returns 0
+	xorl %eax, %eax     # set_jmp returns 0
 	ret
 
 .type longjmp,@function
@@ -51,5 +51,5 @@ longjmp:
 	# restore registers from the jmp_buf structure
 	CONTEXT_RESTORE_ARCH_CORE %ecx %edx
 	
-	movl %edx,0(%esp)  # put saved pc on stack
+	movl %edx, 0(%esp)  # put saved pc on stack
 	ret

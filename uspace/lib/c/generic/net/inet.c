@@ -38,7 +38,7 @@
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
-
+#include <inet/addr.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdio.h>
@@ -93,99 +93,65 @@ inet_ntop(uint16_t family, const uint8_t *data, char *address, size_t length)
 	}
 }
 
+static int inet_pton4(const char *address, uint8_t *data)
+{
+	memset(data, 0, 4);
+	
+	const char *cur = address;
+	size_t i = 0;
+	
+	while (i < 4) {
+		int rc = str_uint8_t(cur, &cur, 10, false, &data[i]);
+		if (rc != EOK)
+			return rc;
+		
+		i++;
+		
+		if (*cur == 0)
+			break;
+		
+		if (*cur != '.')
+			return EINVAL;
+		
+		if (i < 4)
+			cur++;
+	}
+	
+	if ((i == 4) && (*cur != 0))
+		return EINVAL;
+	
+	return EOK;
+}
+
+static int inet_pton6(const char *address, uint8_t *data)
+{
+	// FIXME TODO
+	return ENOTSUP;
+}
+
 /** Parses the character string into the address.
  *
- *  If the string is shorter than the full address, zero bytes are added.
+ * @param[in]  family  The address family.
+ * @param[in]  address The character buffer to be parsed.
+ * @param[out] data    The address data to be filled.
  *
- *  @param[in] family	The address family.
- *  @param[in] address	The character buffer to be parsed.
- *  @param[out] data	The address data to be filled.
- *  @return		EOK on success.
- *  @return		EINVAL if the data parameter is NULL.
- *  @return		ENOENT if the address parameter is NULL.
- *  @return		ENOTSUP if the address family is not supported.
+ * @return EOK on success.
+ * @return EINVAL if the data parameter is NULL.
+ * @return ENOENT if the address parameter is NULL.
+ * @return ENOTSUP if the address family is not supported.
+ *
  */
 int inet_pton(uint16_t family, const char *address, uint8_t *data)
 {
-	/** The base number of the values. */
-	int base;
-	/** The number of bytes per a section. */
-	size_t bytes;
-	/** The number of bytes of the address data. */
-	int count;
-
-	const char *next;
-	char *last;
-	int index;
-	size_t shift;
-	unsigned long value;
-
-	if (!data)
-		return EINVAL;
-
-	/* Set processing parameters */
 	switch (family) {
 	case AF_INET:
-		count = 4;
-		base = 10;
-		bytes = 1;
-		break;
-
+		return inet_pton4(address, data);
 	case AF_INET6:
-		count = 16;
-		base = 16;
-		bytes = 4;
-		break;
-
+		return inet_pton6(address, data);
 	default:
+		/** Unknown address family */
 		return ENOTSUP;
 	}
-
-	/* Erase if no address */
-	if (!address) {
-		bzero(data, count);
-		return ENOENT;
-	}
-
-	/* Process string from the beginning */
-	next = address;
-	index = 0;
-	do {
-		/* If the actual character is set */
-		if (next && *next) {
-
-			/* If not on the first character */
-			if (index) {
-				/* Move to the next character */
-				++next;
-			}
-
-			/* Parse the actual integral value */
-			value = strtoul(next, &last, base);
-			/*
-			 * Remember the last problematic character
-			 * should be either '.' or ':' but is ignored to be
-			 * more generic
-			 */
-			next = last;
-
-			/* Fill the address data byte by byte */
-			shift = bytes - 1;
-			do {
-				/* like little endian */
-				data[index + shift] = value;
-				value >>= 8;
-			} while(shift --);
-
-			index += bytes;
-		} else {
-			/* Erase the rest of the address */
-			bzero(data + index, count - index);
-			return EOK;
-		}
-	} while (index < count);
-
-	return EOK;
 }
 
 /** @}

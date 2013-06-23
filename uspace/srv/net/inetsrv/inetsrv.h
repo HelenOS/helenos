@@ -39,6 +39,7 @@
 
 #include <adt/list.h>
 #include <stdbool.h>
+#include <inet/addr.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
 #include <sys/types.h>
@@ -60,19 +61,6 @@ typedef struct {
 	/** Link to client list */
 	link_t client_list;
 } inetping_client_t;
-
-/** Host address */
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
-
-/** Network address */
-typedef struct {
-	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
-} inet_naddr_t;
 
 /** Address object info */
 typedef struct {
@@ -183,8 +171,8 @@ typedef struct {
 } inet_dir_t;
 
 typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
+	uint32_t src;
+	uint32_t dest;
 	uint16_t seq_no;
 	void *data;
 	size_t size;

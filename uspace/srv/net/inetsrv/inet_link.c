@@ -152,7 +152,7 @@ static void inet_link_delete(inet_link_t *ilink)
 static int inet_link_open(service_id_t sid)
 {
 	inet_link_t *ilink;
-	iplink_addr_t iaddr;
+	inet_addr_t iaddr;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_link_open()");
@@ -195,15 +195,17 @@ static int inet_link_open(service_id_t sid)
 	inet_addrobj_t *addr;
 
 	static int first = 1;
-	/* XXX For testing: set static IP address 192.168.0.4/24 */
+	
 	addr = inet_addrobj_new();
+	
 	if (first) {
-		addr->naddr.ipv4 = (127 << 24) + (0 << 16) + (0 << 8) + 1;
+		inet_naddr(&addr->naddr, 127, 0, 0, 1, 24);
 		first = 0;
 	} else {
-		addr->naddr.ipv4 = (192 << 24) + (168 << 16) + (0 << 8) + 4;
+		/* XXX For testing: set static IP address 10.0.2.15/24 */
+		inet_naddr(&addr->naddr, 10, 0, 2, 15, 24);
 	}
-	addr->naddr.bits = 24;
+	
 	addr->ilink = ilink;
 	addr->name = str_dup("v4a");
 	rc = inet_addrobj_add(addr);
@@ -214,7 +216,7 @@ static int inet_link_open(service_id_t sid)
 		return rc;
 	}
 
-	iaddr.ipv4 = addr->naddr.ipv4;
+	inet_naddr_addr(&addr->naddr, &iaddr);
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
@@ -256,15 +258,12 @@ int inet_link_discovery_start(void)
 int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
     inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
-	iplink_sdu_t sdu;
-	inet_packet_t packet;
-	int rc;
-	size_t offs, roffs;
-
 	/*
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode().
 	 */
+	inet_packet_t packet;
+	
 	packet.src = dgram->src;
 	packet.dest = dgram->dest;
 	packet.tos = dgram->tos;
@@ -273,25 +272,34 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	packet.df = df;
 	packet.data = dgram->data;
 	packet.size = dgram->size;
-
-	sdu.lsrc.ipv4 = lsrc->ipv4;
-	sdu.ldest.ipv4 = ldest->ipv4;
-
-	offs = 0;
+	
+	iplink_sdu_t sdu;
+	
+	int rc = inet_addr_pack(lsrc, &sdu.lsrc);
+	if (rc != EOK)
+		return rc;
+	
+	rc = inet_addr_pack(ldest, &sdu.ldest);
+	if (rc != EOK)
+		return rc;
+	
+	size_t offs = 0;
 	do {
+		size_t roffs;
+		
 		/* Encode one fragment */
 		rc = inet_pdu_encode(&packet, offs, ilink->def_mtu, &sdu.data,
 		    &sdu.size, &roffs);
 		if (rc != EOK)
 			return rc;
-
+		
 		/* Send the PDU */
 		rc = iplink_send(ilink->iplink, &sdu);
 		free(sdu.data);
-
+		
 		offs = roffs;
 	} while (offs < packet.size);
-
+	
 	return rc;
 }
 
