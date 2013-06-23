@@ -56,8 +56,8 @@ static int slip_open(iplink_srv_t *);
 static int slip_close(iplink_srv_t *);
 static int slip_send(iplink_srv_t *, iplink_srv_sdu_t *);
 static int slip_get_mtu(iplink_srv_t *, size_t *);
-static int slip_addr_add(iplink_srv_t *, iplink_srv_addr_t *);
-static int slip_addr_remove(iplink_srv_t *, iplink_srv_addr_t *);
+static int slip_addr_add(iplink_srv_t *, uint32_t);
+static int slip_addr_remove(iplink_srv_t *, uint32_t);
 
 static iplink_srv_t slip_iplink;
 
@@ -160,13 +160,13 @@ int slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-int slip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+int slip_addr_add(iplink_srv_t *srv, uint32_t addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_addr_add()");
 	return EOK;
 }
 
-int slip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+int slip_addr_remove(iplink_srv_t *srv, uint32_t addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_addr_remove()");
 	return EOK;
@@ -210,8 +210,8 @@ static int slip_recv_fibril(void *arg)
 	uint8_t ch;
 	int rc;
 
-	sdu.lsrc.ipv4 = 0;
-	sdu.ldest.ipv4 = 0;
+	sdu.lsrc = 0;
+	sdu.ldest = 0;
 	sdu.data = recv_final;
 
 	while (true) {
