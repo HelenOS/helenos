@@ -50,12 +50,12 @@
 
 #include "libgpt.h"
 
-static int load_and_check_header(service_id_t handle, aoff64_t addr, size_t b_size, gpt_header_t * header);
+static int load_and_check_header(service_id_t handle, aoff64_t addr, size_t b_size, gpt_header_t *header);
 static gpt_partitions_t * alloc_part_array(uint32_t num);
-static int extend_part_array(gpt_partitions_t * p);
-static int reduce_part_array(gpt_partitions_t * p);
+static int extend_part_array(gpt_partitions_t *);
+static int reduce_part_array(gpt_partitions_t *);
 static long long nearest_larger_int(double a);
-
+static uint8_t get_byte(const char *);
 
 /** Allocate memory for gpt label */
 gpt_label_t * gpt_alloc_label(void)
@@ -178,7 +178,7 @@ int gpt_write_header(gpt_label_t *label, service_id_t dev_handle)
 					uint32_t_le2host(label->gpt->header->header_size));
 
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
-	if (rc != EOK)
+	if (rc != EOK && rc != EEXIST)
 		return rc;
 
 	rc = block_get_bsize(dev_handle, &b_size);
@@ -299,39 +299,38 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	int rc;
 	size_t b_size;
 	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
-
+	size_t fill = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
+	
 	label->gpt->header->pe_array_crc32 = compute_crc32(
 	                               (uint8_t *) label->parts->part_array,
-	                               label->parts->fill * e_size);
+	                               fill * e_size);
 	
 	/* comm_size of 4096 is ignored */
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
-	if (rc != EOK)
+	if (rc != EOK && rc != EEXIST)
 		return rc;
-
+	
 	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
 		goto fail;
-
+	
+	aoff64_t n_blocks;
+	rc = block_get_nblocks(dev_handle, &n_blocks);
+	if (rc != EOK)
+		goto fail;
+	
+	/* Write to backup GPT partition array location */
+	//rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, header->raw_data);
+	if (rc != EOK)
+		goto fail;
+	
 	/* Write to main GPT partition array location */
 	rc = block_write_direct(dev_handle, uint64_t_le2host(label->gpt->header->entry_lba),
 			nearest_larger_int((uint64_t_le2host(label->gpt->header->entry_size) * label->parts->fill) / b_size),
 			label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
-
-	aoff64_t n_blocks;
-	rc = block_get_nblocks(dev_handle, &n_blocks);
-	if (rc != EOK)
-		goto fail;
-
-	/* Write to backup GPT partition array location */
-	//rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, header->raw_data);
-	block_fini(dev_handle);
-	if (rc != EOK)
-		goto fail;
-
-
+	
 	return gpt_write_header(label, dev_handle);
 	
 fail:
@@ -346,7 +345,7 @@ fail:
  * Note: use either gpt_alloc_partition or gpt_get_partition.
  * This returns a memory block (zero-filled) and needs gpt_add_partition()
  * to be called to insert it into a partition array.
- * Requires you to call gpt_free_partition after use.
+ * Requires you to call gpt_free_partition afterwards.
  */
 gpt_part_t * gpt_alloc_partition(void)
 {
@@ -366,18 +365,53 @@ gpt_part_t * gpt_alloc_partition(void)
  * @return        returns pointer to the new partition or NULL on ENOMEM
  *
  * Note: use either gpt_alloc_partition or gpt_get_partition.
- * This one return a pointer to a structure already inside the array, so
- * there's no need to call gpt_add_partition(). 
+ * This one returns a pointer to the first empty structure already
+ * inside the array, so don't call gpt_add_partition() afterwards.
  * This is the one you will usually want.
  */
 gpt_part_t * gpt_get_partition(gpt_label_t *label)
 {
-	if (label->parts->fill == label->parts->arr_size) {
-		if (extend_part_array(label->parts) == -1)
-			return NULL;
-	}
+	gpt_part_t *p;
+	
+	/* Find the first empty entry */
+	do {
+		if (label->parts->fill == label->parts->arr_size) {
+			if (extend_part_array(label->parts) == -1)
+				return NULL;
+		}
+		
+		p = label->parts->part_array + label->parts->fill++;
+		
+	} while (gpt_get_part_type(p) != GPT_PTE_UNUSED);
+	
+	return p;
+}
 
-	return label->parts->part_array + label->parts->fill++;
+/** Get partition already inside the label
+ *
+ * @param label   label to carrying the partition
+ * @param idx     index of the partition
+ *
+ * @return        returns pointer to the partition
+ *                or NULL when out of range
+ *
+ * Note: For new partitions use either gpt_alloc_partition or
+ * gpt_get_partition unless you want a partition at a specific place.
+ * This returns a pointer to a structure already inside the array,
+ * so don't call gpt_add_partition() afterwards.
+ * This function is handy when you want to change already existing
+ * partition or to simply write somewhere in the middle. This works only
+ * for indexes smaller than either 128 or the actual number of filled
+ * entries.
+ */
+gpt_part_t * gpt_get_partition_at(gpt_label_t *label, size_t idx)
+{
+	return NULL;
+	
+	if (idx >= GPT_MIN_PART_NUM && idx >= label->parts->fill)
+		return NULL;
+	
+	return label->parts->part_array + idx;
 }
 
 /** Copy partition into partition array
@@ -414,15 +448,20 @@ int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
  */
 int gpt_remove_partition(gpt_label_t *label, size_t idx)
 {
-	if (idx != label->parts->fill - 1) {
-		memmove(label->parts->part_array + idx,
-		        label->parts->part_array + idx + 1,
-		        (label->parts->fill - 1) * sizeof(gpt_entry_t));
-		label->parts->fill -= 1;
-	}
+	if (idx >= label->parts->fill)
+		return EINVAL;
 	
-	/* FIXME: This probably shouldn't be here, but instead
-	 * in reduce_part_array() or similar */
+	/* FIXME! 
+	 * If we allow blank spots, we break the array. If we have more than
+	 * 128 partitions in the array and then remove something from
+	 * the first 128 partitions, we would forget to write the last one.*/
+	memset(label->parts->part_array + idx, 0, sizeof(gpt_entry_t));
+	
+	label->parts->fill -= 1;
+	
+	/* FIXME!
+	 * We cannot reduce the array so simply. We may have some partitions
+	 * there since we allow blank spots.*/
 	if (label->parts->fill < (label->parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
 		if (reduce_part_array(label->parts) == ENOMEM)
 			return ENOMEM;
@@ -447,11 +486,30 @@ void gpt_free_partitions(gpt_partitions_t * parts)
 size_t gpt_get_part_type(gpt_part_t * p)
 {
 	size_t i;
+	
 	for (i = 0; gpt_ptypes[i].guid != NULL; i++) {
-		if (bcmp(p->part_type, gpt_ptypes[i].guid, 16) == 0) {
-			break;
-		}
+		if (p->part_type[3] == get_byte(gpt_ptypes[i].guid +0) &&
+			p->part_type[2] == get_byte(gpt_ptypes[i].guid +2) &&
+			p->part_type[1] == get_byte(gpt_ptypes[i].guid +4) &&
+			p->part_type[0] == get_byte(gpt_ptypes[i].guid +6) &&
+			
+			p->part_type[5] == get_byte(gpt_ptypes[i].guid +8) &&
+			p->part_type[4] == get_byte(gpt_ptypes[i].guid +10) &&
+			
+			p->part_type[7] == get_byte(gpt_ptypes[i].guid +12) &&
+			p->part_type[6] == get_byte(gpt_ptypes[i].guid +14) &&
+			
+			p->part_type[8] == get_byte(gpt_ptypes[i].guid +16) &&
+			p->part_type[9] == get_byte(gpt_ptypes[i].guid +18) &&
+			p->part_type[10] == get_byte(gpt_ptypes[i].guid +20) &&
+			p->part_type[11] == get_byte(gpt_ptypes[i].guid +22) &&
+			p->part_type[12] == get_byte(gpt_ptypes[i].guid +24) &&
+			p->part_type[13] == get_byte(gpt_ptypes[i].guid +26) &&
+			p->part_type[14] == get_byte(gpt_ptypes[i].guid +28) &&
+			p->part_type[15] == get_byte(gpt_ptypes[i].guid +30))
+				break;
 	}
+	
 	return i;
 }
 
@@ -515,7 +573,7 @@ unsigned char * gpt_get_part_name(gpt_part_t * p)
 }
 
 /** Copy partition name */
-void gpt_set_part_name(gpt_part_t * p, char * name[], size_t length)
+void gpt_set_part_name(gpt_part_t *p, char *name, size_t length)
 {
 	if (length >= 72)
 		length = 71;
@@ -644,7 +702,14 @@ static long long nearest_larger_int(double a)
 	return ((long long) a) + 1;
 }
 
-
+static uint8_t get_byte(const char * c)
+{
+	uint8_t val = 0;
+	char hex[3] = {*c, *(c+1), 0};
+	
+	errno = str_uint8_t(hex, NULL, 16, false, &val);
+	return val;
+}
 
 
 
