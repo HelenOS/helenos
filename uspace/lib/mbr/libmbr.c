@@ -93,10 +93,7 @@ mbr_t * mbr_alloc_mbr(void)
  * @return				EOK on success, error code on error
  */
 int mbr_read_mbr(mbr_label_t *label, service_id_t dev_handle)
-{
-	if (label == NULL)
-		return EINVAL;
-	
+{	
 	int rc;
 	
 	if (label->mbr == NULL) {
@@ -194,7 +191,6 @@ int mbr_read_partitions(mbr_label_t *label)
 		}
 		
 		rc_ext = decode_part(&(label->mbr->raw_data.pte[i]), p, 0);
-		printf("p: %d %u %u\n", rc_ext, p->start_addr, p->length);
 		mbr_set_flag(p, ST_LOGIC, false);
 		rc = mbr_add_partition(label, p);
 		if (rc != ERR_OK) {
@@ -206,7 +202,6 @@ int mbr_read_partitions(mbr_label_t *label)
 		
 		if (rc_ext) {
 			ext = p;
-			printf("ext: %u %u\n", p->start_addr, p->length);
 			label->parts->l_extended = &p->link;
 		}
 	}
@@ -230,6 +225,12 @@ int mbr_read_partitions(mbr_label_t *label)
  */
 int mbr_write_partitions(mbr_label_t *label, service_id_t dev_handle)
 {
+	if (label->parts == NULL)
+		return EOK;
+	
+	if (label->mbr == NULL)
+		label->mbr = mbr_alloc_mbr();
+	
 	int i = 0;
 	int rc;
 	mbr_part_t *p;
@@ -247,7 +248,6 @@ int mbr_write_partitions(mbr_label_t *label, service_id_t dev_handle)
 	/* Encoding primary partitions */
 	for (i = 0; i < N_PRIMARY; i++) {
 		p = list_get_instance(l, mbr_part_t, link);	
-		printf("status: %hu\n", p->status);
 		encode_part(p, &(label->mbr->raw_data.pte[i]), 0, false);
 		l = l->next;
 	}
