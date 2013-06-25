@@ -40,49 +40,64 @@
 static void not_implemented(void);
 
 
-int add_none_part(tinput_t *in, union label_data *data)
+int construct_none_label(label_t *this)
+{
+	this->layout = LYT_NONE;
+	
+	this->add_part      = add_none_part;
+	this->delete_part   = delete_none_part;
+	this->destroy_label = destroy_none_label;
+	this->new_label     = new_none_label;
+	this->print_parts   = print_none_parts;
+	this->read_parts    = read_none_parts;
+	this->write_parts   = write_none_parts;
+	this->extra_funcs   = extra_none_funcs;
+	
+	return EOK;
+}
+
+int add_none_part(label_t *this, tinput_t * in)
 {
 	not_implemented();
 	return EOK;
 }
 
-int delete_none_part(tinput_t *in, union label_data *data)
+int delete_none_part(label_t *this, tinput_t * in)
 {
 	not_implemented();
 	return EOK;
 }
 
-int destroy_none_label(union label_data *data)
+int destroy_none_label(label_t *this)
+{
+	return EOK;
+}
+
+int new_none_label(label_t *this)
 {
 	not_implemented();
 	return EOK;
 }
 
-int new_none_label(union label_data *data)
+int print_none_parts(label_t *this)
 {
 	not_implemented();
 	return EOK;
 }
 
-int print_none_parts(union label_data *data)
+int read_none_parts(label_t *this, service_id_t dev_handle)
 {
 	not_implemented();
 	return EOK;
 }
 
-int read_none_parts(service_id_t dev_handle, union label_data *data)
+int write_none_parts(label_t *this, service_id_t dev_handle)
 {
 	not_implemented();
 	return EOK;
 }
 
-int write_none_parts(service_id_t dev_handle, union label_data *data)
-{
-	not_implemented();
-	return EOK;
-}
-
-int extra_none_funcs(tinput_t *in, service_id_t dev_handle, union label_data *data)
+int extra_none_funcs(label_t *this, tinput_t * in, service_id_t dev_handle)
 {
 	not_implemented();
 	return EOK;

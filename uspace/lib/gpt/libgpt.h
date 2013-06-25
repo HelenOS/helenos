@@ -52,6 +52,9 @@
 /** How much fill we ignore before resizing partition array */
 #define GPT_IGNORE_FILL_NUM 10
 
+/** Unused partition entry */
+#define GPT_PTE_UNUSED 0
+
 /** GPT header signature ("EFI PART" in ASCII) */
 extern const uint8_t efi_signature[8];
 
@@ -148,6 +151,7 @@ extern int             gpt_read_partitions (gpt_label_t *);
 extern int             gpt_write_partitions(gpt_label_t *, service_id_t);
 extern gpt_part_t *    gpt_alloc_partition (void);
 extern gpt_part_t *    gpt_get_partition   (gpt_label_t *);
+extern gpt_part_t *    gpt_get_partition_at(gpt_label_t *, size_t);
 extern int             gpt_add_partition   (gpt_label_t *, gpt_part_t *);
 extern int             gpt_remove_partition(gpt_label_t *, size_t);
 
@@ -158,15 +162,15 @@ extern uint64_t        gpt_get_start_lba(gpt_part_t *);
 extern void            gpt_set_end_lba  (gpt_part_t *, uint64_t);
 extern uint64_t        gpt_get_end_lba  (gpt_part_t *);
 extern unsigned char * gpt_get_part_name(gpt_part_t *);
-extern void            gpt_set_part_name(gpt_part_t *, char *[], size_t);
+extern void            gpt_set_part_name(gpt_part_t *, char *, size_t);
 extern bool            gpt_get_flag     (gpt_part_t *, GPT_ATTR);
 extern void            gpt_set_flag     (gpt_part_t *, GPT_ATTR, bool);
 
 
 
-#define gpt_part_foreach(parts, iterator) \
-		for(gpt_part_t * iterator = (parts)->part_array; \
-		    iterator < (parts)->part_array + (parts)->fill; ++iterator)
+#define gpt_part_foreach(label, iterator) \
+		for(gpt_part_t * iterator = (label)->parts->part_array; \
+		    iterator < (label)->parts->part_array + (label)->parts->fill; ++iterator)
 
 extern void gpt_free_gpt(gpt_t *);
 extern void gpt_free_partitions(gpt_partitions_t *);

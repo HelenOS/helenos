@@ -33,6 +33,7 @@
  */
 
 #include <stdio.h>
+#include <str.h>
 #include <errno.h>
 #include <str_error.h>
 #include <sys/types.h>
@@ -42,43 +43,63 @@
 
 static int set_gpt_partition(tinput_t *, gpt_part_t *);
 
-int add_gpt_part(tinput_t * in, union label_data * data)
+
+int construct_gpt_label(label_t *this)
 {
-	gpt_part_t * p = gpt_alloc_partition(data->gpt->parts);
+	this->layout = LYT_GPT;
+	this->alignment = 1;
+	
+	this->add_part    = add_gpt_part;
+	this->delete_part = delete_gpt_part;
+	this->new_label   = new_gpt_label;
+	this->print_parts = print_gpt_parts;
+	this->read_parts  = read_gpt_parts;
+	this->write_parts = write_gpt_parts;
+	this->extra_funcs = extra_gpt_funcs;
+	
+	return this->new_label(this);
+}
+
+int add_gpt_part(label_t *this, tinput_t *in)
+{
+	gpt_part_t * p = gpt_get_partition(this->data.gpt);
 	if (p == NULL) {
 		return ENOMEM;
 	}
-
+	
 	return set_gpt_partition(in, p);
 }
 
-int delete_gpt_part(tinput_t * in, union label_data * data)
+int delete_gpt_part(label_t *this, tinput_t *in)
 {
+	int rc;
 	size_t idx;
-
+	
 	printf("Number of the partition to delete (counted from 0): ");
 	idx = get_input_size_t(in);
-
-	if (gpt_remove_partition(data->gpt->parts, idx) == -1) {
+	
+	rc = gpt_remove_partition(this->data.gpt, idx);
+	if (rc != EOK) {
 		printf("Warning: running low on memory, not resizing...\n");
+		return rc;
 	}
-
+	
 	return EOK;
 }
 
-int destroy_gpt_label(union label_data *data)
+int destroy_gpt_label(label_t *this)
 {
+	gpt_free_label(this->data.gpt);
 	return EOK;
 }
 
-int new_gpt_label(union label_data *data)
+int new_gpt_label(label_t *this)
 {
-	data->gpt->gpt = gpt_alloc_gpt_header();
-	data->gpt->parts = gpt_alloc_partitions();
+	this->data.gpt = gpt_alloc_label();
 	return EOK;
 }
 
-int print_gpt_parts(union label_data *data)
+int print_gpt_parts(label_t *this)
 {
 	//int rc;
 	printf("Current partition scheme (GPT):\n");
@@ -86,72 +107,100 @@ int print_gpt_parts(union label_data *data)
 	
 	size_t i = 0;
 	
-	gpt_part_foreach(data->gpt->parts, iter) {
+	gpt_part_foreach(this->data.gpt, iter) {
+		i++;
+		//FIXMEE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		if (gpt_get_part_type(iter) == GPT_PTE_UNUSED)
+			continue;
+		
+		if (i % 20 == 0)
+			printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
+		
 		//printf("\t%10u %10u %10u %3d\n", iter->start_addr, iter->start_addr + iter->length,
 		//		iter->length, gpt_get_part_type(iter), gpt_get_part_name(iter));
-		printf("%3u\t%10llu %10llu %10llu %3d %s\n", i, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
+		printf("%3u  %10llu %10llu %10llu    %3d %s\n", i-1, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
 				gpt_get_end_lba(iter) - gpt_get_start_lba(iter), gpt_get_part_type(iter),
 				gpt_get_part_name(iter));
-		i++;
 	}
-
+	
 	//return rc;
 	return EOK;
 }
 
-int read_gpt_parts(service_id_t dev_handle, union label_data *data)
-{
-	return EOK;
-}
-
-int write_gpt_parts(service_id_t dev_handle, union label_data * data)
+int read_gpt_parts(label_t *this, service_id_t dev_handle)
 {
 	int rc;
-
-	rc = gpt_write_partitions(data->gpt->parts, data->gpt->gpt, dev_handle);
+	
+	rc = gpt_read_header(this->data.gpt, dev_handle);
 	if (rc != EOK) {
-		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
+		printf("Error: Reading header failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
-
-	rc = gpt_write_gpt_header(data->gpt->gpt, dev_handle);
+	
+	rc = gpt_read_partitions(this->data.gpt);
 	if (rc != EOK) {
-		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
+		printf("Error: Reading partitions failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
-
+	
 	return EOK;
 }
 
-int extra_gpt_funcs(tinput_t * in, service_id_t dev_handle, union label_data * data)
+int write_gpt_parts(label_t *this, service_id_t dev_handle)
+{
+	int rc;
+	
+	rc = gpt_write_partitions(this->data.gpt, dev_handle);
+	if (rc != EOK) {
+		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
+		return rc;
+	}
+	
+	rc = gpt_write_header(this->data.gpt, dev_handle);
+	if (rc != EOK) {
+		printf("Error: Writing header failed: %d (%s)\n", rc, str_error(rc));
+		return rc;
+	}
+	
+	return EOK;
+}
+
+int extra_gpt_funcs(label_t *this, tinput_t *in, service_id_t dev_handle)
 {
 	printf("Not implemented.\n");
 	return EOK;
 }
 
-static int set_gpt_partition(tinput_t * in, gpt_part_t * p)
+static int set_gpt_partition(tinput_t *in, gpt_part_t *p)
 {
-	//int rc;
-
+	int rc;
+	
 	uint64_t sa, ea;
-
+	
 	printf("Set starting address (number): ");
 	sa = get_input_uint64(in);
-
+	
 	printf("Set end addres (number): ");
 	ea = get_input_uint64(in);
-
+	
 	if (ea <= sa) {
 		printf("Invalid value.\n");
 		return EINVAL;
 	}
-
-
-	//p->start_addr = sa;
+	
 	gpt_set_start_lba(p, sa);
-	//p->length = ea - sa;
 	gpt_set_end_lba(p, ea);
-
+	
+	
+	char *name;
+	rc = get_input_line(in, &name);
+	if (rc != EOK) {
+		printf("Error reading name: %d (%s)\n", rc, str_error(rc));
+		return rc;
+	}
+	
+	gpt_set_part_name(p, name, str_size(name));
+	
 	return EOK;
 }
 

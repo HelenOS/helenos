@@ -40,109 +40,128 @@
 #include "func_mbr.h"
 #include "input.h"
 
-static int set_mbr_partition(tinput_t *in, mbr_part_t *p);
+static int set_mbr_partition(tinput_t *in, mbr_part_t *p, unsigned int alignment);
 
-int add_mbr_part(tinput_t *in, union label_data *data)
+int construct_mbr_label(label_t *this)
+{
+	this->layout = LYT_MBR;
+	this->alignment = 1;
+	
+	this->add_part      = add_mbr_part;
+	this->delete_part   = delete_mbr_part;
+	this->destroy_label = destroy_mbr_label;
+	this->new_label     = new_mbr_label;
+	this->print_parts   = print_mbr_parts;
+	this->read_parts    = read_mbr_parts;
+	this->write_parts   = write_mbr_parts;
+	this->extra_funcs   = extra_mbr_funcs;
+	
+	return this->new_label(this);
+}
+
+int add_mbr_part(label_t *this, tinput_t *in)
 {
 	int rc;
 	
 	mbr_part_t *part = mbr_alloc_partition();
-
-	set_mbr_partition(in, part);
-
-	rc = mbr_add_partition(data->mbr, part);
-	if (rc != EOK) {
-		printf("Error adding partition.\n");
+	
+	set_mbr_partition(in, part, this->alignment);
+	
+	rc = mbr_add_partition(this->data.mbr, part);
+	if (rc != ERR_OK) {
+		printf("Error adding partition: %d\n", rc);
 	}
 	
 	return EOK;
 }
 
-int delete_mbr_part(tinput_t *in, union label_data *data)
+int delete_mbr_part(label_t *this, tinput_t *in)
 {
 	int rc;
 	size_t idx;
-
+	
 	printf("Number of the partition to delete (counted from 0): ");
 	idx = get_input_size_t(in);
 	
 	if (idx == 0 && errno != EOK)
 		return errno;
 	
-	rc = mbr_remove_partition(data->mbr, idx);
+	rc = mbr_remove_partition(this->data.mbr, idx);
 	if(rc != EOK) {
 		printf("Error: something.\n");
 	}
-
+	
 	return EOK;
 }
 
-int destroy_mbr_label(union label_data *data)
+int destroy_mbr_label(label_t *this)
 {
-	mbr_free_label(data->mbr);
+	mbr_free_label(this->data.mbr);
 	return EOK;
 }
 
-int new_mbr_label(union label_data *data)
+int new_mbr_label(label_t *this)
 {
-	data->mbr = mbr_alloc_label();
-	if (data->mbr == NULL)
+	this->data.mbr = mbr_alloc_label();
+	if (this->data.mbr == NULL)
 		return ENOMEM;
 	else
 		return EOK;
 }
 
 /** Print current partition scheme */
-int print_mbr_parts(union label_data *data)
+int print_mbr_parts(label_t *this)
 {
 	int num = 0;
-
-	printf("Current partition scheme:\n");
+	
+	printf("Current partition scheme (MBR):\n");
 	//printf("\t\tBootable:\tStart:\tEnd:\tLength:\tType:\n");
 	printf("\t\t%10s  %10s %10s %10s %7s\n", "Bootable:", "Start:", "End:", "Length:", "Type:");
 	
 	mbr_part_t *it;
-	mbr_part_foreach(data->mbr->parts, it) {
+	//mbr_part_foreach(data->mbr, it) {
+	
+	for (it = mbr_get_first_partition(this->data.mbr); it != NULL;
+	     it = mbr_get_next_partition(this->data.mbr, it), ++num) {
 		if (it->type == PT_UNUSED)
 			continue;
-
+		
 		printf("\tP%d:\t", num);
 		if (mbr_get_flag(it, ST_BOOT))
 			printf("*");
 		else
 			printf(" ");
-
+		
 		printf("\t%10u %10u %10u %7u\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
-
-		++num;
+		
+		//++num;
 	}
-
+	
 	printf("%d partitions found.\n", num);
 	
 	return EOK;
 }
 
-int read_mbr_parts(service_id_t dev_handle, union label_data *data)
+int read_mbr_parts(label_t *this, service_id_t dev_handle)
 {
 	int rc;
-	printf("mbr\n");
-	rc = mbr_read_mbr(data->mbr, dev_handle);
+	rc = mbr_read_mbr(this->data.mbr, dev_handle);
 	if (rc != EOK)
 		return rc;
-	printf("ismbr\n");
-	if (!mbr_is_mbr(data->mbr))
+	
+	if (!mbr_is_mbr(this->data.mbr))
 		return EINVAL;
-	printf("parts\n");
-	rc = mbr_read_partitions(data->mbr);
+	
+	rc = mbr_read_partitions(this->data.mbr);
 	if (rc != EOK)
 		return rc;
-	printf("end\n");
+	
 	return EOK;
 }
 
-int write_mbr_parts(service_id_t dev_handle, union label_data *data)
+int write_mbr_parts(label_t *this, service_id_t dev_handle)
 {
-	int rc = mbr_write_partitions(data->mbr, dev_handle);
+	int rc = mbr_write_partitions(this->data.mbr, dev_handle);
 	if (rc != EOK) {
 		printf("Error occured during writing: ERR: %d: %s\n", rc, str_error(rc));
 	}
@@ -150,13 +169,13 @@ int write_mbr_parts(service_id_t dev_handle, union label_data *data)
 	return rc;
 }
 
-int extra_mbr_funcs(tinput_t *in, service_id_t dev_handle, union label_data *data)
+int extra_mbr_funcs(label_t *this, tinput_t *in, service_id_t dev_handle)
 {
 	printf("Not implemented.\n");
 	return EOK;
 }
 
-static int set_mbr_partition(tinput_t *in, mbr_part_t *p)
+static int set_mbr_partition(tinput_t *in, mbr_part_t *p, unsigned int alignment)
 {
 	int c;
 	uint8_t type;
@@ -173,9 +192,11 @@ static int set_mbr_partition(tinput_t *in, mbr_part_t *p)
 			mbr_set_flag(p, ST_LOGIC, true);
 			break;
 		default:
-			printf("Invalid type. Cancelled.");
+			printf("Invalid type. Cancelled.\n");
 			return EINVAL;
 	}
+	
+	printf("ST_LOGIC: %d, %hd\n", mbr_get_flag(p, ST_LOGIC), p->status);
 	
 	printf("Set type (0-255): ");
 	type = get_input_uint8(in);
@@ -199,11 +220,22 @@ static int set_mbr_partition(tinput_t *in, mbr_part_t *p)
 	sa = get_input_uint32(in);
 	if (sa == 0 && errno != EOK)
 		return errno;
+	
+	if (alignment != 0 && alignment != 1) {
+		sa = mbr_get_next_aligned(sa, alignment);
+		printf("Starting address was aligned to %u.\n", sa);
+	}
 
 	printf("Set end addres (number): ");
 	ea = get_input_uint32(in);
 	if (ea == 0 && errno != EOK)
 		return errno;
+	
+	/* Align ending address, not in use */
+	/*if (alignment != 0 && alignment != 1) {
+		ea = mbr_get_next_aligned(ea, alignment) - alignment;
+		printf("Starting address was aligned to %u.\n", ea);
+	}*/
 	
 	if(ea < sa) {
 		printf("Invalid value. Canceled.\n");
