@@ -39,9 +39,9 @@
 
 #include <sys/types.h>
 
-#define ETH_ADDR_SIZE 6
-#define IPV4_ADDR_SIZE 4
-#define ETH_FRAME_MIN_SIZE 60
+#define ETH_ADDR_SIZE       6
+#define IPV4_ADDR_SIZE      4
+#define ETH_FRAME_MIN_SIZE  60
 
 /** Ethernet frame header */
 typedef struct {
@@ -89,7 +89,6 @@ enum ether_type {
 	ETYPE_ARP = 0x0806,
 	ETYPE_IP  = 0x0800
 };
-
 
 #endif
 

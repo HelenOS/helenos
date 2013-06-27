@@ -207,14 +207,13 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 		    (struct sockaddr *) &addr, sizeof(addr));
 		if (rc != EOK)
 			goto error;
-
+		
 		treq = treq_create(req);
 		if (treq == NULL) {
 			rc = ENOMEM;
 			goto error;
 		}
-
-
+		
 		fibril_mutex_lock(&treq->done_lock);
 		while (treq->done != true) {
 			rc = fibril_condvar_wait_timeout(&treq->done_cv, &treq->done_lock,
@@ -224,30 +223,32 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 				break;
 			}
 		}
-
+		
 		fibril_mutex_unlock(&treq->done_lock);
-
+		
 		if (rc != ETIMEOUT)
 			break;
 	}
-
+	
 	if (ntry >= REQ_RETRY_MAX) {
 		rc = EIO;
 		goto error;
 	}
-
+	
 	if (treq->status != EOK) {
 		rc = treq->status;
 		goto error;
 	}
-
+	
 	*rresp = treq->resp;
 	treq_destroy(treq);
 	free(req_data);
 	return EOK;
+	
 error:
 	if (treq != NULL)
 		treq_destroy(treq);
+	
 	free(req_data);
 	return rc;
 }

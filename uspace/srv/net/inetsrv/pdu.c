@@ -202,7 +202,7 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	uint16_t foff;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode()");
-
+	
 	if (size < sizeof(ip_header_t)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "PDU too short (%zu)", size);
 		return EINVAL;
@@ -222,7 +222,7 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Total Length too small (%zu)", tot_len);
 		return EINVAL;
 	}
-
+	
 	if (tot_len > size) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Total Length = %zu > PDU size = %zu",
 			tot_len, size);
@@ -241,11 +241,11 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	packet->proto = hdr->proto;
 	packet->ttl = hdr->ttl;
 	packet->ident = ident;
-
+	
 	packet->df = (flags_foff & BIT_V(uint16_t, FF_FLAG_DF)) != 0;
 	packet->mf = (flags_foff & BIT_V(uint16_t, FF_FLAG_MF)) != 0;
 	packet->offs = foff * FRAG_OFFS_UNIT;
-
+	
 	/* XXX IP options */
 	data_offs = sizeof(uint32_t) * BIT_RANGE_EXTRACT(uint8_t, VI_IHL_h,
 	    VI_IHL_l, hdr->ver_ihl);
@@ -256,9 +256,9 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 		log_msg(LOG_DEFAULT, LVL_WARN, "Out of memory.");
 		return ENOMEM;
 	}
-
-	memcpy(packet->data, (uint8_t *)data + data_offs, packet->size);
-
+	
+	memcpy(packet->data, (uint8_t *) data + data_offs, packet->size);
+	
 	return EOK;
 }
 

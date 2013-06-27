@@ -363,15 +363,15 @@ ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
     uint32_t addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_find()");
-
+	
 	list_foreach(nic->addr_list, link) {
 		ethip_link_addr_t *laddr = list_get_instance(link,
 		    ethip_link_addr_t, addr_list);
-
+		
 		if (addr == laddr->addr)
 			return laddr;
 	}
-
+	
 	return NULL;
 }
 

@@ -221,7 +221,7 @@ static void udp_sock_bind(udp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	default:
 		assert(false);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - success");
 	async_answer_0(callid, rc);
 out:
@@ -427,7 +427,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	socket = (udp_sockdata_t *)sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
-
+	
 	if (socket->assoc == NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, ENOTCONN);
@@ -443,7 +443,7 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 		fibril_condvar_wait(&socket->recv_buffer_cv,
 		    &socket->recv_buffer_lock);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got data in sock recv_buffer");
 
 	rsock = &socket->recv_fsock;
@@ -466,8 +466,9 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 	default:
 		assert(false);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "**** udp_uc_receive -> %d", rc);
+	
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
@@ -518,25 +519,25 @@ static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_cal
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-
+	
 	if (length > data_len)
 		length = data_len;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read finalize");
 	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
 
 	if (length < data_len && rc == EOK)
 		rc = EOVERFLOW;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "read_data_length <- %zu", length);
 	IPC_SET_ARG2(answer, 0);
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
 	SOCKET_SET_ADDRESS_LENGTH(answer, sizeof(addr));
 	async_answer_3(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer));
-
+	
 	socket->recv_buffer_used = 0;
-
+	
 	fibril_condvar_broadcast(&socket->recv_buffer_cv);
 	fibril_mutex_unlock(&socket->recv_buffer_lock);
 	fibril_mutex_unlock(&socket->lock);
@@ -611,7 +612,7 @@ static int udp_sock_recv_fibril(void *arg)
 
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "[] wait for rcv buffer empty()");
-		while (sock->recv_buffer_used != 0 && sock->sock_core != NULL) {
+		while ((sock->recv_buffer_used != 0) && (sock->sock_core != NULL)) {
 			fibril_condvar_wait(&sock->recv_buffer_cv,
 			    &sock->recv_buffer_lock);
 		}

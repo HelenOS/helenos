@@ -136,10 +136,10 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 			return naddr;
 		}
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: Not found");
 	fibril_mutex_unlock(&addr_list_lock);
-
+	
 	return NULL;
 }
 

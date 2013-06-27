@@ -105,9 +105,9 @@ int arp_translate(ethip_nic_t *nic, uint32_t src_addr, uint32_t ip_addr,
 	rc = arp_send_packet(nic, &packet);
 	if (rc != EOK)
 		return rc;
-
+	
 	(void) atrans_wait_timeout(ARP_REQUEST_TIMEOUT);
-
+	
 	return atrans_lookup(ip_addr, mac_addr);
 }
 

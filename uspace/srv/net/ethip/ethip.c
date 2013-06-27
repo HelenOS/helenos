@@ -190,10 +190,10 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
-
+	
 	rc = ethip_nic_send(nic, data, size);
 	free(data);
-
+	
 	return rc;
 }
 
@@ -231,7 +231,7 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
 		    frame.etype_len);
 	}
-
+	
 	free(frame.data);
 	return rc;
 }

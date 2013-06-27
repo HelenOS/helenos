@@ -39,7 +39,7 @@
 
 #include <sys/types.h>
 
-#define IP_PROTO_UDP 17
+#define IP_PROTO_UDP  17
 
 /** UDP Header */
 typedef struct {
@@ -63,7 +63,7 @@ typedef struct {
 	uint8_t zero;
 	/** Protocol */
 	uint8_t protocol;
-	/** TCP length */
+	/** UDP length */
 	uint16_t udp_length;
 } udp_phdr_t;
 

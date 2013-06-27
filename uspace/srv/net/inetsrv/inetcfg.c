@@ -376,7 +376,6 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, act_size);
 }
 
-
 static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_callid_t rcallid;

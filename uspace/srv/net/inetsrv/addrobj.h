@@ -58,7 +58,6 @@ extern int inet_addrobj_send_dgram(inet_addrobj_t *, inet_addr_t *,
     inet_dgram_t *, uint8_t, uint8_t, int);
 extern int inet_addrobj_get_id_list(sysarg_t **, size_t *);
 
-
 #endif
 
 /** @}

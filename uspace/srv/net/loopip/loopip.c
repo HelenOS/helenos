@@ -43,7 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NAME "loopip"
+#define NAME  "loopip"
 
 static int loopip_open(iplink_srv_t *srv);
 static int loopip_close(iplink_srv_t *srv);
@@ -80,7 +80,7 @@ static int loopip_recv_fibril(void *arg)
 
 		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu);
 	}
-
+	
 	return 0;
 }
 
@@ -98,11 +98,11 @@ static int loopip_init(void)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
-
+	
 	iplink_srv_init(&loopip_iplink);
 	loopip_iplink.ops = &loopip_iplink_ops;
 	loopip_iplink.arg = NULL;
-
+	
 	prodcons_initialize(&loopip_rcv_queue);
 
 	rc = loc_service_register(svc_name, &sid);
@@ -116,19 +116,19 @@ static int loopip_init(void)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		return rc;
 	}
-
+	
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.", svc_name);
 		return rc;
 	}
-
+	
 	fid_t fid = fibril_create(loopip_recv_fibril, NULL);
 	if (fid == 0)
 		return ENOMEM;
-
+	
 	fibril_add_ready(fid);
-
+	
 	return EOK;
 }
 
@@ -159,6 +159,7 @@ static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
+	
 	/*
 	 * Clone SDU
 	 */
@@ -169,15 +170,15 @@ static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 		free(rqe);
 		return ENOMEM;
 	}
-
+	
 	memcpy(rqe->sdu.data, sdu->data, sdu->size);
 	rqe->sdu.size = sdu->size;
-
+	
 	/*
 	 * Insert to receive queue
 	 */
 	prodcons_produce(&loopip_rcv_queue, &rqe->link);
-
+	
 	return EOK;
 }
 
@@ -210,7 +211,7 @@ int main(int argc, char *argv[])
 		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}
-
+	
 	rc = loopip_init();
 	if (rc != EOK)
 		return 1;
@@ -218,7 +219,7 @@ int main(int argc, char *argv[])
 	printf(NAME ": Accepting connections.\n");
 	task_retval(0);
 	async_manager();
-
+	
 	/* Not reached */
 	return 0;
 }

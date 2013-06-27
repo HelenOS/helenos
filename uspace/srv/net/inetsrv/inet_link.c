@@ -69,12 +69,12 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "failed decoding PDU");
 		return rc;
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %d", rc);
 	free(packet.data);
-
+	
 	return rc;
 }
 
@@ -231,6 +231,7 @@ static int inet_link_open(service_id_t sid)
 error:
 	if (ilink->iplink != NULL)
 		iplink_close(ilink->iplink);
+	
 	inet_link_delete(ilink);
 	return rc;
 }
@@ -262,6 +263,7 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode().
 	 */
+	
 	inet_packet_t packet;
 	
 	packet.src = dgram->src;

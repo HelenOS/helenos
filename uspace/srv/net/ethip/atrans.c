@@ -123,13 +123,11 @@ int atrans_lookup(uint32_t ip_addr, mac48_addr_t *mac_addr)
 
 int atrans_wait_timeout(suseconds_t timeout)
 {
-	int rc;
-
 	fibril_mutex_lock(&atrans_list_lock);
-	rc = fibril_condvar_wait_timeout(&atrans_cv, &atrans_list_lock,
+	int rc = fibril_condvar_wait_timeout(&atrans_cv, &atrans_list_lock,
 	    timeout);
 	fibril_mutex_unlock(&atrans_list_lock);
-
+	
 	return rc;
 }
 

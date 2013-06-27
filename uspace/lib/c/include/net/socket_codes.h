@@ -45,19 +45,19 @@
 
 enum {
 	AF_NONE = 0,
-	AF_INET,	/* IPv4 address */
-	AF_INET6	/* IPv6 address */
+	AF_INET,  /* IPv4 address */
+	AF_INET6  /* IPv6 address */
 };
 
 /*@}*/
 
 /** @name Protocol families definitions
- *  Same as address families.
+ * Same as address families.
  */
 /*@{*/
 
-#define PF_INET		AF_INET
-#define PF_INET6	AF_INET6
+#define PF_INET   AF_INET
+#define PF_INET6  AF_INET6
 
 /*@}*/
 

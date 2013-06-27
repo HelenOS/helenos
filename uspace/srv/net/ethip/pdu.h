@@ -46,7 +46,6 @@ extern void mac48_decode(void *, mac48_addr_t *);
 extern int arp_pdu_encode(arp_eth_packet_t *, void **, size_t *);
 extern int arp_pdu_decode(void *, size_t, arp_eth_packet_t *);
 
-
 #endif
 
 /** @}

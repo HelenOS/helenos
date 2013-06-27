@@ -44,7 +44,7 @@
 /** INET string address maximum length. */
 #define INET_ADDRSTRLEN  (4 * 3 + 3 + 1)
 
-#define INADDR_ANY 0
+#define INADDR_ANY  0
 
 /** INET address. */
 typedef struct in_addr {

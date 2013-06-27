@@ -428,7 +428,7 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 		socket->conn->name = (char *)"C";
 
 	fibril_mutex_unlock(&socket->lock);
-
+	
 	switch (trc) {
 	case TCP_EOK:
 		rc = EOK;
@@ -439,10 +439,10 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	default:
 		assert(false);
 	}
-
+	
 	if (rc == EOK)
 		fibril_add_ready(socket->recv_fibril);
-
+	
 	async_answer_0(callid, rc);
 }
 
@@ -686,7 +686,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
 	fibril_mutex_lock(&socket->lock);
-
+	
 	if (socket->conn == NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, ENOTCONN);
@@ -702,7 +702,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		fibril_condvar_wait(&socket->recv_buffer_cv,
 		    &socket->recv_buffer_lock);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got data in sock recv_buffer");
 
 	data_len = socket->recv_buffer_used;
@@ -722,8 +722,9 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	default:
 		assert(false);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "**** recv result -> %d", rc);
+	
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
@@ -768,7 +769,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 			return;
 		}
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read receive");
 	if (!async_data_read_receive(&rcallid, &length)) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
@@ -776,13 +777,13 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-
+	
 	if (length > data_len)
 		length = data_len;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read finalize");
 	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
-
+	
 	socket->recv_buffer_used -= length;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_recvfrom: %zu left in buffer",
 	    socket->recv_buffer_used);
@@ -791,7 +792,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 		    socket->recv_buffer_used);
 		tcp_sock_notify_data(socket->sock_core);
 	}
-
+	
 	fibril_condvar_broadcast(&socket->recv_buffer_cv);
 
 	if (length < data_len && rc == EOK)
@@ -799,7 +800,7 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
 	async_answer_1(callid, EOK, IPC_GET_ARG1(answer));
-
+	
 	fibril_mutex_unlock(&socket->recv_buffer_lock);
 	fibril_mutex_unlock(&socket->lock);
 }

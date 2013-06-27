@@ -93,19 +93,16 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 	    (sysarg_t) sdu->dest, sdu->seq_no, &answer);
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	if (retval != EOK) {
-		return retval;
-	}
-
-	return EOK;
+	
+	return (int) retval;
 }
 
 static void inetping_send_srv(inetping_client_t *client, ipc_callid_t callid,
@@ -150,15 +147,15 @@ static int inetping_client_init(inetping_client_t *client)
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)
 		return ENOMEM;
-
+	
 	client->sess = sess;
 	link_initialize(&client->client_list);
-
+	
 	fibril_mutex_lock(&client_list_lock);
 	client->ident = ++inetping_ident;
 	list_append(&client->client_list, &client_list);
 	fibril_mutex_unlock(&client_list_lock);
-
+	
 	return EOK;
 }
 
@@ -166,7 +163,7 @@ static void inetping_client_fini(inetping_client_t *client)
 {
 	async_hangup(client->sess);
 	client->sess = NULL;
-
+	
 	fibril_mutex_lock(&client_list_lock);
 	list_remove(&client->client_list);
 	fibril_mutex_unlock(&client_list_lock);
@@ -203,18 +200,18 @@ void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	rc = inetping_client_init(&client);
 	if (rc != EOK)
 		return;
-
+	
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
-
+		
 		if (!method) {
 			/* The other side has hung up */
 			async_answer_0(callid, EOK);
 			break;
 		}
-
+		
 		switch (method) {
 		case INETPING_SEND:
 			inetping_send_srv(&client, callid, &call);
@@ -226,7 +223,7 @@ void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, EINVAL);
 		}
 	}
-
+	
 	inetping_client_fini(&client);
 }
 
