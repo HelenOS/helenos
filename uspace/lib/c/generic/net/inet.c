@@ -44,50 +44,108 @@
 #include <stdio.h>
 #include <str.h>
 
+static int inet_ntop4(const uint8_t *data, char *address, size_t length)
+{
+	/* Check output buffer size */
+	if (length < INET_ADDRSTRLEN)
+		return ENOMEM;
+	
+	/* Fill buffer with IPv4 address */
+	snprintf(address, length,
+	    "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+	    data[0], data[1], data[2], data[3]);
+	
+	return EOK;
+}
+
+static int inet_ntop6(const uint8_t *data, char *address, size_t length)
+{
+	/* Check output buffer size */
+	if (length < INET6_ADDRSTRLEN)
+		return ENOMEM;
+	
+	/* Find the longest zero subsequence */
+	
+	uint16_t zeroes[8];
+	uint16_t bioctets[8];
+	
+	for (size_t i = 8; i > 0; i--) {
+		size_t j = i - 1;
+		
+		bioctets[j] = (data[j << 1] << 8) | data[(j << 1) + 1];
+		
+		if (bioctets[j] == 0) {
+			zeroes[j] = 1;
+			if (j < 7)
+				zeroes[j] += zeroes[j + 1];
+		} else
+			zeroes[j] = 0;
+	}
+	
+	size_t wildcard_pos = (size_t) -1;
+	size_t wildcard_size = 0;
+	
+	for (size_t i = 0; i < 8; i++) {
+		if (zeroes[i] > wildcard_size) {
+			wildcard_pos = i;
+			wildcard_size = zeroes[i];
+		}
+	}
+	
+	char *cur = address;
+	size_t rest = length;
+	bool tail_zero = false;
+	int ret;
+	
+	for (size_t i = 0; i < 8; i++) {
+		if ((i == wildcard_pos) && (wildcard_size > 1)) {
+			ret = snprintf(cur, rest, ":");
+			i += wildcard_size - 1;
+			tail_zero = true;
+		} else if (i == 0) {
+			ret = snprintf(cur, rest, "%" PRIx16, bioctets[i]);
+			tail_zero = false;
+		} else {
+			ret = snprintf(cur, rest, ":%" PRIx16, bioctets[i]);
+			tail_zero = false;
+		}
+		
+		if (ret < 0)
+			return EINVAL;
+		
+		cur += ret;
+		rest -= ret;
+	}
+	
+	if (tail_zero) {
+		ret = snprintf(cur, rest, ":");
+		if (ret < 0)
+			return EINVAL;
+	}
+	
+	return EOK;
+}
+
 /** Prints the address into the character buffer.
  *
- *  @param[in] family	The address family.
- *  @param[in] data	The address data.
- *  @param[out] address	The character buffer to be filled.
- *  @param[in] length	The buffer length.
- *  @return		EOK on success.
- *  @return		EINVAL if the data or address parameter is NULL.
- *  @return		ENOMEM if the character buffer is not long enough.
- *  @return		ENOTSUP if the address family is not supported.
+ * @param[in]  family  Address family.
+ * @param[in]  data    Address data.
+ * @param[out] address Character buffer to be filled.
+ * @param[in]  length  Buffer length.
+ *
+ * @return EOK on success.
+ * @return EINVAL if the data or address parameter is NULL.
+ * @return ENOMEM if the character buffer is not long enough.
+ * @return ENOTSUP if the address family is not supported.
+ *
  */
-int
-inet_ntop(uint16_t family, const uint8_t *data, char *address, size_t length)
+int inet_ntop(uint16_t family, const uint8_t *data, char *address, size_t length)
 {
-	if ((!data) || (!address))
-		return EINVAL;
-
 	switch (family) {
 	case AF_INET:
-		/* Check output buffer size */
-		if (length < INET_ADDRSTRLEN)
-			return ENOMEM;
-			
-		/* Fill buffer with IPv4 address */
-		snprintf(address, length, "%hhu.%hhu.%hhu.%hhu",
-		    data[0], data[1], data[2], data[3]);
-
-		return EOK;
-
+		return inet_ntop4(data, address, length);
 	case AF_INET6:
-		/* Check output buffer size */
-		if (length < INET6_ADDRSTRLEN)
-			return ENOMEM;
-		
-		/* Fill buffer with IPv6 address */
-		snprintf(address, length,
-		    "%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:"
-		    "%hhx%hhx:%hhx%hhx",
-		    data[0], data[1], data[2], data[3], data[4], data[5],
-		    data[6], data[7], data[8], data[9], data[10], data[11],
-		    data[12], data[13], data[14], data[15]);
-		
-		return EOK;
-
+		return inet_ntop6(data, address, length);
 	default:
 		return ENOTSUP;
 	}
@@ -125,8 +183,81 @@ static int inet_pton4(const char *address, uint8_t *data)
 
 static int inet_pton6(const char *address, uint8_t *data)
 {
-	// FIXME TODO
-	return ENOTSUP;
+	memset(data, 0, 16);
+	
+	const char *cur = address;
+	size_t i = 0;
+	size_t wildcard_pos = (size_t) -1;
+	size_t wildcard_size = 0;
+	
+	/* Handle initial wildcard */
+	if ((address[0] == ':') && (address[1] == ':')) {
+		cur = address + 2;
+		wildcard_pos = 0;
+		wildcard_size = 16;
+		
+		/* Handle empty address */
+		if (*cur == 0)
+			return EOK;
+	}
+	
+	while (i < 16) {
+		uint16_t bioctet;
+		int rc = str_uint16_t(cur, &cur, 16, false, &bioctet);
+		if (rc != EOK)
+			return rc;
+		
+		data[i] = (bioctet >> 8) & 0xff;
+		data[i + 1] = bioctet & 0xff;
+		
+		if (wildcard_pos != (size_t) -1) {
+			if (wildcard_size < 2)
+				return EINVAL;
+			
+			wildcard_size -= 2;
+		}
+		
+		i += 2;
+		
+		if (*cur == 0)
+			break;
+		
+		if (*cur != ':')
+			return EINVAL;
+		
+		if (i < 16) {
+			cur++;
+			
+			/* Handle wildcard */
+			if (*cur == ':') {
+				if (wildcard_pos != (size_t) -1)
+					return EINVAL;
+				
+				wildcard_pos = i;
+				wildcard_size = 16 - i;
+				cur++;
+				
+				if (*cur == 0)
+					break;
+			}
+		}
+	}
+	
+	if ((i == 16) && (*cur != 0))
+		return EINVAL;
+	
+	/* Create wildcard positions */
+	if ((wildcard_pos != (size_t) -1) && (wildcard_size > 0)) {
+		size_t wildcard_shift = 16 - wildcard_size;
+		
+		for (i = wildcard_pos + wildcard_shift; i > wildcard_pos; i--) {
+			size_t j = i - 1;
+			data[j + wildcard_size] = data[j];
+			data[j] = 0;
+		}
+	}
+	
+	return EOK;
 }
 
 /** Parses the character string into the address.
