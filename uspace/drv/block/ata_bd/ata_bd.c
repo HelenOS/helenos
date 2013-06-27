@@ -81,14 +81,6 @@
  */
 static const size_t identify_data_size = 512;
 
-/** I/O base addresses for legacy (ISA-compatible) controllers. */
-static ata_base_t legacy_base[LEGACY_CTLS] = {
-	{ 0x1f0, 0x3f0 },
-	{ 0x170, 0x370 },
-	{ 0x1e8, 0x3e8 },
-	{ 0x168, 0x368 }
-};
-
 static int ata_bd_init_io(ata_ctrl_t *ctrl);
 static void ata_bd_fini_io(ata_ctrl_t *ctrl);
 
@@ -144,19 +136,16 @@ static int disk_dev_idx(disk_t *disk)
 }
 
 /** Initialize ATA controller. */
-int ata_ctrl_init(ata_ctrl_t *ctrl)
+int ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
 {
 	int i, rc;
 	int n_disks;
-	unsigned ctl_num;
 
 	ddf_msg(LVL_DEBUG, "ata_ctrl_init()");
 
-	ctl_num = 1;
-
 	fibril_mutex_initialize(&ctrl->lock);
-	ctrl->cmd_physical = legacy_base[ctl_num - 1].cmd;
-	ctrl->ctl_physical = legacy_base[ctl_num - 1].ctl;
+	ctrl->cmd_physical = res->cmd;
+	ctrl->ctl_physical = res->ctl;
 
 	ddf_msg(LVL_NOTE, "I/O address %p/%p", (void *) ctrl->cmd_physical,
 	    (void *) ctrl->ctl_physical);

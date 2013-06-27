@@ -35,6 +35,7 @@
 #include <str_error.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <device/hw_res_parsed.h>
 
 #include "ata_bd.h"
 #include "main.h"
@@ -60,6 +61,46 @@ static driver_t ata_driver = {
 	.driver_ops = &driver_ops
 };
 
+static int ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
+{
+	async_sess_t *parent_sess;
+	hw_res_list_parsed_t hw_res;
+	int rc;
+
+	parent_sess = ddf_dev_parent_sess_create(dev,
+	    EXCHANGE_SERIALIZE);
+	if (parent_sess == NULL)
+		return ENOMEM;
+
+	hw_res_list_parsed_init(&hw_res);
+	rc = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	if (rc != EOK)
+		return rc;
+
+	if (hw_res.io_ranges.count != 2) {
+		rc = EINVAL;
+		goto error;
+		return EINVAL;
+	}
+
+	ata_res->cmd = hw_res.io_ranges.ranges[0].address;
+	ata_res->ctl = hw_res.io_ranges.ranges[1].address;
+
+	if (hw_res.io_ranges.ranges[0].size < sizeof(ata_ctl_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	if (hw_res.io_ranges.ranges[1].size < sizeof(ata_cmd_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	return EOK;
+error:
+	hw_res_list_parsed_clean(&hw_res);
+	return rc;
+}
 
 /** Add new device
  *
@@ -69,7 +110,14 @@ static driver_t ata_driver = {
 static int ata_dev_add(ddf_dev_t *dev)
 {
 	ata_ctrl_t *ctrl;
+	ata_base_t res;
 	int rc;
+
+	rc = ata_get_res(dev, &res);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Invalid HW resource configuration.");
+		return EINVAL;
+	}
 
 	ctrl = ddf_dev_data_alloc(dev, sizeof(ata_ctrl_t));
 	if (ctrl == NULL) {
@@ -80,7 +128,7 @@ static int ata_dev_add(ddf_dev_t *dev)
 
 	ctrl->dev = dev;
 
-	rc = ata_ctrl_init(ctrl);
+	rc = ata_ctrl_init(ctrl, &res);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed initializing ATA controller.");
 		rc = EIO;

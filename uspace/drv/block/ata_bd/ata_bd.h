@@ -151,7 +151,7 @@ typedef struct ata_fun {
 	bd_srvs_t bds;
 } ata_fun_t;
 
-extern int ata_ctrl_init(ata_ctrl_t *);
+extern int ata_ctrl_init(ata_ctrl_t *, ata_base_t *);
 extern int ata_ctrl_remove(ata_ctrl_t *);
 extern int ata_ctrl_gone(ata_ctrl_t *);
 
