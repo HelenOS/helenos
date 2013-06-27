@@ -47,8 +47,8 @@
  * attached.
  */
 
-#include <stdio.h>
 #include <ddi.h>
+#include <ddf/log.h>
 #include <async.h>
 #include <as.h>
 #include <bd_srv.h>
@@ -60,6 +60,7 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <byteorder.h>
 #include <task.h>
 #include <macros.h>
@@ -149,7 +150,7 @@ int ata_ctrl_init(ata_ctrl_t *ctrl)
 	int n_disks;
 	unsigned ctl_num;
 
-	printf(NAME ": ata_ctrl_init()\n");
+	ddf_msg(LVL_DEBUG, "ata_ctrl_init()");
 
 	ctl_num = 1;
 
@@ -157,7 +158,7 @@ int ata_ctrl_init(ata_ctrl_t *ctrl)
 	ctrl->cmd_physical = legacy_base[ctl_num - 1].cmd;
 	ctrl->ctl_physical = legacy_base[ctl_num - 1].ctl;
 
-	printf("I/O address %p/%p\n", (void *) ctrl->cmd_physical,
+	ddf_msg(LVL_NOTE, "I/O address %p/%p", (void *) ctrl->cmd_physical,
 	    (void *) ctrl->ctl_physical);
 
 	rc = ata_bd_init_io(ctrl);
@@ -165,15 +166,14 @@ int ata_ctrl_init(ata_ctrl_t *ctrl)
 		return rc;
 
 	for (i = 0; i < MAX_DISKS; i++) {
-		printf("Identify drive %d... ", i);
-		fflush(stdout);
+		ddf_msg(LVL_NOTE, "Identify drive %d...", i);
 
 		rc = disk_init(ctrl, &ctrl->disk[i], i);
 
 		if (rc == EOK) {
 			disk_print_summary(&ctrl->disk[i]);
 		} else {
-			printf("Not found.\n");
+			ddf_msg(LVL_NOTE, "Not found.");
 		}
 	}
 
@@ -186,15 +186,15 @@ int ata_ctrl_init(ata_ctrl_t *ctrl)
 
 		rc = ata_fun_create(&ctrl->disk[i]);
 		if (rc != EOK) {
-			printf(NAME ": Unable to create function for disk %d.\n",
-			    i);
+			ddf_msg(LVL_ERROR, "Unable to create function for "
+			    "disk %d.", i);
 			goto error;
 		}
 		++n_disks;
 	}
 
 	if (n_disks == 0) {
-		printf("No disks detected.\n");
+		ddf_msg(LVL_WARN, "No disks detected.");
 		rc = EIO;
 		goto error;
 	}
@@ -203,8 +203,8 @@ int ata_ctrl_init(ata_ctrl_t *ctrl)
 error:
 	for (i = 0; i < MAX_DISKS; i++) {
 		if (ata_fun_remove(&ctrl->disk[i]) != EOK) {
-			printf(NAME ": Unable to clean up function for disk %d.\n",
-			    i);
+			ddf_msg(LVL_ERROR, "Unable to clean up function for "
+			    "disk %d.", i);
 		}
 	}
 	ata_bd_fini_io(ctrl);
@@ -216,15 +216,15 @@ int ata_ctrl_remove(ata_ctrl_t *ctrl)
 {
 	int i, rc;
 
-	printf(NAME ": ata_ctrl_remove()\n");
+	ddf_msg(LVL_DEBUG, ": ata_ctrl_remove()");
 
 	fibril_mutex_lock(&ctrl->lock);
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		rc = ata_fun_remove(&ctrl->disk[i]);
 		if (rc != EOK) {
-			printf(NAME ": Unable to clean up function for disk %d.\n",
-			    i);
+			ddf_msg(LVL_ERROR, "Unable to clean up function for "
+			    "disk %d.", i);
 			return rc;
 		}
 	}
@@ -240,15 +240,15 @@ int ata_ctrl_gone(ata_ctrl_t *ctrl)
 {
 	int i, rc;
 
-	printf(NAME ": ata_ctrl_gone()\n");
+	ddf_msg(LVL_DEBUG, "ata_ctrl_gone()");
 
 	fibril_mutex_lock(&ctrl->lock);
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		rc = ata_fun_unbind(&ctrl->disk[i]);
 		if (rc != EOK) {
-			printf(NAME ": Unable to clean up function for disk %d.\n",
-			    i);
+			ddf_msg(LVL_ERROR, "Unable to clean up function for "
+			    "disk %d.", i);
 			return rc;
 		}
 	}
@@ -263,34 +263,49 @@ int ata_ctrl_gone(ata_ctrl_t *ctrl)
 static void disk_print_summary(disk_t *d)
 {
 	uint64_t mbytes;
-
-	printf("%s: ", d->model);
+	char *atype = NULL;
+	char *cap = NULL;
+	int rc;
 
 	if (d->dev_type == ata_reg_dev) {
 		switch (d->amode) {
 		case am_chs:
-			printf("CHS %u cylinders, %u heads, %u sectors",
-			    d->geom.cylinders, d->geom.heads,
+			rc = asprintf(&atype, "CHS %u cylinders, %u heads, "
+			    "%u sectors", d->geom.cylinders, d->geom.heads,
 			    d->geom.sectors);
+			if (rc < 0) {
+				/* Out of memory */
+				atype = NULL;
+			}
 			break;
 		case am_lba28:
-			printf("LBA-28");
+			atype = str_dup("LBA-28");
 			break;
 		case am_lba48:
-			printf("LBA-48");
+			atype = str_dup("LBA-48");
 			break;
 		}
 	} else {
-		printf("PACKET");
+		atype = str_dup("PACKET");
 	}
 
-	printf(" %" PRIu64 " blocks", d->blocks);
+	if (atype == NULL)
+		return;
 
 	mbytes = d->blocks / (2 * 1024);
-	if (mbytes > 0)
-		printf(" %" PRIu64 " MB.", mbytes);
+	if (mbytes > 0) {
+		rc = asprintf(&cap, " %" PRIu64 " MB.", mbytes);
+		if (rc < 0) {
+			cap = NULL;
+			goto cleanup;
+		}
+	}
 
-	printf("\n");
+	ddf_msg(LVL_NOTE, "%s: %s %" PRIu64 " blocks%s", d->model, atype,
+	    d->blocks, cap);
+cleanup:
+	free(atype);
+	free(cap);
 }
 
 /** Enable device I/O. */
@@ -301,7 +316,7 @@ static int ata_bd_init_io(ata_ctrl_t *ctrl)
 
 	rc = pio_enable((void *) ctrl->cmd_physical, sizeof(ata_cmd_t), &vaddr);
 	if (rc != EOK) {
-		printf("%s: Could not initialize device I/O space.\n", NAME);
+		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
 		return rc;
 	}
 
@@ -309,7 +324,7 @@ static int ata_bd_init_io(ata_ctrl_t *ctrl)
 
 	rc = pio_enable((void *) ctrl->ctl_physical, sizeof(ata_ctl_t), &vaddr);
 	if (rc != EOK) {
-		printf("%s: Could not initialize device I/O space.\n", NAME);
+		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
 		return rc;
 	}
 
@@ -351,7 +366,7 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 	rc = drive_identify(d, &idata);
 	if (rc == EOK) {
 		/* Success. It's a register (non-packet) device. */
-		printf("ATA register-only device found.\n");
+		ddf_msg(LVL_NOTE, "ATA register-only device found.");
 		d->dev_type = ata_reg_dev;
 	} else if (rc == EIO) {
 		/*
@@ -454,14 +469,14 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 		/* Send inquiry. */
 		rc = ata_pcmd_inquiry(d, &inq_data, sizeof(inq_data));
 		if (rc != EOK) {
-			printf("Device inquiry failed.\n");
+			ddf_msg(LVL_ERROR, "Device inquiry failed.");
 			d->present = false;
 			return EIO;
 		}
 
 		/* Check device type. */
 		if (INQUIRY_PDEV_TYPE(inq_data.pdev_type) != PDEV_TYPE_CDROM)
-			printf("Warning: Peripheral device type is not CD-ROM.\n");
+			ddf_msg(LVL_WARN, "Peripheral device type is not CD-ROM.");
 
 		/* Assume 2k block size for now. */
 		d->block_size = 2048;
