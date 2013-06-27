@@ -30,3 +30,6 @@ sb16:
 cmos-rtc:
 	match 100 isa/cmos-rtc
 	io_range 70 2
+
+ata_bd:
+	match 100 isa/ata_bd

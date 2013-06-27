@@ -66,6 +66,7 @@
 
 #include "ata_hw.h"
 #include "ata_bd.h"
+#include "main.h"
 
 #define NAME       "ata_bd"
 #define NAMESPACE  "bd"
@@ -87,12 +88,8 @@ static ata_base_t legacy_base[LEGACY_CTLS] = {
 	{ 0x168, 0x368 }
 };
 
-/** Controller */
-static ata_ctrl_t ata_ctrl;
-
-static void print_syntax(void);
-static int ata_bd_init(ata_ctrl_t *ctrl);
-static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
+static int ata_bd_init_io(ata_ctrl_t *ctrl);
+static void ata_bd_fini_io(ata_ctrl_t *ctrl);
 
 static int ata_bd_open(bd_srvs_t *, bd_srv_t *);
 static int ata_bd_close(bd_srv_t *);
@@ -125,7 +122,7 @@ static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
 static int wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
     uint8_t *pstatus, unsigned timeout);
 
-static bd_ops_t ata_bd_ops = {
+bd_ops_t ata_bd_ops = {
 	.open = ata_bd_open,
 	.close = ata_bd_close,
 	.read_blocks = ata_bd_read_blocks,
@@ -145,36 +142,27 @@ static int disk_dev_idx(disk_t *disk)
 	return (disk->disk_id & 1);
 }
 
-int main(int argc, char **argv)
+/** Initialize ATA controller. */
+int ata_ctrl_init(ata_ctrl_t *ctrl)
 {
-	char name[16];
 	int i, rc;
 	int n_disks;
 	unsigned ctl_num;
-	char *eptr;
-	ata_ctrl_t *ctrl = &ata_ctrl;
 
-	printf(NAME ": ATA disk driver\n");
+	printf(NAME ": ata_ctrl_init()\n");
 
-	if (argc > 1) {
-		ctl_num = strtoul(argv[1], &eptr, 0);
-		if (*eptr != '\0' || ctl_num == 0 || ctl_num > 4) {
-			printf("Invalid argument.\n");
-			print_syntax();
-			return -1;
-		}
-	} else {
-		ctl_num = 1;
-	}
+	ctl_num = 1;
 
+	fibril_mutex_initialize(&ctrl->lock);
 	ctrl->cmd_physical = legacy_base[ctl_num - 1].cmd;
 	ctrl->ctl_physical = legacy_base[ctl_num - 1].ctl;
 
 	printf("I/O address %p/%p\n", (void *) ctrl->cmd_physical,
 	    (void *) ctrl->ctl_physical);
 
-	if (ata_bd_init(ctrl) != EOK)
-		return -1;
+	rc = ata_bd_init_io(ctrl);
+	if (rc != EOK)
+		return rc;
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		printf("Identify drive %d... ", i);
@@ -195,34 +183,80 @@ int main(int argc, char **argv)
 		/* Skip unattached drives. */
 		if (ctrl->disk[i].present == false)
 			continue;
-		
-		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
-		rc = loc_service_register(name, &ctrl->disk[i].service_id);
+
+		rc = ata_fun_create(&ctrl->disk[i]);
 		if (rc != EOK) {
-			printf(NAME ": Unable to register device %s.\n", name);
-			return rc;
+			printf(NAME ": Unable to create function for disk %d.\n",
+			    i);
+			goto error;
 		}
 		++n_disks;
 	}
 
 	if (n_disks == 0) {
 		printf("No disks detected.\n");
-		return -1;
+		rc = EIO;
+		goto error;
 	}
 
-	printf("%s: Accepting connections\n", NAME);
-	task_retval(0);
-	async_manager();
-
-	/* Not reached */
-	return 0;
+	return EOK;
+error:
+	for (i = 0; i < MAX_DISKS; i++) {
+		if (ata_fun_remove(&ctrl->disk[i]) != EOK) {
+			printf(NAME ": Unable to clean up function for disk %d.\n",
+			    i);
+		}
+	}
+	ata_bd_fini_io(ctrl);
+	return rc;
 }
 
-
-static void print_syntax(void)
+/** Remove ATA controller. */
+int ata_ctrl_remove(ata_ctrl_t *ctrl)
 {
-	printf("Syntax: " NAME " <controller_number>\n");
-	printf("Controller number = 1..4\n");
+	int i, rc;
+
+	printf(NAME ": ata_ctrl_remove()\n");
+
+	fibril_mutex_lock(&ctrl->lock);
+
+	for (i = 0; i < MAX_DISKS; i++) {
+		rc = ata_fun_remove(&ctrl->disk[i]);
+		if (rc != EOK) {
+			printf(NAME ": Unable to clean up function for disk %d.\n",
+			    i);
+			return rc;
+		}
+	}
+
+	ata_bd_fini_io(ctrl);
+	fibril_mutex_unlock(&ctrl->lock);
+
+	return EOK;
+}
+
+/** Surprise removal of ATA controller. */
+int ata_ctrl_gone(ata_ctrl_t *ctrl)
+{
+	int i, rc;
+
+	printf(NAME ": ata_ctrl_gone()\n");
+
+	fibril_mutex_lock(&ctrl->lock);
+
+	for (i = 0; i < MAX_DISKS; i++) {
+		rc = ata_fun_unbind(&ctrl->disk[i]);
+		if (rc != EOK) {
+			printf(NAME ": Unable to clean up function for disk %d.\n",
+			    i);
+			return rc;
+		}
+	}
+
+	ata_bd_fini_io(ctrl);
+	fibril_mutex_unlock(&ctrl->lock);
+
+	return EOK;
 }
 
 /** Print one-line device summary. */
@@ -259,58 +293,36 @@ static void disk_print_summary(disk_t *d)
 	printf("\n");
 }
 
-/** Register driver and enable device I/O. */
-static int ata_bd_init(ata_ctrl_t *ctrl)
+/** Enable device I/O. */
+static int ata_bd_init_io(ata_ctrl_t *ctrl)
 {
-	async_set_client_connection(ata_bd_connection);
-	int rc = loc_server_register(NAME);
-	if (rc != EOK) {
-		printf("%s: Unable to register driver.\n", NAME);
-		return rc;
-	}
-	
+	int rc;
 	void *vaddr;
+
 	rc = pio_enable((void *) ctrl->cmd_physical, sizeof(ata_cmd_t), &vaddr);
 	if (rc != EOK) {
 		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-	
+
 	ctrl->cmd = vaddr;
-	
+
 	rc = pio_enable((void *) ctrl->ctl_physical, sizeof(ata_ctl_t), &vaddr);
 	if (rc != EOK) {
 		printf("%s: Could not initialize device I/O space.\n", NAME);
 		return rc;
 	}
-	
+
 	ctrl->ctl = vaddr;
-	
+
 	return EOK;
 }
 
-/** Block device connection handler */
-static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+/** Clean up device I/O. */
+static void ata_bd_fini_io(ata_ctrl_t *ctrl)
 {
-	service_id_t dsid;
-	int i;
-	disk_t *disk;
-
-	/* Get the device service ID. */
-	dsid = IPC_GET_ARG1(*icall);
-
-	/* Determine which disk device is the client connecting to. */
-	disk = NULL;
-	for (i = 0; i < MAX_DISKS; i++)
-		if (ata_ctrl.disk[i].service_id == dsid)
-			disk = &ata_ctrl.disk[i];
-
-	if (disk == NULL || disk->present == false) {
-		async_answer_0(iid, EINVAL);
-		return;
-	}
-
-	bd_conn(iid, icall, &disk->bds);
+	(void) ctrl;
+	/* XXX TODO */
 }
 
 /** Initialize a disk.
@@ -333,11 +345,7 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 	d->ctrl = ctrl;
 	d->disk_id = disk_id;
 	d->present = false;
-	fibril_mutex_initialize(&d->lock);
-
-	bd_srvs_init(&d->bds);
-	d->bds.ops = &ata_bd_ops;
-	d->bds.sarg = d;
+	d->afun = NULL;
 
 	/* Try identify command. */
 	rc = drive_identify(d, &idata);
@@ -684,21 +692,21 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	size_t data_size;
 	uint16_t val;
 
-	fibril_mutex_lock(&disk->lock);
+	fibril_mutex_lock(&ctrl->lock);
 
 	/* New value for Drive/Head register */
 	drv_head =
 	    ((disk_dev_idx(disk) != 0) ? DHR_DRV : 0);
 
 	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
 	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
 	if (wait_status(ctrl, 0, ~(SR_BSY|SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -709,7 +717,7 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	pio_write_8(&ctrl->cmd->command, CMD_PACKET);
 
 	if (wait_status(ctrl, SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -718,12 +726,12 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 		pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) cpkt)[i]);
 
 	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
 	if ((status & SR_DRQ) == 0) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -734,7 +742,7 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	/* Check whether data fits into output buffer. */
 	if (data_size > obuf_size) {
 		/* Output buffer is too small to store data. */
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -744,12 +752,10 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 		((uint16_t *) obuf)[i] = val;
 	}
 
-	if (status & SR_ERR) {
-		fibril_mutex_unlock(&disk->lock);
-		return EIO;
-	}
+	fibril_mutex_unlock(&ctrl->lock);
 
-	fibril_mutex_unlock(&disk->lock);
+	if (status & SR_ERR)
+		return EIO;
 
 	return EOK;
 }
@@ -885,19 +891,19 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 	    ((disk->amode != am_chs) ? DHR_LBA : 0) |
 	    (bc.h & 0x0f);
 
-	fibril_mutex_lock(&disk->lock);
+	fibril_mutex_lock(&ctrl->lock);
 
 	/* Program a Read Sectors operation. */
 
 	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
 	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
 	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -908,7 +914,7 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 	    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
 
 	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -921,10 +927,11 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 		}
 	}
 
+	fibril_mutex_unlock(&ctrl->lock);
+
 	if ((status & SR_ERR) != 0)
 		return EIO;
 
-	fibril_mutex_unlock(&disk->lock);
 	return EOK;
 }
 
@@ -959,19 +966,19 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 	    ((disk->amode != am_chs) ? DHR_LBA : 0) |
 	    (bc.h & 0x0f);
 
-	fibril_mutex_lock(&disk->lock);
+	fibril_mutex_lock(&ctrl->lock);
 
 	/* Program a Write Sectors operation. */
 
 	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
 	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
 	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -982,7 +989,7 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 	    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
 
 	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&disk->lock);
+		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
 
@@ -994,7 +1001,7 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 		}
 	}
 
-	fibril_mutex_unlock(&disk->lock);
+	fibril_mutex_unlock(&ctrl->lock);
 
 	if (status & SR_ERR)
 		return EIO;

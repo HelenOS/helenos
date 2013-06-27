@@ -35,10 +35,15 @@
 #ifndef __ATA_BD_H__
 #define __ATA_BD_H__
 
+#include <async.h>
 #include <bd_srv.h>
+#include <ddf/driver.h>
 #include <sys/types.h>
 #include <fibril_synch.h>
 #include <str.h>
+#include "ata_hw.h"
+
+#define NAME "ata_bd"
 
 /** Base addresses for ATA I/O blocks. */
 typedef struct {
@@ -95,6 +100,7 @@ typedef struct {
 typedef struct {
 	bool present;
 	struct ata_ctrl *ctrl;
+	struct ata_fun *afun;
 
 	/** Device type */
 	enum ata_dev_type dev_type;
@@ -116,14 +122,13 @@ typedef struct {
 
 	char model[STR_BOUNDS(40) + 1];
 
-	fibril_mutex_t lock;
-	service_id_t service_id;
 	int disk_id;
-	bd_srvs_t bds;
 } disk_t;
 
 /** ATA controller */
 typedef struct ata_ctrl {
+	/** DDF device */
+	ddf_dev_t *dev;
 	/** I/O base address of the command registers */
 	uintptr_t cmd_physical;
 	/** I/O base address of the control registers */
@@ -136,7 +141,21 @@ typedef struct ata_ctrl {
 
 	/** Per-disk state. */
 	disk_t disk[MAX_DISKS];
+
+	fibril_mutex_t lock;
 } ata_ctrl_t;
+
+typedef struct ata_fun {
+	ddf_fun_t *fun;
+	disk_t *disk;
+	bd_srvs_t bds;
+} ata_fun_t;
+
+extern int ata_ctrl_init(ata_ctrl_t *);
+extern int ata_ctrl_remove(ata_ctrl_t *);
+extern int ata_ctrl_gone(ata_ctrl_t *);
+
+extern bd_ops_t ata_bd_ops;
 
 #endif
 
