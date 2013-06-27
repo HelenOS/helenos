@@ -166,7 +166,7 @@ int inet_addr_format(inet_addr_t *addr, char **bufp)
 		break;
 	case AF_INET6:
 		// FIXME TODO
-		break;
+		return ENOTSUP;
 	default:
 		return ENOTSUP;
 	}
@@ -202,7 +202,7 @@ int inet_naddr_format(inet_naddr_t *naddr, char **bufp)
 		break;
 	case AF_INET6:
 		// FIXME TODO
-		break;
+		return ENOTSUP;
 	default:
 		return ENOTSUP;
 	}
