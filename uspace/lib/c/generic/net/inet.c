@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,10 @@
 #include <mem.h>
 #include <stdio.h>
 #include <str.h>
+
+const in6_addr_t in6addr_any = {
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
 
 static int inet_ntop4(const uint8_t *data, char *address, size_t length)
 {

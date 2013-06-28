@@ -66,6 +66,8 @@ typedef struct sockaddr_in6 {
 	uint32_t sin6_scope_id;
 } sockaddr_in6_t;
 
+extern const in6_addr_t in6addr_any;
+
 #endif
 
 /** @}
