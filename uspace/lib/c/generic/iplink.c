@@ -98,10 +98,8 @@ int iplink_send(iplink_t *iplink, iplink_sdu_t *sdu)
 	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	if (retval != EOK)
-		return retval;
 	
-	return EOK;
+	return (int) retval;
 }
 
 int iplink_get_mtu(iplink_t *iplink, size_t *rmtu)
@@ -168,17 +166,17 @@ static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t callid,
 
 static void iplink_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	iplink_t *iplink = (iplink_t *)arg;
-
+	iplink_t *iplink = (iplink_t *) arg;
+	
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-
+		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;
 		}
-
+		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPLINK_EV_RECV:
 			iplink_ev_recv(iplink, callid, &call);

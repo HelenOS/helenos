@@ -54,10 +54,10 @@
 #include <net/socket_parse.h>
 
 /** Echo module name. */
-#define NAME	"Nettest2"
+#define NAME  "nettest2"
 
 /** Packet data pattern. */
-#define NETTEST2_TEXT	"Networking test 2 - transfer"
+#define NETTEST2_TEXT  "Networking test 2 - transfer"
 
 static size_t size;
 static bool verbose;
@@ -106,15 +106,13 @@ static void nettest2_print_help(void)
  */
 static void nettest2_fill_buffer(char *buffer, size_t size)
 {
-	size_t length;
-
-	length = 0;
+	size_t length = 0;
 	while (size > length + sizeof(NETTEST2_TEXT) - 1) {
 		memcpy(buffer + length, NETTEST2_TEXT,
 		    sizeof(NETTEST2_TEXT) - 1);
 		length += sizeof(NETTEST2_TEXT) - 1;
 	}
-
+	
 	memcpy(buffer + length, NETTEST2_TEXT, size - length);
 	buffer[size] = '\0';
 }
@@ -129,41 +127,46 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 {
 	int value;
 	int rc;
-
+	
 	switch (argv[*index][1]) {
 	/*
 	 * Short options with only one letter
 	 */
 	case 'f':
-		rc = arg_parse_name_int(argc, argv, index, &family, 0,
+		rc = arg_parse_name_int(argc, argv, index, &value, 0,
 		    socket_parse_protocol_family);
 		if (rc != EOK)
 			return rc;
+		
+		family = (uint16_t) value;
 		break;
 	case 'h':
 		nettest2_print_help();
 		return EOK;
-		break;
 	case 'm':
 		rc = arg_parse_int(argc, argv, index, &messages, 0);
 		if (rc != EOK)
 			return rc;
+		
 		break;
 	case 'n':
 		rc = arg_parse_int(argc, argv, index, &sockets, 0);
 		if (rc != EOK)
 			return rc;
+		
 		break;
 	case 'p':
 		rc = arg_parse_int(argc, argv, index, &value, 0);
 		if (rc != EOK)
 			return rc;
+		
 		port = (uint16_t) value;
 		break;
 	case 's':
 		rc = arg_parse_int(argc, argv, index, &value, 0);
 		if (rc != EOK)
 			return rc;
+		
 		size = (value >= 0) ? (size_t) value : 0;
 		break;
 	case 't':
@@ -171,20 +174,24 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 		    socket_parse_socket_type);
 		if (rc != EOK)
 			return rc;
+		
 		type = (sock_type_t) value;
 		break;
 	case 'v':
 		verbose = true;
 		break;
+	
 	/*
 	 * Long options with double dash ('-')
 	 */
 	case '-':
 		if (str_lcmp(argv[*index] + 2, "family=", 7) == 0) {
-			rc = arg_parse_name_int(argc, argv, index, &family, 9,
+			rc = arg_parse_name_int(argc, argv, index, &value, 9,
 			    socket_parse_protocol_family);
 			if (rc != EOK)
 				return rc;
+			
+			family = (uint16_t) value;
 		} else if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
 			nettest2_print_help();
 			return EOK;
@@ -200,12 +207,14 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 			rc = arg_parse_int(argc, argv, index, &value, 7);
 			if (rc != EOK)
 				return rc;
+			
 			port = (uint16_t) value;
 		} else if (str_lcmp(argv[*index] + 2, "type=", 5) == 0) {
 			rc = arg_parse_name_int(argc, argv, index, &value, 7,
 			    socket_parse_socket_type);
 			if (rc != EOK)
 				return rc;
+			
 			type = (sock_type_t) value;
 		} else if (str_lcmp(argv[*index] + 2, "verbose", 8) == 0) {
 			verbose = 1;
@@ -218,7 +227,7 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 		nettest2_print_help();
 		return EINVAL;
 	}
-
+	
 	return EOK;
 }
 
@@ -265,7 +274,7 @@ int main(int argc, char *argv[])
 			return EINVAL;
 		}
 	}
-
+	
 	/* If not before the last argument containing the host */
 	if (index >= argc) {
 		printf("Command line error: missing host name\n");
@@ -311,14 +320,14 @@ int main(int argc, char *argv[])
 			return rc;
 		}
 	}
-
+	
 	/* Check data buffer size. */
 	if (size <= 0) {
 		fprintf(stderr, "Data buffer size too small (%zu). Using 1024 "
 		    "bytes instead.\n", size);
 		size = 1024;
 	}
-
+	
 	/*
 	 * Prepare the buffer. Allocate size bytes plus one for terminating
 	 * null character.
@@ -328,17 +337,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to allocate data buffer.\n");
 		return ENOMEM;
 	}
-
+	
 	/* Fill buffer with a pattern. */
 	nettest2_fill_buffer(data, size);
-
+	
 	/* Check socket count. */
 	if (sockets <= 0) {
 		fprintf(stderr, "Socket count too small (%d). Using "
 		    "2 instead.\n", sockets);
 		sockets = 2;
 	}
-
+	
 	/*
 	 * Prepare the socket buffer.
 	 * Allocate count entries plus the terminating null (\0)
@@ -349,82 +358,82 @@ int main(int argc, char *argv[])
 		return ENOMEM;
 	}
 	socket_ids[sockets] = 0;
-
+	
 	if (verbose)
 		printf("Starting tests\n");
-
+	
 	rc = sockets_create(verbose, socket_ids, sockets, family, type);
 	if (rc != EOK)
 		return rc;
-
+	
 	if (type == SOCK_STREAM) {
 		rc = sockets_connect(verbose, socket_ids, sockets,
 		    address, addrlen);
 		if (rc != EOK)
 			return rc;
 	}
-
+	
 	if (verbose)
 		printf("\n");
-
+	
 	rc = gettimeofday(&time_before, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, sockets, address,
 	    &addrlen, data, size, messages);
 	if (rc != EOK)
 		return rc;
-
+	
 	rc = gettimeofday(&time_after, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	if (verbose)
 		printf("\tOK\n");
-
+	
 	printf("sendto + recvfrom tested in %ld microseconds\n",
 	    tv_sub(&time_after, &time_before));
-
+	
 	rc = gettimeofday(&time_before, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	rc = sockets_sendto(verbose, socket_ids, sockets, address, addrlen,
 	    data, size, messages);
 	if (rc != EOK)
 		return rc;
-
+	
 	rc = sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen,
 	    data, size, messages);
 	if (rc != EOK)
 		return rc;
-
+	
 	rc = gettimeofday(&time_after, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	if (verbose)
 		printf("\tOK\n");
-
+	
 	printf("sendto, recvfrom tested in %ld microseconds\n",
 	    tv_sub(&time_after, &time_before));
-
+	
 	rc = sockets_close(verbose, socket_ids, sockets);
 	if (rc != EOK)
 		return rc;
-
+	
 	if (verbose)
 		printf("\nExiting\n");
-
+	
 	return EOK;
 }
 

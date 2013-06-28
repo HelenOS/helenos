@@ -158,7 +158,7 @@ int inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
 	async_wait_for(req, &retval);
 	*addr_id = IPC_GET_ARG1(answer);
 	
-	return retval;
+	return (int) retval;
 }
 
 int inetcfg_addr_delete(sysarg_t addr_id)
@@ -177,36 +177,37 @@ int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	sysarg_t dretval;
 	size_t act_size;
 	char name_buf[LOC_NAME_MAXLEN + 1];
-
+	
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
-
+	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_ADDR_GET, addr_id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
 	async_wait_for(dreq, &dretval);
-
+	
 	async_exchange_end(exch);
-
+	
 	if (dretval != EOK) {
 		async_forget(req);
 		return dretval;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-
+	
 	if (retval != EOK)
-		return retval;
-
+		return (int) retval;
+	
 	act_size = IPC_GET_ARG2(dreply);
 	assert(act_size <= LOC_NAME_MAXLEN);
+	
 	name_buf[act_size] = '\0';
 	
 	inet_naddr_unpack(IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
 	    &ainfo->naddr);
 	ainfo->ilink = IPC_GET_ARG3(answer);
 	ainfo->name = str_dup(name_buf);
-
+	
 	return EOK;
 }
 
@@ -339,25 +340,25 @@ int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 	char name_buf[LOC_NAME_MAXLEN + 1];
 
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
-
+	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_SROUTE_GET, sroute_id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
 	async_wait_for(dreq, &dretval);
-
+	
 	async_exchange_end(exch);
-
+	
 	if (dretval != EOK) {
 		async_forget(req);
 		return dretval;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-
+	
 	if (retval != EOK)
-		return retval;
-
+		return (int) retval;
+	
 	act_size = IPC_GET_ARG2(dreply);
 	assert(act_size <= LOC_NAME_MAXLEN);
 	name_buf[act_size] = '\0';
@@ -366,7 +367,7 @@ int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 	    &srinfo->dest);
 	inet_addr_unpack(IPC_GET_ARG3(answer), &srinfo->router);
 	srinfo->name = str_dup(name_buf);
-
+	
 	return EOK;
 }
 

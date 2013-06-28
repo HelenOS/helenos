@@ -43,10 +43,8 @@
 static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
 	size_t mtu;
-
-	rc = srv->ops->get_mtu(srv, &mtu);
+	int rc = srv->ops->get_mtu(srv, &mtu);
 	async_answer_1(callid, rc, mtu);
 }
 
@@ -69,16 +67,16 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t callid,
 {
 	iplink_srv_sdu_t sdu;
 	int rc;
-
+	
 	sdu.lsrc = IPC_GET_ARG1(*call);
 	sdu.ldest = IPC_GET_ARG2(*call);
-
+	
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
-
+	
 	rc = srv->ops->send(srv, &sdu);
 	free(sdu.data);
 	async_answer_0(callid, rc);
@@ -97,35 +95,35 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	iplink_srv_t *srv = (iplink_srv_t *)arg;
 	int rc;
-
+	
 	fibril_mutex_lock(&srv->lock);
 	if (srv->connected) {
 		fibril_mutex_unlock(&srv->lock);
 		async_answer_0(iid, EBUSY);
 		return EBUSY;
 	}
-
+	
 	srv->connected = true;
 	fibril_mutex_unlock(&srv->lock);
-
+	
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
-
+	
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)
 		return ENOMEM;
-
+	
 	srv->client_sess = sess;
-
+	
 	rc = srv->ops->open(srv);
 	if (rc != EOK)
 		return rc;
-
+	
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
-
+		
 		if (!method) {
 			/* The other side has hung up */
 			fibril_mutex_lock(&srv->lock);
@@ -134,7 +132,7 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, EOK);
 			break;
 		}
-
+		
 		switch (method) {
 		case IPLINK_GET_MTU:
 			iplink_get_mtu_srv(srv, callid, &call);
@@ -152,7 +150,7 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			async_answer_0(callid, EINVAL);
 		}
 	}
-
+	
 	return srv->ops->close(srv);
 }
 
@@ -160,25 +158,25 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 {
 	if (srv->client_sess == NULL)
 		return EIO;
-
+	
 	async_exch_t *exch = async_exchange_begin(srv->client_sess);
-
+	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, IPLINK_EV_RECV, (sysarg_t) sdu->lsrc,
 	    (sysarg_t) sdu->ldest, &answer);
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
-
+	
 	return EOK;
 }
 

@@ -102,42 +102,40 @@ int conn_open(const char *addr_s, const char *port_s)
 		printf("Invalid port number %s\n", port_s);
 		goto error;
 	}
-
+	
 	conn_fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (conn_fd < 0)
 		goto error;
-
+	
 	printf("Connecting to host %s port %u\n", addr_s, ntohs(addr.sin_port));
-
+	
 	rc = connect(conn_fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc != EOK)
 		goto error;
-
+	
 	rcv_fid = fibril_create(rcv_fibril, NULL);
 	if (rcv_fid == 0)
 		goto error;
-
+	
 	fibril_add_ready(rcv_fid);
-
+	
 	return EOK;
-
+	
 error:
 	if (conn_fd >= 0) {
 		closesocket(conn_fd);
 		conn_fd = -1;
 	}
-
+	
 	return EIO;
 }
 
 int conn_send(void *data, size_t size)
 {
-	int rc;
-
-	rc = send(conn_fd, data, size, 0);
+	int rc = send(conn_fd, data, size, 0);
 	if (rc != EOK)
 		return EIO;
-
+	
 	return EOK;
 }
 
