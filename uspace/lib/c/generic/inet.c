@@ -29,6 +29,7 @@
 #include <async.h>
 #include <assert.h>
 #include <errno.h>
+#include <net/socket_codes.h>
 #include <inet/inet.h>
 #include <ipc/inet.h>
 #include <ipc/services.h>
@@ -106,24 +107,38 @@ int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 
 int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 {
-	uint32_t src;
-	int rc = inet_addr_pack(&dgram->src, &src);
-	if (rc != EOK)
-		return rc;
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&dgram->src, &src_v4, &src_v6);
 	
-	uint32_t dest;
-	rc = inet_addr_pack(&dgram->dest, &dest);
-	if (rc != EOK)
-		return EOK;
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&dgram->dest, &dest_v4, &dest_v6);
 	
-	async_exch_t *exch = async_exchange_begin(inet_sess);
+	if (src_af != dest_af)
+		return EINVAL;
 	
+	async_exch_t *exch;
 	ipc_call_t answer;
-	aid_t req = async_send_5(exch, INET_SEND, (sysarg_t) src,
-	    (sysarg_t) dest, dgram->tos, ttl, df, &answer);
-	rc = async_data_write_start(exch, dgram->data, dgram->size);
+	aid_t req;
+	int rc;
 	
-	async_exchange_end(exch);
+	switch (src_af) {
+	case AF_INET:
+		exch = async_exchange_begin(inet_sess);
+		
+		req = async_send_5(exch, INET_SEND, (sysarg_t) src_v4,
+		    (sysarg_t) dest_v4, dgram->tos, ttl, df, &answer);
+		rc = async_data_write_start(exch, dgram->data, dgram->size);
+		
+		async_exchange_end(exch);
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		return ENOTSUP;
+	default:
+		return EINVAL;
+	}
 	
 	if (rc != EOK) {
 		async_forget(req);
@@ -132,51 +147,96 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	if (retval != EOK)
-		return retval;
 	
-	return EOK;
+	return (int) retval;
 }
 
 int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
-	uint32_t remote_addr;
-	int rc = inet_addr_pack(remote, &remote_addr);
-	if (rc != EOK)
-		return rc;
+	addr32_t remote_v4;
+	addr128_t remote_v6;
+	uint16_t remote_af = inet_addr_get(remote, &remote_v4, &remote_v6);
 	
-	async_exch_t *exch = async_exchange_begin(inet_sess);
+	async_exch_t *exch;
+	int rc;
 	
-	sysarg_t local_addr;
-	rc = async_req_2_1(exch, INET_GET_SRCADDR, (sysarg_t) remote_addr,
-	    tos, &local_addr);
-	
-	async_exchange_end(exch);
-	
-	if (rc != EOK)
-		return rc;
-	
-	inet_addr_unpack(local_addr, local);
-	return EOK;
+	switch (remote_af) {
+	case AF_INET:
+		exch = async_exchange_begin(inet_sess);
+		
+		sysarg_t local_v4;
+		rc = async_req_2_1(exch, INET_GET_SRCADDR, (sysarg_t) remote_v4,
+		    tos, &local_v4);
+		
+		async_exchange_end(exch);
+		
+		if (rc != EOK)
+			return rc;
+		
+		inet_addr_set(local_v4, local);
+		return EOK;
+	case AF_INET6:
+		// FIXME TODO
+		return ENOTSUP;
+	default:
+		return EINVAL;
+	}
 }
 
-static void inet_ev_recv(ipc_callid_t callid, ipc_call_t *call)
+static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int rc;
 	inet_dgram_t dgram;
 	
-	inet_addr_unpack(IPC_GET_ARG1(*call), &dgram.src);
-	inet_addr_unpack(IPC_GET_ARG2(*call), &dgram.dest);
-	dgram.tos = IPC_GET_ARG3(*call);
+	dgram.tos = IPC_GET_ARG1(*icall);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	int rc = async_data_write_finalize(callid, &dgram.src, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_write_finalize(callid, &dgram.dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
 	
 	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
 	
 	rc = inet_ev_ops->recv(&dgram);
-	async_answer_0(callid, rc);
+	async_answer_0(iid, rc);
 }
 
 static void inet_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)

@@ -42,7 +42,7 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
+#include <net/socket_codes.h>
 #include "icmp.h"
 #include "icmp_std.h"
 #include "inetsrv.h"
@@ -54,44 +54,62 @@ static LIST_INITIALIZE(client_list);
 /** Last used session identifier. Protected by @c client_list_lock */
 static uint16_t inetping_ident = 0;
 
-static inetping_client_t *inetping_client_find(uint16_t);
-
 static int inetping_send(inetping_client_t *client, inetping_sdu_t *sdu)
 {
 	return icmp_ping_send(client->ident, sdu);
 }
 
-static int inetping_get_srcaddr(inetping_client_t *client, uint32_t remote,
-    uint32_t *local)
+static int inetping_get_srcaddr(inetping_client_t *client, addr32_t remote,
+    addr32_t *local)
 {
 	inet_addr_t remote_addr;
-	inet_addr_unpack(remote, &remote_addr);
+	inet_addr_set(remote, &remote_addr);
 	
 	inet_addr_t local_addr;
 	int rc = inet_get_srcaddr(&remote_addr, ICMP_TOS, &local_addr);
 	if (rc != EOK)
 		return rc;
 	
-	return inet_addr_pack(&local_addr, local);
+	uint16_t family = inet_addr_get(&local_addr, local, NULL);
+	if (family != AF_INET)
+		return EINVAL;
+	
+	return EOK;
+}
+
+static inetping_client_t *inetping_client_find(uint16_t ident)
+{
+	fibril_mutex_lock(&client_list_lock);
+	
+	list_foreach(client_list, link) {
+		inetping_client_t *client = list_get_instance(link,
+		    inetping_client_t, client_list);
+		
+		if (client->ident == ident) {
+			fibril_mutex_unlock(&client_list_lock);
+			return client;
+		}
+	}
+	
+	fibril_mutex_unlock(&client_list_lock);
+	return NULL;
 }
 
 int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 {
-	inetping_client_t *client;
-	async_exch_t *exch;
-	ipc_call_t answer;
-
-	client = inetping_client_find(ident);
+	inetping_client_t *client = inetping_client_find(ident);
 	if (client == NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ICMP ident. Dropping.");
 		return ENOENT;
 	}
-
-	exch = async_exchange_begin(client->sess);
-
+	
+	async_exch_t *exch = async_exchange_begin(client->sess);
+	
+	ipc_call_t answer;
 	aid_t req = async_send_3(exch, INETPING_EV_RECV, (sysarg_t) sdu->src,
 	    (sysarg_t) sdu->dest, sdu->seq_no, &answer);
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
+	
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
@@ -169,35 +187,15 @@ static void inetping_client_fini(inetping_client_t *client)
 	fibril_mutex_unlock(&client_list_lock);
 }
 
-static inetping_client_t *inetping_client_find(uint16_t ident)
-{
-	fibril_mutex_lock(&client_list_lock);
-
-	list_foreach(client_list, link) {
-		inetping_client_t *client = list_get_instance(link,
-		    inetping_client_t, client_list);
-
-		if (client->ident == ident) {
-			fibril_mutex_unlock(&client_list_lock);
-			return client;
-		}
-	}
-
-	fibril_mutex_unlock(&client_list_lock);
-	return NULL;
-}
-
 void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	inetping_client_t client;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_conn()");
-
+	
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
-
-	rc = inetping_client_init(&client);
+	
+	inetping_client_t client;
+	int rc = inetping_client_init(&client);
 	if (rc != EOK)
 		return;
 	

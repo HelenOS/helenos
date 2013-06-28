@@ -114,8 +114,8 @@ static int tcp_inet_ev_recv(inet_dgram_t *dgram)
 		return ENOMEM;
 	}
 
-	pdu->src_addr = dgram->src;
-	pdu->dest_addr = dgram->dest;
+	pdu->src = dgram->src;
+	pdu->dest = dgram->dest;
 
 	tcp_received_pdu(pdu);
 	tcp_pdu_delete(pdu);
@@ -142,8 +142,8 @@ void tcp_transmit_pdu(tcp_pdu_t *pdu)
 	memcpy(pdu_raw + pdu->header_size, pdu->text,
 	    pdu->text_size);
 
-	dgram.src = pdu->src_addr;
-	dgram.dest = pdu->dest_addr;
+	dgram.src = pdu->src;
+	dgram.dest = pdu->dest;
 	dgram.tos = 0;
 	dgram.data = pdu_raw;
 	dgram.size = pdu_raw_size;

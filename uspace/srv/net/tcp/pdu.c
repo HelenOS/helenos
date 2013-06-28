@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <net/socket_codes.h>
 #include "pdu.h"
 #include "segment.h"
 #include "seq_no.h"
@@ -143,21 +144,35 @@ static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_
 	hdr->urg_ptr = host2uint16_t_be(seg->up);
 }
 
-static void tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
+static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
 {
-	// FIXME: Check for correctness
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&pdu->src, &src_v4, &src_v6);
 	
-	uint32_t src_addr;
-	inet_addr_pack(&pdu->src_addr, &src_addr);
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&pdu->dest, &dest_v4, &dest_v6);
 	
-	uint32_t dest_addr;
-	inet_addr_pack(&pdu->dest_addr, &dest_addr);
+	assert(src_af == dest_af);
 	
-	phdr->src_addr = host2uint32_t_be(src_addr);
-	phdr->dest_addr = host2uint32_t_be(dest_addr);
-	phdr->zero = 0;
-	phdr->protocol = 6; /* XXX Magic number */
-	phdr->tcp_length = host2uint16_t_be(pdu->header_size + pdu->text_size);
+	switch (src_af) {
+	case AF_INET:
+		phdr->src = host2uint32_t_be(src_v4);
+		phdr->dest = host2uint32_t_be(dest_v4);
+		phdr->zero = 0;
+		phdr->protocol = IP_PROTO_TCP;
+		phdr->tcp_length =
+		    host2uint16_t_be(pdu->header_size + pdu->text_size);
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		assert(false);
+	default:
+		assert(false);
+	}
+	
+	return src_af;
 }
 
 static void tcp_header_decode(tcp_header_t *hdr, tcp_segment_t *seg)
@@ -242,16 +257,23 @@ static uint16_t tcp_pdu_checksum_calc(tcp_pdu_t *pdu)
 {
 	uint16_t cs_phdr;
 	uint16_t cs_headers;
-	uint16_t cs_all;
 	tcp_phdr_t phdr;
-
-	tcp_phdr_setup(pdu, &phdr);
-	cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *)&phdr,
-	    sizeof(tcp_phdr_t));
+	
+	uint16_t af = tcp_phdr_setup(pdu, &phdr);
+	switch (af) {
+	case AF_INET:
+		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr,
+		    sizeof(tcp_phdr_t));
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		assert(false);
+	default:
+		assert(false);
+	}
+	
 	cs_headers = tcp_checksum_calc(cs_phdr, pdu->header, pdu->header_size);
-	cs_all = tcp_checksum_calc(cs_headers, pdu->text, pdu->text_size);
-
-	return cs_all;
+	return tcp_checksum_calc(cs_headers, pdu->text, pdu->text_size);
 }
 
 static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
@@ -278,9 +300,9 @@ int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
 	hdr = (tcp_header_t *)pdu->header;
 
 	sp->local.port = uint16_t_be2host(hdr->dest_port);
-	sp->local.addr = pdu->dest_addr;
+	sp->local.addr = pdu->dest;
 	sp->foreign.port = uint16_t_be2host(hdr->src_port);
-	sp->foreign.addr = pdu->src_addr;
+	sp->foreign.addr = pdu->src;
 
 	*seg = nseg;
 	return EOK;
@@ -297,8 +319,8 @@ int tcp_pdu_encode(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 	if (npdu == NULL)
 		return ENOMEM;
 
-	npdu->src_addr = sp->local.addr;
-	npdu->dest_addr = sp->foreign.addr;
+	npdu->src = sp->local.addr;
+	npdu->dest = sp->foreign.addr;
 	tcp_header_encode(sp, seg, &npdu->header, &npdu->header_size);
 
 	text_size = tcp_segment_text_size(seg);

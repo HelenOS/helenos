@@ -46,30 +46,28 @@ typedef struct {
 	struct iplink_ev_ops *ev_ops;
 } iplink_t;
 
-/** IPv4 link Service Data Unit */
+/** Internet link Service Data Unit */
 typedef struct {
 	/** Local source address */
-	uint32_t lsrc;
+	inet_addr_t src;
 	/** Local destination address */
-	uint32_t ldest;
+	inet_addr_t dest;
 	/** Serialized IP packet */
 	void *data;
 	/** Size of @c data in bytes */
 	size_t size;
 } iplink_sdu_t;
 
-/** IPv6 link Service Data Unit */
+/** Internet link receive Service Data Unit */
 typedef struct {
-	/** Target MAC address */
-	uint64_t hwaddr;
-	/** Serialized IP packet */
+	/** Serialized datagram */
 	void *data;
 	/** Size of @c data in bytes */
 	size_t size;
-} iplink_sdu6_t;
+} iplink_recv_sdu_t;
 
 typedef struct iplink_ev_ops {
-	int (*recv)(iplink_t *, iplink_sdu_t *);
+	int (*recv)(iplink_t *, iplink_recv_sdu_t *, uint16_t);
 } iplink_ev_ops_t;
 
 extern int iplink_open(async_sess_t *, iplink_ev_ops_t *, iplink_t **);

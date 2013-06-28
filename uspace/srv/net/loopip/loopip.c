@@ -38,6 +38,7 @@
 #include <async.h>
 #include <errno.h>
 #include <inet/iplink_srv.h>
+#include <inet/addr.h>
 #include <io/log.h>
 #include <loc.h>
 #include <stdio.h>
@@ -47,10 +48,10 @@
 
 static int loopip_open(iplink_srv_t *srv);
 static int loopip_close(iplink_srv_t *srv);
-static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
+static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
 static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static int loopip_addr_add(iplink_srv_t *srv, uint32_t addr);
-static int loopip_addr_remove(iplink_srv_t *srv, uint32_t addr);
+static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
+static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
 static void loopip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -68,7 +69,9 @@ static prodcons_t loopip_rcv_queue;
 
 typedef struct {
 	link_t link;
-	iplink_srv_sdu_t sdu;
+	
+	uint16_t af;
+	iplink_recv_sdu_t sdu;
 } rqueue_entry_t;
 
 static int loopip_recv_fibril(void *arg)
@@ -76,9 +79,13 @@ static int loopip_recv_fibril(void *arg)
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_recv_fibril(): Wait for one item");
 		link_t *link = prodcons_consume(&loopip_rcv_queue);
-		rqueue_entry_t *rqe = list_get_instance(link, rqueue_entry_t, link);
-
-		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu);
+		rqueue_entry_t *rqe =
+		    list_get_instance(link, rqueue_entry_t, link);
+		
+		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu, rqe->af);
+		
+		free(rqe->sdu.data);
+		free(rqe);
 	}
 	
 	return 0;
@@ -86,14 +93,9 @@ static int loopip_recv_fibril(void *arg)
 
 static int loopip_init(void)
 {
-	int rc;
-	service_id_t sid;
-	category_id_t iplink_cat;
-	const char *svc_name = "net/loopback";
-	
 	async_set_client_connection(loopip_client_conn);
 	
-	rc = loc_server_register(NAME);
+	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
@@ -104,13 +106,17 @@ static int loopip_init(void)
 	loopip_iplink.arg = NULL;
 	
 	prodcons_initialize(&loopip_rcv_queue);
-
+	
+	const char *svc_name = "net/loopback";
+	service_id_t sid;
 	rc = loc_service_register(svc_name, &sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.",
+		    svc_name);
 		return rc;
 	}
-
+	
+	category_id_t iplink_cat;
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
@@ -119,7 +125,8 @@ static int loopip_init(void)
 	
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.",
+		    svc_name);
 		return rc;
 	}
 	
@@ -150,21 +157,29 @@ static int loopip_close(iplink_srv_t *srv)
 	return EOK;
 }
 
-static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
+static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
-	rqueue_entry_t *rqe;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_send()");
-
-	rqe = calloc(1, sizeof(rqueue_entry_t));
+	
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&sdu->src, &src_v4, &src_v6);
+	
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&sdu->dest, &dest_v4, &dest_v6);
+	
+	if (src_af != dest_af)
+		return EINVAL;
+	
+	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
 	
 	/*
 	 * Clone SDU
 	 */
-	rqe->sdu.lsrc = sdu->ldest;
-	rqe->sdu.ldest = sdu->lsrc;
+	rqe->af = src_af;
 	rqe->sdu.data = malloc(sdu->size);
 	if (rqe->sdu.data == NULL) {
 		free(rqe);
@@ -189,34 +204,31 @@ static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static int loopip_addr_add(iplink_srv_t *srv, uint32_t addr)
+static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_add(0x%" PRIx32 ")", addr);
 	return EOK;
 }
 
-static int loopip_addr_remove(iplink_srv_t *srv, uint32_t addr)
+static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_remove(0x%" PRIx32 ")", addr);
 	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
-	int rc;
-
-	printf(NAME ": HelenOS loopback IP link provider\n");
-
-	if (log_init(NAME) != EOK) {
-		printf(NAME ": Failed to initialize logging.\n");
-		return 1;
+	printf("%s: HelenOS loopback IP link provider\n", NAME);
+	
+	int rc = log_init(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed to initialize logging.\n", NAME);
+		return rc;
 	}
 	
 	rc = loopip_init();
 	if (rc != EOK)
-		return 1;
-
-	printf(NAME ": Accepting connections.\n");
+		return rc;
+	
+	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);
 	async_manager();
 	

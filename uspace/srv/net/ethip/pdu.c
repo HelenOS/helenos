@@ -61,16 +61,13 @@ int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 		return ENOMEM;
 
 	hdr = (eth_header_t *)data;
-	mac48_encode(&frame->src, hdr->src);
-	mac48_encode(&frame->dest, hdr->dest);
+	addr48(frame->src, hdr->src);
+	addr48(frame->dest, hdr->dest);
 	hdr->etype_len = host2uint16_t_be(frame->etype_len);
 
 	memcpy((uint8_t *)data + sizeof(eth_header_t), frame->data,
 	    frame->size);
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Encoding Ethernet frame "
-	    "src=%" PRIx64 " dest=%" PRIx64 " etype=%x",
-	    frame->src.addr, frame->dest.addr, frame->etype_len);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Encoded Ethernet frame (%zu bytes)", size);
 
 	*rdata = data;
@@ -97,43 +94,16 @@ int eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	if (frame->data == NULL)
 		return ENOMEM;
 
-	mac48_decode(hdr->src, &frame->src);
-	mac48_decode(hdr->dest, &frame->dest);
+	addr48(hdr->src, frame->src);
+	addr48(hdr->dest, frame->dest);
 	frame->etype_len = uint16_t_be2host(hdr->etype_len);
 
 	memcpy(frame->data, (uint8_t *)data + sizeof(eth_header_t),
 	    frame->size);
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Decoding Ethernet frame "
-	    "src=%" PRIx64 " dest=%" PRIx64 " etype=%x",
-	    frame->src.addr, frame->dest.addr, frame->etype_len);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Decoded Ethernet frame payload (%zu bytes)", frame->size);
 
 	return EOK;
-}
-
-void mac48_encode(mac48_addr_t *addr, void *buf)
-{
-	uint64_t val;
-	uint8_t *bbuf = (uint8_t *)buf;
-	int i;
-
-	val = addr->addr;
-	for (i = 0; i < MAC48_BYTES; i++)
-		bbuf[i] = (val >> (8 * (MAC48_BYTES - i - 1))) & 0xff;
-}
-
-void mac48_decode(void *data, mac48_addr_t *addr)
-{
-	uint64_t val;
-	uint8_t *bdata = (uint8_t *)data;
-	int i;
-
-	val = 0;
-	for (i = 0; i < MAC48_BYTES; i++)
-		val |= (uint64_t)bdata[i] << (8 * (MAC48_BYTES - i - 1));
-
-	addr->addr = val;
 }
 
 /** Encode ARP PDU. */
@@ -167,10 +137,10 @@ int arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 	pfmt->hw_addr_size = ETH_ADDR_SIZE;
 	pfmt->proto_addr_size = IPV4_ADDR_SIZE;
 	pfmt->opcode = host2uint16_t_be(fopcode);
-	mac48_encode(&packet->sender_hw_addr, pfmt->sender_hw_addr);
+	addr48(packet->sender_hw_addr, pfmt->sender_hw_addr);
 	pfmt->sender_proto_addr =
 	    host2uint32_t_be(packet->sender_proto_addr);
-	mac48_encode(&packet->target_hw_addr, pfmt->target_hw_addr);
+	addr48(packet->target_hw_addr, pfmt->target_hw_addr);
 	pfmt->target_proto_addr =
 	    host2uint32_t_be(packet->target_proto_addr);
 
@@ -226,10 +196,10 @@ int arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 		return EINVAL;
 	}
 
-	mac48_decode(pfmt->sender_hw_addr, &packet->sender_hw_addr);
+	addr48(pfmt->sender_hw_addr, packet->sender_hw_addr);
 	packet->sender_proto_addr =
 	    uint32_t_be2host(pfmt->sender_proto_addr);
-	mac48_decode(pfmt->target_hw_addr, &packet->target_hw_addr);
+	addr48(pfmt->target_hw_addr, packet->target_hw_addr);
 	packet->target_proto_addr =
 	    uint32_t_be2host(pfmt->target_proto_addr);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "packet->tpa = %x\n", pfmt->target_proto_addr);

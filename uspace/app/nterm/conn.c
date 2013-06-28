@@ -74,42 +74,56 @@ static int rcv_fibril(void *arg)
 
 int conn_open(const char *addr_s, const char *port_s)
 {
-	struct sockaddr_in addr;
-	dnsr_hostinfo_t *hinfo = NULL;
-	int rc;
-	char *endptr;
-
-	addr.sin_family = AF_INET;
-
-	rc = inet_pton(addr.sin_family, addr_s, (uint8_t *)&addr.sin_addr);
+	int conn_fd = -1;
+	
+	/* Interpret as address */
+	inet_addr_t addr_addr;
+	int rc = inet_addr_parse(addr_s, &addr_addr);
+	
 	if (rc != EOK) {
-		/* Try interpreting as a host name */
+		/* Interpret as a host name */
+		dnsr_hostinfo_t *hinfo = NULL;
 		rc = dnsr_name2host(addr_s, &hinfo);
+		
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);
 			goto error;
 		}
 		
-		rc = inet_addr_sockaddr_in(&hinfo->addr, &addr);
-		if (rc != EOK) {
-			printf("Host '%s' not resolved as IPv4 address.\n", addr_s);
-			return rc;
-		}
+		addr_addr = hinfo->addr;
 	}
-
-	addr.sin_port = htons(strtol(port_s, &endptr, 10));
+	
+	struct sockaddr_in addr;
+	struct sockaddr_in6 addr6;
+	uint16_t af = inet_addr_sockaddr_in(&addr_addr, &addr, &addr6);
+	
+	char *endptr;
+	uint16_t port = strtol(port_s, &endptr, 10);
 	if (*endptr != '\0') {
 		printf("Invalid port number %s\n", port_s);
 		goto error;
 	}
 	
+	printf("Connecting to host %s port %u\n", addr_s, port);
+	
 	conn_fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (conn_fd < 0)
 		goto error;
 	
-	printf("Connecting to host %s port %u\n", addr_s, ntohs(addr.sin_port));
+	switch (af) {
+	case AF_INET:
+		addr.sin_port = htons(port);
+		rc = connect(conn_fd, (struct sockaddr *) &addr, sizeof(addr));
+		break;
+	case AF_INET6:
+		addr6.sin6_port = htons(port);
+		rc = connect(conn_fd, (struct sockaddr *) &addr6, sizeof(addr6));
+		break;
+	default:
+		printf("Unknown address family.\n");
+		goto error;
+	}
 	
-	rc = connect(conn_fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc != EOK)
 		goto error;
 	

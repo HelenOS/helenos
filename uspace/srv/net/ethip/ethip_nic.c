@@ -120,7 +120,7 @@ static ethip_nic_t *ethip_nic_new(void)
 	return nic;
 }
 
-static ethip_link_addr_t *ethip_nic_addr_new(uint32_t addr)
+static ethip_link_addr_t *ethip_nic_addr_new(inet_addr_t *addr)
 {
 	ethip_link_addr_t *laddr = calloc(1, sizeof(ethip_link_addr_t));
 	if (laddr == NULL) {
@@ -130,7 +130,7 @@ static ethip_link_addr_t *ethip_nic_addr_new(uint32_t addr)
 	}
 	
 	link_initialize(&laddr->addr_list);
-	laddr->addr = addr;
+	laddr->addr = *addr;
 	
 	return laddr;
 }
@@ -192,8 +192,8 @@ static int ethip_nic_open(service_id_t sid)
 		    nic->svc_name);
 		goto error;
 	}
-
-	mac48_decode(nic_address.address, &nic->mac_addr);
+	
+	addr48(nic_address.address, nic->mac_addr);
 
 	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
 	if (rc != EOK) {
@@ -202,8 +202,7 @@ static int ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service, MAC = 0x%" PRIx64,
-	    nic->mac_addr.addr);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service,");
 
 	return EOK;
 
@@ -334,7 +333,7 @@ int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 	return rc;
 }
 
-int ethip_nic_addr_add(ethip_nic_t *nic, uint32_t addr)
+int ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_add()");
 	
@@ -346,7 +345,7 @@ int ethip_nic_addr_add(ethip_nic_t *nic, uint32_t addr)
 	return EOK;
 }
 
-int ethip_nic_addr_remove(ethip_nic_t *nic, uint32_t addr)
+int ethip_nic_addr_remove(ethip_nic_t *nic, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_remove()");
 	
@@ -360,7 +359,7 @@ int ethip_nic_addr_remove(ethip_nic_t *nic, uint32_t addr)
 }
 
 ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
-    uint32_t addr)
+    inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_find()");
 	
@@ -368,7 +367,7 @@ ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
 		ethip_link_addr_t *laddr = list_get_instance(link,
 		    ethip_link_addr_t, addr_list);
 		
-		if (addr == laddr->addr)
+		if (inet_addr_compare(addr, &laddr->addr))
 			return laddr;
 	}
 	

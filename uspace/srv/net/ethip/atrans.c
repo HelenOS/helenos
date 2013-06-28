@@ -61,7 +61,7 @@ static ethip_atrans_t *atrans_find(uint32_t ip_addr)
 	return NULL;
 }
 
-int atrans_add(uint32_t ip_addr, mac48_addr_t *mac_addr)
+int atrans_add(uint32_t ip_addr, addr48_t mac_addr)
 {
 	ethip_atrans_t *atrans;
 	ethip_atrans_t *prev;
@@ -71,7 +71,7 @@ int atrans_add(uint32_t ip_addr, mac48_addr_t *mac_addr)
 		return ENOMEM;
 
 	atrans->ip_addr = ip_addr;
-	atrans->mac_addr = *mac_addr;
+	addr48(mac_addr, atrans->mac_addr);
 
 	fibril_mutex_lock(&atrans_list_lock);
 	prev = atrans_find(ip_addr);
@@ -105,19 +105,17 @@ int atrans_remove(uint32_t ip_addr)
 	return EOK;
 }
 
-int atrans_lookup(uint32_t ip_addr, mac48_addr_t *mac_addr)
+int atrans_lookup(uint32_t ip_addr, addr48_t mac_addr)
 {
-	ethip_atrans_t *atrans;
-
 	fibril_mutex_lock(&atrans_list_lock);
-	atrans = atrans_find(ip_addr);
+	ethip_atrans_t *atrans = atrans_find(ip_addr);
 	if (atrans == NULL) {
 		fibril_mutex_unlock(&atrans_list_lock);
 		return ENOENT;
 	}
-
+	
 	fibril_mutex_unlock(&atrans_list_lock);
-	*mac_addr = atrans->mac_addr;
+	addr48(atrans->mac_addr, mac_addr);
 	return EOK;
 }
 

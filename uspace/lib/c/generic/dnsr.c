@@ -68,47 +68,63 @@ static void dnsr_exchange_end(async_exch_t *exch)
 
 int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
 {
-	async_exch_t *exch = dnsr_exchange_begin();
-	char cname_buf[DNSR_NAME_MAX_SIZE + 1];
-	ipc_call_t cnreply;
-	size_t act_size;
-	dnsr_hostinfo_t *info;
-
-	ipc_call_t answer;
-	aid_t req = async_send_0(exch, DNSR_NAME2HOST, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
-	aid_t cnreq = async_data_read(exch, cname_buf, DNSR_NAME_MAX_SIZE,
-	    &cnreply);
-
-	dnsr_exchange_end(exch);
-
-	if (retval != EOK) {
-		async_forget(req);
-		async_forget(cnreq);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-	if (retval != EOK) {
-		async_forget(cnreq);
-		return EIO;
-	}
-
-	async_wait_for(cnreq, &retval);
-	if (retval != EOK)
-		return EIO;
-
-	info = calloc(1, sizeof(dnsr_hostinfo_t));
+	dnsr_hostinfo_t *info = calloc(1, sizeof(dnsr_hostinfo_t));
 	if (info == NULL)
 		return ENOMEM;
-
-	act_size = IPC_GET_ARG2(cnreply);
+	
+	async_exch_t *exch = dnsr_exchange_begin();
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, DNSR_NAME2HOST, &answer);
+	
+	int rc = async_data_write_start(exch, name, str_size(name));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	ipc_call_t answer_addr;
+	aid_t req_addr = async_data_read(exch, &info->addr,
+	    sizeof(inet_addr_t), &answer_addr);
+	
+	sysarg_t retval_addr;
+	async_wait_for(req_addr, &retval_addr);
+	
+	if (retval_addr != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return (int) retval_addr;
+	}
+	
+	ipc_call_t answer_cname;
+	char cname_buf[DNSR_NAME_MAX_SIZE + 1];
+	aid_t req_cname = async_data_read(exch, cname_buf, DNSR_NAME_MAX_SIZE,
+	    &answer_cname);
+	
+	dnsr_exchange_end(exch);
+	
+	sysarg_t retval_cname;
+	async_wait_for(req_cname, &retval_cname);
+	
+	if (retval_cname != EOK) {
+		async_forget(req);
+		return (int) retval_cname;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK)
+		return (int) retval;
+	
+	size_t act_size = IPC_GET_ARG2(answer_cname);
 	assert(act_size <= DNSR_NAME_MAX_SIZE);
+	
 	cname_buf[act_size] = '\0';
-
+	
 	info->cname = str_dup(cname_buf);
-	inet_addr_unpack(IPC_GET_ARG1(answer), &info->addr);
-
+	
 	*rinfo = info;
 	return EOK;
 }

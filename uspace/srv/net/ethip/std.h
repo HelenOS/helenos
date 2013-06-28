@@ -38,6 +38,7 @@
 #define ETHIP_STD_H_
 
 #include <sys/types.h>
+#include <inet/addr.h>
 
 #define ETH_ADDR_SIZE       6
 #define IPV4_ADDR_SIZE      4
@@ -46,9 +47,9 @@
 /** Ethernet frame header */
 typedef struct {
 	/** Destination Address */
-	uint8_t dest[ETH_ADDR_SIZE];
+	addr48_t dest;
 	/** Source Address */
-	uint8_t src[ETH_ADDR_SIZE];
+	addr48_t src;
 	/** Ethertype or Length */
 	uint16_t etype_len;
 } eth_header_t;
@@ -66,11 +67,11 @@ typedef struct {
 	/** Opcode */
 	uint16_t opcode;
 	/** Sender hardware address */
-	uint8_t sender_hw_addr[ETH_ADDR_SIZE];
+	addr48_t sender_hw_addr;
 	/** Sender protocol address */
 	uint32_t sender_proto_addr;
 	/** Target hardware address */
-	uint8_t target_hw_addr[ETH_ADDR_SIZE];
+	addr48_t target_hw_addr;
 	/** Target protocol address */
 	uint32_t target_proto_addr;
 } __attribute__((packed)) arp_eth_packet_fmt_t;
@@ -86,8 +87,9 @@ enum arp_hw_addr_space {
 
 /** IP Ethertype */
 enum ether_type {
-	ETYPE_ARP = 0x0806,
-	ETYPE_IP  = 0x0800
+	ETYPE_ARP  = 0x0806,
+	ETYPE_IP   = 0x0800,
+	ETYPE_IPV6 = 0x86DD
 };
 
 #endif

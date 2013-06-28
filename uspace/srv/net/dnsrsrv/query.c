@@ -127,7 +127,7 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 			}
 
 			info->cname = str_dup(rr->name);
-			inet_addr_unpack(dns_uint32_t_decode(rr->rdata, rr->rdata_size),
+			inet_addr_set(dns_uint32_t_decode(rr->rdata, rr->rdata_size),
 			    &info->addr);
 			
 			dns_message_destroy(msg);

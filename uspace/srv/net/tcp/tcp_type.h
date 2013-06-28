@@ -305,10 +305,9 @@ typedef enum {
 /** Encoded PDU */
 typedef struct {
 	/** Source address */
-	inet_addr_t src_addr;
+	inet_addr_t src;
 	/** Destination address */
-	inet_addr_t dest_addr;
-	
+	inet_addr_t dest;
 	/** Encoded header */
 	void *header;
 	/** Encoded header size */

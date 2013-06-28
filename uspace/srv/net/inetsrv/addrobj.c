@@ -41,11 +41,9 @@
 #include <ipc/loc.h>
 #include <stdlib.h>
 #include <str.h>
-
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
-#include "inet_util.h"
 
 static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *, inet_link_t *);
 
@@ -105,31 +103,20 @@ void inet_addrobj_remove(inet_addrobj_t *addr)
 
 /** Find address object matching address @a addr.
  *
- * @param addr	Address
- * @oaram find	iaf_net to find network (using mask),
- *		iaf_addr to find local address (exact match)
+ * @param addr Address
+ * @oaram find iaf_net to find network (using mask),
+ *             iaf_addr to find local address (exact match)
+ *
  */
 inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
-	uint32_t addr_addr;
-	int rc = inet_addr_pack(addr, &addr_addr);
-	if (rc != EOK)
-		return NULL;
-	
 	fibril_mutex_lock(&addr_list_lock);
 	
 	list_foreach(addr_list, link) {
 		inet_addrobj_t *naddr = list_get_instance(link,
 		    inet_addrobj_t, addr_list);
 		
-		uint32_t naddr_addr;
-		uint8_t naddr_bits;
-		rc = inet_naddr_pack(&naddr->naddr, &naddr_addr, &naddr_bits);
-		if (rc != EOK)
-			continue;
-		
-		uint32_t mask = inet_netmask(naddr_bits);
-		if ((naddr_addr & mask) == (addr_addr & mask)) {
+		if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
 			fibril_mutex_unlock(&addr_list_lock);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
 			    naddr);
@@ -226,9 +213,7 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 	inet_addr_t lsrc_addr;
 	inet_naddr_addr(&addr->naddr, &lsrc_addr);
 	
-	inet_addr_t *ldest_addr = ldest;
-	
-	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest_addr, dgram,
+	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest, dgram,
 	    proto, ttl, df);
 }
 

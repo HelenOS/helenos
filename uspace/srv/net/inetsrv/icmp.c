@@ -39,7 +39,7 @@
 #include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
-
+#include <net/socket_codes.h>
 #include "icmp.h"
 #include "icmp_std.h"
 #include "inetsrv.h"
@@ -128,13 +128,13 @@ static int icmp_recv_echo_reply(inet_dgram_t *dgram)
 	
 	inetping_sdu_t sdu;
 	
-	int rc = inet_addr_pack(&dgram->src, &sdu.src);
-	if (rc != EOK)
-		return rc;
+	uint16_t family = inet_addr_get(&dgram->src, &sdu.src, NULL);
+	if (family != AF_INET)
+		return EINVAL;
 	
-	rc = inet_addr_pack(&dgram->dest, &sdu.dest);
-	if (rc != EOK)
-		return rc;
+	family = inet_addr_get(&dgram->dest, &sdu.dest, NULL);
+	if (family != AF_INET)
+		return EINVAL;
 	
 	sdu.seq_no = uint16_t_be2host(reply->seq_no);
 	sdu.data = reply + sizeof(icmp_echo_t);
@@ -167,8 +167,8 @@ int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 	
 	inet_dgram_t dgram;
 	
-	inet_addr_unpack(sdu->src, &dgram.src);
-	inet_addr_unpack(sdu->dest, &dgram.dest);
+	inet_addr_set(sdu->src, &dgram.src);
+	inet_addr_set(sdu->dest, &dgram.dest);
 	
 	dgram.tos = ICMP_TOS;
 	dgram.data = rdata;

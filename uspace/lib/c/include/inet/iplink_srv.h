@@ -39,6 +39,8 @@
 #include <fibril_synch.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <inet/addr.h>
+#include <inet/iplink.h>
 
 struct iplink_ops;
 
@@ -50,31 +52,19 @@ typedef struct {
 	async_sess_t *client_sess;
 } iplink_srv_t;
 
-/** IP link Service Data Unit */
-typedef struct {
-	/** Local source address */
-	uint32_t lsrc;
-	/** Local destination address */
-	uint32_t ldest;
-	/** Serialized IP packet */
-	void *data;
-	/** Size of @c data in bytes */
-	size_t size;
-} iplink_srv_sdu_t;
-
 typedef struct iplink_ops {
 	int (*open)(iplink_srv_t *);
 	int (*close)(iplink_srv_t *);
-	int (*send)(iplink_srv_t *, iplink_srv_sdu_t *);
+	int (*send)(iplink_srv_t *, iplink_sdu_t *);
 	int (*get_mtu)(iplink_srv_t *, size_t *);
-	int (*addr_add)(iplink_srv_t *, uint32_t);
-	int (*addr_remove)(iplink_srv_t *, uint32_t);
+	int (*addr_add)(iplink_srv_t *, inet_addr_t *);
+	int (*addr_remove)(iplink_srv_t *, inet_addr_t *);
 } iplink_ops_t;
 
 extern void iplink_srv_init(iplink_srv_t *);
 
 extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int iplink_ev_recv(iplink_srv_t *, iplink_srv_sdu_t *);
+extern int iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, uint16_t);
 
 #endif
 

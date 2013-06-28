@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
+#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "icmp.h"
 #include "icmp_std.h"
@@ -201,9 +201,11 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
 	
-	inet_addr_t remote;
-	inet_addr_unpack(IPC_GET_ARG1(*call), &remote);
+	addr32_t remote_v4 = IPC_GET_ARG1(*call);
 	uint8_t tos = IPC_GET_ARG2(*call);
+	
+	inet_addr_t remote;
+	inet_addr_set(remote_v4, &remote);
 	
 	inet_addr_t local;
 	int rc = inet_get_srcaddr(&remote, tos, &local);
@@ -212,14 +214,14 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
 		return;
 	}
 	
-	uint32_t local_addr;
-	rc = inet_addr_pack(&local, &local_addr);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
+	addr32_t local_v4;
+	uint16_t family = inet_addr_get(&local, &local_v4, NULL);
+	if (family != AF_INET) {
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 	
-	async_answer_1(callid, rc, (sysarg_t) local_addr);
+	async_answer_1(callid, rc, (sysarg_t) local_v4);
 }
 
 static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
@@ -227,10 +229,13 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
 	
+	addr32_t src_v4 = IPC_GET_ARG1(*call);
+	addr32_t dest_v4 = IPC_GET_ARG2(*call);
+	
 	inet_dgram_t dgram;
 	
-	inet_addr_unpack(IPC_GET_ARG1(*call), &dgram.src);
-	inet_addr_unpack(IPC_GET_ARG2(*call), &dgram.dest);
+	inet_addr_set(src_v4, &dgram.src);
+	inet_addr_set(dest_v4, &dgram.dest);
 	dgram.tos = IPC_GET_ARG3(*call);
 	
 	uint8_t ttl = IPC_GET_ARG4(*call);
@@ -370,22 +375,27 @@ static inet_client_t *inet_client_find(uint8_t proto)
 
 int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 {
-	uint32_t src;
-	int rc = inet_addr_pack(&dgram->src, &src);
-	if (rc != EOK)
-		return rc;
-	
-	uint32_t dest;
-	rc = inet_addr_pack(&dgram->dest, &dest);
-	if (rc != EOK)
-		return rc;
-	
 	async_exch_t *exch = async_exchange_begin(client->sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INET_EV_RECV, (sysarg_t) src,
-	    (sysarg_t) dest, dgram->tos, &answer);
+	aid_t req = async_send_1(exch, INET_EV_RECV, dgram->tos, &answer);
+	
+	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, &dgram->dest, sizeof(inet_addr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
 	rc = async_data_write_start(exch, dgram->data, dgram->size);
+	
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
@@ -395,10 +405,8 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	if (retval != EOK)
-		return retval;
 	
-	return EOK;
+	return (int) retval;
 }
 
 int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)

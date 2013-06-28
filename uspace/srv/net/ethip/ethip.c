@@ -43,7 +43,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <net/socket_codes.h>
 #include "arp.h"
 #include "ethip.h"
 #include "ethip_nic.h"
@@ -54,10 +54,10 @@
 
 static int ethip_open(iplink_srv_t *srv);
 static int ethip_close(iplink_srv_t *srv);
-static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
+static int ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
 static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static int ethip_addr_add(iplink_srv_t *srv, uint32_t addr);
-static int ethip_addr_remove(iplink_srv_t *srv, uint32_t addr);
+static int ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
+static int ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
 static void ethip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -163,30 +163,50 @@ static int ethip_close(iplink_srv_t *srv)
 	return EOK;
 }
 
-static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
+static int ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
-	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send()");
+	
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
+	
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&sdu->src, &src_v4, &src_v6);
+	
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&sdu->dest, &dest_v4, &dest_v6);
+	
+	if (src_af != dest_af)
+		return EINVAL;
+	
+	int rc;
 	eth_frame_t frame;
+	
+	switch (src_af) {
+	case AF_INET:
+		rc = arp_translate(nic, src_v4, dest_v4, frame.dest);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IPv4 address 0x%"
+			    PRIx32, dest_v4);
+			return rc;
+		}
+		
+		addr48(nic->mac_addr, frame.src);
+		frame.etype_len = ETYPE_IP;
+		frame.data = sdu->data;
+		frame.size = sdu->size;
+		
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		return ENOTSUP;
+	default:
+		return EINVAL;
+	}
+	
 	void *data;
 	size_t size;
-	mac48_addr_t dest_mac_addr;
-	int rc;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send()");
-
-	rc = arp_translate(nic, sdu->lsrc, sdu->ldest, &dest_mac_addr);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IP address 0x%" PRIx32,
-		    sdu->ldest);
-		return rc;
-	}
-
-	frame.dest      = dest_mac_addr;
-	frame.src       = nic->mac_addr;
-	frame.etype_len = ETYPE_IP;
-	frame.data = sdu->data;
-	frame.size = sdu->size;
-
 	rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
@@ -200,32 +220,29 @@ static int ethip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_received(): srv=%p", srv);
-	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
-	eth_frame_t frame;
-	iplink_srv_sdu_t sdu;
-	int rc;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_received()");
-
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode");
-	rc = eth_pdu_decode(data, size, &frame);
+	
+	eth_frame_t frame;
+	int rc = eth_pdu_decode(data, size, &frame);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode failed");
 		return rc;
 	}
-
+	
+	iplink_recv_sdu_t sdu;
+	
 	switch (frame.etype_len) {
 	case ETYPE_ARP:
 		arp_received(nic, &frame);
 		break;
 	case ETYPE_IP:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - construct SDU");
-		sdu.lsrc = 0;
-		sdu.ldest = 0;
 		sdu.data = frame.data;
 		sdu.size = frame.size;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
-		rc = iplink_ev_recv(&nic->iplink, &sdu);
+		rc = iplink_ev_recv(&nic->iplink, &sdu, AF_INET);
 		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
@@ -243,22 +260,18 @@ static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static int ethip_addr_add(iplink_srv_t *srv, uint32_t addr)
+static int ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_add(0x%" PRIx32 ")", addr);
-	
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	
 	return ethip_nic_addr_add(nic, addr);
 }
 
-static int ethip_addr_remove(iplink_srv_t *srv, uint32_t addr)
+static int ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_addr_remove(0x%" PRIx32 ")", addr);
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	
-	ethip_nic_t *nic = (ethip_nic_t *)srv->arg;
-	
-	return ethip_nic_addr_add(nic, addr);
+	return ethip_nic_addr_remove(nic, addr);
 }
 
 int main(int argc, char *argv[])

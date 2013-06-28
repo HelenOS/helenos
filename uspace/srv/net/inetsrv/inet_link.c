@@ -42,14 +42,14 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
-
+#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
 #include "pdu.h"
 
-static int inet_link_open(service_id_t sid);
-static int inet_iplink_recv(iplink_t *ilink, iplink_sdu_t *sdu);
+static int inet_link_open(service_id_t);
+static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
 	.recv = inet_iplink_recv
@@ -58,13 +58,25 @@ static iplink_ev_ops_t inet_iplink_ev_ops = {
 static LIST_INITIALIZE(inet_link_list);
 static FIBRIL_MUTEX_INITIALIZE(inet_discovery_lock);
 
-static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
+static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, uint16_t af)
 {
-	inet_packet_t packet;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv()");
-	rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
+	
+	int rc;
+	inet_packet_t packet;
+	
+	switch (af) {
+	case AF_INET:
+		rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		return ENOTSUP;
+	default:
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "invalid address family");
+		return EINVAL;
+	}
+	
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "failed decoding PDU");
 		return rc;
@@ -227,7 +239,7 @@ static int inet_link_open(service_id_t sid)
 	}
 
 	return EOK;
-
+	
 error:
 	if (ilink->iplink != NULL)
 		iplink_close(ilink->iplink);
@@ -276,20 +288,15 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	packet.size = dgram->size;
 	
 	iplink_sdu_t sdu;
-	
-	int rc = inet_addr_pack(lsrc, &sdu.lsrc);
-	if (rc != EOK)
-		return rc;
-	
-	rc = inet_addr_pack(ldest, &sdu.ldest);
-	if (rc != EOK)
-		return rc;
-	
 	size_t offs = 0;
+	int rc;
+	
+	sdu.src = *lsrc;
+	sdu.dest = *ldest;
+	
 	do {
-		size_t roffs;
-		
 		/* Encode one fragment */
+		size_t roffs;
 		rc = inet_pdu_encode(&packet, offs, ilink->def_mtu, &sdu.data,
 		    &sdu.size, &roffs);
 		if (rc != EOK)

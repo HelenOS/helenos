@@ -38,10 +38,11 @@
 #define ARP_H_
 
 #include <inet/iplink_srv.h>
+#include <inet/addr.h>
 #include "ethip.h"
 
 extern void arp_received(ethip_nic_t *, eth_frame_t *);
-extern int arp_translate(ethip_nic_t *, uint32_t, uint32_t, mac48_addr_t *);
+extern int arp_translate(ethip_nic_t *, addr32_t, addr32_t, addr48_t);
 
 #endif
 

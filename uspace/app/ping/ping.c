@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <net/socket_codes.h>
 #include <inet/dnsr.h>
 #include <inet/addr.h>
 #include <inet/inetping.h>
@@ -62,8 +63,8 @@ static inetping_ev_ops_t ev_ops = {
 	.recv = ping_ev_recv
 };
 
-static uint32_t src;
-static uint32_t dest;
+static addr32_t src;
+static addr32_t dest;
 
 static bool ping_repeat = false;
 
@@ -83,10 +84,10 @@ static void ping_signal_done(void)
 static int ping_ev_recv(inetping_sdu_t *sdu)
 {
 	inet_addr_t src_addr;
-	inet_addr_unpack(sdu->src, &src_addr);
+	inet_addr_set(sdu->src, &src_addr);
 	
 	inet_addr_t dest_addr;
-	inet_addr_unpack(sdu->dest, &dest_addr);
+	inet_addr_set(sdu->dest, &dest_addr);
 	
 	char *asrc;
 	int rc = inet_addr_format(&src_addr, &asrc);
@@ -219,8 +220,8 @@ int main(int argc, char *argv[])
 		dest_addr = hinfo->addr;
 	}
 	
-	rc = inet_addr_pack(&dest_addr, &dest);
-	if (rc != EOK) {
+	uint16_t af = inet_addr_get(&dest_addr, &dest, NULL);
+	if (af != AF_INET) {
 		printf(NAME ": Destination '%s' is not an IPv4 address.\n",
 		    argv[argi]);
 		goto error;
@@ -234,7 +235,7 @@ int main(int argc, char *argv[])
 	}
 	
 	inet_addr_t src_addr;
-	inet_addr_unpack(src, &src_addr);
+	inet_addr_set(src, &src_addr);
 	
 	rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK) {

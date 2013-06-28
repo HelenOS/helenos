@@ -43,7 +43,7 @@
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
-
+#include <net/socket_codes.h>
 #include "inetsrv.h"
 #include "inet_std.h"
 #include "pdu.h"
@@ -105,15 +105,16 @@ uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
 int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
     void **rdata, size_t *rsize, size_t *roffs)
 {
-	uint32_t src_addr;
-	int rc = inet_addr_pack(&packet->src, &src_addr);
-	if (rc != EOK)
-		return rc;
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&packet->src, &src_v4, &src_v6);
 	
-	uint32_t dest_addr;
-	rc = inet_addr_pack(&packet->dest, &dest_addr);
-	if (rc != EOK)
-		return rc;
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&packet->dest, &dest_v4, &dest_v6);
+	
+	if (src_af != dest_af)
+		return EINVAL;
 	
 	/* Upper bound for fragment offset field */
 	size_t fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l);
@@ -122,7 +123,19 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 	if (offs + packet->size > FRAG_OFFS_UNIT * fragoff_limit)
 		return ELIMIT;
 	
-	size_t hdr_size = sizeof(ip_header_t);
+	size_t hdr_size;
+	
+	switch (src_af) {
+	case AF_INET:
+		hdr_size = sizeof(ip_header_t);
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		assert(false);
+	default:
+		assert(false);
+	}
+	
 	size_t data_offs = ROUND_UP(hdr_size, 4);
 	
 	assert(offs % FRAG_OFFS_UNIT == 0);
@@ -163,23 +176,36 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 	fibril_mutex_unlock(&ip_ident_lock);
 	
 	/* Encode header fields */
-	ip_header_t *hdr = (ip_header_t *) data;
+	ip_header_t *hdr;
 	
-	hdr->ver_ihl = (4 << VI_VERSION_l) | (hdr_size / sizeof(uint32_t));
-	hdr->tos = packet->tos;
-	hdr->tot_len = host2uint16_t_be(size);
-	hdr->id = host2uint16_t_be(ident);
-	hdr->flags_foff = host2uint16_t_be(flags_foff);
-	hdr->ttl = packet->ttl;
-	hdr->proto = packet->proto;
-	hdr->chksum = 0;
-	hdr->src_addr = host2uint32_t_be(src_addr);
-	hdr->dest_addr = host2uint32_t_be(dest_addr);
-	
-	/* Compute checksum */
-	uint16_t chksum = inet_checksum_calc(INET_CHECKSUM_INIT, (void *) hdr,
-	    hdr_size);
-	hdr->chksum = host2uint16_t_be(chksum);
+	switch (src_af) {
+	case AF_INET:
+		hdr = (ip_header_t *) data;
+		
+		hdr->ver_ihl =
+		    (4 << VI_VERSION_l) | (hdr_size / sizeof(uint32_t));
+		hdr->tos = packet->tos;
+		hdr->tot_len = host2uint16_t_be(size);
+		hdr->id = host2uint16_t_be(ident);
+		hdr->flags_foff = host2uint16_t_be(flags_foff);
+		hdr->ttl = packet->ttl;
+		hdr->proto = packet->proto;
+		hdr->chksum = 0;
+		hdr->src_addr = host2uint32_t_be(src_v4);
+		hdr->dest_addr = host2uint32_t_be(dest_v4);
+		
+		/* Compute checksum */
+		uint16_t chksum = inet_checksum_calc(INET_CHECKSUM_INIT,
+		    (void *) hdr, hdr_size);
+		hdr->chksum = host2uint16_t_be(chksum);
+		
+		break;
+	case AF_INET6:
+		// FIXME TODO
+		return ENOTSUP;
+	default:
+		assert(false);
+	}
 	
 	/* Copy payload */
 	memcpy((uint8_t *) data + data_offs, packet->data + offs, xfer_size);
@@ -193,31 +219,23 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 
 int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 {
-	ip_header_t *hdr;
-	size_t tot_len;
-	size_t data_offs;
-	uint8_t version;
-	uint16_t ident;
-	uint16_t flags_foff;
-	uint16_t foff;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode()");
 	
 	if (size < sizeof(ip_header_t)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "PDU too short (%zu)", size);
 		return EINVAL;
 	}
-
-	hdr = (ip_header_t *)data;
-
-	version = BIT_RANGE_EXTRACT(uint8_t, VI_VERSION_h, VI_VERSION_l,
-	    hdr->ver_ihl);
+	
+	ip_header_t *hdr = (ip_header_t *) data;
+	
+	uint8_t version = BIT_RANGE_EXTRACT(uint8_t, VI_VERSION_h,
+	    VI_VERSION_l, hdr->ver_ihl);
 	if (version != 4) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Version (%d) != 4", version);
 		return EINVAL;
 	}
-
-	tot_len = uint16_t_be2host(hdr->tot_len);
+	
+	size_t tot_len = uint16_t_be2host(hdr->tot_len);
 	if (tot_len < sizeof(ip_header_t)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Total Length too small (%zu)", tot_len);
 		return EINVAL;
@@ -228,15 +246,15 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 			tot_len, size);
 		return EINVAL;
 	}
-
-	ident = uint16_t_be2host(hdr->id);
-	flags_foff = uint16_t_be2host(hdr->flags_foff);
-	foff = BIT_RANGE_EXTRACT(uint16_t, FF_FRAGOFF_h, FF_FRAGOFF_l,
+	
+	uint16_t ident = uint16_t_be2host(hdr->id);
+	uint16_t flags_foff = uint16_t_be2host(hdr->flags_foff);
+	uint16_t foff = BIT_RANGE_EXTRACT(uint16_t, FF_FRAGOFF_h, FF_FRAGOFF_l,
 	    flags_foff);
 	/* XXX Checksum */
-
-	inet_addr_unpack(uint32_t_be2host(hdr->src_addr), &packet->src);
-	inet_addr_unpack(uint32_t_be2host(hdr->dest_addr), &packet->dest);
+	
+	inet_addr_set(uint32_t_be2host(hdr->src_addr), &packet->src);
+	inet_addr_set(uint32_t_be2host(hdr->dest_addr), &packet->dest);
 	packet->tos = hdr->tos;
 	packet->proto = hdr->proto;
 	packet->ttl = hdr->ttl;
@@ -247,9 +265,9 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	packet->offs = foff * FRAG_OFFS_UNIT;
 	
 	/* XXX IP options */
-	data_offs = sizeof(uint32_t) * BIT_RANGE_EXTRACT(uint8_t, VI_IHL_h,
-	    VI_IHL_l, hdr->ver_ihl);
-
+	size_t data_offs = sizeof(uint32_t) *
+	    BIT_RANGE_EXTRACT(uint8_t, VI_IHL_h, VI_IHL_l, hdr->ver_ihl);
+	
 	packet->size = tot_len - data_offs;
 	packet->data = calloc(packet->size, 1);
 	if (packet->data == NULL) {

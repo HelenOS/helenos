@@ -34,7 +34,6 @@ SOURCES = \
 	icmp.c \
 	inetsrv.c \
 	inet_link.c \
-	inet_util.c \
 	inetcfg.c \
 	inetping.c \
 	pdu.c \

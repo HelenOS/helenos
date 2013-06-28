@@ -83,8 +83,8 @@ int main(int argc, char *argv[])
 				return rc;
 			}
 			
-			rc = inet_addr_sockaddr_in(&hinfo->addr, &addr);
-			if (rc != EOK) {
+			uint16_t af = inet_addr_sockaddr_in(&hinfo->addr, &addr, NULL);
+			if (af != AF_INET) {
 				printf("Host '%s' not resolved as IPv4 address.\n", argv[1]);
 				return rc;
 			}

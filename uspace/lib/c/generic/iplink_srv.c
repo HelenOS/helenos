@@ -33,11 +33,12 @@
  * @file
  * @brief IP link server stub
  */
+
 #include <errno.h>
 #include <ipc/iplink.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
+#include <inet/addr.h>
 #include <inet/iplink_srv.h>
 
 static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
@@ -48,38 +49,113 @@ static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, rc, mtu);
 }
 
-static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t callid,
-    ipc_call_t *call)
+static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
+    ipc_call_t *icall)
 {
-	int rc = srv->ops->addr_add(srv, IPC_GET_ARG1(*call));
-	async_answer_0(callid, rc);
-}
-
-static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t callid,
-    ipc_call_t *call)
-{
-	int rc = srv->ops->addr_remove(srv, IPC_GET_ARG1(*call));
-	async_answer_0(callid, rc);
-}
-
-static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t callid,
-    ipc_call_t *call)
-{
-	iplink_srv_sdu_t sdu;
-	int rc;
-	
-	sdu.lsrc = IPC_GET_ARG1(*call);
-	sdu.ldest = IPC_GET_ARG2(*call);
-	
-	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
 		return;
 	}
 	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	inet_addr_t addr;
+	int rc = async_data_write_finalize(callid, &addr, size);
+	if (rc != EOK) {
+		async_answer_0(callid, (sysarg_t) rc);
+		async_answer_0(iid, (sysarg_t) rc);
+	}
+	
+	rc = srv->ops->addr_add(srv, &addr);
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
+static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	inet_addr_t addr;
+	int rc = async_data_write_finalize(callid, &addr, size);
+	if (rc != EOK) {
+		async_answer_0(callid, (sysarg_t) rc);
+		async_answer_0(iid, (sysarg_t) rc);
+	}
+	
+	rc = srv->ops->addr_remove(srv, &addr);
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
+static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	iplink_sdu_t sdu;
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	int rc = async_data_write_finalize(callid, &sdu.src, size);
+	if (rc != EOK) {
+		async_answer_0(callid, (sysarg_t) rc);
+		async_answer_0(iid, (sysarg_t) rc);
+	}
+	
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_write_finalize(callid, &sdu.dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, (sysarg_t) rc);
+		async_answer_0(iid, (sysarg_t) rc);
+	}
+	
+	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
+	    &sdu.size);
+	if (rc != EOK)
+		return;
+	
 	rc = srv->ops->send(srv, &sdu);
 	free(sdu.data);
-	async_answer_0(callid, rc);
+	async_answer_0(iid, rc);
 }
 
 void iplink_srv_init(iplink_srv_t *srv)
@@ -154,7 +230,7 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	return srv->ops->close(srv);
 }
 
-int iplink_ev_recv(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
+int iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, uint16_t af)
 {
 	if (srv->client_sess == NULL)
 		return EIO;
@@ -162,8 +238,9 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
 	async_exch_t *exch = async_exchange_begin(srv->client_sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(exch, IPLINK_EV_RECV, (sysarg_t) sdu->lsrc,
-	    (sysarg_t) sdu->ldest, &answer);
+	aid_t req = async_send_1(exch, IPLINK_EV_RECV, (sysarg_t) af,
+	    &answer);
+	
 	int rc = async_data_write_start(exch, sdu->data, sdu->size);
 	async_exchange_end(exch);
 	
