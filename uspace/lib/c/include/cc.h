@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup edit
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
+ * Macros related to used compiler (such as GCC-specific attributes).
  */
 
-#ifndef SHEET_IMPL_H__
-#define SHEET_IMPL_H__
+#ifndef LIBC_CC_H_
+#define LIBC_CC_H_
 
-#include "sheet.h"
+#ifndef __clang__
+#define ATTRIBUTE_OPTIMIZE(opt) \
+	__attribute__ ((optimize(opt)))
+#else
+#define ATTRIBUTE_OPTIMIZE(opt)
+#endif
 
-/** Sheet */
-struct sheet {
-	/* Note: This structure is opaque for the user. */
-
-	size_t text_size;
-	size_t dbuf_size;
-	char *data;
-
-	list_t tags;
-};
 
 #endif
 

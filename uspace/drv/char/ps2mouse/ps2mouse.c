@@ -69,23 +69,25 @@
 
 #define PS2_BUTTON_MASK(button) (1 << button)
 
-#define MOUSE_READ_BYTE_TEST(sess, value) \
+#define MOUSE_READ_BYTE_TEST(sess, value_) \
 do { \
+	uint8_t value = (value_); \
 	uint8_t data = 0; \
 	const ssize_t size = chardev_read(sess, &data, 1); \
 	if (size != 1) { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %zd)", size);\
 		return size < 0 ? size : EIO; \
 	} \
-	if (data != (value)) { \
+	if (data != value) { \
 		ddf_msg(LVL_DEBUG, "Failed testing byte: got %hhx vs. %hhx)", \
-		    data, (value)); \
+		    data, value); \
 		return EIO; \
 	} \
 } while (0)
 
-#define MOUSE_WRITE_BYTE(sess, value) \
+#define MOUSE_WRITE_BYTE(sess, value_) \
 do { \
+	uint8_t value = (value_); \
 	uint8_t data = (value); \
 	const ssize_t size = chardev_write(sess, &data, 1); \
 	if (size < 0 ) { \

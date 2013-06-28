@@ -46,7 +46,7 @@
 
 #include "widget.h"
 
-typedef struct window {
+struct window {
 	bool is_main; /**< True for the main window of the application. */
 	bool is_decorated; /**< True if the window decorations should be rendered. */
 	bool is_focused; /**< True for the top level window of the desktop. */
@@ -59,7 +59,7 @@ typedef struct window {
 	widget_t *focus; /**< Widget owning the keyboard or NULL. */
 	fibril_mutex_t guard; /**< Mutex guarding window surface. */
 	surface_t *surface; /**< Window surface shared with compositor. */
-} window_t;
+};
 
 /**
  * Allocate all resources for new window and register it in the compositor.
