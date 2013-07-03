@@ -144,7 +144,8 @@ static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_
 	hdr->urg_ptr = host2uint16_t_be(seg->up);
 }
 
-static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
+static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
+    tcp_phdr6_t *phdr6)
 {
 	addr32_t src_v4;
 	addr128_t src_v6;
@@ -166,8 +167,13 @@ static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
 		    host2uint16_t_be(pdu->header_size + pdu->text_size);
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		assert(false);
+		host2addr128_t_be(src_v6, phdr6->src);
+		host2addr128_t_be(dest_v6, phdr6->dest);
+		phdr6->tcp_length =
+		    host2uint32_t_be(pdu->header_size + pdu->text_size);
+		memset(phdr6->zero, 0, 3);
+		phdr6->next = IP_PROTO_TCP;
+		break;
 	default:
 		assert(false);
 	}
@@ -258,16 +264,18 @@ static uint16_t tcp_pdu_checksum_calc(tcp_pdu_t *pdu)
 	uint16_t cs_phdr;
 	uint16_t cs_headers;
 	tcp_phdr_t phdr;
+	tcp_phdr6_t phdr6;
 	
-	uint16_t af = tcp_phdr_setup(pdu, &phdr);
+	uint16_t af = tcp_phdr_setup(pdu, &phdr, &phdr6);
 	switch (af) {
 	case AF_INET:
 		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr,
 		    sizeof(tcp_phdr_t));
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		assert(false);
+		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr6,
+		    sizeof(tcp_phdr6_t));
+		break;
 	default:
 		assert(false);
 	}

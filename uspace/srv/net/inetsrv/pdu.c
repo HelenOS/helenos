@@ -130,8 +130,8 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 		hdr_size = sizeof(ip_header_t);
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		assert(false);
+		hdr_size = sizeof(ip6_header_t);
+		break;
 	default:
 		assert(false);
 	}
@@ -177,6 +177,7 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 	
 	/* Encode header fields */
 	ip_header_t *hdr;
+	ip6_header_t *hdr6;
 	
 	switch (src_af) {
 	case AF_INET:
@@ -201,8 +202,20 @@ int inet_pdu_encode(inet_packet_t *packet, size_t offs, size_t mtu,
 		
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		return ENOTSUP;
+		// TODO FIXME: fragmentation
+		
+		hdr6 = (ip6_header_t *) data;
+		
+		hdr6->ver_tc = (6 << (VI_VERSION_l));
+		memset(hdr6->tc_fl, 0, 3);
+		hdr6->payload_len = host2uint16_t_be(packet->size);
+		hdr6->next = packet->proto;
+		hdr6->hop_limit = packet->ttl;
+		
+		host2addr128_t_be(src_v6, hdr6->src_addr);
+		host2addr128_t_be(dest_v6, hdr6->dest_addr);
+		
+		break;
 	default:
 		assert(false);
 	}
@@ -278,6 +291,12 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	memcpy(packet->data, (uint8_t *) data + data_offs, packet->size);
 	
 	return EOK;
+}
+
+int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
+{
+	// FIXME TODO
+	return ENOTSUP;
 }
 
 /** @}

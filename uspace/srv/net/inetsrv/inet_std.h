@@ -39,7 +39,7 @@
 
 #include <sys/types.h>
 
-/** Internet Datagram header (fixed part) */
+/** IPv4 Datagram header (fixed part) */
 typedef struct {
 	/** Version, Internet Header Length */
 	uint8_t ver_ihl;
@@ -88,6 +88,36 @@ enum flags_foff_bits {
 	/** Fragment Offset, lowest bit */
 	FF_FRAGOFF_l = 0
 };
+
+/** IPv6 Datagram header (fixed part) */
+typedef struct {
+	/** Version, Traffic class first 4 bits */
+	uint8_t ver_tc;
+	/** Traffic class (the rest), Flow label */
+	uint8_t tc_fl[3];
+	/* Payload length */
+	uint16_t payload_len;
+	/** Next header */
+	uint8_t next;
+	/** Hop limit */
+	uint8_t hop_limit;
+	/** Source address */
+	uint8_t src_addr[16];
+	/** Destination address */
+	uint8_t dest_addr[16];
+} ip6_header_t;
+
+/** IPv6 Datagram Fragment extension header */
+typedef struct {
+	/** Next header */
+	uint8_t next;
+	/** Reserved */
+	uint8_t reserved;
+	/** Fragment Offset, Flags */
+	uint16_t foff_flags;
+	/** Identification */
+	uint32_t id;
+} ip6_header_fragment_t;
 
 /** Fragment offset is expressed in units of 8 bytes */
 #define FRAG_OFFS_UNIT 8

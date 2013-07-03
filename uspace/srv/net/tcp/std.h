@@ -74,7 +74,7 @@ enum doff_flags_bits {
 	DF_FIN			= 0
 };
 
-/** TCP pseudo header */
+/** TCP IPv4 pseudo header */
 typedef struct {
 	/** Source address */
 	uint32_t src;
@@ -87,6 +87,20 @@ typedef struct {
 	/** TCP length */
 	uint16_t tcp_length;
 } tcp_phdr_t;
+
+/** TCP IPv6 pseudo header */
+typedef struct {
+	/** Source address */
+	addr128_t src;
+	/** Destination address */
+	addr128_t dest;
+	/** TCP length */
+	uint32_t tcp_length;
+	/** Zeroes */
+	uint8_t zero[3];
+	/** Next header */
+	uint8_t next;
+} tcp_phdr6_t;
 
 /** Option kind */
 enum opt_kind {

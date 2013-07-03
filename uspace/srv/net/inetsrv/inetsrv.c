@@ -49,9 +49,12 @@
 #include "addrobj.h"
 #include "icmp.h"
 #include "icmp_std.h"
+#include "icmpv6.h"
+#include "icmpv6_std.h"
 #include "inetsrv.h"
 #include "inetcfg.h"
 #include "inetping.h"
+#include "inetping6.h"
 #include "inet_link.h"
 #include "reass.h"
 #include "sroute.h"
@@ -92,6 +95,13 @@ static int inet_init(void)
 	
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING, &sid,
 	    INET_PORT_PING);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		return EEXIST;
+	}
+	
+	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING6, &sid,
+	    INET_PORT_PING6);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
@@ -349,6 +359,9 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	case INET_PORT_PING:
 		inetping_conn(iid, icall, arg);
 		break;
+	case INET_PORT_PING6:
+		inetping6_conn(iid, icall, arg);
+		break;
 	default:
 		async_answer_0(iid, ENOTSUP);
 		break;
@@ -415,9 +428,12 @@ int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_recv_dgram_local()");
 
-	/* ICMP messages are handled internally */
+	/* ICMP and ICMPv6 messages are handled internally */
 	if (proto == IP_PROTO_ICMP)
 		return icmp_recv(dgram);
+	
+	if (proto == IP_PROTO_ICMPV6)
+		return icmpv6_recv(dgram);
 
 	client = inet_client_find(proto);
 	if (client == NULL) {

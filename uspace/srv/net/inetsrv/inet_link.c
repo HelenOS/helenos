@@ -70,8 +70,8 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, uint16_t a
 		rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		return ENOTSUP;
+		rc = inet_pdu_decode6(sdu->data, sdu->size, &packet);
+		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "invalid address family");
 		return EINVAL;
@@ -205,39 +205,69 @@ static int inet_link_open(service_id_t sid)
 	list_append(&ilink->link_list, &inet_link_list);
 
 	inet_addrobj_t *addr;
+	inet_addrobj_t *addr6;
 
 	static int first = 1;
 	
 	addr = inet_addrobj_new();
+	addr6 = inet_addrobj_new();
 	
 	if (first) {
 		inet_naddr(&addr->naddr, 127, 0, 0, 1, 24);
+		inet_naddr6(&addr6->naddr, 0, 0, 0, 0, 0, 0, 0, 1, 128);
 		first = 0;
 	} else {
-		/* XXX For testing: set static IP address 10.0.2.15/24 */
+		/*
+		 * FIXME
+		 * Setting static IP addresses for testing purposes
+		 * 10.0.2.15/24
+		 * fd19:1680::4/120
+		 */
 		inet_naddr(&addr->naddr, 10, 0, 2, 15, 24);
+		inet_naddr6(&addr6->naddr, 0xfd19, 0x1680, 0, 0, 0, 0, 0, 4, 120);
 	}
 	
 	addr->ilink = ilink;
+	addr6->ilink = ilink;
 	addr->name = str_dup("v4a");
+	addr6->name = str_dup("v6a");
+	
 	rc = inet_addrobj_add(addr);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv4 address.");
 		inet_addrobj_delete(addr);
 		/* XXX Roll back */
 		return rc;
 	}
-
+	
+	rc = inet_addrobj_add(addr6);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv6 address.");
+		inet_addrobj_delete(addr6);
+		/* XXX Roll back */
+		return rc;
+	}
+	
 	inet_naddr_addr(&addr->naddr, &iaddr);
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IPv4 address on internet link.");
 		inet_addrobj_remove(addr);
 		inet_addrobj_delete(addr);
 		/* XXX Roll back */
 		return rc;
 	}
-
+	
+	inet_naddr_addr(&addr6->naddr, &iaddr);
+	rc = iplink_addr_add(ilink->iplink, &iaddr);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IPv6 address on internet link.");
+		inet_addrobj_remove(addr6);
+		inet_addrobj_delete(addr6);
+		/* XXX Roll back */
+		return rc;
+	}
+	
 	return EOK;
 	
 error:

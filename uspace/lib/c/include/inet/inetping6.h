@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libc
  * @{
  */
-/** @file UDP standard definitions
- *
- * Based on IETF RFC 768
+/** @file
  */
 
-#ifndef STD_H
-#define STD_H
+#ifndef LIBC_INET_INETPING6_H_
+#define LIBC_INET_INETPING6_H_
 
+#include <inet/inet.h>
 #include <sys/types.h>
 
-#define IP_PROTO_UDP  17
-
-/** UDP Header */
 typedef struct {
-	/** Source port */
-	uint16_t src_port;
-	/** Destination port */
-	uint16_t dest_port;
-	/** Length (header + data) */
-	uint16_t length;
-	/* Checksum */
-	uint16_t checksum;
-} udp_header_t;
+	addr128_t src;
+	addr128_t dest;
+	uint16_t seq_no;
+	void *data;
+	size_t size;
+} inetping6_sdu_t;
 
-/** UDP IPv4 pseudo header */
-typedef struct {
-	/** Source address */
-	uint32_t src_addr;
-	/** Destination address */
-	uint32_t dest_addr;
-	/** Zero */
-	uint8_t zero;
-	/** Protocol */
-	uint8_t protocol;
-	/** UDP length */
-	uint16_t udp_length;
-} udp_phdr_t;
+typedef struct inetping6_ev_ops {
+	int (*recv)(inetping6_sdu_t *);
+} inetping6_ev_ops_t;
 
-/** UDP IPv6 pseudo header */
-typedef struct {
-	/** Source address */
-	addr128_t src_addr;
-	/** Destination address */
-	addr128_t dest_addr;
-	/** UDP length */
-	uint32_t udp_length;
-	/** Reserved */
-	uint8_t zero[3];
-	/** Next header */
-	uint8_t next;
-} udp_phdr6_t;
+extern int inetping6_init(inetping6_ev_ops_t *);
+extern int inetping6_send(inetping6_sdu_t *);
+extern int inetping6_get_srcaddr(addr128_t, addr128_t);
 
 #endif
 

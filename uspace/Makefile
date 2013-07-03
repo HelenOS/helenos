@@ -71,6 +71,7 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
+	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
 	app/date \

@@ -244,6 +244,13 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
 		rc = iplink_ev_recv(&nic->iplink, &sdu, AF_INET);
 		break;
+	case ETYPE_IPV6:
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - construct SDU IPv6");
+		sdu.data = frame.data;
+		sdu.size = frame.size;
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
+		rc = iplink_ev_recv(&nic->iplink, &sdu, AF_INET6);
+		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
 		    frame.etype_len);

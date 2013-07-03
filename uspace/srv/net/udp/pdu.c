@@ -84,7 +84,8 @@ static uint16_t udp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 	return ~sum;
 }
 
-static uint16_t udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr)
+static uint16_t udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr,
+    udp_phdr6_t *phdr6)
 {
 	addr32_t src_v4;
 	addr128_t src_v6;
@@ -105,8 +106,12 @@ static uint16_t udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr)
 		phdr->udp_length = host2uint16_t_be(pdu->data_size);
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		assert(false);
+		host2addr128_t_be(src_v6, phdr6->src_addr);
+		host2addr128_t_be(dest_v6, phdr6->dest_addr);
+		phdr6->udp_length = host2uint32_t_be(pdu->data_size);
+		memset(phdr6->zero, 0, 3);
+		phdr6->next = IP_PROTO_UDP;
+		break;
 	default:
 		assert(false);
 	}
@@ -129,16 +134,18 @@ static uint16_t udp_pdu_checksum_calc(udp_pdu_t *pdu)
 {
 	uint16_t cs_phdr;
 	udp_phdr_t phdr;
+	udp_phdr6_t phdr6;
 	
-	uint16_t af = udp_phdr_setup(pdu, &phdr);
+	uint16_t af = udp_phdr_setup(pdu, &phdr, &phdr6);
 	switch (af) {
 	case AF_INET:
 		cs_phdr = udp_checksum_calc(UDP_CHECKSUM_INIT, (void *) &phdr,
 		    sizeof(udp_phdr_t));
 		break;
 	case AF_INET6:
-		// FIXME TODO
-		assert(false);
+		cs_phdr = udp_checksum_calc(UDP_CHECKSUM_INIT, (void *) &phdr6,
+		    sizeof(udp_phdr6_t));
+		break;
 	default:
 		assert(false);
 	}
