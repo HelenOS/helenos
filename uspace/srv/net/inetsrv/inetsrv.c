@@ -206,62 +206,124 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	return EOK;
 }
 
-static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
-    ipc_call_t *call)
+static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t iid,
+    ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
 	
-	addr32_t remote_v4 = IPC_GET_ARG1(*call);
-	uint8_t tos = IPC_GET_ARG2(*call);
+	uint8_t tos = IPC_GET_ARG1(*icall);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
 	
 	inet_addr_t remote;
-	inet_addr_set(remote_v4, &remote);
-	
-	inet_addr_t local;
-	int rc = inet_get_srcaddr(&remote, tos, &local);
+	int rc = async_data_write_finalize(callid, &remote, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
+	
+	inet_addr_t local;
+	rc = inet_get_srcaddr(&remote, tos, &local);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
 	}
 	
-	addr32_t local_v4;
-	uint16_t family = inet_addr_get(&local, &local_v4, NULL);
-	if (family != AF_INET) {
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
 		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
-	async_answer_1(callid, rc, (sysarg_t) local_v4);
+	rc = async_data_read_finalize(callid, &local, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	async_answer_0(iid, rc);
 }
 
-static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
-    ipc_call_t *call)
+static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
+    ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
 	
-	addr32_t src_v4 = IPC_GET_ARG1(*call);
-	addr32_t dest_v4 = IPC_GET_ARG2(*call);
-	
 	inet_dgram_t dgram;
 	
-	inet_addr_set(src_v4, &dgram.src);
-	inet_addr_set(dest_v4, &dgram.dest);
-	dgram.tos = IPC_GET_ARG3(*call);
+	dgram.tos = IPC_GET_ARG1(*icall);
 	
-	uint8_t ttl = IPC_GET_ARG4(*call);
-	int df = IPC_GET_ARG5(*call);
+	uint8_t ttl = IPC_GET_ARG2(*icall);
+	int df = IPC_GET_ARG3(*icall);
 	
-	int rc = async_data_write_accept(&dgram.data, false, 0, 0, 0,
-	    &dgram.size);
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	int rc = async_data_write_finalize(callid, &dgram.src, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
+	
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_write_finalize(callid, &dgram.dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
+	
+	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0,
+	    &dgram.size);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
 	}
 	
 	rc = inet_send(client, &dgram, client->protocol, ttl, df);
 	
 	free(dgram.data);
-	async_answer_0(callid, rc);
+	async_answer_0(iid, rc);
 }
 
 static void inet_set_proto_srv(inet_client_t *client, ipc_callid_t callid,

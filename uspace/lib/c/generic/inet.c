@@ -107,38 +107,29 @@ int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 
 int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 {
-	addr32_t src_v4;
-	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&dgram->src, &src_v4, &src_v6);
+	async_exch_t *exch = async_exchange_begin(inet_sess);
 	
-	addr32_t dest_v4;
-	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&dgram->dest, &dest_v4, &dest_v6);
-	
-	if (src_af != dest_af)
-		return EINVAL;
-	
-	async_exch_t *exch;
 	ipc_call_t answer;
-	aid_t req;
-	int rc;
+	aid_t req = async_send_3(exch, INET_SEND, dgram->tos, ttl, df,
+	    &answer);
 	
-	switch (src_af) {
-	case AF_INET:
-		exch = async_exchange_begin(inet_sess);
-		
-		req = async_send_5(exch, INET_SEND, (sysarg_t) src_v4,
-		    (sysarg_t) dest_v4, dgram->tos, ttl, df, &answer);
-		rc = async_data_write_start(exch, dgram->data, dgram->size);
-		
+	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
+	if (rc != EOK) {
 		async_exchange_end(exch);
-		break;
-	case AF_INET6:
-		// FIXME TODO
-		return ENOTSUP;
-	default:
-		return EINVAL;
+		async_forget(req);
+		return rc;
 	}
+	
+	rc = async_data_write_start(exch, &dgram->dest, sizeof(inet_addr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, dgram->data, dgram->size);
+	
+	async_exchange_end(exch);
 	
 	if (rc != EOK) {
 		async_forget(req);
@@ -153,34 +144,31 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 
 int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
-	addr32_t remote_v4;
-	addr128_t remote_v6;
-	uint16_t remote_af = inet_addr_get(remote, &remote_v4, &remote_v6);
+	async_exch_t *exch = async_exchange_begin(inet_sess);
 	
-	async_exch_t *exch;
-	int rc;
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, INET_GET_SRCADDR, tos, &answer);
 	
-	switch (remote_af) {
-	case AF_INET:
-		exch = async_exchange_begin(inet_sess);
-		
-		sysarg_t local_v4;
-		rc = async_req_2_1(exch, INET_GET_SRCADDR, (sysarg_t) remote_v4,
-		    tos, &local_v4);
-		
+	int rc = async_data_write_start(exch, remote, sizeof(inet_addr_t));
+	if (rc != EOK) {
 		async_exchange_end(exch);
-		
-		if (rc != EOK)
-			return rc;
-		
-		inet_addr_set(local_v4, local);
-		return EOK;
-	case AF_INET6:
-		// FIXME TODO
-		return ENOTSUP;
-	default:
-		return EINVAL;
+		async_forget(req);
+		return rc;
 	}
+	
+	rc = async_data_read_start(exch, local, sizeof(inet_addr_t));
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	return (int) retval;
 }
 
 static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)

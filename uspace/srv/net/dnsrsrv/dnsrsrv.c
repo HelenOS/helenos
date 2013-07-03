@@ -196,8 +196,10 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 	// FIXME locking
 	
 	int rc = async_data_write_finalize(callid, &dns_server_addr, size);
-	if (rc != EOK)
+	if (rc != EOK) {
 		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
 	
 	async_answer_0(iid, (sysarg_t) rc);
 }

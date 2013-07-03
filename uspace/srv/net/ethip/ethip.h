@@ -96,17 +96,17 @@ typedef struct {
 	/** Sender hardware address */
 	addr48_t sender_hw_addr;
 	/** Sender protocol address */
-	uint32_t sender_proto_addr;
+	addr32_t sender_proto_addr;
 	/** Target hardware address */
 	addr48_t target_hw_addr;
 	/** Target protocol address */
-	uint32_t target_proto_addr;
+	addr32_t target_proto_addr;
 } arp_eth_packet_t;
 
 /** Address translation table element */
 typedef struct {
 	link_t atrans_list;
-	uint32_t ip_addr;
+	addr32_t ip_addr;
 	addr48_t mac_addr;
 } ethip_atrans_t;
 

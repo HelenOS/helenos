@@ -41,9 +41,9 @@
 #include <inet/addr.h>
 #include "ethip.h"
 
-extern int atrans_add(uint32_t, addr48_t);
-extern int atrans_remove(uint32_t);
-extern int atrans_lookup(uint32_t, addr48_t);
+extern int atrans_add(addr32_t, addr48_t);
+extern int atrans_remove(addr32_t);
+extern int atrans_lookup(addr32_t, addr48_t);
 extern int atrans_wait_timeout(suseconds_t);
 
 #endif

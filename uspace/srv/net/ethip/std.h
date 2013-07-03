@@ -69,11 +69,11 @@ typedef struct {
 	/** Sender hardware address */
 	addr48_t sender_hw_addr;
 	/** Sender protocol address */
-	uint32_t sender_proto_addr;
+	addr32_t sender_proto_addr;
 	/** Target hardware address */
 	addr48_t target_hw_addr;
 	/** Target protocol address */
-	uint32_t target_proto_addr;
+	addr32_t target_proto_addr;
 } __attribute__((packed)) arp_eth_packet_fmt_t;
 
 enum arp_opcode_fmt {
