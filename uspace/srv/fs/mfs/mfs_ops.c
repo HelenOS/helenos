@@ -63,6 +63,7 @@ static int mfs_instance_get(service_id_t service_id,
     struct mfs_instance **instance);
 static int mfs_check_sanity(struct mfs_sb_info *sbi);
 static bool is_power_of_two(uint32_t n);
+static unsigned int mfs_size_block(fs_node_t *fsnode);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -83,7 +84,8 @@ libfs_ops_t mfs_libfs_ops = {
 	.unlink = mfs_unlink,
 	.destroy = mfs_destroy_node,
 	.has_children = mfs_has_children,
-	.lnkcnt_get = mfs_lnkcnt_get
+	.lnkcnt_get = mfs_lnkcnt_get,
+	.size_block = mfs_size_block
 };
 
 /* Hash table interface for open nodes hash table */
@@ -1133,6 +1135,15 @@ is_power_of_two(uint32_t n)
 		return false;
 
 	return (n & (n - 1)) == 0;
+}
+
+static unsigned int
+mfs_size_block(fs_node_t *fsnode)
+{
+	if ( NULL == fsnode )
+		return 0;
+	/* Get block size from superblock */
+	return 512;
 }
 
 vfs_out_ops_t mfs_ops = {

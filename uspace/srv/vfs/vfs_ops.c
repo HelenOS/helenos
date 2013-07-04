@@ -1417,6 +1417,15 @@ exit:
 	async_answer_0(rid, rc);
 }
 
+void vfs_statfs(ipc_callid_t rid, ipc_call_t *request)
+{
+	long long reply;
+
+	/* Get information about fs */
+	reply = 512;
+	async_answer_1(rid, EOK, reply);
+}
+
 /**
  * @}
  */

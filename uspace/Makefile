@@ -79,6 +79,7 @@ DIRS = \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
+	app/df \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \

@@ -81,6 +81,7 @@ typedef enum {
 	VFS_IN_DUP,
 	VFS_IN_WAIT_HANDLE,
 	VFS_IN_MTAB_GET,
+	VFS_IN_STATFS
 } vfs_in_request_t;
 
 typedef enum {

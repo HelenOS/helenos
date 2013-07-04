@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2013 Manuele Conti
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup df
+ * @brief Df utility.
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef LIBC_VFS_H_
-#define LIBC_VFS_H_
-
-#include <sys/types.h>
-#include <ipc/vfs.h>
-#include <ipc/loc.h>
-#include <adt/list.h>
 #include <stdio.h>
-#include <async.h>
-#include "vfs_mtab.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <stats.h>
+#include <errno.h>
+#include <adt/list.h>
+#include <vfs/vfs.h>
 
+#define NAME  "df"
 
-enum vfs_change_state_type {
-	VFS_PASS_HANDLE
-};
+#define HEADER_TABLE "Filesystem    512-blocks      Used      Available  Used%  Mounted on"
 
-struct statfs { 
-	short   f_type;     /* type of file system  */
-	long    f_bsize;    /* fundamental file system block size */
-	long    f_blocks;   /* total data blocks in file system */
-	long    f_bfree;    /* free blocks in fs */
-};
+#define PERCENTAGE(x, tot) ((long) (100L * (x) / (tot)))  
 
+int main(int argc, char *argv[])
+{
+	struct statfs st;
 
-extern char *absolutize(const char *, size_t *);
-
-extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int, unsigned int);
-extern int unmount(const char *);
-
-extern int fhandle(FILE *, int *);
-
-extern int fd_wait(void);
-extern int get_mtab_list(list_t *mtab_list);
-
-extern async_exch_t *vfs_exchange_begin(void);
-extern void vfs_exchange_end(async_exch_t *);
-extern int statfs(const char *path, struct statfs *buf);
-#endif
+	LIST_INITIALIZE(mtab_list);
+	get_mtab_list(&mtab_list);
+	printf("%s\n", HEADER_TABLE);
+	list_foreach(mtab_list, cur) {
+		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
+		    link);
+		if (statfs(mtab_ent->mp, &st) < 0)
+			return 1;
+	
+		printf("%13s %15lld %9lld %9lld %3ld%% %s\n", 
+			mtab_ent->fs_name,
+			(long long) st.f_blocks * st.f_bsize,
+			(long long) st.f_bfree * st.f_bsize,
+			(long long) (st.f_blocks - st.f_bfree) * st.f_bsize,
+			PERCENTAGE(st.f_blocks - st.f_bfree, st.f_blocks),
+			mtab_ent->mp);
+	}
+	putchar('\n');	
+	return 0;
+}
 
 /** @}
  */

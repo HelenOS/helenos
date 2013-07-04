@@ -891,5 +891,25 @@ exit:
 	return rc;
 }
 
+int statfs(const char *path, struct statfs *buf)
+{
+	sysarg_t rc;
+	//aid_t req;
+
+	if ( NULL == buf )
+		return 1;
+
+	sysarg_t value;
+	async_exch_t *exch = vfs_exchange_begin();	
+	rc = async_req_0_1(exch, VFS_IN_STATFS, &value);
+	if (rc != EOK)
+		goto exit;
+
+	buf->f_bsize = value;
+exit:
+	vfs_exchange_end(exch);
+	return rc;
+}
+
 /** @}
  */
