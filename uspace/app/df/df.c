@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stats.h>
+#include <sys/statfs.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <vfs/vfs.h>
@@ -58,9 +58,9 @@ int main(int argc, char *argv[])
 	list_foreach(mtab_list, cur) {
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
-		if (statfs(mtab_ent->mp, &st) < 0)
+		if (statfs(/*mtab_ent->mp*/ "/data", &st) < 0)
 			return 1;
-	
+			
 		printf("%13s %15lld %9lld %9lld %3ld%% %s\n", 
 			mtab_ent->fs_name,
 			(long long) st.f_blocks * st.f_bsize,

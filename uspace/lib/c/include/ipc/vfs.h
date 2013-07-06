@@ -98,7 +98,8 @@ typedef enum {
 	VFS_OUT_STAT,
 	VFS_OUT_LOOKUP,
 	VFS_OUT_DESTROY,
-	VFS_OUT_LAST
+	VFS_OUT_LAST,
+	VFS_OUT_STATFS
 } vfs_out_request_t;
 
 /*

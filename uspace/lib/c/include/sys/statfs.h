@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2013 Manuele Conti
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,36 +32,19 @@
 /** @file
  */
 
-#ifndef LIBC_VFS_H_
-#define LIBC_VFS_H_
+#ifndef LIBC_SYS_STATFS_H_
+#define LIBC_SYS_STATFS_H_
 
 #include <sys/types.h>
-#include <ipc/vfs.h>
-#include <ipc/loc.h>
-#include <adt/list.h>
-#include <stdio.h>
-#include <async.h>
-#include "vfs_mtab.h"
 
-
-enum vfs_change_state_type {
-	VFS_PASS_HANDLE
+struct statfs { 
+	short   f_type;     /* type of file system  */
+	long    f_bsize;    /* fundamental file system block size */
+	long    f_blocks;   /* total data blocks in file system */
+	long    f_bfree;    /* free blocks in fs */
 };
 
-
-extern char *absolutize(const char *, size_t *);
-
-extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int, unsigned int);
-extern int unmount(const char *);
-
-extern int fhandle(FILE *, int *);
-
-extern int fd_wait(void);
-extern int get_mtab_list(list_t *mtab_list);
-
-extern async_exch_t *vfs_exchange_begin(void);
-extern void vfs_exchange_end(async_exch_t *);
+extern int statfs(const char *, struct statfs *);
 #endif
 
 /** @}
