@@ -36,6 +36,7 @@
 #define LIBC_INET_DNSRES_H_
 
 #include <inet/inet.h>
+#include <inet/addr.h>
 
 enum {
 	DNSR_NAME_MAX_SIZE = 255

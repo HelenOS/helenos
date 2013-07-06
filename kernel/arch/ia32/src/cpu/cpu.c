@@ -114,10 +114,10 @@ void cpu_arch_init(void)
 			"or %[mask], %[help]\n"
 			"mov %[help], %%cr4\n"
 			: [help] "+r" (help)
-			: [mask] "i" (CR4_OSFXSR_MASK | (1 << 10))
+			: [mask] "i" (CR4_OSFXSR_MASK | CR4_OSXMMEXCPT_MASK)
 		);
 	}
-
+	
 #ifndef PROCESSOR_i486
 	if (CPU->arch.fi.bits.sep) {
 		/* Setup fast SYSENTER/SYSEXIT syscalls */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup generic
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
+ * Macros related to used compiler (such as GCC-specific attributes).
  */
 
-#ifndef INET_UTIL_H_
-#define INET_UTIL_H_
+#ifndef KERN_CC_H_
+#define KERN_CC_H_
 
-#include <sys/types.h>
+#ifndef __clang__
+#define ATTRIBUTE_OPTIMIZE(opt) \
+	__attribute__ ((optimize(opt)))
+#else
+#define ATTRIBUTE_OPTIMIZE(opt)
+#endif
 
-uint32_t inet_netmask(int bits);
 
 #endif
 

@@ -147,7 +147,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			return;
 		}
 
-		int retval;
+		int retval = EOK;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case CHAR_NOTIF_BYTE:

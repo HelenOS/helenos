@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
+ * Macros related to used compiler (such as GCC-specific attributes).
  */
 
-#include <assert.h>
-#include <bitops.h>
-#include <sys/types.h>
-#include "inet_util.h"
+#ifndef LIBC_CC_H_
+#define LIBC_CC_H_
 
-uint32_t inet_netmask(int bits)
-{
-	assert(bits >= 0);
-	assert(bits < 32);
+#ifndef __clang__
+#define ATTRIBUTE_OPTIMIZE(opt) \
+	__attribute__ ((optimize(opt)))
+#else
+#define ATTRIBUTE_OPTIMIZE(opt)
+#endif
 
-	if (bits == 0)
-		return 0;
-	else
-		return BIT_RANGE(uint32_t, 31, 31 - (bits - 1));
-}
+
+#endif
 
 /** @}
  */

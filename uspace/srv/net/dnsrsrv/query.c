@@ -127,10 +127,9 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 			}
 
 			info->cname = str_dup(rr->name);
-			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->name = '%s' "
-			    "info->addr = %x", info->cname, info->addr.ipv4);
-
+			inet_addr_set(dns_uint32_t_decode(rr->rdata, rr->rdata_size),
+			    &info->addr);
+			
 			dns_message_destroy(msg);
 			dns_message_destroy(amsg);
 			*rinfo = info;

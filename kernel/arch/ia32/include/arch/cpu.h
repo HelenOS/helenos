@@ -40,7 +40,8 @@
 #define EFLAGS_NT       (1 << 14)
 #define EFLAGS_RF       (1 << 16)
 
-#define CR4_OSFXSR_MASK (1<<9)
+#define CR4_OSFXSR_MASK      (1 << 9)
+#define CR4_OSXMMEXCPT_MASK  (1 << 10)
 
 /* Support for SYSENTER and SYSEXIT */
 #define IA32_MSR_SYSENTER_CS   0x174U
@@ -58,8 +59,8 @@ typedef struct {
 	unsigned int family;
 	unsigned int model;
 	unsigned int stepping;
-	cpuid_feature_info fi;
-
+	cpuid_feature_info_t fi;
+	
 	tss_t *tss;
 	
 	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */

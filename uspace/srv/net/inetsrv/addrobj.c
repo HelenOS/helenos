@@ -41,11 +41,9 @@
 #include <ipc/loc.h>
 #include <stdlib.h>
 #include <str.h>
-
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
-#include "inet_util.h"
 
 static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *, inet_link_t *);
 
@@ -105,34 +103,30 @@ void inet_addrobj_remove(inet_addrobj_t *addr)
 
 /** Find address object matching address @a addr.
  *
- * @param addr	Address
- * @oaram find	iaf_net to find network (using mask),
- *		iaf_addr to find local address (exact match)
+ * @param addr Address
+ * @oaram find iaf_net to find network (using mask),
+ *             iaf_addr to find local address (exact match)
+ *
  */
 inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
-	uint32_t mask;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find(%x)", (unsigned)addr->ipv4);
-
 	fibril_mutex_lock(&addr_list_lock);
-
+	
 	list_foreach(addr_list, link) {
 		inet_addrobj_t *naddr = list_get_instance(link,
 		    inet_addrobj_t, addr_list);
-
-		mask = inet_netmask(naddr->naddr.bits);
-		if ((naddr->naddr.ipv4 & mask) == (addr->ipv4 & mask)) {
+		
+		if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
 			fibril_mutex_unlock(&addr_list_lock);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
 			    naddr);
 			return naddr;
 		}
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: Not found");
 	fibril_mutex_unlock(&addr_list_lock);
-
+	
 	return NULL;
 }
 
@@ -217,12 +211,9 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	inet_addr_t lsrc_addr;
-	inet_addr_t *ldest_addr;
-
-	lsrc_addr.ipv4 = addr->naddr.ipv4;
-	ldest_addr = ldest;
-
-	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest_addr, dgram,
+	inet_naddr_addr(&addr->naddr, &lsrc_addr);
+	
+	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest, dgram,
 	    proto, ttl, df);
 }
 

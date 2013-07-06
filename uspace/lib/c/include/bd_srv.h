@@ -56,7 +56,7 @@ typedef struct {
 	void *carg;
 } bd_srv_t;
 
-typedef struct bd_ops {
+struct bd_ops {
 	int (*open)(bd_srvs_t *, bd_srv_t *);
 	int (*close)(bd_srv_t *);
 	int (*read_blocks)(bd_srv_t *, aoff64_t, size_t, void *, size_t);
@@ -64,7 +64,7 @@ typedef struct bd_ops {
 	int (*write_blocks)(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
 	int (*get_block_size)(bd_srv_t *, size_t *);
 	int (*get_num_blocks)(bd_srv_t *, aoff64_t *);
-} bd_ops_t;
+};
 
 extern void bd_srvs_init(bd_srvs_t *);
 

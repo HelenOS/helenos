@@ -42,14 +42,14 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
-
+#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
 #include "pdu.h"
 
-static int inet_link_open(service_id_t sid);
-static int inet_iplink_recv(iplink_t *ilink, iplink_sdu_t *sdu);
+static int inet_link_open(service_id_t);
+static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
 	.recv = inet_iplink_recv
@@ -58,23 +58,35 @@ static iplink_ev_ops_t inet_iplink_ev_ops = {
 static LIST_INITIALIZE(inet_link_list);
 static FIBRIL_MUTEX_INITIALIZE(inet_discovery_lock);
 
-static int inet_iplink_recv(iplink_t *iplink, iplink_sdu_t *sdu)
+static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, uint16_t af)
 {
-	inet_packet_t packet;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv()");
-	rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
+	
+	int rc;
+	inet_packet_t packet;
+	
+	switch (af) {
+	case AF_INET:
+		rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
+		break;
+	case AF_INET6:
+		rc = inet_pdu_decode6(sdu->data, sdu->size, &packet);
+		break;
+	default:
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "invalid address family");
+		return EINVAL;
+	}
+	
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "failed decoding PDU");
 		return rc;
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %d", rc);
 	free(packet.data);
-
+	
 	return rc;
 }
 
@@ -152,7 +164,7 @@ static void inet_link_delete(inet_link_t *ilink)
 static int inet_link_open(service_id_t sid)
 {
 	inet_link_t *ilink;
-	iplink_addr_t iaddr;
+	inet_addr_t iaddr;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_link_open()");
@@ -193,42 +205,75 @@ static int inet_link_open(service_id_t sid)
 	list_append(&ilink->link_list, &inet_link_list);
 
 	inet_addrobj_t *addr;
+	inet_addrobj_t *addr6;
 
 	static int first = 1;
-	/* XXX For testing: set static IP address 10.0.2.15/24 */
+	
 	addr = inet_addrobj_new();
+	addr6 = inet_addrobj_new();
+	
 	if (first) {
-		addr->naddr.ipv4 = (127 << 24) + (0 << 16) + (0 << 8) + 1;
+		inet_naddr(&addr->naddr, 127, 0, 0, 1, 24);
+		inet_naddr6(&addr6->naddr, 0, 0, 0, 0, 0, 0, 0, 1, 128);
 		first = 0;
 	} else {
-		addr->naddr.ipv4 = (10 << 24) + (0 << 16) + (2 << 8) + 15;
+		/*
+		 * FIXME
+		 * Setting static IP addresses for testing purposes
+		 * 10.0.2.15/24
+		 * fd19:1680::4/120
+		 */
+		inet_naddr(&addr->naddr, 10, 0, 2, 15, 24);
+		inet_naddr6(&addr6->naddr, 0xfd19, 0x1680, 0, 0, 0, 0, 0, 4, 120);
 	}
-	addr->naddr.bits = 24;
+	
 	addr->ilink = ilink;
+	addr6->ilink = ilink;
 	addr->name = str_dup("v4a");
+	addr6->name = str_dup("v6a");
+	
 	rc = inet_addrobj_add(addr);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv4 address.");
 		inet_addrobj_delete(addr);
 		/* XXX Roll back */
 		return rc;
 	}
-
-	iaddr.ipv4 = addr->naddr.ipv4;
+	
+	rc = inet_addrobj_add(addr6);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv6 address.");
+		inet_addrobj_delete(addr6);
+		/* XXX Roll back */
+		return rc;
+	}
+	
+	inet_naddr_addr(&addr->naddr, &iaddr);
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IPv4 address on internet link.");
 		inet_addrobj_remove(addr);
 		inet_addrobj_delete(addr);
 		/* XXX Roll back */
 		return rc;
 	}
-
+	
+	inet_naddr_addr(&addr6->naddr, &iaddr);
+	rc = iplink_addr_add(ilink->iplink, &iaddr);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IPv6 address on internet link.");
+		inet_addrobj_remove(addr6);
+		inet_addrobj_delete(addr6);
+		/* XXX Roll back */
+		return rc;
+	}
+	
 	return EOK;
-
+	
 error:
 	if (ilink->iplink != NULL)
 		iplink_close(ilink->iplink);
+	
 	inet_link_delete(ilink);
 	return rc;
 }
@@ -256,15 +301,13 @@ int inet_link_discovery_start(void)
 int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
     inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
-	iplink_sdu_t sdu;
-	inet_packet_t packet;
-	int rc;
-	size_t offs, roffs;
-
 	/*
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode().
 	 */
+	
+	inet_packet_t packet;
+	
 	packet.src = dgram->src;
 	packet.dest = dgram->dest;
 	packet.tos = dgram->tos;
@@ -273,25 +316,29 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	packet.df = df;
 	packet.data = dgram->data;
 	packet.size = dgram->size;
-
-	sdu.lsrc.ipv4 = lsrc->ipv4;
-	sdu.ldest.ipv4 = ldest->ipv4;
-
-	offs = 0;
+	
+	iplink_sdu_t sdu;
+	size_t offs = 0;
+	int rc;
+	
+	sdu.src = *lsrc;
+	sdu.dest = *ldest;
+	
 	do {
 		/* Encode one fragment */
+		size_t roffs;
 		rc = inet_pdu_encode(&packet, offs, ilink->def_mtu, &sdu.data,
 		    &sdu.size, &roffs);
 		if (rc != EOK)
 			return rc;
-
+		
 		/* Send the PDU */
 		rc = iplink_send(ilink->iplink, &sdu);
 		free(sdu.data);
-
+		
 		offs = roffs;
 	} while (offs < packet.size);
-
+	
 	return rc;
 }
 

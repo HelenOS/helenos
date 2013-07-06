@@ -32,11 +32,12 @@ BINARY = inetsrv
 SOURCES = \
 	addrobj.c \
 	icmp.c \
+	icmpv6.c \
 	inetsrv.c \
 	inet_link.c \
-	inet_util.c \
 	inetcfg.c \
 	inetping.c \
+	inetping6.c \
 	pdu.c \
 	reass.c \
 	sroute.c

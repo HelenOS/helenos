@@ -36,11 +36,12 @@
 #define KERN_LIB_MEMFNC_H_
 
 #include <typedefs.h>
+#include <cc.h>
 
 extern void *memset(void *, int, size_t)
-    __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
 extern void *memcpy(void *, const void *, size_t)
-    __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
 
 #endif
 

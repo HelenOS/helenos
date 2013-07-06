@@ -89,7 +89,7 @@ int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 	if (!dev_sess)
 		return EINVAL;
 	
-	if ((buf == NULL))
+	if (buf == NULL)
 		return ENOMEM;
 	
 	if (size == 0)
@@ -183,7 +183,7 @@ int usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 	if (!dev_sess)
 		return EINVAL;
 	
-	if ((buf == NULL))
+	if (buf == NULL)
 		return ENOMEM;
 	
 	if (size == 0)

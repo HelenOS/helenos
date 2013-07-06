@@ -50,7 +50,7 @@ typedef struct widget widget_t;
  * Base class for all widgets. This structure should be first data member of
  * any derived widget structure.
  */
-typedef struct widget {
+struct widget {
 	link_t link;
 	widget_t *parent; /**< Parent widget of this widget. NULL for root widget. */
 	list_t children; /**< Children widgets of this widget. */
@@ -115,7 +115,7 @@ typedef struct widget {
 	 * keyboard events, it should take ownership of keyboard focus. Widget can
 	 * also acquire or release mouse grab. */
 	void (*handle_position_event)(widget_t *, pos_event_t);
-} widget_t;
+};
 
 /*
  * Note on derived widget constructor/destructor:

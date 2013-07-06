@@ -127,7 +127,6 @@ static int tcp_ncsim_fibril(void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril()");
 
-
 	while (true) {
 		fibril_mutex_lock(&sim_queue_lock);
 

@@ -42,28 +42,18 @@
 #include <sys/types.h>
 
 /** INET6 string address maximum length. */
-#define INET6_ADDRSTRLEN	(8 * 4 + 7 + 1)
-
-/** Type definition of the INET6 address.
- * @see in6_addr
- */
-typedef struct in6_addr	in6_addr_t;
-
-/** Type definition of the INET6 socket address.
- * @see sockaddr_in6
- */
-typedef struct sockaddr_in6	sockaddr_in6_t;
+#define INET6_ADDRSTRLEN  (8 * 4 + 7 + 1)
 
 /** INET6 address. */
-struct in6_addr {
+typedef struct in6_addr {
 	/** 16 byte IPv6 address. */
-	unsigned char s6_addr[16];
-};
+	uint8_t s6_addr[16];
+} in6_addr_t;
 
 /** INET6 socket address.
  * @see sockaddr
  */
-struct sockaddr_in6 {
+typedef struct sockaddr_in6 {
 	/** Address family. Should be AF_INET6. */
 	uint16_t sin6_family;
 	/** Port number. */
@@ -74,7 +64,9 @@ struct sockaddr_in6 {
 	struct in6_addr sin6_addr;
 	/** Scope identifier. */
 	uint32_t sin6_scope_id;
-};
+} sockaddr_in6_t;
+
+extern const in6_addr_t in6addr_any;
 
 #endif
 
