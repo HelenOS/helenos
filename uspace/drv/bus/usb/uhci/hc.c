@@ -89,22 +89,15 @@ static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 
+enum {
+	/** Number of PIO ranges used in IRQ code */
+	hc_irq_pio_range_count =
+	    sizeof(uhci_irq_pio_ranges) / sizeof(irq_pio_range_t),
 
-/** Get number of PIO ranges used in IRQ code.
- * @return Number of ranges.
- */
-size_t hc_irq_pio_range_count(void)
-{
-	return sizeof(uhci_irq_pio_ranges) / sizeof(irq_pio_range_t);
-}
-
-/** Get number of commands used in IRQ code.
- * @return Number of commands.
- */
-size_t hc_irq_cmd_count(void)
-{
-	return sizeof(uhci_irq_commands) / sizeof(irq_cmd_t);
-}
+	/* Number of commands used in IRQ code */
+	hc_irq_cmd_count =
+	    sizeof(uhci_irq_commands) / sizeof(irq_cmd_t)
+};
 
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
@@ -132,6 +125,48 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 	uhci_regs_t *registers = (uhci_regs_t *) regs;
 	cmds[0].addr = &registers->usbsts;
 	cmds[3].addr = &registers->usbsts;
+
+	return EOK;
+}
+
+/** Register interrupt handler.
+ *
+ * @param[in] device Host controller DDF device
+ * @param[in] reg_base Register range base
+ * @param[in] reg_size Register range size
+ * @param[in] irq Interrupt number
+ * @paran[in] handler Interrupt handler
+ *
+ * @return EOK on success or negative error code
+ */
+int hc_register_irq_handler(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size,
+    int irq, interrupt_handler_t handler)
+{
+	int rc;
+	irq_pio_range_t irq_ranges[hc_irq_pio_range_count];
+	irq_cmd_t irq_cmds[hc_irq_cmd_count];
+	rc = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
+	if (rc != EOK) {
+		usb_log_error("Failed to generate IRQ commands: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	irq_code_t irq_code = {
+		.rangecount = hc_irq_pio_range_count,
+		.ranges = irq_ranges,
+		.cmdcount = hc_irq_cmd_count,
+		.cmds = irq_cmds
+	};
+
+        /* Register handler to avoid interrupt lockup */
+        rc = register_interrupt_handler(device, irq, handler, &irq_code);
+        if (rc != EOK) {
+    		usb_log_error("Failed to register interrupt handler: %s.\n",
+    		    str_error(rc));
+    		return rc;
+    	}
 
 	return EOK;
 }
@@ -208,32 +243,30 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 {
 	assert(reg_size >= sizeof(uhci_regs_t));
-	int ret;
-
-#define CHECK_RET_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		return ret; \
-	} else (void) 0
+	int rc;
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
 	uhci_regs_t *io;
-	ret = pio_enable(regs, reg_size, (void **)&io);
-	CHECK_RET_RETURN(ret, "Failed to gain access to registers at %p: %s.\n",
-	    io, str_error(ret));
+	rc = pio_enable(regs, reg_size, (void **)&io);
+	if (rc != EOK) {
+		usb_log_error("Failed to gain access to registers at %p: %s.\n",
+		    io, str_error(rc));
+		return rc;
+	}
+
 	instance->registers = io;
 	usb_log_debug(
 	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
 
-	ret = hc_init_mem_structures(instance);
-	CHECK_RET_RETURN(ret,
-	    "Failed to initialize UHCI memory structures: %s.\n",
-	    str_error(ret));
-
-#undef CHECK_RET_RETURN
+	rc = hc_init_mem_structures(instance);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize UHCI memory structures: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	hcd_init(&instance->generic, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
