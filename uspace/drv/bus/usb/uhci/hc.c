@@ -429,7 +429,6 @@ do { \
 	  &instance->transfers_bulk_full;
 
 	return EOK;
-#undef CHECK_RET_CLEAR_RETURN
 }
 
 /** Schedule batch for execution.
