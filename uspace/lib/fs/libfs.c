@@ -74,6 +74,7 @@ static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
 static void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 static void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
+static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 
 static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 {
@@ -218,38 +219,11 @@ static void vfs_out_sync(ipc_callid_t rid, ipc_call_t *req)
 
 	async_answer_0(rid, rc);
 }
-#include<stdio.h>
+
 static void vfs_out_statfs(ipc_callid_t rid, ipc_call_t *req)
-{	
-	printf("TRACE: vfs_out_statfs\n");
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	
-	fs_node_t *fn;
-	int rc = libfs_ops->node_get(&fn, service_id, index);
-	on_error(rc, answer_and_return(rid, rc));
-	
-	ipc_callid_t callid;
-	size_t size;
-	if ((!async_data_read_receive(&callid, &size)) ||
-	    (size != sizeof(struct stat))) {
-		libfs_ops->node_put(fn);
-		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	struct statfs statfs;
-	memset(&statfs, 0, sizeof(struct statfs));
-	
-	statfs.f_bsize = libfs_ops->size_block(service_id);
-
-	libfs_ops->node_put(fn);
-	
-	async_data_read_finalize(callid, &statfs, sizeof(struct statfs));
-	async_answer_0(rid, EOK);
+{
+	libfs_statfs(libfs_ops, reg.fs_handle, rid, req);
 }
-
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
@@ -863,6 +837,39 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	async_answer_0(rid, EOK);
 }
+
+void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
+    ipc_call_t *request)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	
+	fs_node_t *fn;
+	int rc = ops->node_get(&fn, service_id, index);
+	on_error(rc, answer_and_return(rid, rc));
+	
+	ipc_callid_t callid;
+	size_t size;
+	if ((!async_data_read_receive(&callid, &size)) ||
+	    (size != sizeof(struct statfs))) {
+		ops->node_put(fn);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	struct statfs statfs;
+	memset(&statfs, 0, sizeof(struct statfs));
+
+	if (NULL != ops->size_block)	
+		statfs.f_bsize = ops->size_block(service_id);
+	
+	ops->node_put(fn);
+	
+	async_data_read_finalize(callid, &statfs, sizeof(struct statfs));
+	async_answer_0(rid, EOK);
+}
+
 
 /** Open VFS triplet.
  *

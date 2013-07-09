@@ -58,15 +58,14 @@ int main(int argc, char *argv[])
 	list_foreach(mtab_list, cur) {
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
-		if (statfs(/*mtab_ent->mp*/ "/data", &st) < 0)
-			return 1;
-			
+		statfs(mtab_ent->mp, &st);
+		printf("block size:%ld\n", st.f_bsize);
 		printf("%13s %15lld %9lld %9lld %3ld%% %s\n", 
 			mtab_ent->fs_name,
 			(long long) st.f_blocks * st.f_bsize,
 			(long long) st.f_bfree * st.f_bsize,
 			(long long) (st.f_blocks - st.f_bfree) * st.f_bsize,
-			PERCENTAGE(st.f_blocks - st.f_bfree, st.f_blocks),
+			(st.f_blocks)?PERCENTAGE(st.f_blocks - st.f_bfree, st.f_blocks):0L,
 			mtab_ent->mp);
 	}
 	putchar('\n');	

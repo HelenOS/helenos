@@ -1148,7 +1148,7 @@ mfs_size_block(service_id_t service_id)
 		return rc;
 	if (NULL == inst)
 		return ENOENT;
-	block_size = inst->sbi->block_size;	
+	block_size = inst->sbi->block_size;
 	return block_size;
 }
 

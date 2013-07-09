@@ -100,6 +100,7 @@ static unsigned ext4fs_lnkcnt_get(fs_node_t *);
 static bool ext4fs_is_directory(fs_node_t *);
 static bool ext4fs_is_file(fs_node_t *node);
 static service_id_t ext4fs_service_get(fs_node_t *node);
+static long ext4fs_size_block(service_id_t);
 
 /* Static variables */
 
@@ -837,6 +838,19 @@ service_id_t ext4fs_service_get(fs_node_t *fn)
 	return enode->instance->service_id;
 }
 
+long ext4fs_size_block(service_id_t service_id)
+{
+	ext4fs_instance_t *inst;
+	int rc = ext4fs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+	if (NULL == inst)
+		return ENOENT;
+	ext4_superblock_t *sb = inst->filesystem->superblock;
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	return block_size;
+}
+
 /*
  * libfs operations.
  */
@@ -856,7 +870,8 @@ libfs_ops_t ext4fs_libfs_ops = {
 	.lnkcnt_get = ext4fs_lnkcnt_get,
 	.is_directory = ext4fs_is_directory,
 	.is_file = ext4fs_is_file,
-	.service_get = ext4fs_service_get
+	.service_get = ext4fs_service_get,
+	.size_block = ext4fs_size_block
 };
 
 /*

@@ -892,7 +892,6 @@ exit:
 	return rc;
 }
 
-#include <stdio.h>
 int statfs(const char *path, struct statfs *statfs)
 {
 	sysarg_t rc;
@@ -903,7 +902,6 @@ int statfs(const char *path, struct statfs *statfs)
 	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
-	
 	async_exch_t *exch = vfs_exchange_begin();
 	
 	req = async_send_0(exch, VFS_IN_STATFS, NULL);
@@ -917,10 +915,8 @@ int statfs(const char *path, struct statfs *statfs)
 		else
 			return (int) rc_orig;
 	}
-	printf("TRACE: send VFS_IN_STATFS\n");
-	rc = async_data_read_start(exch, statfs, sizeof(struct statfs));
+	rc = async_data_read_start(exch, (void *) statfs, sizeof(struct statfs));
 	if (rc != EOK) {
-		printf("TRACE: error reply\n");
 		vfs_exchange_end(exch);
 		free(pa);
 		async_wait_for(req, &rc_orig);
