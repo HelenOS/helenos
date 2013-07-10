@@ -31,6 +31,8 @@
  */
 /** @file System error numbers.
  */
+#define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "posix/errno.h"
 
@@ -42,7 +44,7 @@ static fibril_local int _posix_errno;
 int *__posix_errno(void)
 {
 	if (*__errno() != 0) {
-		_posix_errno = abs(*__errno());
+		_posix_errno = posix_abs(*__errno());
 		*__errno() = 0;
 	}
 	return &_posix_errno;

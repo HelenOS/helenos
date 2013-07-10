@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libc
  * @{
  */
-/** @file Character classification.
- */
 
-#ifndef POSIX_CTYPE_H_
-#define POSIX_CTYPE_H_
+#include <bitops.h>
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
+extern int __popcountsi2(int a)
+{
+	return __builtin_popcount(a);
+}
 
-#include "libc/ctype.h"
-
-/* Classification of Characters */
-extern int __POSIX_DEF__(isxdigit)(int c);
-extern int __POSIX_DEF__(isblank)(int c);
-extern int __POSIX_DEF__(iscntrl)(int c);
-extern int __POSIX_DEF__(isgraph)(int c);
-extern int __POSIX_DEF__(isprint)(int c);
-extern int __POSIX_DEF__(ispunct)(int c);
-
-/* Obsolete Functions and Macros */
-extern int __POSIX_DEF__(isascii)(int c);
-extern int __POSIX_DEF__(toascii)(int c);
-#undef _tolower
-#define _tolower(c) ((c) - 'A' + 'a')
-#undef _toupper
-#define _toupper(c) ((c) - 'a' + 'A')
-
-
-
-#endif /* POSIX_CTYPE_H_ */
 
 /** @}
  */

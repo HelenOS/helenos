@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,37 +29,22 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file Character classification.
+/** @file
+ * Floating point related constants.
  */
 
-#ifndef POSIX_CTYPE_H_
-#define POSIX_CTYPE_H_
+#ifndef POSIX_FENV_H_
+#define POSIX_FENV_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
+
+#define FE_DIVBYZERO 1
+#define FE_INEXACT 2
+#define FE_INVALID 4
+#define FE_OVERFLOW 8
+#define FE_UNDERFLOW 16
+#define FE_ALL_EXCEPT (FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+
 #endif
-
-#include "libc/ctype.h"
-
-/* Classification of Characters */
-extern int __POSIX_DEF__(isxdigit)(int c);
-extern int __POSIX_DEF__(isblank)(int c);
-extern int __POSIX_DEF__(iscntrl)(int c);
-extern int __POSIX_DEF__(isgraph)(int c);
-extern int __POSIX_DEF__(isprint)(int c);
-extern int __POSIX_DEF__(ispunct)(int c);
-
-/* Obsolete Functions and Macros */
-extern int __POSIX_DEF__(isascii)(int c);
-extern int __POSIX_DEF__(toascii)(int c);
-#undef _tolower
-#define _tolower(c) ((c) - 'A' + 'a')
-#undef _toupper
-#define _toupper(c) ((c) - 'a' + 'A')
-
-
-
-#endif /* POSIX_CTYPE_H_ */
 
 /** @}
  */
