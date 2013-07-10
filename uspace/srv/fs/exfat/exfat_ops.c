@@ -88,6 +88,7 @@ static unsigned exfat_lnkcnt_get(fs_node_t *);
 static bool exfat_is_directory(fs_node_t *);
 static bool exfat_is_file(fs_node_t *node);
 static service_id_t exfat_service_get(fs_node_t *node);
+static long exfat_size_block(service_id_t);
 
 /*
  * Helper functions.
@@ -911,6 +912,13 @@ service_id_t exfat_service_get(fs_node_t *node)
 	return 0;
 }
 
+long exfat_size_block(service_id_t service_id)
+{
+	exfat_bs_t *bs;
+	bs = block_bb_get(service_id);
+	
+	return BPC(bs);
+}
 
 /** libfs operations */
 libfs_ops_t exfat_libfs_ops = {
@@ -929,7 +937,8 @@ libfs_ops_t exfat_libfs_ops = {
 	.lnkcnt_get = exfat_lnkcnt_get,
 	.is_directory = exfat_is_directory,
 	.is_file = exfat_is_file,
-	.service_get = exfat_service_get
+	.service_get = exfat_service_get,
+	.size_block = exfat_size_block
 };
 
 
