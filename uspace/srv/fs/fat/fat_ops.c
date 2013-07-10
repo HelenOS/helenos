@@ -90,6 +90,7 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
+static long fat_size_block(service_id_t);
 
 /*
  * Helper functions.
@@ -842,6 +843,14 @@ service_id_t fat_service_get(fs_node_t *node)
 	return 0;
 }
 
+long fat_size_block(service_id_t service_id)
+{
+	fat_bs_t *bs;
+	bs = block_bb_get(service_id);
+
+	return BPC(bs);
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
@@ -859,7 +868,8 @@ libfs_ops_t fat_libfs_ops = {
 	.lnkcnt_get = fat_lnkcnt_get,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
-	.service_get = fat_service_get
+	.service_get = fat_service_get,
+	.size_block = fat_size_block
 };
 
 /*
