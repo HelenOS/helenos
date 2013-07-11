@@ -419,7 +419,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 		case INTERRUPT:
 			ns->irq = res->res.interrupt.irq;
 			irq = true;
-			ddf_msg(LVL_NOTE, "Device %s was asigned irq = 0x%x.",
+			ddf_msg(LVL_NOTE, "Device %s was assigned irq = 0x%x.",
 			    ddf_dev_get_name(ns->dev), ns->irq);
 			break;
 			
@@ -432,7 +432,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 				goto failed;
 			}
 			ioport = true;
-			ddf_msg(LVL_NOTE, "Device %s was asigned I/O address = "
+			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address = "
 			    "0x%x.", ddf_dev_get_name(ns->dev), ns->io_addr);
     			break;
 			
