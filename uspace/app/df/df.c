@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
 		printf("%13s %15lld %9lld %9lld %3ld%% %s\n", 
 			mtab_ent->fs_name,
 			(long long) st.f_blocks * st.f_bsize,
-			(long long) st.f_bfree * st.f_bsize,
 			(long long) (st.f_blocks - st.f_bfree) * st.f_bsize,
+			(long long) st.f_bfree * st.f_bsize,
 			(st.f_blocks)?PERCENTAGE(st.f_blocks - st.f_bfree, st.f_blocks):0L,
 			mtab_ent->mp);
 	}

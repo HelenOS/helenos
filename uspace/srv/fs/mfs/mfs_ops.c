@@ -64,6 +64,8 @@ static int mfs_instance_get(service_id_t service_id,
 static int mfs_check_sanity(struct mfs_sb_info *sbi);
 static bool is_power_of_two(uint32_t n);
 static long mfs_size_block(service_id_t service_id);
+static long mfs_total_block(service_id_t service_id);
+static long mfs_free_block(service_id_t service_id);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -85,7 +87,9 @@ libfs_ops_t mfs_libfs_ops = {
 	.destroy = mfs_destroy_node,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get,
-	.size_block = mfs_size_block
+	.size_block = mfs_size_block,
+	.total_block = mfs_total_block,
+	.free_block = mfs_free_block
 };
 
 /* Hash table interface for open nodes hash table */
@@ -1141,8 +1145,46 @@ mfs_size_block(service_id_t service_id)
 		return rc;
 	if (NULL == inst)
 		return ENOENT;
+	
 	block_size = inst->sbi->block_size;
+
 	return block_size;
+}
+
+static long
+mfs_total_block(service_id_t service_id)
+{
+	long block_total;
+	
+	struct mfs_instance *inst;
+	int rc = mfs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == inst)
+		return ENOENT;
+	
+	block_total = inst->sbi->nzones;
+
+	return block_total;
+}
+
+static long
+mfs_free_block(service_id_t service_id)
+{
+	uint32_t block_free;
+	
+	struct mfs_instance *inst;
+	int rc = mfs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == inst)
+		return ENOENT;
+
+	mfs_count_free_zones(inst, &block_free);
+
+	return (long)block_free;
 }
 
 vfs_out_ops_t mfs_ops = {
