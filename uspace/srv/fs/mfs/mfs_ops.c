@@ -344,8 +344,6 @@ mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	fs_node_t *fsnode;
 	uint32_t inum;
 
-	mfsdebug("%s()\n", __FUNCTION__);
-
 	r = mfs_instance_get(service_id, &inst);
 	if (r != EOK)
 		return r;
@@ -378,8 +376,10 @@ mfs_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	if (flags & L_DIRECTORY) {
 		ino_i->i_mode = S_IFDIR;
 		ino_i->i_nlinks = 1; /* This accounts for the '.' dentry */
-	} else
+	} else {
 		ino_i->i_mode = S_IFREG;
+		ino_i->i_nlinks = 0;
+	}
 
 	ino_i->i_uid = 0;
 	ino_i->i_gid = 0;
@@ -430,8 +430,6 @@ mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	struct mfs_dentry_info d_info;
 	int r;
 
-	mfsdebug("%s()\n", __FUNCTION__);
-
 	if (!S_ISDIR(ino_i->i_mode))
 		return ENOTDIR;
 
@@ -478,8 +476,6 @@ mfs_node_get(fs_node_t **rfn, service_id_t service_id,
 	int rc;
 	struct mfs_instance *instance;
 
-	mfsdebug("%s()\n", __FUNCTION__);
-
 	rc = mfs_instance_get(service_id, &instance);
 	if (rc != EOK)
 		return rc;
@@ -492,8 +488,6 @@ mfs_node_put(fs_node_t *fsnode)
 {
 	int rc = EOK;
 	struct mfs_node *mnode = fsnode->data;
-
-	mfsdebug("%s()\n", __FUNCTION__);
 
 	fibril_mutex_lock(&open_nodes_lock);
 
@@ -553,8 +547,6 @@ mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	fs_node_t *node = NULL;
 	struct mfs_node *mnode = NULL;
 	int rc;
-
-	mfsdebug("%s()\n", __FUNCTION__);
 
 	fibril_mutex_lock(&open_nodes_lock);
 
@@ -650,8 +642,6 @@ mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_sb_info *sbi = parent->instance->sbi;
 	bool destroy_dentry = false;
 
-	mfsdebug("%s()\n", __FUNCTION__);
-
 	if (str_size(name) > sbi->max_name_len)
 		return ENAMETOOLONG;
 
@@ -702,8 +692,6 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *child = cfn->data;
 	bool has_children;
 	int r;
-
-	mfsdebug("%s()\n", __FUNCTION__);
 
 	if (!parent)
 		return EBUSY;
@@ -969,7 +957,7 @@ out_err:
 static int
 mfs_destroy(service_id_t service_id, fs_index_t index)
 {
-	fs_node_t *fn;
+	fs_node_t *fn = NULL;
 	int r;
 
 	r = mfs_node_get(&fn, service_id, index);
