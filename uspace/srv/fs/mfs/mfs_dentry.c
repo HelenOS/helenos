@@ -239,8 +239,10 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name,
 			if (r != EOK)
 				goto out;
 			r = mfs_write_map(mnode, pos, b, &dummy);
-			if (r != EOK)
+			if (r != EOK) {
+				mfs_free_zone(mnode->instance, b);
 				goto out;
+			}
 		}
 
 		mnode->ino_i->i_size += sbi->dirsize;

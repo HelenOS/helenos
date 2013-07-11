@@ -418,6 +418,7 @@ out_err_2:
 out_err_1:
 	free(ino_i);
 out_err:
+	mfs_free_inode(inst, inum);
 	return r;
 }
 
@@ -673,6 +674,7 @@ mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 		r = mfs_insert_dentry(child, "..", parent->ino_i->index);
 		if (r != EOK) {
+			mfs_remove_dentry(child, ".");
 			destroy_dentry = true;
 			goto exit;
 		}
@@ -924,8 +926,10 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			goto out_err;
 		
 		r = mfs_write_map(mnode, pos, block, &dummy);
-		if (r != EOK)
+		if (r != EOK) {
+			mfs_free_zone(mnode->instance, block);
 			goto out_err;
+		}
 
 		flags = BLOCK_FLAGS_NOREAD;
 	}

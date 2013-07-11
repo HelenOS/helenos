@@ -201,7 +201,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 		search = &sbi->isearch;
 		start_block = 2;
 		nblocks = sbi->ibmap_blocks;
-		limit = sbi->ninodes;
+		limit = sbi->ninodes - 1;
 	}
 	bits_per_block = sbi->block_size * 8;
 
