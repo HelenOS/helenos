@@ -248,6 +248,19 @@ static bool udf_is_file(fs_node_t *fn)
 	return false;
 }
 
+static long udf_size_block(service_id_t service_id)
+{
+	udf_instance_t *instance;
+	int rc = fs_instance_get(service_id, (void **) &instance);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == instance)
+		return ENOENT;
+	
+	return instance->volumes[DEFAULT_VOL].logical_block_size;
+}
+
 libfs_ops_t udf_libfs_ops = {
 	.root_get = udf_root_get,
 	.match = udf_match,
@@ -264,7 +277,8 @@ libfs_ops_t udf_libfs_ops = {
 	.lnkcnt_get = udf_lnkcnt_get,
 	.is_directory = udf_is_directory,
 	.is_file = udf_is_file,
-	.service_get = udf_service_get
+	.service_get = udf_service_get,
+	.size_block = udf_size_block
 };
 
 static int udf_mounted(service_id_t service_id, const char *opts,
