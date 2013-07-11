@@ -826,6 +826,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	ns8250_t *ns = NULL;
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
+	bool need_unreg_intr_handler = false;
 	int rc;
 	
 	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
@@ -868,6 +869,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
+	need_unreg_intr_handler = true;
 	
 	/* Enable interrupt. */
 	rc = ns8250_interrupt_enable(ns);
@@ -902,6 +904,8 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 fail:
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
+	if (need_unreg_intr_handler)
+		ns8250_unregister_interrupt_handler(ns);
 	if (need_cleanup)
 		ns8250_dev_cleanup(ns);
 	return rc;
