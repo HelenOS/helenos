@@ -43,6 +43,10 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
 static int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
 
+static int
+mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free);
+
+
 /**Allocate a new inode.
  *
  * @param inst		Pointer to the filesystem instance.
@@ -103,6 +107,99 @@ mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
 	return mfs_free_bit(inst, zone, BMAP_ZONE);
 }
 
+/** Count the number of free zones
+ *
+ * @param inst          Pointer to the instance structure.
+ * @param zones         Pointer to the memory location where the result
+ *                      will be stored.
+ *
+ * @return              EOK on success or a negative error code.
+ */
+int
+mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones)
+{
+	return mfs_count_free_bits(inst, BMAP_ZONE, zones);
+}
+
+/** Count the number of free inodes
+ *
+ * @param inst          Pointer to the instance structure.
+ * @param zones         Pointer to the memory location where the result
+ *                      will be stored.
+ *
+ * @return              EOK on success or a negative error code.
+ */
+
+int
+mfs_count_free_inodes(struct mfs_instance *inst, uint32_t *inodes)
+{
+	return mfs_count_free_bits(inst, BMAP_INODE, inodes);
+}
+
+/** Count the number of free bits in a bitmap
+ *
+ * @param inst          Pointer to the instance structure.
+ * @param bid           Type of the bitmap (inode or zone).
+ * @param free          Pointer to the memory location where the result
+ *                      will be stores.
+ *
+ * @return              EOK on success or a negative error code.
+ */
+static int
+mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free)
+{
+	int r;
+	unsigned start_block;
+	unsigned long nblocks;
+	unsigned long nbits;
+	unsigned long block;
+	unsigned long free_bits = 0;
+	bitchunk_t chunk;
+	size_t const bitchunk_bits = sizeof(bitchunk_t) * 8;
+	block_t *b;
+	struct mfs_sb_info *sbi = inst->sbi;
+
+	start_block = MFS_BMAP_START_BLOCK(sbi, bid);
+	nblocks = MFS_BMAP_SIZE_BLOCKS(sbi, bid);
+	nbits = MFS_BMAP_SIZE_BITS(sbi, bid);
+
+	for (block = 0; block < nblocks; ++block) {
+		r = block_get(&b, inst->service_id, block + start_block,
+		    BLOCK_FLAGS_NONE);
+		if (r != EOK)
+			return r;
+
+		size_t i;
+		bitchunk_t *data = (bitchunk_t *) b->data;
+
+		/* Read the bitmap block, chunk per chunk,
+		 * counting the zero bits.
+		 */
+		for (i = 0; i < sbi->block_size / sizeof(bitchunk_t); ++i) {
+			chunk = conv32(sbi->native, data[i]);
+
+			size_t bit;
+			for (bit = 0; bit < bitchunk_bits && nbits > 0;
+			    ++bit, --nbits) {
+				if (!(chunk & (1 << bit)))
+					free_bits++;
+			}
+
+			if (nbits == 0)
+				break;
+		}
+
+		r = block_put(b);
+		if (r != EOK)
+			return r;
+	}
+
+	*free = free_bits;
+	assert(nbits == 0);
+
+	return EOK;
+}
+
 /**Clear a bit in a bitmap.
  *
  * @param inst		Pointer to the filesystem instance.
@@ -123,20 +220,20 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 
 	sbi = inst->sbi;
 
+	start_block = MFS_BMAP_START_BLOCK(sbi, bid);
+
 	if (bid == BMAP_ZONE) {
 		search = &sbi->zsearch;
-		start_block = 2 + sbi->ibmap_blocks;
 		if (idx > sbi->nzones) {
-			printf(NAME ": Error! Trying to free beyond the" \
+			printf(NAME ": Error! Trying to free beyond the "
 			    "bitmap max size\n");
 			return -1;
 		}
 	} else {
 		/* bid == BMAP_INODE */
 		search = &sbi->isearch;
-		start_block = 2;
 		if (idx > sbi->ninodes) {
-			printf(NAME ": Error! Trying to free beyond the" \
+			printf(NAME ": Error! Trying to free beyond the "
 			    "bitmap max size\n");
 			return -1;
 		}
@@ -191,17 +288,15 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 
 	sbi = inst->sbi;
 
+	start_block = MFS_BMAP_START_BLOCK(sbi, bid);
+	limit = MFS_BMAP_SIZE_BITS(sbi, bid);
+	nblocks = MFS_BMAP_SIZE_BLOCKS(sbi, bid);
+
 	if (bid == BMAP_ZONE) {
 		search = &sbi->zsearch;
-		start_block = 2 + sbi->ibmap_blocks;
-		nblocks = sbi->zbmap_blocks;
-		limit = sbi->nzones - sbi->firstdatazone - 1;
 	} else {
 		/* bid == BMAP_INODE */
 		search = &sbi->isearch;
-		start_block = 2;
-		nblocks = sbi->ibmap_blocks;
-		limit = sbi->ninodes;
 	}
 	bits_per_block = sbi->block_size * 8;
 

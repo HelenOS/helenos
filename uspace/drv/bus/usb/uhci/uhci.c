@@ -37,6 +37,7 @@
 #define _DDF_DATA_IMPLANT
 
 #include <errno.h>
+#include <stdbool.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
 #include <usb_iface.h>
@@ -148,6 +149,11 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_uhci(ddf_dev_t *device)
 {
+	bool ih_registered = false;
+	bool hc_inited = false;
+	bool fun_bound = false;
+	int rc;
+
 	if (!device)
 		return EBADMEM;
 
@@ -157,27 +163,23 @@ int device_setup_uhci(ddf_dev_t *device)
 		return ENOMEM;
 	}
 
-#define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
-if (ret != EOK) { \
-	if (instance->hc_fun) \
-		ddf_fun_destroy(instance->hc_fun); \
-	if (instance->rh_fun) {\
-		ddf_fun_destroy(instance->rh_fun); \
-	} \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
-	instance->rh_fun = NULL;
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci_hc");
-	int ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI HC function.\n");
+	if (instance->hc_fun == NULL) {
+		usb_log_error("Failed to create UHCI HC function.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
 	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
 	ddf_fun_data_implant(instance->hc_fun, &instance->hc.generic);
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci_rh");
-	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FREE_RETURN(ret, "Failed to create UHCI RH function.\n");
+	if (instance->rh_fun == NULL) {
+		usb_log_error("Failed to create UHCI RH function.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
 	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
 	ddf_fun_data_implant(instance->rh_fun, &instance->rh);
 
@@ -185,78 +187,95 @@ if (ret != EOK) { \
 	size_t reg_size = 0;
 	int irq = 0;
 
-	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to get I/O addresses for %" PRIun ": %s.\n",
-	    ddf_dev_get_handle(device), str_error(ret));
+	rc = get_my_registers(device, &reg_base, &reg_size, &irq);
+	if (rc != EOK) {
+		usb_log_error("Failed to get I/O addresses for %" PRIun ": %s.\n",
+		    ddf_dev_get_handle(device), str_error(rc));
+		goto error;
+	}
 	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	ret = disable_legacy(device);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to disable legacy USB: %s.\n", str_error(ret));
+	rc = disable_legacy(device);
+	if (rc != EOK) {
+		usb_log_error("Failed to disable legacy USB: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	const size_t ranges_count = hc_irq_pio_range_count();
-	const size_t cmds_count = hc_irq_cmd_count();
-	irq_pio_range_t irq_ranges[ranges_count];
-	irq_cmd_t irq_cmds[cmds_count];
-	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), reg_base, reg_size);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to generate IRQ commands: %s.\n", str_error(ret));
+	rc = hc_register_irq_handler(device, reg_base, reg_size, irq, irq_handler);
+	if (rc != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	irq_code_t irq_code = {
-		.rangecount = ranges_count,
-		.ranges = irq_ranges,
-		.cmdcount = cmds_count,
-		.cmds = irq_cmds
-	};
-
-        /* Register handler to avoid interrupt lockup */
-        ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-        CHECK_RET_DEST_FREE_RETURN(ret,
-            "Failed to register interrupt handler: %s.\n", str_error(ret));
+	ih_registered = true;
 
 	bool interrupts = false;
-	ret = enable_interrupts(device);
-	if (ret != EOK) {
+	rc = enable_interrupts(device);
+	if (rc != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(ret));
+		    " Falling back to polling.\n", str_error(rc));
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
 
-	ret = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
+	rc = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
+	if (rc != EOK) {
+		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(rc));
+		goto error;
+	}
 
-#define CHECK_RET_FINI_RETURN(ret, message...) \
-if (ret != EOK) { \
-	hc_fini(&instance->hc); \
-	CHECK_RET_DEST_FREE_RETURN(ret, message); \
-	return ret; \
-} else (void)0
+	hc_inited = true;
 
-	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_FINI_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
-	    str_error(ret));
+	rc = ddf_fun_bind(instance->hc_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to bind UHCI device function: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to add UHCI to HC class: %s.\n", str_error(ret));
+	fun_bound = true;
 
-	ret = rh_init(&instance->rh, instance->rh_fun,
+	rc = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
+	if (rc != EOK) {
+		usb_log_error("Failed to add UHCI to HC class: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
+
+	rc = rh_init(&instance->rh, instance->rh_fun,
 	    (uintptr_t)instance->hc.registers + 0x10, 4);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to setup UHCI root hub: %s.\n", str_error(ret));
+	if (rc != EOK) {
+		usb_log_error("Failed to setup UHCI root hub: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = ddf_fun_bind(instance->rh_fun);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to register UHCI root hub: %s.\n", str_error(ret));
+	rc = ddf_fun_bind(instance->rh_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to register UHCI root hub: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
 	return EOK;
-#undef CHECK_RET_FINI_RETURN
+
+error:
+	if (fun_bound)
+		ddf_fun_unbind(instance->hc_fun);
+	if (hc_inited)
+		hc_fini(&instance->hc);
+	if (ih_registered)
+		unregister_interrupt_handler(device, irq);
+	if (instance->hc_fun != NULL)
+		ddf_fun_destroy(instance->hc_fun);
+	if (instance->rh_fun != NULL) {
+		ddf_fun_destroy(instance->rh_fun);
+	}
+	return rc;
 }
 /**
  * @}

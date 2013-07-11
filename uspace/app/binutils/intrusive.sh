@@ -95,6 +95,12 @@
 # When building binutils for arm32 target, there is a conflict with
 # libposix function name redefinitons in one of the arm-specific files.
 #
+# Patch 9
+# Libiberty does not trust our strncmp that is provided in libposix.
+# That is because when cross-compiling, it cannot check how it behaves
+# and assumes the worst. But then it clashes when linking (due to
+# multiple definitions of ...) and this patch prevents compilation of
+# liberty strncmp.
 
 case "$1" in
 	"do")
@@ -156,8 +162,9 @@ case "$1" in
 
 		# Patch libiberty configure script.
 		cat "$2/libiberty/configure.backup" | \
-		# See Patch 1.
-		sed 's/^cross_compiling=no/cross_compiling=yes/g' \
+		# See Patch 1 and 9.
+		sed -e 's/^cross_compiling=no/cross_compiling=yes/g' \
+			-e 's/ac_cv_func_strncmp_works=no/ac_cv_func_strncmp_works=yes/g' \
 		> "$2/libiberty/configure"
 
 		# Hide libiberty fnmatch implementation.

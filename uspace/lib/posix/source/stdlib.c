@@ -34,6 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/stdlib.h"
@@ -61,6 +62,7 @@ int posix_atexit(void (*func)(void))
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return 1;
 }
 
 /**
@@ -230,6 +232,7 @@ int posix_putenv(char *string)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return 0;
 }
 
 /**
@@ -242,6 +245,7 @@ int posix_putenv(char *string)
  */
 int posix_system(const char *string) {
 	// TODO: does nothing at the moment
+	not_implemented();
 	return 0;
 }
 

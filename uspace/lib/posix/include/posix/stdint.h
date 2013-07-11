@@ -35,6 +35,10 @@
 #ifndef POSIX_STDINT_H_
 #define POSIX_STDINT_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "libc/stdint.h"
 
 #undef INT8_MAX
@@ -99,13 +103,9 @@
 
 #include "libc/sys/types.h"
 
-typedef int64_t posix_intmax_t;
-typedef uint64_t posix_uintmax_t;
+typedef int64_t __POSIX_DEF__(intmax_t);
+typedef uint64_t __POSIX_DEF__(uintmax_t);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define intmax_t posix_intmax_t
-	#define uintmax_t posix_uintmax_t
-#endif
 
 #endif /* POSIX_STDINT_H_ */
 

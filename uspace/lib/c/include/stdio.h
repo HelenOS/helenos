@@ -142,6 +142,7 @@ extern int ferror(FILE *);
 extern void clearerr(FILE *);
 
 extern void setvbuf(FILE *, void *, int, size_t);
+extern void setbuf(FILE *, void *);
 
 /* Misc file functions */
 extern int rename(const char *, const char *);

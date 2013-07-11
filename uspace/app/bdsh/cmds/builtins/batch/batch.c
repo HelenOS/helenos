@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <errno.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -43,7 +45,7 @@ void help_cmd_batch(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf(
-		"\n  batch [filename]\n"
+		"\n  batch [filename] [-c]\n"
 		"  Issues commands stored in the file.\n"
 		"  Each command must correspond to the single line in the file.\n\n");
 	} else {
@@ -53,7 +55,9 @@ void help_cmd_batch(unsigned int level)
 		"  to the single line in the file. Empty lines can be used to visually\n"
 		"  separate groups of commands. There is no support for comments,\n"
 		"  variables, recursion or other programming constructs - the `batch'\n"
-		"  command is indeed very trivial.\n\n");
+		"  command is indeed very trivial.\n"
+		"  If the filename is followed by -c, execution continues even if some\n"
+		"  of the commands failed.\n\n");
 	}
 
 	return;
@@ -64,6 +68,7 @@ void help_cmd_batch(unsigned int level)
 int cmd_batch(char **argv, cliuser_t *usr)
 {
 	unsigned int argc;
+	bool continue_despite_errors = false;
 
 	/* Count the arguments */
 	for (argc = 0; argv[argc] != NULL; argc ++);
@@ -71,6 +76,11 @@ int cmd_batch(char **argv, cliuser_t *usr)
 	if (argc < 2) {
 		printf("%s - no input file provided.\n", cmdname);
 		return CMD_FAILURE;
+	}
+
+	if (argc > 2) {
+		if (str_cmp(argv[2], "-c") == 0)
+			continue_despite_errors = true;
 	}
 
 	int rc = 0;
@@ -98,6 +108,10 @@ int cmd_batch(char **argv, cliuser_t *usr)
 					printf(">%s\n", fusr.line);
 					rc = process_input(&fusr);
 					/* fusr->line was freed by process_input() */
+					if ((rc != EOK) && continue_despite_errors) {
+						/* Mute the error. */
+						rc = EOK;
+					}
 				}
 				if (rc == 0 && c != EOF) {
 					fusr.line = malloc(INPUT_MAX + 1);
