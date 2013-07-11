@@ -1,0 +1,36 @@
+transform pascal_string = struct {
+	<- struct { # An inner struct for testing purposes
+		.len <- uint8;
+	};
+	.string <- ascii <- known_length(.len);
+};
+
+transform u32(little_endian) =
+	if (little_endian) {
+		uint32le
+	} else {
+		uint32be
+	};
+
+transform item(little_endian, len) = struct {
+	.type <- (3 * in + 1) <- u32(little_endian);
+	.name <- pascal_string;
+	switch (.type) {
+		10: {
+			.val <- u32(little_endian);
+		};
+		11: {
+			.text <- ascii <- known_length(len);
+		};
+		else: {
+			.unknown <- known_length(len);
+		};
+	}
+};
+
+transform main() = struct {
+	.first_len <- (3);
+	.second_len <- (6 - 2);
+	.first_item <- item(true, .first_len);
+	.second_item <- item(false, .second_len);
+};

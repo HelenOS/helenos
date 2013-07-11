@@ -36,7 +36,7 @@
 #define LIBC_SYSINFO_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <abi/sysinfo.h>
 
 extern char *sysinfo_get_keys(const char *, size_t *);

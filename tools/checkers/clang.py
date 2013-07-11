@@ -113,7 +113,7 @@ def main():
 	
 	for job in jobs:
 		if (not clang(rootdir, job)):
-			print
+			print()
 			print("Failed job: %s" % job)
 			return
 	

@@ -232,7 +232,8 @@ static void km_unmap_deferred(uintptr_t page)
  *
  * @param[inout] framep	Pointer to a variable which will receive the physical
  *			address of the allocated frame.
- * @param[in] flags	Frame allocation flags. FRAME_NONE or FRAME_NO_RESERVE.
+ * @param[in] flags	Frame allocation flags. FRAME_NONE, FRAME_NO_RESERVE
+ *			and FRAME_ATOMIC bits are allowed.
  * @return		Virtual address of the allocated frame.
  */
 uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
@@ -242,7 +243,7 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 
 	ASSERT(THREAD);
 	ASSERT(framep);
-	ASSERT(!(flags & ~FRAME_NO_RESERVE));
+	ASSERT(!(flags & ~(FRAME_NO_RESERVE | FRAME_ATOMIC)));
 
 	/*
 	 * Allocate a frame, preferably from high memory.
@@ -254,8 +255,10 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		ASSERT(page);	// FIXME
 	} else {
-		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME,
-		    FRAME_LOWMEM);
+		frame = (uintptr_t) frame_alloc(ONE_FRAME,
+		    FRAME_LOWMEM | flags);
+		if (!frame)
+			return (uintptr_t) NULL;
 		page = PA2KA(frame);
 	}
 

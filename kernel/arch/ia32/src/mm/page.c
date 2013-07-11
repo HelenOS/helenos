@@ -70,10 +70,7 @@ void page_arch_init(void)
 	page_table_lock(AS_KERNEL, true);
 	for (cur = 0; cur < min(config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE) {
-		flags = PAGE_CACHEABLE | PAGE_WRITE;
-		if ((PA2KA(cur) >= config.base) &&
-		    (PA2KA(cur) < config.base + config.kernel_size))
-			flags |= PAGE_GLOBAL;
+		flags = PAGE_GLOBAL | PAGE_CACHEABLE | PAGE_WRITE | PAGE_READ;
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	}
 	page_table_unlock(AS_KERNEL, true);
@@ -86,10 +83,10 @@ void page_arch_init(void)
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
-	uintptr_t page;
+	uintptr_t badvaddr;
 	pf_access_t access;
 	
-	page = read_cr2();
+	badvaddr = read_cr2();
 		
 	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page directory.");
@@ -99,10 +96,7 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 	else
 		access = PF_ACCESS_READ;
 	
-	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %#x.", page);
-		panic_memtrap(istate, access, page, NULL);
-	}
+	(void) as_page_fault(badvaddr, access, istate);
 }
 
 /** @}

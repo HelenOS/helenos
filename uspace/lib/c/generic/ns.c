@@ -36,6 +36,7 @@
 #include <ipc/ns.h>
 #include <async.h>
 #include <macros.h>
+#include <errno.h>
 #include "private/ns.h"
 
 int service_register(sysarg_t service)
@@ -47,7 +48,7 @@ int service_register(sysarg_t service)
 	return rc;
 }
 
-async_sess_t *service_connect(exch_mgmt_t mgmt, sysarg_t service, sysarg_t arg2,
+async_sess_t *service_connect(exch_mgmt_t mgmt, services_t service, sysarg_t arg2,
     sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
@@ -71,7 +72,7 @@ async_sess_t *service_connect(exch_mgmt_t mgmt, sysarg_t service, sysarg_t arg2,
 	return sess;
 }
 
-async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, sysarg_t service,
+async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, services_t service,
     sysarg_t arg2, sysarg_t arg3)
 {
 	async_exch_t *exch = async_exchange_begin(session_ns);
@@ -80,7 +81,7 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, sysarg_t service,
 	async_sess_t *sess =
 	    async_connect_me_to_blocking(mgmt, exch, service, arg2, arg3);
 	async_exchange_end(exch);
-
+	
 	if (!sess)
 		return NULL;
 	
@@ -90,6 +91,41 @@ async_sess_t *service_connect_blocking(exch_mgmt_t mgmt, sysarg_t service,
 	 * first argument for non-initial connections.
 	 */
 	async_sess_args_set(sess, arg2, arg3, 0);
+	
+	return sess;
+}
+
+/** Create bidirectional connection with a service
+ *
+ * @param[in] service         Service.
+ * @param[in] arg1            First parameter.
+ * @param[in] arg2            Second parameter.
+ * @param[in] arg3            Third parameter.
+ * @param[in] client_receiver Message receiver.
+ *
+ * @return Session to the service.
+ * @return Other error codes as defined by async_connect_to_me().
+ *
+ */
+async_sess_t *service_bind(services_t service, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_client_conn_t client_receiver)
+{
+	/* Connect to the needed service */
+	async_sess_t *sess =
+	    service_connect_blocking(EXCHANGE_SERIALIZE, service, 0, 0);
+	if (sess != NULL) {
+		/* Request callback connection */
+		async_exch_t *exch = async_exchange_begin(sess);
+		int rc = async_connect_to_me(exch, arg1, arg2, arg3,
+		    client_receiver, NULL);
+		async_exchange_end(exch);
+		
+		if (rc != EOK) {
+			async_hangup(sess);
+			errno = rc;
+			return NULL;
+		}
+	}
 	
 	return sess;
 }

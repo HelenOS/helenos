@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
 #include <loc.h>
@@ -115,11 +115,11 @@ static irq_pio_range_t cuda_ranges[] = {
 static irq_cmd_t cuda_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = NULL,	/* will be patched in run-time */
+		.addr = NULL,
 		.dstarg = 1
 	},
 	{
-		.cmd = CMD_BTEST,
+		.cmd = CMD_AND,
 		.value = SR_INT,
 		.srcarg = 1,
 		.dstarg = 2

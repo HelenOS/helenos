@@ -37,7 +37,7 @@
 
 #include <ipc/loc.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef void (*loc_cat_change_cb_t)(void);
 
@@ -55,6 +55,7 @@ extern int loc_service_add_to_cat(service_id_t, category_id_t);
 extern int loc_service_get_id(const char *, service_id_t *,
     unsigned int);
 extern int loc_service_get_name(service_id_t, char **);
+extern int loc_service_get_server_name(service_id_t, char **);
 extern int loc_namespace_get_id(const char *, service_id_t *,
     unsigned int);
 extern int loc_category_get_id(const char *, category_id_t *,

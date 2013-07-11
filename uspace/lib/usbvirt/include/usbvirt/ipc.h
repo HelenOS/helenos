@@ -38,7 +38,7 @@
 
 #include <ipc/common.h>
 #include <usb/usb.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <usbvirt/device.h>
 #include <async.h>
 

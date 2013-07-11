@@ -43,7 +43,7 @@
 #include <errno.h>
 #include <io/log.h>
 #include <stdlib.h>
-#include <thread.h>
+#include <fibril.h>
 #include "conn.h"
 #include "ncsim.h"
 #include "rqueue.h"
@@ -73,20 +73,20 @@ void tcp_ncsim_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	tcp_squeue_entry_t *old_qe;
 	link_t *link;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_bounce_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_bounce_seg()");
 	tcp_rqueue_bounce_seg(sp, seg);
 	return;
 
 	if (0 /*random() % 4 == 3*/) {
 		/* Drop segment */
-		log_msg(LVL_ERROR, "NCSim dropping segment");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "NCSim dropping segment");
 		tcp_segment_delete(seg);
 		return;
 	}
 
 	sqe = calloc(1, sizeof(tcp_squeue_entry_t));
 	if (sqe == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating SQE.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating SQE.");
 		return;
 	}
 
@@ -118,15 +118,14 @@ void tcp_ncsim_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	fibril_mutex_unlock(&sim_queue_lock);
 }
 
-/** Network condition simulator handler thread. */
-static void tcp_ncsim_thread(void *arg)
+/** Network condition simulator handler fibril. */
+static int tcp_ncsim_fibril(void *arg)
 {
 	link_t *link;
 	tcp_squeue_entry_t *sqe;
 	int rc;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_thread()");
-
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril()");
 
 	while (true) {
 		fibril_mutex_lock(&sim_queue_lock);
@@ -138,7 +137,7 @@ static void tcp_ncsim_thread(void *arg)
 			link = list_first(&sim_queue);
 			sqe = list_get_instance(link, tcp_squeue_entry_t, link);
 
-			log_msg(LVL_DEBUG, "NCSim - Sleep");
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "NCSim - Sleep");
 			rc = fibril_condvar_wait_timeout(&sim_queue_cv,
 			    &sim_queue_lock, sqe->delay);
 		} while (rc != ETIMEOUT);
@@ -146,25 +145,29 @@ static void tcp_ncsim_thread(void *arg)
 		list_remove(link);
 		fibril_mutex_unlock(&sim_queue_lock);
 
-		log_msg(LVL_DEBUG, "NCSim - End Sleep");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "NCSim - End Sleep");
 		tcp_rqueue_bounce_seg(&sqe->sp, sqe->seg);
 		free(sqe);
 	}
+
+	/* Not reached */
+	return 0;
 }
 
-/** Start simulator handler thread. */
-void tcp_ncsim_thread_start(void)
+/** Start simulator handler fibril. */
+void tcp_ncsim_fibril_start(void)
 {
-	thread_id_t tid;
-        int rc;
+	fid_t fid;
 
-	log_msg(LVL_DEBUG, "tcp_ncsim_thread_start()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril_start()");
 
-	rc = thread_create(tcp_ncsim_thread, NULL, "ncsim", &tid);
-	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed creating ncsim thread.");
+	fid = fibril_create(tcp_ncsim_fibril, NULL);
+	if (fid == 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating ncsim fibril.");
 		return;
 	}
+
+	fibril_add_ready(fid);
 }
 
 /**

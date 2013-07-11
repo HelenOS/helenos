@@ -42,12 +42,12 @@
 #include <async.h>
 #include <errno.h>
 #include <ipc/mouseev.h>
-#include <input.h>
 #include <loc.h>
-#include <mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
 #include <sys/typefmt.h>
+#include "../mouse.h"
+#include "../mouse_port.h"
+#include "../mouse_proto.h"
+#include "../input.h"
 
 /** Mousedev softstate */
 typedef struct {
@@ -95,6 +95,12 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 			    IPC_GET_ARG3(call));
 			retval = EOK;
 			break;
+		case MOUSEEV_ABS_MOVE_EVENT:
+			mouse_push_event_abs_move(mousedev->mouse_dev,
+				IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+				IPC_GET_ARG3(call), IPC_GET_ARG4(call));
+			retval = EOK;
+			break;
 		case MOUSEEV_BUTTON_EVENT:
 			mouse_push_event_button(mousedev->mouse_dev,
 			    IPC_GET_ARG1(call), IPC_GET_ARG2(call));
@@ -116,7 +122,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	if (sess == NULL) {
 		printf("%s: Failed starting session with '%s'\n", NAME,
 		    mdev->svc_name);
-		return -1;
+		return ENOENT;
 	}
 	
 	mousedev_t *mousedev = mousedev_new(mdev);
@@ -124,7 +130,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		printf("%s: Failed allocating device structure for '%s'.\n",
 		    NAME, mdev->svc_name);
 		async_hangup(sess);
-		return -1;
+		return ENOMEM;
 	}
 	
 	async_exch_t *exch = async_exchange_begin(sess);
@@ -133,7 +139,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		    mdev->svc_name);
 		mousedev_destroy(mousedev);
 		async_hangup(sess);
-		return -1;
+		return ENOENT;
 	}
 	
 	int rc = async_connect_to_me(exch, 0, 0, 0, mousedev_callback_conn, mousedev);
@@ -144,10 +150,10 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, mdev->svc_name);
 		mousedev_destroy(mousedev);
-		return -1;
+		return rc;
 	}
 	
-	return 0;
+	return EOK;
 }
 
 mouse_proto_ops_t mousedev_proto = {

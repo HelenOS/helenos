@@ -32,6 +32,7 @@
 /** @file
  * Functions needed by hub drivers.
  */
+
 #include <usb/dev/hub.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
@@ -61,7 +62,7 @@ int usb_hub_register_device(usb_hc_connection_t *connection,
 	if (attached_device == NULL || attached_device->fun == NULL)
 		return EBADMEM;
 	return usb_hc_bind_address(connection,
-	    attached_device->address, attached_device->fun->handle);
+	    attached_device->address, ddf_fun_get_handle(attached_device->fun));
 }
 
 /** Change address of connected device.
@@ -114,7 +115,6 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address)
 	return EOK;
 }
 
-
 /** Wrapper for registering attached device to the hub.
  *
  * The @p enable_port function is expected to enable signaling on given
@@ -159,7 +159,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
     int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
-	if (new_fun == NULL || hc_conn == NULL)
+	if ((new_fun == NULL) || (hc_conn == NULL))
 		return EINVAL;
 
 	int rc;
@@ -286,9 +286,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	/* Inform the host controller about the handle. */
 	rc = usb_hub_register_device(hc_conn, &new_device);
 	if (rc != EOK) {
-		/* We know nothing about that data. */
-		if (new_dev_data)
-			child_fun->driver_data = NULL;
 		/* The child function is already created. */
 		ddf_fun_destroy(child_fun);
 		rc = EDESTADDRREQ;

@@ -39,11 +39,12 @@
 #include <macros.h>
 #include <errno.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <tinput.h>
 
 #define LIN_TO_COL(ti, lpos) ((lpos) % ((ti)->con_cols))
 #define LIN_TO_ROW(ti, lpos) ((lpos) / ((ti)->con_cols))
+#define LIN_POS(ti, col, row) ((col) + (row) * (ti)->con_cols)
 
 /** Seek direction */
 typedef enum {
@@ -103,7 +104,9 @@ static void tinput_display_prompt(tinput_t *ti)
 
 static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 {
-	wchar_t dbuf[INPUT_MAX_SIZE + 1];
+	wchar_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(wchar_t));
+	if (!dbuf)
+		return;	
 	
 	size_t sa;
 	size_t sb;
@@ -145,6 +148,8 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 		putchar(' ');
 	
 	console_flush(ti->console);
+
+	free(dbuf);
 }
 
 static char *tinput_get_str(tinput_t *ti)
@@ -378,6 +383,23 @@ static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir, bool shift_held)
 	tinput_post_seek(ti, shift_held);
 }
 
+static void tinput_seek_scrpos(tinput_t *ti, int col, int line, bool shift_held)
+{
+	unsigned lpos;
+	tinput_pre_seek(ti, shift_held);
+
+	lpos = LIN_POS(ti, col, line);
+
+	if (lpos > ti->text_coord)
+		ti->pos = lpos -  ti->text_coord;
+	else
+		ti->pos = 0;
+	if (ti->pos > ti->nc)
+		ti->pos = ti->nc;
+
+	tinput_post_seek(ti, shift_held);
+}
+
 static void tinput_seek_max(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
 	tinput_pre_seek(ti, shift_held);
@@ -594,38 +616,45 @@ static size_t common_pref_len(const char *a, const char *b)
 static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 {
 	unsigned int i;
-	/* Determine the maximum length of the completion in chars */
-	size_t max_length = 0;
+	/* Determine the maximum width of the completion in chars */
+	size_t max_width = 0;
 	for (i = 0; i < cnum; i++)
-		max_length = max(max_length, str_length(compl[i]));
+		max_width = max(max_width, str_width(compl[i]));
 	
-	unsigned int cols = max(1, (ti->con_cols + 1) / (max_length + 1));
-	unsigned int col_width = ti->con_cols / cols;
+	unsigned int cols = max(1, (ti->con_cols + 1) / (max_width + 1));
+	unsigned int padding = 0;
+	if ((cols * max_width) + (cols - 1) < ti->con_cols) {
+		padding = ti->con_cols - (cols * max_width) - (cols - 1);
+	}
+	unsigned int col_width = max_width + padding / cols;
 	unsigned int rows = cnum / cols + ((cnum % cols) != 0);
 	
 	unsigned int row, col;
 	
 	for (row = 0; row < rows; row++) {
-		bool wlc = false;
+		unsigned int display_col = 0;
 		for (col = 0; col < cols; col++) {
 			size_t compl_idx = col * rows + row;
 			if (compl_idx >= cnum)
 				break;
-			if (col)
+			if (col) {
 				printf(" ");
-			printf("%s", compl[compl_idx]);
-			size_t compl_len = str_length(compl[compl_idx]);
-			if (col == cols -1) {
-				wlc = (compl_len == max_length);
+				display_col++;
 			}
-			else {
-				for (i = compl_len; i < col_width; i++) {
+			printf("%s", compl[compl_idx]);
+			size_t compl_width = str_width(compl[compl_idx]);
+			display_col += compl_width;
+			if (col < cols - 1) {
+				for (i = compl_width; i < col_width; i++) {
 					printf(" ");
+					display_col++;
 				}
 			}
 		}
-		if (!wlc) printf("\n");
+		if ((display_col % ti->con_cols) > 0)
+			printf("\n");
 	}
+	fflush(stdout);
 }
 
 
@@ -775,6 +804,54 @@ void tinput_set_compl_ops(tinput_t *ti, tinput_compl_ops_t *compl_ops)
 	ti->compl_ops = compl_ops;
 }
 
+/** Handle key press event. */
+static void tinput_key_press(tinput_t *ti, kbd_event_t *kev)
+{
+	if (kev->key == KC_LSHIFT)
+		ti->lshift_held = true;
+	if (kev->key == KC_RSHIFT)
+		ti->rshift_held = true;
+
+	if (((kev->mods & KM_CTRL) != 0) &&
+	    ((kev->mods & (KM_ALT | KM_SHIFT)) == 0))
+		tinput_key_ctrl(ti, kev);
+	
+	if (((kev->mods & KM_SHIFT) != 0) &&
+	    ((kev->mods & (KM_CTRL | KM_ALT)) == 0))
+		tinput_key_shift(ti, kev);
+	
+	if (((kev->mods & KM_CTRL) != 0) &&
+	    ((kev->mods & KM_SHIFT) != 0) &&
+	    ((kev->mods & KM_ALT) == 0))
+		tinput_key_ctrl_shift(ti, kev);
+	
+	if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
+		tinput_key_unmod(ti, kev);
+	
+	if (kev->c >= ' ') {
+		tinput_sel_delete(ti);
+		tinput_insert_char(ti, kev->c);
+	}
+}
+
+/** Handle key release event. */
+static void tinput_key_release(tinput_t *ti, kbd_event_t *kev)
+{
+	if (kev->key == KC_LSHIFT)
+		ti->lshift_held = false;
+	if (kev->key == KC_RSHIFT)
+		ti->rshift_held = false;
+}
+
+/** Position event */
+static void tinput_pos(tinput_t *ti, pos_event_t *ev)
+{
+	if (ev->type == POS_PRESS) {
+		tinput_seek_scrpos(ti, ev->hpos, ev->vpos,
+		    ti->lshift_held || ti->rshift_held);
+	}
+}
+
 /** Read in one line of input.
  *
  * @param ti   Text input.
@@ -804,32 +881,20 @@ int tinput_read(tinput_t *ti, char **dstr)
 	while (!ti->done) {
 		console_flush(ti->console);
 		
-		kbd_event_t ev;
-		if (!console_get_kbd_event(ti->console, &ev))
+		cons_event_t ev;
+		if (!console_get_event(ti->console, &ev))
 			return EIO;
 		
-		if (ev.type != KEY_PRESS)
-			continue;
-		
-		if (((ev.mods & KM_CTRL) != 0) &&
-		    ((ev.mods & (KM_ALT | KM_SHIFT)) == 0))
-			tinput_key_ctrl(ti, &ev);
-		
-		if (((ev.mods & KM_SHIFT) != 0) &&
-		    ((ev.mods & (KM_CTRL | KM_ALT)) == 0))
-			tinput_key_shift(ti, &ev);
-		
-		if (((ev.mods & KM_CTRL) != 0) &&
-		    ((ev.mods & KM_SHIFT) != 0) &&
-		    ((ev.mods & KM_ALT) == 0))
-			tinput_key_ctrl_shift(ti, &ev);
-		
-		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
-			tinput_key_unmod(ti, &ev);
-		
-		if (ev.c >= ' ') {
-			tinput_sel_delete(ti);
-			tinput_insert_char(ti, ev.c);
+		switch (ev.type) {
+		case CEV_KEY:
+			if (ev.ev.key.type == KEY_PRESS)
+				tinput_key_press(ti, &ev.ev.key);
+			else
+				tinput_key_release(ti, &ev.ev.key);
+			break;
+		case CEV_POS:
+			tinput_pos(ti, &ev.ev.pos);
+			break;
 		}
 	}
 	

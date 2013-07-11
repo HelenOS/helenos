@@ -102,6 +102,7 @@ void arch_pre_mm_init(void)
 	start_decrementer();
 }
 
+#ifdef CONFIG_FB
 static bool display_register(ofw_tree_node_t *node, void *arg)
 {
 	uintptr_t fb_addr = 0;
@@ -168,6 +169,7 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 	
 	return true;
 }
+#endif
 
 void arch_post_mm_init(void)
 {
@@ -268,7 +270,8 @@ void calibrate_delay_loop(void)
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	userspace_asm((uintptr_t) kernel_uarg->uspace_uarg,
-	    (uintptr_t) kernel_uarg->uspace_stack + STACK_SIZE - SP_DELTA,
+	    (uintptr_t) kernel_uarg->uspace_stack +
+	    kernel_uarg->uspace_stack_size - SP_DELTA,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	
 	/* Unreachable */

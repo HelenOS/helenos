@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <ipc/services.h>
@@ -449,11 +449,12 @@ int main(int argc, char *argv[])
 	task_id_t id = task_get_id();
 	int rc = ns_intro(id);
 	if (rc != EOK)
-		return -1;
+		return rc;
 	
 	/* Register at naming service. */
-	if (service_register(SERVICE_LOAD) != EOK)
-		return -2;
+	rc = service_register(SERVICE_LOAD);
+	if (rc != EOK)
+		return rc;
 	
 	async_manager();
 	

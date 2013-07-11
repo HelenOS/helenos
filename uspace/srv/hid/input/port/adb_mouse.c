@@ -36,12 +36,12 @@
 
 #include <ipc/adb.h>
 #include <async.h>
-#include <input.h>
-#include <mouse_port.h>
-#include <mouse.h>
 #include <errno.h>
 #include <loc.h>
 #include <stdio.h>
+#include "../mouse.h"
+#include "../mouse_port.h"
+#include "../input.h"
 
 static mouse_dev_t *mouse_dev;
 static async_sess_t *dev_sess;
@@ -53,7 +53,7 @@ static void mouse_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		int retval;
+		int retval = EOK;
 		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */

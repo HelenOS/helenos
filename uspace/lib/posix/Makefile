@@ -32,33 +32,70 @@ LIBRARY = libposix
 SLIBRARY = libposix.so.0.0
 LSONAME = libposix.so0
 
-INCLUDE_LIBC = ./libc
+EXTRA_CFLAGS = -Iinclude/
+
+INCLUDE_LIBC = ./include/libc
+
+LIBC_FILE = $(LIBC_PREFIX)/libc.a
+
+FIXED_POSIX_LIBRARY = libposixaslibc.a
+FIXED_C_LIBRARY = libc4posix.a
+
+REDEFS_HIDE_LIBC = redefs-hide-libc.xargs
+REDEFS_SHOW_LIBPOSIX = redefs-show-posix.xargs
+COLLISIONS_LIST = collisions.list
 
 PRE_DEPEND = $(INCLUDE_LIBC)
-EXTRA_CLEAN = $(INCLUDE_LIBC)
+EXTRA_CLEAN = \
+	$(INCLUDE_LIBC) \
+	$(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX) \
+	$(COLLISIONS_LIST)
+EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY)
 
 SOURCES = \
-	ctype.c \
-	errno.c \
-	fcntl.c \
-	fnmatch.c \
-	locale.c \
-	math.c \
-	pwd.c \
-	signal.c \
-	stdio.c \
-	stdio/scanf.c \
-	stdlib.c \
-	stdlib/strtol.c \
-	stdlib/strtold.c \
-	string.c \
-	strings.c \
-	sys/stat.c \
-	sys/wait.c \
-	time.c \
-	unistd.c
+	source/ctype.c \
+	source/errno.c \
+	source/fcntl.c \
+	source/fnmatch.c \
+	source/getopt.c \
+	source/locale.c \
+	source/math.c \
+	source/pwd.c \
+	source/signal.c \
+	source/stdio.c \
+	source/stdio/scanf.c \
+	source/stdlib.c \
+	source/stdlib/strtol.c \
+	source/stdlib/strtold.c \
+	source/string.c \
+	source/strings.c \
+	source/sys/stat.c \
+	source/sys/wait.c \
+	source/time.c \
+	source/unistd.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
 $(INCLUDE_LIBC): ../c/include
-	ln -s -f -n $^ $@
+	ln -s -f -n ../$^ $@
+
+$(FIXED_C_LIBRARY): $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+	./tools/transform-symbols.sh \
+		$(OBJCOPY) $(AR) echo \
+		$(LIBC_FILE) $@ \
+		$(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+
+$(FIXED_POSIX_LIBRARY): $(LIBRARY).a $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+	./tools/transform-symbols.sh \
+		$(OBJCOPY) $(AR) echo \
+		$(LIBRARY).a $@ \
+		$(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+
+$(REDEFS_HIDE_LIBC): $(COLLISIONS_LIST)
+	./tools/create-redefines.sh "" "__helenos_libc_" <$(COLLISIONS_LIST) >$@
+	
+$(REDEFS_SHOW_LIBPOSIX): $(COLLISIONS_LIST)
+	./tools/create-redefines.sh "posix_" "" <$(COLLISIONS_LIST) >$@
+
+$(COLLISIONS_LIST):
+	./tools/get-collision-list.sh ./include/posix >$@

@@ -28,21 +28,16 @@
 #
 
 USPACE_PREFIX = ../../..
-EXTRA_CFLAGS = -Iinclude
 BINARY = input
 
 SOURCES = \
-	generic/gsp.c \
-	generic/input.c \
-	generic/layout.c \
-	generic/stroke.c \
 	layout/cz.c \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
+	layout/ar.c \
 	port/adb.c \
 	port/adb_mouse.c \
 	port/chardev.c \
-	port/gxemul.c \
 	port/msim.c \
 	port/niagara.c \
 	port/ns16550.c \
@@ -51,10 +46,13 @@ SOURCES = \
 	proto/adb.c \
 	proto/mousedev.c \
 	ctl/apple.c \
-	ctl/gxe_fb.c \
 	ctl/kbdev.c \
 	ctl/pc.c \
 	ctl/stty.c \
-	ctl/sun.c
+	ctl/sun.c \
+	gsp.c \
+	input.c \
+	layout.c \
+	stroke.c
 
 include $(USPACE_PREFIX)/Makefile.common

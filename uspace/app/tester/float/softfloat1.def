@@ -1,0 +1,6 @@
+{
+	"softfloat1",
+	"Software floating point computation",
+	&test_softfloat1,
+	true
+},

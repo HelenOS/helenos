@@ -35,7 +35,7 @@ VERSION_DEF = $(ROOT_PATH)/version
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 COMMON_HEADER = $(ROOT_PATH)/common.h
-COMMON_HEADER_ARCH = arch/$(KARCH)/include/common.h
+COMMON_HEADER_ARCH = arch/$(KARCH)/include/arch/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 CONFIG_HEADER = $(ROOT_PATH)/config.h
@@ -58,10 +58,6 @@ DISASM = kernel.disasm
 DUMP = kernel.dump
 REAL_MAP = generic/src/debug/real_map
 
-ABI_INCLUDE = generic/include/abi
-ARCH_INCLUDE = generic/include/arch
-GENARCH_INCLUDE = generic/include/genarch
-
 GENMAP = tools/genmap.py
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 
@@ -75,13 +71,14 @@ all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CON
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ABI_INCLUDE) $(ARCH_INCLUDE) $(GENARCH_INCLUDE) arch/*/_link.ld arch/*/include/common.h
+	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 
 ## Common compiler flags
 #
 
-INCLUDES = generic/include
+INCLUDES = generic/include genarch/include arch/$(KARCH)/include ../abi/include
+INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
 	OPTIMIZATION = s
@@ -91,27 +88,26 @@ endif
 
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-std=gnu99 -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe
 
-ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -wd170
 
-SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
-	-xnolib -xc99=all -features=extensions \
-	-erroff=E_ZERO_SIZED_STRUCT_UNION
-
-CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+# clang does not support following options but I am not sure whether
+# something won't break because of that:
+# -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
+CLANG_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Werror -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -arch $(CLANG_ARCH)
+	-integrated-as \
+	-pipe -target $(CLANG_TARGET)
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror
@@ -125,7 +121,6 @@ endif
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	GCC_CFLAGS += -g
 	ICC_CFLAGS += -g
-	SUNCC_CFLAGS += -g
 	CLANG_CFLAGS += -g
 endif
 
@@ -182,13 +177,6 @@ ifeq ($(COMPILER),icc)
 	INSTRUMENTATION =
 endif
 
-ifeq ($(COMPILER),suncc)
-	CFLAGS = $(SUNCC_CFLAGS)
-	DEFS += $(CONFIG_DEFS)
-	DEPEND_DEFS = $(DEFS)
-	INSTRUMENTATION =
-endif
-
 ifeq ($(COMPILER),clang)
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
@@ -207,6 +195,7 @@ GENERIC_SOURCES = \
 	generic/src/adt/list.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
+	generic/src/console/prompt.c \
 	generic/src/cpu/cpu.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
@@ -267,6 +256,17 @@ GENERIC_SOURCES = \
 	generic/src/smp/smp.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
+	generic/src/ipc/sysipc_ops.c \
+	generic/src/ipc/ops/clnestab.c \
+	generic/src/ipc/ops/conctmeto.c \
+	generic/src/ipc/ops/concttome.c \
+	generic/src/ipc/ops/connclone.c \
+	generic/src/ipc/ops/dataread.c \
+	generic/src/ipc/ops/datawrite.c \
+	generic/src/ipc/ops/debug.c \
+	generic/src/ipc/ops/sharein.c \
+	generic/src/ipc/ops/shareout.c \
+	generic/src/ipc/ops/stchngath.c \
 	generic/src/ipc/ipcrsc.c \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \
@@ -389,7 +389,7 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 
 $(LINK): $(LINK).in $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c -o $@ $<
@@ -434,18 +434,9 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(DEPEND): $(ABI_INCLUDE) $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
+$(DEPEND): $(COMMON_HEADER_ARCH)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
-$(ABI_INCLUDE): ../abi/include/
-	ln -sfn ../../$< $@
-
-$(ARCH_INCLUDE): arch/$(KARCH)/include/
-	ln -sfn ../../$< $@
-
-$(GENARCH_INCLUDE): genarch/include/
-	ln -sfn ../../$< $@
-
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../$< $@
+	ln -sfn ../../../../$< $@

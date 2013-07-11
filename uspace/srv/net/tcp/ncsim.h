@@ -39,8 +39,7 @@
 
 extern void tcp_ncsim_init(void);
 extern void tcp_ncsim_bounce_seg(tcp_sockpair_t *, tcp_segment_t *);
-extern void tcp_ncsim_thread_start(void);
-
+extern void tcp_ncsim_fibril_start(void);
 
 #endif
 

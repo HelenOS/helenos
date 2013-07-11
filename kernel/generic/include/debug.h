@@ -36,7 +36,7 @@
 #define KERN_DEBUG_H_
 
 #include <panic.h>
-#include <symtab.h>
+#include <symtab_lookup.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))
 
@@ -76,10 +76,22 @@
 			    __func__, __FILE__, __LINE__, #expr, msg); \
 	} while (0)
 
+/** Static assert macro
+ *
+ */
+#define STATIC_ASSERT(expr) \
+	_Static_assert(expr, "")
+
+#define STATIC_ASSERT_VERBOSE(expr, msg) \
+	_Static_assert(expr, msg)
+
+
 #else /* CONFIG_DEBUG */
 
 #define ASSERT(expr)
 #define ASSERT_VERBOSE(expr, msg)
+#define STATIC_ASSERT(expr)
+#define STATIC_ASSERT_VERBOSE(expr, msg)
 
 #endif /* CONFIG_DEBUG */
 

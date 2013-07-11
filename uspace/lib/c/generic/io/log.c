@@ -37,86 +37,213 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <async.h>
 #include <io/log.h>
+#include <ipc/logger.h>
+#include <ns.h>
 
-/** Serialization mutex for logging functions. */
-static FIBRIL_MUTEX_INITIALIZE(log_serializer);
+/** Id of the first log we create at logger. */
+static sysarg_t default_log_id;
 
-/** Current log level. */
-static log_level_t log_level;
-
-static FILE *log_stream;
-
+/** Log messages are printed under this name. */
 static const char *log_prog_name;
 
-/** Prefixes for individual logging levels. */
+/** Names of individual log levels. */
 static const char *log_level_names[] = {
-	[LVL_FATAL] = "Fatal error",
-	[LVL_ERROR] = "Error",
-	[LVL_WARN] = "Warning",
-	[LVL_NOTE] = "Note",
-	[LVL_DEBUG] = "Debug",
-	[LVL_DEBUG2] = "Debug2"
+	"fatal",
+	"error",
+	"warn",
+	"note",
+	"debug",
+	"debug2",
+	NULL
 };
 
-/** Initialize the logging system.
- *
- * @param prog_name	Program name, will be printed as part of message
- * @param level		Minimum message level to print
- */
-int log_init(const char *prog_name, log_level_t level)
-{
-	assert(level < LVL_LIMIT);
-	log_level = level;
+/** IPC session with the logger service. */
+static async_sess_t *logger_session;
 
-	log_stream = stdout;
-	log_prog_name = str_dup(prog_name);
-	if (log_prog_name == NULL)
+/** Maximum length of a single log message (in bytes). */
+#define MESSAGE_BUFFER_SIZE 4096
+
+/** Send formatted message to the logger service.
+ *
+ * @param session Initialized IPC session with the logger.
+ * @param log Log to use.
+ * @param level Verbosity level of the message.
+ * @param message The actual message.
+ * @return Error code of the conversion or EOK on success.
+ */
+static int logger_message(async_sess_t *session, log_t log, log_level_t level, char *message)
+{
+	async_exch_t *exchange = async_exchange_begin(session);
+	if (exchange == NULL) {
 		return ENOMEM;
+	}
+	if (log == LOG_DEFAULT)
+		log = default_log_id;
+
+	// FIXME: remove when all USB drivers use libc logging explicitly
+	str_rtrim(message, '\n');
+
+	aid_t reg_msg = async_send_2(exchange, LOGGER_WRITER_MESSAGE,
+	    log, level, NULL);
+	int rc = async_data_write_start(exchange, message, str_size(message));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	/*
+	 * Getting ENAK means no-one wants our message. That is not an
+	 * error at all.
+	 */
+	if (rc == ENAK)
+		rc = EOK;
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return reg_msg_rc;
+}
+
+/** Get name of the log level.
+ *
+ * @param level The log level.
+ * @return String name or "unknown".
+ */
+const char *log_level_str(log_level_t level)
+{
+	if (level >= LVL_LIMIT)
+		return "unknown";
+	else
+		return log_level_names[level];
+}
+
+/** Convert log level name to the enum.
+ *
+ * @param[in] name Log level name or log level number.
+ * @param[out] level_out Where to store the result (set to NULL to ignore).
+ * @return Error code of the conversion or EOK on success.
+ */
+int log_level_from_str(const char *name, log_level_t *level_out)
+{
+	log_level_t level = LVL_FATAL;
+
+	while (log_level_names[level] != NULL) {
+		if (str_cmp(name, log_level_names[level]) == 0) {
+			if (level_out != NULL)
+				*level_out = level;
+			return EOK;
+		}
+		level++;
+	}
+
+	/* Maybe user specified number directly. */
+	char *end_ptr;
+	int level_int = strtol(name, &end_ptr, 0);
+	if ((end_ptr == name) || (str_length(end_ptr) != 0))
+		return EINVAL;
+	if (level_int < 0)
+		return ERANGE;
+	if (level_int >= (int) LVL_LIMIT)
+		return ERANGE;
+
+	if (level_out != NULL)
+		*level_out = (log_level_t) level_int;
 
 	return EOK;
 }
 
+/** Initialize the logging system.
+ *
+ * @param prog_name Program name, will be printed as part of message
+ */
+int log_init(const char *prog_name)
+{
+	log_prog_name = str_dup(prog_name);
+	if (log_prog_name == NULL)
+		return ENOMEM;
+
+	logger_session = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_LOGGER, LOGGER_INTERFACE_WRITER, 0);
+	if (logger_session == NULL) {
+		return ENOMEM;
+	}
+
+	default_log_id = log_create(prog_name, LOG_NO_PARENT);
+
+	return EOK;
+}
+
+/** Create a new (sub-) log.
+ *
+ * This function always returns a valid log_t. In case of errors,
+ * @c parent is returned and errors are silently ignored.
+ *
+ * @param name Log name under which message will be reported (appended to parents name).
+ * @param parent Parent log.
+ * @return Opaque identifier of the newly created log.
+ */
+log_t log_create(const char *name, log_t parent)
+{
+	async_exch_t *exchange = async_exchange_begin(logger_session);
+	if (exchange == NULL)
+		return parent;
+
+	if (parent == LOG_DEFAULT)
+		parent = default_log_id;
+
+	ipc_call_t answer;
+	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_LOG,
+	    parent, &answer);
+	int rc = async_data_write_start(exchange, name, str_size(name));
+	sysarg_t reg_msg_rc;
+	async_wait_for(reg_msg, &reg_msg_rc);
+
+	async_exchange_end(exchange);
+
+	if ((rc != EOK) || (reg_msg_rc != EOK))
+		return parent;
+
+	return IPC_GET_ARG1(answer);
+}
+
 /** Write an entry to the log.
  *
- * @param level		Message verbosity level. Message is only printed
- *			if verbosity is less than or equal to current
- *			reporting level.
- * @param fmt		Format string (no traling newline).
+ * The message is printed only if the verbosity level is less than or
+ * equal to currently set reporting level of the log.
+ *
+ * @param ctx Log to use (use LOG_DEFAULT if you have no idea what it means).
+ * @param level Severity level of the message.
+ * @param fmt Format string in printf-like format (without trailing newline).
  */
-void log_msg(log_level_t level, const char *fmt, ...)
+void log_msg(log_t ctx, log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
 	va_start(args, fmt);
-	log_msgv(level, fmt, args);
+	log_msgv(ctx, level, fmt, args);
 	va_end(args);
 }
 
 /** Write an entry to the log (va_list variant).
  *
- * @param level		Message verbosity level. Message is only printed
- *			if verbosity is less than or equal to current
- *			reporting level.
- * @param fmt		Format string (no trailing newline)
+ * @param ctx Log to use (use LOG_DEFAULT if you have no idea what it means).
+ * @param level Severity level of the message.
+ * @param fmt Format string in printf-like format (without trailing newline).
+ * @param args Arguments.
  */
-void log_msgv(log_level_t level, const char *fmt, va_list args)
+void log_msgv(log_t ctx, log_level_t level, const char *fmt, va_list args)
 {
 	assert(level < LVL_LIMIT);
 
-	/* Higher number means higher verbosity. */
-	if (level <= log_level) {
-		fibril_mutex_lock(&log_serializer);
+	char *message_buffer = malloc(MESSAGE_BUFFER_SIZE);
+	if (message_buffer == NULL)
+		return;
 
-		fprintf(log_stream, "%s: %s: ", log_prog_name,
-		    log_level_names[level]);
-		vfprintf(log_stream, fmt, args);
-		fputc('\n', log_stream);
-		fflush(log_stream);
-
-		fibril_mutex_unlock(&log_serializer);
-	}
+	vsnprintf(message_buffer, MESSAGE_BUFFER_SIZE, fmt, args);
+	logger_message(logger_session, ctx, level, message_buffer);
+	free(message_buffer);
 }
 
 /** @}

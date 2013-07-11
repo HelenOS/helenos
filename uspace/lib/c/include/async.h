@@ -43,7 +43,7 @@
 #include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <task.h>
 
 typedef ipc_callid_t aid_t;
@@ -155,6 +155,7 @@ extern void async_put_client_data_by_id(task_id_t);
 
 extern void async_set_client_connection(async_client_conn_t);
 extern void async_set_interrupt_received(async_interrupt_handler_t);
+extern void async_set_interrupt_handler_stack_size(size_t);
 
 /*
  * Wrappers for simple communication.
@@ -320,7 +321,7 @@ extern sysarg_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
-extern async_sess_t *async_connect_me(exch_mgmt_t, async_exch_t *);
+extern async_sess_t *async_clone_establish(exch_mgmt_t, async_exch_t *);
 extern async_sess_t *async_connect_me_to(exch_mgmt_t, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(exch_mgmt_t, async_exch_t *,

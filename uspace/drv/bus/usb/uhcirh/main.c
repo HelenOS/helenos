@@ -47,7 +47,7 @@
 
 #define NAME "uhcirh"
 
-static int hc_get_my_registers(const ddf_dev_t *dev,
+static int hc_get_my_registers(ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
 
 static int uhci_rh_dev_add(ddf_dev_t *device);
@@ -72,7 +72,7 @@ static driver_t uhci_rh_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI root hub driver.\n");
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 	return ddf_driver_main(&uhci_rh_driver);
 }
 
@@ -87,40 +87,39 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 		return EINVAL;
 
 	usb_log_debug2("uhci_rh_dev_add(handle=%" PRIun ")\n",
-	    device->handle);
+	    ddf_dev_get_handle(device));
 
 	uintptr_t io_regs = 0;
 	size_t io_size = 0;
 	uhci_root_hub_t *rh = NULL;
-	int ret = EOK;
+	int rc;
 
-#define CHECK_RET_FREE_RH_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	if (rh) \
-		free(rh); \
-	return ret; \
-} else (void)0
+	rc = hc_get_my_registers(device, &io_regs, &io_size);
+	if (rc != EOK) {
+		usb_log_error( "Failed to get registers from HC: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
-	ret = hc_get_my_registers(device, &io_regs, &io_size);
-	CHECK_RET_FREE_RH_RETURN(ret,
-	    "Failed to get registers from HC: %s.\n", str_error(ret));
 	usb_log_debug("I/O regs at %p (size %zuB).\n",
 	    (void *) io_regs, io_size);
 
-	rh = malloc(sizeof(uhci_root_hub_t));
-	ret = (rh == NULL) ? ENOMEM : EOK;
-	CHECK_RET_FREE_RH_RETURN(ret,
-	    "Failed to allocate rh driver instance.\n");
+	rh = ddf_dev_data_alloc(device, sizeof(uhci_root_hub_t));
+	if (rh == NULL) {
+		usb_log_error("Failed to allocate rh driver instance.\n");
+		return ENOMEM;
+	}
 
-	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
-	CHECK_RET_FREE_RH_RETURN(ret,
-	    "Failed(%d) to initialize rh driver instance: %s.\n",
-	    ret, str_error(ret));
+	rc = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
+	if (rc != EOK) {
+		usb_log_error("Failed(%d) to initialize rh driver instance: "
+		    "%s.\n", rc, str_error(rc));
+		return rc;
+	}
 
-	device->driver_data = rh;
 	usb_log_info("Controlling root hub '%s' (%" PRIun ").\n",
-	    device->name, device->handle);
+	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
+
 	return EOK;
 }
 
@@ -132,13 +131,11 @@ if (ret != EOK) { \
  * @return Error code.
  */
 int hc_get_my_registers(
-    const ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
+    ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
 {
-	assert(dev);
-
 	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE, dev->handle,
-	    IPC_FLAG_BLOCKING);
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
 	if (!parent_sess)
 		return ENOMEM;
 

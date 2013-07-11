@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <io/log.h>
 #include <stdlib.h>
-#include <thread.h>
+#include <fibril.h>
 #include "conn.h"
 #include "pdu.h"
 #include "rqueue.h"
@@ -73,19 +73,19 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_sockpair_t rident;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_bounce_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_bounce_seg()");
 
 #ifdef BOUNCE_TRANSCODE
 	tcp_pdu_t *pdu;
 	tcp_segment_t *dseg;
 
 	if (tcp_pdu_encode(sp, seg, &pdu) != EOK) {
-		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
 
 	if (tcp_pdu_decode(pdu, &rident, &dseg) != EOK) {
-		log_msg(LVL_WARN, "Not enough memory. Segment dropped.");
+		log_msg(LOG_DEFAULT, LVL_WARN, "Not enough memory. Segment dropped.");
 		return;
 	}
 
@@ -111,13 +111,13 @@ void tcp_rqueue_bounce_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_rqueue_entry_t *rqe;
-	log_msg(LVL_DEBUG, "tcp_rqueue_insert_seg()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_insert_seg()");
 
 	tcp_segment_dump(seg);
 
 	rqe = calloc(1, sizeof(tcp_rqueue_entry_t));
 	if (rqe == NULL) {
-		log_msg(LVL_ERROR, "Failed allocating RQE.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating RQE.");
 		return;
 	}
 
@@ -127,13 +127,13 @@ void tcp_rqueue_insert_seg(tcp_sockpair_t *sp, tcp_segment_t *seg)
 	prodcons_produce(&rqueue, &rqe->link);
 }
 
-/** Receive queue handler thread. */
-static void tcp_rqueue_thread(void *arg)
+/** Receive queue handler fibril. */
+static int tcp_rqueue_fibril(void *arg)
 {
 	link_t *link;
 	tcp_rqueue_entry_t *rqe;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_thread()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_fibril()");
 
 	while (true) {
 		link = prodcons_consume(&rqueue);
@@ -141,21 +141,25 @@ static void tcp_rqueue_thread(void *arg)
 
 		tcp_as_segment_arrived(&rqe->sp, rqe->seg);
 	}
+
+	/* Not reached */
+	return 0;
 }
 
-/** Start receive queue handler thread. */
-void tcp_rqueue_thread_start(void)
+/** Start receive queue handler fibril. */
+void tcp_rqueue_fibril_start(void)
 {
-	thread_id_t tid;
-        int rc;
+	fid_t fid;
 
-	log_msg(LVL_DEBUG, "tcp_rqueue_thread_start()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_rqueue_fibril_start()");
 
-	rc = thread_create(tcp_rqueue_thread, NULL, "rqueue", &tid);
-	if (rc != EOK) {
-		log_msg(LVL_ERROR, "Failed creating rqueue thread.");
+	fid = fibril_create(tcp_rqueue_fibril, NULL);
+	if (fid == 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating rqueue fibril.");
 		return;
 	}
+
+	fibril_add_ready(fid);
 }
 
 /**

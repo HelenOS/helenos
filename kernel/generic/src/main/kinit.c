@@ -68,6 +68,7 @@
 #include <debug.h>
 #include <str.h>
 #include <sysinfo/stats.h>
+#include <sysinfo/sysinfo.h>
 #include <align.h>
 
 #ifdef CONFIG_SMP
@@ -115,11 +116,10 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		thread = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true);
+		thread = thread_create(kmp, NULL, TASK,
+		    THREAD_FLAG_UNCOUNTED, "kmp");
 		if (thread != NULL) {
-			irq_spinlock_lock(&thread->lock, false);
-			thread->cpu = &cpus[0];
-			irq_spinlock_unlock(&thread->lock, false);
+			thread_wire(thread, &cpus[0]);
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
@@ -133,11 +133,10 @@ void kinit(void *arg)
 		unsigned int i;
 		
 		for (i = 0; i < config.cpu_count; i++) {
-			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
+			thread = thread_create(kcpulb, NULL, TASK,
+			    THREAD_FLAG_UNCOUNTED, "kcpulb");
 			if (thread != NULL) {
-				irq_spinlock_lock(&thread->lock, false);
-				thread->cpu = &cpus[i];
-				irq_spinlock_unlock(&thread->lock, false);
+				thread_wire(thread, &cpus[i]);
 				thread_ready(thread);
 			} else
 				printf("Unable to create kcpulb thread for cpu%u\n", i);
@@ -151,7 +150,8 @@ void kinit(void *arg)
 	arch_post_smp_init();
 	
 	/* Start thread computing system load */
-	thread = thread_create(kload, NULL, TASK, 0, "kload", false);
+	thread = thread_create(kload, NULL, TASK, THREAD_FLAG_NONE,
+	    "kload");
 	if (thread != NULL)
 		thread_ready(thread);
 	else
@@ -162,13 +162,20 @@ void kinit(void *arg)
 		/*
 		 * Create kernel console.
 		 */
-		thread = thread_create(kconsole_thread, NULL, TASK, 0, "kconsole", false);
+		thread = thread_create(kconsole_thread, NULL, TASK,
+		    THREAD_FLAG_NONE, "kconsole");
 		if (thread != NULL)
 			thread_ready(thread);
 		else
 			printf("Unable to create kconsole thread\n");
 	}
 #endif /* CONFIG_KCONSOLE */
+	
+	/*
+	 * Store the default stack size in sysinfo so that uspace can create
+	 * stack with this default size.
+	 */
+	sysinfo_set_item_val("default.stack_size", NULL, STACK_SIZE_USER);
 	
 	interrupts_enable();
 	
@@ -178,6 +185,28 @@ void kinit(void *arg)
 	size_t i;
 	program_t programs[CONFIG_INIT_TASKS];
 	
+	// FIXME: do not propagate arguments through sysinfo
+	// but pass them directly to the tasks
+	for (i = 0; i < init.cnt; i++) {
+		const char *arguments = init.tasks[i].arguments;
+		if (str_length(arguments) == 0)
+			continue;
+		if (str_length(init.tasks[i].name) == 0)
+			continue;
+		size_t arguments_size = str_size(arguments);
+
+		void *arguments_copy = malloc(arguments_size, 0);
+		if (arguments_copy == NULL)
+			continue;
+		memcpy(arguments_copy, arguments, arguments_size);
+
+		char item_name[CONFIG_TASK_NAME_BUFLEN + 15];
+		snprintf(item_name, CONFIG_TASK_NAME_BUFLEN + 15,
+		    "init_args.%s", init.tasks[i].name);
+
+		sysinfo_set_item_data(item_name, NULL, arguments_copy, arguments_size);
+	}
+
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].paddr % FRAME_SIZE) {
 			printf("init[%zu]: Address is not frame aligned\n", i);
@@ -200,7 +229,7 @@ void kinit(void *arg)
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
-
+		
 		/*
 		 * Create virtual memory mappings for init task images.
 		 */
@@ -220,8 +249,16 @@ void kinit(void *arg)
 				cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
 				    CAP_IO_MANAGER | CAP_IRQ_REG);
 				
-				if (!ipc_phone_0)
+				if (!ipc_phone_0) {
 					ipc_phone_0 = &programs[i].task->answerbox;
+					/*
+					 * Hold the first task so that the
+					 * ipc_phone_0 remains a valid pointer
+					 * even if the first task exits for
+					 * whatever reason.
+					 */
+					task_hold(programs[i].task);
+				}
 			}
 			
 			/*
@@ -235,7 +272,9 @@ void kinit(void *arg)
 			 */
 			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
 		} else
-			printf("init[%zu]: Init binary load failed (error %d)\n", i, rc);
+			printf("init[%zu]: Init binary load failed "
+			    "(error %d, loader status %u)\n", i, rc,
+			    programs[i].loader_status);
 	}
 	
 	/*

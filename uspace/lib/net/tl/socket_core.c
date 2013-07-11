@@ -38,7 +38,6 @@
 #include <net/socket_codes.h>
 #include <net/in.h>
 #include <net/inet.h>
-#include <net/modules.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>

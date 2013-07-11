@@ -164,12 +164,23 @@ static void cpuns_exception(unsigned int n, istate_t *istate)
 
 static void interrupt_exception(unsigned int n, istate_t *istate)
 {
+	uint32_t ip;
+	uint32_t im;
+
 	/* Decode interrupt number and process the interrupt */
-	uint32_t cause = (cp0_cause_read() >> 8) & 0xff;
+	ip = (cp0_cause_read() & cp0_cause_ip_mask) >> cp0_cause_ip_shift;
+	im = (cp0_status_read() & cp0_status_im_mask) >> cp0_status_im_shift;
 	
 	unsigned int i;
 	for (i = 0; i < 8; i++) {
-		if (cause & (1 << i)) {
+
+		/*
+		 * The interrupt could only occur if it is unmasked in the
+		 * status register. On the other hand, an interrupt can be
+		 * apparently pending even if it is masked, so we need to
+		 * check both the masked and pending interrupts.
+		 */
+		if (im & ip & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
 			if (irq) {
 				/*

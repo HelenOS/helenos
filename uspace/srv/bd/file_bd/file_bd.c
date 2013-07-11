@@ -40,15 +40,15 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
+#include <bd_srv.h>
 #include <fibril_synch.h>
 #include <loc.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <task.h>
 #include <macros.h>
 
@@ -61,13 +61,28 @@ static aoff64_t num_blocks;
 static FILE *img;
 
 static service_id_t service_id;
+static bd_srvs_t bd_srvs;
 static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
 static int file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
-static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf);
-static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
+
+static int file_bd_open(bd_srvs_t *, bd_srv_t *);
+static int file_bd_close(bd_srv_t *);
+static int file_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static int file_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static int file_bd_get_block_size(bd_srv_t *, size_t *);
+static int file_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+
+static bd_ops_t file_bd_ops = {
+	.open = file_bd_open,
+	.close = file_bd_close,
+	.read_blocks = file_bd_read_blocks,
+	.write_blocks = file_bd_write_blocks,
+	.get_block_size = file_bd_get_block_size,
+	.get_num_blocks = file_bd_get_num_blocks
+};
 
 int main(int argc, char **argv)
 {
@@ -118,15 +133,15 @@ int main(int argc, char **argv)
 
 	rc = loc_service_register(device_name, &service_id);
 	if (rc != EOK) {
-		printf(NAME ": Unable to register device '%s'.\n",
-			device_name);
+		printf("%s: Unable to register device '%s'.\n",
+		    NAME, device_name);
 		return rc;
 	}
-
-	printf(NAME ": Accepting connections\n");
+	
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-
+	
 	/* Not reached */
 	return 0;
 }
@@ -138,115 +153,64 @@ static void print_usage(void)
 
 static int file_bd_init(const char *fname)
 {
-	int rc;
-	long img_size;
+	bd_srvs_init(&bd_srvs);
+	bd_srvs.ops = &file_bd_ops;
 	
 	async_set_client_connection(file_bd_connection);
-	rc = loc_server_register(NAME);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver.\n");
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-
+	
 	img = fopen(fname, "rb+");
 	if (img == NULL)
 		return EINVAL;
-
+	
 	if (fseek(img, 0, SEEK_END) != 0) {
 		fclose(img);
 		return EIO;
 	}
-
-	img_size = ftell(img);
+	
+	off64_t img_size = ftell(img);
 	if (img_size < 0) {
 		fclose(img);
 		return EIO;
 	}
-
+	
 	num_blocks = img_size / block_size;
-
+	
 	fibril_mutex_initialize(&dev_lock);
-
+	
 	return EOK;
 }
 
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	void *fs_va = NULL;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	sysarg_t method;
-	size_t comm_size;
-	unsigned int flags;
-	int retval;
-	uint64_t ba;
-	size_t cnt;
+	bd_conn(iid, icall, &bd_srvs);
+}
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
+/** Open device. */
+static int file_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	return EOK;
+}
 
-	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	(void) async_share_out_finalize(callid, &fs_va);
-	if (fs_va == (void *) -1) {
-		async_answer_0(callid, EHANGUP);
-		return;
-	}
-
-	while (true) {
-		callid = async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
-		
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-		
-		switch (method) {
-		case BD_READ_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = file_bd_read_blocks(ba, cnt, fs_va);
-			break;
-		case BD_WRITE_BLOCKS:
-			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
-				retval = ELIMIT;
-				break;
-			}
-			retval = file_bd_write_blocks(ba, cnt, fs_va);
-			break;
-		case BD_GET_BLOCK_SIZE:
-			async_answer_1(callid, EOK, block_size);
-			continue;
-		case BD_GET_NUM_BLOCKS:
-			async_answer_2(callid, EOK, LOWER32(num_blocks),
-			    UPPER32(num_blocks));
-			continue;
-		default:
-			retval = EINVAL;
-			break;
-		}
-		async_answer_0(callid, retval);
-	}
+/** Close device. */
+static int file_bd_close(bd_srv_t *bd)
+{
+	return EOK;
 }
 
 /** Read blocks from the device. */
-static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
+static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
+    size_t size)
 {
 	size_t n_rd;
 	int rc;
+
+	if (size < cnt * block_size)
+		return EINVAL;
 
 	/* Check whether access is within device address bounds. */
 	if (ba + cnt > num_blocks) {
@@ -281,10 +245,14 @@ static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 }
 
 /** Write blocks to the device. */
-static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
+static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+    const void *buf, size_t size)
 {
 	size_t n_wr;
 	int rc;
+
+	if (size < cnt * block_size)
+		return EINVAL;
 
 	/* Check whether access is within device address bounds. */
 	if (ba + cnt > num_blocks) {
@@ -317,6 +285,20 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 
 	fibril_mutex_unlock(&dev_lock);
 
+	return EOK;
+}
+
+/** Get device block size. */
+static int file_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	*rsize = block_size;
+	return EOK;
+}
+
+/** Get number of blocks on device. */
+static int file_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	*rnb = num_blocks;
 	return EOK;
 }
 

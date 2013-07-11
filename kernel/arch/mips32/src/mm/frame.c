@@ -39,7 +39,10 @@
 #include <mm/frame.h>
 #include <mm/asid.h>
 #include <config.h>
+#ifdef MACHINE_msim
 #include <arch/drivers/msim.h>
+#endif
+#include <arch/arch.h>
 #include <print.h>
 
 #define ZERO_PAGE_MASK    TLB_PAGE_MASK_256K
@@ -83,11 +86,9 @@ static bool frame_available(pfn_t frame)
 	if (frame == (KA2PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
-	
-#if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
-	/* gxemul devices */
-	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
-	    0x10000000, MiB2SIZE(256)))
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	if (frame >= (sdram_size >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
 	
@@ -224,13 +225,6 @@ void frame_low_arch_init(void)
 					ZERO_PAGE_VALUE = 0xdeadbeef;
 					if (ZERO_PAGE_VALUE != 0xdeadbeef)
 						avail = false;
-#if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
-					else {
-						ZERO_PAGE_VALUE_KSEG1(frame) = 0xaabbccdd;
-						if (ZERO_PAGE_VALUE_KSEG1(frame) != 0xaabbccdd)
-							avail = false;
-					}
-#endif
 				}
 			}
 		}
@@ -246,6 +240,32 @@ void frame_low_arch_init(void)
 	
 	/* Blacklist interrupt vector frame */
 	frame_mark_unavailable(0, 1);
+
+#if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
+	/* Blacklist memory regions used by YAMON.
+	 *
+	 * The YAMON User's Manual vaguely says the following physical addresses
+	 * are taken by YAMON:
+	 *
+	 * 0x1000	YAMON functions
+	 * 0x5000	YAMON code
+	 *
+	 * These addresses overlap with the beginning of the SDRAM so we need to
+	 * make sure they cannot be allocated.
+	 *
+	 * The User's Manual unfortunately does not say where does the SDRAM
+	 * portion used by YAMON end.
+	 *
+	 * Looking into the YAMON 02.21 sources, it looks like the first free
+	 * address is computed dynamically and depends on the size of the YAMON
+	 * image. From the YAMON binary, it appears to be 0xc0d50 or roughly
+	 * 772 KiB for that particular version.
+	 *
+	 * Linux is linked to 1MiB which seems to be a safe bet and a reasonable
+	 * upper bound for memory taken by YAMON. We will use it too.
+	 */
+	frame_mark_unavailable(0, 1024 * 1024 / FRAME_SIZE);
+#endif
 	
 	/* Cleanup */
 	cp0_pagemask_write(ZERO_PAGE_MASK);

@@ -1,0 +1,15 @@
+transform point = struct {
+	.lat <- uint32le;
+	.lon <- uint32le;
+};
+
+transform named_point = struct {
+	.name <- ascii <- zero_terminated;
+	<- point;
+};
+
+transform main = struct {
+	.from <- named_point;
+	.to <- named_point;
+	.distance <- uint32le; # in kilometers
+};

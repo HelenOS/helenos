@@ -37,7 +37,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <mem.h>
 #include <nic/nic.h>
@@ -54,7 +54,7 @@
  */
 int nic_rxc_init(nic_rxc_t *rxc)
 {
-	bzero(rxc, sizeof (nic_rxc_t));
+	memset(rxc, 0, sizeof(nic_rxc_t));
 	int rc;
 	rc = nic_addr_db_init(&rxc->blocked_sources, ETH_ADDR);
 	if (rc != EOK) {

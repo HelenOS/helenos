@@ -1,0 +1,6 @@
+{
+	"print6",
+	"Floating point printf test",
+	&test_print6,
+	true
+},

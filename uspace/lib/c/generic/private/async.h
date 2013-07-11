@@ -40,7 +40,7 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <sys/time.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /** Structures of this type are used to track the timeout events. */
 typedef struct {

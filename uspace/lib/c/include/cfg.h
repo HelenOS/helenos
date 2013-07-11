@@ -40,7 +40,7 @@
 
 #include <adt/list.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 /**
  * One key-value pair

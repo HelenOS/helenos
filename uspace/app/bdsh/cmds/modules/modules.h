@@ -49,7 +49,6 @@
 #include "mkdir/entry.h"
 #include "mkfile/entry.h"
 #include "rm/entry.h"
-#include "bdd/entry.h"
 #include "cat/entry.h"
 #include "touch/entry.h"
 #include "ls/entry.h"
@@ -60,6 +59,9 @@
 #include "mount/entry.h"
 #include "unmount/entry.h"
 #include "kcon/entry.h"
+#include "printf/entry.h"
+#include "echo/entry.h"
+#include "cmp/entry.h"
 
 /* Each .def function fills the module_t struct with the individual name, entry
  * point, help entry point, etc. You can use config.h to control what modules
@@ -70,7 +72,6 @@ module_t modules[] = {
 #include "mkdir/mkdir_def.h"
 #include "mkfile/mkfile_def.h"
 #include "rm/rm_def.h"
-#include "bdd/bdd_def.h"
 #include "cat/cat_def.h"
 #include "touch/touch_def.h"
 #include "ls/ls_def.h"
@@ -81,6 +82,9 @@ module_t modules[] = {
 #include "mount/mount_def.h"
 #include "unmount/unmount_def.h"
 #include "kcon/kcon_def.h"
+#include "printf/printf_def.h"
+#include "echo/echo_def.h"
+#include "cmp/cmp_def.h"
 
 	{NULL, NULL, NULL, NULL}
 };

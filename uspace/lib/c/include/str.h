@@ -38,7 +38,7 @@
 
 #include <mem.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define U_SPECIAL  '?'
 
@@ -55,6 +55,7 @@
 #define SPASCII_STR_BUFSIZE(spa_size) ((spa_size) + 1)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
+extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
@@ -72,11 +73,16 @@ extern size_t wstr_length(const wchar_t *wstr);
 extern size_t str_nlength(const char *str, size_t size);
 extern size_t wstr_nlength(const wchar_t *str, size_t size);
 
+extern size_t chr_width(wchar_t ch);
+extern size_t str_width(const char *str);
+
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);
 
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
+
+extern bool str_test_prefix(const char *s, const char *p);
 
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
@@ -102,11 +108,16 @@ extern bool wstr_remove(wchar_t *str, size_t pos);
 extern char *str_dup(const char *);
 extern char *str_ndup(const char *, size_t max_size);
 
-extern int str_uint8_t(const char *, char **, unsigned int, bool, uint8_t *);
-extern int str_uint16_t(const char *, char **, unsigned int, bool, uint16_t *);
-extern int str_uint32_t(const char *, char **, unsigned int, bool, uint32_t *);
-extern int str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
-extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
+extern int str_uint8_t(const char *, const char **, unsigned int, bool,
+    uint8_t *);
+extern int str_uint16_t(const char *, const char **, unsigned int, bool,
+    uint16_t *);
+extern int str_uint32_t(const char *, const char **, unsigned int, bool,
+    uint32_t *);
+extern int str_uint64_t(const char *, const char **, unsigned int, bool,
+    uint64_t *);
+extern int str_size_t(const char *, const char **, unsigned int, bool,
+    size_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);

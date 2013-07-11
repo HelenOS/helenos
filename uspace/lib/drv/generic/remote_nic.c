@@ -103,7 +103,7 @@ static void remote_nic_get_address(ddf_fun_t *dev, void *iface,
 	assert(nic_iface->get_address);
 	
 	nic_address_t address;
-	bzero(&address, sizeof(nic_address_t));
+	memset(&address, 0, sizeof(nic_address_t));
 	
 	int rc = nic_iface->get_address(dev, &address);
 	if (rc == EOK) {
@@ -172,7 +172,7 @@ static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
 	}
 	
 	nic_device_stats_t stats;
-	bzero(&stats, sizeof(nic_device_stats_t));
+	memset(&stats, 0, sizeof(nic_device_stats_t));
 	
 	int rc = nic_iface->get_stats(dev, &stats);
 	if (rc == EOK) {
@@ -207,7 +207,7 @@ static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
 	}
 	
 	nic_device_info_t info;
-	bzero(&info, sizeof(nic_device_info_t));
+	memset(&info, 0, sizeof(nic_device_info_t));
 	
 	int rc = nic_iface->get_device_info(dev, &info);
 	if (rc == EOK) {
@@ -398,7 +398,7 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 		}
 	}
 	
-	bzero(address_list, max_count * sizeof(nic_address_t));
+	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	nic_unicast_mode_t mode = NIC_UNICAST_DEFAULT;
 	size_t address_count = 0;
 	
@@ -502,7 +502,7 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 		}
 	}
 	
-	bzero(address_list, max_count * sizeof(nic_address_t));
+	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	nic_multicast_mode_t mode = NIC_MULTICAST_BLOCKED;
 	size_t address_count = 0;
 	
@@ -666,7 +666,7 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 		}
 	}
 	
-	bzero(address_list, max_count * sizeof(nic_address_t));
+	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	size_t address_count = 0;
 	
 	int rc = nic_iface->blocked_sources_get(dev, max_count, address_list,
@@ -758,7 +758,7 @@ static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
 	}
 	
 	nic_vlan_mask_t vlan_mask;
-	bzero(&vlan_mask, sizeof(nic_vlan_mask_t));
+	memset(&vlan_mask, 0, sizeof(nic_vlan_mask_t));
 	
 	int rc = nic_iface->vlan_get_mask(dev, &vlan_mask);
 	if (rc == EOK) {
@@ -931,7 +931,7 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 		}
 	}
 	
-	bzero(data, max_length);
+	memset(data, 0, max_length);
 	
 	int rc = nic_iface->wol_virtue_probe(dev, id, &type, max_length,
 	    data, &length);
@@ -981,7 +981,7 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 		}
 	}
 	
-	bzero(id_list, max_count * sizeof (nic_wv_id_t));
+	memset(id_list, 0, max_count * sizeof (nic_wv_id_t));
 	
 	int rc = nic_iface->wol_virtue_list(dev, type, max_count, id_list,
 	    &count);
@@ -1046,7 +1046,7 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 		}
 	}
 	
-	bzero(data, max_length);
+	memset(data, 0, max_length);
 	
 	int rc = nic_iface->wol_load_info(dev, &type, max_length, data,
 	    &frame_length);

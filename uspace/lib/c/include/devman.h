@@ -39,7 +39,7 @@
 #include <ipc/devman.h>
 #include <ipc/loc.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 extern async_exch_t *devman_exchange_begin_blocking(devman_interface_t);
 extern async_exch_t *devman_exchange_begin(devman_interface_t);
@@ -63,6 +63,7 @@ extern int devman_fun_get_child(devman_handle_t, devman_handle_t *);
 extern int devman_dev_get_functions(devman_handle_t, devman_handle_t **,
     size_t *);
 extern int devman_fun_get_name(devman_handle_t, char *, size_t);
+extern int devman_fun_get_driver_name(devman_handle_t, char *, size_t);
 extern int devman_fun_get_path(devman_handle_t, char *, size_t);
 extern int devman_fun_online(devman_handle_t);
 extern int devman_fun_offline(devman_handle_t);

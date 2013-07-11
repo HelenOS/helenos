@@ -34,6 +34,9 @@
  * USB HID keyboard device structure and API.
  */
 
+/* XXX Fix this */
+#define _DDF_DATA_IMPLANT
+
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
@@ -70,7 +73,9 @@
 
 #include "../usbhid.h"
 
-/*----------------------------------------------------------------------------*/
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static ddf_dev_ops_t kbdops = { .default_handler = default_connection_handler };
+
 
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 
@@ -85,7 +90,7 @@ static const unsigned int DEFAULT_DELAY_BEFORE_FIRST_REPEAT = 500 * 1000;
 /** Delay between two repeats of a pressed key when auto-repeating. */
 static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
 
-/*----------------------------------------------------------------------------*/
+
 /** Keyboard polling endpoint description for boot protocol class. */
 const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
@@ -100,7 +105,7 @@ const char *HID_KBD_FUN_NAME = "keyboard";
 const char *HID_KBD_CATEGORY_NAME = "keyboard";
 
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
-/*----------------------------------------------------------------------------*/
+
 static const uint8_t USB_KBD_BOOT_REPORT_DESCRIPTOR[] = {
 	0x05, 0x01,  /* Usage Page (Generic Desktop), */
 	0x09, 0x06,  /* Usage (Keyboard), */
@@ -135,15 +140,15 @@ static const uint8_t USB_KBD_BOOT_REPORT_DESCRIPTOR[] = {
 	0x81, 0x00,  /*   Input (Data, Array),   ; Key arrays (6 bytes) */
 	0xC0         /* End Collection */
 };
-/*----------------------------------------------------------------------------*/
+
 typedef enum usb_kbd_flags {
 	USB_KBD_STATUS_UNINITIALIZED = 0,
 	USB_KBD_STATUS_INITIALIZED = 1,
 	USB_KBD_STATUS_TO_DESTROY = -1
 } usb_kbd_flags;
-/*----------------------------------------------------------------------------*/
+
 /* IPC method handler                                                         */
-/*----------------------------------------------------------------------------*/
+
 /**
  * Default handler for IPC methods not handled by DDF.
  *
@@ -159,14 +164,8 @@ typedef enum usb_kbd_flags {
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	if (fun == NULL || fun->driver_data == NULL) {
-		usb_log_error("%s: Missing parameter.\n", __FUNCTION__);
-		async_answer_0(icallid, EINVAL);
-		return;
-	}
-
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
-	usb_kbd_t *kbd_dev = fun->driver_data;
+	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);
 
 	switch (method) {
 	case KBDEV_SET_IND:
@@ -186,8 +185,8 @@ static void default_connection_handler(ddf_fun_t *fun,
 			async_answer_0(icallid, EAGAIN);
 			break;
 		}
-		if (kbd_dev->console_sess == NULL) {
-			kbd_dev->console_sess = sess;
+		if (kbd_dev->client_sess == NULL) {
+			kbd_dev->client_sess = sess;
 			usb_log_debug("%s: OK\n", __FUNCTION__);
 			async_answer_0(icallid, EOK);
 		} else {
@@ -205,9 +204,9 @@ static void default_connection_handler(ddf_fun_t *fun,
 	}
 
 }
-/*----------------------------------------------------------------------------*/
+
 /* Key processing functions                                                   */
-/*----------------------------------------------------------------------------*/
+
 /**
  * Handles turning of LED lights on and off.
  *
@@ -280,7 +279,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		usb_log_warning("Failed to set kbd indicators.\n");
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 /** Send key event.
  *
  * @param kbd_dev Keyboard device structure.
@@ -291,13 +290,13 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned key)
 {
 	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
-	if (kbd_dev->console_sess == NULL) {
+	if (kbd_dev->client_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
 		return;
 	}
 
-	async_exch_t *exch = async_exchange_begin(kbd_dev->console_sess);
+	async_exch_t *exch = async_exchange_begin(kbd_dev->client_sess);
 	if (exch != NULL) {
 		async_msg_2(exch, KBDEV_EVENT, type, key);
 		async_exchange_end(exch);
@@ -305,14 +304,14 @@ void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned key)
 		usb_log_warning("Failed to send key to console.\n");
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 static inline int usb_kbd_is_lock(unsigned int key_code)
 {
 	return (key_code == KC_NUM_LOCK
 	    || key_code == KC_SCROLL_LOCK
 	    || key_code == KC_CAPS_LOCK);
 }
-/*----------------------------------------------------------------------------*/
+
 static size_t find_in_array_int32(int32_t val, int32_t *arr, size_t arr_size)
 {
 	for (size_t i = 0; i < arr_size; i++) {
@@ -323,7 +322,7 @@ static size_t find_in_array_int32(int32_t val, int32_t *arr, size_t arr_size)
 
 	return (size_t) -1;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Checks if some keys were pressed or released and generates key events.
  *
@@ -406,9 +405,9 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	    kbd_dev->keys_old, 4, kbd_dev->key_count, 0);
 	usb_log_debug2("Stored keys %s.\n", key_buffer);
 }
-/*----------------------------------------------------------------------------*/
+
 /* General kbd functions                                                      */
-/*----------------------------------------------------------------------------*/
+
 /**
  * Processes data received from the device in form of report.
  *
@@ -478,9 +477,9 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	usb_kbd_check_key_changes(hid_dev, kbd_dev);
 }
-/*----------------------------------------------------------------------------*/
+
 /* HID/KBD structure manipulation                                             */
-/*----------------------------------------------------------------------------*/
+
 static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 {
 	assert(kbd_dev != NULL);
@@ -498,20 +497,19 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 
 	/* Store the initialized HID device and HID ops
 	 * to the DDF function. */
-	fun->ops = &kbd_dev->ops;
-	fun->driver_data = kbd_dev;
+	ddf_fun_set_ops(fun, &kbdops);
+	ddf_fun_data_implant(fun, kbd_dev);
 
 	int rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
-		fun->driver_data = NULL; /* We did not allocate this. */
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	usb_log_debug("%s function created. Handle: %" PRIun "\n",
-	    HID_KBD_FUN_NAME, fun->handle);
+	    HID_KBD_FUN_NAME, ddf_fun_get_handle(fun));
 
 	usb_log_debug("Adding DDF function to category %s...\n",
 	    HID_KBD_CLASS_NAME);
@@ -521,12 +519,11 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 		    "Could not add DDF function to category %s: %s.\n",
 		    HID_KBD_CLASS_NAME, str_error(rc));
 		if (ddf_fun_unbind(fun) == EOK) {
-			fun->driver_data = NULL; /* We did not allocate this. */
 			ddf_fun_destroy(fun);
 		} else {
 			usb_log_error(
 			    "Failed to unbind `%s', will not destroy.\n",
-			    fun->name);
+			    ddf_fun_get_name(fun));
 		}
 		return rc;
 	}
@@ -534,9 +531,9 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /* API functions                                                              */
-/*----------------------------------------------------------------------------*/
+
 /**
  * Initialization of the USB/HID keyboard structure.
  *
@@ -575,7 +572,6 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	/* Default values */
 	fibril_mutex_initialize(&kbd_dev->repeat_mtx);
 	kbd_dev->initialized = USB_KBD_STATUS_UNINITIALIZED;
-	kbd_dev->ops.default_handler = default_connection_handler;
 
 	/* Store link to HID device */
 	kbd_dev->hid_dev = hid_dev;
@@ -699,7 +695,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (hid_dev == NULL || data == NULL) {
@@ -713,17 +709,17 @@ bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 
 	return true;
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev)
 {
 	return (kbd_dev->initialized == USB_KBD_STATUS_INITIALIZED);
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev)
 {
 	return (kbd_dev->initialized == USB_KBD_STATUS_TO_DESTROY);
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Properly destroys the USB/HID keyboard structure.
  *
@@ -736,8 +732,8 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	}
 
 	/* Hangup session to the console. */
-	if (kbd_dev->console_sess)
-		async_hangup(kbd_dev->console_sess);
+	if (kbd_dev->client_sess)
+		async_hangup(kbd_dev->client_sess);
 
 	//assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
 	// FIXME - the fibril_mutex_is_locked may not cause
@@ -755,16 +751,15 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 	if (kbd_dev->fun) {
 		if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
 			usb_log_warning("Failed to unbind %s.\n",
-			    kbd_dev->fun->name);
+			    ddf_fun_get_name(kbd_dev->fun));
 		} else {
-			usb_log_debug2("%s unbound.\n", kbd_dev->fun->name);
-			kbd_dev->fun->driver_data = NULL;
+			usb_log_debug2("%s unbound.\n",
+			    ddf_fun_get_name(kbd_dev->fun));
 			ddf_fun_destroy(kbd_dev->fun);
 		}
 	}
-	free(kbd_dev);
 }
-/*----------------------------------------------------------------------------*/
+
 void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data != NULL) {
@@ -777,7 +772,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 		usb_kbd_destroy(kbd_dev);
 	}
 }
-/*----------------------------------------------------------------------------*/
+
 int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);

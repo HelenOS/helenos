@@ -32,32 +32,32 @@
 
 #include <io/log.h>
 #include <stdarg.h>
-
 #include <ddf/log.h>
 
 /** Initialize the logging system.
  *
- * @param drv_name	Driver name, will be printed as part of message
- * @param level		Minimum message level to print
+ * @param drv_name Driver name, will be printed as part of message
+ *
  */
-int ddf_log_init(const char *drv_name, log_level_t level)
+int ddf_log_init(const char *drv_name)
 {
-	return log_init(drv_name, level);
+	return log_init(drv_name);
 }
 
 /** Log a driver message.
  *
- * @param level		Message verbosity level. Message is only printed
- *			if verbosity is less than or equal to current
- *			reporting level.
- * @param fmt		Format string (no trailing newline)
+ * @param level Message verbosity level. Message is only printed
+ *              if verbosity is less than or equal to current
+ *              reporting level.
+ * @param fmt   Format string (no trailing newline)
+ *
  */
 void ddf_msg(log_level_t level, const char *fmt, ...)
 {
 	va_list args;
-
+	
 	va_start(args, fmt);
-	log_msgv(level, fmt, args);
+	log_msgv(LOG_DEFAULT, level, fmt, args);
 	va_end(args);
 }
 

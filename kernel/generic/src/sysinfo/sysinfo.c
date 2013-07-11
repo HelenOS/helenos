@@ -96,7 +96,7 @@ NO_TRACE static size_t sysinfo_item_destructor(void *obj)
  */
 void sysinfo_init(void)
 {
-	sysinfo_item_slab = slab_cache_create("sysinfo_item_slab",
+	sysinfo_item_slab = slab_cache_create("sysinfo_item_t",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
 	
@@ -752,6 +752,8 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 {
 	sysinfo_return_t ret;
 	ret.tag = SYSINFO_VAL_UNDEFINED;
+	ret.data.data = NULL;
+	ret.data.size = 0;
 	
 	if (size > SYSINFO_MAX_PATH)
 		return ret;

@@ -32,6 +32,7 @@
 /** @file
  * Virtual USB device main routines.
  */
+
 #include <errno.h>
 #include <str.h>
 #include <stdio.h>

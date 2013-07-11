@@ -38,11 +38,11 @@
 #include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>
-#include <input.h>
-#include <kbd.h>
-#include <kbd_port.h>
 #include <ddi.h>
 #include <errno.h>
+#include "../input.h"
+#include "../kbd_port.h"
+#include "../kbd.h"
 
 static int ns16550_port_init(kbd_dev_t *);
 static void ns16550_port_yield(void);
@@ -83,7 +83,7 @@ static irq_cmd_t ns16550_cmds[] = {
 		.dstarg = 1
 	},
 	{
-		.cmd = CMD_BTEST,
+		.cmd = CMD_AND,
 		.value = LSR_DATA_READY,
 		.srcarg = 1,
 		.dstarg = 3

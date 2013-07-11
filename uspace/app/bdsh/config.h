@@ -54,7 +54,4 @@
 #define PACKAGE_NAME "bdsh"
 #define PACKAGE_STRING "The brain dead shell"
 #define PACKAGE_TARNAME "bdsh"
-#define PACKAGE_VERSION "0.0.1"
-
-
-
+#define PACKAGE_VERSION "0.1.0"

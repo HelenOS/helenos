@@ -56,7 +56,7 @@ void page_arch_init(void)
 
 	uintptr_t cur;
 	unsigned int identity_flags =
-	    PAGE_CACHEABLE | PAGE_EXEC | PAGE_GLOBAL | PAGE_WRITE;
+	    PAGE_GLOBAL | PAGE_CACHEABLE | PAGE_EXEC | PAGE_WRITE | PAGE_READ;
 		
 	page_mapping_operations = &pt_mapping_operations;
 		
@@ -77,7 +77,7 @@ void page_arch_init(void)
 
 void page_fault(unsigned int n, istate_t *istate)
 {
-	uintptr_t page = read_cr2();
+	uintptr_t badvaddr = read_cr2();
 	
 	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page table entry.");
@@ -91,10 +91,7 @@ void page_fault(unsigned int n, istate_t *istate)
 	else
 		access = PF_ACCESS_READ;
 	
-	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %p.", (void *) page);
-		panic_memtrap(istate, access, page, NULL);
-	}
+	(void) as_page_fault(badvaddr, access, istate);
 }
 
 /** @}

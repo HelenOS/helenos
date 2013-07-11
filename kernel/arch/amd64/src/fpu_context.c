@@ -56,6 +56,8 @@ void fpu_context_restore(fpu_context_t *fctx)
 void fpu_init()
 {
 	/* TODO: Zero all SSE, MMX etc. registers */
+	/* Default value of SCR register is 0x1f80,
+	 * it masks all FPU exceptions*/
 	asm volatile (
 		"fninit\n"
 	);

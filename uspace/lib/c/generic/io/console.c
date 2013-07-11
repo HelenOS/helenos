@@ -37,7 +37,6 @@
 #include <libc.h>
 #include <async.h>
 #include <errno.h>
-#include <stdio.h>
 #include <malloc.h>
 #include <vfs/vfs_sess.h>
 #include <io/console.h>
@@ -125,7 +124,7 @@ void console_set_rgb_color(console_ctrl_t *ctrl, uint32_t bgcolor,
 void console_cursor_visibility(console_ctrl_t *ctrl, bool show)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_req_1_0(exch, CONSOLE_CURSOR_VISIBILITY, (show != false));
+	async_req_1_0(exch, CONSOLE_SET_CURSOR_VISIBILITY, (show != false));
 	async_exchange_end(exch);
 }
 
@@ -150,31 +149,57 @@ int console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
 void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	async_req_2_0(exch, CONSOLE_GOTO, col, row);
+	async_req_2_0(exch, CONSOLE_SET_POS, col, row);
 	async_exchange_end(exch);
 }
 
-bool console_get_kbd_event(console_ctrl_t *ctrl, kbd_event_t *event)
+static int console_ev_decode(ipc_call_t *call, cons_event_t *event)
+{
+	event->type = IPC_GET_ARG1(*call);
+
+	switch (event->type) {
+	case CEV_KEY:
+		event->ev.key.type = IPC_GET_ARG2(*call);
+		event->ev.key.key = IPC_GET_ARG3(*call);
+		event->ev.key.mods = IPC_GET_ARG4(*call);
+		event->ev.key.c = IPC_GET_ARG5(*call);
+		break;
+	case CEV_POS:
+		event->ev.pos.pos_id = IPC_GET_ARG2(*call) >> 16;
+		event->ev.pos.type = IPC_GET_ARG2(*call) & 0xffff;
+		event->ev.pos.btn_num = IPC_GET_ARG3(*call);
+		event->ev.pos.hpos = IPC_GET_ARG4(*call);
+		event->ev.pos.vpos = IPC_GET_ARG5(*call);
+		break;
+	default:
+		return EIO;
+	}
+
+	return EOK;
+}
+
+bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 {
 	if (ctrl->input_aid == 0) {
-		sysarg_t type;
-		sysarg_t key;
-		sysarg_t mods;
-		sysarg_t c;
+		ipc_call_t result;
 		
 		async_exch_t *exch = async_exchange_begin(ctrl->input_sess);
-		int rc = async_req_0_4(exch, CONSOLE_GET_EVENT, &type, &key, &mods, &c);
+		aid_t aid = async_send_0(exch, CONSOLE_GET_EVENT, &result);
 		async_exchange_end(exch);
+		
+		sysarg_t rc;
+		async_wait_for(aid, &rc);
 		
 		if (rc != EOK) {
 			errno = rc;
 			return false;
 		}
 		
-		event->type = type;
-		event->key = key;
-		event->mods = mods;
-		event->c = c;
+		rc = console_ev_decode(&result, event);
+		if (rc != EOK) {
+			errno = rc;
+			return false;
+		}
 	} else {
 		sysarg_t retval;
 		async_wait_for(ctrl->input_aid, &retval);
@@ -186,16 +211,17 @@ bool console_get_kbd_event(console_ctrl_t *ctrl, kbd_event_t *event)
 			return false;
 		}
 		
-		event->type = IPC_GET_ARG1(ctrl->input_call);
-		event->key = IPC_GET_ARG2(ctrl->input_call);
-		event->mods = IPC_GET_ARG3(ctrl->input_call);
-		event->c = IPC_GET_ARG4(ctrl->input_call);
+		int rc = console_ev_decode(&ctrl->input_call, event);
+		if (rc != EOK) {
+			errno = rc;
+			return false;
+		}
 	}
 	
 	return true;
 }
 
-bool console_get_kbd_event_timeout(console_ctrl_t *ctrl, kbd_event_t *event,
+bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
     suseconds_t *timeout)
 {
 	struct timeval t0;
@@ -223,10 +249,11 @@ bool console_get_kbd_event_timeout(console_ctrl_t *ctrl, kbd_event_t *event,
 		return false;
 	}
 	
-	event->type = IPC_GET_ARG1(ctrl->input_call);
-	event->key = IPC_GET_ARG2(ctrl->input_call);
-	event->mods = IPC_GET_ARG3(ctrl->input_call);
-	event->c = IPC_GET_ARG4(ctrl->input_call);
+	rc = console_ev_decode(&ctrl->input_call, event);
+	if (rc != EOK) {
+		errno = rc;
+		return false;
+	}
 	
 	/* Update timeout */
 	struct timeval t1;

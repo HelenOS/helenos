@@ -44,6 +44,7 @@
 #include <arch/mm/asid.h>
 #include <typedefs.h>
 #include <arch/asm.h>
+#include <arch/barrier.h>
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <debug.h>
@@ -206,6 +207,12 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		pte->as = as;
 		pte->page = ALIGN_DOWN(page, PAGE_SIZE);
 		pte->frame = ALIGN_DOWN(frame, FRAME_SIZE);
+
+		/*
+		 * Make sure that a concurrent ht_mapping_find() will see the
+		 * new entry only after it is fully initialized.
+		 */
+		write_barrier();
 		
 		hash_table_insert(&page_ht, key, &pte->link);
 	}

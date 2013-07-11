@@ -39,7 +39,7 @@
 #include <adt/list.h>
 #include <libarch/tls.h>
 #include <sys/time.h>
-#include <bool.h>
+#include <stdbool.h>
 
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */

@@ -31,7 +31,7 @@
 /** @file
  * @brief UHCI root hub port routines
  */
-#include <libarch/ddi.h>  /* pio_read and pio_write */
+#include <ddi.h>
 #include <fibril_synch.h> /* async_usleep */
 #include <errno.h>
 #include <str_error.h>
@@ -62,7 +62,7 @@ static inline port_status_t uhci_port_read_status(uhci_port_t *port)
 	assert(port);
 	return pio_read_16(port->address);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Register writing helper function.
  *
  * @param[in] port Structure to use.
@@ -74,7 +74,7 @@ static inline void uhci_port_write_status(uhci_port_t *port, port_status_t val)
 	assert(port);
 	pio_write_16(port->address, val);
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
@@ -126,7 +126,7 @@ int uhci_port_init(uhci_port_t *port,
 	    port->id_string, port->checker);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Cleanup UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
@@ -140,7 +140,7 @@ void uhci_port_fini(uhci_port_t *port)
 	// TODO: Kill fibril here
 	return;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Periodically checks port status and reports new devices.
  *
  * @param[in] port Port structure to use.
@@ -149,20 +149,10 @@ void uhci_port_fini(uhci_port_t *port)
 int uhci_port_check(void *port)
 {
 	uhci_port_t *instance = port;
+	int rc;
 	assert(instance);
 
 	unsigned allowed_failures = MAX_ERROR_COUNT;
-#define CHECK_RET_FAIL(ret, msg...) \
-	if (ret != EOK) { \
-		usb_log_error(msg); \
-		if (!(allowed_failures-- > 0)) { \
-			usb_log_fatal( \
-			   "Maximum number of failures reached, " \
-			   "bailing out.\n"); \
-			return ret; \
-		} \
-		continue; \
-	} else (void)0
 
 	while (1) {
 		async_usleep(instance->wait_period_usec);
@@ -181,9 +171,14 @@ int uhci_port_check(void *port)
 		usb_log_debug("%s: Connected change detected: %x.\n",
 		    instance->id_string, port_status);
 
-		int ret = usb_hc_connection_open(&instance->hc_connection);
-		CHECK_RET_FAIL(ret, "%s: Failed to connect to HC %s.\n",
-		    instance->id_string, str_error(ret));
+		rc = usb_hc_connection_open(&instance->hc_connection);
+		if (rc != EOK) {
+			usb_log_error("%s: Failed to connect to HC %s.\n",
+			    instance->id_string, str_error(rc));
+			if (!(allowed_failures-- > 0))
+				goto fatal_error;
+			continue;
+		}
 
 		/* Remove any old device */
 		if (instance->attached_device.fun) {
@@ -203,13 +198,23 @@ int uhci_port_check(void *port)
 			    instance->id_string);
 		}
 
-		ret = usb_hc_connection_close(&instance->hc_connection);
-		CHECK_RET_FAIL(ret, "%s: Failed to disconnect from hc: %s.\n",
-		    instance->id_string, str_error(ret));
+		rc = usb_hc_connection_close(&instance->hc_connection);
+		if (rc != EOK) {
+			usb_log_error("%s: Failed to disconnect from HC %s.\n",
+			    instance->id_string, str_error(rc));
+			if (!(allowed_failures-- > 0))
+				goto fatal_error;
+			continue;
+		}
 	}
+
 	return EOK;
+
+fatal_error:
+	usb_log_fatal("Maximum number of failures reached, bailing out.\n");
+	return rc;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Callback for enabling port during adding a new device.
  *
  * @param portno Port number (unused).
@@ -246,7 +251,7 @@ int uhci_port_reset_enable(void *arg)
 	uhci_port_set_enabled(port, true);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Initialize and report connected device.
  *
  * @param[in] port Port structure to use.
@@ -278,10 +283,10 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 
 	usb_log_info("%s: New device, address %d (handle %" PRIun ").\n",
 	    port->id_string, port->attached_device.address,
-	    port->attached_device.fun->handle);
+	    ddf_fun_get_handle(port->attached_device.fun));
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Remove device.
  *
  * @param[in] port Port instance to use.
@@ -323,7 +328,7 @@ int uhci_port_remove_device(uhci_port_t *port)
 	usb_log_info("%s: Removed attached device.\n", port->id_string);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Enable or disable root hub port.
  *
  * @param[in] port Port structure to use.
@@ -357,7 +362,7 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 		port->id_string, enabled ? "En" : "Dis");
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** Print the port status value in a human friendly way
  *
  * @param[in] port Port structure to use.

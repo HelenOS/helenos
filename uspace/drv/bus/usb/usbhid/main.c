@@ -102,17 +102,18 @@ static int usb_hid_device_add(usb_device_t *dev)
 
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
-		    dev->ddf_dev->name);
+		    ddf_dev_get_name(dev->ddf_dev));
 		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 	hid_dev->running = true;
 
-	usb_log_info("HID device `%s' ready to use.\n", dev->ddf_dev->name);
+	usb_log_info("HID device `%s' ready to use.\n",
+	    ddf_dev_get_name(dev->ddf_dev));
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Callback for a device about to be removed from the driver.
  *
@@ -125,7 +126,7 @@ static int usb_hid_device_rem(usb_device_t *dev)
 	// TODO: Call deinit (stops autorepeat too)
 	return ENOTSUP;
 }
-/*----------------------------------------------------------------------------*/
+
 /**
  * Callback for removing a device from the driver.
  *
@@ -148,29 +149,29 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	}
 
 	usb_hid_deinit(hid_dev);
-	usb_log_debug2("%s destruction complete.\n", dev->ddf_dev->name);
+	usb_log_debug2("%s destruction complete.\n", ddf_dev_get_name(dev->ddf_dev));
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+
 /** USB generic driver callbacks */
 static const usb_driver_ops_t usb_hid_driver_ops = {
 	.device_add = usb_hid_device_add,
 	.device_rem = usb_hid_device_rem,
 	.device_gone = usb_hid_device_gone,
 };
-/*----------------------------------------------------------------------------*/
+
 /** The driver itself. */
 static const usb_driver_t usb_hid_driver = {
         .name = NAME,
         .ops = &usb_hid_driver_ops,
         .endpoints = usb_hid_endpoints
 };
-/*----------------------------------------------------------------------------*/
+
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB HID driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+	log_init(NAME);
 
 	return usb_driver_main(&usb_hid_driver);
 }

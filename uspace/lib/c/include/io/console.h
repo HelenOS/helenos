@@ -36,17 +36,13 @@
 #define LIBC_IO_CONSOLE_H_
 
 #include <sys/time.h>
+#include <io/concaps.h>
+#include <io/kbd_event.h>
+#include <io/cons_event.h>
 #include <io/keycode.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <stdio.h>
-
-typedef enum {
-	CONSOLE_CAP_NONE = 0,
-	CONSOLE_CAP_STYLE = 1,
-	CONSOLE_CAP_INDEXED = 2,
-	CONSOLE_CAP_RGB = 4
-} console_caps_t;
 
 /** Console control structure. */
 typedef struct {
@@ -69,29 +65,6 @@ typedef struct {
 	aid_t input_aid;
 } console_ctrl_t;
 
-typedef enum {
-	KEY_PRESS,
-	KEY_RELEASE
-} kbd_event_type_t;
-
-/** Console event structure. */
-typedef struct {
-	/** List handle */
-	link_t link;
-	
-	/** Press or release event. */
-	kbd_event_type_t type;
-	
-	/** Keycode of the key that was pressed or released. */
-	keycode_t key;
-	
-	/** Bitmask of modifiers held. */
-	keymod_t mods;
-	
-	/** The character that was generated or '\0' for none. */
-	wchar_t c;
-} kbd_event_t;
-
 extern console_ctrl_t *console_init(FILE *, FILE *);
 extern void console_done(console_ctrl_t *);
 extern bool console_kcon(void);
@@ -109,8 +82,8 @@ extern void console_set_rgb_color(console_ctrl_t *, uint32_t, uint32_t);
 
 extern void console_cursor_visibility(console_ctrl_t *, bool);
 extern int console_get_color_cap(console_ctrl_t *, sysarg_t *);
-extern bool console_get_kbd_event(console_ctrl_t *, kbd_event_t *);
-extern bool console_get_kbd_event_timeout(console_ctrl_t *, kbd_event_t *,
+extern bool console_get_event(console_ctrl_t *, cons_event_t *);
+extern bool console_get_event_timeout(console_ctrl_t *, cons_event_t *,
     suseconds_t *);
 
 #endif

@@ -80,7 +80,7 @@ typedef struct {
 typedef struct {
 	slab_magazine_t *current;
 	slab_magazine_t *last;
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 } slab_mag_cache_t;
 
 typedef struct {
@@ -112,10 +112,10 @@ typedef struct {
 	/* Slabs */
 	list_t full_slabs;     /**< List of full slabs */
 	list_t partial_slabs;  /**< List of partial slabs */
-	SPINLOCK_DECLARE(slablock);
+	IRQ_SPINLOCK_DECLARE(slablock);
 	/* Magazines */
 	list_t magazines;  /**< List o full magazines */
-	SPINLOCK_DECLARE(maglock);
+	IRQ_SPINLOCK_DECLARE(maglock);
 	
 	/** CPU cache */
 	slab_mag_cache_t *mag_cache;

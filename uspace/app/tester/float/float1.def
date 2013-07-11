@@ -1,0 +1,6 @@
+{
+	"float1",
+	"Floating point computation",
+	&test_float1,
+	true
+},

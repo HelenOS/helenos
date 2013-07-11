@@ -51,6 +51,7 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <str.h>
+#include <abi/klog.h>
 
 #define KLOG_PAGES    8
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
@@ -334,11 +335,22 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-sysarg_t sys_klog(int fd, const void *buf, size_t size)
+sysarg_t sys_klog(int cmd, const void *buf, size_t size)
 {
 	char *data;
 	int rc;
-	
+
+	switch (cmd) {
+	case KLOG_UPDATE:
+		klog_update(NULL);
+		return EOK;
+	case KLOG_WRITE:
+	case KLOG_COMMAND:
+		break;
+	default:
+		return ENOTSUP;
+	}
+
 	if (size > PAGE_SIZE)
 		return (sysarg_t) ELIMIT;
 	
@@ -354,11 +366,22 @@ sysarg_t sys_klog(int fd, const void *buf, size_t size)
 		}
 		data[size] = 0;
 		
-		printf("%s", data);
+		switch (cmd) {
+		case KLOG_WRITE:
+			printf("%s", data);
+			break;
+		case KLOG_COMMAND:
+			if (!stdin)
+				break;
+			for (unsigned int i = 0; i < size; i++)
+				indev_push_character(stdin, data[i]);
+			indev_push_character(stdin, '\n');
+			break;
+		}
+
 		free(data);
-	} else
-		klog_update(NULL);
-	
+	}
+
 	return size;
 }
 

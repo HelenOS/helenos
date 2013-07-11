@@ -42,8 +42,8 @@ EOF
 
 MPFR_MAIN=<<EOF
 #if MPFR_VERSION < MPFR_VERSION_NUM(2, 4, 2)
-choke me
-	#endif
+	choke me
+#endif
 EOF
 
 MPC_MAIN=<<EOF
@@ -52,10 +52,10 @@ MPC_MAIN=<<EOF
 #endif
 EOF
 
-BINUTILS_VERSION="2.22"
+BINUTILS_VERSION="2.23.1"
 BINUTILS_RELEASE=""
-GCC_VERSION="4.7.0"
-GDB_VERSION="7.4"
+GCC_VERSION="4.8.1"
+GDB_VERSION="7.6"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
@@ -148,7 +148,8 @@ show_usage() {
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
-	echo " parallel   same as 'all', but in parallel"
+	echo " parallel   same as 'all', but all in parallel"
+	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
 	echo "The toolchain will be installed to the directory specified by"
 	echo "the CROSS_PREFIX environment variable. If the variable is not"
@@ -190,6 +191,7 @@ show_dependencies() {
 	echo
 	echo " - SED, AWK, Flex, Bison, gzip, bzip2, Bourne Shell"
 	echo " - gettext, zlib, Texinfo, libelf, libgomp"
+	echo " - terminfo"
 	echo " - GNU Multiple Precision Library (GMP)"
 	echo " - GNU Make"
 	echo " - GNU tar"
@@ -271,9 +273,9 @@ prepare() {
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "ee0f10756c84979622b992a4a61ea3f5"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "2a0f1d99fda235c29d40b561f81d9a77"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "95a9a8305fed4d30a30a6dc28ff9d060"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "3b2386c114cd74185aa3754b58a79304"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "fda57170e4d11cdde74259ca575412a8"
 }
 
 build_target() {
@@ -317,7 +319,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
+	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
@@ -329,7 +331,7 @@ build_target() {
 	check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
+	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
@@ -426,6 +428,28 @@ case "$1" in
 		build_target "mips32eb" "mips-linux-gnu" &
 		build_target "mips64" "mips64el-linux-gnu" &
 		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "ppc64" "ppc64-linux-gnu" &
+		build_target "sparc64" "sparc64-linux-gnu" &
+		wait
+		;;
+	"2-way")
+		prepare
+		build_target "amd64" "amd64-linux-gnu" &
+		build_target "arm32" "arm-linux-gnueabi" &
+		wait
+		
+		build_target "ia32" "i686-pc-linux-gnu" &
+		build_target "ia64" "ia64-pc-linux-gnu" &
+		wait
+		
+		build_target "mips32" "mipsel-linux-gnu" &
+		build_target "mips32eb" "mips-linux-gnu" &
+		wait
+		
+		build_target "mips64" "mips64el-linux-gnu" &
+		build_target "ppc32" "ppc-linux-gnu" &
+		wait
+		
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
 		wait

@@ -28,7 +28,7 @@
 
 BFD_ARCH = mips:4000
 BFD = binary
-GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=64
+GCC_CFLAGS += -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=64
 AFLAGS = -64
 
 BITS = 64
@@ -39,7 +39,6 @@ BITS = 64
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf64-tradlittlemips
 	ENDIANESS = LE
-	GCC_CFLAGS += -mhard-float
 endif
 
 ARCH_SOURCES = \

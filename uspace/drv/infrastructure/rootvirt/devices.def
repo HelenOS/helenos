@@ -4,10 +4,10 @@
  * Unless the list is empty, the last item shall be followed by a comma.
  */
 
-/* Loopback network interface */
+/* Kernel framebuffer */
 {
-    .name = "lo",
-    .match_id = "virtual&loopback"
+    .name = "kfb",
+    .match_id = "virtual&kfb"
 },
 
 #ifdef CONFIG_TEST_DRIVERS

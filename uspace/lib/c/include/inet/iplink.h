@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <sys/types.h>
+#include <inet/addr.h>
 
 struct iplink_ev_ops;
 
@@ -45,31 +46,35 @@ typedef struct {
 	struct iplink_ev_ops *ev_ops;
 } iplink_t;
 
-typedef struct {
-	uint32_t ipv4;
-} iplink_addr_t;
-
-/** IP link Service Data Unit */
+/** Internet link Service Data Unit */
 typedef struct {
 	/** Local source address */
-	iplink_addr_t lsrc;
+	inet_addr_t src;
 	/** Local destination address */
-	iplink_addr_t ldest;
+	inet_addr_t dest;
 	/** Serialized IP packet */
 	void *data;
 	/** Size of @c data in bytes */
 	size_t size;
 } iplink_sdu_t;
 
+/** Internet link receive Service Data Unit */
+typedef struct {
+	/** Serialized datagram */
+	void *data;
+	/** Size of @c data in bytes */
+	size_t size;
+} iplink_recv_sdu_t;
+
 typedef struct iplink_ev_ops {
-	int (*recv)(iplink_t *, iplink_sdu_t *);
+	int (*recv)(iplink_t *, iplink_recv_sdu_t *, uint16_t);
 } iplink_ev_ops_t;
 
 extern int iplink_open(async_sess_t *, iplink_ev_ops_t *, iplink_t **);
 extern void iplink_close(iplink_t *);
 extern int iplink_send(iplink_t *, iplink_sdu_t *);
-extern int iplink_addr_add(iplink_t *, iplink_addr_t *);
-extern int iplink_addr_remove(iplink_t *, iplink_addr_t *);
+extern int iplink_addr_add(iplink_t *, inet_addr_t *);
+extern int iplink_addr_remove(iplink_t *, inet_addr_t *);
 extern int iplink_get_mtu(iplink_t *, size_t *);
 
 #endif

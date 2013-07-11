@@ -319,7 +319,7 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	
@@ -338,16 +338,16 @@ int fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
 	rc = async_share_in_start_0_0(exch, PLB_SIZE, (void *) &reg.plb_ro);
-	if (reg.plb_ro == (void *) -1) {
+	if (reg.plb_ro == AS_MAP_FAILED) {
 		async_exchange_end(exch);
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return ENOMEM;
 	}
 	
 	async_exchange_end(exch);
 	
 	if (rc) {
-		async_wait_for(req, NULL);
+		async_forget(req);
 		return rc;
 	}
 	 
@@ -403,7 +403,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	
 	async_exch_t *exch = async_exchange_begin(mountee_sess);
-	async_sess_t *sess = async_connect_me(EXCHANGE_PARALLEL, exch);
+	async_sess_t *sess = async_clone_establish(EXCHANGE_PARALLEL, exch);
 	
 	if (!sess) {
 		async_exchange_end(exch);
@@ -630,14 +630,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 							(void) ops->node_put(fn);
 						async_answer_0(rid, rc);
 					} else {
-						aoff64_t size = ops->size_get(fn);
-						async_answer_5(rid, fs_handle,
-						    service_id,
-						    ops->index_get(fn),
-						    LOWER32(size),
-						    UPPER32(size),
-						    ops->lnkcnt_get(fn));
-						(void) ops->node_put(fn);
+						(void) ops->node_put(cur);
+						cur = fn;
+						goto out_with_answer;
 					}
 				} else
 					async_answer_0(rid, ENOSPC);
@@ -714,14 +709,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						(void) ops->node_put(fn);
 					async_answer_0(rid, rc);
 				} else {
-					aoff64_t size = ops->size_get(fn);
-					async_answer_5(rid, fs_handle,
-					    service_id,
-					    ops->index_get(fn),
-					    LOWER32(size),
-					    UPPER32(size),
-					    ops->lnkcnt_get(fn));
-					(void) ops->node_put(fn);
+					(void) ops->node_put(cur);
+					cur = fn;
+					goto out_with_answer;
 				}
 			} else
 				async_answer_0(rid, ENOSPC);

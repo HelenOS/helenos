@@ -71,11 +71,11 @@ case "$1" in
 		echo '		sed '\'s/ [ ]*/ /g\''`"'
 		echo '	ld $LD_ARGS'
 		echo 'else'
-		CFLAGS="`echo " $3" | \
+		CFLAGS="`echo " $3 " | \
 			sed 's/ -O[^ ]*//g' | \
 			sed 's/ -W[^ ]*//g' | \
 			sed 's/ -pipe//g' | \
-			sed 's/ -g//g' | \
+			sed 's/ -g[^ ]*//g' | \
 			sed 's/ [ ]*/ /g'`"
 		echo '	CONFTEST="`echo \"$*\" | grep '\' conftest \''`"'
 		echo '	if [ -n "$CONFTEST" ]; then'

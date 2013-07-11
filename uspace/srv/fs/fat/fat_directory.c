@@ -37,7 +37,7 @@
 
 #include "fat_directory.h"
 #include "fat_fat.h"
-#include <libblock.h>
+#include <block.h>
 #include <errno.h>
 #include <byteorder.h>
 #include <mem.h>
@@ -515,8 +515,8 @@ bool fat_directory_is_sfn_exist(fat_directory_t *di, fat_dentry_t *de)
 		case FAT_DENTRY_LAST:
 			return false;
 		case FAT_DENTRY_VALID:
-			if (bcmp(de->name, d->name,
-			    FAT_NAME_LEN + FAT_EXT_LEN)==0)
+			if (memcmp(de->name, d->name,
+			    FAT_NAME_LEN + FAT_EXT_LEN) == 0)
 				return true;
 			break;
 		default:

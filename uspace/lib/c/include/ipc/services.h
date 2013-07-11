@@ -44,6 +44,7 @@ typedef enum {
 	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
 	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
 	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
+	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
 	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
@@ -51,9 +52,11 @@ typedef enum {
 	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
 } services_t;
 
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_INETCFG  "net/inetcfg"
-#define SERVICE_NAME_INETPING "net/inetping"
+#define SERVICE_NAME_DNSR       "net/dnsr"
+#define SERVICE_NAME_INET       "net/inet"
+#define SERVICE_NAME_INETCFG    "net/inetcfg"
+#define SERVICE_NAME_INETPING   "net/inetping"
+#define SERVICE_NAME_INETPING6  "net/inetping6"
 
 #endif
 

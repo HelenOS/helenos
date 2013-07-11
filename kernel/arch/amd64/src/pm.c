@@ -111,10 +111,8 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* VESA Init descriptor */
 #ifdef CONFIG_FB
-	{
-		0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | DPL_KERNEL,
-		    0xf, 0, 0, 0, 0, 0
-	}
+	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | AR_READABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 },
+	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
 #endif
 };
 

@@ -40,6 +40,7 @@
 #include <sys/types.h>
 
 #include "ddf/interrupt.h"
+#include "private/driver.h"
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall);
 static interrupt_context_t *create_interrupt_context(void);
@@ -116,8 +117,8 @@ static void init_interrupt_context_list(interrupt_context_list_t *list)
 	list_initialize(&list->contexts);
 }
 
-static void
-add_interrupt_context(interrupt_context_list_t *list, interrupt_context_t *ctx)
+static void add_interrupt_context(interrupt_context_list_t *list,
+    interrupt_context_t *ctx)
 {
 	fibril_mutex_lock(&list->mutex);
 	ctx->id = list->curr_id++;
@@ -133,8 +134,8 @@ static void remove_interrupt_context(interrupt_context_list_t *list,
 	fibril_mutex_unlock(&list->mutex);
 }
 
-static interrupt_context_t *
-find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
+static interrupt_context_t *find_interrupt_context_by_id(
+    interrupt_context_list_t *list, int id)
 {
 	interrupt_context_t *ctx;
 	
@@ -152,8 +153,8 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 	return NULL;
 }
 
-static interrupt_context_t *
-find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
+static interrupt_context_t *find_interrupt_context(
+    interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
 	interrupt_context_t *ctx;
 	
@@ -172,9 +173,8 @@ find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 }
 
 
-int
-register_interrupt_handler(ddf_dev_t *dev, int irq, interrupt_handler_t *handler,
-    irq_code_t *pseudocode)
+int register_interrupt_handler(ddf_dev_t *dev, int irq,
+    interrupt_handler_t *handler, irq_code_t *pseudocode)
 {
 	interrupt_context_t *ctx = create_interrupt_context();
 	
@@ -192,7 +192,7 @@ register_interrupt_handler(ddf_dev_t *dev, int irq, interrupt_handler_t *handler
 		remove_interrupt_context(&interrupt_contexts, ctx);
 		delete_interrupt_context(ctx);
 	}
-
+	
 	return res;
 }
 

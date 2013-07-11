@@ -37,10 +37,12 @@
 
 #include <adt/list.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
+#include <fibril.h>
 #include <fibril_synch.h>
 #include <socket_core.h>
 #include <sys/types.h>
+#include <inet/addr.h>
 
 struct tcp_conn;
 
@@ -110,17 +112,9 @@ typedef enum {
 } tcp_control_t;
 
 typedef struct {
-	uint32_t ipv4;
-} netaddr_t;
-
-typedef struct {
-	netaddr_t addr;
+	inet_addr_t addr;
 	uint16_t port;
 } tcp_sock_t;
-
-enum netaddr {
-	TCP_IPV4_ANY = 0
-};
 
 enum tcp_port {
 	TCP_PORT_ANY = 0
@@ -311,10 +305,9 @@ typedef enum {
 /** Encoded PDU */
 typedef struct {
 	/** Source address */
-	netaddr_t src_addr;
+	inet_addr_t src;
 	/** Destination address */
-	netaddr_t dest_addr;
-
+	inet_addr_t dest;
 	/** Encoded header */
 	void *header;
 	/** Encoded header size */
@@ -330,6 +323,8 @@ typedef struct {
 	socket_cores_t sockets;
 } tcp_client_t;
 
+#define TCP_SOCK_FRAGMENT_SIZE 1024
+
 typedef struct tcp_sockdata {
 	/** Lock */
 	fibril_mutex_t lock;
@@ -340,13 +335,20 @@ typedef struct tcp_sockdata {
 	/** Connection */
 	tcp_conn_t *conn;
 	/** Local address */
-	netaddr_t laddr;
+	inet_addr_t laddr;
 	/** Backlog size */
 	int backlog;
 	/** Array of listening connections, @c backlog elements */
 	struct tcp_sock_lconn **lconn;
 	/** List of connections (from lconn) that are ready to be accepted */
 	list_t ready;
+	/** Receiving fibril */
+	fid_t recv_fibril;
+	uint8_t recv_buffer[TCP_SOCK_FRAGMENT_SIZE];
+	size_t recv_buffer_used;
+	fibril_mutex_t recv_buffer_lock;
+	fibril_condvar_t recv_buffer_cv;
+	tcp_error_t recv_error;
 } tcp_sockdata_t;
 
 typedef struct tcp_sock_lconn {

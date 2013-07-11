@@ -28,26 +28,27 @@
 
 BFD_ARCH = mips
 BFD = binary
-GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3 -mabi=32
+GCC_CFLAGS += -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
 
 BITS = 32
 
 ## Accepted MACHINEs
 #
 
-ifeq ($(MACHINE),lgxemul)
-	BFD_NAME = elf32-tradlittlemips
-	ENDIANESS = LE
-endif
-ifeq ($(MACHINE),bgxemul)
-	BFD_NAME = elf32-tradbigmips
-	ENDIANESS = BE
-	GCC_CFLAGS += -D__BE__
-endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
-	GCC_CFLAGS += -mhard-float
+	GCC_CFLAGS += -march=r4000
+endif
+ifeq ($(MACHINE),bmalta)
+	BFD_NAME = elf32-tradbigmips
+	ENDIANESS = BE
+	GCC_CFLAGS += -D__BE__ -march=4kc
+endif
+ifeq ($(MACHINE),lmalta)
+	BFD_NAME = elf32-tradlittlemips
+	ENDIANESS = LE
+	GCC_CFLAGS += -march=4kc
 endif
 
 ARCH_SOURCES = \
@@ -69,5 +70,18 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/smp/dorder.c \
-	arch/$(KARCH)/src/smp/smp.c
+	arch/$(KARCH)/src/smp/smp.c \
+	arch/$(KARCH)/src/machine_func.c
+
+ifeq ($(MACHINE),msim)
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/smp/dorder.c
+endif
+
+ifeq ($(MACHINE),$(filter lmalta bmalta,$(MACHINE)))
+        ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
+endif
+ifeq ($(MACHINE),msim)
+        ARCH_SOURCES += arch/$(KARCH)/src/mach/msim/msim.c
+endif
+

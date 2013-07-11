@@ -42,7 +42,7 @@
 #include <task.h>
 #include <mem.h>
 #include <str.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
@@ -135,7 +135,6 @@ static int program_run_fibril(void *arg)
 		exit(1);
 	}
 
-	free(task_ldr);
 	task_ldr = NULL;
 
 	printf("program_run_fibril exiting\n");
@@ -317,63 +316,6 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
 	}
 }
 
-static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
-{
-	ipc_call_t question, reply;
-	int rc;
-	int phoneid;
-
-	phoneid = sc_args[0];
-
-	IPC_SET_IMETHOD(question, sc_args[1]);
-	IPC_SET_ARG1(question, sc_args[2]);
-	IPC_SET_ARG2(question, sc_args[3]);
-	IPC_SET_ARG3(question, sc_args[4]);
-	IPC_SET_ARG4(question, 0);
-	IPC_SET_ARG5(question, 0);
-
-	memset(&reply, 0, sizeof(reply));
-	rc = udebug_mem_read(sess, &reply.args, sc_args[5], sizeof(reply.args));
-	if (rc < 0)
-		return;
-	
-	ipcp_call_sync(phoneid, &question, &reply);
-}
-
-static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
-{
-	ipc_call_t question;
-	int rc;
-
-	memset(&question, 0, sizeof(question));
-	rc = udebug_mem_read(sess, &question.args, sc_args[1],
-	    sizeof(question.args));
-
-	if (rc < 0) {
-		printf("Error: mem_read->%d\n", rc);
-		return;
-	}
-
-	thread_ipc_req[thread_id] = question;
-}
-
-static void sc_ipc_call_sync_slow_e(unsigned thread_id, sysarg_t *sc_args)
-{
-	ipc_call_t reply;
-	int rc;
-
-	memset(&reply, 0, sizeof(reply));
-	rc = udebug_mem_read(sess, &reply.args, sc_args[2],
-	    sizeof(reply.args));
-
-	if (rc < 0) {
-		printf("Error: mem_read->%d\n", rc);
-		return;
-	}
-
-	ipcp_call_sync(sc_args[0], &thread_ipc_req[thread_id], &reply);
-}
-
 static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
@@ -404,16 +346,14 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 
 	if ((display_mask & DM_SYSCALL) != 0) {
 		/* Print syscall name and arguments */
-		printf("%s", syscall_desc[sc_id].name);
-		print_sc_args(sc_args, syscall_desc[sc_id].n_args);
-	}
-
-	switch (sc_id) {
-	case SYS_IPC_CALL_SYNC_SLOW:
-		sc_ipc_call_sync_slow_b(thread_id, sc_args);
-		break;
-	default:
-		break;
+		if (syscall_desc_defined(sc_id)) {
+			printf("%s", syscall_desc[sc_id].name);
+			print_sc_args(sc_args, syscall_desc[sc_id].n_args);
+		}
+		else {
+			printf("unknown_syscall<%d>", sc_id);
+			print_sc_args(sc_args, 6);
+		}
 	}
 }
 
@@ -436,7 +376,10 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 
 	if ((display_mask & DM_SYSCALL) != 0) {
 		/* Print syscall return value */
-		rv_type = syscall_desc[sc_id].rv_type;
+		if (syscall_desc_defined(sc_id))
+			rv_type = syscall_desc[sc_id].rv_type;
+		else
+			rv_type = V_PTR;
 		print_sc_retval(sc_rc, rv_type);
 	}
 
@@ -446,12 +389,6 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 		break;
 	case SYS_IPC_CALL_ASYNC_SLOW:
 		sc_ipc_call_async_slow(sc_args, sc_rc);
-		break;
-	case SYS_IPC_CALL_SYNC_FAST:
-		sc_ipc_call_sync_fast(sc_args);
-		break;
-	case SYS_IPC_CALL_SYNC_SLOW:
-		sc_ipc_call_sync_slow_e(thread_id, sc_args);
 		break;
 	case SYS_IPC_WAIT:
 		sc_ipc_wait(sc_args, sc_rc);
@@ -567,7 +504,7 @@ static loader_t *preload_task(const char *path, char **argv,
 	/* Spawn a program loader */
 	ldr = loader_connect();
 	if (ldr == NULL)
-		return 0;
+		return NULL;
 
 	/* Get task ID. */
 	rc = loader_get_task_id(ldr, task_id);
@@ -627,6 +564,8 @@ error:
 
 static int cev_fibril(void *arg)
 {
+	cons_event_t event;
+
 	(void) arg;
 	
 	console_ctrl_t *console = console_init(stdin, stdout);
@@ -637,13 +576,16 @@ static int cev_fibril(void *arg)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
 		
-		if (!console_get_kbd_event(console, &cev))
+		if (!console_get_event(console, &event))
 			return -1;
 		
-		fibril_mutex_lock(&state_lock);
-		cev_valid = true;
-		fibril_condvar_broadcast(&state_cv);
-		fibril_mutex_unlock(&state_lock);
+		if (event.type == CEV_KEY) {
+			fibril_mutex_lock(&state_lock);
+			cev = event.ev.key;
+			cev_valid = true;
+			fibril_condvar_broadcast(&state_cv);
+			fibril_mutex_unlock(&state_lock);
+		}
 	}
 }
 

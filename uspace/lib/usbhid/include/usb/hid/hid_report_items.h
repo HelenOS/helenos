@@ -37,7 +37,7 @@
 
 #include <stdint.h>
 
-/*---------------------------------------------------------------------------*/
+
 /*
  * Item prefix
  */
@@ -55,7 +55,7 @@
  * supported. */
 #define USB_HID_ITEM_IS_LONG(data)	(data == 0xFE)
 
-/*---------------------------------------------------------------------------*/
+
 /*
  * Extended usage macros
  */
@@ -69,7 +69,7 @@
 /** Cuts usage of the extended usage */
 #define USB_HID_EXTENDED_USAGE(usage)		(usage & 0xFFFF)
 
-/*---------------------------------------------------------------------------*/
+
 /*
  * Input/Output/Feature Item flags
  */
@@ -141,7 +141,7 @@
  */
 #define USB_HID_ITEM_FLAG_BUFFERED(flags)	((flags & 0x100) == 0x100)
 
-/*---------------------------------------------------------------------------*/
+
 
 /* MAIN ITEMS */
 
@@ -184,7 +184,7 @@
  */
 #define USB_HID_REPORT_TAG_END_COLLECTION	0xC
 
-/*---------------------------------------------------------------------------*/
+
 
 /* GLOBAL ITEMS */
 
@@ -271,7 +271,7 @@
  */
 #define USB_HID_REPORT_TAG_POP			0xB
 
-/*---------------------------------------------------------------------------*/
+
 
 /* LOCAL ITEMS */
 
@@ -346,7 +346,7 @@
  */
 #define USB_HID_REPORT_TAG_DELIMITER		0xA
 
-/*---------------------------------------------------------------------------*/
+
 
 #endif
 /**

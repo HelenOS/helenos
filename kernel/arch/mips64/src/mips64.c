@@ -45,7 +45,9 @@
 #include <sysinfo/sysinfo.h>
 #include <arch/debug.h>
 #include <arch/debugger.h>
+#ifdef MACHINE_msim
 #include <arch/drivers/msim.h>
+#endif
 #include <genarch/fb/fb.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
@@ -124,7 +126,7 @@ void arch_post_mm_init(void)
 {
 	interrupt_init();
 	
-#ifdef CONFIG_MIPS_PRN
+#ifdef CONFIG_MSIM_PRN
 	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
 	if (dsrlndev)
 		stdout_wire(dsrlndev);
@@ -150,10 +152,11 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
 	    str_size(platform));
 	
-#ifdef CONFIG_MIPS_KBD
+#ifdef CONFIG_MSIM_KBD
 	/*
-	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
-	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
+	 * Initialize the msim keyboard port. Then initialize the serial line
+	 * module and connect it to the msim keyboard. Enable keyboard
+	 * interrupts.
 	 */
 	dsrlnin_instance_t *dsrlnin_instance
 	    = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
@@ -187,7 +190,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 	    cp0_status_um_bit | cp0_status_ie_enabled_bit));
 	cp0_epc_write((uintptr_t) kernel_uarg->uspace_entry);
-	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack + STACK_SIZE),
+	userspace_asm(((uintptr_t) kernel_uarg->uspace_stack +
+	    kernel_uarg->uspace_stack_size),
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	
@@ -203,7 +207,7 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	supervisor_sp =
-	    (uintptr_t) &THREAD->kstack[STACK_SIZE - SP_DELTA];
+	    (uintptr_t) &THREAD->kstack[STACK_SIZE];
 }
 
 void after_thread_ran_arch(void)

@@ -37,7 +37,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
-#include <thread.h>
+#include <fibril.h>
 #include <str.h>
 #include "tcp_type.h"
 #include "ucall.h"
@@ -46,7 +46,7 @@
 
 #define RCV_BUF_SIZE 64
 
-static void test_srv(void *arg)
+static int test_srv(void *arg)
 {
 	tcp_conn_t *conn;
 	tcp_sock_t lsock;
@@ -56,10 +56,13 @@ static void test_srv(void *arg)
 	xflags_t xflags;
 
 	printf("test_srv()\n");
+	
+	inet_addr(&lsock.addr, 127, 0, 0, 1);
 	lsock.port = 80;
-	lsock.addr.ipv4 = 0x7f000001;
+	
+	inet_addr(&fsock.addr, 127, 0, 0, 1);
 	fsock.port = 1024;
-	fsock.addr.ipv4 = 0x7f000001;
+	
 	printf("S: User open...\n");
 	tcp_uc_open(&lsock, &fsock, ap_passive, 0, &conn);
 	conn->name = (char *) "S";
@@ -83,9 +86,10 @@ static void test_srv(void *arg)
 	tcp_uc_close(conn);
 
 	printf("test_srv() terminating\n");
+	return 0;
 }
 
-static void test_cli(void *arg)
+static int test_cli(void *arg)
 {
 	tcp_conn_t *conn;
 	tcp_sock_t lsock;
@@ -93,11 +97,12 @@ static void test_cli(void *arg)
 	const char *msg = "Hello World!";
 
 	printf("test_cli()\n");
-
+	
+	inet_addr(&lsock.addr, 127, 0, 0, 1);
 	lsock.port = 1024;
-	lsock.addr.ipv4 = 0x7f000001;
+	
+	inet_addr(&fsock.addr, 127, 0, 0, 1);
 	fsock.port = 80;
-	fsock.addr.ipv4 = 0x7f000001;
 
 	async_usleep(1000*1000*3);
 	printf("C: User open...\n");
@@ -111,32 +116,37 @@ static void test_cli(void *arg)
 	async_usleep(1000*1000*20/**20*2*/);
 	printf("C: User close...\n");
 	tcp_uc_close(conn);
+
+	return 0;
 }
 
 void tcp_test(void)
 {
-	thread_id_t srv_tid;
-	thread_id_t cli_tid;
-	int rc;
+	fid_t srv_fid;
+	fid_t cli_fid;
 
 	printf("tcp_test()\n");
 
 	async_usleep(1000*1000);
 
 	if (0) {
-		rc = thread_create(test_srv, NULL, "test_srv", &srv_tid);
-		if (rc != EOK) {
-			printf("Failed to create server thread.\n");
+		srv_fid = fibril_create(test_srv, NULL);
+		if (srv_fid == 0) {
+			printf("Failed to create server fibril.\n");
 			return;
 		}
+
+		fibril_add_ready(srv_fid);
 	}
 
 	if (0) {
-		rc = thread_create(test_cli, NULL, "test_cli", &cli_tid);
-		if (rc != EOK) {
-			printf("Failed to create client thread.\n");
+		cli_fid = fibril_create(test_cli, NULL);
+		if (cli_fid == 0) {
+			printf("Failed to create client fibril.\n");
 			return;
 		}
+
+		fibril_add_ready(cli_fid);
 	}
 }
 

@@ -30,7 +30,7 @@
  */
 
 #include <fibril.h>
-#include <bool.h>
+#include <stdbool.h>
 
 int context_save(context_t *ctx)
 {

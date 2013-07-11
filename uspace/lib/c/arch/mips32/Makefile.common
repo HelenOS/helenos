@@ -26,9 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -mips3 -mabi=32
+GCC_CFLAGS += -msoft-float -mabi=32
+BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
 
 ENDIANESS = LE
 
 BFD_ARCH = mips
 BFD_NAME = elf32-tradlittlemips
+
+ifeq ($(MACHINE),msim)
+	GCC_CFLAGS += -march=r4000 
+endif
+
+ifeq ($(MACHINE),lmalta)
+	GCC_CFLAGS += -march=4kc
+endif
+

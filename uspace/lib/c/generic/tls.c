@@ -41,6 +41,7 @@
 #include <malloc.h>
 #include <str.h>
 #include <align.h>
+#include <unistd.h>
 
 /** Create TLS (Thread Local Storage) data structures.
  *
@@ -49,13 +50,15 @@
  *
  * @return Pointer to TCB.
  */
-tcb_t *__make_tls(void)
+tcb_t *tls_make(void)
 {
 	void *data;
 	tcb_t *tcb;
 	size_t tls_size = &_tbss_end - &_tdata_start;
 	
-	tcb = __alloc_tls(&data, tls_size);
+	tcb = tls_alloc_arch(&data, tls_size);
+	if (!tcb)
+		return NULL;
 	
 	/*
 	 * Copy thread local data from the initialization image.
@@ -70,10 +73,10 @@ tcb_t *__make_tls(void)
 	return tcb;
 }
 
-void __free_tls(tcb_t *tcb)
+void tls_free(tcb_t *tcb)
 {
 	size_t tls_size = &_tbss_end - &_tdata_start;
-	__free_tls_arch(tcb, tls_size);
+	tls_free_arch(tcb, tls_size);
 }
 
 #ifdef CONFIG_TLS_VARIANT_1
@@ -88,7 +91,10 @@ tcb_t *tls_alloc_variant_1(void **data, size_t size)
 	tcb_t *result;
 
 	result = malloc(sizeof(tcb_t) + size);
+	if (!result)
+		return NULL;
 	*data = ((void *)result) + sizeof(tcb_t);
+
 	return result;
 }
 
@@ -117,7 +123,8 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
 	
 	size = ALIGN_UP(size, &_tls_alignment);
 	*data = memalign((uintptr_t) &_tls_alignment, sizeof(tcb_t) + size);
-
+	if (!*data)
+		return NULL;
 	tcb = (tcb_t *) (*data + size);
 	tcb->self = tcb;
 

@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <str.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <malloc.h>
 #include <async.h>
 #include <io/klog.h>
@@ -189,6 +189,20 @@ void setvbuf(FILE *stream, void *buf, int mode, size_t size)
 	stream->buf_head = stream->buf;
 	stream->buf_tail = stream->buf;
 	stream->buf_state = _bs_empty;
+}
+
+/** Set stream buffer.
+ *
+ * When @p buf is NULL, the stream is set as unbuffered, otherwise
+ * full buffering is enabled.
+ */
+void setbuf(FILE *stream, void *buf)
+{
+	if (buf == NULL) {
+		setvbuf(stream, NULL, _IONBF, BUFSIZ);
+	} else {
+		setvbuf(stream, buf, _IOFBF, BUFSIZ);
+	}
 }
 
 static void _setvbuf(FILE *stream)

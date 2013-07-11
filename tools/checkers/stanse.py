@@ -126,7 +126,7 @@ def main():
 	
 	for job in jobs:
 		if (not stanse(rootdir, job)):
-			print
+			print()
 			print("Failed job: %s" % job)
 			return
 	

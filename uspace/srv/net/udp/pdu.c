@@ -39,7 +39,8 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
-
+#include <inet/addr.h>
+#include <net/socket_codes.h>
 #include "msg.h"
 #include "pdu.h"
 #include "std.h"
@@ -83,13 +84,39 @@ static uint16_t udp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 	return ~sum;
 }
 
-static void udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr)
+static uint16_t udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr,
+    udp_phdr6_t *phdr6)
 {
-	phdr->src_addr = host2uint32_t_be(pdu->src.ipv4);
-	phdr->dest_addr = host2uint32_t_be(pdu->dest.ipv4);
-	phdr->zero = 0;
-	phdr->protocol = IP_PROTO_UDP;
-	phdr->udp_length = host2uint16_t_be(pdu->data_size);
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&pdu->src, &src_v4, &src_v6);
+	
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&pdu->dest, &dest_v4, &dest_v6);
+	
+	assert(src_af == dest_af);
+	
+	switch (src_af) {
+	case AF_INET:
+		phdr->src_addr = host2uint32_t_be(src_v4);
+		phdr->dest_addr = host2uint32_t_be(dest_v4);
+		phdr->zero = 0;
+		phdr->protocol = IP_PROTO_UDP;
+		phdr->udp_length = host2uint16_t_be(pdu->data_size);
+		break;
+	case AF_INET6:
+		host2addr128_t_be(src_v6, phdr6->src_addr);
+		host2addr128_t_be(dest_v6, phdr6->dest_addr);
+		phdr6->udp_length = host2uint32_t_be(pdu->data_size);
+		memset(phdr6->zero, 0, 3);
+		phdr6->next = IP_PROTO_UDP;
+		break;
+	default:
+		assert(false);
+	}
+	
+	return src_af;
 }
 
 udp_pdu_t *udp_pdu_new(void)
@@ -106,15 +133,24 @@ void udp_pdu_delete(udp_pdu_t *pdu)
 static uint16_t udp_pdu_checksum_calc(udp_pdu_t *pdu)
 {
 	uint16_t cs_phdr;
-	uint16_t cs_all;
 	udp_phdr_t phdr;
-
-	udp_phdr_setup(pdu, &phdr);
-	cs_phdr = udp_checksum_calc(UDP_CHECKSUM_INIT, (void *)&phdr,
-	    sizeof(udp_phdr_t));
-	cs_all = udp_checksum_calc(cs_phdr, pdu->data, pdu->data_size);
-
-	return cs_all;
+	udp_phdr6_t phdr6;
+	
+	uint16_t af = udp_phdr_setup(pdu, &phdr, &phdr6);
+	switch (af) {
+	case AF_INET:
+		cs_phdr = udp_checksum_calc(UDP_CHECKSUM_INIT, (void *) &phdr,
+		    sizeof(udp_phdr_t));
+		break;
+	case AF_INET6:
+		cs_phdr = udp_checksum_calc(UDP_CHECKSUM_INIT, (void *) &phdr6,
+		    sizeof(udp_phdr6_t));
+		break;
+	default:
+		assert(false);
+	}
+	
+	return udp_checksum_calc(cs_phdr, pdu->data, pdu->data_size);
 }
 
 static void udp_pdu_set_checksum(udp_pdu_t *pdu, uint16_t checksum)

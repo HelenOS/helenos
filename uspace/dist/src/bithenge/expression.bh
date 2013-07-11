@@ -1,0 +1,54 @@
+transform compare_ints(a, b) = struct {
+	.l <- (a < b);
+	.g <- (a > b);
+	.ge <- (a >= b);
+	.le <- (a <= b);
+	.eq <- (a == b);
+	.ne <- (a != b);
+};
+
+transform arithmetic(a, b) = struct {
+	.sum <- (a + b);
+	.difference <- (a - b);
+	.product <- (a * b);
+	if (b > 0) {
+		.quotient <- (a // b);
+		.remainder <- (a % b);
+	}
+};
+
+transform concat_bits(a, b) = uint_le(24) <- (in.concat_bits) <- struct {
+	.bits0 <- bits_le <- (a);
+	.bits1 <- bits_be <- (b);
+	.concat_bits <- (.bits0 ++ (.bits1 ++ .bits0));
+};
+
+transform equality(bytes0, bytes1, str0, str1) = struct {
+	.neqs <- ((0 != 1) != (2 != 3));
+	.bytes0_eq_bytes1 <- (bytes0 == bytes1);
+	.bytes0_ne_bytes0 <- (bytes0 != bytes0);
+	.str0_ne_str1 <- (str0 != str1);
+	.str1_eq_str1 <- (str1 == str1);
+	.bytes1_eq_1 <- (bytes1 == 1);
+};
+
+transform subblob(bytes0) = struct {
+	.subblob <- (bytes0[0:][0,1][0:1]);
+};
+
+transform main = struct {
+	.bytes0 <- known_length(1);
+	.bytes1 <- known_length(1);
+	.str0 <- ascii <- (.bytes0);
+	.str1 <- ascii <- (.bytes1);
+	.compare_ints_0_1 <- compare_ints(0, 1);
+	.compare_ints_0_0 <- compare_ints(0, 0);
+	.compare_ints_1_0 <- compare_ints(1, 0);
+	.arithmetic_0_1 <- arithmetic(0, 1);
+	.arithmetic_17_n3 <- arithmetic(17, 0 - 3);
+	.arithmetic_n17_3 <- arithmetic(0 - 17, 3);
+	.concat_bytes <- (.bytes0 ++ (.bytes1 ++ .bytes0));
+	.concat_bits <- concat_bits(.bytes0, .bytes1);
+	.equality <- equality(.bytes0, .bytes1, .str0, .str1);
+	.subblob <- subblob(.bytes0);
+};
