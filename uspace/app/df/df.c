@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/statfs.h>
 #include <errno.h>
 #include <adt/list.h>
@@ -46,7 +47,7 @@
 
 #define HEADER_TABLE "Filesystem    512-blocks      Used      Available  Used%  Mounted on"
 
-#define PERCENTAGE(x, tot) ((long) (100L * (x) / (tot)))  
+#define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))  
 
 int main(int argc, char *argv[])
 {
@@ -59,12 +60,12 @@ int main(int argc, char *argv[])
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
 		statfs(mtab_ent->mp, &st);
-		printf("block size:%ld\n", st.f_bsize);
-		printf("%13s %15lld %9lld %9lld %3ld%% %s\n", 
+		printf("block size:%lu\n", (unsigned long)st.f_bsize);
+		printf("%13s %15llu %9llu %9llu %3llu%% %s\n", 
 			mtab_ent->fs_name,
-			(long long) st.f_blocks * st.f_bsize,
-			(long long) (st.f_blocks - st.f_bfree) * st.f_bsize,
-			(long long) st.f_bfree * st.f_bsize,
+			(unsigned long long) st.f_blocks * st.f_bsize,
+			(unsigned long long) (st.f_blocks - st.f_bfree) * st.f_bsize,
+			(unsigned long long) st.f_bfree * st.f_bsize,
 			(st.f_blocks)?PERCENTAGE(st.f_blocks - st.f_bfree, st.f_blocks):0L,
 			mtab_ent->mp);
 	}

@@ -38,10 +38,10 @@
 #include <sys/types.h>
 
 struct statfs { 
-	short   f_type;     /* type of file system  */
-	long    f_bsize;    /* fundamental file system block size */
-	long    f_blocks;   /* total data blocks in file system */
-	long    f_bfree;    /* free blocks in fs */
+	uint32_t    f_type;     /* type of file system  */
+	uint32_t    f_bsize;    /* fundamental file system block size */
+	uint64_t    f_blocks;   /* total data blocks in file system */
+	uint64_t    f_bfree;    /* free blocks in fs */
 };
 
 extern int statfs(const char *, struct statfs *);
