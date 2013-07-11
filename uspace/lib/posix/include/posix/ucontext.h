@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2011 Jiri Zarevucky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,61 +29,53 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file File control.
+/** @file Userspace context handling.
  */
 
-#ifndef POSIX_FCNTL_H_
-#define POSIX_FCNTL_H_
+#ifndef POSIX_UCONTEXT_H_
+#define POSIX_UCONTEXT_H_
 
 #ifndef __POSIX_DEF__
 #define __POSIX_DEF__(x) x
 #endif
 
 #include "sys/types.h"
-#include "libc/fcntl.h"
-#include "errno.h"
 
-/* Mask for file access modes. */
-#undef O_ACCMODE
-#define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR)
+typedef int __POSIX_DEF__(sig_atomic_t);
+typedef uint32_t __POSIX_DEF__(sigset_t);
+typedef struct __POSIX_DEF__(mcontext) {
+	/* must not be empty to avoid compiler warnings (-pedantic) */
+	int dummy;
+} __POSIX_DEF__(mcontext_t);
 
-/* Dummy compatibility flag */
-#undef O_NOCTTY
-#define O_NOCTTY 0
+union __POSIX_DEF__(sigval) {
+	int sival_int;
+	void *sival_ptr;
+};
 
-/* fcntl commands */
-#undef F_DUPFD
-#undef F_DUPFD_CLOEXEC
-#undef F_GETFD
-#undef F_SETFD
-#undef F_GETFL
-#undef F_SETFL
-#undef F_GETOWN
-#undef F_SETOWN
-#undef F_GETLK
-#undef F_SETLK
-#undef F_SETLKW
-#define F_DUPFD            0 /* Duplicate file descriptor. */
-#define F_DUPFD_CLOEXEC    1 /* Same as F_DUPFD but with FD_CLOEXEC flag set. */
-#define F_GETFD            2 /* Get file descriptor flags. */
-#define F_SETFD            3 /* Set file descriptor flags. */
-#define F_GETFL            4 /* Get file status and access flags. */
-#define F_SETFL            5 /* Set file status flags. */
-#define F_GETOWN           6 /* Get socket owner. */
-#define F_SETOWN           7 /* Set socket owner. */
-#define F_GETLK            8 /* Get locking information. */
-#define F_SETLK            9 /* Set locking information. */
-#define F_SETLKW          10 /* Set locking information; wait if blocked. */
+struct __POSIX_DEF__(sigevent) {
+	int sigev_notify; /* Notification type. */
+	int sigev_signo; /* Signal number. */
+	union __POSIX_DEF__(sigval) sigev_value; /* Signal value. */
+	void (*sigev_notify_function)(union __POSIX_DEF__(sigval)); /* Notification function. */
+	__POSIX_DEF__(thread_attr_t) *sigev_notify_attributes; /* Notification attributes. */
+};
 
-/* File descriptor flags used with F_GETFD and F_SETFD. */
-#undef FD_CLOEXEC
-#define FD_CLOEXEC         1 /* Close on exec. */
+typedef struct {
+	void *ss_sp;
+	size_t ss_size;
+	int ss_flags;
+} __POSIX_DEF__(stack_t);
 
-extern int __POSIX_DEF__(open)(const char *pathname, int flags, ...);
-extern int __POSIX_DEF__(fcntl)(int fd, int cmd, ...);
+typedef struct __POSIX_DEF__(ucontext) {
+	struct __POSIX_DEF__(ucontext) *uc_link;
+	__POSIX_DEF__(sigset_t) uc_sigmask;
+	__POSIX_DEF__(stack_t) uc_stack;
+	__POSIX_DEF__(mcontext_t) uc_mcontext;
+} __POSIX_DEF__(ucontext_t);
 
 
-#endif /* POSIX_FCNTL_H_ */
+#endif
 
 /** @}
  */

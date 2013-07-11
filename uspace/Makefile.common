@@ -221,6 +221,12 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 	CLANG_CFLAGS += -g
 endif
 
+# Prepare for POSIX before including platform specific stuff
+ifeq ($(POSIX_COMPAT),y)
+	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
+	BASE_LIBS = $(LIBPOSIX_PREFIX)/libposixaslibc.a $(LIBPOSIX_PREFIX)/libc4posix.a $(LIBSOFTINT_PREFIX)/libsoftint.a
+endif
+
 ## Setup platform configuration
 #
 
@@ -230,11 +236,6 @@ endif
 #
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
-
-ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
-	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
-endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)

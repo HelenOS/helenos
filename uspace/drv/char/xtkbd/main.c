@@ -79,22 +79,23 @@ int main(int argc, char *argv[])
  */
 static int xt_kbd_add(ddf_dev_t *device)
 {
+	int rc;
+
 	if (!device)
 		return EINVAL;
 
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	ddf_msg(LVL_ERROR, message); \
-	return ret; \
-} else (void)0
-
 	xt_kbd_t *kbd = ddf_dev_data_alloc(device, sizeof(xt_kbd_t));
-	int ret = (kbd == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate XT/KBD driver instance.");
+	if (kbd == NULL) {
+		ddf_msg(LVL_ERROR, "Failed to allocate XT/KBD driver instance.");
+		return ENOMEM;
+	}
 
-	ret = xt_kbd_init(kbd, device);
-	CHECK_RET_RETURN(ret,
-	    "Failed to initialize XT_KBD driver: %s.", str_error(ret));
+	rc = xt_kbd_init(kbd, device);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to initialize XT_KBD driver: %s.",
+		    str_error(rc));
+    		return rc;
+	}
 
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
