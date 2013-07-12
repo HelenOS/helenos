@@ -216,6 +216,14 @@ void inet_naddr_addr(const inet_naddr_t *naddr, inet_addr_t *addr)
 	memcpy(addr->addr6, naddr->addr6, 16);
 }
 
+void inet_addr_naddr(const inet_addr_t *addr, uint8_t prefix,
+    inet_naddr_t *naddr)
+{
+	naddr->family = addr->family;
+	memcpy(naddr->addr6, addr->addr6, 16);
+	naddr->prefix = prefix;
+}
+
 void inet_addr_any(inet_addr_t *addr)
 {
 	addr->family = AF_NONE;

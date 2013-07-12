@@ -88,6 +88,7 @@ extern void inet_naddr6(inet_naddr_t *, uint16_t, uint16_t, uint16_t, uint16_t,
 
 extern int inet_addr_family(const char *, uint16_t *);
 extern void inet_naddr_addr(const inet_naddr_t *, inet_addr_t *);
+extern void inet_addr_naddr(const inet_addr_t *, uint8_t, inet_naddr_t *);
 
 extern void inet_addr_any(inet_addr_t *);
 extern void inet_naddr_any(inet_naddr_t *);
