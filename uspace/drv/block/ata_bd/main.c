@@ -197,6 +197,8 @@ int ata_fun_create(disk_t *disk)
 		goto error;
 	}
 
+	ddf_fun_add_to_category(fun, "bd");
+
 	free(fun_name);
 	disk->afun = afun;
 	return EOK;
