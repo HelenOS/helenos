@@ -71,6 +71,11 @@ void addr128(const addr128_t src, addr128_t dst)
 	memcpy(dst, src, 16);
 }
 
+int addr128_compare(const addr128_t a, const addr128_t b)
+{
+	return memcmp(a, b, 16);
+}
+
 void host2addr128_t_be(const addr128_t host, addr128_t be)
 {
 #ifdef __BE__
@@ -233,7 +238,7 @@ int inet_addr_compare(const inet_addr_t *a, const inet_addr_t *b)
 	case AF_INET:
 		return (a->addr == b->addr);
 	case AF_INET6:
-		return memcmp(&a->addr6, &b->addr6, 16);
+		return addr128_compare(a->addr6, b->addr6);
 	default:
 		return 0;
 	}
