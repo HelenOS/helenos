@@ -200,6 +200,13 @@ static int inet_link_open(service_id_t sid)
 		    ilink->svc_name);
 		goto error;
 	}
+	
+	/*
+	 * Get the MAC address of the link. If the link has a MAC
+	 * address, we assume that it supports NDP.
+	 */
+	rc = iplink_get_mac48(ilink->iplink, &ilink->mac);
+	ilink->mac_valid = (rc == EOK);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
 	list_append(&ilink->link_list, &inet_link_list);
@@ -297,13 +304,83 @@ int inet_link_discovery_start(void)
 	return inet_link_check_new();
 }
 
-/** Send datagram over Internet link */
-int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
-    inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
+/** Send IPv4 datagram over Internet link */
+int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
+    inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
+	addr32_t src_v4;
+	uint16_t src_af = inet_addr_get(&dgram->src, &src_v4, NULL);
+	if (src_af != AF_INET)
+		return EINVAL;
+	
+	addr32_t dest_v4;
+	uint16_t dest_af = inet_addr_get(&dgram->dest, &dest_v4, NULL);
+	if (dest_af != AF_INET)
+		return EINVAL;
+	
 	/*
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode().
+	 */
+	
+	iplink_sdu_t sdu;
+	
+	sdu.src = lsrc;
+	sdu.dest = ldest;
+	
+	inet_packet_t packet;
+	
+	packet.src = dgram->src;
+	packet.dest = dgram->dest;
+	packet.tos = dgram->tos;
+	packet.proto = proto;
+	packet.ttl = ttl;
+	packet.df = df;
+	packet.data = dgram->data;
+	packet.size = dgram->size;
+	
+	size_t offs = 0;
+	int rc;
+	
+	do {
+		/* Encode one fragment */
+		
+		size_t roffs;
+		rc = inet_pdu_encode(&packet, src_v4, dest_v4, offs, ilink->def_mtu,
+		    &sdu.data, &sdu.size, &roffs);
+		if (rc != EOK)
+			return rc;
+		
+		/* Send the PDU */
+		rc = iplink_send(ilink->iplink, &sdu);
+		
+		free(sdu.data);
+		offs = roffs;
+	} while (offs < packet.size);
+	
+	return rc;
+}
+
+/** Send IPv6 datagram over Internet link */
+int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
+    inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
+{
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &src_v6);
+	if (src_af != AF_INET6)
+		return EINVAL;
+	
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &dest_v6);
+	if (dest_af != AF_INET6)
+		return EINVAL;
+	
+	iplink_sdu6_t sdu6;
+	addr48(ldest, sdu6.dest);
+	
+	/*
+	 * Fill packet structure. Fragmentation is performed by
+	 * inet_pdu_encode6().
 	 */
 	
 	inet_packet_t packet;
@@ -317,25 +394,22 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	packet.data = dgram->data;
 	packet.size = dgram->size;
 	
-	iplink_sdu_t sdu;
-	size_t offs = 0;
 	int rc;
-	
-	sdu.src = *lsrc;
-	sdu.dest = *ldest;
+	size_t offs = 0;
 	
 	do {
 		/* Encode one fragment */
+		
 		size_t roffs;
-		rc = inet_pdu_encode(&packet, offs, ilink->def_mtu, &sdu.data,
-		    &sdu.size, &roffs);
+		rc = inet_pdu_encode6(&packet, src_v6, dest_v6, offs, ilink->def_mtu,
+		    &sdu6.data, &sdu6.size, &roffs);
 		if (rc != EOK)
 			return rc;
 		
 		/* Send the PDU */
-		rc = iplink_send(ilink->iplink, &sdu);
-		free(sdu.data);
+		rc = iplink_send6(ilink->iplink, &sdu6);
 		
+		free(sdu6.data);
 		offs = roffs;
 	} while (offs < packet.size);
 	

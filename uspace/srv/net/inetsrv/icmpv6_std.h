@@ -46,6 +46,10 @@
 
 #define INET6_HOP_LIMIT_MAX  255
 
+#define NDP_FLAG_ROUTER     0x80
+#define NDP_FLAG_OVERRIDE   0x40
+#define NDP_FLAG_SOLICITED  0x20
+
 /** ICMPv6 message type */
 enum icmpv6_type {
 	ICMPV6_ECHO_REQUEST = 128,
@@ -82,7 +86,7 @@ typedef struct {
 			/** Flags byte */
 			uint8_t flags;
 			/** Reserved bytes */
-			uint8_t reserved [3];
+			uint8_t reserved[3];
 		} ndp;
 	} un;
 } icmpv6_message_t;
@@ -90,13 +94,13 @@ typedef struct {
 /** ICMPv6 pseudoheader for checksum computation */
 typedef struct {
 	/** Source IPv6 address */
-	uint8_t src_addr [16];
+	uint8_t src_addr[16];
 	/** Target IPv6 address */
-	uint8_t dest_addr [16];
+	uint8_t dest_addr[16];
 	/** ICMPv6 length */
 	uint32_t length;
 	/** Zeroes */
-	uint8_t zeroes [3];
+	uint8_t zeroes[3];
 	/** Next header */
 	uint8_t next;
 } icmpv6_pseudo_header;
@@ -104,13 +108,13 @@ typedef struct {
 /** NDP neighbour body */
 typedef struct {
 	/** Target IPv6 address */
-	uint8_t target_address [16];
+	uint8_t target_address[16];
 	/** Option code */
 	uint8_t option;
 	/** Option length */
 	uint8_t length;
 	/** MAC address */
-	uint8_t mac [6];
+	uint8_t mac[6];
 } ndp_message_t;
 
 /** NDP prefix information structure */
@@ -130,7 +134,7 @@ typedef struct {
 	/** Reserved */
 	uint32_t reserved;
 	/** Prefix */
-	uint8_t prefix [16];
+	uint8_t prefix[16];
 } ndp_prefix_t;
 
 #endif

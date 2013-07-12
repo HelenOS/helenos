@@ -49,6 +49,37 @@ static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, rc, mtu);
 }
 
+static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	addr48_t mac;
+	int rc = srv->ops->get_mac48(srv, &mac);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(addr48_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, &mac, size);
+	if (rc != EOK)
+		async_answer_0(callid, rc);
+	
+	async_answer_0(iid, (sysarg_t) rc);
+}
+
 static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
     ipc_call_t *icall)
 {
@@ -110,6 +141,26 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
 {
 	iplink_sdu_t sdu;
 	
+	sdu.src = IPC_GET_ARG1(*icall);
+	sdu.dest = IPC_GET_ARG2(*icall);
+	
+	int rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
+	    &sdu.size);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	rc = srv->ops->send(srv, &sdu);
+	free(sdu.data);
+	async_answer_0(iid, rc);
+}
+
+static void iplink_send6_srv(iplink_srv_t *srv, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	iplink_sdu6_t sdu;
+	
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
@@ -118,31 +169,13 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
 		return;
 	}
 	
-	if (size != sizeof(inet_addr_t)) {
+	if (size != sizeof(addr48_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
-	int rc = async_data_write_finalize(callid, &sdu.src, size);
-	if (rc != EOK) {
-		async_answer_0(callid, (sysarg_t) rc);
-		async_answer_0(iid, (sysarg_t) rc);
-	}
-	
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
-		return;
-	}
-	
-	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	rc = async_data_write_finalize(callid, &sdu.dest, size);
+	int rc = async_data_write_finalize(callid, &sdu.dest, size);
 	if (rc != EOK) {
 		async_answer_0(callid, (sysarg_t) rc);
 		async_answer_0(iid, (sysarg_t) rc);
@@ -150,10 +183,12 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
-	if (rc != EOK)
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
+	}
 	
-	rc = srv->ops->send(srv, &sdu);
+	rc = srv->ops->send6(srv, &sdu);
 	free(sdu.data);
 	async_answer_0(iid, rc);
 }
@@ -169,7 +204,7 @@ void iplink_srv_init(iplink_srv_t *srv)
 
 int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	iplink_srv_t *srv = (iplink_srv_t *)arg;
+	iplink_srv_t *srv = (iplink_srv_t *) arg;
 	int rc;
 	
 	fibril_mutex_lock(&srv->lock);
@@ -213,8 +248,14 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case IPLINK_GET_MTU:
 			iplink_get_mtu_srv(srv, callid, &call);
 			break;
+		case IPLINK_GET_MAC48:
+			iplink_get_mac48_srv(srv, callid, &call);
+			break;
 		case IPLINK_SEND:
 			iplink_send_srv(srv, callid, &call);
+			break;
+		case IPLINK_SEND6:
+			iplink_send6_srv(srv, callid, &call);
 			break;
 		case IPLINK_ADDR_ADD:
 			iplink_addr_add_srv(srv, callid, &call);

@@ -41,8 +41,10 @@
 #include "inetsrv.h"
 
 extern int inet_link_discovery_start(void);
-extern int inet_link_send_dgram(inet_link_t *, inet_addr_t *,
-    inet_addr_t *, inet_dgram_t *, uint8_t, uint8_t, int);
+extern int inet_link_send_dgram(inet_link_t *, addr32_t,
+    addr32_t, inet_dgram_t *, uint8_t, uint8_t, int);
+extern int inet_link_send_dgram6(inet_link_t *, addr48_t, inet_dgram_t *,
+    uint8_t, uint8_t, int);
 extern inet_link_t *inet_link_get_by_id(sysarg_t);
 
 #endif

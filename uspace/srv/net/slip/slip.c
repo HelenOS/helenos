@@ -57,7 +57,9 @@
 static int slip_open(iplink_srv_t *);
 static int slip_close(iplink_srv_t *);
 static int slip_send(iplink_srv_t *, iplink_sdu_t *);
+static int slip_send6(iplink_srv_t *, iplink_sdu6_t *);
 static int slip_get_mtu(iplink_srv_t *, size_t *);
+static int slip_get_mac48(iplink_srv_t *, addr48_t *);
 static int slip_addr_add(iplink_srv_t *, inet_addr_t *);
 static int slip_addr_remove(iplink_srv_t *, inet_addr_t *);
 
@@ -67,7 +69,9 @@ static iplink_ops_t slip_iplink_ops = {
 	.open = slip_open,
 	.close = slip_close,
 	.send = slip_send,
+	.send6 = slip_send6,
 	.get_mtu = slip_get_mtu,
+	.get_mac48 = slip_get_mac48,
 	.addr_add = slip_addr_add,
 	.addr_remove = slip_addr_remove
 };
@@ -121,20 +125,19 @@ static void write_buffered(async_sess_t *sess, uint8_t ch)
 
 int slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send()");
+	
 	async_sess_t *sess = (async_sess_t *) srv->arg;
 	uint8_t *data = sdu->data;
-	unsigned i;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send()");
-
+	
 	/*
- 	 * Strictly speaking, this is not prescribed by the RFC, but the RFC
- 	 * suggests to start with sending a SLIP_END byte as a synchronization
- 	 * measure for dealing with previous possible noise on the line.
- 	 */
+	 * Strictly speaking, this is not prescribed by the RFC, but the RFC
+	 * suggests to start with sending a SLIP_END byte as a synchronization
+	 * measure for dealing with previous possible noise on the line.
+	 */
 	write_buffered(sess, SLIP_END);
-
-	for (i = 0; i < sdu->size; i++) {
+	
+	for (size_t i = 0; i < sdu->size; i++) {
 		switch (data[i]) {
 		case SLIP_END:
 			write_buffered(sess, SLIP_ESC);
@@ -149,10 +152,18 @@ int slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 			break;
 		}
 	}
+	
 	write_buffered(sess, SLIP_END);
 	write_flush(sess);
-
+	
 	return EOK;
+}
+
+int slip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send6()");
+	
+	return ENOTSUP;
 }
 
 int slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
@@ -160,6 +171,12 @@ int slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_get_mtu()");
 	*mtu = SLIP_MTU;
 	return EOK;
+}
+
+int slip_get_mac48(iplink_srv_t *src, addr48_t *mac)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_get_mac48()");
+	return ENOTSUP;
 }
 
 int slip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)

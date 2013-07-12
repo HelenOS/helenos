@@ -140,6 +140,8 @@ typedef struct {
 	async_sess_t *sess;
 	iplink_t *iplink;
 	size_t def_mtu;
+	addr48_t mac;
+	bool mac_valid;
 } inet_link_t;
 
 typedef struct {
