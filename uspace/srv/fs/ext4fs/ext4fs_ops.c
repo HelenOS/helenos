@@ -100,9 +100,9 @@ static unsigned ext4fs_lnkcnt_get(fs_node_t *);
 static bool ext4fs_is_directory(fs_node_t *);
 static bool ext4fs_is_file(fs_node_t *node);
 static service_id_t ext4fs_service_get(fs_node_t *node);
-static long ext4fs_size_block(service_id_t);
-static long ext4fs_total_block(service_id_t);
-static long ext4fs_free_block(service_id_t);
+static uint32_t ext4fs_size_block(service_id_t);
+static uint64_t ext4fs_total_block(service_id_t);
+static uint64_t ext4fs_free_block(service_id_t);
 
 /* Static variables */
 
@@ -840,7 +840,7 @@ service_id_t ext4fs_service_get(fs_node_t *fn)
 	return enode->instance->service_id;
 }
 
-long ext4fs_size_block(service_id_t service_id)
+uint32_t ext4fs_size_block(service_id_t service_id)
 {
 	ext4fs_instance_t *inst;
 	int rc = ext4fs_instance_get(service_id, &inst);
@@ -855,7 +855,7 @@ long ext4fs_size_block(service_id_t service_id)
 	return block_size;
 }
 
-long ext4fs_total_block(service_id_t service_id)
+uint64_t ext4fs_total_block(service_id_t service_id)
 {
 	ext4fs_instance_t *inst;
 	int rc = ext4fs_instance_get(service_id, &inst);
@@ -865,12 +865,12 @@ long ext4fs_total_block(service_id_t service_id)
 		return ENOENT;
 
 	ext4_superblock_t *sb = inst->filesystem->superblock;
-	uint32_t block_count = ext4_superblock_get_blocks_count(sb);
+	uint64_t block_count = ext4_superblock_get_blocks_count(sb);
 
 	return block_count;
 }
 
-long ext4fs_free_block(service_id_t service_id)
+uint64_t ext4fs_free_block(service_id_t service_id)
 {
 	ext4fs_instance_t *inst;
 	int rc = ext4fs_instance_get(service_id, &inst);
@@ -880,7 +880,7 @@ long ext4fs_free_block(service_id_t service_id)
 		return ENOENT;
 
 	ext4_superblock_t *sb = inst->filesystem->superblock;
-	uint32_t block_count = ext4_superblock_get_free_blocks_count(sb);
+	uint64_t block_count = ext4_superblock_get_free_blocks_count(sb);
 
 	return block_count;
 }

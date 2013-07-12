@@ -90,7 +90,7 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
-static long fat_size_block(service_id_t);
+static uint32_t fat_size_block(service_id_t);
 
 /*
  * Helper functions.
@@ -843,7 +843,7 @@ service_id_t fat_service_get(fs_node_t *node)
 	return 0;
 }
 
-long fat_size_block(service_id_t service_id)
+uint32_t fat_size_block(service_id_t service_id)
 {
 	fat_bs_t *bs;
 	bs = block_bb_get(service_id);

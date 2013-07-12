@@ -248,7 +248,7 @@ static bool udf_is_file(fs_node_t *fn)
 	return false;
 }
 
-static long udf_size_block(service_id_t service_id)
+static uint32_t udf_size_block(service_id_t service_id)
 {
 	udf_instance_t *instance;
 	int rc = fs_instance_get(service_id, (void **) &instance);

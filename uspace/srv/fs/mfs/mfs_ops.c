@@ -63,9 +63,9 @@ static int mfs_instance_get(service_id_t service_id,
     struct mfs_instance **instance);
 static int mfs_check_sanity(struct mfs_sb_info *sbi);
 static bool is_power_of_two(uint32_t n);
-static long mfs_size_block(service_id_t service_id);
-static long mfs_total_block(service_id_t service_id);
-static long mfs_free_block(service_id_t service_id);
+static uint32_t mfs_size_block(service_id_t service_id);
+static uint64_t mfs_total_block(service_id_t service_id);
+static uint64_t mfs_free_block(service_id_t service_id);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -1134,10 +1134,10 @@ is_power_of_two(uint32_t n)
 	return (n & (n - 1)) == 0;
 }
 
-static long
+static uint32_t
 mfs_size_block(service_id_t service_id)
 {
-	long block_size;
+	uint32_t block_size;
 
 	struct mfs_instance *inst;
 	int rc = mfs_instance_get(service_id, &inst);
@@ -1151,10 +1151,10 @@ mfs_size_block(service_id_t service_id)
 	return block_size;
 }
 
-static long
+static uint64_t
 mfs_total_block(service_id_t service_id)
 {
-	long block_total;
+	uint64_t block_total;
 	
 	struct mfs_instance *inst;
 	int rc = mfs_instance_get(service_id, &inst);
@@ -1164,12 +1164,12 @@ mfs_total_block(service_id_t service_id)
 	if (NULL == inst)
 		return ENOENT;
 	
-	block_total = inst->sbi->nzones;
+	block_total = (uint64_t)inst->sbi->nzones;
 
 	return block_total;
 }
 
-static long
+static uint64_t
 mfs_free_block(service_id_t service_id)
 {
 	uint32_t block_free;
@@ -1184,7 +1184,7 @@ mfs_free_block(service_id_t service_id)
 
 	mfs_count_free_zones(inst, &block_free);
 
-	return (long)block_free;
+	return (uint64_t)block_free;
 }
 
 vfs_out_ops_t mfs_ops = {
