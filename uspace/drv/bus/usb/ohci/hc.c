@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <str_error.h>
 #include <adt/list.h>
 #include <libarch/ddi.h>
@@ -182,55 +183,76 @@ int hc_register_irq_handler(ddf_dev_t *device, uintptr_t reg_base, size_t reg_si
  */
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 {
+	bool addr_reqd = false;
+	bool ep_added = false;
+	bool fun_bound = false;
+	int rc;
+
 	assert(instance);
 	assert(hub_fun);
 
 	/* Try to get address 1 for root hub. */
 	instance->rh.address = 1;
-	int ret = usb_device_manager_request_address(
+	rc = usb_device_manager_request_address(
 	    &instance->generic.dev_manager, &instance->rh.address, false,
 	    USB_SPEED_FULL);
-	if (ret != EOK) {
+	if (rc != EOK) {
 		usb_log_error("Failed to get OHCI root hub address: %s\n",
-		    str_error(ret));
-		return ret;
+		    str_error(rc));
+		goto error;
 	}
 
-#define CHECK_RET_UNREG_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	usb_endpoint_manager_remove_ep( \
-	    &instance->generic.ep_manager, instance->rh.address, 0, \
-	    USB_DIRECTION_BOTH, NULL, NULL); \
-	usb_device_manager_release_address( \
-	    &instance->generic.dev_manager, instance->rh.address); \
-	return ret; \
-} else (void)0
+	addr_reqd = true;
 
-	ret = usb_endpoint_manager_add_ep(
+	rc = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, instance->rh.address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
 	    0, NULL, NULL);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to register root hub control endpoint: %s.\n",
-	    str_error(ret));
+	if (rc != EOK) {
+    	        usb_log_error("Failed to register root hub control endpoint: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to add root hub match-id: %s.\n", str_error(ret));
+	ep_added = true;
 
-	ret = ddf_fun_bind(hub_fun);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to bind root hub function: %s.\n", str_error(ret));
+	rc = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
+	if (rc != EOK) {
+		usb_log_error("Failed to add root hub match-id: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = usb_device_manager_bind_address(&instance->generic.dev_manager,
+	rc = ddf_fun_bind(hub_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to bind root hub function: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
+
+	fun_bound = true;
+
+	rc = usb_device_manager_bind_address(&instance->generic.dev_manager,
 	    instance->rh.address, ddf_fun_get_handle(hub_fun));
-	if (ret != EOK)
+	if (rc != EOK) {
 		usb_log_warning("Failed to bind root hub address: %s.\n",
-		    str_error(ret));
+		    str_error(rc));
+	}
 
 	return EOK;
-#undef CHECK_RET_RELEASE
+error:
+	if (fun_bound)
+		ddf_fun_unbind(hub_fun);
+	if (ep_added) {
+		usb_endpoint_manager_remove_ep(
+		    &instance->generic.ep_manager, instance->rh.address, 0,
+		    USB_DIRECTION_BOTH, NULL, NULL);
+	}
+	if (addr_reqd) {
+		usb_device_manager_release_address(
+		    &instance->generic.dev_manager, instance->rh.address);
+	}
+	return rc;
 }
 
 /** Initialize OHCI hc driver structure
@@ -245,16 +267,13 @@ int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
 
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
-	int ret =
+	int rc =
 	    pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	CHECK_RET_RETURN(ret,
-	    "Failed to gain access to device registers: %s.\n", str_error(ret));
+	if (rc != EOK) {
+		usb_log_error("Failed to gain access to device registers: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	list_initialize(&instance->pending_batches);
 
@@ -265,10 +284,12 @@ if (ret != EOK) { \
 	instance->generic.ep_add_hook = ohci_endpoint_init;
 	instance->generic.ep_remove_hook = ohci_endpoint_fini;
 
-	ret = hc_init_memory(instance);
-	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
-	    str_error(ret));
-#undef CHECK_RET_RETURN
+	rc = hc_init_memory(instance);
+	if (rc != EOK) {
+		usb_log_error("Failed to create OHCI memory structures: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	fibril_mutex_initialize(&instance->guard);
 
