@@ -235,7 +235,7 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
 /** Read data from the serial port device.
  *
  * @param fun		The serial port function
- * @param buf		The ouput buffer for read data.
+ * @param buf		The output buffer for read data.
  * @param count		The number of bytes to be read.
  *
  * @return		The number of bytes actually read on success, negative
@@ -917,7 +917,7 @@ static int ns8250_dev_remove(ddf_dev_t *dev)
 	int rc;
 	
 	fibril_mutex_lock(&ns->mutex);
-		if (ns->client_connections > 0) {
+	if (ns->client_connections > 0) {
 		fibril_mutex_unlock(&ns->mutex);
 		return EBUSY;
 	}
