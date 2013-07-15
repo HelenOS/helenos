@@ -46,12 +46,6 @@
 #include "inetping6.h"
 #include "pdu.h"
 
-static int ndp_received(inet_dgram_t *dgram)
-{
-	// FIXME TODO
-	return ENOTSUP;
-}
-
 static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmpv6_recv_echo_request()");

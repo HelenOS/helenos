@@ -72,6 +72,8 @@ extern const addr48_t addr48_broadcast;
 extern void addr48(const addr48_t, addr48_t);
 extern void addr128(const addr128_t, addr128_t);
 
+extern int addr128_compare(const addr128_t, const addr128_t);
+
 extern void host2addr128_t_be(const addr128_t, addr128_t);
 extern void addr128_t_be2host(const addr128_t, addr128_t);
 
@@ -86,6 +88,7 @@ extern void inet_naddr6(inet_naddr_t *, uint16_t, uint16_t, uint16_t, uint16_t,
 
 extern int inet_addr_family(const char *, uint16_t *);
 extern void inet_naddr_addr(const inet_naddr_t *, inet_addr_t *);
+extern void inet_addr_naddr(const inet_addr_t *, uint8_t, inet_naddr_t *);
 
 extern void inet_addr_any(inet_addr_t *);
 extern void inet_naddr_any(inet_naddr_t *);

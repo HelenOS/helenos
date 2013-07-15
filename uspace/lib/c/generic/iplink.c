@@ -85,16 +85,32 @@ int iplink_send(iplink_t *iplink, iplink_sdu_t *sdu)
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_0(exch, IPLINK_SEND, &answer);
+	aid_t req = async_send_2(exch, IPLINK_SEND, (sysarg_t) sdu->src,
+	    (sysarg_t) sdu->dest, &answer);
 	
-	int rc = async_data_write_start(exch, &sdu->src, sizeof(inet_addr_t));
+	int rc = async_data_write_start(exch, sdu->data, sdu->size);
+	
+	async_exchange_end(exch);
+	
 	if (rc != EOK) {
-		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
 	
-	rc = async_data_write_start(exch, &sdu->dest, sizeof(inet_addr_t));
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	return (int) retval;
+}
+
+int iplink_send6(iplink_t *iplink, iplink_sdu6_t *sdu)
+{
+	async_exch_t *exch = async_exchange_begin(iplink->sess);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, IPLINK_SEND6, &answer);
+	
+	int rc = async_data_write_start(exch, &sdu->dest, sizeof(addr48_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -118,17 +134,40 @@ int iplink_send(iplink_t *iplink, iplink_sdu_t *sdu)
 
 int iplink_get_mtu(iplink_t *iplink, size_t *rmtu)
 {
-	sysarg_t mtu;
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
-
+	
+	sysarg_t mtu;
 	int rc = async_req_0_1(exch, IPLINK_GET_MTU, &mtu);
+	
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK)
 		return rc;
-
+	
 	*rmtu = mtu;
 	return EOK;
+}
+
+int iplink_get_mac48(iplink_t *iplink, addr48_t *mac)
+{
+	async_exch_t *exch = async_exchange_begin(iplink->sess);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, IPLINK_GET_MAC48, &answer);
+	
+	int rc = async_data_read_start(exch, mac, sizeof(addr48_t));
+	
+	loc_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+	
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+	
+	return (int) retval;
 }
 
 int iplink_addr_add(iplink_t *iplink, inet_addr_t *addr)

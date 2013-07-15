@@ -48,6 +48,9 @@
 #include "inet_link.h"
 #include "pdu.h"
 
+static bool first_link = true;
+static bool first_link6 = true;
+
 static int inet_link_open(service_id_t);
 static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
 
@@ -57,6 +60,22 @@ static iplink_ev_ops_t inet_iplink_ev_ops = {
 
 static LIST_INITIALIZE(inet_link_list);
 static FIBRIL_MUTEX_INITIALIZE(inet_discovery_lock);
+
+static addr128_t link_local_node_ip =
+    {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0, 0};
+
+static void inet_link_local_node_ip(addr48_t mac_addr,
+    addr128_t ip_addr)
+{
+	memcpy(ip_addr, link_local_node_ip, 16);
+	
+	ip_addr[8] = mac_addr[0] ^ 0x02;
+	ip_addr[9] = mac_addr[1];
+	ip_addr[10] = mac_addr[2];
+	ip_addr[13] = mac_addr[3];
+	ip_addr[14] = mac_addr[4];
+	ip_addr[15] = mac_addr[5];
+}
 
 static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, uint16_t af)
 {
@@ -158,6 +177,7 @@ static void inet_link_delete(inet_link_t *ilink)
 {
 	if (ilink->svc_name != NULL)
 		free(ilink->svc_name);
+	
 	free(ilink);
 }
 
@@ -200,72 +220,89 @@ static int inet_link_open(service_id_t sid)
 		    ilink->svc_name);
 		goto error;
 	}
+	
+	/*
+	 * Get the MAC address of the link. If the link has a MAC
+	 * address, we assume that it supports NDP.
+	 */
+	rc = iplink_get_mac48(ilink->iplink, &ilink->mac);
+	ilink->mac_valid = (rc == EOK);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
 	list_append(&ilink->link_list, &inet_link_list);
 
-	inet_addrobj_t *addr;
-	inet_addrobj_t *addr6;
-
-	static int first = 1;
+	inet_addrobj_t *addr = NULL;
 	
-	addr = inet_addrobj_new();
-	addr6 = inet_addrobj_new();
-	
-	if (first) {
+	if (first_link) {
+		addr = inet_addrobj_new();
+		
 		inet_naddr(&addr->naddr, 127, 0, 0, 1, 24);
-		inet_naddr6(&addr6->naddr, 0, 0, 0, 0, 0, 0, 0, 1, 128);
-		first = 0;
+		first_link = false;
 	} else {
 		/*
 		 * FIXME
-		 * Setting static IP addresses for testing purposes
+		 * Setting static IPv4 address for testing purposes:
 		 * 10.0.2.15/24
-		 * fd19:1680::4/120
 		 */
+		addr = inet_addrobj_new();
+		
 		inet_naddr(&addr->naddr, 10, 0, 2, 15, 24);
-		inet_naddr6(&addr6->naddr, 0xfd19, 0x1680, 0, 0, 0, 0, 0, 4, 120);
 	}
 	
-	addr->ilink = ilink;
-	addr6->ilink = ilink;
-	addr->name = str_dup("v4a");
-	addr6->name = str_dup("v6a");
-	
-	rc = inet_addrobj_add(addr);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv4 address.");
-		inet_addrobj_delete(addr);
-		/* XXX Roll back */
-		return rc;
+	if (addr != NULL) {
+		addr->ilink = ilink;
+		addr->name = str_dup("v4a");
+		
+		rc = inet_addrobj_add(addr);
+		if (rc == EOK) {
+			inet_naddr_addr(&addr->naddr, &iaddr);
+			rc = iplink_addr_add(ilink->iplink, &iaddr);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_ERROR,
+				    "Failed setting IPv4 address on internet link.");
+				inet_addrobj_remove(addr);
+				inet_addrobj_delete(addr);
+			}
+		} else {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv4 address.");
+			inet_addrobj_delete(addr);
+		}
 	}
 	
-	rc = inet_addrobj_add(addr6);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv6 address.");
-		inet_addrobj_delete(addr6);
-		/* XXX Roll back */
-		return rc;
+	inet_addrobj_t *addr6 = NULL;
+	
+	if (first_link6) {
+		addr6 = inet_addrobj_new();
+		
+		inet_naddr6(&addr6->naddr, 0, 0, 0, 0, 0, 0, 0, 1, 128);
+		first_link6 = false;
+	} else if (ilink->mac_valid) {
+		addr6 = inet_addrobj_new();
+		
+		addr128_t link_local;
+		inet_link_local_node_ip(ilink->mac, link_local);
+		
+		inet_naddr_set6(link_local, 64, &addr6->naddr);
 	}
 	
-	inet_naddr_addr(&addr->naddr, &iaddr);
-	rc = iplink_addr_add(ilink->iplink, &iaddr);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IPv4 address on internet link.");
-		inet_addrobj_remove(addr);
-		inet_addrobj_delete(addr);
-		/* XXX Roll back */
-		return rc;
-	}
-	
-	inet_naddr_addr(&addr6->naddr, &iaddr);
-	rc = iplink_addr_add(ilink->iplink, &iaddr);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IPv6 address on internet link.");
-		inet_addrobj_remove(addr6);
-		inet_addrobj_delete(addr6);
-		/* XXX Roll back */
-		return rc;
+	if (addr6 != NULL) {
+		addr6->ilink = ilink;
+		addr6->name = str_dup("v6a");
+		
+		rc = inet_addrobj_add(addr6);
+		if (rc == EOK) {
+			inet_naddr_addr(&addr6->naddr, &iaddr);
+			rc = iplink_addr_add(ilink->iplink, &iaddr);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_ERROR,
+				    "Failed setting IPv6 address on internet link.");
+				inet_addrobj_remove(addr6);
+				inet_addrobj_delete(addr6);
+			}
+		} else {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding IPv6 address.");
+			inet_addrobj_delete(addr6);
+		}
 	}
 	
 	return EOK;
@@ -297,13 +334,83 @@ int inet_link_discovery_start(void)
 	return inet_link_check_new();
 }
 
-/** Send datagram over Internet link */
-int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
-    inet_addr_t *ldest, inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
+/** Send IPv4 datagram over Internet link */
+int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
+    inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
+	addr32_t src_v4;
+	uint16_t src_af = inet_addr_get(&dgram->src, &src_v4, NULL);
+	if (src_af != AF_INET)
+		return EINVAL;
+	
+	addr32_t dest_v4;
+	uint16_t dest_af = inet_addr_get(&dgram->dest, &dest_v4, NULL);
+	if (dest_af != AF_INET)
+		return EINVAL;
+	
 	/*
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode().
+	 */
+	
+	iplink_sdu_t sdu;
+	
+	sdu.src = lsrc;
+	sdu.dest = ldest;
+	
+	inet_packet_t packet;
+	
+	packet.src = dgram->src;
+	packet.dest = dgram->dest;
+	packet.tos = dgram->tos;
+	packet.proto = proto;
+	packet.ttl = ttl;
+	packet.df = df;
+	packet.data = dgram->data;
+	packet.size = dgram->size;
+	
+	size_t offs = 0;
+	int rc;
+	
+	do {
+		/* Encode one fragment */
+		
+		size_t roffs;
+		rc = inet_pdu_encode(&packet, src_v4, dest_v4, offs, ilink->def_mtu,
+		    &sdu.data, &sdu.size, &roffs);
+		if (rc != EOK)
+			return rc;
+		
+		/* Send the PDU */
+		rc = iplink_send(ilink->iplink, &sdu);
+		
+		free(sdu.data);
+		offs = roffs;
+	} while (offs < packet.size);
+	
+	return rc;
+}
+
+/** Send IPv6 datagram over Internet link */
+int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
+    inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
+{
+	addr128_t src_v6;
+	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &src_v6);
+	if (src_af != AF_INET6)
+		return EINVAL;
+	
+	addr128_t dest_v6;
+	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &dest_v6);
+	if (dest_af != AF_INET6)
+		return EINVAL;
+	
+	iplink_sdu6_t sdu6;
+	addr48(ldest, sdu6.dest);
+	
+	/*
+	 * Fill packet structure. Fragmentation is performed by
+	 * inet_pdu_encode6().
 	 */
 	
 	inet_packet_t packet;
@@ -317,25 +424,22 @@ int inet_link_send_dgram(inet_link_t *ilink, inet_addr_t *lsrc,
 	packet.data = dgram->data;
 	packet.size = dgram->size;
 	
-	iplink_sdu_t sdu;
-	size_t offs = 0;
 	int rc;
-	
-	sdu.src = *lsrc;
-	sdu.dest = *ldest;
+	size_t offs = 0;
 	
 	do {
 		/* Encode one fragment */
+		
 		size_t roffs;
-		rc = inet_pdu_encode(&packet, offs, ilink->def_mtu, &sdu.data,
-		    &sdu.size, &roffs);
+		rc = inet_pdu_encode6(&packet, src_v6, dest_v6, offs, ilink->def_mtu,
+		    &sdu6.data, &sdu6.size, &roffs);
 		if (rc != EOK)
 			return rc;
 		
 		/* Send the PDU */
-		rc = iplink_send(ilink->iplink, &sdu);
-		free(sdu.data);
+		rc = iplink_send6(ilink->iplink, &sdu6);
 		
+		free(sdu6.data);
 		offs = roffs;
 	} while (offs < packet.size);
 	
