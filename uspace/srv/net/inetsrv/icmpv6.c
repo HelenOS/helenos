@@ -83,7 +83,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	rdgram.data = reply;
 	rdgram.size = size;
 	
-	icmpv6_pseudo_header phdr;
+	icmpv6_phdr_t phdr;
 	
 	host2addr128_t_be(dest_v6, phdr.src_addr);
 	host2addr128_t_be(src_v6, phdr.dest_addr);
@@ -93,7 +93,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	uint16_t cs_phdr =
 	    inet_checksum_calc(INET_CHECKSUM_INIT, &phdr,
-	    sizeof(icmpv6_pseudo_header));
+	    sizeof(icmpv6_phdr_t));
 	
 	uint16_t cs_all = inet_checksum_calc(cs_phdr, reply, size);
 	
@@ -185,7 +185,7 @@ int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
 	dgram.data = rdata;
 	dgram.size = rsize;
 	
-	icmpv6_pseudo_header phdr;
+	icmpv6_phdr_t phdr;
 	
 	host2addr128_t_be(sdu->src, phdr.src_addr);
 	host2addr128_t_be(sdu->dest, phdr.dest_addr);
@@ -195,7 +195,7 @@ int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
 	
 	uint16_t cs_phdr =
 	    inet_checksum_calc(INET_CHECKSUM_INIT, &phdr,
-	    sizeof(icmpv6_pseudo_header));
+	    sizeof(icmpv6_phdr_t));
 	
 	uint16_t cs_all = inet_checksum_calc(cs_phdr, rdata, rsize);
 	

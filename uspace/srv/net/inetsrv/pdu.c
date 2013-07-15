@@ -463,7 +463,7 @@ int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 	message->length = 1;
 	addr48(ndp->sender_hw_addr, message->mac);
 	
-	icmpv6_pseudo_header phdr;
+	icmpv6_phdr_t phdr;
 	
 	host2addr128_t_be(ndp->sender_proto_addr, phdr.src_addr);
 	host2addr128_t_be(ndp->target_proto_addr, phdr.dest_addr);
@@ -473,7 +473,7 @@ int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 	
 	uint16_t cs_phdr =
 	    inet_checksum_calc(INET_CHECKSUM_INIT, &phdr,
-	    sizeof(icmpv6_pseudo_header));
+	    sizeof(icmpv6_phdr_t));
 	
 	uint16_t cs_all = inet_checksum_calc(cs_phdr, dgram->data,
 	    dgram->size);
