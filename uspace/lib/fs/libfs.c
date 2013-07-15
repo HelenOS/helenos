@@ -863,10 +863,10 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 	if (NULL != ops->size_block)	
 		statfs.f_bsize = ops->size_block(service_id);
-	if (NULL != ops->total_block)
-		statfs.f_blocks = ops->total_block(service_id);
-	if (NULL != ops->free_block)
-		statfs.f_bfree = ops->free_block(service_id);
+	if (NULL != ops->total_block_count)
+		statfs.f_blocks = ops->total_block_count(service_id);
+	if (NULL != ops->free_block_count)
+		statfs.f_bfree = ops->free_block_count(service_id);
 	
 	ops->node_put(fn);
 	

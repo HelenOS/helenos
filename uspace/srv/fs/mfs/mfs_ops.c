@@ -64,8 +64,8 @@ static int mfs_instance_get(service_id_t service_id,
 static int mfs_check_sanity(struct mfs_sb_info *sbi);
 static bool is_power_of_two(uint32_t n);
 static uint32_t mfs_size_block(service_id_t service_id);
-static uint64_t mfs_total_block(service_id_t service_id);
-static uint64_t mfs_free_block(service_id_t service_id);
+static uint64_t mfs_total_block_count(service_id_t service_id);
+static uint64_t mfs_free_block_count(service_id_t service_id);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -88,8 +88,8 @@ libfs_ops_t mfs_libfs_ops = {
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get,
 	.size_block = mfs_size_block,
-	.total_block = mfs_total_block,
-	.free_block = mfs_free_block
+	.total_block_count = mfs_total_block_count,
+	.free_block_count = mfs_free_block_count
 };
 
 /* Hash table interface for open nodes hash table */
@@ -1152,7 +1152,7 @@ mfs_size_block(service_id_t service_id)
 }
 
 static uint64_t
-mfs_total_block(service_id_t service_id)
+mfs_total_block_count(service_id_t service_id)
 {
 	uint64_t block_total;
 	
@@ -1170,7 +1170,7 @@ mfs_total_block(service_id_t service_id)
 }
 
 static uint64_t
-mfs_free_block(service_id_t service_id)
+mfs_free_block_count(service_id_t service_id)
 {
 	uint32_t block_free;
 	
