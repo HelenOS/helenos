@@ -619,7 +619,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 		/* Check if the header is valid, otherwise we are lost in the buffer */
 		if (size == 0 || size > RTL8139_FRAME_MAX_LENGTH) {
 			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4" PRIu16 ", "
-			    "header 0x%4" PRIx16 ". Offset: %d)", size, frame_header,
+			    "header 0x%4" PRIx32 ". Offset: %" PRIu16 ")", size, frame_header,
 			    rx_offset);
 			goto rx_err;
 		}

@@ -60,6 +60,7 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
+	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
@@ -95,6 +96,7 @@ GENERIC_SOURCES = \
 	generic/inet.c \
 	generic/inetcfg.c \
 	generic/inetping.c \
+	generic/inetping6.c \
 	generic/io/asprintf.c \
 	generic/io/input.c \
 	generic/io/io.c \

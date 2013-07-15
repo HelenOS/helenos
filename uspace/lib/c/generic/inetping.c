@@ -78,54 +78,54 @@ int inetping_init(inetping_ev_ops_t *ev_ops)
 int inetping_send(inetping_sdu_t *sdu)
 {
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INETPING_SEND, sdu->src.ipv4,
-	    sdu->dest.ipv4, sdu->seq_no, &answer);
+	aid_t req = async_send_3(exch, INETPING_SEND, (sysarg_t) sdu->src,
+	    (sysarg_t) sdu->dest, sdu->seq_no, &answer);
 	sysarg_t retval = async_data_write_start(exch, sdu->data, sdu->size);
-
+	
 	async_exchange_end(exch);
-
+	
 	if (retval != EOK) {
 		async_forget(req);
 		return retval;
 	}
-
+	
 	async_wait_for(req, &retval);
 	return retval;
 }
 
-int inetping_get_srcaddr(inet_addr_t *remote, inet_addr_t *local)
+int inetping_get_srcaddr(uint32_t remote, uint32_t *local)
 {
-	sysarg_t local_addr;
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
-
-	int rc = async_req_1_1(exch, INETPING_GET_SRCADDR, remote->ipv4,
+	
+	sysarg_t local_addr;
+	int rc = async_req_1_1(exch, INETPING_GET_SRCADDR, (sysarg_t) remote,
 	    &local_addr);
+	
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK)
 		return rc;
-
-	local->ipv4 = local_addr;
+	
+	*local = (uint32_t) local_addr;
 	return EOK;
 }
 
 static void inetping_ev_recv(ipc_callid_t callid, ipc_call_t *call)
 {
-	int rc;
 	inetping_sdu_t sdu;
-
-	sdu.src.ipv4 = IPC_GET_ARG1(*call);
-	sdu.dest.ipv4 = IPC_GET_ARG2(*call);
+	
+	sdu.src = IPC_GET_ARG1(*call);
+	sdu.dest = IPC_GET_ARG2(*call);
 	sdu.seq_no = IPC_GET_ARG3(*call);
-
-	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
+	
+	int rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
-
+	
 	rc = inetping_ev_ops->recv(&sdu);
 	free(sdu.data);
 	async_answer_0(callid, rc);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libposix
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef INET_UTIL_H_
-#define INET_UTIL_H_
+#ifndef POSIX_DIRENT_H_
+#define POSIX_DIRENT_H_
 
-#include <sys/types.h>
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
 
-uint32_t inet_netmask(int bits);
+#include <libc/dirent.h>
 
 #endif
 

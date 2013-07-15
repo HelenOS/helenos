@@ -35,6 +35,10 @@
 #ifndef POSIX_STDDEF_H_
 #define POSIX_STDDEF_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "sys/types.h"
 
 #ifndef NULL
@@ -43,11 +47,8 @@
 
 #define offsetof(type,member) ((size_t) &(((type *) 0)->member))
 
-typedef ssize_t posix_ptrdiff_t;
+typedef ssize_t __POSIX_DEF__(ptrdiff_t);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define ptrdiff_t posix_ptrdiff_t
-#endif
 
 #endif /* POSIX_STDDEF_H_ */
 

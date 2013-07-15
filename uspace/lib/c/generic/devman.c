@@ -412,7 +412,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 	size_t act_size;
 	sysarg_t dretval;
 	
-	exch = devman_exchange_begin_blocking(LOC_PORT_CONSUMER);
+	exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);

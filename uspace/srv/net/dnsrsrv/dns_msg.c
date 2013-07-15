@@ -298,9 +298,9 @@ uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 	uint32_t w;
 	assert(buf_size >= 4);
 
-	w = ((uint32_t)buf[0] << 24) +
-	    ((uint32_t)buf[1] << 16) +
-	    ((uint32_t)buf[2] << 8) +
+	w = ((uint32_t) buf[0] << 24) +
+	    ((uint32_t) buf[1] << 16) +
+	    ((uint32_t) buf[2] << 8) +
 	    buf[3];
 
 	return w;

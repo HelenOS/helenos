@@ -281,10 +281,6 @@ void tcp_conn_transmit_segment(tcp_conn_t *conn, tcp_segment_t *seg)
 
 void tcp_transmit_segment(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_transmit_segment(f:(%x,%u),l:(%x,%u), %p)",
-	    sp->foreign.addr.ipv4, sp->foreign.port,
-	    sp->local.addr.ipv4, sp->local.port, seg);
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "SEG.SEQ=%" PRIu32 ", SEG.WND=%" PRIu32,
 	    seg->seq, seg->wnd);
 

@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <inet/inet.h>
+#include <inet/addr.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "dns_std.h"

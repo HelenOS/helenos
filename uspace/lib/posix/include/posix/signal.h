@@ -35,7 +35,12 @@
 #ifndef POSIX_SIGNAL_H_
 #define POSIX_SIGNAL_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "sys/types.h"
+#include <posix/ucontext.h>
 
 extern void __posix_default_signal_handler(int signo);
 extern void __posix_hold_signal_handler(int signo);
@@ -50,25 +55,6 @@ extern void __posix_ignore_signal_handler(int signo);
 #undef SIG_IGN
 #define SIG_IGN ((void (*)(int)) __posix_ignore_signal_handler)
 
-typedef int posix_sig_atomic_t;
-typedef uint32_t posix_sigset_t;
-typedef struct posix_mcontext {
-	/* must not be empty to avoid compiler warnings (-pedantic) */
-	int dummy;
-} posix_mcontext_t;
-
-union posix_sigval {
-	int sival_int;
-	void *sival_ptr;
-};
-
-struct posix_sigevent {
-	int sigev_notify; /* Notification type. */
-	int sigev_signo; /* Signal number. */
-	union posix_sigval sigev_value; /* Signal value. */
-	void (*sigev_notify_function)(union posix_sigval); /* Notification function. */
-	posix_thread_attr_t *sigev_notify_attributes; /* Notification attributes. */
-};
 
 typedef struct {
 	int si_signo;
@@ -76,37 +62,25 @@ typedef struct {
 
 	int si_errno;
 
-	posix_pid_t si_pid;
-	posix_uid_t si_uid;
+	__POSIX_DEF__(pid_t) si_pid;
+	__POSIX_DEF__(uid_t) si_uid;
 	void *si_addr;
 	int si_status;
 
 	long si_band;
 
-	union posix_sigval si_value;
-} posix_siginfo_t;
+	union __POSIX_DEF__(sigval) si_value;
+} __POSIX_DEF__(siginfo_t);
 
-struct posix_sigaction {
+struct __POSIX_DEF__(sigaction) {
 	void (*sa_handler)(int);
-	posix_sigset_t sa_mask;
+	__POSIX_DEF__(sigset_t) sa_mask;
 	int sa_flags;
-	void (*sa_sigaction)(int, posix_siginfo_t *, void *);
+	void (*sa_sigaction)(int, __POSIX_DEF__(siginfo_t) *, void *);
 };
 
-typedef struct {
-	void *ss_sp;
-	size_t ss_size;
-	int ss_flags;
-} posix_stack_t;
 
-typedef struct posix_ucontext {
-	struct posix_ucontext *uc_link;
-	posix_sigset_t uc_sigmask;
-	posix_stack_t uc_stack;
-	posix_mcontext_t uc_mcontext;
-} posix_ucontext_t;
-
-/* Values of posix_sigevent::sigev_notify */
+/* Values of __POSIX_DEF__(sigevent)::sigev_notify */
 #undef SIGEV_NONE
 #undef SIGEV_SIGNAL
 #undef SIGEV_THREAD
@@ -254,59 +228,28 @@ enum {
 	POLL_HUP
 };
 
-extern int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
-    struct posix_sigaction *restrict oact);
+extern int __POSIX_DEF__(sigaction)(int sig, const struct __POSIX_DEF__(sigaction) *restrict act,
+    struct __POSIX_DEF__(sigaction) *restrict oact);
 
-extern void (*posix_signal(int sig, void (*func)(int)))(int);
-extern int posix_raise(int sig);
-extern int posix_kill(posix_pid_t pid, int sig);
-extern int posix_killpg(posix_pid_t pid, int sig);
+extern void (*__POSIX_DEF__(signal)(int sig, void (*func)(int)))(int);
+extern int __POSIX_DEF__(raise)(int sig);
+extern int __POSIX_DEF__(kill)(__POSIX_DEF__(pid_t) pid, int sig);
+extern int __POSIX_DEF__(killpg)(__POSIX_DEF__(pid_t) pid, int sig);
 
-extern void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message);
-extern void posix_psignal(int signum, const char *message);
+extern void __POSIX_DEF__(psiginfo)(const __POSIX_DEF__(siginfo_t) *pinfo, const char *message);
+extern void __POSIX_DEF__(psignal)(int signum, const char *message);
 
-extern int posix_sigemptyset(posix_sigset_t *set);
-extern int posix_sigfillset(posix_sigset_t *set);
-extern int posix_sigaddset(posix_sigset_t *set, int signo);
-extern int posix_sigdelset(posix_sigset_t *set, int signo);
-extern int posix_sigismember(const posix_sigset_t *set, int signo);
+extern int __POSIX_DEF__(sigemptyset)(__POSIX_DEF__(sigset_t) *set);
+extern int __POSIX_DEF__(sigfillset)(__POSIX_DEF__(sigset_t) *set);
+extern int __POSIX_DEF__(sigaddset)(__POSIX_DEF__(sigset_t) *set, int signo);
+extern int __POSIX_DEF__(sigdelset)(__POSIX_DEF__(sigset_t) *set, int signo);
+extern int __POSIX_DEF__(sigismember)(const __POSIX_DEF__(sigset_t) *set, int signo);
 
-extern int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
-    posix_sigset_t *restrict oset);
-extern int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
-    posix_sigset_t *restrict oset);
+extern int __POSIX_DEF__(thread_sigmask)(int how, const __POSIX_DEF__(sigset_t) *restrict set,
+    __POSIX_DEF__(sigset_t) *restrict oset);
+extern int __POSIX_DEF__(sigprocmask)(int how, const __POSIX_DEF__(sigset_t) *restrict set,
+    __POSIX_DEF__(sigset_t) *restrict oset);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define sig_atomic_t posix_sig_atomic_t
-	#define sigset_t posix_sigset_t
-	#define sigval posix_sigval
-	#ifndef sigevent
-		#define sigevent posix_sigevent
-	#endif
-	#define mcontext_t posix_mcontext_t
-	#define ucontext_t posix_ucontext_t
-	#define stack_t posix_stack_t
-	#define siginfo_t posix_siginfo_t
-
-	#define sigaction posix_sigaction
-
-	#define signal posix_signal
-	#define raise posix_raise
-	#define kill posix_kill
-	#define killpg posix_killpg
-
-	#define psiginfo posix_psiginfo
-	#define psignal posix_psignal
-
-	#define sigemptyset posix_sigemptyset
-	#define sigfillset posix_sigfillset
-	#define sigaddset posix_sigaddset
-	#define sigdelset posix_sigdelset
-	#define sigismember posix_sigismember
-
-	#define pthread_sigmask posix_thread_sigmask
-	#define sigprocmask posix_sigprocmask
-#endif
 
 #endif /* POSIX_SIGNAL_H_ */
 

@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <net/socket_codes.h>
 #include <inet/dnsr.h>
 #include <inet/addr.h>
 #include <inet/inetping.h>
@@ -62,8 +63,8 @@ static inetping_ev_ops_t ev_ops = {
 	.recv = ping_ev_recv
 };
 
-static inet_addr_t src_addr;
-static inet_addr_t dest_addr;
+static addr32_t src;
+static addr32_t dest;
 
 static bool ping_repeat = false;
 
@@ -82,25 +83,30 @@ static void ping_signal_done(void)
 
 static int ping_ev_recv(inetping_sdu_t *sdu)
 {
-	char *asrc, *adest;
-	int rc;
-
-	rc = inet_addr_format(&sdu->src, &asrc);
+	inet_addr_t src_addr;
+	inet_addr_set(sdu->src, &src_addr);
+	
+	inet_addr_t dest_addr;
+	inet_addr_set(sdu->dest, &dest_addr);
+	
+	char *asrc;
+	int rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK)
 		return ENOMEM;
-
-	rc = inet_addr_format(&sdu->dest, &adest);
+	
+	char *adest;
+	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		free(asrc);
 		return ENOMEM;
 	}
+	
 	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
 	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
-
-	if (!ping_repeat) {
+	
+	if (!ping_repeat)
 		ping_signal_done();
-	}
-
+	
 	free(asrc);
 	free(adest);
 	return EOK;
@@ -111,8 +117,8 @@ static int ping_send(uint16_t seq_no)
 	inetping_sdu_t sdu;
 	int rc;
 
-	sdu.src = src_addr;
-	sdu.dest = dest_addr;
+	sdu.src = src;
+	sdu.dest = dest;
 	sdu.seq_no = seq_no;
 	sdu.data = (void *) "foo";
 	sdu.size = 3;
@@ -201,6 +207,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Parse destination address */
+	inet_addr_t dest_addr;
 	rc = inet_addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
@@ -209,29 +216,39 @@ int main(int argc, char *argv[])
 			printf(NAME ": Error resolving host '%s'.\n", argv[argi]);
 			goto error;
 		}
-
+		
 		dest_addr = hinfo->addr;
 	}
-
+	
+	uint16_t af = inet_addr_get(&dest_addr, &dest, NULL);
+	if (af != AF_INET) {
+		printf(NAME ": Destination '%s' is not an IPv4 address.\n",
+		    argv[argi]);
+		goto error;
+	}
+	
 	/* Determine source address */
-	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
+	rc = inetping_get_srcaddr(dest, &src);
 	if (rc != EOK) {
 		printf(NAME ": Failed determining source address.\n");
 		goto error;
 	}
-
+	
+	inet_addr_t src_addr;
+	inet_addr_set(src, &src_addr);
+	
 	rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK) {
 		printf(NAME ": Out of memory.\n");
 		goto error;
 	}
-
+	
 	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		printf(NAME ": Out of memory.\n");
 		goto error;
 	}
-
+	
 	if (hinfo != NULL) {
 		rc = asprintf(&sdest, "%s (%s)", hinfo->cname, adest);
 		if (rc < 0) {
@@ -286,6 +303,7 @@ int main(int argc, char *argv[])
 	free(sdest);
 	dnsr_hostinfo_destroy(hinfo);
 	return 0;
+	
 error:
 	free(asrc);
 	free(adest);

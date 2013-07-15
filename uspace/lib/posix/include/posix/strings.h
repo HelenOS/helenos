@@ -36,15 +36,22 @@
 #ifndef POSIX_STRINGS_H_
 #define POSIX_STRINGS_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
+
+#include <libarch/types.h>
+
 /* Search Functions */
 #ifndef POSIX_STRING_H_
-extern int posix_ffs(int i);
+extern int __POSIX_DEF__(ffs)(int i);
 #endif
 
 /* String/Array Comparison */
 #ifndef POSIX_STRING_H_
-extern int posix_strcasecmp(const char *s1, const char *s2);
-extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
+extern int __POSIX_DEF__(strcasecmp)(const char *s1, const char *s2);
+extern int __POSIX_DEF__(strncasecmp)(const char *s1, const char *s2, size_t n);
 #endif
 
 /* TODO: not implemented due to missing locale support
@@ -54,25 +61,12 @@ extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
  */
 
 /* Legacy Functions */
-extern int posix_bcmp(const void *mem1, const void *mem2, size_t n);
-extern void posix_bcopy(const void *src, void *dest, size_t n);
-extern void posix_bzero(void *mem, size_t n);
-extern char *posix_index(const char *s, int c);
-extern char *posix_rindex(const char *s, int c);
+extern int __POSIX_DEF__(bcmp)(const void *mem1, const void *mem2, size_t n);
+extern void __POSIX_DEF__(bcopy)(const void *src, void *dest, size_t n);
+extern void __POSIX_DEF__(bzero)(void *mem, size_t n);
+extern char *__POSIX_DEF__(index)(const char *s, int c);
+extern char *__POSIX_DEF__(rindex)(const char *s, int c);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define ffs posix_ffs
-
-	#define strcasecmp posix_strcasecmp
-	#define strncasecmp posix_strncasecmp
-
-	#define bcmp posix_bcmp
-	#define bcopy posix_bcopy
-	#undef bzero
-	#define bzero posix_bzero
-	#define index posix_index
-	#define rindex posix_rindex
-#endif
 
 #endif  // POSIX_STRINGS_H_
 

@@ -191,6 +191,20 @@ void setvbuf(FILE *stream, void *buf, int mode, size_t size)
 	stream->buf_state = _bs_empty;
 }
 
+/** Set stream buffer.
+ *
+ * When @p buf is NULL, the stream is set as unbuffered, otherwise
+ * full buffering is enabled.
+ */
+void setbuf(FILE *stream, void *buf)
+{
+	if (buf == NULL) {
+		setvbuf(stream, NULL, _IONBF, BUFSIZ);
+	} else {
+		setvbuf(stream, buf, _IOFBF, BUFSIZ);
+	}
+}
+
 static void _setvbuf(FILE *stream)
 {
 	/* FIXME: Use more complex rules for setting buffering options. */

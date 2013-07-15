@@ -65,7 +65,7 @@ typedef struct {
 	void *carg;
 } con_srv_t;
 
-typedef struct con_ops {
+struct con_ops {
 	int (*open)(con_srvs_t *, con_srv_t *);
 	int (*close)(con_srv_t *);
 	int (*read)(con_srv_t *, void *, size_t);
@@ -82,7 +82,7 @@ typedef struct con_ops {
 	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
 	void (*set_cursor_visibility)(con_srv_t *, bool);
 	int (*get_event)(con_srv_t *, cons_event_t *);
-} con_ops_t;
+};
 
 extern void con_srvs_init(con_srvs_t *);
 
