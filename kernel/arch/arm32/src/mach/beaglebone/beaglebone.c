@@ -176,7 +176,6 @@ static void bbone_get_memory_extents(uintptr_t *start, size_t *size)
 static void bbone_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	const unsigned inum = am335x_irc_inum_get(bbone.irc_addr);
-	am335x_irc_irq_ack(bbone.irc_addr);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -186,6 +185,8 @@ static void bbone_irq_exception(unsigned int exc_no, istate_t *istate)
 	} else {
 		printf("Spurious interrupt\n");
 	}
+
+	am335x_irc_irq_ack(bbone.irc_addr);
 }
 
 static void bbone_frame_init(void)
