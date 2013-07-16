@@ -118,11 +118,23 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 		inet_addrobj_t *naddr = list_get_instance(link,
 		    inet_addrobj_t, addr_list);
 		
-		if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
-			fibril_mutex_unlock(&addr_list_lock);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
-			    naddr);
-			return naddr;
+		switch (find) {
+		case iaf_net:
+			if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
+				fibril_mutex_unlock(&addr_list_lock);
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
+				    naddr);
+				return naddr;
+			}
+			break;
+		case iaf_addr:
+			if (inet_naddr_compare(&naddr->naddr, addr)) {
+				fibril_mutex_unlock(&addr_list_lock);
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
+				    naddr);
+				return naddr;
+			}
+			break;
 		}
 	}
 	

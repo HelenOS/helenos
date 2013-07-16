@@ -259,6 +259,21 @@ int inet_addr_is_any(const inet_addr_t *addr)
 	    (inet_addr_compare(addr, &inet_addr_any_addr6)));
 }
 
+int inet_naddr_compare(const inet_naddr_t *naddr, const inet_addr_t *addr)
+{
+	if (naddr->family != addr->family)
+		return 0;
+	
+	switch (naddr->family) {
+	case AF_INET:
+		return (naddr->addr == addr->addr);
+	case AF_INET6:
+		return addr128_compare(naddr->addr6, addr->addr6);
+	default:
+		return 0;
+	}
+}
+
 int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)
 {
 	if (naddr->family != addr->family)
