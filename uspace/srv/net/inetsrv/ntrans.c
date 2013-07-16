@@ -46,6 +46,13 @@ static FIBRIL_MUTEX_INITIALIZE(ntrans_list_lock);
 static LIST_INITIALIZE(ntrans_list);
 static FIBRIL_CONDVAR_INITIALIZE(ntrans_cv);
 
+/** Look for address in translation table
+ *
+ * @param ip_addr IPv6 address
+ *
+ * @return inet_ntrans_t with the address on success
+ * @return NULL if nothing found
+ */
 static inet_ntrans_t *ntrans_find(addr128_t ip_addr)
 {
 	list_foreach(ntrans_list, link) {
@@ -59,6 +66,15 @@ static inet_ntrans_t *ntrans_find(addr128_t ip_addr)
 	return NULL;
 }
 
+/** Add entry to translation table
+ *
+ * @param ip_addr  IPv6 address of the new entry
+ * @param mac_addr MAC address of the new entry
+ *
+ * @return EOK on success
+ * @return ENOMEM if not enough memory
+ *
+ */
 int ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
 {
 	inet_ntrans_t *ntrans;
@@ -85,6 +101,14 @@ int ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
 	return EOK;
 }
 
+/** Remove entry from translation table
+ *
+ * @param ip_addr IPv6 address of the entry to be removed
+ *
+ * @return EOK on success
+ * @return ENOENT when no such address found
+ *
+ */
 int ntrans_remove(addr128_t ip_addr)
 {
 	inet_ntrans_t *ntrans;
@@ -103,6 +127,15 @@ int ntrans_remove(addr128_t ip_addr)
 	return EOK;
 }
 
+/** Translate IPv6 address to MAC address using the translation table
+ *
+ * @param ip_addr  IPv6 address to be translated
+ * @param mac_addr MAC address to be assigned
+ *
+ * @return EOK on success
+ * @return ENOENT when no such address found
+ *
+ */
 int ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
@@ -117,6 +150,14 @@ int ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
 	return EOK;
 }
 
+/** Wait on translation table CV for some time
+ *
+ * @param timeout Timeout in microseconds
+ *
+ * @return EOK if woken up by another fibril
+ * @return ETIMEDOUT if timed out
+ *
+ */
 int ntrans_wait_timeout(suseconds_t timeout)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
