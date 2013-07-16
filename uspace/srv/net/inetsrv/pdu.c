@@ -48,7 +48,6 @@
 #include "inet_std.h"
 #include "pdu.h"
 
-
 /** One's complement addition.
  *
  * Result is a + b + carry.
@@ -273,6 +272,17 @@ int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
 	return EOK;
 }
 
+/** Decode IPv4 datagram
+ *
+ * @param data   Serialized IPv4 datagram
+ * @param size   Length of serialized IPv4 datagram
+ * @param packet IP datagram structure to be filled
+ *
+ * @return EOK on success
+ * @return EINVAL if the datagram is invalid or damaged
+ * @return ENOMEM if not enough memory
+ *
+ */
 int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode()");
@@ -336,6 +346,17 @@ int inet_pdu_decode(void *data, size_t size, inet_packet_t *packet)
 	return EOK;
 }
 
+/** Decode IPv6 datagram
+ *
+ * @param data   Serialized IPv6 datagram
+ * @param size   Length of serialized IPv6 datagram
+ * @param packet IP datagram structure to be filled
+ *
+ * @return EOK on success
+ * @return EINVAL if the datagram is invalid or damaged
+ * @return ENOMEM if not enough memory
+ *
+ */
 int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode6()");
@@ -415,6 +436,14 @@ int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
 	return EOK;
 }
 
+/** Encode NDP packet
+ *
+ * @param ndp   NDP packet structure to be serialized
+ * @param dgram IPv6 datagram structure to be filled
+ *
+ * @return EOK on success
+ *
+ */
 int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 {
 	inet_addr_set6(ndp->sender_proto_addr, &dgram->src);
@@ -467,6 +496,15 @@ int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 	return EOK;
 }
 
+/** Decode NDP packet
+ *
+ * @param dgram Incoming IPv6 datagram encapsulating NDP packet
+ * @param ndp   NDP packet structure to be filled
+ *
+ * @return EOK on success
+ * @return EINVAL if the Datagram is invalid
+ *
+ */
 int ndp_pdu_decode(inet_dgram_t *dgram, ndp_packet_t *ndp)
 {
 	uint16_t src_af = inet_addr_get(&dgram->src, NULL,

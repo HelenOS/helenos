@@ -77,7 +77,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	inet_dgram_t rdgram;
 	
-	rdgram.src = dgram->dest;
+	inet_get_srcaddr(&dgram->src, 0, &rdgram.src);
 	rdgram.dest = dgram->src;
 	rdgram.tos = 0;
 	rdgram.data = reply;
@@ -149,9 +149,7 @@ int icmpv6_recv(inet_dgram_t *dgram)
 		return icmpv6_recv_echo_reply(dgram);
 	case ICMPV6_NEIGHBOUR_SOLICITATION:
 	case ICMPV6_NEIGHBOUR_ADVERTISEMENT:
-#ifdef ACCEPT_RA
 	case ICMPV6_ROUTER_ADVERTISEMENT:
-#endif
 		return ndp_received(dgram);
 	default:
 		break;
