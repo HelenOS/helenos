@@ -89,6 +89,16 @@ enum flags_foff_bits {
 	FF_FRAGOFF_l = 0
 };
 
+/** Bits in ip6_frag_header_t.offsmf */
+enum flags_offsmt_bits {
+	/** More fragments */
+	OF_FLAG_M = 0,
+	/** Fragment offset, highest bit */
+	OF_FRAGOFF_h = 15,
+	/** Fragment offset, lowest bit */
+	OF_FRAGOFF_l = 3
+};
+
 /** IPv6 Datagram header (fixed part) */
 typedef struct {
 	/** Version, Traffic class first 4 bits */
@@ -113,8 +123,8 @@ typedef struct {
 	uint8_t next;
 	/** Reserved */
 	uint8_t reserved;
-	/** Fragment Offset, Flags */
-	uint16_t foff_flags;
+	/** Fragmentation offset, reserved and M flag */
+	uint16_t offsmf;
 	/** Identification */
 	uint32_t id;
 } ip6_header_fragment_t;

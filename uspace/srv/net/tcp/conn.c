@@ -311,6 +311,9 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
 /** Match socket with pattern. */
 static bool tcp_socket_match(tcp_sock_t *sock, tcp_sock_t *patt)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG2,
+	    "tcp_socket_match(sock=(%u), pat=(%u))", sock->port, patt->port);
+	
 	if ((!inet_addr_is_any(&patt->addr)) &&
 	    (!inet_addr_compare(&patt->addr, &sock->addr)))
 		return false;
@@ -351,11 +354,17 @@ tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_find_ref(%p)", sp);
 	
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "compare conn (f:(%u), l:(%u))",
+	    sp->foreign.port, sp->local.port);
+	
 	fibril_mutex_lock(&conn_list_lock);
 	
 	list_foreach(conn_list, link) {
 		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
 		tcp_sockpair_t *csp = &conn->ident;
+		
+		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - with (f:(%u), l:(%u))",
+		    csp->foreign.port, csp->local.port);
 		
 		if (tcp_sockpair_match(sp, csp)) {
 			tcp_conn_addref(conn);
