@@ -62,6 +62,9 @@ BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.bz2"
 
+REAL_INSTALL=true
+INSTALL_DIR="${BASEDIR}/PKG"
+
 #
 # Check if the library described in the argument
 # exists and has acceptable version.
@@ -134,7 +137,7 @@ show_usage() {
 	echo "Cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 <platform>"
+	echo " $0 [--no-install] <platform>"
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
@@ -151,9 +154,14 @@ show_usage() {
 	echo " parallel   same as 'all', but all in parallel"
 	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
-	echo "The toolchain will be installed to the directory specified by"
-	echo "the CROSS_PREFIX environment variable. If the variable is not"
-	echo "defined, /usr/local/cross will be used by default."
+	echo "The toolchain is installed into directory specified by the"
+	echo "CROSS_PREFIX environment variable. If the variable is not"
+	echo "defined, /usr/local/cross/ is used as default."
+	echo "If --no-install is present, the toolchain still uses the"
+	echo "CROSS_PREFIX as the target directory but the installation"
+	echo "copies the files into PKG/ subdirectory without affecting"
+	echo "the actual root file system. That is only useful if you do"
+	echo "not want to run the script under the super user."
 	echo
 	
 	exit 3
@@ -300,10 +308,10 @@ build_target() {
 	source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
-	cleanup_dir "${PREFIX}"
+	$REAL_INSTALL && cleanup_dir "${PREFIX}"
 	cleanup_dir "${WORKDIR}"
 	
-	create_dir "${PREFIX}" "destination directory"
+	$REAL_INSTALL && create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
 	
 	echo ">>> Unpacking tarballs"
@@ -314,41 +322,80 @@ build_target() {
 	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
+	
 	echo ">>> Processing binutils (${PLATFORM})"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
+	CFLAGS=-Wno-error ./configure \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+		--disable-nls --disable-werror
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
-	make all install
-	check_error $? "Error compiling/installing binutils."
+	make all
+	check_error $? "Error compiling binutils."
+	
+	change_title "binutils: install (${PLATFORM})"
+	if $REAL_INSTALL; then
+		make install
+	else
+		make install "DESTDIR=${INSTALL_DIR}"
+	fi
+	check_error $? "Error installing binutils."
+	
 	
 	echo ">>> Processing GCC (${PLATFORM})"
 	cd "${OBJDIR}"
 	check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
+	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${GCCDIR}/configure" \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+		--with-gnu-as --with-gnu-ld --disable-nls --disable-threads \
+		--enable-languages=c,objc,c++,obj-c++ \
+		--disable-multilib --disable-libgcj --without-headers \
+		--disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
-	check_error $? "Error compiling/installing GCC."
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc
+	check_error $? "Error compiling GCC."
+	
+	change_title "GCC: install (${PLATFORM})"
+	if $REAL_INSTALL; then
+		PATH="${PATH}:${PREFIX}/bin" make install-gcc
+	else
+		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
+	fi
+	check_error $? "Error installing GCC."
+	
 	
 	echo ">>> Processing GDB (${PLATFORM})"
 	cd "${GDBDIR}"
 	check_error $? "Change directory failed."
 	
 	change_title "GDB: configure (${PLATFORM})"
-	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
+	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
 	check_error $? "Error configuring GDB."
 	
 	change_title "GDB: make (${PLATFORM})"
-	make all install
-	check_error $? "Error compiling/installing GDB."
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
+	check_error $? "Error compiling GDB."
+	
+	change_title "GDB: make (${PLATFORM})"
+	if $REAL_INSTALL; then
+		PATH="${PATH}:${PREFIX}/bin" make install
+	else
+		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
+	fi
+	check_error $? "Error installing GDB."
+	
 	
 	cd "${BASEDIR}"
 	check_error $? "Change directory failed."
@@ -359,6 +406,11 @@ build_target() {
 	echo
 	echo ">>> Cross-compiler for ${TARGET} installed."
 }
+
+if [ "$1" = "--no-install" ]; then
+	REAL_INSTALL=false
+	shift
+fi
 
 if [ "$#" -lt "1" ]; then
 	show_usage
