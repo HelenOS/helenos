@@ -48,8 +48,6 @@
 #include "inet_std.h"
 #include "pdu.h"
 
-static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
-static uint16_t ip_ident = 0;
 
 /** One's complement addition.
  *
@@ -106,7 +104,7 @@ uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
  *
  */
 int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
-   size_t offs, size_t mtu, void **rdata, size_t *rsize, size_t *roffs)
+    size_t offs, size_t mtu, void **rdata, size_t *rsize, size_t *roffs)
 {
 	/* Upper bound for fragment offset field */
 	size_t fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l);
@@ -151,11 +149,6 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
 	if (data == NULL)
 		return ENOMEM;
 	
-	/* Allocate identifier */
-	fibril_mutex_lock(&ip_ident_lock);
-	uint16_t ident = ++ip_ident;
-	fibril_mutex_unlock(&ip_ident_lock);
-	
 	/* Encode header fields */
 	ip_header_t *hdr = (ip_header_t *) data;
 	
@@ -163,7 +156,7 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
 	    (4 << VI_VERSION_l) | (hdr_size / sizeof(uint32_t));
 	hdr->tos = packet->tos;
 	hdr->tot_len = host2uint16_t_be(size);
-	hdr->id = host2uint16_t_be(ident);
+	hdr->id = host2uint16_t_be(packet->ident);
 	hdr->flags_foff = host2uint16_t_be(flags_foff);
 	hdr->ttl = packet->ttl;
 	hdr->proto = packet->proto;
@@ -257,15 +250,6 @@ int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
 	void *data = calloc(size, 1);
 	if (data == NULL)
 		return ENOMEM;
-	
-#if 0
-	// FIXME TODO fragmentation
-	
-	/* Allocate identifier */
-	fibril_mutex_lock(&ip_ident_lock);
-	uint16_t ident = ++ip_ident;
-	fibril_mutex_unlock(&ip_ident_lock);
-#endif
 	
 	/* Encode header fields */
 	ip6_header_t *hdr6 = (ip6_header_t *) data;

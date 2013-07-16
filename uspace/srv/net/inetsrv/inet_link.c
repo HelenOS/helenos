@@ -51,6 +51,9 @@
 static bool first_link = true;
 static bool first_link6 = true;
 
+static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
+static uint16_t ip_ident = 0;
+
 static int inet_link_open(service_id_t);
 static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
 
@@ -365,12 +368,18 @@ int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
 	packet.tos = dgram->tos;
 	packet.proto = proto;
 	packet.ttl = ttl;
+	
+	/* Allocate identifier */
+	fibril_mutex_lock(&ip_ident_lock);
+	packet.ident = ++ip_ident;
+	fibril_mutex_unlock(&ip_ident_lock);
+	
 	packet.df = df;
 	packet.data = dgram->data;
 	packet.size = dgram->size;
 	
-	size_t offs = 0;
 	int rc;
+	size_t offs = 0;
 	
 	do {
 		/* Encode one fragment */
@@ -420,6 +429,12 @@ int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
 	packet.tos = dgram->tos;
 	packet.proto = proto;
 	packet.ttl = ttl;
+	
+	/* Allocate identifier */
+	fibril_mutex_lock(&ip_ident_lock);
+	packet.ident = ++ip_ident;
+	fibril_mutex_unlock(&ip_ident_lock);
+	
 	packet.df = df;
 	packet.data = dgram->data;
 	packet.size = dgram->size;

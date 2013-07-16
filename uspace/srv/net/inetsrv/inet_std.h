@@ -47,7 +47,7 @@ typedef struct {
 	uint8_t tos;
 	/** Total Length */
 	uint16_t tot_len;
-	/** Identification */
+	/** Identifier */
 	uint16_t id;
 	/** Flags, Fragment Offset */
 	uint16_t flags_foff;
@@ -125,7 +125,7 @@ typedef struct {
 	uint8_t reserved;
 	/** Fragmentation offset, reserved and M flag */
 	uint16_t offsmf;
-	/** Identification */
+	/** Identifier */
 	uint32_t id;
 } ip6_header_fragment_t;
 
