@@ -337,7 +337,21 @@ int inet_link_discovery_start(void)
 	return inet_link_check_new();
 }
 
-/** Send IPv4 datagram over Internet link */
+/** Send IPv4 datagram over Internet link
+ *
+ * @param ilink Internet link
+ * @param lsrc  Source IPv4 address
+ * @param ldest Destination IPv4 address
+ * @param dgram IPv4 datagram body
+ * @param proto Protocol
+ * @param ttl   Time-to-live
+ * @param df    Do-not-Fragment flag
+ *
+ * @return EOK on success
+ * @return ENOMEM when not enough memory to create the datagram
+ * @return ENOTSUP if networking mode is not supported
+ *
+ */
 int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
@@ -400,7 +414,19 @@ int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
 	return rc;
 }
 
-/** Send IPv6 datagram over Internet link */
+/** Send IPv6 datagram over Internet link
+ *
+ * @param ilink Internet link
+ * @param ldest Destination MAC address
+ * @param dgram IPv6 datagram body
+ * @param proto Next header
+ * @param ttl   Hop limit
+ * @param df    Do-not-Fragment flag (unused)
+ *
+ * @return EOK on success
+ * @return ENOMEM when not enough memory to create the datagram
+ *
+ */
 int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
