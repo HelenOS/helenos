@@ -1164,7 +1164,7 @@ mfs_total_block_count(service_id_t service_id)
 	if (NULL == inst)
 		return ENOENT;
 	
-	block_total = (uint64_t)inst->sbi->nzones;
+	block_total = (uint64_t) MFS_BMAP_SIZE_BITS(inst->sbi, BMAP_ZONE);
 
 	return block_total;
 }
