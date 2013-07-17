@@ -612,9 +612,14 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	ipc_call_t answer;
 	ipc_callid_t wcallid;
 	size_t length;
-	uint8_t buffer[TCP_SOCK_FRAGMENT_SIZE];
 	tcp_error_t trc;
 	int rc;
+	
+	uint8_t *buffer = calloc(TCP_SOCK_FRAGMENT_SIZE, 1);
+	if (buffer == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_send()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
@@ -624,7 +629,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	sock_core = socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
-		return;
+		goto out;
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
@@ -640,7 +645,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		if (!async_data_write_receive(&wcallid, &length)) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
-			return;
+			goto out;
 		}
 
 		if (length > TCP_SOCK_FRAGMENT_SIZE)
@@ -650,7 +655,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
-			return;
+			goto out;
 		}
 
 		trc = tcp_uc_send(socket->conn, buffer, length, 0);
@@ -675,7 +680,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
-			return;
+			goto out;
 		}
 	}
 
@@ -684,6 +689,9 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	async_answer_2(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer));
 	fibril_mutex_unlock(&socket->lock);
+	
+out:
+	free(buffer);
 }
 
 static void tcp_sock_sendto(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)

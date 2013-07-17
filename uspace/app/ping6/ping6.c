@@ -101,7 +101,7 @@ static int ping_ev_recv(inetping6_sdu_t *sdu)
 		return ENOMEM;
 	}
 	
-	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
+	printf("Received ICMPv6 echo reply: from %s to %s, seq. no %u, "
 	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
 	
 	if (!ping_repeat)

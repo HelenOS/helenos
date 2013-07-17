@@ -55,7 +55,9 @@
 static int ethip_open(iplink_srv_t *srv);
 static int ethip_close(iplink_srv_t *srv);
 static int ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
+static int ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
+static int ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
 static int ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static int ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
@@ -65,7 +67,9 @@ static iplink_ops_t ethip_iplink_ops = {
 	.open = ethip_open,
 	.close = ethip_close,
 	.send = ethip_send,
+	.send6 = ethip_send6,
 	.get_mtu = ethip_get_mtu,
+	.get_mac48 = ethip_get_mac48,
 	.addr_add = ethip_addr_add,
 	.addr_remove = ethip_addr_remove
 };
@@ -168,46 +172,48 @@ static int ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send()");
 	
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	
-	addr32_t src_v4;
-	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&sdu->src, &src_v4, &src_v6);
-	
-	addr32_t dest_v4;
-	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&sdu->dest, &dest_v4, &dest_v6);
-	
-	if (src_af != dest_af)
-		return EINVAL;
-	
-	int rc;
 	eth_frame_t frame;
 	
-	switch (src_af) {
-	case AF_INET:
-		rc = arp_translate(nic, src_v4, dest_v4, frame.dest);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IPv4 address 0x%"
-			    PRIx32, dest_v4);
-			return rc;
-		}
-		
-		addr48(nic->mac_addr, frame.src);
-		frame.etype_len = ETYPE_IP;
-		frame.data = sdu->data;
-		frame.size = sdu->size;
-		
-		break;
-	case AF_INET6:
-		// FIXME TODO
-		return ENOTSUP;
-	default:
-		return EINVAL;
+	int rc = arp_translate(nic, sdu->src, sdu->dest, frame.dest);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IPv4 address 0x%"
+		    PRIx32, sdu->dest);
+		return rc;
 	}
+	
+	addr48(nic->mac_addr, frame.src);
+	frame.etype_len = ETYPE_IP;
+	frame.data = sdu->data;
+	frame.size = sdu->size;
 	
 	void *data;
 	size_t size;
 	rc = eth_pdu_encode(&frame, &data, &size);
+	if (rc != EOK)
+		return rc;
+	
+	rc = ethip_nic_send(nic, data, size);
+	free(data);
+	
+	return rc;
+}
+
+static int ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send6()");
+	
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
+	eth_frame_t frame;
+	
+	addr48(sdu->dest, frame.dest);
+	addr48(nic->mac_addr, frame.src);
+	frame.etype_len = ETYPE_IPV6;
+	frame.data = sdu->data;
+	frame.size = sdu->size;
+	
+	void *data;
+	size_t size;
+	int rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
 	
@@ -264,6 +270,16 @@ static int ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mtu()");
 	*mtu = 1500;
+	return EOK;
+}
+
+static int ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mac48()");
+	
+	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
+	addr48(nic->mac_addr, *mac);
+	
 	return EOK;
 }
 

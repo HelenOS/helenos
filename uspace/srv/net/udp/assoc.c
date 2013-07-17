@@ -371,6 +371,9 @@ static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,
 /** Match socket with pattern. */
 static bool udp_socket_match(udp_sock_t *sock, udp_sock_t *patt)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "udp_socket_match(sock=(%u), pat=(%u))", sock->port, patt->port);
+	
 	if ((!inet_addr_is_any(&patt->addr)) &&
 	    (!inet_addr_compare(&patt->addr, &sock->addr)))
 		return false;

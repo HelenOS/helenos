@@ -171,7 +171,7 @@ static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
 		host2addr128_t_be(dest_v6, phdr6->dest);
 		phdr6->tcp_length =
 		    host2uint32_t_be(pdu->header_size + pdu->text_size);
-		memset(phdr6->zero, 0, 3);
+		memset(phdr6->zeroes, 0, 3);
 		phdr6->next = IP_PROTO_TCP;
 		break;
 	default:

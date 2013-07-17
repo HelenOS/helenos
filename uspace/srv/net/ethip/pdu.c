@@ -45,8 +45,6 @@
 #include "std.h"
 #include "pdu.h"
 
-#define MAC48_BYTES 6
-
 /** Encode Ethernet PDU. */
 int eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 {

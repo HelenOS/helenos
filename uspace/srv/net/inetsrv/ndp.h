@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Antonin Steinhauser
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup ethip
  * @{
  */
-/** @file UDP standard definitions
- *
- * Based on IETF RFC 768
+/**
+ * @file
+ * @brief
  */
 
-#ifndef STD_H
-#define STD_H
+#ifndef NDP_H_
+#define NDP_H_
 
 #include <sys/types.h>
+#include <inet/addr.h>
+#include "inetsrv.h"
+#include "icmpv6_std.h"
 
-#define IP_PROTO_UDP  17
+typedef enum icmpv6_type ndp_opcode_t;
 
-/** UDP Header */
+/** NDP packet (for 48-bit MAC addresses)
+ *
+ * Internal representation
+ */
 typedef struct {
-	/** Source port */
-	uint16_t src_port;
-	/** Destination port */
-	uint16_t dest_port;
-	/** Length (header + data) */
-	uint16_t length;
-	/* Checksum */
-	uint16_t checksum;
-} udp_header_t;
+	/** Opcode */
+	ndp_opcode_t opcode;
+	/** Sender hardware address */
+	addr48_t sender_hw_addr;
+	/** Sender protocol address */
+	addr128_t sender_proto_addr;
+	/** Target hardware address */
+	addr48_t target_hw_addr;
+	/** Target protocol address */
+	addr128_t target_proto_addr;
+	/** Solicited IPv6 address */
+	addr128_t solicited_ip;
+} ndp_packet_t;
 
-/** UDP over IPv4 checksum pseudo header */
-typedef struct {
-	/** Source address */
-	uint32_t src_addr;
-	/** Destination address */
-	uint32_t dest_addr;
-	/** Zero */
-	uint8_t zero;
-	/** Protocol */
-	uint8_t protocol;
-	/** UDP length */
-	uint16_t udp_length;
-} udp_phdr_t;
-
-/** UDP over IPv6 checksum pseudo header */
-typedef struct {
-	/** Source address */
-	addr128_t src_addr;
-	/** Destination address */
-	addr128_t dest_addr;
-	/** UDP length */
-	uint32_t udp_length;
-	/** Zeroes */
-	uint8_t zeroes[3];
-	/** Next header */
-	uint8_t next;
-} udp_phdr6_t;
+extern int ndp_received(inet_dgram_t *);
+extern int ndp_translate(addr128_t, addr128_t, addr48_t, inet_link_t *);
 
 #endif
-
-/** @}
- */
