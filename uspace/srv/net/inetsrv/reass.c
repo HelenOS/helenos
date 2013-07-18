@@ -163,7 +163,7 @@ static reass_dgram_t *reass_dgram_new(void)
 	if (rdg == NULL)
 		return NULL;
 
-	link_initialize(&rdg->map_link);
+	list_append(&rdg->map_link, &reass_dgram_map);
 	list_initialize(&rdg->frags);
 
 	return rdg;
