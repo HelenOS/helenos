@@ -39,6 +39,8 @@
 
 #include <sys/types.h>
 
+#define IP6_NEXT_FRAGMENT  44
+
 /** IPv4 Datagram header (fixed part) */
 typedef struct {
 	/** Version, Internet Header Length */
@@ -89,7 +91,7 @@ enum flags_foff_bits {
 	FF_FRAGOFF_l = 0
 };
 
-/** Bits in ip6_frag_header_t.offsmf */
+/** Bits in ip6_header_fragment_t.offsmf */
 enum flags_offsmt_bits {
 	/** More fragments */
 	OF_FLAG_M = 0,

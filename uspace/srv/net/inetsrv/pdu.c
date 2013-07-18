@@ -113,17 +113,15 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
 		return ELIMIT;
 	
 	size_t hdr_size = sizeof(ip_header_t);
+	if (hdr_size >= mtu)
+		return EINVAL;
 	
-	size_t data_offs = ROUND_UP(hdr_size, 4);
-	
+	assert(hdr_size % 4 == 0);
 	assert(offs % FRAG_OFFS_UNIT == 0);
 	assert(offs / FRAG_OFFS_UNIT < fragoff_limit);
 	
 	/* Value for the fragment offset field */
 	uint16_t foff = offs / FRAG_OFFS_UNIT;
-	
-	if (hdr_size >= mtu)
-		return EINVAL;
 	
 	/* Amount of space in the PDU available for payload */
 	size_t spc_avail = mtu - hdr_size;
@@ -169,7 +167,7 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
 	hdr->chksum = host2uint16_t_be(chksum);
 	
 	/* Copy payload */
-	memcpy((uint8_t *) data + data_offs, packet->data + offs, xfer_size);
+	memcpy((uint8_t *) data + hdr_size, packet->data + offs, xfer_size);
 	
 	*rdata = data;
 	*rsize = size;
@@ -193,35 +191,46 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
  * @param mtu    MTU (Maximum Transmission Unit) in bytes
  * @param rdata  Place to store pointer to allocated data buffer
  * @param rsize  Place to store size of allocated data buffer
- * @param roffs Place to store offset of remaning data
+ * @param roffs  Place to store offset of remaning data
  *
  */
 int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
     size_t offs, size_t mtu, void **rdata, size_t *rsize, size_t *roffs)
 {
+	/* IPv6 mandates a minimal MTU of 1280 bytes */
+	if (mtu < 1280)
+		return ELIMIT;
+	
 	/* Upper bound for fragment offset field */
-	size_t fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l);
+	size_t fragoff_limit = 1 << (OF_FRAGOFF_h - OF_FRAGOFF_l);
 	
 	/* Verify that total size of datagram is within reasonable bounds */
 	if (offs + packet->size > FRAG_OFFS_UNIT * fragoff_limit)
 		return ELIMIT;
 	
-	size_t hdr_size = sizeof(ip6_header_t);
+	/* Determine whether we need the Fragment extension header */
+	bool fragment;
+	if (offs == 0)
+		fragment = (packet->size + sizeof(ip6_header_t) > mtu);
+	else
+		fragment = true;
 	
-	size_t data_offs = ROUND_UP(hdr_size, 4);
-	
-	assert(offs % FRAG_OFFS_UNIT == 0);
-	assert(offs / FRAG_OFFS_UNIT < fragoff_limit);
-	
-#if 0
-	// FIXME TODO fragmentation
-	
-	/* Value for the fragment offset field */
-	uint16_t foff = offs / FRAG_OFFS_UNIT;
-#endif
+	size_t hdr_size;
+	if (fragment)
+		hdr_size = sizeof(ip6_header_t) + sizeof(ip6_header_fragment_t);
+	else
+		hdr_size = sizeof(ip6_header_t);
 	
 	if (hdr_size >= mtu)
 		return EINVAL;
+	
+	assert(sizeof(ip6_header_t) % 8 == 0);
+	assert(hdr_size % 8 == 0);
+	assert(offs % FRAG_OFFS_UNIT == 0);
+	assert(offs / FRAG_OFFS_UNIT < fragoff_limit);
+	
+	/* Value for the fragment offset field */
+	uint16_t foff = offs / FRAG_OFFS_UNIT;
 	
 	/* Amount of space in the PDU available for payload */
 	size_t spc_avail = mtu - hdr_size;
@@ -236,15 +245,10 @@ int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
 	/* Offset of remaining payload */
 	size_t rem_offs = offs + xfer_size;
 	
-#if 0
-	// FIXME TODO fragmentation
-	
 	/* Flags */
-	uint16_t flags_foff =
-	    (packet->df ? BIT_V(uint16_t, FF_FLAG_DF) : 0) +
-	    (rem_offs < packet->size ? BIT_V(uint16_t, FF_FLAG_MF) : 0) +
-	    (foff << FF_FRAGOFF_l);
-#endif
+	uint16_t offsmf =
+	    (rem_offs < packet->size ? BIT_V(uint16_t, OF_FLAG_M) : 0) +
+	    (foff << OF_FRAGOFF_l);
 	
 	void *data = calloc(size, 1);
 	if (data == NULL)
@@ -255,15 +259,35 @@ int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
 	
 	hdr6->ver_tc = (6 << (VI_VERSION_l));
 	memset(hdr6->tc_fl, 0, 3);
-	hdr6->payload_len = host2uint16_t_be(packet->size);
-	hdr6->next = packet->proto;
 	hdr6->hop_limit = packet->ttl;
 	
 	host2addr128_t_be(src, hdr6->src_addr);
 	host2addr128_t_be(dest, hdr6->dest_addr);
 	
+	/* Optionally encode Fragment extension header fields */
+	if (fragment) {
+		assert(offsmf != 0);
+		
+		hdr6->payload_len = host2uint16_t_be(packet->size +
+		    sizeof(ip6_header_fragment_t));
+		hdr6->next = IP6_NEXT_FRAGMENT;
+		
+		ip6_header_fragment_t *hdr6f = (ip6_header_fragment_t *)
+		    (hdr6 + 1);
+		
+		hdr6f->next = packet->proto;
+		hdr6f->reserved = 0;
+		hdr6f->offsmf = host2uint16_t_be(offsmf);
+		hdr6f->id = host2uint32_t_be(packet->ident);
+	} else {
+		assert(offsmf == 0);
+		
+		hdr6->payload_len = host2uint16_t_be(packet->size);
+		hdr6->next = packet->proto;
+	}
+	
 	/* Copy payload */
-	memcpy((uint8_t *) data + data_offs, packet->data + offs, xfer_size);
+	memcpy((uint8_t *) data + hdr_size, packet->data + offs, xfer_size);
 	
 	*rdata = data;
 	*rsize = size;
@@ -377,21 +401,35 @@ int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
 	
 	size_t payload_len = uint16_t_be2host(hdr6->payload_len);
 	if (payload_len + sizeof(ip6_header_t) > size) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Total Length = %zu > PDU size = %zu",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Payload Length = %zu > PDU size = %zu",
 		    payload_len + sizeof(ip6_header_t), size);
 		return EINVAL;
 	}
 	
-#if 0
-	// FIXME TODO fragmentation
+	uint32_t ident;
+	uint16_t offsmf;
+	uint16_t foff;
+	uint16_t next;
+	size_t data_offs = sizeof(ip6_header_t);
 	
-	uint16_t ident = uint16_t_be2host(hdr->id);
-	uint16_t flags_foff = uint16_t_be2host(hdr->flags_foff);
-	uint16_t foff = BIT_RANGE_EXTRACT(uint16_t, FF_FRAGOFF_h, FF_FRAGOFF_l,
-	    flags_foff);
-#endif
-	
-	/* XXX Checksum */
+	/* Fragment extension header */
+	if (hdr6->next == IP6_NEXT_FRAGMENT) {
+		ip6_header_fragment_t *hdr6f = (ip6_header_fragment_t *)
+		    (hdr6 + 1);
+		
+		ident = uint32_t_be2host(hdr6f->id);
+		offsmf = uint16_t_be2host(hdr6f->offsmf);
+		foff = BIT_RANGE_EXTRACT(uint16_t, OF_FRAGOFF_h, OF_FRAGOFF_l,
+		    offsmf);
+		next = hdr6f->next;
+		data_offs += sizeof(ip6_header_fragment_t);
+		payload_len -= sizeof(ip6_header_fragment_t);
+	} else {
+		ident = 0;
+		offsmf = 0;
+		foff = 0;
+		next = hdr6->next;
+	}
 	
 	addr128_t src;
 	addr128_t dest;
@@ -403,26 +441,13 @@ int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
 	inet_addr_set6(dest, &packet->dest);
 	
 	packet->tos = 0;
-	packet->proto = hdr6->next;
+	packet->proto = next;
 	packet->ttl = hdr6->hop_limit;
-	
-#if 0
-	// FIXME TODO fragmentation
-	
 	packet->ident = ident;
-	packet->df = (flags_foff & BIT_V(uint16_t, FF_FLAG_DF)) != 0;
-	packet->mf = (flags_foff & BIT_V(uint16_t, FF_FLAG_MF)) != 0;
+	
+	packet->df = 1;
+	packet->mf = (offsmf & BIT_V(uint16_t, OF_FLAG_M)) != 0;
 	packet->offs = foff * FRAG_OFFS_UNIT;
-	
-	/* XXX IP options */
-	size_t data_offs = sizeof(uint32_t) *
-	    BIT_RANGE_EXTRACT(uint8_t, VI_IHL_h, VI_IHL_l, hdr->ver_ihl);
-#endif
-	
-	packet->ident = 0;
-	packet->df = 0;
-	packet->mf = 0;
-	packet->offs = 0;
 	
 	packet->size = payload_len;
 	packet->data = calloc(packet->size, 1);
@@ -431,7 +456,7 @@ int inet_pdu_decode6(void *data, size_t size, inet_packet_t *packet)
 		return ENOMEM;
 	}
 	
-	memcpy(packet->data, (uint8_t *) data + sizeof(ip6_header_t), packet->size);
+	memcpy(packet->data, (uint8_t *) data + data_offs, packet->size);
 	
 	return EOK;
 }
