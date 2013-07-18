@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <getopt.h>
 #include <sys/statfs.h>
 #include <errno.h>
 #include <adt/list.h>
@@ -45,14 +46,59 @@
 
 #define NAME  "df"
 
-#define HEADER_TABLE "Filesystem    512-blocks      Used      Available  Used%  Mounted on"
+#define HEADER_TABLE "Filesystem     512-blocks           Used      Available Used% Mounted on"
 
 #define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))  
+#define FSBK_TO_BK(x, fsbk, bk) \
+	(((fsbk) != 0 && (fsbk) < (bk)) ? \
+		(unsigned long long) ((x) / ((bk) / (fsbk))) : \
+		(unsigned long long) ((x) * ((fsbk) / (bk))))
+
+static void print_statfs(struct statfs *, char *, char *);
+static void print_usage(void);
 
 int main(int argc, char *argv[])
 {
+	int optres, errflg = 0;
 	struct statfs st;
+	
+	/******************************************/
+	/*   Parse command line options...        */
+	/******************************************/
+	while ((optres = getopt(argc, argv, ":hi")) != -1) {
+		switch(optres) {
+		case 'h':
+			break;
+		case 'i':
+			break;
+    
+		case ':':       
+			fprintf(stderr, "Option -%c requires an operand\n", optopt);
+			errflg++;
+			break;
 
+		case '?':
+			fprintf(stderr, "Unrecognized option: -%c\n", optopt);
+			errflg++;
+			break;
+
+		default:
+			fprintf(stderr, "Unknown error while parsing command line options.");
+			errflg++;
+			break;
+		}
+	}
+
+	if (optind > argc) {
+		fprintf(stderr, "Too many input parameter\n");
+		errflg++;
+	}
+	
+	if (errflg) {
+		print_usage();
+		return 1;
+	}
+	
 	LIST_INITIALIZE(mtab_list);
 	get_mtab_list(&mtab_list);
 	printf("%s\n", HEADER_TABLE);
@@ -60,17 +106,30 @@ int main(int argc, char *argv[])
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
 		statfs(mtab_ent->mp, &st);
-		printf("block size:%lu\n", (unsigned long)st.f_bsize);
-		printf("%13s %15llu %9llu %9llu %3llu%% %s\n", 
-			mtab_ent->fs_name,
-			(unsigned long long) st.f_blocks * st.f_bsize,
-			(unsigned long long) (st.f_blocks - st.f_bfree) * st.f_bsize,
-			(unsigned long long) st.f_bfree * st.f_bsize,
-			(st.f_blocks)?PERCENTAGE(st.f_blocks - st.f_bfree, st.f_blocks):0L,
-			mtab_ent->mp);
+		print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
 	}
 	putchar('\n');	
 	return 0;
+}
+
+static void print_statfs(struct statfs *st, char *name, char *mountpoint)
+{
+	printf("%10s", name);
+	printf(" %14llu %14llu %14llu %4llu%% %s\n", 
+		FSBK_TO_BK(st->f_blocks, st->f_bsize, 512),                              /* Blocks     */
+		FSBK_TO_BK(st->f_blocks - st->f_bfree, st->f_bsize, 512),                /* Used       */
+		FSBK_TO_BK(st->f_bfree, st->f_bsize, 512),                               /* Available  */
+		(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,  /* Used%      */
+		mountpoint                                                               /* Mounted on */
+	);
+}
+
+static void print_usage(void)
+{
+  printf("syntax: %s [-h] [-i]\n", NAME);
+  printf("  h : \"Human-redable\" output.\n");  
+  printf("  i : Include statistics on the number of free inodes. \n");
+  printf("\n");
 }
 
 /** @}
