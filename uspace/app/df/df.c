@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 		switch(optres) {
 		case 'h':
 			break;
+
 		case 'i':
 			break;
     
@@ -127,7 +128,7 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 static void print_usage(void)
 {
   printf("syntax: %s [-h] [-i]\n", NAME);
-  printf("  h : \"Human-redable\" output.\n");  
+  printf("  h : \"Human-readable\" output.\n");  
   printf("  i : Include statistics on the number of free inodes. \n");
   printf("\n");
 }
