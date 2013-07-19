@@ -91,6 +91,7 @@ static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
 static uint32_t fat_size_block(service_id_t);
+static uint64_t fat_total_block_count(service_id_t);
 
 /*
  * Helper functions.
@@ -851,6 +852,16 @@ uint32_t fat_size_block(service_id_t service_id)
 	return BPC(bs);
 }
 
+uint64_t fat_total_block_count(service_id_t service_id)
+{
+	fat_bs_t *bs;
+	bs = block_bb_get(service_id);
+
+	uint64_t block_count = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
+
+	return block_count;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
@@ -869,7 +880,8 @@ libfs_ops_t fat_libfs_ops = {
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
 	.service_get = fat_service_get,
-	.size_block = fat_size_block
+	.size_block = fat_size_block,
+	.total_block_count = fat_total_block_count
 };
 
 /*
