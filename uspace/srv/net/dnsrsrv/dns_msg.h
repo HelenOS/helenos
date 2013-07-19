@@ -51,7 +51,6 @@ extern int dns_name_decode(dns_pdu_t *, size_t, char **, size_t *);
 extern uint32_t dns_uint32_t_decode(uint8_t *, size_t);
 extern void dns_addr128_t_decode(uint8_t *, size_t, addr128_t);
 
-
 #endif
 
 /** @}
