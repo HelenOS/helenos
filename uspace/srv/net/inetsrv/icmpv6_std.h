@@ -103,7 +103,7 @@ typedef struct {
 	uint8_t zeroes[3];
 	/** Next header */
 	uint8_t next;
-} icmpv6_pseudo_header;
+} icmpv6_phdr_t;
 
 /** NDP neighbour body */
 typedef struct {

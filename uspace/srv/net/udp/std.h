@@ -53,7 +53,7 @@ typedef struct {
 	uint16_t checksum;
 } udp_header_t;
 
-/** UDP IPv4 pseudo header */
+/** UDP over IPv4 checksum pseudo header */
 typedef struct {
 	/** Source address */
 	uint32_t src_addr;
@@ -67,7 +67,7 @@ typedef struct {
 	uint16_t udp_length;
 } udp_phdr_t;
 
-/** UDP IPv6 pseudo header */
+/** UDP over IPv6 checksum pseudo header */
 typedef struct {
 	/** Source address */
 	addr128_t src_addr;
@@ -75,8 +75,8 @@ typedef struct {
 	addr128_t dest_addr;
 	/** UDP length */
 	uint32_t udp_length;
-	/** Reserved */
-	uint8_t zero[3];
+	/** Zeroes */
+	uint8_t zeroes[3];
 	/** Next header */
 	uint8_t next;
 } udp_phdr6_t;

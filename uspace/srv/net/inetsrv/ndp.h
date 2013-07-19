@@ -34,8 +34,8 @@
  * @brief
  */
 
-#ifndef ETH_NDP_H_
-#define ETH_NDP_H_
+#ifndef NDP_H_
+#define NDP_H_
 
 #include <sys/types.h>
 #include <inet/addr.h>

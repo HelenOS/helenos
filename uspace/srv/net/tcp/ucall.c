@@ -297,6 +297,10 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "tcp_as_segment_arrived(f:(%u), l:(%u))",
+	    sp->foreign.port, sp->local.port);
+
 	conn = tcp_conn_find_ref(sp);
 	if (conn == NULL) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "No connection found.");

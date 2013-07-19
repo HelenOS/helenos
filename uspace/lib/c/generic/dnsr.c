@@ -66,7 +66,7 @@ static void dnsr_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
+int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, uint16_t af)
 {
 	dnsr_hostinfo_t *info = calloc(1, sizeof(dnsr_hostinfo_t));
 	if (info == NULL)
@@ -75,7 +75,8 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo)
 	async_exch_t *exch = dnsr_exchange_begin();
 	
 	ipc_call_t answer;
-	aid_t req = async_send_0(exch, DNSR_NAME2HOST, &answer);
+	aid_t req = async_send_1(exch, DNSR_NAME2HOST, (sysarg_t) af,
+	    &answer);
 	
 	int rc = async_data_write_start(exch, name, str_size(name));
 	if (rc != EOK) {

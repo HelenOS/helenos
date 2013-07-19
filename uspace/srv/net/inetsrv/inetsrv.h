@@ -112,7 +112,7 @@ typedef struct {
 	/** Time to live */
 	uint8_t ttl;
 	/** Identifier */
-	uint16_t ident;
+	uint32_t ident;
 	/** Do not fragment */
 	bool df;
 	/** More fragments */

@@ -264,6 +264,12 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_send()");
 	
+	uint8_t *buffer = calloc(UDP_FRAGMENT_SIZE, 1);
+	if (buffer == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
+	
 	struct sockaddr_in6 *addr6 = NULL;
 	struct sockaddr_in *addr;
 	udp_sock_t fsocket;
@@ -275,7 +281,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 		    0, 0, 0, &addr_len);
 		if (rc != EOK) {
 			async_answer_0(callid, rc);
-			return;
+			goto out;
 		}
 		
 		if ((addr_len != sizeof(struct sockaddr_in)) &&
@@ -356,7 +362,7 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 			async_answer_0(callid, rc);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_sendto: Failed to "
 			    "determine local address.");
-			return;
+			goto out;
 		}
 		
 		socket->assoc->ident.local.addr = loc_addr;
@@ -378,7 +384,6 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 		if (length > UDP_FRAGMENT_SIZE)
 			length = UDP_FRAGMENT_SIZE;
 		
-		uint8_t buffer[UDP_FRAGMENT_SIZE];
 		int rc = async_data_write_finalize(wcallid, buffer, length);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
@@ -424,6 +429,8 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 out:
 	if (addr6 != NULL)
 		free(addr6);
+	
+	free(buffer);
 }
 
 static void udp_sock_recvfrom(udp_client_t *client, ipc_callid_t callid, ipc_call_t call)

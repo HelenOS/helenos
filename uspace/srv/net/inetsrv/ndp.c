@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <malloc.h>
+#include <io/log.h>
 #include <net/socket_codes.h>
 #include "ntrans.h"
 #include "addrobj.h"
@@ -53,12 +54,24 @@ static addr48_t solicited_node_mac =
 static addr128_t solicited_node_ip =
     {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0};
 
+/** Compute solicited node MAC multicast address from target IPv6 address
+ *
+ * @param ip_addr  Target IPv6 address
+ * @param mac_addr Solicited MAC address to be assigned
+ *
+ */
 static void ndp_solicited_node_mac(addr128_t ip_addr, addr48_t mac_addr)
 {
 	memcpy(mac_addr, solicited_node_mac, 3);
 	memcpy(mac_addr + 3, ip_addr + 13, 3);
 }
 
+/** Compute solicited node IPv6 multicast address from target IPv6 address
+ *
+ * @param ip_addr      Target IPv6 address
+ * @param ip_solicited Solicited IPv6 address to be assigned
+ *
+ */
 static void ndp_solicited_node_ip(addr128_t ip_addr,
     addr128_t ip_solicited)
 {
@@ -87,6 +100,8 @@ static int ndp_router_advertisement(inet_dgram_t *dgram, inet_addr_t *router)
 
 int ndp_received(inet_dgram_t *dgram)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ndp_received()");
+	
 	ndp_packet_t packet;
 	int rc = ndp_pdu_decode(dgram, &packet);
 	if (rc != EOK)
@@ -99,6 +114,9 @@ int ndp_received(inet_dgram_t *dgram)
 	inet_addr_set6(packet.target_proto_addr, &target);
 	
 	inet_addrobj_t *laddr;
+	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "NDP PDU decoded; opcode: %d",
+	    packet.opcode);
 	
 	switch (packet.opcode) {
 	case ICMPV6_NEIGHBOUR_SOLICITATION:
@@ -137,6 +155,17 @@ int ndp_received(inet_dgram_t *dgram)
 	return EOK;
 }
 
+/** Translate IPv6 to MAC address
+ *
+ * @param src  Source IPv6 address
+ * @param dest Destination IPv6 address
+ * @param mac  Target MAC address to be assigned
+ * @param link Network interface
+ *
+ * @return EOK on success
+ * @return ENOENT when NDP translation failed
+ *
+ */
 int ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
     inet_link_t *ilink)
 {

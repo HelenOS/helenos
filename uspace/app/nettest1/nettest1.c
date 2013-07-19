@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo);
+		rc = dnsr_name2host(addr_s, &hinfo, family);
 		
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);

@@ -101,7 +101,7 @@ static int ping_ev_recv(inetping6_sdu_t *sdu)
 		return ENOMEM;
 	}
 	
-	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
+	printf("Received ICMPv6 echo reply: from %s to %s, seq. no %u, "
 	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
 	
 	if (!ping_repeat)
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 	rc = inet_addr_parse(argv[argi], &dest_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
-		rc = dnsr_name2host(argv[argi], &hinfo);
+		rc = dnsr_name2host(argv[argi], &hinfo, AF_INET6);
 		if (rc != EOK) {
 			printf(NAME ": Error resolving host '%s'.\n", argv[argi]);
 			goto error;

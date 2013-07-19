@@ -61,6 +61,17 @@
 
 #define NAME "inetsrv"
 
+static inet_naddr_t solicited_node_mask = {
+	.family = AF_INET6,
+	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0},
+	.prefix = 104
+};
+
+static inet_addr_t multicast_all_nodes = {
+	.family = AF_INET,
+	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
+};
+
 static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 static FIBRIL_MUTEX_INITIALIZE(client_list_lock);
@@ -513,7 +524,9 @@ int inet_recv_packet(inet_packet_t *packet)
 	inet_dgram_t dgram;
 
 	addr = inet_addrobj_find(&packet->dest, iaf_addr);
-	if (addr != NULL) {
+	if ((addr != NULL) ||
+	    (inet_naddr_compare_mask(&solicited_node_mask, &packet->dest)) ||
+	    (inet_addr_compare(&multicast_all_nodes, &packet->dest))) {
 		/* Destined for one of the local addresses */
 
 		/* Check if packet is a complete datagram */

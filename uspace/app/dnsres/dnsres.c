@@ -35,51 +35,73 @@
 #include <errno.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
+#include <net/socket_codes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NAME "dnsres"
+#define NAME  "dnsres"
 
 static void print_syntax(void)
 {
-	printf("syntax: " NAME " <host-name>\n");
+	printf("Syntax: %s [-4|-6] <host-name>\n", NAME);
 }
 
 int main(int argc, char *argv[])
 {
-	int rc;
-	dnsr_hostinfo_t *hinfo;
-	char *hname;
-	char *saddr;
-
-	if (argc != 2) {
+	if ((argc < 2) || (argc > 3)) {
 		print_syntax();
 		return 1;
 	}
-
-	hname = argv[1];
-
-	rc = dnsr_name2host(hname, &hinfo);
-	if (rc != EOK) {
-		printf(NAME ": Error resolving '%s'.\n", argv[1]);
-		return 1;
+	
+	uint16_t af;
+	char *hname;
+	
+	if (str_cmp(argv[1], "-4") == 0) {
+		if (argc < 3) {
+			print_syntax();
+			return 1;
+		}
+		
+		af = AF_INET;
+		hname = argv[2];
+	} else if (str_cmp(argv[1], "-6") == 0) {
+		if (argc < 3) {
+			print_syntax();
+			return 1;
+		}
+		
+		af = AF_INET6;
+		hname = argv[2];
+	} else {
+		af = 0;
+		hname = argv[1];
 	}
-
+	
+	dnsr_hostinfo_t *hinfo;
+	int rc = dnsr_name2host(hname, &hinfo, af);
+	if (rc != EOK) {
+		printf("%s: Error resolving '%s'.\n", NAME, hname);
+		return rc;
+	}
+	
+	char *saddr;
 	rc = inet_addr_format(&hinfo->addr, &saddr);
 	if (rc != EOK) {
 		dnsr_hostinfo_destroy(hinfo);
-		printf(NAME ": Out of memory.\n");
-		return 1;
+		printf("%s: Error formatting address.\n", NAME);
+		return rc;
 	}
-
+	
 	printf("Host name: %s\n", hname);
+	
 	if (str_cmp(hname, hinfo->cname) != 0)
 		printf("Canonical name: %s\n", hinfo->cname);
+	
 	printf("Address: %s\n", saddr);
-
+	
 	dnsr_hostinfo_destroy(hinfo);
 	free(saddr);
-
+	
 	return 0;
 }
 
