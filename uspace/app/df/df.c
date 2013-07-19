@@ -46,13 +46,15 @@
 
 #define NAME  "df"
 
-#define HEADER_TABLE "Filesystem     512-blocks           Used      Available Used% Mounted on"
+#define HEADER_TABLE "Filesystem     %4u-blocks           Used      Available Used%% Mounted on\n"
 
 #define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))  
 #define FSBK_TO_BK(x, fsbk, bk) \
 	(((fsbk) != 0 && (fsbk) < (bk)) ? \
 		(unsigned long long) ((x) / ((bk) / (fsbk))) : \
 		(unsigned long long) ((x) * ((fsbk) / (bk))))
+
+static unsigned int unit_size;
 
 static void print_statfs(struct statfs *, char *, char *);
 static void print_usage(void);
@@ -62,15 +64,21 @@ int main(int argc, char *argv[])
 	int optres, errflg = 0;
 	struct statfs st;
 	
+	unit_size = 512;
+
 	/******************************************/
 	/*   Parse command line options...        */
 	/******************************************/
-	while ((optres = getopt(argc, argv, ":hi")) != -1) {
+	while ((optres = getopt(argc, argv, ":hib:")) != -1) {
 		switch(optres) {
 		case 'h':
 			break;
 
 		case 'i':
+			break;
+
+		case 'b':
+			str_uint32_t(optarg, NULL, 0, 0, &unit_size);
 			break;
     
 		case ':':       
@@ -102,7 +110,7 @@ int main(int argc, char *argv[])
 	
 	LIST_INITIALIZE(mtab_list);
 	get_mtab_list(&mtab_list);
-	printf("%s\n", HEADER_TABLE);
+	printf(HEADER_TABLE, unit_size);
 	list_foreach(mtab_list, cur) {
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
@@ -116,12 +124,12 @@ int main(int argc, char *argv[])
 static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 {
 	printf("%10s", name);
-	printf(" %14llu %14llu %14llu %4llu%% %s\n", 
-		FSBK_TO_BK(st->f_blocks, st->f_bsize, 512),                              /* Blocks     */
-		FSBK_TO_BK(st->f_blocks - st->f_bfree, st->f_bsize, 512),                /* Used       */
-		FSBK_TO_BK(st->f_bfree, st->f_bsize, 512),                               /* Available  */
-		(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,  /* Used%      */
-		mountpoint                                                               /* Mounted on */
+	printf(" %15llu %14llu %14llu %4llu%% %s\n", 
+		FSBK_TO_BK(st->f_blocks, st->f_bsize, unit_size),                              /* Blocks     */
+		FSBK_TO_BK(st->f_blocks - st->f_bfree, st->f_bsize, unit_size),                /* Used       */
+		FSBK_TO_BK(st->f_bfree, st->f_bsize, unit_size),                               /* Available  */
+		(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
+		mountpoint                                                                     /* Mounted on */
 	);
 }
 
