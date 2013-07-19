@@ -1,0 +1,273 @@
+diff -ud -Nrud gcc-4.8.1/config.sub gcc-4.8.1/config.sub
+--- gcc-4.8.1/config.sub	2013-01-11 14:02:58.000000000 +0100
++++ gcc-4.8.1/config.sub	2013-07-12 09:10:19.136870930 +0200
+@@ -1369,6 +1369,7 @@
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* | -cegcc* \
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
++	      | -helenos \
+ 	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* \
+diff -ud -Nrud gcc-4.8.1/gcc/config.gcc gcc-4.8.1/gcc/config.gcc
+--- gcc-4.8.1/gcc/config.gcc	2013-03-13 10:47:41.000000000 +0100
++++ gcc-4.8.1/gcc/config.gcc	2013-07-12 13:20:08.321208280 +0200
+@@ -624,7 +624,7 @@
+   # need_64bit_hwint=yes # system compiler has this for all arch!
+   use_gcc_stdint=wrap
+   ;;
+-*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
++*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu | *-helenos*)
+   extra_options="$extra_options gnu-user.opt"
+   gas=yes
+   gnu_ld=yes
+@@ -642,7 +642,7 @@
+   # glibc / uclibc / bionic switch.
+   # uclibc and bionic aren't usable for GNU/Hurd and neither for GNU/k*BSD.
+   case $target in
+-    *linux*)
++    *linux* | *helenos*)
+       extra_options="$extra_options linux.opt";;
+   esac
+   case $target in
+@@ -663,7 +663,7 @@
+   use_gcc_stdint=wrap
+   # Add Android userspace support to Linux targets.
+   case $target in
+-    *linux*)
++    *linux* | *helenos*)
+       tm_file="$tm_file linux-android.h"
+       extra_options="$extra_options linux-android.opt"
+       ;;
+@@ -681,6 +681,10 @@
+   cxx_target_objs="${cxx_target_objs} glibc-c.o"
+   tmake_file="${tmake_file} t-glibc"
+   target_has_targetcm=yes
++  # HelenOS
++  case $target in
++    *-helenos*) tm_file="$tm_file helenos.h" ;;
++  esac
+   ;;
+ *-*-netbsd*)
+   tmake_file="t-slibgcc"
+@@ -868,7 +872,7 @@
+ 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
+ 	tmake_file="${tmake_file} arm/t-arm"
+ 	;;
+-arm*-*-linux-*)			# ARM GNU/Linux with ELF
++arm*-*-linux-* | arm*-helenos-*)			# ARM GNU/Linux with ELF
+ 	tm_file="dbxelf.h elfos.h gnu-user.h linux.h linux-android.h glibc-stdint.h arm/elf.h arm/linux-gas.h arm/linux-elf.h"
+ 	case $target in
+ 	arm*b-*-linux*)
+@@ -890,6 +894,12 @@
+ 	# The EABI requires the use of __cxa_atexit.
+ 	default_use_cxa_atexit=yes
+ 	with_tls=${with_tls:-gnu}
++	# HelenOS
++	# (Strangely, tm_file ignores the defaults loaded previously and
++	# we need to add helenos.h one more time.)
++	case $target in
++	*-helenos*) tm_file="$tm_file helenos.h arm/helenos-arm32.h arm/helenos.h" ;;
++	esac
+ 	;;
+ arm*-*-uclinux*eabi*)		# ARM ucLinux
+ 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h glibc-stdint.h"
+@@ -1257,12 +1267,12 @@
+ 	gas=yes
+ 	gnu_ld=yes
+ 	;;
+-i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i[34567]86-*-gnu* | i[34567]86-*-kopensolaris*-gnu)
++i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i[34567]86-*-gnu* | i[34567]86-*-kopensolaris*-gnu | i[34567]86-*-helenos)
+ 			# Intel 80386's running GNU/*
+ 			# with ELF format using glibc 2
+ 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h gnu-user.h glibc-stdint.h"
+ 	case ${target} in
+-	i[34567]86-*-linux*)
++	i[34567]86-*-linux* | i[34567]86-*-helenos)
+ 		tm_file="${tm_file} linux.h"
+ 		# Assume modern glibc
+ 		default_gnu_indirect_function=yes
+@@ -1318,12 +1328,16 @@
+ 		tm_file="$tm_file i386/gnu-user-common.h i386/gnu-user.h gnu.h i386/gnu.h"
+ 		;;
+ 	esac
++	# HelenOS
++	case $target in
++	*-helenos*) tm_file="$tm_file i386/helenos-ia32.h i386/helenos.h" ;;
++	esac
+ 	;;
+-x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
++x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu | x86_64-*-helenos)
+ 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h gnu-user.h glibc-stdint.h \
+ 		 i386/x86-64.h i386/gnu-user-common.h i386/gnu-user64.h"
+ 	case ${target} in
+-	x86_64-*-linux*)
++	x86_64-*-linux* | x86_64-*-helenos)
+ 		tm_file="${tm_file} linux.h i386/linux-common.h i386/linux64.h"
+ 		# Assume modern glibc
+ 		default_gnu_indirect_function=yes
+@@ -1359,6 +1373,10 @@
+ 		esac
+ 	done
+ 	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
++	# HelenOS
++	case $target in
++	*-helenos*) tm_file="$tm_file i386/helenos-amd64.h i386/helenos.h" ;;
++	esac
+ 	;;
+ i[34567]86-pc-msdosdjgpp*)
+ 	xm_file=i386/xm-djgpp.h
+@@ -1567,10 +1585,14 @@
+ 	target_cpu_default="MASK_GNU_AS|MASK_GNU_LD"
+ 	tmake_file="${tmake_file} ia64/t-ia64"
+ 	;;
+-ia64*-*-linux*)
++ia64*-*-linux* | ia64-*-helenos)
+ 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ia64/sysv4.h ia64/linux.h"
+ 	tmake_file="${tmake_file} ia64/t-ia64 ia64/t-linux t-libunwind"
+ 	target_cpu_default="MASK_GNU_AS|MASK_GNU_LD"
++	# HelenOS
++	case $target in
++	*-helenos*) tm_file="$tm_file ia64/helenos-ia64.h ia64/helenos.h" ;;
++	esac
+ 	;;
+ ia64*-*-hpux*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h ia64/sysv4.h ia64/hpux.h"
+@@ -1794,7 +1816,7 @@
+ 	gas=yes
+ 	test x$with_llsc != x || with_llsc=yes
+ 	;;
+-mips64*-*-linux* | mipsisa64*-*-linux*)
++mips64*-*-linux* | mipsisa64*-*-linux* | mips64*-*-helenos)
+ 	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/gnu-user64.h mips/linux64.h mips/linux-common.h"
+ 	tmake_file="${tmake_file} mips/t-linux64"
+ 	tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_N32"
+@@ -1814,8 +1836,12 @@
+ 	gnu_ld=yes
+ 	gas=yes
+ 	test x$with_llsc != x || with_llsc=yes
++	# HelenOS
++	case $target in
++	*-helenos*) tm_file="$tm_file mips/helenos-mips64el.h mips/helenos.h" ;;
++	esac
+ 	;;
+-mips*-*-linux*)				# Linux MIPS, either endian.
++mips*-*-linux* | mips*-*-helenos)	# Linux MIPS, either endian.
+         tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/linux.h"
+ 	if test x$enable_targets = xall; then
+ 		tm_file="${tm_file} mips/gnu-user64.h mips/linux64.h"
+@@ -1830,6 +1856,11 @@
+ 		tm_defines="${tm_defines} MIPS_ISA_DEFAULT=32"
+         esac
+ 	test x$with_llsc != x || with_llsc=yes
++	# HelenOS
++	case $target in
++	mipsel-*-helenos*) tm_file="$tm_file mips/helenos-mips32el.h mips/helenos.h" ;;
++	mips-*-helenos*) tm_file="$tm_file mips/helenos-mips32eb.h mips/helenos.h" ;;
++	esac
+ 	;;
+ mips*-mti-elf*)
+ 	tm_file="elfos.h newlib-stdint.h ${tm_file} mips/elf.h mips/sde.h mips/mti-elf.h"
+@@ -2066,7 +2097,7 @@
+ 	extra_options="${extra_options} rs6000/sysv4.opt"
+ 	tmake_file="rs6000/t-fprules rs6000/t-rtems t-rtems rs6000/t-ppccomm"
+ 	;;
+-powerpc-*-linux* | powerpc64-*-linux*)
++powerpc-*-linux* | powerpc64-*-linux* | powerpc*-*-helenos)
+ 	tm_file="${tm_file} dbxelf.h elfos.h freebsd-spec.h rs6000/sysv4.h"
+ 	extra_options="${extra_options} rs6000/sysv4.opt"
+ 	tmake_file="rs6000/t-fprules rs6000/t-ppcos ${tmake_file} rs6000/t-ppccomm"
+@@ -2079,7 +2110,7 @@
+ 	    powerpc-*-linux*spe* | powerpc-*-linux*paired*)
+ 		maybe_biarch=
+ 		;;
+-	    powerpc64-*-linux*)
++	    powerpc64-*-linux* | powerpc64-*-helenos)
+ 	    	test x$with_cpu != x || cpu_is_64bit=yes
+ 		maybe_biarch=always
+ 		;;
+@@ -2112,6 +2143,11 @@
+ 	if test x${enable_secureplt} = xyes; then
+ 		tm_file="rs6000/secureplt.h ${tm_file}"
+ 	fi
++	# HelenOS
++	case $target in
++	powerpc-*-helenos*) tm_file="$tm_file rs6000/helenos-ppc32.h rs6000/helenos.h" ;;
++	powerpc64-*-helenos*) tm_file="$tm_file rs6000/helenos-ppc64.h rs6000/helenos64.h" ;;
++	esac
+ 	;;
+ powerpc-wrs-vxworks|powerpc-wrs-vxworksae)
+ 	tm_file="${tm_file} elfos.h freebsd-spec.h rs6000/sysv4.h"
+@@ -2496,10 +2532,14 @@
+ 	extra_options="${extra_options}"
+ 	tmake_file="${tmake_file} sparc/t-sparc sparc/t-rtems-64 t-rtems"
+ 	;;
+-sparc64-*-linux*)
++sparc64-*-linux* | sparc64-*-helenos)
+ 	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h sparc/sysv4.h gnu-user.h linux.h glibc-stdint.h sparc/default-64.h sparc/linux64.h sparc/tso.h"
+ 	extra_options="${extra_options} sparc/long-double-switch.opt"
+ 	tmake_file="${tmake_file} sparc/t-sparc sparc/t-linux64"
++	# HelenOS
++	case $target in
++	*-helenos*) tm_file="$tm_file sparc/helenos-sparc64.h sparc/helenos64.h" ;;
++	esac
+ 	;;
+ sparc64-*-freebsd*|ultrasparc-*-freebsd*)
+ 	tm_file="${tm_file} ${fbsd_tm_file} dbxelf.h elfos.h sparc/sysv4.h sparc/freebsd.h"
+diff -ud -Nrud gcc-4.8.1/libgcc/config.host gcc-4.8.1/libgcc/config.host
+--- gcc-4.8.1/libgcc/config.host	2013-02-04 20:06:20.000000000 +0100
++++ gcc-4.8.1/libgcc/config.host	2013-07-12 09:10:20.120208557 +0200
+@@ -195,7 +195,7 @@
+       ;;
+   esac
+   ;;
+-*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
++*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu | *-*-helenos)
+   tmake_file="$tmake_file t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver t-linux"
+   extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
+   ;;
+@@ -322,7 +322,7 @@
+ arm*-*-netbsdelf*)
+ 	tmake_file="$tmake_file arm/t-arm arm/t-netbsd t-slibgcc-gld-nover"
+ 	;;
+-arm*-*-linux*)			# ARM GNU/Linux with ELF
++arm*-*-linux* | arm*-helenos-gnueabi)			# ARM GNU/Linux with ELF
+ 	tmake_file="${tmake_file} arm/t-arm t-fixedpoint-gnu-prefix"
+ 	tmake_file="${tmake_file} arm/t-elf arm/t-bpabi arm/t-linux-eabi t-slibgcc-libgcc"
+ 	tm_file="$tm_file arm/bpabi-lib.h"
+@@ -518,7 +518,7 @@
+ 	;;
+ x86_64-*-openbsd*)
+ 	;;
+-i[34567]86-*-linux*)
++i[34567]86-*-linux* | i[34567]86-*-helenos)
+ 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
+ 	tmake_file="${tmake_file} i386/t-crtpc i386/t-crtfm i386/t-crtstuff t-dfprules"
+ 	md_unwind_header=i386/linux-unwind.h
+@@ -527,7 +527,7 @@
+ 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
+ 	tmake_file="${tmake_file} i386/t-crtpc i386/t-crtfm i386/t-crtstuff t-dfprules"
+ 	;;
+-x86_64-*-linux*)
++x86_64-*-linux* | x86_64-*-helenos)
+ 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
+ 	tmake_file="${tmake_file} i386/t-crtpc i386/t-crtfm i386/t-crtstuff t-dfprules"
+ 	md_unwind_header=i386/linux-unwind.h
+@@ -631,7 +631,7 @@
+ 	extra_parts="$extra_parts crtfastmath.o"
+ 	tmake_file="$tmake_file ia64/t-ia64 ia64/t-ia64-elf ia64/t-eh-ia64 t-crtfm"
+ 	;;
+-ia64*-*-linux*)
++ia64*-*-linux* | ia64-*-helenos)
+ 	# Don't use crtbeginT.o from *-*-linux* default.
+ 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
+ 	tmake_file="$tmake_file ia64/t-ia64 ia64/t-ia64-elf t-crtfm t-softfp-tf ia64/t-softfp t-softfp ia64/t-softfp-compat ia64/t-eh-ia64 t-libunwind ia64/t-linux"
+@@ -1038,7 +1038,7 @@
+ 	tmake_file="$tmake_file t-crtfm"
+ 	extra_parts="$extra_parts crtfastmath.o"
+ 	;;
+-sparc64-*-linux*)		# 64-bit SPARC's running GNU/Linux
++sparc64-*-linux* | sparc64-*-helenos)	# 64-bit SPARC's running GNU/Linux
+ 	extra_parts="$extra_parts crtfastmath.o"
+ 	tmake_file="${tmake_file} t-crtfm sparc/t-linux"
+ 	if test "${host_address}" = 64; then

@@ -54,8 +54,11 @@ EOF
 
 BINUTILS_VERSION="2.23.1"
 BINUTILS_RELEASE=""
+BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
 GCC_VERSION="4.8.1"
+GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="7.6"
+GDB_PATCHES="toolchain-gdb-7.6.patch"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
@@ -63,6 +66,7 @@ GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.bz2"
 
 REAL_INSTALL=true
+USE_HELENOS_TARGET=false
 INSTALL_DIR="${BASEDIR}/PKG"
 
 #
@@ -137,7 +141,7 @@ show_usage() {
 	echo "Cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 [--no-install] <platform>"
+	echo " $0 [--no-install] [--helenos-target] <platform>"
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
@@ -157,11 +161,18 @@ show_usage() {
 	echo "The toolchain is installed into directory specified by the"
 	echo "CROSS_PREFIX environment variable. If the variable is not"
 	echo "defined, /usr/local/cross/ is used as default."
+	echo
 	echo "If --no-install is present, the toolchain still uses the"
 	echo "CROSS_PREFIX as the target directory but the installation"
 	echo "copies the files into PKG/ subdirectory without affecting"
 	echo "the actual root file system. That is only useful if you do"
 	echo "not want to run the script under the super user."
+	echo
+	echo "The --helenos-target will build HelenOS-specific toolchain"
+	echo "(i.e. it will use *-helenos-* triplet instead of *-linux-*)."
+	echo "This toolchain is installed into /usr/local/cross-helenos by"
+	echo "default. The settings can be changed by setting environment"
+	echo "variable CROSS_HELENOS_PREFIX."
 	echo
 	
 	exit 3
@@ -272,6 +283,18 @@ unpack_tarball() {
 	check_error $? "Error unpacking ${DESC}."
 }
 
+patch_sources() {
+	PATCH_FILE="$1"
+	PATCH_STRIP="$2"
+	DESC="$3"
+	
+	change_title "Patching ${DESC}"
+	echo " >>> Patching ${DESC} with ${PATCH_FILE}"
+	
+	patch -t "-p${PATCH_STRIP}" <"$PATCH_FILE"
+	check_error $? "Error patching ${DESC}."
+}
+
 prepare() {
 	show_dependencies
 	check_dependecies
@@ -289,34 +312,44 @@ prepare() {
 set_target_from_platform() {
 	case "$1" in
 		"amd64")
-			TARGET="amd64-linux-gnu"
+			LINUX_TARGET="amd64-linux-gnu"
+			HELENOS_TARGET="amd64-helenos"
 			;;
 		"arm32")
-			TARGET="arm-linux-gnueabi"
+			LINUX_TARGET="arm-linux-gnueabi"
+			HELENOS_TARGET="arm-helenos-gnueabi"
 			;;
 		"ia32")
-			TARGET="i686-pc-linux-gnu"
+			LINUX_TARGET="i686-pc-linux-gnu"
+			HELENOS_TARGET="i686-pc-helenos"
 			;;
 		"ia64")
-			TARGET="ia64-pc-linux-gnu"
+			LINUX_TARGET="ia64-pc-linux-gnu"
+			HELENOS_TARGET="ia64-pc-helenos"
 			;;
 		"mips32")
-			TARGET="mipsel-linux-gnu"
+			LINUX_TARGET="mipsel-linux-gnu"
+			HELENOS_TARGET="mipsel-helenos"
 			;;
 		"mips32eb")
-			TARGET="mips-linux-gnu"
+			LINUX_TARGET="mips-linux-gnu"
+			HELENOS_TARGET="mips-helenos"
 			;;
 		"mips64")
-			TARGET="mips64el-linux-gnu"
+			LINUX_TARGET="mips64el-linux-gnu"
+			HELENOS_TARGET="mips64el-helenos"
 			;;
 		"ppc32")
-			TARGET="ppc-linux-gnu"
+			LINUX_TARGET="ppc-linux-gnu"
+			HELENOS_TARGET="ppc-helenos"
 			;;
 		"ppc64")
-			TARGET="ppc64-linux-gnu"
+			LINUX_TARGET="ppc64-linux-gnu"
+			HELENOS_TARGET="ppc64-helenos"
 			;;
 		"sparc64")
-			TARGET="sparc64-linux-gnu"
+			LINUX_TARGET="sparc64-linux-gnu"
+			HELENOS_TARGET="sparc64-helenos"
 			;;
 		*)
 			check_error 1 "No target known for $1."
@@ -326,8 +359,13 @@ set_target_from_platform() {
 
 build_target() {
 	PLATFORM="$1"
-	# This sets the TARGET variable
+	# This sets the *_TARGET variables
 	set_target_from_platform "$PLATFORM"
+	if $USE_HELENOS_TARGET; then
+		TARGET="$HELENOS_TARGET"
+	else
+		TARGET="$LINUX_TARGET"
+	fi
 	
 	WORKDIR="${BASEDIR}/${PLATFORM}"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
@@ -338,8 +376,15 @@ build_target() {
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
 	fi
+	if [ -z "${CROSS_HELENOS_PREFIX}" ] ; then
+		CROSS_HELENOS_PREFIX="/usr/local/cross-helenos"
+	fi
 	
-	PREFIX="${CROSS_PREFIX}/${PLATFORM}"
+	if $USE_HELENOS_TARGET; then
+		PREFIX="${CROSS_HELENOS_PREFIX}/${PLATFORM}"
+	else
+		PREFIX="${CROSS_PREFIX}/${PLATFORM}"
+	fi
 	
 	echo ">>> Downloading tarballs"
 	source_check "${BASEDIR}/${BINUTILS}"
@@ -361,6 +406,16 @@ build_target() {
 	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
+	echo ">>> Applying patches"
+	for p in $BINUTILS_PATCHES; do
+		patch_sources "${BASEDIR}/${p}" 0 "binutils"
+	done
+	for p in $GCC_PATCHES; do
+		patch_sources "${BASEDIR}/${p}" 0 "GCC"
+	done
+	for p in $GDB_PATCHES; do
+		patch_sources "${BASEDIR}/${p}" 0 "GDB"
+	done
 	
 	echo ">>> Processing binutils (${PLATFORM})"
 	cd "${BINUTILSDIR}"
@@ -446,10 +501,21 @@ build_target() {
 	echo ">>> Cross-compiler for ${TARGET} installed."
 }
 
-if [ "$1" = "--no-install" ]; then
-	REAL_INSTALL=false
-	shift
-fi
+while [ "$#" -gt 1 ]; do
+	case "$1" in
+		--no-install)
+			REAL_INSTALL=false
+			shift
+			;;
+		--helenos-target)
+			USE_HELENOS_TARGET=true
+			shift
+			;;
+		*)
+			show_usage
+			;;
+	esac
+done
 
 if [ "$#" -lt "1" ]; then
 	show_usage
