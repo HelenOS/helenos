@@ -39,6 +39,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <inet/addr.h>
 #include "dns_std.h"
 #include "dns_type.h"
 
@@ -48,6 +49,8 @@ extern dns_message_t *dns_message_new(void);
 extern void dns_message_destroy(dns_message_t *);
 extern int dns_name_decode(dns_pdu_t *, size_t, char **, size_t *);
 extern uint32_t dns_uint32_t_decode(uint8_t *, size_t);
+extern void dns_addr128_t_decode(uint8_t *, size_t, addr128_t);
+
 
 #endif
 

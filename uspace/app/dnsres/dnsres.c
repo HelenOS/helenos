@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
 	hname = argv[1];
 
-	rc = dnsr_name2host(hname, &hinfo);
+	rc = dnsr_name2host(hname, &hinfo, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving '%s'.\n", argv[1]);
 		return 1;

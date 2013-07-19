@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
 		if (rc != EOK) {
 			/* Try interpreting as a host name */
-			rc = dnsr_name2host(argv[1], &hinfo);
+			rc = dnsr_name2host(argv[1], &hinfo, AF_INET);
 			if (rc != EOK) {
 				printf("Error resolving host '%s'.\n", argv[1]);
 				return rc;
