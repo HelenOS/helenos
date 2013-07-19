@@ -286,9 +286,48 @@ prepare() {
 	download_fetch "${GDB_SOURCE}" "${GDB}" "fda57170e4d11cdde74259ca575412a8"
 }
 
+set_target_from_platform() {
+	case "$1" in
+		"amd64")
+			TARGET="amd64-linux-gnu"
+			;;
+		"arm32")
+			TARGET="arm-linux-gnueabi"
+			;;
+		"ia32")
+			TARGET="i686-pc-linux-gnu"
+			;;
+		"ia64")
+			TARGET="ia64-pc-linux-gnu"
+			;;
+		"mips32")
+			TARGET="mipsel-linux-gnu"
+			;;
+		"mips32eb")
+			TARGET="mips-linux-gnu"
+			;;
+		"mips64")
+			TARGET="mips64el-linux-gnu"
+			;;
+		"ppc32")
+			TARGET="ppc-linux-gnu"
+			;;
+		"ppc64")
+			TARGET="ppc64-linux-gnu"
+			;;
+		"sparc64")
+			TARGET="sparc64-linux-gnu"
+			;;
+		*)
+			check_error 1 "No target known for $1."
+			;;
+	esac
+}
+
 build_target() {
 	PLATFORM="$1"
-	TARGET="$2"
+	# This sets the TARGET variable
+	set_target_from_platform "$PLATFORM"
 	
 	WORKDIR="${BASEDIR}/${PLATFORM}"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
@@ -417,93 +456,57 @@ if [ "$#" -lt "1" ]; then
 fi
 
 case "$1" in
-	"amd64")
+	amd64|arm32|ia32|ia64|mips32|mips32eb|mips64|ppc32|ppc64|sparc64)
 		prepare
-		build_target "amd64" "amd64-linux-gnu"
-		;;
-	"arm32")
-		prepare
-		build_target "arm32" "arm-linux-gnueabi"
-		;;
-	"ia32")
-		prepare
-		build_target "ia32" "i686-pc-linux-gnu"
-		;;
-	"ia64")
-		prepare
-		build_target "ia64" "ia64-pc-linux-gnu"
-		;;
-	"mips32")
-		prepare
-		build_target "mips32" "mipsel-linux-gnu"
-		;;
-	"mips32eb")
-		prepare
-		build_target "mips32eb" "mips-linux-gnu"
-		;;
-	"mips64")
-		prepare
-		build_target "mips64" "mips64el-linux-gnu"
-		;;
-	"ppc32")
-		prepare
-		build_target "ppc32" "ppc-linux-gnu"
-		;;
-	"ppc64")
-		prepare
-		build_target "ppc64" "ppc64-linux-gnu"
-		;;
-	"sparc64")
-		prepare
-		build_target "sparc64" "sparc64-linux-gnu"
+		build_target "$1"
 		;;
 	"all")
 		prepare
-		build_target "amd64" "amd64-linux-gnu"
-		build_target "arm32" "arm-linux-gnueabi"
-		build_target "ia32" "i686-pc-linux-gnu"
-		build_target "ia64" "ia64-pc-linux-gnu"
-		build_target "mips32" "mipsel-linux-gnu"
-		build_target "mips32eb" "mips-linux-gnu"
-		build_target "mips64" "mips64el-linux-gnu"
-		build_target "ppc32" "ppc-linux-gnu"
-		build_target "ppc64" "ppc64-linux-gnu"
-		build_target "sparc64" "sparc64-linux-gnu"
+		build_target "amd64"
+		build_target "arm32"
+		build_target "ia32"
+		build_target "ia64"
+		build_target "mips32"
+		build_target "mips32eb"
+		build_target "mips64"
+		build_target "ppc32"
+		build_target "ppc64"
+		build_target "sparc64"
 		;;
 	"parallel")
 		prepare
-		build_target "amd64" "amd64-linux-gnu" &
-		build_target "arm32" "arm-linux-gnueabi" &
-		build_target "ia32" "i686-pc-linux-gnu" &
-		build_target "ia64" "ia64-pc-linux-gnu" &
-		build_target "mips32" "mipsel-linux-gnu" &
-		build_target "mips32eb" "mips-linux-gnu" &
-		build_target "mips64" "mips64el-linux-gnu" &
-		build_target "ppc32" "ppc-linux-gnu" &
-		build_target "ppc64" "ppc64-linux-gnu" &
-		build_target "sparc64" "sparc64-linux-gnu" &
+		build_target "amd64" &
+		build_target "arm32" &
+		build_target "ia32" &
+		build_target "ia64" &
+		build_target "mips32" &
+		build_target "mips32eb" &
+		build_target "mips64" &
+		build_target "ppc32" &
+		build_target "ppc64" &
+		build_target "sparc64" &
 		wait
 		;;
 	"2-way")
 		prepare
-		build_target "amd64" "amd64-linux-gnu" &
-		build_target "arm32" "arm-linux-gnueabi" &
+		build_target "amd64" &
+		build_target "arm32" &
 		wait
 		
-		build_target "ia32" "i686-pc-linux-gnu" &
-		build_target "ia64" "ia64-pc-linux-gnu" &
+		build_target "ia32" &
+		build_target "ia64" &
 		wait
 		
-		build_target "mips32" "mipsel-linux-gnu" &
-		build_target "mips32eb" "mips-linux-gnu" &
+		build_target "mips32" &
+		build_target "mips32eb" &
 		wait
 		
-		build_target "mips64" "mips64el-linux-gnu" &
-		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "mips64" &
+		build_target "ppc32" &
 		wait
 		
-		build_target "ppc64" "ppc64-linux-gnu" &
-		build_target "sparc64" "sparc64-linux-gnu" &
+		build_target "ppc64" &
+		build_target "sparc64" &
 		wait
 		;;
 	*)
