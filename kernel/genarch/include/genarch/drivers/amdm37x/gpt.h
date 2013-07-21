@@ -217,7 +217,7 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	/* Reset the timer */
 	timer->regs->tiocp_cfg |= AMDM37x_GPT_TIOCP_CFG_SOFTRESET_FLAG;
 
-	while (timer->regs->tistat & AMDM37x_GPT_TISTAT_RESET_DONE_FLAG);
+	while (!(timer->regs->tistat & AMDM37x_GPT_TISTAT_RESET_DONE_FLAG));
 
 	/* Set autoreload */
 	timer->regs->tclr |= AMDM37x_GPT_TCLR_AR_FLAG;
