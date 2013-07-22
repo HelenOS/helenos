@@ -877,7 +877,7 @@ uint64_t fat_free_block_count(service_id_t service_id)
 	fat_tot = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
 	
 	for (fat_no = 0; fat_no < fat_tot; fat_no++) {
-		rc = fat_get_cluster(bs, service_id, FAT1, e0, &e0);
+		rc = fat_get_cluster(bs, service_id, FAT1, fat_no, &e0);
 		if (rc != EOK)
 			return EIO;
 
