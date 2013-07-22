@@ -203,7 +203,7 @@ extern int mbr_is_mbr(mbr_label_t *);
 
 /* Read/Write/Set MBR partitions.
  * NOTE: Writing partitions writes the complete header as well. */
-extern int mbr_read_partitions(mbr_label_t *);
+extern int          mbr_read_partitions(mbr_label_t *);
 extern int          mbr_write_partitions(mbr_label_t *, service_id_t);
 extern mbr_part_t * mbr_alloc_partition(void);
 extern mbr_partitions_t * mbr_alloc_partitions(void);
