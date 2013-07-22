@@ -56,6 +56,7 @@ static int extend_part_array(gpt_partitions_t *);
 static int reduce_part_array(gpt_partitions_t *);
 static long long nearest_larger_int(double a);
 static uint8_t get_byte(const char *);
+static int check_overlap(gpt_part_t * p1, gpt_part_t * p2);
 
 /** Allocate memory for gpt label */
 gpt_label_t * gpt_alloc_label(void)
@@ -289,6 +290,7 @@ fail:
 }
 
 /** Write GPT and partitions to device
+ * Note: also writes the header.
  * @param label        label to write
  * @param dev_handle   device to write the data to
  *
@@ -423,6 +425,7 @@ gpt_part_t * gpt_get_partition_at(gpt_label_t *label, size_t idx)
  *
  * Note: for use with gpt_alloc_partition() only. You will get
  * duplicates with gpt_get_partition().
+ * Note: does not call gpt_free_partition()!
  */
 int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
 {
@@ -431,8 +434,19 @@ int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
 			return ENOMEM;
 	}
 	
+	/*FIXME:
+	 * Check dimensions and stuff! */
+	gpt_part_foreach(label, p) {
+		if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
+			if (check_overlap(partition, p))
+				return EINVAL;
+		}
+	}
+	
 	memcpy(label->parts->part_array + label->parts->fill++,
 	       partition, sizeof(gpt_part_t));
+	
+	
 	
 	return EOK;
 }
@@ -459,10 +473,17 @@ int gpt_remove_partition(gpt_label_t *label, size_t idx)
 	
 	label->parts->fill -= 1;
 	
-	/* FIXME!
+	/* FIXME! HOPEFULLY FIXED.
 	 * We cannot reduce the array so simply. We may have some partitions
-	 * there since we allow blank spots.*/
+	 * there since we allow blank spots. */
+	gpt_part_t * p;
 	if (label->parts->fill < (label->parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
+		for (p = gpt_get_partition_at(label, label->parts->arr_size / 2); 
+		     p < label->parts->part_array + label->parts->arr_size; ++p) {
+				if (gpt_get_part_type(p) != GPT_PTE_UNUSED)
+					return EOK;
+		}
+		
 		if (reduce_part_array(label->parts) == ENOMEM)
 			return ENOMEM;
 	}
@@ -711,6 +732,15 @@ static uint8_t get_byte(const char * c)
 	return val;
 }
 
+static int check_overlap(gpt_part_t * p1, gpt_part_t * p2)
+{
+	if (gpt_get_start_lba(p1) < gpt_get_start_lba(p2) && gpt_get_end_lba(p1) <= gpt_get_start_lba(p2)) {
+		return 0;
+	} else if (gpt_get_start_lba(p1) > gpt_get_start_lba(p2) && gpt_get_end_lba(p2) <= gpt_get_start_lba(p1)) {
+		return 0;
+	}
 
+	return 1;
+}
 
 
