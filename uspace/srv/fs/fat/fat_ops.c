@@ -866,18 +866,18 @@ uint64_t fat_total_block_count(service_id_t service_id)
 uint64_t fat_free_block_count(service_id_t service_id)
 {
 	fat_bs_t *bs;
-	fat_cluster_t e0 = 0;
+	fat_cluster_t e0;
 	uint64_t block_count;
 	int rc;
-	uint32_t fat_no, fat_tot;
+	uint32_t cluster_no, clusters;
 
 	block_count = 0;
 	bs = block_bb_get(service_id);
 	
-	fat_tot = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
+	clusters = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
 	
-	for (fat_no = 0; fat_no < fat_tot; fat_no++) {
-		rc = fat_get_cluster(bs, service_id, FAT1, fat_no, &e0);
+	for (cluster_no = 0; cluster_no < clusters; cluster_no++) {
+		rc = fat_get_cluster(bs, service_id, FAT1, cluster_no, &e0);
 		if (rc != EOK)
 			return EIO;
 
