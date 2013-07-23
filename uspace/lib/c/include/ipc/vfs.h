@@ -81,6 +81,8 @@ typedef enum {
 	VFS_IN_DUP,
 	VFS_IN_WAIT_HANDLE,
 	VFS_IN_MTAB_GET,
+	VFS_IN_WALK,
+	VFS_IN_OPEN2,
 } vfs_in_request_t;
 
 typedef enum {
@@ -166,6 +168,26 @@ typedef enum {
  * client.
  */
 #define L_OPEN			256
+
+/*
+ * Walk flags.
+ */
+enum {
+	/**
+	 * WALK_PARTIAL requests that if the whole path cannot be traversed,
+	 * the walk() operation should return the last visited file, along
+	 * with an indication of how many directories have been traversed.
+	 */
+	//WALK_PARTIAL = (1 << 0),
+	
+	WALK_ALL_FLAGS = 0,
+};
+
+enum {
+	MODE_READ = 1,
+	MODE_WRITE = 2,
+	MODE_APPEND = 4,
+};
 
 #endif
 

@@ -176,7 +176,9 @@ static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 		 * Lost the last reference to a file, need to close it in the
 		 * endpoint FS and drop our reference to the underlying VFS node.
 		 */
-		rc = vfs_file_close_remote(file);
+		if (file->open_read || file->open_write) {
+			rc = vfs_file_close_remote(file);
+		}
 		vfs_node_delref(file->node);
 		free(file);
 	}

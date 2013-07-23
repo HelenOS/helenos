@@ -567,6 +567,140 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, EOK);
 }
 
+void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
+{
+	/*
+	 * Parent is our relative root for file lookup.
+	 * For defined flags, see <ipc/vfs.h>.
+	 */
+	int parentfd = IPC_GET_ARG1(*request);
+	int flags = IPC_GET_ARG2(*request);
+	
+	if ((flags&~WALK_ALL_FLAGS) != 0) {
+		/* Invalid flags. */
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	char *path;
+	int rc = async_data_write_accept((void **)&path, true, 0, 0, 0, NULL);
+	
+	/* Lookup the file structure corresponding to the file descriptor. */
+	vfs_file_t *parent = NULL;
+	vfs_pair_t *parent_node = NULL;
+	// TODO: Client-side root.
+	if (parentfd != -1) {
+		parent = vfs_file_get(parentfd);
+		if (!parent) {
+			free(path);
+			async_answer_0(rid, EBADF);
+			return;
+		}
+		parent_node = (vfs_pair_t *)parent->node;
+	}
+	
+	fibril_rwlock_read_lock(&namespace_rwlock);
+	
+	vfs_lookup_res_t lr;
+	rc = vfs_lookup_internal(path, 0, &lr, parent_node);
+	free(path);
+
+	if (rc != EOK) {
+		fibril_rwlock_read_unlock(&namespace_rwlock);
+		if (parent) {
+			vfs_file_put(parent);
+		}
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	vfs_node_t *node = vfs_node_get(&lr);
+	
+	int fd = vfs_fd_alloc(false);
+	if (fd < 0) {
+		vfs_node_put(node);
+		if (parent) {
+			vfs_file_put(parent);
+		}
+		async_answer_0(rid, fd);
+		return;
+	}
+	
+	vfs_file_t *file = vfs_file_get(fd);
+	assert(file != NULL);
+	
+	file->node = node;
+	if (parent) {
+		file->permissions = parent->permissions;
+	} else {
+		file->permissions = MODE_READ | MODE_WRITE | MODE_APPEND;
+	}
+	file->open_read = false;
+	file->open_write = false;
+	
+	vfs_node_addref(node);
+	vfs_node_put(node);
+	vfs_file_put(file);
+	if (parent) {
+		vfs_file_put(parent);
+	}
+	
+	fibril_rwlock_read_unlock(&namespace_rwlock);
+
+	async_answer_1(rid, EOK, fd);
+}
+
+void vfs_open2(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	int flags = IPC_GET_ARG2(*request);
+
+	if (flags == 0) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		async_answer_0(rid, EBADF);
+		return;
+	}
+	
+	if ((flags & ~file->permissions) != 0) {
+		vfs_file_put(file);
+		async_answer_0(rid, EPERM);
+		return;
+	}
+	
+	file->open_read = (flags & MODE_READ) != 0;
+	file->open_write = (flags & (MODE_WRITE | MODE_APPEND)) != 0;
+	file->append = (flags & MODE_APPEND) != 0;
+	
+	if (!file->open_read && !file->open_write) {
+		vfs_file_put(file);
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	if (file->node->type == VFS_NODE_DIRECTORY && file->open_write) {
+		file->open_read = file->open_write = false;
+		vfs_file_put(file);
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	int rc = vfs_open_node_remote(file->node);
+	if (rc != EOK) {
+		file->open_read = file->open_write = false;
+		vfs_file_put(file);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	vfs_file_put(file);
+	async_answer_0(rid, EOK);
+}
+
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
 	/*
@@ -668,8 +802,21 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	vfs_file_t *file = vfs_file_get(fd);
-	assert(file);
+	
+	/* There is a potential race with another fibril of a malicious client. */
+	if (!file) {
+		vfs_node_put(node);
+		async_answer_0(rid, EBUSY);
+		return;
+	}
+	
 	file->node = node;
+	if (oflag & O_RDONLY)
+		file->open_read = true;
+	if (oflag & O_WRONLY)
+		file->open_write = true;
+	if (oflag & O_RDWR)
+		file->open_read = file->open_write = true;
 	if (oflag & O_APPEND)
 		file->append = true;
 	
@@ -757,6 +904,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * the same open file at a time.
 	 */
 	fibril_mutex_lock(&file->lock);
+	
+	if ((read && !file->open_read) || (!read && !file->open_write)) {
+		fibril_mutex_unlock(&file->lock);
+		async_answer_0(rid, EINVAL);
+		return;
+	}
 	
 	vfs_info_t *fs_info = fs_handle_to_info(file->node->fs_handle);
 	assert(fs_info);

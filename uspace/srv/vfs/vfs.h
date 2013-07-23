@@ -137,6 +137,10 @@ typedef struct {
 	/** Number of file handles referencing this file. */
 	unsigned refcnt;
 
+	int permissions;
+	bool open_read;
+	bool open_write;
+
 	/** Append on write. */
 	bool append;
 
@@ -221,6 +225,10 @@ extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
 extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
 extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
+
+extern void vfs_walk(ipc_callid_t, ipc_call_t *);
+extern void vfs_create(ipc_callid_t, ipc_call_t *);
+extern void vfs_open2(ipc_callid_t, ipc_call_t *);
 
 #endif
 
