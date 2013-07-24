@@ -945,7 +945,7 @@ uint64_t exfat_free_block_count(service_id_t service_id)
 	block_count = exfat_total_block_count(service_id);
 
 	bs = block_bb_get(service_id);
-
+	node = NULL;
 	rc = exfat_bitmap_get(&node, service_id);
 	if (rc != EOK)
 		goto exit;
