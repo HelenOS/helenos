@@ -394,8 +394,13 @@ void vfs_pass_handle(task_id_t donor_id, task_id_t acceptor_id, int donor_fd)
 	 * Inherit attributes from the donor.
 	 */
 	acceptor_file->node = donor_file->node;
-	acceptor_file->append = donor_file->append;
+	acceptor_file->permissions = donor_file->permissions;
+	
+	// TODO: The file should not inherit its open status, but clients depend on this.
 	acceptor_file->pos = donor_file->pos;
+	acceptor_file->append = donor_file->append;
+	acceptor_file->open_read = donor_file->open_read;
+	acceptor_file->open_write = donor_file->open_write;
 
 out:
 	fibril_mutex_lock(&acceptor_data->lock);
