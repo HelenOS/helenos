@@ -91,6 +91,45 @@ void vfs_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
+int _vfs_walk(int parent, const char *path, int flags)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	// TODO: assume this is done at a higher level.
+	char *precanon = str_dup(path);
+	size_t canon_size;
+	char *canon = canonify(precanon, &canon_size);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(exch, VFS_IN_WALK, parent, flags, &answer);
+	sysarg_t rc = async_data_write_start(exch, canon, canon_size);
+	
+	free(precanon);
+	vfs_exchange_end(exch);
+		
+	sysarg_t rc_orig;
+	async_wait_for(req, &rc_orig);
+
+	if (rc_orig != EOK) {
+		return (int) rc_orig;
+	}
+		
+	if (rc != EOK) {
+		return (int) rc;
+	}
+	
+	return (int) IPC_GET_ARG1(answer);
+}
+
+int _vfs_open(int fildes, int mode)
+{
+	async_exch_t *exch = vfs_exchange_begin();
+	sysarg_t rc = async_req_2_0(exch, VFS_IN_OPEN2, fildes, mode);
+	vfs_exchange_end(exch);
+	
+	return (int) rc;
+}
+
 char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;

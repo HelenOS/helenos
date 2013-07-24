@@ -567,6 +567,43 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, EOK);
 }
 
+static inline bool walk_flags_valid(int flags)
+{
+	if ((flags&~WALK_ALL_FLAGS) != 0) {
+		return false;
+	}
+	if ((flags&WALK_MAY_CREATE) && (flags&WALK_MUST_CREATE)) {
+		return false;
+	}
+	if ((flags&WALK_REGULAR) && (flags&WALK_DIRECTORY)) {
+		return false;
+	}
+	if ((flags&WALK_MAY_CREATE) || (flags&WALK_MUST_CREATE)) {
+		if (!(flags&WALK_DIRECTORY) && !(flags&WALK_REGULAR)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+static inline int walk_lookup_flags(int flags)
+{
+	int lflags = 0;
+	if (flags&WALK_MAY_CREATE || flags&WALK_MUST_CREATE) {
+		lflags |= L_CREATE;
+	}
+	if (flags&WALK_MUST_CREATE) {
+		lflags |= L_EXCLUSIVE;
+	}
+	if (flags&WALK_REGULAR) {
+		lflags |= L_FILE;
+	}
+	if (flags&WALK_DIRECTORY) {
+		lflags |= L_DIRECTORY;
+	}
+	return lflags;
+}
+
 void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 {
 	/*
@@ -576,8 +613,7 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 	int parentfd = IPC_GET_ARG1(*request);
 	int flags = IPC_GET_ARG2(*request);
 	
-	if ((flags&~WALK_ALL_FLAGS) != 0) {
-		/* Invalid flags. */
+	if (!walk_flags_valid(flags)) {
 		async_answer_0(rid, EINVAL);
 		return;
 	}
@@ -602,7 +638,7 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 	fibril_rwlock_read_lock(&namespace_rwlock);
 	
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, 0, &lr, parent_node);
+	rc = vfs_lookup_internal(path, walk_lookup_flags(flags), &lr, parent_node);
 	free(path);
 
 	if (rc != EOK) {

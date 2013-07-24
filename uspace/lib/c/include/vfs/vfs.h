@@ -61,6 +61,9 @@ extern int get_mtab_list(list_t *mtab_list);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
 
+extern int _vfs_walk(int parent, const char *path, int flags);
+extern int _vfs_open(int file, int mode);
+
 #endif
 
 /** @}
