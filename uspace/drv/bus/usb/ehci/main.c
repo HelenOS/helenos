@@ -32,12 +32,10 @@
 /** @file
  * Main routines of EHCI driver.
  */
-
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <str_error.h>
 
 #include <usb_iface.h>
@@ -71,76 +69,56 @@ static ddf_dev_ops_t hc_ops = {
  */
 static int ehci_dev_add(ddf_dev_t *device)
 {
-	ddf_fun_t *hc_fun = NULL;
-	bool fun_bound = false;
-
 	assert(device);
+#define CHECK_RET_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+}
 
 	uintptr_t reg_base = 0;
 	size_t reg_size = 0;
 	int irq = 0;
 
-	int rc = get_my_registers(device, &reg_base, &reg_size, &irq);
-	if (rc != EOK) {
-		usb_log_error("Failed to get memory addresses for %" PRIun
-		    ": %s.\n", ddf_dev_get_handle(device), str_error(rc));
-		goto error;
-	}
-
+	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
+	CHECK_RET_RETURN(ret,
+	    "Failed to get memory addresses for %" PRIun ": %s.\n",
+	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
 	    reg_base, reg_size, irq);
 
-	rc = disable_legacy(device, reg_base, reg_size);
-	if (rc != EOK) {
-		usb_log_error("Failed to disable legacy USB: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
+	ret = disable_legacy(device, reg_base, reg_size);
+	CHECK_RET_RETURN(ret,
+	    "Failed to disable legacy USB: %s.\n", str_error(ret));
 
-	hc_fun = ddf_fun_create(device, fun_exposed, "ehci_hc");
+	ddf_fun_t *hc_fun = ddf_fun_create(device, fun_exposed, "ehci_hc");
 	if (hc_fun == NULL) {
 		usb_log_error("Failed to create EHCI function.\n");
-		rc = ENOMEM;
-		goto error;
+		return ENOMEM;
 	}
-
 	hcd_t *ehci_hc = ddf_fun_data_alloc(hc_fun, sizeof(hcd_t));
 	if (ehci_hc == NULL) {
 		usb_log_error("Failed to alloc generic HC driver.\n");
-		rc = ENOMEM;
-		goto error;
+		return ENOMEM;
 	}
-
 	/* High Speed, no bandwidth */
 	hcd_init(ehci_hc, USB_SPEED_HIGH, 0, NULL);
 	ddf_fun_set_ops(hc_fun,  &hc_ops);
 
-	rc = ddf_fun_bind(hc_fun);
-	if (rc != EOK) {
-		usb_log_error("Failed to bind EHCI function: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
-
-	fun_bound = true;
-
-	rc = ddf_fun_add_to_category(hc_fun, USB_HC_CATEGORY);
-	if (rc != EOK) {
-		usb_log_error("Failed to add EHCI to HC class: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
+	ret = ddf_fun_bind(hc_fun);
+	CHECK_RET_RETURN(ret,
+	    "Failed to bind EHCI function: %s.\n",
+	    str_error(ret));
+	ret = ddf_fun_add_to_category(hc_fun, USB_HC_CATEGORY);
+	CHECK_RET_RETURN(ret,
+	    "Failed to add EHCI to HC class: %s.\n",
+	    str_error(ret));
 
 	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 
 	return EOK;
-error:
-	if (fun_bound)
-		ddf_fun_unbind(hc_fun);
-	if (hc_fun != NULL)
-		ddf_fun_destroy(hc_fun);
-	return rc;
+#undef CHECK_RET_RETURN
 }
 
 /** Initializes global driver structures (NONE).

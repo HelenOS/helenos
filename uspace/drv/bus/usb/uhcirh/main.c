@@ -92,34 +92,32 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 	uintptr_t io_regs = 0;
 	size_t io_size = 0;
 	uhci_root_hub_t *rh = NULL;
-	int rc;
+	int ret = EOK;
 
-	rc = hc_get_my_registers(device, &io_regs, &io_size);
-	if (rc != EOK) {
-		usb_log_error( "Failed to get registers from HC: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
+#define CHECK_RET_FREE_RH_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+} else (void)0
 
+	ret = hc_get_my_registers(device, &io_regs, &io_size);
+	CHECK_RET_FREE_RH_RETURN(ret,
+	    "Failed to get registers from HC: %s.\n", str_error(ret));
 	usb_log_debug("I/O regs at %p (size %zuB).\n",
 	    (void *) io_regs, io_size);
 
 	rh = ddf_dev_data_alloc(device, sizeof(uhci_root_hub_t));
-	if (rh == NULL) {
-		usb_log_error("Failed to allocate rh driver instance.\n");
-		return ENOMEM;
-	}
+	ret = (rh == NULL) ? ENOMEM : EOK;
+	CHECK_RET_FREE_RH_RETURN(ret,
+	    "Failed to allocate rh driver instance.\n");
 
-	rc = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
-	if (rc != EOK) {
-		usb_log_error("Failed(%d) to initialize rh driver instance: "
-		    "%s.\n", rc, str_error(rc));
-		return rc;
-	}
+	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
+	CHECK_RET_FREE_RH_RETURN(ret,
+	    "Failed(%d) to initialize rh driver instance: %s.\n",
+	    ret, str_error(ret));
 
 	usb_log_info("Controlling root hub '%s' (%" PRIun ").\n",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
-
 	return EOK;
 }
 

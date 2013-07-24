@@ -142,10 +142,6 @@ static ddf_dev_ops_t rh_ops = {
  */
 int device_setup_ohci(ddf_dev_t *device)
 {
-	bool ih_registered = false;
-	bool hc_inited = false;
-	int rc;
-
 	if (device == NULL)
 		return EBADMEM;
 
@@ -155,106 +151,103 @@ int device_setup_ohci(ddf_dev_t *device)
 		return ENOMEM;
 	}
 
-	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci_hc");
-	if (instance->hc_fun == NULL) {
-		usb_log_error("Failed to create OHCI HC function: %s.\n",
-		    str_error(ENOMEM));
-		rc = ENOMEM;
-		goto error;
-	}
+#define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
+if (ret != EOK) { \
+	if (instance->hc_fun) { \
+		ddf_fun_destroy(instance->hc_fun); \
+	} \
+	if (instance->rh_fun) { \
+		ddf_fun_destroy(instance->rh_fun); \
+	} \
+	usb_log_error(message); \
+	return ret; \
+} else (void)0
 
+	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci_hc");
+	int ret = instance->hc_fun ? EOK : ENOMEM;
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to create OHCI HC function: %s.\n", str_error(ret));
 	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
 	ddf_fun_data_implant(instance->hc_fun, &instance->hc);
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci_rh");
-	if (instance->rh_fun == NULL) {
-		usb_log_error("Failed to create OHCI RH function: %s.\n",
-		    str_error(ENOMEM));
-		rc = ENOMEM;
-		goto error;
-	}
-
+	ret = instance->rh_fun ? EOK : ENOMEM;
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to create OHCI RH function: %s.\n", str_error(ret));
 	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
 
 	uintptr_t reg_base = 0;
 	size_t reg_size = 0;
 	int irq = 0;
 
-	rc = get_my_registers(device, &reg_base, &reg_size, &irq);
-	if (rc != EOK) {
-		usb_log_error("Failed to get register memory addresses "
-		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
-		    str_error(rc));
-		goto error;
-	}
-
+	ret = get_my_registers(device, &reg_base, &reg_size, &irq);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to get register memory addresses for %" PRIun ": %s.\n",
+	    ddf_dev_get_handle(device), str_error(ret));
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    (void *) reg_base, reg_size, irq);
 
-	rc = hc_register_irq_handler(device, reg_base, reg_size, irq, irq_handler);
-	if (rc != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
+	const size_t ranges_count = hc_irq_pio_range_count();
+	const size_t cmds_count = hc_irq_cmd_count();
+	irq_pio_range_t irq_ranges[ranges_count];
+	irq_cmd_t irq_cmds[cmds_count];
+	irq_code_t irq_code = {
+		.rangecount = ranges_count,
+		.ranges = irq_ranges,
+		.cmdcount = cmds_count,
+		.cmds = irq_cmds
+	};
 
-	ih_registered = true;
+	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), reg_base, reg_size);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to generate IRQ code: %s.\n", str_error(ret));
+
+
+	/* Register handler to avoid interrupt lockup */
+	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to register interrupt handler: %s.\n", str_error(ret));
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
-	rc = enable_interrupts(device);
-	if (rc != EOK) {
+	ret = enable_interrupts(device);
+	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling\n", str_error(rc));
+		    " Falling back to polling\n", str_error(ret));
 		/* We don't need that handler */
 		unregister_interrupt_handler(device, irq);
-		ih_registered = false;
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
 
-	rc = hc_init(&instance->hc, reg_base, reg_size, interrupts);
-	if (rc != EOK) {
-		usb_log_error("Failed to init ohci_hcd: %s.\n", str_error(rc));
-		goto error;
-	}
+	ret = hc_init(&instance->hc, reg_base, reg_size, interrupts);
+	CHECK_RET_DEST_FREE_RETURN(ret,
+	    "Failed to init ohci_hcd: %s.\n", str_error(ret));
 
-	hc_inited = true;
+#define CHECK_RET_FINI_RETURN(ret, message...) \
+if (ret != EOK) { \
+	hc_fini(&instance->hc); \
+	unregister_interrupt_handler(device, irq); \
+	CHECK_RET_DEST_FREE_RETURN(ret, message); \
+} else (void)0
 
-	rc = ddf_fun_bind(instance->hc_fun);
-	if (rc != EOK) {
-		usb_log_error("Failed to bind OHCI device function: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
 
-	rc = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	if (rc != EOK) {
-		usb_log_error("Failed to add OHCI to HC category: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
+	ret = ddf_fun_bind(instance->hc_fun);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed to bind OHCI device function: %s.\n", str_error(ret));
 
-	rc = hc_register_hub(&instance->hc, instance->rh_fun);
-	if (rc != EOK) {
-		usb_log_error("Failed to register OHCI root hub: %s.\n",
-		    str_error(rc));
-		goto error;
-	}
+	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed to add OHCI to HC class: %s.\n", str_error(ret));
 
-	return EOK;
+	ret = hc_register_hub(&instance->hc, instance->rh_fun);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
+	return ret;
 
-error:
-	if (hc_inited)
-		hc_fini(&instance->hc);
-	if (ih_registered)
-		unregister_interrupt_handler(device, irq);
-	if (instance->hc_fun != NULL)
-		ddf_fun_destroy(instance->hc_fun);
-	if (instance->rh_fun != NULL)
-		ddf_fun_destroy(instance->rh_fun);
-	return rc;
+#undef CHECK_RET_FINI_RETURN
 }
 /**
  * @}

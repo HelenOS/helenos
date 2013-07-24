@@ -35,7 +35,6 @@
 #ifndef DRV_UHCI_HC_H
 #define DRV_UHCI_HC_H
 
-#include <ddf/interrupt.h>
 #include <fibril.h>
 #include <usb/host/hcd.h>
 
@@ -119,7 +118,8 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_register_irq_handler(ddf_dev_t *, uintptr_t, size_t, int, interrupt_handler_t);
+size_t hc_irq_pio_range_count(void);
+size_t hc_irq_cmd_count(void);
 int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t, uintptr_t,
     size_t);
 void hc_interrupt(hc_t *instance, uint16_t status);
