@@ -328,6 +328,13 @@ int unmount(const char *mp)
 
 static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 {
+	// FIXME: Some applications call this incorrectly.
+	if ((oflag & (O_RDONLY|O_WRONLY|O_RDWR)) == 0) {
+		oflag |= O_RDWR;
+	}
+
+	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
+	
 	async_exch_t *exch = vfs_exchange_begin();
 	
 	ipc_call_t answer;

@@ -227,7 +227,6 @@ extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
 extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
 
 extern void vfs_walk(ipc_callid_t, ipc_call_t *);
-extern void vfs_create(ipc_callid_t, ipc_call_t *);
 extern void vfs_open2(ipc_callid_t, ipc_call_t *);
 
 #endif

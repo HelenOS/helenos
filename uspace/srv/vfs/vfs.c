@@ -88,7 +88,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			vfs_walk(callid, &call);
 			break;
 		case VFS_IN_OPEN2:
-			vfs_open(callid, &call);
+			vfs_open2(callid, &call);
 			break;
 		case VFS_IN_OPEN:
 			vfs_open(callid, &call);

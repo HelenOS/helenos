@@ -766,6 +766,11 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
+	if ((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) != 1) {
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+	
 	if (oflag & O_CREAT)
 		lflag |= L_CREATE;
 	if (oflag & O_EXCL)
@@ -839,12 +844,8 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 	vfs_file_t *file = vfs_file_get(fd);
 	
-	/* There is a potential race with another fibril of a malicious client. */
-	if (!file) {
-		vfs_node_put(node);
-		async_answer_0(rid, EBUSY);
-		return;
-	}
+	/* FIXME: There is a potential race with another fibril of a malicious client. */
+	assert(file);
 	
 	file->node = node;
 	if (oflag & O_RDONLY)
@@ -855,6 +856,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		file->open_read = file->open_write = true;
 	if (oflag & O_APPEND)
 		file->append = true;
+	assert(file->open_read || file->open_write);
 	
 	/*
 	 * The following increase in reference count is for the fact that the
