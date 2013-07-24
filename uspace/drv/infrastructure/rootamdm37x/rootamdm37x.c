@@ -194,6 +194,9 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 	if (rootamdm37x_add_fun(dev, "ehci", "usb/host=ehci", &ehci) != EOK)
 		ddf_msg(LVL_ERROR, "Failed to add EHCI function for "
 		    "BeagleBoard-xM platform.");
+	if (rootamdm37x_add_fun(dev, "dispc", "amdm37x&dispc", &ehci) != EOK)
+		ddf_msg(LVL_ERROR, "Failed to add dispc function for "
+		    "BeagleBoard-xM platform.");
 
 	return EOK;
 }

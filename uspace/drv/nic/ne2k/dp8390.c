@@ -445,7 +445,7 @@ static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,
 	if (frame == NULL)
 		return NULL;
 	
-	bzero(frame->data, length);
+	memset(frame->data, 0, length);
 	uint8_t last = page + length / DP_PAGE;
 	
 	if (last >= ne2k->stop_page) {

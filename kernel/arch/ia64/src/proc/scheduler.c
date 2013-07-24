@@ -89,7 +89,7 @@ void before_thread_runs_arch(void)
 		"bsw.1\n"
 		:
 		: "r" (&THREAD->kstack[STACK_SIZE / 2]),
-		  "r" (&THREAD->kstack[STACK_SIZE / 2 - SP_DELTA])
+		  "r" (&THREAD->kstack[STACK_SIZE / 2])
 		);
 }
 

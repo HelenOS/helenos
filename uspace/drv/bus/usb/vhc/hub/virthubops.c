@@ -298,7 +298,7 @@ static int req_set_port_feature(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
-	int rc;
+	int rc = ENOTSUP;
 	size_t port = request->index - 1;
 	usb_hub_class_feature_t feature = request->value;
 	hub_t *hub = (hub_t *) dev->device_data;

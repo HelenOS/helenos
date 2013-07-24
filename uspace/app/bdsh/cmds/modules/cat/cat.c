@@ -62,6 +62,9 @@ static sysarg_t console_cols = 0;
 static sysarg_t console_rows = 0;
 static bool should_quit = false;
 static bool dash_represents_stdin = false;
+static unsigned int lineno = 0;
+static bool number = false;
+static bool last_char_was_newline = false;
 
 static console_ctrl_t *console = NULL;
 
@@ -74,6 +77,7 @@ static struct option const long_options[] = {
 	{ "more", no_argument, 0, 'm' },
 	{ "hex", no_argument, 0, 'x' },
 	{ "stdin", no_argument, 0, 's' },
+	{ "number", no_argument, 0, 'n' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -94,7 +98,8 @@ void help_cmd_cat(unsigned int level)
 		"  -b, --buffer ##  Set the read buffer size to ##\n"
 		"  -m, --more       Pause after each screen full\n"
 		"  -x, --hex        Print bytes as hex values\n"
-		"  -s  --stdin      Treat `-' in file list as standard input\n"
+		"  -s, --stdin      Treat `-' in file list as standard input\n"
+		"  -n, --number     Number all output lines\n"
 		"Currently, %s is under development, some options don't work.\n",
 		cmdname, cmdname);
 	}
@@ -116,23 +121,26 @@ static void waitprompt()
 
 static void waitkey()
 {
-	kbd_event_t ev;
+	cons_event_t ev;
+	kbd_event_t *kev;
 	
 	while (true) {
-		if (!console_get_kbd_event(console, &ev)) {
+		if (!console_get_event(console, &ev)) {
 			return;
 		}
-		if (ev.type == KEY_PRESS) {
-			if (ev.key == KC_ESCAPE || ev.key == KC_Q) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+			kev = &ev.ev.key;
+			
+			if (kev->key == KC_ESCAPE || kev->key == KC_Q) {
 				should_quit = true;
 				return;
 			}
-			if (ev.key == KC_C) {
+			if (kev->key == KC_C) {
 				paging_enabled = false;
 				return;
 			}
-			if (ev.key == KC_ENTER || ev.key == KC_SPACE ||
-			    ev.key == KC_PAGE_DOWN) {
+			if (kev->key == KC_ENTER || kev->key == KC_SPACE ||
+			    kev->key == KC_PAGE_DOWN) {
 				return;
 			}
 		}
@@ -149,7 +157,12 @@ static void newpage()
 
 static void paged_char(wchar_t c)
 {
+	if (last_char_was_newline && number) {
+		lineno++;
+		printf("%6u  ", lineno);
+	}
 	putchar(c);
+	last_char_was_newline = c == '\n';
 	if (paging_enabled) {
 		chars_remaining--;
 		if (c == '\n' || chars_remaining == 0) {
@@ -302,11 +315,16 @@ int cmd_cat(char **argv)
 	console_rows = 0;
 	should_quit = false;
 	console = console_init(stdin, stdout);
+	number = false;
+	lineno = 0;
+	/* This enables printing of the first number. */
+	last_char_was_newline = true;
+
 
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "xhvmH:t:b:s", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "xhvmH:t:b:s:n", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_cat(HELP_LONG);
@@ -342,6 +360,9 @@ int cmd_cat(char **argv)
 			break;
 		case 's':
 			dash_represents_stdin = true;
+			break;
+		case 'n':
+			number = true;
 			break;
 		}
 	}

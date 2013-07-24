@@ -650,7 +650,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		}
 		d = (fat_dentry_t *) b->data;
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
-		    (bcmp(d->name, FAT_NAME_DOT, FAT_NAME_LEN)) == 0) {
+		    (memcmp(d->name, FAT_NAME_DOT, FAT_NAME_LEN)) == 0) {
 			memset(d, 0, sizeof(fat_dentry_t));
 			memcpy(d->name, FAT_NAME_DOT, FAT_NAME_LEN);
 			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
@@ -660,7 +660,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		}
 		d++;
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
-		    (bcmp(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN) == 0)) {
+		    (memcmp(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN) == 0)) {
 			memset(d, 0, sizeof(fat_dentry_t));
 			memcpy(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN);
 			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
@@ -1041,9 +1041,9 @@ static int fat_update_fat32_fsinfo(service_id_t service_id)
 
 	info = (fat32_fsinfo_t *) b->data;
 
-	if (bcmp(info->sig1, FAT32_FSINFO_SIG1, sizeof(info->sig1)) ||
-	    bcmp(info->sig2, FAT32_FSINFO_SIG2, sizeof(info->sig2)) ||
-	    bcmp(info->sig3, FAT32_FSINFO_SIG3, sizeof(info->sig3))) {
+	if (memcmp(info->sig1, FAT32_FSINFO_SIG1, sizeof(info->sig1)) != 0 ||
+	    memcmp(info->sig2, FAT32_FSINFO_SIG2, sizeof(info->sig2)) != 0 ||
+	    memcmp(info->sig3, FAT32_FSINFO_SIG3, sizeof(info->sig3)) != 0) {
 		(void) block_put(b);
 		return EINVAL;
 	}

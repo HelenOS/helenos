@@ -162,7 +162,7 @@ static int device_enumerate(ddf_fun_t *fun, usb_device_handle_t *handle)
 	usb_dev_t *dev = ddf_fun_data_get(fun);
 	assert(ddf_dev);
 	assert(dev);
-	usb_address_t address;
+	usb_address_t address = 0;
 	usb_log_debug("Device %d reported a new USB device\n", dev->address);
 	const int ret = hcd_ddf_new_device(ddf_dev, &address);
 	if (ret == EOK && handle)

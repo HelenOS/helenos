@@ -176,15 +176,16 @@ static int wait_for_quit_fibril(void *arg)
 	printf("Press <ESC> to quit the application.\n");
 
 	while (1) {
-		kbd_event_t ev;
-		bool ok = console_get_kbd_event(con, &ev);
+		cons_event_t ev;
+		bool ok = console_get_event(con, &ev);
 		if (!ok) {
 			printf("Connection with console broken: %s.\n",
 			    str_error(errno));
 			break;
 		}
 
-		if (ev.key == KC_ESCAPE) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS &&
+		    ev.ev.key.key == KC_ESCAPE) {
 			break;
 		}
 	}

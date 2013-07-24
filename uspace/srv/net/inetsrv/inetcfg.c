@@ -55,7 +55,7 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 {
 	inet_link_t *ilink;
 	inet_addrobj_t *addr;
-	iplink_addr_t iaddr;
+	inet_addr_t iaddr;
 	int rc;
 
 	ilink = inet_link_get_by_id(link_id);
@@ -81,7 +81,7 @@ static int inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 		return rc;
 	}
 
-	iaddr.ipv4 = addr->naddr.ipv4;
+	inet_naddr_addr(&addr->naddr, &iaddr);
 	rc = iplink_addr_add(ilink->iplink, &iaddr);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed setting IP address on internet link.");
@@ -235,32 +235,47 @@ static int inetcfg_sroute_get_id(char *name, sysarg_t *sroute_id)
 	return EOK;
 }
 
-static void inetcfg_addr_create_static_srv(ipc_callid_t callid,
-    ipc_call_t *call)
+static void inetcfg_addr_create_static_srv(ipc_callid_t iid,
+    ipc_call_t *icall)
 {
-	char *name;
-	inet_naddr_t naddr;
-	sysarg_t link_id;
-	sysarg_t addr_id;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_create_static_srv()");
-
+	
+	sysarg_t link_id = IPC_GET_ARG1(*icall);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	if (size != sizeof(inet_naddr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	inet_naddr_t naddr;
+	int rc = async_data_write_finalize(callid, &naddr, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	char *name;
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	naddr.ipv4 = IPC_GET_ARG1(*call);
-	naddr.bits = IPC_GET_ARG2(*call);
-	link_id    = IPC_GET_ARG3(*call);
-
-	addr_id = 0;
+	
+	sysarg_t addr_id = 0;
 	rc = inetcfg_addr_create_static(name, &naddr, link_id, &addr_id);
 	free(name);
-	async_answer_1(callid, rc, addr_id);
+	async_answer_1(iid, rc, addr_id);
 }
 
 static void inetcfg_addr_delete_srv(ipc_callid_t callid, ipc_call_t *call)
@@ -276,41 +291,62 @@ static void inetcfg_addr_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
-static void inetcfg_addr_get_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_addr_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t rcallid;
-	size_t max_size;
-
-	sysarg_t addr_id;
-	inet_addr_info_t ainfo;
-	int rc;
-
-	addr_id = IPC_GET_ARG1(*call);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_srv()");
-
-	ainfo.naddr.ipv4 = 0;
-	ainfo.naddr.bits = 0;
+	
+	sysarg_t addr_id = IPC_GET_ARG1(*icall);
+	
+	inet_addr_info_t ainfo;
+	
+	inet_naddr_any(&ainfo.naddr);
 	ainfo.ilink = 0;
 	ainfo.name = NULL;
-
-	if (!async_data_read_receive(&rcallid, &max_size)) {
-		async_answer_0(rcallid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	
+	int rc = inetcfg_addr_get(addr_id, &ainfo);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	rc = inetcfg_addr_get(addr_id, &ainfo);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_naddr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, &ainfo.naddr, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	sysarg_t retval = async_data_read_finalize(rcallid, ainfo.name,
-	    min(max_size, str_size(ainfo.name)));
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, ainfo.name,
+	    min(size, str_size(ainfo.name)));
 	free(ainfo.name);
-
-	async_answer_3(callid, retval, ainfo.naddr.ipv4, ainfo.naddr.bits,
-	    ainfo.ilink);
+	
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	async_answer_1(iid, (sysarg_t) rc, ainfo.ilink);
 }
 
 static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
@@ -370,7 +406,6 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 
 	async_answer_1(callid, retval, act_size);
 }
-
 
 static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -472,32 +507,65 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, linfo.def_mtu);
 }
 
-static void inetcfg_sroute_create_srv(ipc_callid_t callid,
-    ipc_call_t *call)
+static void inetcfg_sroute_create_srv(ipc_callid_t iid,
+    ipc_call_t *icall)
 {
-	char *name;
-	inet_naddr_t dest;
-	inet_addr_t router;
-	sysarg_t sroute_id;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_create_srv()");
 
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	if (size != sizeof(inet_naddr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	inet_naddr_t dest;
+	int rc = async_data_write_finalize(callid, &dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	inet_addr_t router;
+	rc = async_data_write_finalize(callid, &router, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	char *name;
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	dest.ipv4   = IPC_GET_ARG1(*call);
-	dest.bits   = IPC_GET_ARG2(*call);
-	router.ipv4 = IPC_GET_ARG3(*call);
-
-	sroute_id = 0;
+	
+	sysarg_t sroute_id = 0;
 	rc = inetcfg_sroute_create(name, &dest, &router, &sroute_id);
 	free(name);
-	async_answer_1(callid, rc, sroute_id);
+	async_answer_1(iid, rc, sroute_id);
 }
 
 static void inetcfg_sroute_delete_srv(ipc_callid_t callid, ipc_call_t *call)
@@ -513,41 +581,75 @@ static void inetcfg_sroute_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
-static void inetcfg_sroute_get_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_sroute_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t rcallid;
-	size_t max_size;
-
-	sysarg_t sroute_id;
-	inet_sroute_info_t srinfo;
-	int rc;
-
-	sroute_id = IPC_GET_ARG1(*call);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_get_srv()");
-
-	srinfo.dest.ipv4 = 0;
-	srinfo.dest.bits = 0;
-	srinfo.router.ipv4 = 0;
+	
+	sysarg_t sroute_id = IPC_GET_ARG1(*icall);
+	
+	inet_sroute_info_t srinfo;
+	
+	inet_naddr_any(&srinfo.dest);
+	inet_addr_any(&srinfo.router);
 	srinfo.name = NULL;
-
-	if (!async_data_read_receive(&rcallid, &max_size)) {
-		async_answer_0(rcallid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	
+	int rc = inetcfg_sroute_get(sroute_id, &srinfo);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	rc = inetcfg_sroute_get(sroute_id, &srinfo);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_naddr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, &srinfo.dest, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	sysarg_t retval = async_data_read_finalize(rcallid, srinfo.name,
-	    min(max_size, str_size(srinfo.name)));
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, &srinfo.router, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, srinfo.name,
+	    min(size, str_size(srinfo.name)));
 	free(srinfo.name);
-
-	async_answer_3(callid, retval, srinfo.dest.ipv4, srinfo.dest.bits,
-	    srinfo.router.ipv4);
+	
+	async_answer_0(iid, (sysarg_t) rc);
 }
 
 static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)

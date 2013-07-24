@@ -37,13 +37,13 @@
 #define MAX_DEVICE_PATH 1024
 
 static bool try_parse_bus_and_address(const char *path,
-    char **func_start,
+    const char **func_start,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
 {
 	uint64_t sid;
 	size_t address;
 	int rc;
-	char *ptr;
+	const char *ptr;
 
 	rc = str_uint64_t(path, &ptr, 10, false, &sid);
 	if (rc != EOK) {
@@ -107,7 +107,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *dev_handle)
 	devman_handle_t hc;
 	usb_address_t addr = -1;
 	int rc;
-	char *func_start = NULL;
+	const char *func_start = NULL;
 	char *path = NULL;
 
 	/* First try the BUS.ADDR format. */

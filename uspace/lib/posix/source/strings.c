@@ -34,6 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/strings.h"
@@ -130,7 +131,7 @@ int posix_strncasecmp(const char *s1, const char *s2, size_t n)
  */
 int posix_bcmp(const void *mem1, const void *mem2, size_t n)
 {
-	return bcmp(mem1, mem2, n);
+	return memcmp(mem1, mem2, n);
 }
 
 /**
@@ -154,7 +155,7 @@ void posix_bcopy(const void *src, void *dest, size_t n)
  */
 void posix_bzero(void *mem, size_t n)
 {
-	bzero(mem, n);
+	memset(mem, 0, n);
 }
 
 /**

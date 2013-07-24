@@ -681,9 +681,9 @@ static nic_t *nic_create(ddf_dev_t *dev)
 	fibril_rwlock_initialize(&nic_data->rxc_lock);
 	fibril_rwlock_initialize(&nic_data->wv_lock);
 	
-	bzero(&nic_data->mac, sizeof(nic_address_t));
-	bzero(&nic_data->default_mac, sizeof(nic_address_t));
-	bzero(&nic_data->stats, sizeof(nic_device_stats_t));
+	memset(&nic_data->mac, 0, sizeof(nic_address_t));
+	memset(&nic_data->default_mac, 0, sizeof(nic_address_t));
+	memset(&nic_data->stats, 0, sizeof(nic_device_stats_t));
 	
 	return nic_data;
 }

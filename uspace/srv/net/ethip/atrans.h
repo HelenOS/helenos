@@ -38,11 +38,12 @@
 #define ATRANS_H_
 
 #include <inet/iplink_srv.h>
+#include <inet/addr.h>
 #include "ethip.h"
 
-extern int atrans_add(iplink_srv_addr_t *, mac48_addr_t *);
-extern int atrans_remove(iplink_srv_addr_t *);
-extern int atrans_lookup(iplink_srv_addr_t *, mac48_addr_t *);
+extern int atrans_add(addr32_t, addr48_t);
+extern int atrans_remove(addr32_t);
+extern int atrans_lookup(addr32_t, addr48_t);
 extern int atrans_wait_timeout(suseconds_t);
 
 #endif

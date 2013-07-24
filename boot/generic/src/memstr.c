@@ -29,24 +29,47 @@
 #include <memstr.h>
 #include <typedefs.h>
 
-/** Copy block of memory.
+/** Move memory block without overlapping.
  *
- * Copy cnt bytes from src address to dst address.The source and destination
- * memory areas cannot overlap.
+ * Copy cnt bytes from src address to dst address. The source
+ * and destination memory areas cannot overlap.
  *
- * @param src		Source address to copy from.
- * @param dst		Destination address to copy to.
- * @param cnt		Number of bytes to copy.
+ * @param dst Destination address to copy to.
+ * @param src Source address to copy from.
+ * @param cnt Number of bytes to copy.
  *
- * @return		Destination address.
+ * @return Destination address.
+ *
  */
 void *memcpy(void *dst, const void *src, size_t cnt)
 {
-	size_t i;
+	uint8_t *dp = (uint8_t *) dst;
+	const uint8_t *sp = (uint8_t *) src;
+	
+	while (cnt-- != 0)
+		*dp++ = *sp++;
+	
+	return dst;
+}
 
-	for (i = 0; i < cnt; i++)
-		((uint8_t *) dst)[i] = ((uint8_t *) src)[i];
-
+/** Fill block of memory.
+ *
+ * Fill cnt bytes at dst address with the value val.
+ *
+ * @param dst Destination address to fill.
+ * @param val Value to fill.
+ * @param cnt Number of bytes to fill.
+ *
+ * @return Destination address.
+ *
+ */
+void *memset(void *dst, int val, size_t cnt)
+{
+	uint8_t *dp = (uint8_t *) dst;
+	
+	while (cnt-- != 0)
+		*dp++ = val;
+	
 	return dst;
 }
 

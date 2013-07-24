@@ -53,7 +53,7 @@ static void mouse_port_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		int retval;
+		int retval = EOK;
 		
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */

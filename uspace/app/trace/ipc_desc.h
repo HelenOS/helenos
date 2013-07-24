@@ -41,6 +41,7 @@ typedef struct {
 } ipc_m_desc_t;
 
 extern ipc_m_desc_t ipc_methods[];
+extern size_t ipc_methods_len;
 
 #endif
 

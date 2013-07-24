@@ -314,7 +314,7 @@ out:
 static unsigned int ls_scope(const char *path, struct dir_elem_t *de)
 {
 	if (stat(path, &de->s)) {
-		cli_error(CL_ENOENT, path);
+		cli_error(CL_ENOENT, "%s", path);
 		return LS_BOGUS;
 	}
 

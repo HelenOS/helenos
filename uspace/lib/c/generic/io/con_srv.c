@@ -34,11 +34,36 @@
  * @brief Console protocol server stub
  */
 #include <errno.h>
+#include <io/cons_event.h>
 #include <ipc/console.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
 #include <io/con_srv.h>
+
+static int console_ev_encode(cons_event_t *event, ipc_call_t *call)
+{
+	IPC_SET_ARG1(*call, event->type);
+
+	switch (event->type) {
+	case CEV_KEY:
+		IPC_SET_ARG2(*call, event->ev.key.type);
+		IPC_SET_ARG3(*call, event->ev.key.key);
+		IPC_SET_ARG4(*call, event->ev.key.mods);
+		IPC_SET_ARG5(*call, event->ev.key.c);
+		break;
+	case CEV_POS:
+		IPC_SET_ARG2(*call, (event->ev.pos.pos_id << 16) | (event->ev.pos.type & 0xffff));
+		IPC_SET_ARG3(*call, event->ev.pos.btn_num);
+		IPC_SET_ARG4(*call, event->ev.pos.hpos);
+		IPC_SET_ARG5(*call, event->ev.pos.vpos);
+		break;
+	default:
+		return EIO;
+	}
+
+	return EOK;
+}
 
 static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
@@ -272,7 +297,8 @@ static void con_get_event_srv(con_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	int rc;
-	kbd_event_t event;
+	cons_event_t event;
+	ipc_call_t result;
 
 	if (srv->srvs->ops->get_event == NULL) {
 		async_answer_0(callid, ENOTSUP);
@@ -280,7 +306,19 @@ static void con_get_event_srv(con_srv_t *srv, ipc_callid_t callid,
 	}
 
 	rc = srv->srvs->ops->get_event(srv, &event);
-	async_answer_4(callid, rc, event.type, event.key, event.mods, event.c);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	rc = console_ev_encode(&event, &result);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
+
+	async_answer_5(callid, rc, IPC_GET_ARG1(result), IPC_GET_ARG2(result),
+	    IPC_GET_ARG3(result), IPC_GET_ARG4(result), IPC_GET_ARG5(result));
 }
 
 static con_srv_t *con_srv_create(con_srvs_t *srvs)

@@ -224,7 +224,7 @@ static int netecho_socket_process_message(int listening_id)
 {
 	uint8_t address_buf[sizeof(struct sockaddr_in6)];
 
-	socklen_t addrlen;
+	socklen_t addrlen = sizeof(struct sockaddr_in6);
 	int socket_id;
 	ssize_t rcv_size;
 	size_t length;
@@ -239,10 +239,9 @@ static int netecho_socket_process_message(int listening_id)
 
 	if (type == SOCK_STREAM) {
 		/* Accept a socket if a stream socket is used */
-		addrlen = sizeof(address_buf);
 		if (verbose)
 			printf("accept()\n");
-            	socket_id = accept(listening_id, (void *) address_buf, &addrlen);
+		socket_id = accept(listening_id, (void *) address_buf, &addrlen);
 		if (socket_id <= 0) {
 			socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
 		} else {
@@ -279,7 +278,7 @@ static int netecho_socket_process_message(int listening_id)
 					break;
 				case AF_INET6:
 					port = ntohs(address_in6->sin6_port);
-					address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
+					address_start = (uint8_t *) address_in6->sin6_addr.s6_addr;
 					break;
 				default:
 					fprintf(stderr, "Address family %u (%#x) is not supported.\n",
@@ -311,7 +310,7 @@ static int netecho_socket_process_message(int listening_id)
 					printf("sendto()\n");
 				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
 				if (rc != EOK)
-					socket_print_error(stderr, rc, "Socket send: ", "\n");
+					socket_print_error(stderr, rc, "Socket sendto: ", "\n");
 			}
 		}
 
@@ -379,6 +378,7 @@ int main(int argc, char *argv[])
 	case PF_INET6:
 		address_in6.sin6_family = AF_INET6;
 		address_in6.sin6_port = htons(port);
+		address_in6.sin6_addr = in6addr_any;
 		address = (struct sockaddr *) &address_in6;
 		addrlen = sizeof(address_in6);
 		break;
@@ -393,7 +393,14 @@ int main(int argc, char *argv[])
 		socket_print_error(stderr, listening_id, "Socket create: ", "\n");
 		return listening_id;
 	}
-
+	
+	/* Bind the listening socket */
+	rc = bind(listening_id, address, addrlen);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Socket bind: ", "\n");
+		return rc;
+	}
+	
 	/* if the stream socket is used */
 	if (type == SOCK_STREAM) {
 		/* Check backlog size */
@@ -401,20 +408,13 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Accepted sockets queue size too small (%zu). Using 3 instead.\n", size);
 			backlog = 3;
 		}
-
+		
 		/* Set the backlog */
 		rc = listen(listening_id, backlog);
 		if (rc != EOK) {
 			socket_print_error(stderr, rc, "Socket listen: ", "\n");
 			return rc;
 		}
-	}
-
-	/* Bind the listening socket */
-	rc = bind(listening_id, address, addrlen);
-	if (rc != EOK) {
-		socket_print_error(stderr, rc, "Socket bind: ", "\n");
-		return rc;
 	}
 
 	if (verbose)

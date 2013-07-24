@@ -53,8 +53,6 @@
 
 #define NAME       "tcp"
 
-#define IP_PROTO_TCP 6
-
 static int tcp_inet_ev_recv(inet_dgram_t *dgram);
 static void tcp_received_pdu(tcp_pdu_t *pdu);
 
@@ -114,10 +112,8 @@ static int tcp_inet_ev_recv(inet_dgram_t *dgram)
 		return ENOMEM;
 	}
 
-	pdu->src_addr.ipv4 = dgram->src.ipv4;
-	pdu->dest_addr.ipv4 = dgram->dest.ipv4;
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "src: 0x%08x, dest: 0x%08x",
-	    pdu->src_addr.ipv4, pdu->dest_addr.ipv4);
+	pdu->src = dgram->src;
+	pdu->dest = dgram->dest;
 
 	tcp_received_pdu(pdu);
 	tcp_pdu_delete(pdu);
@@ -144,8 +140,8 @@ void tcp_transmit_pdu(tcp_pdu_t *pdu)
 	memcpy(pdu_raw + pdu->header_size, pdu->text,
 	    pdu->text_size);
 
-	dgram.src.ipv4 = pdu->src_addr.ipv4;
-	dgram.dest.ipv4 = pdu->dest_addr.ipv4;
+	dgram.src = pdu->src;
+	dgram.dest = pdu->dest;
 	dgram.tos = 0;
 	dgram.data = pdu_raw;
 	dgram.size = pdu_raw_size;

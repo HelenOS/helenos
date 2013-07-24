@@ -38,6 +38,7 @@
 #include <arch/machine_func.h>
 #include <interrupt.h>
 #include <arch/mm/page_fault.h>
+#include <arch/cp15.h>
 #include <arch/barrier.h>
 #include <print.h>
 #include <syscall/syscall.h>
@@ -72,7 +73,7 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 	
 	/* make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
-	smc_coherence(*vector);
+	smc_coherence(vector);
 	
 	/* store handler's address */
 	*(vector + EXC_VECTORS) = handler_addr;
@@ -135,19 +136,12 @@ void install_exception_handlers(void)
  */
 static void high_vectors(void)
 {
-	uint32_t control_reg = 0;
-	asm volatile (
-		"mrc p15, 0, %[control_reg], c1, c0"
-		: [control_reg] "=r" (control_reg)
-	);
+	uint32_t control_reg = SCTLR_read();
 	
 	/* switch on the high vectors bit */
-	control_reg |= CP15_R1_HIGH_VECTORS_EN;
+	control_reg |= SCTLR_HIGH_VECTORS_EN_FLAG;
 	
-	asm volatile (
-		"mcr p15, 0, %[control_reg], c1, c0"
-		:: [control_reg] "r" (control_reg)
-	);
+	SCTLR_write(control_reg);
 }
 #endif
 

@@ -79,22 +79,23 @@ int main(int argc, char *argv[])
  */
 static int mouse_add(ddf_dev_t *device)
 {
+	int rc;
+
 	if (!device)
 		return EINVAL;
 
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	ddf_msg(LVL_ERROR, message); \
-	return ret; \
-} else (void)0
-
 	ps2_mouse_t *mouse = ddf_dev_data_alloc(device, sizeof(ps2_mouse_t));
-	int ret = (mouse == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate mouse driver instance.");
+	if (mouse == NULL) {
+		ddf_msg(LVL_ERROR, "Failed to allocate mouse driver instance.");
+		return ENOMEM;
+	}
 
-	ret = ps2_mouse_init(mouse, device);
-	CHECK_RET_RETURN(ret,
-	    "Failed to initialize mouse driver: %s.", str_error(ret));
+	rc = ps2_mouse_init(mouse, device);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to initialize mouse driver: %s.",
+		    str_error(rc));
+		return rc;
+	}
 
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));

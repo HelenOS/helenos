@@ -297,9 +297,9 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_as_segment_arrived(f:(%x,%u), l:(%x,%u))",
-	    sp->foreign.addr.ipv4, sp->foreign.port,
-	    sp->local.addr.ipv4, sp->local.port);
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "tcp_as_segment_arrived(f:(%u), l:(%u))",
+	    sp->foreign.port, sp->local.port);
 
 	conn = tcp_conn_find_ref(sp);
 	if (conn == NULL) {
@@ -318,12 +318,14 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 		return;
 	}
 
-	if (conn->ident.foreign.addr.ipv4 == TCP_IPV4_ANY)
-		conn->ident.foreign.addr.ipv4 = sp->foreign.addr.ipv4;
+	if (inet_addr_is_any(&conn->ident.foreign.addr))
+		conn->ident.foreign.addr = sp->foreign.addr;
+	
 	if (conn->ident.foreign.port == TCP_PORT_ANY)
 		conn->ident.foreign.port = sp->foreign.port;
-	if (conn->ident.local.addr.ipv4 == TCP_IPV4_ANY)
-		conn->ident.local.addr.ipv4 = sp->local.addr.ipv4;
+	
+	if (inet_addr_is_any(&conn->ident.local.addr))
+		conn->ident.local.addr = sp->local.addr;
 
 	tcp_conn_segment_arrived(conn, seg);
 

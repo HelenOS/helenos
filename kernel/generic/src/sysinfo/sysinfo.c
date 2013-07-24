@@ -752,6 +752,8 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 {
 	sysinfo_return_t ret;
 	ret.tag = SYSINFO_VAL_UNDEFINED;
+	ret.data.data = NULL;
+	ret.data.size = 0;
 	
 	if (size > SYSINFO_MAX_PATH)
 		return ret;

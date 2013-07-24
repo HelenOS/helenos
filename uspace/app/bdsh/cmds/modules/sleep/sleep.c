@@ -66,7 +66,7 @@ static int decimal_to_useconds(const char *nptr, useconds_t *result)
 	int ret;
 	uint64_t whole_seconds;
 	uint64_t frac_seconds;
-	char *endptr;
+	const char *endptr;
 
 	/* Check for whole seconds */
 	if (*nptr == '.') {
@@ -113,7 +113,7 @@ int cmd_sleep(char **argv)
 {
 	int ret;
 	unsigned int argc;
-	useconds_t duration;
+	useconds_t duration = 0;
 
 	/* Count the arguments */
 	argc = cli_count_args(argv);

@@ -532,7 +532,7 @@ int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
 
-	bzero(&instance->rh, sizeof(instance->rh));
+	memset(&instance->rh, 0, sizeof(instance->rh));
 	/* Init queues */
 	const int ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {

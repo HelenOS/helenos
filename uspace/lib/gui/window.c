@@ -423,7 +423,9 @@ static void handle_close(window_t *win)
 	async_hangup(win->osess);
 
 	while (!list_empty(&win->events.list)) {
-		list_remove(list_first(&win->events.list));
+		window_event_t *event = (window_event_t *) list_first(&win->events.list);
+		list_remove(&event->link);
+		free(event);
 	}
 
 	if (win->surface) {

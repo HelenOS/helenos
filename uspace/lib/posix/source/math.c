@@ -33,6 +33,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/math.h"
@@ -58,6 +59,131 @@ double posix_ldexp(double x, int exp)
 double posix_frexp(double num, int *exp)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_cos(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param y
+ * @return
+ */
+double posix_pow(double x, double y)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_floor(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_fabs(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param iptr
+ * @return
+ */
+double posix_modf(double x, double *iptr)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param y
+ * @return
+ */
+double posix_fmod(double x, double y)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_log(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @param y
+ * @return
+ */
+double posix_atan2(double y, double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_sin(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_exp(double x)
+{
+	// TODO: Python dependency
+	not_implemented();
+}
+
+/**
+ * 
+ * @param x
+ * @return
+ */
+double posix_sqrt(double x)
+{
+	// TODO: Python dependency
 	not_implemented();
 }
 
