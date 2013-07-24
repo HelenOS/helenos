@@ -62,8 +62,7 @@ typedef struct {
 } vfs_info_t;
 
 typedef enum {
-	VFS_IN_OPEN = IPC_FIRST_USER_METHOD,
-	VFS_IN_READ,
+	VFS_IN_READ = IPC_FIRST_USER_METHOD,
 	VFS_IN_WRITE,
 	VFS_IN_SEEK,
 	VFS_IN_TRUNCATE,

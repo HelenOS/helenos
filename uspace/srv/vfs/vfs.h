@@ -210,7 +210,6 @@ extern int vfs_open_node_remote(vfs_node_t *);
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
-extern void vfs_open(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);
 extern void vfs_dup(ipc_callid_t, ipc_call_t *);
 extern void vfs_close(ipc_callid_t, ipc_call_t *);
