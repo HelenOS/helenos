@@ -86,8 +86,6 @@ typedef enum {
  */
 int usb_get_my_address(async_exch_t *exch, usb_address_t *address)
 {
-	if (!exch)
-		return EBADMEM;
 	sysarg_t addr;
 	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_ADDRESS, &addr);
