@@ -95,16 +95,9 @@ int _vfs_walk(int parent, const char *path, int flags)
 {
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	// TODO: assume this is done at a higher level.
-	char *precanon = str_dup(path);
-	size_t canon_size;
-	char *canon = canonify(precanon, &canon_size);
-	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VFS_IN_WALK, parent, flags, &answer);
-	sysarg_t rc = async_data_write_start(exch, canon, canon_size);
-	
-	free(precanon);
+	sysarg_t rc = async_data_write_start(exch, path, str_size(path));
 	vfs_exchange_end(exch);
 		
 	sysarg_t rc_orig;
@@ -326,6 +319,19 @@ int unmount(const char *mp)
 	return (int) rc;
 }
 
+static int walk_flags(int oflags)
+{
+	int flags = 0;
+	if (oflags & O_CREAT) {
+		if (oflags & O_EXCL) {
+			flags |= WALK_MUST_CREATE;
+		} else {
+			flags |= WALK_MAY_CREATE;
+		}
+	}
+	return flags;
+}
+
 static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 {
 	// FIXME: Some applications call this incorrectly.
@@ -364,14 +370,45 @@ static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 
 int open(const char *path, int oflag, ...)
 {
+	// FIXME: Some applications call this incorrectly.
+	if ((oflag & (O_RDONLY|O_WRONLY|O_RDWR)) == 0) {
+		oflag |= O_RDWR;
+	}
+
+	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
+	
 	size_t abs_size;
 	char *abs = absolutize(path, &abs_size);
-	if (!abs)
+	if (!abs) {
 		return ENOMEM;
+	}
 	
-	int ret = open_internal(abs, abs_size, L_FILE, oflag);
-	free(abs);
+	int ret = _vfs_walk(-1, abs, walk_flags(oflag) | WALK_REGULAR);
+	if (ret < 0) {
+		return ret;
+	}
 	
+	int mode =
+		((oflag & O_RDWR) ? MODE_READ|MODE_WRITE : 0) |
+		((oflag & O_RDONLY) ? MODE_READ : 0) |
+		((oflag & O_WRONLY) ? MODE_WRITE : 0) |
+		((oflag & O_APPEND) ? MODE_APPEND : 0);
+	
+	int rc = _vfs_open(ret, mode); 
+	if (rc < 0) {
+		// _vfs_put(ret);
+		close(ret);
+		return rc;
+	}
+	
+	if (oflag & O_TRUNC) {
+		assert(oflag & O_WRONLY || oflag & O_RDWR);
+		assert(!(oflag & O_APPEND));
+		
+		// _vfs_resize
+		(void) ftruncate(ret, 0);
+	}
+
 	return ret;
 }
 
