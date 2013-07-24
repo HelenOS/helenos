@@ -49,56 +49,104 @@
 
 #define MAX_PATH_LENGTH 1024
 
-static void print_found_hc(service_id_t sid, const char *path)
+static void print_usb_device(devman_handle_t handle)
 {
-	printf("Bus %" PRIun ": %s\n", sid, path);
-}
-static void print_found_dev(usb_address_t addr, const char *path)
-{
-	printf("  Device %02d: %s\n", addr, path);
-}
-
-static void print_usb_devices(devman_handle_t bus_handle,
-    devman_handle_t *fhs, size_t count)
-{
-	for (size_t i = 0; i < count; ++i) {
-		/* Skip hc ctl function */
-		if (fhs[i] == bus_handle)
-			continue;
-		char path[MAX_PATH_LENGTH];
-		int rc = devman_fun_get_path(fhs[i], path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			printf(NAME "Failed to get path for device %" PRIun
-			    "\n", fhs[i]);
-			continue;
-		}
-		// TODO remove this. Device name contains USB address
-		// and addresses as external id are going away
-		usb_dev_session_t *sess = usb_dev_connect(fhs[i]);
-		if (!sess) {
-			printf(NAME "Failed to connect to device %" PRIun
-			    "\n", fhs[i]);
-			continue;
-		}
-		async_exch_t *exch = async_exchange_begin(sess);
-		if (!exch) {
-			printf("Failed to create exchange to dev %" PRIun
-			    "\n", fhs[i]);
-			usb_dev_disconnect(sess);
-			continue;
-		}
-		usb_address_t address;
-		rc = usb_get_my_address(exch, &address);
-		async_exchange_end(exch);
-		usb_dev_disconnect(sess);
-		if (rc != EOK) {
-			printf("Failed to get address for device %" PRIun
-			    "\n", fhs[i]);
-			continue;
-		}
-		print_found_dev(address, path);
-
+	char path[MAX_PATH_LENGTH];
+	int rc = devman_fun_get_path(handle, path, MAX_PATH_LENGTH);
+	if (rc != EOK) {
+		printf(NAME "Failed to get path for device %" PRIun
+		    "\n", handle);
+		return;
 	}
+	// TODO remove this. Device name contains USB address
+	// and addresses as external id are going away
+	usb_dev_session_t *sess = usb_dev_connect(handle);
+	if (!sess) {
+		printf(NAME "Failed to connect to device %" PRIun "\n", handle);
+		return;
+	}
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (!exch) {
+		printf("Failed to create exchange to dev %" PRIun "\n", handle);
+		usb_dev_disconnect(sess);
+		return;
+	}
+	usb_address_t address;
+	rc = usb_get_my_address(exch, &address);
+	async_exchange_end(exch);
+	usb_dev_disconnect(sess);
+	if (rc != EOK) {
+		printf("Failed to get address for device %" PRIun "\n", handle);
+		return;
+	}
+	printf("\tDevice %02d: %s\n", address, path);
+}
+
+static void print_usb_bus(service_id_t svc)
+{
+	devman_handle_t hc_handle = 0;
+	int rc = devman_fun_sid_to_handle(svc, &hc_handle);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving handle of HC with SID %"
+		    PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	char path[MAX_PATH_LENGTH];
+	rc = devman_fun_get_path(hc_handle, path, sizeof(path));
+	if (rc != EOK) {
+		printf(NAME ": Error resolving path of HC with SID %"
+		    PRIun ", skipping.\n", svc);
+		return;
+	}
+	printf("Bus %" PRIun ": %s\n", svc, path);
+
+	/* Construct device's path.
+	 * That's "hc function path" - ( '/' + "hc function name" ) */
+	// TODO replace this with something sane
+
+	/* Get function name */
+	char name[10];
+	rc = devman_fun_get_name(hc_handle, name, sizeof(name));
+	if (rc != EOK) {
+		printf(NAME ": Error resolving name of HC with SID %"
+		    PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	/* Get handle of parent device */
+	devman_handle_t fh;
+	path[str_size(path) - str_size(name) - 1] = '\0';
+	rc = devman_fun_get_handle(path, &fh, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving parent handle of HC with"
+		    " SID %" PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	/* Get child handle */
+	devman_handle_t dh;
+	rc = devman_fun_get_child(fh, &dh);
+	if (rc != EOK) {
+		printf(NAME ": Error resolving parent handle of HC with"
+		    " SID %" PRIun ", skipping.\n", svc);
+		return;
+	}
+	
+	devman_handle_t *fhs = 0;
+	size_t count;
+	rc = devman_dev_get_functions(dh, &fhs, &count);
+	if (rc != EOK) {
+		printf(NAME ": Error siblings of HC with"
+		    " SID %" PRIun ", skipping.\n", svc);
+		return;
+	}
+
+	for (size_t i = 0; i < count; ++i) {
+		if (fhs[i] != hc_handle)
+			print_usb_device(fhs[i]);
+	}
+	free(fhs);
 }
 
 void list(void)
@@ -122,59 +170,7 @@ void list(void)
 	}
 
 	for (unsigned i = 0; i < count; ++i) {
-		devman_handle_t hc_handle = 0;
-		int rc = devman_fun_sid_to_handle(svcs[i], &hc_handle);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving handle of HC with SID %"
-			    PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-
-		char path[MAX_PATH_LENGTH];
-		rc = devman_fun_get_path(hc_handle, path, MAX_PATH_LENGTH);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving path of HC with SID %"
-			    PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-		print_found_hc(svcs[i], path);
-
-		/* Construct device's path.
-		 * That's "hc function path" - ( '/' + "hc function name" ) */
-		// TODO replace this with something sane
-		char name[10];
-		rc = devman_fun_get_name(hc_handle, name, 10);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving name of HC with SID %"
-			    PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-
-		devman_handle_t fh;
-		path[str_size(path) - str_size(name) - 1] = '\0';
-		rc = devman_fun_get_handle(path, &fh, IPC_FLAG_BLOCKING);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving parent handle of HC with"
-			    " SID %" PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-		devman_handle_t dh;
-		rc = devman_fun_get_child(fh, &dh);
-		if (rc != EOK) {
-			printf(NAME ": Error resolving parent handle of HC with"
-			    " SID %" PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-		devman_handle_t *fhs = 0;
-		size_t count;
-		rc = devman_dev_get_functions(dh, &fhs, &count);
-		if (rc != EOK) {
-			printf(NAME ": Error siblings of HC with"
-			    " SID %" PRIun ", skipping.\n", svcs[i]);
-			continue;
-		}
-		print_usb_devices(hc_handle, fhs, count);
-		free(fhs);
+		print_usb_bus(svcs[i]);
 	}
 
 	free(svcs);
