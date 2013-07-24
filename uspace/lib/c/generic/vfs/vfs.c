@@ -332,42 +332,6 @@ static int walk_flags(int oflags)
 	return flags;
 }
 
-static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
-{
-	// FIXME: Some applications call this incorrectly.
-	if ((oflag & (O_RDONLY|O_WRONLY|O_RDWR)) == 0) {
-		oflag |= O_RDWR;
-	}
-
-	assert((((oflag & O_RDONLY) != 0) + ((oflag & O_WRONLY) != 0) + ((oflag & O_RDWR) != 0)) == 1);
-	
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_3(exch, VFS_IN_OPEN, lflag, oflag, 0, &answer);
-	sysarg_t rc = async_data_write_start(exch, abs, abs_size);
-	
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
-	
-	vfs_exchange_end(exch);
-	async_wait_for(req, &rc);
-	
-	if (rc != EOK)
-	    return (int) rc;
-	
-	return (int) IPC_GET_ARG1(answer);
-}
-
 int open(const char *path, int oflag, ...)
 {
 	// FIXME: Some applications call this incorrectly.
@@ -651,21 +615,33 @@ int stat(const char *path, struct stat *stat)
 DIR *opendir(const char *dirname)
 {
 	DIR *dirp = malloc(sizeof(DIR));
-	if (!dirp)
+	if (!dirp) {
+		errno = ENOMEM;
 		return NULL;
+	}
 	
 	size_t abs_size;
 	char *abs = absolutize(dirname, &abs_size);
 	if (!abs) {
 		free(dirp);
+		errno = ENOMEM;
 		return NULL;
 	}
 	
-	int ret = open_internal(abs, abs_size, L_DIRECTORY, 0);
+	int ret = _vfs_walk(-1, abs, WALK_DIRECTORY);
 	free(abs);
 	
 	if (ret < 0) {
 		free(dirp);
+		errno = ret;
+		return NULL;
+	}
+	
+	int rc = _vfs_open(ret, MODE_READ);
+	if (rc < 0) {
+		free(dirp);
+		close(ret);
+		errno = rc;
 		return NULL;
 	}
 	
@@ -824,8 +800,7 @@ int chdir(const char *path)
 	if (!abs)
 		return ENOMEM;
 	
-	int fd = open_internal(abs, abs_size, L_DIRECTORY, O_DESC);
-	
+	int fd = _vfs_walk(-1, abs, WALK_DIRECTORY);
 	if (fd < 0) {
 		free(abs);
 		return ENOENT;
