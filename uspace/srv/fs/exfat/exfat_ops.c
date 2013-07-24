@@ -934,13 +934,57 @@ uint64_t exfat_total_block_count(service_id_t service_id)
 
 uint64_t exfat_free_block_count(service_id_t service_id)
 {
+	fs_node_t *node;
+	exfat_node_t *bmap_node;
 	exfat_bs_t *bs;
-	bs = block_bb_get(service_id);
-	
-	uint64_t block_count = (DATA_CNT(bs) / 100) * 
-			bs->allocated_percent;
+	uint64_t free_block_count = 0;
+	uint64_t block_count;
+	unsigned sector;
+	int rc;
 
-	return block_count;
+	block_count = exfat_total_block_count(service_id);
+
+	bs = block_bb_get(service_id);
+
+	rc = exfat_bitmap_get(&node, service_id);
+	if (rc != EOK)
+		goto exit;
+
+	bmap_node = (exfat_node_t *) node->data;
+
+	for (sector = 0; sector < bmap_node->size / BPS(bs); ++sector) {
+
+		block_t *block;
+		uint8_t *bitmap;
+		unsigned bit;
+
+		rc = exfat_block_get_by_clst(&block, bs, service_id,
+		    bmap_node->fragmented, bmap_node->firstc, NULL, sector,
+		    BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			free_block_count = 0;
+			goto exit;
+		}
+
+		bitmap = (uint8_t *) block->data;
+
+		for (bit = 0; bit < BPS(bs) * 8 && block_count > 0;
+		    ++bit, --block_count) {
+			if (!(bitmap[bit / 8] & (1 << (bit % 8))))
+				++free_block_count;
+		}
+
+		block_put(block);
+
+		if (block_count == 0) {
+			/* Reached the end of the bitmap */
+			goto exit;
+		}
+	}
+
+exit:
+	exfat_node_put(node);
+	return free_block_count;
 }
 
 /** libfs operations */
