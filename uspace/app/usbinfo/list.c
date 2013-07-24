@@ -61,18 +61,11 @@ static void print_usb_device(devman_handle_t handle)
 	// TODO remove this. Device name contains USB address
 	// and addresses as external id are going away
 	usb_dev_session_t *sess = usb_dev_connect(handle);
-	if (!sess) {
-		printf(NAME "Failed to connect to device %" PRIun "\n", handle);
-		return;
-	}
 	async_exch_t *exch = async_exchange_begin(sess);
-	if (!exch) {
-		printf("Failed to create exchange to dev %" PRIun "\n", handle);
-		usb_dev_disconnect(sess);
-		return;
-	}
+	
 	usb_address_t address;
 	rc = usb_get_my_address(exch, &address);
+	
 	async_exchange_end(exch);
 	usb_dev_disconnect(sess);
 	if (rc != EOK) {
