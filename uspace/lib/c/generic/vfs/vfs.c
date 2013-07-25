@@ -387,6 +387,8 @@ int close(int fildes)
 	return (int) rc;
 }
 
+// TODO: Versioning for read.
+
 ssize_t read(int fildes, void *buf, size_t nbyte) 
 {
 	sysarg_t rc;
@@ -664,46 +666,47 @@ int mkdir(const char *path, mode_t mode)
 	return EOK;
 }
 
-static int _unlink(const char *path, int lflag)
+static int _vfs_unlink2(int parent, const char *path, int expect, int wflag)
 {
 	sysarg_t rc;
 	aid_t req;
 	
-	size_t pa_size;
-	char *pa = absolutize(path, &pa_size);
-	if (!pa)
-		return ENOMEM;
-	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_1(exch, VFS_IN_UNLINK, lflag, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
+	req = async_send_3(exch, VFS_IN_UNLINK2, parent, expect, wflag, NULL);
+	rc = async_data_write_start(exch, path, str_size(path));
+	
 	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc);
+	
+	sysarg_t rc_orig;
+	async_wait_for(req, &rc_orig);
+	
+	if (rc_orig != EOK) {
+		return (int) rc_orig;
+	}
 	return rc;
 }
 
 int unlink(const char *path)
 {
-	return _unlink(path, L_NONE);
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
+	if (!pa) {
+		return ENOMEM;
+	}
+	
+	return _vfs_unlink2(-1, pa, -1, 0);
 }
 
 int rmdir(const char *path)
 {
-	return _unlink(path, L_DIRECTORY);
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
+	if (!pa) {
+		return ENOMEM;
+	}
+	
+	return _vfs_unlink2(-1, pa, -1, WALK_DIRECTORY);
 }
 
 int rename(const char *old, const char *new)
