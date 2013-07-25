@@ -68,7 +68,7 @@ static inet_naddr_t solicited_node_mask = {
 };
 
 static inet_addr_t multicast_all_nodes = {
-	.family = AF_INET,
+	.family = AF_INET6,
 	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
 };
 
