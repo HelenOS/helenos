@@ -171,6 +171,12 @@ ifeq ($(COMPILER),gcc_cross)
 	INSTRUMENTATION = -finstrument-functions
 endif
 
+ifeq ($(COMPILER),gcc_helenos)
+	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION = -finstrument-functions
+endif
+
 ifeq ($(COMPILER),icc)
 	CFLAGS = $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)

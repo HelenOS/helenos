@@ -242,6 +242,11 @@ ifeq ($(COMPILER),gcc_cross)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
+ifeq ($(COMPILER),gcc_helenos)
+	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
 ifeq ($(COMPILER),gcc_native)
 	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
