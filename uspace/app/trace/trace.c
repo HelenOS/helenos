@@ -713,8 +713,6 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_UNMOUNT, o);*/
 	o = oper_new("sync", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_SYNC, o);
-	o = oper_new("mkdir", 1, arg_def, V_ERRNO, 0, resp_def);
-	proto_add_oper(p, VFS_IN_MKDIR, o);
 	o = oper_new("unlink", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_UNLINK, o);
 	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);

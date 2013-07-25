@@ -1062,28 +1062,6 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
-{
-	int mode = IPC_GET_ARG1(*request);
-	
-	char *path;
-	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	
-	/* Ignore mode for now. */
-	(void) mode;
-	
-	fibril_rwlock_write_lock(&namespace_rwlock);
-	int lflag = L_DIRECTORY | L_CREATE | L_EXCLUSIVE;
-	rc = vfs_lookup_internal(path, lflag, NULL, NULL);
-	fibril_rwlock_write_unlock(&namespace_rwlock);
-	free(path);
-	async_answer_0(rid, rc);
-}
-
 void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 {
 	int lflag = IPC_GET_ARG1(*request);
