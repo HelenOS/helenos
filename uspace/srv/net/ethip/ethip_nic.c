@@ -82,9 +82,9 @@ static int ethip_nic_check_new(void)
 	for (i = 0; i < count; i++) {
 		already_known = false;
 
-		list_foreach(ethip_nic_list, nic_link) {
-			ethip_nic_t *nic = list_get_instance(nic_link,
-			    ethip_nic_t, nic_list);
+		list_foreach(ethip_nic_list, link) {
+			ethip_nic_t *nic = list_get_instance(link,
+			    ethip_nic_t, link);
 			if (nic->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -114,7 +114,7 @@ static ethip_nic_t *ethip_nic_new(void)
 		return NULL;
 	}
 
-	link_initialize(&nic->nic_list);
+	link_initialize(&nic->link);
 	list_initialize(&nic->addr_list);
 
 	return nic;
@@ -129,7 +129,7 @@ static ethip_link_addr_t *ethip_nic_addr_new(inet_addr_t *addr)
 		return NULL;
 	}
 	
-	link_initialize(&laddr->addr_list);
+	link_initialize(&laddr->link);
 	laddr->addr = *addr;
 	
 	return laddr;
@@ -179,7 +179,7 @@ static int ethip_nic_open(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened NIC '%s'", nic->svc_name);
-	list_append(&nic->nic_list, &ethip_nic_list);
+	list_append(&nic->link, &ethip_nic_list);
 	in_list = true;
 
 	rc = ethip_iplink_init(nic);
@@ -208,9 +208,11 @@ static int ethip_nic_open(service_id_t sid)
 
 error:
 	if (in_list)
-		list_remove(&nic->nic_list);
+		list_remove(&nic->link);
+	
 	if (nic->sess != NULL)
 		async_hangup(nic->sess);
+	
 	ethip_nic_delete(nic);
 	return rc;
 }
@@ -311,8 +313,7 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 
 	list_foreach(ethip_nic_list, link) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - element");
-		ethip_nic_t *nic = list_get_instance(link, ethip_nic_t,
-		    nic_list);
+		ethip_nic_t *nic = list_get_instance(link, ethip_nic_t, link);
 
 		if (nic->iplink_sid == iplink_sid) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - found %p", nic);
@@ -341,7 +342,7 @@ int ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
 	if (laddr == NULL)
 		return ENOMEM;
 	
-	list_append(&laddr->addr_list, &nic->addr_list);
+	list_append(&laddr->link, &nic->addr_list);
 	return EOK;
 }
 
@@ -353,7 +354,7 @@ int ethip_nic_addr_remove(ethip_nic_t *nic, inet_addr_t *addr)
 	if (laddr == NULL)
 		return ENOENT;
 	
-	list_remove(&laddr->addr_list);
+	list_remove(&laddr->link);
 	ethip_link_addr_delete(laddr);
 	return EOK;
 }
@@ -365,7 +366,7 @@ ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
 	
 	list_foreach(nic->addr_list, link) {
 		ethip_link_addr_t *laddr = list_get_instance(link,
-		    ethip_link_addr_t, addr_list);
+		    ethip_link_addr_t, link);
 		
 		if (inet_addr_compare(addr, &laddr->addr))
 			return laddr;
