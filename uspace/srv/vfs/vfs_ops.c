@@ -1062,42 +1062,6 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
-{
-	int lflag = IPC_GET_ARG1(*request);
-	
-	char *path;
-	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
-	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
-	}
-	
-	fibril_rwlock_write_lock(&namespace_rwlock);
-	lflag &= L_DIRECTORY;	/* sanitize lflag */
-	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, lflag | L_UNLINK, &lr, NULL);
-	free(path);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		async_answer_0(rid, rc);
-		return;
-	}
-
-	/*
-	 * The name has already been unlinked by vfs_lookup_internal().
-	 * We have to get and put the VFS node to ensure that it is
-	 * VFS_OUT_DESTROY'ed after the last reference to it is dropped.
-	 */
-	vfs_node_t *node = vfs_node_get(&lr);
-	fibril_mutex_lock(&nodes_mutex);
-	node->lnkcnt--;
-	fibril_mutex_unlock(&nodes_mutex);
-	fibril_rwlock_write_unlock(&namespace_rwlock);
-	vfs_node_put(node);
-	async_answer_0(rid, EOK);
-}
-
 void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
