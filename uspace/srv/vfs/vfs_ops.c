@@ -1098,6 +1098,88 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, EOK);
 }
 
+void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
+{
+	int rc;
+	char *path;
+	vfs_file_t *parent = NULL;
+	vfs_file_t *expect = NULL;
+	vfs_pair_t *parent_node = NULL;
+	
+	int parentfd = IPC_GET_ARG1(*request);
+	int expectfd = IPC_GET_ARG2(*request);
+	int wflag = IPC_GET_ARG3(*request);
+	
+	rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	fibril_rwlock_write_lock(&namespace_rwlock);
+	
+	int lflag = (wflag&WALK_DIRECTORY) ? L_DIRECTORY: 0;
+
+	if (parentfd >= 0) {
+		parent = vfs_file_get(parentfd);
+		if (!parent) {
+			rc = ENOENT;
+			goto exit;
+		}
+		parent_node = (vfs_pair_t *)parent->node;
+	}
+	
+	if (expectfd >= 0) {
+		expect = vfs_file_get(expectfd);
+		if (!expect) {
+			rc = ENOENT;
+			goto exit;
+		}
+		
+		vfs_lookup_res_t lr;
+		rc = vfs_lookup_internal(path, lflag, &lr, parent_node);
+		if (rc != EOK) {
+			goto exit;
+		}
+		
+		if (__builtin_memcmp(&lr.triplet, expect->node, sizeof(vfs_triplet_t)) != 0) {
+			rc = ENOENT;
+			goto exit;
+		}
+		
+		vfs_file_put(expect);
+		expect = NULL;
+	}
+	
+	vfs_lookup_res_t lr;
+	rc = vfs_lookup_internal(path, lflag | L_UNLINK, &lr, parent_node);
+	if (rc != EOK) {
+		goto exit;
+	}
+
+	/*
+	 * The name has already been unlinked by vfs_lookup_internal().
+	 * We have to get and put the VFS node to ensure that it is
+	 * VFS_OUT_DESTROY'ed after the last reference to it is dropped.
+	 */
+	vfs_node_t *node = vfs_node_get(&lr);
+	vfs_node_delref(node);
+	vfs_node_put(node);
+
+exit:
+	if (path) {
+		free(path);
+	}
+	if (parent) {
+		vfs_file_put(parent);
+	}
+	if (expect) {
+		vfs_file_put(expect);
+	}
+	fibril_rwlock_write_unlock(&namespace_rwlock);
+	async_answer_0(rid, rc);
+}
+
 void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 {
 	/* Retrieve the old path. */

@@ -111,6 +111,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_UNLINK:
 			vfs_unlink(callid, &call);
 			break;
+		case VFS_IN_UNLINK2:
+			vfs_unlink2(callid, &call);
+			break;
 		case VFS_IN_RENAME:
 			vfs_rename(callid, &call);
 			break;

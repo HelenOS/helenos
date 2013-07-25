@@ -717,10 +717,12 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_UNLINK, o);
 	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_RENAME, o);
-	o = oper_new("walk", 3, arg_def, V_INT_ERRNO, 0, resp_def);
+	o = oper_new("walk", 2, arg_def, V_INT_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_WALK, o);
 	o = oper_new("open2", 2, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_OPEN2, o);
+	o = oper_new("unlink2", 3, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_UNLINK2, o);
 
 	proto_register(SERVICE_VFS, p);
 }

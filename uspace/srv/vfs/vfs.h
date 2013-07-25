@@ -218,8 +218,6 @@ extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
 extern void vfs_fstat(ipc_callid_t, ipc_call_t *);
-extern void vfs_stat(ipc_callid_t, ipc_call_t *);
-extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);
 extern void vfs_unlink(ipc_callid_t, ipc_call_t *);
 extern void vfs_rename(ipc_callid_t, ipc_call_t *);
 extern void vfs_wait_handle(ipc_callid_t, ipc_call_t *);
@@ -227,6 +225,7 @@ extern void vfs_get_mtab(ipc_callid_t, ipc_call_t *);
 
 extern void vfs_walk(ipc_callid_t, ipc_call_t *);
 extern void vfs_open2(ipc_callid_t, ipc_call_t *);
+extern void vfs_unlink2(ipc_callid_t, ipc_call_t *);
 
 #endif
 

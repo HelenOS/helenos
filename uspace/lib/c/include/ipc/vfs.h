@@ -80,6 +80,7 @@ typedef enum {
 	VFS_IN_MTAB_GET,
 	VFS_IN_WALK,
 	VFS_IN_OPEN2,
+	VFS_IN_UNLINK2,
 } vfs_in_request_t;
 
 typedef enum {
