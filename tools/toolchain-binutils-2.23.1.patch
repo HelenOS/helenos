@@ -1,6 +1,6 @@
-diff -ud -Nrud binutils-2.23.1-original/bfd/config.bfd binutils-2.23.1/bfd/config.bfd
---- binutils-2.23.1-original/bfd/config.bfd	2012-09-04 16:14:59.000000000 +0200
-+++ binutils-2.23.1/bfd/config.bfd	2013-07-10 12:37:45.044748453 +0200
+diff -ud -rud binutils-2.23.1/bfd/config.bfd binutils-2.23.1/bfd/config.bfd
+--- binutils-2.23.1/bfd/config.bfd	2012-09-04 16:14:59.000000000 +0200
++++ binutils-2.23.1/bfd/config.bfd	2013-07-25 09:47:45.116719403 +0200
 @@ -203,7 +203,7 @@
      targ_defvec=ecoffalpha_little_vec
      want64=true
@@ -18,47 +18,49 @@ diff -ud -Nrud binutils-2.23.1-original/bfd/config.bfd binutils-2.23.1/bfd/confi
    arm*-*-eabi* )
      targ_defvec=bfd_elf32_littlearm_vec
      targ_selvecs=bfd_elf32_bigarm_vec
-@@ -538,6 +539,16 @@
+@@ -600,7 +601,7 @@
+     targ_selvecs=bfd_elf32_i386_vec
+     targ_underscore=yes
+     ;;
+-  i[3-7]86-*-linux-*)
++  i[3-7]86-*-linux-* | i[3-7]86-*-helenos*)
      targ_defvec=bfd_elf32_i386_vec
-     targ_selvecs="i386coff_vec i386aout_vec"
+     targ_selvecs="i386linux_vec i386pei_vec"
+     targ64_selvecs="bfd_elf64_x86_64_vec bfd_elf32_x86_64_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
+@@ -643,7 +644,7 @@
+     targ_selvecs="bfd_elf32_i386_vec i386netbsd_vec i386coff_vec i386pei_vec x86_64pei_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
+     want64=true
      ;;
-+  i[3-7]86-*-helenos*)
-+    targ_defvec=bfd_elf32_i386_vec
-+    targ_selvecs="i386linux_vec i386pei_vec"
-+    targ64_selvecs="bfd_elf64_x86_64_vec bfd_elf32_x86_64_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
-+    ;;
-+  x86_64-*-helenos*)
-+    targ_defvec=bfd_elf64_x86_64_vec
-+    targ_selvecs="bfd_elf32_i386_vec bfd_elf32_x86_64_vec i386linux_vec i386pei_vec x86_64pei_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
-+    want64=true
-+    ;;
-   i[3-7]86-*-darwin* | i[3-7]86-*-macos10* | i[3-7]86-*-rhapsody*)
-     targ_defvec=mach_o_i386_vec
-     targ_selvecs="mach_o_le_vec mach_o_be_vec mach_o_fat_vec pef_vec pef_xlib_vec sym_vec"
-@@ -996,6 +1007,10 @@
-     targ_defvec=bfd_elf32_bigmips_vec
-     targ_selvecs="bfd_elf32_littlemips_vec bfd_elf64_bigmips_vec bfd_elf64_littlemips_vec"
+-  x86_64-*-linux-*)
++  x86_64-*-linux-* | x86_64-*-helenos*)
+     targ_defvec=bfd_elf64_x86_64_vec
+     targ_selvecs="bfd_elf32_i386_vec bfd_elf32_x86_64_vec i386linux_vec i386pei_vec x86_64pei_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
+     want64=true
+@@ -1016,7 +1017,7 @@
+     targ_selvecs="bfd_elf32_littlemips_vec bfd_elf64_bigmips_vec bfd_elf64_littlemips_vec ecoff_big_vec ecoff_little_vec"
      ;;
-+  mips*-*-helenos*)
-+    targ_defvec=bfd_elf32_tradlittlemips_vec
-+    targ_selvecs="bfd_elf32_tradbigmips_vec ecoff_little_vec ecoff_big_vec bfd_elf32_ntradlittlemips_vec bfd_elf32_ntradbigmips_vec"
-+    ;;
-   mips*-*-none)
-     targ_defvec=bfd_elf32_bigmips_vec
-     targ_selvecs="bfd_elf32_littlemips_vec bfd_elf64_bigmips_vec bfd_elf64_littlemips_vec"
-@@ -1031,6 +1046,11 @@
+ #ifdef BFD64
+-  mips64*el-*-linux*)
++  mips64*el-*-linux* | mips64el-*-helenos*)
+     targ_defvec=bfd_elf32_ntradlittlemips_vec
+     targ_selvecs="bfd_elf32_ntradbigmips_vec bfd_elf32_tradlittlemips_vec bfd_elf32_tradbigmips_vec bfd_elf64_tradlittlemips_vec bfd_elf64_tradbigmips_vec"
+     want64=true
+@@ -1026,12 +1027,12 @@
+     targ_selvecs="bfd_elf32_ntradlittlemips_vec bfd_elf32_tradbigmips_vec bfd_elf32_tradlittlemips_vec bfd_elf64_tradbigmips_vec bfd_elf64_tradlittlemips_vec"
+     want64=true
+     ;;
+-  mips*el-*-linux*)
++  mips*el-*-linux* | mipsel-*-helenos*)
+     targ_defvec=bfd_elf32_tradlittlemips_vec
      targ_selvecs="bfd_elf32_tradbigmips_vec ecoff_little_vec ecoff_big_vec bfd_elf32_ntradlittlemips_vec bfd_elf64_tradlittlemips_vec bfd_elf32_ntradbigmips_vec bfd_elf64_tradbigmips_vec"
      want64=true
      ;;
-+  mips64el-*-helenos*)
-+    targ_defvec=bfd_elf32_tradlittlemips_vec
-+    targ_selvecs="bfd_elf32_tradbigmips_vec ecoff_little_vec ecoff_big_vec bfd_elf32_ntradlittlemips_vec bfd_elf64_tradlittlemips_vec bfd_elf32_ntradbigmips_vec bfd_elf64_tradbigmips_vec"
-+    want64=true
-+    ;;
-   mips*-*-linux*)
+-  mips*-*-linux*)
++  mips*-*-linux* | mips-*-helenos*)
      targ_defvec=bfd_elf32_tradbigmips_vec
      targ_selvecs="bfd_elf32_tradlittlemips_vec ecoff_big_vec ecoff_little_vec bfd_elf32_ntradbigmips_vec bfd_elf64_tradbigmips_vec bfd_elf32_ntradlittlemips_vec bfd_elf64_tradlittlemips_vec"
-@@ -1179,6 +1199,7 @@
+     want64=true
+@@ -1179,6 +1180,7 @@
      want64=true
      ;;
    powerpc64-*-elf* | powerpc-*-elf64* | powerpc64-*-linux* | \
@@ -66,7 +68,7 @@ diff -ud -Nrud binutils-2.23.1-original/bfd/config.bfd binutils-2.23.1/bfd/confi
    powerpc64-*-*bsd*)
      targ_defvec=bfd_elf64_powerpc_vec
      targ_selvecs="bfd_elf64_powerpcle_vec bfd_elf32_powerpc_vec bfd_elf32_powerpcle_vec rs6000coff_vec rs6000coff64_vec aix5coff64_vec"
-@@ -1197,6 +1218,7 @@
+@@ -1197,6 +1199,7 @@
      ;;
    powerpc-*-*bsd* | powerpc-*-elf* | powerpc-*-sysv4* | powerpc-*-eabi* | \
    powerpc-*-solaris2* | powerpc-*-linux-* | powerpc-*-rtems* | \
@@ -74,7 +76,7 @@ diff -ud -Nrud binutils-2.23.1-original/bfd/config.bfd binutils-2.23.1/bfd/confi
    powerpc-*-chorus*)
      targ_defvec=bfd_elf32_powerpc_vec
      targ_selvecs="rs6000coff_vec bfd_elf32_powerpcle_vec ppcboot_vec"
-@@ -1495,7 +1517,7 @@
+@@ -1495,7 +1498,7 @@
      targ_underscore=yes
      want64=true
      ;;
@@ -83,9 +85,9 @@ diff -ud -Nrud binutils-2.23.1-original/bfd/config.bfd binutils-2.23.1/bfd/confi
      targ_defvec=bfd_elf64_sparc_vec
      targ_selvecs="bfd_elf32_sparc_vec sparclinux_vec sunos_big_vec"
      want64=true
-diff -ud -Nrud binutils-2.23.1-original/config.sub binutils-2.23.1/config.sub
---- binutils-2.23.1-original/config.sub	2012-04-25 17:53:25.000000000 +0200
-+++ binutils-2.23.1/config.sub	2013-07-09 15:52:36.213542827 +0200
+diff -ud -rud binutils-2.23.1/config.sub binutils-2.23.1/config.sub
+--- binutils-2.23.1/config.sub	2012-04-25 17:53:25.000000000 +0200
++++ binutils-2.23.1/config.sub	2013-07-25 09:36:54.354122235 +0200
 @@ -1359,6 +1359,7 @@
  	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
  	      | -chorusos* | -chorusrdb* | -cegcc* \
@@ -94,106 +96,131 @@ diff -ud -Nrud binutils-2.23.1-original/config.sub binutils-2.23.1/config.sub
  	      | -mingw32* | -linux-gnu* | -linux-android* \
  	      | -linux-newlib* | -linux-uclibc* \
  	      | -uxpv* | -beos* | -mpeix* | -udk* \
-diff -ud -Nrud binutils-2.23.1-original/gas/configure.tgt binutils-2.23.1/gas/configure.tgt
---- binutils-2.23.1-original/gas/configure.tgt	2012-09-04 14:53:45.000000000 +0200
-+++ binutils-2.23.1/gas/configure.tgt	2013-07-10 12:36:18.004435477 +0200
-@@ -113,6 +113,7 @@
-   arm-*-aout)				fmt=aout ;;
-   arm-*-coff)				fmt=coff ;;
-   arm-*-rtems*)				fmt=elf ;;
-+  arm-helenos-*eabi*)			fmt=elf  em=armlinuxeabi ;;
-   arm-*-elf)				fmt=elf ;;
-   arm-*-eabi*)				fmt=elf em=armeabi ;;
-   arm-*-symbianelf*)			fmt=elf em=symbian ;;
-@@ -231,6 +232,7 @@
-   i386-*-msdosdjgpp* \
-   | i386-*-go32*)			fmt=coff em=go32 ;;
-   i386-*-rtems*)			fmt=elf ;;
-+  i386-*-helenos*)			fmt=elf ;;
-   i386-*-gnu*)				fmt=elf em=gnu ;;
-   i386-*-mach*)				fmt=aout em=mach ;;
-   i386-*-msdos*)			fmt=aout ;;
-@@ -259,6 +261,7 @@
-   ia64-*-linux-*)			fmt=elf em=linux ;;
+diff -ud -rud binutils-2.23.1/gas/configure.tgt binutils-2.23.1/gas/configure.tgt
+--- binutils-2.23.1/gas/configure.tgt	2012-09-04 14:53:45.000000000 +0200
++++ binutils-2.23.1/gas/configure.tgt	2013-07-25 09:53:00.181319734 +0200
+@@ -119,7 +119,8 @@
+   arm-*-kaos*)				fmt=elf ;;
+   arm-*-conix*)				fmt=elf ;;
+   arm-*-linux*aout*)			fmt=aout em=linux ;;
+-  arm-*-linux-*eabi*)			fmt=elf  em=armlinuxeabi ;;
++  arm-*-linux-*eabi* | arm-helenos-*eabi*)
++  					fmt=elf  em=armlinuxeabi ;;
+   arm-*-linux-*)			fmt=elf  em=linux ;;
+   arm-*-uclinux*eabi*)			fmt=elf  em=armlinuxeabi ;;
+   arm-*-uclinux*)			fmt=elf  em=linux ;;
+@@ -210,7 +211,7 @@
+   i386-*-linux*aout*)			fmt=aout em=linux ;;
+   i386-*-linux*oldld)			fmt=aout em=linux ;;
+   i386-*-linux*coff*)			fmt=coff em=linux ;;
+-  i386-*-linux-*)			fmt=elf em=linux
++  i386-*-linux-* | i386-*-helenos*)	fmt=elf em=linux
+     case ${cpu}-${os} in
+       x86_64*-linux-gnux32)		arch=x86_64:32 ;;
+     esac ;;
+@@ -256,7 +257,7 @@
+   ia64-*-elf*)				fmt=elf ;;
+   ia64-*-*vms*)				fmt=elf em=vms ;;
+   ia64-*-aix*)				fmt=elf em=ia64aix ;;
+-  ia64-*-linux-*)			fmt=elf em=linux ;;
++  ia64-*-linux-* | ia64-*-helenos*)	fmt=elf em=linux ;;
    ia64-*-hpux*)				fmt=elf em=hpux ;;
    ia64-*-netbsd*)			fmt=elf em=nbsd ;;
-+  ia64-*-helenos*)			fmt=elf ;;
  
-   ip2k-*-*)				fmt=elf ;;
- 
-@@ -311,6 +314,8 @@
-   mips*-sde-elf*)			fmt=elf em=tmips ;;
-   mips-*-sysv*)				fmt=ecoff ;;
-   mips-*-elf* | mips-*-rtems*)		fmt=elf ;;
-+  mips*el-*-helenos*)			fmt=elf endian=little em=tmips ;;
-+  mips-*-helenos*)			fmt=elf em=tmips ;;
-   mips-*-netbsd*)			fmt=elf em=tmips ;;
-   mips-*-openbsd*)			fmt=elf em=tmips ;;
- 
-@@ -352,6 +357,7 @@
-   ppc-*-linux-*)			fmt=elf em=linux ;;
+@@ -304,7 +305,7 @@
+   mips-*-irix*)				fmt=ecoff em=irix ;;
+   mips-*-lnews*)			fmt=ecoff em=lnews ;;
+   mips-*-riscos*)			fmt=ecoff ;;
+-  mips*-*-linux*)			fmt=elf em=tmips ;;
++  mips*-*-linux* | mips*-*-helenos*)	fmt=elf em=tmips ;;
+   mips*-*-freebsd* | mips*-*-kfreebsd*-gnu)
+ 					fmt=elf em=freebsd ;;
+   mips-*-sysv4*MP* | mips-*-gnu*)	fmt=elf em=tmips ;;
+@@ -349,7 +350,7 @@
+   ppc-*-beos*)				fmt=coff ;;
+   ppc-*-*n*bsd* | ppc-*-elf*)		fmt=elf ;;
+   ppc-*-eabi* | ppc-*-sysv4*)		fmt=elf ;;
+-  ppc-*-linux-*)			fmt=elf em=linux ;;
++  ppc-*-linux-* | ppc-*-helenos)	fmt=elf em=linux ;;
    ppc-*-solaris*)			fmt=elf em=solaris ;;
    ppc-*-rtems*)				fmt=elf ;;
-+  ppc-*-helenos*)			fmt=elf ;;
    ppc-*-macos*)				fmt=coff em=macos ;;
-   ppc-*-nto*)				fmt=elf ;;
-   ppc-*-kaos*)				fmt=elf ;;
-@@ -388,6 +394,7 @@
- 
-   sparc64-*-rtems*)			fmt=elf ;;
-   sparc-*-rtems*)			fmt=elf ;;
-+  sparc-*-helenos*)			fmt=elf em=linux ;;
-   sparc-*-sunos4*)			fmt=aout em=sun3 ;;
+@@ -392,7 +393,7 @@
    sparc-*-aout)				fmt=aout em=sparcaout ;;
    sparc-*-coff)				fmt=coff ;;
-diff -ud -Nrud binutils-2.23.1-original/ld/configure.tgt binutils-2.23.1/ld/configure.tgt
---- binutils-2.23.1-original/ld/configure.tgt	2012-09-04 14:53:47.000000000 +0200
-+++ binutils-2.23.1/ld/configure.tgt	2013-07-10 12:32:54.230336250 +0200
-@@ -73,6 +73,10 @@
- arm-*-nto*)		targ_emul=armnto ;;
- arm-*-openbsd*)		targ_emul=armnbsd ;;
- arm-*-rtems*)		targ_emul=armelf ;;
-+arm-helenos-*eabi*)	targ_emul=armelf_linux_eabi
-+			targ_extra_emuls=armelfb_linux_eabi
-+			targ_extra_libpath=$targ_extra_emuls
-+			;;
- armeb-*-elf)		targ_emul=armelfb ;;
- arm-*-elf | arm*-*-eabi*)
- 	  		targ_emul=armelf ;;
-@@ -196,6 +200,8 @@
- i[3-7]86-*-lynxos*)	targ_emul=i386lynx ;;
- i[3-7]86-*-coff)	targ_emul=i386coff ;;
- i[3-7]86-*-rtems*)	targ_emul=elf_i386 ;;
-+i[3-7]86-*-helenos*)	targ_emul=elf_i386 ;;
-+x86_64-*-helenos*)	targ_emul=elf_x86_64 ;;
- i[3-7]86-*-aros*)	targ_emul=elf_i386 ;;
- i[3-7]86-*-rdos*)	targ_emul=elf_i386 ;;
- i[3-7]86-*-bsd)		targ_emul=i386bsd ;;
-@@ -336,6 +342,7 @@
+   sparc-*-linux*aout*)			fmt=aout em=linux ;;
+-  sparc-*-linux-*)			fmt=elf em=linux ;;
++  sparc-*-linux-* | sparc-*-helenos*)	fmt=elf em=linux ;;
+   sparc-fujitsu-none)			fmt=aout ;;
+   sparc-*-elf)				fmt=elf ;;
+   sparc-*-sysv4*)			fmt=elf ;;
+diff -ud -rud binutils-2.23.1/ld/configure.tgt binutils-2.23.1/ld/configure.tgt
+--- binutils-2.23.1/ld/configure.tgt	2012-09-04 14:53:47.000000000 +0200
++++ binutils-2.23.1/ld/configure.tgt	2013-07-25 09:56:05.498734292 +0200
+@@ -87,7 +87,8 @@
+ 			targ_extra_emuls="armelfb armelf armelf_linux"
+ 			targ_extra_libpath="armelf_linux"
+ 			;;
+-arm*-*-linux-*eabi*)	targ_emul=armelf_linux_eabi
++arm*-*-linux-*eabi* | arm-helenos-*eabi*)
++			targ_emul=armelf_linux_eabi
+ 			targ_extra_emuls=armelfb_linux_eabi
+ 			targ_extra_libpath=$targ_extra_emuls
+ 			;;
+@@ -206,7 +207,8 @@
+ 			targ_extra_emuls=elf_i386
+ 			tdir_elf_i386=`echo ${targ_alias} | sed -e 's/aout//'` ;;
+ i[3-7]86-*-linux*oldld)	targ_emul=i386linux; targ_extra_emuls=elf_i386 ;;
+-i[3-7]86-*-linux-*)	targ_emul=elf_i386
++i[3-7]86-*-linux-* | i[3-7]86-*-helenos*)
++			targ_emul=elf_i386
+ 			targ_extra_emuls=i386linux
+ 			targ64_extra_emuls="elf_x86_64 elf32_x86_64 elf_l1om elf_k1om"
+ 			targ64_extra_libpath=elf_x86_64
+@@ -217,7 +219,8 @@
+ 			targ_extra_libpath="elf_i386 elf_x86_64 elf_l1om elf_k1om"
+ 			tdir_i386linux=`echo ${targ_alias}aout | sed -e 's/x86_64/i386/' -e 's/-linux-gnux32/-linux-gnu/'`
+ 			tdir_elf_i386=`echo ${targ_alias} | sed -e 's/x86_64/i386/' -e 's/-linux-gnux32/-linux-gnu/'` ;;
+-x86_64-*-linux-*)	targ_emul=elf_x86_64
++x86_64-*-linux-* | x86_64-*-helenos*)
++			targ_emul=elf_x86_64
+ 			targ_extra_emuls="elf32_x86_64 elf_i386 i386linux elf_l1om elf_k1om"
+ 			targ_extra_libpath="elf_i386 elf32_x86_64 elf_l1om elf_k1om"
+ 			tdir_i386linux=`echo ${targ_alias}aout | sed -e 's/x86_64/i386/'`
+@@ -334,7 +337,8 @@
+ 		        targ_emul=elf64_ia64_fbsd
+ 			targ_extra_emuls="elf64_ia64" ;;
  ia64-*-netbsd*)		targ_emul=elf64_ia64 ;;
- ia64-*-linux*)		targ_emul=elf64_ia64 ;;
+-ia64-*-linux*)		targ_emul=elf64_ia64 ;;
++ia64-*-linux* | ia64-*-helenos*)
++			targ_emul=elf64_ia64 ;;
  ia64-*-*vms*)		targ_emul=elf64_ia64_vms ;;
-+ia64-*-helenos*)	targ_emul=elf64_ia64 ;;
  ia64-*-aix*)		targ_emul=elf64_aix
  			;;
- ip2k-*-elf)		targ_emul=elf32ip2k
-@@ -429,6 +436,15 @@
- mips*el-*-elf*)		targ_emul=elf32elmip ;;
- mips*-*-elf*)		targ_emul=elf32ebmip ;;
- mips*-*-rtems*)		targ_emul=elf32ebmip ;;
-+mipsel-*-helenos*)	targ_emul=elf32ltsmip
-+			targ_extra_emuls="elf32btsmip elf32ltsmipn32 elf32btsmipn32"
-+			targ_extra_libpath=$targ_extra_emuls ;;
-+mips-*-helenos*)	targ_emul=elf32btsmip
-+			targ_extra_emuls="elf32ltsmip elf32btsmipn32 elf32ltsmipn32"
-+			targ_extra_libpath=$targ_extra_emuls ;;
-+mips64*el-*-helenos*)	targ_emul=elf32ltsmipn32
-+			targ_extra_emuls="elf32btsmipn32 elf32ltsmip elf32btsmip elf64ltsmip elf64btsmip"
-+			targ_extra_libpath=$targ_extra_emuls ;;
- mips*el-*-vxworks*)	targ_emul=elf32elmipvxworks
- 			targ_extra_emuls="elf32ebmipvxworks" ;;
+@@ -434,16 +438,19 @@
  mips*-*-vxworks*)	targ_emul=elf32ebmipvxworks
-@@ -503,7 +519,8 @@
+ 		        targ_extra_emuls="elf32elmipvxworks" ;;
+ mips*-*-windiss)	targ_emul=elf32mipswindiss ;;
+-mips64*el-*-linux-*)	targ_emul=elf32ltsmipn32
++mips64*el-*-linux-* | mips64*el-*-helenos*)
++			targ_emul=elf32ltsmipn32
+ 			targ_extra_emuls="elf32btsmipn32 elf32ltsmip elf32btsmip elf64ltsmip elf64btsmip"
+ 			targ_extra_libpath=$targ_extra_emuls ;;
+ mips64*-*-linux-*)	targ_emul=elf32btsmipn32
+ 			targ_extra_emuls="elf32ltsmipn32 elf32btsmip elf32ltsmip elf64btsmip elf64ltsmip"
+ 			targ_extra_libpath=$targ_extra_emuls ;;
+-mips*el-*-linux-*)	targ_emul=elf32ltsmip
++mips*el-*-linux-* | mipsel-*-helenos*)
++			targ_emul=elf32ltsmip
+ 			targ_extra_emuls="elf32btsmip elf32ltsmipn32 elf64ltsmip elf32btsmipn32 elf64btsmip"
+ 			targ_extra_libpath=$targ_extra_emuls ;;
+-mips*-*-linux-*)	targ_emul=elf32btsmip
++mips*-*-linux-* | mips-*-helenos*)
++			targ_emul=elf32btsmip
+ 			targ_extra_emuls="elf32ltsmip elf32btsmipn32 elf64btsmip elf32ltsmipn32 elf64ltsmip"
+ 			targ_extra_libpath=$targ_extra_emuls ;;
+ mips64*el-*-freebsd* | mips64*el-*-kfreebsd*-gnu)
+@@ -503,7 +510,8 @@
  			tdir_elf32ppc=`echo "${targ_alias}" | sed -e 's/64//'`
  			tdir_elf32ppc_fbsd=$tdir_elf32ppc
  			;;
@@ -203,7 +230,7 @@ diff -ud -Nrud binutils-2.23.1-original/ld/configure.tgt binutils-2.23.1/ld/conf
  			*64*)	targ_emul=elf64ppc
  				targ_extra_emuls="elf32ppclinux elf32ppc elf32ppcsim"
  				targ_extra_libpath="elf32ppclinux elf32ppc"
-@@ -642,7 +659,8 @@
+@@ -642,7 +650,8 @@
  			targ_extra_emuls="elf32_sparc sun4"
  			tdir_elf32_sparc=`echo ${targ_alias} | sed -e 's/aout//'`
  			tdir_sun4=sparc-sun-sunos4 ;;
