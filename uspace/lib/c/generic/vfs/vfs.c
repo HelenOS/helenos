@@ -574,41 +574,19 @@ int fstat(int fildes, struct stat *stat)
 
 int stat(const char *path, struct stat *stat)
 {
-	sysarg_t rc;
-	sysarg_t rc_orig;
-	aid_t req;
-	
 	size_t pa_size;
 	char *pa = absolutize(path, &pa_size);
-	if (!pa)
+	if (!pa) {
 		return ENOMEM;
-	
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	req = async_send_0(exch, VFS_IN_STAT, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
 	}
-	rc = async_data_read_start(exch, stat, sizeof(struct stat));
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
+	
+	int fd = _vfs_walk(-1, pa, 0);
+	if (fd < 0) {
+		return fd;
 	}
-	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc);
+	
+	int rc = fstat(fd, stat);
+	close(fd);
 	return rc;
 }
 
