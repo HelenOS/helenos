@@ -108,9 +108,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_IN_FSTAT:
 			vfs_fstat(callid, &call);
 			break;
-		case VFS_IN_STAT:
-			vfs_stat(callid, &call);
-			break;
 		case VFS_IN_MKDIR:
 			vfs_mkdir(callid, &call);
 			break;
