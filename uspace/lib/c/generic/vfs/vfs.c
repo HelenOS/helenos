@@ -649,34 +649,19 @@ int closedir(DIR *dirp)
 
 int mkdir(const char *path, mode_t mode)
 {
-	sysarg_t rc;
-	aid_t req;
-	
 	size_t pa_size;
 	char *pa = absolutize(path, &pa_size);
-	if (!pa)
+	if (!pa) {
 		return ENOMEM;
-	
-	async_exch_t *exch = vfs_exchange_begin();
-	
-	req = async_send_1(exch, VFS_IN_MKDIR, mode, NULL);
-	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-
-		sysarg_t rc_orig;
-		async_wait_for(req, &rc_orig);
-
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
 	}
-	vfs_exchange_end(exch);
-	free(pa);
-	async_wait_for(req, &rc);
-	return rc;
+	
+	int ret = _vfs_walk(-1, pa, WALK_MUST_CREATE | WALK_DIRECTORY);
+	if (ret < 0) {
+		return ret;
+	}
+	
+	close(ret);
+	return EOK;
 }
 
 static int _unlink(const char *path, int lflag)
