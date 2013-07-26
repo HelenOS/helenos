@@ -64,7 +64,7 @@ static inline int usb_device_connection_initialize(
 	assert(instance);
 	if (hc_connection == NULL)
 		return EBADMEM;
-	if ((address < 0) || (address >= USB11_ADDRESS_MAX))
+	if (!usb_address_is_valid(address))
 		return EINVAL;
 
 	instance->hc_connection = hc_connection;
