@@ -83,9 +83,6 @@ void usb_hc_connection_deinitialize(usb_hc_connection_t *);
 int usb_hc_connection_open(usb_hc_connection_t *);
 int usb_hc_connection_close(usb_hc_connection_t *);
 
-int usb_hc_get_handle_by_address(usb_hc_connection_t *, usb_address_t,
-    devman_handle_t *);
-
 int usb_hc_read(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,
     uint64_t, void *, size_t, size_t *);
 int usb_hc_write(usb_hc_connection_t *, usb_address_t, usb_endpoint_t,

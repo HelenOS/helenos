@@ -143,26 +143,6 @@ int usb_hc_connection_close(usb_hc_connection_t *connection)
 	return usb_hc_connection_del_ref(connection);
 }
 
-
-/** Get handle of USB device with given address.
- *
- * @param[in] connection Opened connection to host controller.
- * @param[in] address Address of device in question.
- * @param[out] handle Where to write the device handle.
- * @return Error code.
- */
-int usb_hc_get_handle_by_address(usb_hc_connection_t *connection,
-    usb_address_t address, devman_handle_t *handle)
-{
-	async_exch_t *exch;
-	EXCH_INIT(connection, exch);
-
-	const int ret = usbhc_get_handle(exch, address, handle);
-
-	EXCH_FINI(connection, exch);
-	return ret;
-}
-
 int usb_hc_read(usb_hc_connection_t *connection, usb_address_t address,
     usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
     size_t *real_size)

@@ -83,15 +83,6 @@
  *
  */
 typedef enum {
-	/** Get handle binded with given USB address.
-	 * Parameters
-	 * - USB address
-	 * Answer:
-	 * - EOK - address binded, first parameter is the devman handle
-	 * - ENOENT - address is not in use at the moment
-	 */
-	IPC_M_USBHC_GET_HANDLE_BY_ADDRESS,
-
 	/** Register endpoint attributes at host controller.
 	 * This is used to reserve portion of USB bandwidth.
 	 * When speed is invalid, speed of the device is used.
@@ -129,21 +120,6 @@ typedef enum {
 	 */
 	IPC_M_USBHC_WRITE,
 } usbhc_iface_funcs_t;
-
-
-
-int usbhc_get_handle(async_exch_t *exch, usb_address_t address,
-    devman_handle_t *handle)
-{
-	if (!exch)
-		return EBADMEM;
-	sysarg_t h;
-	const int ret = async_req_2_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_GET_HANDLE_BY_ADDRESS, address, &h);
-	if (ret == EOK && handle)
-		*handle = (devman_handle_t)h;
-	return ret;
-}
 
 int usbhc_register_endpoint(async_exch_t *exch, usb_address_t address,
     usb_endpoint_t endpoint, usb_transfer_type_t type,
@@ -264,7 +240,6 @@ int usbhc_write(async_exch_t *exch, usb_address_t address,
 }
 
 
-static void remote_usbhc_get_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -273,8 +248,6 @@ static void remote_usbhc_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
-	[IPC_M_USBHC_GET_HANDLE_BY_ADDRESS] = remote_usbhc_get_handle,
-
 	[IPC_M_USBHC_REGISTER_ENDPOINT] = remote_usbhc_register_endpoint,
 	[IPC_M_USBHC_UNREGISTER_ENDPOINT] = remote_usbhc_unregister_endpoint,
 
@@ -321,29 +294,6 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 
 	return trans;
 }
-
-
-void remote_usbhc_get_handle(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	const usbhc_iface_t *usb_iface = iface;
-
-	if (!usb_iface->get_handle) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	const usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
-	devman_handle_t handle;
-	const int ret = usb_iface->get_handle(fun, address, &handle);
-
-	if (ret == EOK) {
-		async_answer_1(callid, ret, handle);
-	} else {
-		async_answer_0(callid, ret);
-	}
-}
-
 
 static void callback_out(int outcome, void *arg)
 {

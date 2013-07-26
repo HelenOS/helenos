@@ -41,23 +41,6 @@
 #include <usb/host/hcd.h>
 #include "ddf_helpers.h"
 
-/** Find device handle by address interface function.
- *
- * @param[in] fun DDF function that was called.
- * @param[in] address Address in question.
- * @param[out] handle Where to store device handle if found.
- * @return Error code.
- */
-static int find_by_address(ddf_fun_t *fun, usb_address_t address,
-    devman_handle_t *handle)
-{
-	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	assert(hcd);
-	return usb_device_manager_get_info_by_address(
-	    &hcd->dev_manager, address, handle, NULL);
-}
-
 /** Register endpoint interface function.
  * @param fun DDF function.
  * @param address USB address of the device.
@@ -147,8 +130,6 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 
 /** usbhc Interface implementation using hcd_t from libusbhost library. */
 usbhc_iface_t hcd_iface = {
-	.get_handle = find_by_address,
-
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,
 
