@@ -137,7 +137,7 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
 	assert(hcd);
 	usb_speed_t speed = USB_SPEED_MAX;
 	const int ret = usb_device_manager_get_info_by_address(
-	    &hcd->dev_manager, target.address, NULL, &speed);
+	    &hcd->dev_manager, target.address, &speed);
 	if (ret != EOK) {
 		return ret;
 	}

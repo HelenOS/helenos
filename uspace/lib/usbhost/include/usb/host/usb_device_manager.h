@@ -56,7 +56,6 @@ typedef struct {
 	struct {
 		usb_speed_t speed;      /**< Device speed */
 		bool occupied;          /**< The address is in use. */
-		devman_handle_t handle; /**< Devman handle of the device. */
 	} devices[USB_ADDRESS_COUNT];
 	/** Maximum speed allowed. */
 	usb_speed_t max_speed;
@@ -72,17 +71,11 @@ void usb_device_manager_init(
 int usb_device_manager_request_address(usb_device_manager_t *instance,
     usb_address_t *address, bool strict, usb_speed_t speed);
 
-int usb_device_manager_bind_address(usb_device_manager_t *instance,
-    usb_address_t address, devman_handle_t handle);
-
 int usb_device_manager_release_address(usb_device_manager_t *instance,
     usb_address_t address);
 
-usb_address_t usb_device_manager_find_address(usb_device_manager_t *instance,
-    devman_handle_t handle);
-
 int usb_device_manager_get_info_by_address(usb_device_manager_t *instance,
-    usb_address_t address, devman_handle_t *handle, usb_speed_t *speed);
+    usb_address_t address, usb_speed_t *speed);
 #endif
 /**
  * @}

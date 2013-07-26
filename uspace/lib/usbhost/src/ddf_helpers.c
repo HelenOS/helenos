@@ -301,12 +301,6 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 		return ret;
 	}
 
-	ret = usb_device_manager_bind_address(&dev_to_hcd(parent)->dev_manager,
-	    address, ddf_fun_get_handle(fun));
-	if (ret != EOK)
-		usb_log_warning("Failed to bind address: %s.\n",
-		    str_error(ret));
-
 	list_append(&info->link, &hc_dev->devices);
 	return EOK;
 }
@@ -407,7 +401,7 @@ int hcd_ddf_new_device(ddf_dev_t *device, usb_address_t *id)
 
 	/* This checks whether the default address is reserved and gets speed */
 	int ret = usb_device_manager_get_info_by_address(&hcd->dev_manager,
-		USB_ADDRESS_DEFAULT, NULL, &speed);
+		USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
 		return ret;
 	}
