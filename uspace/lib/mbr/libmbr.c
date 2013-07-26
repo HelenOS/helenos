@@ -589,6 +589,7 @@ void mbr_free_partitions(mbr_partitions_t *parts)
 {
 	list_foreach_safe(parts->list, cur_link, next) {
 		mbr_part_t *p = list_get_instance(cur_link, mbr_part_t, link);
+		list_remove(cur_link);
 		mbr_free_partition(p);
 	}
 

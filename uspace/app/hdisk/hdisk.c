@@ -198,6 +198,7 @@ int interact(service_id_t dev_handle)
 				break;
 			case 'q':
 				putchar('\n');
+				free_label();
 				goto end;
 			case 'r':
 				label.read_parts(&label, dev_handle);
