@@ -70,7 +70,7 @@ typedef enum {
  * - all in little endian.
  */
 typedef struct {
-	uint8_t efi_signature[8];
+	uint8_t  efi_signature[8];
 	uint32_t revision;
 	uint32_t header_size;
 	uint32_t header_crc32;
@@ -79,7 +79,7 @@ typedef struct {
 	uint64_t alternate_lba;
 	uint64_t first_usable_lba;
 	uint64_t last_usable_lba;
-	uint8_t disk_guid[16];
+	uint8_t  disk_guid[16];
 	uint64_t entry_lba;
 	uint32_t fillries;
 	uint32_t entry_size;

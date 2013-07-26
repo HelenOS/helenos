@@ -126,16 +126,18 @@ int gpt_read_header(gpt_label_t *label, service_id_t dev_handle)
 	
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
 	if (rc != EOK)
-		return rc;
+		goto fail;
 	
 	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
-		return rc;
+		goto fini_fail;
 	
 	if (label->gpt == NULL) {
 		label->gpt = gpt_alloc_header(b_size);
-		if (label->gpt == NULL)
-			return ENOMEM;
+		if (label->gpt == NULL) {
+			rc = ENOMEM;
+			goto fini_fail;
+		}
 	}
 	
 	rc = load_and_check_header(dev_handle, GPT_HDR_BA, b_size, label->gpt->header);
@@ -143,21 +145,23 @@ int gpt_read_header(gpt_label_t *label, service_id_t dev_handle)
 		aoff64_t n_blocks;
 		rc = block_get_nblocks(dev_handle, &n_blocks);
 		if (rc != EOK)
-			goto fail;
+			goto free_fail;
 
 		rc = load_and_check_header(dev_handle, n_blocks - 1, b_size, label->gpt->header);
 		if (rc == EBADCHECKSUM || rc == EINVAL)
-			goto fail;
+			goto free_fail;
 	}
 	
 	label->device = dev_handle;
 	block_fini(dev_handle);
 	return EOK;
 	
-fail:
-	block_fini(dev_handle);
+free_fail:
 	gpt_free_gpt(label->gpt);
 	label->gpt = NULL;
+fini_fail:
+	block_fini(dev_handle);
+fail:
 	return rc;
 }
 
@@ -239,6 +243,7 @@ int gpt_read_partitions(gpt_label_t *label)
 	/* We can limit comm_size like this:
 	 *  - we don't need more bytes
 	 *  - the size of GPT partition entry can be different to 128 bytes */
+	/* comm_size is ignored */
 	rc = block_init(EXCHANGE_SERIALIZE, label->device, sizeof(gpt_entry_t));
 	if (rc != EOK)
 		goto fail;
@@ -246,7 +251,7 @@ int gpt_read_partitions(gpt_label_t *label)
 	size_t block_size;
 	rc = block_get_bsize(label->device, &block_size);
 	if (rc != EOK)
-		goto fail;
+		goto fini_fail;
 
 	//size_t bufpos = 0;
 	//size_t buflen = 0;
@@ -265,7 +270,7 @@ int gpt_read_partitions(gpt_label_t *label)
 		pos += ent_size;
 
 		if (rc != EOK)
-			goto fail;
+			goto fini_fail;
 	}
 
 	/* FIXME: so far my boasting about variable partition entry size
@@ -273,15 +278,20 @@ int gpt_read_partitions(gpt_label_t *label)
 	 * This can't be fixed easily - we'd have to run the checksum
 	 * on all of the partition entry array.
 	 */
-	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, label->parts->fill * sizeof(gpt_entry_t));
+	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, 
+	                   label->parts->fill * sizeof(gpt_entry_t));
 
 	if(uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
 	{
 		rc = EBADCHECKSUM;
-		goto fail;
+		goto fini_fail;
 	}
-
+	
+	block_fini(label->device);
 	return EOK;
+	
+fini_fail:
+	block_fini(label->device);
 	
 fail:
 	gpt_free_partitions(label->parts);

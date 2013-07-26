@@ -193,12 +193,14 @@ static int set_gpt_partition(tinput_t *in, gpt_part_t *p)
 	
 	
 	char *name;
+	printf("Name the partition: ");
 	rc = get_input_line(in, &name);
 	if (rc != EOK) {
 		printf("Error reading name: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
 	
+	printf("name: %s, len: %d\n", name, str_size(name));
 	gpt_set_part_name(p, name, str_size(name));
 	
 	return EOK;
