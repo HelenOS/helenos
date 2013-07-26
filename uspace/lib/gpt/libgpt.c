@@ -229,12 +229,12 @@ int gpt_read_partitions(gpt_label_t *label)
 {
 	int rc;
 	unsigned int i;
-	uint32_t fill = uint32_t_le2host(label->gpt->header->fillries);
+	uint32_t fillries = uint32_t_le2host(label->gpt->header->fillries);
 	uint32_t ent_size = uint32_t_le2host(label->gpt->header->entry_size);
 	uint64_t ent_lba = uint64_t_le2host(label->gpt->header->entry_lba);
 	
 	if (label->parts == NULL) {
-		label->parts = alloc_part_array(fill);
+		label->parts = alloc_part_array(fillries);
 		if (label->parts == NULL) {
 			return ENOMEM;
 		}
@@ -262,7 +262,7 @@ int gpt_read_partitions(gpt_label_t *label)
 	 * and also allows us to have variable partition entry size (but we
 	 * will always read just sizeof(gpt_entry_t) bytes - hopefully they
 	 * don't break backward compatibility) */
-	for (i = 0; i < fill; ++i) {
+	for (i = 0; i < fillries; ++i) {
 		//FIXME: this does bypass cache...
 		rc = block_read_bytes_direct(label->device, pos, sizeof(gpt_entry_t), label->parts->part_array + i);
 		//FIXME: but seqread() is just too complex...
@@ -279,7 +279,7 @@ int gpt_read_partitions(gpt_label_t *label)
 	 * on all of the partition entry array.
 	 */
 	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, 
-	                   label->parts->fill * sizeof(gpt_entry_t));
+	                   fillries * sizeof(gpt_entry_t));
 
 	if(uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
 	{
@@ -311,11 +311,12 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	int rc;
 	size_t b_size;
 	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
-	size_t fill = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
+	size_t fillries = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
 	
-	label->gpt->header->pe_array_crc32 = compute_crc32(
+	label->gpt->header->fillries = host2uint32_t_le(fillries);
+	label->gpt->header->pe_array_crc32 = host2uint32_t_le(compute_crc32(
 	                               (uint8_t *) label->parts->part_array,
-	                               fill * e_size);
+	                               fillries * e_size));
 	
 	/* comm_size of 4096 is ignored */
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
@@ -338,8 +339,8 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	
 	/* Write to main GPT partition array location */
 	rc = block_write_direct(dev_handle, uint64_t_le2host(label->gpt->header->entry_lba),
-			nearest_larger_int((uint64_t_le2host(label->gpt->header->entry_size) * label->parts->fill) / b_size),
-			label->parts->part_array);
+	         nearest_larger_int((uint64_t_le2host(label->gpt->header->entry_size) * fillries) / b_size),
+	         label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
 	
@@ -384,6 +385,7 @@ gpt_part_t * gpt_alloc_partition(void)
 gpt_part_t * gpt_get_partition(gpt_label_t *label)
 {
 	gpt_part_t *p;
+	
 	
 	/* Find the first empty entry */
 	do {
@@ -481,7 +483,7 @@ int gpt_remove_partition(gpt_label_t *label, size_t idx)
 	 * the first 128 partitions, we would forget to write the last one.*/
 	memset(label->parts->part_array + idx, 0, sizeof(gpt_entry_t));
 	
-	label->parts->fill -= 1;
+	label->parts->fill = idx;
 	
 	/* FIXME! HOPEFULLY FIXED.
 	 * We cannot reduce the array so simply. We may have some partitions
@@ -632,6 +634,16 @@ void gpt_set_flag(gpt_part_t * p, GPT_ATTR flag, bool value)
 	p->attributes = attr;
 }
 
+void gpt_set_random_uuid(uint8_t * uuid)
+{
+	srandom((unsigned int) uuid);
+	
+	unsigned int i;
+	for (i = 0; i < 16/sizeof(long int); ++i)
+		((long int *)uuid)[i] = random();
+	
+}
+
 // Internal functions follow //
 
 static int load_and_check_header(service_id_t dev_handle, aoff64_t addr, size_t b_size, gpt_header_t * header)
@@ -682,22 +694,22 @@ static gpt_partitions_t * alloc_part_array(uint32_t num)
 		return NULL;
 	}
 
-	res->fill = num;
-	res->arr_size = size;
+	res->fill = 0;
+	res->arr_size = num;
 
 	return res;
 }
 
 static int extend_part_array(gpt_partitions_t * p)
 {
-	unsigned int nsize = p->arr_size * 2;
+	size_t nsize = p->arr_size * 2;
 	gpt_entry_t * tmp = malloc(nsize * sizeof(gpt_entry_t));
 	if(tmp == NULL) {
 		errno = ENOMEM;
 		return -1;
 	}
-
-	memcpy(tmp, p->part_array, p->fill);
+	
+	memcpy(tmp, p->part_array, p->fill * sizeof(gpt_entry_t));
 	free(p->part_array);
 	p->part_array = tmp;
 	p->arr_size = nsize;
