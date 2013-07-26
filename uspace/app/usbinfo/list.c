@@ -54,25 +54,10 @@ static void print_usb_device(devman_handle_t handle)
 	char path[MAX_PATH_LENGTH];
 	int rc = devman_fun_get_path(handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
-		printf(NAME "Failed to get path for device %" PRIun
-		    "\n", handle);
+		printf(NAME "Failed to get path for device %"PRIun"\n", handle);
 		return;
 	}
-	// TODO remove this. Device name contains USB address
-	// and addresses as external id are going away
-	usb_dev_session_t *sess = usb_dev_connect(handle);
-	async_exch_t *exch = async_exchange_begin(sess);
-	
-	usb_address_t address;
-	rc = usb_get_my_address(exch, &address);
-	
-	async_exchange_end(exch);
-	usb_dev_disconnect(sess);
-	if (rc != EOK) {
-		printf("Failed to get address for device %" PRIun "\n", handle);
-		return;
-	}
-	printf("\tDevice %02d: %s\n", address, path);
+	printf("\tDevice %" PRIun ": %s\n", handle, path);
 }
 
 static void print_usb_bus(service_id_t svc)
