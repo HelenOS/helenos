@@ -94,8 +94,7 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
     bw_count_func_t bw_count)
 {
 	assert(hcd);
-	usb_device_manager_init(&hcd->dev_manager, max_speed);
-	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count);
+	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count, max_speed);
 
 	hcd->private_data = NULL;
 	hcd->schedule = NULL;
@@ -107,8 +106,8 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	const int ret = usb_device_manager_request_address(
-	    &hcd->dev_manager, &address, false, speed);
+	const int ret = usb_endpoint_manager_request_address(
+	    &hcd->ep_manager, &address, false, speed);
 	if (ret != EOK)
 		return ret;
 	return address;
@@ -119,7 +118,7 @@ int hcd_release_address(hcd_t *hcd, usb_address_t address)
 	assert(hcd);
 	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
 	    unregister_helper_warn, hcd);
-	usb_device_manager_release_address(&hcd->dev_manager, address);
+	usb_endpoint_manager_release_address(&hcd->ep_manager, address);
 	return EOK;
 }
 
@@ -127,8 +126,8 @@ int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	return usb_device_manager_request_address(
-	    &hcd->dev_manager, &address, true, speed);
+	return usb_endpoint_manager_request_address(
+	    &hcd->ep_manager, &address, true, speed);
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
@@ -136,8 +135,8 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
 {
 	assert(hcd);
 	usb_speed_t speed = USB_SPEED_MAX;
-	const int ret = usb_device_manager_get_info_by_address(
-	    &hcd->dev_manager, target.address, &speed);
+	const int ret = usb_endpoint_manager_get_info_by_address(
+	    &hcd->ep_manager, target.address, &speed);
 	if (ret != EOK) {
 		return ret;
 	}

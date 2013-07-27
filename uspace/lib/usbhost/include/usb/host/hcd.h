@@ -40,7 +40,6 @@
 #include <adt/list.h>
 #include <usbhc_iface.h>
 
-#include <usb/host/usb_device_manager.h>
 #include <usb/host/usb_endpoint_manager.h>
 #include <usb/host/usb_transfer_batch.h>
 
@@ -52,8 +51,6 @@ typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
 
 /** Generic host controller driver structure. */
 struct hcd {
-	/** Device manager storing handles and addresses. */
-	usb_device_manager_t dev_manager;
 	/** Endpoint manager. */
 	usb_endpoint_manager_t ep_manager;
 

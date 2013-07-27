@@ -109,7 +109,8 @@ typedef int16_t usb_address_t;
 /** Default USB address. */
 #define USB_ADDRESS_DEFAULT 0
 /** Maximum address number in USB 1.1. */
-#define USB11_ADDRESS_MAX 128
+#define USB11_ADDRESS_MAX 127
+#define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
 
 /** Check USB address for allowed values.
  *
@@ -118,7 +119,7 @@ typedef int16_t usb_address_t;
  */
 static inline bool usb_address_is_valid(usb_address_t a)
 {
-	return (a >= USB_ADDRESS_DEFAULT) && (a < USB11_ADDRESS_MAX);
+	return (a >= USB_ADDRESS_DEFAULT) && (a <= USB11_ADDRESS_MAX);
 }
 
 /** USB endpoint number type.

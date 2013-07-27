@@ -49,8 +49,6 @@
 #define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
 /** 90% of total bandwidth is available for periodic transfers */
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
-/** 16 addresses per list */
-#define ENDPOINT_LIST_COUNT 8
 
 typedef size_t (*bw_count_func_t)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 typedef void (*ep_remove_callback_t)(endpoint_t *, void *);
@@ -58,14 +56,21 @@ typedef int (*ep_add_callback_t)(endpoint_t *, void *);
 
 /** Endpoint management structure */
 typedef struct usb_endpoint_manager {
-	/** Store endpoint_t instances */
-	list_t endpoint_lists[ENDPOINT_LIST_COUNT];
+	struct {
+		usb_speed_t speed;      /**< Device speed */
+		bool occupied;          /**< The address is in use. */
+		list_t endpoint_list;   /**< Store endpoint_t instances */
+	} devices[USB_ADDRESS_COUNT];
 	/** Prevents races accessing lists */
 	fibril_mutex_t guard;
 	/** Size of the bandwidth pool */
 	size_t free_bw;
 	/** Use this function to count bw required by EP */
 	bw_count_func_t bw_count;
+	/** Maximum speed allowed. */
+	usb_speed_t max_speed;
+	/** The last reserved address */
+	usb_address_t last_address;
 } usb_endpoint_manager_t;
 
 
@@ -73,7 +78,7 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth, bw_count_func_t bw_count);
+    size_t available_bandwidth, bw_count_func_t bw_count, usb_speed_t max_speed);
 
 int usb_endpoint_manager_register_ep(
     usb_endpoint_manager_t *instance, endpoint_t *ep, size_t data_size);
@@ -97,6 +102,15 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
 
 void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
     usb_address_t address, ep_remove_callback_t callback, void *arg);
+
+int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
+    usb_address_t *address, bool strict, usb_speed_t speed);
+
+int usb_endpoint_manager_release_address(usb_endpoint_manager_t *instance,
+    usb_address_t address);
+
+int usb_endpoint_manager_get_info_by_address(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_speed_t *speed);
 #endif
 /**
  * @}

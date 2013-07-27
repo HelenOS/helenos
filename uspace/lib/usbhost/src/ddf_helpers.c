@@ -400,7 +400,7 @@ int hcd_ddf_new_device(ddf_dev_t *device, usb_address_t *id)
 	usb_speed_t speed = USB_SPEED_MAX;
 
 	/* This checks whether the default address is reserved and gets speed */
-	int ret = usb_device_manager_get_info_by_address(&hcd->dev_manager,
+	int ret = usb_endpoint_manager_get_info_by_address(&hcd->ep_manager,
 		USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
 		return ret;

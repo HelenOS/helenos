@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
+#include <macros.h>
 
 #include <usb/debug.h>
 #include <usb/host/usb_endpoint_manager.h>
@@ -70,7 +71,7 @@ static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
 {
 	assert(instance);
 	assert(addr >= 0);
-	return &instance->endpoint_lists[addr % ENDPOINT_LIST_COUNT];
+	return &instance->devices[addr % ARRAY_SIZE(instance->devices)].endpoint_list;
 }
 
 /** Internal search function, works on locked structure.
@@ -95,6 +96,30 @@ static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
 			return ep;
 	}
 	return NULL;
+}
+
+/** Get a free USB address
+ *
+ * @param[in] instance Device manager structure to use.
+ * @return Free address, or error code.
+ */
+static usb_address_t usb_endpoint_manager_get_free_address(
+    usb_endpoint_manager_t *instance)
+{
+
+	usb_address_t new_address = instance->last_address;
+	do {
+		new_address = (new_address + 1) % USB_ADDRESS_COUNT;
+		if (new_address == USB_ADDRESS_DEFAULT)
+			new_address = 1;
+		if (new_address == instance->last_address)
+			return ENOSPC;
+	} while (instance->devices[new_address].occupied);
+
+	assert(new_address != USB_ADDRESS_DEFAULT);
+	instance->last_address = new_address;
+
+	return new_address;
 }
 
 /** Calculate bandwidth that needs to be reserved for communication with EP.
@@ -155,14 +180,18 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
  * @return Error code.
  */
 int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
-    size_t available_bandwidth, bw_count_func_t bw_count)
+    size_t available_bandwidth, bw_count_func_t bw_count, usb_speed_t max_speed)
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
 	instance->free_bw = available_bandwidth;
 	instance->bw_count = bw_count;
-	for (unsigned i = 0; i < ENDPOINT_LIST_COUNT; ++i) {
-		list_initialize(&instance->endpoint_lists[i]);
+	instance->last_address = 1;
+	instance->max_speed = max_speed;
+	for (unsigned i = 0; i < ARRAY_SIZE(instance->devices); ++i) {
+		list_initialize(&instance->devices[i].endpoint_list);
+		instance->devices[i].speed = USB_SPEED_MAX;
+		instance->devices[i].occupied = false;
 	}
 	return EOK;
 }
@@ -384,6 +413,101 @@ void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
 		}
 	}
 	fibril_mutex_unlock(&instance->guard);
+}
+
+/** Request USB address.
+ * @param instance usb_device_manager
+ * @param address Pointer to requested address value, place to store new address
+ * @parma strict Fail if the requested address is not available.
+ * @return Error code.
+ * @note Default address is only available in strict mode.
+ */
+int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
+    usb_address_t *address, bool strict, usb_speed_t speed)
+{
+	assert(instance);
+	assert(address);
+	if (speed > instance->max_speed)
+		return ENOTSUP;
+
+	if (!usb_address_is_valid(*address))
+		return EINVAL;
+
+	usb_address_t addr = *address;
+
+	fibril_mutex_lock(&instance->guard);
+	/* Only grant default address to strict requests */
+	if ((addr == USB_ADDRESS_DEFAULT) && !strict) {
+		addr = usb_endpoint_manager_get_free_address(instance);
+	}
+
+	if (instance->devices[addr].occupied) {
+		if (strict) {
+			fibril_mutex_unlock(&instance->guard);
+			return ENOENT;
+		}
+		addr = usb_endpoint_manager_get_free_address(instance);
+	}
+	if (usb_address_is_valid(addr)) {
+		assert(instance->devices[addr].occupied == false);
+		assert(addr != USB_ADDRESS_DEFAULT || strict);
+
+		instance->devices[addr].occupied = true;
+		instance->devices[addr].speed = speed;
+		*address = addr;
+		addr = 0;
+	}
+
+	fibril_mutex_unlock(&instance->guard);
+	return addr;
+}
+
+/** Release used USB address.
+ *
+ * @param[in] instance Device manager structure to use.
+ * @param[in] address Device address
+ * @return Error code.
+ */
+int usb_endpoint_manager_release_address(
+    usb_endpoint_manager_t *instance, usb_address_t address)
+{
+	assert(instance);
+	if (!usb_address_is_valid(address))
+		return EINVAL;
+
+	fibril_mutex_lock(&instance->guard);
+
+	const int rc = instance->devices[address].occupied ? EOK : ENOENT;
+	instance->devices[address].occupied = false;
+
+	fibril_mutex_unlock(&instance->guard);
+	return rc;
+}
+
+/** Get speed assigned to USB address.
+ *
+ * @param[in] instance Device manager structure to use.
+ * @param[in] address Address the caller wants to find.
+ * @param[out] speed Assigned speed.
+ * @return Error code.
+ */
+int usb_endpoint_manager_get_info_by_address(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_speed_t *speed)
+{
+	assert(instance);
+	if (!usb_address_is_valid(address)) {
+		return EINVAL;
+	}
+
+	fibril_mutex_lock(&instance->guard);
+
+	const int rc = instance->devices[address].occupied ? EOK : ENOENT;
+	if (speed && instance->devices[address].occupied) {
+		*speed = instance->devices[address].speed;
+	}
+
+	fibril_mutex_unlock(&instance->guard);
+	return rc;
 }
 /**
  * @}
