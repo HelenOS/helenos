@@ -116,10 +116,8 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 int hcd_release_address(hcd_t *hcd, usb_address_t address)
 {
 	assert(hcd);
-	usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
+	return usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
 	    unregister_helper_warn, hcd);
-	usb_endpoint_manager_release_address(&hcd->ep_manager, address);
-	return EOK;
 }
 
 int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)

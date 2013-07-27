@@ -368,11 +368,10 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
     usb_target_t target, bool all)
 {
 	assert(instance);
-	if (!usb_target_is_valid(target)) {
+	if (!usb_target_is_valid(target))
 		return EINVAL;
-	}
 
-	int rc = ENOENT;
+	int ret = ENOENT;
 
 	fibril_mutex_lock(&instance->guard);
 	list_foreach(*get_list(instance, target.address), it) {
@@ -380,11 +379,11 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
 		if ((ep->address == target.address)
 		    && (all || ep->endpoint == target.endpoint)) {
 			endpoint_toggle_set(ep, 0);
-			rc = EOK;
+			ret = EOK;
 		}
 	}
 	fibril_mutex_unlock(&instance->guard);
-	return rc;
+	return ret;
 }
 
 /** Unregister and destroy all endpoints using given address.
@@ -396,12 +395,18 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
  * @arg Argument to pass to the callback function.
  * @return Error code.
  */
-void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
+int usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
     usb_address_t address, ep_remove_callback_t callback, void *arg)
 {
-	assert(address >= 0);
 	assert(instance);
+	if (!usb_address_is_valid(address))
+		return EINVAL;
+
 	fibril_mutex_lock(&instance->guard);
+
+	const int ret = instance->devices[address].occupied ? EOK : ENOENT;
+	instance->devices[address].occupied = false;
+
 	list_foreach(*get_list(instance, address), iterator) {
 		endpoint_t *ep = endpoint_get_instance(iterator);
 		if (ep->address == address) {
@@ -413,6 +418,7 @@ void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
 		}
 	}
 	fibril_mutex_unlock(&instance->guard);
+	return ret;
 }
 
 /** Request USB address.
@@ -462,28 +468,6 @@ int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
 	return addr;
 }
 
-/** Release used USB address.
- *
- * @param[in] instance Device manager structure to use.
- * @param[in] address Device address
- * @return Error code.
- */
-int usb_endpoint_manager_release_address(
-    usb_endpoint_manager_t *instance, usb_address_t address)
-{
-	assert(instance);
-	if (!usb_address_is_valid(address))
-		return EINVAL;
-
-	fibril_mutex_lock(&instance->guard);
-
-	const int rc = instance->devices[address].occupied ? EOK : ENOENT;
-	instance->devices[address].occupied = false;
-
-	fibril_mutex_unlock(&instance->guard);
-	return rc;
-}
-
 /** Get speed assigned to USB address.
  *
  * @param[in] instance Device manager structure to use.
@@ -501,13 +485,13 @@ int usb_endpoint_manager_get_info_by_address(usb_endpoint_manager_t *instance,
 
 	fibril_mutex_lock(&instance->guard);
 
-	const int rc = instance->devices[address].occupied ? EOK : ENOENT;
+	const int ret = instance->devices[address].occupied ? EOK : ENOENT;
 	if (speed && instance->devices[address].occupied) {
 		*speed = instance->devices[address].speed;
 	}
 
 	fibril_mutex_unlock(&instance->guard);
-	return rc;
+	return ret;
 }
 /**
  * @}
