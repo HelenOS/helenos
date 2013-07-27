@@ -186,7 +186,7 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 	fibril_mutex_initialize(&instance->guard);
 	instance->free_bw = available_bandwidth;
 	instance->bw_count = bw_count;
-	instance->last_address = 1;
+	instance->last_address = 0;
 	instance->max_speed = max_speed;
 	for (unsigned i = 0; i < ARRAY_SIZE(instance->devices); ++i) {
 		list_initialize(&instance->devices[i].endpoint_list);
