@@ -285,23 +285,21 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
  */
 int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
-    size_t data_size, ep_add_callback_t callback, void *arg)
+    usb_transfer_type_t type, size_t max_packet_size, size_t data_size,
+    ep_add_callback_t callback, void *arg)
 {
 	assert(instance);
 	if (instance->bw_count == NULL)
 		return ENOTSUP;
-	if (address < 0)
+	if (!usb_address_is_valid(address))
 		return EINVAL;
 
-	const size_t bw =
-	    instance->bw_count(speed, type, data_size, max_packet_size);
 
 	fibril_mutex_lock(&instance->guard);
-	/* Check for available bandwidth */
-	if (bw > instance->free_bw) {
+	/* Check for speed and address */
+	if (!instance->devices[address].occupied) {
 		fibril_mutex_unlock(&instance->guard);
-		return ENOSPC;
+		return ENOENT;
 	}
 
 	/* Check for existence */
@@ -309,6 +307,16 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
 	if (ep != NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return EEXISTS;
+	}
+
+	const usb_speed_t speed = instance->devices[address].speed;
+	const size_t bw =
+	    instance->bw_count(speed, type, data_size, max_packet_size);
+
+	/* Check for available bandwidth */
+	if (bw > instance->free_bw) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOSPC;
 	}
 
 	ep = endpoint_create(

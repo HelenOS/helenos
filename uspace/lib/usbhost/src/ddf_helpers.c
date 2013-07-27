@@ -421,7 +421,7 @@ int hcd_ddf_new_device(ddf_dev_t *device, usb_address_t *id)
 	}};
 
 	/* Add default pipe on default address */
-	ret = hcd_add_ep(hcd, 
+	ret = hcd_add_ep(hcd,
 	    default_target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
 	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE);
 
