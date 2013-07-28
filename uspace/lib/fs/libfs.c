@@ -631,6 +631,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	assert(cur != NULL);
 	
 	if (cur->mp_data.mp_active) {
+		if (lflag & L_DISABLE_MOUNTS) {
+			async_answer_0(rid, EXDEV);
+			LOG_EXIT(EXDEV);
+			goto out;
+		}
+		
 		async_exch_t *exch = async_exchange_begin(cur->mp_data.sess);
 		async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last - next,
 		    cur->mp_data.service_id, (fs_index_t) -1, lflag, IPC_FF_ROUTE_FROM_ME);
@@ -691,6 +697,13 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 
 		if ((tmp) && (tmp->mp_data.mp_active) &&
 		    (!(lflag & L_MP) || (next < last))) {
+			
+			if (lflag & L_DISABLE_MOUNTS) {
+				async_answer_0(rid, EXDEV);
+				LOG_EXIT(EXDEV);
+				goto out;
+			}
+			
 			async_exch_t *exch = async_exchange_begin(tmp->mp_data.sess);
 			async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next,
 			    last - next, tmp->mp_data.service_id, (fs_index_t) -1, lflag,

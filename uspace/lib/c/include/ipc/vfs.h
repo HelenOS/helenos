@@ -125,6 +125,12 @@ typedef enum {
 #define L_DIRECTORY		2
 
 /**
+ * Lookup will not cross any mount points.
+ * If the lookup would have to cross a mount point, it returns EXDEV instead.
+ */
+#define L_DISABLE_MOUNTS	4
+
+/**
  * Lookup will succeed only if the object is a mount point. The flag is mutually
  * exclusive with L_FILE and L_ROOT.
  */

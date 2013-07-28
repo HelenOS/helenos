@@ -729,7 +729,7 @@ int rename(const char *old, const char *new)
 	
 	async_exch_t *exch = vfs_exchange_begin();
 	
-	req = async_send_0(exch, VFS_IN_RENAME, NULL);
+	req = async_send_1(exch, VFS_IN_RENAME, -1, NULL);
 	rc = async_data_write_start(exch, olda, olda_size);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);

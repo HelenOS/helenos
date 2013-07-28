@@ -1137,23 +1137,123 @@ exit:
 	async_answer_0(rid, rc);
 }
 
+static size_t shared_path(char *a, char *b)
+{
+	size_t res = 0;
+	
+	while (a[res] == b[res] && a[res] != 0) {
+		res++;
+	}
+	
+	if (a[res] == b[res]) {
+		return res;
+	}
+	
+	res--;
+	while (a[res] != '/') {
+		res--;
+	}
+	return res;
+}
+
+static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
+{
+	assert(base != NULL);
+	assert(old != NULL);
+	assert(new != NULL);
+	
+	vfs_lookup_res_t base_lr;
+	vfs_lookup_res_t old_lr;
+	vfs_lookup_res_t new_lr_orig;
+	bool orig_unlinked = false;
+	
+	int rc;
+	
+	size_t shared = shared_path(old, new);
+	
+	/* Do not allow one path to be a prefix of the other. */
+	if (old[shared] == 0 || new[shared] == 0) {
+		return EINVAL;
+	}
+	assert(old[shared] == '/');
+	assert(new[shared] == '/');
+	
+	fibril_rwlock_write_lock(&namespace_rwlock);
+	
+	/* Resolve the shared portion of the path first. */
+	if (shared != 0) {
+		old[shared] = 0;
+		rc = vfs_lookup_internal(base, old, L_DIRECTORY, &base_lr);
+		if (rc != EOK) {
+			fibril_rwlock_write_unlock(&namespace_rwlock);
+			return rc;
+		}
+		
+		base = &base_lr.triplet;
+		old[shared] = '/';
+		old += shared;
+		new += shared;
+	}
+	
+	
+	rc = vfs_lookup_internal(base, new, L_UNLINK | L_DISABLE_MOUNTS, &new_lr_orig);
+	if (rc == EOK) {
+		orig_unlinked = true;
+	} else if (rc != ENOENT) {
+		fibril_rwlock_write_unlock(&namespace_rwlock);
+		return rc;
+	}
+	
+	rc = vfs_lookup_internal(base, old, L_UNLINK | L_DISABLE_MOUNTS, &old_lr);
+	if (rc != EOK) {
+		if (orig_unlinked) {
+			vfs_link_internal(base, new, &new_lr_orig.triplet);
+		}
+		fibril_rwlock_write_unlock(&namespace_rwlock);
+		return rc;
+	}
+	
+	rc = vfs_link_internal(base, new, &old_lr.triplet);
+	if (rc != EOK) {
+		vfs_link_internal(base, old, &old_lr.triplet);
+		if (orig_unlinked) {
+			vfs_link_internal(base, new, &new_lr_orig.triplet);
+		}
+		fibril_rwlock_write_unlock(&namespace_rwlock);
+		return rc;
+	}
+	
+	if (orig_unlinked) {
+		vfs_node_t *node = vfs_node_get(&new_lr_orig);
+		vfs_node_delref(node);
+		vfs_node_put(node);
+	}
+	
+	fibril_rwlock_write_unlock(&namespace_rwlock);
+	return EOK;
+}
+
 void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 {
+	/* The common base directory. */
+	int basefd;
+	char *old = NULL;
+	char *new = NULL;
+	vfs_file_t *base = NULL;
+	int rc;
+	
+	basefd = IPC_GET_ARG1(*request);
+	
 	/* Retrieve the old path. */
-	char *old;
-	int rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
+	rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		async_answer_0(rid, rc);
-		return;
+		goto out;
 	}
 	
 	/* Retrieve the new path. */
-	char *new;
 	rc = async_data_write_accept((void **) &new, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		free(old);
-		async_answer_0(rid, rc);
-		return;
+		goto out;
 	}
 	
 	size_t olen;
@@ -1162,168 +1262,39 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	char *newc = canonify(new, &nlen);
 	
 	if ((!oldc) || (!newc)) {
-		async_answer_0(rid, EINVAL);
-		free(old);
-		free(new);
-		return;
+		rc = EINVAL;
+		goto out;
 	}
 	
-	oldc[olen] = '\0';
-	newc[nlen] = '\0';
+	assert(oldc[olen] == '\0');
+	assert(newc[nlen] == '\0');
 	
-	if ((!str_lcmp(newc, oldc, str_length(oldc))) &&
-	    ((newc[str_length(oldc)] == '/') ||
-	    (str_length(oldc) == 1) ||
-	    (str_length(oldc) == str_length(newc)))) {
-	    	/*
-		 * oldc is a prefix of newc and either
-		 * - newc continues with a / where oldc ends, or
-		 * - oldc was / itself, or
-		 * - oldc and newc are equal.
-		 */
-		async_answer_0(rid, EINVAL);
-		free(old);
-		free(new);
-		return;
-	}
-	
-	vfs_lookup_res_t old_lr;
-	vfs_lookup_res_t new_lr;
-	vfs_lookup_res_t new_par_lr;
-	fibril_rwlock_write_lock(&namespace_rwlock);
-	
-	/* Lookup the node belonging to the old file name. */
-	rc = vfs_lookup_internal((vfs_triplet_t *) root, oldc, L_NONE, &old_lr);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		async_answer_0(rid, rc);
-		free(old);
-		free(new);
-		return;
-	}
-	
-	vfs_node_t *old_node = vfs_node_get(&old_lr);
-	if (!old_node) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		async_answer_0(rid, ENOMEM);
-		free(old);
-		free(new);
-		return;
-	}
-	
-	/* Determine the path to the parent of the node with the new name. */
-	char *parentc = str_dup(newc);
-	if (!parentc) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(old_node);
-		async_answer_0(rid, rc);
-		free(old);
-		free(new);
-		return;
-	}
-	
-	char *lastsl = str_rchr(parentc + 1, '/');
-	if (lastsl)
-		*lastsl = '\0';
-	else
-		parentc[1] = '\0';
-	
-	/* Lookup parent of the new file name. */
-	rc = vfs_lookup_internal((vfs_triplet_t *) root, parentc, L_NONE, &new_par_lr);
-	free(parentc);	/* not needed anymore */
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(old_node);
-		async_answer_0(rid, rc);
-		free(old);
-		free(new);
-		return;
-	}
-	
-	/* Check whether linking to the same file system instance. */
-	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
-	    (old_node->service_id != new_par_lr.triplet.service_id)) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(old_node);
-		async_answer_0(rid, EXDEV);	/* different file systems */
-		free(old);
-		free(new);
-		return;
-	}
-	
-	/* Destroy the old link for the new name. */
-	vfs_node_t *new_node = NULL;
-	rc = vfs_lookup_internal((vfs_triplet_t *) root, newc, L_UNLINK, &new_lr);
-	
-	switch (rc) {
-	case ENOENT:
-		/* simply not in our way */
-		break;
-	case EOK:
-		new_node = vfs_node_get(&new_lr);
-		if (!new_node) {
-			fibril_rwlock_write_unlock(&namespace_rwlock);
-			vfs_node_put(old_node);
-			async_answer_0(rid, ENOMEM);
-			free(old);
-			free(new);
-			return;
+	/* Lookup the file structure corresponding to the file descriptor. */
+	vfs_node_t *base_node = root;
+	// TODO: Client-side root.
+	if (basefd != -1) {
+		base = vfs_file_get(basefd);
+		if (!base) {
+			rc = EBADF;
+			goto out;
 		}
-		fibril_mutex_lock(&nodes_mutex);
-		new_node->lnkcnt--;
-		fibril_mutex_unlock(&nodes_mutex);
-		break;
-	default:
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(old_node);
-		async_answer_0(rid, ENOTEMPTY);
-		free(old);
-		free(new);
-		return;
+		base_node = base->node;
 	}
 	
-	/* Create the new link for the new name. */
-	rc = vfs_link_internal((vfs_triplet_t *) root, newc, (vfs_triplet_t *) old_node);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(old_node);
-		if (new_node)
-			vfs_node_put(new_node);
-		async_answer_0(rid, rc);
+	rc = vfs_rename_internal((vfs_triplet_t *) base_node, oldc, newc);
+
+out:
+	async_answer_0(rid, rc);
+
+	if (old) {
 		free(old);
-		free(new);
-		return;
 	}
-	
-	fibril_mutex_lock(&nodes_mutex);
-	old_node->lnkcnt++;
-	fibril_mutex_unlock(&nodes_mutex);
-	
-	/* Destroy the link for the old name. */
-	rc = vfs_lookup_internal((vfs_triplet_t *) root, oldc, L_UNLINK, NULL);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&namespace_rwlock);
-		vfs_node_put(old_node);
-		if (new_node)
-			vfs_node_put(new_node);
-		async_answer_0(rid, rc);
-		free(old);
+	if (new) {
 		free(new);
-		return;
 	}
-	
-	fibril_mutex_lock(&nodes_mutex);
-	old_node->lnkcnt--;
-	fibril_mutex_unlock(&nodes_mutex);
-	fibril_rwlock_write_unlock(&namespace_rwlock);
-	vfs_node_put(old_node);
-	
-	if (new_node)
-		vfs_node_put(new_node);
-	
-	free(old);
-	free(new);
-	async_answer_0(rid, EOK);
+	if (base) {
+		vfs_file_put(base);
+	}
 }
 
 void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
