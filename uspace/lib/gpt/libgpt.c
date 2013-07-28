@@ -50,13 +50,13 @@
 
 #include "libgpt.h"
 
-static int load_and_check_header(service_id_t handle, aoff64_t addr, size_t b_size, gpt_header_t *header);
-static gpt_partitions_t * alloc_part_array(uint32_t num);
+static int load_and_check_header(service_id_t, aoff64_t, size_t, gpt_header_t *);
+static gpt_partitions_t * alloc_part_array(uint32_t);
 static int extend_part_array(gpt_partitions_t *);
 static int reduce_part_array(gpt_partitions_t *);
-static long long nearest_larger_int(double a);
+//static long long nearest_larger_int(double);
 static uint8_t get_byte(const char *);
-static int check_overlap(gpt_part_t * p1, gpt_part_t * p2);
+static bool check_overlap(gpt_part_t *, gpt_part_t *);
 
 /** Allocate memory for gpt label */
 gpt_label_t * gpt_alloc_label(void)
@@ -65,8 +65,15 @@ gpt_label_t * gpt_alloc_label(void)
 	if (label == NULL)
 		return NULL;
 	
+	/* This is necessary so that gpt_part_foreach does not segfault */
+	label->parts = gpt_alloc_partitions();
+	if (label == NULL) {
+		free(label);
+		return NULL;
+	}
+	
 	label->gpt = NULL;
-	label->parts = NULL;
+	
 	label->device = 0;
 	
 	return label;
@@ -91,9 +98,10 @@ gpt_t * gpt_alloc_header(size_t size)
 	if (gpt == NULL)
 		return NULL;
 	
-	// We might need only sizeof(gpt_header_t),
-	// but we should follow specs and have
-	// zeroes through all the rest of the block
+	/* 
+	 * We might need only sizeof(gpt_header_t), but we should follow 
+	 * specs and have zeroes through all the rest of the block
+	 */
 	size_t final_size = size > sizeof(gpt_header_t) ? size : sizeof(gpt_header_t);
 	gpt->header = malloc(final_size);
 	if (gpt->header == NULL) {
@@ -177,47 +185,73 @@ int gpt_write_header(gpt_label_t *label, service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
-
-	label->gpt->header->header_crc32 = 0;
-	label->gpt->header->header_crc32 = compute_crc32((uint8_t *) label->gpt->header,
-					uint32_t_le2host(label->gpt->header->header_size));
-
-	rc = block_init(EXCHANGE_ATOMIC, dev_handle, b_size);
+	
+	/* The comm_size argument (the last one) is ignored */
+	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
 	if (rc != EOK && rc != EEXIST)
 		return rc;
-
+	
 	rc = block_get_bsize(dev_handle, &b_size);
 	if (rc != EOK)
 		return rc;
-
-	/* Write to main GPT header location */
-	rc = block_write_direct(dev_handle, GPT_HDR_BA, GPT_HDR_BS, label->gpt->header);
-	if (rc != EOK) {
-		block_fini(dev_handle);
-		return rc;
-	}
-
+	
 	aoff64_t n_blocks;
 	rc = block_get_nblocks(dev_handle, &n_blocks);
 	if (rc != EOK) {
 		block_fini(dev_handle);
 		return rc;
 	}
-
+	
+	uint64_t tmp;
+	
+	/* Prepare the backup header */
+	label->gpt->header->alternate_lba = label->gpt->header->my_lba;
+	label->gpt->header->my_lba = host2uint64_t_le(n_blocks - 1);
+	
+	tmp = label->gpt->header->entry_lba;
+	label->gpt->header->entry_lba = host2uint64_t_le(n_blocks - 
+	    (uint32_t_le2host(label->gpt->header->fillries) * sizeof(gpt_entry_t)) 
+	    / b_size - 1);
+	
+	label->gpt->header->header_crc32 = 0;
+	label->gpt->header->header_crc32 = host2uint32_t_le( 
+	    compute_crc32((uint8_t *) label->gpt->header,
+	        uint32_t_le2host(label->gpt->header->header_size)));
+	
 	/* Write to backup GPT header location */
-	//FIXME: those idiots thought it would be cool to have these fields in reverse order...
 	rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, label->gpt->header);
+	if (rc != EOK) {
+		block_fini(dev_handle);
+		return rc;
+	}
+	
+	
+	/* Prepare the main header */
+	label->gpt->header->entry_lba = tmp;
+	
+	tmp = label->gpt->header->alternate_lba;
+	label->gpt->header->alternate_lba = label->gpt->header->my_lba;
+	label->gpt->header->my_lba = tmp;
+	
+	label->gpt->header->header_crc32 = 0;
+	label->gpt->header->header_crc32 = host2uint32_t_le( 
+	    compute_crc32((uint8_t *) label->gpt->header,
+	        uint32_t_le2host(label->gpt->header->header_size)));
+	
+	/* Write to main GPT header location */
+	rc = block_write_direct(dev_handle, GPT_HDR_BA, GPT_HDR_BS, label->gpt->header);
 	block_fini(dev_handle);
 	if (rc != EOK)
 		return rc;
-
+	
+	
 	return 0;
 }
 
 /** Alloc partition array */
 gpt_partitions_t * gpt_alloc_partitions()
 {
-	return alloc_part_array(128);
+	return alloc_part_array(GPT_MIN_PART_NUM);
 }
 
 /** Parse partitions from GPT
@@ -229,20 +263,17 @@ int gpt_read_partitions(gpt_label_t *label)
 {
 	int rc;
 	unsigned int i;
-	uint32_t fill = uint32_t_le2host(label->gpt->header->fillries);
+	uint32_t fillries = uint32_t_le2host(label->gpt->header->fillries);
 	uint32_t ent_size = uint32_t_le2host(label->gpt->header->entry_size);
 	uint64_t ent_lba = uint64_t_le2host(label->gpt->header->entry_lba);
 	
 	if (label->parts == NULL) {
-		label->parts = alloc_part_array(fill);
+		label->parts = alloc_part_array(fillries);
 		if (label->parts == NULL) {
 			return ENOMEM;
 		}
 	}
 
-	/* We can limit comm_size like this:
-	 *  - we don't need more bytes
-	 *  - the size of GPT partition entry can be different to 128 bytes */
 	/* comm_size is ignored */
 	rc = block_init(EXCHANGE_SERIALIZE, label->device, sizeof(gpt_entry_t));
 	if (rc != EOK)
@@ -257,29 +288,34 @@ int gpt_read_partitions(gpt_label_t *label)
 	//size_t buflen = 0;
 	aoff64_t pos = ent_lba * block_size;
 
-	/* Now we read just sizeof(gpt_entry_t) bytes for each entry from the device.
+	/* 
+	 * Now we read just sizeof(gpt_entry_t) bytes for each entry from the device.
 	 * Hopefully, this does not bypass cache (no mention in libblock.c),
 	 * and also allows us to have variable partition entry size (but we
 	 * will always read just sizeof(gpt_entry_t) bytes - hopefully they
-	 * don't break backward compatibility) */
-	for (i = 0; i < fill; ++i) {
-		//FIXME: this does bypass cache...
+	 * don't break backward compatibility) 
+	 */
+	for (i = 0; i < fillries; ++i) {
+		/*FIXME: this does bypass cache... */
 		rc = block_read_bytes_direct(label->device, pos, sizeof(gpt_entry_t), label->parts->part_array + i);
-		//FIXME: but seqread() is just too complex...
-		//rc = block_seqread(gpt->device, &bufpos, &buflen, &pos, res->part_array[i], sizeof(gpt_entry_t));
+		/* 
+		 * FIXME: but seqread() is just too complex...
+		 * rc = block_seqread(gpt->device, &bufpos, &buflen, &pos, res->part_array[i], sizeof(gpt_entry_t));
+		 */
 		pos += ent_size;
 
 		if (rc != EOK)
 			goto fini_fail;
 	}
 
-	/* FIXME: so far my boasting about variable partition entry size
+	/*
+	 * FIXME: so far my boasting about variable partition entry size
 	 * will not work. The CRC32 checksums will be different.
 	 * This can't be fixed easily - we'd have to run the checksum
 	 * on all of the partition entry array.
 	 */
 	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, 
-	                   label->parts->fill * sizeof(gpt_entry_t));
+	                   fillries * sizeof(gpt_entry_t));
 
 	if(uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
 	{
@@ -311,11 +347,12 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	int rc;
 	size_t b_size;
 	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
-	size_t fill = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
+	size_t fillries = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
 	
-	label->gpt->header->pe_array_crc32 = compute_crc32(
+	label->gpt->header->fillries = host2uint32_t_le(fillries);
+	label->gpt->header->pe_array_crc32 = host2uint32_t_le(compute_crc32(
 	                               (uint8_t *) label->parts->part_array,
-	                               fill * e_size);
+	                               fillries * e_size));
 	
 	/* comm_size of 4096 is ignored */
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
@@ -331,15 +368,20 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	if (rc != EOK)
 		goto fail;
 	
+	uint64_t arr_blocks = (fillries * sizeof(gpt_entry_t)) / b_size;
+	label->gpt->header->first_usable_lba = host2uint64_t_le(arr_blocks + 1);
+	label->gpt->header->last_usable_lba = host2uint64_t_le(n_blocks - arr_blocks - 2);
+	
+	
 	/* Write to backup GPT partition array location */
-	//rc = block_write_direct(dev_handle, n_blocks - 1, GPT_HDR_BS, header->raw_data);
+	rc = block_write_direct(dev_handle, n_blocks - arr_blocks - 1, 
+	         arr_blocks, label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
 	
 	/* Write to main GPT partition array location */
 	rc = block_write_direct(dev_handle, uint64_t_le2host(label->gpt->header->entry_lba),
-			nearest_larger_int((uint64_t_le2host(label->gpt->header->entry_size) * label->parts->fill) / b_size),
-			label->parts->part_array);
+	         arr_blocks, label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
 	
@@ -384,6 +426,7 @@ gpt_part_t * gpt_alloc_partition(void)
 gpt_part_t * gpt_get_partition(gpt_label_t *label)
 {
 	gpt_part_t *p;
+	
 	
 	/* Find the first empty entry */
 	do {
@@ -439,13 +482,7 @@ gpt_part_t * gpt_get_partition_at(gpt_label_t *label, size_t idx)
  */
 int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
 {
-	if (label->parts->fill == label->parts->arr_size) {
-		if (extend_part_array(label->parts) == -1)
-			return ENOMEM;
-	}
-	
-	/*FIXME:
-	 * Check dimensions and stuff! */
+	/* FIXME: Check dimensions! */
 	gpt_part_foreach(label, p) {
 		if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
 			if (check_overlap(partition, p))
@@ -453,9 +490,20 @@ int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
 		}
 	}
 	
-	memcpy(label->parts->part_array + label->parts->fill++,
-	       partition, sizeof(gpt_part_t));
+	gpt_part_t *p;
+	/* Find the first empty entry */
+	do {
+		if (label->parts->fill == label->parts->arr_size) {
+			if (extend_part_array(label->parts) == -1)
+				return ENOMEM;
+		}
+		
+		p = label->parts->part_array + label->parts->fill++;
+		
+	} while (gpt_get_part_type(p) != GPT_PTE_UNUSED);
 	
+	
+	memcpy(p, partition, sizeof(gpt_entry_t));
 	
 	
 	return EOK;
@@ -472,22 +520,29 @@ int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
  */
 int gpt_remove_partition(gpt_label_t *label, size_t idx)
 {
-	if (idx >= label->parts->fill)
+	if (idx >= label->parts->arr_size)
 		return EINVAL;
 	
-	/* FIXME! 
+	/* 
+	 * FIXME! 
 	 * If we allow blank spots, we break the array. If we have more than
 	 * 128 partitions in the array and then remove something from
-	 * the first 128 partitions, we would forget to write the last one.*/
+	 * the first 128 partitions, we would forget to write the last one.
+	 */
 	memset(label->parts->part_array + idx, 0, sizeof(gpt_entry_t));
 	
-	label->parts->fill -= 1;
+	if (label->parts->fill > idx)
+		label->parts->fill = idx;
 	
-	/* FIXME! HOPEFULLY FIXED.
+	/* 
+	 * FIXME! HOPEFULLY FIXED.
 	 * We cannot reduce the array so simply. We may have some partitions
-	 * there since we allow blank spots. */
+	 * there since we allow blank spots. 
+	 */
 	gpt_part_t * p;
-	if (label->parts->fill < (label->parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
+	
+	if (label->parts->fill > GPT_MIN_PART_NUM &&
+	    label->parts->fill < (label->parts->arr_size / 2) - GPT_IGNORE_FILL_NUM) {
 		for (p = gpt_get_partition_at(label, label->parts->arr_size / 2); 
 		     p < label->parts->part_array + label->parts->arr_size; ++p) {
 				if (gpt_get_part_type(p) != GPT_PTE_UNUSED)
@@ -632,7 +687,27 @@ void gpt_set_flag(gpt_part_t * p, GPT_ATTR flag, bool value)
 	p->attributes = attr;
 }
 
-// Internal functions follow //
+/** Generate a new pseudo-random UUID
+ * @param uuid Pointer to the UUID to overwrite.
+ */
+void gpt_set_random_uuid(uint8_t * uuid)
+{
+	srandom((unsigned int) uuid);
+	
+	unsigned int i;
+	for (i = 0; i < 16/sizeof(long int); ++i)
+		((long int *)uuid)[i] = random();
+	
+}
+
+/** Get next aligned address */
+uint64_t gpt_get_next_aligned(uint64_t addr, unsigned int alignment)
+{
+	uint64_t div = addr / alignment;
+	return (div + 1) * alignment;
+}
+
+/* Internal functions follow */
 
 static int load_and_check_header(service_id_t dev_handle, aoff64_t addr, size_t b_size, gpt_header_t * header)
 {
@@ -673,7 +748,7 @@ static gpt_partitions_t * alloc_part_array(uint32_t num)
 		errno = ENOMEM;
 		return NULL;
 	}
-
+	
 	uint32_t size = num > GPT_BASE_PART_NUM ? num : GPT_BASE_PART_NUM;
 	res->part_array = malloc(size * sizeof(gpt_entry_t));
 	if (res->part_array == NULL) {
@@ -681,23 +756,25 @@ static gpt_partitions_t * alloc_part_array(uint32_t num)
 		errno = ENOMEM;
 		return NULL;
 	}
-
-	res->fill = num;
-	res->arr_size = size;
+	
+	memset(res->part_array, 0, size * sizeof(gpt_entry_t));
+	
+	res->fill = 0;
+	res->arr_size = num;
 
 	return res;
 }
 
 static int extend_part_array(gpt_partitions_t * p)
 {
-	unsigned int nsize = p->arr_size * 2;
+	size_t nsize = p->arr_size * 2;
 	gpt_entry_t * tmp = malloc(nsize * sizeof(gpt_entry_t));
 	if(tmp == NULL) {
 		errno = ENOMEM;
 		return -1;
 	}
-
-	memcpy(tmp, p->part_array, p->fill);
+	
+	memcpy(tmp, p->part_array, p->fill * sizeof(gpt_entry_t));
 	free(p->part_array);
 	p->part_array = tmp;
 	p->arr_size = nsize;
@@ -714,7 +791,7 @@ static int reduce_part_array(gpt_partitions_t * p)
 		if(tmp == NULL)
 			return ENOMEM;
 
-		memcpy(tmp, p->part_array, p->fill < nsize ? p->fill  : nsize);
+		memcpy(tmp, p->part_array, p->fill < nsize ? p->fill : nsize);
 		free(p->part_array);
 		p->part_array = tmp;
 		p->arr_size = nsize;
@@ -723,16 +800,18 @@ static int reduce_part_array(gpt_partitions_t * p)
 	return 0;
 }
 
-//FIXME: replace this with a library call, if it exists
-static long long nearest_larger_int(double a)
+/*static long long nearest_larger_int(double a)
 {
 	if ((long long) a == a) {
 		return (long long) a;
 	}
 
 	return ((long long) a) + 1;
-}
+}*/
 
+/* Parse a byte from a string in hexadecimal 
+ * i.e., "FF" => 255 
+ */
 static uint8_t get_byte(const char * c)
 {
 	uint8_t val = 0;
@@ -742,15 +821,15 @@ static uint8_t get_byte(const char * c)
 	return val;
 }
 
-static int check_overlap(gpt_part_t * p1, gpt_part_t * p2)
+static bool check_overlap(gpt_part_t * p1, gpt_part_t * p2)
 {
 	if (gpt_get_start_lba(p1) < gpt_get_start_lba(p2) && gpt_get_end_lba(p1) <= gpt_get_start_lba(p2)) {
-		return 0;
+		return false;
 	} else if (gpt_get_start_lba(p1) > gpt_get_start_lba(p2) && gpt_get_end_lba(p2) <= gpt_get_start_lba(p1)) {
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
 

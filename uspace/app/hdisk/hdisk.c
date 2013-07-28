@@ -143,8 +143,6 @@ interact:
 	
 	rc = interact(dev_handle);
 	
-	free_label();
-	
 	return rc;
 }
 
@@ -179,7 +177,6 @@ int interact(service_id_t dev_handle)
 				label.extra_funcs(&label, in, dev_handle);
 				break;
 			case 'f':
-				free_label();
 				select_label_format(in);
 				break;
 			case 'h':

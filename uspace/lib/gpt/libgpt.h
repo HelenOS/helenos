@@ -33,13 +33,15 @@
 /** @file
  */
 
-#ifndef __GPT_H__
-#define __GPT_H__
+#ifndef LIBGPT_LIBGPT_H_
+#define LIBGPT_LIBGPT_H_
 
 #define LIBGPT_NAME	"libgpt"
 
 #include <loc.h>
 #include <sys/types.h>
+
+#include "gpt.h"
 
 /** Block address of GPT header. */
 #define GPT_HDR_BA	1
@@ -58,63 +60,13 @@
 /** GPT header signature ("EFI PART" in ASCII) */
 extern const uint8_t efi_signature[8];
 
-typedef enum {
-	AT_REQ_PART = 0,
-	AT_NO_BLOCK_IO,
-	AT_LEGACY_BOOT,
-	AT_UNDEFINED,
-	AT_SPECIFIC = 48
-} GPT_ATTR;
-
-/** GPT header
- * - all in little endian.
- */
-typedef struct {
-	uint8_t  efi_signature[8];
-	uint32_t revision;
-	uint32_t header_size;
-	uint32_t header_crc32;
-	uint32_t reserved;
-	uint64_t my_lba;
-	uint64_t alternate_lba;
-	uint64_t first_usable_lba;
-	uint64_t last_usable_lba;
-	uint8_t  disk_guid[16];
-	uint64_t entry_lba;
-	uint32_t fillries;
-	uint32_t entry_size;
-	uint32_t pe_array_crc32;
-} __attribute__((packed)) gpt_header_t;
-
 typedef struct {
 	/** Raw header. Has more bytes alloced than sizeof(gpt_header_t)!
 	 * See gpt_alloc_header() to know why. */
 	gpt_header_t *header;
 } gpt_t;
 
-/** GPT partition entry */
-typedef struct {
-	uint8_t part_type[16];
-	uint8_t part_id[16];
-	uint64_t start_lba;
-	uint64_t end_lba;
-	uint64_t attributes;
-	uint8_t part_name[72];
-} __attribute__((packed)) gpt_entry_t;
-
-
-//typedef struct g_part {
-	///** Partition entry is in use **/
-	//bool present;
-	///** Address of first block */
-	//aoff64_t start_addr;
-	///** Number of blocks */
-	//aoff64_t length;
-	///** Raw data access */
-	//gpt_entry_t raw_data;	//TODO: a pointer or just a member?
-//}gpt_part_t;
 typedef gpt_entry_t gpt_part_t;
-
 
 typedef struct gpt_parts {
 	/** Number of entries */
@@ -166,11 +118,13 @@ extern void            gpt_set_part_name(gpt_part_t *, char *, size_t);
 extern bool            gpt_get_flag     (gpt_part_t *, GPT_ATTR);
 extern void            gpt_set_flag     (gpt_part_t *, GPT_ATTR, bool);
 
+extern void            gpt_set_random_uuid(uint8_t *);
+extern uint64_t        gpt_get_next_aligned(uint64_t, unsigned int);
 
 
 #define gpt_part_foreach(label, iterator) \
 		for(gpt_part_t * iterator = (label)->parts->part_array; \
-		    iterator < (label)->parts->part_array + (label)->parts->fill; ++iterator)
+		    iterator < (label)->parts->part_array + (label)->parts->arr_size; ++iterator)
 
 extern void gpt_free_gpt(gpt_t *);
 extern void gpt_free_partitions(gpt_partitions_t *);
