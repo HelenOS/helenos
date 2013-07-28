@@ -179,8 +179,8 @@ extern void vfs_exchange_release(async_exch_t *);
 extern fs_handle_t fs_name_to_handle(unsigned int instance, char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
-extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
-    vfs_pair_t *, ...);
+extern int vfs_lookup_internal(vfs_triplet_t *, char *, int, vfs_lookup_res_t *);
+extern int vfs_link_internal(vfs_triplet_t *, char *, vfs_triplet_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);

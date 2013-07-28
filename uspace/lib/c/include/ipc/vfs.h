@@ -96,6 +96,7 @@ typedef enum {
 	VFS_OUT_SYNC,
 	VFS_OUT_STAT,
 	VFS_OUT_LOOKUP,
+	VFS_OUT_LINK,
 	VFS_OUT_DESTROY,
 	VFS_OUT_LAST
 } vfs_out_request_t;
@@ -124,12 +125,6 @@ typedef enum {
 #define L_DIRECTORY		2
 
 /**
- * Lookup will succeed only if the object is a root directory. The flag is
- * mutually exclusive with L_FILE and L_MP.
- */
-#define L_ROOT			4
-
-/**
  * Lookup will succeed only if the object is a mount point. The flag is mutually
  * exclusive with L_FILE and L_ROOT.
  */
@@ -146,11 +141,6 @@ typedef enum {
  * L_CREATE is used for creating both regular files and directories.
  */
 #define L_CREATE		32
-
-/**
- * L_LINK is used for linking to an already existing nodes.
- */
-#define L_LINK			64
 
 /**
  * L_UNLINK is used to remove leaves from the file system namespace. This flag

@@ -61,6 +61,11 @@
 		return; \
 	} while (0)
 
+#define DPRINTF(...)
+
+#define LOG_EXIT(rc) \
+	DPRINTF("Exiting %s() with rc = %d at line %d\n", __FUNC__, rc, __LINE__);
+
 static fs_reg_t reg;
 
 static vfs_out_ops_t *vfs_out_ops = NULL;
@@ -68,6 +73,8 @@ static libfs_ops_t *libfs_ops = NULL;
 
 static void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 static void libfs_unmount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
+static void libfs_link(libfs_ops_t *, fs_handle_t, ipc_callid_t,
+    ipc_call_t *);
 static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
 static void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
@@ -120,6 +127,11 @@ static void vfs_out_unmount(ipc_callid_t rid, ipc_call_t *req)
 {
 		
 	libfs_unmount(libfs_ops, rid, req);
+}
+
+static void vfs_out_link(ipc_callid_t rid, ipc_call_t *req)
+{
+	libfs_link(libfs_ops, reg.fs_handle, rid, req);
 }
 
 static void vfs_out_lookup(ipc_callid_t rid, ipc_call_t *req)
@@ -248,6 +260,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_OUT_UNMOUNT:
 			vfs_out_unmount(callid, &call);
+			break;
+		case VFS_OUT_LINK:
+			vfs_out_link(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
 			vfs_out_lookup(callid, &call);
@@ -485,6 +500,87 @@ static char plb_get_char(unsigned pos)
 	return reg.plb_ro[pos % PLB_SIZE];
 }
 
+static int plb_get_component(char *dest, unsigned *sz, unsigned *ppos, unsigned last)
+{
+	unsigned pos = *ppos;
+	unsigned size = 0;
+	
+	if (pos == last) {
+		*sz = 0;
+		return ERANGE;
+	}
+
+	char c = plb_get_char(pos); 
+	if (c == '/') {
+		pos++;
+	}
+	
+	for (int i = 0; i <= NAME_MAX; i++) {
+		c = plb_get_char(pos);
+		if (pos == last || c == '/') {
+			dest[i] = 0;
+			*ppos = pos;
+			*sz = size;
+			return EOK;
+		}
+		dest[i] = c;
+		pos++;
+		size++;
+	}
+	return ENAMETOOLONG;
+}
+
+static int receive_fname(char *buffer)
+{
+	size_t size;
+	ipc_callid_t wcall;
+	
+	if (!async_data_write_receive(&wcall, &size)) {
+		return ENOENT;
+	}
+	if (size > NAME_MAX + 1) {
+		async_answer_0(wcall, ERANGE);
+		return ERANGE;
+	}
+	return async_data_write_finalize(wcall, buffer, size);
+}
+
+/** Link a file at a path.
+ */
+void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t parent_sid = IPC_GET_ARG1(*req);
+	fs_index_t parent_index = IPC_GET_ARG2(*req);
+	fs_index_t child_index = IPC_GET_ARG3(*req);
+	
+	char component[NAME_MAX + 1];
+	int rc = receive_fname(component);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+
+	fs_node_t *parent = NULL;
+	rc = ops->node_get(&parent, parent_sid, parent_index);
+	if (parent == NULL) {
+		async_answer_0(rid, rc == EOK ? EBADF : rc);
+		return;
+	}
+	
+	fs_node_t *child = NULL;
+	rc = ops->node_get(&child, parent_sid, child_index);
+	if (child == NULL) {
+		async_answer_0(rid, rc == EOK ? EBADF : rc);
+		ops->node_put(parent);
+		return;
+	}
+	
+	rc = ops->link(parent, child, component);
+	ops->node_put(parent);
+	ops->node_put(child);
+	async_answer_0(rid, rc);
+}
+
 /** Lookup VFS triplet by name in the file system name space.
  *
  * The path passed in the PLB must be in the canonical file system path format
@@ -498,73 +594,90 @@ static char plb_get_char(unsigned pos)
  * @param request   VFS_OUT_LOOKUP request data itself.
  *
  */
-void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
-    ipc_call_t *req)
+void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc_call_t *req)
 {
-	unsigned int first = IPC_GET_ARG1(*req);
-	unsigned int last = IPC_GET_ARG2(*req);
-	unsigned int next = first;
+	unsigned first = IPC_GET_ARG1(*req);
+	unsigned len = IPC_GET_ARG2(*req);
 	service_id_t service_id = IPC_GET_ARG3(*req);
-	int lflag = IPC_GET_ARG4(*req);
-	fs_index_t index = IPC_GET_ARG5(*req);
-	char component[NAME_MAX + 1];
-	int len;
-	int rc;
+	fs_index_t index = IPC_GET_ARG4(*req);
+	int lflag = IPC_GET_ARG5(*req);
 	
-	if (last < next)
-		last += PLB_SIZE;
+	DPRINTF("Entered libfs_lookup()\n");
+	
+	// TODO: Validate flags.
+	
+	unsigned next = first;
+	unsigned last = first + len;
+	
+	char component[NAME_MAX + 1];
+	int rc;
 	
 	fs_node_t *par = NULL;
 	fs_node_t *cur = NULL;
 	fs_node_t *tmp = NULL;
+	unsigned clen = 0;
 	
-	rc = ops->root_get(&cur, service_id);
-	on_error(rc, goto out_with_answer);
+	if (index == (fs_index_t)-1) {
+		rc = ops->root_get(&cur, service_id);
+	} else {
+		rc = ops->node_get(&cur, service_id, index);
+	}
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		LOG_EXIT(rc);
+		goto out;
+	}
+	
+	assert(cur != NULL);
 	
 	if (cur->mp_data.mp_active) {
 		async_exch_t *exch = async_exchange_begin(cur->mp_data.sess);
-		async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last,
-		    cur->mp_data.service_id, lflag, index,
-		    IPC_FF_ROUTE_FROM_ME);
+		async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last - next,
+		    cur->mp_data.service_id, (fs_index_t) -1, lflag, IPC_FF_ROUTE_FROM_ME);
 		async_exchange_end(exch);
 		
 		(void) ops->node_put(cur);
+		DPRINTF("Passing to another filesystem instance.\n");
 		return;
 	}
 	
-	/* Eat slash */
-	if (plb_get_char(next) == '/')
-		next++;
+	/* Find the file and its parent. */
 	
-	while (next <= last) {
-		bool has_children;
-		
-		rc = ops->has_children(&has_children, cur);
-		on_error(rc, goto out_with_answer);
-		if (!has_children)
-			break;
-		
-		/* Collect the component */
-		len = 0;
-		while ((next <= last) && (plb_get_char(next) != '/')) {
-			if (len + 1 == NAME_MAX) {
-				/* Component length overflow */
-				async_answer_0(rid, ENAMETOOLONG);
-				goto out;
-			}
-			component[len++] = plb_get_char(next);
-			/* Process next character */
-			next++;
+	while (next != last) {
+		if (cur == NULL) {
+			async_answer_0(rid, ENOENT);
+			LOG_EXIT(ENOENT);
+			goto out;
+		}
+		if (!ops->is_directory(cur)) {
+			async_answer_0(rid, ENOTDIR);
+			LOG_EXIT(ENOTDIR);
+			goto out;
 		}
 		
-		assert(len);
-		component[len] = '\0';
-		/* Eat slash */
-		next++;
+		/* Collect the component */
+		rc = plb_get_component(component, &clen, &next, last);
+		assert(rc != ERANGE);
+		if (rc != EOK) {
+			async_answer_0(rid, rc);
+			LOG_EXIT(rc);
+			goto out;
+		}
+		
+		if (clen == 0) {
+			/* The path is just "/". */
+			break;
+		}
+		
+		assert(component[clen] == 0);
 		
 		/* Match the component */
 		rc = ops->match(&tmp, cur, component);
-		on_error(rc, goto out_with_answer);
+		if (rc != EOK) {
+			async_answer_0(rid, rc);
+			LOG_EXIT(rc);
+			goto out;
+		}
 		
 		/*
 		 * If the matching component is a mount point, there are two
@@ -577,218 +690,149 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		 */
 
 		if ((tmp) && (tmp->mp_data.mp_active) &&
-		    (!(lflag & L_MP) || (next <= last))) {
-			if (next > last)
-				next = last = first;
-			else
-				next--;
-			
+		    (!(lflag & L_MP) || (next < last))) {
 			async_exch_t *exch = async_exchange_begin(tmp->mp_data.sess);
 			async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next,
-			    last, tmp->mp_data.service_id, lflag, index,
+			    last - next, tmp->mp_data.service_id, (fs_index_t) -1, lflag,
 			    IPC_FF_ROUTE_FROM_ME);
 			async_exchange_end(exch);
-			
-			(void) ops->node_put(cur);
-			(void) ops->node_put(tmp);
-			if (par)
-				(void) ops->node_put(par);
-			return;
-		}
-		
-		/* Handle miss: match amongst siblings */
-		if (!tmp) {
-			if (next <= last) {
-				/* There are unprocessed components */
-				async_answer_0(rid, ENOENT);
-				goto out;
-			}
-			
-			/* Miss in the last component */
-			if (lflag & (L_CREATE | L_LINK)) {
-				/* Request to create a new link */
-				if (!ops->is_directory(cur)) {
-					async_answer_0(rid, ENOTDIR);
-					goto out;
-				}
-				
-				fs_node_t *fn;
-				if (lflag & L_CREATE)
-					rc = ops->create(&fn, service_id,
-					    lflag);
-				else
-					rc = ops->node_get(&fn, service_id,
-					    index);
-				on_error(rc, goto out_with_answer);
-				
-				if (fn) {
-					rc = ops->link(cur, fn, component);
-					if (rc != EOK) {
-						if (lflag & L_CREATE)
-							(void) ops->destroy(fn);
-						else
-							(void) ops->node_put(fn);
-						async_answer_0(rid, rc);
-					} else {
-						(void) ops->node_put(cur);
-						cur = fn;
-						goto out_with_answer;
-					}
-				} else
-					async_answer_0(rid, ENOSPC);
-				
-				goto out;
-			}
-			
-			async_answer_0(rid, ENOENT);
+			DPRINTF("Passing to another filesystem instance.\n");
 			goto out;
 		}
 		
+		/* Descend one level */
 		if (par) {
 			rc = ops->node_put(par);
-			on_error(rc, goto out_with_answer);
+			if (rc != EOK) {
+				async_answer_0(rid, rc);
+				LOG_EXIT(rc); 
+				goto out;
+			}
 		}
 		
-		/* Descend one level */
 		par = cur;
 		cur = tmp;
 		tmp = NULL;
 	}
 	
-	/* Handle miss: excessive components */
-	if (next <= last) {
-		bool has_children;
-		rc = ops->has_children(&has_children, cur);
-		on_error(rc, goto out_with_answer);
-		
-		if (has_children)
-			goto skip_miss;
-		
-		if (lflag & (L_CREATE | L_LINK)) {
-			if (!ops->is_directory(cur)) {
-				async_answer_0(rid, ENOTDIR);
-				goto out;
-			}
-			
-			/* Collect next component */
-			len = 0;
-			while (next <= last) {
-				if (plb_get_char(next) == '/') {
-					/* More than one component */
-					async_answer_0(rid, ENOENT);
-					goto out;
-				}
-				
-				if (len + 1 == NAME_MAX) {
-					/* Component length overflow */
-					async_answer_0(rid, ENAMETOOLONG);
-					goto out;
-				}
-				
-				component[len++] = plb_get_char(next);
-				/* Process next character */
-				next++;
-			}
-			
-			assert(len);
-			component[len] = '\0';
-			
-			fs_node_t *fn;
-			if (lflag & L_CREATE)
-				rc = ops->create(&fn, service_id, lflag);
-			else
-				rc = ops->node_get(&fn, service_id, index);
-			on_error(rc, goto out_with_answer);
-			
-			if (fn) {
-				rc = ops->link(cur, fn, component);
-				if (rc != EOK) {
-					if (lflag & L_CREATE)
-						(void) ops->destroy(fn);
-					else
-						(void) ops->node_put(fn);
-					async_answer_0(rid, rc);
-				} else {
-					(void) ops->node_put(cur);
-					cur = fn;
-					goto out_with_answer;
-				}
-			} else
-				async_answer_0(rid, ENOSPC);
-			
-			goto out;
-		}
-		
-		async_answer_0(rid, ENOENT);
+	/* At this point, par is either NULL or a directory.
+	 * If cur is NULL, the looked up file does not exist yet.
+	 */
+	 
+	assert(par == NULL || ops->is_directory(par));
+	assert(par != NULL || cur != NULL);
+	
+	/* Check for some error conditions. */
+	
+	if (cur && (lflag & L_FILE) && (ops->is_directory(cur))) {
+		async_answer_0(rid, EISDIR);
+		LOG_EXIT(EISDIR);
 		goto out;
 	}
 	
-skip_miss:
+	if (cur && (lflag & L_DIRECTORY) && (ops->is_file(cur))) {
+		async_answer_0(rid, ENOTDIR);
+		LOG_EXIT(ENOTDIR);
+		goto out;
+	}
 	
-	/* Handle hit */
+	/* Unlink. */
+	
 	if (lflag & L_UNLINK) {
+		if (!cur) {
+			async_answer_0(rid, ENOENT);
+			LOG_EXIT(ENOENT);
+			goto out;
+		}
+		if (!par) {
+			async_answer_0(rid, EINVAL);
+			LOG_EXIT(EINVAL);
+			goto out;
+		}
+		
 		unsigned int old_lnkcnt = ops->lnkcnt_get(cur);
 		rc = ops->unlink(par, cur, component);
-		
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
 			async_answer_5(rid, fs_handle, service_id,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
 			    old_lnkcnt);
-		} else
+			LOG_EXIT(EOK);
+		} else {
 			async_answer_0(rid, rc);
-		
+			LOG_EXIT(rc);
+		}
 		goto out;
 	}
 	
-	if (((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) ||
-	    (lflag & L_LINK)) {
-		async_answer_0(rid, EEXIST);
+	/* Create. */
+	
+	if (lflag & L_CREATE) {
+		if (cur && (lflag & L_EXCLUSIVE)) {
+			async_answer_0(rid, EEXIST);
+			LOG_EXIT(EEXIST);
+			goto out;
+		}
+	
+		if (!cur) {
+			rc = ops->create(&cur, service_id, lflag & (L_FILE|L_DIRECTORY));
+			if (rc != EOK) {
+				async_answer_0(rid, rc);
+				LOG_EXIT(rc);
+				goto out;
+			}
+			if (!cur) {
+				async_answer_0(rid, ENOSPC);
+				LOG_EXIT(ENOSPC);
+				goto out;
+			}
+			
+			rc = ops->link(par, cur, component);
+			if (rc != EOK) {
+				(void) ops->destroy(cur);
+				cur = NULL;
+				async_answer_0(rid, rc);
+				LOG_EXIT(rc);
+				goto out;
+			}
+		}
+	}
+	
+	/* Return. */
+	
+	if (!cur) {
+		async_answer_0(rid, ENOENT);
+		LOG_EXIT(ENOENT);
 		goto out;
 	}
 	
-	if ((lflag & L_FILE) && (ops->is_directory(cur))) {
-		async_answer_0(rid, EISDIR);
-		goto out;
-	}
-	
-	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
-		async_answer_0(rid, ENOTDIR);
-		goto out;
-	}
-
-	if ((lflag & L_ROOT) && par) {
-		async_answer_0(rid, EINVAL);
-		goto out;
-	}
-	
-out_with_answer:
-	
-	if (rc == EOK) {
-		if (lflag & L_OPEN)
-			rc = ops->node_open(cur);
-		
-		if (rc == EOK) {
-			aoff64_t size = ops->size_get(cur);
-			async_answer_5(rid, fs_handle, service_id,
-			    ops->index_get(cur), LOWER32(size), UPPER32(size),
-			    ops->lnkcnt_get(cur));
-		} else
+	if (lflag & L_OPEN) {
+		rc = ops->node_open(cur);
+		if (rc != EOK) {
 			async_answer_0(rid, rc);
-		
-	} else
-		async_answer_0(rid, rc);
+			LOG_EXIT(rc);
+			goto out;
+		}
+	}
 	
+	aoff64_t size = ops->size_get(cur);
+	async_answer_5(rid, fs_handle, service_id,
+		ops->index_get(cur), LOWER32(size), UPPER32(size),
+		ops->lnkcnt_get(cur));
+	
+	LOG_EXIT(EOK);
 out:
-	
-	if (par)
+	if (par) {
 		(void) ops->node_put(par);
+	}
 	
-	if (cur)
+	if (cur) {
 		(void) ops->node_put(cur);
+	}
 	
-	if (tmp)
+	if (tmp) {
 		(void) ops->node_put(tmp);
+	}
 }
 
 void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,

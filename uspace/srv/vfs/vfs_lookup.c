@@ -45,6 +45,10 @@
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <vfs/canonify.h>
+#include <dirent.h>
+#include <assert.h>
+
+#define DPRINTF(...)
 
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 
@@ -52,51 +56,12 @@ FIBRIL_MUTEX_INITIALIZE(plb_mutex);
 LIST_INITIALIZE(plb_entries);	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
-/** Perform a path lookup.
- *
- * @param path    Path to be resolved; it must be a NULL-terminated
- *                string.
- * @param lflag   Flags to be used during lookup.
- * @param result  Empty structure where the lookup result will be stored.
- *                Can be NULL.
- * @param altroot If non-empty, will be used instead of rootfs as the root
- *                of the whole VFS tree.
- *
- * @return EOK on success or an error code from errno.h.
- *
- */
-int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
-    vfs_pair_t *altroot, ...)
+static int plb_insert_entry(plb_entry_t *entry, char *path, size_t *start, size_t len)
 {
-	vfs_pair_t *root;
-
-	if (altroot)
-		root = altroot;
-	else
-		root = &rootfs;
-
-	if (!root->fs_handle)
-		return ENOENT;
-	
-	size_t len;
-	path = canonify(path, &len);
-	if (!path)
-		return EINVAL;
-	
-	fs_index_t index = 0;
-	if (lflag & L_LINK) {
-		va_list ap;
-
-		va_start(ap, altroot);
-		index = va_arg(ap, fs_index_t);
-		va_end(ap);
-	}
-	
 	fibril_mutex_lock(&plb_mutex);
 
-	plb_entry_t entry;
-	link_initialize(&entry.plb_link);
-	entry.len = len;
+	link_initialize(&entry->plb_link);
+	entry->len = len;
 
 	size_t first;	/* the first free index */
 	size_t last;	/* the last free index */
@@ -137,14 +102,14 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	 * enough space in the buffer to hold our path.
 	 */
 
-	entry.index = first;
-	entry.len = len;
+	entry->index = first;
+	entry->len = len;
 
 	/*
 	 * Claim PLB space by inserting the entry into the PLB entry ring
 	 * buffer.
 	 */
-	list_append(&entry.plb_link, &plb_entries);
+	list_append(&entry->plb_link, &plb_entries);
 	
 	fibril_mutex_unlock(&plb_mutex);
 
@@ -157,31 +122,157 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	memcpy(&plb[first], path, cnt1);
 	memcpy(plb, &path[cnt1], cnt2);
 
-	ipc_call_t answer;
-	async_exch_t *exch = vfs_exchange_grab(root->fs_handle);
-	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) first,
-	    (sysarg_t) (first + len - 1) % PLB_SIZE,
-	    (sysarg_t) root->service_id, (sysarg_t) lflag, (sysarg_t) index,
-	    &answer);
-	
-	sysarg_t rc;
-	async_wait_for(req, &rc);
-	vfs_exchange_release(exch);
-	
+	*start = first;
+	return EOK;
+}
+
+static void plb_clear_entry(plb_entry_t *entry, size_t first, size_t len)
+{
 	fibril_mutex_lock(&plb_mutex);
-	list_remove(&entry.plb_link);
+	list_remove(&entry->plb_link);
 	/*
 	 * Erasing the path from PLB will come handy for debugging purposes.
 	 */
+	size_t cnt1 = min(len, (PLB_SIZE - first) + 1);
+	size_t cnt2 = len - cnt1;
 	memset(&plb[first], 0, cnt1);
 	memset(plb, 0, cnt2);
 	fibril_mutex_unlock(&plb_mutex);
-	
-	if ((int) rc < EOK)
-		return (int) rc;
+}
 
-	if (!result)
-		return EOK;
+static char *_strrchr(char *path, int c)
+{
+	char *res = NULL;
+	while (*path != 0) {
+		if (*path == c) {
+			res = path;
+		}
+		path++;
+	}
+	return res;
+}
+
+int vfs_link_internal(vfs_triplet_t *base, char *path, vfs_triplet_t *child)
+{
+	assert(base != NULL);
+	assert(child != NULL);
+	assert(base->fs_handle);
+	assert(child->fs_handle);
+	assert(path != NULL);
+	
+	vfs_lookup_res_t res;
+	char component[NAME_MAX + 1];
+	int rc;
+	
+	size_t len;
+	char *npath = canonify(path, &len);
+	if (!npath) {
+		rc = EINVAL;
+		goto out;
+	}
+	path = npath;
+	
+	char *slash = _strrchr(path, '/');
+	if (slash && slash != path) {
+		if (slash[1] == 0) {
+			rc = EINVAL;
+			goto out;
+		}
+		
+		memcpy(component, slash + 1, str_size(slash));
+		*slash = 0;
+		
+		rc = vfs_lookup_internal(base, path, L_DIRECTORY, &res);
+		if (rc != EOK) {
+			goto out;
+		}
+		base = &res.triplet;
+		
+		*slash = '/';
+	} else {
+		memcpy(component, path + 1, str_size(path));
+	}
+	
+	if (base->fs_handle != child->fs_handle || base->service_id != child->service_id) {
+		rc = EXDEV;
+		goto out;
+	}
+	
+	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
+	aid_t req = async_send_3(exch, VFS_OUT_LINK, base->service_id, base->index, child->index, NULL);
+	
+	rc = async_data_write_start(exch, component, str_size(component) + 1);
+	sysarg_t orig_rc;
+	async_wait_for(req, &orig_rc);
+	vfs_exchange_release(exch);
+	if (orig_rc != EOK) {
+		rc = orig_rc;
+	}
+	
+out:
+	DPRINTF("vfs_link_internal() with path '%s' returns %d\n", path, rc);
+	return rc;
+}
+
+/** Perform a path lookup.
+ *
+ * @param base    The file from which to perform the lookup.
+ * @param path    Path to be resolved; it must be a NULL-terminated
+ *                string.
+ * @param lflag   Flags to be used during lookup.
+ * @param result  Empty structure where the lookup result will be stored.
+ *                Can be NULL.
+ *
+ * @return EOK on success or an error code from errno.h.
+ *
+ */
+int vfs_lookup_internal(vfs_triplet_t *base, char *path, int lflag, vfs_lookup_res_t *result)
+{
+	assert(base != NULL);
+	assert(path != NULL);
+	
+	sysarg_t rc;
+	
+	if (!base->fs_handle) {
+		rc = ENOENT;
+		goto out;
+	}
+	
+	size_t len;
+	char *npath = canonify(path, &len);
+	if (!npath) {
+		rc = EINVAL;
+		goto out;
+	}
+	path = npath;
+	
+	assert(path[0] == '/');
+	
+	size_t first;
+	
+	plb_entry_t entry;
+	rc = plb_insert_entry(&entry, path, &first, len);
+	if (rc != EOK) {
+		goto out;
+	}
+	
+	ipc_call_t answer;
+	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
+	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) first, (sysarg_t) len,
+	    (sysarg_t) base->service_id, (sysarg_t) base->index, (sysarg_t) lflag, &answer);
+	async_wait_for(req, &rc);
+	vfs_exchange_release(exch);
+	
+	plb_clear_entry(&entry, first, len);
+	
+	if ((int) rc < 0) {
+		goto out;
+	}
+	
+	if (!result) {
+		rc = EOK;
+		goto out;
+	}
 	
 	result->triplet.fs_handle = (fs_handle_t) rc;
 	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
@@ -196,8 +287,12 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 		result->type = VFS_NODE_DIRECTORY;
 	else
 		result->type = VFS_NODE_UNKNOWN;
-	
-	return EOK;
+
+	rc = EOK;
+
+out:
+	DPRINTF("vfs_lookup_internal() with path '%s' returns %d\n", path, rc);
+	return rc;
 }
 
 /**
