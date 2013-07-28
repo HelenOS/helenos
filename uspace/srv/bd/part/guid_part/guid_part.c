@@ -57,7 +57,7 @@
 #include <block.h>
 #include <loc.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <byteorder.h>
 #include <assert.h>
 #include <macros.h>

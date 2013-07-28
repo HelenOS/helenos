@@ -44,7 +44,7 @@
 #include <async.h>
 #include <errno.h>
 #include <malloc.h>
-#include <bool.h>
+#include <stdbool.h>
 
 static FIBRIL_MUTEX_INITIALIZE(devman_driver_block_mutex);
 static FIBRIL_MUTEX_INITIALIZE(devman_client_block_mutex);
@@ -412,7 +412,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 	size_t act_size;
 	sysarg_t dretval;
 	
-	exch = devman_exchange_begin_blocking(LOC_PORT_CONSUMER);
+	exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);

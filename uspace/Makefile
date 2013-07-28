@@ -38,6 +38,8 @@ DIRS = \
 	app/blkdump \
 	app/bnchmark \
 	app/devctl \
+	app/dnscfg \
+	app/dnsres \
 	app/edit \
 	app/getterm \
 	app/hdisk \
@@ -70,6 +72,7 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
+	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
 	app/date \
@@ -82,18 +85,18 @@ DIRS = \
 	srv/logger \
 	srv/devman \
 	srv/loader \
+	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
+	srv/net/slip \
 	srv/net/tcp \
 	srv/net/udp \
 	srv/ns \
 	srv/taskmon \
 	srv/vfs \
-	srv/bd/ata_bd \
 	srv/bd/sata_bd \
 	srv/bd/file_bd \
-	srv/bd/gxe_bd \
 	srv/bd/rd \
 	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
@@ -116,6 +119,7 @@ DIRS = \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/block/ahci \
+	drv/block/ata_bd \
 	drv/char/i8042 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
@@ -135,7 +139,7 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139 \
+	drv/nic/rtl8139
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -190,6 +194,12 @@ endif
 ifeq ($(UARCH),sparc64)
 	DIRS += \
 		srv/hw/irc/obio
+endif
+
+ifeq ($(UARCH),arm32)
+	DIRS += \
+		drv/infrastructure/rootamdm37x \
+		drv/fb/amdm37x_dispc
 endif
 
 ## System libraries

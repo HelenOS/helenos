@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <inttypes.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <str.h>
 #include <arg_parse.h>
 

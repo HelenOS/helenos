@@ -35,21 +35,15 @@
  */
 
 #include <libarch/inttypes.h>
+#include <libarch/config.h>
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/log.h>
 #include <stdio.h>
+#include <async.h>
 #include "i8042.h"
-
-#define CHECK_RET_RETURN(ret, message...) \
-	do { \
-		if (ret != EOK) { \
-			ddf_msg(LVL_ERROR, message); \
-			return ret; \
-		} \
-	} while (0)
 
 /** Get address of I/O registers.
  *
@@ -109,27 +103,37 @@ static int get_my_registers(ddf_dev_t *dev, uintptr_t *io_reg_address,
  */
 static int i8042_dev_add(ddf_dev_t *device)
 {
-	if (!device)
-		return EINVAL;
-	
 	uintptr_t io_regs = 0;
 	size_t io_size = 0;
 	int kbd = 0;
 	int mouse = 0;
+	int rc;
 	
-	int ret = get_my_registers(device, &io_regs, &io_size, &kbd, &mouse);
-	CHECK_RET_RETURN(ret, "Failed to get registers: %s.",
-	    str_error(ret));
+	if (!device)
+		return EINVAL;
+	
+	rc = get_my_registers(device, &io_regs, &io_size, &kbd, &mouse);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to get registers: %s.",
+		    str_error(rc));
+		return rc;
+	}
+	
 	ddf_msg(LVL_DEBUG, "I/O regs at %p (size %zuB), IRQ kbd %d, IRQ mouse %d.",
 	    (void *) io_regs, io_size, kbd, mouse);
 	
 	i8042_t *i8042 = ddf_dev_data_alloc(device, sizeof(i8042_t));
-	ret = (i8042 == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate i8042 driver instance.");
+	if (i8042 == NULL) {
+		ddf_msg(LVL_ERROR, "Out of memory.");
+		return ENOMEM;
+	}
 	
-	ret = i8042_init(i8042, (void *) io_regs, io_size, kbd, mouse, device);
-	CHECK_RET_RETURN(ret, "Failed to initialize i8042 driver: %s.",
-	    str_error(ret));
+	rc = i8042_init(i8042, (void *) io_regs, io_size, kbd, mouse, device);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to initialize i8042 driver: %s.",
+		    str_error(rc));
+		return rc;
+	}
 	
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
@@ -151,6 +155,13 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS PS/2 driver.\n", NAME);
 	ddf_log_init(NAME);
+	
+	/*
+	 * Alleviate the virtual memory / page table pressure caused by 
+	 * interrupt storms when the default large stacks are used.
+	 */
+	async_set_interrupt_handler_stack_size(PAGE_SIZE);
+
 	return ddf_driver_main(&i8042_driver);
 }
 

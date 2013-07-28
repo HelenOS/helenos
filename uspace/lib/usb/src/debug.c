@@ -83,7 +83,7 @@ const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
 	/*
 	 * Remove previous string.
 	 */
-	bzero(buffer_dump[buffer_dump_index], BUFFER_DUMP_LEN);
+	memset(buffer_dump[buffer_dump_index], 0, BUFFER_DUMP_LEN);
 
 	/* Do the actual dump. */
 	ddf_dump_buffer(buffer_dump[buffer_dump_index], BUFFER_DUMP_LEN,

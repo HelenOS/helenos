@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -358,6 +358,7 @@ int main(int argc, char *argv[])
 	srv_start("/srv/inetsrv");
 	srv_start("/srv/tcp");
 	srv_start("/srv/udp");
+	srv_start("/srv/dnsrsrv");
 	
 	srv_start("/srv/clipboard");
 	srv_start("/srv/remcons");
@@ -368,7 +369,6 @@ int main(int argc, char *argv[])
 	 */
 #ifdef CONFIG_START_BD
 	srv_start("/srv/ata_bd");
-	srv_start("/srv/gxe_bd");
 #endif
 	
 #ifdef CONFIG_MOUNT_DATA

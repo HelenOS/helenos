@@ -48,7 +48,6 @@ typedef struct kbd_ctl_ops {
 } kbd_ctl_ops_t;
 
 extern kbd_ctl_ops_t apple_ctl;
-extern kbd_ctl_ops_t gxe_fb_ctl;
 extern kbd_ctl_ops_t kbdev_ctl;
 extern kbd_ctl_ops_t pc_ctl;
 extern kbd_ctl_ops_t stty_ctl;

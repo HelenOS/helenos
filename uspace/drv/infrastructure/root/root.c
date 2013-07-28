@@ -40,7 +40,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>

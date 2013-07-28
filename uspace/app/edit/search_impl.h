@@ -39,7 +39,7 @@
 #include "search.h"
 
 /** Search state */
-typedef struct search {
+struct search {
 	/* Note: This structure is opaque for the user. */
 
 	const wchar_t *pattern;
@@ -48,7 +48,7 @@ typedef struct search {
 	size_t pattern_pos;
 	void *client_data;
 	search_ops_t ops;
-} search_t;
+};
 
 #endif
 

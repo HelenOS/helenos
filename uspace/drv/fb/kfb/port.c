@@ -162,9 +162,9 @@ static int kfb_handle_damage_pixels(visualizer_t *vs,
 	if (x_offset == 0 && y_offset == 0) {
 		/* Faster damage routine ignoring offsets. */
 		for (sysarg_t y = y0; y < height + y0; ++y) {
+			pixel_t *pixel = pixelmap_pixel_at(map, x0, y);
 			for (sysarg_t x = x0; x < width + x0; ++x) {
-				kfb.pixel2visual(kfb.addr + FB_POS(x, y),
-				    *pixelmap_pixel_at(map, x, y));
+				kfb.pixel2visual(kfb.addr + FB_POS(x, y), *pixel++);
 			}
 		}
 	} else {

@@ -39,7 +39,9 @@
 
 #include <sys/types.h>
 
-/** Internet Datagram header (fixed part) */
+#define IP6_NEXT_FRAGMENT  44
+
+/** IPv4 Datagram header (fixed part) */
 typedef struct {
 	/** Version, Internet Header Length */
 	uint8_t ver_ihl;
@@ -47,7 +49,7 @@ typedef struct {
 	uint8_t tos;
 	/** Total Length */
 	uint16_t tot_len;
-	/** Identification */
+	/** Identifier */
 	uint16_t id;
 	/** Flags, Fragment Offset */
 	uint16_t flags_foff;
@@ -88,6 +90,46 @@ enum flags_foff_bits {
 	/** Fragment Offset, lowest bit */
 	FF_FRAGOFF_l = 0
 };
+
+/** Bits in ip6_header_fragment_t.offsmf */
+enum flags_offsmt_bits {
+	/** More fragments */
+	OF_FLAG_M = 0,
+	/** Fragment offset, highest bit */
+	OF_FRAGOFF_h = 15,
+	/** Fragment offset, lowest bit */
+	OF_FRAGOFF_l = 3
+};
+
+/** IPv6 Datagram header (fixed part) */
+typedef struct {
+	/** Version, Traffic class first 4 bits */
+	uint8_t ver_tc;
+	/** Traffic class (the rest), Flow label */
+	uint8_t tc_fl[3];
+	/* Payload length */
+	uint16_t payload_len;
+	/** Next header */
+	uint8_t next;
+	/** Hop limit */
+	uint8_t hop_limit;
+	/** Source address */
+	uint8_t src_addr[16];
+	/** Destination address */
+	uint8_t dest_addr[16];
+} ip6_header_t;
+
+/** IPv6 Datagram Fragment extension header */
+typedef struct {
+	/** Next header */
+	uint8_t next;
+	/** Reserved */
+	uint8_t reserved;
+	/** Fragmentation offset, reserved and M flag */
+	uint16_t offsmf;
+	/** Identifier */
+	uint32_t id;
+} ip6_header_fragment_t;
 
 /** Fragment offset is expressed in units of 8 bytes */
 #define FRAG_OFFS_UNIT 8

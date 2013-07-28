@@ -30,7 +30,16 @@
 .code32
 vesa_init:
 	lidtl vesa_idtr
-	jmp $GDT_SELECTOR(VESA_INIT_DES), $vesa_init_real - vesa_init
+	
+	mov $GDT_SELECTOR(VESA_INIT_DATA_DES), %bx
+	
+	mov %bx, %es
+	mov %bx, %fs
+	mov %bx, %gs
+	mov %bx, %ds
+	mov %bx, %ss
+	
+	jmp $GDT_SELECTOR(VESA_INIT_CODE_DES), $vesa_init_real - vesa_init
 
 vesa_idtr:
 	.word 0x3ff
@@ -38,13 +47,12 @@ vesa_idtr:
 
 .code16
 vesa_init_real:
-	
 	mov %cr0, %eax
 	and $~1, %eax
 	mov %eax, %cr0
 	
 	jmp $VESA_INIT_SEGMENT, $vesa_init_real2 - vesa_init
-	
+
 vesa_init_real2:
 	mov $VESA_INIT_SEGMENT, %bx
 	

@@ -400,7 +400,7 @@ exfat_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t mcl,
     exfat_cluster_t lcl)
 {
 	service_id_t service_id = nodep->idx->service_id;
-	exfat_cluster_t lastc;
+	exfat_cluster_t lastc = 0;
 	int rc;
 
 	if (nodep->firstc == 0) {

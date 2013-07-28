@@ -37,7 +37,7 @@
 
 #include <ipc/common.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define FS_NAME_MAXLEN  20
 #define MAX_PATH_LEN    (64 * 1024)

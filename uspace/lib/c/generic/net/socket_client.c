@@ -86,6 +86,8 @@ struct socket {
 	async_sess_t *sess;
 	/** Parent module service. */
 	services_t service;
+	/** Socket family */
+	int family;
 
 	/**
 	 * Underlying protocol header size.
@@ -191,86 +193,90 @@ static sockets_t *socket_get_sockets(void)
 
 /** Default thread for new connections.
  *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- * @param[in] arg	Local argument.
+ * @param[in] iid   The initial message identifier.
+ * @param[in] icall The initial message call structure.
+ * @param[in] arg   Local argument.
+ *
  */
 static void socket_connection(ipc_callid_t iid, ipc_call_t * icall, void *arg)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	socket_t *socket;
-	int rc;
-
-loop:
-	callid = async_get_call(&call);
-
-	switch (IPC_GET_IMETHOD(call)) {
-	case NET_SOCKET_RECEIVED:
-	case NET_SOCKET_ACCEPTED:
-	case NET_SOCKET_DATA_FRAGMENT_SIZE:
-		fibril_rwlock_read_lock(&socket_globals.lock);
-
-		/* Find the socket */
-		socket = sockets_find(socket_get_sockets(),
-		    SOCKET_GET_SOCKET_ID(call));
-		if (!socket) {
-			rc = ENOTSOCK;
-			fibril_rwlock_read_unlock(&socket_globals.lock);
-			break;
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(callid, 0);
+			return;
 		}
+		
+		int rc;
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case NET_SOCKET_RECEIVED:
-			fibril_mutex_lock(&socket->receive_lock);
-			/* Push the number of received packet fragments */
-			rc = dyn_fifo_push(&socket->received,
-			    SOCKET_GET_DATA_FRAGMENTS(call),
-			    SOCKET_MAX_RECEIVED_SIZE);
-			if (rc == EOK) {
-				/* Signal the received packet */
-				fibril_condvar_signal(&socket->receive_signal);
-			}
-			fibril_mutex_unlock(&socket->receive_lock);
-			break;
-
 		case NET_SOCKET_ACCEPTED:
-			/* Push the new socket identifier */
-			fibril_mutex_lock(&socket->accept_lock);
-			rc = dyn_fifo_push(&socket->accepted, 1,
-			    SOCKET_MAX_ACCEPTED_SIZE);
-			if (rc == EOK) {
-				/* Signal the accepted socket */
-				fibril_condvar_signal(&socket->accept_signal);
+		case NET_SOCKET_DATA_FRAGMENT_SIZE:
+			fibril_rwlock_read_lock(&socket_globals.lock);
+			
+			/* Find the socket */
+			socket_t *socket = sockets_find(socket_get_sockets(),
+			    SOCKET_GET_SOCKET_ID(call));
+			if (!socket) {
+				rc = ENOTSOCK;
+				fibril_rwlock_read_unlock(&socket_globals.lock);
+				break;
 			}
-			fibril_mutex_unlock(&socket->accept_lock);
+			
+			switch (IPC_GET_IMETHOD(call)) {
+			case NET_SOCKET_RECEIVED:
+				fibril_mutex_lock(&socket->receive_lock);
+				/* Push the number of received packet fragments */
+				rc = dyn_fifo_push(&socket->received,
+				    SOCKET_GET_DATA_FRAGMENTS(call),
+				    SOCKET_MAX_RECEIVED_SIZE);
+				if (rc == EOK) {
+					/* Signal the received packet */
+					fibril_condvar_signal(&socket->receive_signal);
+				}
+				fibril_mutex_unlock(&socket->receive_lock);
+				break;
+				
+			case NET_SOCKET_ACCEPTED:
+				/* Push the new socket identifier */
+				fibril_mutex_lock(&socket->accept_lock);
+				rc = dyn_fifo_push(&socket->accepted, 1,
+				    SOCKET_MAX_ACCEPTED_SIZE);
+				if (rc == EOK) {
+					/* Signal the accepted socket */
+					fibril_condvar_signal(&socket->accept_signal);
+				}
+				fibril_mutex_unlock(&socket->accept_lock);
+				break;
+			
+			default:
+				rc = ENOTSUP;
+			}
+			
+			if ((SOCKET_GET_DATA_FRAGMENT_SIZE(call) > 0) &&
+			    (SOCKET_GET_DATA_FRAGMENT_SIZE(call) !=
+			    socket->data_fragment_size)) {
+				fibril_rwlock_write_lock(&socket->sending_lock);
+				
+				/* Set the data fragment size */
+				socket->data_fragment_size =
+				    SOCKET_GET_DATA_FRAGMENT_SIZE(call);
+				
+				fibril_rwlock_write_unlock(&socket->sending_lock);
+			}
+			
+			fibril_rwlock_read_unlock(&socket_globals.lock);
 			break;
-
+			
 		default:
 			rc = ENOTSUP;
 		}
-
-		if ((SOCKET_GET_DATA_FRAGMENT_SIZE(call) > 0) &&
-		    (SOCKET_GET_DATA_FRAGMENT_SIZE(call) !=
-		    socket->data_fragment_size)) {
-			fibril_rwlock_write_lock(&socket->sending_lock);
-
-			/* Set the data fragment size */
-			socket->data_fragment_size =
-			    SOCKET_GET_DATA_FRAGMENT_SIZE(call);
-
-			fibril_rwlock_write_unlock(&socket->sending_lock);
-		}
-
-		fibril_rwlock_read_unlock(&socket_globals.lock);
-		break;
-
-	default:
-		rc = ENOTSUP;
+		
+		async_answer_0(callid, (sysarg_t) rc);
 	}
-
-	async_answer_0(callid, (sysarg_t) rc);
-	goto loop;
 }
 
 /** Return the TCP module session.
@@ -390,6 +396,7 @@ int socket(int domain, int type, int protocol)
 	/* Find the appropriate service */
 	switch (domain) {
 	case PF_INET:
+	case PF_INET6:
 		switch (type) {
 		case SOCK_STREAM:
 			if (!protocol)
@@ -428,7 +435,6 @@ int socket(int domain, int type, int protocol)
 
 		break;
 
-	case PF_INET6:
 	default:
 		return EPFNOSUPPORT;
 	}
@@ -441,7 +447,8 @@ int socket(int domain, int type, int protocol)
 	if (!socket)
 		return ENOMEM;
 
-	bzero(socket, sizeof(*socket));
+	memset(socket, 0, sizeof(*socket));
+	socket->family = domain;
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
 	/* Request a new socket */
@@ -652,7 +659,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		return ENOMEM;
 	}
-	bzero(new_socket, sizeof(*new_socket));
+	memset(new_socket, 0, sizeof(*new_socket));
 	socket_id = socket_generate_new_id();
 	if (socket_id <= 0) {
 		fibril_mutex_unlock(&socket->accept_lock);

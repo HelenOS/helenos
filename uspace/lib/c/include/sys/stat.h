@@ -36,7 +36,7 @@
 #define LIBC_SYS_STAT_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <ipc/vfs.h>
 #include <ipc/loc.h>
 

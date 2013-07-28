@@ -29,12 +29,12 @@
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
-CLANG_ARCH = x86_64
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
+CLANG_CFLAGS += $(CMN1)
 
 BITS = 64
 ENDIANESS = LE
@@ -75,8 +75,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/proc/task.c \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/userspace.c \
-	arch/$(KARCH)/src/syscall.c \
-	arch/$(KARCH)/src/debugger.c
+	arch/$(KARCH)/src/syscall.c
 
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \

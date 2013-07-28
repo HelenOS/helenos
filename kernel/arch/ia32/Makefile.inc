@@ -29,7 +29,6 @@
 BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = binary
-CLANG_ARCH = i386
 
 BITS = 32
 ENDIANESS = LE
@@ -104,5 +103,4 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/boot/multiboot2.S \
 	arch/$(KARCH)/src/boot/memmap.c \
 	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/debugger.c \
 	arch/$(KARCH)/src/syscall.c

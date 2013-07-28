@@ -111,7 +111,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 	uhci_batch->device_buffer = malloc32(total_size);
 	CHECK_NULL_DISPOSE_RETURN(uhci_batch->device_buffer,
 	    "Failed to allocate UHCI buffer.\n");
-	bzero(uhci_batch->device_buffer, total_size);
+	memset(uhci_batch->device_buffer, 0, total_size);
 
 	uhci_batch->tds = uhci_batch->device_buffer;
 	uhci_batch->qh =

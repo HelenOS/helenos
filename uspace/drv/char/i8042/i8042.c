@@ -40,7 +40,6 @@
 
 #include <device/hw_res.h>
 #include <ddi.h>
-#include <libarch/ddi.h>
 #include <errno.h>
 #include <str_error.h>
 #include <inttypes.h>
@@ -63,38 +62,6 @@
 #define i8042_KBD_DISABLE    0x10
 #define i8042_AUX_DISABLE    0x20
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
-
-#define CHECK_RET_DESTROY(ret, msg...) \
-	do { \
-		if (ret != EOK) { \
-			ddf_msg(LVL_ERROR, msg); \
-			if (dev->kbd_fun) { \
-				dev->kbd_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->kbd_fun); \
-			} \
-			if (dev->aux_fun) { \
-				dev->aux_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->aux_fun); \
-			} \
-		} \
-	} while (0)
-
-#define CHECK_RET_UNBIND_DESTROY(ret, msg...) \
-	do { \
-		if (ret != EOK) { \
-			ddf_msg(LVL_ERROR, msg); \
-			if (dev->kbd_fun) { \
-				ddf_fun_unbind(dev->kbd_fun); \
-				dev->kbd_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->kbd_fun); \
-			} \
-			if (dev->aux_fun) { \
-				ddf_fun_unbind(dev->aux_fun); \
-				dev->aux_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->aux_fun); \
-			} \
-		} \
-	} while (0)
 
 void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 

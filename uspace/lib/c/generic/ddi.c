@@ -33,7 +33,9 @@
  */
 
 #include <assert.h>
+#include <atomic.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <abi/ddi/arg.h>
@@ -45,6 +47,7 @@
 #include <align.h>
 #include <libarch/config.h>
 #include "private/libc.h"
+
 
 /** Return unique device number.
  *
@@ -119,13 +122,13 @@ int dmamem_unmap_anonymous(void *virt)
  * @return ENOMEM if there was some problem in allocating memory.
  *
  */
-int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
+static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 {
-	ddi_ioarg_t arg;
-	
-	arg.task_id = id;
-	arg.ioaddr = ioaddr;
-	arg.size = size;
+	const ddi_ioarg_t arg = {
+		.task_id = id,
+		.ioaddr = ioaddr,
+		.size = size
+	};
 	
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
@@ -135,7 +138,7 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
  * @param pio_addr I/O start address.
  * @param size     Size of the I/O region.
  * @param virt     Virtual address for application's
- *                 PIO operations.
+ *                 PIO operations. Can be NULL for PMIO.
  *
  * @return EOK on success.
  * @return Negative error code on failure.
@@ -145,11 +148,16 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 {
 #ifdef IO_SPACE_BOUNDARY
 	if (pio_addr < IO_SPACE_BOUNDARY) {
-		*virt = pio_addr;
+		if (virt)
+			*virt = pio_addr;
 		return iospace_enable(task_get_id(), pio_addr, size);
 	}
+#else
+	(void) iospace_enable;
 #endif
-	
+	if (!virt)
+		return EINVAL;
+
 	void *phys_frame =
 	    (void *) ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
 	size_t offset = pio_addr - phys_frame;
@@ -163,6 +171,45 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	
 	*virt = virt_page + offset;
 	return EOK;
+}
+
+void pio_write_8(ioport8_t *reg, uint8_t val)
+{
+	pio_trace_log(reg, val, true);
+	arch_pio_write_8(reg, val);
+}
+
+void pio_write_16(ioport16_t *reg, uint16_t val)
+{
+	pio_trace_log(reg, val, true);
+	arch_pio_write_16(reg, val);
+}
+
+void pio_write_32(ioport32_t *reg, uint32_t val)
+{
+	pio_trace_log(reg, val, true);
+	arch_pio_write_32(reg, val);
+}
+
+uint8_t pio_read_8(const ioport8_t *reg)
+{
+	const uint8_t val = arch_pio_read_8(reg);
+	pio_trace_log(reg, val, false);
+	return val;
+}
+
+uint16_t pio_read_16(const ioport16_t *reg)
+{
+	const uint16_t val = arch_pio_read_16(reg);
+	pio_trace_log(reg, val, false);
+	return val;
+}
+
+uint32_t pio_read_32(const ioport32_t *reg)
+{
+	const uint32_t val = arch_pio_read_32(reg);
+	pio_trace_log(reg, val, false);
+	return val;
 }
 
 /** Register IRQ notification.

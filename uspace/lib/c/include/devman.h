@@ -39,7 +39,7 @@
 #include <ipc/devman.h>
 #include <ipc/loc.h>
 #include <async.h>
-#include <bool.h>
+#include <stdbool.h>
 
 extern async_exch_t *devman_exchange_begin_blocking(devman_interface_t);
 extern async_exch_t *devman_exchange_begin(devman_interface_t);

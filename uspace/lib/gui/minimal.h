@@ -36,7 +36,7 @@
 #ifndef GUI_MINIMAL_H_
 #define GUI_MINIMAL_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <io/pixel.h>
 

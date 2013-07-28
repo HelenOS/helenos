@@ -39,8 +39,8 @@
 #include <sys/types.h>
 
 typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
+	uint32_t src;
+	uint32_t dest;
 	uint16_t seq_no;
 	void *data;
 	size_t size;
@@ -52,8 +52,7 @@ typedef struct inetping_ev_ops {
 
 extern int inetping_init(inetping_ev_ops_t *);
 extern int inetping_send(inetping_sdu_t *);
-extern int inetping_get_srcaddr(inet_addr_t *, inet_addr_t *);
-
+extern int inetping_get_srcaddr(uint32_t, uint32_t *);
 
 #endif
 

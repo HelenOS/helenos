@@ -34,9 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
-
-/* Must be first. */
-#include "posix/stdbool.h"
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/time.h"
@@ -49,6 +47,7 @@
 #include "libc/malloc.h"
 #include "libc/task.h"
 #include "libc/stats.h"
+#include "libc/stdbool.h"
 #include "libc/sys/time.h"
 
 // TODO: test everything in this file

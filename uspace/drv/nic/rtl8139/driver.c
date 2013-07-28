@@ -33,7 +33,6 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
-#include <libarch/ddi.h>
 #include <libarch/barrier.h>
 
 #include <as.h>
@@ -620,7 +619,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 		/* Check if the header is valid, otherwise we are lost in the buffer */
 		if (size == 0 || size > RTL8139_FRAME_MAX_LENGTH) {
 			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4" PRIu16 ", "
-			    "header 0x%4" PRIx16 ". Offset: %d)", size, frame_header,
+			    "header 0x%4" PRIx32 ". Offset: %" PRIu16 ")", size, frame_header,
 			    rx_offset);
 			goto rx_err;
 		}
@@ -1020,7 +1019,7 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 		return NULL;
 	}
 
-	bzero(rtl8139, sizeof(rtl8139_t));
+	memset(rtl8139, 0, sizeof(rtl8139_t));
 
 	rtl8139->nic_data = nic_data;
 	nic_set_specific(nic_data, rtl8139);

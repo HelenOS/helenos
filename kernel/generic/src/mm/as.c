@@ -78,6 +78,7 @@
 #include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 
 /**
  * Each architecture decides what functions will be used to carry out
@@ -425,11 +426,12 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 	
 	/*
 	 * So far, the area does not conflict with other areas.
-	 * Check if it doesn't conflict with kernel address space.
+	 * Check if it is contained in the user address space.
 	 */
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
-		return !overlaps(addr, P2SZ(count), KERNEL_ADDRESS_SPACE_START,
-		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START);
+		return iswithin(USER_ADDRESS_SPACE_START,
+		    (USER_ADDRESS_SPACE_END - USER_ADDRESS_SPACE_START) + 1,
+		    addr, P2SZ(count));
 	}
 	
 	return true;
@@ -541,7 +543,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
     unsigned int attrs, mem_backend_t *backend,
     mem_backend_data_t *backend_data, uintptr_t *base, uintptr_t bound)
 {
-	if ((*base != (uintptr_t) -1) && ((*base % PAGE_SIZE) != 0))
+	if ((*base != (uintptr_t) -1) && !IS_ALIGNED(*base, PAGE_SIZE))
 		return NULL;
 	
 	if (size == 0)
@@ -685,6 +687,9 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
  */
 int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 {
+	if (!IS_ALIGNED(address, PAGE_SIZE))
+		return EINVAL;
+
 	mutex_lock(&as->lock);
 	
 	/*
@@ -695,11 +700,10 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		mutex_unlock(&as->lock);
 		return ENOENT;
 	}
-	
-	if (area->backend == &phys_backend) {
+
+	if (!area->backend->is_resizable(area)) {
 		/*
-		 * Remapping of address space areas associated
-		 * with memory mapped devices is not supported.
+		 * The backend does not support resizing for this area.
 		 */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
@@ -1056,10 +1060,9 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		return ENOENT;
 	}
 	
-	if ((!src_area->backend) || (!src_area->backend->share)) {
+	if (!src_area->backend->is_shareable(src_area)) {
 		/*
-		 * There is no backend or the backend does not
-		 * know how to share the area.
+		 * The backend does not permit sharing of this area.
 		 */
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);
@@ -1349,10 +1352,10 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
  *
  * Interrupts are assumed disabled.
  *
- * @param page   Faulting page.
- * @param access Access mode that caused the page fault (i.e.
- *               read/write/exec).
- * @param istate Pointer to the interrupted state.
+ * @param address Faulting address.
+ * @param access  Access mode that caused the page fault (i.e.
+ *                read/write/exec).
+ * @param istate  Pointer to the interrupted state.
  *
  * @return AS_PF_FAULT on page fault.
  * @return AS_PF_OK on success.
@@ -1360,13 +1363,16 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
  *         or copy_from_uspace().
  *
  */
-int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
+int as_page_fault(uintptr_t address, pf_access_t access, istate_t *istate)
 {
+	uintptr_t page = ALIGN_DOWN(address, PAGE_SIZE);
+	int rc = AS_PF_FAULT;
+
 	if (!THREAD)
-		return AS_PF_FAULT;
+		goto page_fault;
 	
 	if (!AS)
-		return AS_PF_FAULT;
+		goto page_fault;
 	
 	mutex_lock(&AS->lock);
 	as_area_t *area = find_area_and_lock(AS, page);
@@ -1422,7 +1428,8 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	/*
 	 * Resort to the backend page fault handler.
 	 */
-	if (area->backend->page_fault(area, page, access) != AS_PF_OK) {
+	rc = area->backend->page_fault(area, page, access);
+	if (rc != AS_PF_OK) {
 		page_table_unlock(AS, false);
 		mutex_unlock(&area->lock);
 		mutex_unlock(&AS->lock);
@@ -1443,8 +1450,13 @@ page_fault:
 		THREAD->in_copy_to_uspace = false;
 		istate_set_retaddr(istate,
 		    (uintptr_t) &memcpy_to_uspace_failover_address);
+	} else if (rc == AS_PF_SILENT) {
+		printf("Killing task %" PRIu64 " due to a "
+		    "failed late reservation request.\n", TASK->taskid);
+		task_kill_self(true);
 	} else {
-		return AS_PF_FAULT;
+		fault_if_from_uspace(istate, "Page fault: %p.", (void *) address);
+		panic_memtrap(istate, access, address, NULL);
 	}
 	
 	return AS_PF_DEFER;
@@ -1670,7 +1682,7 @@ size_t as_area_get_size(uintptr_t base)
 bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 {
 	ASSERT(mutex_locked(&area->lock));
-	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
+	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
 	ASSERT(count);
 	
 	btree_node_t *leaf;
@@ -1954,7 +1966,7 @@ success:
 bool used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 {
 	ASSERT(mutex_locked(&area->lock));
-	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
+	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
 	ASSERT(count);
 	
 	btree_node_t *leaf;
@@ -2131,7 +2143,7 @@ sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
     uintptr_t bound)
 {
 	uintptr_t virt = base;
-	as_area_t *area = as_area_create(AS, flags | AS_AREA_CACHEABLE, size,
+	as_area_t *area = as_area_create(AS, flags, size,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL, &virt, bound);
 	if (area == NULL)
 		return (sysarg_t) -1;

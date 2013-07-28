@@ -29,7 +29,7 @@
 /** @file
  */
 
-#include <bool.h>
+#include <stdbool.h>
 #include <entry_point.h>
 
 /** Jump to program entry point. */

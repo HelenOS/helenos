@@ -35,8 +35,8 @@
 /**Read a directory entry from disk.
  *
  * @param mnode		Pointer to the directory node.
- * @param d_info	Pointer to a directory entry structure where the dentry info
- *			will be stored.
+ * @param d_info	Pointer to a directory entry structure where
+ *			the dentry info will be stored.
  * @param index		index of the dentry in the list.
  *
  * @return		EOK on success or a negative error code.
@@ -100,7 +100,7 @@ out_err:
 
 /**Write a directory entry on disk.
  *
- * @param d_info Pointer to the directory entry structure to write on disk.
+ * @param d_info The directory entry to write to disk.
  *
  * @return	 EOK on success or a negative error code.
  */
@@ -177,7 +177,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 		const size_t d_name_len = str_size(d_info.d_name);
 
 		if (name_len == d_name_len &&
-		    !bcmp(d_info.d_name, d_name, name_len)) {
+		    memcmp(d_info.d_name, d_name, name_len) == 0) {
 
 			d_info.d_inum = 0;
 			r = mfs_write_dentry(&d_info);
@@ -239,8 +239,10 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name,
 			if (r != EOK)
 				goto out;
 			r = mfs_write_map(mnode, pos, b, &dummy);
-			if (r != EOK)
+			if (r != EOK) {
+				mfs_free_zone(mnode->instance, b);
 				goto out;
+			}
 		}
 
 		mnode->ino_i->i_size += sbi->dirsize;

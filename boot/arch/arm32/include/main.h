@@ -39,6 +39,27 @@
 
 /** Address where characters to be printed are expected. */
 
+
+/** BeagleBoard-xM UART register address
+ *
+ * This is UART3 of AM/DM37x CPU
+ */
+#define BBXM_SCONS_THR          0x49020000
+#define BBXM_SCONS_SSR          0x49020044
+
+/* Check this bit before writing (tx fifo full) */
+#define BBXM_THR_FULL           0x00000001
+
+/** Beaglebone UART register addresses
+ *
+ * This is UART0 of AM335x CPU
+ */
+#define BBONE_SCONS_THR         0x44E09000
+#define BBONE_SCONS_SSR         0x44E09044
+
+/** Check this bit before writing (tx fifo full) */
+#define BBONE_TXFIFO_FULL       0x00000001
+
 /** GTA02 serial console UART register addresses.
  *
  * This is UART channel 2 of the S3C24xx CPU
@@ -49,9 +70,6 @@
 /* Bits in UTXH register */
 #define S3C24XX_UTXH_TX_EMPTY	0x00000004
 
-
-/** GXemul testarm serial console output register */
-#define TESTARM_SCONS_ADDR	0x10000000
 
 /** IntegratorCP serial console output register */
 #define ICP_SCONS_ADDR		0x16000000

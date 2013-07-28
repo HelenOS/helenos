@@ -75,14 +75,14 @@ typedef enum {
 	STYLUS_TIP, STYLUS_ERASER, TOUCH
 } isdv4_source_type_t;
 
-typedef struct isdv4_event {
+struct isdv4_event {
 	isdv4_event_type_t type;
 	isdv4_source_type_t source;
 	unsigned int x;
 	unsigned int y;
 	unsigned int pressure;
 	unsigned int button;
-} isdv4_event_t;
+};
 
 extern int isdv4_init(isdv4_state_t *, async_sess_t *, isdv4_event_fn);
 extern int isdv4_init_tablet(isdv4_state_t *);

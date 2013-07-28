@@ -39,11 +39,12 @@
 #include <macros.h>
 #include <errno.h>
 #include <assert.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <tinput.h>
 
 #define LIN_TO_COL(ti, lpos) ((lpos) % ((ti)->con_cols))
 #define LIN_TO_ROW(ti, lpos) ((lpos) / ((ti)->con_cols))
+#define LIN_POS(ti, col, row) ((col) + (row) * (ti)->con_cols)
 
 /** Seek direction */
 typedef enum {
@@ -379,6 +380,23 @@ static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir, bool shift_held)
 			ti->pos = ti->pos - ti->con_cols;
 	}
 	
+	tinput_post_seek(ti, shift_held);
+}
+
+static void tinput_seek_scrpos(tinput_t *ti, int col, int line, bool shift_held)
+{
+	unsigned lpos;
+	tinput_pre_seek(ti, shift_held);
+
+	lpos = LIN_POS(ti, col, line);
+
+	if (lpos > ti->text_coord)
+		ti->pos = lpos -  ti->text_coord;
+	else
+		ti->pos = 0;
+	if (ti->pos > ti->nc)
+		ti->pos = ti->nc;
+
 	tinput_post_seek(ti, shift_held);
 }
 
@@ -786,6 +804,54 @@ void tinput_set_compl_ops(tinput_t *ti, tinput_compl_ops_t *compl_ops)
 	ti->compl_ops = compl_ops;
 }
 
+/** Handle key press event. */
+static void tinput_key_press(tinput_t *ti, kbd_event_t *kev)
+{
+	if (kev->key == KC_LSHIFT)
+		ti->lshift_held = true;
+	if (kev->key == KC_RSHIFT)
+		ti->rshift_held = true;
+
+	if (((kev->mods & KM_CTRL) != 0) &&
+	    ((kev->mods & (KM_ALT | KM_SHIFT)) == 0))
+		tinput_key_ctrl(ti, kev);
+	
+	if (((kev->mods & KM_SHIFT) != 0) &&
+	    ((kev->mods & (KM_CTRL | KM_ALT)) == 0))
+		tinput_key_shift(ti, kev);
+	
+	if (((kev->mods & KM_CTRL) != 0) &&
+	    ((kev->mods & KM_SHIFT) != 0) &&
+	    ((kev->mods & KM_ALT) == 0))
+		tinput_key_ctrl_shift(ti, kev);
+	
+	if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
+		tinput_key_unmod(ti, kev);
+	
+	if (kev->c >= ' ') {
+		tinput_sel_delete(ti);
+		tinput_insert_char(ti, kev->c);
+	}
+}
+
+/** Handle key release event. */
+static void tinput_key_release(tinput_t *ti, kbd_event_t *kev)
+{
+	if (kev->key == KC_LSHIFT)
+		ti->lshift_held = false;
+	if (kev->key == KC_RSHIFT)
+		ti->rshift_held = false;
+}
+
+/** Position event */
+static void tinput_pos(tinput_t *ti, pos_event_t *ev)
+{
+	if (ev->type == POS_PRESS) {
+		tinput_seek_scrpos(ti, ev->hpos, ev->vpos,
+		    ti->lshift_held || ti->rshift_held);
+	}
+}
+
 /** Read in one line of input.
  *
  * @param ti   Text input.
@@ -815,32 +881,20 @@ int tinput_read(tinput_t *ti, char **dstr)
 	while (!ti->done) {
 		console_flush(ti->console);
 		
-		kbd_event_t ev;
-		if (!console_get_kbd_event(ti->console, &ev))
+		cons_event_t ev;
+		if (!console_get_event(ti->console, &ev))
 			return EIO;
 		
-		if (ev.type != KEY_PRESS)
-			continue;
-		
-		if (((ev.mods & KM_CTRL) != 0) &&
-		    ((ev.mods & (KM_ALT | KM_SHIFT)) == 0))
-			tinput_key_ctrl(ti, &ev);
-		
-		if (((ev.mods & KM_SHIFT) != 0) &&
-		    ((ev.mods & (KM_CTRL | KM_ALT)) == 0))
-			tinput_key_shift(ti, &ev);
-		
-		if (((ev.mods & KM_CTRL) != 0) &&
-		    ((ev.mods & KM_SHIFT) != 0) &&
-		    ((ev.mods & KM_ALT) == 0))
-			tinput_key_ctrl_shift(ti, &ev);
-		
-		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
-			tinput_key_unmod(ti, &ev);
-		
-		if (ev.c >= ' ') {
-			tinput_sel_delete(ti);
-			tinput_insert_char(ti, ev.c);
+		switch (ev.type) {
+		case CEV_KEY:
+			if (ev.ev.key.type == KEY_PRESS)
+				tinput_key_press(ti, &ev.ev.key);
+			else
+				tinput_key_release(ti, &ev.ev.key);
+			break;
+		case CEV_POS:
+			tinput_pos(ti, &ev.ev.pos);
+			break;
 		}
 	}
 	

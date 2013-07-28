@@ -98,15 +98,15 @@ static unsigned int rm_start(rm_job_t *rm)
 	 * what is needed in the job structure */
 	if (NULL == (rm->nwd = (char *) malloc(PATH_MAX)))
 		return 0;
-	memset(rm->nwd, 0, sizeof(rm->nwd));
+	memset(rm->nwd, 0, PATH_MAX);
 
 	if (NULL == (rm->owd = (char *) malloc(PATH_MAX)))
 		return 0;
-	memset(rm->owd, 0, sizeof(rm->owd));
+	memset(rm->owd, 0, PATH_MAX);
 
 	if (NULL == (rm->cwd = (char *) malloc(PATH_MAX)))
 		return 0;
-	memset(rm->cwd, 0, sizeof(rm->cwd));
+	memset(rm->cwd, 0, PATH_MAX);
 
 	chdir(".");
 
@@ -297,7 +297,7 @@ int cmd_rm(char **argv)
 			ret = 1;
 			break;
 		}
-		memset(buff, 0, sizeof(buff));
+		memset(buff, 0, len);
 		snprintf(buff, len, "%s", argv[i]);
 
 		scope = rm_scope(buff);

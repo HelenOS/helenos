@@ -51,7 +51,7 @@ CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -arch $(CLANG_ARCH)
+	-pipe
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror

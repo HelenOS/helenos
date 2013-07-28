@@ -37,7 +37,7 @@
 #define DRAW_DRAWCTX_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #include <compose.h>
 
@@ -46,7 +46,7 @@
 #include "path.h"
 #include "font.h"
 
-typedef struct drawctx {
+struct drawctx {
 	link_t link;
 	list_t list;
 
@@ -61,7 +61,7 @@ typedef struct drawctx {
 	sysarg_t clip_y;
 	sysarg_t clip_width;
 	sysarg_t clip_height;
-} drawctx_t;
+};
 
 extern void drawctx_init(drawctx_t *, surface_t *);
 

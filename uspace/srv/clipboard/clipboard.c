@@ -27,7 +27,7 @@
  */
 
 #include <stdio.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <async.h>
 #include <ns.h>
 #include <ipc/services.h>

@@ -52,13 +52,13 @@
  */
 int socket_parse_address_family(const char *name, int *af)
 {
-	if (str_lcmp(name, "AF_INET", 7) == 0) {
-		*af = AF_INET;
+	if (str_lcmp(name, "AF_INET6", 8) == 0) {
+		*af = AF_INET6;
 		return EOK;
 	}
 	
-	if (str_lcmp(name, "AF_INET6", 8) == 0) {
-		*af = AF_INET6;
+	if (str_lcmp(name, "AF_INET", 7) == 0) {
+		*af = AF_INET;
 		return EOK;
 	}
 	
@@ -78,13 +78,13 @@ int socket_parse_address_family(const char *name, int *af)
  */
 int socket_parse_protocol_family(const char *name, int *pf)
 {
-	if (str_lcmp(name, "PF_INET", 7) == 0) {
-		*pf = PF_INET;
-		return EOK;
-	}
-	
 	if (str_lcmp(name, "PF_INET6", 8) == 0) {
 		*pf = PF_INET6;
+		return EOK;
+	}
+
+	if (str_lcmp(name, "PF_INET", 7) == 0) {
+		*pf = PF_INET;
 		return EOK;
 	}
 	

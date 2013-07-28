@@ -57,12 +57,6 @@
 
 static void dtlb_pte_copy(pte_t *, size_t, bool);
 static void itlb_pte_copy(pte_t *, size_t);
-static void do_fast_instruction_access_mmu_miss_fault(istate_t *, uintptr_t,
-    const char *);
-static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
-    const char *);
-static void do_fast_data_access_protection_fault(istate_t *,
-    tlb_tag_access_reg_t, const char *);
 
 const char *context_encoding[] = {
 	"Primary",
@@ -201,11 +195,10 @@ void itlb_pte_copy(pte_t *t, size_t index)
 /** ITLB miss handler. */
 void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 {
-	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
 
-	t = page_mapping_find(AS, page_16k, true);
+	t = page_mapping_find(AS, istate->tpc, true);
 	if (t && PTE_EXECUTABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -221,11 +214,7 @@ void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		if (as_page_fault(page_16k, PF_ACCESS_EXEC, istate) ==
-		    AS_PF_FAULT) {
-			do_fast_instruction_access_mmu_miss_fault(istate,
-			    istate->tpc, __func__);
-		}
+		as_page_fault(istate->tpc, PF_ACCESS_EXEC, istate);
 	}
 }
 
@@ -255,14 +244,12 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 	if (tag.context == ASID_KERNEL) {
 		if (!tag.vpn) {
 			/* NULL access in kernel */
-			do_fast_data_access_mmu_miss_fault(istate, tag,
-			    "Dereferencing NULL pointer.");
+			panic("NULL pointer dereference.");
 		} else if (page_8k >= end_of_identity) {
 			/* Kernel non-identity. */
 			as = AS_KERNEL;
 		} else {
-			do_fast_data_access_mmu_miss_fault(istate, tag,
-		    "Unexpected kernel page fault.");
+			panic("Unexpected kernel page fault.");
 		}
 	}
 
@@ -282,11 +269,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */
-		if (as_page_fault(page_16k, PF_ACCESS_READ, istate) ==
-		    AS_PF_FAULT) {
-			do_fast_data_access_mmu_miss_fault(istate, tag,
-			    __func__);
-		}
+		as_page_fault(page_16k, PF_ACCESS_READ, istate);
 	}
 }
 
@@ -331,11 +314,7 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 		 * Forward the page fault to the address space page fault
 		 * handler.
 		 */		
-		if (as_page_fault(page_16k, PF_ACCESS_WRITE, istate) ==
-		    AS_PF_FAULT) {
-			do_fast_data_access_protection_fault(istate, tag,
-			    __func__);
-		}
+		as_page_fault(page_16k, PF_ACCESS_WRITE, istate);
 	}
 }
 
@@ -427,35 +406,6 @@ void tlb_print(void)
 }
 
 #endif
-
-void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
-    uintptr_t va, const char *str)
-{
-	fault_if_from_uspace(istate, "%s, address=%p.", str, (void *) va);
-	panic_memtrap(istate, PF_ACCESS_EXEC, va, str);
-}
-
-void do_fast_data_access_mmu_miss_fault(istate_t *istate,
-    tlb_tag_access_reg_t tag, const char *str)
-{
-	uintptr_t va;
-
-	va = tag.vpn << MMU_PAGE_WIDTH;
-	fault_if_from_uspace(istate, "%s, page=%p (asid=%u).", str,
-	    (void *) va, tag.context);
-	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, str);
-}
-
-void do_fast_data_access_protection_fault(istate_t *istate,
-    tlb_tag_access_reg_t tag, const char *str)
-{
-	uintptr_t va;
-
-	va = tag.vpn << MMU_PAGE_WIDTH;
-	fault_if_from_uspace(istate, "%s, page=%p (asid=%u).", str,
-	    (void *) va, tag.context);
-	panic_memtrap(istate, PF_ACCESS_WRITE, va, str);
-}
 
 void describe_dmmu_fault(void)
 {

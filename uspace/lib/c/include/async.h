@@ -43,7 +43,7 @@
 #include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <task.h>
 
 typedef ipc_callid_t aid_t;
@@ -155,6 +155,7 @@ extern void async_put_client_data_by_id(task_id_t);
 
 extern void async_set_client_connection(async_client_conn_t);
 extern void async_set_interrupt_received(async_interrupt_handler_t);
+extern void async_set_interrupt_handler_stack_size(size_t);
 
 /*
  * Wrappers for simple communication.

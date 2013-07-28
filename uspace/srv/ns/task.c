@@ -33,7 +33,7 @@
 
 #include <ipc/ipc.h>
 #include <adt/hash_table.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
 #include <stdio.h>
@@ -207,6 +207,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
 	sysarg_t retval;
 	task_exit_t texit;
+	bool remove = false;
 	
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
@@ -234,7 +235,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 		return;
 	}
 	
-	hash_table_remove_item(&task_hash_table, link);
+	remove = true;
 	retval = EOK;
 	
 out:
@@ -242,6 +243,8 @@ out:
 		texit = ht->have_rval ? TASK_EXIT_NORMAL : TASK_EXIT_UNEXPECTED;
 		ipc_answer_2(callid, retval, texit, ht->retval);
 	}
+	if (remove)
+		hash_table_remove_item(&task_hash_table, link);
 }
 
 int ns_task_id_intro(ipc_call_t *call)

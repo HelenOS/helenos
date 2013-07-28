@@ -30,12 +30,9 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-INCLUDE_ABI = include/abi
-INCLUDE_LIBARCH = include/libarch
-
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 COMMON_HEADER = $(ROOT_PATH)/common.h
-COMMON_HEADER_ARCH = arch/$(UARCH)/include/common.h
+COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
@@ -45,9 +42,9 @@ LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
-PRE_DEPEND = $(INCLUDE_ABI) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
+PRE_DEPEND = $(COMMON_HEADER_ARCH)
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
-EXTRA_CLEAN = $(INCLUDE_ABI) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(COMMON_HEADER_ARCH) $(LINKER_SCRIPTS)
 LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
@@ -63,6 +60,7 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
+	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/checksum.c \
@@ -77,6 +75,7 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
@@ -94,9 +93,11 @@ GENERIC_SOURCES = \
 	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
+	generic/inet/addr.c \
 	generic/inet.c \
 	generic/inetcfg.c \
 	generic/inetping.c \
+	generic/inetping6.c \
 	generic/io/asprintf.c \
 	generic/io/input.c \
 	generic/io/io.c \
@@ -140,11 +141,13 @@ GENERIC_SOURCES = \
 	generic/net/inet.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
+	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \
 	generic/stats.c \
-	generic/assert.c
+	generic/assert.c \
+	generic/pio_trace.c
 
 ifeq ($(CONFIG_RTLD),y)
 	GENERIC_SOURCES += \
@@ -160,23 +163,18 @@ SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-$(INCLUDE_LIBARCH): arch/$(UARCH)/include
-	ln -sfn ../$< $@
-
-$(INCLUDE_ABI): ../../../abi/include/
-	ln -sfn ../$< $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
-	ln -sfn ../../../$< $@
+	ln -sfn ../../../../$< $@

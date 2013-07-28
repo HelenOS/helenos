@@ -36,42 +36,30 @@
 #ifndef POSIX_SYS_TYPES_H_
 #define POSIX_SYS_TYPES_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "libc/sys/types.h"
 #include "libc/sys/time.h"
 
-typedef unsigned int posix_ino_t;
-typedef unsigned int posix_nlink_t;
-typedef unsigned int posix_uid_t;
-typedef unsigned int posix_gid_t;
-typedef off64_t posix_off_t;
-typedef long posix_blksize_t;
-typedef long posix_blkcnt_t;
-typedef int64_t posix_pid_t;
-typedef sysarg_t posix_dev_t;
+typedef unsigned int __POSIX_DEF__(ino_t);
+typedef unsigned int __POSIX_DEF__(nlink_t);
+typedef unsigned int __POSIX_DEF__(uid_t);
+typedef unsigned int __POSIX_DEF__(gid_t);
+typedef off64_t __POSIX_DEF__(off_t);
+typedef long __POSIX_DEF__(blksize_t);
+typedef long __POSIX_DEF__(blkcnt_t);
+typedef int64_t __POSIX_DEF__(pid_t);
+typedef sysarg_t __POSIX_DEF__(dev_t);
 
 /* PThread Types */
-typedef struct posix_thread_attr posix_thread_attr_t;
+typedef struct __POSIX_DEF__(thread_attr) __POSIX_DEF__(thread_attr_t);
 
 /* Clock Types */
-typedef long posix_clock_t;
-typedef int posix_clockid_t;
+typedef long __POSIX_DEF__(clock_t);
+typedef int __POSIX_DEF__(clockid_t);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define ino_t posix_ino_t
-	#define nlink_t posix_nlink_t
-	#define uid_t posix_uid_t
-	#define gid_t posix_gid_t
-	#define off_t posix_off_t
-	#define blksize_t posix_blksize_t
-	#define blkcnt_t posix_blkcnt_t
-	#define pid_t posix_pid_t
-	#define dev_t posix_dev_t
-	
-	#define pthread_attr_t posix_thread_attr_t
-	
-	#define clock_t posix_clock_t
-	#define clockid_t posix_clockid_t
-#endif
 
 #endif /* POSIX_SYS_TYPES_H_ */
 

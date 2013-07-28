@@ -36,7 +36,7 @@
 
 #include <sys/time.h>
 #include <time.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <libarch/barrier.h>
 #include <macros.h>
 #include <errno.h>

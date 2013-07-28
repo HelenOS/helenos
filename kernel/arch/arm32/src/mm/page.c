@@ -51,16 +51,18 @@
  */
 void page_arch_init(void)
 {
-	int flags = PAGE_CACHEABLE;
+	int flags = PAGE_CACHEABLE | PAGE_EXEC;
 	page_mapping_operations = &pt_mapping_operations;
 
 	page_table_lock(AS_KERNEL, true);
 	
-	uintptr_t cur;
-
 	/* Kernel identity mapping */
-	for (cur = PHYSMEM_START_ADDR;
-	    cur < min(config.identity_size, config.physmem_end);
+	//FIXME: We need to consider the possibility that
+	//identity_base > identity_size and physmem_end.
+	//This might lead to overflow if identity_size is too big.
+	for (uintptr_t cur = PHYSMEM_START_ADDR;
+	    cur < min(KA2PA(config.identity_base) +
+	        config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	

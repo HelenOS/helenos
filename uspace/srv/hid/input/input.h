@@ -38,7 +38,7 @@
 #ifndef INPUT_H_
 #define INPUT_H_
 
-#include <bool.h>
+#include <stdbool.h>
 #include <async.h>
 
 #define NAME  "input"

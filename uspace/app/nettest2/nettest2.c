@@ -44,8 +44,9 @@
 #include <task.h>
 #include <time.h>
 #include <arg_parse.h>
-#include <bool.h>
+#include <stdbool.h>
 
+#include <inet/dnsr.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
@@ -53,24 +54,24 @@
 #include <net/socket_parse.h>
 
 /** Echo module name. */
-#define NAME	"Nettest2"
+#define NAME  "nettest2"
 
 /** Packet data pattern. */
-#define NETTEST2_TEXT	"Networking test 2 - transfer"
+#define NETTEST2_TEXT  "Networking test 2 - transfer"
 
-static size_t size;
-static bool verbose;
-static sock_type_t type;
-static int sockets;
-static int messages;
-static int family;
-static uint16_t port;
+static uint16_t family = PF_INET;
+static size_t size = 28;
+static bool verbose = false;
+static sock_type_t type = SOCK_DGRAM;
+static int sockets = 10;
+static int messages = 10;
+static uint16_t port = 7;
 
 static void nettest2_print_help(void)
 {
 	printf(
 	    "Network Networking test 2 aplication - UDP transfer\n"
-	    "Usage: echo [options] address\n"
+	    "Usage: nettest2 [options] host\n"
 	    "Where options are:\n"
 	    "-f protocol_family | --family=protocol_family\n"
 	    "\tThe listenning socket protocol family. Only the PF_INET and "
@@ -105,15 +106,13 @@ static void nettest2_print_help(void)
  */
 static void nettest2_fill_buffer(char *buffer, size_t size)
 {
-	size_t length;
-
-	length = 0;
+	size_t length = 0;
 	while (size > length + sizeof(NETTEST2_TEXT) - 1) {
 		memcpy(buffer + length, NETTEST2_TEXT,
 		    sizeof(NETTEST2_TEXT) - 1);
 		length += sizeof(NETTEST2_TEXT) - 1;
 	}
-
+	
 	memcpy(buffer + length, NETTEST2_TEXT, size - length);
 	buffer[size] = '\0';
 }
@@ -128,41 +127,46 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 {
 	int value;
 	int rc;
-
+	
 	switch (argv[*index][1]) {
 	/*
 	 * Short options with only one letter
 	 */
 	case 'f':
-		rc = arg_parse_name_int(argc, argv, index, &family, 0,
+		rc = arg_parse_name_int(argc, argv, index, &value, 0,
 		    socket_parse_protocol_family);
 		if (rc != EOK)
 			return rc;
+		
+		family = (uint16_t) value;
 		break;
 	case 'h':
 		nettest2_print_help();
 		return EOK;
-		break;
 	case 'm':
 		rc = arg_parse_int(argc, argv, index, &messages, 0);
 		if (rc != EOK)
 			return rc;
+		
 		break;
 	case 'n':
 		rc = arg_parse_int(argc, argv, index, &sockets, 0);
 		if (rc != EOK)
 			return rc;
+		
 		break;
 	case 'p':
 		rc = arg_parse_int(argc, argv, index, &value, 0);
 		if (rc != EOK)
 			return rc;
+		
 		port = (uint16_t) value;
 		break;
 	case 's':
 		rc = arg_parse_int(argc, argv, index, &value, 0);
 		if (rc != EOK)
 			return rc;
+		
 		size = (value >= 0) ? (size_t) value : 0;
 		break;
 	case 't':
@@ -170,20 +174,24 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 		    socket_parse_socket_type);
 		if (rc != EOK)
 			return rc;
+		
 		type = (sock_type_t) value;
 		break;
 	case 'v':
 		verbose = true;
 		break;
+	
 	/*
 	 * Long options with double dash ('-')
 	 */
 	case '-':
 		if (str_lcmp(argv[*index] + 2, "family=", 7) == 0) {
-			rc = arg_parse_name_int(argc, argv, index, &family, 9,
+			rc = arg_parse_name_int(argc, argv, index, &value, 9,
 			    socket_parse_protocol_family);
 			if (rc != EOK)
 				return rc;
+			
+			family = (uint16_t) value;
 		} else if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
 			nettest2_print_help();
 			return EOK;
@@ -199,12 +207,14 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 			rc = arg_parse_int(argc, argv, index, &value, 7);
 			if (rc != EOK)
 				return rc;
+			
 			port = (uint16_t) value;
 		} else if (str_lcmp(argv[*index] + 2, "type=", 5) == 0) {
 			rc = arg_parse_name_int(argc, argv, index, &value, 7,
 			    socket_parse_socket_type);
 			if (rc != EOK)
 				return rc;
+			
 			type = (sock_type_t) value;
 		} else if (str_lcmp(argv[*index] + 2, "verbose", 8) == 0) {
 			verbose = 1;
@@ -217,34 +227,15 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 		nettest2_print_help();
 		return EINVAL;
 	}
-
+	
 	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
-	struct sockaddr *address;
-	struct sockaddr_in address_in;
-	struct sockaddr_in6 address_in6;
-	socklen_t addrlen;
-	uint8_t *address_start;
-
-	int *socket_ids;
-	char *data;
 	int index;
-	struct timeval time_before;
-	struct timeval time_after;
-
 	int rc;
-
-	size = 28;
-	verbose = false;
-	type = SOCK_DGRAM;
-	sockets = 10;
-	messages = 10;
-	family = PF_INET;
-	port = 7;
-
+	
 	/*
 	 * Parse the command line arguments.
 	 *
@@ -252,7 +243,6 @@ int main(int argc, char *argv[])
 	 */
 	for (index = 1; (index < argc - 1) || ((index == argc - 1) &&
 	    (argv[index][0] == '-')); ++index) {
-
 		/* Options should start with dash ('-') */
 		if (argv[index][0] == '-') {
 			rc = nettest2_parse_opt(argc, argv, &index);
@@ -263,156 +253,179 @@ int main(int argc, char *argv[])
 			return EINVAL;
 		}
 	}
-
-	/* If not before the last argument containing the address */
+	
+	/* The last argument containing the host */
 	if (index >= argc) {
-		printf("Command line error: missing address\n");
+		printf("Host name missing.\n");
 		nettest2_print_help();
 		return EINVAL;
 	}
-
+	
+	char *addr_s = argv[argc - 1];
+	
+	/* Interpret as address */
+	inet_addr_t addr_addr;
+	rc = inet_addr_parse(addr_s, &addr_addr);
+	
+	if (rc != EOK) {
+		/* Interpret as a host name */
+		dnsr_hostinfo_t *hinfo = NULL;
+		rc = dnsr_name2host(addr_s, &hinfo, family);
+		
+		if (rc != EOK) {
+			printf("Error resolving host '%s'.\n", addr_s);
+			return EINVAL;
+		}
+		
+		addr_addr = hinfo->addr;
+	}
+	
+	struct sockaddr_in addr;
+	struct sockaddr_in6 addr6;
+	uint16_t af = inet_addr_sockaddr_in(&addr_addr, &addr, &addr6);
+	
+	if (af != family) {
+		printf("Address family does not match explicitly set family.\n");
+		return EINVAL;
+	}
+	
 	/* Prepare the address buffer */
-
-	switch (family) {
-	case PF_INET:
-		address_in.sin_family = AF_INET;
-		address_in.sin_port = htons(port);
-		address = (struct sockaddr *) &address_in;
-		addrlen = sizeof(address_in);
-		address_start = (uint8_t *) &address_in.sin_addr.s_addr;
+	
+	struct sockaddr *address;
+	socklen_t addrlen;
+	
+	switch (af) {
+	case AF_INET:
+		addr.sin_port = htons(port);
+		address = (struct sockaddr *) &addr;
+		addrlen = sizeof(addr);
 		break;
-	case PF_INET6:
-		address_in6.sin6_family = AF_INET6;
-		address_in6.sin6_port = htons(port);
-		address = (struct sockaddr *) &address_in6;
-		addrlen = sizeof(address_in6);
-		address_start = (uint8_t *) &address_in6.sin6_addr.s6_addr;
+	case AF_INET6:
+		addr6.sin6_port = htons(port);
+		address = (struct sockaddr *) &addr6;
+		addrlen = sizeof(addr6);
 		break;
 	default:
 		fprintf(stderr, "Address family is not supported\n");
 		return EAFNOSUPPORT;
 	}
-
-	/* Parse the last argument which should contain the address. */
-	rc = inet_pton(family, argv[argc - 1], address_start);
-	if (rc != EOK) {
-		fprintf(stderr, "Address parse error %d\n", rc);
-		return rc;
-	}
-
+	
 	/* Check data buffer size. */
 	if (size <= 0) {
 		fprintf(stderr, "Data buffer size too small (%zu). Using 1024 "
 		    "bytes instead.\n", size);
 		size = 1024;
 	}
-
+	
 	/*
 	 * Prepare the buffer. Allocate size bytes plus one for terminating
 	 * null character.
 	 */
-	data = (char *) malloc(size + 1);
+	char *data = (char *) malloc(size + 1);
 	if (!data) {
 		fprintf(stderr, "Failed to allocate data buffer.\n");
 		return ENOMEM;
 	}
-
+	
 	/* Fill buffer with a pattern. */
 	nettest2_fill_buffer(data, size);
-
+	
 	/* Check socket count. */
 	if (sockets <= 0) {
 		fprintf(stderr, "Socket count too small (%d). Using "
 		    "2 instead.\n", sockets);
 		sockets = 2;
 	}
-
+	
 	/*
 	 * Prepare the socket buffer.
 	 * Allocate count entries plus the terminating null (\0)
 	 */
-	socket_ids = (int *) malloc(sizeof(int) * (sockets + 1));
+	int *socket_ids = (int *) malloc(sizeof(int) * (sockets + 1));
 	if (!socket_ids) {
 		fprintf(stderr, "Failed to allocate receive buffer.\n");
 		return ENOMEM;
 	}
+	
 	socket_ids[sockets] = 0;
-
+	
 	if (verbose)
 		printf("Starting tests\n");
-
+	
 	rc = sockets_create(verbose, socket_ids, sockets, family, type);
 	if (rc != EOK)
 		return rc;
-
+	
 	if (type == SOCK_STREAM) {
 		rc = sockets_connect(verbose, socket_ids, sockets,
 		    address, addrlen);
 		if (rc != EOK)
 			return rc;
 	}
-
+	
 	if (verbose)
 		printf("\n");
-
+	
+	struct timeval time_before;
 	rc = gettimeofday(&time_before, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, sockets, address,
-	    &addrlen, data, size, messages);
+	    &addrlen, data, size, messages, type);
 	if (rc != EOK)
 		return rc;
-
+	
+	struct timeval time_after;
 	rc = gettimeofday(&time_after, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	if (verbose)
 		printf("\tOK\n");
-
+	
 	printf("sendto + recvfrom tested in %ld microseconds\n",
 	    tv_sub(&time_after, &time_before));
-
+	
 	rc = gettimeofday(&time_before, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	rc = sockets_sendto(verbose, socket_ids, sockets, address, addrlen,
-	    data, size, messages);
+	    data, size, messages, type);
 	if (rc != EOK)
 		return rc;
-
+	
 	rc = sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen,
 	    data, size, messages);
 	if (rc != EOK)
 		return rc;
-
+	
 	rc = gettimeofday(&time_after, NULL);
 	if (rc != EOK) {
 		fprintf(stderr, "Get time of day error %d\n", rc);
 		return rc;
 	}
-
+	
 	if (verbose)
 		printf("\tOK\n");
-
+	
 	printf("sendto, recvfrom tested in %ld microseconds\n",
 	    tv_sub(&time_after, &time_before));
-
+	
 	rc = sockets_close(verbose, socket_ids, sockets);
 	if (rc != EOK)
 		return rc;
-
+	
 	if (verbose)
 		printf("\nExiting\n");
-
+	
 	return EOK;
 }
 

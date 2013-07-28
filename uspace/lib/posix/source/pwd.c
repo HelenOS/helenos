@@ -33,8 +33,9 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
-#include "posix/stdbool.h"
+#include "libc/stdbool.h"
 #include "posix/pwd.h"
 #include "posix/string.h"
 #include "posix/errno.h"

@@ -35,7 +35,7 @@ const char *test_print4(void)
 	
 	uint8_t group;
 	for (group = 1; group < 4; group++) {
-		TPRINTF("%#" PRIx8 ": ", group << 5);
+		TPRINTF("%#x: ", group << 5);
 		
 		uint8_t index;
 		for (index = 0; index < 32; index++)
@@ -51,7 +51,7 @@ const char *test_print4(void)
 	TPRINTF("\nExtended ASCII characters (128 - 255) using printf(\"%%lc\"):\n");
 	
 	for (group = 4; group < 8; group++) {
-		TPRINTF("%#" PRIx8 ": ", group << 5);
+		TPRINTF("%#x: ", group << 5);
 		
 		uint8_t index;
 		for (index = 0; index < 32; index++)

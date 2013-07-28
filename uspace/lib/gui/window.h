@@ -46,9 +46,10 @@
 
 #include "widget.h"
 
-typedef struct window {
+struct window {
 	bool is_main; /**< True for the main window of the application. */
 	bool is_decorated; /**< True if the window decorations should be rendered. */
+	bool is_focused; /**< True for the top level window of the desktop. */
 	char *caption; /**< Text title of the window header. */
 	async_sess_t *isess; /**< Input events from compositor. */
 	async_sess_t *osess; /**< Mainly for damage reporting to compositor. */
@@ -58,13 +59,13 @@ typedef struct window {
 	widget_t *focus; /**< Widget owning the keyboard or NULL. */
 	fibril_mutex_t guard; /**< Mutex guarding window surface. */
 	surface_t *surface; /**< Window surface shared with compositor. */
-} window_t;
+};
 
 /**
  * Allocate all resources for new window and register it in the compositor.
  * If the window is declared as main, its closure causes termination of the
  * whole application. Note that opened window does not have any surface yet. */
-extern window_t *window_open(char *, bool, bool, const char *);
+extern window_t *window_open(char *, bool, bool, const char *, sysarg_t, sysarg_t);
 
 /**
  * Post resize event into event loop. Window negotiates new surface with

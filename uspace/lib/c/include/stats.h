@@ -38,7 +38,7 @@
 #include <task.h>
 #include <thread.h>
 #include <stdint.h>
-#include <bool.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <abi/sysinfo.h>
 

@@ -38,7 +38,8 @@
 #define INETSRV_H_
 
 #include <adt/list.h>
-#include <bool.h>
+#include <stdbool.h>
+#include <inet/addr.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
 #include <sys/types.h>
@@ -61,18 +62,15 @@ typedef struct {
 	link_t client_list;
 } inetping_client_t;
 
-/** Host address */
+/** Inetping6 Client */
 typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
-
-/** Network address */
-typedef struct {
-	/** Address */
-	uint32_t ipv4;
-	/** Number of valid bits in @c ipv4 */
-	int bits;
-} inet_naddr_t;
+	/** Callback session */
+	async_sess_t *sess;
+	/** Session identifier */
+	uint16_t ident;
+	/** Link to client list */
+	link_t client_list;
+} inetping6_client_t;
 
 /** Address object info */
 typedef struct {
@@ -114,7 +112,7 @@ typedef struct {
 	/** Time to live */
 	uint8_t ttl;
 	/** Identifier */
-	uint16_t ident;
+	uint32_t ident;
 	/** Do not fragment */
 	bool df;
 	/** More fragments */
@@ -142,6 +140,8 @@ typedef struct {
 	async_sess_t *sess;
 	iplink_t *iplink;
 	size_t def_mtu;
+	addr48_t mac;
+	bool mac_valid;
 } inet_link_t;
 
 typedef struct {
@@ -183,12 +183,20 @@ typedef struct {
 } inet_dir_t;
 
 typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
+	uint32_t src;
+	uint32_t dest;
 	uint16_t seq_no;
 	void *data;
 	size_t size;
 } inetping_sdu_t;
+
+typedef struct {
+	addr128_t src;
+	addr128_t dest;
+	uint16_t seq_no;
+	void *data;
+	size_t size;
+} inetping6_sdu_t;
 
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
 extern int inet_recv_packet(inet_packet_t *);

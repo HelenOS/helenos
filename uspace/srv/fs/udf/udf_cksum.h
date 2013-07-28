@@ -34,7 +34,7 @@
 #define UDF_CKSUM_H_
 
 #include <sys/types.h>
-#include <bool.h>
+#include <stdbool.h>
 
 #define UDF_TAG_SIZE  16
 

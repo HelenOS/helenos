@@ -38,12 +38,12 @@ static long glbl_seed = 1;
 
 long int random(void)
 {
-	return glbl_seed = ((1366*glbl_seed + 150889) % RAND_MAX);
+	return glbl_seed = ((1366 * glbl_seed + 150889) % RAND_MAX);
 }
 
 void srandom(unsigned int seed)
 {
-	glbl_seed = seed;
+	glbl_seed = seed % RAND_MAX;
 }
 
 /** @}
