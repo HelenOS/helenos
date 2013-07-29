@@ -143,8 +143,6 @@ interact:
 	
 	rc = interact(dev_handle);
 	
-	free_label();
-	
 	return rc;
 }
 

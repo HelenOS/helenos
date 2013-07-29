@@ -166,11 +166,12 @@ extern void            gpt_set_part_name(gpt_part_t *, char *, size_t);
 extern bool            gpt_get_flag     (gpt_part_t *, GPT_ATTR);
 extern void            gpt_set_flag     (gpt_part_t *, GPT_ATTR, bool);
 
+extern void            gpt_set_random_uuid(uint8_t *);
 
 
 #define gpt_part_foreach(label, iterator) \
 		for(gpt_part_t * iterator = (label)->parts->part_array; \
-		    iterator < (label)->parts->part_array + (label)->parts->fill; ++iterator)
+		    iterator < (label)->parts->part_array + (label)->parts->arr_size; ++iterator)
 
 extern void gpt_free_gpt(gpt_t *);
 extern void gpt_free_partitions(gpt_partitions_t *);
