@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
 	}
 	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, sockets, address,
-	    &addrlen, data, size, messages);
+	    &addrlen, data, size, messages, type);
 	if (rc != EOK)
 		return rc;
 	
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
 	}
 	
 	rc = sockets_sendto(verbose, socket_ids, sockets, address, addrlen,
-	    data, size, messages);
+	    data, size, messages, type);
 	if (rc != EOK)
 		return rc;
 	

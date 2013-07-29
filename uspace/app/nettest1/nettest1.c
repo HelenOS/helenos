@@ -252,7 +252,7 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 	}
 	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, nsockets, address,
-	    &addrlen, data, size, nmessages);
+	    &addrlen, data, size, nmessages, type);
 	if (rc != EOK)
 		return rc;
 	
@@ -277,7 +277,7 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 	}
 	
 	rc = sockets_sendto(verbose, socket_ids, nsockets, address, addrlen,
-	    data, size, nmessages);
+	    data, size, nmessages, type);
 	if (rc != EOK)
 		return rc;
 	

@@ -48,23 +48,8 @@
 /** Time to wait for NDP reply in microseconds */
 #define NDP_REQUEST_TIMEOUT  (3 * 1000 * 1000)
 
-static addr48_t solicited_node_mac =
-    {0x33, 0x33, 0xff, 0, 0, 0};
-
 static addr128_t solicited_node_ip =
     {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0};
-
-/** Compute solicited node MAC multicast address from target IPv6 address
- *
- * @param ip_addr  Target IPv6 address
- * @param mac_addr Solicited MAC address to be assigned
- *
- */
-static void ndp_solicited_node_mac(addr128_t ip_addr, addr48_t mac_addr)
-{
-	memcpy(mac_addr, solicited_node_mac, 3);
-	memcpy(mac_addr + 3, ip_addr + 13, 3);
-}
 
 /** Compute solicited node IPv6 multicast address from target IPv6 address
  *
@@ -185,7 +170,7 @@ int ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
 	addr48(ilink->mac, packet.sender_hw_addr);
 	addr128(src_addr, packet.sender_proto_addr);
 	addr128(ip_addr, packet.solicited_ip);
-	ndp_solicited_node_mac(ip_addr, packet.target_hw_addr);
+	addr48_solicited_node(ip_addr, packet.target_hw_addr);
 	ndp_solicited_node_ip(ip_addr, packet.target_proto_addr);
 	
 	rc = ndp_send_packet(ilink, &packet);
