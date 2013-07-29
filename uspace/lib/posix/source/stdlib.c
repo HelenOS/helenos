@@ -393,6 +393,26 @@ void posix_free(void *ptr)
 }
 
 /**
+ * Generate a pseudo random integer in the range 0 to RAND_MAX inclusive.
+ *
+ * @return The pseudo random integer.
+ */
+int posix_rand(void)
+{
+	return (int) random();
+}
+
+/**
+ * Initialize a new sequence of pseudo-random integers.
+ *
+ * @param seed The seed of the new sequence.
+ */
+void posix_srand(unsigned int seed)
+{
+	srandom(seed);
+}
+
+/**
  * Creates and opens an unique temporary file from template.
  *
  * @param tmpl Template. Last six characters must be XXXXXX.
