@@ -954,14 +954,16 @@ int exfat_free_block_count(service_id_t service_id, uint64_t *count)
 
 	bmap_node = (exfat_node_t *) node->data;
 
-	for (sector = 0; sector < bmap_node->size / BPS(bs); ++sector) {
+	unsigned const bmap_sectors = ROUND_UP(bmap_node->size, BPS(bs)) /
+	    BPS(bs);
+
+	for (sector = 0; sector < bmap_sectors; ++sector) {
 
 		block_t *block;
 		uint8_t *bitmap;
 		unsigned bit;
 
-		rc = exfat_block_get_by_clst(&block, bs, service_id,
-		    bmap_node->fragmented, bmap_node->firstc, NULL, sector,
+		rc = exfat_block_get(&block, bs, bmap_node, sector,
 		    BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
 			free_block_count = 0;
