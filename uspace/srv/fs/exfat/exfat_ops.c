@@ -88,9 +88,9 @@ static unsigned exfat_lnkcnt_get(fs_node_t *);
 static bool exfat_is_directory(fs_node_t *);
 static bool exfat_is_file(fs_node_t *node);
 static service_id_t exfat_service_get(fs_node_t *node);
-static uint32_t exfat_size_block(service_id_t);
-static uint64_t exfat_total_block_count(service_id_t);
-static uint64_t exfat_free_block_count(service_id_t);
+static int exfat_size_block(service_id_t, uint32_t *);
+static int exfat_total_block_count(service_id_t, uint64_t *);
+static int exfat_free_block_count(service_id_t, uint64_t *);
 
 /*
  * Helper functions.
@@ -914,25 +914,25 @@ service_id_t exfat_service_get(fs_node_t *node)
 	return 0;
 }
 
-uint32_t exfat_size_block(service_id_t service_id)
+int exfat_size_block(service_id_t service_id, uint32_t *size)
 {
 	exfat_bs_t *bs;
 	bs = block_bb_get(service_id);
-	
-	return BPC(bs);
+	*size = BPC(bs);
+
+	return EOK;
 }
 
-uint64_t exfat_total_block_count(service_id_t service_id)
+int exfat_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	exfat_bs_t *bs;
 	bs = block_bb_get(service_id);
+	*count = DATA_CNT(bs);
 	
-	uint64_t block_count = DATA_CNT(bs);
-	
-	return block_count;
+	return EOK;
 }
 
-uint64_t exfat_free_block_count(service_id_t service_id)
+int exfat_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	fs_node_t *node;
 	exfat_node_t *bmap_node;
@@ -942,7 +942,9 @@ uint64_t exfat_free_block_count(service_id_t service_id)
 	unsigned sector;
 	int rc;
 
-	block_count = exfat_total_block_count(service_id);
+	rc = exfat_total_block_count(service_id, &block_count);
+	if (rc != EOK)
+		goto exit;
 
 	bs = block_bb_get(service_id);
 	node = NULL;
@@ -984,7 +986,8 @@ uint64_t exfat_free_block_count(service_id_t service_id)
 
 exit:
 	exfat_node_put(node);
-	return free_block_count;
+	*count = free_block_count;
+	return rc;
 }
 
 /** libfs operations */

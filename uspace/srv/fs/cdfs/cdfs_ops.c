@@ -624,10 +624,11 @@ static service_id_t cdfs_service_get(fs_node_t *fn)
 	return 0;
 }
 
-static uint32_t cdfs_size_block(service_id_t service_id)
+static int cdfs_size_block(service_id_t service_id, uint32_t *size)
 {
-	uint32_t block_size = BLOCK_SIZE;
-	return block_size; 
+	*size = BLOCK_SIZE;
+
+	return EOK; 
 }
 
 libfs_ops_t cdfs_libfs_ops = {

@@ -90,9 +90,9 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
-static uint32_t fat_size_block(service_id_t);
-static uint64_t fat_total_block_count(service_id_t);
-static uint64_t fat_free_block_count(service_id_t);
+static int fat_size_block(service_id_t, uint32_t *);
+static int fat_total_block_count(service_id_t, uint64_t *);
+static int fat_free_block_count(service_id_t, uint64_t *);
 
 /*
  * Helper functions.
@@ -845,25 +845,27 @@ service_id_t fat_service_get(fs_node_t *node)
 	return 0;
 }
 
-uint32_t fat_size_block(service_id_t service_id)
+int fat_size_block(service_id_t service_id, uint32_t *size)
 {
 	fat_bs_t *bs;
-	bs = block_bb_get(service_id);
 
-	return BPC(bs);
+	bs = block_bb_get(service_id);
+	*size = BPC(bs);
+
+	return EOK;
 }
 
-uint64_t fat_total_block_count(service_id_t service_id)
+int fat_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	fat_bs_t *bs;
+	
 	bs = block_bb_get(service_id);
+	*count = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
 
-	uint64_t block_count = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
-
-	return block_count;
+	return EOK;
 }
 
-uint64_t fat_free_block_count(service_id_t service_id)
+int fat_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	fat_bs_t *bs;
 	fat_cluster_t e0;
@@ -873,9 +875,7 @@ uint64_t fat_free_block_count(service_id_t service_id)
 
 	block_count = 0;
 	bs = block_bb_get(service_id);
-	
 	clusters = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
-	
 	for (cluster_no = 0; cluster_no < clusters; cluster_no++) {
 		rc = fat_get_cluster(bs, service_id, FAT1, cluster_no, &e0);
 		if (rc != EOK)
@@ -884,8 +884,9 @@ uint64_t fat_free_block_count(service_id_t service_id)
 		if (e0 == FAT_CLST_RES0)
 			block_count++;
 	}
-
-	return block_count;
+	*count = block_count;
+	
+	return EOK;
 }
 
 /** libfs operations */

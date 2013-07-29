@@ -833,7 +833,8 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	stat.service = ops->service_get(fn);
 	
 	ops->node_put(fn);
-	
+
+
 	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	async_answer_0(rid, EOK);
 }
@@ -861,17 +862,30 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	struct statfs statfs;
 	memset(&statfs, 0, sizeof(struct statfs));
 
-	if (NULL != ops->size_block)	
-		statfs.f_bsize = ops->size_block(service_id);
-	if (NULL != ops->total_block_count)
-		statfs.f_blocks = ops->total_block_count(service_id);
-	if (NULL != ops->free_block_count)
-		statfs.f_bfree = ops->free_block_count(service_id);
-	
+	if (NULL != ops->size_block) {	
+		rc = ops->size_block(service_id, &statfs.f_bsize);
+		if (rc != EOK) goto error;
+	}
+
+	if (NULL != ops->total_block_count) {
+		rc = ops->total_block_count(service_id, &statfs.f_blocks);
+		if (rc != EOK) goto error;
+	}
+
+	if (NULL != ops->free_block_count) {
+		rc = ops->free_block_count(service_id, &statfs.f_bfree);
+		if (rc != EOK) goto error;
+	}
+
 	ops->node_put(fn);
-	
 	async_data_read_finalize(callid, &statfs, sizeof(struct statfs));
 	async_answer_0(rid, EOK);
+	return;
+
+error:
+	ops->node_put(fn);
+	async_answer_0(callid, EINVAL);
+	async_answer_0(rid, EINVAL);
 }
 
 

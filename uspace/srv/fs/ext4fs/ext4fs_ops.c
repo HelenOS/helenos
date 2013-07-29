@@ -100,9 +100,9 @@ static unsigned ext4fs_lnkcnt_get(fs_node_t *);
 static bool ext4fs_is_directory(fs_node_t *);
 static bool ext4fs_is_file(fs_node_t *node);
 static service_id_t ext4fs_service_get(fs_node_t *node);
-static uint32_t ext4fs_size_block(service_id_t);
-static uint64_t ext4fs_total_block_count(service_id_t);
-static uint64_t ext4fs_free_block_count(service_id_t);
+static int ext4fs_size_block(service_id_t, uint32_t *);
+static int ext4fs_total_block_count(service_id_t, uint64_t *);
+static int ext4fs_free_block_count(service_id_t, uint64_t *);
 
 /* Static variables */
 
@@ -840,37 +840,39 @@ service_id_t ext4fs_service_get(fs_node_t *fn)
 	return enode->instance->service_id;
 }
 
-uint32_t ext4fs_size_block(service_id_t service_id)
+int ext4fs_size_block(service_id_t service_id, uint32_t *size)
 {
 	ext4fs_instance_t *inst;
 	int rc = ext4fs_instance_get(service_id, &inst);
 	if (rc != EOK)
 		return rc;
+
 	if (NULL == inst)
 		return ENOENT;
 
 	ext4_superblock_t *sb = inst->filesystem->superblock;
-	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	*size = ext4_superblock_get_block_size(sb);
 
-	return block_size;
+	return EOK;
 }
 
-uint64_t ext4fs_total_block_count(service_id_t service_id)
+int ext4fs_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	ext4fs_instance_t *inst;
 	int rc = ext4fs_instance_get(service_id, &inst);
 	if (rc != EOK)
 		return rc;
+
 	if (NULL == inst)
 		return ENOENT;
 
 	ext4_superblock_t *sb = inst->filesystem->superblock;
-	uint64_t block_count = ext4_superblock_get_blocks_count(sb);
+	*count = ext4_superblock_get_blocks_count(sb);
 
-	return block_count;
+	return EOK;
 }
 
-uint64_t ext4fs_free_block_count(service_id_t service_id)
+int ext4fs_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	ext4fs_instance_t *inst;
 	int rc = ext4fs_instance_get(service_id, &inst);
@@ -880,9 +882,9 @@ uint64_t ext4fs_free_block_count(service_id_t service_id)
 		return ENOENT;
 
 	ext4_superblock_t *sb = inst->filesystem->superblock;
-	uint64_t block_count = ext4_superblock_get_free_blocks_count(sb);
+	*count = ext4_superblock_get_free_blocks_count(sb);
 
-	return block_count;
+	return EOK;
 }
 
 /*

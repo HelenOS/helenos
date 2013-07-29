@@ -248,7 +248,7 @@ static bool udf_is_file(fs_node_t *fn)
 	return false;
 }
 
-static uint32_t udf_size_block(service_id_t service_id)
+static int udf_size_block(service_id_t service_id, uint32_t *size)
 {
 	udf_instance_t *instance;
 	int rc = fs_instance_get(service_id, (void **) &instance);
@@ -258,7 +258,9 @@ static uint32_t udf_size_block(service_id_t service_id)
 	if (NULL == instance)
 		return ENOENT;
 	
-	return instance->volumes[DEFAULT_VOL].logical_block_size;
+	*size = instance->volumes[DEFAULT_VOL].logical_block_size;
+	
+	return EOK;
 }
 
 libfs_ops_t udf_libfs_ops = {
