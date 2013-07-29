@@ -763,13 +763,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 			goto out;
 		}
 		
-		unsigned int old_lnkcnt = ops->lnkcnt_get(cur);
 		rc = ops->unlink(par, cur, component);
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
 			async_answer_5(rid, fs_handle, service_id,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
-			    old_lnkcnt);
+			    ops->lnkcnt_get(cur));
 			LOG_EXIT(EOK);
 		} else {
 			async_answer_0(rid, rc);
