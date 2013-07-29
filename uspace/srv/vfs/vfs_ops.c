@@ -839,7 +839,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		    LOWER32(file->pos), UPPER32(file->pos), &answer);
 	} else {
 		if (file->append)
-			file->pos = file->node->size;
+			file->pos = vfs_node_get_size(file->node);
 		
 		rc = async_data_write_forward_4_1(fs_exch, VFS_OUT_WRITE,
 		    file->node->service_id, file->node->index,
@@ -941,7 +941,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	case SEEK_END:
 		fibril_rwlock_read_lock(&file->node->contents_rwlock);
-		aoff64_t size = file->node->size;
+		aoff64_t size = vfs_node_get_size(file->node);
 		
 		if ((off >= 0) && (size + off < size)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);

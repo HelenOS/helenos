@@ -112,7 +112,7 @@ typedef struct {
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
 
-	aoff64_t size;		/**< Cached size if the node is a file. */
+	int64_t size;		/**< Cached size if the node is a file. */
 
 	/**
 	 * Holding this rwlock prevents modifications of the node's contents.
@@ -184,6 +184,7 @@ extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
 extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 
+int64_t vfs_node_get_size(vfs_node_t *node);
 
 #define MAX_OPEN_FILES	128
 

@@ -237,6 +237,27 @@ static void vfs_out_sync(ipc_callid_t rid, ipc_call_t *req)
 	async_answer_0(rid, rc);
 }
 
+static void vfs_out_get_size(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	int rc;
+
+	fs_node_t *node = NULL;
+	rc = libfs_ops->node_get(&node, service_id, index);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+	}
+	if (node == NULL) {
+		async_answer_0(rid, EINVAL);
+	}
+	
+	uint64_t size = libfs_ops->size_get(node);
+	libfs_ops->node_put(node);
+	
+	async_answer_2(rid, EOK, LOWER32(size), UPPER32(size));
+}
+
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
@@ -297,6 +318,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_OUT_SYNC:
 			vfs_out_sync(callid, &call);
+			break;
+		case VFS_OUT_GET_SIZE:
+			vfs_out_get_size(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
@@ -656,18 +680,21 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	
 	/* Find the file and its parent. */
 	
+	unsigned last_next = 0;
+	
 	while (next != last) {
 		if (cur == NULL) {
-			async_answer_0(rid, ENOENT);
-			LOG_EXIT(ENOENT);
-			goto out;
+			assert(par != NULL);
+			goto out1;
 		}
+
 		if (!ops->is_directory(cur)) {
 			async_answer_0(rid, ENOTDIR);
 			LOG_EXIT(ENOTDIR);
 			goto out;
 		}
 		
+		last_next = next;
 		/* Collect the component */
 		rc = plb_get_component(component, &clen, &next, last);
 		assert(rc != ERANGE);
@@ -772,9 +799,14 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 		
 		rc = ops->unlink(par, cur, component);
 		if (rc == EOK) {
-			aoff64_t size = ops->size_get(cur);
+			int64_t size = ops->size_get(cur);
+			int32_t lsize = LOWER32(size);
+			if (lsize != size) {
+				lsize = -1;
+			}
+			
 			async_answer_5(rid, fs_handle, service_id,
-			    ops->index_get(cur), LOWER32(size), UPPER32(size),
+			    ops->index_get(cur), last, lsize,
 			    ops->is_directory(cur) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE);
 			LOG_EXIT(EOK);
 		} else {
@@ -818,10 +850,15 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	}
 	
 	/* Return. */
-	
+out1:
 	if (!cur) {
+		async_answer_5(rid, fs_handle, service_id,
+			ops->index_get(par), last_next, -1, VFS_NODE_DIRECTORY);
+		LOG_EXIT(EOK);
+		/*
 		async_answer_0(rid, ENOENT);
 		LOG_EXIT(ENOENT);
+		*/
 		goto out;
 	}
 	
@@ -834,9 +871,14 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 		}
 	}
 	
-	aoff64_t size = ops->size_get(cur);
+	int64_t size = ops->size_get(cur);
+	int32_t lsize = LOWER32(size);
+	if (lsize != size) {
+		lsize = -1;
+	}
+	
 	async_answer_5(rid, fs_handle, service_id,
-		ops->index_get(cur), LOWER32(size), UPPER32(size),
+		ops->index_get(cur), last, lsize,
 		ops->is_directory(cur) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE);
 	
 	LOG_EXIT(EOK);

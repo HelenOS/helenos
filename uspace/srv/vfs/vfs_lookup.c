@@ -269,6 +269,13 @@ int vfs_lookup_internal(vfs_triplet_t *base, char *path, int lflag, vfs_lookup_r
 		goto out;
 	}
 	
+	unsigned last = IPC_GET_ARG3(answer);
+	if (last != first + len) {
+		/* The path wasn't processed entirely. */
+		rc = ENOENT;
+		goto out;
+	}
+	
 	if (!result) {
 		rc = EOK;
 		goto out;
@@ -277,8 +284,7 @@ int vfs_lookup_internal(vfs_triplet_t *base, char *path, int lflag, vfs_lookup_r
 	result->triplet.fs_handle = (fs_handle_t) rc;
 	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
 	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
-	result->size =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(answer), IPC_GET_ARG4(answer));
+	result->size = (int64_t)(int32_t) IPC_GET_ARG4(answer);
 	result->type = IPC_GET_ARG5(answer);
 	rc = EOK;
 

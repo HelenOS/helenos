@@ -44,6 +44,7 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <macros.h>
 
 /** Mutex protecting the VFS node hash table. */
 FIBRIL_MUTEX_INITIALIZE(nodes_mutex);
@@ -297,6 +298,22 @@ static inline vfs_triplet_t node_triplet(vfs_node_t *node)
 	};
 	
 	return tri;
+}
+
+int64_t vfs_node_get_size(vfs_node_t *node)
+{
+	if (node->size == -1) {
+		sysarg_t sz1 = 0;
+		sysarg_t sz2 = 0;
+		
+		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
+		(void) async_req_2_2(exch, VFS_OUT_GET_SIZE,
+			node->service_id, node->index, &sz1, &sz2);
+		vfs_exchange_release(exch);
+		
+		node->size = MERGE_LOUP32(sz1, sz2);
+	}
+	return node->size;
 }
 
 /**
