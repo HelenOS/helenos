@@ -78,7 +78,6 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 	vfs_node_t *mr_node;
 	fs_index_t rindex;
 	aoff64_t rsize;
-	unsigned rlnkcnt;
 	async_exch_t *exch;
 	sysarg_t rc;
 	aid_t msg;
@@ -129,13 +128,11 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
 		rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer),
 		    IPC_GET_ARG3(answer));
-		rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 		
 		mr_res.triplet.fs_handle = fs_handle;
 		mr_res.triplet.service_id = service_id;
 		mr_res.triplet.index = rindex;
 		mr_res.size = rsize;
-		mr_res.lnkcnt = rlnkcnt;
 		mr_res.type = VFS_NODE_DIRECTORY;
 			
 		/* Add reference to the mounted root. */
@@ -236,13 +233,11 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
 		rsize = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(answer),
 		    IPC_GET_ARG3(answer));
-		rlnkcnt = (unsigned) IPC_GET_ARG4(answer);
 		
 		mr_res.triplet.fs_handle = fs_handle;
 		mr_res.triplet.service_id = service_id;
 		mr_res.triplet.index = rindex;
 		mr_res.size = rsize;
-		mr_res.lnkcnt = rlnkcnt;
 		mr_res.type = VFS_NODE_DIRECTORY;
 		
 		/* Add reference to the mounted root. */
@@ -667,8 +662,6 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 	file->open_read = false;
 	file->open_write = false;
 	
-	vfs_node_addref(node);
-	vfs_node_put(node);
 	vfs_file_put(file);
 	if (parent) {
 		vfs_file_put(parent);
@@ -857,8 +850,9 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	
 	size_t bytes = IPC_GET_ARG1(answer);
 	
-	if (file->node->type == VFS_NODE_DIRECTORY)
+	if (file->node->type == VFS_NODE_DIRECTORY) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
+	}
 	
 	/* Unlock the VFS node. */
 	if ((read) ||
@@ -1119,9 +1113,7 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	 * We have to get and put the VFS node to ensure that it is
 	 * VFS_OUT_DESTROY'ed after the last reference to it is dropped.
 	 */
-	vfs_node_t *node = vfs_node_get(&lr);
-	vfs_node_delref(node);
-	vfs_node_put(node);
+	vfs_node_put(vfs_node_get(&lr));
 
 exit:
 	if (path) {
@@ -1224,9 +1216,7 @@ static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
 	}
 	
 	if (orig_unlinked) {
-		vfs_node_t *node = vfs_node_get(&new_lr_orig);
-		vfs_node_delref(node);
-		vfs_node_put(node);
+		vfs_node_put(vfs_node_get(&new_lr_orig));
 	}
 	
 	fibril_rwlock_write_unlock(&namespace_rwlock);

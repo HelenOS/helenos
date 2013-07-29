@@ -202,10 +202,17 @@ static void vfs_out_destroy(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+
 	int rc;
-
-	rc = vfs_out_ops->destroy(service_id, index);
-
+	fs_node_t *node = NULL;
+	rc = libfs_ops->node_get(&node, service_id, index);
+	if (rc == EOK && node != NULL) {
+		bool destroy = (libfs_ops->lnkcnt_get(node) == 0);
+		libfs_ops->node_put(node);
+		if (destroy) {
+			rc = vfs_out_ops->destroy(service_id, index);
+		}
+	}
 	async_answer_0(rid, rc);
 }
 
@@ -768,7 +775,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 			aoff64_t size = ops->size_get(cur);
 			async_answer_5(rid, fs_handle, service_id,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
-			    ops->lnkcnt_get(cur));
+			    ops->is_directory(cur) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE);
 			LOG_EXIT(EOK);
 		} else {
 			async_answer_0(rid, rc);
@@ -830,7 +837,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	aoff64_t size = ops->size_get(cur);
 	async_answer_5(rid, fs_handle, service_id,
 		ops->index_get(cur), LOWER32(size), UPPER32(size),
-		ops->lnkcnt_get(cur));
+		ops->is_directory(cur) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE);
 	
 	LOG_EXIT(EOK);
 out:

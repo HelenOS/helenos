@@ -105,12 +105,12 @@ void vfs_node_addref(vfs_node_t *node)
  */
 void vfs_node_delref(vfs_node_t *node)
 {
-	bool free_vfs_node = false;
-	bool free_fs_node = false;
+	bool free_node = false;
 	
 	fibril_mutex_lock(&nodes_mutex);
 	
-	if (node->refcnt-- == 1) {
+	node->refcnt--;
+	if (node->refcnt == 0) {
 		
 		/*
 		 * We are dropping the last reference to this node.
@@ -118,31 +118,23 @@ void vfs_node_delref(vfs_node_t *node)
 		 */
 		
 		hash_table_remove_item(&nodes, &node->nh_link);
-		free_vfs_node = true;
-		
-		if (!node->lnkcnt)
-			free_fs_node = true;
+		free_node = true;
 	}
 	
 	fibril_mutex_unlock(&nodes_mutex);
 	
-	if (free_fs_node) {
-		
+	if (free_node) {
 		/*
-		 * The node is not visible in the file system namespace.
-		 * Free up its resources.
+		 * DESTROY will free up the file's resources if there are no more hard links.
 		 */
 		
 		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-		sysarg_t rc = async_req_2_0(exch, VFS_OUT_DESTROY,
-		    (sysarg_t) node->service_id, (sysarg_t)node->index);
-		
-		assert(rc == EOK);
+		async_msg_2(exch, VFS_OUT_DESTROY,
+			(sysarg_t) node->service_id, (sysarg_t)node->index);
 		vfs_exchange_release(exch);
-	}
-	
-	if (free_vfs_node)
+
 		free(node);
+	}
 }
 
 /** Forget node.
@@ -189,22 +181,12 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		node->service_id = result->triplet.service_id;
 		node->index = result->triplet.index;
 		node->size = result->size;
-		node->lnkcnt = result->lnkcnt;
 		node->type = result->type;
 		fibril_rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, &node->nh_link);
 	} else {
 		node = hash_table_get_inst(tmp, vfs_node_t, nh_link);
-		if (node->type == VFS_NODE_UNKNOWN &&
-		    result->type != VFS_NODE_UNKNOWN) {
-			/* Upgrade the node type. */
-			node->type = result->type;
-		}
 	}
-
-	assert(node->size == result->size || node->type != VFS_NODE_FILE);
-	assert(node->lnkcnt == result->lnkcnt);
-	assert(node->type == result->type || result->type == VFS_NODE_UNKNOWN);
 
 	_vfs_node_addref(node);
 	fibril_mutex_unlock(&nodes_mutex);

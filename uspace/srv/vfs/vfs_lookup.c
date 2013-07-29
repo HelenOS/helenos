@@ -279,15 +279,7 @@ int vfs_lookup_internal(vfs_triplet_t *base, char *path, int lflag, vfs_lookup_r
 	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
 	result->size =
 	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(answer), IPC_GET_ARG4(answer));
-	result->lnkcnt = (unsigned int) IPC_GET_ARG5(answer);
-	
-	if (lflag & L_FILE)
-		result->type = VFS_NODE_FILE;
-	else if (lflag & L_DIRECTORY)
-		result->type = VFS_NODE_DIRECTORY;
-	else
-		result->type = VFS_NODE_UNKNOWN;
-
+	result->type = IPC_GET_ARG5(answer);
 	rc = EOK;
 
 out:

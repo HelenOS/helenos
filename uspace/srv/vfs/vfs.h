@@ -93,7 +93,6 @@ typedef struct {
 	vfs_triplet_t triplet;
 	vfs_node_type_t type;
 	aoff64_t size;
-	unsigned int lnkcnt;
 } vfs_lookup_res_t;
 
 /**
@@ -109,9 +108,6 @@ typedef struct {
 	 */
 	unsigned refcnt;
 	
-	/** Number of names this node has in the file system namespace. */
-	unsigned lnkcnt;
-
 	ht_link_t nh_link;		/**< Node hash-table link. */
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
