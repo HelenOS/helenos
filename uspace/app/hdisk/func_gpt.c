@@ -41,7 +41,7 @@
 #include "func_gpt.h"
 #include "input.h"
 
-static int set_gpt_partition(tinput_t *, gpt_part_t *);
+static int set_gpt_partition(tinput_t *, gpt_part_t *, unsigned int);
 
 int construct_gpt_label(label_t *this)
 {
@@ -67,7 +67,7 @@ int add_gpt_part(label_t *this, tinput_t *in)
 		return ENOMEM;
 	}
 	
-	return set_gpt_partition(in, p);
+	return set_gpt_partition(in, p, this->alignment);
 }
 
 int delete_gpt_part(label_t *this, tinput_t *in)
@@ -79,8 +79,11 @@ int delete_gpt_part(label_t *this, tinput_t *in)
 	idx = get_input_size_t(in);
 	
 	rc = gpt_remove_partition(this->data.gpt, idx);
-	if (rc != EOK) {
+	if (rc == ENOMEM) {
 		printf("Warning: running low on memory, not resizing...\n");
+		return rc;
+	} else if (rc == EINVAL) {
+		printf("Invalid index.\n");
 		return rc;
 	}
 	
@@ -101,9 +104,8 @@ int new_gpt_label(label_t *this)
 
 int print_gpt_parts(label_t *this)
 {
-	//int rc;
 	printf("Current partition scheme (GPT):\n");
-	printf("\t\tStart:\tEnd:\tLength:\tType:\tName:\n");
+	printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
 	
 	size_t i = 0;
 	
@@ -116,15 +118,13 @@ int print_gpt_parts(label_t *this)
 		if (i % 20 == 0)
 			printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
 		
-		//printf("\t%10u %10u %10u %3d\n", iter->start_addr, iter->start_addr + iter->length,
-		//		iter->length, gpt_get_part_type(iter), gpt_get_part_name(iter));
+		
 		printf("%3u  %10llu %10llu %10llu    %3d %s\n", i-1, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
 				gpt_get_end_lba(iter) - gpt_get_start_lba(iter), gpt_get_part_type(iter),
 				gpt_get_part_name(iter));
 		
 	}
 	
-	//return rc;
 	return EOK;
 }
 
@@ -172,7 +172,7 @@ int extra_gpt_funcs(label_t *this, tinput_t *in, service_id_t dev_handle)
 	return EOK;
 }
 
-static int set_gpt_partition(tinput_t *in, gpt_part_t *p)
+static int set_gpt_partition(tinput_t *in, gpt_part_t *p, unsigned int alignment)
 {
 	int rc;
 	
@@ -180,6 +180,8 @@ static int set_gpt_partition(tinput_t *in, gpt_part_t *p)
 	
 	printf("Set starting address (number): ");
 	sa = get_input_uint64(in);
+	if (sa % alignment != 0)
+		sa = gpt_get_next_aligned(sa, alignment);
 	
 	printf("Set end addres (number): ");
 	ea = get_input_uint64(in);
