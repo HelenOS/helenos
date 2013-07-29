@@ -195,6 +195,20 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 	return node;
 }
 
+vfs_node_t *vfs_node_peek(vfs_lookup_res_t *result)
+{
+	vfs_node_t *node = NULL;
+
+	fibril_mutex_lock(&nodes_mutex);
+	ht_link_t *tmp = hash_table_find(&nodes, &result->triplet);
+	if (tmp) {
+		node = hash_table_get_inst(tmp, vfs_node_t, nh_link);
+	}
+	fibril_mutex_unlock(&nodes_mutex);
+
+	return node;
+}
+
 /** Return VFS node when no longer needed by the caller.
  *
  * This function will remove the reference on the VFS node created by
@@ -314,6 +328,14 @@ int64_t vfs_node_get_size(vfs_node_t *node)
 		node->size = MERGE_LOUP32(sz1, sz2);
 	}
 	return node->size;
+}
+
+bool vfs_node_has_children(vfs_node_t *node)
+{
+	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
+	int rc = async_req_2_0(exch, VFS_OUT_IS_EMPTY, node->service_id, node->index);
+	vfs_exchange_release(exch);
+	return rc == ENOTEMPTY;
 }
 
 /**

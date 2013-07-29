@@ -69,6 +69,44 @@ FIBRIL_RWLOCK_INITIALIZE(namespace_rwlock);
 
 vfs_node_t *root = NULL;
 
+#if 0
+static int vfs_attach_internal(vfs_node_t *mpoint, vfs_node_t *mountee)
+{
+	assert(mpoint != NULL);
+	assert(mountee != NULL);
+	
+	if (mpoint->mount != NULL) {
+		return EBUSY;
+	}
+	
+	if (mpoint->type != VFS_NODE_DIRECTORY) {
+		return ENOTDIR;
+	}
+	
+	if (vfs_node_has_children(mpoint)) {
+		return ENOTEMPTY;
+	}
+	
+	mpoint->mount = mountee;
+	vfs_node_addref(mountee);
+	/* Add reference to make sure the node is not freed. Removed in detach_internal(). */
+	vfs_node_addref(mpoint);
+	return EOK;
+}
+
+static int vfs_detach_internal(vfs_node_t *mpoint)
+{
+	assert(mpoint != NULL);
+	
+	if (mpoint->mount == NULL) {
+		return ENOENT;
+	}
+	vfs_node_put(mpoint->mount);
+	mpoint->mount = NULL;
+	vfs_node_put(mpoint);
+}
+#endif
+
 static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
     fs_handle_t fs_handle, char *mp, char *opts)
 {
@@ -152,7 +190,7 @@ static int vfs_mount_internal(ipc_callid_t rid, service_id_t service_id,
 		return EBUSY;
 	}
 	
-	rc = vfs_lookup_internal((vfs_triplet_t *) root, mp, L_DIRECTORY, &mp_res);
+	rc = vfs_lookup_internal(root, mp, L_DIRECTORY, &mp_res);
 	if (rc != EOK) {
 		/* The lookup failed. */
 		fibril_rwlock_write_unlock(&namespace_rwlock);
@@ -423,7 +461,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Lookup the mounted root and instantiate it.
 	 */
-	rc = vfs_lookup_internal((vfs_triplet_t *) root, mp, 0, &mr_res);
+	rc = vfs_lookup_internal(root, mp, 0, &mr_res);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		free(mp);
@@ -486,7 +524,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		 * file system, so we delegate the operation to it.
 		 */
 		
-		rc = vfs_lookup_internal((vfs_triplet_t *) root, mp, L_MP, &mp_res);
+		rc = vfs_lookup_internal(root, mp, L_MP, &mp_res);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			free(mp);
@@ -626,7 +664,7 @@ void vfs_walk(ipc_callid_t rid, ipc_call_t *request)
 	fibril_rwlock_read_lock(&namespace_rwlock);
 	
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal((vfs_triplet_t *) parent_node, path, walk_lookup_flags(flags), &lr);
+	rc = vfs_lookup_internal(parent_node, path, walk_lookup_flags(flags), &lr);
 	free(path);
 
 	if (rc != EOK) {
@@ -1049,6 +1087,14 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
+static void out_destroy(vfs_triplet_t *file)
+{
+	async_exch_t *exch = vfs_exchange_grab(file->fs_handle);
+	async_msg_2(exch, VFS_OUT_DESTROY,
+		(sysarg_t) file->service_id, (sysarg_t) file->index);
+	vfs_exchange_release(exch);
+}
+
 void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
@@ -1088,7 +1134,7 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 		}
 		
 		vfs_lookup_res_t lr;
-		rc = vfs_lookup_internal((vfs_triplet_t *) parent_node, path, lflag, &lr);
+		rc = vfs_lookup_internal(parent_node, path, lflag, &lr);
 		if (rc != EOK) {
 			goto exit;
 		}
@@ -1103,17 +1149,15 @@ void vfs_unlink2(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal((vfs_triplet_t *) parent_node, path, lflag | L_UNLINK, &lr);
+	rc = vfs_lookup_internal(parent_node, path, lflag | L_UNLINK, &lr);
 	if (rc != EOK) {
 		goto exit;
 	}
 
-	/*
-	 * The name has already been unlinked by vfs_lookup_internal().
-	 * We have to get and put the VFS node to ensure that it is
-	 * VFS_OUT_DESTROY'ed after the last reference to it is dropped.
-	 */
-	vfs_node_put(vfs_node_get(&lr));
+	/* If the node is not held by anyone, try to destroy it. */
+	if (vfs_node_peek(&lr) == NULL) {
+		out_destroy(&lr.triplet);
+	}
 
 exit:
 	if (path) {
@@ -1148,7 +1192,7 @@ static size_t shared_path(char *a, char *b)
 	return res;
 }
 
-static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
+static int vfs_rename_internal(vfs_node_t *base, char *old, char *new)
 {
 	assert(base != NULL);
 	assert(old != NULL);
@@ -1181,10 +1225,12 @@ static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
 			return rc;
 		}
 		
-		base = &base_lr.triplet;
+		base = vfs_node_get(&base_lr);
 		old[shared] = '/';
 		old += shared;
 		new += shared;
+	} else {
+		vfs_node_addref(base);
 	}
 	
 	
@@ -1192,6 +1238,7 @@ static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
 	if (rc == EOK) {
 		orig_unlinked = true;
 	} else if (rc != ENOENT) {
+		vfs_node_put(base);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
@@ -1201,6 +1248,7 @@ static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
 		if (orig_unlinked) {
 			vfs_link_internal(base, new, &new_lr_orig.triplet);
 		}
+		vfs_node_put(base);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
@@ -1211,14 +1259,17 @@ static int vfs_rename_internal(vfs_triplet_t *base, char *old, char *new)
 		if (orig_unlinked) {
 			vfs_link_internal(base, new, &new_lr_orig.triplet);
 		}
+		vfs_node_put(base);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
 	
-	if (orig_unlinked) {
-		vfs_node_put(vfs_node_get(&new_lr_orig));
+	/* If the node is not held by anyone, try to destroy it. */
+	if (orig_unlinked && vfs_node_peek(&new_lr_orig) == NULL) {
+		out_destroy(&new_lr_orig.triplet);
 	}
 	
+	vfs_node_put(base);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	return EOK;
 }
@@ -1271,7 +1322,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		base_node = base->node;
 	}
 	
-	rc = vfs_rename_internal((vfs_triplet_t *) base_node, oldc, newc);
+	rc = vfs_rename_internal(base_node, oldc, newc);
 
 out:
 	async_answer_0(rid, rc);

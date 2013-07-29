@@ -258,6 +258,31 @@ static void vfs_out_get_size(ipc_callid_t rid, ipc_call_t *req)
 	async_answer_2(rid, EOK, LOWER32(size), UPPER32(size));
 }
 
+static void vfs_out_is_empty(ipc_callid_t rid, ipc_call_t *req)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	int rc;
+
+	fs_node_t *node = NULL;
+	rc = libfs_ops->node_get(&node, service_id, index);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+	}
+	if (node == NULL) {
+		async_answer_0(rid, EINVAL);
+	}
+	
+	bool children = false;
+	rc = libfs_ops->has_children(&children, node);
+	libfs_ops->node_put(node);
+	
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+	}
+	async_answer_0(rid, children ? ENOTEMPTY : EOK);
+}
+
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
@@ -321,6 +346,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_OUT_GET_SIZE:
 			vfs_out_get_size(callid, &call);
+			break;
+		case VFS_OUT_IS_EMPTY:
+			vfs_out_is_empty(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);

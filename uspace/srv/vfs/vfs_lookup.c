@@ -152,7 +152,7 @@ static char *_strrchr(char *path, int c)
 	return res;
 }
 
-int vfs_link_internal(vfs_triplet_t *base, char *path, vfs_triplet_t *child)
+int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 {
 	assert(base != NULL);
 	assert(child != NULL);
@@ -172,6 +172,8 @@ int vfs_link_internal(vfs_triplet_t *base, char *path, vfs_triplet_t *child)
 	}
 	path = npath;
 	
+	vfs_triplet_t *triplet;
+	
 	char *slash = _strrchr(path, '/');
 	if (slash && slash != path) {
 		if (slash[1] == 0) {
@@ -186,20 +188,26 @@ int vfs_link_internal(vfs_triplet_t *base, char *path, vfs_triplet_t *child)
 		if (rc != EOK) {
 			goto out;
 		}
-		base = &res.triplet;
+		triplet = &res.triplet;
 		
 		*slash = '/';
 	} else {
+		if (base->mount != NULL) {
+			rc = EINVAL;
+			goto out;
+		}
+		
 		memcpy(component, path + 1, str_size(path));
+		triplet = (vfs_triplet_t *) base;
 	}
 	
-	if (base->fs_handle != child->fs_handle || base->service_id != child->service_id) {
+	if (triplet->fs_handle != child->fs_handle || triplet->service_id != child->service_id) {
 		rc = EXDEV;
 		goto out;
 	}
 	
-	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
-	aid_t req = async_send_3(exch, VFS_OUT_LINK, base->service_id, base->index, child->index, NULL);
+	async_exch_t *exch = vfs_exchange_grab(triplet->fs_handle);
+	aid_t req = async_send_3(exch, VFS_OUT_LINK, triplet->service_id, triplet->index, child->index, NULL);
 	
 	rc = async_data_write_start(exch, component, str_size(component) + 1);
 	sysarg_t orig_rc;
@@ -214,6 +222,36 @@ out:
 	return rc;
 }
 
+static int out_lookup(vfs_triplet_t *base, unsigned *pfirst, unsigned *plen,
+	int lflag, vfs_lookup_res_t *result)
+{
+	assert(base);
+	assert(result);
+	
+	sysarg_t rc;
+	ipc_call_t answer;
+	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
+	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) *pfirst, (sysarg_t) *plen,
+	    (sysarg_t) base->service_id, (sysarg_t) base->index, (sysarg_t) lflag, &answer);
+	async_wait_for(req, &rc);
+	vfs_exchange_release(exch);
+	
+	if ((int) rc < 0) {
+		return (int) rc;
+	}
+	
+	unsigned last = *pfirst + *plen;
+	*pfirst = IPC_GET_ARG3(answer);
+	*plen = last - *pfirst;
+	
+	result->triplet.fs_handle = (fs_handle_t) rc;
+	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
+	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
+	result->size = (int64_t)(int32_t) IPC_GET_ARG4(answer);
+	result->type = IPC_GET_ARG5(answer);
+	return EOK;
+}
+
 /** Perform a path lookup.
  *
  * @param base    The file from which to perform the lookup.
@@ -226,23 +264,18 @@ out:
  * @return EOK on success or an error code from errno.h.
  *
  */
-int vfs_lookup_internal(vfs_triplet_t *base, char *path, int lflag, vfs_lookup_res_t *result)
+int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag, vfs_lookup_res_t *result)
 {
 	assert(base != NULL);
 	assert(path != NULL);
 	
-	sysarg_t rc;
-	
-	if (!base->fs_handle) {
-		rc = ENOENT;
-		goto out;
-	}
-	
 	size_t len;
+	int rc;
 	char *npath = canonify(path, &len);
 	if (!npath) {
+		DPRINTF("vfs_lookup_internal() can't canonify path: %s\n", path);
 		rc = EINVAL;
-		goto out;
+		return rc;
 	}
 	path = npath;
 	
@@ -253,42 +286,68 @@ int vfs_lookup_internal(vfs_triplet_t *base, char *path, int lflag, vfs_lookup_r
 	plb_entry_t entry;
 	rc = plb_insert_entry(&entry, path, &first, len);
 	if (rc != EOK) {
-		goto out;
+		DPRINTF("vfs_lookup_internal() can't insert entry into PLB: %d\n", rc);
+		return rc;
 	}
 	
-	ipc_call_t answer;
-	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
-	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) first, (sysarg_t) len,
-	    (sysarg_t) base->service_id, (sysarg_t) base->index, (sysarg_t) lflag, &answer);
-	async_wait_for(req, &rc);
-	vfs_exchange_release(exch);
+	size_t next = first;
+	size_t nlen = len;
 	
-	plb_clear_entry(&entry, first, len);
+	vfs_lookup_res_t res;
 	
-	if ((int) rc < 0) {
-		goto out;
+	/* Resolve path as long as there are mount points to cross. */
+	while (nlen > 0) {
+		while (base->mount != NULL) {
+			if (lflag & L_DISABLE_MOUNTS) {
+				rc = EXDEV;
+				goto out;
+			}
+			
+			base = base->mount;
+		}
+		
+		rc = out_lookup((vfs_triplet_t *) base, &next, &nlen, lflag, &res);
+		if (rc != EOK) {
+			goto out;
+		}
+		
+		if (nlen > 0) {
+			base = vfs_node_peek(&res);
+			if (base == NULL || base->mount == NULL) {
+				rc = ENOENT;
+				goto out;
+			}
+			if (lflag & L_DISABLE_MOUNTS) {
+				rc = EXDEV;
+				goto out;
+			}
+		}
 	}
 	
-	unsigned last = IPC_GET_ARG3(answer);
-	if (last != first + len) {
-		/* The path wasn't processed entirely. */
-		rc = ENOENT;
-		goto out;
-	}
-	
-	if (!result) {
-		rc = EOK;
-		goto out;
-	}
-	
-	result->triplet.fs_handle = (fs_handle_t) rc;
-	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
-	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
-	result->size = (int64_t)(int32_t) IPC_GET_ARG4(answer);
-	result->type = IPC_GET_ARG5(answer);
+	assert(nlen == 0);
 	rc = EOK;
+	
+	if (result != NULL) {
+		/* The found file may be a mount point. Try to cross it. */
+		if (!(lflag & L_MP)) {
+			base = vfs_node_peek(&res);
+			if (base != NULL && base->mount != NULL) {
+				while (base->mount != NULL) {
+					base = base->mount;
+				}
+				
+				result->triplet = *(vfs_triplet_t *)base;
+				result->type = base->type;
+				result->size = base->size;				
+				goto out;
+			}
+		}
 
+		__builtin_memcpy(result, &res, sizeof(vfs_lookup_res_t));
+	}
+	
 out:
+	plb_clear_entry(&entry, first, len);
 	DPRINTF("vfs_lookup_internal() with path '%s' returns %d\n", path, rc);
 	return rc;
 }

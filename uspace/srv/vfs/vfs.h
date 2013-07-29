@@ -99,7 +99,7 @@ typedef struct {
  * Instances of this type represent an active, in-memory VFS node and any state
  * which may be associated with it.
  */
-typedef struct {
+typedef struct _vfs_node {
 	VFS_TRIPLET;		/**< Identity of the node. */
 
 	/**
@@ -118,6 +118,8 @@ typedef struct {
 	 * Holding this rwlock prevents modifications of the node's contents.
 	 */
 	fibril_rwlock_t contents_rwlock;
+	
+	struct _vfs_node *mount;
 } vfs_node_t;
 
 /**
@@ -175,16 +177,18 @@ extern void vfs_exchange_release(async_exch_t *);
 extern fs_handle_t fs_name_to_handle(unsigned int instance, char *, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
-extern int vfs_lookup_internal(vfs_triplet_t *, char *, int, vfs_lookup_res_t *);
-extern int vfs_link_internal(vfs_triplet_t *, char *, vfs_triplet_t *);
+extern int vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);
+extern int vfs_link_internal(vfs_node_t *, char *, vfs_triplet_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
+extern vfs_node_t *vfs_node_peek(vfs_lookup_res_t *result);
 extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
 extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, service_id_t);
 
-int64_t vfs_node_get_size(vfs_node_t *node);
+extern int64_t vfs_node_get_size(vfs_node_t *node);
+extern bool vfs_node_has_children(vfs_node_t *node);
 
 #define MAX_OPEN_FILES	128
 
