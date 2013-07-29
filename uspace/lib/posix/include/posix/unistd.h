@@ -43,6 +43,10 @@
 #include "sys/types.h"
 #include "stddef.h"
 
+#define SEEK_SET  0
+#define SEEK_CUR  1
+#define SEEK_END  2
+
 /* Process Termination */
 #define _exit exit
 
@@ -76,6 +80,8 @@ extern __POSIX_DEF__(gid_t) __POSIX_DEF__(getgid)(void);
 extern int __POSIX_DEF__(close)(int fildes);
 extern ssize_t __POSIX_DEF__(read)(int fildes, void *buf, size_t nbyte);
 extern ssize_t __POSIX_DEF__(write)(int fildes, const void *buf, size_t nbyte);
+extern __POSIX_DEF__(off_t) __POSIX_DEF__(lseek)(int fildes,
+    __POSIX_DEF__(off_t) offset, int whence);
 extern int __POSIX_DEF__(fsync)(int fildes);
 extern int __POSIX_DEF__(ftruncate)(int fildes, __POSIX_DEF__(off_t) length);
 extern int __POSIX_DEF__(rmdir)(const char *path);

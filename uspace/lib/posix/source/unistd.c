@@ -223,6 +223,18 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 }
 
 /**
+ * Reposition read/write file offset
+ *
+ * @param fildes File descriptor of the opened file.
+ * @return Upon successful completion, returns the resulting offset
+ *         as measured in bytes from the beginning of the file, -1 otherwise.
+ */
+posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
+{
+	return errnify(lseek, fildes, offset, whence);
+}
+
+/**
  * Requests outstanding data to be written to the underlying storage device.
  *
  * @param fildes File descriptor of the opened file.
