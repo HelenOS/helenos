@@ -41,6 +41,7 @@
 #include <mem.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 
 #include "libmbr.h"
 
@@ -48,11 +49,11 @@ static br_block_t * alloc_br(void);
 static int decode_part(pt_entry_t *, mbr_part_t *, uint32_t);
 static int decode_logical(mbr_label_t *, mbr_part_t *);
 static void encode_part(mbr_part_t *, pt_entry_t *, uint32_t, bool);
-static int check_overlap(mbr_part_t *, mbr_part_t *);
-static int check_encaps(mbr_part_t *, mbr_part_t *);
-static int check_preceeds(mbr_part_t *, mbr_part_t *);
-static mbr_err_val mbr_add_primary(mbr_label_t *label, mbr_part_t *p);
-static mbr_err_val mbr_add_logical(mbr_label_t *label, mbr_part_t *p);
+static bool check_overlap(mbr_part_t *, mbr_part_t *);
+static bool check_encaps(mbr_part_t *, mbr_part_t *);
+static bool check_preceeds(mbr_part_t *, mbr_part_t *);
+static mbr_err_val mbr_add_primary(mbr_label_t *, mbr_part_t *);
+static mbr_err_val mbr_add_logical(mbr_label_t *, mbr_part_t *);
 
 /** Allocate and initialize mbr_label_t structure */
 mbr_label_t * mbr_alloc_label(void)
@@ -758,39 +759,39 @@ static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base, bool
 
 /** Check whether two partitions overlap
  * 
- * @return		1 for yes, 0 for no
+ * @return		true/false
  */
-static int check_overlap(mbr_part_t * p1, mbr_part_t * p2)
+static bool check_overlap(mbr_part_t * p1, mbr_part_t * p2)
 {
 	if (p1->start_addr < p2->start_addr && p1->start_addr + p1->length <= p2->start_addr) {
-		return 0;
+		return false;
 	} else if (p1->start_addr > p2->start_addr && p2->start_addr + p2->length <= p1->start_addr) {
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
 /** Check whether one partition encapsulates the other
  * 
- * @return		1 for yes, 0 for no
+ * @return		true/false
  */
-static int check_encaps(mbr_part_t * inner, mbr_part_t * outer)
+static bool check_encaps(mbr_part_t * inner, mbr_part_t * outer)
 {
 	if (inner->start_addr <= outer->start_addr || outer->start_addr + outer->length <= inner->start_addr) {
-		return 0;
+		return false;
 	} else if (outer->start_addr + outer->length < inner->start_addr + inner->length) {
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
 /** Check whether one partition preceeds the other
  * 
- * @return		1 for yes, 0 for no
+ * @return		true/false
  */
-static int check_preceeds(mbr_part_t * preceeder, mbr_part_t * precedee)
+static bool check_preceeds(mbr_part_t * preceeder, mbr_part_t * precedee)
 {
 	return preceeder->start_addr < precedee->start_addr;
 }

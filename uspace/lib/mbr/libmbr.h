@@ -37,40 +37,9 @@
 #define LIBMBR_LIBMBR_H_
 
 #include <sys/types.h>
+#include "mbr.h"
 
 #define LIBMBR_NAME	"libmbr"
-
-#ifdef DEBUG_CONFIG
-#include <stdio.h>
-#include <str_error.h>
-#define DEBUG_PRINT_0(str) \
-	printf("%s:%d: " str, __FILE__, __LINE__)
-#define DEBUG_PRINT_1(str, arg1) \
-	printf("%s:%d: " str, __FILE__, __LINE__, arg1)
-#define DEBUG_PRINT_2(str, arg1, arg2) \
-	printf("%s:%d: " str, __FILE__, __LINE__, arg1, arg2)
-#define DEBUG_PRINT_3(str, arg1, arg2, arg3) \
-	printf("%s:%d: " str, __FILE__, __LINE__, arg1, arg2, arg3)
-#else
-#define DEBUG_PRINT_0(str)
-#define DEBUG_PRINT_1(str, arg1)
-#define DEBUG_PRINT_2(str, arg1, arg2)
-#define DEBUG_PRINT_3(str, arg1, arg2, arg3)
-#endif
-
-/** Number of primary partition records */
-#define N_PRIMARY		4
-
-/** Boot record signature */
-#define BR_SIGNATURE	0xAA55
-
-enum {
-	/** Non-bootable */
-	B_INACTIVE = 0x00,
-	/** Bootable */
-	B_ACTIVE = 0x80,
-	/** Anything else means invalid */
-};
 
 typedef enum {
 	/** Other flags unknown - saving previous state */
@@ -79,17 +48,6 @@ typedef enum {
 	/** Logical partition, 0 = primary, 1 = logical*/
 	ST_LOGIC = 8
 } MBR_FLAGS;
-
-enum {
-	/** Unused partition entry */
-	PT_UNUSED	= 0x00,
-	/** Extended partition */
-	PT_EXTENDED	= 0x05,
-	/** Extended partition with LBA */
-	PT_EXTENDED_LBA	= 0x0F,
-	/** GPT Protective partition */
-	PT_GPT	= 0xEE,
-};
 
 typedef enum {
 	/** No error */
@@ -111,36 +69,6 @@ typedef enum {
 	/** Libblock error */
 	ERR_LIBBLOCK,
 } mbr_err_val;
-
-
-/** Structure of a partition table entry */
-typedef struct {
-	uint8_t status;
-	/** CHS of fist block in partition */
-	uint8_t first_chs[3];
-	/** Partition type */
-	uint8_t ptype;
-	/** CHS of last block in partition */
-	uint8_t last_chs[3];
-	/** LBA of first block in partition */
-	uint32_t first_lba;
-	/** Number of blocks in partition */
-	uint32_t length;
-} __attribute__((packed)) pt_entry_t;
-
-/** Structure of a boot-record block */
-typedef struct {
-	/** Area for boot code */
-	uint8_t code_area[440];
-	/** Optional media ID */
-	uint32_t media_id;
-	/** Padding */
-	uint16_t pad0;
-	/** Partition table entries */
-	pt_entry_t pte[N_PRIMARY];
-	/** Boot record block signature (@c BR_SIGNATURE) */
-	uint16_t signature;
-} __attribute__((packed)) br_block_t;
 
 /** MBR header */
 typedef struct {
