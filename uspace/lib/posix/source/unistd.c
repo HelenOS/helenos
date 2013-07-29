@@ -226,6 +226,8 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
  * Reposition read/write file offset
  *
  * @param fildes File descriptor of the opened file.
+ * @param offset New offset in the file.
+ * @param whence The position from which the offset argument is specified.
  * @return Upon successful completion, returns the resulting offset
  *         as measured in bytes from the beginning of the file, -1 otherwise.
  */
