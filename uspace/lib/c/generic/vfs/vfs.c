@@ -259,22 +259,6 @@ int mount(const char *fs_name, const char *mp, const char *fqsn,
 			return (int) rc_orig;
 	}
 	
-	/* Ask VFS whether it likes fs_name. */
-	rc = async_req_0_0(exch, VFS_IN_PING);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(mpa);
-		async_wait_for(req, &rc_orig);
-		
-		if (null_id != -1)
-			loc_null_destroy(null_id);
-		
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
-	
 	vfs_exchange_end(exch);
 	free(mpa);
 	async_wait_for(req, &rc);
