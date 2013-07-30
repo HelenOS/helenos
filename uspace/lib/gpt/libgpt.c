@@ -363,17 +363,18 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	
 	label->gpt->header->fillries = host2uint32_t_le(fillries);
 	uint64_t arr_blocks = (fillries * sizeof(gpt_entry_t)) / b_size;
-	label->gpt->header->first_usable_lba = host2uint64_t_le(arr_blocks + 1);
-	uint64_t first_lba = n_blocks - arr_blocks - 2;
-	label->gpt->header->last_usable_lba = host2uint64_t_le(first_lba);
+	uint64_t gpt_space = arr_blocks + GPT_HDR_BS + 1; /* +1 for Protective MBR */
+	label->gpt->header->first_usable_lba = host2uint64_t_le(gpt_space);
+	label->gpt->header->last_usable_lba = host2uint64_t_le(n_blocks - gpt_space - 1);
 	
 	/* Perform checks */
 	gpt_part_foreach(label, p) {
 		if (gpt_get_part_type(p) == GPT_PTE_UNUSED)
 			continue;
 		
-		if (!check_encaps(p, n_blocks, first_lba)) {
+		if (!check_encaps(p, n_blocks, gpt_space)) {
 			rc = ERANGE;
+			printf("encaps with: %llu, %llu, %llu\n", n_blocks, gpt_space, gpt_get_end_lba(p));
 			goto fail;
 		}
 		
@@ -383,6 +384,7 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 			
 			if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
 				if (check_overlap(p, q)) {
+					printf("overlap with: %llu, %llu\n", gpt_get_start_lba(p), gpt_get_start_lba(q));
 					rc = ERANGE;
 					goto fail;
 				}
@@ -837,9 +839,9 @@ static uint8_t get_byte(const char * c)
 
 static bool check_overlap(gpt_part_t * p1, gpt_part_t * p2)
 {
-	if (gpt_get_start_lba(p1) < gpt_get_start_lba(p2) && gpt_get_end_lba(p1) <= gpt_get_start_lba(p2)) {
+	if (gpt_get_start_lba(p1) < gpt_get_start_lba(p2) && gpt_get_end_lba(p1) < gpt_get_start_lba(p2)) {
 		return false;
-	} else if (gpt_get_start_lba(p1) > gpt_get_start_lba(p2) && gpt_get_end_lba(p2) <= gpt_get_start_lba(p1)) {
+	} else if (gpt_get_start_lba(p1) > gpt_get_start_lba(p2) && gpt_get_end_lba(p2) < gpt_get_start_lba(p1)) {
 		return false;
 	}
 
@@ -848,10 +850,11 @@ static bool check_overlap(gpt_part_t * p1, gpt_part_t * p2)
 
 static bool check_encaps(gpt_part_t *p, uint64_t n_blocks, uint64_t first_lba)
 {
-	uint64_t start = uint64_t_le2host(p->start_lba);
-	uint64_t end = uint64_t_le2host(p->end_lba);
-	
-	if (start >= first_lba && end < n_blocks - first_lba)
+	/* 
+	 * We allow "<=" in the second expression because it lacks MBR so 
+	 * it's by 1 block smaller.
+	 */
+	if (gpt_get_start_lba(p) >= first_lba && gpt_get_end_lba(p) <= n_blocks - first_lba)
 		return true;
 	
 	return false;
