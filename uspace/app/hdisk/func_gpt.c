@@ -183,7 +183,7 @@ static int set_gpt_partition(tinput_t *in, gpt_part_t *p, unsigned int alignment
 	if (sa % alignment != 0)
 		sa = gpt_get_next_aligned(sa, alignment);
 	
-	printf("Set end addres (number): ");
+	printf("Set end address (number): ");
 	ea = get_input_uint64(in);
 	
 	if (ea <= sa) {

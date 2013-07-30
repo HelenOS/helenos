@@ -57,6 +57,7 @@ static int reduce_part_array(gpt_partitions_t *);
 //static long long nearest_larger_int(double);
 static uint8_t get_byte(const char *);
 static bool check_overlap(gpt_part_t *, gpt_part_t *);
+static bool check_encaps(gpt_part_t *, uint64_t, uint64_t);
 
 /** Allocate memory for gpt label */
 gpt_label_t * gpt_alloc_label(void)
@@ -307,15 +308,9 @@ int gpt_read_partitions(gpt_label_t *label)
 		if (rc != EOK)
 			goto fini_fail;
 	}
-
-	/*
-	 * FIXME: so far my boasting about variable partition entry size
-	 * will not work. The CRC32 checksums will be different.
-	 * This can't be fixed easily - we'd have to run the checksum
-	 * on all of the partition entry array.
-	 */
+	
 	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, 
-	                   fillries * sizeof(gpt_entry_t));
+	                   fillries * ent_size);
 
 	if(uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
 	{
@@ -349,10 +344,8 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
 	size_t fillries = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
 	
-	label->gpt->header->fillries = host2uint32_t_le(fillries);
-	label->gpt->header->pe_array_crc32 = host2uint32_t_le(compute_crc32(
-	                               (uint8_t *) label->parts->part_array,
-	                               fillries * e_size));
+	if (e_size != sizeof(gpt_entry_t))
+		return ENOTSUP;
 	
 	/* comm_size of 4096 is ignored */
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
@@ -368,9 +361,38 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	if (rc != EOK)
 		goto fail;
 	
+	label->gpt->header->fillries = host2uint32_t_le(fillries);
 	uint64_t arr_blocks = (fillries * sizeof(gpt_entry_t)) / b_size;
 	label->gpt->header->first_usable_lba = host2uint64_t_le(arr_blocks + 1);
-	label->gpt->header->last_usable_lba = host2uint64_t_le(n_blocks - arr_blocks - 2);
+	uint64_t first_lba = n_blocks - arr_blocks - 2;
+	label->gpt->header->last_usable_lba = host2uint64_t_le(first_lba);
+	
+	/* Perform checks */
+	gpt_part_foreach(label, p) {
+		if (gpt_get_part_type(p) == GPT_PTE_UNUSED)
+			continue;
+		
+		if (!check_encaps(p, n_blocks, first_lba)) {
+			rc = ERANGE;
+			goto fail;
+		}
+		
+		gpt_part_foreach(label, q) {
+			if (p == q)
+				continue;
+			
+			if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
+				if (check_overlap(p, q)) {
+					rc = ERANGE;
+					goto fail;
+				}
+			}
+		}
+	}
+	
+	label->gpt->header->pe_array_crc32 = host2uint32_t_le(compute_crc32(
+	                               (uint8_t *) label->parts->part_array,
+	                               fillries * e_size));
 	
 	
 	/* Write to backup GPT partition array location */
@@ -482,14 +504,6 @@ gpt_part_t * gpt_get_partition_at(gpt_label_t *label, size_t idx)
  */
 int gpt_add_partition(gpt_label_t *label, gpt_part_t *partition)
 {
-	/* FIXME: Check dimensions! */
-	gpt_part_foreach(label, p) {
-		if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
-			if (check_overlap(partition, p))
-				return EINVAL;
-		}
-	}
-	
 	gpt_part_t *p;
 	/* Find the first empty entry */
 	do {
@@ -832,4 +846,13 @@ static bool check_overlap(gpt_part_t * p1, gpt_part_t * p2)
 	return true;
 }
 
-
+static bool check_encaps(gpt_part_t *p, uint64_t n_blocks, uint64_t first_lba)
+{
+	uint64_t start = uint64_t_le2host(p->start_lba);
+	uint64_t end = uint64_t_le2host(p->end_lba);
+	
+	if (start >= first_lba && end < n_blocks - first_lba)
+		return true;
+	
+	return false;
+}
