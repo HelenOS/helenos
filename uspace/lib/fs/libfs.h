@@ -55,14 +55,6 @@ typedef struct {
 } vfs_out_ops_t;
 
 typedef struct {
-	bool mp_active;
-	async_sess_t *sess;
-	fs_handle_t fs_handle;
-	service_id_t service_id;
-} mp_data_t;
-
-typedef struct {
-	mp_data_t mp_data;  /**< Mount point info. */
 	void *data;         /**< Data of the file system implementation. */
 } fs_node_t;
 

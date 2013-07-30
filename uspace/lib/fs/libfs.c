@@ -71,8 +71,6 @@ static fs_reg_t reg;
 static vfs_out_ops_t *vfs_out_ops = NULL;
 static libfs_ops_t *libfs_ops = NULL;
 
-static void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
-static void libfs_unmount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
 static void libfs_link(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
 static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
@@ -108,11 +106,6 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 	free(opts);
 }
 
-static void vfs_out_mount(ipc_callid_t rid, ipc_call_t *req)
-{
-	libfs_mount(libfs_ops, reg.fs_handle, rid, req);
-}
-
 static void vfs_out_unmounted(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
@@ -121,12 +114,6 @@ static void vfs_out_unmounted(ipc_callid_t rid, ipc_call_t *req)
 	rc = vfs_out_ops->unmounted(service_id);
 
 	async_answer_0(rid, rc);
-}
-
-static void vfs_out_unmount(ipc_callid_t rid, ipc_call_t *req)
-{
-		
-	libfs_unmount(libfs_ops, rid, req);
 }
 
 static void vfs_out_link(ipc_callid_t rid, ipc_call_t *req)
@@ -305,14 +292,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case VFS_OUT_MOUNTED:
 			vfs_out_mounted(callid, &call);
 			break;
-		case VFS_OUT_MOUNT:
-			vfs_out_mount(callid, &call);
-			break;
 		case VFS_OUT_UNMOUNTED:
 			vfs_out_unmounted(callid, &call);
-			break;
-		case VFS_OUT_UNMOUNT:
-			vfs_out_unmount(callid, &call);
 			break;
 		case VFS_OUT_LINK:
 			vfs_out_link(callid, &call);
@@ -445,115 +426,6 @@ void fs_node_initialize(fs_node_t *fn)
 	memset(fn, 0, sizeof(fs_node_t));
 }
 
-void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
-    ipc_call_t *req)
-{
-	service_id_t mp_service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*req);
-	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*req);
-	service_id_t mr_service_id = (service_id_t) IPC_GET_ARG4(*req);
-	
-	async_sess_t *mountee_sess = async_clone_receive(EXCHANGE_PARALLEL);
-	if (mountee_sess == NULL) {
-		async_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	fs_node_t *fn;
-	int res = ops->node_get(&fn, mp_service_id, mp_fs_index);
-	if ((res != EOK) || (!fn)) {
-		async_hangup(mountee_sess);
-		async_data_write_void(combine_rc(res, ENOENT));
-		async_answer_0(rid, combine_rc(res, ENOENT));
-		return;
-	}
-	
-	if (fn->mp_data.mp_active) {
-		async_hangup(mountee_sess);
-		(void) ops->node_put(fn);
-		async_data_write_void(EBUSY);
-		async_answer_0(rid, EBUSY);
-		return;
-	}
-	
-	async_exch_t *exch = async_exchange_begin(mountee_sess);
-	async_sess_t *sess = async_clone_establish(EXCHANGE_PARALLEL, exch);
-	
-	if (!sess) {
-		async_exchange_end(exch);
-		async_hangup(mountee_sess);
-		(void) ops->node_put(fn);
-		async_data_write_void(errno);
-		async_answer_0(rid, errno);
-		return;
-	}
-	
-	ipc_call_t answer;
-	int rc = async_data_write_forward_1_1(exch, VFS_OUT_MOUNTED,
-	    mr_service_id, &answer);
-	async_exchange_end(exch);
-	
-	if (rc == EOK) {
-		fn->mp_data.mp_active = true;
-		fn->mp_data.fs_handle = mr_fs_handle;
-		fn->mp_data.service_id = mr_service_id;
-		fn->mp_data.sess = mountee_sess;
-	}
-	
-	/*
-	 * Do not release the FS node so that it stays in memory.
-	 */
-	async_answer_4(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
-	    IPC_GET_ARG3(answer), IPC_GET_ARG4(answer));
-}
-
-void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *req)
-{
-	service_id_t mp_service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*req);
-	fs_node_t *fn;
-	int res;
-
-	res = ops->node_get(&fn, mp_service_id, mp_fs_index);
-	if ((res != EOK) || (!fn)) {
-		async_answer_0(rid, combine_rc(res, ENOENT));
-		return;
-	}
-
-	/*
-	 * We are clearly expecting to find the mount point active.
-	 */
-	if (!fn->mp_data.mp_active) {
-		(void) ops->node_put(fn);
-		async_answer_0(rid, EINVAL);
-		return;
-	}
-
-	/*
-	 * Tell the mounted file system to unmount.
-	 */
-	async_exch_t *exch = async_exchange_begin(fn->mp_data.sess);
-	res = async_req_1_0(exch, VFS_OUT_UNMOUNTED, fn->mp_data.service_id);
-	async_exchange_end(exch);
-
-	/*
-	 * If everything went well, perform the clean-up on our side.
-	 */
-	if (res == EOK) {
-		async_hangup(fn->mp_data.sess);
-		fn->mp_data.mp_active = false;
-		fn->mp_data.fs_handle = 0;
-		fn->mp_data.service_id = 0;
-		fn->mp_data.sess = NULL;
-		
-		/* Drop the reference created in libfs_mount(). */
-		(void) ops->node_put(fn);
-	}
-
-	(void) ops->node_put(fn);
-	async_answer_0(rid, res);
-}
-
 static char plb_get_char(unsigned pos)
 {
 	return reg.plb_ro[pos % PLB_SIZE];
@@ -661,6 +533,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	fs_index_t index = IPC_GET_ARG4(*req);
 	int lflag = IPC_GET_ARG5(*req);
 	
+	assert((int) index != -1);
+	
 	DPRINTF("Entered libfs_lookup()\n");
 	
 	// TODO: Validate flags.
@@ -676,11 +550,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	fs_node_t *tmp = NULL;
 	unsigned clen = 0;
 	
-	if (index == (fs_index_t)-1) {
-		rc = ops->root_get(&cur, service_id);
-	} else {
-		rc = ops->node_get(&cur, service_id, index);
-	}
+	rc = ops->node_get(&cur, service_id, index);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		LOG_EXIT(rc);
@@ -688,23 +558,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 	}
 	
 	assert(cur != NULL);
-	
-	if (cur->mp_data.mp_active) {
-		if (lflag & L_DISABLE_MOUNTS) {
-			async_answer_0(rid, EXDEV);
-			LOG_EXIT(EXDEV);
-			goto out;
-		}
-		
-		async_exch_t *exch = async_exchange_begin(cur->mp_data.sess);
-		async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next, last - next,
-		    cur->mp_data.service_id, (fs_index_t) -1, lflag, IPC_FF_ROUTE_FROM_ME);
-		async_exchange_end(exch);
-		
-		(void) ops->node_put(cur);
-		DPRINTF("Passing to another filesystem instance.\n");
-		return;
-	}
 	
 	/* Find the file and its parent. */
 	
@@ -744,34 +597,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 		if (rc != EOK) {
 			async_answer_0(rid, rc);
 			LOG_EXIT(rc);
-			goto out;
-		}
-		
-		/*
-		 * If the matching component is a mount point, there are two
-		 * legitimate semantics of the lookup operation. The first is
-		 * the commonly used one in which the lookup crosses each mount
-		 * point into the mounted file system. The second semantics is
-		 * used mostly during unmount() and differs from the first one
-		 * only in that the last mount point in the looked up path,
-		 * which is also its last component, is not crossed.
-		 */
-
-		if ((tmp) && (tmp->mp_data.mp_active) &&
-		    (!(lflag & L_MP) || (next < last))) {
-			
-			if (lflag & L_DISABLE_MOUNTS) {
-				async_answer_0(rid, EXDEV);
-				LOG_EXIT(EXDEV);
-				goto out;
-			}
-			
-			async_exch_t *exch = async_exchange_begin(tmp->mp_data.sess);
-			async_forward_slow(rid, exch, VFS_OUT_LOOKUP, next,
-			    last - next, tmp->mp_data.service_id, (fs_index_t) -1, lflag,
-			    IPC_FF_ROUTE_FROM_ME);
-			async_exchange_end(exch);
-			DPRINTF("Passing to another filesystem instance.\n");
 			goto out;
 		}
 		
@@ -883,10 +708,6 @@ out1:
 		async_answer_5(rid, fs_handle, service_id,
 			ops->index_get(par), last_next, -1, VFS_NODE_DIRECTORY);
 		LOG_EXIT(EOK);
-		/*
-		async_answer_0(rid, ENOENT);
-		LOG_EXIT(ENOENT);
-		*/
 		goto out;
 	}
 	
