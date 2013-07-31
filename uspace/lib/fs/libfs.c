@@ -35,7 +35,6 @@
  */
 
 #include "libfs.h"
-#include "../../srv/vfs/vfs.h"
 #include <macros.h>
 #include <errno.h>
 #include <async.h>
@@ -45,6 +44,7 @@
 #include <mem.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <fibril_synch.h>
 
 #define on_error(rc, action) \
 	do { \
@@ -660,7 +660,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 			
 			async_answer_5(rid, fs_handle, service_id,
 			    ops->index_get(cur), last, lsize,
-			    ops->is_directory(cur) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE);
+			    ops->is_directory(cur));
 			LOG_EXIT(EOK);
 		} else {
 			async_answer_0(rid, rc);
@@ -706,7 +706,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid, ipc
 out1:
 	if (!cur) {
 		async_answer_5(rid, fs_handle, service_id,
-			ops->index_get(par), last_next, -1, VFS_NODE_DIRECTORY);
+			ops->index_get(par), last_next, -1, true);
 		LOG_EXIT(EOK);
 		goto out;
 	}
@@ -728,7 +728,7 @@ out1:
 	
 	async_answer_5(rid, fs_handle, service_id,
 		ops->index_get(cur), last, lsize,
-		ops->is_directory(cur) ? VFS_NODE_DIRECTORY : VFS_NODE_FILE);
+		ops->is_directory(cur));
 	
 	LOG_EXIT(EOK);
 out:

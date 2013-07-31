@@ -56,7 +56,6 @@
 /* Temporary: service and method names */
 #include "proto.h"
 #include <ipc/services.h>
-#include "../../srv/vfs/vfs.h"
 #include <ipc/console.h>
 
 #include "syscalls.h"
