@@ -51,9 +51,6 @@
 
 #define NAME "usbmast"
 
-#define GET_BULK_IN(dev) ((dev)->pipes[BULK_IN_EP].pipe)
-#define GET_BULK_OUT(dev) ((dev)->pipes[BULK_OUT_EP].pipe)
-
 static const usb_endpoint_description_t bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_IN,
@@ -183,13 +180,13 @@ static int usbmast_device_add(usb_device_t *dev)
 		goto error;
 	}
 
+	mdev->bulk_in_pipe = &epm_in->pipe;
+	mdev->bulk_out_pipe = &epm_out->pipe;
 	for (i = 0; i < mdev->lun_count; i++) {
 		rc = usbmast_fun_create(mdev, i);
 		if (rc != EOK)
 			goto error;
 	}
-	mdev->bulk_in_pipe = &epm_in->pipe;
-	mdev->bulk_out_pipe = &epm_out->pipe;
 
 	return EOK;
 error:
