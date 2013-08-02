@@ -41,55 +41,6 @@
 #include <usb/host/hcd.h>
 #include "ddf_helpers.h"
 
-/** Register endpoint interface function.
- * @param fun DDF function.
- * @param address USB address of the device.
- * @param endpoint USB endpoint number to be registered.
- * @param transfer_type Endpoint's transfer type.
- * @param direction USB communication direction the endpoint is capable of.
- * @param max_packet_size Maximu size of packets the endpoint accepts.
- * @param interval Preferred timeout between communication.
- * @return Error code.
- */
-static int register_endpoint(
-    ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
-    usb_transfer_type_t transfer_type, usb_direction_t direction,
-    size_t max_packet_size, unsigned interval)
-{
-	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	assert(hcd);
-	const size_t size = max_packet_size;
-	const usb_target_t target = {{.address = address, .endpoint = endpoint}};
-
-	usb_log_debug("Register endpoint %d:%d %s-%s %zuB %ums.\n",
-	    address, endpoint, usb_str_transfer_type(transfer_type),
-	    usb_str_direction(direction), max_packet_size, interval);
-
-	return hcd_add_ep(hcd, target, direction, transfer_type,
-	    max_packet_size, size);
-}
-
-/** Unregister endpoint interface function.
- * @param fun DDF function.
- * @param address USB address of the endpoint.
- * @param endpoint USB endpoint number.
- * @param direction Communication direction of the enpdoint to unregister.
- * @return Error code.
- */
-static int unregister_endpoint(
-    ddf_fun_t *fun, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction)
-{
-	assert(fun);
-	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	assert(hcd);
-	const usb_target_t target = {{.address = address, .endpoint = endpoint}};
-	usb_log_debug("Unregister endpoint %d:%d %s.\n",
-	    address, endpoint, usb_str_direction(direction));
-	return hcd_remove_ep(hcd, target, direction);
-}
-
 /** Inbound communication interface function.
  * @param fun DDF function.
  * @param target Communication target.
@@ -130,9 +81,6 @@ static int usb_write(ddf_fun_t *fun, usb_target_t target, uint64_t setup_data,
 
 /** usbhc Interface implementation using hcd_t from libusbhost library. */
 usbhc_iface_t hcd_iface = {
-	.register_endpoint = register_endpoint,
-	.unregister_endpoint = unregister_endpoint,
-
 	.read = usb_read,
 	.write = usb_write,
 };
