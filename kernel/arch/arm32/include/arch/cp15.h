@@ -170,6 +170,13 @@ enum {
 	CCSIDR_ASSOC_SHIFT = 3,
 	CCSIDR_LINESIZE_MASK = 0x7,
 	CCSIDR_LINESIZE_SHIFT = 0,
+#define CCSIDR_SETS(val) \
+	(((val >> CCSIDR_NUMSETS_SHIFT) & CCSIDR_NUMSETS_MASK) + 1)
+#define CCSIDR_WAYS(val) \
+	(((val >> CCSIDR_ASSOC_SHIFT) & CCSIDR_ASSOC_MASK) + 1)
+/* The register value is log(linesize_in_words) - 2 */
+#define CCSIDR_LINESIZE_LOG(val) \
+	(((val >> CCSIDR_LINESIZE_SHIFT) & CCSIDR_LINESIZE_MASK) + 2 + 2)
 };
 CONTROL_REG_GEN_READ(CCSIDR, c0, 1, c0, 0);
 
@@ -186,7 +193,8 @@ enum {
 	CLIDR_SEP_CACHE = 0x3,
 	CLIDR_UNI_CACHE = 0x4,
 	CLIDR_CACHE_MASK = 0x7,
-#define CLIDR_CACHE(level, val)   ((val >> (level - 1) * 3) & CLIDR_CACHE_MASK)
+/** levels counted from 0 */
+#define CLIDR_CACHE(level, val)   ((val >> (level * 3)) & CLIDR_CACHE_MASK)
 };
 CONTROL_REG_GEN_READ(CLIDR, c0, 1, c0, 1);
 CONTROL_REG_GEN_READ(AIDR, c0, 1, c0, 7); /* Implementation defined or MIDR */
@@ -362,7 +370,7 @@ CONTROL_REG_GEN_WRITE(BPIALL, c7, 0, c5, 6);
 CONTROL_REG_GEN_WRITE(BPIMVA, c7, 0, c5, 7);
 
 CONTROL_REG_GEN_WRITE(DCIMVAC, c7, 0, c6, 1);
-CONTROL_REG_GEN_WRITE(DCIMSW, c7, 0, c6, 2);
+CONTROL_REG_GEN_WRITE(DCISW, c7, 0, c6, 2);
 
 CONTROL_REG_GEN_WRITE(ATS1CPR, c7, 0, c8, 0);
 CONTROL_REG_GEN_WRITE(ATS1CPW, c7, 0, c8, 1);
