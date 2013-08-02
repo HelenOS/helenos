@@ -263,6 +263,20 @@ static int udf_size_block(service_id_t service_id, uint32_t *size)
 	return EOK;
 }
 
+static int udf_total_block_count(service_id_t service_id, uint64_t *count)
+{
+	*count = 0;
+	
+	return EOK;
+}
+
+static int udf_free_block_count(service_id_t service_id, uint64_t *count)
+{
+	*count = 0;
+	
+	return EOK;
+}
+
 libfs_ops_t udf_libfs_ops = {
 	.root_get = udf_root_get,
 	.match = udf_match,
@@ -280,7 +294,9 @@ libfs_ops_t udf_libfs_ops = {
 	.is_directory = udf_is_directory,
 	.is_file = udf_is_file,
 	.service_get = udf_service_get,
-	.size_block = udf_size_block
+	.size_block = udf_size_block,
+	.total_block_count = udf_total_block_count,
+	.free_block_count = udf_free_block_count
 };
 
 static int udf_mounted(service_id_t service_id, const char *opts,
