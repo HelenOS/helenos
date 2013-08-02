@@ -303,11 +303,6 @@ static ddf_dev_ops_t usb_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 };
 
-/** Standard USB HC options (HC interface) */
-static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &hcd_iface,
-};
-
 #define GET_DEVICE_DESC(size) \
 { \
 	.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST \
@@ -631,7 +626,6 @@ if (ret != EOK) { \
 	int ret = instance->hc_fun ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
 	    "Failed to create HCD HC function: %s.\n", str_error(ret));
-	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
 	hcd_t *hcd = ddf_fun_data_alloc(instance->hc_fun, sizeof(hcd_t));
 	ret = hcd ? EOK : ENOMEM;
 	CHECK_RET_DEST_FREE_RETURN(ret,
