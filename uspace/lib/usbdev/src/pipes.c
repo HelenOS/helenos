@@ -120,9 +120,11 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_device_control_read(pipe->wire,
+	const int rc = usb_read(exch,
 	    pipe->endpoint_no, setup_packet, buffer, buffer_size, &act_size);
+	async_exchange_end(exch);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
@@ -172,8 +174,10 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 	uint64_t setup_packet;
 	memcpy(&setup_packet, setup_buffer, 8);
 
-	const int rc = usb_device_control_write(pipe->wire,
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	const int rc = usb_write(exch,
 	    pipe->endpoint_no, setup_packet, buffer, buffer_size);
+	async_exchange_end(exch);
 
 	if (rc == ESTALL) {
 		clear_self_endpoint_halt(pipe);
@@ -216,9 +220,11 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
-	const int rc = usb_device_read(pipe->wire,
-	    pipe->endpoint_no, buffer, size, &act_size);
+	const int rc =
+	    usb_read(exch, pipe->endpoint_no, 0, buffer, size, &act_size);
+	async_exchange_end(exch);
 
 	if (rc == EOK && size_transfered != NULL) {
 		*size_transfered = act_size;
@@ -255,8 +261,10 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 	    pipe->transfer_type != USB_TRANSFER_BULK)
 	    return ENOTSUP;
 
-	return usb_device_write(pipe->wire,
-	    pipe->endpoint_no, buffer, size);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	const int rc = usb_write(exch, pipe->endpoint_no, 0, buffer, size);
+	async_exchange_end(exch);
+	return rc;
 }
 
 /** Initialize USB endpoint pipe.
