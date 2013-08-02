@@ -44,10 +44,7 @@
 
 usb_dev_session_t *usb_dev_connect(devman_handle_t handle)
 {
-	// TODO All usb requests are atomic so this is safe,
-	// it will need to change once USING EXCHANGE PARALLEL is safe with
-	// devman_device_connect
-	return devman_device_connect(EXCHANGE_ATOMIC, handle, IPC_FLAG_BLOCKING);
+	return devman_device_connect(EXCHANGE_PARALLEL, handle, IPC_FLAG_BLOCKING);
 }
 
 usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *dev)
