@@ -73,6 +73,8 @@ typedef enum {
 	IPC_M_USB_DEVICE_REMOVE,
 	IPC_M_USB_REGISTER_ENDPOINT,
 	IPC_M_USB_UNREGISTER_ENDPOINT,
+	IPC_M_USB_READ,
+	IPC_M_USB_WRITE,
 } usb_iface_funcs_t;
 
 /** Tell USB address assigned to device.
@@ -222,6 +224,90 @@ int usb_unregister_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
 	    IPC_M_USB_UNREGISTER_ENDPOINT, endpoint, direction);
 }
 
+int usb_read(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
+    void *data, size_t size, size_t *rec_size)
+{
+	if (!exch)
+		return EBADMEM;
+
+	if (size == 0 && setup == 0)
+		return EOK;
+
+	/* Make call identifying target USB device and type of transfer. */
+	aid_t opening_request = async_send_4(exch,
+	    DEV_IFACE_ID(USB_DEV_IFACE), IPC_M_USB_READ, endpoint,
+	    (setup & UINT32_MAX), (setup >> 32), NULL);
+
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	/* Retrieve the data. */
+	ipc_call_t data_request_call;
+	aid_t data_request =
+	    async_data_read(exch, data, size, &data_request_call);
+
+	if (data_request == 0) {
+		// FIXME: How to let the other side know that we want to abort?
+		async_forget(opening_request);
+		return ENOMEM;
+	}
+
+	/* Wait for the answer. */
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(opening_request, &opening_request_rc);
+
+	if (data_request_rc != EOK) {
+		/* Prefer the return code of the opening request. */
+		if (opening_request_rc != EOK) {
+			return (int) opening_request_rc;
+		} else {
+			return (int) data_request_rc;
+		}
+	}
+	if (opening_request_rc != EOK) {
+		return (int) opening_request_rc;
+	}
+
+	*rec_size = IPC_GET_ARG2(data_request_call);
+	return EOK;
+}
+
+int usb_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
+    const void *data, size_t size)
+{
+	if (!exch)
+		return EBADMEM;
+
+	if (size == 0 && setup == 0)
+		return EOK;
+
+	aid_t opening_request = async_send_5(exch,
+	    DEV_IFACE_ID(USB_DEV_IFACE), IPC_M_USB_WRITE, endpoint, size,
+	    (setup & UINT32_MAX), (setup >> 32), NULL);
+
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	/* Send the data if any. */
+	if (size > 0) {
+		const int ret = async_data_write_start(exch, data, size);
+		if (ret != EOK) {
+			async_forget(opening_request);
+			return ret;
+		}
+	}
+
+	/* Wait for the answer. */
+	sysarg_t opening_request_rc;
+	async_wait_for(opening_request, &opening_request_rc);
+
+	return (int) opening_request_rc;
+}
+
 static void remote_usb_get_my_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_my_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -233,6 +319,9 @@ static void remote_usb_device_enumerate(ddf_fun_t *, void *, ipc_callid_t, ipc_c
 static void remote_usb_device_remove(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_read(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call);
+
+static void remote_usb_write(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
@@ -246,6 +335,8 @@ static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 	[IPC_M_USB_DEVICE_REMOVE] = remote_usb_device_remove,
 	[IPC_M_USB_REGISTER_ENDPOINT] = remote_usb_register_endpoint,
 	[IPC_M_USB_UNREGISTER_ENDPOINT] = remote_usb_unregister_endpoint,
+	[IPC_M_USB_READ] = remote_usb_read,
+	[IPC_M_USB_WRITE] = remote_usb_write,
 };
 
 /** Remote USB interface structure.
@@ -443,6 +534,165 @@ static void remote_usb_unregister_endpoint(ddf_fun_t *fun, void *iface,
 	int rc = usb_iface->unregister_endpoint(fun, endpoint, direction);
 
 	async_answer_0(callid, rc);
+}
+
+typedef struct {
+	ipc_callid_t caller;
+	ipc_callid_t data_caller;
+	void *buffer;
+} async_transaction_t;
+
+static void async_transaction_destroy(async_transaction_t *trans)
+{
+	if (trans == NULL) {
+		return;
+	}
+	if (trans->buffer != NULL) {
+		free(trans->buffer);
+	}
+
+	free(trans);
+}
+
+static async_transaction_t *async_transaction_create(ipc_callid_t caller)
+{
+	async_transaction_t *trans = malloc(sizeof(async_transaction_t));
+	if (trans == NULL) {
+		return NULL;
+	}
+
+	trans->caller = caller;
+	trans->data_caller = 0;
+	trans->buffer = NULL;
+
+	return trans;
+}
+
+static void callback_out(int outcome, void *arg)
+{
+	async_transaction_t *trans = arg;
+
+	async_answer_0(trans->caller, outcome);
+
+	async_transaction_destroy(trans);
+}
+
+static void callback_in(int outcome, size_t actual_size, void *arg)
+{
+	async_transaction_t *trans = (async_transaction_t *)arg;
+
+	if (outcome != EOK) {
+		async_answer_0(trans->caller, outcome);
+		if (trans->data_caller) {
+			async_answer_0(trans->data_caller, EINTR);
+		}
+		async_transaction_destroy(trans);
+		return;
+	}
+
+	if (trans->data_caller) {
+		async_data_read_finalize(trans->data_caller,
+		    trans->buffer, actual_size);
+	}
+
+	async_answer_0(trans->caller, EOK);
+
+	async_transaction_destroy(trans);
+}
+
+void remote_usb_read(
+    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	assert(fun);
+	assert(iface);
+	assert(call);
+
+	const usb_iface_t *usb_iface = iface;
+
+	if (!usb_iface->read) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	const usb_endpoint_t ep = DEV_IPC_GET_ARG1(*call);
+	const uint64_t setup =
+	    ((uint64_t)DEV_IPC_GET_ARG2(*call)) |
+	    (((uint64_t)DEV_IPC_GET_ARG3(*call)) << 32);
+
+	async_transaction_t *trans = async_transaction_create(callid);
+	if (trans == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
+
+	size_t size = 0;
+	if (!async_data_read_receive(&trans->data_caller, &size)) {
+		async_answer_0(callid, EPARTY);
+		return;
+	}
+
+	trans->buffer = malloc(size);
+	if (trans->buffer == NULL) {
+		async_answer_0(trans->data_caller, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		async_transaction_destroy(trans);
+	}
+
+	const int rc = usb_iface->read(
+	    fun, ep, setup, trans->buffer, size, callback_in, trans);
+
+	if (rc != EOK) {
+		async_answer_0(trans->data_caller, rc);
+		async_answer_0(callid, rc);
+		async_transaction_destroy(trans);
+	}
+}
+
+void remote_usb_write(
+    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	assert(fun);
+	assert(iface);
+	assert(call);
+
+	const usb_iface_t *usb_iface = iface;
+
+	if (!usb_iface->write) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	const usb_endpoint_t ep = DEV_IPC_GET_ARG1(*call);
+	const size_t data_buffer_len = DEV_IPC_GET_ARG2(*call);
+	const uint64_t setup =
+	    ((uint64_t)DEV_IPC_GET_ARG3(*call)) |
+	    (((uint64_t)DEV_IPC_GET_ARG4(*call)) << 32);
+
+	async_transaction_t *trans = async_transaction_create(callid);
+	if (trans == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
+
+	size_t size = 0;
+	if (data_buffer_len > 0) {
+		const int rc = async_data_write_accept(&trans->buffer, false,
+		    1, data_buffer_len, 0, &size);
+
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			async_transaction_destroy(trans);
+			return;
+		}
+	}
+
+	const int rc = usb_iface->write(
+	    fun, ep, setup, trans->buffer, size, callback_out, trans);
+
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_transaction_destroy(trans);
+	}
 }
 /**
  * @}

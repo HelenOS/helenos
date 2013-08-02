@@ -65,6 +65,14 @@ int usb_device_remove(async_exch_t *, usb_device_handle_t);
 int usb_register_endpoint(async_exch_t *, usb_endpoint_t, usb_transfer_type_t,
     usb_direction_t, size_t, unsigned);
 int usb_unregister_endpoint(async_exch_t *, usb_endpoint_t, usb_direction_t);
+int usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t, size_t *);
+int usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *, size_t);
+
+/** Callback for outgoing transfer. */
+typedef void (*usbhc_iface_transfer_out_callback_t)(int, void *);
+
+/** Callback for incoming transfer. */
+typedef void (*usbhc_iface_transfer_in_callback_t)(int, size_t, void *);
 
 /** USB device communication interface. */
 typedef struct {
@@ -82,6 +90,10 @@ typedef struct {
 	    usb_transfer_type_t, usb_direction_t, size_t, unsigned);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_t,
 	    usb_direction_t);
+	int (*read)(ddf_fun_t *, usb_endpoint_t, uint64_t, uint8_t *, size_t,
+	    usbhc_iface_transfer_in_callback_t, void *);
+	int (*write)(ddf_fun_t *, usb_endpoint_t, uint64_t, const uint8_t *,
+	    size_t, usbhc_iface_transfer_out_callback_t, void *);
 } usb_iface_t;
 
 #endif
