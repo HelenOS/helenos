@@ -39,6 +39,7 @@
 #include <usb/usb.h>
 #include <usb/dev/request.h>
 #include <async.h>
+#include <errno.h>
 
 
 /** Maximum number of endpoints supported by virtual USB. */

@@ -86,7 +86,6 @@ static int polling_fibril(void *arg)
 		    data->request_size, pipe->max_packet_size);
 	}
 
-	usb_pipe_start_long_transfer(pipe);
 	size_t failed_attempts = 0;
 	while (failed_attempts <= params->max_failures) {
 		size_t actual_size;
@@ -146,8 +145,6 @@ static int polling_fibril(void *arg)
 		/* Take a rest before next request. */
 		async_usleep(params->delay);
 	}
-
-	usb_pipe_end_long_transfer(pipe);
 
 	const bool failed = failed_attempts > 0;
 

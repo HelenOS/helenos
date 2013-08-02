@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/dev/usb_device_connection.h>
 #include <usb_iface.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
@@ -50,9 +49,6 @@
  * (i.e. the wire to send data over).
  */
 typedef struct {
-	/** The connection used for sending the data. */
-	usb_device_connection_t *wire;
-
 	/** Endpoint number. */
 	usb_endpoint_t endpoint_no;
 
@@ -70,6 +66,7 @@ typedef struct {
 	 */
 	bool auto_reset_halt;
 
+	/** The connection used for sending the data. */
 	usb_dev_session_t *bus_session;
 } usb_pipe_t;
 
@@ -107,22 +104,16 @@ typedef struct {
 	bool present;
 } usb_endpoint_mapping_t;
 
-int usb_pipe_initialize(usb_pipe_t *, usb_device_connection_t *,
-    usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t,
-    usb_dev_session_t *);
-int usb_pipe_initialize_default_control(usb_pipe_t *,
-    usb_device_connection_t *, usb_dev_session_t *);
+int usb_pipe_initialize(usb_pipe_t *, usb_endpoint_t, usb_transfer_type_t,
+    size_t, usb_direction_t, usb_dev_session_t *);
+int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
 int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
-    size_t, const uint8_t *, size_t, usb_device_connection_t *,
-    usb_dev_session_t *);
+    size_t, const uint8_t *, size_t, usb_dev_session_t *);
 
 int usb_pipe_register(usb_pipe_t *, unsigned);
 int usb_pipe_unregister(usb_pipe_t *);
-
-int usb_pipe_start_long_transfer(usb_pipe_t *);
-int usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
 int usb_pipe_write(usb_pipe_t *, const void *, size_t);

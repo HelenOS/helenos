@@ -37,36 +37,6 @@
 #include <errno.h>
 #include <assert.h>
 
-/** Prepare pipe for a long transfer.
- *
- * Long transfer is transfer consisting of several requests to the HC.
- * Calling this function is optional and it has positive effect of
- * improved performance because IPC session is initiated only once.
- *
- * @param pipe Pipe over which the transfer will happen.
- * @return Error code.
- */
-int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
-{
-	assert(pipe);
-	assert(pipe->wire);
-	assert(pipe->wire->hc_connection);
-	return usb_hc_connection_open(pipe->wire->hc_connection);
-}
-
-/** Terminate a long transfer on a pipe.
- * @param pipe Pipe where to end the long transfer.
- * @return Error code.
- * @see usb_pipe_start_long_transfer
- */
-int usb_pipe_end_long_transfer(usb_pipe_t *pipe)
-{
-	assert(pipe);
-	assert(pipe->wire);
-	assert(pipe->wire->hc_connection);
-	return usb_hc_connection_close(pipe->wire->hc_connection);
-}
-
 /** Try to clear endpoint halt of default control pipe.
  *
  * @param pipe Pipe for control endpoint zero.
@@ -270,22 +240,18 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 /** Initialize USB endpoint pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
  * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
  * @param transfer_type Transfer type (e.g. interrupt or bulk).
  * @param max_packet_size Maximum packet size in bytes.
  * @param direction Endpoint direction (in/out).
  * @return Error code.
  */
-int usb_pipe_initialize(usb_pipe_t *pipe,
-    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
+int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     usb_direction_t direction, usb_dev_session_t *bus_session)
 {
 	assert(pipe);
-	assert(connection);
 
-	pipe->wire = connection;
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;
@@ -299,16 +265,14 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 /** Initialize USB endpoint pipe as the default zero control pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
  * @return Error code.
  */
 int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
-    usb_device_connection_t *connection, usb_dev_session_t *bus_session)
+    usb_dev_session_t *bus_session)
 {
 	assert(pipe);
-	assert(connection);
 
-	int rc = usb_pipe_initialize(pipe, connection, 0, USB_TRANSFER_CONTROL,
+	const int rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
 	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, bus_session);
 
 	pipe->auto_reset_halt = true;

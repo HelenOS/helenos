@@ -44,12 +44,10 @@
 
 /** USB device structure. */
 typedef struct usb_device {
-	/** Connection to USB hc, used by wire and arbitrary requests. */
-	usb_hc_connection_t hc_conn;
-	/** Connection backing the pipes.
-	 * Typically, you will not need to use this attribute at all.
-	 */
-	usb_device_connection_t wire;
+	/** Connection to device on USB bus */
+	usb_dev_session_t *bus_session;
+	/** devman handle */
+	devman_handle_t handle;
 	/** The default control pipe. */
 	usb_pipe_t ctrl_pipe;
 
@@ -77,10 +75,6 @@ typedef struct usb_device {
 	 */
 	void *driver_data;
 
-	/** Connection to device on USB bus */
-	usb_dev_session_t *bus_session;
-	/** devman handle */
-	devman_handle_t handle;
 } usb_device_t;
 
 /** Count number of pipes the driver expects.
@@ -156,14 +150,11 @@ static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 	assert(usb_dev);
 	assert(usb_dev->descriptors.full_config == NULL);
 
-	/* It is worth to start a long transfer. */
-	usb_pipe_start_long_transfer(&usb_dev->ctrl_pipe);
-
 	/* Get the device descriptor. */
 	int rc = usb_request_get_device_descriptor(&usb_dev->ctrl_pipe,
 	    &usb_dev->descriptors.device);
 	if (rc != EOK) {
-		goto leave;
+		return rc;
 	}
 
 	/* Get the full configuration descriptor. */
@@ -172,8 +163,6 @@ static int usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 	    &usb_dev->descriptors.full_config,
 	    &usb_dev->descriptors.full_config_size);
 
-leave:
-	usb_pipe_end_long_transfer(&usb_dev->ctrl_pipe);
 
 	return rc;
 }
@@ -197,7 +186,6 @@ static void usb_device_release_descriptors(usb_device_t *usb_dev)
  * - map endpoints to the pipes based on the descriptions
  * - registers endpoints with the host controller
  *
- * @param[in] wire Initialized backing connection to the host controller.
  * @param[in] endpoints Endpoints description, NULL terminated.
  * @param[in] config_descr Configuration descriptor of active configuration.
  * @param[in] config_descr_size Size of @p config_descr in bytes.
@@ -239,7 +227,7 @@ int usb_device_create_pipes(usb_device_t *usb_dev,
 	/* Find the mapping from configuration descriptor. */
 	int rc = usb_pipe_initialize_from_configuration(pipes, pipe_count,
 	    usb_dev->descriptors.full_config,
-	    usb_dev->descriptors.full_config_size, &usb_dev->wire,
+	    usb_dev->descriptors.full_config_size,
 	    usb_dev->bus_session);
 	if (rc != EOK) {
 		free(pipes);
@@ -352,34 +340,6 @@ const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
 	return &usb_dev->alternate_interfaces;
 }
 
-static int usb_dev_get_info(usb_device_t *usb_dev, devman_handle_t *handle,
-    usb_address_t *address, int *iface_no)
-{
-	assert(usb_dev);
-
-	int ret = EOK;
-	async_exch_t *exch = async_exchange_begin(usb_dev->bus_session);
-	if (!exch)
-		ret = ENOMEM;
-
-	if (ret == EOK && address)
-		ret = usb_get_my_address(exch, address);
-
-	if (ret == EOK && handle)
-		ret = usb_get_hc_handle(exch, handle);
-
-	if (ret == EOK && iface_no) {
-		ret = usb_get_my_interface(exch, iface_no);
-		if (ret == ENOTSUP) {
-			ret = EOK;
-			*iface_no = -1;
-		}
-	}
-
-	async_exchange_end(exch);
-	return ret;
-}
-
 /** Clean instance of a USB device.
  *
  * @param dev Device to be de-initialized.
@@ -392,7 +352,6 @@ static void usb_device_fini(usb_device_t *usb_dev)
 		/* Destroy existing pipes. */
 		usb_device_destroy_pipes(usb_dev);
 		/* Ignore errors and hope for the best. */
-		usb_hc_connection_deinitialize(&usb_dev->hc_conn);
 		usb_alternate_interfaces_deinit(&usb_dev->alternate_interfaces);
 		usb_device_release_descriptors(usb_dev);
 		free(usb_dev->driver_data);
@@ -436,44 +395,13 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		return ENOMEM;
 	}
 
-	/* Get assigned params */
-	devman_handle_t hc_handle;
-	usb_address_t address;
-
-	int rc = usb_dev_get_info(usb_dev, &hc_handle, &address, NULL);
-	if (rc != EOK) {
-		usb_dev_disconnect(usb_dev->bus_session);
-		*errstr_ptr = "device parameters retrieval";
-		return rc;
-	}
-
-	/* Initialize hc connection. */
-	usb_hc_connection_initialize(&usb_dev->hc_conn, hc_handle);
-
-	/* Initialize backing wire and control pipe. */
-	rc = usb_device_connection_initialize(
-	    &usb_dev->wire, &usb_dev->hc_conn, address);
-	if (rc != EOK) {
-		usb_dev_disconnect(usb_dev->bus_session);
-		*errstr_ptr = "device connection initialization";
-		return rc;
-	}
-
 	/* This pipe was registered by the hub driver,
 	 * during device initialization. */
-	rc = usb_pipe_initialize_default_control(
-	    &usb_dev->ctrl_pipe, &usb_dev->wire, usb_dev->bus_session);
+	int rc = usb_pipe_initialize_default_control(
+	    &usb_dev->ctrl_pipe, usb_dev->bus_session);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "default control pipe initialization";
-		return rc;
-	}
-
-	/* Open hc connection for pipe registration. */
-	rc = usb_hc_connection_open(&usb_dev->hc_conn);
-	if (rc != EOK) {
-		usb_dev_disconnect(usb_dev->bus_session);
-		*errstr_ptr = "hc connection open";
 		return rc;
 	}
 
@@ -481,7 +409,6 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	rc = usb_device_retrieve_descriptors(usb_dev);
 	if (rc != EOK) {
 		*errstr_ptr = "descriptor retrieval";
-		usb_hc_connection_close(&usb_dev->hc_conn);
 		usb_dev_disconnect(usb_dev->bus_session);
 		return rc;
 	}
@@ -498,14 +425,12 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		/* Create and register other pipes than default control (EP 0)*/
 		rc = usb_device_create_pipes(usb_dev, endpoints);
 		if (rc != EOK) {
-			usb_hc_connection_close(&usb_dev->hc_conn);
 			usb_device_fini(usb_dev);
 			*errstr_ptr = "pipes initialization";
 			return rc;
 		}
 	}
 
-	usb_hc_connection_close(&usb_dev->hc_conn);
 	return EOK;
 }
 
@@ -644,17 +569,6 @@ void * usb_device_data_get(usb_device_t *usb_dev)
 	return usb_dev->driver_data;
 }
 
-usb_address_t usb_device_address(usb_device_t *usb_dev)
-{
-	assert(usb_dev);
-	return usb_dev->wire.address;
-}
-
-devman_handle_t usb_device_hc_handle(usb_device_t *usb_dev)
-{
-	assert(usb_dev);
-	return usb_dev->hc_conn.hc_handle;
-}
 /**
  * @}
  */

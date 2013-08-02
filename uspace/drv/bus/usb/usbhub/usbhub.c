@@ -110,19 +110,9 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
 	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
 
-	usb_pipe_t *control_pipe = usb_device_get_default_pipe(usb_dev);
-
-	int opResult = usb_pipe_start_long_transfer(control_pipe);
-	if (opResult != EOK) {
-		usb_log_error("Failed to start long ctrl pipe transfer: %s\n",
-		    str_error(opResult));
-		return opResult;
-	}
-
 	/* Set hub's first configuration. (There should be only one) */
-	opResult = usb_set_first_configuration(usb_dev);
+	int opResult = usb_set_first_configuration(usb_dev);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Could not set hub configuration: %s\n",
 		    str_error(opResult));
 		return opResult;
@@ -131,7 +121,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Get port count and create attached_devices. */
 	opResult = usb_hub_process_hub_specific_info(hub_dev);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Could process hub specific info, %s\n",
 		    str_error(opResult));
 		return opResult;
@@ -142,7 +131,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	hub_dev->hub_fun = usb_device_ddf_fun_create(hub_dev->usb_device,
 	    fun_exposed, HUB_FNC_NAME);
 	if (hub_dev->hub_fun == NULL) {
-		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Failed to create hub function.\n");
 		return ENOMEM;
 	}
@@ -150,7 +138,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Bind hub control function. */
 	opResult = ddf_fun_bind(hub_dev->hub_fun);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(control_pipe);
 		usb_log_error("Failed to bind hub function: %s.\n",
 		   str_error(opResult));
 		ddf_fun_destroy(hub_dev->hub_fun);
@@ -163,7 +150,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 7) / 8),
 	    -1, usb_hub_polling_terminated_callback, hub_dev);
 	if (opResult != EOK) {
-		usb_pipe_end_long_transfer(control_pipe);
 		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
@@ -175,7 +161,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	usb_log_info("Controlling hub '%s' (%zu ports).\n",
 	    usb_device_get_name(hub_dev->usb_device), hub_dev->port_count);
 
-	usb_pipe_end_long_transfer(control_pipe);
 	return EOK;
 }
 

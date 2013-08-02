@@ -94,10 +94,6 @@ const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
 void * usb_device_data_alloc(usb_device_t *, size_t);
 void * usb_device_data_get(usb_device_t *);
 
-/* Legacy support */
-usb_address_t usb_device_address(usb_device_t *);
-devman_handle_t usb_device_hc_handle(usb_device_t*);
-
 #endif
 /**
  * @}
