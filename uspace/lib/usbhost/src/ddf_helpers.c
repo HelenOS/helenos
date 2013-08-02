@@ -229,6 +229,58 @@ static int get_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
 	return EOK;
 }
 
+/** Inbound communication interface function.
+ * @param fun DDF function.
+ * @param target Communication target.
+ * @param setup_data Data to use in setup stage (control transfers).
+ * @param data Pointer to data buffer.
+ * @param size Size of the data buffer.
+ * @param callback Function to call on communication end.
+ * @param arg Argument passed to the callback function.
+ * @return Error code.
+ */
+static int dev_read(ddf_fun_t *fun, usb_endpoint_t endpoint,
+    uint64_t setup_data, uint8_t *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	assert(fun);
+	usb_dev_t *usb_dev = ddf_fun_data_get(fun);
+	assert(usb_dev);
+	const usb_target_t target = {{
+	    .address =  usb_dev->address,
+	    .endpoint = endpoint,
+	}};
+	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)), target,
+	    USB_DIRECTION_IN, data, size, setup_data, callback, NULL, arg,
+	    "READ");
+}
+
+/** Outbound communication interface function.
+ * @param fun DDF function.
+ * @param target Communication target.
+ * @param setup_data Data to use in setup stage (control transfers).
+ * @param data Pointer to data buffer.
+ * @param size Size of the data buffer.
+ * @param callback Function to call on communication end.
+ * @param arg Argument passed to the callback function.
+ * @return Error code.
+ */
+static int dev_write(ddf_fun_t *fun, usb_endpoint_t endpoint,
+    uint64_t setup_data, const uint8_t *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	assert(fun);
+	usb_dev_t *usb_dev = ddf_fun_data_get(fun);
+	assert(usb_dev);
+	const usb_target_t target = {{
+	    .address =  usb_dev->address,
+	    .endpoint = endpoint,
+	}};
+	return hcd_send_batch(dev_to_hcd(ddf_fun_get_dev(fun)),
+	    target, USB_DIRECTION_OUT, (uint8_t*)data, size, setup_data, NULL,
+	    callback, arg, "WRITE");
+}
+
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = get_hc_handle,
@@ -242,6 +294,8 @@ static usb_iface_t usb_iface = {
 	.device_remove = device_remove,
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,
+	.read = dev_read,
+	.write = dev_write,
 };
 
 /** Standard USB RH options (device interface) */
