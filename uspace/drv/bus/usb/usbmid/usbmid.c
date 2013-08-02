@@ -58,6 +58,16 @@ static int usb_iface_device_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 	return EOK;
 }
 
+static int usb_iface_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
+{
+	assert(fun);
+	assert(handle);
+	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
+	assert(usb_dev);
+	*handle = usb_device_get_devman_handle(usb_dev);
+	return EOK;
+}
+
 /** Get USB device address by calling the parent usb_device_t.
  *
  * @param[in] fun Device function the operation is running on.
@@ -118,6 +128,7 @@ static int usb_iface_unregister_endpoint(ddf_fun_t *fun, usb_endpoint_t ep,
 static usb_iface_t child_usb_iface = {
 	.get_hc_handle = usb_iface_device_hc_handle,
 	.get_my_address = usb_iface_device_address,
+	.get_device_handle = usb_iface_device_handle,
 	.get_my_interface = usb_iface_iface,
 	.register_endpoint = usb_iface_register_endpoint,
 	.unregister_endpoint = usb_iface_unregister_endpoint,

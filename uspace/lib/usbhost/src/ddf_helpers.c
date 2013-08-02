@@ -215,10 +215,26 @@ static int get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 	return EOK;
 }
 
+/** Gets handle of the respective hc (this device, hc function).
+ *
+ * @param[in] root_hub_fun Root hub function seeking hc handle.
+ * @param[out] handle Place to write the handle.
+ * @return Error code.
+ */
+static int get_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
+{
+	assert(fun);
+	if (handle)
+		*handle = ddf_fun_get_handle(fun);
+	return EOK;
+}
+
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
 	.get_hc_handle = get_hc_handle,
 	.get_my_address = get_my_address,
+
+	.get_device_handle = get_device_handle,
 
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
@@ -227,7 +243,8 @@ static usb_iface_t usb_iface = {
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,
 };
-/** Standard USB RH options (RH interface) */
+
+/** Standard USB RH options (device interface) */
 static ddf_dev_ops_t usb_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 };

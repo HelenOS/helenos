@@ -77,7 +77,10 @@ typedef struct usb_device {
 	 */
 	void *driver_data;
 
+	/** Connection to device on USB bus */
 	usb_dev_session_t *bus_session;
+	/** devman handle */
+	devman_handle_t handle;
 } usb_device_t;
 
 /** Count number of pipes the driver expects.
@@ -330,6 +333,12 @@ int usb_device_get_iface_number(usb_device_t *usb_dev)
 	return usb_dev->interface_no;
 }
 
+devman_handle_t usb_device_get_devman_handle(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->handle;
+}
+
 const usb_device_descriptors_t *usb_device_descriptors(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
@@ -404,7 +413,7 @@ static void usb_device_fini(usb_device_t *usb_dev)
  */
 static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
     const usb_endpoint_description_t **endpoints, const char **errstr_ptr,
-    devman_handle_t handle)
+    devman_handle_t handle, int interface_no)
 {
 	assert(usb_dev != NULL);
 	assert(errstr_ptr);
@@ -412,16 +421,15 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	*errstr_ptr = NULL;
 
 	usb_dev->ddf_dev = ddf_dev;
+	usb_dev->handle = handle;
+	usb_dev->interface_no = interface_no;
 	usb_dev->driver_data = NULL;
 	usb_dev->descriptors.full_config = NULL;
 	usb_dev->descriptors.full_config_size = 0;
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
-	if (ddf_dev)
-		usb_dev->bus_session = usb_dev_connect_to_self(ddf_dev);
-	else
-		usb_dev->bus_session = usb_dev_connect(handle);
+	usb_dev->bus_session = usb_dev_connect(handle);
 
 	if (!usb_dev->bus_session) {
 		*errstr_ptr = "device bus session create";
@@ -432,8 +440,7 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	devman_handle_t hc_handle;
 	usb_address_t address;
 
-	int rc = usb_dev_get_info(usb_dev,
-	    &hc_handle, &address, &usb_dev->interface_no);
+	int rc = usb_dev_get_info(usb_dev, &hc_handle, &address, NULL);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "device parameters retrieval";
@@ -502,18 +509,50 @@ static int usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	return EOK;
 }
 
+static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
+	int *iface_no)
+{
+	assert(handle);
+	assert(iface_no);
+	async_exch_t *exch = async_exchange_begin(sess);
+	if (!exch)
+		return EPARTY;
+	int ret = usb_get_device_handle(exch, handle);
+	if (ret == EOK) {
+		ret = usb_get_my_interface(exch, iface_no);
+		if (ret == ENOTSUP) {
+			*iface_no = -1;
+			ret = EOK;
+		}
+	}
+	async_exchange_end(exch);
+	return ret;
+}
+
 int usb_device_create_ddf(ddf_dev_t *ddf_dev,
     const usb_endpoint_description_t **desc, const char **err)
 {
 	assert(ddf_dev);
 	assert(err);
+
+	devman_handle_t h = 0;
+	int iface_no = -1;
+
+	async_sess_t *sess = devman_parent_device_connect(EXCHANGE_ATOMIC,
+	    ddf_dev_get_handle(ddf_dev), IPC_FLAG_BLOCKING);
+	const int ret = usb_device_get_info(sess, &h, &iface_no);
+	async_hangup(sess);
+	if (ret != EOK)
+		return ret;
+
 	usb_device_t *usb_dev =
 	    ddf_dev_data_alloc(ddf_dev, sizeof(usb_device_t));
 	if (usb_dev == NULL) {
 		*err = "DDF data alloc";
 		return ENOMEM;
 	}
-	return usb_device_init(usb_dev, ddf_dev, desc, err, 0);
+	
+	return usb_device_init(usb_dev, ddf_dev, desc, err, h, iface_no);
 }
 
 void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
@@ -527,11 +566,22 @@ void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
 
 usb_device_t * usb_device_create(devman_handle_t handle)
 {
+	devman_handle_t h = 0;
+	int iface_no = -1;
+
+	async_sess_t *sess = devman_device_connect(
+	    EXCHANGE_ATOMIC, handle, IPC_FLAG_BLOCKING);
+	int ret = usb_device_get_info(sess, &h, &iface_no);
+	async_hangup(sess);
+	if (ret != EOK)
+		return NULL;
+
 	usb_device_t *usb_dev = malloc(sizeof(usb_device_t));
 	if (!usb_dev)
 		return NULL;
+
 	const char* dummy = NULL;
-	const int ret = usb_device_init(usb_dev, NULL, NULL, &dummy, handle);
+	ret = usb_device_init(usb_dev, NULL, NULL, &dummy, handle, iface_no);
 	if (ret != EOK) {
 		free(usb_dev);
 		usb_dev = NULL;

@@ -61,7 +61,6 @@ static inline usb_device_t *usb_device_get(ddf_dev_t *dev)
 	return ddf_dev_data_get(dev);
 }
 
-
 usb_device_t * usb_device_create(devman_handle_t);
 void usb_device_destroy(usb_device_t *);
 
@@ -85,6 +84,7 @@ usb_endpoint_mapping_t * usb_device_get_mapped_ep(usb_device_t *,
     usb_endpoint_t);
 
 int usb_device_get_iface_number(usb_device_t *);
+devman_handle_t usb_device_get_devman_handle(usb_device_t *);
 
 const usb_device_descriptors_t * usb_device_descriptors(usb_device_t *);
 
