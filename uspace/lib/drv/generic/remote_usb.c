@@ -69,6 +69,7 @@ typedef enum {
 	IPC_M_USB_GET_MY_ADDRESS,
 	IPC_M_USB_GET_MY_INTERFACE,
 	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE,
+	IPC_M_USB_GET_DEVICE_HANDLE,
 	IPC_M_USB_RESERVE_DEFAULT_ADDRESS,
 	IPC_M_USB_RELEASE_DEFAULT_ADDRESS,
 	IPC_M_USB_DEVICE_ENUMERATE,
@@ -127,6 +128,21 @@ int usb_get_hc_handle(async_exch_t *exch, devman_handle_t *hc_handle)
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
 	if (ret == EOK && hc_handle)
 		*hc_handle = (devman_handle_t)h;
+	return ret;
+}
+
+/** Tell devman handle of the usb device function.
+ * @param[in] exch IPC communication exchange
+ * @param[out] handle devman handle of the HC used by the target device.
+ * @return Error code.
+ */
+int usb_get_device_handle(async_exch_t *exch, devman_handle_t *handle)
+{
+	devman_handle_t h = 0;
+	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_DEVICE_HANDLE, &h);
+	if (ret == EOK && handle)
+		*handle = (devman_handle_t)h;
 	return ret;
 }
 
@@ -212,6 +228,7 @@ int usb_unregister_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
 static void remote_usb_get_my_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_my_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_device_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 static void remote_usb_reserve_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usb_release_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -225,6 +242,7 @@ static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 	[IPC_M_USB_GET_MY_ADDRESS] = remote_usb_get_my_address,
 	[IPC_M_USB_GET_MY_INTERFACE] = remote_usb_get_my_interface,
 	[IPC_M_USB_GET_HOST_CONTROLLER_HANDLE] = remote_usb_get_hc_handle,
+	[IPC_M_USB_GET_DEVICE_HANDLE] = remote_usb_get_device_handle,
 	[IPC_M_USB_RESERVE_DEFAULT_ADDRESS] = remote_usb_reserve_default_address,
 	[IPC_M_USB_RELEASE_DEFAULT_ADDRESS] = remote_usb_release_default_address,
 	[IPC_M_USB_DEVICE_ENUMERATE] = remote_usb_device_enumerate,
@@ -291,6 +309,25 @@ void remote_usb_get_hc_handle(ddf_fun_t *fun, void *iface,
 
 	devman_handle_t handle;
 	const int ret = usb_iface->get_hc_handle(fun, &handle);
+	if (ret != EOK) {
+		async_answer_0(callid, ret);
+	}
+
+	async_answer_1(callid, EOK, (sysarg_t) handle);
+}
+
+void remote_usb_get_device_handle(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->get_device_handle == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	devman_handle_t handle;
+	const int ret = usb_iface->get_device_handle(fun, &handle);
 	if (ret != EOK) {
 		async_answer_0(callid, ret);
 	}

@@ -54,6 +54,7 @@ void usb_dev_disconnect(usb_dev_session_t *);
 int usb_get_my_address(async_exch_t *, usb_address_t *);
 int usb_get_my_interface(async_exch_t *, int *);
 int usb_get_hc_handle(async_exch_t *, devman_handle_t *);
+int usb_get_device_handle(async_exch_t *, devman_handle_t *);
 
 int usb_reserve_default_address(async_exch_t *, usb_speed_t);
 int usb_release_default_address(async_exch_t *);
@@ -70,6 +71,8 @@ typedef struct {
 	int (*get_my_address)(ddf_fun_t *, usb_address_t *);
 	int (*get_my_interface)(ddf_fun_t *, int *);
 	int (*get_hc_handle)(ddf_fun_t *, devman_handle_t *);
+
+	int (*get_device_handle)(ddf_fun_t *, devman_handle_t *);
 
 	int (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
 	int (*release_default_address)(ddf_fun_t *);
