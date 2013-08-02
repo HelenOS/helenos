@@ -42,96 +42,38 @@
 #include <usb/classes/classes.h>
 #include <usb/dev/recognise.h>
 #include "usbmid.h"
-/** Get host controller handle by calling the parent usb_device_t.
+
+/** Get USB device handle by calling the parent usb_device_t.
  *
  * @param[in] fun Device function the operation is running on.
- * @param[out] handle Storage for the host controller handle.
+ * @param[out] handle Device handle.
  * @return Error code.
  */
-static int usb_iface_device_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(handle);
-	assert(fun);
-	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
-	assert(usb_dev);
-	*handle = usb_device_hc_handle(usb_dev);
-	return EOK;
-}
-
 static int usb_iface_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 	assert(handle);
 	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
-	assert(usb_dev);
 	*handle = usb_device_get_devman_handle(usb_dev);
 	return EOK;
 }
 
-/** Get USB device address by calling the parent usb_device_t.
- *
- * @param[in] fun Device function the operation is running on.
- * @param[in] handle Devman handle of USB device we want address of.
- * @param[out] address Storage for USB address of device with handle @p handle.
- * @return Error code.
- */
-static int usb_iface_device_address(ddf_fun_t *fun, usb_address_t *address)
-{
-	assert(address);
-	assert(fun);
-	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
-	assert(usb_dev);
-	*address = usb_device_address(usb_dev);
-	return EOK;
-}
-
-/** Callback for DDF USB interface. */
-static int usb_iface_iface(ddf_fun_t *fun, int *iface_no)
+/** Callback for DDF USB get interface. */
+static int usb_iface_iface_no(ddf_fun_t *fun, int *iface_no)
 {
 	usbmid_interface_t *iface = ddf_fun_data_get(fun);
 	assert(iface);
 
-	if (iface_no != NULL) {
+	if (iface_no)
 		*iface_no = iface->interface_no;
-	}
 
 	return EOK;
 }
 
-static int usb_iface_register_endpoint(ddf_fun_t *fun, usb_endpoint_t ep,
-    usb_transfer_type_t type, usb_direction_t dir, size_t mps, unsigned inter)
-{
-	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
-	assert(usb_dev);
-	async_exch_t *exch = usb_device_bus_exchange_begin(usb_dev);
-	if (!exch)
-		return ENOMEM;
-	const int ret = usb_register_endpoint(exch, ep, type, dir, mps, inter);
-	usb_device_bus_exchange_end(exch);
-	return ret;
-}
-
-static int usb_iface_unregister_endpoint(ddf_fun_t *fun, usb_endpoint_t ep,
-    usb_direction_t dir)
-{
-	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
-	assert(usb_dev);
-	async_exch_t *exch = usb_device_bus_exchange_begin(usb_dev);
-	if (!exch)
-		return ENOMEM;
-	const int ret = usb_unregister_endpoint(exch, ep, dir);
-	usb_device_bus_exchange_end(exch);
-	return ret;
-}
-
-/** DDF interface of the child - interface function. */
+/** DDF interface of the child - USB functions. */
 static usb_iface_t child_usb_iface = {
-	.get_hc_handle = usb_iface_device_hc_handle,
-	.get_my_address = usb_iface_device_address,
 	.get_device_handle = usb_iface_device_handle,
-	.get_my_interface = usb_iface_iface,
-	.register_endpoint = usb_iface_register_endpoint,
-	.unregister_endpoint = usb_iface_unregister_endpoint,
+	.get_my_interface = usb_iface_iface_no,
 };
 
 /** Operations for children - interface functions. */
