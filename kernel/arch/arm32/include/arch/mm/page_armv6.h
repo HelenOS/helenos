@@ -204,6 +204,7 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 		p->domain = 0;
 		p->ns = 0;
 	}
+	DCCMVAU_write((uint32_t)p);
 }
 
 
@@ -254,6 +255,7 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		if (!(flags & PAGE_WRITE))
 			p->access_permission_1 = PTE_AP1_RO;
 	}
+	DCCMVAU_write((uint32_t)p);
 }
 
 NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
@@ -264,6 +266,7 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 	p->should_be_zero_1 = 0;
 	write_barrier();
 	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
+	DCCMVAU_write((uint32_t)p);
 }
 
 NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
@@ -271,6 +274,7 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 	pte_level1_t *p = &pt[i].l1;
 
 	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
+	DCCMVAU_write((uint32_t)p);
 }
 
 
