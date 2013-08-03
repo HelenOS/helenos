@@ -140,8 +140,9 @@ static void enable_paging()
 		/* Enable ICache, DCache, BPredictors and MMU,
 		 * we disable caches before jumping to kernel
 		 * so this is safe for all archs.
+		 * Enable VMSAv6 the bit (23) is only writable on ARMv6.
 		 */
-		"ldr r1, =0x00001805\n"
+		"ldr r1, =0x00801805\n"
 		
 		"orr r0, r0, r1\n"
 
