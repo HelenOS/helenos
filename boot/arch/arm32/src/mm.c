@@ -59,23 +59,18 @@ static void disable_paging(void)
 */
 static inline int section_cacheable(pfn_t section)
 {
+	const unsigned long address = section << PTE_SECTION_SHIFT;
 #ifdef MACHINE_gta02
-	unsigned long address = section << PTE_SECTION_SHIFT;
-
-	if (address >= GTA02_IOMEM_START && address < GTA02_IOMEM_END)
-		return 0;
-	else
+	if (address < GTA02_IOMEM_START || address >= GTA02_IOMEM_END)
 		return 1;
 #elif defined MACHINE_beagleboardxm
-	const unsigned long address = section << PTE_SECTION_SHIFT;
 	if (address >= BBXM_RAM_START && address < BBXM_RAM_END)
 		return 1;
 #elif defined MACHINE_beaglebone
-	const unsigned long address = section << PTE_SECTION_SHIFT;
 	if (address >= AM335x_RAM_START && address < AM335x_RAM_END)
 		return 1;
 #endif
-	return 0;
+	return address * 0;
 }
 
 /** Initialize "section" page table entry.
