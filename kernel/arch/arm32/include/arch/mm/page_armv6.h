@@ -204,7 +204,8 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 		p->domain = 0;
 		p->ns = 0;
 	}
-	DCCMVAU_write((uint32_t)p);
+	DCCMVAC_write((uint32_t)p);
+	//TODO: DCCMVAU should be enough but it does not work.
 }
 
 
@@ -235,13 +236,19 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	/* tex=0 buf=1 and cache=1 => normal memory
 	 * tex=0 buf=1 and cache=0 => shareable device mmio
 	 */
-	p->cacheable = (flags & PAGE_CACHEABLE);
+
+	if (flags & PAGE_CACHEABLE) {
+		p->tex = 1;
+		p->cacheable = 1;
+	} else {
+		p->tex = 0;
+		p->cacheable = 0;
+	}
 	p->bufferable = 1;
-	p->tex = 0;
 	
 	/* Shareable is ignored for devices (non-cacheable),
 	 * turn it on for normal memory. */
-	p->shareable = 1;
+	p->shareable = 0;
 	
 	p->non_global = !(flags & PAGE_GLOBAL);
 	
@@ -255,7 +262,8 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		if (!(flags & PAGE_WRITE))
 			p->access_permission_1 = PTE_AP1_RO;
 	}
-	DCCMVAU_write((uint32_t)p);
+	DCCMVAC_write((uint32_t)p);
+	//TODO: DCCMVAU should be enough but it does not work.
 }
 
 NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
@@ -266,7 +274,8 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 	p->should_be_zero_1 = 0;
 	write_barrier();
 	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
-	DCCMVAU_write((uint32_t)p);
+	DCCMVAC_write((uint32_t)p);
+	//TODO: DCCMVAU should be enough but it does not work.
 }
 
 NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
@@ -274,7 +283,8 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 	pte_level1_t *p = &pt[i].l1;
 
 	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
-	DCCMVAU_write((uint32_t)p);
+	DCCMVAC_write((uint32_t)p);
+	//TODO: DCCMVAU should be enough but it does not work.
 }
 
 
