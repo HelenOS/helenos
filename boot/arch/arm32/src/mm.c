@@ -36,6 +36,52 @@
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <arch/mm.h>
+#include <arch/cp15.h>
+
+#ifdef PROCESSOR_ARCH_armv7_a
+static unsigned log2(unsigned val)
+{
+	unsigned log = 0;
+	while (val >> log++);
+	return log - 2;
+}
+
+static void dcache_invalidate_level(unsigned level)
+{
+	CSSELR_write(level << 1);
+	const uint32_t ccsidr = CCSIDR_read();
+	const unsigned sets = CCSIDR_SETS(ccsidr);
+	const unsigned ways = CCSIDR_WAYS(ccsidr);
+	const unsigned line_log = CCSIDR_LINESIZE_LOG(ccsidr);
+	const unsigned set_shift = line_log;
+	const unsigned way_shift = 32 - log2(ways);
+
+	for (unsigned k = 0; k < ways; ++k)
+		for (unsigned j = 0; j < sets; ++j) {
+			const uint32_t val = (level << 1) |
+			    (j << set_shift) | (k << way_shift);
+			DCISW_write(val);
+		}
+}
+
+/** invalidate all dcaches -- armv7 */
+static void cache_invalidate(void)
+{
+	const uint32_t cinfo = CLIDR_read();
+	for (unsigned i = 0; i < 7; ++i) {
+		switch (CLIDR_CACHE(i, cinfo))
+		{
+		case CLIDR_DCACHE_ONLY:
+		case CLIDR_SEP_CACHE:
+		case CLIDR_UNI_CACHE:
+			dcache_invalidate_level(i);
+		}
+	}
+	asm volatile ( "dsb\n" );
+	ICIALLU_write(0);
+	asm volatile ( "isb\n" );
+}
+#endif
 
 /** Disable the MMU */
 static void disable_paging(void)
@@ -155,6 +201,13 @@ static void enable_paging()
 /** Start the MMU - initialize page table and enable paging. */
 void mmu_start() {
 	disable_paging();
+#ifdef PROCESSOR_ARCH_armv7_a
+	/* Make sure we run in memory code when caches are enabled,
+	 * make sure we read memory data too. This part is ARMv7 specific as
+	 * ARMv7 no longer invalidates caches on restart.
+	 * See chapter B2.2.2 of ARM Architecture Reference Manual p. B2-1263*/
+	cache_invalidate();
+#endif
 	init_boot_pt();
 	enable_paging();
 }
