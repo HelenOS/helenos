@@ -232,22 +232,27 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		else
 			p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE_NX;
 	}
-	
-	/* tex=0 buf=1 and cache=1 => normal memory
-	 * tex=0 buf=1 and cache=0 => shareable device mmio
-	 */
 
 	if (flags & PAGE_CACHEABLE) {
+		/*
+		 * Write-back, write-allocate memory, see ch. B3.8.2
+		 * (p. B3-1358) of ARM Architecture reference manual.
+		 */
 		p->tex = 1;
 		p->cacheable = 1;
+		p->bufferable = 1;
 	} else {
+		/*
+		 * Shareable device memory, see ch. B3.8.2 (p. B3-1358) of
+		 * ARM Architecture reference manual.
+		 */
 		p->tex = 0;
 		p->cacheable = 0;
+		p->bufferable = 1;
 	}
-	p->bufferable = 1;
 	
 	/* Shareable is ignored for devices (non-cacheable),
-	 * turn it on for normal memory. */
+	 * turn it off for normal memory. */
 	p->shareable = 0;
 	
 	p->non_global = !(flags & PAGE_GLOBAL);
