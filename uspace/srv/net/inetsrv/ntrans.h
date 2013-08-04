@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2013 Antonin Steinhauser
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup dnsres
+/** @addtogroup inet
  * @{
  */
 /**
  * @file
+ * @brief
  */
 
-#ifndef QUERY_H
-#define QUERY_H
+#ifndef NTRANS_H_
+#define NTRANS_H_
 
-#include "dns_type.h"
+#include <inet/iplink_srv.h>
+#include <inet/addr.h>
 
-extern int dns_name2host(const char *, dns_host_info_t **, uint16_t);
-extern void dns_hostinfo_destroy(dns_host_info_t *);
+/** Address translation table element */
+typedef struct {
+	link_t ntrans_list;
+	addr128_t ip_addr;
+	addr48_t mac_addr;
+} inet_ntrans_t;
+
+extern int ntrans_add(addr128_t, addr48_t);
+extern int ntrans_remove(addr128_t);
+extern int ntrans_lookup(addr128_t, addr48_t);
+extern int ntrans_wait_timeout(suseconds_t);
 
 #endif
 

@@ -112,7 +112,7 @@ typedef struct {
 	/** Time to live */
 	uint8_t ttl;
 	/** Identifier */
-	uint16_t ident;
+	uint32_t ident;
 	/** Do not fragment */
 	bool df;
 	/** More fragments */
@@ -140,6 +140,8 @@ typedef struct {
 	async_sess_t *sess;
 	iplink_t *iplink;
 	size_t def_mtu;
+	addr48_t mac;
+	bool mac_valid;
 } inet_link_t;
 
 typedef struct {

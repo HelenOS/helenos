@@ -53,8 +53,6 @@
 
 #define NAME       "tcp"
 
-#define IP_PROTO_TCP 6
-
 static int tcp_inet_ev_recv(inet_dgram_t *dgram);
 static void tcp_received_pdu(tcp_pdu_t *pdu);
 

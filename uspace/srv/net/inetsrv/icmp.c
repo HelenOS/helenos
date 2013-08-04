@@ -152,7 +152,7 @@ int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 	if (rdata == NULL)
 		return ENOMEM;
 	
-	icmp_echo_t *request = (icmp_echo_t *)rdata;
+	icmp_echo_t *request = (icmp_echo_t *) rdata;
 	
 	request->type = ICMP_ECHO_REQUEST;
 	request->code = 0;

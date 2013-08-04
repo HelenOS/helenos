@@ -45,12 +45,12 @@
 #include <sys/types.h>
 
 typedef struct {
-	link_t addr_list;
+	link_t link;
 	inet_addr_t addr;
 } ethip_link_addr_t;
 
 typedef struct ethip_nic {
-	link_t nic_list;
+	link_t link;
 	service_id_t svc_id;
 	char *svc_name;
 	async_sess_t *sess;
@@ -60,8 +60,12 @@ typedef struct ethip_nic {
 
 	/** MAC address */
 	addr48_t mac_addr;
-	/** List of IP addresses configured on this link */
-	list_t addr_list; /* of ethip_link_addr_t */
+	
+	/**
+	 * List of IP addresses configured on this link
+	 * (of the type ethip_link_addr_t)
+	 */
+	list_t addr_list;
 } ethip_nic_t;
 
 /** Ethernet frame */

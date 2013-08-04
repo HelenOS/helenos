@@ -108,14 +108,14 @@ int inetping6_recv(uint16_t ident, inetping6_sdu_t *sdu)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETPING6_EV_RECV, sdu->seq_no, &answer);
 	
-	int rc = async_data_write_start(exch, sdu->src, 16);
+	int rc = async_data_write_start(exch, sdu->src, sizeof(addr128_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
 	
-	rc = async_data_write_start(exch, sdu->dest, 16);
+	rc = async_data_write_start(exch, sdu->dest, sizeof(addr128_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);

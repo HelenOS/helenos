@@ -109,7 +109,7 @@ static uint16_t udp_phdr_setup(udp_pdu_t *pdu, udp_phdr_t *phdr,
 		host2addr128_t_be(src_v6, phdr6->src_addr);
 		host2addr128_t_be(dest_v6, phdr6->dest_addr);
 		phdr6->udp_length = host2uint32_t_be(pdu->data_size);
-		memset(phdr6->zero, 0, 3);
+		memset(phdr6->zeroes, 0, 3);
 		phdr6->next = IP_PROTO_UDP;
 		break;
 	default:

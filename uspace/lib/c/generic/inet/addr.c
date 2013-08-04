@@ -51,6 +51,10 @@ const addr48_t addr48_broadcast = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
+static const addr48_t inet_addr48_solicited_node = {
+	0x33, 0x33, 0xff, 0, 0, 0
+};
+
 static const inet_addr_t inet_addr_any_addr = {
 	.family = AF_INET,
 	.addr = 0
@@ -69,6 +73,28 @@ void addr48(const addr48_t src, addr48_t dst)
 void addr128(const addr128_t src, addr128_t dst)
 {
 	memcpy(dst, src, 16);
+}
+
+int addr48_compare(const addr48_t a, const addr48_t b)
+{
+	return memcmp(a, b, 6);
+}
+
+int addr128_compare(const addr128_t a, const addr128_t b)
+{
+	return memcmp(a, b, 16);
+}
+
+/** Compute solicited node MAC multicast address from target IPv6 address
+ *
+ * @param ip  Target IPv6 address
+ * @param mac Solicited MAC address to be assigned
+ *
+ */
+void addr48_solicited_node(const addr128_t ip, addr48_t mac)
+{
+	memcpy(mac, inet_addr48_solicited_node, 3);
+	memcpy(mac + 3, ip + 13, 3);
 }
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)
@@ -211,6 +237,14 @@ void inet_naddr_addr(const inet_naddr_t *naddr, inet_addr_t *addr)
 	memcpy(addr->addr6, naddr->addr6, 16);
 }
 
+void inet_addr_naddr(const inet_addr_t *addr, uint8_t prefix,
+    inet_naddr_t *naddr)
+{
+	naddr->family = addr->family;
+	memcpy(naddr->addr6, addr->addr6, 16);
+	naddr->prefix = prefix;
+}
+
 void inet_addr_any(inet_addr_t *addr)
 {
 	addr->family = AF_NONE;
@@ -233,7 +267,7 @@ int inet_addr_compare(const inet_addr_t *a, const inet_addr_t *b)
 	case AF_INET:
 		return (a->addr == b->addr);
 	case AF_INET6:
-		return memcmp(&a->addr6, &b->addr6, 16);
+		return addr128_compare(a->addr6, b->addr6);
 	default:
 		return 0;
 	}
@@ -244,6 +278,21 @@ int inet_addr_is_any(const inet_addr_t *addr)
 	return ((addr->family == 0) ||
 	    (inet_addr_compare(addr, &inet_addr_any_addr)) ||
 	    (inet_addr_compare(addr, &inet_addr_any_addr6)));
+}
+
+int inet_naddr_compare(const inet_naddr_t *naddr, const inet_addr_t *addr)
+{
+	if (naddr->family != addr->family)
+		return 0;
+	
+	switch (naddr->family) {
+	case AF_INET:
+		return (naddr->addr == addr->addr);
+	case AF_INET6:
+		return addr128_compare(naddr->addr6, addr->addr6);
+	default:
+		return 0;
+	}
 }
 
 int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)

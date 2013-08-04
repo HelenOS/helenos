@@ -41,9 +41,11 @@
 #include <ipc/loc.h>
 #include <stdlib.h>
 #include <str.h>
+#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
+#include "ndp.h"
 
 static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *, inet_link_t *);
 
@@ -116,11 +118,23 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 		inet_addrobj_t *naddr = list_get_instance(link,
 		    inet_addrobj_t, addr_list);
 		
-		if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
-			fibril_mutex_unlock(&addr_list_lock);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
-			    naddr);
-			return naddr;
+		switch (find) {
+		case iaf_net:
+			if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
+				fibril_mutex_unlock(&addr_list_lock);
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
+				    naddr);
+				return naddr;
+			}
+			break;
+		case iaf_addr:
+			if (inet_naddr_compare(&naddr->naddr, addr)) {
+				fibril_mutex_unlock(&addr_list_lock);
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: found %p",
+				    naddr);
+				return naddr;
+			}
+			break;
 		}
 	}
 	
@@ -213,8 +227,37 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 	inet_addr_t lsrc_addr;
 	inet_naddr_addr(&addr->naddr, &lsrc_addr);
 	
-	return inet_link_send_dgram(addr->ilink, &lsrc_addr, ldest, dgram,
-	    proto, ttl, df);
+	addr32_t lsrc_v4;
+	addr128_t lsrc_v6;
+	uint16_t lsrc_af = inet_addr_get(&lsrc_addr, &lsrc_v4, &lsrc_v6);
+	
+	addr32_t ldest_v4;
+	addr128_t ldest_v6;
+	uint16_t ldest_af = inet_addr_get(ldest, &ldest_v4, &ldest_v6);
+	
+	if (lsrc_af != ldest_af)
+		return EINVAL;
+	
+	int rc;
+	addr48_t ldest_mac;
+	
+	switch (ldest_af) {
+	case AF_INET:
+		return inet_link_send_dgram(addr->ilink, lsrc_v4, ldest_v4,
+		    dgram, proto, ttl, df);
+	case AF_INET6:
+		/*
+		 * Translate local destination IPv6 address.
+		 */
+		rc = ndp_translate(lsrc_v6, ldest_v6, ldest_mac, addr->ilink);
+		if (rc != EOK)
+			return rc;
+		
+		return inet_link_send_dgram6(addr->ilink, ldest_mac, dgram,
+		    proto, ttl, df);
+	}
+	
+	return ENOTSUP;
 }
 
 /** Get IDs of all address objects. */

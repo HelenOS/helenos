@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
+#include <net/socket_codes.h>
 #include <io/log.h>
 #include <loc.h>
 #include <stdio.h>
@@ -49,7 +50,9 @@
 static int loopip_open(iplink_srv_t *srv);
 static int loopip_close(iplink_srv_t *srv);
 static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
+static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
+static int loopip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
 static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
@@ -59,7 +62,9 @@ static iplink_ops_t loopip_iplink_ops = {
 	.open = loopip_open,
 	.close = loopip_close,
 	.send = loopip_send,
+	.send6 = loopip_send6,
 	.get_mtu = loopip_get_mtu,
+	.get_mac48 = loopip_get_mac48,
 	.addr_add = loopip_addr_add,
 	.addr_remove = loopip_addr_remove
 };
@@ -161,16 +166,34 @@ static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_send()");
 	
-	addr32_t src_v4;
-	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&sdu->src, &src_v4, &src_v6);
+	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
+	if (rqe == NULL)
+		return ENOMEM;
 	
-	addr32_t dest_v4;
-	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&sdu->dest, &dest_v4, &dest_v6);
+	/*
+	 * Clone SDU
+	 */
+	rqe->af = AF_INET;
+	rqe->sdu.data = malloc(sdu->size);
+	if (rqe->sdu.data == NULL) {
+		free(rqe);
+		return ENOMEM;
+	}
 	
-	if (src_af != dest_af)
-		return EINVAL;
+	memcpy(rqe->sdu.data, sdu->data, sdu->size);
+	rqe->sdu.size = sdu->size;
+	
+	/*
+	 * Insert to receive queue
+	 */
+	prodcons_produce(&loopip_rcv_queue, &rqe->link);
+	
+	return EOK;
+}
+
+static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip6_send()");
 	
 	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
@@ -179,7 +202,7 @@ static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	/*
 	 * Clone SDU
 	 */
-	rqe->af = src_af;
+	rqe->af = AF_INET6;
 	rqe->sdu.data = malloc(sdu->size);
 	if (rqe->sdu.data == NULL) {
 		free(rqe);
@@ -202,6 +225,12 @@ static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mtu()");
 	*mtu = 1500;
 	return EOK;
+}
+
+static int loopip_get_mac48(iplink_srv_t *src, addr48_t *mac)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mac48()");
+	return ENOTSUP;
 }
 
 static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)

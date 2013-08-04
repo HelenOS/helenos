@@ -78,19 +78,35 @@ int inetping6_send(inetping6_sdu_t *sdu)
 	async_exch_t *exch = async_exchange_begin(inetping6_sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INETPING6_SEND, (sysarg_t) sdu->src,
-	    (sysarg_t) sdu->dest, sdu->seq_no, &answer);
-	sysarg_t retval = async_data_write_start(exch, sdu->data, sdu->size);
+	aid_t req = async_send_1(exch, INETPING6_SEND, sdu->seq_no, &answer);
+	
+	int rc = async_data_write_start(exch, &sdu->src, sizeof(addr128_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, &sdu->dest, sizeof(addr128_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, sdu->data, sdu->size);
 	
 	async_exchange_end(exch);
 	
-	if (retval != EOK) {
+	if (rc != EOK) {
 		async_forget(req);
-		return retval;
+		return rc;
 	}
 	
+	sysarg_t retval;
 	async_wait_for(req, &retval);
-	return retval;
+	
+	return (int) retval;
 }
 
 int inetping6_get_srcaddr(addr128_t remote, addr128_t local)
@@ -141,7 +157,7 @@ static void inetping6_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	if (size != sizeof(inet_addr_t)) {
+	if (size != sizeof(addr128_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
@@ -160,7 +176,7 @@ static void inetping6_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	if (size != sizeof(inet_addr_t)) {
+	if (size != sizeof(addr128_t)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;

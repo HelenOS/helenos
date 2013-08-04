@@ -88,6 +88,8 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
 	
+	uint16_t af = IPC_GET_ARG1(*icall);
+	
 	char *name;
 	int rc = async_data_write_accept((void **) &name, true, 0,
 	    DNS_NAME_MAX_SIZE, 0, NULL);
@@ -97,7 +99,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 	}
 	
 	dns_host_info_t *hinfo;
-	rc = dns_name2host(name, &hinfo);
+	rc = dns_name2host(name, &hinfo, af);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;

@@ -46,12 +46,6 @@
 #include "inetping6.h"
 #include "pdu.h"
 
-static int ndp_received(inet_dgram_t *dgram)
-{
-	// FIXME TODO
-	return ENOTSUP;
-}
-
 static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmpv6_recv_echo_request()");
@@ -83,13 +77,13 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	inet_dgram_t rdgram;
 	
-	rdgram.src = dgram->dest;
+	inet_get_srcaddr(&dgram->src, 0, &rdgram.src);
 	rdgram.dest = dgram->src;
 	rdgram.tos = 0;
 	rdgram.data = reply;
 	rdgram.size = size;
 	
-	icmpv6_pseudo_header phdr;
+	icmpv6_phdr_t phdr;
 	
 	host2addr128_t_be(dest_v6, phdr.src_addr);
 	host2addr128_t_be(src_v6, phdr.dest_addr);
@@ -99,7 +93,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	uint16_t cs_phdr =
 	    inet_checksum_calc(INET_CHECKSUM_INIT, &phdr,
-	    sizeof(icmpv6_pseudo_header));
+	    sizeof(icmpv6_phdr_t));
 	
 	uint16_t cs_all = inet_checksum_calc(cs_phdr, reply, size);
 	
@@ -155,9 +149,7 @@ int icmpv6_recv(inet_dgram_t *dgram)
 		return icmpv6_recv_echo_reply(dgram);
 	case ICMPV6_NEIGHBOUR_SOLICITATION:
 	case ICMPV6_NEIGHBOUR_ADVERTISEMENT:
-#ifdef ACCEPT_RA
 	case ICMPV6_ROUTER_ADVERTISEMENT:
-#endif
 		return ndp_received(dgram);
 	default:
 		break;
@@ -191,7 +183,7 @@ int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
 	dgram.data = rdata;
 	dgram.size = rsize;
 	
-	icmpv6_pseudo_header phdr;
+	icmpv6_phdr_t phdr;
 	
 	host2addr128_t_be(sdu->src, phdr.src_addr);
 	host2addr128_t_be(sdu->dest, phdr.dest_addr);
@@ -201,7 +193,7 @@ int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
 	
 	uint16_t cs_phdr =
 	    inet_checksum_calc(INET_CHECKSUM_INIT, &phdr,
-	    sizeof(icmpv6_pseudo_header));
+	    sizeof(icmpv6_phdr_t));
 	
 	uint16_t cs_all = inet_checksum_calc(cs_phdr, rdata, rsize);
 	
