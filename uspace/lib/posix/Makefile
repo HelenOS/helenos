@@ -60,6 +60,10 @@ SOURCES = \
 	source/getopt.c \
 	source/locale.c \
 	source/math.c \
+	source/pthread/condvar.c \
+	source/pthread/keys.c \
+	source/pthread/mutex.c \
+	source/pthread/threads.c \
 	source/pwd.c \
 	source/signal.c \
 	source/stdio.c \
