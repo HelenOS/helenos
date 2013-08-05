@@ -135,13 +135,20 @@ static void init_ptl0_section(pte_level0_section_t* pte,
     pfn_t frame)
 {
 	pte->descriptor_type = PTE_DESCRIPTOR_SECTION;
-	pte->bufferable = 1;
-	pte->cacheable = section_cacheable(frame);
 	pte->xn = 0;
 	pte->domain = 0;
 	pte->should_be_zero_1 = 0;
 	pte->access_permission_0 = PTE_AP_USER_NO_KERNEL_RW;
+#ifdef PROCESSOR_ARCH_armv7_a
+	//TODO: Use write-back write-allocate caches
+	pte->tex = section_cacheable(frame) ? 6 : 0;
+	pte->bufferable = section_cacheable(frame) ? 0 : 0;
+	pte->cacheable = section_cacheable(frame) ? 1 : 0;
+#else
+	pte->bufferable = 1;
+	pte->cacheable = section_cacheable(frame);
 	pte->tex = 0;
+#endif
 	pte->access_permission_1 = 0;
 	pte->shareable = 0;
 	pte->non_global = 0;

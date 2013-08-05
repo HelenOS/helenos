@@ -235,12 +235,13 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 
 	if (flags & PAGE_CACHEABLE) {
 		/*
-		 * Write-back, write-allocate memory, see ch. B3.8.2
+		 * Write-through, no write-allocate memory, see ch. B3.8.2
 		 * (p. B3-1358) of ARM Architecture reference manual.
 		 */
-		p->tex = 1;
+		//TODO: Use writeback, write-allocate caches
+		p->tex = 6;
 		p->cacheable = 1;
-		p->bufferable = 1;
+		p->bufferable = 0;
 	} else {
 		/*
 		 * Shareable device memory, see ch. B3.8.2 (p. B3-1358) of
