@@ -87,7 +87,7 @@ jump_to_kernel:
 #ifdef PROCESSOR_ARCH_armv7_a
 	dsb
 #else
-	andi r4, 0
+	mov r4, #0
 	#cp15 dsb, r4 is ignored (should be zero)
 	mcr p15, 0, r4, c7, c10, 4
 #endif
