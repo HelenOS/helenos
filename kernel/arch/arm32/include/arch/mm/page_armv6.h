@@ -126,7 +126,32 @@ typedef union {
 #define PTE_DESCRIPTOR_SMALL_PAGE_NX	3
 
 
-//TODO: DCCMVAU should be enough but it does not work.
+/**
+ * For an ARMv7 implementation that does not include the Large Physical Address Extension,
+ * and in implementations of architecture versions before ARMv7, if the translation tables
+ * are held in Write-Back Cacheable memory, the caches must be cleaned to the point of
+ * unification after writing to the translation tables and before the DSB instruction. This
+ * ensures that the updated translation table are visible to a hardware translation table walk.
+ *
+ * Therefore, an example instruction sequence for writing a translation table entry,
+ * covering changes to the instruction
+ * or data mappings in a uniprocessor system is:
+ * STR rx, [Translation table entry]
+ * ; write new entry to the translation table
+ * Clean cache line [Translation table entry] : This operation is not required with the
+ * ; Multiprocessing Extensions.
+ * DSB
+ * ; ensures visibility of the data cleaned from the D Cache
+ * Invalidate TLB entry by MVA (and ASID if non-global) [page address]
+ * Invalidate BTC
+ * DSB
+ * ; ensure completion of the Invalidate TLB operation
+ * ISB
+ * ; ensure table changes visible to instruction fetch
+ *
+ * ARM Architecture reference chp. B3.10.1 p. B3-1375
+ */
+//TODO: DCCMVAU does not work.
 #define pt_coherence_m(pt, count) \
 do { \
 	for (unsigned i = 0; i < count; ++i) \
