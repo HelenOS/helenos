@@ -40,6 +40,7 @@
 #include <mm/mm.h>
 #include <arch/exception.h>
 #include <arch/barrier.h>
+#include <arch/cp15.h>
 #include <trace.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
@@ -128,6 +129,9 @@
 #define SET_FRAME_PRESENT_ARCH(ptl3, i) \
 	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
+
+#define pt_coherence(page) pt_coherence_m(page, 1)
+
 #if defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_ARCH_armv7_a)
 #include "page_armv6.h"
 #elif defined(PROCESSOR_ARCH_armv4) | defined(PROCESSOR_ARCH_armv5)
@@ -135,6 +139,28 @@
 #else
 #error "Unsupported architecture"
 #endif
+
+/** Sets the address of level 0 page table.
+ *
+ * @param pt Pointer to the page table to set.
+ *
+ */
+NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
+{
+	TTBR0_write((uint32_t)pt);
+}
+
+NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l0.coarse_table_addr = address >> 10;
+	pt_coherence(&pt[i].l0);
+}
+
+NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l1.frame_base_addr = address >> 12;
+	pt_coherence(&pt[i].l1);
+}
 
 #endif
 

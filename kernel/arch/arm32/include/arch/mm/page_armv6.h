@@ -40,7 +40,6 @@
 #error "Do not include arch specific page.h directly use generic page.h instead"
 #endif
 
-#include <arch/cp15.h>
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
@@ -134,29 +133,6 @@ do { \
 		DCCMVAC_write((uintptr_t)(pt + i)); \
 	read_barrier(); \
 } while (0)
-#define pt_coherence(page) pt_coherence_m(page, 1)
-
-/** Sets the address of level 0 page table.
- *
- * @param pt Pointer to the page table to set.
- *
- */
-NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
-{
-	TTBR0_write((uint32_t)pt);
-}
-
-NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
-{
-	pt[i].l0.coarse_table_addr = address >> 10;
-	pt_coherence(&pt[i]);
-}
-
-NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
-{
-	pt[i].l1.frame_base_addr = address >> 12;
-	pt_coherence(&pt[i]);
-}
 
 
 /** Returns level 0 page table entry flags.
