@@ -126,6 +126,16 @@ typedef union {
 /** pte_level1_t small page table flag with NX (used in descriptor type). */
 #define PTE_DESCRIPTOR_SMALL_PAGE_NX	3
 
+
+//TODO: DCCMVAU should be enough but it does not work.
+#define pt_coherence_m(pt, count) \
+do { \
+	for (unsigned i = 0; i < count; ++i) \
+		DCCMVAC_write((uintptr_t)(pt + i)); \
+	read_barrier(); \
+} while (0)
+#define pt_coherence(page) pt_coherence_m(page, 1)
+
 /** Sets the address of level 0 page table.
  *
  * @param pt Pointer to the page table to set.
@@ -134,6 +144,18 @@ typedef union {
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
 	TTBR0_write((uint32_t)pt);
+}
+
+NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l0.coarse_table_addr = address >> 10;
+	pt_coherence(&pt[i]);
+}
+
+NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l1.frame_base_addr = address >> 12;
+	pt_coherence(&pt[i]);
 }
 
 
@@ -204,8 +226,7 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 		p->domain = 0;
 		p->ns = 0;
 	}
-	DCCMVAC_write((uint32_t)p);
-	//TODO: DCCMVAU should be enough but it does not work.
+	pt_coherence(p);
 }
 
 
@@ -268,8 +289,7 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		if (!(flags & PAGE_WRITE))
 			p->access_permission_1 = PTE_AP1_RO;
 	}
-	DCCMVAC_write((uint32_t)p);
-	//TODO: DCCMVAU should be enough but it does not work.
+	pt_coherence(p);
 }
 
 NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
@@ -280,8 +300,7 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 	p->should_be_zero_1 = 0;
 	write_barrier();
 	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
-	DCCMVAC_write((uint32_t)p);
-	//TODO: DCCMVAU should be enough but it does not work.
+	pt_coherence(p);
 }
 
 NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
@@ -289,8 +308,7 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 	pte_level1_t *p = &pt[i].l1;
 
 	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
-	DCCMVAC_write((uint32_t)p);
-	//TODO: DCCMVAU should be enough but it does not work.
+	pt_coherence(p);
 }
 
 

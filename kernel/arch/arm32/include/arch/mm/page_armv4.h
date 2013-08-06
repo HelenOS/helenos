@@ -132,6 +132,16 @@ NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 	TTBR0_write((uint32_t)pt);
 }
 
+NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l0.coarse_table_addr = address >> 10;
+}
+
+NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l1.frame_base_addr = address >> 12;
+}
+
 
 /** Returns level 0 page table entry flags.
  *

@@ -94,13 +94,13 @@
 
 /* Set PTE address accessors for each level. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0) \
-        (set_ptl0_addr((pte_t *) (ptl0)))
+	set_ptl0_addr((pte_t *) (ptl0))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
-        (((pte_t *) (ptl0))[(i)].l0.coarse_table_addr = (a) >> 10)
+	set_ptl1_addr((pte_t*) (ptl0), i, a)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
 #define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
-        (((pte_t *) (ptl3))[(i)].l1.frame_base_addr = (a) >> 12)
+	set_ptl3_addr((pte_t*) (ptl3), i, a)
 
 /* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
