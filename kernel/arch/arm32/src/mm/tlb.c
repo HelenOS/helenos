@@ -39,6 +39,7 @@
 #include <arch/cp15.h>
 #include <typedefs.h>
 #include <arch/mm/page.h>
+#include <arch/cache.h>
 
 /** Invalidate all entries in TLB.
  *
@@ -47,6 +48,18 @@
 void tlb_invalidate_all(void)
 {
 	TLBIALL_write(0);
+	/*
+	 * "A TLB maintenance operation is only guaranteed to be complete after
+	 * the execution of a DSB instruction."
+	 * "An ISB instruction, or a return from an exception, causes the
+	 * effect of all completed TLB maintenance operations that appear in
+	 * program order before the ISB or return from exception to be visible
+	 * to all subsequent instructions, including the instruction fetches
+	 * for those instructions."
+	 * ARM Architecture reference Manual ch. B3.10.1 p. B3-1374 B3-1375
+	 */
+	read_barrier();
+	inst_barrier();
 }
 
 /** Invalidate all entries in TLB that belong to specified address space.
@@ -65,8 +78,20 @@ void tlb_invalidate_asid(asid_t asid)
  */
 static inline void invalidate_page(uintptr_t page)
 {
-	TLBIMVA_write(page);
 	//TODO: What about TLBIMVAA?
+	TLBIMVA_write(page);
+	/*
+	 * "A TLB maintenance operation is only guaranteed to be complete after
+	 * the execution of a DSB instruction."
+	 * "An ISB instruction, or a return from an exception, causes the
+	 * effect of all completed TLB maintenance operations that appear in
+	 * program order before the ISB or return from exception to be visible
+	 * to all subsequent instructions, including the instruction fetches
+	 * for those instructions."
+	 * ARM Architecture reference Manual ch. B3.10.1 p. B3-1374 B3-1375
+	 */
+	read_barrier();
+	inst_barrier();
 }
 
 /** Invalidate TLB entries for specified page range belonging to specified
@@ -78,9 +103,7 @@ static inline void invalidate_page(uintptr_t page)
  */
 void tlb_invalidate_pages(asid_t asid __attribute__((unused)), uintptr_t page, size_t cnt)
 {
-	unsigned int i;
-
-	for (i = 0; i < cnt; i++)
+	for (unsigned i = 0; i < cnt; i++)
 		invalidate_page(page + i * PAGE_SIZE);
 }
 
