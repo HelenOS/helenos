@@ -46,7 +46,8 @@
 
 #define NAME  "df"
 
-#define HEADER_TABLE "Filesystem     %4u-blocks           Used      Available Used%% Mounted on\n"
+#define HEADER_TABLE 	"Filesystem     %4u-blocks           Used      Available Used%% Mounted on"
+#define HEADER_TABLE_HR "Filesystem           Size           Used      Available Used%% Mounted on"
 
 #define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))  
 #define FSBK_TO_BK(x, fsbk, bk) \
@@ -55,7 +56,10 @@
 		(unsigned long long) ((x) * ((fsbk) / (bk))))
 
 static unsigned int unit_size;
+static unsigned int human_readable;
 
+static int size_to_human_readable(char buf[], uint64_t bytes)
+static void print_header(void);
 static void print_statfs(struct statfs *, char *, char *);
 static void print_usage(void);
 
@@ -65,6 +69,7 @@ int main(int argc, char *argv[])
 	struct statfs st;
 	
 	unit_size = 512;
+	human_readable = 0;
 
 	/******************************************/
 	/*   Parse command line options...        */
@@ -72,6 +77,7 @@ int main(int argc, char *argv[])
 	while ((optres = getopt(argc, argv, ":hib:")) != -1) {
 		switch(optres) {
 		case 'h':
+			human_readable = 1;
 			break;
 
 		case 'i':
@@ -110,7 +116,7 @@ int main(int argc, char *argv[])
 	
 	LIST_INITIALIZE(mtab_list);
 	get_mtab_list(&mtab_list);
-	printf(HEADER_TABLE, unit_size);
+	print_header();
 	list_foreach(mtab_list, cur) {
 		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
 		    link);
@@ -121,16 +127,59 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+static int size_to_human_readable(char buf[], uint64_t bytes)
+{
+	const char *units = "BkMGTPEZY";
+	int i = 0;
+	int limit;
+
+	limit = str_length(units);
+	while (bytes >= 1024) {
+		if (i >= limit) 
+			return -1;
+		bytes /= 1024;
+		i++;
+	}
+	snprintf(buf, 6, "%4llu%c", (unsigned long long)bytes, units[i]);
+
+	return 0;
+}
+
+static void print_header(void)
+{
+	if (human_readable)
+		printf(HEADER_TABLE_HR); 
+	else 
+		printf(HEADER_TABLE, unit_size);
+	putchar('\n');
+}
+
 static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 {
 	printf("%10s", name);
-	printf(" %15llu %14llu %14llu %4llu%% %s\n", 
-		FSBK_TO_BK(st->f_blocks, st->f_bsize, unit_size),                              /* Blocks     */
-		FSBK_TO_BK(st->f_blocks - st->f_bfree, st->f_bsize, unit_size),                /* Used       */
-		FSBK_TO_BK(st->f_bfree, st->f_bsize, unit_size),                               /* Available  */
-		(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
-		mountpoint                                                                     /* Mounted on */
-	);
+	
+	if (human_readable) {
+		char tmp[1024];
+		size_to_human_readable(tmp, st->f_blocks *  st->f_bsize);
+		printf(" %14s", tmp);                                                                 /* Size       */
+		size_to_human_readable(tmp, (st->f_blocks - st->f_bfree)  *  st->f_bsize);
+		printf(" %14s", tmp);                                                                 /* Used       */
+		size_to_human_readable(tmp, st->f_bfree *  st->f_bsize);
+		printf(" %14s", tmp);                                                                 /* Available  */
+		printf(" %4llu%% %s\n", 
+			(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
+			mountpoint                                                                     /* Mounted on */
+		);
+	}
+	else
+		printf(" %15llu %14llu %14llu %4llu%% %s\n", 
+			FSBK_TO_BK(st->f_blocks, st->f_bsize, unit_size),                              /* Blocks     */
+			FSBK_TO_BK(st->f_blocks - st->f_bfree, st->f_bsize, unit_size),                /* Used       */
+			FSBK_TO_BK(st->f_bfree, st->f_bsize, unit_size),                               /* Available  */
+			(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
+			mountpoint                                                                     /* Mounted on */
+		);
+	
 }
 
 static void print_usage(void)
