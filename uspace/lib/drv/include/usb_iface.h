@@ -51,9 +51,7 @@ usb_dev_session_t *usb_dev_connect(devman_handle_t);
 usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
 void usb_dev_disconnect(usb_dev_session_t *);
 
-int usb_get_my_address(async_exch_t *, usb_address_t *);
 int usb_get_my_interface(async_exch_t *, int *);
-int usb_get_hc_handle(async_exch_t *, devman_handle_t *);
 int usb_get_device_handle(async_exch_t *, devman_handle_t *);
 
 int usb_reserve_default_address(async_exch_t *, usb_speed_t);
@@ -76,20 +74,20 @@ typedef void (*usbhc_iface_transfer_in_callback_t)(int, size_t, void *);
 
 /** USB device communication interface. */
 typedef struct {
-	int (*get_my_address)(ddf_fun_t *, usb_address_t *);
 	int (*get_my_interface)(ddf_fun_t *, int *);
-	int (*get_hc_handle)(ddf_fun_t *, devman_handle_t *);
-
 	int (*get_device_handle)(ddf_fun_t *, devman_handle_t *);
 
 	int (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
 	int (*release_default_address)(ddf_fun_t *);
+
 	int (*device_enumerate)(ddf_fun_t *, usb_device_handle_t *);
 	int (*device_remove)(ddf_fun_t *, usb_device_handle_t);
+
 	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_t,
 	    usb_transfer_type_t, usb_direction_t, size_t, unsigned);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_t,
 	    usb_direction_t);
+
 	int (*read)(ddf_fun_t *, usb_endpoint_t, uint64_t, uint8_t *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
 	int (*write)(ddf_fun_t *, usb_endpoint_t, uint64_t, const uint8_t *,
