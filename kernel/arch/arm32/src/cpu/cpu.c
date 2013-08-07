@@ -165,6 +165,9 @@ void cpu_arch_init(void)
 	if ((CTR_read() & CTR_L1I_POLICY_MASK) != CTR_L1I_POLICY_AIVIVT) {
 		control_reg |=
 		    SCTLR_INST_CACHE_EN_FLAG | SCTLR_BRANCH_PREDICT_EN_FLAG;
+	} else {
+		control_reg &=
+		    ~(SCTLR_INST_CACHE_EN_FLAG | SCTLR_BRANCH_PREDICT_EN_FLAG);
 	}
 #endif
 	SCTLR_write(control_reg);
