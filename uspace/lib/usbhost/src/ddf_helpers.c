@@ -578,14 +578,15 @@ int hcd_ddf_new_device(ddf_dev_t *device, usb_address_t *id)
 /** Announce root hub to the DDF
  *
  * @param[in] device Host controller ddf device
- * @param[in] speed roothub communication speed
  * @return Error code
  */
-int hcd_ddf_setup_root_hub(ddf_dev_t *device, usb_speed_t speed)
+int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 {
 	assert(device);
 	hcd_t *hcd = dev_to_hcd(device);
 	assert(hcd);
+
+	const usb_speed_t speed = hcd->ep_manager.max_speed;
 
 	hcd_reserve_default_address(hcd, speed);
 	const int ret = hcd_ddf_new_device(device, NULL);

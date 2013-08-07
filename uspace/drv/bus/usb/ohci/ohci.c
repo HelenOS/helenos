@@ -157,7 +157,7 @@ if (ret != EOK) { \
 	    hc_schedule, ohci_endpoint_init, ohci_endpoint_fini);
 
 	/* HC should be running OK. We can add root hub */
-	ret = hcd_ddf_setup_root_hub(device, USB_SPEED_FULL);
+	ret = hcd_ddf_setup_root_hub(device);
 	CHECK_RET_CLEAN_RETURN(ret,
 	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
 

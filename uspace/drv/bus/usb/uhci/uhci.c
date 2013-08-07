@@ -149,10 +149,10 @@ if (ret != EOK) { \
 	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);
 
 	/*
-	 * Creating root hub registers a new USB device so all HC
-	 * functionality needs to be ready at this time.
+	 * Creating root hub registers a new USB device so HC
+	 * needs to be ready at this time.
 	 */
-	ret = hcd_ddf_setup_root_hub(device, USB_SPEED_FULL);
+	ret = hcd_ddf_setup_root_hub(device);
 	if (ret != EOK) {
 		// TODO: Undo hcd_setup_device
 		hc_fini(hc);
