@@ -207,32 +207,30 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 {
 	assert(reg_size >= sizeof(uhci_regs_t));
-	int ret;
-
-#define CHECK_RET_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		return ret; \
-	} else (void) 0
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
 	uhci_regs_t *io;
-	ret = pio_enable(regs, reg_size, (void **)&io);
-	CHECK_RET_RETURN(ret, "Failed to gain access to registers at %p: %s.\n",
-	    io, str_error(ret));
+	int ret = pio_enable(regs, reg_size, (void **)&io);
+	if (ret != EOK) {
+		usb_log_error("Failed to gain access to registers at %p: %s.\n",
+	            io, str_error(ret));
+		return ret;
+	}
 	instance->registers = io;
+
 	usb_log_debug(
 	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
 
 	ret = hc_init_mem_structures(instance);
-	CHECK_RET_RETURN(ret,
-	    "Failed to initialize UHCI memory structures: %s.\n",
-	    str_error(ret));
-
-#undef CHECK_RET_RETURN
+	if (ret != EOK) {
+		usb_log_error("Failed to init UHCI memory structures: %s.\n",
+		    str_error(ret));
+		// TODO: we should disable pio here
+		return ret;
+	}
 
 	hc_init_hw(instance);
 	if (!interrupts) {
@@ -390,7 +388,6 @@ do { \
 	  &instance->transfers_bulk_full;
 
 	return EOK;
-#undef CHECK_RET_CLEAR_RETURN
 }
 
 /** Schedule batch for execution.

@@ -148,20 +148,20 @@ if (ret != EOK) { \
 
 	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);
 
-// TODO: Undo hcd_setup_device
-#define CHECK_RET_FINI_RETURN(ret, message...) \
-if (ret != EOK) { \
-	hc_fini(hc); \
-	CHECK_RET_RETURN(ret, message); \
-	return ret; \
-} else (void)0
-
+	/*
+	 * Creating root hub registers a new USB device so all HC
+	 * functionality needs to be ready at this time.
+	 */
 	ret = hcd_ddf_setup_root_hub(device, USB_SPEED_FULL);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed to setup UHCI root hub: %s.\n", str_error(ret));
+	if (ret != EOK) {
+		// TODO: Undo hcd_setup_device
+		hc_fini(hc);
+		CHECK_RET_RETURN(ret, "Failed to setup UHCI root hub: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
 
 	return EOK;
-#undef CHECK_RET_FINI_RETURN
 }
 /**
  * @}
