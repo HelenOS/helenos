@@ -45,8 +45,6 @@
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 
-extern usbhc_iface_t hcd_iface;
-
 typedef struct hc_dev {
 	ddf_fun_t *hc_fun;
 	list_t devices;
