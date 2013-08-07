@@ -42,8 +42,9 @@
 int hcd_ddf_add_usb_device(ddf_dev_t *parent,
     usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids);
-int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
-    usb_speed_t max_speed, size_t bw, bw_count_func_t bw_count);
+int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
+    size_t bw, bw_count_func_t bw_count);
+void hcd_ddf_clean_hc(ddf_dev_t *device);
 int hcd_ddf_setup_root_hub(ddf_dev_t *device);
 int hcd_ddf_new_device(ddf_dev_t *device, usb_address_t *address);
 int hcd_ddf_remove_device(ddf_dev_t *device, usb_address_t address);

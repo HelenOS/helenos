@@ -130,7 +130,7 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = hcd_ddf_setup_device(device, NULL, USB_SPEED_FULL,
+	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	CHECK_RET_RETURN(ret, "Failed to setup UHCI HCD.\n");
 	

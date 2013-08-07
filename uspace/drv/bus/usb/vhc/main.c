@@ -85,7 +85,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	vhc_data_t *data = ddf_fun_data_get(ctl_fun);
 
 	/* Initialize generic structures */
-	ret = hcd_ddf_setup_device(dev, NULL, USB_SPEED_FULL,
+	ret = hcd_ddf_setup_hc(dev, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	if (ret != EOK) {
 		usb_log_error("Failed to init HCD structures: %s.\n",

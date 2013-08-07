@@ -46,9 +46,10 @@
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 
 typedef struct hc_dev {
-	ddf_fun_t *hc_fun;
+	ddf_fun_t *ctl_fun;
 	list_t devices;
 	fibril_mutex_t guard;
+	hcd_t hcd;
 } hc_dev_t;
 
 static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
@@ -59,11 +60,11 @@ static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
 hcd_t *dev_to_hcd(ddf_dev_t *dev)
 {
 	hc_dev_t *hc_dev = dev_to_hc_dev(dev);
-	if (!hc_dev || !hc_dev->hc_fun) {
+	if (!hc_dev) {
 		usb_log_error("Invalid HCD device.\n");
 		return NULL;
 	}
-	return ddf_fun_data_get(hc_dev->hc_fun);
+	return &hc_dev->hcd;
 }
 
 typedef struct usb_dev {
@@ -562,13 +563,11 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
  *
  * This function does all the ddf work for hc driver.
  */
-int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
-    usb_speed_t max_speed, size_t bw, bw_count_func_t bw_count)
+int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
+    size_t bw, bw_count_func_t bw_count)
 {
-	if (!device)
-		return EBADMEM;
+	assert(device);
 
-	int ret = ENOMEM;
 	hc_dev_t *instance = ddf_dev_data_alloc(device, sizeof(hc_dev_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate HCD ddf structure.\n");
@@ -576,46 +575,47 @@ int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
 	}
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
+	hcd_init(&instance->hcd, max_speed, bw, bw_count);
 
-	instance->hc_fun = ddf_fun_create(device, fun_exposed, "hc");
-	if (!instance->hc_fun) {
+	int ret = ENOMEM;
+	instance->ctl_fun = ddf_fun_create(device, fun_exposed, "ctl");
+	if (!instance->ctl_fun) {
 		usb_log_error("Failed to create HCD ddf fun.\n");
 		goto err_destroy_fun;
 	}
 
-	hcd_t *hcd = ddf_fun_data_alloc(instance->hc_fun, sizeof(hcd_t));
-	if (!instance->hc_fun) {
-		usb_log_error("Failed to allocate HCD ddf fun data.\n");
-		goto err_destroy_fun;
-	}
-
-	hcd_init(hcd, max_speed, bw, bw_count);
-
-	ret = ddf_fun_bind(instance->hc_fun);
+	ret = ddf_fun_bind(instance->ctl_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to bind hc_fun: %s.\n", str_error(ret));
+		usb_log_error("Failed to bind ctl_fun: %s.\n", str_error(ret));
 		goto err_destroy_fun;
 	}
 
-	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
+	ret = ddf_fun_add_to_category(instance->ctl_fun, USB_HC_CATEGORY);
 	if (ret != EOK) {
 		usb_log_error("Failed to add fun to category: %s.\n",
 		    str_error(ret));
-		ddf_fun_unbind(instance->hc_fun);
+		ddf_fun_unbind(instance->ctl_fun);
 		goto err_destroy_fun;
 	}
 
 	/* HC should be ok at this point (except it can't do anything) */
-	if (hc_fun)
-		*hc_fun = instance->hc_fun;
 	return EOK;
 
 err_destroy_fun:
-	ddf_fun_destroy(instance->hc_fun);
-	instance->hc_fun = NULL;
+	ddf_fun_destroy(instance->ctl_fun);
+	instance->ctl_fun = NULL;
 	return ret;
 }
 
+void hcd_ddf_clean_hc(ddf_dev_t *device)
+{
+	assert(device);
+	hc_dev_t *hc = dev_to_hc_dev(device);
+	assert(hc);
+	const int ret = ddf_fun_unbind(hc->ctl_fun);
+	if (ret == EOK)
+		ddf_fun_destroy(hc->ctl_fun);
+}
 /**
  * @}
  */
