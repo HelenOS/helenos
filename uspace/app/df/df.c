@@ -58,7 +58,7 @@
 static unsigned int unit_size;
 static unsigned int human_readable;
 
-static int size_to_human_readable(char buf[], uint64_t bytes)
+static int size_to_human_readable(char buf[], uint64_t bytes);
 static void print_header(void);
 static void print_statfs(struct statfs *, char *, char *);
 static void print_usage(void);
