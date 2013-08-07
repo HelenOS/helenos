@@ -140,6 +140,12 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 	pte->should_be_zero_1 = 0;
 	pte->access_permission_0 = PTE_AP_USER_NO_KERNEL_RW;
 #ifdef PROCESSOR_ARCH_armv7_a
+	/*
+	 * Keeps this setting in sync with memory type attributes in:
+	 * init_boot_pt (boot/arch/arm32/src/mm.c)
+	 * set_pt_level1_flags (kernel/arch/arm32/include/arch/mm/page_armv6.h)
+	 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
+	 */
 	//TODO: Use write-back write-allocate caches
 	pte->tex = section_cacheable(frame) ? 6 : 0;
 	pte->bufferable = section_cacheable(frame) ? 0 : 0;
@@ -160,16 +166,25 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 /** Initialize page table used while booting the kernel. */
 static void init_boot_pt(void)
 {
-	const pfn_t split_page = PTL0_ENTRIES;
-	/* Create 1:1 virtual-physical mapping (in lower 2 GB). */
-	pfn_t page;
-	for (page = 0; page < split_page; page++)
+	/*
+	 * Create 1:1 virtual-physical mapping.
+	 * Physical memory on BBxM a BBone starts at 2GB
+	 * boundary, gta02 has a memory mirror at 2GB.
+	 * icp somehow works (probably due to limited address size)
+	 */
+	for (pfn_t page = 0; page < PTL0_ENTRIES; page++)
 		init_ptl0_section(&boot_pt[page], page);
-	
-	asm volatile (
-		"mcr p15, 0, %[pt], c2, c0, 0\n"
-		:: [pt] "r" (boot_pt)
-	);
+
+	/*
+	 * Tell MMU page might be cached. Keeps this setting in sync
+	 * with memory type attributes in:
+	 * init_ptl0_section (boot/arch/arm32/src/mm.c)
+	 * set_pt_level1_flags (kernel/arch/arm32/include/arch/mm/page_armv6.h)
+	 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
+	 */
+	uint32_t val = (uint32_t)boot_pt & TTBR_ADDR_MASK;
+	val |= TTBR_RGN_WT_CACHE | TTBR_C_FLAG;
+	TTBR0_write(val);
 }
 
 static void enable_paging()

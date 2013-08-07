@@ -145,7 +145,10 @@
  * @param pt Pointer to the page table to set.
  *
  * Page tables are always in cacheable memory.
- * Make sure the memory type is correct.
+ * Make sure the memory type is correct, and in sync with:
+ * init_boot_pt (boot/arch/arm32/src/mm.c)
+ * init_ptl0_section (boot/arch/arm32/src/mm.c)
+ * set_pt_level1_flags (kernel/arch/arm32/include/arch/mm/page_armv6.h)
  */
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
