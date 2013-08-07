@@ -45,11 +45,20 @@
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 
-typedef struct hc_dev {
-	ddf_fun_t *ctl_fun;
+typedef struct usb_dev {
+	link_t link;
 	list_t devices;
 	fibril_mutex_t guard;
+	ddf_fun_t *fun;
+	usb_address_t address;
+	usb_speed_t speed;
+	unsigned port;
+} usb_dev_t;
+
+typedef struct hc_dev {
+	ddf_fun_t *ctl_fun;
 	hcd_t hcd;
+	usb_dev_t *root_hub;
 } hc_dev_t;
 
 static hc_dev_t *dev_to_hc_dev(ddf_dev_t *dev)
@@ -67,14 +76,6 @@ hcd_t *dev_to_hcd(ddf_dev_t *dev)
 	return &hc_dev->hcd;
 }
 
-typedef struct usb_dev {
-	link_t link;
-	list_t devices;
-	ddf_fun_t *fun;
-	usb_address_t address;
-	usb_speed_t speed;
-	unsigned port;
-} usb_dev_t;
 
 static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
 static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
@@ -311,7 +312,6 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 		name = default_name;
 	}
 
-	//TODO more checks
 	ddf_fun_t *fun = ddf_fun_create(parent, fun_inner, name);
 	if (!fun)
 		return ENOMEM;
@@ -326,6 +326,7 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 	info->port = port;
 	link_initialize(&info->link);
 	list_initialize(&info->devices);
+	fibril_mutex_initialize(&info->guard);
 
 	ddf_fun_set_ops(fun, &usb_ops);
 	list_foreach(mids->ids, iter) {
@@ -340,10 +341,13 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 	}
 
 	if (hub_dev) {
+		fibril_mutex_lock(&hub_dev->guard);
 		list_append(&info->link, &hub_dev->devices);
+		fibril_mutex_unlock(&hub_dev->guard);
 	} else {
 		hc_dev_t *hc_dev = dev_to_hc_dev(parent);
-		list_append(&info->link, &hc_dev->devices);
+		assert(hc_dev->root_hub == NULL);
+		hc_dev->root_hub = info;
 	}
 	return EOK;
 }
@@ -408,7 +412,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 	hc_dev_t *hc_dev = dev_to_hc_dev(device);
 	assert(hc_dev);
 
-	fibril_mutex_lock(&hc_dev->guard);
+	fibril_mutex_lock(&hub->guard);
 
 	usb_dev_t *victim = NULL;
 
@@ -419,7 +423,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 	}
 	if (victim && victim->port == port) {
 		list_remove(&victim->link);
-		fibril_mutex_unlock(&hc_dev->guard);
+		fibril_mutex_unlock(&hub->guard);
 		const int ret = ddf_fun_unbind(victim->fun);
 		if (ret == EOK) {
 			ddf_fun_destroy(victim->fun);
@@ -584,8 +588,7 @@ int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
 		usb_log_error("Failed to allocate HCD ddf structure.\n");
 		return ENOMEM;
 	}
-	list_initialize(&instance->devices);
-	fibril_mutex_initialize(&instance->guard);
+	instance->root_hub = NULL;
 	hcd_init(&instance->hcd, max_speed, bw, bw_count);
 
 	int ret = ENOMEM;
