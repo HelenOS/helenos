@@ -146,25 +146,23 @@ int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
 
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
 	int ret =
 	    pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	CHECK_RET_RETURN(ret,
-	    "Failed to gain access to device registers: %s.\n", str_error(ret));
+	if (ret != EOK) {
+		usb_log_error("Failed to enable access to device regss: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
 
 	list_initialize(&instance->pending_batches);
+	fibril_mutex_initialize(&instance->guard);
 
 	ret = hc_init_memory(instance);
-	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
-	    str_error(ret));
-#undef CHECK_RET_RETURN
-
-	fibril_mutex_initialize(&instance->guard);
+	if (ret != EOK) {
+		usb_log_error("Failed to create OHCI memory structures: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
 
 	hc_gain_control(instance);
 
@@ -500,7 +498,7 @@ int hc_init_transfer_lists(hc_t *instance)
 #define SETUP_ENDPOINT_LIST(type) \
 do { \
 	const char *name = usb_str_transfer_type(type); \
-	int ret = endpoint_list_init(&instance->lists[type], name); \
+	const int ret = endpoint_list_init(&instance->lists[type], name); \
 	if (ret != EOK) { \
 		usb_log_error("Failed to setup %s endpoint list: %s.\n", \
 		    name, str_error(ret)); \
