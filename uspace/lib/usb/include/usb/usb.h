@@ -83,6 +83,11 @@ typedef enum {
 	USB_SPEED_MAX
 } usb_speed_t;
 
+static inline bool usb_speed_is_11(const usb_speed_t s)
+{
+	return (s == USB_SPEED_FULL) || (s == USB_SPEED_LOW);
+}
+
 const char *usb_str_speed(usb_speed_t);
 
 

@@ -52,6 +52,7 @@ typedef struct usb_dev {
 	ddf_fun_t *fun;
 	usb_address_t address;
 	usb_speed_t speed;
+	usb_address_t tt_address;
 	unsigned port;
 } usb_dev_t;
 
@@ -324,9 +325,13 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 	info->speed = speed;
 	info->fun = fun;
 	info->port = port;
+	info->tt_address = hub_dev ? hub_dev->tt_address : -1;
 	link_initialize(&info->link);
 	list_initialize(&info->devices);
 	fibril_mutex_initialize(&info->guard);
+
+	if (hub_dev->speed == USB_SPEED_HIGH && usb_speed_is_11(speed))
+		info->tt_address = hub_dev->address;
 
 	ddf_fun_set_ops(fun, &usb_ops);
 	list_foreach(mids->ids, iter) {
