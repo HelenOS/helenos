@@ -73,7 +73,6 @@ typedef struct usb_dev {
 	ddf_fun_t *fun;
 	usb_address_t address;
 	usb_speed_t speed;
-	devman_handle_t hc_handle;
 } usb_dev_t;
 
 /** Register endpoint interface function.
@@ -182,39 +181,6 @@ static int device_remove(ddf_fun_t *fun, usb_device_handle_t handle)
 	return hcd_ddf_remove_device(ddf_dev, (usb_address_t)handle);
 }
 
-/** Get USB address assigned to root hub.
- *
- * @param[in] fun Root hub function.
- * @param[out] address Store the address here.
- * @return Error code.
- */
-static int get_my_address(ddf_fun_t *fun, usb_address_t *address)
-{
-	assert(fun);
-	if (address != NULL) {
-		usb_dev_t *usb_dev = ddf_fun_data_get(fun);
-		*address = usb_dev->address;
-	}
-	return EOK;
-}
-
-/** Gets handle of the respective hc (this device, hc function).
- *
- * @param[in] root_hub_fun Root hub function seeking hc handle.
- * @param[out] handle Place to write the handle.
- * @return Error code.
- */
-static int get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(fun);
-
-	if (handle != NULL) {
-		usb_dev_t *usb_dev = ddf_fun_data_get(fun);
-		*handle = usb_dev->hc_handle;
-	}
-	return EOK;
-}
-
 /** Gets handle of the respective hc (this device, hc function).
  *
  * @param[in] root_hub_fun Root hub function seeking hc handle.
@@ -283,17 +249,17 @@ static int dev_write(ddf_fun_t *fun, usb_endpoint_t endpoint,
 
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
-	.get_hc_handle = get_hc_handle,
-	.get_my_address = get_my_address,
-
 	.get_device_handle = get_device_handle,
 
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
+
 	.device_enumerate = device_enumerate,
 	.device_remove = device_remove,
+
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,
+
 	.read = dev_read,
 	.write = dev_write,
 };
@@ -331,7 +297,6 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 {
 	assert(parent);
 	hc_dev_t *hc_dev = dev_to_hc_dev(parent);
-	devman_handle_t hc_handle = ddf_fun_get_handle(hc_dev->hc_fun);
 
 	char default_name[10] = { 0 }; /* usbxyz-ss */
 	if (!name) {
@@ -351,7 +316,6 @@ int hcd_ddf_add_usb_device(ddf_dev_t *parent,
 	}
 	info->address = address;
 	info->speed = speed;
-	info->hc_handle = hc_handle;
 	info->fun = fun;
 	link_initialize(&info->link);
 
