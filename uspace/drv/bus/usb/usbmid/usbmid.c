@@ -72,7 +72,7 @@ static int usb_iface_iface_no(ddf_fun_t *fun, int *iface_no)
 
 /** DDF interface of the child - USB functions. */
 static usb_iface_t child_usb_iface = {
-	.get_device_handle = usb_iface_device_handle,
+	.get_my_device_handle = usb_iface_device_handle,
 	.get_my_interface = usb_iface_iface_no,
 };
 

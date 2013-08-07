@@ -181,13 +181,13 @@ static int device_remove(ddf_fun_t *fun, usb_device_handle_t handle)
 	return hcd_ddf_remove_device(ddf_dev, (usb_address_t)handle);
 }
 
-/** Gets handle of the respective hc (this device, hc function).
+/** Gets handle of the respective device.
  *
- * @param[in] root_hub_fun Root hub function seeking hc handle.
+ * @param[in] fun Device function.
  * @param[out] handle Place to write the handle.
  * @return Error code.
  */
-static int get_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
+static int get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 	if (handle)
@@ -249,7 +249,7 @@ static int dev_write(ddf_fun_t *fun, usb_endpoint_t endpoint,
 
 /** Root hub USB interface */
 static usb_iface_t usb_iface = {
-	.get_device_handle = get_device_handle,
+	.get_my_device_handle = get_my_device_handle,
 
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,

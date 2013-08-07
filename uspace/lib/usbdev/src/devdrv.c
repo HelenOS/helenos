@@ -442,7 +442,7 @@ static int usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return EPARTY;
-	int ret = usb_get_device_handle(exch, handle);
+	int ret = usb_get_my_device_handle(exch, handle);
 	if (ret == EOK) {
 		ret = usb_get_my_interface(exch, iface_no);
 		if (ret == ENOTSUP) {
