@@ -144,10 +144,14 @@
  *
  * @param pt Pointer to the page table to set.
  *
+ * Page tables are always in cacheable memory.
+ * Make sure the memory type is correct.
  */
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
-	TTBR0_write((uint32_t)pt);
+	uint32_t val = (uint32_t)pt & TTBR_ADDR_MASK;
+	val |= TTBR_RGN_WT_CACHE | TTBR_C_FLAG;
+	TTBR0_write(val);
 }
 
 NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)

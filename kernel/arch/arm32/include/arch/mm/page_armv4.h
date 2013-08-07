@@ -119,7 +119,12 @@ typedef union {
 /** pte_level1_t small page table flag (used in descriptor type). */
 #define PTE_DESCRIPTOR_SMALL_PAGE	2
 
-#define pt_coherence_m(page, count)
+#define pt_coherence_m(pt, count) \
+do { \
+	for (unsigned i = 0; i < count; ++i) \
+		DCCMVAU_write((uintptr_t)(pt + i)); \
+	read_barrier(); \
+} while (0)
 
 /** Returns level 0 page table entry flags.
  *

@@ -300,6 +300,17 @@ CONTROL_REG_GEN_READ(HACR, c1, 4, c1, 7);
 CONTROL_REG_GEN_WRITE(HACR, c1, 4, c1, 7);
 
 /* Memory protection and control registers */
+enum {
+	TTBR_ADDR_MASK = 0xffffff80,
+	TTBR_NOS_FLAG = 1 << 5,
+	TTBR_RGN_MASK = 0x3 << 3,
+	TTBR_RGN_NO_CACHE = 0x0 << 3,
+	TTBR_RGN_WBWA_CACHE = 0x1 << 3,
+	TTBR_RGN_WT_CACHE = 0x2 << 3,
+	TTBR_RGN_WB_CACHE = 0x3 << 3,
+	TTBR_S_FLAG = 1 << 1,
+	TTBR_C_FLAG = 1 << 0,
+};
 CONTROL_REG_GEN_READ(TTBR0, c2, 0, c0, 0);
 CONTROL_REG_GEN_WRITE(TTBR0, c2, 0, c0, 0);
 CONTROL_REG_GEN_READ(TTBR1, c2, 0, c0, 1);

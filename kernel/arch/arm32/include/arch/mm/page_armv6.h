@@ -150,12 +150,12 @@ typedef union {
  * ; ensure table changes visible to instruction fetch
  *
  * ARM Architecture reference chp. B3.10.1 p. B3-1375
+ * @note: see TTRB0/1 for pt memory type
  */
-//TODO: DCCMVAU does not work.
 #define pt_coherence_m(pt, count) \
 do { \
 	for (unsigned i = 0; i < count; ++i) \
-		DCCMVAC_write((uintptr_t)(pt + i)); \
+		DCCMVAU_write((uintptr_t)(pt + i)); \
 	read_barrier(); \
 } while (0)
 
@@ -299,7 +299,6 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 
 	p->should_be_zero_0 = 0;
 	p->should_be_zero_1 = 0;
-	write_barrier();
 	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
 	pt_coherence(p);
 }
