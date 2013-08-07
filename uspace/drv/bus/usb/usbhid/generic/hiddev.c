@@ -34,9 +34,6 @@
  * USB HID driver API.
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <errno.h>

@@ -33,9 +33,6 @@
  * @brief UHCI driver
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/interrupt.h>
@@ -133,8 +130,7 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ddf_fun_t *hc_fun = NULL;
-	ret = hcd_ddf_setup_device(device, &hc_fun, USB_SPEED_FULL,
+	ret = hcd_ddf_setup_device(device, NULL, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	CHECK_RET_RETURN(ret, "Failed to setup UHCI HCD.\n");
 	
