@@ -43,8 +43,8 @@ typedef struct usb_hub_dev usb_hub_dev_t;
 
 /** Information about single port on a hub. */
 typedef struct {
-	/* Port number as reported in descriptors. */
-	size_t port_number;
+	/** Port number as reported in descriptors. */
+	unsigned port_number;
 	/** Device communication pipe. */
 	usb_pipe_t *control_pipe;
 	/** Mutex needed not only by CV for checking port reset. */
@@ -57,22 +57,23 @@ typedef struct {
 	bool reset_completed;
 	/** Whether to announce the port reset as successful. */
 	bool reset_okay;
-
-	usb_device_handle_t attached_handle;
-
+	/** Device reported to USB bus driver */
+	bool device_attached;
 } usb_hub_port_t;
 
 /** Initialize hub port information.
  *
  * @param port Port to be initialized.
  */
-static inline void usb_hub_port_init(usb_hub_port_t *port, size_t port_number,
+static inline void usb_hub_port_init(usb_hub_port_t *port, unsigned port_number,
     usb_pipe_t *control_pipe)
 {
 	assert(port);
 	port->port_number = port_number;
 	port->control_pipe = control_pipe;
-	port->attached_handle = USB_DEVICE_HANDLE_INVALID;
+	port->reset_completed = false;
+	port->reset_okay = false;
+	port->device_attached = false;
 	fibril_mutex_initialize(&port->mutex);
 	fibril_condvar_initialize(&port->reset_cv);
 }

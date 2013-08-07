@@ -316,7 +316,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
-			usb_log_error("Cannot power on port %zu: %s.\n",
+			usb_log_error("Cannot power on port %u: %s.\n",
 			    hub_dev->ports[port].port_number, str_error(ret));
 		} else {
 			if (!hub_dev->per_port_power) {
@@ -405,7 +405,7 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 		if (ret != EOK) {
 			usb_log_warning("HUB OVER-CURRENT GONE: Cannot power on"
-			    " port %zu: %s\n", hub_dev->ports[port].port_number,
+			    " port %u: %s\n", hub_dev->ports[port].port_number,
 			    str_error(ret));
 		} else {
 			if (!hub_dev->per_port_power)

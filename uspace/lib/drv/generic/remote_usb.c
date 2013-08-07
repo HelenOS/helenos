@@ -138,15 +138,12 @@ int usb_release_default_address(async_exch_t *exch)
  * @param[out] handle Identifier of the newly added device (if successful)
  * @return Error code.
  */
-int usb_device_enumerate(async_exch_t *exch, usb_device_handle_t *handle)
+int usb_device_enumerate(async_exch_t *exch, unsigned port)
 {
-	if (!exch || !handle)
+	if (!exch)
 		return EBADMEM;
-	sysarg_t h;
-	const int ret = async_req_1_1(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_DEVICE_ENUMERATE, &h);
-	if (ret == EOK)
-		*handle = (usb_device_handle_t)h;
+	const int ret = async_req_2_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_DEVICE_ENUMERATE, port);
 	return ret;
 }
 
@@ -155,12 +152,12 @@ int usb_device_enumerate(async_exch_t *exch, usb_device_handle_t *handle)
  * @param[in] handle Identifier of the device
  * @return Error code.
  */
-int usb_device_remove(async_exch_t *exch, usb_device_handle_t handle)
+int usb_device_remove(async_exch_t *exch, unsigned port)
 {
 	if (!exch)
 		return EBADMEM;
 	return async_req_2_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_DEVICE_REMOVE, handle);
+	    IPC_M_USB_DEVICE_REMOVE, port);
 }
 
 int usb_register_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
@@ -380,13 +377,9 @@ static void remote_usb_device_enumerate(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	usb_device_handle_t handle = 0;
-	const int ret = usb_iface->device_enumerate(fun, &handle);
-	if (ret != EOK) {
-		async_answer_0(callid, ret);
-	}
-
-	async_answer_1(callid, EOK, (sysarg_t) handle);
+	const unsigned port = DEV_IPC_GET_ARG1(*call);
+	const int ret = usb_iface->device_enumerate(fun, port);
+	async_answer_0(callid, ret);
 }
 
 static void remote_usb_device_remove(ddf_fun_t *fun, void *iface,
@@ -399,8 +392,8 @@ static void remote_usb_device_remove(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	usb_device_handle_t handle = DEV_IPC_GET_ARG1(*call);
-	const int ret = usb_iface->device_remove(fun, handle);
+	const unsigned port = DEV_IPC_GET_ARG1(*call);
+	const int ret = usb_iface->device_remove(fun, port);
 	async_answer_0(callid, ret);
 }
 

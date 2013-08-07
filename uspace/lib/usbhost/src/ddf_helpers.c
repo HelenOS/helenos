@@ -76,10 +76,8 @@ typedef struct usb_dev {
 	unsigned port;
 } usb_dev_t;
 
-static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port,
-    usb_address_t *id);
-static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
-    usb_address_t id);
+static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
+static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
 
 
 /* DDF INTERFACE */
@@ -163,32 +161,28 @@ static int release_default_address(ddf_fun_t *fun)
 	return hcd_release_default_address(hcd);
 }
 
-static int device_enumerate(ddf_fun_t *fun, usb_device_handle_t *handle)
+static int device_enumerate(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
 	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
 	usb_dev_t *dev = ddf_fun_data_get(fun);
 	assert(ddf_dev);
 	assert(dev);
-	usb_address_t address = 0;
-	unsigned port = 0; //TODO provide real value here
-	usb_log_debug("Device %d reported a new USB device\n", dev->address);
-	const int ret = hcd_ddf_new_device(ddf_dev, dev, port, &address);
-	if (ret == EOK && handle)
-		*handle = address;
-	return ret;
+	usb_log_debug("Hub %d reported a new USB device on port: %u\n",
+	    dev->address, port);
+	return hcd_ddf_new_device(ddf_dev, dev, port);
 }
 
-static int device_remove(ddf_fun_t *fun, usb_device_handle_t handle)
+static int device_remove(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
 	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
 	usb_dev_t *dev = ddf_fun_data_get(fun);
 	assert(ddf_dev);
 	assert(dev);
-	usb_log_debug("Hub `%s' reported removal of device %d\n",
-	    ddf_fun_get_name(fun), (int)handle);
-	return hcd_ddf_remove_device(ddf_dev, dev, (usb_address_t)handle);
+	usb_log_debug("Hub `%s' reported removal of device on port %u\n",
+	    ddf_fun_get_name(fun), port);
+	return hcd_ddf_remove_device(ddf_dev, dev, port);
 }
 
 /** Gets handle of the respective device.
@@ -404,7 +398,7 @@ static int create_match_ids(match_id_list_t *l,
 }
 
 static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
-    usb_address_t id)
+    unsigned port)
 {
 	assert(device);
 
@@ -420,10 +414,10 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 
 	list_foreach(hub->devices, it) {
 		victim = list_get_instance(it, usb_dev_t, link);
-		if (victim->address == id)
+		if (victim->port == port)
 			break;
 	}
-	if (victim && victim->address == id) {
+	if (victim && victim->port == port) {
 		list_remove(&victim->link);
 		fibril_mutex_unlock(&hc_dev->guard);
 		const int ret = ddf_fun_unbind(victim->fun);
@@ -431,16 +425,15 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 			ddf_fun_destroy(victim->fun);
 			hcd_release_address(hcd, victim->address);
 		} else {
-			usb_log_warning("Failed to unbind device %d: %s\n",
-			    id, str_error(ret));
+			usb_log_warning("Failed to unbind device `%s': %s\n",
+			    ddf_fun_get_name(victim->fun), str_error(ret));
 		}
 		return EOK;
 	}
 	return ENOENT;
 }
 
-static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port,
-    usb_address_t *id)
+static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 {
 	assert(device);
 
@@ -551,10 +544,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port,
 	if (ret != EOK) {
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);
 		hcd_release_address(hcd, target.address);
-		return ret;
 	}
-	if (ret == EOK && id)
-		*id = target.address;
 
 	return ret;
 }
@@ -573,7 +563,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 	const usb_speed_t speed = hcd->ep_manager.max_speed;
 
 	hcd_reserve_default_address(hcd, speed);
-	const int ret = hcd_ddf_new_device(device, NULL, 0, NULL);
+	const int ret = hcd_ddf_new_device(device, NULL, 0);
 	hcd_release_default_address(hcd);
 	return ret;
 }
