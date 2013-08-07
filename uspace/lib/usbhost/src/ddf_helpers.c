@@ -602,9 +602,10 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device, usb_speed_t speed)
 int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
     usb_speed_t max_speed, size_t bw, bw_count_func_t bw_count)
 {
-	if (device == NULL)
+	if (!device)
 		return EBADMEM;
 
+	int ret = ENOMEM;
 	hc_dev_t *instance = ddf_dev_data_alloc(device, sizeof(hc_dev_t));
 	if (instance == NULL) {
 		usb_log_error("Failed to allocate HCD ddf structure.\n");
@@ -613,44 +614,43 @@ int hcd_ddf_setup_device(ddf_dev_t *device, ddf_fun_t **hc_fun,
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
 
-#define CHECK_RET_DEST_FREE_RETURN(ret, message...) \
-if (ret != EOK) { \
-	if (instance->hc_fun) { \
-		ddf_fun_destroy(instance->hc_fun); \
-	} \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "hc");
-	int ret = instance->hc_fun ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to create HCD HC function: %s.\n", str_error(ret));
+	if (!instance->hc_fun) {
+		usb_log_error("Failed to create HCD ddf fun.\n");
+		goto err_destroy_fun;
+	}
+
 	hcd_t *hcd = ddf_fun_data_alloc(instance->hc_fun, sizeof(hcd_t));
-	ret = hcd ? EOK : ENOMEM;
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to allocate HCD structure: %s.\n", str_error(ret));
+	if (!instance->hc_fun) {
+		usb_log_error("Failed to allocate HCD ddf fun data.\n");
+		goto err_destroy_fun;
+	}
 
 	hcd_init(hcd, max_speed, bw, bw_count);
 
 	ret = ddf_fun_bind(instance->hc_fun);
-	CHECK_RET_DEST_FREE_RETURN(ret,
-	    "Failed to bind HCD device function: %s.\n", str_error(ret));
+	if (ret != EOK) {
+		usb_log_error("Failed to bind hc_fun: %s.\n", str_error(ret));
+		goto err_destroy_fun;
+	}
 
-#define CHECK_RET_UNBIND_FREE_RETURN(ret, message...) \
-if (ret != EOK) { \
-	ddf_fun_unbind(instance->hc_fun); \
-	CHECK_RET_DEST_FREE_RETURN(ret, message); \
-} else (void)0
 	ret = ddf_fun_add_to_category(instance->hc_fun, USB_HC_CATEGORY);
-	CHECK_RET_UNBIND_FREE_RETURN(ret,
-	    "Failed to add hc to category: %s\n", str_error(ret));
+	if (ret != EOK) {
+		usb_log_error("Failed to add fun to category: %s.\n",
+		    str_error(ret));
+		ddf_fun_unbind(instance->hc_fun);
+		goto err_destroy_fun;
+	}
 
 	/* HC should be ok at this point (except it can't do anything) */
 	if (hc_fun)
 		*hc_fun = instance->hc_fun;
-
 	return EOK;
+
+err_destroy_fun:
+	ddf_fun_destroy(instance->hc_fun);
+	instance->hc_fun = NULL;
+	return ret;
 }
 
 /**
