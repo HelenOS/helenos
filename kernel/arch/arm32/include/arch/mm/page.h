@@ -153,7 +153,7 @@
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
 	uint32_t val = (uint32_t)pt & TTBR_ADDR_MASK;
-	val |= TTBR_RGN_WT_CACHE | TTBR_C_FLAG;
+	val |= TTBR_RGN_WBWA_CACHE | TTBR_C_FLAG;
 	TTBR0_write(val);
 }
 

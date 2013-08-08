@@ -264,10 +264,9 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		 * init_ptl0_section (boot/arch/arm32/src/mm.c)
 		 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
 		 */
-		//TODO: Use writeback, write-allocate caches
-		p->tex = 6;
-		p->cacheable = 1;
-		p->bufferable = 0;
+		p->tex = 5;
+		p->cacheable = 0;
+		p->bufferable = 1;
 	} else {
 		/*
 		 * Shareable device memory, see ch. B3.8.2 (p. B3-1358) of

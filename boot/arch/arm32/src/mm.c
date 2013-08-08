@@ -146,10 +146,9 @@ static void init_ptl0_section(pte_level0_section_t* pte,
 	 * set_pt_level1_flags (kernel/arch/arm32/include/arch/mm/page_armv6.h)
 	 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
 	 */
-	//TODO: Use write-back write-allocate caches
-	pte->tex = section_cacheable(frame) ? 6 : 0;
-	pte->bufferable = section_cacheable(frame) ? 0 : 0;
-	pte->cacheable = section_cacheable(frame) ? 1 : 0;
+	pte->tex = section_cacheable(frame) ? 5 : 0;
+	pte->cacheable = section_cacheable(frame) ? 0 : 0;
+	pte->bufferable = section_cacheable(frame) ? 1 : 0;
 #else
 	pte->bufferable = 1;
 	pte->cacheable = section_cacheable(frame);
@@ -183,7 +182,7 @@ static void init_boot_pt(void)
 	 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
 	 */
 	uint32_t val = (uint32_t)boot_pt & TTBR_ADDR_MASK;
-	val |= TTBR_RGN_WT_CACHE | TTBR_C_FLAG;
+	val |= TTBR_RGN_WBWA_CACHE | TTBR_C_FLAG;
 	TTBR0_write(val);
 }
 
