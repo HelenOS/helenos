@@ -179,7 +179,11 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	/*
 	 * Destroy the mapping.
 	 * Setting to PAGE_NOT_PRESENT is not sufficient.
+	 * But we need SET_FRAME for possible PT coherence maintenance.
+	 * At least on ARM.
 	 */
+	//TODO: Fix this inconsistency
+	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), PAGE_NOT_PRESENT);
 	memsetb(&ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
 	
 	/*
