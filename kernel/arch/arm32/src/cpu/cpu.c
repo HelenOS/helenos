@@ -240,7 +240,7 @@ unsigned dcache_levels(void)
 	unsigned levels = 0;
 #ifdef PROCESSOR_ARCH_armv7_a
 	const uint32_t val = CLIDR_read();
-	for (unsigned i = 0; i < 7; ++i) {
+	for (unsigned i = 0; i < 8; ++i) {
 		const unsigned ctype = CLIDR_CACHE(i, val);
 		switch (ctype) {
 		case CLIDR_DCACHE_ONLY:
