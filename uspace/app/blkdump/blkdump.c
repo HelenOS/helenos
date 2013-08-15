@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011 Martin Sucha
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,24 +51,24 @@
 #define NAME	"blkdump"
 
 static void syntax_print(void);
+static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t block_size);
+static int print_toc(void);
 static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row);
+
+static bool relative = false;
+static service_id_t service_id;
 
 int main(int argc, char **argv)
 {
 
 	int rc;
 	char *dev_path;
-	service_id_t service_id;
 	size_t block_size;
 	char *endptr;
 	aoff64_t block_offset = 0;
 	aoff64_t block_count = 1;
 	aoff64_t dev_nblocks;
-	uint8_t *data;
-	size_t data_offset;
-	aoff64_t current;
-	aoff64_t limit;
-	bool relative = false;
+	bool toc = false;
 	
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -77,6 +77,12 @@ int main(int argc, char **argv)
 	}
 
 	--argc; ++argv;
+
+	if (str_cmp(*argv, "--toc") == 0) {
+		--argc; ++argv;
+		toc = true;
+		goto devname;
+	}
 
 	if (str_cmp(*argv, "--relative") == 0) {
 		--argc; ++argv;
@@ -119,6 +125,7 @@ int main(int argc, char **argv)
 		--argc; ++argv;
 	}
 
+devname:
 	if (argc != 1) {
 		printf(NAME ": Error, unexpected argument.\n");
 		syntax_print();
@@ -152,13 +159,30 @@ int main(int argc, char **argv)
 
 	printf("Device %s has %" PRIuOFF64 " blocks, %" PRIuOFF64 " bytes each\n", dev_path, dev_nblocks, (aoff64_t) block_size);
 
+	if (toc)
+		rc = print_toc();
+	else
+		rc = print_blocks(block_offset, block_count, block_size);
+
+	block_fini(service_id);
+
+	return rc;
+}
+
+static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t block_size)
+{
+	uint8_t *data;
+	aoff64_t current;
+	aoff64_t limit;
+	size_t data_offset;
+	int rc;
+
 	data = malloc(block_size);
 	if (data == NULL) {
 		printf(NAME ": Error allocating data buffer of %" PRIuOFF64 " bytes", (aoff64_t) block_size);
-		block_fini(service_id);
 		return 3;
 	}
-	
+
 	limit = block_offset + block_count;
 	for (current = block_offset; current < limit; current++) {
 		rc = block_read_direct(service_id, current, 1, data);
@@ -167,9 +191,9 @@ int main(int argc, char **argv)
 			free(data);
 			return 3;
 		}
-		
+
 		printf("---- Block %" PRIuOFF64 " (at %" PRIuOFF64 ") ----\n", current, current*block_size);
-		
+
 		for (data_offset = 0; data_offset < block_size; data_offset += 16) {
 			if (relative) {
 				printf("%8" PRIxOFF64 ": ", (aoff64_t) data_offset);
@@ -182,10 +206,22 @@ int main(int argc, char **argv)
 		}
 		printf("\n");
 	}
-	
-	free(data);
 
-	block_fini(service_id);
+	free(data);
+	return 0;
+}
+
+static int print_toc(void)
+{
+	toc_block_t *toc;
+
+	toc = block_get_toc(service_id, 0);
+	if (toc == NULL)
+		return 1;
+
+	printf("TOC size: %" PRIu16 " bytes\n", toc->size);
+	printf("First session: %" PRIu8 "\n", toc->first_session);
+	printf("Last_session: %" PRIu8 "\n", toc->last_session);
 
 	return 0;
 }

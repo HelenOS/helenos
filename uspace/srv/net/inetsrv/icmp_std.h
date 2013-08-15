@@ -42,7 +42,7 @@
 #define IP_PROTO_ICMP 1
 
 /** Type of service used for ICMP */
-#define ICMP_TOS	0
+#define ICMP_TOS  0
 
 /** ICMP message type */
 enum icmp_type {

@@ -159,8 +159,8 @@ typedef struct ns8250 {
 	ddf_fun_t *fun;
 	/** I/O registers **/
 	ns8250_regs_t *regs;
-	/** Is there any client connected to the device? */
-	bool client_connected;
+	/** Are there any clients connected to the device? */
+	unsigned client_connections;
 	/** The irq assigned to this device. */
 	int irq;
 	/** The base i/o address of the devices registers. */
@@ -235,7 +235,7 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
 /** Read data from the serial port device.
  *
  * @param fun		The serial port function
- * @param buf		The ouput buffer for read data.
+ * @param buf		The output buffer for read data.
  * @param count		The number of bytes to be read.
  *
  * @return		The number of bytes actually read on success, negative
@@ -419,7 +419,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 		case INTERRUPT:
 			ns->irq = res->res.interrupt.irq;
 			irq = true;
-			ddf_msg(LVL_NOTE, "Device %s was asigned irq = 0x%x.",
+			ddf_msg(LVL_NOTE, "Device %s was assigned irq = 0x%x.",
 			    ddf_dev_get_name(ns->dev), ns->irq);
 			break;
 			
@@ -432,7 +432,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 				goto failed;
 			}
 			ioport = true;
-			ddf_msg(LVL_NOTE, "Device %s was asigned I/O address = "
+			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address = "
 			    "0x%x.", ddf_dev_get_name(ns->dev), ns->io_addr);
     			break;
 			
@@ -752,7 +752,7 @@ static void ns8250_read_from_device(ns8250_t *ns)
 		if (cont) {
 			uint8_t val = ns8250_read_8(regs);
 			
-			if (ns->client_connected) {
+			if (ns->client_connections > 0) {
 				bool buf_was_empty = buf_is_empty(&ns->input_buffer);
 				if (!buf_push_back(&ns->input_buffer, val)) {
 					ddf_msg(LVL_WARN, "Buffer overflow on "
@@ -826,6 +826,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 	ns8250_t *ns = NULL;
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
+	bool need_unreg_intr_handler = false;
 	int rc;
 	
 	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
@@ -868,6 +869,7 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
+	need_unreg_intr_handler = true;
 	
 	/* Enable interrupt. */
 	rc = ns8250_interrupt_enable(ns);
@@ -902,6 +904,8 @@ static int ns8250_dev_add(ddf_dev_t *dev)
 fail:
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
+	if (need_unreg_intr_handler)
+		ns8250_unregister_interrupt_handler(ns);
 	if (need_cleanup)
 		ns8250_dev_cleanup(ns);
 	return rc;
@@ -913,7 +917,7 @@ static int ns8250_dev_remove(ddf_dev_t *dev)
 	int rc;
 	
 	fibril_mutex_lock(&ns->mutex);
-	if (ns->client_connected) {
+	if (ns->client_connections > 0) {
 		fibril_mutex_unlock(&ns->mutex);
 		return EBUSY;
 	}
@@ -947,13 +951,11 @@ static int ns8250_open(ddf_fun_t *fun)
 	int res;
 	
 	fibril_mutex_lock(&ns->mutex);
-	if (ns->client_connected) {
-		res = ELIMIT;
-	} else if (ns->removed) {
+	if (ns->removed) {
 		res = ENXIO;
 	} else {
 		res = EOK;
-		ns->client_connected = true;
+		ns->client_connections++;
 	}
 	fibril_mutex_unlock(&ns->mutex);
 	
@@ -973,10 +975,10 @@ static void ns8250_close(ddf_fun_t *fun)
 	
 	fibril_mutex_lock(&data->mutex);
 	
-	assert(data->client_connected);
+	assert(data->client_connections > 0);
 	
-	data->client_connected = false;
-	buf_clear(&data->input_buffer);
+	if (!(--data->client_connections))
+		buf_clear(&data->input_buffer);
 	
 	fibril_mutex_unlock(&data->mutex);
 }

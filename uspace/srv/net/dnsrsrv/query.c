@@ -38,7 +38,7 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <str.h>
-
+#include <net/socket_codes.h>
 #include "dns_msg.h"
 #include "dns_std.h"
 #include "dns_type.h"
@@ -47,30 +47,39 @@
 
 static uint16_t msg_id;
 
-int dns_name2host(const char *name, dns_host_info_t **rinfo)
+static int dns_name_query(const char *name, dns_qtype_t qtype,
+    dns_host_info_t *info)
 {
-	dns_message_t *msg;
-	dns_message_t *amsg;
-	dns_question_t *question;
-	dns_host_info_t *info;
-	char *sname, *cname;
-	size_t eoff;
-	int rc;
-
-	question = calloc(1, sizeof(dns_question_t));
-	if (question == NULL)
+	/* Start with the caller-provided name */
+	char *sname = str_dup(name);
+	if (sname == NULL)
 		return ENOMEM;
-
-	question->qname = (char *)name;
-	question->qtype = DTYPE_A;
+	
+	char *qname = str_dup(name);
+	if (qname == NULL) {
+		free(sname);
+		return ENOMEM;
+	}
+	
+	dns_question_t *question = calloc(1, sizeof(dns_question_t));
+	if (question == NULL) {
+		free(qname);
+		free(sname);
+		return ENOMEM;
+	}
+	
+	question->qname = qname;
+	question->qtype = qtype;
 	question->qclass = DC_IN;
-
-	msg = dns_message_new();
-	if (msg == NULL)
+	
+	dns_message_t *msg = dns_message_new();
+	if (msg == NULL) {
+		free(question);
+		free(qname);
+		free(sname);
 		return ENOMEM;
-
-	list_append(&question->msg, &msg->question);
-
+	}
+	
 	msg->id = msg_id++;
 	msg->qr = QR_QUERY;
 	msg->opcode = OPC_QUERY;
@@ -78,71 +87,142 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo)
 	msg->tc = false;
 	msg->rd = true;
 	msg->ra = false;
-
-	rc = dns_request(msg, &amsg);
+	
+	list_append(&question->msg, &msg->question);
+	
+	dns_message_t *amsg;
+	int rc = dns_request(msg, &amsg);
 	if (rc != EOK) {
+		dns_message_destroy(msg);
+		free(sname);
 		return rc;
 	}
-
-	/* Start with the caller-provided name */
-	sname = str_dup(name);
-
+	
 	list_foreach(amsg->answer, link) {
 		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
-
+		
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %zu",
-			rr->name, rr->rtype, rr->rclass, rr->rdata_size);
-
-		if (rr->rtype == DTYPE_CNAME && rr->rclass == DC_IN &&
-		    str_cmp(rr->name, sname) == 0) {
+		    rr->name, rr->rtype, rr->rclass, rr->rdata_size);
+		
+		if ((rr->rtype == DTYPE_CNAME) && (rr->rclass == DC_IN) &&
+		    (str_cmp(rr->name, sname) == 0)) {
+			
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "decode cname (%p, %zu, %zu)",
 			    amsg->pdu.data, amsg->pdu.size, rr->roff);
+			
+			char *cname;
+			size_t eoff;
 			rc = dns_name_decode(&amsg->pdu, rr->roff, &cname, &eoff);
 			if (rc != EOK) {
-				log_msg(LOG_DEFAULT, LVL_DEBUG,
-				    "error decoding cname");
-				assert(rc == EINVAL || rc == ENOMEM);
+				assert((rc == EINVAL) || (rc == ENOMEM));
+				
+				log_msg(LOG_DEFAULT, LVL_DEBUG, "error decoding cname");
+				
 				dns_message_destroy(msg);
 				dns_message_destroy(amsg);
+				free(sname);
+				
 				return rc;
 			}
-
+			
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "name = '%s' "
 			    "cname = '%s'", sname, cname);
-
-			free(sname);
+			
 			/* Continue looking for the more canonical name */
+			free(sname);
 			sname = cname;
 		}
-
-		if (rr->rtype == DTYPE_A && rr->rclass == DC_IN &&
-			rr->rdata_size == sizeof(uint32_t) &&
-			    str_cmp(rr->name, sname) == 0) {
-
-			info = calloc(1, sizeof(dns_host_info_t));
-			if (info == NULL) {
+		
+		if ((qtype == DTYPE_A) && (rr->rtype == DTYPE_A) &&
+		    (rr->rclass == DC_IN) && (rr->rdata_size == sizeof(addr32_t)) &&
+		    (str_cmp(rr->name, sname) == 0)) {
+			
+			info->cname = str_dup(rr->name);
+			if (info->cname == NULL) {
 				dns_message_destroy(msg);
 				dns_message_destroy(amsg);
+				free(sname);
+				
 				return ENOMEM;
 			}
-
-			info->cname = str_dup(rr->name);
-			info->addr.ipv4 = dns_uint32_t_decode(rr->rdata, rr->rdata_size);
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "info->name = '%s' "
-			    "info->addr = %x", info->cname, info->addr.ipv4);
-
+			
+			inet_addr_set(dns_uint32_t_decode(rr->rdata, rr->rdata_size),
+			    &info->addr);
+			
 			dns_message_destroy(msg);
 			dns_message_destroy(amsg);
-			*rinfo = info;
+			free(sname);
+			
+			return EOK;
+		}
+		
+		if ((qtype == DTYPE_AAAA) && (rr->rtype == DTYPE_AAAA) &&
+		    (rr->rclass == DC_IN) && (rr->rdata_size == sizeof(addr128_t)) &&
+		    (str_cmp(rr->name, sname) == 0)) {
+		
+			info->cname = str_dup(rr->name);
+			if (info->cname == NULL) {
+				dns_message_destroy(msg);
+				dns_message_destroy(amsg);
+				free(sname);
+				
+				return ENOMEM;
+			}
+			
+			addr128_t addr;
+			dns_addr128_t_decode(rr->rdata, rr->rdata_size, addr);
+			
+			inet_addr_set6(addr, &info->addr);
+			
+			dns_message_destroy(msg);
+			dns_message_destroy(amsg);
+			free(sname);
+			
 			return EOK;
 		}
 	}
-
+	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "'%s' not resolved, fail", sname);
+	
 	dns_message_destroy(msg);
 	dns_message_destroy(amsg);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "'%s' not resolved, fail", sname);
-
+	free(sname);
+	
 	return EIO;
+}
+
+int dns_name2host(const char *name, dns_host_info_t **rinfo, uint16_t af)
+{
+	dns_host_info_t *info = calloc(1, sizeof(dns_host_info_t));
+	if (info == NULL)
+		return ENOMEM;
+	
+	int rc;
+	
+	switch (af) {
+	case AF_NONE:
+		rc = dns_name_query(name, DTYPE_AAAA, info);
+		
+		if (rc != EOK)
+			rc = dns_name_query(name, DTYPE_A, info);
+		
+		break;
+	case AF_INET:
+		rc = dns_name_query(name, DTYPE_A, info);
+		break;
+	case AF_INET6:
+		rc = dns_name_query(name, DTYPE_AAAA, info);
+		break;
+	default:
+		rc = EINVAL;
+	}
+	
+	if (rc == EOK)
+		*rinfo = info;
+	else
+		free(info);
+	
+	return rc;
 }
 
 void dns_hostinfo_destroy(dns_host_info_t *info)

@@ -49,38 +49,38 @@ typedef struct {
 	uint32_t cpuid_ebx;
 	uint32_t cpuid_ecx;
 	uint32_t cpuid_edx;
-} __attribute__ ((packed)) cpu_info_t;
+} __attribute__((packed)) cpu_info_t;
 
-struct __cpuid_extended_feature_info {
-	unsigned sse3 :  1;
-	unsigned      : 31;
-} __attribute__ ((packed));
+struct cpuid_extended_feature_info {
+	unsigned int sse3 : 1;
+	unsigned int : 31;
+} __attribute__((packed));
 
-typedef union cpuid_extended_feature_info {
-	struct __cpuid_extended_feature_info bits;
+typedef union {
+	struct cpuid_extended_feature_info bits;
 	uint32_t word;
-} cpuid_extended_feature_info;
+} cpuid_extended_feature_info_t;
 
-struct __cpuid_feature_info {
-	unsigned      : 11;
-	unsigned sep  :  1;
-	unsigned      : 11;
-	unsigned mmx  :  1;
-	unsigned fxsr :  1;
-	unsigned sse  :  1;
-	unsigned sse2 :  1;
-	unsigned      :  5;
-} __attribute__ ((packed));
+struct cpuid_feature_info {
+	unsigned int : 11;
+	unsigned int sep  : 1;
+	unsigned int : 11;
+	unsigned int mmx  : 1;
+	unsigned int fxsr : 1;
+	unsigned int sse  : 1;
+	unsigned int sse2 : 1;
+	unsigned int : 5;
+} __attribute__((packed));
 
-typedef union cpuid_feature_info {
-	struct __cpuid_feature_info bits;
+typedef union {
+	struct cpuid_feature_info bits;
 	uint32_t word;
-} cpuid_feature_info;
-
+} cpuid_feature_info_t;
 
 static inline uint32_t has_cpuid(void)
 {
-	uint32_t val, ret;
+	uint32_t val;
+	uint32_t ret;
 	
 	asm volatile (
 		"pushf\n"                    /* read flags */

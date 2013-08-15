@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libposix
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
+ * Floating point related constants.
  */
 
-#include <assert.h>
-#include <bitops.h>
-#include <sys/types.h>
-#include "inet_util.h"
+#ifndef POSIX_FENV_H_
+#define POSIX_FENV_H_
 
-uint32_t inet_netmask(int bits)
-{
-	assert(bits >= 0);
-	assert(bits < 32);
 
-	if (bits == 0)
-		return 0;
-	else
-		return BIT_RANGE(uint32_t, 31, 31 - (bits - 1));
-}
+#define FE_DIVBYZERO 1
+#define FE_INEXACT 2
+#define FE_INVALID 4
+#define FE_OVERFLOW 8
+#define FE_UNDERFLOW 16
+#define FE_ALL_EXCEPT (FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+
+#endif
 
 /** @}
  */

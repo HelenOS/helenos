@@ -38,6 +38,9 @@
 #define STD_H
 
 #include <sys/types.h>
+#include <inet/addr.h>
+
+#define IP_PROTO_TCP  6
 
 /** TCP Header (fixed part) */
 typedef struct {
@@ -71,12 +74,12 @@ enum doff_flags_bits {
 	DF_FIN			= 0
 };
 
-/** TCP pseudo header */
+/** TCP over IPv4 checksum pseudo header */
 typedef struct {
 	/** Source address */
-	uint32_t src_addr;
+	uint32_t src;
 	/** Destination address */
-	uint32_t dest_addr;
+	uint32_t dest;
 	/** Zero */
 	uint8_t zero;
 	/** Protocol */
@@ -84,6 +87,20 @@ typedef struct {
 	/** TCP length */
 	uint16_t tcp_length;
 } tcp_phdr_t;
+
+/** TCP over IPv6 checksum pseudo header */
+typedef struct {
+	/** Source address */
+	addr128_t src;
+	/** Destination address */
+	addr128_t dest;
+	/** TCP length */
+	uint32_t tcp_length;
+	/** Zeroes */
+	uint8_t zeroes[3];
+	/** Next header */
+	uint8_t next;
+} tcp_phdr6_t;
 
 /** Option kind */
 enum opt_kind {

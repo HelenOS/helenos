@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2013 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,9 +27,12 @@
 #
 
 USPACE_PREFIX = ../../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = ata_bd
 
 SOURCES = \
-	ata_bd.c
+	ata_bd.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

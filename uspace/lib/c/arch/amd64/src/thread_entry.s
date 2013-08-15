@@ -38,8 +38,9 @@ __thread_entry:
 	# Create the first stack frame.
 	#
 	pushq $0
+	pushq $0
 	movq %rsp, %rbp
-
+	
 	#
 	# RAX contains address of uarg
 	#

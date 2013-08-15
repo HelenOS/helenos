@@ -34,6 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/time.h"
@@ -72,6 +73,19 @@ void posix_tzset(void)
 	posix_tzname[1] = (char *) "GMT";
 	posix_daylight = 0;
 	posix_timezone = 0;
+}
+
+/**
+ * Get the time in seconds
+ *
+ * @param t If t is non-NULL, the return value is also stored in the memory
+ *          pointed to by t.
+ * @return  On success, the value of time in seconds since the Epoch
+ *          is returned. On error, (time_t)-1 is returned.
+ */
+time_t posix_time(time_t *t)
+{
+	return time(t);
 }
 
 /**

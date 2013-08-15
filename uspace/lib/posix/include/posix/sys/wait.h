@@ -35,6 +35,10 @@
 #ifndef POSIX_SYS_WAIT_H_
 #define POSIX_SYS_WAIT_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "types.h"
 
 #undef WIFEXITED
@@ -51,13 +55,9 @@ extern int __posix_wexitstatus(int status);
 extern int __posix_wifsignaled(int status);
 extern int __posix_wtermsig(int status);
 
-extern posix_pid_t posix_wait(int *stat_ptr);
-extern posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options);
+extern __POSIX_DEF__(pid_t) __POSIX_DEF__(wait)(int *stat_ptr);
+extern __POSIX_DEF__(pid_t) __POSIX_DEF__(waitpid)(__POSIX_DEF__(pid_t) pid, int *stat_ptr, int options);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define wait posix_wait
-	#define waitpid posix_waitpid
-#endif
 
 #endif /* POSIX_SYS_WAIT_H_ */
 

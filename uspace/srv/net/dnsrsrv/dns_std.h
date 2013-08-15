@@ -64,6 +64,7 @@ typedef enum dns_qtype {
 	DTYPE_MINFO	= 14,
 	DTYPE_MX	= 15,
 	DTYPE_TXT	= 16,
+	DTYPE_AAAA	= 28,
 	DQTYPE_AXFR	= 252,
 	DQTYPE_MAILB	= 253,
 	DQTYPE_MAILA	= 254,

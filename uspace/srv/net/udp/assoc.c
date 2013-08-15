@@ -81,6 +81,7 @@ udp_assoc_t *udp_assoc_new(udp_sock_t *lsock, udp_sock_t *fsock)
 
 	if (lsock != NULL)
 		assoc->ident.local = *lsock;
+	
 	if (fsock != NULL)
 		assoc->ident.foreign = *fsock;
 
@@ -250,7 +251,8 @@ int udp_assoc_send(udp_assoc_t *assoc, udp_sock_t *fsock, udp_msg_t *msg)
 	if (fsock != NULL)
 		sp.foreign = *fsock;
 
-	if (sp.foreign.addr.ipv4 == 0 || sp.foreign.port == 0)
+	if ((inet_addr_is_any(&sp.foreign.addr)) ||
+	    (sp.foreign.port == UDP_PORT_ANY))
 		return EINVAL;
 
 	rc = udp_pdu_encode(&sp, msg, &pdu);
@@ -369,19 +371,19 @@ static int udp_assoc_queue_msg(udp_assoc_t *assoc, udp_sockpair_t *sp,
 /** Match socket with pattern. */
 static bool udp_socket_match(udp_sock_t *sock, udp_sock_t *patt)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_socket_match(sock=(%x,%u), pat=(%x,%u))",
-	    sock->addr.ipv4, sock->port, patt->addr.ipv4, patt->port);
-
-	if (patt->addr.ipv4 != UDP_IPV4_ANY &&
-	    patt->addr.ipv4 != sock->addr.ipv4)
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "udp_socket_match(sock=(%u), pat=(%u))", sock->port, patt->port);
+	
+	if ((!inet_addr_is_any(&patt->addr)) &&
+	    (!inet_addr_compare(&patt->addr, &sock->addr)))
 		return false;
-
-	if (patt->port != UDP_PORT_ANY &&
-	    patt->port != sock->port)
+	
+	if ((patt->port != UDP_PORT_ANY) &&
+	    (patt->port != sock->port))
 		return false;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " -> match");
-
+	
 	return true;
 }
 
@@ -413,20 +415,17 @@ static bool udp_sockpair_match(udp_sockpair_t *sp, udp_sockpair_t *pattern)
 static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_find_ref(%p)", sp);
-
+	
 	fibril_mutex_lock(&assoc_list_lock);
-
+	
 	list_foreach(assoc_list, link) {
 		udp_assoc_t *assoc = list_get_instance(link, udp_assoc_t, link);
 		udp_sockpair_t *asp = &assoc->ident;
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "compare with assoc (f:(%x,%u), l:(%x,%u))",
-		    asp->foreign.addr.ipv4, asp->foreign.port,
-		    asp->local.addr.ipv4, asp->local.port);
-
+		
 		/* Skip unbound associations */
 		if (asp->local.port == UDP_PORT_ANY)
 			continue;
-
+		
 		if (udp_sockpair_match(sp, asp)) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Returning assoc %p", assoc);
 			udp_assoc_addref(assoc);
@@ -434,7 +433,7 @@ static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
 			return assoc;
 		}
 	}
-
+	
 	fibril_mutex_unlock(&assoc_list_lock);
 	return NULL;
 }

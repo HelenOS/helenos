@@ -33,6 +33,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "posix/assert.h"
 #include "posix/errno.h"

@@ -1523,7 +1523,7 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint8_t(const char *nptr, char **endptr, unsigned int base,
+int str_uint8_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint8_t *result)
 {
 	assert(result != NULL);
@@ -1570,7 +1570,7 @@ int str_uint8_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint16_t(const char *nptr, char **endptr, unsigned int base,
+int str_uint16_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint16_t *result)
 {
 	assert(result != NULL);
@@ -1617,7 +1617,7 @@ int str_uint16_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
+int str_uint32_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint32_t *result)
 {
 	assert(result != NULL);
@@ -1664,7 +1664,7 @@ int str_uint32_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
+int str_uint64_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);
@@ -1703,7 +1703,7 @@ int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_size_t(const char *nptr, char **endptr, unsigned int base,
+int str_size_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, size_t *result)
 {
 	assert(result != NULL);

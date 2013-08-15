@@ -86,6 +86,8 @@ struct socket {
 	async_sess_t *sess;
 	/** Parent module service. */
 	services_t service;
+	/** Socket family */
+	int family;
 
 	/**
 	 * Underlying protocol header size.
@@ -394,6 +396,7 @@ int socket(int domain, int type, int protocol)
 	/* Find the appropriate service */
 	switch (domain) {
 	case PF_INET:
+	case PF_INET6:
 		switch (type) {
 		case SOCK_STREAM:
 			if (!protocol)
@@ -432,7 +435,6 @@ int socket(int domain, int type, int protocol)
 
 		break;
 
-	case PF_INET6:
 	default:
 		return EPFNOSUPPORT;
 	}
@@ -446,6 +448,7 @@ int socket(int domain, int type, int protocol)
 		return ENOMEM;
 
 	memset(socket, 0, sizeof(*socket));
+	socket->family = domain;
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
 	/* Request a new socket */

@@ -43,7 +43,7 @@
 #include <str_error.h>
 #include <sys/types.h>
 
-#define NAME "inet"
+#define NAME  "inet"
 
 static void print_syntax(void)
 {
@@ -256,7 +256,9 @@ static int addr_list(void)
 	printf("Configured addresses:\n");
 	if (count > 0)
 		printf("    [Addr/Width] [Link-Name] [Addr-Name] [Def-MTU]\n");
-	ainfo.name = linfo.name = astr = NULL;
+	ainfo.name = NULL;
+	linfo.name = NULL;
+	astr = NULL;
 
 	for (i = 0; i < count; i++) {
 		rc = inetcfg_addr_get(addr_list[i], &ainfo);
@@ -289,7 +291,9 @@ static int addr_list(void)
 		free(linfo.name);
 		free(astr);
 
-		ainfo.name = linfo.name = astr = NULL;
+		ainfo.name = NULL;
+		linfo.name = NULL;
+		astr = NULL;
 	}
 
 	if (count == 0)
@@ -328,7 +332,9 @@ static int sroute_list(void)
 	if (count > 0)
 		printf("    [Dest/Width] [Router-Addr] [Route-Name]\n");
 
-	srinfo.name = dest_str = router_str = NULL;
+	srinfo.name = NULL;
+	dest_str = NULL;
+	router_str = NULL;
 
 	for (i = 0; i < count; i++) {
 		rc = inetcfg_sroute_get(sroute_list[i], &srinfo);
@@ -359,7 +365,9 @@ static int sroute_list(void)
 		free(dest_str);
 		free(router_str);
 
-		router_str = srinfo.name = dest_str = NULL;
+		router_str = NULL;
+		srinfo.name = NULL;
+		dest_str = NULL;
 	}
 
 	if (count == 0)

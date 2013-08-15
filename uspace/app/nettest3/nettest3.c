@@ -77,14 +77,17 @@ int main(int argc, char *argv[])
 		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
 		if (rc != EOK) {
 			/* Try interpreting as a host name */
-			rc = dnsr_name2host(argv[1], &hinfo);
+			rc = dnsr_name2host(argv[1], &hinfo, AF_INET);
 			if (rc != EOK) {
 				printf("Error resolving host '%s'.\n", argv[1]);
 				return rc;
 			}
-
-			addr.sin_addr.s_addr = host2uint32_t_be(hinfo->addr.ipv4);
-			addr.sin_family = AF_INET;
+			
+			uint16_t af = inet_addr_sockaddr_in(&hinfo->addr, &addr, NULL);
+			if (af != AF_INET) {
+				printf("Host '%s' not resolved as IPv4 address.\n", argv[1]);
+				return rc;
+			}
 		}
 		printf("result: rc=%d, family=%d, addr=%x\n", rc,
 		    addr.sin_family, addr.sin_addr.s_addr);

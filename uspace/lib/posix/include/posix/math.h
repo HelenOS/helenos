@@ -35,42 +35,29 @@
 #ifndef POSIX_MATH_H_
 #define POSIX_MATH_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #ifdef __GNUC__
 	#define HUGE_VAL (__builtin_huge_val())
 #endif
 
 /* Normalization Functions */
-extern double posix_ldexp(double x, int exp);
-extern double posix_frexp(double num, int *exp);
+extern double __POSIX_DEF__(ldexp)(double x, int exp);
+extern double __POSIX_DEF__(frexp)(double num, int *exp);
 
-double posix_fabs(double x);
-double posix_floor(double x);
-double posix_modf(double x, double *iptr);
-double posix_fmod(double x, double y);
-double posix_pow(double x, double y);
-double posix_exp(double x);
-double posix_sqrt(double x);
-double posix_log(double x);
-double posix_sin(double x);
-double posix_cos(double x);
-double posix_atan2(double y, double x);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define ldexp posix_ldexp
-	#define frexp posix_frexp
-
-	#define fabs posix_fabs
-	#define floor posix_floor
-	#define modf posix_modf
-	#define fmod posix_fmod
-	#define pow posix_pow
-	#define exp posix_exp
-	#define sqrt posix_sqrt
-	#define log posix_log
-	#define sin posix_sin
-	#define cos posix_cos
-	#define atan2 posix_atan2
-#endif
+double __POSIX_DEF__(fabs)(double x);
+double __POSIX_DEF__(floor)(double x);
+double __POSIX_DEF__(modf)(double x, double *iptr);
+double __POSIX_DEF__(fmod)(double x, double y);
+double __POSIX_DEF__(pow)(double x, double y);
+double __POSIX_DEF__(exp)(double x);
+double __POSIX_DEF__(sqrt)(double x);
+double __POSIX_DEF__(log)(double x);
+double __POSIX_DEF__(sin)(double x);
+double __POSIX_DEF__(cos)(double x);
+double __POSIX_DEF__(atan2)(double y, double x);
 
 #endif /* POSIX_MATH_H_ */
 

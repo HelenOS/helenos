@@ -32,8 +32,6 @@ RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/irc/apic/apic \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd
 
 RD_DRVS_ESSENTIAL += \
 	infrastructure/rootpc \
@@ -45,6 +43,7 @@ RD_DRVS_ESSENTIAL += \
 	char/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
+	block/ata_bd \
 	char/ns8250 \
 	time/cmos-rtc \
 	bus/usb/ehci\

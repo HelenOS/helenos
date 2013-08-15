@@ -56,10 +56,13 @@ static int test_srv(void *arg)
 	xflags_t xflags;
 
 	printf("test_srv()\n");
+	
+	inet_addr(&lsock.addr, 127, 0, 0, 1);
 	lsock.port = 80;
-	lsock.addr.ipv4 = 0x7f000001;
+	
+	inet_addr(&fsock.addr, 127, 0, 0, 1);
 	fsock.port = 1024;
-	fsock.addr.ipv4 = 0x7f000001;
+	
 	printf("S: User open...\n");
 	tcp_uc_open(&lsock, &fsock, ap_passive, 0, &conn);
 	conn->name = (char *) "S";
@@ -94,11 +97,12 @@ static int test_cli(void *arg)
 	const char *msg = "Hello World!";
 
 	printf("test_cli()\n");
-
+	
+	inet_addr(&lsock.addr, 127, 0, 0, 1);
 	lsock.port = 1024;
-	lsock.addr.ipv4 = 0x7f000001;
+	
+	inet_addr(&fsock.addr, 127, 0, 0, 1);
 	fsock.port = 80;
-	fsock.addr.ipv4 = 0x7f000001;
 
 	async_usleep(1000*1000*3);
 	printf("C: User open...\n");

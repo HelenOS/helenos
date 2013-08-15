@@ -40,24 +40,17 @@
 #include <adt/list.h>
 #include <async.h>
 #include <inet/iplink_srv.h>
+#include <inet/addr.h>
 #include <loc.h>
 #include <sys/types.h>
 
-#define MAC48_BROADCAST 0xffffffffffff
-
 typedef struct {
-	link_t addr_list;
-	iplink_srv_addr_t addr;
+	link_t link;
+	inet_addr_t addr;
 } ethip_link_addr_t;
 
-/** IEEE MAC-48 identifier */
-typedef struct {
-	/** MAC Address (in lowest 48 bits) */
-	uint64_t addr;
-} mac48_addr_t;
-
 typedef struct ethip_nic {
-	link_t nic_list;
+	link_t link;
 	service_id_t svc_id;
 	char *svc_name;
 	async_sess_t *sess;
@@ -66,17 +59,21 @@ typedef struct ethip_nic {
 	service_id_t iplink_sid;
 
 	/** MAC address */
-	mac48_addr_t mac_addr;
-	/** List of IP addresses configured on this link */
-	list_t addr_list; /* of ethip_link_addr_t */
+	addr48_t mac_addr;
+	
+	/**
+	 * List of IP addresses configured on this link
+	 * (of the type ethip_link_addr_t)
+	 */
+	list_t addr_list;
 } ethip_nic_t;
 
 /** Ethernet frame */
 typedef struct {
 	/** Destination Address */
-	mac48_addr_t dest;
+	addr48_t dest;
 	/** Source Address */
-	mac48_addr_t src;
+	addr48_t src;
 	/** Ethertype or Length */
 	uint16_t etype_len;
 	/** Payload */
@@ -101,20 +98,20 @@ typedef struct {
 	/** Opcode */
 	arp_opcode_t opcode;
 	/** Sender hardware address */
-	mac48_addr_t sender_hw_addr;
+	addr48_t sender_hw_addr;
 	/** Sender protocol address */
-	iplink_srv_addr_t sender_proto_addr;
+	addr32_t sender_proto_addr;
 	/** Target hardware address */
-	mac48_addr_t target_hw_addr;
+	addr48_t target_hw_addr;
 	/** Target protocol address */
-	iplink_srv_addr_t target_proto_addr;
+	addr32_t target_proto_addr;
 } arp_eth_packet_t;
 
 /** Address translation table element */
 typedef struct {
 	link_t atrans_list;
-	iplink_srv_addr_t ip_addr;
-	mac48_addr_t mac_addr;
+	addr32_t ip_addr;
+	addr48_t mac_addr;
 } ethip_atrans_t;
 
 extern int ethip_iplink_init(ethip_nic_t *);
