@@ -37,7 +37,6 @@
 #endif
 
 #include "libc/thread.h"
-#include "sched.h"
 #include "time.h"
 
 typedef thread_id_t pthread_t;
