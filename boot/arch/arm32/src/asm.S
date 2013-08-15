@@ -74,7 +74,7 @@ jump_to_kernel:
 	# D-cache before the kernel is started.
 	bic	r4, r4, #(1 << CP15_C1_DC)
 
-	#Disable I-cache and Branche predicotrs on non-armv7
+	# Disable I-cache and Branche predictors.
 	bic	r4, r4, #(1 << CP15_C1_IC)
 	bic	r4, r4, #(1 << CP15_C1_BP)
 	
@@ -87,12 +87,13 @@ jump_to_kernel:
 #ifdef PROCESSOR_ARCH_armv7_a
 	dsb
 #else
-	mov r4, #0
 	#cp15 dsb, r4 is ignored (should be zero)
+	mov r4, #0
 	mcr p15, 0, r4, c7, c10, 4
 #endif
 	
 	# Clean ICache and BPredictors, r4 ignored (SBZ)
+	mov r4, #0
 	mcr p15, 0, r4, c7, c5, 0
 	nop
 

@@ -168,10 +168,13 @@ static void init_boot_pt(void)
 	/*
 	 * Create 1:1 virtual-physical mapping.
 	 * Physical memory on BBxM a BBone starts at 2GB
-	 * boundary, gta02 has a memory mirror at 2GB.
-	 * icp somehow works (probably due to limited address size)
+	 * boundary, icp has a memory mirror at 2GB.
+	 * (ARM Integrator Core Module User guide ch. 6.3,  p. 6-7)
+	 * gta02 somehow works (probably due to limited address size),
+	 * s3c2442b manual ch. 5, p.5-1:
+	 * "Address space: 128Mbytes per bank (total 1GB/8 banks)"
 	 */
-	for (pfn_t page = 0; page < PTL0_ENTRIES; page++)
+	for (pfn_t page = 0; page < PTL0_ENTRIES; ++page)
 		init_ptl0_section(&boot_pt[page], page);
 
 	/*
