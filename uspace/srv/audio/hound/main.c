@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	log_info("Running with service id %u", id);
 
 	scan_for_devices();
-
+	task_retval(0);
 	async_manager();
 	return 0;
 }
