@@ -153,7 +153,7 @@ static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
 }
 
 static int isa_fun_setup_dma(ddf_fun_t *fnode,
-    unsigned int channel, uint32_t pa, uint16_t size, uint8_t mode)
+    unsigned int channel, uint32_t pa, uint32_t size, uint8_t mode)
 {
 	assert(fnode);
 	isa_fun_t *isa = isa_fun(fnode);

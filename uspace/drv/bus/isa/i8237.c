@@ -339,7 +339,7 @@ static inline bool is_dma8(unsigned channel)
  *
  * @return Error code.
  */
-int dma_channel_setup(unsigned int channel, uint32_t pa, uint16_t size,
+int dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
     uint8_t mode)
 {
 	if (!is_dma8(channel) && !is_dma16(channel))

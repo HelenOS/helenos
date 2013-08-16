@@ -109,10 +109,10 @@ static void remote_hw_res_dma_channel_setup(ddf_fun_t *fun, void *ops,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	const unsigned channel = DEV_IPC_GET_ARG1(*call);
+	const unsigned channel = DEV_IPC_GET_ARG1(*call) & 0xffff;
+	const uint8_t  mode = DEV_IPC_GET_ARG1(*call) >> 16;
 	const uint32_t address = DEV_IPC_GET_ARG2(*call);
-	const uint16_t size = DEV_IPC_GET_ARG3(*call) & 0xffff;
-	const uint8_t mode = DEV_IPC_GET_ARG3(*call) >> 16;
+	const uint32_t size = DEV_IPC_GET_ARG3(*call);
 
 	const int ret = hw_res_ops->dma_channel_setup(
 	    fun, channel, address, size, mode);
