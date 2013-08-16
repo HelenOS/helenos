@@ -36,6 +36,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
 		hound_server_unregister(id);
 		return -ret;
 	}
-	log_info("Running with service id %u", id);
+	log_info("Running with service id %" PRIun, id);
 
 	scan_for_devices();
 	task_retval(0);

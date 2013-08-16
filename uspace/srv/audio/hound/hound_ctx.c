@@ -412,7 +412,7 @@ int update_data(audio_source_t *source, size_t size)
 		free(buffer);
 		return ENOMEM;
 	}
-	log_verbose("CTX: %p. Mixing %zu streams", ctx,
+	log_verbose("CTX: %p: Mixing %u streams", ctx,
 	    list_count(&ctx->streams));
 	pcm_format_silence(buffer, size, &source->format);
 	fibril_mutex_lock(&ctx->guard);
@@ -423,7 +423,7 @@ int update_data(audio_source_t *source, size_t size)
 		if (copied != (ssize_t)size)
 			log_warning("Not enough data in stream buffer");
 	}
-	log_verbose("CTX: %p. Pushing audio to %zu connections", ctx,
+	log_verbose("CTX: %p. Pushing audio to %u connections", ctx,
 	    list_count(&source->connections));
 	list_foreach(source->connections, it) {
 		connection_t *conn = connection_from_source_list(it);

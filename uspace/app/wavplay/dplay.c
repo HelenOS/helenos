@@ -42,6 +42,7 @@
 #include <pcm/format.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <inttypes.h>
 
 #include <stdio.h>
 #include <macros.h>
@@ -103,7 +104,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 		switch(IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_PLAYBACK_STARTED:
 		case PCM_EVENT_FRAMES_PLAYED:
-			printf("%u frames: ", IPC_GET_ARG1(call));
+			printf("%" PRIun " frames: ", IPC_GET_ARG1(call));
 			async_answer_0(callid, EOK);
 			break;
 		case PCM_EVENT_PLAYBACK_TERMINATED:
@@ -115,7 +116,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 			fibril_mutex_unlock(&pb->mutex);
 			return;
 		default:
-			printf("Unknown event %d.\n", IPC_GET_IMETHOD(call));
+			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
 			async_answer_0(callid, ENOTSUP);
 			continue;
 

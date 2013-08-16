@@ -40,6 +40,7 @@
 #include <pcm/format.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <inttypes.h>
 
 #include "wave.h"
 #include "drec.h"
@@ -102,11 +103,11 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 			printf("Recording terminated\n");
 			record = false;
 		case PCM_EVENT_FRAMES_CAPTURED:
-			printf("%u frames\n", IPC_GET_ARG1(call));
+			printf("%" PRIun " frames\n", IPC_GET_ARG1(call));
 			async_answer_0(callid, EOK);
 			break;
 		default:
-			printf("Unknown event %d.\n", IPC_GET_IMETHOD(call));
+			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
 			async_answer_0(callid, ENOTSUP);
 			continue;
 

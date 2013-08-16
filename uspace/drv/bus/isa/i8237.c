@@ -475,12 +475,12 @@ int dma_channel_remain(unsigned channel, size_t *size)
 	
 	/* Low byte */
 	const uint8_t value_low = pio_read_8(dma_channel.size_reg_address);
-	ddf_msg(LVL_DEBUG2, "Read size low byte: %p:%zx.",
+	ddf_msg(LVL_DEBUG2, "Read size low byte: %p:%x.",
 	    dma_channel.size_reg_address, value_low);
 	
 	/* High byte */
 	const uint8_t value_high = pio_read_8(dma_channel.size_reg_address);
-	ddf_msg(LVL_DEBUG2, "Read size high byte: %p:%zx.",
+	ddf_msg(LVL_DEBUG2, "Read size high byte: %p:%x.",
 	    dma_channel.size_reg_address, value_high);
 	fibril_mutex_unlock(&guard);
 

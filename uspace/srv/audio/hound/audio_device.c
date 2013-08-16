@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <loc.h>
 #include <str.h>
 #include <str_error.h>
@@ -92,7 +93,7 @@ int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 	dev->buffer.size = 0;
 	dev->buffer.fragment_size = 0;
 
-	log_verbose("Initialized device (%p) '%s' with id %u.",
+	log_verbose("Initialized device (%p) '%s' with id %" PRIun ".",
 	    dev, dev->name, dev->id);
 
 	return EOK;

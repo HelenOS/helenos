@@ -35,6 +35,7 @@
  */
 #include <adt/list.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <loc.h>
 #include <str.h>
 #include <stdlib.h>
@@ -102,7 +103,8 @@ static hound_context_t *hound_context_create(const char *name, bool record,
 	hound_context_t *new_context = malloc(sizeof(hound_context_t));
 	if (new_context) {
 		char *cont_name;
-		int ret = asprintf(&cont_name, "%llu:%s", task_get_id(), name);
+		int ret = asprintf(&cont_name, "%" PRIu64 ":%s",
+		    task_get_id(), name);
 		if (ret < 0) {
 			free(new_context);
 			return NULL;
