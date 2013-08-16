@@ -35,6 +35,7 @@ RD_SRVS_ESSENTIAL += \
 
 RD_DRVS_ESSENTIAL += \
 	infrastructure/rootpc \
+	block/ata_bd \
 	bus/pci/pciintel \
 	bus/isa \
 	audio/sb16 \
@@ -43,7 +44,6 @@ RD_DRVS_ESSENTIAL += \
 	char/xtkbd
 
 RD_DRVS_NON_ESSENTIAL += \
-	block/ata_bd \
 	char/ns8250 \
 	time/cmos-rtc \
 	bus/usb/ehci\
