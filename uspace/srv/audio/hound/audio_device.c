@@ -190,7 +190,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		assert(!new);
 		log_verbose("Removed last connection on device sink '%s'",
 		    sink->name);
-		int ret = audio_pcm_stop_playback_immediate(dev->sess);
+		int ret = audio_pcm_stop_playback(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to stop playback: %s",
 			    str_error(ret));
