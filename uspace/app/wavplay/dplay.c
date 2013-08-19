@@ -250,7 +250,7 @@ static void play(playback_t *pb)
 	pb->buffer.write_ptr = pb->buffer.base;
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
 	    pcm_sample_format_str(pb->f.sample_format), pb->f.channels);
-	useconds_t work_time = 20000; /* 20 ms */
+	useconds_t work_time = 50000; /* 50 ms */
 	bool started = false;
 	size_t pos = 0;
 	struct timeval time = { 0 };
