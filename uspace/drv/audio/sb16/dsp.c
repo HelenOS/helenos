@@ -270,7 +270,8 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		dsp->event_exchange = NULL;
 		break;
 	default:
-		ddf_log_warning("Interrupt while DSP not active");
+		ddf_log_warning("Interrupt while DSP not active (%s)",
+		    dsp_state_to_str(dsp->state));
 	}
 }
 
