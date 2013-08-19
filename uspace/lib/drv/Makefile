@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include
+EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include -I$(LIBPCM_PREFIX)/include
 LIBRARY = libdrv
 
 SOURCES = \
@@ -37,6 +37,8 @@ SOURCES = \
 	generic/interrupt.c \
 	generic/log.c \
 	generic/logbuf.c \
+	generic/remote_audio_mixer.c \
+	generic/remote_audio_pcm.c \
 	generic/remote_hw_res.c \
 	generic/remote_char_dev.c \
 	generic/remote_graph_dev.c \

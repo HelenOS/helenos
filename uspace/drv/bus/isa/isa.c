@@ -84,6 +84,7 @@ typedef struct {
 typedef struct isa_fun {
 	fibril_mutex_t mutex;
 	ddf_fun_t *fnode;
+	hw_resource_t resources[ISA_MAX_HW_RES];
 	hw_resource_list_t hw_resources;
 	link_t bus_link;
 } isa_fun_t;
@@ -102,17 +103,18 @@ static isa_fun_t *isa_fun(ddf_fun_t *fun)
 
 static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
 {
-	isa_fun_t *fun = isa_fun(fnode);
-	assert(fun != NULL);
+	isa_fun_t *isa = isa_fun(fnode);
+	assert(isa);
 
-	return &fun->hw_resources;
+	return &isa->hw_resources;
 }
 
-static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
+static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
 {
 	/* This is an old ugly way, copied from pci driver */
 	assert(fnode);
-	isa_fun_t *fun = isa_fun(fnode);
+	isa_fun_t *isa = isa_fun(fnode);
+	assert(isa);
 
 	sysarg_t apic;
 	sysarg_t i8259;
@@ -128,7 +130,7 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 	if (!irc_sess)
 		return false;
 
-	const hw_resource_list_t *res = &fun->hw_resources;
+	const hw_resource_list_t *res = &isa->hw_resources;
 	assert(res);
 	for (size_t i = 0; i < res->count; ++i) {
 		if (res->resources[i].type == INTERRUPT) {
@@ -150,34 +152,61 @@ static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
-static int isa_dma_channel_fun_setup(ddf_fun_t *fnode,
-    unsigned int channel, uint32_t pa, uint16_t size, uint8_t mode)
+static int isa_fun_setup_dma(ddf_fun_t *fnode,
+    unsigned int channel, uint32_t pa, uint32_t size, uint8_t mode)
 {
 	assert(fnode);
-	isa_fun_t *fun = isa_fun(fnode);
-	const hw_resource_list_t *res = &fun->hw_resources;
+	isa_fun_t *isa = isa_fun(fnode);
+	assert(isa);
+	const hw_resource_list_t *res = &isa->hw_resources;
 	assert(res);
-	
-	const unsigned int ch = channel;
+
 	for (size_t i = 0; i < res->count; ++i) {
+		/* Check for assigned channel */
 		if (((res->resources[i].type == DMA_CHANNEL_16) &&
-		    (res->resources[i].res.dma_channel.dma16 == ch)) ||
+		    (res->resources[i].res.dma_channel.dma16 == channel)) ||
 		    ((res->resources[i].type == DMA_CHANNEL_8) &&
-		    (res->resources[i].res.dma_channel.dma8 == ch))) {
-			return dma_setup_channel(channel, pa, size, mode);
+		    (res->resources[i].res.dma_channel.dma8 == channel))) {
+			return dma_channel_setup(channel, pa, size, mode);
 		}
 	}
-	
+
+	return EINVAL;
+}
+
+static int isa_fun_remain_dma(ddf_fun_t *fnode,
+    unsigned channel, size_t *size)
+{
+	assert(size);
+	assert(fnode);
+	isa_fun_t *isa = isa_fun(fnode);
+	assert(isa);
+	const hw_resource_list_t *res = &isa->hw_resources;
+	assert(res);
+
+	for (size_t i = 0; i < res->count; ++i) {
+		/* Check for assigned channel */
+		if (((res->resources[i].type == DMA_CHANNEL_16) &&
+		    (res->resources[i].res.dma_channel.dma16 == channel)) ||
+		    ((res->resources[i].type == DMA_CHANNEL_8) &&
+		    (res->resources[i].res.dma_channel.dma8 == channel))) {
+			return dma_channel_remain(channel, size);
+		}
+	}
+
 	return EINVAL;
 }
 
 static hw_res_ops_t isa_fun_hw_res_ops = {
 	.get_resource_list = isa_get_fun_resources,
-	.enable_interrupt = isa_enable_fun_interrupt,
-	.dma_channel_setup = isa_dma_channel_fun_setup,
+	.enable_interrupt = isa_fun_enable_interrupt,
+	.dma_channel_setup = isa_fun_setup_dma,
+	.dma_channel_remain = isa_fun_remain_dma,
 };
 
-static ddf_dev_ops_t isa_fun_ops;
+static ddf_dev_ops_t isa_fun_ops= {
+	.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops,
+};
 
 static int isa_dev_add(ddf_dev_t *dev);
 static int isa_dev_remove(ddf_dev_t *dev);
@@ -211,6 +240,8 @@ static isa_fun_t *isa_fun_create(isa_bus_t *isa, const char *name)
 	}
 
 	fibril_mutex_initialize(&fun->mutex);
+	fun->hw_resources.resources = fun->resources;
+
 	fun->fnode = fnode;
 	return fun;
 }
@@ -269,9 +300,9 @@ cleanup:
 static char *str_get_line(char *str, char **next)
 {
 	char *line = str;
+	*next = NULL;
 
 	if (str == NULL) {
-		*next = NULL;
 		return NULL;
 	}
 
@@ -281,8 +312,6 @@ static char *str_get_line(char *str, char **next)
 
 	if (*str != '\0') {
 		*next = str + 1;
-	} else {
-		*next = NULL;
 	}
 
 	*str = '\0';
@@ -309,20 +338,10 @@ static char *get_device_name(char *line)
 
 	/* Get the name part of the rest of the line. */
 	strtok(line, ":");
-
-	/* Allocate output buffer. */
-	size_t size = str_size(line) + 1;
-	char *name = malloc(size);
-
-	if (name != NULL) {
-		/* Copy the result to the output buffer. */
-		str_cpy(name, size, line);
-	}
-
-	return name;
+	return line;
 }
 
-static inline char *skip_spaces(char *line)
+static inline const char *skip_spaces(const char *line)
 {
 	/* Skip leading spaces. */
 	while (*line != '\0' && isspace(*line))
@@ -331,7 +350,7 @@ static inline char *skip_spaces(char *line)
 	return line;
 }
 
-static void isa_fun_set_irq(isa_fun_t *fun, int irq)
+static void isa_fun_add_irq(isa_fun_t *fun, int irq)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
@@ -347,7 +366,7 @@ static void isa_fun_set_irq(isa_fun_t *fun, int irq)
 	}
 }
 
-static void isa_fun_set_dma(isa_fun_t *fun, int dma)
+static void isa_fun_add_dma(isa_fun_t *fun, int dma)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
@@ -380,7 +399,7 @@ static void isa_fun_set_dma(isa_fun_t *fun, int dma)
 	}
 }
 
-static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
+static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
@@ -399,7 +418,7 @@ static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
 	}
 }
 
-static void fun_parse_irq(isa_fun_t *fun, char *val)
+static void fun_parse_irq(isa_fun_t *fun, const char *val)
 {
 	int irq = 0;
 	char *end = NULL;
@@ -408,22 +427,21 @@ static void fun_parse_irq(isa_fun_t *fun, char *val)
 	irq = (int) strtol(val, &end, 10);
 
 	if (val != end)
-		isa_fun_set_irq(fun, irq);
+		isa_fun_add_irq(fun, irq);
 }
 
-static void fun_parse_dma(isa_fun_t *fun, char *val)
+static void fun_parse_dma(isa_fun_t *fun, const char *val)
 {
-	unsigned int dma = 0;
 	char *end = NULL;
 	
 	val = skip_spaces(val);
-	dma = (unsigned int) strtol(val, &end, 10);
+	const int dma = strtol(val, &end, 10);
 	
 	if (val != end)
-		isa_fun_set_dma(fun, dma);
+		isa_fun_add_dma(fun, dma);
 }
 
-static void fun_parse_io_range(isa_fun_t *fun, char *val)
+static void fun_parse_io_range(isa_fun_t *fun, const char *val)
 {
 	size_t addr, len;
 	char *end = NULL;
@@ -440,12 +458,12 @@ static void fun_parse_io_range(isa_fun_t *fun, char *val)
 	if (val == end)
 		return;
 
-	isa_fun_set_io_range(fun, addr, len);
+	isa_fun_add_io_range(fun, addr, len);
 }
 
-static void get_match_id(char **id, char *val)
+static void get_match_id(char **id, const char *val)
 {
-	char *end = val;
+	const char *end = val;
 
 	while (!isspace(*end))
 		end++;
@@ -455,16 +473,14 @@ static void get_match_id(char **id, char *val)
 	str_cpy(*id, size, val);
 }
 
-static void fun_parse_match_id(isa_fun_t *fun, char *val)
+static void fun_parse_match_id(isa_fun_t *fun, const char *val)
 {
 	char *id = NULL;
-	int score = 0;
 	char *end = NULL;
-	int rc;
 
 	val = skip_spaces(val);
 
-	score = (int)strtol(val, &end, 10);
+	int score = (int)strtol(val, &end, 10);
 	if (val == end) {
 		ddf_msg(LVL_ERROR, "Cannot read match score for function "
 		    "%s.", ddf_fun_get_name(fun->fnode));
@@ -482,7 +498,7 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 	ddf_msg(LVL_DEBUG, "Adding match id '%s' with score %d to "
 	    "function %s", id, score, ddf_fun_get_name(fun->fnode));
 
-	rc = ddf_fun_add_match_id(fun->fnode, id, score);
+	int rc = ddf_fun_add_match_id(fun->fnode, id, score);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match ID: %s",
 		    str_error(rc));
@@ -491,8 +507,8 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 	free(id);
 }
 
-static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,
-    void (*read_fn)(isa_fun_t *, char *))
+static bool prop_parse(isa_fun_t *fun, const char *line, const char *prop,
+    void (*read_fn)(isa_fun_t *, const char *))
 {
 	size_t proplen = str_size(prop);
 
@@ -507,7 +523,7 @@ static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,
 	return false;
 }
 
-static void fun_prop_parse(isa_fun_t *fun, char *line)
+static void fun_prop_parse(isa_fun_t *fun, const char *line)
 {
 	/* Skip leading spaces. */
 	line = skip_spaces(line);
@@ -522,25 +538,12 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 	}
 }
 
-static void fun_hw_res_alloc(isa_fun_t *fun)
-{
-	fun->hw_resources.resources =
-	    (hw_resource_t *) malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
-}
-
-static void fun_hw_res_free(isa_fun_t *fun)
-{
-	free(fun->hw_resources.resources);
-	fun->hw_resources.resources = NULL;
-}
-
 static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 {
 	char *line;
-	char *fun_name = NULL;
 
 	/* Skip empty lines. */
-	while (true) {
+	do {
 		line = str_get_line(fun_conf, &fun_conf);
 
 		if (line == NULL) {
@@ -548,23 +551,17 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 			return NULL;
 		}
 
-		if (!line_empty(line))
-			break;
-	}
+	} while (line_empty(line));
 
 	/* Get device name. */
-	fun_name = get_device_name(line);
+	const char *fun_name = get_device_name(line);
 	if (fun_name == NULL)
 		return NULL;
 
 	isa_fun_t *fun = isa_fun_create(isa, fun_name);
-	free(fun_name);
 	if (fun == NULL) {
 		return NULL;
 	}
-
-	/* Allocate buffer for the list of hardware resources of the device. */
-	fun_hw_res_alloc(fun);
 
 	/* Get properties of the device (match ids, irq and io range). */
 	while (true) {
@@ -595,32 +592,21 @@ static char *isa_fun_read_info(char *fun_conf, isa_bus_t *isa)
 	return fun_conf;
 }
 
-static void fun_conf_parse(char *conf, isa_bus_t *isa)
+static void isa_functions_add(isa_bus_t *isa)
 {
+	char *conf = fun_conf_read(CHILD_FUN_CONF_PATH);
 	while (conf != NULL && *conf != '\0') {
 		conf = isa_fun_read_info(conf, isa);
 	}
-}
-
-static void isa_functions_add(isa_bus_t *isa)
-{
-	char *fun_conf;
-
-	fun_conf = fun_conf_read(CHILD_FUN_CONF_PATH);
-	if (fun_conf != NULL) {
-		fun_conf_parse(fun_conf, isa);
-		free(fun_conf);
-	}
+	free(conf);
 }
 
 static int isa_dev_add(ddf_dev_t *dev)
 {
-	isa_bus_t *isa;
-
 	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) ddf_dev_get_handle(dev));
 
-	isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));
+	isa_bus_t *isa = ddf_dev_data_alloc(dev, sizeof(isa_bus_t));
 	if (isa == NULL)
 		return ENOMEM;
 
@@ -657,7 +643,6 @@ static int isa_dev_add(ddf_dev_t *dev)
 static int isa_dev_remove(ddf_dev_t *dev)
 {
 	isa_bus_t *isa = isa_bus(dev);
-	int rc;
 
 	fibril_mutex_lock(&isa->mutex);
 
@@ -665,7 +650,7 @@ static int isa_dev_remove(ddf_dev_t *dev)
 		isa_fun_t *fun = list_get_instance(list_first(&isa->functions),
 		    isa_fun_t, bus_link);
 
-		rc = ddf_fun_offline(fun->fnode);
+		int rc = ddf_fun_offline(fun->fnode);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&isa->mutex);
 			ddf_msg(LVL_ERROR, "Failed offlining %s", ddf_fun_get_name(fun->fnode));
@@ -681,7 +666,6 @@ static int isa_dev_remove(ddf_dev_t *dev)
 
 		list_remove(&fun->bus_link);
 
-		fun_hw_res_free(fun);
 		ddf_fun_destroy(fun->fnode);
 	}
 
@@ -708,17 +692,10 @@ static int isa_fun_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-
-static void isa_init()
-{
-	ddf_log_init(NAME);
-	isa_fun_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
-}
-
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS ISA bus driver\n");
-	isa_init();
+	ddf_log_init(NAME);
 	return ddf_driver_main(&isa_driver);
 }
 

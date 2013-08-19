@@ -207,13 +207,15 @@ static int root_dev_add(ddf_dev_t *dev)
 
 	/*
 	 * Register virtual devices root.
-	 * We ignore error occurrence because virtual devices shall not be
+	 * We warn on error occurrence because virtual devices shall not be
 	 * vital for the system.
 	 */
-	(void) add_virtual_root_fun(dev);
+	int res = add_virtual_root_fun(dev);
+	if (res != EOK)
+		ddf_msg(LVL_WARN, "Failed to add virtual child.");
 
 	/* Register root device's children. */
-	int res = add_platform_fun(dev);
+	res = add_platform_fun(dev);
 	if (EOK != res)
 		ddf_msg(LVL_ERROR, "Failed adding child device for platform.");
 

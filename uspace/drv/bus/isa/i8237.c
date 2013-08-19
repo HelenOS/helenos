@@ -37,6 +37,8 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <ddi.h>
+#include <ddf/log.h>
 #include <fibril_synch.h>
 #include <ddi.h>
 #include <ddf/log.h>
@@ -197,71 +199,71 @@ static fibril_mutex_t guard = FIBRIL_MUTEX_INITIALIZER(guard);
 static dma_controller_t controller_8237 = {
 	.channels = {
 		/* The first chip 8-bit */
-		{
-			(uint8_t *) 0x00,
-			(uint8_t *) 0x01,
-			(uint8_t *) 0x87,
-			(uint8_t *) 0x0a,
-			(uint8_t *) 0x0b,
-			(uint8_t *) 0x0c,
+		{ /* Channel 0 - Unusable*/
+			.offset_reg_address = (uint8_t *) 0x00,
+			.size_reg_address = (uint8_t *) 0x01,
+			.page_reg_address = (uint8_t *) 0x87,
+			.single_mask_address = (uint8_t *) 0x0a,
+			.mode_address = (uint8_t *) 0x0b,
+			.flip_flop_address = (uint8_t *) 0x0c,
 		},
-		{
-			(uint8_t *) 0x02,
-			(uint8_t *) 0x03,
-			(uint8_t *) 0x83,
-			(uint8_t *) 0x0a,
-			(uint8_t *) 0x0b,
-			(uint8_t *) 0x0c,
+		{ /* Channel 1 */
+			.offset_reg_address = (uint8_t *) 0x02,
+			.size_reg_address = (uint8_t *) 0x03,
+			.page_reg_address = (uint8_t *) 0x83,
+			.single_mask_address = (uint8_t *) 0x0a,
+			.mode_address = (uint8_t *) 0x0b,
+			.flip_flop_address = (uint8_t *) 0x0c,
 		},
-		{
-			(uint8_t *) 0x04,
-			(uint8_t *) 0x05,
-			(uint8_t *) 0x81,
-			(uint8_t *) 0x0a,
-			(uint8_t *) 0x0b,
-			(uint8_t *) 0x0c,
+		{ /* Channel 2 */
+			.offset_reg_address = (uint8_t *) 0x04,
+			.size_reg_address = (uint8_t *) 0x05,
+			.page_reg_address = (uint8_t *) 0x81,
+			.single_mask_address = (uint8_t *) 0x0a,
+			.mode_address = (uint8_t *) 0x0b,
+			.flip_flop_address = (uint8_t *) 0x0c,
 		},
-		{
-			(uint8_t *) 0x06,
-			(uint8_t *) 0x07,
-			(uint8_t *) 0x82,
-			(uint8_t *) 0x0a,
-			(uint8_t *) 0x0b,
-			(uint8_t *) 0x0c,
+		{ /* Channel 3 */
+			.offset_reg_address = (uint8_t *) 0x06,
+			.size_reg_address = (uint8_t *) 0x07,
+			.page_reg_address = (uint8_t *) 0x82,
+			.single_mask_address = (uint8_t *) 0x0a,
+			.mode_address = (uint8_t *) 0x0b,
+			.flip_flop_address = (uint8_t *) 0x0c,
 		},
 		
 		/* The second chip 16-bit */
-		{
-			(uint8_t *) 0xc0,
-			(uint8_t *) 0xc2,
-			(uint8_t *) 0x8f,
-			(uint8_t *) 0xd4,
-			(uint8_t *) 0xd6,
-			(uint8_t *) 0xd8,
+		{ /* Channel 4 - Unusable */
+			.offset_reg_address = (uint8_t *) 0xc0,
+			.size_reg_address = (uint8_t *) 0xc2,
+			.page_reg_address = (uint8_t *) 0x8f,
+			.single_mask_address = (uint8_t *) 0xd4,
+			.mode_address = (uint8_t *) 0xd6,
+			.flip_flop_address = (uint8_t *) 0xd8,
 		},
-		{
-			(uint8_t *) 0xc4,
-			(uint8_t *) 0xc6,
-			(uint8_t *) 0x8b,
-			(uint8_t *) 0xd4,
-			(uint8_t *) 0xd6,
-			(uint8_t *) 0xd8,
+		{ /* Channel 5 */
+			.offset_reg_address = (uint8_t *) 0xc4,
+			.size_reg_address = (uint8_t *) 0xc6,
+			.page_reg_address = (uint8_t *) 0x8b,
+			.single_mask_address = (uint8_t *) 0xd4,
+			.mode_address = (uint8_t *) 0xd6,
+			.flip_flop_address = (uint8_t *) 0xd8,
 		},
-		{
-			(uint8_t *) 0xc8,
-			(uint8_t *) 0xca,
-			(uint8_t *) 0x89,
-			(uint8_t *) 0xd4,
-			(uint8_t *) 0xd6,
-			(uint8_t *) 0xd8,
+		{ /* Channel 6 */
+			.offset_reg_address = (uint8_t *) 0xc8,
+			.size_reg_address = (uint8_t *) 0xca,
+			.page_reg_address = (uint8_t *) 0x89,
+			.single_mask_address = (uint8_t *) 0xd4,
+			.mode_address = (uint8_t *) 0xd6,
+			.flip_flop_address = (uint8_t *) 0xd8,
 		},
-		{
-			(uint8_t *) 0xcc,
-			(uint8_t *) 0xce,
-			(uint8_t *) 0x8a,
-			(uint8_t *) 0xd4,
-			(uint8_t *) 0xd6,
-			(uint8_t *) 0xd8,
+		{ /* Channel 7 */
+			.offset_reg_address = (uint8_t *) 0xcc,
+			.size_reg_address = (uint8_t *) 0xce,
+			.page_reg_address = (uint8_t *) 0x8a,
+			.single_mask_address = (uint8_t *) 0xd4,
+			.mode_address = (uint8_t *) 0xd6,
+			.flip_flop_address = (uint8_t *) 0xd8,
 		},
 	},
 	
@@ -271,12 +273,11 @@ static dma_controller_t controller_8237 = {
 	.initialized = false,
 };
 
-/* Initialize I/O access to DMA controller I/O ports.
+/** Initialize I/O access to DMA controller I/O ports.
  *
  * @param controller DMA Controller structure to initialize.
  *
  * @return Error code.
- *
  */
 static inline int dma_controller_init(dma_controller_t *controller)
 {
@@ -305,6 +306,24 @@ static inline int dma_controller_init(dma_controller_t *controller)
 	return EOK;
 }
 
+/** Helper function. Channels 4,5,6, and 7 are 8 bit DMA.
+ * @pram channel DMA channel.
+ * @reutrn True, if channel is 4,5,6, or 7, false otherwise.
+ */
+static inline bool is_dma16(unsigned channel)
+{
+	return (channel >= 4) && (channel < 8);
+}
+
+/** Helper function. Channels 0,1,2, and 3 are 8 bit DMA.
+ * @pram channel DMA channel.
+ * @reutrn True, if channel is 0,1,2, or 3, false otherwise.
+ */
+static inline bool is_dma8(unsigned channel)
+{
+	return (channel < 4);
+}
+
 /** Setup DMA channel to specified place and mode.
  *
  * @param channel DMA Channel 1, 2, 3 for 8 bit transfers,
@@ -319,23 +338,26 @@ static inline int dma_controller_init(dma_controller_t *controller)
  *                - Use SINGLE/BLOCK/ON DEMAND transfer mode
  *
  * @return Error code.
- *
  */
-int dma_setup_channel(unsigned int channel, uint32_t pa, uint16_t size,
+int dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
     uint8_t mode)
 {
+	if (!is_dma8(channel) && !is_dma16(channel))
+		return ENOENT;
+
 	if ((channel == 0) || (channel == 4))
 		return ENOTSUP;
-	
-	if (channel > 7)
-		return ENOENT;
 	
 	/* DMA is limited to 24bit addresses. */
 	if (pa >= (1 << 24))
 		return EINVAL;
 	
 	/* 8 bit channels use only 4 bits from the page register. */
-	if ((channel > 0) && (channel < 4) && (pa >= (1 << 20)))
+	if (is_dma8(channel) && (pa >= (1 << 20)))
+		return EINVAL;
+
+	/* Buffers cannot cross 64K page boundaries */
+	if ((pa & 0xffff0000) != ((pa + size - 1) & 0xffff0000))
 		return EINVAL;
 	
 	fibril_mutex_lock(&guard);
@@ -351,15 +373,14 @@ int dma_setup_channel(unsigned int channel, uint32_t pa, uint16_t size,
 	/* 16 bit transfers are a bit special */
 	ddf_msg(LVL_DEBUG, "Unspoiled address %#" PRIx32 " (size %" PRIu16 ")",
 	    pa, size);
-	if (channel > 4) {
+	if (is_dma16(channel)) {
 		/* Size must be aligned to 16 bits */
 		if ((size & 1) != 0) {
 			fibril_mutex_unlock(&guard);
 			return EINVAL;
 		}
-		
+		/* Size is in 2byte words */
 		size >>= 1;
-		
 		/* Address is fun: lower 16 bits need to be shifted by 1 */
 		pa = ((pa & 0xffff) >> 1) | (pa & 0xff0000);
 	}
@@ -425,6 +446,53 @@ int dma_setup_channel(unsigned int channel, uint32_t pa, uint16_t size,
 	return EOK;
 }
 
+/** Query remaining buffer size.
+ *
+ * @param channel DMA Channel 1, 2, 3 for 8 bit transfers,
+ *                    5, 6, 7 for 16 bit.
+ * @param size    Place to store number of bytes pending in the assigned buffer.
+ *
+ * @return Error code.
+ */
+int dma_channel_remain(unsigned channel, size_t *size)
+{
+	assert(size);
+	if (!is_dma8(channel) && !is_dma16(channel))
+		return ENOENT;
+	
+	if ((channel == 0) || (channel == 4))
+		return ENOTSUP;
+	
+	fibril_mutex_lock(&guard);
+	if (!controller_8237.initialized) {
+		fibril_mutex_unlock(&guard);
+		return EIO;
+	}
+
+	const dma_channel_t dma_channel = controller_8237.channels[channel];
+	/* Get size - reset flip-flop */
+	pio_write_8(dma_channel.flip_flop_address, 0);
+	
+	/* Low byte */
+	const uint8_t value_low = pio_read_8(dma_channel.size_reg_address);
+	ddf_msg(LVL_DEBUG2, "Read size low byte: %p:%x.",
+	    dma_channel.size_reg_address, value_low);
+	
+	/* High byte */
+	const uint8_t value_high = pio_read_8(dma_channel.size_reg_address);
+	ddf_msg(LVL_DEBUG2, "Read size high byte: %p:%x.",
+	    dma_channel.size_reg_address, value_high);
+	fibril_mutex_unlock(&guard);
+
+	uint16_t remain = (value_high << 8 | value_low) ;
+	/* 16 bit DMA size is in words,
+	 * the upper bits are bogus for 16bit transfers so we need to get
+	 * rid of them. Using limited type works well.*/
+	if (is_dma16(channel))
+		remain <<= 1;
+	*size =  is_dma16(channel) ? remain + 2: remain + 1;
+	return EOK;
+}
 /**
  * @}
  */
