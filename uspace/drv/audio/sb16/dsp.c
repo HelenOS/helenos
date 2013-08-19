@@ -247,27 +247,27 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 		dsp_report_event(dsp, PCM_EVENT_FRAMES_PLAYED);
 	case DSP_PLAYBACK_NOEVENTS:
 #ifndef AUTO_DMA_MODE
-	dsp_start_current_active(dsp, SINGLE_DMA_16B_DA);
+		dsp_start_current_active(dsp, SINGLE_DMA_16B_DA);
 #endif
 		break;
 	case DSP_CAPTURE_ACTIVE_EVENTS:
 		dsp_report_event(dsp, PCM_EVENT_FRAMES_CAPTURED);
 	case DSP_CAPTURE_NOEVENTS:
 #ifndef AUTO_DMA_MODE
-	dsp_start_current_active(dsp, SINGLE_DMA_16B_DA);
+		dsp_start_current_active(dsp, SINGLE_DMA_16B_DA);
 #endif
 		break;
 	case DSP_CAPTURE_TERMINATE:
+		dsp_change_state(dsp, DSP_READY);
 		dsp_report_event(dsp, PCM_EVENT_CAPTURE_TERMINATED);
 		async_exchange_end(dsp->event_exchange);
 		dsp->event_exchange = NULL;
-		dsp_change_state(dsp, DSP_READY);
 		break;
 	case DSP_PLAYBACK_TERMINATE:
+		dsp_change_state(dsp, DSP_READY);
 		dsp_report_event(dsp, PCM_EVENT_PLAYBACK_TERMINATED);
 		async_exchange_end(dsp->event_exchange);
 		dsp->event_exchange = NULL;
-		dsp_change_state(dsp, DSP_READY);
 		break;
 	default:
 		ddf_log_warning("Interrupt while DSP not active");
