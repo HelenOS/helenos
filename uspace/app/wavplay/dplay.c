@@ -317,7 +317,7 @@ static void play(playback_t *pb)
 			break;
 
 	} while (1);
-	audio_pcm_stop_playback(pb->device);
+	audio_pcm_stop_playback_immediate(pb->device);
 }
 
 /**
