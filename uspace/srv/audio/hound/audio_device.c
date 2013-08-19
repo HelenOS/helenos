@@ -297,7 +297,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		}
 		case PCM_EVENT_PLAYBACK_TERMINATED:
 			log_verbose("Playback terminated!");
-			return;
+			break;
 		case PCM_EVENT_FRAMES_CAPTURED: {
 			const int ret = audio_source_push_data(&dev->source,
 			    dev->buffer.position, dev->buffer.fragment_size);
@@ -308,6 +308,9 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		}
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			log_verbose("Recording terminated!");
+			break;
+		case 0:
+			log_info("Device event call back hangup");
 			return;
 		}
 
