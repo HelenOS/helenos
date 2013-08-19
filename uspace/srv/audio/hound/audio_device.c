@@ -196,13 +196,6 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 			    str_error(ret));
 			return ret;
 		}
-		dev->sink.format = AUDIO_FORMAT_ANY;
-		ret = release_buffer(dev);
-		if (ret != EOK) {
-			log_error("Failed to release buffer: %s",
-			    str_error(ret));
-			return ret;
-		}
 	}
 	return EOK;
 }
@@ -251,14 +244,6 @@ static int device_source_connection_callback(audio_source_t *source, bool new)
 			    str_error(ret));
 			return ret;
 		}
-		source->format = AUDIO_FORMAT_ANY;
-		ret = release_buffer(dev);
-		if (ret != EOK) {
-			log_error("Failed to release buffer: %s",
-			    str_error(ret));
-			return ret;
-		}
-		audio_pcm_unregister_event_callback(dev->sess);
 	}
 
 	return EOK;
@@ -295,9 +280,28 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			    tv_sub(&time2, &time1));
 			break;
 		}
-		case PCM_EVENT_PLAYBACK_TERMINATED:
-			log_verbose("Playback terminated!");
+		case PCM_EVENT_CAPTURE_TERMINATED: {
+			log_verbose("Capture terminated");
+			dev->source.format = AUDIO_FORMAT_ANY;
+			const int ret = release_buffer(dev);
+			if (ret != EOK) {
+				log_error("Failed to release buffer: %s",
+				    str_error(ret));
+			}
+			audio_pcm_unregister_event_callback(dev->sess);
 			break;
+		}
+		case PCM_EVENT_PLAYBACK_TERMINATED: {
+			log_verbose("Playback Terminated");
+			dev->sink.format = AUDIO_FORMAT_ANY;
+			const int ret = release_buffer(dev);
+			if (ret != EOK) {
+				log_error("Failed to release buffer: %s",
+				    str_error(ret));
+			}
+			audio_pcm_unregister_event_callback(dev->sess);
+			break;
+		}
 		case PCM_EVENT_FRAMES_CAPTURED: {
 			const int ret = audio_source_push_data(&dev->source,
 			    dev->buffer.position, dev->buffer.fragment_size);
@@ -306,11 +310,8 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 				log_warning("Failed to push recorded data");
 			break;
 		}
-		case PCM_EVENT_CAPTURE_TERMINATED:
-			log_verbose("Recording terminated!");
-			break;
 		case 0:
-			log_info("Device event call back hangup");
+			log_info("Device event callback hangup");
 			return;
 		}
 
