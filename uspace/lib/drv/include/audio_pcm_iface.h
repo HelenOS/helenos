@@ -97,6 +97,7 @@ int audio_pcm_last_playback_fragment(audio_pcm_sess_t *);
 
 int audio_pcm_start_playback(audio_pcm_sess_t *,
     unsigned, unsigned, pcm_sample_format_t);
+int audio_pcm_stop_playback_immediate(audio_pcm_sess_t *);
 int audio_pcm_stop_playback(audio_pcm_sess_t *);
 
 int audio_pcm_start_capture_fragment(audio_pcm_sess_t *, unsigned,
@@ -105,6 +106,7 @@ int audio_pcm_last_capture_fragment(audio_pcm_sess_t *);
 
 int audio_pcm_start_capture(audio_pcm_sess_t *,
     unsigned, unsigned, pcm_sample_format_t);
+int audio_pcm_stop_capture_immediate(audio_pcm_sess_t *);
 int audio_pcm_stop_capture(audio_pcm_sess_t *);
 
 /** Audio pcm communication interface. */

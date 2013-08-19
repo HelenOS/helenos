@@ -190,7 +190,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		assert(!new);
 		log_verbose("Removed last connection on device sink '%s'",
 		    sink->name);
-		int ret = audio_pcm_stop_playback(dev->sess);
+		int ret = audio_pcm_stop_playback_immediate(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to stop playback: %s",
 			    str_error(ret));
@@ -245,7 +245,7 @@ static int device_source_connection_callback(audio_source_t *source, bool new)
 	}
 	if (list_count(&source->connections) == 0) { /* Disconnected */
 		assert(!new);
-		int ret = audio_pcm_stop_capture(dev->sess);
+		int ret = audio_pcm_stop_capture_immediate(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));

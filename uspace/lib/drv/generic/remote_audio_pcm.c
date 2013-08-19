@@ -468,12 +468,29 @@ int audio_pcm_start_playback(audio_pcm_sess_t *sess,
  *
  * @return Error code.
  */
-int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
+int audio_pcm_stop_playback_immediate(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	const int ret = async_req_2_0(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_STOP_PLAYBACK, true);
+	async_exchange_end(exch);
+	return ret;
+}
+
+/**
+ * Stops playback at the end of the current fragment.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
+int audio_pcm_stop_playback(audio_pcm_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_2_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_PLAYBACK, false);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -549,12 +566,29 @@ int audio_pcm_last_capture_fragment(audio_pcm_sess_t *sess)
  *
  * @return Error code.
  */
-int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
+int audio_pcm_stop_capture_immediate(audio_pcm_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	const int ret = async_req_2_0(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_STOP_CAPTURE, true);
+	async_exchange_end(exch);
+	return ret;
+}
+
+/**
+ * Stops capture at the end of the current fragment.
+ *
+ * @param sess Audio device session.
+ *
+ * @return Error code.
+ */
+int audio_pcm_stop_capture(audio_pcm_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	const int ret = async_req_2_0(exch,
+	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
+	    IPC_M_AUDIO_PCM_STOP_CAPTURE, false);
 	async_exchange_end(exch);
 	return ret;
 }
