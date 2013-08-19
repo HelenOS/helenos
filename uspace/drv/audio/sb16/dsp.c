@@ -455,6 +455,11 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 		dsp_reset(dsp);
 		ddf_log_debug("Stopped playback");
 		dsp_change_state(dsp, DSP_READY);
+		if (dsp->event_exchange) {
+			dsp_report_event(dsp, PCM_EVENT_PLAYBACK_TERMINATED);
+			async_exchange_end(dsp->event_exchange);
+			dsp->event_exchange = NULL;
+		}
 		return EOK;
 	}
 	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
@@ -526,6 +531,11 @@ int sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
 		dsp_reset(dsp);
 		ddf_log_debug("Stopped capture fragment");
 		dsp_change_state(dsp, DSP_READY);
+		if (dsp->event_exchange) {
+			dsp_report_event(dsp, PCM_EVENT_CAPTURE_TERMINATED);
+			async_exchange_end(dsp->event_exchange);
+			dsp->event_exchange = NULL;
+		}
 		return EOK;
 	}
 	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
