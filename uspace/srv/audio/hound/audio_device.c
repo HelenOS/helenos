@@ -379,7 +379,7 @@ static int release_buffer(audio_device_t *dev)
 		dev->buffer.size = 0;
 		dev->buffer.position = NULL;
 	} else {
-		log_debug("Failed to release buffer: %s", str_error(ret));
+		log_warning("Failed to release buffer: %s", str_error(ret));
 	}
 	return ret;
 }
