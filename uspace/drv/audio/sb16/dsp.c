@@ -410,9 +410,10 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 		return ENOTSUP;
 
 	/* Client requested regular events */
-	if (frames) {
-		if (!dsp->event_session)
-			return EINVAL;
+	if (frames && !dsp->event_session)
+		return EINVAL;
+
+	if (dsp->event_session) {
 		dsp->event_exchange = async_exchange_begin(dsp->event_session);
 		if (!dsp->event_exchange)
 			return ENOMEM;
@@ -482,9 +483,10 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 		return ENOTSUP;
 
 	/* Client requested regular events */
-	if (frames) {
-		if (!dsp->event_session)
-			return EINVAL;
+	if (frames && !dsp->event_session)
+		return EINVAL;
+
+	if (dsp->event_session) {
 		dsp->event_exchange = async_exchange_begin(dsp->event_session);
 		if (!dsp->event_exchange)
 			return ENOMEM;
