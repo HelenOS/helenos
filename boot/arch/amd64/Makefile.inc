@@ -27,18 +27,24 @@
 #
 
 RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/audio/hound/hound \
+	$(USPACE_PATH)/srv/devman/devman \
 	$(USPACE_PATH)/srv/hw/irc/apic/apic \
 	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
-RD_DRVS += \
+
+RD_DRVS_ESSENTIAL += \
 	infrastructure/rootpc \
 	block/ata_bd \
 	bus/pci/pciintel \
 	bus/isa \
+	audio/sb16 \
 	char/i8042 \
-	char/ns8250 \
 	char/ps2mouse \
-	char/xtkbd \
+	char/xtkbd
+
+RD_DRVS_NON_ESSENTIAL += \
+	char/ns8250 \
 	time/cmos-rtc \
 	bus/usb/ehci\
 	bus/usb/ohci \
@@ -53,6 +59,11 @@ RD_DRVS += \
 RD_DRV_CFG += \
 	bus/isa
 
+RD_APPS_ESSENTIAL += \
+	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/mixerctl/mixerctl \
+	$(USPACE_PATH)/app/wavplay/wavplay \
+	
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img
 BUILD = Makefile.grub

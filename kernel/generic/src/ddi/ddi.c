@@ -335,7 +335,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, unsigned int map_flags,
 	else
 		order = fnzb(pages - 1) + 1;
 	
-	*phys = frame_alloc_noreserve(order, 0);
+	*phys = frame_alloc_noreserve(order, FRAME_DMA);
 	if (*phys == NULL)
 		return ENOMEM;
 	
@@ -360,8 +360,22 @@ NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size)
 
 NO_TRACE static int dmamem_unmap_anonymous(uintptr_t virt)
 {
-	// TODO: implement unlocking & unmap
-	return EOK;
+	// TODO: This is an ugly hack
+	as_t *as = TASK->as;
+
+	mutex_lock(&as->lock);
+	as_area_t *area = find_locked_area(as, virt);
+	if (!area) {
+		mutex_unlock(&as->lock);
+		return ENOENT;
+	}
+	frame_free_noreserve(area->backend_data.base);
+	area->backend_data.base = 0;
+	area->backend_data.frames = 0;
+	mutex_unlock(&area->lock);
+	mutex_unlock(&as->lock);
+
+	return as_area_destroy(as, virt);
 }
 
 sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,

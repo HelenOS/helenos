@@ -46,6 +46,8 @@
 	#define NULL  ((void *) 0)
 #endif
 
+#define RAND_MAX  714025
+
 /* Process Termination */
 #undef EXIT_FAILURE
 #define EXIT_FAILURE 1
@@ -120,6 +122,10 @@ extern void __POSIX_DEF__(free)(void *ptr);
 
 /* Temporary Files */
 extern int __POSIX_DEF__(mkstemp)(char *tmpl);
+
+/* Pseudo-random number generator */
+extern int __POSIX_DEF__(rand)(void);
+extern void __POSIX_DEF__(srand)(unsigned int seed);
 
 /* Legacy Declarations */
 extern char *__POSIX_DEF__(mktemp)(char *tmpl);

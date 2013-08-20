@@ -51,6 +51,10 @@ const addr48_t addr48_broadcast = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
+static const addr48_t inet_addr48_solicited_node = {
+	0x33, 0x33, 0xff, 0, 0, 0
+};
+
 static const inet_addr_t inet_addr_any_addr = {
 	.family = AF_INET,
 	.addr = 0
@@ -71,9 +75,26 @@ void addr128(const addr128_t src, addr128_t dst)
 	memcpy(dst, src, 16);
 }
 
+int addr48_compare(const addr48_t a, const addr48_t b)
+{
+	return memcmp(a, b, 6);
+}
+
 int addr128_compare(const addr128_t a, const addr128_t b)
 {
 	return memcmp(a, b, 16);
+}
+
+/** Compute solicited node MAC multicast address from target IPv6 address
+ *
+ * @param ip  Target IPv6 address
+ * @param mac Solicited MAC address to be assigned
+ *
+ */
+void addr48_solicited_node(const addr128_t ip, addr48_t mac)
+{
+	memcpy(mac, inet_addr48_solicited_node, 3);
+	memcpy(mac + 3, ip + 13, 3);
 }
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)

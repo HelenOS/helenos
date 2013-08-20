@@ -48,6 +48,7 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
+	app/mixerctl \
 	app/logset \
 	app/mkfat \
 	app/mkexfat \
@@ -74,8 +75,10 @@ DIRS = \
 	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
+	app/wavplay \
 	app/date \
 	app/websrv \
+	srv/audio/hound \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
@@ -115,6 +118,7 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/block/ahci \
@@ -213,6 +217,7 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
+	lib/hound \
 	lib/graph \
 	lib/gui \
 	lib/softrend \
@@ -225,6 +230,7 @@ LIBS = \
 	lib/usbdev \
 	lib/usbhid \
 	lib/usbvirt \
+	lib/pcm \
 	lib/bithenge \
 	lib/posix
 

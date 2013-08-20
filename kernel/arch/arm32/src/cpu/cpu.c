@@ -156,7 +156,7 @@ void cpu_arch_init(void)
 	control_reg |= SCTLR_CACHE_EN_FLAG;
 #endif
 #ifdef PROCESSOR_ARCH_armv7_a
-	 /* ICache coherency is elaborate on in barrier.h.
+	 /* ICache coherency is elaborated on in barrier.h.
 	  * VIPT and PIPT caches need maintenance only on code modify,
 	  * so it should be safe for general use.
 	  * Enable branch predictors too as they follow the same rules
@@ -165,6 +165,9 @@ void cpu_arch_init(void)
 	if ((CTR_read() & CTR_L1I_POLICY_MASK) != CTR_L1I_POLICY_AIVIVT) {
 		control_reg |=
 		    SCTLR_INST_CACHE_EN_FLAG | SCTLR_BRANCH_PREDICT_EN_FLAG;
+	} else {
+		control_reg &=
+		    ~(SCTLR_INST_CACHE_EN_FLAG | SCTLR_BRANCH_PREDICT_EN_FLAG);
 	}
 #endif
 	SCTLR_write(control_reg);
@@ -203,9 +206,8 @@ static unsigned dcache_linesize_log(unsigned level)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
 	CSSELR_write((level & CCSELR_LEVEL_MASK) << CCSELR_LEVEL_SHIFT);
-	const unsigned ls_log = 2 +
-	    ((CCSIDR_read() >> CCSIDR_LINESIZE_SHIFT) & CCSIDR_LINESIZE_MASK);
-	return ls_log + 2; //return log2(bytes)
+	const uint32_t ccsidr = CCSIDR_read();
+	return CCSIDR_LINESIZE_LOG(ccsidr);
 #endif
 	return 0;
 
@@ -216,9 +218,8 @@ static unsigned dcache_ways(unsigned level)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
 	CSSELR_write((level & CCSELR_LEVEL_MASK) << CCSELR_LEVEL_SHIFT);
-	const unsigned ways = 1 +
-	    ((CCSIDR_read() >> CCSIDR_ASSOC_SHIFT) & CCSIDR_ASSOC_MASK);
-	return ways;
+	const uint32_t ccsidr = CCSIDR_read();
+	return CCSIDR_WAYS(ccsidr);
 #endif
 	return 0;
 }
@@ -228,9 +229,8 @@ static unsigned dcache_sets(unsigned level)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
 	CSSELR_write((level & CCSELR_LEVEL_MASK) << CCSELR_LEVEL_SHIFT);
-	const unsigned sets = 1 +
-	    ((CCSIDR_read() >> CCSIDR_NUMSETS_SHIFT) & CCSIDR_NUMSETS_MASK);
-	return sets;
+	const uint32_t ccsidr = CCSIDR_read();
+	return CCSIDR_SETS(ccsidr);
 #endif
 	return 0;
 }
@@ -240,7 +240,7 @@ unsigned dcache_levels(void)
 	unsigned levels = 0;
 #ifdef PROCESSOR_ARCH_armv7_a
 	const uint32_t val = CLIDR_read();
-	for (unsigned i = 1; i <= 7; ++i) {
+	for (unsigned i = 0; i < 8; ++i) {
 		const unsigned ctype = CLIDR_CACHE(i, val);
 		switch (ctype) {
 		case CLIDR_DCACHE_ONLY:
@@ -279,7 +279,7 @@ void dcache_flush(void)
 	for (unsigned i = 0; i < levels; ++i) {
 		const unsigned ways = dcache_ways(i);
 		const unsigned sets = dcache_sets(i);
-		const unsigned way_shift =  31 - log2(ways);
+		const unsigned way_shift = 32 - log2(ways);
 		const unsigned set_shift = dcache_linesize_log(i);
 		dcache_clean_manual(i, false, ways, sets, way_shift, set_shift);
 	}
@@ -292,7 +292,7 @@ void dcache_flush_invalidate(void)
 	for (unsigned i = 0; i < levels; ++i) {
 		const unsigned ways = dcache_ways(i);
 		const unsigned sets = dcache_sets(i);
-		const unsigned way_shift =  31 - log2(ways);
+		const unsigned way_shift = 32 - log2(ways);
 		const unsigned set_shift = dcache_linesize_log(i);
 		dcache_clean_manual(i, true, ways, sets, way_shift, set_shift);
 	}
