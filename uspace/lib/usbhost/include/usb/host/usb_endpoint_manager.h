@@ -92,7 +92,8 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
 int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, size_t max_packet_size, size_t data_size,
-    ep_add_callback_t callback, void *arg);
+    ep_add_callback_t callback, void *arg, usb_address_t tt_address,
+    unsigned tt_port);
 
 int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
@@ -107,7 +108,7 @@ int usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
 int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
     usb_address_t *address, bool strict, usb_speed_t speed);
 
-int usb_endpoint_manager_get_info_by_address(usb_endpoint_manager_t *instance,
+int usb_endpoint_manager_get_speed(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_speed_t *speed);
 #endif
 /**

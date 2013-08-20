@@ -75,7 +75,6 @@ static inline void hcd_set_implementation(hcd_t *hcd, void *data,
 	hcd->schedule = schedule;
 	hcd->ep_add_hook = add_hook;
 	hcd->ep_remove_hook = rem_hook;
-
 }
 
 usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed);
@@ -90,7 +89,8 @@ static inline int hcd_release_default_address(hcd_t *hcd)
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    usb_transfer_type_t type, size_t max_packet_size, size_t size);
+    usb_transfer_type_t type, size_t max_packet_size, size_t size,
+    usb_address_t tt_address, unsigned tt_port);
 
 int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir);
 

@@ -129,12 +129,13 @@ int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    usb_transfer_type_t type, size_t max_packet_size, size_t size)
+    usb_transfer_type_t type, size_t max_packet_size, size_t size,
+    usb_address_t tt_address, unsigned tt_port)
 {
 	assert(hcd);
 	return usb_endpoint_manager_add_ep(&hcd->ep_manager, target.address,
 	    target.endpoint, dir, type, max_packet_size, size, register_helper,
-	    hcd);
+	    hcd, tt_address, tt_port);
 }
 
 int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)

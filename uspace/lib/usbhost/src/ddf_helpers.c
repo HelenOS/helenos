@@ -113,7 +113,7 @@ static int register_endpoint(
 	    usb_str_direction(direction), max_packet_size, interval);
 
 	return hcd_add_ep(hcd, target, direction, transfer_type,
-	    max_packet_size, size);
+	    max_packet_size, size, dev->tt_address, dev->port);
 }
 
 /** Unregister endpoint interface function.
@@ -390,7 +390,7 @@ static int create_match_ids(match_id_list_t *l,
 		    d->vendor_id, d->product_id, (d->device_version >> 8),
 		    (d->device_version & 0xff));
 	
-		/* Next, without release number. */	
+		/* Next, without release number. */
 		ADD_MATCHID_OR_RETURN(l, 90, "usb&vendor=%#04x&product=%#04x",
 		    d->vendor_id, d->product_id);
 	}
@@ -452,7 +452,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	usb_speed_t speed = USB_SPEED_MAX;
 
 	/* This checks whether the default address is reserved and gets speed */
-	int ret = usb_endpoint_manager_get_info_by_address(&hcd->ep_manager,
+	int ret = usb_endpoint_manager_get_speed(&hcd->ep_manager,
 		USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
 		return ret;
@@ -472,10 +472,13 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 		.endpoint = 0,
 	}};
 
+	const usb_address_t tt_address = hub ? hub->tt_address : -1;
+
 	/* Add default pipe on default address */
 	ret = hcd_add_ep(hcd,
 	    default_target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE);
+	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE,
+	    tt_address, port);
 
 	if (ret != EOK) {
 		hcd_release_address(hcd, address);
@@ -500,7 +503,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 
 	/* Register EP on the new address */
 	ret = hcd_add_ep(hcd, target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    desc.max_packet_size, desc.max_packet_size);
+	    desc.max_packet_size, desc.max_packet_size, tt_address, port);
 	if (ret != EOK) {
 		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);

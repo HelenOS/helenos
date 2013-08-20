@@ -66,6 +66,11 @@ typedef struct endpoint {
 	fibril_mutex_t guard;
 	/** Signals change of active status. */
 	fibril_condvar_t avail;
+	/** High speed TT data */
+	struct {
+		usb_address_t address;
+		unsigned port;
+	} tt;
 	/** Optional device specific data. */
 	struct {
 		/** Device specific data. */
@@ -79,7 +84,8 @@ typedef struct endpoint {
 
 endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
     usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, size_t bw);
+    size_t max_packet_size, size_t bw, usb_address_t tt_address,
+    unsigned tt_port);
 void endpoint_destroy(endpoint_t *instance);
 
 void endpoint_set_hc_data(endpoint_t *instance,
