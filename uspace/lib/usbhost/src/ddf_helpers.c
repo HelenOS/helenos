@@ -330,7 +330,7 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 	list_initialize(&info->devices);
 	fibril_mutex_initialize(&info->guard);
 
-	if (hub_dev->speed == USB_SPEED_HIGH && usb_speed_is_11(speed))
+	if (hub_dev && hub_dev->speed == USB_SPEED_HIGH && usb_speed_is_11(speed))
 		info->tt_address = hub_dev->address;
 
 	ddf_fun_set_ops(fun, &usb_ops);
@@ -569,9 +569,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 	hcd_t *hcd = dev_to_hcd(device);
 	assert(hcd);
 
-	const usb_speed_t speed = hcd->ep_manager.max_speed;
-
-	hcd_reserve_default_address(hcd, speed);
+	hcd_reserve_default_address(hcd, hcd->ep_manager.max_speed);
 	const int ret = hcd_ddf_new_device(device, NULL, 0);
 	hcd_release_default_address(hcd);
 	return ret;
