@@ -48,8 +48,8 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/mixerctl \
 	app/logset \
+	app/mixerctl \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -75,13 +75,13 @@ DIRS = \
 	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
-	app/wavplay \
 	app/date \
-	app/websrv \
-	srv/audio/hound \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
+	app/wavplay \
+	app/websrv \
+	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
@@ -218,9 +218,9 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/hound \
 	lib/graph \
 	lib/gui \
+	lib/hound \
 	lib/softrend \
 	lib/draw \
 	lib/net \
