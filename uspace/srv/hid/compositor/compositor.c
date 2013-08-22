@@ -2206,7 +2206,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	}
 	
 	if (list_empty(&viewport_list)) {
-		printf("%s: Failed to get view ports.\n", NAME);
+		printf("%s: Failed to get viewports.\n", NAME);
 		input_disconnect();
 		return -1;
 	}

@@ -66,7 +66,7 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
 		[CLOCK_DEV_IFACE] = &remote_clock_dev_iface,
 		[BATTERY_DEV_IFACE] = &remote_battery_dev_iface,
-		[AHCI_DEV_IFACE] = &remote_ahci_iface,
+		[AHCI_DEV_IFACE] = &remote_ahci_iface
 	}
 };
 

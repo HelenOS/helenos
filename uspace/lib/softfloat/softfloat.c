@@ -1264,7 +1264,6 @@ int _Qp_fne(long double *a, long double *b)
 	return !is_long_double_eq(ta.data, tb.data);
 }
 
-
 float __aeabi_i2f(int i)
 {
 	return __floatsisf(i);

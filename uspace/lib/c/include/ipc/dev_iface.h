@@ -36,16 +36,16 @@
 typedef enum {
 	HW_RES_DEV_IFACE = 0,
 
-	/** Audio device mixer interface */
-	AUDIO_MIXER_IFACE,
-	/** Audio device pcm buffer interface */
-	AUDIO_PCM_BUFFER_IFACE,
-
 	/** Character device interface */
 	CHAR_DEV_IFACE,
 
 	/** Graphic device interface */
 	GRAPH_DEV_IFACE,
+
+	/** Audio device mixer interface */
+	AUDIO_MIXER_IFACE,
+	/** Audio device pcm buffer interface */
+	AUDIO_PCM_BUFFER_IFACE,
 	
 	/** Network interface controller interface */
 	NIC_DEV_IFACE,
@@ -59,10 +59,13 @@ typedef enum {
 	USBHC_DEV_IFACE,
 	/** Interface provided by USB HID devices. */
 	USBHID_DEV_IFACE,
+
 	/** Interface provided by Real Time Clock devices */
 	CLOCK_DEV_IFACE,
+
 	/** Interface provided by battery powered devices */
 	BATTERY_DEV_IFACE,
+
 	/** Interface provided by AHCI devices. */
 	AHCI_DEV_IFACE,
 

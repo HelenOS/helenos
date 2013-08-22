@@ -174,7 +174,7 @@ int hw_res_list_parse(const hw_resource_list_t *hw_resources,
 	
 	for (size_t i = 0; i < res_count; ++i) {
 		const hw_resource_t *resource = &(hw_resources->resources[i]);
-
+		
 		switch (resource->type) {
 		case INTERRUPT:
 			hw_res_parse_add_irq(out, resource, flags);
@@ -194,7 +194,7 @@ int hw_res_list_parse(const hw_resource_list_t *hw_resources,
 			return EINVAL;
 		}
 	}
-
+	
 	return EOK;
 };
 
