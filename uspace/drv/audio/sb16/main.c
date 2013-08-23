@@ -52,18 +52,17 @@ static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
     size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
     int *irq, int *dma8, int *dma16);
 static int sb_enable_interrupts(ddf_dev_t *device);
-/*----------------------------------------------------------------------------*/
+
 static driver_ops_t sb_driver_ops = {
 	.dev_add = sb_add_device,
 };
-/*----------------------------------------------------------------------------*/
+
 static driver_t sb_driver = {
 	.name = NAME,
 	.driver_ops = &sb_driver_ops
 };
-//static ddf_dev_ops_t sb_ops = {};
-/*----------------------------------------------------------------------------*/
-/** Initializes global driver structures (NONE).
+
+/** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
  * @param[in] argv Cmdline argument vector (ignored).
@@ -80,42 +79,40 @@ int main(int argc, char *argv[])
 
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
-	assert(dev);
 	sb16_t *sb16_dev = ddf_dev_data_get(dev);
-	assert(sb16_dev);
 	sb16_interrupt(sb16_dev);
 }
 
-/** Initializes a new ddf driver instance of SB16.
+/** Initialize new SB16 driver instance.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
 static int sb_add_device(ddf_dev_t *device)
 {
-#define CHECK_RET_RETURN(ret, msg...) \
-if (ret != EOK) { \
-	ddf_log_error(msg); \
-	return ret; \
-} else (void)0
-
-	assert(device);
+	bool handler_regd = false;
+	const size_t irq_cmd_count = sb16_irq_code_size();
+	irq_cmd_t irq_cmds[irq_cmd_count];
+	irq_pio_range_t irq_ranges[1];
 
 	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
-	int ret = soft_state ? EOK : ENOMEM;
-	CHECK_RET_RETURN(ret, "Failed to allocate sb16 structure.");
+	int rc = soft_state ? EOK : ENOMEM;
+	if (rc != EOK) {
+		ddf_log_error("Failed to allocate sb16 structure.");
+		goto error;
+	}
 
 	uintptr_t sb_regs = 0, mpu_regs = 0;
 	size_t sb_regs_size = 0, mpu_regs_size = 0;
 	int irq = 0, dma8 = 0, dma16 = 0;
 
-	ret = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
+	rc = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
 	    &mpu_regs_size, &irq, &dma8, &dma16);
-	CHECK_RET_RETURN(ret, "Failed to get resources: %s.", str_error(ret));
+	if (rc != EOK) {
+		ddf_log_error("Failed to get resources: %s.", str_error(rc));
+		goto error;
+	}
 
-	const size_t irq_cmd_count = sb16_irq_code_size();
-	irq_cmd_t irq_cmds[irq_cmd_count];
-	irq_pio_range_t irq_ranges[1];
 	sb16_irq_code((void*)sb_regs, dma8, dma16, irq_cmds, irq_ranges);
 
 	irq_code_t irq_code = {
@@ -125,45 +122,54 @@ if (ret != EOK) { \
 		.ranges = irq_ranges
 	};
 
-	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-	CHECK_RET_RETURN(ret,
-	    "Failed to register irq handler: %s.", str_error(ret));
+	rc = register_interrupt_handler(device, irq, irq_handler, &irq_code);
+	if (rc != EOK) {
+		ddf_log_error("Failed to register irq handler: %s.",
+		    str_error(rc));
+		goto error;
+	}
 
-#define CHECK_RET_UNREG_DEST_RETURN(ret, msg...) \
-if (ret != EOK) { \
-	ddf_log_error(msg); \
-	unregister_interrupt_handler(device, irq); \
-	return ret; \
-} else (void)0
+	handler_regd = true;
 
-	ret = sb_enable_interrupts(device);
-	CHECK_RET_UNREG_DEST_RETURN(ret, "Failed to enable interrupts: %s.",
-	    str_error(ret));
+	rc = sb_enable_interrupts(device);
+	if (rc != EOK) {
+		ddf_log_error("Failed to enable interrupts: %s.",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = sb16_init_sb16(
-	    soft_state, (void*)sb_regs, sb_regs_size, device, dma8, dma16);
-	CHECK_RET_UNREG_DEST_RETURN(ret,
-	    "Failed to init sb16 driver: %s.", str_error(ret));
+	rc = sb16_init_sb16(soft_state, (void*)sb_regs, sb_regs_size, device,
+	    dma8, dma16);
+	if (rc != EOK) {
+		ddf_log_error("Failed to init sb16 driver: %s.",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
-	if (ret == EOK) {
+	rc = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
+	if (rc == EOK) {
 		ddf_fun_t *mpu_fun =
 		    ddf_fun_create(device, fun_exposed, "midi");
 		if (mpu_fun) {
-			ret = ddf_fun_bind(mpu_fun);
-			if (ret != EOK)
+			rc = ddf_fun_bind(mpu_fun);
+			if (rc != EOK)
 				ddf_log_error(
 				    "Failed to bind midi function: %s.",
-				    str_error(ret));
+				    str_error(rc));
 		} else {
 			ddf_log_error("Failed to create midi function.");
 		}
 	} else {
-	    ddf_log_warning("Failed to init mpu driver: %s.", str_error(ret));
+		ddf_log_warning("Failed to init mpu driver: %s.",
+		    str_error(rc));
 	}
 
 	/* MPU state does not matter */
 	return EOK;
+error:
+	if (handler_regd)
+		unregister_interrupt_handler(device, irq);
+	return rc;
 }
 
 static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
