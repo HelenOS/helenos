@@ -147,6 +147,7 @@ show_usage() {
 	echo " ppc32      32-bit PowerPC"
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
+	echo " sparc32    SPARC V8"
 	echo " all        build all targets"
 	echo " parallel   same as 'all', but all in parallel"
 	echo " 2-way      same as 'all', but 2-way parallel"
@@ -405,6 +406,10 @@ case "$1" in
 		prepare
 		build_target "sparc64" "sparc64-linux-gnu"
 		;;
+	"sparc32")
+		prepare
+		build_target "sparc32" "sparc-leon3-linux-gnu"
+		;;
 	"all")
 		prepare
 		build_target "amd64" "amd64-linux-gnu"
@@ -417,6 +422,7 @@ case "$1" in
 		build_target "ppc32" "ppc-linux-gnu"
 		build_target "ppc64" "ppc64-linux-gnu"
 		build_target "sparc64" "sparc64-linux-gnu"
+		build_target "sparc32" "sparc-leon3-linux-gnu"
 		;;
 	"parallel")
 		prepare
@@ -430,6 +436,7 @@ case "$1" in
 		build_target "ppc32" "ppc-linux-gnu" &
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
+		build_target "sparc32" "sparc-leon3-linux-gnu" &
 		wait
 		;;
 	"2-way")
@@ -452,6 +459,9 @@ case "$1" in
 		
 		build_target "ppc64" "ppc64-linux-gnu" &
 		build_target "sparc64" "sparc64-linux-gnu" &
+		wait
+
+		build_target "sparc32" "sparc-leon3-linux-gnu" &
 		wait
 		;;
 	*)
