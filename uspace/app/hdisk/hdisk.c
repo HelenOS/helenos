@@ -83,54 +83,9 @@ int main(int argc, char ** argv)
 	
 	init_label();
 	
-	/*
-	mbr_t * mbr = mbr_read_mbr(dev_handle);
-	if(mbr == NULL) {
-		printf("Failed to read the Master Boot Record.\n"	\
-			   "Either memory allocation or disk access failed. Exiting.\n");
-		return -1;
-	}
-
-	if(mbr_is_mbr(mbr)) {
-		label.layout = LYT_MBR;
-		set_label_mbr(mbr);
-		mbr_partitions_t * parts = mbr_read_partitions(mbr);
-		if(parts == NULL) {
-			printf("Failed to read and parse partitions.\n"	\
-				   "Creating new partition table.");
-			parts = mbr_alloc_partitions();
-		}
-		set_label_mbr_parts(parts);
-		fill_label_funcs();
-		goto interact;
-	}
-	
-	
-	mbr_free_mbr(mbr);*/
-	
 	rc = try_read_mbr(dev_handle);
 	if (rc == EOK)
 		goto interact;
-	
-	/*
-	gpt_t * gpt = gpt_read_gpt_header(dev_handle);
-	
-	if(gpt != NULL) {
-		label.layout = LYT_GPT;
-		set_label_gpt(gpt);
-		
-		gpt_partitions_t * parts = gpt_read_partitions(gpt);
-		
-		if(parts == NULL) {
-			printf("Failed to read and parse partitions.\n"	\
-				   "Creating new partition table.");
-			parts = gpt_alloc_partitions();
-		}
-		set_label_gpt_parts(parts);
-		fill_label_funcs();
-		goto interact;
-	}
-	*/
 	
 	rc = try_read_gpt(dev_handle);
 	if (rc == EOK)
@@ -166,45 +121,45 @@ int interact(service_id_t dev_handle)
 		input = getchar();
 		printf("%c\n", input);
 		
-		switch(input) {
-			case 'a':
-				label.add_part(&label, in);
-				break;
-			case 'd':
-				label.delete_part(&label, in);
-				break;
-			case 'e':
-				label.extra_funcs(&label, in, dev_handle);
-				break;
-			case 'f':
-				select_label_format(in);
-				break;
-			case 'h':
-				print_help();
-				break;
-			case 'l':
-				set_alignment(in);
-				break;
-			case 'n':
-				printf("Discarding label...\n");
-				free_label();
-				label.new_label(&label);
-				break;
-			case 'p':
-				label.print_parts(&label);
-				break;
-			case 'q':
-				putchar('\n');
-				free_label();
-				goto end;
-			case 'r':
-				label.read_parts(&label, dev_handle);
-			case 'w':
-				label.write_parts(&label, dev_handle);
-				break;
-			default:
-				printf("Unknown command. Try 'h' for help.\n");
-				break;
+		switch (input) {
+		case 'a':
+			label.add_part(&label, in);
+			break;
+		case 'd':
+			label.delete_part(&label, in);
+			break;
+		case 'e':
+			label.extra_funcs(&label, in, dev_handle);
+			break;
+		case 'f':
+			select_label_format(in);
+			break;
+		case 'h':
+			print_help();
+			break;
+		case 'l':
+			set_alignment(in);
+			break;
+		case 'n':
+			printf("Discarding label...\n");
+			free_label();
+			label.new_label(&label);
+			break;
+		case 'p':
+			label.print_parts(&label);
+			break;
+		case 'q':
+			putchar('\n');
+			free_label();
+			goto end;
+		case 'r':
+			label.read_parts(&label, dev_handle);
+		case 'w':
+			label.write_parts(&label, dev_handle);
+			break;
+		default:
+			printf("Unknown command. Try 'h' for help.\n");
+			break;
 		}
 	}
 	
@@ -240,37 +195,37 @@ void select_label_format(tinput_t * in)
 	      );
 	
 	uint8_t val = get_input_uint8(in);
-	switch(val) {
-		case 0:
-			free_label();
-			construct_label(LYT_NONE);
-			break;
-		case 1:
-			free_label();
-			construct_label(LYT_MBR);
-			break;
-		case 2:
-			free_label();
-			construct_label(LYT_GPT);
-			break;
+	switch (val) {
+	case 0:
+		free_label();
+		construct_label(LYT_NONE);
+		break;
+	case 1:
+		free_label();
+		construct_label(LYT_MBR);
+		break;
+	case 2:
+		free_label();
+		construct_label(LYT_GPT);
+		break;
 	}
 }
 
 void construct_label(layouts_t layout)
 {
-	switch(layout) {
-		case LYT_MBR:
-			label.layout = LYT_MBR;
-			construct_mbr_label(&label);
-			break;
-		case LYT_GPT:
-			label.layout = LYT_GPT;
-			construct_gpt_label(&label);
-			break;
-		default:
-			label.layout = LYT_NONE;
-			construct_none_label(&label);
-			break;
+	switch (layout) {
+	case LYT_MBR:
+		label.layout = LYT_MBR;
+		construct_mbr_label(&label);
+		break;
+	case LYT_GPT:
+		label.layout = LYT_GPT;
+		construct_gpt_label(&label);
+		break;
+	default:
+		label.layout = LYT_NONE;
+		construct_none_label(&label);
+		break;
 	}
 }
 
@@ -302,13 +257,6 @@ void set_alignment(tinput_t *in)
 	label.alignment = get_input_uint32(in);
 	printf("Alignment set to %u sectors.\n", label.alignment);
 }
-
-
-
-
-
-
-
 
 
 

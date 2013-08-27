@@ -47,6 +47,8 @@
 #include <byteorder.h>
 #include <checksum.h>
 #include <mem.h>
+#include <sys/typefmt.h>
+
 
 #include "libgpt.h"
 
@@ -54,7 +56,6 @@ static int load_and_check_header(service_id_t, aoff64_t, size_t, gpt_header_t *)
 static gpt_partitions_t * alloc_part_array(uint32_t);
 static int extend_part_array(gpt_partitions_t *);
 static int reduce_part_array(gpt_partitions_t *);
-//static long long nearest_larger_int(double);
 static uint8_t get_byte(const char *);
 static bool check_overlap(gpt_part_t *, gpt_part_t *);
 static bool check_encaps(gpt_part_t *, uint64_t, uint64_t);
@@ -312,7 +313,7 @@ int gpt_read_partitions(gpt_label_t *label)
 	uint32_t crc = compute_crc32((uint8_t *) label->parts->part_array, 
 	                   fillries * ent_size);
 
-	if(uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
+	if (uint32_t_le2host(label->gpt->header->pe_array_crc32) != crc)
 	{
 		rc = EBADCHECKSUM;
 		goto fini_fail;
@@ -368,23 +369,25 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	label->gpt->header->last_usable_lba = host2uint64_t_le(n_blocks - gpt_space - 1);
 	
 	/* Perform checks */
-	gpt_part_foreach(label, p) {
+	gpt_part_foreach (label, p) {
 		if (gpt_get_part_type(p) == GPT_PTE_UNUSED)
 			continue;
 		
 		if (!check_encaps(p, n_blocks, gpt_space)) {
 			rc = ERANGE;
-			printf("encaps with: %llu, %llu, %llu\n", n_blocks, gpt_space, gpt_get_end_lba(p));
+			printf("encaps with: %" PRIuOFF64 ", %" PRIu64 ", %" PRIu64 "\n", 
+			    n_blocks, gpt_space, gpt_get_end_lba(p));
 			goto fail;
 		}
 		
-		gpt_part_foreach(label, q) {
+		gpt_part_foreach (label, q) {
 			if (p == q)
 				continue;
 			
 			if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
 				if (check_overlap(p, q)) {
-					printf("overlap with: %llu, %llu\n", gpt_get_start_lba(p), gpt_get_start_lba(q));
+					printf("overlap with: %" PRIu64 ", %" PRIu64 "\n", 
+					    gpt_get_start_lba(p), gpt_get_start_lba(q));
 					rc = ERANGE;
 					goto fail;
 				}
@@ -708,7 +711,7 @@ void gpt_set_flag(gpt_part_t * p, GPT_ATTR flag, bool value)
  */
 void gpt_set_random_uuid(uint8_t * uuid)
 {
-	srandom((unsigned int) uuid);
+	srandom((unsigned int) (size_t) uuid);
 	
 	unsigned int i;
 	for (i = 0; i < 16/sizeof(long int); ++i)
@@ -785,7 +788,7 @@ static int extend_part_array(gpt_partitions_t * p)
 {
 	size_t nsize = p->arr_size * 2;
 	gpt_entry_t * tmp = malloc(nsize * sizeof(gpt_entry_t));
-	if(tmp == NULL) {
+	if (tmp == NULL) {
 		errno = ENOMEM;
 		return -1;
 	}
@@ -800,11 +803,11 @@ static int extend_part_array(gpt_partitions_t * p)
 
 static int reduce_part_array(gpt_partitions_t * p)
 {
-	if(p->arr_size > GPT_MIN_PART_NUM) {
+	if (p->arr_size > GPT_MIN_PART_NUM) {
 		unsigned int nsize = p->arr_size / 2;
 		nsize = nsize > GPT_MIN_PART_NUM ? nsize : GPT_MIN_PART_NUM;
 		gpt_entry_t * tmp = malloc(nsize * sizeof(gpt_entry_t));
-		if(tmp == NULL)
+		if (tmp == NULL)
 			return ENOMEM;
 
 		memcpy(tmp, p->part_array, p->fill < nsize ? p->fill : nsize);
@@ -815,15 +818,6 @@ static int reduce_part_array(gpt_partitions_t * p)
 
 	return 0;
 }
-
-/*static long long nearest_larger_int(double a)
-{
-	if ((long long) a == a) {
-		return (long long) a;
-	}
-
-	return ((long long) a) + 1;
-}*/
 
 /* Parse a byte from a string in hexadecimal 
  * i.e., "FF" => 255 

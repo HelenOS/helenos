@@ -169,7 +169,6 @@ int mbr_read_partitions(mbr_label_t *label)
 	unsigned int i;
 	mbr_part_t *p;
 	mbr_part_t *ext = NULL;
-	//mbr_partitions_t *parts;
 	
 	if (label->parts != NULL)
 		mbr_free_partitions(label->parts);
@@ -597,7 +596,7 @@ void mbr_free_partitions(mbr_partitions_t *parts)
 	free(parts);
 }
 
-// Internal functions follow //
+/* Internal functions follow */
 
 static br_block_t *alloc_br()
 {
@@ -731,7 +730,6 @@ end:
 static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base, bool ebr)
 {
 	if (src != NULL) {
-		//trgt->status = mbr_get_flag(src, ST_BOOT) ? B_ACTIVE : B_INACTIVE;
 		trgt->status = (uint8_t) (src->status & 0xFF);
 		/* ingoring CHS */
 		trgt->first_chs[0] = 0xFE;
@@ -740,11 +738,11 @@ static void encode_part(mbr_part_t * src, pt_entry_t * trgt, uint32_t base, bool
 		trgt->last_chs[0] = 0xFE;
 		trgt->last_chs[1] = 0xFF;
 		trgt->last_chs[2] = 0xFF;
-		if (ebr) {	// encoding reference to EBR
+		if (ebr) {	/* encoding reference to EBR */
 			trgt->ptype = PT_EXTENDED_LBA;
 			trgt->first_lba = host2uint32_t_le(src->ebr_addr - base);
 			trgt->length = host2uint32_t_le(src->length + src->start_addr - src->ebr_addr);
-		} else {	// encoding reference to partition
+		} else {	/* encoding reference to partition */
 			trgt->ptype = src->type;
 			trgt->first_lba = host2uint32_t_le(src->start_addr - base);
 			trgt->length = host2uint32_t_le(src->length);
@@ -849,7 +847,7 @@ mbr_err_val mbr_add_logical(mbr_label_t *label, mbr_part_t *p)
 	/* find a place for the new partition in a sorted linked list */
 	bool first_logical = true;
 	mbr_part_t *iter;
-	mbr_part_foreach(label, iter) {
+	mbr_part_foreach (label, iter) {
 		if (mbr_get_flag(iter, ST_LOGIC)) {
 			if (check_overlap(p, iter)) 
 				return ERR_OVERLAP;

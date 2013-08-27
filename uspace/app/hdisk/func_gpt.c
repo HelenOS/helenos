@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <sys/types.h>
+#include <sys/typefmt.h>
 
 #include "func_gpt.h"
 #include "input.h"
@@ -109,7 +110,7 @@ int print_gpt_parts(label_t *this)
 	
 	size_t i = 0;
 	
-	gpt_part_foreach(this->data.gpt, iter) {
+	gpt_part_foreach (this->data.gpt, iter) {
 		i++;
 		
 		if (gpt_get_part_type(iter) == GPT_PTE_UNUSED)
@@ -119,9 +120,10 @@ int print_gpt_parts(label_t *this)
 			printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
 		
 		
-		printf("%3u  %10llu %10llu %10llu    %3d %s\n", i-1, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
-				gpt_get_end_lba(iter) - gpt_get_start_lba(iter), gpt_get_part_type(iter),
-				gpt_get_part_name(iter));
+		printf("%3zu  %10" PRIu64 " %10" PRIu64 " %10" PRIu64 "    %3zu %s\n",
+		   i-1, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
+		        gpt_get_end_lba(iter) - gpt_get_start_lba(iter), 
+		        gpt_get_part_type(iter), gpt_get_part_name(iter));
 		
 	}
 	
@@ -194,9 +196,10 @@ static int set_gpt_partition(tinput_t *in, gpt_part_t *p, unsigned int alignment
 	gpt_set_start_lba(p, sa);
 	gpt_set_end_lba(p, ea);
 	
-	//printf("Set type : ");
-	//size_t idx = get_input_size_t(in);
-	//gpt_set_part_type(p, idx);
+	/* See global.c from libgpt for all partition types. */
+	printf("Set type (1 for HelenOS System): ");
+	size_t idx = get_input_size_t(in);
+	gpt_set_part_type(p, idx);
 	
 	gpt_set_random_uuid(p->part_type);
 	gpt_set_random_uuid(p->part_id);

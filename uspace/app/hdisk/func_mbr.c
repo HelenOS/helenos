@@ -87,7 +87,7 @@ int delete_mbr_part(label_t *this, tinput_t *in)
 		return errno;
 	
 	rc = mbr_remove_partition(this->data.mbr, idx);
-	if(rc != EOK) {
+	if (rc != EOK) {
 		printf("Error: something.\n");
 	}
 	
@@ -115,11 +115,9 @@ int print_mbr_parts(label_t *this)
 	int num = 0;
 	
 	printf("Current partition scheme (MBR):\n");
-	//printf("\t\tBootable:\tStart:\tEnd:\tLength:\tType:\n");
 	printf("\t\t%10s  %10s %10s %10s %7s\n", "Bootable:", "Start:", "End:", "Length:", "Type:");
 	
 	mbr_part_t *it;
-	//mbr_part_foreach(data->mbr, it) {
 	
 	for (it = mbr_get_first_partition(this->data.mbr); it != NULL;
 	     it = mbr_get_next_partition(this->data.mbr, it), ++num) {
@@ -134,7 +132,6 @@ int print_mbr_parts(label_t *this)
 		
 		printf("\t%10u %10u %10u %7u\n", it->start_addr, it->start_addr + it->length, it->length, it->type);
 		
-		//++num;
 	}
 	
 	printf("%d partitions found.\n", num);
@@ -184,16 +181,16 @@ static int set_mbr_partition(tinput_t *in, mbr_part_t *p, unsigned int alignment
 	c = getchar();
 	printf("%c\n", c);
 
-	switch(c) {
-		case 'p':
-			mbr_set_flag(p, ST_LOGIC, false);
-			break;
-		case 'l':
-			mbr_set_flag(p, ST_LOGIC, true);
-			break;
-		default:
-			printf("Invalid type. Cancelled.\n");
-			return EINVAL;
+	switch (c) {
+	case 'p':
+		mbr_set_flag(p, ST_LOGIC, false);
+		break;
+	case 'l':
+		mbr_set_flag(p, ST_LOGIC, true);
+		break;
+	default:
+		printf("Invalid type. Cancelled.\n");
+		return EINVAL;
 	}
 	
 	printf("ST_LOGIC: %d, %hd\n", mbr_get_flag(p, ST_LOGIC), p->status);
@@ -231,13 +228,7 @@ static int set_mbr_partition(tinput_t *in, mbr_part_t *p, unsigned int alignment
 	if (ea == 0 && errno != EOK)
 		return errno;
 	
-	/* Align ending address, not in use */
-	/*if (alignment != 0 && alignment != 1) {
-		ea = mbr_get_next_aligned(ea, alignment) - alignment;
-		printf("Starting address was aligned to %u.\n", ea);
-	}*/
-	
-	if(ea < sa) {
+	if (ea < sa) {
 		printf("Invalid value. Canceled.\n");
 		return EINVAL;
 	}
