@@ -110,11 +110,7 @@ void endpoint_set_hc_data(endpoint_t *instance,
 void endpoint_clear_hc_data(endpoint_t *instance)
 {
 	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->hc_data.data = NULL;
-	instance->hc_data.toggle_get = NULL;
-	instance->hc_data.toggle_set = NULL;
-	fibril_mutex_unlock(&instance->guard);
+	endpoint_set_hc_data(instance, NULL, NULL, NULL);
 }
 
 /** Mark the endpoint as active and block access for further fibrils.
