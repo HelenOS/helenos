@@ -165,6 +165,10 @@ NO_TRACE void main_bsp(void)
 	/* Initialy the stack is placed just after the kernel */
 	config.stack_base = config.base + config.kernel_size;
 	
+	printf("base = 0x%08x\n", config.base);
+	printf("kernel_size = 0x%08x\n", config.kernel_size);
+	printf("stack_base = 0x%08x\n", config.stack_base);
+
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {

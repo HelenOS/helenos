@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc64_SYSCALL_H_
+#define LIBC_sparc64_SYSCALL_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <sys/types.h>
+#include <abi/syscall.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define __syscall0	__syscall
+#define __syscall1	__syscall
+#define __syscall2	__syscall
+#define __syscall3	__syscall
+#define __syscall4	__syscall
+#define __syscall5	__syscall
+#define __syscall6	__syscall
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+static inline sysarg_t
+__syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
+    const sysarg_t p4, const sysarg_t p5, const sysarg_t p6, const syscall_t id)
 {
-	val->count = i;
-}
+	register uint32_t a1 asm("o0") = p1;
+	register uint32_t a2 asm("o1") = p2;
+	register uint32_t a3 asm("o2") = p3;
+	register uint32_t a4 asm("o3") = p4;
+	register uint32_t a5 asm("o4") = p5;
+	register uint32_t a6 asm("o5") = p6;
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
+	asm volatile (
+		"ta %7\n"
+		: "=r" (a1)
+		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
+		  "i" (id)
+		: "memory"
+	);
+	
+	return a1;
 }
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
 
 #endif
 

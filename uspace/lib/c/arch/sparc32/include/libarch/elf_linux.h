@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc64_ELF_LINUX_H_
+#define LBIC_sparc64_ELF_LINUX_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <libarch/istate.h>
+#include <sys/types.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+typedef struct {
+	/* TODO */
+	uint64_t pad[16];
+} elf_regs_t;
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
 {
-	val->count = i;
+	/* TODO */
+	(void) istate; (void) elf_regs;
 }
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
 
 #endif
 

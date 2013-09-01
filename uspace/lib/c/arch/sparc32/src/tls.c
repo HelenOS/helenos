@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64 sparc64
+ * @ingroup lc
  * @{
  */
 /** @file
+ *
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#include <tls.h>
+#include <sys/types.h>
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+tcb_t *tls_alloc_arch(void **data, size_t size)
 {
-	val->count = i;
+	return tls_alloc_variant_2(data, size);
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+void tls_free_arch(tcb_t *tcb, size_t size)
 {
-	return val->count;
+	tls_free_variant_2(tcb, size);
 }
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
-
-#endif
 
 /** @}
  */

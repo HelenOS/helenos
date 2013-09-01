@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
 /** @file
+ * @ingroup libsparc64
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc64_DDI_H_
+#define LIBC_sparc64_DDI_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <sys/types.h>
+#include <libarch/types.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+static inline void memory_barrier(void)
 {
-	val->count = i;
+	asm volatile (
+		"stbar\n"
+		::: "memory"
+	);
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+static inline void arch_pio_write_8(ioport8_t *port, uint8_t v)
 {
-	return val->count;
+	*port = v;
+	memory_barrier();
 }
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static inline void arch_pio_write_16(ioport16_t *port, uint16_t v)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	*port = v;
+	memory_barrier();
 }
-#endif
+
+static inline void arch_pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+	memory_barrier();
+}
+
+static inline uint8_t arch_pio_read_8(const ioport8_t *port)
+{
+	uint8_t rv;
+
+	rv = *port;
+	memory_barrier();
+
+	return rv;
+}
+
+static inline uint16_t arch_pio_read_16(const ioport16_t *port)
+{
+	uint16_t rv;
+
+	rv = *port;
+	memory_barrier();
+
+	return rv;
+}
+
+static inline uint32_t arch_pio_read_32(const ioport32_t *port)
+{
+	uint32_t rv;
+
+	rv = *port;
+	memory_barrier();
+
+	return rv;
+}
 
 #endif
-
-/** @}
- */

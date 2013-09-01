@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc32_TYPES_H_
+#define LIBC_sparc32_TYPES_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define __32_BITS__
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <libarch/common.h>
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+#define SIZE_MIN  UINT32_MIN
+#define SIZE_MAX  UINT32_MAX
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+#define SSIZE_MIN  INT32_MIN
+#define SSIZE_MAX  INT32_MAX
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
+typedef uint32_t sysarg_t;
+typedef int32_t native_t;
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+typedef int32_t ssize_t;
+typedef uint32_t size_t;
+
+typedef uint32_t uintptr_t;
+typedef int32_t intptr_t;
+typedef uint32_t atomic_count_t;
+typedef int32_t atomic_signed_t;
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_sparc32le_TYPES_H_
+#define KERN_sparc32le_TYPES_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define ATOMIC_COUNT_MIN  UINT32_MIN
+#define ATOMIC_COUNT_MAX  UINT32_MAX
 
-#include <stdint.h>
-#include <stdbool.h>
+typedef uint32_t size_t;
+typedef int32_t ssize_t;
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+typedef uint32_t uintptr_t;
+typedef uint32_t pfn_t;
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+typedef uint32_t ipl_t;
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
+typedef uint32_t sysarg_t;
+typedef int32_t native_t;
+typedef uint32_t atomic_count_t;
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+typedef struct {
+} fncptr_t;
+
+#define INTN_C(c)   INT32_C(c)
+#define UINTN_C(c)  UINT32_C(c)
+
+#define PRIdn  PRId32  /**< Format for native_t. */
+#define PRIun  PRIu32  /**< Format for sysarg_t. */
+#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
+#define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif
 

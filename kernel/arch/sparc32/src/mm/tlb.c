@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup abs32lemm
  * @{
  */
-/** @file
- */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#include <mm/tlb.h>
+#include <arch/mm/asid.h>
+#include <arch/asm.h>
+#include <typedefs.h>
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+void tlb_invalidate_all(void)
 {
-	val->count = i;
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+void tlb_invalidate_asid(asid_t asid __attribute__((unused)))
 {
-	return val->count;
+	tlb_invalidate_all();
 }
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+void tlb_invalidate_pages(asid_t asid __attribute__((unused)), uintptr_t page, size_t cnt)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	tlb_invalidate_all();
 }
-#endif
 
-#endif
+void tlb_arch_init(void)
+{
+}
+
+void tlb_print(void)
+{
+}
 
 /** @}
  */

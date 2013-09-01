@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc32_FIBRIL_H_
+#define LIBC_sparc32_FIBRIL_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <libarch/stack.h>
+#include <sys/types.h>
+#include <align.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define SP_DELTA  (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+#define context_set(c, _pc, stack, size, ptls) \
+	do { \
+		(c)->pc = ((uintptr_t) _pc) - 8; \
+		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
+		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
+		(c)->fp = -STACK_BIAS; \
+		(c)->tp = (uint32_t) ptls; \
+	} while (0)
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+/*
+ * Save only registers that must be preserved across
+ * function calls.
+ */
+typedef struct {
+	uintptr_t sp;		/* %o6 */
+	uintptr_t pc;		/* %o7 */
+	uint64_t i0;
+	uint64_t i1;
+	uint64_t i2;
+	uint64_t i3;
+	uint64_t i4;
+	uint64_t i5;
+	uintptr_t fp;		/* %i6 */
+	uintptr_t i7;
+	uint64_t l0;
+	uint64_t l1;
+	uint64_t l2;
+	uint64_t l3;
+	uint64_t l4;
+	uint64_t l5;
+	uint64_t l6;
+	uint64_t l7;
+	uint64_t tp;		/* %g7 */
+} context_t;
+
+static inline uintptr_t context_get_fp(context_t *ctx)
 {
-	val->count = i;
+	return ctx->sp + STACK_BIAS;
 }
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
 
 #endif
 

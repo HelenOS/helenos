@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
@@ -26,43 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
  * @{
  */
-/** @file
- */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
-
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+#ifndef LIBC_sparc64_THREAD_H_
+#define LIBC_sparc64_THREAD_H_
 
 #endif
 

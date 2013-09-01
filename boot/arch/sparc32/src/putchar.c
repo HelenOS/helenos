@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2009 Vineeth Pillai
+ * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +29,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32boot
  * @{
  */
 /** @file
+ * @brief bootloader output logic
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#include <typedefs.h>
+#include <arch/asm.h>
+#include <arch/arch.h>
+#include <arch/main.h>
+#include <arch/mm.h>
+#include <putchar.h>
+#include <str.h>
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+/** Send a byte to the LEON3 serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb(uint8_t byte)
 {
-	val->count = i;
+	asi_u32_write(ASI_MMUBYPASS, APBUART_SCONS_THR, byte);
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+/** Display a character
+ *
+ * @param ch	Character to display
+ */
+void putchar(const wchar_t ch)
 {
-	return val->count;
-}
+	if (ch == '\n')
+		scons_sendb('\r');
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	if (ascii_check(ch))
+		scons_sendb((uint8_t) ch);
+	else
+		scons_sendb(U_SPECIAL);
 }
-#endif
-
-#endif
 
 /** @}
  */

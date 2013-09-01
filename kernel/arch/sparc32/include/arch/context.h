@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +27,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_sparc32_CONTEXT_H_
+#define KERN_sparc32_CONTEXT_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <arch/stack.h>
+#include <typedefs.h>
+#include <align.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define SP_DELTA  (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+#define context_set(c, _pc, stack, size) \
+	do { \
+		(c)->pc = ((uintptr_t) _pc) - 4; \
+		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
+		    STACK_ALIGNMENT) - (SP_DELTA); \
+		(c)->fp = (c)->fp; \
+	} while (0)
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+/*
+ * Save only registers that must be preserved across
+ * function calls.
+ */
+typedef struct {
+	uintptr_t sp;		/* %o6 */
+	uintptr_t pc;		/* %o7 */
+	uint32_t i0;
+	uint32_t i1;
+	uint32_t i2;
+	uint32_t i3;
+	uint32_t i4;
+	uint32_t i5;
+	uintptr_t fp;		/* %i6 */
+	uintptr_t i7;
+	uint32_t l0;
+	uint32_t l1;
+	uint32_t l2;
+	uint32_t l3;
+	uint32_t l4;
+	uint32_t l5;
+	uint32_t l6;
+	uint32_t l7;
+	ipl_t ipl;
+} context_t;
 
 #endif
 

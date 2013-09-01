@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc64_STACK_H_
+#define LIBC_sparc64_STACK_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define STACK_ITEM_SIZE			8
 
-#include <stdint.h>
-#include <stdbool.h>
+/** According to SPARC Compliance Definition, every stack frame is 16-byte aligned. */
+#define STACK_ALIGNMENT			16
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+/**
+ * 16-extended-word save area for %i[0-7] and %l[0-7] registers.
+ */
+#define STACK_WINDOW_SAVE_AREA_SIZE	(16 * STACK_ITEM_SIZE)
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+/*
+ * Six extended words for first six arguments.
+ */
+#define STACK_ARG_SAVE_AREA_SIZE		(6 * STACK_ITEM_SIZE)
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+/**
+ * By convention, the actual top of the stack is %sp + STACK_BIAS.
+ */
+#define STACK_BIAS            2047
 
 #endif
 

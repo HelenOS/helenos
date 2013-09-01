@@ -255,6 +255,10 @@ def get_target(config):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
 		clang_target = "sparc-unknown-linux"
+
+	if (config['PLATFORM'] == "sparc32"):
+		target = config['PLATFORM'];
+		gnu_target = "sparc-leon3-linux-gnu"
 	
 	return (target, cc_args, gnu_target, clang_target)
 

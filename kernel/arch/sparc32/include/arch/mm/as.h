@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup abs32lemm
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_abs32le_AS_H_
+#define KERN_abs32le_AS_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
 
-#include <stdint.h>
-#include <stdbool.h>
+#define KERNEL_ADDRESS_SPACE_START_ARCH  UINT32_C(0x80000000)
+#define KERNEL_ADDRESS_SPACE_END_ARCH    UINT32_C(0xffffffff)
+#define USER_ADDRESS_SPACE_START_ARCH    UINT32_C(0x00000000)
+#define USER_ADDRESS_SPACE_END_ARCH      UINT32_C(0x7fffffff)
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+typedef struct {
+} as_arch_t;
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+#include <genarch/mm/as_pt.h>
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
+#define as_constructor_arch(as, flags)  (as != as)
+#define as_destructor_arch(as)          (as != as)
+#define as_create_arch(as, flags)       (as != as)
+#define as_install_arch(as)
+#define as_deinstall_arch(as)
+#define as_invalidate_translation_cache(as, page, cnt)
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+extern void as_arch_init(void);
 
 #endif
 

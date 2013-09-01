@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
@@ -26,43 +27,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	sparc64 TLS functions.
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc64_TLS_H_
+#define LIBC_sparc64_TLS_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define CONFIG_TLS_VARIANT_2
 
-#include <stdint.h>
-#include <stdbool.h>
+typedef struct {
+	void *self;
+	void *fibril_data;
+} tcb_t;
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+static inline void __tcb_set(tcb_t *tcb)
 {
-	val->count = i;
+	asm volatile ("mov %0, %%g7\n" : : "r" (tcb) : "g7");
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+static inline tcb_t * __tcb_get(void)
 {
-	return val->count;
-}
+	void *retval;
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	asm volatile ("mov %%g7, %0\n" : "=r" (retval));
+
+	return retval;
 }
-#endif
 
 #endif
 

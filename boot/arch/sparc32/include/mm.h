@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32boot
  * @{
  */
 /** @file
+ * @brief Memory management used while booting the kernel.
+ *
+ * So called "section" paging is used while booting the kernel. The term
+ * "section" comes from the ARM architecture specification and stands for the
+ * following: one-level paging, 1MB sized pages, 4096 entries in the page
+ * table.
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef BOOT_sparc32__MM_H
+#define BOOT_sparc32__MM_H
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <typedefs.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define	PAGE_SIZE	(1 << 12)
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+typedef struct {
+	uint32_t pa;
+	uint32_t size;
+	uint32_t va;
+	uint32_t cacheable;
+} section_mapping_t;
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+typedef struct {
+	unsigned int ppn: 24;
+	unsigned int cacheable: 1;
+	unsigned int modified: 1;
+	unsigned int referenced: 1;
+	unsigned int acc: 3;
+	unsigned int et: 2;
+} __attribute__((packed)) pte_t;
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
+extern pte_t boot_pt[PTL0_ENTRIES];
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+void mmu_init(void);
+
+#define	PTE_ET_DESCRIPTOR	1
+#define	PTE_ET_ENTRY		2
+#define	PTE_ACC_RWX		3
+#define	MMU_CONTROL_EN		(1 << 0)
 
 #endif
 

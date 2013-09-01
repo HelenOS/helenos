@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,81 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef LIBC_sparc64_ATOMIC_H_
+#define LIBC_sparc64_ATOMIC_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define LIBC_ARCH_ATOMIC_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <atomicdflt.h>
+#include <sys/types.h>
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+/** Atomic add operation.
+ *
+ * Use atomic compare and swap operation to atomically add signed value.
+ *
+ * @param val Atomic variable.
+ * @param i   Signed value to be added.
+ *
+ * @return Value of the atomic variable as it existed before addition.
+ *
+ */
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	val->count = i;
+	atomic_count_t a;
+	atomic_count_t b;
+	
+	do {
+		volatile uintptr_t ptr = (uintptr_t) &val->count;
+		
+		a = *((atomic_count_t *) ptr);
+		b = a + i;
+		
+// XXX		asm volatile (
+//			"cas %0, %2, %1\n"
+//			: "+m" (*((atomic_count_t *) ptr)),
+//			  "+r" (b)
+//			: "r" (a)
+//		);
+	} while (a != b);
+	
+	return a;
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
-	return val->count;
+	return atomic_add(val, 1) + 1;
 }
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	return atomic_add(val, 1);
 }
-#endif
+
+static inline atomic_count_t atomic_predec(atomic_t *val)
+{
+	return atomic_add(val, -1) - 1;
+}
+
+static inline atomic_count_t atomic_postdec(atomic_t *val)
+{
+	return atomic_add(val, -1);
+}
+
+static inline void atomic_inc(atomic_t *val)
+{
+	(void) atomic_add(val, 1);
+}
+
+static inline void atomic_dec(atomic_t *val)
+{
+	(void) atomic_add(val, -1);
+}
 
 #endif
 

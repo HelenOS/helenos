@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_sparc32_REGISTER_H_
+#define KERN_sparc32_REGISTER_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <typedefs.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+/** Processor State Register. */
+typedef union {
+	uint32_t value;
+	struct {
+		unsigned int impl: 4;
+		unsigned int ver: 4;
+		unsigned int icc: 4;
+		unsigned int : 6;
+		unsigned int ec: 1;
+		unsigned int ef: 1;
+		unsigned int pil: 4;
+		unsigned int s: 1;
+		unsigned int ps: 1;
+		unsigned int et: 1;
+		unsigned int cwp: 5;
+	} __attribute__ ((packed));
+} psr_reg_t;
 
 #endif
 

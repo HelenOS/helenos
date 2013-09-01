@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup abs32le
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_abs32le_BARRIER_H_
+#define KERN_abs32le_BARRIER_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+/*
+ * Provisions are made to prevent compiler from reordering instructions itself.
+ */
 
-#include <stdint.h>
-#include <stdbool.h>
+#define CS_ENTER_BARRIER()
+#define CS_LEAVE_BARRIER()
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+#define memory_barrier()
+#define read_barrier()
+#define write_barrier()
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+#define smc_coherence(addr)
+#define smc_coherence_block(addr, size)
 
 #endif
 

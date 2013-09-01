@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_sparc32_KM_H_
+#define KERN_sparc32_KM_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <typedefs.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define	KM_SPARC32_IDENTITY_START	UINT32_C(0x80000000)
+#define	KM_SPARC32_IDENTITY_SIZE	UINT32_C(0x70000000)
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+#define	KM_SPARC32_NON_IDENTITY_START	UINT32_C(0xf0000000)
+#define	KM_SPARC32_NON_IDENTITY_SIZE	UINT32_C(0xff000000)
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
-
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+extern void km_identity_arch_init(void);
+extern void km_non_identity_arch_init(void);
+extern bool km_is_non_identity_arch(uintptr_t);
 
 #endif
 

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +27,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc64interrupt
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_sparc32_EXCEPTION_H_
+#define KERN_sparc32_EXCEPTION_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#define TT_INSTRUCTION_ACCESS_EXCEPTION		0x01
+#define TT_INSTRUCTION_ACCESS_MMU_MISS		0x3c
+#define TT_INSTRUCTION_ACCESS_ERROR		0x21
+#define TT_ILLEGAL_INSTRUCTION			0x02
+#define TT_PRIVILEGED_INSTRUCTION		0x03
+#define TT_FP_DISABLED				0x08
+#define TT_DIVISION_BY_ZERO			0x2a
+#define TT_DATA_ACCESS_EXCEPTION		0x09
+#define TT_DATA_ACCESS_MMU_MISS			0x2c
+#define TT_DATA_ACCESS_ERROR			0x29
+#define TT_MEM_ADDRESS_NOT_ALIGNED		0x07
 
-#include <stdint.h>
-#include <stdbool.h>
+#ifndef __ASM__
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+/*#include <arch/interrupt.h>*/
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+extern void instruction_access_exception(int n, istate_t *istate);
+extern void instruction_access_error(int n, istate_t *istate);
+extern void illegal_instruction(int n, istate_t *istate);
+extern void privileged_instruction(int n, istate_t *istate);
+extern void fp_disabled(int n, istate_t *istate);
+extern void division_by_zero(int n, istate_t *istate);
+extern void data_access_exception(int n, istate_t *istate);
+extern void data_access_error(int n, istate_t *istate);
+extern void mem_address_not_aligned(int n, istate_t *istate);
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
-
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+#endif /* !__ASM__ */
 
 #endif
 

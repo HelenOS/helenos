@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +27,75 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
+ *  @brief Frame related functions.
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#include <mm/frame.h>
+#include <arch/mm/frame.h>
+#include <config.h>
+#include <align.h>
+#include <macros.h>
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+static void frame_common_arch_init(bool low)
 {
-	val->count = i;
+	uintptr_t base;
+	size_t size;
+
+	//machine_get_memory_extents(&base, &size);
+	base = 0x40000000;
+	size = 0x2000000;
+
+	base = ALIGN_UP(base, FRAME_SIZE);
+	size = ALIGN_DOWN(size, FRAME_SIZE);
+	
+	if (!frame_adjust_zone_bounds(low, &base, &size))
+		return;
+
+	if (low) {
+		zone_create(ADDR2PFN(base), SIZE2FRAMES(size),
+		    BOOT_PT_START_FRAME + BOOT_PT_SIZE_FRAMES,
+		    ZONE_AVAILABLE | ZONE_LOWMEM);
+	} else {
+		pfn_t conf = zone_external_conf_alloc(SIZE2FRAMES(size));
+		if (conf != 0)
+			zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
+			    ZONE_AVAILABLE | ZONE_HIGHMEM);
+	}
+	
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+void physmem_print(void)
 {
-	return val->count;
+
 }
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+/** Create low memory zones. */
+void frame_low_arch_init(void)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
-}
-#endif
+	frame_common_arch_init(true);
 
-#endif
+	/* blacklist boot page table */
+	frame_mark_unavailable(BOOT_PT_START_FRAME, BOOT_PT_SIZE_FRAMES);
+	//machine_frame_init();
+}
+
+/** Create high memory zones. */
+void frame_high_arch_init(void)
+{
+	frame_common_arch_init(false);
+}
+
+/** Frees the boot page table. */
+/*void boot_page_table_free(void)
+{
+	unsigned int i;
+	for (i = 0; i < BOOT_PT_SIZE_FRAMES; i++)
+		frame_free(i * FRAME_SIZE + BOOT_PT_ADDRESS);
+}*/
 
 /** @}
  */

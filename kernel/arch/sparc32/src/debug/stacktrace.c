@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup abs32le
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#include <stacktrace.h>
+#include <syscall/copy.h>
+#include <typedefs.h>
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
-
-#include <stdint.h>
-#include <stdbool.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
-	val->count = i;
+	return true;
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
-	return val->count;
+	return true;
 }
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	return true;
 }
-#endif
 
-#endif
+bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
+{
+	return true;
+}
+
+bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
+{
+	return true;
+}
+
+bool uspace_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
+{
+	return true;
+}
+
+uintptr_t frame_pointer_get(void)
+{
+	return 0;
+}
+
+uintptr_t program_counter_get(void)
+{
+	return 0;
+}
 
 /** @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup abs32leinterrupt
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_abs32le_ISTATE_H_
+#define KERN_abs32le_ISTATE_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <trace.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#ifdef KERNEL
 
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
+#include <verify.h>
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+#else /* KERNEL */
+
+#define REQUIRES_EXTENT_MUTABLE(arg)
+#define WRITES(arg)
+
+#endif /* KERNEL */
+
+/*
+ * On real hardware this stores the registers which
+ * need to be preserved during interupts.
+ */
+typedef struct istate {
+	uintptr_t ip;
+	uintptr_t fp;
+	uint32_t stack[];
+} istate_t;
+
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
 {
-	val->count = i;
+	/* On real hardware this checks whether the interrupted
+	   context originated from user space. */
+	
+	return !(istate->ip & UINT32_C(0x80000000));
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
+    WRITES(&istate->ip)
 {
-	return val->count;
+	/* On real hardware this sets the instruction pointer. */
+	
+	istate->ip = retaddr;
 }
 
-#ifndef CAS
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	/* On real hardware this returns the instruction pointer. */
+	
+	return istate->ip;
 }
-#endif
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
+{
+	/* On real hardware this returns the frame pointer. */
+	
+	return istate->fp;
+}
 
 #endif
 
