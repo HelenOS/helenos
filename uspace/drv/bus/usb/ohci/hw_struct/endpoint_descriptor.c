@@ -32,6 +32,7 @@
  * @brief OHCI driver
  */
 #include "endpoint_descriptor.h"
+#include "macros.h"
 
 /** USB direction to OHCI values translation table. */
 static const uint32_t dir[] = {
@@ -60,8 +61,10 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 		OHCI_MEM32_WR(instance->status, ED_STATUS_K_FLAG);
 		return;
 	}
-	/* Non-dummy ED must have TD assigned */
+	/* Non-dummy ED must have corresponding EP and TD assigned */
 	assert(td);
+	assert(ep);
+	assert(ep->direction < ARRAY_SIZE(dir));
 
 	/* Status: address, endpoint nr, direction mask and max packet size. */
 	OHCI_MEM32_WR(instance->status,
@@ -76,6 +79,7 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 		OHCI_MEM32_SET(instance->status, ED_STATUS_S_FLAG);
 
 	/* Isochronous format flag */
+	// TODO: We need iTD instead of TD for iso transfers
 	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
 		OHCI_MEM32_SET(instance->status, ED_STATUS_F_FLAG);
 
