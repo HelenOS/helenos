@@ -1376,6 +1376,9 @@ static bool loc_init(void)
 	cat = category_new("renderer");
 	categ_dir_add_cat(&cdir, cat);
 	
+	cat = category_new("audio-pcm");
+	categ_dir_add_cat(&cdir, cat);
+	
 	return true;
 }
 

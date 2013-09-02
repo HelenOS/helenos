@@ -29,10 +29,12 @@
 
 #include <arch/arch.h>
 
+#if defined(PROCESSOR_us) || defined(PROCESSOR_us3)
 #define ICACHE_SIZE       8192
 #define ICACHE_LINE_SIZE  32
 #define ICACHE_SET_BIT    (1 << 13)
 #define ASI_ICACHE_TAG    0x67
+#endif	/* PROCESSOR_us || PROCESSOR_us3 */
 
 .register %g2, #scratch
 .register %g3, #scratch
@@ -133,6 +135,7 @@ jump_to_kernel:
 
 # Flush I-cache
 icache_flush:
+#if defined(PROCESSOR_us) || defined(PROCESSOR_us3)
 	set ((ICACHE_SIZE - ICACHE_LINE_SIZE) | ICACHE_SET_BIT), %g1
 	stxa %g0, [%g1] ASI_ICACHE_TAG
 	
@@ -148,6 +151,11 @@ icache_flush:
 	! SF Erratum #51
 	
 	nop
+#else
+	// TODO: sun4v
+	retl
+	nop
+#endif	/* PROCESSOR_us || PROCESSOR_us3 */
 
 .global ofw
 ofw:

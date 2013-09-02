@@ -120,8 +120,10 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon
 
-RD_DRVS = \
-	infrastructure/root \
+RD_DRVS_ESSENTIAL = \
+	infrastructure/root
+
+RD_DRVS_NON_ESSENTIAL = \
 	infrastructure/rootvirt \
 	fb/kfb \
 	test/test1 \
@@ -174,6 +176,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/loc/loc \
+	$(USPACE_PATH)/app/mixerctl/mixerctl \
 	$(USPACE_PATH)/app/logset/logset \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkexfat/mkexfat \
@@ -237,9 +240,11 @@ COMPS_C = arch/$(BARCH)/src/_components.c
 ifeq ($(CONFIG_BAREBONE),y)
 RD_SRVS = $(RD_SRVS_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL)
+RD_DRVS = $(RD_DRVS_ESSENTIAL)
 else
 RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
+RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTIAL)
 endif
 
 MODULES := $(notdir $(COMPONENTS))
