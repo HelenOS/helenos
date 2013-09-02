@@ -63,6 +63,7 @@ GENERIC_SOURCES = \
 	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
+	generic/checksum.c \
 	generic/clipboard.c \
 	generic/devman.c \
 	generic/device/hw_res.c \

@@ -42,6 +42,7 @@ DIRS = \
 	app/dnsres \
 	app/edit \
 	app/getterm \
+	app/hdisk \
 	app/init \
 	app/inet \
 	app/kill \
@@ -233,7 +234,9 @@ LIBS = \
 	lib/usbvirt \
 	lib/pcm \
 	lib/bithenge \
-	lib/posix
+	lib/posix \
+	lib/mbr \
+	lib/gpt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
