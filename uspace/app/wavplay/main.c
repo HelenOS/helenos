@@ -78,10 +78,14 @@ static int hplay_ctx(hound_context_t *ctx, const char *filename)
 	int ret = wav_parse_header(&header, NULL, NULL, &format.channels,
 	    &format.sampling_rate, &format.sample_format, &error);
 	if (ret != EOK) {
-		printf("Error parsing wav header: %s.\n", error);
+		printf("Error parsing `%s' wav header: %s.\n", filename, error);
 		fclose(source);
 		return EINVAL;
 	}
+
+	printf("File `%s' format: %u channel(s), %uHz, %s.\n", filename,
+	    format.channels, format.sampling_rate,
+	    pcm_sample_format_str(format.sample_format));
 
 	/* Allocate buffer and create new context */
 	char * buffer = malloc(READ_SIZE);
@@ -135,10 +139,13 @@ static int hplay(const char *filename)
 	int ret = wav_parse_header(&header, NULL, NULL, &format.channels,
 	    &format.sampling_rate, &format.sample_format, &error);
 	if (ret != EOK) {
-		printf("Error parsing wav header: %s.\n", error);
+		printf("Error parsing `%s' wav header: %s.\n", filename, error);
 		fclose(source);
 		return EINVAL;
 	}
+	printf("File `%s' format: %u channel(s), %uHz, %s.\n", filename,
+	    format.channels, format.sampling_rate,
+	    pcm_sample_format_str(format.sample_format));
 
 	/* Connect new playback context */
 	hound_context_t *hound = hound_context_create_playback(filename,
