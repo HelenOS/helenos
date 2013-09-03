@@ -344,6 +344,15 @@ temporary_boot_stack:
 physmem_base:
 	.quad 0
 
+/*
+ * This variable is used by the fast_data_access_MMU_miss trap handler.
+ * In runtime, it is modified to contain the address of the end of physical
+ * memory.
+ */
+.global end_of_identity
+end_of_identity:
+	.quad -1
+
 .global kernel_8k_tlb_data_template
 kernel_8k_tlb_data_template:
 	.quad 0
