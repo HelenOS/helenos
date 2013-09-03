@@ -400,6 +400,7 @@ int main(int argc, char *argv[])
 			getterm("term/vc6", "/app/klog", false);
 		}
 	}
+	srv_start("/srv/hound");
 	
 	return 0;
 }
