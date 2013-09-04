@@ -19,4 +19,4 @@ if [ ! -f "$DISK_IMG" ]; then
 	tools/mkfat.py 1048576 uspace/dist/data "$DISK_IMG"
 fi
 
-"${QEMU_BINARY}" "$@" -m 32 -hda "$DISK_IMG" -cdrom image.iso -boot d
+"${QEMU_BINARY}" "$@" -m 64 -hda "$DISK_IMG" -cdrom image.iso -boot d -soundhw sb16

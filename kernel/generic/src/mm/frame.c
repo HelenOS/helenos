@@ -517,7 +517,9 @@ NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t frame_idx)
 /** Mark frame in zone unavailable to allocation. */
 NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t frame_idx)
 {
-	ASSERT(zone->flags & ZONE_AVAILABLE);
+	if (!(zone->flags & ZONE_AVAILABLE))
+		return;
+//	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, frame_idx);
 	if (frame->refcount)
@@ -934,8 +936,11 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 				break;
 			}
 			
-			if (confframe >= start + count)
-				panic("Cannot find configuration data for zone.");
+			if (confframe >= start + count) {
+				flags &= ~ZONE_AVAILABLE;
+				goto nonavail;
+//				panic("Cannot find configuration data for zone.");
+			}
 		}
 		
 		size_t znum = zones_insert_zone(start, count, flags);
@@ -959,7 +964,8 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		
 		return znum;
 	}
-	
+nonavail:
+	(void)0; // label trick
 	/* Non-available zone */
 	size_t znum = zones_insert_zone(start, count, flags);
 	if (znum == (size_t) -1) {
