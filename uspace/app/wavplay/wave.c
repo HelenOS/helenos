@@ -80,7 +80,7 @@ int wav_parse_header(const void *hdata, const void **data, size_t *data_size,
 		return EINVAL;
 	}
 
-	if (uint16_t_le2host(header->subchunk1_size) != PCM_SUBCHUNK1_SIZE) {
+	if (uint32_t_le2host(header->subchunk1_size) != PCM_SUBCHUNK1_SIZE) {
 		if (error)
 			*error = "invalid subchunk1 size";
 		return EINVAL;
