@@ -74,8 +74,12 @@ int main(int argc, char *argv[])
 	/******************************************/
 	/*   Parse command line options...        */
 	/******************************************/
-	while ((optres = getopt(argc, argv, ":hb:")) != -1) {
+	while ((optres = getopt(argc, argv, ":uhb:")) != -1) {
 		switch(optres) {
+		case 'u':
+			print_usage();
+			return 0;
+
 		case 'h':
 			human_readable = 1;
 			break;
@@ -158,11 +162,11 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 	if (human_readable) {
 		char tmp[1024];
 		size_to_human_readable(tmp, st->f_blocks *  st->f_bsize);
-		printf(" %14s", tmp);                                                                 /* Size       */
+		printf(" %14s", tmp);                                                                  /* Size       */
 		size_to_human_readable(tmp, (st->f_blocks - st->f_bfree)  *  st->f_bsize);
-		printf(" %14s", tmp);                                                                 /* Used       */
+		printf(" %14s", tmp);                                                                  /* Used       */
 		size_to_human_readable(tmp, st->f_bfree *  st->f_bsize);
-		printf(" %14s", tmp);                                                                 /* Available  */
+		printf(" %14s", tmp);                                                                  /* Available  */
 		printf(" %4llu%% %s\n", 
 			(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
 			mountpoint                                                                     /* Mounted on */
@@ -182,6 +186,7 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 static void print_usage(void)
 {
   printf("syntax: %s [-h] [-i]\n", NAME);
+  printf("  u : Print usage.\n");  
   printf("  h : \"Human-readable\" output.\n");  
   printf("  b : Scale block sizes by selected size.\n");  
   printf("\n");
