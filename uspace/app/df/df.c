@@ -185,8 +185,8 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 
 static void print_usage(void)
 {
-  printf("syntax: %s [-h] [-i]\n", NAME);
-  printf("  u : Print usage.\n");  
+  printf("syntax: %s [-u] [-h] [-b <size>] \n", NAME);
+  printf("  u : Show usage.\n");  
   printf("  h : \"Human-readable\" output.\n");  
   printf("  b : Scale block sizes by selected size.\n");  
   printf("\n");
