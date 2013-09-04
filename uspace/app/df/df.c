@@ -74,13 +74,10 @@ int main(int argc, char *argv[])
 	/******************************************/
 	/*   Parse command line options...        */
 	/******************************************/
-	while ((optres = getopt(argc, argv, ":hib:")) != -1) {
+	while ((optres = getopt(argc, argv, ":hb:")) != -1) {
 		switch(optres) {
 		case 'h':
 			human_readable = 1;
-			break;
-
-		case 'i':
 			break;
 
 		case 'b':
@@ -186,7 +183,6 @@ static void print_usage(void)
 {
   printf("syntax: %s [-h] [-i]\n", NAME);
   printf("  h : \"Human-readable\" output.\n");  
-  printf("  i : Include statistics on the number of free inodes. \n");
   printf("\n");
 }
 
