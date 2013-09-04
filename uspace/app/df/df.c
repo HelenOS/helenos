@@ -183,6 +183,7 @@ static void print_usage(void)
 {
   printf("syntax: %s [-h] [-i]\n", NAME);
   printf("  h : \"Human-readable\" output.\n");  
+  printf("  b : Scale block sizes by selected size.\n");  
   printf("\n");
 }
 
