@@ -1,1 +1,1 @@
-../../../../../../../kernel/arch/sparc64/include/arch/elf.h
+../../../../../../../kernel/arch/sparc32/include/arch/elf.h
