@@ -62,8 +62,6 @@ typedef uint8_t frame_flags_t;
 #define FRAME_LOWMEM	  0x10
 /** Allocate a frame which cannot be identity-mapped. */
 #define FRAME_HIGHMEM	  0x20
-/** Allocate a frame which needs to be from DMA zone. */
-#define FRAME_DMA         0x40
 
 typedef uint8_t zone_flags_t;
 
@@ -78,17 +76,14 @@ typedef uint8_t zone_flags_t;
 #define ZONE_LOWMEM	0x8
 /** Zone contains memory that cannot be identity-mapped */
 #define ZONE_HIGHMEM	0x10
-/** Zone contains memory suitable for old ISA DMA */
-#define ZONE_DMA        0x20
 
 /** Mask of zone bits that must be matched exactly. */
 #define ZONE_EF_MASK	0x7
 
-#define FRAME_TO_ZONE_FLAGS(ff)	\
-	((((ff) & FRAME_DMA) ? ZONE_DMA : \
-	    (((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : \
+#define FRAME_TO_ZONE_FLAGS(ff) \
+	((((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : \
 	    (((ff) & FRAME_HIGHMEM) ? ZONE_HIGHMEM : \
-	    ZONE_LOWMEM /* | ZONE_HIGHMEM */))) | \
+	    ZONE_LOWMEM /* | ZONE_HIGHMEM */)) | \
 	    ZONE_AVAILABLE)
 
 #define ZONE_FLAGS_MATCH(zf, f) \
