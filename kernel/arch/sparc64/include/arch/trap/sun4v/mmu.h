@@ -101,6 +101,13 @@
 	brz %g1, 0f
 	nop
 
+	/* exclude pages beyond the end of memory from the identity mapping */
+	sethi %hi(end_of_identity), %g4
+	ldx [%g4 + %lo(end_of_identity)], %g4
+	cmp %g1, %g4
+	bgeu %xcc, 0f
+	nop
+
 	/*
 	 * Installing the identity does not fit into 32 instructions, call
 	 * a separate routine. The routine performs RETRY, hence the call never

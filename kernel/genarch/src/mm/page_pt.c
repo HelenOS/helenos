@@ -111,7 +111,7 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		 * Make the new PTL2 visible only after it is fully initialized.
 		 */
 		write_barrier();
-		SET_PTL2_PRESENT(ptl1, PTL1_INDEX(page));	
+		SET_PTL2_PRESENT(ptl1, PTL1_INDEX(page));
 	}
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
@@ -179,7 +179,11 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	/*
 	 * Destroy the mapping.
 	 * Setting to PAGE_NOT_PRESENT is not sufficient.
+	 * But we need SET_FRAME for possible PT coherence maintenance.
+	 * At least on ARM.
 	 */
+	//TODO: Fix this inconsistency
+	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), PAGE_NOT_PRESENT);
 	memsetb(&ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
 	
 	/*

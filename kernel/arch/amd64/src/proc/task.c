@@ -33,8 +33,9 @@
  */
 
 #include <proc/task.h>
-#include <mm/slab.h>
 #include <typedefs.h>
+#include <adt/bitmap.h>
+#include <mm/slab.h>
 
 /** Perform amd64 specific task initialization.
  *
@@ -44,7 +45,7 @@
 void task_create_arch(task_t *task)
 {
 	task->arch.iomapver = 0;
-	bitmap_initialize(&task->arch.iomap, NULL, 0);
+	bitmap_initialize(&task->arch.iomap, 0, 0, NULL);
 }
 
 /** Perform amd64 specific task destruction.
@@ -54,8 +55,8 @@ void task_create_arch(task_t *task)
  */
 void task_destroy_arch(task_t *task)
 {
-	if (task->arch.iomap.map)
-		free(task->arch.iomap.map);
+	if (task->arch.iomap.bits != NULL)
+		free(task->arch.iomap.bits);
 }
 
 /** @}

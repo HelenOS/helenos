@@ -52,7 +52,6 @@
 #include <debug.h>
 #include <func.h>
 #include <str.h>
-#include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
 #include <symtab.h>

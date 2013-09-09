@@ -249,6 +249,9 @@ extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, unsigned int,
     uintptr_t *, uintptr_t);
 extern int as_area_change_flags(as_t *, unsigned int, uintptr_t);
 
+//TODO REMOVE!
+extern as_area_t * find_locked_area(as_t *as, uintptr_t va);
+
 extern unsigned int as_area_get_flags(as_area_t *);
 extern bool as_area_check_access(as_area_t *, pf_access_t);
 extern size_t as_area_get_size(uintptr_t);

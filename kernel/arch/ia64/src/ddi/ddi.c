@@ -55,20 +55,22 @@
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	if (!task->arch.iomap) {
-		uint8_t *map;
-
 		task->arch.iomap = malloc(sizeof(bitmap_t), 0);
-		map = malloc(BITS2BYTES(IO_MEMMAP_PAGES), 0);
-		if(!map)
+		if (task->arch.iomap == NULL)
 			return ENOMEM;
-		bitmap_initialize(task->arch.iomap, map, IO_MEMMAP_PAGES);
+		
+		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES, 0), 0);
+		if (store == NULL)
+			return ENOMEM;
+		
+		bitmap_initialize(task->arch.iomap, IO_MEMMAP_PAGES, 0, store);
 		bitmap_clear_range(task->arch.iomap, 0, IO_MEMMAP_PAGES);
 	}
 	
 	uintptr_t iopage = ioaddr / PORTS_PER_PAGE;
 	size = ALIGN_UP(size + ioaddr - 4 * iopage, PORTS_PER_PAGE);
 	bitmap_set_range(task->arch.iomap, iopage, size / 4);
-
+	
 	return 0;
 }
 
