@@ -383,6 +383,7 @@ int main(int argc, char *argv[])
 	
 	srv_start("/srv/input", HID_INPUT);
 	srv_start("/srv/output", HID_OUTPUT);
+	srv_start("/srv/hound");
 	
 	int rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
 	if (rc == EOK) {
