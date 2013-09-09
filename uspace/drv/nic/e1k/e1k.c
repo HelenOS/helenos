@@ -58,9 +58,9 @@
 
 #define E1000_DEFAULT_INTERRUPT_INTERVAL_USEC  250
 
-/* Must be power of 8 */ //TODO power or multiple? previous value was 128
-#define E1000_RX_FRAME_COUNT  8
-#define E1000_TX_FRAME_COUNT  8
+/* Must be power of 8 */
+#define E1000_RX_FRAME_COUNT  128
+#define E1000_TX_FRAME_COUNT  128
 
 #define E1000_RECEIVE_ADDRESS  16
 
