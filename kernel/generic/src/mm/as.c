@@ -673,13 +673,6 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 	return NULL;
 }
 
-/** UGLY! UGLY! UGLY! */
-// TODO: REMOVE ASAP!
-as_area_t * find_locked_area(as_t *as, uintptr_t va)
-{
-	return find_area_and_lock(as, va);
-}
-
 /** Find address space area and change it.
  *
  * @param as      Address space.
