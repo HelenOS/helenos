@@ -872,7 +872,7 @@ pfn_t zone_external_conf_alloc(size_t count)
 	size_t order = ispwr2(size) ? fnzb(size) : (fnzb(size) + 1);
 
 	return ADDR2PFN((uintptr_t) frame_alloc(order - FRAME_WIDTH,
-	    FRAME_LOWMEM | FRAME_ATOMIC));
+	    FRAME_LOWMEM | FRAME_ATOMIC, 0));
 }
 
 /** Create and add zone to system.
@@ -1023,7 +1023,8 @@ void *frame_get_parent(pfn_t pfn, size_t hint)
  * @return Physical address of the allocated frame.
  *
  */
-void *frame_alloc_generic(uint8_t order, frame_flags_t flags, size_t *pzone)
+uintptr_t frame_alloc_generic(uint8_t order, frame_flags_t flags,
+    uintptr_t constraint, size_t *pzone)
 {
 	size_t size = ((size_t) 1) << order;
 	size_t hint = pzone ? (*pzone) : 0;
@@ -1070,7 +1071,7 @@ loop:
 			irq_spinlock_unlock(&zones.lock, true);
 			if (!(flags & FRAME_NO_RESERVE))
 				reserve_free(size);
-			return NULL;
+			return 0;
 		}
 		
 #ifdef CONFIG_DEBUG
@@ -1125,20 +1126,19 @@ loop:
 	if (pzone)
 		*pzone = znum;
 	
-	if (flags & FRAME_KA)
-		return (void *) PA2KA(PFN2ADDR(pfn));
-	
-	return (void *) PFN2ADDR(pfn);
+	return PFN2ADDR(pfn);
 }
 
-void *frame_alloc(uint8_t order, frame_flags_t flags)
+uintptr_t frame_alloc(uint8_t order, frame_flags_t flags, uintptr_t constraint)
 {
-	return frame_alloc_generic(order, flags, NULL);
+	return frame_alloc_generic(order, flags, constraint, NULL);
 }
 
-void *frame_alloc_noreserve(uint8_t order, frame_flags_t flags)
+uintptr_t frame_alloc_noreserve(uint8_t order, frame_flags_t flags,
+    uintptr_t constraint)
 {
-	return frame_alloc_generic(order, flags | FRAME_NO_RESERVE, NULL);
+	return frame_alloc_generic(order, flags | FRAME_NO_RESERVE, constraint,
+	    NULL);
 }
 
 /** Free a frame.

@@ -70,7 +70,7 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 	uint8_t order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
 	    sizeof(tsb_entry_t)) >> FRAME_WIDTH);
 	
-	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
+	uintptr_t tsb = PA2KA(frame_alloc(order, flags, 0));
 	
 	if (!tsb)
 		return -1;

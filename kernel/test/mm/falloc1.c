@@ -57,8 +57,8 @@ const char *test_falloc1(void)
 			
 			unsigned int allocated = 0;
 			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = (uintptr_t)
-				    frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+				frames[allocated] =
+				    PA2KA(frame_alloc(order, FRAME_ATOMIC, 0));
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) !=
 				    frames[allocated]) {

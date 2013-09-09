@@ -68,7 +68,7 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 	uint8_t order = fnzb32(
 		(TSB_ENTRY_COUNT * sizeof(tsb_entry_t)) >> FRAME_WIDTH);
 	
-	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags);
+	uintptr_t tsb = frame_alloc(order, flags, 0);
 	
 	if (!tsb)
 		return -1;

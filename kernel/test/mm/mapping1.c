@@ -41,12 +41,11 @@
 const char *test_mapping1(void)
 {
 	uintptr_t page0, page1;
-	uintptr_t frame;
 	uint32_t v;
 	int i;
 	
-	frame = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_NONE);
-
+	uintptr_t frame = frame_alloc(ONE_FRAME, FRAME_NONE, 0);
+	
 	page0 = km_map(frame, FRAME_SIZE,
 	    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 	TPRINTF("Virtual address %p mapped to physical address %p.\n",

@@ -80,8 +80,8 @@ static sysarg_t secfrag = 0;
  */
 void clock_counter_init(void)
 {
-	void *faddr = frame_alloc(ONE_FRAME, FRAME_ATOMIC);
-	if (!faddr)
+	uintptr_t faddr = frame_alloc(ONE_FRAME, FRAME_ATOMIC, 0);
+	if (faddr == 0)
 		panic("Cannot allocate page for clock.");
 	
 	uptime = (uptime_t *) PA2KA(faddr);
@@ -90,7 +90,7 @@ void clock_counter_init(void)
 	uptime->seconds2 = 0;
 	uptime->useconds = 0;
 	
-	clock_parea.pbase = (uintptr_t) faddr;
+	clock_parea.pbase = faddr;
 	clock_parea.frames = 1;
 	clock_parea.unpriv = true;
 	clock_parea.mapped = false;

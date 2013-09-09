@@ -248,15 +248,14 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	/*
 	 * Allocate a frame, preferably from high memory.
 	 */
-	frame = (uintptr_t) frame_alloc(ONE_FRAME,
-	    FRAME_HIGHMEM | FRAME_ATOMIC | flags); 
+	frame = frame_alloc(ONE_FRAME,
+	    FRAME_HIGHMEM | FRAME_ATOMIC | flags, 0); 
 	if (frame) {
 		page = km_map(frame, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		ASSERT(page);	// FIXME
 	} else {
-		frame = (uintptr_t) frame_alloc(ONE_FRAME,
-		    FRAME_LOWMEM | flags);
+		frame = frame_alloc(ONE_FRAME, FRAME_LOWMEM | flags, 0);
 		if (!frame)
 			return (uintptr_t) NULL;
 		page = PA2KA(frame);

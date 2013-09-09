@@ -191,7 +191,8 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	kmflags |= FRAME_LOWMEM;
 	kmflags &= ~FRAME_HIGHMEM;
 	
-	thread->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
+	thread->kstack = (uint8_t *)
+	    PA2KA(frame_alloc(STACK_FRAMES, kmflags, 0));
 	if (!thread->kstack) {
 #ifdef CONFIG_FPU
 		if (thread->saved_fpu_context)

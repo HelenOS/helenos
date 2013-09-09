@@ -52,8 +52,8 @@ static void falloc(void *arg)
 {
 	uint8_t val = THREAD->tid % THREADS;
 	
-	void **frames = (void **)
-	    malloc(MAX_FRAMES * sizeof(void *), FRAME_ATOMIC);
+	uintptr_t *frames = (uintptr_t *)
+	    malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	if (frames == NULL) {
 		TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 		    "Unable to allocate frames\n", THREAD->tid, CPU->id);
@@ -73,9 +73,9 @@ static void falloc(void *arg)
 			unsigned int allocated = 0;
 			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
 				frames[allocated] =
-				    frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+				    PA2KA(frame_alloc(order, FRAME_ATOMIC, 0));
 				if (frames[allocated]) {
-					memsetb(frames[allocated], FRAME_SIZE << order, val);
+					memsetb((void *) frames[allocated], FRAME_SIZE << order, val);
 					allocated++;
 				} else
 					break;
@@ -92,7 +92,7 @@ static void falloc(void *arg)
 				    k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
 						TPRINTF("Thread #%" PRIu64 " (cpu%u): "
-						    "Unexpected data (%c) in block %p offset %zu\n",
+						    "Unexpected data (%c) in block %zu offset %zu\n",
 						    THREAD->tid, CPU->id, ((char *) frames[i])[k],
 						    frames[i], k);
 						atomic_inc(&thread_fail);

@@ -49,36 +49,34 @@
 
 typedef uint8_t frame_flags_t;
 
-#define FRAME_NONE        0x0
-/** Convert the frame address to kernel VA. */
-#define FRAME_KA          0x1
+#define FRAME_NONE        0x00
 /** Do not panic and do not sleep on failure. */
-#define FRAME_ATOMIC      0x2
+#define FRAME_ATOMIC      0x01
 /** Do not start reclaiming when no free memory. */
-#define FRAME_NO_RECLAIM  0x4
+#define FRAME_NO_RECLAIM  0x02
 /** Do not reserve / unreserve memory. */
-#define FRAME_NO_RESERVE  0x8
+#define FRAME_NO_RESERVE  0x04
 /** Allocate a frame which can be identity-mapped. */
-#define FRAME_LOWMEM	  0x10
+#define FRAME_LOWMEM      0x08
 /** Allocate a frame which cannot be identity-mapped. */
-#define FRAME_HIGHMEM	  0x20
+#define FRAME_HIGHMEM     0x10
 
 typedef uint8_t zone_flags_t;
 
-#define ZONE_NONE	0x0
+#define ZONE_NONE       0x00
 /** Available zone (free for allocation) */
-#define ZONE_AVAILABLE  0x1
+#define ZONE_AVAILABLE  0x01
 /** Zone is reserved (not available for allocation) */
-#define ZONE_RESERVED   0x2
+#define ZONE_RESERVED   0x02
 /** Zone is used by firmware (not available for allocation) */
-#define ZONE_FIRMWARE   0x4
+#define ZONE_FIRMWARE   0x04
 /** Zone contains memory that can be identity-mapped */
-#define ZONE_LOWMEM	0x8
+#define ZONE_LOWMEM     0x08
 /** Zone contains memory that cannot be identity-mapped */
-#define ZONE_HIGHMEM	0x10
+#define ZONE_HIGHMEM    0x10
 
 /** Mask of zone bits that must be matched exactly. */
-#define ZONE_EF_MASK	0x7
+#define ZONE_EF_MASK  0x07
 
 #define FRAME_TO_ZONE_FLAGS(ff) \
 	((((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : \
@@ -137,8 +135,9 @@ NO_TRACE static inline pfn_t ADDR2PFN(uintptr_t addr)
 
 NO_TRACE static inline size_t SIZE2FRAMES(size_t size)
 {
-	if (!size)
+	if (size == 0)
 		return 0;
+	
 	return (size_t) ((size - 1) >> FRAME_WIDTH) + 1;
 }
 
@@ -160,9 +159,9 @@ NO_TRACE static inline size_t FRAMES2SIZE(size_t frames)
 
 extern void frame_init(void);
 extern bool frame_adjust_zone_bounds(bool, uintptr_t *, size_t *);
-extern void *frame_alloc_generic(uint8_t, frame_flags_t, size_t *);
-extern void *frame_alloc(uint8_t, frame_flags_t);
-extern void *frame_alloc_noreserve(uint8_t, frame_flags_t);
+extern uintptr_t frame_alloc_generic(uint8_t, frame_flags_t, uintptr_t, size_t *);
+extern uintptr_t frame_alloc(uint8_t, frame_flags_t, uintptr_t);
+extern uintptr_t frame_alloc_noreserve(uint8_t, frame_flags_t, uintptr_t);
 extern void frame_free_generic(uintptr_t, frame_flags_t);
 extern void frame_free(uintptr_t);
 extern void frame_free_noreserve(uintptr_t);

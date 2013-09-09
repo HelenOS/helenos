@@ -81,8 +81,8 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	ASSERT(page_table_locked(as));
 	
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-		pte_t *newpt = (pte_t *) frame_alloc(PTL1_SIZE,
-		    FRAME_LOWMEM | FRAME_KA);
+		pte_t *newpt = (pte_t *) PA2KA(frame_alloc(PTL1_SIZE,
+		    FRAME_LOWMEM, 0));
 		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
@@ -100,8 +100,8 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-		pte_t *newpt = (pte_t *) frame_alloc(PTL2_SIZE,
-		    FRAME_LOWMEM | FRAME_KA);
+		pte_t *newpt = (pte_t *) PA2KA(frame_alloc(PTL2_SIZE,
+		    FRAME_LOWMEM, 0));
 		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
@@ -117,8 +117,8 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-		pte_t *newpt = (pte_t *) frame_alloc(PTL3_SIZE,
-		    FRAME_LOWMEM | FRAME_KA);
+		pte_t *newpt = (pte_t *) PA2KA(frame_alloc(PTL3_SIZE,
+		    FRAME_LOWMEM, 0));
 		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
@@ -384,7 +384,7 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 	    addr += ptl0_step) {
 		uintptr_t l1;
 
-		l1 = (uintptr_t) frame_alloc(order, FRAME_KA | FRAME_LOWMEM);
+		l1 = PA2KA(frame_alloc(order, FRAME_LOWMEM, 0));
 		memsetb((void *) l1, FRAME_SIZE << order, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(addr),
