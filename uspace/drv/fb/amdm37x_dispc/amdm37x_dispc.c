@@ -280,6 +280,7 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 		ddf_log_error("Failed to get new FB\n");
 		return ret;
 	}
+	
 	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp *8, (uint32_t)pa);
 	dispc->active_fb.idx = mode.index;
 	dispc->active_fb.width = x;
