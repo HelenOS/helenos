@@ -164,6 +164,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/bithenge/bithenge \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
+	$(USPACE_PATH)/app/corecfg/corecfg \
 	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \

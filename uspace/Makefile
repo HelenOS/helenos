@@ -37,6 +37,7 @@ DIRS = \
 	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
+	app/corecfg \
 	app/devctl \
 	app/dnscfg \
 	app/dnsres \

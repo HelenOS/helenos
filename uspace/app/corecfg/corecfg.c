@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup corecfg
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file Core file configuration utility.
  */
 
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
+#include <corecfg.h>
+#include <errno.h>
+#include <stdio.h>
 
-#include <fourcc.h>
+#define NAME "dnscfg"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
-	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
-} services_t;
+static void print_syntax(void)
+{
+	printf("Syntax:\n");
+	printf("\t%s [get]\n", NAME);
+	printf("\t%s enable\n", NAME);
+	printf("\t%s disable\n", NAME);
+}
 
-#define SERVICE_NAME_CORECFG	"corecfg"
-#define SERVICE_NAME_DNSR       "net/dnsr"
-#define SERVICE_NAME_INET       "net/inet"
-#define SERVICE_NAME_INETCFG    "net/inetcfg"
-#define SERVICE_NAME_INETPING   "net/inetping"
-#define SERVICE_NAME_INETPING6  "net/inetping6"
+static int corecfg_print(void)
+{
+	bool enable;
+	int rc;
 
-#endif
+	rc = corecfg_get_enable(&enable);
+	if (rc != EOK) {
+		printf("Failed getting core file setting.\n");
+		return 1;
+	}
+
+	printf("Core files: %s.\n", enable ? "enabled" : "disabled");
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	int rc;
+
+	rc = corecfg_init();
+	if (rc != EOK) {
+		printf("Failed contacting corecfg service.\n");
+		return 1;
+	}
+
+	if ((argc < 2) || (str_cmp(argv[1], "get") == 0))
+		return corecfg_print();
+	else if (str_cmp(argv[1], "enable") == 0)
+		return corecfg_set_enable(true);
+	else if (str_cmp(argv[1], "disable") == 0)
+		return corecfg_set_enable(false);
+	else {
+		printf("%s: Unknown command '%s'.\n", NAME, argv[1]);
+		print_syntax();
+		return 1;
+	}
+
+	return 0;
+}
 
 /** @}
  */

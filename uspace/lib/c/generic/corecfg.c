@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
- */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
- */
+#include <async.h>
+#include <assert.h>
+#include <corecfg.h>
+#include <errno.h>
+#include <ipc/corecfg.h>
+#include <ipc/services.h>
+#include <loc.h>
+#include <stdlib.h>
 
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
+static async_sess_t *corecfg_sess = NULL;
 
-#include <fourcc.h>
+int corecfg_init(void)
+{
+	service_id_t corecfg_svc;
+	int rc;
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOAD       = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-	SERVICE_IRC        = FOURCC('i', 'r', 'c', ' '),
-	SERVICE_CLIPBOARD  = FOURCC('c', 'l', 'i', 'p'),
-	SERVICE_UDP        = FOURCC('u', 'd', 'p', ' '),
-	SERVICE_TCP        = FOURCC('t', 'c', 'p', ' ')
-} services_t;
+	assert(corecfg_sess == NULL);
 
-#define SERVICE_NAME_CORECFG	"corecfg"
-#define SERVICE_NAME_DNSR       "net/dnsr"
-#define SERVICE_NAME_INET       "net/inet"
-#define SERVICE_NAME_INETCFG    "net/inetcfg"
-#define SERVICE_NAME_INETPING   "net/inetping"
-#define SERVICE_NAME_INETPING6  "net/inetping6"
+	rc = loc_service_get_id(SERVICE_NAME_CORECFG, &corecfg_svc,
+	    IPC_FLAG_BLOCKING);
+	if (rc != EOK)
+		return ENOENT;
 
-#endif
+	corecfg_sess = loc_service_connect(EXCHANGE_SERIALIZE, corecfg_svc,
+	    IPC_FLAG_BLOCKING);
+	if (corecfg_sess == NULL)
+		return ENOENT;
+
+	return EOK;
+}
+
+/** Get core dump enable status. */
+int corecfg_get_enable(bool *renable)
+{
+	async_exch_t *exch = async_exchange_begin(corecfg_sess);
+	sysarg_t enable;
+
+	int rc = async_req_0_1(exch, CORECFG_GET_ENABLE, &enable);
+
+	async_exchange_end(exch);
+
+	if (rc != EOK)
+		return rc;
+
+	*renable = enable;
+	return EOK;
+}
+
+/** Enable or disable core dumps. */
+int corecfg_set_enable(bool enable)
+{
+	async_exch_t *exch = async_exchange_begin(corecfg_sess);
+	int rc = async_req_1_0(exch, CORECFG_SET_ENABLE, (sysarg_t) enable);
+
+	async_exchange_end(exch);
+
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
 
 /** @}
  */
