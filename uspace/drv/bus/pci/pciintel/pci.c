@@ -232,25 +232,30 @@ static driver_t pci_driver = {
 
 static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
+	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
+	uint32_t val;
 	
 	fibril_mutex_lock(&bus->conf_mutex);
-	
-	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
-	void *addr = bus->conf_data_port + (reg & 3);
-	
+
 	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
-	
+
+	/*
+	 * Always read full 32-bits from the PCI conf_data_port register and
+	 * get the desired portion of it afterwards. Some architectures do not
+	 * support shorter PIO reads offset from this register.
+ 	 */
+	val = uint32_t_le2host(pio_read_32(bus->conf_data_port));
+
 	switch (len) {
 	case 1:
-		/* No endianness change for 1 byte */
-		buf[0] = pio_read_8(addr);
+		*buf = (uint8_t) (val >> ((reg & 3) * 8));
 		break;
 	case 2:
-		((uint16_t *) buf)[0] = uint16_t_le2host(pio_read_16(addr));
+		*((uint16_t *) buf) = (uint16_t) (val >> ((reg & 3)) * 8);
 		break;
 	case 4:
-		((uint32_t *) buf)[0] = uint32_t_le2host(pio_read_32(addr));
+		*((uint32_t *) buf) = (uint32_t) val;
 		break;
 	}
 	
@@ -259,27 +264,43 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 
 static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
+	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
+	uint32_t val;
 	
 	fibril_mutex_lock(&bus->conf_mutex);
-	
-	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
-	void *addr = bus->conf_data_port + (reg & 3);
-	
-	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
+
+	/*
+	 * Prepare to write full 32-bits to the PCI conf_data_port register.
+	 * Some architectures do not support shorter PIO writes offset from this
+	 * register.
+ 	 */
+
+	if (len < 4) {
+		/*
+ 		 * We have fewer than full 32-bits, so we need to read the
+ 		 * missing bits first.
+ 		 */
+		pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
+		val = uint32_t_le2host(pio_read_32(bus->conf_data_port));
+	}
 	
 	switch (len) {
 	case 1:
-		/* No endianness change for 1 byte */
-		pio_write_8(addr, buf[0]);
+		val &= ~(0xffU << ((reg & 3) * 8));
+		val |= *buf << ((reg & 3) * 8);
 		break;
 	case 2:
-		pio_write_16(addr, host2uint16_t_le(((uint16_t *) buf)[0]));
+		val &= ~(0xffffU << ((reg & 3) * 8));
+		val |= *((uint16_t *) buf) << ((reg & 3) * 8);
 		break;
 	case 4:
-		pio_write_32(addr, host2uint32_t_le(((uint32_t *) buf)[0]));
+		val = *((uint32_t *) buf);
 		break;
 	}
+
+	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
+	pio_write_32(bus->conf_data_port, host2uint32_t_le(val));
 	
 	fibril_mutex_unlock(&bus->conf_mutex);
 }
