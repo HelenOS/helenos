@@ -187,6 +187,13 @@ ifeq ($(UARCH),ia32)
 		srv/hw/irc/i8259
 endif
 
+ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+	DIRS += \
+		drv/infrastructure/rootmalta \
+		drv/bus/pci/pciintel \
+		drv/bus/isa
+endif
+
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
