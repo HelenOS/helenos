@@ -326,14 +326,14 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, unsigned int map_flags,
 {
 	ASSERT(TASK);
 	
-	size_t pages = SIZE2FRAMES(size);
+	size_t frames = SIZE2FRAMES(size);
 	uint8_t order;
 	
-	/* We need the 2^order >= pages */
-	if (pages == 1)
+	/* We need the 2^order >= frames */
+	if (frames == 1)
 		order = 0;
 	else
-		order = fnzb(pages - 1) + 1;
+		order = fnzb(frames - 1) + 1;
 	
 	*phys = frame_alloc_noreserve(order, 0, 0);
 	if (*phys == 0)
@@ -341,7 +341,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, unsigned int map_flags,
 	
 	mem_backend_data_t backend_data;
 	backend_data.base = *phys;
-	backend_data.frames = pages;
+	backend_data.frames = frames;
 	
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {

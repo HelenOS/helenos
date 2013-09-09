@@ -89,6 +89,7 @@ typedef struct {
 	link_t link;
 	
 	/* Configuration */
+	
 	/** Size of slab position - align_up(sizeof(obj)) */
 	size_t size;
 	

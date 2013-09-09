@@ -183,9 +183,8 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 	
 	void *data = (void *)
 	    PA2KA(frame_alloc_generic(cache->order, flags, 0, &zone));
-	if (!data) {
+	if (!data)
 		return NULL;
-	}
 	
 	slab_t *slab;
 	size_t fsize;

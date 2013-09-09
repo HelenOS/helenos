@@ -45,6 +45,7 @@ uintptr_t vhpt_set_up(void)
 	    FRAME_ATOMIC, 0));
 	if (!vhpt_base)
 		panic("Kernel configured with VHPT but no memory for table.");
+	
 	vhpt_invalidate_all();
 	return (uintptr_t) vhpt_base;
 }

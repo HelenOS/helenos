@@ -362,14 +362,16 @@ static uintptr_t ptl0_step_get(void)
  *             altered by this function.
  * @param size Size in bytes defining the range of PTL0 entries that will be
  *             altered by this function.
+ *
  */
 void pt_mapping_make_global(uintptr_t base, size_t size)
 {
+	ASSERT(size > 0);
+	
 	uintptr_t ptl0 = PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
 	uintptr_t ptl0_step = ptl0_step_get();
 	size_t order;
-	uintptr_t addr;
-
+	
 #if (PTL1_ENTRIES != 0)
 	order = PTL1_SIZE;
 #elif (PTL2_ENTRIES != 0)
@@ -377,14 +379,11 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 #else
 	order = PTL3_SIZE;
 #endif
-
-	ASSERT(size > 0);
-
-	for (addr = ALIGN_DOWN(base, ptl0_step); addr - 1 < base + size - 1;
+	
+	for (uintptr_t addr = ALIGN_DOWN(base, ptl0_step);
+	    addr - 1 < base + size - 1;
 	    addr += ptl0_step) {
-		uintptr_t l1;
-
-		l1 = PA2KA(frame_alloc(order, FRAME_LOWMEM, 0));
+		uintptr_t l1 = PA2KA(frame_alloc(order, FRAME_LOWMEM, 0));
 		memsetb((void *) l1, FRAME_SIZE << order, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(addr),

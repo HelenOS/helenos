@@ -71,7 +71,6 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 	    sizeof(tsb_entry_t)) >> FRAME_WIDTH);
 	
 	uintptr_t tsb = PA2KA(frame_alloc(order, flags, 0));
-	
 	if (!tsb)
 		return -1;
 	

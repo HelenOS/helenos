@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -69,12 +69,12 @@
  * - PTL2 is not used
  * - PTL3 has 4096 entries (12 bits)
  */
- 
+
 /* Macros describing number of entries in each level. */
-#define PTL0_ENTRIES_ARCH	64
-#define PTL1_ENTRIES_ARCH	0
-#define PTL2_ENTRIES_ARCH	0
-#define PTL3_ENTRIES_ARCH	4096
+#define PTL0_ENTRIES_ARCH  64
+#define PTL1_ENTRIES_ARCH  0
+#define PTL2_ENTRIES_ARCH  0
+#define PTL3_ENTRIES_ARCH  4096
 
 /* Macros describing size of page tables in each level. */
 #define PTL0_SIZE_ARCH		ONE_FRAME
@@ -83,15 +83,15 @@
 #define PTL3_SIZE_ARCH		ONE_FRAME
 
 /* Macros calculating entry indices for each level. */
-#define PTL0_INDEX_ARCH(vaddr)	((vaddr) >> 26) 
-#define PTL1_INDEX_ARCH(vaddr)	0
-#define PTL2_INDEX_ARCH(vaddr)	0
-#define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 14) & 0xfff)
+#define PTL0_INDEX_ARCH(vaddr)  ((vaddr) >> 26)
+#define PTL1_INDEX_ARCH(vaddr)  0
+#define PTL2_INDEX_ARCH(vaddr)  0
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 14) & 0xfff)
 
 /* Set accessor for PTL0 address. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0)
 
-/* Get PTE address accessors for each level. */ 
+/* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
 	(((pte_t *) (ptl0))[(i)].pfn << 12)
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i) \

@@ -81,7 +81,6 @@ pte_t *ptl0_create(unsigned int flags)
 	else {
 		/*
 		 * Copy the kernel address space portion to new PTL0.
-		 *
 		 */
 		
 		mutex_lock(&AS_KERNEL->lock);

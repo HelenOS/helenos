@@ -238,31 +238,32 @@ static void km_unmap_deferred(uintptr_t page)
  */
 uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 {
-	uintptr_t frame;
-	uintptr_t page;
-
 	ASSERT(THREAD);
 	ASSERT(framep);
 	ASSERT(!(flags & ~(FRAME_NO_RESERVE | FRAME_ATOMIC)));
-
+	
 	/*
 	 * Allocate a frame, preferably from high memory.
 	 */
-	frame = frame_alloc(ONE_FRAME,
+	uintptr_t page;
+	uintptr_t frame = frame_alloc(ONE_FRAME,
 	    FRAME_HIGHMEM | FRAME_ATOMIC | flags, 0); 
 	if (frame) {
 		page = km_map(frame, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
-		ASSERT(page);	// FIXME
+		
+		// FIXME
+		ASSERT(page);
 	} else {
 		frame = frame_alloc(ONE_FRAME, FRAME_LOWMEM | flags, 0);
 		if (!frame)
 			return (uintptr_t) NULL;
+		
 		page = PA2KA(frame);
 	}
-
+	
 	*framep = frame;
-	return page;	
+	return page;
 }
 
 /** Destroy a temporary page.
