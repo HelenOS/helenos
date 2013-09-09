@@ -1143,8 +1143,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 
 	ddf_msg(LVL_DEBUG, "Creating buffers");
 
-	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, AS_AREA_WRITE, 0,
-	    &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
+	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, DMAMEM_4GiB,
+	    AS_AREA_WRITE, 0, &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Can not allocate transmitter buffers.");
 		goto err_tx_alloc;
@@ -1163,8 +1163,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
 
-	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, AS_AREA_READ, 0,
-	    &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
+	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, DMAMEM_4GiB,
+	    AS_AREA_READ, 0, &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Can not allocate receive buffer.");
 		goto err_rx_alloc;

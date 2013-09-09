@@ -41,13 +41,16 @@
 #include <abi/ddi/irq.h>
 #include <task.h>
 
+#define DMAMEM_16MiB  ((uintptr_t) UINT64_C(0xffffffffff000000))
+#define DMAMEM_4GiB   ((uintptr_t) UINT64_C(0xffffffff00000000))
+
 extern int device_assign_devno(void);
 
-extern int physmem_map(void *, size_t, unsigned int, void **);
+extern int physmem_map(uintptr_t, size_t, unsigned int, void **);
 
-extern int dmamem_map(void *, size_t, unsigned int, unsigned int, void **);
-extern int dmamem_map_anonymous(size_t, unsigned int, unsigned int, void **,
-    void **);
+extern int dmamem_map(void *, size_t, unsigned int, unsigned int, uintptr_t *);
+extern int dmamem_map_anonymous(size_t, uintptr_t, unsigned int, unsigned int,
+    uintptr_t *, void **);
 extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 

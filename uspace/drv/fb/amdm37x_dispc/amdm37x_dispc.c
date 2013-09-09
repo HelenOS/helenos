@@ -272,9 +272,10 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	const unsigned y = mode.screen_height;
 	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp*8);
 	const size_t size = ALIGN_UP(x * y * bpp, PAGE_SIZE);
-	void *buffer, *pa;
-	int ret = dmamem_map_anonymous(size, AS_AREA_READ | AS_AREA_WRITE,
-	    0, &pa, &buffer);
+	uintptr_t pa;
+	void *buffer;
+	int ret = dmamem_map_anonymous(size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &pa, &buffer);
 	if (ret != EOK) {
 		ddf_log_error("Failed to get new FB\n");
 		return ret;

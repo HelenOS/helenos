@@ -172,21 +172,25 @@ static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 {
 	assert(dsp);
-	if (size > MAX_BUFFER_SIZE || size == 0 || (size % 2) == 1)
+	
+	if ((size > MAX_BUFFER_SIZE) || (size == 0) || ((size % 2) == 1))
 		size = MAX_BUFFER_SIZE;
-	void *buffer = NULL, *pa = NULL;
-	int ret = dmamem_map_anonymous(size, AS_AREA_WRITE | AS_AREA_READ,
-	    0, &pa, &buffer);
+	
+	uintptr_t pa = 0;
+	void *buffer = NULL;
+	
+	int ret = dmamem_map_anonymous(size, DMAMEM_16MiB,
+	    AS_AREA_WRITE | AS_AREA_READ, 0, &pa, &buffer);
 	if (ret != EOK) {
 		ddf_log_error("Failed to allocate DMA buffer.");
 		return ENOMEM;
 	}
-
-	ddf_log_verbose("Setup dma buffer at %p(%p) %zu.", buffer, pa, size);
-	assert((uintptr_t)pa < (1 << 25));
-
+	
+	ddf_log_verbose("Setup DMA buffer at %p (%zu) %zu.", buffer, pa, size);
+	assert(pa < (1 << 24));
+	
 	/* Setup 16 bit channel */
-	ret = setup_dma(dsp, (uintptr_t)pa, size);
+	ret = setup_dma(dsp, pa, size);
 	if (ret == EOK) {
 		dsp->buffer.data = buffer;
 		dsp->buffer.size = size;
@@ -195,6 +199,7 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 		    str_error(ret));
 		dmamem_unmap_anonymous(buffer);
 	}
+	
 	return ret;
 }
 

@@ -99,9 +99,12 @@ static inline void free32(void *addr)
  */
 static inline void * get_page(void)
 {
-	void *address, *phys;
+	uintptr_t phys;
+	void *address;
+	
 	const int ret = dmamem_map_anonymous(UHCI_REQUIRED_PAGE_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &address);
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
+	    &address);
 	return ret == EOK ? address : NULL;
 }
 
