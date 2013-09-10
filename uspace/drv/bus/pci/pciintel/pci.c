@@ -551,7 +551,9 @@ void pci_add_interrupt(pci_fun_t *fun, int irq)
 void pci_read_interrupt(pci_fun_t *fun)
 {
 	uint8_t irq = pci_conf_read_8(fun, PCI_BRIDGE_INT_LINE);
-	if (irq != 0xff)
+	uint8_t pin = pci_conf_read_8(fun, PCI_BRIDGE_INT_PIN);
+
+	if (pin != 0 && irq != 0xff)
 		pci_add_interrupt(fun, irq);
 }
 
