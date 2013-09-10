@@ -487,9 +487,7 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	}
 	
 	/* Eventually check the addresses behind each area */
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t, node) {
 		
 		for (btree_key_t i = 0; i < node->keys; i++) {
 			as_area_t *area = (as_area_t *) node->value[i];
@@ -903,9 +901,8 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 		 * Now walk carefully the pagemap B+tree and free/remove
 		 * reference from all frames found there.
 		 */
-		list_foreach(sh_info->pagemap.leaf_list, cur) {
-			btree_node_t *node
-			    = list_get_instance(cur, btree_node_t, leaf_link);
+		list_foreach(sh_info->pagemap.leaf_list, leaf_link,
+		    btree_node_t, node) {
 			btree_key_t i;
 			
 			for (i = 0; i < node->keys; i++)
@@ -955,11 +952,10 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Visit only the pages mapped by used_space B+tree.
 	 */
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node;
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t ptr = node->key[i];
 			size_t size;
@@ -1237,9 +1233,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	size_t used_pages = 0;
 	
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++)
@@ -1263,9 +1258,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	size_t frame_idx = 0;
 	
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node = list_get_instance(cur, btree_node_t,
-		    leaf_link);
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -1315,9 +1309,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	frame_idx = 0;
 	
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -2181,9 +2174,8 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	
 	size_t area_cnt = 0;
 	
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		area_cnt += node->keys;
 	}
 	
@@ -2194,9 +2186,8 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	
 	size_t area_idx = 0;
 	
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -2230,9 +2221,8 @@ void as_print(as_t *as)
 	mutex_lock(&as->lock);
 	
 	/* Print out info about address space areas */
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {

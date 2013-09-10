@@ -364,10 +364,7 @@ static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
 	assert(parent->type == CDFS_DIRECTORY);
 	
 	/* Check for duplicate entries */
-	list_foreach(parent->cs_list, link) {
-		cdfs_dentry_t *dentry =
-		    list_get_instance(link, cdfs_dentry_t, link);
-		
+	list_foreach(parent->cs_list, link, cdfs_dentry_t, dentry) {
 		if (str_cmp(dentry->name, name) == 0)
 			return EEXIST;
 	}
@@ -523,10 +520,7 @@ static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
 			return rc;
 	}
 	
-	list_foreach(parent->cs_list, link) {
-		cdfs_dentry_t *dentry =
-		    list_get_instance(link, cdfs_dentry_t, link);
-		
+	list_foreach(parent->cs_list, link, cdfs_dentry_t, dentry) {
 		if (str_cmp(dentry->name, component) == 0) {
 			*fn = get_cached_node(parent->service_id, dentry->index);
 			return EOK;

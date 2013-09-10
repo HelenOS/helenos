@@ -117,11 +117,10 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node;
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		unsigned int i;
 		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			size_t count = (size_t) node->value[i];

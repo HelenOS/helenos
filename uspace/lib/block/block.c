@@ -92,8 +92,7 @@ static devcon_t *devcon_search(service_id_t service_id)
 {
 	fibril_mutex_lock(&dcl_lock);
 	
-	list_foreach(dcl, cur) {
-		devcon_t *devcon = list_get_instance(cur, devcon_t, link);
+	list_foreach(dcl, link, devcon_t, devcon) {
 		if (devcon->service_id == service_id) {
 			fibril_mutex_unlock(&dcl_lock);
 			return devcon;
@@ -123,8 +122,7 @@ static int devcon_add(service_id_t service_id, async_sess_t *sess,
 	devcon->cache = NULL;
 	
 	fibril_mutex_lock(&dcl_lock);
-	list_foreach(dcl, cur) {
-		devcon_t *d = list_get_instance(cur, devcon_t, link);
+	list_foreach(dcl, link, devcon_t, d) {
 		if (d->service_id == service_id) {
 			fibril_mutex_unlock(&dcl_lock);
 			free(devcon);

@@ -359,8 +359,7 @@ tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
 	
 	fibril_mutex_lock(&conn_list_lock);
 	
-	list_foreach(conn_list, link) {
-		tcp_conn_t *conn = list_get_instance(link, tcp_conn_t, link);
+	list_foreach(conn_list, link, tcp_conn_t, conn) {
 		tcp_sockpair_t *csp = &conn->ident;
 		
 		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - with (f:(%u), l:(%u))",

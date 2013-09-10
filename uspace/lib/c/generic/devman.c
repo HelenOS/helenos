@@ -229,11 +229,7 @@ int devman_add_function(const char *name, fun_type_t ftype,
 		return retval;
 	}
 	
-	match_id_t *match_id = NULL;
-	
-	list_foreach(match_ids->ids, link) {
-		match_id = list_get_instance(link, match_id_t, link);
-		
+	list_foreach(match_ids->ids, link, match_id_t, match_id) {
 		ipc_call_t answer2;
 		aid_t req2 = async_send_1(exch, DEVMAN_ADD_MATCH_ID,
 		    match_id->score, &answer2);

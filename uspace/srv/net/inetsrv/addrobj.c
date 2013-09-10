@@ -114,10 +114,7 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
 	fibril_mutex_lock(&addr_list_lock);
 	
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *naddr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-		
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		switch (find) {
 		case iaf_net:
 			if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
@@ -157,10 +154,7 @@ static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *name, inet_l
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked('%s', '%s')",
 	    name, ilink->svc_name);
 
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *naddr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		if (naddr->ilink == ilink && str_cmp(naddr->name, name) == 0) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked: found %p",
 			    naddr);
@@ -205,10 +199,7 @@ inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
 
 	fibril_mutex_lock(&addr_list_lock);
 
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *naddr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		if (naddr->id == id) {
 			fibril_mutex_unlock(&addr_list_lock);
 			return naddr;
@@ -276,10 +267,7 @@ int inet_addrobj_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	}
 
 	i = 0;
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *addr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-
+	list_foreach(addr_list, addr_list, inet_addrobj_t, addr) {
 		id_list[i++] = addr->id;
 	}
 

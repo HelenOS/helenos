@@ -124,8 +124,7 @@ void stdout_wire(outdev_t *outdev)
 
 static void stdout_write(outdev_t *dev, wchar_t ch)
 {
-	list_foreach(dev->list, cur) {
-		outdev_t *sink = list_get_instance(cur, outdev_t, link);
+	list_foreach(dev->list, link, outdev_t, sink) {
 		if ((sink) && (sink->op->write))
 			sink->op->write(sink, ch);
 	}
@@ -133,8 +132,7 @@ static void stdout_write(outdev_t *dev, wchar_t ch)
 
 static void stdout_redraw(outdev_t *dev)
 {
-	list_foreach(dev->list, cur) {
-		outdev_t *sink = list_get_instance(cur, outdev_t, link);
+	list_foreach(dev->list, link, outdev_t, sink) {
 		if ((sink) && (sink->op->redraw))
 			sink->op->redraw(sink);
 	}

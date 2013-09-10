@@ -418,8 +418,7 @@ static udp_assoc_t *udp_assoc_find_ref(udp_sockpair_t *sp)
 	
 	fibril_mutex_lock(&assoc_list_lock);
 	
-	list_foreach(assoc_list, link) {
-		udp_assoc_t *assoc = list_get_instance(link, udp_assoc_t, link);
+	list_foreach(assoc_list, link, udp_assoc_t, assoc) {
 		udp_sockpair_t *asp = &assoc->ident;
 		
 		/* Skip unbound associations */

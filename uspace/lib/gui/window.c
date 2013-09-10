@@ -136,8 +136,7 @@ static void root_destroy(widget_t *widget)
 static void root_reconfigure(widget_t *widget)
 {
 	if (widget->window->is_decorated) {
-		list_foreach(widget->children, link) {
-			widget_t *child = list_get_instance(link, widget_t, link);
+		list_foreach(widget->children, link, widget_t, child) {
 			child->rearrange(child, 
 			    widget->hpos + border_thickness,
 			    widget->vpos + border_thickness + header_height,
@@ -145,8 +144,7 @@ static void root_reconfigure(widget_t *widget)
 			    widget->height - 2 * border_thickness - header_height);
 		}
 	} else {
-		list_foreach(widget->children, link) {
-			widget_t *child = list_get_instance(link, widget_t, link);
+		list_foreach(widget->children, link, widget_t, child) {
 			child->rearrange(child, widget->hpos, widget->vpos,
 			    widget->width, widget->height);
 		}
@@ -159,8 +157,7 @@ static void root_rearrange(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
 	widget_modify(widget, hpos, vpos, width, height);
 	if (widget->window->is_decorated) {
 		paint_internal(widget);
-		list_foreach(widget->children, link) {
-			widget_t *child = list_get_instance(link, widget_t, link);
+		list_foreach(widget->children, link, widget_t, child) {
 			child->rearrange(child, 
 			    hpos + border_thickness,
 			    vpos + border_thickness + header_height,
@@ -168,8 +165,7 @@ static void root_rearrange(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
 			    height - 2 * border_thickness - header_height);
 		}
 	} else {
-		list_foreach(widget->children, link) {
-			widget_t *child = list_get_instance(link, widget_t, link);
+		list_foreach(widget->children, link, widget_t, child) {
 			child->rearrange(child, hpos, vpos, width, height);
 		}
 	}
@@ -180,8 +176,7 @@ static void root_repaint(widget_t *widget)
 	if (widget->window->is_decorated) {
 		paint_internal(widget);
 	}
-	list_foreach(widget->children, link) {
-		widget_t *child = list_get_instance(link, widget_t, link);
+	list_foreach(widget->children, link, widget_t, child) {
 		child->repaint(child);
 	}
 	if (widget->window->is_decorated) {
@@ -267,14 +262,12 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 			flags |= GF_MOVE_Y;
 			win_grab(widget->window->osess, event.pos_id, flags);
 		} else {
-			list_foreach(widget->children, link) {
-				widget_t *child = list_get_instance(link, widget_t, link);
+			list_foreach(widget->children, link, widget_t, child) {
 				child->handle_position_event(child, event);
 			}
 		}
 	} else {
-		list_foreach(widget->children, link) {
-			widget_t *child = list_get_instance(link, widget_t, link);
+		list_foreach(widget->children, link, widget_t, child) {
 			child->handle_position_event(child, event);
 		}
 	}

@@ -193,10 +193,7 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 		return EINVAL;
 	}
 	
-	list_foreach(instance_list, link) {
-		ext4fs_instance_t *tmp =
-		    list_get_instance(link, ext4fs_instance_t, link);
-		
+	list_foreach(instance_list, link, ext4fs_instance_t, tmp) {
 		if (tmp->service_id == service_id) {
 			*inst = tmp;
 			fibril_mutex_unlock(&instance_list_mutex);

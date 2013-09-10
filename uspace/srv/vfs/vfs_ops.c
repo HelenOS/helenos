@@ -547,10 +547,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 
 	int found = 0;
 
-	list_foreach(mtab_list, cur) {
-		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
-		    link);
-
+	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		if (str_cmp(mtab_ent->mp, mp) == 0) {
 			list_remove(&mtab_ent->link);
 			mtab_size--;
@@ -1370,10 +1367,7 @@ void vfs_get_mtab(ipc_callid_t rid, ipc_call_t *request)
 	}
 	async_answer_1(callid, EOK, mtab_size);
 
-	list_foreach(mtab_list, cur) {
-		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
-		    link);
-
+	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		rc = ENOTSUP;
 
 		if (!async_data_read_receive(&callid, &len)) {

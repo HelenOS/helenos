@@ -495,13 +495,12 @@ bool create_root_nodes(dev_tree_t *tree)
  */
 driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 {
-	driver_t *best_drv = NULL, *drv = NULL;
+	driver_t *best_drv = NULL;
 	int best_score = 0, score = 0;
 	
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
 	
-	list_foreach(drivers_list->drivers, link) {
-		drv = list_get_instance(link, driver_t, drivers);
+	list_foreach(drivers_list->drivers, drivers, driver_t, drv) {
 		score = get_match_score(drv, node);
 		if (score > best_score) {
 			best_score = score;
@@ -595,12 +594,10 @@ bool start_driver(driver_t *drv)
 driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
 {
 	driver_t *res = NULL;
-	driver_t *drv = NULL;
 	
 	fibril_mutex_lock(&drv_list->drivers_mutex);
 	
-	list_foreach(drv_list->drivers, link) {
-		drv = list_get_instance(link, driver_t, drivers);
+	list_foreach(drv_list->drivers, drivers, driver_t, drv) {
 		if (str_cmp(drv->name, drv_name) == 0) {
 			res = drv;
 			break;
@@ -1130,10 +1127,7 @@ int dev_get_functions(dev_tree_t *tree, dev_node_t *dev,
 		return EINVAL;
 
 	size_t pos = 0;
-	list_foreach(dev->functions, item) {
-		fun_node_t *fun =
-		    list_get_instance(item, fun_node_t, dev_functions);
-
+	list_foreach(dev->functions, dev_functions, fun_node_t, fun) {
 		if (pos < buf_cnt) {
 			hdl_buf[pos] = fun->handle;
 		}
@@ -1471,11 +1465,7 @@ fun_node_t *find_fun_node_in_device(dev_tree_t *tree, dev_node_t *dev,
 	assert(name != NULL);
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
 
-	fun_node_t *fun;
-
-	list_foreach(dev->functions, link) {
-		fun = list_get_instance(link, fun_node_t, dev_functions);
-
+	list_foreach(dev->functions, dev_functions, fun_node_t, fun) {
 		if (str_cmp(name, fun->name) == 0) {
 			fun_add_ref(fun);
 			return fun;

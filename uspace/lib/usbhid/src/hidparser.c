@@ -129,11 +129,9 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
 int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
     size_t size, uint8_t *report_id)
 {
-	usb_hid_report_field_t *item;
-
 	usb_hid_report_description_t *report_des;
 	usb_hid_report_type_t type = USB_HID_REPORT_TYPE_INPUT;
-	
+
 	if (report == NULL) {
 		return EINVAL;
 	}
@@ -152,17 +150,16 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 	}
 
 	/* read data */
-	list_foreach(report_des->report_items, list_item) {
-		item = list_get_instance(list_item, usb_hid_report_field_t, 
-		    ritems_link);
+	list_foreach(report_des->report_items, ritems_link,
+	    usb_hid_report_field_t, item) {
 
 		if (USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) == 0) {
-			
+
 			if (USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) {
 				/* array */
 				item->value = 
 					usb_hid_translate_data(item, data);
-		
+
 				item->usage = USB_HID_EXTENDED_USAGE(
 				    item->usages[item->value -
 				    item->physical_minimum]);
@@ -183,11 +180,11 @@ int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 			} else {
 				/* variable item */
 				item->value = usb_hid_translate_data(item, 
-				    data);				
-			}			
+				    data);
+			}
 		}
 	}
-	
+
 	return EOK;
 }
 
@@ -294,10 +291,8 @@ uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size,
 
 	usb_hid_report_description_t *report_des = NULL;
 
-	list_foreach(report->reports, report_it) {
-		report_des = list_get_instance(report_it,
-		    usb_hid_report_description_t, reports_link);
-		
+	list_foreach(report->reports, reports_link,
+	    usb_hid_report_description_t, report_des) {
 		if ((report_des->report_id == report_id) &&
 		    (report_des->type == USB_HID_REPORT_TYPE_OUTPUT)) {
 			break;
@@ -344,35 +339,31 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 	int offset;
 	int length;
 	int32_t tmp_value;
-	
+
 	if (report == NULL) {
 		return EINVAL;
 	}
 
 	if (report->use_report_ids != 0) {
-		buffer[0] = report_id;		
+		buffer[0] = report_id;
 	}
 
 	usb_hid_report_description_t *report_des;
 	report_des = usb_hid_report_find_description(report, report_id, 
 	    USB_HID_REPORT_TYPE_OUTPUT);
-	
+
 	if (report_des == NULL) {
 		return EINVAL;
 	}
 
-	usb_hid_report_field_t *report_item;
-
-	list_foreach(report_des->report_items, item) {
-		report_item = list_get_instance(item, usb_hid_report_field_t,
-		    ritems_link);
-
+	list_foreach(report_des->report_items, ritems_link,
+	    usb_hid_report_field_t, report_item) {
 		value = usb_hid_translate_data_reverse(report_item, 
 		    report_item->value);
 
 		offset = report_des->bit_length - report_item->offset - 1;
 		length = report_item->size;
-		
+
 		usb_log_debug("\ttranslated value: %x\n", value);
 
 		if ((offset / 8) == ((offset + length - 1) / 8)) {
@@ -381,9 +372,9 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 				break; // TODO ErrorCode
 			}
 			size_t shift = 8 - offset % 8 - length;
-			value = value << shift;							
+			value = value << shift;
 			value = value & (((1 << length) - 1) << shift);
-				
+
 			uint8_t mask = 0;
 			mask = 0xff - (((1 << length) - 1) << shift);
 			buffer[offset / 8] = (buffer[offset / 8] & mask) |
@@ -399,20 +390,20 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 					    ((1 << (8 - (offset % 8))) - 1);
 
 					tmp_value = tmp_value << (offset % 8);
-	
+
 					mask = ~(((1 << (8 - (offset % 8))) - 1)
 					    << (offset % 8));
 
 					buffer[i] = (buffer[i] & mask) | 
 					    tmp_value;
 				} else if (i == ((offset + length - 1) / 8)) {
-					
+
 					value = value >> (length - 
 					    ((offset + length) % 8));
 
 					value = value & ((1 << (length - 
 					    ((offset + length) % 8))) - 1);
-				
+
 					mask = (1 << (length - 
 					    ((offset + length) % 8))) - 1;
 
@@ -426,7 +417,7 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 		/* reset value */
 		report_item->value = 0;
 	}
-	
+
 	return EOK;
 }
 

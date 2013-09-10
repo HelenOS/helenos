@@ -809,8 +809,7 @@ size_t slab_reclaim(unsigned int flags)
 	irq_spinlock_lock(&slab_cache_lock, true);
 	
 	size_t frames = 0;
-	list_foreach(slab_cache_list, cur) {
-		slab_cache_t *cache = list_get_instance(cur, slab_cache_t, link);
+	list_foreach(slab_cache_list, link, slab_cache_t, cache) {
 		frames += _slab_reclaim(cache, flags);
 	}
 	
@@ -935,8 +934,7 @@ void slab_enable_cpucache(void)
 	
 	irq_spinlock_lock(&slab_cache_lock, false);
 	
-	list_foreach(slab_cache_list, cur) {
-		slab_cache_t *slab = list_get_instance(cur, slab_cache_t, link);
+	list_foreach(slab_cache_list, link, slab_cache_t, slab) {
 		if ((slab->flags & SLAB_CACHE_MAGDEFERRED) !=
 		    SLAB_CACHE_MAGDEFERRED)
 			continue;

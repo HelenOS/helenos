@@ -148,7 +148,6 @@ static int fat_node_sync(fat_node_t *node)
 
 static int fat_node_fini_by_service_id(service_id_t service_id)
 {
-	fat_node_t *nodep;
 	int rc;
 
 	/*
@@ -159,8 +158,7 @@ static int fat_node_fini_by_service_id(service_id_t service_id)
 
 restart:
 	fibril_mutex_lock(&ffn_mutex);
-	list_foreach(ffn_list, lnk) {
-		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
+	list_foreach(ffn_list, ffn_link, fat_node_t, nodep) {
 		if (!fibril_mutex_trylock(&nodep->lock)) {
 			fibril_mutex_unlock(&ffn_mutex);
 			goto restart;

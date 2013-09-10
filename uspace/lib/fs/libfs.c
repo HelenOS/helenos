@@ -881,10 +881,7 @@ int fs_instance_create(service_id_t service_id, void *data)
 	inst->data = data;
 
 	fibril_mutex_lock(&instances_mutex);
-	list_foreach(instances_list, link) {
-		fs_instance_t *cur = list_get_instance(link, fs_instance_t,
-		    link);
-
+	list_foreach(instances_list, link, fs_instance_t, cur) {
 		if (cur->service_id == service_id) {
 			fibril_mutex_unlock(&instances_mutex);
 			free(inst);
@@ -907,10 +904,7 @@ int fs_instance_create(service_id_t service_id, void *data)
 int fs_instance_get(service_id_t service_id, void **idp)
 {
 	fibril_mutex_lock(&instances_mutex);
-	list_foreach(instances_list, link) {
-		fs_instance_t *inst = list_get_instance(link, fs_instance_t,
-		    link);
-
+	list_foreach(instances_list, link, fs_instance_t, inst) {
 		if (inst->service_id == service_id) {
 			*idp = inst->data;
 			fibril_mutex_unlock(&instances_mutex);
@@ -924,10 +918,7 @@ int fs_instance_get(service_id_t service_id, void **idp)
 int fs_instance_destroy(service_id_t service_id)
 {
 	fibril_mutex_lock(&instances_mutex);
-	list_foreach(instances_list, link) {
-		fs_instance_t *inst = list_get_instance(link, fs_instance_t,
-		    link);
-
+	list_foreach(instances_list, link, fs_instance_t, inst) {
 		if (inst->service_id == service_id) {
 			list_remove(&inst->link);
 			fibril_mutex_unlock(&instances_mutex);
