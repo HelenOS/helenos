@@ -84,7 +84,7 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
 	drv->handle = drivers_list->next_handle++;
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Driver `%s' was added to the list of available "
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Driver `%s' was added to the list of available "
 	    "drivers.", drv->name);
 }
 
