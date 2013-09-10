@@ -146,7 +146,7 @@ typedef struct {
 		const ioport32_t pending_fiq;
 	} interrupts[OMAP_IRC_IRQ_GROUPS_COUNT];
 
-	const uint32_t padd4[32 * OMAP_IRC_IRQ_GROUPS_PAD];
+	const uint32_t padd4[8 * OMAP_IRC_IRQ_GROUPS_PAD];
 
 	/* These registers contain the priority for the interrups and
 	 * the FIQ/IRQ steering.
