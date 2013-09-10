@@ -58,6 +58,7 @@
 #include <loc.h>
 
 #include "devman.h"
+#include "driver.h"
 
 #define DRIVER_DEFAULT_STORE  "/drv"
 

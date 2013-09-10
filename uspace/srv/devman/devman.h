@@ -246,33 +246,6 @@ extern bool read_match_ids(const char *, match_id_list_t *);
 extern char *read_match_id(char **);
 extern char *read_id(const char **);
 
-/* Drivers */
-
-extern void init_driver_list(driver_list_t *);
-extern driver_t *create_driver(void);
-extern bool get_driver_info(const char *, const char *, driver_t *);
-extern int lookup_available_drivers(driver_list_t *, const char *);
-
-extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
-extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
-
-extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
-extern void detach_driver(dev_tree_t *, dev_node_t *);
-extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
-extern bool start_driver(driver_t *);
-extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
-extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
-extern int driver_fun_online(dev_tree_t *, fun_node_t *);
-extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
-
-extern driver_t *find_driver(driver_list_t *, const char *);
-extern void initialize_running_driver(driver_t *, dev_tree_t *);
-
-extern void init_driver(driver_t *);
-extern void clean_driver(driver_t *);
-extern void delete_driver(driver_t *);
-
 /* Device nodes */
 
 extern dev_node_t *create_dev_node(void);
