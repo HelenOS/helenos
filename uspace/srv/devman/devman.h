@@ -243,15 +243,6 @@ extern bool read_match_ids(const char *, match_id_list_t *);
 extern char *read_match_id(char **);
 extern char *read_id(const char **);
 
-/* Device tree */
-
-extern bool init_device_tree(dev_tree_t *, driver_list_t *);
-extern bool create_root_nodes(dev_tree_t *);
-extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
-extern void remove_dev_node(dev_tree_t *, dev_node_t *);
-extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
-extern void remove_fun_node(dev_tree_t *, fun_node_t *);
-
 /* Loc services */
 
 extern void loc_register_tree_function(fun_node_t *, dev_tree_t *);

@@ -36,7 +36,6 @@
 #include <sys/stat.h>
 #include <io/log.h>
 #include <ipc/driver.h>
-#include <ipc/devman.h>
 #include <loc.h>
 #include <str_error.h>
 #include <stdio.h>

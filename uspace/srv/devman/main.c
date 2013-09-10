@@ -59,6 +59,7 @@
 
 #include "dev.h"
 #include "devman.h"
+#include "devtree.h"
 #include "driver.h"
 #include "fun.h"
 

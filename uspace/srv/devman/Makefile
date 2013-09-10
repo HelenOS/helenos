@@ -33,6 +33,7 @@ STATIC_NEEDED = y
 
 SOURCES = \
 	dev.c \
+	devtree.c \
 	devman.c \
 	driver.c \
 	fun.c \
