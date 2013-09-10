@@ -279,5 +279,101 @@ void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t count)
 	}
 }
 
+static int constraint_satisfy(size_t index, size_t base, size_t constraint)
+{
+	return (((base + index) & constraint) == 0);
+}
+
+/** Find a continuous zero bit range
+ *
+ * Find a continuous zero bit range in the bitmap. The address
+ * computed as the sum of the index of the first zero bit and
+ * the base argument needs to be compliant with the constraint
+ * (those bits that are set in the constraint cannot be set in
+ * the address).
+ *
+ * If the index argument is non-NULL, the continuous zero range
+ * is set and the index of the first bit is stored to index.
+ * Otherwise the bitmap stays untouched.
+ *
+ * @param bitmap     Bitmap structure.
+ * @param count      Number of continuous zero bits to find.
+ * @param base       Address of the first bit in the bitmap.
+ * @param constraint Constraint for the address of the first zero bit.
+ * @param index      Place to store the index of the first zero
+ *                   bit. Can be NULL (in which case the bitmap
+ *                   is not modified).
+ *
+ * @return Non-zero if a continuous range of zero bits satisfying
+ *         the constraint has been found.
+ * @return Zero otherwise.
+ *
+ */
+int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
+    size_t constraint, size_t *index)
+{
+		if (count == 0)
+		return false;
+	
+	/*
+	 * This is a trivial implementation that should be
+	 * optimized further.
+	 */
+	
+	for (size_t i = 0; i < bitmap->elements; i++) {
+		if (!constraint_satisfy(i, base, constraint))
+			continue;
+		
+		if (!bitmap_get(bitmap, i)) {
+			bool continuous = true;
+			
+			for (size_t j = 1; j < count; j++) {
+				if ((i + j >= bitmap->elements) ||
+				    (bitmap_get(bitmap, i + j))) {
+					continuous = false;
+					break;
+				}
+			}
+			
+			if (continuous) {
+				if (index != NULL) {
+					bitmap_set_range(bitmap, i, count);
+					*index = i;
+				}
+				
+				return true;
+			}
+		}
+		
+	}
+	
+	return false;
+}
+
+/** Clear range of set bits.
+ *
+ * This is essentially bitmap_clear_range(), but it also
+ * checks whether all the cleared bits are actually set.
+ *
+ * @param bitmap Bitmap structure.
+ * @param start  Starting bit.
+ * @param count  Number of bits to clear.
+ *
+ */
+void bitmap_free_range(bitmap_t *bitmap, size_t start, size_t count)
+{
+	/*
+	 * This is a trivial implementation that should be
+	 * optimized further.
+	 */
+	
+	for (size_t i = 0; i < count; i++) {
+		if (!bitmap_get(bitmap, start + i))
+			panic("Freeing a bitmap range that is not set");
+	}
+	
+	bitmap_clear_range(bitmap, start, count);
+}
+
 /** @}
  */
