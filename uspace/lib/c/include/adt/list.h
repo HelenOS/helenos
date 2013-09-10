@@ -67,13 +67,13 @@ typedef struct list {
 	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
 
 #define list_foreach(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator =(itype *)1) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
 	    for (link_t *_link = (list).head.next; \
 	    iterator = list_get_instance(_link, itype, member), \
 	    _link != &(list).head; _link = _link->next)
 
 /** Unlike list_foreach(), allows removing items while traversing a list.
- * 
+ *
  * @code
  * list_t mylist;
  * typedef struct item {
@@ -248,6 +248,7 @@ static inline link_t *list_last(list_t *list)
  * @param list List containing @a link
  *
  * @return Next item or NULL if @a link is the last item.
+ *
  */
 static inline link_t *list_next(link_t *link, const list_t *list)
 {
@@ -260,6 +261,7 @@ static inline link_t *list_next(link_t *link, const list_t *list)
  * @param list List containing @a link
  *
  * @return Previous item or NULL if @a link is the first item.
+ *
  */
 static inline link_t *list_prev(link_t *link, const list_t *list)
 {

@@ -67,7 +67,7 @@ typedef struct list {
 	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
 
 #define list_foreach(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator =(itype *)1) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
 	    for (link_t *_link = (list).head.next; \
 	    iterator = list_get_instance(_link, itype, member), \
 	    _link != &(list).head; _link = _link->next)
