@@ -30,13 +30,13 @@
  * @{
  */
 
-#ifndef MAIN_H_
-#define MAIN_H_
+#ifndef DRV_CONN_H_
+#define DRV_CONN_H_
 
+#include <async.h>
 #include "devman.h"
 
-extern driver_list_t drivers_list;
-extern dev_tree_t device_tree;
+extern void devman_connection_driver(ipc_callid_t, ipc_call_t *);
 
 #endif
 
