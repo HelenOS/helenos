@@ -31,36 +31,21 @@
  * @{
  */
 
-#ifndef DRIVER_H_
-#define DRIVER_H_
+#ifndef DEV_H_
+#define DEV_H_
 
-#include <stdbool.h>
 #include "devman.h"
 
-extern void init_driver_list(driver_list_t *);
-extern driver_t *create_driver(void);
-extern bool get_driver_info(const char *, const char *, driver_t *);
-extern int lookup_available_drivers(driver_list_t *, const char *);
+extern dev_node_t *create_dev_node(void);
+extern void delete_dev_node(dev_node_t *node);
+extern void dev_add_ref(dev_node_t *);
+extern void dev_del_ref(dev_node_t *);
 
-extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
-extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
-
-extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
-extern void detach_driver(dev_tree_t *, dev_node_t *);
-extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
-extern bool start_driver(driver_t *);
-extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
-extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
-extern int driver_fun_online(dev_tree_t *, fun_node_t *);
-extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
-
-extern driver_t *find_driver(driver_list_t *, const char *);
-extern void initialize_running_driver(driver_t *, dev_tree_t *);
-
-extern void init_driver(driver_t *);
-extern void clean_driver(driver_t *);
-extern void delete_driver(driver_t *);
+extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
+    devman_handle_t handle);
+extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
+extern int dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
+    size_t, size_t *);
 
 #endif
 

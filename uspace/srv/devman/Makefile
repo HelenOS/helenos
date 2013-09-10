@@ -32,6 +32,7 @@ BINARY = devman
 STATIC_NEEDED = y
 
 SOURCES = \
+	dev.c \
 	devman.c \
 	driver.c \
 	main.c \

@@ -57,6 +57,7 @@
 #include <thread.h>
 #include <loc.h>
 
+#include "dev.h"
 #include "devman.h"
 #include "driver.h"
 

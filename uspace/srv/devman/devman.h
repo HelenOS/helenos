@@ -34,10 +34,7 @@
 #ifndef DEVMAN_H_
 #define DEVMAN_H_
 
-#include <assert.h>
 #include <stdbool.h>
-#include <dirent.h>
-#include <str.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <ipc/devman.h>
@@ -246,19 +243,7 @@ extern bool read_match_ids(const char *, match_id_list_t *);
 extern char *read_match_id(char **);
 extern char *read_id(const char **);
 
-/* Device nodes */
-
-extern dev_node_t *create_dev_node(void);
-extern void delete_dev_node(dev_node_t *node);
-extern void dev_add_ref(dev_node_t *);
-extern void dev_del_ref(dev_node_t *);
-
-extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
-    devman_handle_t handle);
-extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
-extern dev_node_t *find_dev_function(dev_node_t *, const char *);
-extern int dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
-    size_t, size_t *);
+/* Function nodes */
 
 extern fun_node_t *create_fun_node(void);
 extern void delete_fun_node(fun_node_t *);

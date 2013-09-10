@@ -30,6 +30,7 @@
  * @{
  */
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -40,6 +41,7 @@
 #include <str_error.h>
 #include <stdio.h>
 
+#include "dev.h"
 #include "devman.h"
 #include "driver.h"
 
