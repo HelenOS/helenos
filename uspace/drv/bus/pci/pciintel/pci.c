@@ -453,7 +453,10 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
 int pci_read_bar(pci_fun_t *fun, int addr)
 {
 	/* Value of the BAR */
-	uint32_t val, mask;
+	uint32_t val;
+	uint32_t bar;
+	uint32_t mask;
+
 	/* IO space address */
 	bool io;
 	/* 64-bit wide address */
@@ -491,8 +494,16 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the address mask. */
 	pci_conf_write_32(fun, addr, 0xffffffff);
-	mask &= pci_conf_read_32(fun, addr);
-	
+	bar = pci_conf_read_32(fun, addr);
+
+	/*
+ 	 * Unimplemented BARs read back as all 0's.
+ 	 */
+	if (!bar)
+		return addr + (addrw64 ? 8 : 4);
+
+	mask &= bar;	
+
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
 	val = pci_conf_read_32(fun, addr);
