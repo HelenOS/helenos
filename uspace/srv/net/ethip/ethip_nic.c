@@ -371,8 +371,6 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 	size_t i = 0;
 	
 	list_foreach(nic->addr_list, link) {
-		assert(i < count);
-		
 		ethip_link_addr_t *laddr = list_get_instance(link,
 		    ethip_link_addr_t, link);
 		
@@ -380,6 +378,8 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 		uint16_t af = inet_addr_get(&laddr->addr, NULL, &v6);
 		if (af != AF_INET6)
 			continue;
+		
+		assert(i < count);
 		
 		addr48_t mac;
 		addr48_solicited_node(v6, mac);
