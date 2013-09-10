@@ -513,7 +513,6 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			devman_fun_get_child(callid, &call);
 			break;
 		case DEVMAN_FUN_GET_NAME:
-			printf("devman_fun_get_name\n");
 			devman_fun_get_name(callid, &call);
 			break;
 		case DEVMAN_FUN_GET_DRIVER_NAME:
@@ -535,7 +534,6 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			devman_get_drivers(callid, &call);
 			break;
 		case DEVMAN_DRIVER_GET_NAME:
-			printf("devman_get_driver_name\n");
 			devman_driver_get_name(callid, &call);
 			break;
 		default:
