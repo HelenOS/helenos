@@ -36,13 +36,10 @@
 #define KERN_CONFIG_H_
 
 #include <arch/mm/page.h>
+#include <macros.h>
 
-#define ONE_FRAME    0
-#define TWO_FRAMES   1
-#define FOUR_FRAMES  2
-
-#define STACK_FRAMES  TWO_FRAMES
-#define STACK_SIZE    ((1 << STACK_FRAMES) << PAGE_WIDTH)
+#define STACK_FRAMES  2
+#define STACK_SIZE    FRAMES2SIZE(STACK_FRAMES)
 
 #define STACK_SIZE_USER  (1 * 1024 * 1024)
 

@@ -182,7 +182,7 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 	size_t zone = 0;
 	
 	void *data = (void *)
-	    PA2KA(frame_alloc_generic(cache->order, flags, 0, &zone));
+	    PA2KA(frame_alloc_generic(cache->frames, flags, 0, &zone));
 	if (!data)
 		return NULL;
 	
@@ -196,13 +196,13 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 			return NULL;
 		}
 	} else {
-		fsize = (PAGE_SIZE << cache->order);
+		fsize = FRAMES2SIZE(cache->frames);
 		slab = data + fsize - sizeof(*slab);
 	}
 	
 	/* Fill in slab structures */
 	size_t i;
-	for (i = 0; i < ((size_t) 1 << cache->order); i++)
+	for (i = 0; i < cache->frames; i++)
 		frame_set_parent(ADDR2PFN(KA2PA(data)) + i, slab, zone);
 	
 	slab->start = data;
@@ -230,7 +230,7 @@ NO_TRACE static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 	
 	atomic_dec(&cache->allocated_slabs);
 	
-	return (1 << cache->order);
+	return cache->frames;
 }
 
 /** Map object to slab structure */
@@ -557,10 +557,10 @@ NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
 NO_TRACE static size_t comp_objects(slab_cache_t *cache)
 {
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
-		return ((PAGE_SIZE << cache->order)
-		    - sizeof(slab_t)) / cache->size;
+		return (FRAMES2SIZE(cache->frames) - sizeof(slab_t)) /
+		    cache->size;
 	else
-		return (PAGE_SIZE << cache->order) / cache->size;
+		return FRAMES2SIZE(cache->frames) / cache->size;
 }
 
 /** Return wasted space in slab
@@ -569,7 +569,7 @@ NO_TRACE static size_t comp_objects(slab_cache_t *cache)
 NO_TRACE static size_t badness(slab_cache_t *cache)
 {
 	size_t objects = comp_objects(cache);
-	size_t ssize = PAGE_SIZE << cache->order;
+	size_t ssize = FRAMES2SIZE(cache->frames);
 	
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
 		ssize -= sizeof(slab_t);
@@ -633,17 +633,11 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	if (cache->size < SLAB_INSIDE_SIZE)
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 	
-	/* Minimum slab order */
-	size_t pages = SIZE2FRAMES(cache->size);
-	
-	/* We need the 2^order >= pages */
-	if (pages == 1)
-		cache->order = 0;
-	else
-		cache->order = fnzb(pages - 1) + 1;
+	/* Minimum slab frames */
+	cache->frames = SIZE2FRAMES(cache->size);
 	
 	while (badness(cache) > SLAB_MAX_BADNESS(cache))
-		cache->order += 1;
+		cache->frames <<= 1;
 	
 	cache->objects = comp_objects(cache);
 	
@@ -869,7 +863,7 @@ void slab_print_list(void)
 		slab_cache_t *cache = list_get_instance(cur, slab_cache_t, link);
 		
 		const char *name = cache->name;
-		uint8_t order = cache->order;
+		size_t frames = cache->frames;
 		size_t size = cache->size;
 		size_t objects = cache->objects;
 		long allocated_slabs = atomic_get(&cache->allocated_slabs);
@@ -879,8 +873,8 @@ void slab_print_list(void)
 		
 		irq_spinlock_unlock(&slab_cache_lock, true);
 		
-		printf("%-18s %8zu %8u %8zu %8ld %8ld %8ld %-5s\n",
-		    name, size, (1 << order), objects, allocated_slabs,
+		printf("%-18s %8zu %8zu %8zu %8ld %8ld %8ld %-5s\n",
+		    name, size, frames, objects, allocated_slabs,
 		    cached_objs, allocated_objs,
 		    flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
 	}

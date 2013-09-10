@@ -65,10 +65,10 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
-	uint8_t order = fnzb32(
-		(TSB_ENTRY_COUNT * sizeof(tsb_entry_t)) >> FRAME_WIDTH);
+	size_t frames =
+	    SIZE2FRAMES(TSB_ENTRY_COUNT * sizeof(tsb_entry_t));
 	
-	uintptr_t tsb = frame_alloc(order, flags, 0);
+	uintptr_t tsb = frame_alloc(frames, flags, 0);
 	if (!tsb)
 		return -1;
 	

@@ -54,7 +54,7 @@
 
 /** Maximum wasted space we allow for cache */
 #define SLAB_MAX_BADNESS(cache) \
-	(((unsigned int) PAGE_SIZE << (cache)->order) >> 2)
+	(FRAMES2SIZE((cache)->frames) >> 2)
 
 /* slab_reclaim constants */
 
@@ -100,7 +100,7 @@ typedef struct {
 	unsigned int flags;
 	
 	/* Computed values */
-	uint8_t order;   /**< Order of frames to be allocated */
+	size_t frames;   /**< Number of frames to be allocated */
 	size_t objects;  /**< Number of objects that fit in */
 	
 	/* Statistics */

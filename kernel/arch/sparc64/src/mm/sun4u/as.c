@@ -62,21 +62,16 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
-	/*
-	 * The order must be calculated with respect to the emulated
-	 * 16K page size.
-	 *
-	 */
-	uint8_t order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t)) >> FRAME_WIDTH);
+	size_t frames = SIZE2FRAMES((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+	    sizeof(tsb_entry_t));
 	
-	uintptr_t tsb = PA2KA(frame_alloc(order, flags, 0));
+	uintptr_t tsb = PA2KA(frame_alloc(frames, flags, 0));
 	if (!tsb)
 		return -1;
 	
 	as->arch.itsb = (tsb_entry_t *) tsb;
-	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
-	    sizeof(tsb_entry_t));
+	as->arch.dtsb = (tsb_entry_t *) (tsb +
+	    ITSB_ENTRY_COUNT * sizeof(tsb_entry_t));
 	
 	memsetb(as->arch.itsb,
 	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);

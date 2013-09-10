@@ -38,8 +38,8 @@
 
 #include <typedefs.h>
 #include <trace.h>
+#include <adt/bitmap.h>
 #include <adt/list.h>
-#include <mm/buddy.h>
 #include <synch/spinlock.h>
 #include <arch/mm/page.h>
 #include <arch/mm/frame.h>
@@ -89,26 +89,31 @@ typedef uint8_t zone_flags_t;
 	    (((zf) & ~ZONE_EF_MASK) & (f)))
 
 typedef struct {
-	size_t refcount;      /**< Tracking of shared frames */
-	link_t buddy_link;    /**< Link to the next free block inside
-                                   one order */
-	void *parent;         /**< If allocated by slab, this points there */
-	uint8_t buddy_order;  /**< Buddy system block order */
+	size_t refcount;  /**< Tracking of shared frames */
+	void *parent;     /**< If allocated by slab, this points there */
 } frame_t;
 
 typedef struct {
-	pfn_t base;                    /**< Frame_no of the first frame
-                                            in the frames array */
-	size_t count;                  /**< Size of zone */
-	size_t free_count;             /**< Number of free frame_t
-                                            structures */
-	size_t busy_count;             /**< Number of busy frame_t
-                                            structures */
-	zone_flags_t flags;            /**< Type of the zone */
+	/** Frame_no of the first frame in the frames array */
+	pfn_t base;
 	
-	frame_t *frames;               /**< Array of frame_t structures
-                                            in this zone */
-	buddy_system_t *buddy_system;  /**< Buddy system for the zone */
+	/** Size of zone */
+	size_t count;
+	
+	/** Number of free frame_t structures */
+	size_t free_count;
+	
+	/** Number of busy frame_t structures */
+	size_t busy_count;
+	
+	/** Type of the zone */
+	zone_flags_t flags;
+	
+	/** Frame bitmap */
+	bitmap_t bitmap;
+	
+	/** Array of frame_t structures in this zone */
+	frame_t *frames;
 } zone_t;
 
 /*
@@ -123,45 +128,11 @@ typedef struct {
 
 extern zones_t zones;
 
-NO_TRACE static inline uintptr_t PFN2ADDR(pfn_t frame)
-{
-	return (uintptr_t) (frame << FRAME_WIDTH);
-}
-
-NO_TRACE static inline pfn_t ADDR2PFN(uintptr_t addr)
-{
-	return (pfn_t) (addr >> FRAME_WIDTH);
-}
-
-NO_TRACE static inline size_t SIZE2FRAMES(size_t size)
-{
-	if (size == 0)
-		return 0;
-	
-	return (size_t) ((size - 1) >> FRAME_WIDTH) + 1;
-}
-
-NO_TRACE static inline size_t FRAMES2SIZE(size_t frames)
-{
-	return (size_t) (frames << FRAME_WIDTH);
-}
-
-#define IS_BUDDY_ORDER_OK(index, order) \
-    ((~(((sysarg_t) -1) << (order)) & (index)) == 0)
-#define IS_BUDDY_LEFT_BLOCK(zone, frame) \
-    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK(zone, frame) \
-    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
-#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame) \
-    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame) \
-    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
-
 extern void frame_init(void);
 extern bool frame_adjust_zone_bounds(bool, uintptr_t *, size_t *);
-extern uintptr_t frame_alloc_generic(uint8_t, frame_flags_t, uintptr_t, size_t *);
-extern uintptr_t frame_alloc(uint8_t, frame_flags_t, uintptr_t);
-extern uintptr_t frame_alloc_noreserve(uint8_t, frame_flags_t, uintptr_t);
+extern uintptr_t frame_alloc_generic(size_t, frame_flags_t, uintptr_t, size_t *);
+extern uintptr_t frame_alloc(size_t, frame_flags_t, uintptr_t);
+extern uintptr_t frame_alloc_noreserve(size_t, frame_flags_t, uintptr_t);
 extern void frame_free_generic(uintptr_t, frame_flags_t);
 extern void frame_free(uintptr_t);
 extern void frame_free_noreserve(uintptr_t);

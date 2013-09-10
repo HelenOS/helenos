@@ -73,7 +73,7 @@ void cpu_init(void) {
 		size_t i;
 		for (i = 0; i < config.cpu_count; i++) {
 			cpus[i].stack = (uint8_t *) PA2KA(frame_alloc(STACK_FRAMES,
-			    FRAME_LOWMEM | FRAME_ATOMIC, 0));
+			    FRAME_LOWMEM | FRAME_ATOMIC, STACK_SIZE - 1));
 			cpus[i].id = i;
 			
 			irq_spinlock_initialize(&cpus[i].lock, "cpus[].lock");

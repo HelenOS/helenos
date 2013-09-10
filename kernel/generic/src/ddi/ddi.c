@@ -321,21 +321,14 @@ NO_TRACE static int dmamem_map(uintptr_t virt, size_t size, unsigned int map_fla
 	return page_find_mapping(virt, phys);
 }
 
-NO_TRACE static int dmamem_map_anonymous(size_t size, unsigned int map_flags,
-    unsigned int flags, uintptr_t *phys, uintptr_t *virt, uintptr_t bound)
+NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
+    unsigned int map_flags, unsigned int flags, uintptr_t *phys,
+    uintptr_t *virt, uintptr_t bound)
 {
 	ASSERT(TASK);
 	
 	size_t frames = SIZE2FRAMES(size);
-	uint8_t order;
-	
-	/* We need the 2^order >= frames */
-	if (frames == 1)
-		order = 0;
-	else
-		order = fnzb(frames - 1) + 1;
-	
-	*phys = frame_alloc_noreserve(order, 0, 0);
+	*phys = frame_alloc_noreserve(frames, 0, constraint);
 	if (*phys == 0)
 		return ENOMEM;
 	
@@ -389,9 +382,15 @@ sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
 		 * Anonymous DMA mapping
 		 */
 		
+		uintptr_t constraint;
+		int rc = copy_from_uspace(&constraint, phys_ptr,
+		    sizeof(constraint));
+		if (rc != EOK)
+			return rc;
+		
 		uintptr_t phys;
 		uintptr_t virt = (uintptr_t) -1;
-		int rc = dmamem_map_anonymous(size, map_flags, flags,
+		rc = dmamem_map_anonymous(size, constraint, map_flags, flags,
 		    &phys, &virt, bound);
 		if (rc != EOK)
 			return rc;

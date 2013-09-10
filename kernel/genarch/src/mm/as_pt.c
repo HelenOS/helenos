@@ -72,9 +72,9 @@ as_operations_t as_pt_operations = {
  */
 pte_t *ptl0_create(unsigned int flags)
 {
-	pte_t *dst_ptl0 = (pte_t *) PA2KA(frame_alloc(PTL0_SIZE,
-	    FRAME_LOWMEM, 0));
-	size_t table_size = FRAME_SIZE << PTL0_SIZE;
+	pte_t *dst_ptl0 = (pte_t *)
+	    PA2KA(frame_alloc(PTL0_FRAMES, FRAME_LOWMEM, 0));
+	size_t table_size = FRAMES2SIZE(PTL0_FRAMES);
 	
 	if (flags & FLAG_AS_KERNEL)
 		memsetb(dst_ptl0, table_size, 0);

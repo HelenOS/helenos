@@ -40,16 +40,14 @@
 
 const char *test_mapping1(void)
 {
-	uintptr_t page0, page1;
-	uint32_t v;
+	uintptr_t frame = frame_alloc(1, FRAME_NONE, 0);
 	
-	uintptr_t frame = frame_alloc(ONE_FRAME, FRAME_NONE, 0);
-	
-	page0 = km_map(frame, FRAME_SIZE,
+	uintptr_t page0 = km_map(frame, FRAME_SIZE,
 	    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 	TPRINTF("Virtual address %p mapped to physical address %p.\n",
 	    (void *) page0, (void *) frame);
-	page1 = km_map(frame, FRAME_SIZE,
+	
+	uintptr_t page1 = km_map(frame, FRAME_SIZE,
 	    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 	TPRINTF("Virtual address %p mapped to physical address %p.\n",
 	    (void *) page1, (void *) frame);
@@ -61,7 +59,7 @@ const char *test_mapping1(void)
 		
 		TPRINTF("Reading magic using the second virtual address.\n");
 		
-		v = *((uint32_t *) page1);
+		uint32_t v = *((uint32_t *) page1);
 		
 		if (v != TEST_MAGIC) {
 			km_unmap(page0, PAGE_SIZE);

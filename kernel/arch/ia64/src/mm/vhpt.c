@@ -41,8 +41,8 @@ static vhpt_entry_t* vhpt_base;
 
 uintptr_t vhpt_set_up(void)
 {
-	vhpt_base = (vhpt_entry_t *) PA2KA(frame_alloc(VHPT_WIDTH - FRAME_WIDTH,
-	    FRAME_ATOMIC, 0));
+	vhpt_base = (vhpt_entry_t *)
+	    PA2KA(frame_alloc(SIZE2FRAMES(VHPT_SIZE), FRAME_ATOMIC, 0));
 	if (!vhpt_base)
 		panic("Kernel configured with VHPT but no memory for table.");
 	
@@ -82,7 +82,7 @@ void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 
 void vhpt_invalidate_all()
 {
-	memsetb(vhpt_base, 1 << VHPT_WIDTH, 0);
+	memsetb(vhpt_base, VHPT_SIZE, 0);
 }
 
 void vhpt_invalidate_asid(asid_t asid)

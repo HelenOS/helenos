@@ -39,8 +39,7 @@
 #include <memstr.h>
 #include <arch.h>
 
-#define MAX_FRAMES  256U
-#define MAX_ORDER   8
+#define MAX_FRAMES  256
 
 #define THREAD_RUNS  1
 #define THREADS      8
@@ -65,17 +64,19 @@ static void falloc(void *arg)
 	thread_detach(THREAD);
 	
 	for (unsigned int run = 0; run < THREAD_RUNS; run++) {
-		for (unsigned int order = 0; order <= MAX_ORDER; order++) {
+		for (size_t count = 1; count <= MAX_FRAMES; count++) {
+			size_t bytes = FRAMES2SIZE(count);
+			
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
-			    "Allocating %u frames blocks ... \n", THREAD->tid,
-			    CPU->id, 1 << order);
+			    "Allocating %zu frames blocks (%zu bytes) ... \n", THREAD->tid,
+			    CPU->id, count, bytes);
 			
 			unsigned int allocated = 0;
-			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
+			for (unsigned int i = 0; i < (MAX_FRAMES / count); i++) {
 				frames[allocated] =
-				    PA2KA(frame_alloc(order, FRAME_ATOMIC, 0));
+				    PA2KA(frame_alloc(count, FRAME_ATOMIC, 0));
 				if (frames[allocated]) {
-					memsetb((void *) frames[allocated], FRAME_SIZE << order, val);
+					memsetb((void *) frames[allocated], bytes, val);
 					allocated++;
 				} else
 					break;
@@ -88,8 +89,7 @@ static void falloc(void *arg)
 			    "Deallocating ... \n", THREAD->tid, CPU->id);
 			
 			for (unsigned int i = 0; i < allocated; i++) {
-				for (size_t k = 0; k <= (((size_t) FRAME_SIZE << order) - 1);
-				    k++) {
+				for (size_t k = 0; k < bytes; k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
 						TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 						    "Unexpected data (%c) in block %zu offset %zu\n",

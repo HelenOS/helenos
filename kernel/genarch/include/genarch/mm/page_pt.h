@@ -57,11 +57,11 @@
 #define PTL2_ENTRIES  PTL2_ENTRIES_ARCH
 #define PTL3_ENTRIES  PTL3_ENTRIES_ARCH
 
-/* Table sizes in each level */
-#define PTL0_SIZE  PTL0_SIZE_ARCH
-#define PTL1_SIZE  PTL1_SIZE_ARCH
-#define PTL2_SIZE  PTL2_SIZE_ARCH
-#define PTL3_SIZE  PTL3_SIZE_ARCH
+/* Table sizes in each level (in frames) */
+#define PTL0_FRAMES  PTL0_FRAMES_ARCH
+#define PTL1_FRAMES  PTL1_FRAMES_ARCH
+#define PTL2_FRAMES  PTL2_FRAMES_ARCH
+#define PTL3_FRAMES  PTL3_FRAMES_ARCH
 
 /*
  * These macros process vaddr and extract those portions
