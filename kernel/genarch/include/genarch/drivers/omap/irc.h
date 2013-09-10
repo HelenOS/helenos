@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Maurizio Lombardi
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,8 +38,9 @@
 #ifndef KERN_OMAP_IRQC_H_
 #define KERN_OMAP_IRQC_H_
 
-#include <genarch/drivers/omap/irc_regs.h>
 #include <typedefs.h>
+
+#define OMAP_IRC_IRQ_GROUPS_PAD (4 - OMAP_IRC_IRQ_GROUPS_COUNT)
 
 typedef struct {
 	const ioport32_t revision;
@@ -106,7 +108,7 @@ typedef struct {
 #define OMAP_IRC_THRESHOLD_PRIORITYTHRESHOLD_ENABLED  0x00
 #define OMAP_IRC_THRESHOLD_PRIORITYTHRESHOLD_DISABLED 0xFF
 
-	const uint8_t padd[20];
+	const uint8_t padd3[20];
 
 	struct {
 		/* Raw interrupt input status before masking */
@@ -142,7 +144,9 @@ typedef struct {
 
 		/* This register contains the FIQ status after masking. */
 		const ioport32_t pending_fiq;
-	} interrupts[4];
+	} interrupts[OMAP_IRC_IRQ_GROUPS_COUNT];
+
+	const uint32_t padd4[32 * OMAP_IRC_IRQ_GROUPS_PAD];
 
 	/* These registers contain the priority for the interrups and
 	 * the FIQ/IRQ steering.
@@ -155,7 +159,7 @@ typedef struct {
 
 } omap_irc_regs_t;
 
-static inline void omap_irc_init(am335x_irc_regs_t *regs)
+static inline void omap_irc_init(omap_irc_regs_t *regs)
 {
 	int i;
 
@@ -185,7 +189,7 @@ static inline void omap_irc_init(am335x_irc_regs_t *regs)
 	/* 4 - Program the MIRn register: Enable interrupts (by default,
 	 *     all interrupt lines are masked).
 	 */
-	for (i = 0; i < 4; ++i)
+	for (i = 0; i < OMAP_IRC_IRQ_GROUPS_COUNT; ++i)
 		regs->interrupts[i].mir_set = 0xFFFFFFFF;
 }
 
@@ -195,7 +199,7 @@ static inline void omap_irc_init(am335x_irc_regs_t *regs)
  *
  * @return         The active IRQ interrupt number
  */
-static inline unsigned omap_irc_inum_get(am335x_irc_regs_t *regs)
+static inline unsigned omap_irc_inum_get(omap_irc_regs_t *regs)
 {
 	return regs->sir_irq & OMAP_IRC_SIR_IRQ_ACTIVEIRQ_MASK;
 }
@@ -204,7 +208,7 @@ static inline unsigned omap_irc_inum_get(am335x_irc_regs_t *regs)
  *
  * @param regs    Pointer to the irc memory mapped registers
  */
-static inline void omap_irc_irq_ack(am335x_irc_regs_t *regs)
+static inline void omap_irc_irq_ack(omap_irc_regs_t *regs)
 {
 	regs->control = OMAP_IRC_CONTROL_NEWIRQAGR_FLAG;
 }
@@ -213,7 +217,7 @@ static inline void omap_irc_irq_ack(am335x_irc_regs_t *regs)
  *
  * @param regs    Pointer to the irc memory mapped registers
  */
-static inline void omap_irc_fiq_ack(am335x_irc_regs_t *regs)
+static inline void omap_irc_fiq_ack(omap_irc_regs_t *regs)
 {
 	regs->control = OMAP_IRC_CONTROL_NEWFIQAGR_FLAG;
 }
@@ -223,7 +227,7 @@ static inline void omap_irc_fiq_ack(am335x_irc_regs_t *regs)
  * @param regs    Pointer to the irc memory mapped registers
  * @param inum    The interrupt to be enabled
  */
-static inline void omap_irc_enable(am335x_irc_regs_t *regs, unsigned inum)
+static inline void omap_irc_enable(omap_irc_regs_t *regs, unsigned inum)
 {
 	ASSERT(inum < OMAP_IRC_IRQ_COUNT);
 	const unsigned set = inum / 32;
@@ -236,12 +240,43 @@ static inline void omap_irc_enable(am335x_irc_regs_t *regs, unsigned inum)
  * @param regs    Pointer to the irc memory mapped registers
  * @param inum    The interrupt to be disabled
  */
-static inline void omap_irc_disable(am335x_irc_regs_t *regs, unsigned inum)
+static inline void omap_irc_disable(omap_irc_regs_t *regs, unsigned inum)
 {
 	ASSERT(inum < OMAP_IRC_IRQ_COUNT);
 	const unsigned set = inum / 32;
 	const unsigned pos = inum % 32;
 	regs->interrupts[set].mir_set = (1 << pos);
+}
+
+static inline void omap_irc_dump(omap_irc_regs_t *regs)
+{
+#define DUMP_REG(name) \
+	printf("%s %p(%x).\n", #name, &regs->name, regs->name);
+
+	DUMP_REG(revision);
+	DUMP_REG(sysconfig);
+	DUMP_REG(sysstatus);
+	DUMP_REG(sir_irq);
+	DUMP_REG(sir_fiq);
+	DUMP_REG(control);
+	DUMP_REG(protection);
+	DUMP_REG(idle);
+	DUMP_REG(irq_priority);
+	DUMP_REG(fiq_priority);
+	DUMP_REG(threshold);
+
+	for (int i = 0; i < OMAP_IRC_IRQ_GROUPS_COUNT; ++i) {
+		DUMP_REG(interrupts[i].itr);
+		DUMP_REG(interrupts[i].mir);
+		DUMP_REG(interrupts[i].isr_set);
+		DUMP_REG(interrupts[i].pending_irq);
+		DUMP_REG(interrupts[i].pending_fiq);
+	}
+	for (int i = 0; i < OMAP_IRC_IRQ_COUNT; ++i) {
+		DUMP_REG(ilr[i]);
+	}
+
+#undef DUMP_REG
 }
 
 #endif
