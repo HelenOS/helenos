@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,36 +31,15 @@
  * @{
  */
 
-#ifndef DRIVER_H_
-#define DRIVER_H_
+#ifndef LOC_H_
+#define LOC_H_
 
-#include <stdbool.h>
+#include <ipc/loc.h>
 #include "devman.h"
 
-extern void init_driver_list(driver_list_t *);
-extern driver_t *create_driver(void);
-extern bool get_driver_info(const char *, const char *, driver_t *);
-extern int lookup_available_drivers(driver_list_t *, const char *);
-
-extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
-extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
-
-extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
-extern void detach_driver(dev_tree_t *, dev_node_t *);
-extern bool start_driver(driver_t *);
-extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
-extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
-extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
-extern int driver_fun_online(dev_tree_t *, fun_node_t *);
-extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
-
-extern driver_t *find_driver(driver_list_t *, const char *);
-extern void initialize_running_driver(driver_t *, dev_tree_t *);
-
-extern void init_driver(driver_t *);
-extern void clean_driver(driver_t *);
-extern void delete_driver(driver_t *);
+extern void loc_register_tree_function(fun_node_t *, dev_tree_t *);
+extern fun_node_t *find_loc_tree_function(dev_tree_t *, service_id_t);
+extern void tree_add_loc_function(dev_tree_t *, fun_node_t *);
 
 #endif
 

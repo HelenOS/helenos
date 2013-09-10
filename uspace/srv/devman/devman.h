@@ -47,8 +47,6 @@
 
 #define NAME "devman"
 
-#define MATCH_EXT ".ma"
-
 #define LOC_DEVICE_NAMESPACE "devices"
 #define LOC_SEPARATOR '\\'
 
@@ -233,23 +231,6 @@ typedef struct dev_tree {
 	 */
 	hash_table_t loc_functions;
 } dev_tree_t;
-
-/* Match ids and scores */
-
-extern int get_match_score(driver_t *, dev_node_t *);
-
-extern bool parse_match_ids(char *, match_id_list_t *);
-extern bool read_match_ids(const char *, match_id_list_t *);
-extern char *read_match_id(char **);
-extern char *read_id(const char **);
-
-/* Loc services */
-
-extern void loc_register_tree_function(fun_node_t *, dev_tree_t *);
-
-extern fun_node_t *find_loc_tree_function(dev_tree_t *, service_id_t);
-
-extern void tree_add_loc_function(dev_tree_t *, fun_node_t *);
 
 #endif
 

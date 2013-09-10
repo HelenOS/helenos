@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,38 +30,64 @@
  * @{
  */
 
-#ifndef DRIVER_H_
-#define DRIVER_H_
+#include <loc.h>
+#include <stdio.h>
 
-#include <stdbool.h>
 #include "devman.h"
+#include "fun.h"
+#include "loc.h"
 
-extern void init_driver_list(driver_list_t *);
-extern driver_t *create_driver(void);
-extern bool get_driver_info(const char *, const char *, driver_t *);
-extern int lookup_available_drivers(driver_list_t *, const char *);
+/** Create loc path and name for the function. */
+void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
+{
+	char *loc_pathname = NULL;
+	char *loc_name = NULL;
+	
+	assert(fibril_rwlock_is_locked(&tree->rwlock));
+	
+	asprintf(&loc_name, "%s", fun->pathname);
+	if (loc_name == NULL)
+		return;
+	
+	replace_char(loc_name, '/', LOC_SEPARATOR);
+	
+	asprintf(&loc_pathname, "%s/%s", LOC_DEVICE_NAMESPACE,
+	    loc_name);
+	if (loc_pathname == NULL) {
+		free(loc_name);
+		return;
+	}
+	
+	loc_service_register_with_iface(loc_pathname,
+	    &fun->service_id, DEVMAN_CONNECT_FROM_LOC);
+	
+	tree_add_loc_function(tree, fun);
+	
+	free(loc_name);
+	free(loc_pathname);
+}
 
-extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
-extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
+fun_node_t *find_loc_tree_function(dev_tree_t *tree, service_id_t service_id)
+{
+	fun_node_t *fun = NULL;
+	
+	fibril_rwlock_read_lock(&tree->rwlock);
+	ht_link_t *link = hash_table_find(&tree->loc_functions, &service_id);
+	if (link != NULL) {
+		fun = hash_table_get_inst(link, fun_node_t, loc_fun);
+		fun_add_ref(fun);
+	}
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
+	return fun;
+}
 
-extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
-extern void detach_driver(dev_tree_t *, dev_node_t *);
-extern bool start_driver(driver_t *);
-extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
-extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
-extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
-extern int driver_fun_online(dev_tree_t *, fun_node_t *);
-extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
-
-extern driver_t *find_driver(driver_list_t *, const char *);
-extern void initialize_running_driver(driver_t *, dev_tree_t *);
-
-extern void init_driver(driver_t *);
-extern void clean_driver(driver_t *);
-extern void delete_driver(driver_t *);
-
-#endif
+void tree_add_loc_function(dev_tree_t *tree, fun_node_t *fun)
+{
+	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
+	
+	hash_table_insert(&tree->loc_functions, &fun->loc_fun);
+}
 
 /** @}
  */

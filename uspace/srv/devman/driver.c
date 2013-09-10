@@ -43,6 +43,7 @@
 #include "dev.h"
 #include "devman.h"
 #include "driver.h"
+#include "match.h"
 
 /**
  * Initialize the list of device driver's.
@@ -508,6 +509,64 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	}
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	return true;
+}
+
+/** Pass a device to running driver.
+ *
+ * @param drv		The driver's structure.
+ * @param node		The device's node in the device tree.
+ */
+void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
+{
+	/*
+	 * We do not expect to have driver's mutex locked as we do not
+	 * access any structures that would affect driver_t.
+	 */
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
+	    drv->name, dev->pfun->name);
+	
+	/* Send the device to the driver. */
+	devman_handle_t parent_handle;
+	if (dev->pfun) {
+		parent_handle = dev->pfun->handle;
+	} else {
+		parent_handle = 0;
+	}
+	
+	async_exch_t *exch = async_exchange_begin(drv->sess);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(exch, DRIVER_DEV_ADD, dev->handle,
+	    parent_handle, &answer);
+	
+	/* Send the device name to the driver. */
+	sysarg_t rc = async_data_write_start(exch, dev->pfun->name,
+	    str_size(dev->pfun->name) + 1);
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK) {
+		/* TODO handle error */
+	}
+
+	/* Wait for answer from the driver. */
+	async_wait_for(req, &rc);
+
+	switch(rc) {
+	case EOK:
+		dev->state = DEVICE_USABLE;
+		break;
+	case ENOENT:
+		dev->state = DEVICE_NOT_PRESENT;
+		break;
+	default:
+		dev->state = DEVICE_INVALID;
+		break;
+	}
+	
+	dev->passed_to_driver = true;
+
+	return;
 }
 
 int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
