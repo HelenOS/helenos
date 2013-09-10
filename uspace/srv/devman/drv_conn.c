@@ -82,7 +82,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 	    drv_name);
 	
 	/* Find driver structure. */
-	driver = find_driver(&drivers_list, drv_name);
+	driver = driver_find_by_name(&drivers_list, drv_name);
 	if (driver == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "No driver named `%s' was found.", drv_name);
 		free(drv_name);

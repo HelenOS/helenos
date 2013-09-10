@@ -57,6 +57,7 @@ void init_driver_list(driver_list_t *drv_list)
 	
 	list_initialize(&drv_list->drivers);
 	fibril_mutex_initialize(&drv_list->drivers_mutex);
+	drv_list->next_handle = 1;
 }
 
 /** Allocate and initialize a new driver structure.
@@ -80,6 +81,7 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
 {
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
 	list_prepend(&drv->drivers, &drivers_list->drivers);
+	drv->handle = drivers_list->next_handle++;
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Driver `%s' was added to the list of available "
@@ -298,14 +300,40 @@ bool start_driver(driver_t *drv)
 	return true;
 }
 
-/** Find device driver in the list of device drivers.
+/** Find device driver by handle.
+ *
+ * @param drv_list	The list of device drivers
+ * @param handle	Driver handle
+ * @return		The device driver, if it is in the list,
+ *			NULL otherwise.
+ */
+driver_t *driver_find(driver_list_t *drv_list, devman_handle_t handle)
+{
+	driver_t *res = NULL;
+	
+	fibril_mutex_lock(&drv_list->drivers_mutex);
+	
+	list_foreach(drv_list->drivers, drivers, driver_t, drv) {
+		if (drv->handle == handle) {
+			res = drv;
+			break;
+		}
+	}
+	
+	fibril_mutex_unlock(&drv_list->drivers_mutex);
+	
+	return res;
+}
+
+
+/** Find device driver by name.
  *
  * @param drv_list	The list of device drivers.
  * @param drv_name	The name of the device driver which is searched.
  * @return		The device driver of the specified name, if it is in the
  *			list, NULL otherwise.
  */
-driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
+driver_t *driver_find_by_name(driver_list_t *drv_list, const char *drv_name)
 {
 	driver_t *res = NULL;
 	
@@ -666,6 +694,38 @@ int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 	
 	return retval;
 
+}
+
+/** Get list of registered drivers. */
+int driver_get_list(driver_list_t *driver_list, devman_handle_t *hdl_buf,
+    size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	fibril_mutex_lock(&driver_list->drivers_mutex);
+
+	buf_cnt = buf_size / sizeof(devman_handle_t);
+
+	act_cnt = list_count(&driver_list->drivers);
+	*act_size = act_cnt * sizeof(devman_handle_t);
+
+	if (buf_size % sizeof(devman_handle_t) != 0) {
+		fibril_mutex_unlock(&driver_list->drivers_mutex);
+		return EINVAL;
+	}
+
+	size_t pos = 0;
+	list_foreach(driver_list->drivers, drivers, driver_t, drv) {
+		if (pos < buf_cnt) {
+			hdl_buf[pos] = drv->handle;
+		}
+
+		pos++;
+	}
+
+	fibril_mutex_unlock(&driver_list->drivers_mutex);
+	return EOK;
 }
 
 /** @}

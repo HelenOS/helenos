@@ -316,7 +316,6 @@ static void devman_dev_get_functions(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-
 /** Get handle for child device of a function. */
 static void devman_fun_get_child(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -416,6 +415,80 @@ static void devman_fun_sid_to_handle(ipc_callid_t iid, ipc_call_t *icall)
 	fun_del_ref(fun);
 }
 
+/** Get list of all registered drivers. */
+static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	int rc;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	devman_handle_t *hdl_buf = (devman_handle_t *) malloc(size);
+	if (hdl_buf == NULL) {
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	rc = driver_get_list(&drivers_list, hdl_buf, size, &act_size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	free(hdl_buf);
+	
+	async_answer_1(iid, retval, act_size);
+}
+
+/** Get driver name. */
+static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t handle = IPC_GET_ARG1(*icall);
+
+	driver_t *drv = driver_find(&drivers_list, handle);
+	if (drv == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	ipc_callid_t data_callid;
+	size_t data_len;
+	if (!async_data_read_receive(&data_callid, &data_len)) {
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	void *buffer = malloc(data_len);
+	if (buffer == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	fibril_mutex_lock(&drv->driver_mutex);
+
+	size_t sent_length = str_size(drv->name);
+	if (sent_length > data_len) {
+		sent_length = data_len;
+	}
+
+	async_data_read_finalize(data_callid, drv->name, sent_length);
+	async_answer_0(iid, EOK);
+
+	fibril_mutex_unlock(&drv->driver_mutex);
+
+	free(buffer);
+}
+
 /** Function for handling connections from a client to the device manager. */
 void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -440,6 +513,7 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			devman_fun_get_child(callid, &call);
 			break;
 		case DEVMAN_FUN_GET_NAME:
+			printf("devman_fun_get_name\n");
 			devman_fun_get_name(callid, &call);
 			break;
 		case DEVMAN_FUN_GET_DRIVER_NAME:
@@ -456,6 +530,13 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_FUN_SID_TO_HANDLE:
 			devman_fun_sid_to_handle(callid, &call);
+			break;
+		case DEVMAN_GET_DRIVERS:
+			devman_get_drivers(callid, &call);
+			break;
+		case DEVMAN_DRIVER_GET_NAME:
+			printf("devman_get_driver_name\n");
+			devman_driver_get_name(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);

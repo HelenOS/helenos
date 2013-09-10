@@ -591,5 +591,17 @@ int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
 	return (int) retval;
 }
 
+int devman_get_drivers(devman_handle_t **drvs,
+    size_t *count)
+{
+	return devman_get_handles_internal(DEVMAN_GET_DRIVERS, 0, drvs, count);
+}
+
+int devman_driver_get_name(devman_handle_t handle, char *buf, size_t buf_size)
+{
+	return devman_get_str_internal(DEVMAN_DRIVER_GET_NAME, handle, buf,
+	    buf_size);
+}
+
 /** @}
  */

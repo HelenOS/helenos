@@ -79,6 +79,8 @@ typedef enum {
 typedef struct driver {
 	/** Pointers to previous and next drivers in a linked list. */
 	link_t drivers;
+	/** Handle */
+	devman_handle_t handle;
 	
 	/**
 	 * Specifies whether the driver has been started and wheter is running
@@ -109,6 +111,8 @@ typedef struct driver_list {
 	list_t drivers;
 	/** Fibril mutex for list of drivers. */
 	fibril_mutex_t drivers_mutex;
+	/** Next free handle */
+	devman_handle_t next_handle;
 } driver_list_t;
 
 /** Device state */

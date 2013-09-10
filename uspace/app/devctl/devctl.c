@@ -158,9 +158,36 @@ static int fun_offline(const char *path)
 	return EOK;
 }
 
+static int drv_list(void)
+{
+	devman_handle_t *drvs;
+	size_t ndrvs;
+	size_t i;
+	int rc;
+
+	rc = devman_get_drivers(&drvs, &ndrvs);
+	if (rc != EOK)
+		return rc;
+
+	printf("Got %d handles\n", ndrvs);
+	for (i = 0; i < ndrvs; i++) {
+		rc = devman_driver_get_name(drvs[i], drv_name, MAX_NAME_LENGTH);
+		if (rc != EOK)
+			continue;
+		printf("%3d %s\n", (int)drvs[i], drv_name);
+	}
+	free(drvs);
+
+	return EOK;
+}
+
 static void print_syntax(void)
 {
-	printf("syntax: devctl [(online|offline) <function>]\n");
+	printf("syntax:\n");
+	printf("\tdevctl\n");
+	printf("\tdevctl online <function>]\n");
+	printf("\tdevctl offline <function>]\n");
+	printf("\tdevctl list-drv\n");
 }
 
 int main(int argc, char *argv[])
@@ -193,6 +220,10 @@ int main(int argc, char *argv[])
 		if (rc != EOK) {
 			return 2;
 		}
+	} else if (str_cmp(argv[1], "list-drv") == 0) {
+		rc = drv_list();
+		if (rc != EOK)
+			return 2;
 	} else {
 		printf(NAME ": Invalid argument '%s'.\n", argv[1]);
 		print_syntax();
