@@ -60,6 +60,7 @@
 #include "dev.h"
 #include "devman.h"
 #include "driver.h"
+#include "fun.h"
 
 #define DRIVER_DEFAULT_STORE  "/drv"
 

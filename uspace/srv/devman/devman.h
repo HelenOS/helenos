@@ -243,21 +243,6 @@ extern bool read_match_ids(const char *, match_id_list_t *);
 extern char *read_match_id(char **);
 extern char *read_id(const char **);
 
-/* Function nodes */
-
-extern fun_node_t *create_fun_node(void);
-extern void delete_fun_node(fun_node_t *);
-extern void fun_add_ref(fun_node_t *);
-extern void fun_del_ref(fun_node_t *);
-extern void fun_busy_lock(fun_node_t *);
-extern void fun_busy_unlock(fun_node_t *);
-extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
-    devman_handle_t handle);
-extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
-extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
-extern fun_node_t *find_fun_node_in_device(dev_tree_t *tree, dev_node_t *,
-    const char *);
-
 /* Device tree */
 
 extern bool init_device_tree(dev_tree_t *, driver_list_t *);

@@ -35,6 +35,7 @@ SOURCES = \
 	dev.c \
 	devman.c \
 	driver.c \
+	fun.c \
 	main.c \
 	match.c \
 	util.c
