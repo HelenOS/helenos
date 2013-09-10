@@ -64,7 +64,7 @@ const char *test_mapping1(void)
 		if (v != TEST_MAGIC) {
 			km_unmap(page0, PAGE_SIZE);
 			km_unmap(page1, PAGE_SIZE);
-			frame_free(frame);
+			frame_free(frame, 1);
 			return "Criss-cross read does not match the value written.";
 		}
 		
@@ -79,14 +79,14 @@ const char *test_mapping1(void)
 		if (v != 0) {
 			km_unmap(page0, PAGE_SIZE);
 			km_unmap(page1, PAGE_SIZE);
-			frame_free(frame);
+			frame_free(frame, 1);
 			return "Criss-cross read does not match the value written.";
 		}
 	}
 	
 	km_unmap(page0, PAGE_SIZE);
 	km_unmap(page1, PAGE_SIZE);
-	frame_free(frame);
+	frame_free(frame, 1);
 	
 	return NULL;
 }

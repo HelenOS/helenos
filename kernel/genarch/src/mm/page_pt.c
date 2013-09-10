@@ -218,7 +218,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 #endif
-		frame_free(KA2PA((uintptr_t) ptl3));
+		frame_free(KA2PA((uintptr_t) ptl3), PTL3_FRAMES);
 	} else {
 		/*
 		 * PTL3 is not empty.
@@ -252,7 +252,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 #endif
-		frame_free(KA2PA((uintptr_t) ptl2));
+		frame_free(KA2PA((uintptr_t) ptl2), PTL2_FRAMES);
 	} else {
 		/*
 		 * PTL2 is not empty.
@@ -283,7 +283,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 			return;
 
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
-		frame_free(KA2PA((uintptr_t) ptl1));
+		frame_free(KA2PA((uintptr_t) ptl1), PTL1_FRAMES);
 	}
 #endif /* PTL1_ENTRIES != 0 */
 }

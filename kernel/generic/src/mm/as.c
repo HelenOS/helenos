@@ -906,7 +906,7 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 			btree_key_t i;
 			
 			for (i = 0; i < node->keys; i++)
-				frame_free((uintptr_t) node->value[i]);
+				frame_free((uintptr_t) node->value[i], 1);
 		}
 		
 	}

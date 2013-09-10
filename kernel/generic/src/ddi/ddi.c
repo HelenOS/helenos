@@ -338,7 +338,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
-		frame_free_noreserve(*phys);
+		frame_free_noreserve(*phys, frames);
 		return ENOMEM;
 	}
 	

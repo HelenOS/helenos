@@ -293,14 +293,14 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * be unreserved when the area is destroyed so we need to use
 		 * the normal unreserving frame_free().
 		 */
-		frame_free(frame);
+		frame_free(frame, 1);
 	} else {
 		/*
 		 * The reserve will be given back when the area is destroyed or
 		 * resized, so use the frame_free_noreserve() which does not
 		 * manipulate the reserve or it would be given back twice.
 		 */
-		frame_free_noreserve(frame);
+		frame_free_noreserve(frame, 1);
 	}
 }
 

@@ -192,7 +192,7 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 	if (!(cache->flags & SLAB_CACHE_SLINSIDE)) {
 		slab = slab_alloc(slab_extern_cache, flags);
 		if (!slab) {
-			frame_free(KA2PA(data));
+			frame_free(KA2PA(data), cache->frames);
 			return NULL;
 		}
 	} else {
@@ -224,7 +224,7 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
  */
 NO_TRACE static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 {
-	frame_free(KA2PA(slab->start));
+	frame_free(KA2PA(slab->start), slab->cache->frames);
 	if (!(cache->flags & SLAB_CACHE_SLINSIDE))
 		slab_free(slab_extern_cache, slab);
 	

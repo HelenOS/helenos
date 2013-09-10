@@ -347,7 +347,6 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, index);
-	size_t size = 0;
 	
 	ASSERT(frame->refcount > 0);
 	
@@ -358,10 +357,10 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 		zone->free_count++;
 		zone->busy_count--;
 		
-		size = FRAME_SIZE;
+		return 1;
 	}
 	
-	return size;
+	return 0;
 }
 
 /** Mark frame in zone unavailable to allocation. */
@@ -890,48 +889,50 @@ uintptr_t frame_alloc_noreserve(size_t count, frame_flags_t flags,
 	    NULL);
 }
 
-/** Free a frame.
+/** Free frames of physical memory.
  *
- * Find respective frame structure for supplied physical frame address.
- * Decrement frame reference count. If it drops to zero, move the frame
- * structure to free list.
+ * Find respective frame structures for supplied physical frames.
+ * Decrement each frame reference count. If it drops to zero, mark
+ * the frames as available.
  *
- * @param frame Physical Address of of the frame to be freed.
+ * @param start Physical Address of the first frame to be freed.
+ * @param count Number of frames to free.
  * @param flags Flags to control memory reservation.
  *
  */
-void frame_free_generic(uintptr_t frame, frame_flags_t flags)
+void frame_free_generic(uintptr_t start, size_t count, frame_flags_t flags)
 {
+	size_t freed = 0;
+	
 	irq_spinlock_lock(&zones.lock, true);
 	
-	/*
-	 * First, find host frame zone for addr.
-	 */
-	pfn_t pfn = ADDR2PFN(frame);
-	size_t znum = find_zone(pfn, 1, 0);
-	
-	ASSERT(znum != (size_t) -1);
-	
-	size_t size =
-	    zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);
+	for (size_t i = 0; i < count; i++) {
+		/*
+		 * First, find host frame zone for addr.
+		 */
+		pfn_t pfn = ADDR2PFN(start) + i;
+		size_t znum = find_zone(pfn, 1, 0);
+		
+		ASSERT(znum != (size_t) -1);
+		
+		freed += zone_frame_free(&zones.info[znum],
+		    pfn - zones.info[znum].base);
+	}
 	
 	irq_spinlock_unlock(&zones.lock, true);
 	
 	/*
 	 * Signal that some memory has been freed.
-	 */
-	
-	
-	/*
-	 * Since the mem_avail_mtx is an active mutex, we need to disable interrupts
-	 * to prevent deadlock with TLB shootdown.
+	 * Since the mem_avail_mtx is an active mutex,
+	 * we need to disable interruptsto prevent deadlock
+	 * with TLB shootdown.
 	 */
 	
 	ipl_t ipl = interrupts_disable();
 	mutex_lock(&mem_avail_mtx);
 	
 	if (mem_avail_req > 0)
-		mem_avail_req -= min(mem_avail_req, size);
+		mem_avail_req -= min(mem_avail_req, freed);
 	
 	if (mem_avail_req == 0) {
 		mem_avail_gen++;
@@ -942,17 +943,17 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 	interrupts_restore(ipl);
 	
 	if (!(flags & FRAME_NO_RESERVE))
-		reserve_free(size);
+		reserve_free(freed);
 }
 
-void frame_free(uintptr_t frame)
+void frame_free(uintptr_t frame, size_t count)
 {
-	frame_free_generic(frame, 0);
+	frame_free_generic(frame, count, 0);
 }
 
-void frame_free_noreserve(uintptr_t frame)
+void frame_free_noreserve(uintptr_t frame, size_t count)
 {
-	frame_free_generic(frame, FRAME_NO_RESERVE);
+	frame_free_generic(frame, count, FRAME_NO_RESERVE);
 }
 
 /** Add reference to frame.

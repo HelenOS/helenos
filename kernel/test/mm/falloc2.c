@@ -99,7 +99,7 @@ static void falloc(void *arg)
 						goto cleanup;
 					}
 				}
-				frame_free(KA2PA(frames[i]));
+				frame_free(KA2PA(frames[i]), count);
 			}
 			
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "

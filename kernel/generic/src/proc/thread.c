@@ -216,7 +216,7 @@ static size_t thr_destructor(void *obj)
 	/* call the architecture-specific part of the destructor */
 	thr_destructor_arch(thread);
 	
-	frame_free(KA2PA(thread->kstack));
+	frame_free(KA2PA(thread->kstack), STACK_FRAMES);
 	
 #ifdef CONFIG_FPU
 	if (thread->saved_fpu_context)

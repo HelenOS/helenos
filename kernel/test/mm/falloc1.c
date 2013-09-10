@@ -83,7 +83,7 @@ const char *test_falloc1(void)
 			TPRINTF("Deallocating ... ");
 			
 			for (unsigned int i = 0; i < allocated; i++)
-				frame_free(KA2PA(frames[i]));
+				frame_free(KA2PA(frames[i]), count);
 			
 			TPRINTF("done.\n");
 		}

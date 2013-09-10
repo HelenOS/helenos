@@ -112,7 +112,7 @@ pte_t *ptl0_create(unsigned int flags)
  */
 void ptl0_destroy(pte_t *page_table)
 {
-	frame_free((uintptr_t) page_table);
+	frame_free((uintptr_t) page_table, PTL0_FRAMES);
 }
 
 /** Lock page tables.
