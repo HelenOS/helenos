@@ -727,8 +727,8 @@ void clean_driver(driver_t *drv)
 {
 	assert(drv != NULL);
 
-	free_not_null(drv->name);
-	free_not_null(drv->binary_path);
+	free(drv->name);
+	free(drv->binary_path);
 
 	clean_match_ids(&drv->match_ids);
 
@@ -1178,8 +1178,8 @@ void delete_fun_node(fun_node_t *fun)
 	assert(fun->child == NULL);
 	
 	clean_match_ids(&fun->match_ids);
-	free_not_null(fun->name);
-	free_not_null(fun->pathname);
+	free(fun->name);
+	free(fun->pathname);
 	free(fun);
 }
 
