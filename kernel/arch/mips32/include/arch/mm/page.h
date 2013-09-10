@@ -195,7 +195,6 @@ NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
 
 	p->p = 1;
 }
-	
 
 extern void page_arch_init(void);
 

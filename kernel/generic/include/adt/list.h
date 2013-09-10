@@ -185,6 +185,7 @@ NO_TRACE static inline int list_empty(const list_t *list)
  *
  * @return Head item of the list.
  * @return NULL if the list is empty.
+ *
  */
 static inline link_t *list_first(const list_t *list)
 {
@@ -197,6 +198,7 @@ static inline link_t *list_first(const list_t *list)
  *
  * @return Head item of the list.
  * @return NULL if the list is empty.
+ *
  */
 static inline link_t *list_last(list_t *list)
 {
