@@ -489,6 +489,20 @@ static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	free(buffer);
 }
 
+/** Get driver state. */
+static void devman_driver_get_state(ipc_callid_t iid, ipc_call_t *icall)
+{
+	driver_t *drv;
+	
+	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	if (drv == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	async_answer_1(iid, EOK, (sysarg_t) drv->state);
+}
+
 /** Function for handling connections from a client to the device manager. */
 void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -535,6 +549,9 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_DRIVER_GET_NAME:
 			devman_driver_get_name(callid, &call);
+			break;
+		case DEVMAN_DRIVER_GET_STATE:
+			devman_driver_get_state(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);

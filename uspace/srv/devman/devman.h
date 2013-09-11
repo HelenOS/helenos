@@ -61,20 +61,6 @@ typedef struct {
 	struct driver *driver;
 } client_t;
 
-typedef enum {
-	/** Driver has not been started. */
-	DRIVER_NOT_STARTED = 0,
-	
-	/**
-	 * Driver has been started, but has not registered as running and ready
-	 * to receive requests.
-	 */
-	DRIVER_STARTING,
-	
-	/** Driver is running and prepared to serve incomming requests. */
-	DRIVER_RUNNING
-} driver_state_t;
-
 /** Representation of device driver. */
 typedef struct driver {
 	/** Pointers to previous and next drivers in a linked list. */
@@ -86,7 +72,7 @@ typedef struct driver {
 	 * Specifies whether the driver has been started and wheter is running
 	 * and prepared to receive requests.
 	 */
-	int state;
+	driver_state_t state;
 	
 	/** Session asociated with this driver. */
 	async_sess_t *sess;

@@ -603,5 +603,23 @@ int devman_driver_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 	    buf_size);
 }
 
+int devman_driver_get_state(devman_handle_t drvh, driver_state_t *rstate)
+{
+	sysarg_t state;
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	int rc = async_req_1_1(exch, DEVMAN_DRIVER_GET_STATE, drvh,
+	    &state);
+	
+	devman_exchange_end(exch);
+	if (rc != EOK)
+		return rc;
+
+	*rstate = state;
+	return rc;
+}
+
 /** @}
  */

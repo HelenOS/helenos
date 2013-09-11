@@ -43,6 +43,20 @@
 typedef sysarg_t devman_handle_t;
 
 typedef enum {
+	/** Driver has not been started. */
+	DRIVER_NOT_STARTED = 0,
+	
+	/**
+	 * Driver has been started, but has not registered as running and ready
+	 * to receive requests.
+	 */
+	DRIVER_STARTING,
+	
+	/** Driver is running and prepared to serve incomming requests. */
+	DRIVER_RUNNING
+} driver_state_t;
+
+typedef enum {
 	/** Invalid value for debugging purposes */
 	fun_invalid = 0,
 	/** Function to which child devices attach */
@@ -162,7 +176,8 @@ typedef enum {
 	DEVMAN_FUN_GET_PATH,
 	DEVMAN_FUN_SID_TO_HANDLE,
 	DEVMAN_GET_DRIVERS,
-	DEVMAN_DRIVER_GET_NAME
+	DEVMAN_DRIVER_GET_NAME,
+	DEVMAN_DRIVER_GET_STATE
 } client_to_devman_t;
 
 #endif

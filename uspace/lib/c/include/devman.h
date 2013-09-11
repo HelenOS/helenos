@@ -72,6 +72,7 @@ extern int devman_add_device_to_category(devman_handle_t, const char *);
 extern int devman_fun_sid_to_handle(service_id_t, devman_handle_t *);
 extern int devman_get_drivers(devman_handle_t **, size_t *);
 extern int devman_driver_get_name(devman_handle_t, char *, size_t);
+extern int devman_driver_get_state(devman_handle_t, driver_state_t *);
 
 #endif
 

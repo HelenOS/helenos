@@ -80,7 +80,7 @@ driver_t *create_driver(void)
 void add_driver(driver_list_t *drivers_list, driver_t *drv)
 {
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
-	list_prepend(&drv->drivers, &drivers_list->drivers);
+	list_append(&drv->drivers, &drivers_list->drivers);
 	drv->handle = drivers_list->next_handle++;
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 

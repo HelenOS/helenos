@@ -161,6 +161,8 @@ static int fun_offline(const char *path)
 static int drv_list(void)
 {
 	devman_handle_t *drvs;
+	driver_state_t state;
+	const char *sstate;
 	size_t ndrvs;
 	size_t i;
 	int rc;
@@ -169,12 +171,27 @@ static int drv_list(void)
 	if (rc != EOK)
 		return rc;
 
-	printf("Got %d handles\n", ndrvs);
 	for (i = 0; i < ndrvs; i++) {
 		rc = devman_driver_get_name(drvs[i], drv_name, MAX_NAME_LENGTH);
 		if (rc != EOK)
 			continue;
-		printf("%3d %s\n", (int)drvs[i], drv_name);
+		rc = devman_driver_get_state(drvs[i], &state);
+		if (rc != EOK)
+			continue;
+		switch (state) {
+		case DRIVER_NOT_STARTED:
+			sstate = "not started";
+			break;
+		case DRIVER_STARTING:
+			sstate = "starting";
+			break;
+		case DRIVER_RUNNING:
+			sstate = "running";
+			break;
+		default:
+			sstate = "unknown";
+		}
+		printf("%3d %-10s %s\n", (int)drvs[i], drv_name, sstate);
 	}
 	free(drvs);
 
