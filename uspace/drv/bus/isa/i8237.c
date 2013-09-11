@@ -278,6 +278,7 @@ static dma_controller_t controller_8237 = {
  * @param controller DMA Controller structure to initialize.
  *
  * @return Error code.
+ *
  */
 static inline int dma_controller_init(dma_controller_t *controller)
 {
