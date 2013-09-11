@@ -49,7 +49,7 @@
 #define HEADER_TABLE 	"Filesystem     %4u-blocks           Used      Available Used%% Mounted on"
 #define HEADER_TABLE_HR "Filesystem           Size           Used      Available Used%% Mounted on"
 
-#define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))  
+#define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))
 #define FSBK_TO_BK(x, fsbk, bk) \
 	(((fsbk) != 0 && (fsbk) < (bk)) ? \
 		(unsigned long long) ((x) / ((bk) / (fsbk))) : \
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 {
 	int optres, errflg = 0;
 	struct statfs st;
-	
+
 	unit_size = 512;
 	human_readable = 0;
 
@@ -87,8 +87,8 @@ int main(int argc, char *argv[])
 		case 'b':
 			str_uint32_t(optarg, NULL, 0, 0, &unit_size);
 			break;
-    
-		case ':':       
+ 
+		case ':':
 			fprintf(stderr, "Option -%c requires an operand\n", optopt);
 			errflg++;
 			break;
@@ -109,12 +109,12 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Too many input parameter\n");
 		errflg++;
 	}
-	
+
 	if (errflg) {
 		print_usage();
 		return 1;
 	}
-	
+
 	LIST_INITIALIZE(mtab_list);
 	get_mtab_list(&mtab_list);
 	print_header();
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 		statfs(mtab_ent->mp, &st);
 		print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
 	}
-	putchar('\n');	
+	putchar('\n');
 	return 0;
 }
 
@@ -147,8 +147,8 @@ static int size_to_human_readable(char buf[], uint64_t bytes)
 static void print_header(void)
 {
 	if (human_readable)
-		printf(HEADER_TABLE_HR); 
-	else 
+		printf(HEADER_TABLE_HR);
+	else
 		printf(HEADER_TABLE, unit_size);
 	putchar('\n');
 }
@@ -156,7 +156,7 @@ static void print_header(void)
 static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 {
 	printf("%10s", name);
-	
+
 	if (human_readable) {
 		char tmp[1024];
 		size_to_human_readable(tmp, st->f_blocks *  st->f_bsize);
@@ -178,16 +178,16 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 			(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
 			mountpoint                                                                     /* Mounted on */
 		);
-	
+
 }
 
 static void print_usage(void)
 {
-  printf("syntax: %s [-u] [-h] [-b <size>] \n", NAME);
-  printf("  u : Show usage.\n");  
-  printf("  h : \"Human-readable\" output.\n");  
-  printf("  b : Scale block sizes by selected size.\n");  
-  printf("\n");
+	printf("syntax: %s [-u] [-h] [-b <size>] \n", NAME);
+	printf("  u : Show usage.\n");
+	printf("  h : \"Human-readable\" output.\n");
+	printf("  b : Scale block sizes by selected size.\n");
+	printf("\n");
 }
 
 /** @}
