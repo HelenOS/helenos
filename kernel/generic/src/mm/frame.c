@@ -373,6 +373,7 @@ NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 	if (frame->refcount > 0)
 		return;
 	
+	frame->refcount = 1;
 	bitmap_set_range(&zone->bitmap, index, 1);
 	
 	zone->free_count--;

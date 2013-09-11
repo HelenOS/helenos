@@ -61,12 +61,10 @@ const char *test_falloc1(void)
 			
 			unsigned int allocated = 0;
 			for (unsigned int i = 0; i < (MAX_FRAMES / count); i++) {
-				frames[allocated] =
-				    PA2KA(frame_alloc(count, FRAME_ATOMIC, 0));
-				
-				if (frames[allocated])
+				frames[allocated] = frame_alloc(count, FRAME_ATOMIC, 0);
+				if (frames[allocated]) {
 					allocated++;
-				else {
+				} else {
 					TPRINTF("done. ");
 					break;
 				}
@@ -83,7 +81,7 @@ const char *test_falloc1(void)
 			TPRINTF("Deallocating ... ");
 			
 			for (unsigned int i = 0; i < allocated; i++)
-				frame_free(KA2PA(frames[i]), count);
+				frame_free(frames[i], count);
 			
 			TPRINTF("done.\n");
 		}

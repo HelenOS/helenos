@@ -62,19 +62,19 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
-	size_t frames = SIZE2FRAMES((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t));
-	
-	uintptr_t tsb = PA2KA(frame_alloc(frames, flags, 0));
-	if (!tsb)
+	uintptr_t tsb_phys =
+	    frame_alloc(SIZE2FRAMES((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+	    sizeof(tsb_entry_t)), flags, 0);
+	if (!tsb_phys)
 		return -1;
 	
-	as->arch.itsb = (tsb_entry_t *) tsb;
-	as->arch.dtsb = (tsb_entry_t *) (tsb +
-	    ITSB_ENTRY_COUNT * sizeof(tsb_entry_t));
+	tsb_entry_t *tsb = (tsb_entry_t *) PA2KA(tsb_phys);
 	
-	memsetb(as->arch.itsb,
-	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);
+	as->arch.itsb = tsb;
+	as->arch.dtsb = tsb + ITSB_ENTRY_COUNT;
+	
+	memsetb(as->arch.itsb, (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+	    sizeof(tsb_entry_t), 0);
 #endif
 	
 	return 0;
@@ -83,15 +83,11 @@ int as_constructor_arch(as_t *as, unsigned int flags)
 int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
-	/*
-	 * The count must be calculated with respect to the emualted 16K page
-	 * size.
-	 */
-	size_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t)) >> FRAME_WIDTH;
-	frame_free(KA2PA((uintptr_t) as->arch.itsb));
+	size_t frames = SIZE2FRAMES((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+	    sizeof(tsb_entry_t));
+	frame_free(KA2PA((uintptr_t) as->arch.itsb), frames);
 	
-	return cnt;
+	return frames;
 #else
 	return 0;
 #endif
