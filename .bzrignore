@@ -4,6 +4,7 @@
 Makefile.depend
 Makefile.common
 Makefile.config
+cscope.out
 autotool/
 common.h
 config.h
