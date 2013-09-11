@@ -56,6 +56,8 @@
 #include <sysinfo.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
+#include <ops/pio_window.h>
+#include <device/pio_window.h>
 #include <ddi.h>
 #include <pci_dev_iface.h>
 
@@ -140,6 +142,16 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
+static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	
+	if (fun == NULL)
+		return NULL;
+	return &fun->pio_window;
+}
+
+
 static int pci_config_space_write_32(ddf_fun_t *fun, uint32_t address,
     uint32_t data)
 {
@@ -199,6 +211,10 @@ static hw_res_ops_t pciintel_hw_res_ops = {
 	.enable_interrupt = &pciintel_enable_interrupt,
 };
 
+static pio_window_ops_t pciintel_pio_window_ops = {
+	.get_pio_window = &pciintel_get_pio_window
+};
+
 static pci_dev_iface_t pci_dev_ops = {
 	.config_space_read_8 = &pci_config_space_read_8,
 	.config_space_read_16 = &pci_config_space_read_16,
@@ -210,6 +226,7 @@ static pci_dev_iface_t pci_dev_ops = {
 
 static ddf_dev_ops_t pci_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops,
+	.interfaces[PIO_WINDOW_DEV_IFACE] = &pciintel_pio_window_ops,
 	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
 };
 
@@ -616,6 +633,9 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			pci_alloc_resource_list(fun);
 			pci_read_bars(fun);
 			pci_read_interrupt(fun);
+
+			/* Propagate the PIO window to the function. */
+			fun->pio_window = bus->pio_win;
 			
 			ddf_fun_set_ops(fun->fnode, &pci_fun_ops);
 			
@@ -646,6 +666,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 
 static int pci_dev_add(ddf_dev_t *dnode)
 {
+	hw_resource_list_t hw_resources;
 	pci_bus_t *bus = NULL;
 	ddf_fun_t *ctl = NULL;
 	bool got_res = false;
@@ -671,8 +692,13 @@ static int pci_dev_add(ddf_dev_t *dnode)
 		rc = ENOENT;
 		goto fail;
 	}
-	
-	hw_resource_list_t hw_resources;
+
+	rc = pio_window_get(sess, &bus->pio_win);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "pci_dev_add failed to get PIO window "
+		    "for the device.");
+		goto fail;
+	}
 	
 	rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK) {
@@ -762,8 +788,6 @@ static int pci_fun_offline(ddf_fun_t *fun)
 static void pciintel_init(void)
 {
 	ddf_log_init(NAME);
-	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
-	pci_fun_ops.interfaces[PCI_DEV_IFACE] = &pci_dev_ops;
 }
 
 pci_fun_t *pci_fun_new(pci_bus_t *bus)
