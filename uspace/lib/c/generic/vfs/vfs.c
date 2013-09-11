@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/types.h>
 #include <ipc/services.h>
 #include <ns.h>
@@ -888,6 +889,45 @@ int get_mtab_list(list_t *mtab_list)
 exit:
 	async_wait_for(req, &rc);
 	vfs_exchange_end(exch);
+	return rc;
+}
+
+int statfs(const char *path, struct statfs *statfs)
+{
+	sysarg_t rc;
+	sysarg_t rc_orig;
+	aid_t req;
+	size_t pa_size;
+	
+	char *pa = absolutize(path, &pa_size);
+	if (!pa)
+		return ENOMEM;
+	async_exch_t *exch = vfs_exchange_begin();
+	
+	req = async_send_0(exch, VFS_IN_STATFS, NULL);
+	rc = async_data_write_start(exch, pa, pa_size);
+	if (rc != EOK) {
+		vfs_exchange_end(exch);
+		free(pa);
+		async_wait_for(req, &rc_orig);
+		if (rc_orig == EOK)
+			return (int) rc;
+		else
+			return (int) rc_orig;
+	}
+	rc = async_data_read_start(exch, (void *) statfs, sizeof(struct statfs));
+	if (rc != EOK) {
+		vfs_exchange_end(exch);
+		free(pa);
+		async_wait_for(req, &rc_orig);
+		if (rc_orig == EOK)
+			return (int) rc;
+		else
+			return (int) rc_orig;
+	}
+	vfs_exchange_end(exch);
+	free(pa);
+	async_wait_for(req, &rc);
 	return rc;
 }
 

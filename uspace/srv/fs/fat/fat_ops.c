@@ -90,6 +90,9 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
+static int fat_size_block(service_id_t, uint32_t *);
+static int fat_total_block_count(service_id_t, uint64_t *);
+static int fat_free_block_count(service_id_t, uint64_t *);
 
 /*
  * Helper functions.
@@ -840,6 +843,50 @@ service_id_t fat_service_get(fs_node_t *node)
 	return 0;
 }
 
+int fat_size_block(service_id_t service_id, uint32_t *size)
+{
+	fat_bs_t *bs;
+
+	bs = block_bb_get(service_id);
+	*size = BPC(bs);
+
+	return EOK;
+}
+
+int fat_total_block_count(service_id_t service_id, uint64_t *count)
+{
+	fat_bs_t *bs;
+	
+	bs = block_bb_get(service_id);
+	*count = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
+
+	return EOK;
+}
+
+int fat_free_block_count(service_id_t service_id, uint64_t *count)
+{
+	fat_bs_t *bs;
+	fat_cluster_t e0;
+	uint64_t block_count;
+	int rc;
+	uint32_t cluster_no, clusters;
+
+	block_count = 0;
+	bs = block_bb_get(service_id);
+	clusters = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
+	for (cluster_no = 0; cluster_no < clusters; cluster_no++) {
+		rc = fat_get_cluster(bs, service_id, FAT1, cluster_no, &e0);
+		if (rc != EOK)
+			return EIO;
+
+		if (e0 == FAT_CLST_RES0)
+			block_count++;
+	}
+	*count = block_count;
+	
+	return EOK;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
@@ -857,7 +904,10 @@ libfs_ops_t fat_libfs_ops = {
 	.lnkcnt_get = fat_lnkcnt_get,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
-	.service_get = fat_service_get
+	.service_get = fat_service_get,
+	.size_block = fat_size_block,
+	.total_block_count = fat_total_block_count,
+	.free_block_count = fat_free_block_count
 };
 
 /*

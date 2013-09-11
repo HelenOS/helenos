@@ -618,6 +618,27 @@ static service_id_t cdfs_service_get(fs_node_t *fn)
 	return 0;
 }
 
+static int cdfs_size_block(service_id_t service_id, uint32_t *size)
+{
+	*size = BLOCK_SIZE;
+
+	return EOK; 
+}
+
+static int cdfs_total_block_count(service_id_t service_id, uint64_t *count)
+{
+	*count = 0;
+	
+	return EOK;
+}
+
+static int cdfs_free_block_count(service_id_t service_id, uint64_t *count)
+{
+	*count = 0;
+	
+	return EOK;
+}
+
 libfs_ops_t cdfs_libfs_ops = {
 	.root_get = cdfs_root_get,
 	.match = cdfs_match,
@@ -634,7 +655,10 @@ libfs_ops_t cdfs_libfs_ops = {
 	.lnkcnt_get = cdfs_lnkcnt_get,
 	.is_directory = cdfs_is_directory,
 	.is_file = cdfs_is_file,
-	.service_get = cdfs_service_get
+	.service_get = cdfs_service_get,
+	.size_block = cdfs_size_block,
+	.total_block_count = cdfs_total_block_count,
+	.free_block_count = cdfs_free_block_count
 };
 
 static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,

@@ -80,6 +80,7 @@ DIRS = \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
+	app/df \
 	app/wavplay \
 	app/websrv \
 	srv/audio/hound \
