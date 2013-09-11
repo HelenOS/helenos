@@ -292,9 +292,10 @@ uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size,
 	usb_hid_report_description_t *report_des = NULL;
 
 	list_foreach(report->reports, reports_link,
-	    usb_hid_report_description_t, report_des) {
-		if ((report_des->report_id == report_id) &&
-		    (report_des->type == USB_HID_REPORT_TYPE_OUTPUT)) {
+	    usb_hid_report_description_t, rdes) {
+		if ((rdes->report_id == report_id) &&
+		    (rdes->type == USB_HID_REPORT_TYPE_OUTPUT)) {
+			report_des = rdes;
 			break;
 		}
 	}
