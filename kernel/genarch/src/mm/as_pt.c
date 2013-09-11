@@ -73,11 +73,10 @@ as_operations_t as_pt_operations = {
 pte_t *ptl0_create(unsigned int flags)
 {
 	pte_t *dst_ptl0 = (pte_t *)
-	    PA2KA(frame_alloc(PTL0_FRAMES, FRAME_LOWMEM, 0));
-	size_t table_size = FRAMES2SIZE(PTL0_FRAMES);
+	    PA2KA(frame_alloc(PTL0_FRAMES, FRAME_LOWMEM, PTL0_SIZE - 1));
 	
 	if (flags & FLAG_AS_KERNEL)
-		memsetb(dst_ptl0, table_size, 0);
+		memsetb(dst_ptl0, PTL0_SIZE, 0);
 	else {
 		/*
 		 * Copy the kernel address space portion to new PTL0.
@@ -93,9 +92,9 @@ pte_t *ptl0_create(unsigned int flags)
 		uintptr_t dst = (uintptr_t)
 		    &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 		
-		memsetb(dst_ptl0, table_size, 0);
+		memsetb(dst_ptl0, PTL0_SIZE, 0);
 		memcpy((void *) dst, (void *) src,
-		    table_size - (src - (uintptr_t) src_ptl0));
+		    PTL0_SIZE - (src - (uintptr_t) src_ptl0));
 		
 		mutex_unlock(&AS_KERNEL->lock);
 	}

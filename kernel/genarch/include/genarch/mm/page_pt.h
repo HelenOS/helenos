@@ -63,6 +63,12 @@
 #define PTL2_FRAMES  PTL2_FRAMES_ARCH
 #define PTL3_FRAMES  PTL3_FRAMES_ARCH
 
+/* Table sizes in each level (in bytes) */
+#define PTL0_SIZE  FRAMES2SIZE(PTL0_FRAMES)
+#define PTL1_SIZE  FRAMES2SIZE(PTL1_FRAMES)
+#define PTL2_SIZE  FRAMES2SIZE(PTL2_FRAMES)
+#define PTL3_SIZE  FRAMES2SIZE(PTL3_FRAMES)
+
 /*
  * These macros process vaddr and extract those portions
  * of it that function as indices to respective page tables.
