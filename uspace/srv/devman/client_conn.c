@@ -449,6 +449,29 @@ static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
+/** Find driver by name. */
+static void devman_driver_get_handle(ipc_callid_t iid, ipc_call_t *icall)
+{
+	char *drvname;
+	
+	int rc = async_data_write_accept((void **) &drvname, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	driver_t *driver = driver_find_by_name(&drivers_list, drvname);
+	
+	free(drvname);
+	
+	if (driver == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	async_answer_1(iid, EOK, driver->handle);
+}
+
 /** Get driver name. */
 static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -503,6 +526,25 @@ static void devman_driver_get_state(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, (sysarg_t) drv->state);
 }
 
+/** Forcibly load a driver. */
+static void devman_driver_load(ipc_callid_t iid, ipc_call_t *icall)
+{
+	driver_t *drv;
+	int rc;
+	
+	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	if (drv == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	fibril_mutex_lock(&drv->driver_mutex);
+	rc = start_driver(drv) ? EOK : EIO;
+	fibril_mutex_unlock(&drv->driver_mutex);
+
+	async_answer_0(iid, rc);
+}
+
 /** Function for handling connections from a client to the device manager. */
 void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -547,11 +589,17 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_GET_DRIVERS:
 			devman_get_drivers(callid, &call);
 			break;
+		case DEVMAN_DRIVER_GET_HANDLE:
+			devman_driver_get_handle(callid, &call);
+			break;
 		case DEVMAN_DRIVER_GET_NAME:
 			devman_driver_get_name(callid, &call);
 			break;
 		case DEVMAN_DRIVER_GET_STATE:
 			devman_driver_get_state(callid, &call);
+			break;
+		case DEVMAN_DRIVER_LOAD:
+			devman_driver_load(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);

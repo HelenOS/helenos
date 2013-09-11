@@ -597,6 +597,41 @@ int devman_get_drivers(devman_handle_t **drvs,
 	return devman_get_handles_internal(DEVMAN_GET_DRIVERS, 0, drvs, count);
 }
 
+int devman_driver_get_handle(const char *drvname, devman_handle_t *handle)
+{
+	async_exch_t *exch;
+
+	exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, DEVMAN_DRIVER_GET_HANDLE, &answer);
+	sysarg_t retval = async_data_write_start(exch, drvname,
+	    str_size(drvname));
+	
+	devman_exchange_end(exch);
+	
+	if (retval != EOK) {
+		async_forget(req);
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK) {
+		if (handle != NULL)
+			*handle = (devman_handle_t) -1;
+		
+		return retval;
+	}
+	
+	if (handle != NULL)
+		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
+	
+	return retval;
+}
+
 int devman_driver_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 {
 	return devman_get_str_internal(DEVMAN_DRIVER_GET_NAME, handle, buf,
@@ -618,6 +653,18 @@ int devman_driver_get_state(devman_handle_t drvh, driver_state_t *rstate)
 		return rc;
 
 	*rstate = state;
+	return rc;
+}
+
+int devman_driver_load(devman_handle_t drvh)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	int rc = async_req_1_0(exch, DEVMAN_DRIVER_LOAD, drvh);
+	
+	devman_exchange_end(exch);
 	return rc;
 }
 
