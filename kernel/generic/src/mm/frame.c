@@ -411,6 +411,7 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 	bitmap_initialize(&zones.info[z1].bitmap, zones.info[z1].count,
 	    BITMAP_BLOCK_SIZE, confdata +
 	    (sizeof(frame_t) * zones.info[z1].count));
+	bitmap_clear_range(&zones.info[z1].bitmap, 0, zones.info[z1].count);
 	
 	zones.info[z1].frames = (frame_t *) confdata;
 	
@@ -578,6 +579,7 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
 		
 		bitmap_initialize(&zone->bitmap, count, BITMAP_BLOCK_SIZE,
 		    confdata + (sizeof(frame_t) * count));
+		bitmap_clear_range(&zone->bitmap, 0, count);
 		
 		/*
 		 * Initialize the array of frame_t structures.
@@ -829,15 +831,16 @@ loop:
 		irq_spinlock_unlock(&zones.lock, true);
 		
 		if (!THREAD)
-			panic("Cannot wait for memory to become available.");
+			panic("Cannot wait for %zu frames to become available "
+			    "(%zu available).", count, avail);
 		
 		/*
 		 * Sleep until some frames are available again.
 		 */
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " waiting for %zu frames, "
-		    "%zu available.\n", THREAD->tid, count, avail);
+		printf("Thread %" PRIu64 " waiting for %zu frames "
+		    "(%zu available).\n", THREAD->tid, count, avail);
 #endif
 		
 		/*
