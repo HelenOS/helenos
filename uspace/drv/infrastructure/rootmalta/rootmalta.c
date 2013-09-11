@@ -52,6 +52,8 @@
 #include <ipc/dev_iface.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
+#include <ops/pio_window.h>
+#include <device/pio_window.h>
 #include <byteorder.h>
 
 #define NAME "rootmalta"
@@ -65,8 +67,15 @@
 
 #define GT_PCI_CMD_MBYTESWAP	0x1
 
+#define GT_PCI_MEMBASE	UINT32_C(0x10000000)
+#define GT_PCI_MEMSIZE	UINT32_C(0x08000000)
+
+#define GT_PCI_IOBASE	UINT32_C(0x18000000)
+#define GT_PCI_IOSIZE	UINT32_C(0x00200000)
+
 typedef struct rootmalta_fun {
 	hw_resource_list_t hw_resources;
+	pio_window_t pio_window;
 } rootmalta_fun_t;
 
 static int rootmalta_dev_add(ddf_dev_t *dev);
@@ -106,6 +115,16 @@ static rootmalta_fun_t pci_data = {
 	.hw_resources = {
 		sizeof(pci_conf_regs) / sizeof(pci_conf_regs[0]),
 		pci_conf_regs
+	},
+	.pio_window = {
+		.mem = {
+			.base = GT_PCI_MEMBASE,
+			.size = GT_PCI_MEMSIZE
+		},
+		.io = {
+			.base = GT_PCI_IOBASE,
+			.size = GT_PCI_IOSIZE
+		}
 	}
 };
 
@@ -130,9 +149,21 @@ static bool rootmalta_enable_interrupt(ddf_fun_t *fun)
 	return false;
 }
 
+static pio_window_t *rootmalta_get_pio_window(ddf_fun_t *fnode)
+{
+	rootmalta_fun_t *fun = rootmalta_fun(fnode);
+
+	assert(fun != NULL);
+	return &fun->pio_window;
+}
+
 static hw_res_ops_t fun_hw_res_ops = {
 	.get_resource_list = &rootmalta_get_resources,
 	.enable_interrupt = &rootmalta_enable_interrupt,
+};
+
+static pio_window_ops_t fun_pio_window_ops = {
+	.get_pio_window = &rootmalta_get_pio_window
 };
 
 /* Initialized in root_malta_init() function. */
@@ -227,6 +258,7 @@ static void root_malta_init(void)
 {
 	ddf_log_init(NAME);
 	rootmalta_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
+	rootmalta_fun_ops.interfaces[PIO_WINDOW_DEV_IFACE] = &fun_pio_window_ops;
 }
 
 int main(int argc, char *argv[])
