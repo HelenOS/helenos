@@ -226,7 +226,7 @@ static int drv_list(void)
 
 		sstate = drv_state_str(state);
 
-		printf("%-11s %3d %s\n", sstate, ndevs, drv_name);
+		printf("%-11s %3zu %s\n", sstate, ndevs, drv_name);
 skip:
 		free(devs);
 	}
