@@ -66,6 +66,7 @@
 #include <ops/hw_res.h>
 
 #include <device/hw_res.h>
+#include <device/pio_window.h>
 
 #include "i8237.h"
 
@@ -78,6 +79,7 @@ typedef struct {
 	fibril_mutex_t mutex;
 	ddf_dev_t *dev;
 	ddf_fun_t *fctl;
+	pio_window_t pio_win;
 	list_t functions;
 } isa_bus_t;
 
@@ -404,9 +406,12 @@ static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
 
+	isa_bus_t *isa = isa_bus(ddf_fun_get_dev(fun->fnode));
+
 	if (count < ISA_MAX_HW_RES) {
 		resources[count].type = IO_RANGE;
 		resources[count].res.io_range.address = addr;
+		resources[count].res.io_range.address += isa->pio_win.io.base;
 		resources[count].res.io_range.size = len;
 		resources[count].res.io_range.endianness = LITTLE_ENDIAN;
 
@@ -603,6 +608,9 @@ static void isa_functions_add(isa_bus_t *isa)
 
 static int isa_dev_add(ddf_dev_t *dev)
 {
+	async_sess_t *sess;
+	int rc;
+
 	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) ddf_dev_get_handle(dev));
 
@@ -613,6 +621,20 @@ static int isa_dev_add(ddf_dev_t *dev)
 	fibril_mutex_initialize(&isa->mutex);
 	isa->dev = dev;
 	list_initialize(&isa->functions);
+
+	sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	if (sess == NULL) {
+		ddf_msg(LVL_ERROR, "isa_dev_add failed to connect to the "
+		    "parent driver.");
+		return ENOENT;
+	}
+
+	rc = pio_window_get(sess, &isa->pio_win);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "isa_dev_add failed to get PIO window "
+		    "for the device.");
+		return rc;
+	}	
 
 	/* Make the bus device more visible. Does not do anything. */
 	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");
