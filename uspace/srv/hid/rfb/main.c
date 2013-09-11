@@ -139,7 +139,7 @@ static visualizer_ops_t rfb_ops = {
 
 static void syntax_print(void)
 {
-	fprintf(stderr, "Usage: %s <service-name> [port]\n", NAME);
+	fprintf(stderr, "Usage: %s <name> <width> <height> [port]\n", NAME);
 }
 
 static void client_connection(ipc_callid_t callid, ipc_call_t *call, void *data)
@@ -157,17 +157,31 @@ static int socket_fibril(void *unused)
 
 int main(int argc, char **argv)
 {
-	if (argc <= 1) {
+	if (argc <= 3) {
 		syntax_print();
 		return 1;
 	}
 
-	const char *service_name = argv[1];
-	unsigned long port = 5900;
+	const char *rfb_name = argv[1];
 	
-	if (argc > 2) {
-		char *endptr;
-		port = strtoul(argv[2], &endptr, 0);
+	char *endptr;
+	unsigned long width = strtoul(argv[2], &endptr, 0);
+	if (*endptr != 0) {
+		fprintf(stderr, "Invalid width\n");
+		syntax_print();
+		return 1;
+	}
+	
+	unsigned long height = strtoul(argv[3], &endptr, 0);
+	if (*endptr != 0) {
+		fprintf(stderr, "Invalid height\n");
+		syntax_print();
+		return 1;
+	}
+	
+	unsigned long port = 5900;
+	if (argc > 4) {
+		port = strtoul(argv[4], &endptr, 0);
 		if (*endptr != 0) {
 			fprintf(stderr, "Invalid port number\n");
 			syntax_print();
@@ -175,7 +189,7 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	rfb_init(&rfb, 800, 600);
+	rfb_init(&rfb, width, height, rfb_name);
 	
 	vis = malloc(sizeof(visualizer_t));
 	if (vis == NULL) {
@@ -210,14 +224,24 @@ int main(int argc, char **argv)
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
 		return rc;
-        }
+	}
+
+	char *service_name;
+	rc = asprintf(&service_name, "rfb/%s", rfb_name);
+	if (rc < 0) {
+		printf(NAME ": Unable to create service name\n");
+		return rc;
+	}
 
 	service_id_t service_id;
+	
 	rc = loc_service_register(service_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register service %s.\n", service_name);
 		return rc;
 	}
+	
+	free(service_name);
 
 	category_id_t visualizer_category;
 	rc = loc_category_get_id("visualizer", &visualizer_category, IPC_FLAG_BLOCKING);

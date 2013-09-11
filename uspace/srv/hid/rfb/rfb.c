@@ -160,7 +160,7 @@ static void rfb_client_cut_text_to_host(rfb_client_cut_text_t *src,
 	dst->length = uint32_t_be2host(src->length);
 }
 
-int rfb_init(rfb_t *rfb, uint16_t width, uint16_t height)
+int rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
 {
 	memset(rfb, 0, sizeof(rfb_t));
 	fibril_mutex_initialize(&rfb->lock);
@@ -177,7 +177,7 @@ int rfb_init(rfb_t *rfb, uint16_t width, uint16_t height)
 	pf->g_shift = 8;
 	pf->b_shift = 16;
 	
-	rfb->name = "HelenOS";
+	rfb->name = str_dup(name);
 	
 	return rfb_set_size(rfb, width, height);
 }
