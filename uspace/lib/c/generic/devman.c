@@ -578,6 +578,19 @@ int devman_dev_get_functions(devman_handle_t devh, devman_handle_t **funcs,
 	    devh, funcs, count);
 }
 
+int devman_dev_get_parent(devman_handle_t devh, devman_handle_t *funh)
+{
+	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+	
+	sysarg_t retval = async_req_1_1(exch, DEVMAN_DEV_GET_PARENT,
+	    devh, funh);
+	
+	devman_exchange_end(exch);
+	return (int) retval;
+}
+
 int devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
 {
 	async_exch_t *exch = devman_exchange_begin(DEVMAN_CLIENT);
@@ -595,6 +608,13 @@ int devman_get_drivers(devman_handle_t **drvs,
     size_t *count)
 {
 	return devman_get_handles_internal(DEVMAN_GET_DRIVERS, 0, drvs, count);
+}
+
+int devman_driver_get_devices(devman_handle_t drvh, devman_handle_t **devs,
+    size_t *count)
+{
+	return devman_get_handles_internal(DEVMAN_DRIVER_GET_DEVICES,
+	    drvh, devs, count);
 }
 
 int devman_driver_get_handle(const char *drvname, devman_handle_t *handle)

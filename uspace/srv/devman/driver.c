@@ -728,5 +728,37 @@ int driver_get_list(driver_list_t *driver_list, devman_handle_t *hdl_buf,
 	return EOK;
 }
 
+/** Get list of device functions. */
+int driver_get_devices(driver_t *driver, devman_handle_t *hdl_buf,
+    size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	fibril_mutex_lock(&driver->driver_mutex);
+
+	buf_cnt = buf_size / sizeof(devman_handle_t);
+
+	act_cnt = list_count(&driver->devices);
+	*act_size = act_cnt * sizeof(devman_handle_t);
+
+	if (buf_size % sizeof(devman_handle_t) != 0) {
+		fibril_mutex_unlock(&driver->driver_mutex);
+		return EINVAL;
+	}
+
+	size_t pos = 0;
+	list_foreach(driver->devices, driver_devices, dev_node_t, dev) {
+		if (pos < buf_cnt) {
+			hdl_buf[pos] = dev->handle;
+		}
+
+		pos++;
+	}
+
+	fibril_mutex_unlock(&driver->driver_mutex);
+	return EOK;
+}
+
 /** @}
  */

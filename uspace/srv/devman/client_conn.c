@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -268,6 +269,31 @@ static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
 	free(buffer);
 }
 
+/** Get handle for parent function of a device. */
+static void devman_dev_get_parent(ipc_callid_t iid, ipc_call_t *icall)
+{
+	dev_node_t *dev;
+	
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+	
+	dev = find_dev_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	if (dev == NULL || dev->state == DEVICE_REMOVED) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (dev->pfun == NULL) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	async_answer_1(iid, EOK, dev->pfun->handle);
+	
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+}
+
 static void devman_dev_get_functions(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
@@ -424,7 +450,6 @@ static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 	
 	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
@@ -448,6 +473,47 @@ static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
 	
 	async_answer_1(iid, retval, act_size);
 }
+
+static void devman_driver_get_devices(ipc_callid_t iid, ipc_call_t *icall)
+{
+	ipc_callid_t callid;
+	size_t size;
+	size_t act_size;
+	int rc;
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	driver_t *drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	if (drv == NULL) {
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	devman_handle_t *hdl_buf = (devman_handle_t *) malloc(size);
+	if (hdl_buf == NULL) {
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	rc = driver_get_devices(drv, hdl_buf, size, &act_size);
+	if (rc != EOK) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	free(hdl_buf);
+	
+	async_answer_1(iid, retval, act_size);
+}
+
 
 /** Find driver by name. */
 static void devman_driver_get_handle(ipc_callid_t iid, ipc_call_t *icall)
@@ -562,6 +628,9 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_DEVICE_GET_HANDLE:
 			devman_function_get_handle(callid, &call);
 			break;
+		case DEVMAN_DEV_GET_PARENT:
+			devman_dev_get_parent(callid, &call);
+			break;
 		case DEVMAN_DEV_GET_FUNCTIONS:
 			devman_dev_get_functions(callid, &call);
 			break;
@@ -588,6 +657,9 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_GET_DRIVERS:
 			devman_get_drivers(callid, &call);
+			break;
+		case DEVMAN_DRIVER_GET_DEVICES:
+			devman_driver_get_devices(callid, &call);
 			break;
 		case DEVMAN_DRIVER_GET_HANDLE:
 			devman_driver_get_handle(callid, &call);

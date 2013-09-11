@@ -63,6 +63,7 @@ extern void init_driver(driver_t *);
 extern void clean_driver(driver_t *);
 extern void delete_driver(driver_t *);
 extern int driver_get_list(driver_list_t *, devman_handle_t *, size_t, size_t *);
+extern int driver_get_devices(driver_t *, devman_handle_t *, size_t, size_t *);
 
 #endif
 

@@ -46,6 +46,27 @@
 char name[MAX_NAME_LENGTH];
 char drv_name[MAX_NAME_LENGTH];
 
+static const char *drv_state_str(driver_state_t state)
+{
+	const char *sstate;
+
+	switch (state) {
+	case DRIVER_NOT_STARTED:
+		sstate = "not started";
+		break;
+	case DRIVER_STARTING:
+		sstate = "starting";
+		break;
+	case DRIVER_RUNNING:
+		sstate = "running";
+		break;
+	default:
+		sstate = "unknown";
+	}
+
+	return sstate;
+}
+
 static int fun_subtree_print(devman_handle_t funh, int lvl)
 {
 	devman_handle_t devh;
@@ -160,10 +181,12 @@ static int fun_offline(const char *path)
 
 static int drv_list(void)
 {
+	devman_handle_t *devs;
 	devman_handle_t *drvs;
 	driver_state_t state;
 	const char *sstate;
 	size_t ndrvs;
+	size_t ndevs;
 	size_t i;
 	int rc;
 
@@ -172,28 +195,77 @@ static int drv_list(void)
 		return rc;
 
 	for (i = 0; i < ndrvs; i++) {
+		devs = NULL;
+
 		rc = devman_driver_get_name(drvs[i], drv_name, MAX_NAME_LENGTH);
 		if (rc != EOK)
-			continue;
+			goto skip;
 		rc = devman_driver_get_state(drvs[i], &state);
 		if (rc != EOK)
-			continue;
-		switch (state) {
-		case DRIVER_NOT_STARTED:
-			sstate = "not started";
-			break;
-		case DRIVER_STARTING:
-			sstate = "starting";
-			break;
-		case DRIVER_RUNNING:
-			sstate = "running";
-			break;
-		default:
-			sstate = "unknown";
-		}
-		printf("%3d %-10s %s\n", (int)drvs[i], drv_name, sstate);
+			goto skip;
+		rc = devman_driver_get_devices(drvs[i], &devs, &ndevs);
+		if (rc != EOK)
+			goto skip;
+
+		sstate = drv_state_str(state);
+
+		printf("%-11s %3d %s\n", sstate, ndevs, drv_name);
+skip:
+		free(devs);
 	}
 	free(drvs);
+
+	return EOK;
+}
+
+static int drv_show(char *drvname)
+{
+	devman_handle_t *devs;
+	devman_handle_t drvh;
+	devman_handle_t funh;
+	driver_state_t state;
+	const char *sstate;
+	size_t ndevs;
+	size_t i;
+	int rc;
+
+	rc = devman_driver_get_handle(drvname, &drvh);
+	if (rc != EOK)
+		return rc;
+
+	devs = NULL;
+
+	rc = devman_driver_get_name(drvh, drv_name, MAX_NAME_LENGTH);
+	if (rc != EOK)
+		return rc;
+
+	rc = devman_driver_get_state(drvh, &state);
+	if (rc != EOK)
+		return rc;
+
+	rc = devman_driver_get_devices(drvh, &devs, &ndevs);
+	if (rc != EOK)
+		return rc;
+
+	sstate = drv_state_str(state);
+
+	printf("Driver: %s\n", drv_name);
+	printf("State: %s\n", sstate);
+	printf("Attached devices:\n");
+
+	for (i = 0; i < ndevs; i++) {
+		rc = devman_dev_get_parent(devs[i], &funh);
+		if (rc != EOK)
+			goto error;
+
+		rc = devman_fun_get_path(funh, name, MAX_NAME_LENGTH);
+		if (rc != EOK)
+			goto error;
+		printf("\t%s\n", name);
+	}
+
+error:
+	free(devs);
 
 	return EOK;
 }
@@ -225,6 +297,7 @@ static void print_syntax(void)
 	printf("\tdevctl online <function>]\n");
 	printf("\tdevctl offline <function>]\n");
 	printf("\tdevctl list-drv\n");
+	printf("\tdevctl show-drv <driver-name>\n");
 	printf("\tdevctl load-drv <driver-name>\n");
 }
 
@@ -262,6 +335,17 @@ int main(int argc, char *argv[])
 		rc = drv_list();
 		if (rc != EOK)
 			return 2;
+	} else if (str_cmp(argv[1], "show-drv") == 0) {
+		if (argc < 3) {
+			printf(NAME ": Argument missing.\n");
+			print_syntax();
+			return 1;
+		}
+
+		rc = drv_show(argv[2]);
+		if (rc != EOK) {
+			return 2;
+		}
 	} else if (str_cmp(argv[1], "load-drv") == 0) {
 		if (argc < 3) {
 			printf(NAME ": Argument missing.\n");
