@@ -218,8 +218,8 @@ static void rfb_encode_pixel(void *buf, rfb_pixel_format_t *pf, uint8_t r, uint8
 {
 	uint32_t pix = 0;
 	pix |= rfb_scale_channel(r, pf->r_max) << pf->r_shift;
-	pix |= rfb_scale_channel(g, pf->r_max) << pf->g_shift;
-	pix |= rfb_scale_channel(b, pf->r_max) << pf->b_shift;
+	pix |= rfb_scale_channel(g, pf->g_max) << pf->g_shift;
+	pix |= rfb_scale_channel(b, pf->b_max) << pf->b_shift;
 	
 	if (pf->bpp == 8) {
 		uint8_t pix8 = pix;
