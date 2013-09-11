@@ -98,6 +98,69 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, handle);
 }
 
+/** Get device match ID. */
+static void devman_fun_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t handle = IPC_GET_ARG1(*icall);
+	size_t index = IPC_GET_ARG2(*icall);
+	void *buffer = NULL;
+
+	fun_node_t *fun = find_fun_node(&device_tree, handle);
+	if (fun == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	ipc_callid_t data_callid;
+	size_t data_len;
+	if (!async_data_read_receive(&data_callid, &data_len)) {
+		async_answer_0(iid, EINVAL);
+		fun_del_ref(fun);
+		return;
+	}
+
+	buffer = malloc(data_len);
+	if (buffer == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		fun_del_ref(fun);
+		return;
+	}
+
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+
+	/* Check function state */
+	if (fun->state == FUN_REMOVED)
+		goto error;
+
+	link_t *link = list_nth(&fun->match_ids.ids, index);
+	if (link == NULL)
+		goto error;
+
+	match_id_t *mid = list_get_instance(link, match_id_t, link);
+
+	size_t sent_length = str_size(mid->id);
+	if (sent_length > data_len) {
+		sent_length = data_len;
+	}
+
+	async_data_read_finalize(data_callid, mid->id, sent_length);
+	async_answer_1(iid, EOK, mid->score);
+
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	fun_del_ref(fun);
+	free(buffer);
+
+	return;
+error:
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+	free(buffer);
+
+	async_answer_0(data_callid, ENOENT);
+	async_answer_0(iid, ENOENT);
+	fun_del_ref(fun);
+}
+
 /** Get device name. */
 static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -538,6 +601,56 @@ static void devman_driver_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, driver->handle);
 }
 
+/** Get driver match ID. */
+static void devman_driver_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
+{
+	devman_handle_t handle = IPC_GET_ARG1(*icall);
+	size_t index = IPC_GET_ARG2(*icall);
+
+	driver_t *drv = driver_find(&drivers_list, handle);
+	if (drv == NULL) {
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	ipc_callid_t data_callid;
+	size_t data_len;
+	if (!async_data_read_receive(&data_callid, &data_len)) {
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	void *buffer = malloc(data_len);
+	if (buffer == NULL) {
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	fibril_mutex_lock(&drv->driver_mutex);
+	link_t *link = list_nth(&drv->match_ids.ids, index);
+	if (link == NULL) {
+		fibril_mutex_unlock(&drv->driver_mutex);
+		async_answer_0(data_callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+
+	match_id_t *mid = list_get_instance(link, match_id_t, link);
+
+	size_t sent_length = str_size(mid->id);
+	if (sent_length > data_len) {
+		sent_length = data_len;
+	}
+
+	async_data_read_finalize(data_callid, mid->id, sent_length);
+	async_answer_1(iid, EOK, mid->score);
+
+	fibril_mutex_unlock(&drv->driver_mutex);
+
+	free(buffer);
+}
+
 /** Get driver name. */
 static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -637,6 +750,9 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		case DEVMAN_FUN_GET_CHILD:
 			devman_fun_get_child(callid, &call);
 			break;
+		case DEVMAN_FUN_GET_MATCH_ID:
+			devman_fun_get_match_id(callid, &call);
+			break;
 		case DEVMAN_FUN_GET_NAME:
 			devman_fun_get_name(callid, &call);
 			break;
@@ -663,6 +779,9 @@ void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAN_DRIVER_GET_HANDLE:
 			devman_driver_get_handle(callid, &call);
+			break;
+		case DEVMAN_DRIVER_GET_MATCH_ID:
+			devman_driver_get_match_id(callid, &call);
 			break;
 		case DEVMAN_DRIVER_GET_NAME:
 			devman_driver_get_name(callid, &call);

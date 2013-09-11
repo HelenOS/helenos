@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007 Josef Cejka
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -400,8 +400,8 @@ int devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
 	return retval;
 }
 
-static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
-    size_t buf_size)
+static int devman_get_str_internal(sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t *r1, char *buf, size_t buf_size)
 {
 	async_exch_t *exch;
 	ipc_call_t dreply;
@@ -411,7 +411,7 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 	exch = devman_exchange_begin_blocking(DEVMAN_CLIENT);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, method, arg1, &answer);
+	aid_t req = async_send_2(exch, method, arg1, arg2, &answer);
 	aid_t dreq = async_data_read(exch, buf, buf_size - 1, &dreply);
 	async_wait_for(dreq, &dretval);
 	
@@ -429,6 +429,8 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 		return retval;
 	}
 	
+	if (r1 != NULL)
+		*r1 = IPC_GET_ARG1(answer);
 	act_size = IPC_GET_ARG2(dreply);
 	assert(act_size <= buf_size - 1);
 	buf[act_size] = '\0';
@@ -438,20 +440,35 @@ static int devman_get_str_internal(sysarg_t method, sysarg_t arg1, char *buf,
 
 int devman_fun_get_path(devman_handle_t handle, char *buf, size_t buf_size)
 {
-	return devman_get_str_internal(DEVMAN_FUN_GET_PATH, handle, buf,
-	    buf_size);
+	return devman_get_str_internal(DEVMAN_FUN_GET_PATH, handle, 0, NULL,
+	    buf, buf_size);
+}
+
+int devman_fun_get_match_id(devman_handle_t handle, size_t index, char *buf,
+    size_t buf_size, unsigned int *rscore)
+{
+	int rc;
+	sysarg_t score = 0;
+
+	rc = devman_get_str_internal(DEVMAN_FUN_GET_MATCH_ID, handle, index,
+	    &score, buf, buf_size);
+	if (rc != EOK)
+		return rc;
+
+	*rscore = score;
+	return rc;
 }
 
 int devman_fun_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 {
-	return devman_get_str_internal(DEVMAN_FUN_GET_NAME, handle, buf,
-	    buf_size);
+	return devman_get_str_internal(DEVMAN_FUN_GET_NAME, handle, 0, NULL,
+	    buf, buf_size);
 }
 
 int devman_fun_get_driver_name(devman_handle_t handle, char *buf, size_t buf_size)
 {
-	return devman_get_str_internal(DEVMAN_FUN_GET_DRIVER_NAME, handle, buf,
-	    buf_size);
+	return devman_get_str_internal(DEVMAN_FUN_GET_DRIVER_NAME, handle, 0,
+	    NULL, buf, buf_size);
 }
 
 int devman_fun_online(devman_handle_t funh)
@@ -652,10 +669,25 @@ int devman_driver_get_handle(const char *drvname, devman_handle_t *handle)
 	return retval;
 }
 
+int devman_driver_get_match_id(devman_handle_t handle, size_t index, char *buf,
+    size_t buf_size, unsigned int *rscore)
+{
+	int rc;
+	sysarg_t score = 0;
+
+	rc = devman_get_str_internal(DEVMAN_DRIVER_GET_MATCH_ID, handle, index,
+	    &score, buf, buf_size);
+	if (rc != EOK)
+		return rc;
+
+	*rscore = score;
+	return rc;
+}
+
 int devman_driver_get_name(devman_handle_t handle, char *buf, size_t buf_size)
 {
-	return devman_get_str_internal(DEVMAN_DRIVER_GET_NAME, handle, buf,
-	    buf_size);
+	return devman_get_str_internal(DEVMAN_DRIVER_GET_NAME, handle, 0, NULL,
+	    buf, buf_size);
 }
 
 int devman_driver_get_state(devman_handle_t drvh, driver_state_t *rstate)

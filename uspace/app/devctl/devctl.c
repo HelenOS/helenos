@@ -34,6 +34,7 @@
 
 #include <devman.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -43,8 +44,9 @@
 
 #define MAX_NAME_LENGTH 1024
 
-char name[MAX_NAME_LENGTH];
-char drv_name[MAX_NAME_LENGTH];
+static char name[MAX_NAME_LENGTH];
+static char drv_name[MAX_NAME_LENGTH];
+static bool verbose = false;
 
 static const char *drv_state_str(driver_state_t state)
 {
@@ -72,6 +74,7 @@ static int fun_subtree_print(devman_handle_t funh, int lvl)
 	devman_handle_t devh;
 	devman_handle_t *cfuns;
 	size_t count, i;
+	unsigned int score;
 	int rc;
 	int j;
 
@@ -93,6 +96,20 @@ static int fun_subtree_print(devman_handle_t funh, int lvl)
 		printf("%s\n", name);
 	else
 		printf("%s : %s\n", name, drv_name);
+
+	if (verbose) {
+		for (i = 0; true; i++) {
+			rc = devman_fun_get_match_id(funh, i, name, MAX_NAME_LENGTH,
+			    &score);
+			if (rc != EOK)
+				break;
+
+			for (j = 0; j < lvl; j++)
+				printf("    ");
+
+			printf("    %u %s\n", score, name);
+		}
+	}
 
 	rc = devman_fun_get_child(funh, &devh);
 	if (rc == ENOENT)
@@ -225,6 +242,7 @@ static int drv_show(char *drvname)
 	devman_handle_t funh;
 	driver_state_t state;
 	const char *sstate;
+	unsigned int score;
 	size_t ndevs;
 	size_t i;
 	int rc;
@@ -251,6 +269,7 @@ static int drv_show(char *drvname)
 
 	printf("Driver: %s\n", drv_name);
 	printf("State: %s\n", sstate);
+
 	printf("Attached devices:\n");
 
 	for (i = 0; i < ndevs; i++) {
@@ -262,6 +281,17 @@ static int drv_show(char *drvname)
 		if (rc != EOK)
 			goto error;
 		printf("\t%s\n", name);
+	}
+
+	printf("Match IDs:\n");
+
+	for (i = 0; true; i++) {
+		rc = devman_driver_get_match_id(drvh, i, name, MAX_NAME_LENGTH,
+		    &score);
+		if (rc != EOK)
+			break;
+
+		printf("\t%u %s\n", score, name);
 	}
 
 error:
@@ -305,7 +335,16 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
-	if (argc == 1) {
+	if (argc == 1 || argv[1][0] == '-') {
+		if (argc > 1) {
+			if (str_cmp(argv[1], "-v") == 0) {
+				verbose = true;
+			} else {
+				printf(NAME ": Invalid argument '%s'\n", argv[1]);
+				print_syntax();
+				return 1;
+			}
+		}
 		rc = fun_tree_print();
 		if (rc != EOK)
 			return 2;
