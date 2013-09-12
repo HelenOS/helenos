@@ -442,8 +442,7 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 /** Mark frame in zone unavailable to allocation. */
 NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 {
-	if (!(zone->flags & ZONE_AVAILABLE))
-		return;
+	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, index);
 	if (frame->refcount > 0)
