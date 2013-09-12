@@ -35,6 +35,7 @@
 #include <str_error.h>
 #include <byteorder.h>
 #include <macros.h>
+#include <io/log.h>
 
 #include <net/in.h>
 #include <net/inet.h>
@@ -58,10 +59,8 @@ static int recv_char(int fd, char *c)
 		rbuf_in = 0;
 		
 		ssize_t rc = recv(fd, rbuf, BUFFER_SIZE, 0);
-		if (rc <= 0) {
-			fprintf(stderr, "recv() failed (%zd)\n", rc);
+		if (rc <= 0)
 			return rc;
-		}
 		
 		rbuf_in = rc;
 	}
@@ -543,6 +542,11 @@ static int rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
 		free(rfb->palette);
 		rfb->palette = NULL;
 		rfb->palette_used = 0;
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
+		    "changed pixel format to %d-bit true color (%x<<%d, %x<<%d, %x<<%d)",
+		    pixel_format->depth, pixel_format->r_max, pixel_format->r_shift,
+		    pixel_format->g_max, pixel_format->g_shift, pixel_format->b_max,
+		    pixel_format->b_shift);
 	}
 	else {
 		if (rfb->palette == NULL) {
@@ -552,6 +556,8 @@ static int rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
 			memset(rfb->palette, 0, sizeof(pixel_t) * 256);
 			rfb->palette_used = 0;
 		}
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "changed pixel format to %d-bit palette",
+		    pixel_format->depth);
 	}
 	return EOK;
 }
@@ -560,16 +566,22 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 {
 	/* Version handshake */
 	int rc = send(conn_sd, "RFB 003.008\n", 12, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version %d", rc);
 		return;
+	}
 	
 	char client_version[12];
 	rc = recv_chars(conn_sd, client_version, 12);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client version: %d", rc);
 		return;
+	}
 	
-	if (memcmp(client_version, "RFB 003.008\n", 12) != 0)
+	if (memcmp(client_version, "RFB 003.008\n", 12) != 0) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Client version is not RFB 3.8");
 		return;
+	}
 	
 	/* Security handshake
 	 * 1 security type supported, which is 1 - None
@@ -578,25 +590,37 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	sec_types[0] = 1; /* length */
 	sec_types[1] = RFB_SECURITY_NONE;
 	rc = send(conn_sd, sec_types, 2, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN,
+		    "Failed sending security handshake: %d", rc);
 		return;
+	}
 	
 	char selected_sec_type = 0;
 	rc = recv_char(conn_sd, &selected_sec_type);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving security type: %d", rc);
 		return;
-	if (selected_sec_type != RFB_SECURITY_NONE)
+	}
+	if (selected_sec_type != RFB_SECURITY_NONE) {
+		log_msg(LOG_DEFAULT, LVL_WARN,
+		    "Client selected security type other than none");
 		return;
+	}
 	uint32_t security_result = RFB_SECURITY_HANDSHAKE_OK;
 	rc = send(conn_sd, &security_result, sizeof(uint32_t), 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending security result: %d", rc);
 		return;
+	}
 	
 	/* Client init */
 	char shared_flag;
 	rc = recv_char(conn_sd, &shared_flag);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client init: %d", rc);
 		return;
+	}
 	
 	/* Server init */
 	fibril_mutex_lock(&rfb->lock);
@@ -604,6 +628,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	size_t msg_length = sizeof(rfb_server_init_t) + name_length;
 	rfb_server_init_t *server_init = malloc(msg_length);
 	if (server_init == NULL) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Cannot allocate memory for server init");
 		fibril_mutex_unlock(&rfb->lock);
 		return;
 	}
@@ -615,14 +640,19 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 	memcpy(server_init->name, rfb->name, name_length);
 	fibril_mutex_unlock(&rfb->lock);
 	rc = send(conn_sd, server_init, msg_length, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server init: %d", rc);
 		return;
+	}
 	
 	while (true) {
 		char message_type = 0;
 		rc = recv_char(conn_sd, &message_type);
-		if (rc != EOK)
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_WARN,
+			    "Failed receiving client message type");
 			return;
+		}
 		
 		rfb_set_pixel_format_t spf;
 		rfb_set_encodings_t se;
@@ -634,32 +664,35 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 		case RFB_CMSG_SET_PIXEL_FORMAT:
 			recv_message(conn_sd, message_type, &spf, sizeof(spf));
 			rfb_pixel_format_to_host(&spf.pixel_format, &spf.pixel_format);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received SetPixelFormat message");
 			fibril_mutex_lock(&rfb->lock);
 			rc = rfb_set_pixel_format(rfb, &spf.pixel_format);
 			fibril_mutex_unlock(&rfb->lock);
 			if (rc != EOK)
 				return;
-			printf("set pixel format\n");
 			break;
 		case RFB_CMSG_SET_ENCODINGS:
 			recv_message(conn_sd, message_type, &se, sizeof(se));
 			rfb_set_encodings_to_host(&se, &se);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received SetEncodings message");
 			for (uint16_t i = 0; i < se.count; i++) {
 				int32_t encoding = 0;
 				rc = recv_chars(conn_sd, (char *) &encoding, sizeof(int32_t));
 				if (rc != EOK)
 					return;
 				encoding = uint32_t_be2host(encoding);
-				if (encoding == RFB_ENCODING_TRLE)
+				if (encoding == RFB_ENCODING_TRLE) {
+					log_msg(LOG_DEFAULT, LVL_DEBUG,
+					    "Client supports TRLE encoding");
 					rfb->supports_trle = true;
-				
+				}
 			}
-			printf("set encodings\n");
 			break;
 		case RFB_CMSG_FRAMEBUFFER_UPDATE_REQUEST:
 			recv_message(conn_sd, message_type, &fbur, sizeof(fbur));
 			rfb_framebuffer_update_request_to_host(&fbur, &fbur);
-			printf("framebuffer update request\n");
+			log_msg(LOG_DEFAULT, LVL_DEBUG2,
+			    "Received FramebufferUpdateRequest message");
 			fibril_mutex_lock(&rfb->lock);
 			rfb_send_framebuffer_update(rfb, conn_sd, fbur.incremental);
 			fibril_mutex_unlock(&rfb->lock);
@@ -667,17 +700,22 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 		case RFB_CMSG_KEY_EVENT:
 			recv_message(conn_sd, message_type, &ke, sizeof(ke));
 			rfb_key_event_to_host(&ke, &ke);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received KeyEvent message");
 			break;
 		case RFB_CMSG_POINTER_EVENT:
 			recv_message(conn_sd, message_type, &pe, sizeof(pe));
 			rfb_pointer_event_to_host(&pe, &pe);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received PointerEvent message");
 			break;
 		case RFB_CMSG_CLIENT_CUT_TEXT:
 			recv_message(conn_sd, message_type, &cct, sizeof(cct));
 			rfb_client_cut_text_to_host(&cct, &cct);
+			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received ClientCutText message");
 			recv_skip_chars(conn_sd, cct.length);
 			break;
 		default:
+			log_msg(LOG_DEFAULT, LVL_WARN,
+			    "Invalid client message type encountered");
 			return;
 		}
 	}
@@ -692,28 +730,28 @@ int rfb_listen(rfb_t *rfb, uint16_t port) {
 	int rc = inet_pton(AF_INET, "127.0.0.1", (void *)
 	    &addr.sin_addr.s_addr);
 	if (rc != EOK) {
-		fprintf(stderr, "Error parsing network address (%s)\n",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error parsing network address (%s)",
 		    str_error(rc));
 		return rc;
 	}
 
 	int listen_sd = socket(PF_INET, SOCK_STREAM, 0);
 	if (listen_sd < 0) {
-		fprintf(stderr, "Error creating listening socket (%s)\n",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating listening socket (%s)",
 		    str_error(listen_sd));
 		return rc;
 	}
 	
 	rc = bind(listen_sd, (struct sockaddr *) &addr, sizeof(addr));
 	if (rc != EOK) {
-		fprintf(stderr, "Error binding socket (%s)\n",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error binding socket (%s)",
 		    str_error(rc));
 		return rc;
 	}
 	
 	rc = listen(listen_sd, 2);
 	if (rc != EOK) {
-		fprintf(stderr, "listen() failed (%s)\n", str_error(rc));
+		log_msg(LOG_DEFAULT, LVL_ERROR, "listen() failed (%s)", str_error(rc));
 		return rc;
 	}
 	
@@ -731,9 +769,12 @@ void rfb_accept(rfb_t *rfb)
 		    &raddr_len);
 		
 		if (conn_sd < 0) {
-			fprintf(stderr, "accept() failed (%s)\n", str_error(conn_sd));
+			log_msg(LOG_DEFAULT, LVL_WARN, "accept() failed (%s)",
+			    str_error(conn_sd));
 			continue;
 		}
+		
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Connection accepted");
 		
 		rbuf_out = 0;
 		rbuf_in = 0;

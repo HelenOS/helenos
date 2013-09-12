@@ -33,6 +33,7 @@
 #include <fibril_synch.h>
 #include <abi/ipc/methods.h>
 #include <inttypes.h>
+#include <io/log.h>
 
 #include <abi/fb/visuals.h>
 #include <adt/list.h>
@@ -157,6 +158,8 @@ static int socket_fibril(void *unused)
 
 int main(int argc, char **argv)
 {
+	log_init(NAME);
+
 	if (argc <= 3) {
 		syntax_print();
 		return 1;
@@ -257,8 +260,10 @@ int main(int argc, char **argv)
 	}
 	
 	rc = rfb_listen(&rfb, port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fprintf(stderr, NAME ": Unable to listen at rfb port\n");
 		return 2;
+	}
 	
 	fid_t fib = fibril_create(socket_fibril, NULL);
 	if (!fib) {
