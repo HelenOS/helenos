@@ -43,6 +43,7 @@
 typedef struct {
 	size_t elements;
 	uint8_t *bits;
+	size_t next_fit;
 } bitmap_t;
 
 static inline void bitmap_set(bitmap_t *bitmap, size_t element,
@@ -58,6 +59,7 @@ static inline void bitmap_set(bitmap_t *bitmap, size_t element,
 		bitmap->bits[byte] |= mask;
 	} else {
 		bitmap->bits[byte] &= ~mask;
+		bitmap->next_fit = byte;
 	}
 }
 

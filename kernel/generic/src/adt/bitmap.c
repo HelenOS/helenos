@@ -99,6 +99,7 @@ void bitmap_initialize(bitmap_t *bitmap, size_t elements, void *data)
 {
 	bitmap->elements = elements;
 	bitmap->bits = (uint8_t *) data;
+	bitmap->next_fit = 0;
 }
 
 /** Set range of bits.
@@ -115,6 +116,7 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
 	if (count == 0)
 		return;
 	
+	size_t start_byte = start / BITMAP_ELEMENT;
 	size_t aligned_start = ALIGN_UP(start, BITMAP_ELEMENT);
 	
 	/* Leading unaligned bits */
@@ -128,14 +130,14 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
 	
 	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte. */
-		bitmap->bits[start / BITMAP_ELEMENT] |=
+		bitmap->bits[start_byte] |=
 		    ((1 << lub) - 1) << (start & BITMAP_REMAINER);
 		return;
 	}
 	
 	if (lub) {
 		/* Make sure to set any leading unaligned bits. */
-		bitmap->bits[start / BITMAP_ELEMENT] |=
+		bitmap->bits[start_byte] |=
 		    ~((1 << (BITMAP_ELEMENT - lub)) - 1);
 	}
 	
@@ -168,6 +170,7 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 	if (count == 0)
 		return;
 	
+	size_t start_byte = start / BITMAP_ELEMENT;
 	size_t aligned_start = ALIGN_UP(start, BITMAP_ELEMENT);
 	
 	/* Leading unaligned bits */
@@ -181,14 +184,14 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 	
 	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte */
-		bitmap->bits[start / BITMAP_ELEMENT] &=
+		bitmap->bits[start_byte] &=
 		    ~(((1 << lub) - 1) << (start & BITMAP_REMAINER));
 		return;
 	}
 	
 	if (lub) {
 		/* Make sure to clear any leading unaligned bits. */
-		bitmap->bits[start / BITMAP_ELEMENT] &=
+		bitmap->bits[start_byte] &=
 		    (1 << (BITMAP_ELEMENT - lub)) - 1;
 	}
 	
@@ -205,6 +208,8 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] &=
 		    ~((1 << tab) - 1);
 	}
+	
+	bitmap->next_fit = start_byte;
 }
 
 /** Copy portion of one bitmap into another bitmap.
@@ -268,9 +273,11 @@ int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
 	if (count == 0)
 		return false;
 	
-	size_t bytes = bitmap_size(bitmap->elements);
+	size_t size = bitmap_size(bitmap->elements);
 	
-	for (size_t byte = 0; byte < bytes; byte++) {
+	for (size_t pos = 0; pos < size; pos++) {
+		size_t byte = (bitmap->next_fit + pos) % size;
+		
 		/* Skip if the current byte has all bits set */
 		if (bitmap->bits[byte] == ALL_ONES)
 			continue;
@@ -287,24 +294,26 @@ int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
 				continue;
 			
 			if (!bitmap_get_fast(bitmap, i)) {
-				bool continuous = true;
+				size_t continuous = 1;
 				
 				for (size_t j = 1; j < count; j++) {
-					if ((i + j >= bitmap->elements) ||
-					    (bitmap_get_fast(bitmap, i + j))) {
-						continuous = false;
+					if ((i + j < bitmap->elements) &&
+					    (!bitmap_get_fast(bitmap, i + j)))
+						continuous++;
+					else
 						break;
-					}
 				}
 				
-				if (continuous) {
+				if (continuous == count) {
 					if (index != NULL) {
 						bitmap_set_range(bitmap, i, count);
+						bitmap->next_fit = i / BITMAP_ELEMENT;
 						*index = i;
 					}
 					
 					return true;
-				}
+				} else
+					i += continuous;
 			}
 		}
 	}
