@@ -80,7 +80,8 @@ extern void bitmap_initialize(bitmap_t *, size_t, void *);
 extern void bitmap_set_range(bitmap_t *, size_t, size_t);
 extern void bitmap_clear_range(bitmap_t *, size_t, size_t);
 
-extern int bitmap_allocate_range(bitmap_t *, size_t, size_t, size_t, size_t *);
+extern int bitmap_allocate_range(bitmap_t *, size_t, size_t, size_t, size_t,
+    size_t *);
 extern void bitmap_copy(bitmap_t *, bitmap_t *, size_t);
 
 #endif

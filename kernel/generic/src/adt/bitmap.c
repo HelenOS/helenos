@@ -257,6 +257,7 @@ static int constraint_satisfy(size_t index, size_t base, size_t constraint)
  * @param bitmap     Bitmap structure.
  * @param count      Number of continuous zero bits to find.
  * @param base       Address of the first bit in the bitmap.
+ * @param prefered   Prefered address to start searching from.
  * @param constraint Constraint for the address of the first zero bit.
  * @param index      Place to store the index of the first zero
  *                   bit. Can be NULL (in which case the bitmap
@@ -268,15 +269,27 @@ static int constraint_satisfy(size_t index, size_t base, size_t constraint)
  *
  */
 int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
-    size_t constraint, size_t *index)
+    size_t prefered, size_t constraint, size_t *index)
 {
 	if (count == 0)
 		return false;
 	
 	size_t size = bitmap_size(bitmap->elements);
+	size_t next_fit = bitmap->next_fit;
+	
+	/*
+	 * Adjust the next-fit value according to the address
+	 * the caller prefers to start the search at.
+	 */
+	if ((prefered > base) && (prefered < base + bitmap->elements)) {
+		size_t prefered_fit = (prefered - base) / BITMAP_ELEMENT;
+		
+		if (prefered_fit > next_fit)
+			next_fit = prefered_fit;
+	}
 	
 	for (size_t pos = 0; pos < size; pos++) {
-		size_t byte = (bitmap->next_fit + pos) % size;
+		size_t byte = (next_fit + pos) % size;
 		
 		/* Skip if the current byte has all bits set */
 		if (bitmap->bits[byte] == ALL_ONES)
