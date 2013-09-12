@@ -428,6 +428,7 @@ static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 		resources[count].res.io_range.address = addr;
 		resources[count].res.io_range.address += isa->pio_win.io.base;
 		resources[count].res.io_range.size = len;
+		resources[count].res.io_range.relative = false;
 		resources[count].res.io_range.endianness = LITTLE_ENDIAN;
 
 		fun->hw_resources.count++;

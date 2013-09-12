@@ -448,11 +448,13 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
 		hw_resources[count].type = IO_RANGE;
 		hw_resources[count].res.io_range.address = range_addr;
 		hw_resources[count].res.io_range.size = range_size;
+		hw_resources[count].res.io_range.relative = true;
 		hw_resources[count].res.io_range.endianness = LITTLE_ENDIAN;
 	} else {
 		hw_resources[count].type = MEM_RANGE;
 		hw_resources[count].res.mem_range.address = range_addr;
 		hw_resources[count].res.mem_range.size = range_size;
+		hw_resources[count].res.mem_range.relative = false;
 		hw_resources[count].res.mem_range.endianness = LITTLE_ENDIAN;
 	}
 	

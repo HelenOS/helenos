@@ -98,6 +98,7 @@ static hw_resource_t pci_conf_regs[] = {
 		.res.io_range = {
 			.address = GT_BASE + GT_PCI_CONFADDR,
 			.size = 4,
+			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
 	},
@@ -106,6 +107,7 @@ static hw_resource_t pci_conf_regs[] = {
 		.res.io_range = {
 			.address = GT_BASE + GT_PCI_CONFDATA,
 			.size = 4,
+			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
 	}
