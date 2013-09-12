@@ -255,14 +255,14 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 
-	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
+	pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
 
 	/*
 	 * Always read full 32-bits from the PCI conf_data_port register and
 	 * get the desired portion of it afterwards. Some architectures do not
 	 * support shorter PIO reads offset from this register.
  	 */
-	val = uint32_t_le2host(pio_read_32(bus->conf_data_port));
+	val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
 
 	switch (len) {
 	case 1:
@@ -298,8 +298,8 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
  		 * We have fewer than full 32-bits, so we need to read the
  		 * missing bits first.
  		 */
-		pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
-		val = uint32_t_le2host(pio_read_32(bus->conf_data_port));
+		pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
+		val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
 	}
 	
 	switch (len) {
@@ -316,8 +316,8 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 		break;
 	}
 
-	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
-	pio_write_32(bus->conf_data_port, host2uint32_t_le(val));
+	pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
+	pio_write_32(bus->conf_data_reg, host2uint32_t_le(val));
 	
 	fibril_mutex_unlock(&bus->conf_mutex);
 }
@@ -723,19 +723,14 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	ddf_msg(LVL_DEBUG, "data_addr = %" PRIx64 ".",
 	    hw_resources.resources[1].res.io_range.address);
 	
-	bus->conf_io_addr =
-	    (uint32_t) hw_resources.resources[0].res.io_range.address;
-	bus->conf_io_data =
-	    (uint32_t) hw_resources.resources[1].res.io_range.address;
-	
-	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 4,
-	    &bus->conf_addr_port)) {
+	if (pio_enable_resource(&bus->pio_win, &hw_resources.resources[0],
+	    (void **) &bus->conf_addr_reg)) {
 		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
-	if (pio_enable((void *)(uintptr_t)bus->conf_io_data, 4,
-	    &bus->conf_data_port)) {
+	if (pio_enable_resource(&bus->pio_win, &hw_resources.resources[1],
+	    (void **) &bus->conf_data_reg)) {
 		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
 		rc = EADDRNOTAVAIL;
 		goto fail;
