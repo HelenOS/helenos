@@ -270,3 +270,5 @@ uspace/dist/srv/dhcp
 uspace/srv/net/dhcp/dhcp
 uspace/app/netspeed/netspeed
 uspace/dist/app/netspeed
+uspace/app/df/df
+uspace/dist/app/df
