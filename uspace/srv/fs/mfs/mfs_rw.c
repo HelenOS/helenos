@@ -103,9 +103,10 @@ static int
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
     bool write_mode, uint32_t w_block)
 {
-	int r, nr_direct;
+	int nr_direct;
 	int ptrs_per_block;
-	uint32_t *ind_zone, *ind2_zone;
+	uint32_t *ind_zone = NULL, *ind2_zone = NULL;
+	int r = EOK;
 
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_instance *inst = mnode->instance;
@@ -129,7 +130,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			ino_i->i_dzone[rblock] = w_block;
 			ino_i->dirty = true;
 		}
-		return EOK;
+		goto out;
 	}
 
 	rblock -= nr_direct;
@@ -141,20 +142,20 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				uint32_t zone;
 				r = alloc_zone_and_clear(inst, &zone);
 				if (r != EOK)
-					return r;
+					goto out;
 
 				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
 			} else {
 				/* Sparse block */
 				*b = 0;
-				return EOK;
+				goto out;
 			}
 		}
 
 		r = read_ind_zone(inst, ino_i->i_izone[0], &ind_zone);
 		if (r != EOK)
-			return r;
+			goto out;
 
 		*b = ind_zone[rblock];
 		if (write_mode) {
@@ -162,7 +163,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			write_ind_zone(inst, ino_i->i_izone[0], ind_zone);
 		}
 
-		goto out_free_ind1;
+		goto out;
 	}
 
 	rblock -= ptrs_per_block;
@@ -175,20 +176,20 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
 			if (r != EOK)
-				return r;
+				goto out;
 
 			ino_i->i_izone[1] = zone;
 			ino_i->dirty = true;
 		} else {
 			/* Sparse block */
 			*b = 0;
-			return EOK;
+			goto out;
 		}
 	}
 
 	r = read_ind_zone(inst, ino_i->i_izone[1], &ind_zone);
 	if (r != EOK)
-		return r;
+		goto out;
 
 	/*
 	 * Compute the position of the second indirect
@@ -202,21 +203,20 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			uint32_t zone;
 			r = alloc_zone_and_clear(inst, &zone);
 			if (r != EOK)
-				goto out_free_ind1;
+				goto out;
 
 			ind_zone[ind2_off] = zone;
 			write_ind_zone(inst, ino_i->i_izone[1], ind_zone);
 		} else {
 			/* Sparse block */
-			r = EOK;
 			*b = 0;
-			goto out_free_ind1;
+			goto out;
 		}
 	}
 
 	r = read_ind_zone(inst, ind_zone[ind2_off], &ind2_zone);
 	if (r != EOK)
-		goto out_free_ind1;
+		goto out;
 
 	*b = ind2_zone[rblock - (ind2_off * ptrs_per_block)];
 	if (write_mode) {
@@ -224,10 +224,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		write_ind_zone(inst, ind_zone[ind2_off], ind2_zone);
 	}
 
-	r = EOK;
-
+out:
 	free(ind2_zone);
-out_free_ind1:
 	free(ind_zone);
 	return r;
 }
