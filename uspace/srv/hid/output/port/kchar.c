@@ -83,7 +83,7 @@ int kchar_init(void)
 	if (rc != EOK)
 		return rc;
 	
-	rc = physmem_map((void *) paddr,
+	rc = physmem_map(paddr,
 	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH,
 	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kchar.addr);
 	if (rc != EOK)

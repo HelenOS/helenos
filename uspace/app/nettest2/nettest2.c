@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo);
+		rc = dnsr_name2host(addr_s, &hinfo, family);
 		
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
 	}
 	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, sockets, address,
-	    &addrlen, data, size, messages);
+	    &addrlen, data, size, messages, type);
 	if (rc != EOK)
 		return rc;
 	
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
 	}
 	
 	rc = sockets_sendto(verbose, socket_ids, sockets, address, addrlen,
-	    data, size, messages);
+	    data, size, messages, type);
 	if (rc != EOK)
 		return rc;
 	

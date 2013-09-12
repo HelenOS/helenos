@@ -91,8 +91,7 @@ int vhc_virtdev_add_transfer(vhc_data_t *vhc, vhc_transfer_t *transfer)
 	fibril_mutex_lock(&vhc->guard);
 
 	bool target_found = false;
-	list_foreach(vhc->devices, pos) {
-		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
+	list_foreach(vhc->devices, link, vhc_virtdev_t, dev) {
 		fibril_mutex_lock(&dev->guard);
 		if (dev->address == transfer->address) {
 			if (target_found) {

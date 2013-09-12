@@ -120,8 +120,10 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon
 
-RD_DRVS = \
-	infrastructure/root \
+RD_DRVS_ESSENTIAL = \
+	infrastructure/root
+
+RD_DRVS_NON_ESSENTIAL = \
 	infrastructure/rootvirt \
 	fb/kfb \
 	test/test1 \
@@ -162,6 +164,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/bithenge/bithenge \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
+	$(USPACE_PATH)/app/corecfg/corecfg \
 	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
@@ -173,6 +176,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/loc/loc \
+	$(USPACE_PATH)/app/mixerctl/mixerctl \
 	$(USPACE_PATH)/app/logset/logset \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/mkexfat/mkexfat \
@@ -201,7 +205,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv \
 	$(USPACE_PATH)/app/date/date \
-	$(USPACE_PATH)/app/vdemo/vdemo
+	$(USPACE_PATH)/app/vdemo/vdemo \
+	$(USPACE_PATH)/app/df/df
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \
@@ -236,9 +241,11 @@ COMPS_C = arch/$(BARCH)/src/_components.c
 ifeq ($(CONFIG_BAREBONE),y)
 RD_SRVS = $(RD_SRVS_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL)
+RD_DRVS = $(RD_DRVS_ESSENTIAL)
 else
 RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
+RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTIAL)
 endif
 
 MODULES := $(notdir $(COMPONENTS))

@@ -382,8 +382,7 @@ int usb_device_register_child_in_devman(usb_pipe_t *ctrl_pipe,
 	if (rc != EOK)
 		goto failure;
 	
-	list_foreach(match_ids.ids, id_link) {
-		match_id_t *match_id = list_get_instance(id_link, match_id_t, link);
+	list_foreach(match_ids.ids, link, match_id_t, match_id) {
 		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
 		if (rc != EOK) {
 			clean_match_ids(&match_ids);

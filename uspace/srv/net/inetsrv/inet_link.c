@@ -139,9 +139,7 @@ static int inet_link_check_new(void)
 	for (i = 0; i < count; i++) {
 		already_known = false;
 
-		list_foreach(inet_link_list, ilink_link) {
-			inet_link_t *ilink = list_get_instance(ilink_link,
-			    inet_link_t, link_list);
+		list_foreach(inet_link_list, link_list, inet_link_t, ilink) {
 			if (ilink->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -491,10 +489,7 @@ inet_link_t *inet_link_get_by_id(sysarg_t link_id)
 {
 	fibril_mutex_lock(&inet_discovery_lock);
 
-	list_foreach(inet_link_list, elem) {
-		inet_link_t *ilink = list_get_instance(elem, inet_link_t,
-		    link_list);
-
+	list_foreach(inet_link_list, link_list, inet_link_t, ilink) {
 		if (ilink->svc_id == link_id) {
 			fibril_mutex_unlock(&inet_discovery_lock);
 			return ilink;

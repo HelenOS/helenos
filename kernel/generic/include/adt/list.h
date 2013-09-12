@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,11 +64,13 @@ typedef struct list {
 	}
 
 #define list_get_instance(link, type, member) \
-	((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
+	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
 
-#define list_foreach(list, iterator) \
-	for (link_t *iterator = (list).head.next; \
-	    iterator != &(list).head; iterator = iterator->next)
+#define list_foreach(list, member, itype, iterator) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	    for (link_t *_link = (list).head.next; \
+	    iterator = list_get_instance(_link, itype, member), \
+	    _link != &(list).head; _link = _link->next)
 
 #define assert_link_not_used(link) \
 	ASSERT(((link)->prev == NULL) && ((link)->next == NULL))
@@ -203,6 +205,30 @@ static inline link_t *list_last(list_t *list)
 	return ((list->head.prev == &list->head) ? NULL : list->head.prev);
 }
 
+/** Get next item in list.
+ *
+ * @param link Current item link
+ * @param list List containing @a link
+ *
+ * @return Next item or NULL if @a link is the last item.
+ */
+static inline link_t *list_next(link_t *link, const list_t *list)
+{
+	return (link->next == &list->head) ? NULL : link->next;
+}
+
+/** Get previous item in list.
+ *
+ * @param link Current item link
+ * @param list List containing @a link
+ *
+ * @return Previous item or NULL if @a link is the first item.
+ */
+static inline link_t *list_prev(link_t *link, const list_t *list)
+{
+	return (link->prev == &list->head) ? NULL : link->prev;
+}
+
 /** Split or concatenate headless doubly-linked circular list
  *
  * Split or concatenate headless doubly-linked circular list.
@@ -269,15 +295,27 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 static inline link_t *list_nth(list_t *list, unsigned int n)
 {
 	unsigned int cnt = 0;
+	link_t *link;
 	
-	list_foreach(*list, link) {
+	link = list_first(list);
+	while (link != NULL) {
 		if (cnt == n)
 			return link;
 		
 		cnt++;
+		link = list_next(link, list);
 	}
 	
 	return NULL;
+}
+
+/** Verify that argument type is a pointer to link_t (at compile time).
+ *
+ * This can be used to check argument type in a macro.
+ */
+static inline const void *list_link_to_void(const link_t *link)
+{
+	return link;
 }
 
 extern int list_member(const link_t *, const list_t *);

@@ -41,6 +41,7 @@
 #include <arch/pm.h>
 #include <errno.h>
 #include <arch/cpu.h>
+#include <cpu.h>
 #include <arch.h>
 #include <align.h>
 
@@ -57,29 +58,30 @@
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	size_t bits = ioaddr + size;
-	if (bits > IO_PORTS)
+	size_t elements = ioaddr + size;
+	if (elements > IO_PORTS)
 		return ENOENT;
 	
-	if (task->arch.iomap.bits < bits) {
+	if (task->arch.iomap.elements < elements) {
 		/*
 		 * The I/O permission bitmap is too small and needs to be grown.
 		 */
 		
-		uint8_t *newmap = (uint8_t *) malloc(BITS2BYTES(bits), FRAME_ATOMIC);
-		if (!newmap)
+		void *store = malloc(bitmap_size(elements, 0), FRAME_ATOMIC);
+		if (!store)
 			return ENOMEM;
 		
 		bitmap_t oldiomap;
-		bitmap_initialize(&oldiomap, task->arch.iomap.map,
+		bitmap_initialize(&oldiomap, task->arch.iomap.elements, 0,
 		    task->arch.iomap.bits);
-		bitmap_initialize(&task->arch.iomap, newmap, bits);
+		
+		bitmap_initialize(&task->arch.iomap, elements, 0, store);
 		
 		/*
 		 * Mark the new range inaccessible.
 		 */
-		bitmap_set_range(&task->arch.iomap, oldiomap.bits,
-		    bits - oldiomap.bits);
+		bitmap_set_range(&task->arch.iomap, oldiomap.elements,
+		    elements - oldiomap.elements);
 		
 		/*
 		 * In case there really existed smaller iomap,
@@ -87,15 +89,16 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		 */
 		if (oldiomap.bits) {
 			bitmap_copy(&task->arch.iomap, &oldiomap,
-			    oldiomap.bits);
-			free(oldiomap.map);
+			    oldiomap.elements);
+			
+			free(oldiomap.bits);
 		}
 	}
 	
 	/*
 	 * Enable the range and we are done.
 	 */
-	bitmap_clear_range(&task->arch.iomap, (size_t) ioaddr, (size_t) size);
+	bitmap_clear_range(&task->arch.iomap, (size_t) ioaddr, size);
 	
 	/*
 	 * Increment I/O Permission bitmap generation counter.
@@ -117,38 +120,44 @@ void io_perm_bitmap_install(void)
 {
 	/* First, copy the I/O Permission Bitmap. */
 	irq_spinlock_lock(&TASK->lock, false);
+	
 	size_t ver = TASK->arch.iomapver;
-	size_t bits = TASK->arch.iomap.bits;
-	if (bits) {
-		ASSERT(TASK->arch.iomap.map);
+	size_t elements = TASK->arch.iomap.elements;
+	
+	if (elements > 0) {
+		ASSERT(TASK->arch.iomap.bits);
 		
 		bitmap_t iomap;
-		bitmap_initialize(&iomap, CPU->arch.tss->iomap,
-		    TSS_IOMAP_SIZE * 8);
-		bitmap_copy(&iomap, &TASK->arch.iomap, bits);
+		bitmap_initialize(&iomap, TSS_IOMAP_SIZE * 8, 0,
+		    CPU->arch.tss->iomap);
+		bitmap_copy(&iomap, &TASK->arch.iomap, elements);
 		
 		/*
 		 * Set the trailing bits in the last byte of the map to disable
 		 * I/O access.
 		 */
-		bitmap_set_range(&iomap, bits, ALIGN_UP(bits, 8) - bits);
+		bitmap_set_range(&iomap, elements,
+		    ALIGN_UP(elements, 8) - elements);
+		
 		/*
 		 * It is safe to set the trailing eight bits because of the
 		 * extra convenience byte in TSS_IOMAP_SIZE.
 		 */
-		bitmap_set_range(&iomap, ALIGN_UP(bits, 8), 8);
+		bitmap_set_range(&iomap, ALIGN_UP(elements, 8), 8);
 	}
+	
 	irq_spinlock_unlock(&TASK->lock, false);
 	
 	/*
 	 * Second, adjust TSS segment limit.
-	 * Take the extra ending byte will all bits set into account. 
+	 * Take the extra ending byte with all bits set into account.
 	 */
 	ptr_16_64_t cpugdtr;
 	gdtr_store(&cpugdtr);
 	
 	descriptor_t *gdt_p = (descriptor_t *) cpugdtr.base;
-	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits));
+	size_t size = bitmap_size(elements, 0);
+	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + size);
 	gdtr_load(&cpugdtr);
 	
 	/*

@@ -38,6 +38,7 @@
 
 #include <typedefs.h>
 #include <mm/km.h>
+#include <time/clock.h>
 
 /* AMDM37x TRM p. 2740 */
 #define AMDM37x_GPT1_BASE_ADDRESS  0x48318000
@@ -127,10 +128,15 @@ typedef struct {
 #define AMDM37x_GPT_TCLR_PRE_FLAG  (1 << 5)
 #define AMDM37x_GPT_TCLR_CE_FLAG  (1 << 6)
 #define AMDM37x_GPT_TCLR_SCPWM  (1 << 7)
-#define AMDM37x_GPT_TCLR_TCM_MASK  (0x3)
-#define AMDM37x_GPT_TCLR_TCM_SHIFT  (8)
-#define AMDM37x_GPT_TCLR_TRG_MASK  (0x3)
-#define AMDM37x_GPT_TCLR_TRG_SHIFT (10)
+#define AMDM37x_GPT_TCLR_TCM_MASK  (0x3 << 8)
+#define AMDM37x_GPT_TCLR_TCM_NO_CAPTURE   (0x0 << 8)
+#define AMDM37x_GPT_TCLR_TCM_RAISE_CAPTURE   (0x1 << 8)
+#define AMDM37x_GPT_TCLR_TCM_FALL_CAPTURE   (0x2 << 8)
+#define AMDM37x_GPT_TCLR_TCM_BOTH_CAPTURE   (0x3 << 8)
+#define AMDM37x_GPT_TCLR_TRG_MASK  (0x3 << 10)
+#define AMDM37x_GPT_TCLR_TRG_NO  (0x0 << 10)
+#define AMDM37x_GPT_TCLR_TRG_OVERFLOW  (0x1 << 10)
+#define AMDM37x_GPT_TCLR_TRG_OVERMATCH  (0x2 << 10)
 #define AMDM37x_GPT_TCLR_PT_FLAG  (1 << 12)
 #define AMDM37x_GPT_TCLR_CAPT_MODE_FLAG  (1 << 13)
 #define AMDM37x_GPT_TCLR_GPO_CFG_FLAG  (1 << 14)
@@ -208,22 +214,30 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	/* Map control register */
 	timer->regs = (void*) km_map(ioregs, iosize, PAGE_NOT_CACHEABLE);
 
+	/* Reset the timer */
+	timer->regs->tiocp_cfg |= AMDM37x_GPT_TIOCP_CFG_SOFTRESET_FLAG;
+
+	while (!(timer->regs->tistat & AMDM37x_GPT_TISTAT_RESET_DONE_FLAG));
+
 	/* Set autoreload */
-	timer->regs->tclr = AMDM37x_GPT_TCLR_AR_FLAG;
+	timer->regs->tclr |= AMDM37x_GPT_TCLR_AR_FLAG;
 
 	timer->special_available = (
 	    (ioregs == AMDM37x_GPT1_BASE_ADDRESS) ||
 	    (ioregs == AMDM37x_GPT2_BASE_ADDRESS) ||
 	    (ioregs == AMDM37x_GPT10_BASE_ADDRESS));
+	/* Select reload value */
 	timer->regs->tldr = 0xffffffff - (32768 / hz) + 1;
+	/* Set current counter value */
 	timer->regs->tccr = 0xffffffff - (32768 / hz) + 1;
+
 	if (timer->special_available) {
-		/* Set values for according to formula (manual p. 2733) */
+		/* Set values according to formula (manual p. 2733) */
 		/* Use temporary variables for easier debugging */
 		const uint32_t tpir =
 		    ((32768 / hz + 1) * 1000000) - (32768000L * (1000 / hz));
 		const uint32_t tnir =
-		    ((32768 / hz) * 1000000) - (32768000 * (1000 / hz));
+		    ((32768 / hz) * 1000000) - (32768000L * (1000 / hz));
 		timer->regs->tpir = tpir;
 		timer->regs->tnir = tnir;
 	}
@@ -240,12 +254,14 @@ static inline void amdm37x_gpt_timer_ticks_start(amdm37x_gpt_t* timer)
 	timer->regs->tclr |= AMDM37x_GPT_TCLR_ST_FLAG;
 }
 
-static inline void amdm37x_gpt_irq_ack(amdm37x_gpt_t* timer)
+static inline bool amdm37x_gpt_irq_ack(amdm37x_gpt_t* timer)
 {
 	ASSERT(timer);
 	ASSERT(timer->regs);
 	/* Clear all pending interrupts */
-	timer->regs->tisr = timer->regs->tisr;
+	const uint32_t tisr = timer->regs->tisr;
+	timer->regs->tisr = tisr;
+	return tisr != 0;
 }
 
 #endif

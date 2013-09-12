@@ -64,8 +64,8 @@ extern void page_mapping_make_global(uintptr_t, size_t);
 extern pte_t *page_table_create(unsigned int);
 extern void page_table_destroy(pte_t *);
 
-extern int page_find_mapping(uintptr_t, void **);
-extern sysarg_t sys_page_find_mapping(uintptr_t, void *);
+extern int page_find_mapping(uintptr_t, uintptr_t *);
+extern sysarg_t sys_page_find_mapping(uintptr_t, uintptr_t *);
 
 #endif
 

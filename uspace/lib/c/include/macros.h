@@ -39,6 +39,7 @@
 #define max(a, b)  ((a) > (b) ? (a) : (b))
 #define abs(a)     ((a) >= 0 ? (a) : -(a))
 
+#define ARRAY_SIZE(array)   (sizeof(array) / sizeof(array[0]))
 
 #define KiB2SIZE(kb)  ((kb) << 10)
 #define MiB2SIZE(mb)  ((mb) << 20)

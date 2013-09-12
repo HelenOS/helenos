@@ -390,9 +390,7 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 	ASSERT(ispwr2(alignment));
 
 	irq_spinlock_lock(&arena->lock, true);
-	list_foreach(arena->spans, cur) {
-		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
-
+	list_foreach(arena->spans, span_link, ra_span_t, span) {
 		base = ra_span_alloc(span, size, alignment);
 		if (base)
 			break;
@@ -406,9 +404,7 @@ uintptr_t ra_alloc(ra_arena_t *arena, size_t size, size_t alignment)
 void ra_free(ra_arena_t *arena, uintptr_t base, size_t size)
 {
 	irq_spinlock_lock(&arena->lock, true);
-	list_foreach(arena->spans, cur) {
-		ra_span_t *span = list_get_instance(cur, ra_span_t, span_link);
-
+	list_foreach(arena->spans, span_link, ra_span_t, span) {
 		if (iswithin(span->base, span->size, base, size)) {
 			ra_span_free(span, base, size);
 			irq_spinlock_unlock(&arena->lock, true);

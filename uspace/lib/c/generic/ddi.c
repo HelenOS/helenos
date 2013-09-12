@@ -75,23 +75,25 @@ int device_assign_devno(void)
  *         the address space area.
  *
  */
-int physmem_map(void *phys, size_t pages, unsigned int flags, void **virt)
+int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 {
 	return __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
 int dmamem_map(void *virt, size_t size, unsigned int map_flags,
-    unsigned int flags, void **phys)
+    unsigned int flags, uintptr_t *phys)
 {
 	return (int) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags & ~DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, 0);
 }
 
-int dmamem_map_anonymous(size_t size, unsigned int map_flags,
-    unsigned int flags, void **phys, void **virt)
+int dmamem_map_anonymous(size_t size, uintptr_t constraint,
+    unsigned int map_flags, unsigned int flags, uintptr_t *phys, void **virt)
 {
+	*phys = constraint;
+	
 	return (int) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags | DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, (sysarg_t) __entry);
@@ -157,10 +159,10 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 #endif
 	if (!virt)
 		return EINVAL;
-
-	void *phys_frame =
-	    (void *) ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
-	size_t offset = pio_addr - phys_frame;
+	
+	uintptr_t phys_frame =
+	    ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
+	size_t offset = (uintptr_t) pio_addr - phys_frame;
 	size_t pages = SIZE2PAGES(offset + size);
 	
 	void *virt_page;

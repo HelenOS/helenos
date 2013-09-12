@@ -87,13 +87,10 @@ static void unused_initialize(unused_t *u, service_id_t service_id)
 
 static unused_t *unused_find(service_id_t service_id, bool lock)
 {
-	unused_t *u;
-
 	if (lock)
 		fibril_mutex_lock(&unused_lock);
 
-	list_foreach(unused_list, l) {
-		u = list_get_instance(l, unused_t, link);
+	list_foreach(unused_list, link, unused_t, u) {
 		if (u->service_id == service_id) 
 			return u;
 	}

@@ -76,6 +76,19 @@ void posix_tzset(void)
 }
 
 /**
+ * Get the time in seconds
+ *
+ * @param t If t is non-NULL, the return value is also stored in the memory
+ *          pointed to by t.
+ * @return  On success, the value of time in seconds since the Epoch
+ *          is returned. On error, (time_t)-1 is returned.
+ */
+time_t posix_time(time_t *t)
+{
+	return time(t);
+}
+
+/**
  * Converts a time value to a broken-down UTC time.
  * 
  * @param timer Time to convert.

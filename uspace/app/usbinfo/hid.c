@@ -99,15 +99,13 @@ static void dump_hid_report_usages(int iface_no, usb_hid_report_t *report)
 {
 	printf("%sParsed HID report descriptor for interface %d\n",
 	    get_indent(0), iface_no);
-	list_foreach(report->reports, report_it) {
-		usb_hid_report_description_t *description = list_get_instance(
-		    report_it, usb_hid_report_description_t, reports_link);
+	list_foreach(report->reports, reports_link,
+	    usb_hid_report_description_t, description) {
 		printf("%sReport %d (type %d)\n", get_indent(1),
 		    (int) description->report_id,
 		    (int) description->type);
-		list_foreach(description->report_items, item_it) {
-			usb_hid_report_field_t *field = list_get_instance(
-			    item_it, usb_hid_report_field_t, ritems_link);
+		list_foreach(description->report_items, ritems_link,
+		    usb_hid_report_field_t, field) {
 			printf("%sUsage page = 0x%04x    Usage = 0x%04x\n",
 			    get_indent(2),
 			    (int) field->usage_page, (int) field->usage);

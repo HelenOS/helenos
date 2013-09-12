@@ -39,6 +39,7 @@
 
 #include "dev_iface.h"
 #include "remote_hw_res.h"
+#include "remote_pio_window.h"
 #include "remote_char_dev.h"
 #include "remote_clock_dev.h"
 #include "remote_battery_dev.h"
@@ -48,21 +49,26 @@
 #include "remote_usbhc.h"
 #include "remote_usbhid.h"
 #include "remote_pci.h"
+#include "remote_audio_mixer.h"
+#include "remote_audio_pcm.h"
 #include "remote_ahci.h"
 
-static iface_dipatch_table_t remote_ifaces = {
+static const iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_graph_dev_iface,
-		&remote_nic_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface,
-		&remote_clock_dev_iface,
-		&remote_battery_dev_iface,
-		&remote_ahci_iface
+		[AUDIO_MIXER_IFACE] = &remote_audio_mixer_iface,
+		[AUDIO_PCM_BUFFER_IFACE] = &remote_audio_pcm_iface,
+		[HW_RES_DEV_IFACE] = &remote_hw_res_iface,
+		[PIO_WINDOW_DEV_IFACE] = &remote_pio_window_iface,
+		[CHAR_DEV_IFACE] = &remote_char_dev_iface,
+		[GRAPH_DEV_IFACE] = &remote_graph_dev_iface,
+		[NIC_DEV_IFACE] = &remote_nic_iface,
+		[PCI_DEV_IFACE] = &remote_pci_iface,
+		[USB_DEV_IFACE] = &remote_usb_iface,
+		[USBHC_DEV_IFACE] = &remote_usbhc_iface,
+		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
+		[CLOCK_DEV_IFACE] = &remote_clock_dev_iface,
+		[BATTERY_DEV_IFACE] = &remote_battery_dev_iface,
+		[AHCI_DEV_IFACE] = &remote_ahci_iface
 	}
 };
 

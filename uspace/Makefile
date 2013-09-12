@@ -37,6 +37,7 @@ DIRS = \
 	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
+	app/corecfg \
 	app/devctl \
 	app/dnscfg \
 	app/dnsres \
@@ -49,6 +50,7 @@ DIRS = \
 	app/klog \
 	app/loc \
 	app/logset \
+	app/mixerctl \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -75,10 +77,13 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	app/date \
-	app/websrv \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
+	app/df \
+	app/wavplay \
+	app/websrv \
+	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
@@ -115,6 +120,7 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/block/ahci \
@@ -183,6 +189,13 @@ ifeq ($(UARCH),ia32)
 		srv/hw/irc/i8259
 endif
 
+ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+	DIRS += \
+		drv/infrastructure/rootmalta \
+		drv/bus/pci/pciintel \
+		drv/bus/isa
+endif
+
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
@@ -216,6 +229,7 @@ LIBS = \
 	lib/drv \
 	lib/graph \
 	lib/gui \
+	lib/hound \
 	lib/softrend \
 	lib/draw \
 	lib/net \
@@ -226,6 +240,7 @@ LIBS = \
 	lib/usbdev \
 	lib/usbhid \
 	lib/usbvirt \
+	lib/pcm \
 	lib/bithenge \
 	lib/posix
 

@@ -68,7 +68,7 @@ static inet_naddr_t solicited_node_mask = {
 };
 
 static inet_addr_t multicast_all_nodes = {
-	.family = AF_INET,
+	.family = AF_INET6,
 	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
 };
 
@@ -445,10 +445,7 @@ static inet_client_t *inet_client_find(uint8_t proto)
 {
 	fibril_mutex_lock(&client_list_lock);
 
-	list_foreach(client_list, link) {
-		inet_client_t *client = list_get_instance(link, inet_client_t,
-		    client_list);
-
+	list_foreach(client_list, client_list, inet_client_t, client) {
 		if (client->protocol == proto) {
 			fibril_mutex_unlock(&client_list_lock);
 			return client;

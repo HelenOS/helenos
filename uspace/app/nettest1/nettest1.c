@@ -252,7 +252,7 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 	}
 	
 	rc = sockets_sendto_recvfrom(verbose, socket_ids, nsockets, address,
-	    &addrlen, data, size, nmessages);
+	    &addrlen, data, size, nmessages, type);
 	if (rc != EOK)
 		return rc;
 	
@@ -277,7 +277,7 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 	}
 	
 	rc = sockets_sendto(verbose, socket_ids, nsockets, address, addrlen,
-	    data, size, nmessages);
+	    data, size, nmessages, type);
 	if (rc != EOK)
 		return rc;
 	
@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo);
+		rc = dnsr_name2host(addr_s, &hinfo, family);
 		
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);
