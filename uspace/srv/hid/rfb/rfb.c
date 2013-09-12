@@ -179,6 +179,7 @@ int rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
 	pf->b_shift = 16;
 	
 	rfb->name = str_dup(name);
+	rfb->supports_trle = false;
 	
 	return rfb_set_size(rfb, width, height);
 }
@@ -332,6 +333,152 @@ static int rfb_send_palette(int conn_sd, rfb_t *rfb)
 	return rc;
 }
 
+static size_t rfb_rect_encode_raw(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
+{
+	size_t pixel_size = rfb->pixel_format.bpp / 8;
+	size_t size = (rect->width * rect->height * pixel_size);
+	
+	if (buf == NULL)
+		return size;
+	
+	for (uint16_t y = 0; y < rect->height; y++) {
+		for (uint16_t x = 0; x < rect->width; x++) {
+			pixel_t pixel = pixelmap_get_pixel(&rfb->framebuffer,
+			    x + rect->x, y + rect->y);
+			rfb_encode_pixel(rfb, buf, pixel);
+			buf += pixel_size;
+		}
+	}
+	
+	return size;
+}
+
+typedef enum {
+	COMP_NONE, COMP_SKIP_START, COMP_SKIP_END
+} cpixel_compress_type_t;
+
+typedef struct {
+	size_t size;
+	cpixel_compress_type_t compress_type;
+} cpixel_ctx_t;
+
+static void cpixel_context_init(cpixel_ctx_t *ctx, rfb_pixel_format_t *pixel_format)
+{
+	ctx->size = pixel_format->bpp / 8;
+	ctx->compress_type = COMP_NONE;
+	
+	if (pixel_format->bpp == 32 && pixel_format->depth <= 24) {
+		uint32_t mask = 0;
+		mask |= pixel_format->r_max << pixel_format->r_shift;
+		mask |= pixel_format->g_max << pixel_format->g_shift;
+		mask |= pixel_format->b_max << pixel_format->b_shift;
+		
+		if (pixel_format->big_endian) {
+			mask = host2uint32_t_be(mask);
+		}
+		else {
+			mask = host2uint32_t_le(mask);
+		}
+		
+		uint8_t *mask_data = (uint8_t *) &mask;
+		if (mask_data[0] == 0) {
+			ctx->compress_type = COMP_SKIP_START;
+			ctx->size = 3;
+		}
+		else if (mask_data[3] == 0) {
+			ctx->compress_type = COMP_SKIP_END;
+			ctx->size = 3;
+		}
+	}
+}
+
+static void cpixel_encode(rfb_t *rfb, cpixel_ctx_t *cpixel, void *buf,
+    pixel_t pixel)
+{
+	uint8_t data[4];
+	rfb_encode_pixel(rfb, data, pixel);
+	
+	switch (cpixel->compress_type) {
+	case COMP_NONE:
+	case COMP_SKIP_END:
+		memcpy(buf, data, cpixel->size);
+		break;
+	case COMP_SKIP_START:
+		memcpy(buf, data + 1, cpixel->size);
+	}
+}
+
+static ssize_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
+    rfb_rectangle_t *tile, void *buf)
+{
+	ssize_t size = tile->width * tile->height * cpixel->size;
+	if (buf == NULL)
+		return size;
+	
+	for (uint16_t y = tile->y; y < tile->y + tile->height; y++) {
+		for (uint16_t x = tile->x; x < tile->x + tile->width; x++) {
+			pixel_t pixel = pixelmap_get_pixel(&rfb->framebuffer, x, y);
+			cpixel_encode(rfb, cpixel, buf, pixel);
+		}
+	}
+	
+	return size;
+}
+
+static ssize_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
+    rfb_rectangle_t *tile, void *buf)
+{
+	/* Check if it is single color */
+	pixel_t the_color = pixelmap_get_pixel(&rfb->framebuffer, tile->x, tile->y);
+	for (uint16_t y = tile->y; y < tile->y + tile->height; y++) {
+		for (uint16_t x = tile->x; x < tile->x + tile->width; x++) {
+			if (pixelmap_get_pixel(&rfb->framebuffer, x, y) != the_color)
+				return -1;
+		}
+	}
+	
+	/* OK, encode it */
+	if (buf)
+		cpixel_encode(rfb, cpixel, buf, the_color);
+	return cpixel->size;
+}
+
+static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
+{
+	cpixel_ctx_t cpixel;
+	cpixel_context_init(&cpixel, &rfb->pixel_format);
+	
+	size_t size = 0;
+	for (uint16_t y = 0; y < rect->height; y += 16) {
+		for (uint16_t x = 0; x < rect->width; x += 16) {
+			rfb_rectangle_t tile = {
+				.x = x,
+				.y = y,
+				.width = (x + 16 <= rect->width ? 16 : rect->width - x),
+				.height = (y + 16 <= rect->height ? 16 : rect->height - y)
+			};
+			
+			size += 1;
+			uint8_t *tile_enctype_ptr = buf;
+			if (buf)
+				buf +=  1;
+			
+			uint8_t tile_enctype = RFB_TILE_ENCODING_SOLID;
+			ssize_t tile_size = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf);
+			if (tile_size < 0) {
+				tile_size = rfb_tile_encode_raw(rfb, &cpixel, &tile, buf);
+				tile_enctype = RFB_TILE_ENCODING_RAW;
+			}
+			
+			if (buf) {
+				*tile_enctype_ptr = tile_enctype;
+				buf += tile_size;
+			}
+		}
+	}
+	return size;
+}
+
 static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental)
 {
 	if (!incremental || !rfb->damage_valid) {
@@ -345,7 +492,8 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 	/* We send only single raw rectangle right now */
 	size_t buf_size = sizeof(rfb_framebuffer_update_t) +
 	    sizeof(rfb_rectangle_t) * 1 +
-	    (rfb->damage_rect.width * rfb->damage_rect.height * (rfb->pixel_format.bpp/8));
+	    rfb_rect_encode_raw(rfb, &rfb->damage_rect, NULL)
+	    ;
 	
 	void *buf = malloc(buf_size);
 	if (buf == NULL)
@@ -360,21 +508,19 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 	pos += sizeof(rfb_framebuffer_update_t);
 	
 	rfb_rectangle_t *rect = pos;
-	*rect = rfb->damage_rect;
-	rect->enctype = RFB_ENCODING_RAW;
-	rfb_rectangle_to_be(rect, rect);
 	pos += sizeof(rfb_rectangle_t);
 	
-	size_t pixel_size = rfb->pixel_format.bpp / 8;
+	*rect = rfb->damage_rect;
 	
-	for (uint16_t y = 0; y < rfb->damage_rect.height; y++) {
-		for (uint16_t x = 0; x < rfb->damage_rect.width; x++) {
-			pixel_t pixel = pixelmap_get_pixel(&rfb->framebuffer,
-			    x + rfb->damage_rect.x, y + rfb->damage_rect.y);
-			rfb_encode_pixel(rfb, pos, pixel);
-			pos += pixel_size;
-		}
+	if (rfb->supports_trle) {
+		rect->enctype = RFB_ENCODING_TRLE;
+		pos += rfb_rect_encode_trle(rfb, rect, pos);
 	}
+	else {
+		rect->enctype = RFB_ENCODING_RAW;
+		pos += rfb_rect_encode_raw(rfb, rect, pos);
+	}
+	rfb_rectangle_to_be(rect, rect);
 	
 	if (!rfb->pixel_format.true_color) {
 		int rc = rfb_send_palette(conn_sd, rfb);
@@ -504,6 +650,9 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 				if (rc != EOK)
 					return;
 				encoding = uint32_t_be2host(encoding);
+				if (encoding == RFB_ENCODING_TRLE)
+					rfb->supports_trle = true;
+				
 			}
 			printf("set encodings\n");
 			break;

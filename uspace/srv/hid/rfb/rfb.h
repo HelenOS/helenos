@@ -48,6 +48,10 @@
 #define RFB_SMSG_SERVER_CUT_TEXT 3
 
 #define RFB_ENCODING_RAW 0
+#define RFB_ENCODING_TRLE 15
+
+#define RFB_TILE_ENCODING_RAW 0
+#define RFB_TILE_ENCODING_SOLID 1
 
 typedef struct {
 	uint8_t bpp;
@@ -153,6 +157,7 @@ typedef struct {
 	fibril_mutex_t lock;
 	pixel_t *palette;
 	size_t palette_used;
+	bool supports_trle;
 } rfb_t;
 
 
