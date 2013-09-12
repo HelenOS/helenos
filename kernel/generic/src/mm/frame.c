@@ -60,7 +60,7 @@
 #include <config.h>
 #include <str.h>
 
-#define BITMAP_BLOCK_SIZE  1024
+#define BITMAP_BLOCK_SIZE  128
 
 zones_t zones;
 
@@ -351,7 +351,7 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 	ASSERT(frame->refcount > 0);
 	
 	if (!--frame->refcount) {
-		bitmap_free_range(&zone->bitmap, index, 1);
+		bitmap_set(&zone->bitmap, index, 0);
 		
 		/* Update zone information. */
 		zone->free_count++;

@@ -55,6 +55,67 @@
 #define ALL_ONES    0xff
 #define ALL_ZEROES  0x00
 
+/** Compute the size of a bitmap
+ *
+ * Compute the size of a bitmap that can store given number
+ * of elements.
+ *
+ * @param elements Number of elements to store.
+ *
+ * @return Size of the bitmap (in units of BITMAP_ELEMENT bits).
+ *
+ */
+static size_t bitmap_bytes(size_t elements)
+{
+	size_t bytes = elements / BITMAP_ELEMENT;
+	
+	if ((elements % BITMAP_ELEMENT) != 0)
+		bytes++;
+	
+	return bytes;
+}
+
+/** Compute the number of 2nd level blocks
+ *
+ * Compute the number of 2nd level blocks for a given number
+ * of elements.
+ *
+ * @param elements   Number of elements.
+ * @param block_size Number of elements in one block.
+ *
+ * @return Number of 2nd level blocks.
+ * @return Zero if block_size is zero.
+ *
+ */
+static size_t bitmap_blocks(size_t elements, size_t block_size)
+{
+	if (block_size == 0)
+		return 0;
+	
+	size_t blocks = elements / block_size;
+	
+	if ((elements % block_size) != 0)
+		blocks++;
+	
+	return blocks;
+}
+
+/** Unchecked version of bitmap_get()
+ *
+ * This version of bitmap_get() does not do any boundary checks.
+ *
+ * @param bitmap  Bitmap to access.
+ * @param element Element to access.
+ *
+ * @return Bit value of the element in the bitmap.
+ *
+ */
+static unsigned int bitmap_get_fast(bitmap_t *bitmap, size_t element)
+{
+	return !!((bitmap->bits)[element / BITMAP_ELEMENT] &
+	    (1 << (element & BITMAP_REMAINER)));
+}
+
 /** Get bitmap size
  *
  * Return the size (in bytes) required for the bitmap.
@@ -68,19 +129,9 @@
  */
 size_t bitmap_size(size_t elements, size_t block_size)
 {
-	size_t size = elements / BITMAP_ELEMENT;
+	size_t blocks = bitmap_blocks(elements, block_size);
 	
-	if ((elements % BITMAP_ELEMENT) != 0)
-		size++;
-	
-	if (block_size > 0) {
-		size += elements / block_size;
-		
-		if ((elements % block_size) != 0)
-			size++;
-	}
-	
-	return size;
+	return (bitmap_bytes(elements) + bitmap_bytes(blocks));
 }
 
 /** Initialize bitmap.
@@ -315,64 +366,48 @@ int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
 	if (count == 0)
 		return false;
 	
-	/*
-	 * This is a trivial implementation that should be
-	 * optimized further.
-	 */
+	size_t bytes = bitmap_bytes(bitmap->elements);
 	
-	for (size_t i = 0; i < bitmap->elements; i++) {
-		if (!constraint_satisfy(i, base, constraint))
+	for (size_t byte = 0; byte < bytes; byte++) {
+		/* Skip if the current byte has all bits set */
+		if (bitmap->bits[byte] == ALL_ONES)
 			continue;
 		
-		if (!bitmap_get(bitmap, i)) {
-			bool continuous = true;
+		size_t byte_bit = byte * BITMAP_ELEMENT;
+		
+		for (size_t bit = 0; bit < BITMAP_ELEMENT; bit++) {
+			size_t i = byte_bit + bit;
 			
-			for (size_t j = 1; j < count; j++) {
-				if ((i + j >= bitmap->elements) ||
-				    (bitmap_get(bitmap, i + j))) {
-					continuous = false;
-					break;
-				}
-			}
+			if (i >= bitmap->elements)
+				break;
 			
-			if (continuous) {
-				if (index != NULL) {
-					bitmap_set_range(bitmap, i, count);
-					*index = i;
+			if (!constraint_satisfy(i, base, constraint))
+				continue;
+			
+			if (!bitmap_get_fast(bitmap, i)) {
+				bool continuous = true;
+				
+				for (size_t j = 1; j < count; j++) {
+					if ((i + j >= bitmap->elements) ||
+					    (bitmap_get_fast(bitmap, i + j))) {
+						continuous = false;
+						break;
+					}
 				}
 				
-				return true;
+				if (continuous) {
+					if (index != NULL) {
+						bitmap_set_range(bitmap, i, count);
+						*index = i;
+					}
+					
+					return true;
+				}
 			}
 		}
-		
 	}
 	
 	return false;
-}
-
-/** Clear range of set bits.
- *
- * This is essentially bitmap_clear_range(), but it also
- * checks whether all the cleared bits are actually set.
- *
- * @param bitmap Bitmap structure.
- * @param start  Starting bit.
- * @param count  Number of bits to clear.
- *
- */
-void bitmap_free_range(bitmap_t *bitmap, size_t start, size_t count)
-{
-	/*
-	 * This is a trivial implementation that should be
-	 * optimized further.
-	 */
-	
-	for (size_t i = 0; i < count; i++) {
-		if (!bitmap_get(bitmap, start + i))
-			panic("Freeing a bitmap range that is not set");
-	}
-	
-	bitmap_clear_range(bitmap, start, count);
 }
 
 /** @}
