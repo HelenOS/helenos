@@ -2156,6 +2156,9 @@ static int discover_viewports(void)
 		}
 	}
 	fibril_mutex_unlock(&viewport_list_mtx);
+	
+	/* TODO damage only newly added viewports */
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	return EOK;
 }
 
