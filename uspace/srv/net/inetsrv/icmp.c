@@ -104,6 +104,7 @@ static int icmp_recv_echo_request(inet_dgram_t *dgram)
 	checksum = inet_checksum_calc(INET_CHECKSUM_INIT, reply, size);
 	reply->checksum = host2uint16_t_be(checksum);
 
+	rdgram.iplink = 0;
 	rdgram.src = dgram->dest;
 	rdgram.dest = dgram->src;
 	rdgram.tos = ICMP_TOS;
@@ -170,6 +171,7 @@ int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 	inet_addr_set(sdu->src, &dgram.src);
 	inet_addr_set(sdu->dest, &dgram.dest);
 	
+	dgram.iplink = 0;
 	dgram.tos = ICMP_TOS;
 	dgram.data = rdata;
 	dgram.size = rsize;

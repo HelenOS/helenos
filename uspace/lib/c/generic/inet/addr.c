@@ -47,6 +47,8 @@
 	#error The architecture must be either big-endian or little-endian.
 #endif
 
+const addr32_t addr32_broadcast_all_hosts = 0xffffffff;
+
 const addr48_t addr48_broadcast = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };

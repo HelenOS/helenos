@@ -36,11 +36,14 @@
 #define LIBC_INET_INET_H_
 
 #include <inet/addr.h>
+#include <ipc/loc.h>
 #include <sys/types.h>
 
 #define INET_TTL_MAX 255
 
 typedef struct {
+	/** Local IP link service ID (optional) */
+	service_id_t iplink;
 	inet_addr_t src;
 	inet_addr_t dest;
 	uint8_t tos;

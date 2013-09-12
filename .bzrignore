@@ -266,3 +266,5 @@ uspace/app/corecfg/corecfg
 uspace/dist/app/corecfg
 uspace/dist/srv/rfb
 uspace/srv/hid/rfb/rfb
+uspace/dist/srv/dhcp
+uspace/srv/net/dhcp/dhcp
