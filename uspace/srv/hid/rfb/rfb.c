@@ -34,6 +34,7 @@
 #include <str.h>
 #include <str_error.h>
 #include <byteorder.h>
+#include <macros.h>
 
 #include <net/in.h>
 #include <net/inet.h>
@@ -213,13 +214,41 @@ static uint32_t rfb_scale_channel(uint8_t val, uint32_t max)
 	return val * max / 255;
 }
 
-static void rfb_encode_pixel(void *buf, rfb_pixel_format_t *pf, uint8_t r, uint8_t g,
-    uint8_t b)
+static void rfb_encode_index(rfb_t *rfb, uint8_t *buf, pixel_t pixel)
+{
+	int first_free_index = -1;
+	for (size_t i = 0; i < 256; i++) {
+		bool free = ALPHA(rfb->palette[i]) == 0;
+		if (free && first_free_index == -1) {
+			first_free_index = i;
+		}
+		else if (!free && RED(rfb->palette[i]) == RED(pixel) &&
+		    GREEN(rfb->palette[i]) == GREEN(pixel) &&
+		    BLUE(rfb->palette[i]) == BLUE(pixel)) {
+			*buf = i;
+			return;
+		}
+	}
+	
+	if (first_free_index != -1) {
+		rfb->palette[first_free_index] = PIXEL(255, RED(pixel), GREEN(pixel),
+		    BLUE(pixel));
+		rfb->palette_used = max(rfb->palette_used, (unsigned) first_free_index + 1);
+		*buf = first_free_index;
+		return;
+	}
+	
+	/* TODO find nearest color index. We are lazy so return index 0 for now */
+	*buf = 0;
+}
+
+static void rfb_encode_true_color(rfb_pixel_format_t *pf, void *buf,
+    pixel_t pixel)
 {
 	uint32_t pix = 0;
-	pix |= rfb_scale_channel(r, pf->r_max) << pf->r_shift;
-	pix |= rfb_scale_channel(g, pf->g_max) << pf->g_shift;
-	pix |= rfb_scale_channel(b, pf->b_max) << pf->b_shift;
+	pix |= rfb_scale_channel(RED(pixel), pf->r_max) << pf->r_shift;
+	pix |= rfb_scale_channel(GREEN(pixel), pf->g_max) << pf->g_shift;
+	pix |= rfb_scale_channel(BLUE(pixel), pf->b_max) << pf->b_shift;
 	
 	if (pf->bpp == 8) {
 		uint8_t pix8 = pix;
@@ -244,6 +273,63 @@ static void rfb_encode_pixel(void *buf, rfb_pixel_format_t *pf, uint8_t r, uint8
 		}
 		memcpy(buf, &pix, 4);
 	}
+}
+
+static void rfb_encode_pixel(rfb_t *rfb, void *buf, pixel_t pixel)
+{
+	if (rfb->pixel_format.true_color) {
+		rfb_encode_true_color(&rfb->pixel_format, buf, pixel);
+	}
+	else {
+		rfb_encode_index(rfb, buf, pixel);
+	}
+}
+
+static void rfb_set_color_map_entries_to_be(rfb_set_color_map_entries_t *src,
+    rfb_set_color_map_entries_t *dst)
+{
+	dst->first_color = host2uint16_t_be(src->first_color);
+	dst->color_count = host2uint16_t_be(src->color_count);
+}
+
+static void rfb_color_map_entry_to_be(rfb_color_map_entry_t *src,
+    rfb_color_map_entry_t *dst)
+{
+	dst->red = host2uint16_t_be(src->red);
+	dst->green = host2uint16_t_be(src->green);
+	dst->blue = host2uint16_t_be(src->blue);
+}
+
+static int rfb_send_palette(int conn_sd, rfb_t *rfb)
+{
+	size_t size = sizeof(rfb_set_color_map_entries_t) +
+	    rfb->palette_used * sizeof(rfb_color_map_entry_t);
+	
+	void *buf = malloc(size);
+	if (buf == NULL)
+		return ENOMEM;
+	
+	void *pos = buf;
+	
+	rfb_set_color_map_entries_t *scme = pos;
+	scme->message_type = RFB_SMSG_SET_COLOR_MAP_ENTRIES;
+	scme->first_color = 0;
+	scme->color_count = rfb->palette_used;
+	rfb_set_color_map_entries_to_be(scme, scme);
+	pos += sizeof(rfb_set_color_map_entries_t);
+	
+	rfb_color_map_entry_t *entries = pos;
+	for (unsigned i = 0; i < rfb->palette_used; i++) {
+		entries[i].red = 65535 * RED(rfb->palette[i]) / 255;
+		entries[i].green = 65535 * GREEN(rfb->palette[i]) / 255;
+		entries[i].blue = 65535 * BLUE(rfb->palette[i]) / 255;
+		rfb_color_map_entry_to_be(&entries[i], &entries[i]);
+	}
+	
+	int rc = send(conn_sd, buf, size, 0);
+	free(buf);
+	
+	return rc;
 }
 
 static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental)
@@ -285,16 +371,43 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 		for (uint16_t x = 0; x < rfb->damage_rect.width; x++) {
 			pixel_t pixel = pixelmap_get_pixel(&rfb->framebuffer,
 			    x + rfb->damage_rect.x, y + rfb->damage_rect.y);
-			rfb_encode_pixel(pos, &rfb->pixel_format, RED(pixel), GREEN(pixel), BLUE(pixel));
+			rfb_encode_pixel(rfb, pos, pixel);
 			pos += pixel_size;
+		}
+	}
+	
+	if (!rfb->pixel_format.true_color) {
+		int rc = rfb_send_palette(conn_sd, rfb);
+		if (rc != EOK) {
+			free(buf);
+			return rc;
 		}
 	}
 	
 	int rc = send(conn_sd, buf, buf_size, 0);
 	free(buf);
-	
 	rfb->damage_valid = false;
 	return rc;
+}
+
+static int rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
+{
+	rfb->pixel_format = *pixel_format;
+	if (rfb->pixel_format.true_color) {
+		free(rfb->palette);
+		rfb->palette = NULL;
+		rfb->palette_used = 0;
+	}
+	else {
+		if (rfb->palette == NULL) {
+			rfb->palette = malloc(sizeof(pixel_t) * 256);
+			if (rfb->palette == NULL)
+				return ENOMEM;
+			memset(rfb->palette, 0, sizeof(pixel_t) * 256);
+			rfb->palette_used = 0;
+		}
+	}
+	return EOK;
 }
 
 static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
@@ -376,8 +489,10 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 			recv_message(conn_sd, message_type, &spf, sizeof(spf));
 			rfb_pixel_format_to_host(&spf.pixel_format, &spf.pixel_format);
 			fibril_mutex_lock(&rfb->lock);
-			rfb->pixel_format = spf.pixel_format;
+			rc = rfb_set_pixel_format(rfb, &spf.pixel_format);
 			fibril_mutex_unlock(&rfb->lock);
+			if (rc != EOK)
+				return;
 			printf("set pixel format\n");
 			break;
 		case RFB_CMSG_SET_ENCODINGS:

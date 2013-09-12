@@ -129,6 +129,19 @@ typedef struct {
 } __attribute__((packed)) rfb_framebuffer_update_t;
 
 typedef struct {
+	uint8_t message_type;
+	uint8_t pad;
+	uint16_t first_color;
+	uint16_t color_count;
+} __attribute((packed)) rfb_set_color_map_entries_t;
+
+typedef struct {
+	uint16_t red;
+	uint16_t green;
+	uint16_t blue;
+} __attribute__((packed)) rfb_color_map_entry_t;
+
+typedef struct {
 	uint16_t width;
 	uint16_t height;
 	rfb_pixel_format_t pixel_format;
@@ -138,6 +151,8 @@ typedef struct {
 	rfb_rectangle_t damage_rect;
 	bool damage_valid;
 	fibril_mutex_t lock;
+	pixel_t *palette;
+	size_t palette_used;
 } rfb_t;
 
 
