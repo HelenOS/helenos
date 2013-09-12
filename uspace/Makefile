@@ -69,6 +69,7 @@ DIRS = \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \
+	app/netspeed \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
