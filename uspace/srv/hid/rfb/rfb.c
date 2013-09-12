@@ -300,14 +300,14 @@ static void rfb_color_map_entry_to_be(rfb_color_map_entry_t *src,
 	dst->blue = host2uint16_t_be(src->blue);
 }
 
-static int rfb_send_palette(int conn_sd, rfb_t *rfb)
+static void *rfb_send_palette_message(rfb_t *rfb, size_t *psize)
 {
 	size_t size = sizeof(rfb_set_color_map_entries_t) +
 	    rfb->palette_used * sizeof(rfb_color_map_entry_t);
 	
 	void *buf = malloc(size);
 	if (buf == NULL)
-		return ENOMEM;
+		return NULL;
 	
 	void *pos = buf;
 	
@@ -326,10 +326,8 @@ static int rfb_send_palette(int conn_sd, rfb_t *rfb)
 		rfb_color_map_entry_to_be(&entries[i], &entries[i]);
 	}
 	
-	int rc = send(conn_sd, buf, size, 0);
-	free(buf);
-	
-	return rc;
+	*psize = size;
+	return buf;
 }
 
 static size_t rfb_rect_encode_raw(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
@@ -480,6 +478,7 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 
 static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental)
 {
+	fibril_mutex_lock(&rfb->lock);
 	if (!incremental || !rfb->damage_valid) {
 		rfb->damage_rect.x = 0;
 		rfb->damage_rect.y = 0;
@@ -495,8 +494,10 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 	    ;
 	
 	void *buf = malloc(buf_size);
-	if (buf == NULL)
+	if (buf == NULL) {
+		fibril_mutex_unlock(&rfb->lock);
 		return ENOMEM;
+	}
 	memset(buf, 0, buf_size);
 	
 	void *pos = buf;
@@ -521,8 +522,24 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 	}
 	rfb_rectangle_to_be(rect, rect);
 	
+	rfb->damage_valid = false;
+	
+	size_t send_palette_size = 0;
+	void *send_palette = NULL;
+	
 	if (!rfb->pixel_format.true_color) {
-		int rc = rfb_send_palette(conn_sd, rfb);
+		send_palette = rfb_send_palette_message(rfb, &send_palette_size);
+		if (send_palette == NULL) {
+			free(buf);
+			fibril_mutex_unlock(&rfb->lock);
+			return ENOMEM;
+		}
+	}
+	
+	fibril_mutex_unlock(&rfb->lock);
+	
+	if (!rfb->pixel_format.true_color) {
+		int rc = send(conn_sd, send_palette, send_palette_size, 0);
 		if (rc != EOK) {
 			free(buf);
 			return rc;
@@ -531,7 +548,7 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, int conn_sd, bool incremental
 	
 	int rc = send(conn_sd, buf, buf_size, 0);
 	free(buf);
-	rfb->damage_valid = false;
+	
 	return rc;
 }
 
@@ -693,9 +710,7 @@ static void rfb_socket_connection(rfb_t *rfb, int conn_sd)
 			rfb_framebuffer_update_request_to_host(&fbur, &fbur);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2,
 			    "Received FramebufferUpdateRequest message");
-			fibril_mutex_lock(&rfb->lock);
 			rfb_send_framebuffer_update(rfb, conn_sd, fbur.incremental);
-			fibril_mutex_unlock(&rfb->lock);
 			break;
 		case RFB_CMSG_KEY_EVENT:
 			recv_message(conn_sd, message_type, &ke, sizeof(ke));
