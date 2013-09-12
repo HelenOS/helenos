@@ -41,6 +41,9 @@
 #include <abi/ddi/arg.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
+#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
+#include <device/pio_window.h>
 #include <libc.h>
 #include <task.h>
 #include <as.h>
@@ -135,7 +138,17 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
-/** Enable PIO for specified HW resource.
+/** Enable PIO for specified address range.
+ *
+ * @param range I/O range to be enable.
+ * @param virt  Virtual address for application's PIO operations. 
+ */
+int pio_enable_range(addr_range_t *range, void **virt)
+{
+	return pio_enable(RNGABSPTR(*range), RNGSZ(*range), virt);
+}
+
+/** Enable PIO for specified HW resource wrt. to the PIO window.
  *
  * @param win      PIO window. May be NULL if the resources are known to be
  *                 absolute.

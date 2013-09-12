@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #include <abi/ddi/irq.h>
 #include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
 #include <device/pio_window.h>
 #include <task.h>
 
@@ -56,6 +57,7 @@ extern int dmamem_map_anonymous(size_t, uintptr_t, unsigned int, unsigned int,
 extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 
+extern int pio_enable_range(addr_range_t *, void **);
 extern int pio_enable_resource(pio_window_t *, hw_resource_t *, void **);
 extern int pio_enable(void *, size_t, void **);
 
