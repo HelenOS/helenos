@@ -135,6 +135,48 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
+/** Enable PIO for specified HW resource.
+ *
+ * @param win      PIO window. May be NULL if the resources are known to be
+ *                 absolute.
+ * @param res      Resources specifying the I/O range wrt. to the PIO window.
+ * @param virt     Virtual address for application's PIO operations.
+ *
+ * @return EOK on success.
+ * @return Negative error code on failure.
+ *
+ */
+int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
+{
+	uintptr_t addr;
+	size_t size;
+
+	switch (res->type) {
+	case IO_RANGE:
+		addr = res->res.io_range.address;
+		if (res->res.io_range.relative) {
+			if (!win)
+				return EINVAL;
+			addr += win->io.base;
+		}
+		size = res->res.io_range.size;
+		break;
+	case MEM_RANGE:
+		addr = res->res.mem_range.address;
+		if (res->res.mem_range.relative) {
+			if (!win)
+				return EINVAL;
+			addr += win->mem.base;
+		}
+		size = res->res.mem_range.size;
+		break;
+	default:
+		return EINVAL;
+	}
+
+	return pio_enable((void *) addr, size, virt);	
+}
+
 /** Enable PIO for specified I/O range.
  *
  * @param pio_addr I/O start address.
