@@ -142,6 +142,8 @@ static desktop_rect_t viewport_bound_rect;
 static FIBRIL_MUTEX_INITIALIZE(viewport_list_mtx);
 static LIST_INITIALIZE(viewport_list);
 
+static FIBRIL_MUTEX_INITIALIZE(discovery_mtx);
+
 /** Input server proxy */
 static input_t *input;
 
@@ -2113,6 +2115,60 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
+static int discover_viewports(void)
+{
+	/* Create viewports and connect them to visualizers. */
+	category_id_t cat_id;
+	int rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed to get visualizer category.\n", NAME);
+		return -1;
+	}
+	
+	service_id_t *svcs;
+	size_t svcs_cnt = 0;
+	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
+	if (rc != EOK || svcs_cnt == 0) {
+		printf("%s: Failed to get visualizer category services.\n", NAME);
+		return -1;
+	}
+
+	fibril_mutex_lock(&viewport_list_mtx);	
+	for (size_t i = 0; i < svcs_cnt; ++i) {
+		bool exists = false;
+		list_foreach(viewport_list, link, viewport_t, vp) {
+			if (vp->dsid == svcs[i]) {
+				exists = true;
+				break;
+			}
+		}
+		
+		if (exists)
+			continue;
+		
+		char *svc_name;
+		rc = loc_service_get_name(svcs[i], &svc_name);
+		if (rc == EOK) {
+			viewport_t *vp = viewport_create(svc_name);
+			if (vp != NULL) {
+				list_append(&vp->link, &viewport_list);
+			}
+		}
+	}
+	fibril_mutex_unlock(&viewport_list_mtx);
+	
+	/* TODO damage only newly added viewports */
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	return EOK;
+}
+
+static void category_change_cb(void)
+{
+	fibril_mutex_lock(&discovery_mtx);
+	discover_viewports();
+	fibril_mutex_unlock(&discovery_mtx);
+}
+
 static int compositor_srv_init(char *input_svc, char *name)
 {
 	/* Coordinates of the central pixel. */
@@ -2164,33 +2220,17 @@ static int compositor_srv_init(char *input_svc, char *name)
 		return rc;
 	}
 
-	/* Create viewports and connect them to visualizers. */
-	category_id_t cat_id;
-	rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	rc = loc_register_cat_change_cb(category_change_cb);
 	if (rc != EOK) {
-		printf("%s: Failed to get visualizer category.\n", NAME);
+		printf("%s: Failed to register category change callback\n", NAME);
 		input_disconnect();
-		return -1;
-	}
-	
-	service_id_t *svcs;
-	size_t svcs_cnt = 0;
-	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
-	if (rc != EOK || svcs_cnt == 0) {
-		printf("%s: Failed to get visualizer category services.\n", NAME);
+		return rc;
+	}	
+
+	rc = discover_viewports();
+	if (rc != EOK) {
 		input_disconnect();
-		return -1;
-	}
-	
-	for (size_t i = 0; i < svcs_cnt; ++i) {
-		char *svc_name;
-		rc = loc_service_get_name(svcs[i], &svc_name);
-		if (rc == EOK) {
-			viewport_t *vp = viewport_create(svc_name);
-			if (vp != NULL) {
-				list_append(&vp->link, &viewport_list);
-			}
-		}
+		return rc;
 	}
 	
 	if (list_empty(&viewport_list)) {
@@ -2201,6 +2241,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	
 	
 	return EOK;
 }

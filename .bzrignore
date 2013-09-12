@@ -264,3 +264,5 @@ uspace/lib/c/arch/ia32/_link.ld
 kernel/arch/arm32/_link.ld
 uspace/app/corecfg/corecfg
 uspace/dist/app/corecfg
+uspace/dist/srv/rfb
+uspace/srv/hid/rfb/rfb
