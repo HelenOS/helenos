@@ -43,34 +43,21 @@
 typedef struct {
 	size_t elements;
 	uint8_t *bits;
-	
-	size_t block_size;
-	uint8_t *blocks;
 } bitmap_t;
 
 static inline void bitmap_set(bitmap_t *bitmap, size_t element,
     unsigned int value)
 {
-	if (element < bitmap->elements) {
-		/*
-		 * The 2nd level bitmap is conservative.
-		 * Make sure we update it properly.
-		 */
-		
-		if (value) {
-			bitmap->bits[element / BITMAP_ELEMENT] |=
-			    (1 << (element & BITMAP_REMAINER));
-		} else {
-			bitmap->bits[element / BITMAP_ELEMENT] &=
-			    ~(1 << (element & BITMAP_REMAINER));
-			
-			if (bitmap->block_size > 0) {
-				size_t block = element / bitmap->block_size;
-				
-				bitmap->blocks[block / BITMAP_ELEMENT] &=
-				    ~(1 << (block & BITMAP_REMAINER));
-			}
-		}
+	if (element >= bitmap->elements)
+		return;
+	
+	size_t byte = element / BITMAP_ELEMENT;
+	uint8_t mask = 1 << (element & BITMAP_REMAINER);
+	
+	if (value) {
+		bitmap->bits[byte] |= mask;
+	} else {
+		bitmap->bits[byte] &= ~mask;
 	}
 }
 
@@ -79,12 +66,14 @@ static inline unsigned int bitmap_get(bitmap_t *bitmap, size_t element)
 	if (element >= bitmap->elements)
 		return 0;
 	
-	return !!((bitmap->bits)[element / BITMAP_ELEMENT] &
-	    (1 << (element & BITMAP_REMAINER)));
+	size_t byte = element / BITMAP_ELEMENT;
+	uint8_t mask = 1 << (element & BITMAP_REMAINER);
+	
+	return !!((bitmap->bits)[byte] & mask);
 }
 
-extern size_t bitmap_size(size_t, size_t);
-extern void bitmap_initialize(bitmap_t *, size_t, size_t, void *);
+extern size_t bitmap_size(size_t);
+extern void bitmap_initialize(bitmap_t *, size_t, void *);
 
 extern void bitmap_set_range(bitmap_t *, size_t, size_t);
 extern void bitmap_clear_range(bitmap_t *, size_t, size_t);

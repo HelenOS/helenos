@@ -67,15 +67,15 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		 * The I/O permission bitmap is too small and needs to be grown.
 		 */
 		
-		void *store = malloc(bitmap_size(elements, 0), FRAME_ATOMIC);
+		void *store = malloc(bitmap_size(elements), FRAME_ATOMIC);
 		if (!store)
 			return ENOMEM;
 		
 		bitmap_t oldiomap;
-		bitmap_initialize(&oldiomap, task->arch.iomap.elements, 0,
+		bitmap_initialize(&oldiomap, task->arch.iomap.elements,
 		    task->arch.iomap.bits);
 		
-		bitmap_initialize(&task->arch.iomap, elements, 0, store);
+		bitmap_initialize(&task->arch.iomap, elements, store);
 		
 		/*
 		 * Mark the new range inaccessible.
@@ -128,7 +128,7 @@ void io_perm_bitmap_install(void)
 		ASSERT(TASK->arch.iomap.bits);
 		
 		bitmap_t iomap;
-		bitmap_initialize(&iomap, TSS_IOMAP_SIZE * 8, 0,
+		bitmap_initialize(&iomap, TSS_IOMAP_SIZE * 8,
 		    CPU->arch.tss->iomap);
 		bitmap_copy(&iomap, &TASK->arch.iomap, elements);
 		
@@ -156,7 +156,7 @@ void io_perm_bitmap_install(void)
 	gdtr_store(&cpugdtr);
 	
 	descriptor_t *gdt_p = (descriptor_t *) cpugdtr.base;
-	size_t size = bitmap_size(elements, 0);
+	size_t size = bitmap_size(elements);
 	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + size);
 	gdtr_load(&cpugdtr);
 	

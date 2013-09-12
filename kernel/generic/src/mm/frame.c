@@ -60,8 +60,6 @@
 #include <config.h>
 #include <str.h>
 
-#define BITMAP_BLOCK_SIZE  128
-
 zones_t zones;
 
 /*
@@ -409,8 +407,7 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 	zones.info[z1].busy_count += zones.info[z2].busy_count;
 	
 	bitmap_initialize(&zones.info[z1].bitmap, zones.info[z1].count,
-	    BITMAP_BLOCK_SIZE, confdata +
-	    (sizeof(frame_t) * zones.info[z1].count));
+	    confdata + (sizeof(frame_t) * zones.info[z1].count));
 	bitmap_clear_range(&zones.info[z1].bitmap, 0, zones.info[z1].count);
 	
 	zones.info[z1].frames = (frame_t *) confdata;
@@ -577,8 +574,8 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
 		 * frame_t structures in the configuration space).
 		 */
 		
-		bitmap_initialize(&zone->bitmap, count, BITMAP_BLOCK_SIZE,
-		    confdata + (sizeof(frame_t) * count));
+		bitmap_initialize(&zone->bitmap, count, confdata +
+		    (sizeof(frame_t) * count));
 		bitmap_clear_range(&zone->bitmap, 0, count);
 		
 		/*
@@ -590,7 +587,7 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
 		for (size_t i = 0; i < count; i++)
 			frame_initialize(&zone->frames[i]);
 	} else {
-		bitmap_initialize(&zone->bitmap, 0, 0, NULL);
+		bitmap_initialize(&zone->bitmap, 0, NULL);
 		zone->frames = NULL;
 	}
 }
@@ -604,8 +601,7 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
  */
 size_t zone_conf_size(size_t count)
 {
-	return (count * sizeof(frame_t) +
-	    bitmap_size(count, BITMAP_BLOCK_SIZE));
+	return (count * sizeof(frame_t) + bitmap_size(count));
 }
 
 /** Allocate external configuration frames from low memory. */

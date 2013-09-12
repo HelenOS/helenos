@@ -36,14 +36,6 @@
  * This file implements bitmap ADT and provides functions for
  * setting and clearing ranges of bits and for finding ranges
  * of unset bits.
- *
- * The bitmap ADT can optionally implement a two-level hierarchy
- * for faster range searches. The second level bitmap (of blocks)
- * is not precise, but conservative. This means that if the block
- * bit is set, it guarantees that all bits in the block are set.
- * But if the block bit is unset, nothing can be said about the
- * bits in the block.
- *
  */
 
 #include <adt/bitmap.h>
@@ -54,51 +46,6 @@
 
 #define ALL_ONES    0xff
 #define ALL_ZEROES  0x00
-
-/** Compute the size of a bitmap
- *
- * Compute the size of a bitmap that can store given number
- * of elements.
- *
- * @param elements Number of elements to store.
- *
- * @return Size of the bitmap (in units of BITMAP_ELEMENT bits).
- *
- */
-static size_t bitmap_bytes(size_t elements)
-{
-	size_t bytes = elements / BITMAP_ELEMENT;
-	
-	if ((elements % BITMAP_ELEMENT) != 0)
-		bytes++;
-	
-	return bytes;
-}
-
-/** Compute the number of 2nd level blocks
- *
- * Compute the number of 2nd level blocks for a given number
- * of elements.
- *
- * @param elements   Number of elements.
- * @param block_size Number of elements in one block.
- *
- * @return Number of 2nd level blocks.
- * @return Zero if block_size is zero.
- *
- */
-static size_t bitmap_blocks(size_t elements, size_t block_size)
-{
-	if (block_size == 0)
-		return 0;
-	
-	size_t blocks = elements / block_size;
-	
-	if ((elements % block_size) != 0)
-		blocks++;
-	
-	return blocks;
-}
 
 /** Unchecked version of bitmap_get()
  *
@@ -112,8 +59,10 @@ static size_t bitmap_blocks(size_t elements, size_t block_size)
  */
 static unsigned int bitmap_get_fast(bitmap_t *bitmap, size_t element)
 {
-	return !!((bitmap->bits)[element / BITMAP_ELEMENT] &
-	    (1 << (element & BITMAP_REMAINER)));
+	size_t byte = element / BITMAP_ELEMENT;
+	uint8_t mask = 1 << (element & BITMAP_REMAINER);
+	
+	return !!((bitmap->bits)[byte] & mask);
 }
 
 /** Get bitmap size
@@ -121,17 +70,18 @@ static unsigned int bitmap_get_fast(bitmap_t *bitmap, size_t element)
  * Return the size (in bytes) required for the bitmap.
  *
  * @param elements   Number bits stored in bitmap.
- * @param block_size Block size of the 2nd level bitmap.
- *                   If set to zero, no 2nd level is used.
  *
  * @return Size (in bytes) required for the bitmap.
  *
  */
-size_t bitmap_size(size_t elements, size_t block_size)
+size_t bitmap_size(size_t elements)
 {
-	size_t blocks = bitmap_blocks(elements, block_size);
+	size_t size = elements / BITMAP_ELEMENT;
 	
-	return (bitmap_bytes(elements) + bitmap_bytes(blocks));
+	if ((elements % BITMAP_ELEMENT) != 0)
+		size++;
+	
+	return size;
 }
 
 /** Initialize bitmap.
@@ -140,31 +90,28 @@ size_t bitmap_size(size_t elements, size_t block_size)
  *
  * @param bitmap     Bitmap structure.
  * @param elements   Number of bits stored in bitmap.
- * @param block_size Block size of the 2nd level bitmap.
- *                   If set to zero, no 2nd level is used.
  * @param data       Address of the memory used to hold the map.
  *                   The optional 2nd level bitmap follows the 1st
  *                   level bitmap.
  *
  */
-void bitmap_initialize(bitmap_t *bitmap, size_t elements, size_t block_size,
-    void *data)
+void bitmap_initialize(bitmap_t *bitmap, size_t elements, void *data)
 {
 	bitmap->elements = elements;
 	bitmap->bits = (uint8_t *) data;
-	
-	if (block_size > 0) {
-		bitmap->block_size = block_size;
-		bitmap->blocks = bitmap->bits +
-		    bitmap_size(elements, 0);
-	} else {
-		bitmap->block_size = 0;
-		bitmap->blocks = NULL;
-	}
 }
 
-static void bitmap_set_range_internal(uint8_t *bits, size_t start, size_t count)
+/** Set range of bits.
+ *
+ * @param bitmap Bitmap structure.
+ * @param start  Starting bit.
+ * @param count  Number of bits to set.
+ *
+ */
+void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
 {
+	ASSERT(start + count <= bitmap->elements);
+	
 	if (count == 0)
 		return;
 	
@@ -181,14 +128,14 @@ static void bitmap_set_range_internal(uint8_t *bits, size_t start, size_t count)
 	
 	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte. */
-		bits[start / BITMAP_ELEMENT] |=
+		bitmap->bits[start / BITMAP_ELEMENT] |=
 		    ((1 << lub) - 1) << (start & BITMAP_REMAINER);
 		return;
 	}
 	
 	if (lub) {
 		/* Make sure to set any leading unaligned bits. */
-		bits[start / BITMAP_ELEMENT] |=
+		bitmap->bits[start / BITMAP_ELEMENT] |=
 		    ~((1 << (BITMAP_ELEMENT - lub)) - 1);
 	}
 	
@@ -196,47 +143,28 @@ static void bitmap_set_range_internal(uint8_t *bits, size_t start, size_t count)
 	
 	for (i = 0; i < amb / BITMAP_ELEMENT; i++) {
 		/* The middle bits can be set byte by byte. */
-		bits[aligned_start / BITMAP_ELEMENT + i] = ALL_ONES;
+		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] =
+		    ALL_ONES;
 	}
 	
 	if (tab) {
 		/* Make sure to set any trailing aligned bits. */
-		bits[aligned_start / BITMAP_ELEMENT + i] |= (1 << tab) - 1;
+		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] |=
+		    (1 << tab) - 1;
 	}
 }
 
-/** Set range of bits.
+/** Clear range of bits.
  *
  * @param bitmap Bitmap structure.
  * @param start  Starting bit.
- * @param count  Number of bits to set.
+ * @param count  Number of bits to clear.
  *
  */
-void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
+void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 {
 	ASSERT(start + count <= bitmap->elements);
 	
-	bitmap_set_range_internal(bitmap->bits, start, count);
-	
-	if (bitmap->block_size > 0) {
-		size_t aligned_start = ALIGN_UP(start, bitmap->block_size);
-		
-		/* Leading unaligned bits */
-		size_t lub = min(aligned_start - start, count);
-		
-		/* Aligned middle bits */
-		size_t amb = (count > lub) ? (count - lub) : 0;
-		
-		size_t aligned_size = amb / bitmap->block_size;
-		
-		bitmap_set_range_internal(bitmap->blocks, aligned_start,
-		    aligned_size);
-	}
-}
-
-static void bitmap_clear_range_internal(uint8_t *bits, size_t start,
-    size_t count)
-{
 	if (count == 0)
 		return;
 	
@@ -253,14 +181,14 @@ static void bitmap_clear_range_internal(uint8_t *bits, size_t start,
 	
 	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte */
-		bits[start / BITMAP_ELEMENT] &=
+		bitmap->bits[start / BITMAP_ELEMENT] &=
 		    ~(((1 << lub) - 1) << (start & BITMAP_REMAINER));
 		return;
 	}
 	
 	if (lub) {
 		/* Make sure to clear any leading unaligned bits. */
-		bits[start / BITMAP_ELEMENT] &=
+		bitmap->bits[start / BITMAP_ELEMENT] &=
 		    (1 << (BITMAP_ELEMENT - lub)) - 1;
 	}
 	
@@ -268,40 +196,14 @@ static void bitmap_clear_range_internal(uint8_t *bits, size_t start,
 	
 	for (i = 0; i < amb / BITMAP_ELEMENT; i++) {
 		/* The middle bits can be cleared byte by byte. */
-		bits[aligned_start / BITMAP_ELEMENT + i] = ALL_ZEROES;
+		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] =
+		    ALL_ZEROES;
 	}
 	
 	if (tab) {
 		/* Make sure to clear any trailing aligned bits. */
-		bits[aligned_start / BITMAP_ELEMENT + i] &= ~((1 << tab) - 1);
-	}
-}
-
-/** Clear range of bits.
- *
- * @param bitmap Bitmap structure.
- * @param start  Starting bit.
- * @param count  Number of bits to clear.
- *
- */
-void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
-{
-	ASSERT(start + count <= bitmap->elements);
-	
-	bitmap_clear_range_internal(bitmap->bits, start, count);
-	
-	if (bitmap->block_size > 0) {
-		size_t aligned_start = start / bitmap->block_size;
-		
-		size_t aligned_end = (start + count) / bitmap->block_size;
-		
-		if (((start + count) % bitmap->block_size) != 0)
-			aligned_end++;
-		
-		size_t aligned_size = aligned_end - aligned_start;
-		
-		bitmap_clear_range_internal(bitmap->blocks, aligned_start,
-		    aligned_size);
+		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] &=
+		    ~((1 << tab) - 1);
 	}
 }
 
@@ -366,7 +268,7 @@ int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
 	if (count == 0)
 		return false;
 	
-	size_t bytes = bitmap_bytes(bitmap->elements);
+	size_t bytes = bitmap_size(bitmap->elements);
 	
 	for (size_t byte = 0; byte < bytes; byte++) {
 		/* Skip if the current byte has all bits set */
