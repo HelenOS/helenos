@@ -76,21 +76,20 @@ static int ehci_dev_add(ddf_dev_t *device)
 
 	assert(device);
 
-	uintptr_t reg_base = 0;
-	size_t reg_size = 0;
+	addr_range_t reg_range;
 	int irq = 0;
 
-	int rc = get_my_registers(device, &reg_base, &reg_size, &irq);
+	int rc = get_my_registers(device, &reg_range, &irq);
 	if (rc != EOK) {
 		usb_log_error("Failed to get memory addresses for %" PRIun
 		    ": %s.\n", ddf_dev_get_handle(device), str_error(rc));
 		goto error;
 	}
 
-	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
-	    reg_base, reg_size, irq);
+	usb_log_info("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(reg_range), RNGSZ(reg_range), irq);
 
-	rc = disable_legacy(device, reg_base, reg_size);
+	rc = disable_legacy(device, &reg_range);
 	if (rc != EOK) {
 		usb_log_error("Failed to disable legacy USB: %s.\n",
 		    str_error(rc));

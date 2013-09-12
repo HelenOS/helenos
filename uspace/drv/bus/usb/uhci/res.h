@@ -36,8 +36,9 @@
 #define DRV_UHCI_PCI_H
 
 #include <ddf/driver.h>
+#include <device/hw_res_parsed.h>
 
-int get_my_registers(ddf_dev_t *, uintptr_t *, size_t *, int *);
+int get_my_registers(ddf_dev_t *, addr_range_t *, int *);
 int enable_interrupts(ddf_dev_t *);
 int disable_legacy(ddf_dev_t *);
 

@@ -83,15 +83,17 @@ static int ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
 		return EINVAL;
 	}
 
-	ata_res->cmd = hw_res.io_ranges.ranges[0].address;
-	ata_res->ctl = hw_res.io_ranges.ranges[1].address;
+	addr_range_t *cmd_rng = &hw_res.io_ranges.ranges[0];
+	addr_range_t *ctl_rng = &hw_res.io_ranges.ranges[1];
+	ata_res->cmd = RNGABS(*cmd_rng);
+	ata_res->ctl = RNGABS(*ctl_rng);
 
-	if (hw_res.io_ranges.ranges[0].size < sizeof(ata_ctl_t)) {
+	if (RNGSZ(*ctl_rng) < sizeof(ata_ctl_t)) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	if (hw_res.io_ranges.ranges[1].size < sizeof(ata_cmd_t)) {
+	if (RNGSZ(*cmd_rng) < sizeof(ata_cmd_t)) {
 		rc = EINVAL;
 		goto error;
 	}

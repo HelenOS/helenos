@@ -80,6 +80,7 @@ static hw_resource_t pci_conf_regs[] = {
 		.res.io_range = {
 			.address = 0xCF8,
 			.size = 4,
+			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
 	},
@@ -88,6 +89,7 @@ static hw_resource_t pci_conf_regs[] = {
 		.res.io_range = {
 			.address = 0xCFC,
 			.size = 4,
+			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
 	}

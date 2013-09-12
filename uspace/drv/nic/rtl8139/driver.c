@@ -1086,7 +1086,7 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
 	rtl8139->irq = hw_resources->irqs.irqs[0];
 	ddf_msg(LVL_DEBUG, "%s device: irq 0x%x assigned", ddf_dev_get_name(dev), rtl8139->irq);
 
-	rtl8139->io_addr = IOADDR_TO_PTR(hw_resources->io_ranges.ranges[0].address);
+	rtl8139->io_addr = IOADDR_TO_PTR(RNGABS(hw_resources->io_ranges.ranges[0]));
 	if (hw_resources->io_ranges.ranges[0].size < RTL8139_IO_SIZE) {
 		ddf_msg(LVL_ERROR, "i/o range assigned to the device "
 		    "%s is too small.", ddf_dev_get_name(dev));

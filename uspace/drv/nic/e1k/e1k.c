@@ -1940,7 +1940,7 @@ static int e1000_fill_resource_info(ddf_dev_t *dev,
 	
 	e1000->irq = hw_resources->irqs.irqs[0];
 	e1000->reg_base_phys =
-	    MEMADDR_TO_PTR(hw_resources->mem_ranges.ranges[0].address);
+	    MEMADDR_TO_PTR(RNGABS(hw_resources->mem_ranges.ranges[0]));
 	
 	return EOK;
 }

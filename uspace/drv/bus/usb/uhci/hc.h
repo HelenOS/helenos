@@ -36,6 +36,7 @@
 #define DRV_UHCI_HC_H
 
 #include <ddf/interrupt.h>
+#include <device/hw_res_parsed.h>
 #include <fibril.h>
 #include <usb/host/hcd.h>
 
@@ -119,11 +120,12 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_register_irq_handler(ddf_dev_t *, uintptr_t, size_t, int, interrupt_handler_t);
-int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t, uintptr_t,
-    size_t);
+int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
+    interrupt_handler_t);
+int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
+    addr_range_t *);
 void hc_interrupt(hc_t *instance, uint16_t status);
-int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
+int hc_init(hc_t *instance, addr_range_t *regs, bool interupts);
 
 /** Safely dispose host controller internal structures
  *
@@ -131,6 +133,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
  */
 static inline void hc_fini(hc_t *instance) {} /* TODO: implement*/
 #endif
+
 /**
  * @}
  */
