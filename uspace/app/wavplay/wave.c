@@ -80,10 +80,12 @@ int wav_parse_header(const void *hdata, const void **data, size_t *data_size,
 		return EINVAL;
 	}
 
-	if (uint16_t_le2host(header->subchunk1_size) != PCM_SUBCHUNK1_SIZE) {
+	if (uint32_t_le2host(header->subchunk1_size) != PCM_SUBCHUNK1_SIZE) {
+		//TODO subchunk 1 sizes other than 16 are allowed ( 18, 40)
+		//http://www-mmsp.ece.mcgill.ca/documents/AudioFormats/WAVE/WAVE.html
 		if (error)
 			*error = "invalid subchunk1 size";
-		return EINVAL;
+//		return EINVAL;
 	}
 
 	if (uint16_t_le2host(header->audio_format) != FORMAT_LINEAR_PCM) {
@@ -93,12 +95,16 @@ int wav_parse_header(const void *hdata, const void **data, size_t *data_size,
 	}
 
 	if (str_lcmp(header->subchunk2_id, SUBCHUNK2_ID, 4) != 0) {
+		//TODO basedd on subchunk1 size, we might be reading wrong
+		//offset
 		if (error)
 			*error = "invalid subchunk2 id";
-		return EINVAL;
+//		return EINVAL;
 	}
 
 
+	//TODO data and data_size are incorrect in extended wav formats
+	//pcm params are OK
 	if (data)
 		*data = header->data;
 	if (data_size)

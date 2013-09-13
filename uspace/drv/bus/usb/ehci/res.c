@@ -70,13 +70,12 @@
 /** Get address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
- * @param[out] mem_reg_address Base address of the memory range.
- * @param[out] mem_reg_size Size of the memory range.
+ * @param[out] mem_regs_p Pointer to the register range.
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
 int get_my_registers(ddf_dev_t *dev,
-    uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
+    addr_range_t *mem_regs_p, int *irq_no)
 {
 	assert(dev);
 	
@@ -98,10 +97,8 @@ int get_my_registers(ddf_dev_t *dev,
 		return ENOENT;
 	}
 
-	if (mem_reg_address)
-		*mem_reg_address = hw_res.mem_ranges.ranges[0].address;
-	if (mem_reg_size)
-		*mem_reg_size = hw_res.mem_ranges.ranges[0].size;
+	if (mem_regs_p)
+		*mem_regs_p = hw_res.mem_ranges.ranges[0];
 	if (irq_no)
 		*irq_no = hw_res.irqs.irqs[0];
 
@@ -266,17 +263,17 @@ error:
 	return rc;
 }
 
-int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
+int disable_legacy(ddf_dev_t *device, addr_range_t *reg_range)
 {
 	assert(device);
 	usb_log_debug("Disabling EHCI legacy support.\n");
 
 	/* Map EHCI registers */
 	void *regs = NULL;
-	int rc = pio_enable((void*)reg_base, reg_size, &regs);
+	int rc = pio_enable_range(reg_range, &regs);
 	if (rc != EOK) {
 		usb_log_error("Failed to map registers %p: %s.\n",
-		    (void *) reg_base, str_error(rc));
+		    RNGABSPTR(*reg_range), str_error(rc));
 		return rc;
 	}
 

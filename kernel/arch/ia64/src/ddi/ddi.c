@@ -59,11 +59,11 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		if (task->arch.iomap == NULL)
 			return ENOMEM;
 		
-		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES, 0), 0);
+		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES), 0);
 		if (store == NULL)
 			return ENOMEM;
 		
-		bitmap_initialize(task->arch.iomap, IO_MEMMAP_PAGES, 0, store);
+		bitmap_initialize(task->arch.iomap, IO_MEMMAP_PAGES, store);
 		bitmap_clear_range(task->arch.iomap, 0, IO_MEMMAP_PAGES);
 	}
 	

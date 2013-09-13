@@ -60,8 +60,6 @@
 #include <config.h>
 #include <str.h>
 
-#define BITMAP_BLOCK_SIZE  128
-
 zones_t zones;
 
 /*
@@ -235,9 +233,93 @@ NO_TRACE static bool zone_can_alloc(zone_t *zone, size_t count,
 	 * The function bitmap_allocate_range() does not modify
 	 * the bitmap if the last argument is NULL.
 	 */
+	
 	return ((zone->flags & ZONE_AVAILABLE) &&
 	    bitmap_allocate_range(&zone->bitmap, count, zone->base,
-	    constraint, NULL));
+	    FRAME_LOWPRIO, constraint, NULL));
+}
+
+/** Find a zone that can allocate specified number of frames
+ *
+ * This function searches among all zones. Assume interrupts are
+ * disabled and zones lock is locked.
+ *
+ * @param count      Number of free frames we are trying to find.
+ * @param flags      Required flags of the zone.
+ * @param constraint Indication of bits that cannot be set in the
+ *                   physical frame number of the first allocated frame.
+ * @param hint       Preferred zone.
+ *
+ * @return Zone that can allocate specified number of frames.
+ * @return -1 if no zone can satisfy the request.
+ *
+ */
+NO_TRACE static size_t find_free_zone_all(size_t count, zone_flags_t flags,
+    pfn_t constraint, size_t hint)
+{
+	for (size_t pos = 0; pos < zones.count; pos++) {
+		size_t i = (pos + hint) % zones.count;
+		
+		/* Check whether the zone meets the search criteria. */
+		if (!ZONE_FLAGS_MATCH(zones.info[i].flags, flags))
+			continue;
+		
+		/* Check if the zone can satisfy the allocation request. */
+		if (zone_can_alloc(&zones.info[i], count, constraint))
+			return i;
+	}
+	
+	return (size_t) -1;
+}
+
+/** Check if frame range  priority memory
+ *
+ * @param pfn   Starting frame.
+ * @param count Number of frames.
+ *
+ * @return True if the range contains only priority memory.
+ *
+ */
+NO_TRACE static bool is_high_priority(pfn_t base, size_t count)
+{
+	return (base + count <= FRAME_LOWPRIO);
+}
+
+/** Find a zone that can allocate specified number of frames
+ *
+ * This function ignores zones that contain only high-priority
+ * memory. Assume interrupts are disabled and zones lock is locked.
+ *
+ * @param count      Number of free frames we are trying to find.
+ * @param flags      Required flags of the zone.
+ * @param constraint Indication of bits that cannot be set in the
+ *                   physical frame number of the first allocated frame.
+ * @param hint       Preferred zone.
+ *
+ * @return Zone that can allocate specified number of frames.
+ * @return -1 if no low-priority zone can satisfy the request.
+ *
+ */
+NO_TRACE static size_t find_free_zone_lowprio(size_t count, zone_flags_t flags,
+    pfn_t constraint, size_t hint)
+{	
+	for (size_t pos = 0; pos < zones.count; pos++) {
+		size_t i = (pos + hint) % zones.count;
+		
+		/* Skip zones containing only high-priority memory. */
+		if (is_high_priority(zones.info[i].base, zones.info[i].count))
+			continue;
+		
+		/* Check whether the zone meets the search criteria. */
+		if (!ZONE_FLAGS_MATCH(zones.info[i].flags, flags))
+			continue;
+		
+		/* Check if the zone can satisfy the allocation request. */
+		if (zone_can_alloc(&zones.info[i], count, constraint))
+			return i;
+	}
+	
+	return (size_t) -1;
 }
 
 /** Find a zone that can allocate specified number of frames
@@ -249,7 +331,10 @@ NO_TRACE static bool zone_can_alloc(zone_t *zone, size_t count,
  * @param flags      Required flags of the target zone.
  * @param constraint Indication of bits that cannot be set in the
  *                   physical frame number of the first allocated frame.
- * @param hind       Preferred zone.
+ * @param hint       Preferred zone.
+ *
+ * @return Zone that can allocate specified number of frames.
+ * @return -1 if no zone can satisfy the request.
  *
  */
 NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
@@ -258,26 +343,17 @@ NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
 	if (hint >= zones.count)
 		hint = 0;
 	
-	size_t i = hint;
-	do {
-		/*
-		 * Check whether the zone meets the search criteria.
-		 */
-		if (ZONE_FLAGS_MATCH(zones.info[i].flags, flags)) {
-			/*
-			 * Check if the zone can satisfy the allocation request.
-			 */
-			if (zone_can_alloc(&zones.info[i], count, constraint))
-				return i;
-		}
-		
-		i++;
-		if (i >= zones.count)
-			i = 0;
-		
-	} while (i != hint);
+	/*
+	 * Prefer zones with low-priority memory over
+	 * zones with high-priority memory.
+	 */
 	
-	return (size_t) -1;
+	size_t znum = find_free_zone_lowprio(count, flags, constraint, hint);
+	if (znum != (size_t) -1)
+		return znum;
+	
+	/* Take all zones into account */
+	return find_free_zone_all(count, flags, constraint, hint);
 }
 
 /******************/
@@ -313,7 +389,7 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
 	/* Allocate frames from zone */
 	size_t index;
 	int avail = bitmap_allocate_range(&zone->bitmap, count, zone->base,
-	    constraint, &index);
+	    FRAME_LOWPRIO, constraint, &index);
 	
 	ASSERT(avail);
 	
@@ -366,8 +442,7 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 /** Mark frame in zone unavailable to allocation. */
 NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 {
-	if (!(zone->flags & ZONE_AVAILABLE))
-		return;
+	ASSERT(zone->flags & ZONE_AVAILABLE);
 	
 	frame_t *frame = zone_get_frame(zone, index);
 	if (frame->refcount > 0)
@@ -409,8 +484,7 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 	zones.info[z1].busy_count += zones.info[z2].busy_count;
 	
 	bitmap_initialize(&zones.info[z1].bitmap, zones.info[z1].count,
-	    BITMAP_BLOCK_SIZE, confdata +
-	    (sizeof(frame_t) * zones.info[z1].count));
+	    confdata + (sizeof(frame_t) * zones.info[z1].count));
 	bitmap_clear_range(&zones.info[z1].bitmap, 0, zones.info[z1].count);
 	
 	zones.info[z1].frames = (frame_t *) confdata;
@@ -577,8 +651,8 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
 		 * frame_t structures in the configuration space).
 		 */
 		
-		bitmap_initialize(&zone->bitmap, count, BITMAP_BLOCK_SIZE,
-		    confdata + (sizeof(frame_t) * count));
+		bitmap_initialize(&zone->bitmap, count, confdata +
+		    (sizeof(frame_t) * count));
 		bitmap_clear_range(&zone->bitmap, 0, count);
 		
 		/*
@@ -590,7 +664,7 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
 		for (size_t i = 0; i < count; i++)
 			frame_initialize(&zone->frames[i]);
 	} else {
-		bitmap_initialize(&zone->bitmap, 0, 0, NULL);
+		bitmap_initialize(&zone->bitmap, 0, NULL);
 		zone->frames = NULL;
 	}
 }
@@ -604,8 +678,7 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
  */
 size_t zone_conf_size(size_t count)
 {
-	return (count * sizeof(frame_t) +
-	    bitmap_size(count, BITMAP_BLOCK_SIZE));
+	return (count * sizeof(frame_t) + bitmap_size(count));
 }
 
 /** Allocate external configuration frames from low memory. */
@@ -886,13 +959,6 @@ uintptr_t frame_alloc(size_t count, frame_flags_t flags, uintptr_t constraint)
 	return frame_alloc_generic(count, flags, constraint, NULL);
 }
 
-uintptr_t frame_alloc_noreserve(size_t count, frame_flags_t flags,
-    uintptr_t constraint)
-{
-	return frame_alloc_generic(count, flags | FRAME_NO_RESERVE, constraint,
-	    NULL);
-}
-
 /** Free frames of physical memory.
  *
  * Find respective frame structures for supplied physical frames.
@@ -1140,7 +1206,7 @@ void zones_print_list(void)
 	
 	/*
 	 * Because printing may require allocation of memory, we may not hold
-	 * the frame allocator locks when printing zone statistics.  Therefore,
+	 * the frame allocator locks when printing zone statistics. Therefore,
 	 * we simply gather the statistics under the protection of the locks and
 	 * print the statistics when the locks have been released.
 	 *
@@ -1148,6 +1214,10 @@ void zones_print_list(void)
 	 * we may end up with inaccurate output (e.g. a zone being skipped from
 	 * the listing).
 	 */
+	
+	size_t free_lowmem = 0;
+	size_t free_highmem = 0;
+	size_t free_highprio = 0;
 	
 	for (size_t i = 0;; i++) {
 		irq_spinlock_lock(&zones.lock, true);
@@ -1157,15 +1227,45 @@ void zones_print_list(void)
 			break;
 		}
 		
-		uintptr_t base = PFN2ADDR(zones.info[i].base);
+		pfn_t fbase = zones.info[i].base;
+		uintptr_t base = PFN2ADDR(fbase);
 		size_t count = zones.info[i].count;
 		zone_flags_t flags = zones.info[i].flags;
 		size_t free_count = zones.info[i].free_count;
 		size_t busy_count = zones.info[i].busy_count;
 		
-		irq_spinlock_unlock(&zones.lock, true);
-		
 		bool available = ((flags & ZONE_AVAILABLE) != 0);
+		bool lowmem = ((flags & ZONE_LOWMEM) != 0);
+		bool highmem = ((flags & ZONE_HIGHMEM) != 0);
+		bool highprio = is_high_priority(fbase, count);
+		
+		if (available) {
+			if (lowmem)
+				free_lowmem += free_count;
+			
+			if (highmem)
+				free_highmem += free_count;
+			
+			if (highprio) {
+				free_highprio += free_count;
+			} else {
+				/*
+				 * Walk all frames of the zone and examine
+				 * all high priority memory to get accurate
+				 * statistics.
+				 */
+				
+				for (size_t index = 0; index < count; index++) {
+					if (is_high_priority(fbase + index, 0)) {
+						if (!bitmap_get(&zones.info[i].bitmap, index))
+							free_highprio++;
+					} else
+						break;
+				}
+			}
+		}
+		
+		irq_spinlock_unlock(&zones.lock, true);
 		
 		printf("%-4zu", i);
 		
@@ -1190,6 +1290,26 @@ void zones_print_list(void)
 		
 		printf("\n");
 	}
+	
+	printf("\n");
+	
+	uint64_t size;
+	const char *size_suffix;
+	
+	bin_order_suffix(FRAMES2SIZE(free_lowmem), &size, &size_suffix,
+	    false);
+	printf("Available low memory:    %zu frames (%" PRIu64 " %s)\n",
+	    free_lowmem, size, size_suffix);
+	
+	bin_order_suffix(FRAMES2SIZE(free_highmem), &size, &size_suffix,
+	    false);
+	printf("Available high memory:   %zu frames (%" PRIu64 " %s)\n",
+	    free_highmem, size, size_suffix);
+	
+	bin_order_suffix(FRAMES2SIZE(free_highprio), &size, &size_suffix,
+	    false);
+	printf("Available high priority: %zu frames (%" PRIu64 " %s)\n",
+	    free_highprio, size, size_suffix);
 }
 
 /** Prints zone details.
@@ -1215,25 +1335,60 @@ void zone_print_one(size_t num)
 		return;
 	}
 	
-	uintptr_t base = PFN2ADDR(zones.info[znum].base);
+	size_t free_lowmem = 0;
+	size_t free_highmem = 0;
+	size_t free_highprio = 0;
+	
+	pfn_t fbase = zones.info[znum].base;
+	uintptr_t base = PFN2ADDR(fbase);
 	zone_flags_t flags = zones.info[znum].flags;
 	size_t count = zones.info[znum].count;
 	size_t free_count = zones.info[znum].free_count;
 	size_t busy_count = zones.info[znum].busy_count;
 	
-	irq_spinlock_unlock(&zones.lock, true);
-	
 	bool available = ((flags & ZONE_AVAILABLE) != 0);
+	bool lowmem = ((flags & ZONE_LOWMEM) != 0);
+	bool highmem = ((flags & ZONE_HIGHMEM) != 0);
+	bool highprio = is_high_priority(fbase, count);
+	
+	if (available) {
+		if (lowmem)
+			free_lowmem = free_count;
+		
+		if (highmem)
+			free_highmem = free_count;
+		
+		if (highprio) {
+			free_highprio = free_count;
+		} else {
+			/*
+			 * Walk all frames of the zone and examine
+			 * all high priority memory to get accurate
+			 * statistics.
+			 */
+			
+			for (size_t index = 0; index < count; index++) {
+				if (is_high_priority(fbase + index, 0)) {
+					if (!bitmap_get(&zones.info[znum].bitmap, index))
+						free_highprio++;
+				} else
+					break;
+			}
+		}
+	}
+	
+	irq_spinlock_unlock(&zones.lock, true);
 	
 	uint64_t size;
 	const char *size_suffix;
+	
 	bin_order_suffix(FRAMES2SIZE(count), &size, &size_suffix, false);
 	
-	printf("Zone number:       %zu\n", znum);
-	printf("Zone base address: %p\n", (void *) base);
-	printf("Zone size:         %zu frames (%" PRIu64 " %s)\n", count,
+	printf("Zone number:             %zu\n", znum);
+	printf("Zone base address:       %p\n", (void *) base);
+	printf("Zone size:               %zu frames (%" PRIu64 " %s)\n", count,
 	    size, size_suffix);
-	printf("Zone flags:        %c%c%c%c%c\n",
+	printf("Zone flags:              %c%c%c%c%c\n",
 	    available ? 'A' : '-',
 	    (flags & ZONE_RESERVED) ? 'R' : '-',
 	    (flags & ZONE_FIRMWARE) ? 'F' : '-',
@@ -1243,12 +1398,28 @@ void zone_print_one(size_t num)
 	if (available) {
 		bin_order_suffix(FRAMES2SIZE(busy_count), &size, &size_suffix,
 		    false);
-		printf("Allocated space:   %zu frames (%" PRIu64 " %s)\n",
+		printf("Allocated space:         %zu frames (%" PRIu64 " %s)\n",
 		    busy_count, size, size_suffix);
+		
 		bin_order_suffix(FRAMES2SIZE(free_count), &size, &size_suffix,
 		    false);
-		printf("Available space:   %zu frames (%" PRIu64 " %s)\n",
+		printf("Available space:         %zu frames (%" PRIu64 " %s)\n",
 		    free_count, size, size_suffix);
+		
+		bin_order_suffix(FRAMES2SIZE(free_lowmem), &size, &size_suffix,
+		    false);
+		printf("Available low memory:    %zu frames (%" PRIu64 " %s)\n",
+		    free_lowmem, size, size_suffix);
+		
+		bin_order_suffix(FRAMES2SIZE(free_highmem), &size, &size_suffix,
+		    false);
+		printf("Available high memory:   %zu frames (%" PRIu64 " %s)\n",
+		    free_highmem, size, size_suffix);
+		
+		bin_order_suffix(FRAMES2SIZE(free_highprio), &size, &size_suffix,
+		    false);
+		printf("Available high priority: %zu frames (%" PRIu64 " %s)\n",
+		    free_highprio, size, size_suffix);
 	}
 }
 

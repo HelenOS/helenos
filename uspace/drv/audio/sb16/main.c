@@ -48,9 +48,8 @@
 #define NAME "sb16"
 
 static int sb_add_device(ddf_dev_t *device);
-static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
-    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
-    int *irq, int *dma8, int *dma16);
+static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
+    addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16);
 static int sb_enable_interrupts(ddf_dev_t *device);
 
 static driver_ops_t sb_driver_ops = {
@@ -102,18 +101,19 @@ static int sb_add_device(ddf_dev_t *device)
 		goto error;
 	}
 
-	uintptr_t sb_regs = 0, mpu_regs = 0;
-	size_t sb_regs_size = 0, mpu_regs_size = 0;
+	addr_range_t sb_regs;
+	addr_range_t *p_sb_regs = &sb_regs;
+	addr_range_t mpu_regs;
+	addr_range_t *p_mpu_regs = &mpu_regs;
 	int irq = 0, dma8 = 0, dma16 = 0;
 
-	rc = sb_get_res(device, &sb_regs, &sb_regs_size, &mpu_regs,
-	    &mpu_regs_size, &irq, &dma8, &dma16);
+	rc = sb_get_res(device, &p_sb_regs, &p_mpu_regs, &irq, &dma8, &dma16);
 	if (rc != EOK) {
 		ddf_log_error("Failed to get resources: %s.", str_error(rc));
 		goto error;
 	}
 
-	sb16_irq_code((void*)sb_regs, dma8, dma16, irq_cmds, irq_ranges);
+	sb16_irq_code(p_sb_regs, dma8, dma16, irq_cmds, irq_ranges);
 
 	irq_code_t irq_code = {
 		.cmdcount = irq_cmd_count,
@@ -138,15 +138,14 @@ static int sb_add_device(ddf_dev_t *device)
 		goto error;
 	}
 
-	rc = sb16_init_sb16(soft_state, (void*)sb_regs, sb_regs_size, device,
-	    dma8, dma16);
+	rc = sb16_init_sb16(soft_state, p_sb_regs, device, dma8, dma16);
 	if (rc != EOK) {
 		ddf_log_error("Failed to init sb16 driver: %s.",
 		    str_error(rc));
 		goto error;
 	}
 
-	rc = sb16_init_mpu(soft_state, (void*)mpu_regs, mpu_regs_size);
+	rc = sb16_init_mpu(soft_state, p_mpu_regs);
 	if (rc == EOK) {
 		ddf_fun_t *mpu_fun =
 		    ddf_fun_create(device, fun_exposed, "midi");
@@ -172,9 +171,8 @@ error:
 	return rc;
 }
 
-static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
-    size_t *sb_regs_size, uintptr_t *mpu_regs, size_t *mpu_regs_size,
-    int *irq, int *dma8, int *dma16)
+static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
+    addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16)
 {
 	assert(device);
 
@@ -224,25 +222,20 @@ static int sb_get_res(ddf_dev_t *device, uintptr_t *sb_regs,
 		}
 	}
 
-
 	if (hw_res.io_ranges.count == 1) {
-		if (sb_regs)
-			*sb_regs = hw_res.io_ranges.ranges[0].address;
-		if (sb_regs_size)
-			*sb_regs_size = hw_res.io_ranges.ranges[0].size;
+		if (pp_sb_regs && *pp_sb_regs)
+			**pp_sb_regs = hw_res.io_ranges.ranges[0];
+		if (pp_mpu_regs)
+			*pp_mpu_regs = NULL;
 	} else {
 		const int sb =
 		    (hw_res.io_ranges.ranges[0].size >= sizeof(sb16_regs_t))
-		        ? 1 : 0;
+		        ? 0 : 1;
 		const int mpu = 1 - sb;
-		if (sb_regs)
-			*sb_regs = hw_res.io_ranges.ranges[sb].address;
-		if (sb_regs_size)
-			*sb_regs_size = hw_res.io_ranges.ranges[sb].size;
-		if (mpu_regs)
-			*sb_regs = hw_res.io_ranges.ranges[mpu].address;
-		if (mpu_regs_size)
-			*sb_regs_size = hw_res.io_ranges.ranges[mpu].size;
+		if (pp_sb_regs && *pp_sb_regs)
+			**pp_sb_regs = hw_res.io_ranges.ranges[sb];
+		if (pp_mpu_regs && *pp_mpu_regs)
+			**pp_mpu_regs = hw_res.io_ranges.ranges[mpu];
 	}
 
 	return EOK;
@@ -260,6 +253,7 @@ int sb_enable_interrupts(ddf_dev_t *device)
 
 	return enabled ? EOK : EIO;
 }
+
 /**
  * @}
  */

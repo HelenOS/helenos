@@ -69,6 +69,7 @@ DIRS = \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \
+	app/netspeed \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
@@ -89,6 +90,7 @@ DIRS = \
 	srv/logger \
 	srv/devman \
 	srv/loader \
+	srv/net/dhcp \
 	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
@@ -120,6 +122,7 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	srv/hid/rfb \
 	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \

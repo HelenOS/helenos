@@ -41,6 +41,9 @@
 #include <abi/ddi/arg.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
+#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
+#include <device/pio_window.h>
 #include <libc.h>
 #include <task.h>
 #include <as.h>
@@ -133,6 +136,58 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 	};
 	
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
+}
+
+/** Enable PIO for specified address range.
+ *
+ * @param range I/O range to be enable.
+ * @param virt  Virtual address for application's PIO operations. 
+ */
+int pio_enable_range(addr_range_t *range, void **virt)
+{
+	return pio_enable(RNGABSPTR(*range), RNGSZ(*range), virt);
+}
+
+/** Enable PIO for specified HW resource wrt. to the PIO window.
+ *
+ * @param win      PIO window. May be NULL if the resources are known to be
+ *                 absolute.
+ * @param res      Resources specifying the I/O range wrt. to the PIO window.
+ * @param virt     Virtual address for application's PIO operations.
+ *
+ * @return EOK on success.
+ * @return Negative error code on failure.
+ *
+ */
+int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
+{
+	uintptr_t addr;
+	size_t size;
+
+	switch (res->type) {
+	case IO_RANGE:
+		addr = res->res.io_range.address;
+		if (res->res.io_range.relative) {
+			if (!win)
+				return EINVAL;
+			addr += win->io.base;
+		}
+		size = res->res.io_range.size;
+		break;
+	case MEM_RANGE:
+		addr = res->res.mem_range.address;
+		if (res->res.mem_range.relative) {
+			if (!win)
+				return EINVAL;
+			addr += win->mem.base;
+		}
+		size = res->res.mem_range.size;
+		break;
+	default:
+		return EINVAL;
+	}
+
+	return pio_enable((void *) addr, size, virt);	
 }
 
 /** Enable PIO for specified I/O range.

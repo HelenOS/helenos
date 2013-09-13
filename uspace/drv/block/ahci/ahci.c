@@ -1156,27 +1156,27 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	/* Map AHCI registers. */
 	ahci->memregs = NULL;
 	
-	physmem_map((uintptr_t) (hw_res_parsed.mem_ranges.ranges[0].address),
+	physmem_map(RNGABS(hw_res_parsed.mem_ranges.ranges[0]),
 	    AHCI_MEMREGS_PAGES_COUNT, AS_AREA_READ | AS_AREA_WRITE,
 	    (void **) &ahci->memregs);
 	if (ahci->memregs == NULL)
 		goto error_map_registers;
 	
 	/* Register interrupt handler */
-	ahci_ranges[0].base = (size_t) hw_res_parsed.mem_ranges.ranges[0].address;
+	ahci_ranges[0].base = RNGABS(hw_res_parsed.mem_ranges.ranges[0]);
 	ahci_ranges[0].size = sizeof(ahci_memregs_t);
 	
 	for (unsigned int port = 0; port < AHCI_MAX_PORTS; port++) {
 		size_t base = port * 7;
 		
 		ahci_cmds[base].addr =
-		    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
+		    ((uint32_t *) RNGABSPTR(hw_res_parsed.mem_ranges.ranges[0])) +
 		    AHCI_PORTS_REGISTERS_OFFSET + port * AHCI_PORT_REGISTERS_SIZE +
 		    AHCI_PORT_IS_REGISTER_OFFSET;
 		ahci_cmds[base + 2].addr = ahci_cmds[base].addr;
 		
 		ahci_cmds[base + 3].addr =
-		    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
+		    ((uint32_t *) RNGABSPTR(hw_res_parsed.mem_ranges.ranges[0])) +
 		    AHCI_GHC_IS_REGISTER_OFFSET;
 		ahci_cmds[base + 4].addr = ahci_cmds[base + 3].addr;
 	}

@@ -201,6 +201,13 @@ static int ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 
+	rc = nic_broadcast_set_mode(nic->sess, NIC_BROADCAST_ACCEPTED);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error enabling "
+		    "reception of broadcast frames on '%s'.", nic->svc_name);
+		goto error;
+	}
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service,");
 
 	return EOK;

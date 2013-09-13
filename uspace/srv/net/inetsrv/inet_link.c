@@ -234,20 +234,12 @@ static int inet_link_open(service_id_t sid)
 
 	inet_addrobj_t *addr = NULL;
 	
+	/* XXX FIXME Cannot rely on loopback being the first IP link service!! */
 	if (first_link) {
 		addr = inet_addrobj_new();
 		
 		inet_naddr(&addr->naddr, 127, 0, 0, 1, 24);
 		first_link = false;
-	} else {
-		/*
-		 * FIXME
-		 * Setting static IPv4 address for testing purposes:
-		 * 10.0.2.15/24
-		 */
-		addr = inet_addrobj_new();
-		
-		inet_naddr(&addr->naddr, 10, 0, 2, 15, 24);
 	}
 	
 	if (addr != NULL) {

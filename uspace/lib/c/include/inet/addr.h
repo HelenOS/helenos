@@ -67,6 +67,7 @@ typedef struct {
 	uint8_t prefix;
 } inet_naddr_t;
 
+extern const addr32_t addr32_broadcast_all_hosts;
 extern const addr48_t addr48_broadcast;
 
 extern void addr48(const addr48_t, addr48_t);

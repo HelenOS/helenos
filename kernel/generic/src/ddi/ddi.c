@@ -328,7 +328,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	ASSERT(TASK);
 	
 	size_t frames = SIZE2FRAMES(size);
-	*phys = frame_alloc_noreserve(frames, 0, constraint);
+	*phys = frame_alloc(frames, FRAME_NO_RESERVE, constraint);
 	if (*phys == 0)
 		return ENOMEM;
 	

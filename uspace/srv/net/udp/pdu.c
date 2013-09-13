@@ -214,6 +214,7 @@ int udp_pdu_encode(udp_sockpair_t *sp, udp_msg_t *msg, udp_pdu_t **pdu)
 	if (npdu == NULL)
 		return ENOMEM;
 
+	npdu->iplink = sp->iplink;
 	npdu->src = sp->local.addr;
 	npdu->dest = sp->foreign.addr;
 

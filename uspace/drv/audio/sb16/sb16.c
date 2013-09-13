@@ -76,32 +76,35 @@ size_t sb16_irq_code_size(void)
 	return ARRAY_SIZE(irq_cmds);
 }
 
-void sb16_irq_code(void *regs, int dma8, int dma16, irq_cmd_t cmds[], irq_pio_range_t ranges[])
+void sb16_irq_code(addr_range_t *regs, int dma8, int dma16, irq_cmd_t cmds[],
+    irq_pio_range_t ranges[])
 {
 	assert(regs);
 	assert(dma8 > 0 && dma8 < 4);
-	sb16_regs_t *registers = regs;
+
+	sb16_regs_t *registers = RNGABSPTR(*regs);
 	memcpy(cmds, irq_cmds, sizeof(irq_cmds));
-	cmds[0].addr = (void*)&registers->dsp_read_status;
-	ranges[0].base = (uintptr_t)registers;
+	cmds[0].addr = (void *) &registers->dsp_read_status;
+	ranges[0].base = (uintptr_t) registers;
 	ranges[0].size = sizeof(*registers);
 	if (dma16 > 4 && dma16 < 8) {
 		/* Valid dma16 */
-		cmds[1].addr = (void*)&registers->dma16_ack;
+		cmds[1].addr = (void *) &registers->dma16_ack;
 	} else {
 		cmds[1].cmd = CMD_ACCEPT;
 	}
 }
 
-int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
-    ddf_dev_t *dev, int dma8, int dma16)
+int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
+    int dma16)
 {
 	assert(sb);
+
 	/* Setup registers */
-	int ret = pio_enable(regs, size, (void**)&sb->regs);
+	int ret = pio_enable_range(regs, (void **) &sb->regs);
 	if (ret != EOK)
 		return ret;
-	ddf_log_debug("PIO registers at %p accessible.", sb->regs);
+	ddf_log_note("PIO registers at %p accessible.", sb->regs);
 
 	/* Initialize DSP */
 	ddf_fun_t *dsp_fun = ddf_fun_create(dev, fun_exposed, "pcm");
@@ -186,7 +189,7 @@ int sb16_init_sb16(sb16_t *sb, void *regs, size_t size,
 	return EOK;
 }
 
-int sb16_init_mpu(sb16_t *sb, void *regs, size_t size)
+int sb16_init_mpu(sb16_t *sb, addr_range_t *regs)
 {
 	sb->mpu_regs = NULL;
 	return ENOTSUP;

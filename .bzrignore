@@ -264,3 +264,11 @@ uspace/lib/c/arch/ia32/_link.ld
 kernel/arch/arm32/_link.ld
 uspace/app/corecfg/corecfg
 uspace/dist/app/corecfg
+uspace/dist/srv/rfb
+uspace/srv/hid/rfb/rfb
+uspace/dist/srv/dhcp
+uspace/srv/net/dhcp/dhcp
+uspace/app/netspeed/netspeed
+uspace/dist/app/netspeed
+uspace/app/df/df
+uspace/dist/app/df
