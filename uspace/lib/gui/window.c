@@ -65,9 +65,9 @@ static sysarg_t header_min_width = 40;
 static sysarg_t close_width = 20;
 
 static pixel_t border_color = PIXEL(255, 0, 0, 0);
-static pixel_t header_bg_focus_color = PIXEL(255, 25, 25, 112);
+static pixel_t header_bg_focus_color = PIXEL(255, 88, 106, 196);
 static pixel_t header_fg_focus_color = PIXEL(255, 255, 255, 255);
-static pixel_t header_bg_unfocus_color = PIXEL(255, 70, 130, 180);
+static pixel_t header_bg_unfocus_color = PIXEL(255, 12, 57, 92);
 static pixel_t header_fg_unfocus_color = PIXEL(255, 255, 255, 255);
 
 static void paint_internal(widget_t *w)

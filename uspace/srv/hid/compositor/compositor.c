@@ -2175,7 +2175,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	coord_origin = UINT32_MAX / 4;
 	
 	/* Color of the viewport background. Must be opaque. */
-	bg_color = PIXEL(255, 75, 70, 75);
+	bg_color = PIXEL(255, 69, 51, 103);
 	
 	/* Register compositor server. */
 	async_set_client_connection(client_connection);
