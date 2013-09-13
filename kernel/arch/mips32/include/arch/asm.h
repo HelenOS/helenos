@@ -41,14 +41,7 @@
 
 NO_TRACE static inline void cpu_sleep(void)
 {
-	/*
-	 * Unfortunatelly most of the simulators do not support
-	 *
-	 * asm volatile (
-	 *     "wait"
-	 * );
-	 *
-	 */
+	asm volatile ("wait");
 }
 
 /** Return base address of current stack
