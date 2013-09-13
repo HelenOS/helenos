@@ -1200,7 +1200,7 @@ mfs_free_block_count(service_id_t service_id, uint64_t *count)
 
 	*count = sbi->nfree_zones;
 
-	return EOK;
+	return rc;
 }
 
 vfs_out_ops_t mfs_ops = {
