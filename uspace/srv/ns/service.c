@@ -105,9 +105,7 @@ int service_init(void)
 void process_pending_conn(void)
 {
 loop:
-	list_foreach(pending_conn, cur) {
-		pending_conn_t *pr = list_get_instance(cur, pending_conn_t, link);
-		
+	list_foreach(pending_conn, link, pending_conn_t, pr) {
 		ht_link_t *link = hash_table_find(&service_hash_table, &pr->service);
 		if (!link)
 			continue;
@@ -116,7 +114,7 @@ loop:
 		(void) ipc_forward_fast(pr->callid, hs->phone, pr->arg2,
 		    pr->arg3, 0, IPC_FF_NONE);
 		
-		list_remove(cur);
+		list_remove(&pr->link);
 		free(pr);
 		goto loop;
 	}

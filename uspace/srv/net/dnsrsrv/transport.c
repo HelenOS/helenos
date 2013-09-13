@@ -157,9 +157,7 @@ static trans_req_t *treq_match_resp(dns_message_t *resp)
 {
 	assert(fibril_mutex_is_locked(&treq_lock));
 
-	list_foreach(treq_list, link) {
-		trans_req_t *treq = list_get_instance(link, trans_req_t, lreq);
-
+	list_foreach(treq_list, lreq, trans_req_t, treq) {
 		if (treq->req->id == resp->id) {
 			/* Match */
 			return treq;

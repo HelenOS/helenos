@@ -111,6 +111,8 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
 	$(USPACE_PATH)/srv/hid/remcons/remcons \
 	$(USPACE_PATH)/srv/hid/isdv4_tablet/isdv4_tablet \
+	$(USPACE_PATH)/srv/hid/rfb/rfb \
+	$(USPACE_PATH)/srv/net/dhcp/dhcp \
 	$(USPACE_PATH)/srv/net/dnsrsrv/dnsrsrv \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
@@ -164,6 +166,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/bithenge/bithenge \
 	$(USPACE_PATH)/app/blkdump/blkdump \
 	$(USPACE_PATH)/app/bnchmark/bnchmark \
+	$(USPACE_PATH)/app/corecfg/corecfg \
 	$(USPACE_PATH)/app/devctl/devctl \
 	$(USPACE_PATH)/app/dltest/dltest \
 	$(USPACE_PATH)/app/dltest2/dltest2 \
@@ -193,6 +196,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
 	$(USPACE_PATH)/app/nettest3/nettest3 \
 	$(USPACE_PATH)/app/netecho/netecho \
+	$(USPACE_PATH)/app/netspeed/netspeed \
 	$(USPACE_PATH)/app/nterm/nterm \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/ping6/ping6 \
@@ -204,7 +208,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv \
 	$(USPACE_PATH)/app/date/date \
-	$(USPACE_PATH)/app/vdemo/vdemo
+	$(USPACE_PATH)/app/vdemo/vdemo \
+	$(USPACE_PATH)/app/df/df
 
 ifeq ($(CONFIG_PCC),y)
 RD_APPS_NON_ESSENTIAL += \

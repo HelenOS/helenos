@@ -773,9 +773,7 @@ void ipc_init(void)
 
 static void ipc_print_call_list(list_t *list)
 {
-	list_foreach(*list, cur) {
-		call_t *call = list_get_instance(cur, call_t, ab_link);
-		
+	list_foreach(*list, ab_link, call_t, call) {
 #ifdef __32_BITS__
 		printf("%10p ", call);
 #endif

@@ -39,6 +39,8 @@
 #define FRAME_WIDTH  12  /* 4KB frames */
 #define FRAME_SIZE   (1 << FRAME_WIDTH)
 
+#define FRAME_LOWPRIO  0
+
 #ifndef __ASM__
 
 #include <typedefs.h>

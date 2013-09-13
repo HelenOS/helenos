@@ -117,11 +117,10 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node;
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		unsigned int i;
 		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			size_t count = (size_t) node->value[i];
@@ -294,14 +293,14 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * be unreserved when the area is destroyed so we need to use
 		 * the normal unreserving frame_free().
 		 */
-		frame_free(frame);
+		frame_free(frame, 1);
 	} else {
 		/*
 		 * The reserve will be given back when the area is destroyed or
 		 * resized, so use the frame_free_noreserve() which does not
 		 * manipulate the reserve or it would be given back twice.
 		 */
-		frame_free_noreserve(frame);
+		frame_free_noreserve(frame, 1);
 	}
 }
 

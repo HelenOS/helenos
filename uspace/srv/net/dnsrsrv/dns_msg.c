@@ -509,8 +509,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 
 	size = sizeof(dns_header_t);
 
-	list_foreach(msg->question, link) {
-		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
+	list_foreach(msg->question, msg, dns_question_t, q) {
 		rc = dns_question_encode(q, NULL, 0, &q_size);
 		if (rc != EOK)
 			return rc;
@@ -525,8 +524,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	memcpy(data, &hdr, sizeof(dns_header_t));
 	di = sizeof(dns_header_t);
 
-	list_foreach(msg->question, link) {
-		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
+	list_foreach(msg->question, msg, dns_question_t, q) {
 		rc = dns_question_encode(q, data + di, size - di, &q_size);
 		if (rc != EOK) {
 			assert(rc == ENOMEM || rc == EINVAL);

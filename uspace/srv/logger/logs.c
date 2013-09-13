@@ -43,8 +43,7 @@ static LIST_INITIALIZE(log_list);
 
 static logger_log_t *find_log_by_name_and_parent_no_list_lock(const char *name, logger_log_t *parent)
 {
-	list_foreach(log_list, it) {
-		logger_log_t *log = list_get_instance(it, logger_log_t, link);
+	list_foreach(log_list, link, logger_log_t, log) {
 		if ((parent == log->parent) && (str_cmp(log->name, name) == 0))
 			return log;
 	}
@@ -147,8 +146,7 @@ logger_log_t *find_log_by_name_and_lock(const char *name)
 	logger_log_t *result = NULL;
 
 	fibril_mutex_lock(&log_list_guard);
-	list_foreach(log_list, it) {
-		logger_log_t *log = list_get_instance(it, logger_log_t, link);
+	list_foreach(log_list, link, logger_log_t, log) {
 		if (str_cmp(log->full_name, name) == 0) {
 			fibril_mutex_lock(&log->guard);
 			result = log;
@@ -165,8 +163,7 @@ logger_log_t *find_log_by_id_and_lock(sysarg_t id)
 	logger_log_t *result = NULL;
 
 	fibril_mutex_lock(&log_list_guard);
-	list_foreach(log_list, it) {
-		logger_log_t *log = list_get_instance(it, logger_log_t, link);
+	list_foreach(log_list, link, logger_log_t, log) {
 		if ((sysarg_t) log == id) {
 			fibril_mutex_lock(&log->guard);
 			result = log;

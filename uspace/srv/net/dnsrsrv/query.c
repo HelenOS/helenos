@@ -98,9 +98,7 @@ static int dns_name_query(const char *name, dns_qtype_t qtype,
 		return rc;
 	}
 	
-	list_foreach(amsg->answer, link) {
-		dns_rr_t *rr = list_get_instance(link, dns_rr_t, msg);
-		
+	list_foreach(amsg->answer, msg, dns_rr_t, rr) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - '%s' %u/%u, dsize %zu",
 		    rr->name, rr->rtype, rr->rclass, rr->rdata_size);
 		

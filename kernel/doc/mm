@@ -70,7 +70,7 @@ spaces.
 2.1 General allocator
 
 'malloc' function accepts flags as a second argument. The flags are directly
-passed to the underlying frame_alloc function. 
+passed to the underlying frame_alloc function.
 
 1) If the flags parameter contains FRAME_ATOMIC, the allocator will not sleep.
    The allocator CAN return NULL, when memory is not directly available.

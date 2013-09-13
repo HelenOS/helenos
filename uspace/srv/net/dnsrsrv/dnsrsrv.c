@@ -59,7 +59,7 @@ static int dnsr_init(void)
 
 	rc = transport_init();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing tarnsport.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing transport.");
 		return EIO;
 	}
 

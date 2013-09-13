@@ -64,9 +64,11 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
+	generic/corecfg.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
+	generic/device/pio_window.c \
 	generic/device/char_dev.c \
 	generic/device/clock_dev.c \
 	generic/device/battery_dev.c \

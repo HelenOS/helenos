@@ -57,6 +57,16 @@
 #define mfsdebug(...)
 #endif
 
+#define MFS_BMAP_START_BLOCK(sbi, bid) \
+    ((bid) == BMAP_ZONE ? 2 + (sbi)->ibmap_blocks : 2)
+
+#define MFS_BMAP_SIZE_BITS(sbi, bid) \
+    ((bid) == BMAP_ZONE ? (sbi)->nzones - (sbi)->firstdatazone - 1 : \
+    (sbi)->ninodes - 1)
+
+#define MFS_BMAP_SIZE_BLOCKS(sbi, bid) \
+    ((bid) == BMAP_ZONE ? (sbi)->zbmap_blocks : (sbi)->ibmap_blocks)
+
 typedef uint32_t bitchunk_t;
 
 typedef enum {
@@ -199,6 +209,13 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone);
 
 extern int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone);
+
+extern int
+mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones);
+
+extern int
+mfs_count_free_inodes(struct mfs_instance *inst, uint32_t *inodes);
+
 
 /* mfs_utils.c */
 extern uint16_t

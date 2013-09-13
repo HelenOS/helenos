@@ -99,7 +99,7 @@ typedef struct rtl8139_data {
 	/** The memory allocated for the transmittion buffers
 	 *  Each buffer takes 2kB
 	 */
-	void *tx_buff_phys;
+	uintptr_t tx_buff_phys;
 	void *tx_buff_virt;
 
 	/** Virtual adresses of the Tx buffers */
@@ -116,7 +116,7 @@ typedef struct rtl8139_data {
 	size_t tx_used;
 
 	/** Buffer for receiving frames */
-	void *rx_buff_phys;
+	uintptr_t rx_buff_phys;
 	void *rx_buff_virt;
 
 	/** Receiver control register data */

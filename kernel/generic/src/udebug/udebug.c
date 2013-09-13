@@ -405,9 +405,7 @@ int udebug_task_cleanup(struct task *task)
 	LOG("Task %" PRIu64, task->taskid);
 	
 	/* Finish debugging of all userspace threads */
-	list_foreach(task->threads, cur) {
-		thread_t *thread = list_get_instance(cur, thread_t, th_link);
-		
+	list_foreach(task->threads, th_link, thread_t, thread) {
 		mutex_lock(&thread->udebug.lock);
 		
 		/* Only process userspace threads. */

@@ -59,7 +59,7 @@ static const char *bbxm_get_platform_name(void);
 #define BBXM_MEMORY_SIZE	0x20000000	/* 512 MB */
 
 static struct beagleboard {
-	amdm37x_irc_regs_t *irc_addr;
+	omap_irc_regs_t *irc_addr;
 	omap_uart_t uart;
 	amdm37x_gpt_t timer;
 } beagleboard;
@@ -102,7 +102,7 @@ static void bbxm_init(void)
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
 	    PAGE_NOT_CACHEABLE);
 	ASSERT(beagleboard.irc_addr);
-	amdm37x_irc_init(beagleboard.irc_addr);
+	omap_irc_init(beagleboard.irc_addr);
 
 	/* Initialize timer. Use timer1, because it is in WKUP power domain
 	 * (always on) and has special capabilities for precise 1ms ticks */
@@ -122,7 +122,7 @@ static void bbxm_timer_irq_start(void)
 	irq_register(&timer_irq);
 
 	/* Enable timer interrupt */
-	amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_GPT1_IRQ);
+	omap_irc_enable(beagleboard.irc_addr, AMDM37x_GPT1_IRQ);
 
 	/* Start timer here */
 	amdm37x_gpt_timer_ticks_start(&beagleboard.timer);
@@ -146,7 +146,7 @@ static void bbxm_get_memory_extents(uintptr_t *start, size_t *size)
 
 static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 {
-	const unsigned inum = amdm37x_irc_inum_get(beagleboard.irc_addr);
+	const unsigned inum = omap_irc_inum_get(beagleboard.irc_addr);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -160,7 +160,7 @@ static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 	}
 	/** amdm37x manual ch. 12.5.2 (p. 2428) places irc ack at the end
 	 * of ISR. DO this to avoid strange behavior. */
-	amdm37x_irc_irq_ack(beagleboard.irc_addr);
+	omap_irc_irq_ack(beagleboard.irc_addr);
 }
 
 static void bbxm_frame_init(void)
@@ -187,7 +187,7 @@ static void bbxm_input_init(void)
 		indev_t *sink = stdin_wire();
 		indev_t *srln = srln_wire(srln_instance, sink);
 		omap_uart_input_wire(&beagleboard.uart, srln);
-		amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
+		omap_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
 	}
 #endif
 }

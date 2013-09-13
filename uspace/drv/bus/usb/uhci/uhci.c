@@ -183,18 +183,17 @@ int device_setup_uhci(ddf_dev_t *device)
 	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
 	ddf_fun_data_implant(instance->rh_fun, &instance->rh);
 
-	uintptr_t reg_base = 0;
-	size_t reg_size = 0;
+	addr_range_t regs;
 	int irq = 0;
 
-	rc = get_my_registers(device, &reg_base, &reg_size, &irq);
+	rc = get_my_registers(device, &regs, &irq);
 	if (rc != EOK) {
 		usb_log_error("Failed to get I/O addresses for %" PRIun ": %s.\n",
 		    ddf_dev_get_handle(device), str_error(rc));
 		goto error;
 	}
-	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
-	    (void *) reg_base, reg_size, irq);
+	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
 	rc = disable_legacy(device);
 	if (rc != EOK) {
@@ -203,7 +202,7 @@ int device_setup_uhci(ddf_dev_t *device)
 		goto error;
 	}
 
-	rc = hc_register_irq_handler(device, reg_base, reg_size, irq, irq_handler);
+	rc = hc_register_irq_handler(device, &regs, irq, irq_handler);
 	if (rc != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",
 		    str_error(rc));
@@ -222,7 +221,7 @@ int device_setup_uhci(ddf_dev_t *device)
 		interrupts = true;
 	}
 
-	rc = hc_init(&instance->hc, (void*)reg_base, reg_size, interrupts);
+	rc = hc_init(&instance->hc, &regs, interrupts);
 	if (rc != EOK) {
 		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(rc));
 		goto error;

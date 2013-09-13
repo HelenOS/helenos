@@ -57,16 +57,6 @@ typedef struct {
 	fibril_mutex_t guard;
 } hound_ctx_t;
 
-/**
- * List instance helper.
- * @param l link
- * @return pointer to a hound context structure, NULL on failure.
- */
-static inline hound_ctx_t *hound_ctx_from_link(link_t *l)
-{
-	return l ? list_get_instance(l, hound_ctx_t, link) : NULL;
-}
-
 typedef struct hound_ctx_stream hound_ctx_stream_t;
 
 

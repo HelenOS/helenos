@@ -139,8 +139,7 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 	assert(dest);
 
 	pcm_format_silence(dest, size, &sink->format);
-	list_foreach(sink->connections, it) {
-		connection_t * conn = connection_from_sink_list(it);
+	list_foreach(sink->connections, sink_link, connection_t, conn) {
 		const int ret = connection_add_source_data(
 		    conn, dest, size, sink->format);
 		if (ret != EOK) {

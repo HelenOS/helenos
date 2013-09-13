@@ -81,10 +81,7 @@ static inetping_client_t *inetping_client_find(uint16_t ident)
 {
 	fibril_mutex_lock(&client_list_lock);
 	
-	list_foreach(client_list, link) {
-		inetping_client_t *client = list_get_instance(link,
-		    inetping_client_t, client_list);
-		
+	list_foreach(client_list, client_list, inetping_client_t, client) {
 		if (client->ident == ident) {
 			fibril_mutex_unlock(&client_list_lock);
 			return client;

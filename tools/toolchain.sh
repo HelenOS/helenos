@@ -253,6 +253,33 @@ create_dir() {
 	check_error $? "Unable to create ${DIR}."
 }
 
+check_dirs() {
+	OUTSIDE="$1"
+	BASE="$2"
+	ORIGINAL="`pwd`"
+	
+	cd "${OUTSIDE}"
+	check_error $? "Unable to change directory to ${OUTSIDE}."
+	ABS_OUTSIDE="`pwd`"
+	
+	cd "${BASE}"
+	check_error $? "Unable to change directory to ${BASE}."
+	ABS_BASE="`pwd`"
+	
+	cd "${ORIGINAL}"
+	check_error $? "Unable to change directory to ${ORIGINAL}."
+	
+	BASE_LEN="${#ABS_BASE}"
+	OUTSIDE_TRIM="${ABS_OUTSIDE:0:${BASE_LEN}}"
+	
+	if [ "${OUTSIDE_TRIM}" == "${ABS_BASE}" ] ; then
+		echo
+		echo "CROSS_PREFIX cannot reside within the working directory."
+		
+		exit 5
+	fi
+}
+
 unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
@@ -305,6 +332,8 @@ build_target() {
 	
 	create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
+	
+	check_dirs "${PREFIX}" "${WORKDIR}"
 	
 	echo ">>> Unpacking tarballs"
 	cd "${WORKDIR}"

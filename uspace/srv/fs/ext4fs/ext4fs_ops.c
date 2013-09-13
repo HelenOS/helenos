@@ -100,6 +100,9 @@ static unsigned ext4fs_lnkcnt_get(fs_node_t *);
 static bool ext4fs_is_directory(fs_node_t *);
 static bool ext4fs_is_file(fs_node_t *node);
 static service_id_t ext4fs_service_get(fs_node_t *node);
+static int ext4fs_size_block(service_id_t, uint32_t *);
+static int ext4fs_total_block_count(service_id_t, uint64_t *);
+static int ext4fs_free_block_count(service_id_t, uint64_t *);
 
 /* Static variables */
 
@@ -193,10 +196,7 @@ int ext4fs_instance_get(service_id_t service_id, ext4fs_instance_t **inst)
 		return EINVAL;
 	}
 	
-	list_foreach(instance_list, link) {
-		ext4fs_instance_t *tmp =
-		    list_get_instance(link, ext4fs_instance_t, link);
-		
+	list_foreach(instance_list, link, ext4fs_instance_t, tmp) {
 		if (tmp->service_id == service_id) {
 			*inst = tmp;
 			fibril_mutex_unlock(&instance_list_mutex);
@@ -837,6 +837,53 @@ service_id_t ext4fs_service_get(fs_node_t *fn)
 	return enode->instance->service_id;
 }
 
+int ext4fs_size_block(service_id_t service_id, uint32_t *size)
+{
+	ext4fs_instance_t *inst;
+	int rc = ext4fs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == inst)
+		return ENOENT;
+
+	ext4_superblock_t *sb = inst->filesystem->superblock;
+	*size = ext4_superblock_get_block_size(sb);
+
+	return EOK;
+}
+
+int ext4fs_total_block_count(service_id_t service_id, uint64_t *count)
+{
+	ext4fs_instance_t *inst;
+	int rc = ext4fs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == inst)
+		return ENOENT;
+
+	ext4_superblock_t *sb = inst->filesystem->superblock;
+	*count = ext4_superblock_get_blocks_count(sb);
+
+	return EOK;
+}
+
+int ext4fs_free_block_count(service_id_t service_id, uint64_t *count)
+{
+	ext4fs_instance_t *inst;
+	int rc = ext4fs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+	if (NULL == inst)
+		return ENOENT;
+
+	ext4_superblock_t *sb = inst->filesystem->superblock;
+	*count = ext4_superblock_get_free_blocks_count(sb);
+
+	return EOK;
+}
+
 /*
  * libfs operations.
  */
@@ -856,7 +903,10 @@ libfs_ops_t ext4fs_libfs_ops = {
 	.lnkcnt_get = ext4fs_lnkcnt_get,
 	.is_directory = ext4fs_is_directory,
 	.is_file = ext4fs_is_file,
-	.service_get = ext4fs_service_get
+	.service_get = ext4fs_service_get,
+	.size_block = ext4fs_size_block,
+	.total_block_count = ext4fs_total_block_count,
+	.free_block_count = ext4fs_free_block_count
 };
 
 /*

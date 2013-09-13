@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -35,21 +35,13 @@
 #ifndef KERN_sparc64_sun4v_FRAME_H_
 #define KERN_sparc64_sun4v_FRAME_H_
 
-#define MMU_FRAME_WIDTH		13	/* 8K */
-#define MMU_FRAME_SIZE		(1 << MMU_FRAME_WIDTH)
+#define MMU_FRAME_WIDTH  13  /* 8K */
+#define MMU_FRAME_SIZE   (1 << MMU_FRAME_WIDTH)
 
-#define FRAME_WIDTH		13
-#define FRAME_SIZE		(1 << FRAME_WIDTH)
+#define FRAME_WIDTH  13
+#define FRAME_SIZE   (1 << FRAME_WIDTH)
 
-#ifndef __ASM__
-
-#include <typedefs.h>
-
-extern void frame_low_arch_init(void);
-extern void frame_high_arch_init(void);
-#define physmem_print()
-
-#endif
+#define FRAME_LOWPRIO  0
 
 #endif
 

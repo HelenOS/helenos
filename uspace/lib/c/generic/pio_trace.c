@@ -94,10 +94,7 @@ void pio_trace_log(const volatile void *r, uint32_t val, bool write)
 {
 	pio_regions_t *regions = get_regions();
 	fibril_rwlock_read_lock(&regions->guard);
-	list_foreach(regions->list, it) {
-		assert(it);
-		region_t *reg = region_instance(it);
-		assert(reg);
+	list_foreach(regions->list, link, region_t, reg) {
 		if ((r >= reg->base) && (r < reg->base + reg->size)) {
 			if (reg->log)
 				reg->log(r, val, reg->base,
@@ -130,12 +127,10 @@ void pio_trace_disable(void *r)
 
 	fibril_rwlock_write_lock(&regions->guard);
 	list_foreach_safe(regions->list, it, next) {
-		assert(it);
 		region_t *reg = region_instance(it);
-		assert(reg);
 		if (r >= reg->base && (r < reg->base + reg->size)) {
-				list_remove(&reg->link);
-				region_destroy(reg);
+			list_remove(&reg->link);
+			region_destroy(reg);
 		}
 	}
 	fibril_rwlock_write_unlock(&regions->guard);

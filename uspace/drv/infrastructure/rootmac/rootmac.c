@@ -53,6 +53,7 @@ static hw_resource_t pci_conf_regs[] = {
 		.res.io_range = {
 			.address = 0xfec00000,
 			.size = 4,
+			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
 	},
@@ -61,6 +62,7 @@ static hw_resource_t pci_conf_regs[] = {
 		.res.io_range = {
 			.address = 0xfee00000,
 			.size = 4,
+			.relative = false,
 			.endianness = LITTLE_ENDIAN
 		}
 	}

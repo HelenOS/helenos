@@ -104,7 +104,6 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 {
 	char *ipp;
 	size_t sz;
-	tag_t *tag;
 	char *newp;
 
 	sz = str_size(str);
@@ -127,9 +126,7 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 
 	/* Adjust tags. */
 
-	list_foreach(sh->tags, link) {
-		tag = list_get_instance(link, tag_t, link);
-
+	list_foreach(sh->tags, link, tag_t, tag) {
 		if (tag->b_off > pos->b_off)
 			tag->b_off += sz;
 		else if (tag->b_off == pos->b_off && dir == dir_before)
@@ -153,7 +150,6 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 {
 	char *spp;
 	size_t sz;
-	tag_t *tag;
 	char *newp;
 	size_t shrink_size;
 
@@ -164,9 +160,7 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 	sh->text_size -= sz;
 
 	/* Adjust tags. */
-	list_foreach(sh->tags, link) {
-		tag = list_get_instance(link, tag_t, link);
-
+	list_foreach(sh->tags, link, tag_t, tag) {
 		if (tag->b_off >= epos->b_off)
 			tag->b_off -= sz;
 		else if (tag->b_off >= spos->b_off)
