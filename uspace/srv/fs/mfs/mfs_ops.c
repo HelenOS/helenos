@@ -1180,13 +1180,10 @@ mfs_free_block_count(service_id_t service_id, uint64_t *count)
 	if (rc != EOK)
 		return rc;
 
-	if (NULL == inst)
-		return ENOENT;
-
-	mfs_count_free_zones(inst, &block_free);
+	rc = mfs_count_free_zones(inst, &block_free);
 	*count = block_free;
 
-	return EOK;
+	return rc;
 }
 
 vfs_out_ops_t mfs_ops = {

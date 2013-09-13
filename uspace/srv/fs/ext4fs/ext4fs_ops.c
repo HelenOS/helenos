@@ -875,8 +875,6 @@ int ext4fs_free_block_count(service_id_t service_id, uint64_t *count)
 	int rc = ext4fs_instance_get(service_id, &inst);
 	if (rc != EOK)
 		return rc;
-	if (NULL == inst)
-		return ENOENT;
 
 	ext4_superblock_t *sb = inst->filesystem->superblock;
 	*count = ext4_superblock_get_free_blocks_count(sb);
