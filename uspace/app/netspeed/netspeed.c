@@ -92,8 +92,7 @@ static int server(sock_type_t sock_type, unsigned port, void *buf, size_t bufsiz
 			closesocket(listen_sd);
 			return conn_sd;
 		}
-	}
-	else {
+	} else {
 		conn_sd = listen_sd;
 	}
 	
@@ -150,8 +149,7 @@ static int client(sock_type_t sock_type, const char *address, unsigned port,
 	for (unsigned long i = 0; i < count; i++) {
 		if (sock_type == SOCK_STREAM) {
 			rc = send(conn_sd, buf, bufsize, 0);
-		}
-		else {
+		} else {
 			rc = sendto(conn_sd, buf, bufsize, 0,
 			    (struct sockaddr *) &addr, sizeof(addr));
 		}
@@ -181,11 +179,9 @@ int main(int argc, char *argv[])
 	sock_type_t sock_type;
 	if (str_cmp(argv[1], "tcp") == 0) {
 		sock_type = SOCK_STREAM;
-	}
-	else if (str_cmp(argv[1], "udp") == 0) {
+	} else if (str_cmp(argv[1], "udp") == 0) {
 		sock_type = SOCK_DGRAM;
-	}
-	else {
+	} else {
 		fprintf(stderr, "Invalid socket type\n");
 		syntax_print();
 		return 1;
@@ -266,8 +262,7 @@ int main(int argc, char *argv[])
 		rc = server(sock_type, port, buf, bufsize);
 		if (rc != EOK)
 			fprintf(stderr, "Server failed: %s\n", str_error(rc));
-	}
-	else {
+	} else {
 		rc = client(sock_type, address, port, count, buf, bufsize);
 		if (rc != EOK)
 			fprintf(stderr, "Client failed: %s\n", str_error(rc));
