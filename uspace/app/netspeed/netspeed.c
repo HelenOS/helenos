@@ -62,9 +62,10 @@ static int server(sock_type_t sock_type, unsigned port, void *buf, size_t bufsiz
 	}
 
 	int listen_sd = socket(PF_INET, sock_type, 0);
-	if (listen_sd < 0)
+	if (listen_sd < 0) {
 		fprintf(stderr, "socket failed: %s\n", str_error(rc));
 		return rc;
+	}
 	
 	rc = bind(listen_sd, (struct sockaddr *) &addr, sizeof(addr));
 	if (rc != EOK) {
