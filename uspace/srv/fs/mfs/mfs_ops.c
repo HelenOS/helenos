@@ -215,6 +215,8 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	sbi->magic = magic;
 	sbi->isearch = 0;
 	sbi->zsearch = 0;
+	sbi->nfree_zones_valid = false;
+	sbi->nfree_zones = 0;
 
 	if (version == MFS_VERSION_V3) {
 		sbi->ninodes = conv32(native, sb3->s_ninodes);
@@ -1180,11 +1182,23 @@ mfs_free_block_count(service_id_t service_id, uint64_t *count)
 	if (rc != EOK)
 		return rc;
 
-	if (NULL == inst)
-		return ENOENT;
+	struct mfs_sb_info *sbi = inst->sbi;
 
-	mfs_count_free_zones(inst, &block_free);
-	*count = block_free;
+	if (!sbi->nfree_zones_valid) {
+		/* The cached number of free zones is not valid,
+		 * we need to scan the bitmap to retrieve the
+		 * current value.
+		 */
+
+		rc = mfs_count_free_zones(inst, &block_free);
+		if (rc != EOK)
+			return rc;
+
+		sbi->nfree_zones = block_free;
+		sbi->nfree_zones_valid = true;
+	}
+
+	*count = sbi->nfree_zones;
 
 	return EOK;
 }

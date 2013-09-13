@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "../../vfs/vfs.h"
 
 #define NAME		"mfs"
@@ -104,6 +105,9 @@ struct mfs_sb_info {
 	bool native;
 	unsigned isearch;
 	unsigned zsearch;
+
+	bool nfree_zones_valid;
+	unsigned nfree_zones;
 };
 
 /* Generic MinixFS inode */

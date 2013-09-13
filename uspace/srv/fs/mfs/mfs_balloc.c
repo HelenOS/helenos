@@ -87,6 +87,13 @@ int
 mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
 {
 	int r = mfs_alloc_bit(inst, zone, BMAP_ZONE);
+	if (r != EOK)
+		return r;
+
+	/* Update the cached number of free zones */
+	struct mfs_sb_info *sbi = inst->sbi;
+	if (sbi->nfree_zones_valid)
+		sbi->nfree_zones--;
 
 	*zone += inst->sbi->firstdatazone - 1;
 	return r;
@@ -102,9 +109,20 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone)
 int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone)
 {
+	int r;
+
 	zone -= inst->sbi->firstdatazone - 1;
 
-	return mfs_free_bit(inst, zone, BMAP_ZONE);
+	r = mfs_free_bit(inst, zone, BMAP_ZONE);
+	if (r != EOK)
+		return r;
+
+	/* Update the cached number of free zones */
+	struct mfs_sb_info *sbi = inst->sbi;
+	if (sbi->nfree_zones_valid)
+		sbi->nfree_zones++;
+
+	return r;
 }
 
 /** Count the number of free zones
