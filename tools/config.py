@@ -362,8 +362,9 @@ def preprocess_config(config, rules):
 
 def create_output(mkname, mcname, config, rules):
 	"Create output configuration"
-	
-	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+	timestamp_unix = int(time.time())
+	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp_unix))
 	
 	sys.stderr.write("Fetching current revision identifier ... ")
 	
@@ -422,6 +423,10 @@ def create_output(mkname, mcname, config, rules):
 		outmk.write('REVISION = %s\n' % revision)
 		outmc.write('#define REVISION %s\n' % revision)
 		defs += ' "-DREVISION=%s"' % revision
+	
+	outmk.write('TIMESTAMP_UNIX = %d\n' % timestamp_unix)
+	outmc.write('#define TIMESTAMP_UNIX %d\n' % timestamp_unix)
+	defs += ' "-DTIMESTAMP_UNIX=%d"\n' % timestamp_unix
 	
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
