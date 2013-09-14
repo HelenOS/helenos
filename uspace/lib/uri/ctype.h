@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,77 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup uri
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <str.h>
-#include <io/printf_core.h>
+#ifndef URI_CTYPE_H_
+#define URI_CTYPE_H_
 
-static int asprintf_str_write(const char *str, size_t count, void *unused)
+static inline bool is_unreserved(char c)
 {
-	return str_nlength(str, count);
+	return isalpha(c) || isdigit(c) ||
+	    c == '-' || c == '.' || c == '_' || c == '~';
 }
 
-static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
+static inline bool is_hexdig(char c)
 {
-	return wstr_nlength(str, count);
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+	    (c >= 'A' && c <= 'F');
 }
 
-int vprintf_size(const char *fmt, va_list args)
+static inline bool is_subdelim(char c)
 {
-	printf_spec_t ps = {
-		asprintf_str_write,
-		asprintf_wstr_write,
-		NULL
-	};
-	
-	return printf_core(fmt, &ps, args);
-}
-
-int printf_size(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	int ret = vprintf_size(fmt, args);
-	va_end(args);
-	
-	return ret;
-}
-
-/** Allocate and print to string.
- *
- * @param strp Address of the pointer where to store the address of
- *             the newly allocated string.
- * @fmt        Format string.
- *
- * @return Number of characters printed or a negative error code.
- *
- */
-int asprintf(char **strp, const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	int ret = vprintf_size(fmt, args);
-	va_end(args);
-	
-	if (ret > 0) {
-		*strp = malloc(STR_BOUNDS(ret) + 1);
-		if (*strp == NULL)
-			return -1;
-		
-		va_start(args, fmt);
-		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
-		va_end(args);
+	switch (c) {
+	case '!':
+	case '$':
+	case '&':
+	case '\'':
+	case '(':
+	case ')':
+	case '*':
+	case '+':
+	case ',':
+	case ';':
+	case '=':
+		return true;
+	default:
+		return false;
 	}
-	
-	return ret;
 }
+
+static inline bool is_gendelim(char c)
+{
+	switch (c) {
+	case ':':
+	case '/':
+	case '?':
+	case '#':
+	case '[':
+	case ']':
+	case '@':
+		return true;
+	default:
+		return false;
+	}
+}
+
+static inline bool is_reserved(char c)
+{
+	return is_gendelim(c) || is_subdelim(c);
+}
+
+#endif
 
 /** @}
  */

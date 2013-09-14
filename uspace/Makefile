@@ -41,6 +41,7 @@ DIRS = \
 	app/devctl \
 	app/dnscfg \
 	app/dnsres \
+	app/download \
 	app/edit \
 	app/getterm \
 	app/init \
@@ -233,11 +234,13 @@ LIBS = \
 	lib/graph \
 	lib/gui \
 	lib/hound \
+	lib/http \
 	lib/softrend \
 	lib/draw \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
+	lib/uri \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \

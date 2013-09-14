@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,77 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup uri
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <str.h>
-#include <io/printf_core.h>
+#ifndef URI_URI_H_
+#define URI_URI_H_
 
-static int asprintf_str_write(const char *str, size_t count, void *unused)
-{
-	return str_nlength(str, count);
-}
+typedef struct {
+	char *scheme;
+	char *user_info;
+	char *user_credential;
+	char *host;
+	char *port;
+	char *path;
+	char *query;
+	char *fragment;
+} uri_t;
 
-static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
-{
-	return wstr_nlength(str, count);
-}
+extern uri_t *uri_parse(const char *);
+extern int uri_scheme_parse(const char *, const char **);
+extern bool uri_scheme_validate(const char *);
+extern int uri_percent_parse(const char *, const char **, uint8_t *);
+extern int uri_user_info_parse(const char *, const char **);
+extern bool uri_user_info_validate(const char *);
+extern int uri_port_parse(const char *, const char **);
+extern bool uri_port_validate(const char *);
+extern bool uri_validate(uri_t *);
+extern void uri_destroy(uri_t *);
 
-int vprintf_size(const char *fmt, va_list args)
-{
-	printf_spec_t ps = {
-		asprintf_str_write,
-		asprintf_wstr_write,
-		NULL
-	};
-	
-	return printf_core(fmt, &ps, args);
-}
-
-int printf_size(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	int ret = vprintf_size(fmt, args);
-	va_end(args);
-	
-	return ret;
-}
-
-/** Allocate and print to string.
- *
- * @param strp Address of the pointer where to store the address of
- *             the newly allocated string.
- * @fmt        Format string.
- *
- * @return Number of characters printed or a negative error code.
- *
- */
-int asprintf(char **strp, const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	int ret = vprintf_size(fmt, args);
-	va_end(args);
-	
-	if (ret > 0) {
-		*strp = malloc(STR_BOUNDS(ret) + 1);
-		if (*strp == NULL)
-			return -1;
-		
-		va_start(args, fmt);
-		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
-		va_end(args);
-	}
-	
-	return ret;
-}
+#endif
 
 /** @}
  */
