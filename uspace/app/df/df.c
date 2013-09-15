@@ -176,8 +176,7 @@ static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 		printf(" %14s", tmp);
 
 		/* Percentage of used blocks */
-		printf(" %4llu%%", 
-		    PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks));
+		printf(" %4u%%", perc_used);
 
 		/* Mount point */
 		printf(" %s\n", mountpoint);
