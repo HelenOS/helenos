@@ -492,5 +492,35 @@ inet_link_t *inet_link_get_by_id(sysarg_t link_id)
 	return NULL;
 }
 
+/** Get IDs of all links. */
+int inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
+{
+	sysarg_t *id_list;
+	size_t count, i;
+
+	fibril_mutex_lock(&inet_discovery_lock);
+	count = list_count(&inet_link_list);
+
+	id_list = calloc(count, sizeof(sysarg_t));
+	if (id_list == NULL) {
+		fibril_mutex_unlock(&inet_discovery_lock);
+		return ENOMEM;
+	}
+
+	i = 0;
+	list_foreach(inet_link_list, link_list, inet_link_t, ilink) {
+		id_list[i++] = ilink->svc_id;
+		log_msg(LOG_DEFAULT, LVL_NOTE, "add link to list");
+	}
+
+	fibril_mutex_unlock(&inet_discovery_lock);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "return %zu links", count);
+	*rid_list = id_list;
+	*rcount = count;
+
+	return EOK;
+}
+
 /** @}
  */

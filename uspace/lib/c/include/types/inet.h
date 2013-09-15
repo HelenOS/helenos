@@ -26,27 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef INET_LINK_H_
-#define INET_LINK_H_
+#ifndef LIBC_TYPES_INET_H_
+#define LIBC_TYPES_INET_H_
 
+#include <inet/addr.h>
+#include <ipc/loc.h>
 #include <sys/types.h>
-#include "inetsrv.h"
 
-extern int inet_link_discovery_start(void);
-extern int inet_link_send_dgram(inet_link_t *, addr32_t,
-    addr32_t, inet_dgram_t *, uint8_t, uint8_t, int);
-extern int inet_link_send_dgram6(inet_link_t *, addr48_t, inet_dgram_t *,
-    uint8_t, uint8_t, int);
-extern inet_link_t *inet_link_get_by_id(sysarg_t);
-extern int inet_link_get_id_list(sysarg_t **, size_t *);
+#define INET_TTL_MAX 255
+
+typedef struct {
+	/** Local IP link service ID (optional) */
+	service_id_t iplink;
+	inet_addr_t src;
+	inet_addr_t dest;
+	uint8_t tos;
+	void *data;
+	size_t size;
+} inet_dgram_t;
+
+typedef struct {
+	int (*recv)(inet_dgram_t *);
+} inet_ev_ops_t;
+
+typedef enum {
+	INET_DF = 1
+} inet_df_t;
 
 #endif
 

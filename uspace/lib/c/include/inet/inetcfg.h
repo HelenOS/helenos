@@ -37,34 +37,7 @@
 
 #include <inet/inet.h>
 #include <sys/types.h>
-
-/** Address object info */
-typedef struct {
-	/** Network address */
-	inet_naddr_t naddr;
-	/** Link service ID */
-	sysarg_t ilink;
-	/** Address object name */
-	char *name;
-} inet_addr_info_t;
-
-/** IP link info */
-typedef struct {
-	/** Link service name */
-	char *name;
-	/** Default MTU */
-	size_t def_mtu;
-} inet_link_info_t;
-
-/** Static route info */
-typedef struct {
-	/** Destination network address */
-	inet_naddr_t dest;
-	/** Router address */
-	inet_addr_t router;
-	/** Static route name */
-	char *name;
-} inet_sroute_info_t;
+#include <types/inetcfg.h>
 
 extern int inetcfg_init(void);
 extern int inetcfg_addr_create_static(const char *, inet_naddr_t *, sysarg_t, sysarg_t *);
