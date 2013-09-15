@@ -66,37 +66,39 @@ static driver_t ehci_driver = {
 static int ehci_dev_add(ddf_dev_t *device)
 {
 	assert(device);
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-}
 
-	uintptr_t reg_base = 0;
-	size_t reg_size = 0;
+	addr_range_t reg_range;
 	int irq = 0;
 
-	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_RETURN(ret,
-	    "Failed to get memory addresses for %" PRIun ": %s.\n",
-	    ddf_dev_get_handle(device), str_error(ret));
-	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
-	    reg_base, reg_size, irq);
+	int ret = get_my_registers(device, &reg_range, &irq);
+	if (ret != EOK) {
+		usb_log_error("Failed to get memory addresses for %" PRIun
+		    ": %s.\n", ddf_dev_get_handle(device), str_error(ret));
+		return ret;
+	}
 
-	ret = disable_legacy(device, reg_base, reg_size);
-	CHECK_RET_RETURN(ret,
-	    "Failed to disable legacy USB: %s.\n", str_error(ret));
+	usb_log_info("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(reg_range), RNGSZ(reg_range), irq);
+
+	ret = disable_legacy(device, &reg_range);
+	if (ret != EOK) {
+		usb_log_error("Failed to disable legacy USB: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
 
 	/* High Speed, no bandwidth */
-	ret = hcd_ddf_setup_hc(device, USB_SPEED_HIGH, 0, NULL);	
-	CHECK_RET_RETURN(ret,
-	    "Failed to init generci hcd driver: %s\n", str_error(ret));
+	ret = hcd_ddf_setup_hc(device, USB_SPEED_HIGH, 0, NULL);
+	if (ret != EOK) {
+		usb_log_error("Failed to init generci hcd driver: %s\n",
+		    str_error(ret));
+		return ret;
+	}
 
 	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 
 	return EOK;
-#undef CHECK_RET_RETURN
 }
 
 /** Initializes global driver structures (NONE).

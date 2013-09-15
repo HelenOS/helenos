@@ -46,30 +46,25 @@
 #include "errno.h"
 #include "str_error.h"
 
-#define FIND_BY_NAME(type) \
-do { \
-	assert(list); \
-	assert(name); \
-	list_foreach(*list, it) { \
-		audio_ ## type ## _t *dev = \
-		    audio_ ## type ## _list_instance(it); \
-		if (str_cmp(name, dev->name) == 0) { \
-			log_debug("%s with name '%s' is in the list", \
-			    #type, name); \
-			return dev; \
-		} \
-	} \
-	return NULL; \
-} while (0)
-
 /**
  * Search devices by name.
  * @param name String identifier.
  * @return Pointer to the found device, NULL on failure.
  */
-static audio_device_t * find_device_by_name(list_t *list, const char *name)
+static audio_device_t *find_device_by_name(list_t *list, const char *name)
 {
-	FIND_BY_NAME(device);
+	assert(list);
+	assert(name);
+
+	list_foreach(*list, link, audio_device_t, dev) {
+		if (str_cmp(name, dev->name) == 0) {
+			log_debug("device with name '%s' is in the list",
+			    name);
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 /**
@@ -77,9 +72,20 @@ static audio_device_t * find_device_by_name(list_t *list, const char *name)
  * @param name String identifier.
  * @return Pointer to the found source, NULL on failure.
  */
-static audio_source_t * find_source_by_name(list_t *list, const char *name)
+static audio_source_t *find_source_by_name(list_t *list, const char *name)
 {
-	FIND_BY_NAME(source);
+	assert(list);
+	assert(name);
+
+	list_foreach(*list, link, audio_source_t, dev) {
+		if (str_cmp(name, dev->name) == 0) {
+			log_debug("source with name '%s' is in the list",
+			    name);
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 /**
@@ -87,9 +93,20 @@ static audio_source_t * find_source_by_name(list_t *list, const char *name)
  * @param name String identifier.
  * @return Pointer to the found sink, NULL on failure.
  */
-static audio_sink_t * find_sink_by_name(list_t *list, const char *name)
+static audio_sink_t *find_sink_by_name(list_t *list, const char *name)
 {
-	FIND_BY_NAME(sink);
+	assert(list);
+	assert(name);
+
+	list_foreach(*list, link, audio_sink_t, dev) {
+		if (str_cmp(name, dev->name) == 0) {
+			log_debug("sink with name '%s' is in the list",
+			    name);
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 static int hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
@@ -110,8 +127,8 @@ static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
 	if (!list_empty(&sink->connections))
 		log_warning("Removing sink '%s' while still connected.", sink->name);
 	while (!list_empty(&sink->connections)) {
-		connection_t *conn =
-		    connection_from_sink_list(list_first(&sink->connections));
+		connection_t *conn = list_get_instance(
+		    list_first(&sink->connections), connection_t, sink_link);
 		list_remove(&conn->hound_link);
 		connection_destroy(conn);
 	}
@@ -127,15 +144,12 @@ static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
  */
 static void hound_remove_source_internal(hound_t *hound, audio_source_t *source)
 {
-	assert(hound);
-	assert(source);
 	log_verbose("Removing source '%s'.", source->name);
 	if (!list_empty(&source->connections))
 		log_warning("Removing source '%s' while still connected.", source->name);
 	while (!list_empty(&source->connections)) {
-		connection_t *conn =
-		    connection_from_source_list(list_first(&source->connections));
-		assert(conn);
+		connection_t *conn = list_get_instance(
+		    list_first(&source->connections), connection_t, source_link);
 		list_remove(&conn->hound_link);
 		connection_destroy(conn);
 	}
@@ -222,8 +236,7 @@ hound_ctx_t *hound_get_ctx_by_id(hound_t *hound, hound_context_id_t id)
 
 	fibril_mutex_lock(&hound->list_guard);
 	hound_ctx_t *res = NULL;
-	list_foreach(hound->contexts, it) {
-		hound_ctx_t *ctx = hound_ctx_from_link(it);
+	list_foreach(hound->contexts, link, hound_ctx_t, ctx) {
 		if (hound_ctx_get_id(ctx) == id) {
 			res = ctx;
 			break;
@@ -250,8 +263,7 @@ int hound_add_device(hound_t *hound, service_id_t id, const char *name)
 		return EINVAL;
 	}
 
-	list_foreach(hound->devices, it) {
-		audio_device_t *dev = audio_device_list_instance(it);
+	list_foreach(hound->devices, link, audio_device_t, dev) {
 		if (dev->id == id) {
 			log_debug("Device with id %zu is already present", id);
 			return EEXISTS;

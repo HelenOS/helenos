@@ -79,42 +79,37 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
  */
 int device_setup_ohci(ddf_dev_t *device)
 {
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-}
 
-	uintptr_t reg_base = 0;
-	size_t reg_size = 0;
+	addr_range_t regs;
 	int irq = 0;
 
-	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_RETURN(ret, "Failed to get register memory addresses for %"
-	    PRIun ": %s.\n", ddf_dev_get_handle(device), str_error(ret));
+	int ret = get_my_registers(device, &regs, &irq);
+	if (ret != EOK) {
+		usb_log_error("Failed to get register memory addresses "
+		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
+		    str_error(ret));
+		return ret;
+	}
 
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
-	    (void *) reg_base, reg_size, irq);
+	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
-	const size_t ranges_count = hc_irq_pio_range_count();
-	const size_t cmds_count = hc_irq_cmd_count();
-	irq_pio_range_t irq_ranges[ranges_count];
-	irq_cmd_t irq_cmds[cmds_count];
-	irq_code_t irq_code = {
-		.rangecount = ranges_count,
-		.ranges = irq_ranges,
-		.cmdcount = cmds_count,
-		.cmds = irq_cmds
-	};
+	/* Initialize generic HCD driver */
+	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+	if (ret != EOK) {
+		usb_log_error("Failedd to setup generic hcd: %s.",
+		    str_error(ret));
+		return ret;
+	}
 
-	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), reg_base, reg_size);
-	CHECK_RET_RETURN(ret, "Failed to gen IRQ code: %s.\n", str_error(ret));
-
-	/* Register handler to avoid interrupt lockup */
-	ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-	CHECK_RET_RETURN(ret,
-	    "Failed to register irq handler: %s.\n", str_error(ret));
+	ret = hc_register_irq_handler(device, &regs, irq, irq_handler);
+	if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(ret));
+		hcd_ddf_clean_hc(device);
+		return ret;
+	}
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
@@ -129,28 +124,23 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	/* Initialize generic HCD driver */
-	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-	if (ret != EOK) {
+
+	hc_t *hc_impl = malloc(sizeof(hc_t));
+	if (!hc_impl) {
+		usb_log_error("Failed to allocate driver structure.\n");
+		hcd_ddf_clean_hc(device);
 		unregister_interrupt_handler(device, irq);
 		return ret;
 	}
 
-// TODO: Undo hcd_setup_device
-#define CHECK_RET_CLEAN_RETURN(ret, message...) \
-if (ret != EOK) { \
-	unregister_interrupt_handler(device, irq); \
-	CHECK_RET_RETURN(ret, message); \
-} else (void)0
-
-	hc_t *hc_impl = malloc(sizeof(hc_t));
-	ret = hc_impl ? EOK : ENOMEM;
-	CHECK_RET_CLEAN_RETURN(ret, "Failed to allocate driver structure.\n");
-
 	/* Initialize OHCI HC */
-	ret = hc_init(hc_impl, reg_base, reg_size, interrupts);
-	CHECK_RET_CLEAN_RETURN(ret, "Failed to init hc: %s.\n", str_error(ret));
+	ret = hc_init(hc_impl, &regs, interrupts);
+	if (ret != EOK) {
+		usb_log_error("Failed to init hc: %s.\n", str_error(ret));
+		hcd_ddf_clean_hc(device);
+		unregister_interrupt_handler(device, irq);
+		return ret;
+	}
 
 	/* Connect OHCI to generic HCD */
 	hcd_set_implementation(dev_to_hcd(device), hc_impl,
@@ -158,8 +148,13 @@ if (ret != EOK) { \
 
 	/* HC should be running OK. We can add root hub */
 	ret = hcd_ddf_setup_root_hub(device);
-	CHECK_RET_CLEAN_RETURN(ret,
-	    "Failed to register OHCI root hub: %s.\n", str_error(ret));
+	if (ret != EOK) {
+		usb_log_error("Failed to registter OHCI root hub: %s.\n",
+		    str_error(ret));
+		hcd_ddf_clean_hc(device);
+		unregister_interrupt_handler(device, irq);
+		return ret;
+	}
 
 	return ret;
 }

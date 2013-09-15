@@ -90,8 +90,7 @@ static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
 	assert(fibril_mutex_is_locked(&instance->guard));
 	if (address < 0)
 		return NULL;
-	list_foreach(*get_list(instance, address), iterator) {
-		endpoint_t *ep = endpoint_get_instance(iterator);
+	list_foreach(*get_list(instance, address), link, endpoint_t, ep) {
 		if (ep_match(ep, address, endpoint, direction))
 			return ep;
 	}
@@ -383,8 +382,7 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
 	int ret = ENOENT;
 
 	fibril_mutex_lock(&instance->guard);
-	list_foreach(*get_list(instance, target.address), it) {
-		endpoint_t *ep = endpoint_get_instance(it);
+	list_foreach(*get_list(instance, target.address), link, endpoint_t, ep) {
 		if ((ep->address == target.address)
 		    && (all || ep->endpoint == target.endpoint)) {
 			endpoint_toggle_set(ep, 0);
@@ -416,10 +414,11 @@ int usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
 	const int ret = instance->devices[address].occupied ? EOK : ENOENT;
 	instance->devices[address].occupied = false;
 
-	list_foreach(*get_list(instance, address), iterator) {
-		endpoint_t *ep = endpoint_get_instance(iterator);
+	list_t *list = get_list(instance, address);
+	for (link_t *link = list_first(list); link != NULL; ) {
+		endpoint_t *ep = list_get_instance(link, endpoint_t, link);
+		link = list_next(link, list);
 		if (ep->address == address) {
-			iterator = iterator->next;
 			list_remove(&ep->link);
 			if (callback)
 				callback(ep, arg);

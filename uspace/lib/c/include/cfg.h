@@ -79,13 +79,13 @@ typedef struct {
 } cfg_file_t;
 
 #define cfg_file_foreach(file, cur) \
-	list_foreach((file)->sections, (cur))
+	list_foreach((file)->sections, link, const cfg_section_t, (cur))
 
 #define cfg_section_instance(cur) \
 	list_get_instance((cur), const cfg_section_t, link)
 
 #define cfg_section_foreach(section, cur) \
-	list_foreach((section)->entries, (cur))
+	list_foreach((section)->entries, link, const cfg_entry_t, (cur))
 
 #define cfg_entry_instance(cur) \
 	list_get_instance((cur), const cfg_entry_t, link)

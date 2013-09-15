@@ -179,8 +179,7 @@ int vhc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	int targets = 0;
 
-	list_foreach(vhc->devices, pos) {
-		vhc_virtdev_t *dev = list_get_instance(pos, vhc_virtdev_t, link);
+	list_foreach(vhc->devices, link, vhc_virtdev_t, dev) {
 		fibril_mutex_lock(&dev->guard);
 		if (dev->address == transfer->batch->ep->address) {
 			if (!targets) {

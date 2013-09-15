@@ -79,46 +79,39 @@ int device_setup_uhci(ddf_dev_t *device)
 	if (!device)
 		return EBADMEM;
 
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
-	uintptr_t reg_base = 0;
-	size_t reg_size = 0;
+	addr_range_t regs;
 	int irq = 0;
 
-	int ret = get_my_registers(device, &reg_base, &reg_size, &irq);
-	CHECK_RET_RETURN(ret, "Failed to get I/O region for %" PRIun ": %s.\n",
-	    ddf_dev_get_handle(device), str_error(ret));
-	usb_log_debug("I/O regs at 0x%p (size %zu), IRQ %d.\n",
-	    (void *) reg_base, reg_size, irq);
+	int ret = get_my_registers(device, &regs, &irq);
+	if (ret != EOK) {
+		usb_log_error("Failed to get I/O addresses for %" PRIun ": %s.\n",
+		    ddf_dev_get_handle(device), str_error(ret));
+		return ret;
+	}
+	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
-	const size_t ranges_count = hc_irq_pio_range_count();
-	const size_t cmds_count = hc_irq_cmd_count();
-	irq_pio_range_t irq_ranges[ranges_count];
-	irq_cmd_t irq_cmds[cmds_count];
-	ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), reg_base, reg_size);
-	CHECK_RET_RETURN(ret, "Failed to generate IRQ commands: %s.\n",
-	    str_error(ret));
+	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup generic HCD.\n");
+		return ret;
+	}
 
-	irq_code_t irq_code = {
-		.rangecount = ranges_count,
-		.ranges = irq_ranges,
-		.cmdcount = cmds_count,
-		.cmds = irq_cmds
-	};
+	hc_t *hc = malloc(sizeof(hc_t));
+	if (!hc) {
+		usb_log_error("Failed to allocate UHCI HC structure.\n");
+		hcd_ddf_clean_hc(device);
+		return ENOMEM;
+	}
 
-        /* Register handler to avoid interrupt lockup */
-        ret = register_interrupt_handler(device, irq, irq_handler, &irq_code);
-        CHECK_RET_RETURN(ret, "Failed to register interrupt handler: %s.\n",
-	    str_error(ret));
-	
-	ret = disable_legacy(device);
-	CHECK_RET_RETURN(ret, "Failed to disable legacy USB: %s.\n",
-	    str_error(ret));
+	ret = hc_register_irq_handler(device, &regs, irq, irq_handler);
+	if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(ret));
+		hcd_ddf_clean_hc(device);
+		return ret;
+	}
 
 	bool interrupts = false;
 	ret = enable_interrupts(device);
@@ -130,17 +123,21 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
-	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-	CHECK_RET_RETURN(ret, "Failed to setup UHCI HCD.\n");
-	
-	hc_t *hc = malloc(sizeof(hc_t));
-	ret = hc ? EOK : ENOMEM;
-	CHECK_RET_RETURN(ret, "Failed to allocate UHCI HC structure.\n");
+	ret = disable_legacy(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to disable legacy USB: %s.\n",
+		    str_error(ret));
+		hcd_ddf_clean_hc(device);
+		return ret;
+	}
 
-	ret = hc_init(hc, (void*)reg_base, reg_size, interrupts);
-	CHECK_RET_RETURN(ret,
-	    "Failed to init uhci_hcd: %s.\n", str_error(ret));
+	ret = hc_init(hc, &regs, interrupts);
+	if (ret != EOK) {
+		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
+		hcd_ddf_clean_hc(device);
+		// TODO unregister interrupt handler
+		return ret;
+	}
 
 	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);
 
@@ -150,9 +147,10 @@ if (ret != EOK) { \
 	 */
 	ret = hcd_ddf_setup_root_hub(device);
 	if (ret != EOK) {
-		// TODO: Undo hcd_setup_device
 		hc_fini(hc);
-		CHECK_RET_RETURN(ret, "Failed to setup UHCI root hub: %s.\n",
+		hcd_ddf_clean_hc(device);
+		// TODO unregister interrupt handler
+		usb_log_error("Failed to setup UHCI root hub: %s.\n",
 		    str_error(ret));
 		return ret;
 	}

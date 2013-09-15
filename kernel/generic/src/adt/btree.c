@@ -1030,11 +1030,7 @@ void btree_print(btree_t *t)
 	printf("\n");
 	
 	printf("Printing list of leaves:\n");
-	list_foreach(t->leaf_list, cur) {
-		btree_node_t *node;
-		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		
+	list_foreach(t->leaf_list, leaf_link, btree_node_t, node) {
 		ASSERT(node);
 		
 		printf("(");

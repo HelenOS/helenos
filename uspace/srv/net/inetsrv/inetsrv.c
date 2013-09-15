@@ -67,6 +67,11 @@ static inet_naddr_t solicited_node_mask = {
 	.prefix = 104
 };
 
+static inet_addr_t broadcast4_all_hosts = {
+	.family = AF_INET,
+	.addr = 0xffffffff
+};
+
 static inet_addr_t multicast_all_nodes = {
 	.family = AF_INET6,
 	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
@@ -118,17 +123,6 @@ static int inet_init(void)
 		return EEXIST;
 	}
 	
-	inet_sroute_t *sroute = inet_sroute_new();
-	if (sroute == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating default route (%d).", rc);
-		return ENOMEM;
-	}
-
-	inet_naddr(&sroute->dest, 0, 0, 0, 0, 0);
-	inet_addr(&sroute->router, 10, 0, 2, 2);
-	sroute->name = str_dup("default");
-	inet_sroute_add(sroute);
-
 	rc = inet_link_discovery_start();
 	if (rc != EOK)
 		return EEXIST;
@@ -185,7 +179,28 @@ int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
     int df)
 {
 	inet_dir_t dir;
+	inet_link_t *ilink;
 	int rc;
+
+	if (dgram->iplink != 0) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram directly to iplink %zu",
+		    dgram->iplink);
+		/* Send packet directly to the specified IP link */
+		ilink = inet_link_get_by_id(dgram->iplink);
+		if (ilink == 0)
+			return ENOENT;
+
+		if (dgram->src.family != AF_INET ||
+			dgram->dest.family != AF_INET)
+			return EINVAL;
+
+		return inet_link_send_dgram(ilink, dgram->src.addr,
+		    dgram->dest.addr, dgram, proto, ttl, df);
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram to be routed");
+
+	/* Route packet using source/destination addresses */
 
 	rc = inet_find_dir(&dgram->src, &dgram->dest, dgram->tos, &dir);
 	if (rc != EOK)
@@ -213,6 +228,11 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	/* XXX dt_local? */
 
 	/* Take source address from the address object */
+	if (remote->family == AF_INET && remote->addr == 0xffffffff) {
+		local->family = AF_INET;
+		local->addr = 0;
+		return EOK;
+	}
 	inet_naddr_addr(&dir.aobj->naddr, local);
 	return EOK;
 }
@@ -281,9 +301,10 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
 	
 	inet_dgram_t dgram;
 	
-	dgram.tos = IPC_GET_ARG1(*icall);
+	dgram.iplink = IPC_GET_ARG1(*icall);
+	dgram.tos = IPC_GET_ARG2(*icall);
 	
-	uint8_t ttl = IPC_GET_ARG2(*icall);
+	uint8_t ttl = IPC_GET_ARG3(*icall);
 	int df = IPC_GET_ARG3(*icall);
 	
 	ipc_callid_t callid;
@@ -445,10 +466,7 @@ static inet_client_t *inet_client_find(uint8_t proto)
 {
 	fibril_mutex_lock(&client_list_lock);
 
-	list_foreach(client_list, link) {
-		inet_client_t *client = list_get_instance(link, inet_client_t,
-		    client_list);
-
+	list_foreach(client_list, client_list, inet_client_t, client) {
 		if (client->protocol == proto) {
 			fibril_mutex_unlock(&client_list_lock);
 			return client;
@@ -526,7 +544,8 @@ int inet_recv_packet(inet_packet_t *packet)
 	addr = inet_addrobj_find(&packet->dest, iaf_addr);
 	if ((addr != NULL) ||
 	    (inet_naddr_compare_mask(&solicited_node_mask, &packet->dest)) ||
-	    (inet_addr_compare(&multicast_all_nodes, &packet->dest))) {
+	    (inet_addr_compare(&multicast_all_nodes, &packet->dest)) || 
+	    (inet_addr_compare(&broadcast4_all_hosts, &packet->dest))) {
 		/* Destined for one of the local addresses */
 
 		/* Check if packet is a complete datagram */

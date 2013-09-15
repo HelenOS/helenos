@@ -334,8 +334,7 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 		info->tt_address = hub_dev->address;
 
 	ddf_fun_set_ops(fun, &usb_ops);
-	list_foreach(mids->ids, iter) {
-		match_id_t *mid = list_get_instance(iter, match_id_t, link);
+	list_foreach(mids->ids, link, const match_id_t, mid) {
 		ddf_fun_add_match_id(fun, mid->id, mid->score);
 	}
 
@@ -421,10 +420,11 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 
 	usb_dev_t *victim = NULL;
 
-	list_foreach(hub->devices, it) {
-		victim = list_get_instance(it, usb_dev_t, link);
-		if (victim->port == port)
+	list_foreach(hub->devices, link, usb_dev_t, it) {
+		if (it->port == port) {
+			victim = it;
 			break;
+		}
 	}
 	if (victim && victim->port == port) {
 		list_remove(&victim->link);

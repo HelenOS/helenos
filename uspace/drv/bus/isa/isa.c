@@ -64,8 +64,10 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ops/hw_res.h>
+#include <ops/pio_window.h>
 
 #include <device/hw_res.h>
+#include <device/pio_window.h>
 
 #include "i8237.h"
 
@@ -78,6 +80,7 @@ typedef struct {
 	fibril_mutex_t mutex;
 	ddf_dev_t *dev;
 	ddf_fun_t *fctl;
+	pio_window_t pio_win;
 	list_t functions;
 } isa_bus_t;
 
@@ -101,20 +104,20 @@ static isa_fun_t *isa_fun(ddf_fun_t *fun)
 	return ddf_fun_data_get(fun);
 }
 
-static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *isa_fun_get_resources(ddf_fun_t *fnode)
 {
-	isa_fun_t *isa = isa_fun(fnode);
-	assert(isa);
+	isa_fun_t *fun = isa_fun(fnode);
+	assert(fun);
 
-	return &isa->hw_resources;
+	return &fun->hw_resources;
 }
 
 static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
 {
 	/* This is an old ugly way, copied from pci driver */
 	assert(fnode);
-	isa_fun_t *isa = isa_fun(fnode);
-	assert(isa);
+	isa_fun_t *fun = isa_fun(fnode);
+	assert(fun);
 
 	sysarg_t apic;
 	sysarg_t i8259;
@@ -130,7 +133,7 @@ static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
 	if (!irc_sess)
 		return false;
 
-	const hw_resource_list_t *res = &isa->hw_resources;
+	const hw_resource_list_t *res = &fun->hw_resources;
 	assert(res);
 	for (size_t i = 0; i < res->count; ++i) {
 		if (res->resources[i].type == INTERRUPT) {
@@ -156,9 +159,9 @@ static int isa_fun_setup_dma(ddf_fun_t *fnode,
     unsigned int channel, uint32_t pa, uint32_t size, uint8_t mode)
 {
 	assert(fnode);
-	isa_fun_t *isa = isa_fun(fnode);
-	assert(isa);
-	const hw_resource_list_t *res = &isa->hw_resources;
+	isa_fun_t *fun = isa_fun(fnode);
+	assert(fun);
+	const hw_resource_list_t *res = &fun->hw_resources;
 	assert(res);
 
 	for (size_t i = 0; i < res->count; ++i) {
@@ -179,9 +182,9 @@ static int isa_fun_remain_dma(ddf_fun_t *fnode,
 {
 	assert(size);
 	assert(fnode);
-	isa_fun_t *isa = isa_fun(fnode);
-	assert(isa);
-	const hw_resource_list_t *res = &isa->hw_resources;
+	isa_fun_t *fun = isa_fun(fnode);
+	assert(fun);
+	const hw_resource_list_t *res = &fun->hw_resources;
 	assert(res);
 
 	for (size_t i = 0; i < res->count; ++i) {
@@ -198,14 +201,28 @@ static int isa_fun_remain_dma(ddf_fun_t *fnode,
 }
 
 static hw_res_ops_t isa_fun_hw_res_ops = {
-	.get_resource_list = isa_get_fun_resources,
+	.get_resource_list = isa_fun_get_resources,
 	.enable_interrupt = isa_fun_enable_interrupt,
 	.dma_channel_setup = isa_fun_setup_dma,
 	.dma_channel_remain = isa_fun_remain_dma,
 };
 
+static pio_window_t *isa_fun_get_pio_window(ddf_fun_t *fnode)
+{
+	ddf_dev_t *dev = ddf_fun_get_dev(fnode);
+	isa_bus_t *isa = isa_bus(dev);
+	assert(isa);
+
+	return &isa->pio_win;
+}
+
+static pio_window_ops_t isa_fun_pio_window_ops = {
+	.get_pio_window = isa_fun_get_pio_window
+};
+
 static ddf_dev_ops_t isa_fun_ops= {
 	.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops,
+	.interfaces[PIO_WINDOW_DEV_IFACE] = &isa_fun_pio_window_ops,
 };
 
 static int isa_dev_add(ddf_dev_t *dev);
@@ -404,10 +421,14 @@ static void isa_fun_add_io_range(isa_fun_t *fun, size_t addr, size_t len)
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
 
+	isa_bus_t *isa = isa_bus(ddf_fun_get_dev(fun->fnode));
+
 	if (count < ISA_MAX_HW_RES) {
 		resources[count].type = IO_RANGE;
 		resources[count].res.io_range.address = addr;
+		resources[count].res.io_range.address += isa->pio_win.io.base;
 		resources[count].res.io_range.size = len;
+		resources[count].res.io_range.relative = false;
 		resources[count].res.io_range.endianness = LITTLE_ENDIAN;
 
 		fun->hw_resources.count++;
@@ -603,6 +624,9 @@ static void isa_functions_add(isa_bus_t *isa)
 
 static int isa_dev_add(ddf_dev_t *dev)
 {
+	async_sess_t *sess;
+	int rc;
+
 	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) ddf_dev_get_handle(dev));
 
@@ -613,6 +637,20 @@ static int isa_dev_add(ddf_dev_t *dev)
 	fibril_mutex_initialize(&isa->mutex);
 	isa->dev = dev;
 	list_initialize(&isa->functions);
+
+	sess = ddf_dev_parent_sess_create(dev, EXCHANGE_SERIALIZE);
+	if (sess == NULL) {
+		ddf_msg(LVL_ERROR, "isa_dev_add failed to connect to the "
+		    "parent driver.");
+		return ENOENT;
+	}
+
+	rc = pio_window_get(sess, &isa->pio_win);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "isa_dev_add failed to get PIO window "
+		    "for the device.");
+		return rc;
+	}	
 
 	/* Make the bus device more visible. Does not do anything. */
 	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");

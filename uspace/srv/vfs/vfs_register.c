@@ -259,9 +259,7 @@ async_exch_t *vfs_exchange_grab(fs_handle_t handle)
 	 */
 	fibril_mutex_lock(&fs_list_lock);
 	
-	list_foreach(fs_list, cur) {
-		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		
+	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_list_lock);
 			
@@ -304,8 +302,7 @@ fs_handle_t fs_name_to_handle(unsigned int instance, char *name, bool lock)
 	if (lock)
 		fibril_mutex_lock(&fs_list_lock);
 	
-	list_foreach(fs_list, cur) {
-		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
+	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		if (str_cmp(fs->vfs_info.name, name) == 0 &&
 		    instance == fs->vfs_info.instance) {
 			handle = fs->fs_handle;
@@ -331,8 +328,7 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 	vfs_info_t *info = NULL;
 	
 	fibril_mutex_lock(&fs_list_lock);
-	list_foreach(fs_list, cur) {
-		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
+	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		if (fs->fs_handle == handle) { 
 			info = &fs->vfs_info;
 			break;

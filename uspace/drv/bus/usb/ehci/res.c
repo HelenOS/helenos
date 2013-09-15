@@ -70,13 +70,12 @@
 /** Get address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
- * @param[out] mem_reg_address Base address of the memory range.
- * @param[out] mem_reg_size Size of the memory range.
+ * @param[out] mem_regs_p Pointer to the register range.
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
 int get_my_registers(ddf_dev_t *dev,
-    uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
+    addr_range_t *mem_regs_p, int *irq_no)
 {
 	assert(dev);
 	
@@ -98,10 +97,8 @@ int get_my_registers(ddf_dev_t *dev,
 		return ENOENT;
 	}
 
-	if (mem_reg_address)
-		*mem_reg_address = hw_res.mem_ranges.ranges[0].address;
-	if (mem_reg_size)
-		*mem_reg_size = hw_res.mem_ranges.ranges[0].size;
+	if (mem_regs_p)
+		*mem_regs_p = hw_res.mem_ranges.ranges[0];
 	if (irq_no)
 		*irq_no = hw_res.irqs.irqs[0];
 
@@ -233,22 +230,19 @@ static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 #undef CHECK_RET_HANGUP_RETURN
 }
 
-int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
+int disable_legacy(ddf_dev_t *device, addr_range_t *reg_range)
 {
 	assert(device);
 	usb_log_debug("Disabling EHCI legacy support.\n");
 
-#define CHECK_RET_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		return ret; \
-	} else (void)0
-
 	/* Map EHCI registers */
 	void *regs = NULL;
-	int ret = pio_enable((void*)reg_base, reg_size, &regs);
-	CHECK_RET_RETURN(ret, "Failed to map registers %p: %s.\n",
-	    (void *) reg_base, str_error(ret));
+	int ret = pio_enable_range(reg_range, &regs);
+	if (ret != EOK) {
+		usb_log_error("Failed to map registers %p: %s.\n",
+		    RNGABSPTR(*reg_range), str_error(ret));
+		return ret;
+	}
 
 	usb_log_debug2("Registers mapped at: %p.\n", regs);
 
@@ -263,10 +257,12 @@ int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 	usb_log_debug("Value of EECP: %x.\n", eecp);
 
 	ret = disable_extended_caps(device, eecp);
-	CHECK_RET_RETURN(ret, "Failed to disable extended capabilities: %s.\n",
-	    str_error(ret));
+	if (ret != EOK) {
+		usb_log_error("Failed to disable extended capabilities: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
 
-#undef CHECK_RET_RETURN
 
 	/*
 	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT IF NEEDED

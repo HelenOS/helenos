@@ -110,27 +110,68 @@ size_t hc_irq_cmd_count(void)
  * @param[in] ranges_size Size of the ranges buffer (bytes).
  * @param[out] cmds Commands buffer.
  * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Physical address of device's registers.
- * @param[in] reg_size Size of the register area (bytes).
+ * @param[in] regs Device's register range.
  *
  * @return Error code.
  */
 int
 hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
-    size_t cmds_size, uintptr_t regs, size_t reg_size)
+    size_t cmds_size, addr_range_t *regs)
 {
 	if ((ranges_size < sizeof(uhci_irq_pio_ranges)) ||
 	    (cmds_size < sizeof(uhci_irq_commands)) ||
-	    (reg_size < sizeof(uhci_regs_t)))
+	    (RNGSZ(*regs) < sizeof(uhci_regs_t)))
 		return EOVERFLOW;
 
 	memcpy(ranges, uhci_irq_pio_ranges, sizeof(uhci_irq_pio_ranges));
-	ranges[0].base = regs;
+	ranges[0].base = RNGABS(*regs);
 
 	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
-	uhci_regs_t *registers = (uhci_regs_t *) regs;
+	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(*regs);
 	cmds[0].addr = (void*)&registers->usbsts;
 	cmds[3].addr = (void*)&registers->usbsts;
+
+	return EOK;
+}
+
+/** Register interrupt handler.
+ *
+ * @param[in] device Host controller DDF device
+ * @param[in] regs Register range
+ * @param[in] irq Interrupt number
+ * @paran[in] handler Interrupt handler
+ *
+ * @return EOK on success or negative error code
+ */
+int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
+    interrupt_handler_t handler)
+{
+	assert(device);
+	irq_pio_range_t irq_ranges[hc_irq_pio_range_count()];
+	irq_cmd_t irq_cmds[hc_irq_cmd_count()];
+
+	int ret = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), regs);
+	if (ret != EOK) {
+		usb_log_error("Failed to generate IRQ commands: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
+
+	irq_code_t irq_code = {
+		.rangecount = hc_irq_pio_range_count(),
+		.ranges = irq_ranges,
+		.cmdcount = hc_irq_cmd_count(),
+		.cmds = irq_cmds
+	};
+
+        /* Register handler to avoid interrupt lockup */
+        ret = register_interrupt_handler(device, irq, handler, &irq_code);
+        if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
 
 	return EOK;
 }
@@ -195,8 +236,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 /** Initialize UHCI hc driver structure
  *
  * @param[in] instance Memory place to initialize.
- * @param[in] regs Address of I/O control registers.
- * @param[in] reg_size Size of I/O control registers.
+ * @param[in] regs Range of device's I/O control registers.
  * @param[in] interrupts True if hw interrupts should be used.
  * @return Error code.
  * @note Should be called only once on any structure.
@@ -204,16 +244,18 @@ void hc_interrupt(hc_t *instance, uint16_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 {
-	assert(reg_size >= sizeof(uhci_regs_t));
+	assert(instance);
+	assert(regs);
+	assert(regs->size >= sizeof(uhci_regs_t));
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
 	uhci_regs_t *io;
-	int ret = pio_enable(regs, reg_size, (void **)&io);
+	int ret = pio_enable_range(regs, (void **) &io);
 	if (ret != EOK) {
 		usb_log_error("Failed to gain access to registers at %p: %s.\n",
 	            io, str_error(ret));
@@ -222,7 +264,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interrupts)
 	instance->registers = io;
 
 	usb_log_debug(
-	    "Device registers at %p (%zuB) accessible.\n", io, reg_size);
+	    "Device registers at %p (%zuB) accessible.\n", io, regs->size);
 
 	ret = hc_init_mem_structures(instance);
 	if (ret != EOK) {

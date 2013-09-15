@@ -37,9 +37,11 @@ DIRS = \
 	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
+	app/corecfg \
 	app/devctl \
 	app/dnscfg \
 	app/dnsres \
+	app/download \
 	app/edit \
 	app/getterm \
 	app/init \
@@ -48,8 +50,8 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/loc \
-	app/mixerctl \
 	app/logset \
+	app/mixerctl \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -68,6 +70,7 @@ DIRS = \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \
+	app/netspeed \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
@@ -75,18 +78,20 @@ DIRS = \
 	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
-	app/wavplay \
 	app/date \
-	app/websrv \
-	srv/audio/hound \
 	app/vdemo \
 	app/vlaunch \
 	app/vterm \
+	app/df \
+	app/wavplay \
+	app/websrv \
+	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
 	srv/devman \
 	srv/loader \
+	srv/net/dhcp \
 	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
@@ -118,6 +123,7 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	srv/hid/rfb \
 	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
@@ -186,6 +192,13 @@ ifeq ($(UARCH),ia32)
 		srv/hw/irc/i8259
 endif
 
+ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+	DIRS += \
+		drv/infrastructure/rootmalta \
+		drv/bus/pci/pciintel \
+		drv/bus/isa
+endif
+
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
@@ -217,14 +230,16 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
-	lib/hound \
 	lib/graph \
 	lib/gui \
+	lib/hound \
+	lib/http \
 	lib/softrend \
 	lib/draw \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
+	lib/uri \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \

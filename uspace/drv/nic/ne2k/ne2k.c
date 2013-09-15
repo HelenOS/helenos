@@ -210,15 +210,14 @@ static int ne2k_dev_init(nic_t *nic_data)
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 	ne2k->irq = hw_res_parsed.irqs.irqs[0];
 	
-	ne2k->base_port = (void *) (uintptr_t)
-	    hw_res_parsed.io_ranges.ranges[0].address;
+	addr_range_t regs = hw_res_parsed.io_ranges.ranges[0];
+	ne2k->base_port = RNGABSPTR(regs);
 	
 	hw_res_list_parsed_clean(&hw_res_parsed);
 	
-	/* Enable port I/O */
-	if (pio_enable(ne2k->base_port, NE2K_IO_SIZE, &ne2k->port) != EOK)
+	/* Enable programmed I/O */
+	if (pio_enable_range(&regs, &ne2k->port) != EOK)
 		return EADDRNOTAVAIL;
-	
 	
 	ne2k->data_port = ne2k->port + NE2K_DATA;
 	ne2k->receive_configuration = RCR_AB | RCR_AM;

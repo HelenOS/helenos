@@ -126,6 +126,7 @@ typedef struct {
 } inet_packet_t;
 
 typedef struct {
+	service_id_t iplink;
 	inet_addr_t src;
 	inet_addr_t dest;
 	uint8_t tos;

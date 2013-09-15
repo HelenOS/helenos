@@ -181,10 +181,12 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 {
 	size_t zone = 0;
 	
-	void *data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);
-	if (!data) {
+	uintptr_t data_phys =
+	    frame_alloc_generic(cache->frames, flags, 0, &zone);
+	if (!data_phys)
 		return NULL;
-	}
+	
+	void *data = (void *) PA2KA(data_phys);
 	
 	slab_t *slab;
 	size_t fsize;
@@ -192,17 +194,17 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 	if (!(cache->flags & SLAB_CACHE_SLINSIDE)) {
 		slab = slab_alloc(slab_extern_cache, flags);
 		if (!slab) {
-			frame_free(KA2PA(data));
+			frame_free(KA2PA(data), cache->frames);
 			return NULL;
 		}
 	} else {
-		fsize = (PAGE_SIZE << cache->order);
+		fsize = FRAMES2SIZE(cache->frames);
 		slab = data + fsize - sizeof(*slab);
 	}
 	
 	/* Fill in slab structures */
 	size_t i;
-	for (i = 0; i < ((size_t) 1 << cache->order); i++)
+	for (i = 0; i < cache->frames; i++)
 		frame_set_parent(ADDR2PFN(KA2PA(data)) + i, slab, zone);
 	
 	slab->start = data;
@@ -224,13 +226,13 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
  */
 NO_TRACE static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 {
-	frame_free(KA2PA(slab->start));
+	frame_free(KA2PA(slab->start), slab->cache->frames);
 	if (!(cache->flags & SLAB_CACHE_SLINSIDE))
 		slab_free(slab_extern_cache, slab);
 	
 	atomic_dec(&cache->allocated_slabs);
 	
-	return (1 << cache->order);
+	return cache->frames;
 }
 
 /** Map object to slab structure */
@@ -557,10 +559,10 @@ NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
 NO_TRACE static size_t comp_objects(slab_cache_t *cache)
 {
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
-		return ((PAGE_SIZE << cache->order)
-		    - sizeof(slab_t)) / cache->size;
+		return (FRAMES2SIZE(cache->frames) - sizeof(slab_t)) /
+		    cache->size;
 	else
-		return (PAGE_SIZE << cache->order) / cache->size;
+		return FRAMES2SIZE(cache->frames) / cache->size;
 }
 
 /** Return wasted space in slab
@@ -569,7 +571,7 @@ NO_TRACE static size_t comp_objects(slab_cache_t *cache)
 NO_TRACE static size_t badness(slab_cache_t *cache)
 {
 	size_t objects = comp_objects(cache);
-	size_t ssize = PAGE_SIZE << cache->order;
+	size_t ssize = FRAMES2SIZE(cache->frames);
 	
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
 		ssize -= sizeof(slab_t);
@@ -633,17 +635,11 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	if (cache->size < SLAB_INSIDE_SIZE)
 		cache->flags |= SLAB_CACHE_SLINSIDE;
 	
-	/* Minimum slab order */
-	size_t pages = SIZE2FRAMES(cache->size);
-	
-	/* We need the 2^order >= pages */
-	if (pages == 1)
-		cache->order = 0;
-	else
-		cache->order = fnzb(pages - 1) + 1;
+	/* Minimum slab frames */
+	cache->frames = SIZE2FRAMES(cache->size);
 	
 	while (badness(cache) > SLAB_MAX_BADNESS(cache))
-		cache->order += 1;
+		cache->frames <<= 1;
 	
 	cache->objects = comp_objects(cache);
 	
@@ -809,8 +805,7 @@ size_t slab_reclaim(unsigned int flags)
 	irq_spinlock_lock(&slab_cache_lock, true);
 	
 	size_t frames = 0;
-	list_foreach(slab_cache_list, cur) {
-		slab_cache_t *cache = list_get_instance(cur, slab_cache_t, link);
+	list_foreach(slab_cache_list, link, slab_cache_t, cache) {
 		frames += _slab_reclaim(cache, flags);
 	}
 	
@@ -870,7 +865,7 @@ void slab_print_list(void)
 		slab_cache_t *cache = list_get_instance(cur, slab_cache_t, link);
 		
 		const char *name = cache->name;
-		uint8_t order = cache->order;
+		size_t frames = cache->frames;
 		size_t size = cache->size;
 		size_t objects = cache->objects;
 		long allocated_slabs = atomic_get(&cache->allocated_slabs);
@@ -880,8 +875,8 @@ void slab_print_list(void)
 		
 		irq_spinlock_unlock(&slab_cache_lock, true);
 		
-		printf("%-18s %8zu %8u %8zu %8ld %8ld %8ld %-5s\n",
-		    name, size, (1 << order), objects, allocated_slabs,
+		printf("%-18s %8zu %8zu %8zu %8ld %8ld %8ld %-5s\n",
+		    name, size, frames, objects, allocated_slabs,
 		    cached_objs, allocated_objs,
 		    flags & SLAB_CACHE_SLINSIDE ? "in" : "out");
 	}
@@ -935,8 +930,7 @@ void slab_enable_cpucache(void)
 	
 	irq_spinlock_lock(&slab_cache_lock, false);
 	
-	list_foreach(slab_cache_list, cur) {
-		slab_cache_t *slab = list_get_instance(cur, slab_cache_t, link);
+	list_foreach(slab_cache_list, link, slab_cache_t, slab) {
 		if ((slab->flags & SLAB_CACHE_MAGDEFERRED) !=
 		    SLAB_CACHE_MAGDEFERRED)
 			continue;

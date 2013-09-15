@@ -142,6 +142,8 @@ static desktop_rect_t viewport_bound_rect;
 static FIBRIL_MUTEX_INITIALIZE(viewport_list_mtx);
 static LIST_INITIALIZE(viewport_list);
 
+static FIBRIL_MUTEX_INITIALIZE(discovery_mtx);
+
 /** Input server proxy */
 static input_t *input;
 
@@ -334,8 +336,7 @@ static void comp_restrict_pointers(void)
 		surface_get_resolution(vp->surface, &w_res, &h_res);
 	}
 
-	list_foreach(viewport_list, link) {
-		viewport_t *vp = list_get_instance(link, viewport_t, link);
+	list_foreach(viewport_list, link, viewport_t, vp) {
 		sysarg_t w_vp, h_vp;
 		surface_get_resolution(vp->surface, &w_vp, &h_vp);
 		rectangle_union(
@@ -353,8 +354,7 @@ static void comp_restrict_pointers(void)
 
 	fibril_mutex_lock(&pointer_list_mtx);
 
-	list_foreach(pointer_list, link) {
-		pointer_t *ptr = list_get_instance(link, pointer_t, link);
+	list_foreach(pointer_list, link, pointer_t, ptr) {
 		ptr->pos.x = ptr->pos.x > viewport_bound_rect.x ? ptr->pos.x : viewport_bound_rect.x;
 		ptr->pos.y = ptr->pos.y > viewport_bound_rect.y ? ptr->pos.y : viewport_bound_rect.y;
 		ptr->pos.x = ptr->pos.x < viewport_bound_rect.x + viewport_bound_rect.w ?
@@ -373,10 +373,8 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_lock(&window_list_mtx);
 	fibril_mutex_lock(&pointer_list_mtx);
 
-	list_foreach(viewport_list, link) {
-
+	list_foreach(viewport_list, link, viewport_t, vp) {
 		/* Determine what part of the viewport must be updated. */
-		viewport_t *vp = list_get_instance(link, viewport_t, link);
 		sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
 		surface_get_resolution(vp->surface, &w_dmg_vp, &h_dmg_vp);
 		bool isec_vp = rectangle_intersect(
@@ -445,9 +443,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				}
 			}
 
-			list_foreach(pointer_list, link) {
-
-				pointer_t *ptr = list_get_instance(link, pointer_t, link);
+			list_foreach(pointer_list, link, pointer_t, ptr) {
 				if (ptr->ghost.surface) {
 
 					sysarg_t x_bnd_ghost, y_bnd_ghost, w_bnd_ghost, h_bnd_ghost;
@@ -521,11 +517,10 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				}
 			}
 
-			list_foreach(pointer_list, link) {
+			list_foreach(pointer_list, link, pointer_t, ptr) {
 
 				/* Determine what part of the pointer intersects with the
 				 * updated area of the current viewport. */
-				pointer_t *ptr = list_get_instance(link, pointer_t, link);
 				sysarg_t x_dmg_ptr, y_dmg_ptr, w_dmg_ptr, h_dmg_ptr;
 				surface_t *sf_ptr = ptr->cursor.states[ptr->state];
 				surface_get_resolution(sf_ptr, &w_dmg_ptr, &h_dmg_ptr);
@@ -568,8 +563,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_unlock(&window_list_mtx);
 
 	/* Notify visualizers about updated regions. */
-	list_foreach(viewport_list, link) {
-		viewport_t *vp = list_get_instance(link, viewport_t, link);
+	list_foreach(viewport_list, link, viewport_t, vp) {
 		sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
 		surface_get_damaged_region(vp->surface, &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
 		surface_reset_damaged_region(vp->surface);
@@ -630,8 +624,7 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
 
 	fibril_mutex_lock(&pointer_list_mtx);
-	list_foreach(pointer_list, link) {
-		pointer_t *pointer = list_get_instance(link, pointer_t, link);
+	list_foreach(pointer_list, link, pointer_t, pointer) {
 		if (pointer->id == pos_id) {
 			pointer->grab_flags = pointer->pressed ? grab_flags : GF_EMPTY;
 			// TODO change pointer->state according to grab_flags
@@ -709,17 +702,17 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 static void comp_post_event_win(window_event_t *event, window_t *target)
 {
 	fibril_mutex_lock(&window_list_mtx);
-	window_t *window = NULL;
-	list_foreach(window_list, link) {
-		window = list_get_instance(link, window_t, link);
+
+	list_foreach(window_list, link, window_t, window) {
 		if (window == target) {
 			prodcons_produce(&window->queue, &event->link);
+			fibril_mutex_unlock(&window_list_mtx);
+			return;
 		}
 	}
-	if (!window) {
-		free(event);
-	}
+
 	fibril_mutex_unlock(&window_list_mtx);
+	free(event);
 }
 
 static void comp_post_event_top(window_event_t *event)
@@ -862,8 +855,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Match the client with pre-allocated window. */
 	window_t *win = NULL;
 	fibril_mutex_lock(&window_list_mtx);
-	list_foreach(window_list, link) {
-		window_t *cur = list_get_instance(link, window_t, link);
+	list_foreach(window_list, link, window_t, cur) {
 		if (cur->in_dsid == service_id || cur->out_dsid == service_id) {
 			win = cur;
 			break;
@@ -1006,8 +998,7 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 
 		/* Close all clients and their windows. */
 		fibril_mutex_lock(&window_list_mtx);
-		list_foreach(window_list, link) {
-			window_t *win = list_get_instance(link, window_t, link);
+		list_foreach(window_list, link, window_t, win) {
 			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 			if (event) {
 				link_initialize(&event->link);
@@ -1033,8 +1024,7 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	viewport_t *vp = NULL;
 	fibril_mutex_lock(&viewport_list_mtx);
-	list_foreach(viewport_list, link) {
-		viewport_t *cur = list_get_instance(link, viewport_t, link);
+	list_foreach(viewport_list, link, viewport_t, cur) {
 		if (cur->dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
 			vp = cur;
 			break;
@@ -1570,8 +1560,8 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	bool within_client = false;
 
 	/* Determine the window which the mouse click belongs to. */
-	list_foreach(window_list, link) {
-		win = list_get_instance(link, window_t, link);
+	list_foreach(window_list, link, window_t, cw) {
+		win = cw;
 		if (win->surface) {
 			surface_get_resolution(win->surface, &width, &height);
 			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
@@ -2125,13 +2115,67 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
+static int discover_viewports(void)
+{
+	/* Create viewports and connect them to visualizers. */
+	category_id_t cat_id;
+	int rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed to get visualizer category.\n", NAME);
+		return -1;
+	}
+	
+	service_id_t *svcs;
+	size_t svcs_cnt = 0;
+	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
+	if (rc != EOK || svcs_cnt == 0) {
+		printf("%s: Failed to get visualizer category services.\n", NAME);
+		return -1;
+	}
+
+	fibril_mutex_lock(&viewport_list_mtx);	
+	for (size_t i = 0; i < svcs_cnt; ++i) {
+		bool exists = false;
+		list_foreach(viewport_list, link, viewport_t, vp) {
+			if (vp->dsid == svcs[i]) {
+				exists = true;
+				break;
+			}
+		}
+		
+		if (exists)
+			continue;
+		
+		char *svc_name;
+		rc = loc_service_get_name(svcs[i], &svc_name);
+		if (rc == EOK) {
+			viewport_t *vp = viewport_create(svc_name);
+			if (vp != NULL) {
+				list_append(&vp->link, &viewport_list);
+			}
+		}
+	}
+	fibril_mutex_unlock(&viewport_list_mtx);
+	
+	/* TODO damage only newly added viewports */
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	return EOK;
+}
+
+static void category_change_cb(void)
+{
+	fibril_mutex_lock(&discovery_mtx);
+	discover_viewports();
+	fibril_mutex_unlock(&discovery_mtx);
+}
+
 static int compositor_srv_init(char *input_svc, char *name)
 {
 	/* Coordinates of the central pixel. */
 	coord_origin = UINT32_MAX / 4;
 	
 	/* Color of the viewport background. Must be opaque. */
-	bg_color = PIXEL(255, 75, 70, 75);
+	bg_color = PIXEL(255, 69, 51, 103);
 	
 	/* Register compositor server. */
 	async_set_client_connection(client_connection);
@@ -2176,43 +2220,28 @@ static int compositor_srv_init(char *input_svc, char *name)
 		return rc;
 	}
 
-	/* Create viewports and connect them to visualizers. */
-	category_id_t cat_id;
-	rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	rc = loc_register_cat_change_cb(category_change_cb);
 	if (rc != EOK) {
-		printf("%s: Failed to get visualizer category.\n", NAME);
+		printf("%s: Failed to register category change callback\n", NAME);
 		input_disconnect();
-		return -1;
-	}
-	
-	service_id_t *svcs;
-	size_t svcs_cnt = 0;
-	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
-	if (rc != EOK || svcs_cnt == 0) {
-		printf("%s: Failed to get visualizer category services.\n", NAME);
+		return rc;
+	}	
+
+	rc = discover_viewports();
+	if (rc != EOK) {
 		input_disconnect();
-		return -1;
-	}
-	
-	for (size_t i = 0; i < svcs_cnt; ++i) {
-		char *svc_name;
-		rc = loc_service_get_name(svcs[i], &svc_name);
-		if (rc == EOK) {
-			viewport_t *vp = viewport_create(svc_name);
-			if (vp != NULL) {
-				list_append(&vp->link, &viewport_list);
-			}
-		}
+		return rc;
 	}
 	
 	if (list_empty(&viewport_list)) {
-		printf("%s: Failed to get view ports.\n", NAME);
+		printf("%s: Failed to get viewports.\n", NAME);
 		input_disconnect();
 		return -1;
 	}
 
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	
 	
 	return EOK;
 }

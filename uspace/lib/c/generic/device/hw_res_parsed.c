@@ -79,14 +79,38 @@ static void hw_res_parse_add_irq(hw_res_list_parsed_t *out,
 	out->irqs.count++;
 }
 
-static void hw_res_parse_add_io_range(hw_res_list_parsed_t *out,
-    const hw_resource_t *res, int flags)
+static uint64_t absolutize(uint64_t addr, bool relative, uint64_t base)
 {
+	if (!relative)
+		return addr;
+	else
+		return addr + base;
+}
+
+static uint64_t relativize(uint64_t addr, bool relative, uint64_t base)
+{
+	if (relative)
+		return addr;
+	else
+		return addr - base;
+}
+
+static void hw_res_parse_add_io_range(hw_res_list_parsed_t *out,
+    const pio_window_t *win, const hw_resource_t *res, int flags)
+{
+	endianness_t endianness;
+	uint64_t absolute;
+	uint64_t relative;
+	size_t size;
+
 	assert(res && (res->type == IO_RANGE));
 	
-	uint64_t address = res->res.io_range.address;
-	endianness_t endianness = res->res.io_range.endianness;
-	size_t size = res->res.io_range.size;
+	absolute = absolutize(res->res.io_range.address,
+	    res->res.io_range.relative, win->io.base);
+	relative = relativize(res->res.io_range.address,
+	    res->res.io_range.relative, win->io.base);
+	size = res->res.io_range.size;
+	endianness = res->res.io_range.endianness;
 	
 	if ((size == 0) && (!(flags & HW_RES_KEEP_ZERO_AREA)))
 		return;
@@ -96,28 +120,40 @@ static void hw_res_parse_add_io_range(hw_res_list_parsed_t *out,
 	
 	if (!keep_duplicit) {
 		for (size_t i = 0; i < count; i++) {
-			uint64_t s_address = out->io_ranges.ranges[i].address;
-			size_t s_size = out->io_ranges.ranges[i].size;
+			uint64_t s_address;
+			size_t s_size;
+
+			s_address = RNGABS(out->io_ranges.ranges[i]);
+			s_size = RNGSZ(out->io_ranges.ranges[i]);
 			
-			if ((address == s_address) && (size == s_size))
+			if ((absolute == s_address) && (size == s_size))
 				return;
 		}
 	}
 	
-	out->io_ranges.ranges[count].address = address;
+	RNGABS(out->io_ranges.ranges[count]) = absolute;
+	RNGREL(out->io_ranges.ranges[count]) = relative;
+	RNGSZ(out->io_ranges.ranges[count]) = size;
 	out->io_ranges.ranges[count].endianness = endianness;
-	out->io_ranges.ranges[count].size = size;
 	out->io_ranges.count++;
 }
 
 static void hw_res_parse_add_mem_range(hw_res_list_parsed_t *out,
-    const hw_resource_t *res, int flags)
+    const pio_window_t *win, const hw_resource_t *res, int flags)
 {
+	endianness_t endianness;
+	uint64_t absolute;
+	uint64_t relative;
+	size_t size;
+	
 	assert(res && (res->type == MEM_RANGE));
 	
-	uint64_t address = res->res.mem_range.address;
-	endianness_t endianness = res->res.mem_range.endianness;
-	size_t size = res->res.mem_range.size;
+	absolute = absolutize(res->res.mem_range.address,
+	    res->res.mem_range.relative, win->mem.base);
+	relative = relativize(res->res.mem_range.address,
+	    res->res.mem_range.relative, win->mem.base);
+	size = res->res.mem_range.size;
+	endianness = res->res.mem_range.endianness;
 	
 	if ((size == 0) && (!(flags & HW_RES_KEEP_ZERO_AREA)))
 		return;
@@ -127,39 +163,43 @@ static void hw_res_parse_add_mem_range(hw_res_list_parsed_t *out,
 	
 	if (!keep_duplicit) {
 		for (size_t i = 0; i < count; ++i) {
-			uint64_t s_address = out->mem_ranges.ranges[i].address;
-			size_t s_size = out->mem_ranges.ranges[i].size;
+			uint64_t s_address;
+			size_t s_size;
+
+			s_address = RNGABS(out->mem_ranges.ranges[i]);;
+			s_size = RNGSZ(out->mem_ranges.ranges[i]);
 			
-			if ((address == s_address) && (size == s_size))
+			if ((absolute == s_address) && (size == s_size))
 				return;
 		}
 	}
 	
-	out->mem_ranges.ranges[count].address = address;
+	RNGABS(out->mem_ranges.ranges[count]) = absolute;
+	RNGREL(out->mem_ranges.ranges[count]) = relative;
+	RNGSZ(out->mem_ranges.ranges[count]) = size;
 	out->mem_ranges.ranges[count].endianness = endianness;
-	out->mem_ranges.ranges[count].size = size;
 	out->mem_ranges.count++;
 }
 
 /** Parse list of hardware resources
  *
- * @param      hw_resources Original structure resource
- * @param[out] out          Output parsed resources
- * @param      flags        Flags of the parsing.
- *                          HW_RES_KEEP_ZERO_AREA for keeping
- *                          zero-size areas, HW_RES_KEEP_DUPLICITIES
- *                          for keep duplicit areas
+ * @param      win          PIO window.
+ * @param      res          Original structure resource.
+ * @param[out] out          Output parsed resources.
+ * @param      flags        Flags of the parsing:
+ *                          HW_RES_KEEP_ZERO_AREA for keeping zero-size areas,
+ *                          HW_RES_KEEP_DUPLICITIES to keep duplicit areas.
  *
  * @return EOK if succeed, error code otherwise.
  *
  */
-int hw_res_list_parse(const hw_resource_list_t *hw_resources,
-    hw_res_list_parsed_t *out, int flags)
+int hw_res_list_parse(const pio_window_t *win,
+    const hw_resource_list_t *res, hw_res_list_parsed_t *out, int flags)
 {
-	if ((!hw_resources) || (!out))
+	if (!res || !out)
 		return EINVAL;
 	
-	size_t res_count = hw_resources->count;
+	size_t res_count = res->count;
 	hw_res_list_parsed_clean(out);
 	
 	out->irqs.irqs = calloc(res_count, sizeof(int));
@@ -173,17 +213,17 @@ int hw_res_list_parse(const hw_resource_list_t *hw_resources,
 	}
 	
 	for (size_t i = 0; i < res_count; ++i) {
-		const hw_resource_t *resource = &(hw_resources->resources[i]);
-
+		const hw_resource_t *resource = &res->resources[i];
+		
 		switch (resource->type) {
 		case INTERRUPT:
 			hw_res_parse_add_irq(out, resource, flags);
 			break;
 		case IO_RANGE:
-			hw_res_parse_add_io_range(out, resource, flags);
+			hw_res_parse_add_io_range(out, win, resource, flags);
 			break;
 		case MEM_RANGE:
-			hw_res_parse_add_mem_range(out, resource, flags);
+			hw_res_parse_add_mem_range(out, win, resource, flags);
 			break;
 		case DMA_CHANNEL_8:
 		case DMA_CHANNEL_16:
@@ -194,7 +234,7 @@ int hw_res_list_parse(const hw_resource_list_t *hw_resources,
 			return EINVAL;
 		}
 	}
-
+	
 	return EOK;
 };
 
@@ -215,18 +255,26 @@ int hw_res_list_parse(const hw_resource_list_t *hw_resources,
 int hw_res_get_list_parsed(async_sess_t *sess,
     hw_res_list_parsed_t *hw_res_parsed, int flags)
 {
+	pio_window_t pio_window;
+	int rc;
+
 	if (!hw_res_parsed)
 		return EBADMEM;
 	
 	hw_resource_list_t hw_resources;
 	hw_res_list_parsed_clean(hw_res_parsed);
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
+
+	rc = pio_window_get(sess, &pio_window);
+	if (rc != EOK)
+		return rc; 
 	
-	int rc = hw_res_get_resource_list(sess, &hw_resources);
+	rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK)
 		return rc;
-	
-	rc = hw_res_list_parse(&hw_resources, hw_res_parsed, flags);
+
+	rc = hw_res_list_parse(&pio_window, &hw_resources, hw_res_parsed,
+	    flags);
 	hw_res_clean_resource_list(&hw_resources);
 	
 	return rc;

@@ -72,10 +72,10 @@
 #define PTL3_ENTRIES_ARCH       (1 << 8)        /* 256 */
 
 /* Page table sizes for each level. */
-#define PTL0_SIZE_ARCH          FOUR_FRAMES
-#define PTL1_SIZE_ARCH          0
-#define PTL2_SIZE_ARCH          0
-#define PTL3_SIZE_ARCH          ONE_FRAME
+#define PTL0_FRAMES_ARCH  4
+#define PTL1_FRAMES_ARCH  1
+#define PTL2_FRAMES_ARCH  1
+#define PTL3_FRAMES_ARCH  1
 
 /* Macros calculating indices into page tables for each level. */
 #define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 20) & 0xfff)

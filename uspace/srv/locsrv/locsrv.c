@@ -183,9 +183,7 @@ static loc_namespace_t *loc_namespace_find_name(const char *name)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 	
-	list_foreach(namespaces_list, item) {
-		loc_namespace_t *namespace =
-		    list_get_instance(item, loc_namespace_t, namespaces);
+	list_foreach(namespaces_list, namespaces, loc_namespace_t, namespace) {
 		if (str_cmp(namespace->name, name) == 0)
 			return namespace;
 	}
@@ -202,9 +200,7 @@ static loc_namespace_t *loc_namespace_find_id(service_id_t id)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 	
-	list_foreach(namespaces_list, item) {
-		loc_namespace_t *namespace =
-		    list_get_instance(item, loc_namespace_t, namespaces);
+	list_foreach(namespaces_list, namespaces, loc_namespace_t, namespace) {
 		if (namespace->id == id)
 			return namespace;
 	}
@@ -218,9 +214,7 @@ static loc_service_t *loc_service_find_name(const char *ns_name,
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 	
-	list_foreach(services_list, item) {
-		loc_service_t *service =
-		    list_get_instance(item, loc_service_t, services);
+	list_foreach(services_list, services, loc_service_t, service) {
 		if ((str_cmp(service->namespace->name, ns_name) == 0)
 		    && (str_cmp(service->name, name) == 0))
 			return service;
@@ -238,9 +232,7 @@ static loc_service_t *loc_service_find_id(service_id_t id)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 	
-	list_foreach(services_list, item) {
-		loc_service_t *service =
-		    list_get_instance(item, loc_service_t, services);
+	list_foreach(services_list, services, loc_service_t, service) {
 		if (service->id == id)
 			return service;
 	}
@@ -888,11 +880,7 @@ void loc_category_change_event(void)
 {
 	fibril_mutex_lock(&callback_sess_mutex);
 	
-	list_foreach(callback_sess_list, link) {
-		cb_sess_t *cb_sess;
-		
-		cb_sess = list_get_instance(link, cb_sess_t, cb_sess_list);
-		
+	list_foreach(callback_sess_list, cb_sess_list, cb_sess_t, cb_sess) {
 		async_exch_t *exch = async_exchange_begin(cb_sess->sess);
 		async_msg_0(exch, LOC_EVENT_CAT_CHANGE);
 		async_exchange_end(exch);
@@ -1049,10 +1037,7 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	size_t pos = 0;
-	list_foreach(namespaces_list, item) {
-		loc_namespace_t *namespace =
-		    list_get_instance(item, loc_namespace_t, namespaces);
-		
+	list_foreach(namespaces_list, namespaces, loc_namespace_t, namespace) {
 		desc[pos].id = namespace->id;
 		str_cpy(desc[pos].name, LOC_NAME_MAXLEN, namespace->name);
 		pos++;
@@ -1113,10 +1098,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	size_t pos = 0;
-	list_foreach(services_list, item) {
-		loc_service_t *service =
-		    list_get_instance(item, loc_service_t, services);
-		
+	list_foreach(services_list, services, loc_service_t, service) {
 		if (service->namespace == namespace) {
 			desc[pos].id = service->id;
 			str_cpy(desc[pos].name, LOC_NAME_MAXLEN, service->name);

@@ -139,8 +139,7 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		return rc;
 	}
 
-	list_foreach(match_ids.ids, link) {
-		match_id_t *match_id = list_get_instance(link, match_id_t, link);
+	list_foreach(match_ids.ids, link, match_id_t, match_id) {
 		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
 		if (rc != EOK) {
 			clean_match_ids(&match_ids);

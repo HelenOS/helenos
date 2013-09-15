@@ -297,8 +297,7 @@ static void grid_repaint(widget_t *widget)
 {
 	paint_internal(widget);
 	
-	list_foreach(widget->children, link) {
-		widget_t *child = list_get_instance(link, widget_t, link);
+	list_foreach(widget->children, link, widget_t, child) {
 		child->repaint(child);
 	}
 	

@@ -56,6 +56,14 @@ udp_error_t udp_uc_create(udp_assoc_t **assoc)
 	return UDP_EOK;
 }
 
+void udp_uc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_iplink(%p, %zu)",
+	    assoc, iplink);
+
+	udp_assoc_set_iplink(assoc, iplink);
+}
+
 udp_error_t udp_uc_set_foreign(udp_assoc_t *assoc, udp_sock_t *fsock)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_uc_set_foreign(%p, %p)", assoc, fsock);

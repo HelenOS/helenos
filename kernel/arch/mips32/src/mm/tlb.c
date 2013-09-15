@@ -47,16 +47,18 @@
 #include <interrupt.h>
 #include <symtab.h>
 
-#define PFN_SHIFT	12
-#define VPN_SHIFT	12
-#define ADDR2VPN(a)	((a) >> VPN_SHIFT)
-#define ADDR2VPN2(a)	(ADDR2VPN((a)) >> 1)
-#define VPN2ADDR(vpn)	((vpn) << VPN_SHIFT)
-#define VPN22ADDR(vpn2)	(VPN2ADDR(vpn2) << 1)
-#define PFN2ADDR(pfn)	((pfn) << PFN_SHIFT)
+#define PFN_SHIFT  12
+#define VPN_SHIFT  12
 
-#define BANK_SELECT_BIT(a)	(((a) >> PAGE_WIDTH) & 1) 
-	
+#define ADDR2HI_VPN(a)   ((a) >> VPN_SHIFT)
+#define ADDR2HI_VPN2(a)  (ADDR2HI_VPN((a)) >> 1)
+
+#define HI_VPN2ADDR(vpn)    ((vpn) << VPN_SHIFT)
+#define HI_VPN22ADDR(vpn2)  (HI_VPN2ADDR(vpn2) << 1)
+
+#define LO_PFN2ADDR(pfn)  ((pfn) << PFN_SHIFT)
+
+#define BANK_SELECT_BIT(a)  (((a) >> PAGE_WIDTH) & 1)
 
 /** Initialize TLB.
  *
@@ -265,7 +267,7 @@ tlb_prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable,
 void tlb_prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr)
 {
 	hi->value = 0;
-	hi->vpn2 = ADDR2VPN2(ALIGN_DOWN(addr, PAGE_SIZE));
+	hi->vpn2 = ADDR2HI_VPN2(ALIGN_DOWN(addr, PAGE_SIZE));
 	hi->asid = asid;
 }
 
@@ -294,10 +296,10 @@ void tlb_print(void)
 		lo1.value = cp0_entry_lo1_read();
 		
 		printf("%-4u %-6u %0#10x %-#6x  %1u%1u%1u%1u  %0#10x\n",
-		    i, hi.asid, VPN22ADDR(hi.vpn2), mask.mask,
-		    lo0.g, lo0.v, lo0.d, lo0.c, PFN2ADDR(lo0.pfn));
+		    i, hi.asid, HI_VPN22ADDR(hi.vpn2), mask.mask,
+		    lo0.g, lo0.v, lo0.d, lo0.c, LO_PFN2ADDR(lo0.pfn));
 		printf("                               %1u%1u%1u%1u  %0#10x\n",
-		    lo1.g, lo1.v, lo1.d, lo1.c, PFN2ADDR(lo1.pfn));
+		    lo1.g, lo1.v, lo1.d, lo1.c, LO_PFN2ADDR(lo1.pfn));
 	}
 	
 	cp0_entry_hi_write(hi_save.value);

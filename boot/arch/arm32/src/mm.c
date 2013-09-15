@@ -206,8 +206,13 @@ static void enable_paging()
 		 * we disable caches before jumping to kernel
 		 * so this is safe for all archs.
 		 * Enable VMSAv6 the bit (23) is only writable on ARMv6.
+		 * (and QEMU)
 		 */
+#ifdef PROCESSOR_ARCH_armv6
 		"ldr r1, =0x00801805\n"
+#else
+		"ldr r1, =0x00001805\n"
+#endif
 		
 		"orr r0, r0, r1\n"
 

@@ -49,8 +49,7 @@
  */
 static bool interface_in_list(const list_t *list, int interface_no)
 {
-	list_foreach(*list, l) {
-		const usbmid_interface_t *iface = usbmid_interface_from_link(l);
+	list_foreach(*list, link, const usbmid_interface_t, iface) {
 		if (iface->interface_no == interface_no) {
 			return true;
 		}

@@ -97,6 +97,12 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 int arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
     addr48_t mac_addr)
 {
+	/* Broadcast address */
+	if (ip_addr == addr32_broadcast_all_hosts) {
+		addr48(addr48_broadcast, mac_addr);
+		return EOK;
+	}
+
 	int rc = atrans_lookup(ip_addr, mac_addr);
 	if (rc == EOK)
 		return EOK;

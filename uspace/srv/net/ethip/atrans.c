@@ -50,10 +50,7 @@ static FIBRIL_CONDVAR_INITIALIZE(atrans_cv);
 
 static ethip_atrans_t *atrans_find(addr32_t ip_addr)
 {
-	list_foreach(atrans_list, link) {
-		ethip_atrans_t *atrans = list_get_instance(link,
-		    ethip_atrans_t, atrans_list);
-
+	list_foreach(atrans_list, atrans_list, ethip_atrans_t, atrans) {
 		if (atrans->ip_addr == ip_addr)
 			return atrans;
 	}

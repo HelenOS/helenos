@@ -83,6 +83,7 @@ int udp_transmit_pdu(udp_pdu_t *pdu)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_transmit_pdu()");
 
+	dgram.iplink = pdu->iplink;
 	dgram.src = pdu->src;
 	dgram.dest = pdu->dest;
 	dgram.tos = 0;
