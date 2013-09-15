@@ -52,7 +52,7 @@
 #define MAX_MSG_SIZE 1024
 
 static int transport_fd = -1;
-static addr48_t mac_addr;
+static inet_link_info_t link_info;
 static uint8_t msgbuf[MAX_MSG_SIZE];
 
 typedef struct {
@@ -131,7 +131,7 @@ static int dhcp_send_discover(void)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 
-	addr48(mac_addr, hdr->chaddr);
+	addr48(link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	opt[0] = opt_msg_type;
@@ -177,7 +177,7 @@ static int dhcp_send_request(dhcp_offer_t *offer)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 	hdr->ciaddr = host2uint32_t_be(offer->oaddr.addr);
-	addr48(mac_addr, hdr->chaddr);
+	addr48(link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	i = 0;
@@ -386,7 +386,7 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	if (offer->dns_server.addr != 0) {
 		rc = dnsr_set_srvaddr(&offer->dns_server);
 		if (rc != EOK) {
-			printf("%s: Failed setting nameserver address (%d))\n",
+			printf("%s: Error setting nameserver address (%d))\n",
 			    NAME, rc);
 			return rc;
 		}
@@ -412,23 +412,22 @@ int main(int argc, char *argv[])
 
 	rc = inetcfg_init();
 	if (rc != EOK) {
-		printf("Failed contacting inet configuration service.\n");
+		printf("Error contacting inet configuration service.\n");
 		return 1;
 	}
 
 	rc = loc_service_get_id(argv[1], &iplink, 0);
 	if (rc != EOK) {
-		printf("Failed resolving service '%s'.\n", argv[1]);
+		printf("Error resolving service '%s'.\n", argv[1]);
 		return 1;
 	}
 
-	/* XXX Determine MAC address automatically */
-	mac_addr[0] = 0xaa;
-	mac_addr[1] = 0xde;
-	mac_addr[2] = 0xad;
-	mac_addr[3] = 0xbe;
-	mac_addr[4] = 0xef;
-	mac_addr[5] = 0xfe;
+	/* Get link hardware address */
+	rc = inetcfg_link_get(iplink, &link_info);
+	if (rc != EOK) {
+		printf("Error getting properties for link '%s'.\n", argv[1]);
+		return 1;
+	}
 
 	laddr.sin_family = AF_INET;
 	laddr.sin_port = htons(dhcp_client_port);
