@@ -49,7 +49,7 @@
 #define HEADER_TABLE 	"Filesystem     %4u-blocks           Used      Available Used%% Mounted on"
 #define HEADER_TABLE_HR "Filesystem           Size           Used      Available Used%% Mounted on"
 
-#define PERCENTAGE(x, tot) ((unsigned long long) (100L * (x) / (tot)))
+#define PERCENTAGE(x, tot) (tot ? (100ULL * (x) / (tot)) : 0)
 #define FSBK_TO_BK(x, fsbk, bk) \
 	(((fsbk) != 0 && (fsbk) < (bk)) ? \
 		(unsigned long long) ((x) / ((bk) / (fsbk))) : \
@@ -58,7 +58,7 @@
 static unsigned int unit_size;
 static unsigned int human_readable;
 
-static int size_to_human_readable(char buf[], uint64_t bytes);
+static void size_to_human_readable(char *buf, uint64_t bytes);
 static void print_header(void);
 static void print_statfs(struct statfs *, char *, char *);
 static void print_usage(void);
@@ -89,7 +89,8 @@ int main(int argc, char *argv[])
 			break;
  
 		case ':':
-			fprintf(stderr, "Option -%c requires an operand\n", optopt);
+			fprintf(stderr, "Option -%c requires an operand\n",
+			    optopt);
 			errflg++;
 			break;
 
@@ -99,14 +100,15 @@ int main(int argc, char *argv[])
 			break;
 
 		default:
-			fprintf(stderr, "Unknown error while parsing command line options.");
+			fprintf(stderr,
+			    "Unknown error while parsing command line options");
 			errflg++;
 			break;
 		}
 	}
 
 	if (optind > argc) {
-		fprintf(stderr, "Too many input parameter\n");
+		fprintf(stderr, "Too many input parameters\n");
 		errflg++;
 	}
 
@@ -117,31 +119,28 @@ int main(int argc, char *argv[])
 
 	LIST_INITIALIZE(mtab_list);
 	get_mtab_list(&mtab_list);
+
 	print_header();
 	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		statfs(mtab_ent->mp, &st);
 		print_statfs(&st, mtab_ent->fs_name, mtab_ent->mp);
 	}
+
 	putchar('\n');
 	return 0;
 }
 
-static int size_to_human_readable(char buf[], uint64_t bytes)
+static void size_to_human_readable(char *buf, uint64_t bytes)
 {
 	const char *units = "BkMGTPEZY";
 	int i = 0;
-	int limit;
 
-	limit = str_length(units);
 	while (bytes >= 1024) {
-		if (i >= limit) 
-			return -1;
 		bytes /= 1024;
 		i++;
 	}
-	snprintf(buf, 6, "%4llu%c", (unsigned long long)bytes, units[i]);
 
-	return 0;
+	snprintf(buf, 6, "%4llu%c", (unsigned long long) bytes, units[i]);
 }
 
 static void print_header(void)
@@ -150,34 +149,47 @@ static void print_header(void)
 		printf(HEADER_TABLE_HR);
 	else
 		printf(HEADER_TABLE, unit_size);
+
 	putchar('\n');
 }
 
 static void print_statfs(struct statfs *st, char *name, char *mountpoint)
 {
+	uint64_t const used_blocks = st->f_blocks - st->f_bfree;
+	unsigned const perc_used = PERCENTAGE(used_blocks, st->f_blocks);
+
 	printf("%10s", name);
 
 	if (human_readable) {
 		char tmp[1024];
+
+		/* Print size */
 		size_to_human_readable(tmp, st->f_blocks *  st->f_bsize);
-		printf(" %14s", tmp);                                                                  /* Size       */
-		size_to_human_readable(tmp, (st->f_blocks - st->f_bfree)  *  st->f_bsize);
-		printf(" %14s", tmp);                                                                  /* Used       */
+		printf(" %14s", tmp);
+
+		/* Number of used blocks */
+		size_to_human_readable(tmp, used_blocks  *  st->f_bsize);
+		printf(" %14s", tmp);
+
+		/* Number of available blocks */
 		size_to_human_readable(tmp, st->f_bfree *  st->f_bsize);
-		printf(" %14s", tmp);                                                                  /* Available  */
-		printf(" %4llu%% %s\n", 
-			(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
-			mountpoint                                                                     /* Mounted on */
-		);
+		printf(" %14s", tmp);
+
+		/* Percentage of used blocks */
+		printf(" %4llu%%", 
+		    PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks));
+
+		/* Mount point */
+		printf(" %s\n", mountpoint);
+	} else {
+		/* Blocks / Used blocks / Available blocks / Used% / Mounted on */
+		printf(" %15llu %14llu %14llu %4u%% %s\n", 
+		    FSBK_TO_BK(st->f_blocks, st->f_bsize, unit_size),
+		    FSBK_TO_BK(used_blocks, st->f_bsize, unit_size),
+		    FSBK_TO_BK(st->f_bfree, st->f_bsize, unit_size),
+		    perc_used,
+		    mountpoint);
 	}
-	else
-		printf(" %15llu %14llu %14llu %4llu%% %s\n", 
-			FSBK_TO_BK(st->f_blocks, st->f_bsize, unit_size),                              /* Blocks     */
-			FSBK_TO_BK(st->f_blocks - st->f_bfree, st->f_bsize, unit_size),                /* Used       */
-			FSBK_TO_BK(st->f_bfree, st->f_bsize, unit_size),                               /* Available  */
-			(st->f_blocks)?PERCENTAGE(st->f_blocks - st->f_bfree, st->f_blocks):0L,        /* Used%      */
-			mountpoint                                                                     /* Mounted on */
-		);
 
 }
 
