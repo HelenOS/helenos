@@ -892,43 +892,30 @@ exit:
 	return rc;
 }
 
-int statfs(const char *path, struct statfs *statfs)
+int statfs(const char *path, struct statfs *st)
 {
-	sysarg_t rc;
-	sysarg_t rc_orig;
+	sysarg_t rc, rc_orig;
 	aid_t req;
 	size_t pa_size;
-	
+
 	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
+
 	async_exch_t *exch = vfs_exchange_begin();
-	
+
 	req = async_send_0(exch, VFS_IN_STATFS, NULL);
 	rc = async_data_write_start(exch, pa, pa_size);
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
-	rc = async_data_read_start(exch, (void *) statfs, sizeof(struct statfs));
-	if (rc != EOK) {
-		vfs_exchange_end(exch);
-		free(pa);
-		async_wait_for(req, &rc_orig);
-		if (rc_orig == EOK)
-			return (int) rc;
-		else
-			return (int) rc_orig;
-	}
+	if (rc != EOK)
+		goto exit;
+
+	rc = async_data_read_start(exch, (void *) st, sizeof(*st));
+
+exit:
 	vfs_exchange_end(exch);
 	free(pa);
-	async_wait_for(req, &rc);
-	return rc;
+	async_wait_for(req, &rc_orig);
+	return (int) (rc_orig != EOK ? rc_orig : rc);
 }
 
 /** @}
