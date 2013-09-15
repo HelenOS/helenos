@@ -141,6 +141,31 @@ NO_TRACE static inline uint32_t psr_read()
 	return v;
 }
 
+NO_TRACE static inline uint32_t asi_u32_read(int asi, uintptr_t va)
+{
+	uint32_t v;
+
+	asm volatile (
+		"lda [%[va]] %[asi], %[v]\n"
+		: [v] "=r" (v)
+		: [va] "r" (va),
+		  [asi] "i" ((unsigned int) asi)
+	);
+	
+	return v;
+}
+
+NO_TRACE static inline void asi_u32_write(int asi, uintptr_t va, uint32_t v)
+{
+	asm volatile (
+		"sta %[v], [%[va]] %[asi]\n"
+		:: [v] "r" (v),
+		   [va] "r" (va),
+		   [asi] "i" ((unsigned int) asi)
+		: "memory"
+	);
+}
+
 NO_TRACE static inline void psr_write(uint32_t psr)
 {
 	asm volatile (

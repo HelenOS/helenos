@@ -47,7 +47,7 @@ static void frame_common_arch_init(bool low)
 
 	//machine_get_memory_extents(&base, &size);
 	base = 0x40000000;
-	size = 0x2000000;
+	size = 0x4000000;
 
 	base = ALIGN_UP(base, FRAME_SIZE);
 	size = ALIGN_DOWN(size, FRAME_SIZE);

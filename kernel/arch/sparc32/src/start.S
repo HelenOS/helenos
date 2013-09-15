@@ -50,6 +50,7 @@ kernel_image_start:
 	mov	%sp, %fp
 	sub	%sp, 96, %sp
 
+	mov	%o1, %i0
 	call arch_pre_main
 	nop
 

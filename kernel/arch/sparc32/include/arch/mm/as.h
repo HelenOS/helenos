@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32lemm
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_AS_H_
-#define KERN_abs32le_AS_H_
+#ifndef KERN_sparc32_AS_H_
+#define KERN_sparc32_AS_H_
 
 #define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
 
@@ -50,9 +51,10 @@ typedef struct {
 #define as_constructor_arch(as, flags)  (as != as)
 #define as_destructor_arch(as)          (as != as)
 #define as_create_arch(as, flags)       (as != as)
-#define as_install_arch(as)
 #define as_deinstall_arch(as)
 #define as_invalidate_translation_cache(as, page, cnt)
+
+uintptr_t as_context_table;
 
 extern void as_arch_init(void);
 

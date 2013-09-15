@@ -26,21 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abc32lemm
+/** @addtogroup sparc32mm
  * @{
  */
 
-#ifndef KERN_abs32le_ASID_H_
-#define KERN_abs32le_ASID_H_
+#ifndef KERN_sparc32_ASID_H_
+#define KERN_sparc32_ASID_H_
 
 #include <typedefs.h>
 
 typedef uint32_t asid_t;
 
-#define ASID_MAX_ARCH  3
-
-#define asid_get()      (ASID_START + 1)
-#define asid_put(asid)
+#define ASID_MAX_ARCH  255
 
 #endif
 

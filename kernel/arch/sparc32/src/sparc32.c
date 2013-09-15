@@ -48,13 +48,24 @@
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
+#include <macros.h>
 #include <memstr.h>
+#include <str.h>
 
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;
 
-void arch_pre_main(void)
+void arch_pre_main(bootinfo_t *bootinfo)
 {
+	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	
+	size_t i;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
+		init.tasks[i].size = bootinfo->tasks[i].size;
+		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
+		    bootinfo->tasks[i].name);
+	}
 }
 
 void arch_pre_mm_init(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32lemm
+/** @addtogroup sparc32mm
  * @{
  */
 
 #include <mm/as.h>
+#include <arch/arch.h>
+#include <arch/asm.h>
 #include <arch/mm/as.h>
+#include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
+
+static ptd_t context_table[ASID_MAX_ARCH] __attribute__((aligned (1024)));
 
 void as_arch_init(void)
 {
 	as_operations = &as_pt_operations;
+	as_context_table = (uintptr_t)&context_table;
+}
+
+void as_install_arch(as_t *as)
+{
+	printf("as_install_arch(asid=%d)\n", as->asid);
+	printf("genarch.page_table=%p\n", as->genarch.page_table);
+
+	context_table[as->asid].table_pointer = (uintptr_t)as->genarch.page_table >> 6;
+	context_table[as->asid].et = PTE_ET_DESCRIPTOR;
+	asi_u32_write(ASI_MMUREGS, 0x200, as->asid);
 }
 
 /** @}

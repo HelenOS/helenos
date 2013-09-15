@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,31 @@
 
 #ifndef __ASM__
 
-void arch_pre_main(void);
+#include <typedefs.h>
+
+/* ASI assignments: */
+#define	ASI_CACHEMISS	0x01
+#define	ASI_CACHECTRL	0x02
+#define	ASI_MMUREGS	0x19
+#define	ASI_MMUBYPASS	0x1c
+
+#define TASKMAP_MAX_RECORDS  32
+#define CPUMAP_MAX_RECORDS   32
+
+#define BOOTINFO_TASK_NAME_BUFLEN 32
+
+typedef struct {
+	void *addr;
+	size_t size;
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
+} utask_t;
+
+typedef struct {
+	size_t cnt;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} bootinfo_t;
+
+void arch_pre_main(bootinfo_t *bootinfo);
 
 #endif
 

@@ -76,13 +76,22 @@ page_mapping_operations_t pt_mapping_operations = {
 void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
+	//printf("pt_mapping_insert: as=%p, page=0x%08x, frame=0x%08x\n", as, page, frame);
+
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
+	//printf("ptl0 = %p\n", ptl0);
+
 	ASSERT(page_table_locked(as));
-	
+
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
+	//	printf("allocating ptl1\n");
+
 		pte_t *newpt = (pte_t *) frame_alloc(PTL1_SIZE,
 		    FRAME_LOWMEM | FRAME_KA);
+
+	//	printf("newpt = %p, index = %d\n", newpt, PTL0_INDEX(page));
+
 		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
@@ -99,9 +108,16 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	
+//	printf("ptl1 = %p\n", ptl1);
+
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
+//		printf("allocating ptl2\n");
+
 		pte_t *newpt = (pte_t *) frame_alloc(PTL2_SIZE,
 		    FRAME_LOWMEM | FRAME_KA);
+
+//		printf("newpt = %p, index = %d\n", newpt, PTL1_INDEX(page));
+
 		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
@@ -116,9 +132,16 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	
+//	printf("ptl2 = %p\n", ptl2);
+
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
+//		printf("allocating ptl3\n");
+
 		pte_t *newpt = (pte_t *) frame_alloc(PTL3_SIZE,
 		    FRAME_LOWMEM | FRAME_KA);
+
+//		printf("newpt = %p, index = %d\n", newpt, PTL2_INDEX(page));
+
 		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
@@ -133,6 +156,8 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
+//	printf("ptl3 = %p\n", ptl3);
+
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags | PAGE_NOT_PRESENT);
 	/*

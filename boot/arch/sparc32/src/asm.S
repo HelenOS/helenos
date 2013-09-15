@@ -52,5 +52,6 @@ boot_stack:
 
 jump_to_kernel:
 	set 0x80a00000, %l0
+	
 	jmp %l0
 	nop

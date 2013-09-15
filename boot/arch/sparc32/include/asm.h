@@ -56,6 +56,6 @@ static inline void asi_u32_write(int asi, uintptr_t va, uint32_t v)
 	);
 }
 
-extern void jump_to_kernel(void *entry);
+extern void jump_to_kernel(void *entry, bootinfo_t *bootinfo);
 
 #endif

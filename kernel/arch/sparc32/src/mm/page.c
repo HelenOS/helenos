@@ -48,11 +48,35 @@
 #include <memstr.h>
 #include <print.h>
 #include <interrupt.h>
+#include <macros.h>
 
 void page_arch_init(void)
 {
-	if (config.cpu_active == 1)
-		page_mapping_operations = &pt_mapping_operations;
+	int flags = PAGE_CACHEABLE | PAGE_EXEC;
+	page_mapping_operations = &pt_mapping_operations;
+
+	page_table_lock(AS_KERNEL, true);
+	
+	/* Kernel identity mapping */
+	//FIXME: We need to consider the possibility that
+	//identity_base > identity_size and physmem_end.
+	//This might lead to overflow if identity_size is too big.
+	for (uintptr_t cur = PHYSMEM_START_ADDR;
+	    cur < min(KA2PA(config.identity_base) +
+	        config.identity_size, config.physmem_end);
+	    cur += FRAME_SIZE)
+		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
+	
+
+	page_table_unlock(AS_KERNEL, true);
+	as_switch(NULL, AS_KERNEL);
+
+	printf("as_context_table=0x%08x\n", as_context_table);
+
+	/* Switch MMU to new context table */
+	asi_u32_write(ASI_MMUREGS, 0x100, KA2PA(as_context_table) >> 4);
+
+	//boot_page_table_free();
 }
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)

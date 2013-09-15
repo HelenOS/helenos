@@ -119,7 +119,7 @@ void bootstrap(void)
 	}
 
 	printf("Booting the kernel ... \n");
-	jump_to_kernel((void *) PA2KA(BOOT_OFFSET));
+	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
 }
 
 /** @}
