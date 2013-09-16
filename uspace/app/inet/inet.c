@@ -311,6 +311,52 @@ out:
 	return EOK;
 }
 
+static int link_list(void)
+{
+	sysarg_t *link_list;
+	inet_link_info_t linfo;
+
+	size_t count;
+	size_t i;
+	int rc;
+
+	rc = inetcfg_get_link_list(&link_list, &count);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting link list.\n");
+		return rc;
+	}
+
+	printf("IP links:\n");
+	if (count > 0)
+		printf("    [Link-layer Address] [Link-Name] [Def-MTU]\n");
+
+	for (i = 0; i < count; i++) {
+		rc = inetcfg_link_get(link_list[i], &linfo);
+		if (rc != EOK) {
+			printf("Failed getting properties of link %zu.\n",
+			    (size_t)link_list[i]);
+			continue;
+		}
+
+		printf("    %02x:%02x:%02x:%02x:%02x:%02x %s %zu\n",
+		    linfo.mac_addr[0], linfo.mac_addr[1],
+		    linfo.mac_addr[2], linfo.mac_addr[3],
+		    linfo.mac_addr[4], linfo.mac_addr[5],
+		    linfo.name, linfo.def_mtu);
+
+		free(linfo.name);
+
+		linfo.name = NULL;
+	}
+
+	if (count == 0)
+		printf("    None\n");
+
+	free(link_list);
+
+	return EOK;
+}
+
 static int sroute_list(void)
 {
 	sysarg_t *sroute_list;
@@ -401,6 +447,9 @@ int main(int argc, char *argv[])
 		if (rc != EOK)
 			return 1;
 		rc = sroute_list();
+		if (rc != EOK)
+			return 1;
+		rc = link_list();
 		if (rc != EOK)
 			return 1;
 		return 0;

@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <sys/types.h>
+#include <types/inetcfg.h>
 
 #include "addrobj.h"
 #include "inetsrv.h"
@@ -150,7 +151,7 @@ static int inetcfg_get_addr_list(sysarg_t **addrs, size_t *count)
 
 static int inetcfg_get_link_list(sysarg_t **addrs, size_t *count)
 {
-	return ENOTSUP;
+	return inet_link_get_id_list(addrs, count);
 }
 
 static int inetcfg_get_sroute_list(sysarg_t **sroutes, size_t *count)
@@ -169,6 +170,12 @@ static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 
 	linfo->name = str_dup(ilink->svc_name);
 	linfo->def_mtu = ilink->def_mtu;
+	if (ilink->mac_valid) {
+		addr48(ilink->mac, linfo->mac_addr);
+	} else {
+		memset(linfo->mac_addr, 0, sizeof(linfo->mac_addr));
+	}
+
 	return EOK;
 }
 
@@ -410,13 +417,14 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_callid_t rcallid;
+	size_t count;
 	size_t max_size;
 	size_t act_size;
 	size_t size;
 	sysarg_t *id_buf;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_link_list_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_addr_list_srv()");
 
 	if (!async_data_read_receive(&rcallid, &max_size)) {
 		async_answer_0(rcallid, EREFUSED);
@@ -424,13 +432,14 @@ static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = inetcfg_get_link_list(&id_buf, &act_size);
+	rc = inetcfg_get_link_list(&id_buf, &count);
 	if (rc != EOK) {
 		async_answer_0(rcallid, rc);
 		async_answer_0(callid, rc);
 		return;
 	}
 
+	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
 	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
@@ -475,8 +484,10 @@ static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
 
 static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 {
-	ipc_callid_t rcallid;
-	size_t max_size;
+	ipc_callid_t name_callid;
+	ipc_callid_t laddr_callid;
+	size_t name_max_size;
+	size_t laddr_max_size;
 
 	sysarg_t link_id;
 	inet_link_info_t linfo;
@@ -487,21 +498,38 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 
 	linfo.name = NULL;
 
-	if (!async_data_read_receive(&rcallid, &max_size)) {
-		async_answer_0(rcallid, EREFUSED);
+	if (!async_data_read_receive(&name_callid, &name_max_size)) {
+		async_answer_0(name_callid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
+		return;
+	}
+
+	if (!async_data_read_receive(&laddr_callid, &laddr_max_size)) {
+		async_answer_0(name_callid, EREFUSED);
 		async_answer_0(callid, EREFUSED);
 		return;
 	}
 
 	rc = inetcfg_link_get(link_id, &linfo);
 	if (rc != EOK) {
-		async_answer_0(rcallid, rc);
+		async_answer_0(laddr_callid, rc);
+		async_answer_0(name_callid, rc);
 		async_answer_0(callid, rc);
 		return;
 	}
 
-	sysarg_t retval = async_data_read_finalize(rcallid, linfo.name,
-	    min(max_size, str_size(linfo.name)));
+	sysarg_t retval = async_data_read_finalize(name_callid, linfo.name,
+	    min(name_max_size, str_size(linfo.name)));
+	if (retval != EOK) {
+		free(linfo.name);
+		async_answer_0(laddr_callid, retval);
+		async_answer_0(callid, retval);
+		return;
+	}
+
+	retval = async_data_read_finalize(laddr_callid, &linfo.mac_addr,
+	    min(laddr_max_size, sizeof(linfo.mac_addr)));
+
 	free(linfo.name);
 
 	async_answer_1(callid, retval, linfo.def_mtu);
