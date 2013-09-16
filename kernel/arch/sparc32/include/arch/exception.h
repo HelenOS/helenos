@@ -58,9 +58,13 @@ extern void instruction_access_error(int n, istate_t *istate);
 extern void illegal_instruction(int n, istate_t *istate);
 extern void privileged_instruction(int n, istate_t *istate);
 extern void fp_disabled(int n, istate_t *istate);
+extern void fp_exception(int n, istate_t *istate);
+extern void tag_overflow(int n, istate_t *istate);
 extern void division_by_zero(int n, istate_t *istate);
 extern void data_access_exception(int n, istate_t *istate);
 extern void data_access_error(int n, istate_t *istate);
+extern void data_access_mmu_miss(int n, istate_t *istate);
+extern void data_store_error(int n, istate_t *istate);
 extern void mem_address_not_aligned(int n, istate_t *istate);
 
 #endif /* !__ASM__ */
