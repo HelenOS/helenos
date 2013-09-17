@@ -33,6 +33,9 @@ LSONAME = libhttp.so0
 #EXTRA_CFLAGS += 
 
 SOURCES = \
-	http.c
+	http.c \
+	headers.c \
+	request.c \
+	response.c
 
 include $(USPACE_PREFIX)/Makefile.common
