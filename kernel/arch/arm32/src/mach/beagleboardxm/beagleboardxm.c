@@ -84,11 +84,12 @@ static irq_ownership_t bb_timer_irq_claim(irq_t *irq)
 
 static void bb_timer_irq_handler(irq_t *irq)
 {
+	amdm37x_gpt_irq_ack(&beagleboard.timer);
+
         /*
          * We are holding a lock which prevents preemption.
          * Release the lock, call clock() and reacquire the lock again.
          */
-	amdm37x_gpt_irq_ack(&beagleboard.timer);
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);
@@ -146,7 +147,6 @@ static void bbxm_get_memory_extents(uintptr_t *start, size_t *size)
 static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	const unsigned inum = amdm37x_irc_inum_get(beagleboard.irc_addr);
-	amdm37x_irc_irq_ack(beagleboard.irc_addr);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -158,6 +158,9 @@ static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 		printf("cpu%d: spurious interrupt (inum=%d)\n",
 		    CPU->id, inum);
 	}
+	/** amdm37x manual ch. 12.5.2 (p. 2428) places irc ack at the end
+	 * of ISR. DO this to avoid strange behavior. */
+	amdm37x_irc_irq_ack(beagleboard.irc_addr);
 }
 
 static void bbxm_frame_init(void)

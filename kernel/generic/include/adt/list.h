@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ typedef struct list {
 	}
 
 #define list_get_instance(link, type, member) \
-	((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
+	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
 
 #define list_foreach(list, iterator) \
 	for (link_t *iterator = (list).head.next; \
@@ -278,6 +278,15 @@ static inline link_t *list_nth(list_t *list, unsigned int n)
 	}
 	
 	return NULL;
+}
+
+/** Verify that argument type is a pointer to link_t (at compile time).
+ *
+ * This can be used to check argument type in a macro.
+ */
+static inline const void *list_link_to_void(const link_t *link)
+{
+	return link;
 }
 
 extern int list_member(const link_t *, const list_t *);

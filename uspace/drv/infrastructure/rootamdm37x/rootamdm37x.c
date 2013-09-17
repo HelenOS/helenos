@@ -47,14 +47,25 @@
 #define NAME  "rootamdm37x"
 
 typedef struct {
+	const char *name;
+	match_id_t match_id;
 	hw_resource_list_t hw_resources;
 } rootamdm37x_fun_t;
 
-/* See amdm37x TRM page. 3316 for these values */
-#define OHCI_BASE_ADDRESS  0x48064400
-#define OHCI_SIZE  1024
-#define EHCI_BASE_ADDRESS  0x48064800
-#define EHCI_SIZE  1024
+/* See amdm37x TRM page 3316 for these values */
+#define OHCI_BASE_ADDRESS   0x48064400
+#define OHCI_SIZE   1024
+#define EHCI_BASE_ADDRESS   0x48064800
+#define EHCI_SIZE   1024
+
+/* See amdm37x TRM page 1813 for these values */
+#define DSS_BASE_ADDRESS   0x48050000
+#define DSS_SIZE   512
+#define DISPC_BASE_ADDRESS   0x48050400
+#define DISPC_SIZE   1024
+#define VIDEO_ENC_BASE_ADDRESS   0x48050C00
+#define VIDEO_ENC_SIZE   256
+
 
 static hw_resource_t ohci_res[] = {
 	{
@@ -87,19 +98,55 @@ static hw_resource_t ehci_res[] = {
 	},
 };
 
-static const rootamdm37x_fun_t ohci = {
-	.hw_resources = {
-	    .resources = ohci_res,
-	    .count = sizeof(ohci_res)/sizeof(ohci_res[0]),
-	}
+static hw_resource_t disp_res[] = {
+	{
+		.type = MEM_RANGE,
+		.res.io_range = {
+			.address = DSS_BASE_ADDRESS,
+			.size = DSS_SIZE,
+			.endianness = LITTLE_ENDIAN
+		},
+	},
+	{
+		.type = MEM_RANGE,
+		.res.io_range = {
+			.address = DISPC_BASE_ADDRESS,
+			.size = DISPC_SIZE,
+			.endianness = LITTLE_ENDIAN
+		},
+	},
+	{
+		.type = MEM_RANGE,
+		.res.io_range = {
+			.address = VIDEO_ENC_BASE_ADDRESS,
+			.size = VIDEO_ENC_SIZE,
+			.endianness = LITTLE_ENDIAN
+		},
+	},
+	{
+		.type = INTERRUPT,
+		.res.interrupt = { .irq = 25 },
+	},
 };
 
-static const rootamdm37x_fun_t ehci = {
-	.hw_resources = {
-	    .resources = ehci_res,
-	    .count = sizeof(ehci_res) / sizeof(ehci_res[0]),
-	}
+static const rootamdm37x_fun_t amdm37x_funcs[] = {
+{
+	.name = "ohci",
+	.match_id = { .id = "usb/host=ohci", .score = 90 },
+	.hw_resources = { .resources = ohci_res, .count = ARRAY_SIZE(ohci_res) }
+},
+{
+	.name = "ehci",
+	.match_id = { .id = "usb/host=ehci", .score = 90 },
+	.hw_resources = { .resources = ehci_res, .count = ARRAY_SIZE(ehci_res) }
+},
+{
+	.name = "fb",
+	.match_id = { .id = "amdm37x&dispc", .score = 90 },
+	.hw_resources = { .resources = disp_res, .count = ARRAY_SIZE(disp_res) }
+},
 };
+
 
 static hw_resource_list_t *rootamdm37x_get_resources(ddf_fun_t *fnode);
 static bool rootamdm37x_enable_interrupt(ddf_fun_t *fun);
@@ -113,18 +160,21 @@ static ddf_dev_ops_t rootamdm37x_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static int rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
-    const char *str_match_id, const rootamdm37x_fun_t *fun)
+static int rootamdm37x_add_fun(ddf_dev_t *dev, const rootamdm37x_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
-	
+	assert(dev);
+	assert(fun);
+
+	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", fun->name);
+
 	/* Create new device function. */
-	ddf_fun_t *fnode = ddf_fun_create(dev, fun_inner, name);
+	ddf_fun_t *fnode = ddf_fun_create(dev, fun_inner, fun->name);
 	if (fnode == NULL)
 		return ENOMEM;
 	
 	/* Add match id */
-	int ret = ddf_fun_add_match_id(fnode, str_match_id, 100);
+	int ret = ddf_fun_add_match_id(fnode,
+	    fun->match_id.id, fun->match_id.score);
 	if (ret != EOK) {
 		ddf_fun_destroy(fnode);
 		return ret;
@@ -145,7 +195,7 @@ static int rootamdm37x_add_fun(ddf_dev_t *dev, const char *name,
 	/* Register function. */
 	ret = ddf_fun_bind(fnode);
 	if (ret != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
+		ddf_msg(LVL_ERROR, "Failed binding function %s.", fun->name);
 		ddf_fun_destroy(fnode);
 		return ret;
 	}
@@ -188,16 +238,11 @@ static int rootamdm37x_dev_add(ddf_dev_t *dev)
 	}
 
 	/* Register functions */
-	if (rootamdm37x_add_fun(dev, "ohci", "usb/host=ohci", &ohci) != EOK)
-		ddf_msg(LVL_ERROR, "Failed to add OHCI function for "
-		    "BeagleBoard-xM platform.");
-	if (rootamdm37x_add_fun(dev, "ehci", "usb/host=ehci", &ehci) != EOK)
-		ddf_msg(LVL_ERROR, "Failed to add EHCI function for "
-		    "BeagleBoard-xM platform.");
-	if (rootamdm37x_add_fun(dev, "dispc", "amdm37x&dispc", &ehci) != EOK)
-		ddf_msg(LVL_ERROR, "Failed to add dispc function for "
-		    "BeagleBoard-xM platform.");
-
+	for (unsigned i = 0; i < ARRAY_SIZE(amdm37x_funcs); ++i) {
+		if (rootamdm37x_add_fun(dev, &amdm37x_funcs[i]) != EOK)
+			ddf_msg(LVL_ERROR, "Failed to add %s function for "
+			    "BeagleBoard-xM platform.", amdm37x_funcs[i].name);
+	}
 	return EOK;
 }
 

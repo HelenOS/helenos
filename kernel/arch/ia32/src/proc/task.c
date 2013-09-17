@@ -39,22 +39,24 @@
 
 /** Perform ia32 specific task initialization.
  *
- * @param t Task to be initialized.
+ * @param task Task to be initialized.
+ *
  */
-void task_create_arch(task_t *t)
+void task_create_arch(task_t *task)
 {
-	t->arch.iomapver = 0;
-	bitmap_initialize(&t->arch.iomap, NULL, 0);
+	task->arch.iomapver = 0;
+	bitmap_initialize(&task->arch.iomap, 0, 0, NULL);
 }
 
 /** Perform ia32 specific task destruction.
  *
- * @param t Task to be initialized.
+ * @param task Task to be initialized.
+ *
  */
-void task_destroy_arch(task_t *t)
+void task_destroy_arch(task_t *task)
 {
-	if (t->arch.iomap.map)
-		free(t->arch.iomap.map);
+	if (task->arch.iomap.bits != NULL)
+		free(task->arch.iomap.bits);
 }
 
 /** @}

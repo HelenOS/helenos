@@ -34,7 +34,16 @@
  * @brief Implementation of bitmap ADT.
  *
  * This file implements bitmap ADT and provides functions for
- * setting and clearing ranges of bits.
+ * setting and clearing ranges of bits and for finding ranges
+ * of unset bits.
+ *
+ * The bitmap ADT can optionally implement a two-level hierarchy
+ * for faster range searches. The second level bitmap (of blocks)
+ * is not precise, but conservative. This means that if the block
+ * bit is set, it guarantees that all bits in the block are set.
+ * But if the block bit is unset, nothing can be said about the
+ * bits in the block.
+ *
  */
 
 #include <adt/bitmap.h>
@@ -43,132 +52,230 @@
 #include <debug.h>
 #include <macros.h>
 
-#define ALL_ONES 	0xff
-#define ALL_ZEROES	0x00
+#define ALL_ONES    0xff
+#define ALL_ZEROES  0x00
+
+/** Get bitmap size
+ *
+ * Return the size (in bytes) required for the bitmap.
+ *
+ * @param elements   Number bits stored in bitmap.
+ * @param block_size Block size of the 2nd level bitmap.
+ *                   If set to zero, no 2nd level is used.
+ *
+ * @return Size (in bytes) required for the bitmap.
+ *
+ */
+size_t bitmap_size(size_t elements, size_t block_size)
+{
+	size_t size = elements / BITMAP_ELEMENT;
+	
+	if ((elements % BITMAP_ELEMENT) != 0)
+		size++;
+	
+	if (block_size > 0) {
+		size += elements / block_size;
+		
+		if ((elements % block_size) != 0)
+			size++;
+	}
+	
+	return size;
+}
 
 /** Initialize bitmap.
  *
  * No portion of the bitmap is set or cleared by this function.
  *
- * @param bitmap	Bitmap structure.
- * @param map		Address of the memory used to hold the map.
- * @param bits		Number of bits stored in bitmap.
+ * @param bitmap     Bitmap structure.
+ * @param elements   Number of bits stored in bitmap.
+ * @param block_size Block size of the 2nd level bitmap.
+ *                   If set to zero, no 2nd level is used.
+ * @param data       Address of the memory used to hold the map.
+ *                   The optional 2nd level bitmap follows the 1st
+ *                   level bitmap.
+ *
  */
-void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, size_t bits)
+void bitmap_initialize(bitmap_t *bitmap, size_t elements, size_t block_size,
+    void *data)
 {
-	bitmap->map = map;
-	bitmap->bits = bits;
+	bitmap->elements = elements;
+	bitmap->bits = (uint8_t *) data;
+	
+	if (block_size > 0) {
+		bitmap->block_size = block_size;
+		bitmap->blocks = bitmap->bits +
+		    bitmap_size(elements, 0);
+	} else {
+		bitmap->block_size = 0;
+		bitmap->blocks = NULL;
+	}
 }
 
-/** Set range of bits.
- *
- * @param bitmap	Bitmap structure.
- * @param start		Starting bit.
- * @param bits		Number of bits to set.
- */
-void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
+static void bitmap_set_range_internal(uint8_t *bits, size_t start, size_t count)
 {
-	size_t i = 0;
-	size_t aligned_start;
-	size_t lub;	/* leading unaligned bits */
-	size_t amb;	/* aligned middle bits */
-	size_t tab;	/* trailing aligned bits */
-	
-	ASSERT(start + bits <= bitmap->bits);
-	
-	aligned_start = ALIGN_UP(start, 8);
-	lub = min(aligned_start - start, bits);
-	amb = bits > lub ? bits - lub : 0;
-	tab = amb % 8;
-	
-	if (!bits)
+	if (count == 0)
 		return;
-
-	if (start + bits < aligned_start) {
+	
+	size_t aligned_start = ALIGN_UP(start, BITMAP_ELEMENT);
+	
+	/* Leading unaligned bits */
+	size_t lub = min(aligned_start - start, count);
+	
+	/* Aligned middle bits */
+	size_t amb = (count > lub) ? (count - lub) : 0;
+	
+	/* Trailing aligned bits */
+	size_t tab = amb % BITMAP_ELEMENT;
+	
+	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte. */
-		bitmap->map[start / 8] |= ((1 << lub) - 1) << (start & 7);
+		bits[start / BITMAP_ELEMENT] |=
+		    ((1 << lub) - 1) << (start & BITMAP_REMAINER);
 		return;
 	}
 	
 	if (lub) {
 		/* Make sure to set any leading unaligned bits. */
-		bitmap->map[start / 8] |= ~((1 << (8 - lub)) - 1);
-	}
-	for (i = 0; i < amb / 8; i++) {
-		/* The middle bits can be set byte by byte. */
-		bitmap->map[aligned_start / 8 + i] = ALL_ONES;
-	}
-	if (tab) {
-		/* Make sure to set any trailing aligned bits. */
-		bitmap->map[aligned_start / 8 + i] |= (1 << tab) - 1;
+		bits[start / BITMAP_ELEMENT] |=
+		    ~((1 << (BITMAP_ELEMENT - lub)) - 1);
 	}
 	
+	size_t i;
+	
+	for (i = 0; i < amb / BITMAP_ELEMENT; i++) {
+		/* The middle bits can be set byte by byte. */
+		bits[aligned_start / BITMAP_ELEMENT + i] = ALL_ONES;
+	}
+	
+	if (tab) {
+		/* Make sure to set any trailing aligned bits. */
+		bits[aligned_start / BITMAP_ELEMENT + i] |= (1 << tab) - 1;
+	}
+}
+
+/** Set range of bits.
+ *
+ * @param bitmap Bitmap structure.
+ * @param start  Starting bit.
+ * @param count  Number of bits to set.
+ *
+ */
+void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
+{
+	ASSERT(start + count <= bitmap->elements);
+	
+	bitmap_set_range_internal(bitmap->bits, start, count);
+	
+	if (bitmap->block_size > 0) {
+		size_t aligned_start = ALIGN_UP(start, bitmap->block_size);
+		
+		/* Leading unaligned bits */
+		size_t lub = min(aligned_start - start, count);
+		
+		/* Aligned middle bits */
+		size_t amb = (count > lub) ? (count - lub) : 0;
+		
+		size_t aligned_size = amb / bitmap->block_size;
+		
+		bitmap_set_range_internal(bitmap->blocks, aligned_start,
+		    aligned_size);
+	}
+}
+
+static void bitmap_clear_range_internal(uint8_t *bits, size_t start,
+    size_t count)
+{
+	if (count == 0)
+		return;
+	
+	size_t aligned_start = ALIGN_UP(start, BITMAP_ELEMENT);
+	
+	/* Leading unaligned bits */
+	size_t lub = min(aligned_start - start, count);
+	
+	/* Aligned middle bits */
+	size_t amb = (count > lub) ? (count - lub) : 0;
+	
+	/* Trailing aligned bits */
+	size_t tab = amb % BITMAP_ELEMENT;
+	
+	if (start + count < aligned_start) {
+		/* Set bits in the middle of byte */
+		bits[start / BITMAP_ELEMENT] &=
+		    ~(((1 << lub) - 1) << (start & BITMAP_REMAINER));
+		return;
+	}
+	
+	if (lub) {
+		/* Make sure to clear any leading unaligned bits. */
+		bits[start / BITMAP_ELEMENT] &=
+		    (1 << (BITMAP_ELEMENT - lub)) - 1;
+	}
+	
+	size_t i;
+	
+	for (i = 0; i < amb / BITMAP_ELEMENT; i++) {
+		/* The middle bits can be cleared byte by byte. */
+		bits[aligned_start / BITMAP_ELEMENT + i] = ALL_ZEROES;
+	}
+	
+	if (tab) {
+		/* Make sure to clear any trailing aligned bits. */
+		bits[aligned_start / BITMAP_ELEMENT + i] &= ~((1 << tab) - 1);
+	}
 }
 
 /** Clear range of bits.
  *
- * @param bitmap	Bitmap structure.
- * @param start		Starting bit.
- * @param bits		Number of bits to clear.
+ * @param bitmap Bitmap structure.
+ * @param start  Starting bit.
+ * @param count  Number of bits to clear.
+ *
  */
-void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
+void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 {
-	size_t i = 0;
-	size_t aligned_start;
-	size_t lub;	/* leading unaligned bits */
-	size_t amb;	/* aligned middle bits */
-	size_t tab;	/* trailing aligned bits */
+	ASSERT(start + count <= bitmap->elements);
 	
-	ASSERT(start + bits <= bitmap->bits);
+	bitmap_clear_range_internal(bitmap->bits, start, count);
 	
-	aligned_start = ALIGN_UP(start, 8);
-	lub = min(aligned_start - start, bits);
-	amb = bits > lub ? bits - lub : 0;
-	tab = amb % 8;
-
-	if (!bits)
-		return;
-
-	if (start + bits < aligned_start) {
-		/* Set bits in the middle of byte */
-		bitmap->map[start / 8] &= ~(((1 << lub) - 1) << (start & 7));
-		return;
+	if (bitmap->block_size > 0) {
+		size_t aligned_start = start / bitmap->block_size;
+		
+		size_t aligned_end = (start + count) / bitmap->block_size;
+		
+		if (((start + count) % bitmap->block_size) != 0)
+			aligned_end++;
+		
+		size_t aligned_size = aligned_end - aligned_start;
+		
+		bitmap_clear_range_internal(bitmap->blocks, aligned_start,
+		    aligned_size);
 	}
-
-	if (lub) {
-		/* Make sure to clear any leading unaligned bits. */
-		bitmap->map[start / 8] &= (1 << (8 - lub)) - 1;
-	}
-	for (i = 0; i < amb / 8; i++) {
-		/* The middle bits can be cleared byte by byte. */
-		bitmap->map[aligned_start / 8 + i] = ALL_ZEROES;
-	}
-	if (tab) {
-		/* Make sure to clear any trailing aligned bits. */
-		bitmap->map[aligned_start / 8 + i] &= ~((1 << tab) - 1);
-	}
-
 }
 
 /** Copy portion of one bitmap into another bitmap.
  *
- * @param dst		Destination bitmap.
- * @param src		Source bitmap.
- * @param bits		Number of bits to copy.
+ * @param dst   Destination bitmap.
+ * @param src   Source bitmap.
+ * @param count Number of bits to copy.
+ *
  */
-void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t bits)
+void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t count)
 {
+	ASSERT(count <= dst->elements);
+	ASSERT(count <= src->elements);
+	
 	size_t i;
 	
-	ASSERT(bits <= dst->bits);
-	ASSERT(bits <= src->bits);
+	for (i = 0; i < count / BITMAP_ELEMENT; i++)
+		dst->bits[i] = src->bits[i];
 	
-	for (i = 0; i < bits / 8; i++)
-		dst->map[i] = src->map[i];
-	
-	if (bits % 8) {
-		bitmap_clear_range(dst, i * 8, bits % 8);
-		dst->map[i] |= src->map[i] & ((1 << (bits % 8)) - 1);
+	if (count % BITMAP_ELEMENT) {
+		bitmap_clear_range(dst, i * BITMAP_ELEMENT,
+		    count % BITMAP_ELEMENT);
+		dst->bits[i] |= src->bits[i] &
+		    ((1 << (count % BITMAP_ELEMENT)) - 1);
 	}
 }
 
