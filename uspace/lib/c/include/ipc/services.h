@@ -58,6 +58,7 @@ typedef enum {
 #define SERVICE_NAME_INETCFG    "net/inetcfg"
 #define SERVICE_NAME_INETPING   "net/inetping"
 #define SERVICE_NAME_INETPING6  "net/inetping6"
+#define SERVICE_NAME_NETCONF    "net/netconf"
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -159,6 +159,11 @@ static int inetcfg_get_sroute_list(sysarg_t **sroutes, size_t *count)
 	return inet_sroute_get_id_list(sroutes, count);
 }
 
+static int inetcfg_link_add(sysarg_t link_id)
+{
+	return inet_link_open(link_id);
+}
+
 static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
 	inet_link_t *ilink;
@@ -177,6 +182,11 @@ static int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	}
 
 	return EOK;
+}
+
+static int inetcfg_link_remove(sysarg_t link_id)
+{
+	return ENOTSUP;
 }
 
 static int inetcfg_sroute_create(char *name, inet_naddr_t *dest,
@@ -482,6 +492,19 @@ static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, act_size);
 }
 
+static void inetcfg_link_add_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	sysarg_t link_id;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_link_add_srv()");
+
+	link_id = IPC_GET_ARG1(*call);
+
+	rc = inetcfg_link_add(link_id);
+	async_answer_0(callid, rc);
+}
+
 static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	ipc_callid_t name_callid;
@@ -533,6 +556,19 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	free(linfo.name);
 
 	async_answer_1(callid, retval, linfo.def_mtu);
+}
+
+static void inetcfg_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	sysarg_t link_id;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_link_remove_srv()");
+
+	link_id = IPC_GET_ARG1(*call);
+
+	rc = inetcfg_link_remove(link_id);
+	async_answer_0(callid, rc);
 }
 
 static void inetcfg_sroute_create_srv(ipc_callid_t iid,
@@ -741,8 +777,14 @@ void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		case INETCFG_GET_SROUTE_LIST:
 			inetcfg_get_sroute_list_srv(callid, &call);
 			break;
+		case INETCFG_LINK_ADD:
+			inetcfg_link_add_srv(callid, &call);
+			break;
 		case INETCFG_LINK_GET:
 			inetcfg_link_get_srv(callid, &call);
+			break;
+		case INETCFG_LINK_REMOVE:
+			inetcfg_link_remove_srv(callid, &call);
 			break;
 		case INETCFG_SROUTE_CREATE:
 			inetcfg_sroute_create_srv(callid, &call);
