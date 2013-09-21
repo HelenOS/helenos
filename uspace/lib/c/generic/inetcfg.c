@@ -278,11 +278,12 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_LINK_GET, link_id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
+	int rc = async_data_read_start(exch, &linfo->mac_addr, sizeof(addr48_t));
 	async_wait_for(dreq, &dretval);
 
 	async_exchange_end(exch);
 
-	if (dretval != EOK) {
+	if (dretval != EOK || rc != EOK) {
 		async_forget(req);
 		return dretval;
 	}

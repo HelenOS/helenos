@@ -38,6 +38,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <malloc.h>
+#include <ipc/vfs.h>
 #include "libext4.h"
 
 /** Initialize filesystem and read all needed data.

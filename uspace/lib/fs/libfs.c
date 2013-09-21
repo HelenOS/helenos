@@ -805,11 +805,11 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
+
 	fs_node_t *fn;
 	int rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
-	
+
 	ipc_callid_t callid;
 	size_t size;
 	if ((!async_data_read_receive(&callid, &size)) ||
@@ -819,10 +819,10 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	struct stat stat;
 	memset(&stat, 0, sizeof(struct stat));
-	
+
 	stat.fs_handle = fs_handle;
 	stat.service_id = service_id;
 	stat.index = index;
@@ -831,7 +831,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	stat.is_directory = ops->is_directory(fn);
 	stat.size = ops->size_get(fn);
 	stat.service = ops->service_get(fn);
-	
+
 	ops->node_put(fn);
 
 
@@ -844,41 +844,41 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
+
 	fs_node_t *fn;
 	int rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
-	
+
 	ipc_callid_t callid;
 	size_t size;
 	if ((!async_data_read_receive(&callid, &size)) ||
 	    (size != sizeof(struct statfs))) {
-		ops->node_put(fn);
-		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	struct statfs statfs;
-	memset(&statfs, 0, sizeof(struct statfs));
-
-	if (NULL != ops->size_block) {	
-		rc = ops->size_block(service_id, &statfs.f_bsize);
-		if (rc != EOK) goto error;
+		goto error;
 	}
 
-	if (NULL != ops->total_block_count) {
-		rc = ops->total_block_count(service_id, &statfs.f_blocks);
-		if (rc != EOK) goto error;
+	struct statfs st;
+	memset(&st, 0, sizeof(struct statfs));
+
+	if (ops->size_block != NULL) {
+		rc = ops->size_block(service_id, &st.f_bsize);
+		if (rc != EOK)
+			goto error;
 	}
 
-	if (NULL != ops->free_block_count) {
-		rc = ops->free_block_count(service_id, &statfs.f_bfree);
-		if (rc != EOK) goto error;
+	if (ops->total_block_count != NULL) {
+		rc = ops->total_block_count(service_id, &st.f_blocks);
+		if (rc != EOK)
+			goto error;
+	}
+
+	if (ops->free_block_count != NULL) {
+		rc = ops->free_block_count(service_id, &st.f_bfree);
+		if (rc != EOK)
+			goto error;
 	}
 
 	ops->node_put(fn);
-	async_data_read_finalize(callid, &statfs, sizeof(struct statfs));
+	async_data_read_finalize(callid, &st, sizeof(struct statfs));
 	async_answer_0(rid, EOK);
 	return;
 

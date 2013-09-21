@@ -36,7 +36,6 @@
  * @brief
  */
 
-#include "../../srv/vfs/vfs.h"
 #include <ipc/loc.h>
 #include <ipc/services.h>
 #include <errno.h>
