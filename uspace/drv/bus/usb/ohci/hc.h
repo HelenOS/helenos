@@ -72,8 +72,6 @@ typedef struct hc {
 } hc_t;
 
 int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs);
-int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
-    interrupt_handler_t);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts);
 

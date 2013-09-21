@@ -108,15 +108,9 @@ int device_setup_uhci(ddf_dev_t *device)
 		goto ddf_hc_clean;
 	}
 
-	ret = hc_register_irq_handler(device, &regs, irq, irq_handler);
-	if (ret != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(ret));
-		goto hc_free;
-	}
-
 	bool interrupts = false;
-	ret = hcd_ddf_enable_interrupts(device);
+	ret = hcd_ddf_setup_interrupts(device, &regs, irq, irq_handler,
+	    hc_gen_irq_code);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling.\n", str_error(ret));
@@ -153,7 +147,6 @@ int device_setup_uhci(ddf_dev_t *device)
 		hc_fini(hc);
 irq_unregister:
 		unregister_interrupt_handler(device, irq);
-hc_free:
 		free(hc);
 ddf_hc_clean:
 		hcd_ddf_clean_hc(device);

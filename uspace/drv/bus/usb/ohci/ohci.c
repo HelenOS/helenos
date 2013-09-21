@@ -102,16 +102,17 @@ int device_setup_ohci(ddf_dev_t *device)
 		return ret;
 	}
 
-	ret = hc_register_irq_handler(device, &regs, irq, irq_handler);
-	if (ret != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(ret));
+	hc_t *hc = malloc(sizeof(hc_t));
+	if (!hc) {
+		usb_log_error("Failed to allocate driver structure.\n");
+		ret = ENOMEM;
 		goto ddf_hc_clean;
 	}
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
-	ret = hcd_ddf_enable_interrupts(device);
+	ret = hcd_ddf_setup_interrupts(device, &regs, irq, irq_handler,
+	    hc_gen_irq_code);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling\n", str_error(ret));
@@ -122,18 +123,11 @@ int device_setup_ohci(ddf_dev_t *device)
 		interrupts = true;
 	}
 
-	hc_t *hc = malloc(sizeof(hc_t));
-	if (!hc) {
-		usb_log_error("Failed to allocate driver structure.\n");
-		ret = ENOMEM;
-		goto unregister_irq;
-	}
-
 	/* Initialize OHCI HC */
 	ret = hc_init(hc, &regs, interrupts);
 	if (ret != EOK) {
 		usb_log_error("Failed to init hc: %s.\n", str_error(ret));
-		goto hc_free;
+		goto unregister_irq;
 	}
 
 	/* Connect OHCI to generic HCD */
@@ -146,10 +140,9 @@ int device_setup_ohci(ddf_dev_t *device)
 		usb_log_error("Failed to register OHCI root hub: %s.\n",
 		    str_error(ret));
 		hc_fini(hc);
-hc_free:
-		free(hc);
 unregister_irq:
 		unregister_interrupt_handler(device, irq);
+		free(hc);
 ddf_hc_clean:
 		hcd_ddf_clean_hc(device);
 	}

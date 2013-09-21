@@ -123,8 +123,6 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
-    interrupt_handler_t);
 int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs);
 void hc_interrupt(hc_t *instance, uint16_t status);
 int hc_init(hc_t *instance, addr_range_t *regs, bool interupts);

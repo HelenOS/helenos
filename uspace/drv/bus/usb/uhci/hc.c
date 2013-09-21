@@ -126,41 +126,6 @@ int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
 	return EOK;
 }
 
-/** Register interrupt handler.
- *
- * @param[in] device Host controller DDF device
- * @param[in] regs Register range
- * @param[in] irq Interrupt number
- * @paran[in] handler Interrupt handler
- *
- * @return EOK on success or negative error code
- */
-int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
-    interrupt_handler_t handler)
-{
-	assert(device);
-
-	irq_code_t irq_code = { 0 };
-
-	int ret = hc_gen_irq_code(&irq_code, regs);
-	if (ret != EOK) {
-		usb_log_error("Failed to generate IRQ commands: %s.\n",
-		    str_error(ret));
-		return ret;
-	}
-	//TODO we leak memory here
-
-        /* Register handler to avoid interrupt lockup */
-        ret = register_interrupt_handler(device, irq, handler, &irq_code);
-        if (ret != EOK) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(ret));
-		return ret;
-	}
-
-	return EOK;
-}
-
 /** Take action based on the interrupt cause.
  *
  * @param[in] instance UHCI structure to use.
