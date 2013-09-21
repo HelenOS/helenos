@@ -104,16 +104,15 @@ int device_setup_uhci(ddf_dev_t *device)
 	hc_t *hc = malloc(sizeof(hc_t));
 	if (!hc) {
 		usb_log_error("Failed to allocate UHCI HC structure.\n");
-		hcd_ddf_clean_hc(device);
-		return ENOMEM;
+		ret = ENOMEM;
+		goto ddf_hc_clean;
 	}
 
 	ret = hc_register_irq_handler(device, &regs, irq, irq_handler);
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",
 		    str_error(ret));
-		hcd_ddf_clean_hc(device);
-		return ret;
+		goto hc_free;
 	}
 
 	bool interrupts = false;
@@ -121,6 +120,7 @@ int device_setup_uhci(ddf_dev_t *device)
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling.\n", str_error(ret));
+		unregister_interrupt_handler(device, irq);
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
@@ -130,16 +130,14 @@ int device_setup_uhci(ddf_dev_t *device)
 	if (ret != EOK) {
 		usb_log_error("Failed to disable legacy USB: %s.\n",
 		    str_error(ret));
-		hcd_ddf_clean_hc(device);
-		return ret;
+		goto irq_unregister;
 	}
 
 	ret = hc_init(hc, &regs, interrupts);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
-		hcd_ddf_clean_hc(device);
-		// TODO unregister interrupt handler
-		return ret;
+		goto irq_unregister;
+		// TODO This is unfortunate, we have neither legacy nor real USB
 	}
 
 	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);
@@ -150,15 +148,17 @@ int device_setup_uhci(ddf_dev_t *device)
 	 */
 	ret = hcd_ddf_setup_root_hub(device);
 	if (ret != EOK) {
-		hc_fini(hc);
-		hcd_ddf_clean_hc(device);
-		// TODO unregister interrupt handler
 		usb_log_error("Failed to setup UHCI root hub: %s.\n",
 		    str_error(ret));
-		return ret;
+		hc_fini(hc);
+irq_unregister:
+		unregister_interrupt_handler(device, irq);
+hc_free:
+		free(hc);
+ddf_hc_clean:
+		hcd_ddf_clean_hc(device);
 	}
-
-	return EOK;
+	return ret;
 }
 /**
  * @}
