@@ -105,7 +105,7 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 		return ENOMEM;
 	}
 	
-	int rc = recv_line(http, line, http->buffer_size);
+	int rc = recv_line(&http->recv_buffer, line, http->buffer_size);
 	if (rc < 0)
 		goto error;
 	
@@ -115,7 +115,7 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 		goto error;
 	
 	while (true) {
-		rc = recv_line(http, line, http->buffer_size);
+		rc = recv_line(&http->recv_buffer, line, http->buffer_size);
 		if (rc < 0)
 			goto error;
 		if (*line == 0)
@@ -149,7 +149,7 @@ error:
 
 int http_receive_body(http_t *http, void *buf, size_t buf_size)
 {
-	return recv_buffer(http, buf, buf_size);
+	return recv_buffer(&http->recv_buffer, buf, buf_size);
 }
 
 void http_response_destroy(http_response_t *resp)

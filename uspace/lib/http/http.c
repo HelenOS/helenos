@@ -42,81 +42,12 @@
 #include <inet/dnsr.h>
 
 #include "http.h"
+#include "receive-buffer.h"
 
-void recv_reset(http_t *http)
+static ssize_t http_receive(void *client_data, void *buf, size_t buf_size)
 {
-	http->recv_buffer_in = 0;
-	http->recv_buffer_out = 0;
-}
-
-/** Receive one character (with buffering) */
-int recv_char(http_t *http, char *c, bool consume)
-{
-	if (http->recv_buffer_out == http->recv_buffer_in) {
-		recv_reset(http);
-		
-		ssize_t rc = recv(http->conn_sd, http->recv_buffer, http->buffer_size, 0);
-		if (rc <= 0)
-			return rc;
-		
-		http->recv_buffer_in = rc;
-	}
-	
-	*c = http->recv_buffer[http->recv_buffer_out];
-	if (consume)
-		http->recv_buffer_out++;
-	return EOK;
-}
-
-ssize_t recv_buffer(http_t *http, char *buf, size_t buf_size)
-{
-	/* Flush any buffered data*/
-	if (http->recv_buffer_out != http->recv_buffer_in) {
-		size_t size = min(http->recv_buffer_in - http->recv_buffer_out, buf_size);
-		memcpy(buf, http->recv_buffer + http->recv_buffer_out, size);
-		http->recv_buffer_out += size;
-		return size;
-	}
-	
+	http_t *http = client_data;
 	return recv(http->conn_sd, buf, buf_size, 0);
-}
-
-/** Receive a character and if it is c, discard it from input buffer */
-int recv_discard(http_t *http, char discard)
-{
-	char c = 0;
-	int rc = recv_char(http, &c, false);
-	if (rc != EOK)
-		return rc;
-	if (c != discard)
-		return EOK;
-	return recv_char(http, &c, true);
-}
-
-/* Receive a single line */
-ssize_t recv_line(http_t *http, char *line, size_t size)
-{
-	size_t written = 0;
-	
-	while (written < size) {
-		char c = 0;
-		int rc = recv_char(http, &c, true);
-		if (rc != EOK)
-			return rc;
-		if (c == '\n') {
-			recv_discard(http, '\r');
-			line[written++] = 0;
-			return written;
-		}
-		else if (c == '\r') {
-			recv_discard(http, '\n');
-			line[written++] = 0;
-			return written;
-		}
-		line[written++] = c;
-	}
-	
-	return ELIMIT;
 }
 
 http_t *http_create(const char *host, uint16_t port)
@@ -133,9 +64,9 @@ http_t *http_create(const char *host, uint16_t port)
 	http->port = port;
 	
 	http->buffer_size = 4096;
-	http->recv_buffer = malloc(http->buffer_size);
-	if (http->recv_buffer == NULL) {
-		free(http->host);
+	int rc = recv_buffer_init(&http->recv_buffer, http->buffer_size,
+	    http_receive, http);
+	if (rc != EOK) {
 		free(http);
 		return NULL;
 	}
@@ -197,7 +128,7 @@ int http_close(http_t *http)
 
 void http_destroy(http_t *http)
 {
-	free(http->recv_buffer);
+	recv_buffer_fini(&http->recv_buffer);
 	free(http);
 }
 

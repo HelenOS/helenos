@@ -36,6 +36,7 @@ SOURCES = \
 	http.c \
 	headers.c \
 	request.c \
-	response.c
+	response.c \
+	receive-buffer.c
 
 include $(USPACE_PREFIX)/Makefile.common

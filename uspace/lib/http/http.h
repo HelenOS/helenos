@@ -40,6 +40,8 @@
 #include <adt/list.h>
 #include <inet/addr.h>
 
+#include "receive-buffer.h"
+
 typedef struct {
 	char *host;
 	uint16_t port;
@@ -49,9 +51,7 @@ typedef struct {
 	int conn_sd;
 	
 	size_t buffer_size;
-	char *recv_buffer;
-	size_t recv_buffer_in;
-	size_t recv_buffer_out;
+	receive_buffer_t recv_buffer;
 } http_t;
 
 typedef struct {
@@ -96,12 +96,6 @@ extern int http_receive_body(http_t *, void *, size_t);
 extern void http_response_destroy(http_response_t *);
 extern int http_close(http_t *);
 extern void http_destroy(http_t *);
-
-extern void recv_reset(http_t *);
-extern int recv_char(http_t *, char *, bool);
-extern ssize_t recv_buffer(http_t *, char *, size_t);
-extern int recv_discard(http_t *, char);
-extern ssize_t recv_line(http_t *, char *, size_t);
 
 #endif
 
