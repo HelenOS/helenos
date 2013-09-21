@@ -580,7 +580,11 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 /** Initialize hc structures.
  *
  * @param[in] device DDF instance of the device to use.
+ * @param[in] max_speed Maximum supported USB speed.
+ * @param[in] bw available bandwidth.
+ * @param[in] bw_count Function to compute required ep bandwidth.
  *
+ * @return Error code.
  * This function does all the ddf work for hc driver.
  */
 int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,

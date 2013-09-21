@@ -130,7 +130,7 @@ int device_setup_ohci(ddf_dev_t *device)
 		usb_log_error("Failed to allocate driver structure.\n");
 		hcd_ddf_clean_hc(device);
 		unregister_interrupt_handler(device, irq);
-		return ret;
+		return ENOMEM;
 	}
 
 	/* Initialize OHCI HC */
