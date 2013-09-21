@@ -114,7 +114,7 @@ int device_setup_uhci(ddf_dev_t *device)
 	}
 
 	bool interrupts = false;
-	ret = enable_interrupts(device);
+	ret = hcd_ddf_enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
 		    " Falling back to polling.\n", str_error(ret));

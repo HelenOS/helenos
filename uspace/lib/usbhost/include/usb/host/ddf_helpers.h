@@ -36,6 +36,7 @@
 #ifndef LIBUSBHOST_HOST_DDF_HELPERS_H
 #define LIBUSBHOST_HOST_DDF_HELPERS_H
 
+#include <device/hw_res_parsed.h>
 #include <usb/host/hcd.h>
 #include <usbhc_iface.h>
 
@@ -45,6 +46,9 @@ void hcd_ddf_clean_hc(ddf_dev_t *device);
 int hcd_ddf_setup_root_hub(ddf_dev_t *device);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
+
+int hcd_ddf_enable_interrupts(ddf_dev_t *device);
+int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
 
 #endif
 

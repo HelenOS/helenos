@@ -84,24 +84,6 @@ int get_my_registers(ddf_dev_t *dev, addr_range_t *p_regs, int *irq_no)
 	return EOK;
 }
 
-/** Call the PCI driver with a request to enable interrupts
- *
- * @param[in] device Device asking for interrupts
- * @return Error code.
- */
-int enable_interrupts(ddf_dev_t *device)
-{
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-	
-	const bool enabled = hw_res_enable_interrupt(parent_sess);
-	async_hangup(parent_sess);
-	
-	return enabled ? EOK : EIO;
-}
 
 /**
  * @}

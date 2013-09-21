@@ -38,6 +38,7 @@
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/request.h>
+#include <devman.h>
 #include <errno.h>
 #include <str_error.h>
 
@@ -638,6 +639,39 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
 	const int ret = ddf_fun_unbind(hc->ctl_fun);
 	if (ret == EOK)
 		ddf_fun_destroy(hc->ctl_fun);
+}
+
+
+//TODO: Move this to generic ddf?
+/** Call the parent driver with a request to enable interrupts
+ *
+ * @param[in] device Device asking for interrupts
+ * @return Error code.
+ */
+int hcd_ddf_enable_interrupts(ddf_dev_t *device)
+{
+	assert(device);
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	const bool enabled = hw_res_enable_interrupt(parent_sess);
+	async_hangup(parent_sess);
+
+	return enabled ? EOK : EIO;
+}
+
+int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
+{
+	assert(device);
+	assert(hw_res);
+
+	async_sess_t *parent_sess =
+	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
+	    ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
+	hw_res_list_parsed_init(hw_res);
+	const int ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
+	async_hangup(parent_sess);
+	return ret;
 }
 /**
  * @}
