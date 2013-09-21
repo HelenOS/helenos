@@ -71,10 +71,7 @@ typedef struct hc {
 	ohci_rh_t rh;
 } hc_t;
 
-size_t hc_irq_pio_range_count(void);
-size_t hc_irq_cmd_count(void);
-int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
-    addr_range_t *);
+int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs);
 int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
     interrupt_handler_t);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);

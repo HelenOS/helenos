@@ -41,6 +41,7 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 
+#include "macros.h"
 #include "hc.h"
 #include "ohci_endpoint.h"
 
@@ -87,22 +88,6 @@ static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
 
-/** Get number of PIO ranges used in IRQ code.
- * @return Number of ranges.
- */
-size_t hc_irq_pio_range_count(void)
-{
-	return sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t);
-}
-
-/** Get number of commands used in IRQ code.
- * @return Number of commands.
- */
-size_t hc_irq_cmd_count(void)
-{
-	return sizeof(ohci_irq_commands) / sizeof(irq_cmd_t);
-}
-
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
  * @param[in] ranges_size Size of the ranges buffer (bytes).
@@ -112,23 +97,33 @@ size_t hc_irq_cmd_count(void)
  *
  * @return Error code.
  */
-int
-hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
-    size_t cmds_size, addr_range_t *regs)
+int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
 {
-	if ((ranges_size < sizeof(ohci_pio_ranges)) ||
-	    (cmds_size < sizeof(ohci_irq_commands)) ||
-	    (RNGSZ(*regs) < sizeof(ohci_regs_t)))
+	assert(code);
+	if (RNGSZ(*regs) < sizeof(ohci_regs_t))
 		return EOVERFLOW;
 
-	memcpy(ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
-	ranges[0].base = RNGABS(*regs);
+	code->ranges = malloc(sizeof(ohci_pio_ranges));
+	if (code->ranges == NULL)
+		return ENOMEM;
 
-	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
+	code->cmds = malloc(sizeof(ohci_irq_commands));
+	if (code->cmds == NULL) {
+		free(code->ranges);
+		return ENOMEM;
+	}
+
+	code->rangecount = ARRAY_SIZE(ohci_pio_ranges);
+	code->cmdcount = ARRAY_SIZE(ohci_irq_commands);
+
+	memcpy(code->ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
+	code->ranges[0].base = RNGABS(*regs);
+
+	memcpy(code->cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
 	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(*regs);
-	cmds[0].addr = (void *) &registers->interrupt_status;
-	cmds[3].addr = (void *) &registers->interrupt_status;
-	OHCI_WR(cmds[1].value, OHCI_USED_INTERRUPTS);
+	code->cmds[0].addr = (void *) &registers->interrupt_status;
+	code->cmds[3].addr = (void *) &registers->interrupt_status;
+	OHCI_WR(code->cmds[1].value, OHCI_USED_INTERRUPTS);
 
 	return EOK;
 }
@@ -145,32 +140,23 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
     interrupt_handler_t handler)
 {
-	int rc;
+	irq_code_t irq_code = { 0 };
 
-	irq_pio_range_t irq_ranges[hc_irq_pio_range_count()];
-	irq_cmd_t irq_cmds[hc_irq_cmd_count()];
-
-	irq_code_t irq_code = {
-		.rangecount = hc_irq_pio_range_count(),
-		.ranges = irq_ranges,
-		.cmdcount = hc_irq_cmd_count(),
-		.cmds = irq_cmds
-	};
-
-	rc = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), regs);
-	if (rc != EOK) {
+	int ret = hc_gen_irq_code(&irq_code, regs);
+	if (ret != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
-		    str_error(rc));
-		return rc;
+		    str_error(ret));
+		return ret;
 	}
 
+	//TODO we leak memory here
+
 	/* Register handler to avoid interrupt lockup */
-	rc = register_interrupt_handler(device, irq, handler, &irq_code);
-	if (rc != EOK) {
+	ret = register_interrupt_handler(device, irq, handler, &irq_code);
+	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",
-		    str_error(rc));
-		return rc;
+		    str_error(ret));
+		return ret;
 	}
 
 	return EOK;
