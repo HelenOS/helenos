@@ -55,7 +55,7 @@ typedef void (*ep_remove_callback_t)(endpoint_t *, void *);
 typedef int (*ep_add_callback_t)(endpoint_t *, void *);
 
 /** Endpoint management structure */
-typedef struct usb_endpoint_manager {
+typedef struct usb_bus {
 	struct {
 		usb_speed_t speed;      /**< Device speed */
 		bool occupied;          /**< The address is in use. */
@@ -71,44 +71,41 @@ typedef struct usb_endpoint_manager {
 	usb_speed_t max_speed;
 	/** The last reserved address */
 	usb_address_t last_address;
-} usb_endpoint_manager_t;
+} usb_bus_t;
 
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
-int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
+int usb_bus_init(usb_bus_t *instance,
     size_t available_bandwidth, bw_count_func_t bw_count, usb_speed_t max_speed);
 
-int usb_endpoint_manager_register_ep(
-    usb_endpoint_manager_t *instance, endpoint_t *ep, size_t data_size);
+int usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size);
 
-int usb_endpoint_manager_unregister_ep(
-    usb_endpoint_manager_t *instance, endpoint_t *ep);
+int usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep);
 
-endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
+endpoint_t * usb_bus_find_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
-int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
+int usb_bus_add_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, size_t max_packet_size, size_t data_size,
     ep_add_callback_t callback, void *arg, usb_address_t tt_address,
     unsigned tt_port);
 
-int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
+int usb_bus_remove_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     ep_remove_callback_t callback, void *arg);
 
-int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
-    usb_target_t target, bool all);
+int usb_bus_reset_toggle(usb_bus_t *instance, usb_target_t target, bool all);
 
-int usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
+int usb_bus_remove_address(usb_bus_t *instance,
     usb_address_t address, ep_remove_callback_t callback, void *arg);
 
-int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
+int usb_bus_request_address(usb_bus_t *instance,
     usb_address_t *address, bool strict, usb_speed_t speed);
 
-int usb_endpoint_manager_get_speed(usb_endpoint_manager_t *instance,
+int usb_bus_get_speed(usb_bus_t *instance,
     usb_address_t address, usb_speed_t *speed);
 #endif
 /**

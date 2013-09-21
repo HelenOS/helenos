@@ -38,7 +38,7 @@
 #include <macros.h>
 
 #include <usb/debug.h>
-#include <usb/host/usb_endpoint_manager.h>
+#include <usb/host/usb_bus.h>
 
 /** Endpoint compare helper function.
  *
@@ -63,11 +63,11 @@ static inline bool ep_match(const endpoint_t *ep,
 }
 
 /** Get list that holds endpoints for given address.
- * @param instance usb_endpoint_manager structure, non-null.
+ * @param instance usb_bus structure, non-null.
  * @param addr USB address, must be >= 0.
  * @return Pointer to the appropriate list.
  */
-static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
+static list_t * get_list(usb_bus_t *instance, usb_address_t addr)
 {
 	assert(instance);
 	assert(addr >= 0);
@@ -75,7 +75,7 @@ static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
 }
 
 /** Internal search function, works on locked structure.
- * @param instance usb_endpoint_manager structure, non-null.
+ * @param instance usb_bus structure, non-null.
  * @param address USB address, must be valid.
  * @param endpoint USB endpoint number.
  * @param direction Communication direction.
@@ -83,7 +83,7 @@ static list_t * get_list(usb_endpoint_manager_t *instance, usb_address_t addr)
  * target, NULL if there is no such endpoint registered.
  * @note Assumes that the internal mutex is locked.
  */
-static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
+static endpoint_t * find_locked(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
@@ -102,8 +102,7 @@ static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
  * @param[in] instance Device manager structure to use.
  * @return Free address, or error code.
  */
-static usb_address_t usb_endpoint_manager_get_free_address(
-    usb_endpoint_manager_t *instance)
+static usb_address_t usb_bus_get_free_address(usb_bus_t *instance)
 {
 
 	usb_address_t new_address = instance->last_address;
@@ -173,12 +172,12 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
  * You need to provide valid bw_count function if you plan to use
  * add_endpoint/remove_endpoint pair.
  *
- * @param instance usb_endpoint_manager structure, non-null.
+ * @param instance usb_bus structure, non-null.
  * @param available_bandwidth Size of the bandwidth pool.
  * @param bw_count function to use to calculate endpoint bw requirements.
  * @return Error code.
  */
-int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
+int usb_bus_init(usb_bus_t *instance,
     size_t available_bandwidth, bw_count_func_t bw_count, usb_speed_t max_speed)
 {
 	assert(instance);
@@ -197,13 +196,12 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 
 /** Register endpoint structure.
  * Checks for duplicates.
- * @param instance usb_endpoint_manager, non-null.
+ * @param instance usb_bus, non-null.
  * @param ep endpoint_t to register.
  * @param data_size Size of data to transfer.
  * @return Error code.
  */
-int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    endpoint_t *ep, size_t data_size)
+int usb_bus_register_ep(usb_bus_t *instance, endpoint_t *ep, size_t data_size)
 {
 	assert(instance);
 	if (ep == NULL || ep->address < 0)
@@ -232,12 +230,11 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 
 /** Unregister endpoint structure.
  * Checks for duplicates.
- * @param instance usb_endpoint_manager, non-null.
+ * @param instance usb_bus, non-null.
  * @param ep endpoint_t to unregister.
  * @return Error code.
  */
-int usb_endpoint_manager_unregister_ep(
-    usb_endpoint_manager_t *instance, endpoint_t *ep)
+int usb_bus_unregister_ep(usb_bus_t *instance, endpoint_t *ep)
 {
 	assert(instance);
 	if (ep == NULL || ep->address < 0)
@@ -255,10 +252,10 @@ int usb_endpoint_manager_unregister_ep(
 }
 
 /** Find endpoint_t representing the given communication route.
- * @param instance usb_endpoint_manager, non-null.
+ * @param instance usb_bus, non-null.
  * @param address
  */
-endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
+endpoint_t * usb_bus_find_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
@@ -270,7 +267,7 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
 }
 
 /** Create and register new endpoint_t structure.
- * @param instance usb_endpoint_manager structure, non-null.
+ * @param instance usb_bus structure, non-null.
  * @param address USB address.
  * @param endpoint USB endpoint number.
  * @param direction Communication direction.
@@ -282,7 +279,7 @@ endpoint_t * usb_endpoint_manager_find_ep(usb_endpoint_manager_t *instance,
  * @param arg Argument to pass to the callback function.
  * @return Error code.
  */
-int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
+int usb_bus_add_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     usb_transfer_type_t type, size_t max_packet_size, size_t data_size,
     ep_add_callback_t callback, void *arg, usb_address_t tt_address,
@@ -342,7 +339,7 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
 }
 
 /** Unregister and destroy endpoint_t structure representing given route.
- * @param instance usb_endpoint_manager structure, non-null.
+ * @param instance usb_bus structure, non-null.
  * @param address USB address.
  * @param endpoint USB endpoint number.
  * @param direction Communication direction.
@@ -350,7 +347,7 @@ int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
  * @arg Argument to pass to the callback function.
  * @return Error code.
  */
-int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
+int usb_bus_remove_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     ep_remove_callback_t callback, void *arg)
 {
@@ -372,8 +369,7 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
 	return EOK;
 }
 
-int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
-    usb_target_t target, bool all)
+int usb_bus_reset_toggle(usb_bus_t *instance, usb_target_t target, bool all)
 {
 	assert(instance);
 	if (!usb_target_is_valid(target))
@@ -394,7 +390,7 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
 }
 
 /** Unregister and destroy all endpoints using given address.
- * @param instance usb_endpoint_manager structure, non-null.
+ * @param instance usb_bus structure, non-null.
  * @param address USB address.
  * @param endpoint USB endpoint number.
  * @param direction Communication direction.
@@ -402,7 +398,7 @@ int usb_endpoint_manager_reset_toggle(usb_endpoint_manager_t *instance,
  * @arg Argument to pass to the callback function.
  * @return Error code.
  */
-int usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
+int usb_bus_remove_address(usb_bus_t *instance,
     usb_address_t address, ep_remove_callback_t callback, void *arg)
 {
 	assert(instance);
@@ -436,7 +432,7 @@ int usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
  * @return Error code.
  * @note Default address is only available in strict mode.
  */
-int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
+int usb_bus_request_address(usb_bus_t *instance,
     usb_address_t *address, bool strict, usb_speed_t speed)
 {
 	assert(instance);
@@ -452,7 +448,7 @@ int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
 	fibril_mutex_lock(&instance->guard);
 	/* Only grant default address to strict requests */
 	if ((addr == USB_ADDRESS_DEFAULT) && !strict) {
-		addr = usb_endpoint_manager_get_free_address(instance);
+		addr = usb_bus_get_free_address(instance);
 	}
 
 	if (instance->devices[addr].occupied) {
@@ -460,7 +456,7 @@ int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
 			fibril_mutex_unlock(&instance->guard);
 			return ENOENT;
 		}
-		addr = usb_endpoint_manager_get_free_address(instance);
+		addr = usb_bus_get_free_address(instance);
 	}
 	if (usb_address_is_valid(addr)) {
 		assert(instance->devices[addr].occupied == false);
@@ -483,8 +479,8 @@ int usb_endpoint_manager_request_address(usb_endpoint_manager_t *instance,
  * @param[out] speed Assigned speed.
  * @return Error code.
  */
-int usb_endpoint_manager_get_speed(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_speed_t *speed)
+int usb_bus_get_speed(usb_bus_t *instance, usb_address_t address,
+    usb_speed_t *speed)
 {
 	assert(instance);
 	if (!usb_address_is_valid(address)) {

@@ -40,7 +40,7 @@
 #include <adt/list.h>
 #include <usbhc_iface.h>
 
-#include <usb/host/usb_endpoint_manager.h>
+#include <usb/host/usb_bus.h>
 #include <usb/host/usb_transfer_batch.h>
 
 typedef struct hcd hcd_t;
@@ -63,7 +63,7 @@ typedef struct {
 /** Generic host controller driver structure. */
 struct hcd {
 	/** Endpoint manager. */
-	usb_endpoint_manager_t ep_manager;
+	usb_bus_t bus;
 
 	/** Driver implementation */
 	hc_driver_t driver;

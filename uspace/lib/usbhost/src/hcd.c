@@ -94,7 +94,7 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
     bw_count_func_t bw_count)
 {
 	assert(hcd);
-	usb_endpoint_manager_init(&hcd->ep_manager, bandwidth, bw_count, max_speed);
+	usb_bus_init(&hcd->bus, bandwidth, bw_count, max_speed);
 
 	hcd->driver.data = NULL;
 	hcd->driver.schedule = NULL;
@@ -106,8 +106,8 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	const int ret = usb_endpoint_manager_request_address(
-	    &hcd->ep_manager, &address, false, speed);
+	const int ret = usb_bus_request_address(
+	    &hcd->bus, &address, false, speed);
 	if (ret != EOK)
 		return ret;
 	return address;
@@ -116,7 +116,7 @@ usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed)
 int hcd_release_address(hcd_t *hcd, usb_address_t address)
 {
 	assert(hcd);
-	return usb_endpoint_manager_remove_address(&hcd->ep_manager, address,
+	return usb_bus_remove_address(&hcd->bus, address,
 	    unregister_helper_warn, hcd);
 }
 
@@ -124,8 +124,8 @@ int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
-	return usb_endpoint_manager_request_address(
-	    &hcd->ep_manager, &address, true, speed);
+	return usb_bus_request_address(
+	    &hcd->bus, &address, true, speed);
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
@@ -133,7 +133,7 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
     usb_address_t tt_address, unsigned tt_port)
 {
 	assert(hcd);
-	return usb_endpoint_manager_add_ep(&hcd->ep_manager, target.address,
+	return usb_bus_add_ep(&hcd->bus, target.address,
 	    target.endpoint, dir, type, max_packet_size, size, register_helper,
 	    hcd, tt_address, tt_port);
 }
@@ -141,7 +141,7 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
 int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
 {
 	assert(hcd);
-	return usb_endpoint_manager_remove_ep(&hcd->ep_manager, target.address,
+	return usb_bus_remove_ep(&hcd->bus, target.address,
 	    target.endpoint, dir, unregister_helper, hcd);
 }
 
@@ -160,7 +160,7 @@ static void toggle_reset_callback(int retval, void *arg)
 	if (retval == EOK) {
 		usb_log_debug2("Reseting toggle on %d:%d.\n",
 		    toggle->target.address, toggle->target.endpoint);
-		usb_endpoint_manager_reset_toggle(&toggle->hcd->ep_manager,
+		usb_bus_reset_toggle(&toggle->hcd->bus,
 		    toggle->target, toggle->target.endpoint == 0);
 	}
 
@@ -186,7 +186,7 @@ int hcd_send_batch(
 {
 	assert(hcd);
 
-	endpoint_t *ep = usb_endpoint_manager_find_ep(&hcd->ep_manager,
+	endpoint_t *ep = usb_bus_find_ep(&hcd->bus,
 	    target.address, target.endpoint, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",

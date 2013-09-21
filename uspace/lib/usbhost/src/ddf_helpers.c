@@ -452,8 +452,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	usb_speed_t speed = USB_SPEED_MAX;
 
 	/* This checks whether the default address is reserved and gets speed */
-	int ret = usb_endpoint_manager_get_speed(&hcd->ep_manager,
-		USB_ADDRESS_DEFAULT, &speed);
+	int ret = usb_bus_get_speed(&hcd->bus, USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -572,7 +571,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
 	hcd_t *hcd = dev_to_hcd(device);
 	assert(hcd);
 
-	hcd_reserve_default_address(hcd, hcd->ep_manager.max_speed);
+	hcd_reserve_default_address(hcd, hcd->bus.max_speed);
 	const int ret = hcd_ddf_new_device(device, NULL, 0);
 	hcd_release_default_address(hcd);
 	return ret;
