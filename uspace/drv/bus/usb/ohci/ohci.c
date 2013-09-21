@@ -90,7 +90,6 @@ int device_setup_ohci(ddf_dev_t *device)
 	const int irq = hw_res.irqs.irqs[0];
 	hw_res_list_parsed_clean(&hw_res);
 
-
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
@@ -98,7 +97,7 @@ int device_setup_ohci(ddf_dev_t *device)
 	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	if (ret != EOK) {
-		usb_log_error("Failedd to setup generic hcd: %s.",
+		usb_log_error("Failed to setup generic hcd structures: %s.",
 		    str_error(ret));
 		return ret;
 	}
@@ -107,8 +106,7 @@ int device_setup_ohci(ddf_dev_t *device)
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",
 		    str_error(ret));
-		hcd_ddf_clean_hc(device);
-		return ret;
+		goto ddf_hc_clean;
 	}
 
 	/* Try to enable interrupts */
@@ -124,38 +122,37 @@ int device_setup_ohci(ddf_dev_t *device)
 		interrupts = true;
 	}
 
-
-	hc_t *hc_impl = malloc(sizeof(hc_t));
-	if (!hc_impl) {
+	hc_t *hc = malloc(sizeof(hc_t));
+	if (!hc) {
 		usb_log_error("Failed to allocate driver structure.\n");
-		hcd_ddf_clean_hc(device);
-		unregister_interrupt_handler(device, irq);
-		return ENOMEM;
+		ret = ENOMEM;
+		goto unregister_irq;
 	}
 
 	/* Initialize OHCI HC */
-	ret = hc_init(hc_impl, &regs, interrupts);
+	ret = hc_init(hc, &regs, interrupts);
 	if (ret != EOK) {
 		usb_log_error("Failed to init hc: %s.\n", str_error(ret));
-		hcd_ddf_clean_hc(device);
-		unregister_interrupt_handler(device, irq);
-		return ret;
+		goto hc_free;
 	}
 
 	/* Connect OHCI to generic HCD */
-	hcd_set_implementation(dev_to_hcd(device), hc_impl,
+	hcd_set_implementation(dev_to_hcd(device), hc,
 	    hc_schedule, ohci_endpoint_init, ohci_endpoint_fini);
 
 	/* HC should be running OK. We can add root hub */
 	ret = hcd_ddf_setup_root_hub(device);
 	if (ret != EOK) {
-		usb_log_error("Failed to registter OHCI root hub: %s.\n",
+		usb_log_error("Failed to register OHCI root hub: %s.\n",
 		    str_error(ret));
-		hcd_ddf_clean_hc(device);
+		hc_fini(hc);
+hc_free:
+		free(hc);
+unregister_irq:
 		unregister_interrupt_handler(device, irq);
-		return ret;
+ddf_hc_clean:
+		hcd_ddf_clean_hc(device);
 	}
-
 	return ret;
 }
 /**
