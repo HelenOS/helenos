@@ -675,6 +675,71 @@ int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
 		hw_res_list_parsed_clean(hw_res);
 	return ret;
 }
+
+// TODO: move this someplace else
+static inline void irq_code_clean(irq_code_t *code)
+{
+	if (code) {
+		free(code->ranges);
+		free(code->cmds);
+		code->ranges = NULL;
+		code->cmds = NULL;
+		code->rangecount = 0;
+		code->cmdcount = 0;
+	}
+}
+
+
+/** Register interrupt handler
+ *
+ * @param[in] device Host controller DDF device
+ * @param[in] regs Register range
+ * @param[in] irq Interrupt number
+ * @paran[in] handler Interrupt handler
+ * @param[in] gen_irq_code IRQ code generator.
+ *
+ * @return EOK on success or negative error code
+ */
+int hcd_ddf_setup_interrupts(ddf_dev_t *device, addr_range_t *regs, int irq,
+    interrupt_handler_t handler,
+    int (*gen_irq_code)(irq_code_t *, addr_range_t *))
+{
+
+	assert(device);
+	assert(regs);
+	assert(handler);
+	assert(gen_irq_code);
+
+
+	irq_code_t irq_code = {0};
+
+	int ret = gen_irq_code(&irq_code, regs);
+	if (ret != EOK) {
+		usb_log_error("Failed to generate IRQ code: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
+
+	/* Register handler to avoid interrupt lockup */
+	ret = register_interrupt_handler(device, irq, handler, &irq_code);
+	irq_code_clean(&irq_code);
+	if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(ret));
+		return ret;
+	}
+
+	/* Enable interrupts */
+	ret = hcd_ddf_enable_interrupts(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(ret));
+		unregister_interrupt_handler(device, irq);
+		return ret;
+	}
+
+	return EOK;
+}
 /**
  * @}
  */
