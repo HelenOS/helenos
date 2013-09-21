@@ -42,46 +42,6 @@
 
 #include "res.h"
 
-/** Get I/O address of registers and IRQ for given device.
- *
- * @param[in] dev Device asking for the addresses.
- * @param[out] io_regs_p Pointer to register I/O range.
- * @param[out] irq_no IRQ assigned to the device.
- * @return Error code.
- */
-int get_my_registers(ddf_dev_t *dev, addr_range_t *io_regs_p, int *irq_no)
-{
-	assert(dev);
-
-	async_sess_t *parent_sess =
-	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
-	    ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	hw_res_list_parsed_t hw_res;
-	hw_res_list_parsed_init(&hw_res);
-	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
-	async_hangup(parent_sess);
-	if (ret != EOK) {
-		return ret;
-	}
-
-	/* We want one irq and one io range. */
-	if (hw_res.irqs.count != 1 || hw_res.io_ranges.count != 1) {
-		hw_res_list_parsed_clean(&hw_res);
-		return EINVAL;
-	}
-
-	if (io_regs_p)
-		*io_regs_p = hw_res.io_ranges.ranges[0];
-	if (irq_no)
-		*irq_no = hw_res.irqs.irqs[0];
-
-	hw_res_list_parsed_clean(&hw_res);
-	return EOK;
-}
-
 /** Call the PCI driver with a request to clear legacy support register
  *
  * @param[in] device Device asking to disable interrupts

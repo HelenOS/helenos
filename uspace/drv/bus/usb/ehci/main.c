@@ -66,21 +66,23 @@ static driver_t ehci_driver = {
 static int ehci_dev_add(ddf_dev_t *device)
 {
 	assert(device);
-
-	addr_range_t reg_range;
-	int irq = 0;
-
-	int ret = get_my_registers(device, &reg_range, &irq);
-	if (ret != EOK) {
-		usb_log_error("Failed to get memory addresses for %" PRIun
-		    ": %s.\n", ddf_dev_get_handle(device), str_error(ret));
+	hw_res_list_parsed_t hw_res;
+	int ret = hcd_ddf_get_registers(device, &hw_res);
+	if (ret != EOK ||
+	    hw_res.irqs.count != 1 || hw_res.mem_ranges.count != 1) {
+		usb_log_error("Failed to get register memory addresses "
+		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
+		    str_error(ret));
 		return ret;
 	}
+	addr_range_t regs = hw_res.mem_ranges.ranges[0];
+	const int irq = hw_res.irqs.irqs[0];
+	hw_res_list_parsed_clean(&hw_res);
 
 	usb_log_info("Memory mapped regs at %p (size %zu), IRQ %d.\n",
-	    RNGABSPTR(reg_range), RNGSZ(reg_range), irq);
+	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
-	ret = disable_legacy(device, &reg_range);
+	ret = disable_legacy(device, &regs);
 	if (ret != EOK) {
 		usb_log_error("Failed to disable legacy USB: %s.\n",
 		    str_error(ret));

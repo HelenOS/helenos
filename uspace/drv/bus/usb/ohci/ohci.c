@@ -42,9 +42,7 @@
 #include <usb/host/ddf_helpers.h>
 
 #include "ohci.h"
-#include "res.h"
 #include "hc.h"
-
 
 
 /** IRQ handling callback, identifies device
@@ -79,17 +77,19 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
  */
 int device_setup_ohci(ddf_dev_t *device)
 {
-
-	addr_range_t regs;
-	int irq = 0;
-
-	int ret = get_my_registers(device, &regs, &irq);
-	if (ret != EOK) {
+	hw_res_list_parsed_t hw_res;
+	int ret = hcd_ddf_get_registers(device, &hw_res);
+	if (ret != EOK ||
+	    hw_res.irqs.count != 1 || hw_res.mem_ranges.count != 1) {
 		usb_log_error("Failed to get register memory addresses "
 		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
 		    str_error(ret));
 		return ret;
 	}
+	addr_range_t regs = hw_res.mem_ranges.ranges[0];
+	const int irq = hw_res.irqs.irqs[0];
+	hw_res_list_parsed_clean(&hw_res);
+
 
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
 	    RNGABSPTR(regs), RNGSZ(regs), irq);

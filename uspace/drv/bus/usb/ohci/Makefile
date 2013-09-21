@@ -51,7 +51,6 @@ SOURCES = \
 	ohci_batch.c \
 	ohci_endpoint.c \
 	ohci_rh.c \
-	res.c \
 	hw_struct/endpoint_descriptor.c \
 	hw_struct/transfer_descriptor.c
 
