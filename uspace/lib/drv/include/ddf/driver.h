@@ -110,7 +110,7 @@ typedef struct driver {
 	driver_ops_t *driver_ops;
 } driver_t;
 
-/** XXX Only to transition USB */
+/** XXX Only to transition network drivers */
 #ifdef _DDF_DATA_IMPLANT
 extern void ddf_fun_data_implant(ddf_fun_t *, void *);
 #endif
