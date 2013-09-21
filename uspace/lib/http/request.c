@@ -104,7 +104,7 @@ int http_request_format(http_request_t *req, char **out_buf,
 	size_t size = meth_size;
 	
 	list_foreach(req->headers, link, http_header_t, header) {
-		ssize_t header_size = http_encode_header(NULL, 0, header);
+		ssize_t header_size = http_header_encode(header, NULL, 0);
 		if (header_size < 0)
 			return header_size;
 		size += header_size;
@@ -126,7 +126,7 @@ int http_request_format(http_request_t *req, char **out_buf,
 	pos_size -= written;
 	
 	list_foreach(req->headers, link, http_header_t, header) {
-		written = http_encode_header(pos, pos_size, header);
+		written = http_header_encode(header, pos, pos_size);
 		if (written < 0) {
 			free(buf);
 			return written;

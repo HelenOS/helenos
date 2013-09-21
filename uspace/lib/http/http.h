@@ -80,17 +80,19 @@ typedef struct {
 
 extern http_t *http_create(const char *, uint16_t);
 extern int http_connect(http_t *);
+
+extern void http_header_init(http_header_t *);
 extern http_header_t *http_header_create(const char *, const char *);
-extern http_header_t *http_header_create_no_copy(char *, char *);
+extern int http_header_parse(const char *, http_header_t *);
+ssize_t http_header_encode(http_header_t *, char *, size_t);
 extern void http_header_destroy(http_header_t *);
+
 extern http_request_t *http_request_create(const char *, const char *);
 extern void http_request_destroy(http_request_t *);
 extern int http_request_format(http_request_t *, char **, size_t *);
 extern int http_send_request(http_t *, http_request_t *);
 extern int http_parse_status(const char *, http_version_t *, uint16_t *,
     char **);
-extern int http_parse_header(const char *, char **, char **);
-ssize_t http_encode_header(char *, size_t, http_header_t *);
 extern int http_receive_response(http_t *, http_response_t **);
 extern int http_receive_body(http_t *, void *, size_t);
 extern void http_response_destroy(http_response_t *);

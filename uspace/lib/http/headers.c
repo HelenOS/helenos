@@ -48,31 +48,33 @@ static char *cut_str(const char *start, const char *end)
 	return str_ndup(start, size);
 }
 
-http_header_t *http_header_create(const char *name, const char *value)
+void http_header_init(http_header_t *header)
 {
-	char *dname = str_dup(name);
-	if (dname == NULL)
-		return NULL;
-	
-	char *dvalue = str_dup(value);
-	if (dvalue == NULL) {
-		free(dname);
-		return NULL;
-	}
-
-	return http_header_create_no_copy(dname, dvalue);
+	link_initialize(&header->link);
+	header->name = NULL;
+	header->value = NULL;
 }
 
-http_header_t *http_header_create_no_copy(char *name, char *value)
+http_header_t *http_header_create(const char *name, const char *value)
 {
 	http_header_t *header = malloc(sizeof(http_header_t));
 	if (header == NULL)
 		return NULL;
+	http_header_init(header);
+
+	header->name = str_dup(name);
+	if (header->name == NULL) {
+		free(header);
+		return NULL;
+	}
 	
-	link_initialize(&header->link);
-	header->name = name;
-	header->value = value;
-	
+	header->value = str_dup(value);
+	if (header->value == NULL) {
+		free(header->name);
+		free(header);
+		return NULL;
+	}
+
 	return header;
 }
 
@@ -83,7 +85,7 @@ void http_header_destroy(http_header_t *header)
 	free(header);
 }
 
-ssize_t http_encode_header(char *buf, size_t buf_size, http_header_t *header)
+ssize_t http_header_encode(http_header_t *header, char *buf, size_t buf_size)
 {
 	/* TODO properly split long header values */
 	if (buf == NULL) {
@@ -95,7 +97,7 @@ ssize_t http_encode_header(char *buf, size_t buf_size, http_header_t *header)
 	}
 }
 
-int http_parse_header(const char *line, char **out_name, char **out_value)
+int http_header_parse(const char *line, http_header_t *header)
 {
 	const char *pos = line;
 	while (*pos != 0 && *pos != ':') pos++;
@@ -116,8 +118,8 @@ int http_parse_header(const char *line, char **out_name, char **out_value)
 		return ENOMEM;
 	}
 	
-	*out_name = name;
-	*out_value = value;
+	header->name = name;
+	header->value = value;
 	
 	return EOK;
 }

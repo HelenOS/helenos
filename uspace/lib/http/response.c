@@ -121,19 +121,16 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 		if (*line == 0)
 			break;
 		
-		char *name = NULL;
-		char *value = NULL;
-		rc = http_parse_header(line, &name, &value);
-		if (rc != EOK)
-			goto error;
-		
-		http_header_t *header = http_header_create_no_copy(name, value);
+		http_header_t *header = malloc(sizeof(http_header_t));
 		if (header == NULL) {
-			free(name);
-			free(value);
 			rc = ENOMEM;
 			goto error;
 		}
+		http_header_init(header);
+		
+		rc = http_header_parse(line, header);
+		if (rc != EOK)
+			goto error;
 		
 		list_append(&header->link, &resp->headers);
 	}
