@@ -26,57 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nconfsrv
+/** @addtogroup dhcp
  * @{
  */
 /**
  * @file
- * @brief Network configuration Service
  */
 
-#include <adt/list.h>
 #include <async.h>
 #include <errno.h>
-#include <fibril_synch.h>
-#include <inet/dhcp.h>
-#include <inet/inetcfg.h>
 #include <io/log.h>
-#include <ipc/inet.h>
+#include <inet/inetcfg.h>
+#include <ipc/dhcp.h>
 #include <ipc/services.h>
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <net/socket_codes.h>
-#include "iplink.h"
-#include "nconfsrv.h"
+#include <task.h>
 
-#define NAME "nconfsrv"
+#include "dhcp.h"
 
-static void ncs_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+#define NAME  "dhcp"
 
-static int ncs_init(void)
+static void dhcp_client_conn(ipc_callid_t, ipc_call_t *, void *);
+
+static int dhcp_init(void)
 {
-	service_id_t sid;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ncs_init()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_init()");
 
 	rc = inetcfg_init();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting inet "
-		    "configuration service.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting inet configuration service.\n");
 		return EIO;
 	}
 
-	rc = dhcp_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting dhcp "
-		    "configuration service.");
-		return EIO;
-	}
-
-	async_set_client_connection(ncs_client_conn);
+	async_set_client_connection(dhcp_client_conn);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -84,36 +70,85 @@ static int ncs_init(void)
 		return EEXIST;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_NETCONF, &sid);
+	service_id_t sid;
+	rc = loc_service_register(SERVICE_NAME_DHCP, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
 
-	rc = ncs_link_discovery_start();
-	if (rc != EOK)
-		return EEXIST;
-
 	return EOK;
 }
 
-static void ncs_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void dhcp_link_add_srv(ipc_callid_t callid, ipc_call_t *call)
 {
-	async_answer_0(iid, ENOTSUP);
+	sysarg_t link_id;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_link_add_srv()");
+
+	link_id = IPC_GET_ARG1(*call);
+
+	rc = dhcpsrv_link_add(link_id);
+	async_answer_0(callid, rc);
+}
+
+static void dhcp_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
+{
+	sysarg_t link_id;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_link_remove_srv()");
+
+	link_id = IPC_GET_ARG1(*call);
+
+	rc = dhcpsrv_link_remove(link_id);
+	async_answer_0(callid, rc);
+}
+
+static void dhcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_client_conn()");
+
+	/* Accept the connection */
+	async_answer_0(iid, EOK);
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		sysarg_t method = IPC_GET_IMETHOD(call);
+
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(callid, EOK);
+			return;
+		}
+
+		switch (method) {
+		case DHCP_LINK_ADD:
+			dhcp_link_add_srv(callid, &call);
+			break;
+		case DHCP_LINK_REMOVE:
+			dhcp_link_remove_srv(callid, &call);
+			break;
+		default:
+			async_answer_0(callid, EINVAL);
+		}
+	}
 }
 
 int main(int argc, char *argv[])
 {
 	int rc;
 
-	printf(NAME ": HelenOS Network configuration service\n");
+	printf("%s: DHCP Service\n", NAME);
 
 	if (log_init(NAME) != EOK) {
 		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}
 
-	rc = ncs_init();
+	rc = dhcp_init();
 	if (rc != EOK)
 		return 1;
 
@@ -121,7 +156,6 @@ int main(int argc, char *argv[])
 	task_retval(0);
 	async_manager();
 
-	/* Not reached */
 	return 0;
 }
 

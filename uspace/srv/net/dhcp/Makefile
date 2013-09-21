@@ -30,6 +30,7 @@ USPACE_PREFIX = ../../..
 BINARY = dhcp
 
 SOURCES = \
-	dhcp.c 
+	dhcp.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

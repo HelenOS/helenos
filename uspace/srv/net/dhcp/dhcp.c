@@ -38,6 +38,7 @@
 #include <inet/addr.h>
 #include <inet/dnsr.h>
 #include <inet/inetcfg.h>
+#include <io/log.h>
 #include <loc.h>
 #include <net/in.h>
 #include <net/inet.h>
@@ -45,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "dhcp.h"
 #include "dhcp_std.h"
 
 #define NAME "dhcp"
@@ -112,7 +114,7 @@ static int dhcp_send(void *msg, size_t size)
 	rc = sendto(transport_fd, msg, size, 0,
 	    (struct sockaddr *)&addr, sizeof(addr));
 	if (rc != EOK) {
-		printf("Sending failed\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Sending failed");
 		return rc;
 	}
 
@@ -153,7 +155,7 @@ static int dhcp_recv_msg(void **rmsg, size_t *rsize)
 	rc = recvfrom(transport_fd, msgbuf, MAX_MSG_SIZE, 0,
 	    (struct sockaddr *)&src_addr, &src_addr_size);
 	if (rc < 0) {
-		printf("recvfrom failed (%d)\n", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom failed (%d)", rc);
 		return rc;
 	}
 
@@ -221,7 +223,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	int rc;
 	size_t i;
 
-	printf("Receive reply\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Receive reply");
 	memset(offer, 0, sizeof(*offer));
 
 	yiaddr.family = AF_INET;
@@ -230,7 +232,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	if (rc != EOK)
 		return rc;
 
-	printf("Your IP address: %s\n", saddr);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Your IP address: %s", saddr);
 	free(saddr);
 
 	siaddr.family = AF_INET;
@@ -239,7 +241,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	if (rc != EOK)
 		return rc;
 
-	printf("Next server IP address: %s\n", saddr);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Next server IP address: %s", saddr);
 	free(saddr);
 
 	giaddr.family = AF_INET;
@@ -248,7 +250,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	if (rc != EOK)
 		return rc;
 
-	printf("Relay agent IP address: %s\n", saddr);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Relay agent IP address: %s", saddr);
 	free(saddr);
 
 	offer->oaddr.family = AF_INET;
@@ -319,12 +321,12 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	}
 
 	if (!have_server_id) {
-		printf("Missing server ID option.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Missing server ID option.");
 		return rc;
 	}
 
 	if (!have_subnet_mask) {
-		printf("Missing subnet mask option.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Missing subnet mask option.");
 		return rc;
 	}
 
@@ -332,7 +334,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	if (rc != EOK)
 		return rc;
 
-	printf("Offered network address: %s\n", saddr);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Offered network address: %s", saddr);
 	free(saddr);
 
 	if (offer->router.addr != 0) {
@@ -340,7 +342,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 		if (rc != EOK)
 			return rc;
 
-		printf("Router address: %s\n", saddr);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Router address: %s", saddr);
 		free(saddr);
 	}
 
@@ -349,7 +351,7 @@ static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
 		if (rc != EOK)
 			return rc;
 
-		printf("DNS server: %s\n", saddr);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "DNS server: %s", saddr);
 		free(saddr);
 	}
 
@@ -366,7 +368,8 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	rc = inetcfg_addr_create_static("dhcp4a", &offer->oaddr, iplink,
 	    &addr_id);
 	if (rc != EOK) {
-		printf("Error creating IP address %s (%d)\n", "dhcp4a", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error creating IP address %s (%d)", "dhcp4a", rc);
 		return rc;
 	}
 
@@ -377,8 +380,8 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 
 		rc = inetcfg_sroute_create("dhcpdef", &defr, &offer->router, &sroute_id);
 		if (rc != EOK) {
-			printf("Error creating default route %s (%d).\n", "dhcpdef",
-			    rc);
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating "
+			    "default route %s (%d).", "dhcpdef", rc);
 			return rc;
 		}
 	}
@@ -386,8 +389,8 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	if (offer->dns_server.addr != 0) {
 		rc = dnsr_set_srvaddr(&offer->dns_server);
 		if (rc != EOK) {
-			printf("%s: Error setting nameserver address (%d))\n",
-			    NAME, rc);
+			log_msg(LOG_DEFAULT, LVL_ERROR, "%s: Error setting "
+			    "nameserver address (%d))", NAME, rc);
 			return rc;
 		}
 	}
@@ -395,38 +398,23 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	return EOK;
 }
 
-int main(int argc, char *argv[])
+int dhcpsrv_link_add(service_id_t link_id)
 {
 	int fd;
 	struct sockaddr_in laddr;
 	void *msg;
-	service_id_t iplink;
 	size_t msg_size;
 	dhcp_offer_t offer;
 	int rc;
 
-	if (argc < 2) {
-		printf("syntax: %s <ip-link>\n", NAME);
-		return 1;
-	}
-
-	rc = inetcfg_init();
-	if (rc != EOK) {
-		printf("Error contacting inet configuration service.\n");
-		return 1;
-	}
-
-	rc = loc_service_get_id(argv[1], &iplink, 0);
-	if (rc != EOK) {
-		printf("Error resolving service '%s'.\n", argv[1]);
-		return 1;
-	}
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
 
 	/* Get link hardware address */
-	rc = inetcfg_link_get(iplink, &link_info);
+	rc = inetcfg_link_get(link_id, &link_info);
 	if (rc != EOK) {
-		printf("Error getting properties for link '%s'.\n", argv[1]);
-		return 1;
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting properties "
+		    "for link %zu.", link_id);
+		return EIO;
 	}
 
 	laddr.sin_family = AF_INET;
@@ -435,56 +423,62 @@ int main(int argc, char *argv[])
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd < 0)
-		return 1;
+		return EIO;
 
-	printf("Bind socket.\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Bind socket.");
 	rc = bind(fd, (struct sockaddr *)&laddr, sizeof(laddr));
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
-	printf("Set socket options\n");
-	rc = setsockopt(fd, SOL_SOCKET, SO_IPLINK, &iplink, sizeof(iplink));
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Set socket options");
+	rc = setsockopt(fd, SOL_SOCKET, SO_IPLINK, &link_id, sizeof(link_id));
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
 	transport_fd = fd;
 
-	printf("Send DHCPDISCOVER\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
 	rc = dhcp_send_discover();
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
 	rc = dhcp_recv_msg(&msg, &msg_size);
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
-	printf("Received %zu bytes\n", msg_size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes", msg_size);
 
 	rc = dhcp_recv_reply(msg, msg_size, &offer);
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
 	rc = dhcp_send_request(&offer);
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
 	rc = dhcp_recv_msg(&msg, &msg_size);
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
-	printf("Received %zu bytes\n", msg_size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes", msg_size);
 
 	rc = dhcp_recv_reply(msg, msg_size, &offer);
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
-	rc = dhcp_cfg_create(iplink, &offer);
+	rc = dhcp_cfg_create(link_id, &offer);
 	if (rc != EOK)
-		return 1;
+		return EIO;
 
 	closesocket(fd);
-	return 0;
+	return EOK;
 }
+
+int dhcpsrv_link_remove(service_id_t link_id)
+{
+	return ENOTSUP;
+}
+
 
 /** @}
  */

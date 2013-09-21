@@ -37,10 +37,12 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/dhcp.h>
 #include <inet/inetcfg.h>
 #include <io/log.h>
 #include <loc.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include "iplink.h"
 #include "nconfsrv.h"
@@ -138,11 +140,21 @@ static int ncs_link_add(service_id_t sid)
 		goto error;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Configure link %s", nlink->svc_name);
 	rc = inetcfg_link_add(sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed configuring link "
 		    "'%s'.\n", nlink->svc_name);
 		goto error;
+	}
+
+	if (str_lcmp(nlink->svc_name, "net/eth", str_length("net/eth")) == 0) {
+		rc = dhcp_link_add(sid);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed configuring DHCP on "
+			    " link '%s'.\n", nlink->svc_name);
+			goto error;
+		}
 	}
 
 	return EOK;

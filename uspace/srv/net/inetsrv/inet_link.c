@@ -250,6 +250,7 @@ int inet_link_open(service_id_t sid)
 		}
 	}
 	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Configured link '%s'.", ilink->svc_name);
 	return EOK;
 	
 error:

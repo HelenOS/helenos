@@ -749,6 +749,7 @@ void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_callid_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "method %d", (int)method);
 		if (!method) {
 			/* The other side has hung up */
 			async_answer_0(callid, EOK);
