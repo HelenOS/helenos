@@ -295,7 +295,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->private_data;
+	hc_t *instance = hcd->driver.data;
 	assert(instance);
 
 	/* Check for root hub communication */

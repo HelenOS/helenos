@@ -443,7 +443,7 @@ do { \
 int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
-	hc_t *instance = hcd->private_data;
+	hc_t *instance = hcd->driver.data;
 	assert(instance);
 	assert(batch);
 

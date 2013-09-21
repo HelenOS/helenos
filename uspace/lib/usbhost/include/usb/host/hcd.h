@@ -49,19 +49,24 @@ typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
 typedef int (*ep_add_hook_t)(hcd_t *, endpoint_t *);
 typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
 
-/** Generic host controller driver structure. */
-struct hcd {
-	/** Endpoint manager. */
-	usb_endpoint_manager_t ep_manager;
-
+typedef struct {
 	/** Device specific driver data. */
-	void *private_data;
+	void *data;
 	/** Transfer scheduling, implement in device driver. */
 	schedule_hook_t schedule;
 	/** Hook called upon registering new endpoint. */
 	ep_add_hook_t ep_add_hook;
 	/** Hook called upon removing of an endpoint. */
 	ep_remove_hook_t ep_remove_hook;
+} hc_driver_t;
+
+/** Generic host controller driver structure. */
+struct hcd {
+	/** Endpoint manager. */
+	usb_endpoint_manager_t ep_manager;
+
+	/** Driver implementation */
+	hc_driver_t driver;
 };
 
 void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
@@ -71,10 +76,10 @@ static inline void hcd_set_implementation(hcd_t *hcd, void *data,
     schedule_hook_t schedule, ep_add_hook_t add_hook, ep_remove_hook_t rem_hook)
 {
 	assert(hcd);
-	hcd->private_data = data;
-	hcd->schedule = schedule;
-	hcd->ep_add_hook = add_hook;
-	hcd->ep_remove_hook = rem_hook;
+	hcd->driver.data = data;
+	hcd->driver.schedule = schedule;
+	hcd->driver.ep_add_hook = add_hook;
+	hcd->driver.ep_remove_hook = rem_hook;
 }
 
 usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed);

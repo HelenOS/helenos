@@ -56,12 +56,12 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
 	hcd_t *hcd = dev_to_hcd(dev);
-	if (!hcd || !hcd->private_data) {
+	if (!hcd || !hcd->driver.data) {
 		usb_log_error("Interrupt on not yet initialized device.\n");
 		return;
 	}
 	const uint16_t status = IPC_GET_ARG1(*call);
-	hc_interrupt(hcd->private_data, status);
+	hc_interrupt(hcd->driver.data, status);
 }
 
 /** Initialize hc and rh DDF structures and their respective drivers.
