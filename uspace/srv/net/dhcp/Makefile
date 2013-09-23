@@ -31,6 +31,7 @@ BINARY = dhcp
 
 SOURCES = \
 	dhcp.c \
-	main.c
+	main.c \
+	transport.c
 
 include $(USPACE_PREFIX)/Makefile.common

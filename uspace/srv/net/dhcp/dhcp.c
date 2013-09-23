@@ -34,6 +34,7 @@
  * @brief DHCP client
  */
 
+#include <adt/list.h>
 #include <bitops.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
@@ -48,14 +49,12 @@
 
 #include "dhcp.h"
 #include "dhcp_std.h"
-
-#define NAME "dhcp"
+#include "transport.h"
 
 #define MAX_MSG_SIZE 1024
-
-static int transport_fd = -1;
-static inet_link_info_t link_info;
 static uint8_t msgbuf[MAX_MSG_SIZE];
+
+static list_t dhcp_links;
 
 typedef struct {
 	/** Message type */
@@ -69,6 +68,15 @@ typedef struct {
 	/** DNS server */
 	inet_addr_t dns_server;
 } dhcp_offer_t;
+
+typedef struct {
+	link_t links;
+	service_id_t link_id;
+	inet_link_info_t link_info;
+	dhcp_transport_t dt;
+} dhcp_link_t;
+
+static void dhcpsrv_recv(void *, void *, size_t);
 
 /** Decode subnet mask into subnet prefix length. */
 static int subnet_mask_decode(uint32_t mask, int *bits)
@@ -102,26 +110,7 @@ static uint32_t dhcp_uint32_decode(uint8_t *data)
 	    ((uint32_t)data[3]);
 }
 
-static int dhcp_send(void *msg, size_t size)
-{
-	struct sockaddr_in addr;
-	int rc;
-
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(dhcp_server_port);
-	addr.sin_addr.s_addr = htonl(addr32_broadcast_all_hosts);
-
-	rc = sendto(transport_fd, msg, size, 0,
-	    (struct sockaddr *)&addr, sizeof(addr));
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Sending failed");
-		return rc;
-	}
-
-	return EOK;
-}
-
-static int dhcp_send_discover(void)
+static int dhcp_send_discover(dhcp_link_t *dlink)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msgbuf;
 	uint8_t *opt = msgbuf + sizeof(dhcp_hdr_t);
@@ -133,7 +122,7 @@ static int dhcp_send_discover(void)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 
-	addr48(link_info.mac_addr, hdr->chaddr);
+	addr48(dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	opt[0] = opt_msg_type;
@@ -141,32 +130,10 @@ static int dhcp_send_discover(void)
 	opt[2] = msg_dhcpdiscover;
 	opt[3] = opt_end;
 
-	return dhcp_send(msgbuf, sizeof(dhcp_hdr_t) + 4);
+	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + 4);
 }
 
-static int dhcp_recv_msg(void **rmsg, size_t *rsize)
-{
-	struct sockaddr_in src_addr;
-	socklen_t src_addr_size;
-	size_t recv_size;
-	int rc;
-
-	src_addr_size = sizeof(src_addr);
-	rc = recvfrom(transport_fd, msgbuf, MAX_MSG_SIZE, 0,
-	    (struct sockaddr *)&src_addr, &src_addr_size);
-	if (rc < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "recvfrom failed (%d)", rc);
-		return rc;
-	}
-
-	recv_size = (size_t)rc;
-	*rmsg = msgbuf;
-	*rsize = recv_size;
-
-	return EOK;
-}
-
-static int dhcp_send_request(dhcp_offer_t *offer)
+static int dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msgbuf;
 	uint8_t *opt = msgbuf + sizeof(dhcp_hdr_t);
@@ -179,7 +146,7 @@ static int dhcp_send_request(dhcp_offer_t *offer)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 	hdr->ciaddr = host2uint32_t_be(offer->oaddr.addr);
-	addr48(link_info.mac_addr, hdr->chaddr);
+	addr48(dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	i = 0;
@@ -204,10 +171,10 @@ static int dhcp_send_request(dhcp_offer_t *offer)
 
 	opt[i++] = opt_end;
 
-	return dhcp_send(msgbuf, sizeof(dhcp_hdr_t) + i);
+	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + i);
 }
 
-static int dhcp_recv_reply(void *msg, size_t size, dhcp_offer_t *offer)
+static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msg;
 	inet_addr_t yiaddr;
@@ -389,8 +356,8 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	if (offer->dns_server.addr != 0) {
 		rc = dnsr_set_srvaddr(&offer->dns_server);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "%s: Error setting "
-			    "nameserver address (%d))", NAME, rc);
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error setting "
+			    "nameserver address (%d))", rc);
 			return rc;
 		}
 	}
@@ -400,78 +367,47 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 
 int dhcpsrv_link_add(service_id_t link_id)
 {
-	int fd;
-	struct sockaddr_in laddr;
-	void *msg;
-	size_t msg_size;
-	dhcp_offer_t offer;
+	dhcp_link_t *dlink;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
 
+	dlink = calloc(1, sizeof(dhcp_link_t));
+	if (dlink == NULL)
+		return ENOMEM;
+
+	dlink->link_id = link_id;
+
 	/* Get link hardware address */
-	rc = inetcfg_link_get(link_id, &link_info);
+	rc = inetcfg_link_get(link_id, &dlink->link_info);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting properties "
 		    "for link %zu.", link_id);
-		return EIO;
+		rc = EIO;
+		goto error;
 	}
 
-	laddr.sin_family = AF_INET;
-	laddr.sin_port = htons(dhcp_client_port);
-	laddr.sin_addr.s_addr = INADDR_ANY;
-
-	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (fd < 0)
-		return EIO;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Bind socket.");
-	rc = bind(fd, (struct sockaddr *)&laddr, sizeof(laddr));
-	if (rc != EOK)
-		return EIO;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Set socket options");
-	rc = setsockopt(fd, SOL_SOCKET, SO_IPLINK, &link_id, sizeof(link_id));
-	if (rc != EOK)
-		return EIO;
-
-	transport_fd = fd;
+	rc = dhcp_transport_init(&dlink->dt, link_id, dhcpsrv_recv, dlink);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error initializing DHCP "
+		    "transport for link %s.", dlink->link_info.name);
+		rc = EIO;
+		goto error;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
-	rc = dhcp_send_discover();
-	if (rc != EOK)
-		return EIO;
+	rc = dhcp_send_discover(dlink);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
 
-	rc = dhcp_recv_msg(&msg, &msg_size);
-	if (rc != EOK)
-		return EIO;
+	if (0) list_append(&dlink->links, &dhcp_links);
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes", msg_size);
-
-	rc = dhcp_recv_reply(msg, msg_size, &offer);
-	if (rc != EOK)
-		return EIO;
-
-	rc = dhcp_send_request(&offer);
-	if (rc != EOK)
-		return EIO;
-
-	rc = dhcp_recv_msg(&msg, &msg_size);
-	if (rc != EOK)
-		return EIO;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received %zu bytes", msg_size);
-
-	rc = dhcp_recv_reply(msg, msg_size, &offer);
-	if (rc != EOK)
-		return EIO;
-
-	rc = dhcp_cfg_create(link_id, &offer);
-	if (rc != EOK)
-		return EIO;
-
-	closesocket(fd);
 	return EOK;
+error:
+	free(dlink);
+	return rc;
 }
 
 int dhcpsrv_link_remove(service_id_t link_id)
@@ -479,6 +415,36 @@ int dhcpsrv_link_remove(service_id_t link_id)
 	return ENOTSUP;
 }
 
+static void dhcpsrv_recv(void *arg, void *msg, size_t size)
+{
+	dhcp_link_t *dlink = (dhcp_link_t *)arg;
+	dhcp_offer_t offer;
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_recv() %zu bytes", size);
+
+	rc = dhcp_parse_reply(msg, size, &offer);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error parsing reply");
+		return;
+	}
+
+	if (offer.msg_type == msg_dhcpoffer) {
+		rc = dhcp_send_request(dlink, &offer);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending request.");
+			return;
+		}
+	}
+
+	if (offer.msg_type == msg_dhcpack) {
+		rc = dhcp_cfg_create(dlink->link_id, &offer);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error creating configuration.");
+			return;
+		}
+	}
+}
 
 /** @}
  */
