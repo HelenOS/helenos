@@ -417,6 +417,13 @@ static dhcp_link_t *dhcpsrv_link_find(service_id_t link_id)
 	return NULL;
 }
 
+static void dhcp_link_set_failed(dhcp_link_t *dlink)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Giving up on link %s",
+	    dlink->link_info.name);
+	dlink->state = ds_fail;
+}
+
 int dhcpsrv_link_add(service_id_t link_id)
 {
 	dhcp_link_t *dlink;
@@ -463,7 +470,8 @@ int dhcpsrv_link_add(service_id_t link_id)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
 	rc = dhcp_send_discover(dlink);
 	if (rc != EOK) {
-		dlink->state = ds_fail;
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error sending DHCPDISCOVER.");
+		dhcp_link_set_failed(dlink);
 		rc = EIO;
 		goto error;
 	}
@@ -532,6 +540,9 @@ static void dhcpsrv_recv_ack(dhcp_link_t *dlink, dhcp_offer_t *offer)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error creating configuration.");
 		return;
 	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: Successfully configured.",
+	    dlink->link_info.name);
 }
 
 static void dhcpsrv_recv(void *arg, void *msg, size_t size)
@@ -540,7 +551,8 @@ static void dhcpsrv_recv(void *arg, void *msg, size_t size)
 	dhcp_offer_t offer;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_recv() %zu bytes", size);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: dhcpsrv_recv() %zu bytes",
+	    dlink->link_info.name, size);
 
 	rc = dhcp_parse_reply(msg, size, &offer);
 	if (rc != EOK) {
@@ -568,11 +580,12 @@ static void dhcpsrv_discover_timeout(void *arg)
 	int rc;
 
 	assert(dlink->state == ds_selecting);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "dcpsrv_discover_timeout");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dcpsrv_discover_timeout",
+	    dlink->link_info.name);
 
 	if (dlink->retries_left == 0) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Retries exhausted");
-		dlink->state = ds_fail;
+		dhcp_link_set_failed(dlink);
 		return;
 	}
 	--dlink->retries_left;
@@ -581,7 +594,7 @@ static void dhcpsrv_discover_timeout(void *arg)
 	rc = dhcp_send_discover(dlink);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error sending DHCPDISCOVER");
-		dlink->state = ds_fail;
+		dhcp_link_set_failed(dlink);
 		return;
 	}
 
@@ -595,11 +608,12 @@ static void dhcpsrv_request_timeout(void *arg)
 	int rc;
 
 	assert(dlink->state == ds_requesting);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "dcpsrv_request_timeout");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dcpsrv_request_timeout",
+	    dlink->link_info.name);
 
 	if (dlink->retries_left == 0) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Retries exhausted");
-		dlink->state = ds_fail;
+		dhcp_link_set_failed(dlink);
 		return;
 	}
 	--dlink->retries_left;
@@ -608,7 +622,7 @@ static void dhcpsrv_request_timeout(void *arg)
 	rc = dhcp_send_request(dlink, &dlink->offer);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending request.");
-		dlink->state = ds_fail;
+		dhcp_link_set_failed(dlink);
 		return;
 	}
 
