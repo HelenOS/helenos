@@ -52,8 +52,14 @@
 #include "dhcp_std.h"
 #include "transport.h"
 
-#define DHCP_DISCOVER_TIMEOUT_VAL (5 * 1000 * 1000)
-#define DHCP_REQUEST_TIMEOUT_VAL (1 * 1000 * 1000)
+enum {
+	/** In microseconds */
+	dhcp_discover_timeout_val = 5 * 1000 * 1000,
+	/** In microseconds */
+	dhcp_request_timeout_val = 1 * 1000 * 1000,
+	dhcp_discover_retries = 5,
+	dhcp_request_retries = 3
+};
 
 #define MAX_MSG_SIZE 1024
 static uint8_t msgbuf[MAX_MSG_SIZE];
@@ -66,6 +72,7 @@ static void dhcpsrv_request_timeout(void *);
 
 typedef enum {
 	ds_bound,
+	ds_fail,
 	ds_init,
 	ds_init_reboot,
 	ds_rebinding,
@@ -98,6 +105,8 @@ typedef struct {
 	dhcp_transport_t dt;
 	/** Transport timeout */
 	fibril_timer_t *timeout;
+	/** Number of retries */
+	int retries_left;
 	/** Link state */
 	dhcp_state_t state;
 	/** Last received offer */
@@ -454,11 +463,13 @@ int dhcpsrv_link_add(service_id_t link_id)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
 	rc = dhcp_send_discover(dlink);
 	if (rc != EOK) {
+		dlink->state = ds_fail;
 		rc = EIO;
 		goto error;
 	}
 
-	fibril_timer_set(dlink->timeout, DHCP_DISCOVER_TIMEOUT_VAL,
+	dlink->retries_left = dhcp_discover_retries;
+	fibril_timer_set(dlink->timeout, dhcp_discover_timeout_val,
 	    dhcpsrv_discover_timeout, dlink);
 
 	list_append(&dlink->links, &dhcp_links);
@@ -497,7 +508,8 @@ static void dhcpsrv_recv_offer(dhcp_link_t *dlink, dhcp_offer_t *offer)
 		return;
 	}
 
-	fibril_timer_set(dlink->timeout, DHCP_REQUEST_TIMEOUT_VAL,
+	dlink->retries_left = dhcp_request_retries;
+	fibril_timer_set(dlink->timeout, dhcp_request_timeout_val,
 	    dhcpsrv_request_timeout, dlink);
 }
 
@@ -558,14 +570,22 @@ static void dhcpsrv_discover_timeout(void *arg)
 	assert(dlink->state == ds_selecting);
 	log_msg(LOG_DEFAULT, LVL_NOTE, "dcpsrv_discover_timeout");
 
+	if (dlink->retries_left == 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Retries exhausted");
+		dlink->state = ds_fail;
+		return;
+	}
+	--dlink->retries_left;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
 	rc = dhcp_send_discover(dlink);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error sending DHCPDISCOVER");
+		dlink->state = ds_fail;
 		return;
 	}
 
-	fibril_timer_set(dlink->timeout, DHCP_DISCOVER_TIMEOUT_VAL,
+	fibril_timer_set(dlink->timeout, dhcp_discover_timeout_val,
 	    dhcpsrv_discover_timeout, dlink);
 }
 
@@ -577,14 +597,22 @@ static void dhcpsrv_request_timeout(void *arg)
 	assert(dlink->state == ds_requesting);
 	log_msg(LOG_DEFAULT, LVL_NOTE, "dcpsrv_request_timeout");
 
+	if (dlink->retries_left == 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Retries exhausted");
+		dlink->state = ds_fail;
+		return;
+	}
+	--dlink->retries_left;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPREQUEST");
 	rc = dhcp_send_request(dlink, &dlink->offer);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending request.");
+		dlink->state = ds_fail;
 		return;
 	}
 
-	fibril_timer_set(dlink->timeout, DHCP_REQUEST_TIMEOUT_VAL,
+	fibril_timer_set(dlink->timeout, dhcp_request_timeout_val,
 	    dhcpsrv_request_timeout, dlink);
 }
 
