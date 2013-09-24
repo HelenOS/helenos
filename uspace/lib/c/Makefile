@@ -76,6 +76,7 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \

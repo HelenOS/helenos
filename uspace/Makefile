@@ -96,6 +96,7 @@ DIRS = \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
+	srv/net/nconfsrv \
 	srv/net/slip \
 	srv/net/tcp \
 	srv/net/udp \

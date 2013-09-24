@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef INET_LINK_H_
-#define INET_LINK_H_
+#ifndef LIBC_INET_DHCP_H_
+#define LIBC_INET_DHCP_H_
 
 #include <sys/types.h>
-#include "inetsrv.h"
 
-extern int inet_link_open(service_id_t);
-extern int inet_link_send_dgram(inet_link_t *, addr32_t,
-    addr32_t, inet_dgram_t *, uint8_t, uint8_t, int);
-extern int inet_link_send_dgram6(inet_link_t *, addr48_t, inet_dgram_t *,
-    uint8_t, uint8_t, int);
-extern inet_link_t *inet_link_get_by_id(sysarg_t);
-extern int inet_link_get_id_list(sysarg_t **, size_t *);
+extern int dhcp_init(void);
+extern int dhcp_link_add(sysarg_t);
+extern int dhcp_link_remove(sysarg_t);
 
 #endif
 

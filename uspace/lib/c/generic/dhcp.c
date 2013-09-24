@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef INET_LINK_H_
-#define INET_LINK_H_
+#include <async.h>
+#include <assert.h>
+#include <errno.h>
+#include <inet/dhcp.h>
+#include <ipc/dhcp.h>
+#include <ipc/services.h>
+#include <loc.h>
+#include <stdlib.h>
 
-#include <sys/types.h>
-#include "inetsrv.h"
+static async_sess_t *dhcp_sess = NULL;
 
-extern int inet_link_open(service_id_t);
-extern int inet_link_send_dgram(inet_link_t *, addr32_t,
-    addr32_t, inet_dgram_t *, uint8_t, uint8_t, int);
-extern int inet_link_send_dgram6(inet_link_t *, addr48_t, inet_dgram_t *,
-    uint8_t, uint8_t, int);
-extern inet_link_t *inet_link_get_by_id(sysarg_t);
-extern int inet_link_get_id_list(sysarg_t **, size_t *);
+int dhcp_init(void)
+{
+	service_id_t dhcp_svc;
+	int rc;
 
-#endif
+	assert(dhcp_sess == NULL);
+
+	rc = loc_service_get_id(SERVICE_NAME_DHCP, &dhcp_svc,
+	    IPC_FLAG_BLOCKING);
+	if (rc != EOK)
+		return ENOENT;
+
+	dhcp_sess = loc_service_connect(EXCHANGE_SERIALIZE, dhcp_svc,
+	    IPC_FLAG_BLOCKING);
+	if (dhcp_sess == NULL)
+		return ENOENT;
+
+	return EOK;
+}
+
+int dhcp_link_add(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(dhcp_sess);
+
+	int rc = async_req_1_0(exch, DHCP_LINK_ADD, link_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+int dhcp_link_remove(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(dhcp_sess);
+
+	int rc = async_req_1_0(exch, DHCP_LINK_REMOVE, link_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
 
 /** @}
  */

@@ -54,15 +54,15 @@ static bool first_link6 = true;
 static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
-static int inet_link_open(service_id_t);
 static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
+static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
 	.recv = inet_iplink_recv
 };
 
-static LIST_INITIALIZE(inet_link_list);
-static FIBRIL_MUTEX_INITIALIZE(inet_discovery_lock);
+static LIST_INITIALIZE(inet_links);
+static FIBRIL_MUTEX_INITIALIZE(inet_links_lock);
 
 static addr128_t link_local_node_ip =
     {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0, 0};
@@ -112,53 +112,6 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, uint16_t a
 	return rc;
 }
 
-static int inet_link_check_new(void)
-{
-	bool already_known;
-	category_id_t iplink_cat;
-	service_id_t *svcs;
-	size_t count, i;
-	int rc;
-
-	fibril_mutex_lock(&inet_discovery_lock);
-
-	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
-		fibril_mutex_unlock(&inet_discovery_lock);
-		return ENOENT;
-	}
-
-	rc = loc_category_get_svcs(iplink_cat, &svcs, &count);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting list of IP links.");
-		fibril_mutex_unlock(&inet_discovery_lock);
-		return EIO;
-	}
-
-	for (i = 0; i < count; i++) {
-		already_known = false;
-
-		list_foreach(inet_link_list, link_list, inet_link_t, ilink) {
-			if (ilink->svc_id == svcs[i]) {
-				already_known = true;
-				break;
-			}
-		}
-
-		if (!already_known) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "Found IP link '%lu'",
-			    (unsigned long) svcs[i]);
-			rc = inet_link_open(svcs[i]);
-			if (rc != EOK)
-				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not open IP link.");
-		}
-	}
-
-	fibril_mutex_unlock(&inet_discovery_lock);
-	return EOK;
-}
-
 static inet_link_t *inet_link_new(void)
 {
 	inet_link_t *ilink = calloc(1, sizeof(inet_link_t));
@@ -182,7 +135,7 @@ static void inet_link_delete(inet_link_t *ilink)
 	free(ilink);
 }
 
-static int inet_link_open(service_id_t sid)
+int inet_link_open(service_id_t sid)
 {
 	inet_link_t *ilink;
 	inet_addr_t iaddr;
@@ -230,7 +183,19 @@ static int inet_link_open(service_id_t sid)
 	ilink->mac_valid = (rc == EOK);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
-	list_append(&ilink->link_list, &inet_link_list);
+
+	fibril_mutex_lock(&inet_links_lock);
+
+	if (inet_link_get_by_id_locked(sid) != NULL) {
+		fibril_mutex_unlock(&inet_links_lock);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %zu already open",
+		    sid);
+		rc = EEXIST;
+		goto error;
+	}
+
+	list_append(&ilink->link_list, &inet_links);
+	fibril_mutex_unlock(&inet_links_lock);
 
 	inet_addrobj_t *addr = NULL;
 	
@@ -298,6 +263,7 @@ static int inet_link_open(service_id_t sid)
 		}
 	}
 	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Configured link '%s'.", ilink->svc_name);
 	return EOK;
 	
 error:
@@ -306,25 +272,6 @@ error:
 	
 	inet_link_delete(ilink);
 	return rc;
-}
-
-static void inet_link_cat_change_cb(void)
-{
-	(void) inet_link_check_new();
-}
-
-int inet_link_discovery_start(void)
-{
-	int rc;
-
-	rc = loc_register_cat_change_cb(inet_link_cat_change_cb);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for IP link "
-		    "discovery (%d).", rc);
-		return rc;
-	}
-
-	return inet_link_check_new();
 }
 
 /** Send IPv4 datagram over Internet link
@@ -477,19 +424,27 @@ int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
 	return rc;
 }
 
-inet_link_t *inet_link_get_by_id(sysarg_t link_id)
+static inet_link_t *inet_link_get_by_id_locked(sysarg_t link_id)
 {
-	fibril_mutex_lock(&inet_discovery_lock);
+	assert(fibril_mutex_is_locked(&inet_links_lock));
 
-	list_foreach(inet_link_list, link_list, inet_link_t, ilink) {
-		if (ilink->svc_id == link_id) {
-			fibril_mutex_unlock(&inet_discovery_lock);
+	list_foreach(inet_links, link_list, inet_link_t, ilink) {
+		if (ilink->svc_id == link_id)
 			return ilink;
-		}
 	}
 
-	fibril_mutex_unlock(&inet_discovery_lock);
 	return NULL;
+}
+
+inet_link_t *inet_link_get_by_id(sysarg_t link_id)
+{
+	inet_link_t *ilink;
+
+	fibril_mutex_lock(&inet_links_lock);
+	ilink = inet_link_get_by_id_locked(link_id);
+	fibril_mutex_unlock(&inet_links_lock);
+
+	return ilink;
 }
 
 /** Get IDs of all links. */
@@ -498,22 +453,22 @@ int inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	sysarg_t *id_list;
 	size_t count, i;
 
-	fibril_mutex_lock(&inet_discovery_lock);
-	count = list_count(&inet_link_list);
+	fibril_mutex_lock(&inet_links_lock);
+	count = list_count(&inet_links);
 
 	id_list = calloc(count, sizeof(sysarg_t));
 	if (id_list == NULL) {
-		fibril_mutex_unlock(&inet_discovery_lock);
+		fibril_mutex_unlock(&inet_links_lock);
 		return ENOMEM;
 	}
 
 	i = 0;
-	list_foreach(inet_link_list, link_list, inet_link_t, ilink) {
+	list_foreach(inet_links, link_list, inet_link_t, ilink) {
 		id_list[i++] = ilink->svc_id;
 		log_msg(LOG_DEFAULT, LVL_NOTE, "add link to list");
 	}
 
-	fibril_mutex_unlock(&inet_discovery_lock);
+	fibril_mutex_unlock(&inet_links_lock);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "return %zu links", count);
 	*rid_list = id_list;

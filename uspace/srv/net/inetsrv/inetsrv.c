@@ -123,10 +123,6 @@ static int inet_init(void)
 		return EEXIST;
 	}
 	
-	rc = inet_link_discovery_start();
-	if (rc != EOK)
-		return EEXIST;
-	
 	return EOK;
 }
 
