@@ -127,6 +127,8 @@ static int ncs_link_add(service_id_t sid)
 	ncs_link_t *nlink;
 	int rc;
 
+	assert(fibril_mutex_is_locked(&ncs_links_lock));
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ncs_link_add()");
 	nlink = ncs_link_new();
 	if (nlink == NULL)
@@ -156,6 +158,8 @@ static int ncs_link_add(service_id_t sid)
 			goto error;
 		}
 	}
+
+	list_append(&nlink->link_list, &ncs_links);
 
 	return EOK;
 

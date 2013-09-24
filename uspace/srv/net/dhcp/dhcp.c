@@ -432,7 +432,7 @@ int dhcpsrv_link_add(service_id_t link_id)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
 
 	if (dhcpsrv_link_find(link_id) != NULL) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %zu already added",
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Link %zu already added",
 		    link_id);
 		return EEXIST;
 	}
