@@ -36,6 +36,7 @@
 
 #include <adt/list.h>
 #include <bitops.h>
+#include <fibril_synch.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
 #include <inet/inetcfg.h>
@@ -51,10 +52,27 @@
 #include "dhcp_std.h"
 #include "transport.h"
 
+#define DHCP_DISCOVER_TIMEOUT_VAL (5 * 1000 * 1000)
+#define DHCP_REQUEST_TIMEOUT_VAL (1 * 1000 * 1000)
+
 #define MAX_MSG_SIZE 1024
 static uint8_t msgbuf[MAX_MSG_SIZE];
 
+/** List of registered links (of dhcp_link_t) */
 static list_t dhcp_links;
+
+static void dhcpsrv_discover_timeout(void *);
+static void dhcpsrv_request_timeout(void *);
+
+typedef enum {
+	ds_bound,
+	ds_init,
+	ds_init_reboot,
+	ds_rebinding,
+	ds_renewing,
+	ds_requesting,
+	ds_selecting
+} dhcp_state_t;
 
 typedef struct {
 	/** Message type */
@@ -70,10 +88,20 @@ typedef struct {
 } dhcp_offer_t;
 
 typedef struct {
+	/** Link to dhcp_links list */
 	link_t links;
+	/** Link service ID */
 	service_id_t link_id;
+	/** Link info */
 	inet_link_info_t link_info;
+	/** Transport */
 	dhcp_transport_t dt;
+	/** Transport timeout */
+	fibril_timer_t *timeout;
+	/** Link state */
+	dhcp_state_t state;
+	/** Last received offer */
+	dhcp_offer_t offer;
 } dhcp_link_t;
 
 static void dhcpsrv_recv(void *, void *, size_t);
@@ -365,6 +393,21 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	return EOK;
 }
 
+void dhcpsrv_links_init(void)
+{
+	list_initialize(&dhcp_links);
+}
+
+static dhcp_link_t *dhcpsrv_link_find(service_id_t link_id)
+{
+	list_foreach(dhcp_links, links, dhcp_link_t, dlink) {
+		if (dlink->link_id == link_id)
+			return dlink;
+	}
+
+	return NULL;
+}
+
 int dhcpsrv_link_add(service_id_t link_id)
 {
 	dhcp_link_t *dlink;
@@ -372,11 +415,22 @@ int dhcpsrv_link_add(service_id_t link_id)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
 
+	if (dhcpsrv_link_find(link_id) != NULL) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %zu already added",
+		    link_id);
+		return EEXIST;
+	}
+
 	dlink = calloc(1, sizeof(dhcp_link_t));
 	if (dlink == NULL)
 		return ENOMEM;
 
 	dlink->link_id = link_id;
+	dlink->timeout = fibril_timer_create();
+	if (dlink->timeout == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	/* Get link hardware address */
 	rc = inetcfg_link_get(link_id, &dlink->link_info);
@@ -395,6 +449,8 @@ int dhcpsrv_link_add(service_id_t link_id)
 		goto error;
 	}
 
+	dlink->state = ds_selecting;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
 	rc = dhcp_send_discover(dlink);
 	if (rc != EOK) {
@@ -402,10 +458,15 @@ int dhcpsrv_link_add(service_id_t link_id)
 		goto error;
 	}
 
-	if (0) list_append(&dlink->links, &dhcp_links);
+	fibril_timer_set(dlink->timeout, DHCP_DISCOVER_TIMEOUT_VAL,
+	    dhcpsrv_discover_timeout, dlink);
+
+	list_append(&dlink->links, &dhcp_links);
 
 	return EOK;
 error:
+	if (dlink != NULL && dlink->timeout != NULL)
+		fibril_timer_destroy(dlink->timeout);
 	free(dlink);
 	return rc;
 }
@@ -413,6 +474,52 @@ error:
 int dhcpsrv_link_remove(service_id_t link_id)
 {
 	return ENOTSUP;
+}
+
+static void dhcpsrv_recv_offer(dhcp_link_t *dlink, dhcp_offer_t *offer)
+{
+	int rc;
+
+	if (dlink->state != ds_selecting) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Received offer in state "
+		    " %d, ignoring.", (int)dlink->state);
+		return;
+	}
+
+	fibril_timer_clear(dlink->timeout);
+	dlink->offer = *offer;
+	dlink->state = ds_requesting;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPREQUEST");
+	rc = dhcp_send_request(dlink, offer);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending request.");
+		return;
+	}
+
+	fibril_timer_set(dlink->timeout, DHCP_REQUEST_TIMEOUT_VAL,
+	    dhcpsrv_request_timeout, dlink);
+}
+
+static void dhcpsrv_recv_ack(dhcp_link_t *dlink, dhcp_offer_t *offer)
+{
+	int rc;
+
+	if (dlink->state != ds_requesting) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Received ack in state "
+		    " %d, ignoring.", (int)dlink->state);
+		return;
+	}
+
+	fibril_timer_clear(dlink->timeout);
+	dlink->offer = *offer;
+	dlink->state = ds_bound;
+
+	rc = dhcp_cfg_create(dlink->link_id, offer);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error creating configuration.");
+		return;
+	}
 }
 
 static void dhcpsrv_recv(void *arg, void *msg, size_t size)
@@ -429,21 +536,56 @@ static void dhcpsrv_recv(void *arg, void *msg, size_t size)
 		return;
 	}
 
-	if (offer.msg_type == msg_dhcpoffer) {
-		rc = dhcp_send_request(dlink, &offer);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending request.");
-			return;
-		}
+	switch (offer.msg_type) {
+	case msg_dhcpoffer:
+		dhcpsrv_recv_offer(dlink, &offer);
+		break;
+	case msg_dhcpack:
+		dhcpsrv_recv_ack(dlink, &offer);
+		break;
+	default:
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Received unexpected "
+		    "message type. %d", (int)offer.msg_type);
+		break;
+	}
+}
+
+static void dhcpsrv_discover_timeout(void *arg)
+{
+	dhcp_link_t *dlink = (dhcp_link_t *)arg;
+	int rc;
+
+	assert(dlink->state == ds_selecting);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "dcpsrv_discover_timeout");
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPDISCOVER");
+	rc = dhcp_send_discover(dlink);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error sending DHCPDISCOVER");
+		return;
 	}
 
-	if (offer.msg_type == msg_dhcpack) {
-		rc = dhcp_cfg_create(dlink->link_id, &offer);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error creating configuration.");
-			return;
-		}
+	fibril_timer_set(dlink->timeout, DHCP_DISCOVER_TIMEOUT_VAL,
+	    dhcpsrv_discover_timeout, dlink);
+}
+
+static void dhcpsrv_request_timeout(void *arg)
+{
+	dhcp_link_t *dlink = (dhcp_link_t *)arg;
+	int rc;
+
+	assert(dlink->state == ds_requesting);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "dcpsrv_request_timeout");
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Send DHCPREQUEST");
+	rc = dhcp_send_request(dlink, &dlink->offer);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending request.");
+		return;
 	}
+
+	fibril_timer_set(dlink->timeout, DHCP_REQUEST_TIMEOUT_VAL,
+	    dhcpsrv_request_timeout, dlink);
 }
 
 /** @}

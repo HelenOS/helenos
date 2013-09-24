@@ -56,6 +56,8 @@ static int dhcp_init(void)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_init()");
 
+	dhcpsrv_links_init();
+
 	rc = inetcfg_init();
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting inet configuration service.\n");

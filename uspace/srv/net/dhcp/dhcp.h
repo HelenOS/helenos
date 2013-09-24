@@ -39,6 +39,7 @@
 
 #include <ipc/loc.h>
 
+extern void dhcpsrv_links_init(void);
 extern int dhcpsrv_link_add(service_id_t);
 extern int dhcpsrv_link_remove(service_id_t);
 

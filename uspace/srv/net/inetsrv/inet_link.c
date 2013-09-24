@@ -55,6 +55,7 @@ static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
 static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
+static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
 	.recv = inet_iplink_recv
@@ -182,7 +183,19 @@ int inet_link_open(service_id_t sid)
 	ilink->mac_valid = (rc == EOK);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
+
+	fibril_mutex_lock(&inet_links_lock);
+
+	if (inet_link_get_by_id_locked(sid) != NULL) {
+		fibril_mutex_unlock(&inet_links_lock);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %zu already open",
+		    sid);
+		rc = EEXIST;
+		goto error;
+	}
+
 	list_append(&ilink->link_list, &inet_links);
+	fibril_mutex_unlock(&inet_links_lock);
 
 	inet_addrobj_t *addr = NULL;
 	
@@ -411,19 +424,27 @@ int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
 	return rc;
 }
 
-inet_link_t *inet_link_get_by_id(sysarg_t link_id)
+static inet_link_t *inet_link_get_by_id_locked(sysarg_t link_id)
 {
-	fibril_mutex_lock(&inet_links_lock);
+	assert(fibril_mutex_is_locked(&inet_links_lock));
 
 	list_foreach(inet_links, link_list, inet_link_t, ilink) {
-		if (ilink->svc_id == link_id) {
-			fibril_mutex_unlock(&inet_links_lock);
+		if (ilink->svc_id == link_id)
 			return ilink;
-		}
 	}
 
-	fibril_mutex_unlock(&inet_links_lock);
 	return NULL;
+}
+
+inet_link_t *inet_link_get_by_id(sysarg_t link_id)
+{
+	inet_link_t *ilink;
+
+	fibril_mutex_lock(&inet_links_lock);
+	ilink = inet_link_get_by_id_locked(link_id);
+	fibril_mutex_unlock(&inet_links_lock);
+
+	return ilink;
 }
 
 /** Get IDs of all links. */
