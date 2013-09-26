@@ -39,14 +39,9 @@
 #include <macros.h>
 
 #include "http.h"
+#include "http-ctype.h"
 
 #define HTTP_HEADER_LINE "%s: %s\r\n"
-
-static char *cut_str(const char *start, const char *end)
-{
-	size_t size = end - start;
-	return str_ndup(start, size);
-}
 
 void http_header_init(http_header_t *header)
 {
@@ -97,31 +92,158 @@ ssize_t http_header_encode(http_header_t *header, char *buf, size_t buf_size)
 	}
 }
 
-int http_header_parse(const char *line, http_header_t *header)
+int http_header_receive_name(receive_buffer_t *rb, char **out_name)
 {
-	const char *pos = line;
-	while (*pos != 0 && *pos != ':') pos++;
-	if (*pos != ':')
+	receive_buffer_mark_t name_start;
+	receive_buffer_mark_t name_end;
+	
+	recv_mark(rb, &name_start);
+	recv_mark(rb, &name_end);
+	
+	char c = 0;
+	do {
+		recv_mark_update(rb, &name_end);
+		
+		int rc = recv_char(rb, &c, true);
+		if (rc != EOK) {
+			recv_unmark(rb, &name_start);
+			recv_unmark(rb, &name_end);
+			return rc;
+		}
+	} while (is_token(c));
+	
+	if (c != ':') {
+		recv_unmark(rb, &name_start);
+		recv_unmark(rb, &name_end);
 		return EINVAL;
+	}
 	
-	char *name = cut_str(line, pos);
-	if (name == NULL)
-		return ENOMEM;
+	char *name = NULL;
+	int rc = recv_cut_str(rb, &name_start, &name_end, &name);
+	recv_unmark(rb, &name_start);
+	recv_unmark(rb, &name_end);
+	if (rc != EOK)
+		return rc;
 	
-	pos++;
+	*out_name = name;
+	return EOK;
+}
+
+int http_header_receive_value(receive_buffer_t *rb, char **out_value)
+{
+	int rc = EOK;
+	char c = 0;
 	
-	while (*pos == ' ') pos++;
+	receive_buffer_mark_t value_start;
+	recv_mark(rb, &value_start);
 	
-	char *value = str_dup(pos);
-	if (value == NULL) {
+	/* Ignore any inline LWS */
+	while (true) {
+		recv_mark_update(rb, &value_start);
+		rc = recv_char(rb, &c, false);
+		if (rc != EOK)
+			goto error;
+		
+		if (c != ' ' && c != '\t')
+			break;
+		
+		rc = recv_char(rb, &c, true);
+		if (rc != EOK)
+			goto error;
+	}
+	
+	receive_buffer_mark_t value_end;
+	recv_mark(rb, &value_end);
+	
+	while (true) {
+		recv_mark_update(rb, &value_end);
+		
+		rc = recv_char(rb, &c, true);
+		if (rc != EOK)
+			goto error_end;
+		
+		if (c != '\r' && c != '\n')
+			continue;
+		
+		rc = recv_discard(rb, (c == '\r' ? '\n' : '\r'));
+		if (rc < 0)
+			goto error_end;
+		
+		rc = recv_char(rb, &c, false);
+		if (rc != EOK)
+			goto error_end;
+		
+		if (c != ' ' && c != '\t')
+			break;
+		
+		/* Ignore the char */
+		rc = recv_char(rb, &c, true);
+		if (rc != EOK)
+			goto error_end;
+	}
+	
+	char *value = NULL;
+	rc = recv_cut_str(rb, &value_start, &value_end, &value);
+	recv_unmark(rb, &value_start);
+	recv_unmark(rb, &value_end);
+	if (rc != EOK)
+		return rc;
+	
+	*out_value = value;
+	return EOK;
+error_end:
+	recv_unmark(rb, &value_end);
+error:
+	recv_unmark(rb, &value_start);
+	return rc;
+}
+
+int http_header_receive(receive_buffer_t *rb, http_header_t *header)
+{
+	char *name = NULL;
+	int rc = http_header_receive_name(rb, &name);
+	if (rc != EOK) {
+		printf("Failed receiving header name\n");
+		return rc;
+	}
+	
+	char *value = NULL;
+	rc = http_header_receive_value(rb, &value);
+	if (rc != EOK) {
 		free(name);
-		return ENOMEM;
+		return rc;
 	}
 	
 	header->name = name;
 	header->value = value;
-	
 	return EOK;
+}
+
+/** Normalize HTTP header value
+ *
+ * @see RFC2616 section 4.2
+ */
+void http_header_normalize_value(char *value)
+{
+	size_t read_index = 0;
+	size_t write_index = 0;
+	
+	while (is_lws(value[read_index])) read_index++;
+	
+	while (value[read_index] != 0) {
+		if (is_lws(value[read_index])) {
+			while (is_lws(value[read_index])) read_index++;
+			
+			if (value[read_index] != 0)
+				value[write_index++] = ' ';
+			
+			continue;
+		}
+		
+		value[write_index++] = value[read_index++];
+	}
+	
+	value[write_index] = 0;
 }
 
 /** @}

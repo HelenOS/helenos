@@ -115,10 +115,12 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 		goto error;
 	
 	while (true) {
-		rc = recv_line(&http->recv_buffer, line, http->buffer_size);
+		rc = recv_eol(&http->recv_buffer);
 		if (rc < 0)
 			goto error;
-		if (*line == 0)
+		
+		/* Empty line ends header part */
+		if (rc > 0)
 			break;
 		
 		http_header_t *header = malloc(sizeof(http_header_t));
@@ -128,9 +130,11 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 		}
 		http_header_init(header);
 		
-		rc = http_header_parse(line, header);
-		if (rc != EOK)
+		rc = http_header_receive(&http->recv_buffer, header);
+		if (rc != EOK) {
+			free(header);
 			goto error;
+		}
 		
 		list_append(&header->link, &resp->headers);
 	}

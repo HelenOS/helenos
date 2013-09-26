@@ -38,6 +38,7 @@
 #include <str.h>
 #include <errno.h>
 #include <macros.h>
+#include <adt/list.h>
 
 #include "receive-buffer.h"
 
@@ -50,9 +51,28 @@ int recv_buffer_init(receive_buffer_t *rb, size_t buffer_size,
 	rb->in = 0;
 	rb->out = 0;
 	rb->size = buffer_size;
+	
+	list_initialize(&rb->marks);
+	
 	rb->buffer = malloc(buffer_size);
 	if (rb->buffer == NULL)
 		return ENOMEM;
+	return EOK;
+}
+
+static ssize_t dummy_receive(void *unused, void *buf, size_t buf_size)
+{
+	return 0;
+}
+
+int recv_buffer_init_const(receive_buffer_t *rb, void *buf, size_t size)
+{
+	int rc = recv_buffer_init(rb, size, dummy_receive, NULL);
+	if (rc != EOK)
+		return rc;
+	
+	memcpy(rb->buffer, buf, size);
+	rb->in = size;
 	return EOK;
 }
 
@@ -67,13 +87,86 @@ void recv_reset(receive_buffer_t *rb)
 	rb->out = 0;
 }
 
+void recv_mark(receive_buffer_t *rb, receive_buffer_mark_t *mark)
+{
+	link_initialize(&mark->link);
+	list_append(&mark->link, &rb->marks);
+	recv_mark_update(rb, mark);
+}
+
+void recv_unmark(receive_buffer_t *rb, receive_buffer_mark_t *mark)
+{
+	list_remove(&mark->link);
+}
+
+void recv_mark_update(receive_buffer_t *rb, receive_buffer_mark_t *mark)
+{
+	mark->offset = rb->out;
+}
+
+int recv_cut(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark_t *b, void **out_buf, size_t *out_size)
+{
+	if (a->offset > b->offset)
+		return EINVAL;
+	
+	size_t size = b->offset - a->offset;
+	void *buf = malloc(size);
+	if (buf == NULL)
+		return ENOMEM;
+	
+	memcpy(buf, rb->buffer + a->offset, size);
+	*out_buf = buf;
+	*out_size = size;
+	return EOK;
+}
+
+int recv_cut_str(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark_t *b, char **out_buf)
+{
+	if (a->offset > b->offset)
+		return EINVAL;
+	
+	size_t size = b->offset - a->offset;
+	char *buf = malloc(size + 1);
+	if (buf == NULL)
+		return ENOMEM;
+	
+	memcpy(buf, rb->buffer + a->offset, size);
+	buf[size] = 0;
+	for (size_t i = 0; i < size; i++) {
+		if (buf[i] == 0) {
+			free(buf);
+			return EIO;
+		}
+	}
+	*out_buf = buf;
+	return EOK;
+}
+
+
 /** Receive one character (with buffering) */
 int recv_char(receive_buffer_t *rb, char *c, bool consume)
 {
 	if (rb->out == rb->in) {
-		recv_reset(rb);
+		size_t free = rb->size - rb->in;
+		if (free == 0) {
+			size_t min_mark = rb->size;
+			list_foreach(rb->marks, link, receive_buffer_mark_t, mark) {
+				min_mark = min(min_mark, mark->offset);
+			}
+			
+			if (min_mark == 0)
+				return ELIMIT;
+			
+			size_t new_in = rb->in - min_mark;
+			memmove(rb->buffer, rb->buffer + min_mark, new_in);
+			rb->out = rb->in = new_in;
+			free = rb->size - rb->in;
+			list_foreach(rb->marks, link, receive_buffer_mark_t, mark) {
+				mark->offset -= min_mark;
+			}
+		}
 		
-		ssize_t rc = rb->receive(rb->client_data, rb->buffer, rb->size);
+		ssize_t rc = rb->receive(rb->client_data, rb->buffer + rb->in, free);
 		if (rc <= 0)
 			return rc;
 		
@@ -99,16 +192,47 @@ ssize_t recv_buffer(receive_buffer_t *rb, char *buf, size_t buf_size)
 	return rb->receive(rb->client_data, buf, buf_size);
 }
 
-/** Receive a character and if it is c, discard it from input buffer */
-int recv_discard(receive_buffer_t *rb, char discard)
+/** Receive a character and if it is c, discard it from input buffer
+ * @return number of characters discarded (0 or 1) or negative error code
+ */
+ssize_t recv_discard(receive_buffer_t *rb, char discard)
 {
 	char c = 0;
 	int rc = recv_char(rb, &c, false);
 	if (rc != EOK)
 		return rc;
 	if (c != discard)
-		return EOK;
-	return recv_char(rb, &c, true);
+		return 0;
+	rc = recv_char(rb, &c, true);
+	if (rc != EOK)
+		return rc;
+	return 1;
+}
+
+/** Receive an end of line, either CR, LF, CRLF or LFCR
+ *
+ * @return number of bytes read (0 if no newline is present in the stream)
+ *         or negative error code
+ */
+ssize_t recv_eol(receive_buffer_t *rb)
+{
+	char c = 0;
+	int rc = recv_char(rb, &c, false);
+	if (rc != EOK)
+		return rc;
+	
+	if (c != '\r' && c != '\n')
+		return 0;
+	
+	rc = recv_char(rb, &c, true);
+	if (rc != EOK)
+		return rc;
+	
+	ssize_t rc2 = recv_discard(rb, (c == '\r' ? '\n' : '\r'));
+	if (rc2 < 0)
+		return rc2;
+	
+	return 1 + rc2;
 }
 
 /* Receive a single line */

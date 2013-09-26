@@ -83,7 +83,10 @@ extern int http_connect(http_t *);
 
 extern void http_header_init(http_header_t *);
 extern http_header_t *http_header_create(const char *, const char *);
-extern int http_header_parse(const char *, http_header_t *);
+extern int http_header_receive_name(receive_buffer_t *, char **);
+extern int http_header_receive_value(receive_buffer_t *, char **);
+extern int http_header_receive(receive_buffer_t *, http_header_t *);
+extern void http_header_normalize_value(char *);
 ssize_t http_header_encode(http_header_t *, char *, size_t);
 extern void http_header_destroy(http_header_t *);
 

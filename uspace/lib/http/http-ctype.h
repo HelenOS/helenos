@@ -33,54 +33,59 @@
  * @file
  */
 
-#ifndef HTTP_RECEIVE_BUFFER_H_
-#define HTTP_RECEIVE_BUFFER_H_
+#ifndef HTTP_CTYPE_H_
+#define HTTP_CTYPE_H_
 
-#include <adt/list.h>
+static inline bool is_separator(char c)
+{
+	switch (c) {
+	case '(':
+	case ')':
+	case '<':
+	case '>':
+	case '@':
+	case ',':
+	case ';':
+	case ':':
+	case '\\':
+	case '"':
+	case '/':
+	case '[':
+	case ']':
+	case '?':
+	case '=':
+	case '{':
+	case '}':
+	case ' ':
+	case '\t':
+		return true;
+	default:
+		return false;
+	}
+}
 
-/** Receive data.
- *
- * @param client_data client data
- * @param buf buffer to store the data
- * @param buf_size buffer size
- * @return number of bytes received or negative error code
- */
-typedef ssize_t (*receive_func_t)(void *, void *, size_t);
+static inline bool is_lws(char c)
+{
+	switch (c) {
+	case '\r':
+	case '\n':
+	case ' ':
+	case '\t':
+		return true;
+	default:
+		return false;
+	}
+}
 
-typedef struct {
-	size_t size;
-	char *buffer;
-	size_t in;
-	size_t out;
-	
-	void *client_data;
-	receive_func_t receive;
-	
-	list_t marks;
-} receive_buffer_t;
+static inline bool is_ctl(char c)
+{
+	return c < 32 || c == 127;
+}
 
-typedef struct {
-	link_t link;
-	size_t offset;
-} receive_buffer_mark_t;
-
-extern int recv_buffer_init(receive_buffer_t *, size_t, receive_func_t, void *);
-extern int recv_buffer_init_const(receive_buffer_t *, void *, size_t);
-extern void recv_buffer_fini(receive_buffer_t *);
-extern void recv_reset(receive_buffer_t *);
-extern void recv_mark(receive_buffer_t *, receive_buffer_mark_t *);
-extern void recv_unmark(receive_buffer_t *, receive_buffer_mark_t *);
-extern void recv_mark_update(receive_buffer_t *, receive_buffer_mark_t *);
-extern int recv_cut(receive_buffer_t *, receive_buffer_mark_t *,
-    receive_buffer_mark_t *, void **, size_t *);
-extern int recv_cut_str(receive_buffer_t *, receive_buffer_mark_t *,
-    receive_buffer_mark_t *, char **);
-extern int recv_char(receive_buffer_t *, char *, bool);
-extern ssize_t recv_buffer(receive_buffer_t *, char *, size_t);
-extern ssize_t recv_discard(receive_buffer_t *, char);
-extern ssize_t recv_eol(receive_buffer_t *);
-extern ssize_t recv_line(receive_buffer_t *, char *, size_t);
-
+static inline bool is_token(char c)
+{
+	return !is_separator(c) && !is_ctl(c);
+}
 
 
 #endif
