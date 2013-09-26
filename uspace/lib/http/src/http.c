@@ -41,8 +41,8 @@
 #include <net/socket.h>
 #include <inet/dnsr.h>
 
-#include "http.h"
-#include "receive-buffer.h"
+#include <http/http.h>
+#include <http/receive-buffer.h>
 
 static ssize_t http_receive(void *client_data, void *buf, size_t buf_size)
 {

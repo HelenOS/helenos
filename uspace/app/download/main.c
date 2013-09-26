@@ -46,7 +46,7 @@
 #include <net/inet.h>
 #include <net/socket.h>
 
-#include <http.h>
+#include <http/http.h>
 #include <uri.h>
 
 #define NAME "download"

@@ -40,7 +40,7 @@
 #include <macros.h>
 #include <adt/list.h>
 
-#include "receive-buffer.h"
+#include <http/receive-buffer.h>
 
 int recv_buffer_init(receive_buffer_t *rb, size_t buffer_size,
     receive_func_t receive, void *client_data)

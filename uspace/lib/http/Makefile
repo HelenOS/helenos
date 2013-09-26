@@ -30,13 +30,13 @@ USPACE_PREFIX = ../..
 LIBRARY = libhttp
 SLIBRARY = libhttp.so.0.0
 LSONAME = libhttp.so0
-#EXTRA_CFLAGS += 
+EXTRA_CFLAGS += -Iinclude
 
 SOURCES = \
-	http.c \
-	headers.c \
-	request.c \
-	response.c \
-	receive-buffer.c
+	src/http.c \
+	src/headers.c \
+	src/request.c \
+	src/response.c \
+	src/receive-buffer.c
 
 include $(USPACE_PREFIX)/Makefile.common

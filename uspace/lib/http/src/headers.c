@@ -38,8 +38,8 @@
 #include <str.h>
 #include <macros.h>
 
-#include "http.h"
-#include "http-ctype.h"
+#include <http/http.h>
+#include <http/ctype.h>
 
 #define HTTP_HEADER_LINE "%s: %s\r\n"
 

@@ -40,7 +40,7 @@
 
 #include <net/socket.h>
 
-#include "http.h"
+#include <http/http.h>
 
 #define HTTP_METHOD_LINE "%s %s HTTP/1.1\r\n"
 #define HTTP_REQUEST_LINE "\r\n"

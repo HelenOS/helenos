@@ -38,7 +38,7 @@
 #include <str.h>
 #include <macros.h>
 
-#include "http.h"
+#include <http/http.h>
 
 int http_parse_status(const char *line, http_version_t *out_version,
     uint16_t *out_status, char **out_message)
