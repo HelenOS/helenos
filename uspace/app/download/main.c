@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 	}
 	
 	http_response_t *response = NULL;
-	rc = http_receive_response(http, &response);
+	rc = http_receive_response(&http->recv_buffer, &response);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed receiving response: %s\n", str_error(rc));
 		uri_destroy(uri);
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 		}
 		
 		int body_size;
-		while ((body_size = http_receive_body(http, buf, buf_size)) > 0) {
+		while ((body_size = recv_buffer(&http->recv_buffer, buf, buf_size)) > 0) {
 			fwrite(buf, 1, body_size, stdout);
 		}
 		

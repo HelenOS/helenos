@@ -64,6 +64,8 @@ typedef struct {
 	size_t offset;
 } receive_buffer_mark_t;
 
+typedef bool (*char_class_func_t)(char);
+
 extern int recv_buffer_init(receive_buffer_t *, size_t, receive_func_t, void *);
 extern int recv_buffer_init_const(receive_buffer_t *, void *, size_t);
 extern void recv_buffer_fini(receive_buffer_t *);
@@ -78,10 +80,10 @@ extern int recv_cut_str(receive_buffer_t *, receive_buffer_mark_t *,
 extern int recv_char(receive_buffer_t *, char *, bool);
 extern ssize_t recv_buffer(receive_buffer_t *, char *, size_t);
 extern ssize_t recv_discard(receive_buffer_t *, char);
+extern ssize_t recv_discard_str(receive_buffer_t *, const char *);
+extern ssize_t recv_while(receive_buffer_t *, char_class_func_t);
 extern ssize_t recv_eol(receive_buffer_t *);
 extern ssize_t recv_line(receive_buffer_t *, char *, size_t);
-
-
 
 #endif
 

@@ -209,6 +209,47 @@ ssize_t recv_discard(receive_buffer_t *rb, char discard)
 	return 1;
 }
 
+/** Receive a prefix of constant string discard and return number of bytes read
+ * @return number of characters discarded or negative error code
+ */
+ssize_t recv_discard_str(receive_buffer_t *rb, const char *discard)
+{
+	size_t discarded = 0;
+	while (*discard) {
+		ssize_t rc = recv_discard(rb, *discard);
+		if (rc < 0)
+			return rc;
+		if (rc == 0)
+			break;
+		discarded++;
+		discard++;
+	}
+	return discarded;
+}
+
+ssize_t recv_while(receive_buffer_t *rb, char_class_func_t class)
+{
+	size_t received = 0;
+	
+	while (true) {
+		char c = 0;
+		int rc = recv_char(rb, &c, false);
+		if (rc != EOK)
+			return rc;
+		
+		if (!class(c))
+			break;
+		
+		rc = recv_char(rb, &c, true);
+		if (rc != EOK)
+			return rc;
+		
+		received++;
+	}
+	
+	return received;
+}
+
 /** Receive an end of line, either CR, LF, CRLF or LFCR
  *
  * @return number of bytes read (0 if no newline is present in the stream)

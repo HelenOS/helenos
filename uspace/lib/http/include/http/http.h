@@ -123,10 +123,9 @@ extern http_request_t *http_request_create(const char *, const char *);
 extern void http_request_destroy(http_request_t *);
 extern int http_request_format(http_request_t *, char **, size_t *);
 extern int http_send_request(http_t *, http_request_t *);
-extern int http_parse_status(const char *, http_version_t *, uint16_t *,
+extern int http_receive_status(receive_buffer_t *, http_version_t *, uint16_t *,
     char **);
-extern int http_receive_response(http_t *, http_response_t **);
-extern int http_receive_body(http_t *, void *, size_t);
+extern int http_receive_response(receive_buffer_t *, http_response_t **);
 extern void http_response_destroy(http_response_t *);
 extern int http_close(http_t *);
 extern void http_destroy(http_t *);
