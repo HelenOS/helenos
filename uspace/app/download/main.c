@@ -131,7 +131,6 @@ int main(int argc, char *argv[])
 	if (req == NULL) {
 		fprintf(stderr, "Failed creating request\n");
 		uri_destroy(uri);
-		free(server_path);
 		return 3;
 	}
 	
@@ -139,7 +138,6 @@ int main(int argc, char *argv[])
 	if (header_host == NULL) {
 		fprintf(stderr, "Failed creating Host header\n");
 		uri_destroy(uri);
-		free(server_path);
 		return 3;
 	}
 	list_append(&header_host->link, &req->headers);
@@ -148,7 +146,6 @@ int main(int argc, char *argv[])
 	if (header_ua == NULL) {
 		fprintf(stderr, "Failed creating User-Agent header\n");
 		uri_destroy(uri);
-		free(server_path);
 		return 3;
 	}
 	list_append(&header_ua->link, &req->headers);
@@ -156,7 +153,6 @@ int main(int argc, char *argv[])
 	http_t *http = http_create(uri->host, port);
 	if (http == NULL) {
 		uri_destroy(uri);
-		free(server_path);
 		fprintf(stderr, "Failed creating HTTP object\n");
 		return 3;
 	}
@@ -165,7 +161,6 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "Failed connecting: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
 		return rc;
 	}
 	
@@ -173,7 +168,6 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "Failed sending request: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
 		return rc;
 	}
 	
@@ -182,7 +176,6 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "Failed receiving response: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
 		return rc;
 	}
 	
@@ -196,7 +189,6 @@ int main(int argc, char *argv[])
 		if (buf == NULL) {
 			fprintf(stderr, "Failed allocating buffer\n)");
 			uri_destroy(uri);
-			free(server_path);
 			return ENOMEM;
 		}
 		
@@ -211,7 +203,6 @@ int main(int argc, char *argv[])
 	}
 	
 	uri_destroy(uri);
-	free(server_path);
 	return EOK;
 }
 
