@@ -40,6 +40,7 @@
 
 #include <http/http.h>
 #include <http/ctype.h>
+#include <http/errno.h>
 
 #define HTTP_HEADER_LINE "%s: %s\r\n"
 
@@ -203,7 +204,6 @@ int http_header_receive(receive_buffer_t *rb, http_header_t *header)
 	char *name = NULL;
 	int rc = http_header_receive_name(rb, &name);
 	if (rc != EOK) {
-		printf("Failed receiving header name\n");
 		return rc;
 	}
 	
@@ -244,6 +244,137 @@ void http_header_normalize_value(char *value)
 	}
 	
 	value[write_index] = 0;
+}
+
+/** Test if two header names are equivalent
+ *
+ */
+bool http_header_name_match(const char *name_a, const char *name_b)
+{
+	return stricmp(name_a, name_b) == 0;
+}
+
+void http_headers_init(http_headers_t *headers) {
+	list_initialize(&headers->list);
+}
+
+int http_headers_find_single(http_headers_t *headers, const char *name,
+    http_header_t **out_header)
+{
+	http_header_t *found = NULL;
+	http_headers_foreach(*headers, header) {
+		if (!http_header_name_match(header->name, name))
+			continue;
+		
+		if (found == NULL) {
+			found = header;
+		}
+		else {
+			return HTTP_EMULTIPLE_HEADERS;
+		}
+	}
+	
+	if (found == NULL)
+		return HTTP_EMISSING_HEADER;
+	
+	*out_header = found;
+	return EOK;
+}
+
+int http_headers_append(http_headers_t *headers, const char *name,
+    const char *value)
+{
+	http_header_t *header = http_header_create(name, value);
+	if (header == NULL)
+		return ENOMEM;
+	
+	http_headers_append_header(headers, header);
+	return EOK;
+}
+
+int http_headers_set(http_headers_t *headers, const char *name,
+    const char *value)
+{
+	http_header_t *header = NULL;
+	int rc = http_headers_find_single(headers, name, &header);
+	if (rc != EOK && rc != HTTP_EMISSING_HEADER)
+		return rc;
+	
+	if (rc == HTTP_EMISSING_HEADER)
+		return http_headers_append(headers, name, value);
+	
+	char *new_value = str_dup(value);
+	if (new_value == NULL)
+		return ENOMEM;
+	
+	free(header->value);
+	header->value = new_value;
+	return EOK;
+}
+
+int http_headers_get(http_headers_t *headers, const char *name, char **value)
+{
+	http_header_t *header = NULL;
+	int rc = http_headers_find_single(headers, name, &header);
+	if (rc != EOK)
+		return rc;
+	
+	*value = header->value;
+	return EOK;
+}
+
+int http_headers_receive(receive_buffer_t *rb, http_headers_t *headers)
+{
+	int rc = EOK;
+	unsigned added = 0;
+	
+	while (true) {
+		char c = 0;
+		rc = recv_char(rb, &c, false);
+		if (rc != EOK)
+			goto error;
+		
+		if (c == '\n' || c == '\r')
+			break;
+		
+		http_header_t *header = malloc(sizeof(http_header_t));
+		if (header == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+		http_header_init(header);
+		
+		rc = http_header_receive(rb, header);
+		if (rc != EOK) {
+			free(header);
+			goto error;
+		}
+		
+		http_headers_append_header(headers, header);
+		added++;
+	}
+	
+	return EOK;
+error:
+	while (added-- > 0) {
+		link_t *link = list_last(&headers->list);
+		http_header_t *header = list_get_instance(link, http_header_t, link);
+		http_headers_remove(headers, header);
+		http_header_destroy(header);
+	}
+	return rc;
+}
+
+void http_headers_clear(http_headers_t *headers)
+{
+	link_t *link = list_first(&headers->list);
+	while (link != NULL) {
+		link_t *next = list_next(link, &headers->list);
+		http_header_t *header = list_get_instance(link, http_header_t, link);
+		list_remove(link);
+		http_header_destroy(header);
+		link = next;
+	}
 }
 
 /** @}

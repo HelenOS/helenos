@@ -64,7 +64,7 @@ http_request_t *http_request_create(const char *method, const char *path)
 		return NULL;
 	}
 	
-	list_initialize(&req->headers);
+	http_headers_init(&req->headers);
 	
 	return req;
 }
@@ -73,13 +73,7 @@ void http_request_destroy(http_request_t *req)
 {
 	free(req->method);
 	free(req->path);
-	link_t *link = req->headers.head.next;
-	while (link != &req->headers.head) {
-		link_t *next = link->next;
-		http_header_t *header = list_get_instance(link, http_header_t, link);
-		http_header_destroy(header);
-		link = next;
-	}
+	http_headers_clear(&req->headers);
 	free(req);
 }
 
@@ -103,7 +97,7 @@ int http_request_format(http_request_t *req, char **out_buf,
 		return meth_size;
 	size_t size = meth_size;
 	
-	list_foreach(req->headers, link, http_header_t, header) {
+	http_headers_foreach(req->headers, header) {
 		ssize_t header_size = http_header_encode(header, NULL, 0);
 		if (header_size < 0)
 			return header_size;
@@ -125,7 +119,7 @@ int http_request_format(http_request_t *req, char **out_buf,
 	pos += written;
 	pos_size -= written;
 	
-	list_foreach(req->headers, link, http_header_t, header) {
+	http_headers_foreach(req->headers, header) {
 		written = http_header_encode(header, pos, pos_size);
 		if (written < 0) {
 			free(buf);

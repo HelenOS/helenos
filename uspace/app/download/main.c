@@ -134,21 +134,19 @@ int main(int argc, char *argv[])
 		return 3;
 	}
 	
-	http_header_t *header_host = http_header_create("Host", uri->host);
-	if (header_host == NULL) {
-		fprintf(stderr, "Failed creating Host header\n");
+	int rc = http_headers_append(&req->headers, "Host", uri->host);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed setting Host header: %s\n", str_error(rc));
 		uri_destroy(uri);
-		return 3;
+		return rc;
 	}
-	list_append(&header_host->link, &req->headers);
 	
-	http_header_t *header_ua = http_header_create("User-Agent", USER_AGENT);
-	if (header_ua == NULL) {
-		fprintf(stderr, "Failed creating User-Agent header\n");
+	rc = http_headers_append(&req->headers, "User-Agent", USER_AGENT);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed creating User-Agent header: %s\n", str_error(rc));
 		uri_destroy(uri);
-		return 3;
+		return rc;
 	}
-	list_append(&header_ua->link, &req->headers);
 	
 	http_t *http = http_create(uri->host, port);
 	if (http == NULL) {
@@ -157,7 +155,7 @@ int main(int argc, char *argv[])
 		return 3;
 	}
 	
-	int rc = http_connect(http);
+	rc = http_connect(http);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed connecting: %s\n", str_error(rc));
 		uri_destroy(uri);

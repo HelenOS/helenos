@@ -39,6 +39,7 @@
 #include <macros.h>
 
 #include <http/http.h>
+#include <http/errno.h>
 
 int http_parse_status(const char *line, http_version_t *out_version,
     uint16_t *out_status, char **out_message)
@@ -97,7 +98,7 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 	if (resp == NULL)
 		return ENOMEM;
 	memset(resp, 0, sizeof(http_response_t));
-	list_initialize(&resp->headers);
+	http_headers_init(&resp->headers);
 	
 	char *line = malloc(http->buffer_size);
 	if (line == NULL) {
@@ -114,30 +115,15 @@ int http_receive_response(http_t *http, http_response_t **out_response)
 	if (rc != EOK)
 		goto error;
 	
-	while (true) {
-		rc = recv_eol(&http->recv_buffer);
-		if (rc < 0)
-			goto error;
-		
-		/* Empty line ends header part */
-		if (rc > 0)
-			break;
-		
-		http_header_t *header = malloc(sizeof(http_header_t));
-		if (header == NULL) {
-			rc = ENOMEM;
-			goto error;
-		}
-		http_header_init(header);
-		
-		rc = http_header_receive(&http->recv_buffer, header);
-		if (rc != EOK) {
-			free(header);
-			goto error;
-		}
-		
-		list_append(&header->link, &resp->headers);
-	}
+	rc = http_headers_receive(&http->recv_buffer, &resp->headers);
+	if (rc != EOK)
+		goto error;
+	
+	rc = recv_eol(&http->recv_buffer);
+	if (rc == 0)
+		rc = HTTP_EPARSE;
+	if (rc < 0)
+		goto error;
 	
 	*out_response = resp;
 	
@@ -156,13 +142,7 @@ int http_receive_body(http_t *http, void *buf, size_t buf_size)
 void http_response_destroy(http_response_t *resp)
 {
 	free(resp->message);
-	link_t *link = resp->headers.head.next;
-	while (link != &resp->headers.head) {
-		link_t *next = link->next;
-		http_header_t *header = list_get_instance(link, http_header_t, link);
-		http_header_destroy(header);
-		link = next;
-	}
+	http_headers_clear(&resp->headers);
 	free(resp);
 }
 

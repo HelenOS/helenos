@@ -66,16 +66,20 @@ typedef struct {
 } http_header_t;
 
 typedef struct {
+	list_t list;
+} http_headers_t;
+
+typedef struct {
 	char *method;
 	char *path;
-	list_t headers;
+	http_headers_t headers;
 } http_request_t;
 
 typedef struct {
 	http_version_t version;
 	uint16_t status;
 	char *message;
-	list_t headers;
+	http_headers_t headers;
 } http_response_t;
 
 extern http_t *http_create(const char *, uint16_t);
@@ -87,8 +91,33 @@ extern int http_header_receive_name(receive_buffer_t *, char **);
 extern int http_header_receive_value(receive_buffer_t *, char **);
 extern int http_header_receive(receive_buffer_t *, http_header_t *);
 extern void http_header_normalize_value(char *);
+extern bool http_header_name_match(const char *, const char *);
 ssize_t http_header_encode(http_header_t *, char *, size_t);
 extern void http_header_destroy(http_header_t *);
+
+extern void http_headers_init(http_headers_t *);
+extern int http_headers_find_single(http_headers_t *, const char *,
+    http_header_t **);
+extern int http_headers_append(http_headers_t *, const char *, const char *);
+extern int http_headers_set(http_headers_t *, const char *, const char *);
+extern int http_headers_get(http_headers_t *, const char *, char **);
+extern int http_headers_receive(receive_buffer_t *, http_headers_t *);
+extern void http_headers_clear(http_headers_t *);
+
+#define http_headers_foreach(headers, iter) \
+    list_foreach((headers).list, link, http_header_t, (iter))
+
+static inline void http_headers_remove(http_headers_t *headers,
+    http_header_t *header)
+{
+	list_remove(&header->link);
+}
+
+static inline void http_headers_append_header(http_headers_t *headers,
+    http_header_t *header)
+{
+	list_append(&header->link, &headers->list);
+}
 
 extern http_request_t *http_request_create(const char *, const char *);
 extern void http_request_destroy(http_request_t *);
