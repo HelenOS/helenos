@@ -881,6 +881,7 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
 	tcp_error_t trc;
+	int i;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close()");
@@ -896,11 +897,28 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	fibril_mutex_lock(&socket->lock);
 
 	if (socket->conn != NULL) {
+		/* Close connection */
 		trc = tcp_uc_close(socket->conn);
 		if (trc != TCP_EOK && trc != TCP_ENOTEXIST) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EBADF);
 			return;
+		}
+	}
+
+	if (socket->lconn != NULL) {
+		/* Close listening connections */
+		for (i = 0; i < socket->backlog; i++) {
+			tcp_uc_set_cstate_cb(socket->lconn[i]->conn, NULL, NULL);
+			trc = tcp_uc_close(socket->lconn[i]->conn);
+			if (trc != TCP_EOK && trc != TCP_ENOTEXIST) {
+				fibril_mutex_unlock(&socket->lock);
+				async_answer_0(callid, EBADF);
+				return;
+			}
+
+			free(socket->lconn[i]);
+			socket->lconn[i] = NULL;
 		}
 	}
 
