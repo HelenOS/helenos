@@ -28,7 +28,6 @@
  */
 
 #include <usb/dev.h>
-#include <usb/hc.h>
 #include <errno.h>
 #include <usb_iface.h>
 #include <str.h>

@@ -38,7 +38,6 @@ SOURCES = \
 	src/dev.c \
 	src/debug.c \
 	src/dump.c \
-	src/hc.c \
 	src/usb.c
 
 include $(USPACE_PREFIX)/Makefile.common
