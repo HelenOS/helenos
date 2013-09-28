@@ -46,7 +46,6 @@ BINARY = uhci
 SOURCES = \
 	hc.c \
 	main.c \
-	res.c \
 	transfer_list.c \
 	uhci.c \
 	uhci_batch.c \
