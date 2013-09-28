@@ -31,14 +31,16 @@
 /** @file
  * USB transfer transaction structures (implementation).
  */
-#include <errno.h>
-#include <macros.h>
-
-#include <usb/usb.h>
-#include <usb/debug.h>
 
 #include <usb/host/usb_transfer_batch.h>
-#include <usb/host/hcd.h>
+#include <usb/debug.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <usbhc_iface.h>
 
 /** Allocate and initialize usb_transfer_batch structure.
  * @param ep endpoint used by the transfer batch.

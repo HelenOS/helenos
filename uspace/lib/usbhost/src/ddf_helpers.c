@@ -33,14 +33,25 @@
  *
  */
 
-#include <usb_iface.h>
 #include <usb/classes/classes.h>
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/request.h>
+#include <usb/usb.h>
+
+#include <adt/list.h>
+#include <assert.h>
+#include <async.h>
+#include <ddf/driver.h>
+#include <ddf/interrupt.h>
+#include <device/hw_res_parsed.h>
 #include <devman.h>
 #include <errno.h>
+#include <fibril_synch.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
+#include <usb_iface.h>
 
 #include "ddf_helpers.h"
 

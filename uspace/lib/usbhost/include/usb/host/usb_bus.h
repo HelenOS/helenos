@@ -39,11 +39,13 @@
 #ifndef LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 #define LIBUSBHOST_HOST_USB_ENDPOINT_MANAGER_H
 
-#include <adt/list.h>
-#include <fibril_synch.h>
+#include <usb/host/endpoint.h>
 #include <usb/usb.h>
 
-#include <usb/host/endpoint.h>
+#include <adt/list.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
+
 
 /** Bytes per second in FULL SPEED */
 #define BANDWIDTH_TOTAL_USB11 (12000000 / 8)

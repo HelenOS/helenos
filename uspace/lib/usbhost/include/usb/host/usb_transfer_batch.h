@@ -36,11 +36,13 @@
 #ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 #define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
-#include <adt/list.h>
-
-#include <usbhc_iface.h>
-#include <usb/usb.h>
 #include <usb/host/endpoint.h>
+#include <usb/usb.h>
+
+#include <assert.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <usbhc_iface.h>
 
 #define USB_SETUP_PACKET_SIZE 8
 

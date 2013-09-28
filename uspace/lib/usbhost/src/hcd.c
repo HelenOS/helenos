@@ -33,11 +33,13 @@
  *
  */
 
-#include <errno.h>
-#include <str_error.h>
-#include <usb_iface.h>
 #include <usb/debug.h>
 #include <usb/request.h>
+
+#include <assert.h>
+#include <async.h>
+#include <errno.h>
+#include <usb_iface.h>
 
 #include "hcd.h"
 

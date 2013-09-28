@@ -32,10 +32,10 @@
  * @brief UHCI host controller driver structure
  */
 
+#include <usb/host/endpoint.h>
+
 #include <assert.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <usb/host/endpoint.h>
 
 /** Allocate ad initialize endpoint_t structure.
  * @param address USB address.

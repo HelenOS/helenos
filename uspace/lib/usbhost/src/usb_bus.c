@@ -32,13 +32,13 @@
  * HC Endpoint management.
  */
 
-#include <stdbool.h>
+#include <usb/host/usb_bus.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <macros.h>
+#include <stdbool.h>
 
-#include <usb/debug.h>
-#include <usb/host/usb_bus.h>
 
 /** Endpoint compare helper function.
  *

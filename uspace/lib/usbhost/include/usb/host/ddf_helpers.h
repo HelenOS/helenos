@@ -36,10 +36,13 @@
 #ifndef LIBUSBHOST_HOST_DDF_HELPERS_H
 #define LIBUSBHOST_HOST_DDF_HELPERS_H
 
+#include <usb/host/hcd.h>
+#include <usb/host/usb_bus.h>
+#include <usb/usb.h>
+
+#include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
-#include <usb/host/hcd.h>
-#include <usbhc_iface.h>
 
 int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
     size_t bw, bw_count_func_t bw_count);
