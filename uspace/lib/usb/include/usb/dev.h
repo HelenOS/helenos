@@ -35,7 +35,6 @@
 #define LIBUSB_DEV_H_
 
 #include <devman.h>
-#include <usb/usb.h>
 
 int usb_resolve_device_handle(const char *, devman_handle_t *);
 #endif

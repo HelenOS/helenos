@@ -35,8 +35,6 @@
 #ifndef LIBUSB_CLASS_MASSSTOR_H_
 #define LIBUSB_CLASS_MASSSTOR_H_
 
-#include <sys/types.h>
-
 /** USB mass storage subclasses. */
 typedef enum {
 	USB_MASSSTOR_SUBCLASS_RBC = 0x01,

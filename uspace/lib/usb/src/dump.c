@@ -32,15 +32,13 @@
 /** @file
  * Descriptor dumping.
  */
-#include <adt/list.h>
-#include <fibril_synch.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/hub.h>
+#include <usb/usb.h>
 
 /** Mapping between descriptor id and dumping function. */
 typedef struct {

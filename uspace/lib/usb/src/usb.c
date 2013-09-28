@@ -35,8 +35,8 @@
 #include <usb/usb.h>
 #include <usb/request.h>
 
-#include <errno.h>
 #include <assert.h>
+#include <byteorder.h>
 #include <macros.h>
 
 static const char *str_speed[] = {
