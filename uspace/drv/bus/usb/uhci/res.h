@@ -36,7 +36,6 @@
 #define DRV_UHCI_PCI_H
 
 #include <ddf/driver.h>
-#include <device/hw_res_parsed.h>
 
 int disable_legacy(ddf_dev_t *);
 

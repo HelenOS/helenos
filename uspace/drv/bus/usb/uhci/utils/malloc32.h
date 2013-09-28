@@ -35,14 +35,12 @@
 #define DRV_UHCI_UTILS_MALLOC32_H
 
 #include <as.h>
-#include <assert.h>
 #include <ddi.h>
 #include <errno.h>
 #include <malloc.h>
-#include <mem.h>
-#include <unistd.h>
+#include <sys/types.h>
 
-#define UHCI_STRCUTURES_ALIGNMENT 16
+#define UHCI_STRUCTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
 
 
@@ -55,12 +53,12 @@ static inline uintptr_t addr_to_phys(const void *addr)
 {
 	if (addr == NULL)
 		return 0;
-	
+
 	uintptr_t result;
 	const int ret = as_get_physical_mapping(addr, &result);
 	if (ret != EOK)
 		return 0;
-	
+
 	return result;
 }
 
@@ -80,7 +78,7 @@ static inline void * malloc32(size_t size)
 		return NULL;
 	/* Calculate alignment to make sure the block won't cross page
 	 * boundary */
-	size_t alignment = UHCI_STRCUTURES_ALIGNMENT;
+	size_t alignment = UHCI_STRUCTURES_ALIGNMENT;
 	while (alignment < size)
 		alignment *= 2;
 	return memalign(alignment, size);
@@ -103,11 +101,11 @@ static inline void *get_page(void)
 {
 	uintptr_t phys;
 	void *address;
-	
+
 	const int ret = dmamem_map_anonymous(UHCI_REQUIRED_PAGE_SIZE,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
 	    &address);
-	
+
 	return ((ret == EOK) ? address : NULL);
 }
 

@@ -31,15 +31,18 @@
 /** @file
  * @brief UHCI driver USB transfer structure
  */
+
+#include <assert.h>
 #include <errno.h>
-#include <str_error.h>
 #include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>
+#include <usb/host/endpoint.h>
 
 #include "uhci_batch.h"
-#include "transfer_list.h"
 #include "hw_struct/transfer_descriptor.h"
 #include "utils/malloc32.h"
 

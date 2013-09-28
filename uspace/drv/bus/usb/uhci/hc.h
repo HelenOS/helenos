@@ -35,14 +35,17 @@
 #ifndef DRV_UHCI_HC_H
 #define DRV_UHCI_HC_H
 
-#include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 #include <fibril.h>
 #include <macros.h>
+#include <stdbool.h>
+#include <sys/types.h>
 #include <usb/host/hcd.h>
-#include "uhci_rh.h"
+#include <usb/host/usb_transfer_batch.h>
 
+#include "uhci_rh.h"
 #include "transfer_list.h"
+#include "hw_struct/link_pointer.h"
 
 /** UHCI I/O registers layout */
 typedef struct uhci_regs {

@@ -33,12 +33,21 @@
  * @brief UHCI driver
  */
 
-#include <errno.h>
-#include <str_error.h>
+#include <assert.h>
+#include <ddf/driver.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res_parsed.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <str_error.h>
+#include <sys/types.h>
+
 #include <usb/debug.h>
-#include <usb/host/hcd.h>
+#include <usb/usb.h>
 #include <usb/host/ddf_helpers.h>
+#include <usb/host/hcd.h>
+#include <usb/host/usb_bus.h>
 
 #include "uhci.h"
 

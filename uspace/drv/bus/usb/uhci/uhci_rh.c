@@ -27,10 +27,18 @@
  */
 
 #include <assert.h>
-#include <macros.h>
-#include <usb/debug.h>
-#include <usb/classes/hub.h>
+#include <async.h>
 #include <ddi.h>
+#include <errno.h>
+#include <macros.h>
+#include <mem.h>
+#include <sys/time.h>
+
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/classes/hub.h>
+#include <usb/request.h>
+#include <usb/usb.h>
 
 #include "uhci_rh.h"
 

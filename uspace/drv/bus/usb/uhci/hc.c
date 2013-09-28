@@ -31,16 +31,26 @@
 /** @file
  * @brief UHCI Host controller driver routines
  */
-#include <errno.h>
-#include <str_error.h>
+
 #include <adt/list.h>
+#include <assert.h>
+#include <async.h>
 #include <ddi.h>
+#include <device/hw_res_parsed.h>
+#include <fibril.h>
+#include <errno.h>
+#include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <str_error.h>
+#include <sys/types.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>
 
-#include "hc.h"
 #include "uhci_batch.h"
+#include "utils/malloc32.h"
+#include "hc.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \
     (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)

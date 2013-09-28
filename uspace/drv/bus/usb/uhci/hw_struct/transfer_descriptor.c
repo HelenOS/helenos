@@ -31,9 +31,14 @@
 /** @file
  * @brief UHCI driver
  */
-#include <errno.h>
-#include <usb/debug.h>
 
+#include <assert.h>
+#include <errno.h>
+
+#include <usb/debug.h>
+#include <usb/usb.h>
+
+#include "link_pointer.h"
 #include "transfer_descriptor.h"
 #include "../utils/malloc32.h"
 

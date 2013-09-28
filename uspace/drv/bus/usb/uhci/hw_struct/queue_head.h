@@ -33,7 +33,9 @@
  */
 #ifndef DRV_UHCI_HW_STRUCT_QH_H
 #define DRV_UHCI_HW_STRUCT_QH_H
+
 #include <assert.h>
+#include <sys/types.h>
 
 #include "link_pointer.h"
 #include "transfer_descriptor.h"

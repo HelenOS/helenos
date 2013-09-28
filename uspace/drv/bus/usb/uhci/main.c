@@ -31,10 +31,13 @@
 /** @file
  * @brief UHCI driver initialization
  */
+
+#include <assert.h>
 #include <ddf/driver.h>
 #include <errno.h>
+#include <io/log.h>
+#include <stdio.h>
 #include <str_error.h>
-
 #include <usb/debug.h>
 
 #include "uhci.h"

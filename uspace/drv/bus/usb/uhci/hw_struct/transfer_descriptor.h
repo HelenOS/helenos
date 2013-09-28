@@ -35,8 +35,9 @@
 #define DRV_UHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
 #include <assert.h>
-#include <mem.h>
 #include <usb/usb.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
 #include "link_pointer.h"
 

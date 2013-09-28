@@ -34,11 +34,11 @@
  * PCI related functions needed by the UHCI driver.
  */
 
-#include <errno.h>
 #include <assert.h>
-#include <devman.h>
-#include <device/hw_res_parsed.h>
+#include <ddf/driver.h>
 #include <device/pci.h>
+#include <devman.h>
+#include <errno.h>
 
 #include "res.h"
 
