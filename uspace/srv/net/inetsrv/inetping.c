@@ -42,6 +42,7 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <types/inetping.h>
 #include <net/socket_codes.h>
 #include "icmp.h"
 #include "icmp_std.h"

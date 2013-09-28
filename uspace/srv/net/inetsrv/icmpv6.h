@@ -37,6 +37,7 @@
 #ifndef ICMPV6_H_
 #define ICMPV6_H_
 
+#include <types/inetping6.h>
 #include "inetsrv.h"
 
 extern int icmpv6_recv(inet_dgram_t *);

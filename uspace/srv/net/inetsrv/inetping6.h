@@ -37,6 +37,7 @@
 #ifndef INETPING6_H_
 #define INETPING6_H_
 
+#include <types/inetping6.h>
 #include "inetsrv.h"
 
 extern void inetping6_conn(ipc_callid_t, ipc_call_t *, void *);

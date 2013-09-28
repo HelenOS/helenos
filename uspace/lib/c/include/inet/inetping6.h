@@ -37,14 +37,7 @@
 
 #include <inet/inet.h>
 #include <sys/types.h>
-
-typedef struct {
-	addr128_t src;
-	addr128_t dest;
-	uint16_t seq_no;
-	void *data;
-	size_t size;
-} inetping6_sdu_t;
+#include <types/inetping6.h>
 
 typedef struct inetping6_ev_ops {
 	int (*recv)(inetping6_sdu_t *);

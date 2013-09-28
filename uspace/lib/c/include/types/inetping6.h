@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,23 +29,24 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_INET_INETPING_H_
-#define LIBC_INET_INETPING_H_
+#ifndef LIBC_TYPES_INETPING6_H_
+#define LIBC_TYPES_INETPING6_H_
 
-#include <inet/inet.h>
+#include <inet/addr.h>
 #include <sys/types.h>
-#include <types/inetping.h>
 
-typedef struct inetping_ev_ops {
-	int (*recv)(inetping_sdu_t *);
-} inetping_ev_ops_t;
-
-extern int inetping_init(inetping_ev_ops_t *);
-extern int inetping_send(inetping_sdu_t *);
-extern int inetping_get_srcaddr(uint32_t, uint32_t *);
+typedef struct {
+	addr128_t src;
+	addr128_t dest;
+	uint16_t seq_no;
+	void *data;
+	size_t size;
+} inetping6_sdu_t;
 
 #endif
 
