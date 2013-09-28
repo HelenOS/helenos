@@ -33,16 +33,15 @@
  * Functions for recognition of attached devices.
  */
 
-#include <sys/types.h>
-#include <fibril_synch.h>
-#include <usb/debug.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/recognise.h>
 #include <usb/dev/request.h>
 #include <usb/classes/classes.h>
-#include <stdio.h>
-#include <errno.h>
+
 #include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <sys/types.h>
 
 /** Get integer part from BCD coded number. */
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
@@ -234,18 +233,18 @@ int usb_device_create_match_ids_from_device_descriptor(
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id,
 		    BCD_ARGS(device_descriptor->device_version));
-		
+
 		/* Next, without release number. */
 		ADD_MATCHID_OR_RETURN(matches, 90,
 		    "usb&vendor=0x%04x&product=0x%04x",
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id);
-	}	
+	}
 
 	/* Class match id */
 	ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
 	    usb_str_class(device_descriptor->device_class));
-	
+
 	/* As a last resort, try fallback driver. */
 	ADD_MATCHID_OR_RETURN(matches, 10, "usb&fallback");
 

@@ -38,6 +38,7 @@
 #define LIBUSBDEV_ALTERNATE_IFACES_H_
 
 #include <usb/descriptor.h>
+#include <sys/types.h>
 
 /** Wrapper for data related to alternate interface setting.
  * The pointers will typically point inside configuration descriptor and

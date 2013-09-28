@@ -40,13 +40,14 @@
  * The parser is able of only two actions: find first child and find next
  * sibling.
  */
-#include <stdio.h>
-#include <str_error.h>
-#include <errno.h>
-#include <assert.h>
-#include <stdbool.h>
 #include <usb/dev/dp.h>
 #include <usb/descriptor.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
 #define NESTING(parentname, childname) \
 	{ \

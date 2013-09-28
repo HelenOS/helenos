@@ -34,13 +34,21 @@
  */
 
 #include <usb_iface.h>
+#include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/device.h>
+#include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/debug.h>
-#include <usb/dev.h>
-#include <errno.h>
-#include <str_error.h>
+#include <usb/descriptor.h>
+#include <usb/usb.h>
+
 #include <assert.h>
+#include <async.h>
+#include <devman.h>
+#include <errno.h>
+#include <stdlib.h>
+
+#include <ddf/driver.h>
 
 /** USB device structure. */
 typedef struct usb_device {

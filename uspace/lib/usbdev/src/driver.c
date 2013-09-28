@@ -34,9 +34,13 @@
  */
 
 #include <usb/dev/driver.h>
+#include <usb/dev/device.h>
+#include <usb/debug.h>
+
+#include <assert.h>
 #include <errno.h>
 #include <str_error.h>
-#include <usb/debug.h>
+#include <ddf/driver.h>
 
 static const usb_driver_t *driver = NULL;
 

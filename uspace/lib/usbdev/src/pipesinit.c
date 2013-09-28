@@ -33,12 +33,14 @@
  * Non trivial initialization of endpoint pipes.
  *
  */
-#include <usb/usb.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
-#include <errno.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
+
 #include <assert.h>
+#include <errno.h>
 
 #define DEV_DESCR_MAX_PACKET_SIZE_OFFSET 7
 

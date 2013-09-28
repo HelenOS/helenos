@@ -34,13 +34,12 @@
 #ifndef LIBUSBDEV_PIPES_H_
 #define LIBUSBDEV_PIPES_H_
 
-#include <sys/types.h>
-#include <ipc/devman.h>
-#include <ddf/driver.h>
-#include <fibril_synch.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>
 #include <usb_iface.h>
+
+#include <stdbool.h>
+#include <sys/types.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
 /** Abstraction of a logical connection to USB device endpoint.

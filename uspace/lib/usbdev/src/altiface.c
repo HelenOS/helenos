@@ -35,9 +35,9 @@
 
 #include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/dp.h>
-#include <malloc.h>
-#include <errno.h>
 #include <assert.h>
+#include <errno.h>
+#include <stdlib.h>
 
 /** Count number of alternate settings of a interface.
  *
@@ -102,7 +102,7 @@ int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		return EOK;
 	}
 
-	const size_t alt_count =usb_interface_count_alternates(config_descr,
+	const size_t alt_count = usb_interface_count_alternates(config_descr,
 	    config_descr_size, interface_number);
 
 	if (alt_count == 0) {

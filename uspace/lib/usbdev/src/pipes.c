@@ -34,8 +34,13 @@
  */
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
-#include <errno.h>
+#include <usb/usb.h>
+#include <usb_iface.h>
+
 #include <assert.h>
+#include <async.h>
+#include <errno.h>
+#include <mem.h>
 
 /** Try to clear endpoint halt of default control pipe.
  *

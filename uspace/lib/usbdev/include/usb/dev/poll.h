@@ -35,8 +35,12 @@
 #ifndef LIBUSBDEV_POLL_H_
 #define LIBUSBDEV_POLL_H_
 
-#include <usb/dev/driver.h>
-#include <time.h>
+#include <usb/usb.h>
+#include <usb/dev/device.h>
+#include <usb/dev/pipes.h>
+
+#include <stdbool.h>
+#include <sys/types.h>
 
 /** Parameters and callbacks for automated polling. */
 typedef struct {

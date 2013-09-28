@@ -37,8 +37,13 @@
 #define LIBUSBDEV_DEVICE_H_
 
 #include <ddf/driver.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
 #include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/pipes.h>
+
+#include <assert.h>
+#include <async.h>
 
 /** Some useful descriptors for USB device. */
 typedef struct {

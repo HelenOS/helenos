@@ -33,9 +33,13 @@
  * Standard USB requests (implementation).
  */
 #include <usb/dev/request.h>
+#include <usb/request.h>
+#include <usb/usb.h>
+
 #include <errno.h>
-#include <assert.h>
-#include <usb/debug.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <str.h>
 
 #define MAX_DATA_LENGTH ((size_t)(0xFFFF))
 

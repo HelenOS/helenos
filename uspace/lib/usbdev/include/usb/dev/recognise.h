@@ -36,8 +36,10 @@
 #ifndef LIBUSBDEV_RECOGNISE_H_
 #define LIBUSBDEV_RECOGNISE_H_
 
-#include <usb/usb.h>
+#include <usb/descriptor.h>
 #include <usb/dev/pipes.h>
+
+#include <devman.h>
 
 extern int usb_device_create_match_ids_from_device_descriptor(
     const usb_standard_device_descriptor_t *, match_id_list_t *);

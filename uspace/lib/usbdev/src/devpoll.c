@@ -32,13 +32,23 @@
 /** @file
  * USB device driver framework - automatic interrupt polling.
  */
+#include <usb/dev/device.h>
+#include <usb/dev/pipes.h>
 #include <usb/dev/poll.h>
 #include <usb/dev/request.h>
-#include <usb/debug.h>
 #include <usb/classes/classes.h>
-#include <errno.h>
-#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/usb.h>
+
 #include <assert.h>
+#include <async.h>
+#include <errno.h>
+#include <fibril.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <str_error.h>
+#include <sys/types.h>
 
 /** Maximum number of failed consecutive requests before announcing failure. */
 #define MAX_FAILED_ATTEMPTS 3
