@@ -266,7 +266,7 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 		if (sname[0] == '$')
 			continue;
 
-		if (best_name == NULL || (saddr <= addr && saddr > best_addr)) {
+		if (saddr <= addr && (best_name == NULL || saddr > best_addr)) {
 			best_name = sname;
 			best_addr = saddr;
 		}

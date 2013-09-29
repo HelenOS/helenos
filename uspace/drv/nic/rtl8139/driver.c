@@ -619,7 +619,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 		/* Check if the header is valid, otherwise we are lost in the buffer */
 		if (size == 0 || size > RTL8139_FRAME_MAX_LENGTH) {
 			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (size: %4" PRIu16 ", "
-			    "header 0x%4" PRIx16 ". Offset: %d)", size, frame_header,
+			    "header 0x%4" PRIx32 ". Offset: %" PRIu16 ")", size, frame_header,
 			    rx_offset);
 			goto rx_err;
 		}
@@ -1019,7 +1019,7 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 		return NULL;
 	}
 
-	bzero(rtl8139, sizeof(rtl8139_t));
+	memset(rtl8139, 0, sizeof(rtl8139_t));
 
 	rtl8139->nic_data = nic_data;
 	nic_set_specific(nic_data, rtl8139);
@@ -1086,7 +1086,7 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
 	rtl8139->irq = hw_resources->irqs.irqs[0];
 	ddf_msg(LVL_DEBUG, "%s device: irq 0x%x assigned", ddf_dev_get_name(dev), rtl8139->irq);
 
-	rtl8139->io_addr = IOADDR_TO_PTR(hw_resources->io_ranges.ranges[0].address);
+	rtl8139->io_addr = IOADDR_TO_PTR(RNGABS(hw_resources->io_ranges.ranges[0]));
 	if (hw_resources->io_ranges.ranges[0].size < RTL8139_IO_SIZE) {
 		ddf_msg(LVL_ERROR, "i/o range assigned to the device "
 		    "%s is too small.", ddf_dev_get_name(dev));
@@ -1143,8 +1143,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 
 	ddf_msg(LVL_DEBUG, "Creating buffers");
 
-	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, AS_AREA_WRITE, 0,
-	    &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
+	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, DMAMEM_4GiB,
+	    AS_AREA_WRITE, 0, &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Can not allocate transmitter buffers.");
 		goto err_tx_alloc;
@@ -1163,8 +1163,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
 
-	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, AS_AREA_READ, 0,
-	    &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
+	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, DMAMEM_4GiB,
+	    AS_AREA_READ, 0, &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Can not allocate receive buffer.");
 		goto err_rx_alloc;

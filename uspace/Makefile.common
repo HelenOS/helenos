@@ -130,6 +130,8 @@ LIBUSBHID_PREFIX = $(LIB_PREFIX)/usbhid
 LIBUSBVIRT_PREFIX = $(LIB_PREFIX)/usbvirt
 
 LIBDRV_PREFIX = $(LIB_PREFIX)/drv
+LIBHOUND_PREFIX = $(LIB_PREFIX)/hound
+LIBPCM_PREFIX = $(LIB_PREFIX)/pcm
 LIBNET_PREFIX = $(LIB_PREFIX)/net
 LIBNIC_PREFIX = $(LIB_PREFIX)/nic
 LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
@@ -137,6 +139,9 @@ LIBMINIX_PREFIX = $(LIB_PREFIX)/minix
 LIBSCSI_PREFIX = $(LIB_PREFIX)/scsi
 
 LIBBITHENGE_PREFIX = $(LIB_PREFIX)/bithenge
+
+LIBHTTP_PREFIX = $(LIB_PREFIX)/http
+LIBURI_PREFIX = $(LIB_PREFIX)/uri
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
@@ -188,7 +193,7 @@ GCC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) 
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -g -D__$(ENDIANESS)__
+	-pipe -ggdb -D__$(ENDIANESS)__
 
 ICC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -197,12 +202,15 @@ ICC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) 
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -D__$(ENDIANESS)__
 
+# clang does not support following options but I am not sure whether
+# something won't break because of that:
+# -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) -finput-charset=UTF-8
 CLANG_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -g -arch $(CLANG_ARCH) -D__$(ENDIANESS)__
+	-integrated-as \
+	-pipe -g -target $(CLANG_TARGET) -D__$(ENDIANESS)__
 
 LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
 LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
@@ -218,6 +226,12 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 	CLANG_CFLAGS += -g
 endif
 
+# Prepare for POSIX before including platform specific stuff
+ifeq ($(POSIX_COMPAT),y)
+	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
+	BASE_LIBS = $(LIBPOSIX_PREFIX)/libposixaslibc.a $(LIBPOSIX_PREFIX)/libc4posix.a $(LIBSOFTINT_PREFIX)/libsoftint.a
+endif
+
 ## Setup platform configuration
 #
 
@@ -227,11 +241,6 @@ endif
 #
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
-
-ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
-	LIBS += $(LIBPOSIX_PREFIX)/libposix.a
-endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS += $(GCC_CFLAGS) $(EXTRA_CFLAGS)
@@ -250,6 +259,7 @@ endif
 
 ifeq ($(COMPILER),clang)
 	CFLAGS += $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
+	GCC_CFLAGS += $(EXTRA_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
@@ -302,7 +312,7 @@ ifneq ($(SLIBRARY),)
 endif
 
 %.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
 endif

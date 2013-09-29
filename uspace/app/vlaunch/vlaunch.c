@@ -120,10 +120,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	pixel_t grd_bg = PIXEL(255, 240, 240, 240);
+	pixel_t grd_bg = PIXEL(255, 255, 255, 255);
 	pixel_t btn_bg = PIXEL(255, 0, 0, 0);
 	pixel_t btn_fg = PIXEL(255, 240, 240, 240);
-	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
+	pixel_t lbl_bg = PIXEL(255, 255, 255, 255);
 	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
 	
 	canvas_t *logo_canvas = create_canvas(NULL, LOGO_WIDTH, LOGO_HEIGHT,
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 	    btn_fg);
 	button_t *btn_vlaunch = create_button(NULL, "vlaunch", 16, btn_bg,
 	    btn_fg);
-	grid_t *grid = create_grid(window_root(main_window), 5, 1, grd_bg);
+	grid_t *grid = create_grid(window_root(main_window), 1, 5, grd_bg);
 	
 	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
 	    (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
@@ -150,12 +150,12 @@ int main(int argc, char *argv[])
 	sig_connect(&btn_vlaunch->clicked, NULL, on_vlaunch);
 	
 	grid->add(grid, &logo_canvas->widget, 0, 0, 1, 1);
-	grid->add(grid, &lbl_caption->widget, 1, 0, 1, 1);
-	grid->add(grid, &btn_vterm->widget, 2, 0, 1, 1);
-	grid->add(grid, &btn_vdemo->widget, 3, 0, 1, 1);
-	grid->add(grid, &btn_vlaunch->widget, 4, 0, 1, 1);
+	grid->add(grid, &lbl_caption->widget, 0, 1, 1, 1);
+	grid->add(grid, &btn_vterm->widget, 0, 2, 1, 1);
+	grid->add(grid, &btn_vdemo->widget, 0, 3, 1, 1);
+	grid->add(grid, &btn_vlaunch->widget, 0, 4, 1, 1);
 	
-	window_resize(main_window, 210, 280 + LOGO_HEIGHT);
+	window_resize(main_window, 210, 130 + LOGO_HEIGHT);
 	window_exec(main_window);
 	
 	task_retval(0);

@@ -191,14 +191,17 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	kmflags |= FRAME_LOWMEM;
 	kmflags &= ~FRAME_HIGHMEM;
 	
-	thread->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
-	if (!thread->kstack) {
+	uintptr_t stack_phys =
+	    frame_alloc(STACK_FRAMES, kmflags, STACK_SIZE - 1);
+	if (!stack_phys) {
 #ifdef CONFIG_FPU
 		if (thread->saved_fpu_context)
 			slab_free(fpu_context_slab, thread->saved_fpu_context);
 #endif
 		return -1;
 	}
+	
+	thread->kstack = (uint8_t *) PA2KA(stack_phys);
 	
 #ifdef CONFIG_UDEBUG
 	mutex_initialize(&thread->udebug.lock, MUTEX_PASSIVE);
@@ -215,7 +218,7 @@ static size_t thr_destructor(void *obj)
 	/* call the architecture-specific part of the destructor */
 	thr_destructor_arch(thread);
 	
-	frame_free(KA2PA(thread->kstack));
+	frame_free(KA2PA(thread->kstack), STACK_FRAMES);
 	
 #ifdef CONFIG_FPU
 	if (thread->saved_fpu_context)

@@ -89,6 +89,7 @@ static pixel_t bg_color;
 
 typedef struct {
 	link_t link;
+	atomic_t ref_cnt;
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	prodcons_t queue;
@@ -137,8 +138,11 @@ typedef struct {
 	surface_t *surface;
 } viewport_t;
 
+static desktop_rect_t viewport_bound_rect;
 static FIBRIL_MUTEX_INITIALIZE(viewport_list_mtx);
 static LIST_INITIALIZE(viewport_list);
+
+static FIBRIL_MUTEX_INITIALIZE(discovery_mtx);
 
 /** Input server proxy */
 static input_t *input;
@@ -214,6 +218,7 @@ static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 	}
 
 	link_initialize(&win->link);
+	atomic_set(&win->ref_cnt, 0);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
 	transform_translate(&win->transform, 
@@ -231,7 +236,13 @@ static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 
 static void window_destroy(window_t *win)
 {
-	if (win) {
+	if (win && atomic_get(&win->ref_cnt) == 0) {
+		while (!list_empty(&win->queue.list)) {
+			window_event_t *event = (window_event_t *) list_first(&win->queue.list);
+			list_remove(&event->link);
+			free(event);
+		}
+
 		if (win->surface) {
 			surface_destroy(win->surface);
 		}
@@ -309,6 +320,52 @@ static void comp_coord_bounding_rect(double x_in, double y_in,
 	}
 }
 
+static void comp_restrict_pointers(void)
+{
+	fibril_mutex_lock(&viewport_list_mtx);
+
+	sysarg_t x_res = coord_origin;
+	sysarg_t y_res = coord_origin;
+	sysarg_t w_res = 0;
+	sysarg_t h_res = 0;
+
+	if (!list_empty(&viewport_list)) {
+		viewport_t *vp = (viewport_t *) list_first(&viewport_list);
+		x_res = vp->pos.x;
+		y_res = vp->pos.y;
+		surface_get_resolution(vp->surface, &w_res, &h_res);
+	}
+
+	list_foreach(viewport_list, link, viewport_t, vp) {
+		sysarg_t w_vp, h_vp;
+		surface_get_resolution(vp->surface, &w_vp, &h_vp);
+		rectangle_union(
+		    x_res, y_res, w_res, h_res,
+		    vp->pos.x, vp->pos.y, w_vp, h_vp,
+		    &x_res, &y_res, &w_res, &h_res);
+	}
+
+	viewport_bound_rect.x = x_res;
+	viewport_bound_rect.y = y_res;
+	viewport_bound_rect.w = w_res;
+	viewport_bound_rect.h = h_res;
+
+	fibril_mutex_unlock(&viewport_list_mtx);
+
+	fibril_mutex_lock(&pointer_list_mtx);
+
+	list_foreach(pointer_list, link, pointer_t, ptr) {
+		ptr->pos.x = ptr->pos.x > viewport_bound_rect.x ? ptr->pos.x : viewport_bound_rect.x;
+		ptr->pos.y = ptr->pos.y > viewport_bound_rect.y ? ptr->pos.y : viewport_bound_rect.y;
+		ptr->pos.x = ptr->pos.x < viewport_bound_rect.x + viewport_bound_rect.w ?
+		    ptr->pos.x : viewport_bound_rect.x + viewport_bound_rect.w;
+		ptr->pos.y = ptr->pos.y < viewport_bound_rect.y + viewport_bound_rect.h ?
+		    ptr->pos.y : viewport_bound_rect.y + viewport_bound_rect.h;
+	}
+
+	fibril_mutex_unlock(&pointer_list_mtx);
+}
+
 static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
     sysarg_t w_dmg_glob, sysarg_t h_dmg_glob)
 {
@@ -316,10 +373,8 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_lock(&window_list_mtx);
 	fibril_mutex_lock(&pointer_list_mtx);
 
-	list_foreach(viewport_list, link) {
-
+	list_foreach(viewport_list, link, viewport_t, vp) {
 		/* Determine what part of the viewport must be updated. */
-		viewport_t *vp = list_get_instance(link, viewport_t, link);
 		sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
 		surface_get_resolution(vp->surface, &w_dmg_vp, &h_dmg_vp);
 		bool isec_vp = rectangle_intersect(
@@ -388,9 +443,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				}
 			}
 
-			list_foreach(pointer_list, link) {
-
-				pointer_t *ptr = list_get_instance(link, pointer_t, link);
+			list_foreach(pointer_list, link, pointer_t, ptr) {
 				if (ptr->ghost.surface) {
 
 					sysarg_t x_bnd_ghost, y_bnd_ghost, w_bnd_ghost, h_bnd_ghost;
@@ -464,11 +517,10 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				}
 			}
 
-			list_foreach(pointer_list, link) {
+			list_foreach(pointer_list, link, pointer_t, ptr) {
 
 				/* Determine what part of the pointer intersects with the
 				 * updated area of the current viewport. */
-				pointer_t *ptr = list_get_instance(link, pointer_t, link);
 				sysarg_t x_dmg_ptr, y_dmg_ptr, w_dmg_ptr, h_dmg_ptr;
 				surface_t *sf_ptr = ptr->cursor.states[ptr->state];
 				surface_get_resolution(sf_ptr, &w_dmg_ptr, &h_dmg_ptr);
@@ -511,8 +563,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_unlock(&window_list_mtx);
 
 	/* Notify visualizers about updated regions. */
-	list_foreach(viewport_list, link) {
-		viewport_t *vp = list_get_instance(link, viewport_t, link);
+	list_foreach(viewport_list, link, viewport_t, vp) {
 		sysarg_t x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp;
 		surface_get_damaged_region(vp->surface, &x_dmg_vp, &y_dmg_vp, &w_dmg_vp, &h_dmg_vp);
 		surface_reset_damaged_region(vp->surface);
@@ -573,8 +624,7 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
 
 	fibril_mutex_lock(&pointer_list_mtx);
-	list_foreach(pointer_list, link) {
-		pointer_t *pointer = list_get_instance(link, pointer_t, link);
+	list_foreach(pointer_list, link, pointer_t, pointer) {
 		if (pointer->id == pos_id) {
 			pointer->grab_flags = pointer->pressed ? grab_flags : GF_EMPTY;
 			// TODO change pointer->state according to grab_flags
@@ -652,17 +702,17 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 static void comp_post_event_win(window_event_t *event, window_t *target)
 {
 	fibril_mutex_lock(&window_list_mtx);
-	window_t *window = NULL;
-	list_foreach(window_list, link) {
-		window = list_get_instance(link, window_t, link);
+
+	list_foreach(window_list, link, window_t, window) {
 		if (window == target) {
 			prodcons_produce(&window->queue, &event->link);
+			fibril_mutex_unlock(&window_list_mtx);
+			return;
 		}
 	}
-	if (!window) {
-		free(event);
-	}
+
 	fibril_mutex_unlock(&window_list_mtx);
+	free(event);
 }
 
 static void comp_post_event_top(window_event_t *event)
@@ -694,6 +744,17 @@ static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall
 		comp_post_event_win(event_focus, win_focus);
 	}
 
+	loc_service_unregister(win->in_dsid);
+	loc_service_unregister(win->out_dsid);
+
+	/* In case the client was killed, input fibril of the window might be
+	 * still blocked on the condition within comp_window_get_event. */
+	window_event_t *event_dummy = (window_event_t *) malloc(sizeof(window_event_t));
+	if (event_dummy) {
+		link_initialize(&event_dummy->link);
+		prodcons_produce(&win->queue, &event_dummy->link);
+	}
+
 	/* Calculate damage. */
 	sysarg_t x = 0;
 	sysarg_t y = 0;
@@ -704,14 +765,6 @@ static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall
 		comp_coord_bounding_rect(
 		    0, 0, width, height, win->transform, &x, &y, &width, &height);
 	}
-
-	/* Release window resources. */
-	loc_service_unregister(win->in_dsid);
-	loc_service_unregister(win->out_dsid);
-	while (!list_empty(&win->queue.list)) {
-		list_remove(list_first(&win->queue.list));
-	}
-	window_destroy(win);
 
 	comp_damage(x, y, width, height);
 
@@ -802,8 +855,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Match the client with pre-allocated window. */
 	window_t *win = NULL;
 	fibril_mutex_lock(&window_list_mtx);
-	list_foreach(window_list, link) {
-		window_t *cur = list_get_instance(link, window_t, link);
+	list_foreach(window_list, link, window_t, cur) {
 		if (cur->in_dsid == service_id || cur->out_dsid == service_id) {
 			win = cur;
 			break;
@@ -812,6 +864,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	fibril_mutex_unlock(&window_list_mtx);
 
 	if (win) {
+		atomic_inc(&win->ref_cnt);
 		async_answer_0(iid, EOK);
 	} else {
 		async_answer_0(iid, EINVAL);
@@ -824,7 +877,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			callid = async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(callid, EINVAL);
+				async_answer_0(callid, EOK);
+				atomic_dec(&win->ref_cnt);
+				window_destroy(win);
 				return;
 			}
 
@@ -841,7 +896,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			callid = async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(callid, EINVAL);
+				comp_window_close(win, callid, &call);
+				atomic_dec(&win->ref_cnt);
+				window_destroy(win);
 				return;
 			}
 
@@ -856,7 +913,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				comp_window_resize(win, callid, &call);
 				break;
 			case WINDOW_CLOSE:
-				comp_window_close(win, callid, &call);
+				/* Postpone the closing until the phone is hung up to cover
+				 * the case when the client is killed abruptly. */
+				async_answer_0(callid, EOK);
 				break;
 			case WINDOW_CLOSE_REQUEST:
 				comp_window_close_request(win, callid, &call);
@@ -910,6 +969,7 @@ static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall
 	fibril_mutex_unlock(&viewport_list_mtx);
 	async_answer_0(iid, EOK);
 
+	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
@@ -938,8 +998,7 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 
 		/* Close all clients and their windows. */
 		fibril_mutex_lock(&window_list_mtx);
-		list_foreach(window_list, link) {
-			window_t *win = list_get_instance(link, window_t, link);
+		list_foreach(window_list, link, window_t, win) {
 			window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 			if (event) {
 				link_initialize(&event->link);
@@ -955,6 +1014,9 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 	} else {
 		fibril_mutex_unlock(&viewport_list_mtx);
 		async_answer_0(iid, EOK);
+
+		comp_restrict_pointers();
+		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	}
 }
 
@@ -962,8 +1024,7 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	viewport_t *vp = NULL;
 	fibril_mutex_lock(&viewport_list_mtx);
-	list_foreach(viewport_list, link) {
-		viewport_t *cur = list_get_instance(link, viewport_t, link);
+	list_foreach(viewport_list, link, viewport_t, cur) {
 		if (cur->dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
 			vp = cur;
 			break;
@@ -1390,6 +1451,18 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 	sysarg_t cursor_height;
 	surface_get_resolution(pointer->cursor.states[pointer->state], 
 	     &cursor_width, &cursor_height);
+	if (pointer->pos.x + dx < viewport_bound_rect.x) {
+		dx = -1 * (pointer->pos.x - viewport_bound_rect.x);
+	}
+	if (pointer->pos.y + dy < viewport_bound_rect.y) {
+		dy = -1 * (pointer->pos.y - viewport_bound_rect.y);
+	}
+	if (pointer->pos.x + dx > viewport_bound_rect.x + viewport_bound_rect.w) {
+		dx = (viewport_bound_rect.x + viewport_bound_rect.w - pointer->pos.x);
+	}
+	if (pointer->pos.y + dy > viewport_bound_rect.y + viewport_bound_rect.h) {
+		dy = (viewport_bound_rect.y + viewport_bound_rect.h - pointer->pos.y);
+	}
 	pointer->pos.x += dx;
 	pointer->pos.y += dy;
 	fibril_mutex_unlock(&pointer_list_mtx);
@@ -1487,8 +1560,8 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	bool within_client = false;
 
 	/* Determine the window which the mouse click belongs to. */
-	list_foreach(window_list, link) {
-		win = list_get_instance(link, window_t, link);
+	list_foreach(window_list, link, window_t, cw) {
+		win = cw;
 		if (win->surface) {
 			surface_get_resolution(win->surface, &width, &height);
 			within_client = comp_coord_to_client(pointer->pos.x, pointer->pos.y,
@@ -1909,6 +1982,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 			surface_get_resolution(vp->surface, &width, &height);
 			fibril_mutex_unlock(&viewport_list_mtx);
 
+			comp_restrict_pointers();
 			comp_damage(x, y, width, height);
 		} else {
 			fibril_mutex_unlock(&viewport_list_mtx);
@@ -2041,13 +2115,67 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
+static int discover_viewports(void)
+{
+	/* Create viewports and connect them to visualizers. */
+	category_id_t cat_id;
+	int rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Failed to get visualizer category.\n", NAME);
+		return -1;
+	}
+	
+	service_id_t *svcs;
+	size_t svcs_cnt = 0;
+	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
+	if (rc != EOK || svcs_cnt == 0) {
+		printf("%s: Failed to get visualizer category services.\n", NAME);
+		return -1;
+	}
+
+	fibril_mutex_lock(&viewport_list_mtx);	
+	for (size_t i = 0; i < svcs_cnt; ++i) {
+		bool exists = false;
+		list_foreach(viewport_list, link, viewport_t, vp) {
+			if (vp->dsid == svcs[i]) {
+				exists = true;
+				break;
+			}
+		}
+		
+		if (exists)
+			continue;
+		
+		char *svc_name;
+		rc = loc_service_get_name(svcs[i], &svc_name);
+		if (rc == EOK) {
+			viewport_t *vp = viewport_create(svc_name);
+			if (vp != NULL) {
+				list_append(&vp->link, &viewport_list);
+			}
+		}
+	}
+	fibril_mutex_unlock(&viewport_list_mtx);
+	
+	/* TODO damage only newly added viewports */
+	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	return EOK;
+}
+
+static void category_change_cb(void)
+{
+	fibril_mutex_lock(&discovery_mtx);
+	discover_viewports();
+	fibril_mutex_unlock(&discovery_mtx);
+}
+
 static int compositor_srv_init(char *input_svc, char *name)
 {
 	/* Coordinates of the central pixel. */
 	coord_origin = UINT32_MAX / 4;
 	
 	/* Color of the viewport background. Must be opaque. */
-	bg_color = PIXEL(255, 75, 70, 75);
+	bg_color = PIXEL(255, 69, 51, 103);
 	
 	/* Register compositor server. */
 	async_set_client_connection(client_connection);
@@ -2087,42 +2215,33 @@ static int compositor_srv_init(char *input_svc, char *name)
 
 	/* Establish input bidirectional connection. */
 	rc = input_connect(input_svc);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Failed to connect to input service.\n", NAME);
 		return rc;
+	}
 
-	/* Create viewports and connect them to visualizers. */
-	category_id_t cat_id;
-	rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	rc = loc_register_cat_change_cb(category_change_cb);
+	if (rc != EOK) {
+		printf("%s: Failed to register category change callback\n", NAME);
+		input_disconnect();
+		return rc;
+	}	
+
+	rc = discover_viewports();
 	if (rc != EOK) {
 		input_disconnect();
-		return -1;
-	}
-	
-	service_id_t *svcs;
-	size_t svcs_cnt = 0;
-	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
-	if (rc != EOK || svcs_cnt == 0) {
-		input_disconnect();
-		return -1;
-	}
-	
-	for (size_t i = 0; i < svcs_cnt; ++i) {
-		char *svc_name;
-		rc = loc_service_get_name(svcs[i], &svc_name);
-		if (rc == EOK) {
-			viewport_t *vp = viewport_create(svc_name);
-			if (vp != NULL) {
-				list_append(&vp->link, &viewport_list);
-			}
-		}
+		return rc;
 	}
 	
 	if (list_empty(&viewport_list)) {
+		printf("%s: Failed to get viewports.\n", NAME);
 		input_disconnect();
 		return -1;
 	}
-	
+
+	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
+	
 	
 	return EOK;
 }

@@ -64,7 +64,7 @@ RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
 endif
 
-RD_DRVS += \
+RD_DRVS_ESSENTIAL += \
 	infrastructure/rootamdm37x \
 	fb/amdm37x_dispc \
 	bus/usb/ehci \

@@ -358,6 +358,9 @@ int main(int argc, char *argv[])
 	srv_start("/srv/inetsrv");
 	srv_start("/srv/tcp");
 	srv_start("/srv/udp");
+	srv_start("/srv/dnsrsrv");
+	srv_start("/srv/dhcp");
+	srv_start("/srv/nconfsrv");
 	
 	srv_start("/srv/clipboard");
 	srv_start("/srv/remcons");
@@ -382,6 +385,7 @@ int main(int argc, char *argv[])
 	
 	srv_start("/srv/input", HID_INPUT);
 	srv_start("/srv/output", HID_OUTPUT);
+	srv_start("/srv/hound");
 	
 	int rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
 	if (rc == EOK) {

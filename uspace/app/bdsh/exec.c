@@ -82,7 +82,7 @@ static char *find_command(char *cmd)
 
 	/* We now have n places to look for the command */
 	for (i = 0; search_dir[i] != NULL; i++) {
-		memset(found, 0, sizeof(found));
+		memset(found, 0, PATH_MAX);
 		snprintf(found, PATH_MAX, "%s/%s", search_dir[i], cmd);
 		if (-1 != try_access(found)) {
 			return (char *) found;

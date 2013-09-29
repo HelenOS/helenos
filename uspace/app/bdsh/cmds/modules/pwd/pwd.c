@@ -54,7 +54,7 @@ int cmd_pwd(char *argv[])
 		return CMD_FAILURE;
 	}
 
-	memset(buff, 0, sizeof(buff));
+	memset(buff, 0, PATH_MAX);
 	getcwd(buff, PATH_MAX);
 
 	if (! buff) {

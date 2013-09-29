@@ -34,6 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/unistd.h"
@@ -219,6 +220,20 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
 ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 {
 	return errnify(write, fildes, buf, nbyte);
+}
+
+/**
+ * Reposition read/write file offset
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param offset New offset in the file.
+ * @param whence The position from which the offset argument is specified.
+ * @return Upon successful completion, returns the resulting offset
+ *         as measured in bytes from the beginning of the file, -1 otherwise.
+ */
+posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
+{
+	return errnify(lseek, fildes, offset, whence);
 }
 
 /**
@@ -418,6 +433,12 @@ int posix_pipe(int fildes[2])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+}
+
+unsigned int posix_alarm(unsigned int seconds)
+{
+	not_implemented();
+	return 0;
 }
 
 /** @}

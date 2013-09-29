@@ -42,7 +42,7 @@
  * 16-byte boundary. If it is not, the va_arg calling will
  * panic sooner or later
  */
-#define SP_DELTA  12
+#define SP_DELTA  8
 
 #define context_set(c, _pc, stack, size, ptls) \
 	do { \

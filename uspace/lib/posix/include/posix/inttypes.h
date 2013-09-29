@@ -35,18 +35,18 @@
 #ifndef POSIX_INTTYPES_H_
 #define POSIX_INTTYPES_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "stdint.h"
 #include "libc/inttypes.h"
 
-extern posix_intmax_t posix_strtoimax(const char *restrict nptr,
+extern __POSIX_DEF__(intmax_t) __POSIX_DEF__(strtoimax)(const char *restrict nptr,
     char **restrict endptr, int base);
-extern posix_uintmax_t posix_strtoumax(const char *restrict nptr,
+extern __POSIX_DEF__(uintmax_t) __POSIX_DEF__(strtoumax)(const char *restrict nptr,
     char **restrict endptr, int base);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define strtoimax posix_strtoimax
-	#define strtoumax posix_strtoumax
-#endif
 
 #endif /* POSIX_INTTYPES_H_ */
 

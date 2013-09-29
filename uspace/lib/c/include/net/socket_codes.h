@@ -44,20 +44,20 @@
 /*@{*/
 
 enum {
-	AF_UNKNOWN = 0,
-	AF_INET,	/* IPv4 address */
-	AF_INET6	/* IPv6 address */
+	AF_NONE = 0,
+	AF_INET,  /* IPv4 address */
+	AF_INET6  /* IPv6 address */
 };
 
 /*@}*/
 
 /** @name Protocol families definitions
- *  Same as address families.
+ * Same as address families.
  */
 /*@{*/
 
-#define PF_INET		AF_INET
-#define PF_INET6	AF_INET6
+#define PF_INET   AF_INET
+#define PF_INET6  AF_INET6
 
 /*@}*/
 
@@ -73,6 +73,15 @@ typedef enum sock_type {
 
 /** Type definition of the socket length. */
 typedef int32_t socklen_t;
+
+/* Socket options */
+
+enum {
+	SOL_SOCKET = 1,
+
+	/* IP link to transmit on */
+	SO_IPLINK
+};
 
 #endif
 

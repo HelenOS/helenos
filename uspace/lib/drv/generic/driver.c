@@ -97,12 +97,9 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 
 static ddf_dev_t *driver_get_device(devman_handle_t handle)
 {
-	ddf_dev_t *dev = NULL;
-	
 	assert(fibril_mutex_is_locked(&devices_mutex));
 	
-	list_foreach(devices, link) {
-		dev = list_get_instance(link, ddf_dev_t, link);
+	list_foreach(devices, link, ddf_dev_t, dev) {
 		if (dev->handle == handle)
 			return dev;
 	}
@@ -112,12 +109,9 @@ static ddf_dev_t *driver_get_device(devman_handle_t handle)
 
 static ddf_fun_t *driver_get_function(devman_handle_t handle)
 {
-	ddf_fun_t *fun = NULL;
-	
 	assert(fibril_mutex_is_locked(&functions_mutex));
 	
-	list_foreach(functions, link) {
-		fun = list_get_instance(link, ddf_fun_t, link);
+	list_foreach(functions, link, ddf_fun_t, fun) {
 		if (fun->handle == handle)
 			return fun;
 	}

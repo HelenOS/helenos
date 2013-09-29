@@ -178,7 +178,7 @@ static void tcp_sock_socket(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 		return;
 	}
 
-	sock->laddr.ipv4 = TCP_IPV4_ANY;
+	inet_addr_any(&sock->laddr);
 	sock->lconn = NULL;
 	sock->backlog = 0;
 
@@ -313,9 +313,10 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - open connections");
 	
-	lsocket.addr.ipv4 = TCP_IPV4_ANY;
+	inet_addr_any(&lsocket.addr);
 	lsocket.port = sock_core->port;
-	fsocket.addr.ipv4 = TCP_IPV4_ANY;
+	
+	inet_addr_any(&fsocket.addr);
 	fsocket.port = TCP_PORT_ANY;
 	
 	for (i = 0; i < backlog; i++) {
@@ -352,79 +353,111 @@ static void tcp_sock_listen(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 	async_answer_0(callid, EOK);
 }
 
-static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
+static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid,
+    ipc_call_t call)
 {
-	int rc;
-	struct sockaddr_in *addr;
-	int socket_id;
-	size_t addr_len;
-	socket_core_t *sock_core;
-	tcp_sockdata_t *socket;
-	tcp_error_t trc;
-	tcp_sock_t lsocket;
-	tcp_sock_t fsocket;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_connect()");
-
-	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &addr_len);
-	if (rc != EOK || addr_len != sizeof(struct sockaddr_in)) {
+	
+	struct sockaddr_in6 *addr6 = NULL;
+	size_t addr_len;
+	int rc = async_data_write_accept((void **) &addr6, false, 0, 0, 0, &addr_len);
+	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		return;
 	}
-
-	socket_id = SOCKET_GET_SOCKET_ID(call);
-
-	sock_core = socket_cores_find(&client->sockets, socket_id);
+	
+	if ((addr_len != sizeof(struct sockaddr_in)) &&
+	    (addr_len != sizeof(struct sockaddr_in6))) {
+		async_answer_0(callid, EINVAL);
+		goto out;
+	}
+	
+	struct sockaddr_in *addr = (struct sockaddr_in *) addr6;
+	
+	int socket_id = SOCKET_GET_SOCKET_ID(call);
+	socket_core_t *sock_core = socket_cores_find(&client->sockets,
+	    socket_id);
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
-		return;
+		goto out;
 	}
-
-	socket = (tcp_sockdata_t *)sock_core->specific_data;
+	
+	tcp_sockdata_t *socket =
+	    (tcp_sockdata_t *) sock_core->specific_data;
+	
 	if (sock_core->port <= 0) {
 		rc = socket_bind_free_port(&gsock, sock_core,
 		    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
 		    last_used_port);
 		if (rc != EOK) {
 			async_answer_0(callid, rc);
-			return;
+			goto out;
 		}
 		
 		last_used_port = sock_core->port;
 	}
-
+	
 	fibril_mutex_lock(&socket->lock);
-
-	if (socket->laddr.ipv4 == TCP_IPV4_ANY) {
+	
+	if (inet_addr_is_any(&socket->laddr)) {
 		/* Determine local IP address */
-		inet_addr_t loc_addr, rem_addr;
-
-		rem_addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+		inet_addr_t loc_addr;
+		inet_addr_t rem_addr;
+		
+		switch (addr->sin_family) {
+		case AF_INET:
+			inet_sockaddr_in_addr(addr, &rem_addr);
+			break;
+		case AF_INET6:
+			inet_sockaddr_in6_addr(addr6, &rem_addr);
+			break;
+		default:
+			fibril_mutex_unlock(&socket->lock);
+			async_answer_0(callid, EINVAL);
+			goto out;
+		}
+		
 		rc = inet_get_srcaddr(&rem_addr, 0, &loc_addr);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_connect: Failed to "
 			    "determine local address.");
-			return;
+			goto out;
 		}
-
-		socket->laddr.ipv4 = loc_addr.ipv4;
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Local IP address is %x", socket->laddr.ipv4);
+		
+		socket->laddr = loc_addr;
 	}
-
-	lsocket.addr.ipv4 = socket->laddr.ipv4;
+	
+	tcp_sock_t lsocket;
+	tcp_sock_t fsocket;
+	
+	lsocket.addr = socket->laddr;
 	lsocket.port = sock_core->port;
-	fsocket.addr.ipv4 = uint32_t_be2host(addr->sin_addr.s_addr);
+	
+	switch (addr->sin_family) {
+	case AF_INET:
+		inet_sockaddr_in_addr(addr, &fsocket.addr);
+		break;
+	case AF_INET6:
+		inet_sockaddr_in6_addr(addr6, &fsocket.addr);
+		break;
+	default:
+		fibril_mutex_unlock(&socket->lock);
+		async_answer_0(callid, EINVAL);
+		goto out;
+	}
+	
 	fsocket.port = uint16_t_be2host(addr->sin_port);
-
-	trc = tcp_uc_open(&lsocket, &fsocket, ap_active, 0, &socket->conn);
-
+	
+	tcp_error_t trc = tcp_uc_open(&lsocket, &fsocket, ap_active, 0,
+	    &socket->conn);
+	
 	if (socket->conn != NULL)
-		socket->conn->name = (char *)"C";
-
+		socket->conn->name = (char *) "C";
+	
 	fibril_mutex_unlock(&socket->lock);
-
+	
 	switch (trc) {
 	case TCP_EOK:
 		rc = EOK;
@@ -435,11 +468,15 @@ static void tcp_sock_connect(tcp_client_t *client, ipc_callid_t callid, ipc_call
 	default:
 		assert(false);
 	}
-
+	
 	if (rc == EOK)
 		fibril_add_ready(socket->recv_fibril);
-
+	
 	async_answer_0(callid, rc);
+	
+out:
+	if (addr6 != NULL)
+		free(addr6);
 }
 
 static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -506,9 +543,10 @@ static void tcp_sock_accept(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 	/* Replenish listening connection */
 
-	lsocket.addr.ipv4 = TCP_IPV4_ANY;
+	inet_addr_any(&lsocket.addr);
 	lsocket.port = sock_core->port;
-	fsocket.addr.ipv4 = TCP_IPV4_ANY;
+	
+	inet_addr_any(&fsocket.addr);
 	fsocket.port = TCP_PORT_ANY;
 
 	trc = tcp_uc_open(&lsocket, &fsocket, ap_passive, tcp_open_nonblock,
@@ -574,9 +612,14 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	ipc_call_t answer;
 	ipc_callid_t wcallid;
 	size_t length;
-	uint8_t buffer[TCP_SOCK_FRAGMENT_SIZE];
 	tcp_error_t trc;
 	int rc;
+	
+	uint8_t *buffer = calloc(TCP_SOCK_FRAGMENT_SIZE, 1);
+	if (buffer == NULL) {
+		async_answer_0(callid, ENOMEM);
+		return;
+	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_send()");
 	socket_id = SOCKET_GET_SOCKET_ID(call);
@@ -586,7 +629,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	sock_core = socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
-		return;
+		goto out;
 	}
 
 	socket = (tcp_sockdata_t *)sock_core->specific_data;
@@ -602,7 +645,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		if (!async_data_write_receive(&wcallid, &length)) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
-			return;
+			goto out;
 		}
 
 		if (length > TCP_SOCK_FRAGMENT_SIZE)
@@ -612,7 +655,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
-			return;
+			goto out;
 		}
 
 		trc = tcp_uc_send(socket->conn, buffer, length, 0);
@@ -637,7 +680,7 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 		if (rc != EOK) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, rc);
-			return;
+			goto out;
 		}
 	}
 
@@ -646,6 +689,9 @@ static void tcp_sock_send(tcp_client_t *client, ipc_callid_t callid, ipc_call_t 
 	async_answer_2(callid, EOK, IPC_GET_ARG1(answer),
 	    IPC_GET_ARG2(answer));
 	fibril_mutex_unlock(&socket->lock);
+	
+out:
+	free(buffer);
 }
 
 static void tcp_sock_sendto(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
@@ -656,54 +702,45 @@ static void tcp_sock_sendto(tcp_client_t *client, ipc_callid_t callid, ipc_call_
 
 static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	int socket_id;
-	int flags;
-	size_t addr_length, length;
-	socket_core_t *sock_core;
-	tcp_sockdata_t *socket;
-	ipc_call_t answer;
-	ipc_callid_t rcallid;
-	size_t data_len;
-	struct sockaddr_in addr;
-	tcp_sock_t *rsock;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%p: tcp_sock_recv[from]()", client);
-
-	socket_id = SOCKET_GET_SOCKET_ID(call);
-	flags = SOCKET_GET_FLAGS(call);
-
-	sock_core = socket_cores_find(&client->sockets, socket_id);
+	
+	int socket_id = SOCKET_GET_SOCKET_ID(call);
+	
+	socket_core_t *sock_core =
+	    socket_cores_find(&client->sockets, socket_id);
 	if (sock_core == NULL) {
 		async_answer_0(callid, ENOTSOCK);
 		return;
 	}
-
-	socket = (tcp_sockdata_t *)sock_core->specific_data;
+	
+	tcp_sockdata_t *socket =
+	    (tcp_sockdata_t *) sock_core->specific_data;
+	
 	fibril_mutex_lock(&socket->lock);
-
+	
 	if (socket->conn == NULL) {
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, ENOTCONN);
 		return;
 	}
-
-	(void)flags;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_recvfrom(): lock recv_buffer_lock");
+	
 	fibril_mutex_lock(&socket->recv_buffer_lock);
-	while (socket->recv_buffer_used == 0 && socket->recv_error == TCP_EOK) {
+	while ((socket->recv_buffer_used == 0) &&
+	    (socket->recv_error == TCP_EOK)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "wait for recv_buffer_cv + recv_buffer_used != 0");
 		fibril_condvar_wait(&socket->recv_buffer_cv,
 		    &socket->recv_buffer_lock);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Got data in sock recv_buffer");
-
-	data_len = socket->recv_buffer_used;
-	rc = socket->recv_error;
-
-	switch (socket->recv_error) {
+	
+	size_t data_len = socket->recv_buffer_used;
+	tcp_error_t trc = socket->recv_error;
+	int rc;
+	
+	switch (trc) {
 	case TCP_EOK:
 		rc = EOK;
 		break;
@@ -717,74 +754,123 @@ static void tcp_sock_recvfrom(tcp_client_t *client, ipc_callid_t callid, ipc_cal
 	default:
 		assert(false);
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "**** recv result -> %d", rc);
+	
 	if (rc != EOK) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, rc);
 		return;
 	}
-
+	
+	ipc_callid_t rcallid;
+	
 	if (IPC_GET_IMETHOD(call) == NET_SOCKET_RECVFROM) {
-		/* Fill addr */
-		rsock = &socket->conn->ident.foreign;
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = host2uint32_t_be(rsock->addr.ipv4);
-		addr.sin_port = host2uint16_t_be(rsock->port);
-
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read receive");
-		if (!async_data_read_receive(&rcallid, &addr_length)) {
-			fibril_mutex_unlock(&socket->recv_buffer_lock);
-			fibril_mutex_unlock(&socket->lock);
-			async_answer_0(callid, EINVAL);
-			return;
-		}
-
-		if (addr_length > sizeof(addr))
-			addr_length = sizeof(addr);
-
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read finalize");
-		rc = async_data_read_finalize(rcallid, &addr, addr_length);
-		if (rc != EOK) {
+		/* Fill address */
+		tcp_sock_t *rsock = &socket->conn->ident.foreign;
+		struct sockaddr_in addr;
+		struct sockaddr_in6 addr6;
+		size_t addr_length;
+		
+		uint16_t addr_af = inet_addr_sockaddr_in(&rsock->addr, &addr,
+		    &addr6);
+		
+		switch (addr_af) {
+		case AF_INET:
+			addr.sin_port = host2uint16_t_be(rsock->port);
+			
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read receive");
+			if (!async_data_read_receive(&rcallid, &addr_length)) {
+				fibril_mutex_unlock(&socket->recv_buffer_lock);
+				fibril_mutex_unlock(&socket->lock);
+				async_answer_0(callid, EINVAL);
+				return;
+			}
+			
+			if (addr_length > sizeof(addr))
+				addr_length = sizeof(addr);
+			
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "addr read finalize");
+			rc = async_data_read_finalize(rcallid, &addr, addr_length);
+			if (rc != EOK) {
+				fibril_mutex_unlock(&socket->recv_buffer_lock);
+				fibril_mutex_unlock(&socket->lock);
+				async_answer_0(callid, EINVAL);
+				return;
+			}
+			
+			break;
+		case AF_INET6:
+			addr6.sin6_port = host2uint16_t_be(rsock->port);
+			
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "addr6 read receive");
+			if (!async_data_read_receive(&rcallid, &addr_length)) {
+				fibril_mutex_unlock(&socket->recv_buffer_lock);
+				fibril_mutex_unlock(&socket->lock);
+				async_answer_0(callid, EINVAL);
+				return;
+			}
+			
+			if (addr_length > sizeof(addr6))
+				addr_length = sizeof(addr6);
+			
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "addr6 read finalize");
+			rc = async_data_read_finalize(rcallid, &addr6, addr_length);
+			if (rc != EOK) {
+				fibril_mutex_unlock(&socket->recv_buffer_lock);
+				fibril_mutex_unlock(&socket->lock);
+				async_answer_0(callid, EINVAL);
+				return;
+			}
+			
+			break;
+		default:
 			fibril_mutex_unlock(&socket->recv_buffer_lock);
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EINVAL);
 			return;
 		}
 	}
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read receive");
+	
+	size_t length;
 	if (!async_data_read_receive(&rcallid, &length)) {
 		fibril_mutex_unlock(&socket->recv_buffer_lock);
 		fibril_mutex_unlock(&socket->lock);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-
+	
 	if (length > data_len)
 		length = data_len;
-
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "data read finalize");
+	
 	rc = async_data_read_finalize(rcallid, socket->recv_buffer, length);
-
+	
 	socket->recv_buffer_used -= length;
+	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_recvfrom: %zu left in buffer",
 	    socket->recv_buffer_used);
+	
 	if (socket->recv_buffer_used > 0) {
 		memmove(socket->recv_buffer, socket->recv_buffer + length,
 		    socket->recv_buffer_used);
 		tcp_sock_notify_data(socket->sock_core);
 	}
-
+	
 	fibril_condvar_broadcast(&socket->recv_buffer_cv);
-
-	if (length < data_len && rc == EOK)
+	
+	if ((length < data_len) && (rc == EOK))
 		rc = EOVERFLOW;
-
+	
+	ipc_call_t answer;
+	
 	SOCKET_SET_READ_DATA_LENGTH(answer, length);
 	async_answer_1(callid, EOK, IPC_GET_ARG1(answer));
-
+	
 	fibril_mutex_unlock(&socket->recv_buffer_lock);
 	fibril_mutex_unlock(&socket->lock);
 }
@@ -795,6 +881,7 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	socket_core_t *sock_core;
 	tcp_sockdata_t *socket;
 	tcp_error_t trc;
+	int i;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_sock_close()");
@@ -810,11 +897,28 @@ static void tcp_sock_close(tcp_client_t *client, ipc_callid_t callid, ipc_call_t
 	fibril_mutex_lock(&socket->lock);
 
 	if (socket->conn != NULL) {
+		/* Close connection */
 		trc = tcp_uc_close(socket->conn);
 		if (trc != TCP_EOK && trc != TCP_ENOTEXIST) {
 			fibril_mutex_unlock(&socket->lock);
 			async_answer_0(callid, EBADF);
 			return;
+		}
+	}
+
+	if (socket->lconn != NULL) {
+		/* Close listening connections */
+		for (i = 0; i < socket->backlog; i++) {
+			tcp_uc_set_cstate_cb(socket->lconn[i]->conn, NULL, NULL);
+			trc = tcp_uc_close(socket->lconn[i]->conn);
+			if (trc != TCP_EOK && trc != TCP_ENOTEXIST) {
+				fibril_mutex_unlock(&socket->lock);
+				async_answer_0(callid, EBADF);
+				return;
+			}
+
+			free(socket->lconn[i]);
+			socket->lconn[i] = NULL;
 		}
 	}
 

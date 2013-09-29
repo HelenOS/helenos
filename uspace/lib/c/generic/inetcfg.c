@@ -136,23 +136,33 @@ int inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
     sysarg_t link_id, sysarg_t *addr_id)
 {
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INETCFG_ADDR_CREATE_STATIC, naddr->ipv4,
-	    naddr->bits, link_id, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
-
-	async_exchange_end(exch);
-
-	if (retval != EOK) {
+	aid_t req = async_send_1(exch, INETCFG_ADDR_CREATE_STATIC, link_id,
+	    &answer);
+	
+	int rc = async_data_write_start(exch, naddr, sizeof(inet_naddr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
 		async_forget(req);
-		return retval;
+		return rc;
 	}
-
+	
+	rc = async_data_write_start(exch, name, str_size(name));
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+	
+	sysarg_t retval;
 	async_wait_for(req, &retval);
+	
 	*addr_id = IPC_GET_ARG1(answer);
-
-	return retval;
+	
+	return (int) retval;
 }
 
 int inetcfg_addr_delete(sysarg_t addr_id)
@@ -167,40 +177,53 @@ int inetcfg_addr_delete(sysarg_t addr_id)
 
 int inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 {
-	ipc_call_t dreply;
-	sysarg_t dretval;
-	size_t act_size;
-	char name_buf[LOC_NAME_MAXLEN + 1];
-
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
-
+	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_ADDR_GET, addr_id, &answer);
-	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
-	async_wait_for(dreq, &dretval);
-
-	async_exchange_end(exch);
-
-	if (dretval != EOK) {
+	
+	ipc_call_t answer_naddr;
+	aid_t req_naddr = async_data_read(exch, &ainfo->naddr,
+	    sizeof(inet_naddr_t), &answer_naddr);
+	
+	sysarg_t retval_naddr;
+	async_wait_for(req_naddr, &retval_naddr);
+	
+	if (retval_naddr != EOK) {
+		async_exchange_end(exch);
 		async_forget(req);
-		return dretval;
+		return (int) retval_naddr;
 	}
-
+	
+	ipc_call_t answer_name;
+	char name_buf[LOC_NAME_MAXLEN + 1];
+	aid_t req_name = async_data_read(exch, name_buf, LOC_NAME_MAXLEN,
+	    &answer_name);
+	
+	async_exchange_end(exch);
+	
+	sysarg_t retval_name;
+	async_wait_for(req_name, &retval_name);
+	
+	if (retval_name != EOK) {
+		async_forget(req);
+		return (int) retval_name;
+	}
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-
+	
 	if (retval != EOK)
-		return retval;
-
-	act_size = IPC_GET_ARG2(dreply);
+		return (int) retval;
+	
+	size_t act_size = IPC_GET_ARG2(answer_name);
 	assert(act_size <= LOC_NAME_MAXLEN);
+	
 	name_buf[act_size] = '\0';
-
-	ainfo->naddr.ipv4 = IPC_GET_ARG1(answer);
-	ainfo->naddr.bits = IPC_GET_ARG2(answer);
-	ainfo->ilink = IPC_GET_ARG3(answer);
+	
+	ainfo->ilink = IPC_GET_ARG1(answer);
 	ainfo->name = str_dup(name_buf);
-
+	
 	return EOK;
 }
 
@@ -243,6 +266,16 @@ int inetcfg_get_sroute_list(sysarg_t **sroutes, size_t *count)
 	    0, sroutes, count);
 }
 
+int inetcfg_link_add(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	int rc = async_req_1_0(exch, INETCFG_LINK_ADD, link_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
 	ipc_call_t dreply;
@@ -255,11 +288,12 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_LINK_GET, link_id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
+	int rc = async_data_read_start(exch, &linfo->mac_addr, sizeof(addr48_t));
 	async_wait_for(dreq, &dretval);
 
 	async_exchange_end(exch);
 
-	if (dretval != EOK) {
+	if (dretval != EOK || rc != EOK) {
 		async_forget(req);
 		return dretval;
 	}
@@ -280,27 +314,53 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	return EOK;
 }
 
+int inetcfg_link_remove(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	int rc = async_req_1_0(exch, INETCFG_LINK_REMOVE, link_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 int inetcfg_sroute_create(const char *name, inet_naddr_t *dest,
     inet_addr_t *router, sysarg_t *sroute_id)
 {
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INETCFG_SROUTE_CREATE,
-	    dest->ipv4, dest->bits, router->ipv4, &answer);
-	sysarg_t retval = async_data_write_start(exch, name, str_size(name));
-
-	async_exchange_end(exch);
-
-	if (retval != EOK) {
+	aid_t req = async_send_0(exch, INETCFG_SROUTE_CREATE, &answer);
+	
+	int rc = async_data_write_start(exch, dest, sizeof(inet_naddr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
 		async_forget(req);
-		return retval;
+		return rc;
 	}
-
+	
+	rc = async_data_write_start(exch, router, sizeof(inet_addr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, name, str_size(name));
+	
+	async_exchange_end(exch);
+	
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+	
+	sysarg_t retval;
 	async_wait_for(req, &retval);
+	
 	*sroute_id = IPC_GET_ARG1(answer);
-
-	return retval;
+	
+	return (int) retval;
 }
 
 int inetcfg_sroute_delete(sysarg_t sroute_id)
@@ -315,40 +375,65 @@ int inetcfg_sroute_delete(sysarg_t sroute_id)
 
 int inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 {
-	ipc_call_t dreply;
-	sysarg_t dretval;
-	size_t act_size;
-	char name_buf[LOC_NAME_MAXLEN + 1];
-
 	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
-
+	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_SROUTE_GET, sroute_id, &answer);
-	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
-	async_wait_for(dreq, &dretval);
-
-	async_exchange_end(exch);
-
-	if (dretval != EOK) {
+	
+	ipc_call_t answer_dest;
+	aid_t req_dest = async_data_read(exch, &srinfo->dest,
+	    sizeof(inet_naddr_t), &answer_dest);
+	
+	sysarg_t retval_dest;
+	async_wait_for(req_dest, &retval_dest);
+	
+	if (retval_dest != EOK) {
+		async_exchange_end(exch);
 		async_forget(req);
-		return dretval;
+		return (int) retval_dest;
 	}
-
+	
+	ipc_call_t answer_router;
+	aid_t req_router = async_data_read(exch, &srinfo->router,
+	    sizeof(inet_addr_t), &answer_router);
+	
+	sysarg_t retval_router;
+	async_wait_for(req_router, &retval_router);
+	
+	if (retval_router != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return (int) retval_router;
+	}
+	
+	ipc_call_t answer_name;
+	char name_buf[LOC_NAME_MAXLEN + 1];
+	aid_t req_name = async_data_read(exch, name_buf, LOC_NAME_MAXLEN,
+	    &answer_name);
+	
+	async_exchange_end(exch);
+	
+	sysarg_t retval_name;
+	async_wait_for(req_name, &retval_name);
+	
+	if (retval_name != EOK) {
+		async_forget(req);
+		return (int) retval_name;
+	}
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-
+	
 	if (retval != EOK)
-		return retval;
-
-	act_size = IPC_GET_ARG2(dreply);
+		return (int) retval;
+	
+	size_t act_size = IPC_GET_ARG2(answer_name);
 	assert(act_size <= LOC_NAME_MAXLEN);
+	
 	name_buf[act_size] = '\0';
-
-	srinfo->dest.ipv4 = IPC_GET_ARG1(answer);
-	srinfo->dest.bits = IPC_GET_ARG2(answer);
-	srinfo->router.ipv4 = IPC_GET_ARG3(answer);
+	
 	srinfo->name = str_dup(name_buf);
-
+	
 	return EOK;
 }
 

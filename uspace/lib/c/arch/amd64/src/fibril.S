@@ -41,17 +41,16 @@
 context_save:
 	movq (%rsp), %rdx     # the caller's return %eip
 	
-	# In %edi is passed 1st argument
+	# in %edi is passed 1st argument
 	CONTEXT_SAVE_ARCH_CORE %rdi %rdx 
 	
-	# Save TLS
+	# save TLS
 	movq %fs:0, %rax
 	movq %rax, OFFSET_TLS(%rdi)
-		
-	xorl %eax, %eax		# context_save returns 1
+	
+	xorl %eax, %eax       # context_save returns 1
 	incl %eax
 	ret
-
 
 ## Restore current CPU context
 #
@@ -63,11 +62,11 @@ context_restore:
 	CONTEXT_RESTORE_ARCH_CORE %rdi %rdx
 	
 	movq %rdx,(%rsp)
-
+	
 	# Set thread local storage
-	movq OFFSET_TLS(%rdi), %rdi   # Set arg1 to TLS addr
-	movl $1, %eax		# SYS_TLS_SET
+	movq OFFSET_TLS(%rdi), %rdi  # Set arg1 to TLS addr
+	movl $1, %eax                # SYS_TLS_SET
 	syscall
-
-	xorl %eax, %eax		# context_restore returns 0
+	
+	xorl %eax, %eax              # context_restore returns 0
 	ret

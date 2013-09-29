@@ -36,16 +36,14 @@
 #define LIBC_MEM_H_
 
 #include <sys/types.h>
-
-#define bzero(ptr, len)  memset((ptr), 0, (len))
+#include <cc.h>
 
 extern void *memset(void *, int, size_t)
-    __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
 extern void *memcpy(void *, const void *, size_t)
-    __attribute__ ((optimize("-fno-tree-loop-distribute-patterns")));
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
 extern void *memmove(void *, const void *, size_t);
-
-extern int bcmp(const void *, const void *, size_t);
+extern int memcmp(const void *, const void *, size_t);
 
 #endif
 

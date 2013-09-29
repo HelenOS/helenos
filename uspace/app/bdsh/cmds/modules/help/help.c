@@ -97,13 +97,12 @@ static void help_commands(void)
 {
 	builtin_t *cmd;
 	module_t *mod;
-	unsigned int i;
 
 	printf("\n  Bdsh built-in commands:\n");
 	printf("  ------------------------------------------------------------\n");
 
 	/* First, show a list of built in commands that are available in this mode */
-	for (cmd = builtins; cmd->name != NULL; cmd++, i++) {
+	for (cmd = builtins; cmd->name != NULL; cmd++) {
 			if (is_builtin_alias(cmd->name))
 				printf("   %-16s\tAlias for `%s'\n", cmd->name,
 					alias_for_builtin(cmd->name));
@@ -111,10 +110,8 @@ static void help_commands(void)
 				printf("   %-16s\t%s\n", cmd->name, cmd->desc);
 	}
 
-	i = 0;
-
 	/* Now, show a list of module commands that are available in this mode */
-	for (mod = modules; mod->name != NULL; mod++, i++) {
+	for (mod = modules; mod->name != NULL; mod++) {
 			if (is_module_alias(mod->name))
 				printf("   %-16s\tAlias for `%s'\n", mod->name,
 					alias_for_module(mod->name));

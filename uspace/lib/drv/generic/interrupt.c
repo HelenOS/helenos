@@ -137,12 +137,9 @@ static void remove_interrupt_context(interrupt_context_list_t *list,
 static interrupt_context_t *find_interrupt_context_by_id(
     interrupt_context_list_t *list, int id)
 {
-	interrupt_context_t *ctx;
-	
 	fibril_mutex_lock(&list->mutex);
 	
-	list_foreach(list->contexts, link) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
+	list_foreach(list->contexts, link, interrupt_context_t, ctx) {
 		if (ctx->id == id) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
@@ -156,12 +153,9 @@ static interrupt_context_t *find_interrupt_context_by_id(
 static interrupt_context_t *find_interrupt_context(
     interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
-	interrupt_context_t *ctx;
-	
 	fibril_mutex_lock(&list->mutex);
 	
-	list_foreach(list->contexts, link) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
+	list_foreach(list->contexts, link, interrupt_context_t, ctx) {
 		if (ctx->irq == irq && ctx->dev == dev) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;

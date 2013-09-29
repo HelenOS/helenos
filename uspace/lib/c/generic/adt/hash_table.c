@@ -226,12 +226,11 @@ bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
 	
 	/* Check for duplicates. */
-	list_foreach(h->bucket[idx], cur) {
+	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
 		/* 
 		 * We could filter out items using their hashes first, but 
 		 * calling equal() might very well be just as fast.
 		 */
-		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
 		if (h->op->equal(cur_link, item))
 			return false;
 	}
@@ -257,8 +256,7 @@ ht_link_t *hash_table_find(const hash_table_t *h, void *key)
 	
 	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
 
-	list_foreach(h->bucket[idx], cur) {
-		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
+	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
 		/* 
 		 * Is this is the item we are looking for? We could have first 
 		 * checked if the hashes match but op->key_equal() may very well be 

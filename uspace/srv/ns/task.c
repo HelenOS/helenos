@@ -178,9 +178,7 @@ void process_pending_wait(void)
 	task_exit_t texit;
 	
 loop:
-	list_foreach(pending_wait, cur) {
-		pending_wait_t *pr = list_get_instance(cur, pending_wait_t, link);
-		
+	list_foreach(pending_wait, link, pending_wait_t, pr) {
 		ht_link_t *link = hash_table_find(&task_hash_table, &pr->id);
 		if (!link)
 			continue;
@@ -197,7 +195,7 @@ loop:
 		}
 		
 		hash_table_remove(&task_hash_table, &pr->id);
-		list_remove(cur);
+		list_remove(&pr->link);
 		free(pr);
 		goto loop;
 	}
@@ -207,6 +205,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
 	sysarg_t retval;
 	task_exit_t texit;
+	bool remove = false;
 	
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
@@ -234,7 +233,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 		return;
 	}
 	
-	hash_table_remove_item(&task_hash_table, link);
+	remove = true;
 	retval = EOK;
 	
 out:
@@ -242,6 +241,8 @@ out:
 		texit = ht->have_rval ? TASK_EXIT_NORMAL : TASK_EXIT_UNEXPECTED;
 		ipc_answer_2(callid, retval, texit, ht->retval);
 	}
+	if (remove)
+		hash_table_remove_item(&task_hash_table, link);
 }
 
 int ns_task_id_intro(ipc_call_t *call)

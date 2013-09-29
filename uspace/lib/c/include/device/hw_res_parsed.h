@@ -36,6 +36,7 @@
 #define LIBC_DEVICE_HW_RES_PARSED_H_
 
 #include <device/hw_res.h>
+#include <device/pio_window.h>
 #include <str.h>
 
 /** Keep areas of the zero size in the list */
@@ -44,16 +45,30 @@
 /** Keep duplicit entries */
 #define HW_RES_KEEP_DUPLICIT   0x2
 
+
+#define RNGABS(rng)	(rng).address.absolute
+#define RNGREL(rng)	(rng).address.relative
+#define RNGSZ(rng)	(rng).size
+
+#define RNGABSPTR(rng)	((void *) ((uintptr_t) RNGABS((rng))))
+
+typedef struct address64 {
+	/** Aboslute address. */ 
+	uint64_t absolute;
+	/** PIO window base relative address. */
+	uint64_t relative; 
+} address64_t;
+
 /** Address range structure */
 typedef struct addr_range {
 	/** Start address */
-	uint64_t address;
-	
-	/** Endianness */
-	endianness_t endianness;
+	address64_t address;
 	
 	/** Area size */
 	size_t size;
+
+	/** Endianness */
+	endianness_t endianness;
 } addr_range_t;
 
 /** IO range type */
@@ -126,7 +141,7 @@ static inline void hw_res_list_parsed_clean(hw_res_list_parsed_t *list)
 	free(list->mem_ranges.ranges);
 	free(list->dma_channels.channels);
 	
-	bzero(list, sizeof(hw_res_list_parsed_t));
+	memset(list, 0, sizeof(hw_res_list_parsed_t));
 }
 
 /** Initialize the hw_resource_list_parsed_t structure
@@ -135,10 +150,11 @@ static inline void hw_res_list_parsed_clean(hw_res_list_parsed_t *list)
  */
 static inline void hw_res_list_parsed_init(hw_res_list_parsed_t *list)
 {
-	bzero(list, sizeof(hw_res_list_parsed_t));
+	memset(list, 0, sizeof(hw_res_list_parsed_t));
 }
 
-extern int hw_res_list_parse(hw_resource_list_t *, hw_res_list_parsed_t *, int);
+extern int hw_res_list_parse(const pio_window_t *, const hw_resource_list_t *,
+    hw_res_list_parsed_t *, int);
 extern int hw_res_get_list_parsed(async_sess_t *, hw_res_list_parsed_t *, int);
 
 #endif

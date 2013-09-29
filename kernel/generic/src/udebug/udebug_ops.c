@@ -195,9 +195,7 @@ int udebug_begin(call_t *call)
 	
 	/* Set udebug.active on all of the task's userspace threads. */
 	
-	list_foreach(TASK->threads, cur) {
-		thread_t *thread = list_get_instance(cur, thread_t, th_link);
-		
+	list_foreach(TASK->threads, th_link, thread_t, thread) {
 		mutex_lock(&thread->udebug.lock);
 		if (thread->uspace) {
 			thread->udebug.active = true;
@@ -388,9 +386,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	size_t extra_ids = 0;
 	
 	/* FIXME: make sure the thread isn't past debug shutdown... */
-	list_foreach(TASK->threads, cur) {
-		thread_t *thread = list_get_instance(cur, thread_t, th_link);
-		
+	list_foreach(TASK->threads, th_link, thread_t, thread) {
 		irq_spinlock_lock(&thread->lock, false);
 		bool uspace = thread->uspace;
 		irq_spinlock_unlock(&thread->lock, false);

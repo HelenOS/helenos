@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <str.h>
 
+#include <inet/dnsr.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
@@ -59,6 +60,7 @@ int main(int argc, char *argv[])
 	int rc;
 	int fd;
 	char *endptr;
+	dnsr_hostinfo_t *hinfo;
 
 	port = 7;
 
@@ -74,8 +76,18 @@ int main(int argc, char *argv[])
 		printf("parsing address '%s'\n", argv[1]);
 		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
 		if (rc != EOK) {
-			fprintf(stderr, "Error parsing address\n");
-			return 1;
+			/* Try interpreting as a host name */
+			rc = dnsr_name2host(argv[1], &hinfo, AF_INET);
+			if (rc != EOK) {
+				printf("Error resolving host '%s'.\n", argv[1]);
+				return rc;
+			}
+			
+			uint16_t af = inet_addr_sockaddr_in(&hinfo->addr, &addr, NULL);
+			if (af != AF_INET) {
+				printf("Host '%s' not resolved as IPv4 address.\n", argv[1]);
+				return rc;
+			}
 		}
 		printf("result: rc=%d, family=%d, addr=%x\n", rc,
 		    addr.sin_family, addr.sin_addr.s_addr);

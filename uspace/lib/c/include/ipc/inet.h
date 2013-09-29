@@ -44,7 +44,9 @@ typedef enum {
 	/** Configuration port */
 	INET_PORT_CFG,
 	/** Ping service port */
-	INET_PORT_PING
+	INET_PORT_PING,
+	/** Ping6 service port */
+	INET_PORT_PING6
 } inet_port_t;
 
 /** Requests on Inet default port */
@@ -69,7 +71,9 @@ typedef enum {
 	INETCFG_GET_ADDR_LIST,
 	INETCFG_GET_LINK_LIST,
 	INETCFG_GET_SROUTE_LIST,
+	INETCFG_LINK_ADD,
 	INETCFG_LINK_GET,
+	INETCFG_LINK_REMOVE,
 	INETCFG_SROUTE_CREATE,
 	INETCFG_SROUTE_DELETE,
 	INETCFG_SROUTE_GET,
@@ -86,6 +90,17 @@ typedef enum {
 	INETPING_SEND = IPC_FIRST_USER_METHOD,
 	INETPING_GET_SRCADDR
 } inetping_request_t;
+
+/** Events on Inet ping6 port */
+typedef enum {
+	INETPING6_EV_RECV = IPC_FIRST_USER_METHOD
+} inetping6_event_t;
+
+/** Requests on Inet ping6 port */
+typedef enum {
+	INETPING6_SEND = IPC_FIRST_USER_METHOD,
+	INETPING6_GET_SRCADDR
+} inetping6_request_t;
 
 #endif
 

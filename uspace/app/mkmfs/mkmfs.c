@@ -648,7 +648,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	for (i = 2; i < sb->n_inodes + 1; ++i)
 		mark_bmap(ibmap_buf, i, FREE);
 
-	for (i = sb->first_data_zone + 1; i < sb->n_zones; ++i)
+	for (i = 2; i < sb->n_zones - sb->first_data_zone; ++i)
 		mark_bmap(zbmap_buf, i, FREE);
 
 	ibmap_buf8 = (uint8_t *) ibmap_buf;

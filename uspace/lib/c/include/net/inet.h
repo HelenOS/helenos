@@ -40,23 +40,18 @@
 #include <sys/types.h>
 #include <byteorder.h>
 
-/** Type definition of the socket address.
- * @see sockaddr
- */
-typedef struct sockaddr		sockaddr_t;
-
 /** Type definition of the address information.
  * @see addrinfo
  */
-typedef struct addrinfo		addrinfo_t;
+typedef struct addrinfo addrinfo_t;
 
 /** Socket address. */
-struct sockaddr {
+typedef struct sockaddr {
 	/** Address family. @see socket.h */
 	uint16_t sa_family;
 	/** 14 byte protocol address. */
 	uint8_t sa_data[14];
-};
+} sockaddr_t;
 
 extern int inet_ntop(uint16_t, const uint8_t *, char *, size_t);
 extern int inet_pton(uint16_t, const char *, uint8_t *);

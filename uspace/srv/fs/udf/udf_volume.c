@@ -261,11 +261,11 @@ static bool udf_check_prevailing_pvd(udf_primary_volume_descriptor_t *pvd,
 		 * Volume Identifier, Volume set identifier
 		 * and Descriptor char set field.
 		 */
-		if ((bcmp((uint8_t *) pvd[i].volume_id,
+		if ((memcmp((uint8_t *) pvd[i].volume_id,
 		    (uint8_t *) desc->volume_id, 32) == 0) &&
-		    (bcmp((uint8_t *) pvd[i].volume_set_id,
+		    (memcmp((uint8_t *) pvd[i].volume_set_id,
 		    (uint8_t *) desc->volume_set_id, 128) == 0) &&
-		    (bcmp((uint8_t *) &pvd[i].descriptor_charset,
+		    (memcmp((uint8_t *) &pvd[i].descriptor_charset,
 		    (uint8_t *) &desc->descriptor_charset, 64) == 0) &&
 		    (FLE32(desc->sequence_number) > FLE32(pvd[i].sequence_number))) {
 			memcpy(&pvd[i], desc, sizeof(udf_primary_volume_descriptor_t));
@@ -300,9 +300,9 @@ static bool udf_check_prevailing_lvd(udf_logical_volume_descriptor_t *lvd,
 		 * LVD, each of which has same contents of the corresponding
 		 * Logic Volume Identifier and Descriptor char set field.
 		 */
-		if ((bcmp((uint8_t *) lvd[i].logical_volume_id,
+		if ((memcmp((uint8_t *) lvd[i].logical_volume_id,
 		    (uint8_t *) desc->logical_volume_id, 128) == 0) &&
-		    (bcmp((uint8_t *) &lvd[i].charset,
+		    (memcmp((uint8_t *) &lvd[i].charset,
 		    (uint8_t *) &desc->charset, 64) == 0) &&
 		    (FLE32(desc->sequence_number) > FLE32(lvd[i].sequence_number))) {
 			memcpy(&lvd[i], desc, sizeof(udf_logical_volume_descriptor_t));

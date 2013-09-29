@@ -37,9 +37,7 @@
 #define GUI_CONNECTION_H_
 
 #include <sys/types.h>
-
-struct widget;
-typedef struct widget widget_t;
+#include "widget.h"
 
 typedef sysarg_t signal_t;
 typedef void (*slot_t)(widget_t *, void *);

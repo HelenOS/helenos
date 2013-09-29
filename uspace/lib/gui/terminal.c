@@ -76,7 +76,7 @@ static void term_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void term_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void term_set_cursor_visibility(con_srv_t *, bool);
-static int term_get_event(con_srv_t *, kbd_event_t *);
+static int term_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = term_open,
@@ -419,12 +419,13 @@ static int term_read(con_srv_t *srv, void *buf, size_t size)
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&term->input_pc);
-			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+			cons_event_t *event = list_get_instance(link, cons_event_t, link);
 			
 			/* Accept key presses of printable chars only. */
-			if ((event->type == KEY_PRESS) && (event->c != 0)) {
+			if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
+			    event->ev.key.c != 0) {
 				wchar_t tmp[2] = {
-					event->c,
+					event->ev.key.c,
 					0
 				};
 				
@@ -578,14 +579,14 @@ static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 	term_update(term);
 }
 
-static int term_get_event(con_srv_t *srv, kbd_event_t *event)
+static int term_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	link_t *link = prodcons_consume(&term->input_pc);
-	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
+	cons_event_t *ev = list_get_instance(link, cons_event_t, link);
 	
-	*event = *kevent;
-	free(kevent);
+	*event = *ev;
+	free(ev);
 	return EOK;
 }
 
@@ -633,41 +634,57 @@ static void terminal_repaint(widget_t *widget)
 	term_damage(term);
 }
 
-static void terminal_handle_keyboard_event(widget_t *widget,
-    kbd_event_t kbd_event)
+static void terminal_queue_cons_event(terminal_t *term, cons_event_t *ev)
 {
-	terminal_t *term = (terminal_t *) widget;
-	
 	/* Got key press/release event */
-	kbd_event_t *event =
-	    (kbd_event_t *) malloc(sizeof(kbd_event_t));
+	cons_event_t *event =
+	    (cons_event_t *) malloc(sizeof(cons_event_t));
 	if (event == NULL)
 		return;
 	
+	*event = *ev;
 	link_initialize(&event->link);
-	event->type = kbd_event.type;
-	event->key = kbd_event.key;
-	event->mods = kbd_event.mods;
-	event->c = kbd_event.c;
 	
 	prodcons_produce(&term->input_pc, &event->link);
 }
 
-static void terminal_handle_position_event(widget_t *widget, pos_event_t event)
+/* Got key press/release event */
+static void terminal_handle_keyboard_event(widget_t *widget,
+    kbd_event_t kbd_event)
 {
-	/*
-	 * Mouse events are ignored so far.
-	 * There is no consumer for it.
-	 */
+	terminal_t *term = (terminal_t *) widget;
+	cons_event_t event;
+	
+	event.type = CEV_KEY;
+	event.ev.key = kbd_event;
+	
+	terminal_queue_cons_event(term, &event);
+}
+
+static void terminal_handle_position_event(widget_t *widget, pos_event_t pos_event)
+{
+	cons_event_t event;
+	terminal_t *term = (terminal_t *) widget;
+	sysarg_t sx = term->widget.hpos;
+	sysarg_t sy = term->widget.vpos;
+
+	if (pos_event.type == POS_PRESS) {
+		event.type = CEV_POS;
+		event.ev.pos.type = pos_event.type;
+		event.ev.pos.pos_id = pos_event.pos_id;
+		event.ev.pos.btn_num = pos_event.btn_num;
+
+		event.ev.pos.hpos = (pos_event.hpos - sx) / FONT_WIDTH;
+		event.ev.pos.vpos = (pos_event.vpos - sy) / FONT_SCANLINES;
+		terminal_queue_cons_event(term, &event);
+	}
 }
 
 static void term_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	terminal_t *term = NULL;
 	
-	list_foreach(terms, link) {
-		terminal_t *cur = list_get_instance(link, terminal_t, link);
-		
+	list_foreach(terms, link, terminal_t, cur) {
 		if (cur->dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
 			term = cur;
 			break;

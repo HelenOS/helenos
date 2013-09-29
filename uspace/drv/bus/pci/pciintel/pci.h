@@ -39,15 +39,14 @@
 #include <ddf/driver.h>
 #include "pci_regs.h"
 
-#define PCI_MAX_HW_RES 8
+#define PCI_MAX_HW_RES 10 
 
 typedef struct pciintel_bus {
 	/** DDF device node */
 	ddf_dev_t *dnode;
-	uint32_t conf_io_addr;
-	uint32_t conf_io_data;
-	void *conf_data_port;
-	void *conf_addr_port;
+	ioport32_t *conf_addr_reg;
+	ioport32_t *conf_data_reg;
+	pio_window_t pio_win;
 	fibril_mutex_t conf_mutex;
 } pci_bus_t;
 
@@ -58,14 +57,16 @@ typedef struct pci_fun_data {
 	int bus;
 	int dev;
 	int fn;
-	int vendor_id;
-	int device_id;
+	uint16_t vendor_id;
+	uint16_t device_id;
+	uint16_t command;
 	uint8_t class_code;
 	uint8_t subclass_code;
 	uint8_t prog_if;
 	uint8_t revision;
 	hw_resource_list_t hw_resources;
 	hw_resource_t resources[PCI_MAX_HW_RES];
+	pio_window_t pio_window;
 } pci_fun_t;
 
 extern void pci_fun_create_match_ids(pci_fun_t *);

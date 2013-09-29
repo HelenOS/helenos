@@ -87,9 +87,8 @@ void frame_high_arch_init(void)
 /** Frees the boot page table. */
 void boot_page_table_free(void)
 {
-	unsigned int i;
-	for (i = 0; i < BOOT_PAGE_TABLE_SIZE_IN_FRAMES; i++)
-		frame_free(i * FRAME_SIZE + BOOT_PAGE_TABLE_ADDRESS);
+	frame_free(BOOT_PAGE_TABLE_ADDRESS,
+	    BOOT_PAGE_TABLE_SIZE_IN_FRAMES);
 }
 
 /** @}

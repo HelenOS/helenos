@@ -38,19 +38,23 @@
 #include <async.h>
 #include <errno.h>
 #include <inet/iplink_srv.h>
+#include <inet/addr.h>
+#include <net/socket_codes.h>
 #include <io/log.h>
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NAME "loopip"
+#define NAME  "loopip"
 
 static int loopip_open(iplink_srv_t *srv);
 static int loopip_close(iplink_srv_t *srv);
-static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu);
+static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
+static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static int loopip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr);
-static int loopip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr);
+static int loopip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
+static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
+static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
 static void loopip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -58,7 +62,9 @@ static iplink_ops_t loopip_iplink_ops = {
 	.open = loopip_open,
 	.close = loopip_close,
 	.send = loopip_send,
+	.send6 = loopip_send6,
 	.get_mtu = loopip_get_mtu,
+	.get_mac48 = loopip_get_mac48,
 	.addr_add = loopip_addr_add,
 	.addr_remove = loopip_addr_remove
 };
@@ -68,7 +74,9 @@ static prodcons_t loopip_rcv_queue;
 
 typedef struct {
 	link_t link;
-	iplink_srv_sdu_t sdu;
+	
+	uint16_t af;
+	iplink_recv_sdu_t sdu;
 } rqueue_entry_t;
 
 static int loopip_recv_fibril(void *arg)
@@ -76,59 +84,63 @@ static int loopip_recv_fibril(void *arg)
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_recv_fibril(): Wait for one item");
 		link_t *link = prodcons_consume(&loopip_rcv_queue);
-		rqueue_entry_t *rqe = list_get_instance(link, rqueue_entry_t, link);
-
-		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu);
+		rqueue_entry_t *rqe =
+		    list_get_instance(link, rqueue_entry_t, link);
+		
+		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu, rqe->af);
+		
+		free(rqe->sdu.data);
+		free(rqe);
 	}
-
+	
 	return 0;
 }
 
 static int loopip_init(void)
 {
-	int rc;
-	service_id_t sid;
-	category_id_t iplink_cat;
-	const char *svc_name = "net/loopback";
-	
 	async_set_client_connection(loopip_client_conn);
 	
-	rc = loc_server_register(NAME);
+	int rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
-
+	
 	iplink_srv_init(&loopip_iplink);
 	loopip_iplink.ops = &loopip_iplink_ops;
 	loopip_iplink.arg = NULL;
-
+	
 	prodcons_initialize(&loopip_rcv_queue);
-
+	
+	const char *svc_name = "net/loopback";
+	service_id_t sid;
 	rc = loc_service_register(svc_name, &sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.",
+		    svc_name);
 		return rc;
 	}
-
+	
+	category_id_t iplink_cat;
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		return rc;
 	}
-
+	
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.", svc_name);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.",
+		    svc_name);
 		return rc;
 	}
-
+	
 	fid_t fid = fibril_create(loopip_recv_fibril, NULL);
 	if (fid == 0)
 		return ENOMEM;
-
+	
 	fibril_add_ready(fid);
-
+	
 	return EOK;
 }
 
@@ -150,34 +162,61 @@ static int loopip_close(iplink_srv_t *srv)
 	return EOK;
 }
 
-static int loopip_send(iplink_srv_t *srv, iplink_srv_sdu_t *sdu)
+static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
-	rqueue_entry_t *rqe;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_send()");
-
-	rqe = calloc(1, sizeof(rqueue_entry_t));
+	
+	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
+	
 	/*
 	 * Clone SDU
 	 */
-	rqe->sdu.lsrc = sdu->ldest;
-	rqe->sdu.ldest = sdu->lsrc;
+	rqe->af = AF_INET;
 	rqe->sdu.data = malloc(sdu->size);
 	if (rqe->sdu.data == NULL) {
 		free(rqe);
 		return ENOMEM;
 	}
-
+	
 	memcpy(rqe->sdu.data, sdu->data, sdu->size);
 	rqe->sdu.size = sdu->size;
-
+	
 	/*
 	 * Insert to receive queue
 	 */
 	prodcons_produce(&loopip_rcv_queue, &rqe->link);
+	
+	return EOK;
+}
 
+static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip6_send()");
+	
+	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
+	if (rqe == NULL)
+		return ENOMEM;
+	
+	/*
+	 * Clone SDU
+	 */
+	rqe->af = AF_INET6;
+	rqe->sdu.data = malloc(sdu->size);
+	if (rqe->sdu.data == NULL) {
+		free(rqe);
+		return ENOMEM;
+	}
+	
+	memcpy(rqe->sdu.data, sdu->data, sdu->size);
+	rqe->sdu.size = sdu->size;
+	
+	/*
+	 * Insert to receive queue
+	 */
+	prodcons_produce(&loopip_rcv_queue, &rqe->link);
+	
 	return EOK;
 }
 
@@ -188,37 +227,40 @@ static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static int loopip_addr_add(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+static int loopip_get_mac48(iplink_srv_t *src, addr48_t *mac)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_add(0x%" PRIx32 ")", addr->ipv4);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mac48()");
+	return ENOTSUP;
+}
+
+static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
+{
 	return EOK;
 }
 
-static int loopip_addr_remove(iplink_srv_t *srv, iplink_srv_addr_t *addr)
+static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_addr_remove(0x%" PRIx32 ")", addr->ipv4);
 	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
-	int rc;
-
-	printf(NAME ": HelenOS loopback IP link provider\n");
-
-	if (log_init(NAME) != EOK) {
-		printf(NAME ": Failed to initialize logging.\n");
-		return 1;
+	printf("%s: HelenOS loopback IP link provider\n", NAME);
+	
+	int rc = log_init(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed to initialize logging.\n", NAME);
+		return rc;
 	}
-
+	
 	rc = loopip_init();
 	if (rc != EOK)
-		return 1;
-
-	printf(NAME ": Accepting connections.\n");
+		return rc;
+	
+	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);
 	async_manager();
-
+	
 	/* Not reached */
 	return 0;
 }

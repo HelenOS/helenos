@@ -224,7 +224,7 @@ static int netecho_socket_process_message(int listening_id)
 {
 	uint8_t address_buf[sizeof(struct sockaddr_in6)];
 
-	socklen_t addrlen;
+	socklen_t addrlen = sizeof(struct sockaddr_in6);
 	int socket_id;
 	ssize_t rcv_size;
 	size_t length;
@@ -239,7 +239,6 @@ static int netecho_socket_process_message(int listening_id)
 
 	if (type == SOCK_STREAM) {
 		/* Accept a socket if a stream socket is used */
-		addrlen = sizeof(address_buf);
 		if (verbose)
 			printf("accept()\n");
 		socket_id = accept(listening_id, (void *) address_buf, &addrlen);
@@ -279,7 +278,7 @@ static int netecho_socket_process_message(int listening_id)
 					break;
 				case AF_INET6:
 					port = ntohs(address_in6->sin6_port);
-					address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
+					address_start = (uint8_t *) address_in6->sin6_addr.s6_addr;
 					break;
 				default:
 					fprintf(stderr, "Address family %u (%#x) is not supported.\n",
@@ -379,6 +378,7 @@ int main(int argc, char *argv[])
 	case PF_INET6:
 		address_in6.sin6_family = AF_INET6;
 		address_in6.sin6_port = htons(port);
+		address_in6.sin6_addr = in6addr_any;
 		address = (struct sockaddr *) &address_in6;
 		addrlen = sizeof(address_in6);
 		break;

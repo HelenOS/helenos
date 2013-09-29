@@ -28,9 +28,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libblock 
+/** @addtogroup libblock
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -40,16 +40,16 @@
 
 #include <stdint.h>
 #include <async.h>
-#include "../../srv/vfs/vfs.h"
 #include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
+#include <loc.h>
 
 /*
  * Flags that can be used with block_get().
  */
 
-/** 
+/**
  * This macro is a symbolic value for situations where no special flags are
  * needed.
  */

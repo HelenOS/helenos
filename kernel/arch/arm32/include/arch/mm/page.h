@@ -40,6 +40,7 @@
 #include <mm/mm.h>
 #include <arch/exception.h>
 #include <arch/barrier.h>
+#include <arch/cp15.h>
 #include <trace.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
@@ -71,10 +72,10 @@
 #define PTL3_ENTRIES_ARCH       (1 << 8)        /* 256 */
 
 /* Page table sizes for each level. */
-#define PTL0_SIZE_ARCH          FOUR_FRAMES
-#define PTL1_SIZE_ARCH          0
-#define PTL2_SIZE_ARCH          0
-#define PTL3_SIZE_ARCH          ONE_FRAME
+#define PTL0_FRAMES_ARCH  4
+#define PTL1_FRAMES_ARCH  1
+#define PTL2_FRAMES_ARCH  1
+#define PTL3_FRAMES_ARCH  1
 
 /* Macros calculating indices into page tables for each level. */
 #define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 20) & 0xfff)
@@ -94,13 +95,13 @@
 
 /* Set PTE address accessors for each level. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0) \
-        (set_ptl0_addr((pte_t *) (ptl0)))
+	set_ptl0_addr((pte_t *) (ptl0))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
-        (((pte_t *) (ptl0))[(i)].l0.coarse_table_addr = (a) >> 10)
+	set_ptl1_addr((pte_t*) (ptl0), i, a)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
 #define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
-        (((pte_t *) (ptl3))[(i)].l1.frame_base_addr = (a) >> 12)
+	set_ptl3_addr((pte_t*) (ptl3), i, a)
 
 /* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
@@ -128,6 +129,9 @@
 #define SET_FRAME_PRESENT_ARCH(ptl3, i) \
 	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
+
+#define pt_coherence(page) pt_coherence_m(page, 1)
+
 #if defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_ARCH_armv7_a)
 #include "page_armv6.h"
 #elif defined(PROCESSOR_ARCH_armv4) | defined(PROCESSOR_ARCH_armv5)
@@ -135,6 +139,35 @@
 #else
 #error "Unsupported architecture"
 #endif
+
+/** Sets the address of level 0 page table.
+ *
+ * @param pt Pointer to the page table to set.
+ *
+ * Page tables are always in cacheable memory.
+ * Make sure the memory type is correct, and in sync with:
+ * init_boot_pt (boot/arch/arm32/src/mm.c)
+ * init_ptl0_section (boot/arch/arm32/src/mm.c)
+ * set_pt_level1_flags (kernel/arch/arm32/include/arch/mm/page_armv6.h)
+ */
+NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
+{
+	uint32_t val = (uint32_t)pt & TTBR_ADDR_MASK;
+	val |= TTBR_RGN_WBWA_CACHE | TTBR_C_FLAG;
+	TTBR0_write(val);
+}
+
+NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l0.coarse_table_addr = address >> 10;
+	pt_coherence(&pt[i].l0);
+}
+
+NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
+{
+	pt[i].l1.frame_base_addr = address >> 12;
+	pt_coherence(&pt[i].l1);
+}
 
 #endif
 

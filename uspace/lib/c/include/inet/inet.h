@@ -35,29 +35,10 @@
 #ifndef LIBC_INET_INET_H_
 #define LIBC_INET_INET_H_
 
+#include <inet/addr.h>
+#include <ipc/loc.h>
 #include <sys/types.h>
-
-#define INET_TTL_MAX 255
-
-typedef struct {
-	uint32_t ipv4;
-} inet_addr_t;
-
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	void *data;
-	size_t size;
-} inet_dgram_t;
-
-typedef struct {
-	int (*recv)(inet_dgram_t *);
-} inet_ev_ops_t;
-
-typedef enum {
-	INET_DF = 1
-} inet_df_t;
+#include <types/inet.h>
 
 extern int inet_init(uint8_t, inet_ev_ops_t *);
 extern int inet_send(inet_dgram_t *, uint8_t, inet_df_t);

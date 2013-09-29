@@ -37,8 +37,10 @@
 
 #include <fibril.h>
 #include <fibril_synch.h>
+#include <ipc/loc.h>
 #include <socket_core.h>
 #include <sys/types.h>
+#include <inet/addr.h>
 
 #define UDP_FRAGMENT_SIZE 4096
 
@@ -50,31 +52,26 @@ typedef enum {
 	/* Foreign socket unspecified */
 	UDP_EUNSPEC,
 	/* No route to destination */
-	UDP_ENOROUTE
+	UDP_ENOROUTE,
+	/** Association reset by user */
+	UDP_ERESET
 } udp_error_t;
 
 typedef enum {
-	XF_DUMMY	= 0x1
+	XF_DUMMY = 0x1
 } xflags_t;
-
-typedef struct {
-	uint32_t ipv4;
-} netaddr_t;
-
-enum netaddr {
-	UDP_IPV4_ANY = 0
-};
 
 enum udp_port {
 	UDP_PORT_ANY = 0
 };
 
 typedef struct {
-	netaddr_t addr;
+	inet_addr_t addr;
 	uint16_t port;
 } udp_sock_t;
 
 typedef struct {
+	service_id_t iplink;
 	udp_sock_t local;
 	udp_sock_t foreign;
 } udp_sockpair_t;
@@ -89,11 +86,12 @@ typedef struct {
 
 /** Encoded PDU */
 typedef struct {
+	/** IP link (optional) */
+	service_id_t iplink;
 	/** Source address */
-	netaddr_t src;
+	inet_addr_t src;
 	/** Destination address */
-	netaddr_t dest;
-
+	inet_addr_t dest;
 	/** Encoded PDU data including header */
 	void *data;
 	/** Encoded PDU data size */
@@ -117,6 +115,9 @@ typedef struct {
 
 	/** Association identification (local and foreign socket) */
 	udp_sockpair_t ident;
+
+	/** True if association was reset by user */
+	bool reset;
 
 	/** True if association was deleted by user */
 	bool deleted;
@@ -144,6 +145,8 @@ typedef struct udp_sockdata {
 	udp_client_t *client;
 	/** Connection */
 	udp_assoc_t *assoc;
+	/** User-configured IP link */
+	service_id_t iplink;
 	/** Receiving fibril */
 	fid_t recv_fibril;
 	uint8_t recv_buffer[UDP_FRAGMENT_SIZE];

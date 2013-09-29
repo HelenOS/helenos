@@ -273,11 +273,9 @@ void futex_cleanup(void)
 	mutex_lock(&futex_ht_lock);
 	mutex_lock(&TASK->futexes_lock);
 
-	list_foreach(TASK->futexes.leaf_list, cur) {
-		btree_node_t *node;
+	list_foreach(TASK->futexes.leaf_list, leaf_link, btree_node_t, node) {
 		unsigned int i;
 		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			futex_t *ftx;
 			uintptr_t paddr = node->key[i];

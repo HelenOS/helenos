@@ -60,12 +60,15 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
+	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
+	generic/corecfg.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
+	generic/device/pio_window.c \
 	generic/device/char_dev.c \
 	generic/device/clock_dev.c \
 	generic/device/battery_dev.c \
@@ -73,6 +76,8 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dhcp.c \
+	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \
 	generic/event.c \
@@ -90,9 +95,11 @@ GENERIC_SOURCES = \
 	generic/tls.c \
 	generic/task.c \
 	generic/futex.c \
+	generic/inet/addr.c \
 	generic/inet.c \
 	generic/inetcfg.c \
 	generic/inetping.c \
+	generic/inetping6.c \
 	generic/io/asprintf.c \
 	generic/io/input.c \
 	generic/io/io.c \
@@ -160,16 +167,16 @@ include $(USPACE_PREFIX)/Makefile.common
 
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../../$< $@

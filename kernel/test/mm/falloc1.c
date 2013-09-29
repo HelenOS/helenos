@@ -36,7 +36,7 @@
 #include <debug.h>
 #include <align.h>
 
-#define MAX_FRAMES  1024U
+#define MAX_FRAMES  1024
 #define MAX_ORDER   8
 #define TEST_RUNS   2
 
@@ -50,26 +50,21 @@ const char *test_falloc1(void)
 	if (frames == NULL)
 		return "Unable to allocate frames";
 	
-	unsigned int results[MAX_ORDER + 1];
+	unsigned int results[MAX_FRAMES + 1];
+	
 	for (unsigned int run = 0; run < TEST_RUNS; run++) {
-		for (unsigned int order = 0; order <= MAX_ORDER; order++) {
-			TPRINTF("Allocating %u frames blocks ... ", 1 << order);
+		for (size_t count = 1; count <= MAX_FRAMES; count++) {
+			size_t bytes = FRAMES2SIZE(count);
+			
+			TPRINTF("Allocating %zu frames blocks (%zu bytes) ... ",
+			    count, bytes);
 			
 			unsigned int allocated = 0;
-			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] = (uintptr_t)
-				    frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
-				
-				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) !=
-				    frames[allocated]) {
-					TPRINTF("Block at address %p (size %u) is not aligned\n",
-					    (void *) frames[allocated], (FRAME_SIZE << order) >> 10);
-					return "Test failed";
-				}
-				
-				if (frames[allocated])
+			for (unsigned int i = 0; i < (MAX_FRAMES / count); i++) {
+				frames[allocated] = frame_alloc(count, FRAME_ATOMIC, 0);
+				if (frames[allocated]) {
 					allocated++;
-				else {
+				} else {
 					TPRINTF("done. ");
 					break;
 				}
@@ -77,16 +72,16 @@ const char *test_falloc1(void)
 			
 			TPRINTF("%d blocks allocated.\n", allocated);
 			
-			if (run) {
-				if (results[order] != allocated)
+			if (run > 0) {
+				if (results[count] != allocated)
 					return "Possible frame leak";
 			} else
-				results[order] = allocated;
+				results[count] = allocated;
 			
 			TPRINTF("Deallocating ... ");
 			
 			for (unsigned int i = 0; i < allocated; i++)
-				frame_free(KA2PA(frames[i]));
+				frame_free(frames[i], count);
 			
 			TPRINTF("done.\n");
 		}

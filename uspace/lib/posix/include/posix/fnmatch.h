@@ -35,6 +35,10 @@
 #ifndef POSIX_FNMATCH_H_
 #define POSIX_FNMATCH_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 /* Error Values */
 #undef FNM_NOMATCH
 #define FNM_NOMATCH 1
@@ -55,11 +59,8 @@
 #define FNM_LEADING_DIR 8
 #define FNM_CASEFOLD 16
 
-extern int posix_fnmatch(const char *pattern, const char *string, int flags);
+extern int __POSIX_DEF__(fnmatch)(const char *pattern, const char *string, int flags);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define fnmatch posix_fnmatch
-#endif
 
 #endif /* POSIX_FNMATCH_H_ */
 

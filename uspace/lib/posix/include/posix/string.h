@@ -36,6 +36,10 @@
 #ifndef POSIX_STRING_H_
 #define POSIX_STRING_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "sys/types.h"
 
 /*
@@ -64,99 +68,60 @@ extern char * strtok_r(char *, const char *, char **);
 extern char * strtok(char *, const char *);
 
 /* From mem.h */
-#define bzero(ptr, len)  memset((ptr), 0, (len))
+// #define bzero(ptr, len)  memset((ptr), 0, (len))
 extern void *memset(void *, int, size_t);
 extern void *memcpy(void *, const void *, size_t);
 extern void *memmove(void *, const void *, size_t);
 
 
 /* Copying and Concatenation */
-extern char *posix_strcpy(char *restrict dest, const char *restrict src);
-extern char *posix_strncpy(char *restrict dest, const char *restrict src, size_t n);
-extern char *posix_stpcpy(char *restrict dest, const char *restrict src);
-extern char *posix_stpncpy(char *restrict dest, const char *restrict src, size_t n);
-extern char *posix_strcat(char *restrict dest, const char *restrict src);
-extern char *posix_strncat(char *restrict dest, const char *restrict src, size_t n);
-extern void *posix_memccpy(void *restrict dest, const void *restrict src, int c, size_t n);
-extern char *posix_strdup(const char *s);
-extern char *posix_strndup(const char *s, size_t n);
+extern char *__POSIX_DEF__(strcpy)(char *restrict dest, const char *restrict src);
+extern char *__POSIX_DEF__(strncpy)(char *restrict dest, const char *restrict src, size_t n);
+extern char *__POSIX_DEF__(stpcpy)(char *restrict dest, const char *restrict src);
+extern char *__POSIX_DEF__(stpncpy)(char *restrict dest, const char *restrict src, size_t n);
+extern char *__POSIX_DEF__(strcat)(char *restrict dest, const char *restrict src);
+extern char *__POSIX_DEF__(strncat)(char *restrict dest, const char *restrict src, size_t n);
+extern void *__POSIX_DEF__(memccpy)(void *restrict dest, const void *restrict src, int c, size_t n);
+extern char *__POSIX_DEF__(strdup)(const char *s);
+extern char *__POSIX_DEF__(strndup)(const char *s, size_t n);
 
 /* String/Array Comparison */
-extern int posix_memcmp(const void *mem1, const void *mem2, size_t n);
-extern int posix_strcmp(const char *s1, const char *s2);
-extern int posix_strncmp(const char *s1, const char *s2, size_t n);
+extern int __POSIX_DEF__(memcmp)(const void *mem1, const void *mem2, size_t n);
+extern int __POSIX_DEF__(strcmp)(const char *s1, const char *s2);
+extern int __POSIX_DEF__(strncmp)(const char *s1, const char *s2, size_t n);
 
 /* Search Functions */
-extern void *posix_memchr(const void *mem, int c, size_t n);
-extern char *posix_strchr(const char *s, int c);
-extern char *posix_strrchr(const char *s, int c);
+extern void *__POSIX_DEF__(memchr)(const void *mem, int c, size_t n);
+extern char *__POSIX_DEF__(strchr)(const char *s, int c);
+extern char *__POSIX_DEF__(strrchr)(const char *s, int c);
 extern char *gnu_strchrnul(const char *s, int c);
-extern char *posix_strpbrk(const char *s1, const char *s2);
-extern size_t posix_strcspn(const char *s1, const char *s2);
-extern size_t posix_strspn(const char *s1, const char *s2);
-extern char *posix_strstr(const char *haystack, const char *needle);
+extern char *__POSIX_DEF__(strpbrk)(const char *s1, const char *s2);
+extern size_t __POSIX_DEF__(strcspn)(const char *s1, const char *s2);
+extern size_t __POSIX_DEF__(strspn)(const char *s1, const char *s2);
+extern char *__POSIX_DEF__(strstr)(const char *haystack, const char *needle);
 
 /* Collation Functions */
-extern int posix_strcoll(const char *s1, const char *s2);
-extern size_t posix_strxfrm(char *restrict s1, const char *restrict s2, size_t n);
+extern int __POSIX_DEF__(strcoll)(const char *s1, const char *s2);
+extern size_t __POSIX_DEF__(strxfrm)(char *restrict s1, const char *restrict s2, size_t n);
 
 /* Error Messages */
-extern char *posix_strerror(int errnum);
-extern int posix_strerror_r(int errnum, char *buf, size_t bufsz);
+extern char *__POSIX_DEF__(strerror)(int errnum);
+extern int __POSIX_DEF__(strerror_r)(int errnum, char *buf, size_t bufsz);
 
 /* String Length */
-extern size_t posix_strlen(const char *s);
-extern size_t posix_strnlen(const char *s, size_t n);
+extern size_t __POSIX_DEF__(strlen)(const char *s);
+extern size_t __POSIX_DEF__(strnlen)(const char *s, size_t n);
 
 /* Signal Messages */
-extern char *posix_strsignal(int signum);
+extern char *__POSIX_DEF__(strsignal)(int signum);
 
 /* Legacy Declarations */
 #ifndef POSIX_STRINGS_H_
-extern int posix_ffs(int i);
-extern int posix_strcasecmp(const char *s1, const char *s2);
-extern int posix_strncasecmp(const char *s1, const char *s2, size_t n);
+extern int __POSIX_DEF__(ffs)(int i);
+extern int __POSIX_DEF__(strcasecmp)(const char *s1, const char *s2);
+extern int __POSIX_DEF__(strncasecmp)(const char *s1, const char *s2, size_t n);
 #endif
 
-#ifndef LIBPOSIX_INTERNAL
-	#define strcpy posix_strcpy
-	#define strncpy posix_strncpy
-	#define stpcpy posix_stpcpy
-	#define stpncpy posix_stpncpy
-	#define strcat posix_strcat
-	#define strncat posix_strncat
-	#define memccpy posix_memccpy
-	#define strdup posix_strdup
-	#define strndup posix_strndup
-
-	#define memcmp posix_memcmp
-	#define strcmp posix_strcmp
-	#define strncmp posix_strncmp
-
-	#define memchr posix_memchr
-	#define strchr posix_strchr
-	#define strrchr posix_strrchr
-	#define strchrnul gnu_strchrnul
-	#define strpbrk posix_strpbrk
-	#define strcspn posix_strcspn
-	#define strspn posix_strspn
-	#define strstr posix_strstr
-
-	#define strcoll posix_strcoll
-	#define strxfrm posix_strxfrm
-
-	#define strerror posix_strerror
-	#define strerror_r posix_strerror_r
-
-	#define strlen posix_strlen
-	#define strnlen posix_strnlen
-
-	#define strsignal posix_strsignal
-
-	#define ffs posix_ffs
-	#define strcasecmp posix_strcasecmp
-	#define strncasecmp posix_strncasecmp
-#endif
 
 #endif  // POSIX_STRING_H_
 

@@ -62,12 +62,12 @@ static size_t bbone_get_irq_count(void);
 static const char *bbone_get_platform_name(void);
 
 static struct beaglebone {
-	am335x_irc_regs_t *irc_addr;
+	omap_irc_regs_t *irc_addr;
 	am335x_cm_per_regs_t *cm_per_addr;
 	am335x_cm_dpll_regs_t *cm_dpll_addr;
 	am335x_ctrl_module_t  *ctrl_module;
 	am335x_timer_t timer;
-	am335x_uart_t uart;
+	omap_uart_t uart;
 } bbone;
 
 struct arm_machine_ops bbone_machine_ops = {
@@ -103,7 +103,7 @@ static void bbone_init(void)
 	ASSERT(bbone.ctrl_module != NULL);
 
 	/* Initialize the interrupt controller */
-	am335x_irc_init(bbone.irc_addr);
+	omap_irc_init(bbone.irc_addr);
 }
 
 static irq_ownership_t bbone_timer_irq_claim(irq_t *irq)
@@ -152,7 +152,7 @@ static void bbone_timer_irq_start(void)
 		return;
 	}
 	/* Enable the interrupt */
-	am335x_irc_enable(bbone.irc_addr, AM335x_DMTIMER2_IRQ);
+	omap_irc_enable(bbone.irc_addr, AM335x_DMTIMER2_IRQ);
 	/* Start the timer */
 	am335x_timer_start(&bbone.timer);
 }
@@ -175,8 +175,7 @@ static void bbone_get_memory_extents(uintptr_t *start, size_t *size)
 
 static void bbone_irq_exception(unsigned int exc_no, istate_t *istate)
 {
-	const unsigned inum = am335x_irc_inum_get(bbone.irc_addr);
-	am335x_irc_irq_ack(bbone.irc_addr);
+	const unsigned inum = omap_irc_inum_get(bbone.irc_addr);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -186,6 +185,8 @@ static void bbone_irq_exception(unsigned int exc_no, istate_t *istate)
 	} else {
 		printf("Spurious interrupt\n");
 	}
+
+	omap_irc_irq_ack(bbone.irc_addr);
 }
 
 static void bbone_frame_init(void)
@@ -194,23 +195,27 @@ static void bbone_frame_init(void)
 
 static void bbone_output_init(void)
 {
-	const bool ok = am335x_uart_init(&bbone.uart,
+#ifdef CONFIG_OMAP_UART
+	const bool ok = omap_uart_init(&bbone.uart,
 	    AM335x_UART0_IRQ, AM335x_UART0_BASE_ADDRESS,
 	    AM335x_UART0_SIZE);
 
 	if (ok)
 		stdout_wire(&bbone.uart.outdev);
+#endif
 }
 
 static void bbone_input_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	srln_instance_t *srln_instance = srln_init();
 	if (srln_instance) {
 		indev_t *sink = stdin_wire();
 		indev_t *srln = srln_wire(srln_instance, sink);
-		am335x_uart_input_wire(&bbone.uart, srln);
-		am335x_irc_enable(bbone.irc_addr, AM335x_UART0_IRQ);
+		omap_uart_input_wire(&bbone.uart, srln);
+		omap_irc_enable(bbone.irc_addr, AM335x_UART0_IRQ);
 	}
+#endif
 }
 
 size_t bbone_get_irq_count(void)

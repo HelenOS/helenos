@@ -128,7 +128,7 @@ int nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		}
 
 		fibril_rwlock_write_lock(&nic_data->stats_lock);
-		bzero(&nic_data->stats, sizeof (nic_device_stats_t));
+		memset(&nic_data->stats, 0, sizeof(nic_device_stats_t));
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
 
 		fibril_rwlock_write_lock(&nic_data->rxc_lock);
@@ -534,7 +534,7 @@ int nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 	if (virtue == NULL) {
 		return ENOMEM;
 	}
-	bzero(virtue, sizeof (nic_wol_virtue_t));
+	memset(virtue, 0, sizeof(nic_wol_virtue_t));
 	if (length != 0) {
 		virtue->data = malloc(length);
 		if (virtue->data == NULL) {

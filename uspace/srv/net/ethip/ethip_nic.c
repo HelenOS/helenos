@@ -44,7 +44,8 @@
 #include <loc.h>
 #include <device/nic.h>
 #include <stdlib.h>
-
+#include <net/socket_codes.h>
+#include <mem.h>
 #include "ethip.h"
 #include "ethip_nic.h"
 #include "pdu.h"
@@ -82,9 +83,7 @@ static int ethip_nic_check_new(void)
 	for (i = 0; i < count; i++) {
 		already_known = false;
 
-		list_foreach(ethip_nic_list, nic_link) {
-			ethip_nic_t *nic = list_get_instance(nic_link,
-			    ethip_nic_t, nic_list);
+		list_foreach(ethip_nic_list, link, ethip_nic_t, nic) {
 			if (nic->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -107,31 +106,30 @@ static int ethip_nic_check_new(void)
 static ethip_nic_t *ethip_nic_new(void)
 {
 	ethip_nic_t *nic = calloc(1, sizeof(ethip_nic_t));
-
 	if (nic == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating NIC structure. "
 		    "Out of memory.");
 		return NULL;
 	}
-
-	link_initialize(&nic->nic_list);
+	
+	link_initialize(&nic->link);
 	list_initialize(&nic->addr_list);
-
+	
 	return nic;
 }
 
-static ethip_link_addr_t *ethip_nic_addr_new(iplink_srv_addr_t *addr)
+static ethip_link_addr_t *ethip_nic_addr_new(inet_addr_t *addr)
 {
 	ethip_link_addr_t *laddr = calloc(1, sizeof(ethip_link_addr_t));
-
 	if (laddr == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed allocating NIC address structure. "
 		    "Out of memory.");
 		return NULL;
 	}
-
-	link_initialize(&laddr->addr_list);
-	laddr->addr.ipv4 = addr->ipv4;
+	
+	link_initialize(&laddr->link);
+	laddr->addr = *addr;
+	
 	return laddr;
 }
 
@@ -139,6 +137,7 @@ static void ethip_nic_delete(ethip_nic_t *nic)
 {
 	if (nic->svc_name != NULL)
 		free(nic->svc_name);
+	
 	free(nic);
 }
 
@@ -179,7 +178,7 @@ static int ethip_nic_open(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened NIC '%s'", nic->svc_name);
-	list_append(&nic->nic_list, &ethip_nic_list);
+	list_append(&nic->link, &ethip_nic_list);
 	in_list = true;
 
 	rc = ethip_iplink_init(nic);
@@ -192,8 +191,8 @@ static int ethip_nic_open(service_id_t sid)
 		    nic->svc_name);
 		goto error;
 	}
-
-	mac48_decode(nic_address.address, &nic->mac_addr);
+	
+	addr48(nic_address.address, nic->mac_addr);
 
 	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
 	if (rc != EOK) {
@@ -202,16 +201,24 @@ static int ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service, MAC = 0x%" PRIx64,
-	    nic->mac_addr.addr);
+	rc = nic_broadcast_set_mode(nic->sess, NIC_BROADCAST_ACCEPTED);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error enabling "
+		    "reception of broadcast frames on '%s'.", nic->svc_name);
+		goto error;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service,");
 
 	return EOK;
 
 error:
 	if (in_list)
-		list_remove(&nic->nic_list);
+		list_remove(&nic->link);
+	
 	if (nic->sess != NULL)
 		async_hangup(nic->sess);
+	
 	ethip_nic_delete(nic);
 	return rc;
 }
@@ -310,11 +317,8 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid(%u)",
 	    (unsigned) iplink_sid);
 
-	list_foreach(ethip_nic_list, link) {
+	list_foreach(ethip_nic_list, link, ethip_nic_t, nic) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - element");
-		ethip_nic_t *nic = list_get_instance(link, ethip_nic_t,
-		    nic_list);
-
 		if (nic->iplink_sid == iplink_sid) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - found %p", nic);
 			return nic;
@@ -334,47 +338,113 @@ int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 	return rc;
 }
 
-int ethip_nic_addr_add(ethip_nic_t *nic, iplink_srv_addr_t *addr)
+/** Setup accepted multicast addresses
+ *
+ * Currently the set of accepted multicast addresses is
+ * determined only based on IPv6 addresses.
+ *
+ */
+static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 {
-	ethip_link_addr_t *laddr;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_add()");
-	laddr = ethip_nic_addr_new(addr);
-	if (laddr == NULL)
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_setup_multicast()");
+	
+	/* Count the number of multicast addresses */
+	
+	size_t count = 0;
+	
+	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
+		uint16_t af = inet_addr_get(&laddr->addr, NULL, NULL);
+		if (af == AF_INET6)
+			count++;
+	}
+	
+	if (count == 0)
+		return nic_multicast_set_mode(nic->sess, NIC_MULTICAST_BLOCKED,
+		    NULL, 0);
+	
+	nic_address_t *mac_list = calloc(count, sizeof(nic_address_t));
+	if (mac_list == NULL)
 		return ENOMEM;
-
-	list_append(&laddr->addr_list, &nic->addr_list);
-	return EOK;
+	
+	/* Create the multicast MAC list */
+	
+	size_t i = 0;
+	
+	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
+		addr128_t v6;
+		uint16_t af = inet_addr_get(&laddr->addr, NULL, &v6);
+		if (af != AF_INET6)
+			continue;
+		
+		assert(i < count);
+		
+		addr48_t mac;
+		addr48_solicited_node(v6, mac);
+		
+		/* Avoid duplicate addresses in the list */
+		
+		bool found = false;
+		
+		for (size_t j = 0; j < i; j++) {
+			if (addr48_compare(mac_list[j].address, mac)) {
+				found = true;
+				break;
+			}
+		}
+		
+		if (!found) {
+			addr48(mac, mac_list[i].address);
+			i++;
+		} else
+			count--;
+	}
+	
+	/* Setup the multicast MAC list */
+	
+	int rc = nic_multicast_set_mode(nic->sess, NIC_MULTICAST_LIST,
+	    mac_list, count);
+	
+	free(mac_list);
+	return rc;
 }
 
-int ethip_nic_addr_remove(ethip_nic_t *nic, iplink_srv_addr_t *addr)
+int ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
 {
-	ethip_link_addr_t *laddr;
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_add()");
+	
+	ethip_link_addr_t *laddr = ethip_nic_addr_new(addr);
+	if (laddr == NULL)
+		return ENOMEM;
+	
+	list_append(&laddr->link, &nic->addr_list);
+	
+	return ethip_nic_setup_multicast(nic);
+}
 
+int ethip_nic_addr_remove(ethip_nic_t *nic, inet_addr_t *addr)
+{
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_remove()");
-
-	laddr = ethip_nic_addr_find(nic, addr);
+	
+	ethip_link_addr_t *laddr = ethip_nic_addr_find(nic, addr);
 	if (laddr == NULL)
 		return ENOENT;
-
-	list_remove(&laddr->addr_list);
+	
+	list_remove(&laddr->link);
 	ethip_link_addr_delete(laddr);
-	return EOK;
+	
+	return ethip_nic_setup_multicast(nic);
 }
 
 ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
-    iplink_srv_addr_t *addr)
+    inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_find()");
-
-	list_foreach(nic->addr_list, link) {
-		ethip_link_addr_t *laddr = list_get_instance(link,
-		    ethip_link_addr_t, addr_list);
-
-		if (addr->ipv4 == laddr->addr.ipv4)
+	
+	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
+		if (inet_addr_compare(addr, &laddr->addr))
 			return laddr;
 	}
-
+	
 	return NULL;
 }
 

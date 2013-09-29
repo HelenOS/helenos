@@ -30,9 +30,15 @@
  * @{
  */
 
+#include <fcntl.h>
+#include <io/log.h>
 #include <str.h>
+#include <str_error.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "devman.h"
+#include "match.h"
 
 /** Compute compound score of driver and device.
  *
@@ -90,6 +96,143 @@ int get_match_score(driver_t *drv, dev_node_t *dev)
 	}
 	
 	return highest_score;
+}
+
+/** Read match id at the specified position of a string and set the position in
+ * the string to the first character following the id.
+ *
+ * @param buf		The position in the input string.
+ * @return		The match id.
+ */
+char *read_match_id(char **buf)
+{
+	char *res = NULL;
+	size_t len = get_nonspace_len(*buf);
+	
+	if (len > 0) {
+		res = malloc(len + 1);
+		if (res != NULL) {
+			str_ncpy(res, len + 1, *buf, len);
+			*buf += len;
+		}
+	}
+	
+	return res;
+}
+
+/**
+ * Read match ids and associated match scores from a string.
+ *
+ * Each match score in the string is followed by its match id.
+ * The match ids and match scores are separated by whitespaces.
+ * Neither match ids nor match scores can contain whitespaces.
+ *
+ * @param buf		The string from which the match ids are read.
+ * @param ids		The list of match ids into which the match ids and
+ *			scores are added.
+ * @return		True if at least one match id and associated match score
+ *			was successfully read, false otherwise.
+ */
+bool parse_match_ids(char *buf, match_id_list_t *ids)
+{
+	int score = 0;
+	char *id = NULL;
+	int ids_read = 0;
+	
+	while (true) {
+		/* skip spaces */
+		if (!skip_spaces(&buf))
+			break;
+		
+		/* read score */
+		score = strtoul(buf, &buf, 10);
+		
+		/* skip spaces */
+		if (!skip_spaces(&buf))
+			break;
+		
+		/* read id */
+		id = read_match_id(&buf);
+		if (NULL == id)
+			break;
+		
+		/* create new match_id structure */
+		match_id_t *mid = create_match_id();
+		mid->id = id;
+		mid->score = score;
+		
+		/* add it to the list */
+		add_match_id(ids, mid);
+		
+		ids_read++;
+	}
+	
+	return ids_read > 0;
+}
+
+/**
+ * Read match ids and associated match scores from a file.
+ *
+ * Each match score in the file is followed by its match id.
+ * The match ids and match scores are separated by whitespaces.
+ * Neither match ids nor match scores can contain whitespaces.
+ *
+ * @param buf		The path to the file from which the match ids are read.
+ * @param ids		The list of match ids into which the match ids and
+ *			scores are added.
+ * @return		True if at least one match id and associated match score
+ *			was successfully read, false otherwise.
+ */
+bool read_match_ids(const char *conf_path, match_id_list_t *ids)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
+	
+	bool suc = false;
+	char *buf = NULL;
+	bool opened = false;
+	int fd;
+	size_t len = 0;
+	
+	fd = open(conf_path, O_RDONLY);
+	if (fd < 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
+		    conf_path, str_error(fd));
+		goto cleanup;
+	}
+	opened = true;
+	
+	len = lseek(fd, 0, SEEK_END);
+	lseek(fd, 0, SEEK_SET);
+	if (len == 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Configuration file '%s' is empty.",
+		    conf_path);
+		goto cleanup;
+	}
+	
+	buf = malloc(len + 1);
+	if (buf == NULL) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed when parsing file "
+		    "'%s'.", conf_path);
+		goto cleanup;
+	}
+	
+	ssize_t read_bytes = read_all(fd, buf, len);
+	if (read_bytes <= 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to read file '%s' (%zd).", conf_path,
+		    read_bytes);
+		goto cleanup;
+	}
+	buf[read_bytes] = 0;
+	
+	suc = parse_match_ids(buf, ids);
+	
+cleanup:
+	free(buf);
+	
+	if (opened)
+		close(fd);
+	
+	return suc;
 }
 
 /** @}

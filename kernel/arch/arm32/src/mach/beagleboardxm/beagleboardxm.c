@@ -59,8 +59,8 @@ static const char *bbxm_get_platform_name(void);
 #define BBXM_MEMORY_SIZE	0x20000000	/* 512 MB */
 
 static struct beagleboard {
-	amdm37x_irc_regs_t *irc_addr;
-	amdm37x_uart_t uart;
+	omap_irc_regs_t *irc_addr;
+	omap_uart_t uart;
 	amdm37x_gpt_t timer;
 } beagleboard;
 
@@ -84,11 +84,12 @@ static irq_ownership_t bb_timer_irq_claim(irq_t *irq)
 
 static void bb_timer_irq_handler(irq_t *irq)
 {
+	amdm37x_gpt_irq_ack(&beagleboard.timer);
+
         /*
          * We are holding a lock which prevents preemption.
          * Release the lock, call clock() and reacquire the lock again.
          */
-	amdm37x_gpt_irq_ack(&beagleboard.timer);
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);
@@ -101,7 +102,7 @@ static void bbxm_init(void)
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
 	    PAGE_NOT_CACHEABLE);
 	ASSERT(beagleboard.irc_addr);
-	amdm37x_irc_init(beagleboard.irc_addr);
+	omap_irc_init(beagleboard.irc_addr);
 
 	/* Initialize timer. Use timer1, because it is in WKUP power domain
 	 * (always on) and has special capabilities for precise 1ms ticks */
@@ -121,7 +122,7 @@ static void bbxm_timer_irq_start(void)
 	irq_register(&timer_irq);
 
 	/* Enable timer interrupt */
-	amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_GPT1_IRQ);
+	omap_irc_enable(beagleboard.irc_addr, AMDM37x_GPT1_IRQ);
 
 	/* Start timer here */
 	amdm37x_gpt_timer_ticks_start(&beagleboard.timer);
@@ -145,8 +146,7 @@ static void bbxm_get_memory_extents(uintptr_t *start, size_t *size)
 
 static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 {
-	const unsigned inum = amdm37x_irc_inum_get(beagleboard.irc_addr);
-	amdm37x_irc_irq_ack(beagleboard.irc_addr);
+	const unsigned inum = omap_irc_inum_get(beagleboard.irc_addr);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -158,6 +158,9 @@ static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 		printf("cpu%d: spurious interrupt (inum=%d)\n",
 		    CPU->id, inum);
 	}
+	/** amdm37x manual ch. 12.5.2 (p. 2428) places irc ack at the end
+	 * of ISR. DO this to avoid strange behavior. */
+	omap_irc_irq_ack(beagleboard.irc_addr);
 }
 
 static void bbxm_frame_init(void)
@@ -166,23 +169,27 @@ static void bbxm_frame_init(void)
 
 static void bbxm_output_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	/* UART3 is wired to external RS232 connector */
-	const bool ok = amdm37x_uart_init(&beagleboard.uart,
+	const bool ok = omap_uart_init(&beagleboard.uart,
 	    AMDM37x_UART3_IRQ, AMDM37x_UART3_BASE_ADDRESS, AMDM37x_UART3_SIZE);
 	if (ok) {
 		stdout_wire(&beagleboard.uart.outdev);
 	}
+#endif
 }
 
 static void bbxm_input_init(void)
 {
+#ifdef CONFIG_OMAP_UART
 	srln_instance_t *srln_instance = srln_init();
 	if (srln_instance) {
 		indev_t *sink = stdin_wire();
 		indev_t *srln = srln_wire(srln_instance, sink);
-		amdm37x_uart_input_wire(&beagleboard.uart, srln);
-		amdm37x_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
+		omap_uart_input_wire(&beagleboard.uart, srln);
+		omap_irc_enable(beagleboard.irc_addr, AMDM37x_UART3_IRQ);
 	}
+#endif
 }
 
 size_t bbxm_get_irq_count(void)
