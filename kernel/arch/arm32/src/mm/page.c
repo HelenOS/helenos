@@ -54,10 +54,6 @@ void page_arch_init(void)
 	int flags = PAGE_CACHEABLE | PAGE_EXEC;
 	page_mapping_operations = &pt_mapping_operations;
 
-#ifdef PROCESSOR_ARCH_armv6
-	/* Select ARMv6 and ARMv7 memory model */
-	SCTLR_write(SCTLR_read() | SCTLR_EXTENDED_PT_EN_FLAG);
-#endif
 	page_table_lock(AS_KERNEL, true);
 	
 	/* Kernel identity mapping */
