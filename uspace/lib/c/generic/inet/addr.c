@@ -249,6 +249,21 @@ static int ipver_af(ip_ver_t ver)
 	}
 }
 
+ip_ver_t ipver_from_af(int af)
+{
+	switch (af) {
+	case AF_NONE:
+		return ip_any;
+	case AF_INET:
+		return ip_v4;
+	case AF_INET6:
+		return ip_v6;
+	default:
+		assert(false);
+		return EINVAL;
+	}
+}
+
 void inet_naddr_addr(const inet_naddr_t *naddr, inet_addr_t *addr)
 {
 	addr->version = naddr->version;

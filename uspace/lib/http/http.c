@@ -164,7 +164,7 @@ int http_connect(http_t *http)
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(http->host, &hinfo, AF_NONE);
+		rc = dnsr_name2host(http->host, &hinfo, ip_any);
 		
 		if (rc != EOK)
 			return rc;

@@ -133,6 +133,8 @@ extern void inet_sockaddr_in6_addr(const sockaddr_in6_t *, inet_addr_t *);
 extern uint16_t inet_addr_sockaddr_in(const inet_addr_t *, sockaddr_in_t *,
     sockaddr_in6_t *);
 
+extern ip_ver_t ipver_from_af(int af);
+
 #endif
 
 /** @}

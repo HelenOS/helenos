@@ -83,7 +83,7 @@ int conn_open(const char *addr_s, const char *port_s)
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo, 0);
+		rc = dnsr_name2host(addr_s, &hinfo, ip_any);
 		
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);

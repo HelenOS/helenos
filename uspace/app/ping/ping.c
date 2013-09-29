@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 	rc = inet_addr_parse(argv[optind], &dest_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
-		rc = dnsr_name2host(argv[optind], &hinfo, AF_INET);
+		rc = dnsr_name2host(argv[optind], &hinfo, ip_v4);
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", argv[optind]);
 			goto error;

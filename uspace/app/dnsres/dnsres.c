@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	uint16_t af;
+	uint16_t ver;
 	char *hname;
 	
 	if (str_cmp(argv[1], "-4") == 0) {
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
-		af = AF_INET;
+		ver = ip_v4;
 		hname = argv[2];
 	} else if (str_cmp(argv[1], "-6") == 0) {
 		if (argc < 3) {
@@ -70,15 +70,15 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		
-		af = AF_INET6;
+		ver = ip_v6;
 		hname = argv[2];
 	} else {
-		af = 0;
+		ver = ip_any;
 		hname = argv[1];
 	}
 	
 	dnsr_hostinfo_t *hinfo;
-	int rc = dnsr_name2host(hname, &hinfo, af);
+	int rc = dnsr_name2host(hname, &hinfo, ver);
 	if (rc != EOK) {
 		printf("%s: Error resolving '%s'.\n", NAME, hname);
 		return rc;

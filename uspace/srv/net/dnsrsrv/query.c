@@ -189,7 +189,7 @@ static int dns_name_query(const char *name, dns_qtype_t qtype,
 	return EIO;
 }
 
-int dns_name2host(const char *name, dns_host_info_t **rinfo, uint16_t af)
+int dns_name2host(const char *name, dns_host_info_t **rinfo, ip_ver_t ver)
 {
 	dns_host_info_t *info = calloc(1, sizeof(dns_host_info_t));
 	if (info == NULL)
@@ -197,18 +197,18 @@ int dns_name2host(const char *name, dns_host_info_t **rinfo, uint16_t af)
 	
 	int rc;
 	
-	switch (af) {
-	case AF_NONE:
+	switch (ver) {
+	case ip_any:
 		rc = dns_name_query(name, DTYPE_AAAA, info);
 		
 		if (rc != EOK)
 			rc = dns_name_query(name, DTYPE_A, info);
 		
 		break;
-	case AF_INET:
+	case ip_v4:
 		rc = dns_name_query(name, DTYPE_A, info);
 		break;
-	case AF_INET6:
+	case ip_v6:
 		rc = dns_name_query(name, DTYPE_AAAA, info);
 		break;
 	default:

@@ -58,7 +58,7 @@
 /** Packet data pattern. */
 #define NETTEST1_TEXT  "Networking test 1 - sockets"
 
-static uint16_t family = AF_INET;
+static uint16_t family = AF_NONE;
 static sock_type_t type = SOCK_DGRAM;
 static size_t size = 27;
 static bool verbose = false;
@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo, family);
+		rc = dnsr_name2host(addr_s, &hinfo, ipver_from_af(family));
 		
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", addr_s);
@@ -347,6 +347,9 @@ int main(int argc, char *argv[])
 	struct sockaddr_in addr;
 	struct sockaddr_in6 addr6;
 	uint16_t af = inet_addr_sockaddr_in(&addr_addr, &addr, &addr6);
+	
+	if (family == AF_NONE)
+		family = af;
 	
 	if (af != family) {
 		printf("Address family does not match explicitly set family.\n");
