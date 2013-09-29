@@ -42,7 +42,6 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
-#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
@@ -54,7 +53,7 @@ static bool first_link6 = true;
 static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
-static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, uint16_t);
+static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
 static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
@@ -80,22 +79,22 @@ static void inet_link_local_node_ip(addr48_t mac_addr,
 	ip_addr[15] = mac_addr[5];
 }
 
-static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, uint16_t af)
+static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv()");
 	
 	int rc;
 	inet_packet_t packet;
 	
-	switch (af) {
-	case AF_INET:
+	switch (ver) {
+	case ip_v4:
 		rc = inet_pdu_decode(sdu->data, sdu->size, &packet);
 		break;
-	case AF_INET6:
+	case ip_v6:
 		rc = inet_pdu_decode6(sdu->data, sdu->size, &packet);
 		break;
 	default:
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "invalid address family");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "invalid IP version");
 		return EINVAL;
 	}
 	
