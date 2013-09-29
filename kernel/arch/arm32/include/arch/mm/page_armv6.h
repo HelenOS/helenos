@@ -277,9 +277,14 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		p->bufferable = 1;
 	}
 	
+#if defined(PROCESSOR_ARCH_armv6)
+	/* FIXME: this disables caches */
+	p->shareable = 1;
+#else
 	/* Shareable is ignored for devices (non-cacheable),
 	 * turn it off for normal memory. */
 	p->shareable = 0;
+#endif
 	
 	p->non_global = !(flags & PAGE_GLOBAL);
 	
