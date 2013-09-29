@@ -39,7 +39,6 @@
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include "arp.h"
 #include "atrans.h"
 #include "ethip.h"

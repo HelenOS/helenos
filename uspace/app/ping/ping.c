@@ -36,7 +36,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <fibril_synch.h>
-#include <net/socket_codes.h>
 #include <inet/dnsr.h>
 #include <inet/addr.h>
 #include <inet/inetping.h>

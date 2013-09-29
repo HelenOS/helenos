@@ -38,7 +38,6 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <str.h>
-#include <net/socket_codes.h>
 #include "dns_msg.h"
 #include "dns_std.h"
 #include "dns_type.h"

@@ -36,15 +36,13 @@
 
 #include <adt/list.h>
 #include <bitops.h>
+#include <errno.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
 #include <inet/inetcfg.h>
 #include <io/log.h>
 #include <loc.h>
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 

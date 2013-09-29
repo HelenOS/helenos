@@ -40,7 +40,6 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <types/inetping.h>
-#include <net/socket_codes.h>
 #include "icmp.h"
 #include "icmp_std.h"
 #include "inetsrv.h"

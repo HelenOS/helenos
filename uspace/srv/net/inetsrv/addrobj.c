@@ -41,7 +41,6 @@
 #include <ipc/loc.h>
 #include <stdlib.h>
 #include <str.h>
-#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"

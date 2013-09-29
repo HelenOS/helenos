@@ -41,9 +41,9 @@
 #include <inet/iplink_srv.h>
 #include <io/log.h>
 #include <loc.h>
+#include <net/socket_codes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include "arp.h"
 #include "ethip.h"
 #include "ethip_nic.h"

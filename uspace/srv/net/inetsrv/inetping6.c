@@ -43,7 +43,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <types/inetping6.h>
-#include <net/socket_codes.h>
 #include "icmpv6.h"
 #include "icmpv6_std.h"
 #include "inetsrv.h"

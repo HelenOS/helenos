@@ -43,7 +43,6 @@
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include "inetsrv.h"
 #include "inet_std.h"
 #include "pdu.h"

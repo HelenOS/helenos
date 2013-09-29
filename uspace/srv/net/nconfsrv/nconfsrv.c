@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <net/socket_codes.h>
 #include "iplink.h"
 #include "nconfsrv.h"
 

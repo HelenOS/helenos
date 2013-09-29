@@ -44,7 +44,6 @@
 #include <loc.h>
 #include <device/nic.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include <mem.h>
 #include "ethip.h"
 #include "ethip_nic.h"

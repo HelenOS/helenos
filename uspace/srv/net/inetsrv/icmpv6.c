@@ -39,7 +39,6 @@
 #include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include <types/inetping6.h>
 #include "icmpv6.h"
 #include "icmpv6_std.h"

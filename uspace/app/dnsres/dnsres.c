@@ -35,7 +35,6 @@
 #include <errno.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
-#include <net/socket_codes.h>
 #include <stdio.h>
 #include <stdlib.h>
 

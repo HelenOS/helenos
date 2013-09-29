@@ -39,7 +39,6 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include "pdu.h"
 #include "segment.h"
 #include "seq_no.h"
