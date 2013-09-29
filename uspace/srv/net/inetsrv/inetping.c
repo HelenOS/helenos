@@ -71,8 +71,8 @@ static int inetping_get_srcaddr(inetping_client_t *client, addr32_t remote,
 	if (rc != EOK)
 		return rc;
 	
-	uint16_t family = inet_addr_get(&local_addr, local, NULL);
-	if (family != AF_INET)
+	ip_ver_t ver = inet_addr_get(&local_addr, local, NULL);
+	if (ver != ip_v4)
 		return EINVAL;
 	
 	return EOK;

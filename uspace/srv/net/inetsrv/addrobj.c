@@ -217,37 +217,40 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 {
 	inet_addr_t lsrc_addr;
 	inet_naddr_addr(&addr->naddr, &lsrc_addr);
-	
+
 	addr32_t lsrc_v4;
 	addr128_t lsrc_v6;
-	uint16_t lsrc_af = inet_addr_get(&lsrc_addr, &lsrc_v4, &lsrc_v6);
-	
+	ip_ver_t lsrc_ver = inet_addr_get(&lsrc_addr, &lsrc_v4, &lsrc_v6);
+
 	addr32_t ldest_v4;
 	addr128_t ldest_v6;
-	uint16_t ldest_af = inet_addr_get(ldest, &ldest_v4, &ldest_v6);
-	
-	if (lsrc_af != ldest_af)
+	ip_ver_t ldest_ver = inet_addr_get(ldest, &ldest_v4, &ldest_v6);
+
+	if (lsrc_ver != ldest_ver)
 		return EINVAL;
-	
+
 	int rc;
 	addr48_t ldest_mac;
-	
-	switch (ldest_af) {
-	case AF_INET:
+
+	switch (ldest_ver) {
+	case ip_v4:
 		return inet_link_send_dgram(addr->ilink, lsrc_v4, ldest_v4,
 		    dgram, proto, ttl, df);
-	case AF_INET6:
+	case ip_v6:
 		/*
 		 * Translate local destination IPv6 address.
 		 */
 		rc = ndp_translate(lsrc_v6, ldest_v6, ldest_mac, addr->ilink);
 		if (rc != EOK)
 			return rc;
-		
+
 		return inet_link_send_dgram6(addr->ilink, ldest_mac, dgram,
 		    proto, ttl, df);
+	default:
+		assert(false);
+		break;
 	}
-	
+
 	return ENOTSUP;
 }
 

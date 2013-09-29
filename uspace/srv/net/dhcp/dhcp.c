@@ -230,8 +230,7 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Receive reply");
 	memset(offer, 0, sizeof(*offer));
 
-	yiaddr.family = AF_INET;
-	yiaddr.addr = uint32_t_be2host(hdr->yiaddr);
+	inet_addr_set(uint32_t_be2host(hdr->yiaddr), &yiaddr);
 	rc = inet_addr_format(&yiaddr, &saddr);
 	if (rc != EOK)
 		return rc;
@@ -239,8 +238,7 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Your IP address: %s", saddr);
 	free(saddr);
 
-	siaddr.family = AF_INET;
-	siaddr.addr = uint32_t_be2host(hdr->siaddr);
+	inet_addr_set(uint32_t_be2host(hdr->siaddr), &siaddr);
 	rc = inet_addr_format(&siaddr, &saddr);
 	if (rc != EOK)
 		return rc;
@@ -248,8 +246,7 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Next server IP address: %s", saddr);
 	free(saddr);
 
-	giaddr.family = AF_INET;
-	giaddr.addr = uint32_t_be2host(hdr->giaddr);
+	inet_addr_set(uint32_t_be2host(hdr->giaddr), &giaddr);
 	rc = inet_addr_format(&giaddr, &saddr);
 	if (rc != EOK)
 		return rc;
@@ -257,8 +254,7 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Relay agent IP address: %s", saddr);
 	free(saddr);
 
-	offer->oaddr.family = AF_INET;
-	offer->oaddr.addr = yiaddr.addr;
+	inet_naddr_set(yiaddr.addr, 0, &offer->oaddr);
 
 	msgb = (uint8_t *)msg;
 
@@ -298,21 +294,21 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 		case opt_server_id:
 			if (opt_len != 4)
 				return EINVAL;
-			offer->srv_addr.family = AF_INET;
-			offer->srv_addr.addr = dhcp_uint32_decode(&msgb[i]);
+			inet_addr_set(dhcp_uint32_decode(&msgb[i]),
+			    &offer->srv_addr);
 			have_server_id = true;
 			break;
 		case opt_router:
 			if (opt_len != 4)
 				return EINVAL;
-			offer->router.family = AF_INET;
-			offer->router.addr = dhcp_uint32_decode(&msgb[i]);
+			inet_addr_set(dhcp_uint32_decode(&msgb[i]),
+			    &offer->router);
 			break;
 		case opt_dns_server:
 			if (opt_len != 4)
 				return EINVAL;
-			offer->dns_server.family = AF_INET;
-			offer->dns_server.addr = dhcp_uint32_decode(&msgb[i]);
+			inet_addr_set(dhcp_uint32_decode(&msgb[i]),
+			    &offer->dns_server);
 			break;
 		case opt_end:
 			break;
@@ -378,9 +374,7 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	}
 
 	if (offer->router.addr != 0) {
-		defr.family = AF_INET;
-		defr.addr = 0;
-		defr.prefix = 0;
+		inet_naddr_set(0, 0, &defr);
 
 		rc = inetcfg_sroute_create("dhcpdef", &defr, &offer->router, &sroute_id);
 		if (rc != EOK) {

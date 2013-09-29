@@ -270,8 +270,8 @@ int main(int argc, char *argv[])
 		dest_addr = hinfo->addr;
 	}
 	
-	uint16_t af = inet_addr_get(&dest_addr, &dest, NULL);
-	if (af != AF_INET) {
+	ip_ver_t ver = inet_addr_get(&dest_addr, &dest, NULL);
+	if (ver != ip_v4) {
 		printf("Destination '%s' is not an IPv4 address.\n",
 		    argv[optind]);
 		goto error;

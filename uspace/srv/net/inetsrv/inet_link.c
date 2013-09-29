@@ -293,13 +293,13 @@ int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	addr32_t src_v4;
-	uint16_t src_af = inet_addr_get(&dgram->src, &src_v4, NULL);
-	if (src_af != AF_INET)
+	ip_ver_t src_ver = inet_addr_get(&dgram->src, &src_v4, NULL);
+	if (src_ver != ip_v4)
 		return EINVAL;
 	
 	addr32_t dest_v4;
-	uint16_t dest_af = inet_addr_get(&dgram->dest, &dest_v4, NULL);
-	if (dest_af != AF_INET)
+	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, &dest_v4, NULL);
+	if (dest_ver != ip_v4)
 		return EINVAL;
 	
 	/*
@@ -368,13 +368,13 @@ int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &src_v6);
-	if (src_af != AF_INET6)
+	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL, &src_v6);
+	if (src_ver != ip_v6)
 		return EINVAL;
 	
 	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &dest_v6);
-	if (dest_af != AF_INET6)
+	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, NULL, &dest_v6);
+	if (dest_ver != ip_v6)
 		return EINVAL;
 	
 	iplink_sdu6_t sdu6;

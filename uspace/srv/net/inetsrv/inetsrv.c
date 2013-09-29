@@ -62,18 +62,18 @@
 #define NAME "inetsrv"
 
 static inet_naddr_t solicited_node_mask = {
-	.family = AF_INET6,
+	.version = ip_v6,
 	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0},
 	.prefix = 104
 };
 
 static inet_addr_t broadcast4_all_hosts = {
-	.family = AF_INET,
+	.version = ip_v4,
 	.addr = 0xffffffff
 };
 
 static inet_addr_t multicast_all_nodes = {
-	.family = AF_INET6,
+	.version = ip_v6,
 	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
 };
 
@@ -179,6 +179,7 @@ int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
 	int rc;
 
 	if (dgram->iplink != 0) {
+		/* XXX TODO - IPv6 */
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram directly to iplink %zu",
 		    dgram->iplink);
 		/* Send packet directly to the specified IP link */
@@ -186,8 +187,8 @@ int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
 		if (ilink == 0)
 			return ENOENT;
 
-		if (dgram->src.family != AF_INET ||
-			dgram->dest.family != AF_INET)
+		if (dgram->src.version != ip_v4 ||
+			dgram->dest.version != ip_v4)
 			return EINVAL;
 
 		return inet_link_send_dgram(ilink, dgram->src.addr,
@@ -224,11 +225,13 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	/* XXX dt_local? */
 
 	/* Take source address from the address object */
-	if (remote->family == AF_INET && remote->addr == 0xffffffff) {
-		local->family = AF_INET;
+	if (remote->version == ip_v4 && remote->addr == 0xffffffff) {
+		/* XXX TODO - IPv6 */
+		local->version = ip_v4;
 		local->addr = 0;
 		return EOK;
 	}
+
 	inet_naddr_addr(&dir.aobj->naddr, local);
 	return EOK;
 }

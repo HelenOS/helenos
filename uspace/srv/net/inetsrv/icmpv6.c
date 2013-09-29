@@ -58,12 +58,12 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	size_t size = dgram->size;
 	
 	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &src_v6);
+	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL, &src_v6);
 	
 	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &dest_v6);
+	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, NULL, &dest_v6);
 	
-	if ((src_af != dest_af) || (src_af != AF_INET6))
+	if ((src_ver != dest_ver) || (src_ver != ip_v6))
 		return EINVAL;
 	
 	icmpv6_message_t *reply = calloc(1, size);
@@ -117,10 +117,10 @@ static int icmpv6_recv_echo_reply(inet_dgram_t *dgram)
 	
 	inetping6_sdu_t sdu;
 	
-	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &sdu.src);
-	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &sdu.dest);
+	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL, &sdu.src);
+	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, NULL, &sdu.dest);
 	
-	if ((src_af != dest_af) || (src_af != AF_INET6))
+	if ((src_ver != dest_ver) || (src_ver != ip_v6))
 		return EINVAL;
 	
 	icmpv6_message_t *reply = (icmpv6_message_t *) dgram->data;

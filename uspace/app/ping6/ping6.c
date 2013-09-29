@@ -270,8 +270,8 @@ int main(int argc, char *argv[])
 		dest_addr = hinfo->addr;
 	}
 	
-	uint16_t af = inet_addr_get(&dest_addr, NULL, &dest);
-	if (af != AF_INET6) {
+	ip_ver_t ver = inet_addr_get(&dest_addr, NULL, &dest);
+	if (ver != ip_v6) {
 		printf("Destination '%s' is not an IPv6 address.\n",
 		    argv[optind]);
 		goto error;

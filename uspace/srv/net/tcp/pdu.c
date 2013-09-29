@@ -144,21 +144,21 @@ static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_
 	hdr->urg_ptr = host2uint16_t_be(seg->up);
 }
 
-static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
+static ip_ver_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
     tcp_phdr6_t *phdr6)
 {
 	addr32_t src_v4;
 	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&pdu->src, &src_v4, &src_v6);
-	
+	uint16_t src_ver = inet_addr_get(&pdu->src, &src_v4, &src_v6);
+
 	addr32_t dest_v4;
 	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&pdu->dest, &dest_v4, &dest_v6);
-	
-	assert(src_af == dest_af);
-	
-	switch (src_af) {
-	case AF_INET:
+	uint16_t dest_ver = inet_addr_get(&pdu->dest, &dest_v4, &dest_v6);
+
+	assert(src_ver == dest_ver);
+
+	switch (src_ver) {
+	case ip_v4:
 		phdr->src = host2uint32_t_be(src_v4);
 		phdr->dest = host2uint32_t_be(dest_v4);
 		phdr->zero = 0;
@@ -166,7 +166,7 @@ static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
 		phdr->tcp_length =
 		    host2uint16_t_be(pdu->header_size + pdu->text_size);
 		break;
-	case AF_INET6:
+	case ip_v6:
 		host2addr128_t_be(src_v6, phdr6->src);
 		host2addr128_t_be(dest_v6, phdr6->dest);
 		phdr6->tcp_length =
@@ -177,8 +177,8 @@ static uint16_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
 	default:
 		assert(false);
 	}
-	
-	return src_af;
+
+	return src_ver;
 }
 
 static void tcp_header_decode(tcp_header_t *hdr, tcp_segment_t *seg)
@@ -265,21 +265,21 @@ static uint16_t tcp_pdu_checksum_calc(tcp_pdu_t *pdu)
 	uint16_t cs_headers;
 	tcp_phdr_t phdr;
 	tcp_phdr6_t phdr6;
-	
-	uint16_t af = tcp_phdr_setup(pdu, &phdr, &phdr6);
-	switch (af) {
-	case AF_INET:
+
+	ip_ver_t ver = tcp_phdr_setup(pdu, &phdr, &phdr6);
+	switch (ver) {
+	case ip_v4:
 		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr,
 		    sizeof(tcp_phdr_t));
 		break;
-	case AF_INET6:
+	case ip_v6:
 		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr6,
 		    sizeof(tcp_phdr6_t));
 		break;
 	default:
 		assert(false);
 	}
-	
+
 	cs_headers = tcp_checksum_calc(cs_phdr, pdu->header, pdu->header_size);
 	return tcp_checksum_calc(cs_headers, pdu->text, pdu->text_size);
 }

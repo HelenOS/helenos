@@ -353,8 +353,8 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 	size_t count = 0;
 	
 	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
-		uint16_t af = inet_addr_get(&laddr->addr, NULL, NULL);
-		if (af == AF_INET6)
+		ip_ver_t ver = inet_addr_get(&laddr->addr, NULL, NULL);
+		if (ver == ip_v6)
 			count++;
 	}
 	
@@ -372,8 +372,8 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 	
 	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
 		addr128_t v6;
-		uint16_t af = inet_addr_get(&laddr->addr, NULL, &v6);
-		if (af != AF_INET6)
+		ip_ver_t ver = inet_addr_get(&laddr->addr, NULL, &v6);
+		if (ver != ip_v6)
 			continue;
 		
 		assert(i < count);

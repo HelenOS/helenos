@@ -532,9 +532,9 @@ int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
  */
 int ndp_pdu_decode(inet_dgram_t *dgram, ndp_packet_t *ndp)
 {
-	uint16_t src_af = inet_addr_get(&dgram->src, NULL,
+	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL,
 	    &ndp->sender_proto_addr);
-	if (src_af != AF_INET6)
+	if (src_ver != ip_v6)
 		return EINVAL;
 	
 	if (dgram->size < sizeof(icmpv6_message_t) + sizeof(ndp_message_t))
