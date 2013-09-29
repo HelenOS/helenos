@@ -31,9 +31,15 @@
 /** @file
  * @brief OHCI driver
  */
-#include <usb/usb.h>
+
+#include <assert.h>
 #include <mem.h>
+
+#include <usb/usb.h>
+
 #include "../utils/malloc32.h"
+#include "completion_codes.h"
+#include "mem_access.h"
 #include "transfer_descriptor.h"
 
 /** USB direction to OHCI TD values translation table */

@@ -33,17 +33,23 @@
  * @brief OHCI Host controller driver routines
  */
 
+#include <assert.h>
+#include <async.h>
 #include <errno.h>
+#include <macros.h>
+#include <mem.h>
+#include <stdlib.h>
 #include <str_error.h>
-#include <adt/list.h>
-#include <libarch/ddi.h>
+#include <sys/types.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>
 
-#include "macros.h"
-#include "hc.h"
 #include "ohci_endpoint.h"
+#include "ohci_batch.h"
+#include "utils/malloc32.h"
+
+#include "hc.h"
 
 #define OHCI_USED_INTERRUPTS \
     (I_SO | I_WDH | I_UE | I_RHSC)

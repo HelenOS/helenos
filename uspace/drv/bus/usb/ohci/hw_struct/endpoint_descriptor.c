@@ -31,8 +31,17 @@
 /** @file
  * @brief OHCI driver
  */
+
+#include <assert.h>
+#include <macros.h>
+#include <mem.h>
+
+#include <usb/usb.h>
+
+#include "../utils/malloc32.h"
+#include "mem_access.h"
+
 #include "endpoint_descriptor.h"
-#include "macros.h"
 
 /** USB direction to OHCI values translation table. */
 static const uint32_t dir[] = {
@@ -48,7 +57,7 @@ static const uint32_t dir[] = {
  * @param ep Driver endpoint to use.
  * @param td TD to put in the list.
  *
- * If @param ep is NULL, dummy ED is initalized with only skip flag set.
+ * If @param ep is NULL, dummy ED is initialized with only skip flag set.
  */
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 {

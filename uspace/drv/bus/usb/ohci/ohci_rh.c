@@ -31,8 +31,20 @@
 /** @file
  * @brief OHCI driver
  */
+
 #include <assert.h>
+#include <errno.h>
+#include <mem.h>
+#include <sys/types.h>
+
+#include <usb/classes/hub.h>
 #include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/request.h>
+#include <usb/usb.h>
+
+#include <usb/host/endpoint.h>
+#include <usbvirt/device.h>
 
 #include "ohci_rh.h"
 

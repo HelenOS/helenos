@@ -31,9 +31,12 @@
 /** @file
  * @brief OHCI driver USB transaction structure
  */
+
+#include <assert.h>
 #include <errno.h>
-#include <str_error.h>
 #include <macros.h>
+#include <mem.h>
+#include <stdbool.h>
 
 #include <usb/usb.h>
 #include <usb/debug.h>

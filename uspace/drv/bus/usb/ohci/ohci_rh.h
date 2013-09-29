@@ -34,6 +34,9 @@
 #ifndef DRV_OHCI_OHCI_RH_H
 #define DRV_OHCI_OHCI_RH_H
 
+#include <assert.h>
+#include <sys/types.h>
+
 #include <usb/usb.h>
 #include <usb/classes/hub.h>
 #include <usb/host/usb_transfer_batch.h>

@@ -35,7 +35,8 @@
 #define DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 
 #include <assert.h>
-#include <stdint.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
 #include <usb/host/endpoint.h>
 

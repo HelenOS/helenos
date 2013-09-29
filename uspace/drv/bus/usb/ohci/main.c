@@ -32,8 +32,11 @@
 /** @file
  * Main routines of OHCI driver.
  */
+
+#include <assert.h>
 #include <ddf/driver.h>
 #include <errno.h>
+#include <io/log.h>
 #include <str_error.h>
 
 #include <usb/debug.h>

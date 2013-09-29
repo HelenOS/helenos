@@ -34,12 +34,10 @@
 #ifndef DRV_OHCI_UTILS_MALLOC32_H
 #define DRV_OHCI_UTILS_MALLOC32_H
 
-#include <assert.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <errno.h>
-#include <mem.h>
 #include <as.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/types.h>
 
 /* Generic TDs and EDs require 16byte alignment,
  * Isochronous TD require 32byte alignment,

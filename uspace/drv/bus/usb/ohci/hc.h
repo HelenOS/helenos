@@ -34,16 +34,19 @@
 #ifndef DRV_OHCI_HC_H
 #define DRV_OHCI_HC_H
 
-#include <fibril.h>
-#include <fibril_synch.h>
 #include <adt/list.h>
 #include <ddi.h>
-#include <ddf/interrupt.h>
+#include <ddf/driver.h>
+#include <device/hw_res_parsed.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
-#include <usb/usb.h>
 #include <usb/host/hcd.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/usb_transfer_batch.h>
 
-#include "ohci_batch.h"
 #include "ohci_regs.h"
 #include "ohci_rh.h"
 #include "endpoint_list.h"

@@ -33,15 +33,22 @@
  * @brief OHCI driver
  */
 
+#include <assert.h>
 #include <errno.h>
-#include <str_error.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res_parsed.h>
+#include <stdbool.h>
+#include <str_error.h>
+#include <sys/types.h>
+
 #include <usb/usb.h>
 #include <usb/debug.h>
 
 #include <usb/host/ddf_helpers.h>
+#include <usb/host/usb_bus.h>
 
 #include "ohci.h"
+#include "ohci_endpoint.h"
 #include "hc.h"
 
 

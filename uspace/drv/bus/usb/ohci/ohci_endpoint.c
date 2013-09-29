@@ -31,6 +31,10 @@
 /** @file
  * @brief OHCI driver
  */
+
+#include <assert.h>
+#include <stdlib.h>
+
 #include "utils/malloc32.h"
 #include "ohci_endpoint.h"
 #include "hc.h"
