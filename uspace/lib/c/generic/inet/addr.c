@@ -78,14 +78,22 @@ void addr128(const addr128_t src, addr128_t dst)
 	memcpy(dst, src, 16);
 }
 
+/** Compare addr48.
+  *
+  * @return Non-zero if equal, zero if not equal.
+  */
 int addr48_compare(const addr48_t a, const addr48_t b)
 {
-	return memcmp(a, b, 6);
+	return memcmp(a, b, 6) == 0;
 }
 
+/** Compare addr128.
+  *
+  * @return Non-zero if equal, zero if not equal.
+  */
 int addr128_compare(const addr128_t a, const addr128_t b)
 {
-	return memcmp(a, b, 16);
+	return memcmp(a, b, 16) == 0;
 }
 
 /** Compute solicited node MAC multicast address from target IPv6 address
@@ -102,50 +110,12 @@ void addr48_solicited_node(const addr128_t ip, addr48_t mac)
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)
 {
-#ifdef __BE__
 	memcpy(be, host, 16);
-#else
-	be[0] = host[15];
-	be[1] = host[14];
-	be[2] = host[13];
-	be[3] = host[12];
-	be[4] = host[11];
-	be[5] = host[10];
-	be[6] = host[9];
-	be[7] = host[8];
-	be[8] = host[7];
-	be[9] = host[6];
-	be[10] = host[5];
-	be[11] = host[4];
-	be[12] = host[3];
-	be[13] = host[2];
-	be[14] = host[1];
-	be[15] = host[0];
-#endif
 }
 
 void addr128_t_be2host(const addr128_t be, addr128_t host)
 {
-#ifdef __BE__
 	memcpy(host, be, 16);
-#else
-	host[0] = be[15];
-	host[1] = be[14];
-	host[2] = be[13];
-	host[3] = be[12];
-	host[4] = be[11];
-	host[5] = be[10];
-	host[6] = be[9];
-	host[7] = be[8];
-	host[8] = be[7];
-	host[9] = be[6];
-	host[10] = be[5];
-	host[11] = be[4];
-	host[12] = be[3];
-	host[13] = be[2];
-	host[14] = be[1];
-	host[15] = be[0];
-#endif
 }
 
 void inet_addr(inet_addr_t *addr, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
