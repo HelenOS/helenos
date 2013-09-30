@@ -79,6 +79,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	inet_get_srcaddr(&dgram->src, 0, &rdgram.src);
 	rdgram.dest = dgram->src;
+	rdgram.iplink = 0;
 	rdgram.tos = 0;
 	rdgram.data = reply;
 	rdgram.size = size;
@@ -179,6 +180,7 @@ int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
 	
 	inet_addr_set6(sdu->src, &dgram.src);
 	inet_addr_set6(sdu->dest, &dgram.dest);
+	dgram.iplink = 0;
 	dgram.tos = 0;
 	dgram.data = rdata;
 	dgram.size = rsize;
