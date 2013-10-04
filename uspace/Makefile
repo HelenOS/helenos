@@ -79,6 +79,7 @@ DIRS = \
 	app/mkbd \
 	app/date \
 	app/vdemo \
+	app/viewer \
 	app/vlaunch \
 	app/vterm \
 	app/df \

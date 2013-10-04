@@ -210,6 +210,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/websrv/websrv \
 	$(USPACE_PATH)/app/date/date \
 	$(USPACE_PATH)/app/vdemo/vdemo \
+	$(USPACE_PATH)/app/viewer/viewer \
 	$(USPACE_PATH)/app/df/df
 
 ifeq ($(CONFIG_PCC),y)
