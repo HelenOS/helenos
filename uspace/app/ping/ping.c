@@ -75,17 +75,20 @@ static inetping_ev_ops_t ev_ops = {
 	.recv = ping_ev_recv
 };
 
-static addr32_t src;
-static addr32_t dest;
+static inet_addr_t src_addr;
+static inet_addr_t dest_addr;
 
 static bool repeat_forever = false;
 static size_t repeat_count = 1;
 
-static const char *short_options = "rn:";
+static const char *short_options = "46rn:";
 
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-n <count>|-r] <host>\n", NAME);
+	printf("Syntax: %s [<options>] <host>\n", NAME);
+	printf("\t-n <count> Repeat the specified number of times\n");
+	printf("\t-r         Repeat forever\n");
+	printf("\t-4|-6      Use IPv4 or IPv6 destination host address\n");
 }
 
 static void ping_signal_received(received_t value)
@@ -106,12 +109,6 @@ static void ping_signal_quit(void)
 
 static int ping_ev_recv(inetping_sdu_t *sdu)
 {
-	inet_addr_t src_addr;
-	inet_addr_set(sdu->src, &src_addr);
-	
-	inet_addr_t dest_addr;
-	inet_addr_set(sdu->dest, &dest_addr);
-	
 	char *asrc;
 	int rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK)
@@ -138,8 +135,8 @@ static int ping_send(uint16_t seq_no)
 {
 	inetping_sdu_t sdu;
 	
-	sdu.src = src;
-	sdu.dest = dest;
+	sdu.src = src_addr;
+	sdu.dest = dest_addr;
 	sdu.seq_no = seq_no;
 	sdu.data = (void *) "foo";
 	sdu.size = 3;
@@ -220,6 +217,7 @@ int main(int argc, char *argv[])
 	char *asrc = NULL;
 	char *adest = NULL;
 	char *sdest = NULL;
+	ip_ver_t ip_ver = ip_any;
 	
 	int rc = inetping_init(&ev_ops);
 	if (rc != EOK) {
@@ -242,6 +240,12 @@ int main(int argc, char *argv[])
 				goto error;
 			}
 			break;
+		case '4':
+			ip_ver = ip_v4;
+			break;
+		case '6':
+			ip_ver = ip_v6;
+			break;
 		default:
 			printf("Unknown option passed.\n");
 			print_syntax();
@@ -256,11 +260,10 @@ int main(int argc, char *argv[])
 	}
 	
 	/* Parse destination address */
-	inet_addr_t dest_addr;
 	rc = inet_addr_parse(argv[optind], &dest_addr);
 	if (rc != EOK) {
 		/* Try interpreting as a host name */
-		rc = dnsr_name2host(argv[optind], &hinfo, ip_v4);
+		rc = dnsr_name2host(argv[optind], &hinfo, ip_ver);
 		if (rc != EOK) {
 			printf("Error resolving host '%s'.\n", argv[optind]);
 			goto error;
@@ -269,22 +272,12 @@ int main(int argc, char *argv[])
 		dest_addr = hinfo->addr;
 	}
 	
-	ip_ver_t ver = inet_addr_get(&dest_addr, &dest, NULL);
-	if (ver != ip_v4) {
-		printf("Destination '%s' is not an IPv4 address.\n",
-		    argv[optind]);
-		goto error;
-	}
-	
 	/* Determine source address */
-	rc = inetping_get_srcaddr(dest, &src);
+	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
 	if (rc != EOK) {
 		printf("Failed determining source address.\n");
 		goto error;
 	}
-	
-	inet_addr_t src_addr;
-	inet_addr_set(src, &src_addr);
 	
 	rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK) {

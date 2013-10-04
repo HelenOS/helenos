@@ -91,17 +91,6 @@ typedef enum {
 	INETPING_GET_SRCADDR
 } inetping_request_t;
 
-/** Events on Inet ping6 port */
-typedef enum {
-	INETPING6_EV_RECV = IPC_FIRST_USER_METHOD
-} inetping6_event_t;
-
-/** Requests on Inet ping6 port */
-typedef enum {
-	INETPING6_SEND = IPC_FIRST_USER_METHOD,
-	INETPING6_GET_SRCADDR
-} inetping6_request_t;
-
 #endif
 
 /**

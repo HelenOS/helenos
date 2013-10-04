@@ -129,14 +129,8 @@ static int icmp_recv_echo_reply(inet_dgram_t *dgram)
 
 	inetping_sdu_t sdu;
 
-	ip_ver_t ver = inet_addr_get(&dgram->src, &sdu.src, NULL);
-	if (ver != ip_v4)
-		return EINVAL;
-
-	ver = inet_addr_get(&dgram->dest, &sdu.dest, NULL);
-	if (ver != ip_v4)
-		return EINVAL;
-
+	sdu.src = dgram->src;
+	sdu.dest = dgram->dest;
 	sdu.seq_no = uint16_t_be2host(reply->seq_no);
 	sdu.data = reply + sizeof(icmp_echo_t);
 	sdu.size = dgram->size - sizeof(icmp_echo_t);
@@ -168,9 +162,8 @@ int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 
 	inet_dgram_t dgram;
 
-	inet_addr_set(sdu->src, &dgram.src);
-	inet_addr_set(sdu->dest, &dgram.dest);
-
+	dgram.src = sdu->src;
+	dgram.dest = sdu->dest;
 	dgram.iplink = 0;
 	dgram.tos = ICMP_TOS;
 	dgram.data = rdata;

@@ -37,7 +37,6 @@ SOURCES = \
 	inet_link.c \
 	inetcfg.c \
 	inetping.c \
-	inetping6.c \
 	ndp.c \
 	ntrans.c \
 	pdu.c \

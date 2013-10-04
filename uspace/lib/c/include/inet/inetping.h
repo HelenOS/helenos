@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ typedef struct inetping_ev_ops {
 
 extern int inetping_init(inetping_ev_ops_t *);
 extern int inetping_send(inetping_sdu_t *);
-extern int inetping_get_srcaddr(uint32_t, uint32_t *);
+extern int inetping_get_srcaddr(const inet_addr_t *, inet_addr_t *);
 
 #endif
 

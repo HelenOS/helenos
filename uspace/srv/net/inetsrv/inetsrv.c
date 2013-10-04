@@ -53,7 +53,6 @@
 #include "inetsrv.h"
 #include "inetcfg.h"
 #include "inetping.h"
-#include "inetping6.h"
 #include "inet_link.h"
 #include "reass.h"
 #include "sroute.h"
@@ -110,13 +109,6 @@ static int inet_init(void)
 	
 	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING, &sid,
 	    INET_PORT_PING);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
-		return EEXIST;
-	}
-	
-	rc = loc_service_register_with_iface(SERVICE_NAME_INETPING6, &sid,
-	    INET_PORT_PING6);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
@@ -450,9 +442,6 @@ static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		break;
 	case INET_PORT_PING:
 		inetping_conn(iid, icall, arg);
-		break;
-	case INET_PORT_PING6:
-		inetping6_conn(iid, icall, arg);
 		break;
 	default:
 		async_answer_0(iid, ENOTSUP);

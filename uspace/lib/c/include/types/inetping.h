@@ -37,11 +37,12 @@
 #ifndef LIBC_TYPES_INETPING_H_
 #define LIBC_TYPES_INETPING_H_
 
+#include <inet/addr.h>
 #include <sys/types.h>
 
 typedef struct {
-	uint32_t src;
-	uint32_t dest;
+	inet_addr_t src;
+	inet_addr_t dest;
 	uint16_t seq_no;
 	void *data;
 	size_t size;
