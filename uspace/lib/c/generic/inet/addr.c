@@ -635,5 +635,46 @@ uint16_t inet_addr_sockaddr_in(const inet_addr_t *addr,
 	return ipver_af(addr->version);
 }
 
+int inet_addr_sockaddr(const inet_addr_t *addr, uint16_t port,
+    sockaddr_t **nsockaddr, socklen_t *naddrlen)
+{
+	sockaddr_in_t *sa4;
+	sockaddr_in6_t *sa6;
+
+	switch (addr->version) {
+	case ip_v4:
+		sa4 = calloc(1, sizeof(sockaddr_in_t));
+		if (sa4 == NULL)
+			return ENOMEM;
+
+		sa4->sin_family = AF_INET;
+		sa4->sin_port = host2uint16_t_be(port);
+		sa4->sin_addr.s_addr = host2uint32_t_be(addr->addr);
+		if (nsockaddr != NULL)
+			*nsockaddr = (sockaddr_t *)sa4;
+		if (naddrlen != NULL)
+			*naddrlen = sizeof(*sa4);
+		break;
+	case ip_v6:
+		sa6 = calloc(1, sizeof(sockaddr_in6_t));
+		if (sa6 == NULL)
+			return ENOMEM;
+
+		sa6->sin6_family = AF_INET6;
+		sa6->sin6_port = host2uint16_t_be(port);
+		host2addr128_t_be(addr->addr6, sa6->sin6_addr.s6_addr);
+		if (nsockaddr != NULL)
+			*nsockaddr = (sockaddr_t *)sa6;
+		if (naddrlen != NULL)
+			*naddrlen = sizeof(*sa6);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	return EOK;
+}
+
 /** @}
  */

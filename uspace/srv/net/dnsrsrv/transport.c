@@ -181,6 +181,8 @@ static void treq_complete(trans_req_t *treq, dns_message_t *resp)
 int dns_request(dns_message_t *req, dns_message_t **rresp)
 {
 	trans_req_t *treq = NULL;
+	struct sockaddr *saddr = NULL;
+	socklen_t saddrlen;
 	
 	void *req_data;
 	size_t req_size;
@@ -188,27 +190,10 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	if (rc != EOK)
 		goto error;
 	
-	struct sockaddr_in addr;
-	struct sockaddr_in6 addr6;
-	uint16_t af =
-	    inet_addr_sockaddr_in(&dns_server_addr, &addr, &addr6);
-	
-	struct sockaddr *address;
-	socklen_t addrlen;
-	
-	switch (af) {
-	case AF_INET:
-		addr.sin_port = htons(DNS_SERVER_PORT);
-		address = (struct sockaddr *) &addr;
-		addrlen = sizeof(addr);
-		break;
-	case AF_INET6:
-		addr6.sin6_port = htons(DNS_SERVER_PORT);
-		address = (struct sockaddr *) &addr6;
-		addrlen = sizeof(addr6);
-		break;
-	default:
-		rc = EAFNOSUPPORT;
+	rc = inet_addr_sockaddr(&dns_server_addr, DNS_SERVER_PORT,
+	    &saddr, &saddrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
 		goto error;
 	}
 	
@@ -216,7 +201,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	
 	while (ntry < REQ_RETRY_MAX) {
 		rc = sendto(transport_fd, req_data, req_size, 0,
-		    (struct sockaddr *) address, addrlen);
+		    saddr, saddrlen);
 		if (rc != EOK)
 			goto error;
 		
@@ -255,6 +240,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	*rresp = treq->resp;
 	treq_destroy(treq);
 	free(req_data);
+	free(saddr);
 	return EOK;
 	
 error:
@@ -262,6 +248,7 @@ error:
 		treq_destroy(treq);
 	
 	free(req_data);
+	free(saddr);
 	return rc;
 }
 

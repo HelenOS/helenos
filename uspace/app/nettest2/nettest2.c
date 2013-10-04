@@ -37,6 +37,7 @@
 #include "nettest.h"
 #include "print_error.h"
 
+#include <assert.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -280,37 +281,21 @@ int main(int argc, char *argv[])
 		addr_addr = hinfo->addr;
 	}
 	
-	struct sockaddr_in addr;
-	struct sockaddr_in6 addr6;
-	uint16_t af = inet_addr_sockaddr_in(&addr_addr, &addr, &addr6);
-	
-	if (family == AF_NONE)
-		family = af;
-	
-	if (af != family) {
-		printf("Address family does not match explicitly set family.\n");
-		return EINVAL;
-	}
-	
-	/* Prepare the address buffer */
-	
 	struct sockaddr *address;
 	socklen_t addrlen;
+	rc = inet_addr_sockaddr(&addr_addr, port, &address, &addrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		return ENOMEM;
+	}
 	
-	switch (af) {
-	case AF_INET:
-		addr.sin_port = htons(port);
-		address = (struct sockaddr *) &addr;
-		addrlen = sizeof(addr);
-		break;
-	case AF_INET6:
-		addr6.sin6_port = htons(port);
-		address = (struct sockaddr *) &addr6;
-		addrlen = sizeof(addr6);
-		break;
-	default:
-		fprintf(stderr, "Address family is not supported\n");
-		return EAFNOSUPPORT;
+	if (family == AF_NONE)
+		family = address->sa_family;
+	
+	if (address->sa_family != family) {
+		printf("Address family does not match explicitly set family.\n");
+		return EINVAL;
 	}
 	
 	/* Check data buffer size. */
@@ -425,6 +410,8 @@ int main(int argc, char *argv[])
 	rc = sockets_close(verbose, socket_ids, sockets);
 	if (rc != EOK)
 		return rc;
+	
+	free(address);
 	
 	if (verbose)
 		printf("\nExiting\n");

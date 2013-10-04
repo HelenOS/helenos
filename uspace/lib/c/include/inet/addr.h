@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <net/in.h>
 #include <net/in6.h>
+#include <net/socket.h>
 
 typedef uint32_t addr32_t;
 typedef uint8_t addr48_t[6];
@@ -134,6 +135,8 @@ extern uint16_t inet_addr_sockaddr_in(const inet_addr_t *, sockaddr_in_t *,
     sockaddr_in6_t *);
 
 extern ip_ver_t ipver_from_af(int af);
+extern int inet_addr_sockaddr(const inet_addr_t *, uint16_t, sockaddr_t **,
+    socklen_t *);
 
 #endif
 

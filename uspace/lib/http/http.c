@@ -173,26 +173,21 @@ int http_connect(http_t *http)
 		dnsr_hostinfo_destroy(hinfo);
 	}
 	
-	struct sockaddr_in addr;
-	struct sockaddr_in6 addr6;
-	uint16_t af = inet_addr_sockaddr_in(&http->addr, &addr, &addr6);
+	struct sockaddr *saddr;
+	socklen_t saddrlen;
 	
-	http->conn_sd = socket(PF_INET, SOCK_STREAM, 0);
+	rc = inet_addr_sockaddr(&http->addr, http->port, &saddr, &saddrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		return ENOMEM;
+	}
+	
+	http->conn_sd = socket(saddr->sa_family, SOCK_STREAM, 0);
 	if (http->conn_sd < 0)
 		return http->conn_sd;
 	
-	switch (af) {
-	case AF_INET:
-		addr.sin_port = htons(http->port);
-		rc = connect(http->conn_sd, (struct sockaddr *) &addr, sizeof(addr));
-		break;
-	case AF_INET6:
-		addr6.sin6_port = htons(http->port);
-		rc = connect(http->conn_sd, (struct sockaddr *) &addr6, sizeof(addr6));
-		break;
-	default:
-		return ENOTSUP;
-	}
+	rc = connect(http->conn_sd, saddr, saddrlen);
+	free(saddr);
 	
 	return rc;
 }
