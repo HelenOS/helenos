@@ -276,3 +276,5 @@ uspace/app/df/df
 uspace/dist/app/df
 uspace/app/download/download
 uspace/dist/app/download
+uspace/app/viewer/viewer
+uspace/dist/app/viewer
