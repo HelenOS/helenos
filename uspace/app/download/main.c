@@ -46,7 +46,7 @@
 #include <net/inet.h>
 #include <net/socket.h>
 
-#include <http.h>
+#include <http/http.h>
 #include <uri.h>
 
 #define NAME "download"
@@ -131,41 +131,34 @@ int main(int argc, char *argv[])
 	if (req == NULL) {
 		fprintf(stderr, "Failed creating request\n");
 		uri_destroy(uri);
-		free(server_path);
 		return 3;
 	}
 	
-	http_header_t *header_host = http_header_create("Host", uri->host);
-	if (header_host == NULL) {
-		fprintf(stderr, "Failed creating Host header\n");
+	int rc = http_headers_append(&req->headers, "Host", uri->host);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed setting Host header: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
-		return 3;
+		return rc;
 	}
-	list_append(&header_host->link, &req->headers);
 	
-	http_header_t *header_ua = http_header_create("User-Agent", USER_AGENT);
-	if (header_ua == NULL) {
-		fprintf(stderr, "Failed creating User-Agent header\n");
+	rc = http_headers_append(&req->headers, "User-Agent", USER_AGENT);
+	if (rc != EOK) {
+		fprintf(stderr, "Failed creating User-Agent header: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
-		return 3;
+		return rc;
 	}
-	list_append(&header_ua->link, &req->headers);
 	
 	http_t *http = http_create(uri->host, port);
 	if (http == NULL) {
 		uri_destroy(uri);
-		free(server_path);
 		fprintf(stderr, "Failed creating HTTP object\n");
 		return 3;
 	}
 	
-	int rc = http_connect(http);
+	rc = http_connect(http);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed connecting: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
 		return rc;
 	}
 	
@@ -173,16 +166,15 @@ int main(int argc, char *argv[])
 	if (rc != EOK) {
 		fprintf(stderr, "Failed sending request: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
 		return rc;
 	}
 	
 	http_response_t *response = NULL;
-	rc = http_receive_response(http, &response);
+	rc = http_receive_response(&http->recv_buffer, &response, 16 * 1024,
+	    100);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed receiving response: %s\n", str_error(rc));
 		uri_destroy(uri);
-		free(server_path);
 		return rc;
 	}
 	
@@ -196,12 +188,11 @@ int main(int argc, char *argv[])
 		if (buf == NULL) {
 			fprintf(stderr, "Failed allocating buffer\n)");
 			uri_destroy(uri);
-			free(server_path);
 			return ENOMEM;
 		}
 		
 		int body_size;
-		while ((body_size = http_receive_body(http, buf, buf_size)) > 0) {
+		while ((body_size = recv_buffer(&http->recv_buffer, buf, buf_size)) > 0) {
 			fwrite(buf, 1, body_size, stdout);
 		}
 		
@@ -211,7 +202,6 @@ int main(int argc, char *argv[])
 	}
 	
 	uri_destroy(uri);
-	free(server_path);
 	return EOK;
 }
 
