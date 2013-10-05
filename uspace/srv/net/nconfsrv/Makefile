@@ -27,11 +27,10 @@
 #
 
 USPACE_PREFIX = ../../..
-BINARY = dhcp
+BINARY = nconfsrv
 
 SOURCES = \
-	dhcp.c \
-	main.c \
-	transport.c
+	iplink.c \
+	nconfsrv.c
 
 include $(USPACE_PREFIX)/Makefile.common

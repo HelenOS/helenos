@@ -147,22 +147,6 @@ typedef struct {
 	inet_addr_t ldest;
 } inet_dir_t;
 
-typedef struct {
-	uint32_t src;
-	uint32_t dest;
-	uint16_t seq_no;
-	void *data;
-	size_t size;
-} inetping_sdu_t;
-
-typedef struct {
-	addr128_t src;
-	addr128_t dest;
-	uint16_t seq_no;
-	void *data;
-	size_t size;
-} inetping6_sdu_t;
-
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
 extern int inet_recv_packet(inet_packet_t *);
 extern int inet_route_packet(inet_dgram_t *, uint8_t, uint8_t, int);

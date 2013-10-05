@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Martin Decky
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libcipc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef INETPING6_H_
-#define INETPING6_H_
+#ifndef LIBC_IPC_DHCP_H_
+#define LIBC_IPC_DHCP_H_
 
-#include "inetsrv.h"
+#include <ipc/common.h>
 
-extern void inetping6_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int inetping6_recv(uint16_t, inetping6_sdu_t *);
+/** DHCP service requests */
+typedef enum {
+	DHCP_LINK_ADD = IPC_FIRST_USER_METHOD,
+	DHCP_LINK_REMOVE
+} dhcp_request_t;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

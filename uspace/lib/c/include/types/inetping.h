@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,28 +29,24 @@
 /** @addtogroup libc
  * @{
  */
-
-/** @file
- * Network device.
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_NET_DEVICE_H_
-#define LIBC_NET_DEVICE_H_
+#ifndef LIBC_TYPES_INETPING_H_
+#define LIBC_TYPES_INETPING_H_
 
-#include <adt/int_map.h>
-#include <nic/nic.h>
+#include <inet/addr.h>
+#include <sys/types.h>
 
-/** Device identifier to generic type map declaration. */
-#define DEVICE_MAP_DECLARE  INT_MAP_DECLARE
-
-/** Device identifier to generic type map implementation. */
-#define DEVICE_MAP_IMPLEMENT  INT_MAP_IMPLEMENT
-
-/** Device identifier type. */
-typedef int nic_device_id_t;
-
-/** Invalid device identifier. */
-#define NIC_DEVICE_INVALID_ID  (-1)
+typedef struct {
+	inet_addr_t src;
+	inet_addr_t dest;
+	uint16_t seq_no;
+	void *data;
+	size_t size;
+} inetping_sdu_t;
 
 #endif
 

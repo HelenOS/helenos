@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013 Antonin Steinhauser
+# Copyright (c) 2013 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,9 +27,13 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = ping6
+LIBS = $(LIBGUI_PREFIX)/libgui.a $(LIBDRAW_PREFIX)/libdraw.a \
+	$(LIBSOFTREND_PREFIX)/libsoftrend.a $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
+EXTRA_CFLAGS += -I$(LIBGUI_PREFIX) -I$(LIBDRAW_PREFIX) \
+	-I$(LIBSOFTREND_PREFIX)
+BINARY = viewer
 
 SOURCES = \
-	ping6.c
+	viewer.c
 
 include $(USPACE_PREFIX)/Makefile.common

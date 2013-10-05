@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Martin Decky
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup nconfsrv
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief
  */
 
-#ifndef LIBC_INET_INETPING6_H_
-#define LIBC_INET_INETPING6_H_
+#ifndef NCONFSRV_IPLINK_H_
+#define NCONFSRV_IPLINK_H_
 
-#include <inet/inet.h>
 #include <sys/types.h>
+#include "nconfsrv.h"
 
-typedef struct {
-	addr128_t src;
-	addr128_t dest;
-	uint16_t seq_no;
-	void *data;
-	size_t size;
-} inetping6_sdu_t;
-
-typedef struct inetping6_ev_ops {
-	int (*recv)(inetping6_sdu_t *);
-} inetping6_ev_ops_t;
-
-extern int inetping6_init(inetping6_ev_ops_t *);
-extern int inetping6_send(inetping6_sdu_t *);
-extern int inetping6_get_srcaddr(addr128_t, addr128_t);
+extern int ncs_link_discovery_start(void);
+extern ncs_link_t *ncs_link_get_by_id(sysarg_t);
+extern int ncs_link_get_id_list(sysarg_t **, size_t *);
 
 #endif
 

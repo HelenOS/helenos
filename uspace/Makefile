@@ -75,11 +75,11 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
 	app/date \
 	app/vdemo \
+	app/viewer \
 	app/vlaunch \
 	app/vterm \
 	app/df \
@@ -96,6 +96,7 @@ DIRS = \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
+	srv/net/nconfsrv \
 	srv/net/slip \
 	srv/net/tcp \
 	srv/net/udp \

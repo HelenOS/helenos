@@ -39,7 +39,6 @@
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include "arp.h"
 #include "atrans.h"
 #include "ethip.h"
@@ -72,8 +71,8 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 		return;
 	
 	addr32_t laddr_v4;
-	uint16_t laddr_af = inet_addr_get(&laddr->addr, &laddr_v4, NULL);
-	if (laddr_af != AF_INET)
+	ip_ver_t laddr_ver = inet_addr_get(&laddr->addr, &laddr_v4, NULL);
+	if (laddr_ver != ip_v4)
 		return;
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Request/reply to my address");

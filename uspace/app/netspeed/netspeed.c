@@ -35,15 +35,16 @@
  *
  */
 
+#include <assert.h>
+#include <inet/dnsr.h>
+#include <net/in.h>
+#include <net/inet.h>
+#include <net/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
 #include <task.h>
-
-#include <net/in.h>
-#include <net/inet.h>
-#include <net/socket.h>
 
 #define NAME "netspeed"
 
@@ -113,28 +114,40 @@ static int server(sock_type_t sock_type, unsigned port, void *buf, size_t bufsiz
 	return rc;
 }
 
-static int client(sock_type_t sock_type, const char *address, unsigned port,
+static int client(sock_type_t sock_type, const char *host, unsigned port,
     unsigned long count, char *buf, size_t bufsize)
 {
-	struct sockaddr_in addr;
+	inet_addr_t iaddr;
+	struct sockaddr *saddr;
+	socklen_t saddrlen;
 	
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	
-	int rc = inet_pton(AF_INET, address, (void *) &addr.sin_addr.s_addr);
+	int rc = inet_addr_parse(host, &iaddr);
 	if (rc != EOK) {
-		fprintf(stderr, "inet_pton failed: %s\n", str_error(rc));
-		return rc;
+		dnsr_hostinfo_t *hinfo = NULL;
+		rc = dnsr_name2host(host, &hinfo, ip_any);
+		if (rc != EOK) {
+			fprintf(stderr, "Error resolving host '%s'.\n", host);
+			return ENOENT;
+		}
+		
+		iaddr = hinfo->addr;
 	}
 	
-	int conn_sd = socket(PF_INET, sock_type, 0);
+	rc = inet_addr_sockaddr(&iaddr, port, &saddr, &saddrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		fprintf(stderr, "Out of memory.\n");
+		return ENOMEM;
+	}
+	
+	int conn_sd = socket(saddr->sa_family, sock_type, 0);
 	if (conn_sd < 0) {
 		fprintf(stderr, "socket failed: %s\n", str_error(rc));
 		return rc;
 	}
 	
 	if (sock_type == SOCK_STREAM) {
-		rc = connect(conn_sd, (struct sockaddr *) &addr, sizeof(addr));
+		rc = connect(conn_sd, saddr, saddrlen);
 		if (rc != EOK) {
 			fprintf(stderr, "connect failed: %s\n", str_error(rc));
 			closesocket(conn_sd);
@@ -150,8 +163,7 @@ static int client(sock_type_t sock_type, const char *address, unsigned port,
 		if (sock_type == SOCK_STREAM) {
 			rc = send(conn_sd, buf, bufsize, 0);
 		} else {
-			rc = sendto(conn_sd, buf, bufsize, 0,
-			    (struct sockaddr *) &addr, sizeof(addr));
+			rc = sendto(conn_sd, buf, bufsize, 0, saddr, saddrlen);
 		}
 		if (rc != EOK) {
 			fprintf(stderr, "send failed: %s\n", str_error(rc));
@@ -160,13 +172,14 @@ static int client(sock_type_t sock_type, const char *address, unsigned port,
 	}
 	
 	closesocket(conn_sd);
+	free(saddr);
 	return rc;
 }
 
 static void syntax_print(void)
 {
 	fprintf(stderr, "Usage: netspeed <tcp|udp> server [port] <buffer size>\n");
-	fprintf(stderr, "       netspeed <tcp|udp> client <ip> <port> <count> <buffer size>\n");
+	fprintf(stderr, "       netspeed <tcp|udp> client <host> <port> <count> <buffer size>\n");
 }
 
 int main(int argc, char *argv[])

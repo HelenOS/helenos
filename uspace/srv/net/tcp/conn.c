@@ -380,7 +380,7 @@ tcp_conn_t *tcp_conn_find_ref(tcp_sockpair_t *sp)
  *
  * @param conn	Connection
  */
-static void tcp_conn_reset(tcp_conn_t *conn)
+void tcp_conn_reset(tcp_conn_t *conn)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_reset()", conn->name);
 	tcp_conn_state_set(conn, st_closed);

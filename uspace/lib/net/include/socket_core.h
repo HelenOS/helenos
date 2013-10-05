@@ -42,7 +42,6 @@
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
 #include <net/in.h>
-#include <net/device.h>
 #include <async.h>
 
 /** Initial size of the received packet queue. */
