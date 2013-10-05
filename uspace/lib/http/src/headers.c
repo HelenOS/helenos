@@ -93,86 +93,65 @@ ssize_t http_header_encode(http_header_t *header, char *buf, size_t buf_size)
 	}
 }
 
-int http_header_receive_name(receive_buffer_t *rb, char **out_name)
+int http_header_receive_name(receive_buffer_t *rb,
+    receive_buffer_mark_t *name_end)
 {
-	receive_buffer_mark_t name_start;
-	receive_buffer_mark_t name_end;
-	
-	recv_mark(rb, &name_start);
-	recv_mark(rb, &name_end);
-	
 	char c = 0;
 	do {
-		recv_mark_update(rb, &name_end);
+		if (name_end)
+			recv_mark_update(rb, name_end);
 		
 		int rc = recv_char(rb, &c, true);
-		if (rc != EOK) {
-			recv_unmark(rb, &name_start);
-			recv_unmark(rb, &name_end);
+		if (rc != EOK)
 			return rc;
-		}
 	} while (is_token(c));
 	
-	if (c != ':') {
-		recv_unmark(rb, &name_start);
-		recv_unmark(rb, &name_end);
+	if (c != ':')
 		return EINVAL;
-	}
 	
-	char *name = NULL;
-	int rc = recv_cut_str(rb, &name_start, &name_end, &name);
-	recv_unmark(rb, &name_start);
-	recv_unmark(rb, &name_end);
-	if (rc != EOK)
-		return rc;
-	
-	*out_name = name;
 	return EOK;
 }
 
-int http_header_receive_value(receive_buffer_t *rb, char **out_value)
+int http_header_receive_value(receive_buffer_t *rb,
+    receive_buffer_mark_t *value_start, receive_buffer_mark_t *value_end)
 {
 	int rc = EOK;
 	char c = 0;
 	
-	receive_buffer_mark_t value_start;
-	recv_mark(rb, &value_start);
-	
 	/* Ignore any inline LWS */
 	while (true) {
-		recv_mark_update(rb, &value_start);
+		if (value_start)
+			recv_mark_update(rb, value_start);
+		
 		rc = recv_char(rb, &c, false);
 		if (rc != EOK)
-			goto error;
+			return rc;
 		
 		if (c != ' ' && c != '\t')
 			break;
 		
 		rc = recv_char(rb, &c, true);
 		if (rc != EOK)
-			goto error;
+			return rc;
 	}
 	
-	receive_buffer_mark_t value_end;
-	recv_mark(rb, &value_end);
-	
 	while (true) {
-		recv_mark_update(rb, &value_end);
+		recv_mark_update(rb, value_end);
 		
 		rc = recv_char(rb, &c, true);
 		if (rc != EOK)
-			goto error_end;
+			return rc;
 		
 		if (c != '\r' && c != '\n')
 			continue;
 		
 		rc = recv_discard(rb, (c == '\r' ? '\n' : '\r'));
 		if (rc < 0)
-			goto error_end;
+			return rc;
 		
 		rc = recv_char(rb, &c, false);
 		if (rc != EOK)
-			goto error_end;
+			return rc;
 		
 		if (c != ' ' && c != '\t')
 			break;
@@ -180,43 +159,63 @@ int http_header_receive_value(receive_buffer_t *rb, char **out_value)
 		/* Ignore the char */
 		rc = recv_char(rb, &c, true);
 		if (rc != EOK)
-			goto error_end;
+			return rc;
 	}
 	
-	char *value = NULL;
-	rc = recv_cut_str(rb, &value_start, &value_end, &value);
-	recv_unmark(rb, &value_start);
-	recv_unmark(rb, &value_end);
-	if (rc != EOK)
-		return rc;
-	
-	*out_value = value;
 	return EOK;
-error_end:
-	recv_unmark(rb, &value_end);
-error:
-	recv_unmark(rb, &value_start);
-	return rc;
 }
 
-int http_header_receive(receive_buffer_t *rb, http_header_t *header)
+int http_header_receive(receive_buffer_t *rb, http_header_t *header,
+    size_t size_limit, size_t *out_bytes_used)
 {
+	receive_buffer_mark_t mark_start;
+	receive_buffer_mark_t mark_end;
+	
+	recv_mark(rb, &mark_start);
+	recv_mark(rb, &mark_end);
+	
+	int rc = http_header_receive_name(rb, &mark_end);
+	if (rc != EOK)
+		goto end;
+	
+	size_t name_size = mark_end.offset - mark_start.offset;
+	if (size_limit > 0 && name_size > size_limit) {
+		rc = ELIMIT;
+		goto end;
+	}
+	
 	char *name = NULL;
-	int rc = http_header_receive_name(rb, &name);
-	if (rc != EOK) {
-		return rc;
+	rc = recv_cut_str(rb, &mark_start, &mark_end, &name);
+	if (rc != EOK)
+		goto end;
+	
+	rc = http_header_receive_value(rb, &mark_start, &mark_end);
+	if (rc != EOK)
+		goto end_with_name;
+	
+	size_t value_size = mark_end.offset - mark_start.offset;
+	if (size_limit > 0 && (name_size + value_size) > size_limit) {
+		rc = ELIMIT;
+		goto end_with_name;
 	}
 	
 	char *value = NULL;
-	rc = http_header_receive_value(rb, &value);
-	if (rc != EOK) {
-		free(name);
-		return rc;
-	}
+	rc = recv_cut_str(rb, &mark_start, &mark_end, &value);
+	if (rc != EOK)
+		goto end_with_name;
+	
+	if (out_bytes_used)
+		*out_bytes_used = name_size + value_size;
 	
 	header->name = name;
 	header->value = value;
-	return EOK;
+	goto end;
+end_with_name:
+	free(name);
+end:
+	recv_unmark(rb, &mark_start);
+	recv_unmark(rb, &mark_end);
+	return rc;
 }
 
 /** Normalize HTTP header value
@@ -323,7 +322,8 @@ int http_headers_get(http_headers_t *headers, const char *name, char **value)
 	return EOK;
 }
 
-int http_headers_receive(receive_buffer_t *rb, http_headers_t *headers)
+int http_headers_receive(receive_buffer_t *rb, http_headers_t *headers,
+    size_t limit_alloc, unsigned limit_count)
 {
 	int rc = EOK;
 	unsigned added = 0;
@@ -337,6 +337,11 @@ int http_headers_receive(receive_buffer_t *rb, http_headers_t *headers)
 		if (c == '\n' || c == '\r')
 			break;
 		
+		if (limit_count > 0 && added >= limit_count) {
+			rc = ELIMIT;
+			goto error;
+		}
+		
 		http_header_t *header = malloc(sizeof(http_header_t));
 		if (header == NULL) {
 			rc = ENOMEM;
@@ -344,11 +349,13 @@ int http_headers_receive(receive_buffer_t *rb, http_headers_t *headers)
 		}
 		http_header_init(header);
 		
-		rc = http_header_receive(rb, header);
+		size_t header_size;
+		rc = http_header_receive(rb, header, limit_alloc, &header_size);
 		if (rc != EOK) {
 			free(header);
 			goto error;
 		}
+		limit_alloc -= header_size;
 		
 		http_headers_append_header(headers, header);
 		added++;

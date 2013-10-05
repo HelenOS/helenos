@@ -170,7 +170,8 @@ int main(int argc, char *argv[])
 	}
 	
 	http_response_t *response = NULL;
-	rc = http_receive_response(&http->recv_buffer, &response);
+	rc = http_receive_response(&http->recv_buffer, &response, 16 * 1024,
+	    100);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed receiving response: %s\n", str_error(rc));
 		uri_destroy(uri);

@@ -184,7 +184,8 @@ int http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
 	return EOK;
 }
 
-int http_receive_response(receive_buffer_t *rb, http_response_t **out_response)
+int http_receive_response(receive_buffer_t *rb, http_response_t **out_response,
+    size_t max_headers_size, unsigned max_headers_count)
 {
 	http_response_t *resp = malloc(sizeof(http_response_t));
 	if (resp == NULL)
@@ -197,7 +198,8 @@ int http_receive_response(receive_buffer_t *rb, http_response_t **out_response)
 	if (rc != EOK)
 		goto error;
 	
-	rc = http_headers_receive(rb, &resp->headers);
+	rc = http_headers_receive(rb, &resp->headers, max_headers_size,
+	    max_headers_count);
 	if (rc != EOK)
 		goto error;
 	
