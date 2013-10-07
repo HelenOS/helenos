@@ -225,10 +225,17 @@ NO_TRACE static inline void set_pte_flags(pte_t *pt, size_t i, int flags)
 	p->acc = PTE_ACC_USER_NO_KERNEL_RWX;
 	
 	if (flags & PAGE_USER) {
-		if (flags & PAGE_READ)
-			p->acc = PTE_ACC_USER_RO_KERNEL_RW;
-		if (flags & PAGE_WRITE)
-			p->acc = PTE_ACC_USER_RW_KERNEL_RW;
+		if (flags & PAGE_EXEC) {
+			if (flags & PAGE_READ)
+				p->acc = PTE_ACC_USER_RX_KERNEL_RX;
+			if (flags & PAGE_WRITE)
+				p->acc = PTE_ACC_USER_RWX_KERNEL_RWX;
+		} else {
+			if (flags & PAGE_READ)
+				p->acc = PTE_ACC_USER_RO_KERNEL_RW;
+			if (flags & PAGE_WRITE)
+				p->acc = PTE_ACC_USER_RW_KERNEL_RW;
+		}
 	}
 
 	if (flags & PAGE_NOT_PRESENT)

@@ -41,7 +41,7 @@
 #define	KM_SPARC32_IDENTITY_SIZE	UINT32_C(0x70000000)
 
 #define	KM_SPARC32_NON_IDENTITY_START	UINT32_C(0xf0000000)
-#define	KM_SPARC32_NON_IDENTITY_SIZE	UINT32_C(0xff000000)
+#define	KM_SPARC32_NON_IDENTITY_SIZE	UINT32_C(0xff00000)
 
 extern void km_identity_arch_init(void);
 extern void km_non_identity_arch_init(void);
