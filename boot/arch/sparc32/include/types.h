@@ -57,6 +57,13 @@ typedef struct {
 typedef struct {
 	size_t cnt;
 	task_t tasks[TASKMAP_MAX_RECORDS];
+	/* Fields below are LEON-specific */
+	uintptr_t uart_base;
+	uintptr_t intc_base;
+	uintptr_t timer_base;
+	int uart_irq;
+	int timer_irq;
+	uint32_t memsize;
 } bootinfo_t;
 
 #endif
