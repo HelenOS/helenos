@@ -33,6 +33,8 @@
  */
 
 #include <arch/mm/page.h>
+#include <arch/mm/page_fault.h>
+#include <arch/mm/tlb.h>
 #include <genarch/mm/page_pt.h>
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
@@ -74,13 +76,28 @@ void page_arch_init(void)
 	printf("as_context_table=0x%08x\n", as_context_table);
 
 	/* Switch MMU to new context table */
-	asi_u32_write(ASI_MMUREGS, 0x100, KA2PA(as_context_table) >> 4);
+	asi_u32_write(ASI_MMUREGS, MMU_CONTEXT_TABLE, KA2PA(as_context_table) >> 4);
 
 	//boot_page_table_free();
 }
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
+	uint32_t fault_status = asi_u32_read(ASI_MMUREGS, MMU_FAULT_STATUS);
+	uintptr_t fault_address = asi_u32_read(ASI_MMUREGS, MMU_FAULT_ADDRESS);
+	mmu_fault_status_t *fault = (mmu_fault_status_t *)&fault_status;
+	mmu_fault_type_t type = (mmu_fault_type_t)fault->ft;
+
+	printf("page fault on address 0x%08x, status 0x%08x\n", fault_address, fault_status);
+
+	if (type == FAULT_TYPE_LOAD_USER_DATA)	
+		as_page_fault(fault_address, PF_ACCESS_READ, istate);
+
+	if (type == FAULT_TYPE_EXECUTE_USER)
+		as_page_fault(fault_address, PF_ACCESS_EXEC, istate);
+
+	if (type == FAULT_TYPE_STORE_USER_DATA || type == FAULT_TYPE_STORE_USER_INSTRUCTION)
+		as_page_fault(fault_address, PF_ACCESS_WRITE, istate);
 }
 
 /** @}

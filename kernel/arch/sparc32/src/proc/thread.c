@@ -32,10 +32,45 @@
 /** @file
  */
 
+#include <arch/regwin.h>
 #include <proc/thread.h>
+
+void thr_constructor_arch(thread_t *t)
+{
+	t->arch.uspace_window_buffer = NULL;
+}
+
+void thr_destructor_arch(thread_t *t)
+{
+	if (t->arch.uspace_window_buffer) {
+		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
+		/*
+		 * Mind the possible alignment of the userspace window buffer
+		 * belonging to a killed thread.
+		 */
+		free((uint8_t *) ALIGN_DOWN(uw_buf, UWB_ALIGNMENT));
+	}
+}
 
 void thread_create_arch(thread_t *t)
 {
+	if ((t->uspace) && (!t->arch.uspace_window_buffer))
+		{
+		/*
+		 * The thread needs userspace window buffer and the object
+		 * returned from the slab allocator doesn't have any.
+		 */
+		t->arch.uspace_window_buffer = malloc(UWB_ASIZE, 0);
+	} else {
+		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
+
+		/*
+		 * Mind the possible alignment of the userspace window buffer
+		 * belonging to a killed thread.
+		 */
+		t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
+		    UWB_ASIZE);
+	}
 }
 
 /** @}

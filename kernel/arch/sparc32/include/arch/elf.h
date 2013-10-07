@@ -26,17 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_ELF_H_
-#define KERN_abs32le_ELF_H_
+#ifndef KERN_sparc32_ELF_H_
+#define KERN_sparc32_ELF_H_
 
-#define ELF_MACHINE        EM_NO
-#define ELF_DATA_ENCODING  ELFDATA2LSB
+#define ELF_MACHINE        EM_SPARC
+#define ELF_DATA_ENCODING  ELFDATA2MSB
 #define ELF_CLASS          ELFCLASS32
 
 #endif

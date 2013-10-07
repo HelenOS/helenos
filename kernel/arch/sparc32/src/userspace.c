@@ -35,14 +35,30 @@
 #include <userspace.h>
 #include <typedefs.h>
 #include <arch.h>
+#include <arch/asm.h>
 #include <abi/proc/uarg.h>
 #include <mm/as.h>
 
 void userspace(uspace_arg_t *kernel_uarg)
 {
+	printf("userspace(): entry=%p, stack=%p, stacksize=%d\n", kernel_uarg->uspace_entry, kernel_uarg->uspace_stack, kernel_uarg->uspace_stack_size);
 	/* On real hardware this switches the CPU to user
 	   space mode and jumps to kernel_uarg->uspace_entry. */
-	
+
+	uint32_t psr = psr_read();
+
+	psr &= ~(1 << 7);
+	psr &= ~(1 << 6);
+
+	asm volatile (
+		"mov %[stack], %%sp\n"
+		"mov %[psr], %%psr\n"
+		"nop\n"
+		"jmp %[entry]\n"
+		"nop\n" :: [entry] "r" (kernel_uarg->uspace_entry),
+			   [psr] "r" (psr),
+			   [stack] "r" (kernel_uarg->uspace_stack + kernel_uarg->uspace_stack_size));
+
 	while (true);
 }
 

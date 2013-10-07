@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leinterrupt
+/** @addtogroup sparc32interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_ISTATE_H_
-#define KERN_abs32le_ISTATE_H_
+#ifndef KERN_sparc32_ISTATE_H_
+#define KERN_sparc32_ISTATE_H_
 
 #include <trace.h>
 
@@ -53,8 +53,9 @@
  * need to be preserved during interupts.
  */
 typedef struct istate {
-	uintptr_t ip;
-	uintptr_t fp;
+	uintptr_t pstate;
+	uintptr_t pc;
+	uintptr_t npc;
 	uint32_t stack[];
 } istate_t;
 
@@ -63,8 +64,8 @@ NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	/* On real hardware this checks whether the interrupted
 	   context originated from user space. */
-	
-	return !(istate->ip & UINT32_C(0x80000000));
+
+	return !(istate->pc & UINT32_C(0x80000000));
 }
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
@@ -73,7 +74,7 @@ NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
 {
 	/* On real hardware this sets the instruction pointer. */
 	
-	istate->ip = retaddr;
+	istate->pc = retaddr;
 }
 
 NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
@@ -81,7 +82,7 @@ NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
 {
 	/* On real hardware this returns the instruction pointer. */
 	
-	return istate->ip;
+	return istate->pc;
 }
 
 NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
@@ -89,7 +90,7 @@ NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
 {
 	/* On real hardware this returns the frame pointer. */
 	
-	return istate->fp;
+	return 0;//istate->fp;
 }
 
 #endif

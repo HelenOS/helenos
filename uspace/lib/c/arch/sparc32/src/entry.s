@@ -43,7 +43,8 @@ __entry:
 	#
 	save %sp, -176, %sp
 # XXX	flushw
-	add %g0, -0x7ff, %fp
+#	add %g0, -0x7ff, %fp
+	set 0x80000000, %fp
 	
 	# Pass pcb_ptr as the first argument to __main()
 	mov %i1, %o0

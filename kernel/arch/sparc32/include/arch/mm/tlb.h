@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32lemm
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_TLB_H_
-#define KERN_abs32le_TLB_H_
+#ifndef KERN_sparc32_TLB_H_
+#define KERN_sparc32_TLB_H_
+
+#define	MMU_CONTROL		0x000
+#define	MMU_CONTEXT_TABLE	0x100
+#define	MMU_CONTEXT		0x200
+#define	MMU_FAULT_STATUS	0x300
+#define	MMU_FAULT_ADDRESS	0x400
 
 #endif
 

@@ -32,6 +32,7 @@
 
 .global trap_table
 .global reset_trap
+.global preemptible_trap
 .global window_overflow_trap
 .global window_underflow_trap
 
@@ -115,12 +116,52 @@ window_underflow_trap:
         jmp %l1
         rett %l2
 
-#define	TRAP(_vector, _handler) \
+preemptible_trap:
+	/* Enable traps */
+	mov %psr, %l0
+	or %l0, (1 << 5), %l0
+	mov %l0, %psr
+
+	/* Check whether previous mode was usermode */
+	and %l0, (1 << 6), %l0
+	cmp %l0, 0
+	bne 1f
+	nop
+
+	/* Set up stack */
+	set kernel_sp, %l4
+	ld [%l4], %sp
+	mov %sp, %fp
+1:	sub %sp, 112, %sp
+
+	/* Save trap data on stack */
+	st %l1, [%fp - 4]
+	st %l2, [%fp - 8]
+	st %l0, [%fp - 12]
+
+	/* Jump to actual subroutine */
+	mov 1, %o0
+	jmp %g1
+	sub %fp, 12, %o1
+
+	/* Return from handler */
+	ld [%fp - 4], %l1
+	ld [%fp - 8], %l2
+	jmp %l1
+	rett %l2
+
+#define	STRAP(_vector, _handler) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
 	mov %psr, %l0 ; \
 	sethi %hi(_handler), %l4 ; \
-	jmp %l4 + %lo(_handler); \
-	mov _vector, %l3 ;
+	jmp %lo(_handler) + %l4 ; \
+	nop
+
+#define	TRAP(_vector, _handler) \
+	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
+	sethi %hi(_handler), %g1 ; \
+	b preemptible_trap ; \
+	or %g1, %lo(_handler), %g1 ;
 
 #define	INTERRUPT(_vector, _priority) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
@@ -140,8 +181,8 @@ trap_table:
 	TRAP(0x2, illegal_instruction)
 	TRAP(0x3, privileged_instruction)
 	TRAP(0x4, fp_disabled)
-	TRAP(0x5, window_overflow_trap)
-	TRAP(0x6, window_underflow_trap)
+	STRAP(0x5, window_overflow_trap)
+	STRAP(0x6, window_underflow_trap)
 	TRAP(0x7, mem_address_not_aligned)
 	TRAP(0x8, fp_exception)
 	TRAP(0x9, data_access_exception)

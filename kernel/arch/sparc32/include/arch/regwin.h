@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jakub Klama
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leproc
+/** @addtogroup sparc32interrupt
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief This file contains register window trap handlers.
  */
 
-#include <proc/scheduler.h>
-#include <proc/thread.h>
-#include <arch.h>
+#ifndef KERN_sparc32_REGWIN_H_
+#define KERN_sparc32_REGWIN_H_
+
+#include <arch/stack.h>
 #include <arch/arch.h>
+#include <align.h>
 
-void before_task_runs_arch(void)
-{
-}
+#define CLEAN_WINDOW_HANDLER_SIZE	REGWIN_HANDLER_SIZE
+#define SPILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
+#define FILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
 
-void before_thread_runs_arch(void)
-{
-	kernel_sp = (uintptr_t) THREAD->kstack + STACK_SIZE;
-	uspace_wbuf = (uintptr_t) THREAD->arch.uspace_window_buffer;
-}
+/* Window Save Area offsets. */
+#define L0_OFFSET	0
+#define L1_OFFSET	4
+#define L2_OFFSET	8
+#define L3_OFFSET	12
+#define L4_OFFSET	16
+#define L5_OFFSET	20
+#define L6_OFFSET	24
+#define L7_OFFSET	28
+#define I0_OFFSET	32
+#define I1_OFFSET	36
+#define I2_OFFSET	40
+#define I3_OFFSET	44
+#define I4_OFFSET	48
+#define I5_OFFSET	52
+#define I6_OFFSET	56
+#define I7_OFFSET	60
 
-void after_thread_ran_arch(void)
-{
-}
+/* Uspace Window Buffer constants. */
+#define UWB_SIZE	((NWINDOWS - 1) * STACK_WINDOW_SAVE_AREA_SIZE)
+#define UWB_ALIGNMENT	1024
+#define UWB_ASIZE	ALIGN_UP(UWB_SIZE, UWB_ALIGNMENT)
+
+#endif
 
 /** @}
  */

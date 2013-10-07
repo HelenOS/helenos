@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leproc
+/** @addtogroup sparc32proc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_THREAD_H_
-#define KERN_abs32le_THREAD_H_
+#ifndef KERN_sparc32_THREAD_H_
+#define KERN_sparc32_THREAD_H_
 
 #include <typedefs.h>
 
 typedef struct {
+	/** Buffer for register windows with userspace content. */
+	uint8_t *uspace_window_buffer;
 } thread_arch_t;
-
-#define thr_constructor_arch(thr)
-#define thr_destructor_arch(thr)
 
 #endif
 

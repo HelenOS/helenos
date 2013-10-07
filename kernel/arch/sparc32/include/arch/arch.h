@@ -40,6 +40,8 @@
 
 #include <typedefs.h>
 
+#define	NWINDOWS	8
+
 /* ASI assignments: */
 #define	ASI_CACHEMISS	0x01
 #define	ASI_CACHECTRL	0x02
@@ -62,7 +64,10 @@ typedef struct {
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } bootinfo_t;
 
-void arch_pre_main(bootinfo_t *bootinfo);
+extern uintptr_t kernel_sp;
+extern uintptr_t uspace_wbuf;
+
+extern void arch_pre_main(void *unused, bootinfo_t *bootinfo);
 
 #endif
 

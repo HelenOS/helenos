@@ -30,6 +30,8 @@
 
 .global kernel_image_start
 .global early_putchar
+.global kernel_sp
+.global uspace_wbuf
 
 kernel_image_start:
 	# Install trap handlers
@@ -66,6 +68,12 @@ early_putchar:
 skip:	sta %o0, [%l0] 0x1c
 	retl
 	nop
+
+kernel_sp:
+.space 4
+
+uspace_wbuf:
+.space 4
 
 .align 16
 .space 4096

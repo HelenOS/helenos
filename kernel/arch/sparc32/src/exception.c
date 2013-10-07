@@ -47,8 +47,9 @@
 /** Handle instruction_access_exception. (0x1) */
 void instruction_access_exception(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "%s.", __func__);
-	panic_badtrap(istate, n, "%s.", __func__);
+	page_fault(n, istate);
+//	fault_if_from_uspace(istate, "%s.", __func__);
+//	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle instruction_access_error. (0x21) */
@@ -103,22 +104,25 @@ void division_by_zero(int n, istate_t *istate)
 /** Handle data_access_exception. (0x9) */
 void data_access_exception(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "%s.", __func__);
-	panic_badtrap(istate, n, "%s.", __func__);
+	page_fault(n, istate);
+//	fault_if_from_uspace(istate, "%s.", __func__);
+//	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle data_access_error. (0x29) */
 void data_access_error(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "%s.", __func__);
-	panic_badtrap(istate, n, "%s.", __func__);
+	page_fault(n, istate);
+//	fault_if_from_uspace(istate, "%s.", __func__);
+//	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle data_store_error. (0x29) */
 void data_store_error(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "%s.", __func__);
-	panic_badtrap(istate, n, "%s.", __func__);
+	page_fault(n, istate);
+//	fault_if_from_uspace(istate, "%s.", __func__);
+//	panic_badtrap(istate, n, "%s.", __func__);
 }
 /** Handle data_access_error. (0x2c) */
 void data_access_mmu_miss(int n, istate_t *istate)

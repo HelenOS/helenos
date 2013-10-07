@@ -59,13 +59,18 @@ static void frame_common_arch_init(bool low)
 		zone_create(ADDR2PFN(base), SIZE2FRAMES(size),
 		    BOOT_PT_START_FRAME + BOOT_PT_SIZE_FRAMES,
 		    ZONE_AVAILABLE | ZONE_LOWMEM);
+
+		printf("low_zone: %d frames\n", SIZE2FRAMES(size));
 	} else {
 		pfn_t conf = zone_external_conf_alloc(SIZE2FRAMES(size));
 		if (conf != 0)
 			zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
 			    ZONE_AVAILABLE | ZONE_HIGHMEM);
+
+		printf("high zone: %d frames\n", SIZE2FRAMES(size));
 	}
-	
+
+	printf("free: %d\n", frame_total_free_get());
 }
 
 void physmem_print(void)
@@ -80,6 +85,7 @@ void frame_low_arch_init(void)
 
 	/* blacklist boot page table */
 	frame_mark_unavailable(BOOT_PT_START_FRAME, BOOT_PT_SIZE_FRAMES);
+	printf("free: %d\n", frame_total_free_get());
 	//machine_frame_init();
 }
 
