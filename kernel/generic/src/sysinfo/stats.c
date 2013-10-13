@@ -174,10 +174,8 @@ static size_t get_task_virtmem(as_t *as)
 	size_t pages = 0;
 	
 	/* Walk the B+ tree and count pages */
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
-		
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		unsigned int i;
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
@@ -217,10 +215,7 @@ static size_t get_task_resmem(as_t *as)
 	size_t pages = 0;
 	
 	/* Walk the B+ tree and count pages */
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
-		
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t, node) {
 		unsigned int i;
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];

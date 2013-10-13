@@ -52,27 +52,11 @@
 extern void *bdata_start;
 extern void *bdata_end;
 
-
-static inline void invalidate_icache(void)
-{
-	/* ICIALLU Invalidate entire ICache */
-	asm volatile ("mov r0, #0\n" "mcr p15, 0, r0, c7, c5, 0\n" ::: "r0" );
-}
-
-static inline void invalidate_dcache(void *address, size_t size)
-{
-	const uintptr_t addr = (uintptr_t)address;
-	/* DCIMVAC - invalidate by address to the point of coherence */
-	for (uintptr_t a = addr; a < addr + size; a += 4) {
-		asm volatile ("mcr p15, 0, %[a], c7, c6, 1\n" :: [a]"r"(a) : );
-	}
-}
-
 static inline void clean_dcache_poc(void *address, size_t size)
 {
 	const uintptr_t addr = (uintptr_t)address;
-	/* DCCMVAC - clean by address to the point of coherence */
 	for (uintptr_t a = addr; a < addr + size; a += 4) {
+		/* DCCMVAC - clean by address to the point of coherence */
 		asm volatile ("mcr p15, 0, %[a], c7, c10, 1\n" :: [a]"r"(a) : );
 	}
 }
@@ -81,13 +65,6 @@ static bootinfo_t bootinfo;
 
 void bootstrap(void)
 {
-	/* Make sure  we run in memory code when caches are enabled,
-	 * make sure we read memory data too. This part is ARMv7 specific as
-	 * ARMv7 no longer invalidates caches on restart.
-	 * See chapter B2.2.2 of ARM Architecture Reference Manual p. B2-1263*/
-	invalidate_icache();
-	invalidate_dcache(&bdata_start, &bdata_end - &bdata_start);
-
 	/* Enable MMU and caches */
 	mmu_start();
 	version_print();
@@ -104,7 +81,6 @@ void bootstrap(void)
 		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
 		    components[i].start, components[i].name, components[i].inflated,
 		    components[i].size);
-		invalidate_dcache(components[i].start, components[i].size);
 	}
 	
 	void *dest[COMPONENTS];
@@ -147,6 +123,7 @@ void bootstrap(void)
 			printf("\n%s: Inflating error %d\n", components[i - 1].name, err);
 			halt();
 		}
+		/* Make sure data are in the memory, ICache will need them */
 		clean_dcache_poc(dest[i - 1], components[i - 1].inflated);
 	}
 	

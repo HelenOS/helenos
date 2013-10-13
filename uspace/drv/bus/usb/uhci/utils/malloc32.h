@@ -91,18 +91,24 @@ static inline void * malloc32(size_t size)
  * @param[in] addr Address of the place allocated by malloc32
  */
 static inline void free32(void *addr)
-	{ free(addr); }
+{
+	free(addr);
+}
 
 /** Create 4KB page mapping
  *
  * @return Address of the mapped page, NULL on failure.
  */
-static inline void * get_page(void)
+static inline void *get_page(void)
 {
-	void *address, *phys;
+	uintptr_t phys;
+	void *address;
+	
 	const int ret = dmamem_map_anonymous(UHCI_REQUIRED_PAGE_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &address);
-	return ret == EOK ? address : NULL;
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
+	    &address);
+	
+	return ((ret == EOK) ? address : NULL);
 }
 
 static inline void return_page(void *page)

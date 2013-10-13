@@ -83,10 +83,8 @@ void done_mem(void)
 	}
 }
 
-static bool overlap_match(link_t *link, void *addr, size_t size)
+static bool overlap_match(mem_block_t *block, void *addr, size_t size)
 {
-	mem_block_t *block = list_get_instance(link, mem_block_t, link);
-	
 	/* Entry block control structure <mbeg, mend) */
 	uint8_t *mbeg = (uint8_t *) block;
 	uint8_t *mend = (uint8_t *) block + sizeof(mem_block_t);
@@ -124,8 +122,8 @@ static int test_overlap(void *addr, size_t size)
 {
 	bool fnd = false;
 	
-	list_foreach(mem_blocks, link) {
-		if (overlap_match(link, addr, size)) {
+	list_foreach(mem_blocks, link, mem_block_t, block) {
+		if (overlap_match(block, addr, size)) {
 			fnd = true;
 			break;
 		}

@@ -187,8 +187,7 @@ void drawctx_stroke(drawctx_t *context, path_t *path)
 	 * surface would be set as a source and its damaged region would be
 	 * transferred to the original surface. */
 
-	list_foreach(*((list_t *) path), link) {
-		path_step_t *step = (path_step_t *) link;
+	list_foreach(*((list_t *) path), link, path_step_t, step) {
 		switch (step->type) {
 		case PATH_STEP_MOVETO:
 			// TODO

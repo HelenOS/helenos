@@ -86,6 +86,9 @@ extern long __POSIX_DEF__(timezone);
 extern char *__POSIX_DEF__(tzname)[2];
 extern void __POSIX_DEF__(tzset)(void);
 
+/* Time */
+extern time_t __POSIX_DEF__(time)(time_t *t);
+
 /* Broken-down Time */
 extern struct tm *__POSIX_DEF__(gmtime_r)(const time_t *restrict timer,
     struct tm *restrict result);

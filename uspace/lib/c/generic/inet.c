@@ -29,7 +29,6 @@
 #include <async.h>
 #include <assert.h>
 #include <errno.h>
-#include <net/socket_codes.h>
 #include <inet/inet.h>
 #include <ipc/inet.h>
 #include <ipc/services.h>
@@ -110,8 +109,8 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 	async_exch_t *exch = async_exchange_begin(inet_sess);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INET_SEND, dgram->tos, ttl, df,
-	    &answer);
+	aid_t req = async_send_4(exch, INET_SEND, dgram->iplink, dgram->tos,
+	    ttl, df, &answer);
 	
 	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
 	if (rc != EOK) {

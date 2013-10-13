@@ -44,7 +44,6 @@
 #include <loc.h>
 #include <device/nic.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include <mem.h>
 #include "ethip.h"
 #include "ethip_nic.h"
@@ -83,9 +82,7 @@ static int ethip_nic_check_new(void)
 	for (i = 0; i < count; i++) {
 		already_known = false;
 
-		list_foreach(ethip_nic_list, link) {
-			ethip_nic_t *nic = list_get_instance(link,
-			    ethip_nic_t, link);
+		list_foreach(ethip_nic_list, link, ethip_nic_t, nic) {
 			if (nic->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -203,6 +200,13 @@ static int ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 
+	rc = nic_broadcast_set_mode(nic->sess, NIC_BROADCAST_ACCEPTED);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error enabling "
+		    "reception of broadcast frames on '%s'.", nic->svc_name);
+		goto error;
+	}
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Initialized IP link service,");
 
 	return EOK;
@@ -312,10 +316,8 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid(%u)",
 	    (unsigned) iplink_sid);
 
-	list_foreach(ethip_nic_list, link) {
+	list_foreach(ethip_nic_list, link, ethip_nic_t, nic) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - element");
-		ethip_nic_t *nic = list_get_instance(link, ethip_nic_t, link);
-
 		if (nic->iplink_sid == iplink_sid) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_find_by_iplink_sid - found %p", nic);
 			return nic;
@@ -349,12 +351,9 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 	
 	size_t count = 0;
 	
-	list_foreach(nic->addr_list, link) {
-		ethip_link_addr_t *laddr = list_get_instance(link,
-		    ethip_link_addr_t, link);
-		
-		uint16_t af = inet_addr_get(&laddr->addr, NULL, NULL);
-		if (af == AF_INET6)
+	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
+		ip_ver_t ver = inet_addr_get(&laddr->addr, NULL, NULL);
+		if (ver == ip_v6)
 			count++;
 	}
 	
@@ -370,16 +369,13 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 	
 	size_t i = 0;
 	
-	list_foreach(nic->addr_list, link) {
-		assert(i < count);
-		
-		ethip_link_addr_t *laddr = list_get_instance(link,
-		    ethip_link_addr_t, link);
-		
+	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
 		addr128_t v6;
-		uint16_t af = inet_addr_get(&laddr->addr, NULL, &v6);
-		if (af != AF_INET6)
+		ip_ver_t ver = inet_addr_get(&laddr->addr, NULL, &v6);
+		if (ver != ip_v6)
 			continue;
+		
+		assert(i < count);
 		
 		addr48_t mac;
 		addr48_solicited_node(v6, mac);
@@ -443,10 +439,7 @@ ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_find()");
 	
-	list_foreach(nic->addr_list, link) {
-		ethip_link_addr_t *laddr = list_get_instance(link,
-		    ethip_link_addr_t, link);
-		
+	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
 		if (inet_addr_compare(addr, &laddr->addr))
 			return laddr;
 	}

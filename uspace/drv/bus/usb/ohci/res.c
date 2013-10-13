@@ -47,13 +47,11 @@
 /** Get address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
- * @param[out] mem_reg_address Base address of the memory range.
- * @param[out] mem_reg_size Size of the memory range.
+ * @param[out] p_regs Pointer to register range.
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int get_my_registers(ddf_dev_t *dev,
-    uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
+int get_my_registers(ddf_dev_t *dev, addr_range_t *p_regs, int *irq_no)
 {
 	assert(dev);
 
@@ -65,7 +63,7 @@ int get_my_registers(ddf_dev_t *dev,
 
 	hw_res_list_parsed_t hw_res;
 	hw_res_list_parsed_init(&hw_res);
-	const int ret =  hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	async_hangup(parent_sess);
 	if (ret != EOK) {
 		return ret;
@@ -77,10 +75,8 @@ int get_my_registers(ddf_dev_t *dev,
 		return EINVAL;
 	}
 
-	if (mem_reg_address)
-		*mem_reg_address = hw_res.mem_ranges.ranges[0].address;
-	if (mem_reg_size)
-		*mem_reg_size = hw_res.mem_ranges.ranges[0].size;
+	if (p_regs)
+		*p_regs = hw_res.mem_ranges.ranges[0];
 	if (irq_no)
 		*irq_no = hw_res.irqs.irqs[0];
 

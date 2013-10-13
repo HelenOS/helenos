@@ -47,8 +47,7 @@
 
 #define NAME "uhcirh"
 
-static int hc_get_my_registers(ddf_dev_t *dev,
-    uintptr_t *io_reg_address, size_t *io_reg_size);
+static int hc_get_my_registers(ddf_dev_t *dev, addr_range_t *io_regs);
 
 static int uhci_rh_dev_add(ddf_dev_t *device);
 
@@ -89,12 +88,11 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 	usb_log_debug2("uhci_rh_dev_add(handle=%" PRIun ")\n",
 	    ddf_dev_get_handle(device));
 
-	uintptr_t io_regs = 0;
-	size_t io_size = 0;
+	addr_range_t regs;
 	uhci_root_hub_t *rh = NULL;
 	int rc;
 
-	rc = hc_get_my_registers(device, &io_regs, &io_size);
+	rc = hc_get_my_registers(device, &regs);
 	if (rc != EOK) {
 		usb_log_error( "Failed to get registers from HC: %s.\n",
 		    str_error(rc));
@@ -102,7 +100,7 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 	}
 
 	usb_log_debug("I/O regs at %p (size %zuB).\n",
-	    (void *) io_regs, io_size);
+	    RNGABSPTR(regs), RNGSZ(regs));
 
 	rh = ddf_dev_data_alloc(device, sizeof(uhci_root_hub_t));
 	if (rh == NULL) {
@@ -110,7 +108,7 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 		return ENOMEM;
 	}
 
-	rc = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
+	rc = uhci_root_hub_init(rh, &regs, device);
 	if (rc != EOK) {
 		usb_log_error("Failed(%d) to initialize rh driver instance: "
 		    "%s.\n", rc, str_error(rc));
@@ -126,12 +124,10 @@ static int uhci_rh_dev_add(ddf_dev_t *device)
 /** Get address of I/O registers.
  *
  * @param[in] dev Device asking for the addresses.
- * @param[out] io_reg_address Base address of the memory range.
- * @param[out] io_reg_size Size of the memory range.
+ * @param[out] io_regs_p Pointer to the device's register range.
  * @return Error code.
  */
-int hc_get_my_registers(
-    ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
+int hc_get_my_registers(ddf_dev_t *dev, addr_range_t *io_regs_p)
 {
 	async_sess_t *parent_sess =
 	    devman_parent_device_connect(EXCHANGE_SERIALIZE,
@@ -152,11 +148,8 @@ int hc_get_my_registers(
 		return EINVAL;
 	}
 
-	if (io_reg_address != NULL)
-		*io_reg_address = hw_res.io_ranges.ranges[0].address;
-
-	if (io_reg_size != NULL)
-		*io_reg_size = hw_res.io_ranges.ranges[0].size;
+	if (io_regs_p != NULL)
+		*io_regs_p = hw_res.io_ranges.ranges[0];
 
 	hw_res_list_parsed_clean(&hw_res);
 	return EOK;

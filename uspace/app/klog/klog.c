@@ -205,8 +205,8 @@ int main(int argc, char *argv[])
 	size_t size = pages * PAGE_SIZE;
 	klog_length = size / sizeof(wchar_t);
 	
-	rc = physmem_map((void *) faddr, pages,
-	    AS_AREA_READ | AS_AREA_CACHEABLE, (void *) &klog);
+	rc = physmem_map(faddr, pages, AS_AREA_READ | AS_AREA_CACHEABLE,
+	    (void *) &klog);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to map klog\n", NAME);
 		return rc;

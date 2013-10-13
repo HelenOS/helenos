@@ -428,7 +428,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 			 * Free the frame with the copy of writable segment
 			 * data.
 			 */
-			frame_free_noreserve(frame);
+			frame_free_noreserve(frame, 1);
 		}
 	} else {
 		/*
@@ -436,7 +436,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * lower part is backed by the ELF image and the upper is
 		 * anonymous). In any case, a frame needs to be freed.
 		 */
-		frame_free_noreserve(frame);
+		frame_free_noreserve(frame, 1);
 	}
 }
 

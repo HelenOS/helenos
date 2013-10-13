@@ -64,8 +64,7 @@ void sig_connect(signal_t *signal, widget_t *widget, slot_t slot)
 	fibril_rwlock_write_lock(&connection_guard);
 
 	signal_node_t *sig_node = NULL;
-	list_foreach(connection_list, link) {
-		signal_node_t *cur = list_get_instance(link, signal_node_t, link);
+	list_foreach(connection_list, link, signal_node_t, cur) {
 		if (cur->signal == signal) {
 			sig_node = cur;
 			break;
@@ -87,8 +86,7 @@ void sig_connect(signal_t *signal, widget_t *widget, slot_t slot)
 	}
 
 	slot_node_t *slt_node = NULL;
-	list_foreach(sig_node->slots, link) {
-		slot_node_t *cur = list_get_instance(link, slot_node_t, link);
+	list_foreach(sig_node->slots, link, slot_node_t, cur) {
 		if (cur->widget == widget && cur->slot == slot) {
 			slt_node = cur;
 			fibril_rwlock_write_unlock(&connection_guard);
@@ -120,8 +118,7 @@ void sig_disconnect(signal_t *signal, widget_t *widget, slot_t slot)
 	fibril_rwlock_write_lock(&connection_guard);
 
 	signal_node_t *sig_node = NULL;
-	list_foreach(connection_list, link) {
-		signal_node_t *cur = list_get_instance(link, signal_node_t, link);
+	list_foreach(connection_list, link, signal_node_t, cur) {
 		if (cur->signal == signal) {
 			sig_node = cur;
 			break;
@@ -134,8 +131,7 @@ void sig_disconnect(signal_t *signal, widget_t *widget, slot_t slot)
 	}
 
 	slot_node_t *slt_node = NULL;
-	list_foreach(sig_node->slots, link) {
-		slot_node_t *cur = list_get_instance(link, slot_node_t, link);
+	list_foreach(sig_node->slots, link, slot_node_t, cur) {
 		if (cur->widget == widget && cur->slot == slot) {
 			slt_node = cur;
 			break;
@@ -163,8 +159,7 @@ void sig_send(signal_t *signal, void *data)
 	fibril_rwlock_read_lock(&connection_guard);
 
 	signal_node_t *sig_node = NULL;
-	list_foreach(connection_list, link) {
-		signal_node_t *cur = list_get_instance(link, signal_node_t, link);
+	list_foreach(connection_list, link, signal_node_t, cur) {
 		if (cur->signal == signal) {
 			sig_node = cur;
 			break;
@@ -176,8 +171,7 @@ void sig_send(signal_t *signal, void *data)
 		return;
 	}
 
-	list_foreach(sig_node->slots, link) {
-		slot_node_t *cur = list_get_instance(link, slot_node_t, link);
+	list_foreach(sig_node->slots, link, slot_node_t, cur) {
 		cur->slot(cur->widget, data);
 	}
 
@@ -189,8 +183,7 @@ void sig_post(signal_t *signal, void *data, size_t data_size)
 	fibril_rwlock_read_lock(&connection_guard);
 
 	signal_node_t *sig_node = NULL;
-	list_foreach(connection_list, link) {
-		signal_node_t *cur = list_get_instance(link, signal_node_t, link);
+	list_foreach(connection_list, link, signal_node_t, cur) {
 		if (cur->signal == signal) {
 			sig_node = cur;
 			break;
@@ -202,9 +195,7 @@ void sig_post(signal_t *signal, void *data, size_t data_size)
 		return;
 	}
 
-	list_foreach(sig_node->slots, link) {
-		slot_node_t *cur = list_get_instance(link, slot_node_t, link);
-
+	list_foreach(sig_node->slots, link, slot_node_t, cur) {
 		void *data_copy = NULL;
 		if (data != NULL) {
 			data_copy = malloc(data_size);

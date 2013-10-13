@@ -332,12 +332,8 @@ usb_hid_report_description_t * usb_hid_report_find_description(
 		return NULL;
 	}
 
-	usb_hid_report_description_t *report_des = NULL;
-	
-	list_foreach(report->reports, report_it) {
-		report_des = list_get_instance(report_it,
-				usb_hid_report_description_t, reports_link);
-
+	list_foreach(report->reports, reports_link,
+	    usb_hid_report_description_t, report_des) {
 		// if report id not set, return the first of the type
 		if(((report_des->report_id == report_id) || (report_id == 0)) && 
 		   (report_des->type == type)) { 
@@ -901,17 +897,13 @@ uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size)
  */
 void usb_hid_descriptor_print_list(list_t *list)
 {
-	usb_hid_report_field_t *report_item;
-
 	if(list == NULL || list_empty(list)) {
 	    usb_log_debug("\tempty\n");
 	    return;
 	}
 
-        list_foreach(*list, item) {
-		report_item = list_get_instance(item, usb_hid_report_field_t,
-				ritems_link);
-
+        list_foreach(*list, ritems_link, usb_hid_report_field_t,
+    	    report_item) {
 		usb_log_debug("\t\tOFFSET: %X\n", report_item->offset);
 		usb_log_debug("\t\tSIZE: %zu\n", report_item->size);
 		usb_log_debug("\t\tLOGMIN: %d\n",
@@ -936,9 +928,7 @@ void usb_hid_descriptor_print_list(list_t *list)
 		usb_hid_print_usage_path(report_item->collection_path);
 
 		usb_log_debug("\n");
-
 	}
-
 }
 
 
@@ -950,15 +940,11 @@ void usb_hid_descriptor_print_list(list_t *list)
  */
 void usb_hid_descriptor_print(usb_hid_report_t *report)
 {
-	if(report == NULL) {
+	if (report == NULL)
 		return;
-	}
 
-	usb_hid_report_description_t *report_des;
-
-	list_foreach(report->reports, report_it) {
-		report_des = list_get_instance(report_it,
-			usb_hid_report_description_t, reports_link);
+	list_foreach(report->reports, reports_link,
+	    usb_hid_report_description_t, report_des) {
 		usb_log_debug("Report ID: %d\n", report_des->report_id);
 		usb_log_debug("\tType: %d\n", report_des->type);
 		usb_log_debug("\tLength: %zu\n", report_des->bit_length);

@@ -84,12 +84,6 @@ size_t get_nonspace_len(const char *str)
 	return len;
 }
 
-void free_not_null(const void *ptr)
-{
-	if (ptr != NULL)
-		free(ptr);
-}
-
 void replace_char(char *str, char orig, char repl)
 {
 	while (*str) {

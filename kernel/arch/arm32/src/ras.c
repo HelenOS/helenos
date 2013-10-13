@@ -50,15 +50,14 @@ uintptr_t *ras_page = NULL;
 
 void ras_init(void)
 {
-	uintptr_t frame;
-
-	frame = (uintptr_t) frame_alloc(ONE_FRAME,
-	    FRAME_ATOMIC | FRAME_HIGHMEM);
+	uintptr_t frame =
+	    frame_alloc(1, FRAME_ATOMIC | FRAME_HIGHMEM, 0);
 	if (!frame)
-		frame = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_LOWMEM);
+		frame = frame_alloc(1, FRAME_LOWMEM, 0);
+	
 	ras_page = (uintptr_t *) km_map(frame,
 	    PAGE_SIZE, PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
-
+	
 	memsetb(ras_page, PAGE_SIZE, 0); 
 	ras_page[RAS_START] = 0;
 	ras_page[RAS_END] = 0xffffffff;

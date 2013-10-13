@@ -37,8 +37,10 @@
 #include <errno.h>
 #include <fibril.h>
 #include <inet/dnsr.h>
+#include <net/inet.h>
 #include <net/socket.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
 #include <sys/types.h>
 
@@ -72,30 +74,28 @@ static int rcv_fibril(void *arg)
 	return 0;
 }
 
-int conn_open(const char *addr_s, const char *port_s)
+int conn_open(const char *host, const char *port_s)
 {
 	int conn_fd = -1;
+	struct sockaddr *saddr = NULL;
+	socklen_t saddrlen;
 	
 	/* Interpret as address */
-	inet_addr_t addr_addr;
-	int rc = inet_addr_parse(addr_s, &addr_addr);
+	inet_addr_t iaddr;
+	int rc = inet_addr_parse(host, &iaddr);
 	
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo, 0);
+		rc = dnsr_name2host(host, &hinfo, ip_any);
 		
 		if (rc != EOK) {
-			printf("Error resolving host '%s'.\n", addr_s);
+			printf("Error resolving host '%s'.\n", host);
 			goto error;
 		}
 		
-		addr_addr = hinfo->addr;
+		iaddr = hinfo->addr;
 	}
-	
-	struct sockaddr_in addr;
-	struct sockaddr_in6 addr6;
-	uint16_t af = inet_addr_sockaddr_in(&addr_addr, &addr, &addr6);
 	
 	char *endptr;
 	uint16_t port = strtol(port_s, &endptr, 10);
@@ -104,26 +104,20 @@ int conn_open(const char *addr_s, const char *port_s)
 		goto error;
 	}
 	
-	printf("Connecting to host %s port %u\n", addr_s, port);
+	rc = inet_addr_sockaddr(&iaddr, port, &saddr, &saddrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		return ENOMEM;
+	}
 	
-	conn_fd = socket(PF_INET, SOCK_STREAM, 0);
+	printf("Connecting to host %s port %u\n", host, port);
+	
+	conn_fd = socket(saddr->sa_family, SOCK_STREAM, 0);
 	if (conn_fd < 0)
 		goto error;
 	
-	switch (af) {
-	case AF_INET:
-		addr.sin_port = htons(port);
-		rc = connect(conn_fd, (struct sockaddr *) &addr, sizeof(addr));
-		break;
-	case AF_INET6:
-		addr6.sin6_port = htons(port);
-		rc = connect(conn_fd, (struct sockaddr *) &addr6, sizeof(addr6));
-		break;
-	default:
-		printf("Unknown address family.\n");
-		goto error;
-	}
-	
+	rc = connect(conn_fd, saddr, saddrlen);
 	if (rc != EOK)
 		goto error;
 	
@@ -133,13 +127,14 @@ int conn_open(const char *addr_s, const char *port_s)
 	
 	fibril_add_ready(rcv_fid);
 	
+	free(saddr);
 	return EOK;
-	
 error:
 	if (conn_fd >= 0) {
 		closesocket(conn_fd);
 		conn_fd = -1;
 	}
+	free(saddr);
 	
 	return EIO;
 }

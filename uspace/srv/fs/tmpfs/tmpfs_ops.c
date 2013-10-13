@@ -258,9 +258,7 @@ int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 
-	list_foreach(parentp->cs_list, lnk) {
-		tmpfs_dentry_t *dentryp;
-		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
+	list_foreach(parentp->cs_list, link, tmpfs_dentry_t, dentryp) {
 		if (!str_cmp(dentryp->name, component)) {
 			*rfn = FS_NODE(dentryp->node);
 			return EOK;
@@ -364,9 +362,8 @@ int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	assert(parentp->type == TMPFS_DIRECTORY);
 
 	/* Check for duplicit entries. */
-	list_foreach(parentp->cs_list, lnk) {
-		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);	
-		if (!str_cmp(dentryp->name, nm))
+	list_foreach(parentp->cs_list, link, tmpfs_dentry_t, dp) {
+		if (!str_cmp(dp->name, nm))
 			return EEXIST;
 	}
 
@@ -399,10 +396,10 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 
 	if (!parentp)
 		return EBUSY;
-	
-	list_foreach(parentp->cs_list, lnk) {
-		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
-		if (!str_cmp(dentryp->name, nm)) {
+
+	list_foreach(parentp->cs_list, link, tmpfs_dentry_t, dp) {
+		if (!str_cmp(dp->name, nm)) {
+			dentryp = dp;
 			childp = dentryp->node;
 			assert(FS_NODE(childp) == cfn);
 			break;

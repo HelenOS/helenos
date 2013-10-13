@@ -128,22 +128,22 @@ typedef struct {
 	void *reg_base_virt;
 	
 	/** Physical tx ring address */
-	void *tx_ring_phys;
+	uintptr_t tx_ring_phys;
 	/** Virtual tx ring address */
 	void *tx_ring_virt;
 	
 	/** Ring of TX frames, physical address */
-	void **tx_frame_phys;
+	uintptr_t *tx_frame_phys;
 	/** Ring of TX frames, virtual address */
 	void **tx_frame_virt;
 	
 	/** Physical rx ring address */
-	void *rx_ring_phys;
+	uintptr_t rx_ring_phys;
 	/** Virtual rx ring address */
 	void *rx_ring_virt;
 	
 	/** Ring of RX frames, physical address */
-	void **rx_frame_phys;
+	uintptr_t *rx_frame_phys;
 	/** Ring of RX frames, virtual address */
 	void **rx_frame_virt;
 	
@@ -1376,8 +1376,8 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	
 	int rc = dmamem_map_anonymous(
 	    E1000_RX_FRAME_COUNT * sizeof(e1000_rx_descriptor_t),
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &e1000->rx_ring_phys,
-	    &e1000->rx_ring_virt);
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
+	    &e1000->rx_ring_phys, &e1000->rx_ring_virt);
 	if (rc != EOK)
 		return rc;
 	
@@ -1386,28 +1386,28 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	E1000_REG_WRITE(e1000, E1000_RDBAL,
 	    (uint32_t) PTR_TO_U64(e1000->rx_ring_phys));
 	
-	e1000->rx_frame_phys =
-	    calloc(E1000_RX_FRAME_COUNT, sizeof(void *));
+	e1000->rx_frame_phys = (uintptr_t *)
+	    calloc(E1000_RX_FRAME_COUNT, sizeof(uintptr_t));
 	e1000->rx_frame_virt =
 	    calloc(E1000_RX_FRAME_COUNT, sizeof(void *));
-	if (e1000->rx_frame_phys == NULL || e1000->rx_frame_virt == NULL) {
+	if ((e1000->rx_frame_phys == NULL) || (e1000->rx_frame_virt == NULL)) {
 		rc = ENOMEM;
 		goto error;
 	}
 	
 	size_t i;
+	uintptr_t frame_phys;
 	void *frame_virt;
-	void *frame_phys;
 	
 	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
-		rc = dmamem_map_anonymous(
-		    E1000_MAX_SEND_FRAME_SIZE, AS_AREA_READ | AS_AREA_WRITE,
-		    0, &frame_phys, &frame_virt);
+		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
+		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
+		    &frame_phys, &frame_virt);
 		if (rc != EOK)
 			goto error;
 		
-		e1000->rx_frame_virt[i] = frame_virt;
 		e1000->rx_frame_phys[i] = frame_phys;
+		e1000->rx_frame_virt[i] = frame_virt;
 	}
 	
 	/* Write descriptor */
@@ -1423,8 +1423,8 @@ error:
 	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
 		if (e1000->rx_frame_virt[i] != NULL) {
 			dmamem_unmap_anonymous(e1000->rx_frame_virt[i]);
+			e1000->rx_frame_phys[i] = 0;
 			e1000->rx_frame_virt[i] = NULL;
-			e1000->rx_frame_phys[i] = NULL;
 		}
 	}
 	
@@ -1435,7 +1435,7 @@ error:
 	
 	if (e1000->rx_frame_virt != NULL) {
 		free(e1000->rx_frame_virt);
-		e1000->rx_frame_phys = NULL;
+		e1000->rx_frame_virt = NULL;
 	}
 	
 	return rc;
@@ -1453,14 +1453,15 @@ static void e1000_uninitialize_rx_structure(nic_t *nic)
 	/* Write descriptor */
 	for (unsigned int offset = 0; offset < E1000_RX_FRAME_COUNT; offset++) {
 		dmamem_unmap_anonymous(e1000->rx_frame_virt[offset]);
+		e1000->rx_frame_phys[offset] = 0;
 		e1000->rx_frame_virt[offset] = NULL;
-		e1000->rx_frame_phys[offset] = NULL;
 	}
 	
 	free(e1000->rx_frame_virt);
-	free(e1000->rx_frame_phys);
-	e1000->rx_frame_virt = NULL;
+	
 	e1000->rx_frame_phys = NULL;
+	e1000->rx_frame_virt = NULL;
+	
 	dmamem_unmap_anonymous(e1000->rx_ring_virt);
 }
 
@@ -1568,32 +1569,35 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	
 	fibril_mutex_lock(&e1000->tx_lock);
 	
-	e1000->tx_ring_phys = NULL;
+	e1000->tx_ring_phys = 0;
 	e1000->tx_ring_virt = NULL;
+	
 	e1000->tx_frame_phys = NULL;
 	e1000->tx_frame_virt = NULL;
 	
 	int rc = dmamem_map_anonymous(
 	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t),
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &e1000->tx_ring_phys,
-	    &e1000->tx_ring_virt);
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
+	    &e1000->tx_ring_phys, &e1000->tx_ring_virt);
 	if (rc != EOK)
 		goto error;
 	
 	memset(e1000->tx_ring_virt, 0,
 	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t));
 	
-	e1000->tx_frame_phys = calloc(E1000_TX_FRAME_COUNT, sizeof(void *));
-	e1000->tx_frame_virt = calloc(E1000_TX_FRAME_COUNT, sizeof(void *));
+	e1000->tx_frame_phys = (uintptr_t *)
+	    calloc(E1000_TX_FRAME_COUNT, sizeof(uintptr_t));
+	e1000->tx_frame_virt =
+	    calloc(E1000_TX_FRAME_COUNT, sizeof(void *));
 
-	if (e1000->tx_frame_phys == NULL || e1000->tx_frame_virt == NULL) {
+	if ((e1000->tx_frame_phys == NULL) || (e1000->tx_frame_virt == NULL)) {
 		rc = ENOMEM;
 		goto error;
 	}
 	
 	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
-		rc = dmamem_map_anonymous(
-		    E1000_MAX_SEND_FRAME_SIZE, AS_AREA_READ | AS_AREA_WRITE,
+		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
+		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 		    0, &e1000->tx_frame_phys[i], &e1000->tx_frame_virt[i]);
 		if (rc != EOK)
 			goto error;
@@ -1615,12 +1619,12 @@ error:
 		e1000->tx_ring_virt = NULL;
 	}
 	
-	if (e1000->tx_frame_phys != NULL && e1000->tx_frame_virt != NULL) {
+	if ((e1000->tx_frame_phys != NULL) && (e1000->tx_frame_virt != NULL)) {
 		for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 			if (e1000->tx_frame_virt[i] != NULL) {
 				dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
+				e1000->tx_frame_phys[i] = 0;
 				e1000->tx_frame_virt[i] = NULL;
-				e1000->tx_frame_phys[i] = NULL;
 			}
 		}
 	}
@@ -1632,7 +1636,7 @@ error:
 	
 	if (e1000->tx_frame_virt != NULL) {
 		free(e1000->tx_frame_virt);
-		e1000->tx_frame_phys = NULL;
+		e1000->tx_frame_virt = NULL;
 	}
 	
 	return rc;
@@ -1649,8 +1653,8 @@ static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 	
 	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 		dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
+		e1000->tx_frame_phys[i] = 0;
 		e1000->tx_frame_virt[i] = NULL;
-		e1000->tx_frame_phys[i] = NULL;
 	}
 	
 	if (e1000->tx_frame_phys != NULL) {
@@ -1660,7 +1664,7 @@ static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 	
 	if (e1000->tx_frame_virt != NULL) {
 		free(e1000->tx_frame_virt);
-		e1000->tx_frame_phys = NULL;
+		e1000->tx_frame_virt = NULL;
 	}
 	
 	dmamem_unmap_anonymous(e1000->tx_ring_virt);
@@ -1936,7 +1940,7 @@ static int e1000_fill_resource_info(ddf_dev_t *dev,
 	
 	e1000->irq = hw_resources->irqs.irqs[0];
 	e1000->reg_base_phys =
-	    MEMADDR_TO_PTR(hw_resources->mem_ranges.ranges[0].address);
+	    MEMADDR_TO_PTR(RNGABS(hw_resources->mem_ranges.ranges[0]));
 	
 	return EOK;
 }

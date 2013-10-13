@@ -82,9 +82,7 @@ bool cfg_empty(const cfg_file_t *data)
 	if (list_empty(&data->sections))
 		return true;
 	
-	list_foreach(data->sections, link) {
-		const cfg_section_t *section = cfg_section_instance(link);
-		
+	cfg_file_foreach(data, section) {
 		if (!list_empty(&section->entries))
 			return false;
 	}
@@ -412,9 +410,7 @@ void cfg_unload(cfg_file_t *data)
  */
 const cfg_section_t *cfg_find_section(const cfg_file_t *data, const char *title)
 {
-	list_foreach(data->sections, link) {
-		const cfg_section_t *section = cfg_section_instance(link);
-		
+	cfg_file_foreach(data, section) {
 		if (str_cmp(section->title, title) == 0)
 			return section;
 	}
@@ -433,9 +429,7 @@ const cfg_section_t *cfg_find_section(const cfg_file_t *data, const char *title)
  */
 const char *cfg_find_value(const cfg_section_t *section, const char *key)
 {
-	list_foreach(section->entries, link) {
-		const cfg_entry_t *entry = cfg_entry_instance(link);
-		
+	cfg_section_foreach(section, entry) {
 		if (str_cmp(entry->key, key) == 0)
 			return entry->value;
 	}

@@ -36,7 +36,6 @@
 #define LIBC_INET_IPLINK_H_
 
 #include <async.h>
-#include <sys/types.h>
 #include <inet/addr.h>
 
 struct iplink_ev_ops;
@@ -77,7 +76,7 @@ typedef struct {
 } iplink_recv_sdu_t;
 
 typedef struct iplink_ev_ops {
-	int (*recv)(iplink_t *, iplink_recv_sdu_t *, uint16_t);
+	int (*recv)(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
 } iplink_ev_ops_t;
 
 extern int iplink_open(async_sess_t *, iplink_ev_ops_t *, iplink_t **);

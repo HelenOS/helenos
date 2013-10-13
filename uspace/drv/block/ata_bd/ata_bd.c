@@ -1131,7 +1131,6 @@ static int wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
 
 	cnt = 100;
 	while ((status & ~n_reset) != 0 || (status & set) != set) {
-		async_usleep(1);
 		--cnt;
 		if (cnt <= 0) break;
 

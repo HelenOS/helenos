@@ -140,6 +140,7 @@ void tcp_transmit_pdu(tcp_pdu_t *pdu)
 	memcpy(pdu_raw + pdu->header_size, pdu->text,
 	    pdu->text_size);
 
+	dgram.iplink = 0;
 	dgram.src = pdu->src;
 	dgram.dest = pdu->dest;
 	dgram.tos = 0;

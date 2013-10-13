@@ -104,7 +104,9 @@ static void canvas_repaint(widget_t *widget)
 
 static void canvas_handle_keyboard_event(widget_t *widget, kbd_event_t event)
 {
-	/* No-op */
+	canvas_t *canvas = (canvas_t *) widget;
+	
+	sig_send(&canvas->keyboard_event, &event);
 }
 
 static void canvas_handle_position_event(widget_t *widget, pos_event_t event)
@@ -138,6 +140,15 @@ bool init_canvas(canvas_t *canvas, widget_t *parent, sysarg_t width,
 	canvas->height = height;
 	canvas->surface = surface;
 	
+	return true;
+}
+
+bool update_canvas(canvas_t *canvas, surface_t *surface)
+{
+	if (surface != NULL)
+		canvas->surface = surface;
+	
+	canvas_repaint(&canvas->widget);
 	return true;
 }
 

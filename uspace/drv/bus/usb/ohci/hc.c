@@ -105,25 +105,24 @@ static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
  * @param[in] ranges_size Size of the ranges buffer (bytes).
  * @param[out] cmds Commands buffer.
  * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Physical address of device's registers.
- * @param[in] reg_size Size of the register area (bytes).
+ * @param[in] regs Device's register range.
  *
  * @return Error code.
  */
 int
 hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
-    size_t cmds_size, uintptr_t regs, size_t reg_size)
+    size_t cmds_size, addr_range_t *regs)
 {
 	if ((ranges_size < sizeof(ohci_pio_ranges)) ||
 	    (cmds_size < sizeof(ohci_irq_commands)) ||
-	    (reg_size < sizeof(ohci_regs_t)))
+	    (RNGSZ(*regs) < sizeof(ohci_regs_t)))
 		return EOVERFLOW;
 
 	memcpy(ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
-	ranges[0].base = regs;
+	ranges[0].base = RNGABS(*regs);
 
 	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
-	ohci_regs_t *registers = (ohci_regs_t *) regs;
+	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(*regs);
 	cmds[0].addr = (void *) &registers->interrupt_status;
 	cmds[3].addr = (void *) &registers->interrupt_status;
 	OHCI_WR(cmds[1].value, OHCI_USED_INTERRUPTS);
@@ -134,15 +133,14 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 /** Register interrupt handler.
  *
  * @param[in] device Host controller DDF device
- * @param[in] reg_base Register range base
- * @param[in] reg_size Register range size
+ * @param[in] regs Register range
  * @param[in] irq Interrupt number
  * @paran[in] handler Interrupt handler
  *
  * @return EOK on success or negative error code
  */
-int hc_register_irq_handler(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size,
-    int irq, interrupt_handler_t handler)
+int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
+    interrupt_handler_t handler)
 {
 	int rc;
 
@@ -157,7 +155,7 @@ int hc_register_irq_handler(ddf_dev_t *device, uintptr_t reg_base, size_t reg_si
 	};
 
 	rc = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
-	    sizeof(irq_cmds), reg_base, reg_size);
+	    sizeof(irq_cmds), regs);
 	if (rc != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
 		    str_error(rc));
@@ -258,17 +256,15 @@ error:
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
- * @param[in] regs Address of the memory mapped I/O registers.
- * @param[in] reg_size Size of the memory mapped area.
+ * @param[in] regs Device's I/O registers range.
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 {
 	assert(instance);
 
-	int rc =
-	    pio_enable((void*)regs, reg_size, (void**)&instance->registers);
+	int rc = pio_enable_range(regs, (void **) &instance->registers);
 	if (rc != EOK) {
 		usb_log_error("Failed to gain access to device registers: %s.\n",
 		    str_error(rc));

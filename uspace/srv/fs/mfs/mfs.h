@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "../../vfs/vfs.h"
 
 #define NAME		"mfs"
@@ -56,6 +57,16 @@
 #else
 #define mfsdebug(...)
 #endif
+
+#define MFS_BMAP_START_BLOCK(sbi, bid) \
+    ((bid) == BMAP_ZONE ? 2 + (sbi)->ibmap_blocks : 2)
+
+#define MFS_BMAP_SIZE_BITS(sbi, bid) \
+    ((bid) == BMAP_ZONE ? (sbi)->nzones - (sbi)->firstdatazone - 1 : \
+    (sbi)->ninodes - 1)
+
+#define MFS_BMAP_SIZE_BLOCKS(sbi, bid) \
+    ((bid) == BMAP_ZONE ? (sbi)->zbmap_blocks : (sbi)->ibmap_blocks)
 
 typedef uint32_t bitchunk_t;
 
@@ -94,6 +105,16 @@ struct mfs_sb_info {
 	bool native;
 	unsigned isearch;
 	unsigned zsearch;
+
+	/* Indicates wether if the cached number of free zones
+	 * is to be considered valid or not.
+	 */
+	bool nfree_zones_valid;
+	/* Cached number of free zones, used to avoid to scan
+	 * the whole bitmap every time the mfs_free_block_count()
+	 * is invoked.
+	 */
+	unsigned nfree_zones;
 };
 
 /* Generic MinixFS inode */
@@ -199,6 +220,13 @@ mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone);
 
 extern int
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone);
+
+extern int
+mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones);
+
+extern int
+mfs_count_free_inodes(struct mfs_instance *inst, uint32_t *inodes);
+
 
 /* mfs_utils.c */
 extern uint16_t

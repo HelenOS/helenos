@@ -922,7 +922,7 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
  * @return		Other error codes as defined for the NET_SOCKET_SEND
  *			message.
  */
-int send(int socket_id, void *data, size_t datalength, int flags)
+int send(int socket_id, const void *data, size_t datalength, int flags)
 {
 	/* Without the address */
 	return sendto_core(NET_SOCKET_SEND, socket_id, data, datalength, flags,

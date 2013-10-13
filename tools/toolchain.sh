@@ -35,7 +35,7 @@ GMP_MAIN=<<EOF
 #define GCC_GMP_VERSION \
 	GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
 
-#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,2)
+#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4, 3, 2)
 	choke me
 #endif
 EOF
@@ -57,7 +57,7 @@ BINUTILS_RELEASE=""
 BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
 GCC_VERSION="4.8.1"
 GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
-GDB_VERSION="7.6"
+GDB_VERSION="7.6.1"
 GDB_PATCHES="toolchain-gdb-7.6.patch"
 
 BASEDIR="`pwd`"
@@ -272,6 +272,33 @@ create_dir() {
 	check_error $? "Unable to create ${DIR}."
 }
 
+check_dirs() {
+	OUTSIDE="$1"
+	BASE="$2"
+	ORIGINAL="`pwd`"
+	
+	cd "${OUTSIDE}"
+	check_error $? "Unable to change directory to ${OUTSIDE}."
+	ABS_OUTSIDE="`pwd`"
+	
+	cd "${BASE}"
+	check_error $? "Unable to change directory to ${BASE}."
+	ABS_BASE="`pwd`"
+	
+	cd "${ORIGINAL}"
+	check_error $? "Unable to change directory to ${ORIGINAL}."
+	
+	BASE_LEN="${#ABS_BASE}"
+	OUTSIDE_TRIM="${ABS_OUTSIDE:0:${BASE_LEN}}"
+	
+	if [ "${OUTSIDE_TRIM}" == "${ABS_BASE}" ] ; then
+		echo
+		echo "CROSS_PREFIX cannot reside within the working directory."
+		
+		exit 5
+	fi
+}
+
 unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
@@ -306,7 +333,7 @@ prepare() {
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
 	download_fetch "${GCC_SOURCE}" "${GCC}" "3b2386c114cd74185aa3754b58a79304"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "fda57170e4d11cdde74259ca575412a8"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "fbc4dab4181e6e9937075b43a4ce2732"
 }
 
 set_target_from_platform() {
@@ -397,6 +424,8 @@ build_target() {
 	
 	$REAL_INSTALL && create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
+	
+	check_dirs "${PREFIX}" "${WORKDIR}"
 	
 	echo ">>> Unpacking tarballs"
 	cd "${WORKDIR}"

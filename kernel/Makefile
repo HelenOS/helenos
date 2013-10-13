@@ -225,7 +225,6 @@ GENERIC_SOURCES = \
 	generic/src/syscall/copy.c \
 	generic/src/mm/km.c \
 	generic/src/mm/reserve.c \
-	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \
 	generic/src/mm/tlb.c \

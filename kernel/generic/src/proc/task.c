@@ -451,9 +451,7 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 	uint64_t kret = task->kcycles;
 	
 	/* Current values of threads */
-	list_foreach(task->threads, cur) {
-		thread_t *thread = list_get_instance(cur, thread_t, th_link);
-		
+	list_foreach(task->threads, th_link, thread_t, thread) {
 		irq_spinlock_lock(&thread->lock, false);
 		
 		/* Process only counted threads */
@@ -483,8 +481,7 @@ static void task_kill_internal(task_t *task)
 	 * Interrupt all threads.
 	 */
 	
-	list_foreach(task->threads, cur) {
-		thread_t *thread = list_get_instance(cur, thread_t, th_link);
+	list_foreach(task->threads, th_link, thread_t, thread) {
 		bool sleeping = false;
 		
 		irq_spinlock_lock(&thread->lock, false);
