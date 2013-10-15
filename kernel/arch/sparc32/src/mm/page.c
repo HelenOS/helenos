@@ -86,17 +86,17 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 	uint32_t fault_status = asi_u32_read(ASI_MMUREGS, MMU_FAULT_STATUS);
 	uintptr_t fault_address = asi_u32_read(ASI_MMUREGS, MMU_FAULT_ADDRESS);
 	mmu_fault_status_t *fault = (mmu_fault_status_t *)&fault_status;
-	mmu_fault_type_t type = (mmu_fault_type_t)fault->ft;
+	mmu_fault_type_t type = (mmu_fault_type_t)fault->at;
 
-	printf("page fault on address 0x%08x, status 0x%08x\n", fault_address, fault_status);
+	printf("page fault on address 0x%08x, status 0x%08x, type %d\n", fault_address, fault_status, type);
 
-	if (type == FAULT_TYPE_LOAD_USER_DATA)	
+	if (type == FAULT_TYPE_LOAD_USER_DATA || type == FAULT_TYPE_LOAD_SUPERVISOR_DATA)	
 		as_page_fault(fault_address, PF_ACCESS_READ, istate);
 
-	if (type == FAULT_TYPE_EXECUTE_USER)
+	if (type == FAULT_TYPE_EXECUTE_USER || type == FAULT_TYPE_EXECUTE_SUPERVISOR)
 		as_page_fault(fault_address, PF_ACCESS_EXEC, istate);
 
-	if (type == FAULT_TYPE_STORE_USER_DATA || type == FAULT_TYPE_STORE_USER_INSTRUCTION)
+	if (type == FAULT_TYPE_STORE_USER_DATA || type == FAULT_TYPE_STORE_USER_INSTRUCTION || type == FAULT_TYPE_STORE_SUPERVISOR_INSTRUCTION)
 		as_page_fault(fault_address, PF_ACCESS_WRITE, istate);
 }
 

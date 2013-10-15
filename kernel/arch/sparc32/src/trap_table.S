@@ -33,6 +33,7 @@
 .global trap_table
 .global reset_trap
 .global preemptible_trap
+.global syscall_trap
 .global window_overflow_trap
 .global window_underflow_trap
 
@@ -43,40 +44,62 @@ reset_trap:
 	rett
 
 window_overflow_trap:
-        /* rotate WIM on bit right, we have 8 windows */
-        mov %wim,%l3
-        sll %l3,7,%l4
-        srl %l3,1,%l3
-        or  %l3,%l4,%l3
-        and %l3,0xff,%l3
+	/* rotate WIM on bit right, we have 8 windows */
+	mov %wim, %l3
+	sll %l3, 7, %l4
+	srl %l3, 1, %l3
+	or  %l3, %l4, %l3
+	and %l3, 0xff, %l3
 
-        /* disable WIM traps */
-        mov %g0,%wim
-        nop; nop; nop
+	/* disable WIM traps */
+	mov %g0,%wim
+	nop; nop; nop
 
-        /* point to correct window */
-        save
+	/* Check whether previous mode was usermode */
+	mov %psr, %l0
+	and %l0, (1 << 6), %l0
+	cmp %l0, 0
+	beq 1f
+	nop
 
-        /* dump registers to stack */
-        std %l0, [%sp +  0]
-        std %l2, [%sp +  8]
-        std %l4, [%sp + 16]
-        std %l6, [%sp + 24]
-        std %i0, [%sp + 32]
-        std %i2, [%sp + 40]
-        std %i4, [%sp + 48]
-        std %i6, [%sp + 56]
+	/* dump registers to stack */
+	save
+	std %l0, [%sp +  0]
+	std %l2, [%sp +  8]
+	std %l4, [%sp + 16]
+	std %l6, [%sp + 24]
+	std %i0, [%sp + 32]
+	std %i2, [%sp + 40]
+	std %i4, [%sp + 48]
+	std %i6, [%sp + 56]
+	b 2f
+	nop
 
-        /* back to where we should be */
-        restore
+	/* dump registers to uwb */
+1:	save
+	set uspace_wbuf, %g2
+	ld [%g1], %g1
+	std %l0, [%g1 +  0]
+	std %l2, [%g1 +  8]
+	std %l4, [%g1 + 16]
+	std %l6, [%g1 + 24]
+	std %i0, [%g1 + 32]
+	std %i2, [%g1 + 40]
+	std %i4, [%g1 + 48]
+	std %i6, [%g1 + 56]
+	add %g1, 64, %g1
+	st %g1, [%g2]
 
-        /* set new value of window */
-        mov %l3,%wim
-        nop; nop; nop
+	/* back to where we should be */
+2:	restore
 
-        /* go home */
-        jmp %l1
-        rett %l2
+	/* set new value of window */
+	mov %l3,%wim
+	nop; nop; nop
+
+	/* go home */
+	jmp %l1
+	rett %l2
 
 window_underflow_trap:
         /* rotate WIM on bit LEFT, we have 8 windows */ 
@@ -90,11 +113,16 @@ window_underflow_trap:
         mov %g0,%wim
         nop; nop; nop
 
-        /* point to correct window */
-        restore
-        restore
+	/* Check whether previous mode was usermode */
+	mov %psr, %l0
+	and %l0, (1 << 6), %l0
+	cmp %l0, 0
+	beq 1f
+	nop
 
-        /* dump registers to stack */
+        /* load registers from stack */
+	restore
+	restore
         ldd [%sp +  0], %l0
         ldd [%sp +  8], %l2
         ldd [%sp + 16], %l4
@@ -103,10 +131,28 @@ window_underflow_trap:
         ldd [%sp + 40], %i2
         ldd [%sp + 48], %i4
         ldd [%sp + 56], %i6
+	b 2f
+	nop
+
+	/* load registers from uwb */
+1:	restore
+	restore
+	set uspace_wbuf, %g2
+	ld [%g2], %g1
+        ldd [%g1 +  0], %l0
+        ldd [%g1 +  8], %l2
+        ldd [%g1 + 16], %l4
+        ldd [%g1 + 24], %l6
+        ldd [%g1 + 32], %i0
+        ldd [%g1 + 40], %i2
+        ldd [%g1 + 48], %i4
+        ldd [%g1 + 56], %i6
+	sub %g1, 64, %g1
+	st %g1, [%g2]
 
         /* back to where we should be */
-        save
-        save
+2:	save
+	save
 
         /* set new value of window */
         mov %l3,%wim
@@ -117,10 +163,7 @@ window_underflow_trap:
         rett %l2
 
 preemptible_trap:
-	/* Enable traps */
 	mov %psr, %l0
-	or %l0, (1 << 5), %l0
-	mov %l0, %psr
 
 	/* Check whether previous mode was usermode */
 	and %l0, (1 << 6), %l0
@@ -135,20 +178,85 @@ preemptible_trap:
 1:	sub %sp, 112, %sp
 
 	/* Save trap data on stack */
+	mov %psr, %l0
 	st %l1, [%fp - 4]
 	st %l2, [%fp - 8]
 	st %l0, [%fp - 12]
 
+	/* Enable traps */
+	mov %psr, %l0
+	or %l0, (1 << 5), %l0
+	mov %l0, %psr
+	nop
+	nop
+	nop
+	nop
+
 	/* Jump to actual subroutine */
-	mov 1, %o0
-	jmp %g1
+	mov %g2, %o0
+	call %g1
 	sub %fp, 12, %o1
 
 	/* Return from handler */
 	ld [%fp - 4], %l1
 	ld [%fp - 8], %l2
+	ld [%fp - 12], %l0
+	mov %l0, %psr
+	nop
+	nop
+	nop
+	nop
+	nop
 	jmp %l1
 	rett %l2
+
+syscall_trap:
+	mov %psr, %l0
+
+	/* Set up stack */
+	set kernel_sp, %l4
+	ld [%l4], %sp
+	mov %sp, %fp
+	sub %sp, 112, %sp
+
+	/* Save trap data on stack */
+	mov %psr, %l0
+	st %l1, [%fp - 4]
+	st %l2, [%fp - 8]
+	st %l0, [%fp - 12]
+
+	/* Enable traps */
+	mov %psr, %l0
+	or %l0, (1 << 5), %l0
+	mov %l0, %psr
+	nop
+	nop
+	nop
+	nop
+
+	/* Jump to actual subroutine */
+	sub %g2, 0x80, %g2
+	st %g2, [ %sp + 92 ]
+	mov %i0, %o1
+	mov %i1, %o1
+	mov %i2, %o2
+	mov %i3, %o3
+	mov %i4, %o4
+	call syscall
+	mov %i5, %o5
+
+	/* Return from handler */
+	ld [%fp - 4], %l1
+	ld [%fp - 8], %l2
+	ld [%fp - 12], %l0
+	mov %l0, %psr
+	nop
+	nop
+	nop
+	nop
+	nop
+	jmp %l2
+	rett %l2 + 4
 
 #define	STRAP(_vector, _handler) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
@@ -159,9 +267,16 @@ preemptible_trap:
 
 #define	TRAP(_vector, _handler) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
+	set _vector, %g2 ; \
 	sethi %hi(_handler), %g1 ; \
 	b preemptible_trap ; \
 	or %g1, %lo(_handler), %g1 ;
+
+#define	SYSCALL(_vector) \
+	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
+	set _vector, %g2 ; \
+	b syscall_trap ; \
+	nop ;
 
 #define	INTERRUPT(_vector, _priority) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
@@ -303,4 +418,45 @@ trap_table:
 	BADTRAP(0x7d)
 	BADTRAP(0x7e)
 	BADTRAP(0x7f)
-
+	SYSCALL(0x80)
+	SYSCALL(0x81)
+	SYSCALL(0x82)
+	SYSCALL(0x83)
+	SYSCALL(0x84)
+	SYSCALL(0x85)
+	SYSCALL(0x86)
+	SYSCALL(0x87)
+	SYSCALL(0x88)
+	SYSCALL(0x89)
+	SYSCALL(0x8a)
+	SYSCALL(0x8b)
+	SYSCALL(0x8c)
+	SYSCALL(0x8d)
+	SYSCALL(0x8e)
+	SYSCALL(0x8f)
+	SYSCALL(0x90)
+	SYSCALL(0x91)
+	SYSCALL(0x92)
+	SYSCALL(0x93)
+	SYSCALL(0x94)
+	SYSCALL(0x95)
+	SYSCALL(0x96)
+	SYSCALL(0x97)
+	SYSCALL(0x98)
+	SYSCALL(0x99)
+	SYSCALL(0x9a)
+	SYSCALL(0x9b)
+	SYSCALL(0x9c)
+	SYSCALL(0x9d)
+	SYSCALL(0x9e)
+	SYSCALL(0x9f)
+	SYSCALL(0xa0)
+	SYSCALL(0xa1)
+	SYSCALL(0xa2)
+	SYSCALL(0xa3)
+	SYSCALL(0xa4)
+	SYSCALL(0xa5)
+	SYSCALL(0xa6)
+	SYSCALL(0xa7)
+	SYSCALL(0xa8)
+	SYSCALL(0xa9)

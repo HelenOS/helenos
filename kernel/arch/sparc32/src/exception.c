@@ -38,6 +38,7 @@
 #include <typedefs.h>
 #include <arch/istate.h>
 #include <arch/exception.h>
+#include <syscall/syscall.h>
 #include <interrupt.h>
 #include <arch/asm.h>
 #include <debug.h>
@@ -136,6 +137,12 @@ void mem_address_not_aligned(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	panic_badtrap(istate, n, "%s.", __func__);
+}
+
+void syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
+{
+	printf("syscall %d\n", id);
+	syscall_handler(a1, a2, a3, a4, a5, a6, id);
 }
 
 /** @}
