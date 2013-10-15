@@ -43,15 +43,6 @@
 #include <console/chardev.h>
 #include <typedefs.h>
 
-/** GRLIB UART registers */
-typedef struct {
-	uint32_t data;
-	grlib_uart_status_t status;
-	grlib_uart_control_t control;
-	uint32_t scaler;
-	uint32_t debug;
-} grlib_uart_io_t;
-
 typedef struct {
 	unsigned int rcnt: 6;
 	unsigned int tcnt: 6;
@@ -87,7 +78,16 @@ typedef struct {
 	unsigned int ri: 1;
 	unsigned int te: 1;
 	unsigned int re: 1;
-};
+} grlib_uart_control_t;
+
+/** GRLIB UART registers */
+typedef struct {
+	uint32_t data;
+	uint32_t status;
+	uint32_t control;
+	uint32_t scaler;
+	uint32_t debug;
+} grlib_uart_io_t;
 
 typedef struct {
 	grlib_uart_io_t *io;

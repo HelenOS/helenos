@@ -37,26 +37,51 @@
 #include <genarch/drivers/grlib_irqmp/grlib_irqmp.h>
 #include <arch/asm.h>
 
-void grlib_irqmp_init(grlib_irqmp_t *irqc, grlib_irqmp_regs_t *regs)
+#include <mm/km.h>
+
+void grlib_irqmp_init(grlib_irqmp_t *irqc, bootinfo_t *bootinfo)
 {
-	irqc->regs = regs;
+	irqc->regs = (void *) km_map(bootinfo->intc_base, PAGE_SIZE,
+	    PAGE_NOT_CACHEABLE);
+
+	/* Mask all interrupts */
+	pio_write_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET, 0);
 }
 
-unsigned grlib_irqmp_inum_get(grlib_irqmp_t *irqc)
+int grlib_irqmp_inum_get(grlib_irqmp_t *irqc)
 {
-	return 0;
+	int i;
+	uint32_t pending = pio_read_32(&irqc->regs->pending);
+
+	for (i = 1; i < 16; i++) {
+		if (pending & (1 << i))
+			return i;
+	}
+
+	return -1;
 }
 
-void grlib_irqmp_clear(grlib_irqmp_t *irqc, unsigned inum)
+void grlib_irqmp_clear(grlib_irqmp_t *irqc, int inum)
 {
+	pio_write_32(&irqc->regs->clear, (1 << inum));
 }
 
-void grlib_irqmp_src_enable(grlib_irqmp_t *irqc, unsigned src)
+void grlib_irqmp_mask(grlib_irqmp_t *irqc, int src)
 {
+	uint32_t mask = pio_read_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET);
+
+	mask &= ~(1 << src);
+
+	pio_write_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
 }
 
-void grlib_irqmp_src_disable(grlib_irqmp_t *irqc, unsigned src)
+void grlib_irqmp_unmask(grlib_irqmp_t *irqc, int src)
 {
+	uint32_t mask = pio_read_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET);
+
+	mask |= (1 << src);
+
+	pio_write_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
 }
 
 /** @}

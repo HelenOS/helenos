@@ -49,13 +49,15 @@
 
 static void grlib_uart_sendb(outdev_t *dev, uint8_t byte)
 {
+	uint32_t reg;
 	grlib_uart_status_t *status;
 	grlib_uart_t *uart =
 	    (grlib_uart_t *) dev->data;
 
 	/* Wait for space becoming available in Tx FIFO. */
 	do {
-		status = pio_read_32(&uart->io->status);
+		reg = pio_read_32(&uart->io->status);
+		status = (grlib_uart_status_t *)&reg;
 	} while (status->tf != 0);
 
 	pio_write_32(&uart->io->data, byte);
@@ -84,14 +86,17 @@ static irq_ownership_t grlib_uart_claim(irq_t *irq)
 
 static void grlib_uart_irq_handler(irq_t *irq)
 {
+	uint32_t reg;
 	grlib_uart_t *uart = irq->instance;
-	grlib_status_t status;
+	grlib_uart_status_t *status;
 
-	status = (grlib_status_t)pio_read_32(&uart->io->status);
+	reg = pio_read_32(&uart->io->status);
+	status = (grlib_uart_status_t *)&reg;
 
 	while (status->dr != 0) {
 		uint32_t data = pio_read_32(&uart->io->data);
-		status = (grlib_status_t)pio_read_32(&uart->io->status);
+		reg = pio_read_32(&uart->io->status);
+		status = (grlib_uart_status_t *)&reg;
 		indev_push_character(uart->indev, data & 0xff);
 	}
 }
@@ -130,11 +135,12 @@ outdev_t *grlib_uart_init(uintptr_t paddr, inr_t inr)
 	uart->irq.instance = uart;
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
-	grlib_control_t control = 
+	grlib_uart_control_t control = 
 		{ .fa = 1, .rf = 1, .tf = 1, .ri = 1, 
 		  .te = 1, .re = 1};
 
-	pio_write_32(&uart->io->control, control);
+	uint32_t *reg = (uint32_t *)&control;
+	pio_write_32(&uart->io->control, *reg);
 
 	link_initialize(&uart->parea.link);
 	uart->parea.pbase = paddr;

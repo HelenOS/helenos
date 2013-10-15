@@ -38,6 +38,7 @@
 #define KERN_GRLIB_IRQMP_H_
 
 #include <typedefs.h>
+#include <arch.h>
 
 #define GRLIB_IRQMP_MASK_OFFSET		0x40
 #define	GRLIB_IRQMP_FORCE_OFFSET	0x80
@@ -69,11 +70,11 @@ typedef struct {
 	grlib_irqmp_regs_t *regs;
 } grlib_irqmp_t;
 
-extern void grlib_irqmp_init(grlib_irqmp_t *, grlib_irqmp_regs_t *);
-extern unsigned grlib_irqmp_inum_get(grlib_irqmp_t *);
-extern void grlib_irqmp_clear(grlib_irqc_t *, int);
-extern void grlib_irqmp_irq_mask(grlib_irqc_t *, int);
-extern void grlib_irqmp_irq_unmask(grlib_irqc_t *, int);
+extern void grlib_irqmp_init(grlib_irqmp_t *, bootinfo_t *);
+extern int grlib_irqmp_inum_get(grlib_irqmp_t *);
+extern void grlib_irqmp_clear(grlib_irqmp_t *, int);
+extern void grlib_irqmp_mask(grlib_irqmp_t *, int);
+extern void grlib_irqmp_unmask(grlib_irqmp_t *, int);
 
 #endif
 
