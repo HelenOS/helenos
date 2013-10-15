@@ -64,6 +64,7 @@ NO_TRACE static inline void cpu_sleep(void)
 
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
+	*port = val;
 }
 
 /** Word to port
@@ -76,6 +77,7 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
  */
 NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
+	*port = val;
 }
 
 /** Double word to port
@@ -88,6 +90,7 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
  */
 NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
+	*port = val;
 }
 
 /** Byte from port
@@ -100,7 +103,7 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
  */
 NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
-	return 0;
+	return *port;
 }
 
 /** Word from port
@@ -113,7 +116,7 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
  */
 NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
-	return 0;
+	return *port;
 }
 
 /** Double word from port
@@ -126,7 +129,7 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
  */
 NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
-	return 0;
+	return *port;
 }
 
 NO_TRACE static inline uint32_t psr_read()
