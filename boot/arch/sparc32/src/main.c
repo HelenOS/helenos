@@ -61,7 +61,27 @@ void bootstrap(void)
 	/* Look up for UART */
 	amba_device_t *uart = ambapp_lookup_first(GAISLER, GAISLER_APBUART);
 	amba_uart_base = uart->bars[0].start;
+	bootinfo.uart_base = amba_uart_base;
+	bootinfo.uart_irq = uart->irq;
 
+	/* Look up for IRQMP */
+	amba_device_t *irqmp = ambapp_lookup_first(GAISLER, GAISLER_IRQMP);
+	bootinfo.intc_base = irqmp->bars[0].start;
+
+	/* Look up for timer */
+	amba_device_t *timer = ambapp_lookup_first(GAISLER, GAISLER_GPTIMER);
+	bootinfo.timer_base = timer->bars[0].start;
+	bootinfo.timer_irq = timer->irq;
+	
+	/* Lookp up for memory controller and obtain memory size */
+	if (ambapp_fake()) {
+		bootinfo.memsize = 64 * 1024 * 1024; // 64MB
+	} else {
+		amba_device_t *mctrl = ambapp_lookup_first(ESA, ESA_MCTRL);
+		volatile mctrl_mcfg2_t *mcfg2 = (volatile mctrl_mcfg2_t *)(mctrl->bars[0].start + 0x4);
+		bootinfo.memsize = (1 << (13 + mcfg2->bank_size));
+	}
+	
 	/* Standard output is now initialized */
 	version_print();
 
@@ -72,6 +92,8 @@ void bootstrap(void)
 	}
 
 	ambapp_print_devices();
+
+	printf("Memory size: %dMB\n", bootinfo.memsize >> 20);
 
 	mmu_init();
 

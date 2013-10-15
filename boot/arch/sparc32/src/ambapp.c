@@ -53,6 +53,8 @@ static void ambapp_scan_area(uintptr_t, int);
 
 void ambapp_scan()
 {
+	amba_fake = false;
+
 	/* Scan for AHB masters & slaves */
 	ambapp_scan_area(AMBAPP_AHBMASTER_AREA, 64);
 	ambapp_scan_area(AMBAPP_AHBSLAVE_AREA, 63);
@@ -63,7 +65,8 @@ void ambapp_scan()
 		ambapp_scan_area(apbmst->bars[0].start, 16);
 
 	/* If we found nothing, fake device entries */
-	ambapp_qemu_fake_scan();
+	if (amba_devices_found == 0)
+		ambapp_qemu_fake_scan();
 }
 
 static void ambapp_scan_area(uintptr_t master_bar, int max_entries)
@@ -79,7 +82,7 @@ static void ambapp_scan_area(uintptr_t master_bar, int max_entries)
 
 		amba_device_t *device = &amba_devices[amba_devices_found];
 		device->vendor_id = (amba_vendor_id_t)entry->vendor_id;
-		device->device_id = (amba_device_id_t)entry->device_id;
+	device->device_id = (amba_device_id_t)entry->device_id;
 		device->version = entry->version;
 		device->irq = entry->irq;
 	
@@ -120,7 +123,13 @@ void ambapp_qemu_fake_scan()
 	amba_devices[2].bars[0].start = 0x80000300;
 	amba_devices[2].bars[0].size = 0x100;
 
+	amba_fake = true;
 	amba_devices_found = 3;
+}
+
+bool ambapp_fake()
+{
+	return amba_fake;
 }
 
 void ambapp_print_devices()
@@ -129,7 +138,11 @@ void ambapp_print_devices()
 
 	for (int i = 0; i < amba_devices_found; i++) {
 		amba_device_t *dev = &amba_devices[i];
-		printf("<%1x:%03x> at 0x%08x, irq %d\n", dev->vendor_id, dev->device_id, dev->bars[0].start, dev->irq);
+		printf("<%1x:%03x> at 0x%08x ", dev->vendor_id, dev->device_id, dev->bars[0].start);
+		if (dev->irq == -1)
+			printf("\n");
+		else
+			printf("irq %d\n", dev->irq);
 	}
 }
 

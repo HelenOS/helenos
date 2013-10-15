@@ -126,11 +126,36 @@ typedef struct {
 	ambapp_bar_t bar[4];
 } __attribute__((packed)) ambapp_entry_t;
 
+typedef struct {
+	unsigned int ram_read_ws: 1;
+	unsigned int ram_write_ws: 1;
+	unsigned int ram_width: 2;
+	unsigned int rmw: 1;
+	unsigned int rbrdy: 1;
+	unsigned int : 1;
+	unsigned int bank_size: 4;
+	unsigned int si: 1;
+	unsigned int se: 1;
+	unsigned int : 1;
+	unsigned int ms: 1;
+	unsigned int : 1;
+	unsigned int d64: 1;
+	unsigned int sdram_cmd: 2;
+	unsigned int sdram_colsz: 2;
+	unsigned int sdram_banksz: 3;
+	unsigned int tcas: 1;
+	unsigned int trfc: 3;
+	unsigned int trp: 1;
+	unsigned int sdrf: 1;
+} __attribute__((packed)) mctrl_mcfg2_t;
+
 amba_device_t amba_devices[AMBAPP_MAX_DEVICES];
 int amba_devices_found;
+bool amba_fake;
 uintptr_t amba_uart_base;
 
 void ambapp_scan(void);
+bool ambapp_fake(void);
 void ambapp_qemu_fake_scan(void);
 void ambapp_print_devices(void);
 amba_device_t *ambapp_lookup_first(amba_vendor_id_t, amba_device_id_t);
