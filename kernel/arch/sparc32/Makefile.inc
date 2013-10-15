@@ -50,6 +50,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/proc/task.c \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/sparc32.c \
+	arch/$(KARCH)/src/machine_func.c \
 	arch/$(KARCH)/src/userspace.c \
 	arch/$(KARCH)/src/exception.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
@@ -61,3 +62,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
+
+ifeq ($(MACHINE),leon3)
+	ARCH_SOURCES += arch/$(KARCH)/src/machine/leon3/leon3.c
+endif
+
