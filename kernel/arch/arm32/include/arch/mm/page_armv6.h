@@ -47,7 +47,7 @@
 #define PTE_PRESENT_ARCH(pte) \
 	(((pte_t *) (pte))->l0.descriptor_type != 0)
 #define PTE_GET_FRAME_ARCH(pte) \
-	(((pte_t *) (pte))->l1.frame_base_addr << FRAME_WIDTH)
+	(((uintptr_t) ((pte_t *) (pte))->l1.frame_base_addr) << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(pte) \
 	(((pte_t *) (pte))->l1.access_permission_1 != PTE_AP1_RO)
 #define PTE_EXECUTABLE_ARCH(pte) \
