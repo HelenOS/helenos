@@ -103,6 +103,7 @@ extern char *__POSIX_DEF__(asctime_r)(const struct tm *restrict timeptr,
 extern char *__POSIX_DEF__(asctime)(const struct tm *restrict timeptr);
 extern char *__POSIX_DEF__(ctime_r)(const time_t *timer, char *buf);
 extern char *__POSIX_DEF__(ctime)(const time_t *timer);
+extern time_t time(time_t *t);
 
 /* Clocks */
 extern int __POSIX_DEF__(clock_getres)(__POSIX_DEF__(clockid_t) clock_id,

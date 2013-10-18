@@ -26,23 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libposix
  * @{
  */
+/** @file Pthread: thread management.
+ */
 
-#include <bitops.h>
+#define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
-int __popcountsi2(int a)
+#include "posix/pthread.h"
+#include "errno.h"
+#include "posix/stdlib.h"
+#include "libc/thread.h"
+#include "../internal/common.h"
+
+pthread_t pthread_self(void)
 {
-	int bits = 0;
-	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
-		if (((a >> i) & 1) != 0) {
-			bits++;
-		}
-	}
-	return bits;									
+	return thread_get_id();
 }
 
+int pthread_equal(pthread_t thread1, pthread_t thread2)
+{
+	return thread1 == thread2;
+}
+
+int pthread_create(pthread_t *thread_id, const pthread_attr_t *attributes,
+    void *(*start_routine)(void *), void *arg)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_join(pthread_t thread, void **ret_val)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_detach(pthread_t thread)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_attr_init(pthread_attr_t *attr)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_attr_destroy(pthread_attr_t *attr)
+{
+	not_implemented();
+	return ENOTSUP;
+}
 
 /** @}
  */

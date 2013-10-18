@@ -48,6 +48,7 @@ double posix_ldexp(double x, int exp)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -60,6 +61,7 @@ double posix_frexp(double num, int *exp)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -71,6 +73,7 @@ double posix_cos(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -83,6 +86,7 @@ double posix_pow(double x, double y)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -94,6 +98,7 @@ double posix_floor(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -105,6 +110,7 @@ double posix_fabs(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -117,6 +123,7 @@ double posix_modf(double x, double *iptr)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -129,6 +136,7 @@ double posix_fmod(double x, double y)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -140,6 +148,7 @@ double posix_log(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -152,6 +161,7 @@ double posix_atan2(double y, double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -163,6 +173,7 @@ double posix_sin(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -174,6 +185,7 @@ double posix_exp(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /**
@@ -185,6 +197,7 @@ double posix_sqrt(double x)
 {
 	// TODO: Python dependency
 	not_implemented();
+	return 0.0;
 }
 
 /** @}

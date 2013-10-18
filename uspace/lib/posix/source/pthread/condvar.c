@@ -26,21 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libposix
  * @{
  */
+/** @file Pthread: condition variables.
+ */
 
-#include <bitops.h>
+#define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
-int __popcountsi2(int a)
+#include "posix/pthread.h"
+#include "errno.h"
+#include "../internal/common.h"
+
+int pthread_cond_init(pthread_cond_t *restrict condvar,
+    const pthread_condattr_t *restrict attr)
 {
-	int bits = 0;
-	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
-		if (((a >> i) & 1) != 0) {
-			bits++;
-		}
-	}
-	return bits;									
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_cond_destroy(pthread_cond_t *condvar)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_cond_broadcast(pthread_cond_t *condvar)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_cond_signal(pthread_cond_t *condvar)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_cond_timedwait(pthread_cond_t *restrict condvar,
+    pthread_mutex_t *restrict mutex, const struct __POSIX_DEF__(timespec) *restrict timeout)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_cond_wait(pthread_cond_t *restrict condvar,
+    pthread_mutex_t *restrict mutex)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+
+int pthread_condattr_init(pthread_condattr_t *attr)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_condattr_destroy(pthread_condattr_t *attr)
+{
+	not_implemented();
+	return ENOTSUP;
 }
 
 

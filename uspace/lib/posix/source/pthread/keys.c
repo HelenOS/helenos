@@ -26,23 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libposix
  * @{
  */
+/** @file Pthread: keys and thread-specific storage.
+ */
 
-#include <bitops.h>
+#define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
-int __popcountsi2(int a)
+#include "posix/stdlib.h"
+#include "posix/pthread.h"
+#include "errno.h"
+#include "../internal/common.h"
+
+
+void *pthread_getspecific(pthread_key_t key)
 {
-	int bits = 0;
-	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
-		if (((a >> i) & 1) != 0) {
-			bits++;
-		}
-	}
-	return bits;									
+	not_implemented();
+	return NULL;
 }
 
+int pthread_setspecific(pthread_key_t key, const void *data)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_key_delete(pthread_key_t key)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
+{
+	not_implemented();
+	return ENOTSUP;
+}
 
 /** @}
  */

@@ -26,22 +26,76 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libposix
  * @{
  */
+/** @file Pthread: mutexes.
+ */
 
-#include <bitops.h>
+#define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
-int __popcountsi2(int a)
+#include "posix/pthread.h"
+#include "errno.h"
+#include "../internal/common.h"
+
+
+int pthread_mutex_init(pthread_mutex_t *restrict mutex,
+    const pthread_mutexattr_t *restrict attr)
 {
-	int bits = 0;
-	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
-		if (((a >> i) & 1) != 0) {
-			bits++;
-		}
-	}
-	return bits;									
+	not_implemented();
+	return ENOTSUP;
 }
+
+int pthread_mutex_destroy(pthread_mutex_t *mutex)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutex_lock(pthread_mutex_t *mutex)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutex_trylock(pthread_mutex_t *mutex)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutex_unlock(pthread_mutex_t *mutex)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *restrict attr,
+    int *restrict type)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+{
+	not_implemented();
+	return ENOTSUP;
+}
+
 
 
 /** @}
