@@ -173,6 +173,8 @@ show_usage() {
 	echo "This toolchain is installed into /usr/local/cross-helenos by"
 	echo "default. The settings can be changed by setting environment"
 	echo "variable CROSS_HELENOS_PREFIX."
+	echo "Using the HelenOS-specific toolchain is still an experimental"
+	echo "feature that is not fully supported."
 	echo
 	
 	exit 3
