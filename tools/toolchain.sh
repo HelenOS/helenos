@@ -58,7 +58,7 @@ BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
 GCC_VERSION="4.8.1"
 GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="7.6.1"
-GDB_PATCHES="toolchain-gdb-7.6.patch"
+GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"

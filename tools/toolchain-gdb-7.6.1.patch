@@ -1,6 +1,6 @@
-diff -rud gdb-7.6-original/bfd/config.bfd gdb-7.6/bfd/config.bfd
---- gdb-7.6-original/bfd/config.bfd	2013-03-05 12:47:01.000000000 +0100
-+++ gdb-7.6/bfd/config.bfd	2013-07-18 15:54:07.724777922 +0200
+diff -rud gdb-7.6.1-original/bfd/config.bfd gdb-7.6.1/bfd/config.bfd
+--- gdb-7.6.1-original/bfd/config.bfd	2013-03-05 12:47:01.000000000 +0100
++++ gdb-7.6.1/bfd/config.bfd	2013-07-18 15:54:07.724777922 +0200
 @@ -221,7 +221,7 @@
      targ_defvec=ecoffalpha_little_vec
      want64=true
@@ -85,9 +85,9 @@ diff -rud gdb-7.6-original/bfd/config.bfd gdb-7.6/bfd/config.bfd
      targ_defvec=bfd_elf64_sparc_vec
      targ_selvecs="bfd_elf32_sparc_vec sparclinux_vec sunos_big_vec"
      want64=true
-diff -rud gdb-7.6-original/config.sub gdb-7.6/config.sub
---- gdb-7.6-original/config.sub	2013-01-11 13:57:41.000000000 +0100
-+++ gdb-7.6/config.sub	2013-07-18 15:26:51.261356318 +0200
+diff -rud gdb-7.6.1-original/config.sub gdb-7.6.1/config.sub
+--- gdb-7.6.1-original/config.sub	2013-01-11 13:57:41.000000000 +0100
++++ gdb-7.6.1/config.sub	2013-07-18 15:26:51.261356318 +0200
 @@ -1369,6 +1369,7 @@
  	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
  	      | -chorusos* | -chorusrdb* | -cegcc* \
@@ -96,9 +96,9 @@ diff -rud gdb-7.6-original/config.sub gdb-7.6/config.sub
  	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
  	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
  	      | -uxpv* | -beos* | -mpeix* | -udk* \
-diff -rud gdb-7.6-original/gdb/configure.tgt gdb-7.6/gdb/configure.tgt
---- gdb-7.6-original/gdb/configure.tgt	2013-03-05 14:37:10.000000000 +0100
-+++ gdb-7.6/gdb/configure.tgt	2013-07-18 15:50:25.210529047 +0200
+diff -rud gdb-7.6.1-original/gdb/configure.tgt gdb-7.6.1/gdb/configure.tgt
+--- gdb-7.6.1-original/gdb/configure.tgt	2013-03-05 14:37:10.000000000 +0100
++++ gdb-7.6.1/gdb/configure.tgt	2013-07-18 15:50:25.210529047 +0200
 @@ -85,7 +85,7 @@
  	gdb_target_obs="arm-tdep.o arm-wince-tdep.o"
  	build_gdbserver=yes
