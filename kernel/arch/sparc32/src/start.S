@@ -46,6 +46,7 @@ kernel_image_start:
         mov     %g3, %wim
 
 	or	%g1, 0x20, %g1
+	or	%g1, 0xf00, %g1		! PIL
         wr      %g1, %psr
 
 	set	boot_stack, %sp

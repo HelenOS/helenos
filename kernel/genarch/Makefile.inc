@@ -111,7 +111,12 @@ endif
 
 ifeq ($(CONFIG_GRLIB_UART),y)
 	GENARCH_SOURCES += \
-		genarch/src/drivers/omap/uart.c
+		genarch/src/drivers/grlib_uart/grlib_uart.c
+endif
+
+ifeq ($(CONFIG_GRLIB_IRQMP),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/grlib_irqmp/grlib_irqmp.c
 endif
 
 ifeq ($(CONFIG_AM335X_TIMERS),y)

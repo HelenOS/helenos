@@ -108,6 +108,8 @@ static outdev_operations_t grlib_uart_ops = {
 
 outdev_t *grlib_uart_init(uintptr_t paddr, inr_t inr)
 {
+	printf("grlib_uart_init: paddr=0x%08x\n", paddr);
+
 	outdev_t *uart_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!uart_dev)
 		return NULL;

@@ -42,6 +42,7 @@
 
 #include <genarch/drivers/grlib_uart/grlib_uart.h>
 #include <genarch/drivers/grlib_irqmp/grlib_irqmp.h>
+#include <genarch/srln/srln.h>
 
 #include <func.h>
 #include <config.h>
@@ -129,6 +130,9 @@ static void leon3_irq_exception(unsigned int exc_no, istate_t *istate)
 
 static void leon3_output_init(void)
 {
+	printf("leon3_output_init\n");
+	printf("machine.bootinfo=%p, machine.bootinfo->uart_base=0x%08x\n", machine.bootinfo, machine.bootinfo->uart_base);
+
 	machine.scons_dev = grlib_uart_init(machine.bootinfo->uart_base, machine.bootinfo->uart_irq);
 
 	if (machine.scons_dev)
@@ -137,8 +141,21 @@ static void leon3_output_init(void)
 
 static void leon3_input_init(void)
 {
-	if (machine.scons_dev) {
+	grlib_uart_t *scons_inst;
 
+	if (machine.scons_dev) {
+		/* Create input device. */
+		scons_inst = (void *)machine.scons_dev->data;
+
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			grlib_uart_input_wire(scons_inst, srln);
+
+			/* Enable interrupts from UART */
+			grlib_irqmp_unmask(&machine.irqmp, machine.bootinfo->uart_irq);
+		}
 	}
 }
 

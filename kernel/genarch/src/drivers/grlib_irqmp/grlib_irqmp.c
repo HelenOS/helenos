@@ -44,8 +44,10 @@ void grlib_irqmp_init(grlib_irqmp_t *irqc, bootinfo_t *bootinfo)
 	irqc->regs = (void *) km_map(bootinfo->intc_base, PAGE_SIZE,
 	    PAGE_NOT_CACHEABLE);
 
+	printf("irqmp regs: %p\n", irqc->regs);
+
 	/* Mask all interrupts */
-	pio_write_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET, 0);
+	pio_write_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET, 0);
 }
 
 int grlib_irqmp_inum_get(grlib_irqmp_t *irqc)
@@ -63,25 +65,28 @@ int grlib_irqmp_inum_get(grlib_irqmp_t *irqc)
 
 void grlib_irqmp_clear(grlib_irqmp_t *irqc, int inum)
 {
+	inum++;
 	pio_write_32(&irqc->regs->clear, (1 << inum));
 }
 
 void grlib_irqmp_mask(grlib_irqmp_t *irqc, int src)
 {
-	uint32_t mask = pio_read_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET);
+	uint32_t mask = pio_read_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET);
 
+	src++;
 	mask &= ~(1 << src);
 
-	pio_write_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
+	pio_write_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
 }
 
 void grlib_irqmp_unmask(grlib_irqmp_t *irqc, int src)
 {
-	uint32_t mask = pio_read_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET);
+	uint32_t mask = pio_read_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET);
 
+	src++;
 	mask |= (1 << src);
 
-	pio_write_32((void *)&irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
+	pio_write_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
 }
 
 /** @}
