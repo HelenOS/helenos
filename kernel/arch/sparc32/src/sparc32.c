@@ -36,6 +36,7 @@
 #include <typedefs.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
+#include <arch/machine_func.h>
 
 #include <func.h>
 #include <config.h>
@@ -54,11 +55,13 @@
 
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;
+bootinfo_t machine_bootinfo;
 
 void arch_pre_main(void *unused, bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
-	
+	memcpy(&machine_bootinfo, bootinfo, sizeof(machine_bootinfo));
+
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
@@ -66,6 +69,8 @@ void arch_pre_main(void *unused, bootinfo_t *bootinfo)
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
 	}
+
+	machine_ops_init();
 }
 
 void arch_pre_mm_init(void)
@@ -74,14 +79,19 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
+	machine_init(&machine_bootinfo);
+
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
-		irq_init(0, 0);
+		irq_init(16, 16);
 		
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
+
+	machine_output_init();
 }
+
 
 void arch_post_cpu_init()
 {
@@ -93,6 +103,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	machine_input_init();
 }
 
 void calibrate_delay_loop(void)

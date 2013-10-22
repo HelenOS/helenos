@@ -43,8 +43,9 @@ void before_task_runs_arch(void)
 
 void before_thread_runs_arch(void)
 {
-	kernel_sp = (uintptr_t) THREAD->kstack + STACK_SIZE;
-	uspace_wbuf = (uintptr_t) THREAD->arch.uspace_window_buffer;
+	uint32_t kernel_sp = (uint32_t) THREAD->kstack + STACK_SIZE;
+	uint32_t uspace_wbuf = (uint32_t) THREAD->arch.uspace_window_buffer;
+	write_to_invalid(kernel_sp, uspace_wbuf, 0xdeadbeef);
 }
 
 void after_thread_ran_arch(void)

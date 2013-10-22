@@ -71,10 +71,8 @@ typedef struct {
 	uint32_t memsize;
 } bootinfo_t;
 
-extern uintptr_t kernel_sp;
-extern uintptr_t uspace_wbuf;
-
 extern void arch_pre_main(void *unused, bootinfo_t *bootinfo);
+extern void write_to_invalid(uint32_t l0, uint32_t l1, uint32_t l2);
 
 #endif
 

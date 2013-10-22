@@ -90,13 +90,17 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 
 	printf("page fault on address 0x%08x, status 0x%08x, type %d\n", fault_address, fault_status, type);
 
-	if (type == FAULT_TYPE_LOAD_USER_DATA || type == FAULT_TYPE_LOAD_SUPERVISOR_DATA)	
+	if (type == FAULT_TYPE_LOAD_USER_DATA ||
+	    type == FAULT_TYPE_LOAD_SUPERVISOR_DATA)	
 		as_page_fault(fault_address, PF_ACCESS_READ, istate);
 
-	if (type == FAULT_TYPE_EXECUTE_USER || type == FAULT_TYPE_EXECUTE_SUPERVISOR)
+	if (type == FAULT_TYPE_EXECUTE_USER || 
+	    type == FAULT_TYPE_EXECUTE_SUPERVISOR)
 		as_page_fault(fault_address, PF_ACCESS_EXEC, istate);
 
-	if (type == FAULT_TYPE_STORE_USER_DATA || type == FAULT_TYPE_STORE_USER_INSTRUCTION || type == FAULT_TYPE_STORE_SUPERVISOR_INSTRUCTION)
+	if (type == FAULT_TYPE_STORE_USER_DATA ||
+	    type == FAULT_TYPE_STORE_USER_INSTRUCTION ||
+	    type == FAULT_TYPE_STORE_SUPERVISOR_INSTRUCTION)
 		as_page_fault(fault_address, PF_ACCESS_WRITE, istate);
 }
 
