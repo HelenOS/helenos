@@ -53,7 +53,14 @@ kernel_image_start:
 	mov	%sp, %fp
 	sub	%sp, 96, %sp
 
-	mov	%o1, %i0
+	mov	%o1, %l1
+	set	0xdeadbeef, %o0
+	set	0xdeadbeef, %o1
+	set	0, %o2
+	call write_to_invalid
+	nop
+
+	mov	%l1, %o1
 	call arch_pre_main
 	nop
 

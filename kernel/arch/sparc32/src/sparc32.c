@@ -77,8 +77,14 @@ void arch_pre_mm_init(void)
 {
 }
 
+extern void func1(void);
+
 void arch_post_mm_init(void)
 {
+	/* Test register windows */
+	write_to_invalid(0xdeadbeef, 0xcafebabe, 0xfeedface);
+	func1();
+
 	machine_init(&machine_bootinfo);
 
 	if (config.cpu_active == 1) {

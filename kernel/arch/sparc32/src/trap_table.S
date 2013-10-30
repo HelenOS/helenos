@@ -42,11 +42,14 @@
 .macro get_wim_number reg
 	clr \reg
 	mov %wim, %g5
-1:	inc \reg
-	srl %g5, 1, %g5
-	andcc %g5, 1, %g0
-	bne 1b
+1:	andcc %g5, 1, %g0
+	bne 2f
 	nop
+	srl %g5, 1, %g5
+	inc \reg
+	b 1b
+2:	nop
+
 .endm
 
 .macro get_cwp reg
@@ -59,7 +62,8 @@
 	mov %wim, \saved_wim	! save WIM
 	mov %g0, %wim		! clear WIM
 	mov %psr, \saved_psr	! read PSR
-	or \saved_psr, %g6, %g6	! set CWP
+	and \saved_psr, 0xfffffff0, %l0
+	or %l0, %g6, %g6	! set CWP
 	mov %g6, %psr		! write PSR
 	nop
 	nop
@@ -78,6 +82,9 @@
 
 /* Save next window to kernel stack or UWB */
 .macro inline_save_kernel
+	set 0x80000100, %g2
+	set 'k', %g1
+	sta %g1, [%g2] 0x1c
 	save
 	std %l0, [%sp +  0]
 	std %l2, [%sp +  8]
@@ -91,6 +98,9 @@
 .endm
 
 .macro inline_save_uspace uwb
+	set 0x80000100, %g2
+	set 'u', %g1
+	sta %g1, [%g2] 0x1c
 	save
 	ld [\uwb], %g1
 	std %l0, [%g1 +  0]
@@ -143,12 +153,19 @@
 .endm
 
 write_to_invalid:
-	mov %o0, %g5
-	mov %o1, %g6
+	! Write value 1
+	mov %o0, %g7
+	switch_to_invalid %g3, %g4
+	mov %g7, %l5
+	switch_back %g3, %g4
+	! Write value 2
+	mov %o1, %g7
+	switch_to_invalid %g3, %g4
+	mov %g7, %l6
+	switch_back %g3, %g4
+	! Write value 3
 	mov %o2, %g7
 	switch_to_invalid %g3, %g4
-	mov %g5, %l5
-	mov %g6, %l6
 	mov %g7, %l7
 	switch_back %g3, %g4
 	retl
@@ -172,17 +189,24 @@ window_overflow_trap:
 	mov %g0,%wim
 	nop; nop; nop
 
+	/* Save invalid window data */
+	mov %l5, %g5		! kernel stack pointer
+	mov %l6, %g6		! kernel wbuf
+	mov %l7, %g7
+
 	/* Check whether previous mode was usermode */
-	mov %psr, %l0
 	and %l0, (1 << 6), %l0
 	cmp %l0, 0
 	beq 1f
 	nop
 
-	/* Save invalid window data */
-	mov %l5, %g5		! kernel stack pointer
-	mov %l6, %g6		! kernel wbuf
-	mov %l7, %g7
+	/* kernel: */
+	/* we should check whether window needs to be saved
+	 * to kernel stack or uwb
+	 */
+	cmp %g7, 0
+	bne 2f
+	nop
 
 	/* dump registers to stack */
 	save
@@ -194,11 +218,17 @@ window_overflow_trap:
 	std %i2, [%sp + 40]
 	std %i4, [%sp + 48]
 	std %i6, [%sp + 56]
-	b 2f
+	b 3f
 	nop
 
+1:	/* uspace: */
+	/* set uspace window mark */
+	mov %psr, %g7
+	and %g7, 0x7, %g7
+	inc %g7
+
 	/* dump registers to uwb */
-1:	save
+2:	save
 	std %l0, [%g4 +  0]
 	std %l2, [%g4 +  8]
 	std %l4, [%g4 + 16]
@@ -209,7 +239,7 @@ window_overflow_trap:
 	std %i6, [%g4 + 56]
 	add %g4, 64, %g4
 
-2:	/* back to where we should be */
+3:	/* back to where we should be */
 	mov %g5, %l5
 	mov %g6, %l6
 	mov %g7, %l7
@@ -242,11 +272,6 @@ window_underflow_trap:
 	beq 1f
 	nop
 
-	/* Save invalid window data */
-	mov %l5, %g5		! kernel stack pointer
-	mov %l6, %g6		! kernel wbuf
-	mov %l7, %g7
-
         /* load registers from stack */
 	restore
 	restore
@@ -277,14 +302,19 @@ window_underflow_trap:
 	sub %g1, 64, %g1
 	st %g1, [%g2]
 
-2:	/* back to where we should be */
-	mov %g5, %l5
-	mov %g6, %l6
-	mov %g7, %l7
+2:	/* Save invalid window data */
+	mov %l5, %g5		! kernel stack pointer
+	mov %l6, %g6		! kernel wbuf
+	mov %l7, %g7
 	save
 	save
 
-        /* set new value of window */
+        /* Restore invalid window data */
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
+
+	/* Set new value of window */
         mov %l3,%wim
         nop; nop; nop
 
@@ -303,20 +333,39 @@ preemptible_trap:
 	/* We are in invalid window. Check whether previous mode was usermode */
 	if_from_kernel 3f
 
+	/* Trap originated from uspace */
 	/* Kernel stack pointer is at %l5, uwb is at %l6 */
 	inline_save_uspace %l6
-3:	inline_save_kernel 
+
+	/* set uspace window mark */
+	mov %psr, %l7
+	and %l7, 0x7, %l7
+	inc %l7
+
+3:	/* Trap originated from kernel */
+	inline_save_kernel 
 
 4:	/* Check whether previous mode was usermode */
 	if_from_kernel 5f
 
 	/* Load kernel stack pointer from invalid window */
 	switch_to_invalid %g5, %g6
-	mov %l5, %g7		! stack pointer
+	save
+	/* set uspace window mark */
+	mov %psr, %l7
+	and %l7, 0x7, %l7
+	inc %l7
+	/* Save stack pointer */
+	mov %l5, %g7
 	switch_back %g5, %g6
 	mov %g7, %sp
 	mov %sp, %fp
-5:	sub %sp, 112, %sp
+
+	/* Set secondary invalid window mark */
+	add %g7, 1, %l7
+
+5:	/* Set up stack frame */
+	sub %sp, 112, %sp
 
 	/* Save trap data on stack */
 	mov %psr, %l0
@@ -347,7 +396,14 @@ preemptible_trap:
 	nop
 	nop
 	nop
-	jmp %l1
+
+	/* If trap originated from uspace, clear uspace window mark */
+	if_from_kernel 6f
+	switch_to_invalid %g5, %g6
+	clr %l7
+	switch_back %g5, %g6
+
+6:	jmp %l1
 	rett %l2
 
 interrupt_trap:
@@ -399,13 +455,31 @@ interrupt_trap:
 	rett %l2
 
 syscall_trap:
-	mov %psr, %l0
+	/* Check whether we landed in invalid window */
+	get_wim_number %g6
+	get_cwp %g7
+	cmp %g6, %g7
+	bne 4f
+	nop
 
-	/* Set up stack */
-	set kernel_sp, %l4
-	ld [%l4], %sp
+	/* We are in invalid window. Check whether previous mode was usermode */
+	if_from_kernel 3f
+
+	/* Kernel stack pointer is at %l5, uwb is at %l6 */
+	inline_save_uspace %l6
+3:	inline_save_kernel 
+
+4:	/* Check whether previous mode was usermode */
+	if_from_kernel 5f
+
+	/* Load kernel stack pointer from invalid window */
+	switch_to_invalid %g5, %g6
+	save
+	mov %l5, %g7		! stack pointer
+	switch_back %g5, %g6
+	mov %g7, %sp
 	mov %sp, %fp
-	sub %sp, 112, %sp
+5:	sub %sp, 112, %sp
 
 	/* Save trap data on stack */
 	mov %psr, %l0
@@ -423,9 +497,9 @@ syscall_trap:
 	nop
 
 	/* Jump to actual subroutine */
-	sub %g2, 0x80, %g2
-	st %g2, [ %sp + 92 ]
-	mov %i0, %o1
+	sub %o0, 0x80, %o0
+	st %o0, [ %sp + 92 ]
+	mov %i0, %o0
 	mov %i1, %o1
 	mov %i2, %o2
 	mov %i3, %o3
@@ -462,7 +536,7 @@ syscall_trap:
 
 #define	SYSCALL(_vector) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
-	set _vector, %g2 ; \
+	set _vector, %o0 ; \
 	b syscall_trap ; \
 	nop ;
 

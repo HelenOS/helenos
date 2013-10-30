@@ -35,6 +35,7 @@
  */
 
 #include <mm/frame.h>
+#include <arch/machine_func.h>
 #include <arch/mm/frame.h>
 #include <config.h>
 #include <align.h>

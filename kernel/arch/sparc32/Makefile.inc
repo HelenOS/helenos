@@ -39,11 +39,12 @@ ifeq ($(COMPILER),gcc_cross)
 endif
 
 BITS = 32
-ENDIANESS = LE
+ENDIANESS = BE
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
 	arch/$(KARCH)/src/trap_table.S \
+	arch/$(KARCH)/src/regwin_test.S \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/proc/scheduler.c \

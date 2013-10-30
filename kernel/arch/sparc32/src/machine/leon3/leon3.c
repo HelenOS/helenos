@@ -106,7 +106,7 @@ static void leon3_cpu_halt(void)
 static void leon3_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	*start = LEON3_SDRAM_START;
-	*size = machine.bootinfo->memsize;
+	*size = 64 * 1024 * 1024;//machine.bootinfo->memsize;
 }
 
 static void leon3_timer_start(void)
@@ -141,8 +141,9 @@ static void leon3_output_init(void)
 
 static void leon3_input_init(void)
 {
+#if 0
 	grlib_uart_t *scons_inst;
-
+	
 	if (machine.scons_dev) {
 		/* Create input device. */
 		scons_inst = (void *)machine.scons_dev->data;
@@ -157,6 +158,7 @@ static void leon3_input_init(void)
 			grlib_irqmp_unmask(&machine.irqmp, machine.bootinfo->uart_irq);
 		}
 	}
+#endif
 }
 
 static size_t leon3_get_irq_count(void)
