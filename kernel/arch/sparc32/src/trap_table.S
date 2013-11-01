@@ -58,13 +58,13 @@
 .endm
 
 .macro switch_to_invalid saved_wim, saved_psr
-	get_wim_number %g6
+	get_wim_number %l3
 	mov %wim, \saved_wim	! save WIM
 	mov %g0, %wim		! clear WIM
 	mov %psr, \saved_psr	! read PSR
-	and \saved_psr, 0xfffffff0, %l0
-	or %l0, %g6, %g6	! set CWP
-	mov %g6, %psr		! write PSR
+	and \saved_psr, 0xfffffff0, %l4
+	or %l4, %l3, %l3	! set CWP
+	mov %l3, %psr		! write PSR
 	nop
 	nop
 	nop
@@ -229,14 +229,14 @@ window_overflow_trap:
 
 	/* dump registers to uwb */
 2:	save
-	std %l0, [%g4 +  0]
-	std %l2, [%g4 +  8]
-	std %l4, [%g4 + 16]
-	std %l6, [%g4 + 24]
-	std %i0, [%g4 + 32]
-	std %i2, [%g4 + 40]
-	std %i4, [%g4 + 48]
-	std %i6, [%g4 + 56]
+	std %l0, [%g6 +  0]
+	std %l2, [%g6 +  8]
+	std %l4, [%g6 + 16]
+	std %l6, [%g6 + 24]
+	std %i0, [%g6 + 32]
+	std %i2, [%g6 + 40]
+	std %i4, [%g6 + 48]
+	std %i6, [%g6 + 56]
 	add %g4, 64, %g4
 
 3:	/* back to where we should be */
@@ -275,6 +275,18 @@ window_underflow_trap:
         /* load registers from stack */
 	restore
 	restore
+	/* Save invalid window data */
+	mov %l5, %g5		! kernel stack pointer
+	mov %l6, %g6		! kernel wbuf
+	mov %l7, %g7
+
+	/* we should check whether window needs to be saved
+	 * to kernel stack or uwb
+	 */
+	cmp %g7, 0
+	bne 3f
+	nop
+
         ldd [%sp +  0], %l0
         ldd [%sp +  8], %l2
         ldd [%sp + 16], %l4
@@ -289,30 +301,28 @@ window_underflow_trap:
 	/* load registers from uwb */
 1:	restore
 	restore
-	set uspace_wbuf, %g2
-	ld [%g2], %g1
-        ldd [%g1 +  0], %l0
-        ldd [%g1 +  8], %l2
-        ldd [%g1 + 16], %l4
-        ldd [%g1 + 24], %l6
-        ldd [%g1 + 32], %i0
-        ldd [%g1 + 40], %i2
-        ldd [%g1 + 48], %i4
-        ldd [%g1 + 56], %i6
-	sub %g1, 64, %g1
-	st %g1, [%g2]
-
-2:	/* Save invalid window data */
+	/* Save invalid window data */
 	mov %l5, %g5		! kernel stack pointer
 	mov %l6, %g6		! kernel wbuf
 	mov %l7, %g7
-	save
-	save
+3:	sub %g6, 64, %g6
+        ldd [%g6 +  0], %l0
+        ldd [%g6 +  8], %l2
+        ldd [%g6 + 16], %l4
+        ldd [%g6 + 24], %l6
+        ldd [%g6 + 32], %i0
+        ldd [%g6 + 40], %i2
+        ldd [%g6 + 48], %i4
+        ldd [%g6 + 56], %i6
 
-        /* Restore invalid window data */
+2:	/* Restore invalid window data */
+	restore
 	mov %g5, %l5
 	mov %g6, %l6
 	mov %g7, %l7
+	save
+	save
+	save
 
 	/* Set new value of window */
         mov %l3,%wim
@@ -350,7 +360,6 @@ preemptible_trap:
 
 	/* Load kernel stack pointer from invalid window */
 	switch_to_invalid %g5, %g6
-	save
 	/* set uspace window mark */
 	mov %psr, %l7
 	and %l7, 0x7, %l7
@@ -474,7 +483,7 @@ syscall_trap:
 
 	/* Load kernel stack pointer from invalid window */
 	switch_to_invalid %g5, %g6
-	save
+	restore
 	mov %l5, %g7		! stack pointer
 	switch_back %g5, %g6
 	mov %g7, %sp

@@ -82,7 +82,7 @@ extern void func1(void);
 void arch_post_mm_init(void)
 {
 	/* Test register windows */
-	write_to_invalid(0xdeadbeef, 0xcafebabe, 0xfeedface);
+	write_to_invalid(0xdeadbeef, 0xcafebabe, 0);
 	func1();
 
 	machine_init(&machine_bootinfo);
@@ -109,7 +109,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	machine_input_init();
+//	machine_input_init();
 }
 
 void calibrate_delay_loop(void)
