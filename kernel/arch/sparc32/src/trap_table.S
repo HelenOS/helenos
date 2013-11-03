@@ -210,6 +210,7 @@ window_overflow_trap:
 
 	/* dump registers to stack */
 	save
+	st %l0, [%sp + 0] ! XXX
 	std %l0, [%sp +  0]
 	std %l2, [%sp +  8]
 	std %l4, [%sp + 16]
@@ -227,7 +228,6 @@ window_overflow_trap:
 	and %g7, 0x7, %g7
 	inc %g7
 
-	/* dump registers to uwb */
 2:	save
 	std %l0, [%g6 +  0]
 	std %l2, [%g6 +  8]
@@ -238,6 +238,17 @@ window_overflow_trap:
 	std %i4, [%g6 + 48]
 	std %i6, [%g6 + 56]
 	add %g4, 64, %g4
+
+	/* check whether it's the last user window to be saved */
+	mov %psr, %l4
+	and %l4, 0x7, %l4
+	inc %l4
+	cmp %g7, %l4
+	bne 3f
+	nop
+
+	/* clear uspace window mark */
+	clr %g7
 
 3:	/* back to where we should be */
 	mov %g5, %l5
@@ -272,20 +283,11 @@ window_underflow_trap:
 	beq 1f
 	nop
 
-        /* load registers from stack */
 	restore
 	restore
-	/* Save invalid window data */
 	mov %l5, %g5		! kernel stack pointer
 	mov %l6, %g6		! kernel wbuf
 	mov %l7, %g7
-
-	/* we should check whether window needs to be saved
-	 * to kernel stack or uwb
-	 */
-	cmp %g7, 0
-	bne 3f
-	nop
 
         ldd [%sp +  0], %l0
         ldd [%sp +  8], %l2
@@ -298,14 +300,12 @@ window_underflow_trap:
 	b 2f
 	nop
 
-	/* load registers from uwb */
 1:	restore
 	restore
-	/* Save invalid window data */
 	mov %l5, %g5		! kernel stack pointer
 	mov %l6, %g6		! kernel wbuf
 	mov %l7, %g7
-3:	sub %g6, 64, %g6
+	sub %g6, 64, %g6
         ldd [%g6 +  0], %l0
         ldd [%g6 +  8], %l2
         ldd [%g6 + 16], %l4
@@ -361,26 +361,23 @@ preemptible_trap:
 	/* Load kernel stack pointer from invalid window */
 	switch_to_invalid %g5, %g6
 	/* set uspace window mark */
-	mov %psr, %l7
+	mov %g6, %l7
 	and %l7, 0x7, %l7
 	inc %l7
 	/* Save stack pointer */
 	mov %l5, %g7
 	switch_back %g5, %g6
 	mov %g7, %sp
-	mov %sp, %fp
-
-	/* Set secondary invalid window mark */
-	add %g7, 1, %l7
+//	mov %sp, %fp
 
 5:	/* Set up stack frame */
 	sub %sp, 112, %sp
 
 	/* Save trap data on stack */
 	mov %psr, %l0
-	st %l1, [%fp - 4]
-	st %l2, [%fp - 8]
-	st %l0, [%fp - 12]
+	st %l1, [%sp + 92]
+	st %l2, [%sp + 96]
+	st %l0, [%sp + 100]
 
 	/* Enable traps */
 	mov %psr, %l0
@@ -396,9 +393,9 @@ preemptible_trap:
 	sub %fp, 12, %o1
 
 	/* Return from handler */
-	ld [%fp - 4], %l1
-	ld [%fp - 8], %l2
-	ld [%fp - 12], %l0
+	ld [%sp + 92], %l1
+	ld [%sp + 96], %l2
+	ld [%sp + 100], %l0
 	mov %l0, %psr
 	nop
 	nop
