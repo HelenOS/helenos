@@ -82,9 +82,8 @@
 
 /* Save next window to kernel stack or UWB */
 .macro inline_save_kernel
-	set 0x80000100, %g2
-	set 'k', %g1
-	sta %g1, [%g2] 0x1c
+	mov %wim, %g2
+	mov %g0, %wim
 	save
 	std %l0, [%sp +  0]
 	std %l2, [%sp +  8]
@@ -95,29 +94,45 @@
 	std %i4, [%sp + 48]
 	std %i6, [%sp + 56]
 	restore
+	mov %g2, %wim
 .endm
 
 .macro inline_save_uspace uwb
-	set 0x80000100, %g2
-	set 'u', %g1
-	sta %g1, [%g2] 0x1c
+	mov %wim, %g2
+	mov %g0, %wim
 	save
-	ld [\uwb], %g1
-	std %l0, [%g1 +  0]
-	std %l2, [%g1 +  8]
-	std %l4, [%g1 + 16]
-	std %l6, [%g1 + 24]
-	std %i0, [%g1 + 32]
-	std %i2, [%g1 + 40]
-	std %i4, [%g1 + 48]
-	std %i6, [%g1 + 56]
+	std %l0, [\uwb +  0]
+	std %l2, [\uwb +  8]
+	std %l4, [\uwb + 16]
+	std %l6, [\uwb + 24]
+	std %i0, [\uwb + 32]
+	std %i2, [\uwb + 40]
+	std %i4, [\uwb + 48]
+	std %i6, [\uwb + 56]
 	add \uwb, 64, \uwb
 	restore
+	mov %g2, %wim
 .endm
 
 /* Restore window from kernel stack or UWB */
 .macro inline_restore_kernel
-	save
+	mov %wim, %l3
+	sll %l3, 7, %l4
+	srl %l3, 1, %l3
+	or  %l3, %l4, %l3
+	and %l3, 0xff, %l3
+	
+	mov %g0, %wim
+	restore
+	mov %l5, %g5
+	mov %l6, %g6
+	mov %l7, %g7
+	restore
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
+	save	
+
         ldd [%sp +  0], %l0
         ldd [%sp +  8], %l2
         ldd [%sp + 16], %l4
@@ -126,22 +141,41 @@
         ldd [%sp + 40], %i2
         ldd [%sp + 48], %i4
         ldd [%sp + 56], %i6
-	restore
+	save
+	
+	mov %l3, %wim
 .endm
 
 .macro inline_restore_uspace uwb
-	save
-	ld [\uwb], %g1
-	std %l0, [%g1 +  0]
-	std %l2, [%g1 +  8]
-	std %l4, [%g1 + 16]
-	std %l6, [%g1 + 24]
-	std %i0, [%g1 + 32]
-	std %i2, [%g1 + 40]
-	std %i4, [%g1 + 48]
-	std %i6, [%g1 + 56]
-	sub \uwb, 64, \uwb
+	mov %wim, %l3
+	sll %l3, 7, %l4
+	srl %l3, 1, %l3
+	or  %l3, %l4, %l3
+	and %l3, 0xff, %l3
+
+	mov %g0, %wim
 	restore
+	mov %l5, %g5
+	mov %l6, %g6
+	mov %l7, %g7
+	restore
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
+	save	
+
+	ldd [\uwb +  0], %l0
+	ldd [\uwb +  8], %l2
+	ldd [\uwb + 16], %l4
+	ldd [\uwb + 24], %l6
+	ldd [\uwb + 32], %i0
+	ldd [\uwb + 40], %i2
+	ldd [\uwb + 48], %i4
+	ldd [\uwb + 56], %i6
+	sub \uwb, 64, \uwb
+	save
+
+	mov %l3, %wim
 .endm
 
 .macro if_from_kernel label
@@ -403,13 +437,30 @@ preemptible_trap:
 	nop
 	nop
 
-	/* If trap originated from uspace, clear uspace window mark */
+	/* If trap originated from uspace, clear uspace window mark and save uwb address for future use */
 	if_from_kernel 6f
 	switch_to_invalid %g5, %g6
 	clr %l7
+	mov %l6, %g7
 	switch_back %g5, %g6
+	mov %g7, %g1
 
-6:	jmp %l1
+	/* If next window is invalid, do inline restore */
+6:	get_wim_number %g6
+	get_cwp %g7
+	inc %g7
+	cmp %g6, %g7
+	bne 8f
+
+	if_from_kernel 7f
+
+	inline_restore_uspace %g1
+	b 8f
+	nop
+
+7:	inline_restore_kernel
+
+8:	jmp %l1
 	rett %l2
 
 interrupt_trap:
