@@ -117,8 +117,8 @@
 /* Restore window from kernel stack or UWB */
 .macro inline_restore_kernel
 	mov %wim, %l3
-	sll %l3, 7, %l4
-	srl %l3, 1, %l3
+	srl %l3, 7, %l4
+	sll %l3, 1, %l3
 	or  %l3, %l4, %l3
 	and %l3, 0xff, %l3
 	
@@ -148,8 +148,8 @@
 
 .macro inline_restore_uspace uwb
 	mov %wim, %l3
-	sll %l3, 7, %l4
-	srl %l3, 1, %l3
+	srl %l3, 7, %l4
+	sll %l3, 1, %l3
 	or  %l3, %l4, %l3
 	and %l3, 0xff, %l3
 
@@ -508,7 +508,31 @@ interrupt_trap:
 	nop
 	nop
 	nop
-	jmp %l1
+
+	/* If trap originated from uspace, clear uspace window mark and save uwb address for future use */
+	if_from_kernel 6f
+	switch_to_invalid %g5, %g6
+	clr %l7
+	mov %l6, %g7
+	switch_back %g5, %g6
+	mov %g7, %g1
+
+	/* If next window is invalid, do inline restore */
+6:	get_wim_number %g6
+	get_cwp %g7
+	inc %g7
+	cmp %g6, %g7
+	bne 8f
+
+	if_from_kernel 7f
+
+	inline_restore_uspace %g1
+	b 8f
+	nop
+
+7:	inline_restore_kernel
+
+8:	jmp %l1
 	rett %l2
 
 syscall_trap:
@@ -574,7 +598,24 @@ syscall_trap:
 	nop
 	nop
 	nop
-	jmp %l2
+
+	/* If next window is invalid, do inline restore */
+6:	get_wim_number %g6
+	get_cwp %g7
+	inc %g7
+	cmp %g6, %g7
+	bne 8f
+
+	if_from_kernel 7f
+
+	inline_restore_uspace %g1
+	b 8f
+	nop
+
+7:	inline_restore_kernel
+
+
+8:	jmp %l2
 	rett %l2 + 4
 
 #define	STRAP(_vector, _handler) \
