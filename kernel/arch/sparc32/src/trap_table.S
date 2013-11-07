@@ -555,8 +555,12 @@ syscall_trap:
 
 	/* Load kernel stack pointer from invalid window */
 	switch_to_invalid %g5, %g6
-	restore
-	mov %l5, %g7		! stack pointer
+	/* set uspace window mark */
+	mov %g6, %l7
+	and %l7, 0x7, %l7
+	inc %l7
+	/* Save stack pointer */
+	mov %l5, %g7
 	switch_back %g5, %g6
 	mov %g7, %sp
 	mov %sp, %fp
@@ -564,9 +568,9 @@ syscall_trap:
 
 	/* Save trap data on stack */
 	mov %psr, %l0
-	st %l1, [%fp - 4]
-	st %l2, [%fp - 8]
-	st %l0, [%fp - 12]
+	st %l1, [%sp + 92]
+	st %l2, [%sp + 96]
+	st %l0, [%sp + 100]
 
 	/* Enable traps */
 	mov %psr, %l0
@@ -589,15 +593,23 @@ syscall_trap:
 	mov %i5, %o5
 
 	/* Return from handler */
-	ld [%fp - 4], %l1
-	ld [%fp - 8], %l2
-	ld [%fp - 12], %l0
+	ld [%sp + 92], %l1
+	ld [%sp + 96], %l2
+	ld [%sp + 100], %l0
 	mov %l0, %psr
 	nop
 	nop
 	nop
 	nop
 	nop
+
+	/* If trap originated from uspace, clear uspace window mark and save uwb address for future use */
+	if_from_kernel 6f
+	switch_to_invalid %g5, %g6
+	clr %l7
+	mov %l6, %g7
+	switch_back %g5, %g6
+	mov %g7, %g1
 
 	/* If next window is invalid, do inline restore */
 6:	get_wim_number %g6
