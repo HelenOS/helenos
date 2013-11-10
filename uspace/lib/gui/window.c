@@ -528,7 +528,7 @@ static int fetch_input(void *arg)
 	return 0;
 }
 
-window_t *window_open(char *winreg, bool is_main, bool is_decorated, 
+window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
     const char *caption, sysarg_t x_offset, sysarg_t y_offset)
 {
 	int rc;
