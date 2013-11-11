@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_SYSCALL_H_
-#define LIBC_sparc64_SYSCALL_H_
+#ifndef LIBC_sparc32_SYSCALL_H_
+#define LIBC_sparc32_SYSCALL_H_
 
 #include <sys/types.h>
 #include <abi/syscall.h>

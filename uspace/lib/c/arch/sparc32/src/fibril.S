@@ -38,7 +38,7 @@ context_save:
 	# We rely on the kernel to flush our active register windows to memory
 	# should a thread switch occur.
 	#
-# XXX	CONTEXT_SAVE_ARCH_CORE %o0
+	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
 	mov 1, %o0		! context_save_arch returns 1
 
@@ -52,6 +52,6 @@ context_restore:
 # XXX
 #	flushw
 	
-# XXX	CONTEXT_RESTORE_ARCH_CORE %o0
+	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl
 	xor %o0, %o0, %o0	! context_restore_arch returns 0
