@@ -139,10 +139,11 @@ void mem_address_not_aligned(int n, istate_t *istate)
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
-void syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
+sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
 	printf("syscall %d\n", id);
-	syscall_handler(a1, a2, a3, a4, a5, a6, id);
+	printf("args: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", a1, a2, a3, a4, a5, a6);
+	return syscall_handler(a1, a2, a3, a4, a5, a6, id);
 }
 
 /** @}
