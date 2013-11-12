@@ -741,6 +741,11 @@ int rename(const char *old, const char *new)
 	return rc;
 }
 
+int remove(const char *path)
+{
+	return unlink(path);
+}
+
 int chdir(const char *path)
 {
 	size_t abs_size;
