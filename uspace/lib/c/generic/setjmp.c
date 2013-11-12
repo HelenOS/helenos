@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2008 Josef Cejka
  * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
@@ -30,23 +29,51 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
+/** @file Long jump implementation.
+ *
+ * Implementation inspired by Jiri Zarevucky's code from
+ * http://bazaar.launchpad.net/~zarevucky-jiri/helenos/stdc/revision/1544/uspace/lib/posix/setjmp.h
  */
 
-#ifndef LIBC_SETJMP_H_
-#define LIBC_SETJMP_H_
+#include <setjmp.h>
+#include <libarch/fibril.h>
+#include <fibril.h>
 
-/*
- * We hide the structure to allow smooth inclusion from libposix
- * as no other types are necessary (and thus no includes are needed).
+struct jmp_buf_interal {
+	context_t context;
+	int return_value;
+};
+
+/**
+ * Save current environment (registers).
+ *
+ * This function may return twice.
+ *
+ * @param env Variable where to save the environment.
+ * @return Whether the call returned after longjmp.
+ * @retval 0 Environment was saved, normal execution.
+ * @retval other longjmp was executed and returned here.
  */
-struct jmp_buf_interal;
-typedef struct jmp_buf_interal *jmp_buf;
+int setjmp(jmp_buf env) {
+	env->return_value = 0;
+	context_save(&env[0].context);
+	return env->return_value;
+}
 
-extern int setjmp(jmp_buf env);
-extern void longjmp(jmp_buf env, int val) __attribute__((noreturn));
-
-#endif
+/**
+ * Restore environment previously stored by setjmp.
+ *
+ * This function never returns.
+ *
+ * @param env Variable with the environment previously stored by call
+ * to setjmp.
+ * @param val Value to fake when returning from setjmp (0 is transformed to 1).
+ */
+void longjmp(jmp_buf env, int val) {
+	env[0].return_value = (val == 0) ? 1 : val;
+	context_restore(&env[0].context);
+	__builtin_unreachable();
+}
 
 /** @}
  */
