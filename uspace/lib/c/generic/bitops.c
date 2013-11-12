@@ -43,6 +43,16 @@ int __popcountsi2(int a)
 	return bits;									
 }
 
+int __popcountdi2(long a)
+{
+	int bits = 0;
+	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
+		if (((a >> i) & 1) != 0) {
+			bits++;
+		}
+	}
+	return bits;									
+}
 
 /** @}
  */

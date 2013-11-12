@@ -107,6 +107,7 @@ static inline unsigned int fnzb(size_t arg)
 }
 
 extern int __popcountsi2(int);
+extern int __popcountdi2(long);
 
 #endif
 
