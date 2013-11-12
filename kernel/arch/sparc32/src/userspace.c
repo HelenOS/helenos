@@ -51,9 +51,12 @@ void userspace(uspace_arg_t *kernel_uarg)
 	psr &= ~(1 << 6);
 
 	asm volatile (
+		"flush\n"
 		"mov %[stack], %%sp\n"
+		"mov %[arg], %%o1\n"
 		"jmp %[entry]\n"
 		"mov %[psr], %%psr\n" :: [entry] "r" (kernel_uarg->uspace_entry),
+			   [arg] "r" (kernel_uarg->uspace_uarg),
 			   [psr] "r" (psr),
 			   [stack] "r" (kernel_uarg->uspace_stack + kernel_uarg->uspace_stack_size));
 

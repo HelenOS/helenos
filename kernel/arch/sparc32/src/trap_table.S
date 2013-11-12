@@ -87,8 +87,12 @@
 	srl %l3, 1, %l3
 	or  %l3, %l4, %l3
 	and %l3, 0xff, %l3
-
 	mov %g0, %wim
+
+	mov %l5, %g5
+	mov %l6, %g6
+	mov %l7, %g7
+
 	save
 	std %l0, [%sp +  0]
 	std %l2, [%sp +  8]
@@ -98,6 +102,9 @@
 	std %i2, [%sp + 40]
 	std %i4, [%sp + 48]
 	std %i6, [%sp + 56]
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
 	restore
 	mov %l3, %wim
 .endm
@@ -108,7 +115,12 @@
 	srl %l3, 1, %l3
 	or  %l3, %l4, %l3
 	and %l3, 0xff, %l3
+	mov %g0, %wim
 	mov \uwb, %g3
+
+	mov %l5, %g5
+	mov %l6, %g6
+	mov %l7, %g7
 
 	save
 	std %l0, [%g3 +  0]
@@ -119,6 +131,9 @@
 	std %i2, [%g3 + 40]
 	std %i4, [%g3 + 48]
 	std %i6, [%g3 + 56]
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
 	add \uwb, 64, \uwb
 	restore
 	mov %l3, %wim
@@ -222,6 +237,8 @@ reset_trap:
 	rett
 
 window_overflow_trap:
+	mov %g7, %l0
+
 	/* rotate WIM on bit right, we have 8 windows */
 	mov %wim, %l3
 	sll %l3, 7, %l4
@@ -239,8 +256,9 @@ window_overflow_trap:
 	mov %l7, %g7
 
 	/* Check whether previous mode was usermode */
-	and %l0, (1 << 6), %l0
-	cmp %l0, 0
+	mov %psr, %l4
+	and %l4, (1 << 6), %l4
+	cmp %l4, 0
 	beq 1f
 	nop
 
@@ -304,10 +322,13 @@ window_overflow_trap:
 	nop; nop; nop
 
 	/* go home */
+	mov %l0, %g7
 	jmp %l1
 	rett %l2
 
 window_underflow_trap:
+	mov %g7, %l0
+
         /* rotate WIM on bit LEFT, we have 8 windows */ 
         mov %wim,%l3
         srl %l3,7,%l4
@@ -320,9 +341,9 @@ window_underflow_trap:
         nop; nop; nop
 
 	/* Check whether previous mode was usermode */
-	mov %psr, %l0
-	and %l0, (1 << 6), %l0
-	cmp %l0, 0
+	mov %psr, %l4
+	and %l4, (1 << 6), %l4
+	cmp %l4, 0
 	beq 1f
 	nop
 
@@ -372,10 +393,14 @@ window_underflow_trap:
         nop; nop; nop
 
         /* go home */
+	mov %l0, %g7
         jmp %l1
         rett %l2
 
 preemptible_trap:
+	/* Save %g7 */
+	mov %g7, %l0
+
 	/* Check whether we landed in invalid window */
 	get_wim_number %g6
 	get_cwp %g7
@@ -406,11 +431,13 @@ preemptible_trap:
 
 	/* Load kernel stack pointer from invalid window */
 	switch_to_invalid %g5, %g6
+
 	/* set uspace window mark */
 	mov %g6, %l7
 	inc %l7
 	and %l7, 0x7, %l7
 	or %l7, 0x10, %l7
+
 	/* Save stack pointer */
 	mov %l5, %g7
 	switch_back %g5, %g6
@@ -418,17 +445,18 @@ preemptible_trap:
 //	mov %sp, %fp
 
 5:	/* Set up stack frame */
-	sub %sp, 120, %sp
+	sub %sp, 128, %sp
 
 	/* Save trap data on stack */
-	mov %psr, %l0
+	mov %psr, %l5
 	st %l1, [%sp + 92]
 	st %l2, [%sp + 96]
-	st %l0, [%sp + 100]
+	st %l5, [%sp + 100]
 	st %g1, [%sp + 104]
 	st %g2, [%sp + 108]
 	st %g3, [%sp + 112]
 	st %g4, [%sp + 116]
+	st %l0, [%sp + 120]
 
 	/* Enable traps */
 	mov %psr, %l0
@@ -447,10 +475,6 @@ preemptible_trap:
 	ld [%sp + 92], %l1
 	ld [%sp + 96], %l2
 	ld [%sp + 100], %l0
-	ld [%sp + 104], %g1
-	ld [%sp + 108], %g2
-	ld [%sp + 112], %g3
-	ld [%sp + 116], %g4
 	mov %l0, %psr
 	nop
 	nop
@@ -485,7 +509,12 @@ preemptible_trap:
 
 7:	inline_restore_kernel
 
-8:	jmp %l1
+8:	ld [%sp + 104], %g1
+	ld [%sp + 108], %g2
+	ld [%sp + 112], %g3
+	ld [%sp + 116], %g4
+	ld [%sp + 120], %g7
+	jmp %l1
 	rett %l2
 
 interrupt_trap:
@@ -564,6 +593,9 @@ interrupt_trap:
 	rett %l2
 
 syscall_trap:
+	/* Save %g7 */
+	mov %g7, %l0
+
 	/* Check whether we landed in invalid window */
 	get_wim_number %g6
 	get_cwp %g7
@@ -608,17 +640,18 @@ syscall_trap:
 //	mov %sp, %fp
 
 5:	/* Set up stack frame */
-	sub %sp, 120, %sp
+	sub %sp, 128, %sp
 
 	/* Save trap data on stack */
-	mov %psr, %l0
+	mov %psr, %l5
 	st %l1, [%sp + 92]
 	st %l2, [%sp + 96]
-	st %l0, [%sp + 100]
+	st %l5, [%sp + 100]
 	st %g1, [%sp + 104]
 	st %g2, [%sp + 108]
 	st %g3, [%sp + 112]
 	st %g4, [%sp + 116]
+	st %l0, [%sp + 120]
 
 	/* Enable traps */
 	mov %psr, %l0
@@ -644,11 +677,6 @@ syscall_trap:
 	ld [%sp + 92], %l1
 	ld [%sp + 96], %l2
 	ld [%sp + 100], %l0
-	ld [%sp + 104], %g1
-	ld [%sp + 108], %g2
-	ld [%sp + 112], %g3
-	ld [%sp + 116], %g4
-
 	mov %o0, %i0
 	mov %l0, %psr
 	nop
@@ -684,7 +712,12 @@ syscall_trap:
 
 7:	inline_restore_kernel
 
-8:	jmp %l2
+8:	ld [%sp + 104], %g1
+	ld [%sp + 108], %g2
+	ld [%sp + 112], %g3
+	ld [%sp + 116], %g4
+	ld [%sp + 120], %g7
+	jmp %l2
 	rett %l2 + 4
 
 #define	STRAP(_vector, _handler) \

@@ -45,8 +45,10 @@
 /* ASI assignments: */
 #define	ASI_CACHEMISS	0x01
 #define	ASI_CACHECTRL	0x02
+#define	ASI_MMUCACHE	0x10
 #define	ASI_MMUREGS	0x19
 #define	ASI_MMUBYPASS	0x1c
+#define	ASI_MMUFLUSH	0x18
 
 #define TASKMAP_MAX_RECORDS  32
 #define CPUMAP_MAX_RECORDS   32

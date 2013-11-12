@@ -53,6 +53,8 @@ void as_install_arch(as_t *as)
 	context_table[as->asid].table_pointer = (uintptr_t)as->genarch.page_table >> 6;
 	context_table[as->asid].et = PTE_ET_DESCRIPTOR;
 	asi_u32_write(ASI_MMUREGS, 0x200, as->asid);
+	asi_u32_write(ASI_MMUCACHE, 0, 1);
+	asi_u32_write(ASI_MMUFLUSH, 0, 1);
 }
 
 /** @}
