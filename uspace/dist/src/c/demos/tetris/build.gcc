@@ -1,0 +1,6 @@
+gcc -nostdinc -I/inc/c -c -Drestrict= scores.c
+gcc -nostdinc -I/inc/c -c -Drestrict= screen.c
+gcc -nostdinc -I/inc/c -c -Drestrict= shapes.c
+gcc -nostdinc -I/inc/c -c -Drestrict= tetris.c
+gcc -nostdlib -Wl,-T/inc/_link.ld -L/lib -o tetris_ scores.o screen.o shapes.o tetris.o -lc -lsoftint
+
