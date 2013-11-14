@@ -54,7 +54,7 @@ void as_install_arch(as_t *as)
 	context_table[as->asid].et = PTE_ET_DESCRIPTOR;
 	asi_u32_write(ASI_MMUREGS, 0x200, as->asid);
 	asi_u32_write(ASI_MMUCACHE, 0, 1);
-	asi_u32_write(ASI_MMUFLUSH, 0, 1);
+	asi_u32_write(ASI_MMUFLUSH, 0x400, 1);
 }
 
 /** @}
