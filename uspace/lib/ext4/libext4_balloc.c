@@ -263,10 +263,9 @@ uint32_t ext4_balloc_get_first_data_block_in_group(ext4_superblock_t *sb,
  * @return Goal block number
  *
  */
-static uint32_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref)
+static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
 {
-	uint32_t goal = 0;
-	
+	*goal = 0;
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 	
 	uint64_t inode_size = ext4_inode_get_size(sb, inode_ref->inode);
@@ -279,13 +278,13 @@ static uint32_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref)
 	/* If inode has some blocks, get last block address + 1 */
 	if (inode_block_count > 0) {
 		int rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
-		    inode_block_count - 1, &goal);
+		    inode_block_count - 1, goal);
 		if (rc != EOK)
-			return 0;
+			return rc;
 		
 		if (goal != 0) {
-			goal++;
-			return goal;
+			(*goal)++;
+			return EOK;
 		}
 		
 		/* If goal == 0, sparse file -> continue */
@@ -301,7 +300,7 @@ static uint32_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref)
 	int rc = ext4_filesystem_get_block_group_ref(inode_ref->fs,
 	    block_group, &bg_ref);
 	if (rc != EOK)
-		return 0;
+		return rc;
 	
 	/* Compute indexes */
 	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
@@ -326,11 +325,11 @@ static uint32_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref)
 	if (inode_table_bytes % block_size)
 		inode_table_blocks++;
 	
-	goal = inode_table_first_block + inode_table_blocks;
+	*goal = inode_table_first_block + inode_table_blocks;
 	
 	ext4_filesystem_put_block_group_ref(bg_ref);
 	
-	return goal;
+	return EOK;
 }
 
 /** Data block allocation algorithm.
@@ -348,12 +347,15 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	uint32_t bitmap_block_addr;
 	block_t *bitmap_block;
 	uint32_t rel_block_idx = 0;
+	uint32_t goal;
 	
 	/* Find GOAL */
-	uint32_t goal = ext4_balloc_find_goal(inode_ref);
-	if (goal == 0) {
+	int rc = ext4_balloc_find_goal(inode_ref, &goal);
+	if (rc != EOK)
+		return rc;
+	else if (goal == 0) {
 		/* no goal found => partition is full */
-		return ENOSPC;
+		return ENOMEM;
 	}
 	
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
@@ -365,7 +367,7 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
-	int rc = ext4_filesystem_get_block_group_ref(inode_ref->fs,
+	rc = ext4_filesystem_get_block_group_ref(inode_ref->fs,
 	    block_group, &bg_ref);
 	if (rc != EOK)
 		return rc;
