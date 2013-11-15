@@ -39,27 +39,6 @@
 #include <libarch/fibril.h>
 #include <fibril.h>
 
-struct jmp_buf_interal {
-	context_t context;
-	int return_value;
-};
-
-/**
- * Save current environment (registers).
- *
- * This function may return twice.
- *
- * @param env Variable where to save the environment.
- * @return Whether the call returned after longjmp.
- * @retval 0 Environment was saved, normal execution.
- * @retval other longjmp was executed and returned here.
- */
-int setjmp(jmp_buf env) {
-	env->return_value = 0;
-	context_save(&env[0].context);
-	return env->return_value;
-}
-
 /**
  * Restore environment previously stored by setjmp.
  *
