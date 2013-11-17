@@ -45,8 +45,8 @@
 	do { \
 		(c)->pc = ((uintptr_t) _pc) - 8; \
 		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
-		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
-		(c)->fp = -STACK_BIAS; \
+		    STACK_ALIGNMENT) - (SP_DELTA); \
+		(c)->fp = 0; \
 		(c)->tp = (uint32_t) ptls; \
 	} while (0)
 
@@ -57,28 +57,28 @@
 typedef struct {
 	uintptr_t sp;		/* %o6 */
 	uintptr_t pc;		/* %o7 */
-	uint64_t i0;
-	uint64_t i1;
-	uint64_t i2;
-	uint64_t i3;
-	uint64_t i4;
-	uint64_t i5;
+	uint32_t i0;
+	uint32_t i1;
+	uint32_t i2;
+	uint32_t i3;
+	uint32_t i4;
+	uint32_t i5;
 	uintptr_t fp;		/* %i6 */
 	uintptr_t i7;
-	uint64_t l0;
-	uint64_t l1;
-	uint64_t l2;
-	uint64_t l3;
-	uint64_t l4;
-	uint64_t l5;
-	uint64_t l6;
-	uint64_t l7;
-	uint64_t tp;		/* %g7 */
+	uint32_t l0;
+	uint32_t l1;
+	uint32_t l2;
+	uint32_t l3;
+	uint32_t l4;
+	uint32_t l5;
+	uint32_t l6;
+	uint32_t l7;
+	uint32_t tp;		/* %g7 */
 } context_t;
 
 static inline uintptr_t context_get_fp(context_t *ctx)
 {
-	return ctx->sp + STACK_BIAS;
+	return ctx->sp;
 }
 
 #endif

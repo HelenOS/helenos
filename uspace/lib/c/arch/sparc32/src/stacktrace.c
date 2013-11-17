@@ -56,7 +56,7 @@ int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 
 	rc = (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, &bprev);
 	if (rc == EOK)
-		*prev = bprev + STACK_BIAS;
+		*prev = bprev;
 	return rc;
 }
 

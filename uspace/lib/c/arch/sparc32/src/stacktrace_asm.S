@@ -44,7 +44,7 @@ stacktrace_prepare:
 stacktrace_fp_get:
 	# Add the stack bias to %sp to get the actual address.
 	retl
-	add %sp, STACK_BIAS, %o0
+	mov %sp,  %o0
 
 stacktrace_pc_get:
 	retl
