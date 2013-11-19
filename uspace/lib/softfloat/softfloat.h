@@ -207,7 +207,11 @@ extern float __aeabi_i2f(int);
 extern float __aeabi_ui2f(int);
 extern double __aeabi_i2d(int);
 extern double __aeabi_ui2d(unsigned int);
+extern double __aeabi_l2d(long long);
+extern float __aeabi_l2f(long long);
+extern float __aeabi_ul2f(unsigned long long);
 extern unsigned int __aeabi_d2uiz(double);
+extern long long __aeabi_d2lz(double);
 
 extern int __aeabi_f2iz(float);
 extern int __aeabi_f2uiz(float);
