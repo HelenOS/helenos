@@ -32,6 +32,63 @@
 
 #include <bits.h>
 
+/** Compute number of trailing 0-bits in a number. */
+int __ctzdi2(long a)
+{
+	unsigned int bits = 0;
+	while (((a >> bits) & 1) == 0) {
+		bits++;
+		if (bits >= sizeof(a) * 8) {
+			break;
+		}
+	}
+
+	return bits;
+}
+
+/** Compute number of trailing 0-bits in a number. */
+int __ctzsi2(int a)
+{
+	unsigned int bits = 0;
+	while (((a >> bits) & 1) == 0) {
+		bits++;
+		if (bits >= sizeof(a) * 8) {
+			break;
+		}
+	}
+
+	return bits;
+}
+
+/** Compute number of leading 0-bits in a number. */
+int __clzdi2(long a)
+{
+	int index = sizeof(a) * 8 - 1;
+	int bits = 0;
+	while (index >= 0) {
+		if (((a >> index) & 1) == 0) {
+			bits++;
+		} else {
+			break;
+		}
+		index--;
+	}
+
+	return bits;
+}
+
+/** Compute index of the first 1-bit in a number increased by one.
+ *
+ * If the number is zero, zero is returned.
+ */
+int __ffsdi2(long a) {
+	if (a == 0) {
+		return 0;
+	}
+
+	return 1 + __ctzdi2(a);
+}
+
 /** Compute number of set bits in a number. */
 int __popcountsi2(int a)
 {

@@ -35,6 +35,10 @@
 #ifndef __SOFTINT_BITS_H_
 #define __SOFTINT_BITS_H_
 
+extern int __ctzdi2(long);
+extern int __ctzsi2(int);
+extern int __clzdi2(long);
+extern int __ffsdi2(long);
 extern int __popcountsi2(int);
 extern int __popcountdi2(long);
 
