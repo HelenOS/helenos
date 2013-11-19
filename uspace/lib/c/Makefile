@@ -60,7 +60,6 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
-	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \

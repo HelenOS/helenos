@@ -26,12 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup softint
  * @{
  */
 
-#include <bitops.h>
+#include <bits.h>
 
+/** Compute number of set bits in a number. */
 int __popcountsi2(int a)
 {
 	int bits = 0;
@@ -43,6 +44,7 @@ int __popcountsi2(int a)
 	return bits;									
 }
 
+/** Compute number of set bits in a number. */
 int __popcountdi2(long a)
 {
 	int bits = 0;
