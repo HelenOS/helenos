@@ -370,6 +370,7 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
 int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
     uint32_t *fblock)
 {
+	int rc;
 	/* Compute bound defined by i-node size */
 	uint64_t inode_size =
 	    ext4_inode_get_size(inode_ref->fs->superblock, inode_ref->inode);
@@ -399,10 +400,13 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
 		/* Load child node and set values for the next iteration */
 		uint64_t child = ext4_extent_index_get_leaf(index);
 		
-		if (block != NULL)
-			block_put(block);
+		if (block != NULL) {
+			rc = block_put(block);
+			if (rc != EOK)
+				return rc;
+		}
 		
-		int rc = block_get(&block, inode_ref->fs->device, child,
+		rc = block_get(&block, inode_ref->fs->device, child,
 		    BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
@@ -428,9 +432,9 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
 	
 	/* Cleanup */
 	if (block != NULL)
-		block_put(block);
+		rc = block_put(block);
 	
-	return EOK;
+	return rc;
 }
 
 /** Find extent for specified iblock.
@@ -504,13 +508,20 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t iblock,
 	return EOK;
 	
 cleanup:
+	;
+
+	int rc2 = EOK;
+
 	/*
 	 * Put loaded blocks
 	 * From 1: 0 is a block with inode data
 	 */
 	for (uint16_t i = 1; i < tmp_path->depth; ++i) {
-		if (tmp_path[i].block)
-			block_put(tmp_path[i].block);
+		if (tmp_path[i].block) {
+			rc2 = block_put(tmp_path[i].block);
+			if (rc == EOK && rc2 != EOK)
+				rc = rc2;
+		}
 	}
 	
 	/* Destroy temporary data structure */
@@ -593,9 +604,7 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 	if (rc != EOK)
 		return rc;
 	
-	ext4_balloc_free_block(inode_ref, fblock);
-	
-	return EOK;
+	return ext4_balloc_free_block(inode_ref, fblock);
 }
 
 /** Release all data blocks starting from specified logical block.
@@ -720,13 +729,20 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	}
 	
 cleanup:
+	;
+
+	int rc2 = EOK;
+
 	/*
 	 * Put loaded blocks
 	 * starting from 1: 0 is a block with inode data
 	 */
 	for (uint16_t i = 1; i <= path->depth; ++i) {
-		if (path[i].block)
-			block_put(path[i].block);
+		if (path[i].block) {
+			rc2 = block_put(path[i].block);
+			if (rc == EOK && rc2 != EOK)
+				rc = rc2;
+		}
 	}
 	
 	/* Destroy temporary data structure */
@@ -1060,6 +1076,10 @@ append_extent:
 	path_ptr->block->dirty = true;
 	
 finish:
+	;
+
+	int rc2 = EOK;
+
 	/* Set return values */
 	*iblock = new_block_idx;
 	*fblock = phys_block;
@@ -1069,8 +1089,11 @@ finish:
 	 * starting from 1: 0 is a block with inode data
 	 */
 	for (uint16_t i = 1; i <= path->depth; ++i) {
-		if (path[i].block)
-			block_put(path[i].block);
+		if (path[i].block) {
+			rc2 = block_put(path[i].block);
+			if (rc == EOK && rc2 != EOK)
+				rc = rc2;
+		}
 	}
 	
 	/* Destroy temporary data structure */
