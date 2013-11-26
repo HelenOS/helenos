@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_STACKARG_H_
-#define LIBC_sparc64_STACKARG_H_
+#ifndef LIBC_sparc32_STACKARG_H_
+#define LIBC_sparc32_STACKARG_H_
 
 #endif
 

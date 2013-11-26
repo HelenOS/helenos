@@ -27,12 +27,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
 
-#ifndef LIBC_sparc64_THREAD_H_
-#define LIBC_sparc64_THREAD_H_
+#ifndef LIBC_sparc32_THREAD_H_
+#define LIBC_sparc32_THREAD_H_
 
 #endif
 

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Jakub Jermar
  * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64
+/** @addtogroup sparc32
  * @{
  */
 /** @file
@@ -40,8 +41,8 @@
 
 #include <stacktrace.h>
 
-#define FRAME_OFFSET_FP_PREV	(14 * 8)
-#define FRAME_OFFSET_RA		(15 * 8)
+#define FRAME_OFFSET_FP_PREV	(14 * 4)
+#define FRAME_OFFSET_RA		(15 * 4)
 
 bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 {

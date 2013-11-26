@@ -43,6 +43,16 @@ __entry:
 	#
 	save %sp, -176, %sp
 # XXX	flushw
+        mov 7, %g1
+1:	subcc %g1, 1, %g1
+ 	bg 1b
+        save %sp, -64, %sp
+
+	mov 7, %g1
+1:	subcc %g1, 1, %g1
+ 	bg 1b
+
+# XXX end flush
 #	add %g0, -0x7ff, %fp
 	set 0x80000000, %fp
 	

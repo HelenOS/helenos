@@ -32,10 +32,10 @@
 /** @file
  */
 
-#ifndef LIBC_sparc64_STACK_H_
-#define LIBC_sparc64_STACK_H_
+#ifndef LIBC_sparc32_STACK_H_
+#define LIBC_sparc32_STACK_H_
 
-#define STACK_ITEM_SIZE			8
+#define STACK_ITEM_SIZE			4
 
 /** According to SPARC Compliance Definition, every stack frame is 16-byte aligned. */
 #define STACK_ALIGNMENT			8

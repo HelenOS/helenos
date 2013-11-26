@@ -37,7 +37,15 @@
 stacktrace_prepare:
 	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE+STACK_ARG_SAVE_AREA_SIZE), %sp
 	# Flush all other windows to memory so that we can read their contents.
-# XXX	flushw
+        mov 7, %g1
+1:	subcc %g1, 1, %g1
+ 	bg 1b
+        save %sp, -64, %sp
+
+	mov 7, %g1
+1:	subcc %g1, 1, %g1
+ 	bg 1b
+
 	ret
 	restore
 
