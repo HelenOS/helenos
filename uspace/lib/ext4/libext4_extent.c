@@ -793,7 +793,11 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 			}
 			
 			/* Put back not modified old block */
-			block_put(path_ptr->block);
+			rc = block_put(path_ptr->block);
+			if (rc != EOK) {
+				ext4_balloc_free_block(inode_ref, fblock);
+				return rc;
+			}
 			
 			/* Initialize newly allocated block and remember it */
 			memset(block->data, 0, block_size);

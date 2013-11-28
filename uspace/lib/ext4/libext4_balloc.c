@@ -327,9 +327,7 @@ static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
 	
 	*goal = inode_table_first_block + inode_table_blocks;
 	
-	ext4_filesystem_put_block_group_ref(bg_ref);
-	
-	return EOK;
+	return ext4_filesystem_put_block_group_ref(bg_ref);
 }
 
 /** Data block allocation algorithm.
@@ -468,8 +466,15 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	}
 	
 	/* No free block found yet */
-	block_put(bitmap_block);
-	ext4_filesystem_put_block_group_ref(bg_ref);
+	rc = block_put(bitmap_block);
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		return rc;
+	}
+
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
+	if (rc != EOK)
+		return rc;
 	
 	/* Try other block groups */
 	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
@@ -539,8 +544,15 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 			goto success;
 		}
 		
-		block_put(bitmap_block);
+		rc = block_put(bitmap_block);
+		if (rc != EOK) {
+			ext4_filesystem_put_block_group_ref(bg_ref);
+			return rc;
+		}
+
 		ext4_filesystem_put_block_group_ref(bg_ref);
+		if (rc != EOK)
+			return rc;
 		
 		/* Goto next group */
 		bgid = (bgid + 1) % block_group_count;
@@ -575,10 +587,10 @@ success:
 	    bg_free_blocks);
 	bg_ref->dirty = true;
 	
-	ext4_filesystem_put_block_group_ref(bg_ref);
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	
 	*fblock = allocated_block;
-	return EOK;
+	return rc;
 }
 
 /** Try to allocate concrete block.
