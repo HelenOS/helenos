@@ -550,7 +550,7 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 			return rc;
 		}
 
-		ext4_filesystem_put_block_group_ref(bg_ref);
+		rc = ext4_filesystem_put_block_group_ref(bg_ref);
 		if (rc != EOK)
 			return rc;
 		
