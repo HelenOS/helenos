@@ -42,7 +42,8 @@
 #include "func_gpt.h"
 #include "input.h"
 
-static int set_gpt_partition(tinput_t *, gpt_part_t *, unsigned int);
+static void print_part_types(void);
+static int set_gpt_partition(tinput_t *, gpt_part_t *, label_t *);
 
 int construct_gpt_label(label_t *this)
 {
@@ -68,7 +69,7 @@ int add_gpt_part(label_t *this, tinput_t *in)
 		return ENOMEM;
 	}
 	
-	return set_gpt_partition(in, p, this->alignment);
+	return set_gpt_partition(in, p, this);
 }
 
 int delete_gpt_part(label_t *this, tinput_t *in)
@@ -105,7 +106,7 @@ int new_gpt_label(label_t *this)
 
 int print_gpt_parts(label_t *this)
 {
-	printf("Current partition scheme (GPT):\n");
+	printf("Current partition scheme (GPT)(number of blocks: %" PRIu64 "):\n", this->nblocks);
 	printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
 	
 	size_t i = 0;
@@ -130,11 +131,11 @@ int print_gpt_parts(label_t *this)
 	return EOK;
 }
 
-int read_gpt_parts(label_t *this, service_id_t dev_handle)
+int read_gpt_parts(label_t *this)
 {
 	int rc;
 	
-	rc = gpt_read_header(this->data.gpt, dev_handle);
+	rc = gpt_read_header(this->data.gpt, this->device);
 	if (rc != EOK) {
 		printf("Error: Reading header failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
@@ -149,43 +150,37 @@ int read_gpt_parts(label_t *this, service_id_t dev_handle)
 	return EOK;
 }
 
-int write_gpt_parts(label_t *this, service_id_t dev_handle)
+int write_gpt_parts(label_t *this)
 {
 	int rc;
-	
-	rc = gpt_write_partitions(this->data.gpt, dev_handle);
+	printf("test1\n");
+	rc = gpt_write_partitions(this->data.gpt, this->device);
 	if (rc != EOK) {
 		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
-	
-	rc = gpt_write_header(this->data.gpt, dev_handle);
-	if (rc != EOK) {
-		printf("Error: Writing header failed: %d (%s)\n", rc, str_error(rc));
-		return rc;
-	}
-	
+	printf("test2\n");
 	return EOK;
 }
 
-int extra_gpt_funcs(label_t *this, tinput_t *in, service_id_t dev_handle)
+int extra_gpt_funcs(label_t *this, tinput_t *in)
 {
 	printf("Not implemented.\n");
 	return EOK;
 }
 
-static int set_gpt_partition(tinput_t *in, gpt_part_t *p, unsigned int alignment)
+static int set_gpt_partition(tinput_t *in, gpt_part_t *p, label_t * this)
 {
 	int rc;
 	
 	uint64_t sa, ea;
 	
-	printf("Set starting address (number): ");
+	printf("Set starting address: ");
 	sa = get_input_uint64(in);
-	if (sa % alignment != 0)
-		sa = gpt_get_next_aligned(sa, alignment);
+	if (this->alignment != 0 && this->alignment != 1 && sa % this->alignment != 0)
+		sa = gpt_get_next_aligned(sa, this->alignment);
 	
-	printf("Set end address (number): ");
+	printf("Set end address (max: %" PRIu64 "): ", this->nblocks);
 	ea = get_input_uint64(in);
 	
 	if (ea <= sa) {
@@ -197,11 +192,12 @@ static int set_gpt_partition(tinput_t *in, gpt_part_t *p, unsigned int alignment
 	gpt_set_end_lba(p, ea);
 	
 	/* See global.c from libgpt for all partition types. */
+	printf("Choose type: ");
+	print_part_types();
 	printf("Set type (1 for HelenOS System): ");
 	size_t idx = get_input_size_t(in);
 	gpt_set_part_type(p, idx);
 	
-	gpt_set_random_uuid(p->part_type);
 	gpt_set_random_uuid(p->part_id);
 	
 	char *name;
@@ -215,5 +211,25 @@ static int set_gpt_partition(tinput_t *in, gpt_part_t *p, unsigned int alignment
 	gpt_set_part_name(p, name, str_size(name));
 	
 	return EOK;
+}
+
+static void print_part_types(void)
+{
+	int c;
+	int count = 0;
+	const struct partition_type * ptype = gpt_ptypes;
+	
+	do {
+		if (count % 10 == 0) {
+			printf("Print (more) partition types? (y/n)\n");
+			c = getchar();
+			if (c == 'n')
+				return;
+		}
+		
+		printf("%d: %s\n", count, ptype->desc);
+		++count;
+		++ptype;
+	} while (ptype->guid != NULL);
 }
 

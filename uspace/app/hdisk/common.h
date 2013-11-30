@@ -53,6 +53,8 @@ typedef struct label label_t;
 
 struct label {
 	layouts_t layout;
+	aoff64_t nblocks;
+	service_id_t device;
 	union label_data data;
 	unsigned int alignment;
 	int (* destroy_label)(label_t *);
@@ -60,9 +62,9 @@ struct label {
 	int (* delete_part)  (label_t *, tinput_t *);
 	int (* new_label)    (label_t *);
 	int (* print_parts)  (label_t *);
-	int (* read_parts)   (label_t *, service_id_t);
-	int (* write_parts)  (label_t *, service_id_t);
-	int (* extra_funcs)  (label_t *, tinput_t *, service_id_t);
+	int (* read_parts)   (label_t *);
+	int (* write_parts)  (label_t *);
+	int (* extra_funcs)  (label_t *, tinput_t *);
 };
 
 #endif

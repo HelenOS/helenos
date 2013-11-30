@@ -46,8 +46,8 @@ extern int delete_none_part  (label_t *, tinput_t *);
 extern int destroy_none_label(label_t *);
 extern int new_none_label    (label_t *);
 extern int print_none_parts  (label_t *);
-extern int read_none_parts   (label_t *, service_id_t);
-extern int write_none_parts  (label_t *, service_id_t);
-extern int extra_none_funcs  (label_t *, tinput_t *, service_id_t);
+extern int read_none_parts   (label_t *);
+extern int write_none_parts  (label_t *);
+extern int extra_none_funcs  (label_t *, tinput_t *);
 
 #endif

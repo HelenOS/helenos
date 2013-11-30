@@ -45,6 +45,7 @@
 #include <libmbr.h>
 #include <libgpt.h>
 #include <tinput.h>
+#include <str_error.h>
 
 #include "hdisk.h"
 #include "input.h"
@@ -52,14 +53,14 @@
 #include "func_mbr.h"
 #include "func_none.h"
 
-int interact(service_id_t);
+int interact(void);
 void print_help(void);
 void select_label_format(tinput_t *);
 void construct_label(layouts_t);
 void free_label(void);
-int try_read(service_id_t);
-int try_read_mbr(service_id_t);
-int try_read_gpt(service_id_t);
+int try_read(void);
+int try_read_mbr(void);
+int try_read_gpt(void);
 void set_alignment(tinput_t *);
 
 
@@ -82,27 +83,46 @@ int main(int argc, char ** argv)
 	}
 	
 	init_label();
+	label.device = dev_handle;
 	
-	rc = try_read_mbr(dev_handle);
+	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
+	if (rc != EOK) {
+		printf("Error during libblock init: %d - %s.\n", rc, str_error(rc));
+		return -1;
+	}
+	
+	aoff64_t nblocks;
+	rc = block_get_nblocks(dev_handle, &nblocks);
+	block_fini(dev_handle);
+	if (rc != EOK) {
+		printf(LIBMBR_NAME ": Error while getting number of blocks: %d - %s.\n", rc, str_error(rc));
+		return -1;
+	}
+	
+	label.nblocks = nblocks;
+	
+	rc = try_read_mbr();
 	if (rc == EOK)
 		goto interact;
 	
-	rc = try_read_gpt(dev_handle);
+	free_label();
+	
+	rc = try_read_gpt();
 	if (rc == EOK)
 		goto interact;
 	
 	printf("No label recognized. Create a new one.\n");
-	label.layout = LYT_NONE;
+	construct_label(LYT_NONE);
 	
 interact:
 	
-	rc = interact(dev_handle);
+	rc = interact();
 	
 	return rc;
 }
 
 /** Interact with user */
-int interact(service_id_t dev_handle)
+int interact()
 {
 	int input;
 	tinput_t *in;
@@ -129,9 +149,10 @@ int interact(service_id_t dev_handle)
 			label.delete_part(&label, in);
 			break;
 		case 'e':
-			label.extra_funcs(&label, in, dev_handle);
+			label.extra_funcs(&label, in);
 			break;
 		case 'f':
+			free_label();
 			select_label_format(in);
 			break;
 		case 'h':
@@ -153,9 +174,9 @@ int interact(service_id_t dev_handle)
 			free_label();
 			goto end;
 		case 'r':
-			label.read_parts(&label, dev_handle);
+			label.read_parts(&label);
 		case 'w':
-			label.write_parts(&label, dev_handle);
+			label.write_parts(&label);
 			break;
 		default:
 			printf("Unknown command. Try 'h' for help.\n");
@@ -196,17 +217,14 @@ void select_label_format(tinput_t * in)
 	
 	uint8_t val = get_input_uint8(in);
 	switch (val) {
-	case 0:
-		free_label();
-		construct_label(LYT_NONE);
-		break;
 	case 1:
-		free_label();
 		construct_label(LYT_MBR);
 		break;
 	case 2:
-		free_label();
 		construct_label(LYT_GPT);
+		break;
+	default:
+		construct_label(LYT_NONE);
 		break;
 	}
 }
@@ -234,21 +252,22 @@ void free_label(void)
 	label.destroy_label(&label);
 }
 
-int try_read(service_id_t dev_handle)
+int try_read()
 {
-	return label.read_parts(&label, dev_handle);
+	
+	return label.read_parts(&label);
 }
 
-int try_read_mbr(service_id_t dev_handle)
+int try_read_mbr()
 {
 	construct_label(LYT_MBR);
-	return try_read(dev_handle);
+	return try_read();
 }
 
-int try_read_gpt(service_id_t dev_handle)
+int try_read_gpt()
 {
 	construct_label(LYT_GPT);
-	return try_read(dev_handle);
+	return try_read();
 }
 
 void set_alignment(tinput_t *in)

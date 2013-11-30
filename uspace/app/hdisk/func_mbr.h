@@ -47,8 +47,8 @@ extern int delete_mbr_part  (label_t *, tinput_t *);
 extern int destroy_mbr_label(label_t *);
 extern int new_mbr_label    (label_t *);
 extern int print_mbr_parts  (label_t *);
-extern int read_mbr_parts   (label_t *, service_id_t);
-extern int write_mbr_parts  (label_t *, service_id_t);
-extern int extra_mbr_funcs  (label_t *, tinput_t *, service_id_t);
+extern int read_mbr_parts   (label_t *);
+extern int write_mbr_parts  (label_t *);
+extern int extra_mbr_funcs  (label_t *, tinput_t *);
 
 #endif

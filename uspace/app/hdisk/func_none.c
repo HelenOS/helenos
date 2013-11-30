@@ -85,19 +85,19 @@ int print_none_parts(label_t *this)
 	return EOK;
 }
 
-int read_none_parts(label_t *this, service_id_t dev_handle)
+int read_none_parts(label_t *this)
 {
 	not_implemented();
 	return EOK;
 }
 
-int write_none_parts(label_t *this, service_id_t dev_handle)
+int write_none_parts(label_t *this)
 {
 	not_implemented();
 	return EOK;
 }
 
-int extra_none_funcs(label_t *this, tinput_t * in, service_id_t dev_handle)
+int extra_none_funcs(label_t *this, tinput_t * in)
 {
 	not_implemented();
 	return EOK;

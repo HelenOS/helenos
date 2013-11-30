@@ -119,6 +119,7 @@ typedef struct mbr_label {
 
 /* Alloc complete label structure */
 extern mbr_label_t * mbr_alloc_label(void);
+extern void mbr_set_device(mbr_label_t *, service_id_t);
 
 /* Read/Write MBR header.
  * WARNING: when changing both header and partitions, write first header,

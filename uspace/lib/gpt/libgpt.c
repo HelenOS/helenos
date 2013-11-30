@@ -48,6 +48,7 @@
 #include <checksum.h>
 #include <mem.h>
 #include <sys/typefmt.h>
+#include <mbr.h>
 
 
 #include "libgpt.h"
@@ -111,7 +112,14 @@ gpt_t * gpt_alloc_header(size_t size)
 		return NULL;
 	}
 	
+	/* Enter some sane defaults. */
 	memset(gpt->header, 0, final_size);
+	memcpy(gpt->header->efi_signature, efi_signature, 8);
+	memcpy(gpt->header->revision, revision, 4);
+	gpt->header->header_size = host2uint32_t_le(final_size);
+	gpt->header->entry_lba = host2uint64_t_le((uint64_t) 2);
+	gpt->header->entry_size = host2uint32_t_le(sizeof(gpt_entry_t));
+	
 	
 	return gpt;
 }
@@ -206,6 +214,8 @@ int gpt_write_header(gpt_label_t *label, service_id_t dev_handle)
 	
 	uint64_t tmp;
 	
+	gpt_set_random_uuid(label->gpt->header->disk_guid);
+	
 	/* Prepare the backup header */
 	label->gpt->header->alternate_lba = label->gpt->header->my_lba;
 	label->gpt->header->my_lba = host2uint64_t_le(n_blocks - 1);
@@ -242,10 +252,23 @@ int gpt_write_header(gpt_label_t *label, service_id_t dev_handle)
 	
 	/* Write to main GPT header location */
 	rc = block_write_direct(dev_handle, GPT_HDR_BA, GPT_HDR_BS, label->gpt->header);
-	block_fini(dev_handle);
 	if (rc != EOK)
 		return rc;
 	
+	/* Write Protective MBR */
+	br_block_t mbr;
+	memset(&mbr, 0, 512);
+	memset(mbr.pte[0].first_chs, 1, 3);
+	mbr.pte[0].ptype = 0xEE;
+	memset(mbr.pte[0].last_chs, 0xFF, 3);
+	mbr.pte[0].first_lba = host2uint32_t_le(1);
+	mbr.pte[0].length = 0xFFFFFFFF;
+	mbr.signature = host2uint16_t_le(BR_SIGNATURE);
+	
+	rc = block_write_direct(dev_handle, 0, 1, &mbr);
+	block_fini(dev_handle);
+	if (rc != EOK)
+		return rc;
 	
 	return 0;
 }
@@ -342,11 +365,6 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 {
 	int rc;
 	size_t b_size;
-	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
-	size_t fillries = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
-	
-	if (e_size != sizeof(gpt_entry_t))
-		return ENOTSUP;
 	
 	/* comm_size of 4096 is ignored */
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 4096);
@@ -362,12 +380,26 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	if (rc != EOK)
 		goto fail;
 	
+	/* When we're creating a new label from scratch, we need to fill 
+	 * the header with sensible defaults. */
+	if (label->gpt == NULL) {
+		label->gpt = gpt_alloc_header(b_size);
+	}
+	
+	printf("test1.0\n");
+	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
+	printf("test1.025\n");
+	size_t fillries = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
+	printf("test1.05\n");
+	if (e_size != sizeof(gpt_entry_t))
+		return ENOTSUP;
+
 	label->gpt->header->fillries = host2uint32_t_le(fillries);
 	uint64_t arr_blocks = (fillries * sizeof(gpt_entry_t)) / b_size;
 	uint64_t gpt_space = arr_blocks + GPT_HDR_BS + 1; /* +1 for Protective MBR */
 	label->gpt->header->first_usable_lba = host2uint64_t_le(gpt_space);
 	label->gpt->header->last_usable_lba = host2uint64_t_le(n_blocks - gpt_space - 1);
-	
+	printf("test1.5\n");
 	/* Perform checks */
 	gpt_part_foreach (label, p) {
 		if (gpt_get_part_type(p) == GPT_PTE_UNUSED)
@@ -394,24 +426,24 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 			}
 		}
 	}
-	
+	printf("test1.6\n");
 	label->gpt->header->pe_array_crc32 = host2uint32_t_le(compute_crc32(
 	                               (uint8_t *) label->parts->part_array,
 	                               fillries * e_size));
 	
-	
+	printf("test1.7\n");
 	/* Write to backup GPT partition array location */
 	rc = block_write_direct(dev_handle, n_blocks - arr_blocks - 1, 
 	         arr_blocks, label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
-	
+	printf("test1.8\n");
 	/* Write to main GPT partition array location */
 	rc = block_write_direct(dev_handle, uint64_t_le2host(label->gpt->header->entry_lba),
 	         arr_blocks, label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
-	
+	printf("test1.9\n");
 	return gpt_write_header(label, dev_handle);
 	
 fail:
@@ -593,6 +625,11 @@ size_t gpt_get_part_type(gpt_part_t * p)
 	size_t i;
 	
 	for (i = 0; gpt_ptypes[i].guid != NULL; i++) {
+		//printf("%x =?= %x\n", p->part_type[3], get_byte(gpt_ptypes[i].guid +0));
+		//printf("%x =?= %x\n", p->part_type[2], get_byte(gpt_ptypes[i].guid +2));
+		//printf("%x =?= %x\n", p->part_type[1], get_byte(gpt_ptypes[i].guid +4));
+		//printf("%x =?= %x\n", p->part_type[0], get_byte(gpt_ptypes[i].guid +6));
+		//getchar();
 		if (p->part_type[3] == get_byte(gpt_ptypes[i].guid +0) &&
 			p->part_type[2] == get_byte(gpt_ptypes[i].guid +2) &&
 			p->part_type[1] == get_byte(gpt_ptypes[i].guid +4) &&
@@ -626,25 +663,25 @@ size_t gpt_get_part_type(gpt_part_t * p)
 void gpt_set_part_type(gpt_part_t * p, size_t type)
 {
 	/* Beware: first 3 blocks are byteswapped! */
-	p->part_type[3] = gpt_ptypes[type].guid[0];
-	p->part_type[2] = gpt_ptypes[type].guid[1];
-	p->part_type[1] = gpt_ptypes[type].guid[2];
-	p->part_type[0] = gpt_ptypes[type].guid[3];
-
-	p->part_type[5] = gpt_ptypes[type].guid[4];
-	p->part_type[4] = gpt_ptypes[type].guid[5];
-
-	p->part_type[7] = gpt_ptypes[type].guid[6];
-	p->part_type[6] = gpt_ptypes[type].guid[7];
-
-	p->part_type[8] = gpt_ptypes[type].guid[8];
-	p->part_type[9] = gpt_ptypes[type].guid[9];
-	p->part_type[10] = gpt_ptypes[type].guid[10];
-	p->part_type[11] = gpt_ptypes[type].guid[11];
-	p->part_type[12] = gpt_ptypes[type].guid[12];
-	p->part_type[13] = gpt_ptypes[type].guid[13];
-	p->part_type[14] = gpt_ptypes[type].guid[14];
-	p->part_type[15] = gpt_ptypes[type].guid[15];
+	p->part_type[3] = get_byte(gpt_ptypes[type].guid +0);
+	p->part_type[2] = get_byte(gpt_ptypes[type].guid +2);
+	p->part_type[1] = get_byte(gpt_ptypes[type].guid +4);
+	p->part_type[0] = get_byte(gpt_ptypes[type].guid +6);
+	                
+	p->part_type[5] = get_byte(gpt_ptypes[type].guid +8);
+	p->part_type[4] = get_byte(gpt_ptypes[type].guid +10);
+	                
+	p->part_type[7] = get_byte(gpt_ptypes[type].guid +12);
+	p->part_type[6] = get_byte(gpt_ptypes[type].guid +14);
+	                
+	p->part_type[8] = get_byte(gpt_ptypes[type].guid +16);
+	p->part_type[9] = get_byte(gpt_ptypes[type].guid +18);
+	p->part_type[10] = get_byte(gpt_ptypes[type].guid +20);
+	p->part_type[11] = get_byte(gpt_ptypes[type].guid +22);
+	p->part_type[12] = get_byte(gpt_ptypes[type].guid +24);
+	p->part_type[13] = get_byte(gpt_ptypes[type].guid +26);
+	p->part_type[14] = get_byte(gpt_ptypes[type].guid +28);
+	p->part_type[15] = get_byte(gpt_ptypes[type].guid +30);
 }
 
 /** Get partition starting LBA */

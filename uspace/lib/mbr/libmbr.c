@@ -69,6 +69,11 @@ mbr_label_t * mbr_alloc_label(void)
 	return label;
 }
 
+void mbr_set_device(mbr_label_t *label, service_id_t dev_handle)
+{
+	label->device = dev_handle;
+}
+
 /** Free mbr_label_t structure */
 void mbr_free_label(mbr_label_t *label)
 {
@@ -252,6 +257,8 @@ int mbr_write_partitions(mbr_label_t *label, service_id_t dev_handle)
 		l = l->next;
 	}
 	
+	label->mbr->raw_data.signature = host2uint16_t_le(BR_SIGNATURE);
+	
 	/* Writing MBR */
 	rc = block_write_direct(dev_handle, 0, 1, &(label->mbr->raw_data));
 	if (rc != EOK) {
@@ -270,7 +277,7 @@ int mbr_write_partitions(mbr_label_t *label, service_id_t dev_handle)
 	/* Note for future changes: Some thought has been put into design
 	 * and implementation. If you don't have to change it, don't. Other
 	 * designs have been tried, this came out as the least horror with
-	 * as much power over it as you can get. Thanks. */
+	 * as much power over it as you can get. */
 	
 	/* Encoding and writing first logical partition */
 	if (l != &(label->parts->list.head)) {

@@ -49,7 +49,7 @@ typedef enum {
  */
 typedef struct {
 	uint8_t  efi_signature[8];
-	uint32_t revision;
+	uint8_t  revision[4];
 	uint32_t header_size;
 	uint32_t header_crc32;
 	uint32_t reserved;

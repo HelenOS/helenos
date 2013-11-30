@@ -39,6 +39,10 @@ const uint8_t efi_signature[8] = {
 	0x45, 0x46, 0x49, 0x20, 0x50, 0x41, 0x52, 0x54
 };
 
+const uint8_t revision[4] = {
+	00, 00, 01, 00
+};
+
 const struct partition_type gpt_ptypes[] = {
 	{ "Unused entry",					"00000000" "0000" "0000" "0000000000000000" }, /* 0 */
 	{ "HelenOS System",					"656C6548" "4F6E" "5320" "53797374656D0000" }, /* 1 It says "HelenOS System\0\0" */
@@ -54,11 +58,11 @@ const struct partition_type gpt_ptypes[] = {
 	{ "Windows Cluster metadata",		"DB97DBA9" "0840" "4BAE" "97F0FFB9A327C7E1" },
 	{ "HP-UX Data",						"75894C1E" "3AEB" "11D3" "B7C17B03A0000000" },
 	{ "HP-UX Service",					"E2A1E728" "32E3" "11D6" "A6827B03A0000000" },
-	{ "Linux filesystem data",			"EBD0A0A2" "B9E5" "4433" "87C068B6B72699C7" },
 	{ "Linux filesystem data",			"0FC63DAF" "8483" "4772" "8E793D69D8477DE4" },
 	{ "Linux RAID",						"A19D880F" "05FC" "4D3B" "A006743F0F84911E" },
 	{ "Linux Swap",						"0657FD6D" "A4AB" "43C4" "84E50933C84B4F4F" },
 	{ "Linux LVM",						"E6D6D379" "F507" "44C2" "A23C238F2A3DF928" },
+	{ "Linux filesystem data",			"933AC7E1" "2EB4" "4F13" "B8440E14E2AEF915" },
 	{ "Linux Reserved",					"8DA63339" "0007" "60C0" "C436083AC8230908" },
 	{ "FreeBSD Boot",					"83BD6B9D" "7F41" "11DC" "BE0B001560B84F0F" }, /* 20 */
 	{ "FreeBSD Data",					"516E7CB4" "6ECF" "11D6" "8FF800022D09712B" },

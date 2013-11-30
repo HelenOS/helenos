@@ -59,6 +59,7 @@
 
 /** GPT header signature ("EFI PART" in ASCII) */
 extern const uint8_t efi_signature[8];
+extern const uint8_t revision[4];
 
 typedef struct {
 	/** Raw header. Has more bytes alloced than sizeof(gpt_header_t)!
