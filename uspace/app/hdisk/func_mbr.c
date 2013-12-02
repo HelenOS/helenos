@@ -197,8 +197,6 @@ static int set_mbr_partition(tinput_t *in, mbr_part_t *p, label_t * this)
 		return EINVAL;
 	}
 	
-	printf("ST_LOGIC: %d, %hd\n", mbr_get_flag(p, ST_LOGIC), p->status);
-	
 	printf("Set type (0-255): ");
 	type = get_input_uint8(in);
 	if (type == 0 && errno != EOK)

@@ -309,8 +309,6 @@ int gpt_read_partitions(gpt_label_t *label)
 	if (rc != EOK)
 		goto fini_fail;
 
-	//size_t bufpos = 0;
-	//size_t buflen = 0;
 	aoff64_t pos = ent_lba * block_size;
 
 	/* 
@@ -386,11 +384,9 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 		label->gpt = gpt_alloc_header(b_size);
 	}
 	
-	printf("test1.0\n");
 	uint32_t e_size = uint32_t_le2host(label->gpt->header->entry_size);
-	printf("test1.025\n");
 	size_t fillries = label->parts->fill > GPT_MIN_PART_NUM ? label->parts->fill : GPT_MIN_PART_NUM;
-	printf("test1.05\n");
+	
 	if (e_size != sizeof(gpt_entry_t))
 		return ENOTSUP;
 
@@ -399,7 +395,7 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 	uint64_t gpt_space = arr_blocks + GPT_HDR_BS + 1; /* +1 for Protective MBR */
 	label->gpt->header->first_usable_lba = host2uint64_t_le(gpt_space);
 	label->gpt->header->last_usable_lba = host2uint64_t_le(n_blocks - gpt_space - 1);
-	printf("test1.5\n");
+	
 	/* Perform checks */
 	gpt_part_foreach (label, p) {
 		if (gpt_get_part_type(p) == GPT_PTE_UNUSED)
@@ -407,8 +403,6 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 		
 		if (!check_encaps(p, n_blocks, gpt_space)) {
 			rc = ERANGE;
-			printf("encaps with: %" PRIuOFF64 ", %" PRIu64 ", %" PRIu64 "\n", 
-			    n_blocks, gpt_space, gpt_get_end_lba(p));
 			goto fail;
 		}
 		
@@ -418,32 +412,30 @@ int gpt_write_partitions(gpt_label_t *label, service_id_t dev_handle)
 			
 			if (gpt_get_part_type(p) != GPT_PTE_UNUSED) {
 				if (check_overlap(p, q)) {
-					printf("overlap with: %" PRIu64 ", %" PRIu64 "\n", 
-					    gpt_get_start_lba(p), gpt_get_start_lba(q));
 					rc = ERANGE;
 					goto fail;
 				}
 			}
 		}
 	}
-	printf("test1.6\n");
+	
 	label->gpt->header->pe_array_crc32 = host2uint32_t_le(compute_crc32(
 	                               (uint8_t *) label->parts->part_array,
 	                               fillries * e_size));
 	
-	printf("test1.7\n");
+	
 	/* Write to backup GPT partition array location */
 	rc = block_write_direct(dev_handle, n_blocks - arr_blocks - 1, 
 	         arr_blocks, label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
-	printf("test1.8\n");
+	
 	/* Write to main GPT partition array location */
 	rc = block_write_direct(dev_handle, uint64_t_le2host(label->gpt->header->entry_lba),
 	         arr_blocks, label->parts->part_array);
 	if (rc != EOK)
 		goto fail;
-	printf("test1.9\n");
+	
 	return gpt_write_header(label, dev_handle);
 	
 fail:
@@ -625,11 +617,6 @@ size_t gpt_get_part_type(gpt_part_t * p)
 	size_t i;
 	
 	for (i = 0; gpt_ptypes[i].guid != NULL; i++) {
-		//printf("%x =?= %x\n", p->part_type[3], get_byte(gpt_ptypes[i].guid +0));
-		//printf("%x =?= %x\n", p->part_type[2], get_byte(gpt_ptypes[i].guid +2));
-		//printf("%x =?= %x\n", p->part_type[1], get_byte(gpt_ptypes[i].guid +4));
-		//printf("%x =?= %x\n", p->part_type[0], get_byte(gpt_ptypes[i].guid +6));
-		//getchar();
 		if (p->part_type[3] == get_byte(gpt_ptypes[i].guid +0) &&
 			p->part_type[2] == get_byte(gpt_ptypes[i].guid +2) &&
 			p->part_type[1] == get_byte(gpt_ptypes[i].guid +4) &&
