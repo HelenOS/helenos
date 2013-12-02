@@ -44,7 +44,7 @@
 
 #define context_set(c, _pc, stack, size) \
 	do { \
-		(c)->pc = ((uintptr_t) _pc) - 4; \
+		(c)->pc = ((uintptr_t) _pc) - 8; \
 		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
 		    STACK_ALIGNMENT) - (SP_DELTA); \
 		(c)->fp = (c)->fp; \

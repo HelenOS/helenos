@@ -38,9 +38,14 @@
 #include <typedefs.h>
 #include <arch/istate.h>
 #include <arch/exception.h>
+#include <arch/regwin.h>
 #include <syscall/syscall.h>
 #include <interrupt.h>
 #include <arch/asm.h>
+#include <mm/frame.h>
+#include <mm/page.h>
+#include <mm/as.h>
+#include <memstr.h>
 #include <debug.h>
 #include <print.h>
 #include <symtab.h>
@@ -141,9 +146,24 @@ void mem_address_not_aligned(int n, istate_t *istate)
 
 sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
-	printf("syscall %d\n", id);
-	printf("args: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", a1, a2, a3, a4, a5, a6);
+//	printf("syscall %d\n", id);
+//	printf("args: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", a1, a2, a3, a4, a5, a6);
+        if (id == 0x4f) {
+            flush_windows();
+            return 0;
+        }
+    
 	return syscall_handler(a1, a2, a3, a4, a5, a6, id);
+}
+
+void preemptible_save_uspace(uintptr_t sp, istate_t *istate)
+{
+	as_page_fault(sp, PF_ACCESS_WRITE, istate);
+}
+
+void preemptible_restore_uspace(uintptr_t sp, istate_t *istate)
+{
+	as_page_fault(sp, PF_ACCESS_WRITE, istate);
 }
 
 /** @}

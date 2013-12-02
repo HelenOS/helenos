@@ -39,6 +39,7 @@
 #ifndef __ASM__
 
 #include <typedefs.h>
+#include <arch/istate.h>
 
 #define	NWINDOWS	8
 
@@ -75,6 +76,10 @@ typedef struct {
 
 extern void arch_pre_main(void *unused, bootinfo_t *bootinfo);
 extern void write_to_invalid(uint32_t l0, uint32_t l1, uint32_t l2);
+extern void read_from_invalid(uint32_t *l0, uint32_t *l1, uint32_t *l2);
+extern void preemptible_save_uspace(uintptr_t sp, istate_t *istate);
+extern void preemptible_restore_uspace(uintptr_t sp, istate_t *istate);
+extern void flush_windows(void);
 
 #endif
 

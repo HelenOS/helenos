@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_abs32le_FADDR_H_
-#define KERN_abs32le_FADDR_H_
+#ifndef KERN_sparc32_FADDR_H_
+#define KERN_sparc32_FADDR_H_
 
 #include <typedefs.h>
 

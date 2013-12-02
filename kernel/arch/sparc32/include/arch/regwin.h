@@ -41,9 +41,7 @@
 #include <arch/arch.h>
 #include <align.h>
 
-#define CLEAN_WINDOW_HANDLER_SIZE	REGWIN_HANDLER_SIZE
-#define SPILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
-#define FILL_HANDLER_SIZE		REGWIN_HANDLER_SIZE
+#define	UWB_ALIGNMENT	1024
 
 /* Window Save Area offsets. */
 #define L0_OFFSET	0

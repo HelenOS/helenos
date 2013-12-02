@@ -27,6 +27,7 @@
 #
 
 #include <arch/trap.h>
+#include <arch/regwin.h>
 
 .text
 
@@ -38,6 +39,8 @@
 .global window_overflow_trap
 .global window_underflow_trap
 .global write_to_invalid
+.global read_from_invalid
+.global flush_windows
 
 .macro get_wim_number reg
 	clr \reg
@@ -230,6 +233,25 @@ write_to_invalid:
 	retl
 	nop
 
+read_from_invalid:
+	! Read value 1
+	mov %o0, %g7
+	switch_to_invalid %g3, %g4
+	st %l5, [%g7]
+	switch_back %g3, %g4
+	! Write value 2
+	mov %o1, %g7
+	switch_to_invalid %g3, %g4
+	st %l6, [%g7]
+	switch_back %g3, %g4
+	! Write value 3
+	mov %o2, %g7
+	switch_to_invalid %g3, %g4
+	st %l7, [%g7]
+	switch_back %g3, %g4
+	retl
+	nop
+
 reset_trap:
 	set 0x80000100, %l0
 	set 'r', %l1
@@ -239,7 +261,37 @@ reset_trap:
 window_overflow_trap:
 	mov %g7, %l0
 
-	/* rotate WIM on bit right, we have 8 windows */
+	/* Check whether previous mode was usermode */
+	mov %psr, %l4
+	and %l4, (1 << 6), %l4
+	cmp %l4, 0
+	bne 1f
+	nop
+
+	/* userspace: */
+	/* time to check whether desired stack page is mapped
+	 * on the MMU. if so, process with saving window directly.
+	 * if not, go to preemptible trap handler */
+	mov %wim, %g5
+	mov %g0, %wim
+	save
+	mov %sp, %g4
+	restore
+	mov %g5, %wim
+	and %g4, 0xfffff000, %l4
+	lda [%l4] 0x18, %l4
+	cmp %l4, 0
+	bne 1f
+	nop
+
+	/* prepare args for preemptible handler */
+	mov %g4, %o0
+	set preemptible_save_uspace, %o2
+	b preemptible_trap
+	nop
+
+	/* kernel: */
+1:	/* rotate WIM on bit right, we have 8 windows */
 	mov %wim, %l3
 	sll %l3, 7, %l4
 	srl %l3, 1, %l3
@@ -255,14 +307,7 @@ window_overflow_trap:
 	mov %l6, %g6		! kernel wbuf
 	mov %l7, %g7
 
-	/* Check whether previous mode was usermode */
-	mov %psr, %l4
-	and %l4, (1 << 6), %l4
-	cmp %l4, 0
-	beq 1f
-	nop
 
-	/* kernel: */
 	/* we should check whether window needs to be saved
 	 * to kernel stack or uwb
 	 */
@@ -283,12 +328,7 @@ window_overflow_trap:
 	b 3f
 	nop
 
-1:	/* uspace: */
-	/* set uspace window mark */
-	mov %psr, %g7
-	and %g7, 0x7, %g7
-	or %g7, 0x10, %g7
-
+	/* dump registers to uwb */
 2:	save
 	std %l0, [%g6 +  0]
 	std %l2, [%g6 +  8]
@@ -329,8 +369,39 @@ window_overflow_trap:
 window_underflow_trap:
 	mov %g7, %l0
 
+	/* Check whether previous mode was usermode */
+	mov %psr, %l4
+	and %l4, (1 << 6), %l4
+	cmp %l4, 0
+	bne 1f
+	nop
+
+	/* userspace: */
+	/* time to check whether desired stack page is mapped
+	 * on the MMU. if so, process with saving window directly.
+	 * if not, go to preemptible trap handler */
+	mov %wim, %g5
+	mov %g0, %wim
+	restore
+	restore
+	mov %sp, %g4
+	save
+	save
+	mov %g5, %wim
+	and %sp, 0xfffff000, %l4
+	lda [%l4] 0x18, %l4
+	cmp %l4, 0
+	bne 1f
+	nop
+
+	/* prepare args for preemptible handler */
+	mov %g4, %o0
+	set preemptible_restore_uspace, %o2
+	b preemptible_trap
+	nop
+
         /* rotate WIM on bit LEFT, we have 8 windows */ 
-        mov %wim,%l3
+1:      mov %wim,%l3
         srl %l3,7,%l4
         sll %l3,1,%l3
         or  %l3,%l4,%l3
@@ -340,13 +411,7 @@ window_underflow_trap:
         mov %g0,%wim
         nop; nop; nop
 
-	/* Check whether previous mode was usermode */
-	mov %psr, %l4
-	and %l4, (1 << 6), %l4
-	cmp %l4, 0
-	beq 1f
-	nop
-
+	/* kernel: */
 	restore
 	restore
 	mov %l5, %g5		! kernel stack pointer
@@ -363,21 +428,6 @@ window_underflow_trap:
         ldd [%sp + 56], %i6
 	b 2f
 	nop
-
-1:	restore
-	restore
-	mov %l5, %g5		! kernel stack pointer
-	mov %l6, %g6		! kernel wbuf
-	mov %l7, %g7
-	sub %g6, 64, %g6
-        ldd [%g6 +  0], %l0
-        ldd [%g6 +  8], %l2
-        ldd [%g6 + 16], %l4
-        ldd [%g6 + 24], %l6
-        ldd [%g6 + 32], %i0
-        ldd [%g6 + 40], %i2
-        ldd [%g6 + 48], %i4
-        ldd [%g6 + 56], %i6
 
 2:	/* Restore invalid window data */
 	restore
@@ -396,6 +446,20 @@ window_underflow_trap:
 	mov %l0, %g7
         jmp %l1
         rett %l2
+
+flush_windows:
+        mov 7, %g1
+1:	subcc %g1, 1, %g1
+ 	bg 1b
+        save %sp, -64, %sp
+
+	mov 7, %g1
+1:	subcc %g1, 1, %g1
+ 	bg 1b
+        restore
+
+        retl
+        nop
 
 preemptible_trap:
 	/* Save %g7 */
@@ -469,7 +533,7 @@ preemptible_trap:
 
 	/* Jump to actual subroutine */
 	call %o2
-	sub %fp, 12, %o1
+	add %sp, 128, %o1
 
 	/* Return from handler */
 	ld [%sp + 92], %l1
@@ -486,9 +550,48 @@ preemptible_trap:
 	if_from_kernel 6f
 	switch_to_invalid %g5, %g6
 	clr %l7
+	mov %l5, %g2
 	mov %l6, %g7
 	switch_back %g5, %g6
 	mov %g7, %g1
+
+	/* If trap originated from uspace, restore all windows from UWB */
+	/* UWB pointer is at %g1 */
+0:	mov %g0, %wim
+	clr %g5
+	andcc %g1, UWB_ALIGNMENT - 1, %g0
+	bz 0f
+	nop
+
+	restore
+	sub %g1, 64, %g1
+	ldd [%g1 +  0], %l0
+	ldd [%g1 +  8], %l2
+	ldd [%g1 + 16], %l4
+	ldd [%g1 + 24], %l6
+	ldd [%g1 + 32], %i0
+	ldd [%g1 + 40], %i2
+	ldd [%g1 + 48], %i4
+	ldd [%g1 + 56], %i6
+	inc %g5
+	and %g5, 0x7, %g5
+	ba 0b
+	nop
+
+	/* We've restored all uspace windows. Now time to
+	 * fix CWP and WIM
+	 */
+0:	restore
+	get_cwp %g7
+	clr %g5
+	inc %g5
+	sll %g5, %g7, %g5
+
+	/* Write values to invalid window and switch back */
+	mov %g2, %l5
+	mov %g1, %l6
+	clr %l7
+	switch_back %g5, %g6
 
 	/* If next window is invalid, do inline restore */
 6:	get_wim_number %g6
@@ -678,6 +781,10 @@ syscall_trap:
 	ld [%sp + 96], %l2
 	ld [%sp + 100], %l0
 	mov %o0, %i0
+	mov %psr, %l1
+	and %l1, 0xf, %l1
+	and %l0, 0xfffffff0, %l0
+	or %l0, %l1, %l0
 	mov %l0, %psr
 	nop
 	nop
@@ -689,9 +796,48 @@ syscall_trap:
 	if_from_kernel 6f
 	switch_to_invalid %g5, %g6
 	clr %l7
+	mov %l5, %g2
 	mov %l6, %g7
 	switch_back %g5, %g6
 	mov %g7, %g1
+
+	/* If trap originated from uspace, restore all windows from UWB */
+	/* UWB pointer is at %g1 */
+0:	mov %g0, %wim
+	clr %g5
+	andcc %g1, UWB_ALIGNMENT - 1, %g0
+	bz 0f
+	nop
+
+	restore
+	sub %g1, 64, %g1
+	ldd [%g1 +  0], %l0
+	ldd [%g1 +  8], %l2
+	ldd [%g1 + 16], %l4
+	ldd [%g1 + 24], %l6
+	ldd [%g1 + 32], %i0
+	ldd [%g1 + 40], %i2
+	ldd [%g1 + 48], %i4
+	ldd [%g1 + 56], %i6
+	inc %g5
+	and %g5, 0x7, %g5
+	ba 0b
+	nop
+
+	/* We've restored all uspace windows. Now time to
+	 * fix CWP and WIM
+	 */
+0:	restore
+	get_cwp %g7
+	clr %g5
+	inc %g5
+	sll %g5, %g7, %g5
+
+	/* Write values to invalid window and switch back */
+	mov %g2, %l5
+	mov %g1, %l6
+	clr %l7
+	switch_back %g5, %g6
 
 	/* If next window is invalid, do inline restore */
 6:	get_wim_number %g6
@@ -928,3 +1074,35 @@ trap_table:
 	SYSCALL(0xad)
 	SYSCALL(0xae)
 	SYSCALL(0xaf)
+        SYSCALL(0xb0)
+        SYSCALL(0xb1)
+        SYSCALL(0xb2)
+        SYSCALL(0xb3)
+        SYSCALL(0xb4)
+        SYSCALL(0xb5)
+        SYSCALL(0xb6)
+        SYSCALL(0xb7)
+        SYSCALL(0xb8)
+        SYSCALL(0xb9)
+        SYSCALL(0xba)
+        SYSCALL(0xbb)
+        SYSCALL(0xbc)
+        SYSCALL(0xbd)
+        SYSCALL(0xbe)
+        SYSCALL(0xbf)
+        SYSCALL(0xc0)
+        SYSCALL(0xc1)
+        SYSCALL(0xc2)
+        SYSCALL(0xc3)
+        SYSCALL(0xc4)
+        SYSCALL(0xc5)
+        SYSCALL(0xc6)
+        SYSCALL(0xc7)
+        SYSCALL(0xc8)
+        SYSCALL(0xc9)
+        SYSCALL(0xca)
+        SYSCALL(0xcb)
+        SYSCALL(0xcc)
+        SYSCALL(0xcd)
+        SYSCALL(0xce)
+        SYSCALL(0xcf)

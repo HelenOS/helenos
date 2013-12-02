@@ -41,24 +41,43 @@
 
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	printf("userspace(): entry=%p, stack=%p, stacksize=%d\n", kernel_uarg->uspace_entry, kernel_uarg->uspace_stack, kernel_uarg->uspace_stack_size);
+//	printf("userspace(): entry=%p, stack=%p, stacksize=%d\n", kernel_uarg->uspace_entry, kernel_uarg->uspace_stack, kernel_uarg->uspace_stack_size);
 	/* On real hardware this switches the CPU to user
 	   space mode and jumps to kernel_uarg->uspace_entry. */
 
+	uint32_t l0, l1, l2;
 	uint32_t psr = psr_read();
+	uint8_t wim;
 
 	psr &= ~(1 << 7);
 	psr &= ~(1 << 6);
 
+	/* Read invalid window variables */
+	read_from_invalid(&l0, &l1, &l2);
+
+	/* Make current window invalid */
+	wim = (psr & 0x7) + 1;
+	wim = (1 << wim) | (1 >> (8 - wim));
+
 	asm volatile (
 		"flush\n"
 		"mov %[stack], %%sp\n"
-		"mov %[arg], %%o1\n"
+		"mov %[wim], %%wim\n"
+		"ld %[v0], %%o0\n"
+		"ld %[v1], %%o1\n"
+		"ld %[v2], %%o2\n"
+		"call write_to_invalid\n"
+		"nop\n"
+		"ld %[arg], %%o1\n"
 		"jmp %[entry]\n"
 		"mov %[psr], %%psr\n" :: [entry] "r" (kernel_uarg->uspace_entry),
-			   [arg] "r" (kernel_uarg->uspace_uarg),
+			   [arg] "m" (kernel_uarg->uspace_uarg),
 			   [psr] "r" (psr),
-			   [stack] "r" (kernel_uarg->uspace_stack + kernel_uarg->uspace_stack_size));
+			   [wim] "r" ((uint32_t)wim),	
+			   [v0] "m" (l0),
+			   [v1] "m" (l1),
+			   [v2] "m" (l2),
+			   [stack] "r" (kernel_uarg->uspace_stack + kernel_uarg->uspace_stack_size - 64) : "%g3", "%g4");
 
 	while (true);
 }

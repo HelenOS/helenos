@@ -144,6 +144,18 @@ NO_TRACE static inline uint32_t psr_read()
 	return v;
 }
 
+NO_TRACE static inline uint32_t wim_read()
+{
+	uint32_t v;
+
+	asm volatile (
+		"mov %%wim, %[v]\n"
+		: [v] "=r" (v)
+	);
+
+	return v;
+}
+
 NO_TRACE static inline uint32_t asi_u32_read(int asi, uintptr_t va)
 {
 	uint32_t v;
@@ -174,6 +186,14 @@ NO_TRACE static inline void psr_write(uint32_t psr)
 	asm volatile (
 		"mov %[v], %%psr\n"
 		:: [v] "r" (psr)
+	);
+}
+
+NO_TRACE static inline void wim_write(uint32_t wim)
+{
+	asm volatile (
+		"mov %[v], %%wim\n"
+		:: [v] "r" (wim)
 	);
 }
 
