@@ -203,6 +203,8 @@ extern int _Qp_flt(long double *, long double *);
 extern int _Qp_fne(long double *, long double *);
 
 /* ARM EABI */
+extern float __aeabi_d2f(double);
+extern double __aeabi_f2d(float);
 extern float __aeabi_i2f(int);
 extern float __aeabi_ui2f(int);
 extern double __aeabi_i2d(int);
