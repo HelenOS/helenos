@@ -129,11 +129,7 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	bg_ref->dirty = true;
 	
 	/* Release block group reference */
-	rc = ext4_filesystem_put_block_group_ref(bg_ref);
-	if (rc != EOK)
-		return rc;
-	
-	return EOK;
+	return ext4_filesystem_put_block_group_ref(bg_ref);
 }
 
 /** Free continuous set of blocks.
@@ -211,11 +207,7 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	bg_ref->dirty = true;
 	
 	/* Release block group reference */
-	rc = ext4_filesystem_put_block_group_ref(bg_ref);
-	if (rc != EOK)
-		return rc;
-	
-	return EOK;
+	return ext4_filesystem_put_block_group_ref(bg_ref);
 }
 
 /** Compute first block for data in block group.
