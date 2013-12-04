@@ -168,8 +168,10 @@ int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 	
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
 		return rc;
+	}
 	
 	/* Modify bitmap */
 	ext4_bitmap_free_bits(bitmap_block->data, index_in_group_first, count);
