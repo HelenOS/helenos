@@ -227,6 +227,7 @@ extern int __aeabi_fcmpeq(float, float);
 extern int __aeabi_dcmpge(double, double);
 extern int __aeabi_dcmpgt(double, double);
 extern int __aeabi_dcmplt(double, double);
+extern int __aeabi_dcmple(double, double);
 extern int __aeabi_dcmpeq(double, double);
 
 extern float __aeabi_fadd(float, float);

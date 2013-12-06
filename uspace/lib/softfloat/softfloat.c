@@ -1370,6 +1370,12 @@ int __aeabi_dcmplt(double a, double b)
 	return __ltdf2(a, b);
 }
 
+int __aeabi_dcmple(double a, double b)
+{
+	return __ledf2(a, b);
+}
+
+
 int __aeabi_dcmpeq(double a, double b)
 {
 	return __eqdf2(a, b);
