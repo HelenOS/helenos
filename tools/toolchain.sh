@@ -61,6 +61,7 @@ GDB_VERSION="7.6.1"
 GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
+SRCDIR="$(readlink -f $(dirname "$0"))"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.bz2"
@@ -439,13 +440,13 @@ build_target() {
 	
 	echo ">>> Applying patches"
 	for p in $BINUTILS_PATCHES; do
-		patch_sources "${BASEDIR}/${p}" 0 "binutils"
+		patch_sources "${SRCDIR}/${p}" 0 "binutils"
 	done
 	for p in $GCC_PATCHES; do
-		patch_sources "${BASEDIR}/${p}" 0 "GCC"
+		patch_sources "${SRCDIR}/${p}" 0 "GCC"
 	done
 	for p in $GDB_PATCHES; do
-		patch_sources "${BASEDIR}/${p}" 0 "GDB"
+		patch_sources "${SRCDIR}/${p}" 0 "GDB"
 	done
 	
 	echo ">>> Processing binutils (${PLATFORM})"
