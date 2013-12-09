@@ -1264,6 +1264,17 @@ int _Qp_fne(long double *a, long double *b)
 	return !is_long_double_eq(ta.data, tb.data);
 }
 
+float __aeabi_d2f(double a)
+{
+	return __truncdfsf2(a);
+}
+
+double __aeabi_f2d(float a)
+{
+	return __extendsfdf2(a);
+}
+
+
 float __aeabi_i2f(int i)
 {
 	return __floatsisf(i);
@@ -1284,6 +1295,21 @@ double __aeabi_ui2d(unsigned int i)
 	return __floatunsidf(i);
 }
 
+double __aeabi_l2d(long long i)
+{
+	return __floattidf(i);
+}
+
+float __aeabi_l2f(long long i)
+{
+	return __floattisf(i);
+}
+
+float __aeabi_ul2f(unsigned long long u)
+{
+	return __floatuntisf(u);
+}
+
 int __aeabi_f2iz(float a)
 {
 	return __fixsfsi(a);
@@ -1302,6 +1328,11 @@ int __aeabi_d2iz(double a)
 unsigned int __aeabi_d2uiz(double a)
 {
 	return __fixunsdfsi(a);
+}
+
+long long __aeabi_d2lz(double a)
+{
+	return __fixdfti(a);
 }
 
 int __aeabi_fcmpge(float a, float b)
@@ -1338,6 +1369,12 @@ int __aeabi_dcmplt(double a, double b)
 {
 	return __ltdf2(a, b);
 }
+
+int __aeabi_dcmple(double a, double b)
+{
+	return __ledf2(a, b);
+}
+
 
 int __aeabi_dcmpeq(double a, double b)
 {

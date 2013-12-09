@@ -58,6 +58,8 @@
 	#define DBL_DIG __DBL_DIG__
 	#undef DBL_EPSILON
 	#define DBL_EPSILON __DBL_EPSILON__
+	#undef LDBL_EPSILON
+	#define LDBL_EPSILON __LDBL_EPSILON__
 	#undef FLT_RADIX
 	#define FLT_RADIX __FLT_RADIX__
 	#undef FLT_MIN
@@ -68,6 +70,10 @@
 	#define FLT_EPSILON __FLT_EPSILON__
 	#undef FLT_MANT_DIG
 	#define FLT_MANT_DIG __FLT_MANT_DIG__
+	#undef LDBL_MIN
+	#define LDBL_MIN __LDBL_MIN__
+	#undef LDBL_MAX
+	#define LDBL_MAX __LDBL_MAX__
 	#undef LDBL_MANT_DIG 
 	#define LDBL_MANT_DIG __LDBL_MANT_DIG__
 #else

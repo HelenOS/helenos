@@ -67,6 +67,7 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/untar \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \

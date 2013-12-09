@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,19 @@
 /** @addtogroup softint
  * @{
  */
-/**
- * @file Logical and arithmetic shifts.
+/** @file
  */
 
-#ifndef __SOFTINT_SHIFT_H__
-#define __SOFTINT_SHIFT_H__
+#ifndef __SOFTINT_BITS_H_
+#define __SOFTINT_BITS_H_
 
-/* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
+extern int __ctzdi2(long);
+extern int __ctzsi2(int);
+extern int __clzdi2(long);
+extern int __ffsdi2(long);
+extern int __popcountsi2(int);
+extern int __popcountdi2(long);
 
-/* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
-
-/* Logical shift right. */
-extern long long __lshrdi3(long long, int);
-
-
-/* ARM EABI */
-extern long long __aeabi_llsl(long long, int);
 
 #endif
 

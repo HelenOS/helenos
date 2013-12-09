@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softint
- * @{
- */
-/**
- * @file Logical and arithmetic shifts.
- */
+#include <setjmp.h>
+#include <stdlib.h>
+#include "../tester.h"
 
-#ifndef __SOFTINT_SHIFT_H__
-#define __SOFTINT_SHIFT_H__
+static jmp_buf jmp_env;
+static int counter;
 
-/* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
+static void do_the_long_jump(void) {
+	TPRINTF("Will do a long jump back to test_it().\n");
+	longjmp(jmp_env, 1);
+}
 
-/* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
+static const char *test_it(void) {
+	int second_round = setjmp(jmp_env);
+	counter++;
+	TPRINTF("Just after setjmp(), counter is %d.\n", counter);
+	if (second_round) {
+		if (counter != 2) {
+			return "setjmp() have not returned twice";
+		} else {
+			return NULL;
+		}
+	}
 
-/* Logical shift right. */
-extern long long __lshrdi3(long long, int);
+	if (counter != 1) {
+		return "Shall not reach here more than once";
+	}
 
+	do_the_long_jump();
 
-/* ARM EABI */
-extern long long __aeabi_llsl(long long, int);
+	return "Survived a long jump";
+}
 
-#endif
-
-/** @}
- */
+const char *test_setjmp1(void)
+{
+	counter = 0;
+	
+	const char *err_msg = test_it();
+	
+	return err_msg;
+}

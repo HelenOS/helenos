@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softint
+/** @addtogroup libposix
  * @{
  */
-/**
- * @file Logical and arithmetic shifts.
+
+/*
+ * Just a pass-through to libc setjmp.
  */
-
-#ifndef __SOFTINT_SHIFT_H__
-#define __SOFTINT_SHIFT_H__
-
-/* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
-
-/* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
-
-/* Logical shift right. */
-extern long long __lshrdi3(long long, int);
-
-
-/* ARM EABI */
-extern long long __aeabi_llsl(long long, int);
-
-#endif
+#include "libc/setjmp.h"
 
 /** @}
  */

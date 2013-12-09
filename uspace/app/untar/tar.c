@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softint
+/** @addtogroup untar
  * @{
  */
-/**
- * @file Logical and arithmetic shifts.
+/** @file
  */
 
-#ifndef __SOFTINT_SHIFT_H__
-#define __SOFTINT_SHIFT_H__
+#include <str.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <assert.h>
 
-/* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
+#include "tar.h"
 
-/* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
+tar_type_t tar_type_parse(const char type) {
+	switch (type) {
+	case '0':
+	case 0:
+		return TAR_TYPE_NORMAL;
+	case '5':
+		return TAR_TYPE_DIRECTORY;
+	default:
+		return TAR_TYPE_UNKNOWN;
+	}
+}
 
-/* Logical shift right. */
-extern long long __lshrdi3(long long, int);
+const char *tar_type_str(tar_type_t type) {
+	switch (type) {
+	case TAR_TYPE_UNKNOWN:
+		return "unknown";
+	case TAR_TYPE_NORMAL:
+		return "normal";
+	case TAR_TYPE_DIRECTORY:
+		return "directory";
+	default:
+		assert(false && "unexpected tar_type_t enum value");
+		return "?";
+	}
+}
 
+int tar_header_parse(tar_header_t *parsed, const tar_header_raw_t *raw)
+{
+	int rc;
 
-/* ARM EABI */
-extern long long __aeabi_llsl(long long, int);
+	if (str_length(raw->filename) == 0) {
+		return EEMPTY;
+	}
 
-#endif
+	size_t size;
+	rc = str_size_t(raw->size, NULL, 8, true, &size);
+	if (rc != EOK) {
+		return rc;
+	}
+	parsed->size = size;
+
+	str_cpy(parsed->filename, 100, raw->filename);
+
+	parsed->type = tar_type_parse(raw->type);
+
+	return EOK;
+}
 
 /** @}
  */

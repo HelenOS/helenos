@@ -47,6 +47,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 KERNEL_PATH = $(ROOT_PATH)/kernel
 USPACE_PATH = $(ROOT_PATH)/uspace
 DIST_PATH = $(USPACE_PATH)/dist
+DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
 
@@ -204,6 +205,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
 	$(USPACE_PATH)/app/top/top \
+	$(USPACE_PATH)/app/untar/untar \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \

@@ -55,7 +55,7 @@
 #define EXIT_SUCCESS 0
 #define _Exit exit
 extern int __POSIX_DEF__(atexit)(void (*func)(void));
-extern void exit(int status);
+extern void exit(int status) __attribute__((noreturn));
 extern void abort(void) __attribute__((noreturn));
 
 /* Absolute Value */

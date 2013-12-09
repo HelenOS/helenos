@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softint
+/** @addtogroup untar
  * @{
  */
-/**
- * @file Logical and arithmetic shifts.
+/** @file
  */
+#ifndef TAR_H_GUARD
+#define TAR_H_GUARD
 
-#ifndef __SOFTINT_SHIFT_H__
-#define __SOFTINT_SHIFT_H__
+#define TAR_BLOCK_SIZE 512
 
-/* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
+typedef struct tar_header_raw {
+	char filename[100];
+	char permissions[8];
+	char owner[8];
+	char group[8];
+	char size[12];
+	char modification_time[12];
+	char checksum[8];
+	char type;
+	char name[100];
+	char ustar_magic[6];
+	char ustar_version[2];
+	char ustar_owner_name[32];
+	char ustar_group_name[32];
+	char ustar_device_major[8];
+	char ustar_device_minor[8];
+	char ustar_prefix[155];
+	char ignored[12];
+} tar_header_raw_t;
 
-/* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
+typedef enum tar_type {
+	TAR_TYPE_UNKNOWN,
+	TAR_TYPE_NORMAL,
+	TAR_TYPE_DIRECTORY
+} tar_type_t;
 
-/* Logical shift right. */
-extern long long __lshrdi3(long long, int);
+typedef struct tar_header {
+	char filename[100];
+	size_t size;
+	tar_type_t type;
+} tar_header_t;
 
 
-/* ARM EABI */
-extern long long __aeabi_llsl(long long, int);
+extern int tar_header_parse(tar_header_t *, const tar_header_raw_t *);
+extern tar_type_t tar_type_parse(const char);
+extern const char *tar_type_str(tar_type_t);
 
 #endif
 

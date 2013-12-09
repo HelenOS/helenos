@@ -60,7 +60,6 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
-	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
@@ -142,6 +141,7 @@ GENERIC_SOURCES = \
 	generic/net/inet.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
+	generic/setjmp.c \
 	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \

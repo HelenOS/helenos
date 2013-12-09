@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,27 +29,89 @@
 /** @addtogroup softint
  * @{
  */
-/**
- * @file Logical and arithmetic shifts.
+
+#include <bits.h>
+
+/** Compute number of trailing 0-bits in a number. */
+int __ctzdi2(long a)
+{
+	unsigned int bits = 0;
+	while (((a >> bits) & 1) == 0) {
+		bits++;
+		if (bits >= sizeof(a) * 8) {
+			break;
+		}
+	}
+
+	return bits;
+}
+
+/** Compute number of trailing 0-bits in a number. */
+int __ctzsi2(int a)
+{
+	unsigned int bits = 0;
+	while (((a >> bits) & 1) == 0) {
+		bits++;
+		if (bits >= sizeof(a) * 8) {
+			break;
+		}
+	}
+
+	return bits;
+}
+
+/** Compute number of leading 0-bits in a number. */
+int __clzdi2(long a)
+{
+	int index = sizeof(a) * 8 - 1;
+	int bits = 0;
+	while (index >= 0) {
+		if (((a >> index) & 1) == 0) {
+			bits++;
+		} else {
+			break;
+		}
+		index--;
+	}
+
+	return bits;
+}
+
+/** Compute index of the first 1-bit in a number increased by one.
+ *
+ * If the number is zero, zero is returned.
  */
+int __ffsdi2(long a) {
+	if (a == 0) {
+		return 0;
+	}
 
-#ifndef __SOFTINT_SHIFT_H__
-#define __SOFTINT_SHIFT_H__
+	return 1 + __ctzdi2(a);
+}
 
-/* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
+/** Compute number of set bits in a number. */
+int __popcountsi2(int a)
+{
+	int bits = 0;
+	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
+		if (((a >> i) & 1) != 0) {
+			bits++;
+		}
+	}
+	return bits;									
+}
 
-/* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
-
-/* Logical shift right. */
-extern long long __lshrdi3(long long, int);
-
-
-/* ARM EABI */
-extern long long __aeabi_llsl(long long, int);
-
-#endif
+/** Compute number of set bits in a number. */
+int __popcountdi2(long a)
+{
+	int bits = 0;
+	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
+		if (((a >> i) & 1) != 0) {
+			bits++;
+		}
+	}
+	return bits;									
+}
 
 /** @}
  */

@@ -29,20 +29,30 @@
 /** @addtogroup libc
  * @{
  */
+/** @file Long jump implementation.
+ *
+ * Implementation inspired by Jiri Zarevucky's code from
+ * http://bazaar.launchpad.net/~zarevucky-jiri/helenos/stdc/revision/1544/uspace/lib/posix/setjmp.h
+ */
 
-#include <bitops.h>
+#include <setjmp.h>
+#include <libarch/fibril.h>
+#include <fibril.h>
 
-int __popcountsi2(int a)
-{
-	int bits = 0;
-	for (unsigned int i = 0; i < sizeof(a) * 8; i++)	 {
-		if (((a >> i) & 1) != 0) {
-			bits++;
-		}
-	}
-	return bits;									
+/**
+ * Restore environment previously stored by setjmp.
+ *
+ * This function never returns.
+ *
+ * @param env Variable with the environment previously stored by call
+ * to setjmp.
+ * @param val Value to fake when returning from setjmp (0 is transformed to 1).
+ */
+void longjmp(jmp_buf env, int val) {
+	env[0].return_value = (val == 0) ? 1 : val;
+	context_restore(&env[0].context);
+	__builtin_unreachable();
 }
-
 
 /** @}
  */
