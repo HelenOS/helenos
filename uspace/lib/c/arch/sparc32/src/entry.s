@@ -51,6 +51,7 @@ __entry:
 	mov 7, %g1
 1:	subcc %g1, 1, %g1
  	bg 1b
+	restore
 
 # XXX end flush
 #	add %g0, -0x7ff, %fp
