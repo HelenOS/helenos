@@ -278,7 +278,23 @@ window_overflow_trap:
 	mov %sp, %g4
 	restore
 	mov %g5, %wim
+
+	/* Check beginning of %sp */
 	and %g4, 0xfffff000, %l4
+	lda [%l4] 0x18, %l4
+	cmp %l4, 0
+	bne 1f
+	nop
+
+	/* prepare args for preemptible handler */
+	mov %g4, %o0
+	set preemptible_save_uspace, %o2
+	b preemptible_trap
+	nop
+
+	/* Check end of %sp */
+	add %g4, 56, %g4
+	and %l4, 0xfffff000, %l4
 	lda [%l4] 0x18, %l4
 	cmp %l4, 0
 	bne 1f
@@ -531,8 +547,213 @@ preemptible_trap:
 	nop
 	nop
 
+	/* Get UWB address */
+//	switch_to_invalid %g5, %g6
+//	mov %l6, %g1
+//	switch_back %g5, %g6
+
+#	/* Flush windows to stack */
+	call flush_windows
+	nop
+/*
+	get_wim_number %g2
+	get_cwp %g5
+	mov %psr, %g6
+
+	sub %g2, 1, %g4
+	and %g4, 0x7, %g4
+0:	mov %g0, %wim
+	cmp %g5, %g4
+	be 0f
+	nop
+
+	restore
+	add %g1, 64, %g1
+	std %l0, [%g1  + 0]
+	std %l2, [%g1 +  8]
+	std %l4, [%g1 + 16]
+	std %l6, [%g1 + 24]
+	std %i0, [%g1 + 32]
+	std %l2, [%g1 + 40]
+	std %l4, [%g1 + 48]
+	std %l6, [%g1 + 56]
+	inc %g5
+	and %g5, 0x7, %g5
+	ba 0b
+	nop
+
+0:	inc %g4
+	and %g4, 0x7, %g4
+	clr %g5
+	inc %g5
+	sll %g5, %g4, %g5
+
+	* Write values to invalid window and switch back *
+	mov %g7, %l5
+	mov %g1, %l6
+	clr %l7
+	switch_back %g5, %g6
+*/
+
 	/* Jump to actual subroutine */
 	call %o2
+	add %sp, 128, %o1
+
+	/* Return from handler */
+	ld [%sp + 92], %l1
+	ld [%sp + 96], %l2
+	ld [%sp + 100], %l0
+	mov %l0, %psr
+	nop
+	nop
+	nop
+	nop
+	nop
+
+	/* If trap originated from uspace, clear uspace window mark and save uwb address for future use */
+	if_from_kernel 9f
+	switch_to_invalid %g5, %g6
+	clr %l7
+	mov %l5, %g2
+	mov %l6, %g7
+	switch_back %g5, %g6
+	mov %g7, %g1
+
+	/* If trap originated from uspace, restore all windows from UWB */
+	/* UWB pointer is at %g1 */
+0:	mov %g0, %wim
+	clr %g5
+	andcc %g1, UWB_ALIGNMENT - 1, %g0
+	bz 0f
+	nop
+
+	restore
+	sub %g1, 64, %g1
+	ldd [%g1 +  0], %l0
+	ldd [%g1 +  8], %l2
+	ldd [%g1 + 16], %l4
+	ldd [%g1 + 24], %l6
+	ldd [%g1 + 32], %i0
+	ldd [%g1 + 40], %i2
+	ldd [%g1 + 48], %i4
+	ldd [%g1 + 56], %i6
+	inc %g5
+	and %g5, 0x7, %g5
+	ba 0b
+	nop
+
+	/* We've restored all uspace windows. Now time to
+	 * fix CWP and WIM
+	 */
+0:	restore
+	get_cwp %g7
+	clr %g5
+	inc %g5
+	sll %g5, %g7, %g5
+
+	/* Write values to invalid window and switch back */
+	mov %g2, %l5
+	mov %g1, %l6
+	clr %l7
+	switch_back %g5, %g6
+
+	mov %sp, %l3
+	sub %g2, 128, %sp
+	ld [%sp + 104], %g1
+	ld [%sp + 108], %g2
+	ld [%sp + 112], %g3
+	ld [%sp + 116], %g4
+	ld [%sp + 120], %g7
+	mov %l3, %sp
+	b 10f
+	nop
+
+9:	ld [%sp + 104], %g1
+	ld [%sp + 108], %g2
+	ld [%sp + 112], %g3
+	ld [%sp + 116], %g4
+	ld [%sp + 120], %g7
+
+10:	jmp %l1
+	rett %l2
+
+interrupt_trap:
+	/* Save %g7 */
+	mov %g7, %l0
+
+	/* Check whether we landed in invalid window */
+	get_wim_number %g6
+	get_cwp %g7
+	cmp %g6, %g7
+	bne 4f
+	nop
+
+	/* We are in invalid window. Check whether previous mode was usermode */
+	if_from_kernel 3f
+
+	/* Trap originated from uspace */
+	/* Kernel stack pointer is at %l5, uwb is at %l6 */
+	inline_save_uspace %l6
+
+	/* set uspace window mark */
+	mov %psr, %l7
+	inc %l7
+	and %l7, 0x7, %l7
+	or %l7, 0x10, %l7
+	b 4f
+	nop
+
+3:	/* Trap originated from kernel */
+	inline_save_kernel 
+
+4:	/* Check whether previous mode was usermode */
+	if_from_kernel 5f
+
+	/* Load kernel stack pointer from invalid window */
+	switch_to_invalid %g5, %g6
+
+	/* set uspace window mark */
+	mov %g6, %l7
+	inc %l7
+	and %l7, 0x7, %l7
+	or %l7, 0x10, %l7
+
+	/* Save stack pointer */
+	mov %l5, %g7
+	switch_back %g5, %g6
+	mov %g7, %sp
+//	mov %sp, %fp
+
+5:	/* Set up stack frame */
+	sub %sp, 128, %sp
+
+	/* Save trap data on stack */
+	mov %psr, %l5
+	st %l1, [%sp + 92]
+	st %l2, [%sp + 96]
+	st %l5, [%sp + 100]
+	st %g1, [%sp + 104]
+	st %g2, [%sp + 108]
+	st %g3, [%sp + 112]
+	st %g4, [%sp + 116]
+	st %l0, [%sp + 120]
+
+	/* Enable traps */
+	mov %psr, %l0
+	or %l0, (1 << 5), %l0
+	mov %l0, %psr
+	nop
+	nop
+	nop
+	nop
+
+	/* Flush windows to stack */
+	call flush_windows
+	nop
+
+	/* Jump to actual subroutine */
+	mov %g2, %o0
+	call exc_dispatch
 	add %sp, 128, %o1
 
 	/* Return from handler */
@@ -620,80 +841,6 @@ preemptible_trap:
 	jmp %l1
 	rett %l2
 
-interrupt_trap:
-	mov %psr, %l0
-
-	/* Check whether previous mode was usermode */
-	and %l0, (1 << 6), %l0
-	cmp %l0, 0
-	bne 1f
-	nop
-
-	/* Set up stack */
-	set kernel_sp, %l4
-	ld [%l4], %sp
-	mov %sp, %fp
-1:	sub %sp, 112, %sp
-
-	/* Save trap data on stack */
-	mov %psr, %l0
-	st %l1, [%fp - 4]
-	st %l2, [%fp - 8]
-	st %l0, [%fp - 12]
-
-	/* Enable traps */
-	mov %psr, %l0
-	or %l0, (1 << 5), %l0
-	mov %l0, %psr
-	nop
-	nop
-	nop
-	nop
-
-	/* Jump to actual subroutine */
-	mov %g2, %o0
-	call exc_dispatch
-	sub %fp, 12, %o1
-
-	/* Return from handler */
-	ld [%fp - 4], %l1
-	ld [%fp - 8], %l2
-	ld [%fp - 12], %l0
-	mov %l0, %psr
-	nop
-	nop
-	nop
-	nop
-	nop
-
-	/* If trap originated from uspace, clear uspace window mark and save uwb address for future use */
-	if_from_kernel 6f
-	switch_to_invalid %g5, %g6
-	clr %l7
-	mov %l6, %g7
-	switch_back %g5, %g6
-	mov %g7, %g1
-
-	/* If next window is invalid, do inline restore */
-6:	get_wim_number %g6
-	get_cwp %g7
-	inc %g7
-	cmp %g6, %g7
-	bne 8f
-
-	if_from_kernel 7f
-
-	inline_restore_uspace %g1
-	switch_to_invalid %g5, %g6
-	mov %g1, %l6
-	switch_back %g5, %g6
-	b 8f
-	nop
-
-7:	inline_restore_kernel
-
-8:	jmp %l1
-	rett %l2
 
 syscall_trap:
 	/* Save %g7 */
@@ -765,6 +912,10 @@ syscall_trap:
 	nop
 	nop
 
+	/* Flush windows */
+	call flush_windows
+	nop
+
 	/* Jump to actual subroutine */
 	sub %o0, 0x80, %o0
 	st %o0, [ %sp + 92 ]
@@ -793,14 +944,13 @@ syscall_trap:
 	nop
 
 	/* If trap originated from uspace, clear uspace window mark and save uwb address for future use */
-	if_from_kernel 6f
+	if_from_kernel 8f
 	switch_to_invalid %g5, %g6
-	clr %l7
 	mov %l5, %g2
-	mov %l6, %g7
+	mov %l6, %g1
+	mov %l7, %g7
 	switch_back %g5, %g6
-	mov %g7, %g1
-
+	
 	/* If trap originated from uspace, restore all windows from UWB */
 	/* UWB pointer is at %g1 */
 0:	mov %g0, %wim
@@ -839,30 +989,14 @@ syscall_trap:
 	clr %l7
 	switch_back %g5, %g6
 
-	/* If next window is invalid, do inline restore */
-6:	get_wim_number %g6
-	get_cwp %g7
-	inc %g7
-	and %g7, 0x7, %g7
-	cmp %g6, %g7
-	bne 8f
-
-	if_from_kernel 7f
-
-	inline_restore_uspace %g1
-	switch_to_invalid %g5, %g6
-	mov %g1, %l6
-	switch_back %g5, %g6
-	b 8f
-	nop
-
-7:	inline_restore_kernel
-
-8:	ld [%sp + 104], %g1
+8:	mov %sp, %l1
+	sub %g2, 128, %sp
+	ld [%sp + 104], %g1
 	ld [%sp + 108], %g2
 	ld [%sp + 112], %g3
 	ld [%sp + 116], %g4
 	ld [%sp + 120], %g7
+	mov %l1, %sp
 	jmp %l2
 	rett %l2 + 4
 

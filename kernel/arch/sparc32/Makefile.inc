@@ -47,6 +47,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/regwin_test.S \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/debug/stacktrace.c \
+        arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/proc/task.c \
 	arch/$(KARCH)/src/proc/thread.c \

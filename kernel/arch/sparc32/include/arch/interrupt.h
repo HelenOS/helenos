@@ -38,7 +38,7 @@
 #include <typedefs.h>
 #include <arch/istate.h>
 
-#define IVT_ITEMS  0
+#define IVT_ITEMS  32
 #define IVT_FIRST  0
 
 #define VECTOR_TLB_SHOOTDOWN_IPI  0

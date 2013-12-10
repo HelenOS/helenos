@@ -36,6 +36,8 @@
 #ifndef KERN_sparc32_PAGE_H_
 #define KERN_sparc32_PAGE_H_
 
+#ifndef __ASM__
+
 #include <arch/mm/frame.h>
 #include <trace.h>
 
@@ -264,6 +266,8 @@ NO_TRACE static inline void set_pte_present(pte_t *pt, size_t i)
 
 extern void page_arch_init(void);
 extern void page_fault(unsigned int, istate_t *);
+
+#endif
 
 #endif
 
