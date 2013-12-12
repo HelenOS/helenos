@@ -668,7 +668,9 @@ preemptible_trap:
 	b 10f
 	nop
 
-9:	ld [%sp + 104], %g1
+9:	inline_restore_kernel
+
+	ld [%sp + 104], %g1
 	ld [%sp + 108], %g2
 	ld [%sp + 112], %g3
 	ld [%sp + 116], %g4
@@ -753,7 +755,7 @@ interrupt_trap:
 
 	/* Jump to actual subroutine */
 	mov %g2, %o0
-	call exc_dispatch
+	call irq_exception
 	add %sp, 128, %o1
 
 	/* Return from handler */

@@ -67,6 +67,7 @@ extern void data_access_mmu_miss(int n, istate_t *istate);
 extern void data_store_error(int n, istate_t *istate);
 extern void mem_address_not_aligned(int n, istate_t *istate);
 extern sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id);
+extern void irq_exception(unsigned int nr, istate_t *istate);
 
 #endif /* !__ASM__ */
 

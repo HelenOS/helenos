@@ -39,6 +39,7 @@
 #include <arch/istate.h>
 #include <arch/exception.h>
 #include <arch/regwin.h>
+#include <arch/machine_func.h>
 #include <syscall/syscall.h>
 #include <interrupt.h>
 #include <arch/asm.h>
@@ -148,12 +149,17 @@ sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5
 {
 //	printf("syscall %d\n", id);
 //	printf("args: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", a1, a2, a3, a4, a5, a6);
-        if (id == 0x4f) {
-            flush_windows();
-            return 0;
-        }
+//        if (id == 0x4f) {
+  //          flush_windows();
+    //        return 0;
+      //  }
     
 	return syscall_handler(a1, a2, a3, a4, a5, a6, id);
+}
+
+void irq_exception(unsigned int nr, istate_t *istate)
+{
+	machine_irq_exception(nr, istate);
 }
 
 void preemptible_save_uspace(uintptr_t sp, istate_t *istate)

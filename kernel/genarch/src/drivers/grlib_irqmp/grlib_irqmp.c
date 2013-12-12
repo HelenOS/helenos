@@ -47,7 +47,7 @@ void grlib_irqmp_init(grlib_irqmp_t *irqc, bootinfo_t *bootinfo)
 	printf("irqmp regs: %p\n", irqc->regs);
 
 	/* Mask all interrupts */
-	pio_write_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET, 0);
+	pio_write_32((void *)irqc->regs + GRLIB_IRQMP_MASK_OFFSET, 0x8);
 }
 
 int grlib_irqmp_inum_get(grlib_irqmp_t *irqc)
