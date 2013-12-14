@@ -33,14 +33,29 @@ Emulator wrapper for running HelenOS
 """
 
 import os 
+import sys
 import subprocess 
 import autotool
 import platform
 
+overrides = {}
+
+def is_override(str):
+	if str in overrides.keys():
+		return overrides[str]
+	return False
+
+def cfg_get(platform, machine):
+	if machine == "":
+		return emulators[platform]
+	else:
+		return emulators[platform][machine]
+
 def run_in_console(cmd, title):
 	cmdline = 'xterm -T ' + '"' + title + '"' + ' -e ' + cmd
 	print(cmdline)
-	subprocess.call(cmdline, shell = True);
+	if not is_override('dryrun'):
+		subprocess.call(cmdline, shell = True);
 
 def get_host_native_width():
 	return int(platform.architecture()[0].strip('bit'))
@@ -51,7 +66,7 @@ def pc_options(guest_width):
 	# Do not enable KVM if running 64 bits HelenOS
 	# on 32 bits host
 	host_width = get_host_native_width()
-	if guest_width <= host_width:
+	if guest_width <= host_width and not is_override('nokvm'):
 		opts = opts + ' -enable-kvm'
 	
 	# Remove the leading space
@@ -78,8 +93,12 @@ def platform_to_qemu_options(platform, machine):
 		return 'system-sparc64', ''
 
 def qemu_bd_options():
+	if is_override('nohdd'):
+		return ''
+
 	if not os.path.exists('hdisk.img'):
 		subprocess.call('tools/mkfat.py 1048576 uspace/dist/data hdisk.img', shell = True)
+
 	return ' -hda hdisk.img'
 
 def qemu_nic_ne2k_options():
@@ -92,13 +111,35 @@ def qemu_nic_rtl8139_options():
 	return ' -device rtl8139,vlan=0'
 
 def qemu_net_options():
-	nic_options = qemu_nic_e1k_options()
+	if is_override('nonet'):
+		return ''
+
+	nic_options = ''
+	if 'net' in overrides.keys():
+		if 'e1k' in overrides['net'].keys():
+			nic_options += qemu_nic_e1k_options()
+		if 'rtl8139' in overrides['net'].keys():
+			nic_options += qemu_nic_rtl8139_options()
+		if 'ne2k' in overrides['net'].keys():
+			nic_options += qemu_nic_ne2k_options()
+	else:
+		# Use the default NIC
+		nic_options += qemu_nic_e1k_options()
+
 	return nic_options + ' -net user -redir udp:8080::8080 -redir udp:8081::8081 -redir tcp:8080::8080 -redir tcp:8081::8081 -redir tcp:2223::2223'
 
 def qemu_usb_options():
-	return ''
+	if is_override('nousb'):
+		return ''
+	return ' -usb'
 
-def qemu_run(platform, machine, console, image, networking, storage, usb):
+def qemu_audio_options():
+	if is_override('nosnd'):
+		return ''
+	return ' -soundhw sb16' 
+
+def qemu_run(platform, machine):
+	cfg = cfg_get(platform, machine)
 	suffix, options = platform_to_qemu_options(platform, machine)
 	cmd = 'qemu-' + suffix
 
@@ -106,19 +147,21 @@ def qemu_run(platform, machine, console, image, networking, storage, usb):
 	if options != '':
 		cmdline += ' ' + options
 
-	if storage:
-		cmdline += qemu_bd_options()
-	if networking:
+	cmdline += qemu_bd_options()
+
+	if (not 'net' in cfg.keys()) or cfg['net']:
 		cmdline += qemu_net_options()
-	if usb:
+	if (not 'usb' in cfg.keys()) or cfg['usb']:
 		cmdline += qemu_usb_options()
+	if (not 'audio' in cfg.keys()) or cfg['audio']:
+		cmdline += qemu_audio_options()
 	
-	if image == 'image.iso':
+	if cfg['image'] == 'image.iso':
 		cmdline += ' -boot d -cdrom image.iso'
-	elif image == 'image.boot':
+	elif cfg['image'] == 'image.boot':
 		cmdline += ' -kernel image.boot'
 
-	if not console:
+	if ('console' in cfg.keys()) and not cfg['console']:
 		cmdline += ' -nographic'
 
 		title = 'HelenOS/' + platform
@@ -127,53 +170,138 @@ def qemu_run(platform, machine, console, image, networking, storage, usb):
 		run_in_console(cmdline, title)
 	else:
 		print(cmdline)
-		subprocess.call(cmdline, shell = True)
+		if not is_override('dryrun'):
+			subprocess.call(cmdline, shell = True)
 		
-def ski_run(platform, machine, console, image, networking, storage, usb):
+def ski_run(platform, machine):
 	run_in_console('ski -i contrib/conf/ski.conf', 'HelenOS/ia64 on ski')
 
-def msim_run(platform, machine, console, image, networking, storage, usb):
+def msim_run(platform, machine):
 	run_in_console('msim -c contrib/conf/msim.conf', 'HelenOS/mips32 on msim')
 
-emulators = {}
-emulators['amd64'] = {}
-emulators['arm32'] = {}
-emulators['ia32'] = {}
-emulators['ia64'] = {}
-emulators['mips32'] = {}
-emulators['ppc32'] = {}
-emulators['sparc64'] = {}
 
-emulators['amd64'][''] = qemu_run, True, 'image.iso', True, True, True
-emulators['arm32']['integratorcp'] = qemu_run, True, 'image.boot', False, False, False
-emulators['ia32'][''] = qemu_run, True, 'image.iso', True, True, True
-emulators['ia64']['ski'] = ski_run, False, 'image.boot', False, False, False
-emulators['mips32']['msim'] = msim_run, False, 'image.boot', False, False, False
-emulators['mips32']['lmalta'] = qemu_run, False, 'image.boot', False, False, False
-emulators['mips32']['bmalta'] = qemu_run, False, 'image.boot', False, False, False
-emulators['ppc32'][''] = qemu_run, True, 'image.iso', True, True, True
-emulators['sparc64']['generic'] = qemu_run, True, 'image.iso', True, True, True
+emulators = {
+	'amd64' : {
+		'run' : qemu_run,
+		'image' : 'image.iso'
+	},
+	'arm32' : {
+		'integratorcp' : {
+			'run' : qemu_run,
+			'image' : 'image.boot',
+			'net' : False,
+			'audio' : False
+		}
+	},
+	'ia32' : {
+		'run' : qemu_run,
+		'image' : 'image.iso'
+	},
+	'ia64' : {
+		'ski' : {
+			'run' : ski_run
+		}
+	},
+	'mips32' : {
+		'msim' : {
+			'run' : msim_run
+		},
+		'lmalta' : {
+			'run' : qemu_run,
+			'image' : 'image.boot',
+			'console' : False
+		},
+		'bmalta' : {
+			'run' : qemu_run,
+			'image' : 'image.boot',
+			'console' : False
+		},
+	},
+	'ppc32' : {
+		'run' : qemu_run,
+		'image' : 'image.iso',
+		'audio' : False
+	},
+	'sparc64' : {
+		'generic' : {
+			'run' : qemu_run,
+			'image' : 'image.iso',
+			'audio' : False
+		}
+	},
+}
+
+def usage():
+	print("%s - emulator wrapper for running HelenOS\n" % os.path.basename(sys.argv[0]))
+	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb]\n" %
+	    os.path.basename(sys.argv[0]))
+	print("-d\tDry run: do not run the emulation, just print the command line.")
+	print("-h\tPrint the usage information and exit.")
+	print("-nohdd\tDisable hard disk, if applicable.")
+	print("-nokvm\tDisable KVM, if applicable.")
+	print("-nonet\tDisable networking support, if applicable.")
+	print("-nosnd\tDisable sound, if applicable.")
+	print("-nousb\tDisable USB support, if applicable.")
 
 def run():
+	expect_nic = False
+
+	for i in range(1, len(sys.argv)):
+
+		if expect_nic:
+			expect_nic = False
+			if not 'net' in overrides.keys():
+				overrides['net'] = {}
+			if sys.argv[i] == 'e1k':
+				overrides['net']['e1k'] = True
+			elif sys.argv[i] == 'rtl8139':
+				overrides['net']['rtl8139'] = True
+			elif sys.argv[i] == 'ne2k':
+				overrides['net']['ne2k'] = True
+			else:
+				usage()
+				exit()
+
+		elif sys.argv[i] == '-h':
+			usage()
+			exit()
+		elif sys.argv[i] == '-d':
+			overrides['dryrun'] = True
+		elif sys.argv[i] == '-net' and i < len(sys.argv) - 1:
+			expect_nic = True
+		elif sys.argv[i] == '-nohdd':
+			overrides['nohdd'] = True
+		elif sys.argv[i] == '-nokvm':
+			overrides['nokvm'] = True
+		elif sys.argv[i] == '-nonet':
+			overrides['nonet'] = True
+		elif sys.argv[i] == '-nosnd':
+			overrides['nosnd'] = True
+		elif sys.argv[i] == '-nousb':
+			overrides['nousb'] = True
+		else:
+			usage()
+			exit()
+
 	config = {}
 	autotool.read_config(autotool.CONFIG, config)
 
-	try:
+	if 'PLATFORM' in config.keys():
 		platform = config['PLATFORM']
-	except:
+	else:
 		platform = ''
 
-	try:
+	if 'MACHINE' in config.keys():
 		mach = config['MACHINE']
-	except:
+	else:
 		mach = ''
 
 	try:
-		emu_run, console, image, networking, storage, usb = emulators[platform][mach]
+		emu_run = cfg_get(platform, mach)['run']
 	except:
-		print("Cannot start emulation for the chosen configuration.")
+		print("Cannot start emulation for the chosen configuration. (%s/%s)" % (platform, mach))
 		return
 
-	emu_run(platform, mach, console, image, networking, storage, usb)
+	emu_run(platform, mach)
 
 run()
