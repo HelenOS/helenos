@@ -131,10 +131,24 @@ static hw_res_ops_t hw_res_iface = {
 	.enable_interrupt = NULL,
 };
 
+static pio_window_t *get_pio_window(ddf_fun_t *fun)
+{
+	rh_t *rh = ddf_fun_data_get(fun);
+	
+	if (rh == NULL)
+		return NULL;
+	return &rh->pio_window;
+}
+
+static pio_window_ops_t pio_window_iface = {
+	.get_pio_window = get_pio_window
+};
+
 /** RH function support for uhci_rhd */
 static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
-	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
+	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface,
+	.interfaces[PIO_WINDOW_DEV_IFACE] = &pio_window_iface
 };
 
 /** Initialize hc and rh DDF structures and their respective drivers.
@@ -245,8 +259,7 @@ int device_setup_uhci(ddf_dev_t *device)
 		goto error;
 	}
 
-	rc = rh_init(&instance->rh, instance->rh_fun,
-	    (uintptr_t)instance->hc.registers + 0x10, 4);
+	rc = rh_init(&instance->rh, instance->rh_fun, &regs, 0x10, 4);
 	if (rc != EOK) {
 		usb_log_error("Failed to setup UHCI root hub: %s.\n",
 		    str_error(rc));

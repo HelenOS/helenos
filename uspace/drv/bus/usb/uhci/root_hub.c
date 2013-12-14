@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
+#include <device/hw_res_parsed.h>
 
 #include <usb/debug.h>
 
@@ -47,10 +48,18 @@
  * @param[in] reg_size Size of accessible address space.
  * @return Error code.
  */
-int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+int
+rh_init(rh_t *instance, ddf_fun_t *fun, addr_range_t *regs, uintptr_t reg_addr,
+    size_t reg_size)
 {
 	assert(instance);
 	assert(fun);
+
+	/* Crop the PIO window to the absolute address range of UHCI I/O. */
+	instance->pio_window.mem.base = 0;
+	instance->pio_window.mem.size = 0;
+	instance->pio_window.io.base = RNGABS(*regs);
+	instance->pio_window.io.size = RNGSZ(*regs);
 
 	/* Initialize resource structure */
 	instance->resource_list.count = 1;
@@ -59,6 +68,7 @@ int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 	instance->io_regs.type = IO_RANGE;
 	instance->io_regs.res.io_range.address = reg_addr;
 	instance->io_regs.res.io_range.size = reg_size;
+	instance->io_regs.res.io_range.relative = true;
 	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
 
 	const int ret = ddf_fun_add_match_id(fun, "usb&uhci&root-hub", 100);
