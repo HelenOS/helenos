@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +27,101 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libmath
  * @{
  */
-/** @file Mathematical operations.
+/** @file Mathematical operations (dummy implementation).
  */
+#include <math.h>
+#include <stdio.h>
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+#define WARN_NOT_IMPLEMENTED() \
+	do { \
+		static int __not_implemented_counter = 0; \
+		if (__not_implemented_counter == 0) { \
+			fprintf(stderr, "Warning: using dummy implementation of %s().\n", \
+				__func__); \
+		} \
+		__not_implemented_counter++; \
+	} while (0)
 
-#include "libc/math.h"
+double ldexp(double x, int exp)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
 
-#endif /* POSIX_MATH_H_ */
+double frexp(double num, int *exp)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double cos(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double pow(double x, double y)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double floor(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double fabs(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double modf(double x, double *iptr)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double fmod(double x, double y)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double log(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double atan2(double y, double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double sin(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double exp(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double sqrt(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
 
 /** @}
  */

@@ -30,14 +30,34 @@
  * @{
  */
 /** @file Mathematical operations.
+ *
+ * The implementation is provided by a separate library to allow
+ * switching of the implementations.
  */
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+#ifndef LIBC_MATH_H_
+#define LIBC_MATH_H_
 
-#include "libc/math.h"
+#ifdef __GNUC__
+	#define HUGE_VAL (__builtin_huge_val())
+#endif
 
-#endif /* POSIX_MATH_H_ */
+extern double ldexp(double, int);
+extern double frexp(double, int *);
+
+extern double fabs(double);
+extern double floor(double);
+extern double modf(double, double *);
+extern double fmod(double, double);
+extern double pow(double, double);
+extern double exp(double);
+extern double sqrt(double);
+extern double log(double);
+extern double sin(double);
+extern double cos(double);
+extern double atan2(double, double);
+
+#endif
 
 /** @}
  */

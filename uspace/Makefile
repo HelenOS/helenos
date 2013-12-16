@@ -239,6 +239,7 @@ LIBS = \
 	lib/http \
 	lib/softrend \
 	lib/draw \
+	lib/math \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
