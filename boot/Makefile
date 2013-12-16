@@ -96,7 +96,7 @@ clean_dist:
 	rm -f $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
-	rm -f $(USPACE_PATH)/dist/lib/*
+	rm -rf $(USPACE_PATH)/dist/lib/*
 	rm -rf $(USPACE_PATH)/dist/inc/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*
