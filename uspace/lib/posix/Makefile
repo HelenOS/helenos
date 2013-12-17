@@ -59,7 +59,6 @@ SOURCES = \
 	source/fnmatch.c \
 	source/getopt.c \
 	source/locale.c \
-	source/math.c \
 	source/pthread/condvar.c \
 	source/pthread/keys.c \
 	source/pthread/mutex.c \
