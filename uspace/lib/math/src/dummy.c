@@ -63,6 +63,24 @@ double cos(double x)
 	return 0.0;
 }
 
+double cosh(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double acos(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double acosh(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
 double pow(double x, double y)
 {
 	WARN_NOT_IMPLEMENTED();
@@ -70,6 +88,12 @@ double pow(double x, double y)
 }
 
 double floor(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double ceil(double x)
 {
 	WARN_NOT_IMPLEMENTED();
 	return 0.0;
@@ -99,6 +123,13 @@ double log(double x)
 	return 0.0;
 }
 
+double log10(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+
 double atan2(double y, double x)
 {
 	WARN_NOT_IMPLEMENTED();
@@ -111,7 +142,56 @@ double sin(double x)
 	return 0.0;
 }
 
+double sinh(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double asin(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double asinh(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double tan(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double tanh(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double atan(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double atanh(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+
 double exp(double x)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
+double expm1(double x)
 {
 	WARN_NOT_IMPLEMENTED();
 	return 0.0;
@@ -122,6 +202,13 @@ double sqrt(double x)
 	WARN_NOT_IMPLEMENTED();
 	return 0.0;
 }
+
+double copysign(double x, double y)
+{
+	WARN_NOT_IMPLEMENTED();
+	return 0.0;
+}
+
 
 /** @}
  */
