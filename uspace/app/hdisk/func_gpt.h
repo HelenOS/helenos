@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
  */
 
 #ifndef __FUNC_GPT_H__
-#define	__FUNC_GPT_H__
+#define __FUNC_GPT_H__
 
 #include <loc.h>
 #include <tinput.h>
 #include <libgpt.h>
-
 #include "common.h"
 
 extern int construct_gpt_label(label_t *);
-extern int add_gpt_part     (label_t *, tinput_t *);
-extern int delete_gpt_part  (label_t *, tinput_t *);
+extern int add_gpt_part(label_t *, tinput_t *);
+extern int delete_gpt_part(label_t *, tinput_t *);
 extern int destroy_gpt_label(label_t *);
-extern int new_gpt_label    (label_t *);
-extern int print_gpt_parts  (label_t *);
-extern int read_gpt_parts   (label_t *);
-extern int write_gpt_parts  (label_t *);
-extern int extra_gpt_funcs  (label_t *, tinput_t *);
+extern int new_gpt_label(label_t *);
+extern int print_gpt_parts(label_t *);
+extern int read_gpt_parts(label_t *);
+extern int write_gpt_parts(label_t *);
+extern int extra_gpt_funcs(label_t *, tinput_t *);
 
 #endif

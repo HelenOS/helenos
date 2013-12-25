@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011, 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2011-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,22 +42,20 @@ typedef enum {
 	AT_LEGACY_BOOT,
 	AT_UNDEFINED,
 	AT_SPECIFIC = 48
-} GPT_ATTR;
+} gpt_attr_t;
 
-/** GPT header
- * - all in little endian.
- */
+/** GPT header */
 typedef struct {
-	uint8_t  efi_signature[8];
-	uint8_t  revision[4];
+	uint8_t efi_signature[8];
+	uint8_t revision[4];
 	uint32_t header_size;
 	uint32_t header_crc32;
 	uint32_t reserved;
-	uint64_t my_lba;
+	uint64_t current_lba;
 	uint64_t alternate_lba;
 	uint64_t first_usable_lba;
 	uint64_t last_usable_lba;
-	uint8_t  disk_guid[16];
+	uint8_t disk_guid[16];
 	uint64_t entry_lba;
 	uint32_t fillries;
 	uint32_t entry_size;
@@ -75,5 +73,3 @@ typedef struct {
 } __attribute__((packed)) gpt_entry_t;
 
 #endif
-
-

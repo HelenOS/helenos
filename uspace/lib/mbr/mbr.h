@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011, 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2011-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,13 @@
 
 #include <sys/types.h>
 
-/** Number of primary partition records */
-#define N_PRIMARY		4
-
-/** Boot record signature */
-#define BR_SIGNATURE	0xAA55
+enum {
+	/** Number of primary partition records */
+	N_PRIMARY = 4,
+	
+	/** Boot record signature */
+	BR_SIGNATURE = 0xAA55
+};
 
 enum {
 	/** Non-bootable */
@@ -54,13 +56,13 @@ enum {
 
 enum {
 	/** Unused partition entry */
-	PT_UNUSED	= 0x00,
+	PT_UNUSED = 0x00,
 	/** Extended partition */
-	PT_EXTENDED	= 0x05,
+	PT_EXTENDED = 0x05,
 	/** Extended partition with LBA */
-	PT_EXTENDED_LBA	= 0x0F,
+	PT_EXTENDED_LBA = 0x0F,
 	/** GPT Protective partition */
-	PT_GPT	= 0xEE,
+	PT_GPT = 0xEE,
 };
 
 /** Structure of a partition table entry */

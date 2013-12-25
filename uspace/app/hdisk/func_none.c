@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
  */
 
-
 #include <errno.h>
-
 #include "func_none.h"
 
 static void not_implemented(void);
-
 
 int construct_none_label(label_t *this)
 {
 	this->layout = LYT_NONE;
 	
-	this->add_part      = add_none_part;
-	this->delete_part   = delete_none_part;
+	this->add_part = add_none_part;
+	this->delete_part = delete_none_part;
 	this->destroy_label = destroy_none_label;
-	this->new_label     = new_none_label;
-	this->print_parts   = print_none_parts;
-	this->read_parts    = read_none_parts;
-	this->write_parts   = write_none_parts;
-	this->extra_funcs   = extra_none_funcs;
+	this->new_label = new_none_label;
+	this->print_parts = print_none_parts;
+	this->read_parts = read_none_parts;
+	this->write_parts = write_none_parts;
+	this->extra_funcs = extra_none_funcs;
 	
 	return EOK;
 }
 
-int add_none_part(label_t *this, tinput_t * in)
+int add_none_part(label_t *this, tinput_t *in)
 {
 	not_implemented();
 	return EOK;
 }
 
-int delete_none_part(label_t *this, tinput_t * in)
+int delete_none_part(label_t *this, tinput_t *in)
 {
 	not_implemented();
 	return EOK;
@@ -103,7 +100,7 @@ int extra_none_funcs(label_t *this, tinput_t * in)
 	return EOK;
 }
 
-static void not_implemented()
+static void not_implemented(void)
 {
 	printf("No format selected.\n");
 }

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011, 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2011-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libmbr
+/** @addtogroup libmbr
  * @{
  */
 /** @file
@@ -39,7 +39,13 @@
 #include <sys/types.h>
 #include "mbr.h"
 
-#define LIBMBR_NAME	"libmbr"
+/*
+ * WARNING: When changing both header and partitions, write first header,
+ * then partitions. The MBR headers' raw_data is not updated to follow
+ * partition changes.
+ *
+ * NOTE: Writing partitions writes the complete header as well.
+ */
 
 typedef enum {
 	/** Other flags unknown - saving previous state */
@@ -47,7 +53,7 @@ typedef enum {
 	ST_BOOT = 7,
 	/** Logical partition, 0 = primary, 1 = logical*/
 	ST_LOGIC = 8
-} MBR_FLAGS;
+} mbr_flags_t;
 
 typedef enum {
 	/** No error */
@@ -76,7 +82,6 @@ typedef struct {
 	br_block_t raw_data;
 } mbr_t;
 
-
 /** Partition */
 typedef struct mbr_part {
 	/** The link in the doubly-linked list */
@@ -90,7 +95,7 @@ typedef struct mbr_part {
 	/** Number of blocks */
 	uint32_t length;
 	/** Points to Extended Boot Record of logical partition */
-	br_block_t * ebr;
+	br_block_t *ebr;
 	/** EBR address */
 	uint32_t ebr_addr;
 } mbr_part_t;
@@ -100,7 +105,7 @@ typedef struct mbr_parts {
 	/** Number of primary partitions */
 	unsigned char n_primary;
 	/** Index to the extended partition in the array */
-	link_t * l_extended;
+	link_t *l_extended;
 	/** Number of logical partitions */
 	unsigned int n_logical;
 	/** Logical partition linked list */
@@ -110,52 +115,42 @@ typedef struct mbr_parts {
 /** Both header and partition list */
 typedef struct mbr_label {
 	/** MBR header */
-	mbr_t * mbr;
+	mbr_t *mbr;
 	/** Partition list */
 	mbr_partitions_t * parts;
 	/** Device where the data are from (or for) */
 	service_id_t device;
 } mbr_label_t;
 
-/* Alloc complete label structure */
-extern mbr_label_t * mbr_alloc_label(void);
-extern void mbr_set_device(mbr_label_t *, service_id_t);
+#define mbr_part_foreach(label, iterator) \
+	for (iterator = list_get_instance((label)->parts->list.head.next, mbr_part_t, link); \
+	    iterator != list_get_instance(&((label)->parts->list.head), mbr_part_t, link); \
+	    iterator = list_get_instance(iterator->link.next, mbr_part_t, link))
 
-/* Read/Write MBR header.
- * WARNING: when changing both header and partitions, write first header,
- * then partitions. The MBR headers' raw_data is NOT updated to follow
- * partition changes. */
-extern mbr_t * mbr_alloc_mbr(void);
+extern mbr_label_t *mbr_alloc_label(void);
+
+extern void mbr_set_device(mbr_label_t *, service_id_t);
+extern mbr_t *mbr_alloc_mbr(void);
 extern int mbr_read_mbr(mbr_label_t *, service_id_t);
 extern int mbr_write_mbr(mbr_label_t *, service_id_t);
 extern int mbr_is_mbr(mbr_label_t *);
 
-/* Read/Write/Set MBR partitions.
- * NOTE: Writing partitions writes the complete header as well. */
-extern int          mbr_read_partitions(mbr_label_t *);
-extern int          mbr_write_partitions(mbr_label_t *, service_id_t);
-extern mbr_part_t * mbr_alloc_partition(void);
-extern mbr_partitions_t * mbr_alloc_partitions(void);
-extern mbr_err_val  mbr_add_partition(mbr_label_t *, mbr_part_t *);
-extern int          mbr_remove_partition(mbr_label_t *, size_t);
-extern int          mbr_get_flag(mbr_part_t *, MBR_FLAGS);
-extern void         mbr_set_flag(mbr_part_t *, MBR_FLAGS, bool);
-extern uint32_t     mbr_get_next_aligned(uint32_t, unsigned int);
-extern list_t *     mbr_get_list(mbr_label_t *);
-extern mbr_part_t * mbr_get_first_partition(mbr_label_t *);
-extern mbr_part_t * mbr_get_next_partition(mbr_label_t *, mbr_part_t *);
+extern int mbr_read_partitions(mbr_label_t *);
+extern int mbr_write_partitions(mbr_label_t *, service_id_t);
+extern mbr_part_t *mbr_alloc_partition(void);
+extern mbr_partitions_t *mbr_alloc_partitions(void);
+extern mbr_err_val mbr_add_partition(mbr_label_t *, mbr_part_t *);
+extern int mbr_remove_partition(mbr_label_t *, size_t);
+extern int mbr_get_flag(mbr_part_t *, mbr_flags_t);
+extern void mbr_set_flag(mbr_part_t *, mbr_flags_t, bool);
+extern uint32_t mbr_get_next_aligned(uint32_t, unsigned int);
+extern list_t *mbr_get_list(mbr_label_t *);
+extern mbr_part_t *mbr_get_first_partition(mbr_label_t *);
+extern mbr_part_t *mbr_get_next_partition(mbr_label_t *, mbr_part_t *);
 
-#define mbr_part_foreach(label, iterator) \
-        for (iterator  = list_get_instance((label)->parts->list.head.next, mbr_part_t, link); \
-             iterator != list_get_instance(&((label)->parts->list.head), mbr_part_t, link); \
-             iterator  = list_get_instance(iterator->link.next, mbr_part_t, link))
-
-
-/* free() wrapper functions. */
 extern void mbr_free_label(mbr_label_t *);
 extern void mbr_free_mbr(mbr_t *);
 extern void mbr_free_partition(mbr_part_t *);
 extern void mbr_free_partitions(mbr_partitions_t *);
 
 #endif
-

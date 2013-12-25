@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2011-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,72 +43,69 @@ const uint8_t revision[4] = {
 	00, 00, 01, 00
 };
 
-const struct partition_type gpt_ptypes[] = {
-	{ "Unused entry",					"00000000" "0000" "0000" "0000000000000000" }, /* 0 */
-	{ "HelenOS System",					"656C6548" "4F6E" "5320" "53797374656D0000" }, /* 1 It says "HelenOS System\0\0" */
-	{ "MBR partition scheme",			"024DEE41" "33E7" "11D3" "9D690008C781F39F" },
-	{ "EFI System",						"C12A7328" "F81F" "11D2" "BA4B00A0C93EC93B" },
-	{ "BIOS Boot",						"21686148" "6449" "6E6F" "744E656564454649" },
-	{ "Windows Reserved",				"E3C9E316" "0B5C" "4DB8" "817DF92DF00215AE" },
-	{ "Windows Basic data",				"EBD0A0A2" "B9E5" "4433" "87C068B6B72699C7" },
-	{ "Windows LDM metadata", 			"5808C8AA" "7E8F" "42E0" "85D2E1E90434CFB3" },
-	{ "Windows LDM data", 				"AF9B60A0" "1431" "4F62" "BC683311714A69AD" },
-	{ "Windows Recovery Environment",	"DE94BBA4" "06D1" "4D40" "A16ABFD50179D6AC" },
-	{ "Windows IBM GPFS",				"37AFFC90" "EF7D" "4E96" "91C32D7AE055B174" }, /* 10 */
-	{ "Windows Cluster metadata",		"DB97DBA9" "0840" "4BAE" "97F0FFB9A327C7E1" },
-	{ "HP-UX Data",						"75894C1E" "3AEB" "11D3" "B7C17B03A0000000" },
-	{ "HP-UX Service",					"E2A1E728" "32E3" "11D6" "A6827B03A0000000" },
-	{ "Linux filesystem data",			"0FC63DAF" "8483" "4772" "8E793D69D8477DE4" },
-	{ "Linux RAID",						"A19D880F" "05FC" "4D3B" "A006743F0F84911E" },
-	{ "Linux Swap",						"0657FD6D" "A4AB" "43C4" "84E50933C84B4F4F" },
-	{ "Linux LVM",						"E6D6D379" "F507" "44C2" "A23C238F2A3DF928" },
-	{ "Linux filesystem data",			"933AC7E1" "2EB4" "4F13" "B8440E14E2AEF915" },
-	{ "Linux Reserved",					"8DA63339" "0007" "60C0" "C436083AC8230908" },
-	{ "FreeBSD Boot",					"83BD6B9D" "7F41" "11DC" "BE0B001560B84F0F" }, /* 20 */
-	{ "FreeBSD Data",					"516E7CB4" "6ECF" "11D6" "8FF800022D09712B" },
-	{ "FreeBSD Swap",					"516E7CB5" "6ECF" "11D6" "8FF800022D09712B" },
-	{ "FreeBSD UFS", 					"516E7CB6" "6ECF" "11D6" "8FF800022D09712B" },
-	{ "FreeBSD Vinum VM",				"516E7CB8" "6ECF" "11D6" "8FF800022D09712B" },
-	{ "FreeBSD ZFS",					"516E7CBA" "6ECF" "11D6" "8FF800022D09712B" },
-	{ "Mac OS X HFS+",					"48465300" "0000" "11AA" "AA1100306543ECAC" },
-	{ "Mac OS X UFS",					"55465300" "0000" "11AA" "AA1100306543ECAC" },
-	{ "Mac OS X ZFS",					"6A898CC3" "1DD2" "11B2" "99A6080020736631" },
-	{ "Mac OS X RAID",					"52414944" "0000" "11AA" "AA1100306543ECAC" },
-	{ "Mac OS X RAID, offline",			"52414944" "5F4F" "11AA" "AA1100306543ECAC" }, /* 30 */
-	{ "Mac OS X Boot",					"426F6F74" "0000" "11AA" "AA1100306543ECAC" },
-	{ "Mac OS X Label",					"4C616265" "6C00" "11AA" "AA1100306543ECAC" },
-	{ "Mac OS X TV Recovery",			"5265636F" "7665" "11AA" "AA1100306543ECAC" },
-	{ "Mac OS X Core Storage",			"53746F72" "6167" "11AA" "AA1100306543ECAC" },
-	{ "Solaris Boot",					"6A82CB45" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Root",					"6A85CF4D" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Swap",					"6A87C46F" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Backup",					"6A8B642B" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris /usr",					"6A898CC3" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris /var",					"6A8EF2E9" "1DD2" "11B2" "99A6080020736631" }, /* 40 */
-	{ "Solaris /home",					"6A90BA39" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Alternate sector",		"6A9283A5" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Reserved",				"6A945A3B" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Reserved",				"6A9630D1" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Reserved",				"6A980767" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Reserved",				"6A96237F" "1DD2" "11B2" "99A6080020736631" },
-	{ "Solaris Reserved",				"6A8D2AC7" "1DD2" "11B2" "99A6080020736631" },
-	{ "NetBSD Swap",					"49F48D32" "B10E" "11DC" "B99B0019D1879648" },
-	{ "NetBSD FFS",						"49F48D5A" "B10E" "11DC" "B99B0019D1879648" },
-	{ "NetBSD LFS",						"49F48D82" "B10E" "11DC" "B99B0019D1879648" }, /* 50 */
-	{ "NetBSD RAID",					"49F48DAA" "B10E" "11DC" "B99B0019D1879648" },
-	{ "NetBSD Concatenated",			"2DB519C4" "B10F" "11DC" "B99B0019D1879648" },
-	{ "NetBSD Encrypted",				"2DB519EC" "B10F" "11DC" "B99B0019D1879648" },
-	{ "ChromeOS ChromeOS kernel",		"FE3A2A5D" "4F32" "41A7" "B725ACCC3285A309" },
-	{ "ChromeOS rootfs",				"3CB8E202" "3B7E" "47DD" "8A3C7FF2A13CFCEC" },
-	{ "ChromeOS future use",			"2E0A753D" "9E48" "43B0" "8337B15192CB1B5E" },
-	{ "MidnightBSD Boot",				"85D5E45E" "237C" "11E1" "B4B3E89A8F7FC3A7" },
-	{ "MidnightBSD Data",				"85D5E45A" "237C" "11E1" "B4B3E89A8F7FC3A7" },
-	{ "MidnightBSD Swap",				"85D5E45B" "237C" "11E1" "B4B3E89A8F7FC3A7" },
-	{ "MidnightBSD UFS",				"0394Ef8B" "237E" "11E1" "B4B3E89A8F7FC3A7" }, /* 60 */
-	{ "MidnightBSD Vinum VM",			"85D5E45C" "237C" "11E1" "B4B3E89A8F7FC3A7" },
-	{ "MidnightBSD ZFS",				"85D5E45D" "237C" "11E1" "B4B3E89A8F7FC3A7" },
-	{ "Uknown", NULL} /* keep this as the last one! gpt_get_part_type depends on it! */
+const partition_type_t gpt_ptypes[] = {
+	{ "unused entry",                 "00000000" "0000" "0000" "0000000000000000" }, /* 0 */
+	{ "HelenOS System",               "3dc61fa0" "cf7a" "3ad8" "ac57615029d81a6b" }, /* "HelenOS System" encoded as RFC 4122 UUID, version 3 (MD5 name-based) */
+	{ "MBR partition scheme",         "024dee41" "33e7" "11d3" "9d690008c781f39f" },
+	{ "EFI System",                   "c12a7328" "f81f" "11d2" "ba4b00a0c93ec93b" },
+	{ "BIOS Boot",                    "21686148" "6449" "6e6f" "744e656564454649" },
+	{ "Windows Reserved",             "e3c9e316" "0b5c" "4db8" "817df92df00215ae" },
+	{ "Windows Basic data",           "ebd0a0a2" "b9e5" "4433" "87c068b6b72699c7" },
+	{ "Windows LDM metadata",         "5808c8aa" "7e8f" "42e0" "85d2e1e90434cfb3" },
+	{ "Windows LDM data",             "af9b60a0" "1431" "4f62" "bc683311714a69ad" },
+	{ "Windows Recovery Environment", "de94bba4" "06d1" "4d40" "a16abfd50179d6ac" },
+	{ "Windows IBM GPFS",             "37affc90" "ef7d" "4e96" "91c32d7ae055b174" }, /* 10 */
+	{ "Windows Cluster metadata",     "db97dba9" "0840" "4bae" "97f0ffb9a327c7e1" },
+	{ "HP-UX Data",                   "75894c1e" "3aeb" "11d3" "b7c17b03a0000000" },
+	{ "HP-UX Service",                "e2a1e728" "32e3" "11d6" "a6827b03a0000000" },
+	{ "Linux filesystem data",        "0fc63daf" "8483" "4772" "8e793d69d8477de4" },
+	{ "Linux RAID",                   "a19d880f" "05fc" "4d3b" "a006743f0f84911e" },
+	{ "Linux Swap",                   "0657fd6d" "a4ab" "43c4" "84e50933c84b4f4f" },
+	{ "Linux LVM",                    "e6d6d379" "f507" "44c2" "a23c238f2a3df928" },
+	{ "Linux filesystem data",        "933ac7e1" "2eb4" "4f13" "b8440e14e2aef915" },
+	{ "Linux Reserved",               "8da63339" "0007" "60c0" "c436083ac8230908" },
+	{ "FreeBSD Boot",                 "83bd6b9d" "7f41" "11dc" "be0b001560b84f0f" }, /* 20 */
+	{ "FreeBSD Data",                 "516e7cb4" "6ecf" "11d6" "8ff800022d09712b" },
+	{ "FreeBSD Swap",                 "516e7cb5" "6ecf" "11d6" "8ff800022d09712b" },
+	{ "FreeBSD UFS",                  "516e7cb6" "6ecf" "11d6" "8ff800022d09712b" },
+	{ "FreeBSD Vinum VM",             "516e7cb8" "6ecf" "11d6" "8ff800022d09712b" },
+	{ "FreeBSD ZFS",                  "516e7cba" "6ecf" "11d6" "8ff800022d09712b" },
+	{ "Mac OS X HFS+",                "48465300" "0000" "11aa" "aa1100306543ecac" },
+	{ "Mac OS X UFS",                 "55465300" "0000" "11aa" "aa1100306543ecac" },
+	{ "Mac OS X ZFS",                 "6a898cc3" "1dd2" "11b2" "99a6080020736631" },
+	{ "Mac OS X RAID",                "52414944" "0000" "11aa" "aa1100306543ecac" },
+	{ "Mac OS X RAID, offline",       "52414944" "5f4f" "11aa" "aa1100306543ecac" }, /* 30 */
+	{ "Mac OS X Boot",                "426f6f74" "0000" "11aa" "aa1100306543ecac" },
+	{ "Mac OS X Label",               "4c616265" "6c00" "11aa" "aa1100306543ecac" },
+	{ "Mac OS X TV Recovery",         "5265636f" "7665" "11aa" "aa1100306543ecac" },
+	{ "Mac OS X Core Storage",        "53746f72" "6167" "11aa" "aa1100306543ecac" },
+	{ "Solaris Boot",                 "6a82cb45" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Root",                 "6a85cf4d" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Swap",                 "6a87c46f" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Backup",               "6a8b642b" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris /usr",                 "6a898cc3" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris /var",                 "6a8ef2e9" "1dd2" "11b2" "99a6080020736631" }, /* 40 */
+	{ "Solaris /home",                "6a90ba39" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Alternate sector",     "6a9283a5" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Reserved",             "6a945a3b" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Reserved",             "6a9630d1" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Reserved",             "6a980767" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Reserved",             "6a96237f" "1dd2" "11b2" "99a6080020736631" },
+	{ "Solaris Reserved",             "6a8d2ac7" "1dd2" "11b2" "99a6080020736631" },
+	{ "NetBSD Swap",                  "49f48d32" "b10e" "11dc" "b99b0019d1879648" },
+	{ "NetBSD FFS",                   "49f48d5a" "b10e" "11dc" "b99b0019d1879648" },
+	{ "NetBSD LFS",                   "49f48d82" "b10e" "11dc" "b99b0019d1879648" }, /* 50 */
+	{ "NetBSD RAID",                  "49f48daa" "b10e" "11dc" "b99b0019d1879648" },
+	{ "NetBSD Concatenated",          "2db519c4" "b10f" "11dc" "b99b0019d1879648" },
+	{ "NetBSD Encrypted",             "2db519ec" "b10f" "11dc" "b99b0019d1879648" },
+	{ "ChromeOS ChromeOS kernel",     "fe3a2a5d" "4f32" "41a7" "b725accc3285a309" },
+	{ "ChromeOS rootfs",              "3cb8e202" "3b7e" "47dd" "8a3c7ff2a13cfcec" },
+	{ "ChromeOS future use",          "2e0a753d" "9e48" "43b0" "8337b15192cb1b5e" },
+	{ "MidnightBSD Boot",             "85d5e45e" "237c" "11e1" "b4b3e89a8f7fc3a7" },
+	{ "MidnightBSD Data",             "85d5e45a" "237c" "11e1" "b4b3e89a8f7fc3a7" },
+	{ "MidnightBSD Swap",             "85d5e45b" "237c" "11e1" "b4b3e89a8f7fc3a7" },
+	{ "MidnightBSD UFS",              "0394ef8b" "237e" "11e1" "b4b3e89a8f7fc3a7" }, /* 60 */
+	{ "MidnightBSD Vinum VM",         "85d5e45c" "237c" "11e1" "b4b3e89a8f7fc3a7" },
+	{ "MidnightBSD ZFS",              "85d5e45d" "237c" "11e1" "b4b3e89a8f7fc3a7" },
+	{ "unknown entry",                NULL } /* Keep this as the last entry */
 };
-
-
-

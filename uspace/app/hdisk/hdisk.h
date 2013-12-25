@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
  */
+
+#ifndef __HDISK_H__
+#define __HDISK_H__
 
 #include "common.h"
 
 #define init_label() \
 	label.layout = LYT_NONE
 
+#endif

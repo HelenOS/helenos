@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
@@ -35,82 +35,35 @@
 #include <str.h>
 #include <errno.h>
 #include <stdlib.h>
-
 #include "input.h"
 
 typedef int (*conv_f)(const char *, char **, unsigned int, bool, void *);
-static int convert(tinput_t * in, conv_f str_f, void * val);
 
-int get_input_line(tinput_t * in, char ** str)
+static int convert(tinput_t *, conv_f, void *);
+
+int get_input_line(tinput_t *in, char **str)
 {
-	int rc;
-	rc = tinput_read(in, str);
-	if (rc == ENOENT) {
-		/* User requested exit */
+	int rc = tinput_read(in, str);
+	if (rc == ENOENT)
 		return EINTR;
-	}
-	if (rc != EOK) {
-		/* Error in communication with console */
+	
+	if (rc != EOK)
 		return rc;
-	}
+	
 	/* Check for empty input. */
 	if (str_cmp(*str, "") == 0) {
 		free(*str);
 		*str = NULL;
 		return EINVAL;
 	}
-
+	
 	return EOK;
 }
 
-uint8_t get_input_uint8(tinput_t * in)
+uint8_t get_input_uint8(tinput_t *in)
 {
-	int rc;
 	uint32_t val;
-	
-	rc = convert(in, (conv_f) str_uint8_t, &val);
-	if (rc != EOK) {
-		errno = rc;
-		return 0;
-	}
-	
-	return val;
-}
-
-uint32_t get_input_uint32(tinput_t * in)
-{
-	int rc;
-	uint32_t val;
-	
-	rc = convert(in, (conv_f) str_uint32_t, &val);
-	if (rc != EOK) {
-		errno = rc;
-		return 0;
-	}
-	
-	return val;
-}
-
-uint64_t get_input_uint64(tinput_t * in)
-{
-	int rc;
-	uint64_t val;
-	
-	rc = convert(in, (conv_f) str_uint64_t, &val);
-	if (rc != EOK) {
-		errno = rc;
-		return 0;
-	}
-	
-	return val;
-}
-
-size_t get_input_size_t(tinput_t * in)
-{
-	int rc;
-	size_t val;
-	
-	rc = convert(in, (conv_f) str_size_t, &val);
+	int rc = convert(in, (conv_f) str_uint8_t, &val);
 	if (rc != EOK) {
 		errno = rc;
 		return 0;
@@ -120,23 +73,58 @@ size_t get_input_size_t(tinput_t * in)
 	return val;
 }
 
-static int convert(tinput_t * in, conv_f str_f, void * val)
+uint32_t get_input_uint32(tinput_t *in)
 {
-	int rc;
-	char * str;
+	uint32_t val;
+	int rc = convert(in, (conv_f) str_uint32_t, &val);
+	if (rc != EOK) {
+		errno = rc;
+		return 0;
+	}
 	
-	rc = get_input_line(in, &str);
+	errno = EOK;
+	return val;
+}
+
+uint64_t get_input_uint64(tinput_t *in)
+{
+	uint64_t val;
+	int rc = convert(in, (conv_f) str_uint64_t, &val);
+	if (rc != EOK) {
+		errno = rc;
+		return 0;
+	}
+	
+	errno = EOK;
+	return val;
+}
+
+size_t get_input_size_t(tinput_t *in)
+{
+	size_t val;
+	int rc = convert(in, (conv_f) str_size_t, &val);
+	if (rc != EOK) {
+		errno = rc;
+		return 0;
+	}
+	
+	errno = EOK;
+	return val;
+}
+
+static int convert(tinput_t *in, conv_f str_f, void *val)
+{
+	char *str;
+	int rc = get_input_line(in, &str);
 	if (rc != EOK) {
 		printf("Error reading input.\n");
 		return rc;
 	}
 	
 	rc = str_f(str, NULL, 10, true, val);
-	if (rc != EOK) {
+	if (rc != EOK)
 		printf("Invalid value.\n");
-	}
 	
 	free(str);
 	return rc;
 }
-

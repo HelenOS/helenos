@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
  */
 
 #ifndef __FUNC_MBR_H__
-#define	__FUNC_MBR_H__
+#define __FUNC_MBR_H__
 
 #include <loc.h>
 #include <tinput.h>
 #include <libmbr.h>
-
 #include "common.h"
 
 extern int construct_mbr_label(label_t *);
-extern int add_mbr_part     (label_t *, tinput_t *);
-extern int delete_mbr_part  (label_t *, tinput_t *);
+extern int add_mbr_part(label_t *, tinput_t *);
+extern int delete_mbr_part(label_t *, tinput_t *);
 extern int destroy_mbr_label(label_t *);
-extern int new_mbr_label    (label_t *);
-extern int print_mbr_parts  (label_t *);
-extern int read_mbr_parts   (label_t *);
-extern int write_mbr_parts  (label_t *);
-extern int extra_mbr_funcs  (label_t *, tinput_t *);
+extern int new_mbr_label(label_t *);
+extern int print_mbr_parts(label_t *);
+extern int read_mbr_parts(label_t *);
+extern int write_mbr_parts(label_t *);
+extern int extra_mbr_funcs(label_t *, tinput_t *);
 
 #endif

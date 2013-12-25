@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
@@ -44,28 +44,25 @@ typedef enum {
 	LYT_GPT,
 } layouts_t;
 
-union label_data {
-	mbr_label_t	*mbr;
-	gpt_label_t	*gpt;
-};
+typedef union {
+	mbr_label_t *mbr;
+	gpt_label_t *gpt;
+} label_data_t;
 
-typedef struct label label_t;
-
-struct label {
+typedef struct label {
 	layouts_t layout;
-	aoff64_t nblocks;
+	aoff64_t blocks;
 	service_id_t device;
-	union label_data data;
+	label_data_t data;
 	unsigned int alignment;
-	int (* destroy_label)(label_t *);
-	int (* add_part)     (label_t *, tinput_t *);
-	int (* delete_part)  (label_t *, tinput_t *);
-	int (* new_label)    (label_t *);
-	int (* print_parts)  (label_t *);
-	int (* read_parts)   (label_t *);
-	int (* write_parts)  (label_t *);
-	int (* extra_funcs)  (label_t *, tinput_t *);
-};
+	int (* destroy_label)(struct label *);
+	int (* add_part)(struct label *, tinput_t *);
+	int (* delete_part)(struct label *, tinput_t *);
+	int (* new_label)(struct label *);
+	int (* print_parts)(struct label *);
+	int (* read_parts)(struct label *);
+	int (* write_parts)(struct label *);
+	int (* extra_funcs)(struct label *, tinput_t *);
+} label_t;
 
 #endif
-

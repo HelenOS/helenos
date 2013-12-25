@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
@@ -46,40 +46,36 @@
 #include <libgpt.h>
 #include <tinput.h>
 #include <str_error.h>
-
 #include "hdisk.h"
 #include "input.h"
 #include "func_gpt.h"
 #include "func_mbr.h"
 #include "func_none.h"
 
-int interact(void);
-void print_help(void);
-void select_label_format(tinput_t *);
-void construct_label(layouts_t);
-void free_label(void);
-int try_read(void);
-int try_read_mbr(void);
-int try_read_gpt(void);
-void set_alignment(tinput_t *);
-
+static int interact(void);
+static void print_help(void);
+static void select_label_format(tinput_t *);
+static void construct_label(layouts_t);
+static void free_label(void);
+static int try_read(void);
+static int try_read_mbr(void);
+static int try_read_gpt(void);
+static void set_alignment(tinput_t *);
 
 static label_t label;
 
-int main(int argc, char ** argv)
+int main(int argc, char *argv[])
 {
 	if (argc == 1) {
 		printf("Missing argument. Please specify a device to operate on.\n");
-		return -1;
+		return 1;
 	}
 	
-	int rc;
 	service_id_t dev_handle;
-	
-	rc = loc_service_get_id(argv[1], &dev_handle, IPC_FLAG_BLOCKING);
+	int rc = loc_service_get_id(argv[1], &dev_handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("Unknown device. Exiting.\n");
-		return -1;
+		return 2;
 	}
 	
 	init_label();
@@ -88,18 +84,19 @@ int main(int argc, char ** argv)
 	rc = block_init(EXCHANGE_ATOMIC, dev_handle, 512);
 	if (rc != EOK) {
 		printf("Error during libblock init: %d - %s.\n", rc, str_error(rc));
-		return -1;
+		return 3;
 	}
 	
-	aoff64_t nblocks;
-	rc = block_get_nblocks(dev_handle, &nblocks);
+	aoff64_t blocks;
+	rc = block_get_nblocks(dev_handle, &blocks);
 	block_fini(dev_handle);
 	if (rc != EOK) {
-		printf(LIBMBR_NAME ": Error while getting number of blocks: %d - %s.\n", rc, str_error(rc));
-		return -1;
+		printf("Error while getting number of blocks: %d - %s.\n",
+		    rc, str_error(rc));
+		return 4;
 	}
 	
-	label.nblocks = nblocks;
+	label.blocks = blocks;
 	
 	rc = try_read_mbr();
 	if (rc == EOK)
@@ -115,19 +112,13 @@ int main(int argc, char ** argv)
 	construct_label(LYT_NONE);
 	
 interact:
-	
-	rc = interact();
-	
-	return rc;
+	return interact();
 }
 
 /** Interact with user */
-int interact()
+int interact(void)
 {
-	int input;
-	tinput_t *in;
-	
-	in = tinput_new();
+	tinput_t *in = tinput_new();
 	if (in == NULL) {
 		printf("Failed initing input. Free some memory.\n");
 		return ENOMEM;
@@ -136,9 +127,9 @@ int interact()
 	
 	printf("Welcome to hdisk.\nType 'h' for help.\n");
 	
-	while (1) {
+	while (true) {
 		printf("# ");
-		input = getchar();
+		int input = getchar();
 		printf("%c\n", input);
 		
 		switch (input) {
@@ -186,34 +177,30 @@ int interact()
 	
 end:
 	tinput_destroy(in);
-	
 	return EOK;
 }
 
 void print_help(void)
 {
 	printf(
-		"\t 'a' \t\t Add partition.\n"
-		"\t 'd' \t\t Delete partition.\n"
-		"\t 'e' \t\t Extra functions (per label format).\n"
-		"\t 'f' \t\t Switch the format of the partition label.\n"
-		"\t 'h' \t\t Prints help. See help for more.\n"
-		"\t 'l' \t\t Set alignment.\n"
-		"\t 'n' \t\t Create new label (discarding the old one).\n"
-		"\t 'p' \t\t Prints label contents.\n"
-		"\t 'q' \t\t Quit.\n"
-		"\t 'r' \t\t Read label from disk.\n"
-		"\t 'w' \t\t Write label to disk.\n"
-		);
-
+	    "\t 'a' \t\t Add partition.\n"
+	    "\t 'd' \t\t Delete partition.\n"
+	    "\t 'e' \t\t Extra functions (per label format).\n"
+	    "\t 'f' \t\t Switch the format of the partition label.\n"
+	    "\t 'h' \t\t Prints help. See help for more.\n"
+	    "\t 'l' \t\t Set alignment.\n"
+	    "\t 'n' \t\t Create new label (discarding the old one).\n"
+	    "\t 'p' \t\t Prints label contents.\n"
+	    "\t 'q' \t\t Quit.\n"
+	    "\t 'r' \t\t Read label from disk.\n"
+	    "\t 'w' \t\t Write label to disk.\n");
 }
 
-void select_label_format(tinput_t * in)
+void select_label_format(tinput_t *in)
 {
 	printf("Available formats are: \n"
-			"1) MBR\n"
-			"2) GPT\n"
-	      );
+	    "1) MBR\n"
+	    "2) GPT\n");
 	
 	uint8_t val = get_input_uint8(in);
 	switch (val) {
@@ -252,19 +239,18 @@ void free_label(void)
 	label.destroy_label(&label);
 }
 
-int try_read()
+int try_read(void)
 {
-	
 	return label.read_parts(&label);
 }
 
-int try_read_mbr()
+int try_read_mbr(void)
 {
 	construct_label(LYT_MBR);
 	return try_read();
 }
 
-int try_read_gpt()
+int try_read_gpt(void)
 {
 	construct_label(LYT_GPT);
 	return try_read();
@@ -276,6 +262,3 @@ void set_alignment(tinput_t *in)
 	label.alignment = get_input_uint32(in);
 	printf("Alignment set to %u sectors.\n", label.alignment);
 }
-
-
-

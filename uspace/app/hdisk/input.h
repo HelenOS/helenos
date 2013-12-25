@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
  */
 
 #ifndef __INPUT_H__
-#define	__INPUT_H__
+#define __INPUT_H__
 
 #include <tinput.h>
 
-extern int		get_input_line(tinput_t * in, char ** str);
-extern uint8_t	get_input_uint8(tinput_t * in);
-extern uint32_t	get_input_uint32(tinput_t * in);
-extern uint64_t	get_input_uint64(tinput_t * in);
-extern size_t	get_input_size_t(tinput_t * in);
+extern int get_input_line(tinput_t *, char **);
+extern uint8_t get_input_uint8(tinput_t *);
+extern uint32_t get_input_uint32(tinput_t *);
+extern uint64_t get_input_uint64(tinput_t *);
+extern size_t get_input_size_t(tinput_t *);
 
 #endif

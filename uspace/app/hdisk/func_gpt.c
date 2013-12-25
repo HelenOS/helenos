@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
@@ -38,7 +38,6 @@
 #include <str_error.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
-
 #include "func_gpt.h"
 #include "input.h"
 
@@ -50,39 +49,35 @@ int construct_gpt_label(label_t *this)
 	this->layout = LYT_GPT;
 	this->alignment = 1;
 	
-	this->add_part      = add_gpt_part;
-	this->delete_part   = delete_gpt_part;
+	this->add_part = add_gpt_part;
+	this->delete_part = delete_gpt_part;
 	this->destroy_label = destroy_gpt_label;
-	this->new_label     = new_gpt_label;
-	this->print_parts   = print_gpt_parts;
-	this->read_parts    = read_gpt_parts;
-	this->write_parts   = write_gpt_parts;
-	this->extra_funcs   = extra_gpt_funcs;
+	this->new_label = new_gpt_label;
+	this->print_parts = print_gpt_parts;
+	this->read_parts = read_gpt_parts;
+	this->write_parts = write_gpt_parts;
+	this->extra_funcs = extra_gpt_funcs;
 	
 	return this->new_label(this);
 }
 
 int add_gpt_part(label_t *this, tinput_t *in)
 {
-	gpt_part_t * p = gpt_get_partition(this->data.gpt);
-	if (p == NULL) {
+	gpt_part_t *partition = gpt_get_partition(this->data.gpt);
+	if (partition == NULL)
 		return ENOMEM;
-	}
 	
-	return set_gpt_partition(in, p, this);
+	return set_gpt_partition(in, partition, this);
 }
 
 int delete_gpt_part(label_t *this, tinput_t *in)
 {
-	int rc;
-	size_t idx;
+	printf("Index of the partition to delete (counted from 0): ");
+	size_t idx = get_input_size_t(in);
 	
-	printf("Number of the partition to delete (counted from 0): ");
-	idx = get_input_size_t(in);
-	
-	rc = gpt_remove_partition(this->data.gpt, idx);
+	int rc = gpt_remove_partition(this->data.gpt, idx);
 	if (rc == ENOMEM) {
-		printf("Warning: running low on memory, not resizing...\n");
+		printf("Warning: Running out on memory, not resizing.\n");
 		return rc;
 	} else if (rc == EINVAL) {
 		printf("Invalid index.\n");
@@ -106,26 +101,24 @@ int new_gpt_label(label_t *this)
 
 int print_gpt_parts(label_t *this)
 {
-	printf("Current partition scheme (GPT)(number of blocks: %" PRIu64 "):\n", this->nblocks);
-	printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
+	printf("Current partition scheme: GPT\n");
+	printf("Number of blocks: %" PRIu64 "\n", this->blocks);
 	
 	size_t i = 0;
-	
 	gpt_part_foreach (this->data.gpt, iter) {
-		i++;
-		
 		if (gpt_get_part_type(iter) == GPT_PTE_UNUSED)
 			continue;
 		
 		if (i % 20 == 0)
-			printf("%15s %10s %10s Type: Name:\n", "Start:", "End:", "Length:");
-		
+			printf("%15s %10s %10s Type: Name:\n",
+			    "Start:", "End:", "Length:");
 		
 		printf("%3zu  %10" PRIu64 " %10" PRIu64 " %10" PRIu64 "    %3zu %s\n",
-		   i-1, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
-		        gpt_get_end_lba(iter) - gpt_get_start_lba(iter), 
-		        gpt_get_part_type(iter), gpt_get_part_name(iter));
+		   i, gpt_get_start_lba(iter), gpt_get_end_lba(iter),
+		   gpt_get_end_lba(iter) - gpt_get_start_lba(iter), 
+		   gpt_get_part_type(iter), gpt_get_part_name(iter));
 		
+		i++;
 	}
 	
 	return EOK;
@@ -133,17 +126,17 @@ int print_gpt_parts(label_t *this)
 
 int read_gpt_parts(label_t *this)
 {
-	int rc;
-	
-	rc = gpt_read_header(this->data.gpt, this->device);
+	int rc = gpt_read_header(this->data.gpt, this->device);
 	if (rc != EOK) {
-		printf("Error: Reading header failed: %d (%s)\n", rc, str_error(rc));
+		printf("Error: Reading header failed: %d (%s)\n", rc,
+		    str_error(rc));
 		return rc;
 	}
 	
 	rc = gpt_read_partitions(this->data.gpt);
 	if (rc != EOK) {
-		printf("Error: Reading partitions failed: %d (%s)\n", rc, str_error(rc));
+		printf("Error: Reading partitions failed: %d (%s)\n", rc,
+		    str_error(rc));
 		return rc;
 	}
 	
@@ -152,14 +145,13 @@ int read_gpt_parts(label_t *this)
 
 int write_gpt_parts(label_t *this)
 {
-	int rc;
-	printf("test1\n");
-	rc = gpt_write_partitions(this->data.gpt, this->device);
+	int rc = gpt_write_partitions(this->data.gpt, this->device);
 	if (rc != EOK) {
-		printf("Error: Writing partitions failed: %d (%s)\n", rc, str_error(rc));
+		printf("Error: Writing partitions failed: %d (%s)\n", rc,
+		    str_error(rc));
 		return rc;
 	}
-	printf("test2\n");
+	
 	return EOK;
 }
 
@@ -169,67 +161,61 @@ int extra_gpt_funcs(label_t *this, tinput_t *in)
 	return EOK;
 }
 
-static int set_gpt_partition(tinput_t *in, gpt_part_t *p, label_t * this)
+static int set_gpt_partition(tinput_t *in, gpt_part_t *partition, label_t *this)
 {
-	int rc;
-	
-	uint64_t sa, ea;
-	
 	printf("Set starting address: ");
-	sa = get_input_uint64(in);
-	if (this->alignment != 0 && this->alignment != 1 && sa % this->alignment != 0)
+	uint64_t sa = get_input_uint64(in);
+	if ((this->alignment != 0) && (this->alignment != 1) &&
+	    (sa % this->alignment != 0))
 		sa = gpt_get_next_aligned(sa, this->alignment);
 	
-	printf("Set end address (max: %" PRIu64 "): ", this->nblocks);
-	ea = get_input_uint64(in);
+	printf("Set end address (max: %" PRIu64 "): ", this->blocks);
+	uint64_t ea = get_input_uint64(in);
 	
 	if (ea <= sa) {
 		printf("Invalid value.\n");
 		return EINVAL;
 	}
 	
-	gpt_set_start_lba(p, sa);
-	gpt_set_end_lba(p, ea);
+	gpt_set_start_lba(partition, sa);
+	gpt_set_end_lba(partition, ea);
 	
-	/* See global.c from libgpt for all partition types. */
 	printf("Choose type: ");
 	print_part_types();
 	printf("Set type (1 for HelenOS System): ");
 	size_t idx = get_input_size_t(in);
-	gpt_set_part_type(p, idx);
+	gpt_set_part_type(partition, idx);
 	
-	gpt_set_random_uuid(p->part_id);
+	gpt_set_random_uuid(partition->part_id);
 	
-	char *name;
 	printf("Name the partition: ");
-	rc = get_input_line(in, &name);
+	char *name;
+	int rc = get_input_line(in, &name);
 	if (rc != EOK) {
 		printf("Error reading name: %d (%s)\n", rc, str_error(rc));
 		return rc;
 	}
 	
-	gpt_set_part_name(p, name, str_size(name));
+	gpt_set_part_name(partition, name, str_size(name));
 	
 	return EOK;
 }
 
 static void print_part_types(void)
 {
-	int c;
-	int count = 0;
-	const struct partition_type * ptype = gpt_ptypes;
+	unsigned int count = 0;
+	const partition_type_t *ptype = gpt_ptypes;
 	
 	do {
+		printf("%u: %s\n", count, ptype->desc);
+		count++;
+		ptype++;
+		
 		if (count % 10 == 0) {
 			printf("Print (more) partition types? (y/n)\n");
-			c = getchar();
+			int c = getchar();
 			if (c == 'n')
 				return;
 		}
-		
-		printf("%d: %s\n", count, ptype->desc);
-		++count;
-		++ptype;
 	} while (ptype->guid != NULL);
 }
-

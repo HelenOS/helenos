@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Dominik Taborsky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup hdisk
+/** @addtogroup hdisk
  * @{
  */
 /** @file
  */
 
 #ifndef __FUNC_NONE_H__
-#define	__FUNC_NONE_H__
+#define __FUNC_NONE_H__
 
 #include <loc.h>
 #include <tinput.h>
-
 #include "common.h"
 
 extern int construct_none_label(label_t *);
-extern int add_none_part     (label_t *, tinput_t *);
-extern int delete_none_part  (label_t *, tinput_t *);
+extern int add_none_part(label_t *, tinput_t *);
+extern int delete_none_part(label_t *, tinput_t *);
 extern int destroy_none_label(label_t *);
-extern int new_none_label    (label_t *);
-extern int print_none_parts  (label_t *);
-extern int read_none_parts   (label_t *);
-extern int write_none_parts  (label_t *);
-extern int extra_none_funcs  (label_t *, tinput_t *);
+extern int new_none_label(label_t *);
+extern int print_none_parts(label_t *);
+extern int read_none_parts(label_t *);
+extern int write_none_parts(label_t *);
+extern int extra_none_funcs(label_t *, tinput_t *);
 
 #endif
