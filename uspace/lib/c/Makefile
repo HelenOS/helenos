@@ -62,7 +62,6 @@ GENERIC_SOURCES = \
 	generic/bd_srv.c \
 	generic/cap.c \
 	generic/cfg.c \
-	generic/checksum.c \
 	generic/clipboard.c \
 	generic/corecfg.c \
 	generic/devman.c \
@@ -128,6 +127,7 @@ GENERIC_SOURCES = \
 	generic/async.c \
 	generic/loader.c \
 	generic/getopt.c \
+	generic/adt/checksum.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
 	generic/adt/dynamic_fifo.c \
