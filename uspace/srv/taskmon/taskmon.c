@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,16 +40,23 @@
 #include <sys/typefmt.h>
 #include <task.h>
 #include <event.h>
+#include <ipc/corecfg.h>
+#include <loc.h>
 #include <macros.h>
 #include <errno.h>
 #include <str_error.h>
 
 #define NAME  "taskmon"
 
+static bool write_core_files;
+
+static void corecfg_client_conn(ipc_callid_t , ipc_call_t *, void *);
+
 static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 {
 	const char *fname;
 	char *s_taskid;
+	char *dump_fname;
 	int rc;
 
 	task_id_t taskid;
@@ -68,24 +75,61 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 
 	fname = "/app/taskdump";
 
-#ifdef CONFIG_WRITE_CORE_FILES
-	char *dump_fname;
+	if (write_core_files) {
+		if (asprintf(&dump_fname, "/data/core%" PRIu64, taskid) < 0) {
+			printf("Memory allocation failed.\n");
+			return;
+		}
 
-	if (asprintf(&dump_fname, "/data/core%" PRIu64, taskid) < 0) {
-		printf("Memory allocation failed.\n");
-		return;
+		printf(NAME ": Executing %s -c %s -t %s\n", fname, dump_fname, s_taskid);
+		rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
+		    NULL);
+	} else {
+		printf(NAME ": Executing %s -t %s\n", fname, s_taskid);
+		rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
 	}
 
-	printf(NAME ": Executing %s -c %s -t %s\n", fname, dump_fname, s_taskid);
-	rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
-	    NULL);
-#else
-	printf(NAME ": Executing %s -t %s\n", fname, s_taskid);
-	rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
-#endif
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s).\n", NAME, fname,
 		    str_error(rc));
+	}
+}
+
+static void corecfg_get_enable_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	async_answer_1(iid, EOK, write_core_files);
+}
+
+static void corecfg_set_enable_srv(ipc_callid_t iid, ipc_call_t *icall)
+{
+	write_core_files = IPC_GET_ARG1(*icall);
+	async_answer_0(iid, EOK);
+}
+
+static void corecfg_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	/* Accept the connection */
+	async_answer_0(iid, EOK);
+
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		sysarg_t method = IPC_GET_IMETHOD(call);
+
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(callid, EOK);
+			return;
+		}
+
+		switch (method) {
+		case CORECFG_GET_ENABLE:
+			corecfg_get_enable_srv(callid, &call);
+			break;
+		case CORECFG_SET_ENABLE:
+			corecfg_set_enable_srv(callid, &call);
+			break;
+		}
 	}
 }
 
@@ -93,8 +137,30 @@ int main(int argc, char *argv[])
 {
 	printf("%s: Task Monitoring Service\n", NAME);
 	
+#ifdef CONFIG_WRITE_CORE_FILES
+	write_core_files = true;
+#else
+	write_core_files = false;
+#endif
 	if (event_subscribe(EVENT_FAULT, 0) != EOK) {
 		printf("%s: Error registering fault notifications.\n", NAME);
+		return -1;
+	}
+	
+	async_set_client_connection(corecfg_client_conn);
+	
+	int rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed registering server (%d).\n",
+		    NAME, rc);
+		return -1;
+	}
+	
+	service_id_t sid;
+	rc = loc_service_register(SERVICE_NAME_CORECFG, &sid);
+	if (rc != EOK) {
+		printf("%s: Failed registering service (%d).\n",
+		    NAME, rc);
 		return -1;
 	}
 	

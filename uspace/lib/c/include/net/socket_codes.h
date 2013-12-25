@@ -74,6 +74,15 @@ typedef enum sock_type {
 /** Type definition of the socket length. */
 typedef int32_t socklen_t;
 
+/* Socket options */
+
+enum {
+	SOL_SOCKET = 1,
+
+	/* IP link to transmit on */
+	SO_IPLINK
+};
+
 #endif
 
 /** @}

@@ -96,8 +96,8 @@ static int niagara_port_init(kbd_dev_t *kdev)
 	if (sysinfo_get_value("niagara.inbuf.address", &paddr) != EOK)
 		return -1;
 	
-	int rc = physmem_map((void *) paddr, 1,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &input_buffer);
+	int rc = physmem_map(paddr, 1, AS_AREA_READ | AS_AREA_WRITE,
+	    (void *) &input_buffer);
 	if (rc != 0) {
 		printf("Niagara: uspace driver couldn't map physical memory: %d\n",
 		    rc);

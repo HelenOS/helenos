@@ -215,7 +215,7 @@ int ega_init(void)
 	
 	ega.size = (ega.cols * ega.rows) << 1;
 	
-	rc = physmem_map((void *) paddr,
+	rc = physmem_map(paddr,
 	    ALIGN_UP(ega.size, PAGE_SIZE) >> PAGE_WIDTH,
 	    AS_AREA_READ | AS_AREA_WRITE, (void *) &ega.addr);
 	if (rc != EOK)

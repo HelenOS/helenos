@@ -46,7 +46,6 @@
 #include <print.h>
 
 #define PHYSMEM_LIMIT32  UINT64_C(0x100000000)
-#define PHYSMEM_LIMIT_DMA   UINT64_C(0x1000000)
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -91,28 +90,13 @@ static void init_e820_memory(pfn_t minconf, bool low)
 					conf = pfn;
 				else
 					conf = minconf;
-
-				if ((pfn * PAGE_SIZE) < PHYSMEM_LIMIT_DMA) {
-					size_t dma_count = min(
-					    PHYSMEM_LIMIT_DMA / PAGE_SIZE - pfn,
-					    count);
-					zone_create(pfn, dma_count, conf,
-					    ZONE_AVAILABLE | ZONE_DMA);
-					count -= dma_count;
-					pfn += dma_count;
-				}
-
-				conf = pfn;
-				if (count) {
-					zone_create(pfn, count, conf,
-					    ZONE_AVAILABLE | ZONE_LOWMEM);
-				}
+				zone_create(pfn, count, conf,
+				    ZONE_AVAILABLE | ZONE_LOWMEM);
 			} else {
 				conf = zone_external_conf_alloc(count);
-				if (conf != 0) {
+				if (conf != 0)
 					zone_create(pfn, count, conf,
 					    ZONE_AVAILABLE | ZONE_HIGHMEM);
-				}
 			}
 		} else if ((e820table[i].type == MEMMAP_MEMORY_ACPI) ||
 		    (e820table[i].type == MEMMAP_MEMORY_NVS)) {

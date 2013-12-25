@@ -59,7 +59,7 @@ static int dnsr_init(void)
 
 	rc = transport_init();
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing tarnsport.");
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing transport.");
 		return EIO;
 	}
 
@@ -88,7 +88,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
 	
-	uint16_t af = IPC_GET_ARG1(*icall);
+	ip_ver_t ver = IPC_GET_ARG1(*icall);
 	
 	char *name;
 	int rc = async_data_write_accept((void **) &name, true, 0,
@@ -99,7 +99,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 	}
 	
 	dns_host_info_t *hinfo;
-	rc = dns_name2host(name, &hinfo, af);
+	rc = dns_name2host(name, &hinfo, ver);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;

@@ -150,7 +150,8 @@ static void play_fragment(playback_t *pb)
 	int ret = audio_pcm_register_event_callback(pb->device,
 	    device_event_callback, pb);
 	if (ret != EOK) {
-		printf("Failed to register event callback.\n");
+		printf("Failed to register event callback: %s.\n",
+		    str_error(ret));
 		return;
 	}
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
@@ -284,13 +285,15 @@ static void play(playback_t *pb)
 			    pb->f.channels, pb->f.sampling_rate,
 			    pb->f.sample_format);
 			if (ret != EOK) {
-				printf("Failed to start playback\n");
+				printf("Failed to start playback: %s\n",
+				    str_error(ret));
 				return;
 			}
 			started = true;
 			ret = audio_pcm_get_buffer_pos(pb->device, &pos);
 			if (ret != EOK) {
-				printf("Failed to update position indicator\n");
+				printf("Failed to update position indicator "
+				   "%s\n", str_error(ret));
 			}
 		}
 		const size_t to_play = buffer_occupied(pb, pos);
@@ -307,7 +310,8 @@ static void play(playback_t *pb)
 		/* update buffer position */
 		const int ret = audio_pcm_get_buffer_pos(pb->device, &pos);
 		if (ret != EOK) {
-			printf("Failed to update position indicator\n");
+			printf("Failed to update position indicator %s\n",
+			    str_error(ret));
 		}
 		getuptime(&time);
 
@@ -349,7 +353,7 @@ int dplay(const char *device, const char *file)
 	const char* info = NULL;
 	ret = audio_pcm_get_info_str(session, &info);
 	if (ret != EOK) {
-		printf("Failed to get PCM info.\n");
+		printf("Failed to get PCM info: %s.\n", str_error(ret));
 		goto close_session;
 	}
 	printf("Playing on %s.\n", info);

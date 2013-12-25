@@ -55,10 +55,7 @@ static FIBRIL_CONDVAR_INITIALIZE(ntrans_cv);
  */
 static inet_ntrans_t *ntrans_find(addr128_t ip_addr)
 {
-	list_foreach(ntrans_list, link) {
-		inet_ntrans_t *ntrans = list_get_instance(link,
-		    inet_ntrans_t, ntrans_list);
-
+	list_foreach(ntrans_list, ntrans_list, inet_ntrans_t, ntrans) {
 		if (addr128_compare(ntrans->ip_addr, ip_addr))
 			return ntrans;
 	}

@@ -723,6 +723,8 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_RENAME, o);
 	o = oper_new("stat", 0, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_STAT, o);
+	o = oper_new("statfs", 0, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_IN_STATFS, o);
 
 	proto_register(SERVICE_VFS, p);
 }

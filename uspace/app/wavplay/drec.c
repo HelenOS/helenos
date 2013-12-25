@@ -212,9 +212,8 @@ int drecord(const char *device, const char *file)
 
 	wave_header_t header;
 	fseek(rec.file, sizeof(header), SEEK_SET);
-	const char *error;
 	if (ret != EOK) {
-		printf("Error parsing wav header: %s.\n", error);
+		printf("Error parsing wav header\n");
 		goto cleanup;
 	}
 	if (audio_pcm_query_cap(rec.device, AUDIO_CAP_INTERRUPT) > 0)

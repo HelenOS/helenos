@@ -63,6 +63,9 @@ static int mfs_instance_get(service_id_t service_id,
     struct mfs_instance **instance);
 static int mfs_check_sanity(struct mfs_sb_info *sbi);
 static bool is_power_of_two(uint32_t n);
+static int mfs_size_block(service_id_t service_id, uint32_t *size);
+static int mfs_total_block_count(service_id_t service_id, uint64_t *count);
+static int mfs_free_block_count(service_id_t service_id, uint64_t *count);
 
 static hash_table_t open_nodes;
 static FIBRIL_MUTEX_INITIALIZE(open_nodes_lock);
@@ -83,7 +86,10 @@ libfs_ops_t mfs_libfs_ops = {
 	.unlink = mfs_unlink,
 	.destroy = mfs_destroy_node,
 	.has_children = mfs_has_children,
-	.lnkcnt_get = mfs_lnkcnt_get
+	.lnkcnt_get = mfs_lnkcnt_get,
+	.size_block = mfs_size_block,
+	.total_block_count = mfs_total_block_count,
+	.free_block_count = mfs_free_block_count
 };
 
 /* Hash table interface for open nodes hash table */
@@ -209,6 +215,8 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	sbi->magic = magic;
 	sbi->isearch = 0;
 	sbi->zsearch = 0;
+	sbi->nfree_zones_valid = false;
+	sbi->nfree_zones = 0;
 
 	if (version == MFS_VERSION_V3) {
 		sbi->ninodes = conv32(native, sb3->s_ninodes);
@@ -1126,6 +1134,73 @@ is_power_of_two(uint32_t n)
 		return false;
 
 	return (n & (n - 1)) == 0;
+}
+
+static int
+mfs_size_block(service_id_t service_id, uint32_t *size)
+{
+	struct mfs_instance *inst;
+	int rc;
+
+	rc = mfs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == inst)
+		return ENOENT;
+	
+	*size = inst->sbi->block_size;
+
+	return EOK;
+}
+
+static int
+mfs_total_block_count(service_id_t service_id, uint64_t *count)
+{
+	struct mfs_instance *inst;
+	int rc;
+	
+	rc = mfs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	if (NULL == inst)
+		return ENOENT;
+	
+	*count = (uint64_t) MFS_BMAP_SIZE_BITS(inst->sbi, BMAP_ZONE);
+
+	return EOK;
+}
+
+static int
+mfs_free_block_count(service_id_t service_id, uint64_t *count)
+{
+	uint32_t block_free;
+	
+	struct mfs_instance *inst;
+	int rc = mfs_instance_get(service_id, &inst);
+	if (rc != EOK)
+		return rc;
+
+	struct mfs_sb_info *sbi = inst->sbi;
+
+	if (!sbi->nfree_zones_valid) {
+		/* The cached number of free zones is not valid,
+		 * we need to scan the bitmap to retrieve the
+		 * current value.
+		 */
+
+		rc = mfs_count_free_zones(inst, &block_free);
+		if (rc != EOK)
+			return rc;
+
+		sbi->nfree_zones = block_free;
+		sbi->nfree_zones_valid = true;
+	}
+
+	*count = sbi->nfree_zones;
+
+	return rc;
 }
 
 vfs_out_ops_t mfs_ops = {

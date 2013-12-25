@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <loc.h>
-#include <net/socket_codes.h>
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
 #include <device/char_dev.h>
@@ -276,7 +275,7 @@ static int slip_recv_fibril(void *arg)
  		 */
 
 pass:
-		rc = iplink_ev_recv(&slip_iplink, &sdu, AF_INET);
+		rc = iplink_ev_recv(&slip_iplink, &sdu, ip_v4);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
 			    "iplink_ev_recv() returned %d", rc);
@@ -332,7 +331,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",
 		    svcstr, (int) svcid);
-		return rc;
+		return ENOENT;
 	}
 	slip_iplink.arg = sess_out;
 
@@ -341,6 +340,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",
 		    svcstr, (int) svcid);
+		rc = ENOENT;
 		goto fail;
 	}
 
@@ -364,6 +364,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	if (!fid) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to create receive fibril.");
+		rc = ENOENT;
 		goto fail;
 	}
 	fibril_add_ready(fid);

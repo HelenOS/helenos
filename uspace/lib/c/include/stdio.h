@@ -123,6 +123,10 @@ extern int asprintf(char **, const char *, ...)
     PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
+extern int printf_size(const char *, ...)
+    PRINTF_ATTRIBUTE(1, 2);
+extern int vprintf_size(const char *, va_list);
+
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
 extern FILE *fdopen(int, const char *);
@@ -146,6 +150,7 @@ extern void setbuf(FILE *, void *);
 
 /* Misc file functions */
 extern int rename(const char *, const char *);
+extern int remove(const char *);
 
 #endif
 

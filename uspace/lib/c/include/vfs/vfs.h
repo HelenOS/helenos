@@ -43,9 +43,11 @@
 #include <async.h>
 #include "vfs_mtab.h"
 
+
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE
 };
+
 
 extern char *absolutize(const char *, size_t *);
 
@@ -60,7 +62,6 @@ extern int get_mtab_list(list_t *mtab_list);
 
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
-
 #endif
 
 /** @}

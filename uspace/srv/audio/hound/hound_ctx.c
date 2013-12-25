@@ -175,16 +175,6 @@ typedef struct hound_ctx_stream {
 } hound_ctx_stream_t;
 
 /**
- * List instance helper.
- * @param l link
- * @return pointer to a hound context structure, NULL on failure.
- */
-static inline hound_ctx_stream_t *hound_ctx_stream_from_link(link_t *l)
-{
-	return l ? list_get_instance(l, hound_ctx_stream_t, link) : NULL;
-}
-
-/**
  * New stream append helper.
  * @param ctx hound context.
  * @param stream A new stream.
@@ -416,8 +406,7 @@ int update_data(audio_source_t *source, size_t size)
 	    list_count(&ctx->streams));
 	pcm_format_silence(buffer, size, &source->format);
 	fibril_mutex_lock(&ctx->guard);
-	list_foreach(ctx->streams, it) {
-		hound_ctx_stream_t *stream = hound_ctx_stream_from_link(it);
+	list_foreach(ctx->streams, link, hound_ctx_stream_t, stream) {
 		ssize_t copied = hound_ctx_stream_add_self(
 		    stream, buffer, size, &source->format);
 		if (copied != (ssize_t)size)
@@ -425,8 +414,7 @@ int update_data(audio_source_t *source, size_t size)
 	}
 	log_verbose("CTX: %p. Pushing audio to %u connections", ctx,
 	    list_count(&source->connections));
-	list_foreach(source->connections, it) {
-		connection_t *conn = connection_from_source_list(it);
+	list_foreach(source->connections, source_link, connection_t, conn) {
 		connection_push_data(conn, adata);
 	}
 	fibril_mutex_unlock(&ctx->guard);
@@ -443,8 +431,7 @@ int new_data(audio_sink_t *sink)
 
 	/* count available data */
 	size_t available_frames = -1;  /* this is ugly.... */
-	list_foreach(sink->connections, it) {
-		connection_t *conn = connection_from_source_list(it);
+	list_foreach(sink->connections, source_link, connection_t, conn) {
 		available_frames = min(available_frames,
 		    audio_pipe_frames(&conn->fifo));
 	}
@@ -465,8 +452,7 @@ int new_data(audio_sink_t *sink)
 
 	/* mix data */
 	pcm_format_silence(buffer, bsize, &sink->format);
-	list_foreach(sink->connections, it) {
-		connection_t *conn = connection_from_source_list(it);
+	list_foreach(sink->connections, source_link, connection_t, conn) {
 		/* This should not trigger data update on the source */
 		const size_t copied = connection_add_source_data(
 		    conn, buffer, bsize, sink->format);
@@ -475,8 +461,7 @@ int new_data(audio_sink_t *sink)
 			    "something is wrong");
 	}
 	/* push to all streams */
-	list_foreach(ctx->streams, it) {
-		hound_ctx_stream_t *stream = hound_ctx_stream_from_link(it);
+	list_foreach(ctx->streams, link, hound_ctx_stream_t, stream) {
 		const int ret = stream_push_data(stream, adata);
 		if (ret != EOK)
 			log_error("Failed to push data to stream: %s",

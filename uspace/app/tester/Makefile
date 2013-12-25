@@ -36,6 +36,7 @@ SOURCES = \
 	tester.c \
 	util.c \
 	thread/thread1.c \
+	thread/setjmp1.c \
 	print/print1.c \
 	print/print2.c \
 	print/print3.c \

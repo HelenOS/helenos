@@ -740,9 +740,8 @@ void sched_print_list(void)
 			}
 			
 			printf("\trq[%u]: ", i);
-			list_foreach(cpus[cpu].rq[i].rq, cur) {
-				thread_t *thread = list_get_instance(cur,
-				    thread_t, rq_link);
+			list_foreach(cpus[cpu].rq[i].rq, rq_link, thread_t,
+			    thread) {
 				printf("%" PRIu64 "(%s) ", thread->tid,
 				    thread_states[thread->state]);
 			}

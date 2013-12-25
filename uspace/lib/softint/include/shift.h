@@ -45,6 +45,10 @@ extern long long __ashrdi3(long long, int);
 /* Logical shift right. */
 extern long long __lshrdi3(long long, int);
 
+
+/* ARM EABI */
+extern long long __aeabi_llsl(long long, int);
+
 #endif
 
 /** @}

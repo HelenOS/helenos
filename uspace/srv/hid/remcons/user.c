@@ -127,8 +127,7 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 	telnet_user_t *user = NULL;
 
 	fibril_mutex_lock(&users_guard);
-	list_foreach(users, link) {
-		telnet_user_t *tmp = list_get_instance(link, telnet_user_t, link);
+	list_foreach(users, link, telnet_user_t, tmp) {
 		if (tmp->service_id == id) {
 			user = tmp;
 			break;

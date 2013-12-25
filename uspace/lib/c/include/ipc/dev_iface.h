@@ -35,6 +35,7 @@
 
 typedef enum {
 	HW_RES_DEV_IFACE = 0,
+	PIO_WINDOW_DEV_IFACE,
 
 	/** Character device interface */
 	CHAR_DEV_IFACE,

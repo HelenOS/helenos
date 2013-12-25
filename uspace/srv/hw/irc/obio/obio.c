@@ -68,7 +68,7 @@
 
 #define INO_MASK	0x1f
 
-static void *base_phys;
+static uintptr_t base_phys;
 static volatile uint64_t *base_virt;
 
 /** Handle one connection to obio.
@@ -122,7 +122,7 @@ static bool obio_init(void)
 		return false;
 	}
 	
-	base_phys = (void *) paddr;
+	base_phys = (uintptr_t) paddr;
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
 	int retval = physmem_map(base_phys,
@@ -134,7 +134,7 @@ static bool obio_init(void)
 		return false;
 	}
 	
-	printf("%s: OBIO registers with base at %p\n", NAME, base_phys);
+	printf("%s: OBIO registers with base at %zu\n", NAME, base_phys);
 	
 	async_set_client_connection(obio_connection);
 	service_register(SERVICE_IRC);

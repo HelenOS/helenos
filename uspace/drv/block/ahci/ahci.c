@@ -118,8 +118,8 @@ static int ahci_write_blocks(ddf_fun_t *, uint64_t, size_t, void *);
 
 static int ahci_identify_device(sata_dev_t *);
 static int ahci_set_highest_ultra_dma_mode(sata_dev_t *);
-static int ahci_rb_fpdma(sata_dev_t *, void *, uint64_t);
-static int ahci_wb_fpdma(sata_dev_t *, void *, uint64_t);
+static int ahci_rb_fpdma(sata_dev_t *, uintptr_t, uint64_t);
+static int ahci_wb_fpdma(sata_dev_t *, uintptr_t, uint64_t);
 
 static void ahci_sata_devices_create(ahci_dev_t *, ddf_dev_t *);
 static ahci_dev_t *ahci_ahci_create(ddf_dev_t *);
@@ -232,10 +232,10 @@ static int ahci_read_blocks(ddf_fun_t *fun, uint64_t blocknum,
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
-	void *phys;
+	uintptr_t phys;
 	void *ibuf;
-	int rc = dmamem_map_anonymous(sata->block_size, AS_AREA_READ | AS_AREA_WRITE,
-	    0, &phys, (void **) &ibuf);
+	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate read buffer.");
 		return rc;
@@ -275,10 +275,10 @@ static int ahci_write_blocks(ddf_fun_t *fun, uint64_t blocknum,
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
-	void *phys;
+	uintptr_t phys;
 	void *ibuf;
-	int rc = dmamem_map_anonymous(sata->block_size, AS_AREA_READ | AS_AREA_WRITE,
-	    0, &phys, (void **) &ibuf);
+	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate write buffer.");
 		return rc;
@@ -335,7 +335,7 @@ static ahci_port_is_t ahci_wait_event(sata_dev_t *sata)
  * @param phys Physical address of working buffer.
  *
  */
-static void ahci_identify_device_cmd(sata_dev_t *sata, void *phys)
+static void ahci_identify_device_cmd(sata_dev_t *sata, uintptr_t phys)
 {
 	volatile sata_std_command_frame_t *cmd =
 	    (sata_std_command_frame_t *) sata->cmd_table;
@@ -380,7 +380,7 @@ static void ahci_identify_device_cmd(sata_dev_t *sata, void *phys)
  * @param phys Physical address of working buffer.
  *
  */
-static void ahci_identify_packet_device_cmd(sata_dev_t *sata, void *phys)
+static void ahci_identify_packet_device_cmd(sata_dev_t *sata, uintptr_t phys)
 {
 	volatile sata_std_command_frame_t *cmd =
 	    (sata_std_command_frame_t *) sata->cmd_table;
@@ -434,10 +434,11 @@ static int ahci_identify_device(sata_dev_t *sata)
 		return EINTR;
 	}
 	
-	void *phys;
+	uintptr_t phys;
 	sata_identify_data_t *idata;
 	int rc = dmamem_map_anonymous(SATA_IDENTIFY_DEVICE_BUFFER_LENGTH,
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, (void **) &idata);
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
+	    (void **) &idata);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate buffer to identify device.");
 		return rc;
@@ -560,13 +561,13 @@ error:
  * @param mode Required mode.
  *
  */
-static void ahci_set_mode_cmd(sata_dev_t *sata, void* phys, uint8_t mode)
+static void ahci_set_mode_cmd(sata_dev_t *sata, uintptr_t phys, uint8_t mode)
 {
 	volatile sata_std_command_frame_t *cmd =
 	    (sata_std_command_frame_t *) sata->cmd_table;
 	
 	cmd->fis_type = SATA_CMD_FIS_TYPE;
-	cmd->c = SATA_CMD_FIS_COMMAND_INDICATOR; 
+	cmd->c = SATA_CMD_FIS_COMMAND_INDICATOR;
 	cmd->command = 0xef;
 	cmd->features = 0x03;
 	cmd->lba_lower = 0;
@@ -627,10 +628,11 @@ static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 		return EINTR;
 	}
 	
-	void *phys;
+	uintptr_t phys;
 	sata_identify_data_t *idata;
 	int rc = dmamem_map_anonymous(SATA_SET_FEATURE_BUFFER_LENGTH,
-	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, (void **) &idata);
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
+	    (void **) &idata);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate buffer for device set mode.");
 		return rc;
@@ -676,7 +678,8 @@ error:
  * @param blocknum Block number to read.
  *
  */
-static void ahci_rb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
+static void ahci_rb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
+    uint64_t blocknum)
 {
 	volatile sata_ncq_command_frame_t *cmd =
 	    (sata_ncq_command_frame_t *) sata->cmd_table;
@@ -733,7 +736,7 @@ static void ahci_rb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_rb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
+static int ahci_rb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
 {
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -762,7 +765,8 @@ static int ahci_rb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
  * @return EOK if succeed, error code otherwise
  *
  */
-static void ahci_wb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
+static void ahci_wb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
+    uint64_t blocknum)
 {
 	volatile sata_ncq_command_frame_t *cmd =
 	    (sata_ncq_command_frame_t *) sata->cmd_table;
@@ -820,7 +824,7 @@ static void ahci_wb_fpdma_cmd(sata_dev_t *sata, void *phys, uint64_t blocknum)
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_wb_fpdma(sata_dev_t *sata, void *phys, uint64_t blocknum)
+static int ahci_wb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum)
 {
 	if (sata->is_invalid_device) {
 		ddf_msg(LVL_ERROR,
@@ -932,7 +936,7 @@ static void ahci_interrupt(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *port)
 {
 	size_t size = 4096;
-	void *phys = NULL;
+	uintptr_t phys = 0;
 	void *virt_fb = NULL;
 	void *virt_cmd = NULL;
 	void *virt_table = NULL;
@@ -948,8 +952,8 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	sata->port = port;
 	
 	/* Allocate and init retfis structure. */
-	int rc = dmamem_map_anonymous(size, AS_AREA_READ | AS_AREA_WRITE, 0,
-	    &phys, &virt_fb);
+	int rc = dmamem_map_anonymous(size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &virt_fb);
 	if (rc != EOK)
 		goto error_retfis;
 	
@@ -958,8 +962,8 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	sata->port->pxfb = LO(phys);
 	
 	/* Allocate and init command header structure. */
-	rc = dmamem_map_anonymous(size, AS_AREA_READ | AS_AREA_WRITE, 0,
-	    &phys, &virt_cmd);
+	rc = dmamem_map_anonymous(size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &virt_cmd);
 	if (rc != EOK)
 		goto error_cmd;
 	
@@ -969,8 +973,8 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	sata->cmd_header = (ahci_cmdhdr_t *) virt_cmd;
 	
 	/* Allocate and init command table structure. */
-	rc = dmamem_map_anonymous(size, AS_AREA_READ | AS_AREA_WRITE, 0,
-	    &phys, &virt_table);
+	rc = dmamem_map_anonymous(size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &virt_table);
 	if (rc != EOK)
 		goto error_table;
 	
@@ -1152,27 +1156,27 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	/* Map AHCI registers. */
 	ahci->memregs = NULL;
 	
-	physmem_map((void *) (size_t) (hw_res_parsed.mem_ranges.ranges[0].address),
+	physmem_map(RNGABS(hw_res_parsed.mem_ranges.ranges[0]),
 	    AHCI_MEMREGS_PAGES_COUNT, AS_AREA_READ | AS_AREA_WRITE,
 	    (void **) &ahci->memregs);
 	if (ahci->memregs == NULL)
 		goto error_map_registers;
 	
 	/* Register interrupt handler */
-	ahci_ranges[0].base = (size_t) hw_res_parsed.mem_ranges.ranges[0].address;
+	ahci_ranges[0].base = RNGABS(hw_res_parsed.mem_ranges.ranges[0]);
 	ahci_ranges[0].size = sizeof(ahci_memregs_t);
 	
 	for (unsigned int port = 0; port < AHCI_MAX_PORTS; port++) {
 		size_t base = port * 7;
 		
 		ahci_cmds[base].addr =
-		    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
+		    ((uint32_t *) RNGABSPTR(hw_res_parsed.mem_ranges.ranges[0])) +
 		    AHCI_PORTS_REGISTERS_OFFSET + port * AHCI_PORT_REGISTERS_SIZE +
 		    AHCI_PORT_IS_REGISTER_OFFSET;
 		ahci_cmds[base + 2].addr = ahci_cmds[base].addr;
 		
 		ahci_cmds[base + 3].addr =
-		    ((uint32_t *) (size_t) hw_res_parsed.mem_ranges.ranges[0].address) +
+		    ((uint32_t *) RNGABSPTR(hw_res_parsed.mem_ranges.ranges[0])) +
 		    AHCI_GHC_IS_REGISTER_OFFSET;
 		ahci_cmds[base + 4].addr = ahci_cmds[base + 3].addr;
 	}

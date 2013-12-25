@@ -75,14 +75,16 @@ typedef struct {
 	union {
 		struct {
 			uint64_t address;
-			endianness_t endianness;
 			size_t size;
+			bool relative;
+			endianness_t endianness;
 		} mem_range;
 		
 		struct {
 			uint64_t address;
-			endianness_t endianness;
 			size_t size;
+			bool relative;
+			endianness_t endianness;
 		} io_range;
 		
 		struct {

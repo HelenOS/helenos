@@ -34,6 +34,7 @@ SLIBRARY = libsoftint.so.0.0
 LSONAME = libsofti.so0
 
 SOURCES = \
+	generic/bits.c \
 	generic/comparison.c \
 	generic/division.c \
 	generic/multiplication.c \

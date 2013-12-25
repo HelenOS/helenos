@@ -44,6 +44,7 @@
 #include <dirent.h>
 #include <mem.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <stdlib.h>
 
 #define on_error(rc, action) \
@@ -73,6 +74,7 @@ static void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t,
 static void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 static void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
     ipc_call_t *);
+static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 
 static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 {
@@ -218,6 +220,10 @@ static void vfs_out_sync(ipc_callid_t rid, ipc_call_t *req)
 	async_answer_0(rid, rc);
 }
 
+static void vfs_out_statfs(ipc_callid_t rid, ipc_call_t *req)
+{
+	libfs_statfs(libfs_ops, reg.fs_handle, rid, req);
+}
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	if (iid) {
@@ -275,6 +281,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		case VFS_OUT_SYNC:
 			vfs_out_sync(callid, &call);
+			break;
+		case VFS_OUT_STATFS:
+			vfs_out_statfs(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
@@ -796,11 +805,11 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
+
 	fs_node_t *fn;
 	int rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
-	
+
 	ipc_callid_t callid;
 	size_t size;
 	if ((!async_data_read_receive(&callid, &size)) ||
@@ -810,10 +819,10 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	struct stat stat;
 	memset(&stat, 0, sizeof(struct stat));
-	
+
 	stat.fs_handle = fs_handle;
 	stat.service_id = service_id;
 	stat.index = index;
@@ -822,12 +831,63 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	stat.is_directory = ops->is_directory(fn);
 	stat.size = ops->size_get(fn);
 	stat.service = ops->service_get(fn);
-	
+
 	ops->node_put(fn);
-	
+
+
 	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	async_answer_0(rid, EOK);
 }
+
+void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
+    ipc_call_t *request)
+{
+	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+
+	fs_node_t *fn;
+	int rc = ops->node_get(&fn, service_id, index);
+	on_error(rc, answer_and_return(rid, rc));
+
+	ipc_callid_t callid;
+	size_t size;
+	if ((!async_data_read_receive(&callid, &size)) ||
+	    (size != sizeof(struct statfs))) {
+		goto error;
+	}
+
+	struct statfs st;
+	memset(&st, 0, sizeof(struct statfs));
+
+	if (ops->size_block != NULL) {
+		rc = ops->size_block(service_id, &st.f_bsize);
+		if (rc != EOK)
+			goto error;
+	}
+
+	if (ops->total_block_count != NULL) {
+		rc = ops->total_block_count(service_id, &st.f_blocks);
+		if (rc != EOK)
+			goto error;
+	}
+
+	if (ops->free_block_count != NULL) {
+		rc = ops->free_block_count(service_id, &st.f_bfree);
+		if (rc != EOK)
+			goto error;
+	}
+
+	ops->node_put(fn);
+	async_data_read_finalize(callid, &st, sizeof(struct statfs));
+	async_answer_0(rid, EOK);
+	return;
+
+error:
+	ops->node_put(fn);
+	async_answer_0(callid, EINVAL);
+	async_answer_0(rid, EINVAL);
+}
+
 
 /** Open VFS triplet.
  *
@@ -881,10 +941,7 @@ int fs_instance_create(service_id_t service_id, void *data)
 	inst->data = data;
 
 	fibril_mutex_lock(&instances_mutex);
-	list_foreach(instances_list, link) {
-		fs_instance_t *cur = list_get_instance(link, fs_instance_t,
-		    link);
-
+	list_foreach(instances_list, link, fs_instance_t, cur) {
 		if (cur->service_id == service_id) {
 			fibril_mutex_unlock(&instances_mutex);
 			free(inst);
@@ -907,10 +964,7 @@ int fs_instance_create(service_id_t service_id, void *data)
 int fs_instance_get(service_id_t service_id, void **idp)
 {
 	fibril_mutex_lock(&instances_mutex);
-	list_foreach(instances_list, link) {
-		fs_instance_t *inst = list_get_instance(link, fs_instance_t,
-		    link);
-
+	list_foreach(instances_list, link, fs_instance_t, inst) {
 		if (inst->service_id == service_id) {
 			*idp = inst->data;
 			fibril_mutex_unlock(&instances_mutex);
@@ -924,10 +978,7 @@ int fs_instance_get(service_id_t service_id, void **idp)
 int fs_instance_destroy(service_id_t service_id)
 {
 	fibril_mutex_lock(&instances_mutex);
-	list_foreach(instances_list, link) {
-		fs_instance_t *inst = list_get_instance(link, fs_instance_t,
-		    link);
-
+	list_foreach(instances_list, link, fs_instance_t, inst) {
 		if (inst->service_id == service_id) {
 			list_remove(&inst->link);
 			fibril_mutex_unlock(&instances_mutex);

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -40,16 +40,18 @@
  * For 8K there is the nasty illegal virtual aliasing problem.
  * Therefore, the kernel uses 8K only internally on the TLB and TSB levels.
  */
-#define MMU_FRAME_WIDTH		13	/* 8K */
-#define MMU_FRAME_SIZE		(1 << MMU_FRAME_WIDTH)
+#define MMU_FRAME_WIDTH  13  /* 8K */
+#define MMU_FRAME_SIZE   (1 << MMU_FRAME_WIDTH)
 
 /*
  * Page size exported to the generic memory management subsystems.
  * This page size is not directly supported by the MMU, but we can emulate
  * each 16K page with a pair of adjacent 8K pages.
  */
-#define FRAME_WIDTH		14	/* 16K */
-#define FRAME_SIZE		(1 << FRAME_WIDTH)
+#define FRAME_WIDTH  14  /* 16K */
+#define FRAME_SIZE   (1 << FRAME_WIDTH)
+
+#define FRAME_LOWPRIO  0
 
 #ifndef __ASM__
 

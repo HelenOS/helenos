@@ -45,7 +45,7 @@
 void task_create_arch(task_t *task)
 {
 	task->arch.iomapver = 0;
-	bitmap_initialize(&task->arch.iomap, 0, 0, NULL);
+	bitmap_initialize(&task->arch.iomap, 0, NULL);
 }
 
 /** Perform amd64 specific task destruction.

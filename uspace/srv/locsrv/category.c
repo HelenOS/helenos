@@ -72,10 +72,7 @@ int categ_dir_get_categories(categ_dir_t *cdir, category_id_t *id_buf,
 		return EINVAL;
 
 	size_t pos = 0;
-	list_foreach(cdir->categories, item) {
-		category_t *cat =
-		    list_get_instance(item, category_t, cat_list);
-
+	list_foreach(cdir->categories, cat_list, category_t, cat) {
 		if (pos < buf_cnt)
 			id_buf[pos] = cat->id;
 		pos++;
@@ -115,9 +112,7 @@ int category_add_service(category_t *cat, loc_service_t *svc)
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 
 	/* Verify that category does not contain this service yet. */
-	list_foreach(cat->svc_memb, item) {
-		svc_categ_t *memb = list_get_instance(item, svc_categ_t,
-		    cat_link);
+	list_foreach(cat->svc_memb, cat_link, svc_categ_t, memb) {
 		if (memb->svc == svc) {
 			return EEXIST;
 		}
@@ -153,9 +148,7 @@ category_t *category_get(categ_dir_t *cdir, catid_t catid)
 {
 	assert(fibril_mutex_is_locked(&cdir->mutex));
 
-	list_foreach(cdir->categories, item) {
-		category_t *cat = list_get_instance(item, category_t,
-		    cat_list);
+	list_foreach(cdir->categories, cat_list, category_t, cat) {
 		if (cat->id == catid)
 			return cat;
 	}
@@ -168,9 +161,7 @@ category_t *category_find_by_name(categ_dir_t *cdir, const char *name)
 {
 	assert(fibril_mutex_is_locked(&cdir->mutex));
 
-	list_foreach(cdir->categories, item) {
-		category_t *cat = list_get_instance(item, category_t,
-		    cat_list);
+	list_foreach(cdir->categories, cat_list, category_t, cat) {
 		if (str_cmp(cat->name, name) == 0)
 			return cat;
 	}
@@ -196,10 +187,7 @@ int category_get_services(category_t *cat, service_id_t *id_buf,
 		return EINVAL;
 
 	size_t pos = 0;
-	list_foreach(cat->svc_memb, item) {
-		svc_categ_t *memb =
-		    list_get_instance(item, svc_categ_t, cat_link);
-
+	list_foreach(cat->svc_memb, cat_link, svc_categ_t, memb) {
 		if (pos < buf_cnt)
 			id_buf[pos] = memb->svc->id;
 		pos++;

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008 Lukas Mejdrech
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -348,7 +348,8 @@ static void udp_sock_sendto(udp_client_t *client, ipc_callid_t callid, ipc_call_
 	
 	fibril_mutex_lock(&socket->lock);
 	
-	if (inet_addr_is_any(&socket->assoc->ident.local.addr)) {
+	if (inet_addr_is_any(&socket->assoc->ident.local.addr) &&
+		socket->assoc->ident.iplink == 0) {
 		/* Determine local IP address */
 		inet_addr_t loc_addr;
 		inet_addr_t rem_addr;
@@ -664,9 +665,51 @@ static void udp_sock_getsockopt(udp_client_t *client, ipc_callid_t callid, ipc_c
 
 static void udp_sock_setsockopt(udp_client_t *client, ipc_callid_t callid, ipc_call_t call)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_setsockopt()");
-	async_answer_0(callid, ENOTSUP);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_setsockopt)");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - async_data_write_accept");
+	
+	void *data = NULL;
+	size_t data_len;
+	int rc = async_data_write_accept(&data, false, 0, 0, 0, &data_len);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - failed accepting data");
+		async_answer_0(callid, rc);
+		return;
+	}
+	
+	sysarg_t opt_level = SOL_SOCKET;
+	sysarg_t opt_name = SOCKET_GET_OPT_NAME(call);
+	
+	if (opt_level != SOL_SOCKET || opt_name != SO_IPLINK ||
+	    data_len != sizeof(service_id_t)) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - failed opt_level/name/len");
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - failed opt_level=%d, "
+		    "opt_name=%d, data_len=%zu", (int)opt_level, (int)opt_name,
+		    data_len);
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - call socket_cores_find");
+	
+	socket_core_t *sock_core = socket_cores_find(&client->sockets,
+	    SOCKET_GET_SOCKET_ID(call));
+	if (sock_core == NULL) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, " - failed getting sock_core");
+		async_answer_0(callid, ENOENT);
+		return;
+	}
+	
+	udp_sockdata_t *socket =
+	    (udp_sockdata_t *) sock_core->specific_data;
+	
+	service_id_t iplink = *(service_id_t *)data;
+	udp_uc_set_iplink(socket->assoc, iplink);
+	
+	log_msg(LOG_DEFAULT, LVL_DEBUG, " - success");
+	async_answer_0(callid, EOK);
 }
+
 
 static int udp_sock_recv_fibril(void *arg)
 {
@@ -713,7 +756,6 @@ static int udp_sock_recv_fibril(void *arg)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_recv_fibril() exited loop");
-	fibril_mutex_unlock(&sock->recv_buffer_lock);
 	udp_uc_destroy(sock->assoc);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_recv_fibril() terminated");
@@ -729,6 +771,8 @@ static void udp_sock_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_sock_connection: begin");
 
 	client.sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	socket_cores_initialize(&client.sockets);

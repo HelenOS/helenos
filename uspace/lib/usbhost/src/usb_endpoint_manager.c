@@ -89,8 +89,7 @@ static endpoint_t * find_locked(usb_endpoint_manager_t *instance,
 	assert(fibril_mutex_is_locked(&instance->guard));
 	if (address < 0)
 		return NULL;
-	list_foreach(*get_list(instance, address), iterator) {
-		endpoint_t *ep = endpoint_get_instance(iterator);
+	list_foreach(*get_list(instance, address), link, endpoint_t, ep) {
 		if (ep_match(ep, address, endpoint, direction))
 			return ep;
 	}
@@ -195,8 +194,8 @@ void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			fibril_mutex_lock(&instance->guard);
 			/* endpoint number is < 16, thus first byte is enough */
-			list_foreach(*get_list(instance, target.address), it) {
-				endpoint_t *ep = endpoint_get_instance(it);
+			list_foreach(*get_list(instance, target.address),
+			    link, endpoint_t, ep) {
 				if ((ep->address == target.address)
 				    && (ep->endpoint = data[4])) {
 					endpoint_toggle_set(ep,0);
@@ -215,8 +214,8 @@ void usb_endpoint_manager_reset_eps_if_need(usb_endpoint_manager_t *instance,
 		 * interface of an already setup device. */
 		if ((data[0] & 0xf) == 0) {
 			fibril_mutex_lock(&instance->guard);
-			list_foreach(*get_list(instance, target.address), it) {
-				endpoint_t *ep = endpoint_get_instance(it);
+			list_foreach(*get_list(instance, target.address),
+			    link, endpoint_t, ep) {
 				if (ep->address == target.address) {
 					endpoint_toggle_set(ep,0);
 				}
@@ -407,18 +406,27 @@ int usb_endpoint_manager_remove_ep(usb_endpoint_manager_t *instance,
 void usb_endpoint_manager_remove_address(usb_endpoint_manager_t *instance,
     usb_address_t address, void (*callback)(endpoint_t *, void *), void *arg)
 {
+	list_t *list;
+	link_t *link;
+	link_t *next;
+
 	assert(address >= 0);
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
-	list_foreach(*get_list(instance, address), iterator) {
-		endpoint_t *ep = endpoint_get_instance(iterator);
+
+	list = get_list(instance, address);
+	link = list_first(list);
+	while (link != NULL) {
+		endpoint_t *ep = list_get_instance(link, endpoint_t, link);
+		next = list_next(link, list);
+
 		if (ep->address == address) {
-			iterator = iterator->next;
 			list_remove(&ep->link);
 			if (callback)
 				callback(ep, arg);
 			endpoint_destroy(ep);
 		}
+		link = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
 }

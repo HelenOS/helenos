@@ -60,13 +60,14 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
-	generic/bitops.c \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
+	generic/corecfg.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
+	generic/device/pio_window.c \
 	generic/device/char_dev.c \
 	generic/device/clock_dev.c \
 	generic/device/battery_dev.c \
@@ -74,6 +75,7 @@ GENERIC_SOURCES = \
 	generic/device/nic.c \
 	generic/device/pci.c \
 	generic/device/ahci.c \
+	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \
@@ -96,7 +98,6 @@ GENERIC_SOURCES = \
 	generic/inet.c \
 	generic/inetcfg.c \
 	generic/inetping.c \
-	generic/inetping6.c \
 	generic/io/asprintf.c \
 	generic/io/input.c \
 	generic/io/io.c \
@@ -126,6 +127,7 @@ GENERIC_SOURCES = \
 	generic/async.c \
 	generic/loader.c \
 	generic/getopt.c \
+	generic/adt/checksum.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
 	generic/adt/dynamic_fifo.c \
@@ -140,6 +142,7 @@ GENERIC_SOURCES = \
 	generic/net/inet.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
+	generic/setjmp.c \
 	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \

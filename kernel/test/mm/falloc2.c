@@ -39,8 +39,7 @@
 #include <memstr.h>
 #include <arch.h>
 
-#define MAX_FRAMES  256U
-#define MAX_ORDER   8
+#define MAX_FRAMES  256
 
 #define THREAD_RUNS  1
 #define THREADS      8
@@ -52,8 +51,8 @@ static void falloc(void *arg)
 {
 	uint8_t val = THREAD->tid % THREADS;
 	
-	void **frames = (void **)
-	    malloc(MAX_FRAMES * sizeof(void *), FRAME_ATOMIC);
+	uintptr_t *frames = (uintptr_t *)
+	    malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	if (frames == NULL) {
 		TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 		    "Unable to allocate frames\n", THREAD->tid, CPU->id);
@@ -65,17 +64,18 @@ static void falloc(void *arg)
 	thread_detach(THREAD);
 	
 	for (unsigned int run = 0; run < THREAD_RUNS; run++) {
-		for (unsigned int order = 0; order <= MAX_ORDER; order++) {
+		for (size_t count = 1; count <= MAX_FRAMES; count++) {
+			size_t bytes = FRAMES2SIZE(count);
+			
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
-			    "Allocating %u frames blocks ... \n", THREAD->tid,
-			    CPU->id, 1 << order);
+			    "Allocating %zu frames blocks (%zu bytes) ... \n", THREAD->tid,
+			    CPU->id, count, bytes);
 			
 			unsigned int allocated = 0;
-			for (unsigned int i = 0; i < (MAX_FRAMES >> order); i++) {
-				frames[allocated] =
-				    frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
+			for (unsigned int i = 0; i < (MAX_FRAMES / count); i++) {
+				frames[allocated] = frame_alloc(count, FRAME_ATOMIC, 0);
 				if (frames[allocated]) {
-					memsetb(frames[allocated], FRAME_SIZE << order, val);
+					memsetb((void *) PA2KA(frames[allocated]), bytes, val);
 					allocated++;
 				} else
 					break;
@@ -88,18 +88,17 @@ static void falloc(void *arg)
 			    "Deallocating ... \n", THREAD->tid, CPU->id);
 			
 			for (unsigned int i = 0; i < allocated; i++) {
-				for (size_t k = 0; k <= (((size_t) FRAME_SIZE << order) - 1);
-				    k++) {
-					if (((uint8_t *) frames[i])[k] != val) {
+				for (size_t k = 0; k < bytes; k++) {
+					if (((uint8_t *) PA2KA(frames[i]))[k] != val) {
 						TPRINTF("Thread #%" PRIu64 " (cpu%u): "
-						    "Unexpected data (%c) in block %p offset %zu\n",
-						    THREAD->tid, CPU->id, ((char *) frames[i])[k],
+						    "Unexpected data (%c) in block %zu offset %zu\n",
+						    THREAD->tid, CPU->id, ((char *) PA2KA(frames[i]))[k],
 						    frames[i], k);
 						atomic_inc(&thread_fail);
 						goto cleanup;
 					}
 				}
-				frame_free(KA2PA(frames[i]));
+				frame_free(frames[i], count);
 			}
 			
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "

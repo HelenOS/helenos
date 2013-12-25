@@ -37,6 +37,7 @@
 #define LIBC_LIST_H_
 
 #include <assert.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 /** Doubly linked list link. */
@@ -66,12 +67,20 @@ typedef struct list {
 #define list_get_instance(link, type, member) \
 	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
 
-#define list_foreach(list, iterator) \
-	for (link_t *iterator = (list).head.next; \
-	    iterator != &(list).head; iterator = iterator->next)
+#define list_foreach(list, member, itype, iterator) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	    for (link_t *_link = (list).head.next; \
+	    iterator = list_get_instance(_link, itype, member), \
+	    _link != &(list).head; _link = _link->next)
+
+#define list_foreach_rev(list, member, itype, iterator) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	    for (link_t *_link = (list).head.prev; \
+	    iterator = list_get_instance(_link, itype, member), \
+	    _link != &(list).head; _link = _link->prev)
 
 /** Unlike list_foreach(), allows removing items while traversing a list.
- * 
+ *
  * @code
  * list_t mylist;
  * typedef struct item {
@@ -102,7 +111,7 @@ typedef struct list {
 		iterator = next_iter, next_iter = iterator->next)
 
 #define assert_link_not_used(link) \
-	assert(((link)->prev == NULL) && ((link)->next == NULL))
+	assert(!link_used(link))
 
 /** Returns true if the link is definitely part of a list. False if not sure. */
 static inline int link_in_use(link_t *link)
@@ -237,7 +246,33 @@ static inline link_t *list_first(const list_t *list)
  */
 static inline link_t *list_last(list_t *list)
 {
-	return ((list->head.prev == &list->head) ? NULL : list->head.prev);
+	return (list->head.prev == &list->head) ? NULL : list->head.prev;
+}
+
+/** Get next item in list.
+ *
+ * @param link Current item link
+ * @param list List containing @a link
+ *
+ * @return Next item or NULL if @a link is the last item.
+ *
+ */
+static inline link_t *list_next(link_t *link, const list_t *list)
+{
+	return (link->next == &list->head) ? NULL : link->next;
+}
+
+/** Get previous item in list.
+ *
+ * @param link Current item link
+ * @param list List containing @a link
+ *
+ * @return Previous item or NULL if @a link is the first item.
+ *
+ */
+static inline link_t *list_prev(link_t *link, const list_t *list)
+{
+	return (link->prev == &list->head) ? NULL : link->prev;
 }
 
 /** Split or concatenate headless doubly-linked circular list
@@ -307,11 +342,13 @@ static inline link_t *list_nth(list_t *list, unsigned int n)
 {
 	unsigned int cnt = 0;
 	
-	list_foreach(*list, link) {
+	link_t *link = list_first(list);
+	while (link != NULL) {
 		if (cnt == n)
 			return link;
 		
 		cnt++;
+		link = list_next(link, list);
 	}
 	
 	return NULL;
@@ -324,6 +361,20 @@ static inline link_t *list_nth(list_t *list, unsigned int n)
 static inline const void *list_link_to_void(const link_t *link)
 {
 	return link;
+}
+
+/** Determine if link is used.
+ *
+ * @param link Link
+ * @return @c true if link is used, @c false if not.
+ */
+static inline bool link_used(link_t *link)
+{
+	if (link->prev == NULL && link->next == NULL)
+		return false;
+
+	assert(link->prev != NULL && link->next != NULL);
+	return true;
 }
 
 extern int list_member(const link_t *, const list_t *);

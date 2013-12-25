@@ -76,23 +76,14 @@ page_mapping_operations_t pt_mapping_operations = {
 void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
-	//printf("pt_mapping_insert: as=%p, page=0x%08x, frame=0x%08x\n", as, page, frame);
-
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
-	//printf("ptl0 = %p\n", ptl0);
-
 	ASSERT(page_table_locked(as));
-
+	
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-	//	printf("allocating ptl1\n");
-
-		pte_t *newpt = (pte_t *) frame_alloc(PTL1_SIZE,
-		    FRAME_LOWMEM | FRAME_KA);
-
-	//	printf("newpt = %p, index = %d\n", newpt, PTL0_INDEX(page));
-
-		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
+		pte_t *newpt = (pte_t *)
+		    PA2KA(frame_alloc(PTL1_FRAMES, FRAME_LOWMEM, PTL1_SIZE - 1));
+		memsetb(newpt, PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page),
 		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
@@ -108,17 +99,10 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	
-//	printf("ptl1 = %p\n", ptl1);
-
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-//		printf("allocating ptl2\n");
-
-		pte_t *newpt = (pte_t *) frame_alloc(PTL2_SIZE,
-		    FRAME_LOWMEM | FRAME_KA);
-
-//		printf("newpt = %p, index = %d\n", newpt, PTL1_INDEX(page));
-
-		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
+		pte_t *newpt = (pte_t *)
+		    PA2KA(frame_alloc(PTL2_FRAMES, FRAME_LOWMEM, PTL2_SIZE - 1));
+		memsetb(newpt, PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page),
 		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
@@ -132,17 +116,10 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	
-//	printf("ptl2 = %p\n", ptl2);
-
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-//		printf("allocating ptl3\n");
-
-		pte_t *newpt = (pte_t *) frame_alloc(PTL3_SIZE,
-		    FRAME_LOWMEM | FRAME_KA);
-
-//		printf("newpt = %p, index = %d\n", newpt, PTL2_INDEX(page));
-
-		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
+		pte_t *newpt = (pte_t *)
+		    PA2KA(frame_alloc(PTL3_FRAMES, FRAME_LOWMEM, PTL2_SIZE - 1));
+		memsetb(newpt, PTL2_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page),
 		    PAGE_NOT_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE |
@@ -156,8 +133,6 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
 	
-//	printf("ptl3 = %p\n", ptl3);
-
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags | PAGE_NOT_PRESENT);
 	/*
@@ -243,7 +218,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 #endif
-		frame_free(KA2PA((uintptr_t) ptl3));
+		frame_free(KA2PA((uintptr_t) ptl3), PTL3_FRAMES);
 	} else {
 		/*
 		 * PTL3 is not empty.
@@ -277,7 +252,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
 #endif
-		frame_free(KA2PA((uintptr_t) ptl2));
+		frame_free(KA2PA((uintptr_t) ptl2), PTL2_FRAMES);
 	} else {
 		/*
 		 * PTL2 is not empty.
@@ -308,7 +283,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 			return;
 
 		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
-		frame_free(KA2PA((uintptr_t) ptl1));
+		frame_free(KA2PA((uintptr_t) ptl1), PTL1_FRAMES);
 	}
 #endif /* PTL1_ENTRIES != 0 */
 }
@@ -387,30 +362,29 @@ static uintptr_t ptl0_step_get(void)
  *             altered by this function.
  * @param size Size in bytes defining the range of PTL0 entries that will be
  *             altered by this function.
+ *
  */
 void pt_mapping_make_global(uintptr_t base, size_t size)
 {
+	ASSERT(size > 0);
+	
 	uintptr_t ptl0 = PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
 	uintptr_t ptl0_step = ptl0_step_get();
-	size_t order;
-	uintptr_t addr;
-
+	size_t frames;
+	
 #if (PTL1_ENTRIES != 0)
-	order = PTL1_SIZE;
+	frames = PTL1_FRAMES;
 #elif (PTL2_ENTRIES != 0)
-	order = PTL2_SIZE;
+	frames = PTL2_FRAMES;
 #else
-	order = PTL3_SIZE;
+	frames = PTL3_FRAMES;
 #endif
-
-	ASSERT(size > 0);
-
-	for (addr = ALIGN_DOWN(base, ptl0_step); addr - 1 < base + size - 1;
+	
+	for (uintptr_t addr = ALIGN_DOWN(base, ptl0_step);
+	    addr - 1 < base + size - 1;
 	    addr += ptl0_step) {
-		uintptr_t l1;
-
-		l1 = (uintptr_t) frame_alloc(order, FRAME_KA | FRAME_LOWMEM);
-		memsetb((void *) l1, FRAME_SIZE << order, 0);
+		uintptr_t l1 = PA2KA(frame_alloc(frames, FRAME_LOWMEM, 0));
+		memsetb((void *) l1, FRAMES2SIZE(frames), 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(addr),
 		    PAGE_PRESENT | PAGE_USER | PAGE_CACHEABLE |
