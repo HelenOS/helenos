@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup hdisk
  * @{
  */
-
-/**
- * @file
- * @brief Memory string functions.
- *
- * This file provides architecture independent functions to manipulate blocks
- * of memory. These functions are optimized as much as generic functions of
- * this type can be.
+/** @file
  */
 
-#include <lib/memfnc.h>
-#include <typedefs.h>
+#ifndef __COMMON_H__
+#define __COMMON_H__
 
-/** Fill block of memory.
- *
- * Fill cnt bytes at dst address with the value val.
- *
- * @param dst Destination address to fill.
- * @param val Value to fill.
- * @param cnt Number of bytes to fill.
- *
- * @return Destination address.
- *
- */
-void *memset(void *dst, int val, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	
-	while (cnt-- != 0)
-		*dp++ = val;
-	
-	return dst;
-}
+#include <libmbr.h>
+#include <libgpt.h>
 
-/** Move memory block without overlapping.
- *
- * Copy cnt bytes from src address to dst address. The source
- * and destination memory areas cannot overlap.
- *
- * @param dst Destination address to copy to.
- * @param src Source address to copy from.
- * @param cnt Number of bytes to copy.
- *
- * @return Destination address.
- *
- */
-void *memcpy(void *dst, const void *src, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	const uint8_t *sp = (uint8_t *) src;
-	
-	while (cnt-- != 0)
-		*dp++ = *sp++;
-	
-	return dst;
-}
+typedef enum {
+	LYT_NONE,
+	LYT_MBR,
+	LYT_GPT,
+} layouts_t;
 
-/** @}
- */
+typedef union {
+	mbr_label_t *mbr;
+	gpt_label_t *gpt;
+} label_data_t;
+
+typedef struct label {
+	layouts_t layout;
+	aoff64_t blocks;
+	service_id_t device;
+	label_data_t data;
+	unsigned int alignment;
+	int (* destroy_label)(struct label *);
+	int (* add_part)(struct label *, tinput_t *);
+	int (* delete_part)(struct label *, tinput_t *);
+	int (* new_label)(struct label *);
+	int (* print_parts)(struct label *);
+	int (* read_parts)(struct label *);
+	int (* write_parts)(struct label *);
+	int (* extra_funcs)(struct label *, tinput_t *);
+} label_t;
+
+#endif

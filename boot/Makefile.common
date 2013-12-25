@@ -177,6 +177,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dnsres/dnsres \
 	$(USPACE_PATH)/app/download/download \
 	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/hdisk/hdisk \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \

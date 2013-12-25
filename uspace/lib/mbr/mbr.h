@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +27,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+ /** @addtogroup libmbr
  * @{
  */
-
-/**
- * @file
- * @brief Memory string functions.
- *
- * This file provides architecture independent functions to manipulate blocks
- * of memory. These functions are optimized as much as generic functions of
- * this type can be.
+/** @file
  */
 
-#include <lib/memfnc.h>
-#include <typedefs.h>
+#ifndef LIBMBR_MBR_H_
+#define LIBMBR_MBR_H_
 
-/** Fill block of memory.
- *
- * Fill cnt bytes at dst address with the value val.
- *
- * @param dst Destination address to fill.
- * @param val Value to fill.
- * @param cnt Number of bytes to fill.
- *
- * @return Destination address.
- *
- */
-void *memset(void *dst, int val, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	
-	while (cnt-- != 0)
-		*dp++ = val;
-	
-	return dst;
-}
+#include <sys/types.h>
 
-/** Move memory block without overlapping.
- *
- * Copy cnt bytes from src address to dst address. The source
- * and destination memory areas cannot overlap.
- *
- * @param dst Destination address to copy to.
- * @param src Source address to copy from.
- * @param cnt Number of bytes to copy.
- *
- * @return Destination address.
- *
- */
-void *memcpy(void *dst, const void *src, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	const uint8_t *sp = (uint8_t *) src;
+enum {
+	/** Number of primary partition records */
+	N_PRIMARY = 4,
 	
-	while (cnt-- != 0)
-		*dp++ = *sp++;
-	
-	return dst;
-}
+	/** Boot record signature */
+	BR_SIGNATURE = 0xAA55
+};
 
-/** @}
- */
+enum {
+	/** Non-bootable */
+	B_INACTIVE = 0x00,
+	/** Bootable */
+	B_ACTIVE = 0x80,
+	/** Anything else means invalid */
+};
+
+enum {
+	/** Unused partition entry */
+	PT_UNUSED = 0x00,
+	/** Extended partition */
+	PT_EXTENDED = 0x05,
+	/** Extended partition with LBA */
+	PT_EXTENDED_LBA = 0x0F,
+	/** GPT Protective partition */
+	PT_GPT = 0xEE,
+};
+
+/** Structure of a partition table entry */
+typedef struct {
+	uint8_t status;
+	/** CHS of fist block in partition */
+	uint8_t first_chs[3];
+	/** Partition type */
+	uint8_t ptype;
+	/** CHS of last block in partition */
+	uint8_t last_chs[3];
+	/** LBA of first block in partition */
+	uint32_t first_lba;
+	/** Number of blocks in partition */
+	uint32_t length;
+} __attribute__((packed)) pt_entry_t;
+
+/** Structure of a boot-record block */
+typedef struct {
+	/** Area for boot code */
+	uint8_t code_area[440];
+	/** Optional media ID */
+	uint32_t media_id;
+	/** Padding */
+	uint16_t pad0;
+	/** Partition table entries */
+	pt_entry_t pte[N_PRIMARY];
+	/** Boot record block signature (@c BR_SIGNATURE) */
+	uint16_t signature;
+} __attribute__((packed)) br_block_t;
+
+#endif
+

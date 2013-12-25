@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +27,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libgpt
  * @{
  */
-
-/**
- * @file
- * @brief Memory string functions.
- *
- * This file provides architecture independent functions to manipulate blocks
- * of memory. These functions are optimized as much as generic functions of
- * this type can be.
+/** @file
  */
 
-#include <lib/memfnc.h>
-#include <typedefs.h>
+#ifndef LIBGPT_GPT_H_
+#define LIBGPT_GPT_H_
 
-/** Fill block of memory.
- *
- * Fill cnt bytes at dst address with the value val.
- *
- * @param dst Destination address to fill.
- * @param val Value to fill.
- * @param cnt Number of bytes to fill.
- *
- * @return Destination address.
- *
- */
-void *memset(void *dst, int val, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	
-	while (cnt-- != 0)
-		*dp++ = val;
-	
-	return dst;
-}
+typedef enum {
+	AT_REQ_PART = 0,
+	AT_NO_BLOCK_IO,
+	AT_LEGACY_BOOT,
+	AT_UNDEFINED,
+	AT_SPECIFIC = 48
+} gpt_attr_t;
 
-/** Move memory block without overlapping.
- *
- * Copy cnt bytes from src address to dst address. The source
- * and destination memory areas cannot overlap.
- *
- * @param dst Destination address to copy to.
- * @param src Source address to copy from.
- * @param cnt Number of bytes to copy.
- *
- * @return Destination address.
- *
- */
-void *memcpy(void *dst, const void *src, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	const uint8_t *sp = (uint8_t *) src;
-	
-	while (cnt-- != 0)
-		*dp++ = *sp++;
-	
-	return dst;
-}
+/** GPT header */
+typedef struct {
+	uint8_t efi_signature[8];
+	uint8_t revision[4];
+	uint32_t header_size;
+	uint32_t header_crc32;
+	uint32_t reserved;
+	uint64_t current_lba;
+	uint64_t alternate_lba;
+	uint64_t first_usable_lba;
+	uint64_t last_usable_lba;
+	uint8_t disk_guid[16];
+	uint64_t entry_lba;
+	uint32_t fillries;
+	uint32_t entry_size;
+	uint32_t pe_array_crc32;
+} __attribute__((packed)) gpt_header_t;
 
-/** @}
- */
+/** GPT partition entry */
+typedef struct {
+	uint8_t part_type[16];
+	uint8_t part_id[16];
+	uint64_t start_lba;
+	uint64_t end_lba;
+	uint64_t attributes;
+	uint8_t part_name[72];
+} __attribute__((packed)) gpt_entry_t;
+
+#endif

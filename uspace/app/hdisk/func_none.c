@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2012-2013 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,81 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup hdisk
  * @{
  */
-
-/**
- * @file
- * @brief Memory string functions.
- *
- * This file provides architecture independent functions to manipulate blocks
- * of memory. These functions are optimized as much as generic functions of
- * this type can be.
+/** @file
  */
 
-#include <lib/memfnc.h>
-#include <typedefs.h>
+#include <errno.h>
+#include "func_none.h"
 
-/** Fill block of memory.
- *
- * Fill cnt bytes at dst address with the value val.
- *
- * @param dst Destination address to fill.
- * @param val Value to fill.
- * @param cnt Number of bytes to fill.
- *
- * @return Destination address.
- *
- */
-void *memset(void *dst, int val, size_t cnt)
+static void not_implemented(void);
+
+int construct_none_label(label_t *this)
 {
-	uint8_t *dp = (uint8_t *) dst;
+	this->layout = LYT_NONE;
 	
-	while (cnt-- != 0)
-		*dp++ = val;
+	this->add_part = add_none_part;
+	this->delete_part = delete_none_part;
+	this->destroy_label = destroy_none_label;
+	this->new_label = new_none_label;
+	this->print_parts = print_none_parts;
+	this->read_parts = read_none_parts;
+	this->write_parts = write_none_parts;
+	this->extra_funcs = extra_none_funcs;
 	
-	return dst;
+	return EOK;
 }
 
-/** Move memory block without overlapping.
- *
- * Copy cnt bytes from src address to dst address. The source
- * and destination memory areas cannot overlap.
- *
- * @param dst Destination address to copy to.
- * @param src Source address to copy from.
- * @param cnt Number of bytes to copy.
- *
- * @return Destination address.
- *
- */
-void *memcpy(void *dst, const void *src, size_t cnt)
+int add_none_part(label_t *this, tinput_t *in)
 {
-	uint8_t *dp = (uint8_t *) dst;
-	const uint8_t *sp = (uint8_t *) src;
-	
-	while (cnt-- != 0)
-		*dp++ = *sp++;
-	
-	return dst;
+	not_implemented();
+	return EOK;
 }
 
-/** @}
- */
+int delete_none_part(label_t *this, tinput_t *in)
+{
+	not_implemented();
+	return EOK;
+}
+
+int destroy_none_label(label_t *this)
+{
+	return EOK;
+}
+
+int new_none_label(label_t *this)
+{
+	not_implemented();
+	return EOK;
+}
+
+int print_none_parts(label_t *this)
+{
+	not_implemented();
+	return EOK;
+}
+
+int read_none_parts(label_t *this)
+{
+	not_implemented();
+	return EOK;
+}
+
+int write_none_parts(label_t *this)
+{
+	not_implemented();
+	return EOK;
+}
+
+int extra_none_funcs(label_t *this, tinput_t * in)
+{
+	not_implemented();
+	return EOK;
+}
+
+static void not_implemented(void)
+{
+	printf("No format selected.\n");
+}

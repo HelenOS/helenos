@@ -127,6 +127,7 @@ GENERIC_SOURCES = \
 	generic/async.c \
 	generic/loader.c \
 	generic/getopt.c \
+	generic/adt/checksum.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
 	generic/adt/dynamic_fifo.c \

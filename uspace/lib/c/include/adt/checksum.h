@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2012 Dominik Taborsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
-
-/**
- * @file
- * @brief Memory string functions.
- *
- * This file provides architecture independent functions to manipulate blocks
- * of memory. These functions are optimized as much as generic functions of
- * this type can be.
+/** @file
  */
 
-#include <lib/memfnc.h>
-#include <typedefs.h>
+#ifndef LIBC_CHECKSUM_H_
+#define LIBC_CHECKSUM_H_
 
-/** Fill block of memory.
- *
- * Fill cnt bytes at dst address with the value val.
- *
- * @param dst Destination address to fill.
- * @param val Value to fill.
- * @param cnt Number of bytes to fill.
- *
- * @return Destination address.
- *
- */
-void *memset(void *dst, int val, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	
-	while (cnt-- != 0)
-		*dp++ = val;
-	
-	return dst;
-}
+#include <sys/types.h>
 
-/** Move memory block without overlapping.
- *
- * Copy cnt bytes from src address to dst address. The source
- * and destination memory areas cannot overlap.
- *
- * @param dst Destination address to copy to.
- * @param src Source address to copy from.
- * @param cnt Number of bytes to copy.
- *
- * @return Destination address.
- *
- */
-void *memcpy(void *dst, const void *src, size_t cnt)
-{
-	uint8_t *dp = (uint8_t *) dst;
-	const uint8_t *sp = (uint8_t *) src;
-	
-	while (cnt-- != 0)
-		*dp++ = *sp++;
-	
-	return dst;
-}
+extern uint32_t compute_crc32(uint8_t *, size_t);
+extern uint32_t compute_crc32_seed(uint8_t *, size_t, uint32_t);
+
+#endif
 
 /** @}
  */
