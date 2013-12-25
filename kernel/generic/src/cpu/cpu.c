@@ -72,14 +72,17 @@ void cpu_init(void) {
 		
 		size_t i;
 		for (i = 0; i < config.cpu_count; i++) {
-			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES,
-			    FRAME_LOWMEM | FRAME_KA | FRAME_ATOMIC);
+			uintptr_t stack_phys = frame_alloc(STACK_FRAMES,
+			    FRAME_LOWMEM | FRAME_ATOMIC, STACK_SIZE - 1);
+			if (!stack_phys)
+				panic("Cannot allocate CPU stack.");
+			
+			cpus[i].stack = (uint8_t *) PA2KA(stack_phys);
 			cpus[i].id = i;
 			
 			irq_spinlock_initialize(&cpus[i].lock, "cpus[].lock");
 			
-			unsigned int j;
-			for (j = 0; j < RQ_COUNT; j++) {
+			for (unsigned int j = 0; j < RQ_COUNT; j++) {
 				irq_spinlock_initialize(&cpus[i].rq[j].lock, "cpus[].rq[].lock");
 				list_initialize(&cpus[i].rq[j].rq);
 			}

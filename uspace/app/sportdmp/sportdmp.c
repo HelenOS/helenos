@@ -43,10 +43,10 @@ int main(int argc, char **argv)
 {
 	sysarg_t baud = 9600;
 	service_id_t svc_id;
-	
+
 	int arg = 1;
 	int rc;
-		
+
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
 		size_t arg_offset = str_lsize(argv[arg], 7);
 		char* arg_str = argv[arg] + arg_offset;
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 		}
 		arg++;
 	}
-	
+
 	if (argc > arg) {
 		rc = loc_service_get_id(argv[arg], &svc_id, 0);
 		if (rc != EOK) {
@@ -76,61 +76,62 @@ int main(int argc, char **argv)
 	}
 	else {
 		category_id_t serial_cat_id;
-		
+
 		rc = loc_category_get_id("serial", &serial_cat_id, 0);
 		if (rc != EOK) {
 			fprintf(stderr, "Failed getting id of category "
 			    "'serial'\n");
 			return 1;
 		}
-		
+
 		service_id_t *svc_ids;
 		size_t svc_count;
-		
-		rc = loc_category_get_svcs(serial_cat_id, &svc_ids, &svc_count);		if (rc != EOK) {
+
+		rc = loc_category_get_svcs(serial_cat_id, &svc_ids, &svc_count);
+		if (rc != EOK) {
 			fprintf(stderr, "Failed getting list of services\n");
 			return 1;
 		}
-		
+
 		if (svc_count == 0) {
 			fprintf(stderr, "No service in category 'serial'\n");
 			free(svc_ids);
 			return 1;
 		}
-		
+
 		svc_id = svc_ids[0];
 		free(svc_ids);
 	}
-	
+
 	if (argc > arg) {
 		fprintf(stderr, "Too many arguments\n");
 		syntax_print();
 		return 1;
 	}
-	
-	
+
+
 	async_sess_t *sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id,
 	    IPC_FLAG_BLOCKING);
 	if (!sess) {
 		fprintf(stderr, "Failed connecting to service\n");
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	rc = async_req_4_0(exch, SERIAL_SET_COM_PROPS, baud,
 	    SERIAL_NO_PARITY, 8, 1);
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		fprintf(stderr, "Failed setting serial properties\n");
 		return 2;
 	}
-	
+
 	uint8_t *buf = (uint8_t *) malloc(BUF_SIZE);
 	if (buf == NULL) {
 		fprintf(stderr, "Failed allocating buffer\n");
 		return 3;
 	}
-	
+
 	while (true) {
 		ssize_t read = char_dev_read(sess, buf, BUF_SIZE);
 		if (read < 0) {
@@ -143,7 +144,8 @@ int main(int argc, char **argv)
 		}
 		fflush(stdout);
 	}
-	
+
 	free(buf);
 	return 0;
 }
+

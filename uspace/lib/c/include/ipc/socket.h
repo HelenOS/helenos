@@ -197,7 +197,7 @@ typedef enum {
  */
 #define SOCKET_GET_OPT_NAME(call) \
 	({ \
-		int opt_name = (int) IPC_GET_ARG4(call); \
+		int opt_name = (int) IPC_GET_ARG2(call); \
 		opt_name; \
 	})
 

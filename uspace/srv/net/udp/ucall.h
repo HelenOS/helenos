@@ -35,10 +35,12 @@
 #ifndef UCALL_H
 #define UCALL_H
 
+#include <ipc/loc.h>
 #include <sys/types.h>
 #include "udp_type.h"
 
 extern udp_error_t udp_uc_create(udp_assoc_t **);
+extern void udp_uc_set_iplink(udp_assoc_t *, service_id_t);
 extern udp_error_t udp_uc_set_foreign(udp_assoc_t *, udp_sock_t *);
 extern udp_error_t udp_uc_set_local(udp_assoc_t *, udp_sock_t *);
 extern udp_error_t udp_uc_set_local_port(udp_assoc_t *, uint16_t);

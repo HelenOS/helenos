@@ -37,6 +37,7 @@
 
 #include <fibril.h>
 #include <fibril_synch.h>
+#include <ipc/loc.h>
 #include <socket_core.h>
 #include <sys/types.h>
 #include <inet/addr.h>
@@ -70,6 +71,7 @@ typedef struct {
 } udp_sock_t;
 
 typedef struct {
+	service_id_t iplink;
 	udp_sock_t local;
 	udp_sock_t foreign;
 } udp_sockpair_t;
@@ -84,11 +86,12 @@ typedef struct {
 
 /** Encoded PDU */
 typedef struct {
+	/** IP link (optional) */
+	service_id_t iplink;
 	/** Source address */
 	inet_addr_t src;
 	/** Destination address */
 	inet_addr_t dest;
-	
 	/** Encoded PDU data including header */
 	void *data;
 	/** Encoded PDU data size */
@@ -142,6 +145,8 @@ typedef struct udp_sockdata {
 	udp_client_t *client;
 	/** Connection */
 	udp_assoc_t *assoc;
+	/** User-configured IP link */
+	service_id_t iplink;
 	/** Receiving fibril */
 	fid_t recv_fibril;
 	uint8_t recv_buffer[UDP_FRAGMENT_SIZE];

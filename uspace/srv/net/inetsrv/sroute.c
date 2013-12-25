@@ -88,29 +88,26 @@ void inet_sroute_remove(inet_sroute_t *sroute)
 	fibril_mutex_unlock(&sroute_list_lock);
 }
 
-/** Find address object matching address @a addr.
+/** Find static route object matching address @a addr.
  *
  * @param addr	Address
  */
 inet_sroute_t *inet_sroute_find(inet_addr_t *addr)
 {
-	uint16_t addr_af = inet_addr_get(addr, NULL, NULL);
+	ip_ver_t addr_ver = inet_addr_get(addr, NULL, NULL);
 	
 	inet_sroute_t *best = NULL;
 	uint8_t best_bits = 0;
 	
 	fibril_mutex_lock(&sroute_list_lock);
 	
-	list_foreach(sroute_list, link) {
-		inet_sroute_t *sroute = list_get_instance(link,
-		    inet_sroute_t, sroute_list);
-		
+	list_foreach(sroute_list, sroute_list, inet_sroute_t, sroute) {
 		uint8_t dest_bits;
-		uint16_t dest_af = inet_naddr_get(&sroute->dest, NULL, NULL,
+		ip_ver_t dest_ver = inet_naddr_get(&sroute->dest, NULL, NULL,
 		    &dest_bits);
 		
 		/* Skip comparison with different address family */
-		if (addr_af != dest_af)
+		if (addr_ver != dest_ver)
 			continue;
 		
 		/* Look for the most specific route */
@@ -146,10 +143,7 @@ inet_sroute_t *inet_sroute_find_by_name(const char *name)
 
 	fibril_mutex_lock(&sroute_list_lock);
 
-	list_foreach(sroute_list, link) {
-		inet_sroute_t *sroute = list_get_instance(link,
-		    inet_sroute_t, sroute_list);
-
+	list_foreach(sroute_list, sroute_list, inet_sroute_t, sroute) {
 		if (str_cmp(sroute->name, name) == 0) {
 			fibril_mutex_unlock(&sroute_list_lock);
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find_by_name: found %p",
@@ -175,10 +169,7 @@ inet_sroute_t *inet_sroute_get_by_id(sysarg_t id)
 
 	fibril_mutex_lock(&sroute_list_lock);
 
-	list_foreach(sroute_list, link) {
-		inet_sroute_t *sroute = list_get_instance(link,
-		    inet_sroute_t, sroute_list);
-
+	list_foreach(sroute_list, sroute_list, inet_sroute_t, sroute) {
 		if (sroute->id == id) {
 			fibril_mutex_unlock(&sroute_list_lock);
 			return sroute;
@@ -206,10 +197,7 @@ int inet_sroute_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	}
 
 	i = 0;
-	list_foreach(sroute_list, link) {
-		inet_sroute_t *sroute = list_get_instance(link,
-		    inet_sroute_t, sroute_list);
-
+	list_foreach(sroute_list, sroute_list, inet_sroute_t, sroute) {
 		id_list[i++] = sroute->id;
 	}
 

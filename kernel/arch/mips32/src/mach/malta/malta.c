@@ -102,6 +102,7 @@ void malta_output_init(void)
 
 void malta_input_init(void)
 {
+	(void) stdin_wire();
 }
 
 const char *malta_get_platform_name(void)

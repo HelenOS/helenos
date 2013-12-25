@@ -41,8 +41,8 @@ LIBC_FILE = $(LIBC_PREFIX)/libc.a
 FIXED_POSIX_LIBRARY = libposixaslibc.a
 FIXED_C_LIBRARY = libc4posix.a
 
-REDEFS_HIDE_LIBC = redefs-hide-libc.xargs
-REDEFS_SHOW_LIBPOSIX = redefs-show-posix.xargs
+REDEFS_HIDE_LIBC = redefs-hide-libc-symbols.list
+REDEFS_SHOW_LIBPOSIX = redefs-show-posix-symbols.list
 COLLISIONS_LIST = collisions.list
 
 PRE_DEPEND = $(INCLUDE_LIBC)
@@ -59,7 +59,10 @@ SOURCES = \
 	source/fnmatch.c \
 	source/getopt.c \
 	source/locale.c \
-	source/math.c \
+	source/pthread/condvar.c \
+	source/pthread/keys.c \
+	source/pthread/mutex.c \
+	source/pthread/threads.c \
 	source/pwd.c \
 	source/signal.c \
 	source/stdio.c \
@@ -80,22 +83,21 @@ $(INCLUDE_LIBC): ../c/include
 	ln -s -f -n ../$^ $@
 
 $(FIXED_C_LIBRARY): $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
-	./tools/transform-symbols.sh \
-		$(OBJCOPY) $(AR) echo \
-		$(LIBC_FILE) $@ \
-		$(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+	$(OBJCOPY) --redefine-syms=$(REDEFS_HIDE_LIBC) $(LIBC_FILE) $@
+	$(OBJCOPY) --redefine-syms=$(REDEFS_SHOW_LIBPOSIX) $@ $@
 
 $(FIXED_POSIX_LIBRARY): $(LIBRARY).a $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
-	./tools/transform-symbols.sh \
-		$(OBJCOPY) $(AR) echo \
-		$(LIBRARY).a $@ \
-		$(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+	$(OBJCOPY) --redefine-syms=$(REDEFS_HIDE_LIBC) $(LIBRARY).a $@
+	$(OBJCOPY) --redefine-syms=$(REDEFS_SHOW_LIBPOSIX) $@ $@
 
 $(REDEFS_HIDE_LIBC): $(COLLISIONS_LIST)
-	./tools/create-redefines.sh "" "__helenos_libc_" <$(COLLISIONS_LIST) >$@
-	
+	sed 's/.*/& __helenos_libc_&/' <$(COLLISIONS_LIST) >$@
+
 $(REDEFS_SHOW_LIBPOSIX): $(COLLISIONS_LIST)
-	./tools/create-redefines.sh "posix_" "" <$(COLLISIONS_LIST) >$@
+	sed 's/.*/posix_& &/' <$(COLLISIONS_LIST) >$@
 
 $(COLLISIONS_LIST):
-	./tools/get-collision-list.sh ./include/posix >$@
+	find ./include/posix -name '*.h' -exec \
+		sed -n -e '/^#/d' -e 's/__POSIX_DEF__/\n&/gp' {} \; | \
+		sed -n -e 's/__POSIX_DEF__(\([^)]*\)).*/\1/p' | \
+		sort -u >$@

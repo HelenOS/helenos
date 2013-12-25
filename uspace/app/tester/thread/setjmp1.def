@@ -1,0 +1,6 @@
+{
+	"setjmp1",
+	"Long jump test",
+	&test_setjmp1,
+	true
+},

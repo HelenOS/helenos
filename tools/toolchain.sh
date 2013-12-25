@@ -35,7 +35,7 @@ GMP_MAIN=<<EOF
 #define GCC_GMP_VERSION \
 	GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
 
-#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,2)
+#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4, 3, 2)
 	choke me
 #endif
 EOF
@@ -54,13 +54,21 @@ EOF
 
 BINUTILS_VERSION="2.23.1"
 BINUTILS_RELEASE=""
+BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
 GCC_VERSION="4.8.1"
-GDB_VERSION="7.6"
+GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
+GDB_VERSION="7.6.1"
+GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
+SRCDIR="$(readlink -f $(dirname "$0"))"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.bz2"
+
+REAL_INSTALL=true
+USE_HELENOS_TARGET=false
+INSTALL_DIR="${BASEDIR}/PKG"
 
 #
 # Check if the library described in the argument
@@ -134,7 +142,7 @@ show_usage() {
 	echo "Cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 <platform>"
+	echo " $0 [--no-install] [--helenos-target] <platform>"
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
@@ -151,9 +159,23 @@ show_usage() {
 	echo " parallel   same as 'all', but all in parallel"
 	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
-	echo "The toolchain will be installed to the directory specified by"
-	echo "the CROSS_PREFIX environment variable. If the variable is not"
-	echo "defined, /usr/local/cross will be used by default."
+	echo "The toolchain is installed into directory specified by the"
+	echo "CROSS_PREFIX environment variable. If the variable is not"
+	echo "defined, /usr/local/cross/ is used as default."
+	echo
+	echo "If --no-install is present, the toolchain still uses the"
+	echo "CROSS_PREFIX as the target directory but the installation"
+	echo "copies the files into PKG/ subdirectory without affecting"
+	echo "the actual root file system. That is only useful if you do"
+	echo "not want to run the script under the super user."
+	echo
+	echo "The --helenos-target will build HelenOS-specific toolchain"
+	echo "(i.e. it will use *-helenos-* triplet instead of *-linux-*)."
+	echo "This toolchain is installed into /usr/local/cross-helenos by"
+	echo "default. The settings can be changed by setting environment"
+	echo "variable CROSS_HELENOS_PREFIX."
+	echo "Using the HelenOS-specific toolchain is still an experimental"
+	echo "feature that is not fully supported."
 	echo
 	
 	exit 3
@@ -253,6 +275,33 @@ create_dir() {
 	check_error $? "Unable to create ${DIR}."
 }
 
+check_dirs() {
+	OUTSIDE="$1"
+	BASE="$2"
+	ORIGINAL="`pwd`"
+	
+	cd "${OUTSIDE}"
+	check_error $? "Unable to change directory to ${OUTSIDE}."
+	ABS_OUTSIDE="`pwd`"
+	
+	cd "${BASE}"
+	check_error $? "Unable to change directory to ${BASE}."
+	ABS_BASE="`pwd`"
+	
+	cd "${ORIGINAL}"
+	check_error $? "Unable to change directory to ${ORIGINAL}."
+	
+	BASE_LEN="${#ABS_BASE}"
+	OUTSIDE_TRIM="${ABS_OUTSIDE:0:${BASE_LEN}}"
+	
+	if [ "${OUTSIDE_TRIM}" == "${ABS_BASE}" ] ; then
+		echo
+		echo "CROSS_PREFIX cannot reside within the working directory."
+		
+		exit 5
+	fi
+}
+
 unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
@@ -262,6 +311,18 @@ unpack_tarball() {
 	
 	tar -xjf "${FILE}"
 	check_error $? "Error unpacking ${DESC}."
+}
+
+patch_sources() {
+	PATCH_FILE="$1"
+	PATCH_STRIP="$2"
+	DESC="$3"
+	
+	change_title "Patching ${DESC}"
+	echo " >>> Patching ${DESC} with ${PATCH_FILE}"
+	
+	patch -t "-p${PATCH_STRIP}" <"$PATCH_FILE"
+	check_error $? "Error patching ${DESC}."
 }
 
 prepare() {
@@ -275,12 +336,66 @@ prepare() {
 	
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "33adb18c3048d057ac58d07a3f1adb38"
 	download_fetch "${GCC_SOURCE}" "${GCC}" "3b2386c114cd74185aa3754b58a79304"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "fda57170e4d11cdde74259ca575412a8"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "fbc4dab4181e6e9937075b43a4ce2732"
+}
+
+set_target_from_platform() {
+	case "$1" in
+		"amd64")
+			LINUX_TARGET="amd64-linux-gnu"
+			HELENOS_TARGET="amd64-helenos"
+			;;
+		"arm32")
+			LINUX_TARGET="arm-linux-gnueabi"
+			HELENOS_TARGET="arm-helenos-gnueabi"
+			;;
+		"ia32")
+			LINUX_TARGET="i686-pc-linux-gnu"
+			HELENOS_TARGET="i686-pc-helenos"
+			;;
+		"ia64")
+			LINUX_TARGET="ia64-pc-linux-gnu"
+			HELENOS_TARGET="ia64-pc-helenos"
+			;;
+		"mips32")
+			LINUX_TARGET="mipsel-linux-gnu"
+			HELENOS_TARGET="mipsel-helenos"
+			;;
+		"mips32eb")
+			LINUX_TARGET="mips-linux-gnu"
+			HELENOS_TARGET="mips-helenos"
+			;;
+		"mips64")
+			LINUX_TARGET="mips64el-linux-gnu"
+			HELENOS_TARGET="mips64el-helenos"
+			;;
+		"ppc32")
+			LINUX_TARGET="ppc-linux-gnu"
+			HELENOS_TARGET="ppc-helenos"
+			;;
+		"ppc64")
+			LINUX_TARGET="ppc64-linux-gnu"
+			HELENOS_TARGET="ppc64-helenos"
+			;;
+		"sparc64")
+			LINUX_TARGET="sparc64-linux-gnu"
+			HELENOS_TARGET="sparc64-helenos"
+			;;
+		*)
+			check_error 1 "No target known for $1."
+			;;
+	esac
 }
 
 build_target() {
 	PLATFORM="$1"
-	TARGET="$2"
+	# This sets the *_TARGET variables
+	set_target_from_platform "$PLATFORM"
+	if $USE_HELENOS_TARGET; then
+		TARGET="$HELENOS_TARGET"
+	else
+		TARGET="$LINUX_TARGET"
+	fi
 	
 	WORKDIR="${BASEDIR}/${PLATFORM}"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
@@ -291,8 +406,15 @@ build_target() {
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
 	fi
+	if [ -z "${CROSS_HELENOS_PREFIX}" ] ; then
+		CROSS_HELENOS_PREFIX="/usr/local/cross-helenos"
+	fi
 	
-	PREFIX="${CROSS_PREFIX}/${PLATFORM}"
+	if $USE_HELENOS_TARGET; then
+		PREFIX="${CROSS_HELENOS_PREFIX}/${PLATFORM}"
+	else
+		PREFIX="${CROSS_PREFIX}/${PLATFORM}"
+	fi
 	
 	echo ">>> Downloading tarballs"
 	source_check "${BASEDIR}/${BINUTILS}"
@@ -300,11 +422,13 @@ build_target() {
 	source_check "${BASEDIR}/${GDB}"
 	
 	echo ">>> Removing previous content"
-	cleanup_dir "${PREFIX}"
+	$REAL_INSTALL && cleanup_dir "${PREFIX}"
 	cleanup_dir "${WORKDIR}"
 	
-	create_dir "${PREFIX}" "destination directory"
+	$REAL_INSTALL && create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
+	
+	check_dirs "${PREFIX}" "${WORKDIR}"
 	
 	echo ">>> Unpacking tarballs"
 	cd "${WORKDIR}"
@@ -314,41 +438,90 @@ build_target() {
 	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
 	
+	echo ">>> Applying patches"
+	for p in $BINUTILS_PATCHES; do
+		patch_sources "${SRCDIR}/${p}" 0 "binutils"
+	done
+	for p in $GCC_PATCHES; do
+		patch_sources "${SRCDIR}/${p}" 0 "GCC"
+	done
+	for p in $GDB_PATCHES; do
+		patch_sources "${SRCDIR}/${p}" 0 "GDB"
+	done
+	
 	echo ">>> Processing binutils (${PLATFORM})"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
 	
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls --disable-werror
+	CFLAGS=-Wno-error ./configure \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+		--disable-nls --disable-werror
 	check_error $? "Error configuring binutils."
 	
 	change_title "binutils: make (${PLATFORM})"
-	make all install
-	check_error $? "Error compiling/installing binutils."
+	make all
+	check_error $? "Error compiling binutils."
+	
+	change_title "binutils: install (${PLATFORM})"
+	if $REAL_INSTALL; then
+		make install
+	else
+		make install "DESTDIR=${INSTALL_DIR}"
+	fi
+	check_error $? "Error installing binutils."
+	
 	
 	echo ">>> Processing GCC (${PLATFORM})"
 	cd "${OBJDIR}"
 	check_error $? "Change directory failed."
 	
 	change_title "GCC: configure (${PLATFORM})"
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto --disable-werror
+	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${GCCDIR}/configure" \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+		--with-gnu-as --with-gnu-ld --disable-nls --disable-threads \
+		--enable-languages=c,objc,c++,obj-c++ \
+		--disable-multilib --disable-libgcj --without-headers \
+		--disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
 	
 	change_title "GCC: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
-	check_error $? "Error compiling/installing GCC."
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc
+	check_error $? "Error compiling GCC."
+	
+	change_title "GCC: install (${PLATFORM})"
+	if $REAL_INSTALL; then
+		PATH="${PATH}:${PREFIX}/bin" make install-gcc
+	else
+		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
+	fi
+	check_error $? "Error installing GCC."
+	
 	
 	echo ">>> Processing GDB (${PLATFORM})"
 	cd "${GDBDIR}"
 	check_error $? "Change directory failed."
 	
 	change_title "GDB: configure (${PLATFORM})"
-	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
+	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-"
 	check_error $? "Error configuring GDB."
 	
 	change_title "GDB: make (${PLATFORM})"
-	make all install
-	check_error $? "Error compiling/installing GDB."
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
+	check_error $? "Error compiling GDB."
+	
+	change_title "GDB: make (${PLATFORM})"
+	if $REAL_INSTALL; then
+		PATH="${PATH}:${PREFIX}/bin" make install
+	else
+		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
+	fi
+	check_error $? "Error installing GDB."
+	
 	
 	cd "${BASEDIR}"
 	check_error $? "Change directory failed."
@@ -360,98 +533,78 @@ build_target() {
 	echo ">>> Cross-compiler for ${TARGET} installed."
 }
 
+while [ "$#" -gt 1 ]; do
+	case "$1" in
+		--no-install)
+			REAL_INSTALL=false
+			shift
+			;;
+		--helenos-target)
+			USE_HELENOS_TARGET=true
+			shift
+			;;
+		*)
+			show_usage
+			;;
+	esac
+done
+
 if [ "$#" -lt "1" ]; then
 	show_usage
 fi
 
 case "$1" in
-	"amd64")
+	amd64|arm32|ia32|ia64|mips32|mips32eb|mips64|ppc32|ppc64|sparc64)
 		prepare
-		build_target "amd64" "amd64-linux-gnu"
-		;;
-	"arm32")
-		prepare
-		build_target "arm32" "arm-linux-gnueabi"
-		;;
-	"ia32")
-		prepare
-		build_target "ia32" "i686-pc-linux-gnu"
-		;;
-	"ia64")
-		prepare
-		build_target "ia64" "ia64-pc-linux-gnu"
-		;;
-	"mips32")
-		prepare
-		build_target "mips32" "mipsel-linux-gnu"
-		;;
-	"mips32eb")
-		prepare
-		build_target "mips32eb" "mips-linux-gnu"
-		;;
-	"mips64")
-		prepare
-		build_target "mips64" "mips64el-linux-gnu"
-		;;
-	"ppc32")
-		prepare
-		build_target "ppc32" "ppc-linux-gnu"
-		;;
-	"ppc64")
-		prepare
-		build_target "ppc64" "ppc64-linux-gnu"
-		;;
-	"sparc64")
-		prepare
-		build_target "sparc64" "sparc64-linux-gnu"
+		build_target "$1"
 		;;
 	"all")
 		prepare
-		build_target "amd64" "amd64-linux-gnu"
-		build_target "arm32" "arm-linux-gnueabi"
-		build_target "ia32" "i686-pc-linux-gnu"
-		build_target "ia64" "ia64-pc-linux-gnu"
-		build_target "mips32" "mipsel-linux-gnu"
-		build_target "mips32eb" "mips-linux-gnu"
-		build_target "mips64" "mips64el-linux-gnu"
-		build_target "ppc32" "ppc-linux-gnu"
-		build_target "ppc64" "ppc64-linux-gnu"
-		build_target "sparc64" "sparc64-linux-gnu"
+		build_target "amd64"
+		build_target "arm32"
+		build_target "ia32"
+		build_target "ia64"
+		build_target "mips32"
+		build_target "mips32eb"
+		build_target "mips64"
+		build_target "ppc32"
+		build_target "ppc64"
+		build_target "sparc64"
 		;;
 	"parallel")
 		prepare
-		build_target "amd64" "amd64-linux-gnu" &
-		build_target "arm32" "arm-linux-gnueabi" &
-		build_target "ia32" "i686-pc-linux-gnu" &
-		build_target "ia64" "ia64-pc-linux-gnu" &
-		build_target "mips32" "mipsel-linux-gnu" &
-		build_target "mips32eb" "mips-linux-gnu" &
-		build_target "mips64" "mips64el-linux-gnu" &
-		build_target "ppc32" "ppc-linux-gnu" &
-		build_target "ppc64" "ppc64-linux-gnu" &
-		build_target "sparc64" "sparc64-linux-gnu" &
+		build_target "amd64" &
+		build_target "arm32" &
+		build_target "ia32" &
+		build_target "ia64" &
+		build_target "mips32" &
+		build_target "mips32eb" &
+		build_target "mips64" &
+		build_target "ppc32" &
+		build_target "ppc64" &
+		build_target "sparc64" &
 		wait
 		;;
 	"2-way")
 		prepare
-		build_target "amd64" "amd64-linux-gnu" &
-		build_target "arm32" "arm-linux-gnueabi" &
+		build_target "amd64" &
+		build_target "arm32" &
 		wait
 		
-		build_target "ia32" "i686-pc-linux-gnu" &
-		build_target "ia64" "ia64-pc-linux-gnu" &
+		build_target "ia32" &
+		build_target "ia64" &
 		wait
 		
-		build_target "mips32" "mipsel-linux-gnu" &
-		build_target "mips32eb" "mips-linux-gnu" &
+		build_target "mips32" &
+		build_target "mips32eb" &
 		wait
 		
-		build_target "mips64" "mips64el-linux-gnu" &
-		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "mips64" &
+		build_target "ppc32" &
 		wait
 		
-		build_target "ppc64" "ppc64-linux-gnu" &
-		build_target "sparc64" "sparc64-linux-gnu" &
+		build_target "ppc64" &
+		build_target "sparc64" &
 		wait
 		;;
 	*)

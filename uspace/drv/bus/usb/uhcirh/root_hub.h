@@ -35,6 +35,7 @@
 #define DRV_UHCI_ROOT_HUB_H
 
 #include <ddf/driver.h>
+#include <device/hw_res_parsed.h>
 
 #include "port.h"
 
@@ -47,8 +48,8 @@ typedef struct root_hub {
 	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];
 } uhci_root_hub_t;
 
-int uhci_root_hub_init(
-    uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh);
+int uhci_root_hub_init(uhci_root_hub_t *instance, addr_range_t *regs,
+    ddf_dev_t *rh);
 
 void uhci_root_hub_fini(uhci_root_hub_t *instance);
 #endif

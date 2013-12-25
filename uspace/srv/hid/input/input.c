@@ -469,10 +469,7 @@ static void mouse_add_legacy_devs(void)
 static void kbd_devs_yield(void)
 {
 	/* For each keyboard device */
-	list_foreach(kbd_devs, kdev_link) {
-		kbd_dev_t *kdev = list_get_instance(kdev_link, kbd_dev_t,
-		    kbd_devs);
-		
+	list_foreach(kbd_devs, kbd_devs, kbd_dev_t, kdev) {
 		/* Yield port */
 		if (kdev->port_ops != NULL)
 			(*kdev->port_ops->yield)();
@@ -482,10 +479,7 @@ static void kbd_devs_yield(void)
 static void kbd_devs_reclaim(void)
 {
 	/* For each keyboard device */
-	list_foreach(kbd_devs, kdev_link) {
-		kbd_dev_t *kdev = list_get_instance(kdev_link, kbd_dev_t,
-		    kbd_devs);
-		
+	list_foreach(kbd_devs, kbd_devs, kbd_dev_t, kdev) {
 		/* Reclaim port */
 		if (kdev->port_ops != NULL)
 			(*kdev->port_ops->reclaim)();
@@ -520,9 +514,7 @@ static int dev_check_new_kbdevs(void)
 		already_known = false;
 		
 		/* Determine whether we already know this device. */
-		list_foreach(kbd_devs, kdev_link) {
-			kbd_dev_t *kdev = list_get_instance(kdev_link,
-			    kbd_dev_t, kbd_devs);
+		list_foreach(kbd_devs, kbd_devs, kbd_dev_t, kdev) {
 			if (kdev->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -573,9 +565,7 @@ static int dev_check_new_mousedevs(void)
 		already_known = false;
 		
 		/* Determine whether we already know this device. */
-		list_foreach(mouse_devs, mdev_link) {
-			mouse_dev_t *mdev = list_get_instance(mdev_link,
-			    mouse_dev_t, mouse_devs);
+		list_foreach(mouse_devs, mouse_devs, mouse_dev_t, mdev) {
 			if (mdev->svc_id == svcs[i]) {
 				already_known = true;
 				break;

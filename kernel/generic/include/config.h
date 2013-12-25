@@ -36,25 +36,16 @@
 #define KERN_CONFIG_H_
 
 #include <arch/mm/page.h>
+#include <macros.h>
 
-#define ONE_FRAME    0
-#define TWO_FRAMES   1
-#define FOUR_FRAMES  2
+#define STACK_FRAMES  2
+#define STACK_SIZE    FRAMES2SIZE(STACK_FRAMES)
 
-#define STACK_FRAMES  TWO_FRAMES
-#define STACK_SIZE    ((1 << STACK_FRAMES) << PAGE_WIDTH)
-
-#define STACK_SIZE_USER	(1 * 1024 * 1024)
+#define STACK_SIZE_USER  (1 * 1024 * 1024)
 
 #define CONFIG_INIT_TASKS        32
 #define CONFIG_TASK_NAME_BUFLEN  32
 #define CONFIG_TASK_ARGUMENTS_BUFLEN 64
-
-/**
- * Maximum buffer size allowed for IPC_M_DATA_WRITE and IPC_M_DATA_READ
- * requests.
- */
-#define DATA_XFER_LIMIT  (64 * 1024)
 
 #ifndef __ASM__
 
@@ -96,15 +87,15 @@ typedef struct {
 	uintptr_t stack_base;
 	/** Size of initial stack. */
 	size_t stack_size;
-
+	
 	bool identity_configured;
 	/** Base address of the kernel identity mapped memory. */
 	uintptr_t identity_base;
 	/** Size of the kernel identity mapped memory. */
 	size_t identity_size;
-
-	bool non_identity_configured;   
-
+	
+	bool non_identity_configured;
+	
 	/** End of physical memory. */
 	uint64_t physmem_end;
 } config_t;

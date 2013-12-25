@@ -79,6 +79,9 @@ endif
 		file_name="`basename "$$file"`" ; \
 		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/$$file_name.dev" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
 	done
+	if ls $(DIST_OVERLAY_PATH)/* >/dev/null; then \
+		cp -r -L $(DIST_OVERLAY_PATH)/* "$(DIST_PATH)"; \
+	fi
 
 clean: clean_dist
 	$(MAKE) -f $(BUILD) clean PRECHECK=$(PRECHECK)
@@ -93,7 +96,7 @@ clean_dist:
 	rm -f $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
-	rm -f $(USPACE_PATH)/dist/lib/*
+	rm -rf $(USPACE_PATH)/dist/lib/*
 	rm -rf $(USPACE_PATH)/dist/inc/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

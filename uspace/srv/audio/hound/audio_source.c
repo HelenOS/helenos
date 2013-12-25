@@ -105,8 +105,7 @@ int audio_source_push_data(audio_source_t *source, const void *data,
 	if (!adata)
 		return ENOMEM;
 
-	list_foreach(source->connections, it) {
-		connection_t *conn = connection_from_source_list(it);
+	list_foreach(source->connections, source_link, connection_t, conn) {
 		const int ret = connection_push_data(conn, adata);
 		if (ret != EOK) {
 			log_warning("Failed push data to %s: %s",

@@ -62,7 +62,7 @@ int posix_atexit(void (*func)(void))
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
-	return 1;
+	return 0;
 }
 
 /**

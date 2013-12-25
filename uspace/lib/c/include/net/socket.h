@@ -56,7 +56,7 @@ extern int listen(int, int);
 extern int accept(int, struct sockaddr *, socklen_t *);
 extern int connect(int, const struct sockaddr *, socklen_t);
 extern int closesocket(int);
-extern int send(int, void *, size_t, int);
+extern int send(int, const void *, size_t, int);
 extern int sendto(int, const void *, size_t, int, const struct sockaddr *,
     socklen_t);
 extern ssize_t recv(int, void *, size_t, int);

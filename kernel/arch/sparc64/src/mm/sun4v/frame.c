@@ -100,6 +100,9 @@ void frame_low_arch_init(void)
 	 * here, no matter what is its address.
 	 */
 	frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
+
+	/* PA2KA will work only on low-memory. */
+	end_of_identity = PA2KA(config.physmem_end - FRAME_SIZE) + PAGE_SIZE;
 }
 
 void frame_high_arch_init(void)

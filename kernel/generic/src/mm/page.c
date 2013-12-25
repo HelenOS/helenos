@@ -168,7 +168,7 @@ void page_mapping_make_global(uintptr_t base, size_t size)
 	return page_mapping_operations->mapping_make_global(base, size);
 }
 
-int page_find_mapping(uintptr_t virt, void **phys)
+int page_find_mapping(uintptr_t virt, uintptr_t *phys)
 {
 	page_table_lock(AS, true);
 	
@@ -178,7 +178,7 @@ int page_find_mapping(uintptr_t virt, void **phys)
 		return ENOENT;
 	}
 	
-	*phys = (void *) PTE_GET_FRAME(pte) +
+	*phys = PTE_GET_FRAME(pte) +
 	    (virt - ALIGN_DOWN(virt, PAGE_SIZE));
 	
 	page_table_unlock(AS, true);
@@ -192,9 +192,9 @@ int page_find_mapping(uintptr_t virt, void **phys)
  * @return ENOENT if no virtual address mapping found.
  *
  */
-sysarg_t sys_page_find_mapping(uintptr_t virt, void *phys_ptr)
+sysarg_t sys_page_find_mapping(uintptr_t virt, uintptr_t *phys_ptr)
 {
-	void *phys;
+	uintptr_t phys;
 	int rc = page_find_mapping(virt, &phys);
 	if (rc != EOK)
 		return rc;

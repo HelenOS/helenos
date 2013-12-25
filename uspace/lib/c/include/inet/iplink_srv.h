@@ -38,7 +38,6 @@
 #include <async.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
-#include <sys/types.h>
 #include <inet/addr.h>
 #include <inet/iplink.h>
 
@@ -66,7 +65,7 @@ typedef struct iplink_ops {
 extern void iplink_srv_init(iplink_srv_t *);
 
 extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
-extern int iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, uint16_t);
+extern int iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, ip_ver_t);
 
 #endif
 

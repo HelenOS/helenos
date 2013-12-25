@@ -41,7 +41,6 @@
 #include <ipc/loc.h>
 #include <stdlib.h>
 #include <str.h>
-#include <net/socket_codes.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
@@ -114,10 +113,7 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
 	fibril_mutex_lock(&addr_list_lock);
 	
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *naddr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-		
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		switch (find) {
 		case iaf_net:
 			if (inet_naddr_compare_mask(&naddr->naddr, addr)) {
@@ -157,10 +153,7 @@ static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *name, inet_l
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked('%s', '%s')",
 	    name, ilink->svc_name);
 
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *naddr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		if (naddr->ilink == ilink && str_cmp(naddr->name, name) == 0) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find_by_name_locked: found %p",
 			    naddr);
@@ -205,10 +198,7 @@ inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
 
 	fibril_mutex_lock(&addr_list_lock);
 
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *naddr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		if (naddr->id == id) {
 			fibril_mutex_unlock(&addr_list_lock);
 			return naddr;
@@ -226,37 +216,40 @@ int inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 {
 	inet_addr_t lsrc_addr;
 	inet_naddr_addr(&addr->naddr, &lsrc_addr);
-	
+
 	addr32_t lsrc_v4;
 	addr128_t lsrc_v6;
-	uint16_t lsrc_af = inet_addr_get(&lsrc_addr, &lsrc_v4, &lsrc_v6);
-	
+	ip_ver_t lsrc_ver = inet_addr_get(&lsrc_addr, &lsrc_v4, &lsrc_v6);
+
 	addr32_t ldest_v4;
 	addr128_t ldest_v6;
-	uint16_t ldest_af = inet_addr_get(ldest, &ldest_v4, &ldest_v6);
-	
-	if (lsrc_af != ldest_af)
+	ip_ver_t ldest_ver = inet_addr_get(ldest, &ldest_v4, &ldest_v6);
+
+	if (lsrc_ver != ldest_ver)
 		return EINVAL;
-	
+
 	int rc;
 	addr48_t ldest_mac;
-	
-	switch (ldest_af) {
-	case AF_INET:
+
+	switch (ldest_ver) {
+	case ip_v4:
 		return inet_link_send_dgram(addr->ilink, lsrc_v4, ldest_v4,
 		    dgram, proto, ttl, df);
-	case AF_INET6:
+	case ip_v6:
 		/*
 		 * Translate local destination IPv6 address.
 		 */
 		rc = ndp_translate(lsrc_v6, ldest_v6, ldest_mac, addr->ilink);
 		if (rc != EOK)
 			return rc;
-		
+
 		return inet_link_send_dgram6(addr->ilink, ldest_mac, dgram,
 		    proto, ttl, df);
+	default:
+		assert(false);
+		break;
 	}
-	
+
 	return ENOTSUP;
 }
 
@@ -276,10 +269,7 @@ int inet_addrobj_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	}
 
 	i = 0;
-	list_foreach(addr_list, link) {
-		inet_addrobj_t *addr = list_get_instance(link,
-		    inet_addrobj_t, addr_list);
-
+	list_foreach(addr_list, addr_list, inet_addrobj_t, addr) {
 		id_list[i++] = addr->id;
 	}
 

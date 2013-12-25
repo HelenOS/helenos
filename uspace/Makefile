@@ -37,9 +37,11 @@ DIRS = \
 	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
+	app/corecfg \
 	app/devctl \
 	app/dnscfg \
 	app/dnsres \
+	app/download \
 	app/edit \
 	app/getterm \
 	app/hdisk \
@@ -66,20 +68,23 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/untar \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \
+	app/netspeed \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
 	app/date \
 	app/vdemo \
+	app/viewer \
 	app/vlaunch \
 	app/vterm \
+	app/df \
 	app/wavplay \
 	app/websrv \
 	srv/audio/hound \
@@ -88,10 +93,12 @@ DIRS = \
 	srv/logger \
 	srv/devman \
 	srv/loader \
+	srv/net/dhcp \
 	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
+	srv/net/nconfsrv \
 	srv/net/slip \
 	srv/net/tcp \
 	srv/net/udp \
@@ -119,6 +126,7 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	srv/hid/rfb \
 	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
@@ -188,6 +196,13 @@ ifeq ($(UARCH),ia32)
 		srv/hw/irc/i8259
 endif
 
+ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
+	DIRS += \
+		drv/infrastructure/rootmalta \
+		drv/bus/pci/pciintel \
+		drv/bus/isa
+endif
+
 ifeq ($(UARCH),ppc32)
 	DIRS += \
 		drv/infrastructure/rootmac \
@@ -222,11 +237,14 @@ LIBS = \
 	lib/graph \
 	lib/gui \
 	lib/hound \
+	lib/http \
 	lib/softrend \
 	lib/draw \
+	lib/math \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
+	lib/uri \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \

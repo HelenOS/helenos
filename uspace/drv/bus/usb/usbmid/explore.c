@@ -55,8 +55,7 @@ static ddf_dev_ops_t mid_device_ops = {
  */
 static bool interface_in_list(const list_t *list, int interface_no)
 {
-	list_foreach(*list, l) {
-		usbmid_interface_t *iface = usbmid_interface_from_link(l);
+	list_foreach(*list, link, usbmid_interface_t, iface) {
 		if (iface->interface_no == interface_no) {
 			return true;
 		}
@@ -189,9 +188,7 @@ bool usbmid_explore_device(usb_device_t *dev)
 	    &usb_mid->interface_list);
 
 	/* Start child function for every interface. */
-	list_foreach(usb_mid->interface_list, link) {
-		usbmid_interface_t *iface = usbmid_interface_from_link(link);
-
+	list_foreach(usb_mid->interface_list, link, usbmid_interface_t, iface) {
 		usb_log_info("Creating child for interface %d (%s).\n",
 		    iface->interface_no,
 		    usb_str_class(iface->interface->interface_class));

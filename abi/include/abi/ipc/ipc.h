@@ -59,6 +59,12 @@
 /** Interrupt notification */
 #define IPC_CALL_NOTIF  (1 << 3)
 
+/**
+ * Maximum buffer size allowed for IPC_M_DATA_WRITE and
+ * IPC_M_DATA_READ requests.
+ */
+#define DATA_XFER_LIMIT  (64 * 1024)
+
 
 /** Bits used in call hashes.
  *

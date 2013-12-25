@@ -34,6 +34,7 @@
 
 #include <futex.h>
 #include <atomic.h>
+#include <libarch/barrier.h>
 #include <libc.h>
 #include <sys/types.h>
 
@@ -58,7 +59,12 @@ void futex_initialize(futex_t *futex, int val)
  */
 int futex_trydown(futex_t *futex)
 {
-	return cas(futex, 1, 0);
+	int rc;
+
+	rc = cas(futex, 1, 0);
+	CS_ENTER_BARRIER();
+
+	return rc;
 }
 
 /** Down the futex.
@@ -72,7 +78,11 @@ int futex_trydown(futex_t *futex)
  */
 int futex_down(futex_t *futex)
 {
-	if ((atomic_signed_t) atomic_predec(futex) < 0)
+	atomic_signed_t nv;
+
+	nv = (atomic_signed_t) atomic_predec(futex);
+	CS_ENTER_BARRIER();
+	if (nv < 0)
 		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count);
 	
 	return 0;
@@ -88,6 +98,8 @@ int futex_down(futex_t *futex)
  */
 int futex_up(futex_t *futex)
 {
+	CS_LEAVE_BARRIER();
+
 	if ((atomic_signed_t) atomic_postinc(futex) < 0)
 		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->count);
 	

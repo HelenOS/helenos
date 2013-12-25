@@ -73,10 +73,7 @@ static void print_mtab_list(void)
 
 	get_mtab_list(&mtab_list);
 
-	list_foreach(mtab_list, cur) {
-		mtab_ent_t *mtab_ent = list_get_instance(cur, mtab_ent_t,
-		    link);
-
+	list_foreach(mtab_list, link, mtab_ent_t, mtab_ent) {
 		if (old_ent)
 			free(old_ent);
 

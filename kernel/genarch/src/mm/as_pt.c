@@ -72,16 +72,14 @@ as_operations_t as_pt_operations = {
  */
 pte_t *ptl0_create(unsigned int flags)
 {
-	pte_t *dst_ptl0 = (pte_t *) frame_alloc(PTL0_SIZE,
-	    FRAME_LOWMEM | FRAME_KA);
-	size_t table_size = FRAME_SIZE << PTL0_SIZE;
+	pte_t *dst_ptl0 = (pte_t *)
+	    PA2KA(frame_alloc(PTL0_FRAMES, FRAME_LOWMEM, PTL0_SIZE - 1));
 	
 	if (flags & FLAG_AS_KERNEL)
-		memsetb(dst_ptl0, table_size, 0);
+		memsetb(dst_ptl0, PTL0_SIZE, 0);
 	else {
 		/*
 		 * Copy the kernel address space portion to new PTL0.
-		 *
 		 */
 		
 		mutex_lock(&AS_KERNEL->lock);
@@ -94,9 +92,9 @@ pte_t *ptl0_create(unsigned int flags)
 		uintptr_t dst = (uintptr_t)
 		    &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 		
-		memsetb(dst_ptl0, table_size, 0);
+		memsetb(dst_ptl0, PTL0_SIZE, 0);
 		memcpy((void *) dst, (void *) src,
-		    table_size - (src - (uintptr_t) src_ptl0));
+		    PTL0_SIZE - (src - (uintptr_t) src_ptl0));
 		
 		mutex_unlock(&AS_KERNEL->lock);
 	}
@@ -113,7 +111,7 @@ pte_t *ptl0_create(unsigned int flags)
  */
 void ptl0_destroy(pte_t *page_table)
 {
-	frame_free((uintptr_t) page_table);
+	frame_free((uintptr_t) page_table, PTL0_FRAMES);
 }
 
 /** Lock page tables.

@@ -37,6 +37,7 @@
 
 #include <ddf/driver.h>
 #include <ops/hw_res.h>
+#include <ops/pio_window.h>
 
 /** DDF support structure for uhci_rhd driver, provides I/O resources */
 typedef struct rh {
@@ -44,10 +45,11 @@ typedef struct rh {
 	hw_resource_list_t resource_list;
 	/** The only resource in the RH resource list */
 	hw_resource_t io_regs;
+	/** PIO window in which the RH will operate. */
+	pio_window_t pio_window;	
 } rh_t;
 
-int rh_init(
-    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
+extern int rh_init(rh_t *, ddf_fun_t *, addr_range_t *, uintptr_t, size_t);
 
 #endif
 /**

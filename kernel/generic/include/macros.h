@@ -116,6 +116,13 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 #define PA_OVERLAPS(x, szx, y, szy) \
 	overlaps(KA2PA((x)), (szx), KA2PA((y)), (szy))
 
+#define PFN2ADDR(frame)  ((frame) << FRAME_WIDTH)
+#define ADDR2PFN(addr)   ((addr) >> FRAME_WIDTH)
+
+#define FRAMES2SIZE(frames)  ((frames) << FRAME_WIDTH)
+#define SIZE2FRAMES(size) \
+	(((size) == 0) ? 0 : ((((size) - 1) >> FRAME_WIDTH) + 1))
+
 #define KiB2SIZE(kb)  ((kb) << 10)
 #define MiB2SIZE(mb)  ((mb) << 20)
 

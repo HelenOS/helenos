@@ -52,7 +52,6 @@
 #include <debug.h>
 #include <func.h>
 #include <str.h>
-#include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
 #include <symtab.h>
@@ -118,9 +117,7 @@ bool cmd_register(cmd_info_t *cmd)
 	/*
 	 * Make sure the command is not already listed.
 	 */
-	list_foreach(cmd_list, cur) {
-		cmd_info_t *hlp = list_get_instance(cur, cmd_info_t, link);
-		
+	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		if (hlp == cmd) {
 			/* The command is already there. */
 			spinlock_unlock(&cmd_lock);
@@ -612,8 +609,7 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 	
 	cmd_info_t *cmd = NULL;
 	
-	list_foreach(cmd_list, cur) {
-		cmd_info_t *hlp = list_get_instance(cur, cmd_info_t, link);
+	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
 		
 		if (str_lcmp(hlp->name, cmdline + start,

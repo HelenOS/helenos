@@ -178,9 +178,7 @@ void process_pending_wait(void)
 	task_exit_t texit;
 	
 loop:
-	list_foreach(pending_wait, cur) {
-		pending_wait_t *pr = list_get_instance(cur, pending_wait_t, link);
-		
+	list_foreach(pending_wait, link, pending_wait_t, pr) {
 		ht_link_t *link = hash_table_find(&task_hash_table, &pr->id);
 		if (!link)
 			continue;
@@ -197,7 +195,7 @@ loop:
 		}
 		
 		hash_table_remove(&task_hash_table, &pr->id);
-		list_remove(cur);
+		list_remove(&pr->link);
 		free(pr);
 		goto loop;
 	}

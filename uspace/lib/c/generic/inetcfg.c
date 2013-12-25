@@ -266,6 +266,16 @@ int inetcfg_get_sroute_list(sysarg_t **sroutes, size_t *count)
 	    0, sroutes, count);
 }
 
+int inetcfg_link_add(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	int rc = async_req_1_0(exch, INETCFG_LINK_ADD, link_id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 {
 	ipc_call_t dreply;
@@ -278,11 +288,12 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_LINK_GET, link_id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
+	int rc = async_data_read_start(exch, &linfo->mac_addr, sizeof(addr48_t));
 	async_wait_for(dreq, &dretval);
 
 	async_exchange_end(exch);
 
-	if (dretval != EOK) {
+	if (dretval != EOK || rc != EOK) {
 		async_forget(req);
 		return dretval;
 	}
@@ -301,6 +312,16 @@ int inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	linfo->def_mtu = IPC_GET_ARG1(answer);
 
 	return EOK;
+}
+
+int inetcfg_link_remove(sysarg_t link_id)
+{
+	async_exch_t *exch = async_exchange_begin(inetcfg_sess);
+
+	int rc = async_req_1_0(exch, INETCFG_LINK_REMOVE, link_id);
+	async_exchange_end(exch);
+
+	return rc;
 }
 
 int inetcfg_sroute_create(const char *name, inet_naddr_t *dest,

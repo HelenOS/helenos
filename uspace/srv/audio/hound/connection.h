@@ -75,16 +75,6 @@ static inline connection_t * connection_from_source_list(link_t *l)
  * @param l link
  * @return pointer to a connection structure, NULL on failure.
  */
-static inline connection_t * connection_from_sink_list(link_t *l)
-{
-	return l ? list_get_instance(l, connection_t, sink_link) : NULL;
-}
-
-/**
- * List instance helper.
- * @param l link
- * @return pointer to a connection structure, NULL on failure.
- */
 static inline connection_t * connection_from_hound_list(link_t *l)
 {
 	return l ? list_get_instance(l, connection_t, hound_link) : NULL;

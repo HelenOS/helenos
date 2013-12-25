@@ -42,6 +42,7 @@ extern tcp_conn_t *tcp_conn_new(tcp_sock_t *, tcp_sock_t *);
 extern void tcp_conn_delete(tcp_conn_t *);
 extern void tcp_conn_add(tcp_conn_t *);
 extern void tcp_conn_remove(tcp_conn_t *);
+extern void tcp_conn_reset(tcp_conn_t *conn);
 extern void tcp_conn_sync(tcp_conn_t *);
 extern void tcp_conn_fin_sent(tcp_conn_t *);
 extern void tcp_conn_ack_of_fin_rcvd(tcp_conn_t *);
