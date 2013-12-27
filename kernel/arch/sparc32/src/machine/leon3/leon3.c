@@ -40,8 +40,8 @@
 
 #include <arch/machine/leon3/leon3.h>
 
-#include <genarch/drivers/grlib_uart/grlib_uart.h>
-#include <genarch/drivers/grlib_irqmp/grlib_irqmp.h>
+#include <genarch/drivers/grlib/uart.h>
+#include <genarch/drivers/grlib/irqmp.h>
 #include <genarch/srln/srln.h>
 
 #include <func.h>

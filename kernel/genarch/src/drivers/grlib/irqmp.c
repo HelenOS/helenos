@@ -31,52 +31,61 @@
  */
 /**
  * @file
- * @brief Gaisler GRLIB interrupt controller driver.
+ * @brief Gaisler GRLIB interrupt controller.
  */
 
-#ifndef KERN_GRLIB_IRQMP_H_
-#define KERN_GRLIB_IRQMP_H_
+#include <genarch/drivers/grlib/irqmp.h>
+#include <arch/asm.h>
+#include <mm/km.h>
 
-#include <typedefs.h>
-#include <arch.h>
+void grlib_irqmp_init(grlib_irqmp_t *irqc, bootinfo_t *bootinfo)
+{
+	irqc->regs = (void *) km_map(bootinfo->intc_base, PAGE_SIZE,
+	    PAGE_NOT_CACHEABLE);
+	
+	/* Mask all interrupts */
+	pio_write_32((void *) irqc->regs + GRLIB_IRQMP_MASK_OFFSET, 0x8);
+}
 
-#define GRLIB_IRQMP_MASK_OFFSET		0x40
-#define	GRLIB_IRQMP_FORCE_OFFSET	0x80
+int grlib_irqmp_inum_get(grlib_irqmp_t *irqc)
+{
+	uint32_t pending = pio_read_32(&irqc->regs->pending);
+	
+	for (unsigned int i = 1; i < 16; i++) {
+		if (pending & (1 << i))
+			return i;
+	}
+	
+	return -1;
+}
 
-/** IRQMP registers */
-typedef struct {
-	uint32_t level;
-	uint32_t pending;
-	uint32_t force;
-	uint32_t clear;
-	uint32_t mp_status;
-	uint32_t broadcast;
-} grlib_irqmp_regs_t;
+void grlib_irqmp_clear(grlib_irqmp_t *irqc, unsigned int inum)
+{
+	inum++;
+	pio_write_32(&irqc->regs->clear, (1 << inum));
+}
 
-/** LEON3 interrupt assignments */
-enum grlib_irq_source {
-	GRLIB_INT_AHBERROR	= 1,
-	GRLIB_INT_UART1		= 2,
-	GRLIB_INT_PCIDMA	= 4,
-	GRLIB_INT_CAN		= 5,
-	GRLIB_INT_TIMER0	= 6,
-	GRLIB_INT_TIMER1	= 7,
-	GRLIB_INT_TIMER2	= 8,
-	GRLIB_INT_TIMER3	= 9,
-	GRLIB_INT_ETHERNET	= 14
-};
+void grlib_irqmp_mask(grlib_irqmp_t *irqc, unsigned int src)
+{
+	uint32_t mask = pio_read_32((void *) irqc->regs +
+	    GRLIB_IRQMP_MASK_OFFSET);
+	
+	src++;
+	mask &= ~(1 << src);
+	
+	pio_write_32((void *) irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
+}
 
-typedef struct {
-	grlib_irqmp_regs_t *regs;
-} grlib_irqmp_t;
-
-extern void grlib_irqmp_init(grlib_irqmp_t *, bootinfo_t *);
-extern int grlib_irqmp_inum_get(grlib_irqmp_t *);
-extern void grlib_irqmp_clear(grlib_irqmp_t *, int);
-extern void grlib_irqmp_mask(grlib_irqmp_t *, int);
-extern void grlib_irqmp_unmask(grlib_irqmp_t *, int);
-
-#endif
+void grlib_irqmp_unmask(grlib_irqmp_t *irqc, unsigned int src)
+{
+	uint32_t mask = pio_read_32((void *) irqc->regs +
+	    GRLIB_IRQMP_MASK_OFFSET);
+	
+	src++;
+	mask |= (1 << src);
+	
+	pio_write_32((void *) irqc->regs + GRLIB_IRQMP_MASK_OFFSET, mask);
+}
 
 /** @}
  */

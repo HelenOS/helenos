@@ -36,7 +36,7 @@
  * @brief Gaisler GRLIB UART IP-Core driver.
  */
 
-#include <genarch/drivers/grlib_uart/grlib_uart.h>
+#include <genarch/drivers/grlib/uart.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <ddi/device.h>
@@ -49,24 +49,21 @@
 
 static void grlib_uart_sendb(outdev_t *dev, uint8_t byte)
 {
-	uint32_t reg;
 	grlib_uart_status_t *status;
-	grlib_uart_t *uart =
-	    (grlib_uart_t *) dev->data;
-
+	grlib_uart_t *uart = (grlib_uart_t *) dev->data;
+	
 	/* Wait for space becoming available in Tx FIFO. */
 	do {
-		reg = pio_read_32(&uart->io->status);
-		status = (grlib_uart_status_t *)&reg;
+		uint32_t reg = pio_read_32(&uart->io->status);
+		status = (grlib_uart_status_t *) &reg;
 	} while (status->tf != 0);
-
+	
 	pio_write_32(&uart->io->data, byte);
 }
 
 static void grlib_uart_putchar(outdev_t *dev, wchar_t ch)
 {
-	grlib_uart_t *uart =
-	    (grlib_uart_t *) dev->data;
+	grlib_uart_t *uart = (grlib_uart_t *) dev->data;
 	
 	if ((!uart->parea.mapped) || (console_override)) {
 		if (!ascii_check(ch)) {
@@ -74,6 +71,7 @@ static void grlib_uart_putchar(outdev_t *dev, wchar_t ch)
 		} else {
 			if (ch == '\n')
 				grlib_uart_sendb(dev, (uint8_t) '\r');
+			
 			grlib_uart_sendb(dev, (uint8_t) ch);
 		}
 	}
@@ -86,17 +84,15 @@ static irq_ownership_t grlib_uart_claim(irq_t *irq)
 
 static void grlib_uart_irq_handler(irq_t *irq)
 {
-	uint32_t reg;
 	grlib_uart_t *uart = irq->instance;
-	grlib_uart_status_t *status;
-
-	reg = pio_read_32(&uart->io->status);
-	status = (grlib_uart_status_t *)&reg;
-
+	
+	uint32_t reg = pio_read_32(&uart->io->status);
+	grlib_uart_status_t *status = (grlib_uart_status_t *) &reg;
+	
 	while (status->dr != 0) {
 		uint32_t data = pio_read_32(&uart->io->data);
 		reg = pio_read_32(&uart->io->status);
-		status = (grlib_uart_status_t *)&reg;
+		status = (grlib_uart_status_t *) &reg;
 		indev_push_character(uart->indev, data & 0xff);
 	}
 }
@@ -108,26 +104,23 @@ static outdev_operations_t grlib_uart_ops = {
 
 outdev_t *grlib_uart_init(uintptr_t paddr, inr_t inr)
 {
-	printf("grlib_uart_init: paddr=0x%08x\n", paddr);
-
 	outdev_t *uart_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!uart_dev)
 		return NULL;
-
-	grlib_uart_t *uart =
-	    malloc(sizeof(grlib_uart_t), FRAME_ATOMIC);
+	
+	grlib_uart_t *uart = malloc(sizeof(grlib_uart_t), FRAME_ATOMIC);
 	if (!uart) {
 		free(uart_dev);
 		return NULL;
 	}
-
+	
 	outdev_initialize("grlib_uart_dev", uart_dev, &grlib_uart_ops);
 	uart_dev->data = uart;
-
+	
 	uart->io = (grlib_uart_io_t *) km_map(paddr, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	uart->indev = NULL;
-
+	
 	/* Initialize IRQ structure. */
 	irq_initialize(&uart->irq);
 	uart->irq.devno = device_assign_devno();
@@ -135,15 +128,20 @@ outdev_t *grlib_uart_init(uintptr_t paddr, inr_t inr)
 	uart->irq.claim = grlib_uart_claim;
 	uart->irq.handler = grlib_uart_irq_handler;
 	uart->irq.instance = uart;
-
+	
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
-	grlib_uart_control_t control = 
-		{ .fa = 1, .rf = 1, .tf = 1, .ri = 1, 
-		  .te = 1, .re = 1};
-
-	uint32_t *reg = (uint32_t *)&control;
+	grlib_uart_control_t control = {
+		.fa = 1,
+		.rf = 1,
+		.tf = 1,
+		.ri = 1,
+		.te = 1,
+		.re = 1
+	};
+	
+	uint32_t *reg = (uint32_t *) &control;
 	pio_write_32(&uart->io->control, *reg);
-
+	
 	link_initialize(&uart->parea.link);
 	uart->parea.pbase = paddr;
 	uart->parea.frames = 1;
@@ -158,7 +156,7 @@ void grlib_uart_input_wire(grlib_uart_t *uart, indev_t *indev)
 {
 	ASSERT(uart);
 	ASSERT(indev);
-
+	
 	uart->indev = indev;
 	irq_register(&uart->irq);
 }

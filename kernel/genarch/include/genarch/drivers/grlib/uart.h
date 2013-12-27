@@ -96,7 +96,7 @@ typedef struct {
 	parea_t parea;
 } grlib_uart_t;
 
-extern outdev_t *grlib_uart_init(uintptr_t, inr_t inr);
+extern outdev_t *grlib_uart_init(uintptr_t, inr_t);
 extern void grlib_uart_input_wire(grlib_uart_t *,
     indev_t *);
 
