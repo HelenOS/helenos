@@ -59,8 +59,7 @@ static inline atomic_count_t atomic_get(atomic_t *val)
 #ifndef CAS
 static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 {
-// XXX	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-	return false;
+	return __sync_bool_compare_and_swap(&val->count, ov, nv);
 }
 #endif
 
