@@ -63,8 +63,6 @@
 #include <debug.h>
 #include <stacktrace.h>
 
-//#define	SCHEDULER_VERBOSE 1
-
 static void scheduler_separated_stack(void);
 
 atomic_t nrdy;  /**< Number of ready threads in the system. */
@@ -518,8 +516,8 @@ repeat:
 	THREAD->state = Running;
 	
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64 
-	    ", nrdy=%d)\n", CPU->id, THREAD->tid, THREAD->priority,
+	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
+	    ", nrdy=%" PRIua ")\n", CPU->id, THREAD->tid, THREAD->priority,
 	    THREAD->ticks, atomic_get(&CPU->nrdy));
 #endif
 	
