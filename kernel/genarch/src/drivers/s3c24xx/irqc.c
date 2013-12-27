@@ -36,7 +36,7 @@
  * This IRQC is present on the Samsung S3C24xx CPU (on the gta02 platform).
  */
 
-#include <genarch/drivers/s3c24xx_irqc/s3c24xx_irqc.h>
+#include <genarch/drivers/s3c24xx/irqc.h>
 #include <arch/asm.h>
 
 /** Correspondence between interrupt sources and sub-sources. */

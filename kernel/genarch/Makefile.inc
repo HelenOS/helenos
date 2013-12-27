@@ -96,12 +96,12 @@ endif
 
 ifeq ($(CONFIG_S3C24XX_IRQC),y)
 	GENARCH_SOURCES += \
-		genarch/src/drivers/s3c24xx_irqc/s3c24xx_irqc.c
+		genarch/src/drivers/s3c24xx/irqc.c
 endif
 
 ifeq ($(CONFIG_S3C24XX_UART),y)
 	GENARCH_SOURCES += \
-		genarch/src/drivers/s3c24xx_uart/s3c24xx_uart.c
+		genarch/src/drivers/s3c24xx/uart.c
 endif
 
 ifeq ($(CONFIG_OMAP_UART),y)

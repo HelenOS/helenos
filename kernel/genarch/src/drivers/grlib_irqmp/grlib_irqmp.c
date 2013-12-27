@@ -36,7 +36,6 @@
 
 #include <genarch/drivers/grlib_irqmp/grlib_irqmp.h>
 #include <arch/asm.h>
-
 #include <mm/km.h>
 
 void grlib_irqmp_init(grlib_irqmp_t *irqc, bootinfo_t *bootinfo)
