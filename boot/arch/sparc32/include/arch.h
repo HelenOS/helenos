@@ -29,32 +29,32 @@
 #ifndef BOOT_sparc32_ARCH_H
 #define BOOT_sparc32_ARCH_H
 
-#define	PTL0_ENTRIES	256
-#define	PTL0_SHIFT	24
-#define	PTL0_SIZE	(1 << 24)
-#define	PTL0_ENTRY_SIZE	4
+#define PTL0_ENTRIES     256
+#define PTL0_SHIFT       24
+#define PTL0_SIZE        (1 << 24)
+#define PTL0_ENTRY_SIZE  4
 
 /* ASI assignments: */
-#define	ASI_CACHEMISS	0x01
-#define	ASI_CACHECTRL	0x02
-#define	ASI_MMUREGS	0x19
-#define	ASI_MMUBYPASS	0x1c
+#define ASI_CACHEMISS  0x01
+#define ASI_CACHECTRL  0x02
+#define ASI_MMUREGS    0x19
+#define ASI_MMUBYPASS  0x1c
 
 /*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+ * Address where the boot stage image starts
+ * (beginning of usable physical memory).
  */
-#define BOOT_BASE	0x40000000
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
 
-#define PA_OFFSET 0x40000000
+#define BOOT_BASE   0x40000000
+#define BOOT_OFFSET (BOOT_BASE + 0xa00000)
+
+#define PA_OFFSET  0x40000000
 
 #ifndef __ASM__
 	#define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
 #else
 	#define PA2KA(addr)  ((addr) + PA_OFFSET)
 #endif
-
 
 #endif
 

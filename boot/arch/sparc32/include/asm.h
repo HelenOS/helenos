@@ -31,31 +31,33 @@
 
 #include <typedefs.h>
 
-static inline uint32_t asi_u32_read(int asi, uintptr_t va)
+extern uintptr_t boot_ctx_table;
+
+static inline uint32_t asi_u32_read(unsigned int asi, uintptr_t va)
 {
 	uint32_t v;
-
+	
 	asm volatile (
 		"lda [%[va]] %[asi], %[v]\n"
 		: [v] "=r" (v)
 		: [va] "r" (va),
-		  [asi] "i" ((unsigned int) asi)
+		  [asi] "i" (asi)
 	);
 	
 	return v;
 }
 
-static inline void asi_u32_write(int asi, uintptr_t va, uint32_t v)
+static inline void asi_u32_write(unsigned int asi, uintptr_t va, uint32_t v)
 {
 	asm volatile (
 		"sta %[v], [%[va]] %[asi]\n"
 		:: [v] "r" (v),
 		   [va] "r" (va),
-		   [asi] "i" ((unsigned int) asi)
+		   [asi] "i" (asi)
 		: "memory"
 	);
 }
 
-extern void jump_to_kernel(void *entry, bootinfo_t *bootinfo);
+extern void jump_to_kernel(void *, bootinfo_t *);
 
 #endif

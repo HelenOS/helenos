@@ -36,50 +36,50 @@
 #ifndef BOOT_sparc32_AMBAPP_H
 #define BOOT_sparc32_AMBAPP_H
 
-#define	AMBAPP_MAX_DEVICES	64
-#define	AMBAPP_AHBMASTER_AREA	0xfffff000
-#define	AMBAPP_AHBSLAVE_AREA	0xfffff800
-#define	AMBAPP_CONF_AREA	0xff000
+#define AMBAPP_MAX_DEVICES     64
+#define AMBAPP_AHBMASTER_AREA  0xfffff000
+#define AMBAPP_AHBSLAVE_AREA   0xfffff800
+#define AMBAPP_CONF_AREA       0xff000
 
 typedef enum {
-	GAISLER			= 1,
-	ESA			= 4
+	GAISLER = 1,
+	ESA = 4
 } amba_vendor_id_t;
 
 typedef enum {
-	GAISLER_LEON3    	= 0x003,
-	GAISLER_LEON3DSU 	= 0x004,
-	GAISLER_ETHAHB   	= 0x005,
-	GAISLER_APBMST   	= 0x006,
-	GAISLER_AHBUART  	= 0x007,
-	GAISLER_SRCTRL   	= 0x008,
-	GAISLER_SDCTRL   	= 0x009,
-	GAISLER_APBUART  	= 0x00C,
-	GAISLER_IRQMP    	= 0x00D,
-	GAISLER_AHBRAM   	= 0x00E,
-	GAISLER_GPTIMER  	= 0x011,
-	GAISLER_PCITRG   	= 0x012,
-	GAISLER_PCISBRG  	= 0x013,
-	GAISLER_PCIFBRG  	= 0x014,
-	GAISLER_PCITRACE 	= 0x015,
-	GAISLER_PCIDMA   	= 0x016,
-	GAISLER_AHBTRACE 	= 0x017,
-	GAISLER_ETHDSU   	= 0x018,
-	GAISLER_PIOPORT  	= 0x01A,
-	GAISLER_AHBJTAG  	= 0x01c,
-	GAISLER_SPW      	= 0x01f,
-	GAISLER_ATACTRL  	= 0x024,
-	GAISLER_VGA      	= 0x061,
-	GAISLER_KBD      	= 0x060,
-	GAISLER_ETHMAC   	= 0x01D,
-	GAISLER_DDRSPA   	= 0x025,
-	GAISLER_EHCI     	= 0x026,
-	GAISLER_UHCI     	= 0x027,
-	GAISLER_SPW2     	= 0x029,
-	GAISLER_DDR2SPA  	= 0x02E,
-	GAISLER_AHBSTAT  	= 0x052,
-	GAISLER_FTMCTRL  	= 0x054,
-	ESA_MCTRL		= 0x00F,
+	GAISLER_LEON3    = 0x003,
+	GAISLER_LEON3DSU = 0x004,
+	GAISLER_ETHAHB   = 0x005,
+	GAISLER_APBMST   = 0x006,
+	GAISLER_AHBUART  = 0x007,
+	GAISLER_SRCTRL   = 0x008,
+	GAISLER_SDCTRL   = 0x009,
+	GAISLER_APBUART  = 0x00c,
+	GAISLER_IRQMP    = 0x00d,
+	GAISLER_AHBRAM   = 0x00e,
+	GAISLER_GPTIMER  = 0x011,
+	GAISLER_PCITRG   = 0x012,
+	GAISLER_PCISBRG  = 0x013,
+	GAISLER_PCIFBRG  = 0x014,
+	GAISLER_PCITRACE = 0x015,
+	GAISLER_PCIDMA   = 0x016,
+	GAISLER_AHBTRACE = 0x017,
+	GAISLER_ETHDSU   = 0x018,
+	GAISLER_PIOPORT  = 0x01a,
+	GAISLER_AHBJTAG  = 0x01c,
+	GAISLER_SPW      = 0x01f,
+	GAISLER_ATACTRL  = 0x024,
+	GAISLER_VGA      = 0x061,
+	GAISLER_KBD      = 0x060,
+	GAISLER_ETHMAC   = 0x01d,
+	GAISLER_DDRSPA   = 0x025,
+	GAISLER_EHCI     = 0x026,
+	GAISLER_UHCI     = 0x027,
+	GAISLER_SPW2     = 0x029,
+	GAISLER_DDR2SPA  = 0x02e,
+	GAISLER_AHBSTAT  = 0x052,
+	GAISLER_FTMCTRL  = 0x054,
+	ESA_MCTRL        = 0x00f,
 } amba_device_id_t;
 
 typedef struct {
@@ -108,57 +108,57 @@ typedef struct {
 } amba_device_t;
 
 typedef struct {
-	unsigned int addr: 12;
-	unsigned int reserved: 2;
-	unsigned int prefetchable: 1;
-	unsigned int cacheable: 1;
-	unsigned int mask: 12;
-	unsigned int type: 4;
+	unsigned int addr : 12;
+	unsigned int reserved : 2;
+	unsigned int prefetchable : 1;
+	unsigned int cacheable : 1;
+	unsigned int mask : 12;
+	unsigned int type : 4;
 } __attribute__((packed)) ambapp_bar_t;
 
 typedef struct {
-	unsigned int vendor_id: 8;
-	unsigned int device_id: 24;
-	unsigned int reserved: 2;
-	unsigned int version: 5;
-	unsigned int irq: 5;
+	unsigned int vendor_id : 8;
+	unsigned int device_id : 24;
+	unsigned int reserved : 2;
+	unsigned int version : 5;
+	unsigned int irq : 5;
 	uint32_t user_defined[3];
 	ambapp_bar_t bar[4];
 } __attribute__((packed)) ambapp_entry_t;
 
 typedef struct {
-	unsigned int ram_read_ws: 1;
-	unsigned int ram_write_ws: 1;
-	unsigned int ram_width: 2;
-	unsigned int rmw: 1;
-	unsigned int rbrdy: 1;
+	unsigned int ram_read_ws : 1;
+	unsigned int ram_write_ws : 1;
+	unsigned int ram_width : 2;
+	unsigned int rmw : 1;
+	unsigned int rbrdy : 1;
 	unsigned int : 1;
-	unsigned int bank_size: 4;
-	unsigned int si: 1;
-	unsigned int se: 1;
+	unsigned int bank_size : 4;
+	unsigned int si : 1;
+	unsigned int se : 1;
 	unsigned int : 1;
-	unsigned int ms: 1;
+	unsigned int ms : 1;
 	unsigned int : 1;
-	unsigned int d64: 1;
-	unsigned int sdram_cmd: 2;
-	unsigned int sdram_colsz: 2;
-	unsigned int sdram_banksz: 3;
-	unsigned int tcas: 1;
-	unsigned int trfc: 3;
-	unsigned int trp: 1;
-	unsigned int sdrf: 1;
+	unsigned int d64 : 1;
+	unsigned int sdram_cmd : 2;
+	unsigned int sdram_colsz : 2;
+	unsigned int sdram_banksz : 3;
+	unsigned int tcas : 1;
+	unsigned int trfc : 3;
+	unsigned int trp : 1;
+	unsigned int sdrf : 1;
 } __attribute__((packed)) mctrl_mcfg2_t;
 
-amba_device_t amba_devices[AMBAPP_MAX_DEVICES];
-int amba_devices_found;
-bool amba_fake;
-uintptr_t amba_uart_base;
+extern amba_device_t amba_devices[AMBAPP_MAX_DEVICES];
+extern int amba_devices_found;
+extern bool amba_fake;
+extern uintptr_t amba_uart_base;
 
-void ambapp_scan(void);
-bool ambapp_fake(void);
-void ambapp_qemu_fake_scan(void);
-void ambapp_print_devices(void);
-amba_device_t *ambapp_lookup_first(amba_vendor_id_t, amba_device_id_t);
+extern void ambapp_scan(void);
+extern bool ambapp_fake(void);
+extern void ambapp_qemu_fake_scan(void);
+extern void ambapp_print_devices(void);
+extern amba_device_t *ambapp_lookup_first(amba_vendor_id_t, amba_device_id_t);
 
 #endif
 

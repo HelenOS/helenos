@@ -39,7 +39,7 @@ BFD_OUTPUT = $(BFD_NAME)
 BFD_ARCH = sparc
 
 BITS = 32
-ENDIANESS = LE
+ENDIANESS = BE
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

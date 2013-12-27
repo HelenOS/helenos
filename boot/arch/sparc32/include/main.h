@@ -34,11 +34,11 @@
  */
 
 #ifndef BOOT_sparc32_MAIN_H
-#define BOOT_sparc2_MAIN_H
+#define BOOT_sparc32_MAIN_H
 
 /** Address where characters to be printed are expected. */
-#define	APBUART_SCONS_THR	0x80000100
-#define	APBUART_SCONS_THR_MMU	0xb0000100
+#define APBUART_SCONS_THR      0x80000100
+#define APBUART_SCONS_THR_MMU  0xb0000100
 
 extern void bootstrap(void);
 

@@ -38,12 +38,12 @@
  * table.
  */
 
-#ifndef BOOT_sparc32__MM_H
-#define BOOT_sparc32__MM_H
+#ifndef BOOT_sparc32_MM_H
+#define BOOT_sparc32_MM_H
 
 #include <typedefs.h>
 
-#define	PAGE_SIZE	(1 << 12)
+#define PAGE_SIZE  (1 << 12)
 
 typedef struct {
 	uint32_t pa;
@@ -53,22 +53,22 @@ typedef struct {
 } section_mapping_t;
 
 typedef struct {
-	unsigned int ppn: 24;
-	unsigned int cacheable: 1;
-	unsigned int modified: 1;
-	unsigned int referenced: 1;
-	unsigned int acc: 3;
-	unsigned int et: 2;
+	unsigned int ppn : 24;
+	unsigned int cacheable : 1;
+	unsigned int modified : 1;
+	unsigned int referenced : 1;
+	unsigned int acc : 3;
+	unsigned int et : 2;
 } __attribute__((packed)) pte_t;
 
 extern pte_t boot_pt[PTL0_ENTRIES];
 
-void mmu_init(void);
+extern void mmu_init(void);
 
-#define	PTE_ET_DESCRIPTOR	1
-#define	PTE_ET_ENTRY		2
-#define	PTE_ACC_RWX		3
-#define	MMU_CONTROL_EN		(1 << 0)
+#define PTE_ET_DESCRIPTOR  1
+#define PTE_ET_ENTRY       2
+#define PTE_ACC_RWX        3
+#define MMU_CONTROL_EN     (1 << 0)
 
 #endif
 

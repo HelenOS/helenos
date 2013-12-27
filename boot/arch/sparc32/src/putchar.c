@@ -46,7 +46,8 @@
 
 /** Send a byte to the LEON3 serial console.
  *
- * @param byte		Byte to send.
+ * @param byte Byte to send.
+ *
  */
 static void scons_sendb(uint8_t byte)
 {
@@ -55,13 +56,14 @@ static void scons_sendb(uint8_t byte)
 
 /** Display a character
  *
- * @param ch	Character to display
+ * @param ch Character to display
+ *
  */
 void putchar(const wchar_t ch)
 {
 	if (ch == '\n')
 		scons_sendb('\r');
-
+	
 	if (ascii_check(ch))
 		scons_sendb((uint8_t) ch);
 	else

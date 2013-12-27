@@ -49,8 +49,8 @@
 #include <errno.h>
 #include <inflate.h>
 
-#define	OFF2SEC(_addr)	((_addr) >> PTL0_SHIFT)
-#define	SEC2OFF(_sec)	((_sec) << PTL0_SHIFT)
+#define OFF2SEC(_addr)  ((_addr) >> PTL0_SHIFT)
+#define SEC2OFF(_sec)   ((_sec) << PTL0_SHIFT)
 
 static section_mapping_t mappings[] = {
 	{ 0x40000000, 0x3fffffff, 0x40000000, 1 },
@@ -59,18 +59,16 @@ static section_mapping_t mappings[] = {
 	{ 0, 0, 0, 0 },
 };
 
-extern uintptr_t boot_ctx_table;
-
-static void mmu_enable()
+static void mmu_enable(void)
 {
-	boot_ctx_table = ((uintptr_t)&boot_pt[0] >> 4) | PTE_ET_DESCRIPTOR;
-
+	boot_ctx_table = ((uintptr_t) &boot_pt[0] >> 4) | PTE_ET_DESCRIPTOR;
+	
 	/* Set Context Table Pointer register */
-	asi_u32_write(ASI_MMUREGS, 0x100, ((uint32_t)&boot_ctx_table) >> 4);
-
+	asi_u32_write(ASI_MMUREGS, 0x100, ((uint32_t) &boot_ctx_table) >> 4);
+	
 	/* Select context 0 */
 	asi_u32_write(ASI_MMUREGS, 0x200, 0);
-
+	
 	/* Enable MMU */
 	uint32_t cr = asi_u32_read(ASI_MMUREGS, 0x000);
 	cr |= 1;
@@ -84,21 +82,21 @@ static void mmu_disable()
 	asi_u32_write(ASI_MMUREGS, 0x000, cr);
 }
 
-void mmu_init()
+void mmu_init(void)
 {
 	mmu_disable();
-
-	for (int i = 0; mappings[i].size != 0; i++) {
-		int ptr = 0;
-		for (uint32_t sec = OFF2SEC(mappings[i].va); 
-		     sec < OFF2SEC(mappings[i].va + mappings[i].size);
-		     sec++) {
+	
+	for (unsigned int i = 0; mappings[i].size != 0; i++) {
+		unsigned int ptr = 0;
+		for (uint32_t sec = OFF2SEC(mappings[i].va);
+		    sec < OFF2SEC(mappings[i].va + mappings[i].size);
+		    sec++) {
 			boot_pt[sec].ppn = ((mappings[i].pa + SEC2OFF(ptr++)) >> 12) & 0xffffff;
 			boot_pt[sec].cacheable = mappings[i].cacheable;
 			boot_pt[sec].acc = PTE_ACC_RWX;
 			boot_pt[sec].et = PTE_ET_ENTRY;
 		}
 	}
-
+	
 	mmu_enable();
 }

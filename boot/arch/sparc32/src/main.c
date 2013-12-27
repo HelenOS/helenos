@@ -51,52 +51,53 @@
 #include <inflate.h>
 
 #define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
+
 static bootinfo_t bootinfo;
 
 void bootstrap(void)
 {
 	/* Initialize AMBA P&P device list */
 	ambapp_scan();
-
-	/* Look up for UART */
+	
+	/* Look for UART */
 	amba_device_t *uart = ambapp_lookup_first(GAISLER, GAISLER_APBUART);
 	amba_uart_base = uart->bars[0].start;
 	bootinfo.uart_base = amba_uart_base;
 	bootinfo.uart_irq = uart->irq;
-
-	/* Look up for IRQMP */
+	
+	/* Look for IRQMP */
 	amba_device_t *irqmp = ambapp_lookup_first(GAISLER, GAISLER_IRQMP);
 	bootinfo.intc_base = irqmp->bars[0].start;
-
-	/* Look up for timer */
+	
+	/* Look for timer */
 	amba_device_t *timer = ambapp_lookup_first(GAISLER, GAISLER_GPTIMER);
 	bootinfo.timer_base = timer->bars[0].start;
 	bootinfo.timer_irq = timer->irq;
 	
-	/* Lookp up for memory controller and obtain memory size */
-	if (ambapp_fake()) {
-		bootinfo.memsize = 64 * 1024 * 1024; // 64MB
-	} else {
+	/* Look for memory controller and obtain memory size */
+	if (!ambapp_fake()) {
 		amba_device_t *mctrl = ambapp_lookup_first(ESA, ESA_MCTRL);
-		volatile mctrl_mcfg2_t *mcfg2 = (volatile mctrl_mcfg2_t *)(mctrl->bars[0].start + 0x4);
+		volatile mctrl_mcfg2_t *mcfg2 = (volatile mctrl_mcfg2_t *)
+		    (mctrl->bars[0].start + 0x4);
 		bootinfo.memsize = (1 << (13 + mcfg2->bank_size));
-	}
+	} else
+		bootinfo.memsize = 64 * 1024 * 1024;
 	
 	/* Standard output is now initialized */
 	version_print();
-
+	
 	for (size_t i = 0; i < COMPONENTS; i++) {
 		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
 		    components[i].start, components[i].name, components[i].inflated,
 		    components[i].size);
 	}
-
+	
 	ambapp_print_devices();
-
-	printf("Memory size: %dMB\n", bootinfo.memsize >> 20);
-
+	
+	printf("Memory size: %u MB\n", bootinfo.memsize >> 20);
+	
 	mmu_init();
-
+	
 	void *dest[COMPONENTS];
 	size_t top = 0;
 	size_t cnt = 0;
@@ -115,7 +116,7 @@ void bootstrap(void)
 		}
 		
 		dest[i] = TOP2ADDR(top);
-
+		
 		top += components[i].inflated;
 		cnt++;
 	}
@@ -127,7 +128,7 @@ void bootstrap(void)
 		if (tail >= dest[i - 1]) {
 			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
 			    components[i].name, tail, dest[i - 1]);
-			for (;;);
+			halt();
 		}
 		
 		printf("%s ", components[i - 1].name);
@@ -136,10 +137,10 @@ void bootstrap(void)
 		    dest[i - 1], components[i - 1].inflated);
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d\n", components[i - 1].name, err);
-			for (;;);
+			halt();
 		}
 	}
-
+	
 	printf("Booting the kernel ... \n");
 	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
 }
