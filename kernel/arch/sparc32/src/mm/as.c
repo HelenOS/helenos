@@ -37,6 +37,8 @@
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 
+uintptr_t as_context_table;
+
 static ptd_t context_table[ASID_MAX_ARCH] __attribute__((aligned(1024)));
 
 void as_arch_init(void)

@@ -50,7 +50,7 @@ static void alloc_window_and_flush(void)
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	uintptr_t kstack;
-	uint32_t l1
+	uint32_t l1;
 	uint32_t l2;
 	
 	read_from_invalid(&kstack, &l1, &l2);

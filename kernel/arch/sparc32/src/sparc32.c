@@ -52,8 +52,8 @@
 #include <memstr.h>
 #include <str.h>
 
-static char memcpy_from_uspace_failover_address;
-static char memcpy_to_uspace_failover_address;
+char memcpy_from_uspace_failover_address;
+char memcpy_to_uspace_failover_address;
 static bootinfo_t machine_bootinfo;
 
 void arch_pre_main(void *unused, bootinfo_t *bootinfo)

@@ -44,6 +44,8 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
+#define FRAME_LOWPRIO  0
+
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x40000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x40000000))
 
@@ -67,10 +69,10 @@
 #define PTL3_ENTRIES_ARCH  64
 
 /* Page table sizes for each level. */
-#define PTL0_SIZE_ARCH  ONE_FRAME
-#define PTL1_SIZE_ARCH  0
-#define PTL2_SIZE_ARCH  ONE_FRAME
-#define PTL3_SIZE_ARCH  ONE_FRAME
+#define PTL0_FRAMES_ARCH  1
+#define PTL1_FRAMES_ARCH  0
+#define PTL2_FRAMES_ARCH  1
+#define PTL3_FRAMES_ARCH  1
 
 /* Macros calculating indices for each level. */
 #define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 24) & 0xffU)
