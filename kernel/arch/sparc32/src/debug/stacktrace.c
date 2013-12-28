@@ -93,5 +93,17 @@ bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
 	return false;
 }
 
+uintptr_t frame_pointer_get(void)
+{
+	// FIXME TODO
+	return 0;
+}
+
+uintptr_t program_counter_get(void)
+{
+	// FIXME TODO
+	return 0;
+}
+
 /** @}
  */
