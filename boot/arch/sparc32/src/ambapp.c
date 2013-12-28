@@ -49,6 +49,12 @@
 #include <str.h>
 #include <errno.h>
 
+uintptr_t amba_uart_base;
+
+static amba_device_t amba_devices[AMBAPP_MAX_DEVICES];
+static unsigned int amba_devices_found;
+static bool amba_fake;
+
 static void ambapp_scan_area(uintptr_t, unsigned int);
 
 void ambapp_scan()

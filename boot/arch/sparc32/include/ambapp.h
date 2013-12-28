@@ -149,9 +149,6 @@ typedef struct {
 	unsigned int sdrf : 1;
 } __attribute__((packed)) mctrl_mcfg2_t;
 
-extern amba_device_t amba_devices[AMBAPP_MAX_DEVICES];
-extern int amba_devices_found;
-extern bool amba_fake;
 extern uintptr_t amba_uart_base;
 
 extern void ambapp_scan(void);
