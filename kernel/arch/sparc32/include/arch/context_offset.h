@@ -30,28 +30,31 @@
 #ifndef KERN_sparc32_CONTEXT_OFFSET_H_
 #define KERN_sparc32_CONTEXT_OFFSET_H_
 
-#define OFFSET_SP       0
-#define OFFSET_PC       4
-#define OFFSET_I0       8
-#define OFFSET_I1       12
-#define OFFSET_I2       16
-#define OFFSET_I3       20
-#define OFFSET_I4       24
-#define OFFSET_I5	28
-#define OFFSET_FP       32
-#define OFFSET_I7       36
-#define OFFSET_L0       40
-#define OFFSET_L1       44
-#define OFFSET_L2       48
-#define OFFSET_L3       52
-#define OFFSET_L4       56
-#define OFFSET_L5       60
-#define OFFSET_L6       64
-#define OFFSET_L7       68
+#define OFFSET_SP  0
+#define OFFSET_PC  4
+#define OFFSET_I0  8
+#define OFFSET_I1  12
+#define OFFSET_I2  16
+#define OFFSET_I3  20
+#define OFFSET_I4  24
+#define OFFSET_I5  28
+#define OFFSET_FP  32
+#define OFFSET_I7  36
+#define OFFSET_L0  40
+#define OFFSET_L1  44
+#define OFFSET_L2  48
+#define OFFSET_L3  52
+#define OFFSET_L4  56
+#define OFFSET_L5  60
+#define OFFSET_L6  64
+#define OFFSET_L7  68
 
 #ifndef KERNEL
-# define OFFSET_TP      72
+
+#define OFFSET_TP  72
+
 #endif
+
 #ifdef __ASM__
 
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req

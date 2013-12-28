@@ -1,14 +1,16 @@
-#define	KERNEL_LOAD_ADDRESS 0x80a00000
+#define KERNEL_LOAD_ADDRESS  0x80a00000
 
 ENTRY(kernel_image_start)
 
 SECTIONS {
 	. = KERNEL_LOAD_ADDRESS;
+	
 	.text : {
 		ktext_start = .;
 		*(.text);
 		ktext_end = .;
 	}
+	
 	.data : {
 		kdata_start = .;
 		*(.data);                       /* initialized data */
@@ -29,6 +31,7 @@ SECTIONS {
 		symbol_table = .;
 		*(symtab.*);
 	}
+	
 	.sbss : {
 		*(.sbss);
 		*(.scommon);

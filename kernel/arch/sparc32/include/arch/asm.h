@@ -42,24 +42,18 @@
 
 NO_TRACE static inline void asm_delay_loop(uint32_t usec)
 {
+	// FIXME TODO
 }
 
 NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 {
-	/* On real hardware this should stop processing further
-	   instructions on the CPU (and possibly putting it into
-	   low-power mode) without any possibility of exitting
-	   this function. */
-	
+	// FIXME TODO
 	while (true);
 }
 
 NO_TRACE static inline void cpu_sleep(void)
 {
-	/* On real hardware this should put the CPU into low-power
-	   mode. However, the CPU is free to continue processing
-	   futher instructions any time. The CPU also wakes up
-	   upon an interrupt. */
+	// FIXME TODO
 }
 
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
@@ -67,116 +61,77 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 	*port = val;
 }
 
-/** Word to port
- *
- * Output word to port
- *
- * @param port Port to write to
- * @param val Value to write
- *
- */
 NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
 	*port = val;
 }
 
-/** Double word to port
- *
- * Output double word to port
- *
- * @param port Port to write to
- * @param val Value to write
- *
- */
 NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
 	*port = val;
 }
 
-/** Byte from port
- *
- * Get byte from port
- *
- * @param port Port to read from
- * @return Value read
- *
- */
 NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return *port;
 }
 
-/** Word from port
- *
- * Get word from port
- *
- * @param port Port to read from
- * @return Value read
- *
- */
 NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	return *port;
 }
 
-/** Double word from port
- *
- * Get double word from port
- *
- * @param port Port to read from
- * @return Value read
- *
- */
 NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	return *port;
 }
 
-NO_TRACE static inline uint32_t psr_read()
+NO_TRACE static inline uint32_t psr_read(void)
 {
 	uint32_t v;
-
+	
 	asm volatile (
 		"mov %%psr, %[v]\n"
 		: [v] "=r" (v)
-	);
-
-	return v;
-}
-
-NO_TRACE static inline uint32_t wim_read()
-{
-	uint32_t v;
-
-	asm volatile (
-		"mov %%wim, %[v]\n"
-		: [v] "=r" (v)
-	);
-
-	return v;
-}
-
-NO_TRACE static inline uint32_t asi_u32_read(int asi, uintptr_t va)
-{
-	uint32_t v;
-
-	asm volatile (
-		"lda [%[va]] %[asi], %[v]\n"
-		: [v] "=r" (v)
-		: [va] "r" (va),
-		  [asi] "i" ((unsigned int) asi)
 	);
 	
 	return v;
 }
 
-NO_TRACE static inline void asi_u32_write(int asi, uintptr_t va, uint32_t v)
+NO_TRACE static inline uint32_t wim_read(void)
+{
+	uint32_t v;
+	
+	asm volatile (
+		"mov %%wim, %[v]\n"
+		: [v] "=r" (v)
+	);
+	
+	return v;
+}
+
+NO_TRACE static inline uint32_t asi_u32_read(unsigned int asi, uintptr_t va)
+{
+	uint32_t v;
+	
+	asm volatile (
+		"lda [%[va]] %[asi], %[v]\n"
+		: [v] "=r" (v)
+		: [va] "r" (va),
+		  [asi] "i" (asi)
+	);
+	
+	return v;
+}
+
+NO_TRACE static inline void asi_u32_write(unsigned int asi, uintptr_t va,
+    uint32_t v)
 {
 	asm volatile (
 		"sta %[v], [%[va]] %[asi]\n"
 		:: [v] "r" (v),
 		   [va] "r" (va),
-		   [asi] "i" ((unsigned int) asi)
+		   [asi] "i" (asi)
 		: "memory"
 	);
 }
@@ -199,27 +154,29 @@ NO_TRACE static inline void wim_write(uint32_t wim)
 
 NO_TRACE static inline ipl_t interrupts_enable(void)
 {
-	ipl_t pil;
-
 	psr_reg_t psr;
 	psr.value = psr_read();
+	
+	ipl_t pil;
 	pil = psr.pil;
-	psr.pil = 0xf;
+	
+	psr.pil = 0x0f;
 	psr_write(psr.value);
-
+	
 	return pil;
 }
 
 NO_TRACE static inline ipl_t interrupts_disable(void)
 {
-	ipl_t pil;
-
 	psr_reg_t psr;
 	psr.value = psr_read();
+	
+	ipl_t pil;
 	pil = psr.pil;
+	
 	psr.pil = 0;
 	psr_write(psr.value);
-
+	
 	return pil;
 }
 

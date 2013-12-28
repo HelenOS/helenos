@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leproc
+/** @addtogroup sparc32proc
  * @{
  */
 /** @file
@@ -63,7 +63,7 @@ void thread_create_arch(thread_t *t)
 		t->arch.uspace_window_buffer = malloc(UWB_ASIZE, 0);
 	} else {
 		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
-
+		
 		/*
 		 * Mind the possible alignment of the userspace window buffer
 		 * belonging to a killed thread.

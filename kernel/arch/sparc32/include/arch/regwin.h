@@ -41,30 +41,28 @@
 #include <arch/arch.h>
 #include <align.h>
 
-#define	UWB_ALIGNMENT	1024
-
 /* Window Save Area offsets. */
-#define L0_OFFSET	0
-#define L1_OFFSET	4
-#define L2_OFFSET	8
-#define L3_OFFSET	12
-#define L4_OFFSET	16
-#define L5_OFFSET	20
-#define L6_OFFSET	24
-#define L7_OFFSET	28
-#define I0_OFFSET	32
-#define I1_OFFSET	36
-#define I2_OFFSET	40
-#define I3_OFFSET	44
-#define I4_OFFSET	48
-#define I5_OFFSET	52
-#define I6_OFFSET	56
-#define I7_OFFSET	60
+#define L0_OFFSET  0
+#define L1_OFFSET  4
+#define L2_OFFSET  8
+#define L3_OFFSET  12
+#define L4_OFFSET  16
+#define L5_OFFSET  20
+#define L6_OFFSET  24
+#define L7_OFFSET  28
+#define I0_OFFSET  32
+#define I1_OFFSET  36
+#define I2_OFFSET  40
+#define I3_OFFSET  44
+#define I4_OFFSET  48
+#define I5_OFFSET  52
+#define I6_OFFSET  56
+#define I7_OFFSET  60
 
-/* Uspace Window Buffer constants. */
-#define UWB_SIZE	((NWINDOWS - 1) * STACK_WINDOW_SAVE_AREA_SIZE)
-#define UWB_ALIGNMENT	1024
-#define UWB_ASIZE	ALIGN_UP(UWB_SIZE, UWB_ALIGNMENT)
+/* User space Window Buffer constants. */
+#define UWB_SIZE       ((NWINDOWS - 1) * STACK_WINDOW_SAVE_AREA_SIZE)
+#define UWB_ALIGNMENT  1024
+#define UWB_ASIZE      ALIGN_UP(UWB_SIZE, UWB_ALIGNMENT)
 
 #endif
 

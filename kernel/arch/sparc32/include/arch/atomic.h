@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_ATOMIC_H_
-#define KERN_abs32le_ATOMIC_H_
+#ifndef KERN_sparc32_ATOMIC_H_
+#define KERN_sparc32_ATOMIC_H_
 
 #include <typedefs.h>
 #include <arch/barrier.h>
@@ -46,9 +46,7 @@ NO_TRACE ATOMIC static inline void atomic_inc(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
+	// FIXME TODO
 	val->count++;
 }
 
@@ -57,9 +55,7 @@ NO_TRACE ATOMIC static inline void atomic_dec(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
+	// FIXME TODO
 	val->count--;
 }
 
@@ -68,9 +64,7 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	
@@ -83,9 +77,7 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	
@@ -100,9 +92,7 @@ NO_TRACE ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
     WRITES(&val->count)
     REQUIRES_EXTENT_MUTABLE(val)
 {
-	/* On real hardware the retrieving of the original
-	   value and storing 1 have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	val->count = 1;
@@ -113,6 +103,8 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
     WRITES(&val->count)
     REQUIRES_EXTENT_MUTABLE(val)
 {
+	// FIXME TODO
+	
 	do {
 		while (val->count);
 	} while (test_and_set(val));

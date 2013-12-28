@@ -37,37 +37,37 @@
 #ifndef KERN_sparc32_EXCEPTION_H_
 #define KERN_sparc32_EXCEPTION_H_
 
-#define TT_INSTRUCTION_ACCESS_EXCEPTION		0x01
-#define TT_INSTRUCTION_ACCESS_MMU_MISS		0x3c
-#define TT_INSTRUCTION_ACCESS_ERROR		0x21
-#define TT_ILLEGAL_INSTRUCTION			0x02
-#define TT_PRIVILEGED_INSTRUCTION		0x03
-#define TT_FP_DISABLED				0x08
-#define TT_DIVISION_BY_ZERO			0x2a
-#define TT_DATA_ACCESS_EXCEPTION		0x09
-#define TT_DATA_ACCESS_MMU_MISS			0x2c
-#define TT_DATA_ACCESS_ERROR			0x29
-#define TT_MEM_ADDRESS_NOT_ALIGNED		0x07
+#define TT_INSTRUCTION_ACCESS_EXCEPTION  0x01
+#define TT_ILLEGAL_INSTRUCTION           0x02
+#define TT_PRIVILEGED_INSTRUCTION        0x03
+#define TT_MEM_ADDRESS_NOT_ALIGNED       0x07
+#define TT_FP_DISABLED                   0x08
+#define TT_DATA_ACCESS_EXCEPTION         0x09
+#define TT_INSTRUCTION_ACCESS_ERROR      0x21
+#define TT_DATA_ACCESS_ERROR             0x29
+#define TT_DIVISION_BY_ZERO              0x2a
+#define TT_DATA_ACCESS_MMU_MISS          0x2c
+#define TT_INSTRUCTION_ACCESS_MMU_MISS   0x3c
 
 #ifndef __ASM__
 
-/*#include <arch/interrupt.h>*/
+extern void instruction_access_exception(int, istate_t *);
+extern void instruction_access_error(int, istate_t *);
+extern void illegal_instruction(int, istate_t *);
+extern void privileged_instruction(int, istate_t *);
+extern void fp_disabled(int, istate_t *);
+extern void fp_exception(int, istate_t *);
+extern void tag_overflow(int, istate_t *);
+extern void division_by_zero(int, istate_t *);
+extern void data_access_exception(int, istate_t *);
+extern void data_access_error(int, istate_t *);
+extern void data_access_mmu_miss(int, istate_t *);
+extern void data_store_error(int, istate_t *);
+extern void mem_address_not_aligned(int, istate_t *);
 
-extern void instruction_access_exception(int n, istate_t *istate);
-extern void instruction_access_error(int n, istate_t *istate);
-extern void illegal_instruction(int n, istate_t *istate);
-extern void privileged_instruction(int n, istate_t *istate);
-extern void fp_disabled(int n, istate_t *istate);
-extern void fp_exception(int n, istate_t *istate);
-extern void tag_overflow(int n, istate_t *istate);
-extern void division_by_zero(int n, istate_t *istate);
-extern void data_access_exception(int n, istate_t *istate);
-extern void data_access_error(int n, istate_t *istate);
-extern void data_access_mmu_miss(int n, istate_t *istate);
-extern void data_store_error(int n, istate_t *istate);
-extern void mem_address_not_aligned(int n, istate_t *istate);
-extern sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id);
-extern void irq_exception(unsigned int nr, istate_t *istate);
+extern sysarg_t syscall(sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern void irq_exception(unsigned int, istate_t *);
 
 #endif /* !__ASM__ */
 

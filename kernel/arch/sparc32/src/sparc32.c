@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
@@ -37,7 +37,6 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/machine_func.h>
-
 #include <func.h>
 #include <config.h>
 #include <errno.h>
@@ -53,23 +52,22 @@
 #include <memstr.h>
 #include <str.h>
 
-char memcpy_from_uspace_failover_address;
-char memcpy_to_uspace_failover_address;
-bootinfo_t machine_bootinfo;
+static char memcpy_from_uspace_failover_address;
+static char memcpy_to_uspace_failover_address;
+static bootinfo_t machine_bootinfo;
 
 void arch_pre_main(void *unused, bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	memcpy(&machine_bootinfo, bootinfo, sizeof(machine_bootinfo));
-
-	size_t i;
-	for (i = 0; i < init.cnt; i++) {
+	
+	for (size_t i = 0; i < init.cnt; i++) {
 		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
 	}
-
+	
 	machine_ops_init();
 }
 
@@ -81,12 +79,8 @@ extern void func1(void);
 
 void arch_post_mm_init(void)
 {
-	/* Test register windows */
-	write_to_invalid(0xdeadbeef, 0xcafebabe, 0);
-	func1();
-
 	machine_init(&machine_bootinfo);
-
+	
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
 		irq_init(16, 16);
@@ -94,7 +88,7 @@ void arch_post_mm_init(void)
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
-
+	
 	machine_output_init();
 }
 
@@ -109,7 +103,6 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-//	machine_input_init();
 }
 
 void calibrate_delay_loop(void)

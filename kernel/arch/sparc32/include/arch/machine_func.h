@@ -31,11 +31,11 @@
  * @{
  */
 /** @file
- *  @brief Declarations of machine specific functions.
+ * @brief Declarations of machine specific functions.
  *
- *  These functions enable to differentiate more kinds of ARM emulators
- *  or CPUs. It's the same concept as "arch" functions on the architecture
- *  level.
+ * These functions enable to differentiate more kinds of SPARC emulators
+ * or CPUs. It is the same concept as "arch" functions on the architecture
+ * level.
  */
 
 #ifndef KERN_sparc32_MACHINE_FUNC_H_
@@ -65,21 +65,19 @@ extern struct sparc_machine_ops *machine_ops;
 /** Initialize machine_ops pointer. */
 extern void machine_ops_init(void);
 
-/** Maps HW devices to the kernel address space using #hw_map. */
+/** Map HW devices to the kernel address space using #hw_map. */
 extern void machine_init(bootinfo_t *);
 
-
-/** Starts timer. */
+/** Start timer. */
 extern void machine_timer_irq_start(void);
 
-
-/** Halts CPU. */
+/** Halt CPU. */
 extern void machine_cpu_halt(void);
 
 /** Get extents of available memory.
  *
- * @param start		Place to store memory start address.
- * @param size		Place to store memory size.
+ * @param start Place to store memory start address.
+ * @param size  Place to store memory size.
  */
 extern void machine_get_memory_extents(uintptr_t *start, size_t *size);
 
@@ -90,25 +88,18 @@ extern void machine_get_memory_extents(uintptr_t *start, size_t *size);
  */
 extern void machine_irq_exception(unsigned int exc_no, istate_t *istate);
 
-
-/*
- * Machine specific frame initialization
- */
+/** Machine specific frame initialization */
 extern void machine_frame_init(void);
 
-/*
- * configure the serial line output device.
- */
+/* Configure the serial line output device. */
 extern void machine_output_init(void);
 
-/*
- * configure the serial line input device.
- */
+/** Configure the serial line input device. */
 extern void machine_input_init(void);
 
 extern size_t machine_get_irq_count(void);
 
-extern const char * machine_get_platform_name(void);
+extern const char *machine_get_platform_name(void);
 
 #endif
 

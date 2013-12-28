@@ -35,8 +35,7 @@
 #ifndef KERN_sparc32_AMBAPP_H_
 #define KERN_sparc32_AMBAPP_H_
 
-typedef struct
-{
+typedef struct {
 	/* Primary serial port location */
 	uintptr_t uart_base;
 	size_t uart_size;

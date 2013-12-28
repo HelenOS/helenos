@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32lemm
+/** @addtogroup sparc32mm
  * @{
  */
 
@@ -44,7 +44,8 @@ void tlb_invalidate_asid(asid_t asid __attribute__((unused)))
 	tlb_invalidate_all();
 }
 
-void tlb_invalidate_pages(asid_t asid __attribute__((unused)), uintptr_t page, size_t cnt)
+void tlb_invalidate_pages(asid_t asid __attribute__((unused)), uintptr_t page,
+    size_t cnt)
 {
 	tlb_invalidate_all();
 }

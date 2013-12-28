@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
@@ -37,7 +37,6 @@
 #include <typedefs.h>
 #include <print.h>
 #include <fpu_context.h>
-
 
 void fpu_disable(void)
 {
@@ -55,7 +54,7 @@ void cpu_identify(void)
 {
 }
 
-void cpu_print_report(cpu_t* cpu)
+void cpu_print_report(cpu_t *cpu)
 {
 }
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leinterrupt
+/** @addtogroup sparc32interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_INTERRUPT_H_
-#define KERN_abs32le_INTERRUPT_H_
+#ifndef KERN_sparc32_INTERRUPT_H_
+#define KERN_sparc32_INTERRUPT_H_
 
 #include <typedefs.h>
 #include <arch/istate.h>

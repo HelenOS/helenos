@@ -49,12 +49,12 @@ typedef enum {
 /** MMU Fault Status register. */
 typedef struct {
 	unsigned int : 14;
-	unsigned int ebe: 8;
-	unsigned int l: 2;
-	unsigned int at: 3;
-	unsigned int ft: 3;
-	unsigned int fav: 1;
-	unsigned int ow: 1;
+	unsigned int ebe : 8;
+	unsigned int l : 2;
+	unsigned int at : 3;
+	unsigned int ft : 3;
+	unsigned int fav : 1;
+	unsigned int ow : 1;
 } __attribute__((packed)) mmu_fault_status_t;
 
 #endif

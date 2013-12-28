@@ -30,11 +30,11 @@
  * @{
  */
 /** @file
- *  @brief Definitions of machine specific functions.
+ * @brief Definitions of machine specific functions.
  *
- *  These functions enable to differentiate more kinds of sparc emulators
- *  or CPUs. It's the same concept as "arch" functions on the architecture
- *  level.
+ * These functions enable to differentiate more kinds of SPARC emulators
+ * or CPUs. It's the same concept as "arch" functions on the architecture
+ * level.
  */
 
 #include <arch/machine_func.h>
@@ -53,73 +53,71 @@ void machine_ops_init(void)
 #endif
 }
 
-/** Maps HW devices to the kernel address space using #hw_map. */
+/** Map HW devices to the kernel address space using #hw_map. */
 void machine_init(bootinfo_t *bootinfo)
 {
-	(machine_ops->machine_init)(bootinfo);
+	machine_ops->machine_init(bootinfo);
 }
 
-
-/** Starts timer. */
+/** Start timer. */
 void machine_timer_irq_start(void)
 {
-	(machine_ops->machine_timer_irq_start)();
+	machine_ops->machine_timer_irq_start();
 }
 
-
-/** Halts CPU. */
+/** Halt CPU. */
 void machine_cpu_halt(void)
 {
-	(machine_ops->machine_cpu_halt)();
+	machine_ops->machine_cpu_halt();
 }
 
 /** Get extents of available memory.
  *
- * @param start		Place to store memory start address.
- * @param size		Place to store memory size.
+ * @param start Place to store memory start address.
+ * @param size  Place to store memory size.
+ *
  */
 void machine_get_memory_extents(uintptr_t *start, size_t *size)
 {
-	(machine_ops->machine_get_memory_extents)(start, size);
+	machine_ops->machine_get_memory_extents(start, size);
 }
 
 /** Interrupt exception handler.
  *
- * @param exc_no Interrupt exception number.
+ * @param exc    Interrupt exception number.
  * @param istate Saved processor state.
+ *
  */
-void machine_irq_exception(unsigned int exc_no, istate_t *istate)
+void machine_irq_exception(unsigned int exc, istate_t *istate)
 {
-	(machine_ops->machine_irq_exception)(exc_no, istate);
+	machine_ops->machine_irq_exception(exc, istate);
 }
 
-/*
- * configure the output device.
- */
+/** Configure the output device. */
 void machine_output_init(void)
 {
-	(machine_ops->machine_output_init)();
+	machine_ops->machine_output_init();
 }
 
-/*
- * configure the input device.
- */
+/** Configure the input device. */
 void machine_input_init(void)
 {
-	(machine_ops->machine_input_init)();
+	machine_ops->machine_input_init();
 }
 
 /** Get IRQ number range used by machine. */
 size_t machine_get_irq_count(void)
 {
-	return (machine_ops->machine_get_irq_count)();
+	return machine_ops->machine_get_irq_count();
 }
 
-const char * machine_get_platform_name(void)
+const char *machine_get_platform_name(void)
 {
 	if (machine_ops->machine_get_platform_name)
 		return machine_ops->machine_get_platform_name();
+	
 	return NULL;
 }
+
 /** @}
  */

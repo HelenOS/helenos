@@ -35,12 +35,14 @@
 #ifndef KERN_sparc32_TRAP_H_
 #define KERN_sparc32_TRAP_H_
 
-#define	TRAP_ENTRY_SIZE		16
-#define	TRAP_TABLE_COUNT	256
-#define	TRAP_TABLE_SIZE		(TRAP_ENTRY_SIZE * TRAP_TABLE_COUNT)
+#define TRAP_ENTRY_SIZE   16
+#define TRAP_TABLE_COUNT  256
+#define TRAP_TABLE_SIZE   (TRAP_ENTRY_SIZE * TRAP_TABLE_COUNT)
 
 #ifndef __ASM__
+
 extern void *trap_table;
+
 #endif
 
 #endif

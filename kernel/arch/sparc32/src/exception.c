@@ -55,8 +55,6 @@
 void instruction_access_exception(int n, istate_t *istate)
 {
 	page_fault(n, istate);
-//	fault_if_from_uspace(istate, "%s.", __func__);
-//	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle instruction_access_error. (0x21) */
@@ -112,25 +110,20 @@ void division_by_zero(int n, istate_t *istate)
 void data_access_exception(int n, istate_t *istate)
 {
 	page_fault(n, istate);
-//	fault_if_from_uspace(istate, "%s.", __func__);
-//	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle data_access_error. (0x29) */
 void data_access_error(int n, istate_t *istate)
 {
 	page_fault(n, istate);
-//	fault_if_from_uspace(istate, "%s.", __func__);
-//	panic_badtrap(istate, n, "%s.", __func__);
 }
 
 /** Handle data_store_error. (0x29) */
 void data_store_error(int n, istate_t *istate)
 {
 	page_fault(n, istate);
-//	fault_if_from_uspace(istate, "%s.", __func__);
-//	panic_badtrap(istate, n, "%s.", __func__);
 }
+
 /** Handle data_access_error. (0x2c) */
 void data_access_mmu_miss(int n, istate_t *istate)
 {
@@ -145,15 +138,9 @@ void mem_address_not_aligned(int n, istate_t *istate)
 	panic_badtrap(istate, n, "%s.", __func__);
 }
 
-sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
+sysarg_t syscall(sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4,
+    sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
-//	printf("syscall %d\n", id);
-//	printf("args: 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", a1, a2, a3, a4, a5, a6);
-//        if (id == 0x4f) {
-  //          flush_windows();
-    //        return 0;
-      //  }
-    
 	return syscall_handler(a1, a2, a3, a4, a5, a6, id);
 }
 

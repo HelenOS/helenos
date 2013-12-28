@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_sparc32le_TYPES_H_
-#define KERN_sparc32le_TYPES_H_
+#ifndef KERN_sparc32_TYPES_H_
+#define KERN_sparc32_TYPES_H_
 
 #define ATOMIC_COUNT_MIN  UINT32_MIN
 #define ATOMIC_COUNT_MAX  UINT32_MAX

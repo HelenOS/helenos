@@ -37,13 +37,10 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/machine_func.h>
-
 #include <arch/machine/leon3/leon3.h>
-
 #include <genarch/drivers/grlib/uart.h>
 #include <genarch/drivers/grlib/irqmp.h>
 #include <genarch/srln/srln.h>
-
 #include <func.h>
 #include <config.h>
 #include <errno.h>
@@ -69,24 +66,22 @@ static void leon3_input_init(void);
 static size_t leon3_get_irq_count(void);
 static const char *leon3_get_platform_name(void);
 
-struct leon3_machine_t
-{
+struct leon3_machine_t {
 	bootinfo_t *bootinfo;
 	outdev_t *scons_dev;
 	grlib_irqmp_t irqmp;
-	//grlib_timer_t timer;
 };
 
 struct sparc_machine_ops leon3_machine_ops = {
-	leon3_init,
-	leon3_cpu_halt,
-	leon3_get_memory_extents,
-	leon3_timer_start,
-	leon3_irq_exception,
-	leon3_output_init,
-	leon3_input_init,
-	leon3_get_irq_count,
-	leon3_get_platform_name
+	.machine_init = leon3_init,
+	.machine_cpu_halt = leon3_cpu_halt,
+	.machine_get_memory_extents = leon3_get_memory_extents,
+	.machine_timer_irq_start = leon3_timer_start,
+	.machine_irq_exception = leon3_irq_exception,
+	.machine_output_init = leon3_output_init,
+	.machine_input_init = leon3_input_init,
+	.machine_get_irq_count = leon3_get_irq_count,
+	.machine_get_platform_name = leon3_get_platform_name
 };
 
 static struct leon3_machine_t machine;
@@ -94,32 +89,36 @@ static struct leon3_machine_t machine;
 static void leon3_init(bootinfo_t *bootinfo)
 {
 	machine.bootinfo = bootinfo;
-
 	grlib_irqmp_init(&machine.irqmp, bootinfo);
 }
 
 static void leon3_cpu_halt(void)
 {
-	for (;;);
+	// FIXME TODO
+	while (1);
 }
 
 static void leon3_get_memory_extents(uintptr_t *start, size_t *size)
 {
 	*start = LEON3_SDRAM_START;
-	*size = 64 * 1024 * 1024;//machine.bootinfo->memsize;
+	*size = 64 * 1024 * 1024;
+	// FIXME: *size = machine.bootinfo->memsize;
 }
 
 static void leon3_timer_start(void)
 {
-	//machine.timer = grlib_timer_init(machine.bootinfo->timer_base, machine.bootinfo->timer_irq);
+	// FIXME:
+	// machine.timer =
+	//     grlib_timer_init(machine.bootinfo->timer_base,
+	//     machine.bootinfo->timer_irq);
 }
 
-static void leon3_irq_exception(unsigned int exc_no, istate_t *istate)
+static void leon3_irq_exception(unsigned int exc, istate_t *istate)
 {
 	int irqnum = grlib_irqmp_inum_get(&machine.irqmp);
-
+	
 	grlib_irqmp_clear(&machine.irqmp, irqnum);
-
+	
 	irq_t *irq = irq_dispatch_and_lock(irqnum);
 	if (irq) {
 		irq->handler(irq);
@@ -130,11 +129,10 @@ static void leon3_irq_exception(unsigned int exc_no, istate_t *istate)
 
 static void leon3_output_init(void)
 {
-	printf("leon3_output_init\n");
-	printf("machine.bootinfo=%p, machine.bootinfo->uart_base=0x%08x\n", machine.bootinfo, machine.bootinfo->uart_base);
-
-	machine.scons_dev = grlib_uart_init(machine.bootinfo->uart_base, machine.bootinfo->uart_irq);
-
+	machine.scons_dev =
+	    grlib_uart_init(machine.bootinfo->uart_base,
+	    machine.bootinfo->uart_irq);
+	
 	if (machine.scons_dev)
 		stdout_wire(machine.scons_dev);
 }
@@ -147,15 +145,16 @@ static void leon3_input_init(void)
 	if (machine.scons_dev) {
 		/* Create input device. */
 		scons_inst = (void *)machine.scons_dev->data;
-
+		
 		srln_instance_t *srln_instance = srln_init();
 		if (srln_instance) {
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
 			grlib_uart_input_wire(scons_inst, srln);
-
+			
 			/* Enable interrupts from UART */
-			grlib_irqmp_unmask(&machine.irqmp, machine.bootinfo->uart_irq);
+			grlib_irqmp_unmask(&machine.irqmp,
+			    machine.bootinfo->uart_irq);
 		}
 	}
 #endif
@@ -170,5 +169,3 @@ static const char *leon3_get_platform_name(void)
 {
 	return "LEON3";
 }
-
-

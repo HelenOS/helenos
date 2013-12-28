@@ -54,7 +54,7 @@ typedef struct {
 #define as_deinstall_arch(as)
 #define as_invalidate_translation_cache(as, page, cnt)
 
-uintptr_t as_context_table;
+extern uintptr_t as_context_table;
 
 extern void as_arch_init(void);
 

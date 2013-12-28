@@ -26,23 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_FPU_CONTEXT_H_
-#define KERN_abs32le_FPU_CONTEXT_H_
+#ifndef KERN_sparc32_FPU_CONTEXT_H_
+#define KERN_sparc32_FPU_CONTEXT_H_
 
 #include <typedefs.h>
 
 #define FPU_CONTEXT_ALIGN  16
 
-/*
- * On real hardware this stores the FPU registers
- * which are part of the CPU context.
- */
 typedef struct {
 } fpu_context_t;
 

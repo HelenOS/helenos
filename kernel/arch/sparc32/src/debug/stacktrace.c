@@ -36,26 +36,30 @@
 #include <stacktrace.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
-
 #include <arch.h>
 #include <arch/stack.h>
 
-#define FRAME_OFFSET_FP_PREV	14
-#define FRAME_OFFSET_RA		15
+#define FRAME_OFFSET_FP_PREV  14
+#define FRAME_OFFSET_RA       15
 
-extern void alloc_window_and_flush(void);
+static void alloc_window_and_flush(void)
+{
+	// FIXME TODO
+}
 
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	uintptr_t kstack;
-        uint32_t l1, l2;
+	uint32_t l1
+	uint32_t l2;
 	
-        read_from_invalid(&kstack, &l1, &l2);
+	read_from_invalid(&kstack, &l1, &l2);
 	kstack -= 128;
-
-	if (THREAD && (ctx->fp == kstack))
+	
+	if ((THREAD) && (ctx->fp == kstack))
 		return false;
-	return ctx->fp != 0;
+	
+	return (ctx->fp != 0);
 }
 
 bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)

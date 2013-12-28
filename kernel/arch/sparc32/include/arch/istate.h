@@ -48,10 +48,6 @@
 
 #endif /* KERNEL */
 
-/*
- * On real hardware this stores the registers which
- * need to be preserved during interupts.
- */
 typedef struct istate {
 	uintptr_t pstate;
 	uintptr_t pc;
@@ -62,9 +58,6 @@ typedef struct istate {
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
-	/* On real hardware this checks whether the interrupted
-	   context originated from user space. */
-
 	return !(istate->pc & UINT32_C(0x80000000));
 }
 
@@ -72,25 +65,19 @@ NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)
     WRITES(&istate->ip)
 {
-	/* On real hardware this sets the instruction pointer. */
-	
 	istate->pc = retaddr;
 }
 
 NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
-	/* On real hardware this returns the instruction pointer. */
-	
 	return istate->pc;
 }
 
 NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
-	/* On real hardware this returns the frame pointer. */
-	
-	return 0;//istate->fp;
+	return 0;
 }
 
 #endif

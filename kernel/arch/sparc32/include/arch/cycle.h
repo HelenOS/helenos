@@ -26,19 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_CYCLE_H_
-#define KERN_abs32le_CYCLE_H_
+#ifndef KERN_sparc32_CYCLE_H_
+#define KERN_sparc32_CYCLE_H_
 
 #include <trace.h>
 
 NO_TRACE static inline uint64_t get_cycle(void)
 {
+	// FIXME TODO
 	return 0;
 }
 

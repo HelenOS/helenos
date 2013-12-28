@@ -26,18 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef KERN_sparc32_BARRIER_H_
+#define KERN_sparc32_BARRIER_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+// FIXME TODO
 
 #define CS_ENTER_BARRIER()
 #define CS_LEAVE_BARRIER()

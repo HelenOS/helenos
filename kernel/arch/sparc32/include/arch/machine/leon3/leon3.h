@@ -26,21 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc32leon3 LEON3
- *  @brief LEON3 System-on-chip.
- *  @ingroup arm32
+/** @addtogroup sparc32leon3
+ * @brief LEON3 System-on-chip.
+ * @ingroup sparc32
  * @{
  */
 
-#ifndef KERN_sparc32_leon3_H_
-#define KERN_sparc32_leon3_H_
+#ifndef KERN_sparc32_LEON3_H_
+#define KERN_sparc32_LEON3_H_
 
 #include <arch/machine_func.h>
 
-extern struct sparc_machine_ops leon3_machine_ops;
+#define LEON3_SDRAM_START  0x40000000
+#define LEON3_IRQ_COUNT    15
 
-#define LEON3_SDRAM_START 0x40000000
-#define LEON3_IRQ_COUNT 15
+extern struct sparc_machine_ops leon3_machine_ops;
 
 #endif
 

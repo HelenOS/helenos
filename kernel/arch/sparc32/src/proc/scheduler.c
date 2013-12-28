@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leproc
+/** @addtogroup sparc32proc
  * @{
  */
 /** @file
@@ -57,7 +57,7 @@ void after_thread_ran_arch(void)
 		uint32_t uspace_wbuf;
 		uint32_t l7;
 		read_from_invalid(&kernel_sp, &uspace_wbuf, &l7);
-		THREAD->arch.uspace_window_buffer = (uint8_t *)uspace_wbuf;
+		THREAD->arch.uspace_window_buffer = (uint8_t *) uspace_wbuf;
 	}
 }
 

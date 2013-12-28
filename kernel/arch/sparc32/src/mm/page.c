@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32lemm
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
@@ -56,52 +56,46 @@ void page_arch_init(void)
 {
 	int flags = PAGE_CACHEABLE | PAGE_EXEC;
 	page_mapping_operations = &pt_mapping_operations;
-
+	
 	page_table_lock(AS_KERNEL, true);
 	
 	/* Kernel identity mapping */
-	//FIXME: We need to consider the possibility that
-	//identity_base > identity_size and physmem_end.
-	//This might lead to overflow if identity_size is too big.
+	// FIXME:
+	// We need to consider the possibility that
+	// identity_base > identity_size and physmem_end.
+	// This might lead to overflow if identity_size is too big.
 	for (uintptr_t cur = PHYSMEM_START_ADDR;
 	    cur < min(KA2PA(config.identity_base) +
-	        config.identity_size, config.physmem_end);
+	    config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
-
 	page_table_unlock(AS_KERNEL, true);
 	as_switch(NULL, AS_KERNEL);
-
-//	printf("as_context_table=0x%08x\n", as_context_table);
-
+	
 	/* Switch MMU to new context table */
 	asi_u32_write(ASI_MMUREGS, MMU_CONTEXT_TABLE, KA2PA(as_context_table) >> 4);
-
-	//boot_page_table_free();
 }
 
 void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	uint32_t fault_status = asi_u32_read(ASI_MMUREGS, MMU_FAULT_STATUS);
 	uintptr_t fault_address = asi_u32_read(ASI_MMUREGS, MMU_FAULT_ADDRESS);
-	mmu_fault_status_t *fault = (mmu_fault_status_t *)&fault_status;
-	mmu_fault_type_t type = (mmu_fault_type_t)fault->at;
-
-//	printf("page fault on address 0x%08x, status 0x%08x, type %d\n", fault_address, fault_status, type);
-
-	if (type == FAULT_TYPE_LOAD_USER_DATA ||
-	    type == FAULT_TYPE_LOAD_SUPERVISOR_DATA)	
+	mmu_fault_status_t *fault = (mmu_fault_status_t *) &fault_status;
+	mmu_fault_type_t type = (mmu_fault_type_t) fault->at;
+	
+	if ((type == FAULT_TYPE_LOAD_USER_DATA) ||
+	    (type == FAULT_TYPE_LOAD_SUPERVISOR_DATA))
 		as_page_fault(fault_address, PF_ACCESS_READ, istate);
 
-	if (type == FAULT_TYPE_EXECUTE_USER || 
-	    type == FAULT_TYPE_EXECUTE_SUPERVISOR)
+	if ((type == FAULT_TYPE_EXECUTE_USER) ||
+	    (type == FAULT_TYPE_EXECUTE_SUPERVISOR))
 		as_page_fault(fault_address, PF_ACCESS_EXEC, istate);
 
-	if (type == FAULT_TYPE_STORE_USER_DATA ||
-	    type == FAULT_TYPE_STORE_USER_INSTRUCTION ||
-	    type == FAULT_TYPE_STORE_SUPERVISOR_INSTRUCTION ||
-	    type == FAULT_TYPE_STORE_SUPERVISOR_DATA)
+	if ((type == FAULT_TYPE_STORE_USER_DATA) ||
+	    (type == FAULT_TYPE_STORE_USER_INSTRUCTION) ||
+	    (type == FAULT_TYPE_STORE_SUPERVISOR_INSTRUCTION) ||
+	    (type == FAULT_TYPE_STORE_SUPERVISOR_DATA))
 		as_page_fault(fault_address, PF_ACCESS_WRITE, istate);
 }
 

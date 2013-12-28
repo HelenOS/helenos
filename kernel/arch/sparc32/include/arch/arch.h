@@ -41,20 +41,20 @@
 #include <typedefs.h>
 #include <arch/istate.h>
 
-#define	NWINDOWS	8
+#define NWINDOWS  8
 
 /* ASI assignments: */
-#define	ASI_CACHEMISS	0x01
-#define	ASI_CACHECTRL	0x02
-#define	ASI_MMUCACHE	0x10
-#define	ASI_MMUREGS	0x19
-#define	ASI_MMUBYPASS	0x1c
-#define	ASI_MMUFLUSH	0x18
+#define ASI_CACHEMISS  0x01
+#define ASI_CACHECTRL  0x02
+#define ASI_MMUCACHE   0x10
+#define ASI_MMUREGS    0x19
+#define ASI_MMUBYPASS  0x1c
+#define ASI_MMUFLUSH   0x18
 
 #define TASKMAP_MAX_RECORDS  32
 #define CPUMAP_MAX_RECORDS   32
 
-#define BOOTINFO_TASK_NAME_BUFLEN 32
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
 typedef struct {
 	void *addr;
@@ -74,11 +74,11 @@ typedef struct {
 	uint32_t memsize;
 } bootinfo_t;
 
-extern void arch_pre_main(void *unused, bootinfo_t *bootinfo);
-extern void write_to_invalid(uint32_t l0, uint32_t l1, uint32_t l2);
-extern void read_from_invalid(uint32_t *l0, uint32_t *l1, uint32_t *l2);
-extern void preemptible_save_uspace(uintptr_t sp, istate_t *istate);
-extern void preemptible_restore_uspace(uintptr_t sp, istate_t *istate);
+extern void arch_pre_main(void *, bootinfo_t *);
+extern void write_to_invalid(uint32_t, uint32_t, uint32_t);
+extern void read_from_invalid(uint32_t *, uint32_t *, uint32_t *);
+extern void preemptible_save_uspace(uintptr_t, istate_t *);
+extern void preemptible_restore_uspace(uintptr_t, istate_t *);
 extern void flush_windows(void);
 
 #endif

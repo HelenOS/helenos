@@ -47,18 +47,18 @@
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x40000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x40000000))
 
-#define	PTE_ET_INVALID		0
-#define	PTE_ET_DESCRIPTOR	1
-#define	PTE_ET_ENTRY		2
+#define PTE_ET_INVALID     0
+#define PTE_ET_DESCRIPTOR  1
+#define PTE_ET_ENTRY       2
 
-#define	PTE_ACC_USER_RO_KERNEL_RO	0
-#define	PTE_ACC_USER_RW_KERNEL_RW	1
-#define	PTE_ACC_USER_RX_KERNEL_RX	2
-#define	PTE_ACC_USER_RWX_KERNEL_RWX	3
-#define	PTE_ACC_USER_XO_KERNEL_XO	4
-#define	PTE_ACC_USER_RO_KERNEL_RW	5
-#define	PTE_ACC_USER_NO_KERNEL_RX	6
-#define	PTE_ACC_USER_NO_KERNEL_RWX	7
+#define PTE_ACC_USER_RO_KERNEL_RO    0
+#define PTE_ACC_USER_RW_KERNEL_RW    1
+#define PTE_ACC_USER_RX_KERNEL_RX    2
+#define PTE_ACC_USER_RWX_KERNEL_RWX  3
+#define PTE_ACC_USER_XO_KERNEL_XO    4
+#define PTE_ACC_USER_RO_KERNEL_RW    5
+#define PTE_ACC_USER_NO_KERNEL_RX    6
+#define PTE_ACC_USER_NO_KERNEL_RWX   7
 
 /* Number of entries in each level. */
 #define PTL0_ENTRIES_ARCH  256
@@ -142,18 +142,18 @@
 
 /** Page Table Descriptor. */
 typedef struct {
-	unsigned int table_pointer: 30;
-	unsigned int et: 2;
+	unsigned int table_pointer : 30;
+	unsigned int et : 2;
 } __attribute__((packed)) ptd_t;
 
 /** Page Table Entry. */
 typedef struct {
-	unsigned int frame_address: 24;
-	unsigned int cacheable: 1;
-	unsigned int modified: 1;
-	unsigned int referenced: 1;
-	unsigned int acc: 3;
-	unsigned int et: 2;
+	unsigned int frame_address : 24;
+	unsigned int cacheable : 1;
+	unsigned int modified : 1;
+	unsigned int referenced : 1;
+	unsigned int acc : 3;
+	unsigned int et : 2;
 } __attribute__((packed)) pte_t;
 
 NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
@@ -162,48 +162,39 @@ NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 
 NO_TRACE static inline bool pte_is_writeable(pte_t *pt)
 {
-	return (
-		pt->acc == PTE_ACC_USER_RW_KERNEL_RW || 
-		pt->acc == PTE_ACC_USER_RWX_KERNEL_RWX || 
-		pt->acc == PTE_ACC_USER_RO_KERNEL_RW || 
-		pt->acc == PTE_ACC_USER_NO_KERNEL_RWX
-	);
+	return ((pt->acc == PTE_ACC_USER_RW_KERNEL_RW) ||
+	    (pt->acc == PTE_ACC_USER_RWX_KERNEL_RWX) ||
+	    (pt->acc == PTE_ACC_USER_RO_KERNEL_RW) ||
+	    (pt->acc == PTE_ACC_USER_NO_KERNEL_RWX));
 }
 
 NO_TRACE static inline bool pte_is_executable(pte_t *pt)
 {
-	return (
-		pt->acc != PTE_ACC_USER_RO_KERNEL_RO &&
-		pt->acc != PTE_ACC_USER_RW_KERNEL_RW &&
-		pt->acc != PTE_ACC_USER_RO_KERNEL_RW
-	);
+	return ((pt->acc != PTE_ACC_USER_RO_KERNEL_RO) &&
+	    (pt->acc != PTE_ACC_USER_RW_KERNEL_RW) &&
+	    (pt->acc != PTE_ACC_USER_RO_KERNEL_RW));
 }
 
 NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
-
-	bool notpresent = p->et == 0;
-
-	return (
-		(p->cacheable << PAGE_CACHEABLE_SHIFT) |
-		(notpresent << PAGE_PRESENT_SHIFT) |
-		((p->acc != PTE_ACC_USER_NO_KERNEL_RX && p->acc != PTE_ACC_USER_NO_KERNEL_RWX) << PAGE_USER_SHIFT) |
-		(1 << PAGE_READ_SHIFT) |
-		((
-			p->acc == PTE_ACC_USER_RW_KERNEL_RW || 
-			p->acc == PTE_ACC_USER_RWX_KERNEL_RWX || 
-			p->acc == PTE_ACC_USER_RO_KERNEL_RW || 
-			p->acc == PTE_ACC_USER_NO_KERNEL_RWX
-		) << PAGE_WRITE_SHIFT) |
-		((
-			p->acc != PTE_ACC_USER_RO_KERNEL_RO &&
-			p->acc != PTE_ACC_USER_RW_KERNEL_RW &&
-			p->acc != PTE_ACC_USER_RO_KERNEL_RW
-		) << PAGE_EXEC_SHIFT) |
-		(1 << PAGE_GLOBAL_SHIFT)
-	);
+	
+	bool notpresent = (p->et == 0);
+	
+	return ((p->cacheable << PAGE_CACHEABLE_SHIFT) |
+	    (notpresent << PAGE_PRESENT_SHIFT) |
+	    (((p->acc != PTE_ACC_USER_NO_KERNEL_RX) &&
+	    (p->acc != PTE_ACC_USER_NO_KERNEL_RWX)) << PAGE_USER_SHIFT) |
+	    (1 << PAGE_READ_SHIFT) |
+	    (((p->acc == PTE_ACC_USER_RW_KERNEL_RW) ||
+	    (p->acc == PTE_ACC_USER_RWX_KERNEL_RWX) ||
+	    (p->acc == PTE_ACC_USER_RO_KERNEL_RW) ||
+	    (p->acc == PTE_ACC_USER_NO_KERNEL_RWX)) << PAGE_WRITE_SHIFT) |
+	    (((p->acc != PTE_ACC_USER_RO_KERNEL_RO) &&
+	    (p->acc != PTE_ACC_USER_RW_KERNEL_RW) &&
+	    (p->acc != PTE_ACC_USER_RO_KERNEL_RW)) << PAGE_EXEC_SHIFT) |
+	    (1 << PAGE_GLOBAL_SHIFT));
 }
 
 NO_TRACE static inline void set_ptd_flags(pte_t *pt, size_t i, int flags)
@@ -212,9 +203,8 @@ NO_TRACE static inline void set_ptd_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	
-	p->et = (flags & PAGE_NOT_PRESENT)
-		? PTE_ET_INVALID
-		: PTE_ET_DESCRIPTOR;
+	p->et = (flags & PAGE_NOT_PRESENT) ?
+	    PTE_ET_INVALID : PTE_ET_DESCRIPTOR;
 }
 
 NO_TRACE static inline void set_pte_flags(pte_t *pt, size_t i, int flags)
@@ -222,7 +212,7 @@ NO_TRACE static inline void set_pte_flags(pte_t *pt, size_t i, int flags)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
-
+	
 	p->et = PTE_ET_ENTRY;
 	p->acc = PTE_ACC_USER_NO_KERNEL_RWX;
 	
@@ -239,10 +229,10 @@ NO_TRACE static inline void set_pte_flags(pte_t *pt, size_t i, int flags)
 				p->acc = PTE_ACC_USER_RW_KERNEL_RW;
 		}
 	}
-
+	
 	if (flags & PAGE_NOT_PRESENT)
 		p->et = PTE_ET_INVALID;
-
+	
 	p->cacheable = (flags & PAGE_CACHEABLE) != 0;
 }
 
@@ -251,7 +241,7 @@ NO_TRACE static inline void set_ptd_present(pte_t *pt, size_t i)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
-
+	
 	p->et = PTE_ET_DESCRIPTOR;
 }
 
@@ -260,7 +250,7 @@ NO_TRACE static inline void set_pte_present(pte_t *pt, size_t i)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
-
+	
 	p->et = PTE_ET_ENTRY;
 }
 

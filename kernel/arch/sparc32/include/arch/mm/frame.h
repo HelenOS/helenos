@@ -32,19 +32,19 @@
 /** @file
  */
 
-#ifndef KERN_abs32le_FRAME_H_
-#define KERN_abs32le_FRAME_H_
+#ifndef KERN_sparc32_FRAME_H_
+#define KERN_sparc32_FRAME_H_
 
 #define FRAME_WIDTH  12  /* 4K */
 #define FRAME_SIZE   (1 << FRAME_WIDTH)
 
 #include <typedefs.h>
 
-#define	PHYSMEM_START_ADDR	0x40000000
+#define PHYSMEM_START_ADDR  0x40000000
 
-#define	BOOT_PT_ADDRESS		0x40008000
-#define	BOOT_PT_START_FRAME	(BOOT_PT_ADDRESS >> FRAME_WIDTH)
-#define	BOOT_PT_SIZE_FRAMES	1
+#define BOOT_PT_ADDRESS      0x40008000
+#define BOOT_PT_START_FRAME  (BOOT_PT_ADDRESS >> FRAME_WIDTH)
+#define BOOT_PT_SIZE_FRAMES  1
 
 extern void frame_low_arch_init(void);
 extern void frame_high_arch_init(void);

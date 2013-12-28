@@ -44,17 +44,22 @@ context_save_arch:
 	# Force all our active register windows to memory so that we can find
 	# them there even if e.g. the thread is migrated to another processor.
 	#
-	#flushw
-		mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-	 save %sp, -64, %sp
-
+	
+	## flushw
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-	 restore
-
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+	
+	save %sp, -64, %sp
+	
+	mov 7, %g1
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+	
+	restore
+	
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
 	mov 1, %o0		! context_save_arch returns 1
@@ -69,23 +74,29 @@ context_restore_arch:
 	# windows, we do the former and save thus some unnecessary window
 	# spills.
 	#
-	#rdpr %pstate, %l0
-	#andn %l0, PSTATE_IE_BIT, %l1
-	#wrpr %l1, %pstate
-	#wrpr %g0, 0, %canrestore
-	#wrpr %g0, 0, %otherwin
-	#wrpr %g0, NWINDOWS - 2, %cansave
-	#wrpr %l0, %pstate
+	
+	## rdpr %pstate, %l0
+	## andn %l0, PSTATE_IE_BIT, %l1
+	## wrpr %l1, %pstate
+	## wrpr %g0, 0, %canrestore
+	## wrpr %g0, 0, %otherwin
+	## wrpr %g0, NWINDOWS - 2, %cansave
+	## wrpr %l0, %pstate
+	
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-	 save %sp, -64, %sp
-
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+	
+	save %sp, -64, %sp
+	
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-	 restore
-
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+	
+	restore
+	
 	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl
 	xor %o0, %o0, %o0	! context_restore_arch returns 0

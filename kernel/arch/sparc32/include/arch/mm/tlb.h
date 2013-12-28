@@ -35,11 +35,11 @@
 #ifndef KERN_sparc32_TLB_H_
 #define KERN_sparc32_TLB_H_
 
-#define	MMU_CONTROL		0x000
-#define	MMU_CONTEXT_TABLE	0x100
-#define	MMU_CONTEXT		0x200
-#define	MMU_FAULT_STATUS	0x300
-#define	MMU_FAULT_ADDRESS	0x400
+#define MMU_CONTROL        0x000
+#define MMU_CONTEXT_TABLE  0x100
+#define MMU_CONTEXT        0x200
+#define MMU_FAULT_STATUS   0x300
+#define MMU_FAULT_ADDRESS  0x400
 
 #endif
 

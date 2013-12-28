@@ -41,18 +41,18 @@
 typedef union {
 	uint32_t value;
 	struct {
-		unsigned int impl: 4;
-		unsigned int ver: 4;
-		unsigned int icc: 4;
+		unsigned int impl : 4;
+		unsigned int ver : 4;
+		unsigned int icc : 4;
 		unsigned int : 6;
-		unsigned int ec: 1;
-		unsigned int ef: 1;
-		unsigned int pil: 4;
-		unsigned int s: 1;
-		unsigned int ps: 1;
-		unsigned int et: 1;
-		unsigned int cwp: 5;
-	} __attribute__ ((packed));
+		unsigned int ec : 1;
+		unsigned int ef : 1;
+		unsigned int pil : 4;
+		unsigned int s : 1;
+		unsigned int ps : 1;
+		unsigned int et : 1;
+		unsigned int cwp : 5;
+	} __attribute__((packed));
 } psr_reg_t;
 
 #endif

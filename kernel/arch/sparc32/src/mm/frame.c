@@ -45,47 +45,38 @@ static void frame_common_arch_init(bool low)
 {
 	uintptr_t base;
 	size_t size;
-
 	machine_get_memory_extents(&base, &size);
-
+	
 	base = ALIGN_UP(base, FRAME_SIZE);
 	size = ALIGN_DOWN(size, FRAME_SIZE);
 	
 	if (!frame_adjust_zone_bounds(low, &base, &size))
 		return;
-
+	
 	if (low) {
 		zone_create(ADDR2PFN(base), SIZE2FRAMES(size),
 		    BOOT_PT_START_FRAME + BOOT_PT_SIZE_FRAMES,
 		    ZONE_AVAILABLE | ZONE_LOWMEM);
-
-		printf("low_zone: %d frames\n", SIZE2FRAMES(size));
 	} else {
 		pfn_t conf = zone_external_conf_alloc(SIZE2FRAMES(size));
 		if (conf != 0)
 			zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
 			    ZONE_AVAILABLE | ZONE_HIGHMEM);
-
-		printf("high zone: %d frames\n", SIZE2FRAMES(size));
 	}
-
-	printf("free: %d\n", frame_total_free_get());
 }
 
 void physmem_print(void)
 {
-
+	// FIXME TODO
 }
 
 /** Create low memory zones. */
 void frame_low_arch_init(void)
 {
 	frame_common_arch_init(true);
-
-	/* blacklist boot page table */
+	
+	/* Blacklist boot page table */
 	frame_mark_unavailable(BOOT_PT_START_FRAME, BOOT_PT_SIZE_FRAMES);
-	printf("free: %d\n", frame_total_free_get());
-	//machine_frame_init();
 }
 
 /** Create high memory zones. */
@@ -93,14 +84,6 @@ void frame_high_arch_init(void)
 {
 	frame_common_arch_init(false);
 }
-
-/** Frees the boot page table. */
-/*void boot_page_table_free(void)
-{
-	unsigned int i;
-	for (i = 0; i < BOOT_PT_SIZE_FRAMES; i++)
-		frame_free(i * FRAME_SIZE + BOOT_PT_ADDRESS);
-}*/
 
 /** @}
  */

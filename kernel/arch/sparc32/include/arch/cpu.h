@@ -26,20 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_CPU_H_
-#define KERN_abs32le_CPU_H_
+#ifndef KERN_sparc32_CPU_H_
+#define KERN_sparc32_CPU_H_
 
-/*
- * On real hardware this structure stores
- * information specific to the current
- * CPU model.
- */
 typedef struct {
 } cpu_arch_t;
 

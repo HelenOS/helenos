@@ -37,33 +37,33 @@ kernel_image_start:
 	# Install trap handlers
 	set trap_table, %g1
 	mov %g1, %tbr
-
-        mov	%psr, %g1         	! Initialize WIM
-	add	%g1, 1, %g2
-	and	%g2, 0x7, %g2
-	set	1, %g3
-	sll	%g3, %g2, %g3
-        mov     %g3, %wim
-
-	or	%g1, 0x20, %g1
-	or	%g1, 0xf00, %g1		! PIL
-        wr      %g1, %psr
-
-	set	boot_stack, %sp
-	mov	%sp, %fp
-	sub	%sp, 96, %sp
-
-	mov	%o1, %l1
-	set	0xdeadbeef, %o0
-	set	0xdeadbeef, %o1
-	set	0, %o2
+	
+	mov %psr, %g1           ! Initialize WIM
+	add %g1, 1, %g2
+	and %g2, 0x7, %g2
+	set 1, %g3
+	sll %g3, %g2, %g3
+	mov %g3, %wim
+	
+	or %g1, 0x20, %g1
+	or %g1, 0xf00, %g1      ! PIL
+	wr %g1, %psr
+	
+	set boot_stack, %sp
+	mov %sp, %fp
+	sub %sp, 96, %sp
+	
+	mov %o1, %l1
+	set 0xdeadbeef, %o0
+	set 0xdeadbeef, %o1
+	set 0, %o2
 	call write_to_invalid
 	nop
-
-	mov	%l1, %o1
+	
+	mov %l1, %o1
 	call arch_pre_main
 	nop
-
+	
 	call main_bsp
 	nop
 
@@ -71,11 +71,14 @@ early_putchar:
 	set 0x80000100, %l0
 	cmp %o0, '\n'
 	bne skip
+	
 	set '\r', %l1
 	sta %l1, [%l0] 0x1c
-skip:	sta %o0, [%l0] 0x1c
-	retl
-	nop
+	
+	skip:
+		sta %o0, [%l0] 0x1c
+		retl
+		nop
 
 kernel_sp:
 .space 4

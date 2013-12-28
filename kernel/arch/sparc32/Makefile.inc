@@ -28,26 +28,15 @@
 
 BFD = binary
 
-ifeq ($(COMPILER),gcc_cross)
-	ifeq ($(CROSS_TARGET),arm32)
-		ATSIGN = %
-	endif
-	
-	ifeq ($(CROSS_TARGET),mips32)
-		GCC_CFLAGS += -mno-abicalls
-	endif
-endif
-
 BITS = 32
 ENDIANESS = BE
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
 	arch/$(KARCH)/src/trap_table.S \
-	arch/$(KARCH)/src/regwin_test.S \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/debug/stacktrace.c \
-        arch/$(KARCH)/src/debug/stacktrace_asm.S \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/proc/task.c \
 	arch/$(KARCH)/src/proc/thread.c \
@@ -63,9 +52,10 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
+	arch/$(KARCH)/src/mm/tlb.c
 
 ifeq ($(MACHINE),leon3)
-	ARCH_SOURCES += arch/$(KARCH)/src/machine/leon3/leon3.c
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/machine/leon3/leon3.c
 endif
 
