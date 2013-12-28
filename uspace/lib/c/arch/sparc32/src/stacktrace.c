@@ -62,7 +62,7 @@ int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 
 int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
-	return *st->read_uintptr(st->op_arg, fp + FRAME_OFFSET_RA, ra);
+	return (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
 }
 
 /** @}
