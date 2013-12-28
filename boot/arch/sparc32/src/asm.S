@@ -34,6 +34,7 @@
 .global boot_pt
 .global boot_ctx_table
 .global boot_stack
+.global halt
 .global jump_to_kernel
 
 start:
@@ -46,9 +47,16 @@ boot_pt:
 	.space PTL0_ENTRIES * PTL0_ENTRY_SIZE
 boot_ctx_table:
 	.space 4
+
 .section BOOTSTACK
 	.space 4096
 boot_stack:
+
+.text
+
+halt:
+	b halt
+	nop
 
 jump_to_kernel:
 	set 0x80a00000, %l0
