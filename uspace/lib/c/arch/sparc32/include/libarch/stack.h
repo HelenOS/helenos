@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
@@ -35,20 +35,15 @@
 #ifndef LIBC_sparc32_STACK_H_
 #define LIBC_sparc32_STACK_H_
 
-#define STACK_ITEM_SIZE			4
+#define STACK_ITEM_SIZE  4
 
-/** According to SPARC Compliance Definition, every stack frame is 16-byte aligned. */
-#define STACK_ALIGNMENT			8
+#define STACK_ALIGNMENT  8
 
-/**
- * 16-extended-word save area for %i[0-7] and %l[0-7] registers.
- */
-#define STACK_WINDOW_SAVE_AREA_SIZE	(16 * STACK_ITEM_SIZE)
+/** 16-extended-word save area for %i[0-7] and %l[0-7] registers. */
+#define STACK_WINDOW_SAVE_AREA_SIZE  (16 * STACK_ITEM_SIZE)
 
-/*
- * Six extended words for first six arguments.
- */
-#define STACK_ARG_SAVE_AREA_SIZE		(6 * STACK_ITEM_SIZE)
+/* Six extended words for first six arguments. */
+#define STACK_ARG_SAVE_AREA_SIZE  (6 * STACK_ITEM_SIZE)
 
 #endif
 

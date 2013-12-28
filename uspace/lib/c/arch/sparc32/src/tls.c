@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64 sparc64
+/** @addtogroup libcsparc32 sparc32
  * @ingroup lc
  * @{
  */

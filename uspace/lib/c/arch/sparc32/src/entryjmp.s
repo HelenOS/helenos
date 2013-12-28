@@ -39,4 +39,4 @@ entry_point_jmp:
 	# there, no action is needed.
 	call %o0
 	nop
-	# fixme: use branch instead of call
+	# FIXME: use branch instead of call

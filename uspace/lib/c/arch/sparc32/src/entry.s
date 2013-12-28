@@ -41,20 +41,23 @@ __entry:
 	#
 	# Create the first stack frame.
 	#
+	
 	save %sp, -176, %sp
-# XXX	flushw
-        mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-        save %sp, -64, %sp
-
+	## XXX	flushw
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-	restore
-
-# XXX end flush
-#	add %g0, -0x7ff, %fp
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+	save %sp, -64, %sp
+	
+	mov 7, %g1
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+		restore
+	
+	## XXX end flush
+	## add %g0, -0x7ff, %fp
 	set 0x80000000, %fp
 	
 	# Pass pcb_ptr as the first argument to __main()

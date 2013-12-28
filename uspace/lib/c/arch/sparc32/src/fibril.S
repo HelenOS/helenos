@@ -39,19 +39,22 @@ context_save:
 	# We rely on the kernel to flush our active register windows to memory
 	# should a thread switch occur.
 	#
-        mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-        save %sp, -64, %sp
-
+	
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-        restore
-
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+		save %sp, -64, %sp
+	
+	mov 7, %g1
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+		restore
+	
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
-	mov 1, %o0		! context_save_arch returns 1
+	mov 1, %o0              ! context_save_arch returns 1
 
 context_restore:
 	#
@@ -60,20 +63,23 @@ context_restore:
 	# CWP - 1 with the value written to %fp of CWP.  Flushing all active
 	# windows mitigates this problem as CWP - 1 becomes the overlap window.
 	#
-# XXX
-#	flushw
-#        ta 0x4f
-#        nop
-        mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-        save %sp, -64, %sp
-
+	
+	## XXX
+	## flushw
+	## ta 0x4f
+	## nop
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-        restore
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+		save %sp, -64, %sp
+	
+	mov 7, %g1
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+		restore
 	
 	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl
-	xor %o0, %o0, %o0	! context_restore_arch returns 0
+	xor %o0, %o0, %o0       ! context_restore_arch returns 0

@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_FADDR_H_
-#define LIBC_sparc64_FADDR_H_
+#ifndef LIBC_sparc32_FADDR_H_
+#define LIBC_sparc32_FADDR_H_
 
 #include <libarch/types.h>
 
-#define FADDR(fptr)		((uintptr_t) (fptr))
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
 

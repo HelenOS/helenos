@@ -35,8 +35,8 @@
 #ifndef LIBC_sparc32_CONFIG_H_
 #define LIBC_sparc32_CONFIG_H_
 
-#define PAGE_WIDTH	12
-#define PAGE_SIZE	(1 << PAGE_WIDTH)
+#define PAGE_WIDTH  12
+#define PAGE_SIZE   (1 << PAGE_WIDTH)
 
 #endif
 

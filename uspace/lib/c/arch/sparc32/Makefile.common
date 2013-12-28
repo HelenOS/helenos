@@ -26,11 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#GCC_CFLAGS += -mcpu=ultrasparc -m64 -mcmodel=medlow
 LFLAGS = -no-check-sections
 
 ENDIANESS = BE
 
 BFD_NAME = elf32-sparc
 BFD_ARCH = sparc
-

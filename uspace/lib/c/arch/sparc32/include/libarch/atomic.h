@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_ATOMIC_H_
-#define LIBC_sparc64_ATOMIC_H_
+#ifndef LIBC_sparc32_ATOMIC_H_
+#define LIBC_sparc32_ATOMIC_H_
 
 #define LIBC_ARCH_ATOMIC_H_
 
-#define	CAS
+#define CAS
 
 #include <atomicdflt.h>
 #include <sys/types.h>
@@ -52,25 +52,21 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 	return false;
 }
 
-static inline void atomic_inc(atomic_t *val) {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
+static inline void atomic_inc(atomic_t *val)
+{
+	// FIXME TODO
 	val->count++;
 }
 
-static inline void atomic_dec(atomic_t *val) {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
+static inline void atomic_dec(atomic_t *val)
+{
+	// FIXME TODO
 	val->count++;
 }
 
 static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	
@@ -80,9 +76,7 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 
 static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	
@@ -92,70 +86,6 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 
 #define atomic_preinc(val) (atomic_postinc(val) + 1)
 #define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#if 0
-/** Atomic add operation.
- *
- * Use atomic compare and swap operation to atomically add signed value.
- *
- * @param val Atomic variable.
- * @param i   Signed value to be added.
- *
- * @return Value of the atomic variable as it existed before addition.
- *
- */
-static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
-{
-	atomic_count_t a;
-	atomic_count_t b;
-	
-	do {
-		volatile uintptr_t ptr = (uintptr_t) &val->count;
-		
-		a = *((atomic_count_t *) ptr);
-		b = a + i;
-		
-// XXX		asm volatile (
-//			"cas %0, %2, %1\n"
-//			: "+m" (*((atomic_count_t *) ptr)),
-//			  "+r" (b)
-//			: "r" (a)
-//		);
-	} while (a != b);
-	
-	return a;
-}
-
-static inline atomic_count_t atomic_preinc(atomic_t *val)
-{
-	return atomic_add(val, 1) + 1;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	return atomic_add(val, 1);
-}
-
-static inline atomic_count_t atomic_predec(atomic_t *val)
-{
-	return atomic_add(val, -1) - 1;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	return atomic_add(val, -1);
-}
-
-static inline void atomic_inc(atomic_t *val)
-{
-	(void) atomic_add(val, 1);
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	(void) atomic_add(val, -1);
-}
-#endif
 
 #endif
 

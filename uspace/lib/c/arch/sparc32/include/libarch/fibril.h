@@ -55,15 +55,15 @@
  * function calls.
  */
 typedef struct {
-	uintptr_t sp;		/* %o6 */
-	uintptr_t pc;		/* %o7 */
+	uintptr_t sp;  /* %o6 */
+	uintptr_t pc;  /* %o7 */
 	uint32_t i0;
 	uint32_t i1;
 	uint32_t i2;
 	uint32_t i3;
 	uint32_t i4;
 	uint32_t i5;
-	uintptr_t fp;		/* %i6 */
+	uintptr_t fp;  /* %i6 */
 	uintptr_t i7;
 	uint32_t l0;
 	uint32_t l1;
@@ -73,7 +73,7 @@ typedef struct {
 	uint32_t l5;
 	uint32_t l6;
 	uint32_t l7;
-	uint32_t tp;		/* %g7 */
+	uint32_t tp;  /* %g7 */
 } context_t;
 
 static inline uintptr_t context_get_fp(context_t *ctx)

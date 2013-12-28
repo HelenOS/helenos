@@ -27,7 +27,7 @@
 #
 
 .text
-	
+
 .globl __thread_entry
 
 ## User-space thread entry point for all but the first threads.
@@ -37,26 +37,31 @@ __thread_entry:
 	#
 	# Create the first stack frame.
 	#
+	
 	save %sp, -176, %sp
-# XXX	flushw
-        mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-        save %sp, -64, %sp
-
+	## XXX flushw
 	mov 7, %g1
-1:	subcc %g1, 1, %g1
- 	bg 1b
-# XXX end flushw
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+		save %sp, -64, %sp
+	
+	mov 7, %g1
+	1:
+		subcc %g1, 1, %g1
+		bg 1b
+	
+	## XXX end flushw
 	set 0x80000000, %fp
-
+	
 	#
 	# Propagate the input arguments to the new window.
 	#
+	
 	mov %i0, %o0
-
+	
 	sethi %hi(_gp), %l7
-	call __thread_main		! %o0 contains address of uarg
+	call __thread_main      ! %o0 contains address of uarg
 	or %l7, %lo(_gp), %l7
 	
 	! not reached

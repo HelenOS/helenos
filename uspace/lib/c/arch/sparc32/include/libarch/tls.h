@@ -27,16 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
-/**
- * @file
- * @brief	sparc64 TLS functions.
+/** @file
+ * @brief sparc32 TLS functions.
  */
 
-#ifndef LIBC_sparc64_TLS_H_
-#define LIBC_sparc64_TLS_H_
+#ifndef LIBC_sparc32_TLS_H_
+#define LIBC_sparc32_TLS_H_
 
 #define CONFIG_TLS_VARIANT_2
 
@@ -47,15 +46,22 @@ typedef struct {
 
 static inline void __tcb_set(tcb_t *tcb)
 {
-	asm volatile ("mov %0, %%g7\n" : : "r" (tcb) : "g7");
+	asm volatile(
+		"mov %0, %%g7\n"
+		:: "r" (tcb)
+		: "g7"
+	);
 }
 
-static inline tcb_t * __tcb_get(void)
+static inline tcb_t *__tcb_get(void)
 {
 	void *retval;
-
-	asm volatile ("mov %%g7, %0\n" : "=r" (retval));
-
+	
+	asm volatile(
+		"mov %%g7, %0\n"
+		: "=r" (retval)
+	);
+	
 	return retval;
 }
 

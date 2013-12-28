@@ -38,11 +38,10 @@
 #include <stdbool.h>
 #include <libarch/stack.h>
 #include <errno.h>
-
 #include <stacktrace.h>
 
-#define FRAME_OFFSET_FP_PREV	(14 * 4)
-#define FRAME_OFFSET_RA		(15 * 4)
+#define FRAME_OFFSET_FP_PREV  (14 * 4)
+#define FRAME_OFFSET_RA       (15 * 4)
 
 bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 {
@@ -53,17 +52,17 @@ bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 {
 	uintptr_t bprev;
-	int rc;
-
-	rc = (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, &bprev);
+	int rc = (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV,
+	    &bprev);
 	if (rc == EOK)
 		*prev = bprev;
+	
 	return rc;
 }
 
 int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
-	return (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
+	return *st->read_uintptr(st->op_arg, fp + FRAME_OFFSET_RA, ra);
 }
 
 /** @}

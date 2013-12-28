@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_ELF_LINUX_H_
-#define LBIC_sparc64_ELF_LINUX_H_
+#ifndef LIBC_sparc32_ELF_LINUX_H_
+#define LBIC_sparc32_ELF_LINUX_H_
 
 #include <libarch/istate.h>
 #include <sys/types.h>
@@ -46,7 +46,8 @@ typedef struct {
 static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
 {
 	/* TODO */
-	(void) istate; (void) elf_regs;
+	(void) istate;
+	(void) elf_regs;
 }
 
 #endif
