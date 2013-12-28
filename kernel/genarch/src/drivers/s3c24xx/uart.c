@@ -37,7 +37,7 @@
  * This UART is present on the Samsung S3C24xx CPU (on the gta02 platform).
  */
 
-#include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
+#include <genarch/drivers/s3c24xx/uart.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <ddi/device.h>

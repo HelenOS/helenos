@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +28,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
-
+#include <sys/types.h>
 #include <stdbool.h>
+#include <libarch/stack.h>
+#include <errno.h>
+#include <stacktrace.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#define FRAME_OFFSET_FP_PREV  (14 * 4)
+#define FRAME_OFFSET_RA       (15 * 4)
 
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
+	(void) st;
+	return fp != 0;
 }
 
-static inline void atomic_inc(atomic_t *val)
+int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
+	uintptr_t bprev;
+	int rc = (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV,
+	    &bprev);
+	if (rc == EOK)
+		*prev = bprev;
 	
-	val->count++;
+	return rc;
 }
 
-static inline void atomic_dec(atomic_t *val)
+int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	return *st->read_uintptr(st->op_arg, fp + FRAME_OFFSET_RA, ra);
 }
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

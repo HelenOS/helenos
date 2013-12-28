@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef LIBC_sparc32_SYSCALL_H_
+#define LIBC_sparc32_SYSCALL_H_
 
-#include <stdbool.h>
+#include <sys/types.h>
+#include <abi/syscall.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#define __syscall0  __syscall
+#define __syscall1  __syscall
+#define __syscall2  __syscall
+#define __syscall3  __syscall
+#define __syscall4  __syscall
+#define __syscall5  __syscall
+#define __syscall6  __syscall
 
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static inline sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2,
+    const sysarg_t p3, const sysarg_t p4, const sysarg_t p5, const sysarg_t p6,
+    const syscall_t id)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
+	register uint32_t a1 asm("o0") = p1;
+	register uint32_t a2 asm("o1") = p2;
+	register uint32_t a3 asm("o2") = p3;
+	register uint32_t a4 asm("o3") = p4;
+	register uint32_t a5 asm("o4") = p5;
+	register uint32_t a6 asm("o5") = p6;
 	
-	return false;
+	asm volatile (
+		"ta %7\n"
+		: "=r" (a1)
+		: "r" (a1),
+		  "r" (a2),
+		  "r" (a3),
+		  "r" (a4),
+		  "r" (a5),
+		  "r" (a6),
+		  "i" (id)
+		: "memory"
+	);
+	
+	return a1;
 }
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 #endif
 

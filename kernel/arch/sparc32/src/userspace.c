@@ -26,76 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <userspace.h>
+#include <typedefs.h>
+#include <arch.h>
+#include <arch/asm.h>
+#include <abi/proc/uarg.h>
+#include <mm/as.h>
 
-#include <stdbool.h>
-
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+void userspace(uspace_arg_t *kernel_uarg)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
+	uint32_t psr = psr_read();
+	psr &= ~(1 << 7);
+	psr &= ~(1 << 6);
 	
-	return false;
+	/* Read invalid window variables */
+	uint32_t l0;
+	uint32_t l1;
+	uint32_t l2;
+	read_from_invalid(&l0, &l1, &l2);
+	
+	/* Make current window invalid */
+	uint8_t wim = (psr & 0x7) + 1;
+	wim = (1 << wim) | (1 >> (8 - wim));
+	
+	asm volatile (
+		"flush\n"
+		"mov %[stack], %%sp\n"
+		"mov %[wim], %%wim\n"
+		"ld %[v0], %%o0\n"
+		"ld %[v1], %%o1\n"
+		"ld %[v2], %%o2\n"
+		"call write_to_invalid\n"
+		"nop\n"
+		"ld %[arg], %%o1\n"
+		"jmp %[entry]\n"
+		"mov %[psr], %%psr\n"
+		:: [entry] "r" (kernel_uarg->uspace_entry),
+		   [arg] "m" (kernel_uarg->uspace_uarg),
+		   [psr] "r" (psr),
+		   [wim] "r" ((uint32_t)wim),
+		   [v0] "m" (l0),
+		   [v1] "m" (l1),
+		   [v2] "m" (l2),
+		   [stack] "r" (kernel_uarg->uspace_stack +
+		   kernel_uarg->uspace_stack_size - 64)
+		: "%g3", "%g4"
+	);
+	
+	while (1);
 }
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

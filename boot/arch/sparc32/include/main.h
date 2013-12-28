@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32boot
  * @{
  */
 /** @file
+ * @brief Boot related declarations.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef BOOT_sparc32_MAIN_H
+#define BOOT_sparc32_MAIN_H
 
-#include <stdbool.h>
+/** Address where characters to be printed are expected. */
+#define APBUART_SCONS_THR      0x80000100
+#define APBUART_SCONS_THR_MMU  0xb0000100
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+extern void bootstrap(void);
 
 #endif
 

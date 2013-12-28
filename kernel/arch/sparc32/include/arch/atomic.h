@@ -26,53 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_sparc32_ATOMIC_H_
+#define KERN_sparc32_ATOMIC_H_
 
-#include <stdbool.h>
+#include <typedefs.h>
+#include <arch/barrier.h>
+#include <preemption.h>
+#include <verify.h>
+#include <trace.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+NO_TRACE ATOMIC static inline void atomic_inc(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
+	// FIXME TODO
 	val->count++;
 }
 
-static inline void atomic_dec(atomic_t *val)
+NO_TRACE ATOMIC static inline void atomic_dec(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	// FIXME TODO
+	val->count--;
 }
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+NO_TRACE ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	
@@ -80,11 +72,12 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 	return prev;
 }
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+NO_TRACE ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
+	// FIXME TODO
 	
 	atomic_count_t prev = val->count;
 	
@@ -92,8 +85,30 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 	return prev;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+#define atomic_preinc(val)  (atomic_postinc(val) + 1)
+#define atomic_predec(val)  (atomic_postdec(val) - 1)
+
+NO_TRACE ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+{
+	// FIXME TODO
+	
+	atomic_count_t prev = val->count;
+	val->count = 1;
+	return prev;
+}
+
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+{
+	// FIXME TODO
+	
+	do {
+		while (val->count);
+	} while (test_and_set(val));
+}
 
 #endif
 

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +27,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_sparc32_ARCH_H_
+#define KERN_sparc32_ARCH_H_
 
-#include <stdbool.h>
+#ifndef __ASM__
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#include <typedefs.h>
+#include <arch/istate.h>
 
-#include <atomicdflt.h>
+#define NWINDOWS  8
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
+/* ASI assignments: */
+#define ASI_CACHEMISS  0x01
+#define ASI_CACHECTRL  0x02
+#define ASI_MMUCACHE   0x10
+#define ASI_MMUREGS    0x19
+#define ASI_MMUBYPASS  0x1c
+#define ASI_MMUFLUSH   0x18
 
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+#define TASKMAP_MAX_RECORDS  32
+#define CPUMAP_MAX_RECORDS   32
 
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
+typedef struct {
+	void *addr;
+	size_t size;
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
+} utask_t;
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
+typedef struct {
+	size_t cnt;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+	/* Fields below are LEON-specific */
+	uintptr_t uart_base;
+	uintptr_t intc_base;
+	uintptr_t timer_base;
+	int uart_irq;
+	int timer_irq;
+	uint32_t memsize;
+} bootinfo_t;
 
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+extern void arch_pre_main(void *, bootinfo_t *);
+extern void write_to_invalid(uint32_t, uint32_t, uint32_t);
+extern void read_from_invalid(uint32_t *, uint32_t *, uint32_t *);
+extern void preemptible_save_uspace(uintptr_t, istate_t *);
+extern void preemptible_restore_uspace(uintptr_t, istate_t *);
+extern void flush_windows(void);
+
+#endif
 
 #endif
 

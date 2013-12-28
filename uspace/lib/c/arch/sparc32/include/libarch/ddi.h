@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
- * @{
- */
 /** @file
+ * @ingroup libsparc32
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef LIBC_sparc32_DDI_H_
+#define LIBC_sparc32_DDI_H_
 
-#include <stdbool.h>
+#include <sys/types.h>
+#include <libarch/types.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static inline void memory_barrier(void)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
+	asm volatile (
+		"stbar\n"
+		::: "memory"
+	);
 }
 
-static inline void atomic_inc(atomic_t *val)
+static inline void arch_pio_write_8(ioport8_t *port, uint8_t v)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	*port = v;
+	memory_barrier();
 }
 
-static inline void atomic_dec(atomic_t *val)
+static inline void arch_pio_write_16(ioport16_t *port, uint16_t v)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	*port = v;
+	memory_barrier();
 }
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+static inline void arch_pio_write_32(ioport32_t *port, uint32_t v)
 {
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
+	*port = v;
+	memory_barrier();
 }
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+static inline uint8_t arch_pio_read_8(const ioport8_t *port)
 {
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
+	uint8_t rv = *port;
+	memory_barrier();
 	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
+	return rv;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+static inline uint16_t arch_pio_read_16(const ioport16_t *port)
+{
+	uint16_t rv = *port;
+	memory_barrier();
+	
+	return rv;
+}
+
+static inline uint32_t arch_pio_read_32(const ioport32_t *port)
+{
+	uint32_t rv = *port;
+	memory_barrier();
+	
+	return rv;
+}
 
 #endif
-
-/** @}
- */

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +27,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
+ * @brief sparc32 TLS functions.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef LIBC_sparc32_TLS_H_
+#define LIBC_sparc32_TLS_H_
 
-#include <stdbool.h>
+#define CONFIG_TLS_VARIANT_2
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+typedef struct {
+	void *self;
+	void *fibril_data;
+} tcb_t;
 
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static inline void __tcb_set(tcb_t *tcb)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
+	asm volatile(
+		"mov %0, %%g7\n"
+		:: "r" (tcb)
+		: "g7"
+	);
 }
 
-static inline void atomic_inc(atomic_t *val)
+static inline tcb_t *__tcb_get(void)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
+	void *retval;
 	
-	val->count++;
+	asm volatile(
+		"mov %%g7, %0\n"
+		: "=r" (retval)
+	);
+	
+	return retval;
 }
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 #endif
 

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +27,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32boot
  * @{
  */
 /** @file
+ * @brief Definitions of basic types like #uintptr_t.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef BOOT_sparc32_TYPES_H
+#define BOOT_sparc32_TYPES_H
 
-#include <stdbool.h>
+#define TASKMAP_MAX_RECORDS        32
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+typedef uint32_t size_t;
+typedef uint32_t uintptr_t;
 
-#include <atomicdflt.h>
+typedef uint32_t pfn_t;
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
+typedef struct {
+	/** Address where the task was placed. */
+	void *addr;
+	/** Size of the task's binary. */
+	size_t size;
+	/** Task name. */
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
+} task_t;
 
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+typedef struct {
+	size_t cnt;
+	task_t tasks[TASKMAP_MAX_RECORDS];
+	/* Fields below are LEON-specific */
+	uintptr_t uart_base;
+	uintptr_t intc_base;
+	uintptr_t timer_base;
+	int uart_irq;
+	int timer_irq;
+	uint32_t memsize;
+} bootinfo_t;
 
 #endif
 

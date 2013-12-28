@@ -263,6 +263,11 @@ def get_target(config):
 		clang_target = "powerpc-unknown-linux"
 		helenos_target = "ppc-helenos"
 	
+	if (config['PLATFORM'] == "sparc32"):
+		target = config['PLATFORM'];
+		gnu_target = "sparc-leon3-linux-gnu"
+		helenos_target = "sparc-leon3-helenos"
+	
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"

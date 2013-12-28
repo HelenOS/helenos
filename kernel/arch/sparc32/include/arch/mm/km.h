@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_sparc32_KM_H_
+#define KERN_sparc32_KM_H_
 
-#include <stdbool.h>
+#include <typedefs.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#define KM_SPARC32_IDENTITY_START  UINT32_C(0x80000000)
+#define KM_SPARC32_IDENTITY_SIZE   UINT32_C(0x70000000)
 
-#include <atomicdflt.h>
+#define KM_SPARC32_NON_IDENTITY_START  UINT32_C(0xf0000000)
+#define KM_SPARC32_NON_IDENTITY_SIZE   UINT32_C(0xff00000)
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+extern void km_identity_arch_init(void);
+extern void km_non_identity_arch_init(void);
+extern bool km_is_non_identity_arch(uintptr_t);
 
 #endif
 

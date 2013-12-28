@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +27,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <stacktrace.h>
+#include <syscall/copy.h>
+#include <typedefs.h>
+#include <arch.h>
+#include <arch/stack.h>
 
-#include <stdbool.h>
+#define FRAME_OFFSET_FP_PREV  14
+#define FRAME_OFFSET_RA       15
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static void alloc_window_and_flush(void)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
+	// FIXME TODO
+}
+
+bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
+{
+	uintptr_t kstack;
+	uint32_t l1
+	uint32_t l2;
 	
+	read_from_invalid(&kstack, &l1, &l2);
+	kstack -= 128;
+	
+	if ((THREAD) && (ctx->fp == kstack))
+		return false;
+	
+	return (ctx->fp != 0);
+}
+
+bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
+{
+	uint64_t *stack = (void *) ctx->fp;
+	alloc_window_and_flush();
+	*prev = stack[FRAME_OFFSET_FP_PREV];
+	return true;
+}
+
+bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
+{
+	uint64_t *stack = (void *) ctx->fp;
+	alloc_window_and_flush();
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
+}
+
+bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
+{
 	return false;
 }
 
-static inline void atomic_inc(atomic_t *val)
+bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	return false;
 }
 
-static inline void atomic_dec(atomic_t *val)
+bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	return false;
 }
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

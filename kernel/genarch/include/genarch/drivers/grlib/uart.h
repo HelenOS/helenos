@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +27,78 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup genarch
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Gaisler GRLIB UART IP-Core driver.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_GRLIB_UART_H_
+#define KERN_GRLIB_UART_H_
 
-#include <stdbool.h>
+#include <ddi/ddi.h>
+#include <ddi/irq.h>
+#include <console/chardev.h>
+#include <typedefs.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+typedef struct {
+	unsigned int rcnt: 6;
+	unsigned int tcnt: 6;
+	unsigned int : 9;
+	unsigned int rf: 1;
+	unsigned int tf: 1;
+	unsigned int rh: 1;
+	unsigned int th: 1;
+	unsigned int fe: 1;
+	unsigned int pe: 1;
+	unsigned int ov: 1;
+	unsigned int br: 1;
+	unsigned int te: 1;
+	unsigned int ts: 1;
+	unsigned int dr: 1;
+} grlib_uart_status_t;
 
-#include <atomicdflt.h>
+typedef struct {
+	unsigned int fa: 1;
+	unsigned int : 16;
+	unsigned int si: 1;
+	unsigned int di: 1;
+	unsigned int bi: 1;
+	unsigned int db: 1;
+	unsigned int rf: 1;
+	unsigned int tf: 1;
+	unsigned int ec: 1;
+	unsigned int lb: 1;
+	unsigned int fl: 1;
+	unsigned int pe: 1;
+	unsigned int ps: 1;
+	unsigned int ti: 1;
+	unsigned int ri: 1;
+	unsigned int te: 1;
+	unsigned int re: 1;
+} grlib_uart_control_t;
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
+/** GRLIB UART registers */
+typedef struct {
+	uint32_t data;
+	uint32_t status;
+	uint32_t control;
+	uint32_t scaler;
+	uint32_t debug;
+} grlib_uart_io_t;
 
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+typedef struct {
+	grlib_uart_io_t *io;
+	indev_t *indev;
+	irq_t irq;
+	parea_t parea;
+} grlib_uart_t;
 
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+extern outdev_t *grlib_uart_init(uintptr_t, inr_t);
+extern void grlib_uart_input_wire(grlib_uart_t *,
+    indev_t *);
 
 #endif
 

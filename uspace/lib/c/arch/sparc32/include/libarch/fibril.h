@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup libcsparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef LIBC_sparc32_FIBRIL_H_
+#define LIBC_sparc32_FIBRIL_H_
 
-#include <stdbool.h>
+#include <libarch/stack.h>
+#include <sys/types.h>
+#include <align.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#define SP_DELTA  (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
-#include <atomicdflt.h>
+#define context_set(c, _pc, stack, size, ptls) \
+	do { \
+		(c)->pc = ((uintptr_t) _pc) - 8; \
+		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
+		    STACK_ALIGNMENT) - (SP_DELTA); \
+		(c)->fp = 0; \
+		(c)->tp = (uint32_t) ptls; \
+	} while (0)
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+/*
+ * Save only registers that must be preserved across
+ * function calls.
+ */
+typedef struct {
+	uintptr_t sp;  /* %o6 */
+	uintptr_t pc;  /* %o7 */
+	uint32_t i0;
+	uint32_t i1;
+	uint32_t i2;
+	uint32_t i3;
+	uint32_t i4;
+	uint32_t i5;
+	uintptr_t fp;  /* %i6 */
+	uintptr_t i7;
+	uint32_t l0;
+	uint32_t l1;
+	uint32_t l2;
+	uint32_t l3;
+	uint32_t l4;
+	uint32_t l5;
+	uint32_t l6;
+	uint32_t l7;
+	uint32_t tp;  /* %g7 */
+} context_t;
+
+static inline uintptr_t context_get_fp(context_t *ctx)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
+	return ctx->sp;
 }
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 #endif
 

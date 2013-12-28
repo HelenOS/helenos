@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32proc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <proc/scheduler.h>
+#include <proc/thread.h>
+#include <arch.h>
+#include <arch/arch.h>
 
-#include <stdbool.h>
-
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+void before_task_runs_arch(void)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
+}
+
+void before_thread_runs_arch(void)
+{
+	if (THREAD->uspace) {
+		uint32_t kernel_sp = (uint32_t) THREAD->kstack + STACK_SIZE - 8;
+		uint32_t uspace_wbuf = (uint32_t) THREAD->arch.uspace_window_buffer;
+		write_to_invalid(kernel_sp, uspace_wbuf, 0);
 	}
-	
-	return false;
 }
 
-static inline void atomic_inc(atomic_t *val)
+void after_thread_ran_arch(void)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	if (THREAD->uspace) {
+		uint32_t kernel_sp;
+		uint32_t uspace_wbuf;
+		uint32_t l7;
+		read_from_invalid(&kernel_sp, &uspace_wbuf, &l7);
+		THREAD->arch.uspace_window_buffer = (uint8_t *) uspace_wbuf;
+	}
 }
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

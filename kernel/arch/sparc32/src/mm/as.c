@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32mm
  * @{
  */
-/** @file
- */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <mm/as.h>
+#include <arch/arch.h>
+#include <arch/asm.h>
+#include <arch/mm/as.h>
+#include <arch/mm/page.h>
+#include <genarch/mm/page_pt.h>
 
-#include <stdbool.h>
+static ptd_t context_table[ASID_MAX_ARCH] __attribute__((aligned(1024)));
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+void as_arch_init(void)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
+	as_operations = &as_pt_operations;
+	as_context_table = (uintptr_t) &context_table;
 }
 
-static inline void atomic_inc(atomic_t *val)
+void as_install_arch(as_t *as)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	context_table[as->asid].table_pointer =
+	    (uintptr_t) as->genarch.page_table >> 6;
+	context_table[as->asid].et = PTE_ET_DESCRIPTOR;
+	asi_u32_write(ASI_MMUREGS, 0x200, as->asid);
+	asi_u32_write(ASI_MMUCACHE, 0, 1);
+	asi_u32_write(ASI_MMUFLUSH, 0x400, 1);
 }
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

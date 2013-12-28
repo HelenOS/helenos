@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32boot
  * @{
  */
 /** @file
+ * @brief Memory management used while booting the kernel.
+ *
+ * So called "section" paging is used while booting the kernel. The term
+ * "section" comes from the ARM architecture specification and stands for the
+ * following: one-level paging, 1MB sized pages, 4096 entries in the page
+ * table.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef BOOT_sparc32_MM_H
+#define BOOT_sparc32_MM_H
 
-#include <stdbool.h>
+#include <typedefs.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#define PAGE_SIZE  (1 << 12)
 
-#include <atomicdflt.h>
+typedef struct {
+	uint32_t pa;
+	uint32_t size;
+	uint32_t va;
+	uint32_t cacheable;
+} section_mapping_t;
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
+typedef struct {
+	unsigned int ppn : 24;
+	unsigned int cacheable : 1;
+	unsigned int modified : 1;
+	unsigned int referenced : 1;
+	unsigned int acc : 3;
+	unsigned int et : 2;
+} __attribute__((packed)) pte_t;
 
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+extern pte_t boot_pt[PTL0_ENTRIES];
 
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+extern void mmu_init(void);
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+#define PTE_ET_DESCRIPTOR  1
+#define PTE_ET_ENTRY       2
+#define PTE_ACC_RWX        3
+#define MMU_CONTROL_EN     (1 << 0)
 
 #endif
 

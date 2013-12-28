@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup genarch
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Gaisler GRLIB interrupt controller driver.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_GRLIB_IRQMP_H_
+#define KERN_GRLIB_IRQMP_H_
 
-#include <stdbool.h>
+#include <typedefs.h>
+#include <arch.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+#define GRLIB_IRQMP_MASK_OFFSET   0x40
+#define GRLIB_IRQMP_FORCE_OFFSET  0x80
 
-#include <atomicdflt.h>
+/** IRQMP registers */
+typedef struct {
+	uint32_t level;
+	uint32_t pending;
+	uint32_t force;
+	uint32_t clear;
+	uint32_t mp_status;
+	uint32_t broadcast;
+} grlib_irqmp_regs_t;
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
+/** LEON3 interrupt assignments */
+enum grlib_irq_source {
+	GRLIB_INT_AHBERROR = 1,
+	GRLIB_INT_UART1    = 2,
+	GRLIB_INT_PCIDMA   = 4,
+	GRLIB_INT_CAN      = 5,
+	GRLIB_INT_TIMER0   = 6,
+	GRLIB_INT_TIMER1   = 7,
+	GRLIB_INT_TIMER2   = 8,
+	GRLIB_INT_TIMER3   = 9,
+	GRLIB_INT_ETHERNET = 14
+};
 
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+typedef struct {
+	grlib_irqmp_regs_t *regs;
+} grlib_irqmp_t;
 
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+extern void grlib_irqmp_init(grlib_irqmp_t *, bootinfo_t *);
+extern int grlib_irqmp_inum_get(grlib_irqmp_t *);
+extern void grlib_irqmp_clear(grlib_irqmp_t *, unsigned int);
+extern void grlib_irqmp_mask(grlib_irqmp_t *, unsigned int);
+extern void grlib_irqmp_unmask(grlib_irqmp_t *, unsigned int);
 
 #endif
 

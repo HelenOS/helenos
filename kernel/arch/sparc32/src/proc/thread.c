@@ -26,76 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32proc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <arch/regwin.h>
+#include <proc/thread.h>
 
-#include <stdbool.h>
-
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+void thr_constructor_arch(thread_t *t)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
+	t->arch.uspace_window_buffer = NULL;
+}
+
+void thr_destructor_arch(thread_t *t)
+{
+	if (t->arch.uspace_window_buffer) {
+		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
+		/*
+		 * Mind the possible alignment of the userspace window buffer
+		 * belonging to a killed thread.
+		 */
+		free((uint8_t *) ALIGN_DOWN(uw_buf, UWB_ALIGNMENT));
 	}
-	
-	return false;
 }
 
-static inline void atomic_inc(atomic_t *val)
+void thread_create_arch(thread_t *t)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	if ((t->uspace) && (!t->arch.uspace_window_buffer))
+		{
+		/*
+		 * The thread needs userspace window buffer and the object
+		 * returned from the slab allocator doesn't have any.
+		 */
+		t->arch.uspace_window_buffer = malloc(UWB_ASIZE, 0);
+	} else {
+		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
+		
+		/*
+		 * Mind the possible alignment of the userspace window buffer
+		 * belonging to a killed thread.
+		 */
+		t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
+		    UWB_ASIZE);
+	}
 }
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

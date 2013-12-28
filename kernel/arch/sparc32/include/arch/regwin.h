@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32interrupt
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief This file contains register window trap handlers.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_sparc32_REGWIN_H_
+#define KERN_sparc32_REGWIN_H_
 
-#include <stdbool.h>
+#include <arch/stack.h>
+#include <arch/arch.h>
+#include <align.h>
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+/* Window Save Area offsets. */
+#define L0_OFFSET  0
+#define L1_OFFSET  4
+#define L2_OFFSET  8
+#define L3_OFFSET  12
+#define L4_OFFSET  16
+#define L5_OFFSET  20
+#define L6_OFFSET  24
+#define L7_OFFSET  28
+#define I0_OFFSET  32
+#define I1_OFFSET  36
+#define I2_OFFSET  40
+#define I3_OFFSET  44
+#define I4_OFFSET  48
+#define I5_OFFSET  52
+#define I6_OFFSET  56
+#define I7_OFFSET  60
 
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
-
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+/* User space Window Buffer constants. */
+#define UWB_SIZE       ((NWINDOWS - 1) * STACK_WINDOW_SAVE_AREA_SIZE)
+#define UWB_ALIGNMENT  1024
+#define UWB_ASIZE      ALIGN_UP(UWB_SIZE, UWB_ALIGNMENT)
 
 #endif
 

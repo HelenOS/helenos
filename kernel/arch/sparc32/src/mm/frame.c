@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +27,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32mm
  * @{
  */
 /** @file
+ *  @brief Frame related functions.
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <mm/frame.h>
+#include <arch/machine_func.h>
+#include <arch/mm/frame.h>
+#include <config.h>
+#include <align.h>
+#include <macros.h>
 
-#include <stdbool.h>
-
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+static void frame_common_arch_init(bool low)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
+	uintptr_t base;
+	size_t size;
+	machine_get_memory_extents(&base, &size);
+	
+	base = ALIGN_UP(base, FRAME_SIZE);
+	size = ALIGN_DOWN(size, FRAME_SIZE);
+	
+	if (!frame_adjust_zone_bounds(low, &base, &size))
+		return;
+	
+	if (low) {
+		zone_create(ADDR2PFN(base), SIZE2FRAMES(size),
+		    BOOT_PT_START_FRAME + BOOT_PT_SIZE_FRAMES,
+		    ZONE_AVAILABLE | ZONE_LOWMEM);
+	} else {
+		pfn_t conf = zone_external_conf_alloc(SIZE2FRAMES(size));
+		if (conf != 0)
+			zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
+			    ZONE_AVAILABLE | ZONE_HIGHMEM);
 	}
-	
-	return false;
 }
 
-static inline void atomic_inc(atomic_t *val)
+void physmem_print(void)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
+	// FIXME TODO
 }
 
-static inline void atomic_dec(atomic_t *val)
+/** Create low memory zones. */
+void frame_low_arch_init(void)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
+	frame_common_arch_init(true);
 	
-	val->count++;
+	/* Blacklist boot page table */
+	frame_mark_unavailable(BOOT_PT_START_FRAME, BOOT_PT_SIZE_FRAMES);
 }
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+/** Create high memory zones. */
+void frame_high_arch_init(void)
 {
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
+	frame_common_arch_init(false);
 }
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

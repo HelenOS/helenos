@@ -1,5 +1,8 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2009 Vineeth Pillai
+ * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +29,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32boot
  * @{
  */
 /** @file
+ * @brief bootloader output logic
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#include <typedefs.h>
+#include <arch/asm.h>
+#include <arch/arch.h>
+#include <arch/main.h>
+#include <arch/mm.h>
+#include <putchar.h>
+#include <str.h>
 
-#include <stdbool.h>
-
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
-
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+/** Send a byte to the LEON3 serial console.
+ *
+ * @param byte Byte to send.
+ *
+ */
+static void scons_sendb(uint8_t byte)
 {
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
+	asi_u32_write(ASI_MMUBYPASS, APBUART_SCONS_THR, byte);
 }
 
-static inline void atomic_inc(atomic_t *val)
+/** Display a character
+ *
+ * @param ch Character to display
+ *
+ */
+void putchar(const wchar_t ch)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
+	if (ch == '\n')
+		scons_sendb('\r');
 	
-	val->count++;
+	if (ascii_check(ch))
+		scons_sendb((uint8_t) ch);
+	else
+		scons_sendb(U_SPECIAL);
 }
-
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
-
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
-
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
-
-#endif
 
 /** @}
  */

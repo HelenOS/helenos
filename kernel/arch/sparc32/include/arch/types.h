@@ -26,74 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcabs32le
+/** @addtogroup sparc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_abs32le_ATOMIC_H_
-#define LIBC_abs32le_ATOMIC_H_
+#ifndef KERN_sparc32_TYPES_H_
+#define KERN_sparc32_TYPES_H_
 
-#include <stdbool.h>
+#define ATOMIC_COUNT_MIN  UINT32_MIN
+#define ATOMIC_COUNT_MAX  UINT32_MAX
 
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
+typedef uint32_t size_t;
+typedef int32_t ssize_t;
 
-#include <atomicdflt.h>
+typedef uint32_t uintptr_t;
+typedef uint32_t pfn_t;
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
-{
-	if (val->count == ov) {
-		val->count = nv;
-		return true;
-	}
-	
-	return false;
-}
+typedef uint32_t ipl_t;
 
-static inline void atomic_inc(atomic_t *val)
-{
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+typedef uint32_t sysarg_t;
+typedef int32_t native_t;
+typedef uint32_t atomic_count_t;
 
-static inline void atomic_dec(atomic_t *val)
-{
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
-	
-	val->count++;
-}
+typedef struct {
+} fncptr_t;
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count++;
-	return prev;
-}
+#define INTN_C(c)   INT32_C(c)
+#define UINTN_C(c)  UINT32_C(c)
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
-{
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
-	
-	atomic_count_t prev = val->count;
-	
-	val->count--;
-	return prev;
-}
-
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+#define PRIdn  PRId32  /**< Format for native_t. */
+#define PRIun  PRIu32  /**< Format for sysarg_t. */
+#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
+#define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif
 
