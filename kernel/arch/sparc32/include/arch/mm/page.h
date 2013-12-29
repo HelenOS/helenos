@@ -70,7 +70,7 @@
 
 /* Page table sizes for each level. */
 #define PTL0_FRAMES_ARCH  1
-#define PTL1_FRAMES_ARCH  0
+#define PTL1_FRAMES_ARCH  1
 #define PTL2_FRAMES_ARCH  1
 #define PTL3_FRAMES_ARCH  1
 

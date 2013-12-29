@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
  * Copyright (c) 2013 Jakub Klama
  * All rights reserved.
  *
@@ -27,83 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc32
+/** @addtogroup leon3drv
  * @{
  */
 /** @file
+ * @brief LEON3 root device.
  */
 
-#include <stacktrace.h>
-#include <syscall/copy.h>
-#include <typedefs.h>
-#include <arch.h>
-#include <arch/stack.h>
+#ifndef ROOTLEON3_H
+#define ROOTLEON3_H
 
-#define FRAME_OFFSET_FP_PREV  14
-#define FRAME_OFFSET_RA       15
+#define AMBAPP_MASTER_AREA  0xfffff000
+#define AMBAPP_SLAVE_AREA   0xfffff800
+#define AMBAPP_MASTER_SIZE  0x800
+#define AMBAPP_SLAVE_SIZE   0x800
 
-static void alloc_window_and_flush(void)
-{
-	// FIXME TODO
-}
+#endif
 
-bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
-{
-	uintptr_t kstack;
-	uint32_t l1;
-	uint32_t l2;
-	
-	read_from_invalid(&kstack, &l1, &l2);
-	kstack -= 128;
-	
-	if ((THREAD) && (ctx->fp == kstack))
-		return false;
-	
-	return (ctx->fp != 0);
-}
-
-bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
-{
-	uint32_t *stack = (void *) ctx->fp;
-	alloc_window_and_flush();
-	*prev = stack[FRAME_OFFSET_FP_PREV];
-	return true;
-}
-
-bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
-{
-	uint32_t *stack = (void *) ctx->fp;
-	alloc_window_and_flush();
-	*ra = stack[FRAME_OFFSET_RA];
-	return true;
-}
-
-bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
-{
-	return false;
-}
-
-bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
-{
-	return false;
-}
-
-bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
-{
-	return false;
-}
-
-uintptr_t frame_pointer_get(void)
-{
-	// FIXME TODO
-	return 0;
-}
-
-uintptr_t program_counter_get(void)
-{
-	// FIXME TODO
-	return 0;
-}
-
-/** @}
+/**
+ * @}
  */

@@ -35,14 +35,39 @@
 #ifndef KERN_sparc32_BARRIER_H_
 #define KERN_sparc32_BARRIER_H_
 
-// FIXME TODO
+/*
+ * Provisions are made to prevent compiler from reordering instructions itself.
+ */
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+#define CS_ENTER_BARRIER() \
+	asm volatile ( \
+		"stbar\n" \
+		::: "memory" \
+	)
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+#define CS_LEAVE_BARRIER() \
+	asm volatile ( \
+		"stbar\n" \
+		::: "memory" \
+	)
+
+#define memory_barrier() \
+	asm volatile ( \
+		"stbar\n" \
+		::: "memory" \
+	)
+
+#define read_barrier() \
+	asm volatile ( \
+		"stbar\n" \
+		::: "memory" \
+	)
+
+#define write_barrier() \
+	asm volatile ( \
+		"stbar\n" \
+		::: "memory" \
+	)
 
 #define smc_coherence(addr)
 #define smc_coherence_block(addr, size)

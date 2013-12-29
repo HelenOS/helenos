@@ -54,6 +54,7 @@
 
 char memcpy_from_uspace_failover_address;
 char memcpy_to_uspace_failover_address;
+
 static bootinfo_t machine_bootinfo;
 
 void arch_pre_main(void *unused, bootinfo_t *bootinfo)
@@ -103,6 +104,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	machine_input_init();
 }
 
 void calibrate_delay_loop(void)

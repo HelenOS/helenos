@@ -109,7 +109,7 @@ void ambapp_qemu_fake_scan()
 	amba_devices[0].vendor_id = GAISLER;
 	amba_devices[0].device_id = GAISLER_APBUART;
 	amba_devices[0].version = 1;
-	amba_devices[0].irq = 2;
+	amba_devices[0].irq = 3;
 	amba_devices[0].bars[0].start = 0x80000100;
 	amba_devices[0].bars[0].size = 0x100;
 	

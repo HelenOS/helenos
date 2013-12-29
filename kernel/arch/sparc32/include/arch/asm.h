@@ -160,7 +160,7 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
 	ipl_t pil;
 	pil = psr.pil;
 	
-	psr.pil = 0x0f;
+	psr.pil = 0x00;
 	psr_write(psr.value);
 	
 	return pil;
@@ -174,7 +174,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
 	ipl_t pil;
 	pil = psr.pil;
 	
-	psr.pil = 0;
+	psr.pil = 0x0f;
 	psr_write(psr.value);
 	
 	return pil;
@@ -199,7 +199,7 @@ NO_TRACE static inline bool interrupts_disabled(void)
 {
 	psr_reg_t psr;
 	psr.value = psr_read();
-	return psr.pil == 0;
+	return (psr.pil == 0x0f);
 }
 
 NO_TRACE static inline uintptr_t get_stack_base(void)

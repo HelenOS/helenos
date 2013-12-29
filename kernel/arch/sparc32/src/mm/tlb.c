@@ -31,12 +31,17 @@
  */
 
 #include <mm/tlb.h>
+#include <arch/arch.h>
 #include <arch/mm/asid.h>
+#include <arch/mm/as.h>
+#include <arch/mm/page.h>
 #include <arch/asm.h>
 #include <typedefs.h>
 
 void tlb_invalidate_all(void)
 {
+	asi_u32_write(ASI_MMUCACHE, 0, 1);
+	asi_u32_write(ASI_MMUFLUSH, 0x400, 1);
 }
 
 void tlb_invalidate_asid(asid_t asid __attribute__((unused)))

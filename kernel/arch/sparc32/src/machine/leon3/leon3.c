@@ -119,7 +119,7 @@ static void leon3_irq_exception(unsigned int exc, istate_t *istate)
 	
 	grlib_irqmp_clear(&machine.irqmp, irqnum);
 	
-	irq_t *irq = irq_dispatch_and_lock(irqnum);
+	irq_t *irq = irq_dispatch_and_lock(exc);
 	if (irq) {
 		irq->handler(irq);
 		spinlock_unlock(&irq->lock);
@@ -139,7 +139,6 @@ static void leon3_output_init(void)
 
 static void leon3_input_init(void)
 {
-#if 0
 	grlib_uart_t *scons_inst;
 	
 	if (machine.scons_dev) {
@@ -157,7 +156,6 @@ static void leon3_input_init(void)
 			    machine.bootinfo->uart_irq);
 		}
 	}
-#endif
 }
 
 static size_t leon3_get_irq_count(void)

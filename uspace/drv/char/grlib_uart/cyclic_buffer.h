@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
- * Copyright (c) 2013 Jakub Klama
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,83 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc32
+/** @addtogroup ns8250
  * @{
  */
 /** @file
  */
 
-#include <stacktrace.h>
-#include <syscall/copy.h>
-#include <typedefs.h>
-#include <arch.h>
-#include <arch/stack.h>
+#ifndef CYCLIC_BUFFER_H_
+#define CYCLIC_BUFFER_H_
 
-#define FRAME_OFFSET_FP_PREV  14
-#define FRAME_OFFSET_RA       15
+#define BUF_LEN 4096
 
-static void alloc_window_and_flush(void)
+typedef struct cyclic_buffer {
+	uint8_t buf[BUF_LEN];
+	int start;
+	int cnt;
+}  cyclic_buffer_t;
+
+/*
+ * @return		False if the buffer is full.
+ */
+static inline bool buf_push_back(cyclic_buffer_t *buf, uint8_t item)
 {
-	// FIXME TODO
-}
-
-bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
-{
-	uintptr_t kstack;
-	uint32_t l1;
-	uint32_t l2;
-	
-	read_from_invalid(&kstack, &l1, &l2);
-	kstack -= 128;
-	
-	if ((THREAD) && (ctx->fp == kstack))
+	if (buf->cnt >= BUF_LEN)
 		return false;
 	
-	return (ctx->fp != 0);
-}
-
-bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
-{
-	uint32_t *stack = (void *) ctx->fp;
-	alloc_window_and_flush();
-	*prev = stack[FRAME_OFFSET_FP_PREV];
+	int pos = (buf->start + buf->cnt) % BUF_LEN;
+	buf->buf[pos] = item;
+	buf->cnt++;
 	return true;
 }
 
-bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
+static inline bool buf_is_empty(cyclic_buffer_t *buf)
 {
-	uint32_t *stack = (void *) ctx->fp;
-	alloc_window_and_flush();
-	*ra = stack[FRAME_OFFSET_RA];
-	return true;
+	return buf->cnt == 0;
 }
 
-bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
+static inline uint8_t buf_pop_front(cyclic_buffer_t *buf)
 {
-	return false;
+	assert(!buf_is_empty(buf));
+	
+	uint8_t res = buf->buf[buf->start];
+	buf->start = (buf->start + 1) % BUF_LEN;
+	buf->cnt--;
+	return res;
 }
 
-bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
+static inline void buf_clear(cyclic_buffer_t *buf)
 {
-	return false;
+	buf->cnt = 0;
 }
 
-bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
-{
-	return false;
-}
+#endif
 
-uintptr_t frame_pointer_get(void)
-{
-	// FIXME TODO
-	return 0;
-}
-
-uintptr_t program_counter_get(void)
-{
-	// FIXME TODO
-	return 0;
-}
-
-/** @}
+/**
+ * @}
  */

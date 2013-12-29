@@ -45,6 +45,7 @@ start:
 .align 4096
 boot_pt:
 	.space PTL0_ENTRIES * PTL0_ENTRY_SIZE
+
 boot_ctx_table:
 	.space 4
 

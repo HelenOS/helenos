@@ -50,15 +50,13 @@ context_save_arch:
 	1:
 		subcc %g1, 1, %g1
 		bg 1b
-	
-	save %sp, -64, %sp
+		save %sp, -64, %sp
 	
 	mov 7, %g1
 	1:
 		subcc %g1, 1, %g1
 		bg 1b
-	
-	restore
+		restore
 	
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
@@ -87,15 +85,13 @@ context_restore_arch:
 	1:
 		subcc %g1, 1, %g1
 		bg 1b
-	
-	save %sp, -64, %sp
+		save %sp, -64, %sp
 	
 	mov 7, %g1
 	1:
 		subcc %g1, 1, %g1
 		bg 1b
-	
-	restore
+		restore
 	
 	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl

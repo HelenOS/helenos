@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
- * Copyright (c) 2013 Jakub Klama
+ * Copyrihgt (c) 2013 Jakub Klama
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,83 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc32
+/** @addtogroup genarch
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Gaisler GRLIB gptimer driver.
  */
 
-#include <stacktrace.h>
-#include <syscall/copy.h>
+#ifndef KERN_GRLIB_TIMER_H_
+#define KERN_GRLIB_TIMER_H_
+
 #include <typedefs.h>
-#include <arch.h>
-#include <arch/stack.h>
 
-#define FRAME_OFFSET_FP_PREV  14
-#define FRAME_OFFSET_RA       15
+/** GRLIB gptimer registers */
+typedef struct {
+	uint32_t scaler;
+	uint32_t scaler_reload;
+	uint32_t config;
+	uint32_t latch_config;
+	struct {
+		uint32_t counter;
+		uint32_t reload;
+		uint32_t control;
+		uint32_t latch;
+	} timers[7];
+} grlib_timer_t;
 
-static void alloc_window_and_flush(void)
-{
-	// FIXME TODO
-}
+struct grlib_timer_config_t {
+	unsigned int : 20;
+	unsigned int es : 1;
+	unsigned int el : 1;
+	unsigned int ee : 1;
+	unsigned int df : 1;
+	unsigned int si : 1;
+	unsigned int irq : 5;
+	unsigned int timers : 2;
+};
 
-bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
-{
-	uintptr_t kstack;
-	uint32_t l1;
-	uint32_t l2;
-	
-	read_from_invalid(&kstack, &l1, &l2);
-	kstack -= 128;
-	
-	if ((THREAD) && (ctx->fp == kstack))
-		return false;
-	
-	return (ctx->fp != 0);
-}
+struct grlib_timer_control_t {
+	unsigned int : 25;
+	unsigned int dh : 1;
+	unsigned int ch : 1;
+	unsigned int ip : 1;
+	unsigned int ie : 1;
+	unsigned int ld : 1;
+	unsigned int rs : 1;
+	unsigned int en : 1;
+};
 
-bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
-{
-	uint32_t *stack = (void *) ctx->fp;
-	alloc_window_and_flush();
-	*prev = stack[FRAME_OFFSET_FP_PREV];
-	return true;
-}
-
-bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
-{
-	uint32_t *stack = (void *) ctx->fp;
-	alloc_window_and_flush();
-	*ra = stack[FRAME_OFFSET_RA];
-	return true;
-}
-
-bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
-{
-	return false;
-}
-
-bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
-{
-	return false;
-}
-
-bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
-{
-	return false;
-}
-
-uintptr_t frame_pointer_get(void)
-{
-	// FIXME TODO
-	return 0;
-}
-
-uintptr_t program_counter_get(void)
-{
-	// FIXME TODO
-	return 0;
-}
+#endif
 
 /** @}
  */

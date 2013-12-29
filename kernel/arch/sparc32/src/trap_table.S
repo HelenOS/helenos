@@ -164,8 +164,8 @@
 	mov %g7, %l7
 	save
 	
-	ldd [%sp +  0], %l0
-	ldd [%sp +  8], %l2
+	ldd [%sp + 0], %l0
+	ldd [%sp + 8], %l2
 	ldd [%sp + 16], %l4
 	ldd [%sp + 24], %l6
 	ldd [%sp + 32], %i0
@@ -429,7 +429,6 @@ window_underflow_trap:
 	b preemptible_trap
 	nop
 	
-	
 	1:
 		/* Rotate WIM on bit LEFT, we have 8 windows */
 		mov %wim, %l3
@@ -441,7 +440,7 @@ window_underflow_trap:
 		/* Disable WIM traps */
 		mov %g0, %wim
 		nop; nop; nop
-		
+	
 	/* Kernel: */
 	restore
 	restore
@@ -562,16 +561,12 @@ preemptible_trap:
 		/* Enable traps */
 		mov %psr, %l0
 		or %l0, (1 << 5), %l0
+		or %l0, 0xf00, %l0
 		mov %l0, %psr
 		nop
 		nop
 		nop
 		nop
-		
-		/* Get UWB address */
-		##	switch_to_invalid %g5, %g6
-		##	mov %l6, %g1
-		##	switch_back %g5, %g6
 		
 		/* Flush windows to stack */
 		call flush_windows
@@ -581,10 +576,11 @@ preemptible_trap:
 		call %o2
 		add %sp, 128, %o1
 		
-		/* Return from handler */
+		/* Return from handler (leave PIL disabled) */
 		ld [%sp + 92], %l1
 		ld [%sp + 96], %l2
 		ld [%sp + 100], %l0
+		or %l0, 0xf00, %l0
 		mov %l0, %psr
 		nop
 		nop
@@ -652,17 +648,22 @@ preemptible_trap:
 		ld [%sp + 112], %g3
 		ld [%sp + 116], %g4
 		ld [%sp + 120], %g7
+		
 		mov %l3, %sp
 		b 10f
 		nop
 	
 	9:
 		inline_restore_kernel
+		
 		ld [%sp + 104], %g1
 		ld [%sp + 108], %g2
 		ld [%sp + 112], %g3
 		ld [%sp + 116], %g4
 		ld [%sp + 120], %g7
+	
+		/* Restore old sp */
+		add %sp, 128, %sp
 	
 	10:
 		jmp %l1
@@ -715,7 +716,6 @@ interrupt_trap:
 		mov %l5, %g7
 		switch_back %g5, %g6
 		mov %g7, %sp
-		##	mov %sp, %fp
 	
 	5:
 		/* Set up stack frame */
@@ -732,9 +732,10 @@ interrupt_trap:
 		st %g4, [%sp + 116]
 		st %l0, [%sp + 120]
 		
-		/* Enable traps */
+		/* Enable traps (without PIL) */
 		mov %psr, %l0
 		or %l0, (1 << 5), %l0
+		or %l0, 0xf00, %l0
 		mov %l0, %psr
 		nop
 		nop
@@ -746,14 +747,14 @@ interrupt_trap:
 		nop
 		
 		/* Jump to actual subroutine */
-		mov %g2, %o0
 		call irq_exception
 		add %sp, 128, %o1
 		
-		/* Return from handler */
+		/* Return from handler (leave PIL disabled) */
 		ld [%sp + 92], %l1
 		ld [%sp + 96], %l2
 		ld [%sp + 100], %l0
+		or %l0, 0xf00, %l0
 		mov %l0, %psr
 		nop
 		nop
@@ -765,7 +766,7 @@ interrupt_trap:
 		 * If trap originated from user space, clear user space window mark
 		 * and save uwb address for future use.
 		 */
-		if_from_kernel 6f
+		if_from_kernel 9f
 		switch_to_invalid %g5, %g6
 		clr %l7
 		mov %l5, %g2
@@ -796,7 +797,7 @@ interrupt_trap:
 		and %g5, 0x7, %g5
 		ba 0b
 		nop
-		
+	
 	/*
 	 * We've restored all user space windows. Now time to
 	 * fix CWP and WIM.
@@ -814,33 +815,31 @@ interrupt_trap:
 		clr %l7
 		switch_back %g5, %g6
 		
-		/* If next window is invalid, do inline restore */
-	6:
-		get_wim_number %g6
-		get_cwp %g7
-		inc %g7
-		and %g7, 0x7, %g7
-		cmp %g6, %g7
-		bne 8f
-		
-		if_from_kernel 7f
-		
-		inline_restore_uspace %g1
-		switch_to_invalid %g5, %g6
-		mov %g1, %l6
-		switch_back %g5, %g6
-		b 8f
-		nop
-	
-	7:
-		inline_restore_kernel
-	
-	8:
+		mov %sp, %l3
+		sub %g2, 128, %sp
 		ld [%sp + 104], %g1
 		ld [%sp + 108], %g2
 		ld [%sp + 112], %g3
 		ld [%sp + 116], %g4
 		ld [%sp + 120], %g7
+		
+		mov %l3, %sp
+		b 10f
+		nop
+	
+	9:
+		inline_restore_kernel
+		
+		ld [%sp + 104], %g1
+		ld [%sp + 108], %g2
+		ld [%sp + 112], %g3
+		ld [%sp + 116], %g4
+		ld [%sp + 120], %g7
+		
+		/* Restore old sp */
+		add %sp, 128, %sp
+	
+	10:
 		jmp %l1
 		rett %l2
 
@@ -891,7 +890,7 @@ syscall_trap:
 		mov %l5, %g7
 		switch_back %g5, %g6
 		mov %g7, %sp
-		##	mov %sp, %fp
+		## mov %sp, %fp
 		
 	5:
 		/* Set up stack frame */
@@ -908,9 +907,10 @@ syscall_trap:
 		st %g4, [%sp + 116]
 		st %l0, [%sp + 120]
 		
-		/* Enable traps */
+		/* Enable traps (without PIL) */
 		mov %psr, %l0
 		or %l0, (1 << 5), %l0
+		or %l0, 0xf00, %l0
 		mov %l0, %psr
 		nop
 		nop
@@ -932,13 +932,14 @@ syscall_trap:
 		call syscall
 		mov %i5, %o5
 		
-		/* Return from handler */
+		/* Return from handler (with PIL disabled) */
 		ld [%sp + 92], %l1
 		ld [%sp + 96], %l2
 		ld [%sp + 100], %l0
 		mov %o0, %i0
 		mov %psr, %l1
 		and %l1, 0xf, %l1
+		or %l1, 0x00000f00, %l1
 		and %l0, 0xfffffff0, %l0
 		or %l0, %l1, %l0
 		mov %l0, %psr
@@ -1008,7 +1009,12 @@ syscall_trap:
 		ld [%sp + 112], %g3
 		ld [%sp + 116], %g4
 		ld [%sp + 120], %g7
+		
 		mov %l1, %sp
+		nop
+		nop
+		nop
+		
 		jmp %l2
 		rett %l2 + 4
 
@@ -1034,9 +1040,9 @@ syscall_trap:
 
 #define INTERRUPT(_vector, _priority) \
 	.org trap_table + _vector * TRAP_ENTRY_SIZE; \
-	mov %psr, %l0 ; \
-	mov _priority, %g2 ; \
+	mov _priority, %o0 ; \
 	b interrupt_trap ; \
+	nop ;
 	nop ;
 
 #define BADTRAP(_vector) \

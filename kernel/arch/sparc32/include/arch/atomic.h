@@ -36,6 +36,7 @@
 #define KERN_sparc32_ATOMIC_H_
 
 #include <typedefs.h>
+#include <arch/asm.h>
 #include <arch/barrier.h>
 #include <preemption.h>
 #include <verify.h>
@@ -46,8 +47,10 @@ NO_TRACE ATOMIC static inline void atomic_inc(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	// FIXME TODO
+	// FIXME: Isn't there any intrinsic atomic operation?
+	ipl_t ipl = interrupts_disable();
 	val->count++;
+	interrupts_restore(ipl);
 }
 
 NO_TRACE ATOMIC static inline void atomic_dec(atomic_t *val)
@@ -55,8 +58,10 @@ NO_TRACE ATOMIC static inline void atomic_dec(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	// FIXME TODO
+	// FIXME: Isn't there any intrinsic atomic operation?
+	ipl_t ipl = interrupts_disable();
 	val->count--;
+	interrupts_restore(ipl);
 }
 
 NO_TRACE ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
@@ -64,11 +69,13 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	// FIXME TODO
+	// FIXME: Isn't there any intrinsic atomic operation?
 	
+	ipl_t ipl = interrupts_disable();
 	atomic_count_t prev = val->count;
 	
 	val->count++;
+	interrupts_restore(ipl);
 	return prev;
 }
 
@@ -77,11 +84,13 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	// FIXME TODO
+	// FIXME: Isn't there any intrinsic atomic operation?
 	
+	ipl_t ipl = interrupts_disable();
 	atomic_count_t prev = val->count;
 	
 	val->count--;
+	interrupts_restore(ipl);
 	return prev;
 }
 
@@ -92,10 +101,16 @@ NO_TRACE ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
     WRITES(&val->count)
     REQUIRES_EXTENT_MUTABLE(val)
 {
-	// FIXME TODO
+	atomic_count_t prev;
+	volatile uintptr_t ptr = (uintptr_t) &val->count;
 	
-	atomic_count_t prev = val->count;
-	val->count = 1;
+	asm volatile (
+		"ldstub [%[ptr]] %[prev]\n"
+		: [prev] "=r" (prev)
+		: [ptr] "r" (ptr)
+		: "memory"
+	);
+	
 	return prev;
 }
 
@@ -103,11 +118,34 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
     WRITES(&val->count)
     REQUIRES_EXTENT_MUTABLE(val)
 {
-	// FIXME TODO
+	atomic_count_t tmp1 = 0;
 	
-	do {
-		while (val->count);
-	} while (test_and_set(val));
+	volatile uintptr_t ptr = (uintptr_t) &val->count;
+	
+	preemption_disable();
+	
+	asm volatile (
+		"0:\n"
+			"ldstub %0, %1\n"
+			"tst %1\n"
+			"be 2f\n"
+			"nop\n"
+		"1:\n"
+			"ldub %0, %1\n"
+			"tst %1\n"
+			"bne 1b\n"
+			"nop\n"
+			"ba,a 0b\n"
+		"2:\n"
+		: "+m" (*((atomic_count_t *) ptr)),
+		  "+r" (tmp1)
+		: "r" (0)
+	);
+	
+	/*
+	 * Prevent critical section code from bleeding out this way up.
+	 */
+	CS_ENTER_BARRIER();
 }
 
 #endif
