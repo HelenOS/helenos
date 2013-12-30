@@ -36,6 +36,7 @@
 
 #include <malloc.h>
 #include <sys/types.h>
+#include <macros.h>
 
 #include "mem_access.h"
 
@@ -49,11 +50,11 @@ typedef struct hcca {
 	uint32_t int_ep[HCCA_INT_EP_COUNT];
 	/** Frame number. */
 	uint16_t frame_number;
-	uint16_t pad1;
+	PADD16;
 	/** Pointer to the last completed TD. (useless) */
 	uint32_t done_head;
 	/** Padding to make the size 256B */
-	uint32_t reserved[30];
+	PADD32[30];
 } hcca_t;
 
 /** Allocate properly aligned structure.
@@ -79,7 +80,7 @@ static inline hcca_t * hcca_get(void)
 static inline void hcca_set_int_ep(hcca_t *hcca, unsigned index, uintptr_t pa)
 {
 	assert(hcca);
-	assert(index < HCCA_INT_EP_COUNT);
+	assert(index < ARRAY_SIZE(hcca->int_ep));
 	OHCI_MEM32_WR(hcca->int_ep[index], pa);
 
 }
