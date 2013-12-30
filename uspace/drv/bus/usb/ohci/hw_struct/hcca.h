@@ -57,6 +57,8 @@ typedef struct hcca {
 	PADD32[30];
 } hcca_t;
 
+STATIC_ASSERT(sizeof(hcca_t) == 256);
+
 /** Allocate properly aligned structure.
  *
  * The returned structure is zeroed upon allocation.
@@ -65,8 +67,7 @@ typedef struct hcca {
  */
 static inline hcca_t * hcca_get(void)
 {
-	assert(sizeof(hcca_t) == 256);
-	hcca_t *hcca = memalign(256, sizeof(hcca_t));
+	hcca_t *hcca = memalign(sizeof(hcca_t), sizeof(hcca_t));
 	if (hcca)
 		memset(hcca, 0, sizeof(hcca_t));
 	return hcca;
@@ -82,7 +83,6 @@ static inline void hcca_set_int_ep(hcca_t *hcca, unsigned index, uintptr_t pa)
 	assert(hcca);
 	assert(index < ARRAY_SIZE(hcca->int_ep));
 	OHCI_MEM32_WR(hcca->int_ep[index], pa);
-
 }
 #endif
 /**
