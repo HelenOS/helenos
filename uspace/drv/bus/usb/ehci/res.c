@@ -45,18 +45,7 @@
 #include <device/pci.h>
 
 #include "res.h"
-
-#define HCC_PARAMS_OFFSET 0x8
-#define HCC_PARAMS_EECP_MASK 0xff
-#define HCC_PARAMS_EECP_OFFSET 8
-
-#define CMD_OFFSET 0x0
-#define STS_OFFSET 0x4
-#define INT_OFFSET 0x8
-#define CFG_OFFSET 0x40
-
-#define USBCMD_RUN 1
-#define USBSTS_HALTED (1 << 12)
+#include "ehci_regs.h"
 
 #define USBLEGSUP_OFFSET 0
 #define USBLEGSUP_BIOS_CONTROL (1 << 16)
@@ -188,14 +177,15 @@ int disable_legacy(ddf_dev_t *device, addr_range_t *reg_range)
 
 	usb_log_debug2("Registers mapped at: %p.\n", regs);
 
-	const uint32_t hcc_params =
-	    *(uint32_t*)(regs + HCC_PARAMS_OFFSET);
+	ehci_caps_regs_t *ehci_caps = regs;
+
+	const uint32_t hcc_params = EHCI_RD(ehci_caps->hccparams);
 	usb_log_debug("Value of hcc params register: %x.\n", hcc_params);
 
 	/* Read value of EHCI Extended Capabilities Pointer
 	 * position of EEC registers (points to PCI config space) */
 	const uint32_t eecp =
-	    (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
+	    (hcc_params >> EHCI_CAPS_HCC_EECP_SHIFT) & EHCI_CAPS_HCC_EECP_MASK;
 	usb_log_debug("Value of EECP: %x.\n", eecp);
 
 	ret = disable_extended_caps(device, eecp);
@@ -211,27 +201,19 @@ int disable_legacy(ddf_dev_t *device, addr_range_t *reg_range)
 	 */
 
 	/* Get size of capability registers in memory space. */
-	const unsigned operation_offset = *(uint8_t*)regs;
+	const unsigned operation_offset = EHCI_RD8(ehci_caps->caplength);
 	usb_log_debug("USBCMD offset: %d.\n", operation_offset);
 
-	/* Zero USBCMD register. */
-	volatile uint32_t *usbcmd =
-	    (uint32_t*)((uint8_t*)regs + operation_offset + CMD_OFFSET);
-	volatile uint32_t *usbsts =
-	    (uint32_t*)((uint8_t*)regs + operation_offset + STS_OFFSET);
-	volatile uint32_t *usbconf =
-	    (uint32_t*)((uint8_t*)regs + operation_offset + CFG_OFFSET);
-	volatile uint32_t *usbint =
-	    (uint32_t*)((uint8_t*)regs + operation_offset + INT_OFFSET);
-	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
-	if (*usbcmd & USBCMD_RUN) {
-		*usbsts = 0x3f; /* ack all interrupts */
-		*usbint = 0; /* disable all interrupts */
-		*usbconf = 0; /* release control of RH ports */
+	ehci_regs_t *ehci_regs = regs + operation_offset;
 
-		*usbcmd = 0;
+	usb_log_debug("USBCMD value: %x.\n", EHCI_RD(ehci_regs->usbcmd));
+	if (EHCI_RD(ehci_regs->usbcmd) & USB_CMD_RUN_FLAG) {
+		EHCI_WR(ehci_regs->usbintr, 0); /* disable all interrupts */
+		EHCI_WR(ehci_regs->usbsts, 0x3f); /* ack all interrupts */
+		EHCI_WR(ehci_regs->configflag, 0); /* release RH ports */
+		EHCI_WR(ehci_regs->usbcmd, 0);
 		/* Wait until hc is halted */
-		while ((*usbsts & USBSTS_HALTED) == 0);
+		while ((EHCI_RD(ehci_regs->usbsts) & USB_STS_HC_HALTED_FLAG) == 0);
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");
@@ -241,7 +223,10 @@ int disable_legacy(ddf_dev_t *device, addr_range_t *reg_range)
 	    "\t USBSTS(%p): %x(0x00001000 = HC halted)\n"
 	    "\t USBINT(%p): %x(0x0 = no interrupts).\n"
 	    "\t CONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
-	    usbcmd, *usbcmd, usbsts, *usbsts, usbint, *usbint, usbconf,*usbconf);
+	    &ehci_regs->usbcmd, EHCI_RD(ehci_regs->usbcmd),
+	    &ehci_regs->usbsts, EHCI_RD(ehci_regs->usbsts),
+	    &ehci_regs->usbintr, EHCI_RD(ehci_regs->usbintr),
+	    &ehci_regs->configflag, EHCI_RD(ehci_regs->configflag));
 
 	return ret;
 }
