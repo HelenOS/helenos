@@ -383,7 +383,7 @@ void hc_gain_control(hc_t *instance)
 		usb_log_debug("SMM driver: request ownership change.\n");
 		OHCI_SET(instance->registers->command_status, CS_OCR);
 		/* Hope that SMM actually knows its stuff or we can hang here */
-		while (OHCI_RD(instance->registers->control & C_IR)) {
+		while (OHCI_RD(instance->registers->control) & C_IR) {
 			async_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.\n");
