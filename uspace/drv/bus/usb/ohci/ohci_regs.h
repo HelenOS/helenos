@@ -33,14 +33,14 @@
  */
 #ifndef DRV_OHCI_OHCI_REGS_H
 #define DRV_OHCI_OHCI_REGS_H
+#include <ddi.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
-#define OHCI_WR(reg, val) reg = host2uint32_t_le(val)
-#define OHCI_RD(reg) uint32_t_le2host(reg)
-#define OHCI_SET(reg, val) reg |= host2uint32_t_le(val)
-#define OHCI_CLR(reg, val) reg &= host2uint32_t_le(~val)
-
+#define OHCI_WR(reg, val) pio_write_32(&(reg), host2uint32_t_le(val))
+#define OHCI_RD(reg) uint32_t_le2host(pio_read_32(&(reg)))
+#define OHCI_SET(reg, val) pio_set_32(&(reg), host2uint32_t_le(val), 1)
+#define OHCI_CLR(reg, val) pio_clear_32(&(reg), host2uint32_t_le(val), 1)
 
 #define LEGACY_REGS_OFFSET 0x100
 
