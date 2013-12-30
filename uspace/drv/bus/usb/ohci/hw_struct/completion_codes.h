@@ -36,22 +36,24 @@
 
 #include <errno.h>
 
-#define CC_NOERROR (0x0)
-#define CC_CRC (0x1)
-#define CC_BITSTUFF (0x2)
-#define CC_TOGGLE (0x3)
-#define CC_STALL (0x4)
-#define CC_NORESPONSE (0x5)
-#define CC_PIDFAIL (0x6)
-#define CC_PIDUNEXPECTED (0x7)
-#define CC_DATAOVERRRUN (0x8)
-#define CC_DATAUNDERRRUN (0x9)
-#define CC_BUFFEROVERRRUN (0xc)
-#define CC_BUFFERUNDERRUN (0xd)
-#define CC_NOACCESS1 (0xe)
-#define CC_NOACCESS2 (0xf)
+enum {
+	CC_NOERROR = 0x0,
+	CC_CRC = 0x1,
+	CC_BITSTUFF = 0x2,
+	CC_TOGGLE = 0x3,
+	CC_STALL = 0x4,
+	CC_NORESPONSE = 0x5,
+	CC_PIDFAIL = 0x6,
+	CC_PIDUNEXPECTED = 0x7,
+	CC_DATAOVERRRUN = 0x8,
+	CC_DATAUNDERRRUN = 0x9,
+	CC_BUFFEROVERRRUN = 0xc,
+	CC_BUFFERUNDERRUN = 0xd,
+	CC_NOACCESS1 = 0xe,
+	CC_NOACCESS2 = 0xf,
+};
 
-inline static int cc_to_rc(int cc)
+inline static unsigned cc_to_rc(unsigned cc)
 {
 	switch (cc) {
 	case CC_NOERROR:
