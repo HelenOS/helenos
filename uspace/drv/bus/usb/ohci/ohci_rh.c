@@ -185,7 +185,7 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 	    batch->buffer, batch->buffer_size, &batch->transfered_size);
 	if (batch->error == ENAK) {
 		/* This is safe because only status change interrupt transfers
-		 * return NAK. The assertion holds tru because the batch
+		 * return NAK. The assertion holds true because the batch
 		 * existence prevents communication with that ep */
 		assert(instance->unfinished_interrupt_transfer == NULL);
 		instance->unfinished_interrupt_transfer = batch;
