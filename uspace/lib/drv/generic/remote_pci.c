@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <macros.h>
 
 #include "pci_dev_iface.h"
 #include "ddf/driver.h"
@@ -48,7 +49,7 @@ static void remote_config_space_write_16(ddf_fun_t *, void *, ipc_callid_t, ipc_
 static void remote_config_space_write_32(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
-static remote_iface_func_ptr_t remote_pci_iface_ops [] = {
+static const remote_iface_func_ptr_t remote_pci_iface_ops [] = {
 	remote_config_space_read_8,
 	remote_config_space_read_16,
 	remote_config_space_read_32,
@@ -61,8 +62,7 @@ static remote_iface_func_ptr_t remote_pci_iface_ops [] = {
 /** Remote USB interface structure.
  */
 remote_iface_t remote_pci_iface = {
-	.method_count = sizeof(remote_pci_iface_ops) /
-	    sizeof(remote_pci_iface_ops[0]),
+	.method_count = ARRAY_SIZE(remote_pci_iface_ops),
 	.methods = remote_pci_iface_ops
 };
 

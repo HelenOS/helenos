@@ -34,6 +34,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <macros.h>
 
 #include "ops/char_dev.h"
 #include "ddf/driver.h"
@@ -44,7 +45,7 @@ static void remote_char_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_char_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote character interface operations. */
-static remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
 	&remote_char_read,
 	&remote_char_write
 };
@@ -55,8 +56,7 @@ static remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
  * character interface.
  */
 remote_iface_t remote_char_dev_iface = {
-	.method_count = sizeof(remote_char_dev_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+	.method_count = ARRAY_SIZE(remote_char_dev_iface_ops),
 	.methods = remote_char_dev_iface_ops
 };
 

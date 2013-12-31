@@ -35,6 +35,7 @@
 #include <async.h>
 #include <errno.h>
 #include <time.h>
+#include <macros.h>
 
 #include <ops/clock_dev.h>
 #include <ddf/driver.h>
@@ -45,7 +46,7 @@ static void remote_clock_time_set(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
 /** Remote clock interface operations */
-static remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
 	&remote_clock_time_get,
 	&remote_clock_time_set,
 };
@@ -56,8 +57,7 @@ static remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
  * addressed by the clock interface.
  */
 remote_iface_t remote_clock_dev_iface = {
-	.method_count = sizeof(remote_clock_dev_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+	.method_count = ARRAY_SIZE(remote_clock_dev_iface_ops),
 	.methods = remote_clock_dev_iface_ops,
 };
 

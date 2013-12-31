@@ -35,6 +35,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
+#include <macros.h>
 #include "ahci_iface.h"
 #include "ddf/driver.h"
 
@@ -64,7 +65,7 @@ static void remote_ahci_write_blocks(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
 /** Remote AHCI interface operations. */
-static remote_iface_func_ptr_t remote_ahci_iface_ops [] = {
+static const remote_iface_func_ptr_t remote_ahci_iface_ops [] = {
 	[IPC_M_AHCI_GET_SATA_DEVICE_NAME] = remote_ahci_get_sata_device_name,
 	[IPC_M_AHCI_GET_NUM_BLOCKS] = remote_ahci_get_num_blocks,
 	[IPC_M_AHCI_GET_BLOCK_SIZE] = remote_ahci_get_block_size,
@@ -75,8 +76,7 @@ static remote_iface_func_ptr_t remote_ahci_iface_ops [] = {
 /** Remote AHCI interface structure.
  */
 remote_iface_t remote_ahci_iface = {
-	.method_count = sizeof(remote_ahci_iface_ops) /
-	    sizeof(remote_ahci_iface_ops[0]),
+	.method_count = ARRAY_SIZE(remote_ahci_iface_ops),
 	.methods = remote_ahci_iface_ops
 };
 

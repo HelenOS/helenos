@@ -37,6 +37,7 @@
 #include <ops/battery_dev.h>
 #include <device/battery_dev.h>
 #include <ddf/driver.h>
+#include <macros.h>
 
 static void remote_battery_status_get(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
@@ -44,7 +45,7 @@ static void remote_battery_charge_level_get(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
 /** Remote battery interface operations */
-static remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
 	&remote_battery_status_get,
 	&remote_battery_charge_level_get,
 };
@@ -56,8 +57,7 @@ static remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
  *
  */
 remote_iface_t remote_battery_dev_iface = {
-	.method_count = sizeof(remote_battery_dev_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+	.method_count = ARRAY_SIZE(remote_battery_dev_iface_ops),
 	.methods = remote_battery_dev_iface_ops,
 };
 

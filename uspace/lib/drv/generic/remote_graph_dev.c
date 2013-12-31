@@ -34,19 +34,19 @@
 
 #include <errno.h>
 #include <async.h>
+#include <macros.h>
 
 #include "ops/graph_dev.h"
 #include "ddf/driver.h"
 
 static void remote_graph_connect(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
-static remote_iface_func_ptr_t remote_graph_dev_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_graph_dev_iface_ops[] = {
 	&remote_graph_connect
 };
 
 remote_iface_t remote_graph_dev_iface = {
-	.method_count = sizeof(remote_graph_dev_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+	.method_count = ARRAY_SIZE(remote_graph_dev_iface_ops),
 	.methods = remote_graph_dev_iface_ops
 };
 

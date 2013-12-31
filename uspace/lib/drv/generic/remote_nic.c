@@ -39,6 +39,8 @@
 #include <errno.h>
 #include <ipc/services.h>
 #include <sys/time.h>
+#include <macros.h>
+
 #include "ops/nic.h"
 
 static void remote_nic_send_frame(ddf_fun_t *dev, void *iface,
@@ -1197,7 +1199,7 @@ static void remote_nic_poll_now(ddf_fun_t *dev, void *iface,
 /** Remote NIC interface operations.
  *
  */
-static remote_iface_func_ptr_t remote_nic_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_nic_iface_ops[] = {
 	&remote_nic_send_frame,
 	&remote_nic_callback_create,
 	&remote_nic_get_state,
@@ -1248,8 +1250,7 @@ static remote_iface_func_ptr_t remote_nic_iface_ops[] = {
  *
  */
 remote_iface_t remote_nic_iface = {
-	.method_count = sizeof(remote_nic_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+	.method_count = ARRAY_SIZE(remote_nic_iface_ops),
 	.methods = remote_nic_iface_ops
 };
 

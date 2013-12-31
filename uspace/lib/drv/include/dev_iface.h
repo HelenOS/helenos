@@ -54,8 +54,8 @@ typedef remote_iface_func_t *remote_iface_func_ptr_t;
 typedef void remote_handler_t(struct ddf_fun *, ipc_callid_t, ipc_call_t *);
 
 typedef struct {
-	size_t method_count;
-	remote_iface_func_ptr_t *methods;
+	const size_t method_count;
+	const remote_iface_func_ptr_t *methods;
 } remote_iface_t;
 
 typedef struct {

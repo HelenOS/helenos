@@ -34,6 +34,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <macros.h>
 
 #include "ops/pio_window.h"
 #include "ddf/driver.h"
@@ -41,13 +42,12 @@
 static void remote_pio_window_get(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
-static remote_iface_func_ptr_t remote_pio_window_iface_ops [] = {
+static const remote_iface_func_ptr_t remote_pio_window_iface_ops [] = {
 	[PIO_WINDOW_GET] = &remote_pio_window_get
 };
 
 remote_iface_t remote_pio_window_iface = {
-	.method_count = sizeof(remote_pio_window_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+	.method_count = ARRAY_SIZE(remote_pio_window_iface_ops),
 	.methods = remote_pio_window_iface_ops
 };
 
