@@ -107,7 +107,7 @@ typedef struct list {
 	assert(((link)->prev == NULL) && ((link)->next == NULL))
 
 /** Returns true if the link is definitely part of a list. False if not sure. */
-static inline int link_in_use(link_t *link)
+static inline int link_in_use(const link_t *link)
 {
 	return link->prev != NULL && link->next != NULL;
 }
@@ -237,7 +237,7 @@ static inline link_t *list_first(const list_t *list)
  * @return NULL if the list is empty.
  *
  */
-static inline link_t *list_last(list_t *list)
+static inline link_t *list_last(const list_t *list)
 {
 	return (list->head.prev == &list->head) ? NULL : list->head.prev;
 }
@@ -250,7 +250,7 @@ static inline link_t *list_last(list_t *list)
  * @return Next item or NULL if @a link is the last item.
  *
  */
-static inline link_t *list_next(link_t *link, const list_t *list)
+static inline link_t *list_next(const link_t *link, const list_t *list)
 {
 	return (link->next == &list->head) ? NULL : link->next;
 }
@@ -263,7 +263,7 @@ static inline link_t *list_next(link_t *link, const list_t *list)
  * @return Previous item or NULL if @a link is the first item.
  *
  */
-static inline link_t *list_prev(link_t *link, const list_t *list)
+static inline link_t *list_prev(const link_t *link, const list_t *list)
 {
 	return (link->prev == &list->head) ? NULL : link->prev;
 }
@@ -331,7 +331,7 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(list_t *list, unsigned int n)
+static inline link_t *list_nth(const list_t *list, unsigned int n)
 {
 	unsigned int cnt = 0;
 	
