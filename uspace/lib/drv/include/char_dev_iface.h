@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_CHAR_DEV_H_
-#define LIBC_DEVICE_CHAR_DEV_H_
+#ifndef LIBDRV_CHAR_DEV_IFACE_H_
+#define LIBDRV_CHAR_DEV_IFACE_H_
 
 #include <async.h>
 
