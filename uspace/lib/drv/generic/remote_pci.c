@@ -40,6 +40,89 @@
 #include "pci_dev_iface.h"
 #include "ddf/driver.h"
 
+typedef enum {
+	IPC_M_CONFIG_SPACE_READ_8,
+	IPC_M_CONFIG_SPACE_READ_16,
+	IPC_M_CONFIG_SPACE_READ_32,
+
+	IPC_M_CONFIG_SPACE_WRITE_8,
+	IPC_M_CONFIG_SPACE_WRITE_16,
+	IPC_M_CONFIG_SPACE_WRITE_32
+} pci_dev_iface_funcs_t;
+
+int pci_config_space_read_8(async_sess_t *sess, uint32_t address, uint8_t *val)
+{
+	sysarg_t res = 0;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_READ_8, address, &res);
+	async_exchange_end(exch);
+	
+	*val = (uint8_t) res;
+	return rc;
+}
+
+int pci_config_space_read_16(async_sess_t *sess, uint32_t address,
+    uint16_t *val)
+{
+	sysarg_t res = 0;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_READ_16, address, &res);
+	async_exchange_end(exch);
+	
+	*val = (uint16_t) res;
+	return rc;
+}
+
+int pci_config_space_read_32(async_sess_t *sess, uint32_t address,
+    uint32_t *val)
+{
+	sysarg_t res = 0;
+	
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_READ_32, address, &res);
+	async_exchange_end(exch);
+	
+	*val = (uint32_t) res;
+	return rc;
+}
+
+int pci_config_space_write_8(async_sess_t *sess, uint32_t address, uint8_t val)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_WRITE_8, address, val);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
+int pci_config_space_write_16(async_sess_t *sess, uint32_t address,
+    uint16_t val)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_WRITE_16, address, val);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
+int pci_config_space_write_32(async_sess_t *sess, uint32_t address,
+    uint32_t val)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	int rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_WRITE_32, address, val);
+	async_exchange_end(exch);
+	
+	return rc;
+}
+
 static void remote_config_space_read_8(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_config_space_read_16(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_config_space_read_32(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);

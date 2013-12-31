@@ -36,7 +36,7 @@
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 #include <sysinfo.h>
 #include <ipc/irc.h>
 #include <ns.h>
