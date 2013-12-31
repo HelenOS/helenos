@@ -96,7 +96,6 @@ int device_setup_uhci(ddf_dev_t *device)
 		return ret;
 	}
 	addr_range_t regs = hw_res.io_ranges.ranges[0];
-	const int irq = hw_res.irqs.irqs[0];
 
 	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
@@ -115,11 +114,11 @@ int device_setup_uhci(ddf_dev_t *device)
 	}
 
 	bool interrupts = false;
-	ret = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
+	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
 	    hc_gen_irq_code);
-	if (ret != EOK) {
+	if (irq < 0) {
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(ret));
+		    " Falling back to polling.\n", str_error(irq));
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;

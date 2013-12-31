@@ -724,7 +724,7 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 
 	irq_code_t irq_code = {0};
 
-	int irq = gen_irq_code(&irq_code, hw_res);
+	const int irq = gen_irq_code(&irq_code, hw_res);
 	if (irq < 0) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
 		    str_error(irq));
@@ -748,8 +748,8 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 		unregister_interrupt_handler(device, irq);
 		return ret;
 	}
-
-	return EOK;
+	assert(irq > 0);
+	return irq;
 }
 /**
  * @}
