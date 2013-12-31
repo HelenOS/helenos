@@ -52,6 +52,9 @@
 /** 90% of total bandwidth is available for periodic transfers */
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
 
+//TODO: Implement
+#define BANDWIDTH_AVAILABLE_USB20  1
+
 typedef size_t (*bw_count_func_t)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 typedef void (*ep_remove_callback_t)(endpoint_t *, void *);
 typedef int (*ep_add_callback_t)(endpoint_t *, void *);
@@ -77,6 +80,8 @@ typedef struct usb_bus {
 
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
+    size_t size, size_t max_packet_size);
+size_t bandwidth_count_usb20(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
 int usb_bus_init(usb_bus_t *instance,

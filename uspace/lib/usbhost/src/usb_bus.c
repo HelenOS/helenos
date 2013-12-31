@@ -168,6 +168,25 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 	}
 }
 
+/** Calculate bandwidth that needs to be reserved for communication with EP.
+ * Calculation follows USB 2.0 specification.
+ * @param speed Device's speed.
+ * @param type Type of the transfer.
+ * @param size Number of byte to transfer.
+ * @param max_packet_size Maximum bytes in one packet.
+ */
+size_t bandwidth_count_usb20(usb_speed_t speed, usb_transfer_type_t type,
+    size_t size, size_t max_packet_size)
+{
+	/* We care about bandwidth only for interrupt and isochronous. */
+	if ((type != USB_TRANSFER_INTERRUPT)
+	    && (type != USB_TRANSFER_ISOCHRONOUS)) {
+		return 0;
+	}
+	//TODO Implement
+	return 0;
+}
+
 /** Initialize to default state.
  * You need to provide valid bw_count function if you plan to use
  * add_endpoint/remove_endpoint pair.
