@@ -73,7 +73,6 @@ GENERIC_SOURCES = \
 	generic/device/battery_dev.c \
 	generic/device/graph_dev.c \
 	generic/device/nic.c \
-	generic/device/ahci.c \
 	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
