@@ -279,7 +279,7 @@ uint32_t pio_read_32(const ioport32_t *reg)
  * @return Value returned by the kernel.
  *
  */
-int irq_register(int inr, int devno, int method, irq_code_t *ucode)
+int irq_register(int inr, int devno, int method, const irq_code_t *ucode)
 {
 	return __SYSCALL4(SYS_IRQ_REGISTER, inr, devno, method,
 	    (sysarg_t) ucode);
