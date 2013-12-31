@@ -37,7 +37,7 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 #include <devman.h>
 #include <errno.h>
 #include <stdbool.h>
