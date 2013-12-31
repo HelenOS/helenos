@@ -62,7 +62,7 @@ static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
 {
 	assert(instance);
 	const unsigned dsize = sizeof(usb_hub_descriptor_header_t) +
-	    STATUS_BYTES(instance->port_count);
+	    STATUS_BYTES(instance->port_count) * 2;
 	assert(dsize <= sizeof(instance->hub_descriptor));
 	const uint32_t hub_desc = OHCI_RD(instance->registers->rh_desc_a);
 	const uint32_t port_desc = OHCI_RD(instance->registers->rh_desc_b);
