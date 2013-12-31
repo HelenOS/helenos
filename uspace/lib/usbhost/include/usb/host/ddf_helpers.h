@@ -53,8 +53,10 @@ hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
 int hcd_ddf_enable_interrupts(ddf_dev_t *device);
 int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
-int hcd_ddf_setup_interrupts(ddf_dev_t *device, addr_range_t *regs, int irq,
-    interrupt_handler_t handler, int (*gen_irq_code)(irq_code_t *, addr_range_t *));
+int hcd_ddf_setup_interrupts(ddf_dev_t *device,
+    const hw_res_list_parsed_t *hw_res,
+    interrupt_handler_t handler,
+    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *));
 
 #endif
 

@@ -74,7 +74,7 @@ typedef struct hc {
 	ohci_rh_t rh;
 } hc_t;
 
-int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs);
+int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts);
 

@@ -97,27 +97,25 @@ int device_setup_uhci(ddf_dev_t *device)
 	}
 	addr_range_t regs = hw_res.io_ranges.ranges[0];
 	const int irq = hw_res.irqs.irqs[0];
-	hw_res_list_parsed_clean(&hw_res);
-
-	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
-	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
 	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup generic HCD.\n");
+		hw_res_list_parsed_clean(&hw_res);
 		return ret;
 	}
 
 	hc_t *hc = malloc(sizeof(hc_t));
 	if (!hc) {
 		usb_log_error("Failed to allocate UHCI HC structure.\n");
+		hw_res_list_parsed_clean(&hw_res);
 		ret = ENOMEM;
 		goto ddf_hc_clean;
 	}
 
 	bool interrupts = false;
-	ret = hcd_ddf_setup_interrupts(device, &regs, irq, irq_handler,
+	ret = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
 	    hc_gen_irq_code);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
@@ -128,6 +126,7 @@ int device_setup_uhci(ddf_dev_t *device)
 	}
 
 	ret = hc_init(hc, &regs, interrupts);
+	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
 		goto irq_unregister;

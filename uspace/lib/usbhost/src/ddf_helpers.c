@@ -711,28 +711,28 @@ static inline void irq_code_clean(irq_code_t *code)
  *
  * @return EOK on success or negative error code
  */
-int hcd_ddf_setup_interrupts(ddf_dev_t *device, addr_range_t *regs, int irq,
+int hcd_ddf_setup_interrupts(ddf_dev_t *device,
+    const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
-    int (*gen_irq_code)(irq_code_t *, addr_range_t *))
+    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *hw_res))
 {
 
 	assert(device);
-	assert(regs);
+	assert(hw_res);
 	assert(handler);
 	assert(gen_irq_code);
 
-
 	irq_code_t irq_code = {0};
 
-	int ret = gen_irq_code(&irq_code, regs);
-	if (ret != EOK) {
+	int irq = gen_irq_code(&irq_code, hw_res);
+	if (irq < 0) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
-		    str_error(ret));
-		return ret;
+		    str_error(irq));
+		return irq;
 	}
 
 	/* Register handler to avoid interrupt lockup */
-	ret = register_interrupt_handler(device, irq, handler, &irq_code);
+	int ret = register_interrupt_handler(device, irq, handler, &irq_code);
 	irq_code_clean(&irq_code);
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.\n",

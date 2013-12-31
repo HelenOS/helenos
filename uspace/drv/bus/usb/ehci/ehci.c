@@ -95,10 +95,6 @@ int device_setup_ehci(ddf_dev_t *device)
 	}
 	addr_range_t regs = hw_res.mem_ranges.ranges[0];
 	const int irq = hw_res.irqs.irqs[0];
-	hw_res_list_parsed_clean(&hw_res);
-
-	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
-	    RNGABSPTR(regs), RNGSZ(regs), irq);
 
 	/* Initialize generic HCD driver */
 	ret = hcd_ddf_setup_hc(device, USB_SPEED_HIGH,
@@ -106,19 +102,21 @@ int device_setup_ehci(ddf_dev_t *device)
 	if (ret != EOK) {
 		usb_log_error("Failed to setup generic hcd structures: %s.",
 		    str_error(ret));
+		hw_res_list_parsed_clean(&hw_res);
 		return ret;
 	}
 
 	hc_t *hc = malloc(sizeof(hc_t));
 	if (!hc) {
 		usb_log_error("Failed to allocate driver structure.\n");
+		hw_res_list_parsed_clean(&hw_res);
 		ret = ENOMEM;
 		goto ddf_hc_clean;
 	}
 
 	/* Try to enable interrupts */
 	bool interrupts = false;
-	ret = hcd_ddf_setup_interrupts(device, &regs, irq, irq_handler,
+	ret = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
 	    hc_gen_irq_code);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s."
@@ -130,6 +128,7 @@ int device_setup_ehci(ddf_dev_t *device)
 
 	/* Initialize EHCI HC */
 	ret = hc_init(hc, &regs, interrupts);
+	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to init hc: %s.\n", str_error(ret));
 		goto unregister_irq;

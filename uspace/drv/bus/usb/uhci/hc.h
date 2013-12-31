@@ -126,7 +126,7 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs);
+int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
 void hc_interrupt(hc_t *instance, uint16_t status);
 int hc_init(hc_t *instance, addr_range_t *regs, bool interupts);
 int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);

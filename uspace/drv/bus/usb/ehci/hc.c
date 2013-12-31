@@ -98,14 +98,21 @@ static int interrupt_emulator(hc_t *instance);
  * @param[in] ranges_size Size of the ranges buffer (bytes).
  * @param[out] cmds Commands buffer.
  * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Device's register range.
+ * @param[in] hw_res Device's resources.
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
+int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
-	if (RNGSZ(*regs) < sizeof(ehci_regs_t))
+	assert(hw_res);
+
+	if (hw_res->irqs.count != 1 || hw_res->mem_ranges.count != 1)
+		return EINVAL;
+
+	addr_range_t regs = hw_res->mem_ranges.ranges[0];
+
+	if (RNGSZ(regs) < sizeof(ehci_regs_t))
 		return EOVERFLOW;
 
 	code->ranges = malloc(sizeof(ehci_pio_ranges));
@@ -122,21 +129,24 @@ int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
 	code->cmdcount = ARRAY_SIZE(ehci_irq_commands);
 
 	memcpy(code->ranges, ehci_pio_ranges, sizeof(ehci_pio_ranges));
-	code->ranges[0].base = RNGABS(*regs);
+	code->ranges[0].base = RNGABS(regs);
 
 	memcpy(code->cmds, ehci_irq_commands, sizeof(ehci_irq_commands));
 	ehci_caps_regs_t *caps = NULL;
-	int ret = pio_enable_range(regs, (void**)&caps);
+	int ret = pio_enable_range(&regs, (void**)&caps);
 	if (ret != EOK) {
 		return ret;
 	}
 	ehci_regs_t *registers =
-	    (ehci_regs_t *)(RNGABSPTR(*regs) + EHCI_RD8(caps->caplength));
+	    (ehci_regs_t *)(RNGABSPTR(regs) + EHCI_RD8(caps->caplength));
 	code->cmds[0].addr = (void *) &registers->usbsts;
 	code->cmds[3].addr = (void *) &registers->usbsts;
 	EHCI_WR(code->cmds[1].value, EHCI_USED_INTERRUPTS);
 
-	return EOK;
+	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
+
+	return hw_res->irqs.irqs[0];
 }
 
 /** Initialize EHCI hc driver structure

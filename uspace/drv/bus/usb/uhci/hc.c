@@ -101,15 +101,20 @@ static int hc_debug_checker(void *arg);
 
 /** Generate IRQ code.
  * @param[out] code IRQ code structure.
- * @param[in] regs Device's register range.
+ * @param[in] hw_res Device's resources.
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
+int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
+	assert(hw_res);
 
-	if (RNGSZ(*regs) < sizeof(uhci_regs_t))
+	if (hw_res->irqs.count != 1 || hw_res->io_ranges.count != 1)
+		return EINVAL;
+	const addr_range_t regs = hw_res->io_ranges.ranges[0];
+
+	if (RNGSZ(regs) < sizeof(uhci_regs_t))
 		return EOVERFLOW;
 
 	code->ranges = malloc(sizeof(uhci_irq_pio_ranges));
@@ -126,14 +131,17 @@ int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
 	code->cmdcount = ARRAY_SIZE(uhci_irq_commands);
 
 	memcpy(code->ranges, uhci_irq_pio_ranges, sizeof(uhci_irq_pio_ranges));
-	code->ranges[0].base = RNGABS(*regs);
+	code->ranges[0].base = RNGABS(regs);
 
 	memcpy(code->cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
-	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(*regs);
+	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(regs);
 	code->cmds[0].addr = (void*)&registers->usbsts;
 	code->cmds[3].addr = (void*)&registers->usbsts;
 
-	return EOK;
+	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
+
+	return hw_res->irqs.irqs[0];
 }
 
 /** Take action based on the interrupt cause.

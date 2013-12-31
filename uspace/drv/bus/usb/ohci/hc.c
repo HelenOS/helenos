@@ -99,14 +99,21 @@ static int interrupt_emulator(hc_t *instance);
  * @param[in] ranges_size Size of the ranges buffer (bytes).
  * @param[out] cmds Commands buffer.
  * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Device's register range.
+ * @param[in] hw_res Device's resources.
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
+int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
-	if (RNGSZ(*regs) < sizeof(ohci_regs_t))
+	assert(hw_res);
+
+	if (hw_res->irqs.count != 1 || hw_res->mem_ranges.count != 1)
+		return EINVAL;
+
+	const addr_range_t regs = hw_res->mem_ranges.ranges[0];
+
+	if (RNGSZ(regs) < sizeof(ohci_regs_t))
 		return EOVERFLOW;
 
 	code->ranges = malloc(sizeof(ohci_pio_ranges));
@@ -123,15 +130,18 @@ int hc_gen_irq_code(irq_code_t *code, addr_range_t *regs)
 	code->cmdcount = ARRAY_SIZE(ohci_irq_commands);
 
 	memcpy(code->ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
-	code->ranges[0].base = RNGABS(*regs);
+	code->ranges[0].base = RNGABS(regs);
 
 	memcpy(code->cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
-	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(*regs);
+	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(regs);
 	code->cmds[0].addr = (void *) &registers->interrupt_status;
 	code->cmds[3].addr = (void *) &registers->interrupt_status;
 	OHCI_WR(code->cmds[1].value, OHCI_USED_INTERRUPTS);
 
-	return EOK;
+	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
+
+	return hw_res->irqs.irqs[0];
 }
 
 /** Initialize OHCI hc driver structure
