@@ -36,6 +36,7 @@
 #include <async.h>
 #include <errno.h>
 #include <assert.h>
+#include <macros.h>
 
 #include "usbhc_iface.h"
 #include "ddf/driver.h"
@@ -190,16 +191,15 @@ static void remote_usbhc_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB host controller interface operations. */
-static remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
 	[IPC_M_USBHC_READ] = remote_usbhc_read,
 	[IPC_M_USBHC_WRITE] = remote_usbhc_write,
 };
 
 /** Remote USB host controller interface structure.
  */
-remote_iface_t remote_usbhc_iface = {
-	.method_count = sizeof(remote_usbhc_iface_ops) /
-	    sizeof(remote_usbhc_iface_ops[0]),
+const remote_iface_t remote_usbhc_iface = {
+	.method_count = ARRAY_SIZE(remote_usbhc_iface_ops),
 	.methods = remote_usbhc_iface_ops
 };
 

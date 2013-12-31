@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Petr Jerman
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,22 +30,14 @@
  * @{
  */
 /** @file
- * @brief AHCI interface definition.
  */
 
-#ifndef LIBC_DEVICE_AHCI_H_
-#define LIBC_DEVICE_AHCI_H_
+#ifndef LIBC_DEVICE_GRAPH_DEV_H_
+#define LIBC_DEVICE_GRAPH_DEV_H_
 
 #include <async.h>
-#include <devman.h>
 
-extern async_sess_t* ahci_get_sess(devman_handle_t, char **);
-
-extern int ahci_get_sata_device_name(async_sess_t *, size_t, char *);
-extern int ahci_get_num_blocks(async_sess_t *, uint64_t *);
-extern int ahci_get_block_size(async_sess_t *, size_t *);
-extern int ahci_read_blocks(async_sess_t *, uint64_t, size_t, void *);
-extern int ahci_write_blocks(async_sess_t *, uint64_t, size_t, void *);
+extern int graph_dev_connect(async_sess_t *);
 
 #endif
 

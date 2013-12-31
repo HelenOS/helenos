@@ -42,7 +42,7 @@
 #include <async.h>
 #include <ipc/services.h>
 #include <loc.h>
-#include <device/char_dev.h>
+#include <char_dev_iface.h>
 #include <str.h>
 #include <ipc/serial_ctl.h>
 #include "../../tester.h"

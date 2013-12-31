@@ -39,15 +39,15 @@
 
 #include "ddf/driver.h"
 
-typedef enum {
-	IPC_M_CONFIG_SPACE_READ_8,
-	IPC_M_CONFIG_SPACE_READ_16,
-	IPC_M_CONFIG_SPACE_READ_32,
+#define PCI_DEVICE_ID  0x02
 
-	IPC_M_CONFIG_SPACE_WRITE_8,
-	IPC_M_CONFIG_SPACE_WRITE_16,
-	IPC_M_CONFIG_SPACE_WRITE_32
-} pci_dev_iface_funcs_t;
+extern int pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
+extern int pci_config_space_read_16(async_sess_t *, uint32_t, uint16_t *);
+extern int pci_config_space_read_32(async_sess_t *, uint32_t, uint32_t *);
+
+extern int pci_config_space_write_8(async_sess_t *, uint32_t, uint8_t);
+extern int pci_config_space_write_16(async_sess_t *, uint32_t, uint16_t);
+extern int pci_config_space_write_32(async_sess_t *, uint32_t, uint32_t);
 
 /** PCI device communication interface. */
 typedef struct {

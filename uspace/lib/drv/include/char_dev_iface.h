@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,16 +32,18 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_GRAPH_DEV_H_
-#define LIBC_DEVICE_GRAPH_DEV_H_
+#ifndef LIBDRV_CHAR_DEV_IFACE_H_
+#define LIBDRV_CHAR_DEV_IFACE_H_
 
 #include <async.h>
 
 typedef enum {
-	GRAPH_DEV_CONNECT = 0
-} graph_dev_method_t;
+	CHAR_DEV_READ = 0,
+	CHAR_DEV_WRITE
+} char_dev_method_t;
 
-extern int graph_dev_connect(async_sess_t *);
+extern ssize_t char_dev_read(async_sess_t *, void *, size_t);
+extern ssize_t char_dev_write(async_sess_t *, void *, size_t);
 
 #endif
 

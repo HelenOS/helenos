@@ -115,7 +115,7 @@ typedef struct driver {
 extern void ddf_fun_data_implant(ddf_fun_t *, void *);
 #endif
 
-extern int ddf_driver_main(driver_t *);
+extern int ddf_driver_main(const driver_t *);
 
 extern void *ddf_dev_data_alloc(ddf_dev_t *, size_t);
 extern void *ddf_dev_data_get(ddf_dev_t *);

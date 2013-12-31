@@ -38,13 +38,14 @@
 
 #include <sys/types.h>
 #include <bd_srv.h>
+#include <devman.h>
 #include <errno.h>
 #include <stdio.h>
 #include <str.h>
 #include <loc.h>
 #include <macros.h>
 
-#include <device/ahci.h>
+#include <ahci_iface.h>
 #include "sata_bd.h"
 
 #define NAME       "sata_bd"

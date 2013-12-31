@@ -42,7 +42,7 @@
 #include <ddi.h>
 #include <usb/debug.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 
 #include "res.h"
 #include "ehci_regs.h"
