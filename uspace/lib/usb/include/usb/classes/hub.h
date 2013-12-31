@@ -75,7 +75,7 @@ typedef struct {
 
 	/** Characteristics bitmask.
 	 *
-	 *  D1...D0: Logical Power Switching Mode
+	 *  D1..D0: Logical Power Switching Mode
 	 *  00: Ganged power switching (all ports power at
 	 *  once)
 	 *  01: Individual port power switching
@@ -84,7 +84,7 @@ typedef struct {
 	 *  D2: Identifies a Compound Device
 	 *  0: Hub is not part of a compound device
 	 *  1: Hub is part of a compound device
-	 *  D4...D3: Over-current Protection Mode
+	 *  D4..D3: Over-current Protection Mode
 	 *  00: Global Over-current Protection. The hub
 	 *  reports over-current as a summation of all
 	 *  ports current draw, without a breakdown of
@@ -95,7 +95,15 @@ typedef struct {
 	 *  1X: No Over-current Protection. This option is
 	 *  allowed only for bus-powered hubs that do not
 	 *  implement over-current protection.
-	 *  D15...D5: Reserved
+	 *  D6..D5: TT think time
+	 *  00: At most 8 FS bit times
+	 *  01: At most 16 FS bit times
+	 *  10: At most 24 FS bit times
+	 *  11: At most 32 FS bit times
+	 *  D7: Port indicators
+	 *  0: Not supported
+	 *  1: Supported
+	 *  D15...D8: Reserved
 	 */
 	uint8_t characteristics;
 #define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
@@ -103,6 +111,9 @@ typedef struct {
 #define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
 #define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
 #define HUB_CHAR_NO_OC_FLAG             (1 << 4)
+#define HUB_CHAR_TT_THINK_16            (1 << 5)
+#define HUB_CHAR_TT_THINK_8             (1 << 6)
+#define HUB_CHAR_INDICATORS_FLAG        (1 << 7)
 
 	/** Unused part of characteristics field */
 	uint8_t characteristics_reserved;
