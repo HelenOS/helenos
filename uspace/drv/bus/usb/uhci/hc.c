@@ -161,11 +161,10 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		transfer_list_remove_finished(
 		    &instance->transfers_bulk_full, &done);
 
-		while (!list_empty(&done)) {
-			link_t *item = list_first(&done);
-			list_remove(item);
+		list_foreach_safe(done, current, next) {
+			list_remove(current);
 			uhci_transfer_batch_t *batch =
-			    uhci_transfer_batch_from_link(item);
+			    uhci_transfer_batch_from_link(current);
 			uhci_transfer_batch_finish_dispose(batch);
 		}
 	}
