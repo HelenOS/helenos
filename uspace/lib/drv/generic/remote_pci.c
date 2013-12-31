@@ -50,13 +50,13 @@ static void remote_config_space_write_32(ddf_fun_t *, void *, ipc_callid_t, ipc_
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_pci_iface_ops [] = {
-	remote_config_space_read_8,
-	remote_config_space_read_16,
-	remote_config_space_read_32,
+	[IPC_M_CONFIG_SPACE_READ_8] = remote_config_space_read_8,
+	[IPC_M_CONFIG_SPACE_READ_16] = remote_config_space_read_16,
+	[IPC_M_CONFIG_SPACE_READ_32] = remote_config_space_read_32,
 
-	remote_config_space_write_8,
-	remote_config_space_write_16,
-	remote_config_space_write_32
+	[IPC_M_CONFIG_SPACE_WRITE_8] = remote_config_space_write_8,
+	[IPC_M_CONFIG_SPACE_WRITE_16] = remote_config_space_write_16,
+	[IPC_M_CONFIG_SPACE_WRITE_32] = remote_config_space_write_32
 };
 
 /** Remote USB interface structure.
