@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <byteorder.h>
 #include <macros.h>
+#include <ddi.h>
 
 #define EHCI_WR(reg, val) pio_write_32(&(reg), host2uint32_t_le(val))
 #define EHCI_RD(reg) uint32_t_le2host(pio_read_32(&(reg)))
@@ -112,7 +113,7 @@ typedef struct ehci_regs {
 #define USB_INTR_FRAME_ROLLOVER_FLAG  (1 << 3)
 #define USB_INTR_PORT_CHANGE_FLAG     (1 << 2)
 #define USB_INTR_ERR_IRQ_FLAG         (1 << 1)
-#define UBS_INTR_IRQ_FLAG             (1 << 0)
+#define USB_INTR_IRQ_FLAG             (1 << 0)
 
 	ioport32_t frindex;
 #define USB_FRINDEX_MASK   0xfff
