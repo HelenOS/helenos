@@ -57,7 +57,7 @@
 #include <devman.h>
 
 #include <event.h>
-#include <device/graph_dev.h>
+#include <graph_iface.h>
 #include <io/keycode.h>
 #include <io/mode.h>
 #include <io/visualizer.h>

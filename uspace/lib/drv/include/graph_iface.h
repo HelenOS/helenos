@@ -37,10 +37,6 @@
 
 #include <async.h>
 
-typedef enum {
-	GRAPH_DEV_CONNECT = 0
-} graph_dev_method_t;
-
 extern int graph_dev_connect(async_sess_t *);
 
 #endif
