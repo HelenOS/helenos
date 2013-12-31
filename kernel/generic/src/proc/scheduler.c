@@ -516,8 +516,8 @@ repeat:
 	THREAD->state = Running;
 	
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64 
-	    ", nrdy=%ld)\n", CPU->id, THREAD->tid, THREAD->priority,
+	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
+	    ", nrdy=%" PRIua ")\n", CPU->id, THREAD->tid, THREAD->priority,
 	    THREAD->ticks, atomic_get(&CPU->nrdy));
 #endif
 	

@@ -1,0 +1,173 @@
+diff -rud gdb-7.6.1-original/bfd/config.bfd gdb-7.6.1/bfd/config.bfd
+--- gdb-7.6.1-original/bfd/config.bfd	2013-03-05 12:47:01.000000000 +0100
++++ gdb-7.6.1/bfd/config.bfd	2013-07-18 15:54:07.724777922 +0200
+@@ -221,7 +221,7 @@
+     targ_defvec=ecoffalpha_little_vec
+     want64=true
+     ;;
+-  ia64*-*-freebsd* | ia64*-*-netbsd* | ia64*-*-linux-* | ia64*-*-elf* | ia64*-*-kfreebsd*-gnu)
++  ia64*-*-freebsd* | ia64*-*-netbsd* | ia64*-*-linux-* | ia64*-*-elf* | ia64*-*-kfreebsd*-gnu | ia64*-*-helenos*)
+     targ_defvec=bfd_elf64_ia64_little_vec
+     targ_selvecs="bfd_elf64_ia64_big_vec bfd_pei_ia64_vec"
+     want64=true
+@@ -332,6 +332,7 @@
+     targ_selvecs=bfd_elf32_bigarm_vec
+     ;;
+   arm-*-elf | arm-*-freebsd* | arm*-*-linux-* | arm*-*-conix* | \
++  arm-helenos-* | \
+   arm*-*-uclinux* | arm-*-kfreebsd*-gnu | \
+   arm*-*-eabi* )
+     targ_defvec=bfd_elf32_littlearm_vec
+@@ -619,7 +620,7 @@
+     targ_selvecs=bfd_elf32_i386_vec
+     targ_underscore=yes
+     ;;
+-  i[3-7]86-*-linux-*)
++  i[3-7]86-*-linux-* | i[3-7]86-*-helenos*)
+     targ_defvec=bfd_elf32_i386_vec
+     targ_selvecs="i386linux_vec i386pei_vec"
+     targ64_selvecs="bfd_elf64_x86_64_vec bfd_elf32_x86_64_vec x86_64pei_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
+@@ -662,7 +663,7 @@
+     targ_selvecs="bfd_elf32_i386_vec i386netbsd_vec i386coff_vec i386pei_vec x86_64pei_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
+     want64=true
+     ;;
+-  x86_64-*-linux-*)
++  x86_64-*-linux-* | x86_64-*-helenos*)
+     targ_defvec=bfd_elf64_x86_64_vec
+     targ_selvecs="bfd_elf32_i386_vec bfd_elf32_x86_64_vec i386linux_vec i386pei_vec x86_64pei_vec bfd_elf64_l1om_vec bfd_elf64_k1om_vec"
+     want64=true
+@@ -1059,7 +1060,7 @@
+     targ_selvecs="bfd_elf32_littlemips_vec bfd_elf64_bigmips_vec bfd_elf64_littlemips_vec ecoff_big_vec ecoff_little_vec"
+     ;;
+ #ifdef BFD64
+-  mips64*el-*-linux*)
++  mips64*el-*-linux* | mips64el-*-helenos*)
+     targ_defvec=bfd_elf32_ntradlittlemips_vec
+     targ_selvecs="bfd_elf32_ntradbigmips_vec bfd_elf32_tradlittlemips_vec bfd_elf32_tradbigmips_vec bfd_elf64_tradlittlemips_vec bfd_elf64_tradbigmips_vec"
+     want64=true
+@@ -1069,12 +1070,12 @@
+     targ_selvecs="bfd_elf32_ntradlittlemips_vec bfd_elf32_tradbigmips_vec bfd_elf32_tradlittlemips_vec bfd_elf64_tradbigmips_vec bfd_elf64_tradlittlemips_vec"
+     want64=true
+     ;;
+-  mips*el-*-linux*)
++  mips*el-*-linux* | mipsel-*-helenos*)
+     targ_defvec=bfd_elf32_tradlittlemips_vec
+     targ_selvecs="bfd_elf32_tradbigmips_vec ecoff_little_vec ecoff_big_vec bfd_elf32_ntradlittlemips_vec bfd_elf64_tradlittlemips_vec bfd_elf32_ntradbigmips_vec bfd_elf64_tradbigmips_vec"
+     want64=true
+     ;;
+-  mips*-*-linux*)
++  mips*-*-linux* | mips-*-helenos*)
+     targ_defvec=bfd_elf32_tradbigmips_vec
+     targ_selvecs="bfd_elf32_tradlittlemips_vec ecoff_big_vec ecoff_little_vec bfd_elf32_ntradbigmips_vec bfd_elf64_tradbigmips_vec bfd_elf32_ntradlittlemips_vec bfd_elf64_tradlittlemips_vec"
+     want64=true
+@@ -1237,6 +1238,7 @@
+     want64=true
+     ;;
+   powerpc64-*-elf* | powerpc-*-elf64* | powerpc64-*-linux* | \
++  powerpc64-*-helenos* | \
+   powerpc64-*-*bsd*)
+     targ_defvec=bfd_elf64_powerpc_vec
+     targ_selvecs="bfd_elf64_powerpcle_vec bfd_elf32_powerpc_vec bfd_elf32_powerpcle_vec rs6000coff_vec rs6000coff64_vec aix5coff64_vec"
+@@ -1255,6 +1257,7 @@
+     ;;
+   powerpc-*-*bsd* | powerpc-*-elf* | powerpc-*-sysv4* | powerpc-*-eabi* | \
+   powerpc-*-solaris2* | powerpc-*-linux-* | powerpc-*-rtems* | \
++  powerpc-*-helenos* | \
+   powerpc-*-chorus*)
+     targ_defvec=bfd_elf32_powerpc_vec
+     targ_selvecs="rs6000coff_vec bfd_elf32_powerpcle_vec ppcboot_vec"
+@@ -1553,7 +1556,7 @@
+     targ_underscore=yes
+     want64=true
+     ;;
+-  sparc64*-*-linux-*)
++  sparc64*-*-linux-* | sparc64-*-helenos*)
+     targ_defvec=bfd_elf64_sparc_vec
+     targ_selvecs="bfd_elf32_sparc_vec sparclinux_vec sunos_big_vec"
+     want64=true
+diff -rud gdb-7.6.1-original/config.sub gdb-7.6.1/config.sub
+--- gdb-7.6.1-original/config.sub	2013-01-11 13:57:41.000000000 +0100
++++ gdb-7.6.1/config.sub	2013-07-18 15:26:51.261356318 +0200
+@@ -1369,6 +1369,7 @@
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* | -cegcc* \
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
++	      | -helenos* \
+ 	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* \
+diff -rud gdb-7.6.1-original/gdb/configure.tgt gdb-7.6.1/gdb/configure.tgt
+--- gdb-7.6.1-original/gdb/configure.tgt	2013-03-05 14:37:10.000000000 +0100
++++ gdb-7.6.1/gdb/configure.tgt	2013-07-18 15:50:25.210529047 +0200
+@@ -85,7 +85,7 @@
+ 	gdb_target_obs="arm-tdep.o arm-wince-tdep.o"
+ 	build_gdbserver=yes
+ 	;;
+-arm*-*-linux*)
++arm*-*-linux* | arm*-*-helenos*)
+ 	# Target: ARM based machine running GNU/Linux
+ 	gdb_target_obs="arm-tdep.o arm-linux-tdep.o glibc-tdep.o \
+ 			solib-svr4.o symfile-mem.o linux-tdep.o"
+@@ -216,7 +216,7 @@
+ 	gdb_target_obs="i386-tdep.o i387-tdep.o i386-sol2-tdep.o sol2-tdep.o \
+ 			solib-svr4.o"
+ 	;;
+-i[34567]86-*-linux*)
++i[34567]86-*-linux* | i[34567]86-*-helenos*)
+ 	# Target: Intel 386 running GNU/Linux
+ 	gdb_target_obs="i386-tdep.o i386-linux-tdep.o glibc-tdep.o i387-tdep.o \
+ 			solib-svr4.o symfile-mem.o \
+@@ -252,7 +252,7 @@
+ 	# Target: Intel IA-64 running HP-UX
+ 	gdb_target_obs="ia64-tdep.o ia64-hpux-tdep.o"
+ 	;;
+-ia64-*-linux*)
++ia64-*-linux* | ia64-*-helenos*)
+ 	# Target: Intel IA-64 running GNU/Linux
+ 	gdb_target_obs="ia64-tdep.o ia64-linux-tdep.o linux-tdep.o \
+ 			solib-svr4.o symfile-mem.o"
+@@ -357,7 +357,7 @@
+ 	# Target: MIPS SGI running Irix 6.x
+ 	gdb_target_obs="mips-tdep.o mips-irix-tdep.o solib-irix.o"
+ 	;;
+-mips*-*-linux*)
++mips*-*-linux* | mips*-*-helenos*)
+ 	# Target: Linux/MIPS
+ 	gdb_target_obs="mips-tdep.o mips-linux-tdep.o glibc-tdep.o \
+ 			solib-svr4.o symfile-mem.o linux-tdep.o"
+@@ -421,7 +421,7 @@
+ 			ppc-sysv-tdep.o solib-svr4.o \
+ 			ravenscar-thread.o ppc-ravenscar-thread.o"
+ 	;;
+-powerpc-*-linux* | powerpc64-*-linux*)
++powerpc-*-linux* | powerpc64-*-linux* | powerpc*-*-helenos*)
+ 	# Target: PowerPC running Linux
+ 	gdb_target_obs="rs6000-tdep.o ppc-linux-tdep.o ppc-sysv-tdep.o \
+ 			ppc64-tdep.o solib-svr4.o solib-spu.o \
+@@ -515,7 +515,7 @@
+ 	fi
+ 	build_gdbserver=yes
+ 	;;
+-sparc64-*-linux*)
++sparc64-*-linux* | sparc641-*-helenos*)
+ 	# Target: GNU/Linux UltraSPARC
+ 	gdb_target_obs="sparc64-tdep.o sparc64-sol2-tdep.o sol2-tdep.o \
+ 			sparc64-linux-tdep.o sparc-tdep.o sparc-sol2-tdep.o \
+@@ -639,7 +639,7 @@
+ 	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o \
+ 			dicos-tdep.o i386-dicos-tdep.o amd64-dicos-tdep.o"
+ 	;;
+-x86_64-*-linux*)
++x86_64-*-linux* | x86_64-*-helenos*)
+ 	# Target: GNU/Linux x86-64
+ 	gdb_target_obs="amd64-tdep.o amd64-linux-tdep.o i386-tdep.o \
+ 			i387-tdep.o i386-linux-tdep.o glibc-tdep.o \
+@@ -688,7 +688,7 @@
+ case "${targ}" in
+ *-*-freebsd* | *-*-kfreebsd*-gnu)
+ 		gdb_osabi=GDB_OSABI_FREEBSD_ELF ;;
+-*-*-linux* | *-*-uclinux*)
++*-*-linux* | *-*-uclinux* | *-*-helenos*)
+ 		gdb_osabi=GDB_OSABI_LINUX ;;
+ *-*-nto*)	gdb_osabi=GDB_OSABI_QNXNTO ;;
+ m68*-*-openbsd* | m88*-*-openbsd* | vax-*-openbsd*) ;;

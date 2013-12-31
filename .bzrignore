@@ -268,9 +268,13 @@ uspace/dist/srv/rfb
 uspace/srv/hid/rfb/rfb
 uspace/dist/srv/dhcp
 uspace/srv/net/dhcp/dhcp
+uspace/dist/srv/nconfsrv
+uspace/srv/net/nconfsrv/nconfsrv
 uspace/app/netspeed/netspeed
 uspace/dist/app/netspeed
 uspace/app/df/df
 uspace/dist/app/df
 uspace/app/download/download
 uspace/dist/app/download
+uspace/app/viewer/viewer
+uspace/dist/app/viewer

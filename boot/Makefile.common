@@ -47,6 +47,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 KERNEL_PATH = $(ROOT_PATH)/kernel
 USPACE_PATH = $(ROOT_PATH)/uspace
 DIST_PATH = $(USPACE_PATH)/dist
+DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
 
@@ -117,6 +118,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/ethip/ethip \
 	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
 	$(USPACE_PATH)/srv/net/loopip/loopip \
+	$(USPACE_PATH)/srv/net/nconfsrv/nconfsrv \
 	$(USPACE_PATH)/srv/net/slip/slip \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
@@ -175,6 +177,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dnsres/dnsres \
 	$(USPACE_PATH)/app/download/download \
 	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/hdisk/hdisk \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
@@ -200,16 +203,17 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/netspeed/netspeed \
 	$(USPACE_PATH)/app/nterm/nterm \
 	$(USPACE_PATH)/app/ping/ping \
-	$(USPACE_PATH)/app/ping6/ping6 \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
 	$(USPACE_PATH)/app/top/top \
+	$(USPACE_PATH)/app/untar/untar \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \
 	$(USPACE_PATH)/app/websrv/websrv \
 	$(USPACE_PATH)/app/date/date \
 	$(USPACE_PATH)/app/vdemo/vdemo \
+	$(USPACE_PATH)/app/viewer/viewer \
 	$(USPACE_PATH)/app/df/df
 
 ifeq ($(CONFIG_PCC),y)

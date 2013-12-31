@@ -43,7 +43,6 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
 #include "arp.h"
 #include "ethip.h"
 #include "ethip_nic.h"
@@ -248,14 +247,14 @@ int ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		sdu.data = frame.data;
 		sdu.size = frame.size;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
-		rc = iplink_ev_recv(&nic->iplink, &sdu, AF_INET);
+		rc = iplink_ev_recv(&nic->iplink, &sdu, ip_v4);
 		break;
 	case ETYPE_IPV6:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - construct SDU IPv6");
 		sdu.data = frame.data;
 		sdu.size = frame.size;
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - call iplink_ev_recv");
-		rc = iplink_ev_recv(&nic->iplink, &sdu, AF_INET6);
+		rc = iplink_ev_recv(&nic->iplink, &sdu, ip_v6);
 		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,

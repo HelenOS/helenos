@@ -388,6 +388,7 @@ long posix_pathconf(const char *path, int name)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -398,6 +399,7 @@ posix_pid_t posix_fork(void)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -410,6 +412,7 @@ int posix_execv(const char *path, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -422,6 +425,7 @@ int posix_execvp(const char *file, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -433,6 +437,7 @@ int posix_pipe(int fildes[2])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 unsigned int posix_alarm(unsigned int seconds)

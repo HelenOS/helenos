@@ -1,0 +1,267 @@
+diff -ud -Nrud gcc-4.8.1/gcc/config/arm/helenos-arm32.h gcc-4.8.1/gcc/config/arm/helenos-arm32.h
+--- gcc-4.8.1/gcc/config/arm/helenos-arm32.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/arm/helenos-arm32.h	2013-07-12 13:13:18.292688885 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for arm32. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "arm32", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/arm/helenos.h gcc-4.8.1/gcc/config/arm/helenos.h
+--- gcc-4.8.1/gcc/config/arm/helenos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/arm/helenos.h	2013-07-12 13:13:22.362704068 +0200
+@@ -0,0 +1,16 @@
++/* Definitions for HelenOS compiled for arm32.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/arm/linux-eabi.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS() 		\
++  do 						\
++    {						\
++      TARGET_BPABI_CPP_BUILTINS();		\
++      GNU_USER_TARGET_OS_CPP_BUILTINS();	\
++      ANDROID_TARGET_OS_CPP_BUILTINS();		\
++      HELENOS_CPP_BUILTINS();			\
++      HELENOS_ARCH_CPP_BUILTINS();		\
++    }						\
++  while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/helenos.h gcc-4.8.1/gcc/config/helenos.h
+--- gcc-4.8.1/gcc/config/helenos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/helenos.h	2013-07-12 12:06:57.780007295 +0200
+@@ -0,0 +1,6 @@
++/* Common definitions for HelenOS. */
++
++#define HELENOS_CPP_BUILTINS() \
++	do { \
++		builtin_define_std("__helenos__"); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/ia64/helenos.h gcc-4.8.1/gcc/config/ia64/helenos.h
+--- gcc-4.8.1/gcc/config/ia64/helenos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/ia64/helenos.h	2013-07-12 13:17:35.477164401 +0200
+@@ -0,0 +1,13 @@
++/* Definitions for HelenOS compiled for ia64.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/ia64/linux.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()		\
++do {						\
++	GNU_USER_TARGET_OS_CPP_BUILTINS();	\
++	builtin_define("_LONGLONG");		\
++	HELENOS_CPP_BUILTINS();			\
++	HELENOS_ARCH_CPP_BUILTINS();		\
++} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/ia64/helenos-ia64.h gcc-4.8.1/gcc/config/ia64/helenos-ia64.h
+--- gcc-4.8.1/gcc/config/ia64/helenos-ia64.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/ia64/helenos-ia64.h	2013-07-12 13:17:30.663808636 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for ia64. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "ia64", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/i386/helenos-amd64.h gcc-4.8.1/gcc/config/i386/helenos-amd64.h
+--- gcc-4.8.1/gcc/config/i386/helenos-amd64.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/i386/helenos-amd64.h	2013-07-12 10:14:11.843671034 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for amd64. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "amd64", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/i386/helenos.h gcc-4.8.1/gcc/config/i386/helenos.h
+--- gcc-4.8.1/gcc/config/i386/helenos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/i386/helenos.h	2013-07-12 10:12:55.409994661 +0200
+@@ -0,0 +1,15 @@
++/* Definitions for HelenOS compiled for ia32/amd64.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/i386/linux-common.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()               \
++  do                                           \
++    {                                          \
++      GNU_USER_TARGET_OS_CPP_BUILTINS();       \
++      ANDROID_TARGET_OS_CPP_BUILTINS();	       \
++      HELENOS_CPP_BUILTINS();		       \
++      HELENOS_ARCH_CPP_BUILTINS();             \
++    }                                          \
++  while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/i386/helenos-ia32.h gcc-4.8.1/gcc/config/i386/helenos-ia32.h
+--- gcc-4.8.1/gcc/config/i386/helenos-ia32.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/i386/helenos-ia32.h	2013-07-12 10:14:07.256983828 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for ia32. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "ia32", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/mips/helenos.h gcc-4.8.1/gcc/config/mips/helenos.h
+--- gcc-4.8.1/gcc/config/mips/helenos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/mips/helenos.h	2013-07-12 10:22:48.782642814 +0200
+@@ -0,0 +1,16 @@
++/* Definitions for HelenOS compiled for mips32/mips64.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/mips/linux-common.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()				\
++  do {								\
++    GNU_USER_TARGET_OS_CPP_BUILTINS();				\
++    /* The GNU C++ standard library requires this.  */		\
++    if (c_dialect_cxx ())					\
++      builtin_define ("_GNU_SOURCE");				\
++    ANDROID_TARGET_OS_CPP_BUILTINS();				\
++    HELENOS_CPP_BUILTINS();					\
++    HELENOS_ARCH_CPP_BUILTINS();				\
++  } while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/mips/helenos-mips32eb.h gcc-4.8.1/gcc/config/mips/helenos-mips32eb.h
+--- gcc-4.8.1/gcc/config/mips/helenos-mips32eb.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/mips/helenos-mips32eb.h	2013-07-12 10:21:30.262295740 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for mips32eb. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "mips32eb", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/mips/helenos-mips32el.h gcc-4.8.1/gcc/config/mips/helenos-mips32el.h
+--- gcc-4.8.1/gcc/config/mips/helenos-mips32el.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/mips/helenos-mips32el.h	2013-07-12 10:21:15.885565349 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for mips32el. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "mips32", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/mips/helenos-mips64el.h gcc-4.8.1/gcc/config/mips/helenos-mips64el.h
+--- gcc-4.8.1/gcc/config/mips/helenos-mips64el.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/mips/helenos-mips64el.h	2013-07-12 10:20:27.942019112 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for mips64. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "mips64", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/rs6000/helenos.h gcc-4.8.1/gcc/config/rs6000/helenos.h
+--- gcc-4.8.1/gcc/config/rs6000/helenos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/rs6000/helenos.h	2013-07-12 13:15:10.209819251 +0200
+@@ -0,0 +1,18 @@
++/* Definitions for HelenOS compiled for ppc32.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/rs6000/linux.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()		\
++  do						\
++    {						\
++      builtin_define_std ("PPC");		\
++      builtin_define_std ("powerpc");		\
++      builtin_assert ("cpu=powerpc");		\
++      builtin_assert ("machine=powerpc");	\
++      TARGET_OS_SYSV_CPP_BUILTINS ();		\
++      HELENOS_CPP_BUILTINS();			\
++      HELENOS_ARCH_CPP_BUILTINS();		\
++    }						\
++  while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/rs6000/helenos-ppc32.h gcc-4.8.1/gcc/config/rs6000/helenos-ppc32.h
+--- gcc-4.8.1/gcc/config/rs6000/helenos-ppc32.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/rs6000/helenos-ppc32.h	2013-07-12 13:15:02.986452099 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for ppc32. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "ppc32", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/rs6000/helenos-ppc64.h gcc-4.8.1/gcc/config/rs6000/helenos-ppc64.h
+--- gcc-4.8.1/gcc/config/rs6000/helenos-ppc64.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/rs6000/helenos-ppc64.h	2013-07-12 13:16:27.720181662 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for ppc64. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "ppc64", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/rs6000/helenos64.h gcc-4.8.1/gcc/config/rs6000/helenos64.h
+--- gcc-4.8.1/gcc/config/rs6000/helenos64.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/rs6000/helenos64.h	2013-07-12 13:16:31.873534389 +0200
+@@ -0,0 +1,32 @@
++/* Definitions for HelenOS compiled for ppc64.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/rs6000/linux64.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()			\
++  do							\
++    {							\
++      if (TARGET_64BIT)					\
++	{						\
++	  builtin_define ("__PPC__");			\
++	  builtin_define ("__PPC64__");			\
++	  builtin_define ("__powerpc__");		\
++	  builtin_define ("__powerpc64__");		\
++	  if (!DOT_SYMBOLS)				\
++	    builtin_define ("_CALL_LINUX");		\
++	  builtin_assert ("cpu=powerpc64");		\
++	  builtin_assert ("machine=powerpc64");		\
++	}						\
++      else						\
++	{						\
++	  builtin_define_std ("PPC");			\
++	  builtin_define_std ("powerpc");		\
++	  builtin_assert ("cpu=powerpc");		\
++	  builtin_assert ("machine=powerpc");		\
++	  TARGET_OS_SYSV_CPP_BUILTINS ();		\
++	}						\
++      HELENOS_CPP_BUILTINS();				\
++      HELENOS_ARCH_CPP_BUILTINS();			\
++    }							\
++  while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/sparc/helenos-sparc64.h gcc-4.8.1/gcc/config/sparc/helenos-sparc64.h
+--- gcc-4.8.1/gcc/config/sparc/helenos-sparc64.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/sparc/helenos-sparc64.h	2013-07-12 13:19:25.411009134 +0200
+@@ -0,0 +1,6 @@
++/* Definitions for HelenOS compiled for sparc64. */
++
++#define HELENOS_ARCH_CPP_BUILTINS() \
++	do { \
++		builtin_define_with_value("helenos_uarch", "sparc64", 0); \
++	} while (0)
+diff -ud -Nrud gcc-4.8.1/gcc/config/sparc/helenos64.h gcc-4.8.1/gcc/config/sparc/helenos64.h
+--- gcc-4.8.1/gcc/config/sparc/helenos64.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.8.1/gcc/config/sparc/helenos64.h	2013-07-12 13:19:16.480967658 +0200
+@@ -0,0 +1,19 @@
++/* Definitions for HelenOS compiled for sparc64.
++ *
++ * (TARGET_OS_CPP_BUILTINS copied from $GCC_ROOT/gcc/config/sparc/linux64.h)
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()		\
++  do						\
++    {						\
++      GNU_USER_TARGET_OS_CPP_BUILTINS();	\
++      if (TARGET_ARCH64)			\
++        builtin_define ("_LONGLONG");		\
++      if (TARGET_ARCH32				\
++          && TARGET_LONG_DOUBLE_128)		\
++	builtin_define ("__LONG_DOUBLE_128__");	\
++      HELENOS_CPP_BUILTINS();			\
++      HELENOS_ARCH_CPP_BUILTINS();		\
++    }						\
++  while (0)

@@ -41,17 +41,21 @@
 #include <io/pixel.h>
 #include <surface.h>
 #include "widget.h"
+#include "connection.h"
 
 typedef struct {
 	widget_t widget;
 	sysarg_t width;
 	sysarg_t height;
 	surface_t *surface;
+	signal_t keyboard_event;
+	signal_t position_event;
 } canvas_t;
 
 extern bool init_canvas(canvas_t *, widget_t *, sysarg_t, sysarg_t,
     surface_t *);
 extern canvas_t *create_canvas(widget_t *, sysarg_t, sysarg_t, surface_t *);
+extern bool update_canvas(canvas_t *, surface_t *);
 extern void deinit_canvas(canvas_t *);
 
 #endif

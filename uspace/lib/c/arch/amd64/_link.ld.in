@@ -38,6 +38,7 @@ SECTIONS {
 	
 	.data : {
 		*(.data);
+		*(.data.rel*);
 	} :data
 	
 	.tdata : {

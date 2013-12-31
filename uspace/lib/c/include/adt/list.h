@@ -37,6 +37,7 @@
 #define LIBC_LIST_H_
 
 #include <assert.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 /** Doubly linked list link. */
@@ -72,6 +73,12 @@ typedef struct list {
 	    iterator = list_get_instance(_link, itype, member), \
 	    _link != &(list).head; _link = _link->next)
 
+#define list_foreach_rev(list, member, itype, iterator) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	    for (link_t *_link = (list).head.prev; \
+	    iterator = list_get_instance(_link, itype, member), \
+	    _link != &(list).head; _link = _link->prev)
+
 /** Unlike list_foreach(), allows removing items while traversing a list.
  *
  * @code
@@ -104,7 +111,7 @@ typedef struct list {
 		iterator = next_iter, next_iter = iterator->next)
 
 #define assert_link_not_used(link) \
-	assert(((link)->prev == NULL) && ((link)->next == NULL))
+	assert(!link_used(link))
 
 /** Returns true if the link is definitely part of a list. False if not sure. */
 static inline int link_in_use(const link_t *link)
@@ -354,6 +361,20 @@ static inline link_t *list_nth(const list_t *list, unsigned int n)
 static inline const void *list_link_to_void(const link_t *link)
 {
 	return link;
+}
+
+/** Determine if link is used.
+ *
+ * @param link Link
+ * @return @c true if link is used, @c false if not.
+ */
+static inline bool link_used(link_t *link)
+{
+	if (link->prev == NULL && link->next == NULL)
+		return false;
+
+	assert(link->prev != NULL && link->next != NULL);
+	return true;
 }
 
 extern int list_member(const link_t *, const list_t *);

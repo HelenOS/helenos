@@ -39,11 +39,11 @@
 #include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <net/socket_codes.h>
+#include <types/inetping.h>
 #include "icmpv6.h"
 #include "icmpv6_std.h"
 #include "inetsrv.h"
-#include "inetping6.h"
+#include "inetping.h"
 #include "pdu.h"
 
 static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
@@ -57,12 +57,12 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	size_t size = dgram->size;
 	
 	addr128_t src_v6;
-	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &src_v6);
+	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL, &src_v6);
 	
 	addr128_t dest_v6;
-	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &dest_v6);
+	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, NULL, &dest_v6);
 	
-	if ((src_af != dest_af) || (src_af != AF_INET6))
+	if ((src_ver != dest_ver) || (src_ver != ip_v6))
 		return EINVAL;
 	
 	icmpv6_message_t *reply = calloc(1, size);
@@ -79,6 +79,7 @@ static int icmpv6_recv_echo_request(inet_dgram_t *dgram)
 	
 	inet_get_srcaddr(&dgram->src, 0, &rdgram.src);
 	rdgram.dest = dgram->src;
+	rdgram.iplink = 0;
 	rdgram.tos = 0;
 	rdgram.data = reply;
 	rdgram.size = size;
@@ -114,13 +115,10 @@ static int icmpv6_recv_echo_reply(inet_dgram_t *dgram)
 	if (dgram->size < sizeof(icmpv6_message_t))
 		return EINVAL;
 	
-	inetping6_sdu_t sdu;
+	inetping_sdu_t sdu;
 	
-	uint16_t src_af = inet_addr_get(&dgram->src, NULL, &sdu.src);
-	uint16_t dest_af = inet_addr_get(&dgram->dest, NULL, &sdu.dest);
-	
-	if ((src_af != dest_af) || (src_af != AF_INET6))
-		return EINVAL;
+	sdu.src = dgram->src;
+	sdu.dest = dgram->dest;
 	
 	icmpv6_message_t *reply = (icmpv6_message_t *) dgram->data;
 	
@@ -130,7 +128,7 @@ static int icmpv6_recv_echo_reply(inet_dgram_t *dgram)
 	
 	uint16_t ident = uint16_t_be2host(reply->un.echo.ident);
 	
-	return inetping6_recv(ident, &sdu);
+	return inetping_recv(ident, &sdu);
 }
 
 int icmpv6_recv(inet_dgram_t *dgram)
@@ -158,7 +156,7 @@ int icmpv6_recv(inet_dgram_t *dgram)
 	return EINVAL;
 }
 
-int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
+int icmpv6_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 {
 	size_t rsize = sizeof(icmpv6_message_t) + sdu->size;
 	void *rdata = calloc(1, rsize);
@@ -177,16 +175,20 @@ int icmpv6_ping_send(uint16_t ident, inetping6_sdu_t *sdu)
 	
 	inet_dgram_t dgram;
 	
-	inet_addr_set6(sdu->src, &dgram.src);
-	inet_addr_set6(sdu->dest, &dgram.dest);
+	dgram.src = sdu->src;
+	dgram.dest = sdu->dest;
+	dgram.iplink = 0;
 	dgram.tos = 0;
 	dgram.data = rdata;
 	dgram.size = rsize;
 	
 	icmpv6_phdr_t phdr;
 	
-	host2addr128_t_be(sdu->src, phdr.src_addr);
-	host2addr128_t_be(sdu->dest, phdr.dest_addr);
+	assert(sdu->src.version == ip_v6);
+	assert(sdu->dest.version == ip_v6);
+	
+	host2addr128_t_be(sdu->src.addr6, phdr.src_addr);
+	host2addr128_t_be(sdu->dest.addr6, phdr.dest_addr);
 	phdr.length = host2uint32_t_be(dgram.size);
 	memset(phdr.zeroes, 0, 3);
 	phdr.next = IP_PROTO_ICMPV6;

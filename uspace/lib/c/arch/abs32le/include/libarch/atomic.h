@@ -52,14 +52,16 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 	return false;
 }
 
-static inline void atomic_inc(atomic_t *val) {
+static inline void atomic_inc(atomic_t *val)
+{
 	/* On real hardware the increment has to be done
 	   as an atomic action. */
 	
 	val->count++;
 }
 
-static inline void atomic_dec(atomic_t *val) {
+static inline void atomic_dec(atomic_t *val)
+{
 	/* On real hardware the decrement has to be done
 	   as an atomic action. */
 	

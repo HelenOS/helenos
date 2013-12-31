@@ -29,7 +29,6 @@
 #include <async.h>
 #include <assert.h>
 #include <errno.h>
-#include <net/socket_codes.h>
 #include <inet/inet.h>
 #include <ipc/inet.h>
 #include <ipc/services.h>

@@ -44,6 +44,7 @@ DIRS = \
 	app/download \
 	app/edit \
 	app/getterm \
+	app/hdisk \
 	app/init \
 	app/inet \
 	app/kill \
@@ -67,6 +68,7 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/untar \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \
@@ -75,11 +77,11 @@ DIRS = \
 	app/nettest2 \
 	app/nettest3 \
 	app/ping \
-	app/ping6 \
 	app/sysinfo \
 	app/mkbd \
 	app/date \
 	app/vdemo \
+	app/viewer \
 	app/vlaunch \
 	app/vterm \
 	app/df \
@@ -96,6 +98,7 @@ DIRS = \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
+	srv/net/nconfsrv \
 	srv/net/slip \
 	srv/net/tcp \
 	srv/net/udp \
@@ -236,6 +239,7 @@ LIBS = \
 	lib/http \
 	lib/softrend \
 	lib/draw \
+	lib/math \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
@@ -247,7 +251,9 @@ LIBS = \
 	lib/usbvirt \
 	lib/pcm \
 	lib/bithenge \
-	lib/posix
+	lib/posix \
+	lib/mbr \
+	lib/gpt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

@@ -111,12 +111,6 @@ int main(int argc, char *argv[])
 	reopen(&stdout, 1, term, O_WRONLY, "w");
 	reopen(&stderr, 2, term, O_WRONLY, "w");
 	
-	/*
-	 * FIXME: fdopen() should actually detect that we are opening a console
-	 * and it should set line-buffering mode automatically.
-	 */
-	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
-	
 	if (stdin == NULL)
 		return -2;
 	
@@ -125,6 +119,12 @@ int main(int argc, char *argv[])
 	
 	if (stderr == NULL)
 		return -4;
+	
+	/*
+	 * FIXME: fdopen() should actually detect that we are opening a console
+	 * and it should set line-buffering mode automatically.
+	 */
+	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 	
 	version_print(term);
 	if (print_wmsg)

@@ -38,7 +38,6 @@
 #include <mem.h>
 #include <malloc.h>
 #include <io/log.h>
-#include <net/socket_codes.h>
 #include "ntrans.h"
 #include "addrobj.h"
 #include "pdu.h"

@@ -40,7 +40,7 @@
 #include <sys/types.h>
 #include "inetsrv.h"
 
-extern int inet_link_discovery_start(void);
+extern int inet_link_open(service_id_t);
 extern int inet_link_send_dgram(inet_link_t *, addr32_t,
     addr32_t, inet_dgram_t *, uint8_t, uint8_t, int);
 extern int inet_link_send_dgram6(inet_link_t *, addr48_t, inet_dgram_t *,

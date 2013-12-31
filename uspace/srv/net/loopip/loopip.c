@@ -39,7 +39,6 @@
 #include <errno.h>
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
-#include <net/socket_codes.h>
 #include <io/log.h>
 #include <loc.h>
 #include <stdio.h>
@@ -75,7 +74,8 @@ static prodcons_t loopip_rcv_queue;
 typedef struct {
 	link_t link;
 	
-	uint16_t af;
+	/* XXX Version should be part of SDU */
+	ip_ver_t ver;
 	iplink_recv_sdu_t sdu;
 } rqueue_entry_t;
 
@@ -87,7 +87,7 @@ static int loopip_recv_fibril(void *arg)
 		rqueue_entry_t *rqe =
 		    list_get_instance(link, rqueue_entry_t, link);
 		
-		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu, rqe->af);
+		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu, rqe->ver);
 		
 		free(rqe->sdu.data);
 		free(rqe);
@@ -173,7 +173,7 @@ static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	/*
 	 * Clone SDU
 	 */
-	rqe->af = AF_INET;
+	rqe->ver = ip_v4;
 	rqe->sdu.data = malloc(sdu->size);
 	if (rqe->sdu.data == NULL) {
 		free(rqe);
@@ -202,7 +202,7 @@ static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 	/*
 	 * Clone SDU
 	 */
-	rqe->af = AF_INET6;
+	rqe->ver = ip_v6;
 	rqe->sdu.data = malloc(sdu->size);
 	if (rqe->sdu.data == NULL) {
 		free(rqe);

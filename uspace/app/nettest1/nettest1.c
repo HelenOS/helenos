@@ -37,6 +37,7 @@
 #include "nettest.h"
 #include "print_error.h"
 
+#include <assert.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -58,7 +59,7 @@
 /** Packet data pattern. */
 #define NETTEST1_TEXT  "Networking test 1 - sockets"
 
-static uint16_t family = AF_INET;
+static uint16_t family = AF_NONE;
 static sock_type_t type = SOCK_DGRAM;
 static size_t size = 27;
 static bool verbose = false;
@@ -325,50 +326,38 @@ int main(int argc, char *argv[])
 		return EINVAL;
 	}
 	
-	char *addr_s = argv[argc - 1];
+	char *host = argv[argc - 1];
 	
 	/* Interpret as address */
-	inet_addr_t addr_addr;
-	rc = inet_addr_parse(addr_s, &addr_addr);
+	inet_addr_t iaddr;
+	rc = inet_addr_parse(host, &iaddr);
 	
 	if (rc != EOK) {
 		/* Interpret as a host name */
 		dnsr_hostinfo_t *hinfo = NULL;
-		rc = dnsr_name2host(addr_s, &hinfo, family);
+		rc = dnsr_name2host(host, &hinfo, ipver_from_af(family));
 		
 		if (rc != EOK) {
-			printf("Error resolving host '%s'.\n", addr_s);
+			printf("Error resolving host '%s'.\n", host);
 			return EINVAL;
 		}
 		
-		addr_addr = hinfo->addr;
+		iaddr = hinfo->addr;
 	}
 	
-	struct sockaddr_in addr;
-	struct sockaddr_in6 addr6;
-	uint16_t af = inet_addr_sockaddr_in(&addr_addr, &addr, &addr6);
+	rc = inet_addr_sockaddr(&iaddr, port, &address, &addrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		return ENOMEM;
+	}
 	
-	if (af != family) {
+	if (family == AF_NONE)
+		family = address->sa_family;
+	
+	if (address->sa_family != family) {
 		printf("Address family does not match explicitly set family.\n");
 		return EINVAL;
-	}
-	
-	/* Prepare the address buffer */
-	
-	switch (af) {
-	case AF_INET:
-		addr.sin_port = htons(port);
-		address = (struct sockaddr *) &addr;
-		addrlen = sizeof(addr);
-		break;
-	case AF_INET6:
-		addr6.sin6_port = htons(port);
-		address = (struct sockaddr *) &addr6;
-		addrlen = sizeof(addr6);
-		break;
-	default:
-		fprintf(stderr, "Address family is not supported\n");
-		return EAFNOSUPPORT;
 	}
 	
 	/* Check data buffer size */
@@ -432,6 +421,8 @@ int main(int argc, char *argv[])
 	
 	printf("Tested in %ld microseconds\n", tv_sub(&time_after,
 	    &time_before));
+	
+	free(address);
 	
 	if (verbose)
 		printf("Exiting\n");

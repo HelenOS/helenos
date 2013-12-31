@@ -32,6 +32,7 @@
 /** @file Internet address parsing and formatting.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <unistd.h>
 #include <net/socket_codes.h>
@@ -58,12 +59,12 @@ static const addr48_t inet_addr48_solicited_node = {
 };
 
 static const inet_addr_t inet_addr_any_addr = {
-	.family = AF_INET,
+	.version = ip_v4,
 	.addr = 0
 };
 
 static const inet_addr_t inet_addr_any_addr6 = {
-	.family = AF_INET6,
+	.version = ip_v6,
 	.addr6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
@@ -77,14 +78,22 @@ void addr128(const addr128_t src, addr128_t dst)
 	memcpy(dst, src, 16);
 }
 
+/** Compare addr48.
+  *
+  * @return Non-zero if equal, zero if not equal.
+  */
 int addr48_compare(const addr48_t a, const addr48_t b)
 {
-	return memcmp(a, b, 6);
+	return memcmp(a, b, 6) == 0;
 }
 
+/** Compare addr128.
+  *
+  * @return Non-zero if equal, zero if not equal.
+  */
 int addr128_compare(const addr128_t a, const addr128_t b)
 {
-	return memcmp(a, b, 16);
+	return memcmp(a, b, 16) == 0;
 }
 
 /** Compute solicited node MAC multicast address from target IPv6 address
@@ -101,55 +110,17 @@ void addr48_solicited_node(const addr128_t ip, addr48_t mac)
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)
 {
-#ifdef __BE__
 	memcpy(be, host, 16);
-#else
-	be[0] = host[15];
-	be[1] = host[14];
-	be[2] = host[13];
-	be[3] = host[12];
-	be[4] = host[11];
-	be[5] = host[10];
-	be[6] = host[9];
-	be[7] = host[8];
-	be[8] = host[7];
-	be[9] = host[6];
-	be[10] = host[5];
-	be[11] = host[4];
-	be[12] = host[3];
-	be[13] = host[2];
-	be[14] = host[1];
-	be[15] = host[0];
-#endif
 }
 
 void addr128_t_be2host(const addr128_t be, addr128_t host)
 {
-#ifdef __BE__
 	memcpy(host, be, 16);
-#else
-	host[0] = be[15];
-	host[1] = be[14];
-	host[2] = be[13];
-	host[3] = be[12];
-	host[4] = be[11];
-	host[5] = be[10];
-	host[6] = be[9];
-	host[7] = be[8];
-	host[8] = be[7];
-	host[9] = be[6];
-	host[10] = be[5];
-	host[11] = be[4];
-	host[12] = be[3];
-	host[13] = be[2];
-	host[14] = be[1];
-	host[15] = be[0];
-#endif
 }
 
 void inet_addr(inet_addr_t *addr, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
-	addr->family = AF_INET;
+	addr->version = ip_v4;
 	addr->addr = ((addr32_t) a << 24) | ((addr32_t) b << 16) |
 	    ((addr32_t) c << 8) | ((addr32_t) d);
 }
@@ -157,7 +128,7 @@ void inet_addr(inet_addr_t *addr, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 void inet_naddr(inet_naddr_t *naddr, uint8_t a, uint8_t b, uint8_t c, uint8_t d,
     uint8_t prefix)
 {
-	naddr->family = AF_INET;
+	naddr->version = ip_v4;
 	naddr->addr = ((addr32_t) a << 24) | ((addr32_t) b << 16) |
 	    ((addr32_t) c << 8) | ((addr32_t) d);
 	naddr->prefix = prefix;
@@ -166,7 +137,7 @@ void inet_naddr(inet_naddr_t *naddr, uint8_t a, uint8_t b, uint8_t c, uint8_t d,
 void inet_addr6(inet_addr_t *addr, uint16_t a, uint16_t b, uint16_t c,
     uint16_t d, uint16_t e, uint16_t f, uint16_t g, uint16_t h)
 {
-	addr->family = AF_INET6;
+	addr->version = ip_v6;
 	addr->addr6[0] = (a >> 8) & 0xff;
 	addr->addr6[1] = a & 0xff;
 	addr->addr6[2] = (b >> 8) & 0xff;
@@ -188,7 +159,7 @@ void inet_addr6(inet_addr_t *addr, uint16_t a, uint16_t b, uint16_t c,
 void inet_naddr6(inet_naddr_t *naddr, uint16_t a, uint16_t b, uint16_t c,
     uint16_t d, uint16_t e, uint16_t f, uint16_t g, uint16_t h, uint8_t prefix)
 {
-	naddr->family = AF_INET6;
+	naddr->version = ip_v6;
 	naddr->addr6[0] = (a >> 8) & 0xff;
 	naddr->addr6[1] = a & 0xff;
 	naddr->addr6[2] = (b >> 8) & 0xff;
@@ -208,67 +179,97 @@ void inet_naddr6(inet_naddr_t *naddr, uint16_t a, uint16_t b, uint16_t c,
 	naddr->prefix = prefix;
 }
 
-/** Parse network address family.
+/** Determine address version.
  *
- * @param text Network address in common notation.
- * @param af   Place to store network address family.
+ * @param text Address in common notation.
+ * @param af   Place to store address version.
  *
  * @return EOK on success, EINVAL if input is not in valid format.
  *
  */
-int inet_addr_family(const char *text, uint16_t *af)
+static int inet_addr_version(const char *text, ip_ver_t *ver)
 {
 	char *dot = str_chr(text, '.');
 	if (dot != NULL) {
-		*af = AF_INET;
+		*ver = ip_v4;
 		return EOK;
 	}
-	
+
 	char *collon = str_chr(text, ':');
 	if (collon != NULL) {
-		*af = AF_INET6;
+		*ver = ip_v6;
 		return EOK;
 	}
-	
+
 	return EINVAL;
+}
+
+static int ipver_af(ip_ver_t ver)
+{
+	switch (ver) {
+	case ip_any:
+		return AF_NONE;
+	case ip_v4:
+		return AF_INET;
+	case ip_v6:
+		return AF_INET6;
+	default:
+		assert(false);
+		return EINVAL;
+	}
+}
+
+ip_ver_t ipver_from_af(int af)
+{
+	switch (af) {
+	case AF_NONE:
+		return ip_any;
+	case AF_INET:
+		return ip_v4;
+	case AF_INET6:
+		return ip_v6;
+	default:
+		assert(false);
+		return EINVAL;
+	}
 }
 
 void inet_naddr_addr(const inet_naddr_t *naddr, inet_addr_t *addr)
 {
-	addr->family = naddr->family;
+	addr->version = naddr->version;
 	memcpy(addr->addr6, naddr->addr6, 16);
 }
 
 void inet_addr_naddr(const inet_addr_t *addr, uint8_t prefix,
     inet_naddr_t *naddr)
 {
-	naddr->family = addr->family;
+	naddr->version = addr->version;
 	memcpy(naddr->addr6, addr->addr6, 16);
 	naddr->prefix = prefix;
 }
 
 void inet_addr_any(inet_addr_t *addr)
 {
-	addr->family = AF_NONE;
+	addr->version = ip_any;
 	memset(addr->addr6, 0, 16);
 }
 
 void inet_naddr_any(inet_naddr_t *naddr)
 {
-	naddr->family = AF_NONE;
+	naddr->version = ip_any;
 	memset(naddr->addr6, 0, 16);
 	naddr->prefix = 0;
 }
 
 int inet_addr_compare(const inet_addr_t *a, const inet_addr_t *b)
 {
-	if (a->family != b->family)
+	if (a->version != b->version)
 		return 0;
-	
-	switch (a->family) {
-	case AF_INET:
+
+	switch (a->version) {
+	case ip_v4:
 		return (a->addr == b->addr);
-	case AF_INET6:
+	case ip_v6:
 		return addr128_compare(a->addr6, b->addr6);
 	default:
 		return 0;
@@ -277,20 +278,20 @@ int inet_addr_compare(const inet_addr_t *a, const inet_addr_t *b)
 
 int inet_addr_is_any(const inet_addr_t *addr)
 {
-	return ((addr->family == 0) ||
+	return ((addr->version == ip_any) ||
 	    (inet_addr_compare(addr, &inet_addr_any_addr)) ||
 	    (inet_addr_compare(addr, &inet_addr_any_addr6)));
 }
 
 int inet_naddr_compare(const inet_naddr_t *naddr, const inet_addr_t *addr)
 {
-	if (naddr->family != addr->family)
+	if (naddr->version != addr->version)
 		return 0;
 	
-	switch (naddr->family) {
-	case AF_INET:
+	switch (naddr->version) {
+	case ip_v4:
 		return (naddr->addr == addr->addr);
-	case AF_INET6:
+	case ip_v6:
 		return addr128_compare(naddr->addr6, addr->addr6);
 	default:
 		return 0;
@@ -299,18 +300,18 @@ int inet_naddr_compare(const inet_naddr_t *naddr, const inet_addr_t *addr)
 
 int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)
 {
-	if (naddr->family != addr->family)
+	if (naddr->version != addr->version)
 		return 0;
-	
-	switch (naddr->family) {
-	case AF_INET:
+
+	switch (naddr->version) {
+	case ip_v4:
 		if (naddr->prefix > 32)
 			return 0;
-		
+
 		addr32_t mask =
 		    BIT_RANGE(addr32_t, 31, 31 - (naddr->prefix - 1));
 		return ((naddr->addr & mask) == (addr->addr & mask));
-	case AF_INET6:
+	case ip_v6:
 		if (naddr->prefix > 128)
 			return 0;
 		
@@ -351,21 +352,21 @@ int inet_naddr_compare_mask(const inet_naddr_t *naddr, const inet_addr_t *addr)
  */
 int inet_addr_parse(const char *text, inet_addr_t *addr)
 {
-	int rc = inet_addr_family(text, &addr->family);
+	int rc = inet_addr_version(text, &addr->version);
 	if (rc != EOK)
 		return rc;
 	
 	uint8_t buf[16];
-	rc = inet_pton(addr->family, text, buf);
+	rc = inet_pton(ipver_af(addr->version), text, buf);
 	if (rc != EOK)
 		return rc;
 	
-	switch (addr->family) {
-	case AF_INET:
+	switch (addr->version) {
+	case ip_v4:
 		addr->addr = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) |
 		    buf[3];
 		break;
-	case AF_INET6:
+	case ip_v6:
 		memcpy(addr->addr6, buf, 16);
 		break;
 	default:
@@ -391,12 +392,12 @@ int inet_naddr_parse(const char *text, inet_naddr_t *naddr)
 	
 	*slash = 0;
 	
-	int rc = inet_addr_family(text, &naddr->family);
+	int rc = inet_addr_version(text, &naddr->version);
 	if (rc != EOK)
 		return rc;
 	
 	uint8_t buf[16];
-	rc = inet_pton(naddr->family, text, buf);
+	rc = inet_pton(ipver_af(naddr->version), text, buf);
 	*slash = '/';
 	
 	if (rc != EOK)
@@ -405,8 +406,8 @@ int inet_naddr_parse(const char *text, inet_naddr_t *naddr)
 	slash++;
 	uint8_t prefix;
 	
-	switch (naddr->family) {
-	case AF_INET:
+	switch (naddr->version) {
+	case ip_v4:
 		prefix = strtoul(slash, &slash, 10);
 		if (prefix > 32)
 			return EINVAL;
@@ -416,7 +417,7 @@ int inet_naddr_parse(const char *text, inet_naddr_t *naddr)
 		naddr->prefix = prefix;
 		
 		break;
-	case AF_INET6:
+	case ip_v6:
 		prefix = strtoul(slash, &slash, 10);
 		if (prefix > 128)
 			return EINVAL;
@@ -446,16 +447,16 @@ int inet_addr_format(const inet_addr_t *addr, char **bufp)
 {
 	int rc = 0;
 	
-	switch (addr->family) {
-	case AF_NONE:
+	switch (addr->version) {
+	case ip_any:
 		rc = asprintf(bufp, "none");
 		break;
-	case AF_INET:
+	case ip_v4:
 		rc = asprintf(bufp, "%u.%u.%u.%u", (addr->addr >> 24) & 0xff,
 		    (addr->addr >> 16) & 0xff, (addr->addr >> 8) & 0xff,
 		    addr->addr & 0xff);
 		break;
-	case AF_INET6:
+	case ip_v6:
 		*bufp = (char *) malloc(INET6_ADDRSTRLEN);
 		if (*bufp == NULL)
 			return ENOMEM;
@@ -486,17 +487,17 @@ int inet_naddr_format(const inet_naddr_t *naddr, char **bufp)
 	int rc = 0;
 	char prefix[INET_PREFIXSTRSIZE];
 	
-	switch (naddr->family) {
-	case AF_NONE:
+	switch (naddr->version) {
+	case ip_any:
 		rc = asprintf(bufp, "none");
 		break;
-	case AF_INET:
+	case ip_v4:
 		rc = asprintf(bufp, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8
 		    "/%" PRIu8, (naddr->addr >> 24) & 0xff,
 		    (naddr->addr >> 16) & 0xff, (naddr->addr >> 8) & 0xff,
 		    naddr->addr & 0xff, naddr->prefix);
 		break;
-	case AF_INET6:
+	case ip_v6:
 		*bufp = (char *) malloc(INET6_ADDRSTRLEN + INET_PREFIXSTRSIZE);
 		if (*bufp == NULL)
 			return ENOMEM;
@@ -528,77 +529,77 @@ int inet_naddr_format(const inet_naddr_t *naddr, char **bufp)
 	return EOK;
 }
 
-uint16_t inet_addr_get(const inet_addr_t *addr, addr32_t *v4, addr128_t *v6)
+ip_ver_t inet_addr_get(const inet_addr_t *addr, addr32_t *v4, addr128_t *v6)
 {
-	switch (addr->family) {
-	case AF_INET:
+	switch (addr->version) {
+	case ip_v4:
 		if (v4 != NULL)
 			*v4 = addr->addr;
-		
 		break;
-	case AF_INET6:
+	case ip_v6:
 		if (v6 != NULL)
 			memcpy(*v6, addr->addr6, 16);
-		
+		break;
+	default:
+		assert(false);
 		break;
 	}
-	
-	return addr->family;
+
+	return addr->version;
 }
 
-uint16_t inet_naddr_get(const inet_naddr_t *naddr, addr32_t *v4, addr128_t *v6,
+ip_ver_t inet_naddr_get(const inet_naddr_t *naddr, addr32_t *v4, addr128_t *v6,
     uint8_t *prefix)
 {
-	switch (naddr->family) {
-	case AF_INET:
+	switch (naddr->version) {
+	case ip_v4:
 		if (v4 != NULL)
 			*v4 = naddr->addr;
-		
 		if (prefix != NULL)
 			*prefix = naddr->prefix;
-		
 		break;
-	case AF_INET6:
+	case ip_v6:
 		if (v6 != NULL)
 			memcpy(*v6, naddr->addr6, 16);
-		
 		if (prefix != NULL)
 			*prefix = naddr->prefix;
-		
+		break;
+	default:
+		assert(false);
 		break;
 	}
-	
-	return naddr->family;
+
+	return naddr->version;
 }
 
 void inet_addr_set(addr32_t v4, inet_addr_t *addr)
 {
-	addr->family = AF_INET;
+	addr->version = ip_v4;
 	addr->addr = v4;
 }
 
 void inet_naddr_set(addr32_t v4, uint8_t prefix, inet_naddr_t *naddr)
 {
-	naddr->family = AF_INET;
+	naddr->version = ip_v4;
 	naddr->addr = v4;
 	naddr->prefix = prefix;
 }
 
 void inet_sockaddr_in_addr(const sockaddr_in_t *sockaddr_in, inet_addr_t *addr)
 {
-	addr->family = AF_INET;
+	addr->version = ip_v4;
 	addr->addr = uint32_t_be2host(sockaddr_in->sin_addr.s_addr);
 }
 
 void inet_addr_set6(addr128_t v6, inet_addr_t *addr)
 {
-	addr->family = AF_INET6;
+	addr->version = ip_v6;
 	memcpy(addr->addr6, v6, 16);
 }
 
 void inet_naddr_set6(addr128_t v6, uint8_t prefix, inet_naddr_t *naddr)
 {
-	naddr->family = AF_INET6;
+	naddr->version = ip_v6;
 	memcpy(naddr->addr6, v6, 16);
 	naddr->prefix = prefix;
 }
@@ -606,31 +607,73 @@ void inet_naddr_set6(addr128_t v6, uint8_t prefix, inet_naddr_t *naddr)
 void inet_sockaddr_in6_addr(const sockaddr_in6_t *sockaddr_in6,
     inet_addr_t *addr)
 {
-	addr->family = AF_INET6;
+	addr->version = ip_v6;
 	addr128_t_be2host(sockaddr_in6->sin6_addr.s6_addr, addr->addr6);
 }
 
 uint16_t inet_addr_sockaddr_in(const inet_addr_t *addr,
     sockaddr_in_t *sockaddr_in, sockaddr_in6_t *sockaddr_in6)
 {
-	switch (addr->family) {
-	case AF_INET:
+	switch (addr->version) {
+	case ip_v4:
 		if (sockaddr_in != NULL) {
 			sockaddr_in->sin_family = AF_INET;
 			sockaddr_in->sin_addr.s_addr = host2uint32_t_be(addr->addr);
 		}
-		
 		break;
-	case AF_INET6:
+	case ip_v6:
 		if (sockaddr_in6 != NULL) {
 			sockaddr_in6->sin6_family = AF_INET6;
 			host2addr128_t_be(addr->addr6, sockaddr_in6->sin6_addr.s6_addr);
 		}
-		
+		break;
+	default:
+		assert(false);
 		break;
 	}
-	
-	return addr->family;
+
+	return ipver_af(addr->version);
+}
+
+int inet_addr_sockaddr(const inet_addr_t *addr, uint16_t port,
+    sockaddr_t **nsockaddr, socklen_t *naddrlen)
+{
+	sockaddr_in_t *sa4;
+	sockaddr_in6_t *sa6;
+
+	switch (addr->version) {
+	case ip_v4:
+		sa4 = calloc(1, sizeof(sockaddr_in_t));
+		if (sa4 == NULL)
+			return ENOMEM;
+
+		sa4->sin_family = AF_INET;
+		sa4->sin_port = host2uint16_t_be(port);
+		sa4->sin_addr.s_addr = host2uint32_t_be(addr->addr);
+		if (nsockaddr != NULL)
+			*nsockaddr = (sockaddr_t *)sa4;
+		if (naddrlen != NULL)
+			*naddrlen = sizeof(*sa4);
+		break;
+	case ip_v6:
+		sa6 = calloc(1, sizeof(sockaddr_in6_t));
+		if (sa6 == NULL)
+			return ENOMEM;
+
+		sa6->sin6_family = AF_INET6;
+		sa6->sin6_port = host2uint16_t_be(port);
+		host2addr128_t_be(addr->addr6, sa6->sin6_addr.s6_addr);
+		if (nsockaddr != NULL)
+			*nsockaddr = (sockaddr_t *)sa6;
+		if (naddrlen != NULL)
+			*naddrlen = sizeof(*sa6);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	return EOK;
 }
 
 /** @}

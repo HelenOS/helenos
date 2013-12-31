@@ -217,7 +217,7 @@ static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t iid,
 {
 	iplink_recv_sdu_t sdu;
 	
-	uint16_t af = IPC_GET_ARG1(*icall);
+	ip_ver_t ver = IPC_GET_ARG1(*icall);
 	
 	int rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
@@ -226,7 +226,7 @@ static void iplink_ev_recv(iplink_t *iplink, ipc_callid_t iid,
 		return;
 	}
 	
-	rc = iplink->ev_ops->recv(iplink, &sdu, af);
+	rc = iplink->ev_ops->recv(iplink, &sdu, ver);
 	free(sdu.data);
 	async_answer_0(iid, rc);
 }

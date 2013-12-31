@@ -37,6 +37,7 @@
 #ifndef ICMP_H_
 #define ICMP_H_
 
+#include <types/inetping.h>
 #include "inetsrv.h"
 
 extern int icmp_recv(inet_dgram_t *);

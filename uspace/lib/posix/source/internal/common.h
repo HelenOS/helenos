@@ -38,9 +38,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define not_implemented() (fprintf(stderr, \
-    "Function %s() in file %s at line %d is not implemented\n", \
-    __func__, __FILE__, __LINE__), abort())
+#define not_implemented() do { \
+		static int __not_implemented_counter = 0; \
+		if (__not_implemented_counter == 0) { \
+			fprintf(stderr, "%s() not implemented in %s:%d, something will NOT work.\n", \
+				__func__, __FILE__, __LINE__); \
+		} \
+		__not_implemented_counter++; \
+	} while (0)
 
 /* A little helper macro to avoid typing this over and over. */
 #define errnify(func, ...) ({ \

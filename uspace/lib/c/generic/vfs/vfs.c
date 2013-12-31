@@ -341,16 +341,19 @@ int close(int fildes)
 	return (int) rc;
 }
 
-ssize_t read(int fildes, void *buf, size_t nbyte) 
+ssize_t read(int fildes, void *buf, size_t nbyte)
 {
 	sysarg_t rc;
 	ipc_call_t answer;
 	aid_t req;
 	
+	if (nbyte > DATA_XFER_LIMIT)
+		nbyte = DATA_XFER_LIMIT;
+	
 	async_exch_t *exch = vfs_exchange_begin();
 	
 	req = async_send_1(exch, VFS_IN_READ, fildes, &answer);
-	rc = async_data_read_start(exch, (void *)buf, nbyte);
+	rc = async_data_read_start(exch, (void *) buf, nbyte);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 
@@ -376,10 +379,13 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	ipc_call_t answer;
 	aid_t req;
 	
+	if (nbyte > DATA_XFER_LIMIT)
+		nbyte = DATA_XFER_LIMIT;
+	
 	async_exch_t *exch = vfs_exchange_begin();
 	
 	req = async_send_1(exch, VFS_IN_WRITE, fildes, &answer);
-	rc = async_data_write_start(exch, (void *)buf, nbyte);
+	rc = async_data_write_start(exch, (void *) buf, nbyte);
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 
@@ -733,6 +739,11 @@ int rename(const char *old, const char *new)
 	free(newa);
 	async_wait_for(req, &rc);
 	return rc;
+}
+
+int remove(const char *path)
+{
+	return unlink(path);
 }
 
 int chdir(const char *path)

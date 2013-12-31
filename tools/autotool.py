@@ -185,6 +185,7 @@ def get_target(config):
 	target = None
 	gnu_target = None
 	clang_target = None
+	helenos_target = None
 	cc_args = []
 	
 	if (config['PLATFORM'] == "abs32le"):
@@ -194,34 +195,41 @@ def get_target(config):
 		if (config['CROSS_TARGET'] == "arm32"):
 			gnu_target = "arm-linux-gnueabi"
 			clang_target = "arm-unknown-linux"
+			helenos_target = "arm-helenos-gnueabi"
 		
 		if (config['CROSS_TARGET'] == "ia32"):
 			gnu_target = "i686-pc-linux-gnu"
 			clang_target = "i386-unknown-linux"
+			helenos_target = "i686-pc-helenos"
 		
 		if (config['CROSS_TARGET'] == "mips32"):
 			gnu_target = "mipsel-linux-gnu"
 			clang_target = "mipsel-unknown-linux"
+			helenos_target = "mipsel-helenos"
 			common['CC_ARGS'].append("-mabi=32")
 	
 	if (config['PLATFORM'] == "amd64"):
 		target = config['PLATFORM']
 		gnu_target = "amd64-linux-gnu"
 		clang_target = "x86_64-unknown-linux"
+		helenos_target = "amd64-helenos"
 	
 	if (config['PLATFORM'] == "arm32"):
 		target = config['PLATFORM']
 		gnu_target = "arm-linux-gnueabi"
 		clang_target = "arm-unknown-linux"
+		helenos_target = "arm-helenos-gnueabi"
 	
 	if (config['PLATFORM'] == "ia32"):
 		target = config['PLATFORM']
 		gnu_target = "i686-pc-linux-gnu"
 		clang_target = "i386-unknown-linux"
+		helenos_target = "i686-pc-helenos"
 	
 	if (config['PLATFORM'] == "ia64"):
 		target = config['PLATFORM']
 		gnu_target = "ia64-pc-linux-gnu"
+		helenos_target = "ia64-pc-helenos"
 	
 	if (config['PLATFORM'] == "mips32"):
 		check_config(config, "MACHINE")
@@ -231,11 +239,13 @@ def get_target(config):
 			target = config['PLATFORM']
 			gnu_target = "mipsel-linux-gnu"
 			clang_target = "mipsel-unknown-linux"
+			helenos_target = "mipsel-helenos"
 		
 		if ((config['MACHINE'] == "bmalta")):
 			target = "mips32eb"
 			gnu_target = "mips-linux-gnu"
 			clang_target = "mips-unknown-linux"
+			helenos_target = "mips-helenos"
 	
 	if (config['PLATFORM'] == "mips64"):
 		check_config(config, "MACHINE")
@@ -245,18 +255,26 @@ def get_target(config):
 			target = config['PLATFORM']
 			gnu_target = "mips64el-linux-gnu"
 			clang_target = "mips64el-unknown-linux"
+			helenos_target = "mips64el-helenos"
 	
 	if (config['PLATFORM'] == "ppc32"):
 		target = config['PLATFORM']
 		gnu_target = "ppc-linux-gnu"
 		clang_target = "powerpc-unknown-linux"
+		helenos_target = "ppc-helenos"
+	
+	if (config['PLATFORM'] == "sparc32"):
+		target = config['PLATFORM'];
+		gnu_target = "sparc-leon3-linux-gnu"
+		helenos_target = "sparc-leon3-helenos"
 	
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
 		clang_target = "sparc-unknown-linux"
+		helenos_target = "sparc64-helenos"
 	
-	return (target, cc_args, gnu_target, clang_target)
+	return (target, cc_args, gnu_target, clang_target, helenos_target)
 
 def check_app(args, name, details):
 	"Check whether an application can be executed"
@@ -696,6 +714,12 @@ def main():
 	else:
 		cross_prefix = "/usr/local/cross"
 	
+	# HelenOS cross-compiler prefix
+	if ('CROSS_HELENOS_PREFIX' in os.environ):
+		cross_helenos_prefix = os.environ['CROSS_HELENOS_PREFIX']
+	else:
+		cross_helenos_prefix = "/usr/local/cross-helenos"
+	
 	# Prefix binutils tools on Solaris
 	if (os.uname()[0] == "SunOS"):
 		binutils_prefix = "g"
@@ -718,7 +742,7 @@ def main():
 		# Compiler
 		common['CC_ARGS'] = []
 		if (config['COMPILER'] == "gcc_cross"):
-			target, cc_args, gnu_target, clang_target = get_target(config)
+			target, cc_args, gnu_target, clang_target, helenos_target = get_target(config)
 			
 			if (target is None) or (gnu_target is None):
 				print_error(["Unsupported compiler target for GNU GCC.",
@@ -726,6 +750,23 @@ def main():
 			
 			path = "%s/%s/bin" % (cross_prefix, target)
 			prefix = "%s-" % gnu_target
+			
+			check_gcc(path, prefix, common, PACKAGE_CROSS)
+			check_binutils(path, prefix, common, PACKAGE_CROSS)
+			
+			check_common(common, "GCC")
+			common['CC'] = common['GCC']
+			common['CC_ARGS'].extend(cc_args)
+		
+		if (config['COMPILER'] == "gcc_helenos"):
+			target, cc_args, gnu_target, clang_target, helenos_target = get_target(config)
+			
+			if (target is None) or (helenos_target is None):
+				print_error(["Unsupported compiler target for GNU GCC.",
+				             "Please contact the developers of HelenOS."])
+			
+			path = "%s/%s/bin" % (cross_helenos_prefix, target)
+			prefix = "%s-" % helenos_target
 			
 			check_gcc(path, prefix, common, PACKAGE_CROSS)
 			check_binutils(path, prefix, common, PACKAGE_CROSS)

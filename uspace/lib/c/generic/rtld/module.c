@@ -92,7 +92,6 @@ void module_process_relocs(module_t *m)
  */
 module_t *module_find(const char *name)
 {
-	module_t *m;
 	const char *p, *soname;
 
 	DPRINTF("module_find('%s')\n", name);
@@ -106,9 +105,8 @@ module_t *module_find(const char *name)
 	soname = p ? (p + 1) : name;
 
 	/* Traverse list of all modules. Not extremely fast, but simple */
-	list_foreach(runtime_env->modules, cur) {
-		DPRINTF("cur = %p\n", cur);
-		m = list_get_instance(cur, module_t, modules_link);
+	list_foreach(runtime_env->modules, modules_link, module_t, m) {
+		DPRINTF("m = %p\n", m);
 		if (str_cmp(m->dyn.soname, soname) == 0) {
 			return m; /* Found */
 		}
@@ -244,11 +242,7 @@ void module_load_deps(module_t *m)
  */
 void modules_process_relocs(module_t *start)
 {
-	module_t *m;
-
-	list_foreach(runtime_env->modules, cur) {
-		m = list_get_instance(cur, module_t, modules_link);
-
+	list_foreach(runtime_env->modules, modules_link, module_t, m) {
 		/* Skip rtld, since it has already been processed */
 		if (m != &runtime_env->rtld) {
 			module_process_relocs(m);
@@ -260,10 +254,7 @@ void modules_process_relocs(module_t *start)
  */
 void modules_untag(void)
 {
-	module_t *m;
-
-	list_foreach(runtime_env->modules, cur) {
-		m = list_get_instance(cur, module_t, modules_link);
+	list_foreach(runtime_env->modules, modules_link, module_t, m) {
 		m->bfs_tag = false;
 	}
 }
