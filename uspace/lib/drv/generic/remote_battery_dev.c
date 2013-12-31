@@ -46,8 +46,8 @@ static void remote_battery_charge_level_get(ddf_fun_t *, void *, ipc_callid_t,
 
 /** Remote battery interface operations */
 static const remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
-	&remote_battery_status_get,
-	&remote_battery_charge_level_get,
+	[BATTERY_STATUS_GET] = remote_battery_status_get,
+	[BATTERY_CHARGE_LEVEL_GET] = remote_battery_charge_level_get,
 };
 
 /** Remote battery interface structure
