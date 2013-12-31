@@ -43,6 +43,7 @@
 #include <usb/host/ddf_helpers.h>
 
 #include "res.h"
+#include "ehci.h"
 
 #define NAME "ehci"
 
@@ -90,9 +91,9 @@ static int ehci_dev_add(ddf_dev_t *device)
 	}
 
 	/* High Speed, no bandwidth */
-	ret = hcd_ddf_setup_hc(device, USB_SPEED_HIGH, 0, NULL);
+	ret = device_setup_ehci(device);
 	if (ret != EOK) {
-		usb_log_error("Failed to init generci hcd driver: %s\n",
+		usb_log_error("Failed to init ehci driver: %s\n",
 		    str_error(ret));
 		return ret;
 	}

@@ -30,17 +30,23 @@ USPACE_PREFIX = ../../../..
 
 LIBS = \
 	$(LIBUSBHOST_PREFIX)/libusbhost.a \
+	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
 	$(LIBUSB_PREFIX)/libusb.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 
 EXTRA_CFLAGS += \
 	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBDEV_PREFIX)/include \
 	-I$(LIBUSBHOST_PREFIX)/include \
+	-I$(LIBUSBVIRT_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 
 BINARY = ehci
 
 SOURCES = \
+	ehci.c \
+	ehci_rh.c \
+	hc.c \
 	main.c \
 	res.c
 
