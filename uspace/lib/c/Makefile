@@ -70,7 +70,6 @@ GENERIC_SOURCES = \
 	generic/device/pio_window.c \
 	generic/device/char_dev.c \
 	generic/device/clock_dev.c \
-	generic/device/battery_dev.c \
 	generic/device/graph_dev.c \
 	generic/device/nic.c \
 	generic/dhcp.c \
