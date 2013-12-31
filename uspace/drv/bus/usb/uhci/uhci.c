@@ -37,7 +37,6 @@
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
-#include <pci_dev_iface.h>
 #include <devman.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -74,35 +73,12 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	hc_interrupt(hcd->driver.data, status);
 }
 
-/** Call the PCI driver with a request to clear legacy support register
- *
- * @param[in] device Device asking to disable interrupts
- * @return Error code.
- */
-static int disable_legacy(ddf_dev_t *device)
-{
-	assert(device);
-
-	async_sess_t *parent_sess = devman_parent_device_connect(
-	    EXCHANGE_SERIALIZE, ddf_dev_get_handle(device), IPC_FLAG_BLOCKING);
-	if (!parent_sess)
-		return ENOMEM;
-
-	/* See UHCI design guide page 45 for these values.
-	 * Write all WC bits in USB legacy register */
-	const int rc = pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
-
-	async_hangup(parent_sess);
-	return rc;
-}
-
 /** Initialize hc and rh DDF structures and their respective drivers.
  *
  * @param[in] device DDF instance of the device to use.
  *
  * This function does all the preparatory work for hc and rh drivers:
  *  - gets device's hw resources
- *  - disables UHCI legacy support (PCI config space)
  *  - attempts to enable interrupts
  *  - registers interrupt handler
  */
@@ -149,13 +125,6 @@ int device_setup_uhci(ddf_dev_t *device)
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
-	}
-
-	ret = disable_legacy(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to disable legacy USB: %s.\n",
-		    str_error(ret));
-		goto irq_unregister;
 	}
 
 	ret = hc_init(hc, &regs, interrupts);
