@@ -75,7 +75,7 @@ static const remote_iface_func_ptr_t remote_ahci_iface_ops [] = {
 
 /** Remote AHCI interface structure.
  */
-remote_iface_t remote_ahci_iface = {
+const remote_iface_t remote_ahci_iface = {
 	.method_count = ARRAY_SIZE(remote_ahci_iface_ops),
 	.methods = remote_ahci_iface_ops
 };

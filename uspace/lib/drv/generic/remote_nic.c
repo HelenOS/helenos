@@ -1250,7 +1250,7 @@ static const remote_iface_func_ptr_t remote_nic_iface_ops[] = {
  * clients addressed to the NIC interface.
  *
  */
-remote_iface_t remote_nic_iface = {
+const remote_iface_t remote_nic_iface = {
 	.method_count = ARRAY_SIZE(remote_nic_iface_ops),
 	.methods = remote_nic_iface_ops
 };

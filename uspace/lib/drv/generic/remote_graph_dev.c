@@ -46,7 +46,7 @@ static const remote_iface_func_ptr_t remote_graph_dev_iface_ops[] = {
 	[GRAPH_DEV_CONNECT] = remote_graph_connect
 };
 
-remote_iface_t remote_graph_dev_iface = {
+const remote_iface_t remote_graph_dev_iface = {
 	.method_count = ARRAY_SIZE(remote_graph_dev_iface_ops),
 	.methods = remote_graph_dev_iface_ops
 };

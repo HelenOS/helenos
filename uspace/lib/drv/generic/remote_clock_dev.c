@@ -57,7 +57,7 @@ static const remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
  * Interface for processing requests from remote clients
  * addressed by the clock interface.
  */
-remote_iface_t remote_clock_dev_iface = {
+const remote_iface_t remote_clock_dev_iface = {
 	.method_count = ARRAY_SIZE(remote_clock_dev_iface_ops),
 	.methods = remote_clock_dev_iface_ops,
 };

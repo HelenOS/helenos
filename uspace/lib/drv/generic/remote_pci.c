@@ -61,7 +61,7 @@ static const remote_iface_func_ptr_t remote_pci_iface_ops [] = {
 
 /** Remote USB interface structure.
  */
-remote_iface_t remote_pci_iface = {
+const remote_iface_t remote_pci_iface = {
 	.method_count = ARRAY_SIZE(remote_pci_iface_ops),
 	.methods = remote_pci_iface_ops
 };

@@ -56,7 +56,7 @@ static const remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
  * Interface for processing request from remote clients addressed to the
  * character interface.
  */
-remote_iface_t remote_char_dev_iface = {
+const remote_iface_t remote_char_dev_iface = {
 	.method_count = ARRAY_SIZE(remote_char_dev_iface_ops),
 	.methods = remote_char_dev_iface_ops
 };

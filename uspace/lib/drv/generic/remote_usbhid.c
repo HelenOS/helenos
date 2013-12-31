@@ -58,7 +58,7 @@ static const remote_iface_func_ptr_t remote_usbhid_iface_ops [] = {
 
 /** Remote USB HID interface structure.
  */
-remote_iface_t remote_usbhid_iface = {
+const remote_iface_t remote_usbhid_iface = {
 	.method_count = ARRAY_SIZE(remote_usbhid_iface_ops),
 	.methods = remote_usbhid_iface_ops
 };

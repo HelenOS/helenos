@@ -46,7 +46,7 @@ static const remote_iface_func_ptr_t remote_pio_window_iface_ops [] = {
 	[PIO_WINDOW_GET] = &remote_pio_window_get
 };
 
-remote_iface_t remote_pio_window_iface = {
+const remote_iface_t remote_pio_window_iface = {
 	.method_count = ARRAY_SIZE(remote_pio_window_iface_ops),
 	.methods = remote_pio_window_iface_ops
 };

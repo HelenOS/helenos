@@ -56,7 +56,7 @@ static const remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
 	[HW_RES_DMA_CHANNEL_REMAIN] = &remote_hw_res_dma_channel_remain,
 };
 
-remote_iface_t remote_hw_res_iface = {
+const remote_iface_t remote_hw_res_iface = {
 	.method_count = ARRAY_SIZE(remote_hw_res_iface_ops),
 	.methods = remote_hw_res_iface_ops
 };

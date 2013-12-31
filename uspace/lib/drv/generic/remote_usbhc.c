@@ -349,7 +349,7 @@ static const remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
 
 /** Remote USB host controller interface structure.
  */
-remote_iface_t remote_usbhc_iface = {
+const remote_iface_t remote_usbhc_iface = {
 	.method_count = ARRAY_SIZE(remote_usbhc_iface_ops),
 	.methods = remote_usbhc_iface_ops
 };

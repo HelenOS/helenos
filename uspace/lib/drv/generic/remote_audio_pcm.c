@@ -625,7 +625,7 @@ static const remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 };
 
 /** Remote audio mixer interface structure. */
-remote_iface_t remote_audio_pcm_iface = {
+const remote_iface_t remote_audio_pcm_iface = {
 	.method_count = ARRAY_SIZE(remote_audio_pcm_iface_ops),
 	.methods = remote_audio_pcm_iface_ops
 };
