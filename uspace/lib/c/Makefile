@@ -71,7 +71,6 @@ GENERIC_SOURCES = \
 	generic/device/char_dev.c \
 	generic/device/clock_dev.c \
 	generic/device/graph_dev.c \
-	generic/device/nic.c \
 	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
