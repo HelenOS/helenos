@@ -72,14 +72,14 @@ static const iface_dipatch_table_t remote_ifaces = {
 	}
 };
 
-remote_iface_t *get_remote_iface(int idx)
+const remote_iface_t *get_remote_iface(int idx)
 {
 	assert(is_valid_iface_idx(idx));
 	return remote_ifaces.ifaces[idx];
 }
 
 remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
+get_remote_method(const remote_iface_t *rem_iface, sysarg_t iface_method_idx)
 {
 	if (iface_method_idx >= rem_iface->method_count)
 		return NULL;

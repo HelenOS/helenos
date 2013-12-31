@@ -412,7 +412,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		 * Get the corresponding interface for remote request
 		 * handling ("remote interface").
 		 */
-		remote_iface_t *rem_iface = get_remote_iface(iface_idx);
+		const remote_iface_t *rem_iface = get_remote_iface(iface_idx);
 		assert(rem_iface != NULL);
 		
 		/* get the method of the remote interface */
