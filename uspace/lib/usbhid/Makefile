@@ -36,7 +36,6 @@ EXTRA_CFLAGS += \
 
 SOURCES = \
 	src/hiddescriptor.c \
-	src/hidiface.c \
 	src/hidparser.c \
 	src/hidpath.c \
 	src/hidreport.c \
