@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <time.h>
 #include <macros.h>
+#include <device/clock_dev.h>
 
 #include <ops/clock_dev.h>
 #include <ddf/driver.h>
@@ -47,8 +48,8 @@ static void remote_clock_time_set(ddf_fun_t *, void *, ipc_callid_t,
 
 /** Remote clock interface operations */
 static const remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
-	&remote_clock_time_get,
-	&remote_clock_time_set,
+	[CLOCK_DEV_TIME_GET] = remote_clock_time_get,
+	[CLOCK_DEV_TIME_SET] = remote_clock_time_set,
 };
 
 /** Remote clock interface structure
