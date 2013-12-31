@@ -49,10 +49,11 @@ static void remote_usbhid_get_report_descriptor(ddf_fun_t *, void *, ipc_callid_
 
 /** Remote USB HID interface operations. */
 static const remote_iface_func_ptr_t remote_usbhid_iface_ops [] = {
-	remote_usbhid_get_event_length,
-	remote_usbhid_get_event,
-	remote_usbhid_get_report_descriptor_length,
-	remote_usbhid_get_report_descriptor
+	[IPC_M_USBHID_GET_EVENT_LENGTH] = remote_usbhid_get_event_length,
+	[IPC_M_USBHID_GET_EVENT] = remote_usbhid_get_event,
+	[IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH] =
+	    remote_usbhid_get_report_descriptor_length,
+	[IPC_M_USBHID_GET_REPORT_DESCRIPTOR] = remote_usbhid_get_report_descriptor
 };
 
 /** Remote USB HID interface structure.
