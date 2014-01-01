@@ -93,7 +93,6 @@ int device_setup_ehci(ddf_dev_t *device)
 		    str_error(ret));
 		return ret;
 	}
-	addr_range_t regs = hw_res.mem_ranges.ranges[0];
 
 	/* Initialize generic HCD driver */
 	ret = hcd_ddf_setup_hc(device, USB_SPEED_HIGH,
@@ -126,7 +125,7 @@ int device_setup_ehci(ddf_dev_t *device)
 	}
 
 	/* Initialize EHCI HC */
-	ret = hc_init(hc, &regs, interrupts);
+	ret = hc_init(hc, &hw_res, interrupts);
 	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to init hc: %s.\n", str_error(ret));

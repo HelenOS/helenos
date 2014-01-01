@@ -75,13 +75,8 @@ typedef struct hc {
 
 int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
-int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts);
+void hc_fini(hc_t *instance);
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
 void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);

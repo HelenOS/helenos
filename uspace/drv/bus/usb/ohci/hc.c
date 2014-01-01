@@ -147,20 +147,28 @@ int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
- * @param[in] regs Device's I/O registers range.
+ * @param[in] regs Device's resources
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
 	assert(instance);
+	assert(hw_res);
+	if (hw_res->mem_ranges.count != 1 ||
+	    hw_res->mem_ranges.ranges[0].size < sizeof(ohci_regs_t))
+	    return EINVAL;
 
-	int ret = pio_enable_range(regs, (void **) &instance->registers);
+	int ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
+	    (void **) &instance->registers);
 	if (ret != EOK) {
-		usb_log_error("Failed to gain access to device registers: %s.\n",
+		usb_log_error("Failed to gain access to registers: %s.\n",
 		    str_error(ret));
 		return ret;
 	}
+	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	    hw_res->mem_ranges.ranges[0].address.absolute,
+	    hw_res->mem_ranges.ranges[0].size);
 
 	list_initialize(&instance->pending_batches);
 	fibril_mutex_initialize(&instance->guard);
@@ -185,6 +193,16 @@ int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 
 	return EOK;
 }
+
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+void hc_fini(hc_t *instance)
+{
+	assert(instance);
+	/* TODO: implement*/
+};
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {

@@ -88,14 +88,12 @@ int device_setup_uhci(ddf_dev_t *device)
 
 	hw_res_list_parsed_t hw_res;
 	int ret = hcd_ddf_get_registers(device, &hw_res);
-	if (ret != EOK ||
-	    hw_res.irqs.count != 1 || hw_res.io_ranges.count != 1) {
+	if (ret != EOK) {
 		usb_log_error("Failed to get register memory addresses "
 		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
 		    str_error(ret));
 		return ret;
 	}
-	addr_range_t regs = hw_res.io_ranges.ranges[0];
 
 	ret = hcd_ddf_setup_hc(device, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
@@ -124,12 +122,11 @@ int device_setup_uhci(ddf_dev_t *device)
 		interrupts = true;
 	}
 
-	ret = hc_init(hc, &regs, interrupts);
+	ret = hc_init(hc, &hw_res, interrupts);
 	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
 		goto irq_unregister;
-		// TODO This is unfortunate, we have neither legacy nor real USB
 	}
 
 	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);

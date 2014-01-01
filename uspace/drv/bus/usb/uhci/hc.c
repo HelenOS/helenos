@@ -211,27 +211,29 @@ void hc_interrupt(hc_t *instance, uint16_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
 	assert(instance);
-	assert(regs);
-	assert(regs->size >= sizeof(uhci_regs_t));
+	assert(hw_res);
+	if (hw_res->io_ranges.count != 1 ||
+	    hw_res->io_ranges.ranges[0].size < sizeof(uhci_regs_t))
+	    return EINVAL;
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
-	uhci_regs_t *io;
-	int ret = pio_enable_range(regs, (void **) &io);
+	int ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
+	    (void **) &instance->registers);
 	if (ret != EOK) {
-		usb_log_error("Failed to gain access to registers at %p: %s.\n",
-	            io, str_error(ret));
+		usb_log_error("Failed to gain access to registers: %s.\n",
+	            str_error(ret));
 		return ret;
 	}
-	instance->registers = io;
 
-	usb_log_debug(
-	    "Device registers at %p (%zuB) accessible.\n", io, regs->size);
+	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	    hw_res->io_ranges.ranges[0].address.absolute,
+	    hw_res->io_ranges.ranges[0].size);
 
 	ret = hc_init_mem_structures(instance);
 	if (ret != EOK) {
@@ -252,6 +254,16 @@ int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 	uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
 
 	return EOK;
+}
+
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+void hc_fini(hc_t *instance)
+{
+	assert(instance);
+	//TODO Implement
 }
 
 /** Initialize UHCI hc hw resources.

@@ -128,14 +128,10 @@ typedef struct hc {
 
 int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res);
 void hc_interrupt(hc_t *instance, uint16_t status);
-int hc_init(hc_t *instance, addr_range_t *regs, bool interupts);
+int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interupts);
+void hc_fini(hc_t *instance);
 int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) {} /* TODO: implement*/
 #endif
 
 /**
