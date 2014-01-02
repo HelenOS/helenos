@@ -652,7 +652,6 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
 		ddf_fun_destroy(hc->ctl_fun);
 }
 
-
 //TODO: Move this to generic ddf?
 /** Call the parent driver with a request to enable interrupts
  *
@@ -699,7 +698,6 @@ static inline void irq_code_clean(irq_code_t *code)
 		code->cmdcount = 0;
 	}
 }
-
 
 /** Register interrupt handler
  *
@@ -750,6 +748,103 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 	}
 	assert(irq > 0);
 	return irq;
+}
+
+/** IRQ handling callback, forward status from call to diver structure.
+ *
+ * @param[in] dev DDF instance of the device to use.
+ * @param[in] iid (Unused).
+ * @param[in] call Pointer to the call from kernel.
+ */
+void ddf_hcd_gen_irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+{
+	assert(dev);
+	hcd_t *hcd = dev_to_hcd(dev);
+	if (!hcd || !hcd->driver.irq_hook) {
+		usb_log_error("Interrupt on not yet initialized device.\n");
+		return;
+	}
+	const uint32_t status = IPC_GET_ARG1(*call);
+	hcd->driver.irq_hook(hcd, status);
+}
+/** Initialize hc and rh DDF structures and their respective drivers.
+ *
+ * @param device DDF instance of the device to use
+ * @param speed Maximum supported speed
+ * @param bw Available bandwidth (arbitrary units)
+ * @param bw_count Bandwidth computing function
+ * @param irq_handler IRQ handling function
+ * @param gen_irq_code Function to generate IRQ pseudocode
+ *                     (it needs to return used irq number)
+ * @param driver_init Function to initialize HC driver
+ * @param driver_fini Function to cleanup HC driver
+ * @return Error code
+ *
+ * This function does all the preparatory work for hc and rh drivers:
+ *  - gets device's hw resources
+ *  - attempts to enable interrupts
+ *  - registers interrupt handler
+ *  - calls driver specific initialization
+ *  - registers root hub
+ */
+int ddf_hcd_device_setup_all(ddf_dev_t *device, usb_speed_t speed, size_t bw,
+    bw_count_func_t bw_count,
+    interrupt_handler_t irq_handler,
+    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *hw_res),
+    int (*driver_init)(hcd_t *, const hw_res_list_parsed_t *, bool),
+    void (*driver_fini)(hcd_t *)
+    )
+{
+	assert(device);
+
+	hw_res_list_parsed_t hw_res;
+	int ret = hcd_ddf_get_registers(device, &hw_res);
+	if (ret != EOK) {
+		usb_log_error("Failed to get register memory addresses "
+		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
+		    str_error(ret));
+		return ret;
+	}
+
+	ret = hcd_ddf_setup_hc(device, speed, bw, bw_count);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup generic HCD.\n");
+		hw_res_list_parsed_clean(&hw_res);
+		return ret;
+	}
+
+	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
+	    gen_irq_code);
+	if (irq < 0) {
+		usb_log_warning("Failed to enable interrupts: %s."
+		    " Falling back to polling.\n", str_error(irq));
+	} else {
+		usb_log_debug("Hw interrupts enabled.\n");
+	}
+
+	/* Init hw driver */
+	ret = driver_init(dev_to_hcd(device), &hw_res, !(irq < 0));
+	hw_res_list_parsed_clean(&hw_res);
+	if (ret != EOK) {
+		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
+		goto irq_unregister;
+	}
+
+	/*
+	 * Creating root hub registers a new USB device so HC
+	 * needs to be ready at this time.
+	 */
+	ret = hcd_ddf_setup_root_hub(device);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup UHCI root hub: %s.\n",
+		    str_error(ret));
+		driver_fini(dev_to_hcd(device));
+irq_unregister:
+		/* Unregistering non-existent should be ok */
+		unregister_interrupt_handler(device, irq);
+		hcd_ddf_clean_hc(device);
+	}
+	return ret;
 }
 /**
  * @}

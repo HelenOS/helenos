@@ -134,7 +134,7 @@ int device_setup_ehci(ddf_dev_t *device)
 
 	/* Connect EHCI to generic HCD */
 	hcd_set_implementation(dev_to_hcd(device), hc,
-	    hc_schedule, NULL, NULL);
+	    hc_schedule, NULL, NULL, NULL);
 
 	/* HC should be running OK. We can add root hub */
 	ret = hcd_ddf_setup_root_hub(device);

@@ -94,7 +94,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 		return ret;
 	}
 
-	hcd_set_implementation(dev_to_hcd(dev), data, vhc_schedule, NULL, NULL);
+	hcd_set_implementation(dev_to_hcd(dev), data, vhc_schedule, NULL, NULL, NULL);
 
 	/* Add virtual hub device */
 	ret = vhc_virtdev_plug_hub(data, &data->hub, NULL, 0);

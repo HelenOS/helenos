@@ -129,7 +129,7 @@ int device_setup_uhci(ddf_dev_t *device)
 		goto irq_unregister;
 	}
 
-	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL);
+	hcd_set_implementation(dev_to_hcd(device), hc, hc_schedule, NULL, NULL, NULL);
 
 	/*
 	 * Creating root hub registers a new USB device so HC

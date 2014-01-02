@@ -50,6 +50,7 @@ typedef struct hcd hcd_t;
 typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
 typedef int (*ep_add_hook_t)(hcd_t *, endpoint_t *);
 typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
+typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);
 
 typedef struct {
 	/** Device specific driver data. */
@@ -60,6 +61,8 @@ typedef struct {
 	ep_add_hook_t ep_add_hook;
 	/** Hook called upon removing of an endpoint. */
 	ep_remove_hook_t ep_remove_hook;
+	/** Hook to be called on device interrupt, passes ARG1 */
+	interrupt_hook_t irq_hook;
 } hc_driver_t;
 
 /** Generic host controller driver structure. */
@@ -75,13 +78,15 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
     bw_count_func_t bw_count);
 
 static inline void hcd_set_implementation(hcd_t *hcd, void *data,
-    schedule_hook_t schedule, ep_add_hook_t add_hook, ep_remove_hook_t rem_hook)
+    schedule_hook_t schedule, ep_add_hook_t add_hook, ep_remove_hook_t rem_hook,
+    interrupt_hook_t irq_hook)
 {
 	assert(hcd);
 	hcd->driver.data = data;
 	hcd->driver.schedule = schedule;
 	hcd->driver.ep_add_hook = add_hook;
 	hcd->driver.ep_remove_hook = rem_hook;
+	hcd->driver.irq_hook = irq_hook;
 }
 
 usb_address_t hcd_request_address(hcd_t *hcd, usb_speed_t speed);
