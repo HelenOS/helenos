@@ -107,7 +107,7 @@ typedef struct driver {
 	/** Name of the device driver */
 	const char *name;
 	/** Generic device driver operations */
-	driver_ops_t *driver_ops;
+	const driver_ops_t *driver_ops;
 } driver_t;
 
 /** XXX Only to transition network drivers */
