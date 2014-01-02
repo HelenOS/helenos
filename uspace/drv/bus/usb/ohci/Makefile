@@ -47,7 +47,6 @@ SOURCES = \
 	endpoint_list.c \
 	hc.c \
 	main.c \
-	ohci.c \
 	ohci_batch.c \
 	ohci_endpoint.c \
 	ohci_rh.c \

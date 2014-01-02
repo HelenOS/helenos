@@ -40,10 +40,44 @@
 #include <str_error.h>
 
 #include <usb/debug.h>
+#include <usb/host/ddf_helpers.h>
 
-#include "ohci.h"
+#include "hc.h"
 
 #define NAME "ohci"
+// TODO: This should be merged to hc_interrupt
+static void ohci_interrupt(hcd_t *hcd, uint32_t status)
+{
+	assert(hcd);
+	if (hcd->driver.data)
+		hc_interrupt(hcd->driver.data, status);
+}
+
+static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+{
+	assert(hcd);
+	assert(hcd->driver.data == NULL);
+
+	hc_t *instance = malloc(sizeof(hc_t));
+	if (!instance)
+		return ENOMEM;
+
+	const int ret =  hc_init(instance, res, irq);
+	if (ret == EOK)
+		hcd_set_implementation(hcd, instance, hc_schedule,
+		    ohci_endpoint_init, ohci_endpoint_fini, ohci_interrupt);
+	return ret;
+}
+
+static void ohci_driver_fini(hcd_t *hcd)
+{
+	assert(hcd);
+	if (hcd->driver.data)
+		hc_fini(hcd->driver.data);
+
+	free(hcd->driver.data);
+	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL);
+}
 
 /** Initializes a new ddf driver instance of OHCI hcd.
  *
@@ -55,15 +89,18 @@ static int ohci_dev_add(ddf_dev_t *device)
 	usb_log_debug("ohci_dev_add() called\n");
 	assert(device);
 
-	int ret = device_setup_ohci(device);
+	const int ret = ddf_hcd_device_setup_all(device, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11,
+	    ddf_hcd_gen_irq_handler, hc_gen_irq_code,
+	    ohci_driver_init, ohci_driver_fini);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize OHCI driver: %s.\n",
 		    str_error(ret));
-		return ret;
 	}
-	usb_log_info("Controlling new OHCI device '%s'.\n", ddf_dev_get_name(device));
+	usb_log_info("Controlling new OHCI device '%s'.\n",
+	    ddf_dev_get_name(device));
 
-	return EOK;
+	return ret;
 }
 
 static driver_ops_t ohci_driver_ops = {
