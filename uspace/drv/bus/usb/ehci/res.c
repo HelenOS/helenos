@@ -99,7 +99,8 @@ static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 	/* Wait for BIOS to release control. */
 	ret = pci_config_space_read_32(
 	    parent_sess, eecp + USBLEGSUP_OFFSET, &usblegsup);
-	while ((wait < DEFAULT_WAIT) && (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
+	while ((ret == EOK) && (wait < DEFAULT_WAIT)
+	    && (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
 		ret = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGSUP_OFFSET, &usblegsup);
