@@ -44,7 +44,6 @@ EXTRA_CFLAGS += \
 BINARY = ehci
 
 SOURCES = \
-	ehci.c \
 	ehci_rh.c \
 	hc.c \
 	main.c \

@@ -43,9 +43,42 @@
 #include <usb/host/ddf_helpers.h>
 
 #include "res.h"
-#include "ehci.h"
+#include "hc.h"
 
 #define NAME "ehci"
+// TODO: This should be merged to hc_interrupt
+static void ehci_interrupt(hcd_t *hcd, uint32_t status)
+{
+	assert(hcd);
+	if (hcd->driver.data)
+		hc_interrupt(hcd->driver.data, status);
+}
+
+static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+{
+	assert(hcd);
+	assert(hcd->driver.data == NULL);
+
+	hc_t *instance = malloc(sizeof(hc_t));
+	if (!instance)
+		return ENOMEM;
+
+	const int ret =  hc_init(instance, res, irq);
+	if (ret == EOK)
+		hcd_set_implementation(hcd, instance, hc_schedule,
+		    NULL, NULL, ehci_interrupt);
+	return ret;
+}
+
+static void ehci_driver_fini(hcd_t *hcd)
+{
+	assert(hcd);
+	if (hcd->driver.data)
+		hc_fini(hcd->driver.data);
+
+	free(hcd->driver.data);
+	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL);
+}
 
 static int ehci_dev_add(ddf_dev_t *device);
 
@@ -66,40 +99,19 @@ static driver_t ehci_driver = {
  */
 static int ehci_dev_add(ddf_dev_t *device)
 {
+	usb_log_debug("ehci_dev_add() called\n");
 	assert(device);
-	hw_res_list_parsed_t hw_res;
-	int ret = hcd_ddf_get_registers(device, &hw_res);
-	if (ret != EOK ||
-	    hw_res.irqs.count != 1 || hw_res.mem_ranges.count != 1) {
-		usb_log_error("Failed to get register memory addresses "
-		    "for %" PRIun ": %s.\n", ddf_dev_get_handle(device),
-		    str_error(ret));
-		return ret;
-	}
-	addr_range_t regs = hw_res.mem_ranges.ranges[0];
-	const int irq = hw_res.irqs.irqs[0];
-	hw_res_list_parsed_clean(&hw_res);
 
-	usb_log_info("Memory mapped regs at %p (size %zu), IRQ %d.\n",
-	    RNGABSPTR(regs), RNGSZ(regs), irq);
-
-	ret = disable_legacy(device, &regs);
+	const int ret = ddf_hcd_device_setup_all(device, USB_SPEED_HIGH,
+	    BANDWIDTH_AVAILABLE_USB20, bandwidth_count_usb11,
+	    ddf_hcd_gen_irq_handler, hc_gen_irq_code,
+	    ehci_driver_init, ehci_driver_fini);
 	if (ret != EOK) {
-		usb_log_error("Failed to disable legacy USB: %s.\n",
+		usb_log_error("Failed to initialize EHCI driver: %s.\n",
 		    str_error(ret));
-		return ret;
 	}
-
-	/* High Speed, no bandwidth */
-	ret = device_setup_ehci(device);
-	if (ret != EOK) {
-		usb_log_error("Failed to init ehci driver: %s\n",
-		    str_error(ret));
-		return ret;
-	}
-
-	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
-	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
+	usb_log_info("Controlling new EHCI device '%s'.\n",
+	    ddf_dev_get_name(device));
 
 	return EOK;
 }
