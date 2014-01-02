@@ -41,10 +41,45 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include <usb/host/ddf_helpers.h>
 
-#include "uhci.h"
+#include "hc.h"
 
 #define NAME "uhci"
+
+// TODO: This should be merged to hc_interrupt
+static void uhci_interrupt(hcd_t *hcd, uint32_t status)
+{
+	assert(hcd);
+	if (hcd->driver.data)
+		hc_interrupt(hcd->driver.data, status);
+}
+
+static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
+{
+	assert(hcd);
+	assert(hcd->driver.data == NULL);
+
+	hc_t *instance = malloc(sizeof(hc_t));
+	if (!instance)
+		return ENOMEM;
+
+	const int ret =  hc_init(instance, res, irq);
+	if (ret == EOK)
+		hcd_set_implementation(hcd, instance, hc_schedule, NULL, NULL,
+		    uhci_interrupt);
+	return ret;
+}
+
+static void uhci_driver_fini(hcd_t *hcd)
+{
+	assert(hcd);
+	if (hcd->driver.data)
+		hc_fini(hcd->driver.data);
+
+	free(hcd->driver.data);
+	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL);
+}
 
 static int uhci_dev_add(ddf_dev_t *device);
 
@@ -97,7 +132,10 @@ int uhci_dev_add(ddf_dev_t *device)
 	}
 
 
-	ret = device_setup_uhci(device);
+	ret = ddf_hcd_device_setup_all(device, USB_SPEED_FULL,
+	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11,
+	    ddf_hcd_gen_irq_handler, hc_gen_irq_code,
+	    uhci_driver_init, uhci_driver_fini);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize UHCI driver: %s.\n",
 		    str_error(ret));
