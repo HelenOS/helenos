@@ -83,11 +83,11 @@ static void uhci_driver_fini(hcd_t *hcd)
 
 static int uhci_dev_add(ddf_dev_t *device);
 
-static driver_ops_t uhci_driver_ops = {
+static const driver_ops_t uhci_driver_ops = {
 	.dev_add = uhci_dev_add,
 };
 
-static driver_t uhci_driver = {
+static const driver_t uhci_driver = {
 	.name = NAME,
 	.driver_ops = &uhci_driver_ops
 };

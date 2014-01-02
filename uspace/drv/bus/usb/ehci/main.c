@@ -82,11 +82,11 @@ static void ehci_driver_fini(hcd_t *hcd)
 
 static int ehci_dev_add(ddf_dev_t *device);
 
-static driver_ops_t ehci_driver_ops = {
+static const driver_ops_t ehci_driver_ops = {
 	.dev_add = ehci_dev_add,
 };
 
-static driver_t ehci_driver = {
+static const driver_t ehci_driver = {
 	.name = NAME,
 	.driver_ops = &ehci_driver_ops
 };

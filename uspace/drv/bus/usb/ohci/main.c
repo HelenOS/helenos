@@ -103,11 +103,11 @@ static int ohci_dev_add(ddf_dev_t *device)
 	return ret;
 }
 
-static driver_ops_t ohci_driver_ops = {
+static const driver_ops_t ohci_driver_ops = {
 	.dev_add = ohci_dev_add,
 };
 
-static driver_t ohci_driver = {
+static const driver_t ohci_driver = {
 	.name = NAME,
 	.driver_ops = &ohci_driver_ops
 };
