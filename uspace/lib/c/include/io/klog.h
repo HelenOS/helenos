@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericconsole
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_CONSOLE_H_
-#define KERN_CONSOLE_H_
+#ifndef LIBC_IO_KLOG_H_
+#define LIBC_IO_KLOG_H_
 
-#include <typedefs.h>
-#include <print.h>
-#include <console/chardev.h>
-#include <synch/spinlock.h>
+#include <sys/types.h>
+#include <stdarg.h>
+#include <io/verify.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
+#include <abi/log.h>
 
-#define PAGING(counter, increment, before, after) \
-	do { \
-		(counter) += (increment); \
-		if ((counter) > 23) { \
-			before; \
-			printf(" -- Press any key to continue -- "); \
-			indev_pop_character(stdin); \
-			after; \
-			printf("\n"); \
-			(counter) = 0; \
-		} \
-	} while (0)
+extern size_t klog_write(log_level_t, const void *, size_t);
+extern int klog_read(void *, size_t);
 
-extern indev_t *stdin;
-extern outdev_t *stdout;
+#define KLOG_PRINTF(lvl, fmt, ...) ({ \
+	char *_fmt = str_dup(fmt); \
+	size_t _fmtsize = str_size(_fmt); \
+	if (_fmtsize > 0 && _fmt[_fmtsize - 1] == '\n') \
+		_fmt[_fmtsize - 1] = 0; \
+	char *_s; \
+	int _c = asprintf(&_s, _fmt, ##__VA_ARGS__); \
+	free(_fmt); \
+	if (_c >= 0) { \
+		_c = klog_write((lvl), _s, str_size(_s)); \
+		free(_s); \
+	}; \
+	(_c >= 0); \
+})
 
-extern void early_putchar(wchar_t);
-
-extern indev_t *stdin_wire(void);
-extern void stdout_wire(outdev_t *outdev);
-extern void console_init(void);
-
-extern void kio_init(void);
-extern void kio_update(void *);
-extern void kio_flush(void);
-extern void kio_push_char(const wchar_t);
-SPINLOCK_EXTERN(kio_lock);
-
-extern wchar_t getc(indev_t *indev);
-extern size_t gets(indev_t *indev, char *buf, size_t buflen);
-extern sysarg_t sys_kio(int cmd, const void *buf, size_t size);
-
-extern void grab_console(void);
-extern void release_console(void);
-
-extern sysarg_t sys_debug_activate_console(void);
-
-#endif /* KERN_CONSOLE_H_ */
+#endif
 
 /** @}
  */

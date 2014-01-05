@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +28,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericconsole
+/** @addtogroup genericlog
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_CONSOLE_H_
-#define KERN_CONSOLE_H_
+#ifndef ABI_LOG_H_
+#define ABI_LOG_H_
 
-#include <typedefs.h>
-#include <print.h>
-#include <console/chardev.h>
-#include <synch/spinlock.h>
+/** Log message level. */
+typedef enum {
+	/** Fatal error, program is not able to recover at all. */
+	LVL_FATAL,
+	/** Serious error but the program can recover from it. */
+	LVL_ERROR,
+	/** Easily recoverable problem. */
+	LVL_WARN,
+	/** Information message that ought to be printed by default. */
+	LVL_NOTE,
+	/** Debugging purpose message. */
+	LVL_DEBUG,
+	/** More detailed debugging message. */
+	LVL_DEBUG2,
+	
+	/** For checking range of values */
+	LVL_LIMIT
+} log_level_t;
 
-#define PAGING(counter, increment, before, after) \
-	do { \
-		(counter) += (increment); \
-		if ((counter) > 23) { \
-			before; \
-			printf(" -- Press any key to continue -- "); \
-			indev_pop_character(stdin); \
-			after; \
-			printf("\n"); \
-			(counter) = 0; \
-		} \
-	} while (0)
+/* Who is the source of the message? */
+typedef enum {
+	LF_OTHER = 0,
+	LF_USPACE,
+	LF_ARCH
+} log_facility_t;
 
-extern indev_t *stdin;
-extern outdev_t *stdout;
-
-extern void early_putchar(wchar_t);
-
-extern indev_t *stdin_wire(void);
-extern void stdout_wire(outdev_t *outdev);
-extern void console_init(void);
-
-extern void kio_init(void);
-extern void kio_update(void *);
-extern void kio_flush(void);
-extern void kio_push_char(const wchar_t);
-SPINLOCK_EXTERN(kio_lock);
-
-extern wchar_t getc(indev_t *indev);
-extern size_t gets(indev_t *indev, char *buf, size_t buflen);
-extern sysarg_t sys_kio(int cmd, const void *buf, size_t size);
-
-extern void grab_console(void);
-extern void release_console(void);
-
-extern sysarg_t sys_debug_activate_console(void);
-
-#endif /* KERN_CONSOLE_H_ */
+#endif
 
 /** @}
  */

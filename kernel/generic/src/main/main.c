@@ -61,6 +61,7 @@
 #include <main/version.h>
 #include <console/kconsole.h>
 #include <console/console.h>
+#include <log.h>
 #include <cpu.h>
 #include <align.h>
 #include <interrupt.h>
@@ -281,6 +282,7 @@ void main_bsp_separated_stack(void)
 	ipc_init();
 	event_init();
 	kio_init();
+	log_init();
 	stats_init();
 	
 	/*

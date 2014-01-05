@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericconsole
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_CONSOLE_H_
-#define KERN_CONSOLE_H_
+#include <libc.h>
+#include <str.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <abi/klog.h>
+#include <io/klog.h>
+#include <abi/log.h>
 
-#include <typedefs.h>
-#include <print.h>
-#include <console/chardev.h>
-#include <synch/spinlock.h>
+size_t klog_write(log_level_t lvl, const void *buf, size_t size)
+{
+	ssize_t ret = (ssize_t) __SYSCALL4(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf,
+	    size, lvl);
+	
+	if (ret >= 0)
+		return (size_t) ret;
+	
+	return 0;
+}
 
-#define PAGING(counter, increment, before, after) \
-	do { \
-		(counter) += (increment); \
-		if ((counter) > 23) { \
-			before; \
-			printf(" -- Press any key to continue -- "); \
-			indev_pop_character(stdin); \
-			after; \
-			printf("\n"); \
-			(counter) = 0; \
-		} \
-	} while (0)
-
-extern indev_t *stdin;
-extern outdev_t *stdout;
-
-extern void early_putchar(wchar_t);
-
-extern indev_t *stdin_wire(void);
-extern void stdout_wire(outdev_t *outdev);
-extern void console_init(void);
-
-extern void kio_init(void);
-extern void kio_update(void *);
-extern void kio_flush(void);
-extern void kio_push_char(const wchar_t);
-SPINLOCK_EXTERN(kio_lock);
-
-extern wchar_t getc(indev_t *indev);
-extern size_t gets(indev_t *indev, char *buf, size_t buflen);
-extern sysarg_t sys_kio(int cmd, const void *buf, size_t size);
-
-extern void grab_console(void);
-extern void release_console(void);
-
-extern sysarg_t sys_debug_activate_console(void);
-
-#endif /* KERN_CONSOLE_H_ */
+int klog_read(void *data, size_t size)
+{
+	return (int) __SYSCALL4(SYS_KLOG, KLOG_READ, (uintptr_t) data, size, 0);
+}
 
 /** @}
  */

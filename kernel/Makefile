@@ -211,6 +211,7 @@ GENERIC_SOURCES = \
 	generic/src/debug/panic.c \
 	generic/src/debug/debug.c \
 	generic/src/interrupt/interrupt.c \
+	generic/src/log/log.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \

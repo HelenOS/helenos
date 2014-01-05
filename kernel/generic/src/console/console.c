@@ -75,7 +75,7 @@ static size_t kio_stored = 0;
 static size_t kio_uspace = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(kio_lock, "kio_lock");
+SPINLOCK_INITIALIZE_NAME(kio_lock, "kio_lock");
 
 /** Physical memory area used for kio buffer */
 static parea_t kio_parea;
@@ -262,54 +262,68 @@ void kio_update(void *event)
 	spinlock_unlock(&kio_lock);
 }
 
-void putchar(const wchar_t ch)
+/** Flush characters that are stored in the output buffer
+ * 
+ */
+void kio_flush(void)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 	
+	if (!ordy)
+		return;
+
 	spinlock_lock(&kio_lock);
-	
-	/* Print charaters stored in kernel log */
-	if (ordy) {
-		while (kio_stored > 0) {
-			wchar_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
-			kio_stored--;
-			
-			/*
-			 * We need to give up the spinlock for
-			 * the physical operation of writting out
-			 * the character.
-			 */
-			spinlock_unlock(&kio_lock);
-			stdout->op->write(stdout, tmp);
-			spinlock_lock(&kio_lock);
-		}
+
+	/* Print characters that weren't printed earlier */
+	while (kio_stored > 0) {
+		wchar_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
+		kio_stored--;
+
+		/*
+		 * We need to give up the spinlock for
+		 * the physical operation of writing out
+		 * the character.
+		 */
+		spinlock_unlock(&kio_lock);
+		stdout->op->write(stdout, tmp);
+		spinlock_lock(&kio_lock);
 	}
-	
-	/* Store character in the cyclic kernel log */
+
+	spinlock_unlock(&kio_lock);
+}
+
+/** Put a character into the output buffer.
+ * 
+ * The caller is required to hold kio_lock
+ */
+void kio_push_char(const wchar_t ch)
+{
 	kio[(kio_start + kio_len) % KIO_LENGTH] = ch;
 	if (kio_len < KIO_LENGTH)
 		kio_len++;
 	else
 		kio_start = (kio_start + 1) % KIO_LENGTH;
 	
-	if (!ordy) {
-		if (kio_stored < kio_len)
-			kio_stored++;
-	}
+	if (kio_stored < kio_len)
+		kio_stored++;
 	
 	/* The character is stored for uspace */
 	if (kio_uspace < kio_len)
 		kio_uspace++;
+}
+
+void putchar(const wchar_t ch)
+{
+	bool ordy = ((stdout) && (stdout->op->write));
 	
+	spinlock_lock(&kio_lock);
+	kio_push_char(ch);
 	spinlock_unlock(&kio_lock);
 	
-	if (ordy) {
-		/*
-		 * Output the character. In this case
-		 * it should be no longer buffered.
-		 */
-		stdout->op->write(stdout, ch);
-	} else {
+	/* Output stored characters */
+	kio_flush();
+	
+	if (!ordy) {
 		/*
 		 * No standard output routine defined yet.
 		 * The character is still stored in the kernel log
