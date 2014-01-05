@@ -44,6 +44,7 @@
 #include <console/console.h>
 #include <console/kconsole.h>
 #include <print.h>
+#include <log.h>
 #include <panic.h>
 #include <typedefs.h>
 #include <adt/list.h>
@@ -638,7 +639,8 @@ void cmd_init(void)
 
 	for (i = 0; basic_commands[i]; i++) {
 		if (!cmd_register(basic_commands[i])) {
-			printf("Cannot register command %s\n",
+			log(LF_OTHER, LVL_ERROR,
+			    "Cannot register command %s",
 			    basic_commands[i]->name);
 		}
 	}
@@ -664,7 +666,7 @@ int cmd_help(cmd_arg_t *argv)
 	
 	unsigned int _len = (unsigned int) len;
 	if ((_len != len) || (((int) _len) < 0)) {
-		printf("Command length overflow\n");
+		log(LF_OTHER, LVL_ERROR, "Command length overflow");
 		return 1;
 	}
 	

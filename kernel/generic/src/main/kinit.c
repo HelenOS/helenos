@@ -58,6 +58,7 @@
 #include <mm/frame.h>
 #include <mm/km.h>
 #include <print.h>
+#include <log.h>
 #include <memstr.h>
 #include <console/console.h>
 #include <interrupt.h>
@@ -139,7 +140,8 @@ void kinit(void *arg)
 				thread_wire(thread, &cpus[i]);
 				thread_ready(thread);
 			} else
-				printf("Unable to create kcpulb thread for cpu%u\n", i);
+				log(LF_OTHER, LVL_ERROR,
+				    "Unable to create kcpulb thread for cpu%u", i);
 		}
 	}
 #endif /* CONFIG_SMP */
@@ -155,7 +157,7 @@ void kinit(void *arg)
 	if (thread != NULL)
 		thread_ready(thread);
 	else
-		printf("Unable to create kload thread\n");
+		log(LF_OTHER, LVL_ERROR, "Unable to create kload thread");
 	
 #ifdef CONFIG_KCONSOLE
 	if (stdin) {
@@ -167,7 +169,8 @@ void kinit(void *arg)
 		if (thread != NULL)
 			thread_ready(thread);
 		else
-			printf("Unable to create kconsole thread\n");
+			log(LF_OTHER, LVL_ERROR,
+			    "Unable to create kconsole thread");
 	}
 #endif /* CONFIG_KCONSOLE */
 	
@@ -209,7 +212,8 @@ void kinit(void *arg)
 
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].paddr % FRAME_SIZE) {
-			printf("init[%zu]: Address is not frame aligned\n", i);
+			log(LF_OTHER, LVL_ERROR,
+			    "init[%zu]: Address is not frame aligned", i);
 			programs[i].task = NULL;
 			continue;
 		}
@@ -272,8 +276,9 @@ void kinit(void *arg)
 			 */
 			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
 		} else
-			printf("init[%zu]: Init binary load failed "
-			    "(error %d, loader status %u)\n", i, rc,
+			log(LF_OTHER, LVL_ERROR,
+			    "init[%zu]: Init binary load failed "
+			    "(error %d, loader status %u)", i, rc,
 			    programs[i].loader_status);
 	}
 	

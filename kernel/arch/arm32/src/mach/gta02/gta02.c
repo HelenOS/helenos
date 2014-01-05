@@ -48,6 +48,7 @@
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
+#include <log.h>
 
 #define GTA02_MEMORY_START	0x30000000	/* physical */
 #define GTA02_MEMORY_SIZE	0x08000000	/* 128 MB */
@@ -148,7 +149,7 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
 		spinlock_unlock(&irq->lock);
 	} else {
 		/* Spurious interrupt.*/
-		printf("cpu%d: spurious interrupt (inum=%d)\n",
+		log(LF_ARCH, LVL_DEBUG, "cpu%d: spurious interrupt (inum=%d)",
 		    CPU->id, inum);
 	}
 }

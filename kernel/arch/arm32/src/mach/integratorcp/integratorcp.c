@@ -42,7 +42,6 @@
 #include <genarch/srln/srln.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <print.h>
 #include <ddi/device.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -52,7 +51,8 @@
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <ddi/ddi.h>
-#include <print.h>
+#include <log.h>
+
 
 
 #define SDRAM_SIZE	(sdram[((*(uint32_t *)(ICP_CMCR+ICP_SDRAMCR_OFFSET) & ICP_SDRAM_MASK) >> 2)])
@@ -274,7 +274,8 @@ void icp_irq_exception(unsigned int exc_no, istate_t *istate)
 				spinlock_unlock(&irq->lock);
 			} else {
 				/* Spurious interrupt.*/
-				printf("cpu%d: spurious interrupt (inum=%d)\n",
+				log(LF_ARCH, LVL_DEBUG,
+				    "cpu%d: spurious interrupt (inum=%d)",
 				    CPU->id, i);
 			}
 		}

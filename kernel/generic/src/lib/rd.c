@@ -37,7 +37,7 @@
  * Support for RAM disk images.
  */
 
-#include <print.h>
+#include <log.h>
 #include <lib/rd.h>
 #include <mm/frame.h>
 #include <sysinfo/sysinfo.h>
@@ -67,7 +67,8 @@ void init_rd(void *data, size_t size)
 	sysinfo_set_item_val("rd.size", NULL, size);
 	sysinfo_set_item_val("rd.address.physical", NULL, (sysarg_t) base);
 	
-	printf("RAM disk at %p (size %zu bytes)\n", (void *) base, size);
+	log(LF_OTHER, LVL_NOTE, "RAM disk at %p (size %zu bytes)", (void *) base,
+	    size);
 }
 
 /** @}
