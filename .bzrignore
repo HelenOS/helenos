@@ -278,3 +278,9 @@ uspace/app/download/download
 uspace/dist/app/download
 uspace/app/viewer/viewer
 uspace/dist/app/viewer
+uspace/app/hdisk/hdisk
+uspace/dist/app/hdisk
+uspace/app/untar/untar
+uspace/dist/app/untar
+uspace/lib/posix/redefs-hide-libc-symbols.list
+uspace/lib/posix/redefs-show-posix-symbols.list
