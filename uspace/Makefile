@@ -91,6 +91,7 @@ DIRS = \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
+	srv/klog \
 	srv/devman \
 	srv/loader \
 	srv/net/dhcp \

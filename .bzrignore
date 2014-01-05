@@ -278,3 +278,5 @@ uspace/app/download/download
 uspace/dist/app/download
 uspace/app/viewer/viewer
 uspace/dist/app/viewer
+uspace/srv/klog/klog
+uspace/dist/srv/klog

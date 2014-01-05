@@ -95,7 +95,8 @@ RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/console/console \
 	$(USPACE_PATH)/srv/devman/devman \
 	$(USPACE_PATH)/srv/fs/locfs/locfs \
-	$(USPACE_PATH)/srv/hid/compositor/compositor
+	$(USPACE_PATH)/srv/hid/compositor/compositor \
+	$(USPACE_PATH)/srv/klog/klog
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
