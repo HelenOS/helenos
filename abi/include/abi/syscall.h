@@ -98,6 +98,8 @@ typedef enum {
 	
 	SYS_DEBUG_ACTIVATE_CONSOLE,
 	
+	SYS_KLOG,
+	
 	SYSCALL_END
 } syscall_t;
 
