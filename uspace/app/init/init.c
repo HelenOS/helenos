@@ -335,6 +335,7 @@ int main(int argc, char *argv[])
 	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
 		srv_start("/srv/tmpfs");
 	
+	srv_start("/srv/klog");
 	srv_start("/srv/locfs");
 	srv_start("/srv/taskmon");
 	

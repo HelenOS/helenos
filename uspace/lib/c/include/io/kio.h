@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
-
-/**
- * @file
- * @brief Miscellaneous functions.
+/** @file
  */
 
-#include <func.h>
-#include <log.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
-#include <console/kconsole.h>
+#ifndef LIBC_IO_KIO_H_
+#define LIBC_IO_KIO_H_
 
-atomic_t haltstate = {0}; /**< Halt flag */
+#include <sys/types.h>
+#include <stdarg.h>
+#include <io/verify.h>
 
+extern size_t kio_write(const void *, size_t);
+extern void kio_update(void);
+extern void kio_command(const void *, size_t);
+extern int kio_printf(const char *, ...)
+    PRINTF_ATTRIBUTE(1, 2);
+extern int kio_vprintf(const char *, va_list);
 
-/** Halt wrapper
- *
- * Set halt flag and halt the CPU.
- *
- */
-void halt()
-{
-#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	bool rundebugger = false;
-	
-	if (!atomic_get(&haltstate)) {
-		atomic_set(&haltstate, 1);
-		rundebugger = true;
-	}
-#else
-	atomic_set(&haltstate, 1);
 #endif
-	
-	interrupts_disable();
-	
-#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	if ((rundebugger) && (kconsole_check_poll()))
-		kconsole("panic", "\nLast resort kernel console ready.\n", false);
-#endif
-	
-	if (CPU)
-		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
-	else
-		log(LF_OTHER, LVL_NOTE, "cpu: halted");
-	
-	cpu_halt();
-}
 
 /** @}
  */

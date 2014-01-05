@@ -48,7 +48,7 @@
 #include <security/cap.h>
 #include <lib/elf_load.h>
 #include <errno.h>
-#include <print.h>
+#include <log.h>
 #include <syscall/copy.h>
 #include <proc/program.h>
 
@@ -154,7 +154,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 			return ELIMIT;
 		
 		program_loader = image_addr;
-		printf("Program loader at %p\n", (void *) image_addr);
+		log(LF_OTHER, LVL_NOTE, "Program loader at %p", (void *) image_addr);
 		
 		return EOK;
 	}
@@ -180,7 +180,8 @@ int program_create_loader(program_t *prg, char *name)
 	void *loader = program_loader;
 	if (!loader) {
 		as_destroy(as);
-		printf("Cannot spawn loader as none was registered\n");
+		log(LF_OTHER, LVL_ERROR,
+		    "Cannot spawn loader as none was registered");
 		return ENOENT;
 	}
 	
@@ -188,7 +189,7 @@ int program_create_loader(program_t *prg, char *name)
 	    ELD_F_LOADER);
 	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
-		printf("Cannot spawn loader (%s)\n",
+		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",
 		    elf_error(prg->loader_status));
 		return ENOENT;
 	}

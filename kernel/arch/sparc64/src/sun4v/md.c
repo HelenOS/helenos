@@ -35,7 +35,7 @@
 #include <debug.h>
 #include <panic.h>
 #include <func.h>
-#include <print.h>
+#include <log.h>
 #include <str.h>
 #include <arch/sun4v/md.h>
 #include <arch/sun4v/hypercall.h>
@@ -309,8 +309,8 @@ void md_init(void)
 
 	retval = retval;
 	if (retval != HV_EOK) {
-		printf("Could not retrieve machine description, "
-		    "error=%" PRIu64 ".\n", retval);
+		log(LF_ARCH, LVL_ERROR, "Could not retrieve machine "
+		    "description, error=%" PRIu64 ".", retval);
 	}
 }
 

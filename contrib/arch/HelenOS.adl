@@ -21,7 +21,7 @@ system architecture HelenOS version 0.5.0 {
 	inst console console;
 	
 	/* Kernel log */
-	inst klog klog;
+	inst kio kio;
 	
 	[/uspace/lib/libc/bind%ns]
 	[/uspace/lib/libc/bind%loader]
@@ -29,7 +29,7 @@ system architecture HelenOS version 0.5.0 {
 	[/uspace/lib/libc/bind%bd]
 	[/uspace/lib/libc/bind%vfs]
 	[/uspace/lib/libc/bind%console]
-	[/uspace/lib/libc/bind%klog]
+	[/uspace/lib/libc/bind%kio]
 	
 	bind ns:kbd to console:kbd;
 	bind ns:fb to console:fb;
@@ -57,5 +57,5 @@ system architecture HelenOS version 0.5.0 {
 	bind console:devmap_driver to devmap:devmap_driver;
 	bind console:sys_console to kernel:sys_console;
 	
-	bind klog:ns to ns:ns;
+	bind kio:ns to ns:ns;
 };

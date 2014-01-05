@@ -49,7 +49,7 @@ DIRS = \
 	app/inet \
 	app/kill \
 	app/killall \
-	app/klog \
+	app/kio \
 	app/loc \
 	app/logset \
 	app/mixerctl \
@@ -91,6 +91,7 @@ DIRS = \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
+	srv/klog \
 	srv/devman \
 	srv/loader \
 	srv/net/dhcp \

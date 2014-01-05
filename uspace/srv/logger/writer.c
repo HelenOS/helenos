@@ -39,6 +39,7 @@
 #include <ipc/logger.h>
 #include <io/log.h>
 #include <io/logctl.h>
+#include <io/klog.h>
 #include <ns.h>
 #include <async.h>
 #include <stdio.h>
@@ -78,7 +79,7 @@ static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 		goto leave;
 	}
 
-	printf("[%s] %s: %s\n",
+	KLOG_PRINTF(level, "[%s] %s: %s\n",
 	    log->full_name, log_level_str(level),
 	    (const char *) message);
 	write_to_log(log, level, message);

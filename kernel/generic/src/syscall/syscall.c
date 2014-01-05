@@ -55,6 +55,7 @@
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <udebug/udebug.h>
+#include <log.h>
 
 /** Dispatch system call */
 sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
@@ -85,7 +86,8 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
-		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
+		log(LF_OTHER, LVL_ERROR,
+		    "Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
 		task_kill_self(true);
 	}
 	
@@ -119,7 +121,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 
 syshandler_t syscall_table[SYSCALL_END] = {
 	/* System management syscalls. */
-	(syshandler_t) sys_klog,
+	(syshandler_t) sys_kio,
 	(syshandler_t) sys_tls_set,
 	
 	/* Thread and task related syscalls. */
@@ -189,7 +191,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Kernel console syscalls. */
-	(syshandler_t) sys_debug_activate_console
+	(syshandler_t) sys_debug_activate_console,
+	
+	(syshandler_t) sys_klog,
 };
 
 /** @}

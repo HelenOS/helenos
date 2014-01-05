@@ -43,7 +43,7 @@
 #include <typedefs.h>
 #include <align.h>
 #include <str.h>
-#include <print.h>
+#include <log.h>
 #include <sysinfo/sysinfo.h>
 
 #ifdef CONFIG_SUN_KBD
@@ -70,7 +70,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	 */
 	ofw_tree_property_t *prop = ofw_tree_getprop(node, "interrupts");
 	if ((!prop) || (!prop->value)) {
-		printf("ns16550: Unable to find interrupts property\n");
+		log(LF_ARCH, LVL_ERROR,
+		    "ns16550: Unable to find interrupts property");
 		return false;
 	}
 	
@@ -81,7 +82,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	 */
 	prop = ofw_tree_getprop(node, "reg");
 	if ((!prop) || (!prop->value)) {
-		printf("ns16550: Unable to find reg property\n");
+		log(LF_ARCH, LVL_ERROR,
+		    "ns16550: Unable to find reg property");
 		return false;
 	}
 	
@@ -90,7 +92,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	uintptr_t pa;
 	if (!ofw_ebus_apply_ranges(node->parent,
 	    ((ofw_ebus_reg_t *) prop->value), &pa)) {
-		printf("ns16550: Failed to determine address\n");
+		log(LF_ARCH, LVL_ERROR,
+		    "ns16550: Failed to determine address");
 		return false;
 	}
 	
@@ -100,7 +103,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	if (!ofw_ebus_map_interrupt(node->parent,
 	    ((ofw_ebus_reg_t *) prop->value), interrupts, &inr, &cir,
 	    &cir_arg)) {
-		printf("ns16550: Failed to determine interrupt\n");
+		log(LF_ARCH, LVL_ERROR,
+		    "ns16550: Failed to determine interrupt");
 		return false;
 	}
 	
@@ -116,7 +120,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	ns16550_t *ns16550 = (ns16550_t *) (km_map(aligned_addr, offset + size,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
 	
-	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, inr, cir, cir_arg);
+	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, inr, cir,
+	    cir_arg, NULL);
 	if (ns16550_instance) {
 		kbrd_instance_t *kbrd_instance = kbrd_init();
 		if (kbrd_instance) {

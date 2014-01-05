@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +28,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericlog
  * @{
  */
-
-/**
- * @file
- * @brief Miscellaneous functions.
+/** @file
  */
 
-#include <func.h>
-#include <log.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
-#include <console/kconsole.h>
+#ifndef ABI_LOG_H_
+#define ABI_LOG_H_
 
-atomic_t haltstate = {0}; /**< Halt flag */
-
-
-/** Halt wrapper
- *
- * Set halt flag and halt the CPU.
- *
- */
-void halt()
-{
-#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	bool rundebugger = false;
+/** Log message level. */
+typedef enum {
+	/** Fatal error, program is not able to recover at all. */
+	LVL_FATAL,
+	/** Serious error but the program can recover from it. */
+	LVL_ERROR,
+	/** Easily recoverable problem. */
+	LVL_WARN,
+	/** Information message that ought to be printed by default. */
+	LVL_NOTE,
+	/** Debugging purpose message. */
+	LVL_DEBUG,
+	/** More detailed debugging message. */
+	LVL_DEBUG2,
 	
-	if (!atomic_get(&haltstate)) {
-		atomic_set(&haltstate, 1);
-		rundebugger = true;
-	}
-#else
-	atomic_set(&haltstate, 1);
+	/** For checking range of values */
+	LVL_LIMIT
+} log_level_t;
+
+/* Who is the source of the message? */
+typedef enum {
+	LF_OTHER = 0,
+	LF_USPACE,
+	LF_ARCH
+} log_facility_t;
+
 #endif
-	
-	interrupts_disable();
-	
-#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	if ((rundebugger) && (kconsole_check_poll()))
-		kconsole("panic", "\nLast resort kernel console ready.\n", false);
-#endif
-	
-	if (CPU)
-		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
-	else
-		log(LF_OTHER, LVL_NOTE, "cpu: halted");
-	
-	cpu_halt();
-}
 
 /** @}
  */

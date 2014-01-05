@@ -80,7 +80,7 @@ void scr_init(ofw_tree_node_t *node)
 		scr_type = SCR_QEMU_VGA;
 	
 	if (scr_type == SCR_UNKNOWN) {
-		printf("Unknown screen device.\n");
+		log(LF_ARCH, LVL_ERROR, "Unknown screen device.");
 		return;
 	}
 	
@@ -116,20 +116,22 @@ void scr_init(ofw_tree_node_t *node)
 	switch (scr_type) {
 	case SCR_ATYFB:
 		if (prop->size / sizeof(ofw_pci_reg_t) < 2) {
-			printf("Too few screen registers.\n");
+			log(LF_ARCH, LVL_ERROR, "Too few screen registers.");
 			return;
 		}
 	
 		pci_reg = &((ofw_pci_reg_t *) prop->value)[1];
 		
 		if (!ofw_pci_reg_absolutize(node, pci_reg, &pci_abs_reg)) {
-			printf("Failed to absolutize fb register.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to absolutize fb register.");
 			return;
 		}
 	
 		if (!ofw_pci_apply_ranges(node->parent, &pci_abs_reg,
 		    &fb_addr)) {
-			printf("Failed to determine screen address.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to determine screen address.");
 			return;
 		}
 		
@@ -151,27 +153,31 @@ void scr_init(ofw_tree_node_t *node)
 			visual = VISUAL_RGB_0_8_8_8;
 			break;
 		default:
-			printf("Unsupported bits per pixel.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Unsupported bits per pixel.");
 			return;
 		}
 		
 		break;
 	case SCR_XVR:
 		if (prop->size / sizeof(ofw_pci_reg_t) < 2) {
-			printf("Too few screen registers.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Too few screen registers.");
 			return;
 		}
 	
 		pci_reg = &((ofw_pci_reg_t *) prop->value)[1];
 		
 		if (!ofw_pci_reg_absolutize(node, pci_reg, &pci_abs_reg)) {
-			printf("Failed to absolutize fb register.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to absolutize fb register.");
 			return;
 		}
 	
 		if (!ofw_pci_apply_ranges(node->parent, &pci_abs_reg,
 		    &fb_addr)) {
-			printf("Failed to determine screen address.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to determine screen address.");
 			return;
 		}
 
@@ -195,7 +201,8 @@ void scr_init(ofw_tree_node_t *node)
 			visual = VISUAL_RGB_0_8_8_8;
 			break;
 		default:
-			printf("Unsupported bits per pixel.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Unsupported bits per pixel.");
 			return;
 		}
 		
@@ -206,7 +213,8 @@ void scr_init(ofw_tree_node_t *node)
 
 		upa_reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
 		if (!ofw_upa_apply_ranges(node->parent, upa_reg, &fb_addr)) {
-			printf("Failed to determine screen address.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to determine screen address.");
 			return;
 		}
 
@@ -218,13 +226,14 @@ void scr_init(ofw_tree_node_t *node)
 			visual = VISUAL_INDIRECT_8;
 			break;
 		default:
-			printf("Not implemented.\n");
+			log(LF_ARCH, LVL_WARN, "Not implemented.");
 			return;
 		}
 		
 		sbus_reg = &((ofw_sbus_reg_t *) prop->value)[0];
 		if (!ofw_sbus_apply_ranges(node->parent, sbus_reg, &fb_addr)) {
-			printf("Failed to determine screen address.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to determine screen address.");
 			return;
 		}
 	
@@ -232,20 +241,22 @@ void scr_init(ofw_tree_node_t *node)
 
 	case SCR_QEMU_VGA:
 		if (prop->size / sizeof(ofw_pci_reg_t) < 2) {
-			printf("Too few screen registers.\n");
+			log(LF_ARCH, LVL_ERROR, "Too few screen registers.");
 			return;
 		}
 
 		pci_reg = &((ofw_pci_reg_t *) prop->value)[1];
 
 		if (!ofw_pci_reg_absolutize(node, pci_reg, &pci_abs_reg)) {
-			printf("Failed to absolutize fb register.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to absolutize fb register.");
 			return;
 		}
 
 		if (!ofw_pci_apply_ranges(node->parent, &pci_abs_reg,
 		    &fb_addr)) {
-			printf("Failed to determine screen address.\n");
+			log(LF_ARCH, LVL_ERROR,
+			    "Failed to determine screen address.");
 			return;
 		}
 
@@ -267,7 +278,7 @@ void scr_init(ofw_tree_node_t *node)
 			visual = VISUAL_RGB_0_8_8_8;
 			break;
 		default:
-			printf("Unsupported bits per pixel.\n");
+			log(LF_ARCH, LVL_ERROR, "Unsupported bits per pixel.");
 			return;
 		}
 		break;

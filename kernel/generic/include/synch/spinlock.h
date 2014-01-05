@@ -136,7 +136,7 @@ NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 
 #ifdef CONFIG_DEBUG_SPINLOCK
 
-#include <print.h>
+#include <log.h>
 
 #define DEADLOCK_THRESHOLD  100000000
 
@@ -145,7 +145,8 @@ NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define DEADLOCK_PROBE(pname, value) \
 	if ((pname)++ > (value)) { \
 		(pname) = 0; \
-		printf("Deadlock probe %s: exceeded threshold %u\n" \
+		log(LF_OTHER, LVL_WARN, \
+		    "Deadlock probe %s: exceeded threshold %u\n" \
 		    "cpu%u: function=%s, line=%u\n", \
 		    #pname, (value), CPU->id, __func__, __LINE__); \
 	}

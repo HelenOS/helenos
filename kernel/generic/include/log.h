@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericlog
  * @{
  */
-
-/**
- * @file
- * @brief Miscellaneous functions.
+/** @file
  */
 
-#include <func.h>
-#include <log.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
-#include <console/kconsole.h>
+#ifndef KERN_LOG_H_
+#define KERN_LOG_H_
 
-atomic_t haltstate = {0}; /**< Halt flag */
+#include <typedefs.h>
+#include <stdarg.h>
+#include <printf/verify.h>
+#include <abi/log.h>
+#include <abi/klog.h>
 
+extern void log_init(void);
+extern void log_begin(log_facility_t, log_level_t);
+extern void log_end(void);
+extern int log_vprintf(const char *, va_list);
+extern int log_printf(const char *, ...)
+    PRINTF_ATTRIBUTE(1, 2);
+extern int log(log_facility_t, log_level_t, const char *, ...)
+    PRINTF_ATTRIBUTE(3, 4);
 
-/** Halt wrapper
- *
- * Set halt flag and halt the CPU.
- *
- */
-void halt()
-{
-#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	bool rundebugger = false;
-	
-	if (!atomic_get(&haltstate)) {
-		atomic_set(&haltstate, 1);
-		rundebugger = true;
-	}
-#else
-	atomic_set(&haltstate, 1);
-#endif
-	
-	interrupts_disable();
-	
-#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	if ((rundebugger) && (kconsole_check_poll()))
-		kconsole("panic", "\nLast resort kernel console ready.\n", false);
-#endif
-	
-	if (CPU)
-		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
-	else
-		log(LF_OTHER, LVL_NOTE, "cpu: halted");
-	
-	cpu_halt();
-}
+extern sysarg_t sys_klog(sysarg_t, void *buf, size_t size,
+    sysarg_t level);
+
+#endif /* KERN_LOG_H_ */
 
 /** @}
  */

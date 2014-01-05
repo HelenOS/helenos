@@ -52,8 +52,8 @@ struct _IO_FILE {
 	/** End-of-file indicator. */
 	int eof;
 	
-	/** Klog indicator */
-	int klog;
+	/** KIO indicator */
+	int kio;
 	
 	/** Session to the file provider */
 	async_sess_t *sess;
