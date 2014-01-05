@@ -37,8 +37,8 @@
 
 /** Global events */
 typedef enum event_type {
-	/** New data available in kernel log */
-	EVENT_KLOG = 0,
+	/** New data available in kernel character buffer */
+	EVENT_KIO = 0,
 	/** Returning from kernel console to uspace */
 	EVENT_KCONSOLE,
 	/** A task/thread has faulted and will be terminated */

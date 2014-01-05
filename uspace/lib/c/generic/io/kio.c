@@ -38,13 +38,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
-#include <abi/klog.h>
-#include <io/klog.h>
+#include <abi/kio.h>
+#include <io/kio.h>
 #include <io/printf_core.h>
 
-size_t klog_write(const void *buf, size_t size)
+size_t kio_write(const void *buf, size_t size)
 {
-	ssize_t ret = (ssize_t) __SYSCALL3(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf, size);
+	ssize_t ret = (ssize_t) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
 	
 	if (ret >= 0)
 		return (size_t) ret;
@@ -52,42 +52,42 @@ size_t klog_write(const void *buf, size_t size)
 	return 0;
 }
 
-void klog_update(void)
+void kio_update(void)
 {
-	(void) __SYSCALL3(SYS_KLOG, KLOG_UPDATE, (uintptr_t) NULL, 0);
+	(void) __SYSCALL3(SYS_KIO, KIO_UPDATE, (uintptr_t) NULL, 0);
 }
 
-void klog_command(const void *buf, size_t size)
+void kio_command(const void *buf, size_t size)
 {
-	(void) __SYSCALL3(SYS_KLOG, KLOG_COMMAND, (sysarg_t) buf, (sysarg_t) size);
+	(void) __SYSCALL3(SYS_KIO, KIO_COMMAND, (sysarg_t) buf, (sysarg_t) size);
 }
 
-/** Print formatted text to klog.
+/** Print formatted text to kio.
  *
  * @param fmt Format string
  *
  * \see For more details about format string see printf_core.
  *
  */
-int klog_printf(const char *fmt, ...)
+int kio_printf(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
 	
-	int ret = klog_vprintf(fmt, args);
+	int ret = kio_vprintf(fmt, args);
 	
 	va_end(args);
 	
 	return ret;
 }
 
-static int klog_vprintf_str_write(const char *str, size_t size, void *data)
+static int kio_vprintf_str_write(const char *str, size_t size, void *data)
 {
-	size_t wr = klog_write(str, size);
+	size_t wr = kio_write(str, size);
 	return str_nlength(str, wr);
 }
 
-static int klog_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
+static int kio_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 {
 	size_t offset = 0;
 	size_t chars = 0;
@@ -97,7 +97,7 @@ static int klog_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 		size_t sz = 0;
 		
 		if (chr_encode(str[chars], buf, &sz, STR_BOUNDS(1)) == EOK)
-			klog_write(buf, sz);
+			kio_write(buf, sz);
 		
 		chars++;
 		offset += sizeof(wchar_t);
@@ -106,7 +106,7 @@ static int klog_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 	return chars;
 }
 
-/** Print formatted text to klog.
+/** Print formatted text to kio.
  *
  * @param fmt Format string
  * @param ap  Format parameters
@@ -114,11 +114,11 @@ static int klog_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
  * \see For more details about format string see printf_core.
  *
  */
-int klog_vprintf(const char *fmt, va_list ap)
+int kio_vprintf(const char *fmt, va_list ap)
 {
 	printf_spec_t ps = {
-		klog_vprintf_str_write,
-		klog_vprintf_wstr_write,
+		kio_vprintf_str_write,
+		kio_vprintf_wstr_write,
 		NULL
 	};
 	

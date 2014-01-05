@@ -280,7 +280,7 @@ void main_bsp_separated_stack(void)
 	
 	ipc_init();
 	event_init();
-	klog_init();
+	kio_init();
 	stats_init();
 	
 	/*

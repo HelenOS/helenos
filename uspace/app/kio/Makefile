@@ -30,9 +30,9 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBCLUI_PREFIX)/libclui.a
 EXTRA_CFLAGS = -I$(LIBCLUI_PREFIX)
-BINARY = klog
+BINARY = kio
 
 SOURCES = \
-	klog.c
+	kio.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -49,7 +49,7 @@ DIRS = \
 	app/inet \
 	app/kill \
 	app/killall \
-	app/klog \
+	app/kio \
 	app/loc \
 	app/logset \
 	app/mixerctl \

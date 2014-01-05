@@ -51,34 +51,34 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <str.h>
-#include <abi/klog.h>
+#include <abi/kio.h>
 
-#define KLOG_PAGES    8
-#define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
+#define KIO_PAGES    8
+#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(wchar_t))
 
 /** Kernel log cyclic buffer */
-wchar_t klog[KLOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
+wchar_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t klog_inited = {false};
+static atomic_t kio_inited = {false};
 
 /** First kernel log characters */
-static size_t klog_start = 0;
+static size_t kio_start = 0;
 
 /** Number of valid kernel log characters */
-static size_t klog_len = 0;
+static size_t kio_len = 0;
 
 /** Number of stored (not printed) kernel log characters */
-static size_t klog_stored = 0;
+static size_t kio_stored = 0;
 
 /** Number of stored kernel log characters for uspace */
-static size_t klog_uspace = 0;
+static size_t kio_uspace = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "klog_lock");
+SPINLOCK_STATIC_INITIALIZE_NAME(kio_lock, "kio_lock");
 
-/** Physical memory area used for klog buffer */
-static parea_t klog_parea;
+/** Physical memory area used for kio buffer */
+static parea_t kio_parea;
 
 static indev_t stdin_sink;
 static outdev_t stdout_source;
@@ -145,23 +145,23 @@ static void stdout_redraw(outdev_t *dev)
  * of the data within the circular buffer.
  *
  */
-void klog_init(void)
+void kio_init(void)
 {
-	void *faddr = (void *) KA2PA(klog);
+	void *faddr = (void *) KA2PA(kio);
 	
 	ASSERT((uintptr_t) faddr % FRAME_SIZE == 0);
 	
-	klog_parea.pbase = (uintptr_t) faddr;
-	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
-	klog_parea.unpriv = false;
-	klog_parea.mapped = false;
-	ddi_parea_register(&klog_parea);
+	kio_parea.pbase = (uintptr_t) faddr;
+	kio_parea.frames = SIZE2FRAMES(sizeof(kio));
+	kio_parea.unpriv = false;
+	kio_parea.mapped = false;
+	ddi_parea_register(&kio_parea);
 	
-	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
-	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
+	sysinfo_set_item_val("kio.faddr", NULL, (sysarg_t) faddr);
+	sysinfo_set_item_val("kio.pages", NULL, KIO_PAGES);
 	
-	event_set_unmask_callback(EVENT_KLOG, klog_update);
-	atomic_set(&klog_inited, true);
+	event_set_unmask_callback(EVENT_KIO, kio_update);
+	atomic_set(&kio_inited, true);
 }
 
 void grab_console(void)
@@ -246,62 +246,62 @@ wchar_t getc(indev_t *indev)
 	return ch;
 }
 
-void klog_update(void *event)
+void kio_update(void *event)
 {
-	if (!atomic_get(&klog_inited))
+	if (!atomic_get(&kio_inited))
 		return;
 	
-	spinlock_lock(&klog_lock);
+	spinlock_lock(&kio_lock);
 	
-	if (klog_uspace > 0) {
-		if (event_notify_3(EVENT_KLOG, true, klog_start, klog_len,
-		    klog_uspace) == EOK)
-			klog_uspace = 0;
+	if (kio_uspace > 0) {
+		if (event_notify_3(EVENT_KIO, true, kio_start, kio_len,
+		    kio_uspace) == EOK)
+			kio_uspace = 0;
 	}
 	
-	spinlock_unlock(&klog_lock);
+	spinlock_unlock(&kio_lock);
 }
 
 void putchar(const wchar_t ch)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 	
-	spinlock_lock(&klog_lock);
+	spinlock_lock(&kio_lock);
 	
 	/* Print charaters stored in kernel log */
 	if (ordy) {
-		while (klog_stored > 0) {
-			wchar_t tmp = klog[(klog_start + klog_len - klog_stored) % KLOG_LENGTH];
-			klog_stored--;
+		while (kio_stored > 0) {
+			wchar_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
+			kio_stored--;
 			
 			/*
 			 * We need to give up the spinlock for
 			 * the physical operation of writting out
 			 * the character.
 			 */
-			spinlock_unlock(&klog_lock);
+			spinlock_unlock(&kio_lock);
 			stdout->op->write(stdout, tmp);
-			spinlock_lock(&klog_lock);
+			spinlock_lock(&kio_lock);
 		}
 	}
 	
 	/* Store character in the cyclic kernel log */
-	klog[(klog_start + klog_len) % KLOG_LENGTH] = ch;
-	if (klog_len < KLOG_LENGTH)
-		klog_len++;
+	kio[(kio_start + kio_len) % KIO_LENGTH] = ch;
+	if (kio_len < KIO_LENGTH)
+		kio_len++;
 	else
-		klog_start = (klog_start + 1) % KLOG_LENGTH;
+		kio_start = (kio_start + 1) % KIO_LENGTH;
 	
 	if (!ordy) {
-		if (klog_stored < klog_len)
-			klog_stored++;
+		if (kio_stored < kio_len)
+			kio_stored++;
 	}
 	
 	/* The character is stored for uspace */
-	if (klog_uspace < klog_len)
-		klog_uspace++;
+	if (kio_uspace < kio_len)
+		kio_uspace++;
 	
-	spinlock_unlock(&klog_lock);
+	spinlock_unlock(&kio_lock);
 	
 	if (ordy) {
 		/*
@@ -325,7 +325,7 @@ void putchar(const wchar_t ch)
 	
 	/* Force notification on newline */
 	if (ch == '\n')
-		klog_update(NULL);
+		kio_update(NULL);
 }
 
 /** Print using kernel facility
@@ -333,17 +333,17 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-sysarg_t sys_klog(int cmd, const void *buf, size_t size)
+sysarg_t sys_kio(int cmd, const void *buf, size_t size)
 {
 	char *data;
 	int rc;
 
 	switch (cmd) {
-	case KLOG_UPDATE:
-		klog_update(NULL);
+	case KIO_UPDATE:
+		kio_update(NULL);
 		return EOK;
-	case KLOG_WRITE:
-	case KLOG_COMMAND:
+	case KIO_WRITE:
+	case KIO_COMMAND:
 		break;
 	default:
 		return ENOTSUP;
@@ -365,10 +365,10 @@ sysarg_t sys_klog(int cmd, const void *buf, size_t size)
 		data[size] = 0;
 		
 		switch (cmd) {
-		case KLOG_WRITE:
+		case KIO_WRITE:
 			printf("%s", data);
 			break;
-		case KLOG_COMMAND:
+		case KIO_COMMAND:
 			if (!stdin)
 				break;
 			for (unsigned int i = 0; i < size; i++)

@@ -166,8 +166,8 @@
  * @ingroup kernel
  */
  
-/** @defgroup genericklog KLog
- * @brief Kernel logging facility
+/** @defgroup generickio KIO
+ * @brief Kernel character input/output facility
  * @ingroup genericconsole
  */
 

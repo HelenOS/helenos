@@ -119,7 +119,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 
 syshandler_t syscall_table[SYSCALL_END] = {
 	/* System management syscalls. */
-	(syshandler_t) sys_klog,
+	(syshandler_t) sys_kio,
 	(syshandler_t) sys_tls_set,
 	
 	/* Thread and task related syscalls. */

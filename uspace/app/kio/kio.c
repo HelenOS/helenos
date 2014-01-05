@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup klog KLog
- * @brief HelenOS KLog
+/** @addtogroup kio KIO
+ * @brief HelenOS KIO
  * @{
  */
 /**
@@ -41,7 +41,7 @@
 #include <event.h>
 #include <errno.h>
 #include <str_error.h>
-#include <io/klog.h>
+#include <io/kio.h>
 #include <sysinfo.h>
 #include <malloc.h>
 #include <fibril_synch.h>
@@ -49,8 +49,8 @@
 #include <adt/prodcons.h>
 #include <tinput.h>
 
-#define NAME       "klog"
-#define LOG_FNAME  "/log/klog"
+#define NAME       "kio"
+#define LOG_FNAME  "/log/kio"
 
 /* Producer/consumer buffers */
 typedef struct {
@@ -61,9 +61,9 @@ typedef struct {
 
 static prodcons_t pc;
 
-/* Pointer to klog area */
-static wchar_t *klog;
-static size_t klog_length;
+/* Pointer to kio area */
+static wchar_t *kio;
+static size_t kio_length;
 
 /* Notification mutex */
 static FIBRIL_MUTEX_INITIALIZE(mtx);
@@ -74,7 +74,7 @@ static FIBRIL_MUTEX_INITIALIZE(mtx);
  * producer/consumer queue.
  *
  * @param length Number of characters to copy.
- * @param data   Pointer to the kernel klog buffer.
+ * @param data   Pointer to the kernel kio buffer.
  *
  */
 static void producer(size_t length, wchar_t *data)
@@ -141,7 +141,7 @@ static int consumer(void *data)
 
 /** Kernel notification handler
  *
- * Receives kernel klog notifications.
+ * Receives kernel kio notifications.
  *
  * @param callid IPC call ID
  * @param call   IPC call structure
@@ -155,68 +155,68 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 	 * at any time to limit the chance of the consumer
 	 * starving.
 	 *
-	 * Note: Usually the automatic masking of the klog
+	 * Note: Usually the automatic masking of the kio
 	 * notifications on the kernel side does the trick
 	 * of limiting the chance of accidentally copying
 	 * the same data multiple times. However, due to
-	 * the non-blocking architecture of klog notifications,
+	 * the non-blocking architecture of kio notifications,
 	 * this possibility cannot be generally avoided.
 	 */
 	
 	fibril_mutex_lock(&mtx);
 	
-	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
-	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
-	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
+	size_t kio_start = (size_t) IPC_GET_ARG1(*call);
+	size_t kio_len = (size_t) IPC_GET_ARG2(*call);
+	size_t kio_stored = (size_t) IPC_GET_ARG3(*call);
 	
-	size_t offset = (klog_start + klog_len - klog_stored) % klog_length;
+	size_t offset = (kio_start + kio_len - kio_stored) % kio_length;
 	
 	/* Copy data from the ring buffer */
-	if (offset + klog_stored >= klog_length) {
-		size_t split = klog_length - offset;
+	if (offset + kio_stored >= kio_length) {
+		size_t split = kio_length - offset;
 		
-		producer(split, klog + offset);
-		producer(klog_stored - split, klog);
+		producer(split, kio + offset);
+		producer(kio_stored - split, kio);
 	} else
-		producer(klog_stored, klog + offset);
+		producer(kio_stored, kio + offset);
 	
-	event_unmask(EVENT_KLOG);
+	event_unmask(EVENT_KIO);
 	fibril_mutex_unlock(&mtx);
 }
 
 int main(int argc, char *argv[])
 {
 	size_t pages;
-	int rc = sysinfo_get_value("klog.pages", &pages);
+	int rc = sysinfo_get_value("kio.pages", &pages);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get number of klog pages\n",
+		fprintf(stderr, "%s: Unable to get number of kio pages\n",
 		    NAME);
 		return rc;
 	}
 	
 	uintptr_t faddr;
-	rc = sysinfo_get_value("klog.faddr", &faddr);
+	rc = sysinfo_get_value("kio.faddr", &faddr);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get klog physical address\n",
+		fprintf(stderr, "%s: Unable to get kio physical address\n",
 		    NAME);
 		return rc;
 	}
 	
 	size_t size = pages * PAGE_SIZE;
-	klog_length = size / sizeof(wchar_t);
+	kio_length = size / sizeof(wchar_t);
 	
 	rc = physmem_map(faddr, pages, AS_AREA_READ | AS_AREA_CACHEABLE,
-	    (void *) &klog);
+	    (void *) &kio);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to map klog\n", NAME);
+		fprintf(stderr, "%s: Unable to map kio\n", NAME);
 		return rc;
 	}
 	
 	prodcons_initialize(&pc);
 	async_set_interrupt_received(notification_received);
-	rc = event_subscribe(EVENT_KLOG, 0);
+	rc = event_subscribe(EVENT_KIO, 0);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to register klog notifications\n",
+		fprintf(stderr, "%s: Unable to register kio notifications\n",
 		    NAME);
 		return rc;
 	}
@@ -235,10 +235,10 @@ int main(int argc, char *argv[])
 	}	
 
 	fibril_add_ready(fid);
-	event_unmask(EVENT_KLOG);
-	klog_update();
+	event_unmask(EVENT_KIO);
+	kio_update();
 	
-	tinput_set_prompt(input, "klog> ");
+	tinput_set_prompt(input, "kio> ");
 
 	char *str;
 	while ((rc = tinput_read(input, &str)) == EOK) {
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		klog_command(str, str_size(str));
+		kio_command(str, str_size(str));
 		free(str);
 	}
  

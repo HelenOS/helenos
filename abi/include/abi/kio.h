@@ -32,14 +32,14 @@
 /** @file
  */
 
-#ifndef ABI_KLOG_H_
-#define ABI_KLOG_H_
+#ifndef ABI_KIO_H_
+#define ABI_KIO_H_
 
 enum {
-	KLOG_UNKNOW,
-	KLOG_WRITE,
-	KLOG_UPDATE,
-	KLOG_COMMAND
+	KIO_UNKNOW,
+	KIO_WRITE,
+	KIO_UPDATE,
+	KIO_COMMAND
 };
 
 #endif

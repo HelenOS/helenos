@@ -32,19 +32,19 @@
 /** @file
  */
 
-#ifndef LIBC_IO_KLOG_H_
-#define LIBC_IO_KLOG_H_
+#ifndef LIBC_IO_KIO_H_
+#define LIBC_IO_KIO_H_
 
 #include <sys/types.h>
 #include <stdarg.h>
 #include <io/verify.h>
 
-extern size_t klog_write(const void *, size_t);
-extern void klog_update(void);
-extern void klog_command(const void *, size_t);
-extern int klog_printf(const char *, ...)
+extern size_t kio_write(const void *, size_t);
+extern void kio_update(void);
+extern void kio_command(const void *, size_t);
+extern int kio_printf(const char *, ...)
     PRINTF_ATTRIBUTE(1, 2);
-extern int klog_vprintf(const char *, va_list);
+extern int kio_vprintf(const char *, va_list);
 
 #endif
 
