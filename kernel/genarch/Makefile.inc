@@ -89,9 +89,9 @@ ifeq ($(CONFIG_NS16550),y)
 		genarch/src/drivers/ns16550/ns16550.c
 endif
 
-ifeq ($(CONFIG_ARM926_UART),y)
+ifeq ($(CONFIG_PL011_UART),y)
 	GENARCH_SOURCES += \
-		genarch/src/drivers/arm926_uart/arm926_uart.c
+		genarch/src/drivers/pl011/pl011.c
 endif
 
 ifeq ($(CONFIG_S3C24XX_IRQC),y)
@@ -122,6 +122,11 @@ endif
 ifeq ($(CONFIG_AM335X_TIMERS),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/am335x/timer.c
+endif
+
+ifeq ($(CONFIG_BCM2835_MAILBOX),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/bcm2835/mbox.c
 endif
 
 ifeq ($(CONFIG_VIA_CUDA),y)
