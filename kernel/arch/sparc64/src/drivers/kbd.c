@@ -121,7 +121,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
 	
 	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, inr, cir,
-	    cir_arg, NULL);
+	    cir_arg);
 	if (ns16550_instance) {
 		kbrd_instance_t *kbrd_instance = kbrd_init();
 		if (kbrd_instance) {
