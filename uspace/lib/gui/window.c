@@ -55,77 +55,136 @@
 #include <drawctx.h>
 #include <surface.h>
 
+#include "common.h"
 #include "connection.h"
 #include "widget.h"
 #include "window.h"
 
-static sysarg_t border_thickness = 5;
-static sysarg_t header_height = 20;
+static sysarg_t border_thickness = 4;
+static sysarg_t bevel_thickness = 1;
+static sysarg_t header_height = 22;
 static sysarg_t header_min_width = 40;
-static sysarg_t close_width = 20;
+static sysarg_t close_thickness = 22;
 
-static pixel_t border_color = PIXEL(255, 0, 0, 0);
-static pixel_t header_bg_focus_color = PIXEL(255, 88, 106, 196);
-static pixel_t header_fg_focus_color = PIXEL(255, 255, 255, 255);
-static pixel_t header_bg_unfocus_color = PIXEL(255, 12, 57, 92);
-static pixel_t header_fg_unfocus_color = PIXEL(255, 255, 255, 255);
+static pixel_t color_highlight = PIXEL(255, 255, 255, 255);
+static pixel_t color_shadow = PIXEL(255, 85, 85, 85);
+static pixel_t color_surface = PIXEL(255, 186, 186, 186);
 
-static void paint_internal(widget_t *w)
+static pixel_t color_header_focus_highlight = PIXEL(255, 120, 145, 255);
+static pixel_t color_header_focus_shadow = PIXEL(255, 40, 48, 89);
+static pixel_t color_header_focus_surface = PIXEL(255, 88, 106, 196);
+
+static pixel_t color_header_unfocus_highlight = PIXEL(255, 16, 78, 126);
+static pixel_t color_header_unfocus_shadow = PIXEL(255, 5, 26, 42);
+static pixel_t color_header_unfocus_surface = PIXEL(255, 12, 57, 92);
+
+static pixel_t color_caption_focus = PIXEL(255, 255, 255, 255);
+static pixel_t color_caption_unfocus = PIXEL(255, 207, 207, 207);
+
+static void paint_internal(widget_t *widget)
 {
-	surface_t *surface = window_claim(w->window);
-	if (!surface) {
-		window_yield(w->window);
-	}
-
+	surface_t *surface = window_claim(widget->window);
+	if (!surface)
+		window_yield(widget->window);
+	
 	source_t source;
-	font_t font;
-	drawctx_t drawctx;
-
 	source_init(&source);
-	font_init(&font, FONT_DECODER_EMBEDDED, NULL, 16);
+	
+	drawctx_t drawctx;
 	drawctx_init(&drawctx, surface);
 	drawctx_set_source(&drawctx, &source);
+	
+	/* Window border outer bevel */
+	
+	draw_bevel(&drawctx, &source, widget->vpos, widget->hpos,
+	    widget->width, widget->height, color_highlight, color_shadow);
+	
+	/* Window border surface */
+	
+	source_set_color(&source, color_surface);
+	drawctx_transfer(&drawctx, widget->hpos + 1, widget->vpos + 1,
+	    widget->width - 2, 2);
+	drawctx_transfer(&drawctx, widget->hpos + 1, widget->vpos + 1,
+	    2, widget->height - 2);
+	drawctx_transfer(&drawctx, widget->hpos + 1,
+	    widget->vpos + widget->height - 3, widget->width - 2, 2);
+	drawctx_transfer(&drawctx, widget->hpos + widget->width - 3,
+	    widget->vpos + 1, 2, widget->height - 4);
+	
+	/* Window border inner bevel */
+	
+	draw_bevel(&drawctx, &source, widget->hpos + 3, widget->vpos + 3,
+	    widget->width - 6, widget->height - 6, color_shadow,
+	    color_highlight);
+	
+	/* Header bevel */
+	
+	sysarg_t header_hpos = widget->hpos + border_thickness;
+	sysarg_t header_vpos = widget->vpos + border_thickness;
+	sysarg_t header_width = widget->width - 2 * border_thickness -
+	    close_thickness;
+	
+	draw_bevel(&drawctx, &source, header_hpos, header_vpos,
+	    header_width, header_height, widget->window->is_focused ?
+	    color_header_focus_highlight : color_header_unfocus_highlight,
+	    widget->window->is_focused ?
+	    color_header_focus_shadow : color_header_unfocus_shadow);
+	
+	/* Header surface */
+	
+	source_set_color(&source, widget->window->is_focused ?
+	    color_header_focus_surface : color_header_unfocus_surface);
+	drawctx_transfer(&drawctx, header_hpos + 1, header_vpos + 1,
+	    header_width - 2, header_height - 2);
+	
+	/* Close button bevel */
+	
+	sysarg_t close_hpos = widget->hpos + widget->width -
+	    border_thickness - close_thickness;
+	sysarg_t close_vpos = widget->vpos + border_thickness;
+	
+	draw_bevel(&drawctx, &source, close_hpos, close_vpos,
+	    close_thickness, close_thickness, color_highlight, color_shadow);
+	
+	/* Close button surface */
+	
+	source_set_color(&source, color_surface);
+	drawctx_transfer(&drawctx, close_hpos + 1, close_vpos + 1,
+	    close_thickness - 2, close_thickness - 2);
+	
+	/* Close button icon */
+	
+	draw_bevel(&drawctx, &source, close_hpos + 6, close_vpos + 9,
+	    close_thickness - 12, close_thickness - 18, color_highlight,
+	    color_shadow);
+	
+	/* Window caption */
+	
+	font_t font;
+	font_init(&font, FONT_DECODER_EMBEDDED, NULL, 16);
+	
 	drawctx_set_font(&drawctx, &font);
-
-	source_set_color(&source, border_color);
-	drawctx_transfer(&drawctx, w->hpos, w->vpos, border_thickness, w->height);
-	drawctx_transfer(&drawctx, w->hpos + w->width - border_thickness,
-	    w->vpos, border_thickness, w->height);
-	drawctx_transfer(&drawctx, w->hpos, w->vpos, w->width, border_thickness);
-	drawctx_transfer(&drawctx, w->hpos,
-	    w->vpos + w->height - border_thickness, w->width, border_thickness);
-
-	source_set_color(&source, 
-	    w->window->is_focused ? header_bg_focus_color : header_bg_unfocus_color);
-	drawctx_transfer(&drawctx,
-	    w->hpos + border_thickness, w->vpos + border_thickness,
-		w->width - 2 * border_thickness, header_height);
-
+	source_set_color(&source, widget->window->is_focused ?
+	    color_caption_focus : color_caption_unfocus);
+	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
-	font_get_box(&font, w->window->caption, &cpt_width, &cpt_height);
-	sysarg_t cls_width;
-	sysarg_t cls_height;
-	char cls_pict[] = "x";
-	font_get_box(&font, cls_pict, &cls_width, &cls_height);
-	source_set_color(&source, 
-	    w->window->is_focused ? header_fg_focus_color : header_fg_unfocus_color);
-	sysarg_t cls_x = ((close_width - cls_width) / 2) + w->hpos + w->width -
-	    border_thickness - close_width;
-	sysarg_t cls_y = ((header_height - cls_height) / 2) + w->vpos + border_thickness;
-	drawctx_print(&drawctx, cls_pict, cls_x, cls_y);
-
-	bool draw_title = (w->width >= 2 * border_thickness + close_width + cpt_width);
+	font_get_box(&font, widget->window->caption, &cpt_width, &cpt_height);
+	
+	bool draw_title =
+	    (widget->width >= 2 * border_thickness + 2 * bevel_thickness +
+	    close_thickness + cpt_width);
 	if (draw_title) {
-		sysarg_t cpt_x = ((w->width - cpt_width) / 2) + w->hpos;
-		sysarg_t cpt_y = ((header_height - cpt_height) / 2) + w->vpos + border_thickness;
-		if (w->window->caption) {
-			drawctx_print(&drawctx, w->window->caption, cpt_x, cpt_y);
-		}
+		sysarg_t cpt_x = ((widget->width - cpt_width) / 2) + widget->hpos;
+		sysarg_t cpt_y = ((header_height - cpt_height) / 2) +
+		    widget->vpos + border_thickness;
+		
+		if (widget->window->caption)
+			drawctx_print(&drawctx, widget->window->caption, cpt_x, cpt_y);
 	}
-
+	
 	font_release(&font);
-	window_yield(w->window);
+	window_yield(widget->window);
 }
 
 static void root_destroy(widget_t *widget)
@@ -137,7 +196,7 @@ static void root_reconfigure(widget_t *widget)
 {
 	if (widget->window->is_decorated) {
 		list_foreach(widget->children, link, widget_t, child) {
-			child->rearrange(child, 
+			child->rearrange(child,
 			    widget->hpos + border_thickness,
 			    widget->vpos + border_thickness + header_height,
 			    widget->width - 2 * border_thickness,
@@ -210,7 +269,8 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		    (event.hpos < width - border_thickness) &&
 		    (event.vpos >= border_thickness) &&
 		    (event.vpos < border_thickness + header_height);
-		bool close = header && (event.hpos >= width - border_thickness - close_width);
+		bool close = (header) &&
+		    (event.hpos >= width - border_thickness - close_thickness);
 
 		if (top && left && allowed_button) {
 			window_grab_flags_t flags = GF_EMPTY;

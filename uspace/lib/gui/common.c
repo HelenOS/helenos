@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,34 +33,22 @@
  * @file
  */
 
-#ifndef GUI_LABEL_H_
-#define GUI_LABEL_H_
-
 #include <sys/types.h>
-#include <io/pixel.h>
+#include <drawctx.h>
+#include "common.h"
 
-#include <source.h>
-#include <font.h>
-
-#include "connection.h"
-#include "widget.h"
-
-typedef struct label {
-	widget_t widget;
-	source_t background;
-	source_t text;
-	char *caption;
-	font_t font;
-	slot_t rewrite;
-} label_t;
-
-extern bool init_label(label_t *, widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t);
-extern label_t *create_label(widget_t *, const char *, uint16_t, pixel_t,
-    pixel_t);
-extern void deinit_label(label_t *);
-
-#endif
+void draw_bevel(drawctx_t *drawctx, source_t *source, sysarg_t hpos,
+    sysarg_t vpos, sysarg_t width, sysarg_t height, pixel_t highlight,
+    pixel_t shadow)
+{
+	source_set_color(source, highlight);
+	drawctx_transfer(drawctx, hpos, vpos, width - 1, 1);
+	drawctx_transfer(drawctx, hpos, vpos + 1, 1, height - 2);
+	
+	source_set_color(source, shadow);
+	drawctx_transfer(drawctx, hpos, vpos + height - 1, width, 1);
+	drawctx_transfer(drawctx, hpos + width - 1, vpos, 1, height);
+}
 
 /** @}
  */

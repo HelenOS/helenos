@@ -116,14 +116,20 @@ int main(int argc, char *argv[])
 		}
 
 		pixel_t grd_bg = PIXEL(255, 240, 240, 240);
-		pixel_t btn_bg = PIXEL(255, 0, 0, 0);
-		pixel_t btn_fg = PIXEL(255, 240, 240, 240);
+		
+		pixel_t btn_bg = PIXEL(255, 240, 240, 240);
+		pixel_t btn_fg = PIXEL(255, 186, 186, 186);
+		pixel_t btn_text = PIXEL(255, 0, 0, 0);
+		
 		pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
-		pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
+		pixel_t lbl_text = PIXEL(255, 0, 0, 0);
 
-		my_label_t *lbl_action = create_my_label(NULL, "Hello there!", 16, lbl_bg, lbl_fg);
-		button_t *btn_confirm = create_button(NULL, "Confirm", 16, btn_bg, btn_fg);
-		button_t *btn_cancel = create_button(NULL, "Cancel", 16, btn_bg, btn_fg);
+		my_label_t *lbl_action = create_my_label(NULL, "Hello there!", 16,
+		    lbl_bg, lbl_text);
+		button_t *btn_confirm = create_button(NULL, "Confirm", 16, btn_bg,
+		    btn_fg, btn_text);
+		button_t *btn_cancel = create_button(NULL, "Cancel", 16, btn_bg,
+		    btn_fg, btn_text);
 		grid_t *grid = create_grid(window_root(main_window), 2, 2, grd_bg);
 		if (!lbl_action || !btn_confirm || !btn_cancel || !grid) {
 			window_close(main_window);

@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 	
-	window_resize(main_window, 650, 510);
+	window_resize(main_window, 648, 510);
 	terminal_t *terminal_widget =
 	    create_terminal(window_root(main_window), 640, 480);
 	if (!terminal_widget) {
