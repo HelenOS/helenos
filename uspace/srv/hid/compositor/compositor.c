@@ -292,23 +292,27 @@ static void comp_coord_bounding_rect(double x_in, double y_in,
     double w_in, double h_in, transform_t win_trans,
     sysarg_t *x_out, sysarg_t *y_out, sysarg_t *w_out, sysarg_t *h_out)
 {
-	if (w_in > 0 && h_in > 0) {
+	if ((w_in > 0) && (h_in > 0)) {
 		sysarg_t x[4];
 		sysarg_t y[4];
+		
 		comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
 		comp_coord_from_client(x_in + w_in - 1, y_in, win_trans, &x[1], &y[1]);
 		comp_coord_from_client(x_in + w_in - 1, y_in + h_in - 1, win_trans, &x[2], &y[2]);
 		comp_coord_from_client(x_in, y_in + h_in - 1, win_trans, &x[3], &y[3]);
+		
 		(*x_out) = x[0];
 		(*y_out) = y[0];
 		(*w_out) = x[0];
 		(*h_out) = y[0];
-		for (int i = 1; i < 4; ++i) {
+		
+		for (unsigned int i = 1; i < 4; ++i) {
 			(*x_out) = (x[i] < (*x_out)) ? x[i] : (*x_out);
 			(*y_out) = (y[i] < (*y_out)) ? y[i] : (*y_out);
 			(*w_out) = (x[i] > (*w_out)) ? x[i] : (*w_out);
 			(*h_out) = (y[i] > (*h_out)) ? y[i] : (*h_out);
 		}
+		
 		(*w_out) = (*w_out) - (*x_out) + 1;
 		(*h_out) = (*h_out) - (*y_out) + 1;
 	} else {
@@ -642,59 +646,60 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 
 static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
-	int rc;
-
 	ipc_callid_t callid;
 	size_t size;
 	unsigned int flags;
-
+	
 	/* Start sharing resized window with client. */
 	if (!async_share_out_receive(&callid, &size, &flags)) {
 		async_answer_0(iid, EINVAL);
 		return;
 	}
+	
 	void *new_cell_storage;
-	rc = async_share_out_finalize(callid, &new_cell_storage);
+	int rc = async_share_out_finalize(callid, &new_cell_storage);
 	if ((rc != EOK) || (new_cell_storage == AS_MAP_FAILED)) {
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-
+	
 	/* Create new surface for the resized window. */
-	surface_t *new_surface = surface_create(
-	    IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall),
-	    new_cell_storage, SURFACE_FLAG_SHARED);
+	surface_t *new_surface = surface_create(IPC_GET_ARG1(*icall),
+	    IPC_GET_ARG2(*icall), new_cell_storage, SURFACE_FLAG_SHARED);
 	if (!new_surface) {
 		as_area_destroy(new_cell_storage);
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-
+	
 	/* Switch new surface with old surface and calculate damage. */
 	fibril_mutex_lock(&window_list_mtx);
-
+	
 	sysarg_t old_width = 0;
 	sysarg_t old_height = 0;
+	
 	if (win->surface) {
 		surface_get_resolution(win->surface, &old_width, &old_height);
 		surface_destroy(win->surface);
 	}
-
+	
 	win->surface = new_surface;
-
+	
 	sysarg_t new_width = 0;
 	sysarg_t new_height = 0;
 	surface_get_resolution(win->surface, &new_width, &new_height);
-
-	sysarg_t x, y;
+	
+	sysarg_t x;
+	sysarg_t y;
 	sysarg_t width = old_width > new_width ? old_width : new_width;
 	sysarg_t height = old_height > new_height ? old_height : new_height;
-	comp_coord_bounding_rect(0, 0, width, height, win->transform, &x, &y, &width, &height);
-
+	comp_coord_bounding_rect(0, 0, width, height, win->transform, &x, &y,
+	    &width, &height);
+	
 	fibril_mutex_unlock(&window_list_mtx);
-
+	
 	comp_damage(x, y, width, height);
-
+	
 	async_answer_0(iid, EOK);
 }
 
@@ -1224,23 +1229,24 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 	if (move) {
 		double cx = 0;
 		double cy = 0;
-		if (pointer->grab_flags & GF_MOVE_X) {
+		
+		if (pointer->grab_flags & GF_MOVE_X)
 			cx = 1;
-		}
-		if (pointer->grab_flags & GF_MOVE_Y) {
+		
+		if (pointer->grab_flags & GF_MOVE_Y)
 			cy = 1;
-		}
-
-		if ((scale || resize) && (win->angle != 0)) {
+		
+		if (((scale) || (resize)) && (win->angle != 0)) {
 			transform_t rotate;
 			transform_identity(&rotate);
+			
 			transform_rotate(&rotate, win->angle);
 			transform_apply_linear(&rotate, &cx, &cy);
 		}
 		
-		cx = (cx < 0) ? (-1 * cx) : cx; 
+		cx = (cx < 0) ? (-1 * cx) : cx;
 		cy = (cy < 0) ? (-1 * cy) : cy;
-
+		
 		win->dx += (cx * dx);
 		win->dy += (cy * dy);
 	}
