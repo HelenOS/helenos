@@ -591,18 +591,16 @@ static int fetch_input(void *arg)
 window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
     const char *caption, sysarg_t x_offset, sysarg_t y_offset)
 {
-	int rc;
-
 	window_t *win = (window_t *) malloc(sizeof(window_t));
-	if (!win) {
+	if (!win)
 		return NULL;
-	}
-
+	
 	win->is_main = is_main;
 	win->is_decorated = is_decorated;
 	win->is_focused = true;
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
+	
 	widget_init(&win->root, NULL);
 	win->root.window = win;
 	win->root.destroy = root_destroy;
@@ -614,51 +612,48 @@ window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
 	win->grab = NULL;
 	win->focus = NULL;
 	win->surface = NULL;
-
+	
 	service_id_t reg_dsid;
-	async_sess_t *reg_sess;
-
-	rc = loc_service_get_id(winreg, &reg_dsid, 0);
+	int rc = loc_service_get_id(winreg, &reg_dsid, 0);
 	if (rc != EOK) {
 		free(win);
 		return NULL;
 	}
-
-	reg_sess = loc_service_connect(EXCHANGE_SERIALIZE, reg_dsid, 0);
+	
+	async_sess_t *reg_sess = loc_service_connect(EXCHANGE_SERIALIZE,
+	    reg_dsid, 0);
 	if (reg_sess == NULL) {
 		free(win);
 		return NULL;
 	}
-
+	
 	service_id_t in_dsid;
 	service_id_t out_dsid;
-	
 	rc = win_register(reg_sess, &in_dsid, &out_dsid, x_offset, y_offset);
 	async_hangup(reg_sess);
 	if (rc != EOK) {
 		free(win);
 		return NULL;
 	}
-
+	
 	win->osess = loc_service_connect(EXCHANGE_SERIALIZE, out_dsid, 0);
 	if (win->osess == NULL) {
 		free(win);
 		return NULL;
 	}
-
+	
 	win->isess = loc_service_connect(EXCHANGE_SERIALIZE, in_dsid, 0);
 	if (win->isess == NULL) {
 		async_hangup(win->osess);
 		free(win);
 		return NULL;
 	}
-
-	if (caption == NULL) {
+	
+	if (caption == NULL)
 		win->caption = NULL;
-	} else {
+	else
 		win->caption = str_dup(caption);
-	}
-
+	
 	return win;
 }
 

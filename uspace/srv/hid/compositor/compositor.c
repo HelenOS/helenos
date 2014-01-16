@@ -160,7 +160,6 @@ static input_ev_ops_t input_ev_ops = {
 
 static void input_disconnect(void);
 
-
 static pointer_t *input_pointer(input_t *input)
 {
 	return input->user;
@@ -169,10 +168,9 @@ static pointer_t *input_pointer(input_t *input)
 static pointer_t *pointer_create()
 {
 	pointer_t *p = (pointer_t *) malloc(sizeof(pointer_t));
-	if (!p) {
+	if (!p)
 		return NULL;
-	}
-
+	
 	link_initialize(&p->link);
 	p->pos.x = coord_origin;
 	p->pos.y = coord_origin;
@@ -184,7 +182,7 @@ static pointer_t *pointer_create()
 	p->pressed = false;
 	p->state = 0;
 	cursor_init(&p->cursor, CURSOR_DECODER_EMBEDDED, NULL);
-
+	
 	/* Ghost window for transformation animation. */
 	transform_identity(&p->ghost.transform);
 	transform_translate(&p->ghost.transform, coord_origin, coord_origin);
@@ -197,7 +195,7 @@ static pointer_t *pointer_create()
 	p->ghost.surface = NULL;
 	p->accum_ghost.x = 0;
 	p->accum_ghost.y = 0;
-
+	
 	return p;
 }
 
@@ -212,15 +210,14 @@ static void pointer_destroy(pointer_t *p)
 static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 {
 	window_t *win = (window_t *) malloc(sizeof(window_t));
-	if (!win) {
+	if (!win)
 		return NULL;
-	}
-
+	
 	link_initialize(&win->link);
 	atomic_set(&win->ref_cnt, 0);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
-	transform_translate(&win->transform, 
+	transform_translate(&win->transform,
 	    coord_origin + x_offset, coord_origin + y_offset);
 	win->dx = coord_origin + x_offset;
 	win->dy = coord_origin + y_offset;
@@ -229,7 +226,7 @@ static window_t *window_create(sysarg_t x_offset, sysarg_t y_offset)
 	win->angle = 0;
 	win->opacity = 255;
 	win->surface = NULL;
-
+	
 	return win;
 }
 
@@ -706,7 +703,7 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 static void comp_post_event_win(window_event_t *event, window_t *target)
 {
 	fibril_mutex_lock(&window_list_mtx);
-
+	
 	list_foreach(window_list, link, window_t, window) {
 		if (window == target) {
 			prodcons_produce(&window->queue, &event->link);
@@ -714,7 +711,7 @@ static void comp_post_event_win(window_event_t *event, window_t *target)
 			return;
 		}
 	}
-
+	
 	fibril_mutex_unlock(&window_list_mtx);
 	free(event);
 }
@@ -722,12 +719,13 @@ static void comp_post_event_win(window_event_t *event, window_t *target)
 static void comp_post_event_top(window_event_t *event)
 {
 	fibril_mutex_lock(&window_list_mtx);
+	
 	window_t *win = (window_t *) list_first(&window_list);
-	if (win) {
+	if (win)
 		prodcons_produce(&win->queue, &event->link);
-	} else {
+	else
 		free(event);
-	}
+	
 	fibril_mutex_unlock(&window_list_mtx);
 }
 
@@ -1181,19 +1179,17 @@ static void comp_recalc_transform(window_t *win)
 	transform_t translate;
 	transform_identity(&translate);
 	transform_translate(&translate, win->dx, win->dy);
-
+	
 	transform_t scale;
 	transform_identity(&scale);
-	if (win->fx != 1 || win->fy != 1) {
+	if ((win->fx != 1) || (win->fy != 1))
 		transform_scale(&scale, win->fx, win->fy);
-	}
-
+	
 	transform_t rotate;
 	transform_identity(&rotate);
-	if (win->angle != 0) {
+	if (win->angle != 0)
 		transform_rotate(&rotate, win->angle);
-	}
-
+	
 	transform_t transform;
 	transform_t temp;
 	transform_identity(&transform);
@@ -1204,7 +1200,6 @@ static void comp_recalc_transform(window_t *win)
 	temp = transform;
 	transform_multiply(&transform, &temp, &scale);
 	
-
 	win->transform = transform;
 }
 
@@ -1267,7 +1262,8 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 			double fx = 1.0 + (_dx / ((width - 1) * win->fx));
 			if (fx > 0) {
 #if ANIMATE_WINDOW_TRANSFORMS == 0
-				if (scale) win->fx *= fx;
+				if (scale)
+					win->fx *= fx;
 #endif
 #if ANIMATE_WINDOW_TRANSFORMS == 1
 				win->fx *= fx;
