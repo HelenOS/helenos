@@ -71,7 +71,6 @@
 #include <drawctx.h>
 #include <codec/tga.h>
 
-#include "images.h"
 #include "compositor.h"
 
 #define NAME       "compositor"
@@ -1745,11 +1744,10 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	bool viewport_change = (mods & KM_ALT) && (
 	    key == KC_O || key == KC_P);
 	bool kconsole_switch = (mods & KM_ALT) && (key == KC_M);
-	bool compositor_test = (mods & KM_ALT) && (key == KC_H);
 
 	bool filter = (type == KEY_RELEASE) && (win_transform || win_resize ||
 	    win_opacity || win_close || win_switch || viewport_move ||
-	    viewport_change || kconsole_switch || compositor_test);
+	    viewport_change || kconsole_switch);
 
 	if (filter) {
 		/* no-op */
@@ -2013,35 +2011,6 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 		fibril_mutex_unlock(&viewport_list_mtx);
 	} else if (kconsole_switch) {
 		__SYSCALL0(SYS_DEBUG_ACTIVATE_CONSOLE);
-	} else if (compositor_test) {
-		fibril_mutex_lock(&window_list_mtx);
-
-		window_t *red_win = window_create(0, 0);
-		red_win->surface = surface_create(250, 150, NULL, 0);
-		pixel_t red_pix = PIXEL(255, 240, 0, 0);
-		for (sysarg_t y = 0; y <  150; ++y) {
-			for (sysarg_t x = 0; x < 250; ++x) {
-				surface_put_pixel(red_win->surface, x, y, red_pix);
-			}
-		}
-		list_prepend(&red_win->link, &window_list);
-
-		window_t *blue_win = window_create(0, 0);
-		blue_win->surface = surface_create(200, 100, NULL, 0);
-		pixel_t blue_pix = PIXEL(255, 0, 0, 240);
-		for (sysarg_t y = 0; y <  100; ++y) {
-			for (sysarg_t x = 0; x < 200; ++x) {
-				surface_put_pixel(blue_win->surface, x, y, blue_pix);
-			}
-		}
-		list_prepend(&blue_win->link, &window_list);
-		
-		window_t *nameic_win = window_create(0, 0);
-		nameic_win->surface = decode_tga((void *) nameic_tga, nameic_tga_size, 0);
-		list_prepend(&nameic_win->link, &window_list);
-
-		fibril_mutex_unlock(&window_list_mtx);
-		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 	} else {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 		if (event == NULL)
