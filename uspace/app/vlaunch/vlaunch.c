@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 	}
 	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], true, true, "vlaunch", 0, 0);
+	window_t *main_window = window_open(argv[1], true, true, "vlaunch");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 1;
@@ -158,7 +158,8 @@ int main(int argc, char *argv[])
 	grid->add(grid, &btn_vdemo->widget, 0, 3, 1, 1);
 	grid->add(grid, &btn_vlaunch->widget, 0, 4, 1, 1);
 	
-	window_resize(main_window, 210, 130 + LOGO_HEIGHT);
+	window_resize(main_window, 0, 0, 210, 130 + LOGO_HEIGHT,
+	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_TOP);
 	window_exec(main_window);
 	
 	task_retval(0);

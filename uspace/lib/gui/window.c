@@ -351,7 +351,7 @@ static void deliver_position_event(window_t *win, pos_event_t event)
 	}
 }
 
-static void handle_signal_event(window_t *win, sig_event_t event)
+static void handle_signal_event(window_t *win, signal_event_t event)
 {
 	widget_t *widget = (widget_t *) event.object;
 	slot_t slot = (slot_t) event.slot;
@@ -362,60 +362,58 @@ static void handle_signal_event(window_t *win, sig_event_t event)
 	free(data);
 }
 
-static void handle_resize(window_t *win, sysarg_t width, sysarg_t height)
+static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
+    sysarg_t width, sysarg_t height, window_placement_flags_t placement_flags)
 {
-	int rc;
-	surface_t *old_surface;
-	surface_t *new_surface;
-
 	if (width < 2 * border_thickness + header_min_width) {
 		win_damage(win->osess, 0, 0, 0, 0);
 		return;
 	}
-
+	
 	if (height < 2 * border_thickness + header_height) {
 		win_damage(win->osess, 0, 0, 0, 0);
 		return;
 	}
-
+	
 	/* Allocate resources for new surface. */
-	new_surface = surface_create(width, height, NULL, SURFACE_FLAG_SHARED);
-	if (!new_surface) {
+	surface_t *new_surface = surface_create(width, height, NULL,
+	    SURFACE_FLAG_SHARED);
+	if (!new_surface)
 		return;
-	}
-
+	
 	/* Switch new and old surface. */
 	fibril_mutex_lock(&win->guard);
-	old_surface = win->surface;
+	surface_t *old_surface = win->surface;
 	win->surface = new_surface;
 	fibril_mutex_unlock(&win->guard);
-
-	/* Let all widgets in the tree alter their position and size. Widgets might
-	 * also paint themselves onto the new surface. */
+	
+	/*
+	 * Let all widgets in the tree alter their position and size.
+	 * Widgets might also paint themselves onto the new surface.
+	 */
 	win->root.rearrange(&win->root, 0, 0, width, height);
-
+	
 	fibril_mutex_lock(&win->guard);
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
-
+	
 	/* Inform compositor about new surface. */
-	rc = win_resize(win->osess,
-		width, height, surface_direct_access(new_surface));
-
+	int rc = win_resize(win->osess, offset_x, offset_y, width, height,
+	    placement_flags, surface_direct_access(new_surface));
+	
 	if (rc != EOK) {
 		/* Rollback to old surface. Reverse all changes. */
-
+		
 		sysarg_t old_width = 0;
 		sysarg_t old_height = 0;
-		if (old_surface) {
+		if (old_surface)
 			surface_get_resolution(old_surface, &old_width, &old_height);
-		}
-
+		
 		fibril_mutex_lock(&win->guard);
 		new_surface = win->surface;
 		win->surface = old_surface;
 		fibril_mutex_unlock(&win->guard);
-
+		
 		win->root.rearrange(&win->root, 0, 0, old_width, old_height);
 		
 		if (win->surface) {
@@ -423,14 +421,12 @@ static void handle_resize(window_t *win, sysarg_t width, sysarg_t height)
 			surface_reset_damaged_region(win->surface);
 			fibril_mutex_unlock(&win->guard);
 		}
-
+		
 		surface_destroy(new_surface);
-		return;
-	}
-
-	/* Finally deallocate old surface. */
-	if (old_surface) {
-		surface_destroy(old_surface);
+	} else {
+		/* Deallocate old surface. */
+		if (old_surface)
+			surface_destroy(old_surface);
 	}
 }
 
@@ -512,10 +508,12 @@ static int event_loop(void *arg)
 			deliver_position_event(win, event->data.pos);
 			break;
 		case ET_SIGNAL_EVENT:
-			handle_signal_event(win, event->data.sig);
+			handle_signal_event(win, event->data.signal);
 			break;
 		case ET_WINDOW_RESIZE:
-			handle_resize(win, event->data.rsz.width, event->data.rsz.height);
+			handle_resize(win, event->data.resize.offset_x,
+			    event->data.resize.offset_y, event->data.resize.width,
+			    event->data.resize.height, event->data.resize.placement_flags);
 			break;
 		case ET_WINDOW_FOCUS:
 			if (!win->is_focused) {
@@ -589,7 +587,7 @@ static int fetch_input(void *arg)
 }
 
 window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
-    const char *caption, sysarg_t x_offset, sysarg_t y_offset)
+    const char *caption)
 {
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win)
@@ -629,7 +627,7 @@ window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
 	
 	service_id_t in_dsid;
 	service_id_t out_dsid;
-	rc = win_register(reg_sess, &in_dsid, &out_dsid, x_offset, y_offset);
+	rc = win_register(reg_sess, &in_dsid, &out_dsid);
 	async_hangup(reg_sess);
 	if (rc != EOK) {
 		free(win);
@@ -657,14 +655,18 @@ window_t *window_open(const char *winreg, bool is_main, bool is_decorated,
 	return win;
 }
 
-void window_resize(window_t *win, sysarg_t width, sysarg_t height)
+void window_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
+    sysarg_t width, sysarg_t height, window_placement_flags_t placement_flags)
 {
 	window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 	if (event) {
 		link_initialize(&event->link);
 		event->type = ET_WINDOW_RESIZE;
-		event->data.rsz.width = width;
-		event->data.rsz.height = height;
+		event->data.resize.offset_x = offset_x;
+		event->data.resize.offset_y = offset_y;
+		event->data.resize.width = width;
+		event->data.resize.height = height;
+		event->data.resize.placement_flags = placement_flags;
 		prodcons_produce(&win->events, &event->link);
 	}
 }

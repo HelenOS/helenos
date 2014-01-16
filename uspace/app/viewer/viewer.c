@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	main_window = window_open(argv[1], true, false, "viewer", 0, 0);
+	main_window = window_open(argv[1], true, false, "viewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 2;
@@ -191,7 +191,8 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 	
-	window_resize(main_window, WINDOW_WIDTH, WINDOW_HEIGHT);
+	window_resize(main_window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
+	    WINDOW_PLACEMENT_ABSOLUTE);
 	window_exec(main_window);
 	
 	task_retval(0);
