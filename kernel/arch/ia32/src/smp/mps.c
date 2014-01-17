@@ -35,7 +35,7 @@
 #ifdef CONFIG_SMP
 
 #include <config.h>
-#include <print.h>
+#include <log.h>
 #include <debug.h>
 #include <arch/smp/mps.h>
 #include <arch/smp/apic.h>
@@ -180,7 +180,7 @@ static void ct_bus_entry(struct __bus_entry *bus __attribute__((unused)))
 	memcpy((void *) buf, (void *) bus->bus_type, 6);
 	buf[6] = 0;
 	
-	printf("MPS: bus=%" PRIu8 " (%s)\n", bus->bus_id, buf);
+	log(LF_ARCH, LVL_DEBUG, "MPS: bus=%" PRIu8 " (%s)", bus->bus_id, buf);
 #endif
 }
 
@@ -204,60 +204,62 @@ static void ct_io_intr_entry(struct __io_intr_entry *iointr
     __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
-	printf("MPS: ");
+	log_begin(LF_ARCH, LVL_DEBUG);
+	log_printf("MPS: ");
 	
 	switch (iointr->intr_type) {
 	case 0:
-		printf("INT");
+		log_printf("INT");
 		break;
 	case 1:
-		printf("NMI");
+		log_printf("NMI");
 		break;
 	case 2:
-		printf("SMI");
+		log_printf("SMI");
 		break;
 	case 3:
-		printf("ExtINT");
+		log_printf("ExtINT");
 		break;
 	}
 	
-	printf(", ");
+	log_printf(", ");
 	
 	switch (iointr->poel & 3) {
 	case 0:
-		printf("bus-like");
+		log_printf("bus-like");
 		break;
 	case 1:
-		printf("active high");
+		log_printf("active high");
 		break;
 	case 2:
-		printf("reserved");
+		log_printf("reserved");
 		break;
 	case 3:
-		printf("active low");
+		log_printf("active low");
 		break;
 	}
 	
-	printf(", ");
+	log_printf(", ");
 	
 	switch ((iointr->poel >> 2) & 3) {
 	case 0:
-		printf("bus-like");
+		log_printf("bus-like");
 		break;
 	case 1:
-		printf("edge-triggered");
+		log_printf("edge-triggered");
 		break;
 	case 2:
-		printf("reserved");
+		log_printf("reserved");
 		break;
 	case 3:
-		printf("level-triggered");
+		log_printf("level-triggered");
 		break;
 	}
 	
-	printf(", bus=%" PRIu8 " irq=%" PRIu8 " io_apic=%" PRIu8" pin=%"
-	    PRIu8 "\n", iointr->src_bus_id, iointr->src_bus_irq,
+	log_printf(", bus=%" PRIu8 " irq=%" PRIu8 " io_apic=%" PRIu8" pin=%"
+	    PRIu8, iointr->src_bus_id, iointr->src_bus_irq,
 	    iointr->dst_io_apic_id, iointr->dst_io_apic_pin);
+	log_end();
 #endif
 }
 
@@ -265,60 +267,62 @@ static void ct_l_intr_entry(struct __l_intr_entry *lintr
     __attribute__((unused)))
 {
 #ifdef MPSCT_VERBOSE
-	printf("MPS: ");
+	log_begin(LF_ARCH, LVL_DEBUG);
+	log_printf("MPS: ");
 	
 	switch (lintr->intr_type) {
 	case 0:
-		printf("INT");
+		log_printf("INT");
 		break;
 	case 1:
-		printf("NMI");
+		log_printf("NMI");
 		break;
 	case 2:
-		printf("SMI");
+		log_printf("SMI");
 		break;
 	case 3:
-		printf("ExtINT");
+		log_printf("ExtINT");
 		break;
 	}
 	
-	printf(", ");
+	log_printf(", ");
 	
 	switch (lintr->poel & 3) {
 	case 0:
-		printf("bus-like");
+		log_printf("bus-like");
 		break;
 	case 1:
-		printf("active high");
+		log_printf("active high");
 		break;
 	case 2:
-		printf("reserved");
+		log_printf("reserved");
 		break;
 	case 3:
-		printf("active low");
+		log_printf("active low");
 		break;
 	}
 	
-	printf(", ");
+	log_printf(", ");
 	
 	switch ((lintr->poel >> 2) & 3) {
 	case 0:
-		printf("bus-like");
+		log_printf("bus-like");
 		break;
 	case 1:
-		printf("edge-triggered");
+		log_printf("edge-triggered");
 		break;
 	case 2:
-		printf("reserved");
+		log_printf("reserved");
 		break;
 	case 3:
-		printf("level-triggered");
+		log_printf("level-triggered");
 		break;
 	}
 	
-	printf(", bus=%" PRIu8 " irq=%" PRIu8 " l_apic=%" PRIu8" pin=%"
-	    PRIu8 "\n", lintr->src_bus_id, lintr->src_bus_irq,
+	log_printf(", bus=%" PRIu8 " irq=%" PRIu8 " l_apic=%" PRIu8" pin=%"
+	    PRIu8, lintr->src_bus_id, lintr->src_bus_irq,
 	    lintr->dst_l_apic_id, lintr->dst_l_apic_pin);
+	log_end();
 #endif
 }
 
@@ -331,8 +335,9 @@ static void ct_extended_entries(void)
 	    cur += cur[CT_EXT_ENTRY_LEN]) {
 		switch (cur[CT_EXT_ENTRY_TYPE]) {
 		default:
-			printf("MPS: Skipping MP Configuration Table extended "
-			    "entry type %" PRIu8 "\n", cur[CT_EXT_ENTRY_TYPE]);
+			log(LF_ARCH, LVL_NOTE, "MPS: Skipping MP Configuration"
+			    " Table extended entry type %" PRIu8,
+			    cur[CT_EXT_ENTRY_TYPE]);
 		}
 	}
 }
@@ -340,17 +345,17 @@ static void ct_extended_entries(void)
 static void configure_via_ct(void)
 {
 	if (ct->signature != CT_SIGNATURE) {
-		printf("MPS: Wrong ct->signature\n");
+		log(LF_ARCH, LVL_WARN, "MPS: Wrong ct->signature");
 		return;
 	}
 	
 	if (!mps_ct_check()) {
-		printf("MPS: Wrong ct checksum\n");
+		log(LF_ARCH, LVL_WARN, "MPS: Wrong ct checksum");
 		return;
 	}
 	
 	if (ct->oem_table) {
-		printf("MPS: ct->oem_table not supported\n");
+		log(LF_ARCH, LVL_WARN, "MPS: ct->oem_table not supported");
 		return;
 	}
 	
@@ -401,7 +406,7 @@ static void configure_via_ct(void)
 			/*
 			 * Something is wrong. Fallback to UP mode.
 			 */
-			printf("MPS: ct badness %" PRIu8 "\n", *cur);
+			log(LF_ARCH, LVL_WARN, "MPS: ct badness %" PRIu8, *cur);
 			return;
 		}
 	}
@@ -417,7 +422,7 @@ static void configure_via_default(uint8_t n __attribute__((unused)))
 	/*
 	 * Not yet implemented.
 	 */
-	printf("MPS: Default configuration not supported\n");
+	log(LF_ARCH, LVL_WARN, "MPS: Default configuration not supported");
 }
 
 void mps_init(void)
@@ -448,11 +453,11 @@ void mps_init(void)
 	return;
 	
 fs_found:
-	printf("%p: MPS Floating Pointer Structure\n", fs);
+	log(LF_ARCH, LVL_NOTE, "%p: MPS Floating Pointer Structure", fs);
 	
 	if ((fs->config_type == 0) && (fs->configuration_table)) {
 		if (fs->mpfib2 >> 7) {
-			printf("MPS: PIC mode not supported\n");
+			log(LF_ARCH, LVL_WARN, "MPS: PIC mode not supported\n");
 			return;
 		}
 		

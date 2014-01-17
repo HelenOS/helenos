@@ -37,7 +37,7 @@
 #include "trace.h"
 
 const sc_desc_t syscall_desc[] = {
-    [SYS_KLOG] ={ "klog",				3,	V_INT_ERRNO },
+    [SYS_KIO] ={ "kio",					3,	V_INT_ERRNO },
     [SYS_TLS_SET] = { "tls_set",			1,	V_ERRNO },
 
     [SYS_THREAD_CREATE] = { "thread_create",		3,	V_ERRNO },

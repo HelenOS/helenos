@@ -48,14 +48,16 @@
 typedef struct label {
 	widget_t widget;
 	source_t background;
-	source_t foreground;
+	source_t text;
 	char *caption;
 	font_t font;
 	slot_t rewrite;
 } label_t;
 
-extern bool init_label(label_t *, widget_t *, const char *, uint16_t, pixel_t, pixel_t);
-extern label_t *create_label(widget_t *, const char *, uint16_t, pixel_t, pixel_t);
+extern bool init_label(label_t *, widget_t *, const char *, uint16_t, pixel_t,
+    pixel_t);
+extern label_t *create_label(widget_t *, const char *, uint16_t, pixel_t,
+    pixel_t);
 extern void deinit_label(label_t *);
 
 #endif

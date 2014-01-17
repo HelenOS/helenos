@@ -42,16 +42,45 @@
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 
+typedef enum {
+	GF_EMPTY = 0,
+	GF_MOVE_X = 1,
+	GF_MOVE_Y = 2,
+	GF_RESIZE_X = 4,
+	GF_RESIZE_Y = 8,
+	GF_SCALE_X = 16,
+	GF_SCALE_Y = 32
+} window_grab_flags_t;
+
+typedef enum {
+	WINDOW_PLACEMENT_ANY = 0,
+	WINDOW_PLACEMENT_CENTER_X = 1,
+	WINDOW_PLACEMENT_CENTER_Y = 2,
+	WINDOW_PLACEMENT_CENTER =
+	    WINDOW_PLACEMENT_CENTER_X | WINDOW_PLACEMENT_CENTER_Y,
+	WINDOW_PLACEMENT_LEFT = 4,
+	WINDOW_PLACEMENT_RIGHT = 8,
+	WINDOW_PLACEMENT_TOP = 16,
+	WINDOW_PLACEMENT_BOTTOM = 32,
+	WINDOW_PLACEMENT_ABSOLUTE_X = 64,
+	WINDOW_PLACEMENT_ABSOLUTE_Y = 128,
+	WINDOW_PLACEMENT_ABSOLUTE =
+	    WINDOW_PLACEMENT_ABSOLUTE_X | WINDOW_PLACEMENT_ABSOLUTE_Y
+} window_placement_flags_t;
+
 typedef struct {
 	sysarg_t object;
 	sysarg_t slot;
 	sysarg_t argument;
-} sig_event_t;
+} signal_event_t;
 
 typedef struct {
+	sysarg_t offset_x;
+	sysarg_t offset_y;
 	sysarg_t width;
 	sysarg_t height;
-} rsz_event_t;
+	window_placement_flags_t placement_flags;
+} resize_event_t;
 
 typedef enum {
 	ET_KEYBOARD_EVENT,
@@ -68,8 +97,8 @@ typedef enum {
 typedef union {
 	kbd_event_t kbd;
 	pos_event_t pos;
-	sig_event_t sig;
-	rsz_event_t rsz;
+	signal_event_t signal;
+	resize_event_t resize;
 } window_event_data_t;
 
 typedef struct {
@@ -78,23 +107,14 @@ typedef struct {
 	window_event_data_t data;
 } window_event_t;
 
-typedef enum {
-	GF_EMPTY = 0,
-	GF_MOVE_X = 1,
-	GF_MOVE_Y = 2,
-	GF_RESIZE_X = 4,
-	GF_RESIZE_Y = 8,
-	GF_SCALE_X = 16,
-	GF_SCALE_Y = 32
-} window_grab_flags_t;
-
-extern int win_register(async_sess_t *, service_id_t *, service_id_t *, sysarg_t, sysarg_t);
+extern int win_register(async_sess_t *, service_id_t *, service_id_t *);
 
 extern int win_get_event(async_sess_t *, window_event_t *);
 
 extern int win_damage(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 extern int win_grab(async_sess_t *, sysarg_t, sysarg_t);
-extern int win_resize(async_sess_t *, sysarg_t, sysarg_t, void *);
+extern int win_resize(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    window_placement_flags_t, void *);
 extern int win_close(async_sess_t *);
 extern int win_close_request(async_sess_t *);
 

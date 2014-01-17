@@ -48,13 +48,13 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	window_t *main_window = window_open(argv[1], true, true, "vterm", 0, 0);
+	window_t *main_window = window_open(argv[1], true, true, "vterm");
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);
 		return 2;
 	}
 	
-	window_resize(main_window, 650, 510);
+	window_resize(main_window, 0, 0, 648, 508, WINDOW_PLACEMENT_ANY);
 	terminal_t *terminal_widget =
 	    create_terminal(window_root(main_window), 640, 480);
 	if (!terminal_widget) {

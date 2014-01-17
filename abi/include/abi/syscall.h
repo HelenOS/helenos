@@ -36,7 +36,7 @@
 #define ABI_SYSCALL_H_
 
 typedef enum {
-	SYS_KLOG = 0,
+	SYS_KIO = 0,
 	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
 	
 	SYS_THREAD_CREATE,
@@ -97,6 +97,8 @@ typedef enum {
 	SYS_SYSINFO_GET_DATA,
 	
 	SYS_DEBUG_ACTIVATE_CONSOLE,
+	
+	SYS_KLOG,
 	
 	SYSCALL_END
 } syscall_t;

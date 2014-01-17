@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,62 +48,97 @@
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
-#include <tinput.h>
+#include <io/log.h>
+#include <io/logctl.h>
 
 #define NAME       "klog"
-#define LOG_FNAME  "/log/klog"
+
+typedef struct {
+	size_t entry_len;
+	uint32_t serial;
+	uint32_t facility;
+	uint32_t level;
+	char message[0];
+	
+} __attribute__((__packed__)) log_entry_t;
 
 /* Producer/consumer buffers */
 typedef struct {
 	link_t link;
-	size_t length;
-	wchar_t *data;
+	size_t size;
+	log_entry_t *data;
 } item_t;
 
 static prodcons_t pc;
 
-/* Pointer to klog area */
-static wchar_t *klog;
-static size_t klog_length;
+/* Pointer to buffer where kernel stores new entries */
+#define BUFFER_SIZE PAGE_SIZE
+static void *buffer;
 
 /* Notification mutex */
 static FIBRIL_MUTEX_INITIALIZE(mtx);
 
+static log_t kernel_ctx;
+static const char *facility_name[] = {
+	"other",
+	"uspace",
+	"arch"
+};
+
+#define facility_len (sizeof(facility_name) / sizeof(const char *))
+static log_t facility_ctx[facility_len];
+
 /** Klog producer
  *
- * Copies the contents of a character buffer to local
- * producer/consumer queue.
+ * Copies the log entries to a producer/consumer queue.
  *
  * @param length Number of characters to copy.
  * @param data   Pointer to the kernel klog buffer.
  *
  */
-static void producer(size_t length, wchar_t *data)
+static void producer()
 {
-	item_t *item = (item_t *) malloc(sizeof(item_t));
-	if (item == NULL)
-		return;
+	int read = klog_read(buffer, BUFFER_SIZE);
 	
-	size_t sz = sizeof(wchar_t) * length;
-	wchar_t *buf = (wchar_t *) malloc(sz);
-	if (data == NULL) {
-		free(item);
+	if (read < 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "klog_read failed, rc = %d",
+		    read);
 		return;
 	}
 	
-	memcpy(buf, data, sz);
-	
-	link_initialize(&item->link);
-	item->length = length;
-	item->data = buf;
-	prodcons_produce(&pc, &item->link);
+	size_t len = read;
+	size_t offset = 0;
+	while (offset < len) {
+		size_t entry_len = *((size_t *) (buffer + offset));
+		
+		if (offset + entry_len > len || entry_len < sizeof(log_entry_t))
+			break;
+		
+		log_entry_t *buf = malloc(entry_len + 1);
+		if (buf == NULL)
+			break;
+		
+		item_t *item = malloc(sizeof(item_t));
+		if (item == NULL) {
+			free(buf);
+			break;
+		}
+		
+		memcpy(buf, buffer + offset, entry_len);
+		*((uint8_t *) buf + entry_len) = 0;
+		link_initialize(&item->link);
+		item->size = entry_len;
+		item->data = buf;
+		prodcons_produce(&pc, &item->link);
+		
+		offset += entry_len;
+	}
 }
 
 /** Klog consumer
  *
- * Waits in an infinite loop for the character data created by
- * the producer and outputs them to stdout and optionally into
- * a file.
+ * Waits in an infinite loop for the log data created by
+ * the producer and logs them to the logger.
  *
  * @param data Unused.
  *
@@ -111,31 +147,39 @@ static void producer(size_t length, wchar_t *data)
  */
 static int consumer(void *data)
 {
-	FILE *log = fopen(LOG_FNAME, "a");
-	if (log == NULL)
-		printf("%s: Unable to create log file %s (%s)\n", NAME, LOG_FNAME,
-		    str_error(errno));
 	
 	while (true) {
 		link_t *link = prodcons_consume(&pc);
 		item_t *item = list_get_instance(link, item_t, link);
 		
-		for (size_t i = 0; i < item->length; i++)
-			putchar(item->data[i]);
-		
-		if (log != NULL) {
-			for (size_t i = 0; i < item->length; i++)
-				fputc(item->data[i], log);
-			
-			fflush(log);
-			fsync(fileno(log));
+		if (item->size < sizeof(log_entry_t)) {
+			free(item->data);
+			free(item);
+			continue;
 		}
+		
+		if (item->data->facility == LF_USPACE) {
+			/* Avoid reposting messages */
+			free(item->data);
+			free(item);
+			continue;
+		}
+		
+		log_t ctx = kernel_ctx;
+		if (item->data->facility < facility_len) {
+			ctx = facility_ctx[item->data->facility];
+		}
+		
+		log_level_t lvl = item->data->level;
+		if (lvl > LVL_LIMIT)
+			lvl = LVL_NOTE;
+		
+		log_msg(ctx, lvl, "%s", item->data->message);
 		
 		free(item->data);
 		free(item);
 	}
 	
-	fclose(log);
 	return EOK;
 }
 
@@ -154,31 +198,11 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 	 * Make sure we process only a single notification
 	 * at any time to limit the chance of the consumer
 	 * starving.
-	 *
-	 * Note: Usually the automatic masking of the klog
-	 * notifications on the kernel side does the trick
-	 * of limiting the chance of accidentally copying
-	 * the same data multiple times. However, due to
-	 * the non-blocking architecture of klog notifications,
-	 * this possibility cannot be generally avoided.
 	 */
 	
 	fibril_mutex_lock(&mtx);
 	
-	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
-	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
-	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
-	
-	size_t offset = (klog_start + klog_len - klog_stored) % klog_length;
-	
-	/* Copy data from the ring buffer */
-	if (offset + klog_stored >= klog_length) {
-		size_t split = klog_length - offset;
-		
-		producer(split, klog + offset);
-		producer(klog_stored - split, klog);
-	} else
-		producer(klog_stored, klog + offset);
+	producer();
 	
 	event_unmask(EVENT_KLOG);
 	fibril_mutex_unlock(&mtx);
@@ -186,75 +210,50 @@ static void notification_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
-	size_t pages;
-	int rc = sysinfo_get_value("klog.pages", &pages);
+	int rc = log_init(NAME);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get number of klog pages\n",
-		    NAME);
+		fprintf(stderr, "%s: Unable to initialize log\n", NAME);
 		return rc;
 	}
 	
-	uintptr_t faddr;
-	rc = sysinfo_get_value("klog.faddr", &faddr);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to get klog physical address\n",
-		    NAME);
-		return rc;
+	kernel_ctx = log_create("kernel", LOG_NO_PARENT);
+	for (unsigned int i = 0; i < facility_len; i++) {
+		facility_ctx[i] = log_create(facility_name[i], kernel_ctx);
 	}
 	
-	size_t size = pages * PAGE_SIZE;
-	klog_length = size / sizeof(wchar_t);
-	
-	rc = physmem_map(faddr, pages, AS_AREA_READ | AS_AREA_CACHEABLE,
-	    (void *) &klog);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to map klog\n", NAME);
-		return rc;
+	buffer = malloc(BUFFER_SIZE);
+	if (buffer == NULL) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to allocate buffer");
+		return 1;
 	}
 	
 	prodcons_initialize(&pc);
 	async_set_interrupt_received(notification_received);
 	rc = event_subscribe(EVENT_KLOG, 0);
 	if (rc != EOK) {
-		fprintf(stderr, "%s: Unable to register klog notifications\n",
-		    NAME);
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Unable to register klog notifications");
 		return rc;
 	}
 	
 	fid_t fid = fibril_create(consumer, NULL);
 	if (!fid) {
-		fprintf(stderr, "%s: Unable to create consumer fibril\n",
-		    NAME);
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Unable to create consumer fibril");
 		return ENOMEM;
 	}
 	
-	tinput_t *input = tinput_new();
-	if (!input) {
-		fprintf(stderr, "%s: Could not create input\n", NAME);
-		return ENOMEM;
-	}	
-
 	fibril_add_ready(fid);
 	event_unmask(EVENT_KLOG);
-	klog_update();
 	
-	tinput_set_prompt(input, "klog> ");
-
-	char *str;
-	while ((rc = tinput_read(input, &str)) == EOK) {
-		if (str_cmp(str, "") == 0) {
-			free(str);
-			continue;
-		}
-
-		klog_command(str, str_size(str));
-		free(str);
-	}
- 
-	if (rc == ENOENT)
-		rc = EOK;	
-
-	return EOK;
+	fibril_mutex_lock(&mtx);
+	producer();
+	fibril_mutex_unlock(&mtx);
+	
+	task_retval(0);
+	async_manager();
+	
+	return 0;
 }
 
 /** @}

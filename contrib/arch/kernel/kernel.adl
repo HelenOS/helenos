@@ -2,11 +2,11 @@
  * Kernel syscall interfaces *
  *****************************/
 
-interface sys_klog {
+interface sys_kio {
 		/* Print using kernel facility */
-		sysarg_t sys_klog(int fd, const void *buf, size_t size);
+		sysarg_t sys_kio(int fd, const void *buf, size_t size);
 	protocol:
-		?sys_klog*
+		?sys_kio*
 };
 
 interface sys_console {
@@ -250,7 +250,7 @@ interface sys_debug {
 
 frame sys_console {
 	provides:
-		sys_klog sys_klog;
+		sys_kio sys_kio;
 		sys_console sys_console;
 };
 
@@ -315,7 +315,7 @@ architecture kernel {
 	inst sys_sysinfo sys_sysinfo;
 	inst sys_debug sys_debug;
 	
-	delegate sys_klog to sys_console:sys_klog;
+	delegate sys_kio to sys_console:sys_kio;
 	delegate sys_console to sys_console:sys_console;
 	delegate sys_tls to sys_proc:sys_tls;
 	delegate sys_thread to sys_proc:sys_thread;

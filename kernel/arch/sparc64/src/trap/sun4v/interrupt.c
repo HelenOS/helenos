@@ -41,7 +41,7 @@
 #include <debug.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
-#include <print.h>
+#include <log.h>
 #include <arch.h>
 #include <mm/tlb.h>
 #include <config.h>
@@ -110,8 +110,8 @@ void cpu_mondo(void)
 		if (data1 == (uintptr_t) tlb_shootdown_ipi_recv) {
 			((void (*)(void)) data1)();
 		} else {
-			printf("Spurious interrupt on %" PRIu64 ", data = %" PRIx64 ".\n",
-			    CPU->arch.id, data1);
+			log(LF_ARCH, LVL_DEBUG, "Spurious interrupt on %" PRIu64
+			    ", data = %" PRIx64 ".", CPU->arch.id, data1);
 		}
 	}
 #endif

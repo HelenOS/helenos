@@ -115,6 +115,9 @@ static inline int section_cacheable(pfn_t section)
 #elif defined MACHINE_beaglebone
 	if (address >= AM335x_RAM_START && address < AM335x_RAM_END)
 		return 1;
+#elif defined MACHINE_raspberrypi
+	if (address < BCM2835_RAM_END)
+		return 1;
 #endif
 	return address * 0;
 }

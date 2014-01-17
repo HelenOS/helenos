@@ -53,6 +53,7 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <print.h>
+#include <log.h>
 #include <align.h>
 #include <mm/slab.h>
 #include <bitops.h>
@@ -120,7 +121,8 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
     zone_flags_t flags)
 {
 	if (zones.count + 1 == ZONES_MAX) {
-		printf("Maximum zone count %u exceeded!\n", ZONES_MAX);
+		log(LF_OTHER, LVL_ERROR, "Maximum zone count %u exceeded!",
+		    ZONES_MAX);
 		return (size_t) -1;
 	}
 	
@@ -140,8 +142,9 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
 			if ((zones.info[i].flags != flags) ||
 			    (!iswithin(zones.info[i].base, zones.info[i].count,
 			    base, count))) {
-				printf("Zone (%p, %p) overlaps "
-				    "with previous zone (%p %p)!\n",
+				log(LF_OTHER, LVL_WARN,
+				    "Zone (%p, %p) overlaps "
+				    "with previous zone (%p %p)!",
 				    (void *) PFN2ADDR(base), (void *) PFN2ADDR(count),
 				    (void *) PFN2ADDR(zones.info[i].base),
 				    (void *) PFN2ADDR(zones.info[i].count));
@@ -912,8 +915,9 @@ loop:
 		 */
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " waiting for %zu frames "
-		    "(%zu available).\n", THREAD->tid, count, avail);
+		log(LF_OTHER, LVL_DEBUG,
+		    "Thread %" PRIu64 " waiting for %zu frames "
+		    "%zu available.", THREAD->tid, count, avail);
 #endif
 		
 		/*
@@ -937,7 +941,8 @@ loop:
 		interrupts_restore(ipl);
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " woken up.\n", THREAD->tid);
+		log(LF_OTHER, LVL_DEBUG, "Thread %" PRIu64 " woken up.",
+		    THREAD->tid);
 #endif
 		
 		goto loop;

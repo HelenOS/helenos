@@ -38,6 +38,7 @@
 #include <console/kconsole.h>
 #include <console/cmd.h>
 #include <print.h>
+#include <log.h>
 #include <panic.h>
 #include <arch.h>
 #include <arch/cp0.h>
@@ -293,19 +294,23 @@ void debugger_init()
 #ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);
 	if (!cmd_register(&bkpts_info))
-		printf("Cannot register command %s\n", bkpts_info.name);
+		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
+		    bkpts_info.name);
 	
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))
-		printf("Cannot register command %s\n", delbkpt_info.name);
+		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
+		    delbkpt_info.name);
 	
 	cmd_initialize(&addbkpt_info);
 	if (!cmd_register(&addbkpt_info))
-		printf("Cannot register command %s\n", addbkpt_info.name);
+		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
+		    addbkpt_info.name);
 	
 	cmd_initialize(&addbkpte_info);
 	if (!cmd_register(&addbkpte_info))
-		printf("Cannot register command %s\n", addbkpte_info.name);
+		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
+		    addbkpte_info.name);
 #endif /* CONFIG_KCONSOLE */
 }
 
