@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <macros.h>
 
 #include "usb_iface.h"
 #include "ddf/driver.h"
@@ -106,7 +107,7 @@ static void remote_usb_get_my_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_c
 static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
-static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
+static const remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 	[IPC_M_USB_GET_MY_ADDRESS] = remote_usb_get_my_address,
 	[IPC_M_USB_GET_MY_INTERFACE] = remote_usb_get_my_interface,
 	[IPC_M_USB_GET_HOST_CONTROLLER_HANDLE] = remote_usb_get_hc_handle,
@@ -114,9 +115,8 @@ static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
 
 /** Remote USB interface structure.
  */
-remote_iface_t remote_usb_iface = {
-	.method_count = sizeof(remote_usb_iface_ops) /
-	    sizeof(remote_usb_iface_ops[0]),
+const remote_iface_t remote_usb_iface = {
+	.method_count = ARRAY_SIZE(remote_usb_iface_ops),
 	.methods = remote_usb_iface_ops
 };
 

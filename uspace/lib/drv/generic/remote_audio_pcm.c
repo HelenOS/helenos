@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <macros.h>
 #include <str.h>
-#include <as.h>
 #include <sys/mman.h>
 
 #include "audio_pcm_iface.h"
@@ -610,7 +609,7 @@ static void remote_audio_pcm_start_capture(ddf_fun_t *, void *, ipc_callid_t, ip
 static void remote_audio_pcm_stop_capture(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote audio pcm buffer interface operations. */
-static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 	[IPC_M_AUDIO_PCM_GET_INFO_STR] = remote_audio_pcm_get_info_str,
 	[IPC_M_AUDIO_PCM_QUERY_CAPS] = remote_audio_pcm_query_caps,
 	[IPC_M_AUDIO_PCM_REGISTER_EVENTS] = remote_audio_pcm_events_register,
@@ -626,9 +625,8 @@ static remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
 };
 
 /** Remote audio mixer interface structure. */
-remote_iface_t remote_audio_pcm_iface = {
-	.method_count = sizeof(remote_audio_pcm_iface_ops) /
-	    sizeof(remote_audio_pcm_iface_ops[0]),
+const remote_iface_t remote_audio_pcm_iface = {
+	.method_count = ARRAY_SIZE(remote_audio_pcm_iface_ops),
 	.methods = remote_audio_pcm_iface_ops
 };
 

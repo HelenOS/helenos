@@ -51,9 +51,7 @@
 #include <ddf/log.h>
 #include <ipc/dev_iface.h>
 #include <ops/hw_res.h>
-#include <device/hw_res.h>
 #include <ops/pio_window.h>
-#include <device/pio_window.h>
 #include <byteorder.h>
 
 #define NAME "rootmalta"

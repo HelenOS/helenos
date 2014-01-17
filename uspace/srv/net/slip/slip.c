@@ -39,7 +39,7 @@
 #include <loc.h>
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
-#include <device/char_dev.h>
+#include <char_dev_iface.h>
 #include <io/log.h>
 #include <errno.h>
 

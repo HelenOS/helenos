@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2012 Maurizio Lombardi
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,20 +32,24 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_CHAR_DEV_H_
-#define LIBC_DEVICE_CHAR_DEV_H_
+#ifndef LIBDRV_BATTERY_IFACE_H_
+#define LIBDRV_BATTERY_IFACE_H_
 
 #include <async.h>
 
 typedef enum {
-	CHAR_DEV_READ = 0,
-	CHAR_DEV_WRITE
-} char_dev_method_t;
+	BATTERY_OK,
+	BATTERY_LOW,
+	BATTERY_NOT_PRESENT,
+} battery_status_t;
 
-extern ssize_t char_dev_read(async_sess_t *, void *, size_t);
-extern ssize_t char_dev_write(async_sess_t *, void *, size_t);
+typedef enum {
+	BATTERY_STATUS_GET = 0,
+	BATTERY_CHARGE_LEVEL_GET,
+} battery_dev_method_t;
+
+extern int battery_status_get(async_sess_t *, battery_status_t *);
+extern int battery_charge_level_get(async_sess_t *, int *);
 
 #endif
 
-/** @}
- */

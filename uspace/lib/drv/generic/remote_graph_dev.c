@@ -34,19 +34,33 @@
 
 #include <errno.h>
 #include <async.h>
+#include <macros.h>
 
 #include "ops/graph_dev.h"
+#include "graph_iface.h"
 #include "ddf/driver.h"
+
+typedef enum {
+	GRAPH_DEV_CONNECT = 0
+} graph_dev_method_t;
+
+int graph_dev_connect(async_sess_t *sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+	int ret = async_req_1_0(exch, DEV_IFACE_ID(GRAPH_DEV_IFACE), GRAPH_DEV_CONNECT);
+	async_exchange_end(exch);
+
+	return ret;
+}
 
 static void remote_graph_connect(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
-static remote_iface_func_ptr_t remote_graph_dev_iface_ops[] = {
-	&remote_graph_connect
+static const remote_iface_func_ptr_t remote_graph_dev_iface_ops[] = {
+	[GRAPH_DEV_CONNECT] = remote_graph_connect
 };
 
-remote_iface_t remote_graph_dev_iface = {
-	.method_count = sizeof(remote_graph_dev_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+const remote_iface_t remote_graph_dev_iface = {
+	.method_count = ARRAY_SIZE(remote_graph_dev_iface_ops),
 	.methods = remote_graph_dev_iface_ops
 };
 

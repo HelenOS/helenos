@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <devman.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 
 #include "res.h"
 

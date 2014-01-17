@@ -62,7 +62,7 @@
 #include "private/driver.h"
 
 /** Driver structure */
-static driver_t *driver;
+static const driver_t *driver;
 
 /** Devices */
 LIST_INITIALIZE(devices);
@@ -412,7 +412,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		 * Get the corresponding interface for remote request
 		 * handling ("remote interface").
 		 */
-		remote_iface_t *rem_iface = get_remote_iface(iface_idx);
+		const remote_iface_t *rem_iface = get_remote_iface(iface_idx);
 		assert(rem_iface != NULL);
 		
 		/* get the method of the remote interface */
@@ -955,7 +955,7 @@ int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 	return devman_add_device_to_category(fun->handle, cat_name);
 }
 
-int ddf_driver_main(driver_t *drv)
+int ddf_driver_main(const driver_t *drv)
 {
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic

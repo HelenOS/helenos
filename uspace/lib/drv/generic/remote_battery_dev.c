@@ -35,8 +35,59 @@
 #include <async.h>
 #include <errno.h>
 #include <ops/battery_dev.h>
-#include <device/battery_dev.h>
+#include <battery_iface.h>
 #include <ddf/driver.h>
+#include <macros.h>
+
+/** Read the current battery status from the device
+ *
+ * @param sess     Session of the device
+ * @param status   Current status of the battery
+ *
+ * @return         EOK on success or a negative error code
+ */
+int
+battery_status_get(async_sess_t *sess, battery_status_t *batt_status)
+{
+	sysarg_t status;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	int const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
+	    BATTERY_STATUS_GET, &status);
+
+	async_exchange_end(exch);
+
+	if (rc == EOK)
+		*batt_status = (battery_status_t) status;
+
+	return rc;
+}
+
+/** Read the current battery charge level from the device
+ *
+ * @param sess     Session of the device
+ * @param level    Battery charge level (0 - 100)
+ *
+ * @return         EOK on success or a negative error code
+ */
+int
+battery_charge_level_get(async_sess_t *sess, int *level)
+{
+	sysarg_t charge_level;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	int const rc = async_req_1_1(exch, DEV_IFACE_ID(BATTERY_DEV_IFACE),
+	    BATTERY_CHARGE_LEVEL_GET, &charge_level);
+
+	async_exchange_end(exch);
+
+	if (rc == EOK)
+		*level = (int) charge_level;
+
+	return rc;
+}
 
 static void remote_battery_status_get(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
@@ -44,9 +95,9 @@ static void remote_battery_charge_level_get(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
 /** Remote battery interface operations */
-static remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
-	&remote_battery_status_get,
-	&remote_battery_charge_level_get,
+static const remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
+	[BATTERY_STATUS_GET] = remote_battery_status_get,
+	[BATTERY_CHARGE_LEVEL_GET] = remote_battery_charge_level_get,
 };
 
 /** Remote battery interface structure
@@ -55,9 +106,8 @@ static remote_iface_func_ptr_t remote_battery_dev_iface_ops[] = {
  * addressed by the battery interface.
  *
  */
-remote_iface_t remote_battery_dev_iface = {
-	.method_count = sizeof(remote_battery_dev_iface_ops) /
-	    sizeof(remote_iface_func_ptr_t),
+const remote_iface_t remote_battery_dev_iface = {
+	.method_count = ARRAY_SIZE(remote_battery_dev_iface_ops),
 	.methods = remote_battery_dev_iface_ops,
 };
 
