@@ -74,6 +74,26 @@
 /** IntegratorCP serial console output register */
 #define ICP_SCONS_ADDR		0x16000000
 
+/** Raspberry PI serial console registers */
+#define BCM2835_UART0_BASE	0x20201000
+#define BCM2835_UART0_DR	(BCM2835_UART0_BASE + 0x00)
+#define BCM2835_UART0_FR	(BCM2835_UART0_BASE + 0x18)
+#define BCM2835_UART0_ILPR	(BCM2835_UART0_BASE + 0x20)
+#define BCM2835_UART0_IBRD	(BCM2835_UART0_BASE + 0x24)
+#define BCM2835_UART0_FBRD	(BCM2835_UART0_BASE + 0x28)
+#define BCM2835_UART0_LCRH	(BCM2835_UART0_BASE + 0x2C)
+#define BCM2835_UART0_CR	(BCM2835_UART0_BASE + 0x30)
+#define BCM2835_UART0_ICR	(BCM2835_UART0_BASE + 0x44)
+
+#define BCM2835_UART0_FR_TXFF	(1 << 5)
+#define BCM2835_UART0_LCRH_FEN	(1 << 4)
+#define BCM2835_UART0_LCRH_WL8	((1 << 5) | (1 << 6))
+#define BCM2835_UART0_CR_UARTEN	(1 << 0)
+#define BCM2835_UART0_CR_TXE	(1 << 8)
+#define BCM2835_UART0_CR_RXE	(1 << 9)
+
+
+
 extern void bootstrap(void);
 
 #endif

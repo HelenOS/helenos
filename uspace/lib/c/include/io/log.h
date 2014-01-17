@@ -38,24 +38,7 @@
 #include <inttypes.h>
 #include <io/verify.h>
 
-/** Log message level. */
-typedef enum {
-	/** Fatal error, program is not able to recover at all. */
-	LVL_FATAL,
-	/** Serious error but the program can recover from it. */
-	LVL_ERROR,
-	/** Easily recoverable problem. */
-	LVL_WARN,
-	/** Information message that ought to be printed by default. */
-	LVL_NOTE,
-	/** Debugging purpose message. */
-	LVL_DEBUG,
-	/** More detailed debugging message. */
-	LVL_DEBUG2,
-	
-	/** For checking range of values */
-	LVL_LIMIT
-} log_level_t;
+#include <abi/log.h>
 
 /** Log itself (logging target). */
 typedef sysarg_t log_t;

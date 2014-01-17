@@ -45,7 +45,8 @@
  */
 #define ICP_IRQC_MAX_IRQ  8
 #define ICP_KBD_IRQ       3
-#define ICP_TIMER_IRQ    6
+#define ICP_TIMER_IRQ     6
+#define ICP_UART0_IRQ     1
 
 /** Timer frequency */
 #define ICP_TIMER_FREQ  10000

@@ -41,16 +41,6 @@ EXTRA_CFLAGS += \
 BINARY = compositor
 
 SOURCES = \
-	compositor.c \
-	images.c
-
-IMAGES = \
-	gfx/nameic.tga
-
-PRE_DEPEND = images.c images.h
-EXTRA_CLEAN = images.c images.h
+	compositor.c
 
 include $(USPACE_PREFIX)/Makefile.common
-
-images.c images.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $^

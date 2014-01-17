@@ -5,7 +5,7 @@ interface ns {
 		/* Connect to a clonable service or a generic service */
 		sysarg_t ipc_m_connect_me_to(in sysarg_t service, in sysarg_t arg2, in sysarg_t arg3, in sysarg_t flags);
 		
-		/* Share real-time clock page or klog page */
+		/* Share real-time clock page or kio page */
 		sysarg_t ipc_m_share_in(in sysarg_t as_area_base, in sysarg_t as_area_size, in sysarg_t service);
 		
 		/* For IPC testing purposes */

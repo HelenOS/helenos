@@ -45,6 +45,7 @@
 #include <interrupt.h>
 #include <arch.h>
 #include <print.h>
+#include <log.h>
 #include <typedefs.h>
 #include <config.h>
 #include <arch/trap/trap.h>
@@ -334,7 +335,7 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
  */
 void tlb_print(void)
 {
-	printf("Operation not possible on Niagara.\n");
+	log(LF_ARCH, LVL_WARN, "Operation not possible on Niagara.");
 }
 
 /**

@@ -40,7 +40,7 @@
 #include <arch/bios/bios.h>
 #include <mm/page.h>
 #include <mm/km.h>
-#include <print.h>
+#include <log.h>
 
 #define RSDP_SIGNATURE      "RSD PTR "
 #define RSDP_REVISION_OFFS  15
@@ -210,12 +210,12 @@ rsdp_found:
 		    (struct acpi_sdt_header *) acpi_xsdt_p);
 	
 	if ((acpi_rsdt) && (!acpi_sdt_check((uint8_t *) acpi_rsdt))) {
-		printf("RSDT: bad checksum\n");
+		log(LF_ARCH, LVL_ERROR, "RSDT: bad checksum");
 		return;
 	}
 	
 	if ((acpi_xsdt) && (!acpi_sdt_check((uint8_t *) acpi_xsdt))) {
-		printf("XSDT: bad checksum\n");
+		log(LF_ARCH, LVL_ERROR, "XSDT: bad checksum");
 		return;
 	}
 	

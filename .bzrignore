@@ -32,7 +32,7 @@ uspace/app/inet/inet
 uspace/app/init/init
 uspace/app/kill/kill
 uspace/app/killall/killall
-uspace/app/klog/klog
+uspace/app/kio/kio
 uspace/app/loc/loc
 uspace/app/logset/logset
 uspace/app/mixerctl/mixerctl
@@ -81,7 +81,7 @@ uspace/dist/app/getterm
 uspace/dist/app/inet
 uspace/dist/app/kill
 uspace/dist/app/killall
-uspace/dist/app/klog
+uspace/dist/app/kio
 uspace/dist/app/loc
 uspace/dist/app/logset
 uspace/dist/app/mixerctl
@@ -278,3 +278,11 @@ uspace/app/download/download
 uspace/dist/app/download
 uspace/app/viewer/viewer
 uspace/dist/app/viewer
+uspace/app/hdisk/hdisk
+uspace/dist/app/hdisk
+uspace/app/untar/untar
+uspace/dist/app/untar
+uspace/lib/posix/redefs-hide-libc-symbols.list
+uspace/lib/posix/redefs-show-posix-symbols.list
+uspace/srv/klog/klog
+uspace/dist/srv/klog

@@ -39,13 +39,12 @@
 
 #include <stdio.h>
 
-int win_register(async_sess_t *sess, service_id_t *in, service_id_t *out, 
-    sysarg_t x_offset, sysarg_t y_offset)
+int win_register(async_sess_t *sess, service_id_t *in, service_id_t *out)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_2_2(exch, WINDOW_REGISTER, x_offset, y_offset, in, out);
+	int ret = async_req_0_2(exch, WINDOW_REGISTER, in, out);
 	async_exchange_end(exch);
-
+	
 	return ret;
 }
 
@@ -91,27 +90,28 @@ int win_grab(async_sess_t *sess, sysarg_t pos_id, sysarg_t grab_flags)
 	return ret;
 }
 
-int win_resize(async_sess_t *sess, sysarg_t width, sysarg_t height, void *cells)
+int win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
+    sysarg_t height, window_placement_flags_t placement_flags, void *cells)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_2(exch, WINDOW_RESIZE, width, height, &answer);
-
+	aid_t req = async_send_5(exch, WINDOW_RESIZE, x, y, width, height,
+	    (sysarg_t) placement_flags, &answer);
+	
 	int rc = async_share_out_start(exch, cells, AS_AREA_READ | AS_AREA_CACHEABLE);
-
+	
 	async_exchange_end(exch);
-
+	
 	sysarg_t ret;
 	async_wait_for(req, &ret);
-
-	if (rc != EOK) {
+	
+	if (rc != EOK)
 		return rc;
-	} else if (ret != EOK) {
+	else if (ret != EOK)
 		return ret;
-	} else {
-		return EOK;
-	}
+	
+	return EOK;
 }
 
 int win_close(async_sess_t *sess)
