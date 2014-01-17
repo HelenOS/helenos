@@ -37,6 +37,37 @@
 #include <drawctx.h>
 #include "common.h"
 
+#define CROSS_WIDTH   14
+#define CROSS_HEIGHT  14
+
+static uint8_t cross_texture[] = {
+	0x00, 0x00, 0x02, 0x08, 0x04, 0x04, 0x08, 0x02, 0x10, 0x01, 0xa0, 0x00,
+	0x40, 0x00, 0xa0, 0x00, 0x10, 0x01, 0x08, 0x02, 0x04, 0x04, 0x02, 0x08,
+	0x01, 0x10, 0x00, 0x00
+};
+
+static uint8_t cross_mask[] = {
+	0x00, 0x00, 0x02, 0x18, 0x06, 0x0c, 0x0c, 0x06, 0x18, 0x03, 0xb0, 0x01,
+	0xe0, 0x00, 0xe0, 0x00, 0xb0, 0x01, 0x18, 0x03, 0x0c, 0x06, 0x06, 0x0c,
+	0x03, 0x18, 0x00, 0x00
+};
+
+void draw_icon_cross(surface_t *surface, sysarg_t hpos, sysarg_t vpos,
+    pixel_t highlight, pixel_t shadow)
+{
+	for (unsigned int y = 0; y < CROSS_HEIGHT; y++) {
+		for (unsigned int x = 0; x < CROSS_WIDTH; x++) {
+			size_t offset = y * ((CROSS_WIDTH - 1) / 8 + 1) + x / 8;
+			bool visible = cross_mask[offset] & (1 << (x % 8));
+			pixel_t pixel = (cross_texture[offset] & (1 << (x % 8))) ?
+			    highlight : shadow;
+			
+			if (visible)
+				surface_put_pixel(surface, hpos + x, vpos + y, pixel);
+		}
+	}
+}
+
 void draw_bevel(drawctx_t *drawctx, source_t *source, sysarg_t hpos,
     sysarg_t vpos, sysarg_t width, sysarg_t height, pixel_t highlight,
     pixel_t shadow)

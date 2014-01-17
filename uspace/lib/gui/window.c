@@ -62,9 +62,9 @@
 
 static sysarg_t border_thickness = 4;
 static sysarg_t bevel_thickness = 1;
-static sysarg_t header_height = 22;
+static sysarg_t header_height = 20;
 static sysarg_t header_min_width = 40;
-static sysarg_t close_thickness = 22;
+static sysarg_t close_thickness = 20;
 
 static pixel_t color_highlight = PIXEL(255, 255, 255, 255);
 static pixel_t color_shadow = PIXEL(255, 85, 85, 85);
@@ -154,9 +154,8 @@ static void paint_internal(widget_t *widget)
 	
 	/* Close button icon */
 	
-	draw_bevel(&drawctx, &source, close_hpos + 6, close_vpos + 9,
-	    close_thickness - 12, close_thickness - 18, color_highlight,
-	    color_shadow);
+	draw_icon_cross(surface, close_hpos + 3, close_vpos + 3,
+	    color_highlight, color_shadow);
 	
 	/* Window caption */
 	
