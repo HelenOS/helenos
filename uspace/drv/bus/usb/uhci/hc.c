@@ -104,7 +104,7 @@ static int hc_debug_checker(void *arg);
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
@@ -153,7 +153,7 @@ int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
  * - some kind of device error
  * - resume from suspend state (not implemented)
  */
-void hc_interrupt(hcd_t *hcd, uint32_t status)
+void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
 	assert(hcd);
 	hc_t *instance = hcd->driver.data;
@@ -407,7 +407,7 @@ do { \
 	return EOK;
 }
 
-int hc_status(hcd_t *hcd, uint32_t *status)
+int uhci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
 	assert(status);
@@ -431,7 +431,7 @@ int hc_status(hcd_t *hcd, uint32_t *status)
  *
  * Checks for bandwidth availability and appends the batch to the proper queue.
  */
-int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
 	hc_t *instance = hcd->driver.data;
