@@ -94,14 +94,11 @@ static int hc_init_memory(hc_t *instance);
 
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
- * @param[in] ranges_size Size of the ranges buffer (bytes).
- * @param[out] cmds Commands buffer.
- * @param[in] cmds_size Size of the commands buffer (bytes).
  * @param[in] hw_res Device's resources.
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
+int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 {
 	assert(code);
 	assert(hw_res);
@@ -214,13 +211,27 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
 }
 
+int ehci_hc_status(hcd_t *hcd, uint32_t *status)
+{
+	assert(hcd);
+	hc_t *instance = hcd->driver.data;
+	assert(instance);
+	assert(status);
+	*status = 0;
+	if (instance->registers) {
+		*status = EHCI_RD(instance->registers->usbsts);
+		EHCI_WR(instance->registers->usbsts, *status);
+	}
+	return EOK;
+}
+
 /** Add USB transfer to the schedule.
  *
- * @param[in] instance EHCI hc driver structure.
+ * @param[in] hcd HCD driver structure.
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
 	hc_t *instance = hcd->driver.data;
@@ -236,10 +247,10 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 /** Interrupt handling routine
  *
- * @param[in] instance EHCI hc driver structure.
+ * @param[in] hcd HCD driver structure.
  * @param[in] status Value of the status register at the time of interrupt.
  */
-void hc_interrupt(hcd_t *hcd, uint32_t status)
+void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 {
 	assert(hcd);
 	hc_t *instance = hcd->driver.data;

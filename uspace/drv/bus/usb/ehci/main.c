@@ -58,8 +58,8 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 
 	const int ret = hc_init(instance, res, irq);
 	if (ret == EOK)
-		hcd_set_implementation(hcd, instance, hc_schedule,
-		    NULL, NULL, hc_interrupt, NULL);
+		hcd_set_implementation(hcd, instance, ehci_hc_schedule,
+		    NULL, NULL, ehci_hc_interrupt, ehci_hc_status);
 	return ret;
 }
 
@@ -97,7 +97,7 @@ static int ehci_dev_add(ddf_dev_t *device)
 
 	const int ret = ddf_hcd_device_setup_all(device, USB_SPEED_HIGH,
 	    BANDWIDTH_AVAILABLE_USB20, bandwidth_count_usb11,
-	    ddf_hcd_gen_irq_handler, hc_gen_irq_code,
+	    ddf_hcd_gen_irq_handler, ehci_hc_gen_irq_code,
 	    ehci_driver_init, ehci_driver_fini);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize EHCI driver: %s.\n",
