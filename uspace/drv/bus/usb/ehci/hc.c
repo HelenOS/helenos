@@ -91,7 +91,6 @@ static const irq_cmd_t ehci_irq_commands[] = {
 static void hc_gain_control(hc_t *instance);
 static void hc_start(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
-static int interrupt_emulator(hc_t *instance);
 
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
@@ -190,12 +189,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 
 	hc_gain_control(instance);
 
-	if (!interrupts) {
-		instance->interrupt_emulator =
-		    fibril_create((int(*)(void*))interrupt_emulator, instance);
-		fibril_add_ready(instance->interrupt_emulator);
-	}
-
 	ehci_rh_init(
 	    &instance->rh, instance->caps, instance->registers, "ehci rh");
 	hc_start(instance);
@@ -253,24 +246,6 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	if (status & USB_STS_PORT_CHANGE_FLAG) {
 		ehci_rh_interrupt(&instance->rh);
 	}
-}
-
-/** Check status register regularly
- *
- * @param[in] instance EHCI hc driver structure.
- * @return Error code
- */
-int interrupt_emulator(hc_t *instance)
-{
-	assert(instance);
-	usb_log_info("Started interrupt emulator.\n");
-	while (1) {
-//		const uint32_t status = instance->registers->interrupt_status;
-//		instance->registers->interrupt_status = status;
-//		hc_interrupt(instance, status);
-		async_usleep(10000);
-	}
-	return EOK;
 }
 
 /** Turn off any (BIOS)driver that might be in control of the device.

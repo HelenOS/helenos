@@ -95,7 +95,6 @@ static void hc_init_hw(const hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 
-static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 
 
@@ -244,11 +243,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	}
 
 	hc_init_hw(instance);
-	if (!interrupts) {
-		instance->interrupt_emulator =
-		    fibril_create(hc_interrupt_emulator, instance);
-		fibril_add_ready(instance->interrupt_emulator);
-	}
 	(void)hc_debug_checker;
 
 	uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
@@ -456,29 +450,6 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 	assert(list);
 	transfer_list_add_batch(list, uhci_batch);
 
-	return EOK;
-}
-
-/** Polling function, emulates interrupts.
- *
- * @param[in] arg UHCI hc structure to use.
- * @return EOK (should never return)
- */
-int hc_interrupt_emulator(void* arg)
-{
-	usb_log_debug("Started interrupt emulator.\n");
-	hc_t *instance = arg;
-	assert(instance);
-
-	while (1) {
-		/* Read and clear status register */
-		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		pio_write_16(&instance->registers->usbsts, status);
-		if (status != 0)
-			usb_log_debug2("UHCI status: %x.\n", status);
-		hc_interrupt(instance, status);
-		async_usleep(UHCI_INT_EMULATOR_TIMEOUT);
-	}
 	return EOK;
 }
 

@@ -92,10 +92,8 @@ typedef struct uhci_regs {
 } uhci_regs_t;
 
 #define UHCI_FRAME_LIST_COUNT 1024
-#define UHCI_INT_EMULATOR_TIMEOUT 10000
 #define UHCI_DEBUGER_TIMEOUT 5000000
 #define UHCI_ALLOWED_HW_FAIL 5
-#define UHCI_NEEDED_IRQ_COMMANDS 5
 
 /** Main UHCI driver structure */
 typedef struct hc {
@@ -117,8 +115,6 @@ typedef struct hc {
 
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
-	/** Fibril periodically checking status register*/
-	fid_t interrupt_emulator;
 	/** Indicator of hw interrupts availability */
 	bool hw_interrupts;
 

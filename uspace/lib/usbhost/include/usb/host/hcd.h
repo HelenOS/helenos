@@ -75,6 +75,9 @@ struct hcd {
 
 	/** Driver implementation */
 	hc_driver_t driver;
+
+	/** Interrupt replacement fibril */
+	fid_t polling_fibril;
 };
 
 void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,

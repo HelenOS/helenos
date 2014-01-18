@@ -716,9 +716,8 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 {
 
 	assert(device);
-	assert(hw_res);
-	assert(handler);
-	assert(gen_irq_code);
+	if (!handler || !gen_irq_code)
+		return ENOTSUP;
 
 	irq_code_t irq_code = {0};
 
@@ -767,6 +766,25 @@ void ddf_hcd_gen_irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	const uint32_t status = IPC_GET_ARG1(*call);
 	hcd->driver.irq_hook(hcd, status);
 }
+
+static int interrupt_polling(void *arg)
+{
+	hcd_t *hcd = arg;
+	assert(hcd);
+	if (!hcd->driver.status_hook || !hcd->driver.irq_hook)
+		return ENOTSUP;
+	uint32_t status = 0;
+	while (hcd->driver.status_hook(hcd, &status) == EOK) {
+		hcd->driver.irq_hook(hcd, status);
+		status = 0;
+		/* We should wait 1 frame - 1ms here, but this polling is a
+		 * lame crutch anyway so don't hog the system. 10ms is still
+		 * good enough for emergency mode */
+		async_usleep(10000);
+	}
+	return EOK;
+}
+
 /** Initialize hc and rh DDF structures and their respective drivers.
  *
  * @param device DDF instance of the device to use
@@ -815,19 +833,30 @@ int ddf_hcd_device_setup_all(ddf_dev_t *device, usb_speed_t speed, size_t bw,
 
 	const int irq = hcd_ddf_setup_interrupts(device, &hw_res, irq_handler,
 	    gen_irq_code);
-	if (irq < 0) {
-		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(irq));
-	} else {
+	if (!(irq < 0)) {
 		usb_log_debug("Hw interrupts enabled.\n");
 	}
 
 	/* Init hw driver */
-	ret = driver_init(dev_to_hcd(device), &hw_res, !(irq < 0));
+	hcd_t *hcd = dev_to_hcd(device);
+	ret = driver_init(hcd, &hw_res, !(irq < 0));
 	hw_res_list_parsed_clean(&hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(ret));
 		goto irq_unregister;
+	}
+
+	/* Need working irq replacement to setup root hub */
+	if ((irq < 0) && hcd->driver.status_hook) {
+		hcd->polling_fibril = fibril_create(interrupt_polling, hcd);
+		if (hcd->polling_fibril == 0) {
+			usb_log_error("Failed to create polling fibril\n");
+			ret = ENOMEM;
+			goto irq_unregister;
+		}
+		fibril_add_ready(hcd->polling_fibril);
+		usb_log_warning("Failed to enable interrupts: %s."
+		    " Falling back to polling.\n", str_error(irq));
 	}
 
 	/*
