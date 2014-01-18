@@ -239,8 +239,10 @@ int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
  * @param[in] instance EHCI hc driver structure.
  * @param[in] status Value of the status register at the time of interrupt.
  */
-void hc_interrupt(hc_t *instance, uint32_t status)
+void hc_interrupt(hcd_t *hcd, uint32_t status)
 {
+	assert(hcd);
+	hc_t *instance = hcd->driver.data;
 	status = EHCI_RD(status);
 	assert(instance);
 	if (status & USB_STS_PORT_CHANGE_FLAG) {

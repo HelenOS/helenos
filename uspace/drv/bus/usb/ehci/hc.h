@@ -77,9 +77,9 @@ void hc_fini(hc_t *instance);
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
 void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
-int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
-void hc_interrupt(hc_t *instance, uint32_t status);
+int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+void hc_interrupt(hcd_t *hcd, uint32_t status);
 #endif
 /**
  * @}

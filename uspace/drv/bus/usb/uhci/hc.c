@@ -145,7 +145,7 @@ int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
 
 /** Take action based on the interrupt cause.
  *
- * @param[in] instance UHCI structure to use.
+ * @param[in] hcd HCD structure to use.
  * @param[in] status Value of the status register at the time of interrupt.
  *
  * Interrupt might indicate:
@@ -153,8 +153,10 @@ int hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res)
  * - some kind of device error
  * - resume from suspend state (not implemented)
  */
-void hc_interrupt(hc_t *instance, uint16_t status)
+void hc_interrupt(hcd_t *hcd, uint32_t status)
 {
+	assert(hcd);
+	hc_t *instance = hcd->driver.data;
 	assert(instance);
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {

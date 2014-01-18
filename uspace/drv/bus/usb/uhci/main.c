@@ -47,14 +47,6 @@
 
 #define NAME "uhci"
 
-// TODO: This should be merged to hc_interrupt
-static void uhci_interrupt(hcd_t *hcd, uint32_t status)
-{
-	assert(hcd);
-	if (hcd->driver.data)
-		hc_interrupt(hcd->driver.data, status);
-}
-
 static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
 {
 	assert(hcd);
@@ -67,7 +59,7 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	const int ret =  hc_init(instance, res, irq);
 	if (ret == EOK)
 		hcd_set_implementation(hcd, instance, hc_schedule, NULL, NULL,
-		    uhci_interrupt, hc_status);
+		    hc_interrupt, hc_status);
 	return ret;
 }
 

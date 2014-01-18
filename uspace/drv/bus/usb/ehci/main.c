@@ -46,13 +46,6 @@
 #include "hc.h"
 
 #define NAME "ehci"
-// TODO: This should be merged to hc_interrupt
-static void ehci_interrupt(hcd_t *hcd, uint32_t status)
-{
-	assert(hcd);
-	if (hcd->driver.data)
-		hc_interrupt(hcd->driver.data, status);
-}
 
 static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool irq)
 {
@@ -66,7 +59,7 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	const int ret = hc_init(instance, res, irq);
 	if (ret == EOK)
 		hcd_set_implementation(hcd, instance, hc_schedule,
-		    NULL, NULL, ehci_interrupt, NULL);
+		    NULL, NULL, hc_interrupt, NULL);
 	return ret;
 }
 
