@@ -67,7 +67,7 @@ static int uhci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	const int ret =  hc_init(instance, res, irq);
 	if (ret == EOK)
 		hcd_set_implementation(hcd, instance, hc_schedule, NULL, NULL,
-		    uhci_interrupt);
+		    uhci_interrupt, hc_status);
 	return ret;
 }
 
@@ -78,7 +78,7 @@ static void uhci_driver_fini(hcd_t *hcd)
 		hc_fini(hcd->driver.data);
 
 	free(hcd->driver.data);
-	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 static int uhci_dev_add(ddf_dev_t *device);

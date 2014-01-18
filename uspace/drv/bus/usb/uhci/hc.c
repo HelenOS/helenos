@@ -411,6 +411,22 @@ do { \
 	return EOK;
 }
 
+int hc_status(hcd_t *hcd, uint32_t *status)
+{
+	assert(hcd);
+	assert(status);
+	hc_t *instance = hcd->driver.data;
+	assert(instance);
+
+	*status = 0;
+	if (instance->registers) {
+		uint16_t s = pio_read_16(&instance->registers->usbsts);
+		pio_write_16(&instance->registers->usbsts, s);
+		*status = s;
+	}
+	return EOK;
+}
+
 /** Schedule batch for execution.
  *
  * @param[in] instance UHCI structure to use.

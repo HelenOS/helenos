@@ -65,7 +65,8 @@ static int ohci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	const int ret =  hc_init(instance, res, irq);
 	if (ret == EOK)
 		hcd_set_implementation(hcd, instance, hc_schedule,
-		    ohci_endpoint_init, ohci_endpoint_fini, ohci_interrupt);
+		    ohci_endpoint_init, ohci_endpoint_fini, ohci_interrupt,
+		    hc_status);
 	return ret;
 }
 
@@ -76,7 +77,7 @@ static void ohci_driver_fini(hcd_t *hcd)
 		hc_fini(hcd->driver.data);
 
 	free(hcd->driver.data);
-	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL);
+	hcd_set_implementation(hcd, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 /** Initializes a new ddf driver instance of OHCI hcd.

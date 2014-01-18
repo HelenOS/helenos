@@ -272,6 +272,21 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	}
 }
 
+int hc_status(hcd_t *hcd, uint32_t *status)
+{
+	assert(hcd);
+	assert(status);
+	hc_t *instance = hcd->driver.data;
+	assert(instance);
+
+	async_usleep(10000);
+	if (instance->registers){
+		*status = OHCI_RD(instance->registers->interrupt_status);
+		OHCI_WR(instance->registers->interrupt_status, *status);
+	}
+	return EOK;
+}
+
 /** Add USB transfer to the schedule.
  *
  * @param[in] instance OHCI hc driver structure.
