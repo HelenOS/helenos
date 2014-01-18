@@ -171,6 +171,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 
 	list_initialize(&instance->pending_batches);
 	fibril_mutex_initialize(&instance->guard);
+	instance->hw_interrupts = interrupts;
 
 	ret = hc_init_memory(instance);
 	if (ret != EOK) {
@@ -484,10 +485,13 @@ void hc_start(hc_t *instance)
 	    OHCI_RD(instance->registers->control));
 
 	/* Enable interrupts */
-	OHCI_WR(instance->registers->interrupt_enable, OHCI_USED_INTERRUPTS);
-	usb_log_debug("Enabled interrupts: %x.\n",
-	    OHCI_RD(instance->registers->interrupt_enable));
-	OHCI_WR(instance->registers->interrupt_enable, I_MI);
+	if (instance->hw_interrupts) {
+		OHCI_WR(instance->registers->interrupt_enable,
+		    OHCI_USED_INTERRUPTS);
+		usb_log_debug("Enabled interrupts: %x.\n",
+		    OHCI_RD(instance->registers->interrupt_enable));
+		OHCI_WR(instance->registers->interrupt_enable, I_MI);
+	}
 
 	/* Set periodic start to 90% */
 	const uint32_t frame_length =

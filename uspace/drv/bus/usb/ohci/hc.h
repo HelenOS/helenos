@@ -70,6 +70,9 @@ typedef struct hc {
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;
 
+	/** interrupts available */
+	bool hw_interrupts;
+
 	/** USB hub emulation structure */
 	ohci_rh_t rh;
 } hc_t;
