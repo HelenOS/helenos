@@ -49,6 +49,7 @@ typedef struct {
 	sysarg_t height;
 	surface_t *surface;
 	signal_t keyboard_event;
+	signal_t position_event;
 } canvas_t;
 
 extern bool init_canvas(canvas_t *, widget_t *, sysarg_t, sysarg_t,

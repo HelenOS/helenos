@@ -49,7 +49,7 @@
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 #include <nic.h>
 #include <ops/nic.h>
 #include "e1k.h"

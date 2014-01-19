@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stacktrace.h>
+#include <stdio.h>
 
 #define IPC_TEST_SERVICE  10240
 #define IPC_TEST_METHOD   2000
@@ -79,6 +80,7 @@ typedef struct {
 } test_t;
 
 extern const char *test_thread1(void);
+extern const char *test_setjmp1(void);
 extern const char *test_print1(void);
 extern const char *test_print2(void);
 extern const char *test_print3(void);

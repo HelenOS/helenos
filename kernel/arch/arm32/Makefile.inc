@@ -88,6 +88,10 @@ ifeq ($(MACHINE),beaglebone)
         ARCH_SOURCES += arch/$(KARCH)/src/mach/beaglebone/beaglebone.c
 endif
 
+ifeq ($(MACHINE),raspberrypi)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/raspberrypi/raspberrypi.c
+endif
+
 ifeq ($(CONFIG_PL050),y)
 	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
 endif

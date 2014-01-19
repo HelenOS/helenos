@@ -47,6 +47,7 @@ char **test_argv;
 
 test_t tests[] = {
 #include "thread/thread1.def"
+#include "thread/setjmp1.def"
 #include "print/print1.def"
 #include "print/print2.def"
 #include "print/print3.def"

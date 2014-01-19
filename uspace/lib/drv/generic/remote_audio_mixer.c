@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <str.h>
+#include <macros.h>
 
 #include "audio_mixer_iface.h"
 #include "ddf/driver.h"
@@ -203,7 +204,7 @@ static void remote_audio_mixer_get_item_level(ddf_fun_t *, void *, ipc_callid_t,
 static void remote_audio_mixer_set_item_level(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote audio mixer interface operations. */
-static remote_iface_func_ptr_t remote_audio_mixer_iface_ops[] = {
+static const remote_iface_func_ptr_t remote_audio_mixer_iface_ops[] = {
 	[IPC_M_AUDIO_MIXER_GET_INFO] = remote_audio_mixer_get_info,
 	[IPC_M_AUDIO_MIXER_GET_ITEM_INFO] = remote_audio_mixer_get_item_info,
 	[IPC_M_AUDIO_MIXER_GET_ITEM_LEVEL] = remote_audio_mixer_get_item_level,
@@ -211,9 +212,8 @@ static remote_iface_func_ptr_t remote_audio_mixer_iface_ops[] = {
 };
 
 /** Remote audio mixer interface structure. */
-remote_iface_t remote_audio_mixer_iface = {
-	.method_count = sizeof(remote_audio_mixer_iface_ops) /
-	    sizeof(remote_audio_mixer_iface_ops[0]),
+const remote_iface_t remote_audio_mixer_iface = {
+	.method_count = ARRAY_SIZE(remote_audio_mixer_iface_ops),
 	.methods = remote_audio_mixer_iface_ops
 };
 

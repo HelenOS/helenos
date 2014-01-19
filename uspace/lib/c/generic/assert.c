@@ -32,7 +32,7 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <io/klog.h>
+#include <io/kio.h>
 #include <stdlib.h>
 #include <atomic.h>
 #include <stacktrace.h>
@@ -43,9 +43,9 @@ static atomic_t failed_asserts = {0};
 void assert_abort(const char *cond, const char *file, unsigned int line)
 {
 	/*
-	 * Send the message safely to klog. Nested asserts should not occur.
+	 * Send the message safely to kio. Nested asserts should not occur.
 	 */
-	klog_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	kio_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
 	
 	/*

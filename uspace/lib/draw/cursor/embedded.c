@@ -45,22 +45,19 @@ static void cde_init(char *path, uint8_t *state_count, void **data)
 {
 	assert(state_count);
 	assert(data);
-
+	
 	(*state_count) = 1;
 	(*data) = NULL;
 }
 
 static surface_t *cde_render(uint8_t state)
 {
-	if (state != 0) {
+	if (state != 0)
 		return NULL;
-	}
-
+	
 	surface_t *surface = surface_create(CURSOR_WIDTH, CURSOR_HEIGHT, NULL, 0);
-
-	if (!surface) {
+	if (!surface)
 		return NULL;
-	}
 	
 	for (unsigned int y = 0; y < CURSOR_HEIGHT; ++y) {
 		for (unsigned int x = 0; x < CURSOR_WIDTH; ++x) {
@@ -68,10 +65,12 @@ static surface_t *cde_render(uint8_t state)
 			bool visible = cursor_mask[offset] & (1 << (x % 8));
 			pixel_t pixel = (cursor_texture[offset] & (1 << (x % 8))) ?
 			    PIXEL(255, 0, 0, 0) : PIXEL(255, 255, 255, 255);
-			surface_put_pixel(surface, x, y, visible ? pixel : PIXEL(0, 0, 0, 0));
+			
+			if (visible)
+				surface_put_pixel(surface, x, y, pixel);
 		}
 	}
-
+	
 	return surface;
 }
 

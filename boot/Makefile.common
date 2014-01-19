@@ -47,6 +47,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 KERNEL_PATH = $(ROOT_PATH)/kernel
 USPACE_PATH = $(ROOT_PATH)/uspace
 DIST_PATH = $(USPACE_PATH)/dist
+DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
 
@@ -94,7 +95,8 @@ RD_SRVS_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hid/console/console \
 	$(USPACE_PATH)/srv/devman/devman \
 	$(USPACE_PATH)/srv/fs/locfs/locfs \
-	$(USPACE_PATH)/srv/hid/compositor/compositor
+	$(USPACE_PATH)/srv/hid/compositor/compositor \
+	$(USPACE_PATH)/srv/klog/klog
 
 RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
@@ -159,7 +161,7 @@ endif
 RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
 	$(USPACE_PATH)/app/getterm/getterm \
-	$(USPACE_PATH)/app/klog/klog \
+	$(USPACE_PATH)/app/kio/kio \
 	$(USPACE_PATH)/app/vlaunch/vlaunch \
 	$(USPACE_PATH)/app/vterm/vterm
 
@@ -176,6 +178,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/dnsres/dnsres \
 	$(USPACE_PATH)/app/download/download \
 	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/hdisk/hdisk \
 	$(USPACE_PATH)/app/inet/inet \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
@@ -204,6 +207,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/sysinfo/sysinfo \
 	$(USPACE_PATH)/app/top/top \
+	$(USPACE_PATH)/app/untar/untar \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
 	$(USPACE_PATH)/app/vuhid/vuh \
 	$(USPACE_PATH)/app/mkbd/mkbd \

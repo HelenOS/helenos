@@ -137,7 +137,7 @@ int hc_get_my_registers(ddf_dev_t *dev, addr_range_t *io_regs_p)
 
 	hw_res_list_parsed_t hw_res;
 	hw_res_list_parsed_init(&hw_res);
-	const int ret =  hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	async_hangup(parent_sess);
 	if (ret != EOK) {
 		return ret;

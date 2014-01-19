@@ -152,7 +152,7 @@ static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
 }
 
 
-static int pci_config_space_write_32(ddf_fun_t *fun, uint32_t address,
+static int config_space_write_32(ddf_fun_t *fun, uint32_t address,
     uint32_t data)
 {
 	if (address > 252)
@@ -161,7 +161,7 @@ static int pci_config_space_write_32(ddf_fun_t *fun, uint32_t address,
 	return EOK;
 }
 
-static int pci_config_space_write_16(
+static int config_space_write_16(
     ddf_fun_t *fun, uint32_t address, uint16_t data)
 {
 	if (address > 254)
@@ -170,7 +170,7 @@ static int pci_config_space_write_16(
 	return EOK;
 }
 
-static int pci_config_space_write_8(
+static int config_space_write_8(
     ddf_fun_t *fun, uint32_t address, uint8_t data)
 {
 	if (address > 255)
@@ -179,7 +179,7 @@ static int pci_config_space_write_8(
 	return EOK;
 }
 
-static int pci_config_space_read_32(
+static int config_space_read_32(
     ddf_fun_t *fun, uint32_t address, uint32_t *data)
 {
 	if (address > 252)
@@ -188,7 +188,7 @@ static int pci_config_space_read_32(
 	return EOK;
 }
 
-static int pci_config_space_read_16(
+static int config_space_read_16(
     ddf_fun_t *fun, uint32_t address, uint16_t *data)
 {
 	if (address > 254)
@@ -197,7 +197,7 @@ static int pci_config_space_read_16(
 	return EOK;
 }
 
-static int pci_config_space_read_8(
+static int config_space_read_8(
     ddf_fun_t *fun, uint32_t address, uint8_t *data)
 {
 	if (address > 255)
@@ -216,12 +216,12 @@ static pio_window_ops_t pciintel_pio_window_ops = {
 };
 
 static pci_dev_iface_t pci_dev_ops = {
-	.config_space_read_8 = &pci_config_space_read_8,
-	.config_space_read_16 = &pci_config_space_read_16,
-	.config_space_read_32 = &pci_config_space_read_32,
-	.config_space_write_8 = &pci_config_space_write_8,
-	.config_space_write_16 = &pci_config_space_write_16,
-	.config_space_write_32 = &pci_config_space_write_32
+	.config_space_read_8 = &config_space_read_8,
+	.config_space_read_16 = &config_space_read_16,
+	.config_space_read_32 = &config_space_read_32,
+	.config_space_write_8 = &config_space_write_8,
+	.config_space_write_16 = &config_space_write_16,
+	.config_space_write_32 = &config_space_write_32
 };
 
 static ddf_dev_ops_t pci_fun_ops = {

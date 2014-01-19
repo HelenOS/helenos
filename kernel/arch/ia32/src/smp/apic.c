@@ -41,7 +41,7 @@
 #include <time/delay.h>
 #include <interrupt.h>
 #include <arch/interrupt.h>
-#include <print.h>
+#include <log.h>
 #include <arch/asm.h>
 #include <arch.h>
 #include <ddi/irq.h>
@@ -134,7 +134,7 @@ static void apic_spurious(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
-	printf("cpu%u: APIC spurious interrupt\n", CPU->id);
+	log(LF_ARCH, LVL_DEBUG, "cpu%u: APIC spurious interrupt", CPU->id);
 #endif
 }
 
@@ -240,20 +240,25 @@ int apic_poll_errors(void)
 	
 	esr.value = l_apic[ESR];
 	
-	if (esr.send_checksum_error)
-		printf("Send Checksum Error\n");
-	if (esr.receive_checksum_error)
-		printf("Receive Checksum Error\n");
-	if (esr.send_accept_error)
-		printf("Send Accept Error\n");
-	if (esr.receive_accept_error)
-		printf("Receive Accept Error\n");
-	if (esr.send_illegal_vector)
-		printf("Send Illegal Vector\n");
-	if (esr.received_illegal_vector)
-		printf("Received Illegal Vector\n");
-	if (esr.illegal_register_address)
-		printf("Illegal Register Address\n");
+	if (esr.err_bitmap) {
+		log_begin(LF_ARCH, LVL_ERROR);
+		log_printf("APIC errors detected:");
+		if (esr.send_checksum_error)
+			log_printf("\nSend Checksum Error");
+		if (esr.receive_checksum_error)
+			log_printf("\nReceive Checksum Error");
+		if (esr.send_accept_error)
+			log_printf("\nSend Accept Error");
+		if (esr.receive_accept_error)
+			log_printf("\nReceive Accept Error");
+		if (esr.send_illegal_vector)
+			log_printf("\nSend Illegal Vector");
+		if (esr.received_illegal_vector)
+			log_printf("\nReceived Illegal Vector");
+		if (esr.illegal_register_address)
+			log_printf("\nIllegal Register Address");
+		log_end();
+	}
 	
 	return !esr.err_bitmap;
 }
@@ -269,7 +274,7 @@ static void l_apic_wait_for_delivery(void)
 		if (retries++ > DELIVS_PENDING_SILENT_RETRIES) {
 			retries = 0;
 #ifdef CONFIG_DEBUG
-			printf("IPI is pending.\n");
+			log(LF_ARCH, LVL_DEBUG, "IPI is pending.");
 #endif
 			delay(20);
 		}
@@ -488,32 +493,34 @@ void l_apic_eoi(void)
 void l_apic_debug(void)
 {
 #ifdef LAPIC_VERBOSE
-	printf("LVT on cpu%u, LAPIC ID: %" PRIu8 "\n",
+	log_begin(LF_ARCH, LVL_DEBUG);
+	log_printf("LVT on cpu%u, LAPIC ID: %" PRIu8 "\n",
 	    CPU->id, l_apic_id());
 	
 	lvt_tm_t tm;
 	tm.value = l_apic[LVT_Tm];
-	printf("LVT Tm: vector=%" PRIu8 ", %s, %s, %s\n",
+	log_printf("LVT Tm: vector=%" PRIu8 ", %s, %s, %s\n",
 	    tm.vector, delivs_str[tm.delivs], mask_str[tm.masked],
 	    tm_mode_str[tm.mode]);
 	
 	lvt_lint_t lint;
 	lint.value = l_apic[LVT_LINT0];
-	printf("LVT LINT0: vector=%" PRIu8 ", %s, %s, %s, irr=%u, %s, %s\n",
+	log_printf("LVT LINT0: vector=%" PRIu8 ", %s, %s, %s, irr=%u, %s, %s\n",
 	    tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs],
 	    intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode],
 	    mask_str[lint.masked]);
 	
 	lint.value = l_apic[LVT_LINT1];
-	printf("LVT LINT1: vector=%" PRIu8 ", %s, %s, %s, irr=%u, %s, %s\n",
+	log_printf("LVT LINT1: vector=%" PRIu8 ", %s, %s, %s, irr=%u, %s, %s\n",
 	    tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs],
 	    intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode],
 	    mask_str[lint.masked]);
 	
 	lvt_error_t error;
 	error.value = l_apic[LVT_Err];
-	printf("LVT Err: vector=%" PRIu8 ", %s, %s\n", error.vector,
+	log_printf("LVT Err: vector=%" PRIu8 ", %s, %s\n", error.vector,
 	    delivs_str[error.delivs], mask_str[error.masked]);
+	log_end();
 #endif
 }
 

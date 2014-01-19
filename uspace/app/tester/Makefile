@@ -28,14 +28,23 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBSOFTFLOAT_PREFIX)
+LIBS = \
+	$(LIBBLOCK_PREFIX)/libblock.a \
+	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
+	$(LIBDRV_PREFIX)/libdrv.a
+
+EXTRA_CFLAGS = \
+	-I$(LIBBLOCK_PREFIX) \
+	-I$(LIBSOFTFLOAT_PREFIX) \
+	-I$(LIBDRV_PREFIX)/include
+
 BINARY = tester
 
 SOURCES = \
 	tester.c \
 	util.c \
 	thread/thread1.c \
+	thread/setjmp1.c \
 	print/print1.c \
 	print/print2.c \
 	print/print3.c \

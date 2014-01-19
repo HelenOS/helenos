@@ -38,13 +38,14 @@
 #include <arch.h>
 #include <func.h>
 #include <print.h>
+#include <log.h>
 
 void reboot(void)
 {
 	task_done();
 	
 #ifdef CONFIG_DEBUG
-	printf("Rebooting the system\n");
+	log(LF_OTHER, LVL_DEBUG, "Rebooting the system");
 #endif
 	
 	arch_reboot();

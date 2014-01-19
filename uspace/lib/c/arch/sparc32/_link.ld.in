@@ -1,0 +1,68 @@
+STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
+ENTRY(__entry)
+
+PHDRS {
+#ifdef LOADER
+	interp PT_INTERP;
+	text PT_LOAD FILEHDR PHDRS FLAGS(5);
+#else
+	text PT_LOAD FLAGS(5);
+#endif
+	data PT_LOAD FLAGS(6);
+}
+
+SECTIONS {
+#ifdef LOADER
+	. = 0x70004000 + SIZEOF_HEADERS;
+#else
+	. = 0x4000 + SIZEOF_HEADERS;
+#endif
+	
+	.init : {
+		*(.init);
+	} :text
+	
+	.text : {
+		*(.text .text.*);
+		*(.rodata .rodata.*);
+	} :text
+	
+#ifdef LOADER
+	.interp : {
+		*(.interp);
+	} :interp :text
+#endif
+	
+	. = . + 0x4000;
+	
+	.got : {
+		 _gp = .;
+		 *(.got*);
+	} :data
+	
+	.data : {
+		*(.data);
+		*(.sdata);
+	} :data
+	
+	.tdata : {
+		_tdata_start = .;
+		*(.tdata);
+		_tdata_end = .;
+		_tbss_start = .;
+		*(.tbss);
+		_tbss_end = .;
+	} :data
+	
+	_tls_alignment = ALIGNOF(.tdata);
+	
+	.bss : {
+		*(.sbss);
+		*(COMMON);
+		*(.bss);
+	} :data
+	
+	/DISCARD/ : {
+		*(*);
+	}
+}

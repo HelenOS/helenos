@@ -42,6 +42,7 @@
 #include <arch.h>
 #include <synch/mutex.h>
 #include <print.h>
+#include <log.h>
 #include <debug.h>
 #include <align.h>
 #include <interrupt.h>
@@ -216,7 +217,7 @@ void tlb_modified(istate_t *istate)
 	 * https://bugs.launchpad.net/qemu/+bug/1128935  
 	 */
 	if (index.p) {
-		printf("%s: TLBP failed in exception handler (badvaddr=%#"
+		log(LF_ARCH, LVL_WARN, "%s: TLBP failed in exception handler (badvaddr=%#"
 		    PRIxn ", ASID=%d).\n", __func__, badvaddr,
 		    AS ? AS->asid : -1);
 		return;

@@ -47,6 +47,7 @@
 #include <ddi/irq.h>
 #include <arch/debugger.h>
 #include <symtab.h>
+#include <log.h>
 
 static const char *exctable[] = {
 	"Interrupt",
@@ -73,39 +74,39 @@ static const char *exctable[] = {
 
 void istate_decode(istate_t *istate)
 {
-	printf("epc=%#010" PRIx32 "\tsta=%#010" PRIx32 "\t"
+	log_printf("epc=%#010" PRIx32 "\tsta=%#010" PRIx32 "\t"
 	    "lo =%#010" PRIx32 "\thi =%#010" PRIx32 "\n",
 	    istate->epc, istate->status, istate->lo, istate->hi);
 	
-	printf("a0 =%#010" PRIx32 "\ta1 =%#010" PRIx32 "\t"
+	log_printf("a0 =%#010" PRIx32 "\ta1 =%#010" PRIx32 "\t"
 	    "a2 =%#010" PRIx32 "\ta3 =%#010" PRIx32 "\n",
 	    istate->a0, istate->a1, istate->a2, istate->a3);
 	
-	printf("t0 =%#010" PRIx32 "\tt1 =%#010" PRIx32 "\t"
+	log_printf("t0 =%#010" PRIx32 "\tt1 =%#010" PRIx32 "\t"
 	    "t2 =%#010" PRIx32 "\tt3 =%#010" PRIx32 "\n",
 	    istate->t0, istate->t1, istate->t2, istate->t3);
 	
-	printf("t4 =%#010" PRIx32 "\tt5 =%#010" PRIx32 "\t"
+	log_printf("t4 =%#010" PRIx32 "\tt5 =%#010" PRIx32 "\t"
 	    "t6 =%#010" PRIx32 "\tt7 =%#010" PRIx32 "\n",
 	    istate->t4, istate->t5, istate->t6, istate->t7);
 	
-	printf("t8 =%#010" PRIx32 "\tt9 =%#010" PRIx32 "\t"
+	log_printf("t8 =%#010" PRIx32 "\tt9 =%#010" PRIx32 "\t"
 	    "v0 =%#010" PRIx32 "\tv1 =%#010" PRIx32 "\n",
 	    istate->t8, istate->t9, istate->v0, istate->v1);
 	
-	printf("s0 =%#010" PRIx32 "\ts1 =%#010" PRIx32 "\t"
+	log_printf("s0 =%#010" PRIx32 "\ts1 =%#010" PRIx32 "\t"
 	    "s2 =%#010" PRIx32 "\ts3 =%#010" PRIx32 "\n",
 	    istate->s0, istate->s1, istate->s2, istate->s3);
 	
-	printf("s4 =%#010" PRIx32 "\ts5 =%#010" PRIx32 "\t"
+	log_printf("s4 =%#010" PRIx32 "\ts5 =%#010" PRIx32 "\t"
 	    "s6 =%#010" PRIx32 "\ts7 =%#010" PRIx32 "\n",
 	    istate->s4, istate->s5, istate->s6, istate->s7);
 	
-	printf("s8 =%#010" PRIx32 "\tat =%#010" PRIx32 "\t"
+	log_printf("s8 =%#010" PRIx32 "\tat =%#010" PRIx32 "\t"
 	    "kt0=%#010" PRIx32 "\tkt1=%#010" PRIx32 "\n",
 	    istate->s8, istate->at, istate->kt0, istate->kt1);
 	
-	printf("sp =%#010" PRIx32 "\tra =%#010" PRIx32 "\t"
+	log_printf("sp =%#010" PRIx32 "\tra =%#010" PRIx32 "\t"
 	    "gp =%#010" PRIx32 "\n",
 	    istate->sp, istate->ra, istate->gp);
 }
@@ -193,7 +194,8 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 				 * Spurious interrupt.
 				 */
 #ifdef CONFIG_DEBUG
-				printf("cpu%u: spurious interrupt (inum=%u)\n",
+				log(LF_ARCH, LVL_DEBUG,
+				    "cpu%u: spurious interrupt (inum=%u)",
 				    CPU->id, i);
 #endif
 			}

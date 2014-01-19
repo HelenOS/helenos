@@ -42,7 +42,7 @@
 #include <mm/slab.h>
 #include <typedefs.h>
 #include <debug.h>
-#include <print.h>
+#include <log.h>
 #include <str.h>
 #include <arch/asm.h>
 #include <sysinfo/sysinfo.h>
@@ -212,7 +212,7 @@ pci_t *pci_init(ofw_tree_node_t *node)
 		/*
 		 * Unsupported model.
 		 */
-		printf("Unsupported PCI controller model (%s).\n",
+		log(LF_ARCH, LVL_WARN, "Unsupported PCI controller model (%s).",
 		    (char *) prop->value);
 	}
 

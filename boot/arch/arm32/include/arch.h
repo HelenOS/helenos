@@ -45,6 +45,8 @@
 #define BOOT_BASE	0x80000000
 #elif defined MACHINE_beaglebone
 #define BOOT_BASE       0x80000000
+#elif defined MACHINE_raspberrypi
+#define BOOT_BASE	0x00008000
 #else
 #define BOOT_BASE	0x00000000
 #endif

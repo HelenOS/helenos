@@ -36,7 +36,7 @@
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 #include <sysinfo.h>
 #include <ipc/irc.h>
 #include <ns.h>
@@ -110,11 +110,11 @@
 		.cmd = CMD_ACCEPT \
 	}
 
-static int ahci_get_sata_device_name(ddf_fun_t *, size_t, char *);
-static int ahci_get_num_blocks(ddf_fun_t *, uint64_t *);
-static int ahci_get_block_size(ddf_fun_t *, size_t *);
-static int ahci_read_blocks(ddf_fun_t *, uint64_t, size_t, void *);
-static int ahci_write_blocks(ddf_fun_t *, uint64_t, size_t, void *);
+static int get_sata_device_name(ddf_fun_t *, size_t, char *);
+static int get_num_blocks(ddf_fun_t *, uint64_t *);
+static int get_block_size(ddf_fun_t *, size_t *);
+static int read_blocks(ddf_fun_t *, uint64_t, size_t, void *);
+static int write_blocks(ddf_fun_t *, uint64_t, size_t, void *);
 
 static int ahci_identify_device(sata_dev_t *);
 static int ahci_set_highest_ultra_dma_mode(sata_dev_t *);
@@ -138,11 +138,11 @@ static int sata_devices_count = 0;
 /*----------------------------------------------------------------------------*/
 
 static ahci_iface_t ahci_interface = {
-	.get_sata_device_name = &ahci_get_sata_device_name,
-	.get_num_blocks = &ahci_get_num_blocks,
-	.get_block_size = &ahci_get_block_size,
-	.read_blocks = &ahci_read_blocks,
-	.write_blocks = &ahci_write_blocks
+	.get_sata_device_name = &get_sata_device_name,
+	.get_num_blocks = &get_num_blocks,
+	.get_block_size = &get_block_size,
+	.read_blocks = &read_blocks,
+	.write_blocks = &write_blocks
 };
 
 static ddf_dev_ops_t ahci_ops = {
@@ -179,7 +179,7 @@ static ahci_dev_t *dev_ahci_dev(ddf_dev_t *dev)
  * @return EOK.
  *
  */
-static int ahci_get_sata_device_name(ddf_fun_t *fun,
+static int get_sata_device_name(ddf_fun_t *fun,
     size_t sata_dev_name_length, char *sata_dev_name)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
@@ -195,7 +195,7 @@ static int ahci_get_sata_device_name(ddf_fun_t *fun,
  * @return EOK.
  *
  */
-static int ahci_get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
+static int get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	*num_blocks = sata->blocks;
@@ -210,7 +210,7 @@ static int ahci_get_num_blocks(ddf_fun_t *fun, uint64_t *num_blocks)
  * @return EOK.
  *
  */
-static int ahci_get_block_size(ddf_fun_t *fun, size_t *block_size)
+static int get_block_size(ddf_fun_t *fun, size_t *block_size)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
 	*block_size = sata->block_size;
@@ -227,7 +227,7 @@ static int ahci_get_block_size(ddf_fun_t *fun, size_t *block_size)
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_read_blocks(ddf_fun_t *fun, uint64_t blocknum,
+static int read_blocks(ddf_fun_t *fun, uint64_t blocknum,
     size_t count, void *buf)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);
@@ -270,7 +270,7 @@ static int ahci_read_blocks(ddf_fun_t *fun, uint64_t blocknum,
  * @return EOK if succeed, error code otherwise
  *
  */
-static int ahci_write_blocks(ddf_fun_t *fun, uint64_t blocknum,
+static int write_blocks(ddf_fun_t *fun, uint64_t blocknum,
     size_t count, void *buf)
 {
 	sata_dev_t *sata = fun_sata_dev(fun);

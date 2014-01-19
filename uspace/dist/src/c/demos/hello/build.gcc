@@ -1,0 +1,2 @@
+gcc -nostdlib -nostdinc -I/inc/c -Wl,-T/inc/_link.ld -L/lib -lc -lsoftint -o hello hello.c
+
