@@ -53,6 +53,13 @@ typedef enum {
 	USB_DEVREQ_LAST_STD
 } usb_stddevreq_t;
 
+/** Standard device features */
+typedef enum {
+	USB_FEATURE_ENDPOINT_HALT = 0,
+	USB_FEATURE_DEVICE_REMOTE_WAKEUP = 1,
+	USB_FEATURE_TEST_MODE = 2
+} usb_std_feature_t;
+
 /** USB device status - device is self powered (opposed to bus powered). */
 #define USB_DEVICE_STATUS_SELF_POWERED ((uint16_t)(1 << 0))
 
@@ -61,12 +68,6 @@ typedef enum {
 
 /** USB endpoint status - endpoint is halted (stalled). */
 #define USB_ENDPOINT_STATUS_HALTED ((uint16_t)(1 << 0))
-
-/** USB feature selector - endpoint halt (stall). */
-#define USB_FEATURE_SELECTOR_ENDPOINT_HALT (0)
-
-/** USB feature selector - device remote wake-up. */
-#define USB_FEATURE_SELECTOR_REMOTE_WAKEUP (1)
 
 /** Device request setup packet.
  * The setup packet describes the request.

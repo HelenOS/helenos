@@ -42,10 +42,10 @@
  * for hub and port).
  */
 typedef enum {
-	USB_HUB_FEATURE_HUB_LOCAL_POWER = 0,
-	USB_HUB_FEATURE_HUB_OVER_CURRENT = 1,
 	USB_HUB_FEATURE_C_HUB_LOCAL_POWER = 0,
 	USB_HUB_FEATURE_C_HUB_OVER_CURRENT = 1,
+	USB_HUB_FEATURE_HUB_LOCAL_POWER = 0,
+	USB_HUB_FEATURE_HUB_OVER_CURRENT = 1,
 	USB_HUB_FEATURE_PORT_CONNECTION = 0,
 	USB_HUB_FEATURE_PORT_ENABLE = 1,
 	USB_HUB_FEATURE_PORT_SUSPEND = 2,
@@ -58,6 +58,8 @@ typedef enum {
 	USB_HUB_FEATURE_C_PORT_SUSPEND = 18,
 	USB_HUB_FEATURE_C_PORT_OVER_CURRENT = 19,
 	USB_HUB_FEATURE_C_PORT_RESET = 20,
+	USB_HUB_FEATURE_PORT_TEST = 21,
+	USB_HUB_FEATURE_PORT_INDICATOR = 22
 	/* USB_HUB_FEATURE_ = , */
 } usb_hub_class_feature_t;
 
@@ -170,21 +172,29 @@ typedef enum {
     USB_HUB_REQUEST_GET_STATUS = 0,
     /** */
     USB_HUB_REQUEST_CLEAR_FEATURE = 1,
-    /** */
+    /** USB 1.0 only */
     USB_HUB_REQUEST_GET_STATE = 2,
     /** */
     USB_HUB_REQUEST_SET_FEATURE = 3,
     /** */
     USB_HUB_REQUEST_GET_DESCRIPTOR = 6,
     /** */
-    USB_HUB_REQUEST_SET_DESCRIPTOR = 7
+    USB_HUB_REQUEST_SET_DESCRIPTOR = 7,
+    /** */
+    USB_HUB_REQUEST_CLEAR_TT_BUFFER = 8,
+    /** */
+    USB_HUB_REQUEST_RESET_TT = 9,
+    /** */
+    USB_HUB_GET_TT_STATE = 10,
+    /** */
+    USB_HUB_STOP_TT = 11,
 } usb_hub_request_t;
 
 /**
  *	Maximum size of usb hub descriptor in bytes
  */
 /* 7 (basic size) + 2*32 (port bitmasks) */
-#define USB_HUB_MAX_DESCRIPTOR_SIZE 71
+#define USB_HUB_MAX_DESCRIPTOR_SIZE (7 + 2 * 32)
 
 #endif
 /**

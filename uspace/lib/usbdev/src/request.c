@@ -822,7 +822,7 @@ int usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
 {
 	return usb_request_clear_feature(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_ENDPOINT,
-	    uint16_host2usb(USB_FEATURE_SELECTOR_ENDPOINT_HALT),
+	    uint16_host2usb(USB_FEATURE_ENDPOINT_HALT),
 	    uint16_host2usb(ep_index));
 }
 

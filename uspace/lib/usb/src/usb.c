@@ -134,7 +134,7 @@ int usb_request_needs_toggle_reset(
 	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
 		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
 		if ((request->request_type == 0x2) &&
-		    (request->value == USB_FEATURE_SELECTOR_ENDPOINT_HALT))
+		    (request->value == USB_FEATURE_ENDPOINT_HALT))
 			return uint16_usb2host(request->index);
 		break;
 	case USB_DEVREQ_SET_CONFIGURATION:
