@@ -90,8 +90,10 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	    ext4_block_group_get_block_bitmap(bg_ref->block_group, sb);
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
 		return rc;
+	}
 	
 	/* Modify bitmap */
 	ext4_bitmap_free_bit(bitmap_block->data, index_in_group);
@@ -512,8 +514,10 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 		if (rc == EOK) {
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
-			if (rc != EOK)
+			if (rc != EOK) {
+				ext4_filesystem_put_block_group_ref(bg_ref);
 				return rc;
+			}
 			
 			allocated_block =
 			    ext4_filesystem_index_in_group2blockaddr(sb, rel_block_idx,
@@ -528,8 +532,10 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 		if (rc == EOK) {
 			bitmap_block->dirty = true;
 			rc = block_put(bitmap_block);
-			if (rc != EOK)
+			if (rc != EOK) {
+				ext4_filesystem_put_block_group_ref(bg_ref);
 				return rc;
+			}
 			
 			allocated_block =
 			    ext4_filesystem_index_in_group2blockaddr(sb, rel_block_idx,
@@ -599,7 +605,7 @@ success:
 int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock,
     bool *free)
 {
-	int rc = EOK;
+	int rc;
 	
 	ext4_filesystem_t *fs = inode_ref->fs;
 	ext4_superblock_t *sb = fs->superblock;
@@ -620,8 +626,10 @@ int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock,
 	    ext4_block_group_get_block_bitmap(bg_ref->block_group, sb);
 	block_t *bitmap_block;
 	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
 		return rc;
+	}
 	
 	/* Check if block is free */
 	*free = ext4_bitmap_is_free_bit(bitmap_block->data, index_in_group);

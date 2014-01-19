@@ -1402,16 +1402,18 @@ static int ext4fs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		goto exit;
 	}
 	
-	if (flags == BLOCK_FLAGS_NOREAD)
+	if (flags == BLOCK_FLAGS_NOREAD) {
 		memset(write_block->data, 0, block_size);
+		write_block->dirty = true;
+	}
 
 	rc = async_data_write_finalize(callid, write_block->data +
 	    (pos % block_size), bytes);
-	if (rc != EOK)
+	if (rc != EOK) {
+		block_put(write_block);
 		goto exit;
+	}
 
-	write_block->dirty = true;
-	
 	rc = block_put(write_block);
 	if (rc != EOK)
 		goto exit;
