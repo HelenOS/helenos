@@ -279,6 +279,36 @@ void hc_gain_control(hc_t *instance)
  */
 void hc_start(hc_t *instance)
 {
+	assert(instance);
+	/*
+	 * TURN OFF EHCI FOR NOW
+	 */
+
+	usb_log_debug("USBCMD value: %x.\n",
+	    EHCI_RD(instance->registers->usbcmd));
+	if (EHCI_RD(instance->registers->usbcmd) & USB_CMD_RUN_FLAG) {
+		/* disable all interrupts */
+		EHCI_WR(instance->registers->usbintr, 0);
+		/* ack all interrupts */
+		EHCI_WR(instance->registers->usbsts, 0x3f);
+		/* release RH ports */
+		EHCI_WR(instance->registers->configflag, 0);
+		EHCI_WR(instance->registers->usbcmd, 0);
+		/* Wait until hc is halted */
+		while ((EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG) == 0);
+		usb_log_info("EHCI turned off.\n");
+	} else {
+		usb_log_info("EHCI was not running.\n");
+	}
+	usb_log_debug("Registers: \n"
+	    "\t USBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
+	    "\t USBSTS(%p): %x(0x00001000 = HC halted)\n"
+	    "\t USBINT(%p): %x(0x0 = no interrupts).\n"
+	    "\t CONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
+	    &instance->registers->usbcmd, EHCI_RD(instance->registers->usbcmd),
+	    &instance->registers->usbsts, EHCI_RD(instance->registers->usbsts),
+	    &instance->registers->usbintr, EHCI_RD(instance->registers->usbintr),
+	    &instance->registers->configflag, EHCI_RD(instance->registers->configflag));
 }
 
 /** Initialize memory structures used by the EHCI hcd.
