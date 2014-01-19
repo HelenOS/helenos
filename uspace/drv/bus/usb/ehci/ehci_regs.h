@@ -41,8 +41,8 @@
 #define EHCI_WR(reg, val) pio_write_32(&(reg), host2uint32_t_le(val))
 #define EHCI_RD(reg) uint32_t_le2host(pio_read_32(&(reg)))
 #define EHCI_RD8(reg) pio_read_8(&(reg))
-//#define EHCI_SET(reg, val) reg |= host2uint32_t_le(val)
-//#define EHCI_CLR(reg, val) reg &= host2uint32_t_le(~val)
+#define EHCI_SET(reg, val) pio_set_32(&(reg), host2uint32_t_le(val), 0)
+#define EHCI_CLR(reg, val) pio_clear_32(&(reg), host2uint32_t_le(val), 0)
 
 /** EHCI memory mapped capability registers structure */
 typedef struct ehci_cap_regs {
@@ -134,26 +134,23 @@ typedef struct ehci_regs {
 #define USB_PORTSC_WKOC_E_FLAG       (1 << 22)
 #define USB_PORTSC_WKDSCNNT_E_FLAG   (1 << 21)
 #define USB_PORTSC_WKCNNT_E_FLAG     (1 << 20)
-#define USB_PORTSC_PORT_TEST_MASK    0xf
-#define USB_PORTSC_PORT_TEST_SHIFT   16
-#define USB_PORTSC_NO_TEST           0x0
-#define USB_PORTSC_TEST_J_STATE      0x1
-#define USB_PORTSC_TEST_K_STATE      0x2
-#define USB_PORTSC_TEST_SE0_NAK      0x3
-#define USB_PORTSC_TEST_PACKET       0x4
-#define USB_PORTSC_TEST_FORCE_ENABLE 0x5
-#define USB_PORTSC_INDICATOR_MASK    0x3
-#define USB_PORTSC_INDICATOR_SHIFT   14
-#define USB_PORTSC_INDICATOR_OFF     0x0
-#define USB_PORTSC_INDICATOR_AMBER   0x1
-#define USB_PORTSC_INDICATOR_GREEN   0x2
+#define USB_PORTSC_PORT_TEST_MASK    (0xf << 16)
+#define USB_PORTSC_NO_TEST           (0x0 << 16)
+#define USB_PORTSC_TEST_J_STATE      (0x1 << 16)
+#define USB_PORTSC_TEST_K_STATE      (0x2 << 16)
+#define USB_PORTSC_TEST_SE0_NAK      (0x3 << 16)
+#define USB_PORTSC_TEST_PACKET       (0x4 << 16)
+#define USB_PORTSC_TEST_FORCE_ENABLE (0x5 << 16)
+#define USB_PORTSC_INDICATOR_MASK    (0x3 << 14)
+#define USB_PORTSC_INDICATOR_OFF     (0x0 << 14)
+#define USB_PORTSC_INDICATOR_AMBER   (0x1 << 14)
+#define USB_PORTSC_INDICATOR_GREEN   (0x2 << 14)
 #define USB_PORTSC_PORT_OWNER_FLAG   (1 << 13)
 #define USB_PORTSC_PORT_POWER_FLAG   (1 << 12)
-#define USB_PORTSC_LINE_STATUS_MASK  0x3
-#define USB_PORTSC_LINE_STATUS_SHIFT 10
-#define USB_PORTSC_LINE_STATUS_SE0   0x0
-#define USB_PORTSC_LINE_STATUS_K     0x1
-#define USB_PORTSC_LINE_STATUS_J     0x2
+#define USB_PORTSC_LINE_STATUS_MASK  (0x3 << 10)
+#define USB_PORTSC_LINE_STATUS_SE0   (0x0 << 10)
+#define USB_PORTSC_LINE_STATUS_K     (0x1 << 10)
+#define USB_PORTSC_LINE_STATUS_J     (0x2 << 10)
 #define USB_PORTSC_PORT_RESET_FLAG   (1 << 8)
 #define USB_PORTSC_SUSPEND_FLAG      (1 << 7)
 #define USB_PORTSC_RESUME_FLAG       (1 << 6)
@@ -163,6 +160,9 @@ typedef struct ehci_regs {
 #define USB_PORTSC_ENABLED_FLAG      (1 << 2)
 #define USB_PORTSC_CONNECT_CH_FLAG   (1 << 1)
 #define USB_PORTSC_CONNECT_FLAG      (1 << 0)
+
+#define USB_PORTSC_WC_MASK \
+    (USB_PORTSC_CONNECT_CH_FLAG | USB_PORTSC_EN_CHANGE_FLAG | USB_PORTSC_OC_CHANGE_FLAG)
 } ehci_regs_t;
 
 #endif

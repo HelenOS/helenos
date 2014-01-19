@@ -115,6 +115,7 @@ const char *name)
 
 	ehci_rh_hub_desc_init(instance, EHCI_RD(caps->hcsparams));
 	instance->unfinished_interrupt_transfer = NULL;
+
 	return virthub_base_init(&instance->base, name, &ops, instance,
 	    NULL, &instance->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
@@ -205,8 +206,8 @@ static int req_get_status(usbvirt_device_t *device,
 	assert(hub);
 	if (uint16_usb2host(setup_packet->length) != 4)
 		return ESTALL;
+	/* ECHI RH does not report global OC, and local power is always good */
 	const uint32_t val = 0;
-	//TODO: implement
 	memcpy(data, &val, sizeof(val));
 	*act_size = sizeof(val);
 	return EOK;
@@ -230,17 +231,11 @@ static int req_clear_hub_feature(usbvirt_device_t *device,
 	/*
 	 * Chapter 11.16.2 specifies that only C_HUB_LOCAL_POWER and
 	 * C_HUB_OVER_CURRENT are supported.
-	 * C_HUB_LOCAL_POWER is not supported
-	 * because root hubs do not support local power status feature.
-	 * C_HUB_OVER_CURRENT is represented by EHCI RHS_OCIC_FLAG.
-	 * (EHCI pg. 127)
+	 * C_HUB_LOCAL_POWER is not supported because root hubs do not support
+	 * local power status feature.
+	 * EHCI RH does not report global OC condition either
 	 */
-	const unsigned feature = uint16_usb2host(setup_packet->value);
-	if (feature == USB_HUB_FEATURE_C_HUB_OVER_CURRENT) {
-		//TODO: Implement
-//		EHCI_WR(hub->registers->rh_status, RHS_OCIC_FLAG);
-	}
-	return EOK;
+	return ESTALL;
 }
 
 /** Port status request handler.
@@ -261,9 +256,21 @@ static int req_get_port_status(usbvirt_device_t *device,
 	if (setup_packet->value != 0)
 		return EINVAL;
 
-	const uint32_t status = 0;
-	// TODO: Implement
-	//EHCI_RD(hub->registers->rh_port_status[port]);
+	const uint32_t reg = EHCI_RD(hub->registers->portsc[port]);
+	const uint32_t status = uint32_host2usb(0 |
+	    (reg & USB_PORTSC_CONNECT_FLAG) ? (1 << 0) : 0 |
+	    (reg & USB_PORTSC_ENABLED_FLAG) ? (1 << 1) : 0 |
+	    (reg & USB_PORTSC_SUSPEND_FLAG) ? (1 << 2) : 0 |
+	    (reg & USB_PORTSC_OC_ACTIVE_FLAG) ? (1 << 3) : 0 |
+	    (reg & USB_PORTSC_PORT_RESET_FLAG) ? (1 << 4) : 0 |
+	    (reg & USB_PORTSC_PORT_POWER_FLAG) ? (1 << 8) : 0 |
+	    ((reg & USB_PORTSC_LINE_STATUS_MASK) == USB_PORTSC_LINE_STATUS_K) ?
+	        (1 << 9) : 0 |
+	    (reg & USB_PORTSC_PORT_OWNER_FLAG) ? (1 << 10) : 0 |
+	    (reg & USB_PORTSC_PORT_TEST_MASK) ? (1 << 11) : 0 |
+	    (reg & USB_PORTSC_INDICATOR_MASK) ? (1 << 12) : 0)
+	;
+	//TODO: use hub status flags here
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
 	return EOK;
@@ -289,33 +296,43 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	switch (feature)
 	{
 	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
-		{
-//			EHCI_WR(hub->registers->rh_port_status[port],
-//			    RHPS_CLEAR_PORT_POWER);
-//			    TODO: Implement
-			return EOK;
-		}
+		EHCI_CLR(hub->registers->portsc[port],
+		    USB_PORTSC_PORT_POWER_FLAG);
+		return EOK;
 
 	case USB_HUB_FEATURE_PORT_ENABLE:         /*1*/
-//		EHCI_WR(hub->registers->rh_port_status[port],
-//		    RHPS_CLEAR_PORT_ENABLE);
+		EHCI_CLR(hub->registers->portsc[port],
+		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
 
 	case USB_HUB_FEATURE_PORT_SUSPEND:        /*2*/
-//		EHCI_WR(hub->registers->rh_port_status[port],
-//		    RHPS_CLEAR_PORT_SUSPEND);
+		/* If not in suspend it's noop */
+		if ((EHCI_RD(hub->registers->portsc[port]) &
+		    USB_PORTSC_SUSPEND_FLAG) == 0)
+		    return EOK;
+		/* Host driven resume */
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_RESUME_FLAG);
+		async_usleep(20000);
+		EHCI_CLR(hub->registers->portsc[port],
+		    USB_PORTSC_RESUME_FLAG);
 		return EOK;
 
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_CONNECT_CH_FLAG);
+		return EOK;
 	case USB_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_CONNECT_CH_FLAG);
+		return EOK;
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_OC_CHANGE_FLAG);
+		return EOK;
+	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
-		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
-		    "C_SUSPEND, C_OC or C_RESET on port %"PRIu16".\n", port);
-		/* Bit offsets correspond to the feature number */
-//		EHCI_WR(hub->registers->rh_port_status[port],
-//		    1 << feature);
+		//TODO these are not represented in hw, think of something
 		return EOK;
 
 	default:
@@ -340,25 +357,34 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
-	{
-		/* No power switching */
-//		if (rhda & RHDA_NPS_FLAG)
-			return EOK;
-		/* Ganged power switching, one port powers all */
-//		if (!(rhda & RHDA_PSM_FLAG)) {
-//			EHCI_WR(hub->registers->rh_status,RHS_SET_GLOBAL_POWER);
-//			return EOK;
-//		}
-	}
-	/* Fall through, for per port power */
 	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_ENABLED_FLAG);
+		return EOK;
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_SUSPEND_FLAG);
+		return EOK;
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
-		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
-		    "on port %"PRIu16".\n", port);
-		/* Bit offsets correspond to the feature number */
-//		EHCI_WR(hub->registers->rh_port_status[port], 1 << feature);
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_PORT_RESET_FLAG);
+		async_usleep(50000);
+		EHCI_CLR(hub->registers->portsc[port],
+		    USB_PORTSC_PORT_RESET_FLAG);
+		/* wait for reset to complete */
+		while (EHCI_RD(hub->registers->portsc[port]) &
+		    USB_PORTSC_PORT_RESET_FLAG);
+		/* Handle port ownership, if the port is not enabled
+		 * after reset it's a full speed device */
+		if (!(EHCI_RD(hub->registers->portsc[port]) &
+		    USB_PORTSC_ENABLED_FLAG))
+			EHCI_CLR(hub->registers->portsc[port],
+			    USB_PORTSC_PORT_OWNER_FLAG);
+
+		return EOK;
+	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
+		EHCI_SET(hub->registers->portsc[port],
+		    USB_PORTSC_PORT_POWER_FLAG);
 		return EOK;
 	default:
 		return ENOTSUP;
@@ -388,18 +414,19 @@ static int req_status_change_handler(usbvirt_device_t *device,
 		return ESTALL;
 
 	uint16_t mask = 0;
-
-	/* Only local power source change and over-current change can happen */
-//	if (EHCI_RD(hub->registers->rh_status) & (RHS_LPSC_FLAG | RHS_OCIC_FLAG)) {
-//		mask |= 1;
-//	}
-
-	for (unsigned port = 1; port <= hub->port_count; ++port) {
+	for (unsigned port = 0; port < hub->port_count; ++port) {
 		/* Write-clean bits are those that indicate change */
-//		if (EHCI_RD(hub->registers->rh_port_status[port - 1])
-//		    & RHPS_CHANGE_WC_MASK) {
-//			mask |= (1 << port);
-//		}
+		uint32_t status = EHCI_RD(hub->registers->portsc[port]);
+		if (status & USB_PORTSC_WC_MASK) {
+			/* Ignore new LS device */
+			if ((status & USB_PORTSC_CONNECT_CH_FLAG) &&
+			    (status & USB_PORTSC_LINE_STATUS_MASK) ==
+			        USB_PORTSC_LINE_STATUS_K)
+				EHCI_CLR(hub->registers->portsc[port],
+				    USB_PORTSC_PORT_OWNER_FLAG);
+			else
+				mask |= (2 << port);
+		}
 	}
 
 	usb_log_debug2("EHCI root hub interrupt mask: %hx.\n", mask);
