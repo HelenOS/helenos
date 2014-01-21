@@ -505,7 +505,8 @@ usb_device_t * usb_device_create(devman_handle_t handle)
 	async_sess_t *sess = devman_device_connect(
 	    EXCHANGE_ATOMIC, handle, IPC_FLAG_BLOCKING);
 	int ret = usb_device_get_info(sess, &h, &iface_no);
-	async_hangup(sess);
+	if (sess)
+		async_hangup(sess);
 	if (ret != EOK)
 		return NULL;
 
