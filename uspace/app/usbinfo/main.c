@@ -208,6 +208,9 @@ int main(int argc, char *argv[])
 		usb_device_t *usb_dev = usb_device_create(handle);
 
 		if (usb_dev == NULL) {
+			fprintf(stderr, NAME ": device `%s' not found "
+			    "or not of USB kind, skipping.\n",
+			    devpath);
 			continue;
 		}
 
