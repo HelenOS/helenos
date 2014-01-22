@@ -62,6 +62,8 @@ typedef struct {
 	} __attribute__((packed)) hub_descriptor;
 	/** interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
+	bool reset_flag[EHCI_MAX_PORTS];
+	bool resume_flag[EHCI_MAX_PORTS];
 } ehci_rh_t;
 
 int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,

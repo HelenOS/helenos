@@ -113,6 +113,11 @@ const char *name)
 		usb_log_info("%s: No power switching.\n", name);
 	}
 
+	for (unsigned i = 0; i < EHCI_MAX_PORTS; ++i) {
+		instance->reset_flag[i] = false;
+		instance->resume_flag[i] = false;
+	}
+
 	ehci_rh_hub_desc_init(instance, EHCI_RD(caps->hcsparams));
 	instance->unfinished_interrupt_transfer = NULL;
 
@@ -268,8 +273,13 @@ static int req_get_port_status(usbvirt_device_t *device,
 	        (1 << 9) : 0 |
 	    (reg & USB_PORTSC_PORT_OWNER_FLAG) ? (1 << 10) : 0 |
 	    (reg & USB_PORTSC_PORT_TEST_MASK) ? (1 << 11) : 0 |
-	    (reg & USB_PORTSC_INDICATOR_MASK) ? (1 << 12) : 0)
-	;
+	    (reg & USB_PORTSC_INDICATOR_MASK) ? (1 << 12) : 0 |
+	    (reg & USB_PORTSC_CONNECT_CH_FLAG) ? (1 << 16) : 0 |
+	    (reg & USB_PORTSC_EN_CHANGE_FLAG) ? (1 << 17) : 0 |
+	    hub->resume_flag[port] ? (1 << 18) : 0 |
+	    (reg & USB_PORTSC_OC_CHANGE_FLAG) ? (1 << 19) : 0 |
+	    hub->reset_flag[port] ? (1 << 20): 0
+	);
 	//TODO: use hub status flags here
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
@@ -316,6 +326,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		async_usleep(20000);
 		EHCI_CLR(hub->registers->portsc[port],
 		    USB_PORTSC_RESUME_FLAG);
+		hub->resume_flag[port] = true;
 		return EOK;
 
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
@@ -331,8 +342,10 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		    USB_PORTSC_OC_CHANGE_FLAG);
 		return EOK;
 	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+		hub->resume_flag[port] = false;
+		return EOK;
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
-		//TODO these are not represented in hw, think of something
+		hub->reset_flag[port] = false;
 		return EOK;
 
 	default:
@@ -377,9 +390,12 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		/* Handle port ownership, if the port is not enabled
 		 * after reset it's a full speed device */
 		if (!(EHCI_RD(hub->registers->portsc[port]) &
-		    USB_PORTSC_ENABLED_FLAG))
+		    USB_PORTSC_ENABLED_FLAG)) {
 			EHCI_CLR(hub->registers->portsc[port],
 			    USB_PORTSC_PORT_OWNER_FLAG);
+		} else {
+			hub->reset_flag[port] = true;
+		}
 
 		return EOK;
 	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
