@@ -108,9 +108,9 @@ const char *name)
 	usb_log_info("%s: Found %u ports.\n", name, instance->port_count);
 
 	if (EHCI_RD(caps->hcsparams) & EHCI_CAPS_HCS_PPC_FLAG) {
-		usb_log_info("%s: No power switching.\n", name);
-	} else {
 		usb_log_info("%s: Per-port power switching.\n", name);
+	} else {
+		usb_log_info("%s: No power switching.\n", name);
 	}
 
 	ehci_rh_hub_desc_init(instance, EHCI_RD(caps->hcsparams));
