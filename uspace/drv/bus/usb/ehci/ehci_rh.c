@@ -274,7 +274,7 @@ static int req_get_port_status(usbvirt_device_t *device,
 	    EHCI2USB(reg, USB_PORTSC_PORT_POWER_FLAG, USB_HUB_FEATURE_PORT_POWER) |
 	    (((reg & USB_PORTSC_LINE_STATUS_MASK) == USB_PORTSC_LINE_STATUS_K) ?
 	        (1 << USB_HUB_FEATURE_PORT_LOW_SPEED) : 0) |
-	    EHCI2USB(reg, USB_PORTSC_PORT_OWNER_FLAG, USB_HUB_FEATURE_PORT_HIGH_SPEED) |
+	    ((reg & USB_PORTSC_PORT_OWNER_FLAG) ? 0 : (1 << USB_HUB_FEATURE_PORT_HIGH_SPEED)) |
 	    EHCI2USB(reg, USB_PORTSC_PORT_TEST_MASK, 11) |
 	    EHCI2USB(reg, USB_PORTSC_INDICATOR_MASK, 12) |
 	    EHCI2USB(reg, USB_PORTSC_CONNECT_CH_FLAG, USB_HUB_FEATURE_C_PORT_CONNECTION) |
@@ -395,7 +395,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		 * after reset it's a full speed device */
 		if (!(EHCI_RD(hub->registers->portsc[port]) &
 		    USB_PORTSC_ENABLED_FLAG)) {
-			EHCI_CLR(hub->registers->portsc[port],
+			EHCI_SET(hub->registers->portsc[port],
 			    USB_PORTSC_PORT_OWNER_FLAG);
 		} else {
 			hub->reset_flag[port] = true;
@@ -442,7 +442,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 			if ((status & USB_PORTSC_CONNECT_CH_FLAG) &&
 			    (status & USB_PORTSC_LINE_STATUS_MASK) ==
 			        USB_PORTSC_LINE_STATUS_K)
-				EHCI_CLR(hub->registers->portsc[port],
+				EHCI_SET(hub->registers->portsc[port],
 				    USB_PORTSC_PORT_OWNER_FLAG);
 			else
 				mask |= (2 << port);
