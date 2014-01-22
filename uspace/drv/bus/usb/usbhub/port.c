@@ -415,15 +415,18 @@ int add_device_phase1_worker_fibril(void *arg)
 
 	ret = usb_device_enumerate(exch, port->port_number);
 	if (ret != EOK) {
-		usb_log_error("Failed to enumerate device on port %u\n",
-		    port->port_number);
-		if (port_enable(port, false) != EOK) {
-			usb_log_warning("Failed to disable port %u, NOT "
-			    "releasing default address.\n", port->port_number);
+		usb_log_error("Failed to enumerate device on port %u: %s",
+		    port->port_number, str_error(ret));
+		const int ret = port_enable(port, false);
+		if (ret != EOK) {
+			usb_log_warning("Failed to disable port %u (%s), NOT "
+			    "releasing default address.", port->port_number,
+			    str_error(ret));
 		} else {
-			if (usb_release_default_address(exch) != EOK)
-				usb_log_warning(
-				    "Failed to release default address\n");
+			const int ret = usb_release_default_address(exch);
+			if (ret != EOK)
+				usb_log_warning("Failed to release default "
+				    "address: %s", str_error(ret));
 		}
 	} else {
 		port->device_attached = true;
