@@ -243,6 +243,9 @@ static int req_clear_hub_feature(usbvirt_device_t *device,
 	return ESTALL;
 }
 
+#define BIT_VAL(val, bit)   ((val & bit) ? 1 : 0)
+#define EHCI2USB(val, bit, feat)   (BIT_VAL(val, bit) << feat)
+
 /** Port status request handler.
  * @param device Virtual hub device
  * @param setup_packet USB setup stage data.
@@ -262,25 +265,26 @@ static int req_get_port_status(usbvirt_device_t *device,
 		return EINVAL;
 
 	const uint32_t reg = EHCI_RD(hub->registers->portsc[port]);
-	const uint32_t status = uint32_host2usb(0 |
-	    (reg & USB_PORTSC_CONNECT_FLAG) ? (1 << 0) : 0 |
-	    (reg & USB_PORTSC_ENABLED_FLAG) ? (1 << 1) : 0 |
-	    (reg & USB_PORTSC_SUSPEND_FLAG) ? (1 << 2) : 0 |
-	    (reg & USB_PORTSC_OC_ACTIVE_FLAG) ? (1 << 3) : 0 |
-	    (reg & USB_PORTSC_PORT_RESET_FLAG) ? (1 << 4) : 0 |
-	    (reg & USB_PORTSC_PORT_POWER_FLAG) ? (1 << 8) : 0 |
-	    ((reg & USB_PORTSC_LINE_STATUS_MASK) == USB_PORTSC_LINE_STATUS_K) ?
-	        (1 << 9) : 0 |
-	    (reg & USB_PORTSC_PORT_OWNER_FLAG) ? (1 << 10) : 0 |
-	    (reg & USB_PORTSC_PORT_TEST_MASK) ? (1 << 11) : 0 |
-	    (reg & USB_PORTSC_INDICATOR_MASK) ? (1 << 12) : 0 |
-	    (reg & USB_PORTSC_CONNECT_CH_FLAG) ? (1 << 16) : 0 |
-	    (reg & USB_PORTSC_EN_CHANGE_FLAG) ? (1 << 17) : 0 |
-	    hub->resume_flag[port] ? (1 << 18) : 0 |
-	    (reg & USB_PORTSC_OC_CHANGE_FLAG) ? (1 << 19) : 0 |
-	    hub->reset_flag[port] ? (1 << 20): 0
+	const uint32_t status = uint32_host2usb(
+	    EHCI2USB(reg, USB_PORTSC_CONNECT_FLAG, USB_HUB_FEATURE_PORT_CONNECTION) |
+	    EHCI2USB(reg, USB_PORTSC_ENABLED_FLAG, USB_HUB_FEATURE_PORT_ENABLE) |
+	    EHCI2USB(reg, USB_PORTSC_SUSPEND_FLAG, USB_HUB_FEATURE_PORT_SUSPEND) |
+	    EHCI2USB(reg, USB_PORTSC_OC_ACTIVE_FLAG, USB_HUB_FEATURE_PORT_OVER_CURRENT) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_RESET_FLAG, USB_HUB_FEATURE_PORT_RESET) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_POWER_FLAG, USB_HUB_FEATURE_PORT_POWER) |
+	    (((reg & USB_PORTSC_LINE_STATUS_MASK) == USB_PORTSC_LINE_STATUS_K) ?
+	        (1 << USB_HUB_FEATURE_PORT_LOW_SPEED) : 0) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_OWNER_FLAG, USB_HUB_FEATURE_PORT_HIGH_SPEED) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_TEST_MASK, 11) |
+	    EHCI2USB(reg, USB_PORTSC_INDICATOR_MASK, 12) |
+	    EHCI2USB(reg, USB_PORTSC_CONNECT_CH_FLAG, USB_HUB_FEATURE_C_PORT_CONNECTION) |
+	    EHCI2USB(reg, USB_PORTSC_EN_CHANGE_FLAG, USB_HUB_FEATURE_C_PORT_ENABLE) |
+	    (hub->resume_flag[port] ? (1 << USB_HUB_FEATURE_C_PORT_SUSPEND) : 0) |
+	    EHCI2USB(reg, USB_PORTSC_OC_CHANGE_FLAG, USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
+	    (hub->reset_flag[port] ? (1 << USB_HUB_FEATURE_C_PORT_RESET): 0)
 	);
-	//TODO: use hub status flags here
+	/* Note feature numbers for test and indicator feature do not
+	 * corespond to the port status bit locations */
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
 	return EOK;
