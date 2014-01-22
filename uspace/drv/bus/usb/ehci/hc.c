@@ -88,7 +88,6 @@ static const irq_cmd_t ehci_irq_commands[] = {
 	}
 };
 
-static void hc_gain_control(hc_t *instance);
 static void hc_start(hc_t *instance);
 static int hc_init_memory(hc_t *instance);
 
@@ -184,8 +183,6 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 		return ret;
 	}
 
-	hc_gain_control(instance);
-
 	ehci_rh_init(
 	    &instance->rh, instance->caps, instance->registers, "ehci rh");
 	hc_start(instance);
@@ -261,18 +258,6 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	}
 }
 
-/** Turn off any (BIOS)driver that might be in control of the device.
- *
- * This function implements routines described in chapter 5.1.1.3 of the EHCI
- * specification (page 40, pdf page 54).
- *
- * @param[in] instance EHCI hc driver structure.
- */
-void hc_gain_control(hc_t *instance)
-{
-	assert(instance);
-}
-
 /** EHCI hw initialization routine.
  *
  * @param[in] instance EHCI hc driver structure.
@@ -280,10 +265,47 @@ void hc_gain_control(hc_t *instance)
 void hc_start(hc_t *instance)
 {
 	assert(instance);
+	/* Turn of the HC if it's running, Reseting a running device is
+	 * undefined */
+	if (!(EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG)) {
+		/* disable all interrupts */
+		EHCI_WR(instance->registers->usbintr, 0);
+		/* ack all interrupts */
+		EHCI_WR(instance->registers->usbsts, 0x3f);
+		/* Stop HC hw */
+		EHCI_WR(instance->registers->usbcmd, 0);
+		/* Wait until hc is halted */
+		while ((EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG) == 0) {
+			async_usleep(1);
+		}
+		usb_log_info("EHCI turned off.\n");
+	} else {
+		usb_log_info("EHCI was not running.\n");
+	}
+
+	/* Hw initialization sequence, see page 53 (pdf 63) */
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_HC_RESET_FLAG);
+	while (EHCI_RD(instance->registers->usbcmd) & USB_CMD_HC_RESET_FLAG) {
+		async_usleep(1);
+	}
+	/* Enable interrupts */
+	EHCI_WR(instance->registers->usbintr, USB_INTR_PORT_CHANGE_FLAG | USB_INTR_IRQ_FLAG);
+	/* Use lower 4G segment */
+	EHCI_WR(instance->registers->ctrldssegment, 0);
+	/* Set periodic list */
+	assert(instance->periodic_list_base);
+	const uintptr_t phys_base =
+	    addr_to_phys((void*)instance->periodic_list_base);
+	assert((phys_base & USB_PERIODIC_LIST_BASE_MASK) == phys_base);
+	EHCI_WR(instance->registers->periodiclistbase, phys_base);
+
+	/* start hc and get all ports */
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
+	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
+#if 0
 	/*
 	 * TURN OFF EHCI FOR NOW
 	 */
-
 	usb_log_debug("USBCMD value: %x.\n",
 	    EHCI_RD(instance->registers->usbcmd));
 	if (EHCI_RD(instance->registers->usbcmd) & USB_CMD_RUN_FLAG) {
@@ -300,6 +322,7 @@ void hc_start(hc_t *instance)
 	} else {
 		usb_log_info("EHCI was not running.\n");
 	}
+#endif
 	usb_log_debug("Registers: \n"
 	    "\t USBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
 	    "\t USBSTS(%p): %x(0x00001000 = HC halted)\n"
@@ -318,6 +341,18 @@ void hc_start(hc_t *instance)
  */
 int hc_init_memory(hc_t *instance)
 {
+	assert(instance);
+
+	/* Take 1024 periodic list heads, we ignore low mem options */
+	instance->periodic_list_base = get_page();
+	if (!instance->periodic_list_base)
+		return ENOMEM;
+	for (unsigned i = 0;
+	    i < PAGE_SIZE/sizeof(instance->periodic_list_base[0]); ++i)
+	{
+		/* Disable everything for now */
+		instance->periodic_list_base[i] = LINK_POINTER_TERM;
+	}
 	return EOK;
 }
 

@@ -49,6 +49,7 @@
 
 #include "ehci_regs.h"
 #include "ehci_rh.h"
+#include "hw_struct/link_pointer.h"
 //#include "endpoint_list.h"
 
 /** Main EHCI driver structure */
@@ -57,6 +58,9 @@ typedef struct hc {
 	ehci_caps_regs_t *caps;
 	/** Memory mapped I/O registers area */
 	ehci_regs_t *registers;
+
+	/** Iso transfer list */
+	link_pointer_t *periodic_list_base;
 
 	/** Transfer schedules */
 //	endpoint_list_t lists[4];

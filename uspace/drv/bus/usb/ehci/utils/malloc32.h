@@ -35,6 +35,7 @@
 #define DRV_EHCI_UTILS_MALLOC32_H
 
 #include <as.h>
+#include <ddi.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -43,7 +44,9 @@
  * Isochronous TD require 32byte alignment,
  * buffers do not have to be aligned.
  */
-#define EHCI_ALIGN 32
+#define EHCI_ALIGN   32
+
+#define EHCI_REQUIRED_PAGE_SIZE   4096
 
 /** Get physical address translation
  *
@@ -75,6 +78,27 @@ static inline void * malloc32(size_t size)
  */
 static inline void free32(void *addr)
 	{ free(addr); }
+
+/** Create 4KB page mapping
+ *
+ * @return Address of the mapped page, NULL on failure.
+ */
+static inline void *get_page(void)
+{
+	uintptr_t phys;
+	void *address;
+
+	const int ret = dmamem_map_anonymous(EHCI_REQUIRED_PAGE_SIZE,
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
+	    &address);
+
+	return ((ret == EOK) ? address : NULL);
+}
+
+static inline void return_page(void *page)
+{
+	dmamem_unmap_anonymous(page);
+}
 #endif
 /**
  * @}
