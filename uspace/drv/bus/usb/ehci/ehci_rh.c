@@ -437,7 +437,8 @@ static int req_status_change_handler(usbvirt_device_t *device,
 	for (unsigned port = 0; port < hub->port_count; ++port) {
 		/* Write-clean bits are those that indicate change */
 		uint32_t status = EHCI_RD(hub->registers->portsc[port]);
-		if (status & USB_PORTSC_WC_MASK) {
+		if ((status & USB_PORTSC_WC_MASK)
+		    || hub->reset_flag[port] || hub->reset_flag[port]) {
 			/* Ignore new LS device */
 			if ((status & USB_PORTSC_CONNECT_CH_FLAG) &&
 			    (status & USB_PORTSC_LINE_STATUS_MASK) ==
