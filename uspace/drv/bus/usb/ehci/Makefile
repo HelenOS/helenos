@@ -48,6 +48,7 @@ SOURCES = \
 	ehci_rh.c \
 	endpoint_list.c \
 	hc.c \
+	hw_struct/queue_head.c \
 	main.c \
 	res.c
 

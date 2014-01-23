@@ -36,6 +36,7 @@
 
 #include <assert.h>
 #include <sys/types.h>
+#include <usb/host/endpoint.h>
 
 #include "link_pointer.h"
 
@@ -47,32 +48,53 @@ typedef struct queue_head {
 #define QH_EP_CHAR_RL_MASK    0xf
 #define QH_EP_CHAR_RL_SHIFT   28
 #define QH_EP_CHAR_C_FLAG     (1 << 27)
-#define QH_EP_CHAR_LENGTH_MASK   0x7ff
-#define QH_EP_CHAR_LENGTH_SHIFT  16
+#define QH_EP_CHAR_MAX_LENGTH_MASK   0x7ff
+#define QH_EP_CHAR_MAX_LENGTH_SHIFT  16
+#define QH_EP_CHAR_MAX_LENGTH_SET(len) \
+    (((len) & QH_EP_CHAR_MAX_LENGTH_MASK) << QH_EP_CHAR_MAX_LENGTH_SHIFT)
+#define QH_EP_CHAR_MAX_LENGTH_GET(val) \
+    (((val) >> QH_EP_CHAR_MAX_LENGTH_SHIFT) & QH_EP_CHAR_MAX_LENGTH_MASK)
 #define QH_EP_CHAR_H_FLAG     (1 << 15)
 #define QH_EP_CHAR_DTC_FLAG   (1 << 14)
-#define QH_EP_CHAR_EPS_MASK   0x3
-#define QH_EP_CHAR_EPS_SHIFT  12
-#define QH_EP_CHAR_EPS_FS     0x0
-#define QH_EP_CHAR_EPS_LS     0x1
-#define QH_EP_CHAR_EPS_HS     0x2
+#define QH_EP_CHAR_EPS_FS     (0x0 << 12)
+#define QH_EP_CHAR_EPS_LS     (0x1 << 12)
+#define QH_EP_CHAR_EPS_HS     (0x2 << 12)
+#define QH_EP_CHAR_EPS_MASK   (0x3 << 12)
 #define QH_EP_CHAR_EP_MASK    0xf
 #define QH_EP_CHAR_EP_SHIFT   8
+#define QH_EP_CHAR_EP_SET(num) \
+    (((num) & QH_EP_CHAR_EP_MASK) << QH_EP_CHAR_EP_SHIFT)
+#define QH_EP_CHAR_ADDR_GET(val) \
+    (((val) >> QH_EP_CHAR_ADDR_SHIFT) & QH_EP_CHAR_ADDR_MASK)
 #define QH_EP_CHAR_INACT_FLAG (1 << 7)
 #define QH_EP_CHAR_ADDR_MASK  0x3f
 #define QH_EP_CHAR_ADDR_SHIFT 0
+#define QH_EP_CHAR_ADDR_SET(addr) \
+    (((addr) & QH_EP_CHAR_ADDR_MASK) << QH_EP_CHAR_ADDR_SHIFT)
+#define QH_EP_CHAR_ADDR_GET(val) \
+    (((val) >> QH_EP_CHAR_ADDR_SHIFT) & QH_EP_CHAR_ADDR_MASK)
 
 	volatile uint32_t ep_cap;
 #define QH_EP_CAP_MULTI_MASK   0x3
 #define QH_EP_CAP_MULTI_SHIFT  30
+#define QH_EP_CAP_MULTI_SET(count) \
+	(((count) & QH_EP_CAP_MULTI_MASK) << QH_EP_CAP_MULTI_SHIFT)
 #define QH_EP_CAP_PORT_MASK    0x7f
 #define QH_EP_CAP_PORT_SHIFT   23
+#define QH_EP_CAP_TT_PORT_SET(addr) \
+	(((addr) & QH_EP_CAP_HUB_MASK) << QH_EP_CAP_HUB_SHIFT)
 #define QH_EP_CAP_HUB_MASK     0x7f
 #define QH_EP_CAP_HUB_SHIFT    16
+#define QH_EP_CAP_TT_ADDR_SET(addr) \
+	(((addr) & QH_EP_CAP_HUB_MASK) << QH_EP_CAP_HUB_SHIFT)
 #define QH_EP_CAP_C_MASK_MASK  0xff
 #define QH_EP_CAP_C_MASK_SHIFT 8
+#define QH_EP_CAP_C_MASK_SET(val) \
+	(((val) & QH_EP_CAP_C_MASK_MASK) << QH_EP_CAP_C_MASK_SHIFT)
 #define QH_EP_CAP_S_MASK_MASK  0xff
-#define QH_EP_CAP_S_MASL_SHIFT 0
+#define QH_EP_CAP_S_MASK_SHIFT 0
+#define QH_EP_CAP_S_MASK_SET(val) \
+	(((val) & QH_EP_CAP_S_MASK_MASK) << QH_EP_CAP_S_MASK_SHIFT)
 
 	link_pointer_t current;
 /* Transfer overlay starts here */
@@ -117,7 +139,7 @@ typedef struct queue_head {
 
 } qh_t;
 
-
+void qh_init(qh_t *instance, const endpoint_t *ep);
 #endif
 /**
  * @}

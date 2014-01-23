@@ -84,7 +84,7 @@ int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 		return ENOMEM;
 	}
 
-//	qh_init(ehci_ep->qh, ep);
+	qh_init(ehci_ep->qh, ep);
 	endpoint_set_hc_data(
 	    ep, ehci_ep, ehci_ep_toggle_get, ehci_ep_toggle_set);
 	hc_enqueue_endpoint(hcd->driver.data, ep);
