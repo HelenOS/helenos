@@ -438,7 +438,8 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 			break;
 		}
 	}
-	if (victim && victim->port == port) {
+	if (victim) {
+		assert(victim->port == port);
 		list_remove(&victim->link);
 		fibril_mutex_unlock(&hub->guard);
 		const int ret = ddf_fun_unbind(victim->fun);
@@ -451,6 +452,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 		}
 		return EOK;
 	}
+	fibril_mutex_unlock(&hub->guard);
 	return ENOENT;
 }
 
