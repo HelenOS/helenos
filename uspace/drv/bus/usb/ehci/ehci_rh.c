@@ -390,7 +390,9 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		    USB_PORTSC_PORT_RESET_FLAG);
 		/* wait for reset to complete */
 		while (EHCI_RD(hub->registers->portsc[port]) &
-		    USB_PORTSC_PORT_RESET_FLAG);
+		    USB_PORTSC_PORT_RESET_FLAG) {
+		    async_usleep(1);
+		};
 		/* Handle port ownership, if the port is not enabled
 		 * after reset it's a full speed device */
 		if (!(EHCI_RD(hub->registers->portsc[port]) &
