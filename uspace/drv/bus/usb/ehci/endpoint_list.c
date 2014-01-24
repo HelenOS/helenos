@@ -69,6 +69,16 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 	return EOK;
 }
 
+void endpoint_list_chain(endpoint_list_t *instance, const endpoint_list_t *next)
+{
+	assert(instance);
+	assert(next);
+	assert(instance->list_head);
+	assert(next->list_head);
+
+	instance->list_head->horizontal = LINK_POINTER_QH(next->list_head_pa);
+}
+
 /** Add endpoint to the end of the list and queue.
  *
  * @param[in] instance List to use.

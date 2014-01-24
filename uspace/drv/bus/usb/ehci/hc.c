@@ -406,6 +406,8 @@ int hc_init_memory(hc_t *instance)
 		endpoint_list_fini(&instance->async_list);
 		return ret;
 	}
+	/* Loop async list */
+	endpoint_list_chain(&instance->async_list, &instance->async_list);
 
 	/* Take 1024 periodic list heads, we ignore low mem options */
 	instance->periodic_list_base = get_page();
