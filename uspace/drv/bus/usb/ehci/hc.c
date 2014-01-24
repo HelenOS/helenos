@@ -350,6 +350,12 @@ void hc_start(hc_t *instance)
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
 	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
 
+	/* Enable Async schedule */
+	assert((instance->async_list.list_head_pa & USB_ASYNCLIST_MASK) ==
+	    instance->async_list.list_head_pa);
+	EHCI_WR(instance->registers->asynclistaddr,
+	    instance->async_list.list_head_pa);
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
 #if 0
 	/*
 	 * TURN OFF EHCI FOR NOW
