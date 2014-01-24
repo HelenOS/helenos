@@ -96,9 +96,9 @@ endpoint_t * usb_bus_find_ep(usb_bus_t *instance,
 
 int usb_bus_add_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, size_t max_packet_size, size_t data_size,
-    ep_add_callback_t callback, void *arg, usb_address_t tt_address,
-    unsigned tt_port);
+    usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
+    size_t data_size, ep_add_callback_t callback, void *arg,
+    usb_address_t tt_address, unsigned tt_port);
 
 int usb_bus_remove_ep(usb_bus_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,

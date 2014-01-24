@@ -62,7 +62,7 @@ static const uint32_t dir[] = {
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 {
 	assert(instance);
-	memset(instance, 0, sizeof(ed_t));
+	memset(instance, 0, sizeof(*instance));
 
 	if (ep == NULL) {
 		/* Mark as dead, used for dummy EDs at the beginning of

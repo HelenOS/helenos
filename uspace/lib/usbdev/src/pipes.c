@@ -253,12 +253,13 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
  */
 int usb_pipe_initialize(usb_pipe_t *pipe, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_direction_t direction, usb_dev_session_t *bus_session)
+    usb_direction_t direction, unsigned packets, usb_dev_session_t *bus_session)
 {
 	assert(pipe);
 
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
+	pipe->packets = packets;
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
 	pipe->auto_reset_halt = false;
@@ -278,7 +279,7 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
 	assert(pipe);
 
 	const int rc = usb_pipe_initialize(pipe, 0, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, bus_session);
+	    CTRL_PIPE_MIN_PACKET_SIZE, USB_DIRECTION_BOTH, 1, bus_session);
 
 	pipe->auto_reset_halt = true;
 
@@ -300,7 +301,7 @@ int usb_pipe_register(usb_pipe_t *pipe, unsigned interval)
 		return ENOMEM;
 	const int ret = usb_register_endpoint(exch, pipe->endpoint_no,
 	    pipe->transfer_type, pipe->direction, pipe->max_packet_size,
-	    interval);
+	    pipe->packets, interval);
 	async_exchange_end(exch);
 	return ret;
 }

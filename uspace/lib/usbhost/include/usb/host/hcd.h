@@ -108,8 +108,8 @@ static inline int hcd_release_default_address(hcd_t *hcd)
 }
 
 int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    usb_transfer_type_t type, size_t max_packet_size, size_t size,
-    usb_address_t tt_address, unsigned tt_port);
+    usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
+    size_t size, usb_address_t tt_address, unsigned tt_port);
 
 int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir);
 

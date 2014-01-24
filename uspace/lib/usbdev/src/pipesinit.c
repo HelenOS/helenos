@@ -195,8 +195,11 @@ static int process_endpoint(
 
 	int rc = usb_pipe_initialize(&ep_mapping->pipe,
 	    ep_no, description.transfer_type,
-	    uint16_usb2host(endpoint_desc->max_packet_size),
-	    description.direction, bus_session);
+	    ED_MPS_PACKET_SIZE_GET(
+	        uint16_usb2host(endpoint_desc->max_packet_size)),
+	    description.direction,
+	    ED_MPS_TRANS_OPPORTUNITIES_GET(
+	        uint16_usb2host(endpoint_desc->max_packet_size)), bus_session);
 	if (rc != EOK) {
 		return rc;
 	}

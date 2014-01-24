@@ -49,7 +49,8 @@
  */
 endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
     usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, size_t bw, usb_address_t tt_address, unsigned tt_p)
+    size_t max_packet_size, unsigned packets, size_t bw,
+    usb_address_t tt_address, unsigned tt_p)
 {
 	endpoint_t *instance = malloc(sizeof(endpoint_t));
 	if (instance) {
@@ -59,6 +60,7 @@ endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
 		instance->transfer_type = type;
 		instance->speed = speed;
 		instance->max_packet_size = max_packet_size;
+		instance->packets = packets;
 		instance->bandwidth = bw;
 		instance->toggle = 0;
 		instance->active = false;

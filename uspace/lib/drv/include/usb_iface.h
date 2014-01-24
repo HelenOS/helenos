@@ -57,7 +57,7 @@ int usb_device_enumerate(async_exch_t *, unsigned port);
 int usb_device_remove(async_exch_t *, unsigned port);
 
 int usb_register_endpoint(async_exch_t *, usb_endpoint_t, usb_transfer_type_t,
-    usb_direction_t, size_t, unsigned);
+    usb_direction_t, size_t, unsigned, unsigned);
 int usb_unregister_endpoint(async_exch_t *, usb_endpoint_t, usb_direction_t);
 int usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t, size_t *);
 int usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *, size_t);
@@ -80,7 +80,7 @@ typedef struct {
 	int (*device_remove)(ddf_fun_t *, unsigned);
 
 	int (*register_endpoint)(ddf_fun_t *, usb_endpoint_t,
-	    usb_transfer_type_t, usb_direction_t, size_t, unsigned);
+	    usb_transfer_type_t, usb_direction_t, size_t, unsigned, unsigned);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_t,
 	    usb_direction_t);
 

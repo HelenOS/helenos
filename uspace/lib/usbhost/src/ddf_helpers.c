@@ -109,7 +109,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned por
 static int register_endpoint(
     ddf_fun_t *fun, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
-    size_t max_packet_size, unsigned interval)
+    size_t max_packet_size, unsigned packets, unsigned interval)
 {
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -125,7 +125,7 @@ static int register_endpoint(
 	    usb_str_direction(direction), max_packet_size, interval);
 
 	return hcd_add_ep(hcd, target, direction, transfer_type,
-	    max_packet_size, size, dev->tt_address, dev->port);
+	    max_packet_size, packets, size, dev->tt_address, dev->port);
 }
 
 /** Unregister endpoint interface function.
@@ -490,7 +490,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	/* Add default pipe on default address */
 	ret = hcd_add_ep(hcd,
 	    default_target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE,
+	    CTRL_PIPE_MIN_PACKET_SIZE, CTRL_PIPE_MIN_PACKET_SIZE, 1,
 	    tt_address, port);
 
 	if (ret != EOK) {
@@ -516,7 +516,10 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 
 	/* Register EP on the new address */
 	ret = hcd_add_ep(hcd, target, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    desc.max_packet_size, desc.max_packet_size, tt_address, port);
+	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
+	    ED_MPS_TRANS_OPPORTUNITIES_GET(uint16_usb2host(desc.max_packet_size)),
+	    ED_MPS_PACKET_SIZE_GET(uint16_usb2host(desc.max_packet_size)),
+	    tt_address, port);
 	if (ret != EOK) {
 		hcd_remove_ep(hcd, default_target, USB_DIRECTION_BOTH);
 		hcd_remove_ep(hcd, target, USB_DIRECTION_BOTH);

@@ -56,6 +56,8 @@ typedef struct endpoint {
 	usb_speed_t speed;
 	/** Maximum size of data packets. */
 	size_t max_packet_size;
+	/** Additional opportunities per uframe */
+	unsigned packets;
 	/** Necessary bandwidth. */
 	size_t bandwidth;
 	/** Value of the toggle bit. */
@@ -84,8 +86,8 @@ typedef struct endpoint {
 
 endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
     usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, size_t bw, usb_address_t tt_address,
-    unsigned tt_port);
+    size_t max_packet_size, unsigned packets, size_t bw,
+    usb_address_t tt_address, unsigned tt_port);
 void endpoint_destroy(endpoint_t *instance);
 
 void endpoint_set_hc_data(endpoint_t *instance,

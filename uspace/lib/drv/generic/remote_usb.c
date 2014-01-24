@@ -160,19 +160,27 @@ int usb_device_remove(async_exch_t *exch, unsigned port)
 	    IPC_M_USB_DEVICE_REMOVE, port);
 }
 
+int static_assert[sizeof(sysarg_t) >= 4 ? 1 : -1];
+typedef union {
+	uint8_t arr[sizeof(sysarg_t)];
+	sysarg_t arg;
+} pack8_t;
+
 int usb_register_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
     usb_transfer_type_t type, usb_direction_t direction,
-    size_t mps, unsigned interval)
+    size_t mps, unsigned packets, unsigned interval)
 {
 	if (!exch)
 		return EBADMEM;
-#define _PACK2(high, low) (((high & 0xffff) << 16) | (low & 0xffff))
+	pack8_t pack;
+	pack.arr[0] = type;
+	pack.arr[1] = direction;
+	pack.arr[2] = interval;
+	pack.arr[3] = packets;
 
 	return async_req_4_0(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_REGISTER_ENDPOINT, endpoint,
-	    _PACK2(type, direction), _PACK2(mps, interval));
+	    IPC_M_USB_REGISTER_ENDPOINT, endpoint, pack.arg, mps);
 
-#undef _PACK2
 }
 
 int usb_unregister_endpoint(async_exch_t *exch, usb_endpoint_t endpoint,
@@ -407,24 +415,17 @@ static void remote_usb_register_endpoint(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-#define _INIT_FROM_HIGH_DATA2(type, var, arg_no) \
-	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) >> 16)
-#define _INIT_FROM_LOW_DATA2(type, var, arg_no) \
-	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) & 0xffff)
-
 	const usb_endpoint_t endpoint = DEV_IPC_GET_ARG1(*call);
+	const pack8_t pack = { .arg = DEV_IPC_GET_ARG2(*call)};
+	const size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 
-	_INIT_FROM_HIGH_DATA2(usb_transfer_type_t, transfer_type, 2);
-	_INIT_FROM_LOW_DATA2(usb_direction_t, direction, 2);
-
-	_INIT_FROM_HIGH_DATA2(size_t, max_packet_size, 3);
-	_INIT_FROM_LOW_DATA2(unsigned int, interval, 3);
-
-#undef _INIT_FROM_HIGH_DATA2
-#undef _INIT_FROM_LOW_DATA2
+	const usb_transfer_type_t transfer_type = pack.arr[0];
+	const usb_direction_t direction = pack.arr[1];
+	unsigned packets = pack.arr[2];
+	unsigned interval = pack.arr[3];
 
 	const int ret = usb_iface->register_endpoint(fun, endpoint,
-	    transfer_type, direction, max_packet_size, interval);
+	    transfer_type, direction, max_packet_size, packets, interval);
 
 	async_answer_0(callid, ret);
 }

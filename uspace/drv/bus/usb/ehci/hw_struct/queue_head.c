@@ -78,13 +78,12 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 		EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_DTC_FLAG);
 	}
 
-	// TODO Fix 'multi' 1 packet should be safe. Probably won't work
-	// without enabling parking mode in async schedule
 	// TODO Figure out how to correctly use CMASK and SMASK for LS/FS
 	// INT transfers. Current values are just guesses
-	/* Setting TT stuff on HS endpoints is OK, the fields are ignored */
+	/* Setting TT stuff on HS endpoints is OK, the fields are ignored,
+	 * and so is setting multi on async (should be 1 anyway)*/
 	EHCI_MEM32_WR(instance->ep_cap,
-	    QH_EP_CAP_MULTI_SET(1) |
+	    QH_EP_CAP_MULTI_SET(ep->packets) |
 	    QH_EP_CAP_TT_PORT_SET(ep->tt.port) |
 	    QH_EP_CAP_TT_ADDR_SET(ep->tt.address) |
 	    QH_EP_CAP_C_MASK_SET(3 << 2) |
