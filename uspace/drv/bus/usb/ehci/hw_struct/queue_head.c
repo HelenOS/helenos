@@ -86,9 +86,12 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	    QH_EP_CAP_MULTI_SET(ep->packets) |
 	    QH_EP_CAP_TT_PORT_SET(ep->tt.port) |
 	    QH_EP_CAP_TT_ADDR_SET(ep->tt.address) |
-	    QH_EP_CAP_C_MASK_SET(3 << 2) |
-	    QH_EP_CAP_S_MASK_SET(3)
+	    QH_EP_CAP_C_MASK_SET(3 << 2)
 	);
+
+	if (ep->transfer_type == USB_TRANSFER_INTERRUPT) {
+		EHCI_MEM32_SET(instance->ep_cap, QH_EP_CAP_S_MASK_SET(3));
+	}
 	/* The rest of the fields are transfer working area, it should be ok to
 	 * leave it NULL */
 }
