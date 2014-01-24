@@ -121,31 +121,6 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	fibril_mutex_unlock(&instance->guard);
 }
 
-/** Add endpoint to the beginning of the list and queue.
- *
- * @param[in] instance List to use.
- * @param[in] endpoint Endpoint to add.
- *
- * The endpoint is added to the end of the list and queue.
- */
-void endpoint_list_prepend_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
-{
-	assert(instance);
-	assert(ep);
-	assert(ep->qh);
-	usb_log_debug2("Queue %s: Prepend endpoint(%p).\n", instance->name, ep);
-
-	fibril_mutex_lock(&instance->guard);
-	ep->qh->horizontal = instance->list_head->horizontal;
-	/* Make sure QH is updated */
-	write_barrier();
-	/* Add QH to the hw queue */
-	qh_append_qh(instance->list_head, ep->qh);
-	/* Add to the sw list */
-	list_prepend(&ep->link, &instance->endpoint_list);
-	fibril_mutex_unlock(&instance->guard);
-
-}
 /** Remove endpoint from the list and queue.
  *
  * @param[in] instance List to use.

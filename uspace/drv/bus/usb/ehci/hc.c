@@ -214,8 +214,6 @@ void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 	switch (ep->transfer_type)
 	{
 	case USB_TRANSFER_CONTROL:
-		endpoint_list_prepend_ep(&instance->async_list, ehci_ep);
-		break;
 	case USB_TRANSFER_BULK:
 		endpoint_list_append_ep(&instance->async_list, ehci_ep);
 		break;
