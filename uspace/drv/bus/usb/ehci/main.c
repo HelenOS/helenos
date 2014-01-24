@@ -44,6 +44,7 @@
 
 #include "res.h"
 #include "hc.h"
+#include "ehci_endpoint.h"
 
 #define NAME "ehci"
 
@@ -59,7 +60,8 @@ static int ehci_driver_init(hcd_t *hcd, const hw_res_list_parsed_t *res, bool ir
 	const int ret = hc_init(instance, res, irq);
 	if (ret == EOK)
 		hcd_set_implementation(hcd, instance, ehci_hc_schedule,
-		    NULL, NULL, ehci_hc_interrupt, ehci_hc_status);
+		    ehci_endpoint_init, ehci_endpoint_fini, ehci_hc_interrupt,
+		    ehci_hc_status);
 	return ret;
 }
 
