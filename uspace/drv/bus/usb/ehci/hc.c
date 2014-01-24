@@ -197,11 +197,34 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 void hc_fini(hc_t *instance)
 {
 	assert(instance);
-	/* TODO: implement*/
+	//TODO: stop the hw
+#if 0
+	endpoint_list_fini(&instance->async_list);
+	endpoint_list_fini(&instance->int_list);
+	return_page(instance->periodic_list_base);
+#endif
 };
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
+	assert(instance);
+	assert(ep);
+	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
+	switch (ep->transfer_type)
+	{
+	case USB_TRANSFER_CONTROL:
+		endpoint_list_prepend_ep(&instance->async_list, ehci_ep);
+		break;
+	case USB_TRANSFER_BULK:
+		endpoint_list_append_ep(&instance->async_list, ehci_ep);
+		break;
+	case USB_TRANSFER_INTERRUPT:
+		endpoint_list_append_ep(&instance->int_list, ehci_ep);
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+		/* NOT SUPPORTED */
+		break;
+	}
 }
 
 void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
@@ -342,16 +365,33 @@ void hc_start(hc_t *instance)
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
+	int ret = endpoint_list_init(&instance->async_list, "ASYNC");
+	if (ret != EOK) {
+		usb_log_error("Failed to setup ASYNC list: %s", str_error(ret));
+		return ret;
+	}
+
+	ret = endpoint_list_init(&instance->int_list, "INT");
+	if (ret != EOK) {
+		usb_log_error("Failed to setup INT list: %s", str_error(ret));
+		endpoint_list_fini(&instance->async_list);
+		return ret;
+	}
 
 	/* Take 1024 periodic list heads, we ignore low mem options */
 	instance->periodic_list_base = get_page();
-	if (!instance->periodic_list_base)
+	if (!instance->periodic_list_base) {
+		usb_log_error("Failed to get ISO schedule page.");
+		endpoint_list_fini(&instance->async_list);
+		endpoint_list_fini(&instance->int_list);
 		return ENOMEM;
+	}
 	for (unsigned i = 0;
 	    i < PAGE_SIZE/sizeof(instance->periodic_list_base[0]); ++i)
 	{
 		/* Disable everything for now */
-		instance->periodic_list_base[i] = LINK_POINTER_TERM;
+		instance->periodic_list_base[i] =
+		    LINK_POINTER_QH(instance->int_list.list_head_pa);
 	}
 	return EOK;
 }

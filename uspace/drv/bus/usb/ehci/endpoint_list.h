@@ -73,6 +73,7 @@ static inline void endpoint_list_fini(endpoint_list_t *instance)
 
 int endpoint_list_init(endpoint_list_t *instance, const char *name);
 void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep);
+void endpoint_list_prepend_ep(endpoint_list_t *instance, ehci_endpoint_t *ep);
 void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep);
 #endif
 /**

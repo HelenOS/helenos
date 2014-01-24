@@ -50,7 +50,7 @@
 #include "ehci_regs.h"
 #include "ehci_rh.h"
 #include "hw_struct/link_pointer.h"
-//#include "endpoint_list.h"
+#include "endpoint_list.h"
 
 /** Main EHCI driver structure */
 typedef struct hc {
@@ -62,8 +62,12 @@ typedef struct hc {
 	/** Iso transfer list */
 	link_pointer_t *periodic_list_base;
 
-	/** Transfer schedules */
-//	endpoint_list_t lists[4];
+	/** CONTROL and BULK schedules */
+	endpoint_list_t async_list;
+
+	/** INT schedule */
+	endpoint_list_t int_list;
+
 	/** List of active transfers */
 	list_t pending_batches;
 
