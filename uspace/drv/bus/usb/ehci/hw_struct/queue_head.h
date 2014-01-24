@@ -153,8 +153,30 @@ static inline void qh_append_qh(qh_t *qh, const qh_t *next)
 static inline uintptr_t qh_next(const qh_t *qh)
 {
 	assert(qh);
-	return (qh->horizontal & LINK_POINTER_ADDRESS_MASK);
+	return (EHCI_MEM32_RD(qh->horizontal) & LINK_POINTER_ADDRESS_MASK);
 }
+
+static inline bool qh_toggle_from_td(const qh_t *qh)
+{
+	assert(qh);
+	return (EHCI_MEM32_RD(qh->ep_cap) & QH_EP_CHAR_DTC_FLAG);
+}
+
+static inline void qh_toggle_set(qh_t *qh, int toggle)
+{
+	assert(qh);
+	if (toggle)
+		EHCI_MEM32_SET(qh->status, QH_STATUS_TOGGLE_FLAG);
+	else
+		EHCI_MEM32_CLR(qh->status, QH_STATUS_TOGGLE_FLAG);
+}
+
+static inline int qh_toggle_get(const qh_t *qh)
+{
+	assert(qh);
+	return (EHCI_MEM32_RD(qh->status) & QH_STATUS_TOGGLE_FLAG) ? 1 : 0;
+}
+
 
 void qh_init(qh_t *instance, const endpoint_t *ep);
 #endif

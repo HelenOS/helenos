@@ -34,6 +34,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <usb/debug.h>
 
 #include "utils/malloc32.h"
 #include "ehci_endpoint.h"
@@ -49,7 +50,9 @@ static void ehci_ep_toggle_set(void *ehci_ep, int toggle)
 	ehci_endpoint_t *instance = ehci_ep;
 	assert(instance);
 	assert(instance->qh);
-//	qh_toggle_set(instance->qh, toggle);
+	if (qh_toggle_from_td(instance->qh))
+		usb_log_warning("Setting toggle bit for transfer directed EP\n");
+	qh_toggle_set(instance->qh, toggle);
 }
 
 /** Callback to get value of toggle bit.
@@ -62,8 +65,9 @@ static int ehci_ep_toggle_get(void *ehci_ep)
 	ehci_endpoint_t *instance = ehci_ep;
 	assert(instance);
 	assert(instance->qh);
-	return 0;
-//	return qh_toggle_get(instance->qh);
+	if (qh_toggle_from_td(instance->qh))
+		usb_log_warning("Reading useless toggle bit\n");
+	return qh_toggle_get(instance->qh);
 }
 
 /** Creates new hcd endpoint representation.
