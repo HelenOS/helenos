@@ -74,6 +74,9 @@ typedef struct hc {
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;
 
+	/** Wait for hc to restart async chedule */
+	fibril_condvar_t async_doorbell;
+
 	/** USB hub emulation structure */
 	ehci_rh_t rh;
 } hc_t;

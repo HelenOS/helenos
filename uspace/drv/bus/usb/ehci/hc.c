@@ -175,6 +175,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 
 	list_initialize(&instance->pending_batches);
 	fibril_mutex_initialize(&instance->guard);
+	fibril_condvar_initialize(&instance->async_doorbell);
 
 	ret = hc_init_memory(instance);
 	if (ret != EOK) {
@@ -229,6 +230,26 @@ void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 
 void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 {
+	assert(instance);
+	assert(ep);
+	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
+	switch (ep->transfer_type)
+	{
+	case USB_TRANSFER_INTERRUPT:
+		endpoint_list_append_ep(&instance->int_list, ehci_ep);
+		/* Fall through */
+	case USB_TRANSFER_ISOCHRONOUS:
+		/* NOT SUPPORTED */
+		return;
+	case USB_TRANSFER_CONTROL:
+	case USB_TRANSFER_BULK:
+		endpoint_list_remove_ep(&instance->async_list, ehci_ep);
+		break;
+	}
+	fibril_mutex_lock(&instance->guard);
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
+	fibril_condvar_wait(&instance->async_doorbell, &instance->guard);
+	fibril_mutex_unlock(&instance->guard);
 }
 
 int ehci_hc_status(hcd_t *hcd, uint32_t *status)
@@ -279,6 +300,9 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	if (status & USB_STS_PORT_CHANGE_FLAG) {
 		ehci_rh_interrupt(&instance->rh);
 	}
+	if (status & USB_STS_ASYNC_SCHED_FLAG) {
+		fibril_condvar_signal(&instance->async_doorbell);
+	}
 }
 
 /** EHCI hw initialization routine.
@@ -312,8 +336,8 @@ void hc_start(hc_t *instance)
 		async_usleep(1);
 	}
 	/* Enable interrupts */
-	EHCI_WR(instance->registers->usbintr, USB_INTR_PORT_CHANGE_FLAG | USB_INTR_IRQ_FLAG);
-	/* Use lower 4G segment */
+	EHCI_WR(instance->registers->usbintr, USB_INTR_PORT_CHANGE_FLAG | USB_INTR_IRQ_FLAG | USB_INTR_ASYNC_ADVANCE_FLAG);
+	/* Use the lowest 4G segment */
 	EHCI_WR(instance->registers->ctrldssegment, 0);
 	/* Set periodic list */
 	assert(instance->periodic_list_base);
@@ -325,6 +349,7 @@ void hc_start(hc_t *instance)
 	/* start hc and get all ports */
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
 	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
+
 #if 0
 	/*
 	 * TURN OFF EHCI FOR NOW

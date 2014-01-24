@@ -106,11 +106,11 @@ void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep)
 	assert(ep);
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
 	hc_dequeue_endpoint(hcd->driver.data, ep);
+	endpoint_clear_hc_data(ep);
 	if (instance) {
 		free32(instance->qh);
 		free(instance);
 	}
-	endpoint_clear_hc_data(ep);
 }
 /**
  * @}
