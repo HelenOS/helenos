@@ -234,7 +234,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	switch (ep->transfer_type)
 	{
 	case USB_TRANSFER_INTERRUPT:
-		endpoint_list_append_ep(&instance->int_list, ehci_ep);
+		endpoint_list_remove_ep(&instance->int_list, ehci_ep);
 		/* Fall through */
 	case USB_TRANSFER_ISOCHRONOUS:
 		/* NOT SUPPORTED */
