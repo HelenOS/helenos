@@ -39,6 +39,7 @@
 #include <usb/host/endpoint.h>
 
 #include "link_pointer.h"
+#include "mem_access.h"
 
 /** This structure is defined in EHCI design guide p. 46 */
 typedef struct queue_head {
@@ -138,6 +139,21 @@ typedef struct queue_head {
 #define QH_BUFFER_POINTER_FTAG_SHIFT  0
 
 } qh_t;
+
+static inline void qh_append_qh(qh_t *qh, const qh_t *next)
+{
+	assert(qh);
+	assert(next);
+	const uint32_t pa = addr_to_phys(next);
+	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
+	EHCI_MEM32_WR(qh->horizontal, LINK_POINTER_QH(pa));
+}
+
+static inline uintptr_t qh_next(const qh_t *qh)
+{
+	assert(qh);
+	return (qh->horizontal & LINK_POINTER_ADDRESS_MASK);
+}
 
 void qh_init(qh_t *instance, const endpoint_t *ep);
 #endif

@@ -63,63 +63,61 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
 	    name, instance->list_head, instance->list_head_pa);
 
-//	qh_init(instance->list_head, NULL, NULL);
+	qh_init(instance->list_head, NULL);
 	list_initialize(&instance->endpoint_list);
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
 }
 
-/** Add endpoint to the list and queue.
+/** Add endpoint to the end of the list and queue.
  *
  * @param[in] instance List to use.
  * @param[in] endpoint Endpoint to add.
  *
  * The endpoint is added to the end of the list and queue.
  */
-void endpoint_list_add_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
+void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 {
 	assert(instance);
 	assert(ep);
+	assert(ep->qh);
 	usb_log_debug2("Queue %s: Adding endpoint(%p).\n", instance->name, ep);
 
 	fibril_mutex_lock(&instance->guard);
 
-#if 0
-	//TODO Implement this
-	ed_t *last_ed = NULL;
+	qh_t *last_qh = NULL;
 	/* Add to the hardware queue. */
 	if (list_empty(&instance->endpoint_list)) {
 		/* There are no active EDs */
-		last_ed = instance->list_head;
+		last_qh = instance->list_head;
 	} else {
 		/* There are active EDs, get the last one */
-		ehci_endpoint_t *last = list_get_instance(
-		    list_last(&instance->endpoint_list), ehci_endpoint_t, link);
-		last_ed = last->ed;
+		ehci_endpoint_t *last = ehci_endpoint_list_instance(
+		    list_last(&instance->endpoint_list));
+		last_qh = last->qh;
 	}
+	assert(last_qh);
 	/* Keep link */
-	ep->ed->next = last_ed->next;
-	/* Make sure ED is written to the memory */
+	ep->qh->horizontal = last_qh->horizontal;
+	/* Make sure QH update is written to the memory */
 	write_barrier();
 
 	/* Add ed to the hw queue */
-	ed_append_ed(last_ed, ep->ed);
+	qh_append_qh(last_qh, ep->qh);
 	/* Make sure ED is updated */
 	write_barrier();
 	/* Add to the sw list */
 	list_append(&ep->link, &instance->endpoint_list);
 
-	ehci_endpoint_t *first = list_get_instance(
-	    list_first(&instance->endpoint_list), ehci_endpoint_t, link);
+	ehci_endpoint_t *first = ehci_endpoint_list_instance(
+	    list_first(&instance->endpoint_list));
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
-		ep, instance->name, first, first->ed);
-	if (last_ed == instance->list_head) {
-		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x:%x:%x.\n",
-		    instance->name, last_ed, instance->list_head_pa,
-		    last_ed->status, last_ed->td_tail, last_ed->td_head,
-		    last_ed->next);
+		ep, instance->name, first, first->qh);
+	if (last_qh == instance->list_head) {
+		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x.\n",
+		    instance->name, last_qh, instance->list_head_pa,
+		    last_qh->status, last_qh->horizontal);
 	}
-#endif
 	fibril_mutex_unlock(&instance->guard);
 }
 
@@ -152,7 +150,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 		prev_qh = prev->qh;
 		qpos = "NOT FIRST";
 	}
-//	assert(ed_next(prev_qh) == addr_to_phys(ep->eq));
+	assert(qh_next(prev_qh) == addr_to_phys(ep->qh));
 	prev_qh->next = ep->qh->next;
 	/* Make sure ED is updated */
 	write_barrier();

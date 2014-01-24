@@ -65,6 +65,11 @@ static inline ehci_endpoint_t * ehci_endpoint_get(const endpoint_t *ep)
 	return ep->hc_data.data;
 }
 
+static inline ehci_endpoint_t * ehci_endpoint_list_instance(link_t *l)
+{
+	return list_get_instance(l, ehci_endpoint_t, link);
+}
+
 #endif
 /**
  * @}
