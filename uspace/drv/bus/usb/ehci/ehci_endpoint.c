@@ -88,6 +88,7 @@ int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 		return ENOMEM;
 	}
 
+	link_initialize(&ehci_ep->link);
 	qh_init(ehci_ep->qh, ep);
 	endpoint_set_hc_data(
 	    ep, ehci_ep, ehci_ep_toggle_get, ehci_ep_toggle_set);
