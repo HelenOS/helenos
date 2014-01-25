@@ -52,7 +52,8 @@
 #include "hc.h"
 
 #define EHCI_USED_INTERRUPTS \
-    (USB_INTR_IRQ_FLAG | USB_INTR_ERR_IRQ_FLAG | USB_INTR_PORT_CHANGE_FLAG)
+    (USB_INTR_IRQ_FLAG | USB_INTR_ERR_IRQ_FLAG | USB_INTR_PORT_CHANGE_FLAG | \
+    USB_INTR_ASYNC_ADVANCE_FLAG | USB_INTR_HOST_ERR_FLAG)
 
 static const irq_pio_range_t ehci_pio_ranges[] = {
 	{
@@ -334,7 +335,7 @@ void hc_start(hc_t *instance)
 		async_usleep(1);
 	}
 	/* Enable interrupts */
-	EHCI_WR(instance->registers->usbintr, USB_INTR_PORT_CHANGE_FLAG | USB_INTR_IRQ_FLAG | USB_INTR_ASYNC_ADVANCE_FLAG);
+	EHCI_WR(instance->registers->usbintr, EHCI_USED_INTERRUPTS);
 	/* Use the lowest 4G segment */
 	EHCI_WR(instance->registers->ctrldssegment, 0);
 	/* Set periodic list */
