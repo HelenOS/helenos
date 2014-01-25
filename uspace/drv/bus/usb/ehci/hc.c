@@ -168,11 +168,14 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 		    str_error(ret));
 		return ret;
 	}
-	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	usb_log_info("Device registers at %" PRIx64 " (%zuB) accessible.\n",
 	    hw_res->mem_ranges.ranges[0].address.absolute,
 	    hw_res->mem_ranges.ranges[0].size);
 	instance->registers =
 	    (void*)instance->caps + EHCI_RD8(instance->caps->caplength);
+	usb_log_info("Device control registers at %" PRIx64 "\n",
+	    hw_res->mem_ranges.ranges[0].address.absolute
+	    + EHCI_RD8(instance->caps->caplength));
 
 	list_initialize(&instance->pending_batches);
 	fibril_mutex_initialize(&instance->guard);
