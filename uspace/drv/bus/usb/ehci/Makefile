@@ -44,6 +44,7 @@ EXTRA_CFLAGS += \
 BINARY = ehci
 
 SOURCES = \
+	ehci_batch.c \
 	ehci_endpoint.c \
 	ehci_rh.c \
 	endpoint_list.c \
