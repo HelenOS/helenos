@@ -46,7 +46,7 @@
 #include <usb/usb.h>
 
 //#include "ehci_endpoint.h"
-//#include "ehci_batch.h"
+#include "ehci_batch.h"
 #include "utils/malloc32.h"
 
 #include "hc.h"
@@ -279,10 +279,18 @@ int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 
 	/* Check for root hub communication */
 	if (batch->ep->address == ehci_rh_get_address(&instance->rh)) {
-		usb_log_debug("EHCI root hub request.\n");
 		return ehci_rh_schedule(&instance->rh, batch);
 	}
-	return ENOTSUP;
+	ehci_transfer_batch_t *ehci_batch = ehci_transfer_batch_get(batch);
+	if (!ehci_batch)
+		return ENOMEM;
+
+	fibril_mutex_lock(&instance->guard);
+	list_append(&ehci_batch->link, &instance->pending_batches);
+	ehci_transfer_batch_commit(ehci_batch);
+
+	fibril_mutex_unlock(&instance->guard);
+	return EOK;
 }
 
 /** Interrupt handling routine
@@ -302,6 +310,24 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	if (status & USB_STS_ASYNC_SCHED_FLAG) {
 		fibril_condvar_signal(&instance->async_doorbell);
 	}
+	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
+		fibril_mutex_lock(&instance->guard);
+
+		link_t *current = list_first(&instance->pending_batches);
+		while (current && current != &instance->pending_batches.head) {
+			link_t *next = current->next;
+			ehci_transfer_batch_t *batch =
+			    ehci_transfer_batch_from_link(current);
+
+			if (ehci_transfer_batch_is_complete(batch)) {
+				list_remove(current);
+				ehci_transfer_batch_finish_dispose(batch);
+			}
+			current = next;
+		}
+		fibril_mutex_unlock(&instance->guard);
+	}
+
 }
 
 /** EHCI hw initialization routine.
