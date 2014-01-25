@@ -161,12 +161,12 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 		qpos = "NOT FIRST";
 	}
 	assert(qh_next(prev_qh) == addr_to_phys(ep->qh));
-	prev_qh->next = ep->qh->next;
+	prev_qh->horizontal = ep->qh->horizontal;
 	/* Make sure ED is updated */
 	write_barrier();
 
-	usb_log_debug("HCD EP(%p) removed (%s) from %s, next %x.\n",
-	    ep, qpos, instance->name, ep->qh->next);
+	usb_log_debug("HCD EP(%p) removed (%s) from %s, horizontal %x.\n",
+	    ep, qpos, instance->name, ep->qh->horizontal);
 
 	/* Remove from the endpoint list */
 	list_remove(&ep->link);
