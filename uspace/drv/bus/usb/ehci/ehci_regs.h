@@ -41,8 +41,8 @@
 #define EHCI_WR(reg, val) pio_write_32(&(reg), host2uint32_t_le(val))
 #define EHCI_RD(reg) uint32_t_le2host(pio_read_32(&(reg)))
 #define EHCI_RD8(reg) pio_read_8(&(reg))
-#define EHCI_SET(reg, val) pio_set_32(&(reg), host2uint32_t_le(val), 0)
-#define EHCI_CLR(reg, val) pio_clear_32(&(reg), host2uint32_t_le(val), 0)
+#define EHCI_SET(reg, val) pio_set_32(&(reg), host2uint32_t_le(val), 10)
+#define EHCI_CLR(reg, val) pio_clear_32(&(reg), host2uint32_t_le(val), 10)
 
 /** EHCI memory mapped capability registers structure */
 typedef struct ehci_cap_regs {
