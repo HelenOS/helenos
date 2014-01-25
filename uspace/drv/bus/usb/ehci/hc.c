@@ -249,7 +249,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 		break;
 	}
 	fibril_mutex_lock(&instance->guard);
-	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_IRQ_ASYNC_DOORBELL);
 	fibril_condvar_wait(&instance->async_doorbell, &instance->guard);
 	fibril_mutex_unlock(&instance->guard);
 }
