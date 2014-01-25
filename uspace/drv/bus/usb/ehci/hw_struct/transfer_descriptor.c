@@ -33,15 +33,34 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <macros.h>
 #include <mem.h>
 
 #include <usb/usb.h>
 
 #include "../utils/malloc32.h"
-//#include "completion_codes.h"
 #include "mem_access.h"
 #include "transfer_descriptor.h"
+
+
+int td_error(const td_t *td)
+{
+	assert(td);
+	const uint32_t status = EHCI_MEM32_RD(td->status);
+	if (status & TD_STATUS_HALTED_FLAG) {
+		if (status & TD_STATUS_TRANS_ERR_FLAG)
+			return EIO;
+		if (status & TD_STATUS_BABBLE_FLAG)
+			return EIO;
+		if (status & TD_STATUS_BUFF_ERROR_FLAG)
+			return EOVERFLOW;
+		return ESTALL;
+	}
+	if (status & TD_STATUS_ACTIVE_FLAG)
+		return EINPROGRESS;
+	return EOK;
+}
 
 /** USB direction to EHCI TD values translation table */
 static const uint32_t dir[] = {

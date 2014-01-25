@@ -72,6 +72,21 @@ typedef struct td {
 
 } td_t;
 
+static inline bool td_active(const td_t *td)
+{
+	assert(td);
+	return (EHCI_MEM32_RD(td->status) & TD_STATUS_HALTED_FLAG) != 0;
+}
+
+static inline size_t td_remain_size(const td_t *td)
+{
+	assert(td);
+	return (EHCI_MEM32_RD(td->status) >> TD_STATUS_TOTAL_SHIFT) &
+	    TD_STATUS_TOTAL_MASK;
+}
+
+int td_error(const td_t *td);
+
 void td_init(td_t *td, const td_t *next, usb_direction_t dir, const void * buf,
     size_t buf_size, int toggle);
 

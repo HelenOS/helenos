@@ -183,10 +183,10 @@ static inline bool qh_halted(const qh_t *qh)
 	return (EHCI_MEM32_RD(qh->status) & QH_STATUS_HALTED_FLAG);
 }
 
-static inline void qh_halt(qh_t *qh)
+static inline void qh_clear_halt(qh_t *qh)
 {
 	assert(qh);
-	EHCI_MEM32_SET(qh->status, QH_STATUS_HALTED_FLAG);
+	EHCI_MEM32_CLR(qh->status, QH_STATUS_HALTED_FLAG);
 }
 
 static inline bool qh_transfer_pending(const qh_t *qh)

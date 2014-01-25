@@ -205,7 +205,7 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 		usb_log_debug("TD %zu: %08x:%08x:%08x.", i,
 		    ehci_batch->tds[i]->status, ehci_batch->tds[i]->next,
 		    ehci_batch->tds[i]->alternate);
-#if 0
+
 		ehci_batch->usb_batch->error = td_error(ehci_batch->tds[i]);
 		if (ehci_batch->usb_batch->error == EOK) {
 			/* If the TD got all its data through, it will report
@@ -226,45 +226,18 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 			usb_log_debug("Batch %p found error TD(%zu):%08x.\n",
 			    ehci_batch->usb_batch, i,
 			    ehci_batch->tds[i]->status);
-
-			/* ED should be stopped because of errors */
-			assert((ehci_batch->ed->td_head & ED_TDHEAD_HALTED_FLAG) != 0);
-
-			/* Now we have a problem: we don't know what TD
-			 * the head pointer points to, the retiring rules
-			 * described in specs say it should be the one after
-			 * the failed one so set the tail pointer accordingly.
-			 * It will be the one TD we leave behind.
-			 */
-			leave_td = i + 1;
-
-			/* Check TD assumption */
-			assert(ed_head_td(ehci_batch->ed) ==
-			    addr_to_phys(ehci_batch->tds[leave_td]));
-
-			/* Set tail to the same TD */
-			ed_set_tail_td(ehci_batch->ed,
-			    ehci_batch->tds[leave_td]);
-
 			/* Clear possible ED HALT */
-			ed_clear_halt(ehci_batch->ed);
+			qh_clear_halt(ehci_batch->qh);
 			break;
 		}
-#endif
 	}
 
 	assert(ehci_batch->usb_batch->transfered_size <=
 	    ehci_batch->usb_batch->buffer_size);
-#if 0
-	/* Store the remaining TD */
-	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ehci_batch->usb_batch->ep);
-	assert(ehci_ep);
-	ehci_ep->td = ehci_batch->tds[leave_td];
+	/* Clear TD pointers */
+	ehci_batch->qh->next = LINK_POINTER_TERM;
+	ehci_batch->qh->current = LINK_POINTER_TERM;
 
-	/* Make sure that we are leaving the right TD behind */
-	assert(addr_to_phys(ehci_ep->td) == ed_head_td(ehci_batch->ed));
-	assert(addr_to_phys(ehci_ep->td) == ed_tail_td(ehci_batch->ed));
-#endif
 	return true;
 }
 
