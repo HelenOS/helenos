@@ -290,6 +290,65 @@ static int req_get_port_status(usbvirt_device_t *device,
 	return EOK;
 }
 
+typedef struct {
+	ehci_rh_t *hub;
+	unsigned port;
+} ehci_rh_job_t;
+
+static int stop_reset(void *arg)
+{
+	ehci_rh_job_t *job = arg;
+	async_usleep(50000);
+	EHCI_CLR(job->hub->registers->portsc[job->port],
+	    USB_PORTSC_PORT_RESET_FLAG);
+	/* wait for reset to complete */
+	while (EHCI_RD(job->hub->registers->portsc[job->port]) &
+	    USB_PORTSC_PORT_RESET_FLAG) {
+		async_usleep(1);
+	};
+	/* Handle port ownership, if the port is not enabled
+	 * after reset it's a full speed device */
+	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
+	    USB_PORTSC_ENABLED_FLAG)) {
+		EHCI_SET(job->hub->registers->portsc[job->port],
+		    USB_PORTSC_PORT_OWNER_FLAG);
+	} else {
+		job->hub->reset_flag[job->port] = true;
+	}
+	ehci_rh_interrupt(job->hub);
+	free(job);
+	return 0;
+}
+
+static int stop_resume(void *arg)
+{
+	ehci_rh_job_t *job = arg;
+	async_usleep(20000);
+	EHCI_CLR(job->hub->registers->portsc[job->port],
+	    USB_PORTSC_RESUME_FLAG);
+	job->hub->resume_flag[job->port] = true;
+	ehci_rh_interrupt(job->hub);
+	free(job);
+	return 0;
+}
+
+static int delayed_job(int (*func)(void*), ehci_rh_t *rh, unsigned port)
+{
+	ehci_rh_job_t *job = malloc(sizeof(*job));
+	if (!job)
+		return ENOMEM;
+	job->hub = rh;
+	job->port = port;
+	fid_t fib = fibril_create(func, job);
+	if (!fib) {
+		free(job);
+		return ENOMEM;
+	}
+	fibril_add_ready(fib);
+	return EOK;
+}
+
+
 /** Port clear feature request handler.
  * @param device Virtual hub device
  * @param setup_packet USB setup stage data.
@@ -327,10 +386,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		/* Host driven resume */
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_RESUME_FLAG);
-		async_usleep(20000);
-		EHCI_CLR(hub->registers->portsc[port],
-		    USB_PORTSC_RESUME_FLAG);
-		hub->resume_flag[port] = true;
+		delayed_job(stop_resume, hub, port);
 		return EOK;
 
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
@@ -385,24 +441,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_RESET_FLAG);
-		async_usleep(50000);
-		EHCI_CLR(hub->registers->portsc[port],
-		    USB_PORTSC_PORT_RESET_FLAG);
-		/* wait for reset to complete */
-		while (EHCI_RD(hub->registers->portsc[port]) &
-		    USB_PORTSC_PORT_RESET_FLAG) {
-			async_usleep(1);
-		};
-		/* Handle port ownership, if the port is not enabled
-		 * after reset it's a full speed device */
-		if (!(EHCI_RD(hub->registers->portsc[port]) &
-		    USB_PORTSC_ENABLED_FLAG)) {
-			EHCI_SET(hub->registers->portsc[port],
-			    USB_PORTSC_PORT_OWNER_FLAG);
-		} else {
-			hub->reset_flag[port] = true;
-		}
-
+		delayed_job(stop_reset, hub, port);
 		return EOK;
 	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
 		EHCI_SET(hub->registers->portsc[port],
