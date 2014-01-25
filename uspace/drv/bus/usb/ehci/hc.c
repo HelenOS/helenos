@@ -370,10 +370,8 @@ void hc_start(hc_t *instance)
 	    addr_to_phys((void*)instance->periodic_list_base);
 	assert((phys_base & USB_PERIODIC_LIST_BASE_MASK) == phys_base);
 	EHCI_WR(instance->registers->periodiclistbase, phys_base);
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_PERIODIC_SCHEDULE_FLAG);
 
-	/* start hc and get all ports */
-	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
-	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
 
 	/* Enable Async schedule */
 	assert((instance->async_list.list_head_pa & USB_ASYNCLIST_MASK) ==
@@ -381,6 +379,10 @@ void hc_start(hc_t *instance)
 	EHCI_WR(instance->registers->asynclistaddr,
 	    instance->async_list.list_head_pa);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
+
+	/* start hc and get all ports */
+	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
+	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
 #if 0
 	/*
 	 * TURN OFF EHCI FOR NOW
