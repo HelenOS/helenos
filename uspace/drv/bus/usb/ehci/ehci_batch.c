@@ -266,7 +266,8 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	assert(ehci_batch->usb_batch);
 	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
 
-	usb_log_debug2("Control QH: %08x:%08x:%08x:%08x:%08x:%08x",
+	usb_log_debug2("Control QH(%"PRIxn"): %08x:%08x:%08x:%08x:%08x:%08x",
+	    addr_to_phys(ehci_batch->qh),
 	    ehci_batch->qh->ep_char, ehci_batch->qh->ep_cap,
 	    ehci_batch->qh->status, ehci_batch->qh->current,
 	    ehci_batch->qh->next, ehci_batch->qh->alternate);
@@ -284,7 +285,8 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	td_init(
 	    ehci_batch->tds[0], ehci_batch->tds[1], USB_DIRECTION_BOTH,
 	    buffer, ehci_batch->usb_batch->setup_size, toggle, false);
-	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x",
+	usb_log_debug("Created CONTROL SETUP TD(%"PRIxn"): %08x:%08x:%08x",
+	    addr_to_phys(ehci_batch->qh),
 	    ehci_batch->tds[0]->status, ehci_batch->tds[0]->next,
 	    ehci_batch->tds[0]->alternate);
 	buffer += ehci_batch->usb_batch->setup_size;
@@ -300,7 +302,8 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 		td_init(ehci_batch->tds[td_current],
 		    ehci_batch->tds[td_current + 1], data_dir, buffer,
 		    transfer_size, toggle, false);
-		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x",
+		usb_log_debug2("Created CONTROL DATA TD(%"PRIxn"): %08x:%08x:%08x",
+		    addr_to_phys(ehci_batch->qh),
 		    ehci_batch->tds[td_current]->status,
 		    ehci_batch->tds[td_current]->next,
 		    ehci_batch->tds[td_current]->alternate);
@@ -315,7 +318,8 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	assert(td_current == ehci_batch->td_count - 1);
 	td_init(ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
 	    status_dir, NULL, 0, 1, true);
-	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x",
+	usb_log_debug("Created CONTROL STATUS TD(%"PRIxn"): %08x:%08x:%08x",
+	    addr_to_phys(ehci_batch->qh),
 	    ehci_batch->tds[td_current]->status,
 	    ehci_batch->tds[td_current]->next,
 	    ehci_batch->tds[td_current]->alternate);
@@ -358,7 +362,8 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir)
 		    ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
 		    dir, buffer, transfer_size, -1, remain_size == transfer_size);
 
-		usb_log_debug("Created DATA TD: %08x:%08x:%08x",
+		usb_log_debug("Created DATA TD(%"PRIxn": %08x:%08x:%08x",
+		    addr_to_phys(ehci_batch->qh),
 		    ehci_batch->tds[td_current]->status,
 		    ehci_batch->tds[td_current]->next,
 		    ehci_batch->tds[td_current]->alternate);
