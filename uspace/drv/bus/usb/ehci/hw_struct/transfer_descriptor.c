@@ -80,7 +80,8 @@ static const uint32_t dir[] = {
  *        any other value means that ED toggle will be used.
  */
 void td_init(td_t *instance, const td_t *next,
-    usb_direction_t direction, const void *buffer, size_t size, int toggle)
+    usb_direction_t direction, const void *buffer, size_t size, int toggle,
+    bool ioc)
 {
 	assert(instance);
 	memset(instance, 0, sizeof(td_t));
@@ -88,7 +89,8 @@ void td_init(td_t *instance, const td_t *next,
 	assert((size & TD_STATUS_TOTAL_MASK) == size);
 	EHCI_MEM32_WR(instance->status,
 	    ((dir[direction] & TD_STATUS_PID_MASK) << TD_STATUS_PID_SHIFT) |
-	    ((size & TD_STATUS_TOTAL_MASK) << TD_STATUS_TOTAL_SHIFT));
+	    ((size & TD_STATUS_TOTAL_MASK) << TD_STATUS_TOTAL_SHIFT) |
+	    (ioc ? TD_STATUS_IOC_FLAG : 0) );
 
 	if (toggle == 0 || toggle == 1) {
 		EHCI_MEM32_SET(instance->status,

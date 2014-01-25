@@ -283,7 +283,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	/* Setup stage */
 	td_init(
 	    ehci_batch->tds[0], ehci_batch->tds[1], USB_DIRECTION_BOTH,
-	    buffer, ehci_batch->usb_batch->setup_size, toggle);
+	    buffer, ehci_batch->usb_batch->setup_size, toggle, false);
 	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x",
 	    ehci_batch->tds[0]->status, ehci_batch->tds[0]->next,
 	    ehci_batch->tds[0]->alternate);
@@ -298,8 +298,8 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 		toggle = 1 - toggle;
 
 		td_init(ehci_batch->tds[td_current],
-		    ehci_batch->tds[td_current + 1],
-		    data_dir, buffer, transfer_size, toggle);
+		    ehci_batch->tds[td_current + 1], data_dir, buffer,
+		    transfer_size, toggle, false);
 		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x",
 		    ehci_batch->tds[td_current]->status,
 		    ehci_batch->tds[td_current]->next,
@@ -314,7 +314,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	/* Status stage */
 	assert(td_current == ehci_batch->td_count - 1);
 	td_init(ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
-	    status_dir, NULL, 0, 1);
+	    status_dir, NULL, 0, 1, true);
 	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x",
 	    ehci_batch->tds[td_current]->status,
 	    ehci_batch->tds[td_current]->next,
@@ -356,7 +356,7 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir)
 
 		td_init(
 		    ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
-		    dir, buffer, transfer_size, -1);
+		    dir, buffer, transfer_size, -1, remain_size == transfer_size);
 
 		usb_log_debug("Created DATA TD: %08x:%08x:%08x",
 		    ehci_batch->tds[td_current]->status,
