@@ -113,6 +113,8 @@ void td_init(td_t *instance, const td_t *next,
 	}
 
 	EHCI_MEM32_WR(instance->next, LINK_POINTER_TD(addr_to_phys(next)));
+
+	EHCI_MEM32_SET(instance->status, TD_STATUS_ACTIVE_FLAG);
 }
 /**
  * @}
