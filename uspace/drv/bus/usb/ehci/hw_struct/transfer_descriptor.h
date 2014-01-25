@@ -36,6 +36,7 @@
 
 #include <sys/types.h>
 #include "link_pointer.h"
+#include "mem_access.h"
 
 /** Transfer descriptor (non-ISO) */
 typedef struct td {

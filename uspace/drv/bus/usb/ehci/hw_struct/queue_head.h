@@ -40,6 +40,7 @@
 
 #include "../utils/malloc32.h"
 #include "link_pointer.h"
+#include "transfer_descriptor.h"
 #include "mem_access.h"
 
 /** This structure is defined in EHCI design guide p. 46 */
@@ -187,6 +188,13 @@ static inline void qh_clear_halt(qh_t *qh)
 {
 	assert(qh);
 	EHCI_MEM32_CLR(qh->status, QH_STATUS_HALTED_FLAG);
+}
+
+static inline void qh_set_next_td(qh_t *qh, td_t *td)
+{
+	assert(qh);
+	assert(td);
+	EHCI_MEM32_WR(qh->next, LINK_POINTER_TD(addr_to_phys(td)));
 }
 
 static inline bool qh_transfer_pending(const qh_t *qh)

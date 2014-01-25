@@ -248,7 +248,7 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 void ehci_transfer_batch_commit(const ehci_transfer_batch_t *ehci_batch)
 {
 	assert(ehci_batch);
-//	ed_set_tail_td(ehci_batch->ed, ehci_batch->tds[ehci_batch->td_count]);
+	qh_set_next_td(ehci_batch->qh, ehci_batch->tds[0]);
 }
 
 /** Prepare generic control transfer
