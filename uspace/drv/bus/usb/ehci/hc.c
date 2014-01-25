@@ -310,8 +310,10 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	if (status & USB_STS_PORT_CHANGE_FLAG) {
 		ehci_rh_interrupt(&instance->rh);
 	}
-	if (status & USB_STS_ASYNC_SCHED_FLAG) {
+	if (status & USB_STS_IRQ_ASYNC_ADVANCE_FLAG) {
+		fibril_mutex_lock(&instance->guard);
 		fibril_condvar_signal(&instance->async_doorbell);
+		fibril_mutex_unlock(&instance->guard);
 	}
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
 		fibril_mutex_lock(&instance->guard);
