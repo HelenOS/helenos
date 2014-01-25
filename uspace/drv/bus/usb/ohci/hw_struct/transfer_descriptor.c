@@ -75,7 +75,7 @@ void td_init(td_t *instance, const td_t *next,
 		OHCI_MEM32_SET(instance->status, toggle ? TD_STATUS_T_FLAG : 0);
 	}
 
-	/* Alow less data on input. */
+	/* Allow less data on input. */
 	if (dir == USB_DIRECTION_IN) {
 		OHCI_MEM32_SET(instance->status, TD_STATUS_ROUND_FLAG);
 	}
