@@ -45,6 +45,12 @@
 #include "ehci_endpoint.h"
 #include "utils/malloc32.h"
 
+/* The buffer pointer list in the qTD is long enough to support a maximum
+ * transfer size of 20K bytes. This case occurs when all five buffer pointers
+ * are used and the first offset is zero. A qTD handles a 16Kbyte buffer
+ * with any starting buffer alignment. EHCI specs p. 87 (pdf p. 97) */
+#define EHCI_TD_MAX_TRANSFER   (16 * 1024)
+
 static void (*const batch_setup[])(ehci_transfer_batch_t*, usb_direction_t);
 
 /** Safely destructs ehci_transfer_batch_t structure
@@ -59,7 +65,7 @@ static void ehci_transfer_batch_dispose(ehci_transfer_batch_t *ehci_batch)
 		const ehci_endpoint_t *ehci_ep =
 		    ehci_endpoint_get(ehci_batch->usb_batch->ep);
 		assert(ehci_ep);
-		for (unsigned i = 0; i < ehci_batch->td_count; ++i) {
+		for (size_t i = 0; i < ehci_batch->td_count; ++i) {
 			if (ehci_batch->tds[i] != ehci_ep->td)
 				free32(ehci_batch->tds[i]);
 		}
@@ -104,16 +110,16 @@ ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 		goto dispose;
 	}
 	link_initialize(&ehci_batch->link);
-//	ehci_batch->td_count =
-//	    (usb_batch->buffer_size + EHCI_TD_MAX_TRANSFER - 1)
-//	    / EHCI_TD_MAX_TRANSFER;
+	ehci_batch->td_count =
+	    (usb_batch->buffer_size + EHCI_TD_MAX_TRANSFER - 1)
+	    / EHCI_TD_MAX_TRANSFER;
+
 	/* Control transfer need Setup and Status stage */
 	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
 		ehci_batch->td_count += 2;
 	}
 
-	/* We need an extra place for TD that was left at ED */
-	ehci_batch->tds = calloc(ehci_batch->td_count + 1, sizeof(td_t*));
+	ehci_batch->tds = calloc(ehci_batch->td_count, sizeof(td_t*));
 	if (!ehci_batch->tds) {
 		usb_log_error("Failed to allocate EHCI transfer descriptors.");
 		goto dispose;
@@ -121,9 +127,8 @@ ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 
 	/* Add TD left over by the previous transfer */
 	ehci_batch->qh = ehci_endpoint_get(usb_batch->ep)->qh;
-	ehci_batch->tds[0] = ehci_endpoint_get(usb_batch->ep)->td;
 
-	for (unsigned i = 1; i <= ehci_batch->td_count; ++i) {
+	for (unsigned i = 0; i < ehci_batch->td_count; ++i) {
 		ehci_batch->tds[i] = malloc32(sizeof(td_t));
 		if (!ehci_batch->tds[i]) {
 			usb_log_error("Failed to allocate TD %d.", i);
@@ -132,10 +137,7 @@ ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 	}
 
 
-	/* NOTE: EHCI is capable of handling buffer that crosses page boundaries
-	 * it is, however, not capable of handling buffer that occupies more
-	 * than two pages (the first page is computed using start pointer, the
-	 * other using the end pointer) */
+	/* Mix setup stage and data together, we have enough space */
         if (usb_batch->setup_size + usb_batch->buffer_size > 0) {
 		/* Use one buffer for setup and data stage */
 		ehci_batch->device_buffer =
@@ -181,12 +183,13 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 
 	usb_log_debug("Batch %p checking %zu td(s) for completion.\n",
 	    ehci_batch->usb_batch, ehci_batch->td_count);
-#if 0
-	usb_log_debug2("ED: %08x:%08x:%08x:%08x.\n",
-	    ehci_batch->ed->status, ehci_batch->ed->td_head,
-	    ehci_batch->ed->td_tail, ehci_batch->ed->next);
 
-	if (!ed_inactive(ehci_batch->ed) && ed_transfer_pending(ehci_batch->ed))
+	usb_log_debug2("QH: %08x:%08x:%08x:%08x:%08x:%08x.\n",
+	    ehci_batch->qh->ep_char, ehci_batch->qh->ep_cap,
+	    ehci_batch->qh->status, ehci_batch->qh->current,
+	    ehci_batch->qh->next, ehci_batch->qh->alternate);
+
+	if (!qh_halted(ehci_batch->qh) && qh_transfer_pending(ehci_batch->qh))
 		return false;
 
 	/* Now we may be sure that either the ED is inactive because of errors
@@ -196,16 +199,13 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 	ehci_batch->usb_batch->transfered_size =
 	    ehci_batch->usb_batch->buffer_size;
 
-	/* Assume we will leave the last(unused) TD behind */
-	unsigned leave_td = ehci_batch->td_count;
-
 	/* Check all TDs */
 	for (size_t i = 0; i < ehci_batch->td_count; ++i) {
 		assert(ehci_batch->tds[i] != NULL);
-		usb_log_debug("TD %zu: %08x:%08x:%08x:%08x.\n", i,
-		    ehci_batch->tds[i]->status, ehci_batch->tds[i]->cbp,
-		    ehci_batch->tds[i]->next, ehci_batch->tds[i]->be);
-
+		usb_log_debug("TD %zu: %08x:%08x:%08x.", i,
+		    ehci_batch->tds[i]->status, ehci_batch->tds[i]->next,
+		    ehci_batch->tds[i]->alternate);
+#if 0
 		ehci_batch->usb_batch->error = td_error(ehci_batch->tds[i]);
 		if (ehci_batch->usb_batch->error == EOK) {
 			/* If the TD got all its data through, it will report
@@ -250,10 +250,12 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 			ed_clear_halt(ehci_batch->ed);
 			break;
 		}
+#endif
 	}
+
 	assert(ehci_batch->usb_batch->transfered_size <=
 	    ehci_batch->usb_batch->buffer_size);
-
+#if 0
 	/* Store the remaining TD */
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ehci_batch->usb_batch->ep);
 	assert(ehci_ep);
@@ -290,10 +292,11 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	assert(ehci_batch);
 	assert(ehci_batch->usb_batch);
 	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
-#if 0
-	usb_log_debug("Using ED(%p): %08x:%08x:%08x:%08x.\n", ehci_batch->ed,
-	    ehci_batch->ed->status, ehci_batch->ed->td_tail,
-	    ehci_batch->ed->td_head, ehci_batch->ed->next);
+
+	usb_log_debug2("Control QH: %08x:%08x:%08x:%08x:%08x:%08x",
+	    ehci_batch->qh->ep_char, ehci_batch->qh->ep_cap,
+	    ehci_batch->qh->status, ehci_batch->qh->current,
+	    ehci_batch->qh->next, ehci_batch->qh->alternate);
 	static const usb_direction_t reverse_dir[] = {
 		[USB_DIRECTION_IN]  = USB_DIRECTION_OUT,
 		[USB_DIRECTION_OUT] = USB_DIRECTION_IN,
@@ -308,9 +311,9 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	td_init(
 	    ehci_batch->tds[0], ehci_batch->tds[1], USB_DIRECTION_BOTH,
 	    buffer, ehci_batch->usb_batch->setup_size, toggle);
-	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x:%08x.\n",
-	    ehci_batch->tds[0]->status, ehci_batch->tds[0]->cbp,
-	    ehci_batch->tds[0]->next, ehci_batch->tds[0]->be);
+	usb_log_debug("Created CONTROL SETUP TD: %08x:%08x:%08x",
+	    ehci_batch->tds[0]->status, ehci_batch->tds[0]->next,
+	    ehci_batch->tds[0]->alternate);
 	buffer += ehci_batch->usb_batch->setup_size;
 
 	/* Data stage */
@@ -324,11 +327,10 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 		td_init(ehci_batch->tds[td_current],
 		    ehci_batch->tds[td_current + 1],
 		    data_dir, buffer, transfer_size, toggle);
-		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x:%08x.\n",
+		usb_log_debug("Created CONTROL DATA TD: %08x:%08x:%08x",
 		    ehci_batch->tds[td_current]->status,
-		    ehci_batch->tds[td_current]->cbp,
 		    ehci_batch->tds[td_current]->next,
-		    ehci_batch->tds[td_current]->be);
+		    ehci_batch->tds[td_current]->alternate);
 
 		buffer += transfer_size;
 		remain_size -= transfer_size;
@@ -340,12 +342,11 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 	assert(td_current == ehci_batch->td_count - 1);
 	td_init(ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
 	    status_dir, NULL, 0, 1);
-	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x:%08x.\n",
+	usb_log_debug("Created CONTROL STATUS TD: %08x:%08x:%08x",
 	    ehci_batch->tds[td_current]->status,
-	    ehci_batch->tds[td_current]->cbp,
 	    ehci_batch->tds[td_current]->next,
-	    ehci_batch->tds[td_current]->be);
-#endif
+	    ehci_batch->tds[td_current]->alternate);
+
 	usb_log_debug2(
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
 	    ehci_batch->usb_batch,
@@ -367,10 +368,11 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir)
 	assert(ehci_batch);
 	assert(ehci_batch->usb_batch);
 	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
-#if 0
-	usb_log_debug("Using ED(%p): %08x:%08x:%08x:%08x.\n", ehci_batch->ed,
-	    ehci_batch->ed->status, ehci_batch->ed->td_tail,
-	    ehci_batch->ed->td_head, ehci_batch->ed->next);
+
+	usb_log_debug2("Control QH: %08x:%08x:%08x:%08x:%08x:%08x",
+	    ehci_batch->qh->ep_char, ehci_batch->qh->ep_cap,
+	    ehci_batch->qh->status, ehci_batch->qh->current,
+	    ehci_batch->qh->next, ehci_batch->qh->alternate);
 
 	size_t td_current = 0;
 	size_t remain_size = ehci_batch->usb_batch->buffer_size;
@@ -383,20 +385,19 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir)
 		    ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
 		    dir, buffer, transfer_size, -1);
 
-		usb_log_debug("Created DATA TD: %08x:%08x:%08x:%08x.\n",
+		usb_log_debug("Created DATA TD: %08x:%08x:%08x",
 		    ehci_batch->tds[td_current]->status,
-		    ehci_batch->tds[td_current]->cbp,
 		    ehci_batch->tds[td_current]->next,
-		    ehci_batch->tds[td_current]->be);
+		    ehci_batch->tds[td_current]->alternate);
 
 		buffer += transfer_size;
 		remain_size -= transfer_size;
 		assert(td_current < ehci_batch->td_count);
 		++td_current;
 	}
-#endif
+
 	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized",
 	    ehci_batch->usb_batch,
 	    usb_str_transfer_type(ehci_batch->usb_batch->ep->transfer_type),
 	    usb_str_direction(dir),

@@ -66,12 +66,15 @@ typedef struct td {
 #define TD_STATUS_PING_FLAG     (1 << 0)
 
 	volatile uint32_t buffer_pointer[5];
-#define SITD_BUFFER_POINTER_MASK   0xfffff000
+#define TD_BUFFER_POINTER_MASK   0xfffff000
 /* Only the first page pointer */
-#define SITD_BUFFER_POINTER_CURRENT_MASK    0xfff
-#define SITD_BUFFER_POINTER_CURRENT_SHIFT   0
+#define TD_BUFFER_POINTER_OFFSET_MASK    0xfff
 
 } td_t;
+
+void td_init(td_t *td, const td_t *next, usb_direction_t dir, const void * buf,
+    size_t buf_size, int toggle);
+
 #endif
 /**
  * @}

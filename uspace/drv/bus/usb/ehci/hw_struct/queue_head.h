@@ -177,6 +177,24 @@ static inline int qh_toggle_get(const qh_t *qh)
 	return (EHCI_MEM32_RD(qh->status) & QH_STATUS_TOGGLE_FLAG) ? 1 : 0;
 }
 
+static inline bool qh_halted(const qh_t *qh)
+{
+	assert(qh);
+	return (EHCI_MEM32_RD(qh->status) & QH_STATUS_HALTED_FLAG);
+}
+
+static inline void qh_halt(qh_t *qh)
+{
+	assert(qh);
+	EHCI_MEM32_SET(qh->status, QH_STATUS_HALTED_FLAG);
+}
+
+static inline bool qh_transfer_pending(const qh_t *qh)
+{
+	assert(qh);
+	return !(EHCI_MEM32_RD(qh->next) & LINK_POINTER_TERMINATE_FLAG);
+}
+
 
 void qh_init(qh_t *instance, const endpoint_t *ep);
 #endif
