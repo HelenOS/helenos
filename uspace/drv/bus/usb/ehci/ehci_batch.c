@@ -316,8 +316,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir
 
 	/* Status stage */
 	assert(td_current == ehci_batch->td_count - 1);
-	td_init(ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
-	    status_dir, NULL, 0, 1, true);
+	td_init(ehci_batch->tds[td_current], NULL, status_dir, NULL, 0, 1, true);
 	usb_log_debug("Created CONTROL STATUS TD(%"PRIxn"): %08x:%08x:%08x",
 	    addr_to_phys(ehci_batch->qh),
 	    ehci_batch->tds[td_current]->status,
