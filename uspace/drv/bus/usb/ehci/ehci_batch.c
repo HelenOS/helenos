@@ -357,9 +357,11 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch, usb_direction_t dir)
 		const size_t transfer_size = remain_size > EHCI_TD_MAX_TRANSFER
 		    ? EHCI_TD_MAX_TRANSFER : remain_size;
 
+		const bool last = (remain_size == transfer_size);
 		td_init(
-		    ehci_batch->tds[td_current], ehci_batch->tds[td_current + 1],
-		    dir, buffer, transfer_size, -1, remain_size == transfer_size);
+		    ehci_batch->tds[td_current], last ? NULL :
+		    ehci_batch->tds[td_current + 1], dir, buffer, transfer_size,
+		    -1, last);
 
 		usb_log_debug2("Created DATA TD(%"PRIxn": %08x:%08x:%08x",
 		    addr_to_phys(ehci_batch->tds[td_current]),
