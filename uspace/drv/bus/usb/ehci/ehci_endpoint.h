@@ -46,8 +46,6 @@
 typedef struct ehci_endpoint {
 	/** EHCI endpoint descriptor */
 	qh_t *qh;
-	/** Currently enqueued transfer descriptor */
-	td_t *td;
 	/** Linked list used by driver software */
 	link_t link;
 } ehci_endpoint_t;

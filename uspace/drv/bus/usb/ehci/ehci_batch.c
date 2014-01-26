@@ -66,8 +66,7 @@ static void ehci_transfer_batch_dispose(ehci_transfer_batch_t *ehci_batch)
 		    ehci_endpoint_get(ehci_batch->usb_batch->ep);
 		assert(ehci_ep);
 		for (size_t i = 0; i < ehci_batch->td_count; ++i) {
-			if (ehci_batch->tds[i] != ehci_ep->td)
-				free32(ehci_batch->tds[i]);
+			free32(ehci_batch->tds[i]);
 		}
 		free(ehci_batch->tds);
 	}
