@@ -307,14 +307,17 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 	hc_t *instance = hcd->driver.data;
 	status = EHCI_RD(status);
 	assert(instance);
+
 	if (status & USB_STS_PORT_CHANGE_FLAG) {
 		ehci_rh_interrupt(&instance->rh);
 	}
+
 	if (status & USB_STS_IRQ_ASYNC_ADVANCE_FLAG) {
 		fibril_mutex_lock(&instance->guard);
 		fibril_condvar_signal(&instance->async_doorbell);
 		fibril_mutex_unlock(&instance->guard);
 	}
+
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
 		fibril_mutex_lock(&instance->guard);
 
@@ -333,6 +336,10 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 		fibril_mutex_unlock(&instance->guard);
 	}
 
+	if (status & USB_STS_HOST_ERROR_FLAG) {
+		usb_log_fatal("HOST CONTROLLER SYSTEM ERROR!\n");
+		//TODO do something here
+	}
 }
 
 /** EHCI hw initialization routine.
