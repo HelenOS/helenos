@@ -107,6 +107,7 @@ void td_init(td_t *instance, const td_t *next,
 			    ((uintptr_t)buffer & TD_BUFFER_POINTER_OFFSET_MASK);
 			assert(offset == 0 || i == 0);
 			size -= min((4096 - offset), size);
+			buffer += min((4096 - offset), size);
 			EHCI_MEM32_WR(instance->buffer_pointer[i],
 			    page | offset);
 		}
