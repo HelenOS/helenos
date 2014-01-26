@@ -197,6 +197,12 @@ static inline void qh_set_next_td(qh_t *qh, td_t *td)
 	EHCI_MEM32_WR(qh->next, LINK_POINTER_TD(addr_to_phys(td)));
 }
 
+static inline bool qh_transfer_active(const qh_t *qh)
+{
+	assert(qh);
+	return (EHCI_MEM32_RD(qh->status) & QH_STATUS_ACTIVE_FLAG);
+}
+
 static inline bool qh_transfer_pending(const qh_t *qh)
 {
 	assert(qh);

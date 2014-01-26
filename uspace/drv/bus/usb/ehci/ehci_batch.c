@@ -188,7 +188,8 @@ bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *ehci_batch)
 	    ehci_batch->qh->status, ehci_batch->qh->current,
 	    ehci_batch->qh->next, ehci_batch->qh->alternate);
 
-	if (!qh_halted(ehci_batch->qh) && qh_transfer_pending(ehci_batch->qh))
+	if (!qh_halted(ehci_batch->qh) && (qh_transfer_pending(ehci_batch->qh)
+	    || qh_transfer_active(ehci_batch->qh)))
 		return false;
 
 	/* Now we may be sure that either the ED is inactive because of errors
