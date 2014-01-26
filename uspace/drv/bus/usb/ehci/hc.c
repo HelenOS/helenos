@@ -314,7 +314,7 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 
 	if (status & USB_STS_IRQ_ASYNC_ADVANCE_FLAG) {
 		fibril_mutex_lock(&instance->guard);
-		fibril_condvar_signal(&instance->async_doorbell);
+		fibril_condvar_broadcast(&instance->async_doorbell);
 		fibril_mutex_unlock(&instance->guard);
 	}
 
