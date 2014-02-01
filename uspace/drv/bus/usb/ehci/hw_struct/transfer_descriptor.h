@@ -71,6 +71,8 @@ typedef struct td {
 /* Only the first page pointer */
 #define TD_BUFFER_POINTER_OFFSET_MASK    0xfff
 
+	/* 64 bit struct only */
+	volatile uint32_t extended_bp[5];
 } td_t;
 
 static inline bool td_active(const td_t *td)

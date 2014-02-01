@@ -85,6 +85,9 @@ typedef struct sitd {
 #define SITD_BUFFER_POINTER_COUNT_SHIFT   0
 
 	link_pointer_t back;
+
+	/* 64 bit struct only */
+	volatile uint32_t extended_bp[2];
 } sitd_t;
 #endif
 /**

@@ -54,7 +54,7 @@ typedef struct itd {
 #define ITD_TRANSACTION_OFFSET_MASK    0xfff
 #define ITD_TRANSACTION_OFFSET_SHIFT   0
 
-	volatile uint32_t buffer_pointer[7]
+	volatile uint32_t buffer_pointer[7];
 #define ITD_BUFFER_POINTER_MASK      0xfffff000
 /* First buffer pointer */
 #define ITD_BUFFER_POINTER_EP_MASK      0xf
@@ -69,6 +69,8 @@ typedef struct itd {
 #define ITD_BUFFER_POINTER_MULTI_MASK    0x3
 #define ITD_BUFFER_POINTER_MULTI_SHIFT   0
 
+	/* 64 bit struct only */
+	volatile uint32_t extended_bp[7];
 } itd_t;
 #endif
 /**
