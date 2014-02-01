@@ -789,7 +789,7 @@ def main():
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
 		if (config['COMPILER'] == "clang"):
-			target, cc_args, gnu_target, clang_target = get_target(config)
+			target, cc_args, gnu_target, clang_target, helenos_target = get_target(config)
 			
 			if (target is None) or (gnu_target is None) or (clang_target is None):
 				print_error(["Unsupported compiler target for clang.",
