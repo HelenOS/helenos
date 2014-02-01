@@ -29,6 +29,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <vfs/vfs.h>
 #include <adt/list.h>
 #include <errno.h>
@@ -151,8 +152,8 @@ int cmd_mount(char **argv)
 
 	rc = mount(t_argv[1], t_argv[2], dev, mopts, 0, instance);
 	if (rc != EOK) {
-		printf("Unable to mount %s filesystem to %s on %s (rc=%d)\n",
-		    t_argv[1], t_argv[2], t_argv[3], rc);
+		printf("Unable to mount %s filesystem to %s on %s (rc=%s)\n",
+		    t_argv[1], t_argv[2], t_argv[3], str_error(rc));
 		return CMD_FAILURE;
 	}
 
