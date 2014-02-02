@@ -349,7 +349,7 @@ void ehci_hc_interrupt(hcd_t *hcd, uint32_t status)
 void hc_start(hc_t *instance)
 {
 	assert(instance);
-	/* Turn of the HC if it's running, Reseting a running device is
+	/* Turn off the HC if it's running, Reseting a running device is
 	 * undefined */
 	if (!(EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG)) {
 		/* disable all interrupts */
@@ -376,7 +376,8 @@ void hc_start(hc_t *instance)
 	EHCI_WR(instance->registers->usbintr, EHCI_USED_INTERRUPTS);
 	/* Use the lowest 4G segment */
 	EHCI_WR(instance->registers->ctrldssegment, 0);
-	/* Set periodic list */
+
+	/* Enable periodic list */
 	assert(instance->periodic_list_base);
 	const uintptr_t phys_base =
 	    addr_to_phys((void*)instance->periodic_list_base);
@@ -392,30 +393,10 @@ void hc_start(hc_t *instance)
 	    instance->async_list.list_head_pa);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_ASYNC_SCHEDULE_FLAG);
 
-	/* start hc and get all ports */
+	/* Start hc and get all ports */
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_RUN_FLAG);
 	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
-#if 0
-	/*
-	 * TURN OFF EHCI FOR NOW
-	 */
-	usb_log_debug("USBCMD value: %x.\n",
-	    EHCI_RD(instance->registers->usbcmd));
-	if (EHCI_RD(instance->registers->usbcmd) & USB_CMD_RUN_FLAG) {
-		/* disable all interrupts */
-		EHCI_WR(instance->registers->usbintr, 0);
-		/* ack all interrupts */
-		EHCI_WR(instance->registers->usbsts, 0x3f);
-		/* release RH ports */
-		EHCI_WR(instance->registers->configflag, 0);
-		EHCI_WR(instance->registers->usbcmd, 0);
-		/* Wait until hc is halted */
-		while ((EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG) == 0);
-		usb_log_info("EHCI turned off.\n");
-	} else {
-		usb_log_info("EHCI was not running.\n");
-	}
-#endif
+
 	usb_log_debug("Registers: \n"
 	    "\t USBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
 	    "\t USBSTS(%p): %x(0x00001000 = HC halted)\n"
