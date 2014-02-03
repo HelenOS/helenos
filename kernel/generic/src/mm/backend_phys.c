@@ -91,7 +91,10 @@ void phys_share(as_area_t *area)
 
 void phys_destroy(as_area_t *area)
 {
-	/* Nothing to do. */
+	mem_backend_data_t *data = &area->backend_data;
+
+	if (data->anonymous)
+		frame_free_noreserve(data->base, data->frames);
 }
 
 bool phys_is_resizable(as_area_t *area)

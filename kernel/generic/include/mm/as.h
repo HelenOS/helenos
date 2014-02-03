@@ -168,6 +168,7 @@ typedef union mem_backend_data {
 	struct {
 		uintptr_t base;
 		size_t frames;
+		bool anonymous;
 	};
 } mem_backend_data_t;
 

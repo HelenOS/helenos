@@ -120,6 +120,7 @@ NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
 	mem_backend_data_t backend_data;
 	backend_data.base = phys;
 	backend_data.frames = pages;
+	backend_data.anonymous = false;
 	
 	/*
 	 * Check if the memory region is explicitly enabled
@@ -335,6 +336,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	mem_backend_data_t backend_data;
 	backend_data.base = *phys;
 	backend_data.frames = frames;
+	backend_data.anonymous = true;
 	
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
@@ -353,8 +355,7 @@ NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size)
 
 NO_TRACE static int dmamem_unmap_anonymous(uintptr_t virt)
 {
-	// TODO: implement unlocking & unmap
-	return EOK;
+	return as_area_destroy(TASK->as, virt);
 }
 
 sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
