@@ -92,8 +92,16 @@ void phys_share(as_area_t *area)
 void phys_destroy(as_area_t *area)
 {
 	mem_backend_data_t *data = &area->backend_data;
+	bool last = true;
 
-	if (data->anonymous)
+	if (area->sh_info) {
+		mutex_lock(&area->sh_info->lock);
+		if (area->sh_info->refcount != 1)
+			last = false;
+		mutex_unlock(&area->sh_info->lock);
+	}
+	
+	if (last && data->anonymous)
 		frame_free(data->base, data->frames);
 }
 
