@@ -329,7 +329,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	ASSERT(TASK);
 	
 	size_t frames = SIZE2FRAMES(size);
-	*phys = frame_alloc(frames, FRAME_NO_RESERVE, constraint);
+	*phys = frame_alloc(frames, FRAME_ATOMIC, constraint);
 	if (*phys == 0)
 		return ENOMEM;
 	
@@ -340,7 +340,7 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
-		frame_free_noreserve(*phys, frames);
+		frame_free(*phys, frames);
 		return ENOMEM;
 	}
 	
