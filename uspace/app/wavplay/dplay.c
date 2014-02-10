@@ -40,7 +40,7 @@
 #include <audio_pcm_iface.h>
 #include <fibril_synch.h>
 #include <pcm/format.h>
-#include <sys/mman.h>
+#include <as.h>
 #include <sys/time.h>
 #include <inttypes.h>
 
@@ -396,7 +396,7 @@ int dplay(const char *device, const char *file)
 
 cleanup:
 	fclose(pb.source);
-	munmap(pb.buffer.base, pb.buffer.size);
+	as_area_destroy(pb.buffer.base);
 	audio_pcm_release_buffer(pb.device);
 close_session:
 	audio_pcm_close(session);
