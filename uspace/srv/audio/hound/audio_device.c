@@ -41,6 +41,7 @@
 #include <loc.h>
 #include <str.h>
 #include <str_error.h>
+#include <sys/mman.h>
 
 
 #include "audio_device.h"
@@ -379,6 +380,7 @@ static int release_buffer(audio_device_t *dev)
 
 	const int ret = audio_pcm_release_buffer(dev->sess);
 	if (ret == EOK) {
+		munmap(dev->buffer.base, dev->buffer.size);
 		dev->buffer.base = NULL;
 		dev->buffer.size = 0;
 		dev->buffer.position = NULL;
