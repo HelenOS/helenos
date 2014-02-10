@@ -417,6 +417,8 @@ int update_data(audio_source_t *source, size_t size)
 	list_foreach(source->connections, source_link, connection_t, conn) {
 		connection_push_data(conn, adata);
 	}
+	/* all connections should now have their refs */
+	audio_data_unref(adata);
 	fibril_mutex_unlock(&ctx->guard);
 	return EOK;
 }
