@@ -39,7 +39,6 @@
 #include <ipc/loc.h>
 #include <ipc/services.h>
 #include <errno.h>
-#include <sys/mman.h>
 #include <async.h>
 #include <as.h>
 #include <assert.h>

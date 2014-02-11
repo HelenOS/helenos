@@ -72,6 +72,7 @@ SOURCES = \
 	source/stdlib/strtold.c \
 	source/string.c \
 	source/strings.c \
+	source/sys/mman.c \
 	source/sys/stat.c \
 	source/sys/wait.c \
 	source/time.c \

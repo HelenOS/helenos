@@ -130,7 +130,6 @@ GENERIC_SOURCES = \
 	generic/adt/prodcons.c \
 	generic/time.c \
 	generic/stdlib.c \
-	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
