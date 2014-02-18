@@ -139,11 +139,18 @@ typedef struct {
 	mutex_t lock;
 	/** This structure can be deallocated if refcount drops to 0. */
 	size_t refcount;
-	
+	/** True if the area has been ever shared. */
+	bool shared;
+
 	/**
 	 * B+tree containing complete map of anonymous pages of the shared area.
 	 */
 	btree_t pagemap;
+
+	/** Address space area backend. */
+	struct mem_backend *backend;
+	/** Address space area shared data. */
+	void *backend_shared_data;
 } share_info_t;
 
 /** Page fault access type. */
@@ -226,6 +233,9 @@ typedef struct mem_backend {
 
 	int (* page_fault)(as_area_t *, uintptr_t, pf_access_t);
 	void (* frame_free)(as_area_t *, uintptr_t, uintptr_t);
+
+	bool (* create_shared_data)(as_area_t *);
+	void (* destroy_shared_data)(void *);
 } mem_backend_t;
 
 extern as_t *AS_KERNEL;

@@ -54,8 +54,15 @@ static void phys_destroy(as_area_t *);
 static bool phys_is_resizable(as_area_t *);
 static bool phys_is_shareable(as_area_t *);
 
-
 static int phys_page_fault(as_area_t *, uintptr_t, pf_access_t);
+
+static bool phys_create_shared_data(as_area_t *);
+static void phys_destroy_shared_data(void *);
+
+typedef struct {
+	uintptr_t base;
+	size_t frames;	
+} phys_shared_data_t;
 
 mem_backend_t phys_backend = {
 	.create = phys_create,
@@ -68,7 +75,11 @@ mem_backend_t phys_backend = {
 
 	.page_fault = phys_page_fault,
 	.frame_free = NULL,
+	
+	.create_shared_data = phys_create_shared_data,
+	.destroy_shared_data = phys_destroy_shared_data
 };
+
 
 bool phys_create(as_area_t *area)
 {
@@ -91,18 +102,11 @@ void phys_share(as_area_t *area)
 
 void phys_destroy(as_area_t *area)
 {
-	mem_backend_data_t *data = &area->backend_data;
-	bool last = true;
-
-	if (area->sh_info) {
-		mutex_lock(&area->sh_info->lock);
-		if (area->sh_info->refcount != 1)
-			last = false;
-		mutex_unlock(&area->sh_info->lock);
-	}
-	
-	if (last && data->anonymous)
-		frame_free(data->base, data->frames);
+	/*
+	 * Nothing to do.
+	 * The anonymous frames, if any, are released in
+	 * phys_destroy_shared_data().
+	 */
 }
 
 bool phys_is_resizable(as_area_t *area)
@@ -146,6 +150,34 @@ int phys_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;
+}
+
+bool phys_create_shared_data(as_area_t *area)
+{
+	/*
+	 * For anonymous phys areas, create the shared data.
+	 */
+	if (area->backend_data.anonymous) {
+		phys_shared_data_t *data;
+
+		data = (phys_shared_data_t *) malloc(sizeof(*data), 0);
+
+		data->base = area->backend_data.base;
+		data->frames = area->backend_data.frames;
+		area->sh_info->backend_shared_data = data;
+	}
+
+	return true;
+}
+
+void phys_destroy_shared_data(void *opaque_data)
+{
+	phys_shared_data_t *data = (phys_shared_data_t *) opaque_data;
+
+	if (data) {
+		frame_free(data->base, data->frames);
+		free(data);
+	}
 }
 
 /** @}
