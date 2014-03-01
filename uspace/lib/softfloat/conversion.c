@@ -216,7 +216,7 @@ float32 float64_to_float32(float64 a)
 		
 		result.parts.exp = 0;
 		
-		exp *= -1;	
+		exp *= -1;
 		if (exp > FLOAT32_FRACTION_SIZE) {
 			/* FIXME: underflow */
 			result.parts.fraction = 0;
@@ -889,7 +889,6 @@ float64 int32_to_float64(int32_t i)
 	
 	return result;
 }
-
 
 float64 uint64_to_float64(uint64_t i)
 {

@@ -1375,7 +1375,6 @@ int __aeabi_dcmple(double a, double b)
 	return __ledf2(a, b);
 }
 
-
 int __aeabi_dcmpeq(double a, double b)
 {
 	return __eqdf2(a, b);

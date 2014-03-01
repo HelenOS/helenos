@@ -601,7 +601,6 @@ typedef union {
 #define ullong_to_double       CONCAT(from_ullong, _to_double)
 #define ullong_to_long_double  CONCAT(from_ullong, _to_long_double)
 
-
 #endif
 
 /** @}
