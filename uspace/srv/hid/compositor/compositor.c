@@ -664,11 +664,11 @@ static void comp_recalc_transform(window_t *win)
 	transform_t temp;
 	transform_identity(&transform);
 	temp = transform;
-	transform_multiply(&transform, &temp, &translate);
+	transform_product(&transform, &temp, &translate);
 	temp = transform;
-	transform_multiply(&transform, &temp, &rotate);
+	transform_product(&transform, &temp, &rotate);
 	temp = transform;
-	transform_multiply(&transform, &temp, &scale);
+	transform_product(&transform, &temp, &scale);
 	
 	win->transform = transform;
 }
@@ -1838,10 +1838,10 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 				win->dx += 20;
 				break;
 			case KC_Q:
-				win->angle += (PI / 2);
+				win->angle += 0.1;
 				break;
 			case KC_E:
-				win->angle += -(PI / 2);
+				win->angle -= 0.1;
 				break;
 			case KC_R:
 				win->fx *= 0.95;

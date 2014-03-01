@@ -33,130 +33,165 @@
  * @file
  */
 
+#include <math.h>
 #include "transform.h"
 
-void transform_multiply(transform_t *res, const transform_t *left, const transform_t *right)
+void transform_product(transform_t *res, const transform_t *a,
+    const transform_t *b)
 {
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
+	for (unsigned int i = 0; i < TRANSFORM_MATRIX_DIM; i++) {
+		for (unsigned int j = 0; j < TRANSFORM_MATRIX_DIM; j++) {
 			double comb = 0;
-			for (int k = 0; k < 3; ++k) {
-				comb += left->m[i][k] * right->m[k][j];
-			}
-			res->m[i][j] = comb;
+			
+			for (unsigned int k = 0; k < TRANSFORM_MATRIX_DIM; k++)
+				comb += a->matrix[i][k] * b->matrix[k][j];
+			
+			res->matrix[i][j] = comb;
 		}
 	}
 }
 
-void transform_invert(transform_t *t)
+void transform_invert(transform_t *trans)
 {
-	double a = t->m[1][1] * t->m[2][2] - t->m[1][2] * t->m[2][1];
-	double b = t->m[1][2] * t->m[2][0] - t->m[2][2] * t->m[1][0];
-	double c = t->m[1][0] * t->m[2][1] - t->m[1][1] * t->m[2][0];
-	double d = t->m[0][2] * t->m[2][1] - t->m[0][1] * t->m[2][2];
-	double e = t->m[0][0] * t->m[2][2] - t->m[0][2] * t->m[2][0];
-	double f = t->m[2][0] * t->m[0][1] - t->m[0][0] * t->m[2][1];
-	double g = t->m[0][1] * t->m[1][2] - t->m[0][2] * t->m[1][1];
-	double h = t->m[0][2] * t->m[1][0] - t->m[0][0] * t->m[1][2];
-	double k = t->m[0][0] * t->m[1][1] - t->m[0][1] * t->m[1][0];
-
-	double det = t->m[0][0] * a + t->m[0][1] * b + t->m[0][2] * c;
-	det = 1 / det;
-
-	t->m[0][0] = a * det;   t->m[0][1] = d * det;   t->m[0][2] = g * det;
-	t->m[1][0] = b * det;   t->m[1][1] = e * det;   t->m[1][2] = h * det;
-	t->m[2][0] = c * det;   t->m[2][1] = f * det;   t->m[2][2] = k * det;
-}
-
-void transform_identity(transform_t *t)
-{
-	t->m[0][0] = 1;   t->m[0][1] = 0;   t->m[0][2] = 0;
-	t->m[1][0] = 0;   t->m[1][1] = 1;   t->m[1][2] = 0;
-	t->m[2][0] = 0;   t->m[2][1] = 0;   t->m[2][2] = 1;
-}
-
-void transform_translate(transform_t *t, double dx, double dy)
-{
-	transform_t a;
-	a.m[0][0] = 1;   a.m[0][1] = 0;   a.m[0][2] = dx;
-	a.m[1][0] = 0;   a.m[1][1] = 1;   a.m[1][2] = dy;
-	a.m[2][0] = 0;   a.m[2][1] = 0;   a.m[2][2] = 1;
-
-	transform_t r;
-	transform_multiply(&r, &a, t);
-	*t = r;
-}
-
-void transform_scale(transform_t *t, double qx, double qy)
-{
-	transform_t a;
-	a.m[0][0] = qx;  a.m[0][1] = 0;   a.m[0][2] = 0;
-	a.m[1][0] = 0;   a.m[1][1] = qy;  a.m[1][2] = 0;
-	a.m[2][0] = 0;   a.m[2][1] = 0;   a.m[2][2] = 1;
-
-	transform_t r;
-	transform_multiply(&r, &a, t);
-	*t = r;
-}
-
-void transform_rotate(transform_t *t, double rad)
-{
-	double s, c;
-
-	// FIXME: temporary solution until there are trigonometric functions in libc
-
-	while (rad < 0) {
-		rad += (2 * PI);
-	}
+	double a = trans->matrix[1][1] * trans->matrix[2][2] -
+	    trans->matrix[1][2] * trans->matrix[2][1];
+	double b = trans->matrix[1][2] * trans->matrix[2][0] -
+	    trans->matrix[2][2] * trans->matrix[1][0];
+	double c = trans->matrix[1][0] * trans->matrix[2][1] -
+	    trans->matrix[1][1] * trans->matrix[2][0];
+	double d = trans->matrix[0][2] * trans->matrix[2][1] -
+	    trans->matrix[0][1] * trans->matrix[2][2];
+	double e = trans->matrix[0][0] * trans->matrix[2][2] -
+	    trans->matrix[0][2] * trans->matrix[2][0];
+	double f = trans->matrix[2][0] * trans->matrix[0][1] -
+	    trans->matrix[0][0] * trans->matrix[2][1];
+	double g = trans->matrix[0][1] * trans->matrix[1][2] -
+	    trans->matrix[0][2] * trans->matrix[1][1];
+	double h = trans->matrix[0][2] * trans->matrix[1][0] -
+	    trans->matrix[0][0] * trans->matrix[1][2];
+	double k = trans->matrix[0][0] * trans->matrix[1][1] -
+	    trans->matrix[0][1] * trans->matrix[1][0];
 	
-	while (rad > (2 * PI)) {
-		rad -= (2 * PI);
-	}
+	double det = 1 / (a * trans->matrix[0][0] + b * trans->matrix[0][1] +
+	    c * trans->matrix[0][2]);
+	
+	trans->matrix[0][0] = a * det;
+	trans->matrix[1][0] = b * det;
+	trans->matrix[2][0] = c * det;
+	
+	trans->matrix[0][1] = d * det;
+	trans->matrix[1][1] = e * det;
+	trans->matrix[2][1] = f * det;
+	
+	trans->matrix[0][2] = g * det;
+	trans->matrix[1][2] = h * det;
+	trans->matrix[2][2] = k * det;
+}
 
-	if (rad >= 0 && rad < (PI / 4)) {
-		s = 0; c = 1;
-	} else if (rad >= (PI / 4) && rad < (3 * PI / 4)) {
-		s = 1; c = 0;
-	} else if (rad >= (3 * PI / 4) && rad < (5 * PI / 4)) {
-		s = 0; c = -1;
-	} else if (rad >= (5 * PI / 4) && rad < (7 * PI / 4)) {
-		s = -1; c = 0;
-	} else {
-		s = 0; c = 1;
-	}
+void transform_identity(transform_t *trans)
+{
+	trans->matrix[0][0] = 1;
+	trans->matrix[1][0] = 0;
+	trans->matrix[2][0] = 0;
+	
+	trans->matrix[0][1] = 0;
+	trans->matrix[1][1] = 1;
+	trans->matrix[2][1] = 0;
+	
+	trans->matrix[0][2] = 0;
+	trans->matrix[1][2] = 0;
+	trans->matrix[2][2] = 1;
+}
 
+void transform_translate(transform_t *trans, double dx, double dy)
+{
 	transform_t a;
-	a.m[0][0] = c;   a.m[0][1] = -s;  a.m[0][2] = 0;
-	a.m[1][0] = s;   a.m[1][1] = c;   a.m[1][2] = 0;
-	a.m[2][0] = 0;   a.m[2][1] = 0;   a.m[2][2] = 1;
-
-	transform_t r;
-	transform_multiply(&r, &a, t);
-	*t = r;
+	
+	a.matrix[0][0] = 1;
+	a.matrix[1][0] = 0;
+	a.matrix[2][0] = 0;
+	
+	a.matrix[0][1] = 0;
+	a.matrix[1][1] = 1;
+	a.matrix[2][1] = 0;
+	
+	a.matrix[0][2] = dx;
+	a.matrix[1][2] = dy;
+	a.matrix[2][2] = 1;
+	
+	transform_t b = *trans;
+	
+	transform_product(trans, &a, &b);
 }
 
-bool transform_is_fast(transform_t *t)
+void transform_scale(transform_t *trans, double qx, double qy)
 {
-	return (t->m[0][0] == 1) && (t->m[0][1] == 0)
-	    && (t->m[1][0] == 0) && (t->m[1][1] == 1)
-	    && ((t->m[0][2] - ((long) t->m[0][2])) == 0.0)
-	    && ((t->m[1][2] - ((long) t->m[1][2])) == 0.0);
+	transform_t a;
+	
+	a.matrix[0][0] = qx;
+	a.matrix[1][0] = 0;
+	a.matrix[2][0] = 0;
+	
+	a.matrix[0][1] = 0;
+	a.matrix[1][1] = qy;
+	a.matrix[2][1] = 0;
+	
+	a.matrix[0][2] = 0;
+	a.matrix[1][2] = 0;
+	a.matrix[2][2] = 1;
+	
+	transform_t b = *trans;
+	
+	transform_product(trans, &a, &b);
 }
 
-void transform_apply_linear(const transform_t *t, double *x, double *y)
+void transform_rotate(transform_t *trans, double angle)
 {
-	double x_ = *x;
-	double y_ = *y;
-	*x = x_ * t->m[0][0] + y_ * t->m[0][1];
-	*y = x_ * t->m[1][0] + y_ * t->m[1][1];
+	transform_t a;
+	
+	a.matrix[0][0] = cos(angle);
+	a.matrix[1][0] = sin(angle);
+	a.matrix[2][0] = 0;
+	
+	a.matrix[0][1] = -sin(angle);
+	a.matrix[1][1] = cos(angle);
+	a.matrix[2][1] = 0;
+	
+	a.matrix[0][2] = 0;
+	a.matrix[1][2] = 0;
+	a.matrix[2][2] = 1;
+	
+	transform_t b = *trans;
+	
+	transform_product(trans, &a, &b);
 }
 
-void transform_apply_affine(const transform_t *t, double *x, double *y)
+bool transform_is_fast(transform_t *trans)
 {
-	double x_ = *x;
-	double y_ = *y;
-	*x = x_ * t->m[0][0] + y_ * t->m[0][1] + t->m[0][2];
-	*y = x_ * t->m[1][0] + y_ * t->m[1][1] + t->m[1][2];
+	return ((trans->matrix[0][0] == 1) && (trans->matrix[0][1] == 0) &&
+	    (trans->matrix[1][0] == 0) && (trans->matrix[1][1] == 1) &&
+	    ((trans->matrix[0][2] - trunc(trans->matrix[0][2])) == 0.0) &&
+	    ((trans->matrix[1][2] - trunc(trans->matrix[1][2])) == 0.0));
+}
+
+void transform_apply_linear(const transform_t *trans, double *x, double *y)
+{
+	double old_x = *x;
+	double old_y = *y;
+	
+	*x = old_x * trans->matrix[0][0] + old_y * trans->matrix[0][1];
+	*y = old_x * trans->matrix[1][0] + old_y * trans->matrix[1][1];
+}
+
+void transform_apply_affine(const transform_t *trans, double *x, double *y)
+{
+	double old_x = *x;
+	double old_y = *y;
+	
+	*x = old_x * trans->matrix[0][0] + old_y * trans->matrix[0][1] +
+	    trans->matrix[0][2];
+	*y = old_x * trans->matrix[1][0] + old_y * trans->matrix[1][1] +
+	    trans->matrix[1][2];
 }
 
 /** @}
