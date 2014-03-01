@@ -91,11 +91,11 @@ void source_set_mask(source_t *source, surface_t *mask, bool tile)
 
 bool source_is_fast(source_t *source)
 {
-	return (source->mask == NULL)
-	    && (source->alpha == (pixel_t) PIXEL(255, 0, 0, 0))
-	    && (source->texture != NULL)
-	    && (source->texture_tile == false)
-	    && transform_is_fast(&source->transform);
+	return ((source->mask == NULL) &&
+	    (source->alpha == (pixel_t) PIXEL(255, 0, 0, 0)) &&
+	    (source->texture != NULL) &&
+	    (source->texture_tile == false) &&
+	    (transform_is_fast(&source->transform)));
 }
 
 pixel_t *source_direct_access(source_t *source, double x, double y)
