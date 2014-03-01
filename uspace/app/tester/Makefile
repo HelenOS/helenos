@@ -28,6 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
+
 LIBS = \
 	$(LIBBLOCK_PREFIX)/libblock.a \
 	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \

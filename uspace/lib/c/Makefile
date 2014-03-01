@@ -30,11 +30,8 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-COMMON_HEADER = $(ROOT_PATH)/common.h
-COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
-
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
 
 LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
@@ -49,8 +46,6 @@ LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
 
-
--include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
@@ -158,7 +153,6 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
-
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
