@@ -40,6 +40,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBSOFTREND_PREFIX)
 
 BINARY = vlaunch
+MATH = y
 
 SOURCES = \
 	vlaunch.c \

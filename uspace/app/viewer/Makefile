@@ -40,6 +40,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBSOFTREND_PREFIX)
 
 BINARY = viewer
+MATH = y
 
 SOURCES = \
 	viewer.c

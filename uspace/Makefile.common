@@ -43,8 +43,8 @@
 #   EXTRA_OUTPUT       additional output targets
 #   EXTRA_CLEAN        additional cleanup targets
 #
+#   MATH               set to 'y' to use the math library
 #   POSIX_COMPAT       set to 'y' to use POSIX compatibility layer
-#   NEEDS_MATH         set to 'y' to add implementation of mathematical functions
 #
 # Optionally, for a binary:
 #   STATIC_NEEDED      set to 'y' for init binaries, will build statically
@@ -86,7 +86,7 @@ ifneq ($(LIBRARY),)
 	OUTPUT = $(LIBRARY).a
 endif
 
-ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
+ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
 	ifneq ($(SLIBRARY),)
 		LARCHIVE = $(LIBRARY).la
 		LOUTPUT = $(SLIBRARY)
@@ -109,7 +109,11 @@ LIBC_INCLUDES_FLAGS = \
 	-I$(ROOT_PATH)/abi/include
 LIBSOFTFLOAT_PREFIX = $(LIB_PREFIX)/softfloat
 LIBSOFTINT_PREFIX = $(LIB_PREFIX)/softint
+
 LIBMATH_PREFIX = $(LIB_PREFIX)/math
+LIBMATH_INCLUDES_FLAGS = \
+	-I$(LIBMATH_PREFIX)/include \
+	-I$(LIBMATH_PREFIX)/arch/$(UARCH)/include
 
 LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
 
@@ -154,7 +158,7 @@ else
 	ifeq ($(STATIC_ONLY),y)
 		STATIC_BUILD = y
 	else
-		ifeq ($(CONFIG_USE_SHARED_LIBS), y)
+		ifeq ($(CONFIG_USE_SHARED_LIBS),y)
 			STATIC_BUILD = n
 		else
 			STATIC_BUILD = y
@@ -171,10 +175,22 @@ endif
 ifeq ($(STATIC_BUILD),y)
 	BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+	ifeq ($(MATH),y)
+		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
+	endif
 else
 	BASE_LIBS = $(LIBC_PREFIX)/libc.so0 $(LIBSOFTINT_PREFIX)/libsofti.so0
 	LFLAGS = -Bdynamic
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+	ifeq ($(MATH),y)
+		BASE_LIBS += $(LIBMATH_PREFIX)/libmath.so0
+	endif
+endif
+
+ifeq ($(MATH),y)
+	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS) $(LIBMATH_INCLUDES_FLAGS)
+else
+	INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 endif
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
@@ -193,14 +209,14 @@ clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.lo' -follow -exec rm \{\} \;
 
-GCC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+GCC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -ggdb -D__$(ENDIANESS)__
 
-ICC_CFLAGS = $(LIBC_INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+ICC_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
@@ -233,13 +249,8 @@ endif
 
 # Prepare for POSIX before including platform specific stuff
 ifeq ($(POSIX_COMPAT),y)
-	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix  -I$(LIBPOSIX_PREFIX)/include/
+	CFLAGS = -I$(LIBPOSIX_PREFIX)/include/posix -I$(LIBPOSIX_PREFIX)/include/
 	BASE_LIBS = $(LIBPOSIX_PREFIX)/libposixaslibc.a $(LIBPOSIX_PREFIX)/libc4posix.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-endif
-
-# Do we need math?
-ifeq ($(NEEDS_MATH),y)
-	BASE_LIBS += $(LIBMATH_PREFIX)/libmath.a
 endif
 
 ## Setup platform configuration

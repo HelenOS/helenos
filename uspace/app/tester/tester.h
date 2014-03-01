@@ -96,6 +96,7 @@ extern const char *test_fault1(void);
 extern const char *test_fault2(void);
 extern const char *test_fault3(void);
 extern const char *test_float1(void);
+extern const char *test_float2(void);
 extern const char *test_softfloat1(void);
 extern const char *test_vfs1(void);
 extern const char *test_ping_pong(void);

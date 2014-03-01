@@ -40,6 +40,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBSOFTREND_PREFIX)
 
 BINARY = vdemo
+MATH = y
 
 SOURCES = \
 	vdemo.c

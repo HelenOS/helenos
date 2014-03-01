@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat
+/** @addtogroup libmathmips32
  * @{
  */
-/** @file Other functions (power, complex).
+/** @file
  */
 
+#ifndef LIBMATH_mips32_MATH_H_
+#define LIBMATH_mips32_MATH_H_
+
+#include <mathtypes.h>
+#include <trunc.h>
+
+static inline double trunc(double val)
+{
+	double_t arg;
+	arg.val = val;
+	
+	double_t ret;
+	ret.data = trunc_float64(arg.data);
+	
+	return ret.val;
+}
+
+static inline double sin(double val)
+{
+	// FIXME TODO
+	return 0;
+}
+
+static inline double cos(double val)
+{
+	// FIXME TODO
+	return 1;
+}
+
+#endif
 
 /** @}
  */

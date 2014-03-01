@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libmatharm32
  * @{
  */
-/** @file Mathematical operations.
- *
- * The implementation is provided by a separate library to allow
- * switching of the implementations.
+/** @file
  */
 
-#ifndef LIBC_MATH_H_
-#define LIBC_MATH_H_
+#ifndef LIBMATH_arm32_MATH_H_
+#define LIBMATH_arm32_MATH_H_
 
-#ifdef __GNUC__
-	#define HUGE_VAL (__builtin_huge_val())
-#endif
+#include <mathtypes.h>
+#include <trunc.h>
 
-extern double ldexp(double, int);
-extern double frexp(double, int *);
+static inline double trunc(double val)
+{
+	double_t arg;
+	arg.val = val;
+	
+	double_t ret;
+	ret.data = trunc_float64(arg.data);
+	
+	return ret.val;
+}
 
-extern double fabs(double);
-extern double floor(double);
-extern double ceil(double);
-extern double modf(double, double *);
-extern double fmod(double, double);
-extern double pow(double, double);
-extern double exp(double);
-extern double expm1(double);
-extern double sqrt(double);
-extern double log(double);
-extern double log10(double);
-extern double sin(double);
-extern double sinh(double);
-extern double asin(double);
-extern double asinh(double);
-extern double cos(double);
-extern double cosh(double);
-extern double acos(double);
-extern double acosh(double);
-extern double tan(double);
-extern double tanh(double);
-extern double atan(double);
-extern double atanh(double);
-extern double atan2(double, double);
+static inline double sin(double val)
+{
+	// FIXME TODO
+	return 0;
+}
 
-double copysign(double, double);
+static inline double cos(double val)
+{
+	// FIXME TODO
+	return 1;
+}
 
 #endif
 

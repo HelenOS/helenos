@@ -42,6 +42,7 @@ EXTRA_CFLAGS += \
 	-I$(LIBGRAPH_PREFIX)
 
 BINARY = vterm
+MATH = y
 
 SOURCES = \
 	vterm.c

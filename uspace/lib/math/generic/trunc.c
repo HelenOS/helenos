@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat
+/** @addtogroup libc
  * @{
  */
-/** @file Other functions (power, complex).
+/** @file
  */
 
-#ifndef __OTHER_H__
-#define __OTHER_H__
+#include <mathtypes.h>
+#include <trunc.h>
 
-#endif
+float64 trunc_float64(float64 val)
+{
+	int32_t exp = val.parts.exp - FLOAT64_BIAS;
+	
+	if (exp < 0) {
+		/* -1 < val < 1 => result is +0 or -0 */
+		val.parts.exp = 0;
+		val.parts.fraction = 0;
+	} else if (exp >= FLOAT64_FRACTION_SIZE) {
+		if (exp == 1024) {
+			/* val is +inf, -inf or NaN => trigger an exception */
+			// FIXME TODO
+		}
+		
+		/* All bits in val are relevant for the result */
+	} else {
+		/* Truncate irrelevant fraction bits */
+		val.parts.fraction &= UINT64_C(0x000fffffffffffff) >> exp;
+	}
+	
+	return val;
+}
 
 /** @}
  */
