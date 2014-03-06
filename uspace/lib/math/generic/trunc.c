@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libmath
  * @{
  */
 /** @file
@@ -35,6 +35,21 @@
 #include <mathtypes.h>
 #include <trunc.h>
 
+/** Truncate fractional part (round towards zero)
+ *
+ * Truncate the fractional part of IEEE 754 double
+ * precision floating point number by zeroing fraction
+ * bits, effectively rounding the number towards zero
+ * to the nearest whole number.
+ *
+ * If the argument is infinity or NaN, an exception
+ * should be indicated. This is not implemented yet.
+ *
+ * @param val Floating point number.
+ *
+ * @return Number rounded towards zero.
+ *
+ */
 float64 trunc_float64(float64 val)
 {
 	int32_t exp = val.parts.exp - FLOAT64_BIAS;
