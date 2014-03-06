@@ -40,6 +40,8 @@ MATH = y
 -include arch/$(UARCH)/Makefile.inc
 
 GENERIC_SOURCES = \
+	generic/trig.c \
+	generic/mod.c \
 	generic/trunc.c
 
 SOURCES = \

@@ -26,25 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmathamd64
+/** @addtogroup libmath
  * @{
  */
 /** @file
  */
 
-#ifndef LIBMATH_amd64_MATH_H_
-#define LIBMATH_amd64_MATH_H_
+#ifndef LIBMATH_MOD_H_
+#define LIBMATH_MOD_H_
 
-#include <mod.h>
-
-static inline double fmod(double dividend, double divisor)
-{
-	return double_mod(dividend, divisor);
-}
-
-extern double sin(double);
-extern double cos(double);
-extern double trunc(double);
+extern double double_mod(double, double);
 
 #endif
 

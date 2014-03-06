@@ -26,27 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmathamd64
+/** @addtogroup libmath
  * @{
  */
 /** @file
  */
 
-#ifndef LIBMATH_amd64_MATH_H_
-#define LIBMATH_amd64_MATH_H_
-
+#include <math.h>
 #include <mod.h>
 
-static inline double fmod(double dividend, double divisor)
+/** Double precision modulo
+ *
+ * Calculate the modulo of dividend by divisor.
+ *
+ * This is a very basic implementation that uses
+ * division and multiplication (instead of exact
+ * arithmetics). Thus the result might be very
+ * imprecise (depending on the magnitude of the
+ * arguments).
+ *
+ * @param dividend Dividend.
+ * @param divisor  Divisor.
+ *
+ * @return Modulo.
+ *
+ */
+double double_mod(double dividend, double divisor)
 {
-	return double_mod(dividend, divisor);
+	// FIXME: replace with exact arithmetics
+	
+	double quotient = trunc(dividend / divisor);
+	
+	return (dividend - quotient * divisor);
 }
-
-extern double sin(double);
-extern double cos(double);
-extern double trunc(double);
-
-#endif
 
 /** @}
  */

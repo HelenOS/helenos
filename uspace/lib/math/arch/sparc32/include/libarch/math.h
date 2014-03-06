@@ -36,7 +36,14 @@
 #define LIBMATH_sparc32_MATH_H_
 
 #include <mathtypes.h>
+#include <mod.h>
 #include <trunc.h>
+#include <trig.h>
+
+static inline double fmod(double dividend, double divisor)
+{
+	return double_mod(dividend, divisor);
+}
 
 static inline double trunc(double val)
 {
@@ -51,14 +58,12 @@ static inline double trunc(double val)
 
 static inline double sin(double val)
 {
-	// FIXME TODO
-	return 0;
+	return double_sin(val);
 }
 
 static inline double cos(double val)
 {
-	// FIXME TODO
-	return 1;
+	return double_cos(val);
 }
 
 #endif
