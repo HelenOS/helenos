@@ -106,7 +106,8 @@
  */
 #define LOG(format, ...) \
 	do { \
-		printf("%s() from %s at %s:%u: " format "\n", __func__, \
+		log(LF_OTHER, LVL_DEBUG, \
+		    "%s() from %s at %s:%u: " format,__func__, \
 		    symtab_fmt_name_lookup(CALLER), __FILE__, __LINE__, \
 		    ##__VA_ARGS__); \
 	} while (0)

@@ -41,7 +41,7 @@
 #include <debug.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
-#include <print.h>
+#include <log.h>
 #include <arch.h>
 #include <mm/tlb.h>
 #include <config.h>
@@ -95,8 +95,9 @@ void interrupt(int n, istate_t *istate)
 		 * Spurious interrupt.
 		 */
 #ifdef CONFIG_DEBUG
-		printf("cpu%u: spurious interrupt (intrcv=%#" PRIx64
-		    ", data0=%#" PRIx64 ")\n", CPU->id, intrcv, data0);
+		log(LF_ARCH, LVL_DEBUG,
+		    "cpu%u: spurious interrupt (intrcv=%#" PRIx64 ", data0=%#"
+		    PRIx64 ")", CPU->id, intrcv, data0);
 #else
 		(void) intrcv;
 #endif

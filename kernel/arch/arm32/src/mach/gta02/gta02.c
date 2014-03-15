@@ -40,14 +40,15 @@
 #include <mm/km.h>
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
-#include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
-#include <genarch/drivers/s3c24xx_irqc/s3c24xx_irqc.h>
-#include <genarch/drivers/s3c24xx_timer/s3c24xx_timer.h>
+#include <genarch/drivers/s3c24xx/uart.h>
+#include <genarch/drivers/s3c24xx/irqc.h>
+#include <genarch/drivers/s3c24xx/timer.h>
 #include <genarch/srln/srln.h>
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
+#include <log.h>
 
 #define GTA02_MEMORY_START	0x30000000	/* physical */
 #define GTA02_MEMORY_SIZE	0x08000000	/* 128 MB */
@@ -148,7 +149,7 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
 		spinlock_unlock(&irq->lock);
 	} else {
 		/* Spurious interrupt.*/
-		printf("cpu%d: spurious interrupt (inum=%d)\n",
+		log(LF_ARCH, LVL_DEBUG, "cpu%d: spurious interrupt (inum=%d)",
 		    CPU->id, inum);
 	}
 }

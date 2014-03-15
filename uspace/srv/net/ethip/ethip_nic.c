@@ -42,7 +42,7 @@
 #include <inet/iplink_srv.h>
 #include <io/log.h>
 #include <loc.h>
-#include <device/nic.h>
+#include <nic_iface.h>
 #include <stdlib.h>
 #include <mem.h>
 #include "ethip.h"

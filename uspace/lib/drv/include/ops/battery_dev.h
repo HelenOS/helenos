@@ -36,7 +36,7 @@
 #define LIBDRV_OPS_BATTERY_DEV_H_
 
 #include "../ddf/driver.h"
-#include "device/battery_dev.h"
+#include "battery_iface.h"
 
 typedef struct {
 	int (*battery_status_get)(ddf_fun_t *, battery_status_t *);

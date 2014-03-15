@@ -44,11 +44,12 @@ DIRS = \
 	app/download \
 	app/edit \
 	app/getterm \
+	app/hdisk \
 	app/init \
 	app/inet \
 	app/kill \
 	app/killall \
-	app/klog \
+	app/kio \
 	app/loc \
 	app/logset \
 	app/mixerctl \
@@ -90,6 +91,7 @@ DIRS = \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
+	srv/klog \
 	srv/devman \
 	srv/loader \
 	srv/net/dhcp \
@@ -251,7 +253,9 @@ LIBS = \
 	lib/usbvirt \
 	lib/pcm \
 	lib/bithenge \
-	lib/posix
+	lib/posix \
+	lib/mbr \
+	lib/gpt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

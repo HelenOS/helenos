@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Vana
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,13 +38,28 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <io/verify.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
+#include <abi/log.h>
 
-extern size_t klog_write(const void *, size_t);
-extern void klog_update(void);
-extern void klog_command(const void *, size_t);
-extern int klog_printf(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
-extern int klog_vprintf(const char *, va_list);
+extern size_t klog_write(log_level_t, const void *, size_t);
+extern int klog_read(void *, size_t);
+
+#define KLOG_PRINTF(lvl, fmt, ...) ({ \
+	char *_fmt = str_dup(fmt); \
+	size_t _fmtsize = str_size(_fmt); \
+	if (_fmtsize > 0 && _fmt[_fmtsize - 1] == '\n') \
+		_fmt[_fmtsize - 1] = 0; \
+	char *_s; \
+	int _c = asprintf(&_s, _fmt, ##__VA_ARGS__); \
+	free(_fmt); \
+	if (_c >= 0) { \
+		_c = klog_write((lvl), _s, str_size(_s)); \
+		free(_s); \
+	}; \
+	(_c >= 0); \
+})
 
 #endif
 

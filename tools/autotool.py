@@ -263,6 +263,11 @@ def get_target(config):
 		clang_target = "powerpc-unknown-linux"
 		helenos_target = "ppc-helenos"
 	
+	if (config['PLATFORM'] == "sparc32"):
+		target = config['PLATFORM'];
+		gnu_target = "sparc-leon3-linux-gnu"
+		helenos_target = "sparc-leon3-helenos"
+	
 	if (config['PLATFORM'] == "sparc64"):
 		target = config['PLATFORM']
 		gnu_target = "sparc64-linux-gnu"
@@ -784,7 +789,7 @@ def main():
 			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
 		if (config['COMPILER'] == "clang"):
-			target, cc_args, gnu_target, clang_target = get_target(config)
+			target, cc_args, gnu_target, clang_target, helenos_target = get_target(config)
 			
 			if (target is None) or (gnu_target is None) or (clang_target is None):
 				print_error(["Unsupported compiler target for clang.",

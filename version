@@ -45,5 +45,5 @@ else
 endif
 
 NAME = Fajtl
-COPYRIGHT = Copyright (c) 2001-2013 HelenOS project
+COPYRIGHT = Copyright (c) 2001-2014 HelenOS project
 

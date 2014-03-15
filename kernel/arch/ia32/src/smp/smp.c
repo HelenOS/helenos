@@ -51,7 +51,7 @@
 #include <mm/km.h>
 #include <mm/slab.h>
 #include <mm/as.h>
-#include <print.h>
+#include <log.h>
 #include <memstr.h>
 #include <arch/drivers/i8259.h>
 
@@ -128,8 +128,8 @@ void kmp(void *arg __attribute__((unused)))
 			continue;
 		
 		if (ops->cpu_apic_id(i) == bsp_l_apic) {
-			printf("kmp: bad processor entry #%u, will not send IPI "
-			    "to myself\n", i);
+			log(LF_ARCH, LVL_ERROR, "kmp: bad processor entry #%u, "
+			    "will not send IPI to myself", i);
 			continue;
 		}
 		
@@ -161,12 +161,12 @@ void kmp(void *arg __attribute__((unused)))
 			 */
 			if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
 			    SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {
-				printf("%s: waiting for cpu%u (APIC ID = %d) "
-				    "timed out\n", __FUNCTION__, i,
-				    ops->cpu_apic_id(i));
+				log(LF_ARCH, LVL_NOTE, "%s: waiting for cpu%u "
+				    "(APIC ID = %d) timed out", __FUNCTION__,
+				    i, ops->cpu_apic_id(i));
 			}
 		} else
-			printf("INIT IPI for l_apic%d failed\n",
+			log(LF_ARCH, LVL_ERROR, "INIT IPI for l_apic%d failed",
 			    ops->cpu_apic_id(i));
 	}
 }

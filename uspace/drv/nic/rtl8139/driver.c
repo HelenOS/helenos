@@ -40,7 +40,7 @@
 #include <ddf/interrupt.h>
 #include <io/log.h>
 #include <nic.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 
 #include <ipc/irc.h>
 #include <sysinfo.h>
@@ -189,8 +189,6 @@ inline static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
 	    (uint32_t)(mask >> 32));
 	return;
 }
-
-#include <device/pci.h>
 
 /** Set PmEn (Power management enable) bit value
  *

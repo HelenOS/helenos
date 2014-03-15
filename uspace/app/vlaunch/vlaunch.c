@@ -114,28 +114,31 @@ int main(int argc, char *argv[])
 	}
 	
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], true, true, "vlaunch", 0, 0);
+	window_t *main_window = window_open(argv[1], true, true, "vlaunch");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 1;
 	}
 	
 	pixel_t grd_bg = PIXEL(255, 255, 255, 255);
-	pixel_t btn_bg = PIXEL(255, 0, 0, 0);
-	pixel_t btn_fg = PIXEL(255, 240, 240, 240);
+	
+	pixel_t btn_bg = PIXEL(255, 255, 255, 255);
+	pixel_t btn_fg = PIXEL(255, 186, 186, 186);
+	pixel_t btn_text = PIXEL(255, 0, 0, 0);
+	
 	pixel_t lbl_bg = PIXEL(255, 255, 255, 255);
-	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
+	pixel_t lbl_text = PIXEL(255, 0, 0, 0);
 	
 	canvas_t *logo_canvas = create_canvas(NULL, LOGO_WIDTH, LOGO_HEIGHT,
 	    logo);
 	label_t *lbl_caption = create_label(NULL, "Launch application:", 16,
-	    lbl_bg, lbl_fg);
+	    lbl_bg, lbl_text);
 	button_t *btn_vterm = create_button(NULL, "vterm", 16, btn_bg,
-	    btn_fg);
+	    btn_fg, btn_text);
 	button_t *btn_vdemo = create_button(NULL, "vdemo", 16, btn_bg,
-	    btn_fg);
+	    btn_fg, btn_text);
 	button_t *btn_vlaunch = create_button(NULL, "vlaunch", 16, btn_bg,
-	    btn_fg);
+	    btn_fg, btn_text);
 	grid_t *grid = create_grid(window_root(main_window), 1, 5, grd_bg);
 	
 	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
@@ -155,7 +158,8 @@ int main(int argc, char *argv[])
 	grid->add(grid, &btn_vdemo->widget, 0, 3, 1, 1);
 	grid->add(grid, &btn_vlaunch->widget, 0, 4, 1, 1);
 	
-	window_resize(main_window, 210, 130 + LOGO_HEIGHT);
+	window_resize(main_window, 0, 0, 210, 130 + LOGO_HEIGHT,
+	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_TOP);
 	window_exec(main_window);
 	
 	task_retval(0);

@@ -60,6 +60,7 @@
 #include <panic.h>
 #include <cpu.h>
 #include <print.h>
+#include <log.h>
 #include <debug.h>
 #include <stacktrace.h>
 
@@ -516,8 +517,9 @@ repeat:
 	THREAD->state = Running;
 	
 #ifdef SCHEDULER_VERBOSE
-	printf("cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64 
-	    ", nrdy=%ld)\n", CPU->id, THREAD->tid, THREAD->priority,
+	log(LF_OTHER, LVL_DEBUG,
+	    "cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
+	    ", nrdy=%" PRIua ")", CPU->id, THREAD->tid, THREAD->priority,
 	    THREAD->ticks, atomic_get(&CPU->nrdy));
 #endif
 	
@@ -662,8 +664,9 @@ not_satisfied:
 				    &thread->lock);
 				
 #ifdef KCPULB_VERBOSE
-				printf("kcpulb%u: TID %" PRIu64 " -> cpu%u, "
-				    "nrdy=%ld, avg=%ld\n", CPU->id, t->tid,
+				log(LF_OTHER, LVL_DEBUG,
+				    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
+				    "nrdy=%ld, avg=%ld", CPU->id, t->tid,
 				    CPU->id, atomic_get(&CPU->nrdy),
 				    atomic_get(&nrdy) / config.cpu_active);
 #endif

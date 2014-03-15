@@ -35,7 +35,7 @@
 #ifndef POSIX_MATH_H_
 #define POSIX_MATH_H_
 
-#include "libc/math.h"
+#include "libmath/math.h"
 
 #endif /* POSIX_MATH_H_ */
 

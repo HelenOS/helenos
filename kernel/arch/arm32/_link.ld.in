@@ -12,6 +12,8 @@
 #define KERNEL_LOAD_ADDRESS 0x80a00000
 #elif defined MACHINE_beaglebone
 #define KERNEL_LOAD_ADDRESS 0x80a00000
+#elif defined MACHINE_raspberrypi
+#define KERNEL_LOAD_ADDRESS 0x80a08000
 #else
 #define KERNEL_LOAD_ADDRESS 0x80a00000
 #endif

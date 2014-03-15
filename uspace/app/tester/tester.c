@@ -63,6 +63,7 @@ test_t tests[] = {
 #include "fault/fault2.def"
 #include "fault/fault3.def"
 #include "float/float1.def"
+#include "float/float2.def"
 #include "float/softfloat1.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"

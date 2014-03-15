@@ -33,6 +33,7 @@ LSONAME = libgui.so0
 EXTRA_CFLAGS += -I$(LIBDRAW_PREFIX) -I$(LIBSOFTREND_PREFIX) -I$(LIBGRAPH_PREFIX)
 
 SOURCES = \
+	common.c \
 	button.c \
 	canvas.c \
 	connection.c \

@@ -35,6 +35,7 @@ LSONAME = libposix.so0
 EXTRA_CFLAGS = -Iinclude/
 
 INCLUDE_LIBC = ./include/libc
+INCLUDE_LIBMATH = ./include/libmath
 
 LIBC_FILE = $(LIBC_PREFIX)/libc.a
 
@@ -45,9 +46,9 @@ REDEFS_HIDE_LIBC = redefs-hide-libc-symbols.list
 REDEFS_SHOW_LIBPOSIX = redefs-show-posix-symbols.list
 COLLISIONS_LIST = collisions.list
 
-PRE_DEPEND = $(INCLUDE_LIBC)
+PRE_DEPEND = $(INCLUDE_LIBC) $(INCLUDE_LIBMATH)
 EXTRA_CLEAN = \
-	$(INCLUDE_LIBC) \
+	$(INCLUDE_LIBC) $(INCLUDE_LIBMATH) \
 	$(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX) \
 	$(COLLISIONS_LIST)
 EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY)
@@ -72,6 +73,7 @@ SOURCES = \
 	source/stdlib/strtold.c \
 	source/string.c \
 	source/strings.c \
+	source/sys/mman.c \
 	source/sys/stat.c \
 	source/sys/wait.c \
 	source/time.c \
@@ -80,6 +82,9 @@ SOURCES = \
 include $(USPACE_PREFIX)/Makefile.common
 
 $(INCLUDE_LIBC): ../c/include
+	ln -s -f -n ../$^ $@
+
+$(INCLUDE_LIBMATH): ../math/include
 	ln -s -f -n ../$^ $@
 
 $(FIXED_C_LIBRARY): $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)

@@ -74,6 +74,9 @@ mem_backend_t elf_backend = {
 
 	.page_fault = elf_page_fault,
 	.frame_free = elf_frame_free,
+
+	.create_shared_data = NULL,
+	.destroy_shared_data = NULL
 };
 
 static size_t elf_nonanon_pages_get(as_area_t *area)
@@ -273,14 +276,14 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	/* Virtual address of the end of initialized part of segment */
 	start_anon = entry->p_vaddr + entry->p_filesz;
 
-	if (area->sh_info) {
+	mutex_lock(&area->sh_info->lock);
+	if (area->sh_info->shared) {
 		bool found = false;
 
 		/*
 		 * The address space area is shared.
 		 */
 		
-		mutex_lock(&area->sh_info->lock);
 		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
 		    upage - area->base, &leaf);
 		if (!frame) {
@@ -383,14 +386,13 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		dirty = true;
 	}
 
-	if (dirty && area->sh_info) {
+	if (dirty && area->sh_info->shared) {
 		frame_reference_add(ADDR2PFN(frame));
 		btree_insert(&area->sh_info->pagemap, upage - area->base,
 		    (void *) frame, leaf);
 	}
 
-	if (area->sh_info)
-		mutex_unlock(&area->sh_info->lock);
+	mutex_unlock(&area->sh_info->lock);
 
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
 	if (!used_space_insert(area, upage, 1))

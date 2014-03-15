@@ -154,6 +154,7 @@ show_usage() {
 	echo " mips64     MIPS little-endian 64b"
 	echo " ppc32      32-bit PowerPC"
 	echo " ppc64      64-bit PowerPC"
+	echo " sparc32    SPARC V8"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
 	echo " parallel   same as 'all', but all in parallel"
@@ -377,6 +378,10 @@ set_target_from_platform() {
 			LINUX_TARGET="ppc64-linux-gnu"
 			HELENOS_TARGET="ppc64-helenos"
 			;;
+		"sparc32")
+			LINUX_TARGET="sparc-leon3-linux-gnu"
+			HELENOS_TARGET="sparc-leon3-helenos"
+			;;
 		"sparc64")
 			LINUX_TARGET="sparc64-linux-gnu"
 			HELENOS_TARGET="sparc64-helenos"
@@ -554,7 +559,7 @@ if [ "$#" -lt "1" ]; then
 fi
 
 case "$1" in
-	amd64|arm32|ia32|ia64|mips32|mips32eb|mips64|ppc32|ppc64|sparc64)
+	amd64|arm32|ia32|ia64|mips32|mips32eb|mips64|ppc32|ppc64|sparc32|sparc64)
 		prepare
 		build_target "$1"
 		;;
@@ -569,6 +574,7 @@ case "$1" in
 		build_target "mips64"
 		build_target "ppc32"
 		build_target "ppc64"
+		build_target "sparc32"
 		build_target "sparc64"
 		;;
 	"parallel")
@@ -582,6 +588,7 @@ case "$1" in
 		build_target "mips64" &
 		build_target "ppc32" &
 		build_target "ppc64" &
+		build_target "sparc32" &
 		build_target "sparc64" &
 		wait
 		;;
@@ -604,6 +611,9 @@ case "$1" in
 		wait
 		
 		build_target "ppc64" &
+		build_target "sparc32" &
+		wait
+		
 		build_target "sparc64" &
 		wait
 		;;

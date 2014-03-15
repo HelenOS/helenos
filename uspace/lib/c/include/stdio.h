@@ -39,7 +39,7 @@
 #include <stdarg.h>
 #include <str.h>
 #include <io/verify.h>
-#include <abi/klog.h>
+#include <abi/kio.h>
 
 #define EOF  (-1)
 
@@ -51,7 +51,7 @@
 		char _buf[256]; \
 		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
 		if (_n > 0) \
-			(void) __SYSCALL3(SYS_KLOG, KLOG_WRITE, (sysarg_t) _buf, str_size(_buf)); \
+			(void) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) _buf, str_size(_buf)); \
 	}
 
 #ifndef SEEK_SET

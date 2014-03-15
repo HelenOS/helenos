@@ -27,8 +27,8 @@
 #
 
 USPACE_PREFIX = ../..
-#LIBS = 
-#EXTRA_CFLAGS = 
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
 BINARY = sportdmp
 
 SOURCES = \

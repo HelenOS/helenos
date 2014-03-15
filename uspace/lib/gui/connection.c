@@ -209,9 +209,9 @@ void sig_post(signal_t *signal, void *data, size_t data_size)
 		if (event) {
 			link_initialize(&event->link);
 			event->type = ET_SIGNAL_EVENT;
-			event->data.sig.object = (sysarg_t) cur->widget;
-			event->data.sig.slot = (sysarg_t) cur->slot;
-			event->data.sig.argument = (sysarg_t) data_copy;
+			event->data.signal.object = (sysarg_t) cur->widget;
+			event->data.signal.slot = (sysarg_t) cur->slot;
+			event->data.signal.argument = (sysarg_t) data_copy;
 			prodcons_produce(&cur->widget->window->events, &event->link);
 		} else {
 			if (data_copy != NULL) {

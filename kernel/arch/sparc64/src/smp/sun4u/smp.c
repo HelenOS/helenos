@@ -42,7 +42,7 @@
 #include <macros.h>
 #include <typedefs.h>
 #include <synch/waitq.h>
-#include <print.h>
+#include <log.h>
 #include <arch/cpu_node.h>
 
 /**
@@ -107,8 +107,8 @@ static void wakeup_cpu(ofw_tree_node_t *node)
 		
 	if (waitq_sleep_timeout(&ap_completion_wq, 1000000, SYNCH_FLAGS_NONE) ==
 	    ESYNCH_TIMEOUT)
-		printf("%s: waiting for processor (mid = %" PRIu32
-		    ") timed out\n", __func__, mid);
+		log(LF_ARCH, LVL_NOTE, "%s: waiting for processor (mid = %" PRIu32
+		    ") timed out", __func__, mid);
 }
 
 /** Wake application processors up. */

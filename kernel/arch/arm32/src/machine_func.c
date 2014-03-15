@@ -42,6 +42,7 @@
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <arch/mach/beagleboardxm/beagleboardxm.h>
 #include <arch/mach/beaglebone/beaglebone.h>
+#include <arch/mach/raspberrypi/raspberrypi.h>
 
 /** Pointer to machine_ops structure being used. */
 struct arm_machine_ops *machine_ops;
@@ -57,6 +58,8 @@ void machine_ops_init(void)
 	machine_ops = &bbxm_machine_ops;
 #elif defined(MACHINE_beaglebone)
 	machine_ops = &bbone_machine_ops;
+#elif defined(MACHINE_raspberrypi)
+	machine_ops = &raspberrypi_machine_ops;
 #else
 #error Machine type not defined.
 #endif

@@ -28,9 +28,19 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBSOFTFLOAT_PREFIX)
+
+LIBS = \
+	$(LIBBLOCK_PREFIX)/libblock.a \
+	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
+	$(LIBDRV_PREFIX)/libdrv.a
+
+EXTRA_CFLAGS = \
+	-I$(LIBBLOCK_PREFIX) \
+	-I$(LIBSOFTFLOAT_PREFIX) \
+	-I$(LIBDRV_PREFIX)/include
+
 BINARY = tester
+MATH = y
 
 SOURCES = \
 	tester.c \
@@ -52,6 +62,7 @@ SOURCES = \
 	fault/fault2.c \
 	fault/fault3.c \
 	float/float1.c \
+	float/float2.c \
 	float/softfloat1.c \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \

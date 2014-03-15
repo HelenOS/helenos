@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2006 Jakub Vana
+ * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,11 +39,12 @@
 #include <errno.h>
 #include <abi/klog.h>
 #include <io/klog.h>
-#include <io/printf_core.h>
+#include <abi/log.h>
 
-size_t klog_write(const void *buf, size_t size)
+size_t klog_write(log_level_t lvl, const void *buf, size_t size)
 {
-	ssize_t ret = (ssize_t) __SYSCALL3(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf, size);
+	ssize_t ret = (ssize_t) __SYSCALL4(SYS_KLOG, KLOG_WRITE, (sysarg_t) buf,
+	    size, lvl);
 	
 	if (ret >= 0)
 		return (size_t) ret;
@@ -52,77 +52,9 @@ size_t klog_write(const void *buf, size_t size)
 	return 0;
 }
 
-void klog_update(void)
+int klog_read(void *data, size_t size)
 {
-	(void) __SYSCALL3(SYS_KLOG, KLOG_UPDATE, (uintptr_t) NULL, 0);
-}
-
-void klog_command(const void *buf, size_t size)
-{
-	(void) __SYSCALL3(SYS_KLOG, KLOG_COMMAND, (sysarg_t) buf, (sysarg_t) size);
-}
-
-/** Print formatted text to klog.
- *
- * @param fmt Format string
- *
- * \see For more details about format string see printf_core.
- *
- */
-int klog_printf(const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	
-	int ret = klog_vprintf(fmt, args);
-	
-	va_end(args);
-	
-	return ret;
-}
-
-static int klog_vprintf_str_write(const char *str, size_t size, void *data)
-{
-	size_t wr = klog_write(str, size);
-	return str_nlength(str, wr);
-}
-
-static int klog_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	
-	while (offset < size) {
-		char buf[STR_BOUNDS(1)];
-		size_t sz = 0;
-		
-		if (chr_encode(str[chars], buf, &sz, STR_BOUNDS(1)) == EOK)
-			klog_write(buf, sz);
-		
-		chars++;
-		offset += sizeof(wchar_t);
-	}
-	
-	return chars;
-}
-
-/** Print formatted text to klog.
- *
- * @param fmt Format string
- * @param ap  Format parameters
- *
- * \see For more details about format string see printf_core.
- *
- */
-int klog_vprintf(const char *fmt, va_list ap)
-{
-	printf_spec_t ps = {
-		klog_vprintf_str_write,
-		klog_vprintf_wstr_write,
-		NULL
-	};
-	
-	return printf_core(fmt, &ps, ap);
+	return (int) __SYSCALL4(SYS_KLOG, KLOG_READ, (uintptr_t) data, size, 0);
 }
 
 /** @}

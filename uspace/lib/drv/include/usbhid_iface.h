@@ -39,56 +39,12 @@
 #include "ddf/driver.h"
 #include <usb/usb.h>
 
-/** IPC methods for USB HID device interface. */
-typedef enum {
-	/** Get number of events reported in single burst.
-	 * Parameters: none
-	 * Answer:
-	 * - Size of one report in bytes.
-	 */
-	IPC_M_USBHID_GET_EVENT_LENGTH,
-	/** Get single event from the HID device.
-	 * The word single refers to set of individual events that were
-	 * available at particular point in time.
-	 * Parameters:
-	 * - flags
-	 * The call is followed by data read expecting two concatenated
-	 * arrays.
-	 * Answer:
-	 * - EOK - events returned
-	 * - EAGAIN - no event ready (only in non-blocking mode)
-	 *
-	 * It is okay if the client requests less data. Extra data must
-	 * be truncated by the driver.
-	 *
-	 * @todo Change this comment.
-	 */
-	IPC_M_USBHID_GET_EVENT,
-	
-	/** Get the size of the report descriptor from the HID device.
-	 *
-	 * Parameters:
-	 * - none
-	 * Answer:
-	 * - EOK - method is implemented (expected always)
-	 * Parameters of the answer:
-	 * - Size of the report in bytes.
-	 */
-	IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH,
-	
-	/** Get the report descriptor from the HID device.
-	 *
-	 * Parameters:
-	 * - none
-	 * The call is followed by data read expecting the descriptor itself.
-	 * Answer:
-	 * - EOK - report descriptor returned.
-	 */
-	IPC_M_USBHID_GET_REPORT_DESCRIPTOR
-} usbhid_iface_funcs_t;
-
-/** USB HID interface flag - return immediately if no data are available. */
-#define USBHID_IFACE_FLAG_NON_BLOCKING (1 << 0)
+extern int usbhid_dev_get_event_length(async_sess_t *, size_t *);
+extern int usbhid_dev_get_event(async_sess_t *, uint8_t *, size_t, size_t *,
+    int *, unsigned int);
+extern int usbhid_dev_get_report_descriptor_length(async_sess_t *, size_t *);
+extern int usbhid_dev_get_report_descriptor(async_sess_t *, uint8_t *, size_t,
+    size_t *);
 
 /** USB HID device communication interface. */
 typedef struct {

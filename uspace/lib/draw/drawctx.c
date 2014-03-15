@@ -128,10 +128,10 @@ void drawctx_transfer(drawctx_t *context,
 		return;
 	}
 
-	bool transfer_fast = source_is_fast(context->source)
-	    && (context->shall_clip == false)
-	    && (context->mask == NULL)
-	    && (context->compose == compose_src || context->compose == compose_over);
+	bool transfer_fast = source_is_fast(context->source) &&
+	    (context->shall_clip == false) &&
+	    (context->mask == NULL) &&
+	    (context->compose == compose_src || context->compose == compose_over);
 
 	if (transfer_fast) {
 

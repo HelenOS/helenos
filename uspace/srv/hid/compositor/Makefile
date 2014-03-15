@@ -27,22 +27,22 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRAW_PREFIX)/libdraw.a $(LIBSOFTREND_PREFIX)/libsoftrend.a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a
-EXTRA_CFLAGS += -I$(LIBDRAW_PREFIX) -I$(LIBSOFTREND_PREFIX)
+
+LIBS = \
+	$(LIBDRAW_PREFIX)/libdraw.a \
+	$(LIBSOFTREND_PREFIX)/libsoftrend.a \
+	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
+	$(LIBDRV_PREFIX)/libdrv.a
+
+EXTRA_CFLAGS += \
+	-I$(LIBDRAW_PREFIX) \
+	-I$(LIBSOFTREND_PREFIX) \
+	-I$(LIBDRV_PREFIX)/include
+
 BINARY = compositor
+MATH = y
 
 SOURCES = \
-	compositor.c \
-	images.c
-
-IMAGES = \
-	gfx/nameic.tga
-
-PRE_DEPEND = images.c images.h
-EXTRA_CLEAN = images.c images.h
+	compositor.c
 
 include $(USPACE_PREFIX)/Makefile.common
-
-images.c images.h: $(IMAGES)
-	$(ROOT_PATH)/tools/mkarray.py images COMPOSITOR_IMAGES $^

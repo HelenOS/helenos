@@ -43,7 +43,6 @@
 #include "div.h"
 #include "conversion.h"
 #include "comparison.h"
-#include "other.h"
 
 /* Arithmetic functions */
 
@@ -1374,7 +1373,6 @@ int __aeabi_dcmple(double a, double b)
 {
 	return __ledf2(a, b);
 }
-
 
 int __aeabi_dcmpeq(double a, double b)
 {
