@@ -308,10 +308,6 @@ void posix_perror(const char *s)
 	}
 }
 
-struct _posix_fpos {
-	off64_t offset;
-};
-
 /** Restores stream a to position previously saved with fgetpos().
  *
  * @param stream Stream to restore
