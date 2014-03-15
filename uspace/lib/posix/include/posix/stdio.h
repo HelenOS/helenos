@@ -63,7 +63,11 @@
  */
 #define EOF (-1)
 
+/** Size of buffers used in stdio header. */
 #define BUFSIZ  4096
+
+/** Maximum size in bytes of the longest filename. */
+#define FILENAME_MAX 4096
 
 typedef struct _IO_FILE FILE;
 
