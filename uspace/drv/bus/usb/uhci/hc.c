@@ -122,8 +122,8 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
 
 	memcpy(cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
 	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(*regs);
-	cmds[0].addr = &registers->usbsts;
-	cmds[3].addr = &registers->usbsts;
+	cmds[0].addr = (void *) &registers->usbsts;
+	cmds[3].addr = (void *) &registers->usbsts;
 
 	return EOK;
 }

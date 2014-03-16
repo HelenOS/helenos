@@ -45,7 +45,7 @@
 /** UHCI I/O registers layout */
 typedef struct uhci_regs {
 	/** Command register, controls HC behaviour */
-	uint16_t usbcmd;
+	ioport16_t usbcmd;
 #define UHCI_CMD_MAX_PACKET (1 << 7)
 #define UHCI_CMD_CONFIGURE  (1 << 6)
 #define UHCI_CMD_DEBUG  (1 << 5)
@@ -56,7 +56,7 @@ typedef struct uhci_regs {
 #define UHCI_CMD_RUN_STOP  (1 << 0)
 
 	/** Status register, 1 means interrupt is asserted (if enabled) */
-	uint16_t usbsts;
+	ioport16_t usbsts;
 #define UHCI_STATUS_HALTED (1 << 5)
 #define UHCI_STATUS_PROCESS_ERROR (1 << 4)
 #define UHCI_STATUS_SYSTEM_ERROR (1 << 3)
@@ -67,20 +67,20 @@ typedef struct uhci_regs {
     (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)
 
 	/** Interrupt enabled registers */
-	uint16_t usbintr;
+	ioport16_t usbintr;
 #define UHCI_INTR_SHORT_PACKET (1 << 3)
 #define UHCI_INTR_COMPLETE (1 << 2)
 #define UHCI_INTR_RESUME (1 << 1)
 #define UHCI_INTR_CRC (1 << 0)
 
 	/** Register stores frame number used in SOF packet */
-	uint16_t frnum;
+	ioport16_t frnum;
 
 	/** Pointer(physical) to the Frame List */
-	uint32_t flbaseadd;
+	ioport32_t flbaseadd;
 
 	/** SOF modification to match external timers */
-	uint8_t sofmod;
+	ioport8_t sofmod;
 } uhci_regs_t;
 
 #define UHCI_FRAME_LIST_COUNT 1024
