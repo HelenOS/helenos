@@ -175,18 +175,7 @@ endif
 ## Platform-specific hardware support
 #
 
-ifeq ($(UARCH),amd64)
-	DIRS += \
-		drv/infrastructure/rootpc \
-		drv/bus/pci/pciintel \
-		drv/bus/isa \
-		drv/char/ns8250 \
-		drv/time/cmos-rtc \
-		srv/hw/irc/apic \
-		srv/hw/irc/i8259
-endif
-
-ifeq ($(UARCH),ia32)
+ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 	DIRS += \
 		drv/infrastructure/rootpc \
 		drv/bus/pci/pciintel \

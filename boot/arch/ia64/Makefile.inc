@@ -73,3 +73,28 @@ ifeq ($(MACHINE),ski)
 SOURCES += \
 	arch/$(BARCH)/src/ski.c
 endif
+
+RD_DRVS_ESSENTIAL += \
+	infrastructure/rootpc \
+	bus/pci/pciintel \
+	bus/isa \
+	char/i8042 \
+	char/xtkbd
+
+RD_DRVS_NON_ESSENTIAL += \
+	char/ns8250 \
+	time/cmos-rtc \
+	bus/usb/ehci\
+	bus/usb/ohci \
+	bus/usb/uhci \
+	bus/usb/uhcirh \
+	bus/usb/usbflbk \
+	bus/usb/usbhub \
+	bus/usb/usbhid \
+	bus/usb/usbmast \
+	bus/usb/usbmid \
+	bus/usb/vhc
+
+RD_DRV_CFG += \
+	bus/isa
+
