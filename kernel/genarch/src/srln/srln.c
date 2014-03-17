@@ -42,7 +42,8 @@
 #include <str.h>
 
 static indev_operations_t srln_raw_ops = {
-	.poll = NULL
+	.poll = NULL,
+	.signal = NULL
 };
 
 static void ksrln(void *arg)

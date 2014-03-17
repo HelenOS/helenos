@@ -83,16 +83,23 @@ static parea_t kio_parea;
 static indev_t stdin_sink;
 static outdev_t stdout_source;
 
+static void stdin_signal(indev_t *, indev_signal_t);
+
 static indev_operations_t stdin_ops = {
-	.poll = NULL
+	.poll = NULL,
+	.signal = stdin_signal
 };
 
 static void stdout_write(outdev_t *, wchar_t);
 static void stdout_redraw(outdev_t *);
+static void stdout_scroll_up(outdev_t *);
+static void stdout_scroll_down(outdev_t *);
 
 static outdev_operations_t stdout_ops = {
 	.write = stdout_write,
-	.redraw = stdout_redraw
+	.redraw = stdout_redraw,
+	.scroll_up = stdout_scroll_up,
+	.scroll_down = stdout_scroll_down
 };
 
 /** Override kernel console lockout */
@@ -110,6 +117,20 @@ indev_t *stdin_wire(void)
 	}
 	
 	return stdin;
+}
+
+static void stdin_signal(indev_t *indev, indev_signal_t signal)
+{
+	switch (signal) {
+	case INDEV_SIGNAL_SCROLL_UP:
+		if (stdout != NULL)
+			stdout_scroll_up(stdout);
+		break;
+	case INDEV_SIGNAL_SCROLL_DOWN:
+		if (stdout != NULL)
+			stdout_scroll_down(stdout);
+		break;
+	}
 }
 
 void stdout_wire(outdev_t *outdev)
@@ -135,6 +156,22 @@ static void stdout_redraw(outdev_t *dev)
 	list_foreach(dev->list, link, outdev_t, sink) {
 		if ((sink) && (sink->op->redraw))
 			sink->op->redraw(sink);
+	}
+}
+
+static void stdout_scroll_up(outdev_t *dev)
+{
+	list_foreach(dev->list, link, outdev_t, sink) {
+		if ((sink) && (sink->op->scroll_up))
+			sink->op->scroll_up(sink);
+	}
+}
+
+static void stdout_scroll_down(outdev_t *dev)
+{
+	list_foreach(dev->list, link, outdev_t, sink) {
+		if ((sink) && (sink->op->scroll_down))
+			sink->op->scroll_down(sink);
 	}
 }
 
@@ -228,6 +265,7 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 				buf[offset] = 0;
 			}
 		}
+		
 		if (chr_encode(ch, buf, &offset, buflen - 1) == EOK) {
 			putchar(ch);
 			count++;
@@ -263,7 +301,7 @@ void kio_update(void *event)
 }
 
 /** Flush characters that are stored in the output buffer
- * 
+ *
  */
 void kio_flush(void)
 {
@@ -293,7 +331,7 @@ void kio_flush(void)
 }
 
 /** Put a character into the output buffer.
- * 
+ *
  * The caller is required to hold kio_lock
  */
 void kio_push_char(const wchar_t ch)

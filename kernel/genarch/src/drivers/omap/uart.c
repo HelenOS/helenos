@@ -60,8 +60,10 @@ static void omap_uart_putchar(outdev_t *dev, wchar_t ch)
 }
 
 static outdev_operations_t omap_uart_ops = {
-	.redraw = NULL,
 	.write = omap_uart_putchar,
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 static irq_ownership_t omap_uart_claim(irq_t *irq)

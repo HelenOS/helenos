@@ -75,7 +75,9 @@ static void ega_redraw(outdev_t *);
 
 static outdev_operations_t egadev_ops = {
 	.write = ega_putchar,
-	.redraw = ega_redraw
+	.redraw = ega_redraw,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 static uint16_t ega_oem_glyph(const wchar_t ch)

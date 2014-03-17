@@ -55,6 +55,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <macros.h>
+#include <str.h>
 
 #define IGNORE_CODE  0x7f
 #define KEY_RELEASE  0x80
@@ -64,7 +65,8 @@
 #define LOCKED_CAPSLOCK   (1 << 0)
 
 static indev_operations_t kbrd_raw_ops = {
-	.poll = NULL
+	.poll = NULL,
+	.signal = NULL
 };
 
 /** Process release of key.
@@ -103,6 +105,7 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 	bool letter;
 	bool shift;
 	bool capslock;
+	wchar_t ch;
 	
 	spinlock_lock(&instance->keylock);
 	
@@ -126,9 +129,21 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 			shift = !shift;
 		
 		if (shift)
-			indev_push_character(instance->sink, sc_secondary_map[sc]);
+			ch = sc_secondary_map[sc];
 		else
-			indev_push_character(instance->sink, sc_primary_map[sc]);
+			ch = sc_primary_map[sc];
+		
+		switch (ch) {
+		case U_PAGE_UP:
+			indev_signal(instance->sink, INDEV_SIGNAL_SCROLL_UP);
+			break;
+		case U_PAGE_DOWN:
+			indev_signal(instance->sink, INDEV_SIGNAL_SCROLL_DOWN);
+			break;
+		default:
+			indev_push_character(instance->sink, ch);
+		}
+		
 		break;
 	}
 	
