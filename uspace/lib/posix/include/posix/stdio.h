@@ -63,7 +63,11 @@
  */
 #define EOF (-1)
 
+/** Size of buffers used in stdio header. */
 #define BUFSIZ  4096
+
+/** Maximum size in bytes of the longest filename. */
+#define FILENAME_MAX 4096
 
 typedef struct _IO_FILE FILE;
 
@@ -154,7 +158,10 @@ extern FILE *__POSIX_DEF__(freopen)(const char *restrict filename,
 extern void __POSIX_DEF__(perror)(const char *s);
 
 /* File Positioning */
-typedef struct _posix_fpos __POSIX_DEF__(fpos_t);
+typedef struct {
+	off64_t offset;
+} __POSIX_DEF__(fpos_t);
+
 extern int __POSIX_DEF__(fsetpos)(FILE *stream, const __POSIX_DEF__(fpos_t) *pos);
 extern int __POSIX_DEF__(fgetpos)(FILE *restrict stream, __POSIX_DEF__(fpos_t) *restrict pos);
 extern int __POSIX_DEF__(fseek)(FILE *stream, long offset, int whence);
