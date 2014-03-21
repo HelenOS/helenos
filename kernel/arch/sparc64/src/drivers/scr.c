@@ -45,6 +45,7 @@
 #include <str.h>
 #include <align.h>
 #include <print.h>
+#include <log.h>
 
 #define FFB_REG_24BPP	7
 

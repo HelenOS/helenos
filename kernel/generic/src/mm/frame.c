@@ -900,9 +900,7 @@ loop:
 			return 0;
 		}
 		
-#ifdef CONFIG_DEBUG
 		size_t avail = frame_total_free_get_internal();
-#endif
 		
 		irq_spinlock_unlock(&zones.lock, true);
 		
