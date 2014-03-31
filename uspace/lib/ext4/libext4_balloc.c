@@ -341,17 +341,14 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	uint32_t bitmap_block_addr;
 	block_t *bitmap_block;
 	uint32_t rel_block_idx = 0;
+	uint32_t free_blocks;
 	uint32_t goal;
 	
 	/* Find GOAL */
 	int rc = ext4_balloc_find_goal(inode_ref, &goal);
 	if (rc != EOK)
 		return rc;
-	else if (goal == 0) {
-		/* no goal found => partition is full */
-		return ENOMEM;
-	}
-	
+
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
 	
 	/* Load block group number for goal and relative index */
@@ -365,6 +362,13 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	    block_group, &bg_ref);
 	if (rc != EOK)
 		return rc;
+
+	free_blocks =
+	    ext4_block_group_get_free_blocks_count(bg_ref->block_group, sb);
+	if (free_blocks == 0) {
+		/* This group has no free blocks */
+		goto goal_failed;
+	}
 	
 	/* Compute indexes */
 	uint32_t first_in_group =
@@ -468,6 +472,8 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 		return rc;
 	}
 
+goal_failed:
+
 	rc = ext4_filesystem_put_block_group_ref(bg_ref);
 	if (rc != EOK)
 		return rc;
@@ -483,7 +489,14 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 		    &bg_ref);
 		if (rc != EOK)
 			return rc;
-		
+
+		free_blocks =
+		     ext4_block_group_get_free_blocks_count(bg_ref->block_group, sb);
+		if (free_blocks == 0) {
+			/* This group has no free blocks */
+			goto next_group;
+		}
+
 		/* Load block with bitmap */
 		bitmap_block_addr =
 		    ext4_block_group_get_block_bitmap(bg_ref->block_group, sb);
@@ -550,6 +563,7 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 			return rc;
 		}
 
+next_group:
 		rc = ext4_filesystem_put_block_group_ref(bg_ref);
 		if (rc != EOK)
 			return rc;
