@@ -207,6 +207,7 @@ ifneq ($(TEST_SOURCES),)
 	TEST_OUTPUT = $(TEST_BINARY)
 	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
 	TEST_OUTPUT_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
+	EXTRA_CLEAN += $(TEST_OUTPUT) $(TEST_OUTPUT).map
 ifneq ($(LIBRARY),)
 	TEST_OUTPUT_LIBS += $(OUTPUT)
 endif
