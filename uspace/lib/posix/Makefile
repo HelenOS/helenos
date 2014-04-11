@@ -78,6 +78,10 @@ SOURCES = \
 	source/time.c \
 	source/unistd.c
 
+TEST_SOURCES = \
+	test/main.c \
+	test/scanf.c
+
 include $(USPACE_PREFIX)/Makefile.common
 
 $(INCLUDE_LIBC): ../c/include
