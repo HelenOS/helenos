@@ -152,6 +152,10 @@ SOURCES = \
 	$(GENERIC_SOURCES) \
 	$(ARCH_SOURCES)
 
+TEST_SOURCES = \
+	test/main.c \
+	test/sprintf.c
+
 include $(USPACE_PREFIX)/Makefile.common
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
