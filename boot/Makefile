@@ -67,6 +67,23 @@ endif
 	for file in $(RD_APPS) ; do \
 		cp "$$file" "$(DIST_PATH)/app/" ; \
 	done
+ifeq ($(CONFIG_PCUT_TESTS),y)
+	echo "echo Running all tests..." >"$(DIST_PATH)/test/run_all"
+	echo "<html><head><title>HelenOS test results</title></head><body>" >"$(DIST_PATH)/test/test.html"
+	echo "<h1>HelenOS test results</h1><ul>" >>"$(DIST_PATH)/test/test.html"
+	for file in $(RD_TESTS) ; do \
+		file2=`basename $$file`; \
+		cp "$$file" "$(DIST_PATH)/test/" ; \
+		echo "echo ' ->' $$file2" >>"$(DIST_PATH)/test/run_all"; \
+		echo "/test/$$file2 | to /test/$$file2.out" >>"$(DIST_PATH)/test/run_all"; \
+		echo "cat /test/$$file2.out" >>"$(DIST_PATH)/test/run_all"; \
+		echo "cp -f /test/$$file2.out /data/web/result-$$file2.txt" >>"$(DIST_PATH)/test/run_all"; \
+		echo "<li><a href=\"result-$$file2.txt\">$$file2</a></li>" >>"$(DIST_PATH)/test/test.html"; \
+	done
+	echo "cp -f /test/test.html /data/web/test.html" >>"$(DIST_PATH)/test/run_all"
+	echo "</ul></body></html>" >>"$(DIST_PATH)/test/test.html"
+endif
+
 	for drv in $(RD_DRVS) ; do \
 		drv_dir="`dirname "$$drv"`" ; \
 		drv_name="`basename "$$drv"`" ; \
@@ -99,4 +116,5 @@ clean_dist:
 	rm -rf $(USPACE_PATH)/dist/lib/*
 	rm -rf $(USPACE_PATH)/dist/inc/*
 	rm -f $(USPACE_PATH)/dist/app/*
+	rm -f $(USPACE_PATH)/dist/test/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

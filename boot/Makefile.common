@@ -236,6 +236,9 @@ RD_APPS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/msim/msim
 endif
 
+RD_TESTS = \
+
+
 COMPONENTS = \
 	$(KERNEL_PATH)/kernel.bin \
 	$(INIT_TASKS) \

@@ -77,6 +77,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 ifneq ($(BINARY),)
 	JOB = $(BINARY).job
 	OUTPUT = $(BINARY)
+	TEST_BINARY = test-$(BINARY)
 	EXTRA_OUTPUT += $(BINARY).disasm
 	EXTRA_CLEAN += $(BINARY).map
 endif
@@ -84,6 +85,7 @@ endif
 ifneq ($(LIBRARY),)
 	JOB = $(LIBRARY).job
 	OUTPUT = $(LIBRARY).a
+	TEST_BINARY = test-$(LIBRARY)
 endif
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
@@ -199,10 +201,25 @@ else
 	OPTIMIZATION = 3
 endif
 
+# PCUT-based unit tests
+ifeq ($(CONFIG_PCUT_TESTS),y)
+ifneq ($(TEST_SOURCES),)
+	TEST_OUTPUT = $(TEST_BINARY)
+	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
+	TEST_OUTPUT_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
+ifneq ($(LIBRARY),)
+	TEST_OUTPUT_LIBS += $(OUTPUT)
+endif
+	TEST_OUTPUT_LIBS += $(TEST_LIBS)
+endif
+endif
+
 .PHONY: all clean
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
+
+all-test: $(TEST_OUTPUT)
 
 clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
@@ -293,6 +310,7 @@ endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
+TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
 
 ifneq ($(BINARY),)
 %.disasm: $(BINARY)
@@ -337,6 +355,16 @@ ifneq ($(SLIBRARY),)
 	$(AR) rc $@ $(LOBJECTS)
 endif
 
+ifeq ($(CONFIG_PCUT_TESTS),y)
+ifneq ($(TEST_OUTPUT),)
+$(TEST_OUTPUT): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS)
+	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(TEST_OUTPUT).map -o $@ $(TEST_OBJECTS) $(TEST_OUTPUT_LIBS) $(LIBS) $(BASE_LIBS)
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	$(STRIP) $(TEST_OUTPUT)
+endif
+endif
+endif
+
 %.o: %.S $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
@@ -351,6 +379,12 @@ endif
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
+
+%.test.o: %.c $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) $(TEST_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
@@ -374,7 +408,7 @@ ifeq ($(PRECHECK),y)
 endif
 
 $(DEPEND): $(PRE_DEPEND)
-	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) $(TEST_SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
 
 ##

@@ -1,0 +1,11 @@
+1..3
+#> Starting suite intpow.
+not ok 1 zero_exponent failed
+# error: suites.c:37: Expected <1> but got <0> (1 != intpow(2, 0))
+not ok 2 one_exponent failed
+# error: suites.c:41: Expected <2> but got <0> (2 != intpow(2, 1))
+#> Finished suite intpow (failed 2 of 2).
+#> Starting suite intmin.
+not ok 3 test_min failed
+# error: suites.c:49: Expected <5> but got <654> (5 != intmin(654, 5))
+#> Finished suite intmin (failed 1 of 1).

@@ -246,16 +246,24 @@ LIBS = \
 	lib/mbr \
 	lib/gpt
 
+ifeq ($(CONFIG_PCUT_TESTS),y)
+	LIBS += lib/pcut
+endif
+
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
 LIBN_BUILD = $(addsuffix .build,$(LIBN))
 BUILDS := $(addsuffix .build,$(DIRS))
+BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) lib/c)
 
 CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
 .PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
 
-all: $(BUILDS)
+all: $(BUILDS) $(BUILDS_TESTS)
+
+$(BUILDS_TESTS): $(BUILDS)
+	$(MAKE) -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 clean: $(CLEANS)
 
