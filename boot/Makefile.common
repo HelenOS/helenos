@@ -237,7 +237,8 @@ RD_APPS_NON_ESSENTIAL += \
 endif
 
 RD_TESTS = \
-	$(USPACE_PATH)/lib/c/test-libc
+	$(USPACE_PATH)/lib/c/test-libc \
+	$(USPACE_PATH)/app/bdsh/test-bdsh
 
 
 COMPONENTS = \

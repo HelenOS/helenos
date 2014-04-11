@@ -64,4 +64,8 @@ SOURCES = \
 	scli.c \
 	tok.c
 
+TEST_SOURCES = \
+	tok.c \
+	test/toktest.c
+
 include $(USPACE_PREFIX)/Makefile.common
