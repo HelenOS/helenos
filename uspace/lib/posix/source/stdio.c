@@ -34,6 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/stdio.h"
@@ -306,10 +307,6 @@ void posix_perror(const char *s)
 		fprintf(stderr, "%s: %s\n", s, posix_strerror(errno));
 	}
 }
-
-struct _posix_fpos {
-	off64_t offset;
-};
 
 /** Restores stream a to position previously saved with fgetpos().
  *

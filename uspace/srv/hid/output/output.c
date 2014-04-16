@@ -81,9 +81,7 @@ static void srv_yield(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int ret = EOK;
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.yield);
 		
 		int rc = dev->ops.yield(dev);
@@ -98,9 +96,7 @@ static void srv_claim(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int ret = EOK;
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.claim);
 		
 		int rc = dev->ops.claim(dev);
@@ -116,9 +112,7 @@ static void srv_get_dimensions(ipc_callid_t iid, ipc_call_t *icall)
 	sysarg_t cols = MAX_COLS;
 	sysarg_t rows = MAX_ROWS;
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		cols = min(cols, dev->cols);
 		rows = min(rows, dev->rows);
 	}
@@ -130,9 +124,7 @@ static void srv_get_caps(ipc_callid_t iid, ipc_call_t *icall)
 {
 	console_caps_t caps = 0;
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.get_caps);
 		
 		caps |= dev->ops.get_caps(dev);
@@ -144,8 +136,7 @@ static void srv_get_caps(ipc_callid_t iid, ipc_call_t *icall)
 static frontbuf_t *resolve_frontbuf(sysarg_t handle, ipc_callid_t iid)
 {
 	frontbuf_t *frontbuf = NULL;
-	list_foreach(frontbufs, link) {
-		frontbuf_t *cur = list_get_instance(link, frontbuf_t, link);
+	list_foreach(frontbufs, link, frontbuf_t, cur) {
 		if (cur == (frontbuf_t *) handle) {
 			frontbuf = cur;
 			break;
@@ -215,9 +206,7 @@ static void srv_cursor_update(ipc_callid_t iid, ipc_call_t *icall)
 	sysarg_t row;
 	chargrid_get_cursor(buf, &col, &row);
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.cursor_update);
 		
 		sysarg_t prev_col;
@@ -236,9 +225,7 @@ static void srv_cursor_update(ipc_callid_t iid, ipc_call_t *icall)
 
 static void srv_set_style(ipc_callid_t iid, ipc_call_t *icall)
 {
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_STYLE;
 		dev->attrs.val.style =
 		    (console_style_t) IPC_GET_ARG1(*icall);
@@ -249,9 +236,7 @@ static void srv_set_style(ipc_callid_t iid, ipc_call_t *icall)
 
 static void srv_set_color(ipc_callid_t iid, ipc_call_t *icall)
 {
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_INDEX;
 		dev->attrs.val.index.bgcolor =
 		    (console_color_t) IPC_GET_ARG1(*icall);
@@ -266,9 +251,7 @@ static void srv_set_color(ipc_callid_t iid, ipc_call_t *icall)
 
 static void srv_set_rgb_color(ipc_callid_t iid, ipc_call_t *icall)
 {
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_RGB;
 		dev->attrs.val.rgb.bgcolor = IPC_GET_ARG1(*icall);
 		dev->attrs.val.rgb.fgcolor = IPC_GET_ARG2(*icall);
@@ -324,9 +307,7 @@ static void srv_update(ipc_callid_t iid, ipc_call_t *icall)
 	
 	chargrid_t *buf = (chargrid_t *) frontbuf->data;
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.char_update);
 		
 		if (srv_update_scroll(dev, buf))
@@ -373,9 +354,7 @@ static void srv_damage(ipc_callid_t iid, ipc_call_t *icall)
 	
 	chargrid_t *buf = (chargrid_t *) frontbuf->data;
 	
-	list_foreach(outdevs, link) {
-		outdev_t *dev = list_get_instance(link, outdev_t, link);
-		
+	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.char_update);
 		
 		if (srv_update_scroll(dev, buf))

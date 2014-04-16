@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,8 +43,9 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
+#include <types/inetping.h>
 #include "icmp.h"
+#include "icmpv6.h"
 #include "icmp_std.h"
 #include "inetsrv.h"
 #include "inetping.h"
@@ -54,36 +56,71 @@ static LIST_INITIALIZE(client_list);
 /** Last used session identifier. Protected by @c client_list_lock */
 static uint16_t inetping_ident = 0;
 
-static inetping_client_t *inetping_client_find(uint16_t);
-
 static int inetping_send(inetping_client_t *client, inetping_sdu_t *sdu)
 {
-	return icmp_ping_send(client->ident, sdu);
+	if (sdu->src.version != sdu->dest.version)
+		return EINVAL;
+
+	switch (sdu->src.version) {
+	case ip_v4:
+		return icmp_ping_send(client->ident, sdu);
+	case ip_v6:
+		return icmpv6_ping_send(client->ident, sdu);
+	default:
+		return EINVAL;
+	}
 }
 
-static int inetping_get_srcaddr(inetping_client_t *client, inet_addr_t *remote,
-    inet_addr_t *local)
+static int inetping_get_srcaddr(inetping_client_t *client,
+    inet_addr_t *remote, inet_addr_t *local)
 {
 	return inet_get_srcaddr(remote, ICMP_TOS, local);
 }
 
+static inetping_client_t *inetping_client_find(uint16_t ident)
+{
+	fibril_mutex_lock(&client_list_lock);
+
+	list_foreach(client_list, client_list, inetping_client_t, client) {
+		if (client->ident == ident) {
+			fibril_mutex_unlock(&client_list_lock);
+			return client;
+		}
+	}
+
+	fibril_mutex_unlock(&client_list_lock);
+	return NULL;
+}
+
 int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 {
-	inetping_client_t *client;
-	async_exch_t *exch;
-	ipc_call_t answer;
-
-	client = inetping_client_find(ident);
+	inetping_client_t *client = inetping_client_find(ident);
 	if (client == NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ICMP ident. Dropping.");
 		return ENOENT;
 	}
 
-	exch = async_exchange_begin(client->sess);
+	async_exch_t *exch = async_exchange_begin(client->sess);
 
-	aid_t req = async_send_3(exch, INETPING_EV_RECV, sdu->src.ipv4,
-	    sdu->dest.ipv4, sdu->seq_no, &answer);
-	int rc = async_data_write_start(exch, sdu->data, sdu->size);
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, INETPING_EV_RECV, sdu->seq_no, &answer);
+
+	int rc = async_data_write_start(exch, &sdu->src, sizeof(sdu->src));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	rc = async_data_write_start(exch, &sdu->dest, sizeof(sdu->dest));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	rc = async_data_write_start(exch, sdu->data, sdu->size);
+
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -93,52 +130,126 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	if (retval != EOK) {
-		return retval;
-	}
 
-	return EOK;
+	return (int) retval;
 }
 
-static void inetping_send_srv(inetping_client_t *client, ipc_callid_t callid,
-    ipc_call_t *call)
+static void inetping_send_srv(inetping_client_t *client, ipc_callid_t iid,
+    ipc_call_t *icall)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_send_srv()");
+
 	inetping_sdu_t sdu;
 	int rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_send_srv()");
+	sdu.seq_no = IPC_GET_ARG1(*icall);
+
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(sdu.src)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(callid, &sdu.src, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(sdu.dest)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(callid, &sdu.dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
 
 	rc = async_data_write_accept((void **) &sdu.data, false, 0, 0, 0,
 	    &sdu.size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
-
-	sdu.src.ipv4 = IPC_GET_ARG1(*call);
-	sdu.dest.ipv4 = IPC_GET_ARG2(*call);
-	sdu.seq_no = IPC_GET_ARG3(*call);
 
 	rc = inetping_send(client, &sdu);
 	free(sdu.data);
 
-	async_answer_0(callid, rc);
+	async_answer_0(iid, rc);
 }
 
 static void inetping_get_srcaddr_srv(inetping_client_t *client,
-    ipc_callid_t callid, ipc_call_t *call)
+    ipc_callid_t iid, ipc_call_t *icall)
 {
-	inet_addr_t remote;
-	inet_addr_t local;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_get_srcaddr_srv()");
 
-	remote.ipv4 = IPC_GET_ARG1(*call);
-	local.ipv4 = 0;
+	ipc_callid_t callid;
+	size_t size;
+
+	inet_addr_t local;
+	inet_addr_t remote;
+
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(remote)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	int rc = async_data_write_finalize(callid, &remote, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
 
 	rc = inetping_get_srcaddr(client, &remote, &local);
-	async_answer_1(callid, rc, local.ipv4);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(local)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(callid, &local, size);
+	if (rc != EOK)
+		async_answer_0(callid, rc);
+
+	async_answer_0(iid, rc);
 }
 
 static int inetping_client_init(inetping_client_t *client)
@@ -168,35 +279,15 @@ static void inetping_client_fini(inetping_client_t *client)
 	fibril_mutex_unlock(&client_list_lock);
 }
 
-static inetping_client_t *inetping_client_find(uint16_t ident)
-{
-	fibril_mutex_lock(&client_list_lock);
-
-	list_foreach(client_list, link) {
-		inetping_client_t *client = list_get_instance(link,
-		    inetping_client_t, client_list);
-
-		if (client->ident == ident) {
-			fibril_mutex_unlock(&client_list_lock);
-			return client;
-		}
-	}
-
-	fibril_mutex_unlock(&client_list_lock);
-	return NULL;
-}
-
 void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
-	inetping_client_t client;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_conn()");
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
 
-	rc = inetping_client_init(&client);
+	inetping_client_t client;
+	int rc = inetping_client_init(&client);
 	if (rc != EOK)
 		return;
 

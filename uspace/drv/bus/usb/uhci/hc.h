@@ -35,6 +35,8 @@
 #ifndef DRV_UHCI_HC_H
 #define DRV_UHCI_HC_H
 
+#include <ddf/interrupt.h>
+#include <device/hw_res_parsed.h>
 #include <fibril.h>
 #include <usb/host/hcd.h>
 
@@ -43,7 +45,7 @@
 /** UHCI I/O registers layout */
 typedef struct uhci_regs {
 	/** Command register, controls HC behaviour */
-	uint16_t usbcmd;
+	ioport16_t usbcmd;
 #define UHCI_CMD_MAX_PACKET (1 << 7)
 #define UHCI_CMD_CONFIGURE  (1 << 6)
 #define UHCI_CMD_DEBUG  (1 << 5)
@@ -54,7 +56,7 @@ typedef struct uhci_regs {
 #define UHCI_CMD_RUN_STOP  (1 << 0)
 
 	/** Status register, 1 means interrupt is asserted (if enabled) */
-	uint16_t usbsts;
+	ioport16_t usbsts;
 #define UHCI_STATUS_HALTED (1 << 5)
 #define UHCI_STATUS_PROCESS_ERROR (1 << 4)
 #define UHCI_STATUS_SYSTEM_ERROR (1 << 3)
@@ -65,20 +67,20 @@ typedef struct uhci_regs {
     (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)
 
 	/** Interrupt enabled registers */
-	uint16_t usbintr;
+	ioport16_t usbintr;
 #define UHCI_INTR_SHORT_PACKET (1 << 3)
 #define UHCI_INTR_COMPLETE (1 << 2)
 #define UHCI_INTR_RESUME (1 << 1)
 #define UHCI_INTR_CRC (1 << 0)
 
 	/** Register stores frame number used in SOF packet */
-	uint16_t frnum;
+	ioport16_t frnum;
 
 	/** Pointer(physical) to the Frame List */
-	uint32_t flbaseadd;
+	ioport32_t flbaseadd;
 
 	/** SOF modification to match external timers */
-	uint8_t sofmod;
+	ioport8_t sofmod;
 } uhci_regs_t;
 
 #define UHCI_FRAME_LIST_COUNT 1024
@@ -118,12 +120,12 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-size_t hc_irq_pio_range_count(void);
-size_t hc_irq_cmd_count(void);
-int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t, uintptr_t,
-    size_t);
+int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
+    interrupt_handler_t);
+int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
+    addr_range_t *);
 void hc_interrupt(hc_t *instance, uint16_t status);
-int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
+int hc_init(hc_t *instance, addr_range_t *regs, bool interupts);
 
 /** Safely dispose host controller internal structures
  *
@@ -131,6 +133,7 @@ int hc_init(hc_t *instance, void *regs, size_t reg_size, bool interupts);
  */
 static inline void hc_fini(hc_t *instance) {} /* TODO: implement*/
 #endif
+
 /**
  * @}
  */

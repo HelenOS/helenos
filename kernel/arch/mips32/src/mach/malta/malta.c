@@ -91,7 +91,9 @@ static void yamon_putchar(outdev_t *dev, const wchar_t wch)
 static outdev_t yamon_outdev;
 static outdev_operations_t yamon_outdev_ops = {
 	.write = yamon_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 void malta_output_init(void)
@@ -102,6 +104,7 @@ void malta_output_init(void)
 
 void malta_input_init(void)
 {
+	(void) stdin_wire();
 }
 
 const char *malta_get_platform_name(void)

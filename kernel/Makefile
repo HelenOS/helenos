@@ -171,6 +171,12 @@ ifeq ($(COMPILER),gcc_cross)
 	INSTRUMENTATION = -finstrument-functions
 endif
 
+ifeq ($(COMPILER),gcc_helenos)
+	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION = -finstrument-functions
+endif
+
 ifeq ($(COMPILER),icc)
 	CFLAGS = $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
@@ -205,6 +211,7 @@ GENERIC_SOURCES = \
 	generic/src/debug/panic.c \
 	generic/src/debug/debug.c \
 	generic/src/interrupt/interrupt.c \
+	generic/src/log/log.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
 	generic/src/main/uinit.c \
@@ -219,7 +226,6 @@ GENERIC_SOURCES = \
 	generic/src/syscall/copy.c \
 	generic/src/mm/km.c \
 	generic/src/mm/reserve.c \
-	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \
 	generic/src/mm/tlb.c \

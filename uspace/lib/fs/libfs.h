@@ -92,6 +92,9 @@ typedef struct {
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
 	service_id_t (* service_get)(fs_node_t *);
+	int (* size_block)(service_id_t, uint32_t *);
+	int (* total_block_count)(service_id_t, uint64_t *);
+	int (* free_block_count)(service_id_t, uint64_t *);
 } libfs_ops_t;
 
 typedef struct {

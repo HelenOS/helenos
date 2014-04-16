@@ -56,6 +56,8 @@
 #include <sysinfo.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
+#include <ops/pio_window.h>
+#include <device/pio_window.h>
 #include <ddi.h>
 #include <pci_dev_iface.h>
 
@@ -140,7 +142,17 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
-static int pci_config_space_write_32(ddf_fun_t *fun, uint32_t address,
+static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	
+	if (fun == NULL)
+		return NULL;
+	return &fun->pio_window;
+}
+
+
+static int config_space_write_32(ddf_fun_t *fun, uint32_t address,
     uint32_t data)
 {
 	if (address > 252)
@@ -149,7 +161,7 @@ static int pci_config_space_write_32(ddf_fun_t *fun, uint32_t address,
 	return EOK;
 }
 
-static int pci_config_space_write_16(
+static int config_space_write_16(
     ddf_fun_t *fun, uint32_t address, uint16_t data)
 {
 	if (address > 254)
@@ -158,7 +170,7 @@ static int pci_config_space_write_16(
 	return EOK;
 }
 
-static int pci_config_space_write_8(
+static int config_space_write_8(
     ddf_fun_t *fun, uint32_t address, uint8_t data)
 {
 	if (address > 255)
@@ -167,7 +179,7 @@ static int pci_config_space_write_8(
 	return EOK;
 }
 
-static int pci_config_space_read_32(
+static int config_space_read_32(
     ddf_fun_t *fun, uint32_t address, uint32_t *data)
 {
 	if (address > 252)
@@ -176,7 +188,7 @@ static int pci_config_space_read_32(
 	return EOK;
 }
 
-static int pci_config_space_read_16(
+static int config_space_read_16(
     ddf_fun_t *fun, uint32_t address, uint16_t *data)
 {
 	if (address > 254)
@@ -185,7 +197,7 @@ static int pci_config_space_read_16(
 	return EOK;
 }
 
-static int pci_config_space_read_8(
+static int config_space_read_8(
     ddf_fun_t *fun, uint32_t address, uint8_t *data)
 {
 	if (address > 255)
@@ -199,17 +211,22 @@ static hw_res_ops_t pciintel_hw_res_ops = {
 	.enable_interrupt = &pciintel_enable_interrupt,
 };
 
+static pio_window_ops_t pciintel_pio_window_ops = {
+	.get_pio_window = &pciintel_get_pio_window
+};
+
 static pci_dev_iface_t pci_dev_ops = {
-	.config_space_read_8 = &pci_config_space_read_8,
-	.config_space_read_16 = &pci_config_space_read_16,
-	.config_space_read_32 = &pci_config_space_read_32,
-	.config_space_write_8 = &pci_config_space_write_8,
-	.config_space_write_16 = &pci_config_space_write_16,
-	.config_space_write_32 = &pci_config_space_write_32
+	.config_space_read_8 = &config_space_read_8,
+	.config_space_read_16 = &config_space_read_16,
+	.config_space_read_32 = &config_space_read_32,
+	.config_space_write_8 = &config_space_write_8,
+	.config_space_write_16 = &config_space_write_16,
+	.config_space_write_32 = &config_space_write_32
 };
 
 static ddf_dev_ops_t pci_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops,
+	.interfaces[PIO_WINDOW_DEV_IFACE] = &pciintel_pio_window_ops,
 	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
 };
 
@@ -232,25 +249,30 @@ static driver_t pci_driver = {
 
 static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
+	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
+	uint32_t val;
 	
 	fibril_mutex_lock(&bus->conf_mutex);
-	
-	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
-	void *addr = bus->conf_data_port + (reg & 3);
-	
-	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
-	
+
+	pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
+
+	/*
+	 * Always read full 32-bits from the PCI conf_data_port register and
+	 * get the desired portion of it afterwards. Some architectures do not
+	 * support shorter PIO reads offset from this register.
+ 	 */
+	val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
+
 	switch (len) {
 	case 1:
-		/* No endianness change for 1 byte */
-		buf[0] = pio_read_8(addr);
+		*buf = (uint8_t) (val >> ((reg & 3) * 8));
 		break;
 	case 2:
-		((uint16_t *) buf)[0] = uint16_t_le2host(pio_read_16(addr));
+		*((uint16_t *) buf) = (uint16_t) (val >> ((reg & 3)) * 8);
 		break;
 	case 4:
-		((uint32_t *) buf)[0] = uint32_t_le2host(pio_read_32(addr));
+		*((uint32_t *) buf) = (uint32_t) val;
 		break;
 	}
 	
@@ -259,27 +281,43 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 
 static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
+	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
+	uint32_t val;
 	
 	fibril_mutex_lock(&bus->conf_mutex);
-	
-	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
-	void *addr = bus->conf_data_port + (reg & 3);
-	
-	pio_write_32(bus->conf_addr_port, host2uint32_t_le(conf_addr));
+
+	/*
+	 * Prepare to write full 32-bits to the PCI conf_data_port register.
+	 * Some architectures do not support shorter PIO writes offset from this
+	 * register.
+ 	 */
+
+	if (len < 4) {
+		/*
+ 		 * We have fewer than full 32-bits, so we need to read the
+ 		 * missing bits first.
+ 		 */
+		pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
+		val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
+	}
 	
 	switch (len) {
 	case 1:
-		/* No endianness change for 1 byte */
-		pio_write_8(addr, buf[0]);
+		val &= ~(0xffU << ((reg & 3) * 8));
+		val |= *buf << ((reg & 3) * 8);
 		break;
 	case 2:
-		pio_write_16(addr, host2uint16_t_le(((uint16_t *) buf)[0]));
+		val &= ~(0xffffU << ((reg & 3) * 8));
+		val |= *((uint16_t *) buf) << ((reg & 3) * 8);
 		break;
 	case 4:
-		pio_write_32(addr, host2uint32_t_le(((uint32_t *) buf)[0]));
+		val = *((uint32_t *) buf);
 		break;
 	}
+
+	pio_write_32(bus->conf_addr_reg, host2uint32_t_le(conf_addr));
+	pio_write_32(bus->conf_data_reg, host2uint32_t_le(val));
 	
 	fibril_mutex_unlock(&bus->conf_mutex);
 }
@@ -410,11 +448,13 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
 		hw_resources[count].type = IO_RANGE;
 		hw_resources[count].res.io_range.address = range_addr;
 		hw_resources[count].res.io_range.size = range_size;
+		hw_resources[count].res.io_range.relative = true;
 		hw_resources[count].res.io_range.endianness = LITTLE_ENDIAN;
 	} else {
 		hw_resources[count].type = MEM_RANGE;
 		hw_resources[count].res.mem_range.address = range_addr;
 		hw_resources[count].res.mem_range.size = range_size;
+		hw_resources[count].res.mem_range.relative = false;
 		hw_resources[count].res.mem_range.endianness = LITTLE_ENDIAN;
 	}
 	
@@ -432,7 +472,10 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
 int pci_read_bar(pci_fun_t *fun, int addr)
 {
 	/* Value of the BAR */
-	uint32_t val, mask;
+	uint32_t val;
+	uint32_t bar;
+	uint32_t mask;
+
 	/* IO space address */
 	bool io;
 	/* 64-bit wide address */
@@ -470,8 +513,16 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the address mask. */
 	pci_conf_write_32(fun, addr, 0xffffffff);
-	mask &= pci_conf_read_32(fun, addr);
-	
+	bar = pci_conf_read_32(fun, addr);
+
+	/*
+ 	 * Unimplemented BARs read back as all 0's.
+ 	 */
+	if (!bar)
+		return addr + (addrw64 ? 8 : 4);
+
+	mask &= bar;	
+
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
 	val = pci_conf_read_32(fun, addr);
@@ -519,7 +570,9 @@ void pci_add_interrupt(pci_fun_t *fun, int irq)
 void pci_read_interrupt(pci_fun_t *fun)
 {
 	uint8_t irq = pci_conf_read_8(fun, PCI_BRIDGE_INT_LINE);
-	if (irq != 0xff)
+	uint8_t pin = pci_conf_read_8(fun, PCI_BRIDGE_INT_PIN);
+
+	if (pin != 0 && irq != 0xff)
 		pci_add_interrupt(fun, irq);
 }
 
@@ -582,6 +635,9 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			pci_alloc_resource_list(fun);
 			pci_read_bars(fun);
 			pci_read_interrupt(fun);
+
+			/* Propagate the PIO window to the function. */
+			fun->pio_window = bus->pio_win;
 			
 			ddf_fun_set_ops(fun->fnode, &pci_fun_ops);
 			
@@ -612,6 +668,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 
 static int pci_dev_add(ddf_dev_t *dnode)
 {
+	hw_resource_list_t hw_resources;
 	pci_bus_t *bus = NULL;
 	ddf_fun_t *ctl = NULL;
 	bool got_res = false;
@@ -637,8 +694,13 @@ static int pci_dev_add(ddf_dev_t *dnode)
 		rc = ENOENT;
 		goto fail;
 	}
-	
-	hw_resource_list_t hw_resources;
+
+	rc = pio_window_get(sess, &bus->pio_win);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "pci_dev_add failed to get PIO window "
+		    "for the device.");
+		goto fail;
+	}
 	
 	rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK) {
@@ -661,19 +723,14 @@ static int pci_dev_add(ddf_dev_t *dnode)
 	ddf_msg(LVL_DEBUG, "data_addr = %" PRIx64 ".",
 	    hw_resources.resources[1].res.io_range.address);
 	
-	bus->conf_io_addr =
-	    (uint32_t) hw_resources.resources[0].res.io_range.address;
-	bus->conf_io_data =
-	    (uint32_t) hw_resources.resources[1].res.io_range.address;
-	
-	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 4,
-	    &bus->conf_addr_port)) {
+	if (pio_enable_resource(&bus->pio_win, &hw_resources.resources[0],
+	    (void **) &bus->conf_addr_reg)) {
 		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
-	if (pio_enable((void *)(uintptr_t)bus->conf_io_data, 4,
-	    &bus->conf_data_port)) {
+	if (pio_enable_resource(&bus->pio_win, &hw_resources.resources[1],
+	    (void **) &bus->conf_data_reg)) {
 		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
 		rc = EADDRNOTAVAIL;
 		goto fail;
@@ -728,8 +785,6 @@ static int pci_fun_offline(ddf_fun_t *fun)
 static void pciintel_init(void)
 {
 	ddf_log_init(NAME);
-	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
-	pci_fun_ops.interfaces[PCI_DEV_IFACE] = &pci_dev_ops;
 }
 
 pci_fun_t *pci_fun_new(pci_bus_t *bus)

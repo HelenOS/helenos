@@ -45,6 +45,7 @@
 #include <interrupt.h>
 #include <arch.h>
 #include <print.h>
+#include <log.h>
 #include <typedefs.h>
 #include <config.h>
 #include <arch/trap/trap.h>
@@ -250,16 +251,21 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 	pte_t *t;
 	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
 	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
+	as_t *as = AS;
 
 	if (ctx == ASID_KERNEL) {
 		if (va == 0) {
 			/* NULL access in kernel */
 			panic("NULL pointer dereference.");
+		} else if (va >= end_of_identity) {
+			/* Kernel non-identity */
+			as = AS_KERNEL;
+		} else {
+			panic("Unexpected kernel page fault.");
 		}
-		panic("Unexpected kernel page fault.");
 	}
 
-	t = page_mapping_find(AS, va, true);
+	t = page_mapping_find(as, va, true);
 	if (t) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -294,8 +300,12 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 	pte_t *t;
 	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
 	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
+	as_t *as = AS;
 
-	t = page_mapping_find(AS, va, true);
+	if (ctx == ASID_KERNEL)
+		as = AS_KERNEL;
+
+	t = page_mapping_find(as, va, true);
 	if (t && PTE_WRITABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table and is
@@ -325,7 +335,7 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
  */
 void tlb_print(void)
 {
-	printf("Operation not possible on Niagara.\n");
+	log(LF_ARCH, LVL_WARN, "Operation not possible on Niagara.");
 }
 
 /**

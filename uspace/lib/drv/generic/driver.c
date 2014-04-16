@@ -62,7 +62,7 @@
 #include "private/driver.h"
 
 /** Driver structure */
-static driver_t *driver;
+static const driver_t *driver;
 
 /** Devices */
 LIST_INITIALIZE(devices);
@@ -97,12 +97,9 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 
 static ddf_dev_t *driver_get_device(devman_handle_t handle)
 {
-	ddf_dev_t *dev = NULL;
-	
 	assert(fibril_mutex_is_locked(&devices_mutex));
 	
-	list_foreach(devices, link) {
-		dev = list_get_instance(link, ddf_dev_t, link);
+	list_foreach(devices, link, ddf_dev_t, dev) {
 		if (dev->handle == handle)
 			return dev;
 	}
@@ -112,12 +109,9 @@ static ddf_dev_t *driver_get_device(devman_handle_t handle)
 
 static ddf_fun_t *driver_get_function(devman_handle_t handle)
 {
-	ddf_fun_t *fun = NULL;
-	
 	assert(fibril_mutex_is_locked(&functions_mutex));
 	
-	list_foreach(functions, link) {
-		fun = list_get_instance(link, ddf_fun_t, link);
+	list_foreach(functions, link, ddf_fun_t, fun) {
 		if (fun->handle == handle)
 			return fun;
 	}
@@ -418,7 +412,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		 * Get the corresponding interface for remote request
 		 * handling ("remote interface").
 		 */
-		remote_iface_t *rem_iface = get_remote_iface(iface_idx);
+		const remote_iface_t *rem_iface = get_remote_iface(iface_idx);
 		assert(rem_iface != NULL);
 		
 		/* get the method of the remote interface */
@@ -961,7 +955,7 @@ int ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 	return devman_add_device_to_category(fun->handle, cat_name);
 }
 
-int ddf_driver_main(driver_t *drv)
+int ddf_driver_main(const driver_t *drv)
 {
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic

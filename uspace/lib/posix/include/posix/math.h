@@ -30,6 +30,12 @@
  * @{
  */
 /** @file Mathematical operations.
+ *
+ * The purpose of this file is only to provide prototypes of mathematical
+ * functions defined by C standard and by POSIX.
+ *
+ * It is up to the application to correctly link with either libmath
+ * (provided by HelenOS) or by some other math library (such as fdlibm).
  */
 
 #ifndef POSIX_MATH_H_
@@ -39,38 +45,35 @@
 	#define HUGE_VAL (__builtin_huge_val())
 #endif
 
-/* Normalization Functions */
-extern double posix_ldexp(double x, int exp);
-extern double posix_frexp(double num, int *exp);
+extern double ldexp(double, int);
+extern double frexp(double, int *);
 
-double posix_fabs(double x);
-double posix_floor(double x);
-double posix_modf(double x, double *iptr);
-double posix_fmod(double x, double y);
-double posix_pow(double x, double y);
-double posix_exp(double x);
-double posix_sqrt(double x);
-double posix_log(double x);
-double posix_sin(double x);
-double posix_cos(double x);
-double posix_atan2(double y, double x);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define ldexp posix_ldexp
-	#define frexp posix_frexp
-
-	#define fabs posix_fabs
-	#define floor posix_floor
-	#define modf posix_modf
-	#define fmod posix_fmod
-	#define pow posix_pow
-	#define exp posix_exp
-	#define sqrt posix_sqrt
-	#define log posix_log
-	#define sin posix_sin
-	#define cos posix_cos
-	#define atan2 posix_atan2
-#endif
+extern double fabs(double);
+extern double floor(double);
+extern double ceil(double);
+extern double modf(double, double *);
+extern double fmod(double, double);
+extern double pow(double, double);
+extern double exp(double);
+extern double frexp(double, int *);
+extern double expm1(double);
+extern double sqrt(double);
+extern double log(double);
+extern double log10(double);
+extern double sin(double);
+extern double sinh(double);
+extern double asin(double);
+extern double asinh(double);
+extern double cos(double);
+extern double cosh(double);
+extern double acos(double);
+extern double acosh(double);
+extern double tan(double);
+extern double tanh(double);
+extern double atan(double);
+extern double atanh(double);
+extern double atan2(double, double);
+extern double copysign(double, double);
 
 #endif /* POSIX_MATH_H_ */
 

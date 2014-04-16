@@ -67,7 +67,7 @@ typedef struct i8042 {
 	fibril_mutex_t write_guard;     /**< Prevents simultanous port writes.*/
 } i8042_t;
 
-int i8042_init(i8042_t *, void *, size_t, int, int, ddf_dev_t *);
+int i8042_init(i8042_t *, addr_range_t *, int, int, ddf_dev_t *);
 
 #endif
 

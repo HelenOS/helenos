@@ -65,14 +65,15 @@ struct window {
  * Allocate all resources for new window and register it in the compositor.
  * If the window is declared as main, its closure causes termination of the
  * whole application. Note that opened window does not have any surface yet. */
-extern window_t *window_open(char *, bool, bool, const char *, sysarg_t, sysarg_t);
+extern window_t *window_open(const char *, bool, bool, const char *);
 
 /**
  * Post resize event into event loop. Window negotiates new surface with
  * compositor and asks all widgets in the tree to calculate their new properties
  * and to paint themselves on the new surface (top-bottom order). Should be
  * called also after opening new window to obtain surface. */
-extern void window_resize(window_t *, sysarg_t, sysarg_t);
+extern void window_resize(window_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    window_placement_flags_t);
 
 /**
  * Post refresh event into event loop. Widget tree is traversed and all widgets

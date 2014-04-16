@@ -116,13 +116,15 @@ link_t *hash_table_find(hash_table_t *h, sysarg_t key[])
 	chain = h->op->hash(key);
 	ASSERT(chain < h->entries);
 	
-	list_foreach(h->entry[chain], cur) {
+	link_t *cur = list_first(&h->entry[chain]);
+	while (cur != NULL) {
 		if (h->op->compare(key, h->max_keys, cur)) {
 			/*
 			 * The entry is there.
 			 */
 			return cur;
 		}
+		cur = list_next(cur, &h->entry[chain]);
 	}
 	
 	return NULL;

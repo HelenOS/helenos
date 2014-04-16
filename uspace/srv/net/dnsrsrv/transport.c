@@ -51,10 +51,12 @@
 #define DNS_SERVER_PORT 53
 
 /** Request timeout (microseconds) */
-#define REQ_TIMEOUT (5*1000*1000)
+#define REQ_TIMEOUT (5 * 1000 * 1000)
 
 /** Maximum number of retries */
 #define REQ_RETRY_MAX 3
+
+inet_addr_t dns_server_addr;
 
 typedef struct {
 	link_t lreq;
@@ -71,7 +73,6 @@ typedef struct {
 static uint8_t recv_buf[RECV_BUF_SIZE];
 static fid_t recv_fid;
 static int transport_fd = -1;
-inet_addr_t dns_server_addr;
 
 /** Outstanding requests */
 static LIST_INITIALIZE(treq_list);
@@ -156,9 +157,7 @@ static trans_req_t *treq_match_resp(dns_message_t *resp)
 {
 	assert(fibril_mutex_is_locked(&treq_lock));
 
-	list_foreach(treq_list, link) {
-		trans_req_t *treq = list_get_instance(link, trans_req_t, lreq);
-
+	list_foreach(treq_list, lreq, trans_req_t, treq) {
 		if (treq->req->id == resp->id) {
 			/* Match */
 			return treq;
@@ -181,39 +180,37 @@ static void treq_complete(trans_req_t *treq, dns_message_t *resp)
 
 int dns_request(dns_message_t *req, dns_message_t **rresp)
 {
-	int rc;
+	trans_req_t *treq = NULL;
+	struct sockaddr *saddr = NULL;
+	socklen_t saddrlen;
+	
 	void *req_data;
 	size_t req_size;
-	struct sockaddr_in addr;
-	trans_req_t *treq;
-	int ntry;
-
-	req_data = NULL;
-	treq = NULL;
-
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(DNS_SERVER_PORT);
-	addr.sin_addr.s_addr = host2uint32_t_be(dns_server_addr.ipv4);
-
-	rc = dns_message_encode(req, &req_data, &req_size);
+	int rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
 		goto error;
-
-	ntry = 0;
-
+	
+	rc = inet_addr_sockaddr(&dns_server_addr, DNS_SERVER_PORT,
+	    &saddr, &saddrlen);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		goto error;
+	}
+	
+	size_t ntry = 0;
+	
 	while (ntry < REQ_RETRY_MAX) {
 		rc = sendto(transport_fd, req_data, req_size, 0,
-		    (struct sockaddr *)&addr, sizeof(addr));
+		    saddr, saddrlen);
 		if (rc != EOK)
 			goto error;
-
+		
 		treq = treq_create(req);
 		if (treq == NULL) {
 			rc = ENOMEM;
 			goto error;
 		}
-
-
+		
 		fibril_mutex_lock(&treq->done_lock);
 		while (treq->done != true) {
 			rc = fibril_condvar_wait_timeout(&treq->done_cv, &treq->done_lock,
@@ -223,31 +220,35 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 				break;
 			}
 		}
-
+		
 		fibril_mutex_unlock(&treq->done_lock);
-
+		
 		if (rc != ETIMEOUT)
 			break;
 	}
-
+	
 	if (ntry >= REQ_RETRY_MAX) {
 		rc = EIO;
 		goto error;
 	}
-
+	
 	if (treq->status != EOK) {
 		rc = treq->status;
 		goto error;
 	}
-
+	
 	*rresp = treq->resp;
 	treq_destroy(treq);
 	free(req_data);
+	free(saddr);
 	return EOK;
+	
 error:
 	if (treq != NULL)
 		treq_destroy(treq);
+	
 	free(req_data);
+	free(saddr);
 	return rc;
 }
 

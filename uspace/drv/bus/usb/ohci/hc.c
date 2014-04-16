@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <str_error.h>
 #include <adt/list.h>
 #include <libarch/ddi.h>
@@ -82,6 +83,16 @@ static const irq_cmd_t ohci_irq_commands[] = {
 	}
 };
 
+enum {
+	/** Number of PIO ranges used in IRQ code */
+	hc_irq_pio_range_count = 
+	    sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t),
+
+	/** Number of commands used in IRQ code */
+	hc_irq_cmd_count =
+	    sizeof(ohci_irq_commands) / sizeof(irq_cmd_t)
+};
+
 static void hc_gain_control(hc_t *instance);
 static void hc_start(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
@@ -89,49 +100,75 @@ static int hc_init_memory(hc_t *instance);
 static int interrupt_emulator(hc_t *instance);
 static int hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
 
-/** Get number of PIO ranges used in IRQ code.
- * @return Number of ranges.
- */
-size_t hc_irq_pio_range_count(void)
-{
-	return sizeof(ohci_pio_ranges) / sizeof(irq_pio_range_t);
-}
-
-/** Get number of commands used in IRQ code.
- * @return Number of commands.
- */
-size_t hc_irq_cmd_count(void)
-{
-	return sizeof(ohci_irq_commands) / sizeof(irq_cmd_t);
-}
-
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
  * @param[in] ranges_size Size of the ranges buffer (bytes).
  * @param[out] cmds Commands buffer.
  * @param[in] cmds_size Size of the commands buffer (bytes).
- * @param[in] regs Physical address of device's registers.
- * @param[in] reg_size Size of the register area (bytes).
+ * @param[in] regs Device's register range.
  *
  * @return Error code.
  */
 int
 hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
-    size_t cmds_size, uintptr_t regs, size_t reg_size)
+    size_t cmds_size, addr_range_t *regs)
 {
 	if ((ranges_size < sizeof(ohci_pio_ranges)) ||
 	    (cmds_size < sizeof(ohci_irq_commands)) ||
-	    (reg_size < sizeof(ohci_regs_t)))
+	    (RNGSZ(*regs) < sizeof(ohci_regs_t)))
 		return EOVERFLOW;
 
 	memcpy(ranges, ohci_pio_ranges, sizeof(ohci_pio_ranges));
-	ranges[0].base = regs;
+	ranges[0].base = RNGABS(*regs);
 
 	memcpy(cmds, ohci_irq_commands, sizeof(ohci_irq_commands));
-	ohci_regs_t *registers = (ohci_regs_t *) regs;
+	ohci_regs_t *registers = (ohci_regs_t *) RNGABSPTR(*regs);
 	cmds[0].addr = (void *) &registers->interrupt_status;
 	cmds[3].addr = (void *) &registers->interrupt_status;
 	OHCI_WR(cmds[1].value, OHCI_USED_INTERRUPTS);
+
+	return EOK;
+}
+
+/** Register interrupt handler.
+ *
+ * @param[in] device Host controller DDF device
+ * @param[in] regs Register range
+ * @param[in] irq Interrupt number
+ * @paran[in] handler Interrupt handler
+ *
+ * @return EOK on success or negative error code
+ */
+int hc_register_irq_handler(ddf_dev_t *device, addr_range_t *regs, int irq,
+    interrupt_handler_t handler)
+{
+	int rc;
+
+	irq_pio_range_t irq_ranges[hc_irq_pio_range_count];
+	irq_cmd_t irq_cmds[hc_irq_cmd_count];
+
+	irq_code_t irq_code = {
+		.rangecount = hc_irq_pio_range_count,
+		.ranges = irq_ranges,
+		.cmdcount = hc_irq_cmd_count,
+		.cmds = irq_cmds
+	};
+
+	rc = hc_get_irq_code(irq_ranges, sizeof(irq_ranges), irq_cmds,
+	    sizeof(irq_cmds), regs);
+	if (rc != EOK) {
+		usb_log_error("Failed to generate IRQ code: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	/* Register handler to avoid interrupt lockup */
+	rc = register_interrupt_handler(device, irq, handler, &irq_code);
+	if (rc != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	return EOK;
 }
@@ -144,79 +181,95 @@ hc_get_irq_code(irq_pio_range_t ranges[], size_t ranges_size, irq_cmd_t cmds[],
  */
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 {
+	bool addr_reqd = false;
+	bool ep_added = false;
+	bool fun_bound = false;
+	int rc;
+
 	assert(instance);
 	assert(hub_fun);
 
 	/* Try to get address 1 for root hub. */
 	instance->rh.address = 1;
-	int ret = usb_device_manager_request_address(
+	rc = usb_device_manager_request_address(
 	    &instance->generic.dev_manager, &instance->rh.address, false,
 	    USB_SPEED_FULL);
-	if (ret != EOK) {
+	if (rc != EOK) {
 		usb_log_error("Failed to get OHCI root hub address: %s\n",
-		    str_error(ret));
-		return ret;
+		    str_error(rc));
+		goto error;
 	}
 
-#define CHECK_RET_UNREG_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	usb_endpoint_manager_remove_ep( \
-	    &instance->generic.ep_manager, instance->rh.address, 0, \
-	    USB_DIRECTION_BOTH, NULL, NULL); \
-	usb_device_manager_release_address( \
-	    &instance->generic.dev_manager, instance->rh.address); \
-	return ret; \
-} else (void)0
+	addr_reqd = true;
 
-	ret = usb_endpoint_manager_add_ep(
+	rc = usb_endpoint_manager_add_ep(
 	    &instance->generic.ep_manager, instance->rh.address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
 	    0, NULL, NULL);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to register root hub control endpoint: %s.\n",
-	    str_error(ret));
+	if (rc != EOK) {
+    	        usb_log_error("Failed to register root hub control endpoint: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to add root hub match-id: %s.\n", str_error(ret));
+	ep_added = true;
 
-	ret = ddf_fun_bind(hub_fun);
-	CHECK_RET_UNREG_RETURN(ret,
-	    "Failed to bind root hub function: %s.\n", str_error(ret));
+	rc = ddf_fun_add_match_id(hub_fun, "usb&class=hub", 100);
+	if (rc != EOK) {
+		usb_log_error("Failed to add root hub match-id: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
-	ret = usb_device_manager_bind_address(&instance->generic.dev_manager,
+	rc = ddf_fun_bind(hub_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to bind root hub function: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
+
+	fun_bound = true;
+
+	rc = usb_device_manager_bind_address(&instance->generic.dev_manager,
 	    instance->rh.address, ddf_fun_get_handle(hub_fun));
-	if (ret != EOK)
+	if (rc != EOK) {
 		usb_log_warning("Failed to bind root hub address: %s.\n",
-		    str_error(ret));
+		    str_error(rc));
+	}
 
 	return EOK;
-#undef CHECK_RET_RELEASE
+error:
+	if (fun_bound)
+		ddf_fun_unbind(hub_fun);
+	if (ep_added) {
+		usb_endpoint_manager_remove_ep(
+		    &instance->generic.ep_manager, instance->rh.address, 0,
+		    USB_DIRECTION_BOTH, NULL, NULL);
+	}
+	if (addr_reqd) {
+		usb_device_manager_release_address(
+		    &instance->generic.dev_manager, instance->rh.address);
+	}
+	return rc;
 }
 
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
- * @param[in] regs Address of the memory mapped I/O registers.
- * @param[in] reg_size Size of the memory mapped area.
+ * @param[in] regs Device's I/O registers range.
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, uintptr_t regs, size_t reg_size, bool interrupts)
+int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 {
 	assert(instance);
 
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-} else (void)0
-
-	int ret =
-	    pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	CHECK_RET_RETURN(ret,
-	    "Failed to gain access to device registers: %s.\n", str_error(ret));
+	int rc = pio_enable_range(regs, (void **) &instance->registers);
+	if (rc != EOK) {
+		usb_log_error("Failed to gain access to device registers: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	list_initialize(&instance->pending_batches);
 
@@ -227,10 +280,12 @@ if (ret != EOK) { \
 	instance->generic.ep_add_hook = ohci_endpoint_init;
 	instance->generic.ep_remove_hook = ohci_endpoint_fini;
 
-	ret = hc_init_memory(instance);
-	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
-	    str_error(ret));
-#undef CHECK_RET_RETURN
+	rc = hc_init_memory(instance);
+	if (rc != EOK) {
+		usb_log_error("Failed to create OHCI memory structures: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	fibril_mutex_initialize(&instance->guard);
 

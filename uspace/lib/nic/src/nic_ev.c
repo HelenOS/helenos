@@ -36,7 +36,7 @@
  */
 
 #include <async.h>
-#include <device/nic.h>
+#include <nic_iface.h>
 #include <errno.h>
 #include "nic_ev.h"
 

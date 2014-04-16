@@ -66,7 +66,7 @@ typedef struct interrupt_context_list {
 
 extern void interrupt_init(void);
 extern int register_interrupt_handler(ddf_dev_t *, int, interrupt_handler_t *,
-    irq_code_t *);
+    const irq_code_t *);
 extern int unregister_interrupt_handler(ddf_dev_t *, int);
 
 #endif

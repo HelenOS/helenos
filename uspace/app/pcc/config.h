@@ -49,7 +49,7 @@
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the `mkstemp' function. */
-//#define HAVE_MKSTEMP 1
+#define HAVE_MKSTEMP 1
 
 /* Define to 1 if you have the `snprintf' function. */
 #define HAVE_SNPRINTF 1

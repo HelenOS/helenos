@@ -63,38 +63,6 @@
 #define i8042_AUX_DISABLE    0x20
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
-#define CHECK_RET_DESTROY(ret, msg...) \
-	do { \
-		if (ret != EOK) { \
-			ddf_msg(LVL_ERROR, msg); \
-			if (dev->kbd_fun) { \
-				dev->kbd_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->kbd_fun); \
-			} \
-			if (dev->aux_fun) { \
-				dev->aux_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->aux_fun); \
-			} \
-		} \
-	} while (0)
-
-#define CHECK_RET_UNBIND_DESTROY(ret, msg...) \
-	do { \
-		if (ret != EOK) { \
-			ddf_msg(LVL_ERROR, msg); \
-			if (dev->kbd_fun) { \
-				ddf_fun_unbind(dev->kbd_fun); \
-				dev->kbd_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->kbd_fun); \
-			} \
-			if (dev->aux_fun) { \
-				ddf_fun_unbind(dev->aux_fun); \
-				dev->aux_fun->driver_data = NULL; \
-				ddf_fun_destroy(dev->aux_fun); \
-			} \
-		} \
-	} while (0)
-
 void default_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 /** Port function operations. */
@@ -176,8 +144,7 @@ static void i8042_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
 /** Initialize i8042 driver structure.
  *
  * @param dev       Driver structure to initialize.
- * @param regs      I/O address of registers.
- * @param reg_size  size of the reserved I/O address space.
+ * @param regs      I/O range  of registers.
  * @param irq_kbd   IRQ for primary port.
  * @param irq_mouse IRQ for aux port.
  * @param ddf_dev   DDF device structure of the device.
@@ -185,7 +152,7 @@ static void i8042_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
  * @return Error code.
  *
  */
-int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
+int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
     int irq_mouse, ddf_dev_t *ddf_dev)
 {
 	const size_t range_count = sizeof(i8042_ranges) /
@@ -193,6 +160,7 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	irq_pio_range_t ranges[range_count];
 	const size_t cmd_count = sizeof(i8042_cmds) / sizeof(irq_cmd_t);
 	irq_cmd_t cmds[cmd_count];
+	i8042_regs_t *ar;
 
 	int rc;
 	bool kbd_bound = false;
@@ -201,12 +169,12 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 	dev->kbd_fun = NULL;
 	dev->aux_fun = NULL;
 	
-	if (reg_size < sizeof(i8042_regs_t)) {
+	if (regs->size < sizeof(i8042_regs_t)) {
 		rc = EINVAL;
 		goto error;
 	}
 	
-	if (pio_enable(regs, sizeof(i8042_regs_t), (void **) &dev->regs) != 0) {
+	if (pio_enable_range(regs, (void **) &dev->regs) != 0) {
 		rc = EIO;
 		goto error;
 	}
@@ -265,11 +233,13 @@ int i8042_init(i8042_t *dev, void *regs, size_t reg_size, int irq_kbd,
 		(void) pio_read_8(&dev->regs->data);
 
 	memcpy(ranges, i8042_ranges, sizeof(i8042_ranges));
-	ranges[0].base = (uintptr_t) regs;
+	ranges[0].base = RNGABS(*regs);
 
+
+	ar = RNGABSPTR(*regs);
 	memcpy(cmds, i8042_cmds, sizeof(i8042_cmds));
-	cmds[0].addr = (void *) &(((i8042_regs_t *) regs)->status);
-	cmds[3].addr = (void *) &(((i8042_regs_t *) regs)->data);
+	cmds[0].addr = (void *) &ar->status;
+	cmds[3].addr = (void *) &ar->data;
 
 	irq_code_t irq_code = {
 		.rangecount = range_count,

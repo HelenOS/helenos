@@ -47,7 +47,7 @@
 #define PTE_PRESENT_ARCH(pte) \
 	(((pte_t *) (pte))->l0.descriptor_type != 0)
 #define PTE_GET_FRAME_ARCH(pte) \
-	(((pte_t *) (pte))->l1.frame_base_addr << FRAME_WIDTH)
+	(((uintptr_t) ((pte_t *) (pte))->l1.frame_base_addr) << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(pte) \
 	(((pte_t *) (pte))->l1.access_permission_0 == PTE_AP_USER_RW_KERNEL_RW)
 #define PTE_EXECUTABLE_ARCH(pte) \
@@ -119,20 +119,12 @@ typedef union {
 /** pte_level1_t small page table flag (used in descriptor type). */
 #define PTE_DESCRIPTOR_SMALL_PAGE	2
 
-
-/** Sets the address of level 0 page table.
- *
- * @param pt Pointer to the page table to set.
- *
- */
-NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
-{
-	asm volatile (
-		"mcr p15, 0, %[pt], c2, c0, 0\n"
-		:: [pt] "r" (pt)
-	);
-}
-
+#define pt_coherence_m(pt, count) \
+do { \
+	for (unsigned i = 0; i < count; ++i) \
+		DCCMVAU_write((uintptr_t)(pt + i)); \
+	read_barrier(); \
+} while (0)
 
 /** Returns level 0 page table entry flags.
  *
@@ -222,20 +214,20 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	p->cacheable = p->bufferable = (flags & PAGE_CACHEABLE) != 0;
 	
 	/* default access permission */
-	p->access_permission_0 = p->access_permission_1 = 
+	p->access_permission_0 = p->access_permission_1 =
 	    p->access_permission_2 = p->access_permission_3 =
 	    PTE_AP_USER_NO_KERNEL_RW;
 	
 	if (flags & PAGE_USER)  {
 		if (flags & PAGE_READ) {
-			p->access_permission_0 = p->access_permission_1 = 
-			    p->access_permission_2 = p->access_permission_3 = 
+			p->access_permission_0 = p->access_permission_1 =
+			    p->access_permission_2 = p->access_permission_3 =
 			    PTE_AP_USER_RO_KERNEL_RW;
 		}
 		if (flags & PAGE_WRITE) {
-			p->access_permission_0 = p->access_permission_1 = 
-			    p->access_permission_2 = p->access_permission_3 = 
-			    PTE_AP_USER_RW_KERNEL_RW; 
+			p->access_permission_0 = p->access_permission_1 =
+			    p->access_permission_2 = p->access_permission_3 =
+			    PTE_AP_USER_RW_KERNEL_RW;
 		}
 	}
 }

@@ -39,12 +39,11 @@
 #include <inet/addr.h>
 #include "dns_type.h"
 
+extern inet_addr_t dns_server_addr;
+
 extern int transport_init(void);
 extern void transport_fini(void);
 extern int dns_request(dns_message_t *, dns_message_t **);
-
-extern inet_addr_t dns_server_addr;
-
 
 #endif
 

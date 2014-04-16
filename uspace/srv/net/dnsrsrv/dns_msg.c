@@ -295,15 +295,22 @@ static void dns_uint16_t_encode(uint16_t w, uint8_t *buf, size_t buf_size)
 /** Decode unaligned big-endian 32-bit integer */
 uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 {
-	uint32_t w;
 	assert(buf_size >= 4);
-
-	w = ((uint32_t)buf[0] << 24) +
-	    ((uint32_t)buf[1] << 16) +
-	    ((uint32_t)buf[2] << 8) +
+	
+	uint32_t w = ((uint32_t) buf[0] << 24) +
+	    ((uint32_t) buf[1] << 16) +
+	    ((uint32_t) buf[2] << 8) +
 	    buf[3];
-
+	
 	return w;
+}
+
+/** Decode unaligned big-endian 128-bit integer */
+void dns_addr128_t_decode(uint8_t *buf, size_t buf_size, addr128_t addr)
+{
+	assert(buf_size >= 16);
+	
+	addr128_t_be2host(buf, addr);
 }
 
 /** Encode DNS question.
@@ -399,7 +406,7 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	size_t rdlength;
 	int rc;
 
-	rr = calloc(1, sizeof (dns_rr_t));
+	rr = calloc(1, sizeof(dns_rr_t));
 	if (rr == NULL)
 		return ENOMEM;
 
@@ -426,16 +433,20 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	}
 
 	rr->rtype = dns_uint16_t_decode(bp, bsz);
-	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
+	bp += sizeof(uint16_t);
+	bsz -= sizeof(uint16_t);
 
 	rr->rclass = dns_uint16_t_decode(bp, bsz);
-	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
+	bp += sizeof(uint16_t);
+	bsz -= sizeof(uint16_t);
 
 	rr->ttl = dns_uint32_t_decode(bp, bsz);
-	bp += sizeof(uint32_t); bsz -= sizeof(uint32_t);
+	bp += sizeof(uint32_t);
+	bsz -= sizeof(uint32_t);
 
 	rdlength = dns_uint16_t_decode(bp, bsz);
-	bp += sizeof(uint16_t); bsz -= sizeof(uint16_t);
+	bp += sizeof(uint16_t);
+	bsz -= sizeof(uint16_t);
 
 	if (rdlength > bsz) {
 		free(rr->name);
@@ -498,8 +509,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 
 	size = sizeof(dns_header_t);
 
-	list_foreach(msg->question, link) {
-		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
+	list_foreach(msg->question, msg, dns_question_t, q) {
 		rc = dns_question_encode(q, NULL, 0, &q_size);
 		if (rc != EOK)
 			return rc;
@@ -514,8 +524,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	memcpy(data, &hdr, sizeof(dns_header_t));
 	di = sizeof(dns_header_t);
 
-	list_foreach(msg->question, link) {
-		dns_question_t *q = list_get_instance(link, dns_question_t, msg);
+	list_foreach(msg->question, msg, dns_question_t, q) {
 		rc = dns_question_encode(q, data + di, size - di, &q_size);
 		if (rc != EOK) {
 			assert(rc == ENOMEM || rc == EINVAL);

@@ -113,13 +113,13 @@ int usb_get_info_by_handle(devman_handle_t device_handle,
 }
 
 static bool try_parse_bus_and_address(const char *path,
-    char **func_start,
+    const char **func_start,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
 {
 	uint64_t sid;
 	size_t address;
 	int rc;
-	char *ptr;
+	const char *ptr;
 
 	rc = str_uint64_t(path, &ptr, 10, false, &sid);
 	if (rc != EOK) {
@@ -187,7 +187,7 @@ int usb_resolve_device_handle(const char *dev_path, devman_handle_t *out_hc_hand
 	usb_address_t dev_addr = -1;
 	int rc;
 	bool is_bus_addr;
-	char *func_start = NULL;
+	const char *func_start = NULL;
 	char *path = NULL;
 
 	/* First try the BUS.ADDR format. */

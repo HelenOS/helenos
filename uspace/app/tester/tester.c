@@ -47,6 +47,7 @@ char **test_argv;
 
 test_t tests[] = {
 #include "thread/thread1.def"
+#include "thread/setjmp1.def"
 #include "print/print1.def"
 #include "print/print2.def"
 #include "print/print3.def"
@@ -62,6 +63,7 @@ test_t tests[] = {
 #include "fault/fault2.def"
 #include "fault/fault3.def"
 #include "float/float1.def"
+#include "float/float2.def"
 #include "float/softfloat1.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"

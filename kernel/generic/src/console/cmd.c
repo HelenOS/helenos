@@ -44,6 +44,7 @@
 #include <console/console.h>
 #include <console/kconsole.h>
 #include <print.h>
+#include <log.h>
 #include <panic.h>
 #include <typedefs.h>
 #include <adt/list.h>
@@ -638,7 +639,8 @@ void cmd_init(void)
 
 	for (i = 0; basic_commands[i]; i++) {
 		if (!cmd_register(basic_commands[i])) {
-			printf("Cannot register command %s\n",
+			log(LF_OTHER, LVL_ERROR,
+			    "Cannot register command %s",
 			    basic_commands[i]->name);
 		}
 	}
@@ -655,10 +657,7 @@ int cmd_help(cmd_arg_t *argv)
 	spinlock_lock(&cmd_lock);
 	
 	size_t len = 0;
-	list_foreach(cmd_list, cur) {
-		cmd_info_t *hlp;
-		hlp = list_get_instance(cur, cmd_info_t, link);
-		
+	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
 		if (str_length(hlp->name) > len)
 			len = str_length(hlp->name);
@@ -667,14 +666,11 @@ int cmd_help(cmd_arg_t *argv)
 	
 	unsigned int _len = (unsigned int) len;
 	if ((_len != len) || (((int) _len) < 0)) {
-		printf("Command length overflow\n");
+		log(LF_OTHER, LVL_ERROR, "Command length overflow");
 		return 1;
 	}
 	
-	list_foreach(cmd_list, cur) {
-		cmd_info_t *hlp;
-		hlp = list_get_instance(cur, cmd_info_t, link);
-		
+	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
 		printf("%-*s %s\n", _len, hlp->name, hlp->description);
 		spinlock_unlock(&hlp->lock);
@@ -911,10 +907,7 @@ int cmd_desc(cmd_arg_t *argv)
 {
 	spinlock_lock(&cmd_lock);
 	
-	list_foreach(cmd_list, cur) {
-		cmd_info_t *hlp;
-		
-		hlp = list_get_instance(cur, cmd_info_t, link);
+	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
 		
 		if (str_lcmp(hlp->name, (const char *) argv->buffer, str_length(hlp->name)) == 0) {

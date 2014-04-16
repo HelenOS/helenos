@@ -38,7 +38,7 @@
 #include <symtab.h>
 #include <print.h>
 
-#define STACK_FRAMES_MAX	20
+#define STACK_FRAMES_MAX  20
 
 void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 {
@@ -48,8 +48,8 @@ void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 	uintptr_t fp;
 	uintptr_t pc;
 	
-	while (cnt++ < STACK_FRAMES_MAX &&
-	    ops->stack_trace_context_validate(ctx)) {
+	while ((cnt++ < STACK_FRAMES_MAX) &&
+	    (ops->stack_trace_context_validate(ctx))) {
 		if (ops->symbol_resolve &&
 		    ops->symbol_resolve(ctx->pc, &symbol, &offset)) {
 			if (offset)

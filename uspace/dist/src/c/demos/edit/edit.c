@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +49,7 @@
 #include <stdbool.h>
 
 #include "sheet.h"
+#include "search.h"
 
 enum redraw_flags {
 	REDRAW_TEXT	= (1 << 0),
@@ -77,11 +79,17 @@ typedef struct {
 	/** Start of selection */
 	tag_t sel_start;
 
+	/** Active keyboard modifiers */
+	keymod_t keymod;
+
 	/** 
 	 * Ideal column where the caret should try to get. This is used
 	 * for maintaining the same column during vertical movement.
 	 */
 	int ideal_column;
+	
+	char *previous_search;
+	bool previous_search_reverse;
 } pane_t;
 
 /** Document
@@ -90,7 +98,7 @@ typedef struct {
  */
 typedef struct {
 	char *file_name;
-	sheet_t sh;
+	sheet_t *sh;
 } doc_t;
 
 static console_ctrl_t *con;
@@ -105,7 +113,6 @@ static sysarg_t scr_columns;
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
 #define TAB_WIDTH 8
-#define ED_INFTY 65536
 
 /** Maximum filename length that can be entered. */
 #define INFNAME_MAX_LEN 128
@@ -114,18 +121,23 @@ static void cursor_show(void);
 static void cursor_hide(void);
 static void cursor_setvis(bool visible);
 
+static void key_handle_press(kbd_event_t *ev);
 static void key_handle_unmod(kbd_event_t const *ev);
 static void key_handle_ctrl(kbd_event_t const *ev);
 static void key_handle_shift(kbd_event_t const *ev);
+static void key_handle_shift_ctrl(kbd_event_t const *ev);
 static void key_handle_movement(unsigned int key, bool shift);
+
+static void pos_handle(pos_event_t *ev);
 
 static int file_save(char const *fname);
 static void file_save_as(void);
 static int file_insert(char *fname);
 static int file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
-static char *filename_prompt(char const *prompt, char const *init_value);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
+
+static char *prompt(char const *prompt, char const *init_value);
 
 static void pane_text_display(void);
 static void pane_row_display(void);
@@ -137,17 +149,35 @@ static void insert_char(wchar_t c);
 static void delete_char_before(void);
 static void delete_char_after(void);
 static void caret_update(void);
-static void caret_move(int drow, int dcolumn, enum dir_spec align_dir);
+static void caret_move_relative(int drow, int dcolumn, enum dir_spec align_dir, bool select);
+static void caret_move_absolute(int row, int column, enum dir_spec align_dir, bool select);
+static void caret_move(spt_t spt, bool select, bool update_ideal_column);
+static void caret_move_word_left(bool select);
+static void caret_move_word_right(bool select);
+static void caret_go_to_line_ask(void);
 
 static bool selection_active(void);
 static void selection_sel_all(void);
+static void selection_sel_range(spt_t pa, spt_t pb);
 static void selection_get_points(spt_t *pa, spt_t *pb);
 static void selection_delete(void);
 static void selection_copy(void);
 static void insert_clipboard_data(void);
 
+static void search(char *pattern, bool reverse);
+static void search_prompt(bool reverse);
+static void search_repeat(void);
+
 static void pt_get_sof(spt_t *pt);
 static void pt_get_eof(spt_t *pt);
+static void pt_get_sol(spt_t *cpt, spt_t *spt);
+static void pt_get_eol(spt_t *cpt, spt_t *ept);
+static bool pt_is_word_beginning(spt_t *pt);
+static bool pt_is_delimiter(spt_t *pt);
+static bool pt_is_punctuation(spt_t *pt);
+static spt_t pt_find_word_left(spt_t spt);
+static spt_t pt_find_word_left(spt_t spt);
+
 static int tag_cmp(tag_t const *a, tag_t const *b);
 static int spt_cmp(spt_t const *a, spt_t const *b);
 static int coord_cmp(coord_t const *a, coord_t const *b);
@@ -157,11 +187,9 @@ static void status_display(char const *str);
 
 int main(int argc, char *argv[])
 {
-	kbd_event_t ev;
-	coord_t coord;
+	cons_event_t ev;
 	bool new_file;
-
-	spt_t pt;
+	int rc;
 
 	con = console_init(stdin, stdout);
 	console_clear(con);
@@ -174,13 +202,17 @@ int main(int argc, char *argv[])
 	pane.sh_column = 1;
 
 	/* Start with an empty sheet. */
-	sheet_init(&doc.sh);
+	rc = sheet_create(&doc.sh);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		return -1;
+	}
 
 	/* Place caret at the beginning of file. */
-	coord.row = coord.column = 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &pt);
-	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
-	pane.ideal_column = coord.column;
+	spt_t sof;
+	pt_get_sof(&sof);
+	sheet_place_tag(doc.sh, &sof, &pane.caret_pos);
+	pane.ideal_column = 1;
 
 	if (argc == 2) {
 		doc.file_name = str_dup(argv[1]);
@@ -196,12 +228,12 @@ int main(int argc, char *argv[])
 	if (doc.file_name == NULL || file_insert(doc.file_name) != EOK)
 		new_file = true;
 
-	/* Move to beginning of file. */
-	caret_move(-ED_INFTY, -ED_INFTY, dir_before);
-
 	/* Place selection start tag. */
-	tag_get_pt(&pane.caret_pos, &pt);
-	sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+	sheet_place_tag(doc.sh, &sof, &pane.sel_start);
+
+	/* Move to beginning of file. */
+	pt_get_sof(&sof);
+	caret_move(sof, true, true);
 
 	/* Initial display */
 	cursor_visible = true;
@@ -218,22 +250,18 @@ int main(int argc, char *argv[])
 	done = false;
 
 	while (!done) {
-		console_get_kbd_event(con, &ev);
+		console_get_event(con, &ev);
 		pane.rflags = 0;
 
-		if (ev.type == KEY_PRESS) {
-			/* Handle key press. */
-			if (((ev.mods & KM_ALT) == 0) &&
-			    ((ev.mods & KM_SHIFT) == 0) &&
-			     (ev.mods & KM_CTRL) != 0) {
-				key_handle_ctrl(&ev);
-			} else if (((ev.mods & KM_ALT) == 0) &&
-			    ((ev.mods & KM_CTRL) == 0) &&
-			     (ev.mods & KM_SHIFT) != 0) {
-				key_handle_shift(&ev);
-			} else if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
-				key_handle_unmod(&ev);
-			}
+		switch (ev.type) {
+		case CEV_KEY:
+			pane.keymod = ev.ev.key.mods;
+			if (ev.ev.key.type == KEY_PRESS)
+				key_handle_press(&ev.ev.key);
+			break;
+		case CEV_POS:
+			pos_handle(&ev.ev.pos);
+			break;
 		}
 
 		/* Redraw as necessary. */
@@ -255,6 +283,26 @@ int main(int argc, char *argv[])
 	console_clear(con);
 
 	return 0;
+}
+
+/* Handle key press. */
+static void key_handle_press(kbd_event_t *ev)
+{
+	if (((ev->mods & KM_ALT) == 0) &&
+	    ((ev->mods & KM_SHIFT) == 0) &&
+	     (ev->mods & KM_CTRL) != 0) {
+		key_handle_ctrl(ev);
+	} else if (((ev->mods & KM_ALT) == 0) &&
+	    ((ev->mods & KM_CTRL) == 0) &&
+	     (ev->mods & KM_SHIFT) != 0) {
+		key_handle_shift(ev);
+	} else if (((ev->mods & KM_ALT) == 0) &&
+	    ((ev->mods & KM_CTRL) != 0) &&
+	     (ev->mods & KM_SHIFT) != 0) {
+		key_handle_shift_ctrl(ev);
+	} else if ((ev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+		key_handle_unmod(ev);
+	}
 }
 
 static void cursor_show(void)
@@ -345,6 +393,7 @@ static void key_handle_shift(kbd_event_t const *ev)
 /** Handle Ctrl-key combination. */
 static void key_handle_ctrl(kbd_event_t const *ev)
 {
+	spt_t pt;
 	switch (ev->key) {
 	case KC_Q:
 		done = true;
@@ -376,63 +425,102 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	case KC_A:
 		selection_sel_all();
 		break;
+	case KC_RIGHT:
+		caret_move_word_right(false);
+		break;
+	case KC_LEFT:
+		caret_move_word_left(false);
+		break;
+	case KC_L:
+		caret_go_to_line_ask();
+		break;
+	case KC_F:
+		search_prompt(false);
+		break;
+	case KC_N:
+		search_repeat();
+		break;
+	case KC_HOME:
+		pt_get_sof(&pt);
+		caret_move(pt, false, true);
+		break;
+	case KC_END:
+		pt_get_eof(&pt);
+		caret_move(pt, false, true);
+		break;
 	default:
 		break;
 	}
 }
 
-static void key_handle_movement(unsigned int key, bool select)
+static void key_handle_shift_ctrl(kbd_event_t const *ev)
 {
 	spt_t pt;
-	spt_t caret_pt;
-	coord_t c_old, c_new;
-	bool had_sel;
-
-	/* Check if we had selection before. */
-	tag_get_pt(&pane.caret_pos, &caret_pt);
-	tag_get_pt(&pane.sel_start, &pt);
-	had_sel = !spt_equal(&caret_pt, &pt);
-
-	switch (key) {
+	switch(ev->key) {
 	case KC_LEFT:
-		caret_move(0, -1, dir_before);
+		caret_move_word_left(true);
 		break;
 	case KC_RIGHT:
-		caret_move(0, 0, dir_after);
+		caret_move_word_right(true);
 		break;
-	case KC_UP:
-		caret_move(-1, 0, dir_before);
-		break;
-	case KC_DOWN:
-		caret_move(+1, 0, dir_before);
+	case KC_F:
+		search_prompt(true);
 		break;
 	case KC_HOME:
-		caret_move(0, -ED_INFTY, dir_before);
+		pt_get_sof(&pt);
+		caret_move(pt, true, true);
 		break;
 	case KC_END:
-		caret_move(0, +ED_INFTY, dir_before);
-		break;
-	case KC_PAGE_UP:
-		caret_move(-pane.rows, 0, dir_before);
-		break;
-	case KC_PAGE_DOWN:
-		caret_move(+pane.rows, 0, dir_before);
+		pt_get_eof(&pt);
+		caret_move(pt, true, true);
 		break;
 	default:
 		break;
 	}
+}
+
+static void pos_handle(pos_event_t *ev)
+{
+	coord_t bc;
+	spt_t pt;
+	bool select;
+
+	if (ev->type == POS_PRESS && ev->vpos < (unsigned)pane.rows) {
+		bc.row = pane.sh_row + ev->vpos;
+		bc.column = pane.sh_column + ev->hpos;
+		sheet_get_cell_pt(doc.sh, &bc, dir_before, &pt);
+
+		select = (pane.keymod & KM_SHIFT) != 0;
+
+		caret_move(pt, select, true);
+	}
+}
+
+/** Move caret while preserving or resetting selection. */
+static void caret_move(spt_t new_caret_pt, bool select, bool update_ideal_column)
+{
+	spt_t old_caret_pt, old_sel_pt;
+	coord_t c_old, c_new;
+	bool had_sel;
+
+	/* Check if we had selection before. */
+	tag_get_pt(&pane.caret_pos, &old_caret_pt);
+	tag_get_pt(&pane.sel_start, &old_sel_pt);
+	had_sel = !spt_equal(&old_caret_pt, &old_sel_pt);
+
+	/* Place tag of the caret */
+	sheet_remove_tag(doc.sh, &pane.caret_pos);
+	sheet_place_tag(doc.sh, &new_caret_pt, &pane.caret_pos);
 
 	if (select == false) {
 		/* Move sel_start to the same point as caret. */
-		sheet_remove_tag(&doc.sh, &pane.sel_start);
-		tag_get_pt(&pane.caret_pos, &pt);
-		sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
+		sheet_remove_tag(doc.sh, &pane.sel_start);
+		sheet_place_tag(doc.sh, &new_caret_pt, &pane.sel_start);
 	}
 
+	spt_get_coord(&new_caret_pt, &c_new);
 	if (select) {
-		tag_get_pt(&pane.caret_pos, &pt);
-		spt_get_coord(&caret_pt, &c_old);
-		spt_get_coord(&pt, &c_new);
+		spt_get_coord(&old_caret_pt, &c_old);
 
 		if (c_old.row == c_new.row)
 			pane.rflags |= REDRAW_ROW;
@@ -442,6 +530,48 @@ static void key_handle_movement(unsigned int key, bool select)
 	} else if (had_sel == true) {
 		/* Redraw because text was unselected. */
 		pane.rflags |= REDRAW_TEXT;
+	}
+	
+	if (update_ideal_column)
+		pane.ideal_column = c_new.column;
+	
+	caret_update();
+}
+
+static void key_handle_movement(unsigned int key, bool select)
+{
+	spt_t pt;
+	switch (key) {
+	case KC_LEFT:
+		caret_move_relative(0, -1, dir_before, select);
+		break;
+	case KC_RIGHT:
+		caret_move_relative(0, 0, dir_after, select);
+		break;
+	case KC_UP:
+		caret_move_relative(-1, 0, dir_before, select);
+		break;
+	case KC_DOWN:
+		caret_move_relative(+1, 0, dir_before, select);
+		break;
+	case KC_HOME:
+		tag_get_pt(&pane.caret_pos, &pt);
+		pt_get_sol(&pt, &pt);
+		caret_move(pt, select, true);
+		break;
+	case KC_END:
+		tag_get_pt(&pane.caret_pos, &pt);
+		pt_get_eol(&pt, &pt);
+		caret_move(pt, select, true);
+		break;
+	case KC_PAGE_UP:
+		caret_move_relative(-pane.rows, 0, dir_before, select);
+		break;
+	case KC_PAGE_DOWN:
+		caret_move_relative(+pane.rows, 0, dir_before, select);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -478,7 +608,7 @@ static void file_save_as(void)
 	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
 	char *fname;
 	
-	fname = filename_prompt("Save As", old_fname);
+	fname = prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
 		return;
@@ -493,10 +623,11 @@ static void file_save_as(void)
 	doc.file_name = fname;
 }
 
-/** Ask for a file name. */
-static char *filename_prompt(char const *prompt, char const *init_value)
+/** Ask for a string. */
+static char *prompt(char const *prompt, char const *init_value)
 {
-	kbd_event_t ev;
+	cons_event_t ev;
+	kbd_event_t *kev;
 	char *str;
 	wchar_t buffer[INFNAME_MAX_LEN + 1];
 	int max_len;
@@ -516,15 +647,17 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 	done = false;
 
 	while (!done) {
-		console_get_kbd_event(con, &ev);
+		console_get_event(con, &ev);
 
-		if (ev.type == KEY_PRESS) {
+		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+			kev = &ev.ev.key;
+
 			/* Handle key press. */
-			if (((ev.mods & KM_ALT) == 0) &&
-			     (ev.mods & KM_CTRL) != 0) {
+			if (((kev->mods & KM_ALT) == 0) &&
+			     (kev->mods & KM_CTRL) != 0) {
 				;
-			} else if ((ev.mods & (KM_CTRL | KM_ALT)) == 0) {
-				switch (ev.key) {
+			} else if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
+				switch (kev->key) {
 				case KC_ESCAPE:
 					return NULL;
 				case KC_BACKSPACE:
@@ -538,10 +671,10 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 					done = true;
 					break;
 				default:
-					if (ev.c >= 32 && nc < max_len) {
-						putchar(ev.c);
+					if (kev->c >= 32 && nc < max_len) {
+						putchar(kev->c);
 						console_flush(con);
-						buffer[nc++] = ev.c;
+						buffer[nc++] = kev->c;
 					}
 					break;
 				}
@@ -615,7 +748,7 @@ static int file_save_range(char const *fname, spt_t const *spos,
 	sp = *spos;
 
 	do {
-		sheet_copy_out(&doc.sh, &sp, epos, buf, BUF_SIZE, &bep);
+		sheet_copy_out(doc.sh, &sp, epos, buf, BUF_SIZE, &bep);
 		bytes = str_size(buf);
 
 		n_written = fwrite(buf, 1, bytes, f);
@@ -650,7 +783,7 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 	sp = *spos;
 
 	while (true) {
-		sheet_copy_out(&doc.sh, &sp, epos, &buf[bpos], buf_size - bpos,
+		sheet_copy_out(doc.sh, &sp, epos, &buf[bpos], buf_size - bpos,
 		    &bep);
 		bytes = str_size(&buf[bpos]);
 		bpos += bytes;
@@ -672,7 +805,7 @@ static void pane_text_display(void)
 {
 	int sh_rows, rows;
 
-	sheet_get_num_rows(&doc.sh, &sh_rows);
+	sheet_get_num_rows(doc.sh, &sh_rows);
 	rows = min(sh_rows - pane.sh_row + 1, pane.rows);
 
 	/* Draw rows from the sheet. */
@@ -742,15 +875,15 @@ static void pane_row_range_display(int r0, int r1)
 		/* Starting point for row display */
 		rbc.row = pane.sh_row + i;
 		rbc.column = pane.sh_column;
-		sheet_get_cell_pt(&doc.sh, &rbc, dir_before, &rb);
+		sheet_get_cell_pt(doc.sh, &rbc, dir_before, &rb);
 
 		/* Ending point for row display */
 		rec.row = pane.sh_row + i;
 		rec.column = pane.sh_column + pane.columns;
-		sheet_get_cell_pt(&doc.sh, &rec, dir_before, &re);
+		sheet_get_cell_pt(doc.sh, &rec, dir_before, &re);
 
 		/* Copy the text of the row to the buffer. */
-		sheet_copy_out(&doc.sh, &rb, &re, row_buf, ROW_BUF_SIZE, &dep);
+		sheet_copy_out(doc.sh, &rb, &re, row_buf, ROW_BUF_SIZE, &dep);
 
 		/* Display text from the buffer. */
 
@@ -800,8 +933,8 @@ static void pane_row_range_display(int r0, int r1)
 
 		/* Fill until the end of display area. */
 
-		if (str_length(row_buf) < (unsigned) scr_columns)
-			fill = scr_columns - str_length(row_buf);
+		if ((unsigned)s_column - 1 < scr_columns)
+			fill = scr_columns - (s_column - 1);
 		else
 			fill = 0;
 
@@ -819,16 +952,19 @@ static void pane_status_display(void)
 {
 	spt_t caret_pt;
 	coord_t coord;
+	int last_row;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
+
+	sheet_get_num_rows(doc.sh, &last_row);
 
 	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
 
 	console_set_pos(con, 0, scr_rows - 1);
 	console_set_style(con, STYLE_INVERTED);
-	int n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
-	    "Ctrl-E Save As", coord.row, coord.column, fname);
+	int n = printf(" %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+	    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
 	
 	int pos = scr_columns - 1 - n;
 	printf("%*s", pos, "");
@@ -864,7 +1000,7 @@ static void insert_char(wchar_t c)
 	chr_encode(c, cbuf, &offs, STR_BOUNDS(1) + 1);
 	cbuf[offs] = '\0';
 
-	(void) sheet_insert(&doc.sh, &pt, dir_before, cbuf);
+	(void) sheet_insert(doc.sh, &pt, dir_before, cbuf);
 
 	pane.rflags |= REDRAW_ROW;
 	if (c == '\n')
@@ -881,9 +1017,9 @@ static void delete_char_before(void)
 	spt_get_coord(&ep, &coord);
 
 	coord.column -= 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &sp);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, &sp);
 
-	(void) sheet_delete(&doc.sh, &sp, &ep);
+	(void) sheet_delete(doc.sh, &sp, &ep);
 
 	pane.rflags |= REDRAW_ROW;
 	if (coord.column < 1)
@@ -899,10 +1035,10 @@ static void delete_char_after(void)
 	tag_get_pt(&pane.caret_pos, &sp);
 	spt_get_coord(&sp, &sc);
 
-	sheet_get_cell_pt(&doc.sh, &sc, dir_after, &ep);
+	sheet_get_cell_pt(doc.sh, &sc, dir_after, &ep);
 	spt_get_coord(&ep, &ec);
 
-	(void) sheet_delete(&doc.sh, &sp, &ep);
+	(void) sheet_delete(doc.sh, &sp, &ep);
 
 	pane.rflags |= REDRAW_ROW;
 	if (ec.row != sc.row)
@@ -949,14 +1085,17 @@ static void caret_update(void)
 	pane.rflags |= (REDRAW_CARET | REDRAW_STATUS);
 }
 
-/** Change the caret position.
+/** Relatively move caret position.
  *
  * Moves caret relatively to the current position. Looking at the first
  * character cell after the caret and moving by @a drow and @a dcolumn, we get
  * to a new character cell, and thus a new character. Then we either go to the
  * point before the the character or after it, depending on @a align_dir.
+ *
+ * @param select true if the selection tag should stay where it is
  */
-static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
+static void caret_move_relative(int drow, int dcolumn, enum dir_spec align_dir,
+    bool select)
 {
 	spt_t pt;
 	coord_t coord;
@@ -969,9 +1108,16 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 
 	/* Clamp coordinates. */
 	if (drow < 0 && coord.row < 1) coord.row = 1;
-	if (dcolumn < 0 && coord.column < 1) coord.column = 1;
+	if (dcolumn < 0 && coord.column < 1) {
+		if (coord.row < 2)
+			coord.column = 1;
+		else {
+			coord.row--;
+			sheet_get_row_width(doc.sh, coord.row, &coord.column);
+		}
+	}
 	if (drow > 0) {
-		sheet_get_num_rows(&doc.sh, &num_rows);
+		sheet_get_num_rows(doc.sh, &num_rows);
 		if (coord.row > num_rows) coord.row = num_rows;
 	}
 
@@ -984,17 +1130,233 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	 * Select the point before or after the character at the designated
 	 * coordinates. The character can be wider than one cell (e.g. tab).
 	 */
-	sheet_get_cell_pt(&doc.sh, &coord, align_dir, &pt);
-	sheet_remove_tag(&doc.sh, &pane.caret_pos);
-	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+	sheet_get_cell_pt(doc.sh, &coord, align_dir, &pt);
 
 	/* For non-vertical movement set the new value for @c ideal_column. */
-	if (!pure_vertical) {
-		spt_get_coord(&pt, &coord);
-		pane.ideal_column = coord.column;
-	}
+	caret_move(pt, select, !pure_vertical);
+}
 
-	caret_update();
+/** Absolutely move caret position.
+ *
+ * Moves caret to a specified position. We get to a new character cell, and
+ * thus a new character. Then we either go to the point before the the character
+ * or after it, depending on @a align_dir.
+ *
+ * @param select true if the selection tag should stay where it is
+ */
+static void caret_move_absolute(int row, int column, enum dir_spec align_dir,
+    bool select)
+{
+	coord_t coord;
+	coord.row = row;
+	coord.column = column;
+	
+	spt_t pt;
+	sheet_get_cell_pt(doc.sh, &coord, align_dir, &pt);
+	
+	caret_move(pt, select, true);
+}
+
+/** Find beginning of a word to the left of spt */
+static spt_t pt_find_word_left(spt_t spt) 
+{
+	do {
+		spt_prev_char(spt, &spt);
+	} while (!pt_is_word_beginning(&spt));
+	return spt;
+}
+
+/** Find beginning of a word to the right of spt */
+static spt_t pt_find_word_right(spt_t spt) 
+{
+	do {
+		spt_next_char(spt, &spt);
+	} while (!pt_is_word_beginning(&spt));
+	return spt;
+}
+
+static void caret_move_word_left(bool select) 
+{
+	spt_t pt;
+	tag_get_pt(&pane.caret_pos, &pt);
+	spt_t word_left = pt_find_word_left(pt);
+	caret_move(word_left, select, true);
+}
+
+static void caret_move_word_right(bool select) 
+{
+	spt_t pt;
+	tag_get_pt(&pane.caret_pos, &pt);
+	spt_t word_right = pt_find_word_right(pt);
+	caret_move(word_right, select, true);
+}
+
+/** Ask for line and go to it. */
+static void caret_go_to_line_ask(void)
+{
+	char *sline;
+	
+	sline = prompt("Go to line", "");
+	if (sline == NULL) {
+		status_display("Go to line cancelled.");
+		return;
+	}
+	
+	char *endptr;
+	int line = strtol(sline, &endptr, 10);
+	if (*endptr != '\0') {
+		free(sline);
+		status_display("Invalid number entered.");
+		return;
+	}
+	free(sline);
+	
+	caret_move_absolute(line, pane.ideal_column, dir_before, false);
+}
+
+/* Search operations */
+static int search_spt_producer(void *data, wchar_t *ret)
+{
+	assert(data != NULL);
+	assert(ret != NULL);
+	spt_t *spt = data;
+	*ret = spt_next_char(*spt, spt);
+	return EOK;
+}
+
+static int search_spt_reverse_producer(void *data, wchar_t *ret)
+{
+	assert(data != NULL);
+	assert(ret != NULL);
+	spt_t *spt = data;
+	*ret = spt_prev_char(*spt, spt);
+	return EOK;
+}
+
+static int search_spt_mark(void *data, void **mark)
+{
+	assert(data != NULL);
+	assert(mark != NULL);
+	spt_t *spt = data;
+	spt_t *new = calloc(1, sizeof(spt_t));
+	*mark = new;
+	if (new == NULL)
+		return ENOMEM;
+	*new = *spt;
+	return EOK;
+}
+
+static void search_spt_mark_free(void *data)
+{
+	free(data);
+}
+
+static search_ops_t search_spt_ops = {
+	.equals = char_exact_equals,
+	.producer = search_spt_producer,
+	.mark = search_spt_mark,
+	.mark_free = search_spt_mark_free,
+};
+
+static search_ops_t search_spt_reverse_ops = {
+	.equals = char_exact_equals,
+	.producer = search_spt_reverse_producer,
+	.mark = search_spt_mark,
+	.mark_free = search_spt_mark_free,
+};
+
+/** Ask for line and go to it. */
+static void search_prompt(bool reverse)
+{
+	char *pattern;
+	
+	const char *prompt_text = "Find next";
+	if (reverse)
+		prompt_text = "Find previous";
+	
+	const char *default_value = "";
+	if (pane.previous_search)
+		default_value = pane.previous_search;
+	
+	pattern = prompt(prompt_text, default_value);
+	if (pattern == NULL) {
+		status_display("Search cancelled.");
+		return;
+	}
+	
+	if (pane.previous_search)
+		free(pane.previous_search);
+	pane.previous_search = pattern;
+	pane.previous_search_reverse = reverse;
+	
+	search(pattern, reverse);
+}
+
+static void search_repeat(void)
+{
+	if (pane.previous_search == NULL) {
+		status_display("No previous search to repeat.");
+		return;
+	}
+	
+	search(pane.previous_search, pane.previous_search_reverse);
+}
+
+static void search(char *pattern, bool reverse)
+{
+	status_display("Searching...");
+	
+	spt_t sp, producer_pos;
+	tag_get_pt(&pane.caret_pos, &sp);
+	
+	/* Start searching on the position before/after caret */
+	if (!reverse) {
+		spt_next_char(sp, &sp);
+	}
+	else {
+		spt_prev_char(sp, &sp);
+	}
+	producer_pos = sp;
+	
+	search_ops_t ops = search_spt_ops;
+	if (reverse)
+		ops = search_spt_reverse_ops;
+	
+	search_t *search = search_init(pattern, &producer_pos, ops, reverse);
+	if (search == NULL) {
+		status_display("Failed initializing search.");
+		return;
+	}
+	
+	match_t match;
+	int rc = search_next_match(search, &match);
+	if (rc != EOK) {
+		status_display("Failed searching.");
+		search_fini(search);
+	}
+	
+	if (match.end) {
+		status_display("Match found.");
+		assert(match.end != NULL);
+		spt_t *end = match.end;
+		caret_move(*end, false, true);
+		while (match.length > 0) {
+			match.length--;
+			if (reverse) {
+				spt_next_char(*end, end);
+			}
+			else {
+				spt_prev_char(*end, end);
+			}
+		}
+		caret_move(*end, true, true);
+		free(end);
+	}
+	else {
+		status_display("Not found.");
+	}
+	
+	search_fini(search);
 }
 
 /** Check for non-empty selection. */
@@ -1034,9 +1396,9 @@ static void selection_delete(void)
 		return;
 
 	if (rel < 0)
-		sheet_delete(&doc.sh, &pa, &pb);
+		sheet_delete(doc.sh, &pa, &pb);
 	else
-		sheet_delete(&doc.sh, &pb, &pa);
+		sheet_delete(doc.sh, &pb, &pa);
 
 	if (ca.row == cb.row)
 		pane.rflags |= REDRAW_ROW;
@@ -1044,16 +1406,24 @@ static void selection_delete(void)
 		pane.rflags |= REDRAW_TEXT;
 }
 
+/** Select all text in the editor */
 static void selection_sel_all(void)
 {
 	spt_t spt, ept;
 
 	pt_get_sof(&spt);
 	pt_get_eof(&ept);
-	sheet_remove_tag(&doc.sh, &pane.sel_start);
-	sheet_place_tag(&doc.sh, &spt, &pane.sel_start);
-	sheet_remove_tag(&doc.sh, &pane.caret_pos);
-	sheet_place_tag(&doc.sh, &ept, &pane.caret_pos);
+
+	selection_sel_range(spt, ept);
+}
+
+/** Select select all text in a given range with the given direction */
+static void selection_sel_range(spt_t pa, spt_t pb)
+{
+	sheet_remove_tag(doc.sh, &pane.sel_start);
+	sheet_place_tag(doc.sh, &pa, &pane.sel_start);
+	sheet_remove_tag(doc.sh, &pane.caret_pos);
+	sheet_place_tag(doc.sh, &pb, &pane.caret_pos);
 
 	pane.rflags |= REDRAW_TEXT;
 	caret_update();
@@ -1102,7 +1472,7 @@ static void pt_get_sof(spt_t *pt)
 	coord_t coord;
 
 	coord.row = coord.column = 1;
-	sheet_get_cell_pt(&doc.sh, &coord, dir_before, pt);
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, pt);
 }
 
 /** Get end-of-file s-point. */
@@ -1111,11 +1481,135 @@ static void pt_get_eof(spt_t *pt)
 	coord_t coord;
 	int num_rows;
 
-	sheet_get_num_rows(&doc.sh, &num_rows);
+	sheet_get_num_rows(doc.sh, &num_rows);
 	coord.row = num_rows + 1;
 	coord.column = 1;
 
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, pt);
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, pt);
+}
+
+/** Get start-of-line s-point for given s-point cpt */
+static void pt_get_sol(spt_t *cpt, spt_t *spt)
+{
+	coord_t coord;
+
+	spt_get_coord(cpt, &coord);
+	coord.column = 1;
+
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, spt);
+}
+
+/** Get end-of-line s-point for given s-point cpt */
+static void pt_get_eol(spt_t *cpt, spt_t *ept)
+{
+	coord_t coord;
+	int row_width;
+
+	spt_get_coord(cpt, &coord);
+	sheet_get_row_width(doc.sh, coord.row, &row_width);
+	coord.column = row_width - 1;
+
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, ept);
+}
+
+/** Check whether the spt is at a beginning of a word */
+static bool pt_is_word_beginning(spt_t *pt)
+{
+	spt_t lp, sfp, efp, slp, elp;
+	coord_t coord;
+
+	pt_get_sof(&sfp);
+	pt_get_eof(&efp);
+	pt_get_sol(pt, &slp);
+	pt_get_eol(pt, &elp);
+
+	/* the spt is at the beginning or end of the file or line */
+	if ((spt_cmp(&sfp, pt) == 0) || (spt_cmp(&efp, pt) == 0)
+	    || (spt_cmp(&slp, pt) == 0) || (spt_cmp(&elp, pt) == 0))
+		return true;
+
+	/* the spt is a delimiter */
+	if (pt_is_delimiter(pt))
+		return false;
+
+	spt_get_coord(pt, &coord);
+
+	coord.column -= 1;
+	sheet_get_cell_pt(doc.sh, &coord, dir_before, &lp);
+
+	return pt_is_delimiter(&lp)
+	    || (pt_is_punctuation(pt) && !pt_is_punctuation(&lp))
+	    || (pt_is_punctuation(&lp) && !pt_is_punctuation(pt));
+}
+
+static wchar_t get_first_wchar(const char *str)
+{
+	size_t offset = 0;
+	return str_decode(str, &offset, str_size(str));
+}
+
+static bool pt_is_delimiter(spt_t *pt)
+{
+	spt_t rp;
+	coord_t coord;
+	char *ch = NULL;
+
+	spt_get_coord(pt, &coord);
+
+	coord.column += 1;
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, &rp);
+
+	ch = range_get_str(pt, &rp);
+	if (ch == NULL)
+		return false;
+
+	wchar_t first_char = get_first_wchar(ch);
+	switch(first_char) {
+	case ' ':
+	case '\t':
+	case '\n':
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool pt_is_punctuation(spt_t *pt)
+{
+	spt_t rp;
+	coord_t coord;
+	char *ch = NULL;
+
+	spt_get_coord(pt, &coord);
+
+	coord.column += 1;
+	sheet_get_cell_pt(doc.sh, &coord, dir_after, &rp);
+
+	ch = range_get_str(pt, &rp);
+	if (ch == NULL)
+		return false;
+
+	wchar_t first_char = get_first_wchar(ch);
+	switch(first_char) {
+	case ',':
+	case '.':
+	case ';':
+	case ':':
+	case '/':
+	case '?':
+	case '\\':
+	case '|':
+	case '_':
+	case '+':
+	case '-':
+	case '*':
+	case '=':
+	case '<':
+	case '>':
+		return true;
+	default:
+		return false;
+	}
 }
 
 /** Compare tags. */

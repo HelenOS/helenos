@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <device/char_dev.h>
+#include <char_dev_iface.h>
 #include <errno.h>
 #include <ipc/serial_ctl.h>
 #include <loc.h>

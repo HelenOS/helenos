@@ -44,7 +44,9 @@ typedef enum {
 	/** Configuration port */
 	INET_PORT_CFG,
 	/** Ping service port */
-	INET_PORT_PING
+	INET_PORT_PING,
+	/** Ping6 service port */
+	INET_PORT_PING6
 } inet_port_t;
 
 /** Requests on Inet default port */
@@ -69,7 +71,9 @@ typedef enum {
 	INETCFG_GET_ADDR_LIST,
 	INETCFG_GET_LINK_LIST,
 	INETCFG_GET_SROUTE_LIST,
+	INETCFG_LINK_ADD,
 	INETCFG_LINK_GET,
+	INETCFG_LINK_REMOVE,
 	INETCFG_SROUTE_CREATE,
 	INETCFG_SROUTE_DELETE,
 	INETCFG_SROUTE_GET,

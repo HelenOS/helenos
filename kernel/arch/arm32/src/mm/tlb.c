@@ -36,8 +36,10 @@
 #include <mm/tlb.h>
 #include <arch/mm/asid.h>
 #include <arch/asm.h>
+#include <arch/cp15.h>
 #include <typedefs.h>
 #include <arch/mm/page.h>
+#include <arch/cache.h>
 
 /** Invalidate all entries in TLB.
  *
@@ -45,11 +47,19 @@
  */
 void tlb_invalidate_all(void)
 {
-	asm volatile (
-		"eor r1, r1\n"
-		"mcr p15, 0, r1, c8, c7, 0\n"
-		::: "r1"
-	);
+	TLBIALL_write(0);
+	/*
+	 * "A TLB maintenance operation is only guaranteed to be complete after
+	 * the execution of a DSB instruction."
+	 * "An ISB instruction, or a return from an exception, causes the
+	 * effect of all completed TLB maintenance operations that appear in
+	 * program order before the ISB or return from exception to be visible
+	 * to all subsequent instructions, including the instruction fetches
+	 * for those instructions."
+	 * ARM Architecture reference Manual ch. B3.10.1 p. B3-1374 B3-1375
+	 */
+	read_barrier();
+	inst_barrier();
 }
 
 /** Invalidate all entries in TLB that belong to specified address space.
@@ -59,18 +69,29 @@ void tlb_invalidate_all(void)
 void tlb_invalidate_asid(asid_t asid)
 {
 	tlb_invalidate_all();
+	// TODO: why not TLBIASID_write(asid) ?
 }
 
 /** Invalidate single entry in TLB
  *
  * @param page Virtual adress of the page
- */ 
+ */
 static inline void invalidate_page(uintptr_t page)
 {
-	asm volatile (
-		"mcr p15, 0, %[page], c8, c7, 1\n"
-		:: [page] "r" (page)
-	);
+	//TODO: What about TLBIMVAA?
+	TLBIMVA_write(page);
+	/*
+	 * "A TLB maintenance operation is only guaranteed to be complete after
+	 * the execution of a DSB instruction."
+	 * "An ISB instruction, or a return from an exception, causes the
+	 * effect of all completed TLB maintenance operations that appear in
+	 * program order before the ISB or return from exception to be visible
+	 * to all subsequent instructions, including the instruction fetches
+	 * for those instructions."
+	 * ARM Architecture reference Manual ch. B3.10.1 p. B3-1374 B3-1375
+	 */
+	read_barrier();
+	inst_barrier();
 }
 
 /** Invalidate TLB entries for specified page range belonging to specified
@@ -82,9 +103,7 @@ static inline void invalidate_page(uintptr_t page)
  */
 void tlb_invalidate_pages(asid_t asid __attribute__((unused)), uintptr_t page, size_t cnt)
 {
-	unsigned int i;
-
-	for (i = 0; i < cnt; i++)
+	for (unsigned i = 0; i < cnt; i++)
 		invalidate_page(page + i * PAGE_SIZE);
 }
 

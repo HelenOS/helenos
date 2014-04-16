@@ -35,41 +35,41 @@
 
 #include <str.h>
 #include <malloc.h>
-
 #include <drawctx.h>
 #include <surface.h>
-
 #include "window.h"
 #include "label.h"
 
-static void paint_internal(widget_t *w)
+static void paint_internal(widget_t *widget)
 {
-	label_t *lbl = (label_t *) w;
+	label_t *lbl = (label_t *) widget;
 
 	surface_t *surface = window_claim(lbl->widget.window);
-	if (!surface) {
+	if (!surface)
 		window_yield(lbl->widget.window);
-	}
-
+	
 	drawctx_t drawctx;
-
 	drawctx_init(&drawctx, surface);
+	
 	drawctx_set_source(&drawctx, &lbl->background);
-	drawctx_transfer(&drawctx, w->hpos, w->vpos, w->width, w->height);
-
+	drawctx_transfer(&drawctx, widget->hpos, widget->vpos, widget->width,
+	    widget->height);
+	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
 	font_get_box(&lbl->font, lbl->caption, &cpt_width, &cpt_height);
-	if (w->width >= cpt_width && w->height >= cpt_height) {
-		drawctx_set_source(&drawctx, &lbl->foreground);
+	
+	if ((widget->width >= cpt_width) && (widget->height >= cpt_height)) {
+		sysarg_t x = ((widget->width - cpt_width) / 2) + widget->hpos;
+		sysarg_t y = ((widget->height - cpt_height) / 2) + widget->vpos;
+		
+		drawctx_set_source(&drawctx, &lbl->text);
 		drawctx_set_font(&drawctx, &lbl->font);
-		sysarg_t x = ((w->width - cpt_width) / 2) + w->hpos;
-		sysarg_t y = ((w->height - cpt_height) / 2) + w->vpos;
-		if (lbl->caption) {
+		
+		if (lbl->caption)
 			drawctx_print(&drawctx, lbl->caption, x, y);
-		}
 	}
-
+	
 	window_yield(lbl->widget.window);
 }
 
@@ -77,17 +77,19 @@ static void on_rewrite(widget_t *widget, void *data)
 {
 	if (data != NULL) {
 		label_t *lbl = (label_t *) widget;
+		
 		const char *new_caption = (const char *) data;
 		lbl->caption = str_dup(new_caption);
-
+		
 		sysarg_t cpt_width;
 		sysarg_t cpt_height;
 		font_get_box(&lbl->font, lbl->caption, &cpt_width, &cpt_height);
+		
 		lbl->widget.width_min = cpt_width + 4;
 		lbl->widget.height_min = cpt_height + 4;
 		lbl->widget.width_ideal = lbl->widget.width_min;
 		lbl->widget.height_ideal = lbl->widget.height_min;
-
+		
 		window_refresh(lbl->widget.window);
 	}
 }
@@ -102,9 +104,8 @@ void deinit_label(label_t *lbl)
 static void label_destroy(widget_t *widget)
 {
 	label_t *lbl = (label_t *) widget;
-
-	deinit_label(lbl);
 	
+	deinit_label(lbl);
 	free(lbl);
 }
 
@@ -136,59 +137,58 @@ static void label_handle_position_event(widget_t *widget, pos_event_t event)
 	/* no-op */
 }
 
-bool init_label(label_t *lbl, widget_t *parent,
-    const char *caption, uint16_t points, pixel_t background, pixel_t foreground)
+bool init_label(label_t *lbl, widget_t *parent, const char *caption,
+    uint16_t points, pixel_t background, pixel_t text)
 {
 	widget_init(&lbl->widget, parent);
-
+	
 	lbl->widget.destroy = label_destroy;
 	lbl->widget.reconfigure = label_reconfigure;
 	lbl->widget.rearrange = label_rearrange;
 	lbl->widget.repaint = label_repaint;
 	lbl->widget.handle_keyboard_event = label_handle_keyboard_event;
 	lbl->widget.handle_position_event = label_handle_position_event;
-
+	
 	source_init(&lbl->background);
 	source_set_color(&lbl->background, background);
-	source_init(&lbl->foreground);
-	source_set_color(&lbl->foreground, foreground);
-
-	if (caption == NULL) {
+	
+	source_init(&lbl->text);
+	source_set_color(&lbl->text, text);
+	
+	if (caption == NULL)
 		lbl->caption = NULL;
-	} else {
+	else
 		lbl->caption = str_dup(caption);
-	}
+	
 	font_init(&lbl->font, FONT_DECODER_EMBEDDED, NULL, points);
-
+	
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
 	font_get_box(&lbl->font, lbl->caption, &cpt_width, &cpt_height);
+	
 	lbl->widget.width_min = cpt_width + 4;
 	lbl->widget.height_min = cpt_height + 4;
 	lbl->widget.width_ideal = lbl->widget.width_min;
 	lbl->widget.height_ideal = lbl->widget.height_min;
-
+	
 	lbl->rewrite = on_rewrite;
-
+	
 	return true;
 }
 
-label_t *create_label(widget_t *parent,
-    const char *caption, uint16_t points, pixel_t background, pixel_t foreground)
+label_t *create_label(widget_t *parent, const char *caption, uint16_t points,
+    pixel_t background, pixel_t text)
 {
 	label_t *lbl = (label_t *) malloc(sizeof(label_t));
-	if (!lbl) {
+	if (!lbl)
 		return NULL;
-	}
-
-	if (init_label(lbl, parent, caption, points, background, foreground)) {
+	
+	if (init_label(lbl, parent, caption, points, background, text))
 		return lbl;
-	} else {
-		free(lbl);
-		return NULL;
-	}
+	
+	free(lbl);
+	return NULL;
 }
 
 /** @}
  */
-

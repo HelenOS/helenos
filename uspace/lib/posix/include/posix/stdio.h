@@ -36,6 +36,15 @@
 #ifndef POSIX_STDIO_H_
 #define POSIX_STDIO_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+/* DEBUG macro does not belong to POSIX stdio.h. Its unconditional
+ * definition in the native stdio.h causes unexpected behaviour of
+ * applications which uses their own DEBUG macro (e.g. debugging
+ * output is printed even if not desirable). */
+#undef DEBUG
+#endif
+
 #include "stddef.h"
 #include "unistd.h"
 #include "libc/io/verify.h"
@@ -54,10 +63,11 @@
  */
 #define EOF (-1)
 
+/** Size of buffers used in stdio header. */
 #define BUFSIZ  4096
-#define SEEK_SET  0
-#define SEEK_CUR  1
-#define SEEK_END  2
+
+/** Maximum size in bytes of the longest filename. */
+#define FILENAME_MAX 4096
 
 typedef struct _IO_FILE FILE;
 
@@ -107,9 +117,7 @@ extern int fclose(FILE *);
 extern size_t fread(void *, size_t, size_t, FILE *);
 extern size_t fwrite(const void *, size_t, size_t, FILE *);
 
-extern int fseek(FILE *, off64_t, int);
 extern void rewind(FILE *);
-extern off64_t ftell(FILE *);
 extern int feof(FILE *);
 extern int fileno(FILE *);
 
@@ -118,150 +126,94 @@ extern int ferror(FILE *);
 extern void clearerr(FILE *);
 
 extern void setvbuf(FILE *, void *, int, size_t);
-
+extern void setbuf(FILE *, void *);
 
 /* POSIX specific stuff. */
 
 /* Identifying the Terminal */
 #undef L_ctermid
 #define L_ctermid PATH_MAX
-extern char *posix_ctermid(char *s);
+extern char *__POSIX_DEF__(ctermid)(char *s);
 
 /* Error Recovery */
-extern void posix_clearerr(FILE *stream);
+extern void __POSIX_DEF__(clearerr)(FILE *stream);
 
 /* Input/Output */
 #undef putc
 #define putc fputc
-extern int posix_fputs(const char *restrict s, FILE *restrict stream);
+extern int __POSIX_DEF__(fputs)(const char *restrict s, FILE *restrict stream);
 #undef getc
 #define getc fgetc
-extern int posix_ungetc(int c, FILE *stream);
-extern ssize_t posix_getdelim(char **restrict lineptr, size_t *restrict n,
+extern int __POSIX_DEF__(ungetc)(int c, FILE *stream);
+extern ssize_t __POSIX_DEF__(getdelim)(char **restrict lineptr, size_t *restrict n,
     int delimiter, FILE *restrict stream);
-extern ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
+extern ssize_t __POSIX_DEF__(getline)(char **restrict lineptr, size_t *restrict n,
     FILE *restrict stream);
 
 /* Opening Streams */
-extern FILE *posix_freopen(const char *restrict filename,
+extern FILE *__POSIX_DEF__(freopen)(const char *restrict filename,
     const char *restrict mode, FILE *restrict stream);
 
 /* Error Messages */
-extern void posix_perror(const char *s);
+extern void __POSIX_DEF__(perror)(const char *s);
 
 /* File Positioning */
-typedef struct _posix_fpos posix_fpos_t;
-extern int posix_fsetpos(FILE *stream, const posix_fpos_t *pos);
-extern int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos);
-extern int posix_fseek(FILE *stream, long offset, int whence);
-extern int posix_fseeko(FILE *stream, posix_off_t offset, int whence);
-extern long posix_ftell(FILE *stream);
-extern posix_off_t posix_ftello(FILE *stream);
+typedef struct {
+	off64_t offset;
+} __POSIX_DEF__(fpos_t);
+
+extern int __POSIX_DEF__(fsetpos)(FILE *stream, const __POSIX_DEF__(fpos_t) *pos);
+extern int __POSIX_DEF__(fgetpos)(FILE *restrict stream, __POSIX_DEF__(fpos_t) *restrict pos);
+extern int __POSIX_DEF__(fseek)(FILE *stream, long offset, int whence);
+extern int __POSIX_DEF__(fseeko)(FILE *stream, __POSIX_DEF__(off_t) offset, int whence);
+extern long __POSIX_DEF__(ftell)(FILE *stream);
+extern __POSIX_DEF__(off_t) __POSIX_DEF__(ftello)(FILE *stream);
 
 /* Flushing Buffers */
-extern int posix_fflush(FILE *stream);
+extern int __POSIX_DEF__(fflush)(FILE *stream);
 
 /* Formatted Output */
-extern int posix_dprintf(int fildes, const char *restrict format, ...)
+extern int __POSIX_DEF__(dprintf)(int fildes, const char *restrict format, ...)
     PRINTF_ATTRIBUTE(2, 3);
-extern int posix_vdprintf(int fildes, const char *restrict format, va_list ap);
-extern int posix_sprintf(char *restrict s, const char *restrict format, ...)
+extern int __POSIX_DEF__(vdprintf)(int fildes, const char *restrict format, va_list ap);
+extern int __POSIX_DEF__(sprintf)(char *restrict s, const char *restrict format, ...)
     PRINTF_ATTRIBUTE(2, 3);
-extern int posix_vsprintf(char *restrict s, const char *restrict format, va_list ap);
+extern int __POSIX_DEF__(vsprintf)(char *restrict s, const char *restrict format, va_list ap);
 
 /* Formatted Input */
-extern int posix_fscanf(
+extern int __POSIX_DEF__(fscanf)(
     FILE *restrict stream, const char *restrict format, ...);
-extern int posix_vfscanf(
+extern int __POSIX_DEF__(vfscanf)(
     FILE *restrict stream, const char *restrict format, va_list arg);
-extern int posix_scanf(const char *restrict format, ...);
-extern int posix_vscanf(const char *restrict format, va_list arg);
-extern int posix_sscanf(
+extern int __POSIX_DEF__(scanf)(const char *restrict format, ...);
+extern int __POSIX_DEF__(vscanf)(const char *restrict format, va_list arg);
+extern int __POSIX_DEF__(sscanf)(
     const char *restrict s, const char *restrict format, ...);
-extern int posix_vsscanf(
+extern int __POSIX_DEF__(vsscanf)(
     const char *restrict s, const char *restrict format, va_list arg);
 
 /* File Locking */
-extern void posix_flockfile(FILE *file);
-extern int posix_ftrylockfile(FILE *file);
-extern void posix_funlockfile(FILE *file);
-extern int posix_getc_unlocked(FILE *stream);
-extern int posix_getchar_unlocked(void);
-extern int posix_putc_unlocked(int c, FILE *stream);
-extern int posix_putchar_unlocked(int c);
+extern void __POSIX_DEF__(flockfile)(FILE *file);
+extern int __POSIX_DEF__(ftrylockfile)(FILE *file);
+extern void __POSIX_DEF__(funlockfile)(FILE *file);
+extern int __POSIX_DEF__(getc_unlocked)(FILE *stream);
+extern int __POSIX_DEF__(getchar_unlocked)(void);
+extern int __POSIX_DEF__(putc_unlocked)(int c, FILE *stream);
+extern int __POSIX_DEF__(putchar_unlocked)(int c);
 
 /* Deleting Files */
-extern int posix_remove(const char *path);
+extern int __POSIX_DEF__(remove)(const char *path);
 
 /* Renaming Files */
-extern int posix_rename(const char *old, const char *new);
+extern int __POSIX_DEF__(rename)(const char *oldname, const char *newname);
 
 /* Temporary Files */
 #undef L_tmpnam
 #define L_tmpnam PATH_MAX
-extern char *posix_tmpnam(char *s);
-extern char *posix_tempnam(const char *dir, const char *pfx);
-extern FILE *posix_tmpfile(void);
+extern char *__POSIX_DEF__(tmpnam)(char *s);
+extern char *__POSIX_DEF__(tempnam)(const char *dir, const char *pfx);
+extern FILE *__POSIX_DEF__(tmpfile)(void);
 
-#ifndef LIBPOSIX_INTERNAL
-	/* DEBUG macro does not belong to POSIX stdio.h. Its unconditional
-	 * definition in the native stdio.h causes unexpected behaviour of
-	 * applications which uses their own DEBUG macro (e.g. debugging
-	 * output is printed even if not desirable). */
-	#undef DEBUG
-
-	#define ctermid posix_ctermid
-
-	#define clearerr posix_clearerr
-
-	#define fputs posix_fputs
-	#define ungetc posix_ungetc
-	#define getdelim posix_getdelim
-	#define getline posix_getline
-
-	#define freopen posix_freopen
-
-	#define perror posix_perror
-
-	#define fpos_t posix_fpos_t
-	#define fsetpos posix_fsetpos
-	#define fgetpos posix_fgetpos
-	#define fseek posix_fseek
-	#define fseeko posix_fseeko
-	#define ftell posix_ftell
-	#define ftello posix_ftello
-
-	#define fflush posix_fflush
-
-	#define dprintf posix_dprintf
-	#define vdprintf posix_vdprintf
-	#define sprintf posix_sprintf
-	#define vsprintf posix_vsprintf
-
-	#define fscanf posix_fscanf
-	#define vfscanf posix_vfscanf
-	#define vscanf posix_vscanf
-	#define scanf posix_scanf
-	#define sscanf posix_sscanf
-	#define vsscanf posix_vsscanf
-
-	#define flockfile posix_flockfile
-	#define ftrylockfile posix_ftrylockfile
-	#define funlockfile posix_funlockfile
-
-	#define getc_unlocked posix_getc_unlocked
-	#define getchar_unlocked posix_getchar_unlocked
-	#define putc_unlocked posix_putc_unlocked
-	#define putchar_unlocked posix_putchar_unlocked
-
-	#define remove posix_remove
-
-	#define rename posix_rename
-
-	#define tmpnam posix_tmpnam
-	#define tempnam posix_tempnam
-	#define tmpfile posix_tmpfile
-#endif
 
 #endif /* POSIX_STDIO_H_ */
 

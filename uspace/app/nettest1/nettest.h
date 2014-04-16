@@ -39,13 +39,17 @@
 
 #include <net/socket.h>
 
-extern void print_mark(int);
-extern int sockets_create(int, int *, int, int, sock_type_t);
-extern int sockets_close(int, int *, int);
-extern int sockets_connect(int, int *, int, struct sockaddr *, socklen_t);
-extern int sockets_sendto(int, int *, int, struct sockaddr *, socklen_t, char *, int, int);
-extern int sockets_recvfrom(int, int *, int, struct sockaddr *, socklen_t *, char *, int, int);
-extern int sockets_sendto_recvfrom(int, int *, int, struct sockaddr *, socklen_t *, char *, int, int);
+extern void print_mark(unsigned int);
+extern int sockets_create(int, int *, unsigned int, uint16_t, sock_type_t);
+extern int sockets_close(int, int *, unsigned int);
+extern int sockets_connect(int, int *, unsigned int, struct sockaddr *,
+    socklen_t);
+extern int sockets_sendto(int, int *, unsigned int, struct sockaddr *,
+    socklen_t, char *, size_t, unsigned int, sock_type_t);
+extern int sockets_recvfrom(int, int *, unsigned int, struct sockaddr *,
+    socklen_t *, char *, size_t, unsigned int);
+extern int sockets_sendto_recvfrom(int, int *, unsigned int, struct sockaddr *,
+    socklen_t *, char *, size_t, unsigned int, sock_type_t);
 
 #endif
 

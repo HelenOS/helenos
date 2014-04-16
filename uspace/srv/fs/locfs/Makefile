@@ -31,7 +31,6 @@ USPACE_PREFIX = ../../..
 LIBS = $(LIBFS_PREFIX)/libfs.a
 EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
 BINARY = locfs
-STATIC_NEEDED = y
 
 SOURCES = \
 	locfs.c \

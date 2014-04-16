@@ -34,6 +34,7 @@
  */
 
 #define LIBPOSIX_INTERNAL
+#define __POSIX_DEF__(x) posix_##x
 
 #include "internal/common.h"
 #include "posix/unistd.h"
@@ -222,6 +223,20 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
 }
 
 /**
+ * Reposition read/write file offset
+ *
+ * @param fildes File descriptor of the opened file.
+ * @param offset New offset in the file.
+ * @param whence The position from which the offset argument is specified.
+ * @return Upon successful completion, returns the resulting offset
+ *         as measured in bytes from the beginning of the file, -1 otherwise.
+ */
+posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
+{
+	return errnify(lseek, fildes, offset, whence);
+}
+
+/**
  * Requests outstanding data to be written to the underlying storage device.
  *
  * @param fildes File descriptor of the opened file.
@@ -373,6 +388,7 @@ long posix_pathconf(const char *path, int name)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -383,6 +399,7 @@ posix_pid_t posix_fork(void)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -395,6 +412,7 @@ int posix_execv(const char *path, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -407,6 +425,7 @@ int posix_execvp(const char *file, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
 }
 
 /**
@@ -418,6 +437,13 @@ int posix_pipe(int fildes[2])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
+	return -1;
+}
+
+unsigned int posix_alarm(unsigned int seconds)
+{
+	not_implemented();
+	return 0;
 }
 
 /** @}

@@ -39,18 +39,26 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <abi/ddi/irq.h>
+#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
+#include <device/pio_window.h>
 #include <task.h>
+
+#define DMAMEM_16MiB  ((uintptr_t) UINT64_C(0xffffffffff000000))
+#define DMAMEM_4GiB   ((uintptr_t) UINT64_C(0xffffffff00000000))
 
 extern int device_assign_devno(void);
 
-extern int physmem_map(void *, size_t, unsigned int, void **);
+extern int physmem_map(uintptr_t, size_t, unsigned int, void **);
 
-extern int dmamem_map(void *, size_t, unsigned int, unsigned int, void **);
-extern int dmamem_map_anonymous(size_t, unsigned int, unsigned int, void **,
-    void **);
+extern int dmamem_map(void *, size_t, unsigned int, unsigned int, uintptr_t *);
+extern int dmamem_map_anonymous(size_t, uintptr_t, unsigned int, unsigned int,
+    uintptr_t *, void **);
 extern int dmamem_unmap(void *, size_t);
 extern int dmamem_unmap_anonymous(void *);
 
+extern int pio_enable_range(addr_range_t *, void **);
+extern int pio_enable_resource(pio_window_t *, hw_resource_t *, void **);
 extern int pio_enable(void *, size_t, void **);
 
 typedef void (*trace_fnc)(const volatile void *place, uint32_t val,
@@ -68,8 +76,8 @@ extern uint8_t pio_read_8(const ioport8_t *);
 extern uint16_t pio_read_16(const ioport16_t *);
 extern uint32_t pio_read_32(const ioport32_t *);
 
-static inline uint8_t pio_change_8(
-    ioport8_t *reg, uint8_t val, uint8_t mask, useconds_t delay)
+static inline uint8_t pio_change_8(ioport8_t *reg, uint8_t val, uint8_t mask,
+    useconds_t delay)
 {
 	uint8_t v = pio_read_8(reg);
 	udelay(delay);
@@ -77,8 +85,8 @@ static inline uint8_t pio_change_8(
 	return v;
 }
 
-static inline uint16_t pio_change_16(
-    ioport16_t *reg, uint16_t val, uint16_t mask, useconds_t delay)
+static inline uint16_t pio_change_16(ioport16_t *reg, uint16_t val,
+    uint16_t mask, useconds_t delay)
 {
 	uint16_t v = pio_read_16(reg);
 	udelay(delay);
@@ -86,8 +94,8 @@ static inline uint16_t pio_change_16(
 	return v;
 }
 
-static inline uint32_t pio_change_32(
-    ioport32_t *reg, uint32_t val, uint32_t mask, useconds_t delay)
+static inline uint32_t pio_change_32(ioport32_t *reg, uint32_t val,
+    uint32_t mask, useconds_t delay)
 {
 	uint32_t v = pio_read_32(reg);
 	udelay(delay);
@@ -121,7 +129,7 @@ static inline uint32_t pio_clear_32(ioport32_t *r, uint32_t v, useconds_t d)
 	return pio_change_32(r, 0, v, d);
 }
 
-extern int irq_register(int, int, int, irq_code_t *);
+extern int irq_register(int, int, int, const irq_code_t *);
 extern int irq_unregister(int, int);
 
 #endif

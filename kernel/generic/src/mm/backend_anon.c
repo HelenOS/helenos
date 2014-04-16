@@ -75,6 +75,9 @@ mem_backend_t anon_backend = {
 
 	.page_fault = anon_page_fault,
 	.frame_free = anon_frame_free,
+
+	.create_shared_data = NULL,
+	.destroy_shared_data = NULL
 };
 
 bool anon_create(as_area_t *area)
@@ -117,11 +120,10 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node;
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		unsigned int i;
 		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			size_t count = (size_t) node->value[i];
@@ -190,7 +192,8 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
-	if (area->sh_info) {
+	mutex_lock(&area->sh_info->lock);
+	if (area->sh_info->shared) {
 		btree_node_t *leaf;
 		
 		/*
@@ -200,7 +203,6 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		 * In the case that the pagemap does not contain the respective
 		 * mapping, a new frame is allocated and the mapping is created.
 		 */
-		mutex_lock(&area->sh_info->lock);
 		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
 		    upage - area->base, &leaf);
 		if (!frame) {
@@ -232,7 +234,6 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			}
 		}
 		frame_reference_add(ADDR2PFN(frame));
-		mutex_unlock(&area->sh_info->lock);
 	} else {
 
 		/*
@@ -254,14 +255,17 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			/*
 			 * Reserve the memory for this page now.
 			 */
-			if (!reserve_try_alloc(1))
+			if (!reserve_try_alloc(1)) {
+				mutex_unlock(&area->sh_info->lock);
 				return AS_PF_SILENT;
+			}
 		}
 
 		kpage = km_temporary_page_get(&frame, FRAME_NO_RESERVE);
 		memsetb((void *) kpage, PAGE_SIZE, 0);
 		km_temporary_page_put(kpage);
 	}
+	mutex_unlock(&area->sh_info->lock);
 	
 	/*
 	 * Map 'upage' to 'frame'.
@@ -294,14 +298,14 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * be unreserved when the area is destroyed so we need to use
 		 * the normal unreserving frame_free().
 		 */
-		frame_free(frame);
+		frame_free(frame, 1);
 	} else {
 		/*
 		 * The reserve will be given back when the area is destroyed or
 		 * resized, so use the frame_free_noreserve() which does not
 		 * manipulate the reserve or it would be given back twice.
 		 */
-		frame_free_noreserve(frame);
+		frame_free_noreserve(frame, 1);
 	}
 }
 

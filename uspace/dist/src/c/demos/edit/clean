@@ -2,10 +2,13 @@ rm edit_
 
 rm edit.o
 rm sheet.o
+rm search.o
 
 rm edit.s
 rm sheet.s
+rm search.s
 
 rm edit.i
 rm sheet.i
+rm search.i
 

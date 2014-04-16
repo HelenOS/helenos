@@ -41,6 +41,9 @@
 #include <abi/ddi/arg.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
+#include <device/hw_res.h>
+#include <device/hw_res_parsed.h>
+#include <device/pio_window.h>
 #include <libc.h>
 #include <task.h>
 #include <as.h>
@@ -75,23 +78,25 @@ int device_assign_devno(void)
  *         the address space area.
  *
  */
-int physmem_map(void *phys, size_t pages, unsigned int flags, void **virt)
+int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 {
 	return __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
 int dmamem_map(void *virt, size_t size, unsigned int map_flags,
-    unsigned int flags, void **phys)
+    unsigned int flags, uintptr_t *phys)
 {
 	return (int) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags & ~DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, 0);
 }
 
-int dmamem_map_anonymous(size_t size, unsigned int map_flags,
-    unsigned int flags, void **phys, void **virt)
+int dmamem_map_anonymous(size_t size, uintptr_t constraint,
+    unsigned int map_flags, unsigned int flags, uintptr_t *phys, void **virt)
 {
+	*phys = constraint;
+	
 	return (int) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags | DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, (sysarg_t) __entry);
@@ -133,6 +138,58 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
+/** Enable PIO for specified address range.
+ *
+ * @param range I/O range to be enable.
+ * @param virt  Virtual address for application's PIO operations. 
+ */
+int pio_enable_range(addr_range_t *range, void **virt)
+{
+	return pio_enable(RNGABSPTR(*range), RNGSZ(*range), virt);
+}
+
+/** Enable PIO for specified HW resource wrt. to the PIO window.
+ *
+ * @param win      PIO window. May be NULL if the resources are known to be
+ *                 absolute.
+ * @param res      Resources specifying the I/O range wrt. to the PIO window.
+ * @param virt     Virtual address for application's PIO operations.
+ *
+ * @return EOK on success.
+ * @return Negative error code on failure.
+ *
+ */
+int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
+{
+	uintptr_t addr;
+	size_t size;
+
+	switch (res->type) {
+	case IO_RANGE:
+		addr = res->res.io_range.address;
+		if (res->res.io_range.relative) {
+			if (!win)
+				return EINVAL;
+			addr += win->io.base;
+		}
+		size = res->res.io_range.size;
+		break;
+	case MEM_RANGE:
+		addr = res->res.mem_range.address;
+		if (res->res.mem_range.relative) {
+			if (!win)
+				return EINVAL;
+			addr += win->mem.base;
+		}
+		size = res->res.mem_range.size;
+		break;
+	default:
+		return EINVAL;
+	}
+
+	return pio_enable((void *) addr, size, virt);	
+}
+
 /** Enable PIO for specified I/O range.
  *
  * @param pio_addr I/O start address.
@@ -157,10 +214,10 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 #endif
 	if (!virt)
 		return EINVAL;
-
-	void *phys_frame =
-	    (void *) ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
-	size_t offset = pio_addr - phys_frame;
+	
+	uintptr_t phys_frame =
+	    ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
+	size_t offset = (uintptr_t) pio_addr - phys_frame;
 	size_t pages = SIZE2PAGES(offset + size);
 	
 	void *virt_page;
@@ -222,7 +279,7 @@ uint32_t pio_read_32(const ioport32_t *reg)
  * @return Value returned by the kernel.
  *
  */
-int irq_register(int inr, int devno, int method, irq_code_t *ucode)
+int irq_register(int inr, int devno, int method, const irq_code_t *ucode)
 {
 	return __SYSCALL4(SYS_IRQ_REGISTER, inr, devno, method,
 	    (sysarg_t) ucode);

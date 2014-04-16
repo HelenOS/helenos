@@ -40,6 +40,14 @@
 #include "ddf/driver.h"
 #include <async.h>
 
+extern async_sess_t* ahci_get_sess(devman_handle_t, char **);
+
+extern int ahci_get_sata_device_name(async_sess_t *, size_t, char *);
+extern int ahci_get_num_blocks(async_sess_t *, uint64_t *);
+extern int ahci_get_block_size(async_sess_t *, size_t *);
+extern int ahci_read_blocks(async_sess_t *, uint64_t, size_t, void *);
+extern int ahci_write_blocks(async_sess_t *, uint64_t, size_t, void *);
+
 /** AHCI device communication interface. */
 typedef struct {
 	int (*get_sata_device_name)(ddf_fun_t *, size_t, char *);

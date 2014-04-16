@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jakub Jermar
+ * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,12 +35,10 @@
 #ifndef ABI_KLOG_H_
 #define ABI_KLOG_H_
 
-enum {
-	KLOG_UNKNOW,
+typedef enum {
 	KLOG_WRITE,
-	KLOG_UPDATE,
-	KLOG_COMMAND
-};
+	KLOG_READ
+} klog_operation_t;
 
 #endif
 

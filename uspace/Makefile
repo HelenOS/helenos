@@ -37,18 +37,22 @@ DIRS = \
 	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
+	app/corecfg \
 	app/devctl \
 	app/dnscfg \
 	app/dnsres \
+	app/download \
 	app/edit \
 	app/getterm \
+	app/hdisk \
 	app/init \
 	app/inet \
 	app/kill \
 	app/killall \
-	app/klog \
+	app/kio \
 	app/loc \
 	app/logset \
+	app/mixerctl \
 	app/mkfat \
 	app/mkexfat \
 	app/mkmfs \
@@ -64,9 +68,11 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/untar \
 	app/usbinfo \
 	app/vuhid \
 	app/netecho \
+	app/netspeed \
 	app/nettest1 \
 	app/nettest2 \
 	app/nettest3 \
@@ -74,25 +80,32 @@ DIRS = \
 	app/sysinfo \
 	app/mkbd \
 	app/date \
-	app/websrv \
 	app/vdemo \
+	app/viewer \
 	app/vlaunch \
 	app/vterm \
+	app/df \
+	app/wavplay \
+	app/websrv \
+	srv/audio/hound \
 	srv/clipboard \
 	srv/locsrv \
 	srv/logger \
+	srv/klog \
 	srv/devman \
 	srv/loader \
+	srv/net/dhcp \
 	srv/net/dnsrsrv \
 	srv/net/ethip \
 	srv/net/inetsrv \
 	srv/net/loopip \
+	srv/net/nconfsrv \
+	srv/net/slip \
 	srv/net/tcp \
 	srv/net/udp \
 	srv/ns \
 	srv/taskmon \
 	srv/vfs \
-	srv/bd/ata_bd \
 	srv/bd/sata_bd \
 	srv/bd/file_bd \
 	srv/bd/rd \
@@ -114,9 +127,12 @@ DIRS = \
 	srv/hid/output \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
+	srv/hid/rfb \
+	drv/audio/sb16 \
 	drv/infrastructure/root \
 	drv/infrastructure/rootvirt \
 	drv/block/ahci \
+	drv/block/ata_bd \
 	drv/char/i8042 \
 	drv/char/ps2mouse \
 	drv/char/xtkbd \
@@ -136,7 +152,7 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139 \
+	drv/nic/rtl8139
 
 ifeq ($(CONFIG_PCC),y)
 DIRS += \
@@ -159,7 +175,7 @@ endif
 ## Platform-specific hardware support
 #
 
-ifeq ($(UARCH),amd64)
+ifeq ($(UARCH), $(filter $(UARCH),amd64 ia32 ia64))
 	DIRS += \
 		drv/infrastructure/rootpc \
 		drv/bus/pci/pciintel \
@@ -170,15 +186,11 @@ ifeq ($(UARCH),amd64)
 		srv/hw/irc/i8259
 endif
 
-ifeq ($(UARCH),ia32)
+ifeq ($(UARCH), $(filter $(UARCH),mips32 mips32eb))
 	DIRS += \
-		drv/infrastructure/rootpc \
+		drv/infrastructure/rootmalta \
 		drv/bus/pci/pciintel \
-		drv/bus/isa \
-		drv/char/ns8250 \
-		drv/time/cmos-rtc \
-		srv/hw/irc/apic \
-		srv/hw/irc/i8259
+		drv/bus/isa
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -214,18 +226,25 @@ LIBS = \
 	lib/drv \
 	lib/graph \
 	lib/gui \
+	lib/hound \
+	lib/http \
 	lib/softrend \
 	lib/draw \
+	lib/math \
 	lib/net \
 	lib/nic \
 	lib/ext4 \
+	lib/uri \
 	lib/usb \
 	lib/usbhost \
 	lib/usbdev \
 	lib/usbhid \
 	lib/usbvirt \
+	lib/pcm \
 	lib/bithenge \
-	lib/posix
+	lib/posix \
+	lib/mbr \
+	lib/gpt
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

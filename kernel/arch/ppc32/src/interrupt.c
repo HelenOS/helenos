@@ -43,6 +43,7 @@
 #include <arch/mm/tlb.h>
 #include <arch/mm/pht.h>
 #include <print.h>
+#include <log.h>
 
 void start_decrementer(void)
 {
@@ -54,46 +55,46 @@ void start_decrementer(void)
 
 void istate_decode(istate_t *istate)
 {
-	printf("r0 =%0#10" PRIx32 "\tr1 =%0#10" PRIx32 "\t"
+	log_printf("r0 =%0#10" PRIx32 "\tr1 =%0#10" PRIx32 "\t"
 	    "r2 =%0#10" PRIx32 "\n", istate->r0, istate->sp, istate->r2);
 	
-	printf("r3 =%0#10" PRIx32 "\tr4 =%0#10" PRIx32 "\t"
+	log_printf("r3 =%0#10" PRIx32 "\tr4 =%0#10" PRIx32 "\t"
 	    "r5 =%0#10" PRIx32 "\n", istate->r3, istate->r4, istate->r5);
 	
-	printf("r6 =%0#10" PRIx32 "\tr7 =%0#10" PRIx32 "\t"
+	log_printf("r6 =%0#10" PRIx32 "\tr7 =%0#10" PRIx32 "\t"
 	    "r8 =%0#10" PRIx32 "\n", istate->r6, istate->r7, istate->r8);
 	
-	printf("r9 =%0#10" PRIx32 "\tr10=%0#10" PRIx32 "\t"
+	log_printf("r9 =%0#10" PRIx32 "\tr10=%0#10" PRIx32 "\t"
 	    "r11=%0#10" PRIx32 "\n", istate->r9, istate->r10, istate->r11);
 	
-	printf("r12=%0#10" PRIx32 "\tr13=%0#10" PRIx32 "\t"
+	log_printf("r12=%0#10" PRIx32 "\tr13=%0#10" PRIx32 "\t"
 	    "r14=%0#10" PRIx32 "\n", istate->r12, istate->r13, istate->r14);
 	
-	printf("r15=%0#10" PRIx32 "\tr16=%0#10" PRIx32 "\t"
+	log_printf("r15=%0#10" PRIx32 "\tr16=%0#10" PRIx32 "\t"
 	    "r17=%0#10" PRIx32 "\n", istate->r15, istate->r16, istate->r17);
 	
-	printf("r18=%0#10" PRIx32 "\tr19=%0#10" PRIx32 "\t"
+	log_printf("r18=%0#10" PRIx32 "\tr19=%0#10" PRIx32 "\t"
 	    "r20=%0#10" PRIx32 "\n", istate->r18, istate->r19, istate->r20);
 	
-	printf("r21=%0#10" PRIx32 "\tr22=%0#10" PRIx32 "\t"
+	log_printf("r21=%0#10" PRIx32 "\tr22=%0#10" PRIx32 "\t"
 	    "r23=%0#10" PRIx32 "\n", istate->r21, istate->r22, istate->r23);
 	
-	printf("r24=%0#10" PRIx32 "\tr25=%0#10" PRIx32 "\t"
+	log_printf("r24=%0#10" PRIx32 "\tr25=%0#10" PRIx32 "\t"
 	    "r26=%0#10" PRIx32 "\n", istate->r24, istate->r25, istate->r26);
 	
-	printf("r27=%0#10" PRIx32 "\tr28=%0#10" PRIx32 "\t"
+	log_printf("r27=%0#10" PRIx32 "\tr28=%0#10" PRIx32 "\t"
 	    "r29=%0#10" PRIx32 "\n", istate->r27, istate->r28, istate->r29);
 	
-	printf("r30=%0#10" PRIx32 "\tr31=%0#10" PRIx32 "\n",
+	log_printf("r30=%0#10" PRIx32 "\tr31=%0#10" PRIx32 "\n",
 	    istate->r30, istate->r31);
 	
-	printf("cr =%0#10" PRIx32 "\tpc =%0#10" PRIx32 "\t"
+	log_printf("cr =%0#10" PRIx32 "\tpc =%0#10" PRIx32 "\t"
 	    "lr =%0#10" PRIx32 "\n", istate->cr, istate->pc, istate->lr);
 	
-	printf("ctr=%0#10" PRIx32 "\txer=%0#10" PRIx32 "\t"
+	log_printf("ctr=%0#10" PRIx32 "\txer=%0#10" PRIx32 "\t"
 	    "dar=%0#10" PRIx32 "\n", istate->ctr, istate->xer, istate->dar);
 	
-	printf("srr1=%0#10" PRIx32 "\n", istate->srr1);
+	log_printf("srr1=%0#10" PRIx32 "\n", istate->srr1);
 }
 
 /** External interrupts handler
@@ -129,8 +130,8 @@ static void exception_external(unsigned int n, istate_t *istate)
 			 * Spurious interrupt.
 			 */
 #ifdef CONFIG_DEBUG
-			printf("cpu%u: spurious interrupt (inum=%" PRIu8 ")\n",
-			    CPU->id, inum);
+			log(LF_ARCH, LVL_DEBUG, "cpu%u: spurious interrupt"
+			    " (inum=%" PRIu8 ")", CPU->id, inum);
 #endif
 		}
 	}

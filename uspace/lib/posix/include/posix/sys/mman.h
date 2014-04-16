@@ -35,7 +35,11 @@
 #ifndef POSIX_SYS_MMAN_H_
 #define POSIX_SYS_MMAN_H_
 
-#include "sys/types.h"
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
+#include "types.h"
 #include <abi/mm/as.h>
 
 #define MAP_FAILED ((void *) -1)
@@ -44,6 +48,7 @@
 #define MAP_PRIVATE    (1 << 1)
 #define MAP_FIXED      (1 << 2)
 #define MAP_ANONYMOUS  (1 << 3)
+#define MAP_ANON MAP_ANONYMOUS
 
 #undef PROT_NONE
 #undef PROT_READ
@@ -54,9 +59,11 @@
 #define PROT_WRITE AS_AREA_WRITE
 #define PROT_EXEC  AS_AREA_EXEC
 
-extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
-    posix_off_t offset);
-extern int munmap(void *start, size_t length);
+extern void *
+__POSIX_DEF__(mmap)(void *start, size_t length, int prot, int flags, int fd,
+    __POSIX_DEF__(off_t) offset);
+extern int __POSIX_DEF__(munmap)(void *start, size_t length);
+
 
 #endif /* POSIX_SYS_MMAN_H_ */
 

@@ -128,20 +128,17 @@ static reass_dgram_t *reass_dgram_get(inet_packet_t *packet)
 {
 	assert(fibril_mutex_is_locked(&reass_dgram_map_lock));
 
-	list_foreach(reass_dgram_map, link) {
-		reass_dgram_t *rdg = list_get_instance(link, reass_dgram_t,
-		    map_link);
-
+	list_foreach(reass_dgram_map, map_link, reass_dgram_t, rdg) {
 		link_t *f1_link = list_first(&rdg->frags);
 		assert(f1_link != NULL);
 
 		reass_frag_t *f1 = list_get_instance(f1_link, reass_frag_t,
 		    dgram_link);
 
-		if (f1->packet.src.ipv4 == packet->src.ipv4 &&
-		    f1->packet.dest.ipv4 == packet->dest.ipv4 &&
-		    f1->packet.proto == packet->proto &&
-		    f1->packet.ident == packet->ident) {
+		if ((inet_addr_compare(&f1->packet.src, &packet->src)) &&
+		    (inet_addr_compare(&f1->packet.dest, &packet->dest)) &&
+		    (f1->packet.proto == packet->proto) &&
+		    (f1->packet.ident == packet->ident)) {
 			/* Match */
 			return rdg;
 		}
@@ -163,7 +160,7 @@ static reass_dgram_t *reass_dgram_new(void)
 	if (rdg == NULL)
 		return NULL;
 
-	link_initialize(&rdg->map_link);
+	list_append(&rdg->map_link, &reass_dgram_map);
 	list_initialize(&rdg->frags);
 
 	return rdg;
@@ -288,19 +285,19 @@ static int reass_dgram_deliver(reass_dgram_t *rdg)
 	size_t dgram_size;
 	size_t fragoff_limit;
 	inet_dgram_t dgram;
-	reass_frag_t *frag;
 	uint8_t proto;
+	reass_frag_t *frag;
 
 	/*
 	 * Potentially there could be something beyond the first packet
 	 * that has !MF. Make sure we ignore that.
 	 */
 	frag = NULL;
-	list_foreach(rdg->frags, link) {
-		frag = list_get_instance(link, reass_frag_t, dgram_link);
-
-		if (!frag->packet.mf)
+	list_foreach(rdg->frags, dgram_link, reass_frag_t, cfrag) {
+		if (!cfrag->packet.mf) {
+			frag = cfrag;
 			break;
+		}
 	}
 
 	assert(frag != NULL);
@@ -329,22 +326,19 @@ static int reass_dgram_deliver(reass_dgram_t *rdg)
 
 	size_t doffs = 0;
 
-	frag = NULL;
-	list_foreach(rdg->frags, link) {
-		frag = list_get_instance(link, reass_frag_t, dgram_link);
-
+	list_foreach(rdg->frags, dgram_link, reass_frag_t, cfrag) {
 		size_t cb, ce;
 
-		cb = max(doffs, frag->packet.offs);
-		ce = min(dgram_size, frag->packet.offs + frag->packet.size);
+		cb = max(doffs, cfrag->packet.offs);
+		ce = min(dgram_size, cfrag->packet.offs + cfrag->packet.size);
 
 		if (ce > cb) {
 			memcpy(dgram.data + cb,
-			    frag->packet.data + cb - frag->packet.offs,
+			    cfrag->packet.data + cb - cfrag->packet.offs,
 			    ce - cb);
 		}
 
-		if (!frag->packet.mf)
+		if (!cfrag->packet.mf)
 			break;
 	}
 

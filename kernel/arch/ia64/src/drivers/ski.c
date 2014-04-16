@@ -60,7 +60,9 @@ static void ski_putchar(outdev_t *, const wchar_t);
 
 static outdev_operations_t skidev_ops = {
 	.write = ski_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 static ski_instance_t *instance = NULL;

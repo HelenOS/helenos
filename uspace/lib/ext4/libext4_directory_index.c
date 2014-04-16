@@ -526,7 +526,9 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref,
 		p++;
 		
 		/* Don't forget to put old block (prevent memory leak) */
-		block_put(p->block);
+		rc = block_put(p->block);
+		if (rc != EOK)
+			return rc;
 		
 		p->block = block;
 		p->entries = ((ext4_directory_dx_node_t *) block->data)->entries;
@@ -552,6 +554,7 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 {
 	/* Load direct block 0 (index root) */
 	uint32_t root_block_addr;
+	int rc2;
 	int rc = ext4_filesystem_get_inode_data_block_index(inode_ref, 0,
 	    &root_block_addr);
 	if (rc != EOK)
@@ -619,7 +622,9 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 		}
 		
 		/* Not found, leave untouched */
-		block_put(leaf_block);
+		rc2 = block_put(leaf_block);
+		if (rc2 != EOK)
+			goto cleanup;
 		
 		if (rc != ENOENT)
 			goto cleanup;
@@ -627,8 +632,9 @@ int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
 		/* check if the next block could be checked */
 		rc = ext4_directory_dx_next_block(inode_ref, hinfo.hash,
 		    dx_block, &dx_blocks[0]);
-		if (rc < 0)
+		if (rc != EOK)
 			goto cleanup;
+
 	} while (rc == ENOENT);
 	
 	/* Entry not found */
@@ -639,7 +645,9 @@ cleanup:
 	tmp = dx_blocks;
 	
 	while (tmp <= dx_block) {
-		block_put(tmp->block);
+		rc2 = block_put(tmp->block);
+		if (rc == EOK && rc2 != EOK)
+			rc = rc2;
 		++tmp;
 	}
 	

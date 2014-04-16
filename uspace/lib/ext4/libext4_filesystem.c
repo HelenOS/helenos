@@ -38,6 +38,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <malloc.h>
+#include <ipc/vfs.h>
 #include "libext4.h"
 
 /** Initialize filesystem and read all needed data.
@@ -795,7 +796,10 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 			}
 		}
 		
-		block_put(block);
+		rc = block_put(block);
+		if (rc != EOK)
+			return rc;
+
 		rc = ext4_balloc_free_block(inode_ref, fblock);
 		if (rc != EOK)
 			return rc;
@@ -839,7 +843,9 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 					}
 				}
 				
-				block_put(subblock);
+				rc = block_put(subblock);
+				if (rc != EOK)
+					return rc;
 			}
 			
 			rc = ext4_balloc_free_block(inode_ref, ind_block);
@@ -849,7 +855,10 @@ int ext4_filesystem_free_inode(ext4_inode_ref_t *inode_ref)
 			}
 		}
 		
-		block_put(block);
+		rc = block_put(block);
+		if (rc != EOK)
+			return rc;
+
 		rc = ext4_balloc_free_block(inode_ref, fblock);
 		if (rc != EOK)
 			return rc;

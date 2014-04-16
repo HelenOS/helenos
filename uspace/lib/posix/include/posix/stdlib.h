@@ -36,11 +36,17 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "sys/types.h"
 
 #ifndef NULL
 	#define NULL  ((void *) 0)
 #endif
+
+#define RAND_MAX  714025
 
 /* Process Termination */
 #undef EXIT_FAILURE
@@ -48,125 +54,82 @@
 #undef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
 #define _Exit exit
-extern int posix_atexit(void (*func)(void));
-extern void exit(int status);
+extern int __POSIX_DEF__(atexit)(void (*func)(void));
+extern void exit(int status) __attribute__((noreturn));
 extern void abort(void) __attribute__((noreturn));
 
 /* Absolute Value */
-extern int posix_abs(int i);
-extern long posix_labs(long i);
-extern long long posix_llabs(long long i);
+extern int __POSIX_DEF__(abs)(int i);
+extern long __POSIX_DEF__(labs)(long i);
+extern long long __POSIX_DEF__(llabs)(long long i);
 
 /* Integer Division */
 
 typedef struct {
 	int quot, rem;
-} posix_div_t;
+} __POSIX_DEF__(div_t);
 
 typedef struct {
 	long quot, rem;
-} posix_ldiv_t;
+} __POSIX_DEF__(ldiv_t);
 
 typedef struct {
 	long long quot, rem;
-} posix_lldiv_t;
+} __POSIX_DEF__(lldiv_t);
 
-extern posix_div_t posix_div(int numer, int denom);
-extern posix_ldiv_t posix_ldiv(long numer, long denom);
-extern posix_lldiv_t posix_lldiv(long long numer, long long denom);
+extern __POSIX_DEF__(div_t) __POSIX_DEF__(div)(int numer, int denom);
+extern __POSIX_DEF__(ldiv_t) __POSIX_DEF__(ldiv)(long numer, long denom);
+extern __POSIX_DEF__(lldiv_t) __POSIX_DEF__(lldiv)(long long numer, long long denom);
 
 /* Array Functions */
-extern void posix_qsort(void *array, size_t count, size_t size,
+extern void __POSIX_DEF__(qsort)(void *array, size_t count, size_t size,
     int (*compare)(const void *, const void *));
-extern void *posix_bsearch(const void *key, const void *base,
+extern void *__POSIX_DEF__(bsearch)(const void *key, const void *base,
     size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 
 /* Environment Access */
-extern char *posix_getenv(const char *name);
-extern int posix_putenv(char *string);
-extern int posix_system(const char *string);
+extern char *__POSIX_DEF__(getenv)(const char *name);
+extern int __POSIX_DEF__(putenv)(char *string);
+extern int __POSIX_DEF__(system)(const char *string);
 
 /* Symbolic Links */
-extern char *posix_realpath(const char *restrict name, char *restrict resolved);
+extern char *__POSIX_DEF__(realpath)(const char *restrict name, char *restrict resolved);
 
 /* Floating Point Conversion */
-extern double posix_atof(const char *nptr);
-extern float posix_strtof(const char *restrict nptr, char **restrict endptr);
-extern double posix_strtod(const char *restrict nptr, char **restrict endptr);
-extern long double posix_strtold(const char *restrict nptr, char **restrict endptr);
+extern double __POSIX_DEF__(atof)(const char *nptr);
+extern float __POSIX_DEF__(strtof)(const char *restrict nptr, char **restrict endptr);
+extern double __POSIX_DEF__(strtod)(const char *restrict nptr, char **restrict endptr);
+extern long double __POSIX_DEF__(strtold)(const char *restrict nptr, char **restrict endptr);
 
 /* Integer Conversion */
-extern int posix_atoi(const char *nptr);
-extern long int posix_atol(const char *nptr);
-extern long long int posix_atoll(const char *nptr);
-extern long int posix_strtol(const char *restrict nptr,
+extern int __POSIX_DEF__(atoi)(const char *nptr);
+extern long int __POSIX_DEF__(atol)(const char *nptr);
+extern long long int __POSIX_DEF__(atoll)(const char *nptr);
+extern long int __POSIX_DEF__(strtol)(const char *restrict nptr,
     char **restrict endptr, int base);
-extern long long int posix_strtoll(const char *restrict nptr,
+extern long long int __POSIX_DEF__(strtoll)(const char *restrict nptr,
     char **restrict endptr, int base);
-extern unsigned long int posix_strtoul(const char *restrict nptr,
+extern unsigned long int __POSIX_DEF__(strtoul)(const char *restrict nptr,
     char **restrict endptr, int base);
-extern unsigned long long int posix_strtoull(
+extern unsigned long long int __POSIX_DEF__(strtoull)(
     const char *restrict nptr, char **restrict endptr, int base);
 
 /* Memory Allocation */
-extern void *posix_malloc(size_t size);
-extern void *posix_calloc(size_t nelem, size_t elsize);
-extern void *posix_realloc(void *ptr, size_t size);
-extern void posix_free(void *ptr);
+extern void *__POSIX_DEF__(malloc)(size_t size);
+extern void *__POSIX_DEF__(calloc)(size_t nelem, size_t elsize);
+extern void *__POSIX_DEF__(realloc)(void *ptr, size_t size);
+extern void __POSIX_DEF__(free)(void *ptr);
 
 /* Temporary Files */
-extern int posix_mkstemp(char *tmpl);
+extern int __POSIX_DEF__(mkstemp)(char *tmpl);
+
+/* Pseudo-random number generator */
+extern int __POSIX_DEF__(rand)(void);
+extern void __POSIX_DEF__(srand)(unsigned int seed);
 
 /* Legacy Declarations */
-extern char *posix_mktemp(char *tmpl);
+extern char *__POSIX_DEF__(mktemp)(char *tmpl);
 extern int bsd_getloadavg(double loadavg[], int nelem);
-
-#ifndef LIBPOSIX_INTERNAL
-	#define atexit posix_atexit
-
-	#define abs posix_abs
-	#define labs posix_labs
-	#define llabs posix_llabs
-
-	#define div_t posix_div_t
-	#define ldiv_t posix_ldiv_t
-	#define lldiv_t posix_lldiv_t
-	#define div posix_div
-	#define ldiv posix_ldiv
-	#define lldiv posix_lldiv
-
-	#define qsort posix_qsort
-	#define bsearch posix_bsearch
-
-	#define getenv posix_getenv
-	#define putenv posix_putenv
-	#define system posix_system
-
-	#define realpath posix_realpath
-	
-	#define atof posix_atof
-	#define strtof posix_strtof
-	#define strtod posix_strtod
-	#define strtold posix_strtold
-	
-	#define atoi posix_atoi
-	#define atol posix_atol
-	#define atoll posix_atoll
-	#define strtol posix_strtol
-	#define strtoll posix_strtoll
-	#define strtoul posix_strtoul
-	#define strtoull posix_strtoull
-
-	#define malloc posix_malloc
-	#define calloc posix_calloc
-	#define realloc posix_realloc
-	#define free posix_free
-
-	#define mkstemp posix_mkstemp
-
-	#define mktemp posix_mktemp
-	#define getloadavg bsd_getloadavg
-#endif
 
 #endif  // POSIX_STDLIB_H_
 

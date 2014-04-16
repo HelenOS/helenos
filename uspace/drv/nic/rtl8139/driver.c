@@ -40,7 +40,7 @@
 #include <ddf/interrupt.h>
 #include <io/log.h>
 #include <nic.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 
 #include <ipc/irc.h>
 #include <sysinfo.h>
@@ -189,8 +189,6 @@ inline static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
 	    (uint32_t)(mask >> 32));
 	return;
 }
-
-#include <device/pci.h>
 
 /** Set PmEn (Power management enable) bit value
  *
@@ -1086,7 +1084,7 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
 	rtl8139->irq = hw_resources->irqs.irqs[0];
 	ddf_msg(LVL_DEBUG, "%s device: irq 0x%x assigned", ddf_dev_get_name(dev), rtl8139->irq);
 
-	rtl8139->io_addr = IOADDR_TO_PTR(hw_resources->io_ranges.ranges[0].address);
+	rtl8139->io_addr = IOADDR_TO_PTR(RNGABS(hw_resources->io_ranges.ranges[0]));
 	if (hw_resources->io_ranges.ranges[0].size < RTL8139_IO_SIZE) {
 		ddf_msg(LVL_ERROR, "i/o range assigned to the device "
 		    "%s is too small.", ddf_dev_get_name(dev));
@@ -1143,8 +1141,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 
 	ddf_msg(LVL_DEBUG, "Creating buffers");
 
-	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, AS_AREA_WRITE, 0,
-	    &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
+	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, DMAMEM_4GiB,
+	    AS_AREA_WRITE, 0, &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Can not allocate transmitter buffers.");
 		goto err_tx_alloc;
@@ -1163,8 +1161,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
 
-	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, AS_AREA_READ, 0,
-	    &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
+	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, DMAMEM_4GiB,
+	    AS_AREA_READ, 0, &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Can not allocate receive buffer.");
 		goto err_rx_alloc;

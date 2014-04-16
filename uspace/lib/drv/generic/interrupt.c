@@ -38,6 +38,7 @@
 #include <async.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <macros.h>
 
 #include "ddf/interrupt.h"
 #include "private/driver.h"
@@ -54,9 +55,6 @@ static interrupt_context_t *find_interrupt_context_by_id(
     interrupt_context_list_t *list, int id);
 static interrupt_context_t *find_interrupt_context(
     interrupt_context_list_t *list, ddf_dev_t *dev, int irq);
-int register_interrupt_handler(ddf_dev_t *dev, int irq,
-    interrupt_handler_t *handler, irq_code_t *pseudocode);
-int unregister_interrupt_handler(ddf_dev_t *dev, int irq);
 
 /** Interrupts */
 static interrupt_context_list_t interrupt_contexts;
@@ -67,10 +65,10 @@ static irq_cmd_t default_cmds[] = {
 	}
 };
 
-static irq_code_t default_pseudocode = {
+static const irq_code_t default_pseudocode = {
 	0,
 	NULL,
-	sizeof(default_cmds) / sizeof(irq_cmd_t),
+	ARRAY_SIZE(default_cmds),
 	default_cmds
 };
 
@@ -137,12 +135,9 @@ static void remove_interrupt_context(interrupt_context_list_t *list,
 static interrupt_context_t *find_interrupt_context_by_id(
     interrupt_context_list_t *list, int id)
 {
-	interrupt_context_t *ctx;
-	
 	fibril_mutex_lock(&list->mutex);
 	
-	list_foreach(list->contexts, link) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
+	list_foreach(list->contexts, link, interrupt_context_t, ctx) {
 		if (ctx->id == id) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
@@ -156,12 +151,9 @@ static interrupt_context_t *find_interrupt_context_by_id(
 static interrupt_context_t *find_interrupt_context(
     interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
-	interrupt_context_t *ctx;
-	
 	fibril_mutex_lock(&list->mutex);
 	
-	list_foreach(list->contexts, link) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
+	list_foreach(list->contexts, link, interrupt_context_t, ctx) {
 		if (ctx->irq == irq && ctx->dev == dev) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
@@ -174,7 +166,7 @@ static interrupt_context_t *find_interrupt_context(
 
 
 int register_interrupt_handler(ddf_dev_t *dev, int irq,
-    interrupt_handler_t *handler, irq_code_t *pseudocode)
+    interrupt_handler_t *handler, const irq_code_t *pseudocode)
 {
 	interrupt_context_t *ctx = create_interrupt_context();
 	

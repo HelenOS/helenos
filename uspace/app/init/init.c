@@ -59,10 +59,6 @@
 #define TMPFS_FS_TYPE      "tmpfs"
 #define TMPFS_MOUNT_POINT  "/tmp"
 
-#define DATA_FS_TYPE      "fat"
-#define DATA_DEVICE       "bd/ata1disk0"
-#define DATA_MOUNT_POINT  "/data"
-
 #define SRV_CONSOLE  "/srv/console"
 #define APP_GETTERM  "/app/getterm"
 
@@ -315,13 +311,6 @@ static bool mount_tmpfs(void)
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 
-static bool mount_data(void)
-{
-	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0, 0);
-	return mount_report("Data filesystem", DATA_MOUNT_POINT, DATA_FS_TYPE,
-	    DATA_DEVICE, rc);
-}
-
 int main(int argc, char *argv[])
 {
 	info_print();
@@ -335,6 +324,7 @@ int main(int argc, char *argv[])
 	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
 		srv_start("/srv/tmpfs");
 	
+	srv_start("/srv/klog");
 	srv_start("/srv/locfs");
 	srv_start("/srv/taskmon");
 	
@@ -359,30 +349,15 @@ int main(int argc, char *argv[])
 	srv_start("/srv/tcp");
 	srv_start("/srv/udp");
 	srv_start("/srv/dnsrsrv");
+	srv_start("/srv/dhcp");
+	srv_start("/srv/nconfsrv");
 	
 	srv_start("/srv/clipboard");
 	srv_start("/srv/remcons");
 	
-	/*
-	 * Start these synchronously so that mount_data() can be
-	 * non-blocking.
-	 */
-#ifdef CONFIG_START_BD
-	srv_start("/srv/ata_bd");
-#endif
-	
-#ifdef CONFIG_MOUNT_DATA
-	/* Make sure fat is running. */
-	if (str_cmp(STRING(RDFMT), "fat") != 0)
-		srv_start("/srv/fat");
-	
-	mount_data();
-#else
-	(void) mount_data;
-#endif
-	
 	srv_start("/srv/input", HID_INPUT);
 	srv_start("/srv/output", HID_OUTPUT);
+	srv_start("/srv/hound");
 	
 	int rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
 	if (rc == EOK) {

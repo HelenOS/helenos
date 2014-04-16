@@ -45,27 +45,18 @@
 #include <async.h>
 #include "i8042.h"
 
-#define CHECK_RET_RETURN(ret, message...) \
-	do { \
-		if (ret != EOK) { \
-			ddf_msg(LVL_ERROR, message); \
-			return ret; \
-		} \
-	} while (0)
-
 /** Get address of I/O registers.
  *
  * @param[in]  dev            Device asking for the addresses.
- * @param[out] io_reg_address Base address of the memory range.
- * @param[out] io_reg_size    Size of the memory range.
+ * @param[out] p_io_reg       Pointer to register range.
  * @param[out] kbd_irq        Primary port IRQ.
  * @param[out] mouse_irq      Auxiliary port IRQ.
  *
  * @return Error code.
  *
  */
-static int get_my_registers(ddf_dev_t *dev, uintptr_t *io_reg_address,
-    size_t *io_reg_size, int *kbd_irq, int *mouse_irq)
+static int get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
+    int *kbd_irq, int *mouse_irq)
 {
 	assert(dev);
 	
@@ -86,11 +77,8 @@ static int get_my_registers(ddf_dev_t *dev, uintptr_t *io_reg_address,
 		return EINVAL;
 	}
 	
-	if (io_reg_address)
-		*io_reg_address = hw_resources.io_ranges.ranges[0].address;
-	
-	if (io_reg_size)
-		*io_reg_size = hw_resources.io_ranges.ranges[0].size;
+	if (p_io_reg)
+		*p_io_reg = hw_resources.io_ranges.ranges[0];
 	
 	if (kbd_irq)
 		*kbd_irq = hw_resources.irqs.irqs[0];
@@ -111,27 +99,37 @@ static int get_my_registers(ddf_dev_t *dev, uintptr_t *io_reg_address,
  */
 static int i8042_dev_add(ddf_dev_t *device)
 {
+	addr_range_t io_regs;
+	int kbd = 0;
+	int mouse = 0;
+	int rc;
+	
 	if (!device)
 		return EINVAL;
 	
-	uintptr_t io_regs = 0;
-	size_t io_size = 0;
-	int kbd = 0;
-	int mouse = 0;
+	rc = get_my_registers(device, &io_regs, &kbd, &mouse);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to get registers: %s.",
+		    str_error(rc));
+		return rc;
+	}
 	
-	int ret = get_my_registers(device, &io_regs, &io_size, &kbd, &mouse);
-	CHECK_RET_RETURN(ret, "Failed to get registers: %s.",
-	    str_error(ret));
-	ddf_msg(LVL_DEBUG, "I/O regs at %p (size %zuB), IRQ kbd %d, IRQ mouse %d.",
-	    (void *) io_regs, io_size, kbd, mouse);
+	ddf_msg(LVL_DEBUG,
+	    "I/O regs at %p (size %zuB), IRQ kbd %d, IRQ mouse %d.",
+	    RNGABSPTR(io_regs), RNGSZ(io_regs), kbd, mouse);
 	
 	i8042_t *i8042 = ddf_dev_data_alloc(device, sizeof(i8042_t));
-	ret = (i8042 == NULL) ? ENOMEM : EOK;
-	CHECK_RET_RETURN(ret, "Failed to allocate i8042 driver instance.");
+	if (i8042 == NULL) {
+		ddf_msg(LVL_ERROR, "Out of memory.");
+		return ENOMEM;
+	}
 	
-	ret = i8042_init(i8042, (void *) io_regs, io_size, kbd, mouse, device);
-	CHECK_RET_RETURN(ret, "Failed to initialize i8042 driver: %s.",
-	    str_error(ret));
+	rc = i8042_init(i8042, &io_regs, kbd, mouse, device);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to initialize i8042 driver: %s.",
+		    str_error(rc));
+		return rc;
+	}
 	
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));

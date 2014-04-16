@@ -35,6 +35,10 @@
 #ifndef POSIX_FCNTL_H_
 #define POSIX_FCNTL_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "sys/types.h"
 #include "libc/fcntl.h"
 #include "errno.h"
@@ -75,13 +79,9 @@
 #undef FD_CLOEXEC
 #define FD_CLOEXEC         1 /* Close on exec. */
 
-extern int posix_open(const char *pathname, int flags, ...);
-extern int posix_fcntl(int fd, int cmd, ...);
+extern int __POSIX_DEF__(open)(const char *pathname, int flags, ...);
+extern int __POSIX_DEF__(fcntl)(int fd, int cmd, ...);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define fcntl posix_fcntl
-	#define open posix_open
-#endif
 
 #endif /* POSIX_FCNTL_H_ */
 

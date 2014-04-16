@@ -40,13 +40,14 @@
 #error "Do not include arch specific page.h directly use generic page.h instead"
 #endif
 
+
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
 	(*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte) \
 	(((pte_t *) (pte))->l0.descriptor_type != 0)
 #define PTE_GET_FRAME_ARCH(pte) \
-	(((pte_t *) (pte))->l1.frame_base_addr << FRAME_WIDTH)
+	(((uintptr_t) ((pte_t *) (pte))->l1.frame_base_addr) << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(pte) \
 	(((pte_t *) (pte))->l1.access_permission_1 != PTE_AP1_RO)
 #define PTE_EXECUTABLE_ARCH(pte) \
@@ -124,18 +125,39 @@ typedef union {
 /** pte_level1_t small page table flag with NX (used in descriptor type). */
 #define PTE_DESCRIPTOR_SMALL_PAGE_NX	3
 
-/** Sets the address of level 0 page table.
+
+/**
+ * For an ARMv7 implementation that does not include the Large Physical Address Extension,
+ * and in implementations of architecture versions before ARMv7, if the translation tables
+ * are held in Write-Back Cacheable memory, the caches must be cleaned to the point of
+ * unification after writing to the translation tables and before the DSB instruction. This
+ * ensures that the updated translation table are visible to a hardware translation table walk.
  *
- * @param pt Pointer to the page table to set.
+ * Therefore, an example instruction sequence for writing a translation table entry,
+ * covering changes to the instruction
+ * or data mappings in a uniprocessor system is:
+ * STR rx, [Translation table entry]
+ * ; write new entry to the translation table
+ * Clean cache line [Translation table entry] : This operation is not required with the
+ * ; Multiprocessing Extensions.
+ * DSB
+ * ; ensures visibility of the data cleaned from the D Cache
+ * Invalidate TLB entry by MVA (and ASID if non-global) [page address]
+ * Invalidate BTC
+ * DSB
+ * ; ensure completion of the Invalidate TLB operation
+ * ISB
+ * ; ensure table changes visible to instruction fetch
  *
+ * ARM Architecture reference chp. B3.10.1 p. B3-1375
+ * @note: see TTRB0/1 for pt memory type
  */
-NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
-{
-	asm volatile (
-		"mcr p15, 0, %[pt], c2, c0, 0\n"
-		:: [pt] "r" (pt)
-	);
-}
+#define pt_coherence_m(pt, count) \
+do { \
+	for (unsigned i = 0; i < count; ++i) \
+		DCCMVAU_write((uintptr_t)(pt + i)); \
+	read_barrier(); \
+} while (0)
 
 
 /** Returns level 0 page table entry flags.
@@ -205,6 +227,7 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 		p->domain = 0;
 		p->ns = 0;
 	}
+	pt_coherence(p);
 }
 
 
@@ -231,17 +254,37 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		else
 			p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE_NX;
 	}
+
+	if (flags & PAGE_CACHEABLE) {
+		/*
+		 * Write-through, no write-allocate memory, see ch. B3.8.2
+		 * (p. B3-1358) of ARM Architecture reference manual.
+		 * Make sure the memory type is correct, and in sync with:
+		 * init_boot_pt (boot/arch/arm32/src/mm.c)
+		 * init_ptl0_section (boot/arch/arm32/src/mm.c)
+		 * set_ptl0_addr (kernel/arch/arm32/include/arch/mm/page.h)
+		 */
+		p->tex = 5;
+		p->cacheable = 0;
+		p->bufferable = 1;
+	} else {
+		/*
+		 * Shareable device memory, see ch. B3.8.2 (p. B3-1358) of
+		 * ARM Architecture reference manual.
+		 */
+		p->tex = 0;
+		p->cacheable = 0;
+		p->bufferable = 1;
+	}
 	
-	/* tex=0 buf=1 and cache=1 => normal memory
-	 * tex=0 buf=1 and cache=0 => shareable device mmio
-	 */
-	p->cacheable = (flags & PAGE_CACHEABLE);
-	p->bufferable = 1;
-	p->tex = 0;
-	
-	/* Shareable is ignored for devices (non-cacheable),
-	 * turn it on for normal memory. */
+#if defined(PROCESSOR_ARCH_armv6)
+	/* FIXME: this disables caches */
 	p->shareable = 1;
+#else
+	/* Shareable is ignored for devices (non-cacheable),
+	 * turn it off for normal memory. */
+	p->shareable = 0;
+#endif
 	
 	p->non_global = !(flags & PAGE_GLOBAL);
 	
@@ -255,6 +298,7 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		if (!(flags & PAGE_WRITE))
 			p->access_permission_1 = PTE_AP1_RO;
 	}
+	pt_coherence(p);
 }
 
 NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
@@ -263,8 +307,8 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 
 	p->should_be_zero_0 = 0;
 	p->should_be_zero_1 = 0;
-	write_barrier();
 	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
+	pt_coherence(p);
 }
 
 NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
@@ -272,6 +316,7 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 	pte_level1_t *p = &pt[i].l1;
 
 	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
+	pt_coherence(p);
 }
 
 

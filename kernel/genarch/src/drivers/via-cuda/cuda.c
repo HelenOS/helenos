@@ -117,7 +117,7 @@ cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 	return instance;
 }
 
-#include <print.h>
+#include <log.h>
 void cuda_wire(cuda_instance_t *instance, indev_t *kbrdin)
 {
 	cuda_t *dev = instance->cuda;
@@ -196,7 +196,7 @@ static void cuda_irq_listen(irq_t *irq)
 	b = pio_read_8(&dev->b);
 
 	if ((b & TREQ) != 0) {
-		printf("cuda_irq_listen: no TREQ?!\n");
+		log(LF_OTHER, LVL_ERROR, "cuda_irq_listen: no TREQ?!");
 		return;
 	}
 

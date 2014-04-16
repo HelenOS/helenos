@@ -26,7 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS += -mcpu=ultrasparc -m64 -mcmodel=medlow
+ifeq ($(PROCESSOR),sun4v)
+GCC_CFLAGS += -mcpu=niagara -mno-vis
+else
+GCC_CFLAGS += -mcpu=ultrasparc
+endif
+
+GCC_CFLAGS += -m64 -mcmodel=medlow
+
 LFLAGS = -no-check-sections
 
 ENDIANESS = BE

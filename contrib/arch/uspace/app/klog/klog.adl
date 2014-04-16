@@ -1,9 +1,0 @@
-frame klog {
-	requires:
-		naming_service ns;
-		[/uspace/lib/libc/requires]
-	initialization:
-		!ns.ipc_m_share_in /* SERVICE_MEM_KLOG */
-	protocol:
-		[/uspace/lib/libc/protocol]
-};

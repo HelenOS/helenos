@@ -35,6 +35,10 @@
 #ifndef POSIX_STDINT_H_
 #define POSIX_STDINT_H_
 
+#ifndef __POSIX_DEF__
+#define __POSIX_DEF__(x) x
+#endif
+
 #include "libc/stdint.h"
 
 #undef INT8_MAX
@@ -99,13 +103,34 @@
 
 #include "libc/sys/types.h"
 
-typedef int64_t posix_intmax_t;
-typedef uint64_t posix_uintmax_t;
+typedef int64_t __POSIX_DEF__(intmax_t);
+typedef uint64_t __POSIX_DEF__(uintmax_t);
 
-#ifndef LIBPOSIX_INTERNAL
-	#define intmax_t posix_intmax_t
-	#define uintmax_t posix_uintmax_t
-#endif
+
+/*
+ * Fast* and least* integer types.
+ *
+ * The definitions below are definitely safe if not the best.
+ */
+typedef uint8_t uint_least8_t;
+typedef uint16_t uint_least16_t;
+typedef uint32_t uint_least32_t;
+typedef uint64_t uint_least64_t;
+
+typedef int8_t int_least8_t;
+typedef int16_t int_least16_t;
+typedef int32_t int_least32_t;
+typedef int64_t int_least64_t;
+
+typedef uint8_t uint_fast8_t;
+typedef uint16_t uint_fast16_t;
+typedef uint32_t uint_fast32_t;
+typedef uint64_t uint_fast64_t;
+
+typedef int8_t int_fast8_t;
+typedef int16_t int_fast16_t;
+typedef int32_t int_fast32_t;
+typedef int64_t int_fast64_t;
 
 #endif /* POSIX_STDINT_H_ */
 

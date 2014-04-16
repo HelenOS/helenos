@@ -36,6 +36,7 @@
 
 #include <async.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <str.h>
 
 #include <inet/dnsr.h>
@@ -51,7 +52,8 @@ static size_t size;
 
 static char buf[BUF_SIZE];
 
-static struct sockaddr_in addr;
+static struct sockaddr *address;
+static socklen_t addrlen;
 
 static uint16_t port;
 
@@ -61,6 +63,8 @@ int main(int argc, char *argv[])
 	int fd;
 	char *endptr;
 	dnsr_hostinfo_t *hinfo;
+	inet_addr_t addr;
+	char *addr_s;
 
 	port = 7;
 
@@ -68,45 +72,55 @@ int main(int argc, char *argv[])
 	size = str_size(data);
 
 	/* Connect to local IP address by default */
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = htonl(0x7f000001);
+	inet_addr(&addr, 127, 0, 0, 1);
 
 	if (argc >= 2) {
 		printf("parsing address '%s'\n", argv[1]);
-		rc = inet_pton(AF_INET, argv[1], (uint8_t *)&addr.sin_addr.s_addr);
+		rc = inet_addr_parse(argv[1], &addr);
 		if (rc != EOK) {
 			/* Try interpreting as a host name */
-			rc = dnsr_name2host(argv[1], &hinfo);
+			rc = dnsr_name2host(argv[1], &hinfo, ip_v4);
 			if (rc != EOK) {
 				printf("Error resolving host '%s'.\n", argv[1]);
 				return rc;
 			}
 
-			addr.sin_addr.s_addr = host2uint32_t_be(hinfo->addr.ipv4);
-			addr.sin_family = AF_INET;
+			addr = hinfo->addr;
 		}
-		printf("result: rc=%d, family=%d, addr=%x\n", rc,
-		    addr.sin_family, addr.sin_addr.s_addr);
+		rc = inet_addr_format(&addr, &addr_s);
+		if (rc != EOK) {
+			assert(rc == ENOMEM);
+			printf("Out of memory.\n");
+			return rc;
+		}
+		printf("result: rc=%d, ver=%d, addr=%s\n", rc,
+		    addr.version, addr_s);
+		free(addr_s);
 	}
 
 	if (argc >= 3) {
 		printf("parsing port '%s'\n", argv[2]);
-		addr.sin_port = htons(strtoul(argv[2], &endptr, 10));
+		port = htons(strtoul(argv[2], &endptr, 10));
 		if (*endptr != '\0') {
 			fprintf(stderr, "Error parsing port\n");
 			return 1;
 		}
 	}
 
+	rc = inet_addr_sockaddr(&hinfo->addr, port, &address, &addrlen);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		return rc;
+	}
+
 	printf("socket()\n");
-	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	fd = socket(address->sa_family, SOCK_STREAM, IPPROTO_TCP);
 	printf(" -> %d\n", fd);
 	if (fd < 0)
 		return 1;
 
 	printf("connect()\n");
-	rc = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
+	rc = connect(fd, address, addrlen);
 	printf(" -> %d\n", rc);
 	if (rc != 0)
 		return 1;
@@ -128,6 +142,8 @@ int main(int argc, char *argv[])
 	printf("closesocket()\n");
 	rc = closesocket(fd);
 	printf(" -> %d\n", rc);
+
+	free(address);
 
 	return 0;
 }

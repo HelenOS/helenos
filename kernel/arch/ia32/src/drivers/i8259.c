@@ -41,7 +41,7 @@
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <print.h>
+#include <log.h>
 #include <interrupt.h>
 
 static void pic_spurious(unsigned int n, istate_t *istate);
@@ -128,7 +128,7 @@ void pic_eoi(void)
 void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
-	printf("cpu%u: PIC spurious interrupt\n", CPU->id);
+	log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt", CPU->id);
 #endif
 }
 

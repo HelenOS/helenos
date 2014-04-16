@@ -164,10 +164,9 @@ visualizer_t *graph_get_visualizer(sysarg_t handle)
 	visualizer_t *vs = NULL;
 
 	fibril_mutex_lock(&visualizer_list_mtx);
-	list_foreach(visualizer_list, link) {
-		visualizer_t *cur = list_get_instance(link, visualizer_t, link);
-		if (cur->reg_svc_handle == handle) {
-			vs = cur;
+	list_foreach(visualizer_list, link, visualizer_t, vcur) {
+		if (vcur->reg_svc_handle == handle) {
+			vs = vcur;
 			break;
 		}
 	}
@@ -181,10 +180,9 @@ renderer_t *graph_get_renderer(sysarg_t handle)
 	renderer_t *rnd = NULL;
 
 	fibril_mutex_lock(&renderer_list_mtx);
-	list_foreach(renderer_list, link) {
-		renderer_t *cur = list_get_instance(link, renderer_t, link);
-		if (cur->reg_svc_handle == handle) {
-			rnd = cur;
+	list_foreach(renderer_list, link, renderer_t, rcur) {
+		if (rcur->reg_svc_handle == handle) {
+			rnd = rcur;
 			break;
 		}
 	}
@@ -321,8 +319,7 @@ static void vs_get_default_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *
 {
 	fibril_mutex_lock(&vs->mode_mtx);
 	vslmode_list_element_t *mode_elem = NULL;
-	list_foreach(vs->modes, link) {
-		vslmode_list_element_t *cur = list_get_instance(link, vslmode_list_element_t, link);
+	list_foreach(vs->modes, link, vslmode_list_element_t, cur) {
 		if (cur->mode.index == vs->def_mode_idx) {
 			mode_elem = cur;
 			break;
@@ -381,8 +378,7 @@ static void vs_get_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 
 	fibril_mutex_lock(&vs->mode_mtx);
 	vslmode_list_element_t *mode_elem = NULL;
-	list_foreach(vs->modes, link) {
-		vslmode_list_element_t *cur = list_get_instance(link, vslmode_list_element_t, link);
+	list_foreach(vs->modes, link, vslmode_list_element_t, cur) {
 		if (cur->mode.index == mode_idx) {
 			mode_elem = cur;
 			break;
@@ -424,8 +420,7 @@ static void vs_set_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 	/* Find mode in the list. */
 	fibril_mutex_lock(&vs->mode_mtx);
 	vslmode_list_element_t *mode_elem = NULL;
-	list_foreach(vs->modes, link) {
-		vslmode_list_element_t *cur = list_get_instance(link, vslmode_list_element_t, link);
+	list_foreach(vs->modes, link, vslmode_list_element_t, cur) {
 		if (cur->mode.index == mode_idx) {
 			mode_elem = cur;
 			break;

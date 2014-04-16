@@ -62,7 +62,9 @@ static void niagara_putchar(outdev_t *, const wchar_t);
 /** Character device operations */
 static outdev_operations_t niagara_ops = {
 	.write = niagara_putchar,
-	.redraw = NULL
+	.redraw = NULL,
+	.scroll_up = NULL,
+	.scroll_down = NULL
 };
 
 /**

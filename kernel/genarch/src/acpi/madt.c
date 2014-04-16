@@ -42,7 +42,7 @@
 #include <panic.h>
 #include <debug.h>
 #include <config.h>
-#include <print.h>
+#include <log.h>
 #include <mm/slab.h>
 #include <memstr.h>
 #include <sort.h>
@@ -235,17 +235,20 @@ void acpi_madt_parse(void)
 		case MADT_IO_SAPIC:
 		case MADT_L_SAPIC:
 		case MADT_PLATFORM_INTR_SRC:
-			printf("MADT: Skipping %s entry (type=%" PRIu8 ")\n",
+			log(LF_ARCH, LVL_WARN,
+			    "MADT: Skipping %s entry (type=%" PRIu8 ")",
 			    entry[hdr->type], hdr->type);
 			break;
 		default:
 			if ((hdr->type >= MADT_RESERVED_SKIP_BEGIN)
 			    && (hdr->type <= MADT_RESERVED_SKIP_END))
-				printf("MADT: Skipping reserved entry (type=%" PRIu8 ")\n",
+				log(LF_ARCH, LVL_NOTE,
+				    "MADT: Skipping reserved entry (type=%" PRIu8 ")",
 				    hdr->type);
 				
 			if (hdr->type >= MADT_RESERVED_OEM_BEGIN)
-				printf("MADT: Skipping OEM entry (type=%" PRIu8 ")\n",
+				log(LF_ARCH, LVL_NOTE,
+				    "MADT: Skipping OEM entry (type=%" PRIu8 ")",
 				    hdr->type);
 			
 			break;

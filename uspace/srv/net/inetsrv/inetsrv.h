@@ -43,6 +43,7 @@
 #include <inet/iplink.h>
 #include <ipc/loc.h>
 #include <sys/types.h>
+#include <types/inet.h>
 #include <async.h>
 
 /** Inet Client */
@@ -62,33 +63,15 @@ typedef struct {
 	link_t client_list;
 } inetping_client_t;
 
-/** Address object info */
+/** Inetping6 Client */
 typedef struct {
-	/** Network address */
-	inet_naddr_t naddr;
-	/** Link service ID */
-	sysarg_t ilink;
-	/** Address object name */
-	char *name;
-} inet_addr_info_t;
-
-/** IP link info */
-typedef struct {
-	/** Link service name */
-	char *name;
-	/** Default MTU */
-	size_t def_mtu;
-} inet_link_info_t;
-
-/** Static route info */
-typedef struct {
-	/** Destination network address */
-	inet_naddr_t dest;
-	/** Router address */
-	inet_addr_t router;
-	/** Static route name */
-	char *name;
-} inet_sroute_info_t;
+	/** Callback session */
+	async_sess_t *sess;
+	/** Session identifier */
+	uint16_t ident;
+	/** Link to client list */
+	link_t client_list;
+} inetping6_client_t;
 
 typedef struct {
 	/** Source address */
@@ -102,7 +85,7 @@ typedef struct {
 	/** Time to live */
 	uint8_t ttl;
 	/** Identifier */
-	uint16_t ident;
+	uint32_t ident;
 	/** Do not fragment */
 	bool df;
 	/** More fragments */
@@ -116,20 +99,14 @@ typedef struct {
 } inet_packet_t;
 
 typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint8_t tos;
-	void *data;
-	size_t size;
-} inet_dgram_t;
-
-typedef struct {
 	link_t link_list;
 	service_id_t svc_id;
 	char *svc_name;
 	async_sess_t *sess;
 	iplink_t *iplink;
 	size_t def_mtu;
+	addr48_t mac;
+	bool mac_valid;
 } inet_link_t;
 
 typedef struct {
@@ -169,14 +146,6 @@ typedef struct {
 	/** Local destination address */
 	inet_addr_t ldest;
 } inet_dir_t;
-
-typedef struct {
-	inet_addr_t src;
-	inet_addr_t dest;
-	uint16_t seq_no;
-	void *data;
-	size_t size;
-} inetping_sdu_t;
 
 extern int inet_ev_recv(inet_client_t *, inet_dgram_t *);
 extern int inet_recv_packet(inet_packet_t *);

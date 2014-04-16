@@ -39,6 +39,8 @@
 #define FRAME_WIDTH  12  /* 4KB frames */
 #define FRAME_SIZE   (1 << FRAME_WIDTH)
 
+#define FRAME_LOWPRIO  0
+
 #ifndef __ASM__
 
 #include <typedefs.h>
@@ -59,6 +61,11 @@
 
 #define PHYSMEM_START_ADDR       0x80000000
 #define BOOT_PAGE_TABLE_ADDRESS  0x80008000
+
+#elif defined MACHINE_raspberrypi
+
+#define PHYSMEM_START_ADDR       0x00000000
+#define BOOT_PAGE_TABLE_ADDRESS  0x00010000
 
 #else
 

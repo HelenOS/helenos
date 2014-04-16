@@ -30,11 +30,8 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-COMMON_HEADER = $(ROOT_PATH)/common.h
-COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
-
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+COMMON_HEADER_ARCH = arch/$(UARCH)/include/libarch/common.h
 
 LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
@@ -49,8 +46,6 @@ LIBRARY = libc
 SLIBRARY = libc.so.0.0
 LSONAME = libc.so0
 
-
--include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
@@ -63,16 +58,13 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/cfg.c \
 	generic/clipboard.c \
+	generic/corecfg.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
-	generic/device/char_dev.c \
+	generic/device/pio_window.c \
 	generic/device/clock_dev.c \
-	generic/device/battery_dev.c \
-	generic/device/graph_dev.c \
-	generic/device/nic.c \
-	generic/device/pci.c \
-	generic/device/ahci.c \
+	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
 	generic/elf/elf_load.c \
@@ -103,6 +95,7 @@ GENERIC_SOURCES = \
 	generic/io/printf.c \
 	generic/io/log.c \
 	generic/io/logctl.c \
+	generic/io/kio.c \
 	generic/io/klog.c \
 	generic/io/snprintf.c \
 	generic/io/vprintf.c \
@@ -124,6 +117,7 @@ GENERIC_SOURCES = \
 	generic/async.c \
 	generic/loader.c \
 	generic/getopt.c \
+	generic/adt/checksum.c \
 	generic/adt/list.c \
 	generic/adt/hash_table.c \
 	generic/adt/dynamic_fifo.c \
@@ -131,13 +125,13 @@ GENERIC_SOURCES = \
 	generic/adt/prodcons.c \
 	generic/time.c \
 	generic/stdlib.c \
-	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
 	generic/net/inet.c \
 	generic/net/socket_client.c \
 	generic/net/socket_parse.c \
+	generic/setjmp.c \
 	generic/stack.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
@@ -159,7 +153,6 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
-
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@

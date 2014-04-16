@@ -164,7 +164,7 @@ static bool rd_init(void)
 	unsigned int flags =
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
 	
-	ret = physmem_map((void *) addr_phys,
+	ret = physmem_map(addr_phys,
 	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags, &rd_addr);
 	if (ret != EOK) {
 		printf("%s: Error mapping RAM disk\n", NAME);

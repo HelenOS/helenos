@@ -34,10 +34,7 @@
 #ifndef DEVMAN_H_
 #define DEVMAN_H_
 
-#include <assert.h>
 #include <stdbool.h>
-#include <dirent.h>
-#include <str.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <ipc/devman.h>
@@ -49,8 +46,6 @@
 #include "util.h"
 
 #define NAME "devman"
-
-#define MATCH_EXT ".ma"
 
 #define LOC_DEVICE_NAMESPACE "devices"
 #define LOC_SEPARATOR '\\'
@@ -66,30 +61,18 @@ typedef struct {
 	struct driver *driver;
 } client_t;
 
-typedef enum {
-	/** Driver has not been started. */
-	DRIVER_NOT_STARTED = 0,
-	
-	/**
-	 * Driver has been started, but has not registered as running and ready
-	 * to receive requests.
-	 */
-	DRIVER_STARTING,
-	
-	/** Driver is running and prepared to serve incomming requests. */
-	DRIVER_RUNNING
-} driver_state_t;
-
 /** Representation of device driver. */
 typedef struct driver {
 	/** Pointers to previous and next drivers in a linked list. */
 	link_t drivers;
+	/** Handle */
+	devman_handle_t handle;
 	
 	/**
 	 * Specifies whether the driver has been started and wheter is running
 	 * and prepared to receive requests.
 	 */
-	int state;
+	driver_state_t state;
 	
 	/** Session asociated with this driver. */
 	async_sess_t *sess;
@@ -114,6 +97,8 @@ typedef struct driver_list {
 	list_t drivers;
 	/** Fibril mutex for list of drivers. */
 	fibril_mutex_t drivers_mutex;
+	/** Next free handle */
+	devman_handle_t next_handle;
 } driver_list_t;
 
 /** Device state */
@@ -236,86 +221,6 @@ typedef struct dev_tree {
 	 */
 	hash_table_t loc_functions;
 } dev_tree_t;
-
-/* Match ids and scores */
-
-extern int get_match_score(driver_t *, dev_node_t *);
-
-extern bool parse_match_ids(char *, match_id_list_t *);
-extern bool read_match_ids(const char *, match_id_list_t *);
-extern char *read_match_id(char **);
-extern char *read_id(const char **);
-
-/* Drivers */
-
-extern void init_driver_list(driver_list_t *);
-extern driver_t *create_driver(void);
-extern bool get_driver_info(const char *, const char *, driver_t *);
-extern int lookup_available_drivers(driver_list_t *, const char *);
-
-extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
-extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
-
-extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(dev_tree_t *, dev_node_t *, driver_t *);
-extern void detach_driver(dev_tree_t *, dev_node_t *);
-extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
-extern bool start_driver(driver_t *);
-extern int driver_dev_remove(dev_tree_t *, dev_node_t *);
-extern int driver_dev_gone(dev_tree_t *, dev_node_t *);
-extern int driver_fun_online(dev_tree_t *, fun_node_t *);
-extern int driver_fun_offline(dev_tree_t *, fun_node_t *);
-
-extern driver_t *find_driver(driver_list_t *, const char *);
-extern void initialize_running_driver(driver_t *, dev_tree_t *);
-
-extern void init_driver(driver_t *);
-extern void clean_driver(driver_t *);
-extern void delete_driver(driver_t *);
-
-/* Device nodes */
-
-extern dev_node_t *create_dev_node(void);
-extern void delete_dev_node(dev_node_t *node);
-extern void dev_add_ref(dev_node_t *);
-extern void dev_del_ref(dev_node_t *);
-
-extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
-    devman_handle_t handle);
-extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
-extern dev_node_t *find_dev_function(dev_node_t *, const char *);
-extern int dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
-    size_t, size_t *);
-
-extern fun_node_t *create_fun_node(void);
-extern void delete_fun_node(fun_node_t *);
-extern void fun_add_ref(fun_node_t *);
-extern void fun_del_ref(fun_node_t *);
-extern void fun_busy_lock(fun_node_t *);
-extern void fun_busy_unlock(fun_node_t *);
-extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
-    devman_handle_t handle);
-extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
-extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
-extern fun_node_t *find_fun_node_in_device(dev_tree_t *tree, dev_node_t *,
-    const char *);
-
-/* Device tree */
-
-extern bool init_device_tree(dev_tree_t *, driver_list_t *);
-extern bool create_root_nodes(dev_tree_t *);
-extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
-extern void remove_dev_node(dev_tree_t *, dev_node_t *);
-extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
-extern void remove_fun_node(dev_tree_t *, fun_node_t *);
-
-/* Loc services */
-
-extern void loc_register_tree_function(fun_node_t *, dev_tree_t *);
-
-extern fun_node_t *find_loc_tree_function(dev_tree_t *, service_id_t);
-
-extern void tree_add_loc_function(dev_tree_t *, fun_node_t *);
 
 #endif
 

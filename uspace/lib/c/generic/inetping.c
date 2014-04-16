@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,30 +49,30 @@ int inetping_init(inetping_ev_ops_t *ev_ops)
 	int rc;
 
 	assert(inetping_sess == NULL);
-	
+
 	inetping_ev_ops = ev_ops;
-	
+
 	rc = loc_service_get_id(SERVICE_NAME_INETPING, &inetping_svc,
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return ENOENT;
-	
+
 	inetping_sess = loc_service_connect(EXCHANGE_SERIALIZE, inetping_svc,
 	    IPC_FLAG_BLOCKING);
 	if (inetping_sess == NULL)
 		return ENOENT;
-	
+
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
 
 	rc = async_connect_to_me(exch, 0, 0, 0, inetping_cb_conn, NULL);
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		async_hangup(inetping_sess);
 		inetping_sess = NULL;
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -80,55 +81,126 @@ int inetping_send(inetping_sdu_t *sdu)
 	async_exch_t *exch = async_exchange_begin(inetping_sess);
 
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INETPING_SEND, sdu->src.ipv4,
-	    sdu->dest.ipv4, sdu->seq_no, &answer);
-	sysarg_t retval = async_data_write_start(exch, sdu->data, sdu->size);
+	aid_t req = async_send_1(exch, INETPING_SEND, sdu->seq_no, &answer);
 
-	async_exchange_end(exch);
-
-	if (retval != EOK) {
+	int rc = async_data_write_start(exch, &sdu->src, sizeof(sdu->src));
+	if (rc != EOK) {
+		async_exchange_end(exch);
 		async_forget(req);
-		return retval;
+		return rc;
 	}
 
-	async_wait_for(req, &retval);
-	return retval;
-}
+	rc = async_data_write_start(exch, &sdu->dest, sizeof(sdu->dest));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
 
-int inetping_get_srcaddr(inet_addr_t *remote, inet_addr_t *local)
-{
-	sysarg_t local_addr;
-	async_exch_t *exch = async_exchange_begin(inetping_sess);
+	rc = async_data_write_start(exch, sdu->data, sdu->size);
 
-	int rc = async_req_1_1(exch, INETPING_GET_SRCADDR, remote->ipv4,
-	    &local_addr);
 	async_exchange_end(exch);
 
-	if (rc != EOK)
+	if (rc != EOK) {
+		async_forget(req);
 		return rc;
+	}
 
-	local->ipv4 = local_addr;
-	return EOK;
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	return (int) retval;
 }
 
-static void inetping_ev_recv(ipc_callid_t callid, ipc_call_t *call)
+int inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
 {
-	int rc;
+	async_exch_t *exch = async_exchange_begin(inetping_sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, INETPING_GET_SRCADDR, &answer);
+
+	int rc = async_data_write_start(exch, remote, sizeof(*remote));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	ipc_call_t answer_local;
+	aid_t req_local = async_data_read(exch, local, sizeof(*local),
+	    &answer_local);
+
+	async_exchange_end(exch);
+
+	sysarg_t retval_local;
+	async_wait_for(req_local, &retval_local);
+
+	if (retval_local != EOK) {
+		async_forget(req);
+		return (int) retval_local;
+	}
+
+	sysarg_t retval;
+	async_wait_for(req, &retval);
+
+	return (int) retval;
+}
+
+static void inetping_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
+{
 	inetping_sdu_t sdu;
 
-	sdu.src.ipv4 = IPC_GET_ARG1(*call);
-	sdu.dest.ipv4 = IPC_GET_ARG2(*call);
-	sdu.seq_no = IPC_GET_ARG3(*call);
+	sdu.seq_no = IPC_GET_ARG1(*icall);
+
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(sdu.src)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	int rc = async_data_write_finalize(callid, &sdu.src, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(sdu.dest)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(callid, &sdu.dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
 
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
 
 	rc = inetping_ev_ops->recv(&sdu);
 	free(sdu.data);
-	async_answer_0(callid, rc);
+	async_answer_0(iid, rc);
 }
 
 static void inetping_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)

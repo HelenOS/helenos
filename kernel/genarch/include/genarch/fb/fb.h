@@ -65,7 +65,7 @@ typedef struct fb_properties {
 	visual_t visual;
 } fb_properties_t;
 
-outdev_t *fb_init(fb_properties_t *props);
+extern outdev_t *fb_init(fb_properties_t *props);
 
 #endif
 

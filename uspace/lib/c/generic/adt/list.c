@@ -101,8 +101,10 @@ unsigned int list_count(const list_t *list)
 {
 	unsigned int count = 0;
 	
-	list_foreach(*list, link) {
+	link_t *link = list_first(list);
+	while (link != NULL) {
 		count++;
+		link = list_next(link, list);
 	}
 	
 	return count;

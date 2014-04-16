@@ -66,7 +66,7 @@ static int decimal_to_useconds(const char *nptr, useconds_t *result)
 	int ret;
 	uint64_t whole_seconds;
 	uint64_t frac_seconds;
-	char *endptr;
+	const char *endptr;
 
 	/* Check for whole seconds */
 	if (*nptr == '.') {

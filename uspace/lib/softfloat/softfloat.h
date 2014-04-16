@@ -203,16 +203,31 @@ extern int _Qp_flt(long double *, long double *);
 extern int _Qp_fne(long double *, long double *);
 
 /* ARM EABI */
+extern float __aeabi_d2f(double);
+extern double __aeabi_f2d(float);
+extern float __aeabi_i2f(int);
+extern float __aeabi_ui2f(int);
 extern double __aeabi_i2d(int);
 extern double __aeabi_ui2d(unsigned int);
+extern double __aeabi_l2d(long long);
+extern float __aeabi_l2f(long long);
+extern float __aeabi_ul2f(unsigned long long);
 extern unsigned int __aeabi_d2uiz(double);
+extern long long __aeabi_d2lz(double);
 
 extern int __aeabi_f2iz(float);
+extern int __aeabi_f2uiz(float);
 extern int __aeabi_d2iz(double);
+
+extern int __aeabi_fcmpge(float, float);
+extern int __aeabi_fcmpgt(float, float);
+extern int __aeabi_fcmplt(float, float);
+extern int __aeabi_fcmpeq(float, float);
 
 extern int __aeabi_dcmpge(double, double);
 extern int __aeabi_dcmpgt(double, double);
 extern int __aeabi_dcmplt(double, double);
+extern int __aeabi_dcmple(double, double);
 extern int __aeabi_dcmpeq(double, double);
 
 extern float __aeabi_fadd(float, float);

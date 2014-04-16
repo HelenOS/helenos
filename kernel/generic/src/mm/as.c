@@ -487,9 +487,7 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	}
 	
 	/* Eventually check the addresses behind each area */
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t, node) {
 		
 		for (btree_key_t i = 0; i < node->keys; i++) {
 			as_area_t *area = (as_area_t *) node->value[i];
@@ -520,6 +518,49 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	/* No suitable address space area found */
 	return (uintptr_t) -1;
 }
+
+/** Remove reference to address space area share info.
+ *
+ * If the reference count drops to 0, the sh_info is deallocated.
+ *
+ * @param sh_info Pointer to address space area share info.
+ *
+ */
+NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
+{
+	bool dealloc = false;
+	
+	mutex_lock(&sh_info->lock);
+	ASSERT(sh_info->refcount);
+	
+	if (--sh_info->refcount == 0) {
+		dealloc = true;
+		
+		/*
+		 * Now walk carefully the pagemap B+tree and free/remove
+		 * reference from all frames found there.
+		 */
+		list_foreach(sh_info->pagemap.leaf_list, leaf_link,
+		    btree_node_t, node) {
+			btree_key_t i;
+			
+			for (i = 0; i < node->keys; i++)
+				frame_free((uintptr_t) node->value[i], 1);
+		}
+		
+	}
+	mutex_unlock(&sh_info->lock);
+	
+	if (dealloc) {
+		if (sh_info->backend && sh_info->backend->destroy_shared_data) {
+			sh_info->backend->destroy_shared_data(
+			    sh_info->backend_shared_data);
+		}
+		btree_destroy(&sh_info->pagemap);
+		free(sh_info);
+	}
+}
+
 
 /** Create address space area of common attributes.
  *
@@ -567,8 +608,10 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 		}
 	}
 
-	if (overflows_into_positive(*base, size))
+	if (overflows_into_positive(*base, size)) {
+		mutex_unlock(&as->lock);
 		return NULL;
+	}
 
 	if (!check_area_conflicts(as, *base, pages, guarded, NULL)) {
 		mutex_unlock(&as->lock);
@@ -585,22 +628,52 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	area->pages = pages;
 	area->resident = 0;
 	area->base = *base;
-	area->sh_info = NULL;
 	area->backend = backend;
+	area->sh_info = NULL;
 	
 	if (backend_data)
 		area->backend_data = *backend_data;
 	else
 		memsetb(&area->backend_data, sizeof(area->backend_data), 0);
+
+	share_info_t *si = NULL;
+
+	/*
+ 	 * Create the sharing info structure.
+ 	 * We do this in advance for every new area, even if it is not going
+ 	 * to be shared.
+ 	 */
+	if (!(attrs & AS_AREA_ATTR_PARTIAL)) {
+		si = (share_info_t *) malloc(sizeof(share_info_t), 0);
+		mutex_initialize(&si->lock, MUTEX_PASSIVE);
+		si->refcount = 1;
+		si->shared = false;
+		si->backend_shared_data = NULL;
+		si->backend = backend;
+		btree_create(&si->pagemap);
+
+		area->sh_info = si;
 	
+		if (area->backend && area->backend->create_shared_data) {
+			if (!area->backend->create_shared_data(area)) {
+				free(area);
+				mutex_unlock(&as->lock);
+				sh_info_remove_reference(si);
+				return NULL;
+			}
+		}
+	}
+
 	if (area->backend && area->backend->create) {
 		if (!area->backend->create(area)) {
 			free(area);
 			mutex_unlock(&as->lock);
+			if (!(attrs & AS_AREA_ATTR_PARTIAL))
+				sh_info_remove_reference(si);
 			return NULL;
 		}
 	}
-	
+
 	btree_create(&area->used_space);
 	btree_insert(&as->as_area_btree, *base, (void *) area,
 	    NULL);
@@ -710,15 +783,18 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		return ENOTSUP;
 	}
 	
-	if (area->sh_info) {
+	mutex_lock(&area->sh_info->lock);
+	if (area->sh_info->shared) {
 		/*
 		 * Remapping of shared address space areas
 		 * is not supported.
 		 */
+		mutex_unlock(&area->sh_info->lock);
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
 		return ENOTSUP;
 	}
+	mutex_unlock(&area->sh_info->lock);
 	
 	size_t pages = SIZE2FRAMES((address - area->base) + size);
 	if (!pages) {
@@ -882,45 +958,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	return 0;
 }
 
-/** Remove reference to address space area share info.
- *
- * If the reference count drops to 0, the sh_info is deallocated.
- *
- * @param sh_info Pointer to address space area share info.
- *
- */
-NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
-{
-	bool dealloc = false;
-	
-	mutex_lock(&sh_info->lock);
-	ASSERT(sh_info->refcount);
-	
-	if (--sh_info->refcount == 0) {
-		dealloc = true;
-		
-		/*
-		 * Now walk carefully the pagemap B+tree and free/remove
-		 * reference from all frames found there.
-		 */
-		list_foreach(sh_info->pagemap.leaf_list, cur) {
-			btree_node_t *node
-			    = list_get_instance(cur, btree_node_t, leaf_link);
-			btree_key_t i;
-			
-			for (i = 0; i < node->keys; i++)
-				frame_free((uintptr_t) node->value[i]);
-		}
-		
-	}
-	mutex_unlock(&sh_info->lock);
-	
-	if (dealloc) {
-		btree_destroy(&sh_info->pagemap);
-		free(sh_info);
-	}
-}
-
 /** Destroy address space area.
  *
  * @param as      Address space.
@@ -955,11 +992,10 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Visit only the pages mapped by used_space B+tree.
 	 */
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node;
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t ptr = node->key[i];
 			size_t size;
@@ -1003,8 +1039,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	
 	area->attributes |= AS_AREA_ATTR_PARTIAL;
 	
-	if (area->sh_info)
-		sh_info_remove_reference(area->sh_info);
+	sh_info_remove_reference(area->sh_info);
 	
 	mutex_unlock(&area->lock);
 	
@@ -1091,21 +1126,19 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	 * Then it will be safe to unlock it.
 	 */
 	share_info_t *sh_info = src_area->sh_info;
-	if (!sh_info) {
-		sh_info = (share_info_t *) malloc(sizeof(share_info_t), 0);
-		mutex_initialize(&sh_info->lock, MUTEX_PASSIVE);
-		sh_info->refcount = 2;
-		btree_create(&sh_info->pagemap);
-		src_area->sh_info = sh_info;
-		
+	
+	mutex_lock(&sh_info->lock);
+	sh_info->refcount++;
+	bool shared = sh_info->shared;
+	sh_info->shared = true;
+	mutex_unlock(&sh_info->lock);
+
+	if (!shared) {
 		/*
 		 * Call the backend to setup sharing.
+		 * This only happens once for each sh_info.
 		 */
 		src_area->backend->share(src_area);
-	} else {
-		mutex_lock(&sh_info->lock);
-		sh_info->refcount++;
-		mutex_unlock(&sh_info->lock);
 	}
 	
 	mutex_unlock(&src_area->lock);
@@ -1224,22 +1257,30 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 		return ENOENT;
 	}
 	
-	if ((area->sh_info) || (area->backend != &anon_backend)) {
-		/* Copying shared areas not supported yet */
+	if (area->backend != &anon_backend) {
 		/* Copying non-anonymous memory not supported yet */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
 		return ENOTSUP;
 	}
+
+	mutex_lock(&area->sh_info->lock);
+	if (area->sh_info->shared) {
+		/* Copying shared areas not supported yet */
+		mutex_unlock(&area->sh_info->lock);
+		mutex_unlock(&area->lock);
+		mutex_unlock(&as->lock);
+		return ENOTSUP;
+	}
+	mutex_unlock(&area->sh_info->lock);
 	
 	/*
 	 * Compute total number of used pages in the used_space B+tree
 	 */
 	size_t used_pages = 0;
 	
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++)
@@ -1263,9 +1304,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	size_t frame_idx = 0;
 	
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node = list_get_instance(cur, btree_node_t,
-		    leaf_link);
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -1315,9 +1355,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	frame_idx = 0;
 	
-	list_foreach(area->used_space.leaf_list, cur) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -2181,9 +2220,8 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	
 	size_t area_cnt = 0;
 	
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		area_cnt += node->keys;
 	}
 	
@@ -2194,9 +2232,8 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	
 	size_t area_idx = 0;
 	
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node =
-		    list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {
@@ -2230,9 +2267,8 @@ void as_print(as_t *as)
 	mutex_lock(&as->lock);
 	
 	/* Print out info about address space areas */
-	list_foreach(as->as_area_btree.leaf_list, cur) {
-		btree_node_t *node
-		    = list_get_instance(cur, btree_node_t, leaf_link);
+	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
+	    node) {
 		btree_key_t i;
 		
 		for (i = 0; i < node->keys; i++) {

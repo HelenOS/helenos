@@ -41,7 +41,7 @@
 #include <stdbool.h>
 #include <malloc.h>
 #include <async.h>
-#include <io/klog.h>
+#include <io/kio.h>
 #include <vfs/vfs.h>
 #include <vfs/vfs_sess.h>
 #include <ipc/loc.h>
@@ -56,7 +56,7 @@ static FILE stdin_null = {
 	.fd = -1,
 	.error = true,
 	.eof = true,
-	.klog = false,
+	.kio = false,
 	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
@@ -66,11 +66,11 @@ static FILE stdin_null = {
 	.buf_state = _bs_empty
 };
 
-static FILE stdout_klog = {
+static FILE stdout_kio = {
 	.fd = -1,
 	.error = false,
 	.eof = false,
-	.klog = true,
+	.kio = true,
 	.sess = NULL,
 	.btype = _IOLBF,
 	.buf = NULL,
@@ -80,11 +80,11 @@ static FILE stdout_klog = {
 	.buf_state = _bs_empty
 };
 
-static FILE stderr_klog = {
+static FILE stderr_kio = {
 	.fd = -1,
 	.error = false,
 	.eof = false,
-	.klog = true,
+	.kio = true,
 	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
@@ -112,14 +112,14 @@ void __stdio_init(int filc)
 	if (filc > 1) {
 		stdout = fdopen(1, "w");
 	} else {
-		stdout = &stdout_klog;
+		stdout = &stdout_kio;
 		list_append(&stdout->link, &files);
 	}
 	
 	if (filc > 2) {
 		stderr = fdopen(2, "w");
 	} else {
-		stderr = &stderr_klog;
+		stderr = &stderr_kio;
 		list_append(&stderr->link, &files);
 	}
 }
@@ -191,6 +191,20 @@ void setvbuf(FILE *stream, void *buf, int mode, size_t size)
 	stream->buf_state = _bs_empty;
 }
 
+/** Set stream buffer.
+ *
+ * When @p buf is NULL, the stream is set as unbuffered, otherwise
+ * full buffering is enabled.
+ */
+void setbuf(FILE *stream, void *buf)
+{
+	if (buf == NULL) {
+		setvbuf(stream, NULL, _IONBF, BUFSIZ);
+	} else {
+		setvbuf(stream, buf, _IOFBF, BUFSIZ);
+	}
+}
+
 static void _setvbuf(FILE *stream)
 {
 	/* FIXME: Use more complex rules for setting buffering options. */
@@ -252,7 +266,7 @@ FILE *fopen(const char *path, const char *mode)
 	
 	stream->error = false;
 	stream->eof = false;
-	stream->klog = false;
+	stream->kio = false;
 	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
@@ -274,7 +288,7 @@ FILE *fdopen(int fd, const char *mode)
 	stream->fd = fd;
 	stream->error = false;
 	stream->eof = false;
-	stream->klog = false;
+	stream->kio = false;
 	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
@@ -299,8 +313,8 @@ int fclose(FILE *stream)
 	list_remove(&stream->link);
 	
 	if ((stream != &stdin_null)
-	    && (stream != &stdout_klog)
-	    && (stream != &stderr_klog))
+	    && (stream != &stdout_kio)
+	    && (stream != &stderr_kio))
 		free(stream);
 	
 	stream = NULL;
@@ -367,8 +381,8 @@ static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 	while ((left > 0) && (!stream->error)) {
 		ssize_t wr;
 		
-		if (stream->klog)
-			wr = klog_write(buf + done, left);
+		if (stream->kio)
+			wr = kio_write(buf + done, left);
 		else
 			wr = write(stream->fd, buf + done, left);
 		
@@ -690,8 +704,8 @@ int fflush(FILE *stream)
 {
 	_fflushbuf(stream);
 	
-	if (stream->klog) {
-		klog_update();
+	if (stream->kio) {
+		kio_update();
 		return EOK;
 	}
 	
@@ -725,7 +739,7 @@ void clearerr(FILE *stream)
 
 int fileno(FILE *stream)
 {
-	if (stream->klog) {
+	if (stream->kio) {
 		errno = EBADF;
 		return -1;
 	}

@@ -37,6 +37,7 @@
 #define KERN_arm32_ASM_H_
 
 #include <typedefs.h>
+#include <arch/cp15.h>
 #include <arch/stack.h>
 #include <config.h>
 #include <arch/interrupt.h>
@@ -50,16 +51,16 @@
  * ARM926EJ-S uses the same coprocessor instruction as ARM920T. See ARM926EJ-S
  * chapter 2.3.8 p.2-22 (52 in the PDF)
  *
- * @note Although mcr p15, 0, R0, c7, c0, 4 is defined in ARM Architecture
- * reference manual for armv4/5 CP15 implementation is mandatory only for
- * armv6+.
+ * @note Although CP15WFI (mcr p15, 0, R0, c7, c0, 4) is defined in ARM
+ * Architecture reference manual for armv4/5, CP15 implementation is mandatory
+ * only for armv6+.
  */
 NO_TRACE static inline void cpu_sleep(void)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
 	asm volatile ( "wfe" );
 #elif defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_arm926ej_s) | defined(PROCESSOR_arm920t)
-	asm volatile ( "mcr p15, 0, R0, c7, c0, 4" );
+	WFI_write(0);
 #endif
 }
 

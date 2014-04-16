@@ -82,6 +82,7 @@ tcp_error_t tcp_uc_open(tcp_sock_t *lsock, tcp_sock_t *fsock, acpass_t acpass,
 	}
 
 	if (oflags == tcp_open_nonblock) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open -> %p", nconn);
 		*conn = nconn;
 		return TCP_EOK;
 	}
@@ -233,20 +234,31 @@ tcp_error_t tcp_uc_receive(tcp_conn_t *conn, void *buf, size_t size,
 /** CLOSE user call */
 tcp_error_t tcp_uc_close(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_uc_close()", conn->name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_uc_close(%p)", conn->name,
+	    conn);
 
 	fibril_mutex_lock(&conn->lock);
 
 	if (conn->cstate == st_closed) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_close - ENOTEXIST");
 		fibril_mutex_unlock(&conn->lock);
 		return TCP_ENOTEXIST;
 	}
 
+	if (conn->cstate == st_listen || conn->cstate == st_syn_sent) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_close - listen/syn_sent");
+		tcp_conn_reset(conn);
+		tcp_conn_remove(conn);
+		return TCP_EOK;
+	}
+
 	if (conn->snd_buf_fin) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_close - ECLOSING");
 		fibril_mutex_unlock(&conn->lock);
 		return TCP_ECLOSING;
 	}
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_close - set snd_buf_fin");
 	conn->snd_buf_fin = true;
 	tcp_tqueue_new_data(conn);
 
@@ -297,9 +309,9 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 {
 	tcp_conn_t *conn;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_as_segment_arrived(f:(%x,%u), l:(%x,%u))",
-	    sp->foreign.addr.ipv4, sp->foreign.port,
-	    sp->local.addr.ipv4, sp->local.port);
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "tcp_as_segment_arrived(f:(%u), l:(%u))",
+	    sp->foreign.port, sp->local.port);
 
 	conn = tcp_conn_find_ref(sp);
 	if (conn == NULL) {
@@ -318,12 +330,14 @@ void tcp_as_segment_arrived(tcp_sockpair_t *sp, tcp_segment_t *seg)
 		return;
 	}
 
-	if (conn->ident.foreign.addr.ipv4 == TCP_IPV4_ANY)
-		conn->ident.foreign.addr.ipv4 = sp->foreign.addr.ipv4;
+	if (inet_addr_is_any(&conn->ident.foreign.addr))
+		conn->ident.foreign.addr = sp->foreign.addr;
+	
 	if (conn->ident.foreign.port == TCP_PORT_ANY)
 		conn->ident.foreign.port = sp->foreign.port;
-	if (conn->ident.local.addr.ipv4 == TCP_IPV4_ANY)
-		conn->ident.local.addr.ipv4 = sp->local.addr.ipv4;
+	
+	if (inet_addr_is_any(&conn->ident.local.addr))
+		conn->ident.local.addr = sp->local.addr;
 
 	tcp_conn_segment_arrived(conn, seg);
 

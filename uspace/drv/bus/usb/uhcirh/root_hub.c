@@ -35,31 +35,33 @@
 #include <str_error.h>
 #include <ddi.h>
 #include <usb/debug.h>
+#include <device/hw_res_parsed.h>
 
 #include "root_hub.h"
 
 /** Initialize UHCI root hub instance.
  *
  * @param[in] instance Driver memory structure to use.
- * @param[in] addr Address of I/O registers.
- * @param[in] size Size of available I/O space.
+ * @param[in] io_regs Range of I/O registers.
  * @param[in] rh Pointer to DDF instance of the root hub driver.
  * @return Error code.
  */
-int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh)
+int uhci_root_hub_init(uhci_root_hub_t *instance, addr_range_t *io_regs,
+    ddf_dev_t *rh)
 {
+	port_status_t *regs;
+
 	assert(instance);
 	assert(rh);
 
 	/* Allow access to root hub port registers */
-	assert(sizeof(port_status_t) * UHCI_ROOT_HUB_PORT_COUNT <= size);
-	port_status_t *regs;
-	int ret = pio_enable(addr, size, (void**)&regs);
+	assert(sizeof(*regs) * UHCI_ROOT_HUB_PORT_COUNT <= io_regs->size);
+
+	int ret = pio_enable_range(io_regs, (void **) &regs);
 	if (ret < 0) {
 		usb_log_error(
 		    "Failed(%d) to gain access to port registers at %p: %s.\n",
-		    ret, regs, str_error(ret));
+		    ret, RNGABSPTR(*io_regs), str_error(ret));
 		return ret;
 	}
 

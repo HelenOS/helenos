@@ -49,13 +49,16 @@ typedef struct button {
 	widget_t widget;
 	source_t background;
 	source_t foreground;
+	source_t text;
 	char *caption;
 	font_t font;
 	signal_t clicked;
 } button_t;
 
-extern bool init_button(button_t *, widget_t *, const char *, uint16_t, pixel_t, pixel_t);
-extern button_t *create_button(widget_t *, const char *, uint16_t, pixel_t, pixel_t);
+extern bool init_button(button_t *, widget_t *, const char *, uint16_t, pixel_t,
+    pixel_t, pixel_t);
+extern button_t *create_button(widget_t *, const char *, uint16_t, pixel_t,
+    pixel_t, pixel_t);
 extern void deinit_button(button_t *);
 
 #endif

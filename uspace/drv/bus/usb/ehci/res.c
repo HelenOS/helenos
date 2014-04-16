@@ -42,7 +42,7 @@
 #include <ddi.h>
 #include <usb/debug.h>
 #include <device/hw_res_parsed.h>
-#include <device/pci.h>
+#include <pci_dev_iface.h>
 
 #include "res.h"
 
@@ -70,13 +70,12 @@
 /** Get address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
- * @param[out] mem_reg_address Base address of the memory range.
- * @param[out] mem_reg_size Size of the memory range.
+ * @param[out] mem_regs_p Pointer to the register range.
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
 int get_my_registers(ddf_dev_t *dev,
-    uintptr_t *mem_reg_address, size_t *mem_reg_size, int *irq_no)
+    addr_range_t *mem_regs_p, int *irq_no)
 {
 	assert(dev);
 	
@@ -98,10 +97,8 @@ int get_my_registers(ddf_dev_t *dev,
 		return ENOENT;
 	}
 
-	if (mem_reg_address)
-		*mem_reg_address = hw_res.mem_ranges.ranges[0].address;
-	if (mem_reg_size)
-		*mem_reg_size = hw_res.mem_ranges.ranges[0].size;
+	if (mem_regs_p)
+		*mem_regs_p = hw_res.mem_ranges.ranges[0];
 	if (irq_no)
 		*irq_no = hw_res.irqs.irqs[0];
 
@@ -144,37 +141,48 @@ static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 	if (!parent_sess)
 		return ENOMEM;
 
-#define CHECK_RET_HANGUP_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		async_hangup(parent_sess); \
-		return ret; \
-	} else (void)0
-
 	/* Read the first EEC. i.e. Legacy Support register */
 	uint32_t usblegsup;
-	int ret = pci_config_space_read_32(parent_sess,
+	int rc = pci_config_space_read_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, &usblegsup);
-	CHECK_RET_HANGUP_RETURN(ret,
-	    "Failed to read USBLEGSUP: %s.\n", str_error(ret));
+	if (rc != EOK) {
+		usb_log_error("Failed to read USBLEGSUP: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
+
 	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 
 	/* Request control from firmware/BIOS by writing 1 to highest
 	 * byte. (OS Control semaphore)*/
 	usb_log_debug("Requesting OS control.\n");
-	ret = pci_config_space_write_8(parent_sess,
+	rc = pci_config_space_write_8(parent_sess,
 	    eecp + USBLEGSUP_OFFSET + 3, 1);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed to request OS EHCI control: %s.\n",
-	    str_error(ret));
+	if (rc != EOK) {
+		usb_log_error("Failed to request OS EHCI control: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
 
 	size_t wait = 0;
 	/* Wait for BIOS to release control. */
-	ret = pci_config_space_read_32(
+	rc = pci_config_space_read_32(
 	    parent_sess, eecp + USBLEGSUP_OFFSET, &usblegsup);
+	if (rc != EOK) {
+		usb_log_error("Failed reading PCI config space: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
+
 	while ((wait < DEFAULT_WAIT) && (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
-		ret = pci_config_space_read_32(parent_sess,
+		rc = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGSUP_OFFSET, &usblegsup);
+		if (rc != EOK) {
+			usb_log_error("Failed reading PCI config space: %s.\n",
+			    str_error(rc));
+			goto error;
+		}
 		wait += WAIT_STEP;
 	}
 
@@ -187,10 +195,14 @@ static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 	/* BIOS failed to hand over control, this should not happen. */
 	usb_log_warning( "BIOS failed to release control after "
 	    "%zu usecs, force it.\n", wait);
-	ret = pci_config_space_write_32(parent_sess,
+	rc = pci_config_space_write_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, USBLEGSUP_OS_CONTROL);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed to force OS control: "
-	    "%s.\n", str_error(ret));
+	if (rc != EOK) {
+		usb_log_error("Failed to force OS control: "
+		    "%s.\n", str_error(rc));
+		goto error;
+	}
+
 	/*
 	 * Check capability type here, value of 01h identifies the capability
 	 * as Legacy Support. This extended capability requires one additional
@@ -200,55 +212,70 @@ static int disable_extended_caps(ddf_dev_t *device, unsigned eecp)
 	if ((usblegsup & 0xff) == 1) {
 		/* Read the second EEC Legacy Support and Control register */
 		uint32_t usblegctlsts;
-		ret = pci_config_space_read_32(parent_sess,
+		rc = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
-		CHECK_RET_HANGUP_RETURN(ret, "Failed to get USBLEGCTLSTS: %s.\n",
-		    str_error(ret));
+		if (rc != EOK) {
+			usb_log_error("Failed to get USBLEGCTLSTS: %s.\n",
+			    str_error(rc));
+			goto error;
+		}
+
 		usb_log_debug("USBLEGCTLSTS: %" PRIx32 ".\n", usblegctlsts);
 		/*
 		 * Zero SMI enables in legacy control register.
 		 * It should prevent pre-OS code from
 		 * interfering. NOTE: Three upper bits are WC
 		 */
-		ret = pci_config_space_write_32(parent_sess,
+		rc = pci_config_space_write_32(parent_sess,
 		    eecp + USBLEGCTLSTS_OFFSET, 0xe0000000);
-		CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) zero USBLEGCTLSTS.\n", ret);
+		if (rc != EOK) {
+			usb_log_error("Failed(%d) zero USBLEGCTLSTS.\n", rc);
+			goto error;
+		}
+
 		udelay(10);
-		ret = pci_config_space_read_32(parent_sess,
+		rc = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
-		CHECK_RET_HANGUP_RETURN(ret, "Failed to get USBLEGCTLSTS 2: %s.\n",
-		    str_error(ret));
+		if (rc != EOK) {
+			usb_log_error("Failed to get USBLEGCTLSTS 2: %s.\n",
+			    str_error(rc));
+			goto error;
+		}
+
 		usb_log_debug("Zeroed USBLEGCTLSTS: %" PRIx32 ".\n",
 		    usblegctlsts);
 	}
 
 	/* Read again Legacy Support register */
-	ret = pci_config_space_read_32(parent_sess,
+	rc = pci_config_space_read_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, &usblegsup);
-	CHECK_RET_HANGUP_RETURN(ret, "Failed to read USBLEGSUP: %s.\n",
-	    str_error(ret));
+	if (rc != EOK) {
+		usb_log_error("Failed to read USBLEGSUP: %s.\n",
+		    str_error(rc));
+		goto error;
+	}
+
 	usb_log_debug("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
 	async_hangup(parent_sess);
 	return EOK;
-#undef CHECK_RET_HANGUP_RETURN
+error:
+	async_hangup(parent_sess);
+	return rc;
 }
 
-int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
+int disable_legacy(ddf_dev_t *device, addr_range_t *reg_range)
 {
 	assert(device);
 	usb_log_debug("Disabling EHCI legacy support.\n");
 
-#define CHECK_RET_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		return ret; \
-	} else (void)0
-
 	/* Map EHCI registers */
 	void *regs = NULL;
-	int ret = pio_enable((void*)reg_base, reg_size, &regs);
-	CHECK_RET_RETURN(ret, "Failed to map registers %p: %s.\n",
-	    (void *) reg_base, str_error(ret));
+	int rc = pio_enable_range(reg_range, &regs);
+	if (rc != EOK) {
+		usb_log_error("Failed to map registers %p: %s.\n",
+		    RNGABSPTR(*reg_range), str_error(rc));
+		return rc;
+	}
 
 	usb_log_debug2("Registers mapped at: %p.\n", regs);
 
@@ -262,11 +289,12 @@ int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 	    (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
 	usb_log_debug("Value of EECP: %x.\n", eecp);
 
-	ret = disable_extended_caps(device, eecp);
-	CHECK_RET_RETURN(ret, "Failed to disable extended capabilities: %s.\n",
-	    str_error(ret));
-
-#undef CHECK_RET_RETURN
+	rc = disable_extended_caps(device, eecp);
+	if (rc != EOK) {
+		usb_log_error("Failed to disable extended capabilities: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	/*
 	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT IF NEEDED
@@ -305,7 +333,7 @@ int disable_legacy(ddf_dev_t *device, uintptr_t reg_base, size_t reg_size)
 	    "\t CONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
 	    usbcmd, *usbcmd, usbsts, *usbsts, usbint, *usbint, usbconf,*usbconf);
 
-	return ret;
+	return rc;
 }
 
 /**

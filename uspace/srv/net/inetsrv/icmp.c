@@ -39,7 +39,7 @@
 #include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
-
+#include <types/inetping.h>
 #include "icmp.h"
 #include "icmp_std.h"
 #include "inetsrv.h"
@@ -104,6 +104,7 @@ static int icmp_recv_echo_request(inet_dgram_t *dgram)
 	checksum = inet_checksum_calc(INET_CHECKSUM_INIT, reply, size);
 	reply->checksum = host2uint16_t_be(checksum);
 
+	rdgram.iplink = 0;
 	rdgram.src = dgram->dest;
 	rdgram.dest = dgram->src;
 	rdgram.tos = ICMP_TOS;
@@ -119,42 +120,34 @@ static int icmp_recv_echo_request(inet_dgram_t *dgram)
 
 static int icmp_recv_echo_reply(inet_dgram_t *dgram)
 {
-	icmp_echo_t *reply;
-	inetping_sdu_t sdu;
-	uint16_t ident;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmp_recv_echo_reply()");
 
 	if (dgram->size < sizeof(icmp_echo_t))
 		return EINVAL;
 
-	reply = (icmp_echo_t *)dgram->data;
+	icmp_echo_t *reply = (icmp_echo_t *) dgram->data;
+
+	inetping_sdu_t sdu;
 
 	sdu.src = dgram->src;
 	sdu.dest = dgram->dest;
 	sdu.seq_no = uint16_t_be2host(reply->seq_no);
 	sdu.data = reply + sizeof(icmp_echo_t);
 	sdu.size = dgram->size - sizeof(icmp_echo_t);
-	ident = uint16_t_be2host(reply->ident);
+
+	uint16_t ident = uint16_t_be2host(reply->ident);
 
 	return inetping_recv(ident, &sdu);
 }
 
 int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 {
-	inet_dgram_t dgram;
-	icmp_echo_t *request;
-	void *rdata;
-	size_t rsize;
-	uint16_t checksum;
-	int rc;
-
-	rsize = sizeof(icmp_echo_t) + sdu->size;
-	rdata = calloc(rsize, 1);
+	size_t rsize = sizeof(icmp_echo_t) + sdu->size;
+	void *rdata = calloc(rsize, 1);
 	if (rdata == NULL)
 		return ENOMEM;
 
-	request = (icmp_echo_t *)rdata;
+	icmp_echo_t *request = (icmp_echo_t *) rdata;
 
 	request->type = ICMP_ECHO_REQUEST;
 	request->code = 0;
@@ -164,16 +157,19 @@ int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 
 	memcpy(rdata + sizeof(icmp_echo_t), sdu->data, sdu->size);
 
-	checksum = inet_checksum_calc(INET_CHECKSUM_INIT, rdata, rsize);
+	uint16_t checksum = inet_checksum_calc(INET_CHECKSUM_INIT, rdata, rsize);
 	request->checksum = host2uint16_t_be(checksum);
+
+	inet_dgram_t dgram;
 
 	dgram.src = sdu->src;
 	dgram.dest = sdu->dest;
+	dgram.iplink = 0;
 	dgram.tos = ICMP_TOS;
 	dgram.data = rdata;
 	dgram.size = rsize;
 
-	rc = inet_route_packet(&dgram, IP_PROTO_ICMP, INET_TTL_MAX, 0);
+	int rc = inet_route_packet(&dgram, IP_PROTO_ICMP, INET_TTL_MAX, 0);
 
 	free(rdata);
 	return rc;

@@ -143,13 +143,41 @@ static void tcp_header_setup(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_header_
 	hdr->urg_ptr = host2uint16_t_be(seg->up);
 }
 
-static void tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr)
+static ip_ver_t tcp_phdr_setup(tcp_pdu_t *pdu, tcp_phdr_t *phdr,
+    tcp_phdr6_t *phdr6)
 {
-	phdr->src_addr = host2uint32_t_be(pdu->src_addr.ipv4);
-	phdr->dest_addr = host2uint32_t_be(pdu->dest_addr.ipv4);
-	phdr->zero = 0;
-	phdr->protocol = 6; /* XXX Magic number */
-	phdr->tcp_length = host2uint16_t_be(pdu->header_size + pdu->text_size);
+	addr32_t src_v4;
+	addr128_t src_v6;
+	uint16_t src_ver = inet_addr_get(&pdu->src, &src_v4, &src_v6);
+
+	addr32_t dest_v4;
+	addr128_t dest_v6;
+	uint16_t dest_ver = inet_addr_get(&pdu->dest, &dest_v4, &dest_v6);
+
+	assert(src_ver == dest_ver);
+
+	switch (src_ver) {
+	case ip_v4:
+		phdr->src = host2uint32_t_be(src_v4);
+		phdr->dest = host2uint32_t_be(dest_v4);
+		phdr->zero = 0;
+		phdr->protocol = IP_PROTO_TCP;
+		phdr->tcp_length =
+		    host2uint16_t_be(pdu->header_size + pdu->text_size);
+		break;
+	case ip_v6:
+		host2addr128_t_be(src_v6, phdr6->src);
+		host2addr128_t_be(dest_v6, phdr6->dest);
+		phdr6->tcp_length =
+		    host2uint32_t_be(pdu->header_size + pdu->text_size);
+		memset(phdr6->zeroes, 0, 3);
+		phdr6->next = IP_PROTO_TCP;
+		break;
+	default:
+		assert(false);
+	}
+
+	return src_ver;
 }
 
 static void tcp_header_decode(tcp_header_t *hdr, tcp_segment_t *seg)
@@ -234,16 +262,25 @@ static uint16_t tcp_pdu_checksum_calc(tcp_pdu_t *pdu)
 {
 	uint16_t cs_phdr;
 	uint16_t cs_headers;
-	uint16_t cs_all;
 	tcp_phdr_t phdr;
+	tcp_phdr6_t phdr6;
 
-	tcp_phdr_setup(pdu, &phdr);
-	cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *)&phdr,
-	    sizeof(tcp_phdr_t));
+	ip_ver_t ver = tcp_phdr_setup(pdu, &phdr, &phdr6);
+	switch (ver) {
+	case ip_v4:
+		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr,
+		    sizeof(tcp_phdr_t));
+		break;
+	case ip_v6:
+		cs_phdr = tcp_checksum_calc(TCP_CHECKSUM_INIT, (void *) &phdr6,
+		    sizeof(tcp_phdr6_t));
+		break;
+	default:
+		assert(false);
+	}
+
 	cs_headers = tcp_checksum_calc(cs_phdr, pdu->header, pdu->header_size);
-	cs_all = tcp_checksum_calc(cs_headers, pdu->text, pdu->text_size);
-
-	return cs_all;
+	return tcp_checksum_calc(cs_headers, pdu->text, pdu->text_size);
 }
 
 static void tcp_pdu_set_checksum(tcp_pdu_t *pdu, uint16_t checksum)
@@ -270,9 +307,9 @@ int tcp_pdu_decode(tcp_pdu_t *pdu, tcp_sockpair_t *sp, tcp_segment_t **seg)
 	hdr = (tcp_header_t *)pdu->header;
 
 	sp->local.port = uint16_t_be2host(hdr->dest_port);
-	sp->local.addr = pdu->dest_addr;
+	sp->local.addr = pdu->dest;
 	sp->foreign.port = uint16_t_be2host(hdr->src_port);
-	sp->foreign.addr = pdu->src_addr;
+	sp->foreign.addr = pdu->src;
 
 	*seg = nseg;
 	return EOK;
@@ -289,8 +326,8 @@ int tcp_pdu_encode(tcp_sockpair_t *sp, tcp_segment_t *seg, tcp_pdu_t **pdu)
 	if (npdu == NULL)
 		return ENOMEM;
 
-	npdu->src_addr = sp->local.addr;
-	npdu->dest_addr = sp->foreign.addr;
+	npdu->src = sp->local.addr;
+	npdu->dest = sp->foreign.addr;
 	tcp_header_encode(sp, seg, &npdu->header, &npdu->header_size);
 
 	text_size = tcp_segment_text_size(seg);

@@ -54,7 +54,6 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <sys/mman.h>
 #include <align.h>
 #include <malloc.h>
 #include <str.h>
@@ -90,6 +89,9 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
 static service_id_t fat_service_get(fs_node_t *node);
+static int fat_size_block(service_id_t, uint32_t *);
+static int fat_total_block_count(service_id_t, uint64_t *);
+static int fat_free_block_count(service_id_t, uint64_t *);
 
 /*
  * Helper functions.
@@ -148,7 +150,6 @@ static int fat_node_sync(fat_node_t *node)
 
 static int fat_node_fini_by_service_id(service_id_t service_id)
 {
-	fat_node_t *nodep;
 	int rc;
 
 	/*
@@ -159,8 +160,7 @@ static int fat_node_fini_by_service_id(service_id_t service_id)
 
 restart:
 	fibril_mutex_lock(&ffn_mutex);
-	list_foreach(ffn_list, lnk) {
-		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
+	list_foreach(ffn_list, ffn_link, fat_node_t, nodep) {
 		if (!fibril_mutex_trylock(&nodep->lock)) {
 			fibril_mutex_unlock(&ffn_mutex);
 			goto restart;
@@ -842,6 +842,50 @@ service_id_t fat_service_get(fs_node_t *node)
 	return 0;
 }
 
+int fat_size_block(service_id_t service_id, uint32_t *size)
+{
+	fat_bs_t *bs;
+
+	bs = block_bb_get(service_id);
+	*size = BPC(bs);
+
+	return EOK;
+}
+
+int fat_total_block_count(service_id_t service_id, uint64_t *count)
+{
+	fat_bs_t *bs;
+	
+	bs = block_bb_get(service_id);
+	*count = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
+
+	return EOK;
+}
+
+int fat_free_block_count(service_id_t service_id, uint64_t *count)
+{
+	fat_bs_t *bs;
+	fat_cluster_t e0;
+	uint64_t block_count;
+	int rc;
+	uint32_t cluster_no, clusters;
+
+	block_count = 0;
+	bs = block_bb_get(service_id);
+	clusters = (SPC(bs)) ? TS(bs) / SPC(bs) : 0;
+	for (cluster_no = 0; cluster_no < clusters; cluster_no++) {
+		rc = fat_get_cluster(bs, service_id, FAT1, cluster_no, &e0);
+		if (rc != EOK)
+			return EIO;
+
+		if (e0 == FAT_CLST_RES0)
+			block_count++;
+	}
+	*count = block_count;
+	
+	return EOK;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
@@ -859,7 +903,10 @@ libfs_ops_t fat_libfs_ops = {
 	.lnkcnt_get = fat_lnkcnt_get,
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file,
-	.service_get = fat_service_get
+	.service_get = fat_service_get,
+	.size_block = fat_size_block,
+	.total_block_count = fat_total_block_count,
+	.free_block_count = fat_free_block_count
 };
 
 /*

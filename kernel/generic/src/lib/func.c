@@ -36,7 +36,7 @@
  */
 
 #include <func.h>
-#include <print.h>
+#include <log.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -71,9 +71,9 @@ void halt()
 #endif
 	
 	if (CPU)
-		printf("cpu%u: halted\n", CPU->id);
+		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
 	else
-		printf("cpu: halted\n");
+		log(LF_OTHER, LVL_NOTE, "cpu: halted");
 	
 	cpu_halt();
 }

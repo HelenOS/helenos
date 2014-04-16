@@ -45,10 +45,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
 #include "addrobj.h"
 #include "icmp.h"
 #include "icmp_std.h"
+#include "icmpv6.h"
+#include "icmpv6_std.h"
 #include "inetsrv.h"
 #include "inetcfg.h"
 #include "inetping.h"
@@ -57,6 +58,22 @@
 #include "sroute.h"
 
 #define NAME "inetsrv"
+
+static inet_naddr_t solicited_node_mask = {
+	.version = ip_v6,
+	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0},
+	.prefix = 104
+};
+
+static inet_addr_t broadcast4_all_hosts = {
+	.version = ip_v4,
+	.addr = 0xffffffff
+};
+
+static inet_addr_t multicast_all_nodes = {
+	.version = ip_v6,
+	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
+};
 
 static void inet_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -96,22 +113,6 @@ static int inet_init(void)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
 		return EEXIST;
 	}
-	
-	inet_sroute_t *sroute = inet_sroute_new();
-	if (sroute == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating default route (%d).", rc);
-		return ENOMEM;
-	}
-
-	sroute->dest.ipv4 = 0;
-	sroute->dest.bits = 0;
-	sroute->router.ipv4 = (10 << 24) | (0 << 16) | (2 << 8) | 2;
-	sroute->name = str_dup("default");
-	inet_sroute_add(sroute);
-
-       	rc = inet_link_discovery_start();
-	if (rc != EOK)
-		return EEXIST;
 	
 	return EOK;
 }
@@ -165,7 +166,29 @@ int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
     int df)
 {
 	inet_dir_t dir;
+	inet_link_t *ilink;
 	int rc;
+
+	if (dgram->iplink != 0) {
+		/* XXX TODO - IPv6 */
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram directly to iplink %zu",
+		    dgram->iplink);
+		/* Send packet directly to the specified IP link */
+		ilink = inet_link_get_by_id(dgram->iplink);
+		if (ilink == 0)
+			return ENOENT;
+
+		if (dgram->src.version != ip_v4 ||
+			dgram->dest.version != ip_v4)
+			return EINVAL;
+
+		return inet_link_send_dgram(ilink, dgram->src.addr,
+		    dgram->dest.addr, dgram, proto, ttl, df);
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram to be routed");
+
+	/* Route packet using source/destination addresses */
 
 	rc = inet_find_dir(&dgram->src, &dgram->dest, dgram->tos, &dir);
 	if (rc != EOK)
@@ -193,54 +216,136 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	/* XXX dt_local? */
 
 	/* Take source address from the address object */
-	local->ipv4 = dir.aobj->naddr.ipv4;
+	if (remote->version == ip_v4 && remote->addr == 0xffffffff) {
+		/* XXX TODO - IPv6 */
+		local->version = ip_v4;
+		local->addr = 0;
+		return EOK;
+	}
+
+	inet_naddr_addr(&dir.aobj->naddr, local);
 	return EOK;
 }
 
-static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t callid,
-    ipc_call_t *call)
+static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t iid,
+    ipc_call_t *icall)
 {
-	inet_addr_t remote;
-	uint8_t tos;
-	inet_addr_t local;
-	int rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
-
-	remote.ipv4 = IPC_GET_ARG1(*call);
-	tos = IPC_GET_ARG2(*call);
-	local.ipv4 = 0;
-
-	rc = inet_get_srcaddr(&remote, tos, &local);
-	async_answer_1(callid, rc, local.ipv4);
-}
-
-static void inet_send_srv(inet_client_t *client, ipc_callid_t callid,
-    ipc_call_t *call)
-{
-	inet_dgram_t dgram;
-	uint8_t ttl;
-	int df;
-	int rc;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
-
-	dgram.src.ipv4 = IPC_GET_ARG1(*call);
-	dgram.dest.ipv4 = IPC_GET_ARG2(*call);
-	dgram.tos = IPC_GET_ARG3(*call);
-	ttl = IPC_GET_ARG4(*call);
-	df = IPC_GET_ARG5(*call);
-
-	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
+	
+	uint8_t tos = IPC_GET_ARG1(*icall);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
 		return;
 	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	inet_addr_t remote;
+	int rc = async_data_write_finalize(callid, &remote, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
+	
+	inet_addr_t local;
+	rc = inet_get_srcaddr(&remote, tos, &local);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_read_finalize(callid, &local, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+		return;
+	}
+	
+	async_answer_0(iid, rc);
+}
 
+static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
+	
+	inet_dgram_t dgram;
+	
+	dgram.iplink = IPC_GET_ARG1(*icall);
+	dgram.tos = IPC_GET_ARG2(*icall);
+	
+	uint8_t ttl = IPC_GET_ARG3(*icall);
+	int df = IPC_GET_ARG3(*icall);
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	int rc = async_data_write_finalize(callid, &dgram.src, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
+	
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if (size != sizeof(inet_addr_t)) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	rc = async_data_write_finalize(callid, &dgram.dest, size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
+	}
+	
+	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0,
+	    &dgram.size);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	
 	rc = inet_send(client, &dgram, client->protocol, ttl, df);
-
+	
 	free(dgram.data);
-	async_answer_0(callid, rc);
+	async_answer_0(iid, rc);
 }
 
 static void inet_set_proto_srv(inet_client_t *client, ipc_callid_t callid,
@@ -348,10 +453,7 @@ static inet_client_t *inet_client_find(uint8_t proto)
 {
 	fibril_mutex_lock(&client_list_lock);
 
-	list_foreach(client_list, link) {
-		inet_client_t *client = list_get_instance(link, inet_client_t,
-		    client_list);
-
+	list_foreach(client_list, client_list, inet_client_t, client) {
 		if (client->protocol == proto) {
 			fibril_mutex_unlock(&client_list_lock);
 			return client;
@@ -365,24 +467,37 @@ static inet_client_t *inet_client_find(uint8_t proto)
 int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 {
 	async_exch_t *exch = async_exchange_begin(client->sess);
-
+	
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, INET_EV_RECV, dgram->src.ipv4,
-	    dgram->dest.ipv4, dgram->tos, &answer);
-	int rc = async_data_write_start(exch, dgram->data, dgram->size);
+	aid_t req = async_send_1(exch, INET_EV_RECV, dgram->tos, &answer);
+	
+	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, &dgram->dest, sizeof(inet_addr_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+	
+	rc = async_data_write_start(exch, dgram->data, dgram->size);
+	
 	async_exchange_end(exch);
-
+	
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
+	
 	sysarg_t retval;
 	async_wait_for(req, &retval);
-	if (retval != EOK)
-		return retval;
-
-	return EOK;
+	
+	return (int) retval;
 }
 
 int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
@@ -391,9 +506,12 @@ int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_recv_dgram_local()");
 
-	/* ICMP messages are handled internally */
+	/* ICMP and ICMPv6 messages are handled internally */
 	if (proto == IP_PROTO_ICMP)
 		return icmp_recv(dgram);
+	
+	if (proto == IP_PROTO_ICMPV6)
+		return icmpv6_recv(dgram);
 
 	client = inet_client_find(proto);
 	if (client == NULL) {
@@ -411,7 +529,10 @@ int inet_recv_packet(inet_packet_t *packet)
 	inet_dgram_t dgram;
 
 	addr = inet_addrobj_find(&packet->dest, iaf_addr);
-	if (addr != NULL) {
+	if ((addr != NULL) ||
+	    (inet_naddr_compare_mask(&solicited_node_mask, &packet->dest)) ||
+	    (inet_addr_compare(&multicast_all_nodes, &packet->dest)) || 
+	    (inet_addr_compare(&broadcast4_all_hosts, &packet->dest))) {
 		/* Destined for one of the local addresses */
 
 		/* Check if packet is a complete datagram */
