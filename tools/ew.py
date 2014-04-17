@@ -79,7 +79,7 @@ def platform_to_qemu_options(platform, machine):
 	if platform == 'amd64':
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
-		return 'system-arm', ''
+		return 'system-arm', '-M integratorcp'
 	elif platform == 'ia32':
 		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':
