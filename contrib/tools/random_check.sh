@@ -45,21 +45,21 @@ run_random_config() {
 }
 
 run_make() {
-	echo -n "  Building... " >&2
+	BASIC_CONFIG=`sed -n \
+		-e 's#PLATFORM = \(.*\)#\1#p' \
+		-e 's#MACHINE = \(.*\)#\1#p' \
+		-e 's#COMPILER = \(.*\)#\1#p' \
+		Makefile.config \
+		| paste '-sd,' | sed 's#,#, #g'`
+	
+	echo -n "  Building ($BASIC_CONFIG)... " >&2
+	
 	make -j$PARALLELISM 2>&1
 	if [ $? -eq 0 ]; then
 		echo "okay." >&2
 		return 0
 	else
-		(
-			echo -n "failed ("
-			sed -n \
-				-e 's#PLATFORM = \(.*\)#\1#p' \
-				-e 's#MACHINE = \(.*\)#\1#p' \
-				-e 's#COMPILER = \(.*\)#\1#p' \
-				Makefile.config \
-				| paste '-sd,' | sed -e 's#,#, #g' -e 's#.*#&).#'
-		) >&2
+		echo "failed." >&2
 		return 1
 	fi
 }
