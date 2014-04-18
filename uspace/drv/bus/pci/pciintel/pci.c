@@ -283,7 +283,7 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
 	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
-	uint32_t val;
+	uint32_t val = 0; // Prevent -Werror=maybe-uninitialized
 	
 	fibril_mutex_lock(&bus->conf_mutex);
 

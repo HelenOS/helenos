@@ -171,13 +171,15 @@ static int dhcp_recv_fibril(void *arg)
 {
 	dhcp_transport_t *dt = (dhcp_transport_t *)arg;
 	void *msg;
-	size_t size;
+	size_t size = (size_t) -1;
 	int rc;
 
 	while (true) {
 		rc = dhcp_recv_msg(dt, &msg, &size);
 		if (rc != EOK)
 			break;
+
+		assert(size != (size_t) -1);
 
 		dt->recv_cb(dt->cb_arg, msg, size);
 	}
