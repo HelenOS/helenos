@@ -257,7 +257,7 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 
 	if (flags & PAGE_CACHEABLE) {
 		/*
-		 * Write-through, no write-allocate memory, see ch. B3.8.2
+		 * Write-through, write-allocate memory, see ch. B3.8.2
 		 * (p. B3-1358) of ARM Architecture reference manual.
 		 * Make sure the memory type is correct, and in sync with:
 		 * init_boot_pt (boot/arch/arm32/src/mm.c)

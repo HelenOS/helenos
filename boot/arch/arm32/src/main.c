@@ -128,6 +128,9 @@ void bootstrap(void)
 	}
 	
 	printf(".\n");
+
+	/* Flush PT too. We need this if we disable caches later */
+	clean_dcache_poc(boot_pt, PTL0_ENTRIES * PTL0_ENTRY_SIZE);
 	
 	printf("Booting the kernel...\n");
 	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
