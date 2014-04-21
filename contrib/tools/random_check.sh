@@ -30,8 +30,11 @@
 
 LOOPS="$1"
 PARALLELISM="$2"
+COMPILERS="$3"
 [ -z "$LOOPS" ] && LOOPS=1
 [ -z "$PARALLELISM" ] && PARALLELISM=1
+# By default, skip icc and native GCC
+[ -z "$COMPILERS" ] && COMPILERS="gcc_cross gcc_helenos clang"
 
 
 run_clean() {
@@ -68,21 +71,30 @@ run_make() {
 
 COUNTER=0
 FAILED=0
+SKIPPED=0
 while [ $COUNTER -lt $LOOPS ]; do
 	COUNTER=$(( $COUNTER + 1 ))
-	echo "Try #$COUNTER ($FAILED failures):" >&2
+	echo "Try #$COUNTER (F$FAILED/S$SKIPPED):" >&2
 	(
 		run_clean
 		run_random_config
+		CC=`sed -n 's#^COMPILER = \(.*\)#\1#p' <Makefile.config`
+		if ! echo " $COMPILERS " | grep -q " $CC "; then
+			echo "  Skipping this one (compiler is $CC)." >&2
+			exit 2
+		fi
 		run_make
 		exit $?
 	) >random_run_$COUNTER.log
-	if [ $? -ne 0 ]; then
+	RC=$?
+	if [ $RC -eq 2 ]; then
+		SKIPPED=$(( $SKIPPED + 1 ))
+	elif [ $RC -ne 0 ]; then
 		tail -n 10 random_run_$COUNTER.log | sed 's#.*#    | &#'
-		FAILED=$(( FAILED + 1 ))
+		FAILED=$(( $FAILED + 1 ))
 	fi
 	cp Makefile.config random_run_$COUNTER.Makefile.config
 	cp config.h random_run_$COUNTER.config.h	
 done
 
-echo "Out of $LOOPS tries, $FAILED configurations failed to compile." >&2
+echo "Out of $LOOPS tries, $SKIPPED were skipped and $FAILED configurations failed to compile." >&2
