@@ -36,65 +36,70 @@ COMPILERS="$3"
 # By default, skip icc and native GCC
 [ -z "$COMPILERS" ] && COMPILERS="gcc_cross gcc_helenos clang"
 
-
-run_clean() {
-	echo "  Cleaning after previous build." >&2
-	make distclean -j$PARALLELISM 2>&1 || exit 1
-}
-
-run_random_config() {
-	echo "  Preparing random configuration." >&2
-	make random-config 2>&1 || exit 1
-}
-
-run_make() {
-	BASIC_CONFIG=`sed -n \
-		-e 's#PLATFORM = \(.*\)#\1#p' \
-		-e 's#MACHINE = \(.*\)#\1#p' \
-		-e 's#COMPILER = \(.*\)#\1#p' \
-		Makefile.config \
-		| paste '-sd,' | sed 's#,#, #g'`
-	
-	echo -n "  Building ($BASIC_CONFIG)... " >&2
-	
-	make -j$PARALLELISM 2>&1
-	if [ $? -eq 0 ]; then
-		echo "okay." >&2
-		return 0
-	else
-		echo "failed." >&2
-		return 1
-	fi
-}
-
-
-
 COUNTER=0
 FAILED=0
-SKIPPED=0
 while [ $COUNTER -lt $LOOPS ]; do
 	COUNTER=$(( $COUNTER + 1 ))
-	echo "Try #$COUNTER (F$FAILED/S$SKIPPED):" >&2
+	echo "Try #$COUNTER ($FAILED failed):" >&2
+	
 	(
-		run_clean
-		run_random_config
-		CC=`sed -n 's#^COMPILER = \(.*\)#\1#p' <Makefile.config`
-		if ! echo " $COMPILERS " | grep -q " $CC "; then
-			echo "  Skipping this one (compiler is $CC)." >&2
-			exit 2
+		echo "  Cleaning after previous build." >&2
+		make distclean -j$PARALLELISM 2>&1 || exit 1
+		
+		
+		echo "  Preparing random configuration." >&2
+		# It would be nicer to allow set the constraints directly to
+		# the tools/config.py script but this usually works.
+		# We retry several times if the compiler is wrong and abort if
+		# we do not succeed after many attempts.
+		RETRIES=0
+		while true; do
+			RETRIES=$(( $RETRIES + 1 ))
+			if [ $RETRIES -ge 20 ]; then
+				echo "  Failed to generate random configuration with given constraints after $RETRIES tries." >&2
+				exit 2
+			fi
+			
+			make random-config 2>&1 || exit 1
+			
+			CC=`sed -n 's#^COMPILER = \(.*\)#\1#p' <Makefile.config`
+			if echo " $COMPILERS " | grep -q " $CC "; then
+				break
+			fi
+		done
+		
+		
+		# Report basic info about the configuration and build it
+		BASIC_CONFIG=`sed -n \
+			-e 's#PLATFORM = \(.*\)#\1#p' \
+			-e 's#MACHINE = \(.*\)#\1#p' \
+			-e 's#COMPILER = \(.*\)#\1#p' \
+			Makefile.config \
+			| paste '-sd,' | sed 's#,#, #g'`
+		echo -n "  Building ($BASIC_CONFIG)... " >&2
+	
+		make -j$PARALLELISM 2>&1
+		if [ $? -eq 0 ]; then
+			echo "okay." >&2
+			exit 0
+		else
+			echo "failed." >&2
+			exit 1
 		fi
-		run_make
-		exit $?
+		
 	) >random_run_$COUNTER.log
 	RC=$?
-	if [ $RC -eq 2 ]; then
-		SKIPPED=$(( $SKIPPED + 1 ))
-	elif [ $RC -ne 0 ]; then
+	
+	if [ $RC -ne 0 ]; then
 		tail -n 10 random_run_$COUNTER.log | sed 's#.*#    | &#'
 		FAILED=$(( $FAILED + 1 ))
 	fi
-	cp Makefile.config random_run_$COUNTER.Makefile.config
-	cp config.h random_run_$COUNTER.config.h	
+	
+	if [ -e Makefile.config ]; then
+		cp Makefile.config random_run_$COUNTER.Makefile.config
+		cp config.h random_run_$COUNTER.config.h
+	fi	
 done
 
-echo "Out of $LOOPS tries, $SKIPPED were skipped and $FAILED configurations failed to compile." >&2
+
+echo "Out of $LOOPS tries, $FAILED configurations failed to compile." >&2
