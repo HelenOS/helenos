@@ -28,13 +28,33 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-LOOPS="$1"
-PARALLELISM="$2"
-COMPILERS="$3"
-[ -z "$LOOPS" ] && LOOPS=1
-[ -z "$PARALLELISM" ] && PARALLELISM=1
-# By default, skip icc and native GCC
-[ -z "$COMPILERS" ] && COMPILERS="gcc_cross gcc_helenos clang"
+
+LOOPS=1
+JOBS=1
+MAX_RETRIES=20
+FILENAME_PREFIX=random_run_
+PRUNE_CONFIG_FILE=${FILENAME_PREFIX}prune.config
+
+echo -n "">"$PRUNE_CONFIG_FILE"
+
+while getopts n:j:x: option; do
+	case $option in
+	n)
+		LOOPS="$OPTARG"
+		;;
+	j)
+		JOBS="$OPTARG"
+		;;
+	x)
+		echo "$OPTARG" | tr -d ' ' >>"$PRUNE_CONFIG_FILE"
+		;;
+	*)
+		echo "Usage: $0 [-n loops] [-j paralellism] [-x excluded option [-x ...]]"
+		exit 1
+		;;
+	esac
+done
+
 
 COUNTER=0
 FAILED=0
@@ -50,8 +70,7 @@ while [ $COUNTER -lt $LOOPS ]; do
 		echo "  Preparing random configuration." >&2
 		# It would be nicer to allow set the constraints directly to
 		# the tools/config.py script but this usually works.
-		# We retry several times if the compiler is wrong and abort if
-		# we do not succeed after many attempts.
+		# We retry $MAX_RETRIES before aborting this run completely.
 		RETRIES=0
 		while true; do
 			RETRIES=$(( $RETRIES + 1 ))
@@ -62,8 +81,19 @@ while [ $COUNTER -lt $LOOPS ]; do
 			
 			make random-config 2>&1 || exit 1
 			
-			CC=`sed -n 's#^COMPILER = \(.*\)#\1#p' <Makefile.config`
-			if echo " $COMPILERS " | grep -q " $CC "; then
+			tr -d ' ' <Makefile.config >"${FILENAME_PREFIX}config.trimmed"
+			
+			THIS_CONFIG_OKAY=true
+			while read pattern; do
+				if grep -q -e "$pattern" "${FILENAME_PREFIX}config.trimmed"; then
+					THIS_CONFIG_OKAY=false
+					break
+				fi
+			done <"$PRUNE_CONFIG_FILE"
+			
+			rm -f "${FILENAME_PREFIX}config.trimmed"
+			
+			if $THIS_CONFIG_OKAY; then
 				break
 			fi
 		done
@@ -96,10 +126,11 @@ while [ $COUNTER -lt $LOOPS ]; do
 	fi
 	
 	if [ -e Makefile.config ]; then
-		cp Makefile.config random_run_$COUNTER.Makefile.config
-		cp config.h random_run_$COUNTER.config.h
+		cp Makefile.config "$FILENAME_PREFIX$COUNTER.Makefile.config"
+		cp config.h "$FILENAME_PREFIX$COUNTER.config.h"
 	fi	
 done
 
+rm "$PRUNE_CONFIG_FILE"
 
 echo "Out of $LOOPS tries, $FAILED configurations failed to compile." >&2
