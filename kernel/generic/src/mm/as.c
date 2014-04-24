@@ -1724,7 +1724,7 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 	ASSERT(IS_ALIGNED(page, PAGE_SIZE));
 	ASSERT(count);
 	
-	btree_node_t *leaf;
+	btree_node_t *leaf = NULL;
 	size_t pages = (size_t) btree_search(&area->used_space, page, &leaf);
 	if (pages) {
 		/*
@@ -1732,6 +1732,8 @@ bool used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		 */
 		return false;
 	}
+
+	ASSERT(leaf != NULL);
 	
 	if (!leaf->keys) {
 		btree_insert(&area->used_space, page, (void *) count, leaf);
