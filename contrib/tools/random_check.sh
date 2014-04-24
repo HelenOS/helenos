@@ -37,7 +37,7 @@ PRUNE_CONFIG_FILE=${FILENAME_PREFIX}prune.config
 
 echo -n "">"$PRUNE_CONFIG_FILE"
 
-while getopts n:j:x: option; do
+while getopts n:j:x:sS option; do
 	case $option in
 	n)
 		LOOPS="$OPTARG"
@@ -48,8 +48,18 @@ while getopts n:j:x: option; do
 	x)
 		echo "$OPTARG" | tr -d ' ' >>"$PRUNE_CONFIG_FILE"
 		;;
+	s|S)
+		echo "COMPILER=gcc_native" >>"$PRUNE_CONFIG_FILE"
+		echo "COMPILER=gcc_helenos" >>"$PRUNE_CONFIG_FILE"
+		echo "COMPILER=icc" >>"$PRUNE_CONFIG_FILE"
+		if [ "$option" = "S" ]; then
+			echo "CONFIG_PCC=y" >>"$PRUNE_CONFIG_FILE"
+			echo "CONFIG_BINUTILS=y" >>"$PRUNE_CONFIG_FILE"
+			echo "CONFIG_MSIM=y" >>"$PRUNE_CONFIG_FILE"
+		fi
+		;;
 	*)
-		echo "Usage: $0 [-n loops] [-j paralellism] [-x excluded option [-x ...]]"
+		echo "Usage: $0 [-n loops] [-j paralellism] [-s] [-S] [-x excluded option [-x ...]]"
 		exit 1
 		;;
 	esac
