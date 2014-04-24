@@ -37,7 +37,7 @@ PRUNE_CONFIG_FILE=${FILENAME_PREFIX}prune.config
 
 echo -n "">"$PRUNE_CONFIG_FILE"
 
-while getopts n:j:x:sS option; do
+while getopts n:j:x:hsS option; do
 	case $option in
 	n)
 		LOOPS="$OPTARG"
@@ -58,9 +58,34 @@ while getopts n:j:x:sS option; do
 			echo "CONFIG_MSIM=y" >>"$PRUNE_CONFIG_FILE"
 		fi
 		;;
-	*)
-		echo "Usage: $0 [-n loops] [-j paralellism] [-s] [-S] [-x excluded option [-x ...]]"
-		exit 1
+	*|h)
+		echo "Usage: $0 [options]"
+		echo "where [options] could be:"
+		echo
+		echo "  -n LOOPS"
+		echo "      How many configurations to check."
+		echo "      (Default is one configuration.)"
+		echo "  -j PARALLELISM"
+		echo "      How many parallel jobs to execute by 'make'."
+		echo "      (Default is single job configuration.)"
+		echo "  -s"
+		echo "      Use only supported compilers."
+		echo "      (That is, only GCC cross-compiler and Clang.)"
+		echo "  -S"
+		echo "      Build only reasonable configurations."
+		echo "      (Implies -s, does not build ported programs.)"
+		echo "  -x CONFIG_OPTION=value"
+		echo "      Skip the configuration if this option is present."
+		echo "      (Example: CONFIG_BINUTILS=n means that only configurations"
+		echo "      where binutils *are* included would be built.)"
+		echo "  -h"
+		echo "      Print this help and exit."
+		echo
+		if [ "$option" = "h" ]; then
+			exit 0
+		else
+			exit 1
+		fi
 		;;
 	esac
 done
