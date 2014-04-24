@@ -99,7 +99,7 @@ while [ $COUNTER -lt $LOOPS ]; do
 	
 	(
 		echo "  Cleaning after previous build." >&2
-		make distclean -j$PARALLELISM 2>&1 || exit 1
+		make distclean -j$JOBS 2>&1 || exit 1
 		
 		
 		echo "  Preparing random configuration." >&2
@@ -109,7 +109,7 @@ while [ $COUNTER -lt $LOOPS ]; do
 		RETRIES=0
 		while true; do
 			RETRIES=$(( $RETRIES + 1 ))
-			if [ $RETRIES -ge 20 ]; then
+			if [ $RETRIES -ge $MAX_RETRIES ]; then
 				echo "  Failed to generate random configuration with given constraints after $RETRIES tries." >&2
 				exit 2
 			fi
@@ -143,7 +143,7 @@ while [ $COUNTER -lt $LOOPS ]; do
 			| paste '-sd,' | sed 's#,#, #g'`
 		echo -n "  Building ($BASIC_CONFIG)... " >&2
 	
-		make -j$PARALLELISM 2>&1
+		make -j$JOBS 2>&1
 		if [ $? -eq 0 ]; then
 			echo "okay." >&2
 			exit 0
