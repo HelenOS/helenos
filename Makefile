@@ -90,6 +90,9 @@ endif
 config: $(CONFIG_RULES)
 	$(CONFIG) $<
 
+random-config: $(CONFIG_RULES)
+	$(CONFIG) $< random
+
 # Release files
 
 releasefile: all

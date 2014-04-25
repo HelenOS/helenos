@@ -342,7 +342,7 @@ static void udebug_receive_regs_read(call_t *call)
 	thread_t *t;
 	sysarg_t uspace_addr;
 	sysarg_t to_copy;
-	void *buffer;
+	void *buffer = NULL;
 	int rc;
 
 	t = (thread_t *) IPC_GET_ARG2(call->data);
@@ -353,6 +353,8 @@ static void udebug_receive_regs_read(call_t *call)
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
+
+	ASSERT(buffer != NULL);
 
 	/*
 	 * Make use of call->buffer to transfer data to caller's userspace
@@ -384,7 +386,7 @@ static void udebug_receive_mem_read(call_t *call)
 	sysarg_t uspace_dst;
 	sysarg_t uspace_src;
 	unsigned size;
-	void *buffer;
+	void *buffer = NULL;
 	int rc;
 
 	uspace_dst = IPC_GET_ARG2(call->data);
@@ -397,6 +399,8 @@ static void udebug_receive_mem_read(call_t *call)
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
+
+	ASSERT(buffer != NULL);
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that

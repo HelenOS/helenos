@@ -38,10 +38,16 @@
 #include <typedefs.h>
 #include <cc.h>
 
+#ifdef CONFIG_LTO
+#define DO_NOT_DISCARD ATTRIBUTE_USED
+#else
+#define DO_NOT_DISCARD
+#endif
+
 extern void *memset(void *, int, size_t)
-    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns") DO_NOT_DISCARD;
 extern void *memcpy(void *, const void *, size_t)
-    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns") DO_NOT_DISCARD;
 
 #endif
 

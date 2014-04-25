@@ -486,7 +486,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	uint8_t *data;
 	size_t size;
 	dns_header_t hdr;
-	size_t q_size;
+	size_t q_size = 0;
 	size_t di;
 	int rc;
 
@@ -514,6 +514,8 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 		if (rc != EOK)
 			return rc;
 
+		assert(q_size > 0);
+
 		size += q_size;
 	}
 
@@ -531,6 +533,8 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 			free(data);
 			return rc;
 		}
+
+		assert(q_size > 0);
 
 		di += q_size;
 	}

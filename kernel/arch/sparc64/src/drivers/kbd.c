@@ -89,7 +89,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	
 	size_t size = ((ofw_ebus_reg_t *) prop->value)->size;
 	
-	uintptr_t pa;
+	uintptr_t pa = 0; // Prevent -Werror=maybe-uninitialized
 	if (!ofw_ebus_apply_ranges(node->parent,
 	    ((ofw_ebus_reg_t *) prop->value), &pa)) {
 		log(LF_ARCH, LVL_ERROR,

@@ -96,6 +96,7 @@ static cmd_info_t addbkpte_info = {
 	.argc = 2,
 	.argv = adde_argv
 };
+#endif
 
 static struct {
 	uint32_t andmask;
@@ -145,6 +146,8 @@ bool is_jump(sysarg_t instr)
 	
 	return false;
 }
+
+#ifdef CONFIG_KCONSOLE
 
 /** Add new breakpoint to table
  *

@@ -285,7 +285,7 @@ error:
 
 static int transport_recv_fibril(void *arg)
 {
-	dns_message_t *resp;
+	dns_message_t *resp = NULL;
 	trans_req_t *treq;
 	int rc;
 
@@ -293,6 +293,8 @@ static int transport_recv_fibril(void *arg)
 		rc = transport_recv_msg(&resp);
 		if (rc != EOK)
 			continue;
+
+		assert(resp != NULL);
 
 		fibril_mutex_lock(&treq_lock);
 		treq = treq_match_resp(resp);
