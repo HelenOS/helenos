@@ -162,11 +162,6 @@ DIRS += \
 	app/cpp
 endif
 
-ifeq ($(CONFIG_MSIM),y)
-DIRS += \
-	app/msim
-endif
-
 ## Platform-specific hardware support
 #
 
