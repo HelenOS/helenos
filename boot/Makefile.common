@@ -225,12 +225,6 @@ RD_APPS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/cpp/cpp
 endif
 
-ifeq ($(CONFIG_BINUTILS),y)
-RD_APPS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/app/binutils/bin/as \
-	$(USPACE_PATH)/app/binutils/bin/ld
-endif
-
 ifeq ($(CONFIG_MSIM),y)
 RD_APPS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/msim/msim

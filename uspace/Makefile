@@ -162,11 +162,6 @@ DIRS += \
 	app/cpp
 endif
 
-ifeq ($(CONFIG_BINUTILS),y)
-DIRS += \
-	app/binutils
-endif
-
 ifeq ($(CONFIG_MSIM),y)
 DIRS += \
 	app/msim

@@ -105,7 +105,6 @@ release:
 
 distclean: clean
 	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
-	cd ./uspace/app/binutils/; ./distclean.sh
 
 clean:
 	rm -fr $(SANDBOX)
