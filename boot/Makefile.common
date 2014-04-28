@@ -217,14 +217,6 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/viewer/viewer \
 	$(USPACE_PATH)/app/df/df
 
-ifeq ($(CONFIG_PCC),y)
-RD_APPS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/app/cc/cc \
-	$(USPACE_PATH)/app/ccom/ccom \
-	$(USPACE_PATH)/app/ccom/mkext/cc_mkext \
-	$(USPACE_PATH)/app/cpp/cpp
-endif
-
 COMPONENTS = \
 	$(KERNEL_PATH)/kernel.bin \
 	$(INIT_TASKS) \

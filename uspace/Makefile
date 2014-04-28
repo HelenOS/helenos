@@ -154,14 +154,6 @@ DIRS = \
 	drv/nic/e1k \
 	drv/nic/rtl8139
 
-ifeq ($(CONFIG_PCC),y)
-DIRS += \
-	app/cc \
-	app/ccom \
-	app/ccom/mkext \
-	app/cpp
-endif
-
 ## Platform-specific hardware support
 #
 
