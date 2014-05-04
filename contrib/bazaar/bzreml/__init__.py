@@ -134,6 +134,9 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				revision_ac_no = branch.revision_id_to_revno(revision_ac_id)
 				
 				repo_name = os.path.basename(branch.base)
+				if (repo_name == ''):
+					repo_name = os.path.basename(os.path.dirname(branch.base))
+				
 				committer = revision_ac.committer
 				authors = revision_ac.get_apparent_authors()
 				date = time.strftime("%Y-%m-%d %H:%M:%S %Z (%a, %d %b %Y)", time.localtime(revision_ac.timestamp))
