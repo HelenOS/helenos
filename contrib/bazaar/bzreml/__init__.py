@@ -39,6 +39,7 @@
 
 import smtplib
 import time
+import os
 
 from StringIO import StringIO
 
@@ -132,9 +133,12 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				revision_ac = branch.repository.get_revision(revision_ac_id)
 				revision_ac_no = branch.revision_id_to_revno(revision_ac_id)
 				
+				repo_name = os.path.basename(branch.base)
 				committer = revision_ac.committer
 				authors = revision_ac.get_apparent_authors()
 				date = time.strftime("%Y-%m-%d %H:%M:%S %Z (%a, %d %b %Y)", time.localtime(revision_ac.timestamp))
+				
+				body.write("Repo: %s\n" % repo_name)
 				
 				if (authors != [committer]):
 					body.write("Author: %s\n" % ", ".join(authors))
@@ -207,7 +211,7 @@ def send_email(branch, revision_old_id, revision_new_id, config):
 				finally:
 					tree_prev.unlock()
 				
-				subject = "r%d - %s" % (revision_ac_no, commit_message)
+				subject = "[%s] r%d - %s" % (repo_name, revision_ac_no, commit_message)
 				send_smtp("localhost", config_sender(config), config_to(config), subject, body.getvalue())
 				
 				revision_prev_id = revision_ac_id
