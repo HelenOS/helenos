@@ -38,42 +38,30 @@
 
 #include <usb/dev/driver.h>
 #include <async.h>
-
-struct usb_hid_dev;
-
-
+#include "../usbhid.h"
 
 /** Container for USB mouse device. */
 typedef struct {
 	/** IPC session to consumer. */
 	async_sess_t *mouse_sess;
-
-	/* Mouse buttons statuses. */
+	
+	/** Mouse buttons statuses. */
 	int32_t *buttons;
 	size_t buttons_count;
-
-	/* DDF mouse function */
+	
+	/** DDF mouse function */
 	ddf_fun_t *mouse_fun;
 } usb_mouse_t;
 
-
-
 extern const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
 
-const char *HID_MOUSE_FUN_NAME;
-const char *HID_MOUSE_CATEGORY;
+extern const char *HID_MOUSE_FUN_NAME;
+extern const char *HID_MOUSE_CATEGORY;
 
-
-
-int usb_mouse_init(struct usb_hid_dev *hid_dev, void **data);
-
-bool usb_mouse_polling_callback(struct usb_hid_dev *hid_dev, void *data);
-
-void usb_mouse_deinit(struct usb_hid_dev *hid_dev, void *data);
-
-int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
-
-
+extern int usb_mouse_init(usb_hid_dev_t *, void **);
+extern bool usb_mouse_polling_callback(usb_hid_dev_t *, void *);
+extern void usb_mouse_deinit(usb_hid_dev_t *, void *);
+extern int usb_mouse_set_boot_protocol(usb_hid_dev_t *);
 
 #endif // USB_HID_MOUSEDEV_H_
 
