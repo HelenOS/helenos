@@ -1331,6 +1331,9 @@ static bool loc_init(void)
 	cat = category_new("mouse");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("led");
+	categ_dir_add_cat(&cdir, cat);
+
 	cat = category_new("serial");
 	categ_dir_add_cat(&cdir, cat);
 

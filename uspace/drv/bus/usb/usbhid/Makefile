@@ -49,7 +49,8 @@ SUBDRIVER_SOURCES = \
 	kbd/kbdrepeat.c \
 	mouse/mousedev.c \
 	multimedia/multimedia.c \
-	multimedia/keymap.c
+	multimedia/keymap.c \
+	blink1/blink1.c
 
 SOURCES = \
 	main.c \

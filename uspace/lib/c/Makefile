@@ -64,6 +64,7 @@ GENERIC_SOURCES = \
 	generic/device/hw_res_parsed.c \
 	generic/device/pio_window.c \
 	generic/device/clock_dev.c \
+	generic/device/led_dev.c \
 	generic/dhcp.c \
 	generic/dnsr.c \
 	generic/dlfcn.c \
