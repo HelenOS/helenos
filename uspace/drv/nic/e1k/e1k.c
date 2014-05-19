@@ -1374,6 +1374,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	fibril_mutex_lock(&e1000->rx_lock);
 	
+	e1000->rx_ring_virt = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(
 	    E1000_RX_FRAME_COUNT * sizeof(e1000_rx_descriptor_t),
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
@@ -1395,11 +1396,10 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 		goto error;
 	}
 	
-	size_t i;
-	uintptr_t frame_phys;
-	void *frame_virt;
-	
-	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+		uintptr_t frame_phys;
+		void *frame_virt = AS_AREA_ANY;
+		
 		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
 		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 		    &frame_phys, &frame_virt);
@@ -1411,7 +1411,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	}
 	
 	/* Write descriptor */
-	for (i = 0; i < E1000_RX_FRAME_COUNT; i++)
+	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++)
 		e1000_fill_new_rx_descriptor(nic, i);
 	
 	e1000_initialize_rx_registers(e1000);
@@ -1420,7 +1420,7 @@ static int e1000_initialize_rx_structure(nic_t *nic)
 	return EOK;
 	
 error:
-	for (i = 0; i < E1000_RX_FRAME_COUNT; i++) {
+	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++) {
 		if (e1000->rx_frame_virt[i] != NULL) {
 			dmamem_unmap_anonymous(e1000->rx_frame_virt[i]);
 			e1000->rx_frame_phys[i] = 0;
@@ -1570,7 +1570,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	fibril_mutex_lock(&e1000->tx_lock);
 	
 	e1000->tx_ring_phys = 0;
-	e1000->tx_ring_virt = NULL;
+	e1000->tx_ring_virt = AS_AREA_ANY;
 	
 	e1000->tx_frame_phys = NULL;
 	e1000->tx_frame_virt = NULL;
@@ -1596,6 +1596,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	}
 	
 	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
+		e1000->tx_frame_virt[i] = AS_AREA_ANY;
 		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
 		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 		    0, &e1000->tx_frame_phys[i], &e1000->tx_frame_virt[i]);

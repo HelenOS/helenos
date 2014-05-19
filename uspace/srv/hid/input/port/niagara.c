@@ -73,20 +73,17 @@ typedef volatile struct {
 	uint64_t write_ptr;
 	uint64_t read_ptr;
 	char data[INPUT_BUFFER_SIZE];
-}
-	__attribute__ ((packed))
-	__attribute__ ((aligned(PAGE_SIZE)))
-	*input_buffer_t;
+} __attribute__((packed)) __attribute__((aligned(PAGE_SIZE))) *input_buffer_t;
 
 /* virtual address of the shared buffer */
-static input_buffer_t input_buffer;
+static input_buffer_t input_buffer = (input_buffer_t) AS_AREA_ANY;
 
 static volatile bool polling_disabled = false;
 static void niagara_thread_impl(void *arg);
 
 /**
  * Initializes the Niagara driver.
- * Maps the shared buffer and creates the polling thread. 
+ * Maps the shared buffer and creates the polling thread.
  */
 static int niagara_port_init(kbd_dev_t *kdev)
 {

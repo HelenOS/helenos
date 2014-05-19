@@ -1140,7 +1140,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "Creating buffers");
-
+	
+	rtl8139->tx_buff_virt = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, DMAMEM_4GiB,
 	    AS_AREA_WRITE, 0, &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
 	if (rc != EOK) {
@@ -1160,7 +1161,8 @@ static int rtl8139_buffers_create(rtl8139_t *rtl8139)
 	/* Allocate buffer for receiver */
 	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
-
+	
+	rtl8139->rx_buff_virt = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, DMAMEM_4GiB,
 	    AS_AREA_READ, 0, &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
 	if (rc != EOK) {

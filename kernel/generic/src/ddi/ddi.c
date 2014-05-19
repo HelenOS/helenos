@@ -228,9 +228,13 @@ NO_TRACE static int physmem_unmap(uintptr_t virt)
 sysarg_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
     void *virt_ptr, uintptr_t bound)
 {
-	uintptr_t virt = (uintptr_t) -1;
-	int rc = physmem_map(ALIGN_DOWN(phys, FRAME_SIZE), pages, flags,
-	    &virt, bound);
+	uintptr_t virt;
+	int rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
+	if (rc != EOK)
+		return rc;
+	
+	rc = physmem_map(ALIGN_DOWN(phys, FRAME_SIZE), pages, flags, &virt,
+	    bound);
 	if (rc != EOK)
 		return rc;
 	
@@ -389,8 +393,12 @@ sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
 		if (rc != EOK)
 			return rc;
 		
+		uintptr_t virt;
+		rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
+		if (rc != EOK)
+			return rc;
+		
 		uintptr_t phys;
-		uintptr_t virt = (uintptr_t) -1;
 		rc = dmamem_map_anonymous(size, constraint, map_flags, flags,
 		    &phys, &virt, bound);
 		if (rc != EOK)

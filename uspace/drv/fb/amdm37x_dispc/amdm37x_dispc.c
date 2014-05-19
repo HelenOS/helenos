@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <ddf/log.h>
 #include <ddi.h>
-#include <abi/mm/as.h>
+#include <as.h>
 
 #include "amdm37x_dispc.h"
 
@@ -273,7 +273,7 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp*8);
 	const size_t size = ALIGN_UP(x * y * bpp, PAGE_SIZE);
 	uintptr_t pa;
-	void *buffer;
+	void *buffer = AS_AREA_ANY;
 	int ret = dmamem_map_anonymous(size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &pa, &buffer);
 	if (ret != EOK) {
