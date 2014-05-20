@@ -319,9 +319,11 @@ static void loc_service_unregister_core(loc_service_t *service)
 		link_t *link = list_first(&service->cat_memb);
 		svc_categ_t *memb = list_get_instance(link, svc_categ_t,
 		    svc_link);
-		fibril_mutex_lock(&memb->cat->mutex);
+		category_t *cat = memb->cat;
+		
+		fibril_mutex_lock(&cat->mutex);
 		category_remove_service(memb);
-		fibril_mutex_unlock(&memb->cat->mutex);
+		fibril_mutex_unlock(&cat->mutex);
 	}
 	
 	free(service->name);
