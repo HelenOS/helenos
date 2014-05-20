@@ -208,6 +208,7 @@ static int compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
 		}
 		*cstart += rpath_sep + 1 - prefix;
 		free(prefix);
+		prefix = NULL;
 
 		cs->path_list = malloc(sizeof(char *) * 2);
 		if (cs->path_list == NULL) {
@@ -251,16 +252,21 @@ error:
 		free(cs->path_list);
 	}
 
-	if (cs != NULL && cs->prefix != NULL)
+	if ((cs != NULL) && (cs->prefix != NULL))
 		free(cs->prefix);
+	
 	if (dirname != NULL)
 		free(dirname);
+	
 	if (prefix != NULL)
 		free(prefix);
+	
 	if (stext != NULL)
 		free(stext);
+	
 	if (cs != NULL)
 		free(cs);
+	
 	if (tokens != NULL)
 		free(tokens);
 
