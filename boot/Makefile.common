@@ -137,6 +137,7 @@ RD_DRVS_NON_ESSENTIAL = \
 	nic/ne2k \
 	nic/e1k \
 	nic/rtl8139 \
+	nic/rtl8169 \
 	block/ahci
 
 RD_DRV_CFG =

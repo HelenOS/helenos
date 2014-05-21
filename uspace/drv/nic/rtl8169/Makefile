@@ -33,8 +33,6 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBNIC_PREFIX)/include
 BINARY = rtl8169
 
 SOURCES = \
-	driver.c \
-	general.c \
-	defs.c
+	driver.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -37,4 +37,51 @@
 /** The driver name */
 #define NAME  "rtl8169"
 
+#define	TX_BUFF_COUNT	16
+
+/** RTL8139 device data */
+typedef struct rtl8169_data {
+	/** I/O address of the device */
+	void *regs_phys;
+	/** Mapped I/O port */
+	void *regs;
+	/** The irq assigned */
+	int irq;
+
+	/** Mask of the turned interupts (IMR value) */
+	uint16_t int_mask;
+
+	/** The memory allocated for the transmittion buffers
+	 *  Each buffer takes 2kB
+	 */
+	uintptr_t tx_buff_phys;
+	void *tx_buff_virt;
+
+	/** Virtual adresses of the Tx buffers */
+	void *tx_buff[TX_BUFF_COUNT];
+
+	/** The nubmer of the next buffer to use, index = tx_next % TX_BUFF_COUNT */
+	size_t tx_next;
+	/** The number of the first used buffer in the row
+	 *
+	 *  tx_used is in the interval tx_next - TX_BUFF_COUNT and tx_next:
+	 *  	tx_next - TX_BUFF_COUNT: there is no useable Tx descriptor
+	 *  	tx_next: all Tx descriptors are can be used
+	 */
+	size_t tx_used;
+
+	/** Buffer for receiving frames */
+	uintptr_t rx_buff_phys;
+	void *rx_buff_virt;
+
+	/** Lock for receiver */
+	fibril_mutex_t rx_lock;
+	/** Lock for transmitter */
+	fibril_mutex_t tx_lock;
+
+	/** Backward pointer to nic_data */
+	nic_t *nic_data;
+
+} rtl8169_t;
+
 #endif

@@ -86,8 +86,8 @@ enum rtl8169_registers {
 	WAKEUP2HD = 0x9c, /**< Power Management Wakeup frame2 high dword, 8b */
 	WAKEUP3LD = 0xa4, /**< Power Management Wakeup frame3 low dword, 8b */
 	WAKEUP3HD = 0xac, /**< Power Management Wakeup frame3 high dword, 8b */
-	WAKEUP2LD = 0xb4, /**< Power Management Wakeup frame4 low dword, 8b */
-	WAKEUP2HD = 0xbc, /**< Power Management Wakeup frame4 high dword, 8b */
+	WAKEUP4LD = 0xb4, /**< Power Management Wakeup frame4 low dword, 8b */
+	WAKEUP4HD = 0xbc, /**< Power Management Wakeup frame4 high dword, 8b */
 	CRC0 = 0xc4, /**< 16-bit CRC of wakeup frame 0, 2b */
 	CRC1 = 0xc6, /**< 16-bit CRC of wakeup frame 1, 2b */
 	CRC2 = 0xc8, /**< 16-bit CRC of wakeup frame 2, 2b */
@@ -131,7 +131,7 @@ enum rtl8169_config2 {
 	CONFIG2_PCIBUSWIDTH = (1 << 3), /**< PCI Bus Width */
 	CONFIG2_PCICLKF_SHIFT = 0,
 	CONFIG2_PCICLKF_SIZE = 2
-}'
+};
 
 enum rtl8169_config3 {
 	CONFIG3_GNT_SELECT = (1 << 7), /**< Gnt select */
@@ -239,7 +239,18 @@ enum rtl8169_anar {
 	ANAR_100TX_HD = (1 << 7), /**< 100BASE_TX half duplex */
 	ANAR_10_FD = (1 << 6), /**< 10BASE_T full duplex */
 	ANAR_10_HD = (1 << 5), /**< 10BASE_T half duplex */
-	ANAR_SELECTOR = 0x1. /**< Selector */
+	ANAR_SELECTOR = 0x1, /**< Selector */
+};
+
+enum rtl8169_phystatus {
+	PHYSTATUS_TBIEN = (1 << 7), /**< TBI enabled */
+	PHYSTATUS_TXFLOW = (1 << 6), /**< TX flow control enabled */
+	PHYSTATUS_RXFLOW = (1 << 5), /**< RX flow control enabled */
+	PHYSTATUS_1000M = (1 << 4), /**< Link speed is 1000Mbit/s */
+	PHYSTATUS_100M = (1 << 3), /**< Link speed is 100Mbit/s */
+	PHYSTATUS_10M = (1 << 2), /**< Link speed is 10Mbit/s */
+	PHYSTATUS_LINK = (1 << 1), /**< Link up */
+	PHYSTATUS_FDX = (1 << 0), /**< Link is full duplex */
 };
 
 struct rtl8169_descr {
