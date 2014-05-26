@@ -37,7 +37,11 @@
 /** The driver name */
 #define NAME  "rtl8169"
 
-#define	TX_BUFF_COUNT	16
+#define	TX_BUFFERS_COUNT	16
+#define	RX_BUFFERS_COUNT	16
+
+#define	TX_RING_SIZE		(sizeof(rtl8169_descr_t) * TX_BUFFERS_COUNT)
+#define	RX_RING_SIZE		(sizeof(rtl8169_descr_t) * RX_BUFFERS_COUNT)
 
 /** RTL8139 device data */
 typedef struct rtl8169_data {
@@ -47,19 +51,20 @@ typedef struct rtl8169_data {
 	void *regs;
 	/** The irq assigned */
 	int irq;
-
 	/** Mask of the turned interupts (IMR value) */
 	uint16_t int_mask;
-
-	/** The memory allocated for the transmittion buffers
-	 *  Each buffer takes 2kB
-	 */
+	/** TX ring */
+	uintptr_t tx_ring_phys;
+	void *tx_ring_virt;
+	/** RX ring */
+	uintptr_t rx_ring_phys;
+	void *rx_ring_virt;
+	/** TX buffers */
 	uintptr_t tx_buff_phys;
 	void *tx_buff_virt;
-
-	/** Virtual adresses of the Tx buffers */
-	void *tx_buff[TX_BUFF_COUNT];
-
+	/** RX buffers */
+	uintptr_t rx_buff_phys;
+	void *rx_buff;
 	/** The nubmer of the next buffer to use, index = tx_next % TX_BUFF_COUNT */
 	size_t tx_next;
 	/** The number of the first used buffer in the row

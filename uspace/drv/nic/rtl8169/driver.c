@@ -86,6 +86,13 @@ static int rtl8169_get_resource_info(ddf_dev_t *dev);
 static int rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t *hw_resources);
 static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev);
 
+static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
+    const nic_address_t *, size_t);
+static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
+    const nic_address_t *addr, size_t addr_count);
+static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
+
+
 /** Network interface options for RTL8169 card driver */
 static nic_iface_t rtl8169_nic_iface = {
 	.set_address = &rtl8169_set_addr,
@@ -220,6 +227,45 @@ static int rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
 	return EOK;
 }
 
+static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
+{
+	int rc;
+
+	ddf_msg(LVL_DEBUG, "Allocating DMA buffer rings");
+
+	/* Allocate TX ring */
+	rc = dmamem_map_anonymous(TX_RING_SIZE, DMAMEM_4GiB, 
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->tx_ring_phys,
+	    &rtl8169->tx_ring_virt);
+
+	if (rc != EOK)
+		return rc;
+
+	/* Allocate RX ring */
+	rc = dmamem_map_anonymous(RX_RING_SIZE, DMAMEM_4GiB, 
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->rx_ring_phys,
+	    &rtl8169->rx_ring_virt);
+
+	if (rc != EOK)
+		return rc;
+
+	/* Allocate TX buffers */
+	rc = dmamem_map_anonymous(TX_BUFFERS_SIZE, DMAMEM_4GiB, 
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->tx_buff_phys,
+	    &rtl8169->tx_buff_virt);
+
+	if (rc != EOK)
+		return rc;
+
+	/* Allocate RX buffers */
+	rc = dmamem_map_anonymous(RX_BUFFERS_SIZE, DMAMEM_4GiB, 
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->rx_buff_phys,
+	    &rtl8169->rx_buff_virt);
+
+	if (rc != EOK)
+		return rc;
+}
+
 static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev)
 {
 	assert(dev);
@@ -243,7 +289,8 @@ static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev)
 	nic_set_state_change_handlers(nic_data,
 		rtl8169_on_activated, NULL, rtl8169_on_stopped);
 	nic_set_filtering_change_handlers(nic_data,
-		NULL, NULL, NULL, NULL, NULL);
+		rtl8169_unicast_set, rtl8169_multicast_set, rtl8169_broadcast_set,
+		NULL, NULL);
 
 	fibril_mutex_initialize(&rtl8169->rx_lock);
 	fibril_mutex_initialize(&rtl8169->tx_lock);
@@ -254,7 +301,6 @@ static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev)
 
 	return rtl8169;
 }
-
 
 static int rtl8169_dev_initialize(ddf_dev_t *dev)
 {
@@ -343,9 +389,6 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "Interrupt handler installed");
 
-	rtl8169_reset(rtl8169);
-	pio_write_16(rtl8169->regs + IMR, 0xffff);
-
 	uint8_t cr_value = pio_read_8(rtl8169->regs + CR);
 	pio_write_8(rtl8169->regs + CR, cr_value | CR_TE | CR_RE);
 
@@ -376,7 +419,7 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed adding function to category");
 		goto err_fun_bind;
 	}
-
+	
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
 	    ddf_dev_get_name(dev));
 	return EOK;
@@ -473,13 +516,24 @@ static int rtl8169_on_activated(nic_t *nic_data)
 
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
+	/* Reset card */
+	pio_write_8(rtl8169->regs + CONFIG0, 0);
+	rtl8169_reset(rtl8169);
+
+	/* Enable TX and RX */
+	uint8_t cr = pio_read_8(rtl8169->regs + CR);
+	cr |= CR_TE | CR_RE;
+	pio_write_8(rtl8169->regs + CR, cr);
+
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
+	nic_enable_interrupt(nic_data, rtl8169->irq);
 
 	return EOK;
 }
 
 static int rtl8169_on_stopped(nic_t *nic_data)
 {
+	ddf_msg(LVL_NOTE, "Stopping device");
 	return EOK;
 }
 
@@ -521,6 +575,25 @@ static void rtl8169_link_change(ddf_dev_t *dev)
 	}
 
 }
+
+static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
+    const nic_address_t *addr, size_t addr_count)
+{
+	return EOK;
+}
+
+static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
+    const nic_address_t *addr, size_t addr_count)
+{
+	return EOK;
+}
+
+static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
+{
+	return EOK;
+}
+
+
 
 static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
     ipc_call_t *icall)
