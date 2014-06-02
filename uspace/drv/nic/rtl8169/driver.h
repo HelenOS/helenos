@@ -39,9 +39,12 @@
 
 #define	TX_BUFFERS_COUNT	16
 #define	RX_BUFFERS_COUNT	16
+#define	BUFFER_SIZE		2048
 
 #define	TX_RING_SIZE		(sizeof(rtl8169_descr_t) * TX_BUFFERS_COUNT)
 #define	RX_RING_SIZE		(sizeof(rtl8169_descr_t) * RX_BUFFERS_COUNT)
+#define	TX_BUFFERS_SIZE		(BUFFER_SIZE * TX_BUFFERS_COUNT)
+#define	RX_BUFFERS_SIZE		(BUFFER_SIZE * RX_BUFFERS_COUNT)
 
 /** RTL8139 device data */
 typedef struct rtl8169_data {
@@ -55,13 +58,17 @@ typedef struct rtl8169_data {
 	uint16_t int_mask;
 	/** TX ring */
 	uintptr_t tx_ring_phys;
-	void *tx_ring_virt;
+	rtl8169_descr_t *tx_ring;
+	unsigned int tx_head;
+	unsigned int tx_tail;
 	/** RX ring */
 	uintptr_t rx_ring_phys;
-	void *rx_ring_virt;
+	rtl8169_descr_t *rx_ring;
+	unsigned int rx_head;
+	unsigned int rx_tail;
 	/** TX buffers */
 	uintptr_t tx_buff_phys;
-	void *tx_buff_virt;
+	void *tx_buff;
 	/** RX buffers */
 	uintptr_t rx_buff_phys;
 	void *rx_buff;
@@ -74,10 +81,6 @@ typedef struct rtl8169_data {
 	 *  	tx_next: all Tx descriptors are can be used
 	 */
 	size_t tx_used;
-
-	/** Buffer for receiving frames */
-	uintptr_t rx_buff_phys;
-	void *rx_buff_virt;
 
 	/** Lock for receiver */
 	fibril_mutex_t rx_lock;

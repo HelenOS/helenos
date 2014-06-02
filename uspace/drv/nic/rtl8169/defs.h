@@ -42,6 +42,8 @@
 /** Size of RTL8169 registers address space */
 #define RTL8169_IO_SIZE  256
 
+#define	RTL8169_FRAME_MAX_LENGTH	1518
+
 /** Registers of RTL8169 family card offsets from the memory address base */
 enum rtl8169_registers {
 	IDR0 = 0x00, /**< First MAC address bit, 6 1b registres sequence */
@@ -253,11 +255,37 @@ enum rtl8169_phystatus {
 	PHYSTATUS_FDX = (1 << 0), /**< Link is full duplex */
 };
 
-struct rtl8169_descr {
+enum rtl8169_tppoll {
+	TPPOLL_HPQ = (1 << 7), /**< Start transmit on high priority queue */
+	TPPOLL_NPQ = (1 << 6), /**< Start transmit on normal queue */
+	/* Bits 5-1 reserved */
+	TPPOLL_FSWINT = (1 << 0), /** < Generate software interrupt */
+};
+
+enum rtl8169_descr_control {
+	CONTROL_OWN = (1 << 31), /**< Descriptor ownership */
+	CONTROL_EOR = (1 << 30), /**< End Of Ring marker */
+	CONTROL_FS = (1 << 29), /**< First Segment marker */
+	CONTROL_LS = (1 << 28), /**< Last Segment marker */
+	CONTROL_LGSEN = (1 << 27), /**< Large send enable */
+	CONTROL_MSS_SHIFT = 16,
+	CONTROL_MSS_MASK = 10,
+	CONTROL_FRAMELEN_MASK = 0xffff
+};
+
+enum rtl8169_descr_txstatus {
+	TXSTATUS_UNDERRUN = (1 << 25),
+	TXSTATUS_TXERRSUM = (1 << 23),
+	TXSTATUS_OWINCOL = (1 << 22),
+	TXSTATUS_LINKFAIL = (1 << 21),
+	TXSTATUS_EXCESSCOL = (1 << 20)
+};
+
+typedef struct rtl8169_descr {
 	uint32_t	control;
 	uint32_t	vlan;
 	uint32_t	buf_low;
 	uint32_t	buf_high;
-};
+} rtl8169_descr_t;
 
 #endif
