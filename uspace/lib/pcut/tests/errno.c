@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Vojtech Horky
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
+#include <errno.h>
 #include "tested.h"
+
+#ifndef EOK
+#define EOK 0
+#endif
 
 PCUT_INIT
 
-PCUT_TEST_AFTER {
-	int a = 5;
-	int *p = &a;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
-	p = NULL;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
+PCUT_TEST(errno_value) {
+	int value = EOK;
+	PCUT_ASSERT_ERRNO_VAL(EOK, value);
+	value = ENOENT;
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, value);
+
+	/* This fails. */
+	PCUT_ASSERT_ERRNO_VAL(EOK, value);
 }
 
-PCUT_TEST(print_and_fail) {
-	printf("Tear-down will cause null pointer access...\n");
-	PCUT_ASSERT_NOT_NULL(NULL);
+PCUT_TEST(errno_variable) {
+	errno = ENOENT;
+	PCUT_ASSERT_ERRNO(ENOENT);
+
+	/* This fails. */
+	PCUT_ASSERT_ERRNO(EOK);
 }
 
 PCUT_MAIN()

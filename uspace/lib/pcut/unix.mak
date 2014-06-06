@@ -29,6 +29,7 @@
 PCUT_TARGET_SOURCES = src/os/stdc.c src/os/unix.c
 OBJ_EXT = o
 PCUT_LIB = libpcut.a
+PCUT_PREPROC = ./pcut.bin
 
 # Installation paths
 PREFIX = /usr/local
@@ -38,6 +39,7 @@ INCLUDEDIR = $(PREFIX)/include
 -include pcut.mak
 
 PCUT_OBJECTS := $(addsuffix .o,$(basename $(PCUT_SOURCES)))
+PCUT_PREPROC_OBJECTS := $(addsuffix .o,$(basename $(PCUT_PREPROC_SOURCES)))
 
 # Take care of dependencies
 DEPEND = Makefile.depend
@@ -52,7 +54,7 @@ $(DEPEND):
 TEST_BASE = tests/
 EXE_EXT = run
 TEST_CFLAGS = $(PCUT_CFLAGS)
-TEST_LDFLAGS = -L. -lpcut
+TEST_LDFLAGS = 
 -include tests/tests.mak
 TEST_APPS_BASENAMES := $(basename $(TEST_APPS))
 DIFF = diff
@@ -74,7 +76,7 @@ check: libpcut.a check-build
 # Clean-up
 #
 platform-clean:
-	rm -f libpcut.a $(DEPEND)
+	rm -f $(DEPEND) $(PCUT_LIB) $(PCUT_PREPROC)
 
 #
 # Actual build rules
@@ -82,6 +84,9 @@ platform-clean:
 $(PCUT_LIB): $(PCUT_OBJECTS)
 	$(AR) rc $@ $(PCUT_OBJECTS)
 	$(RANLIB) $@
+
+$(PCUT_PREPROC): $(PCUT_PREPROC_OBJECTS)
+	$(LD) $(LDFLAGS) -o $@ $(PCUT_PREPROC_OBJECTS)
 
 %.o: $(DEPEND)
 

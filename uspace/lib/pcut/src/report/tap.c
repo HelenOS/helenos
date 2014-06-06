@@ -47,7 +47,10 @@ static int tests_in_suite;
 /** Counter of failed tests in current suite. */
 static int failed_tests_in_suite;
 
-/** Initialize the tap output. */
+/** Initialize the TAP output.
+ *
+ * @param all_items Start of the list with all items.
+ */
 static void tap_init(pcut_item_t *all_items) {
 	int tests_total = pcut_count_tests(all_items);
 	test_counter = 0;
@@ -55,7 +58,10 @@ static void tap_init(pcut_item_t *all_items) {
 	printf("1..%d\n", tests_total);
 }
 
-/** Report that a suite was started. */
+/** Report that a suite was started.
+ *
+ * @param suite Suite that just started.
+ */
 static void tap_suite_start(pcut_item_t *suite) {
 	tests_in_suite = 0;
 	failed_tests_in_suite = 0;
@@ -63,7 +69,10 @@ static void tap_suite_start(pcut_item_t *suite) {
 	printf("#> Starting suite %s.\n", suite->suite.name);
 }
 
-/** Report that a suite was completed. */
+/** Report that a suite was completed.
+ *
+ * @param suite Suite that just ended.
+ */
 static void tap_suite_done(pcut_item_t *suite) {
 	printf("#> Finished suite %s (failed %d of %d).\n",
 			suite->suite.name, failed_tests_in_suite, tests_in_suite);
@@ -103,7 +112,14 @@ static void print_by_lines(const char *message, const char *prefix) {
 	}
 }
 
-/** Report a completed test. */
+/** Report a completed test.
+ *
+ * @param test Test that just finished.
+ * @param outcome Outcome of the test.
+ * @param error_message Buffer with error message.
+ * @param teardown_error_message Buffer with error message from a tear-down function.
+ * @param extra_output Extra output from the test (stdout).
+ */
 static void tap_test_done(pcut_item_t *test, int outcome,
 		const char *error_message, const char *teardown_error_message,
 		const char *extra_output) {

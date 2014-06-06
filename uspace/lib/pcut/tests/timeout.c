@@ -26,23 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
+#include <unistd.h>
+#include <stdio.h>
 #include "tested.h"
 
 PCUT_INIT
 
-PCUT_TEST_AFTER {
-	int a = 5;
-	int *p = &a;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
-	p = NULL;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
+PCUT_TEST(shall_time_out) {
+	printf("Text before sleeping.\n");
+	sleep(PCUT_DEFAULT_TEST_TIMEOUT * 5);
+	printf("Text after the sleep.\n");
 }
 
-PCUT_TEST(print_and_fail) {
-	printf("Tear-down will cause null pointer access...\n");
-	PCUT_ASSERT_NOT_NULL(NULL);
+PCUT_TEST(custom_time_out,
+		PCUT_TEST_SET_TIMEOUT(PCUT_DEFAULT_TEST_TIMEOUT * 3)) {
+	printf("Text before sleeping.\n");
+	sleep(PCUT_DEFAULT_TEST_TIMEOUT * 2);
+	printf("Text after the sleep.\n");
 }
 
 PCUT_MAIN()

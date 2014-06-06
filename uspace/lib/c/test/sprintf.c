@@ -27,7 +27,7 @@
  */
 
 #include <stdio.h>
-#include <pcut/test.h>
+#include <pcut/pcut.h>
 
 #define BUFFER_SIZE 8192
 #define TEQ(expected, actual) PCUT_ASSERT_STR_EQUALS(expected, actual)

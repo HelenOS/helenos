@@ -33,6 +33,7 @@
 
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -40,6 +41,7 @@
 #include <stdio.h>
 #include <task.h>
 #include <fcntl.h>
+#include <fibril_synch.h>
 #include "../internal.h"
 
 
@@ -67,6 +69,14 @@ char *pcut_str_find_char(const char *haystack, const char needle) {
 	return str_chr(haystack, needle);
 }
 
+void pcut_str_error(int error, char *buffer, int size) {
+	const char *str = str_error(error);
+	if (str == NULL) {
+		str = "(strerror failure)";
+	}
+	str_cpy(buffer, size, str);
+}
+
 
 /* Forking-mode related functions. */
 
@@ -88,12 +98,56 @@ static char error_message_buffer[OUTPUT_BUFFER_SIZE];
 /** Buffer for stdout from the test. */
 static char extra_output_buffer[OUTPUT_BUFFER_SIZE];
 
-/** Prepare for a new test. */
+/** Prepare for a new test.
+ *
+ * @param test Test that is about to be run.
+ */
 static void before_test_start(pcut_item_t *test) {
 	pcut_report_test_start(test);
 
 	memset(error_message_buffer, 0, OUTPUT_BUFFER_SIZE);
 	memset(extra_output_buffer, 0, OUTPUT_BUFFER_SIZE);
+}
+
+/** Mutex guard for forced_termination_cv. */
+static fibril_mutex_t forced_termination_mutex
+	= FIBRIL_MUTEX_INITIALIZER(forced_termination_mutex);
+
+/** Condition-variable for checking whether test timed-out. */
+static fibril_condvar_t forced_termination_cv
+	= FIBRIL_CONDVAR_INITIALIZER(forced_termination_cv);
+
+/** Spawned task id. */
+static task_id_t test_task_id;
+
+/** Flag whether test is still running.
+ *
+ * This flag is used when checking whether test timed-out.
+ */
+static int test_running;
+
+/** Main fibril for checking whether test timed-out.
+ *
+ * @param arg Test that is currently running (pcut_item_t *).
+ * @return EOK Always.
+ */
+static int test_timeout_handler_fibril(void *arg) {
+	pcut_item_t *test = arg;
+	int timeout_sec = pcut_get_test_timeout(test);
+	suseconds_t timeout_us = (suseconds_t) timeout_sec * 1000 * 1000;
+
+	fibril_mutex_lock(&forced_termination_mutex);
+	if (!test_running) {
+		goto leave_no_kill;
+	}
+	int rc = fibril_condvar_wait_timeout(&forced_termination_cv,
+		&forced_termination_mutex, timeout_us);
+	if (rc == ETIMEOUT) {
+		task_kill(test_task_id);
+	}
+leave_no_kill:
+	fibril_mutex_unlock(&forced_termination_mutex);
+	return EOK;
 }
 
 /** Run the test as a new task and report the result.
@@ -130,16 +184,25 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	int status = TEST_OUTCOME_PASS;
 
-	task_id_t task_id;
-	int rc = task_spawnvf(&task_id, self_path, arguments, files);
+	int rc = task_spawnvf(&test_task_id, self_path, arguments, files);
 	if (rc != EOK) {
 		status = TEST_OUTCOME_ERROR;
 		goto leave_close_tempfile;
 	}
 
+	test_running = 1;
+
+	fid_t killer_fibril = fibril_create(test_timeout_handler_fibril, test);
+	if (killer_fibril == 0) {
+		/* FIXME: somehow announce this problem. */
+		task_kill(test_task_id);
+	} else {
+		fibril_add_ready(killer_fibril);
+	}
+
 	task_exit_t task_exit;
 	int task_retval;
-	rc = task_wait(task_id, &task_exit, &task_retval);
+	rc = task_wait(test_task_id, &task_exit, &task_retval);
 	if (rc != EOK) {
 		status = TEST_OUTCOME_ERROR;
 		goto leave_close_tempfile;
@@ -149,6 +212,11 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	} else {
 		status = task_retval == 0 ? TEST_OUTCOME_PASS : TEST_OUTCOME_FAIL;
 	}
+
+	fibril_mutex_lock(&forced_termination_mutex);
+	test_running = 0;
+	fibril_condvar_signal(&forced_termination_cv);
+	fibril_mutex_unlock(&forced_termination_mutex);
 
 	read_all(tempfile, extra_output_buffer, OUTPUT_BUFFER_SIZE);
 

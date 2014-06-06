@@ -31,7 +31,7 @@
  * Helper functions for debugging prints.
  */
 
-#include <pcut/test.h>
+#include <pcut/pcut.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>

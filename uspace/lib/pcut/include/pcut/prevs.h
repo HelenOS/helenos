@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Vojtech Horky
+ * Copyright (c) 2012-2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if !defined(PCUT_TEST_H_GUARD) && !defined(PCUT_INTERNAL)
-#error "You cannot include this file directly."
-#endif
+/**
+ * @file
+ * Counter macros internally used by PCUT.
+ */
 
 #ifndef PCUT_PREVS_H_GUARD
 #define PCUT_PREVS_H_GUARD
+
+#ifndef PCUT_DOXYGEN_IS_RUNNING
+/** @cond devel */
 
 #define PCUT_PREV_1 0
 #define PCUT_PREV_2 1
@@ -333,6 +337,10 @@
 #define PCUT_PREV_298 297
 #define PCUT_PREV_299 298
 #define PCUT_PREV_300 299
+
+/** @endcond */
+
+#endif
 
 #endif
 

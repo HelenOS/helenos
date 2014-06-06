@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Vojtech Horky
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
 #include "tested.h"
 
 PCUT_INIT
 
-PCUT_TEST_AFTER {
-	int a = 5;
-	int *p = &a;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
-	p = NULL;
-	PCUT_ASSERT_INT_EQUALS(5, *p);
+PCUT_TEST(normal_test) {
+	PCUT_ASSERT_INT_EQUALS(1, 1);
 }
 
-PCUT_TEST(print_and_fail) {
-	printf("Tear-down will cause null pointer access...\n");
-	PCUT_ASSERT_NOT_NULL(NULL);
+PCUT_TEST(skipped, PCUT_TEST_SKIP) {
+	PCUT_ASSERT_STR_EQUALS("skip", "not skipped");
+}
+
+PCUT_TEST(again_normal_test) {
+	PCUT_ASSERT_INT_EQUALS(1, 1);
 }
 
 PCUT_MAIN()

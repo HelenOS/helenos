@@ -75,7 +75,10 @@ static char error_message_buffer[OUTPUT_BUFFER_SIZE];
 /** Buffer for stdout from the test. */
 static char extra_output_buffer[OUTPUT_BUFFER_SIZE];
 
-/** Prepare for a new test. */
+/** Prepare for a new test.
+ *
+ * @param test Test that is about to start.
+ */
 static void before_test_start(pcut_item_t *test) {
 	pcut_report_test_start(test);
 

@@ -1,0 +1,7 @@
+1..2
+#> Starting suite Default.
+not ok 1 errno_value failed
+# error: errno.c:46: Expected error 0 (EOK, Success) but got error 2 (No such file or directory)
+not ok 2 errno_variable failed
+# error: errno.c:54: Expected error 0 (EOK, Success) but got error 2 (No such file or directory)
+#> Finished suite Default (failed 2 of 2).

@@ -34,7 +34,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "internal.h"
-#include <pcut/test.h>
+#include <pcut/pcut.h>
 
 
 /** Find next item with actual content.
@@ -117,6 +117,33 @@ static void set_ids(pcut_item_t *first) {
 	}
 }
 
+/** Hide tests that are marked to be skipped.
+ *
+ * Go through all tests and those that have PCUT_EXTRA_SKIP mark
+ * as skipped with PCUT_KIND_SKIP.
+ *
+ * @param first Head of the list.
+ */
+static void detect_skipped_tests(pcut_item_t *first) {
+	assert(first != NULL);
+	if (first->kind == PCUT_KIND_SKIP) {
+		first = pcut_get_real_next(first);
+	}
+	for (pcut_item_t *it = first; it != NULL; it = pcut_get_real_next(it)) {
+		if (it->kind != PCUT_KIND_TEST) {
+			continue;
+		}
+		pcut_extra_t *extras = it->test.extras;
+		while (extras->type != PCUT_EXTRA_LAST) {
+			if (extras->type == PCUT_EXTRA_SKIP) {
+				it->kind = PCUT_KIND_SKIP;
+				break;
+			}
+			extras++;
+		}
+	}
+}
+
 /** Convert the static single-linked list into a flat double-linked list.
  *
  * The conversion includes
@@ -141,6 +168,8 @@ pcut_item_t *pcut_fix_list_get_real_head(pcut_item_t *last) {
 		next = it;
 		it = it->previous;
 	}
+
+	detect_skipped_tests(next);
 
 	set_ids(next);
 

@@ -21,76 +21,44 @@ results.
 And by running each test in a separate process, the whole framework is pretty
 safe against unexpected crashes, such as null pointer dereference.
 
-More details can be found on PCUT wiki on GitHub.
+More details can be found on PCUT wiki on GitHub:
+https://github.com/vhotspur/pcut/wiki
 
-					https://github.com/vhotspur/pcut/wiki
 
+Quick-start example
+-------------------
 
-Main goal - simple to use
--------------------------
+The following code tests the standard ``atoi`` function::
 
-Let's illustrate how PCUT aims to be simple when creating unit tests for
-function ``intmin`` that ought to return smaller of its two arguments.::
-
-	int intmin(int a, int b) {
-		return a > b ? b : a;
-	}
-	
-Individual test-cases for such method could cover following cases: getting
-minimal of
-
-- two same numbers
-- negative and positive number
-- two negative numbers
-- two positive numbers
-- "corner case" numbers, such as minimal and maximal represented number
-
-In PCUT, that would be translated to the following code:::
-
-	#include <pcut/test.h>
-	#include <limits.h>
-	/* Other include to have declaration of intmin */
+	#include <pcut/pcut.h>
+	#include <stdlib.h>
 	
 	PCUT_INIT
-
-	PCUT_TEST_SUITE(intmin_tests);
-
-	PCUT_TEST(same_number) {
-		PCUT_ASSERT_INT_EQUALS(719, intmin(719, 719) );
-		PCUT_ASSERT_INT_EQUALS(-4589, intmin(-4589, -4589) );
+	
+	PCUT_TEST(atoi_zero) {
+	    PCUT_ASSERT_INT_EQUALS(0, atoi("0"));
 	}
 	
-	PCUT_TEST(positive_and_negative) {
-		PCUT_ASSERT_INT_EQUALS(-5, intmin(-5, 71) );
-		PCUT_ASSERT_INT_EQUALS(-17, intmin(423, -17) );
+	PCUT_TEST(atoi_positive) {
+	    PCUT_ASSERT_INT_EQUALS(42, atoi("42"));
 	}
 	
-	PCUT_TEST(same_sign) {
-		PCUT_ASSERT_INT_EQUALS(22, intmin(129, 22) );
-		PCUT_ASSERT_INT_EQUALS(-37, intmin(-37, -1) );
+	PCUT_TEST(atoi_negative) {
+	    PCUT_ASSERT_INT_EQUALS(-273, atoi("-273"));
 	}
 	
-	PCUT_TEST(corner_cases) {
-		PCUT_ASSERT_INT_EQUALS(INT_MIN, intmin(INT_MIN, -1234) );
-		PCUT_ASSERT_INT_EQUALS(9876, intmin(9876, INT_MAX) );
-	}
-
 	PCUT_MAIN()
 
-And that's all.
-You do not need to manually specify which tests to run etc., 
-everything is done magically via the ``PCUT_INIT``, ``PCUT_MAIN`` and
-``PCUT_TEST`` macros.
-All you need to do is to compile this code and link it with ``libpcut``.
-Result of the linking would be an executable that runs the tests and
-reports the results.
+As you can see, there is no manual listing of tests that form the test
+suite etc, only the tests and ``PCUT_INIT`` at the beginning and
+``PCUT_MAIN`` at the end.
 
-
-Examples
---------
+This code has to be linked with ``libpcut`` to get an executable that runs
+the tests and reports the results.
 
 More examples, in the form of self-tests, are available in the ``tests/``
 subdirectory.
+Other examples can be found on the Wiki.
 
 
 Building and installing

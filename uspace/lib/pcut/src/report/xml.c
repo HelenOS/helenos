@@ -47,7 +47,10 @@ static int tests_in_suite;
 /** Counter of failed tests in current suite. */
 static int failed_tests_in_suite;
 
-/** Initialize the XML output. */
+/** Initialize the XML output.
+ *
+ * @param all_items Start of the list with all items.
+ */
 static void xml_init(pcut_item_t *all_items) {
 	printf("<?xml version=\"1.0\"?>\n");
 
@@ -57,7 +60,10 @@ static void xml_init(pcut_item_t *all_items) {
 	printf("<report tests-total=\"%d\">\n", tests_total);
 }
 
-/** Report that a suite was started. */
+/** Report that a suite was started.
+ *
+ * @param suite Suite that just started.
+ */
 static void xml_suite_start(pcut_item_t *suite) {
 	tests_in_suite = 0;
 	failed_tests_in_suite = 0;
@@ -65,7 +71,10 @@ static void xml_suite_start(pcut_item_t *suite) {
 	printf("\t<suite name=\"%s\">\n", suite->suite.name);
 }
 
-/** Report that a suite was completed. */
+/** Report that a suite was completed.
+ *
+ * @param suite Suite that just ended.
+ */
 static void xml_suite_done(pcut_item_t *suite) {
 	printf("\t</suite><!-- %s: %d / %d -->\n", suite->suite.name,
 		failed_tests_in_suite, tests_in_suite);
@@ -110,7 +119,14 @@ static void print_by_lines(const char *message, const char *element_name) {
 	printf("]]></%s>\n", element_name);
 }
 
-/** Report a completed test. */
+/** Report a completed test.
+ *
+ * @param test Test that just finished.
+ * @param outcome Outcome of the test.
+ * @param error_message Buffer with error message.
+ * @param teardown_error_message Buffer with error message from a tear-down function.
+ * @param extra_output Extra output from the test (stdout).
+ */
 static void xml_test_done(pcut_item_t *test, int outcome,
 		const char *error_message, const char *teardown_error_message,
 		const char *extra_output) {

@@ -27,7 +27,7 @@
  */
 
 #include <stdio.h>
-#include <pcut/test.h>
+#include <pcut/pcut.h>
 #include "tested.h"
 
 PCUT_INIT

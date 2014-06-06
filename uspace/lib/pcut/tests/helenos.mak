@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013 Vojtech Horky
+# Copyright (c) 2014 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,20 +27,13 @@
 #
 
 
-PCUT_INCLUDE = include
-PCUT_CFLAGS = -Wall -Wextra -std=c99 -Werror -I$(PCUT_INCLUDE)
-
-PCUT_PREPROC_SOURCES = \
-	src/preproc.c
-
-PCUT_SOURCES = \
-	src/assert.c \
-	src/list.c \
-	src/main.c \
-	src/print.c \
-	src/report/report.c \
-	src/report/tap.c \
-	src/report/xml.c \
-	src/run.c \
-	$(PCUT_TARGET_SOURCES)
-
+#
+# Add the check-build target for compiling all the tests
+#
+PCUT_LIB = libpcut.a
+TEST_BASE = tests/
+EXE_EXT = run
+TEST_CFLAGS = $(CFLAGS)
+TEST_LDFLAGS = -n $(LFLAGS) -T $(LINKER_SCRIPT) $(PCUT_LIB) $(LIBS) $(BASE_LIBS)
+-include tests/tests.mak
+clean: check-clean

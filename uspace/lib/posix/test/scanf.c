@@ -32,7 +32,7 @@
 #include "posix/errno.h"
 #include "posix/stdio.h"
 
-#include <pcut/test.h>
+#include <pcut/pcut.h>
 
 
 PCUT_INIT

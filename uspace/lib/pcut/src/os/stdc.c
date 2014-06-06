@@ -53,3 +53,13 @@ int pcut_str_to_int(const char *s) {
 char *pcut_str_find_char(const char *haystack, const char needle) {
 	return strchr(haystack, needle);
 }
+
+void pcut_str_error(int error, char *buffer, int size) {
+	const char *str = strerror(error);
+	if (str == NULL) {
+		str = "(strerror failure)";
+	}
+	strncpy(buffer, str, size - 1);
+	/* Ensure correct termination. */
+	buffer[size - 1] = 0;
+}
