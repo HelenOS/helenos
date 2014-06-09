@@ -281,6 +281,23 @@ enum rtl8169_descr_txstatus {
 	TXSTATUS_EXCESSCOL = (1 << 20)
 };
 
+enum rtl8169_descr_rxstatus {
+	RXSTATUS_MAR = (1 << 27),
+	RXSTATUS_PAM = (1 << 26),
+	RXSTATUS_BAR = (1 << 25),
+	RXSTATUS_BOVF = (1 << 24),
+	RXSTATUS_FOVF = (1 << 23),
+	RXSTATUS_RWT = (1 << 22),
+	RXSTATUS_RES = (1 << 21),
+	RXSTATUS_RUNT = (1 << 20),
+	RXSTATUS_CRC = (1 << 19),
+	RXSTATUS_PID1 = (1 << 18),
+	RXSTATUS_PID0 = (1 << 17),
+	RXSTATUS_IPF = (1 << 16),
+	RXSTATUS_UDPF = (1 << 15),
+	RXSTATUS_TCPF = (1 << 14)
+};
+
 typedef struct rtl8169_descr {
 	uint32_t	control;
 	uint32_t	vlan;
