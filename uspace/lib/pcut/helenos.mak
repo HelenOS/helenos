@@ -26,10 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-PCUT_TARGET_SOURCES = src/os/helenos.c
-
--include base.mak
-
-SOURCES = $(PCUT_SOURCES)
+SOURCES = \
+	src/os/helenos.c \
+	src/assert.c \
+	src/list.c \
+	src/main.c \
+	src/print.c \
+	src/report/report.c \
+	src/report/tap.c \
+	src/report/xml.c \
+	src/run.c
 EXTRA_CFLAGS = -D__helenos__ -Iinclude
 LIBRARY = libpcut

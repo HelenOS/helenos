@@ -64,6 +64,12 @@ Other examples can be found on the Wiki.
 Building and installing
 -----------------------
 
-On Unix systems, running ``make`` and ``make install`` shall do the job.
+PCUT uses CMake (http://www.cmake.org/).
+On Unix systems, following commands build the library and execute the
+built-in tests::
+
+	mkdir build
+	cd build
+	cmake .. && make all test
 
 More details can be found on https://github.com/vhotspur/pcut/wiki/Building.

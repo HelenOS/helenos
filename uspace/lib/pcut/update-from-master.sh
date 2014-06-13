@@ -43,10 +43,12 @@ if ! [ "$1" == "really-overwrite" ]; then
 fi
 
 $RUN find -not -name update-from-master.sh -delete
-$RUN wget https://github.com/vhotspur/pcut/archive/master.zip -O pcut-master.zip
-$RUN unzip -u pcut-master.zip
+$RUN wget -q https://github.com/vhotspur/pcut/archive/master.zip -O pcut-master.zip
+$RUN unzip -q -u pcut-master.zip
 $RUN mv -f pcut-master/* .
 $RUN rm -rf pcut-master pcut-master.zip
+$RUN rm -rf contrib doc
+$RUN rm -f CMakeLists.txt *.cmake run_test.sh
 
 cat >Makefile <<'EOF_MAKEFILE'
 #
