@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* XXX Fix this */
+#define	_DDF_DATA_IMPLANT
+
 #include <assert.h>
 #include <errno.h>
 #include <align.h>
@@ -413,6 +414,7 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &rtl8169_dev_ops);
+	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -580,14 +582,12 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	pio_write_32(rtl8169->regs + MAR0 + 4, 0xffffffff);
 
 	/* Configure Receive Control Register */
-	pio_write_8(rtl8169->regs + 0x50, 0xc0);
 	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
 	rcr |= RCR_ACCEPT_ALL_PHYS | RCR_ACCEPT_PHYS_MATCH \
 	    | RCR_ACCEPT_BROADCAST | RCR_ACCEPT_ERROR \
 	    | RCR_ACCEPT_RUNT;
 	pio_write_32(rtl8169->regs + RCR, rcr);
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
-	pio_write_8(rtl8169->regs + 0x50, 0x00);
 
 	ddf_msg(LVL_NOTE, "RCR: 0x%08x", pio_read_32(rtl8169->regs + RCR));
 
@@ -752,28 +752,40 @@ static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
 	assert(dev);
 	assert(icall);
 
-	uint16_t isr = (uint16_t) IPC_GET_ARG2(*icall);
+	uint16_t isr = (uint16_t) IPC_GET_ARG2(*icall) & INT_KNOWN;
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
 	ddf_msg(LVL_NOTE, "rtl8169_irq_handler(): isr=0x%04x", isr);
 
-	/* Packet underrun or link change */
-	if (isr & INT_PUN)
-		rtl8169_link_change(dev);
+	while (isr != 0) {
+		/* Packet underrun or link change */
+		if (isr & INT_PUN) {
+			rtl8169_link_change(dev);
+			pio_write_16(rtl8169->regs + ISR, INT_PUN);
+		}
 
-	/* Transmit notification */
-	if (isr & (INT_TER | INT_TOK | INT_TDU))
-		rtl8169_transmit_done(dev);
+		/* Transmit notification */
+		if (isr & (INT_TER | INT_TOK | INT_TDU)) {
+			rtl8169_transmit_done(dev);
+			pio_write_16(rtl8169->regs + ISR, (INT_TER | INT_TOK | INT_TDU));
+		}
 
-	if (isr & INT_SERR)
-		ddf_msg(LVL_ERROR, "System error interrupt");
+		if (isr & INT_SERR) {
+			ddf_msg(LVL_ERROR, "System error interrupt");
+			pio_write_16(rtl8169->regs + ISR, INT_SERR);
+		}
 
-	if (isr & (INT_RER | INT_ROK))
-		rtl8169_receive_done(dev);
+		if (isr & (INT_RER | INT_ROK)) {
+			rtl8169_receive_done(dev);
+			pio_write_16(rtl8169->regs + ISR, (INT_RER | INT_ROK));
+		}
 
-	pio_write_16(rtl8169->regs + ISR, 0xffff);
+		isr = pio_read_16(rtl8169->regs + ISR) & INT_KNOWN;
+	}
+
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
+	pio_write_16(rtl8169->regs + ISR, 0xffff);
 }
 
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
@@ -834,6 +846,9 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	/* Notify NIC of pending packets */
 	pio_write_8(rtl8169->regs + TPPOLL, TPPOLL_NPQ);
+	write_barrier();
+
+	ddf_msg(LVL_NOTE, "triggered TPPOLL");
 
 	fibril_mutex_unlock(&rtl8169->tx_lock);
 }
