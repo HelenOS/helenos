@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,72 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libdrv
+ * @{
+ */
 /** @file
  */
 
-#include <sys/types.h>
+#include <async.h>
 #include <errno.h>
-#include <str.h>
-#include <sysinfo.h>
-#include <ddi.h>
-#include <align.h>
-#include <as.h>
-#include "../ctl/serial.h"
-#include "kchar.h"
+#include <io/pixel.h>
+#include <macros.h>
+#include <device/led_dev.h>
+#include <ops/led_dev.h>
+#include <ddf/driver.h>
 
-typedef struct {
-	uint8_t *addr;
-} kchar_t;
+static void remote_led_color_set(ddf_fun_t *, void *, ipc_callid_t,
+    ipc_call_t *);
 
-static kchar_t kchar;
+/** Remote LED interface operations */
+static const remote_iface_func_ptr_t remote_led_dev_iface_ops[] = {
+	[LED_DEV_COLOR_SET] = remote_led_color_set
+};
 
-static void kchar_putchar(wchar_t ch)
+/** Remote LED interface structure
+ *
+ * Interface for processing requests from remote clients
+ * addressed by the LED interface.
+ *
+ */
+const remote_iface_t remote_led_dev_iface = {
+	.method_count = ARRAY_SIZE(remote_led_dev_iface_ops),
+	.methods = remote_led_dev_iface_ops
+};
+
+/** Process the color_set() request from the remote client
+ *
+ * @param fun The function to which the data are written
+ * @param ops The local ops structure
+ *
+ */
+static void remote_led_color_set(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
+    ipc_call_t *call)
 {
-	if (ascii_check(ch))
-		*kchar.addr = ch;
-	else
-		*kchar.addr = '?';
+	led_dev_ops_t *led_dev_ops = (led_dev_ops_t *) ops;
+	pixel_t color = DEV_IPC_GET_ARG1(*call);
+	
+	if (!led_dev_ops->color_set) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+	
+	int rc = (*led_dev_ops->color_set)(fun, color);
+	async_answer_0(callid, rc);
 }
 
-static void kchar_control_puts(const char *str)
-{
-	while (*str)
-		*kchar.addr = *(str++);
-}
-
-int kchar_init(void)
-{
-	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
-	if (rc != EOK)
-		present = false;
-	
-	if (!present)
-		return ENOENT;
-	
-	sysarg_t kind;
-	rc = sysinfo_get_value("fb.kind", &kind);
-	if (rc != EOK)
-		kind = (sysarg_t) -1;
-	
-	if (kind != 3)
-		return EINVAL;
-	
-	sysarg_t paddr;
-	rc = sysinfo_get_value("fb.address.physical", &paddr);
-	if (rc != EOK)
-		return rc;
-	
-	kchar.addr = AS_AREA_ANY;
-	
-	rc = physmem_map(paddr,
-	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kchar.addr);
-	if (rc != EOK)
-		return rc;
-	
-	return serial_init(kchar_putchar, kchar_control_puts);
-}
-
-/** @}
+/**
+ * @}
  */

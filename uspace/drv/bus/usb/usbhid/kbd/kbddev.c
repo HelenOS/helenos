@@ -102,7 +102,7 @@ const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 };
 
 const char *HID_KBD_FUN_NAME = "keyboard";
-const char *HID_KBD_CATEGORY_NAME = "keyboard";
+const char *HID_KBD_CATEGORY = "keyboard";
 
 static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev);
 
@@ -512,12 +512,12 @@ static int usb_kbd_create_function(usb_kbd_t *kbd_dev)
 	    HID_KBD_FUN_NAME, ddf_fun_get_handle(fun));
 
 	usb_log_debug("Adding DDF function to category %s...\n",
-	    HID_KBD_CLASS_NAME);
-	rc = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
+	    HID_KBD_CATEGORY);
+	rc = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error(
 		    "Could not add DDF function to category %s: %s.\n",
-		    HID_KBD_CLASS_NAME, str_error(rc));
+		    HID_KBD_CATEGORY, str_error(rc));
 		if (ddf_fun_unbind(fun) == EOK) {
 			ddf_fun_destroy(fun);
 		} else {

@@ -362,13 +362,12 @@ typedef struct {
 
 static void async_transaction_destroy(async_transaction_t *trans)
 {
-	if (trans == NULL) {
+	if (trans == NULL)
 		return;
-	}
-	if (trans->buffer != NULL) {
+	
+	if (trans->buffer != NULL)
 		free(trans->buffer);
-	}
-
+	
 	free(trans);
 }
 
@@ -584,6 +583,7 @@ void remote_usbhc_read(
 		async_answer_0(trans->data_caller, ENOMEM);
 		async_answer_0(callid, ENOMEM);
 		async_transaction_destroy(trans);
+		return;
 	}
 
 	const int rc = hc_iface->read(

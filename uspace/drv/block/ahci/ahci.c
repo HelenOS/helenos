@@ -233,7 +233,7 @@ static int read_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	uintptr_t phys;
-	void *ibuf;
+	void *ibuf = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
@@ -276,7 +276,7 @@ static int write_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	sata_dev_t *sata = fun_sata_dev(fun);
 	
 	uintptr_t phys;
-	void *ibuf;
+	void *ibuf = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(sata->block_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &phys, &ibuf);
 	if (rc != EOK) {
@@ -435,10 +435,10 @@ static int ahci_identify_device(sata_dev_t *sata)
 	}
 	
 	uintptr_t phys;
-	sata_identify_data_t *idata;
+	sata_identify_data_t *idata = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(SATA_IDENTIFY_DEVICE_BUFFER_LENGTH,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    (void **) &idata);
+	    (void *) &idata);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate buffer to identify device.");
 		return rc;
@@ -629,10 +629,10 @@ static int ahci_set_highest_ultra_dma_mode(sata_dev_t *sata)
 	}
 	
 	uintptr_t phys;
-	sata_identify_data_t *idata;
+	sata_identify_data_t *idata = AS_AREA_ANY;
 	int rc = dmamem_map_anonymous(SATA_SET_FEATURE_BUFFER_LENGTH,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
-	    (void **) &idata);
+	    (void *) &idata);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot allocate buffer for device set mode.");
 		return rc;
@@ -937,9 +937,9 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 {
 	size_t size = 4096;
 	uintptr_t phys = 0;
-	void *virt_fb = NULL;
-	void *virt_cmd = NULL;
-	void *virt_table = NULL;
+	void *virt_fb = AS_AREA_ANY;
+	void *virt_cmd = AS_AREA_ANY;
+	void *virt_table = AS_AREA_ANY;
 	ddf_fun_t *fun;
 	
 	fun = ddf_fun_create(ahci->dev, fun_exposed, NULL);
@@ -1154,11 +1154,11 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 		goto error_get_res_parsed;
 	
 	/* Map AHCI registers. */
-	ahci->memregs = NULL;
+	ahci->memregs = AS_AREA_ANY;
 	
 	physmem_map(RNGABS(hw_res_parsed.mem_ranges.ranges[0]),
 	    AHCI_MEMREGS_PAGES_COUNT, AS_AREA_READ | AS_AREA_WRITE,
-	    (void **) &ahci->memregs);
+	    (void *) &ahci->memregs);
 	if (ahci->memregs == NULL)
 		goto error_map_registers;
 	

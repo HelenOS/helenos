@@ -62,7 +62,7 @@ typedef struct {
 static prodcons_t pc;
 
 /* Pointer to kio area */
-static wchar_t *kio;
+static wchar_t *kio = (wchar_t *) AS_AREA_ANY;
 static size_t kio_length;
 
 /* Notification mutex */

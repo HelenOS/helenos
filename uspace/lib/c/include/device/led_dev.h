@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,72 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libc
+ * @{
+ */
 /** @file
  */
 
-#include <sys/types.h>
-#include <errno.h>
-#include <str.h>
-#include <sysinfo.h>
-#include <ddi.h>
-#include <align.h>
-#include <as.h>
-#include "../ctl/serial.h"
-#include "kchar.h"
+#ifndef LIBC_DEVICE_LED_DEV_H_
+#define LIBC_DEVICE_LED_DEV_H_
 
-typedef struct {
-	uint8_t *addr;
-} kchar_t;
+#include <async.h>
+#include <io/pixel.h>
 
-static kchar_t kchar;
+typedef enum {
+	LED_DEV_COLOR_SET = 0
+} led_dev_method_t;
 
-static void kchar_putchar(wchar_t ch)
-{
-	if (ascii_check(ch))
-		*kchar.addr = ch;
-	else
-		*kchar.addr = '?';
-}
+extern int led_dev_color_set(async_sess_t *, pixel_t);
 
-static void kchar_control_puts(const char *str)
-{
-	while (*str)
-		*kchar.addr = *(str++);
-}
-
-int kchar_init(void)
-{
-	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
-	if (rc != EOK)
-		present = false;
-	
-	if (!present)
-		return ENOENT;
-	
-	sysarg_t kind;
-	rc = sysinfo_get_value("fb.kind", &kind);
-	if (rc != EOK)
-		kind = (sysarg_t) -1;
-	
-	if (kind != 3)
-		return EINVAL;
-	
-	sysarg_t paddr;
-	rc = sysinfo_get_value("fb.address.physical", &paddr);
-	if (rc != EOK)
-		return rc;
-	
-	kchar.addr = AS_AREA_ANY;
-	
-	rc = physmem_map(paddr,
-	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kchar.addr);
-	if (rc != EOK)
-		return rc;
-	
-	return serial_init(kchar_putchar, kchar_control_puts);
-}
-
-/** @}
- */
+#endif

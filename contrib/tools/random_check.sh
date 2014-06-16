@@ -37,7 +37,7 @@ PRUNE_CONFIG_FILE=${FILENAME_PREFIX}prune.config
 
 echo -n "">"$PRUNE_CONFIG_FILE"
 
-while getopts n:j:x:hsS option; do
+while getopts n:j:x:hs option; do
 	case $option in
 	n)
 		LOOPS="$OPTARG"
@@ -48,15 +48,10 @@ while getopts n:j:x:hsS option; do
 	x)
 		echo "$OPTARG" | tr -d ' ' >>"$PRUNE_CONFIG_FILE"
 		;;
-	s|S)
+	s)
 		echo "COMPILER=gcc_native" >>"$PRUNE_CONFIG_FILE"
 		echo "COMPILER=gcc_helenos" >>"$PRUNE_CONFIG_FILE"
 		echo "COMPILER=icc" >>"$PRUNE_CONFIG_FILE"
-		if [ "$option" = "S" ]; then
-			echo "CONFIG_PCC=y" >>"$PRUNE_CONFIG_FILE"
-			echo "CONFIG_BINUTILS=y" >>"$PRUNE_CONFIG_FILE"
-			echo "CONFIG_MSIM=y" >>"$PRUNE_CONFIG_FILE"
-		fi
 		;;
 	*|h)
 		echo "Usage: $0 [options]"
@@ -71,9 +66,6 @@ while getopts n:j:x:hsS option; do
 		echo "  -s"
 		echo "      Use only supported compilers."
 		echo "      (That is, only GCC cross-compiler and Clang.)"
-		echo "  -S"
-		echo "      Build only reasonable configurations."
-		echo "      (Implies -s, does not build ported programs.)"
 		echo "  -x CONFIG_OPTION=value"
 		echo "      Skip the configuration if this option is present."
 		echo "      (Example: CONFIG_BINUTILS=n means that only configurations"

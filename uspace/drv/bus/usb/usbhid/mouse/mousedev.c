@@ -343,7 +343,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	usb_log_debug("Initializing HID/Mouse structure...\n");
 
 	if (hid_dev == NULL) {
-		usb_log_error("Failed to init keyboard structure: no structure"
+		usb_log_error("Failed to init mouse structure: no structure"
 		    " given.\n");
 		return EINVAL;
 	}

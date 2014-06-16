@@ -64,6 +64,9 @@ typedef enum {
 	/** Interface provided by Real Time Clock devices */
 	CLOCK_DEV_IFACE,
 
+	/** Interface provided by LED devices */
+	LED_DEV_IFACE,
+
 	/** Interface provided by battery powered devices */
 	BATTERY_DEV_IFACE,
 

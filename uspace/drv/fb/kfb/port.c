@@ -332,6 +332,8 @@ int port_init(ddf_dev_t *dev)
 	}
 	
 	kfb.size = scanline * height;
+	kfb.addr = AS_AREA_ANY;
+	
 	rc = physmem_map(paddr + offset,
 	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
 	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);

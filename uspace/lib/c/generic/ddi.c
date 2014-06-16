@@ -70,10 +70,12 @@ int device_assign_devno(void)
  * @param pages Number of pages to map.
  * @param flags Flags for the new address space area.
  * @param virt  Virtual address of the starting page.
+ *              If set to AS_AREA_ANY ((void *) -1), a suitable value
+ *              is found by the kernel, otherwise the kernel tries to
+ *              obey the desired value.
  *
- * @return EOK on success
- * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability
- * @return ENOENT if there is no task with specified ID
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
  * @return ENOMEM if there was some problem in creating
  *         the address space area.
  *
@@ -84,6 +86,26 @@ int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
+/** Lock a piece physical memory for DMA transfers.
+ *
+ * The mapping of the specified virtual memory address
+ * to physical memory address is locked in order to
+ * make it safe for DMA transferts.
+ *
+ * Caller of this function must have the CAP_MEM_MANAGER capability.
+ *
+ * @param virt      Virtual address of the memory to be locked.
+ * @param size      Number of bytes to lock.
+ * @param map_flags Desired virtual memory area flags.
+ * @param flags     Flags for the physical memory address.
+ * @param phys      Locked physical memory address.
+ *
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return ENOMEM if there was some problem in creating
+ *         the address space area.
+ *
+ */
 int dmamem_map(void *virt, size_t size, unsigned int map_flags,
     unsigned int flags, uintptr_t *phys)
 {
@@ -92,6 +114,26 @@ int dmamem_map(void *virt, size_t size, unsigned int map_flags,
 	    (sysarg_t) phys, (sysarg_t) virt, 0);
 }
 
+/** Map a piece of physical memory suitable for DMA transfers.
+ *
+ * Caller of this function must have the CAP_MEM_MANAGER capability.
+ *
+ * @param size       Number of bytes to map.
+ * @param constraint Bit mask defining the contraint on the physical
+ *                   address to be mapped.
+ * @param map_flags  Desired virtual memory area flags.
+ * @param flags      Flags for the physical memory address.
+ * @param virt       Virtual address of the starting page.
+ *                   If set to AS_AREA_ANY ((void *) -1), a suitable value
+ *                   is found by the kernel, otherwise the kernel tries to
+ *                   obey the desired value.
+ *
+ * @return EOK on success.
+ * @return EPERM if the caller lacks the CAP_MEM_MANAGER capability.
+ * @return ENOMEM if there was some problem in creating
+ *         the address space area.
+ *
+ */
 int dmamem_map_anonymous(size_t size, uintptr_t constraint,
     unsigned int map_flags, unsigned int flags, uintptr_t *phys, void **virt)
 {
@@ -220,7 +262,7 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	size_t offset = (uintptr_t) pio_addr - phys_frame;
 	size_t pages = SIZE2PAGES(offset + size);
 	
-	void *virt_page;
+	void *virt_page = AS_AREA_ANY;
 	int rc = physmem_map(phys_frame, pages,
 	    AS_AREA_READ | AS_AREA_WRITE, &virt_page);
 	if (rc != EOK)

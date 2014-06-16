@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,71 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libc
+ * @{
+ */
 /** @file
  */
 
-#include <sys/types.h>
 #include <errno.h>
-#include <str.h>
-#include <sysinfo.h>
-#include <ddi.h>
-#include <align.h>
-#include <as.h>
-#include "../ctl/serial.h"
-#include "kchar.h"
+#include <async.h>
+#include <io/pixel.h>
+#include <ipc/dev_iface.h>
+#include <device/led_dev.h>
 
-typedef struct {
-	uint8_t *addr;
-} kchar_t;
-
-static kchar_t kchar;
-
-static void kchar_putchar(wchar_t ch)
+int led_dev_color_set(async_sess_t *sess, pixel_t pixel)
 {
-	if (ascii_check(ch))
-		*kchar.addr = ch;
-	else
-		*kchar.addr = '?';
-}
-
-static void kchar_control_puts(const char *str)
-{
-	while (*str)
-		*kchar.addr = *(str++);
-}
-
-int kchar_init(void)
-{
-	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
-	if (rc != EOK)
-		present = false;
+	async_exch_t *exch = async_exchange_begin(sess);
 	
-	if (!present)
-		return ENOENT;
+	aid_t req = async_send_2(exch, DEV_IFACE_ID(LED_DEV_IFACE),
+	    LED_DEV_COLOR_SET, (sysarg_t) pixel, NULL);
 	
-	sysarg_t kind;
-	rc = sysinfo_get_value("fb.kind", &kind);
-	if (rc != EOK)
-		kind = (sysarg_t) -1;
+	async_exchange_end(exch);
 	
-	if (kind != 3)
-		return EINVAL;
+	sysarg_t rc;
+	async_wait_for(req, &rc);
 	
-	sysarg_t paddr;
-	rc = sysinfo_get_value("fb.address.physical", &paddr);
-	if (rc != EOK)
-		return rc;
-	
-	kchar.addr = AS_AREA_ANY;
-	
-	rc = physmem_map(paddr,
-	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kchar.addr);
-	if (rc != EOK)
-		return rc;
-	
-	return serial_init(kchar_putchar, kchar_control_puts);
+	return (int) rc;
 }
 
 /** @}

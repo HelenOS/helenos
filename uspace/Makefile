@@ -155,24 +155,6 @@ DIRS = \
 	drv/nic/rtl8139 \
 	drv/nic/rtl8169
 
-ifeq ($(CONFIG_PCC),y)
-DIRS += \
-	app/cc \
-	app/ccom \
-	app/ccom/mkext \
-	app/cpp
-endif
-
-ifeq ($(CONFIG_BINUTILS),y)
-DIRS += \
-	app/binutils
-endif
-
-ifeq ($(CONFIG_MSIM),y)
-DIRS += \
-	app/msim
-endif
-
 ## Platform-specific hardware support
 #
 

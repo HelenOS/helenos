@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,72 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup drvusbhid
+ * @{
+ */
 /** @file
+ * USB blink(1) subdriver.
  */
 
-#include <sys/types.h>
-#include <errno.h>
-#include <str.h>
-#include <sysinfo.h>
-#include <ddi.h>
-#include <align.h>
-#include <as.h>
-#include "../ctl/serial.h"
-#include "kchar.h"
+#ifndef USB_HID_BLINK1_H_
+#define USB_HID_BLINK1_H_
 
+#include <usb/dev/driver.h>
+#include "../usbhid.h"
+
+/** Container for USB blink(1) device. */
 typedef struct {
-	uint8_t *addr;
-} kchar_t;
+	/** DDF blink(1) function */
+	ddf_fun_t *fun;
+	
+	/** USB HID device */
+	usb_hid_dev_t *hid_dev;
+} usb_blink1_t;
 
-static kchar_t kchar;
+extern const char *HID_BLINK1_FUN_NAME;
+extern const char *HID_BLINK1_CATEGORY;
 
-static void kchar_putchar(wchar_t ch)
-{
-	if (ascii_check(ch))
-		*kchar.addr = ch;
-	else
-		*kchar.addr = '?';
-}
+extern int usb_blink1_init(usb_hid_dev_t *, void **);
+extern void usb_blink1_deinit(usb_hid_dev_t *, void *);
 
-static void kchar_control_puts(const char *str)
-{
-	while (*str)
-		*kchar.addr = *(str++);
-}
+#endif // USB_HID_BLINK1_H_
 
-int kchar_init(void)
-{
-	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
-	if (rc != EOK)
-		present = false;
-	
-	if (!present)
-		return ENOENT;
-	
-	sysarg_t kind;
-	rc = sysinfo_get_value("fb.kind", &kind);
-	if (rc != EOK)
-		kind = (sysarg_t) -1;
-	
-	if (kind != 3)
-		return EINVAL;
-	
-	sysarg_t paddr;
-	rc = sysinfo_get_value("fb.address.physical", &paddr);
-	if (rc != EOK)
-		return rc;
-	
-	kchar.addr = AS_AREA_ANY;
-	
-	rc = physmem_map(paddr,
-	    ALIGN_UP(1, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kchar.addr);
-	if (rc != EOK)
-		return rc;
-	
-	return serial_init(kchar_putchar, kchar_control_puts);
-}
-
-/** @}
+/**
+ * @}
  */

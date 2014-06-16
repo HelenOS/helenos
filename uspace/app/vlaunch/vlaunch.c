@@ -40,6 +40,10 @@
 #include <task.h>
 #include <str.h>
 #include <str_error.h>
+#include <loc.h>
+#include <fibril_synch.h>
+#include <io/pixel.h>
+#include <device/led_dev.h>
 
 #include <window.h>
 #include <grid.h>
@@ -59,29 +63,52 @@
 #define LOGO_WIDTH   196
 #define LOGO_HEIGHT  66
 
+#define PERIOD  1000000
+#define COLORS  7
+
 static char *winreg = NULL;
+static fibril_timer_t *timer = NULL;
+static list_t led_devs;
+
+static pixel_t colors[COLORS] = {
+	PIXEL(0xff, 0xff, 0x00, 0x00),
+	PIXEL(0xff, 0x00, 0xff, 0x00),
+	PIXEL(0xff, 0x00, 0x00, 0xff),
+	PIXEL(0xff, 0xff, 0xff, 0x00),
+	PIXEL(0xff, 0xff, 0x00, 0xff),
+	PIXEL(0xff, 0x00, 0xff, 0xff),
+	PIXEL(0xff, 0xff, 0xff, 0xff)
+};
+
+static unsigned int color = 0;
+
+typedef struct {
+	link_t link;
+	service_id_t svc_id;
+	async_sess_t *sess;
+} led_dev_t;
 
 static int app_launch(const char *app)
 {
-	int rc;
 	printf("%s: Spawning %s %s \n", NAME, app, winreg);
-
+	
 	task_id_t id;
-	task_exit_t texit;
-	int retval;
-	rc = task_spawnl(&id, app, app, winreg, NULL);
+	int rc = task_spawnl(&id, app, app, winreg, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));
 		return -1;
 	}
+	
+	task_exit_t texit;
+	int retval;
 	rc = task_wait(id, &texit, &retval);
-	if (rc != EOK || texit != TASK_EXIT_NORMAL) {
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
 		    app, str_error(rc));
 		return -1;
 	}
-
+	
 	return retval;
 }
 
@@ -100,10 +127,81 @@ static void on_vlaunch(widget_t *widget, void *data)
 	app_launch("/app/vlaunch");
 }
 
+static void timer_callback(void *data)
+{
+	pixel_t next_color = colors[color];
+	
+	color++;
+	if (color >= COLORS)
+		color = 0;
+	
+	list_foreach(led_devs, link, led_dev_t, dev) {
+		if (dev->sess)
+			led_dev_color_set(dev->sess, next_color);
+	}
+	
+	fibril_timer_set(timer, PERIOD, timer_callback, NULL);
+}
+
+static void loc_callback(void)
+{
+	category_id_t led_cat;
+	int rc = loc_category_get_id("led", &led_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK)
+		return;
+	
+	service_id_t *svcs;
+	size_t count;
+	rc = loc_category_get_svcs(led_cat, &svcs, &count);
+	if (rc != EOK)
+		return;
+	
+	for (size_t i = 0; i < count; i++) {
+		bool known = false;
+		
+		/* Determine whether we already know this device. */
+		list_foreach(led_devs, link, led_dev_t, dev) {
+			if (dev->svc_id == svcs[i]) {
+				known = true;
+				break;
+			}
+		}
+		
+		if (!known) {
+			led_dev_t *dev = (led_dev_t *) calloc(1, sizeof(led_dev_t));
+			if (!dev)
+				continue;
+			
+			link_initialize(&dev->link);
+			dev->svc_id = svcs[i];
+			dev->sess = loc_service_connect(EXCHANGE_SERIALIZE, svcs[i], 0);
+			
+			list_append(&dev->link, &led_devs);
+		}
+	}
+	
+	// FIXME: Handle LED device removal
+	
+	free(svcs);
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		printf("Compositor server not specified.\n");
+		return 1;
+	}
+	
+	list_initialize(&led_devs);
+	int rc = loc_register_cat_change_cb(loc_callback);
+	if (rc != EOK) {
+		printf("Unable to register callback for device discovery.\n");
+		return 1;
+	}
+	
+	timer = fibril_timer_create();
+	if (!timer) {
+		printf("Unable to create timer.\n");
 		return 1;
 	}
 	
@@ -161,6 +259,8 @@ int main(int argc, char *argv[])
 	window_resize(main_window, 0, 0, 210, 130 + LOGO_HEIGHT,
 	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_TOP);
 	window_exec(main_window);
+	
+	fibril_timer_set(timer, PERIOD, timer_callback, NULL);
 	
 	task_retval(0);
 	async_manager();
