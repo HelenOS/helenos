@@ -455,11 +455,22 @@ static int rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 
 static int rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 {
+
+	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "Realtek");
+
 	return EOK;
 }
 
 static int rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
+	uint8_t phystatus = pio_read_8(rtl8169->regs + PHYSTATUS);
+
+	if (phystatus & PHYSTATUS_LINK)
+		*state = NIC_CS_PLUGGED;
+	else
+		*state = NIC_CS_UNPLUGGED;
+
 	return EOK;
 }
 
