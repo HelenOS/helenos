@@ -236,6 +236,7 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	ddf_msg(LVL_DEBUG, "Allocating DMA buffer rings");
 
 	/* Allocate TX ring */
+	rtl8169->tx_ring = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(TX_RING_SIZE, DMAMEM_4GiB, 
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->tx_ring_phys,
 	    (void **)&rtl8169->tx_ring);
@@ -243,9 +244,13 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
+	ddf_msg(LVL_DEBUG, "TX ring address: phys=0x%08lx, virt=%p",
+	    rtl8169->tx_ring_phys, rtl8169->tx_ring);
+
 	memset(rtl8169->tx_ring, 0, TX_RING_SIZE);
 
 	/* Allocate RX ring */
+	rtl8169->rx_ring = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(RX_RING_SIZE, DMAMEM_4GiB, 
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->rx_ring_phys,
 	    (void **)&rtl8169->rx_ring);
@@ -253,9 +258,13 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
+	ddf_msg(LVL_DEBUG, "RX ring address: phys=0x%08lx, virt=%p",
+	    rtl8169->rx_ring_phys, rtl8169->rx_ring);
+
 	memset(rtl8169->rx_ring, 0, RX_RING_SIZE);
 
 	/* Allocate TX buffers */
+	rtl8169->tx_buff = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(TX_BUFFERS_SIZE, DMAMEM_4GiB, 
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->tx_buff_phys,
 	    &rtl8169->tx_buff);
@@ -263,13 +272,20 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
+	ddf_msg(LVL_DEBUG, "TX buffers base address: phys=0x%08lx, virt=%p",
+	    rtl8169->tx_buff_phys, rtl8169->tx_buff);
+
 	/* Allocate RX buffers */
+	rtl8169->rx_buff = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(RX_BUFFERS_SIZE, DMAMEM_4GiB, 
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->rx_buff_phys,
 	    &rtl8169->rx_buff);
 
 	if (rc != EOK)
 		return rc;
+
+	ddf_msg(LVL_DEBUG, "RX buffers base address: phys=0x%08lx, virt=%p",
+	    rtl8169->rx_buff_phys, rtl8169->rx_buff);
 
 	return EOK;
 }
@@ -555,6 +571,8 @@ static void rtl8169_rx_ring_refill(rtl8169_t *rtl8169, unsigned int first,
 
 static int rtl8169_on_activated(nic_t *nic_data)
 {
+	int rc;
+
 	ddf_msg(LVL_NOTE, "Activating device");
 
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
@@ -564,7 +582,11 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	rtl8169_reset(rtl8169);
 
 	/* Allocate buffers */
-	rtl8169_allocate_buffers(rtl8169);
+	rc = rtl8169_allocate_buffers(rtl8169);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error allocating buffers: %d", rc);
+		return 0;
+	}
 
 	/* Initialize RX ring */
 	rtl8169_rx_ring_refill(rtl8169, 0, RX_BUFFERS_COUNT - 1);
@@ -687,9 +709,10 @@ static void rtl8169_transmit_done(ddf_dev_t *dev)
 
 	while (tail != head) {
 		descr = &rtl8169->tx_ring[tail];
-		descr->control |= CONTROL_OWN;
+		descr->control &= (~CONTROL_OWN);
+		write_barrier();
 		ddf_msg(LVL_NOTE, "TX status for descr %d: 0x%08x", tail, descr->control);
-
+	
 		tail = (tail + 1) % TX_BUFFERS_COUNT;
 	}
 
@@ -768,8 +791,11 @@ static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
 	ddf_msg(LVL_NOTE, "rtl8169_irq_handler(): isr=0x%04x", isr);
+	pio_write_16(rtl8169->regs + IMR, 0xffff);
 
 	while (isr != 0) {
+		ddf_msg(LVL_DEBUG, "irq handler: remaining isr=0x%04x", isr);
+
 		/* Packet underrun or link change */
 		if (isr & INT_PUN) {
 			rtl8169_link_change(dev);
@@ -795,7 +821,6 @@ static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
 		isr = pio_read_16(rtl8169->regs + ISR) & INT_KNOWN;
 	}
 
-	pio_write_16(rtl8169->regs + IMR, 0xffff);
 	pio_write_16(rtl8169->regs + ISR, 0xffff);
 }
 
@@ -815,10 +840,8 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	fibril_mutex_lock(&rtl8169->tx_lock);
 
-	ddf_msg(LVL_NOTE, "send_frame()");
-	ddf_msg(LVL_NOTE, "size: %ld", size);
-	ddf_msg(LVL_NOTE, "tx ring virtual at %p", rtl8169->tx_ring);
-	ddf_msg(LVL_NOTE, "tx_head=%d tx_tail=%d", rtl8169->tx_head, rtl8169->tx_tail);
+	ddf_msg(LVL_NOTE, "send_frame: size: %ld, tx_head=%d tx_tail=%d",
+	    size, rtl8169->tx_head, rtl8169->tx_tail);
 
 	head = rtl8169->tx_head;
 	tail = rtl8169->tx_tail;
@@ -853,13 +876,13 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	rtl8169->tx_head = (head + 1) % TX_BUFFERS_COUNT;
 
+	ddf_msg(LVL_DEBUG, "control: 0x%08x", descr->control);
+
 	write_barrier();
 
 	/* Notify NIC of pending packets */
 	pio_write_8(rtl8169->regs + TPPOLL, TPPOLL_NPQ);
 	write_barrier();
-
-	ddf_msg(LVL_NOTE, "triggered TPPOLL");
 
 	fibril_mutex_unlock(&rtl8169->tx_lock);
 }
