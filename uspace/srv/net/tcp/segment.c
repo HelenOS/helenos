@@ -50,6 +50,7 @@ tcp_segment_t *tcp_segment_new(void)
 /** Delete segment. */
 void tcp_segment_delete(tcp_segment_t *seg)
 {
+	free(seg->dfptr);
 	free(seg);
 }
 
