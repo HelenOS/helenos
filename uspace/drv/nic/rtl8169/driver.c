@@ -91,6 +91,8 @@ static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count);
 static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
 
+static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr);
+static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value);
 static void rtl8169_rx_ring_refill(rtl8169_t *rtl8169, unsigned int first,
     unsigned int last);
 
@@ -493,12 +495,50 @@ static int rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 static int rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
+	uint8_t phystatus = pio_read_8(rtl8169->regs + PHYSTATUS);
+
+	*duplex = phystatus & PHYSTATUS_FDX
+	    ? NIC_CM_FULL_DUPLEX : NIC_CM_HALF_DUPLEX;
+
+	if (phystatus & PHYSTATUS_10M)
+		*speed = 10;
+
+	if (phystatus & PHYSTATUS_100M)
+		*speed = 100;
+
+	if (phystatus & PHYSTATUS_1000M)
+		*speed = 1000;
+
+	*role = NIC_ROLE_UNKNOWN;
 	return EOK;
 }
 
 static int rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
+	uint16_t bmcr;
+
+	if (speed != 10 && speed != 100 && speed != 1000)
+		return EINVAL;
+
+ 	if (duplex != NIC_CM_HALF_DUPLEX && duplex != NIC_CM_FULL_DUPLEX)
+		return EINVAL;
+
+	bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
+	bmcr &= ~(BMCR_DUPLEX | BMCR_SPD_100 | BMCR_SPD_1000);
+	
+	if (duplex == NIC_CM_FULL_DUPLEX)
+		bmcr |= BMCR_DUPLEX;
+
+	if (speed == 100)
+		bmcr |= BMCR_SPD_100;
+
+	if (speed == 1000)
+		bmcr |= BMCR_SPD_1000;
+
+	rtl8169_mii_write(rtl8169, MII_BMCR, bmcr);
 	return EOK;
 }
 
@@ -516,11 +556,36 @@ static int rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive,
 
 static int rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
+	uint16_t bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
+	uint16_t anar = ANAR_SELECTOR;
+
+	if (advertisement & ETH_AUTONEG_10BASE_T_FULL)
+		anar |= ANAR_10_FD;
+	if (advertisement & ETH_AUTONEG_10BASE_T_HALF)
+		anar |= ANAR_10_HD;
+	if (advertisement & ETH_AUTONEG_100BASE_TX_FULL)
+		anar |= ANAR_100TX_FD;
+	if (advertisement & ETH_AUTONEG_100BASE_TX_HALF)
+		anar |= ANAR_100TX_HD;
+	if (advertisement & ETH_AUTONEG_PAUSE_SYMETRIC)
+		anar |= ANAR_PAUSE;
+
+	bmcr |= BMCR_AN_ENABLE;
+	rtl8169_mii_write(rtl8169, MII_BMCR, bmcr);
+	rtl8169_mii_write(rtl8169, MII_ANAR, anar);
+
 	return EOK;
 }
 
 static int rtl8169_autoneg_disable(ddf_fun_t *fun)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
+	uint16_t bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
+
+	bmcr &= ~BMCR_AN_ENABLE;
+	rtl8169_mii_write(rtl8169, MII_BMCR, bmcr);
+
 	return EOK;
 }
 
@@ -907,6 +972,41 @@ static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr)
 
 	for (i = 0; i < 6; i++)
 		addr->address[i] = pio_read_8(rtl8169->regs + MAC0 + i);
+}
+
+static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr)
+{
+	uint32_t phyar;
+
+	phyar = PHYAR_RW_READ
+	    | ((addr & PHYAR_ADDR_MASK) << PHYAR_ADDR_SHIFT);
+
+	pio_write_32(rtl8169->regs + PHYAR, phyar);
+
+	do {
+		phyar = pio_read_32(rtl8169->regs + PHYAR);
+		usleep(20);
+	} while ((phyar & PHYAR_RW_WRITE) == 0);
+
+	return phyar & PHYAR_DATA_MASK;
+}
+
+static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value)
+{
+	uint32_t phyar;
+
+	phyar = PHYAR_RW_WRITE
+	    | ((addr & PHYAR_ADDR_MASK) << PHYAR_ADDR_SHIFT)
+	    | (value & PHYAR_DATA_MASK);
+
+	pio_write_32(rtl8169->regs + PHYAR, phyar);
+
+	do {
+		phyar = pio_read_32(rtl8169->regs + PHYAR);
+		usleep(20);
+	} while ((phyar & PHYAR_RW_WRITE) != 0);
+
+	usleep(20);
 }
 
 /** Main function of RTL8169 driver

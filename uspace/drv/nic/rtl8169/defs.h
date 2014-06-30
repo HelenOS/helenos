@@ -109,6 +109,12 @@ enum rtl8169_registers {
 	FFER = 0xfc, /**< Function Force Event Register, 4b */
 };
 
+enum rtl8169_mii_registers {
+	MII_BMCR = 0x00,
+	MII_BMSR = 0x01,
+	MII_ANAR = 0x04,
+};
+
 /** Command register bits */
 enum rtl8169_cr {
 	CR_TE = (1 << 2), /**< Transmitter enable bit */
@@ -263,6 +269,24 @@ enum rtl8169_tppoll {
 	TPPOLL_NPQ = (1 << 6), /**< Start transmit on normal queue */
 	/* Bits 5-1 reserved */
 	TPPOLL_FSWINT = (1 << 0), /** < Generate software interrupt */
+};
+
+enum rtl8169_phyar {
+	PHYAR_RW_SHIFT = 31, /**< Read (0) or write (1) command */
+	PHYAR_RW_READ = (0 << PHYAR_RW_SHIFT),
+	PHYAR_RW_WRITE = (1 << PHYAR_RW_SHIFT),
+	PHYAR_ADDR_SHIFT = 15,
+	PHYAR_ADDR_MASK = 0x1f,
+	PHYAR_DATA_MASK = 0xffff
+};
+
+enum rtl8169_bmcr {
+	BMCR_RESET = (1 << 15), /**< Software reset */
+	BMCR_SPD_100 = (1 << 13), /**< 100 MBit mode set */
+	BMCR_AN_ENABLE = (1 << 12), /**< Autonegotion enable */
+	BMCR_AN_RESTART = (1 << 9), /**< Restart autonegotion */
+	BMCR_DUPLEX = (1 << 8), /**< Duplex mode: 1=full duplex */
+	BMCR_SPD_1000 = (1 << 6), /**< 1000 Mbit mode set */
 };
 
 enum rtl8169_descr_control {
