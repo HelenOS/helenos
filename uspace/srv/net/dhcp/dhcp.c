@@ -303,8 +303,9 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 			    &offer->router);
 			break;
 		case opt_dns_server:
-			if (opt_len != 4)
+			if (opt_len < 4 || opt_len % 4 != 0)
 				return EINVAL;
+			/* XXX Handle multiple DNS servers properly */
 			inet_addr_set(dhcp_uint32_decode(&msgb[i]),
 			    &offer->dns_server);
 			break;
