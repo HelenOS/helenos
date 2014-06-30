@@ -211,6 +211,7 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
 		tcp_conn_fin_sent(conn);
 
 	tcp_tqueue_seg(conn, seg);
+	tcp_segment_delete(seg);
 }
 
 /** Remove ACKed segments from retransmission queue and possibly transmit
