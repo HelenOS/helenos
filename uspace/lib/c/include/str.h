@@ -108,6 +108,8 @@ extern bool wstr_remove(wchar_t *str, size_t pos);
 extern char *str_dup(const char *);
 extern char *str_ndup(const char *, size_t max_size);
 
+extern char *str_tok(char *, const char *, char **);
+
 extern int str_uint8_t(const char *, const char **, unsigned int, bool,
     uint8_t *);
 extern int str_uint16_t(const char *, const char **, unsigned int, bool,
@@ -130,9 +132,6 @@ extern int stricmp(const char *, const char *);
 
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
-
-extern char * strtok_r(char *, const char *, char **);
-extern char * strtok(char *, const char *);
 
 #endif
 

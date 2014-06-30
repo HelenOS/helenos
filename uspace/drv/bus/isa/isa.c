@@ -354,7 +354,7 @@ static char *get_device_name(char *line)
 	}
 
 	/* Get the name part of the rest of the line. */
-	strtok(line, ":");
+	str_tok(line, ":", NULL);
 	return line;
 }
 
