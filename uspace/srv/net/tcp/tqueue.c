@@ -91,6 +91,7 @@ void tcp_tqueue_ctrl_seg(tcp_conn_t *conn, tcp_control_t ctrl)
 
 	seg = tcp_segment_make_ctrl(ctrl);
 	tcp_tqueue_seg(conn, seg);
+	tcp_segment_delete(seg);
 }
 
 void tcp_tqueue_seg(tcp_conn_t *conn, tcp_segment_t *seg)
