@@ -295,7 +295,7 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
 	dgram.tos = IPC_GET_ARG2(*icall);
 	
 	uint8_t ttl = IPC_GET_ARG3(*icall);
-	int df = IPC_GET_ARG3(*icall);
+	int df = IPC_GET_ARG4(*icall);
 	
 	ipc_callid_t callid;
 	size_t size;
