@@ -246,7 +246,7 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
-	ddf_msg(LVL_DEBUG, "TX ring address: phys=0x%08lx, virt=%p",
+	ddf_msg(LVL_DEBUG, "TX ring address: phys=0x%#" PRIxn ", virt=%p",
 	    rtl8169->tx_ring_phys, rtl8169->tx_ring);
 
 	memset(rtl8169->tx_ring, 0, TX_RING_SIZE);
@@ -260,7 +260,7 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
-	ddf_msg(LVL_DEBUG, "RX ring address: phys=0x%08lx, virt=%p",
+	ddf_msg(LVL_DEBUG, "RX ring address: phys=0x%#" PRIxn ", virt=%p",
 	    rtl8169->rx_ring_phys, rtl8169->rx_ring);
 
 	memset(rtl8169->rx_ring, 0, RX_RING_SIZE);
@@ -274,7 +274,7 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
-	ddf_msg(LVL_DEBUG, "TX buffers base address: phys=0x%08lx, virt=%p",
+	ddf_msg(LVL_DEBUG, "TX buffers base address: phys=0x%#" PRIxn " virt=%p",
 	    rtl8169->tx_buff_phys, rtl8169->tx_buff);
 
 	/* Allocate RX buffers */
@@ -286,7 +286,7 @@ static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 	if (rc != EOK)
 		return rc;
 
-	ddf_msg(LVL_DEBUG, "RX buffers base address: phys=0x%08lx, virt=%p",
+	ddf_msg(LVL_DEBUG, "RX buffers base address: phys=0x%#" PRIxn ", virt=%p",
 	    rtl8169->rx_buff_phys, rtl8169->rx_buff);
 
 	return EOK;
@@ -614,7 +614,7 @@ static void rtl8169_rx_ring_refill(rtl8169_t *rtl8169, unsigned int first,
     unsigned int last)
 {
 	rtl8169_descr_t *descr;
-	uintptr_t buff_phys;
+	uint64_t buff_phys;
 	unsigned int i = first;
 
 	for (;;) {
@@ -637,6 +637,7 @@ static void rtl8169_rx_ring_refill(rtl8169_t *rtl8169, unsigned int first,
 static int rtl8169_on_activated(nic_t *nic_data)
 {
 	int rc;
+	uint64_t tmp;
 
 	ddf_msg(LVL_NOTE, "Activating device");
 
@@ -657,15 +658,17 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	rtl8169_rx_ring_refill(rtl8169, 0, RX_BUFFERS_COUNT - 1);
 
 	/* Write address of descriptor as start of TX ring */
-	pio_write_32(rtl8169->regs + TNPDS, rtl8169->tx_ring_phys & 0xffffffff);
-	pio_write_32(rtl8169->regs + TNPDS + 4, (rtl8169->tx_ring_phys >> 32) & 0xffffffff);
+	tmp = rtl8169->tx_ring_phys;
+	pio_write_32(rtl8169->regs + TNPDS, tmp & 0xffffffff);
+	pio_write_32(rtl8169->regs + TNPDS + 4, (tmp >> 32) & 0xffffffff);
 	rtl8169->tx_head = 0;
 	rtl8169->tx_tail = 0;
 	rtl8169->tx_ring[15].control = CONTROL_EOR;
 
 	/* Write RX ring address */
-	pio_write_32(rtl8169->regs + RDSAR, rtl8169->rx_ring_phys & 0xffffffff);
-	pio_write_32(rtl8169->regs + RDSAR + 4, (rtl8169->rx_ring_phys >> 32) & 0xffffffff);
+	tmp = rtl8169->rx_ring_phys;
+	pio_write_32(rtl8169->regs + RDSAR, tmp & 0xffffffff);
+	pio_write_32(rtl8169->regs + RDSAR + 4, (tmp >> 32) & 0xffffffff);
 	rtl8169->rx_head = 0;
 	rtl8169->rx_tail = 0;
 
@@ -894,7 +897,7 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 	rtl8169_descr_t *descr, *prev;
 	unsigned int head, tail;
 	void *buff;
-	uintptr_t buff_phys;
+	uint64_t buff_phys;
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
 	if (size > RTL8169_FRAME_MAX_LENGTH) {
@@ -905,7 +908,7 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	fibril_mutex_lock(&rtl8169->tx_lock);
 
-	ddf_msg(LVL_NOTE, "send_frame: size: %ld, tx_head=%d tx_tail=%d",
+	ddf_msg(LVL_NOTE, "send_frame: size: %zu, tx_head=%d tx_tail=%d",
 	    size, rtl8169->tx_head, rtl8169->tx_tail);
 
 	head = rtl8169->tx_head;
