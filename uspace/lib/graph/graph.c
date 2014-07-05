@@ -299,11 +299,11 @@ static void vs_enumerate_modes(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *i
 		ipc_callid_t callid;
 		size_t len;
 
-        if (!async_data_read_receive(&callid, &len)) {
+		if (!async_data_read_receive(&callid, &len)) {
 			async_answer_0(iid, EINVAL);
 			return;
-        }
-        int rc = async_data_read_finalize(callid, &mode, len);
+		}
+		int rc = async_data_read_finalize(callid, &mode, len);
 		if (rc != EOK) {
 			async_answer_0(iid, ENOMEM);
 			return;
@@ -311,6 +311,7 @@ static void vs_enumerate_modes(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *i
 
 		async_answer_0(iid, EOK);
 	} else {
+		fibril_mutex_unlock(&vs->mode_mtx);
 		async_answer_0(iid, ENOENT);
 	}
 }
