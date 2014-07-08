@@ -115,8 +115,10 @@ typedef enum {
 	fts_active,
 	/** Timer has fired and has not been cleared since */
 	fts_fired,
-	/** Timer is being destroyed */
-	fts_cleanup
+	/** Timer fibril is requested to terminate */
+	fts_cleanup,
+	/** Timer fibril acknowledged termination */
+	fts_clean
 } fibril_timer_state_t;
 
 /** Fibril timer.

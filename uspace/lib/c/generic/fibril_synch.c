@@ -449,30 +449,33 @@ static int fibril_timer_func(void *arg)
 
 	fibril_mutex_lock(&timer->lock);
 
-	while (true) {
-		while (timer->state != fts_active &&
-		    timer->state != fts_cleanup) {
-
-			if (timer->state == fts_cleanup)
-				break;
-
+	while (timer->state != fts_cleanup) {
+		switch (timer->state) {
+		case fts_not_set:
+		case fts_fired:
 			fibril_condvar_wait(&timer->cv, &timer->lock);
-		}
-
-		if (timer->state == fts_cleanup)
 			break;
-
-		rc = fibril_condvar_wait_timeout(&timer->cv, &timer->lock,
-		    timer->delay);
-		if (rc == ETIMEOUT) {
-			timer->state = fts_fired;
-			fibril_mutex_unlock(&timer->lock);
-			timer->fun(timer->arg);
-			fibril_mutex_lock(&timer->lock);
+		case fts_active:
+			rc = fibril_condvar_wait_timeout(&timer->cv,
+			    &timer->lock, timer->delay);
+			if (rc == ETIMEOUT && timer->state == fts_active) {
+				timer->state = fts_fired;
+				fibril_mutex_unlock(&timer->lock);
+				timer->fun(timer->arg);
+				fibril_mutex_lock(&timer->lock);
+			}
+			break;
+		case fts_cleanup:
+		case fts_clean:
+			assert(false);
+			break;
 		}
 	}
 
+	/* Acknowledge timer fibril has finished cleanup. */
+	timer->state = fts_clean;
 	fibril_mutex_unlock(&timer->lock);
+
 	return 0;
 }
 
@@ -513,9 +516,16 @@ fibril_timer_t *fibril_timer_create(void)
 void fibril_timer_destroy(fibril_timer_t *timer)
 {
 	fibril_mutex_lock(&timer->lock);
-	assert(timer->state != fts_active);
+	assert(timer->state == fts_not_set || timer->state == fts_fired);
+
+	/* Request timer fibril to terminate. */
 	timer->state = fts_cleanup;
 	fibril_condvar_broadcast(&timer->cv);
+
+	/* Wait for timer fibril to acknowledge. */
+	while (timer->state != fts_clean)
+		fibril_condvar_wait(&timer->cv, &timer->lock);
+
 	fibril_mutex_unlock(&timer->lock);
 }
 
@@ -533,6 +543,7 @@ void fibril_timer_set(fibril_timer_t *timer, suseconds_t delay,
     fibril_timer_fun_t fun, void *arg)
 {
 	fibril_mutex_lock(&timer->lock);
+	assert(timer->state == fts_not_set || timer->state == fts_fired);
 	timer->state = fts_active;
 	timer->delay = delay;
 	timer->fun = fun;
