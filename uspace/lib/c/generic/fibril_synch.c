@@ -474,6 +474,7 @@ static int fibril_timer_func(void *arg)
 
 	/* Acknowledge timer fibril has finished cleanup. */
 	timer->state = fts_clean;
+	fibril_condvar_broadcast(&timer->cv);
 	fibril_mutex_unlock(&timer->lock);
 
 	return 0;
