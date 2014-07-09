@@ -34,24 +34,24 @@
  * @file
  */
 
+#include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
-#include <ops/graph_dev.h>
 #include <graph.h>
 
 #include "amdm37x_dispc.h"
 
 #define NAME  "amdm37x_dispc"
 
-static graph_dev_ops_t graph_vsl_dev_ops = {
-	.connect = (connect_func) &graph_visualizer_connection
-};
+static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	visualizer_t *vsl;
 
-static ddf_dev_ops_t graph_fun_ops = {
-	.interfaces[GRAPH_DEV_IFACE] = &graph_vsl_dev_ops
-};
+	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
+	graph_visualizer_connection(vsl, iid, icall, NULL);
+}
 
 static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
@@ -73,7 +73,7 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 	graph_init_visualizer(vis);
 	vis->reg_svc_handle = ddf_fun_get_handle(fun);
 
-	ddf_fun_set_ops(fun, &graph_fun_ops);
+	ddf_fun_set_conn_handler(fun, graph_vsl_connection);
 	/* Hw part */
 	amdm37x_dispc_t *dispc =
 	    ddf_dev_data_alloc(dev, sizeof(amdm37x_dispc_t));

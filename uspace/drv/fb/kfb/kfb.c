@@ -39,7 +39,6 @@
 #include <async.h>
 #include <task.h>
 #include <graph.h>
-#include <ops/graph_dev.h>
 #include "port.h"
 #include "kfb.h"
 
@@ -57,22 +56,6 @@ static driver_ops_t kgraph_driver_ops = {
 static driver_t kgraph_driver = {
 	.name = NAME,
 	.driver_ops = &kgraph_driver_ops
-};
-
-static graph_dev_ops_t graph_vsl_dev_ops = {
-	.connect = (connect_func) &graph_visualizer_connection
-};
-
-ddf_dev_ops_t graph_vsl_device_ops = {
-	.interfaces[GRAPH_DEV_IFACE] = &graph_vsl_dev_ops
-};
-
-static graph_dev_ops_t graph_rnd_dev_ops = {
-	.connect = (connect_func) &graph_renderer_connection
-};
-
-ddf_dev_ops_t graph_rnd_device_ops = {
-	.interfaces[GRAPH_DEV_IFACE] = &graph_rnd_dev_ops
 };
 
 int main(int argc, char *argv[])

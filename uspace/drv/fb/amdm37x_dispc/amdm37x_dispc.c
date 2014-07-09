@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <align.h>
 #include <assert.h>
 #include <errno.h>
 #include <ddf/log.h>

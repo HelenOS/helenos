@@ -206,6 +206,14 @@ static visualizer_ops_t kfb_ops = {
 	.wakeup = kfb_wakeup
 };
 
+static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+{
+	visualizer_t *vsl;
+
+	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
+	graph_visualizer_connection(vsl, iid, icall, NULL);
+}
+
 int port_init(ddf_dev_t *dev)
 {
 	sysarg_t present;
@@ -345,7 +353,7 @@ int port_init(ddf_dev_t *dev)
 		as_area_destroy(kfb.addr);
 		return ENOMEM;
 	}
-	ddf_fun_set_ops(fun_vs, &graph_vsl_device_ops);
+	ddf_fun_set_conn_handler(fun_vs, &graph_vsl_connection);
 
 	visualizer_t *vs = ddf_fun_data_alloc(fun_vs, sizeof(visualizer_t));
 	if (vs == NULL) {

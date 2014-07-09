@@ -56,7 +56,6 @@
 #include <loc.h>
 
 #include <event.h>
-#include <graph_iface.h>
 #include <io/keycode.h>
 #include <io/mode.h>
 #include <io/visualizer.h>
@@ -1155,12 +1154,6 @@ static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 	sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
 	if (sess == NULL) {
 		printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
-		return NULL;
-	}
-
-	rc = graph_dev_connect(sess);
-	if (rc != EOK) {
-		printf("%s: Failed initializing visualiser %s\n", NAME, svc);
 		return NULL;
 	}
 
