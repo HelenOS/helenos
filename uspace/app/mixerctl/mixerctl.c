@@ -34,13 +34,13 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <loc.h>
 #include <str_error.h>
 #include <str.h>
-#include <devman.h>
 #include <audio_mixer_iface.h>
 #include <stdio.h>
 
-#define DEFAULT_DEVICE "/hw/pci0/00:01.0/sb16/control"
+#define DEFAULT_SERVICE "devices/\\hw\\pci0\\00:01.0\\sb16\\control"
 
 /**
  * Print volume levels on all channels on all control items.
@@ -127,37 +127,37 @@ static void get_level(async_exch_t *exch, int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	const char *device = DEFAULT_DEVICE;
+	const char *service = DEFAULT_SERVICE;
 	void (*command)(async_exch_t *, int, char*[]) = NULL;
 
 	if (argc >= 2 && str_cmp(argv[1], "setlevel") == 0) {
 		command = set_level;
 		if (argc == 5)
-			device = argv[1];
+			service = argv[1];
 	}
 
 	if (argc >= 2 && str_cmp(argv[1], "getlevel") == 0) {
 		command = get_level;
 		if (argc == 4)
-			device = argv[1];
+			service = argv[1];
 	}
 
 	if ((argc == 2 && command == NULL))
-		device = argv[1];
+		service = argv[1];
 
 
-	devman_handle_t mixer_handle;
-	int ret = devman_fun_get_handle(device, &mixer_handle, 0);
-	if (ret != EOK) {
-		printf("Failed to get device(%s) handle: %s.\n",
-		    device, str_error(ret));
+	service_id_t mixer_sid;
+	int rc = loc_service_get_id(service, &mixer_sid, 0);
+	if (rc != EOK) {
+		printf("Failed to resolve service '%s': %s.\n",
+		    service, str_error(rc));
 		return 1;
 	}
 
-	async_sess_t *session = devman_device_connect(
-	    EXCHANGE_ATOMIC, mixer_handle, IPC_FLAG_BLOCKING);
+	async_sess_t *session = loc_service_connect(
+	    EXCHANGE_ATOMIC, mixer_sid, 0);
 	if (!session) {
-		printf("Failed to connect to device.\n");
+		printf("Failed connecting mixer service '%s'.\n", service);
 		return 1;
 	}
 
