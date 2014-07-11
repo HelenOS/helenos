@@ -58,6 +58,7 @@ static atomic_t fibril_futex = FUTEX_INITIALIZER;
 static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(serialized_list);
 static LIST_INITIALIZE(manager_list);
+static LIST_INITIALIZE(fibril_list);
 
 /** Number of threads that are executing a manager fibril. */
 static int threads_in_manager;
@@ -115,12 +116,14 @@ fibril_t *fibril_setup(void)
 	fibril->flags = 0;
 	
 	fibril->waits_for = NULL;
+	list_append(&fibril->all_link, &fibril_list);
 	
 	return fibril;
 }
 
 void fibril_teardown(fibril_t *fibril)
 {
+	list_remove(&fibril->all_link);
 	tls_free(fibril->tcb);
 	free(fibril);
 }

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,36 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64 amd64
- * @ingroup lc
+/** @addtogroup edit
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#include <sys/types.h>
-#include <stdbool.h>
+#ifndef TASKDUMP_H
+#define TASKDUMP_H
 
-#include <stacktrace.h>
+#include <stdint.h>
 
-#define FRAME_OFFSET_FP_PREV	0
-#define FRAME_OFFSET_RA		8
+extern int td_stacktrace(uintptr_t, uintptr_t);
 
-bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
-{
-	(void) st;
-	return fp != 0;
-}
-
-int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
-{
-	return (*st->ops->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, prev);
-}
-
-int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
-{
-	return (*st->ops->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
-}
+#endif
 
 /** @}
  */
