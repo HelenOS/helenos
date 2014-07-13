@@ -130,9 +130,11 @@ typedef enum {
  */
 typedef struct {
 	fibril_mutex_t lock;
+	fibril_mutex_t *lockp;
 	fibril_condvar_t cv;
 	fid_t fibril;
 	fibril_timer_state_t state;
+	bool handler_running;
 
 	suseconds_t delay;
 	fibril_timer_fun_t fun;
@@ -161,11 +163,14 @@ extern void fibril_condvar_wait(fibril_condvar_t *, fibril_mutex_t *);
 extern void fibril_condvar_signal(fibril_condvar_t *);
 extern void fibril_condvar_broadcast(fibril_condvar_t *);
 
-extern fibril_timer_t *fibril_timer_create(void);
+extern fibril_timer_t *fibril_timer_create(fibril_mutex_t *);
 extern void fibril_timer_destroy(fibril_timer_t *);
 extern void fibril_timer_set(fibril_timer_t *, suseconds_t, fibril_timer_fun_t,
     void *);
+extern void fibril_timer_set_locked(fibril_timer_t *, suseconds_t,
+    fibril_timer_fun_t, void *);
 extern fibril_timer_state_t fibril_timer_clear(fibril_timer_t *);
+extern fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *);
 
 #endif
 

@@ -435,7 +435,7 @@ int dhcpsrv_link_add(service_id_t link_id)
 		return ENOMEM;
 
 	dlink->link_id = link_id;
-	dlink->timeout = fibril_timer_create();
+	dlink->timeout = fibril_timer_create(NULL);
 	if (dlink->timeout == NULL) {
 		rc = ENOMEM;
 		goto error;
