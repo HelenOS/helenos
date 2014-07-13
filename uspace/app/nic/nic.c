@@ -44,8 +44,11 @@
 #define NAME  "nic"
 
 typedef struct {
+	nic_device_info_t device_info;
 	nic_address_t address;
 	nic_cable_state_t link_state;
+	nic_channel_mode_t duplex;
+	int speed;
 } nic_info_t;
 
 static void print_syntax(void)
@@ -58,6 +61,7 @@ static int nic_get_info(service_id_t svc_id, char *svc_name,
     nic_info_t *info)
 {
 	async_sess_t *sess;
+	nic_role_t role;
 	int rc;
 
 	sess = loc_service_connect(EXCHANGE_SERIALIZE, svc_id, 0);
@@ -74,12 +78,27 @@ static int nic_get_info(service_id_t svc_id, char *svc_name,
 		goto error;
 	}
 
+	rc = nic_get_device_info(sess, &info->device_info);
+	if (rc != EOK) {
+		printf("Error getting NIC device info.\n");
+		rc = EIO;
+		goto error;
+	}
+
 	rc = nic_get_cable_state(sess, &info->link_state);
 	if (rc != EOK) {
 		printf("Error getting link state.\n");
 		rc = EIO;
 		goto error;
 	}
+
+	rc = nic_get_operation_mode(sess, &info->speed, &info->duplex, &role);
+	if (rc != EOK) {
+		printf("Error getting NIC speed and duplex mode.\n");
+		rc = EIO;
+		goto error;
+	}
+
 
 	return EOK;
 error:
@@ -92,6 +111,15 @@ static const char *nic_link_state_str(nic_cable_state_t link_state)
 	case NIC_CS_UNKNOWN: return "unknown";
 	case NIC_CS_PLUGGED: return "up";
 	case NIC_CS_UNPLUGGED: return "down";
+	default: assert(false); return NULL;
+	}
+}
+
+static const char *nic_duplex_mode_str(nic_channel_mode_t mode)
+{
+	switch (mode) {
+	case NIC_CM_FULL_DUPLEX: return "full-duplex";
+	case NIC_CM_HALF_DUPLEX: return "half-duplex";
 	default: assert(false); return NULL;
 	}
 }
@@ -132,7 +160,7 @@ static int nic_list(void)
 		goto error;
 	}
 
-	printf("[Address] [Link State] [Service Name]\n");
+	printf("[Address] [Service Name]\n");
 	for (i = 0; i < count; i++) {
 		rc = loc_service_get_name(nics[i], &svc_name);
 		if (rc != EOK) {
@@ -151,8 +179,18 @@ static int nic_list(void)
 			goto error;
 		}
 
-		printf("%s %s %s\n", addr_str,
-		    nic_link_state_str(nic_info.link_state), svc_name);
+		printf("%s %s\n", addr_str, svc_name);
+		printf("\tVendor name: %s\n",
+		    nic_info.device_info.vendor_name);
+		printf("\tModel name: %s\n",
+		    nic_info.device_info.model_name);
+		printf("\tLink state: %s\n",
+		    nic_link_state_str(nic_info.link_state));
+
+		if (nic_info.link_state == NIC_CS_PLUGGED) {
+			printf("\tSpeed: %dMbps %s\n", nic_info.speed,
+			    nic_duplex_mode_str(nic_info.duplex));
+		}
 
 		free(svc_name);
 		free(addr_str);
