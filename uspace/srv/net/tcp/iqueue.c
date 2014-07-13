@@ -147,6 +147,7 @@ int tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Returning ready segment %p", iqe->seg);
 	list_remove(&iqe->link);
 	*seg = iqe->seg;
+	free(iqe);
 
 	return EOK;
 }

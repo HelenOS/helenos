@@ -43,13 +43,13 @@
 
 #ifndef __ASM__
 
-#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
-#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffffffff80000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffffffff80000000))
 
 #else /* __ASM__ */
 
-#define KA2PA(x)  ((x) - 0xffff800000000000)
-#define PA2KA(x)  ((x) + 0xffff800000000000)
+#define KA2PA(x)  ((x) - 0xffffffff80000000)
+#define PA2KA(x)  ((x) + 0xffffffff80000000)
 
 #endif /* __ASM__ */
 

@@ -54,10 +54,8 @@
 
 #include <async.h>
 #include <loc.h>
-#include <devman.h>
 
 #include <event.h>
-#include <graph_iface.h>
 #include <io/keycode.h>
 #include <io/mode.h>
 #include <io/visualizer.h>
@@ -1148,41 +1146,19 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static async_sess_t *vsl_connect(const char *svc)
+static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 {
 	int rc;
 	async_sess_t *sess;
-	service_id_t dsid;
-	devman_handle_t handle;
 
-	rc = loc_service_get_id(svc, &dsid, 0);
-	if (rc != EOK) {
-		return NULL;
-	}
-
-	rc = devman_fun_sid_to_handle(dsid, &handle);
-	if (rc == EOK) {
-		sess = devman_device_connect(EXCHANGE_SERIALIZE, handle, 0);
-		if (sess == NULL) {
-			printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
-			return NULL;
-		}
-		rc = graph_dev_connect(sess);
-		if (rc != EOK) {
-			return NULL;
-		}
-	} else if (rc == ENOENT) {
-		sess = loc_service_connect(EXCHANGE_SERIALIZE, dsid, 0);
-		if (sess == NULL) {
-			printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
-			return NULL;
-		}
-	} else {
+	sess = loc_service_connect(EXCHANGE_SERIALIZE, sid, 0);
+	if (sess == NULL) {
+		printf("%s: Unable to connect to visualizer %s\n", NAME, svc);
 		return NULL;
 	}
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	rc = async_connect_to_me(exch, dsid, 0, 0, vsl_notifications, NULL);
+	rc = async_connect_to_me(exch, sid, 0, 0, vsl_notifications, NULL);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -1195,70 +1171,72 @@ static async_sess_t *vsl_connect(const char *svc)
 	return sess;
 }
 
-static viewport_t *viewport_create(const char *vsl_name)
+static viewport_t *viewport_create(service_id_t sid)
 {
 	int rc;
+	char *vsl_name = NULL;
+	viewport_t *vp = NULL;
+	bool claimed = false;
 
-	viewport_t *vp = (viewport_t *) malloc(sizeof(viewport_t));
-	if (!vp) {
-		return NULL;
-	}
+	rc = loc_service_get_name(sid, &vsl_name);
+	if (rc != EOK)
+		goto error;
+
+	vp = (viewport_t *) calloc(1, sizeof(viewport_t));
+	if (!vp)
+		goto error;
 
 	link_initialize(&vp->link);
 	vp->pos.x = coord_origin;
 	vp->pos.y = coord_origin;
 
 	/* Establish output bidirectional connection. */
-	vp->sess = vsl_connect(vsl_name);
-	rc = loc_service_get_id(vsl_name, &vp->dsid, 0);
-	if (vp->sess == NULL || rc != EOK) {
-		free(vp);
-		return NULL;
-	}
+	vp->dsid = sid;
+	vp->sess = vsl_connect(sid, vsl_name);
+	if (vp->sess == NULL)
+		goto error;
 
 	/* Claim the given visualizer. */
 	rc = visualizer_claim(vp->sess, 0);
 	if (rc != EOK) {
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to claim visualizer (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
+
+	claimed = true;
 
 	/* Retrieve the default mode. */
 	rc = visualizer_get_default_mode(vp->sess, &vp->mode);
 	if (rc != EOK) {
-		visualizer_yield(vp->sess);
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to retrieve mode (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
 
 	/* Create surface with respect to the retrieved mode. */
 	vp->surface = surface_create(vp->mode.screen_width, vp->mode.screen_height,
 	    NULL, SURFACE_FLAG_SHARED);
 	if (vp->surface == NULL) {
-		visualizer_yield(vp->sess);
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to create surface (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
 
 	/* Try to set the mode and share out the surface. */
 	rc = visualizer_set_mode(vp->sess,
 		vp->mode.index, vp->mode.version, surface_direct_access(vp->surface));
 	if (rc != EOK) {
-		visualizer_yield(vp->sess);
-		surface_destroy(vp->surface);
-		async_hangup(vp->sess);
-		free(vp);
 		printf("%s: Unable to set mode (%s)\n", NAME, str_error(rc));
-		return NULL;
+		goto error;
 	}
 
 	return vp;
+error:
+	if (claimed)
+		visualizer_yield(vp->sess);
+	if (vp->sess != NULL)
+		async_hangup(vp->sess);
+	free(vp);
+	free(vsl_name);
+	return NULL;
 }
 
 static void comp_window_animate(pointer_t *pointer, window_t *win,
@@ -2189,14 +2167,9 @@ static int discover_viewports(void)
 		if (exists)
 			continue;
 		
-		char *svc_name;
-		rc = loc_service_get_name(svcs[i], &svc_name);
-		if (rc == EOK) {
-			viewport_t *vp = viewport_create(svc_name);
-			if (vp != NULL) {
-				list_append(&vp->link, &viewport_list);
-			}
-		}
+		viewport_t *vp = viewport_create(svcs[i]);
+		if (vp != NULL)
+			list_append(&vp->link, &viewport_list);
 	}
 	fibril_mutex_unlock(&viewport_list_mtx);
 	

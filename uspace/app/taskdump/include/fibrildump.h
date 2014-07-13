@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup edit
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef LIBC_DEVICE_GRAPH_DEV_H_
-#define LIBC_DEVICE_GRAPH_DEV_H_
+#ifndef FIBRILDUMP_H
+#define FIBRILDUMP_H
 
 #include <async.h>
+#include <symtab.h>
 
-extern int graph_dev_connect(async_sess_t *);
+extern int fibrils_dump(symtab_t *, async_sess_t *sess);
 
 #endif
 

@@ -427,19 +427,14 @@ start64:
 	long_status $status_long
 	
 	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
-	xorq %rdi, %rdi
 	movl multiboot_eax, %edi
-	xorq %rsi, %rsi
 	movl multiboot_ebx, %esi
-	
-	movabsq $arch_pre_main, %rax
-	callq *%rax
-	
+	callq arch_pre_main
+
 	long_status $status_main
 	
 	/* Call main_bsp() */
-	movabsq $main_bsp, %rax
-	call *%rax
+	callq main_bsp 
 	
 	/* Not reached */
 	cli
@@ -637,15 +632,18 @@ ptl_1:
 	.quad ptl_2_5g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_6g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_7g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 504, 8, 0
+	.fill 502, 8, 0
+	/* Mapping of [0; 2G) at -2G */
+	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
+
 
 .align 4096
 .global ptl_0
 ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 255, 8, 0
+	.fill 510, 8, 0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 255, 8, 0
 
 .section K_DATA_START, "aw", @progbits
 

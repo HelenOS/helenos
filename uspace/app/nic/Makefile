@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Jiri Svoboda
+# Copyright (c) 2014 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,13 +27,11 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude
-BINARY = taskdump
+BINARY = nic
+EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
 
 SOURCES = \
-	elf_core.c \
-	fibrildump.c \
-	taskdump.c \
-	symtab.c
+	nic.c
 
 include $(USPACE_PREFIX)/Makefile.common

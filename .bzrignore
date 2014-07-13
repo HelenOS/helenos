@@ -44,6 +44,7 @@ uspace/app/netecho/netecho
 uspace/app/nettest1/nettest1
 uspace/app/nettest2/nettest2
 uspace/app/nettest3/nettest3
+uspace/app/nic/nic
 uspace/app/nterm/nterm
 uspace/app/ping/ping
 uspace/app/ping6/ping6
@@ -93,6 +94,7 @@ uspace/dist/app/netecho
 uspace/dist/app/nettest1
 uspace/dist/app/nettest2
 uspace/dist/app/nettest3
+uspace/dist/app/nic
 uspace/dist/app/nterm
 uspace/dist/app/ping
 uspace/dist/app/ping6

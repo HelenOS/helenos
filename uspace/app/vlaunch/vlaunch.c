@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	timer = fibril_timer_create();
+	timer = fibril_timer_create(NULL);
 	if (!timer) {
 		printf("Unable to create timer.\n");
 		return 1;

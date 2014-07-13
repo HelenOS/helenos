@@ -243,17 +243,12 @@ start64:
 	movq %rsp, %rbp
 	
 	/* Call arch_pre_main(multiboot_eax, multiboot_ebx) */
-	xorq %rdi, %rdi
 	movl multiboot_eax, %edi
-	xorq %rsi, %rsi
 	movl multiboot_ebx, %esi
-	
-	movabsq $arch_pre_main, %rax
-	callq *%rax
+	callq arch_pre_main 
 	
 	/* Call main_bsp() */
-	movabsq $main_bsp, %rax
-	call *%rax
+	callq main_bsp 
 	
 	/* Not reached */
 	cli

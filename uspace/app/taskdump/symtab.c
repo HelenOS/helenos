@@ -201,7 +201,7 @@ void symtab_delete(symtab_t *st)
  *
  * @return	EOK on success, ENOENT if no such symbol was found.
  */
-int symtab_name_to_addr(symtab_t *st, char *name, uintptr_t *addr)
+int symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr)
 {
 	size_t i;
 	char *sname;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup edit
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#include <errno.h>
-#include <async.h>
-#include <macros.h>
+#ifndef TASKDUMP_H
+#define TASKDUMP_H
 
-#include "ops/graph_dev.h"
-#include "graph_iface.h"
-#include "ddf/driver.h"
+#include <stdint.h>
 
-typedef enum {
-	GRAPH_DEV_CONNECT = 0
-} graph_dev_method_t;
+extern int td_stacktrace(uintptr_t, uintptr_t);
 
-int graph_dev_connect(async_sess_t *sess)
-{
-	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_1_0(exch, DEV_IFACE_ID(GRAPH_DEV_IFACE), GRAPH_DEV_CONNECT);
-	async_exchange_end(exch);
+#endif
 
-	return ret;
-}
-
-static void remote_graph_connect(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-
-static const remote_iface_func_ptr_t remote_graph_dev_iface_ops[] = {
-	[GRAPH_DEV_CONNECT] = remote_graph_connect
-};
-
-const remote_iface_t remote_graph_dev_iface = {
-	.method_count = ARRAY_SIZE(remote_graph_dev_iface_ops),
-	.methods = remote_graph_dev_iface_ops
-};
-
-static void remote_graph_connect(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
-    ipc_call_t *call)
-{
-	graph_dev_ops_t *graph_dev_ops = (graph_dev_ops_t *) ops;
-
-	if (!graph_dev_ops->connect || !ddf_fun_data_get(fun)) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	(*graph_dev_ops->connect)(ddf_fun_data_get(fun), callid, call, NULL);
-}
-
-/**
- * @}
+/** @}
  */

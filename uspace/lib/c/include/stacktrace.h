@@ -40,12 +40,18 @@
 #include <stdbool.h>
 
 typedef struct {
-	void *op_arg;
 	int (*read_uintptr)(void *, uintptr_t, uintptr_t *);
+} stacktrace_ops_t;
+
+typedef struct {
+	void *op_arg;
+	stacktrace_ops_t *ops;
 } stacktrace_t;
 
 extern void stacktrace_print(void);
 extern void stacktrace_print_fp_pc(uintptr_t, uintptr_t);
+extern void stacktrace_print_generic(stacktrace_ops_t *, void *, uintptr_t,
+    uintptr_t);
 
 /*
  * The following interface is to be implemented by each architecture.
