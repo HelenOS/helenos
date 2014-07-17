@@ -195,6 +195,8 @@ static int reass_dgram_insert_frag(reass_dgram_t *rdg, inet_packet_t *packet)
 	if (data_copy == NULL)
 		return ENOMEM;
 
+	memcpy(data_copy, packet->data, packet->size);
+
 	frag->packet = *packet;
 	frag->packet.data = data_copy;
 
@@ -215,7 +217,7 @@ static int reass_dgram_insert_frag(reass_dgram_t *rdg, inet_packet_t *packet)
 		if (qf->packet.offs >= packet->offs)
 			break;
 
-		link = link->next;
+		link = list_next(link, &rdg->frags);
 	}
 
 	if (link != NULL)
@@ -239,17 +241,22 @@ static bool reass_dgram_complete(reass_dgram_t *rdg)
 	assert(fibril_mutex_is_locked(&reass_dgram_map_lock));
 	assert(!list_empty(&rdg->frags));
 
-	/* First fragment must be at offset zero */
-	frag = list_get_instance(list_first(&rdg->frags), reass_frag_t,
+	link = list_first(&rdg->frags);
+	assert(link != NULL);
+
+	frag = list_get_instance(link, reass_frag_t,
 	    dgram_link);
+
+	/* First fragment must be at offset zero */
 	if (frag->packet.offs != 0)
 		return false;
 
 	prev = frag;
+
 	while (true) {
-		link = frag->dgram_link.next;
+		link = list_next(link, &rdg->frags);
 		if (link == NULL)
-			return false;
+			break;
 
 		/* Each next fragment must follow immediately or overlap */
 		frag = list_get_instance(link, reass_frag_t, dgram_link);
@@ -287,6 +294,7 @@ static int reass_dgram_deliver(reass_dgram_t *rdg)
 	inet_dgram_t dgram;
 	uint8_t proto;
 	reass_frag_t *frag;
+	int rc;
 
 	/*
 	 * Potentially there could be something beyond the first packet
@@ -306,7 +314,7 @@ static int reass_dgram_deliver(reass_dgram_t *rdg)
 	dgram_size = frag->packet.offs + frag->packet.size;
 
 	/* Upper bound for fragment offset field */
-	fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l);
+	fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l + 1);
 
 	/* Verify that total size of datagram is within reasonable bounds */
 	if (dgram_size > FRAG_OFFS_UNIT * fragoff_limit)
@@ -342,7 +350,9 @@ static int reass_dgram_deliver(reass_dgram_t *rdg)
 			break;
 	}
 
-	return inet_recv_dgram_local(&dgram, proto);
+	rc = inet_recv_dgram_local(&dgram, proto);
+	free(dgram.data);
+	return rc;
 }
 
 /** Destroy datagram reassembly structure.
