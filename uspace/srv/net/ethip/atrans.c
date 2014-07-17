@@ -156,6 +156,7 @@ int atrans_lookup_timeout(addr32_t ip_addr, suseconds_t timeout,
 
 	fibril_mutex_unlock(&atrans_list_lock);
 	(void) fibril_timer_clear(t);
+	fibril_timer_destroy(t);
 
 	return rc;
 }
