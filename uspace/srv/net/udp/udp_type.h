@@ -42,8 +42,7 @@
 #include <sys/types.h>
 #include <inet/addr.h>
 
-#define UDP_FRAGMENT_SIZE 4096
-
+#define UDP_FRAGMENT_SIZE 65535
 
 typedef enum {
 	UDP_EOK,
