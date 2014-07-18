@@ -955,7 +955,12 @@ static int rtl8139_on_activated(nic_t *nic_data)
 
 	rtl8139->int_mask = RTL_DEFAULT_INTERRUPTS;
 	rtl8139_hw_int_enable(rtl8139);
-	irc_enable_interrupt(rtl8139->irq);
+
+	int rc = irc_enable_interrupt(rtl8139->irq);
+	if (rc != EOK) {
+		rtl8139_on_stopped(nic_data);
+		return rc;
+	}
 
 	ddf_msg(LVL_DEBUG, "Device activated, interrupt %d registered", rtl8139->irq);
 	return EOK;
@@ -2168,11 +2173,6 @@ static void rtl8139_poll(nic_t *nic_data)
 int main(void)
 {
 	printf("%s: HelenOS RTL8139 network adapter driver\n", NAME);
-
-	if (irc_init() != EOK) {
-		printf("%s: Failed connecting IRC service\n", NAME);
-		return 1;
-	}
 
 	int rc = nic_driver_init(NAME);
 	if (rc != EOK)

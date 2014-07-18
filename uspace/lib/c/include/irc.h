@@ -35,9 +35,8 @@
 #ifndef LIBC_IRC_H_
 #define LIBC_IRC_H_
 
-extern int irc_init(void);
-extern void irc_enable_interrupt(int);
-extern void irc_disable_interrupt(int);
+extern int irc_enable_interrupt(int);
+extern int irc_disable_interrupt(int);
 
 #endif
 

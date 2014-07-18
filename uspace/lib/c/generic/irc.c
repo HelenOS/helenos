@@ -38,45 +38,74 @@
 #include <ipc/services.h>
 #include <irc.h>
 #include <ns.h>
+#include <sysinfo.h>
 
 static async_sess_t *irc_sess;
-
-/** Enable interrupt.
- *
- * @param irq	IRQ number
- */
-void irc_enable_interrupt(int irq)
-{
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	async_msg_1(exch, IRC_ENABLE_INTERRUPT, irq);
-	async_exchange_end(exch);
-}
-
-/** Disable interrupt.
- *
- * @param irq	IRQ number
- */
-void irc_disable_interrupt(int irq)
-{
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	async_msg_1(exch, IRC_CLEAR_INTERRUPT, irq);
-	async_exchange_end(exch);
-}
 
 /** Connect to IRC service.
  *
  * @return	EOK on success, EIO on failure
  */
-int irc_init(void)
+static int irc_init(void)
 {
+	sysarg_t apic;
+	sysarg_t i8259;
+
 	assert(irc_sess == NULL);
 
-	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_IRC,
-	    0, 0);
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
+		irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_IRC, 0, 0);
+	}
+
 	if (irc_sess == NULL)
 		return EIO;
 
 	return EOK;
+}
+
+/** Enable interrupt.
+ *
+ * @param irq	IRQ number
+ */
+int irc_enable_interrupt(int irq)
+{
+	int rc;
+
+	if (irc_sess == NULL) {
+		rc = irc_init();
+		if (rc != EOK)
+			return rc;
+	}
+
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	rc = async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+
+/** Disable interrupt.
+ *
+ * @param irq	IRQ number
+ */
+int irc_disable_interrupt(int irq)
+{
+	int rc;
+
+	if (irc_sess == NULL) {
+		rc = irc_init();
+		if (rc != EOK)
+			return rc;
+	}
+
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	rc = async_req_1_0(exch, IRC_CLEAR_INTERRUPT, irq);
+	async_exchange_end(exch);
+
+	return rc;
 }
 
 /** @}

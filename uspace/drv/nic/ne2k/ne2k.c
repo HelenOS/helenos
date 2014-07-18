@@ -256,11 +256,14 @@ static int ne2k_on_activating(nic_t *nic_data)
 
 	if (!ne2k->up) {
 		int rc = ne2k_up(ne2k);
+		if (rc != EOK)
+			return rc;
+
+		rc = irc_enable_interrupt(ne2k->irq);
 		if (rc != EOK) {
+			ne2k_down(ne2k);
 			return rc;
 		}
-
-		irc_enable_interrupt(ne2k->irq);
 	}
 	return EOK;
 }
@@ -269,7 +272,7 @@ static int ne2k_on_stopping(nic_t *nic_data)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
-	irc_disable_interrupt(ne2k->irq);
+	(void) irc_disable_interrupt(ne2k->irq);
 	ne2k->receive_configuration = RCR_AB | RCR_AM;
 	ne2k_down(ne2k);
 	return EOK;
@@ -438,11 +441,6 @@ static driver_t ne2k_driver = {
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS NE 2000 network adapter driver\n", NAME);
-	
-	if (irc_init() != EOK) {
-		printf("%s: Failed connecting IRC service\n", NAME);
-		return 1;
-	}
 	
 	nic_driver_init(NAME);
 	nic_driver_implement(&ne2k_driver_ops, &ne2k_dev_ops, &ne2k_nic_iface);

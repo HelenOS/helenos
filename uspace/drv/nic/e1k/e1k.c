@@ -1755,7 +1755,14 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	irc_enable_interrupt(e1000->irq);
+	int rc = irc_enable_interrupt(e1000->irq);
+	if (rc != EOK) {
+		e1000_disable_interrupts(e1000);
+		fibril_mutex_unlock(&e1000->ctrl_lock);
+		fibril_mutex_unlock(&e1000->tx_lock);
+		fibril_mutex_unlock(&e1000->rx_lock);
+		return rc;
+	}
 	
 	e1000_clear_rx_ring(e1000);
 	e1000_enable_rx(e1000);
@@ -2373,11 +2380,6 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 int main(void)
 {
 	printf("%s: HelenOS E1000 network adapter driver\n", NAME);
-	
-	if (irc_init() != EOK) {
-		printf("%s: Failed connecting IRC service\n", NAME);
-		return 1;
-	}
 	
 	if (nic_driver_init(NAME) != EOK)
 		return 1;
