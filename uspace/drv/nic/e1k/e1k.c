@@ -41,11 +41,9 @@
 #include <adt/list.h>
 #include <align.h>
 #include <byteorder.h>
-#include <sysinfo.h>
-#include <ipc/irc.h>
-#include <ipc/ns.h>
-#include <ddi.h>
+#include <irc.h>
 #include <as.h>
+#include <ddi.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
@@ -1757,7 +1755,7 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	nic_enable_interrupt(nic, e1000->irq);
+	irc_enable_interrupt(e1000->irq);
 	
 	e1000_clear_rx_ring(e1000);
 	e1000_enable_rx(e1000);
@@ -1795,7 +1793,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	e1000_disable_tx(e1000);
 	e1000_disable_rx(e1000);
 	
-	nic_disable_interrupt(nic, e1000->irq);
+	irc_disable_interrupt(e1000->irq);
 	e1000_disable_interrupts(e1000);
 	
 	/*
@@ -2153,10 +2151,6 @@ int e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_fun_create;
 	
-	rc = nic_connect_to_services(nic);
-	if (rc != EOK)
-		goto err_irq;
-	
 	rc = e1000_initialize_rx_structure(nic);
 	if (rc != EOK)
 		goto err_irq;
@@ -2378,14 +2372,19 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 
 int main(void)
 {
-	int rc = nic_driver_init(NAME);
-	if (rc != EOK)
-		return rc;
+	printf("%s: HelenOS E1000 network adapter driver\n", NAME);
+	
+	if (irc_init() != EOK) {
+		printf("%s: Failed connecting IRC service\n", NAME);
+		return 1;
+	}
+	
+	if (nic_driver_init(NAME) != EOK)
+		return 1;
 	
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
 	
 	ddf_log_init(NAME);
-	ddf_msg(LVL_NOTE, "HelenOS E1000 driver started");
 	return ddf_driver_main(&e1000_driver);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_IPC_IRC_H_
-#define LIBC_IPC_IRC_H_
+#ifndef LIBC_IRC_H_
+#define LIBC_IRC_H_
 
-#include <ipc/common.h>
-
-typedef enum {
-	IRC_ENABLE_INTERRUPT = IPC_FIRST_USER_METHOD,
-	IRC_CLEAR_INTERRUPT
-} irc_request_t;
+extern int irc_init(void);
+extern void irc_enable_interrupt(int);
+extern void irc_disable_interrupt(int);
 
 #endif
 

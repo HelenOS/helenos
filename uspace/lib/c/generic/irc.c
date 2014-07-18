@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_IPC_IRC_H_
-#define LIBC_IPC_IRC_H_
+#include <assert.h>
+#include <errno.h>
+#include <ipc/irc.h>
+#include <ipc/services.h>
+#include <irc.h>
+#include <ns.h>
 
-#include <ipc/common.h>
+static async_sess_t *irc_sess;
 
-typedef enum {
-	IRC_ENABLE_INTERRUPT = IPC_FIRST_USER_METHOD,
-	IRC_CLEAR_INTERRUPT
-} irc_request_t;
+/** Enable interrupt.
+ *
+ * @param irq	IRQ number
+ */
+void irc_enable_interrupt(int irq)
+{
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	async_msg_1(exch, IRC_ENABLE_INTERRUPT, irq);
+	async_exchange_end(exch);
+}
 
-#endif
+/** Disable interrupt.
+ *
+ * @param irq	IRQ number
+ */
+void irc_disable_interrupt(int irq)
+{
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	async_msg_1(exch, IRC_CLEAR_INTERRUPT, irq);
+	async_exchange_end(exch);
+}
+
+/** Connect to IRC service.
+ *
+ * @return	EOK on success, EIO on failure
+ */
+int irc_init(void)
+{
+	assert(irc_sess == NULL);
+
+	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_IRC,
+	    0, 0);
+	if (irc_sess == NULL)
+		return EIO;
+
+	return EOK;
+}
 
 /** @}
  */

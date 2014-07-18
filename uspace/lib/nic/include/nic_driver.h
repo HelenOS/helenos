@@ -79,8 +79,6 @@ struct nic {
 	nic_address_t default_mac;
 	/** Client callback session */
 	async_sess_t *client_session;
-	/** Phone to APIC or i8259 */
-	async_sess_t *irc_session;
 	/** Current polling mode of the NIC */
 	nic_poll_mode_t poll_mode;
 	/** Polling period (applicable when poll_mode == NIC_POLL_PERIODIC) */
