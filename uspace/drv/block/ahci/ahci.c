@@ -37,9 +37,7 @@
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
 #include <pci_dev_iface.h>
-#include <sysinfo.h>
-#include <ipc/irc.h>
-#include <ns.h>
+#include <irc.h>
 #include <ahci_iface.h>
 #include "ahci.h"
 #include "ahci_hw.h"
@@ -128,7 +126,6 @@ static void ahci_ahci_hw_start(ahci_dev_t *);
 static int ahci_dev_add(ddf_dev_t *);
 
 static void ahci_get_model_name(uint16_t *, char *);
-static int ahci_enable_interrupt(int);
 
 static fibril_mutex_t sata_devices_count_lock;
 static int sata_devices_count = 0;
@@ -1194,7 +1191,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 		goto error_register_interrupt_handler;
 	}
 	
-	rc = ahci_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
+	rc = irc_enable_interrupt(hw_res_parsed.irqs.irqs[0]);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed enable interupt.");
 		goto error_enable_interrupt;
@@ -1312,28 +1309,6 @@ static void ahci_get_model_name(uint16_t *src, char *dst)
 	}
 	
 	dst[pos] = '\0';
-}
-
-/** Enable interrupt using SERVICE_IRC.
- *
- * @param irq Requested irq number.
- *
- * @return EOK if succeed, error code otherwise.
- *
- */
-static int ahci_enable_interrupt(int irq)
-{
-	async_sess_t *irc_sess = NULL;
-	irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE, SERVICE_IRC, 0, 0);
-	if (!irc_sess)
-		return EINTR;
-	
-	async_exch_t *exch = async_exchange_begin(irc_sess);
-	const int rc = async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
-	async_exchange_end(exch);
-	
-	async_hangup(irc_sess);
-	return rc;
 }
 
 /*----------------------------------------------------------------------------*/

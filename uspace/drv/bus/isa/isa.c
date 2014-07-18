@@ -53,12 +53,8 @@
 #include <fcntl.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
-#include <sysinfo.h>
-#include <ns.h>
 #include <sys/stat.h>
-#include <ipc/irc.h>
-#include <ipc/services.h>
-#include <sysinfo.h>
+#include <irc.h>
 #include <ns.h>
 
 #include <ddf/driver.h>
@@ -119,39 +115,18 @@ static bool isa_fun_enable_interrupt(ddf_fun_t *fnode)
 	isa_fun_t *fun = isa_fun(fnode);
 	assert(fun);
 
-	sysarg_t apic;
-	sysarg_t i8259;
-
-	async_sess_t *irc_sess = NULL;
-
-	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
-	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
-		irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-		    SERVICE_IRC, 0, 0);
-	}
-
-	if (!irc_sess)
-		return false;
-
 	const hw_resource_list_t *res = &fun->hw_resources;
 	assert(res);
 	for (size_t i = 0; i < res->count; ++i) {
 		if (res->resources[i].type == INTERRUPT) {
-			const int irq = res->resources[i].res.interrupt.irq;
+			int rc = irc_enable_interrupt(
+			    res->resources[i].res.interrupt.irq);
 
-			async_exch_t *exch = async_exchange_begin(irc_sess);
-			const int rc =
-			    async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
-			async_exchange_end(exch);
-
-			if (rc != EOK) {
-				async_hangup(irc_sess);
+			if (rc != EOK)
 				return false;
-			}
 		}
 	}
 
-	async_hangup(irc_sess);
 	return true;
 }
 
