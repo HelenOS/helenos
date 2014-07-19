@@ -34,9 +34,6 @@
  * USB Mouse driver API.
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 #include <usb/hid/hid.h>
@@ -248,56 +245,6 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	return true;
 }
 
-#define FUN_UNBIND_DESTROY(fun) \
-if (fun) { \
-	if (ddf_fun_unbind((fun)) == EOK) { \
-		ddf_fun_destroy((fun)); \
-	} else { \
-		usb_log_error("Could not unbind function `%s', it " \
-		    "will not be destroyed.\n", ddf_fun_get_name(fun)); \
-	} \
-} else (void)0
-
-static int usb_mouse_create_function(usb_hid_dev_t *hid_dev, usb_mouse_t *mouse)
-{
-	assert(hid_dev != NULL);
-	assert(mouse != NULL);
-
-	/* Create the exposed function. */
-	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
-	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
-	    HID_MOUSE_FUN_NAME);
-	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node `%s'.\n",
-		    HID_MOUSE_FUN_NAME);
-		return ENOMEM;
-	}
-
-	ddf_fun_set_ops(fun, &ops);
-	ddf_fun_data_implant(fun, mouse);
-
-	int rc = ddf_fun_bind(fun);
-	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function `%s': %s.\n",
-		    ddf_fun_get_name(fun), str_error(rc));
-		ddf_fun_destroy(fun);
-		return rc;
-	}
-
-	usb_log_debug("Adding DDF function `%s' to category %s...\n",
-	    ddf_fun_get_name(fun), HID_MOUSE_CATEGORY);
-	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Could not add DDF function to category %s: %s.\n",
-		    HID_MOUSE_CATEGORY, str_error(rc));
-		FUN_UNBIND_DESTROY(fun);
-		return rc;
-	}
-	mouse->mouse_fun = fun;
-	return EOK;
-}
-
 /** Get highest index of a button mentioned in given report.
  *
  * @param report HID report.
@@ -340,19 +287,39 @@ static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t rep
 
 int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
+	ddf_fun_t *fun = NULL;
+	usb_mouse_t *mouse_dev = NULL;
+	bool bound = false;
+	int rc;
+
 	usb_log_debug("Initializing HID/Mouse structure...\n");
 
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init mouse structure: no structure"
 		    " given.\n");
-		return EINVAL;
+		rc = EINVAL;
+		goto error;
 	}
 
-	usb_mouse_t *mouse_dev = calloc(1, sizeof(usb_mouse_t));
+	/* Create the exposed function. */
+	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
+	fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed,
+	    HID_MOUSE_FUN_NAME);
+	if (fun == NULL) {
+		usb_log_error("Could not create DDF function node `%s'.\n",
+		    HID_MOUSE_FUN_NAME);
+		rc = ENOMEM;
+		goto error;
+	}
+
+	ddf_fun_set_ops(fun, &ops);
+
+	mouse_dev = ddf_fun_data_alloc(fun, sizeof(usb_mouse_t));
 	if (mouse_dev == NULL) {
 		usb_log_error("Error while creating USB/HID Mouse device "
 		    "structure.\n");
-		return ENOMEM;
+		rc = ENOMEM;
+		goto error;
 	}
 
 	// FIXME: This may not be optimal since stupid hardware vendor may
@@ -367,25 +334,45 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 	if (mouse_dev->buttons == NULL) {
 		usb_log_error(NAME ": out of memory, giving up on device!\n");
-		free(mouse_dev);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto error;
 	}
 
 	// TODO: how to know if the device supports the request???
 	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe,
 	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 
-	int rc = usb_mouse_create_function(hid_dev, mouse_dev);
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		free(mouse_dev->buttons);
-		free(mouse_dev);
-		return rc;
+		usb_log_error("Could not bind DDF function `%s': %s.\n",
+		    ddf_fun_get_name(fun), str_error(rc));
+		goto error;
 	}
+
+	bound = true;
+
+	usb_log_debug("Adding DDF function `%s' to category %s...\n",
+	    ddf_fun_get_name(fun), HID_MOUSE_CATEGORY);
+	rc = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
+	if (rc != EOK) {
+		usb_log_error("Could not add DDF function to category %s: "
+		    "%s.\n", HID_MOUSE_CATEGORY, str_error(rc));
+		goto error;
+	}
+
+	mouse_dev->mouse_fun = fun;
 
 	/* Save the Mouse device structure into the HID device structure. */
 	*data = mouse_dev;
-
 	return EOK;
+error:
+	if (bound)
+		ddf_fun_unbind(fun);
+	if (mouse_dev != NULL)
+		free(mouse_dev->buttons);
+	if (fun != NULL)
+		ddf_fun_destroy(fun);
+	return rc;
 }
 
 bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
@@ -416,9 +403,9 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
 	}
 
-	FUN_UNBIND_DESTROY(mouse_dev->mouse_fun);
-
+	ddf_fun_unbind(mouse_dev->mouse_fun);
 	free(mouse_dev->buttons);
+	ddf_fun_destroy(mouse_dev->mouse_fun);
 }
 
 int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
