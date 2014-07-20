@@ -32,9 +32,6 @@
  *
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -2152,7 +2149,6 @@ int e1000_dev_add(ddf_dev_t *dev)
 		goto err_tx_structure;
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
-	ddf_fun_data_implant(fun, nic);
 	
 	rc = e1000_register_int_handler(nic);
 	if (rc != EOK)

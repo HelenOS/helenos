@@ -913,7 +913,7 @@ nic_t *nic_get_from_ddf_dev(ddf_dev_t *dev)
  */
 nic_t *nic_get_from_ddf_fun(ddf_fun_t *fun)
 {
-	return (nic_t *) ddf_fun_data_get(fun);
+	return (nic_t *) ddf_dev_data_get(ddf_fun_get_dev(fun));
 }
 
 /**

@@ -26,9 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <errno.h>
 #include <align.h>
@@ -1330,9 +1327,9 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed creating device function");
 		goto err_srv;
 	}
+
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &rtl8139_dev_ops);
-	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
