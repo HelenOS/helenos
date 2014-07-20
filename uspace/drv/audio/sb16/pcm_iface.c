@@ -38,13 +38,12 @@
 #include <pcm/sample_format.h>
 
 #include "dsp.h"
+#include "sb16.h"
 
-static inline sb_dsp_t * fun_to_dsp(ddf_fun_t *fun)
+static inline sb_dsp_t *fun_to_dsp(ddf_fun_t *fun)
 {
-	assert(fun);
-	sb_dsp_t *dsp = ddf_fun_data_get(fun);
-	assert(dsp);
-	return dsp;
+	sb16_t *sb = (sb16_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
+	return &sb->dsp;
 }
 
 static int sb_get_info_str(ddf_fun_t *fun, const char** name)
