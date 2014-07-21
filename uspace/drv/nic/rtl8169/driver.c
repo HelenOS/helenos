@@ -78,7 +78,7 @@ static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
     ipc_call_t *icall);
 static inline int rtl8169_register_int_handler(nic_t *nic_data);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
-static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
+static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr);
 
 static void rtl8169_reset(rtl8169_t *rtl8169);
 static int rtl8169_get_resource_info(ddf_dev_t *dev);
@@ -468,6 +468,16 @@ err_destroy:
 
 static int rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	int rc;
+
+	rtl8169_set_hwaddr(rtl8169, addr);
+
+	rc = nic_report_address(nic_data, addr);
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 
@@ -475,6 +485,7 @@ static int rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 {
 
 	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "Realtek");
+	str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "RTL8169");
 
 	return EOK;
 }
@@ -966,7 +977,7 @@ static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr)
 		addr->address[i] = pio_read_8(rtl8169->regs + MAC0 + i);
 }
 
-static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr)
+static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr)
 {
 	int i;
 
@@ -974,7 +985,7 @@ static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr)
 	assert(addr);
 
 	for (i = 0; i < 6; i++)
-		addr->address[i] = pio_read_8(rtl8169->regs + MAC0 + i);
+		pio_write_8(rtl8169->regs + MAC0 + i, addr->address[i]);
 }
 
 static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr)
