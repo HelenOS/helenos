@@ -50,10 +50,7 @@
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ipc/dev_iface.h>
-#include <ipc/irc.h>
-#include <ns.h>
-#include <ipc/services.h>
-#include <sysinfo.h>
+#include <irc.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ops/pio_window.h>
@@ -106,39 +103,18 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	assert(fnode);
 	pci_fun_t *dev_data = pci_fun(fnode);
 	
-	sysarg_t apic;
-	sysarg_t i8259;
-	
-	async_sess_t *irc_sess = NULL;
-	
-	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
-	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
-		irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
-		    SERVICE_IRC, 0, 0);
-	}
-	
-	if (!irc_sess)
-		return false;
-	
 	size_t i = 0;
 	hw_resource_list_t *res = &dev_data->hw_resources;
 	for (; i < res->count; i++) {
 		if (res->resources[i].type == INTERRUPT) {
-			const int irq = res->resources[i].res.interrupt.irq;
+			int rc = irc_enable_interrupt(
+			    res->resources[i].res.interrupt.irq);
 			
-			async_exch_t *exch = async_exchange_begin(irc_sess);
-			const int rc =
-			    async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
-			async_exchange_end(exch);
-			
-			if (rc != EOK) {
-				async_hangup(irc_sess);
+			if (rc != EOK)
 				return false;
-			}
 		}
 	}
 	
-	async_hangup(irc_sess);
 	return true;
 }
 

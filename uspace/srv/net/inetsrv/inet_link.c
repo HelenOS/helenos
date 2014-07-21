@@ -464,12 +464,10 @@ int inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	i = 0;
 	list_foreach(inet_links, link_list, inet_link_t, ilink) {
 		id_list[i++] = ilink->svc_id;
-		log_msg(LOG_DEFAULT, LVL_NOTE, "add link to list");
 	}
 
 	fibril_mutex_unlock(&inet_links_lock);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "return %zu links", count);
 	*rid_list = id_list;
 	*rcount = count;
 

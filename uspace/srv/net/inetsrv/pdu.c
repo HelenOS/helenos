@@ -105,10 +105,10 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
     size_t offs, size_t mtu, void **rdata, size_t *rsize, size_t *roffs)
 {
 	/* Upper bound for fragment offset field */
-	size_t fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l);
+	size_t fragoff_limit = 1 << (FF_FRAGOFF_h - FF_FRAGOFF_l + 1);
 	
 	/* Verify that total size of datagram is within reasonable bounds */
-	if (offs + packet->size > FRAG_OFFS_UNIT * fragoff_limit)
+	if (packet->size > FRAG_OFFS_UNIT * fragoff_limit)
 		return ELIMIT;
 	
 	size_t hdr_size = sizeof(ip_header_t);

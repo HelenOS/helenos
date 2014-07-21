@@ -58,10 +58,8 @@ static void retransmit_timeout_func(void *arg);
 static void tcp_tqueue_timer_set(tcp_conn_t *conn);
 static void tcp_tqueue_timer_clear(tcp_conn_t *conn);
 
-#include <stdio.h>
 int tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn)
 {
-	printf("tcp_tqueue_init\n");
 	tqueue->conn = conn;
 	tqueue->timer = fibril_timer_create(&conn->lock);
 	if (tqueue->timer == NULL)
@@ -79,7 +77,6 @@ void tcp_tqueue_clear(tcp_tqueue_t *tqueue)
 
 void tcp_tqueue_fini(tcp_tqueue_t *tqueue)
 {
-	printf("tcp_tqueue_fini\n");
 	if (tqueue->timer != NULL) {
 		fibril_timer_destroy(tqueue->timer);
 		tqueue->timer = NULL;

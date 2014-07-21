@@ -39,6 +39,9 @@
 #include <sys/types.h>
 #include <ddi.h>
 
+#define	PCI_VID_REALTEK		0x10ec
+#define	PCI_VID_DLINK		0x1186
+
 /** Size of RTL8169 registers address space */
 #define RTL8169_IO_SIZE  256
 

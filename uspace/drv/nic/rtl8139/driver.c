@@ -26,26 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
 #include <libarch/barrier.h>
-
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <io/log.h>
 #include <nic.h>
 #include <pci_dev_iface.h>
-
-#include <ipc/irc.h>
-#include <sysinfo.h>
-#include <ipc/ns.h>
-
+#include <irc.h>
+#include <stdio.h>
 #include <str.h>
 
 #include "defs.h"
@@ -959,7 +952,12 @@ static int rtl8139_on_activated(nic_t *nic_data)
 
 	rtl8139->int_mask = RTL_DEFAULT_INTERRUPTS;
 	rtl8139_hw_int_enable(rtl8139);
-	nic_enable_interrupt(nic_data, rtl8139->irq);
+
+	int rc = irc_enable_interrupt(rtl8139->irq);
+	if (rc != EOK) {
+		rtl8139_on_stopped(nic_data);
+		return rc;
+	}
 
 	ddf_msg(LVL_DEBUG, "Device activated, interrupt %d registered", rtl8139->irq);
 	return EOK;
@@ -1324,20 +1322,14 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_pio;
 
-	rc = nic_connect_to_services(nic_data);
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to connect to services (%d)", rc);
-		goto err_irq;
-	}
-
 	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating device function");
 		goto err_srv;
 	}
+
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &rtl8139_dev_ops);
-	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -1360,8 +1352,6 @@ err_fun_bind:
 err_fun_create:
 	ddf_fun_destroy(fun);
 err_srv:
-	/* XXX Disconnect from services */
-err_irq:
 	unregister_interrupt_handler(dev, rtl8139->irq);
 err_pio:
 	// rtl8139_pio_disable(dev);
@@ -2179,13 +2169,15 @@ static void rtl8139_poll(nic_t *nic_data)
  */
 int main(void)
 {
+	printf("%s: HelenOS RTL8139 network adapter driver\n", NAME);
+
 	int rc = nic_driver_init(NAME);
 	if (rc != EOK)
 		return rc;
-	nic_driver_implement(
-		&rtl8139_driver_ops, &rtl8139_dev_ops, &rtl8139_nic_iface);
+
+	nic_driver_implement(&rtl8139_driver_ops, &rtl8139_dev_ops,
+	    &rtl8139_nic_iface);
 
 	ddf_log_init(NAME);
-	ddf_msg(LVL_NOTE, "HelenOS RTL8139 driver started");
 	return ddf_driver_main(&rtl8139_driver);
 }

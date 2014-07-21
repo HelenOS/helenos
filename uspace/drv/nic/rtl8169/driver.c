@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
+#include <irc.h>
 #include <libarch/barrier.h>
 
 #include <as.h>
@@ -387,6 +388,17 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
+	/* Get PCI VID & PID */
+	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev),
+	    PCI_VENDOR_ID, &rtl8169->pci_vid);
+	if (rc != EOK)
+		return rc;
+
+	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev),
+	    PCI_DEVICE_ID, &rtl8169->pci_pid);
+	if (rc != EOK)
+		return rc;
+
 	/* Map register space */
 	rc = pio_enable(rtl8169->regs_phys, RTL8169_IO_SIZE, &rtl8169->regs);
 	if (rc != EOK) {
@@ -417,12 +429,6 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 
 	uint8_t cr_value = pio_read_8(rtl8169->regs + CR);
 	pio_write_8(rtl8169->regs + CR, cr_value | CR_TE | CR_RE);
-
-	rc = nic_connect_to_services(nic_data);
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed to connect to services (%d)", rc);
-		goto err_irq;
-	}
 
 	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
 	if (fun == NULL) {
@@ -472,20 +478,43 @@ static int rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 	int rc;
 
-	rtl8169_set_hwaddr(rtl8169, addr);
+	fibril_mutex_lock(&rtl8169->rx_lock);
+	fibril_mutex_lock(&rtl8169->tx_lock);
 
 	rc = nic_report_address(nic_data, addr);
 	if (rc != EOK)
 		return rc;
+
+	rtl8169_set_hwaddr(rtl8169, addr);
+
+	fibril_mutex_unlock(&rtl8169->rx_lock);
+	fibril_mutex_unlock(&rtl8169->tx_lock);
 
 	return EOK;
 }
 
 static int rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 {
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
-	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "Realtek");
-	str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "RTL8169");
+	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "Unknown");
+	str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "Unknown");
+
+	if (rtl8169->pci_vid == PCI_VID_REALTEK)
+		str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "Realtek");
+	
+	if (rtl8169->pci_vid == PCI_VID_DLINK)
+		str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "D-Link");
+	
+	if (rtl8169->pci_pid == 0x8168)
+		str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "RTL8168");
+	
+	if (rtl8169->pci_pid == 0x8169)
+		str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "RTL8169");
+
+	if (rtl8169->pci_pid == 0x8110)
+		str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "RTL8110");
 
 	return EOK;
 }
@@ -540,6 +569,9 @@ static int rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
 	bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
 	bmcr &= ~(BMCR_DUPLEX | BMCR_SPD_100 | BMCR_SPD_1000);
 	
+	/* Disable autonegotiation */
+	bmcr &= ~BMCR_AN_ENABLE;
+
 	if (duplex == NIC_CM_FULL_DUPLEX)
 		bmcr |= BMCR_DUPLEX;
 
@@ -608,6 +640,11 @@ static int rtl8169_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
 
 static int rtl8169_autoneg_restart(ddf_fun_t *fun)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
+	uint16_t bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
+
+	bmcr |= BMCR_AN_ENABLE;
+	rtl8169_mii_write(rtl8169, MII_BMCR, bmcr);
 	return EOK;
 }
 
@@ -705,7 +742,7 @@ static int rtl8169_on_activated(nic_t *nic_data)
 
 
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
-	nic_enable_interrupt(nic_data, rtl8169->irq);
+	irc_enable_interrupt(rtl8169->irq);
 
 	return EOK;
 }
@@ -885,6 +922,12 @@ static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
 		if (isr & (INT_TER | INT_TOK | INT_TDU)) {
 			rtl8169_transmit_done(dev);
 			pio_write_16(rtl8169->regs + ISR, (INT_TER | INT_TOK | INT_TDU));
+		}
+
+		/* Receive underrun */
+		if (isr & INT_RXOVW) {
+			/* just ack.. */
+			pio_write_16(rtl8169->regs + ISR, INT_RXOVW);
 		}
 
 		if (isr & INT_SERR) {

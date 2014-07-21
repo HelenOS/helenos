@@ -41,9 +41,6 @@
 #include <ns.h>
 #include <stdio.h>
 #include <str_error.h>
-#include <ipc/services.h>
-#include <ipc/ns.h>
-#include <ipc/irc.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddf/interrupt.h>
@@ -377,33 +374,6 @@ void nic_frame_list_append(nic_frame_list_t *frames,
 	list_append(&frame->link, frames);
 }
 
-
-/**
- * Enable interrupts for this driver.
- *
- * @param nic_data
- * @param irq			The IRQ number for this device
- */
-void nic_enable_interrupt(nic_t *nic_data, int irq)
-{
-	async_exch_t *exch = async_exchange_begin(nic_data->irc_session);
-	async_msg_1(exch, IRC_ENABLE_INTERRUPT, irq);
-	async_exchange_end(exch);
-}
-
-/**
- * Disable interrupts for this driver.
- *
- * @param nic_data
- * @param irq			The IRQ number for this device
- */
-void nic_disable_interrupt(nic_t *nic_data, int irq)
-{
-	async_exch_t *exch = async_exchange_begin(nic_data->irc_session);
-	async_msg_1(exch, IRC_CLEAR_INTERRUPT, irq);
-	async_exchange_end(exch);
-}
-
 /** Get the polling mode information from the device 
  *
  *	The main lock should be locked, otherwise the inconsistency between
@@ -419,36 +389,6 @@ nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
 		*period = nic_data->poll_period;
 	return nic_data->poll_mode;
 };
-
-/**
- * Connect to IRC service. This function should be called only from
- * the add_device handler, thus no locking is required.
- *
- * @param nic_data
- *
- * @return EOK		If connection was successful.
- * @return EINVAL	If the IRC service cannot be determined.
- * @return EREFUSED	If IRC service cannot be connected.
- */
-int nic_connect_to_services(nic_t *nic_data)
-{
-	/* IRC service */
-	sysarg_t apic;
-	sysarg_t i8259;
-	services_t irc_service = -1;
-	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic)) ||
-	    ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)))
-		irc_service = SERVICE_IRC;
-	else
-		return EINVAL;
-	
-	nic_data->irc_session = service_connect_blocking(EXCHANGE_SERIALIZE,
-		irc_service, 0, 0);
-	if (nic_data->irc_session == NULL)
-		return errno;
-	
-	return EOK;
-}
 
 /** Inform the NICF about poll mode
  *
@@ -667,7 +607,6 @@ static nic_t *nic_create(ddf_dev_t *dev)
 	nic_data->fun = NULL;
 	nic_data->state = NIC_STATE_STOPPED;
 	nic_data->client_session = NULL;
-	nic_data->irc_session = NULL;
 	nic_data->poll_mode = NIC_POLL_IMMEDIATE;
 	nic_data->default_poll_mode = NIC_POLL_IMMEDIATE;
 	nic_data->send_frame = NULL;
@@ -974,7 +913,7 @@ nic_t *nic_get_from_ddf_dev(ddf_dev_t *dev)
  */
 nic_t *nic_get_from_ddf_fun(ddf_fun_t *fun)
 {
-	return (nic_t *) ddf_fun_data_get(fun);
+	return (nic_t *) ddf_dev_data_get(ddf_fun_get_dev(fun));
 }
 
 /**

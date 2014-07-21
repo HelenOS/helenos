@@ -54,6 +54,9 @@ typedef struct rtl8169_data {
 	void *regs;
 	/** The irq assigned */
 	int irq;
+	/** PCI Vendor and Product ids */
+	uint16_t pci_vid;
+	uint16_t pci_pid;
 	/** Mask of the turned interupts (IMR value) */
 	uint16_t int_mask;
 	/** TX ring */

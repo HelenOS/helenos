@@ -32,20 +32,15 @@
  *
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <align.h>
 #include <byteorder.h>
-#include <sysinfo.h>
-#include <ipc/irc.h>
-#include <ipc/ns.h>
-#include <ddi.h>
+#include <irc.h>
 #include <as.h>
+#include <ddi.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
@@ -1757,7 +1752,14 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	nic_enable_interrupt(nic, e1000->irq);
+	int rc = irc_enable_interrupt(e1000->irq);
+	if (rc != EOK) {
+		e1000_disable_interrupts(e1000);
+		fibril_mutex_unlock(&e1000->ctrl_lock);
+		fibril_mutex_unlock(&e1000->tx_lock);
+		fibril_mutex_unlock(&e1000->rx_lock);
+		return rc;
+	}
 	
 	e1000_clear_rx_ring(e1000);
 	e1000_enable_rx(e1000);
@@ -1795,7 +1797,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	e1000_disable_tx(e1000);
 	e1000_disable_rx(e1000);
 	
-	nic_disable_interrupt(nic, e1000->irq);
+	irc_disable_interrupt(e1000->irq);
 	e1000_disable_interrupts(e1000);
 	
 	/*
@@ -2147,15 +2149,10 @@ int e1000_dev_add(ddf_dev_t *dev)
 		goto err_tx_structure;
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
-	ddf_fun_data_implant(fun, nic);
 	
 	rc = e1000_register_int_handler(nic);
 	if (rc != EOK)
 		goto err_fun_create;
-	
-	rc = nic_connect_to_services(nic);
-	if (rc != EOK)
-		goto err_irq;
 	
 	rc = e1000_initialize_rx_structure(nic);
 	if (rc != EOK)
@@ -2378,14 +2375,14 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 
 int main(void)
 {
-	int rc = nic_driver_init(NAME);
-	if (rc != EOK)
-		return rc;
+	printf("%s: HelenOS E1000 network adapter driver\n", NAME);
+	
+	if (nic_driver_init(NAME) != EOK)
+		return 1;
 	
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
 	
 	ddf_log_init(NAME);
-	ddf_msg(LVL_NOTE, "HelenOS E1000 driver started");
 	return ddf_driver_main(&e1000_driver);
 }

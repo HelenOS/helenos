@@ -37,11 +37,9 @@
  * @brief Bridge between NICF, DDF and business logic for the NIC
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <stdio.h>
 #include <errno.h>
+#include <irc.h>
 #include <stdlib.h>
 #include <str_error.h>
 #include <async.h>
@@ -255,11 +253,14 @@ static int ne2k_on_activating(nic_t *nic_data)
 
 	if (!ne2k->up) {
 		int rc = ne2k_up(ne2k);
+		if (rc != EOK)
+			return rc;
+
+		rc = irc_enable_interrupt(ne2k->irq);
 		if (rc != EOK) {
+			ne2k_down(ne2k);
 			return rc;
 		}
-
-		nic_enable_interrupt(nic_data, ne2k->irq);
 	}
 	return EOK;
 }
@@ -268,7 +269,7 @@ static int ne2k_on_stopping(nic_t *nic_data)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
-	nic_disable_interrupt(nic_data, ne2k->irq);
+	(void) irc_disable_interrupt(ne2k->irq);
 	ne2k->receive_configuration = RCR_AB | RCR_AM;
 	ne2k_down(ne2k);
 	return EOK;
@@ -395,20 +396,14 @@ static int ne2k_dev_add(ddf_dev_t *dev)
 		return rc;
 	}
 	
-	rc = nic_connect_to_services(nic_data);
-	if (rc != EOK) {
-		ne2k_dev_cleanup(dev);
-		return rc;
-	}
-	
 	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
 	if (fun == NULL) {
 		ne2k_dev_cleanup(dev);
 		return ENOMEM;
 	}
+	
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &ne2k_dev_ops);
-	ddf_fun_data_implant(fun, nic_data);
 	
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -442,6 +437,8 @@ static driver_t ne2k_driver = {
 
 int main(int argc, char *argv[])
 {
+	printf("%s: HelenOS NE 2000 network adapter driver\n", NAME);
+	
 	nic_driver_init(NAME);
 	nic_driver_implement(&ne2k_driver_ops, &ne2k_dev_ops, &ne2k_nic_iface);
 	

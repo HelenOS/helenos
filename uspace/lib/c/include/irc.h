@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
- * @addtogroup usb
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief PCI device interface definition.
  */
 
-#ifndef LIBDRV_PCI_DEV_IFACE_H_
-#define LIBDRV_PCI_DEV_IFACE_H_
+#ifndef LIBC_IRC_H_
+#define LIBC_IRC_H_
 
-#include "ddf/driver.h"
-
-#define PCI_VENDOR_ID  0x00
-#define PCI_DEVICE_ID  0x02
-
-extern int pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
-extern int pci_config_space_read_16(async_sess_t *, uint32_t, uint16_t *);
-extern int pci_config_space_read_32(async_sess_t *, uint32_t, uint32_t *);
-
-extern int pci_config_space_write_8(async_sess_t *, uint32_t, uint8_t);
-extern int pci_config_space_write_16(async_sess_t *, uint32_t, uint16_t);
-extern int pci_config_space_write_32(async_sess_t *, uint32_t, uint32_t);
-
-/** PCI device communication interface. */
-typedef struct {
-	int (*config_space_read_8)(ddf_fun_t *, uint32_t address, uint8_t *data);
-	int (*config_space_read_16)(ddf_fun_t *, uint32_t address, uint16_t *data);
-	int (*config_space_read_32)(ddf_fun_t *, uint32_t address, uint32_t *data);
-
-	int (*config_space_write_8)(ddf_fun_t *, uint32_t address, uint8_t data);
-	int (*config_space_write_16)(ddf_fun_t *, uint32_t address, uint16_t data);
-	int (*config_space_write_32)(ddf_fun_t *, uint32_t address, uint32_t data);
-} pci_dev_iface_t;
-
+extern int irc_enable_interrupt(int);
+extern int irc_disable_interrupt(int);
 
 #endif
-/**
- * @}
- */
 
+/** @}
+ */

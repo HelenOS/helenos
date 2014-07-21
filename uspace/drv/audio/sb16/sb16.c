@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _DDF_DATA_IMPLANT
-
 #include <errno.h>
 #include <str_error.h>
 #include <macros.h>
@@ -120,8 +118,7 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}
-	//TODO remove data implant
-	ddf_fun_data_implant(dsp_fun, &sb->dsp);
+
 	ddf_fun_set_ops(dsp_fun, &sb_pcm_ops);
 	ddf_log_note("Sound blaster DSP (%x.%x) initialized.",
 	    sb->dsp.version.major, sb->dsp.version.minor);
@@ -130,7 +127,6 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 	if (ret != EOK) {
 		ddf_log_error(
 		    "Failed to bind PCM function: %s.", str_error(ret));
-		// TODO implanted data
 		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}
@@ -140,7 +136,6 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 		ddf_log_error("Failed register PCM function in category: %s.",
 		    str_error(ret));
 		ddf_fun_unbind(dsp_fun);
-		// TODO implanted data
 		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}
@@ -153,7 +148,6 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 	if (!mixer_fun) {
 		ddf_log_error("Failed to create mixer function.");
 		ddf_fun_unbind(dsp_fun);
-		// TODO implanted data
 		ddf_fun_destroy(dsp_fun);
 		return ENOMEM;
 	}
@@ -162,7 +156,6 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 		ddf_log_error("Failed to initialize SB mixer: %s.",
 		    str_error(ret));
 		ddf_fun_unbind(dsp_fun);
-		// TODO implanted data
 		ddf_fun_destroy(dsp_fun);
 		ddf_fun_destroy(mixer_fun);
 		return ret;
@@ -170,18 +163,14 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 
 	ddf_log_note("Initialized mixer: %s.",
 	    sb_mixer_type_str(sb->mixer.type));
-	ddf_fun_data_implant(mixer_fun, &sb->mixer);
 	ddf_fun_set_ops(mixer_fun, &sb_mixer_ops);
 
 	ret = ddf_fun_bind(mixer_fun);
 	if (ret != EOK) {
 		ddf_log_error(
 		    "Failed to bind mixer function: %s.", str_error(ret));
-		// TODO implanted data
 		ddf_fun_destroy(mixer_fun);
-
 		ddf_fun_unbind(dsp_fun);
-		// TODO implanted data
 		ddf_fun_destroy(dsp_fun);
 		return ret;
 	}

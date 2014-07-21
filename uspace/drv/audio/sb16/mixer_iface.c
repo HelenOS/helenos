@@ -32,16 +32,23 @@
  * Main routines of Creative Labs SoundBlaster 16 driver
  */
 
+#include <ddf/driver.h>
 #include <errno.h>
 #include <audio_mixer_iface.h>
 
 #include "mixer.h"
+#include "sb16.h"
+
+static sb_mixer_t *fun_to_mixer(ddf_fun_t *fun)
+{
+	sb16_t *sb = (sb16_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
+	return &sb->mixer;
+}
 
 static int sb_get_info(ddf_fun_t *fun, const char** name, unsigned *items)
 {
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
+	sb_mixer_t *mixer = fun_to_mixer(fun);
+
 	if (name)
 		*name = sb_mixer_type_str(mixer->type);
 	if (items)
@@ -53,26 +60,19 @@ static int sb_get_info(ddf_fun_t *fun, const char** name, unsigned *items)
 static int sb_get_item_info(ddf_fun_t *fun, unsigned item, const char** name,
     unsigned *max_level)
 {
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
-	return
-	    sb_mixer_get_control_item_info(mixer, item, name, max_level);
+	sb_mixer_t *mixer = fun_to_mixer(fun);
+	return sb_mixer_get_control_item_info(mixer, item, name, max_level);
 }
 
 static int sb_set_item_level(ddf_fun_t *fun, unsigned item, unsigned value)
 {
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
+	sb_mixer_t *mixer = fun_to_mixer(fun);
 	return sb_mixer_set_control_item_value(mixer, item, value);
 }
 
 static int sb_get_item_level(ddf_fun_t *fun, unsigned item, unsigned *value)
 {
-	assert(fun);
-	const sb_mixer_t *mixer = ddf_fun_data_get(fun);
-	assert(mixer);
+	sb_mixer_t *mixer = fun_to_mixer(fun);
 	return sb_mixer_get_control_item_value(mixer, item, value);
 }
 

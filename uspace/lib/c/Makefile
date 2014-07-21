@@ -108,6 +108,7 @@ GENERIC_SOURCES = \
 	generic/io/window.c \
 	generic/iplink.c \
 	generic/iplink_srv.c \
+	generic/irc.c \
 	generic/ieee_double.c \
 	generic/power_of_ten.c \
 	generic/double_to_str.c \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2014 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,87 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
- * @addtogroup usb
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief PCI device interface definition.
  */
 
-#ifndef LIBDRV_PCI_DEV_IFACE_H_
-#define LIBDRV_PCI_DEV_IFACE_H_
+#include <assert.h>
+#include <errno.h>
+#include <ipc/irc.h>
+#include <ipc/services.h>
+#include <irc.h>
+#include <ns.h>
+#include <sysinfo.h>
 
-#include "ddf/driver.h"
+static async_sess_t *irc_sess;
 
-#define PCI_VENDOR_ID  0x00
-#define PCI_DEVICE_ID  0x02
-
-extern int pci_config_space_read_8(async_sess_t *, uint32_t, uint8_t *);
-extern int pci_config_space_read_16(async_sess_t *, uint32_t, uint16_t *);
-extern int pci_config_space_read_32(async_sess_t *, uint32_t, uint32_t *);
-
-extern int pci_config_space_write_8(async_sess_t *, uint32_t, uint8_t);
-extern int pci_config_space_write_16(async_sess_t *, uint32_t, uint16_t);
-extern int pci_config_space_write_32(async_sess_t *, uint32_t, uint32_t);
-
-/** PCI device communication interface. */
-typedef struct {
-	int (*config_space_read_8)(ddf_fun_t *, uint32_t address, uint8_t *data);
-	int (*config_space_read_16)(ddf_fun_t *, uint32_t address, uint16_t *data);
-	int (*config_space_read_32)(ddf_fun_t *, uint32_t address, uint32_t *data);
-
-	int (*config_space_write_8)(ddf_fun_t *, uint32_t address, uint8_t data);
-	int (*config_space_write_16)(ddf_fun_t *, uint32_t address, uint16_t data);
-	int (*config_space_write_32)(ddf_fun_t *, uint32_t address, uint32_t data);
-} pci_dev_iface_t;
-
-
-#endif
-/**
- * @}
+/** Connect to IRC service.
+ *
+ * @return	EOK on success, EIO on failure
  */
+static int irc_init(void)
+{
+	sysarg_t apic;
+	sysarg_t i8259;
 
+	assert(irc_sess == NULL);
+
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
+		irc_sess = service_connect_blocking(EXCHANGE_SERIALIZE,
+		    SERVICE_IRC, 0, 0);
+	}
+
+	if (irc_sess == NULL)
+		return EIO;
+
+	return EOK;
+}
+
+/** Enable interrupt.
+ *
+ * @param irq	IRQ number
+ */
+int irc_enable_interrupt(int irq)
+{
+	int rc;
+
+	if (irc_sess == NULL) {
+		rc = irc_init();
+		if (rc != EOK)
+			return rc;
+	}
+
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	rc = async_req_1_0(exch, IRC_ENABLE_INTERRUPT, irq);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+
+/** Disable interrupt.
+ *
+ * @param irq	IRQ number
+ */
+int irc_disable_interrupt(int irq)
+{
+	int rc;
+
+	if (irc_sess == NULL) {
+		rc = irc_init();
+		if (rc != EOK)
+			return rc;
+	}
+
+	async_exch_t *exch = async_exchange_begin(irc_sess);
+	rc = async_req_1_0(exch, IRC_CLEAR_INTERRUPT, irq);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+/** @}
+ */

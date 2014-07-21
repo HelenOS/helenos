@@ -215,7 +215,6 @@ extern void nic_driver_implement(driver_ops_t *, ddf_dev_ops_t *,
     nic_iface_t *);
 
 /* Functions called in add_device */
-extern int nic_connect_to_services(nic_t *);
 extern int nic_get_resources(nic_t *, hw_res_list_parsed_t *);
 extern void nic_set_specific(nic_t *, void *);
 extern void nic_set_send_frame_handler(nic_t *, send_frame_handler);
@@ -244,8 +243,6 @@ extern int nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
 extern void nic_query_address(nic_t *, nic_address_t *);
 extern void nic_received_frame(nic_t *, nic_frame_t *);
 extern void nic_received_frame_list(nic_t *, nic_frame_list_t *);
-extern void nic_disable_interrupt(nic_t *, int);
-extern void nic_enable_interrupt(nic_t *, int);
 extern nic_poll_mode_t nic_query_poll_mode(nic_t *, struct timeval *);
 
 /* Statistics updates */

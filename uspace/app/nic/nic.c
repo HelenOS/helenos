@@ -59,7 +59,8 @@ static void print_syntax(void)
 	printf("\t<cmd> is:\n");
 	printf("\taddr <mac_address> - set MAC address\n");
 	printf("\tspeed <10|100|1000> - set NIC speed\n");
-	printf("\tduplex <half|full> - set duplex mode\n");
+	printf("\tduplex <half|full|simplex> - set duplex mode\n");
+	printf("\tauto - enable autonegotiation\n");
 }
 
 static async_sess_t *get_nic_by_index(size_t i)
@@ -205,7 +206,7 @@ static int nic_list(void)
 		goto error;
 	}
 
-	printf("[Service Name]\n");
+	printf("[Index]: [Service Name]\n");
 	for (i = 0; i < count; i++) {
 		rc = loc_service_get_name(nics[i], &svc_name);
 		if (rc != EOK) {
@@ -321,6 +322,26 @@ static int nic_set_duplex(int i, char *str)
 	return nic_set_operation_mode(sess, oldspeed, duplex, oldrole);
 }
 
+static int nic_set_autoneg(int i)
+{
+	async_sess_t *sess;
+	int rc;
+
+	sess = get_nic_by_index(i);
+	if (sess == NULL) {
+		printf("Specified NIC doesn't exist or cannot connect to it.\n");
+		return EINVAL;
+	}
+
+	rc = nic_autoneg_restart(sess);
+	if (rc != EOK) {
+		printf("Error restarting NIC autonegotiation.\n");
+		return EIO;
+	}
+
+	return EOK;
+}
+
 static int nic_set_addr(int i, char *str)
 {
 	async_sess_t *sess;
@@ -374,6 +395,9 @@ int main(int argc, char *argv[])
 
 		if (!str_cmp(argv[2], "duplex"))
 			return nic_set_duplex(index, argv[3]);
+
+		if (!str_cmp(argv[2], "auto"))
+			return nic_set_autoneg(index);
 
 	} else {
 		printf(NAME ": Invalid argument.\n");
