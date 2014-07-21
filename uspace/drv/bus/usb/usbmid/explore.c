@@ -33,6 +33,7 @@
  * @file
  * Exploration of available interfaces in the USB device.
  */
+#include <ddf/driver.h>
 #include <errno.h>
 #include <str_error.h>
 #include <stdlib.h>
@@ -69,9 +70,10 @@ static bool interface_in_list(const list_t *list, int interface_no)
  * @param config_descriptor Configuration descriptor.
  * @param config_descriptor_size Size of configuration descriptor in bytes.
  * @param list List where to add the interfaces.
+ * @return EOK on success, ENOMEM if out of memory.
  */
-static void create_interfaces(const uint8_t *config_descriptor,
-    size_t config_descriptor_size, list_t *list)
+static int create_interfaces(usb_mid_t *mid, const uint8_t *config_descriptor,
+    size_t config_descriptor_size)
 {
 	const usb_dp_parser_data_t data = {
 		.data = config_descriptor,
@@ -100,24 +102,42 @@ static void create_interfaces(const uint8_t *config_descriptor,
 		    = (usb_standard_interface_descriptor_t *) interface_ptr;
 
 		/* Skip alternate interfaces. */
-		if (interface_in_list(list, interface->interface_number)) {
+		if (interface_in_list(&mid->interface_list,
+		    interface->interface_number)) {
 			/* TODO: add the alternatives and create match ids
 			 * for them. */
 			continue;
 		}
-		usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
-		if (iface == NULL) {
-			//TODO: Do something about that failure.
-			break;
-		}
+
+		/* Create the function */
+		ddf_fun_t *fun = ddf_fun_create(mid->dev, fun_inner, NULL);
+		if (fun == NULL)
+			goto error;
+
+		usbmid_interface_t *iface = ddf_fun_data_alloc(fun,
+		    sizeof(usbmid_interface_t));
+		if (iface == NULL)
+			goto error;
 
 		link_initialize(&iface->link);
-		iface->fun = NULL;
+		iface->fun = fun;
 		iface->interface_no = interface->interface_number;
 		iface->interface = interface;
 
-		list_append(&iface->link, list);
+		list_append(&iface->link, &mid->interface_list);
 	}
+
+	return EOK;
+error:
+	while (!list_empty(&mid->interface_list)) {
+		link_t *link = list_first(&mid->interface_list);
+		usbmid_interface_t *iface = list_get_instance(link,
+		    usbmid_interface_t, link);
+
+		ddf_fun_destroy(iface->fun);
+	}
+
+	return ENOMEM;
 }
 
 /** Explore MID device.
@@ -164,6 +184,8 @@ bool usbmid_explore_device(usb_device_t *dev)
 		return false;
 	}
 
+	usb_mid->dev = dev->ddf_dev;
+
 	/* Create control function. */
 	usb_mid->ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
 	if (usb_mid->ctl_fun == NULL) {
@@ -181,11 +203,9 @@ bool usbmid_explore_device(usb_device_t *dev)
 		return false;
 	}
 
-
 	/* Create interface children. */
 	list_initialize(&usb_mid->interface_list);
-	create_interfaces(config_descriptor_raw, config_descriptor_size,
-	    &usb_mid->interface_list);
+	create_interfaces(usb_mid, config_descriptor_raw, config_descriptor_size);
 
 	/* Start child function for every interface. */
 	list_foreach(usb_mid->interface_list, link, usbmid_interface_t, iface) {
