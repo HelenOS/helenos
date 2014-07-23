@@ -192,7 +192,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	/* Try to get address 1 for root hub. */
 	instance->rh.address = 1;
 	rc = usb_device_manager_request_address(
-	    &instance->generic.dev_manager, &instance->rh.address, false,
+	    &instance->generic->dev_manager, &instance->rh.address, false,
 	    USB_SPEED_FULL);
 	if (rc != EOK) {
 		usb_log_error("Failed to get OHCI root hub address: %s\n",
@@ -203,7 +203,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	addr_reqd = true;
 
 	rc = usb_endpoint_manager_add_ep(
-	    &instance->generic.ep_manager, instance->rh.address, 0,
+	    &instance->generic->ep_manager, instance->rh.address, 0,
 	    USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64,
 	    0, NULL, NULL);
 	if (rc != EOK) {
@@ -230,7 +230,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 
 	fun_bound = true;
 
-	rc = usb_device_manager_bind_address(&instance->generic.dev_manager,
+	rc = usb_device_manager_bind_address(&instance->generic->dev_manager,
 	    instance->rh.address, ddf_fun_get_handle(hub_fun));
 	if (rc != EOK) {
 		usb_log_warning("Failed to bind root hub address: %s.\n",
@@ -243,12 +243,12 @@ error:
 		ddf_fun_unbind(hub_fun);
 	if (ep_added) {
 		usb_endpoint_manager_remove_ep(
-		    &instance->generic.ep_manager, instance->rh.address, 0,
+		    &instance->generic->ep_manager, instance->rh.address, 0,
 		    USB_DIRECTION_BOTH, NULL, NULL);
 	}
 	if (addr_reqd) {
 		usb_device_manager_release_address(
-		    &instance->generic.dev_manager, instance->rh.address);
+		    &instance->generic->dev_manager, instance->rh.address);
 	}
 	return rc;
 }
@@ -256,11 +256,12 @@ error:
 /** Initialize OHCI hc driver structure
  *
  * @param[in] instance Memory place for the structure.
+ * @param[in] HC function node
  * @param[in] regs Device's I/O registers range.
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
+int hc_init(hc_t *instance, ddf_fun_t *fun, addr_range_t *regs, bool interrupts)
 {
 	assert(instance);
 
@@ -273,12 +274,18 @@ int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts)
 
 	list_initialize(&instance->pending_batches);
 
-	hcd_init(&instance->generic, USB_SPEED_FULL,
+	instance->generic = ddf_fun_data_alloc(fun, sizeof(hcd_t));
+	if (instance->generic == NULL) {
+		usb_log_error("Out of memory.\n");
+		return ENOMEM;
+	}
+
+	hcd_init(instance->generic, USB_SPEED_FULL,
 	    BANDWIDTH_AVAILABLE_USB11, bandwidth_count_usb11);
-	instance->generic.private_data = instance;
-	instance->generic.schedule = hc_schedule;
-	instance->generic.ep_add_hook = ohci_endpoint_init;
-	instance->generic.ep_remove_hook = ohci_endpoint_fini;
+	instance->generic->private_data = instance;
+	instance->generic->schedule = hc_schedule;
+	instance->generic->ep_add_hook = ohci_endpoint_init;
+	instance->generic->ep_remove_hook = ohci_endpoint_fini;
 
 	rc = hc_init_memory(instance);
 	if (rc != EOK) {

@@ -34,6 +34,7 @@
 #ifndef DRV_OHCI_HC_H
 #define DRV_OHCI_HC_H
 
+#include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <fibril.h>
 #include <fibril_synch.h>
@@ -52,7 +53,7 @@
 /** Main OHCI driver structure */
 typedef struct hc {
 	/** Generic USB hc driver */
-	hcd_t generic;
+	hcd_t *generic;
 
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
@@ -78,8 +79,8 @@ int hc_get_irq_code(irq_pio_range_t [], size_t, irq_cmd_t [], size_t,
     addr_range_t *);
 int hc_register_irq_handler(ddf_dev_t *, addr_range_t *, int,
     interrupt_handler_t);
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
-int hc_init(hc_t *instance, addr_range_t *regs, bool interrupts);
+int hc_register_hub(hc_t *, ddf_fun_t *);
+int hc_init(hc_t *, ddf_fun_t *, addr_range_t *, bool);
 
 /** Safely dispose host controller internal structures
  *
