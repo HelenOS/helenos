@@ -93,17 +93,6 @@ static int pretend_port_rest(void *unused2)
 int hub_register_in_devman_fibril(void *arg)
 {
 	ddf_fun_t *hc_dev = (ddf_fun_t *) arg;
-
-	/*
-	 * Wait until parent device is properly initialized.
-	 */
-	async_sess_t *sess;
-	do {
-		sess = devman_device_connect(EXCHANGE_SERIALIZE,
-		    ddf_fun_get_handle(hc_dev), 0);
-	} while (!sess);
-	async_hangup(sess);
-
 	int rc;
 
 	usb_hc_connection_t hc_conn;
