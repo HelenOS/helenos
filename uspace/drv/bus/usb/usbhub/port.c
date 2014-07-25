@@ -423,9 +423,14 @@ int add_device_phase1_worker_fibril(void *arg)
 	usb_address_t new_address;
 	ddf_fun_t *child_fun;
 
+	child_fun = ddf_fun_create(data->hub->usb_device->ddf_dev,
+	    fun_inner, NULL);
+	if (child_fun == NULL)
+		return ENOMEM;
+
 	const int rc = usb_hc_new_device_wrapper(data->hub->usb_device->ddf_dev,
-	    &data->hub->usb_device->hc_conn, data->speed, enable_port_callback,
-	    data->port, &new_address, NULL, NULL, &child_fun);
+	    child_fun, &data->hub->usb_device->hc_conn, data->speed,
+	    enable_port_callback, data->port, &new_address, NULL);
 
 	if (rc == EOK) {
 		fibril_mutex_lock(&data->port->mutex);
@@ -439,6 +444,7 @@ int add_device_phase1_worker_fibril(void *arg)
 		    data->port->port_number, new_address,
 		    ddf_fun_get_handle(child_fun));
 	} else {
+		ddf_fun_destroy(child_fun);
 		usb_log_error("Failed registering device on port %zu: %s.\n",
 		    data->port->port_number, str_error(rc));
 	}

@@ -154,12 +154,12 @@ static int usb_request_set_address(usb_pipe_t *pipe, usb_address_t new_address)
  * @retval ESTALL Problem communication with device (either SET_ADDRESS
  *	request or requests for descriptors when creating match ids).
  */
-int usb_hc_new_device_wrapper(ddf_dev_t *parent,
+int usb_hc_new_device_wrapper(ddf_dev_t *parent, ddf_fun_t *fun,
     usb_hc_connection_t *hc_conn, usb_speed_t dev_speed,
     int (*enable_port)(void *arg), void *arg, usb_address_t *assigned_address,
-    ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
+    ddf_dev_ops_t *dev_ops)
 {
-	if ((new_fun == NULL) || (hc_conn == NULL))
+	if (hc_conn == NULL)
 		return EINVAL;
 
 	int rc;
@@ -270,16 +270,15 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 
 	/* Register the device with devman. */
 	/* FIXME: create device_register that will get opened ctrl pipe. */
-	ddf_fun_t *child_fun;
 	rc = usb_device_register_child_in_devman(&ctrl_pipe,
-	    parent, dev_ops, new_dev_data, &child_fun);
+	    parent, fun, dev_ops);
 	if (rc != EOK) {
 		goto leave_release_free_address;
 	}
 
 	const usb_hub_attached_device_t new_device = {
 		.address = dev_addr,
-		.fun = child_fun,
+		.fun = fun,
 	};
 
 
@@ -287,7 +286,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	rc = usb_hub_register_device(hc_conn, &new_device);
 	if (rc != EOK) {
 		/* The child function is already created. */
-		ddf_fun_destroy(child_fun);
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
 	}
@@ -295,8 +293,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent,
 	if (assigned_address != NULL) {
 		*assigned_address = dev_addr;
 	}
-
-	*new_fun = child_fun;
 
 	rc = EOK;
 	goto close_connection;

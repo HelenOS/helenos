@@ -113,11 +113,21 @@ int hub_register_in_devman_fibril(void *arg)
 	assert(rc == EOK);
 
 	ddf_fun_t *hub_dev;
-	rc = usb_hc_new_device_wrapper(ddf_fun_get_dev(hc_dev), &hc_conn, USB_SPEED_FULL,
-	    pretend_port_rest, NULL, NULL, &rh_ops, hc_dev, &hub_dev);
+
+	hub_dev = ddf_fun_create(ddf_fun_get_dev(hc_dev), fun_inner, NULL);
+	if (hub_dev == NULL) {
+		rc = ENOMEM;
+		usb_log_fatal("Failed to create root hub: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	rc = usb_hc_new_device_wrapper(ddf_fun_get_dev(hc_dev), hub_dev,
+	    &hc_conn, USB_SPEED_FULL, pretend_port_rest, NULL, NULL, &rh_ops);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to create root hub: %s.\n",
 		    str_error(rc));
+		ddf_fun_destroy(hub_dev);
 	}
 
 	usb_hc_connection_close(&hc_conn);
