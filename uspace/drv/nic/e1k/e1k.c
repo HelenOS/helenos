@@ -70,7 +70,7 @@
 
 /** ddf_fun_t * -> nic_driver_data_t* cast */
 #define NIC_DATA_FUN(fun) \
-	((nic_t *) ddf_fun_data_get(fun))
+	((nic_t *) ddf_dev_data_get(ddf_fun_get_dev(fun)))
 
 /** ddf_dev_t * -> nic_driver_data_t* cast */
 #define NIC_DATA_DEV(dev) \
