@@ -30,9 +30,6 @@
  * @{
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 /**
  * @file
  * Helper functions.
@@ -101,7 +98,6 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
-	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
 
@@ -113,47 +109,36 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 	rc = asprintf(&child_name, "%s%hhu",
 	    usb_str_class(interface_descriptor->interface_class),
 	    interface_descriptor->interface_number);
-	if (rc < 0) {
+	if (rc < 0)
 		return ENOMEM;
-	}
 
-	/* Create the device. */
-	child = ddf_fun_create(parent->ddf_dev, fun_inner, child_name);
+	rc = ddf_fun_set_name(iface->fun, child_name);
 	free(child_name);
-	if (child == NULL) {
+	if (rc != EOK)
 		return ENOMEM;
-	}
 
 	match_id_list_t match_ids;
 	init_match_ids(&match_ids);
 
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
 	    interface_descriptor, &match_ids);
-	if (rc != EOK) {
-		ddf_fun_destroy(child);
+	if (rc != EOK)
 		return rc;
-	}
 
 	list_foreach(match_ids.ids, link, match_id_t, match_id) {
-		rc = ddf_fun_add_match_id(child, match_id->id, match_id->score);
+		rc = ddf_fun_add_match_id(iface->fun, match_id->id, match_id->score);
 		if (rc != EOK) {
 			clean_match_ids(&match_ids);
-			ddf_fun_destroy(child);
 			return rc;
 		}
 	}
 	clean_match_ids(&match_ids);
 
-	rc = ddf_fun_bind(child);
-	if (rc != EOK) {
-		/* This takes care of match_id deallocation as well. */
-		ddf_fun_destroy(child);
-		return rc;
-	}
+	ddf_fun_set_ops(iface->fun, &child_device_ops);
 
-	iface->fun = child;
-	ddf_fun_data_implant(child, iface);
-	ddf_fun_set_ops(child, &child_device_ops);
+	rc = ddf_fun_bind(iface->fun);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }

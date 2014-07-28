@@ -43,9 +43,9 @@
 #include <errno.h>
 #include <usb/hc.h>
 
-extern int usb_hc_new_device_wrapper(ddf_dev_t *, usb_hc_connection_t *, usb_speed_t,
-    int (*)(void *), void *, usb_address_t *, ddf_dev_ops_t *, void *,
-    ddf_fun_t **);
+extern int usb_hc_new_device_wrapper(ddf_dev_t *, ddf_fun_t *,
+    usb_hc_connection_t *, usb_speed_t, int (*)(void *), void *,
+    usb_address_t *, ddf_dev_ops_t *);
 
 /** Info about device attached to host controller.
  *

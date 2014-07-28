@@ -33,9 +33,6 @@
  * @brief UHCI driver
  */
 
-/* XXX Fix this */
-#define _DDF_DATA_IMPLANT
-
 #include <errno.h>
 #include <stdbool.h>
 #include <str_error.h>
@@ -61,7 +58,7 @@ typedef struct uhci {
 	/** Internal driver's representation of UHCI host controller */
 	hc_t hc;
 	/** Internal driver's representation of UHCI root hub */
-	rh_t rh;
+	rh_t *rh;
 } uhci_t;
 
 static inline uhci_t *dev_to_uhci(ddf_dev_t *dev)
@@ -185,7 +182,6 @@ int device_setup_uhci(ddf_dev_t *device)
 	}
 
 	ddf_fun_set_ops(instance->hc_fun, &hc_ops);
-	ddf_fun_data_implant(instance->hc_fun, &instance->hc.generic);
 
 	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci_rh");
 	if (instance->rh_fun == NULL) {
@@ -195,7 +191,7 @@ int device_setup_uhci(ddf_dev_t *device)
 	}
 
 	ddf_fun_set_ops(instance->rh_fun, &rh_ops);
-	ddf_fun_data_implant(instance->rh_fun, &instance->rh);
+	instance->rh = ddf_fun_data_alloc(instance->rh_fun, sizeof(rh_t));
 
 	addr_range_t regs;
 	int irq = 0;
@@ -235,7 +231,7 @@ int device_setup_uhci(ddf_dev_t *device)
 		interrupts = true;
 	}
 
-	rc = hc_init(&instance->hc, &regs, interrupts);
+	rc = hc_init(&instance->hc, instance->hc_fun, &regs, interrupts);
 	if (rc != EOK) {
 		usb_log_error("Failed to init uhci_hcd: %s.\n", str_error(rc));
 		goto error;
@@ -259,7 +255,7 @@ int device_setup_uhci(ddf_dev_t *device)
 		goto error;
 	}
 
-	rc = rh_init(&instance->rh, instance->rh_fun, &regs, 0x10, 4);
+	rc = rh_init(instance->rh, instance->rh_fun, &regs, 0x10, 4);
 	if (rc != EOK) {
 		usb_log_error("Failed to setup UHCI root hub: %s.\n",
 		    str_error(rc));

@@ -438,7 +438,7 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &rtl8169_dev_ops);
-	ddf_fun_data_implant(fun, nic_data);
+//	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
