@@ -80,6 +80,8 @@ typedef struct block {
 	aoff64_t pba;
 	/** Size of the block. */
 	size_t size;
+	/** Number of write failures. */
+	int write_failures;
 	/** Link for placing the block into the free block list. */
 	link_t free_link;
 	/** Link for placing the block into the block hash table. */ 

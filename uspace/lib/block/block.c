@@ -54,6 +54,8 @@
 #include <stacktrace.h>
 #include "block.h"
 
+#define MAX_WRITE_RETRIES 10
+
 /** Lock protecting the device connection list */
 static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
 /** Device connection list head. */
@@ -78,6 +80,7 @@ typedef struct {
 	bd_t *bd;
 	void *bb_buf;
 	aoff64_t bb_addr;
+	aoff64_t pblocks;    /**< Number of physical blocks */
 	size_t pblock_size;  /**< Physical block size. */
 	cache_t *cache;
 } devcon_t;
@@ -102,7 +105,7 @@ static devcon_t *devcon_search(service_id_t service_id)
 }
 
 static int devcon_add(service_id_t service_id, async_sess_t *sess,
-    size_t bsize, bd_t *bd)
+    size_t bsize, aoff64_t dev_size, bd_t *bd)
 {
 	devcon_t *devcon;
 	
@@ -117,6 +120,7 @@ static int devcon_add(service_id_t service_id, async_sess_t *sess,
 	devcon->bb_buf = NULL;
 	devcon->bb_addr = 0;
 	devcon->pblock_size = bsize;
+	devcon->pblocks = dev_size;
 	devcon->cache = NULL;
 	
 	fibril_mutex_lock(&dcl_lock);
@@ -163,8 +167,16 @@ int block_init(exch_mgmt_t mgmt, service_id_t service_id,
 		async_hangup(sess);
 		return rc;
 	}
+
+	aoff64_t dev_size;
+	rc = bd_get_num_blocks(bd, &dev_size);
+	if (rc != EOK) {
+		bd_close(bd);
+		async_hangup(sess);
+		return rc;
+	}
 	
-	rc = devcon_add(service_id, sess, bsize, bd);
+	rc = devcon_add(service_id, sess, bsize, dev_size, bd);
 	if (rc != EOK) {
 		bd_close(bd);
 		async_hangup(sess);
@@ -348,6 +360,7 @@ static void block_initialize(block_t *b)
 {
 	fibril_mutex_initialize(&b->lock);
 	b->refcnt = 1;
+	b->write_failures = 0;
 	b->dirty = false;
 	b->toxic = false;
 	fibril_rwlock_initialize(&b->contents_lock);
@@ -372,7 +385,7 @@ int block_get(block_t **block, service_id_t service_id, aoff64_t ba, int flags)
 	cache_t *cache;
 	block_t *b;
 	link_t *link;
-
+	aoff64_t p_ba;
 	int rc;
 	
 	devcon = devcon_search(service_id);
@@ -381,6 +394,17 @@ int block_get(block_t **block, service_id_t service_id, aoff64_t ba, int flags)
 	assert(devcon->cache);
 	
 	cache = devcon->cache;
+
+	/* Check whether the logical block (or part of it) is beyond
+	 * the end of the device or not.
+	 */
+	p_ba = ba_ltop(devcon, ba);
+	p_ba += cache->blocks_cluster;
+	if (p_ba >= devcon->pblocks) {
+		/* This request cannot be satisfied */
+		return EIO;
+	}
+
 
 retry:
 	rc = EOK;
@@ -457,9 +481,19 @@ recycle:
 					 * another try. Hopefully, we will grab
 					 * another block next time.
 					 */
-					fibril_mutex_unlock(&b->lock);
-					goto retry;
-				}
+					if (b->write_failures < MAX_WRITE_RETRIES) {
+						b->write_failures++;
+						fibril_mutex_unlock(&b->lock);
+						goto retry;
+					} else {
+						printf("Too many errors writing block %"
+				    		    PRIuOFF64 "from device handle %" PRIun "\n"
+						    "SEVERE DATA LOSS POSSIBLE\n",
+				    		    b->lba, devcon->service_id);
+					}
+				} else
+					b->write_failures = 0;
+
 				b->dirty = false;
 				if (!fibril_mutex_trylock(&cache->lock)) {
 					/*
@@ -576,6 +610,8 @@ retry:
 	    (blocks_cached > CACHE_HI_WATERMARK || mode != CACHE_MODE_WB)) {
 		rc = write_blocks(devcon, block->pba, cache->blocks_cluster,
 		    block->data, block->size);
+		if (rc == EOK)
+			block->write_failures = 0;
 		block->dirty = false;
 	}
 	fibril_mutex_unlock(&block->lock);
@@ -601,9 +637,18 @@ retry:
 				 * cache lock. Release everything and retry.
 				 */
 				block->refcnt++;
-				fibril_mutex_unlock(&block->lock);
 				fibril_mutex_unlock(&cache->lock);
-				goto retry;
+
+				if (block->write_failures < MAX_WRITE_RETRIES) {
+					block->write_failures++;
+					fibril_mutex_unlock(&block->lock);
+					goto retry;
+				} else {
+					printf("Too many errors writing block %"
+				            PRIuOFF64 "from device handle %" PRIun "\n"
+					    "SEVERE DATA LOSS POSSIBLE\n",
+				    	    block->lba, devcon->service_id);
+				}
 			}
 			/*
 			 * Take the block out of the cache and free it.
@@ -769,7 +814,7 @@ int block_get_nblocks(service_id_t service_id, aoff64_t *nblocks)
 {
 	devcon_t *devcon = devcon_search(service_id);
 	assert(devcon);
-	
+
 	return bd_get_num_blocks(devcon->bd, nblocks);
 }
 
