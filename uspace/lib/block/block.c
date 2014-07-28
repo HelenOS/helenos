@@ -637,11 +637,11 @@ retry:
 				 * cache lock. Release everything and retry.
 				 */
 				block->refcnt++;
-				fibril_mutex_unlock(&cache->lock);
 
 				if (block->write_failures < MAX_WRITE_RETRIES) {
 					block->write_failures++;
 					fibril_mutex_unlock(&block->lock);
+					fibril_mutex_unlock(&cache->lock);
 					goto retry;
 				} else {
 					printf("Too many errors writing block %"
