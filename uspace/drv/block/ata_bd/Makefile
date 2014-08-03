@@ -27,8 +27,8 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBSCSI_PREFIX)/libscsi.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBSCSI_PREFIX)/include
 BINARY = ata_bd
 
 SOURCES = \
