@@ -248,13 +248,13 @@ static void nodes_remove_callback(ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	
-	assert(node->type == CDFS_DIRECTORY);
-	
-	link_t *link;
-	while ((link = list_first(&node->cs_list)) != NULL) {
-		cdfs_dentry_t *dentry = list_get_instance(link, cdfs_dentry_t, link);
-		list_remove(&dentry->link);
-		free(dentry);
+	if (node->type == CDFS_DIRECTORY) {
+		link_t *link;
+		while ((link = list_first(&node->cs_list)) != NULL) {
+			cdfs_dentry_t *dentry = list_get_instance(link, cdfs_dentry_t, link);
+			list_remove(&dentry->link);
+			free(dentry);
+		}
 	}
 	
 	free(node->fs_node);

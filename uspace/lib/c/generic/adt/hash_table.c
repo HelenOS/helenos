@@ -369,10 +369,10 @@ void hash_table_apply(hash_table_t *h, bool (*f)(ht_link_t *, void *), void *arg
 			 * delete cur (but not next!).
 			 */
 			if (!f(cur_link, arg))
-				return;
+				goto out;
 		}
 	}
-	
+out:
 	h->apply_ongoing = false;
 	
 	shrink_if_needed(h);
