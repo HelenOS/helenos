@@ -153,7 +153,8 @@ DIRS = \
 	drv/bus/usb/vhc \
 	drv/nic/ne2k \
 	drv/nic/e1k \
-	drv/nic/rtl8139
+	drv/nic/rtl8139 \
+	drv/nic/rtl8169
 
 ## Platform-specific hardware support
 #

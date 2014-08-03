@@ -178,6 +178,7 @@ int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
 	}
 
 	nic_data->send_frame(nic_data, data, size);
+	fibril_rwlock_read_unlock(&nic_data->main_lock);
 	return EOK;
 }
 

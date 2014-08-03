@@ -230,8 +230,22 @@ static void ethip_nic_cat_change_cb(void)
 static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_changed()");
-	async_answer_0(callid, ENOTSUP);
+	uint8_t *addr;
+	size_t size;
+	int rc;
+
+	rc = async_data_write_accept((void **)&addr, false, 0, 0, 0, &size);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "data_write_accept() failed");
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_changed(): "
+	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
+	    addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+
+	free(addr);
+	async_answer_0(callid, EOK);
 }
 
 static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
@@ -294,6 +308,7 @@ static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			ethip_nic_device_state(nic, callid, &call);
 			break;
 		default:
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "unknown IPC method: %d", (int) IPC_GET_IMETHOD(call));
 			async_answer_0(callid, ENOTSUP);
 		}
 	}
