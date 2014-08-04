@@ -395,6 +395,46 @@ static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
 	return EOK;
 }
 
+/** Decode file name.
+ *
+ * @param data	File name buffer
+ * @param dsize	Fine name buffer size
+ * @param dtype	Directory entry type
+ * @return	Decoded file name (allocated string)
+ */
+static char *cdfs_decode_name(void *data, size_t dsize,
+    cdfs_dentry_type_t dtype)
+{
+	char *name;
+	char *dot;
+	char *scolon;
+
+	name = malloc(dsize + 1);
+	if (name == NULL)
+		return NULL;
+	memcpy(name, data, dsize);
+	name[dsize] = '\0';
+
+	if (dtype == CDFS_DIRECTORY)
+		return name;
+
+	dot = str_chr(name, '.');
+	if (dot == NULL)
+		return NULL;
+	scolon = str_chr(dot, ';');
+	if (scolon == NULL)
+		return NULL;
+
+	/* Trim version part */
+	*scolon = '\0';
+
+	/* If the extension is an empty string, trim the dot separator. */
+	if (dot[1] == '\0')
+		*dot = '\0';
+
+	return name;
+}
+
 static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 {
 	cdfs_node_t *node = CDFS_NODE(fs_node);
@@ -452,12 +492,10 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 			cur->lba = uint32_lb(dir->lba);
 			cur->size = uint32_lb(dir->size);
 			
-			char *name = (char *) malloc(dir->name_length + 1);
+			char *name = cdfs_decode_name(dir->name,
+			    dir->name_length, dentry_type);
 			if (name == NULL)
 				return false;
-			
-			memcpy(name, dir->name, dir->name_length);
-			name[dir->name_length] = 0;
 			
 			// FIXME: check return value
 			
