@@ -65,6 +65,11 @@
 
 #define CDFS_STANDARD_IDENT  "CD001"
 
+enum {
+	CDFS_NAME_CURDIR = '\x00',
+	CDFS_NAME_PARENTDIR = '\x01'
+};
+
 typedef enum {
 	VOL_DESC_BOOT = 0,
 	VOL_DESC_PRIMARY = 1,
@@ -408,20 +413,32 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 		if (rc != EOK)
 			return false;
 		
-		cdfs_dir_t *dir = (cdfs_dir_t *) block->data;
+		cdfs_dir_t *dir;
 		
-		// FIXME: skip '.' and '..'
-		
-		for (size_t offset = 0;
-		    (dir->length != 0) && (offset < BLOCK_SIZE);
+		for (size_t offset = 0; offset < BLOCK_SIZE;
 		    offset += dir->length) {
 			dir = (cdfs_dir_t *) (block->data + offset);
+			if (dir->length == 0)
+				break;
+			if (offset + dir->length > BLOCK_SIZE) {
+				/* XXX Incorrect FS structure */
+				break;
+			}
 			
 			cdfs_dentry_type_t dentry_type;
 			if (dir->flags & DIR_FLAG_DIRECTORY)
 				dentry_type = CDFS_DIRECTORY;
 			else
 				dentry_type = CDFS_FILE;
+			
+			/* Skip special entries */
+			
+			if (dir->name_length == 1 &&
+			    dir->name[0] == CDFS_NAME_CURDIR)
+				continue;
+			if (dir->name_length == 1 &&
+			    dir->name[0] == CDFS_NAME_PARENTDIR)
+				continue;
 			
 			// FIXME: hack - indexing by dentry byte offset on disc
 			
