@@ -244,6 +244,14 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
 	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
 	    addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 
+	memcpy(&nic->mac_addr, addr, sizeof(nic->mac_addr));
+
+	rc = iplink_ev_change_addr(&nic->iplink, &nic->mac_addr);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "iplink_ev_change_addr() failed");
+		return;
+	}
+
 	free(addr);
 	async_answer_0(callid, EOK);
 }

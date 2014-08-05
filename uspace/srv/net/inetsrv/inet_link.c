@@ -54,10 +54,12 @@ static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
 static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
+static int inet_iplink_change_addr(iplink_t *, addr48_t);
 static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
-	.recv = inet_iplink_recv
+	.recv = inet_iplink_recv,
+	.change_addr = inet_iplink_change_addr,
 };
 
 static LIST_INITIALIZE(inet_links);
@@ -109,6 +111,20 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t v
 	free(packet.data);
 	
 	return rc;
+}
+
+static int inet_iplink_change_addr(iplink_t *iplink, addr48_t mac)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_change_addr(): "
+	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
+	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	list_foreach(inet_links, link_list, inet_link_t, ilink) {
+		if (ilink->sess == iplink->sess)
+			memcpy(&ilink->mac, mac, sizeof(addr48_t));
+	}
+
+	return EOK;
 }
 
 static inet_link_t *inet_link_new(void)

@@ -531,6 +531,8 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 	/* Update statistics */
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
 
+	log_msg(LOG_DEFAULT, LVL_WARN, "nic_received_frame(), check=%d", check);
+
 	if (nic_data->state == NIC_STATE_ACTIVE && check) {
 		nic_data->stats.receive_packets++;
 		nic_data->stats.receive_bytes += frame->size;

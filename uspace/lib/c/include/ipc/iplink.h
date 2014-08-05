@@ -40,6 +40,7 @@
 typedef enum {
 	IPLINK_GET_MTU = IPC_FIRST_USER_METHOD,
 	IPLINK_GET_MAC48,
+	IPLINK_SET_MAC48,
 	IPLINK_SEND,
 	IPLINK_SEND6,
 	IPLINK_ADDR_ADD,
@@ -47,7 +48,8 @@ typedef enum {
 } iplink_request_t;
 
 typedef enum {
-	IPLINK_EV_RECV = IPC_FIRST_USER_METHOD
+	IPLINK_EV_RECV = IPC_FIRST_USER_METHOD,
+	IPLINK_EV_CHANGE_ADDR,
 } iplink_event_t;
 
 #endif

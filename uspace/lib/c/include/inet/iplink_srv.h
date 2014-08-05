@@ -58,6 +58,7 @@ typedef struct iplink_ops {
 	int (*send6)(iplink_srv_t *, iplink_sdu6_t *);
 	int (*get_mtu)(iplink_srv_t *, size_t *);
 	int (*get_mac48)(iplink_srv_t *, addr48_t *);
+	int (*set_mac48)(iplink_srv_t *, addr48_t *);
 	int (*addr_add)(iplink_srv_t *, inet_addr_t *);
 	int (*addr_remove)(iplink_srv_t *, inet_addr_t *);
 } iplink_ops_t;
@@ -66,6 +67,7 @@ extern void iplink_srv_init(iplink_srv_t *);
 
 extern int iplink_conn(ipc_callid_t, ipc_call_t *, void *);
 extern int iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, ip_ver_t);
+extern int iplink_ev_change_addr(iplink_srv_t *, addr48_t *);
 
 #endif
 
