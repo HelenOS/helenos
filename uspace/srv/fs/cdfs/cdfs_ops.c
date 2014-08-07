@@ -38,6 +38,7 @@
 
 #include "cdfs_ops.h"
 #include <stdbool.h>
+#include <adt/list.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
 #include <malloc.h>
@@ -194,10 +195,16 @@ typedef struct {
 
 typedef uint32_t cdfs_lba_t;
 
+/** Mounted CDFS filesystem */
+typedef struct {
+	link_t link;
+	service_id_t service_id;  /**< Service ID of block device */
+} cdfs_t;
+
 typedef struct {
 	fs_node_t *fs_node;       /**< FS node */
 	fs_index_t index;         /**< Node index */
-	service_id_t service_id;  /**< Service ID of block device */
+	cdfs_t *fs;		  /**< File system */
 	
 	ht_link_t nh_link;        /**< Nodes hash table link */
 	cdfs_dentry_type_t type;  /**< Dentry type */
@@ -210,6 +217,9 @@ typedef struct {
 	bool processed;           /**< If all children have been read */
 	unsigned int opened;      /**< Opened count */
 } cdfs_node_t;
+
+/** List of all instances */
+static LIST_INITIALIZE(cdfs_instances);
 
 /** Shared index of nodes */
 static fs_index_t cdfs_index = 1;
@@ -238,7 +248,7 @@ static size_t nodes_key_hash(void *k)
 static size_t nodes_hash(const ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
-	return hash_combine(node->service_id, node->index);
+	return hash_combine(node->fs->service_id, node->index);
 }
 
 static bool nodes_key_equal(void *k, const ht_link_t *item)
@@ -246,7 +256,7 @@ static bool nodes_key_equal(void *k, const ht_link_t *item)
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	ht_key_t *key = (ht_key_t*)k;
 	
-	return key->service_id == node->service_id && key->index == node->index;
+	return key->service_id == node->fs->service_id && key->index == node->index;
 }
 
 static void nodes_remove_callback(ht_link_t *item)
@@ -304,7 +314,7 @@ static void cdfs_node_initialize(cdfs_node_t *node)
 {
 	node->fs_node = NULL;
 	node->index = 0;
-	node->service_id = 0;
+	node->fs = NULL;
 	node->type = CDFS_NONE;
 	node->lnkcnt = 0;
 	node->size = 0;
@@ -315,7 +325,7 @@ static void cdfs_node_initialize(cdfs_node_t *node)
 	list_initialize(&node->cs_list);
 }
 
-static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
+static int create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
     fs_index_t index)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
@@ -336,7 +346,7 @@ static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
 	node->fs_node->data = node;
 	
 	fs_node_t *rootfn;
-	int rc = cdfs_root_get(&rootfn, service_id);
+	int rc = cdfs_root_get(&rootfn, fs->service_id);
 	
 	assert(rc == EOK);
 	
@@ -345,7 +355,7 @@ static int create_node(fs_node_t **rfn, service_id_t service_id, int lflag,
 	else
 		node->index = index;
 	
-	node->service_id = service_id;
+	node->fs = fs;
 	
 	if (lflag & L_DIRECTORY)
 		node->type = CDFS_DIRECTORY;
@@ -435,7 +445,7 @@ static char *cdfs_decode_name(void *data, size_t dsize,
 	return name;
 }
 
-static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
+static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 {
 	cdfs_node_t *node = CDFS_NODE(fs_node);
 	assert(node);
@@ -449,7 +459,7 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 	
 	for (uint32_t i = 0; i < blocks; i++) {
 		block_t *block;
-		int rc = block_get(&block, service_id, node->lba + i, BLOCK_FLAGS_NONE);
+		int rc = block_get(&block, fs->service_id, node->lba + i, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return false;
 		
@@ -483,7 +493,7 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 			// FIXME: hack - indexing by dentry byte offset on disc
 			
 			fs_node_t *fn;
-			int rc = create_node(&fn, service_id, dentry_type,
+			int rc = create_node(&fn, fs, dentry_type,
 			    (node->lba + i) * BLOCK_SIZE + offset);
 			if ((rc != EOK) || (fn == NULL))
 				return false;
@@ -513,13 +523,13 @@ static bool cdfs_readdir(service_id_t service_id, fs_node_t *fs_node)
 	return true;
 }
 
-static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
+static fs_node_t *get_uncached_node(cdfs_t *fs, fs_index_t index)
 {
 	cdfs_lba_t lba = index / BLOCK_SIZE;
 	size_t offset = index % BLOCK_SIZE;
 	
 	block_t *block;
-	int rc = block_get(&block, service_id, lba, BLOCK_FLAGS_NONE);
+	int rc = block_get(&block, fs->service_id, lba, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return NULL;
 	
@@ -532,7 +542,7 @@ static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
 		dentry_type = CDFS_FILE;
 	
 	fs_node_t *fn;
-	rc = create_node(&fn, service_id, dentry_type, index);
+	rc = create_node(&fn, fs, dentry_type, index);
 	if ((rc != EOK) || (fn == NULL))
 		return NULL;
 	
@@ -548,11 +558,11 @@ static fs_node_t *get_uncached_node(service_id_t service_id, fs_index_t index)
 	return fn;
 }
 
-static fs_node_t *get_cached_node(service_id_t service_id, fs_index_t index)
+static fs_node_t *get_cached_node(cdfs_t *fs, fs_index_t index)
 {
 	ht_key_t key = {
 		.index = index,
-		.service_id = service_id
+		.service_id = fs->service_id
 	};
 	
 	ht_link_t *link = hash_table_find(&nodes, &key);
@@ -562,7 +572,7 @@ static fs_node_t *get_cached_node(service_id_t service_id, fs_index_t index)
 		return FS_NODE(node);
 	}
 	
-	return get_uncached_node(service_id, index);
+	return get_uncached_node(fs, index);
 }
 
 static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
@@ -570,14 +580,14 @@ static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
 	cdfs_node_t *parent = CDFS_NODE(pfn);
 	
 	if (!parent->processed) {
-		int rc = cdfs_readdir(parent->service_id, pfn);
+		int rc = cdfs_readdir(parent->fs, pfn);
 		if (rc != EOK)
 			return rc;
 	}
 	
 	list_foreach(parent->cs_list, link, cdfs_dentry_t, dentry) {
 		if (str_cmp(dentry->name, component) == 0) {
-			*fn = get_cached_node(parent->service_id, dentry->index);
+			*fn = get_cached_node(parent->fs, dentry->index);
 			return EOK;
 		}
 	}
@@ -591,7 +601,7 @@ static int cdfs_node_open(fs_node_t *fn)
 	cdfs_node_t *node = CDFS_NODE(fn);
 	
 	if (!node->processed)
-		cdfs_readdir(node->service_id, fn);
+		cdfs_readdir(node->fs, fn);
 	
 	node->opened++;
 	return EOK;
@@ -632,7 +642,7 @@ static int cdfs_has_children(bool *has_children, fs_node_t *fn)
 	cdfs_node_t *node = CDFS_NODE(fn);
 	
 	if ((node->type == CDFS_DIRECTORY) && (!node->processed))
-		cdfs_readdir(node->service_id, fn);
+		cdfs_readdir(node->fs, fn);
 	
 	*has_children = !list_empty(&node->cs_list);
 	return EOK;
@@ -716,12 +726,12 @@ libfs_ops_t cdfs_libfs_ops = {
 	.free_block_count = cdfs_free_block_count
 };
 
-static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
+static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
     cdfs_lba_t altroot)
 {
 	/* First 16 blocks of isofs are empty */
 	block_t *block;
-	int rc = block_get(&block, service_id, altroot + 16, BLOCK_FLAGS_NONE);
+	int rc = block_get(&block, fs->service_id, altroot + 16, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return false;
 	
@@ -770,7 +780,7 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 	node->lba = uint32_lb(vol_desc->data.primary.root_dir.lba);
 	node->size = uint32_lb(vol_desc->data.primary.root_dir.size);
 	
-	if (!cdfs_readdir(service_id, rfn)) {
+	if (!cdfs_readdir(fs, rfn)) {
 		block_put(block);
 		return false;
 	}
@@ -782,14 +792,22 @@ static bool iso_readfs(service_id_t service_id, fs_node_t *rfn,
 /* Mount a session with session start offset
  *
  */
-static bool cdfs_instance_init(service_id_t service_id, cdfs_lba_t altroot)
+static cdfs_t *cdfs_fs_create(service_id_t sid, cdfs_lba_t altroot)
 {
+	cdfs_t *fs = NULL;
+	fs_node_t *rfn = NULL;
+
+	fs = calloc(1, sizeof(cdfs_t));
+	if (fs == NULL)
+		goto error;
+
+	fs->service_id = sid;
+
 	/* Create root node */
-	fs_node_t *rfn;
-	int rc = create_node(&rfn, service_id, L_DIRECTORY, cdfs_index++);
+	int rc = create_node(&rfn, fs, L_DIRECTORY, cdfs_index++);
 	
 	if ((rc != EOK) || (!rfn))
-		return false;
+		goto error;
 	
 	/* FS root is not linked */
 	CDFS_NODE(rfn)->lnkcnt = 0;
@@ -797,12 +815,15 @@ static bool cdfs_instance_init(service_id_t service_id, cdfs_lba_t altroot)
 	CDFS_NODE(rfn)->processed = false;
 	
 	/* Check if there is cdfs in given session */
-	if (!iso_readfs(service_id, rfn, altroot)) {
-		// XXX destroy node
-		return false;
-	}
+	if (!iso_readfs(fs, rfn, altroot))
+		goto error;
 	
-	return true;
+	list_append(&fs->link, &cdfs_instances);
+	return fs;
+error:
+	// XXX destroy node
+	free(fs);
+	return NULL;
 }
 
 static int cdfs_mounted(service_id_t service_id, const char *opts,
@@ -846,8 +867,8 @@ static int cdfs_mounted(service_id_t service_id, const char *opts,
 		return EEXIST;
 	}
 	
-	/* Initialize cdfs instance */
-	if (!cdfs_instance_init(service_id, altroot)) {
+	/* Create cdfs instance */
+	if (cdfs_fs_create(service_id, altroot) == NULL) {
 		block_cache_fini(service_id);
 		block_fini(service_id);
 		
@@ -870,23 +891,41 @@ static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 	service_id_t service_id = *(service_id_t*)arg;
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 	
-	if (node->service_id == service_id) {
+	if (node->fs->service_id == service_id) {
 		hash_table_remove_item(&nodes, &node->nh_link);
 	}
 	
 	return true;
 }
 
-static void cdfs_instance_done(service_id_t service_id)
+static void cdfs_fs_destroy(cdfs_t *fs)
 {
-	hash_table_apply(&nodes, rm_service_id_nodes, &service_id);
-	block_cache_fini(service_id);
-	block_fini(service_id);
+	list_remove(&fs->link);
+	hash_table_apply(&nodes, rm_service_id_nodes, &fs->service_id);
+	block_cache_fini(fs->service_id);
+	block_fini(fs->service_id);
+	free(fs);
+}
+
+static cdfs_t *cdfs_find_by_sid(service_id_t service_id)
+{
+	list_foreach(cdfs_instances, link, cdfs_t, fs) {
+		if (fs->service_id == service_id)
+			return fs;
+	}
+	
+	return NULL;
 }
 
 static int cdfs_unmounted(service_id_t service_id)
 {
-	cdfs_instance_done(service_id);
+	cdfs_t *fs;
+
+	fs = cdfs_find_by_sid(service_id);
+	if (fs == NULL)
+		return ENOENT;
+
+	cdfs_fs_destroy(fs);
 	return EOK;
 }
 
@@ -906,7 +945,7 @@ static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	    hash_table_get_inst(link, cdfs_node_t, nh_link);
 	
 	if (!node->processed) {
-		int rc = cdfs_readdir(service_id, FS_NODE(node));
+		int rc = cdfs_readdir(node->fs, FS_NODE(node));
 		if (rc != EOK)
 			return rc;
 	}
