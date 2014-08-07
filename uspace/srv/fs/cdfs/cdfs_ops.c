@@ -131,7 +131,7 @@ typedef struct {
 } __attribute__((packed)) cdfs_dir_t;
 
 typedef struct {
-	uint8_t res0;
+	uint8_t flags; /* reserved in primary */
 	
 	uint8_t system_ident[32];
 	uint8_t ident[32];
@@ -139,7 +139,7 @@ typedef struct {
 	uint64_t res1;
 	uint32_t_lb lba_size;
 	
-	uint8_t res2[32];
+	uint8_t esc_seq[32]; /* reserved in primary */
 	uint16_t_lb set_size;
 	uint16_t_lb sequence_nr;
 	
@@ -169,7 +169,7 @@ typedef struct {
 	cdfs_datetime_t effective;
 	
 	uint8_t fs_version;
-} __attribute__((packed)) cdfs_vol_desc_primary_t;
+} __attribute__((packed)) cdfs_vol_desc_prisec_t;
 
 typedef struct {
 	uint8_t type;
@@ -177,9 +177,16 @@ typedef struct {
 	uint8_t version;
 	union {
 		cdfs_vol_desc_boot_t boot;
-		cdfs_vol_desc_primary_t primary;
+		cdfs_vol_desc_prisec_t prisec;
 	} data;
 } __attribute__((packed)) cdfs_vol_desc_t;
+
+typedef enum {
+	/** ASCII character set / encoding (base ISO 9660) */
+	enc_ascii,
+	/** UCS-2 character set / encoding (Joliet) */
+	enc_ucs2
+} cdfs_enc_t;
 
 typedef enum {
 	CDFS_NONE,
@@ -195,10 +202,10 @@ typedef struct {
 
 typedef uint32_t cdfs_lba_t;
 
-/** Mounted CDFS filesystem */
 typedef struct {
-	link_t link;
+	link_t link;		  /**< Link to list of all instances */
 	service_id_t service_id;  /**< Service ID of block device */
+	cdfs_enc_t enc;		  /**< Filesystem string encoding */
 } cdfs_t;
 
 typedef struct {
@@ -217,6 +224,21 @@ typedef struct {
 	bool processed;           /**< If all children have been read */
 	unsigned int opened;      /**< Opened count */
 } cdfs_node_t;
+
+/** String encoding */
+enum {
+	/** ASCII - standard ISO 9660 */
+	ucs2_esc_seq_no = 3,
+	/** USC-2 - Joliet */
+	ucs2_esc_seq_len = 3
+};
+
+/** Joliet SVD UCS-2 escape sequences */
+static uint8_t ucs2_esc_seq[ucs2_esc_seq_no][ucs2_esc_seq_len] = {
+	{ 0x25, 0x2f, 0x40 },
+	{ 0x25, 0x2f, 0x43 },
+	{ 0x25, 0x2f, 0x45 }
+};
 
 /** List of all instances */
 static LIST_INITIALIZE(cdfs_instances);
@@ -405,6 +427,56 @@ static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
 	return EOK;
 }
 
+/** Decode CDFS string.
+ *
+ * @param data	Pointer to string data
+ * @param dsize	Size of data in bytes
+ * @param enc	String encoding
+ * @return	Decoded string
+ */
+static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
+{
+	int rc;
+	char *str;
+	uint16_t *buf;
+	
+	switch (enc) {
+	case enc_ascii:
+		str = malloc(dsize + 1);
+		if (str == NULL)
+			return NULL;
+		memcpy(str, data, dsize);
+		str[dsize] = '\0';
+		break;
+	case enc_ucs2:
+		buf = calloc(dsize + 2, 1);
+		if (buf == NULL)
+			return NULL;
+		
+		size_t i;
+		for (i = 0; i < dsize / sizeof(uint16_t); i++) {
+			buf[i] = uint16_t_be2host(((uint16_t *)data)[i]);
+		}
+		
+		size_t dstr_size = dsize / sizeof(uint16_t) * 4 + 1;
+		str = malloc(dstr_size);
+		if (str == NULL)
+			return NULL;
+		
+		rc = utf16_to_str(str, dstr_size, buf);
+		free(buf);
+		
+		if (rc != EOK)
+			return NULL;
+		break;
+	default:
+		assert(false);
+		str = NULL;
+	}
+	
+	return str;
+}
+
 /** Decode file name.
  *
  * @param data	File name buffer
@@ -412,36 +484,34 @@ static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
  * @param dtype	Directory entry type
  * @return	Decoded file name (allocated string)
  */
-static char *cdfs_decode_name(void *data, size_t dsize,
+static char *cdfs_decode_name(void *data, size_t dsize, cdfs_enc_t enc,
     cdfs_dentry_type_t dtype)
 {
 	char *name;
 	char *dot;
 	char *scolon;
-
-	name = malloc(dsize + 1);
+	
+	name = cdfs_decode_str(data, dsize, enc);
 	if (name == NULL)
 		return NULL;
-	memcpy(name, data, dsize);
-	name[dsize] = '\0';
-
+	
 	if (dtype == CDFS_DIRECTORY)
 		return name;
-
+	
 	dot = str_chr(name, '.');
-	if (dot == NULL)
-		return NULL;
-	scolon = str_chr(dot, ';');
-	if (scolon == NULL)
-		return NULL;
-
-	/* Trim version part */
-	*scolon = '\0';
-
-	/* If the extension is an empty string, trim the dot separator. */
-	if (dot[1] == '\0')
-		*dot = '\0';
-
+	
+	if (dot != NULL) {
+		scolon = str_chr(dot, ';');
+		if (scolon != NULL) {
+			/* Trim version part */
+			*scolon = '\0';
+		}
+	
+		/* If the extension is an empty string, trim the dot separator. */
+		if (dot[1] == '\0')
+			*dot = '\0';
+	}
+	
 	return name;
 }
 
@@ -503,7 +573,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 			cur->size = uint32_lb(dir->size);
 			
 			char *name = cdfs_decode_name(dir->name,
-			    dir->name_length, dentry_type);
+			    dir->name_length, node->fs->enc, dentry_type);
 			if (name == NULL)
 				return false;
 			
@@ -686,7 +756,7 @@ static service_id_t cdfs_service_get(fs_node_t *fn)
 static int cdfs_size_block(service_id_t service_id, uint32_t *size)
 {
 	*size = BLOCK_SIZE;
-
+	
 	return EOK; 
 }
 
@@ -726,6 +796,114 @@ libfs_ops_t cdfs_libfs_ops = {
 	.free_block_count = cdfs_free_block_count
 };
 
+/** Verify that escape sequence corresonds to one of the allowed encoding
+ * escape sequences allowed for Joliet. */
+static int cdfs_verify_joliet_esc_seq(uint8_t *seq)
+{
+	size_t i, j, k;
+	bool match;
+	
+	i = 0;
+	while (i + ucs2_esc_seq_len <= 32) {
+		if (seq[i] == 0)
+			break;
+		
+		for (j = 0; j < ucs2_esc_seq_no; j++) {
+			match = true;
+			for (k = 0; k < ucs2_esc_seq_len; k++)
+				if (seq[i + k] != ucs2_esc_seq[j][k])
+					match = false;
+			if (match) {
+				break;
+			}
+		}
+		
+		if (!match)
+			return EINVAL;
+		
+		i += ucs2_esc_seq_len;
+	}
+	
+	while (i < 32) {
+		if (seq[i] != 0)
+			return EINVAL;
+		++i;
+	}
+	
+	return EOK;
+}
+
+/** Find Joliet supplementary volume descriptor.
+ *
+ * @param sid		Block device service ID
+ * @param altroot	First filesystem block
+ * @param rlba		Place to store LBA of root dir
+ * @param rsize		Place to store size of root dir
+ * @return 		EOK if found, ENOENT if not
+ */
+static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
+    uint32_t *rlba, uint32_t *rsize)
+{
+	cdfs_lba_t bi;
+
+	for (bi = altroot + 17; ; bi++) {
+		block_t *block;
+		int rc = block_get(&block, sid, bi, BLOCK_FLAGS_NONE);
+		if (rc != EOK)
+			break;
+		
+		cdfs_vol_desc_t *vol_desc = (cdfs_vol_desc_t *) block->data;
+		
+		if (vol_desc->type == VOL_DESC_SET_TERMINATOR) {
+			block_put(block);
+			break;
+		}
+		
+		if ((vol_desc->type != VOL_DESC_SUPPLEMENTARY) ||
+		    (memcmp(vol_desc->standard_ident, CDFS_STANDARD_IDENT, 5) != 0) ||
+		    (vol_desc->version != 1)) {
+			block_put(block);
+			continue;
+		}
+		
+		uint16_t set_size = uint16_lb(vol_desc->data.prisec.set_size);
+		if (set_size > 1) {
+			/*
+			 * Technically, we don't support multi-disc sets.
+			 * But one can encounter erroneously mastered
+			 * images in the wild and it might actually work
+			 * for the first disc in the set.
+			 */
+		}
+		
+		uint16_t sequence_nr = uint16_lb(vol_desc->data.prisec.sequence_nr);
+		if (sequence_nr != 1) {
+			/*
+		    	 * We only support the first disc
+			 * in multi-disc sets.
+			 */
+			block_put(block);
+			continue;
+		}
+		
+		uint16_t block_size = uint16_lb(vol_desc->data.prisec.block_size);
+		if (block_size != BLOCK_SIZE) {
+			block_put(block);
+			continue;
+		}
+		
+		rc = cdfs_verify_joliet_esc_seq(vol_desc->data.prisec.esc_seq);
+		if (rc != EOK)
+			continue;
+		*rlba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
+		*rsize = uint32_lb(vol_desc->data.prisec.root_dir.size);
+		block_put(block);
+		return EOK;
+	}
+	
+	return ENOENT;
+}
+
 static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
     cdfs_lba_t altroot)
 {
@@ -748,7 +926,7 @@ static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 		return false;
 	}
 	
-	uint16_t set_size = uint16_lb(vol_desc->data.primary.set_size);
+	uint16_t set_size = uint16_lb(vol_desc->data.prisec.set_size);
 	if (set_size > 1) {
 		/*
 		 * Technically, we don't support multi-disc sets.
@@ -758,7 +936,7 @@ static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 		 */
 	}
 	
-	uint16_t sequence_nr = uint16_lb(vol_desc->data.primary.sequence_nr);
+	uint16_t sequence_nr = uint16_lb(vol_desc->data.prisec.sequence_nr);
 	if (sequence_nr != 1) {
 		/*
 		 * We only support the first disc
@@ -768,7 +946,7 @@ static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 		return false;
 	}
 	
-	uint16_t block_size = uint16_lb(vol_desc->data.primary.block_size);
+	uint16_t block_size = uint16_lb(vol_desc->data.prisec.block_size);
 	if (block_size != BLOCK_SIZE) {
 		block_put(block);
 		return false;
@@ -777,8 +955,23 @@ static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 	// TODO: implement path table support
 	
 	cdfs_node_t *node = CDFS_NODE(rfn);
-	node->lba = uint32_lb(vol_desc->data.primary.root_dir.lba);
-	node->size = uint32_lb(vol_desc->data.primary.root_dir.size);
+	
+	/* Search for Joliet SVD */
+	
+	uint32_t jrlba;
+	uint32_t jrsize;
+	
+	rc = cdfs_find_joliet_svd(fs->service_id, altroot, &jrlba, &jrsize);
+	if (rc == EOK) {
+		/* Found */
+		node->lba = jrlba;
+		node->size = jrsize;
+		fs->enc = enc_ucs2;
+	} else {
+		node->lba = uint32_lb(vol_desc->data.prisec.root_dir.lba);
+		node->size = uint32_lb(vol_desc->data.prisec.root_dir.size);
+		fs->enc = enc_ascii;
+	}
 	
 	if (!cdfs_readdir(fs, rfn)) {
 		block_put(block);
@@ -800,9 +993,9 @@ static cdfs_t *cdfs_fs_create(service_id_t sid, cdfs_lba_t altroot)
 	fs = calloc(1, sizeof(cdfs_t));
 	if (fs == NULL)
 		goto error;
-
+	
 	fs->service_id = sid;
-
+	
 	/* Create root node */
 	int rc = create_node(&rfn, fs, L_DIRECTORY, cdfs_index++);
 	
@@ -924,7 +1117,7 @@ static int cdfs_unmounted(service_id_t service_id)
 	fs = cdfs_find_by_sid(service_id);
 	if (fs == NULL)
 		return ENOENT;
-
+	
 	cdfs_fs_destroy(fs);
 	return EOK;
 }
@@ -1028,7 +1221,7 @@ static bool cache_remove_closed(ht_link_t *item, void *arg)
 	
 	/* Some nodes were requested to be removed from the cache. */
 	if (0 < *premove_cnt) {
-		cdfs_node_t *node =	hash_table_get_inst(item, cdfs_node_t, nh_link);
+		cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 
 		if (!node->opened) {
 			hash_table_remove_item(&nodes, item);
