@@ -134,6 +134,7 @@ uspace/dist/drv/root/
 uspace/dist/drv/rootpc/
 uspace/dist/drv/rootvirt/
 uspace/dist/drv/rtl8139/
+uspace/dist/drv/rtl8169/
 uspace/dist/drv/sb16/
 uspace/dist/drv/test1/
 uspace/dist/drv/test2/
@@ -204,6 +205,7 @@ uspace/drv/infrastructure/rootvirt/rootvirt
 uspace/drv/nic/e1k/e1k
 uspace/drv/nic/ne2k/ne2k
 uspace/drv/nic/rtl8139/rtl8139
+uspace/drv/nic/rtl8169/rtl8169
 uspace/drv/test/test1/test1
 uspace/drv/test/test2/test2
 uspace/drv/test/test3/test3
