@@ -225,7 +225,7 @@ static int nic_list(void)
 			goto error;
 		}
 
-		printf("%d: %s\n", i, svc_name);
+		printf("%zu: %s\n", i, svc_name);
 		printf("\tMAC address: %s\n", addr_str);
 		printf("\tVendor name: %s\n",
 		    nic_info.device_info.vendor_name);

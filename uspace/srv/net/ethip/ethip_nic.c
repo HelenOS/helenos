@@ -316,7 +316,7 @@ static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			ethip_nic_device_state(nic, callid, &call);
 			break;
 		default:
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "unknown IPC method: %d", IPC_GET_IMETHOD(call));
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "unknown IPC method: %" PRIun, IPC_GET_IMETHOD(call));
 			async_answer_0(callid, ENOTSUP);
 		}
 	}
