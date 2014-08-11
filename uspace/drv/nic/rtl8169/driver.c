@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define	_DDF_DATA_IMPLANT
-
 #include <assert.h>
 #include <errno.h>
 #include <align.h>
@@ -438,7 +436,6 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &rtl8169_dev_ops);
-//	ddf_fun_data_implant(fun, nic_data);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -738,9 +735,6 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	pio_write_32(rtl8169->regs + RCR, rcr);
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
 
-	ddf_msg(LVL_NOTE, "RCR: 0x%08x", pio_read_32(rtl8169->regs + RCR));
-
-
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
 	irc_enable_interrupt(rtl8169->irq);
 
@@ -815,8 +809,9 @@ static void rtl8169_transmit_done(ddf_dev_t *dev)
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 	rtl8169_descr_t *descr;
+	int sent = 0;
 
-	ddf_msg(LVL_NOTE, "rtl8169_transmit_done()");
+	ddf_msg(LVL_DEBUG, "rtl8169_transmit_done()");
 
 	fibril_mutex_lock(&rtl8169->tx_lock);
 
@@ -827,10 +822,14 @@ static void rtl8169_transmit_done(ddf_dev_t *dev)
 		descr = &rtl8169->tx_ring[tail];
 		descr->control &= (~CONTROL_OWN);
 		write_barrier();
-		ddf_msg(LVL_NOTE, "TX status for descr %d: 0x%08x", tail, descr->control);
+		ddf_msg(LVL_DEBUG, "TX status for descr %d: 0x%08x", tail, descr->control);
 	
 		tail = (tail + 1) % TX_BUFFERS_COUNT;
+		sent++;
 	}
+
+	if (sent != 0)
+		nic_set_tx_busy(nic_data, 0);
 
 	rtl8169->tx_tail = tail;
 
@@ -848,7 +847,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 	unsigned int tail, fsidx = 0;
 	int frame_size;
 
-	ddf_msg(LVL_NOTE, "rtl8169_receive_done()");
+	ddf_msg(LVL_DEBUG, "rtl8169_receive_done()");
 
 	fibril_mutex_lock(&rtl8169->rx_lock);
 
@@ -861,7 +860,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 			break;
 
 		if (descr->control & RXSTATUS_RES) {
-			ddf_msg(LVL_NOTE, "error at slot %d: 0x%08x\n", tail, descr->control);
+			ddf_msg(LVL_WARN, "error at slot %d: 0x%08x\n", tail, descr->control);
 			tail = (tail + 1) % RX_BUFFERS_COUNT;
 			continue;
 		}
@@ -870,8 +869,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 			fsidx = tail;
 		
 		if (descr->control & CONTROL_LS) {
-
-			ddf_msg(LVL_NOTE, "received message at slot %d, control 0x%08x", tail, descr->control);
+			ddf_msg(LVL_DEBUG, "received message at slot %d, control 0x%08x", tail, descr->control);
 
 			if (fsidx != tail)
 				ddf_msg(LVL_WARN, "single frame spanning multiple descriptors");
@@ -906,7 +904,7 @@ static void rtl8169_irq_handler(ddf_dev_t *dev, ipc_callid_t iid,
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
-	ddf_msg(LVL_NOTE, "rtl8169_irq_handler(): isr=0x%04x", isr);
+	ddf_msg(LVL_DEBUG, "rtl8169_irq_handler(): isr=0x%04x", isr);
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
 
 	while (isr != 0) {
@@ -962,7 +960,7 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 
 	fibril_mutex_lock(&rtl8169->tx_lock);
 
-	ddf_msg(LVL_NOTE, "send_frame: size: %zu, tx_head=%d tx_tail=%d",
+	ddf_msg(LVL_DEBUG, "send_frame: size: %zu, tx_head=%d tx_tail=%d",
 	    size, rtl8169->tx_head, rtl8169->tx_tail);
 
 	head = rtl8169->tx_head;
@@ -985,7 +983,7 @@ static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size)
 	descr = &rtl8169->tx_ring[head];
 	prev = &rtl8169->tx_ring[(head - 1) % TX_BUFFERS_COUNT];
 
-	ddf_msg(LVL_NOTE, "current_descr=%p, prev_descr=%p", descr, prev);
+	ddf_msg(LVL_DEBUG, "current_descr=%p, prev_descr=%p", descr, prev);
 
 	descr->control = CONTROL_OWN | CONTROL_FS | CONTROL_LS;
 	descr->control |= size & 0xffff;
