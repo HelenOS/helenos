@@ -47,8 +47,6 @@
 #include <ops/nic.h>
 #include <errno.h>
 
-#include <io/log.h>
-
 #include "nic_driver.h"
 #include "nic_ev.h"
 #include "nic_impl.h"
@@ -437,7 +435,6 @@ int nic_report_address(nic_t *nic_data, const nic_address_t *address)
 	if (nic_data->client_session != NULL) {
 		int rc = nic_ev_addr_changed(nic_data->client_session,
 		    address);
-		log_msg(LOG_DEFAULT, LVL_WARN, "rc=%d", rc);
 
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&nic_data->main_lock);
@@ -530,8 +527,6 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	/* Update statistics */
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
-
-	log_msg(LOG_DEFAULT, LVL_WARN, "nic_received_frame(), check=%d", check);
 
 	if (nic_data->state == NIC_STATE_ACTIVE && check) {
 		nic_data->stats.receive_packets++;
