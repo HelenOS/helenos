@@ -327,6 +327,14 @@ static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev)
 	return rtl8169;
 }
 
+static void rtl8169_dev_cleanup(ddf_dev_t *dev)
+{
+	assert(dev);
+
+	if (ddf_dev_data_get(dev))
+		nic_unbind_and_destroy(dev);
+}
+
 static int rtl8169_dev_initialize(ddf_dev_t *dev)
 {
 	int ret;
@@ -348,7 +356,7 @@ static int rtl8169_dev_initialize(ddf_dev_t *dev)
 	
 failed:
 	ddf_msg(LVL_ERROR, "The device initialization failed");
-//	rtl8139_dev_cleanup(dev);
+	rtl8169_dev_cleanup(dev);
 	return ret;
 
 }
@@ -463,7 +471,7 @@ err_irq:
 	//unregister_interrupt_handler(dev, rtl8169->irq);
 err_pio:
 err_destroy:
-	//rtl8169_dev_cleanup(dev);
+	rtl8169_dev_cleanup(dev);
 	return rc;
 
 	return EOK;
@@ -729,9 +737,7 @@ static int rtl8169_on_activated(nic_t *nic_data)
 
 	/* Configure Receive Control Register */
 	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
-	rcr |= RCR_ACCEPT_ALL_PHYS | RCR_ACCEPT_PHYS_MATCH \
-	    | RCR_ACCEPT_BROADCAST | RCR_ACCEPT_ERROR \
-	    | RCR_ACCEPT_RUNT;
+	rcr |= RCR_ACCEPT_PHYS_MATCH | RCR_ACCEPT_ERROR | RCR_ACCEPT_RUNT;
 	pio_write_32(rtl8169->regs + RCR, rcr);
 	pio_write_16(rtl8169->regs + RMS, BUFFER_SIZE);
 
@@ -800,6 +806,12 @@ static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
 
 static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 {
+	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	
+	/* Configure Receive Control Register */
+	uint32_t rcr = pio_read_32(rtl8169->regs + RCR);
+	rcr |= RCR_ACCEPT_BROADCAST;		
+	pio_write_32(rtl8169->regs + RCR, rcr);
 	return EOK;
 }
 
