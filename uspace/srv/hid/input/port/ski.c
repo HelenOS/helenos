@@ -88,7 +88,7 @@ static void ski_thread_impl(void *arg)
 	(void) arg;
 
 	while (1) {
-		while (polling_disabled == false) {
+		while (1) {
 			c = ski_getchar();
 			if (c == 0)
 				break;
