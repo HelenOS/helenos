@@ -191,7 +191,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Kernel console syscalls. */
-	(syshandler_t) sys_debug_activate_console,
+	(syshandler_t) sys_debug_console,
 	
 	(syshandler_t) sys_klog,
 };

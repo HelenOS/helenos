@@ -2062,7 +2062,7 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 
 		fibril_mutex_unlock(&viewport_list_mtx);
 	} else if (kconsole_switch) {
-		__SYSCALL0(SYS_DEBUG_ACTIVATE_CONSOLE);
+		__SYSCALL0(SYS_DEBUG_CONSOLE);
 	} else {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 		if (event == NULL)

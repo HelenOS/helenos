@@ -78,7 +78,7 @@ const sc_desc_t syscall_desc[] = {
     [SYS_SYSINFO_GET_DATA_SIZE] = { "sysinfo_get_data_size",	3,	V_ERRNO },
     [SYS_SYSINFO_GET_DATA] = { "sysinfo_get_data",		5,	V_ERRNO },
 
-    [SYS_DEBUG_ACTIVATE_CONSOLE] = { "debug_activate_console", 0,	V_ERRNO },
+    [SYS_DEBUG_CONSOLE] = { "debug_console", 0,	V_ERRNO },
     [SYS_IPC_CONNECT_KBOX] = { "ipc_connect_kbox",	1,	V_ERRNO }
 };
 

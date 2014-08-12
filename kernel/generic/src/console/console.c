@@ -223,7 +223,7 @@ void release_console(void)
 }
 
 /** Activate kernel console override */
-sysarg_t sys_debug_activate_console(void)
+sysarg_t sys_debug_console(void)
 {
 #ifdef CONFIG_KCONSOLE
 	grab_console();
